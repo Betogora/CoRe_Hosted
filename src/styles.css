@@ -699,7 +699,7 @@
 
   .core-tooltip {
     position: fixed;
-    z-index: 60;
+    z-index: 100;
     width: max-content;
     max-width: min(16rem, calc(100vw - 1rem));
     border-radius: var(--core-radius-control);
@@ -904,6 +904,142 @@
   .core-field-group {
     display: grid;
     gap: var(--core-space-sm);
+  }
+
+  .core-settings-section {
+    display: grid;
+    min-width: 0;
+    gap: var(--core-space-sm);
+  }
+
+  .core-settings-group {
+    display: grid;
+    min-width: 0;
+    gap: var(--core-space-xs);
+    margin-top: var(--core-space-xl);
+  }
+
+  .core-settings-list {
+    display: grid;
+    min-width: 0;
+  }
+
+  .core-settings-list > * + * {
+    border-top: var(--core-border-width) solid var(--core-border);
+  }
+
+  .core-settings-row {
+    display: grid;
+    min-width: 0;
+    align-items: center;
+    gap: var(--core-space-sm) var(--core-space-xl);
+    padding-block: var(--core-space-lg);
+  }
+
+  .core-settings-row[data-layout="inline"] {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .core-settings-row[data-layout="inline"] > .core-settings-row-control {
+    justify-content: flex-end;
+  }
+
+  .core-settings-row-text {
+    display: grid;
+    min-width: 0;
+    gap: var(--core-space-xs);
+  }
+
+  .core-settings-row-title {
+    color: var(--core-text);
+    font: var(--core-weight-control) var(--core-type-body)/var(--core-leading-body) var(--core-font-sans);
+  }
+
+  .core-settings-row-hint {
+    color: var(--core-text-muted);
+    font: var(--core-weight-body) var(--core-type-caption)/var(--core-leading-caption) var(--core-font-sans);
+  }
+
+  .core-settings-row-control {
+    display: flex;
+    min-width: 0;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--core-space-sm);
+  }
+
+  .core-settings-row-value {
+    color: var(--core-text-secondary);
+    font: var(--core-weight-body) var(--core-type-body)/var(--core-leading-body) var(--core-font-sans);
+    font-variant-numeric: tabular-nums;
+  }
+
+  @media (min-width: 768px) {
+    /* The text keeps a readable column; wide controls wrap instead of squeezing it. */
+    .core-settings-row {
+      grid-template-columns: minmax(14rem, 1fr) auto;
+    }
+
+    .core-settings-row > .core-settings-row-control {
+      justify-content: flex-end;
+    }
+  }
+
+  .core-settings-matrix {
+    width: 100%;
+    max-width: 32rem;
+    border-collapse: collapse;
+    table-layout: fixed;
+  }
+
+  .core-settings-matrix tr > th:first-child {
+    width: 6.5rem;
+  }
+
+  .core-settings-matrix th {
+    color: var(--core-text);
+    font: var(--core-weight-control) var(--core-type-body)/var(--core-leading-body) var(--core-font-sans);
+    text-align: left;
+  }
+
+  .core-settings-matrix thead th {
+    padding-bottom: var(--core-space-sm);
+    color: var(--core-text-muted);
+    font: var(--core-weight-control) var(--core-type-caption)/var(--core-leading-caption) var(--core-font-sans);
+    text-align: center;
+  }
+
+  .core-settings-matrix tbody tr + tr {
+    border-top: var(--core-border-width) solid var(--core-border);
+  }
+
+  .core-settings-matrix td {
+    padding: var(--core-space-xs);
+  }
+
+  .core-settings-matrix-cell {
+    display: grid;
+    min-height: var(--core-button-height);
+    place-items: center;
+    border-radius: var(--core-radius-control);
+    cursor: pointer;
+    transition: background-color 120ms ease;
+  }
+
+  .core-settings-matrix-cell:hover {
+    background: var(--core-surface-hover);
+  }
+
+  .core-settings-matrix-cell[data-level="normal"]:has(input:checked) {
+    background: var(--core-surface-muted);
+  }
+
+  .core-settings-matrix-cell[data-level="reduced"]:has(input:checked) {
+    background: var(--core-warning-surface);
+  }
+
+  .core-settings-matrix-cell[data-level="minimum"]:has(input:checked) {
+    background: var(--core-info-surface);
   }
 }
 

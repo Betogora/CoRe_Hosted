@@ -49,13 +49,9 @@ test("keeps statistics, help, settings and simulator routable outside the primar
 // @ts-expect-error -- Die Fixture prüft bewusst eine unvollständige, ungültige oder konfliktbehaftete Laufzeitform.
   assert.equal(menu.getView("hilfe").title, "Wie CoRe und FSRS funktionieren");
   assert.equal(menu.getView("simulator")?.title, "Simulator");
-  assert.ok(menu);
-// @ts-expect-error -- Die Fixture pr?ft bewusst eine unvollst?ndige, ung?ltige oder konfliktbehaftete Laufzeitform.
-  assert.equal(menu.getView("einstellungen").title, "Einstellungen");
-  assert.deepStrictEqual(menu.getView("einstellungen")?.stats, []);
+  assert.equal(menu.listRoutableViewIds().includes("einstellungen" as never), false);
   assert.equal(menu.listRoutableViewIds().includes("statistik"), true);
   assert.equal(menu.listNavigationItems().some((item) => item.id === "statistik"), false);
-  assert.equal(menu.listNavigationItems().some((item) => item.id === "einstellungen"), false);
   assert.equal(menu.listNavigationItems().some((item) => item.id === "hilfe"), false);
   assert.equal(menu.listNavigationItems().some((item) => item.id === "simulator"), false);
 });

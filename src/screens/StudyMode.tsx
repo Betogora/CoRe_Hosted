@@ -58,7 +58,7 @@ function createEasyDaysContext(
 // Cards rendered and media loaded ahead: enough to answer quickly without holding many images.
 const PREFETCH_CARD_COUNT = 3;
 
-export function StudyMode({ deck, decks, notes, answeredToday, deckId, mediaStore, getNow, learningDayKey, dayStartHour = 0, learnAheadMinutes = 20, easyDays = DEFAULT_EASY_DAYS, dueForecast = null, timeZone, simulationOffsetMinutes, pomodoroTimer, onStartPomodoro, onExit, onReturnToLearn, onEditCard, onEditDeck, flagNames, onSetCardStudyState, onSetDeckReviewOrder, onReview, sessionPlan, bufferSize = 50, hasMoreCards = false, onLoadMoreCards }: StudyModeProps) {
+export function StudyMode({ shortcutsSuspended = false, deck, decks, notes, answeredToday, deckId, mediaStore, getNow, learningDayKey, dayStartHour = 0, learnAheadMinutes = 20, easyDays = DEFAULT_EASY_DAYS, dueForecast = null, timeZone, simulationOffsetMinutes, pomodoroTimer, onStartPomodoro, onExit, onReturnToLearn, onEditCard, onEditDeck, flagNames, onSetCardStudyState, onSetDeckReviewOrder, onReview, sessionPlan, bufferSize = 50, hasMoreCards = false, onLoadMoreCards }: StudyModeProps) {
   const [sessionDecks, setSessionDecks] = React.useState(decks);
   const [sessionNotes, setSessionNotes] = React.useState(() => new Map(notes.map((note) => [note.id, note])));
   const sessionIndexRef = React.useRef<ReturnType<typeof createDailyReviewSessionIndex> | null>(null);
@@ -384,7 +384,7 @@ export function StudyMode({ deck, decks, notes, answeredToday, deckId, mediaStor
 
   React.useEffect(() => {
     function handleKeyDown(event: KeyboardEvent) {
-      if (showSettings) return;
+      if (showSettings || shortcutsSuspended) return;
       // Strg+1–7 switches the flag like in Anki; the dot in the header shows it, without a toast (W20).
       if ((event.ctrlKey || event.metaKey) && !event.altKey && !event.shiftKey && /^[1-7]$/.test(event.key) && current) {
         event.preventDefault();
@@ -407,7 +407,7 @@ export function StudyMode({ deck, decks, notes, answeredToday, deckId, mediaStor
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [current, showAnswer, showSettings, sessionDecks, reviewSession]);
+  }, [current, showAnswer, showSettings, shortcutsSuspended, sessionDecks, reviewSession]);
 
   return (
     <main className="min-h-screen bg-core-canvas p-4 text-core-text sm:p-8">

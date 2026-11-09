@@ -1,7 +1,7 @@
 import { expect, test, type Locator, type Page } from "@playwright/test";
 import { CORE_THEME_STORAGE_KEY } from "../../src/coreTheme.ts";
 import { readActiveAccountState, resetToFreshLocalState } from "./support/appState.ts";
-import { chooseCoreSelectOption } from "./support/coreSelect.ts";
+import { openSettingsArea, settingsDialog } from "./support/settingsDialog.ts";
 
 function mainMenu(page: Page) {
   return page.getByRole("navigation", { name: /Hauptmenü|Mobile Hauptnavigation/ }).filter({ visible: true });
@@ -50,8 +50,9 @@ test("app chrome switches exactly at the 1280 pixel top bar breakpoint", async (
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)).toBe(true);
 
   await mobileSettingsButton.click();
-  await expect(page).toHaveURL(/\/einstellungen$/);
-  await expect(mobileSettingsButton).toHaveAttribute("aria-current", "page");
+  await expect(page).toHaveURL(/\?settings=start$/);
+  await expect(settingsDialog(page)).toBeVisible();
+  await expect(mobileSettingsButton).toHaveAttribute("aria-expanded", "true");
   await expect(page.getByText("Darstellung", { exact: true })).toHaveCount(0);
 
   await page.setViewportSize({ width: 1280, height: 900 });
@@ -67,7 +68,7 @@ test("app chrome switches exactly at the 1280 pixel top bar breakpoint", async (
   await expect(desktopSettingsButton).toBeVisible();
   await expect(desktopHelpButton).toBeVisible();
   await expect(desktopThemeButton).toBeVisible();
-  await expect(desktopSettingsButton).toHaveAttribute("aria-current", "page");
+  await expect(desktopSettingsButton).toHaveAttribute("aria-expanded", "true");
   await expect(desktopThemeButton).toHaveClass(/core-action-ghost/);
   await expect(page.locator('[aria-label="Seiteninhalt"]')).toHaveCSS("padding-left", "24px");
   await expect(page.locator('[aria-label="Seiteninhalt"]')).toHaveCSS("padding-right", "24px");
@@ -135,10 +136,12 @@ test("general and learning settings each save their sections together through on
   await resetToFreshLocalState(page);
   await page.setViewportSize({ width: 1280, height: 900 });
   await page.getByRole("button", { name: "Einstellungen öffnen" }).click();
+  const dialog = settingsDialog(page);
 
-  await expect(page.getByRole("heading", { name: "Allgemeine Einstellungen" })).toBeVisible();
+  await expect(dialog.getByRole("heading", { name: "Konto", exact: true })).toBeVisible();
   await page.getByLabel("Anzeigename").fill("CoRe Save-Bar E2E");
-  await chooseCoreSelectOption(page, page.getByRole("combobox", { name: "Intervall der automatischen Synchronisierung" }), "Alle 15 Minuten");
+  await openSettingsArea(dialog, "daten");
+  await page.getByRole("group", { name: "Intervall der automatischen Synchronisierung" }).getByRole("button", { name: "15", exact: true }).click();
   const saveBar = page.getByTestId("settings-save-bar");
   await expect(saveBar).toHaveCount(1);
   await expect(saveBar.getByRole("button", { name: "Speichern", exact: true })).toHaveCount(1);
@@ -148,8 +151,8 @@ test("general and learning settings each save their sections together through on
   await expect(saveBar).toHaveCount(0);
   await expect(page.getByText("Allgemeine Einstellungen wurden gespeichert.", { exact: true })).toBeVisible();
 
-  await page.getByRole("button", { name: "Lerneinstellungen", exact: true }).click();
-  await expect(page.getByRole("heading", { name: "Lerneinstellungen", exact: true })).toBeVisible();
+  await openSettingsArea(dialog, "lerntag");
+  await expect(dialog.getByRole("heading", { name: "Lerntag & Planung", exact: true })).toBeVisible();
   await page.getByTestId("card-settings-day-start-hour").fill("3");
   await page.getByTestId("card-settings-learn-ahead").fill("45");
   await saveBar.getByRole("button", { name: "Auf alle neuen Stapel anwenden", exact: true }).click();
@@ -166,11 +169,12 @@ test("general and learning settings each save their sections together through on
   }).toEqual({ displayName: "CoRe Save-Bar E2E", syncIntervalMinutes: 15, dayStartHour: 3, learnAheadMinutes: 45 });
 
   await page.reload();
+  await expect(page).toHaveURL(/\?settings=lerntag$/);
   await expect(page.getByTestId("card-settings-day-start-hour")).toHaveValue("3");
   await expect(page.getByTestId("card-settings-learn-ahead")).toHaveValue("45");
 
   await page.setViewportSize({ width: 390, height: 844 });
-  await expect(page.getByRole("heading", { name: "Lerneinstellungen", exact: true })).toBeVisible();
+  await expect(dialog.getByRole("heading", { name: "Lerntag & Planung", exact: true })).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)).toBe(true);
 });
 
@@ -193,18 +197,15 @@ test("settings save bar keeps its depth and responsive position in both themes",
       const layout = await saveBar.evaluate((bar) => {
         const status = bar.querySelector<HTMLElement>('[role="status"]')!;
         const button = [...bar.querySelectorAll<HTMLButtonElement>("button")].find((candidate) => candidate.textContent?.trim() === "Speichern")!;
-        const bottomNavigation = document.querySelector<HTMLElement>('[data-navigation-layout="bottom-bar"]');
+        const dialogRect = bar.closest<HTMLElement>('[data-testid="settings-dialog"]')!.getBoundingClientRect();
         const barRect = bar.getBoundingClientRect();
         const statusRect = status.getBoundingClientRect();
         const buttonRect = button.getBoundingClientRect();
-        const bottomNavigationRect = bottomNavigation && getComputedStyle(bottomNavigation).display !== "none"
-          ? bottomNavigation.getBoundingClientRect()
-          : null;
         return {
           barBottom: barRect.bottom,
           barLeft: barRect.left,
           barRight: barRect.right,
-          bottomNavigationTop: bottomNavigationRect?.top ?? null,
+          dialogBottom: dialogRect.bottom,
           buttonHeight: buttonRect.height,
           boxShadow: getComputedStyle(bar).boxShadow,
           inline: Math.abs((statusRect.top + statusRect.height / 2) - (buttonRect.top + buttonRect.height / 2)) < 2,
@@ -218,7 +219,8 @@ test("settings save bar keeps its depth and responsive position in both themes",
       expect(layout.barLeft).toBeGreaterThanOrEqual(0);
       expect(layout.barRight).toBeLessThanOrEqual(viewport.width);
       expect(layout.inline).toBe(viewport.width >= 640);
-      if (layout.bottomNavigationTop !== null) expect(layout.barBottom).toBeLessThan(layout.bottomNavigationTop);
+      expect(layout.barBottom).toBeLessThanOrEqual(layout.dialogBottom + 1);
+      expect(layout.barBottom).toBeLessThanOrEqual(viewport.height);
     }
   }
   await page.evaluate(() => { document.documentElement.dataset.coreTheme = "light"; });
@@ -243,10 +245,11 @@ test("deck expansion preserves the complete profile across reload and an isolate
     learnAheadMinutes: String(before.schedulerPreferences.learnAheadMinutes),
   };
   const expectProfileSettings = async (target: Page) => {
-    await target.getByRole("button", { name: "Einstellungen öffnen" }).click();
+    if (!(await settingsDialog(target).isVisible())) await target.getByRole("button", { name: "Einstellungen öffnen" }).click();
+    await openSettingsArea(settingsDialog(target), "konto");
     await expect(target.getByLabel("Anzeigename")).toHaveValue(expected.displayName);
     await expect(target.getByLabel("Login-E-Mail")).toHaveValue(expected.email);
-    await target.getByRole("button", { name: "Lerneinstellungen", exact: true }).click();
+    await openSettingsArea(settingsDialog(target), "lerntag");
     await expect(target.getByText(expected.timezone, { exact: true })).toBeVisible();
     await expect(target.getByTestId("card-settings-day-start-hour")).toHaveValue(expected.dayStartHour);
     await expect(target.getByTestId("card-settings-learn-ahead")).toHaveValue(expected.learnAheadMinutes);
@@ -254,7 +257,7 @@ test("deck expansion preserves the complete profile across reload and an isolate
 
   await expectProfileSettings(page);
   await page.reload();
-  await expect(page.getByRole("heading", { name: "Lerneinstellungen", exact: true })).toBeVisible();
+  await expect(settingsDialog(page).getByRole("heading", { name: "Lerntag & Planung", exact: true })).toBeVisible();
   await expectProfileSettings(page);
 
   const isolatedContext = await browser.newContext({ storageState: await page.context().storageState() });
@@ -294,21 +297,33 @@ test("deck expansion responds immediately on dashboard and learning", async ({ p
   }
 });
 
-test("global settings block navigation until saving and require a second navigation", async ({ page }) => {
+test("settings drafts block closing and group switches until saving", async ({ page }) => {
   await resetToFreshLocalState(page);
+  await mainMenu(page).getByRole("button", { name: "Lernen" }).click();
   await page.getByRole("button", { name: "Einstellungen öffnen" }).click();
-  await page.getByLabel("Anzeigename").fill("Navigation blockiert");
-
-  await mainMenu(page).getByRole("button", { name: "Lernen" }).click();
-  await expect(page).toHaveURL(/\/einstellungen$/);
+  const dialog = settingsDialog(page);
+  await page.getByLabel("Anzeigename").fill("Schließen blockiert");
   const saveBar = page.getByTestId("settings-save-bar");
-  await expect(saveBar.getByRole("status")).toHaveText("Zum Verlassen zuerst speichern.");
-  await saveBar.getByRole("button", { name: "Speichern" }).click();
-  await expect(page).toHaveURL(/\/einstellungen$/);
-  await expect(saveBar).toHaveCount(0);
-  expect((await readActiveAccountState(page)).profile.displayName).toBe("Navigation blockiert");
 
-  await mainMenu(page).getByRole("button", { name: "Lernen" }).click();
+  await openSettingsArea(dialog, "daten");
+  await expect(page).toHaveURL(/\/lernen\?settings=daten$/);
+  await expect(saveBar.getByRole("status")).toHaveText("Änderungen speichern?");
+
+  await openSettingsArea(dialog, "ueber");
+  await dialog.locator('[data-settings-section="lerntag"]').click();
+  await expect(page).toHaveURL(/\/lernen\?settings=ueber$/);
+  await expect(saveBar.getByRole("status")).toHaveText("Zum Verlassen zuerst speichern.");
+
+  await dialog.getByRole("button", { name: "Einstellungen schließen" }).click();
+  await expect(dialog).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(dialog).toBeVisible();
+  await saveBar.getByRole("button", { name: "Speichern" }).click();
+  await expect(saveBar).toHaveCount(0);
+  expect((await readActiveAccountState(page)).profile.displayName).toBe("Schließen blockiert");
+
+  await dialog.getByRole("button", { name: "Einstellungen schließen" }).click();
+  await expect(dialog).toHaveCount(0);
   await expect(page).toHaveURL(/\/lernen$/);
 });
 
@@ -319,99 +334,75 @@ test("browser back is cancelled until saving and must be repeated", async ({ pag
   await page.getByLabel("Anzeigename").fill("Browser-Zurück Entwurf");
 
   await page.goBack();
-  await expect(page).toHaveURL(/\/einstellungen$/);
+  await expect(page).toHaveURL(/\/lernen\?settings=start$/);
   const saveBar = page.getByTestId("settings-save-bar");
   await expect(saveBar.getByRole("status")).toHaveText("Zum Verlassen zuerst speichern.");
   await saveBar.getByRole("button", { name: "Speichern" }).click();
-  await expect(page).toHaveURL(/\/einstellungen$/);
+  await expect(page).toHaveURL(/\/lernen\?settings=start$/);
 
   await page.goBack();
   await expect(page).toHaveURL(/\/lernen$/);
+  await expect(settingsDialog(page)).toHaveCount(0);
 });
 
 test("browser forward is cancelled until saving and must be repeated", async ({ page }) => {
   await resetToFreshLocalState(page);
-  await page.getByRole("button", { name: "Einstellungen öffnen" }).click();
-  await mainMenu(page).getByRole("button", { name: "Lernen" }).click();
+  await page.goto("/lernen?settings=fokus");
+  const dialog = settingsDialog(page);
+  await dialog.getByRole("button", { name: "Simulator öffnen" }).click();
+  await expect(page).toHaveURL(/\/simulator$/);
   await page.goBack();
-  await expect(page).toHaveURL(/\/einstellungen$/);
+  await expect(page).toHaveURL(/\/lernen\?settings=fokus$/);
+  await openSettingsArea(dialog, "konto");
   await page.getByLabel("Anzeigename").fill("Browser-Vorwärts Entwurf");
 
   await page.goForward();
-  await expect(page).toHaveURL(/\/einstellungen$/);
+  await expect(page).toHaveURL(/\/lernen\?settings=konto$/);
   const saveBar = page.getByTestId("settings-save-bar");
   await expect(saveBar.getByRole("status")).toHaveText("Zum Verlassen zuerst speichern.");
   await saveBar.getByRole("button", { name: "Speichern" }).click();
-  await expect(page).toHaveURL(/\/einstellungen$/);
+  await expect(page).toHaveURL(/\/lernen\?settings=konto$/);
 
   await page.goForward();
-  await expect(page).toHaveURL(/\/lernen$/);
+  await expect(page).toHaveURL(/\/simulator$/);
+  await expect(dialog).toHaveCount(0);
 });
 
-test("settings in-page navigation keeps responsive layout, hashes and browser history", async ({ page }) => {
+test("settings dialog switches between side list and area list at 768 px", async ({ page }) => {
   await resetToFreshLocalState(page);
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.getByRole("button", { name: "Einstellungen öffnen" }).click();
+  const dialog = settingsDialog(page);
+  const areas = dialog.getByRole("navigation", { name: "Bereiche der Einstellungen" });
+  await expect(areas).toBeVisible();
+  await expect(areas.locator("[data-settings-section]")).toHaveCount(8);
+  await expect(dialog.getByRole("heading", { name: "Konto", exact: true })).toBeVisible();
 
-  const desktopNavigation = page.locator('[data-in-page-navigation="desktop"]');
-  const compactNavigation = page.locator('[data-in-page-navigation="compact"]');
-  await expect(desktopNavigation).toBeVisible();
-  await expect(compactNavigation).toBeHidden();
-  await expect(desktopNavigation.getByRole("link")).toHaveCount(3);
-
-  const focusLink = desktopNavigation.getByRole("link", { name: "Über uns" });
-  await page.getByLabel("Anzeigename").fill("Hashnavigation bleibt frei");
-  await focusLink.click();
-  await expect(page).toHaveURL(/\/einstellungen#settings-about$/);
-  await expect(page.getByTestId("settings-save-bar")).toBeVisible();
-  await expect(focusLink).toHaveAttribute("aria-current", "location");
-  await expect(page.getByRole("heading", { name: "Über uns", exact: true })).toBeVisible();
-  await page.getByTestId("settings-save-bar").getByRole("button", { name: "Speichern" }).click();
-
+  await openSettingsArea(dialog, "ueber");
   await page.reload();
-  await expect(page).toHaveURL(/\/einstellungen#settings-about$/);
-  await expect(focusLink).toHaveAttribute("aria-current", "location");
-  await page.goBack();
-  await expect(page).toHaveURL(/\/einstellungen$/);
-  await expect(desktopNavigation.getByRole("link", { name: "Konto" })).toHaveAttribute("aria-current", "location");
-
-  await page.setViewportSize({ width: 1279, height: 900 });
-  await expect(desktopNavigation).toBeHidden();
-  await expect(compactNavigation).toBeVisible();
-  const summary = compactNavigation.locator('[data-in-page-navigation-summary="true"]');
-  await summary.click();
-  await expect(compactNavigation.getByRole("link")).toHaveCount(3);
-  await compactNavigation.getByRole("link", { name: "Daten & Synchronisierung" }).click();
-  await expect(page).toHaveURL(/\/einstellungen#settings-data-sync$/);
-  await expect(summary).toContainText("Daten & Synchronisierung");
-  await expect(compactNavigation.locator("details")).not.toHaveAttribute("open", "");
-
-  await summary.click();
-  await page.keyboard.press("Escape");
-  await expect(compactNavigation.locator("details")).not.toHaveAttribute("open", "");
-  await expect(summary).toBeFocused();
-
-  await page.setViewportSize({ width: 820, height: 900 });
-  await summary.click();
-  const tabletColumns = await compactNavigation.locator("ul").evaluate((list) => getComputedStyle(list).gridTemplateColumns.split(" ").length);
-  expect(tabletColumns).toBe(2);
-  await summary.click();
+  await expect(page).toHaveURL(/\?settings=ueber$/);
+  await expect(dialog.locator('[data-settings-section="ueber"]')).toHaveAttribute("aria-current", "page");
 
   await page.setViewportSize({ width: 390, height: 844 });
-  await summary.click();
-  const mobileColumns = await compactNavigation.locator("ul").evaluate((list) => getComputedStyle(list).gridTemplateColumns.split(" ").length);
-  expect(mobileColumns).toBe(1);
+  await expect(areas).toBeHidden();
+  await expect(dialog.getByRole("heading", { name: "Über uns", exact: true })).toBeVisible();
+  await dialog.getByRole("button", { name: "Zurück zu den Bereichen" }).click();
+  await expect(page).toHaveURL(/\?settings=start$/);
+  await expect(areas).toBeVisible();
+  await expect(dialog.getByRole("heading", { name: "Konto", exact: true })).toBeHidden();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)).toBe(true);
 
-  await mainMenu(page).getByRole("button", { name: "Lernen" }).click();
-  await expect(page).toHaveURL(/\/lernen$/);
+  await openSettingsArea(dialog, "daten");
+  await expect(dialog.getByRole("heading", { name: "Daten & Synchronisierung", exact: true })).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(dialog).toHaveCount(0);
 });
 
 test("Pomodoro timer starts globally, persists and stays synchronized between tabs", async ({ page, context }) => {
   await resetToFreshLocalState(page);
   await page.setViewportSize({ width: 1280, height: 720 });
   await page.getByRole("button", { name: "Einstellungen öffnen" }).click();
-  await page.getByRole("button", { name: "Lerneinstellungen", exact: true }).click();
+  await openSettingsArea(settingsDialog(page), "fokus");
 
   const control = page.locator('[data-pomodoro-control="settings"]');
   await control.locator("button").first().click();

@@ -61,3 +61,9 @@ test("a failed save is announced in the bar itself", () => {
   const html = renderToStaticMarkup(<SettingsSaveBar open failed onSave={() => undefined} onDiscard={() => undefined} />);
   assert.match(html, /role="alert"[^>]*>Speichern fehlgeschlagen – bitte erneut versuchen\.</);
 });
+
+test("the bar is the static footer of a settings dialog, not a floating overlay", () => {
+  const html = renderBar();
+  assert.doesNotMatch(html, /fixed|style="bottom:/);
+  assert.match(html, /class="[^"]*\brelative\b[^"]*\bw-full\b/);
+});

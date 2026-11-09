@@ -88,7 +88,7 @@ test("ungenutzte neue Karten verlinken gezielt zum fokussierten Tageslimit", asy
   const state = await readActiveAccountState(page);
   const deckId = state.decks.find((deck: { cards?: unknown[] }) => deck.cards?.length)?.id;
   expect(deckId).toBeTruthy();
-  await page.goto(`/stapel-einstellungen?deck=${encodeURIComponent(deckId)}&returnView=learn`);
+  await page.goto(`/lernen?settingsDeck=${encodeURIComponent(deckId)}&settings=tagesrunde`);
   await page.getByTestId("learning-settings-new-cards").fill("0");
   await page.getByTestId("settings-save-bar").getByRole("button", { name: "Speichern" }).click();
 
@@ -99,7 +99,8 @@ test("ungenutzte neue Karten verlinken gezielt zum fokussierten Tageslimit", asy
   await expect(emptyDialog).toContainText("1 neue Karte bleibt wegen deiner Tageslimits für später vorgemerkt.");
   await emptyDialog.getByRole("button", { name: "Neue Karten pro Tag anpassen" }).click();
 
-  await expect(page).toHaveURL(new RegExp(`/stapel-einstellungen\\?deck=${deckId}.*target=new-cards-per-day`));
+  await expect(page).toHaveURL(new RegExp(`/lernen\\?.*settingsDeck=${deckId}&settings=neue-karten`));
+  await expect(page.getByTestId("deck-settings-dialog")).toBeVisible();
   await expect(page.getByTestId("learning-settings-new-cards")).toBeFocused();
   await expect(page.getByTestId("learning-settings-new-cards")).toHaveValue("0");
 });

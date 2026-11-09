@@ -29,7 +29,7 @@ export interface FlagPickerProps {
   /** 0 removes the flag; choosing the set flag again removes it as well. */
   onValueChange: (flag: number) => void;
   names?: readonly string[];
-  /** Links to the account's flag names (`karten-einstellungen`, target `flag-names`). */
+  /** Opens the account's flag names in the settings dialog (area `flaggen`). */
   onEditNames?: () => void;
   disabled?: boolean;
   className?: string;

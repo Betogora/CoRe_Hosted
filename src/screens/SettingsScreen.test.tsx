@@ -7,11 +7,14 @@ import { createCoreRepository } from "../coreRepository.ts";
 import { SettingsScreen } from "./SettingsScreen.tsx";
 import { createConflictImpactPreview } from "./SyncConflictPanel.tsx";
 
-function renderSettings(sync: Pick<React.ComponentProps<typeof SettingsScreen>, "syncStatus" | "lastSyncedAt"> = { syncStatus: { status: "idle" } }) {
+type GeneralSection = React.ComponentProps<typeof SettingsScreen>["section"];
+
+function renderSettings(section: GeneralSection = "konto", sync: Pick<React.ComponentProps<typeof SettingsScreen>, "syncStatus" | "lastSyncedAt"> = { syncStatus: { status: "idle" } }) {
   const state = createCoreRepository().getState();
   const profile = { ...state.profile, email: "login@example.test", displayName: "Ada", timezone: "Europe/Berlin" };
   return renderToStaticMarkup(
     <SettingsScreen
+      section={section}
       profile={profile}
       syncStatus={sync.syncStatus}
       lastSyncedAt={sync.lastSyncedAt}
@@ -26,20 +29,18 @@ function renderSettings(sync: Pick<React.ComponentProps<typeof SettingsScreen>, 
   );
 }
 
-test("general settings expose three task-based sections and card-settings navigation", () => {
-  const html = renderSettings();
-  for (const heading of ["Konto", "Daten &amp; Synchronisierung", "Über uns"]) assert.match(html, new RegExp(`>${heading}<`));
-  assert.match(html, />Allgemeine Einstellungen</);
-  assert.match(html, /aria-label="Bereiche der allgemeinen Einstellungen"/);
-  for (const target of ["settings-account", "settings-data-sync", "settings-about"]) assert.match(html, new RegExp(`href="#${target}"`));
-  assert.match(html, /data-in-page-navigation="desktop"/);
-  assert.match(html, /data-in-page-navigation="compact"/);
-  assert.doesNotMatch(html, /min-h-28|Alle Bereiche|\d+\s*\/\s*\d+/);
-  assert.match(html, />Lerneinstellungen</);
+test("general settings render exactly the requested dialog area without a page shell", () => {
+  const headings = { konto: "Konto", daten: "Daten &amp; Synchronisierung", ueber: "Über uns" } as const;
+  for (const [section, heading] of Object.entries(headings) as Array<[GeneralSection, string]>) {
+    const html = renderSettings(section);
+    assert.equal(html.match(/<h2 /g)?.length, 1);
+    assert.match(html, new RegExp(`<h2[^>]*tabindex="-1"[^>]*>${heading}</h2>`));
+    assert.doesNotMatch(html, /Allgemeine Einstellungen|data-in-page-navigation|>Lerneinstellungen</);
+  }
 });
 
 test("about settings contain help, legal placeholders, and the only visible version slot", () => {
-  const html = renderSettings();
+  const html = renderSettings("ueber");
   assert.match(html, />Info-Seite öffnen</);
   for (const text of ["Über CoRe", "Impressum", "Datenschutzerklärung"]) assert.match(html, new RegExp(`>${text}<`));
   assert.equal(html.match(/>In Vorbereitung</g)?.length, 2);
@@ -55,15 +56,17 @@ test("account settings show the login e-mail read-only in one wide panel", () =>
 });
 
 test("general settings do not contain global card settings", () => {
-  const html = renderSettings();
-  assert.doesNotMatch(html, /Neuer Tag beginnt|Lernkarten vorziehen|Wochenrhythmus|Simulator|Pomodoro-Timer/);
+  for (const section of ["konto", "daten", "ueber"] as const) {
+    assert.doesNotMatch(renderSettings(section), /Neuer Tag beginnt|Lernkarten vorziehen|Wochenrhythmus|Simulator|Pomodoro-Timer/);
+  }
 });
 
 test("the conflict panel is a focusable deep-link target inside data and sync", () => {
-  const html = renderSettings();
-  const dataSection = html.match(/<section id="settings-data-sync"[\s\S]*?(?=<section id="settings-about")/)?.[0] ?? "";
+  const html = renderSettings("daten");
+  const dataSection = html.match(/<section id="settings-data-sync"[\s\S]*/)?.[0] ?? "";
   assert.match(dataSection, /<section id="settings-sync-conflicts" aria-labelledby="settings-sync-conflicts-heading"/);
   assert.match(dataSection, /<h3 id="settings-sync-conflicts-heading" tabindex="-1"[^>]*>Änderungskonflikte lösen<\/h3>/);
+  assert.doesNotMatch(dataSection, /core-surface-raised|rounded-panel/);
 });
 
 test("conflict previews count only the selected direction", () => {
@@ -85,7 +88,14 @@ test("conflict previews count only the selected direction", () => {
 });
 
 test("the last successful sync stays visible while changes are pending", () => {
-  const html = renderSettings({ syncStatus: { status: "pending", message: "", pendingCount: 3 }, lastSyncedAt: "2026-10-12T08:30:00.000Z" });
+  const html = renderSettings("daten", { syncStatus: { status: "pending", message: "", pendingCount: 3 }, lastSyncedAt: "2026-10-12T08:30:00.000Z" });
   assert.match(html, /Zuletzt erfolgreich: /);
   assert.match(html, /Ausstehende Änderungen: 3/);
+});
+
+test("automatic sync offers its fixed intervals as segments", () => {
+  const html = renderSettings("daten");
+  const group = html.slice(html.indexOf('aria-label="Intervall der automatischen Synchronisierung"'));
+  for (const label of ["Aus", "1", "5", "15", "30"]) assert.match(group, new RegExp(`class="core-segmented-control-option">${label}</button>`));
+  assert.match(html, /data-testid="settings-sync-interval"/);
 });

@@ -1,6 +1,5 @@
 import React from "react";
-import { AlertTriangle, GitMerge, RefreshCw, RotateCcw } from "lucide-react";
-import { OrbIcon, SoftPanel } from "../ui/coreUi.tsx";
+import { CheckCircle2, GitMerge, RefreshCw, RotateCcw } from "lucide-react";
 import { useSuccessToast } from "../ui/feedbackUi.tsx";
 
 const FIELD_SOURCES = [["local", "Dieser Browser"], ["remote", "Cloud im Account"]];
@@ -140,145 +139,147 @@ export function SyncConflictPanel({ id, onListConflicts, onResolveConflict }: an
   }
 
   return (
-    <SoftPanel id={id} aria-labelledby={id ? `${id}-heading` : undefined} className="p-6" data-testid="sync-conflict-panel">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div className="flex items-center gap-3">
-          <OrbIcon icon={AlertTriangle} />
-          <div>
-            <p className="core-caption text-core-muted">Synchronisierung</p>
-            <h3 id={id ? `${id}-heading` : undefined} tabIndex={id ? -1 : undefined} className="core-heading-3 rounded-inset font-semibold text-core-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-core-focus focus-visible:ring-offset-4">Änderungskonflikte lösen</h3>
-          </div>
-        </div>
+    <section id={id} aria-labelledby={id ? `${id}-heading` : undefined} className="core-settings-group" data-testid="sync-conflict-panel">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h3 id={id ? `${id}-heading` : undefined} tabIndex={id ? -1 : undefined} className="core-heading-3 text-core-text outline-none">Änderungskonflikte lösen</h3>
         <button ref={refreshButtonRef} type="button" onClick={loadConflicts} disabled={loading || Boolean(busyId)} className="core-action-secondary">
           <RefreshCw size={16} aria-hidden="true" />
           Neu laden
         </button>
       </div>
+      <p className="core-settings-row-hint">Derselbe Inhalt wurde an zwei Stellen unterschiedlich geändert. Wähle, welche Fassung gilt.</p>
 
-      <p className="mt-4 max-w-3xl core-body text-core-secondary">
-        CoRe hat unterschiedliche Änderungen am selben Inhalt gefunden. Vergleiche beide Fassungen und entscheide, welcher Inhalt weiterverwendet wird.
-      </p>
-
-      {loading ? <p className="mt-4 core-body text-core-muted" role="status">Konflikte werden geladen.</p> : null}
-      {error ? <p className="core-status-error mt-4 core-body" role="alert">{error}</p> : null}
-      {!loading && conflicts.length === 0 ? <p className="core-status-success mt-4 core-body">Keine offenen Synchronisierungskonflikte.</p> : null}
+      {loading ? <p className="core-body text-core-muted" role="status">Konflikte werden geladen.</p> : null}
+      {error ? <p className="core-status-error core-body" role="alert">{error}</p> : null}
+      {!loading && conflicts.length === 0 ? (
+        <p className="flex min-h-control items-center gap-2 core-body text-core-secondary">
+          <CheckCircle2 className="shrink-0 text-core-success" size={16} aria-hidden="true" />
+          Keine offenen Synchronisierungskonflikte.
+        </p>
+      ) : null}
 
       {openConflicts.length > 0 ? (
-        <div className="mt-6 grid gap-4 lg:grid-cols-2">
-          <div className="rounded-panel border border-core-border bg-core-subtle p-4">
-            <h4 className="core-heading-3 text-core-text">Cloud im Account übernehmen</h4>
-            <p className="mt-1 core-body text-core-secondary">{previewText(cloudPreview)}</p>
-            <p className="mt-2 core-caption text-core-muted">Konfliktfreie Inhalte, Reviews und Medien bleiben erhalten.</p>
-            <button type="button" className="mt-4 core-action-secondary" disabled={Boolean(busyId)} onClick={() => void resolveAll("cloud")}>Cloud-Stand für diese Konflikte übernehmen</button>
+        <div className="core-settings-list">
+          <div className="core-settings-row">
+            <div className="core-settings-row-text">
+              <span className="core-settings-row-title">Cloud im Account übernehmen</span>
+              <p className="core-settings-row-hint">{previewText(cloudPreview)} · Konfliktfreie Inhalte, Reviews und Medien bleiben erhalten.</p>
+            </div>
+            <div className="core-settings-row-control">
+              <button type="button" className="core-action-secondary" disabled={Boolean(busyId)} onClick={() => void resolveAll("cloud")}>Cloud-Stand für diese Konflikte übernehmen</button>
+            </div>
           </div>
-          <div className="rounded-panel border border-core-border bg-core-subtle p-4">
-            <h4 className="core-heading-3 text-core-text">Diesen Browser übernehmen</h4>
-            <p className="mt-1 core-body text-core-secondary">{previewText(localPreview)}</p>
-            <p className="mt-2 core-caption text-core-muted">Konfliktfreie Inhalte, Reviews und Medien bleiben erhalten.</p>
-            <button type="button" className="mt-4 core-action-primary" disabled={Boolean(busyId)} onClick={() => void resolveAll("local")}>Lokalen Stand für diese Konflikte übernehmen</button>
+          <div className="core-settings-row">
+            <div className="core-settings-row-text">
+              <span className="core-settings-row-title">Diesen Browser übernehmen</span>
+              <p className="core-settings-row-hint">{previewText(localPreview)} · Konfliktfreie Inhalte, Reviews und Medien bleiben erhalten.</p>
+            </div>
+            <div className="core-settings-row-control">
+              <button type="button" className="core-action-primary" disabled={Boolean(busyId)} onClick={() => void resolveAll("local")}>Lokalen Stand für diese Konflikte übernehmen</button>
+            </div>
           </div>
         </div>
       ) : null}
 
       {openConflicts.length > 0 ? (
-        <section className="mt-6" aria-labelledby="individual-sync-conflicts-heading">
+        <section className="core-settings-group" aria-labelledby="individual-sync-conflicts-heading">
           <h4 id="individual-sync-conflicts-heading" className="core-heading-3 text-core-text">Einzelne Konflikte prüfen ({openConflicts.length})</h4>
-      <div className="mt-4 grid gap-4">
-        {openConflicts.map((conflict) => {
-          const choices = fieldChoices[conflict.id] ?? {};
-          const allFieldsChosen = conflict.fields.length > 0 && conflict.fields.every((field: { key: string|number; }) => choices[field.key] === "local" || choices[field.key] === "remote");
-          const merging = mergeConflictId === conflict.id;
-          const busy = busyId === conflict.id;
-          return (
-            <article key={conflict.id} className="rounded-panel border border-core-border bg-core-surface p-4 shadow-soft" data-testid={`sync-conflict-${conflict.id}`}>
-              <div className="flex flex-wrap items-start justify-between gap-3">
-                <div>
-                  <p className="core-caption text-core-muted">{conflict.entityLabel}</p>
-                  <h4 className="mt-1 core-heading-3 text-core-text">{conflict.title}</h4>
-                  <p className="mt-1 core-caption text-core-muted">Erkannt am {formatConflictDate(conflict.createdAt)}</p>
-                </div>
-                <span className="inline-flex min-h-5 items-center rounded-round bg-core-warning-soft px-2 core-status-label text-core-warning">Entscheidung nötig</span>
-              </div>
-
-              {conflict.fields.length > 0 ? (
-                <div className="mt-4 grid gap-3">
-                  {conflict.fields.map((field: { key: React.Key|null|undefined; label: string|number|bigint|boolean|React.ReactElement<unknown,string|React.JSXElementConstructor<any>>|Iterable<React.ReactNode>|React.ReactPortal|Promise<string|number|bigint|boolean|React.ReactPortal|React.ReactElement<unknown,string|React.JSXElementConstructor<any>>|Iterable<React.ReactNode>|null|undefined>|null|undefined; localText: string|number|bigint|boolean|React.ReactElement<unknown,string|React.JSXElementConstructor<any>>|Iterable<React.ReactNode>|React.ReactPortal|Promise<string|number|bigint|boolean|React.ReactPortal|React.ReactElement<unknown,string|React.JSXElementConstructor<any>>|Iterable<React.ReactNode>|null|undefined>|null|undefined; remoteText: string|number|bigint|boolean|React.ReactElement<unknown,string|React.JSXElementConstructor<any>>|Iterable<React.ReactNode>|React.ReactPortal|Promise<string|number|bigint|boolean|React.ReactPortal|React.ReactElement<unknown,string|React.JSXElementConstructor<any>>|Iterable<React.ReactNode>|null|undefined>|null|undefined; }) => (
-                    <div key={field.key} className="rounded-control border border-core-border bg-core-surface p-3">
-                      <p className="core-field-label">{field.label}</p>
-                      <div className="mt-2 grid gap-2 md:grid-cols-2">
-                        <div className="min-w-0 rounded-inset bg-core-subtle p-3">
-                          <p className="core-caption text-core-muted">Dieser Browser</p>
-                          <pre className="mt-1 max-h-40 overflow-auto whitespace-pre-wrap break-words font-sans core-body text-core-text">{field.localText}</pre>
-                        </div>
-                        <div className="min-w-0 rounded-inset bg-core-subtle p-3">
-                          <p className="core-caption text-core-muted">Cloud im Account</p>
-                          <pre className="mt-1 max-h-40 overflow-auto whitespace-pre-wrap break-words font-sans core-body text-core-text">{field.remoteText}</pre>
-                        </div>
-                      </div>
+          <div className="core-settings-list">
+            {openConflicts.map((conflict) => {
+              const choices = fieldChoices[conflict.id] ?? {};
+              const allFieldsChosen = conflict.fields.length > 0 && conflict.fields.every((field: { key: string | number }) => choices[field.key] === "local" || choices[field.key] === "remote");
+              const merging = mergeConflictId === conflict.id;
+              const busy = busyId === conflict.id;
+              return (
+                <article key={conflict.id} className="grid min-w-0 gap-3 py-4" data-testid={`sync-conflict-${conflict.id}`}>
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div className="core-settings-row-text">
+                      <p className="core-settings-row-hint">{conflict.entityLabel}</p>
+                      <h5 className="core-settings-row-title">{conflict.title}</h5>
+                      <p className="core-settings-row-hint">Erkannt am {formatConflictDate(conflict.createdAt)}</p>
                     </div>
-                  ))}
-                </div>
-              ) : <p className="mt-4 core-body text-core-muted">Eine Seite wurde gelöscht oder ist nicht mehr vorhanden.</p>}
-
-              <div className="mt-4 flex flex-wrap gap-2">
-                <button type="button" disabled={busy} onClick={() => decide(conflict, { action: "keep-local" })} className="core-action-primary" aria-label={`${conflict.title}: Diesen Browser übernehmen`}>Diesen Browser übernehmen</button>
-                <button type="button" disabled={busy} onClick={() => decide(conflict, { action: "keep-remote" })} className="core-action-secondary" aria-label={`${conflict.title}: Cloud übernehmen`}>Cloud übernehmen</button>
-                {conflict.allowedActions.includes("merge-fields") ? (
-                  <button type="button" disabled={busy} aria-expanded={merging} aria-controls={`sync-conflict-merge-fields-${conflict.id}`} onClick={() => toggleMerge(conflict.id)} className="core-action-secondary" data-testid={`sync-conflict-merge-${conflict.id}`}>
-                    <GitMerge size={16} aria-hidden="true" />
-                    Manuell zusammenführen
-                  </button>
-                ) : null}
-                <button type="button" disabled={busy} onClick={() => decide(conflict, { action: "ignore" })} className="core-action-ghost" aria-label={`${conflict.title}: Später entscheiden`}>Später entscheiden</button>
-              </div>
-
-              {merging ? (
-                <fieldset id={`sync-conflict-merge-fields-${conflict.id}`} className="mt-4 rounded-control border border-core-border bg-core-surface p-4">
-                  <legend className="px-1 core-field-label">Quelle für jedes Feld wählen</legend>
-                  <div className="grid gap-3">
-                    {conflict.fields.map((field: any) => (
-                      <div key={field.key} className="flex flex-wrap items-center justify-between gap-3 border-b border-core-border pb-3 last:border-0 last:pb-0">
-                        <span className="core-field-label">{field.label}</span>
-                        <div className="flex gap-4">
-                          {FIELD_SOURCES.map(([source, label]: any) => (
-                            <label key={source} className="inline-flex min-h-control items-center gap-2 core-body text-core-secondary">
-                              <input type="radio" className="size-4 accent-core-action" name={`${conflict.id}-${field.key}`} checked={choices[field.key] === source} onChange={() => chooseField(conflict.id, field.key, source)} aria-label={`${field.label}: ${label}`} />
-                              {label}
-                            </label>
-                          ))}
-                        </div>
-                      </div>
-                    ))}
+                    <span className="inline-flex min-h-5 items-center rounded-round bg-core-warning-soft px-2 core-status-label text-core-warning">Entscheidung nötig</span>
                   </div>
-                  <button type="button" disabled={busy || !allFieldsChosen} onClick={() => decide(conflict, { action: "merge-fields", fieldChoices: choices })} className="mt-4 core-action-primary">Zusammenführung speichern</button>
-                </fieldset>
-              ) : null}
-            </article>
-          );
-        })}
-      </div>
+
+                  {conflict.fields.length > 0 ? (
+                    <dl className="grid gap-3">
+                      {conflict.fields.map((field: { key: string | number; label: React.ReactNode; localText: React.ReactNode; remoteText: React.ReactNode }) => (
+                        <div key={field.key} className="grid gap-1">
+                          <dt className="core-field-label">{field.label}</dt>
+                          <dd className="grid gap-x-6 gap-y-2 md:grid-cols-2">
+                            <div className="min-w-0">
+                              <p className="core-settings-row-hint">Dieser Browser</p>
+                              <pre className="max-h-40 overflow-auto whitespace-pre-wrap break-words font-sans core-body text-core-text">{field.localText}</pre>
+                            </div>
+                            <div className="min-w-0">
+                              <p className="core-settings-row-hint">Cloud im Account</p>
+                              <pre className="max-h-40 overflow-auto whitespace-pre-wrap break-words font-sans core-body text-core-text">{field.remoteText}</pre>
+                            </div>
+                          </dd>
+                        </div>
+                      ))}
+                    </dl>
+                  ) : <p className="core-body text-core-muted">Eine Seite wurde gelöscht oder ist nicht mehr vorhanden.</p>}
+
+                  <div className="flex flex-wrap gap-2">
+                    <button type="button" disabled={busy} onClick={() => decide(conflict, { action: "keep-local" })} className="core-action-primary" aria-label={`${conflict.title}: Diesen Browser übernehmen`}>Diesen Browser übernehmen</button>
+                    <button type="button" disabled={busy} onClick={() => decide(conflict, { action: "keep-remote" })} className="core-action-secondary" aria-label={`${conflict.title}: Cloud übernehmen`}>Cloud übernehmen</button>
+                    {conflict.allowedActions.includes("merge-fields") ? (
+                      <button type="button" disabled={busy} aria-expanded={merging} aria-controls={`sync-conflict-merge-fields-${conflict.id}`} onClick={() => toggleMerge(conflict.id)} className="core-action-secondary" data-testid={`sync-conflict-merge-${conflict.id}`}>
+                        <GitMerge size={16} aria-hidden="true" />
+                        Manuell zusammenführen
+                      </button>
+                    ) : null}
+                    <button type="button" disabled={busy} onClick={() => decide(conflict, { action: "ignore" })} className="core-action-ghost" aria-label={`${conflict.title}: Später entscheiden`}>Später entscheiden</button>
+                  </div>
+
+                  {merging ? (
+                    <fieldset id={`sync-conflict-merge-fields-${conflict.id}`} className="grid gap-1">
+                      <legend className="float-left w-full core-field-label">Quelle für jedes Feld wählen</legend>
+                      <div className="core-settings-list">
+                        {conflict.fields.map((field: { key: string | number; label: React.ReactNode }) => (
+                          <div key={field.key} className="core-settings-row" data-layout="inline">
+                            <span className="core-settings-row-title">{field.label}</span>
+                            <div className="core-settings-row-control gap-4">
+                              {FIELD_SOURCES.map(([source, label]) => (
+                                <label key={source} className="inline-flex min-h-control items-center gap-2 core-body text-core-secondary">
+                                  <input type="radio" className="size-4 accent-core-action" name={`${conflict.id}-${field.key}`} checked={choices[field.key] === source} onChange={() => chooseField(conflict.id, field.key, source)} aria-label={`${field.label}: ${label}`} />
+                                  {label}
+                                </label>
+                              ))}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                      <button type="button" disabled={busy || !allFieldsChosen} onClick={() => decide(conflict, { action: "merge-fields", fieldChoices: choices })} className="mt-2 w-fit core-action-primary">Zusammenführung speichern</button>
+                    </fieldset>
+                  ) : null}
+                </article>
+              );
+            })}
+          </div>
         </section>
       ) : null}
 
       {ignoredConflicts.length > 0 ? (
-        <section className="mt-6" aria-labelledby="ignored-sync-conflicts-heading">
+        <section className="core-settings-group" aria-labelledby="ignored-sync-conflicts-heading">
           <h4 id="ignored-sync-conflicts-heading" className="core-heading-3 text-core-text">Für später zurückgestellt ({ignoredConflicts.length})</h4>
-          <p className="mt-1 core-body text-core-secondary">Stapel- und Kartenänderungen werden erst weiter synchronisiert, wenn diese Konflikte entschieden sind. Neue Reviews werden weiterhin gespeichert.</p>
-          <div className="mt-3 grid gap-2">
+          <p className="core-settings-row-hint">Stapel- und Kartenänderungen warten auf diese Entscheidung. Neue Reviews werden weiterhin gespeichert.</p>
+          <div className="core-settings-list">
             {ignoredConflicts.map((conflict) => (
-              <div key={conflict.id} className="flex flex-wrap items-center justify-between gap-3 rounded-control border border-core-border bg-core-subtle p-3">
-                <div>
-                  <p className="core-control-label text-core-text">{conflict.entityLabel}: {conflict.title}</p>
+              <div key={conflict.id} className="core-settings-row" data-layout="inline">
+                <span className="core-settings-row-title">{conflict.entityLabel}: {conflict.title}</span>
+                <div className="core-settings-row-control">
+                  <button type="button" disabled={busyId === conflict.id} onClick={() => decide(conflict, { action: "reopen" })} className="core-action-secondary">
+                    <RotateCcw size={16} aria-hidden="true" />
+                    Wieder aufnehmen
+                  </button>
                 </div>
-                <button type="button" disabled={busyId === conflict.id} onClick={() => decide(conflict, { action: "reopen" })} className="core-action-secondary">
-                  <RotateCcw size={16} aria-hidden="true" />
-                  Wieder aufnehmen
-                </button>
               </div>
             ))}
           </div>
         </section>
       ) : null}
-    </SoftPanel>
+    </section>
   );
 }

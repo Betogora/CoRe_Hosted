@@ -7,8 +7,7 @@ export type MenuViewId =
   | "pruefungen"
   | "statistik"
   | "simulator"
-  | "hilfe"
-  | "einstellungen";
+  | "hilfe";
 
 interface ViewStat {
   label: string;
@@ -115,15 +114,6 @@ const views: MenuView[] = [
     navigation: "primary",
     title: "Prüfungen",
     eyebrow: "Planung",
-    stats: [],
-  },
-  {
-    id: "einstellungen",
-    label: "Einstellungen",
-    iconKey: "settings",
-    navigation: "hidden",
-    title: "Einstellungen",
-    eyebrow: "Profil",
     stats: [],
   },
 ];

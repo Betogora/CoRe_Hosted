@@ -32,6 +32,10 @@ export interface AppNavigationProps {
   manualSync: boolean;
   onSyncNow: () => unknown;
   onOpenSyncSettings: (target: "sync" | "sync-conflicts") => unknown;
+  /** The settings dialog is open over the current view. */
+  settingsOpen: boolean;
+  onOpenSettings: () => unknown;
+  onPreloadSettings?: () => unknown;
 }
 
 const iconByKey: Record<string, LucideIcon> = {
@@ -65,10 +69,10 @@ function NavigationBrand({ onNavigate }: Pick<AppNavigationProps, "onNavigate">)
   );
 }
 
-type SyncUtilityProps = Pick<AppNavigationProps, "syncStatus" | "manualSync" | "onSyncNow" | "onOpenSyncSettings" | "onPreloadView">;
+type SyncUtilityProps = Pick<AppNavigationProps, "syncStatus" | "manualSync" | "onSyncNow" | "onOpenSyncSettings" | "onPreloadSettings">;
 
-function SyncUtilityButton({ syncStatus, manualSync, onSyncNow, onOpenSyncSettings, onPreloadView }: SyncUtilityProps) {
-  const preloadSettings = () => onPreloadView?.("einstellungen");
+function SyncUtilityButton({ syncStatus, manualSync, onSyncNow, onOpenSyncSettings, onPreloadSettings }: SyncUtilityProps) {
+  const preloadSettings = () => onPreloadSettings?.();
   const problem = syncStatus.status === "conflict" ? {
     icon: AlertTriangle,
     label: syncStatus.conflictCount === 1 ? "1 Synchronisierungskonflikt klären" : `${syncStatus.conflictCount} Synchronisierungskonflikte klären`,
@@ -123,10 +127,12 @@ function SyncUtilityButton({ syncStatus, manualSync, onSyncNow, onOpenSyncSettin
   );
 }
 
-function NavigationUtilityButtons({ activeView, theme, onNavigate, onPreloadView, onToggleTheme, ...syncProps }: Pick<ResponsiveNavigationProps, "activeView" | "theme" | "onNavigate" | "onPreloadView" | "onToggleTheme" | "syncStatus" | "manualSync" | "onSyncNow" | "onOpenSyncSettings">) {
+type UtilityProps = Pick<ResponsiveNavigationProps, "activeView" | "theme" | "onNavigate" | "onPreloadView" | "onToggleTheme" | "syncStatus" | "manualSync" | "onSyncNow" | "onOpenSyncSettings" | "settingsOpen" | "onOpenSettings" | "onPreloadSettings">;
+
+function NavigationUtilityButtons({ activeView, theme, onNavigate, onPreloadView, onToggleTheme, settingsOpen, onOpenSettings, ...syncProps }: UtilityProps) {
   const darkModeActive = theme === "dark";
   const ThemeIcon = darkModeActive ? Moon : Sun;
-  const pageButton = (viewId: "statistik" | "hilfe" | "einstellungen", utility: string, label: string, icon: LucideIcon) => {
+  const pageButton = (viewId: "statistik" | "hilfe", utility: string, label: string, icon: LucideIcon) => {
     const active = activeView === viewId;
     const preload = () => onPreloadView?.(viewId);
     return (
@@ -160,11 +166,24 @@ function NavigationUtilityButtons({ activeView, theme, onNavigate, onPreloadView
 
   return (
     <div className="flex shrink-0 items-center gap-0 min-[360px]:gap-1.5" data-navigation-utilities="true" data-sync-status={syncProps.syncStatus.status}>
-      <SyncUtilityButton {...syncProps} onPreloadView={onPreloadView} />
+      <SyncUtilityButton {...syncProps} />
       {pageButton("statistik", "statistics", "Statistik öffnen", BarChart3)}
       {themeButton}
       {pageButton("hilfe", "help", "Hilfe öffnen", CircleHelp)}
-      {pageButton("einstellungen", "settings", "Einstellungen öffnen", Settings)}
+      <IconButton
+        type="button"
+        variant="ghost"
+        data-app-navigation="true"
+        data-navigation-utility="settings"
+        label="Einstellungen öffnen"
+        icon={Settings}
+        onClick={onOpenSettings}
+        onPointerEnter={syncProps.onPreloadSettings}
+        onFocus={syncProps.onPreloadSettings}
+        onTouchStart={syncProps.onPreloadSettings}
+        className={`size-button shrink-0 rounded-control ${settingsOpen ? "!bg-core-subtle !text-core-action" : ""}`}
+        aria-expanded={settingsOpen}
+      />
     </div>
   );
 }
@@ -179,7 +198,7 @@ function SimulationStatus({ simulationDateLabel, simulationOffsetMinutes, onRese
   );
 }
 
-function DesktopTopBar({ navigationItems, activeView, simulationOffsetMinutes, simulationDateLabel, pomodoroTimer, onNavigate, onPreloadView, onResetSimulation, theme, onToggleTheme, syncStatus, manualSync, onSyncNow, onOpenSyncSettings }: ResponsiveNavigationProps) {
+function DesktopTopBar({ navigationItems, activeView, simulationOffsetMinutes, simulationDateLabel, pomodoroTimer, onNavigate, onPreloadView, onResetSimulation, theme, onToggleTheme, syncStatus, manualSync, onSyncNow, onOpenSyncSettings, settingsOpen, onOpenSettings, onPreloadSettings }: ResponsiveNavigationProps) {
   return (
     <header className="hidden min-w-0 px-4 pt-2 xl:block" data-navigation-layout="top-bar">
       <div className="mx-auto grid h-16 max-w-7xl grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-4 rounded-panel border border-core-border bg-core-surface px-6 shadow-floating">
@@ -214,7 +233,7 @@ function DesktopTopBar({ navigationItems, activeView, simulationOffsetMinutes, s
 
         <div className="flex min-w-0 items-center justify-end gap-3">
           <PomodoroProgress timer={pomodoroTimer} variant="header" />
-          <NavigationUtilityButtons activeView={activeView} theme={theme} onNavigate={onNavigate} onPreloadView={onPreloadView} onToggleTheme={onToggleTheme} syncStatus={syncStatus} manualSync={manualSync} onSyncNow={onSyncNow} onOpenSyncSettings={onOpenSyncSettings} />
+          <NavigationUtilityButtons activeView={activeView} theme={theme} onNavigate={onNavigate} onPreloadView={onPreloadView} onToggleTheme={onToggleTheme} syncStatus={syncStatus} manualSync={manualSync} onSyncNow={onSyncNow} onOpenSyncSettings={onOpenSyncSettings} settingsOpen={settingsOpen} onOpenSettings={onOpenSettings} onPreloadSettings={onPreloadSettings} />
         </div>
       </div>
       {simulationOffsetMinutes > 0 ? <SimulationStatus simulationDateLabel={simulationDateLabel} simulationOffsetMinutes={simulationOffsetMinutes} onResetSimulation={onResetSimulation} /> : null}
@@ -222,7 +241,7 @@ function DesktopTopBar({ navigationItems, activeView, simulationOffsetMinutes, s
   );
 }
 
-function MobileHeader({ activeView, simulationOffsetMinutes, simulationDateLabel, pomodoroTimer, onNavigate, onPreloadView, onResetSimulation, theme, onToggleTheme, syncStatus, manualSync, onSyncNow, onOpenSyncSettings }: ResponsiveNavigationProps) {
+function MobileHeader({ activeView, simulationOffsetMinutes, simulationDateLabel, pomodoroTimer, onNavigate, onPreloadView, onResetSimulation, theme, onToggleTheme, syncStatus, manualSync, onSyncNow, onOpenSyncSettings, settingsOpen, onOpenSettings, onPreloadSettings }: ResponsiveNavigationProps) {
   return (
     <header className="core-mobile-header sticky top-0 z-30 min-w-0 px-2 py-2 xl:hidden" data-navigation-layout="mobile-header">
       <div className="flex h-16 min-w-0 items-center justify-between gap-3 rounded-panel border border-core-border bg-core-surface px-3 shadow-floating">
@@ -230,7 +249,7 @@ function MobileHeader({ activeView, simulationOffsetMinutes, simulationDateLabel
           <NavigationBrand onNavigate={onNavigate} />
         </h1>
         <PomodoroProgress timer={pomodoroTimer} variant="header" />
-        <NavigationUtilityButtons activeView={activeView} theme={theme} onNavigate={onNavigate} onPreloadView={onPreloadView} onToggleTheme={onToggleTheme} syncStatus={syncStatus} manualSync={manualSync} onSyncNow={onSyncNow} onOpenSyncSettings={onOpenSyncSettings} />
+        <NavigationUtilityButtons activeView={activeView} theme={theme} onNavigate={onNavigate} onPreloadView={onPreloadView} onToggleTheme={onToggleTheme} syncStatus={syncStatus} manualSync={manualSync} onSyncNow={onSyncNow} onOpenSyncSettings={onOpenSyncSettings} settingsOpen={settingsOpen} onOpenSettings={onOpenSettings} onPreloadSettings={onPreloadSettings} />
       </div>
       {simulationOffsetMinutes > 0 ? <SimulationStatus simulationDateLabel={simulationDateLabel} simulationOffsetMinutes={simulationOffsetMinutes} onResetSimulation={onResetSimulation} /> : null}
     </header>
@@ -276,7 +295,7 @@ function MobileBottomNavigation({ navigationItems, activeView, onNavigate, onPre
 
 export function AppNavigation(props: AppNavigationProps) {
   const [theme, setTheme] = React.useState(readCoreTheme);
-  const navigationActiveView = ["karten-einstellungen", "simulator"].includes(props.activeView) ? "lernen" : props.activeView;
+  const navigationActiveView = props.activeView === "simulator" ? "lernen" : props.activeView;
   const mobileBottomNavigation = <MobileBottomNavigation {...props} activeView={navigationActiveView} />;
   const responsiveProps = {
     ...props,

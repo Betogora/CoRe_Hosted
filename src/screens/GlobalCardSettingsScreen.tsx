@@ -1,5 +1,5 @@
 import React from "react";
-import { CalendarClock, CalendarRange, Flag, Sparkles, Timer } from "lucide-react";
+import { Layers } from "lucide-react";
 import type { GlobalCardSettingsScreenProps, GlobalLearningSettingsSaveScope, SettingsSaveOutcome } from "../appScreenProps.ts";
 import { normalizeLearnAheadMinutes } from "../deckSettings.ts";
 import { EASY_DAY_KEYS, normalizeEasyDays } from "../easyDays.ts";
@@ -10,30 +10,27 @@ import { createDeckLearningSettingsDraft, createGlobalCardSettingsDraft, setting
 import { CrossLinkButton } from "../ui/actionUi.tsx";
 import { flagName } from "../ui/flagUi.tsx";
 import { normalizeFlagNames } from "../uiPreferences.ts";
-import { PageHeader, SoftPanel } from "../ui/coreUi.tsx";
+import { CoreNumberField } from "../ui/CoreNumberField.tsx";
 import { useSuccessToast } from "../ui/feedbackUi.tsx";
-import { InPageNavigation } from "../ui/InPageNavigation.tsx";
 import { LearningSettingsPanel } from "../ui/LearningSettingsPanel.tsx";
 import { PomodoroTimerControl } from "../ui/pomodoroTimerUi.tsx";
-import { CoreSelect } from "../ui/selectUi.tsx";
+import { DeckSelect } from "../ui/selectUi.tsx";
 
 const sectionIds = {
   planning: "card-settings-planning",
-  dailyProfiles: "learning-settings-daily-profiles",
-  schedulerCore: "learning-settings-scheduler-core",
   flags: "card-settings-flags",
   focus: "card-settings-focus",
 } as const;
 
-const settingsSections = [
-  { id: sectionIds.planning, label: "Lerntag & Planung", icon: CalendarClock },
-  { id: sectionIds.dailyProfiles, label: "Tagesrunde & Lernprofile", icon: CalendarRange },
-  { id: sectionIds.schedulerCore, label: "Scheduler & CoRe", icon: Sparkles },
-  { id: sectionIds.flags, label: "Flaggen", icon: Flag },
-  { id: sectionIds.focus, label: "Fokuswerkzeuge", icon: Timer },
-] as const;
+const headingIds: Record<GlobalCardSettingsScreenProps["section"], string> = {
+  lerntag: "card-settings-planning-heading",
+  tagesrunde: "learning-settings-daily-heading",
+  scheduler: "learning-settings-scheduler-heading",
+  flaggen: "card-settings-flags-heading",
+  fokus: "card-settings-focus-heading",
+};
 
-const easyDayOptions = [
+const easyDayOptions: ReadonlyArray<{ value: EasyDayLevel; label: string }> = [
   { value: "normal", label: "Normal" },
   { value: "reduced", label: "Weniger" },
   { value: "minimum", label: "Minimal" },
@@ -49,13 +46,7 @@ const weekdayLabels: Record<keyof EasyDays, string> = {
   sunday: "Sonntag",
 };
 
-const easyDayToneClasses: Record<EasyDayLevel, string> = {
-  normal: "border-core-border bg-core-subtle",
-  reduced: "border-core-warning bg-core-warning-soft",
-  minimum: "border-core-action bg-core-info-soft",
-};
-
-export function GlobalCardSettingsScreen({ timeZone, globalSchedulerPreferences, flagNames, settingsTarget = null, learningProfiles, onSaveLearningProfiles, onSaveSettings, onDraftStateChange, onNavigate, simulationOffsetMinutes, simulationDateLabel, pomodoroTimer, onStartPomodoro }: GlobalCardSettingsScreenProps) {
+export function GlobalCardSettingsScreen({ section, decks, onOpenDeckSettings, timeZone, globalSchedulerPreferences, flagNames, learningProfiles, onSaveLearningProfiles, onSaveSettings, onDraftStateChange, onNavigate, simulationOffsetMinutes, simulationDateLabel, pomodoroTimer, onStartPomodoro }: GlobalCardSettingsScreenProps) {
   const persistedDraft = createGlobalCardSettingsDraft(globalSchedulerPreferences, flagNames);
   const persistedDraftKey = JSON.stringify(persistedDraft);
   const [baseline, setBaseline] = React.useState<GlobalCardSettingsDraft>(persistedDraft);
@@ -111,63 +102,82 @@ export function GlobalCardSettingsScreen({ timeZone, globalSchedulerPreferences,
     return () => onDraftStateChange(null);
   }, [dirty, draftGuard, onDraftStateChange]);
 
-  return (
-    <div className="grid min-w-0 gap-6">
-      <div className="flex min-w-0 flex-wrap items-end justify-between gap-4">
-        <PageHeader eyebrow="Lernen" title="Lerneinstellungen" />
-        <CrossLinkButton onSelect={() => onNavigate("stapel-einstellungen", { focusedDeckId: null })}>
-          Stapeleinstellungen
-        </CrossLinkButton>
-      </div>
+  React.useEffect(() => {
+    document.getElementById(headingIds[section])?.focus();
+  }, [section]);
 
-      <InPageNavigation ariaLabel="Bereiche der Lerneinstellungen" items={settingsSections} targetId={settingsTarget === "flag-names" ? sectionIds.flags : null}>
-        <section id={sectionIds.planning} className="grid gap-4" aria-labelledby="card-settings-planning-heading">
+  return (
+    <>
+      {section === "lerntag" ? (
+        <section id={sectionIds.planning} className="core-settings-section" aria-labelledby="card-settings-planning-heading">
           <h2 id="card-settings-planning-heading" tabIndex={-1} className="core-heading-2 font-semibold text-core-text outline-none">Lerntag & Planung</h2>
-          <SoftPanel className="p-6">
-            <div className="grid gap-4 md:grid-cols-3">
-              <label className="grid content-start gap-2 core-field-label">
-                Neuer Tag beginnt um
-                <span className="relative flex min-w-0">
-                  <input type="number" min="0" max="23" step="1" value={draft.dayStartHour} data-testid="card-settings-day-start-hour" className="core-field min-w-0 flex-1 pr-14" onChange={(event) => setDraft((current) => ({ ...current, dayStartHour: Number(event.target.value) }))} />
-                  <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 core-body text-core-muted">Uhr</span>
-                </span>
-              </label>
-              <label className="grid content-start gap-2 core-field-label">
-                Lernkarten vorziehen
-                <span className="relative flex min-w-0">
-                  <input type="number" min="0" max="720" step="1" value={draft.learnAheadMinutes} data-testid="card-settings-learn-ahead" className="core-field min-w-0 flex-1 pr-14" onChange={(event) => setDraft((current) => ({ ...current, learnAheadMinutes: Number(event.target.value) }))} />
-                  <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 core-body text-core-muted">Min.</span>
-                </span>
-              </label>
-              <div className="grid content-start gap-2 core-field-label">
-                Profilzeitzone
-                <span className="flex min-h-control items-center rounded-control border border-core-border bg-core-subtle px-3 core-body text-core-secondary">{timeZone || "Nicht festgelegt"}</span>
+          <p className="core-settings-row-hint">Gilt kontoweit. Stapel und Lernprofile ändern diese Werte nicht.</p>
+          <div className="core-settings-list">
+            <div className="core-settings-row">
+              <div className="core-settings-row-text">
+                <label htmlFor="card-settings-day-start-hour" className="core-settings-row-title">Neuer Tag beginnt um</label>
+                <p id="card-settings-day-start-hint" className="core-settings-row-hint">Davor zählt die Zeit noch zum Vortag.</p>
+              </div>
+              <div className="core-settings-row-control">
+                <CoreNumberField id="card-settings-day-start-hour" value={draft.dayStartHour} min={0} max={23} unit="Uhr" ariaDescribedBy="card-settings-day-start-hint" className="w-32" onChange={(dayStartHour) => setDraft((current) => ({ ...current, dayStartHour }))} />
               </div>
             </div>
-            <p className="mt-2 core-caption text-core-muted">Diese Einstellungen gelten global für den Lerntag. Tagesrunde, Scheduler und CoRe kannst du weiter unten als Stapelstandard festlegen.</p>
-            <fieldset className="mt-6 grid gap-1 border-t border-core-border pt-6">
-              <legend className="float-left w-full core-heading-3 text-core-text">Wochenrhythmus</legend>
-              <p className="core-caption text-core-muted">CoRe verteilt neu berechnete Wiederholungen möglichst auf passendere Tage. Sind alle Tage gleich, bleibt die Planung unverändert.</p>
-              <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                {EASY_DAY_KEYS.map((key) => (
-                  <label key={key} className={`grid min-w-0 gap-2 rounded-control border p-3 core-field-label transition-colors ${easyDayToneClasses[draft.easyDays[key]]}`}>
-                    {weekdayLabels[key]}
-                    <CoreSelect
-                      ariaLabel={`${weekdayLabels[key]} im Wochenrhythmus`}
-                      value={draft.easyDays[key]}
-                      options={easyDayOptions}
-                      testId={`card-settings-easy-day-${key}`}
-                      onValueChange={(value) => setDraft((current) => ({ ...current, easyDays: { ...current.easyDays, [key]: value as EasyDayLevel } }))}
-                    />
-                  </label>
-                ))}
+            <div className="core-settings-row">
+              <div className="core-settings-row-text">
+                <label htmlFor="card-settings-learn-ahead" className="core-settings-row-title">Lernkarten vorziehen</label>
+                <p id="card-settings-learn-ahead-hint" className="core-settings-row-hint">Lernkarten, die in diesem Zeitraum fällig werden, erscheinen schon jetzt. 0 schaltet aus.</p>
               </div>
-            </fieldset>
-          </SoftPanel>
-        </section>
+              <div className="core-settings-row-control">
+                <CoreNumberField id="card-settings-learn-ahead" value={draft.learnAheadMinutes} min={0} max={720} unit="Min." ariaDescribedBy="card-settings-learn-ahead-hint" className="w-32" onChange={(learnAheadMinutes) => setDraft((current) => ({ ...current, learnAheadMinutes }))} />
+              </div>
+            </div>
+            <div className="core-settings-row" data-layout="inline">
+              <span className="core-settings-row-title">Profilzeitzone</span>
+              <div className="core-settings-row-control"><span className="core-settings-row-value">{timeZone || "Nicht festgelegt"}</span></div>
+            </div>
+          </div>
 
+          <fieldset className="core-settings-group">
+            <legend className="float-left w-full core-heading-3 text-core-text">Wochenrhythmus</legend>
+            <p className="core-settings-row-hint">Verteilt neu berechnete Wiederholungen auf passendere Tage. Sieben gleiche Werte ändern nichts.</p>
+            <table className="core-settings-matrix mt-2">
+              <thead>
+                <tr>
+                  <th scope="col"><span className="sr-only">Wochentag</span></th>
+                  {easyDayOptions.map((option) => <th key={option.value} scope="col">{option.label}</th>)}
+                </tr>
+              </thead>
+              <tbody>
+                {EASY_DAY_KEYS.map((key) => (
+                  <tr key={key} data-testid={`card-settings-easy-day-${key}`}>
+                    <th scope="row">{weekdayLabels[key]}</th>
+                    {easyDayOptions.map((option) => (
+                      <td key={option.value}>
+                        <label className="core-settings-matrix-cell" data-level={option.value}>
+                          <input
+                            type="radio"
+                            name={`card-settings-easy-day-${key}`}
+                            value={option.value}
+                            checked={draft.easyDays[key] === option.value}
+                            aria-label={`${weekdayLabels[key]}: ${option.label}`}
+                            className="size-4 cursor-pointer accent-core-action"
+                            onChange={() => setDraft((current) => ({ ...current, easyDays: { ...current.easyDays, [key]: option.value } }))}
+                          />
+                        </label>
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </fieldset>
+        </section>
+      ) : null}
+
+      {section === "tagesrunde" || section === "scheduler" ? (
         <LearningSettingsPanel
           context="global"
+          section={section === "tagesrunde" ? "daily" : "scheduler"}
           draft={draft.learning}
           profiles={learningProfiles}
           defaultProfileName="Eigenes globales Lernprofil"
@@ -178,42 +188,74 @@ export function GlobalCardSettingsScreen({ timeZone, globalSchedulerPreferences,
             return true;
           }}
         />
+      ) : null}
 
-        <section id={sectionIds.flags} className="grid gap-4" aria-labelledby="card-settings-flags-heading">
+      {section === "tagesrunde" ? (
+        <div className="core-settings-group">
+          <h3 className="core-heading-3 text-core-text">Einzelne Stapel</h3>
+          <div className="core-settings-list">
+            <div className="core-settings-row" data-layout="inline">
+              <div className="core-settings-row-text">
+                <span className="core-settings-row-title">Stapeleinstellungen</span>
+                <p className="core-settings-row-hint">Werte einzelner Stapel weichen vom Standard ab.</p>
+              </div>
+              <div className="core-settings-row-control md:w-72">
+                <DeckSelect ariaLabel="Stapeleinstellungen öffnen" value="" decks={decks} specialOption={{ value: "", label: "Stapel wählen", icon: Layers }} onValueChange={(deckId) => { if (deckId) onOpenDeckSettings(deckId); }} testId="card-settings-open-deck" className="w-full" />
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {section === "flaggen" ? (
+        <section id={sectionIds.flags} className="core-settings-section" aria-labelledby="card-settings-flags-heading">
           <h2 id="card-settings-flags-heading" tabIndex={-1} className="core-heading-2 font-semibold text-core-text outline-none">Flaggen</h2>
-          <SoftPanel className="grid gap-3 p-6 sm:grid-cols-2">
+          <p className="core-settings-row-hint">Eigene Namen gelten kontoweit. Ein leeres Feld zeigt den Farbnamen.</p>
+          <div className="core-settings-list">
             {draft.flagNames.map((name, index) => {
               const colorName = flagName(index + 1);
               return (
-                <label key={colorName} className="flex min-h-control min-w-0 items-center gap-3 rounded-control border border-core-border bg-core-surface px-3">
-                  <span aria-hidden="true" className="size-4 shrink-0 rounded-round" style={{ background: `var(--core-flag-${index + 1})` }} />
-                  <input
-                    className="min-w-0 flex-1 self-stretch bg-transparent text-core-text outline-none"
-                    value={name}
-                    maxLength={40}
-                    placeholder={colorName}
-                    aria-label={`Name für Flagge ${colorName}`}
-                    data-testid={`card-settings-flag-${index + 1}`}
-                    onChange={(event) => setDraft((current) => ({ ...current, flagNames: current.flagNames.map((value, position) => position === index ? event.target.value : value) }))}
-                  />
-                </label>
+                <div key={colorName} className="core-settings-row">
+                  <span className="core-settings-row-title flex items-center gap-3">
+                    <span aria-hidden="true" className="size-4 shrink-0 rounded-round" style={{ background: `var(--core-flag-${index + 1})` }} />
+                    {colorName}
+                  </span>
+                  <div className="core-settings-row-control">
+                    <input
+                      className="core-field min-w-0 md:w-72"
+                      value={name}
+                      maxLength={40}
+                      placeholder={colorName}
+                      aria-label={`Name für Flagge ${colorName}`}
+                      data-testid={`card-settings-flag-${index + 1}`}
+                      onChange={(event) => setDraft((current) => ({ ...current, flagNames: current.flagNames.map((value, position) => position === index ? event.target.value : value) }))}
+                    />
+                  </div>
+                </div>
               );
             })}
-          </SoftPanel>
+          </div>
         </section>
+      ) : null}
 
-        <section id={sectionIds.focus} className="grid gap-4" aria-labelledby="card-settings-focus-heading">
+      {section === "fokus" ? (
+        <section id={sectionIds.focus} className="core-settings-section" aria-labelledby="card-settings-focus-heading">
           <h2 id="card-settings-focus-heading" tabIndex={-1} className="core-heading-2 font-semibold text-core-text outline-none">Fokuswerkzeuge</h2>
-          <SoftPanel className="overflow-hidden p-0">
-            <button type="button" onClick={() => onNavigate("simulator")} className="flex min-h-[4.75rem] w-full items-center gap-3 border-b border-core-border px-4 py-3 text-left transition hover:bg-core-hover sm:px-6">
-              <span className="grid size-10 shrink-0 place-items-center rounded-control bg-core-subtle text-core-action"><CalendarClock size={18} aria-hidden="true" /></span>
-              <span className="min-w-0 flex-1"><span className="block core-heading-3 text-core-text">Simulator</span><span className="block core-caption text-core-muted">{simulationOffsetMinutes > 0 ? `Aktiv: ${simulationDateLabel} · +${formatSimulationDuration(simulationOffsetMinutes)}` : "Lernfortschritt über simulierte Zeitpunkte prüfen"}</span></span>
-            </button>
+          <div className="core-settings-list">
+            <div className="core-settings-row" data-layout="inline">
+              <div className="core-settings-row-text">
+                <span className="core-settings-row-title">Simulator</span>
+                {simulationOffsetMinutes > 0 ? <p className="core-settings-row-hint">{`Aktiv: ${simulationDateLabel} · +${formatSimulationDuration(simulationOffsetMinutes)}`}</p> : null}
+              </div>
+              <div className="core-settings-row-control">
+                <CrossLinkButton onSelect={() => onNavigate("simulator")}>Simulator öffnen</CrossLinkButton>
+              </div>
+            </div>
             <PomodoroTimerControl timer={pomodoroTimer} variant="settings" onStart={onStartPomodoro} />
-          </SoftPanel>
-          {errorMessage ? <p className="core-status-error core-body" role="alert">{errorMessage}</p> : null}
+          </div>
         </section>
-      </InPageNavigation>
-    </div>
+      ) : null}
+      {errorMessage ? <p className="core-status-error mt-4 core-body" role="alert">{errorMessage}</p> : null}
+    </>
   );
 }

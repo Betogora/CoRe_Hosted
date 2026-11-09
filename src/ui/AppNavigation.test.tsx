@@ -8,7 +8,7 @@ import { AppNavigation } from "./AppNavigation.tsx";
 
 const navigationItems = createMenuModel().listNavigationItems();
 
-function renderNavigation(activeView = "uebersicht", simulationOffsetMinutes = 0, pomodoroTimer: PomodoroTimer | null = null, syncStatus: SyncStatus = { status: "idle" }, manualSync = false) {
+function renderNavigation(activeView = "uebersicht", simulationOffsetMinutes = 0, pomodoroTimer: PomodoroTimer | null = null, syncStatus: SyncStatus = { status: "idle" }, manualSync = false, settingsOpen = false) {
   return renderToStaticMarkup(
     <AppNavigation
       navigationItems={navigationItems}
@@ -20,6 +20,8 @@ function renderNavigation(activeView = "uebersicht", simulationOffsetMinutes = 0
       manualSync={manualSync}
       onSyncNow={() => undefined}
       onOpenSyncSettings={() => undefined}
+      settingsOpen={settingsOpen}
+      onOpenSettings={() => undefined}
       onNavigate={() => undefined}
       onResetSimulation={() => undefined}
     />,
@@ -116,21 +118,21 @@ test("bottom navigation keeps every icon before its visible label and exactly on
   }
 });
 
-test("help and general settings have separate utility states while card settings stay in learning", () => {
-  const settingsMarkup = renderNavigation("einstellungen");
-  assert.equal((settingsMarkup.match(/<button[^>]*data-navigation-utility="settings"[^>]*aria-current="page"[^>]*>/g) ?? []).length, 2);
+test("the settings button marks the open dialog while the page and the simulator keep their main targets", () => {
+  const settingsMarkup = renderNavigation("lernen", 0, null, { status: "idle" }, false, true);
+  const settingsBottomBar = settingsMarkup.match(/<nav[^>]*data-navigation-layout="bottom-bar"[\s\S]*?<\/nav>/)?.[0] ?? "";
+  assert.equal((settingsMarkup.match(/<button[^>]*data-navigation-utility="settings"[^>]*aria-expanded="true"[^>]*>/g) ?? []).length, 2);
   assert.equal((settingsMarkup.match(/<button[^>]*data-navigation-utility="help"[^>]*aria-current="page"[^>]*>/g) ?? []).length, 0);
+  assert.match(settingsBottomBar, /aria-current="page"[^>]*>[\s\S]*?>Lernen<\/span>/);
+  assert.equal((renderNavigation("lernen").match(/data-navigation-utility="settings"[^>]*aria-expanded="false"/g) ?? []).length, 2);
 
-  for (const view of ["karten-einstellungen", "simulator"]) {
-    const markup = renderNavigation(view);
-    const bottomBarMarkup = markup.match(/<nav[^>]*data-navigation-layout="bottom-bar"[\s\S]*?<\/nav>/)?.[0] ?? "";
-    assert.equal((markup.match(/data-navigation-utility="settings"[^>]*aria-current="page"/g) ?? []).length, 0);
-    assert.match(bottomBarMarkup, /aria-current="page"[^>]*>[\s\S]*?>Lernen<\/span>/);
-  }
+  const simulatorMarkup = renderNavigation("simulator");
+  const bottomBarMarkup = simulatorMarkup.match(/<nav[^>]*data-navigation-layout="bottom-bar"[\s\S]*?<\/nav>/)?.[0] ?? "";
+  assert.match(bottomBarMarkup, /aria-current="page"[^>]*>[\s\S]*?>Lernen<\/span>/);
 
   const helpMarkup = renderNavigation("hilfe");
   assert.equal((helpMarkup.match(/<button[^>]*data-navigation-utility="help"[^>]*aria-current="page"[^>]*>/g) ?? []).length, 2);
-  assert.equal((helpMarkup.match(/<button[^>]*data-navigation-utility="settings"[^>]*aria-current="page"[^>]*>/g) ?? []).length, 0);
+  assert.equal((helpMarkup.match(/<button[^>]*data-navigation-utility="settings"[^>]*aria-expanded="true"[^>]*>/g) ?? []).length, 0);
 });
 
 test("statistics is an icon-only utility with its own current state", () => {

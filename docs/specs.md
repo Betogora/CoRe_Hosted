@@ -459,7 +459,7 @@ Die Lerneinstellungen einer Sitzung gliedern sich in `Karte` und `Sitzung` und w
 
 Verhalten:
 
-- Aus der Sitzung lassen sich der Editor der Karte im Reiter `Inhalt` und die Einstellungen des Sitzungsstapels öffnen; aus diesen führt der Rückweg auch nach Reload in dieselbe Sitzung.
+- Aus der Sitzung lassen sich der Editor der Karte im Reiter `Inhalt` und die Stapeleinstellungen des Sitzungsstapels öffnen. Der Editor führt auch nach Reload in dieselbe Sitzung zurück; die Stapeleinstellungen liegen über der Sitzung, deren Tastenkürzel ruhen, solange der Dialog offen ist, und Schließen setzt die Sitzung an derselben Karte fort, auch nach Reload.
 - Die Flagge der Karte lässt sich setzen oder entfernen, auch per Tastenkürzel, ohne Bestätigungsmeldung.
 - Markieren schaltet die Markierung um und verändert die Queue nicht.
 - Aussetzen pausiert die Karte samt Varianten, ohne Lernzustand, Schritt, Fälligkeit, FSRS-Werte oder Historie zu ändern; ausgesetzte Karten fehlen in Queue, Tageszahlen und Fortschritt. Die aktuelle Karte verschwindet ohne Bewertung aus allen offenen Positionen, und die nächste Karte folgt. Reaktivieren lässt den Review State unverändert; ein vergangener Termin ist sofort relevant.
@@ -510,7 +510,7 @@ Verhalten:
 Zustände und Meldungen:
 
 - Ist die Queue leer, bleibt die Ausgangsansicht sichtbar und CoRe meldet, dass keine Karten fällig sind.
-- Halten nur Tageslimits fällige oder neue Karten zurück, meldet CoRe, dass das Tageslimit erreicht ist, mit der Anzahl zurückgehaltener fälliger und neuer Karten. Gibt es ungenutzte neue Karten, führt eine Aktion zum Feld `Neue Karten pro Tag` des Stapels, ohne den Wert zu ändern.
+- Halten nur Tageslimits fällige oder neue Karten zurück, meldet CoRe, dass das Tageslimit erreicht ist, mit der Anzahl zurückgehaltener fälliger und neuer Karten. Gibt es ungenutzte neue Karten, öffnet eine Aktion die Stapeleinstellungen über der Ausgangsansicht beim Feld `Neue Karten pro Tag`, ohne den Wert zu ändern.
 - Warten nur Learning-/Relearning-Wiederholungen außerhalb des Vorziehfensters, endet die Runde vorläufig; die Karten bleiben `Offen`, ohne Countdown oder Hintergrundtimer.
 - Unbekannte oder nicht verfügbare Stapel und Karten führen zu verständlichen Folgeaktionen und öffnen nie still eine andere Karte.
 - Offline- und Konfliktzustände sind sichtbar; ausstehende Änderungen gelten nie als gespeichert.
@@ -1247,6 +1247,7 @@ Verhalten:
 
 - Die Bereiche bilden zwei Gruppen: `Allgemein` mit `Konto`, `Daten & Synchronisierung` und `Über uns`, `Lernen` mit `Lerntag & Planung`, `Tagesrunde & Lernprofile`, `Scheduler & CoRe`, `Flaggen` und `Fokuswerkzeuge`. Angezeigt wird genau der gewählte Bereich.
 - Der Bereich ist Teil des Links; ein Bereichswechsel erzeugt keinen neuen History-Eintrag, Browser-Zurück schließt den Dialog.
+- Unter 768 px füllt der Dialog den Bildschirm und zeigt zuerst die Bereichsliste, dann den Bereich mit `Zurück zu den Bereichen`. Einstellungen stehen als Zeilen ohne Kästen; die Zeilenregeln beschreibt [`src/ui/README.md`](../src/ui/README.md).
 - `Daten & Synchronisierung` folgt [Sync-Status und Konflikte](#sync-status-und-konflikte) und [Speicherplatz und Vorladen](#speicherplatz-und-vorladen). `Fokuswerkzeuge` enthält den Start des [Pomodoro-Timers](#pomodoro-timer) und den Einstieg zum [Simulator](#simulator).
 - `Über uns` verweist auf die Hilfe, nennt `Impressum` und `Datenschutzerklärung` als in Vorbereitung und zeigt die Paketversion. Keine andere Oberfläche zeigt Version, Umgebung oder Commit.
 - Zahlenwerte werden beim Verlassen des Felds auf ihren gültigen Bereich begrenzt.
@@ -1274,7 +1275,7 @@ Verhalten:
 
 - Verwerfen verwirft den ganzen Entwurf; während des Speicherns sind beide Aktionen gesperrt.
 - Reichweiten: allgemeine Einstellungen eine Speicheraktion, Lerneinstellungen `Auf alle Stapel anwenden` und `Auf alle neuen Stapel anwenden`, Stapeleinstellungen Stapel oder Stapelbaum. Erfolg schließt die Leiste und meldet die Reichweite einmal; Fehler lassen sie offen und erscheinen beim betroffenen Bereich.
-- In den Stapeleinstellungen speichert die Hauptaktion bei vorhandenen Unterstapeln Stapel und Unterstapel und überträgt dabei rekursiv nur die geänderten Darstellungs-, Lern-, Scheduler- und CoRe-Werte; daneben lässt sich nur dieser Stapel speichern. Beides speichert lokal persistent in einer Änderung, bleibt auf der Seite und bestätigt den Geltungsbereich.
+- In den Stapeleinstellungen speichert die Hauptaktion bei vorhandenen Unterstapeln Stapel und Unterstapel und überträgt dabei rekursiv nur die geänderten Darstellungs-, Lern-, Scheduler- und CoRe-Werte; daneben lässt sich nur dieser Stapel speichern. Beides speichert lokal persistent in einer Änderung, lässt den Dialog offen und bestätigt den Geltungsbereich.
 - Ungespeicherte Einstellungen halten App-Navigation, Querverweise, Zurück, Stapelwechsel, Abmelden und Browser-Zurück/-Vorwärts auf, im Dialog auch das Schließen und den Wechsel zwischen `Allgemein` und `Lernen`; Bereiche derselben Gruppe teilen einen Entwurf.
 - Lernprofil-Aktionen, `Auf diesen Stapel anwenden`, manueller Sync und die Lerneinstellungen einer Sitzung wirken unmittelbar.
 
@@ -1316,11 +1317,11 @@ Eigene Flaggennamen sind eine accountweite Einstellung im Profil-Sync und werden
 
 Zweck:
 
-Die Stapeleinstellungen sind eine Seite mit den Abschnitten `Stapel`, `Tagesrunde & Lernprofile` und `Scheduler & CoRe`.
+Die Stapeleinstellungen sind ein eigener Dialog im Rahmen des [Einstellungsdialogs](#einstellungsdialog) über der Ansicht oder Sitzung, aus der sie geöffnet wurden, mit den Bereichen `Stapel`, `Tagesrunde & Lernprofile` und `Scheduler & CoRe`.
 
 Einstieg:
 
-`Einstellungen` in den [Stapeloptionen](#stapeloptionen-verschieben-und-löschen) oder das [Sitzungs-Overlay](#sitzungs-overlay).
+`Einstellungen` in den [Stapeloptionen](#stapeloptionen-verschieben-und-löschen) in Dashboard, `Lernen` und Kartenverwaltung, das [Sitzungs-Overlay](#sitzungs-overlay), der Hinweis auf ein erreichtes Tageslimit und die Zeile `Stapeleinstellungen` unter `Einstellungen → Tagesrunde & Lernprofile`. Aus dem Karteneditor wird zuerst die Karte verlassen.
 
 Verhalten:
 
@@ -1328,7 +1329,9 @@ Verhalten:
 - Stapelname, Icon, Farbe, Tagespensum, `Kartenreihenfolge`, `Neue Karten sortieren`, `Fällige Karten sortieren`, die drei Begraben-Optionen, Schedulerwerte (Lernschritte, Wiederlernschritt, gewünschte Erinnerungsrate, maximales Intervall), CoRe-Modus, `Varianten einsetzen ab Haltbarkeit` (7, 21, 60 Tage), `Aktive Varianten pro Karte` (1, 2, 3) und die Lernbremse (Fehlerschwelle, Aktion `Nur kennzeichnen`/`Aussetzen`) bilden einen gemeinsamen Entwurf und werden atomar über die [Speicherleiste](#speicherleiste) übernommen.
 - Das Reviewlimit umfasst fällige, tagesübergreifende Lern- und neue Karten; Wiederholungen haben Vorrang.
 - CoRe-Modus und Variantenwerte gehören nicht zu Lernprofilen und bleiben bei einem Profilwechsel unverändert.
-- Die Stapeleinstellungen merken sich ihren im Link reproduzierbaren Ursprung (Dashboard, Lernen, Stapel, optional Karte); Direktlinks ohne Ursprung führen zurück zu `Lernen`. Ohne gewählten Stapel zeigt die Seite eine durchsuchbare Stapelauswahl.
+- Der Kopf zeigt Stapel-Icon und Name; über den Bereichen stehen der Stapelwechsel und `Standardwerte`, das `Einstellungen → Tagesrunde & Lernprofile` öffnet. Der Wechsel zwischen beiden Dialogen ersetzt den offenen; es liegt nie einer über dem anderen.
+- Der Link trägt den Dialog als `settingsDeck=` mit dem Bereich in `settings=`, auch auf der Sitzungsroute; eine eigene Seite und einen Rückweg gibt es nicht. Über `Lernen` und der Kartenverwaltung wird der Stapel zum Fokus der Liste darunter und bleibt es nach dem Schließen. Ein Direktaufruf öffnet den Dialog über der aufgerufenen Ansicht, ein unbekannter Stapel zeigt eine durchsuchbare Stapelauswahl.
+- Bereiche desselben Stapels teilen einen Entwurf; Stapelwechsel und der Wechsel in den Einstellungsdialog sind bei ungespeicherten Änderungen gesperrt ([Speicherleiste](#speicherleiste)).
 - Neue Stapel erhalten die Standardwerte als eigene Werte, importierte behalten ihre Werte.
 
 Grenzen:
