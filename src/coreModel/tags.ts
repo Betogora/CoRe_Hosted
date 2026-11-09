@@ -12,7 +12,7 @@ function normalizeTag(tag: string): string {
 }
 
 /** Case-insensitive identity of a tag, as Anki's `unicase`. */
-function tagKey(tag: string): string {
+export function tagKey(tag: string): string {
   return tag.toLocaleLowerCase("und");
 }
 

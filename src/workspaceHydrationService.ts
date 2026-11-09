@@ -259,6 +259,28 @@ export function createWorkspaceHydrationService({
     return graph?.cards.some((card) => card.id === cardId && deckIds.includes(card.deckId)) ? { ...graph, cardId } : null;
   };
 
+  /**
+   * A cloud page shows cards whose local change still waits in the outbox (a mass action, an edit) in their local state;
+   * a card deleted here leaves the page.
+   */
+  const withPendingLocalRows = async (items: CardCatalogEntry[]) => {
+    const cardIds = new Set<string>();
+    const noteIds = new Set<string>();
+    for (const mutation of repository.outbox.listPending()) {
+      if (mutation.type === "review-atomic") cardIds.add((mutation.payload as { card: { id: string } }).card.id);
+      else if (mutation.table === "cards" && mutation.entityId) cardIds.add(mutation.entityId);
+      else if (mutation.table === "notes" && mutation.entityId) noteIds.add(mutation.entityId);
+    }
+    const changed = items.filter((entry) => cardIds.has(entry.id) || noteIds.has(entry.noteId));
+    if (!changed.length) return items;
+    const local = await repository.loadCatalogEntries(changed.map((entry) => entry.id));
+    return items.flatMap((entry) => {
+      if (!cardIds.has(entry.id) && !noteIds.has(entry.noteId)) return [entry];
+      const row = local.get(entry.id);
+      return row ? [{ ...row, syncChangeId: entry.syncChangeId }] : [];
+    });
+  };
+
   const queryCardPage = async (request: CardPageRequest) => {
     const status = repository.getReplicaStatus();
     // A complete local catalog with search texts serves every page itself (ADR-048); otherwise searches ask the cloud.
@@ -281,7 +303,7 @@ export function createWorkspaceHydrationService({
       }
     }
     const local = cloudPage ? null : await repository.listCardPage(request.deckIds ?? request.deckId, { ...request, selectedCardId: null });
-    const entries = cloudPage?.items ?? local!.items;
+    const entries = cloudPage ? await withPendingLocalRows(cloudPage.items) : local!.items;
     markReplicaStartupGate("catalogUsable", { itemCount: entries.length });
     if (entries.length === 0 && cloudError) throw cloudError;
     const selected = request.selectedCardId ? await querySelectedCard(request.deckIds ?? request.deckId, request.selectedCardId) : null;
@@ -304,6 +326,24 @@ export function createWorkspaceHydrationService({
 
   /** Several card bodies in one hydration, in the given order; a missing body stays null. */
   const openCards = (cardIds: string[]) => hydrateCards(cardIds);
+  /**
+   * Ids of every hit of a search over several decks (`Alle N Treffer auswählen`, KV4): from the local index when it can
+   * answer the search, otherwise page by page from the cloud.
+   */
+  const listCardIds = async (request: Pick<CardPageRequest, "deckIds" | "query" | "searchContext" | "sort" | "signal"> & { deckIds: readonly string[] }) => {
+    const status = repository.getReplicaStatus();
+    if (status.catalogCompleteness === "complete" && (status.searchTextsReady === true || !request.query?.trim())) {
+      return repository.listCardIds(request.deckIds, { query: request.query, searchContext: request.searchContext });
+    }
+    const ids: string[] = [];
+    for (let page = 0; ; page += 1) {
+      // The list key only names the cursor cache of this walk; the scope comes from `deckIds`.
+      const result = await fetchCatalogPage({ ...request, deckId: "__ids__", page, pageSize: 50 });
+      request.signal?.throwIfAborted();
+      ids.push(...result.items.map((entry) => entry.id));
+      if (!result.hasMore || !result.items.length) return ids;
+    }
+  };
   /** Card ids whose bodies are on this device; offline exam units run on these only (E12). */
   const listLocalCardIds = async (cardIds: string[]) => {
     const missing = new Set(await repository.missingCardBodyIds(cardIds));
@@ -585,6 +625,7 @@ export function createWorkspaceHydrationService({
     forgetPreparedGraphs,
     openCard,
     openCards,
+    listCardIds,
     listLocalCardIds,
     loadNoteGraph,
     prepareStudyWindow,

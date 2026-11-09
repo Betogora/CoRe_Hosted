@@ -161,6 +161,16 @@ test("eine Inhaltsänderung aktualisiert auch das Geschwister in einem anderen S
   repository.close();
 });
 
+test("gleichzeitige Seitenabfragen nach einer Schreibung lesen beide den neuen Stand aus dem Suchindex (KV4)", async () => {
+  const repository = await openRepository(twoDeckState());
+  await repository.listCardPage(["deck-a", "deck-b"], { pageSize: 50 });
+  const graph = await repository.loadNoteGraph("note-0");
+  assert.ok(graph);
+  await repository.saveNoteGraphs([{ previous: graph, next: { note: graph.note, cards: graph.cards.map((card) => ({ ...card, ankiFlag: 2, revision: card.revision + 1 })) } }]);
+  const pages = await Promise.all([1, 2, 3].map(() => repository.listCardPage(["deck-a", "deck-b"], { pageSize: 50 })));
+  for (const page of pages) assert.equal(page.items.find((entry) => entry.id === "card-0")?.ankiFlag, 2);
+});
+
 test("das Löschen eines Inhalts entfernt alle Geschwister; Undo stellt sie mit fortgesetzten Revisionen wieder her", async () => {
   const repository = await openRepository(twoDeckState());
   const graph = await repository.loadNoteGraph("note-0");

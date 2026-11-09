@@ -40,20 +40,30 @@ export function overviewScheduleBucket(card: StoredCardCatalog | null, overview:
   return dayKey ? { kind: "forecast" as const, key: dayKey } : null;
 }
 
-export async function applyCatalogSummaryChange(transaction: IDBTransaction, deckId: string, before: StoredCardCatalog | null, after: StoredCardCatalog | null) {
+/** Deck counters after catalog changes; each deck summary is read and written once, however many cards changed. */
+export async function applyCatalogSummaryChanges(transaction: IDBTransaction, changes: ReadonlyArray<{ deckId: string; before: StoredCardCatalog | null; after: StoredCardCatalog | null }>) {
   const store = transaction.objectStore(STORE.deckStudySummaries);
-  const current = await requestResult<DeckStudySummary | undefined>(store.get(deckId)) ?? emptyDeckStudySummary(deckId);
-  const oldCounts = catalogSummaryContribution(before);
-  const newCounts = catalogSummaryContribution(after);
-  store.put({
-    ...current,
-    totalCount: Math.max(0, current.totalCount - oldCounts.totalCount + newCounts.totalCount),
-    newCount: Math.max(0, current.newCount - oldCounts.newCount + newCounts.newCount),
-    learningCount: Math.max(0, current.learningCount - oldCounts.learningCount + newCounts.learningCount),
-    matureCount: Math.max(0, current.matureCount - oldCounts.matureCount + newCounts.matureCount),
-    suspendedCount: Math.max(0, current.suspendedCount - oldCounts.suspendedCount + newCounts.suspendedCount),
-    activeVariantCount: Math.max(0, current.activeVariantCount - oldCounts.activeVariantCount + newCounts.activeVariantCount),
-    updatedAt: after?.updatedAt ?? before?.updatedAt ?? current.updatedAt,
+  const byDeck = new Map<string, Array<(typeof changes)[number]>>();
+  for (const change of changes) byDeck.set(change.deckId, [...byDeck.get(change.deckId) ?? [], change]);
+  const deckIds = [...byDeck.keys()];
+  const stored = await Promise.all(deckIds.map((deckId) => requestResult<DeckStudySummary | undefined>(store.get(deckId))));
+  deckIds.forEach((deckId, index) => {
+    let current = stored[index] ?? emptyDeckStudySummary(deckId);
+    for (const { before, after } of byDeck.get(deckId)!) {
+      const oldCounts = catalogSummaryContribution(before);
+      const newCounts = catalogSummaryContribution(after);
+      current = {
+        ...current,
+        totalCount: Math.max(0, current.totalCount - oldCounts.totalCount + newCounts.totalCount),
+        newCount: Math.max(0, current.newCount - oldCounts.newCount + newCounts.newCount),
+        learningCount: Math.max(0, current.learningCount - oldCounts.learningCount + newCounts.learningCount),
+        matureCount: Math.max(0, current.matureCount - oldCounts.matureCount + newCounts.matureCount),
+        suspendedCount: Math.max(0, current.suspendedCount - oldCounts.suspendedCount + newCounts.suspendedCount),
+        activeVariantCount: Math.max(0, current.activeVariantCount - oldCounts.activeVariantCount + newCounts.activeVariantCount),
+        updatedAt: after?.updatedAt ?? before?.updatedAt ?? current.updatedAt,
+      };
+    }
+    store.put(current);
   });
 }
 

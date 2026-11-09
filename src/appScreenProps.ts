@@ -1,4 +1,5 @@
 import type { CardSearchContext } from "./cardSearchQuery.ts";
+import type { CardBatchAction, CardBatchResult } from "./cardBatchActions.ts";
 import type { Dispatch, SetStateAction } from "react";
 import type { AppRoute, AppViewId, CardEditorTab, DeckContentTab, SettingsTarget, createViewRoute } from "./appNavigation.ts";
 import type { ApkgImportSession } from "./apkgImportSession.ts";
@@ -203,8 +204,12 @@ export interface DecksScreenProps {
   onUndoDeleteNote: (undo: NoteGraph, deleted: NoteGraph) => Promise<NoteGraph | null>;
   onRescheduleCards: (cardIds: string[], dueAt: string, occurredAt: string) => Promise<Card[]>;
   onGenerateVariant: (deckId: string, cardId: string) => Promise<AiCardVariantSuccess>;
-  /** Starts variants for the opened deck's cards without one; absent while generation is unavailable. */
-  onGenerateDeckVariants?: (deck: Deck) => unknown;
+  /** Starts variants for the selected cards without one (KV4), with the settings of `deckId`; absent while generation is unavailable. */
+  onGenerateCardVariants?: (deckId: string, cardIds: string[]) => unknown;
+  /** Runs a mass action on the selected cards as one local change (KV4); its result can be undone. */
+  onRunCardBatch?: (cardIds: string[], action: CardBatchAction) => Promise<CardBatchResult>;
+  /** Ids of every hit of the flat hit list, for `Alle N Treffer auswählen` (KV4). */
+  onListHitCardIds?: (request: { deckIds: string[]; query: string; searchContext: CardSearchContext }) => Promise<string[]>;
   variantGenerationRunning?: boolean;
   onUpdateVariant: (cardId: string, variantId: string, action: "reactivate" | "deactivate" | "delete") => Promise<void>;
   selectedDeckId: string | null;

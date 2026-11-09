@@ -1,5 +1,5 @@
 import React from "react";
-import { ArrowDown, ArrowLeft, ArrowUp, ChevronDown, ChevronRight, FileText, Layers, Minus, Network, NotebookPen, PanelsTopLeft, Play, RotateCcw, Search, Sparkles, Star, CircleHelp, type LucideIcon } from "lucide-react";
+import { ArrowDown, ArrowLeft, ArrowUp, Check, ChevronDown, ChevronRight, FileText, Layers, ListChecks, Minus, Network, NotebookPen, PanelsTopLeft, Play, RotateCcw, Search, Star, CircleHelp, type LucideIcon } from "lucide-react";
 import type { CardDraftGuard, DecksCardPage, DecksScreenProps } from "../appScreenProps.ts";
 export type { DecksCardPage, DecksCardPageRequest } from "../appScreenProps.ts";
 export type DecksScreenCardPageProps = Pick<DecksScreenProps, "cardPages" | "onRequestCardPage">;
@@ -24,6 +24,8 @@ import { AdvancedCardSearch } from "./cardSearch/AdvancedCardSearch.tsx";
 import { CardSearchBar } from "./cardSearch/CardSearchBar.tsx";
 import { createCardSearchMenu } from "./cardSearch/cardSearchMenu.ts";
 import { useVirtualRows } from "./cardList/virtualRows.ts";
+import { CardSelectionBar, cardCount } from "./cardList/CardSelectionBar.tsx";
+import type { CardBatchAction } from "../cardBatchActions.ts";
 import { CardEditorDialog, CardEditorSurface, type CardEditorHitNavigation } from "./cardEditor/CardEditorDialog.tsx";
 import { DeckSummariesPanel } from "./DeckSummariesPanel.tsx";
 import { DeckMindMapsPanel } from "./DeckMindMapsPanel.tsx";
@@ -78,11 +80,12 @@ function MatchingDecks({ groups, onOpen }: { groups: ReadonlyArray<{ id: string;
   );
 }
 
-function SortHeader({ field, label, sort, onChange }: {
+function SortHeader({ field, label, sort, onChange, leading }: {
   field: CardTableSortField;
   label: string;
   sort: CardTableSort;
   onChange: (field: CardTableSortField) => void;
+  leading?: React.ReactNode;
 }) {
   const active = sort.field === field;
   const rightAligned = field !== "sortField";
@@ -93,6 +96,8 @@ function SortHeader({ field, label, sort, onChange }: {
 
   return (
     <th scope="col" aria-sort={active ? (sort.direction === "asc" ? "ascending" : "descending") : "none"} className={`min-w-0 ${headerPadding} ${rightAligned ? "text-right" : "text-left"}`}>
+      <div className="flex min-w-0 items-center gap-1">
+      {leading}
       <button
         type="button"
         onClick={() => onChange(field)}
@@ -102,6 +107,7 @@ function SortHeader({ field, label, sort, onChange }: {
         <span className="min-w-0 truncate">{label}</span>
         <SortIcon size={14} aria-hidden="true" className={`shrink-0 ${active ? "opacity-100" : "opacity-35"}`} />
       </button>
+      </div>
     </th>
   );
 }
@@ -124,15 +130,50 @@ interface CardTableRowViewProps {
   /** Deck path under the front text in the flat hit list. */
   deckPath?: string;
   onSelect: (deckId: string, cardId: string) => void;
+  /** Selection for mass actions (KV4): checked, the table in selection mode, and toggling (with Shift a range). */
+  checked: boolean;
+  selecting: boolean;
+  onToggleCheck: (cardId: string, range: boolean) => void;
 }
 
+const LONG_PRESS_MS = 500;
+
 /** One card row of the table; memoized so a page of up to 50 rows does not repaint on unrelated state changes. */
-const CardTableRowView = React.memo(function CardTableRowView({ virtualKey, deckId, card, frontPreview, nextStudyLabel, selected, marked, flag, flagNames, syncConflict, depth, deckPath, onSelect }: CardTableRowViewProps) {
+const CardTableRowView = React.memo(function CardTableRowView({ virtualKey, deckId, card, frontPreview, nextStudyLabel, selected, marked, flag, flagNames, syncConflict, depth, deckPath, onSelect, checked, selecting, onToggleCheck }: CardTableRowViewProps) {
   const suspended = !card.reviewable;
+  const pressTimer = React.useRef<number | null>(null);
+  const pressed = React.useRef(false);
+  const cancelPress = () => {
+    if (pressTimer.current !== null) window.clearTimeout(pressTimer.current);
+    pressTimer.current = null;
+  };
+  // A click opens the card; while selecting, or with Ctrl/Cmd or Shift, it selects. A long touch starts selecting.
+  const activate = (event: React.MouseEvent) => {
+    event.stopPropagation();
+    if (pressed.current) {
+      pressed.current = false;
+      return;
+    }
+    if (selecting || event.ctrlKey || event.metaKey || event.shiftKey) onToggleCheck(card.id, event.shiftKey);
+    else onSelect(deckId, card.id);
+  };
   return (
     <tr
       data-virtual-key={virtualKey}
-      onClick={() => onSelect(deckId, card.id)}
+      onClick={activate}
+      onPointerDown={(event) => {
+        if (event.pointerType !== "touch") return;
+        cancelPress();
+        pressTimer.current = window.setTimeout(() => {
+          pressTimer.current = null;
+          pressed.current = true;
+          onToggleCheck(card.id, false);
+        }, LONG_PRESS_MS);
+      }}
+      onPointerUp={cancelPress}
+      onPointerCancel={cancelPress}
+      onPointerMove={(event) => { if (event.pointerType === "touch" && (Math.abs(event.movementX) > 4 || Math.abs(event.movementY) > 4)) cancelPress(); }}
+      onContextMenu={(event) => { if (pressed.current) event.preventDefault(); }}
       className={`cursor-pointer border-b border-core-border transition-colors ${suspended ? "bg-core-warning-soft hover:bg-core-warning-soft" : selected ? "bg-core-info-soft" : "bg-core-surface hover:bg-core-subtle"} ${selected ? "core-card-row-selected" : ""}`}
       data-selected={selected ? "true" : undefined}
       data-suspended={suspended ? "true" : undefined}
@@ -143,15 +184,30 @@ const CardTableRowView = React.memo(function CardTableRowView({ virtualKey, deck
         // Under the deck header the text starts where the header's deck icon starts (behind the chevron).
         style={depth === null ? undefined : { paddingLeft: `calc(var(--core-card-row-lead) + ${depth} * var(--core-deck-depth-indent, ${DECK_DEPTH_INDENT_PX}px))` }}
       >
+        <div className="flex min-w-0 items-start gap-2.5">
+        {selecting ? (
+          <span className="relative mt-px size-5 shrink-0">
+            <input
+              type="checkbox"
+              data-testid={"select-card-" + card.id}
+              aria-label={`${frontPreview} auswählen`}
+              className="absolute inset-0 size-5 cursor-pointer appearance-none rounded-marker border border-core-border bg-core-surface checked:border-core-action checked:bg-core-action"
+              checked={checked}
+              onClick={(event) => {
+                event.stopPropagation();
+                onToggleCheck(card.id, event.shiftKey);
+              }}
+              onChange={() => undefined}
+            />
+            {checked ? <Check size={16} aria-hidden="true" className="pointer-events-none absolute left-0.5 top-0.5 text-core-on-accent" /> : null}
+          </span>
+        ) : null}
         <button
           type="button"
           data-testid={"deck-card-" + card.id}
           aria-pressed={selected}
-          className="block !min-h-0 w-full text-left core-body font-medium text-core-text focus-visible:rounded-inset focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--core-border-interactive)]"
-          onClick={(event) => {
-            event.stopPropagation();
-            onSelect(deckId, card.id);
-          }}
+          className="block !min-h-0 min-w-0 flex-1 text-left core-body font-medium text-core-text focus-visible:rounded-inset focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--core-border-interactive)]"
+          onClick={activate}
         >
           {/* Narrow screens show two lines of the front, wider ones one. */}
           <span className="line-clamp-2 break-words sm:line-clamp-1 sm:break-all">
@@ -160,6 +216,7 @@ const CardTableRowView = React.memo(function CardTableRowView({ virtualKey, deck
           </span>
           {deckPath ? <span className="block truncate core-caption font-normal text-core-muted">{deckPath}</span> : null}
         </button>
+        </div>
       </td>
       <td className="min-w-0 whitespace-nowrap px-1 py-2.5 text-right align-middle core-body tabular-nums text-core-secondary">
         {nextStudyLabel}
@@ -212,7 +269,9 @@ export function DecksScreen({
   onUndoDeleteNote,
   onRescheduleCards,
   onGenerateVariant,
-  onGenerateDeckVariants,
+  onGenerateCardVariants,
+  onRunCardBatch,
+  onListHitCardIds,
   variantGenerationRunning = false,
   onUpdateVariant,
   onMoveDeck,
@@ -460,6 +519,10 @@ export function DecksScreen({
   // Pages of the rows near the visible area load as the list scrolls; a list not shown for the current search, sort
   // and scope loads its first page, which also brings its length. Each page is asked once per list version.
   const requestedPagesRef = React.useRef(new Map<string, DecksCardPage | undefined>());
+  // Emptied pages (a local write such as a mass action) load again, also those first asked before anything was shown.
+  React.useEffect(() => {
+    if (cardPages && !Object.keys(cardPages).length) requestedPagesRef.current.clear();
+  }, [cardPages]);
   React.useEffect(() => {
     if (!onRequestCardPage) return;
     if (contentDeckId && contentTab !== "cards") return;
@@ -472,9 +535,17 @@ export function DecksScreen({
     const needed = new Map<string, { listKey: string; page: number }>();
     const need = (listKey: string, page: number) => needed.set(`${listKey}#${page}`, { listKey, page });
     if (hitList && !isShown(HIT_LIST_KEY)) need(HIT_LIST_KEY, 0);
+    // An expanded deck without its first page asks for it, also without a header row (the content view of one deck)
+    // and while its count is still unknown.
+    const visibleDeckIds = new Set<string>();
     for (let index = Math.max(0, virtual.start); index <= virtual.end; index += 1) {
       const item = items[index];
-      if (item?.kind === "header" && item.expanded && !isShown(item.deckId)) need(item.deckId, 0);
+      if (item?.kind === "header" && item.expanded) visibleDeckIds.add(item.deckId);
+    }
+    if (!hitList && !showsDeckHeader) for (const group of tableModel.groups) if (isGroupExpanded(group.id)) visibleDeckIds.add(group.id);
+    for (const deckId of visibleDeckIds) if (!isShown(deckId)) need(deckId, 0);
+    for (let index = Math.max(0, virtual.start); index <= virtual.end; index += 1) {
+      const item = items[index];
       if (item?.kind === "card" && (!rowOf(item) || !isShown(item.listKey))) need(item.listKey, Math.floor(item.index / CARD_TABLE_PAGE_SIZE));
     }
     if (pendingHit) need(pendingHit.listKey, Math.floor(pendingHit.index / CARD_TABLE_PAGE_SIZE));
@@ -622,6 +693,91 @@ export function DecksScreen({
     if (selectedItemIndex >= 0) virtual.scrollToIndex(selectedItemIndex);
     // Only a newly selected row scrolls; later renders of the same selection leave the scroll position alone.
   }, [selectedCardId, selectedItemIndex >= 0]);
+
+  // Selection for mass actions (KV4): card ids, or every hit of the flat list; a new search or scope clears it.
+  const [selecting, setSelecting] = React.useState(false);
+  const [checkedIds, setCheckedIds] = React.useState<ReadonlySet<string>>(() => new Set());
+  const [allHits, setAllHits] = React.useState(false);
+  const selectionAnchorRef = React.useRef<number | null>(null);
+  const clearSelection = React.useCallback(() => {
+    setSelecting(false);
+    setCheckedIds(new Set());
+    setAllHits(false);
+    selectionAnchorRef.current = null;
+  }, []);
+  React.useEffect(clearSelection, [clearSelection, deferredQuery, hitScope]);
+  const canSelect = Boolean(onRunCardBatch) && !onCloseSelectedCard;
+  const positionOf = (cardId: string) => {
+    const lists = hitList ? [[HIT_LIST_KEY, hitList] as const] : tableModel.groups.map((group) => [group.id, group] as const);
+    for (const [listKey, list] of lists) {
+      for (const [index, row] of list.rowsByIndex) if (row.id === cardId) return (listStarts.get(listKey)?.card ?? 0) + index;
+    }
+    return null;
+  };
+  function toggleCheck(cardId: string, range: boolean) {
+    if (!canSelect) return;
+    const position = positionOf(cardId);
+    const anchor = selectionAnchorRef.current;
+    setSelecting(true);
+    setAllHits(false);
+    setCheckedIds((current) => {
+      const next = new Set(current);
+      if (range && anchor !== null && position !== null) {
+        // A range takes the loaded rows between the last toggled row and this one.
+        for (let index = Math.min(anchor, position); index <= Math.max(anchor, position); index += 1) {
+          const row = rowOf(cardItems[index]);
+          if (row) next.add(row.id);
+        }
+      } else if (next.has(cardId)) next.delete(cardId);
+      else next.add(cardId);
+      return next;
+    });
+    selectionAnchorRef.current = position;
+  }
+  const stableToggleCheck = useStableCallback(toggleCheck);
+  const [runningBatch, setRunningBatch] = React.useState(false);
+  const selectionCount = allHits ? hitList?.totalCardCount ?? 0 : checkedIds.size;
+
+  async function selectedIds() {
+    if (!allHits) return [...checkedIds];
+    if (!onListHitCardIds) return [];
+    return onListHitCardIds({ deckIds: hitScope, query: deferredQuery, searchContext });
+  }
+
+  async function runSelectionAction(action: CardBatchAction, label: string) {
+    if (!onRunCardBatch || runningBatch) return;
+    setRunningBatch(true);
+    try {
+      const ids = await selectedIds();
+      const result = await onRunCardBatch(ids, action);
+      if (action.kind === "delete" && selectedCardId && ids.includes(selectedCardId)) closeDetail();
+      clearSelection();
+      setSuccessToast(`${label}: ${cardCount(result.changedCount)}`, {
+        action: {
+          label: "Rückgängig",
+          onAction: () => void result.undo().then(({ restoredCount, skippedCount }) => setSuccessToast(skippedCount
+            ? `Rückgängig gemacht: ${cardCount(restoredCount)}. ${cardCount(skippedCount)} wurden inzwischen geändert und bleiben so.`
+            : `Rückgängig gemacht: ${cardCount(restoredCount)}.`, { appearance: skippedCount ? "neutral" : "success" }),
+          () => setSuccessToast("Rückgängig ist fehlgeschlagen.", { appearance: "neutral" })),
+        },
+      });
+    } catch (error) {
+      setDeckStatusType("alert");
+      setDeckStatus(error instanceof Error ? error.message : "Die Aktion konnte nicht ausgeführt werden.");
+    } finally {
+      setRunningBatch(false);
+    }
+  }
+
+  async function generateSelectionVariants() {
+    if (!onGenerateCardVariants) return;
+    const ids = await selectedIds();
+    const firstRow = [...(hitList ? [hitList] : tableModel.groups)].flatMap((list) => [...list.rowsByIndex.values()]).find((row) => ids.includes(row.id));
+    const deckId = firstRow?.entry.deckId ?? contentDeckId ?? selectedDeckId;
+    if (!deckId || !ids.length) return;
+    onGenerateCardVariants(deckId, ids);
+    clearSelection();
+  }
 
   async function savePendingDetailDraft() {
     const guard = cardDraftGuardRef.current;
@@ -913,11 +1069,6 @@ export function DecksScreen({
                 />
               ) : null}
             </CardSearchBar>
-            {cardSearchTermState(query, "has:variant") === "out" && contentDeck && onGenerateDeckVariants ? (
-              <ActionButton type="button" variant="secondary" icon={Sparkles} disabled={variantGenerationRunning} className="justify-self-start" onClick={() => onGenerateDeckVariants(contentDeck)}>
-                Für diese Karten Varianten generieren
-              </ActionButton>
-            ) : null}
             {deckStatus ? <p className={"core-body font-semibold " + (deckStatusType === "alert" ? "core-status-error" : "core-status-info")} role={deckStatusType}>{deckStatus}</p> : null}
             {deletedCardUndo ? (
               <div className="flex flex-wrap items-center gap-3 rounded-panel border border-core-border bg-core-subtle px-4 py-3">
@@ -938,11 +1089,44 @@ export function DecksScreen({
               </colgroup>
               {/* From xl the screen region scrolls; its top padding (xl:py-10 in App) would otherwise hold the header 40 px low. */}
               <thead className="sticky top-[var(--core-card-table-sticky-top)] z-10 bg-core-surface xl:-top-10" style={{ "--core-card-table-sticky-top": `${mobileHeaderHeight}px` } as React.CSSProperties}>
-                <tr className="core-table-header-row h-10 border-b border-core-border">
-                  <SortHeader field="sortField" label="Sortierfeld" sort={cardSort} onChange={changeSort} />
-                  <SortHeader field="nextStudyDate" label="Datum" sort={cardSort} onChange={changeSort} />
-                  <SortHeader field="variants" label="Variante" sort={cardSort} onChange={changeSort} />
-                </tr>
+                {selecting ? (
+                  <tr className="border-b border-core-border bg-core-info-soft">
+                    <th scope="col" colSpan={3} className="p-0 text-left font-normal">
+                      <CardSelectionBar
+                        count={selectionCount}
+                        hitTotal={hitList && onListHitCardIds && !cardsLoading ? hitList.totalCardCount : null}
+                        allHits={allHits}
+                        onSelectAllHits={() => setAllHits(true)}
+                        onClear={clearSelection}
+                        decks={decks}
+                        flagNames={cardEditor.flagNames}
+                        loadTagDirectory={cardEditor.listTagDirectory}
+                        now={now}
+                        dayStartHour={dayStartHour}
+                        timeZone={timeZone}
+                        disabled={runningBatch || selectionCount === 0}
+                        onGenerateVariants={onGenerateCardVariants && !variantGenerationRunning ? () => void generateSelectionVariants() : undefined}
+                        onRun={runSelectionAction}
+                      />
+                    </th>
+                  </tr>
+                ) : (
+                  <tr className="core-table-header-row h-10 border-b border-core-border">
+                    <SortHeader
+                      field="sortField"
+                      label="Sortierfeld"
+                      sort={cardSort}
+                      onChange={changeSort}
+                      leading={canSelect ? (
+                        <CoreTooltip label="Karten auswählen">
+                          <IconButton label="Karten auswählen" icon={ListChecks} variant="ghost" data-testid="card-selection-start" onClick={() => setSelecting(true)} />
+                        </CoreTooltip>
+                      ) : null}
+                    />
+                    <SortHeader field="nextStudyDate" label="Datum" sort={cardSort} onChange={changeSort} />
+                    <SortHeader field="variants" label="Variante" sort={cardSort} onChange={changeSort} />
+                  </tr>
+                )}
                 {cardsLoading ? (
                   <tr aria-hidden="true">
                     <td colSpan={3} className="p-0">
@@ -1034,6 +1218,9 @@ export function DecksScreen({
                       depth={item.depth}
                       deckPath={item.listKey === HIT_LIST_KEY ? deckPathById.get(card.deckId) : undefined}
                       onSelect={stableRequestCardSelection}
+                      checked={allHits || checkedIds.has(card.id)}
+                      selecting={selecting}
+                      onToggleCheck={stableToggleCheck}
                     />
                   );
                 })}

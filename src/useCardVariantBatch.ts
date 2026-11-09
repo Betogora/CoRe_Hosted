@@ -2,7 +2,7 @@ import React from "react";
 import { runCardVariantBatch, summarizeCardVariantBatch, type CardVariantBatchMode, type CardVariantBatchSource } from "./cardVariantBatch.ts";
 import type { Deck, DeckSettings } from "./coreTypes.ts";
 import { DEFAULT_CARD_TABLE_SORT } from "./libraryModel.ts";
-import type { CardCatalogEntry } from "./workspaceReplica.ts";
+import { catalogEntryFromCard, type CardCatalogEntry } from "./workspaceReplica.ts";
 
 interface BatchCardSource {
   queryCardPage(request: { deckId: string; page: number; pageSize: number; sort: typeof DEFAULT_CARD_TABLE_SORT }): Promise<{ items: CardCatalogEntry[]; hasMore: boolean }>;
@@ -28,14 +28,20 @@ export function useCardVariantBatch({ cards, generate, onToast }: {
   const [view, setView] = React.useState<CardVariantBatchView | null>(null);
   const controllerRef = React.useRef<AbortController | null>(null);
 
-  const start = React.useCallback((deck: Deck, { mode = "missing", deckSettings = deck.deckSettings }: { mode?: CardVariantBatchMode; deckSettings?: Partial<DeckSettings> } = {}) => {
+  /** Runs over the deck's cards, or over `cardIds` (the selected cards of the card management, KV4) in their order. */
+  const start = React.useCallback((deck: Deck, { mode = "missing", deckSettings = deck.deckSettings, cardIds }: { mode?: CardVariantBatchMode; deckSettings?: Partial<DeckSettings>; cardIds?: readonly string[] } = {}) => {
     if (!cards || controllerRef.current) return;
     const controller = new AbortController();
     controllerRef.current = controller;
     setView({ deck, mode, done: 0, total: null, outcome: null });
     void runCardVariantBatch({
       source: {
-        listPage: (page) => cards.queryCardPage({ deckId: deck.id, page, pageSize: 50, sort: DEFAULT_CARD_TABLE_SORT }),
+        listPage: cardIds
+          ? async (page) => {
+            const bodies = await cards.openCards(cardIds.slice(page * 50, (page + 1) * 50));
+            return { items: bodies.flatMap((body) => body ? [catalogEntryFromCard(body.card, body.note)] : []), hasMore: (page + 1) * 50 < cardIds.length };
+          }
+          : (page) => cards.queryCardPage({ deckId: deck.id, page, pageSize: 50, sort: DEFAULT_CARD_TABLE_SORT }),
         openCards: cards.openCards,
       },
       deckSettings,

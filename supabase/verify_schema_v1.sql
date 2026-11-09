@@ -242,7 +242,7 @@ begin
      or to_regprocedure('public.get_account_bootstrap(text,integer,integer)') is null
      or to_regprocedure('public.get_account_due_forecast()') is null
      or to_regprocedure('public.pull_account_catalog_delta(bigint,integer,integer)') is null
-     or to_regprocedure('public.list_account_card_catalog(text,text,text,text,jsonb,integer,boolean,jsonb)') is null
+     or to_regprocedure('public.list_account_card_catalog(text,text,text,text,jsonb,integer,boolean,jsonb,integer)') is null
      or to_regprocedure('public.search_account_card_catalog(text[],text,text,text,integer,jsonb)') is null
      or to_regprocedure('public.list_account_card_study_states(text[],text,integer)') is null
      or to_regprocedure('public.hydrate_account_cards(text[],text[])') is null
@@ -267,7 +267,7 @@ begin
       'public.get_account_bootstrap(text,integer,integer)',
       'public.get_account_due_forecast()',
       'public.pull_account_catalog_delta(bigint,integer,integer)',
-      'public.list_account_card_catalog(text,text,text,text,jsonb,integer,boolean,jsonb)',
+      'public.list_account_card_catalog(text,text,text,text,jsonb,integer,boolean,jsonb,integer)',
       'public.search_account_card_catalog(text[],text,text,text,integer,jsonb)',
       'public.list_account_card_study_states(text[],text,integer)',
       'public.hydrate_account_cards(text[],text[])',

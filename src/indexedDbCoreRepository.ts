@@ -79,7 +79,7 @@ import {
 import {
   studyOverviewContext,
   overviewScheduleBucket,
-  applyCatalogSummaryChange,
+  applyCatalogSummaryChanges,
   type BuriedSiblingCounts,
   buriedSiblingsByDeck,
   loadAnsweredTodayFrom,
@@ -236,15 +236,10 @@ export async function createIndexedDbCoreRepository({ userId, initialState, inde
     searchIndex.replaceAll(rows);
     searchIndexReady = true;
   };
-  const ensureSearchIndex = async () => {
-    await writeChain;
-    while (!searchIndexReady) {
-      searchIndexLoad ??= loadSearchIndex().finally(() => { searchIndexLoad = null; });
-      await searchIndexLoad;
-    }
-    if (!changedCatalogIds.size) return;
-    const ids = [...changedCatalogIds];
-    changedCatalogIds.clear();
+  // Rows written since the index last read them; a caller that finds them being read waits, so no page is served from
+  // the index in between (a mass action followed by its list reload).
+  let changedRowsRead: Promise<void> | null = null;
+  const readChangedRows = async (ids: string[]) => {
     const transaction = database.transaction(STORE.cardCatalog, "readonly");
     const store = transaction.objectStore(STORE.cardCatalog);
     const rows = await Promise.all(ids.map((id) => requestResult<StoredCardCatalog | undefined>(store.get(id))));
@@ -254,6 +249,21 @@ export async function createIndexedDbCoreRepository({ userId, initialState, inde
       else searchIndex.remove(id);
     });
   };
+  const ensureSearchIndex = async () => {
+    await writeChain;
+    while (!searchIndexReady) {
+      searchIndexLoad ??= loadSearchIndex().finally(() => { searchIndexLoad = null; });
+      await searchIndexLoad;
+    }
+    while (changedRowsRead || changedCatalogIds.size) {
+      if (!changedRowsRead) {
+        const ids = [...changedCatalogIds];
+        changedCatalogIds.clear();
+        changedRowsRead = readChangedRows(ids).finally(() => { changedRowsRead = null; });
+      }
+      await changedRowsRead;
+    }
+  };
 
   const adjustOverviewCount = (counts: Record<string, number>, key: string, delta: number) => {
     const next = Math.max(0, (counts[key] ?? 0) + delta);
@@ -261,36 +271,51 @@ export async function createIndexedDbCoreRepository({ userId, initialState, inde
     else counts[key] = next;
   };
 
-  const applyReplicaCatalogChange = async (
+  /**
+   * Deck counters and the study overview after catalog changes. A mass change passes all its rows at once, so each
+   * deck summary and the overview are written once (KV4).
+   */
+  const applyReplicaCatalogChanges = async (
+    transaction: IDBTransaction,
+    changes: ReadonlyArray<{ deckId: string; before: StoredCardCatalog | null; after: StoredCardCatalog | null }>,
+    referenceAt = new Date().toISOString(),
+    updateOverview = true,
+  ) => {
+    await applyCatalogSummaryChanges(transaction, changes);
+    if (!studyOverview || !updateOverview) return;
+    let next: Pick<AccountStudyOverview, "dueByDeck" | "availableNewByDeck" | "availableLearningByDeck" | "forecastByDay"> | null = null;
+    for (const { before, after } of changes) {
+      const previousBucket = overviewScheduleBucket(before, studyOverview, referenceAt);
+      const nextBucket = overviewScheduleBucket(after, studyOverview, referenceAt);
+      if (previousBucket?.kind === nextBucket?.kind && previousBucket?.key === nextBucket?.key) continue;
+      next ??= {
+        dueByDeck: { ...studyOverview.dueByDeck },
+        availableNewByDeck: { ...studyOverview.availableNewByDeck },
+        availableLearningByDeck: { ...studyOverview.availableLearningByDeck },
+        forecastByDay: { ...studyOverview.forecastByDay },
+      };
+      const counts = next;
+      const countsFor = (kind: "available-new" | "available-learning" | "due" | "forecast") => (
+        kind === "available-new" ? counts.availableNewByDeck
+          : kind === "available-learning" ? counts.availableLearningByDeck
+            : kind === "due" ? counts.dueByDeck
+              : counts.forecastByDay
+      );
+      if (previousBucket) adjustOverviewCount(countsFor(previousBucket.kind), previousBucket.key, -1);
+      if (nextBucket) adjustOverviewCount(countsFor(nextBucket.kind), nextBucket.key, 1);
+    }
+    if (!next) return;
+    studyOverview = { ...studyOverview, ...next, generatedAt: referenceAt };
+    transaction.objectStore(STORE.syncMetadata).put({ key: "accountStudyOverview", value: studyOverview });
+  };
+  const applyReplicaCatalogChange = (
     transaction: IDBTransaction,
     deckId: string,
     before: StoredCardCatalog | null,
     after: StoredCardCatalog | null,
     referenceAt = new Date().toISOString(),
     updateOverview = true,
-  ) => {
-    await applyCatalogSummaryChange(transaction, deckId, before, after);
-    if (!studyOverview || !updateOverview) return;
-    const previousBucket = overviewScheduleBucket(before, studyOverview, referenceAt);
-    const nextBucket = overviewScheduleBucket(after, studyOverview, referenceAt);
-    if (previousBucket?.kind === nextBucket?.kind && previousBucket?.key === nextBucket?.key) return;
-    const next = {
-      dueByDeck: { ...studyOverview.dueByDeck },
-      availableNewByDeck: { ...studyOverview.availableNewByDeck },
-      availableLearningByDeck: { ...studyOverview.availableLearningByDeck },
-      forecastByDay: { ...studyOverview.forecastByDay },
-    };
-    const countsFor = (kind: "available-new" | "available-learning" | "due" | "forecast") => (
-      kind === "available-new" ? next.availableNewByDeck
-        : kind === "available-learning" ? next.availableLearningByDeck
-          : kind === "due" ? next.dueByDeck
-            : next.forecastByDay
-    );
-    if (previousBucket) adjustOverviewCount(countsFor(previousBucket.kind), previousBucket.key, -1);
-    if (nextBucket) adjustOverviewCount(countsFor(nextBucket.kind), nextBucket.key, 1);
-    studyOverview = { ...studyOverview, ...next, generatedAt: referenceAt };
-    transaction.objectStore(STORE.syncMetadata).put({ key: "accountStudyOverview", value: studyOverview });
-  };
+  ) => applyReplicaCatalogChanges(transaction, [{ deckId, before, after }], referenceAt, updateOverview);
 
   const queueMutations = (inputs: any[]) => {
     const queued: SyncOutboxMutation[] = [];
@@ -395,16 +420,18 @@ export async function createIndexedDbCoreRepository({ userId, initialState, inde
         entityId: event.id,
         payload: { event, card: { id: card.id, study: card.study, updatedAt: card.updatedAt }, variant: null },
       })));
-      for (const { previous, card, event } of changes) {
+      const storedCatalogs = await Promise.all(changes.map(({ card }) => requestResult<StoredCardCatalog | undefined>(transaction.objectStore(STORE.cardCatalog).get(card.id))));
+      const catalogChanges = changes.map(({ previous, card, event }, index) => {
         const note = notes.get(card.noteId) ?? null;
-        const previousCatalog = await requestResult<StoredCardCatalog | undefined>(transaction.objectStore(STORE.cardCatalog).get(card.id)) ?? catalogRecordFor(previous, note);
+        const previousCatalog = storedCatalogs[index] ?? catalogRecordFor(previous, note);
         const nextCatalog = catalogRecordFor(card, note, withStudyEvents(previousCatalog, [event]));
-        await applyReplicaCatalogChange(transaction, card.deckId, previousCatalog, nextCatalog, occurredAt);
         transaction.objectStore(STORE.cards).put(cardRecord(card));
         transaction.objectStore(STORE.reviewEvents).put(event);
         transaction.objectStore(STORE.cardCatalog).put(nextCatalog); markCatalogChanged(nextCatalog.id);
         transaction.objectStore(STORE.bodyResidency).put(residencyRecord(nextCatalog, "cached"));
-      }
+        return { deckId: card.deckId, before: previousCatalog, after: nextCatalog };
+      });
+      await applyReplicaCatalogChanges(transaction, catalogChanges, occurredAt);
       writeOutbox(transaction, mutationBatch);
       transaction.objectStore(STORE.meta).put({ key: "updatedAt", value: occurredAt });
       await completed;
@@ -417,6 +444,7 @@ export async function createIndexedDbCoreRepository({ userId, initialState, inde
    * Central local write of contents with their cards: stores, catalog, deck summaries and outbox in one
    * transaction. Deleted contents and cards leave the replica; their soft-delete travels through the outbox.
    */
+  const keepsVariants = (previous: Card | undefined, card: Card) => !card.deletedAt && previous?.variants === card.variants && previous.deckId === card.deckId;
   const writeNoteGraphs = (changes: NoteGraphChange[]) => enqueueWrite(async () => {
     if (!changes.length) return;
     const updatedAt = new Date().toISOString();
@@ -430,37 +458,50 @@ export async function createIndexedDbCoreRepository({ userId, initialState, inde
     ], "readwrite");
     const done = transactionDone(transaction);
     const catalogStore = transaction.objectStore(STORE.cardCatalog);
-    for (const { next } of changes) {
-      const note = next.note;
-      if (note.deletedAt) transaction.objectStore(STORE.notes).delete(note.id);
-      else transaction.objectStore(STORE.notes).put(note);
-      for (const card of next.cards) {
-        const before = await requestResult<StoredCardCatalog | undefined>(catalogStore.get(card.id)) ?? null;
-        const variantStore = transaction.objectStore(STORE.variants);
-        const storedVariantKeys = await requestResult<IDBValidKey[]>(variantStore.index("cardId").getAllKeys(card.id));
-        if (card.deletedAt || note.deletedAt) {
-          if (before) await applyReplicaCatalogChange(transaction, before.deckId, before, null, updatedAt);
-          transaction.objectStore(STORE.cards).delete(card.id);
-          catalogStore.delete(card.id); markCatalogChanged(card.id);
-          transaction.objectStore(STORE.bodyResidency).delete(card.id);
-          for (const key of storedVariantKeys) variantStore.delete(key);
-          continue;
-        }
-        const catalog = catalogRecordFor(card, note, before);
-        if (before && before.deckId !== card.deckId) {
-          await applyReplicaCatalogChange(transaction, before.deckId, before, null, updatedAt);
-          await applyReplicaCatalogChange(transaction, card.deckId, null, catalog, updatedAt);
-        } else {
-          await applyReplicaCatalogChange(transaction, card.deckId, before, catalog, updatedAt);
-        }
-        transaction.objectStore(STORE.cards).put(cardRecord(card));
-        catalogStore.put(catalog); markCatalogChanged(catalog.id);
-        transaction.objectStore(STORE.bodyResidency).put(residencyRecord(catalog, "cached"));
-        const nextVariantIds = new Set(card.variants.map((variant) => variant.id));
-        for (const key of storedVariantKeys) if (!nextVariantIds.has(String(key))) variantStore.delete(key);
-        for (const variant of card.variants) variantStore.put(variantRecord(variant, card.deckId));
-      }
+    const variantStore = transaction.objectStore(STORE.variants);
+    // A card handed back unchanged (same object, same content) is not written again; a changed content rewrites the
+    // catalog rows of all its cards. All reads go out at once, so a mass action (KV4) waits for one round trip.
+    const entries = changes.flatMap(({ previous, next }) => {
+      const noteChanged = previous?.note !== next.note;
+      const unchanged = new Set(noteChanged ? [] : previous?.cards ?? []);
+      return next.cards.filter((card) => !unchanged.has(card)).map((card) => ({ note: next.note, card, previous: previous?.cards.find((candidate) => candidate.id === card.id) }));
+    });
+    const [befores, variantKeys] = await Promise.all([
+      Promise.all(entries.map(({ card }) => requestResult<StoredCardCatalog | undefined>(catalogStore.get(card.id)))),
+      // Unchanged variants of a card moved within its deck need no key lookup.
+      Promise.all(entries.map(({ note, card, previous }) => !note.deletedAt && keepsVariants(previous, card) ? null : requestResult<IDBValidKey[]>(variantStore.index("cardId").getAllKeys(card.id)))),
+    ]);
+    const catalogChanges: Array<{ deckId: string; before: StoredCardCatalog | null; after: StoredCardCatalog | null }> = [];
+    for (const { previous, next } of changes) {
+      if (next.note.deletedAt) transaction.objectStore(STORE.notes).delete(next.note.id);
+      else if (previous?.note !== next.note) transaction.objectStore(STORE.notes).put(next.note);
     }
+    entries.forEach(({ note, card, previous }, index) => {
+      const before = befores[index] ?? null;
+      const storedVariantKeys = variantKeys[index] ?? [];
+      if (card.deletedAt || note.deletedAt) {
+        if (before) catalogChanges.push({ deckId: before.deckId, before, after: null });
+        transaction.objectStore(STORE.cards).delete(card.id);
+        catalogStore.delete(card.id); markCatalogChanged(card.id);
+        transaction.objectStore(STORE.bodyResidency).delete(card.id);
+        for (const key of storedVariantKeys) variantStore.delete(key);
+        return;
+      }
+      const catalog = catalogRecordFor(card, note, before);
+      if (before && before.deckId !== card.deckId) {
+        catalogChanges.push({ deckId: before.deckId, before, after: null }, { deckId: card.deckId, before: null, after: catalog });
+      } else {
+        catalogChanges.push({ deckId: card.deckId, before, after: catalog });
+      }
+      transaction.objectStore(STORE.cards).put(cardRecord(card));
+      catalogStore.put(catalog); markCatalogChanged(catalog.id);
+      transaction.objectStore(STORE.bodyResidency).put(residencyRecord(catalog, "cached"));
+      if (keepsVariants(previous, card)) return;
+      const nextVariantIds = new Set(card.variants.map((variant) => variant.id));
+      for (const key of storedVariantKeys) if (!nextVariantIds.has(String(key))) variantStore.delete(key);
+      for (const variant of card.variants) variantStore.put(variantRecord(variant, card.deckId));
+    });
+    await applyReplicaCatalogChanges(transaction, catalogChanges, updatedAt);
     writeOutbox(transaction, mutationBatch);
     transaction.objectStore(STORE.meta).put({ key: "updatedAt", value: updatedAt });
     await done;
@@ -1355,9 +1396,9 @@ export async function createIndexedDbCoreRepository({ userId, initialState, inde
       await transactionDone(transaction);
       return sources.map(({ id, name }) => ({ id, name })).sort((left, right) => left.name.localeCompare(right.name, "de"));
     },
-    /** Manual reschedule: only the due date changes; suspension stays. */
-    rescheduleCards(cardIds: string[], dueAt: string, occurredAt = new Date().toISOString()) {
-      return applyManualStudyChanges(cardIds, MANUAL_RESCHEDULE_KIND, (card) => rescheduleCard(card, dueAt, occurredAt), occurredAt);
+    /** Manual reschedule: only the due date changes; suspension stays. A map gives each card its own date (KV4). */
+    rescheduleCards(cardIds: string[], dueAt: string | ReadonlyMap<string, string>, occurredAt = new Date().toISOString()) {
+      return applyManualStudyChanges(cardIds, MANUAL_RESCHEDULE_KIND, (card) => rescheduleCard(card, typeof dueAt === "string" ? dueAt : dueAt.get(card.id)!, occurredAt), occurredAt);
     },
     /** "Lernstand zurücksetzen": the cards start over as new cards; their review history stays. */
     resetCards(cardIds: string[], occurredAt = new Date().toISOString()) {
@@ -1739,6 +1780,20 @@ export async function createIndexedDbCoreRepository({ userId, initialState, inde
     },
     /** Loads the search index ahead of the first search, in short batches. */
     prepareCardSearch: () => ensureSearchIndex(),
+    /** Local catalog rows of the given cards; missing ones (e.g. deleted here) are absent. */
+    async loadCatalogEntries(cardIds: readonly string[]) {
+      await writeChain;
+      const transaction = database.transaction(STORE.cardCatalog, "readonly");
+      const store = transaction.objectStore(STORE.cardCatalog);
+      const rows = await Promise.all(cardIds.map((id) => requestResult<StoredCardCatalog | undefined>(store.get(id))));
+      return new Map(rows.filter((row): row is StoredCardCatalog => Boolean(row)).map((row) => [row.id, catalogEntry(row)]));
+    },
+    /** Ids of every card in scope that matches the search, in index order: `Alle N Treffer auswählen` (KV4). */
+    async listCardIds(scope: readonly string[], { query = "", searchContext }: { query?: string; searchContext?: CardSearchContext } = {}) {
+      await writeChain;
+      await ensureSearchIndex();
+      return searchIndex.slice(query, { field: "sortField", direction: "asc" }, searchContext, scope, 0, Number.MAX_SAFE_INTEGER).items.map((entry) => entry.id);
+    },
     /**
      * Catalog page by page number of one deck, or of several decks as one list (the flat hit list), plus the opened
      * content with its siblings. The search index answers any page at once (KV3); a single deck without a search

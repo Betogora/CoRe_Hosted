@@ -1,5 +1,6 @@
 import React from "react";
 import type { Card, CardStudyState, CardStudyStatePatch, CoreMode, Deck, ExamDailyTask, ExamPlanningSettings, ImportVerificationScope, LearningProfileTemplate, NewReviewOrder, Note, NoteContent, ReviewEvent, SavedCardSearch, SyncStatus } from "./coreTypes.ts";
+import type { CardBatchAction } from "./cardBatchActions.ts";
 import type { ImportCommitGraph, ImportMediaFile } from "./apkgImport.ts";
 import { ArrowRight, Database, Layers, Sparkles } from "lucide-react";
 import { authPhases, createSyncErrorStatus, createSyncIdleStatus, createSyncPendingStatus, createSyncSavingStatus, shouldShowAppShell, shouldShowAuthGate } from "./accountSession.ts";
@@ -1539,6 +1540,23 @@ export function App() {
     return cards;
   }
 
+  /** Mass action of the card management (KV4): one local write, then the lists reload and the outbox syncs. */
+  async function runDeckCardBatch(cardIds: string[], action: CardBatchAction) {
+    if (!workspaceRepository || !workspaceHydrationService) throw new Error("Die Kartenverwaltung ist noch nicht bereit.");
+    const { runCardBatch } = await import("./cardBatchActions.ts");
+    const afterWrite = () => {
+      refresh();
+      syncEngine?.requestSync();
+    };
+    const result = await runCardBatch({ repository: workspaceRepository, openCards: workspaceHydrationService.openCards, now: getLearningNow }, cardIds, action);
+    afterWrite();
+    return { ...result, undo: async () => {
+      const undone = await result.undo();
+      afterWrite();
+      return undone;
+    } };
+  }
+
   function rescheduleDeckCards(cardIds: string[], dueAt: string, occurredAt: string) {
     return applyManualStudyChanges((repository) => repository.rescheduleCards(cardIds, dueAt, occurredAt));
   }
@@ -1926,7 +1944,12 @@ export function App() {
           onUndoDeleteNote={undoDeleteDeckNote}
           onRescheduleCards={rescheduleDeckCards}
           onGenerateVariant={generateDeckCardVariant}
-          onGenerateDeckVariants={workspaceHydrationService ? (deck) => variantBatch.start(deck) : undefined}
+          onGenerateCardVariants={workspaceHydrationService ? (deckId, cardIds) => {
+            const deck = latestStateRef.current?.decks.find((candidate) => candidate.id === deckId);
+            if (deck) variantBatch.start(deck, { cardIds });
+          } : undefined}
+          onRunCardBatch={workspaceRepository && workspaceHydrationService ? runDeckCardBatch : undefined}
+          onListHitCardIds={workspaceHydrationService ? (request) => workspaceHydrationService.listCardIds(request) : undefined}
           variantGenerationRunning={variantBatch.running}
           onUpdateVariant={updateDeckCardVariant}
           selectedDeckId={focusedDeckId}

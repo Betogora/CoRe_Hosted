@@ -214,6 +214,29 @@ test("partielle Kataloge holen eine Cloudseite direkt per Versatz und danach per
   repository.close();
 });
 
+test("eine Cloudseite zeigt Karten mit noch nicht synchronisierter lokaler Änderung im lokalen Stand (KV4)", async () => {
+  const userId = randomUUID();
+  const graphs = ["Alpha", "Beta"].map((front, index) => graph("deck-pending", String(index), front, CREATED_AT));
+  const deck = createCoreDeck({ id: "deck-pending", ownerId: userId, name: "Ausstehend", source: "manual", cards: graphs.map((entry) => entry.cards[0]) });
+  const repository = await createIndexedDbCoreRepository({ userId, initialState: workspace(userId, [deck], graphs.map((entry) => entry.note)), indexedDb: new IDBFactory() });
+  const cloudRows = (await repository.listCatalogPage(deck.id, { limit: 50 })).items.map(catalogRow);
+  await repository.applyCloudCatalogPage({ table: "card_catalog", entities: [], reset: false, cursor: 1 });
+  repository.outbox.markFlushed(repository.outbox.listPending().map((mutation) => mutation.id));
+  const [alpha, beta] = graphs;
+  await repository.saveNoteGraphs([
+    { previous: alpha, next: { note: alpha.note, cards: [{ ...alpha.cards[0], ankiFlag: 3, revision: alpha.cards[0].revision + 1 }] } },
+    { previous: beta, next: { note: { ...beta.note, deletedAt: CREATED_AT }, cards: beta.cards.map((card) => ({ ...card, deletedAt: CREATED_AT })) } },
+  ]);
+  const service = createWorkspaceHydrationService({
+    repository,
+    mediaStore: null,
+    client: { async rpc() { return { data: { items: cloudRows, totalCount: 2, hasMore: false, nextCursor: null }, error: null }; } },
+  });
+  const page = await service.queryCardPage({ deckId: deck.id, page: 0, pageSize: 50, sort: { field: "sortField", direction: "asc" } });
+  assert.deepEqual(page.items.map((entry) => [entry.id, entry.ankiFlag]), [["card-0", 3]], "die geänderte Flagge statt des Serverstands, die gelöschte Karte fehlt");
+  repository.close();
+});
+
 test("ein abgebrochener Suchauftrag übernimmt keine Cloudseite und meldet keinen eingeschränkten Katalog", async () => {
   const userId = randomUUID();
   const local = graph("deck-search", "local", "Zulu lokal", CREATED_AT);

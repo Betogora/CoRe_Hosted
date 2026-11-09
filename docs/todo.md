@@ -163,6 +163,9 @@ Referenz gelesen.
   Dauerhaft sind nur gespeicherte Suchen. Nachsteuern erst bei Bedarf.
 - `Suchen und Ersetzen` ersetzt wörtlichen Text; reguläre Ausdrücke gibt es
   weder dort noch in der Suche.
+- Kein Ankis `Reposition` (Position neuer Karten): Welche Karten zuerst
+  drankommen, steuern `Treffer lernen` und die Prüfungsplanung; Importe
+  behalten ihre Reihenfolge über das Erstelldatum.
 - `Treffer lernen` bietet wie Ankis gefilterte Stapel beide Wege (KV5):
   `Vorziehen` mit zählenden Bewertungen (Standard, wie Ankis voreingestellte
   Option „Reschedule cards based on my answers“) und `Nur üben` ohne
@@ -180,20 +183,12 @@ Referenz gelesen.
         Antwort und treffen bis dahin nicht.
       Nachweis: Parser- und Komponententests, Pflichtmatrix Light/Dark bei 390
       und 1440 px, E2E Suche und Filter.
-- [ ] **KV4 – Mehrfachauswahl und Massenaktionen:** Auswahl per Kontrollkästchen,
-      Umschalt- und Strg-Klick, `Alle N Treffer auswählen`, mobil Langdrücken;
-      eine Auswahlleiste nennt die Anzahl. Aktionen: Stapel ändern, Tags
-      hinzufügen und entfernen, Flagge setzen und entfernen, Markieren,
-      Aussetzen und Reaktivieren, Zurückstellen, Fälligkeit setzen (Datum oder
-      Bereich), Lernstand zurücksetzen, Position neuer Karten (Ankis
-      `Reposition`), Varianten generieren (ersetzt `Für diese Karten Varianten
-      generieren`), Löschen. Jede Aktion läuft als eine
-      lokale Transaktion über neue Sammelhelfer in `coreModel.ts`, synchronisiert
-      gebündelt und ist als neue Änderung rückgängig zu machen; zwischenzeitlich
-      geänderte Karten meldet der Toast.
-      Nachweis: Modelltests je Aktion samt Rückgängig, Konflikt- und
-      Offline-Fälle, E2E einer Massenaktion; 1.000 Karten lokal in höchstens
-      1 s, Sync im Hintergrund.
+- [ ] **KV4-Rest – Tempo der Massenaktionen:** Auswahl, alle Aktionen mit
+      Rückgängig, Offline- und Konfliktfälle sowie das E2E einer Massenaktion
+      stehen. Offen ist das Ziel „1.000 Karten lokal in höchstens 1 s“:
+      gemessen in Chromium rund 2 s, fast ganz im Schreiben von IndexedDB
+      (Karte, Katalog, Residenz und Outbox je Karte).
+      Nachweis: Messung mit 1.000 Karten im Produktions-Build.
 - [ ] **KV5 – Inhalte pflegen:**
       - **Suchen und Ersetzen:** in allen Feldern, einem Feld oder Tags, für
         Auswahl oder alle Treffer, wörtlich, mit Groß-/Kleinschreibung und Vorschau der

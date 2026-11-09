@@ -480,6 +480,34 @@ test("[Vertrag: Geschwister begraben] @beta-core eine Antwort stellt die Geschwi
   await expect(page.getByRole("dialog", { name: "Keine fälligen Karten" })).toBeVisible();
 });
 
+test("[Vertrag: Massenaktion mit Rückgängig] @beta-core ausgewählte Karten werden gemeinsam ausgesetzt und wieder reaktiviert", async ({ page }) => {
+  const deckName = "Massenaktion";
+  await openManualCreation(page, deckName, "basic-reversed");
+  await page.getByRole("textbox", { name: "Vorderseite" }).fill("Hauptstadt von Norwegen");
+  await page.getByRole("textbox", { name: "Rückseite" }).fill("Oslo");
+  const deck = await finishManualCreation(page, deckName, 2);
+
+  await page.goto(`/kartenstapel?deck=${encodeURIComponent(deck.id)}&content=1&tab=cards`);
+  const rows = page.locator("[data-card-row]");
+  await expect(rows).toHaveCount(2);
+  await page.getByTestId("card-selection-start").click();
+  for (const card of deck.cards) await page.getByTestId(`select-card-${card.id}`).click();
+  await expect(page.getByTestId("card-selection-bar")).toContainText("2 Karten ausgewählt");
+  await page.getByTestId("card-selection-actions").click();
+  await page.getByRole("button", { name: "Aussetzen" }).click();
+  await page.getByRole("dialog").getByRole("button", { name: "Aussetzen" }).click();
+  await expect(page.getByText("Aussetzen: 2 Karten")).toBeVisible();
+  await expect(page.locator('[data-card-row][data-suspended="true"]')).toHaveCount(2);
+  await expect.poll(async () => (await readActiveAccountState(page)).decks.find((candidate: { id: string }) => candidate.id === deck.id)?.cards.filter((card: { status: string }) => card.status === "suspended").length).toBe(2);
+
+  await page.getByRole("button", { name: "Rückgängig" }).click();
+  await expect(page.getByText("Rückgängig gemacht: 2 Karten.")).toBeVisible();
+  await expect(page.locator('[data-card-row][data-suspended="true"]')).toHaveCount(0);
+  await page.reload();
+  await expect(rows).toHaveCount(2);
+  await expect(page.locator('[data-card-row][data-suspended="true"]')).toHaveCount(0);
+});
+
 test("[Vertrag: typgerechter Cloze-Lebenszyklus] @beta-core jede Lückengruppe bleibt eine unabhängige Karte", async ({ page }) => {
   const deckName = "Lebenszyklus Cloze";
   await openManualCreation(page, deckName, "cloze");
