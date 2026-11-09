@@ -869,7 +869,8 @@ test("[Vertrag: KI-Variante, Reveal, Originalkarte und Variantenverwaltung] @gol
   await expect(page.getByRole("status").filter({ hasText: "Stapeleinstellungen wurden für den Stapel gespeichert." })).toBeVisible();
   await page.getByRole("button", { name: "Zurück zu Lernen" }).click();
   await mainMenu(page).getByRole("button", { name: "Karten", exact: true }).click();
-  await expect(page.getByTestId(`deck-toggle-${DECK_IDS.africa}`)).toHaveAttribute("aria-expanded", "true");
+  await expect(page.locator("[data-card-row]").first()).toBeVisible();
+  await page.getByRole("textbox", { name: "Karten durchsuchen" }).fill("Côte d'Ivoire");
   await page.getByRole("button", { name: "Was ist die Hauptstadt von Côte d'Ivoire?" }).click();
   await page.getByTestId("card-detail-dialog").getByRole("tab", { name: "Varianten", exact: true }).click();
   const variantTools = page.getByTestId("card-variant-tools");
@@ -926,7 +927,8 @@ test("[Vertrag: KI-Variante, Reveal, Originalkarte und Variantenverwaltung] @gol
 test("card rescheduling preserves scheduler state and keeps version history out of the editor", async ({ page }: any) => {
   await resetToFreshLocalState(page);
   await mainMenu(page).getByRole("button", { name: "Karten", exact: true }).click();
-  await page.getByTestId(`deck-toggle-${DECK_IDS.africa}`).click();
+  await expect(page.locator("[data-card-row]").first()).toBeVisible();
+  await page.getByRole("textbox", { name: "Karten durchsuchen" }).fill("Côte d'Ivoire");
   await page.getByRole("button", { name: "Was ist die Hauptstadt von Côte d'Ivoire?" }).click();
   await expect(page.getByTestId("card-detail-dialog").getByRole("heading", { level: 2 })).toHaveText("Was ist die Hauptstadt von Côte d'Ivoire?");
   await expect(page.getByRole("tab", { name: "Allgemein", exact: true })).toHaveAttribute("aria-selected", "true");

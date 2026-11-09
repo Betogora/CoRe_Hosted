@@ -51,7 +51,6 @@ export interface Profile {
 export interface UiPreferences {
   dashboardCollapsedDeckIds: string[];
   learnCollapsedDeckIds: string[];
-  deckManagerExpandedDeckIds: string[];
   syncIntervalMinutes: SyncIntervalMinutes;
   /** Own names of the flags 1–7; an empty name stands for the color name. */
   flagNames: string[];

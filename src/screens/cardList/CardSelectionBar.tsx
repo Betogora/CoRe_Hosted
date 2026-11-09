@@ -46,8 +46,10 @@ interface DialogState {
 export interface CardSelectionBarProps {
   /** Selected cards; with `allHits` the count of all hits. */
   count: number;
-  /** Hits of the flat list that can all be selected at once; null without a search. */
+  /** Cards of the flat list that can all be selected at once; null while unknown. */
   hitTotal: number | null;
+  /** With a search the list holds hits, otherwise all cards. */
+  searching: boolean;
   allHits: boolean;
   /** No action while one runs or nothing is selected. */
   disabled: boolean;
@@ -65,7 +67,7 @@ export interface CardSelectionBarProps {
 }
 
 /** Bar of the card table while cards are selected (KV4): count, `Alle N Treffer auswählen`, actions and clearing. */
-export function CardSelectionBar({ count, hitTotal, allHits, disabled, onSelectAllHits, onClear, decks, flagNames, loadTagDirectory, now, dayStartHour, timeZone, onGenerateVariants, onRun }: CardSelectionBarProps) {
+export function CardSelectionBar({ count, hitTotal, searching, allHits, disabled, onSelectAllHits, onClear, decks, flagNames, loadTagDirectory, now, dayStartHour, timeZone, onGenerateVariants, onRun }: CardSelectionBarProps) {
   const [dialog, setDialog] = React.useState<DialogState | null>(null);
   const [running, setRunning] = React.useState(false);
   const dayOptions = React.useMemo(() => ({ dayStartHour, timeZone }), [dayStartHour, timeZone]);
@@ -146,7 +148,7 @@ export function CardSelectionBar({ count, hitTotal, allHits, disabled, onSelectA
       <IconButton label="Auswahl aufheben" icon={X} variant="ghost" onClick={onClear} />
       <span className="core-body font-semibold text-core-text tabular-nums" aria-live="polite">{allHits ? `Alle ${cardCount(count)}` : cardCount(count)} ausgewählt</span>
       {hitTotal !== null && !allHits && hitTotal > count ? (
-        <button type="button" className="core-body font-semibold text-core-action hover:underline" onClick={onSelectAllHits}>Alle {hitTotal.toLocaleString("de-DE")} Treffer auswählen</button>
+        <button type="button" className="core-body font-semibold text-core-action hover:underline" onClick={onSelectAllHits}>Alle {hitTotal.toLocaleString("de-DE")} {searching ? "Treffer" : "Karten"} auswählen</button>
       ) : null}
       <Popover.Root>
         <Popover.Trigger asChild>

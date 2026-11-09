@@ -19,7 +19,6 @@ function completeProfile(userId: string) {
     uiPreferences: {
       dashboardCollapsedDeckIds: [],
       learnCollapsedDeckIds: [],
-      deckManagerExpandedDeckIds: [],
       syncIntervalMinutes: 5 as const,
       flagNames: ["", "", "", "", "", "", ""],
       savedSearches: [],

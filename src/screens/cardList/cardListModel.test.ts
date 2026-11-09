@@ -54,3 +54,10 @@ test("eine Liste setzt geladene Seiten an ihre Stelle und reserviert die übrige
   assert.equal(hits.rowsByIndex.get(0), createHitListModel(list, { query: "herz", cardSort: SORT, awaitingPages: true }).rowsByIndex.get(0), "eine Zeile entsteht je Eintrag nur einmal");
   assert.equal(createHitListModel(undefined, { query: "herz", cardSort: SORT, awaitingPages: false }).totalCardCount, 0);
 });
+
+test("eine leere Folgeseite einer kürzeren Suche verlängert die Liste nicht (KV3b)", () => {
+  const items = [catalogEntryFromCard(card("card_cote", "Côte d'Ivoire"), null)];
+  const list = { pages: { 0: items, 1: [] }, pageSize: 50, totalCount: 1, query: "côte", sort: SORT };
+  const model = createHitListModel(list, { query: "côte", cardSort: SORT, awaitingPages: true });
+  assert.equal(model.totalCardCount, 1, "keine 49 Platzhalter, die ihre Seite immer wieder anfordern");
+});

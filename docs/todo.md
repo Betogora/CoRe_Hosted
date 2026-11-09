@@ -291,21 +291,6 @@ von [`test-portfolio.md`](test-portfolio.md#pflegevertrag); Messung vom
 
 ## Später
 
-### Kartenverwaltung, offene Frage
-
-Die übrigen Punkte aus dem Karteneditor V2 (ADR-045) deckt Kartenverwaltung 2.0
-ab (P4).
-
-Zu klären:
-
-- Zeilenhöhe der Kartentabelle: Seit der ToolBox-Designsprache (ADR-046) sind
-  Karten- und Kopfzeilen etwa 40 px hoch, der Vertrag „Karten- und
-  Stapelzeilen bleiben auch in schmalen Viewports kompakt“ in
-  `tests/e2e/navigation-context.spec.ts` erwartet höchstens 30 px und schlägt
-  im Nightly fehl. Mit der Überarbeitung entscheiden: kompakte Zeilen für mehr
-  sichtbare Karten oder die ruhigere Höhe der Stapelzeilen; danach Test oder
-  Layout angleichen.
-
 ### Anki-Austausch nach dem Karteneditor V2
 
 - Stapel-Export als `.apkg`. Dabei `marked`, `leech` und Flaggen

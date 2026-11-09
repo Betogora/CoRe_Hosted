@@ -14,7 +14,6 @@ function readUiPreferences(value: unknown): UiPreferences | null {
   if (!isRecord(value)
     || !isStringArray(value.dashboardCollapsedDeckIds)
     || !isStringArray(value.learnCollapsedDeckIds)
-    || !isStringArray(value.deckManagerExpandedDeckIds)
     || typeof value.syncIntervalMinutes !== "number"
     || !isStringArray(value.flagNames)
     || value.flagNames.length !== 7) return null;

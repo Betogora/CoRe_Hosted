@@ -42,7 +42,8 @@ test("app sync lifecycle rebuilds the workspace only after syncs that changed so
     },
   } as unknown as AccountSyncEngine;
   let synced = 0;
-  const cleanup = startAppSyncLifecycle({ authPhase: "ready", syncEngine: engine, syncIntervalMinutes: 5, onStatus() {}, onSynced() { synced += 1; } });
+  const uploads: Array<number | undefined> = [];
+  const cleanup = startAppSyncLifecycle({ authPhase: "ready", syncEngine: engine, syncIntervalMinutes: 5, onStatus() {}, onSynced(result) { synced += 1; uploads.push(result?.mutations); } });
   const report = flush as unknown as (result: unknown) => void;
 
   report({ mutations: 0, pulledChanges: false, conflicts: [] });
@@ -51,5 +52,6 @@ test("app sync lifecycle rebuilds the workspace only after syncs that changed so
   report({ mutations: 0, pulledChanges: true, conflicts: [] });
   report({ mutations: 0, pulledChanges: false, conflicts: [{}] });
   assert.equal(synced, 3);
+  assert.deepEqual(uploads, [1, 0, 0], "the app learns whether local changes went up (cloud-served lists reload then)");
   cleanup();
 });

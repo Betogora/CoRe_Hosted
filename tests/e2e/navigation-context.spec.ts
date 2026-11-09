@@ -21,14 +21,6 @@ const CARD_IDS = {
   b2: "navigation-card-b-2",
 };
 
-interface DeckScrollProbe {
-  maxHeaderShift: number;
-  maxScrollShift: number;
-  preservedCardRemoved: boolean;
-  observer: MutationObserver;
-}
-
-type DeckScrollProbeWindow = typeof window & { __coreDeckScrollProbe?: DeckScrollProbe };
 type CardDetailObserverWindow = typeof window & {
   __coreCardDetailRemoved?: boolean;
   __coreCardDetailObserver?: MutationObserver;
@@ -123,55 +115,6 @@ async function startDeckFromCards(page: Page, deckId: string) {
   await expect(page.getByRole("button", { name: "Antwort anzeigen" })).toBeVisible();
 }
 
-async function expectStableDeckToggle(page: Page, deckId: string, preservedCardId: string, expanded: boolean) {
-  const toggle = page.getByTestId(`deck-toggle-${deckId}`);
-  await toggle.evaluate((element) => element.scrollIntoView({ block: "center" }));
-  await expect(page.getByTestId(`deck-card-${preservedCardId}`)).toBeVisible();
-  await page.evaluate(({ deckId: targetDeckId, preservedCardId: stableCardId }) => {
-    const runtimeWindow = window as DeckScrollProbeWindow;
-    const header = document.querySelector<HTMLElement>(`[data-testid="deck-header-${targetDeckId}"]`);
-    const region = document.querySelector<HTMLElement>('section[aria-label="Seiteninhalt"]');
-    if (!header || !region) throw new Error("Scrollprobe konnte nicht vorbereitet werden.");
-    const readScrollOffset = () => window.innerWidth >= 1280 ? region.scrollTop : window.scrollY;
-    const baselineHeaderTop = header.getBoundingClientRect().top;
-    const baselineScrollOffset = readScrollOffset();
-    const probe = {
-      maxHeaderShift: 0,
-      maxScrollShift: 0,
-      preservedCardRemoved: false,
-      observer: null as unknown as MutationObserver,
-    };
-    const sample = () => {
-      probe.maxHeaderShift = Math.max(probe.maxHeaderShift, Math.abs(header.getBoundingClientRect().top - baselineHeaderTop));
-      probe.maxScrollShift = Math.max(probe.maxScrollShift, Math.abs(readScrollOffset() - baselineScrollOffset));
-      if (!document.querySelector(`[data-testid="deck-card-${stableCardId}"]`)) probe.preservedCardRemoved = true;
-    };
-    probe.observer = new MutationObserver(sample);
-    probe.observer.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ["aria-expanded"] });
-    runtimeWindow.__coreDeckScrollProbe = probe;
-  }, { deckId, preservedCardId });
-
-  await toggle.click();
-  await expect(toggle).toHaveAttribute("aria-expanded", String(expanded));
-  await page.waitForTimeout(250);
-  const probe = await page.evaluate(() => {
-    const runtimeWindow = window as DeckScrollProbeWindow;
-    const current = runtimeWindow.__coreDeckScrollProbe;
-    if (!current) throw new Error("Scrollprobe fehlt.");
-    current.observer.disconnect();
-    delete runtimeWindow.__coreDeckScrollProbe;
-    return {
-      maxHeaderShift: current.maxHeaderShift,
-      maxScrollShift: current.maxScrollShift,
-      preservedCardRemoved: current.preservedCardRemoved,
-    };
-  });
-
-  expect(probe.preservedCardRemoved).toBe(false);
-  expect(probe.maxHeaderShift).toBeLessThanOrEqual(1);
-  expect(probe.maxScrollShift).toBeLessThanOrEqual(1);
-}
-
 test.beforeEach(async ({ page }) => {
   await seedAccount();
   await resetToFreshLocalState(page, { resetCloud: false });
@@ -238,16 +181,10 @@ test("[Vertrag: Stapelinhalte] Flächeneinstieg, Vorschautabs und gemeinsamer Ed
 test("[Vertrag: Stapelinhalte] Elternstapel zeigt Unterkarten und erhält den Inhaltskontext beim Bearbeiten", async ({ page }) => {
   await page.goto(`/kartenstapel?deck=${DECK_IDS.rootB}&content=1&tab=cards`);
   await waitForApp(page);
-  await expect(page.getByTestId(`deck-header-${DECK_IDS.rootB}`)).toBeVisible();
-  await expect(page.getByTestId(`deck-header-${DECK_IDS.childB}`)).toBeVisible();
   await expect(page.getByTestId(`deck-card-${CARD_IDS.b1}`)).toBeVisible();
   await expect(page.getByTestId(`deck-card-${CARD_IDS.b2}`)).toBeVisible();
-  await expect(page.getByTestId(`deck-header-${DECK_IDS.rootA}`)).toHaveCount(0);
+  await expect(page.locator('[data-testid^="deck-header-"]')).toHaveCount(0);
   await expect(page.getByTestId(`deck-card-${CARD_IDS.a}`)).toHaveCount(0);
-  const toggle = page.getByTestId(`deck-toggle-${DECK_IDS.childB}`);
-  await toggle.click();
-  await expect(page.getByTestId(`deck-card-${CARD_IDS.b1}`)).toHaveCount(0);
-  await toggle.click();
   await page.getByRole("textbox", { name: "Karten durchsuchen", exact: true }).fill("Antwort B1");
   await expect(page.getByTestId(`deck-card-${CARD_IDS.b1}`)).toBeVisible();
   await expect(page.getByTestId(`deck-card-${CARD_IDS.b2}`)).toHaveCount(0);
@@ -266,64 +203,10 @@ test("[Vertrag: Stapelinhalte] Elternstapel zeigt Unterkarten und erhält den In
   await expect(page.getByRole("textbox", { name: "Feld Vorderseite", exact: true })).toContainText("Unterkarte im Hauptstapel geändert");
 });
 
-test("[Vertrag: Kartenverwaltung] große Stapel bleiben beim Auf- und Zuklappen scrollstabil", async ({ page }) => {
-  const scrollDeckAId = "navigation-scroll-a";
-  const scrollDeckBId = "navigation-scroll-b";
-  const scrollDeckACardIds = Array.from({ length: 24 }, (_, index) => `navigation-scroll-a-${index}`);
-  const scrollDeckBCardIds = Array.from({ length: 24 }, (_, index) => `navigation-scroll-b-${index}`);
-  const createScrollDeck = (id: string, name: string, cardIds: string[]) => createCoreDeck({
-    id,
-    name,
-    hierarchyPath: [name],
-    source: "manual",
-    cards: cardIds.map((cardId, index) => card(cardId, id, `${name} Karte ${index + 1}`, `${name} Antwort ${index + 1}`)),
-  });
-
-  await seedAccount([
-    ...seedDecks(),
-    createScrollDeck(scrollDeckAId, "Scroll A", scrollDeckACardIds),
-    createScrollDeck(scrollDeckBId, "Scroll B", scrollDeckBCardIds),
-  ]);
-  await resetToFreshLocalState(page, { resetCloud: false });
-  await page.goto("/kartenstapel");
+test("[Vertrag: Kartenverwaltung] Kartenzeilen bleiben auch in schmalen Viewports kompakt", async ({ page }) => {
+  await page.goto(`/kartenstapel?deck=${DECK_IDS.childB}&content=1&tab=cards`);
   await waitForApp(page);
 
-  for (const viewport of [
-    { width: 390, height: 844 },
-    { width: 1440, height: 900 },
-  ]) {
-    await page.setViewportSize(viewport);
-    for (const deckId of [scrollDeckAId, scrollDeckBId]) {
-      const toggle = page.getByTestId(`deck-toggle-${deckId}`);
-      if (await toggle.getAttribute("aria-expanded") !== "true") await toggle.click();
-    }
-    await expect(page.getByTestId(`deck-card-${scrollDeckACardIds[0]}`)).toBeVisible();
-    await expect(page.getByTestId(`deck-card-${scrollDeckBCardIds[0]}`)).toBeVisible();
-
-    await expectStableDeckToggle(page, scrollDeckAId, scrollDeckBCardIds[0], false);
-    await expect(page.getByTestId(`deck-card-${scrollDeckACardIds[0]}`)).toHaveCount(0);
-    await expectStableDeckToggle(page, scrollDeckAId, scrollDeckBCardIds[0], true);
-    await expect(page.getByTestId(`deck-card-${scrollDeckACardIds[0]}`)).toBeVisible();
-  }
-
-  await page.goto(`/kartenstapel?deck=${scrollDeckAId}`);
-  await waitForApp(page);
-  await expect(page.getByTestId(`deck-card-${scrollDeckACardIds[0]}`)).toBeVisible();
-  await expect(page.getByTestId(`deck-toggle-${scrollDeckAId}`)).toHaveAttribute("aria-expanded", "true");
-  await page.getByTestId(`deck-toggle-${scrollDeckBId}`).click();
-  await expect(page.getByTestId(`deck-toggle-${scrollDeckBId}`)).toHaveAttribute("aria-expanded", "false");
-
-  await page.goto(`/kartenstapel?deck=${scrollDeckBId}`);
-  await waitForApp(page);
-  await expect(page.getByTestId(`deck-toggle-${scrollDeckBId}`)).toHaveAttribute("aria-expanded", "true");
-  await expect(page.getByTestId(`deck-card-${scrollDeckBCardIds[0]}`)).toBeVisible();
-});
-
-test("[Vertrag: Kartenverwaltung] Karten- und Stapelzeilen bleiben auch in schmalen Viewports kompakt", async ({ page }) => {
-  await page.goto("/kartenstapel");
-  await waitForApp(page);
-
-  await page.getByTestId(`deck-header-${DECK_IDS.childB}`).click();
   const cardButton = page.getByTestId(`deck-card-${CARD_IDS.b1}`);
   await expect(cardButton).toBeVisible();
 
@@ -338,10 +221,9 @@ test("[Vertrag: Kartenverwaltung] Karten- und Stapelzeilen bleiben auch in schma
   ]) {
     await page.setViewportSize(viewport);
 
-    const geometry = await page.evaluate(({ cardId, deckId }) => {
+    const geometry = await page.evaluate(({ cardId }) => {
       const cardSortField = document.querySelector<HTMLElement>(`[data-testid="deck-card-${cardId}"]`);
       const cardRow = cardSortField?.closest<HTMLElement>("tr");
-      const deckHeader = document.querySelector<HTMLElement>(`[data-testid="deck-header-${deckId}"]`);
       const tableScroll = document.querySelector<HTMLElement>('[data-testid="card-library-table"]')?.parentElement;
       const table = document.querySelector<HTMLElement>('[data-testid="card-library-table"]');
       const tableHeader = table?.querySelector<HTMLElement>("thead tr");
@@ -368,13 +250,12 @@ test("[Vertrag: Kartenverwaltung] Karten- und Stapelzeilen bleiben auch in schma
       return {
         cardRowHeight: cardRow?.getBoundingClientRect().height ?? Number.POSITIVE_INFINITY,
         tableHeaderHeight: tableHeader?.getBoundingClientRect().height ?? Number.POSITIVE_INFINITY,
-        deckHeaderHeight: deckHeader?.getBoundingClientRect().height ?? Number.POSITIVE_INFINITY,
         documentFitsViewport: document.documentElement.scrollWidth <= window.innerWidth + 1,
         tableScrollsHorizontally: Boolean(tableScroll && tableScroll.scrollWidth > tableScroll.clientWidth),
         tableFitsContainer: Boolean(table && tableScroll && table.scrollWidth <= tableScroll.clientWidth + 1),
         headersDoNotOverlap: headerRects.every((rect, index) => index === 0 || rect.left >= headerRects[index - 1].right - 1),
         headerLabels: headerLabels.map((label) => label?.textContent?.trim()),
-        headerAccessibleNames: headers.map((header) => header.querySelector("button")?.getAttribute("aria-label")),
+        headerAccessibleNames: headers.map((header) => header.querySelector(".core-table-header-control")?.getAttribute("aria-label")),
         headersFit: headers.every((header) => header.scrollWidth <= header.clientWidth + 1),
         dueLabels: dueCells.map((cell) => cell?.textContent?.trim()),
         dueLabelsFit: dueCells.every((cell) => fitsWithin(cell)),
@@ -387,11 +268,10 @@ test("[Vertrag: Kartenverwaltung] Karten- und Stapelzeilen bleiben auch in schma
         sortFieldOverflow: sortFieldStyle?.textOverflow,
         sortFieldWhiteSpace: sortFieldStyle?.whiteSpace,
       };
-    }, { cardId: CARD_IDS.b1, deckId: DECK_IDS.childB });
+    }, { cardId: CARD_IDS.b1 });
 
     expect(geometry.cardRowHeight).toBeLessThanOrEqual(30);
     expect(geometry.tableHeaderHeight).toBeLessThanOrEqual(30);
-    expect(geometry.deckHeaderHeight).toBeLessThanOrEqual(48);
     expect(geometry.documentFitsViewport).toBe(true);
     expect(geometry.sortFieldOverflow).toBe("ellipsis");
     expect(geometry.sortFieldWhiteSpace).toBe("nowrap");
@@ -410,15 +290,6 @@ test("[Vertrag: Kartenverwaltung] Karten- und Stapelzeilen bleiben auch in schma
     expect(geometry.tableFitsContainer).toBe(true);
     expect(geometry.tableScrollsHorizontally).toBe(false);
   }
-
-  await page.setViewportSize({ width: 390, height: 844 });
-  const mobileDeckToggle = page.getByTestId(`deck-toggle-${DECK_IDS.childB}`);
-  await mobileDeckToggle.click();
-  await expect(mobileDeckToggle).toHaveAttribute("aria-expanded", "false");
-  await expect(cardButton).toHaveCount(0);
-  await mobileDeckToggle.click();
-  await expect(mobileDeckToggle).toHaveAttribute("aria-expanded", "true");
-  await expect(cardButton).toBeVisible();
 });
 
 test("[Vertrag: Kartenverwaltung] Stapel, Sortierung und ungespeicherte Änderungen bleiben kontrollierbar", async ({ page }) => {
@@ -426,15 +297,16 @@ test("[Vertrag: Kartenverwaltung] Stapel, Sortierung und ungespeicherte Änderun
   await waitForApp(page);
   await expect(page.getByRole("heading", { name: "Kartenverwaltung", exact: true })).toBeVisible();
   await expect(mainMenu(page).getByRole("button", { name: "Karten", exact: true })).toHaveAttribute("aria-current", "page");
-  await expect(page.getByTestId(`deck-card-${CARD_IDS.b1}`)).toHaveCount(0);
+  await expect(page.getByTestId(`deck-card-${CARD_IDS.b1}`)).toBeVisible();
 
   const search = page.getByRole("textbox", { name: "Karten durchsuchen" });
   await search.focus();
   await expect(search).toBeFocused();
   await search.fill("Karte B1");
   await expect(page.getByTestId(`deck-card-${CARD_IDS.b1}`)).toBeVisible();
+  await expect(page.getByTestId(`deck-card-${CARD_IDS.b2}`)).toHaveCount(0);
   await search.fill("");
-  await expect(page.getByTestId(`deck-card-${CARD_IDS.b1}`)).toHaveCount(0);
+  await expect(page.getByTestId(`deck-card-${CARD_IDS.b2}`)).toBeVisible();
 
   const dueHeader = page.getByRole("columnheader", { name: /Datum/ });
   await dueHeader.getByRole("button").click();
@@ -442,21 +314,7 @@ test("[Vertrag: Kartenverwaltung] Stapel, Sortierung und ungespeicherte Änderun
   await dueHeader.getByRole("button").click();
   await expect(dueHeader).toHaveAttribute("aria-sort", "descending");
 
-  const deckActivation = page.getByTestId(`deck-toggle-${DECK_IDS.childB}`);
-  const deckHeader = page.getByTestId(`deck-header-${DECK_IDS.childB}`);
-  await expect(deckActivation).toHaveAttribute("aria-expanded", "false");
-
-  await page.getByTestId(`deck-options-${DECK_IDS.childB}`).click();
-  await expect(page.getByTestId(`deck-card-${CARD_IDS.b1}`)).toHaveCount(0);
-  await page.keyboard.press("Escape");
-
-  await deckHeader.click();
-  await expect(deckActivation).toHaveAttribute("aria-expanded", "true");
-  await expect(page.getByTestId(`deck-card-${CARD_IDS.b1}`)).toBeVisible();
-  await deckHeader.click();
-  await expect(deckActivation).toHaveAttribute("aria-expanded", "false");
-  await expect(page.getByTestId(`deck-card-${CARD_IDS.b1}`)).toHaveCount(0);
-  await deckHeader.click();
+  await expect(page.locator('[data-testid^="deck-header-"], [data-testid^="deck-options-"]')).toHaveCount(0);
   await page.getByTestId(`deck-card-${CARD_IDS.b1}`).click();
   await page.getByTestId("card-detail-dialog").getByRole("tab", { name: "Inhalt", exact: true }).click();
   const front = page.getByRole("textbox", { name: "Feld Vorderseite" });
@@ -570,7 +428,6 @@ test("[Vertrag: URL-Kontext] @beta-core Reload, Direktlink und Review-Rückweg e
 
   await mainMenu(page).getByRole("button", { name: "Karten", exact: true }).click();
   await expect(page).toHaveURL(`/kartenstapel?deck=${DECK_IDS.childB}`);
-  await expect(page.getByTestId(`deck-toggle-${DECK_IDS.childB}`)).toHaveAttribute("aria-expanded", "true");
   await page.getByTestId(`deck-card-${CARD_IDS.b2}`).click();
   await page.getByTestId("card-detail-dialog").getByRole("tab", { name: "Inhalt", exact: true }).click();
   const cardUrl = `/kartenstapel?deck=${DECK_IDS.childB}&card=${CARD_IDS.b2}&cardTab=content`;
@@ -692,7 +549,6 @@ test("[Vertrag: Browser-History und sichere Fallbacks] @beta-core Zurück, Vorw�
   const deckUrl = `/kartenstapel?deck=${DECK_IDS.childB}`;
   const firstCardUrl = `/kartenstapel?deck=${DECK_IDS.childB}&card=${CARD_IDS.b1}&cardTab=content`;
   const secondCardUrl = `/kartenstapel?deck=${DECK_IDS.childB}&card=${CARD_IDS.b2}&cardTab=content`;
-  await expect(page.getByTestId(`deck-toggle-${DECK_IDS.childB}`)).toHaveAttribute("aria-expanded", "true");
   await page.getByTestId(`deck-card-${CARD_IDS.b1}`).click();
   await page.getByTestId("card-detail-dialog").getByRole("tab", { name: "Inhalt", exact: true }).click();
   await expect(page).toHaveURL(firstCardUrl);

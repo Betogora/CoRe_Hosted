@@ -234,6 +234,12 @@ test("eine Cloudseite zeigt Karten mit noch nicht synchronisierter lokaler Ände
   });
   const page = await service.queryCardPage({ deckId: deck.id, page: 0, pageSize: 50, sort: { field: "sortField", direction: "asc" } });
   assert.deepEqual(page.items.map((entry) => [entry.id, entry.ankiFlag]), [["card-0", 3]], "die geänderte Flagge statt des Serverstands, die gelöschte Karte fehlt");
+
+  const created = graph("deck-pending", "9", "Neu angelegt", CREATED_AT);
+  await repository.saveNoteGraphs([{ previous: null, next: created }]);
+  const withCreated = await service.queryCardPage({ deckId: deck.id, page: 0, pageSize: 50, sort: { field: "sortField", direction: "asc" } });
+  assert.deepEqual(withCreated.items.map((entry) => entry.id), ["card-0", "card-9"], "eine hier angelegte, noch nicht hochgeladene Karte steht auf der letzten Seite");
+  assert.equal(withCreated.totalCount, 2);
   repository.close();
 });
 

@@ -1,3 +1,4 @@
+import { collectDeckTreeIds } from "../coreWorkspace.ts";
 import assert from "node:assert/strict";
 import test from "node:test";
 import { renderToStaticMarkup } from "react-dom/server";
@@ -66,6 +67,31 @@ const CARD_EDITOR_SERVICES: CardEditorServices = {
   openSyncConflicts: () => undefined,
 };
 
+/**
+ * The card management reads one flat hit list over its scope (KV3b); tests describe cards per deck, so their pages
+ * become that list in scope order.
+ */
+function hitPages(decks: Deck[], cardPages: DecksScreenProps["cardPages"], contentDeckId: string | null | undefined): DecksScreenProps["cardPages"] {
+  if (!cardPages || "__hits__" in cardPages) return cardPages;
+  const scope = contentDeckId ? decks.filter((deck) => collectDeckTreeIds(decks, contentDeckId).has(deck.id)) : decks;
+  const lists = scope.map((deck) => cardPages[deck.id]).filter((list): list is DecksCardPage => Boolean(list));
+  if (!lists.length) return {};
+  const items = lists.flatMap((list) => Object.values(list.pages).flat());
+  const selected = lists.find((list) => list.selected)?.selected ?? null;
+  return {
+    __hits__: {
+      ...lists[0],
+      deckId: "__hits__",
+      deckIds: scope.map((deck) => deck.id),
+      pages: { 0: items },
+      totalCount: lists.reduce((total, list) => total + list.totalCount, 0),
+      selected,
+      requestedCardId: lists.find((list) => list.requestedCardId)?.requestedCardId ?? null,
+      loadError: lists.find((list) => list.loadError)?.loadError ?? null,
+    },
+  };
+}
+
 function renderScreen(decks: Deck[], overrides: Partial<DecksScreenProps> = {}) {
   const props: DecksScreenProps = {
     decks,
@@ -100,11 +126,10 @@ function renderScreen(decks: Deck[], overrides: Partial<DecksScreenProps> = {}) 
     onOpenCardSettings: () => undefined,
     onOpenDeckSettings: () => undefined,
     onDraftStateChange: () => undefined,
-    expandedDeckIds: [],
-    onSetDeckExpanded: () => undefined,
     savedSearches: [],
     onSavedSearchesChange: () => undefined,
     ...overrides,
+    cardPages: hitPages(decks, overrides.cardPages, overrides.contentDeckId),
   };
   return renderToStaticMarkup(<DecksScreen {...props} />);
 }
@@ -223,10 +248,8 @@ test("deck content includes its complete subtree without its parent or other bra
   assert.match(markup, /Nachfahrenkarte/);
   assert.match(markup, /Tiefe Karte/);
   assert.doesNotMatch(markup, /Elternkarte|Andere Karte/);
-  for (const deck of [selected, child, grandchild]) {
-    assert.match(markup, new RegExp(`data-testid="deck-header-${deck.id}"`));
-    assert.match(markup, new RegExp(`data-testid="deck-toggle-${deck.id}"[^>]*aria-expanded="true"`));
-  }
+  assert.doesNotMatch(markup, /data-testid="deck-header-|data-testid="deck-toggle-/, "eine flache Liste ohne Stapelzeilen (KV3b)");
+  assert.match(markup, /Elternstapel \/ Unterstapel \/ Nachfahre/, "jede Zeile nennt ihren Stapel");
   const emptyParent = renderScreen(decks.map((deck) => deck.id === selected.id ? { ...deck, cards: [] } : deck), {
     contentDeckId: selected.id,
     cardPages: { ...cardPages, selected: cardPage("selected", []) },
@@ -305,7 +328,6 @@ test("a long list renders only the rows near the visible area and keeps the rest
   const markup = renderScreen([deck], {
     selectedDeckId: deck.id,
     selectedCardId: "direct-card",
-    expandedDeckIds: [deck.id],
     cardPages: {
       [deck.id]: cardPage(deck.id, [directGraph, ...pageGraphs], { totalCount: 5001, selected: selectedOf(directGraph) }),
     },
@@ -313,7 +335,7 @@ test("a long list renders only the rows near the visible area and keeps the rest
 
   const rendered = (markup.match(/data-card-row="true"/g) ?? []).length;
   assert.ok(rendered > 10 && rendered < 80, `nur das Fenster wird gerendert (${rendered} von 5001 Zeilen)`);
-  assert.match(markup, /aria-rowcount="5002"/, "Stapelkopf und 5001 Karten");
+  assert.match(markup, /aria-rowcount="5001"/, "5001 Karten ohne Stapelkopf");
   assert.match(markup, /<tr aria-hidden="true" style="height:[\d.]+px"><\/tr><\/tbody>/, "ein Abstandshalter steht für die übrigen Zeilen");
   assert.match(markup, /data-testid="deck-card-direct-card"/);
   assert.match(markup, /Direkt geladene Karte/);
@@ -323,14 +345,14 @@ test("cards page ignores catalog pages for another query or sort", () => {
   const graph = basicGraph("deck-query", "Gefilterte Karte", "Antwort");
   const deck = deckOf("deck-query", "Suche", []);
   const page = cardPage(deck.id, [graph]);
-  const render = (candidate: DecksCardPage) => renderScreen([deck], { expandedDeckIds: [deck.id], cardPages: { [deck.id]: candidate } });
+  const render = (candidate: DecksCardPage) => renderScreen([deck], { cardPages: { [deck.id]: candidate } });
 
   assert.match(render(page), /Gefilterte Karte/);
   assert.doesNotMatch(render({ ...page, query: "gefiltert" }), /Gefilterte Karte/);
   assert.doesNotMatch(render({ ...page, sort: { field: "nextStudyDate", direction: "asc" } }), /Gefilterte Karte/);
 });
 
-test("cards page renders sortable collapsed deck sections without learning metrics", () => {
+test("cards page lists every card of every deck as one flat sortable list without learning metrics (KV3b)", () => {
   const atp = basicGraph("deck-bio", "<b>Was ist ATP?</b>", "Ein Energieträger.");
   const originalDeck = deckOf("deck-bio", "Biologie", [atp]);
   const child = createCoreDeck({ id: "deck-child", name: "Zellbiologie", source: "manual", parentDeckId: originalDeck.id, hierarchyPath: ["Biologie", "Zellbiologie"], cards: [] });
@@ -356,18 +378,7 @@ test("cards page renders sortable collapsed deck sections without learning metri
   assert.match(markup, /aria-label="Variante aufsteigend sortieren"/);
   assert.doesNotMatch(markup, /aria-label="Varianten aufsteigend sortieren"/);
   assert.match(markup, /aria-sort="ascending"/);
-  assert.match(markup, /aria-label="Karten von Biologie aufklappen"/);
-  assert.match(markup, /aria-expanded="false"/);
-  assert.match(markup, /data-testid="deck-toggle-[^"]+"[^>]*class="absolute inset-0[^"]*focus-visible:ring-2/);
   assert.doesNotMatch(markup, /aria-label="Lernstand für|aria-label="Gesamtfortschritt für|data-deck-count=|data-donut-/);
-  assert.doesNotMatch(markup, /data-testid="deck-header-[^"]+"[^>]*class="[^"]*border-t-2/);
-  assert.doesNotMatch(markup, /Was ist ATP\?/);
-  assert.doesNotMatch(markup, /Ein Energieträger\./);
-  assert.match(markup, /Biologie \/ Zellbiologie/);
-  assert.match(markup, new RegExp('data-testid="deck-options-' + originalDeck.id + '"[^>]*class="[^"]*pointer-events-auto'));
-  assert.match(markup, /core-action-ghost/);
-  assert.match(markup, /data-deck-summary-row-content="responsive"/);
-  assert.equal((markup.match(new RegExp(`data-testid="deck-options-${originalDeck.id}"`, "g")) ?? []).length, 1);
   assert.doesNotMatch(markup, /min-w-\[46rem\]|overflow-x-auto|sticky left-0 w-\[calc\(100dvw/);
   assert.match(markup, /<col class="w-20 sm:w-\[5\.75rem\]"\/><col class="w-20"\/>/);
   assert.match(markup, /aria-label="Sortierfeld aufsteigend sortieren"/);
@@ -375,79 +386,44 @@ test("cards page renders sortable collapsed deck sections without learning metri
   assert.match(markup, /core-table-header-control/);
   assert.match(markup, /text-right/);
   assert.match(markup, /justify-end/);
-  assert.match(markup, /data-core-tooltip="Stapeloptionen für Biologie"/);
-  assert.match(markup, /lucide-ellipsis/);
   assert.match(markup, /aria-label="Karten durchsuchen"/);
   assert.doesNotMatch(markup, /focus-within:/);
-  assert.match(markup, /focus-visible:outline-none/);
   assert.doesNotMatch(markup, /Karten nach CoRe-Modus filtern|Alle Modi/);
   assert.doesNotMatch(markup, />Neue Karte<\/span><\/button>/);
   assert.doesNotMatch(markup, /<span[^>]*aria-live="polite"[^>]*>\d+ Karten?<\/span>/);
   assert.doesNotMatch(markup, /data-deck-drag-source/);
 
-  for (const [deckId, depth] of [
-    [originalDeck.id, 0],
-    [child.id, 1],
-    [grandchild.id, 2],
-    [greatGrandchild.id, 3],
-    [deeperImport.id, 4],
-    [secondRoot.id, 0],
-  ] as const) {
-    assert.match(markup, new RegExp(`data-testid="deck-header-${deckId}"[^>]*data-deck-depth="${depth}"[^>]*class="core-deck-summary-row`));
-  }
-
-  const focusedMarkup = renderScreen(decks, { selectedDeckId: child.id, cardPages });
-  assert.match(focusedMarkup, new RegExp(`data-testid="deck-header-${child.id}"[^>]*style="background-color:var\\(--core-info-surface\\)"`));
-
-  const expandedMarkup = renderScreen(decks, { expandedDeckIds: [originalDeck.id], cardPages });
-  assert.match(expandedMarkup, /aria-label="Karten von Biologie einklappen"/);
-  assert.match(expandedMarkup, /Was ist ATP\?/);
-  assert.doesNotMatch(expandedMarkup, /<b>/);
-  assert.match(expandedMarkup, /<tr[^>]*class="cursor-pointer border-b border-core-border[^"]*"[^>]*data-card-row="true"/);
-  assert.doesNotMatch(expandedMarkup, /data-deck-count=|Lernstand für|Gesamtfortschritt für|data-donut-/);
-  assert.match(expandedMarkup, /aria-label="Keine Variante"/);
-  assert.doesNotMatch(expandedMarkup, /Mit Varianten|Ohne Varianten/);
-  assert.doesNotMatch(expandedMarkup, /inline-block whitespace-nowrap rounded-round/);
-  assert.match(expandedMarkup, /aria-label="Keine Variante"[\s\S]*?<span class="grid size-\[1\.125rem\] place-items-center"><\/span>/);
-  assert.match(expandedMarkup, /padding-left:calc\(var\(--core-card-row-lead\) \+ 0 \* var\(--core-deck-depth-indent, 8px\)\)/, "Kartenzeilen rücken unter ihren Stapelkopf ein");
+  assert.doesNotMatch(markup, /data-testid="deck-header-|data-testid="deck-toggle-|data-testid="deck-options-/, "keine Stapelzeilen und kein Stapelmenü in der Liste");
+  assert.match(markup, /Was ist ATP\?/, "auch ohne Suche stehen alle Karten in der Liste");
+  assert.doesNotMatch(markup, /<b>/);
+  assert.match(markup, /<tr[^>]*class="cursor-pointer border-b border-core-border[^"]*"[^>]*data-card-row="true"/);
+  assert.match(markup, /<td class="min-w-0 px-2 py-1 align-middle/, "die kompakte Zeilenhöhe von vor der ToolBox-Gestaltung");
+  assert.match(markup, />Biologie<\/span>/, "die Zeile nennt ihren Stapel");
+  assert.match(markup, /aria-label="Keine Variante"/);
+  assert.doesNotMatch(markup, /Mit Varianten|Ohne Varianten/);
+  assert.match(markup, /aria-label="Keine Variante"[\s\S]*?<span class="grid size-\[1\.125rem\] place-items-center"><\/span>/);
 });
-
-test("cards page keeps stale rows dimmed while the page for a new query loads and skips empty rows of parents", () => {
+test("cards page keeps stale rows dimmed while the page for a new query loads", () => {
   const atp = basicGraph("deck-parent", "Was ist ATP?", "Ein Energieträger.");
   const parent = deckOf("deck-parent", "Biologie", [atp]);
   const child = deckOf("deck-child", "Zellbiologie", [], { parentDeckId: parent.id, hierarchyPath: ["Biologie", "Zellbiologie"] });
   const empty = deckOf("deck-empty", "Chemie", []);
   const decks = [parent, child, empty];
   const stalePages = { [parent.id]: cardPage(parent.id, [atp]), [empty.id]: cardPage(empty.id, []) };
-  const loading = renderScreen(decks, { cardPages: stalePages, onRequestCardPage: async () => undefined, expandedDeckIds: [parent.id, empty.id] });
+  const loading = renderScreen(decks, { cardPages: stalePages, onRequestCardPage: async () => undefined });
   assert.doesNotMatch(loading, /data-testid="card-library-loading"/, "die Seite zur leeren Suche ist geladen");
 
-  const emptyParentPages = { ...stalePages, [parent.id]: cardPage(parent.id, []) };
-  const settled = renderScreen(decks, { cardPages: emptyParentPages, onRequestCardPage: async () => undefined, expandedDeckIds: [parent.id, empty.id] });
-  assert.equal((settled.match(/>Keine Karten</g) ?? []).length, 1, "nur der Stapel ohne Unterstapel meldet keine Karten");
+  const emptyPages = { [parent.id]: cardPage(parent.id, []), [empty.id]: cardPage(empty.id, []) };
+  const settled = renderScreen(decks, { cardPages: emptyPages, onRequestCardPage: async () => undefined });
+  assert.match(settled, />Keine Karten</, "eine leere Liste sagt es einmal");
 
   const sortedPages = { [parent.id]: { ...cardPage(parent.id, [atp]), sort: { field: "variants", direction: "asc" } as const } };
-  const pending = renderScreen(decks, { cardPages: sortedPages, onRequestCardPage: async () => undefined, expandedDeckIds: [parent.id] });
+  const pending = renderScreen(decks, { cardPages: sortedPages, onRequestCardPage: async () => undefined });
   assert.match(pending, /data-testid="card-library-loading"/);
   assert.match(pending, /aria-busy="true"/);
   assert.match(pending, /data-testid="card-library-rows" class="[^"]*opacity-60/, "die bisherigen Zeilen sind gedimmt");
   assert.match(pending, /Was ist ATP\?/, "die bisherigen Treffer bleiben sichtbar");
   assert.doesNotMatch(pending, />Keine Karten</);
-});
-
-test("cards page caps visual depth at level six and keeps deeper decks expandable", () => {
-  const deepDecks = Array.from({ length: 7 }, (_, index) => createCoreDeck({
-    id: `cards-depth-${index + 1}`,
-    name: `Ebene ${index + 1}`,
-    parentDeckId: index === 0 ? null : `cards-depth-${index}`,
-    hierarchyPath: Array.from({ length: index + 1 }, (__, pathIndex) => `Ebene ${pathIndex + 1}`),
-    source: "manual",
-    cards: [],
-  }));
-  const markup = renderScreen(deepDecks);
-
-  assert.match(markup, /data-testid="deck-header-cards-depth-7"[^>]*data-deck-depth="5"/);
-  assert.match(markup, /aria-label="Karten von [^"]*Ebene 6 aufklappen"/);
 });
 
 test("card selection opens the full-surface editor dialog with header, tabs and the general tab", () => {
@@ -456,7 +432,6 @@ test("card selection opens the full-surface editor dialog with header, tabs and 
   const selected = { ...graph, cards: [card] };
   const deck = deckOf("deck-bio", "Biologie", [selected]);
   const markup = renderScreen([deck], {
-    expandedDeckIds: [deck.id],
     selectedDeckId: deck.id,
     selectedCardId: card.id,
     dayStartHour: 4,
@@ -511,12 +486,12 @@ test("prev and next walk every row of the list and open a row whose page is not 
   const graphs = ["Erste", "Zweite", "Dritte"].map((front) => basicGraph("deck-bio", front, "Antwort"));
   const deck = deckOf("deck-bio", "Biologie", graphs);
   const page = (selected: NoteGraph) => ({ [deck.id]: cardPage(deck.id, graphs, { totalCount: 53, selected: selectedOf(selected) }) });
-  const middle = renderScreen([deck], { expandedDeckIds: [deck.id], selectedDeckId: deck.id, selectedCardId: graphs[1].cards[0].id, cardPages: page(graphs[1]) });
+  const middle = renderScreen([deck], { selectedDeckId: deck.id, selectedCardId: graphs[1].cards[0].id, cardPages: page(graphs[1]) });
   assert.match(middle, /aria-label="Karte 2 von 53">2 \/ 53</);
   assert.doesNotMatch(middle, /<button[^>]*disabled=""[^>]*aria-label="(Vorige|Nächste) Karte"/);
-  const last = renderScreen([deck], { expandedDeckIds: [deck.id], selectedDeckId: deck.id, selectedCardId: graphs[2].cards[0].id, cardPages: page(graphs[2]) });
+  const last = renderScreen([deck], { selectedDeckId: deck.id, selectedCardId: graphs[2].cards[0].id, cardPages: page(graphs[2]) });
   assert.doesNotMatch(last, /<button[^>]*disabled=""[^>]*aria-label="Nächste Karte"/, "Weiter lädt die nächste Seite und öffnet ihre erste Karte");
-  const only = renderScreen([deck], { expandedDeckIds: [deck.id], selectedDeckId: deck.id, selectedCardId: graphs[2].cards[0].id, cardPages: { [deck.id]: cardPage(deck.id, graphs, { selected: selectedOf(graphs[2]) }) } });
+  const only = renderScreen([deck], { selectedDeckId: deck.id, selectedCardId: graphs[2].cards[0].id, cardPages: { [deck.id]: cardPage(deck.id, graphs, { selected: selectedOf(graphs[2]) }) } });
   assert.match(only, /<button[^>]*disabled=""[^>]*aria-label="Nächste Karte"/);
 });
 test("cards page shows suspended rows and marked stars; the editor tints only a marked card", () => {
@@ -524,7 +499,6 @@ test("cards page shows suspended rows and marked stars; the editor tints only a 
   const marked = { note: setNoteMarked(graph.note, true), cards: [setCardSuspended({ ...graph.cards[0], ankiFlag: 2 }, true)] };
   const deck = deckOf("deck-bio", "Biologie", [marked]);
   const markup = renderScreen([deck], {
-    expandedDeckIds: [deck.id],
     selectedDeckId: deck.id,
     selectedCardId: marked.cards[0].id,
     cardPages: { [deck.id]: cardPage(deck.id, [marked], { selected: selectedOf(marked) }) },
@@ -554,7 +528,6 @@ test("the mark belongs to the content and is shown on every card of the selected
   const deck = deckOf("deck-bio", "Biologie", [marked]);
   for (const contentDeckId of [undefined, deck.id]) {
     const markup = renderScreen([deck], {
-      expandedDeckIds: [deck.id],
       selectedDeckId: deck.id,
       selectedCardId: forward.id,
       contentDeckId,
@@ -567,7 +540,6 @@ test("the mark belongs to the content and is shown on every card of the selected
     assert.match(markup, /aria-label="Markierung entfernen"/);
   }
   const unmarkedMarkup = renderScreen([deck], {
-    expandedDeckIds: [deck.id],
     selectedDeckId: deck.id,
     selectedCardId: withVariant.id,
     cardPages: { [deck.id]: cardPage(deck.id, [unmarked], { selected: selectedOf(unmarked, withVariant.id) }) },
@@ -683,7 +655,6 @@ test("sync conflicts are named in the row and in the editor", () => {
   const graph = basicGraph("deck-bio", "Konfliktkarte", "Antwort");
   const deck = deckOf("deck-bio", "Biologie", [graph]);
   const markup = renderScreen([deck], {
-    expandedDeckIds: [deck.id],
     selectedDeckId: deck.id,
     selectedCardId: graph.cards[0].id,
     syncConflictCardIds: new Set([graph.cards[0].id]),
@@ -707,7 +678,7 @@ test("the editor offers direction and building blocks where the content structur
 
   const importedGraph = basicGraph("deck-editor", "Was ist ATP?", "Energieträger");
   const imported = renderEditorFor({ ...importedGraph, note: { ...importedGraph.note, importedContentRevision: importedGraph.note.contentRevision } });
-  assert.doesNotMatch(imported, /aria-label="Lernrichtung"|data-testid="note-blocks"| entfernen"/);
+  assert.doesNotMatch(imported.slice(imported.indexOf('data-testid="card-detail-dialog"')), /aria-label="Lernrichtung"|data-testid="note-blocks"| entfernen"/);
 });
 
 test("der Karteneditor bietet für hinzugefügte Felder Rolle und Reihenfolge wie die Erstellung", () => {
@@ -733,7 +704,6 @@ test("rows show a named flag dot and the filters read their search terms", () =>
   const flagged = { ...graph, cards: [{ ...graph.cards[0], ankiFlag: 5 }] };
   const deck = deckOf("deck-bio", "Biologie", [flagged]);
   const markup = renderScreen([deck], {
-    expandedDeckIds: [deck.id],
     cardEditor: { ...CARD_EDITOR_SERVICES, flagNames: ["", "", "", "", "Prüfung", "", ""] },
     cardPages: { [deck.id]: cardPage(deck.id, [flagged]) },
   });

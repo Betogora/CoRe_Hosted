@@ -1695,6 +1695,10 @@ video {
   width: 1.25rem;
   height: 1.25rem;
 }
+.size-6 {
+  width: 1.5rem;
+  height: 1.5rem;
+}
 .size-7 {
   width: 1.75rem;
   height: 1.75rem;
@@ -1735,9 +1739,6 @@ video {
 }
 .h-1\.5 {
   height: 0.375rem;
-}
-.h-10 {
-  height: 2.5rem;
 }
 .h-11 {
   height: 2.75rem;
@@ -2135,6 +2136,9 @@ video {
 }
 .max-w-\[4\.5rem\] {
   max-width: 4.5rem;
+}
+.max-w-\[40\%\] {
+  max-width: 40%;
 }
 .max-w-\[calc\(100vw-1\.5rem\)\] {
   max-width: calc(100vw - 1.5rem);
@@ -3267,9 +3271,6 @@ video {
 }
 .ease-out {
   transition-timing-function: cubic-bezier(0, 0, 0.2, 1);
-}
-.\[--core-card-row-lead\:1\.25rem\] {
-  --core-card-row-lead: 1.25rem;
 }
 .\[overflow-wrap\:anywhere\] {
   overflow-wrap: anywhere;
@@ -5440,9 +5441,6 @@ summary {
 .hover\:border-core-border-strong:hover {
   border-color: var(--core-border-interactive);
 }
-.hover\:bg-\[var\(--core-focus-ring-soft\)\]:hover {
-  background-color: var(--core-focus-ring-soft);
-}
 .hover\:bg-core-action-hover:hover {
   background-color: var(--core-action-primary-hover);
 }
@@ -5835,6 +5833,10 @@ summary {
     display: flex;
   }
 
+  .sm\:grid {
+    display: grid;
+  }
+
   .sm\:hidden {
     display: none;
   }
@@ -6026,10 +6028,6 @@ summary {
          column-gap: 0.75rem;
   }
 
-  .sm\:break-all {
-    word-break: break-all;
-  }
-
   .sm\:rounded-overlay {
     border-radius: var(--core-radius-overlay);
   }
@@ -6124,10 +6122,6 @@ summary {
 
   .sm\:pt-4 {
     padding-top: 1rem;
-  }
-
-  .sm\:\[--core-card-row-lead\:3rem\] {
-    --core-card-row-lead: 3rem;
   }
 }
 @media (min-width: 768px) {
@@ -7181,7 +7175,7 @@ html:has(.catalog-preview) { scroll-behavior: auto; }
 </ul>
 <h3 id="specs--stapelbäume" class="core-heading-3" tabindex="-1">Stapelbäume <a class="docs-anchor" href="#specs--stapelbäume" aria-label="Link zu Stapelbäume">#</a></h3>
 <p class="docs-label">Zweck</p>
-<p><code>Heute</code>, <code>Lernen</code> und die Kartenverwaltung zeigen dieselbe Stapelhierarchie mit denselben Stapelaktionen.</p>
+<p><code>Heute</code> und <code>Lernen</code> zeigen dieselbe Stapelhierarchie mit denselben Stapelaktionen; die Kartenverwaltung listet Karten flach und nennt je Karte ihren Stapel.</p>
 <p class="docs-label">Verhalten</p>
 <ul>
 <li>Stapel bilden Eltern- und Unterstapel ohne Tiefenlimit; APKG-Hierarchien bleiben mit unmittelbaren Eltern und vollständigen Pfaden erhalten. Einklappen verbirgt den gesamten Unterbaum; Eltern aggregieren alle Unterstapel.</li>
@@ -7190,7 +7184,7 @@ html:has(.catalog-preview) { scroll-behavior: auto; }
 <li>Die Tageszahlen berücksichtigen verbleibende Limits: ausgewählte neue Karten (<code>Neu</code>), heutiges Learning/Relearning, auch noch nicht vorziehbares (<code>Offen</code>), und ausgewählte fällige Reviews (<code>Fällig</code>). Elternzeilen aggregieren den Teilbaum nach den Einstellungen des dargestellten Stapels. Ausgesetzte und begrabene Karten zählen nirgends.</li>
 <li>Dashboard und <code>Lernen</code> bieten eine Listen- und eine Kachelansicht; die Wahl gilt browserlokal und je Bereich getrennt. In der Liste lassen sich alle Elternstapel gemeinsam auf- und zuklappen.</li>
 <li>Ein Stapel öffnet seine <a href="#specs--stapelinhalte">Stapelinhalte</a>; eine eigene Lernaktion startet ihn samt Unterstapeln und Limits. In der Kachelansicht führen Kacheln mit Unterstapeln Ebene für Ebene zu ihren Unterstapeln und zu den Stapelinhalten; eine Kachel ohne Unterstapel öffnet direkt die Stapelinhalte.</li>
-<li>Auf-/Zuklappzustände sind je Ansicht kontogebunden und überstehen Navigation, Reload und Neuanmeldung. Ohne gespeicherten Zustand starten die Stapel der Kartenverwaltung eingeklappt; ein fokussierter Stapel oder eine verlinkte Karte klappt den betroffenen Stapel auf und speichert diesen Zustand.</li>
+<li>Auf-/Zuklappzustände von <code>Heute</code> und <code>Lernen</code> sind je Ansicht kontogebunden und überstehen Navigation, Reload und Neuanmeldung.</li>
 <li>Stapelauswahlen nennen den vollständigen Pfad, ordnen die Stapel als alphabetischen Baum und bieten bei vielen Stapeln eine Pfadsuche.</li>
 </ul>
 <h3 id="specs--stapeloptionen-verschieben-und-löschen" class="core-heading-3" tabindex="-1">Stapeloptionen, Verschieben und Löschen <a class="docs-anchor" href="#specs--stapeloptionen-verschieben-und-löschen" aria-label="Link zu Stapeloptionen, Verschieben und Löschen">#</a></h3>
@@ -7217,7 +7211,7 @@ html:has(.catalog-preview) { scroll-behavior: auto; }
 <li>Die Reiter lauten <code>Unterstapel</code>, <code>Zusammenfassungen</code>, <code>Quiz</code>, <code>Mind Map</code>, <code>Karten</code> und <code>Quelle</code>; zu Beginn ist <code>Unterstapel</code> aktiv. Der Reiter ist Teil des Links und bleibt beim Rückweg aus einer Sitzung erhalten; ein geöffneter Karteneditor öffnet <code>Karten</code>.</li>
 <li>Reiterwechsel und Stapelpfad schützen ungespeicherte Entwürfe mit demselben Speichern-/Verwerfen-Dialog.</li>
 <li><code>Unterstapel</code> zeigt den Zweig des geöffneten Stapels wie die Liste in <code>Lernen</code> mit Tageszahlen, Lernaktion und Stapeloptionen je Stapel; anfangs sind nur die direkten Unterstapel aufgeklappt. Ein Unterstapel öffnet seine eigenen Stapelinhalte. Ohne Unterstapel bietet der Reiter direkt das Lernen der Karten an.</li>
-<li><code>Karten</code> zeigt die Karten des Stapels samt aller Unterstapel mit gemeinsamer Suche und Sortierung, gegliedert nach Unterstapeln. Der Reiter nutzt dieselben Kartenzeilen, denselben Editor und dieselben Änderungen wie die <a href="#specs--kartenverwaltung">Kartenverwaltung</a>; Aktionen wirken im tatsächlich zugehörigen Unterstapel. Ein Kartenlink und das Schließen des Editors erhalten den Inhaltskontext auch nach Reload. Elternstapel und andere Zweige bleiben ausgeschlossen.</li>
+<li><code>Karten</code> zeigt die Karten des Stapels samt aller Unterstapel als eine flache Liste mit gemeinsamer Suche und Sortierung; jede Zeile nennt ihren Unterstapel. Der Reiter nutzt dieselben Kartenzeilen, denselben Editor und dieselben Änderungen wie die <a href="#specs--kartenverwaltung">Kartenverwaltung</a>; Aktionen wirken im tatsächlich zugehörigen Unterstapel. Ein Kartenlink und das Schließen des Editors erhalten den Inhaltskontext auch nach Reload. Elternstapel und andere Zweige bleiben ausgeschlossen.</li>
 <li><code>Zusammenfassungen</code> und <code>Mind Map</code> folgen <a href="#specs--11-zusammenfassungen-und-mindmaps">Zusammenfassungen und Mindmaps</a>.</li>
 <li>In allen Reitern startet eine Lernaktion die Sitzung samt Unterstapeln. Sie ist nur bei leerem Stapelbaum deaktiviert; die Suche beeinflusst sie nicht. Das Verlassen der Sitzung führt zu den Stapelinhalten zurück.</li>
 </ul>
@@ -7424,16 +7418,15 @@ html:has(.catalog-preview) { scroll-behavior: auto; }
 <p>Der Hauptreiter <code>Karten</code> ist die direktlinkfähige Gesamtverwaltung für Karten, Stapelstruktur, Inhalt und erweiterte Optionen aller Stapel.</p>
 <p class="docs-label">Verhalten</p>
 <ul>
-<li>Die Kartenverwaltung verbindet die Stapelhierarchie (<a href="#specs--stapelb%C3%A4ume">Stapelbäume</a>), die <a href="#specs--kartensuche">Kartensuche</a> und eine Liste aller Karten.</li>
+<li>Die Kartenverwaltung verbindet die <a href="#specs--kartensuche">Kartensuche</a> mit einer flachen Liste aller Karten; Stapelzeilen, Auf- und Zuklappen und das Stapelmenü gibt es dort nicht. Stapelaktionen bleiben in <code>Heute</code>, <code>Lernen</code> und den Stapeleinstellungen.</li>
 <li>Die Tabelle zeigt je Karte nur <code>Sortierfeld</code> (bereinigte Vorderseite), <code>Datum</code> (<code>Neu</code> oder <code>TT.MM.JJJJ</code>) und <code>Variante</code> (Zahl der aktiven Varianten, ohne Variante ein zugänglich beschrifteter Strich). Alle Spalten sind auf- und absteigend sortierbar; Standard ist <code>Sortierfeld</code> A–Z, einheitlich für alle Sektionen und nicht persistiert. Der Spaltenkopf bleibt beim Scrollen stehen. Aufgeklappte Stapel ohne Karten und ohne Unterstapel zeigen <code>Keine Karten</code>; Elternstapel ohne eigene Karten zeigen keine Leerzeile.</li>
 <li>Ausgesetzte Karten bleiben mit unverändertem Datum sichtbar, sind sichtbar hervorgehoben und tragen die zugängliche Kennzeichnung <code>Ausgesetzt</code>. Markierte Karten sind sichtbar und zugänglich als markiert gekennzeichnet. Beides kann gleichzeitig erscheinen.</li>
 <li>Eine gesetzte Flagge erscheint als Farbpunkt mit zugänglichem Namen.</li>
-<li>Stapelköpfe der Kartenverwaltung haben keine Trennlinie; nur Kartenzeilen trennt eine dünne Linie. Ein Klick auf die Kopffläche klappt die Karten auf oder zu, Hover füllt sie neutral wie in <code>Aktive Stapel</code>, und die Hierarchie ist an Einrückung und Tiefenfläche erkennbar, die ab der sechsten Ebene gleich bleiben. Kartenzeilen beginnen unter dem Stapel-Icon ihres Kopfes.</li>
-<li>Lange Sortierfelder erhalten ab <code>sm</code> Ellipsen; darunter zeigt eine Kartenzeile bis zu zwei Zeilen der Vorderseite, <code>Datum</code> und <code>Variante</code> stehen rechts. Kartenverwaltung und <code>Aktive Stapel</code> erzeugen keinen horizontalen Überlauf; <code>Datum</code> und <code>Variante</code> bleiben ungekürzt.</li>
-<li>Die Kartenliste ist durchgehend, ohne Seiten: Aufgeklappte Stapel zeigen alle ihre Karten untereinander, gerendert werden nur die Zeilen nahe am sichtbaren Bereich. Noch nicht geladene Zeilen halten als ruhige Platzhalter ihren Platz und füllen sich beim Scrollen.</li>
-<li>Ohne Suche zeigt die Tabelle den Stapelbaum. Mit Suche zeigt sie eine flache Liste aller Treffer im Bereich (alle Stapel, in geöffneten Stapelinhalten deren Unterstapel) in der gewählten Sortierung; jede Zeile nennt unter der Vorderseite den Stapelpfad. Stapel, deren Pfad jedes Suchwort enthält, stehen über der Liste als <code>Passende Stapel</code>; ein Klick filtert auf diesen Stapel.</li>
+<li>Kartenzeilen sind kompakt (etwa 29 px, eine dünne Trennlinie) und einzeilig: die Vorderseite, ab <code>sm</code> rechts daneben gedämpft der Stapelpfad (höchstens 40 % der Breite), beide mit Ellipsen. Umfasst die Liste nur einen Stapel, entfällt der Pfad. <code>Datum</code> und <code>Variante</code> stehen rechts und bleiben ungekürzt; die Kartenverwaltung erzeugt keinen horizontalen Überlauf.</li>
+<li>Die Kartenliste ist durchgehend, ohne Seiten: Gerendert werden nur die Zeilen nahe am sichtbaren Bereich. Noch nicht geladene Zeilen halten als ruhige Platzhalter ihren Platz und füllen sich beim Scrollen.</li>
+<li>Die Tabelle zeigt mit und ohne Suche eine flache Liste aller Karten beziehungsweise Treffer im Bereich (alle Stapel, in geöffneten Stapelinhalten deren Unterstapel) in der gewählten Sortierung. Mit Suche stehen Stapel, deren Pfad jedes Suchwort enthält, stehen über der Liste als <code>Passende Stapel</code>; ein Klick filtert auf diesen Stapel.</li>
 <li>Bis die Seite einer geänderten Suche oder Sortierung da ist, bleiben die bisherigen Zeilen gedimmt stehen und unter dem Spaltenkopf läuft der Ladebalken der Statistik; <code>Keine Karten</code> erscheint erst mit der Antwort.</li>
-<li>Mehrfachauswahl: <code>Karten auswählen</code> im Kopf der ersten Spalte, Strg- oder Cmd-Klick, Umschalt-Klick (Bereich der geladenen Zeilen seit der zuletzt gewählten) oder Langdrücken (500 ms) auf Touch starten die Auswahl. Solange sie läuft, trägt jede Kartenzeile ein Kontrollkästchen, ein Klick wählt statt zu öffnen, und eine Auswahlleiste ersetzt die Sortierköpfe: Anzahl, mit Suche <code>Alle N Treffer auswählen</code>, <code>Aktionen</code> und <code>Auswahl aufheben</code>. Eine neue Suche oder ein anderer Bereich hebt die Auswahl auf; aus der Lernsitzung geöffnet gibt es keine Auswahl.</li>
+<li>Mehrfachauswahl: <code>Karten auswählen</code> im Kopf der ersten Spalte, Strg- oder Cmd-Klick, Umschalt-Klick (Bereich der geladenen Zeilen seit der zuletzt gewählten) oder Langdrücken (500 ms) auf Touch starten die Auswahl. Solange sie läuft, trägt jede Kartenzeile ein Kontrollkästchen, ein Klick wählt statt zu öffnen, und eine Auswahlleiste ersetzt die Sortierköpfe: Anzahl, <code>Alle N Karten auswählen</code> (mit Suche <code>Alle N Treffer auswählen</code>), <code>Aktionen</code> und <code>Auswahl aufheben</code>. Eine neue Suche oder ein anderer Bereich hebt die Auswahl auf; aus der Lernsitzung geöffnet gibt es keine Auswahl.</li>
 <li><code>Aktionen</code> bietet <code>Stapel ändern</code>, <code>Tags hinzufügen</code>, <code>Tags entfernen</code>, <code>Flagge setzen</code>, <code>Flagge entfernen</code>, <code>Markieren</code>, <code>Markierung entfernen</code>, <code>Aussetzen</code>, <code>Reaktivieren</code>, <code>Zurückstellen</code>, <code>Fälligkeit setzen</code> (Datum oder Zeitraum; jede Karte bekommt einen zufälligen Tag darin), <code>Lernstand zurücksetzen</code>, <code>Varianten generieren</code> (für ausgewählte Karten ohne Variante, wie die Stapelgenerierung) und <code>Löschen</code> (die Inhalte der Karten samt ihrer weiteren Karten). Jede Aktion fragt ab einer Karte nach und meldet danach <code>&lt;Aktion&gt;: N Karten</code> mit <code>Rückgängig</code>. Rückgängig ist eine neue Änderung: Karten, die seither anders geändert wurden, behalten ihren neuen Stand, und die Meldung nennt ihre Zahl. Flagge, Aussetzen und Stapel gelten je Karte, Markierung und Tags für den Inhalt. Offline wirken Massenaktionen nur auf Karten, die auf dem Gerät liegen; sonst meldet die Aktion, dass die Karten noch nicht offline verfügbar sind, und ändert nichts.</li>
 <li>Wie große Bestände laden, regelt <a href="#specs--laden-gro%C3%9Fer-best%C3%A4nde">Laden großer Bestände</a>; Konfliktkarten folgen <a href="#specs--sync-status-und-konflikte">Sync-Status und Konflikte</a>.</li>
 </ul>
@@ -8426,7 +8419,7 @@ html:has(.catalog-preview) { scroll-behavior: auto; }
 <li>KI-Bildvariation, breiter OCR-Worker oder vollständige Anki-Template-Ausführung.</li>
 </ul>
 <h2 id="specs--codeumfang-der-produktbereiche" class="core-heading-2" tabindex="-1">Codeumfang der Produktbereiche <a class="docs-anchor" href="#specs--codeumfang-der-produktbereiche" aria-label="Link zu Codeumfang der Produktbereiche">#</a></h2>
-<p>CoRe ist eine App mit mehreren Bereichen. Die Tabelle zeigt deren Anteil am Bildschirmcode; gemeinsam genutzte Logik, UI und API stehen separat.</p><div class="docs-code-stats"><dl data-size="compact" class="flex flex-col rounded-control border border-core-border bg-core-surface px-4 py-3 shadow-soft min-w-0"><dt class="core-caption font-medium text-core-muted"><span>Bildschirmcode</span></dt><dd class="core-metric mt-auto pt-1 text-core-text">7.108</dd></dl><dl data-size="compact" class="flex flex-col rounded-control border border-core-border bg-core-surface px-4 py-3 shadow-soft min-w-0"><dt class="core-caption font-medium text-core-muted"><span>Gemeinsamer Code &amp; API</span></dt><dd class="core-metric mt-auto pt-1 text-core-text">42.059</dd></dl><dl data-size="compact" class="flex flex-col rounded-control border border-core-border bg-core-surface px-4 py-3 shadow-soft min-w-0"><dt class="core-caption font-medium text-core-muted"><span>Quelldateien</span></dt><dd class="core-metric mt-auto pt-1 text-core-text">232</dd></dl></div><div class="docs-code-chart"><div class="docs-table-scroll" tabindex="0" role="region" aria-label="Codeumfang je Produktbereich"><table><thead><tr><th>Bereich</th><th>Zeilen</th><th>Anteil</th></tr></thead><tbody><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-status-learned)" aria-hidden="true"></span>Heute</th><td>320</td><td>4,5 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-status-new)" aria-hidden="true"></span>Lernen & Karten</th><td>2.566</td><td>36,1 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-status-in-progress)" aria-hidden="true"></span>Erstellen & Import</th><td>1.788</td><td>25,2 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-action-primary)" aria-hidden="true"></span>Prüfungen</th><td>430</td><td>6 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-status-due)" aria-hidden="true"></span>Statistik</th><td>567</td><td>8 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-progress-completed)" aria-hidden="true"></span>Konto & Sync</th><td>635</td><td>8,9 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-text-secondary)" aria-hidden="true"></span>Hilfe</th><td>802</td><td>11,3 %</td></tr></tbody></table></div></div><p class="docs-source">Beim Erzeugen gemessen: nichtleere Zeilen in <code>src/</code> und <code>api/</code> (TS/TSX) sowie <code>src/styles.css</code>. Ohne Tests, Typdeklarationen, generierte Datenbanktypen, Dokumentation und Fremdcode. Bereichszuordnung nach Bildschirmdateien in <a href="../src/screens/README.md">der Screen-Landkarte</a>; übriger Code zählt gemeinsam. Enthält Kommentare und misst weder Laufzeit noch Komplexität.</p></article></main></div><script>function initializeDocsViewer() {
+<p>CoRe ist eine App mit mehreren Bereichen. Die Tabelle zeigt deren Anteil am Bildschirmcode; gemeinsam genutzte Logik, UI und API stehen separat.</p><div class="docs-code-stats"><dl data-size="compact" class="flex flex-col rounded-control border border-core-border bg-core-surface px-4 py-3 shadow-soft min-w-0"><dt class="core-caption font-medium text-core-muted"><span>Bildschirmcode</span></dt><dd class="core-metric mt-auto pt-1 text-core-text">6.982</dd></dl><dl data-size="compact" class="flex flex-col rounded-control border border-core-border bg-core-surface px-4 py-3 shadow-soft min-w-0"><dt class="core-caption font-medium text-core-muted"><span>Gemeinsamer Code &amp; API</span></dt><dd class="core-metric mt-auto pt-1 text-core-text">42.063</dd></dl><dl data-size="compact" class="flex flex-col rounded-control border border-core-border bg-core-surface px-4 py-3 shadow-soft min-w-0"><dt class="core-caption font-medium text-core-muted"><span>Quelldateien</span></dt><dd class="core-metric mt-auto pt-1 text-core-text">232</dd></dl></div><div class="docs-code-chart"><div class="docs-table-scroll" tabindex="0" role="region" aria-label="Codeumfang je Produktbereich"><table><thead><tr><th>Bereich</th><th>Zeilen</th><th>Anteil</th></tr></thead><tbody><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-status-learned)" aria-hidden="true"></span>Heute</th><td>320</td><td>4,6 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-status-new)" aria-hidden="true"></span>Lernen & Karten</th><td>2.440</td><td>34,9 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-status-in-progress)" aria-hidden="true"></span>Erstellen & Import</th><td>1.788</td><td>25,6 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-action-primary)" aria-hidden="true"></span>Prüfungen</th><td>430</td><td>6,2 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-status-due)" aria-hidden="true"></span>Statistik</th><td>567</td><td>8,1 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-progress-completed)" aria-hidden="true"></span>Konto & Sync</th><td>635</td><td>9,1 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-text-secondary)" aria-hidden="true"></span>Hilfe</th><td>802</td><td>11,5 %</td></tr></tbody></table></div></div><p class="docs-source">Beim Erzeugen gemessen: nichtleere Zeilen in <code>src/</code> und <code>api/</code> (TS/TSX) sowie <code>src/styles.css</code>. Ohne Tests, Typdeklarationen, generierte Datenbanktypen, Dokumentation und Fremdcode. Bereichszuordnung nach Bildschirmdateien in <a href="../src/screens/README.md">der Screen-Landkarte</a>; übriger Code zählt gemeinsam. Enthält Kommentare und misst weder Laufzeit noch Komplexität.</p></article></main></div><script>function initializeDocsViewer() {
     const theme = document.getElementById("docs-theme");
     theme.addEventListener("click", () => {
         const dark = document.documentElement.dataset.coreTheme !== "dark";

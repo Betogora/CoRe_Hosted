@@ -1,11 +1,10 @@
 import type { SavedCardSearch, SyncIntervalMinutes, UiPreferences } from "./coreTypes.ts";
 
-export type DeckExpansionSurface = "dashboard" | "learn" | "deck-manager";
+export type DeckExpansionSurface = "dashboard" | "learn";
 
 export const DEFAULT_UI_PREFERENCES: UiPreferences = {
   dashboardCollapsedDeckIds: [],
   learnCollapsedDeckIds: [],
-  deckManagerExpandedDeckIds: [],
   syncIntervalMinutes: 5,
   flagNames: ["", "", "", "", "", "", ""],
   savedSearches: [],
@@ -56,7 +55,6 @@ export function normalizeUiPreferences(value: unknown): UiPreferences {
   return {
     dashboardCollapsedDeckIds: normalizeDeckIds(preferences.dashboardCollapsedDeckIds),
     learnCollapsedDeckIds: normalizeDeckIds(preferences.learnCollapsedDeckIds),
-    deckManagerExpandedDeckIds: normalizeDeckIds(preferences.deckManagerExpandedDeckIds),
     syncIntervalMinutes: normalizeSyncInterval(preferences.syncIntervalMinutes),
     flagNames: normalizeFlagNames(preferences.flagNames),
     savedSearches: normalizeSavedSearches(preferences.savedSearches),
@@ -70,15 +68,10 @@ export function setDeckExpanded(
   expanded: boolean,
 ): UiPreferences {
   const preferences = normalizeUiPreferences(value);
-  const key = surface === "dashboard"
-    ? "dashboardCollapsedDeckIds"
-    : surface === "learn"
-      ? "learnCollapsedDeckIds"
-      : "deckManagerExpandedDeckIds";
+  const key = surface === "dashboard" ? "dashboardCollapsedDeckIds" : "learnCollapsedDeckIds";
   const ids = new Set(preferences[key]);
-  const shouldStoreId = surface === "deck-manager" ? expanded : !expanded;
   for (const id of typeof deckId === "string" ? [deckId] : deckId) {
-    if (shouldStoreId) ids.add(id);
+    if (!expanded) ids.add(id);
     else ids.delete(id);
   }
   return { ...preferences, [key]: [...ids] };

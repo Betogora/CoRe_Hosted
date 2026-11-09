@@ -225,8 +225,6 @@ export interface DecksScreenProps {
   onMoveDeck: (deckId: string, parentDeckId?: string | null) => DeckMutationResult | null;
   onOpenDeckSettings: (deckId: string) => unknown;
   onDraftStateChange: (guard: CardDraftGuard | null) => void;
-  expandedDeckIds: string[];
-  onSetDeckExpanded: (surface: DeckExpansionSurface, deckId: string | readonly string[], expanded: boolean) => unknown;
   /** Saved searches of the account (`uiPreferences.savedSearches`); the whole list is written at once. */
   savedSearches: readonly SavedCardSearch[];
   onSavedSearchesChange: (searches: SavedCardSearch[]) => unknown;

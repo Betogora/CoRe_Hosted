@@ -261,9 +261,11 @@ export function createWorkspaceHydrationService({
 
   /**
    * A cloud page shows cards whose local change still waits in the outbox (a mass action, an edit) in their local state;
-   * a card deleted here leaves the page.
+   * a card deleted here leaves the page. The last page also lists cards created here that the cloud does not know yet
+   * and that match the request, so new cards appear before their upload.
    */
-  const withPendingLocalRows = async (items: CardCatalogEntry[]) => {
+  const withPendingLocalRows = async (page: { items: CardCatalogEntry[]; hasMore: boolean; totalCount: number }, request: CardPageRequest) => {
+    const { items } = page;
     const cardIds = new Set<string>();
     const noteIds = new Set<string>();
     for (const mutation of repository.outbox.listPending()) {
@@ -271,14 +273,21 @@ export function createWorkspaceHydrationService({
       else if (mutation.table === "cards" && mutation.entityId) cardIds.add(mutation.entityId);
       else if (mutation.table === "notes" && mutation.entityId) noteIds.add(mutation.entityId);
     }
+    if (!cardIds.size && !noteIds.size) return page;
     const changed = items.filter((entry) => cardIds.has(entry.id) || noteIds.has(entry.noteId));
-    if (!changed.length) return items;
     const local = await repository.loadCatalogEntries(changed.map((entry) => entry.id));
-    return items.flatMap((entry) => {
+    const shown = items.flatMap((entry) => {
       if (!cardIds.has(entry.id) && !noteIds.has(entry.noteId)) return [entry];
       const row = local.get(entry.id);
       return row ? [{ ...row, syncChangeId: entry.syncChangeId }] : [];
     });
+    if (page.hasMore) return { ...page, items: shown };
+    const onPage = new Set(items.map((entry) => entry.id));
+    const scope = request.deckIds ?? [request.deckId];
+    const created = (await repository.listCardIds(scope, { query: request.query, searchContext: request.searchContext }))
+      .filter((id) => cardIds.has(id) && !onPage.has(id));
+    const createdRows = created.length ? [...(await repository.loadCatalogEntries(created)).values()] : [];
+    return { ...page, items: [...shown, ...createdRows], totalCount: page.totalCount + createdRows.length };
   };
 
   const queryCardPage = async (request: CardPageRequest) => {
@@ -303,7 +312,8 @@ export function createWorkspaceHydrationService({
       }
     }
     const local = cloudPage ? null : await repository.listCardPage(request.deckIds ?? request.deckId, { ...request, selectedCardId: null });
-    const entries = cloudPage ? await withPendingLocalRows(cloudPage.items) : local!.items;
+    const shownCloudPage = cloudPage ? await withPendingLocalRows(cloudPage, request) : null;
+    const entries = shownCloudPage?.items ?? local!.items;
     markReplicaStartupGate("catalogUsable", { itemCount: entries.length });
     if (entries.length === 0 && cloudError) throw cloudError;
     const selected = request.selectedCardId ? await querySelectedCard(request.deckIds ?? request.deckId, request.selectedCardId) : null;
@@ -311,7 +321,7 @@ export function createWorkspaceHydrationService({
       items: entries,
       page: Math.max(0, Math.floor(request.page ?? 0)),
       pageSize: Math.min(50, Math.max(1, request.pageSize ?? 50)),
-      totalCount: cloudPage?.totalCount ?? local!.totalCount,
+      totalCount: shownCloudPage?.totalCount ?? local!.totalCount,
       hasMore: cloudPage?.hasMore ?? local!.hasMore,
       selected,
       limitedToLocalCatalog: Boolean(cloudError) || (!isOnline() && status.catalogCompleteness !== "complete"),

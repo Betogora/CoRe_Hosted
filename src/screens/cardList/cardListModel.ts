@@ -53,7 +53,8 @@ function createCardTableListRows(
   for (const page of Object.keys(shown?.pages ?? {}).map(Number).sort((left, right) => left - right)) {
     const offset = page * (shown?.pageSize ?? CARD_TABLE_PAGE_SIZE);
     shown!.pages[page].forEach((entry, index) => rowsByIndex.set(offset + index, cachedCardTableRow(entry, rowOptions)));
-    end = Math.max(end, offset + shown!.pages[page].length);
+    // An empty page (asked for while a longer list was still shown) does not lengthen the list.
+    if (shown!.pages[page].length) end = Math.max(end, offset + shown!.pages[page].length);
   }
   const cardRows = [...rowsByIndex.values()];
   const totalCardCount = Math.max(end, Math.floor(shown?.totalCount ?? fallbackTotal));

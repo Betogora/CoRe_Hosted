@@ -10,7 +10,6 @@ test("UI preferences normalize persisted deck ids", () => {
   }), {
     dashboardCollapsedDeckIds: ["deck-a"],
     learnCollapsedDeckIds: [],
-    deckManagerExpandedDeckIds: ["deck-b"],
     syncIntervalMinutes: 5,
     flagNames: ["", "", "", "", "", "", ""],
     savedSearches: [],
@@ -20,20 +19,17 @@ test("UI preferences normalize persisted deck ids", () => {
 test("deck expansion is stored with the correct semantics for every surface", () => {
   const dashboard = setDeckExpanded({}, "dashboard", "deck-a", false);
   const learn = setDeckExpanded(dashboard, "learn", "deck-b", false);
-  const deckManager = setDeckExpanded(learn, "deck-manager", "deck-c", true);
 
-  assert.deepEqual(deckManager, {
+  assert.deepEqual(learn, {
     dashboardCollapsedDeckIds: ["deck-a"],
     learnCollapsedDeckIds: ["deck-b"],
-    deckManagerExpandedDeckIds: ["deck-c"],
     syncIntervalMinutes: 5,
     flagNames: ["", "", "", "", "", "", ""],
     savedSearches: [],
   });
   assert.equal(normalizeUiPreferences({ syncIntervalMinutes: 15 }).syncIntervalMinutes, 15);
   assert.equal(normalizeUiPreferences({ syncIntervalMinutes: 7 }).syncIntervalMinutes, 5);
-  assert.deepEqual(setDeckExpanded(deckManager, "dashboard", "deck-a", true).dashboardCollapsedDeckIds, []);
-  assert.deepEqual(setDeckExpanded(deckManager, "deck-manager", "deck-c", false).deckManagerExpandedDeckIds, []);
+  assert.deepEqual(setDeckExpanded(learn, "dashboard", "deck-a", true).dashboardCollapsedDeckIds, []);
 });
 
 test("bulk expansion changes only the requested decks and preserves other surfaces", () => {

@@ -947,9 +947,12 @@ export function App() {
       syncEngine,
       syncIntervalMinutes: state?.profile.uiPreferences.syncIntervalMinutes ?? 5,
       onStatus: setSyncStatus,
-      onSynced() {
+      onSynced(result) {
         if (!workspaceRepository) return;
-        setAppState(workspaceRepository.getShellState(), { preserveCardPages: true });
+        // While the catalog is incomplete the cloud serves the card lists; they lack local changes until those are
+        // uploaded, so a sync that sent changes loads them again.
+        const listsFromCloud = workspaceRepository.getReplicaStatus().catalogCompleteness !== "complete";
+        setAppState(workspaceRepository.getShellState(), { preserveCardPages: !(listsFromCloud && (result?.mutations ?? 0) > 0) });
       },
     });
   }, [authPhase, state?.profile.uiPreferences.syncIntervalMinutes, syncEngine, workspaceRepository]);
@@ -1989,8 +1992,6 @@ export function App() {
           onOpenLearn={openLearn}
           onOpenCardSettings={() => navigateToView("karten-einstellungen")}
           onDraftStateChange={handleCardDraftStateChange}
-          expandedDeckIds={state.profile.uiPreferences.deckManagerExpandedDeckIds}
-          onSetDeckExpanded={saveDeckExpansion}
           savedSearches={state.profile.uiPreferences.savedSearches}
           onSavedSearchesChange={saveSearches}
           onOpenDeckSettings={(deckId) => openDeckSettings(deckId, {
@@ -2036,7 +2037,8 @@ export function App() {
             completionKind: completion.kind,
           }, { replace: true })}
           onStartDeck={startDeck}
-          onReviewDeck={openDecks}
+          // `Karten prüfen` lists the new cards: the deck's own card list, not the whole card management (KV3b).
+          onReviewDeck={(deckId) => navigateToViewNow("kartenstapel", { focusedDeckId: deckId, deckContent: true, deckContentTab: "cards" })}
           onOpenDashboard={() => navigateToViewNow("uebersicht")}
         />
       );
