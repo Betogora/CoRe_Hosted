@@ -337,7 +337,6 @@ function writeOverlayParams(params: URLSearchParams, route: { settingsSection?: 
 export function parseAppRouteFromUrl(input: string | URL = "/", options: RouteOptions = {}): AppRoute {
   const url = createUrl(input);
   const pathSegments = url.pathname.split("/").filter(Boolean).map(decodePathSegment);
-  if (pathSegments.length === 0) return createViewRoute(defaultViewId, {}, options);
   if (isReviewPath(pathSegments)) {
     const deckId = pathSegments[1];
     return normalizeAppRoute({

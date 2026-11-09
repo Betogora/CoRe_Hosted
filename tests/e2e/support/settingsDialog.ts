@@ -6,6 +6,8 @@ export const deckSettingsDialog = (page: Page) => page.getByTestId("deck-setting
 /** Opens an area in a settings dialog; below 768 px it first returns to the area list. */
 export async function openSettingsArea(dialog: Locator, section: string) {
   const area = dialog.locator(`[data-settings-section="${section}"]`);
+  // The dialog is lazy-loaded; check the area list only once its frame is rendered.
+  await expect(dialog).toBeVisible();
   if (!(await area.isVisible())) await dialog.getByRole("button", { name: "Zurück zu den Bereichen" }).click();
   await area.click();
   await expect(area).toHaveAttribute("aria-current", "page");

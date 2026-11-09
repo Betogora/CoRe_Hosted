@@ -477,7 +477,7 @@ test("learning rows activate directly while expand and settings remain independe
   await europeRow.getByRole("button", { name: "Stapeloptionen für Welt-Hauptstädte / Europa" }).click();
   await page.getByTestId(`deck-options-menu-${DECK_IDS.europe}`).getByRole("button", { name: "Einstellungen" }).click();
   await expect(page.getByTestId(`deck-settings-${DECK_IDS.europe}`)).toBeVisible();
-  await expect(page).toHaveURL(new RegExp(`/lernen\\?settingsDeck=${DECK_IDS.europe}&settings=start$`));
+  await expect(page).toHaveURL(new RegExp(`/lernen\\?(?:.*&)?settingsDeck=${DECK_IDS.europe}&settings=start$`));
   await deckSettingsDialog(page).getByRole("button", { name: "Stapeleinstellungen schließen" }).click();
   await expect(europeRow).toBeVisible();
 
@@ -498,7 +498,7 @@ test("deck presentation form saves name, icon and color together", async ({ page
   const iconTrigger = page.getByRole("button", { name: "Icon auswählen" });
   const colorTrigger = page.getByRole("button", { name: "Farbe auswählen" });
   const titleIcon = page.getByTestId("deck-settings-title-icon");
-  const nameInput = page.getByRole("textbox", { name: "Stapelname" });
+  const nameInput = deckSettingsDialog(page).getByRole("textbox", { name: "Stapelname" });
   const primaryControls = page.getByTestId("deck-settings-primary-controls");
   const saveBar = page.getByTestId("settings-save-bar");
   const saveButton = saveBar.getByRole("button", { name: "Speichern" });
@@ -818,7 +818,7 @@ test("deck management disables direct drag and shares the confirmed keyboard mov
 
   await page.getByTestId(`deck-options-${DECK_IDS.southAmerica}`).click();
   await page.getByTestId(`deck-options-menu-${DECK_IDS.southAmerica}`).getByRole("button", { name: "Einstellungen" }).click();
-  await expect(page).toHaveURL(new RegExp(`\\?settingsDeck=${DECK_IDS.southAmerica}&settings=start$`));
+  await expect(page).toHaveURL(new RegExp(`[?&]settingsDeck=${DECK_IDS.southAmerica}&settings=start$`));
   await deckSettingsDialog(page).getByRole("button", { name: "Stapeleinstellungen schließen" }).press("Enter");
   await expect(page.getByTestId(`deck-options-${DECK_IDS.southAmerica}`)).toBeVisible();
 });

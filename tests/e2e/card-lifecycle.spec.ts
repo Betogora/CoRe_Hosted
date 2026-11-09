@@ -7,6 +7,7 @@ import type { Deck } from "../../src/coreTypes.ts";
 import { readActiveAccountState, resetToFreshLocalState } from "./support/appState.ts";
 import { loadE2EEnvironment } from "./support/e2eEnvironment.ts";
 import { seedAccountState } from "../support/seedAccountState.ts";
+import { openSettingsArea, settingsDialog } from "./support/settingsDialog.ts";
 
 const REIMPORT_FIXTURE = fileURLToPath(new URL("../../fixtures/apkg/matrix/standard-legacy2.apkg", import.meta.url));
 
@@ -394,6 +395,7 @@ test("[Vertrag: KI-Basic-Variante] @golden-e2e @beta-core @hosted-core abgefange
   }).toBe("Wofür nutzt die Zelle ATP?");
   await page.getByRole("button", { name: "Detailansicht schließen" }).click();
   await page.getByRole("button", { name: "Einstellungen öffnen" }).click();
+  await openSettingsArea(settingsDialog(page), "daten");
   await page.getByRole("button", { name: "Jetzt synchronisieren" }).click();
   await waitForCloudCard(deck.cards[0].id, (card) => card.variants.some((variant: { meta?: { generationSource?: string } }) => variant.meta?.generationSource === "ai_generated"));
 

@@ -1330,7 +1330,7 @@ Verhalten:
 - Das Reviewlimit umfasst fällige, tagesübergreifende Lern- und neue Karten; Wiederholungen haben Vorrang.
 - CoRe-Modus und Variantenwerte gehören nicht zu Lernprofilen und bleiben bei einem Profilwechsel unverändert.
 - Der Kopf zeigt Stapel-Icon und Name; über den Bereichen stehen der Stapelwechsel und `Standardwerte`, das `Einstellungen → Tagesrunde & Lernprofile` öffnet. Der Wechsel zwischen beiden Dialogen ersetzt den offenen; es liegt nie einer über dem anderen.
-- Der Link trägt den Dialog als `settingsDeck=` mit dem Bereich in `settings=`, auch auf der Sitzungsroute; eine eigene Seite und einen Rückweg gibt es nicht. Ein Direktaufruf öffnet den Dialog über der aufgerufenen Ansicht, ein unbekannter Stapel zeigt eine durchsuchbare Stapelauswahl.
+- Der Link trägt den Dialog als `settingsDeck=` mit dem Bereich in `settings=`, auch auf der Sitzungsroute; eine eigene Seite und einen Rückweg gibt es nicht. Über `Lernen` und der Kartenverwaltung wird der Stapel zum Fokus der Liste darunter und bleibt es nach dem Schließen. Ein Direktaufruf öffnet den Dialog über der aufgerufenen Ansicht, ein unbekannter Stapel zeigt eine durchsuchbare Stapelauswahl.
 - Bereiche desselben Stapels teilen einen Entwurf; Stapelwechsel und der Wechsel in den Einstellungsdialog sind bei ungespeicherten Änderungen gesperrt ([Speicherleiste](#speicherleiste)).
 - Neue Stapel erhalten die Standardwerte als eigene Werte, importierte behalten ihre Werte.
 

@@ -62,6 +62,9 @@ test("the settings dialog is an area on top of the current view and replaces the
   assert.deepEqual(route, { mode: "view", viewId: "lernen", focusedDeckId: "deck_a", settingsSection: "flaggen" });
   assert.equal(appRouteToUrl(route), "/lernen?deck=deck_a&settings=flaggen");
   assert.deepEqual(parseAppRouteFromUrl("/?settings=unbekannt"), { mode: "view", viewId: "uebersicht" });
+  // The start view has the root path; its dialogs must survive a reload like on every other view.
+  assert.deepEqual(parseAppRouteFromUrl("/?settings=ueber"), { mode: "view", viewId: "uebersicht", settingsSection: "ueber" });
+  assert.deepEqual(parseAppRouteFromUrl("/?settingsDeck=deck_b&settings=stapel"), { mode: "view", viewId: "uebersicht", deckSettings: { deckId: "deck_b", section: "stapel" } });
   for (const formerPage of ["/einstellungen", "/karten-einstellungen?target=flag-names"]) {
     assert.deepEqual(parseAppRouteFromUrl(formerPage), { mode: "view", viewId: "uebersicht" });
   }

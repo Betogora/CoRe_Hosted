@@ -116,9 +116,15 @@ function settingsOverlayKey(route: SettingsOverlay): string | null {
 }
 
 function withSettingsOverlay(route: AppRoute, overlay: SettingsOverlay): AppRoute {
-  return route.mode === "study"
-    ? createStudyRoute(route.deckId, { returnContext: route.returnContext, deckSettings: overlay.deckSettings })
-    : createViewRoute(route.viewId, { ...route, settingsSection: overlay.settingsSection, deckSettings: overlay.deckSettings });
+  if (route.mode === "study") return createStudyRoute(route.deckId, { returnContext: route.returnContext, deckSettings: overlay.deckSettings });
+  // The deck whose settings are open becomes the focus of the deck lists underneath and stays it after closing.
+  const focusedDeckId = !route.deckContent && (route.viewId === "lernen" || route.viewId === "kartenstapel") ? overlay.deckSettings?.deckId : undefined;
+  return createViewRoute(route.viewId, {
+    ...route,
+    ...(focusedDeckId ? { focusedDeckId } : {}),
+    settingsSection: overlay.settingsSection,
+    deckSettings: overlay.deckSettings,
+  });
 }
 
 function withDeckLearningSettings(deck: Deck, settings: LearningSettingsInput): Deck {
@@ -581,12 +587,14 @@ export function App() {
       setSettingsNavigationBlocked(true);
       return;
     }
-    if (settingsHistoryPushedRef.current) {
+    const current = getCurrentRoute();
+    // Closing a deck dialog keeps that deck as focus, so it replaces the entry instead of going back.
+    if (settingsHistoryPushedRef.current && !current.deckSettings) {
       settingsHistoryPushedRef.current = false;
       window.history.back();
       return;
     }
-    navigateToRoute(withSettingsOverlay(getCurrentRoute(), {}), { replace: true });
+    navigateToRoute(withSettingsOverlay(current, {}), { replace: true });
   }, [getCurrentRoute, navigateToRoute]);
 
   const handleCreationDraftStateChange = React.useCallback((dirty: boolean, focusDraft: (() => void) | null, saving: boolean) => {

@@ -769,7 +769,7 @@ test("deck settings save appearance, learning, scheduler and CoRe values togethe
     await page.setViewportSize(viewport);
     await openSettingsArea(deckSettingsDialog(page), "stapel");
     await expect(deckSettingsDialog(page).locator("[data-settings-section]")).toHaveCount(3);
-    await expect(page.getByLabel("Stapelname")).toBeVisible();
+    await expect(deckSettingsDialog(page).getByLabel("Stapelname")).toBeVisible();
     await expect(page.getByRole("button", { name: "Icon auswählen" })).toBeVisible();
     await expect(page.getByRole("button", { name: "Farbe auswählen" })).toBeVisible();
     await expect(page.getByRole("button", { name: "Name und Darstellung speichern" })).toHaveCount(0);

@@ -178,7 +178,7 @@ export function ColorPicker({
           collisionPadding={12}
           aria-label={ariaLabel}
           data-testid="color-wheel-popover"
-          className="core-overlay z-50 w-[min(17rem,calc(100vw-1.5rem))] p-3.5 outline-none"
+          className="core-overlay z-[90] w-[min(17rem,calc(100vw-1.5rem))] p-3.5 outline-none"
           style={{ borderRadius: TOOLBOX_POPOVER_RADIUS }}
           // A text selection stays in its editor while a tool color is applied there.
           onFocusOutside={tool ? (event) => event.preventDefault() : undefined}
