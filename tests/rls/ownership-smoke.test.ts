@@ -463,6 +463,15 @@ test("lokales Supabase isoliert Nutzer A, Nutzer B und anon über alle accountge
       assert.equal(await prop("d", "<=", 10), false, "und keine Schwierigkeit");
       assert.equal(await prop("lapses", "=", 0), true);
       assert.equal(await prop("reps", "!=", 0), false);
+      // KV2e: durability comes from study_extra.durabilityDays, written by the client with each answer.
+      assert.equal(await prop("s", ">=", 0), false, "ohne Antwort keine Haltbarkeit");
+      const [studyBefore] = assertNoError(await clientA.from("cards").select("state, study_extra").eq("id", fixtureA.cards.id), "Lernstand lesen");
+      assertNoError(await clientA.from("cards").update({ state: "review", study_extra: { ...studyBefore.study_extra as object, durabilityDays: 120.5 } }).eq("id", fixtureA.cards.id), "Haltbarkeit setzen");
+      assert.equal(await prop("s", ">=", 90), true);
+      assert.equal(await prop("s", "<", 90), false);
+      const groupedDurability = assertNoError(await clientA.rpc("search_account_card_catalog", { p_deck_ids: [fixtureA.decks.id], p_query: "", p_terms: [{ kind: "prop", field: "s", operator: ">", value: 120, negated: false }] }), "stapelübergreifende Haltbarkeit");
+      assert.ok(groupedDurability.groups[fixtureA.decks.id]?.items.some((entry: any) => entry.id === fixtureA.cards.id && entry.durability_days === 120.5));
+      assertNoError(await clientA.from("cards").update({ state: studyBefore.state, study_extra: studyBefore.study_extra }).eq("id", fixtureA.cards.id), "Lernstand zurücksetzen");
       assert.equal(await hitsWith([{ kind: "form", value: "reveal", negated: false }]), true);
       assert.equal(await hitsWith([{ kind: "form", value: "cloze", negated: false }]), false);
       // Note type and outdated variants (KV2b-Rest): the fixture's own content has no Anki note type.

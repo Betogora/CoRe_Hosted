@@ -399,6 +399,7 @@ function projectFsrsResult(
     reps: nextCard.reps,
     lapses: nextCard.lapses,
     maturityBand: getMaturityBand({ state: nextPhase, stability: nextCard.stability, stabilityFast: nextCard.stabilityFast, difficulty: nextCard.difficulty }),
+    durabilityDays: getDurabilityDays({ state: nextPhase, stability: nextCard.stability, stabilityFast: nextCard.stabilityFast, difficulty: nextCard.difficulty }),
     lastReviewedAt: now.toISOString(),
     lastRating: rating,
   });

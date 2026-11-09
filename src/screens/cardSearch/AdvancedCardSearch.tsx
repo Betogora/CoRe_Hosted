@@ -37,6 +37,7 @@ const SYNTAX: ReadonlyArray<[string, string]> = [
   ["rated:7  rated:7:1", "in den letzten 7 Tagen gelernt, davon mit Nochmal (2 Schwer, 3 Gut, 4 Einfach)"],
   ["added:1  edited:1  introduced:1  resched:1", "heute hinzugefügt, bearbeitet, erstmals gelernt, neu geplant"],
   ["prop:ivl>=21  prop:d>7  prop:reps=0  prop:lapses>3", "Intervall in Tagen, Schwierigkeit 1 bis 10, Wiederholungen, Fehler; auch <, <=, =, !="],
+  ["prop:s>=90", "Haltbarkeit in Tagen; zählt ab der nächsten Antwort einer Karte"],
   ["is:reveal  is:choice  is:cloze  is:occlusion", "Frage–Antwort, Auswahl, Lückentext, Bildverdeckung"],
   ["note:Basic  has:outdated", "Anki-Notiztyp (wie deck: mit * und _), Karten mit veralteter Variante"],
   ["card:2  is:buried", "zweite Abfrage (Vorlage, Lücke oder Maske), heute manuell zurückgestellt"],

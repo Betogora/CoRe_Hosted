@@ -45,6 +45,7 @@ export const CARD_SEARCH_SINCE_OPTIONS = [
 /** What `Werte` compares; interval and difficulty only exist for cards that are not new. */
 export const CARD_SEARCH_PROP_OPTIONS = [
   { value: "ivl", label: "Intervall", unit: "Tage" },
+  { value: "s", label: "Haltbarkeit", unit: "Tage" },
   { value: "d", label: "Schwierigkeit", unit: "" },
   { value: "reps", label: "Wiederholungen", unit: "" },
   { value: "lapses", label: "Fehler", unit: "" },
@@ -68,7 +69,7 @@ function writtenTermLabel(bare: string): { label: string; category: string } | n
     const days = Number(since[2]);
     return { label: `${option.label}, ${days === 1 ? "heute" : `letzte ${days} Tage`}`, category: "Zeitraum" };
   }
-  const prop = /^prop:(ivl|d|reps|lapses)(<=|>=|!=|<|>|=)(.+)$/.exec(bare);
+  const prop = /^prop:(ivl|d|s|reps|lapses)(<=|>=|!=|<|>|=)(.+)$/.exec(bare);
   if (prop) {
     const option = CARD_SEARCH_PROP_OPTIONS.find((candidate) => candidate.value === prop[1])!;
     const operator = CARD_SEARCH_OPERATORS.find((candidate) => candidate.value === prop[2])!;

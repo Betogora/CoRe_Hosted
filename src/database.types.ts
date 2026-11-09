@@ -22,6 +22,7 @@ export type Database = {
           dependency_revision: number
           difficulty: number
           due_at: string | null
+          durability_days: number | null
           edited_at: string | null
           first_reviewed_at: string | null
           front_preview: string
@@ -65,6 +66,7 @@ export type Database = {
           dependency_revision?: number
           difficulty?: number
           due_at?: string | null
+          durability_days?: number | null
           edited_at?: string | null
           first_reviewed_at?: string | null
           front_preview?: string
@@ -108,6 +110,7 @@ export type Database = {
           dependency_revision?: number
           difficulty?: number
           due_at?: string | null
+          durability_days?: number | null
           edited_at?: string | null
           first_reviewed_at?: string | null
           front_preview?: string

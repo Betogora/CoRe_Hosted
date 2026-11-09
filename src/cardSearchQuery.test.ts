@@ -103,7 +103,7 @@ test("Zustand, Reife, Varianten, Stapel und Fälligkeit werten den Lernstand aus
 });
 
 test("Nicht unterstützte Anki-Begriffe werden benannt, normaler Text mit Doppelpunkt nicht", () => {
-  assert.deepEqual(unsupportedCardSearchTerms("is:due -card:Vorderseite flag:9 prop:s>3 Ursprung:scaleni https://x.de flag:1 tag:herz is:suspended has:x"), ["-card:Vorderseite", "flag:9", "prop:s>3", "has:x"]);
+  assert.deepEqual(unsupportedCardSearchTerms("is:due -card:Vorderseite flag:9 prop:r>3 Ursprung:scaleni https://x.de flag:1 tag:herz is:suspended has:x"), ["-card:Vorderseite", "flag:9", "prop:r>3", "has:x"]);
   assert.deepEqual(unsupportedCardSearchTerms(""), []);
 });
 
@@ -142,9 +142,15 @@ test("Zeitraum, Werte und Inhaltsform werten Verlauf und Katalogwerte aus", () =
   assert.equal(matchesCardSearch(entry({ difficulty: 7.5 }), search("prop:d>7")), true);
   assert.equal(matchesCardSearch(entry({ scheduleState: "new", intervalDays: 0 }), search("prop:ivl<1")), false, "neue Karten haben kein Intervall");
   assert.equal(matchesCardSearch(entry({ lapses: 0 }), search("prop:lapses!=0")), false);
+  // KV2e: durability counts once a card was answered by a client that stores it; new cards and older rows never match.
+  assert.equal(matchesCardSearch(entry({ durabilityDays: 120 }), search("prop:s>=90")), true);
+  assert.equal(matchesCardSearch(entry({ durabilityDays: 30 }), search("prop:s>=90")), false);
+  assert.equal(matchesCardSearch(entry({ durabilityDays: null }), search("prop:s<90")), false, "noch ohne Haltbarkeit");
+  assert.equal(matchesCardSearch(entry({ durabilityDays: null }), search("-prop:s<90")), true);
+  assert.equal(matchesCardSearch(entry({ scheduleState: "new", durabilityDays: 0 }), search("prop:s<1")), false, "neue Karten haben keine Haltbarkeit");
   assert.equal(matchesCardSearch(entry({ scheduleState: "new", reps: 0 }), search("prop:reps=0")), true);
   assert.equal(matchesCardSearch(entry({ contentKind: "image-occlusion" }), search("is:occlusion -is:cloze")), true);
-  assert.deepEqual(unsupportedCardSearchTerms("prop:s>3 prop:r<0.9 is:buried added:0 edited:3:1 rated:2:4"), ["prop:s>3", "prop:r<0.9", "added:0", "edited:3:1"]);
+  assert.deepEqual(unsupportedCardSearchTerms("prop:s>3 prop:r<0.9 is:buried added:0 edited:3:1 rated:2:4"), ["prop:r<0.9", "added:0", "edited:3:1"]);
 });
 
 test("deck: findet Stapel nach Pfad wie Anki, samt Unterstapeln und Platzhaltern", () => {
@@ -207,7 +213,7 @@ test("or, Klammern, Verneinung und Phrasen werden zu Klauseln, von denen alle zu
   assert.equal(matchesCardSearch(card, search('"herz die"')), false, "eine Phrase gilt am Stück");
   const tooNested = Array.from({ length: 12 }, (_, index) => `(a${index} b${index})`).join(" or ");
   assert.equal(matchesCardSearch(card, search(tooNested)), false, "eine zu verschachtelte Suche trifft nichts");
-  assert.deepEqual(unsupportedCardSearchTerms("(prop:s>3 or herz) -is:buried"), ["prop:s>3"]);
+  assert.deepEqual(unsupportedCardSearchTerms("(prop:r>3 or herz) -is:buried"), ["prop:r>3"]);
 });
 
 test("Menü und Suchfeld schreiben Gruppen einer Kategorie und lassen freie Kombinationen im Feld (KV2d)", () => {

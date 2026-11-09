@@ -65,6 +65,8 @@ export interface CardCatalogEntry {
   difficulty?: number;
   reps?: number;
   lapses?: number;
+  /** Durability in days for `prop:s` (KV2e); null until the card is answered again, absent in older entries. */
+  durabilityDays?: number | null;
   /** Times of the first answer, the last answer per rating and the last manual reschedule; other manual events do not count. */
   firstReviewedAt?: string | null;
   lastAgainAt?: string | null;
@@ -347,6 +349,7 @@ export function catalogEntryFromCard(card: Card, note: Note | null, history?: Ca
     difficulty: card.study.difficulty,
     reps: card.study.reps,
     lapses: card.study.lapses,
+    durabilityDays: card.study.extra.durabilityDays,
     ...catalogReviewHistory(history),
     bodyRevision: card.revision,
     studyRevision: card.studyRevision,

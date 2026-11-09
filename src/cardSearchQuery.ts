@@ -46,7 +46,7 @@ export type CardSearchTerm =
 export type CardSearchClause = CardSearchTerm | { kind: "any"; terms: CardSearchTerm[]; negated: false };
 
 type SinceField = "added" | "edited" | "introduced" | "rescheduled" | "rated";
-type PropField = "ivl" | "d" | "reps" | "lapses";
+type PropField = "ivl" | "d" | "s" | "reps" | "lapses";
 type PropOperator = "<" | "<=" | "=" | "!=" | ">=" | ">";
 
 export interface CardSearchContext {
@@ -72,7 +72,7 @@ export interface CardSearchQuery {
 
 type SearchableEntry = Pick<CardCatalogEntry, "normalizedSearchText" | "searchFields" | "ankiFlag" | "tagKeys" | "leeched" | "marked" | "reviewable" | "scheduleState" | "maturityBand" | "dueAt" | "hasActiveVariants" | "deckId"
   | "createdAt" | "editedAt" | "contentKind" | "intervalDays" | "difficulty" | "reps" | "lapses"
-  | "firstReviewedAt" | "lastAgainAt" | "lastHardAt" | "lastGoodAt" | "lastEasyAt" | "lastRescheduledAt" | "noteTypeId" | "hasOutdatedVariants" | "promptOrdinal" | "lastBuriedAt" | "lastUnburiedAt">;
+  | "firstReviewedAt" | "lastAgainAt" | "lastHardAt" | "lastGoodAt" | "lastEasyAt" | "lastRescheduledAt" | "noteTypeId" | "hasOutdatedVariants" | "promptOrdinal" | "lastBuriedAt" | "lastUnburiedAt" | "durabilityDays">;
 
 const RATINGS: readonly ReviewRating[] = ["again", "hard", "good", "easy"];
 const CONTENT_FORMS: Readonly<Record<string, NoteInteraction["kind"]>> = { reveal: "reveal", choice: "choice", cloze: "cloze", occlusion: "image-occlusion" };
@@ -103,7 +103,7 @@ export function parseTerm(token: string, context?: CardSearchContext): CardSearc
   }
   const due = /^(-?)prop:due(<=|>=|<|>|=)(-?\d{1,4})$/i.exec(token);
   if (due) return { kind: "due", ...dueRange(due[2], Number(due[3]), context), reviewableOnly: false, negated: due[1] === "-" };
-  const prop = /^(-?)prop:(ivl|d|reps|lapses)(<=|>=|!=|<|>|=)(\d{1,5}(?:\.\d+)?)$/i.exec(token);
+  const prop = /^(-?)prop:(ivl|d|s|reps|lapses)(<=|>=|!=|<|>|=)(\d{1,5}(?:\.\d+)?)$/i.exec(token);
   if (prop) return { kind: "prop", field: prop[2].toLowerCase() as PropField, operator: prop[3] as PropOperator, value: Number(prop[4]), negated: prop[1] === "-" };
   const since = /^(-?)(added|edited|introduced|resched|rated):(\d{1,4})(?::([1-4]))?$/i.exec(token);
   if (since && Number(since[3]) >= 1 && (!since[4] || since[2].toLowerCase() === "rated")) {
@@ -302,7 +302,8 @@ function propValue(entry: SearchableEntry, field: PropField): number | undefined
   if (field === "reps") return entry.reps;
   if (field === "lapses") return entry.lapses;
   if (entry.scheduleState === "new") return undefined;
-  return field === "ivl" ? entry.intervalDays : entry.difficulty;
+  // Durability (`s`) is known once the card was answered by a client that stores it (KV2e).
+  return field === "ivl" ? entry.intervalDays : field === "s" ? entry.durabilityDays ?? undefined : entry.difficulty;
 }
 
 function compares(value: number, operator: PropOperator, target: number): boolean {

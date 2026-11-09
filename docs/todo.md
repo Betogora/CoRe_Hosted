@@ -171,18 +171,6 @@ Referenz gelesen.
   Option „Reschedule cards based on my answers“) und `Nur üben` ohne
   Planänderung (Ankis Vorschaumodus).
 
-- [ ] **KV2 – Erweiterte Suche vervollständigen:** Suchzeile, Chips, Menü
-      mit `CoreTriStateControl`, gespeicherte Suchen und alle Begriffe aus dem
-      Katalog stehen, einschließlich Lernverlauf, Werten, Inhaltsform,
-      Notiztyp, veralteten Varianten, `card:N`, `is:buried` und `deck:Name`.
-      ebenso Phrasen, `or` und Klammern. Offen, lokal (`matchesCardSearch`)
-      und in beiden Cloud-RPCs gleich ausgewertet, mit Paritätstests:
-      - **KV2e – Haltbarkeit `prop:s`:** Der Scheduler schreibt die Haltbarkeit
-        (`getDurabilityDays`) bei jeder Antwort in den Lernstand, der Katalog
-        übernimmt sie; ältere Karten bekommen den Wert erst mit ihrer nächsten
-        Antwort und treffen bis dahin nicht.
-      Nachweis: Parser- und Komponententests, Pflichtmatrix Light/Dark bei 390
-      und 1440 px, E2E Suche und Filter.
 - [ ] **KV4-Rest – Tempo der Massenaktionen:** Auswahl, alle Aktionen mit
       Rückgängig, Offline- und Konfliktfälle sowie das E2E einer Massenaktion
       stehen. Offen ist das Ziel „1.000 Karten lokal in höchstens 1 s“:

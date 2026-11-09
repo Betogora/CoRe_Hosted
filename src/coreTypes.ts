@@ -311,6 +311,8 @@ export interface CardStudyExtra {
   stabilityFast: number;
   desiredRetention: number;
   maturityBand: MaturityBand;
+  /** Durability in days (`getDurabilityDays`) after the last answer, for `prop:s`; null until a card is answered by a client that writes it (KV2e). */
+  durabilityDays: number | null;
   intervalMinutes: number | null;
   learningSuccessCount: number;
   firstLearningAt: string | null;
