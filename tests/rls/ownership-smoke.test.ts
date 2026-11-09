@@ -474,6 +474,18 @@ test("lokales Supabase isoliert Nutzer A, Nutzer B und anon über alle accountge
       assert.equal(await hitsWith([{ kind: "card", value: 2, negated: false }]), false);
       assert.equal(await hitsWith([{ kind: "buried", from: "2000-01-01T00:00:00.000Z", negated: false }]), false);
       assert.equal(await hitsWith([{ kind: "buried", from: "2000-01-01T00:00:00.000Z", negated: true }]), true);
+      // KV2d: an `any` clause needs one of its terms, an empty one matches nothing; every word is a `text` term.
+      const flag = (value: number, negated = false) => ({ kind: "flag", value, negated });
+      const text = (value: string, negated = false) => ({ kind: "text", value, negated });
+      const any = (...terms: unknown[]) => ({ kind: "any", terms, negated: false });
+      assert.equal(await hitsWith([any(flag(3), flag(1))]), true, "die Karte trägt Flagge 1");
+      assert.equal(await hitsWith([any(flag(3), flag(4))]), false);
+      assert.equal(await hitsWith([any()]), false, "eine leere Auswahl trifft nichts");
+      assert.equal(await hitsWith([any(flag(0, true), text("antwort"))]), true, "Verneinung und Text innerhalb einer Klausel");
+      assert.equal(await hitsWith([text("antwort"), text("kein-solches-wort")]), false, "jedes Wort muss zutreffen");
+      assert.equal(await hitsWith([text("antwort", true)]), false);
+      const groupedAny = assertNoError(await clientA.rpc("search_account_card_catalog", { p_deck_ids: [fixtureA.decks.id], p_query: "", p_terms: [any(text("kein-solches-wort"), flag(1))] }), "stapelübergreifende Oder-Suche");
+      assert.ok(groupedAny.groups[fixtureA.decks.id]?.items.some((entry: any) => entry.id === fixtureA.cards.id));
       const groupedA = assertNoError(await clientA.rpc("search_account_card_catalog", searchRequest), "Stapelübergreifende Suche für Nutzer A");
       assert.ok(groupedA.groups[fixtureA.decks.id].items.some((entry: any) => entry.id === fixtureA.cards.id), "Die gebündelte Suche findet die Karte im Stapel");
       assert.deepEqual(assertNoError(await clientB.rpc("search_account_card_catalog", searchRequest), "fremde Stapelsuche für Nutzer B").groups, {});

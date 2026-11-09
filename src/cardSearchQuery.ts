@@ -11,12 +11,16 @@ const DAY_MS = 86_400_000;
  * `prop:ivl|d|reps|lapses` with `<`, `<=`, `=`, `!=`, `>=`, `>`, the content form `is:reveal|choice|cloze|occlusion`,
  * `note:Name` (Anki note type, wildcards like `deck:`) and `mid:<note type id>`, `has:outdated` (an outdated variant),
  * `card:N` (number of the prompt as in Anki), `is:buried` (buried by hand today; buried siblings only exist in a session)
- * and `Feld:Text` for text in one named field; a leading `-` negates a term. All terms must match.
+ * and `Feld:Text` for text in one named field; a leading `-` negates a term, a phrase or a group.
+ *
+ * Combination (KV2d): words and terms side by side must all match, `or` between them needs one, parentheses group,
+ * `"…"` quotes a phrase or a term with spaces (`"deck:Anatomie 1"`, `deck:"Anatomie 1"`). Every query becomes a list
+ * of clauses that must all match; a clause is one term, or `{ kind: "any" }` with terms of which one must match.
  *
  * Terms relative to today or to the deck tree are resolved against a `CardSearchContext`, so the local search and
  * the cloud RPCs evaluate the same fixed bounds and deck ids.
  */
-type CardSearchTerm =
+export type CardSearchTerm =
   | { kind: "flag"; value: number; negated: boolean }
   | { kind: "tag"; value: string; negated: boolean }
   | { kind: "field"; name: string; value: string; negated: boolean }
@@ -34,7 +38,12 @@ type CardSearchTerm =
   | { kind: "card"; value: number; negated: boolean }
   /** Buried by hand from `from` (the start of today) on and not unburied since. */
   | { kind: "buried"; from: string; negated: boolean }
-  | { kind: "tag-none" | "leech" | "marked" | "suspended" | "variant" | "outdated"; negated: boolean };
+  | { kind: "tag-none" | "leech" | "marked" | "suspended" | "variant" | "outdated"; negated: boolean }
+  /** A word or a phrase of the content text, lower case (KV2d). */
+  | { kind: "text"; value: string; negated: boolean };
+
+/** One clause of a query: a single term, or terms of which one must match. */
+export type CardSearchClause = CardSearchTerm | { kind: "any"; terms: CardSearchTerm[]; negated: false };
 
 type SinceField = "added" | "edited" | "introduced" | "rescheduled" | "rated";
 type PropField = "ivl" | "d" | "reps" | "lapses";
@@ -52,12 +61,13 @@ export interface CardSearchContext {
 }
 
 /** Keys of Anki's search syntax (and CoRe's `has:`); any other `name:text` searches the field of that name. */
-const ANKI_SEARCH_KEYS = new Set(["added", "card", "cid", "deck", "did", "dupe", "edited", "flag", "has", "introduced", "is", "mid", "nc", "nid", "note", "preset", "prop", "rated", "re", "resched", "sc", "tag", "w"]);
+export const ANKI_SEARCH_KEYS = new Set(["added", "card", "cid", "deck", "did", "dupe", "edited", "flag", "has", "introduced", "is", "mid", "nc", "nid", "note", "preset", "prop", "rated", "re", "resched", "sc", "tag", "w"]);
 
 export interface CardSearchQuery {
-  /** Remaining words, lower case, matched as one substring of the content text. */
+  /** The longest word that must match on its own, lower case: a prefilter over the content text (one index lookup). */
   text: string;
-  terms: CardSearchTerm[];
+  /** Clauses that must all match. */
+  terms: CardSearchClause[];
 }
 
 type SearchableEntry = Pick<CardCatalogEntry, "normalizedSearchText" | "searchFields" | "ankiFlag" | "tagKeys" | "leeched" | "marked" | "reviewable" | "scheduleState" | "maturityBand" | "dueAt" | "hasActiveVariants" | "deckId"
@@ -86,7 +96,7 @@ function dueRange(operator: string, days: number, context: CardSearchContext | u
   return { from: dayBound(context, days), to: dayBound(context, days + 1) };
 }
 
-function parseTerm(token: string, context?: CardSearchContext): CardSearchTerm | null {
+export function parseTerm(token: string, context?: CardSearchContext): CardSearchTerm | null {
   const field = /^(-?)([\p{L}\p{N}_]+):(.+)$/u.exec(token);
   if (field && !ANKI_SEARCH_KEYS.has(field[2].toLowerCase())) {
     return { kind: "field", name: field[2].toLocaleLowerCase("de"), value: field[3].toLocaleLowerCase("de"), negated: field[1] === "-" };
@@ -133,31 +143,130 @@ function parseTerm(token: string, context?: CardSearchContext): CardSearchTerm |
   return { kind: "tag", value, negated };
 }
 
-/** Text and terms of a query; terms relative to today or to the deck tree are resolved against `context`. */
-export function parseCardSearchQuery(query: unknown, context?: CardSearchContext): CardSearchQuery {
-  const words: string[] = [];
-  const terms: CardSearchTerm[] = [];
-  for (const token of String(query ?? "").trim().split(/\s+/).filter(Boolean)) {
-    const term = parseTerm(token, context);
-    if (term) terms.push(term);
-    else words.push(token);
-  }
-  return { text: words.join(" ").toLocaleLowerCase("de"), terms };
+/** A word, phrase or term (`atom`), a parenthesis or the `or` keyword, with its place in the query. */
+interface Token {
+  type: "atom" | "open" | "close" | "or";
+  negated: boolean;
+  /** Atom text without quotes. */
+  value: string;
+  start: number;
+  end: number;
 }
 
-/** Terms in Anki notation that CoRe does not understand yet; the search treats them as plain text. */
-export function unsupportedCardSearchTerms(query: unknown): string[] {
-  return String(query ?? "").trim().split(/\s+/).filter((token) => {
-    const match = /^-?([a-z]+):./i.exec(token);
-    return Boolean(match && ANKI_SEARCH_KEYS.has(match[1].toLowerCase()) && !parseTerm(token));
+export function tokenize(query: string): Token[] {
+  const tokens: Token[] = [];
+  let index = 0;
+  while (index < query.length) {
+    if (/\s/.test(query[index])) { index += 1; continue; }
+    const start = index;
+    const negated = query[index] === "-" && index + 1 < query.length && !/\s/.test(query[index + 1]);
+    if (negated) index += 1;
+    if (query[index] === "(") { tokens.push({ type: "open", negated, value: "(", start, end: index + 1 }); index += 1; continue; }
+    if (query[index] === ")") { tokens.push({ type: "close", negated: false, value: ")", start, end: index + 1 }); index += 1; continue; }
+    let value = "";
+    let quoted = false;
+    while (index < query.length && (quoted || !/[\s()]/.test(query[index]))) {
+      if (query[index] === '"') quoted = !quoted;
+      else value += query[index];
+      index += 1;
+    }
+    const keyword = value.toLowerCase();
+    if (!negated && keyword === "and" && query[start] !== '"') continue;
+    tokens.push({ type: !negated && keyword === "or" && query[start] !== '"' ? "or" : "atom", negated, value, start, end: index });
+  }
+  return tokens;
+}
+
+type SearchNode = { type: "atom"; value: string; negated: boolean } | { type: "and" | "or"; nodes: SearchNode[]; negated: boolean };
+
+/** `expr := and ("or" and)*`, `and := unary+`, `unary := "-"? (atom | "(" expr ")")`; stray tokens are skipped. */
+function parseNodes(tokens: Token[]): SearchNode {
+  let position = 0;
+  const parseUnary = (): SearchNode | null => {
+    const token = tokens[position];
+    if (!token || token.type === "close" || token.type === "or") return null;
+    position += 1;
+    if (token.type === "atom") return { type: "atom", value: token.value, negated: token.negated };
+    const inner = parseOr();
+    if (tokens[position]?.type === "close") position += 1;
+    return { ...inner, negated: inner.negated !== token.negated };
+  };
+  const parseAnd = (): SearchNode => {
+    const nodes: SearchNode[] = [];
+    for (let node = parseUnary(); node; node = parseUnary()) nodes.push(node);
+    return { type: "and", nodes, negated: false };
+  };
+  const parseOr = (): SearchNode => {
+    const nodes = [parseAnd()];
+    while (tokens[position]?.type === "or") {
+      position += 1;
+      nodes.push(parseAnd());
+    }
+    return nodes.length === 1 ? nodes[0] : { type: "or", nodes: nodes.filter((node) => node.type !== "and" || node.nodes.length), negated: false };
+  };
+  const nodes: SearchNode[] = [];
+  while (position < tokens.length) {
+    nodes.push(parseOr());
+    if (position < tokens.length) position += 1; // An unmatched `)` or `or` is skipped.
+  }
+  return { type: "and", nodes, negated: false };
+}
+
+/** Beyond this many clauses a query counts as too nested; it then matches nothing. */
+const MAX_CLAUSES = 1024;
+
+function leafOf(value: string, negated: boolean, context?: CardSearchContext): CardSearchTerm {
+  const term = parseTerm(value, context);
+  if (term) return { ...term, negated };
+  return { kind: "text", value: value.toLocaleLowerCase("de"), negated };
+}
+
+/** Clauses (all must match) of terms (one must match), with every negation moved to the terms. */
+function clausesOf(node: SearchNode, negate: boolean, context?: CardSearchContext): CardSearchTerm[][] {
+  const negated = node.negated !== negate;
+  if (node.type === "atom") return node.value ? [[leafOf(node.value, negated, context)]] : [];
+  // An `and` stays a list of clauses; an `or` needs one of its parts: every combination of their clauses.
+  const conjunction = (node.type === "and") !== negated;
+  const parts = node.nodes.map((child) => clausesOf(child, negated, context));
+  if (conjunction) return parts.flat();
+  return parts.filter((part) => part.length).reduce<CardSearchTerm[][]>((combined, part) => {
+    const next = combined.flatMap((left) => part.map((right) => [...left, ...right]));
+    if (next.length > MAX_CLAUSES) throw new RangeError("Suche zu verschachtelt");
+    return next;
+  }, [[]]);
+}
+
+/** Text and terms of a query; terms relative to today or to the deck tree are resolved against `context`. */
+export function parseCardSearchQuery(query: unknown, context?: CardSearchContext): CardSearchQuery {
+  let clauses: CardSearchTerm[][];
+  try {
+    clauses = clausesOf(parseNodes(tokenize(String(query ?? ""))), false, context);
+  } catch {
+    return { text: "", terms: [{ kind: "any", terms: [], negated: false }] };
+  }
+  // The longest word that must match on its own serves as prefilter; it leaves the clauses.
+  let prefilter = -1;
+  clauses.forEach((clause, index) => {
+    const [term] = clause;
+    if (clause.length === 1 && term.kind === "text" && !term.negated && term.value && (prefilter < 0 || term.value.length > (clauses[prefilter][0] as { value: string }).value.length)) prefilter = index;
   });
+  const text = prefilter < 0 ? "" : (clauses[prefilter][0] as { value: string }).value;
+  const terms = clauses
+    .filter((clause, index) => index !== prefilter && clause.length)
+    .map((clause): CardSearchClause => clause.length === 1 ? clause[0] : { kind: "any", terms: clause, negated: false });
+  return { text, terms };
+}
+
+/** Every word, phrase and term of the query (inside groups too), without quotes and leading `-`. */
+function atomValues(query: unknown): string[] {
+  return tokenize(String(query ?? "")).filter((token) => token.type === "atom").map((token) => token.value);
 }
 
 /** Values of the `did:`, `deck:` and `note:` terms (patterns in lower case); the caller resolves them for the context. */
 export function cardSearchContextTerms(query: unknown): { deckIds: string[]; deckNames: string[]; noteTypeNames: string[] } {
   const found = { did: new Set<string>(), deck: new Set<string>(), note: new Set<string>() };
-  for (const token of String(query ?? "").trim().split(/\s+/)) {
-    const match = /^-?(did|deck|note):(.+)$/i.exec(token);
+  for (const value of atomValues(query)) {
+    const match = /^(did|deck|note):(.+)$/i.exec(value);
     if (!match) continue;
     const key = match[1].toLowerCase() as keyof typeof found;
     found[key].add(key === "did" ? match[2] : match[2].toLocaleLowerCase("und"));
@@ -232,6 +341,7 @@ function termMatches(entry: SearchableEntry, term: CardSearchTerm): boolean {
     case "notetype": return Boolean(entry.noteTypeId) && term.ids.includes(entry.noteTypeId!);
     case "outdated": return entry.hasOutdatedVariants === true;
     case "card": return entry.promptOrdinal === term.value;
+    case "text": return entry.normalizedSearchText.includes(term.value);
     case "buried":
       return Boolean(entry.lastBuriedAt) && Date.parse(entry.lastBuriedAt!) >= Date.parse(term.from)
         && (!entry.lastUnburiedAt || Date.parse(entry.lastUnburiedAt) < Date.parse(entry.lastBuriedAt!));
@@ -244,65 +354,28 @@ function termMatches(entry: SearchableEntry, term: CardSearchTerm): boolean {
 
 /** Offline counterpart of the catalog search in `list_account_card_catalog` and `search_account_card_catalog`. */
 export function matchesCardSearch(entry: SearchableEntry, search: CardSearchQuery): boolean {
+  const matches = (term: CardSearchTerm) => termMatches(entry, term) !== term.negated;
   return (!search.text || entry.normalizedSearchText.includes(search.text))
-    && search.terms.every((term) => termMatches(entry, term) !== term.negated);
+    && search.terms.every((clause) => clause.kind === "any" ? clause.terms.some(matches) : matches(clause));
+}
+
+/** Words that must each match on their own (prefilter and plain text clauses); a deck path containing all matches. */
+function cardSearchWords(search: CardSearchQuery): string[] {
+  return [search.text, ...search.terms.flatMap((clause) => clause.kind === "text" && !clause.negated ? [clause.value] : [])].filter(Boolean);
+}
+
+/** The search without its plain words: what a deck whose path contains them still filters its cards by. */
+export function withoutCardSearchWords(search: CardSearchQuery): CardSearchQuery {
+  return { text: "", terms: search.terms.filter((clause) => clause.kind !== "text" || clause.negated) };
+}
+
+/** A deck path that contains every word of the search (`medizin anatomie`, also `medizin / anatomie`). */
+export function pathMatchesCardSearch(path: string, search: CardSearchQuery): boolean {
+  const words = cardSearchWords(search);
+  const normalizedPath = path.trim().toLowerCase();
+  return words.length > 0 && words.every((word) => normalizedPath.includes(word));
 }
 
 export function isEmptyCardSearch(search: CardSearchQuery): boolean {
   return !search.text && search.terms.length === 0;
-}
-
-/** Whether a search token is a term (`flag:1`, `-tag:x`, `Feld:Text` …) rather than free text. */
-export function isCardSearchTerm(token: string): boolean {
-  return parseTerm(token) !== null;
-}
-
-/** Tri-state of one term in the query: `in` as written, `out` negated, `""` absent. */
-export function cardSearchTermState(query: string, term: string): "" | "in" | "out" {
-  const tokens = String(query ?? "").trim().split(/\s+/);
-  const key = term.toLocaleLowerCase("und");
-  if (tokens.some((token) => token.toLocaleLowerCase("und") === key)) return "in";
-  if (tokens.some((token) => token.toLocaleLowerCase("und") === `-${key}`)) return "out";
-  return "";
-}
-
-/** Sets one term to `in`, `out` or absent and keeps the text and every other term in place. */
-export function withCardSearchTermState(query: string, term: string, state: "" | "in" | "out"): string {
-  const key = term.toLocaleLowerCase("und");
-  const kept = String(query ?? "").trim().split(/\s+/).filter((token) => {
-    const normalized = token.toLocaleLowerCase("und");
-    return token && normalized !== key && normalized !== `-${key}`;
-  });
-  return [...kept, ...(state === "in" ? [term] : state === "out" ? [`-${term}`] : [])].join(" ");
-}
-
-/** Free text of the query, without its terms; what the search field shows. */
-export function cardSearchText(query: string): string {
-  return String(query ?? "").split(/\s+/).filter((token) => token && !isCardSearchTerm(token)).join(" ");
-}
-
-/** Terms of the given kinds as written (`Feld:Text` is `field`, `rated:7` is `since`), negated ones included. */
-export function cardSearchTermsOfKind(query: string, kind: CardSearchTerm["kind"]): string[] {
-  return cardSearchTerms(query).filter((token) => parseTerm(token)?.kind === kind);
-}
-
-/** Terms of the query in their written order, as the filter chips show them. */
-export function cardSearchTerms(query: string): string[] {
-  return String(query ?? "").trim().split(/\s+/).filter((token) => token && isCardSearchTerm(token));
-}
-
-/**
- * Typing into the search field: the query keeps its terms and takes the new text; a recognized term that the user
- * finished with a space (or that is followed by more words) becomes a term and leaves the field.
- */
-export function withCardSearchText(query: string, input: string): { query: string; input: string } {
-  const finished = /\s$/.test(input);
-  const words = input.split(/\s+/).filter(Boolean);
-  const promoted = words.map((word, index) => isCardSearchTerm(word) && (finished || index < words.length - 1));
-  const terms = words.filter((_, index) => promoted[index]);
-  const rest = words.filter((_, index) => !promoted[index]);
-  return {
-    query: [...cardSearchTerms(query), ...terms, ...rest].join(" "),
-    input: rest.join(" ") + (finished && rest.length ? " " : ""),
-  };
 }

@@ -1,4 +1,4 @@
-import { parseCardSearchQuery } from "../../cardSearchQuery.ts";
+import { parseCardSearchQuery, pathMatchesCardSearch } from "../../cardSearchQuery.ts";
 import type { Deck } from "../../coreTypes.ts";
 import { CARD_TABLE_PAGE_SIZE, createCardTableModel, createCardTableRow, sameCardTableSort, type CardTableSort, type LibraryOptions } from "../../libraryModel.ts";
 import type { CardCatalogEntry } from "../../workspaceReplica.ts";
@@ -77,13 +77,13 @@ export function createPagedCardTableModel(
   const originalDecks = new Map(decks.map((deck) => [deck.id, deck]));
   const baseModel = createCardTableModel(decks.map((deck) => ({ ...deck, cards: [] })), modelOptions);
   const normalizedQuery = normalize(query);
-  const searchText = parseCardSearchQuery(query).text;
+  const search = parseCardSearchQuery(query);
   const allGroups = baseModel.allGroups.map((group) => {
     const list = createCardTableListRows(cardPages?.[group.id], {
       query, cardSort, awaitingPages, dayStartHour: options.dayStartHour, timeZone: options.timeZone,
       fallbackTotal: normalizedQuery ? 0 : options.deckSummaries?.get(group.id)?.inventory.totalCards ?? 0,
     });
-    const deckMatches = Boolean(searchText) && normalize(group.path).includes(searchText);
+    const deckMatches = pathMatchesCardSearch(group.path, search);
     return { ...group, deck: originalDecks.get(group.id) ?? group.deck, ...list, deckMatches };
   });
   const groups = allGroups.filter((group) => (

@@ -172,11 +172,8 @@ Referenz gelesen.
       mit `CoreTriStateControl`, gespeicherte Suchen und alle Begriffe aus dem
       Katalog stehen, einschließlich Lernverlauf, Werten, Inhaltsform,
       Notiztyp, veralteten Varianten, `card:N`, `is:buried` und `deck:Name`.
-      Offen, jeweils lokal (`matchesCardSearch`) und in beiden Cloud-RPCs
-      gleich ausgewertet, mit Paritätstests:
-      - **KV2d – Kombination:** `"Phrase"`, `or` und Klammern; innerhalb
-        einer Menügruppe genügt dann ein Treffer, zwischen Gruppen müssen alle
-        zutreffen. Keine regulären Ausdrücke.
+      ebenso Phrasen, `or` und Klammern. Offen, lokal (`matchesCardSearch`)
+      und in beiden Cloud-RPCs gleich ausgewertet, mit Paritätstests:
       - **KV2e – Haltbarkeit `prop:s`:** Der Scheduler schreibt die Haltbarkeit
         (`getDurabilityDays`) bei jeder Antwort in den Lernstand, der Katalog
         übernimmt sie; ältere Karten bekommen den Wert erst mit ihrer nächsten

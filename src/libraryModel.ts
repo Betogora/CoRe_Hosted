@@ -9,7 +9,7 @@ import { buildSortedDeckChildren } from "./deckOrdering.ts";
 import type { Deck, Note } from "./coreTypes.ts";
 import { catalogEntryFromCard, type CardCatalogEntry } from "./workspaceReplica.ts";
 import { getLearningDayRange } from "./learningDay.ts";
-import { cardSearchContextTerms, deckPatternMatches, isEmptyCardSearch, namePatternMatches, matchesCardSearch, parseCardSearchQuery, type CardSearchContext } from "./cardSearchQuery.ts";
+import { cardSearchContextTerms, deckPatternMatches, isEmptyCardSearch, namePatternMatches, matchesCardSearch, parseCardSearchQuery, pathMatchesCardSearch, withoutCardSearchWords, type CardSearchContext } from "./cardSearchQuery.ts";
 import { collectDeckTreeIds } from "./coreWorkspace.ts";
 
 type DateInput = string | number | Date;
@@ -424,11 +424,11 @@ export function createCardTableModel(decks: Deck[] = [], options: LibraryOptions
   const hitEntries: CardCatalogEntry[] = [];
   const allGroups: CardTableGroup[] = rows.map((row) => {
     // A deck whose path contains the search text lists all its cards that match the remaining terms.
-    const deckMatches = Boolean(search.text) && normalizeQuery(row.path).includes(search.text);
+    const deckMatches = pathMatchesCardSearch(row.path, search);
     const entries = listReviewableCards(deckById.get(row.id) ?? row.deck)
       .map((card) => catalogEntryFromCard(card, options.notesById?.get(card.noteId) ?? null));
     const matchingEntries = searching
-      ? entries.filter((entry) => matchesCardSearch(entry, deckMatches ? { ...search, text: "" } : search))
+      ? entries.filter((entry) => matchesCardSearch(entry, deckMatches ? withoutCardSearchWords(search) : search))
       : entries;
     hitEntries.push(...matchingEntries);
     const cardRows = sortEntries(matchingEntries, cardSort, options).map((entry) => createCardTableRow(entry, options));

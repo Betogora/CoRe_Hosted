@@ -2,17 +2,22 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   cardSearchContextTerms,
-  cardSearchTermState,
-  cardSearchTerms,
   deckPatternMatches,
   namePatternMatches,
-  cardSearchText,
   matchesCardSearch,
   parseCardSearchQuery,
-  unsupportedCardSearchTerms,
-  withCardSearchTermState,
-  withCardSearchText,
+  type CardSearchContext,
 } from "./cardSearchQuery.ts";
+import {
+  cardSearchGroupMembers,
+  withoutCardSearchItem,
+  cardSearchTermState,
+  cardSearchTerms,
+  cardSearchText,
+  withCardSearchTermState,
+  unsupportedCardSearchTerms,
+  withCardSearchText,
+} from "./screens/cardSearch/cardSearchExpression.ts";
 
 type Entry = Parameters<typeof matchesCardSearch>[0];
 const entry = (overrides: Partial<Entry> = {}): Entry => ({
@@ -33,7 +38,7 @@ const TODAY = { todayStart: Date.parse("2026-11-05T04:00:00.000Z") };
 
 test("Suchbegriffe in Anki-Schreibweise werden zu Filtern, der Rest bleibt Text", () => {
   assert.deepEqual(parseCardSearchQuery("  Mitochondrien flag:2 -tag:#AK::Herz tag:none TAG:Leech tag:marked -is:suspended flag:9 is:frisch "), {
-    text: "mitochondrien flag:9 is:frisch",
+    text: "mitochondrien",
     terms: [
       { kind: "flag", value: 2, negated: false },
       { kind: "tag", value: "#ak::herz", negated: true },
@@ -41,8 +46,10 @@ test("Suchbegriffe in Anki-Schreibweise werden zu Filtern, der Rest bleibt Text"
       { kind: "leech", negated: false },
       { kind: "marked", negated: false },
       { kind: "suspended", negated: true },
+      { kind: "text", value: "flag:9", negated: false },
+      { kind: "text", value: "is:frisch", negated: false },
     ],
-  });
+  }, "jedes Wort zählt einzeln; das längste filtert vor");
 });
 
 test("Offline-Suche wertet Text und Begriffe wie der Server aus", () => {
@@ -172,4 +179,52 @@ test("card:N prüft die Abfragenummer, is:buried das heutige manuelle Zurückste
   assert.equal(matchesCardSearch(entry({ lastBuriedAt: "2026-11-05T09:00:00.000Z", lastUnburiedAt: "2026-11-05T10:00:00.000Z" }), search("is:buried")), false, "wieder hervorgeholt");
   assert.equal(matchesCardSearch(entry({ lastBuriedAt: "2026-11-05T09:00:00.000Z", lastUnburiedAt: "2026-11-04T10:00:00.000Z" }), search("is:buried")), true);
   assert.equal(matchesCardSearch(entry({ lastBuriedAt: "2026-11-05T03:00:00.000Z" }), search("is:buried")), false, "gestern zurückgestellt gilt heute nicht mehr");
+});
+
+test("or, Klammern, Verneinung und Phrasen werden zu Klauseln, von denen alle zutreffen müssen (KV2d)", () => {
+  const search = (query: string, context: CardSearchContext = TODAY) => parseCardSearchQuery(query, context);
+  assert.deepEqual(search("(flag:1 or flag:2) herz -(tag:a or tag:b)"), {
+    text: "herz",
+    terms: [
+      { kind: "any", terms: [{ kind: "flag", value: 1, negated: false }, { kind: "flag", value: 2, negated: false }], negated: false },
+      { kind: "tag", value: "a", negated: true },
+      { kind: "tag", value: "b", negated: true },
+    ],
+  });
+  assert.deepEqual(search("-(is:new tag:x)").terms, [{ kind: "any", terms: [{ kind: "state", value: "new", negated: true }, { kind: "tag", value: "x", negated: true }], negated: false }], "nicht beides zugleich");
+  assert.deepEqual(search("(herz lunge) or niere").terms.map((clause) => clause.kind === "any" ? clause.terms.map((term) => (term as { value: string }).value) : []), [["herz", "niere"], ["lunge", "niere"]]);
+  assert.deepEqual(search('"herz und lunge" -"vena cava"'), { text: "herz und lunge", terms: [{ kind: "text", value: "vena cava", negated: true }] });
+  const deckContext = { ...TODAY, deckMatches: { "anatomie 1": ["deck-a"] } };
+  for (const query of ['"deck:Anatomie 1"', 'deck:"Anatomie 1"']) {
+    assert.deepEqual(search(query, deckContext).terms, [{ kind: "deck", ids: ["deck-a"], negated: false }], query);
+  }
+  assert.equal(search("herz OR lunge and niere").terms.length, 2, "or bindet schwächer als das Nebeneinander: (herz or lunge) (herz or niere); and ist erlaubt");
+
+  const card = entry({ ankiFlag: 2, tagKeys: ["c"], normalizedSearchText: "das herz und die lunge" });
+  assert.equal(matchesCardSearch(card, search("(flag:1 or flag:2) herz -(tag:a or tag:b)")), true);
+  assert.equal(matchesCardSearch(card, search("(flag:1 or flag:3) herz")), false);
+  assert.equal(matchesCardSearch(card, search("niere or lunge")), true);
+  assert.equal(matchesCardSearch(card, search('"herz die"')), false, "eine Phrase gilt am Stück");
+  const tooNested = Array.from({ length: 12 }, (_, index) => `(a${index} b${index})`).join(" or ");
+  assert.equal(matchesCardSearch(card, search(tooNested)), false, "eine zu verschachtelte Suche trifft nichts");
+  assert.deepEqual(unsupportedCardSearchTerms("(prop:s>3 or herz) -is:buried"), ["prop:s>3"]);
+});
+
+test("Menü und Suchfeld schreiben Gruppen einer Kategorie und lassen freie Kombinationen im Feld (KV2d)", () => {
+  const flags = ["flag:1", "flag:2", "flag:3"];
+  let query = withCardSearchTermState("herz flag:1", "flag:2", "in", flags);
+  assert.equal(query, "herz (flag:1 or flag:2)");
+  assert.equal(cardSearchTermState(query, "flag:2"), "in");
+  query = withCardSearchTermState(query, "flag:3", "in", flags);
+  assert.equal(query, "herz (flag:1 or flag:2 or flag:3)");
+  assert.equal(withCardSearchTermState(query, "flag:1", "", flags), "herz (flag:2 or flag:3)");
+  assert.equal(withCardSearchTermState("herz (flag:1 or flag:2)", "flag:1", "out", flags), "herz flag:2 -flag:1");
+  assert.equal(withCardSearchTermState("flag:1", "is:new", "in"), "flag:1 is:new", "ohne Geschwister bleibt es beim Nebeneinander");
+  assert.deepEqual(cardSearchTerms("herz (flag:1 or flag:2) -tag:x"), ["(flag:1 or flag:2)", "-tag:x"]);
+  assert.deepEqual(cardSearchGroupMembers("(flag:1 or flag:2)"), { members: ["flag:1", "flag:2"], negated: false });
+  assert.equal(cardSearchGroupMembers("(herz or lunge)"), null, "nur Gruppen aus Begriffen sind Menügruppen");
+  assert.equal(withoutCardSearchItem("herz (flag:1 or flag:2) tag:x", "(flag:1 or flag:2)"), "herz tag:x");
+  assert.deepEqual(withCardSearchText("", "herz or tag:x "), { query: "herz or tag:x", input: "herz or tag:x " }, "mit or bleibt alles im Feld");
+  assert.deepEqual(withCardSearchText("", "(flag:1 or flag:2) herz"), { query: "(flag:1 or flag:2) herz", input: "herz" }, "eine fertige Gruppe wird ein Filter");
+  assert.equal(cardSearchText('herz "deck:Anatomie 1" (lunge'), "herz (lunge", "eine offene Klammer bleibt Text, bis sie geschlossen ist");
 });

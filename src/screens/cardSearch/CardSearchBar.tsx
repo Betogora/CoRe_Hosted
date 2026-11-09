@@ -1,6 +1,6 @@
 import React from "react";
 import { Layers, ListFilter, Search, X } from "lucide-react";
-import { cardSearchTerms, cardSearchText, withCardSearchTermState, withCardSearchText } from "../../cardSearchQuery.ts";
+import { cardSearchGroupMembers, cardSearchTerms, cardSearchText, withCardSearchTermState, withCardSearchText, withoutCardSearchItem } from "./cardSearchExpression.ts";
 import type { Deck } from "../../coreTypes.ts";
 import { DeckSelect } from "../../ui/selectUi.tsx";
 import { cardSearchTermLabel, type CardSearchMenuCategory } from "./cardSearchMenu.ts";
@@ -31,8 +31,10 @@ export function CardSearchBar({ query, onQueryChange, decks, categories, advance
     setInput((current) => cardSearchText(current) === cardSearchText(query) ? current : cardSearchText(query));
   }, [query]);
   const terms = cardSearchTerms(query);
+  // The deck filter shows a single `did:` term; it replaces every deck term, also a group of several decks.
   const deckTerm = terms.find((term) => /^did:/i.test(term));
   const deckValue = deckTerm ? deckTerm.slice("did:".length) : ALL_DECKS;
+  const deckTerms = terms.filter((term) => /^-?did:/i.test(term) || cardSearchGroupMembers(term)?.members.every((member) => /^did:/i.test(member)));
   const filterCount = terms.filter((term) => term !== deckTerm).length;
 
   return (
@@ -62,7 +64,7 @@ export function CardSearchBar({ query, onQueryChange, decks, categories, advance
             className="w-full"
             specialOption={{ value: ALL_DECKS, label: "Alle Stapel", icon: Layers }}
             onValueChange={(value) => {
-              const without = deckTerm ? withCardSearchTermState(query, deckTerm, "") : query;
+              const without = deckTerms.reduce((current, term) => withoutCardSearchItem(current, term), query);
               onQueryChange(value === ALL_DECKS ? without : withCardSearchTermState(without, `did:${value}`, "in"));
             }}
           />
@@ -98,7 +100,7 @@ export function CardSearchBar({ query, onQueryChange, decks, categories, advance
                       {category ? <span className={negated ? "text-core-danger-text" : "text-core-muted"}>{negated ? `ohne ${category}` : category}</span> : negated ? <span className="text-core-danger-text">ohne</span> : null}
                       <span className="truncate font-semibold">{label}</span>
                     </span>
-                    <button type="button" className="grid size-8 shrink-0 place-items-center rounded-inset text-core-muted hover:text-core-text" aria-label={`Filter ${label} entfernen`} onClick={() => onQueryChange(withCardSearchTermState(query, negated ? term.slice(1) : term, ""))}>
+                    <button type="button" className="grid size-8 shrink-0 place-items-center rounded-inset text-core-muted hover:text-core-text" aria-label={`Filter ${label} entfernen`} onClick={() => onQueryChange(withoutCardSearchItem(query, term))}>
                       <X size={14} aria-hidden="true" />
                     </button>
                   </li>

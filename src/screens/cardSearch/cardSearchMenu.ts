@@ -1,3 +1,4 @@
+import { cardSearchGroupMembers } from "./cardSearchExpression.ts";
 import { Activity, CalendarClock, CalendarRange, Flag, Gauge, Layers, Sparkles, Tag, TextCursorInput, CircleHelp, type LucideIcon } from "lucide-react";
 import { flagName } from "../../ui/flagUi.tsx";
 import type { Deck } from "../../coreTypes.ts";
@@ -137,6 +138,12 @@ export function createCardSearchMenu({ decks, tags, flagNames, noteTypes = [] }:
 
 /** Readable chip label of a term; the menu's own label where it has one, otherwise the term as written. */
 export function cardSearchTermLabel(term: string, categories: readonly CardSearchMenuCategory[]): { label: string; category: string | null; negated: boolean } {
+  // A menu group reads as its members joined with „oder“, under the category of its first member.
+  const group = cardSearchGroupMembers(term);
+  if (group) {
+    const members = group.members.map((member) => cardSearchTermLabel(member, categories));
+    return { label: members.map((member) => member.label).join(" oder "), category: members[0]?.category ?? null, negated: group.negated };
+  }
   const negated = term.startsWith("-");
   const bare = (negated ? term.slice(1) : term).toLocaleLowerCase("und");
   for (const category of categories) {

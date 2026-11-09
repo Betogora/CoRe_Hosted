@@ -83,3 +83,13 @@ test("eine reine Textsuche nennt ihre Trefferzahl ohne Filterchips", () => {
   assert.match(markup, />3 Karten</);
   assert.doesNotMatch(markup, /Aktive Filter|Alle zurücksetzen/);
 });
+
+test("eine Menügruppe ist ein Chip mit „oder“, ihre Zeilen stehen auf Mit (KV2d)", () => {
+  assert.deepEqual(cardSearchTermLabel("(flag:5 or flag:0)", menu), { label: "Prüfung oder Ohne Flagge", category: "Flaggen", negated: false });
+  const bar = renderToStaticMarkup(<CardSearchBar query="herz (flag:5 or flag:0)" onQueryChange={() => undefined} decks={[parent]} categories={menu} advancedOpen={false} onAdvancedOpenChange={() => undefined} advancedId="menu" resultCount={2} placeholder="Suchen" />);
+  assert.match(bar, /Flaggen<\/span><span[^>]*>Prüfung oder Ohne Flagge/);
+  assert.match(bar, /aria-label="1 Filter aktiv"/, "eine Gruppe zählt als ein Filter");
+  const menuMarkup = renderToStaticMarkup(<AdvancedCardSearch id="menu" query="(is:due or prop:due=1)" onQueryChange={() => undefined} categories={menu} resultCount={null} onClose={() => undefined} savedSearches={[]} onSavedSearchesChange={() => undefined} />);
+  assert.match(menuMarkup, /role="radiogroup" aria-label="Fällig"[^>]*data-tri-value="in"/);
+  assert.match(menuMarkup, /role="radiogroup" aria-label="Morgen fällig"[^>]*data-tri-value="in"/);
+});

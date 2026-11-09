@@ -1,6 +1,6 @@
 import React from "react";
 import { ArrowLeft, BookmarkPlus, Check, ChevronRight, Copy, Pencil, Plus, RotateCcw, Trash2, X } from "lucide-react";
-import { cardSearchTermState, cardSearchTerms, cardSearchTermsOfKind, cardSearchText, withCardSearchTermState } from "../../cardSearchQuery.ts";
+import { cardSearchTermState, cardSearchTerms, cardSearchTermsOfKind, cardSearchText, withCardSearchTermState } from "./cardSearchExpression.ts";
 import { fieldSearchKey } from "../../coreModel.ts";
 import type { SavedCardSearch } from "../../coreTypes.ts";
 import { SAVED_SEARCH_LIMIT, SAVED_SEARCH_NAME_LENGTH } from "../../uiPreferences.ts";
@@ -20,8 +20,11 @@ import {
 } from "./cardSearchMenu.ts";
 
 const SYNTAX: ReadonlyArray<[string, string]> = [
-  ["nacken", "Text in allen Feldern, Antwortoptionen und Tags"],
+  ["nacken hals", "Text in allen Feldern, Antwortoptionen und Tags; jedes Wort muss vorkommen"],
   ["-kopf", "schließt den Begriff aus"],
+  ["\"vena cava\"  deck:\"Anatomie 1\"", "genau diese Wortfolge; Anführungszeichen auch für Begriffe mit Leerzeichen"],
+  ["flag:1 or flag:2", "einer der beiden genügt; or bindet schwächer als das Nebeneinander"],
+  ["(herz or lunge) -(tag:a or tag:b)", "Klammern fassen zusammen; - davor schließt die ganze Gruppe aus"],
   ["ursprung:scaleni", "nur im Feld „Ursprung“, Leerzeichen im Feldnamen als _"],
   ["did:…", "Stapel samt Unterstapeln (über den Stapelfilter)"],
   ["tag:anatomie", "Tag samt Untertags; tag:none ohne Tags"],
@@ -43,7 +46,8 @@ const SYNTAX: ReadonlyArray<[string, string]> = [
 const WRITTEN_KINDS = { felder: "field", zeitraum: "since", werte: "prop" } as const;
 type WrittenCategory = keyof typeof WRITTEN_KINDS;
 
-function TermRow({ item, query, onQueryChange }: { item: CardSearchMenuItem; query: string; onQueryChange: (query: string) => void }) {
+/** One menu row; `siblings` are the terms of its group: several of them set to `Mit` need only one to match (KV2d). */
+function TermRow({ item, query, onQueryChange, siblings }: { item: CardSearchMenuItem; query: string; onQueryChange: (query: string) => void; siblings?: readonly string[] }) {
   const state = cardSearchTermState(query, item.term);
   return (
     <li className="grid min-h-[2.875rem] min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-3 border-b border-core-border py-1 last:border-b-0 sm:grid-cols-[minmax(0,1fr)_auto_auto]" style={item.depth ? { paddingLeft: item.depth * 20 } : undefined}>
@@ -55,7 +59,7 @@ function TermRow({ item, query, onQueryChange }: { item: CardSearchMenuItem; que
         </span>
       </span>
       {item.hideTerm ? <span className="max-sm:hidden" /> : <code className="hidden max-w-[14rem] truncate font-mono core-caption text-core-muted sm:block">{item.term}</code>}
-      <CoreTriStateControl label={item.label} value={state} onValueChange={(next) => onQueryChange(withCardSearchTermState(query, item.term, next))} />
+      <CoreTriStateControl label={item.label} value={state} onValueChange={(next) => onQueryChange(withCardSearchTermState(query, item.term, next, siblings))} />
     </li>
   );
 }
@@ -276,7 +280,8 @@ function SyntaxHelp() {
       <h3 className="core-body font-semibold text-core-text">Suchsyntax</h3>
       <p className="core-body text-core-secondary">
         Eine Karte erscheint nur, wenn alle Begriffe zutreffen.
-        Jede Zeile filtert mit, ohne oder egal; Begriffe im Suchfeld wirken genauso und erscheinen als Filter.
+        Jede Zeile filtert mit, ohne oder egal; mehrere Zeilen einer Kategorie mit „Mit“ verlangen nur eine davon.
+        Begriffe im Suchfeld wirken genauso und erscheinen als Filter.
       </p>
       <table className="w-full table-fixed border-collapse core-body">
         <tbody>
@@ -312,6 +317,7 @@ export function AdvancedCardSearch({ id, query, onQueryChange, categories, resul
   const [copied, setCopied] = React.useState(false);
   const [draftName, setDraftName] = React.useState<string | null>(null);
   const active = categories.find((category) => category.id === activeId) ?? categories[0];
+  const activeTerms = active.items.map((item) => item.term);
   const writtenOf = (category: CardSearchMenuCategory) => category.id in WRITTEN_KINDS ? writtenTerms(query, category.id as WrittenCategory, categories) : [];
   const activeCount = (category: CardSearchMenuCategory) => category.items.filter((item) => cardSearchTermState(query, item.term)).length
     + writtenOf(category).length;
@@ -387,7 +393,7 @@ export function AdvancedCardSearch({ id, query, onQueryChange, categories, resul
             : active.id === "werte" ? <PropTerms terms={writtenOf(active)} query={query} onQueryChange={onQueryChange} categories={categories} />
               : active.items.length ? (
                 <ul className={`grid min-w-0 ${active.id === "stapel" || active.id === "tags" || active.id === "inhalt" ? "max-h-[28rem] overflow-y-auto pr-1" : ""}`}>
-                  {active.items.map((item) => <TermRow key={item.term} item={item} query={query} onQueryChange={onQueryChange} />)}
+                  {active.items.map((item) => <TermRow key={item.term} item={item} query={query} onQueryChange={onQueryChange} siblings={activeTerms} />)}
                 </ul>
               ) : <p className="core-body text-core-muted">Keine Einträge</p>}
         </div>
