@@ -469,18 +469,19 @@ export function DecksScreen({
     });
     return starts;
   }, [items]);
-  const locateSelected = () => {
-    if (!selectedCardId) return null;
+  /** Position of a loaded card among all card rows (`card`) and all items (`item`). */
+  const locateCard = (cardId: string | null) => {
+    if (!cardId) return null;
     const lists = hitList ? [[HIT_LIST_KEY, hitList] as const] : tableModel.groups.map((group) => [group.id, group] as const);
     for (const [listKey, list] of lists) {
       for (const [index, row] of list.rowsByIndex) {
-        const start = row.id === selectedCardId ? listStarts.get(listKey) : undefined;
+        const start = row.id === cardId ? listStarts.get(listKey) : undefined;
         if (start) return { card: start.card + index, item: start.item + index };
       }
     }
     return null;
   };
-  const selectedLocation = locateSelected();
+  const selectedLocation = locateCard(selectedCardId);
   const itemKey = React.useCallback((index: number) => items[index].key, [items]);
   const itemEstimate = React.useCallback((index: number) => {
     const item = items[index];
@@ -707,16 +708,9 @@ export function DecksScreen({
   }, []);
   React.useEffect(clearSelection, [clearSelection, deferredQuery, hitScope]);
   const canSelect = Boolean(onRunCardBatch) && !onCloseSelectedCard;
-  const positionOf = (cardId: string) => {
-    const lists = hitList ? [[HIT_LIST_KEY, hitList] as const] : tableModel.groups.map((group) => [group.id, group] as const);
-    for (const [listKey, list] of lists) {
-      for (const [index, row] of list.rowsByIndex) if (row.id === cardId) return (listStarts.get(listKey)?.card ?? 0) + index;
-    }
-    return null;
-  };
   function toggleCheck(cardId: string, range: boolean) {
     if (!canSelect) return;
-    const position = positionOf(cardId);
+    const position = locateCard(cardId)?.card ?? null;
     const anchor = selectionAnchorRef.current;
     setSelecting(true);
     setAllHits(false);
@@ -772,7 +766,8 @@ export function DecksScreen({
   async function generateSelectionVariants() {
     if (!onGenerateCardVariants) return;
     const ids = await selectedIds();
-    const firstRow = [...(hitList ? [hitList] : tableModel.groups)].flatMap((list) => [...list.rowsByIndex.values()]).find((row) => ids.includes(row.id));
+    const selected = new Set(ids);
+    const firstRow = [...(hitList ? [hitList] : tableModel.groups)].flatMap((list) => [...list.rowsByIndex.values()]).find((row) => selected.has(row.id));
     const deckId = firstRow?.entry.deckId ?? contentDeckId ?? selectedDeckId;
     if (!deckId || !ids.length) return;
     onGenerateCardVariants(deckId, ids);

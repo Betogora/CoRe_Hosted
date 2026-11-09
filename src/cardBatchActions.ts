@@ -32,8 +32,6 @@ export interface CardBatchDependencies {
 export interface CardBatchResult {
   /** Selected cards the action changed. */
   changedCount: number;
-  /** Contents the action touched (deletion and content edits). */
-  noteCount: number;
   /** Takes the action back as a new change; cards changed since keep their later state and count as skipped. */
   undo(): Promise<{ restoredCount: number; skippedCount: number }>;
 }
@@ -63,7 +61,6 @@ export async function runCardBatch(dependencies: CardBatchDependencies, cardIds:
     const revisionAfter = new Map(changed.map((card) => [card.id, card.studyRevision]));
     return {
       changedCount: changed.length,
-      noteCount: new Set(changed.map((card) => card.noteId)).size,
       async undo() {
         const current = (await dependencies.openCards([...revisionAfter.keys()])).filter((body): body is { card: Card; note: Note } => Boolean(body));
         const unchanged = current.filter((body) => body.card.studyRevision === revisionAfter.get(body.card.id)).map((body) => body.card.id);
@@ -80,7 +77,6 @@ export async function runCardBatch(dependencies: CardBatchDependencies, cardIds:
     await repository.saveNoteGraphs(plans.map(({ graph, plan }) => ({ previous: graph, next: { note: plan.note, cards: plan.cards } })));
     return {
       changedCount: plans.reduce((count, { graph }) => count + graph.cards.filter((card) => selected.has(card.id)).length, 0),
-      noteCount: plans.length,
       async undo() {
         const restoredAt = dependencies.now();
         await repository.saveNoteGraphs(plans.map(({ plan }) => {
@@ -97,7 +93,6 @@ export async function runCardBatch(dependencies: CardBatchDependencies, cardIds:
   const before = plan.changes.map((change) => change.previous);
   return {
     changedCount: plan.changedCardIds.length,
-    noteCount: plan.changes.length,
     async undo() {
       const current = await loadGraphs(repository, before.map((graph) => graph.note.id));
       const undo = planCardBatchUndo(current, before, new Set(plan.changedCardIds), action, dependencies.now());

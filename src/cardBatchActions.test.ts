@@ -56,7 +56,6 @@ test("eine Massenaktion schreibt Karten, Katalog und Outbox gemeinsam und ist rÃ
 
   const moved = await runCardBatch(dependencies, [forward[2]], { kind: "deck", deckId: "deck-b" });
   assert.equal((await repository.loadCardBody(forward[2]))?.card.deckId, "deck-b");
-  assert.equal(moved.noteCount, 1);
   await moved.undo();
   assert.equal((await repository.loadCardBody(forward[2]))?.card.deckId, "deck-a");
 });
@@ -64,7 +63,7 @@ test("eine Massenaktion schreibt Karten, Katalog und Outbox gemeinsam und ist rÃ
 test("LÃ¶schen entfernt die Inhalte samt Geschwistern; RÃ¼ckgÃ¤ngig stellt alle wieder her (KV4)", async () => {
   const { repository, dependencies, forward } = await setup(2);
   const result = await runCardBatch(dependencies, [forward[0]], { kind: "delete" });
-  assert.deepEqual([result.changedCount, result.noteCount], [1, 1]);
+  assert.equal(result.changedCount, 1);
   assert.equal(await repository.loadCardBody("card-0-reverse"), null);
   assert.deepEqual(await result.undo(), { restoredCount: 2, skippedCount: 0 });
   assert.ok(await repository.loadCardBody("card-0-reverse"));
