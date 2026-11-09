@@ -5,7 +5,7 @@ Stand: 2026-11-04
 Nur offene Arbeit. Ist-Stand in [`status.md`](status.md), Entscheidungen in
 [`decisions.md`](decisions.md), erledigte Arbeit in [`history.md`](history.md).
 
-Reihenfolge = Priorität: P1 vor P2 vor P3. Offene Nachweise brauchen keinen Code und
+Reihenfolge = Priorität: P1 vor P2. Offene Nachweise brauchen keinen Code und
 laufen unabhängig davon; die Release-Voraussetzungen sind vor dem ersten
 externen Release fällig, „Später“ ist geparkt.
 
@@ -89,50 +89,6 @@ voraus.
       Hinweise, Abbruch, Fehler, nichts gespeichert vor Übernahme), echte
       Quellen je Format mit allen vier Kartenformen, visuelle Pflichtmatrix
       für Fortschritt und Ergebnisliste.
-
-## P3: Einstellungen als Dialog (optischer Umbau)
-
-Dialog `Einstellungen`, kastenloses Zeilenmuster, Konfliktbereich und Bereich
-`Stapel` der Stapeleinstellungen stehen (specs §5.3, §6.1 und §7,
-`architecture.md` zu `settings=` und `settingsDeck=`). Beide Dialoge liegen im
-gemeinsamen Rahmen `SettingsDialogFrame` über der Ansicht oder Sitzung, aus der
-sie geöffnet wurden; die Seite `stapel-einstellungen` ist entfallen. Offen ist
-nur noch der Abschluss. Der Umbau bleibt rein optisch, keine Einstellung kommt
-hinzu oder fällt weg.
-
-**Zielbild Stapeleinstellungen**
-
-- Eigener Dialog im selben Rahmen wie `Einstellungen`, aber getrennt: Kopf mit
-  Stapel-Icon und Stapelname, über der Bereichsliste Stapelwechsel
-  (`DeckSelect`) und `Standardwerte`, Sidebar mit `Stapel`, `Tagesrunde & Lernprofile` und `Scheduler & CoRe`, rechts genau ein
-  Bereich, Speicherleiste als Fußzeile mit `Stapel und Unterstapel speichern`
-  bzw. `Nur diesen Stapel speichern`. Unter 768 px Vollbild mit Bereichsliste.
-  Allgemeine Einstellungen und Stapelstandard bleiben im Dialog `Einstellungen`;
-  ein Stapel ist nie eine dritte Gruppe dort, weil dieselben Felder sonst
-  zweimal mit unterschiedlicher Reichweite nebeneinander stünden.
-- Querverbindungen zwischen beiden Dialogen: `Standardwerte` im
-  Stapeldialog öffnet `Einstellungen → Tagesrunde & Lernprofile`; die Zeile
-  `Stapeleinstellungen` dort wählt per `DeckSelect` einen Stapel und öffnet
-  dessen Dialog. Der Wechsel ersetzt den offenen Dialog, es liegt nie ein
-  Dialog über dem anderen.
-- Der Dialog liegt über der Ansicht, aus der er geöffnet wurde, wie
-  `Einstellungen`: Stapeloptionen in Heute, Lernen und Karten, `Stapel
-  bearbeiten` in der Lernsitzung (über der Sitzung; Schließen setzt sie ohne
-  Neustart fort), `Neue Karten pro Tag anpassen` nach leerem Lernstart (Fokus
-  auf das Feld). Damit entfallen Route, Rückkontext und `Zurück zu …`.
-- Ein offener Entwurf sperrt Schließen, Escape, Außenklick, Browser-Zurück,
-  Stapelwechsel und den Wechsel in den Dialog `Einstellungen`; Bereiche
-  desselben Stapels teilen den Entwurf.
-
-**Entscheidung (2026-11-05):** `InPageNavigation` bleibt vorerst nur in der
-Statistik, ihre Katalogdemo zieht dorthin; ein möglicher Ersatz steht unter
-„Später“.
-
-- [ ] **Paket 6 – Abschluss:** die auf beide Dialoge umgeschriebenen
-      Browserflows `product-surfaces`, `core-stabilization`,
-      `navigation-context`, `card-lifecycle`, `auth-lifecycle`,
-      `first-learning` und `world-capitals-hierarchy` gegen lokales
-      Supabase grün laufen lassen; danach `npm run gate:push` grün.
 
 ## Offene Nachweise
 
