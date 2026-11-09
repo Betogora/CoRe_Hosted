@@ -719,7 +719,7 @@ export function App() {
   }
 
   const requestCardPage = React.useCallback(async (request: DecksCardPageRequest) => {
-    if (!workspaceRepository) return;
+    if (!workspaceRepository) return false;
     const runId = bootRunRef.current;
     const listKey = request.deckId;
     const view = JSON.stringify([request.query, request.sort.field, request.sort.direction, request.deckIds ?? null]);
@@ -749,7 +749,7 @@ export function App() {
           ? await workspaceHydrationService.queryCardPage({ ...request, signal: controller.signal })
           : await workspaceRepository.listCardPage(scope, request);
     } catch (error) {
-      if (!isCurrent() || controller.signal.aborted) return;
+      if (!isCurrent() || controller.signal.aborted) return false;
       cardPageRequestRef.current.delete(requestKey);
       setCardPages((current) => ({
         ...current,
@@ -759,9 +759,9 @@ export function App() {
           loadError: error instanceof Error ? error.message : "Karten konnten nicht geladen werden.",
         },
       }));
-      return;
+      return true;
     }
-    if (!isCurrent()) return;
+    if (!isCurrent()) return false;
     cardPageRequestRef.current.delete(requestKey);
     setCardPages((current) => {
       const previous = sameView(current[listKey]) ? current[listKey]! : null;
@@ -785,6 +785,7 @@ export function App() {
         },
       };
     });
+    return true;
   }, [workspaceHydrationService, workspaceRepository]);
 
   const queryStatistics = React.useCallback(

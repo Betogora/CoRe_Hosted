@@ -520,6 +520,8 @@ export function DecksScreen({
   // Pages of the rows near the visible area load as the list scrolls; a list not shown for the current search, sort
   // and scope loads its first page, which also brings its length. Each page is asked once per list version.
   const requestedPagesRef = React.useRef(new Map<string, DecksCardPage | undefined>());
+  // A dropped answer (replaced or aborted, e.g. by a local write) frees its page, and the list asks again.
+  const [droppedPages, setDroppedPages] = React.useState(0);
   // Emptied pages (a local write such as a mass action) load again, also those first asked before anything was shown.
   React.useEffect(() => {
     if (cardPages && !Object.keys(cardPages).length) requestedPagesRef.current.clear();
@@ -556,9 +558,14 @@ export function DecksScreen({
       // Asked before for this very list object: still loading, or answered without that page (a shorter list).
       if (requested.has(key) && requested.get(key) === (isShown(listKey) ? list : undefined)) continue;
       requested.set(key, isShown(listKey) ? list : undefined);
-      void onRequestCardPage({ deckId: listKey, deckIds: deckIdsOf(listKey), page, pageSize: CARD_TABLE_PAGE_SIZE, query: deferredQuery, sort: cardSort, selectedCardId: null, searchContext });
+      void Promise.resolve(onRequestCardPage({ deckId: listKey, deckIds: deckIdsOf(listKey), page, pageSize: CARD_TABLE_PAGE_SIZE, query: deferredQuery, sort: cardSort, selectedCardId: null, searchContext }))
+        .then((applied) => {
+          if (applied !== false || requested.get(key) !== (isShown(listKey) ? list : undefined)) return;
+          requested.delete(key);
+          setDroppedPages((count) => count + 1);
+        });
     }
-  }, [cardPages, cardSort, contentDeckId, contentTab, deferredQuery, hitList, hitScope, items, onRequestCardPage, pendingHit, searchContext, virtual.end, virtual.start]);
+  }, [cardPages, cardSort, contentDeckId, contentTab, deferredQuery, droppedPages, hitList, hitScope, items, onRequestCardPage, pendingHit, searchContext, virtual.end, virtual.start]);
   // A changed search, sort or scope starts every list over.
   React.useEffect(() => { requestedPagesRef.current.clear(); }, [cardSort, deferredQuery, hitScope, searchContext]);
 

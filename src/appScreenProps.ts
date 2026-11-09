@@ -231,7 +231,8 @@ export interface DecksScreenProps {
   savedSearches: readonly SavedCardSearch[];
   onSavedSearchesChange: (searches: SavedCardSearch[]) => unknown;
   cardPages?: Readonly<Record<string, DecksCardPage | undefined>>;
-  onRequestCardPage?: (request: DecksCardPageRequest) => unknown;
+  /** Resolves false when the answer was dropped (replaced or aborted), so the list asks again. */
+  onRequestCardPage?: (request: DecksCardPageRequest) => Promise<boolean | undefined> | void;
   syncConflictCardIds?: ReadonlySet<string>;
 }
 
