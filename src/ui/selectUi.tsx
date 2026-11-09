@@ -543,7 +543,7 @@ export function DeckMultiSelect({ decks, value, onValueChange }: DeckMultiSelect
               data-deck-select-option={row.deck.id}
               data-deck-depth={visibleDepth}
               onClick={() => toggle(row.deck.id)}
-              className="relative flex min-h-control w-full items-center gap-3 rounded-inset py-2 pr-9 text-left core-body text-core-text hover:bg-core-subtle aria-selected:bg-core-info-soft disabled:cursor-default"
+              className="relative flex min-h-control w-full items-center gap-3 rounded-inset py-2 pr-9 text-left core-body text-core-text hover:bg-core-subtle aria-selected:bg-core-subtle aria-selected:font-semibold disabled:cursor-default"
               style={{ paddingInlineStart: `calc(0.75rem + ${visibleDepth * DECK_DEPTH_INDENT_PX}px)` }}
             >
               <DeckAppearanceIcon data-deck-icon="true" deck={row.deck} className="size-7 shrink-0" iconSize={14} />

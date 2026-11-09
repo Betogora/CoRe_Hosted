@@ -1247,8 +1247,8 @@ button[aria-label] {
   }
 }
 
-/* Liegt oberhalb der Breitendelle, die der größere Innenabstand ab 640 px erzeugt; so wechselt der Kopf nur einmal. */
-@container core-study-heatmap (min-width: 37rem) {
+/* Liegt über der Breitendelle bei 639 px (573 px innen) und unter der schmalen Dashboard-Kachel bei 1024 px (591 px innen); so wechselt der Kopf nur einmal. */
+@container core-study-heatmap (min-width: 36rem) {
   .core-study-heatmap-header {
     grid-template-columns: minmax(0, 1fr) auto;
   }

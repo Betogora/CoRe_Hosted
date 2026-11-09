@@ -15,6 +15,7 @@ async function planExam(page: Page, name: string) {
   const inspector = page.getByTestId("exam-plan-inspector");
   await inspector.getByRole("textbox", { name: "Name" }).fill(name);
   await inspector.getByRole("button", { name: "Weiter zum Lernstoff" }).click();
+  await inspector.getByRole("searchbox", { name: "Stapel durchsuchen" }).fill("Europa");
   await inspector.getByRole("checkbox", { name: /^Europa/ }).check();
   await inspector.getByRole("button", { name: "Weiter zur Lernzeit" }).click();
   await inspector.getByRole("button", { name: "Lernplan ansehen" }).click();
@@ -83,7 +84,7 @@ test("Prüfungskarte bearbeitet inline, schützt Entwürfe und stellt gelöschte
   await expect(editor).toHaveAttribute("data-embedded", "true");
   await editor.getByRole("textbox", { name: "Name", exact: true }).fill("Europa");
   await editor.getByRole("button", { name: "Prüfungsfarbe auswählen", exact: true }).click();
-  const wheel = page.getByRole("slider", { name: "Farbkreis: Pfeiltasten ändern Farbe und Intensität" });
+  const wheel = page.getByRole("slider", { name: "Farbkreis: links und rechts ändern den Farbton, oben und unten die Intensität" });
   await wheel.focus();
   await page.keyboard.press("ArrowRight");
   await page.keyboard.press("Escape");

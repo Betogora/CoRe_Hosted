@@ -25,14 +25,17 @@ documents and sections required for the current task.
 - `docs/architecture.md`: canonical current architecture, module ownership,
   invariants, persisted terminology, and implemented APIs; planned changes belong in TODO.
 - `docs/status.md`: canonical current implementation status and known gaps.
-- `docs/operations.md`: canonical operational gates, runbooks, release,
-  rollback, recovery, and incident guidance.
+- `docs/operations.md`: canonical environments, release, rollback, auth,
+  database, restore, and incident runbooks.
+- `docs/test-portfolio.md`: canonical test categories, automatic and local
+  test runs, the visual acceptance matrix, and performance gates.
 - `docs/decisions.md`: canonical ADRs and durable product/architecture
   decisions.
-- `docs/history.md`: canonical completed work, dated verification, release IDs,
-  and smoke records.
-- `docs/anki-format-analysis.md`: Anki/APKG, templates, media, and Note/Card
-  behavior.
+- `docs/history.md`: operational evidence (releases, hosted smokes, remote
+  migrations, restore probes) and short dated milestones; details of completed
+  work live in commit and pull-request descriptions.
+- `docs/anki-format-analysis.md`: verified external Anki/APKG, template,
+  media, and add-on behavior; CoRe's translation lives in `architecture.md`.
 - `docs/todo.md`: the only source for open scope, priorities, planning status,
   acceptance gates, and required evidence. It contains no completed work or
   release history and provides context, not permission to implement adjacent
@@ -192,7 +195,7 @@ Choose checks proportionate to the affected area.
 ### Standard Gate
 
 For every visual UI change, run the mandatory viewport matrix and visual
-acceptance checks in [`docs/operations.md#visuelle-pflichtmatrix`](docs/operations.md#visuelle-pflichtmatrix)
+acceptance checks in [`docs/test-portfolio.md#visuelle-pflichtmatrix`](docs/test-portfolio.md#visuelle-pflichtmatrix)
 for the affected screens and states. Shared UI or app-shell changes require
 checking every screen that consumes the changed component. Record screenshots,
 results, and any unverified cases; type checking and geometry assertions do not

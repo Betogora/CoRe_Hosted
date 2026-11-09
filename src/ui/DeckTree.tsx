@@ -194,7 +194,7 @@ const DeckTreeRow = React.memo(function DeckTreeRow({ row, mode, presentation, d
     <button
       type="button"
       onClick={() => onToggle(row.id)}
-      className="pointer-events-auto relative -me-2 grid size-control shrink-0 place-items-center rounded-inset text-core-muted transition-colors before:pointer-events-none before:absolute before:inset-1 before:rounded-inset before:transition-colors before:content-[''] hover:text-core-text hover:before:bg-core-hover focus:outline-none focus-visible:ring-2 focus-visible:ring-core-focus [&>svg]:relative [&>svg]:z-[1]"
+      className="pointer-events-auto relative -me-2 grid size-control shrink-0 place-items-center rounded-inset text-core-muted transition-colors before:pointer-events-none before:absolute before:inset-x-1.5 before:inset-y-1 before:rounded-inset before:transition-colors before:content-[''] hover:text-core-text hover:before:bg-core-hover focus:outline-none focus-visible:ring-2 focus-visible:ring-core-focus [&>svg]:relative [&>svg]:z-[1]"
       aria-label={isCollapsed ? `Unterstapel von ${row.path} anzeigen` : `Unterstapel von ${row.path} ausblenden`}
       aria-expanded={!isCollapsed}
     >

@@ -26,7 +26,7 @@ function ForgottenDot({ cx, cy, payload }: { cx?: number; cy?: number; payload?:
   return <circle cx={cx} cy={cy} r={4} fill="var(--core-danger)" stroke="var(--core-surface)" strokeWidth={1.5} />;
 }
 
-/** Retrievability over time with the target line, like the editor draft of round 3 (specs §5.3 `Lernen`). */
+/** Retrievability over time with the target line, like the editor draft of round 3 (specs.md#editor-reiter-lernen). */
 export function RetrievabilityChart({ points, targetPercent, now }: { points: readonly RetrievabilityPoint[]; targetPercent: number; now: number }) {
   const first = points[0].at;
   const target = Math.round(targetPercent);

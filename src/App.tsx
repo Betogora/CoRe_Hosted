@@ -1466,6 +1466,9 @@ export function App() {
     if (!workspaceRepository) return null;
     const graph = await workspaceRepository.loadNoteGraph(noteId);
     refresh({ preserveCardPages: true });
+    // Page requests started before this write would land later with the old preview; the request loop asks again.
+    for (const { controller } of cardPageRequestRef.current.values()) controller.abort();
+    cardPageRequestRef.current.clear();
     // Visible rows of the content's cards take over the changed preview, mark and suspension at once.
     const entries = new Map((graph?.cards ?? []).map((card) => [card.id, catalogEntryFromCard(card, graph!.note)]));
     setCardPages((current) => Object.fromEntries(Object.entries(current).map(([listKey, list]) => {

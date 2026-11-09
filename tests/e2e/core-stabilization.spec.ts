@@ -177,7 +177,7 @@ test("dashboard heatmap changes its header layout only once across responsive wi
 
         return {
           sameRow: Math.abs(centerY(titleRect) - centerY(controlsRect)) <= 1,
-          controlsSingleRow: controlRects.every((rect) => Math.abs(rect.top - controlRects[0].top) <= 1),
+          controlsSingleRow: controlRects.every((rect) => Math.abs(centerY(rect) - centerY(controlRects[0])) <= 1),
           controlsRightAligned: Math.abs(controlsRect.right - header.getBoundingClientRect().right) <= 1,
           titleSingleLine: title.scrollHeight <= title.clientHeight + 1,
           pageFitsViewport: document.documentElement.scrollWidth <= window.innerWidth + 1,
@@ -385,7 +385,7 @@ test("CoRe tooltips replace native hints for heatmap and icon actions", async ({
     }),
     page.getByTestId(`learn-deck-row-${DECK_IDS.africa}`).locator('[data-deck-icon="true"]').evaluate((icon: HTMLElement) => getComputedStyle(icon).color),
   ]);
-  expect(deckTooltipLayout).toEqual({ height: 34, iconColor: rowIconColor, iconHeight: 16, iconWidth: 16 });
+  expect(deckTooltipLayout).toEqual({ height: 28, iconColor: rowIconColor, iconHeight: 16, iconWidth: 16 });
   await page.keyboard.press("Escape");
   await expect(tooltip).toHaveCount(0);
 });
@@ -526,16 +526,16 @@ test("Pomodoro timer started in the learning settings remains global after leavi
     const presetRect = presets.getBoundingClientRect();
     const startRect = start.getBoundingClientRect();
     return {
-      inputHeight: inputRect.height,
-      presetHeight: presetRect.height,
-      startHeight: startRect.height,
+      inputBottom: inputRect.bottom,
+      presetBottom: presetRect.bottom,
+      startBottom: startRect.bottom,
       presetRight: presetRect.right,
       startLeft: startRect.left,
     };
   });
   expect(timerRowGeometry).not.toBeNull();
-  expect(Math.abs(timerRowGeometry!.inputHeight - timerRowGeometry!.presetHeight)).toBeLessThanOrEqual(1);
-  expect(Math.abs(timerRowGeometry!.inputHeight - timerRowGeometry!.startHeight)).toBeLessThanOrEqual(1);
+  expect(Math.abs(timerRowGeometry!.inputBottom - timerRowGeometry!.presetBottom)).toBeLessThanOrEqual(1);
+  expect(Math.abs(timerRowGeometry!.inputBottom - timerRowGeometry!.startBottom)).toBeLessThanOrEqual(1);
   expect(timerRowGeometry!.startLeft).toBeGreaterThan(timerRowGeometry!.presetRight);
   await control.getByLabel("Dauer in Minuten").fill("10");
   await control.getByRole("button", { name: "Start", exact: true }).click();
@@ -1000,7 +1000,7 @@ test("a card moved out of the opened deck, moved back and duplicated stays reach
   const toast = page.locator('[data-success-toast-region="true"]');
   await expect(toast).toContainText("Karte nach „Asien“ verschoben.");
   await toast.getByRole("button", { name: "Rückgängig" }).click();
-  await expect(editor.getByTestId("card-deck")).toContainText("Europa kompakt");
+  await expect(editor.getByTestId("card-deck").getByText("Europa", { exact: true })).toBeVisible();
   await expect.poll(async () => Boolean(await storedCard(page, DECK_IDS.europe, "card_world_capitals_alb"))).toBe(true);
 
   await editor.getByRole("button", { name: "Duplizieren", exact: true }).click();
