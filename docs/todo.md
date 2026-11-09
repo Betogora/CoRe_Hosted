@@ -1,13 +1,37 @@
 # CoRe TODO
 
-Stand: 2026-11-04
+Stand: 2026-11-09
 
 Nur offene Arbeit. Ist-Stand in [`status.md`](status.md), Entscheidungen in
 [`decisions.md`](decisions.md), erledigte Arbeit in [`history.md`](history.md).
 
-Reihenfolge = Priorität: P1 vor P2. Offene Nachweise brauchen keinen Code und
-laufen unabhängig davon; die Release-Voraussetzungen sind vor dem ersten
+Reihenfolge = Priorität: P1 vor P2. Die bekannten Fehler sind klein und kommen
+vorab dran; offene Nachweise brauchen keinen Code und laufen unabhängig davon; die Release-Voraussetzungen sind vor dem ersten
 externen Release fällig, „Später“ ist geparkt.
+
+## Bekannte Fehler (vorab)
+
+Aufgefallen im E2E-Lauf vom 2026-11-09; sie stammen aus Umbauten vom 02. bis
+04.11. und sind schon auf `main` vorhanden.
+
+- [ ] **Veraltete Überschrift in `card-lifecycle`:** Die Verträge
+      „typgerechter Basic-Lebenszyklus“ und „typgerechter
+      Multiple-Choice-Lebenszyklus“ erwarten nach dem Reload der
+      Kartenverwaltung die Überschrift `Lernen`; seit `Karten` ein eigener
+      Reiter ist (`b19da09`), heißt sie `Kartenverwaltung`. Nachweis: beide
+      Tests grün.
+- [ ] **Zeilenhöhe der Kartenverwaltung:** Der Vertrag „Karten- und
+      Stapelzeilen bleiben auch in schmalen Viewports kompakt“
+      (`navigation-context`) misst eine Kartenzeile mit 40,7 px statt
+      höchstens 30 px. Klären, welcher Umbau vom 02.–04.11. die Zeile
+      vergrößert hat und ob Layout oder Erwartung falsch ist. Nachweis: Test
+      grün, Pflichtmatrix der Kartenverwaltung.
+- [ ] **Navigationsmarkierung beim ersten Laden:** Bei einem direkten Aufruf
+      etwa von `/lernen` sitzt die gleitende Hervorhebung der Top-Bar auf
+      `Heute`, obwohl `Lernen` korrekt `aria-current` trägt
+      (`useSlidingSelection` in `src/ui/AppNavigation.tsx`). Nachweis: Reload
+      jeder Hauptansicht bei 1280 und 1440 px zeigt die Markierung am aktiven
+      Ziel, dazu ein E2E-Fall.
 
 ## P1: KI-Varianten (Proof of Concept) abschließen
 
