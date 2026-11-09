@@ -5,23 +5,38 @@ const APP_HISTORY_STATE_KEY = "coreAppRoute";
 const menu = createMenuModel();
 const defaultViewId = menu.defaultViewId;
 const studyFallbackViewId: AppViewId = "lernen";
-const extraRoutableViewIds = ["stapel-einstellungen", "karten-einstellungen"] as const;
 const reviewReturnViews = ["today", "learn", "decks", "exams"] as const;
-const settingsReturnViews = ["today", "learn", "decks", "review"] as const;
-const settingsTargetsByView = {
-  "stapel-einstellungen": ["new-cards-per-day"],
-  "karten-einstellungen": ["flag-names"],
-  einstellungen: ["sync", "sync-conflicts"],
-} as const;
+/** Areas of the settings dialog that lies over any view; `start` is the area list on narrow screens and `Konto` beside it on wide ones, `konflikte` is `daten` focused on the sync conflicts. */
+export const SETTINGS_SECTIONS = ["start", "konto", "daten", "konflikte", "ueber", "lerntag", "tagesrunde", "scheduler", "flaggen", "fokus"] as const;
+/** Areas of the deck settings dialog; `start` is the area list on narrow screens and `stapel` beside it on wide ones, `neue-karten` is `tagesrunde` focused on the new-card limit. */
+export const DECK_SETTINGS_SECTIONS = ["start", "stapel", "tagesrunde", "neue-karten", "scheduler"] as const;
 const deckContentTabs = ["children", "summary", "quiz", "mind-map", "cards", "source"] as const;
 const cardEditorTabs = ["general", "content", "variants", "study"] as const;
 
-export type AppViewId = MenuViewId | typeof extraRoutableViewIds[number];
+export type AppViewId = MenuViewId;
 type ReviewReturnView = typeof reviewReturnViews[number];
-type SettingsReturnView = typeof settingsReturnViews[number];
-export type SettingsTarget = typeof settingsTargetsByView[keyof typeof settingsTargetsByView][number];
 export type DeckContentTab = typeof deckContentTabs[number];
 export type CardEditorTab = typeof cardEditorTabs[number];
+export type SettingsSection = typeof SETTINGS_SECTIONS[number];
+export type GeneralSettingsSection = "konto" | "daten" | "ueber";
+export type DeckSettingsSection = typeof DECK_SETTINGS_SECTIONS[number];
+
+/** The deck settings dialog lying over a view or a study session. */
+export interface DeckSettingsOverlay {
+  deckId: string;
+  section: DeckSettingsSection;
+}
+export type LearningSettingsSection = "lerntag" | "tagesrunde" | "scheduler" | "flaggen" | "fokus";
+
+/** The area a settings section shows: `start` shows Konto, `konflikte` the data area. */
+export function settingsContentSection(section: SettingsSection): GeneralSettingsSection | LearningSettingsSection {
+  return section === "start" ? "konto" : section === "konflikte" ? "daten" : section;
+}
+
+/** General and learning settings keep separate drafts, so each group is one screen. */
+export function settingsSectionGroup(section: SettingsSection): "general" | "learning" {
+  return ["konto", "daten", "ueber"].includes(settingsContentSection(section)) ? "general" : "learning";
+}
 
 export interface ReviewReturnContext {
   view: ReviewReturnView;
@@ -31,12 +46,7 @@ export interface ReviewReturnContext {
   deckContentTab?: DeckContentTab;
 }
 
-export type ReviewResumeContext = Omit<StudyRoute, "mode">;
-
-export type SettingsReturnContext =
-  | { view: "today" | "learn" }
-  | { view: "decks"; cardId?: string }
-  | { view: "review"; reviewReturnContext: ReviewResumeContext };
+export type ReviewResumeContext = Omit<StudyRoute, "mode" | "deckSettings">;
 
 export interface ViewRoute {
   mode: "view";
@@ -53,15 +63,16 @@ export interface ViewRoute {
   completedDeckId?: string;
   completedCount?: number;
   completionKind?: "import" | "manual";
-  settingsTarget?: SettingsTarget;
-  settingsReturnContext?: SettingsReturnContext;
   cardEditorReturnContext?: ReviewResumeContext;
+  settingsSection?: SettingsSection;
+  deckSettings?: DeckSettingsOverlay;
 }
 
 export interface StudyRoute {
   mode: "study";
   deckId: string;
   returnContext: ReviewReturnContext;
+  deckSettings?: DeckSettingsOverlay;
 }
 
 export type AppRoute = ViewRoute | StudyRoute;
@@ -97,13 +108,14 @@ interface ViewRouteInput {
   completedDeckId?: unknown;
   completedCount?: unknown;
   completionKind?: unknown;
-  settingsTarget?: unknown;
-  settingsReturnContext?: {
-    view?: unknown;
-    cardId?: unknown;
-    reviewReturnContext?: ReviewResumeContextInput;
-  };
   cardEditorReturnContext?: ReviewResumeContextInput;
+  settingsSection?: unknown;
+  deckSettings?: DeckSettingsOverlayInput;
+}
+
+interface DeckSettingsOverlayInput {
+  deckId?: unknown;
+  section?: unknown;
 }
 
 type StudyRouteInput = {
@@ -111,6 +123,7 @@ type StudyRouteInput = {
   deckId?: unknown;
   returnContext?: ReviewReturnContextInput;
   returnRoute?: ViewRouteInput;
+  deckSettings?: DeckSettingsOverlayInput;
 };
 type AppRouteInput = ViewRouteInput | StudyRouteInput | null | undefined;
 
@@ -127,11 +140,15 @@ function cleanCompletedCount(value: unknown): number | null {
   return Number.isSafeInteger(count) && count >= 0 ? count : null;
 }
 
+function normalizeDeckSettings(input: DeckSettingsOverlayInput | undefined): DeckSettingsOverlay | null {
+  const deckId = cleanIdentifier(input?.deckId);
+  if (!deckId) return null;
+  const section = DECK_SETTINGS_SECTIONS.includes(input?.section as DeckSettingsSection) ? input?.section as DeckSettingsSection : "start";
+  return { deckId, section };
+}
+
 function normalizeViewId(value: unknown): AppViewId {
-  const routableViewIds = new Set<AppViewId>([
-    ...createMenuModel().listRoutableViewIds(),
-    ...extraRoutableViewIds,
-  ]);
+  const routableViewIds = new Set<AppViewId>(createMenuModel().listRoutableViewIds());
   const rawViewId = String(value ?? defaultViewId) as AppViewId;
   return routableViewIds.has(rawViewId) ? rawViewId : defaultViewId;
 }
@@ -151,33 +168,16 @@ function normalizeViewRoute(
   const completedDeckId = cleanIdentifier(route.completedDeckId);
   const completedCount = cleanCompletedCount(route.completedCount);
   const completionKind = route.completionKind === "import" || route.completionKind === "manual" ? route.completionKind : null;
-  const viewSettingsTargets: readonly string[] = settingsTargetsByView[viewId as keyof typeof settingsTargetsByView] ?? [];
-  const settingsTarget = viewSettingsTargets.includes(String(route.settingsTarget))
-    ? String(route.settingsTarget) as SettingsTarget
-    : null;
-  const settingsReturnView = settingsReturnViews.includes(String(route.settingsReturnContext?.view) as SettingsReturnView)
-    ? String(route.settingsReturnContext?.view) as SettingsReturnView
-    : null;
-  const settingsReturnCardId = cleanIdentifier(route.settingsReturnContext?.cardId);
-  const settingsReviewReturnContext = normalizeReviewResumeContext(route.settingsReturnContext?.reviewReturnContext);
   const cardEditorReturnContext = normalizeReviewResumeContext(route.cardEditorReturnContext);
+  const deckSettings = normalizeDeckSettings(route.deckSettings);
+  const settingsSection = !deckSettings && SETTINGS_SECTIONS.includes(route.settingsSection as SettingsSection) ? route.settingsSection as SettingsSection : null;
   const cardEditorTab = cardEditorTabs.includes(route.cardEditorTab as CardEditorTab)
     ? route.cardEditorTab as CardEditorTab
     : cardEditorReturnContext ? "content" : "general";
-  const settingsReturnContext: SettingsReturnContext | null = settingsReturnView === "review"
-    ? settingsReviewReturnContext
-      ? { view: "review", reviewReturnContext: settingsReviewReturnContext }
-      : null
-    : settingsReturnView === "decks"
-      ? { view: "decks", ...(settingsReturnCardId ? { cardId: settingsReturnCardId } : {}) }
-      : settingsReturnView
-        ? { view: settingsReturnView }
-        : null;
-
   return {
     mode: "view",
     viewId,
-    ...(["lernen", "kartenstapel", "stapel-einstellungen"].includes(viewId) && focusedDeckId ? { focusedDeckId } : {}),
+    ...(["lernen", "kartenstapel"].includes(viewId) && focusedDeckId ? { focusedDeckId } : {}),
     ...(viewId === "kartenstapel" && focusedDeckId && selectedCardId ? { selectedCardId, cardEditorTab } : {}),
     ...(viewId === "kartenstapel" && focusedDeckId && route.deckContent === true ? { deckContent: true } : {}),
     ...(viewId === "kartenstapel" && focusedDeckId && route.deckContent === true && deckContentTab ? { deckContentTab: selectedCardId ? "cards" as const : deckContentTab } : {}),
@@ -187,11 +187,11 @@ function normalizeViewRoute(
     ...(viewId === "neue-karten" && completedDeckId ? { completedDeckId } : {}),
     ...(viewId === "neue-karten" && completedDeckId && completedCount !== null ? { completedCount } : {}),
     ...(viewId === "neue-karten" && completedDeckId && completionKind ? { completionKind } : {}),
-    ...(settingsTarget ? { settingsTarget } : {}),
-    ...(viewId === "stapel-einstellungen" && settingsReturnContext ? { settingsReturnContext } : {}),
     ...(viewId === "kartenstapel" && focusedDeckId && selectedCardId && cardEditorReturnContext
       ? { cardEditorReturnContext }
       : {}),
+    ...(settingsSection ? { settingsSection } : {}),
+    ...(deckSettings ? { deckSettings } : {}),
   };
 }
 
@@ -287,10 +287,12 @@ export function normalizeAppRoute(route: unknown = {}, options: RouteOptions = {
       ? legacyViewRouteToReturnContext(studyRoute.returnRoute, deckId)
       : undefined;
     const returnContext = normalizeReviewReturnContext(studyRoute.returnContext ?? legacyReturnContext, deckId);
+    const deckSettings = normalizeDeckSettings(studyRoute.deckSettings);
     return {
       mode: "study",
       deckId,
       returnContext,
+      ...(deckSettings ? { deckSettings } : {}),
     };
   }
   return normalizeViewRoute(routeInput ?? {});
@@ -318,10 +320,23 @@ function isReviewPath(pathSegments: string[]): boolean {
     || (pathSegments.length === 2 && pathSegments[0] === "review");
 }
 
+function parseDeckSettings(url: URL): DeckSettingsOverlayInput | undefined {
+  const deckId = url.searchParams.get("settingsDeck");
+  return deckId ? { deckId, section: url.searchParams.get("settings") ?? undefined } : undefined;
+}
+
+function writeOverlayParams(params: URLSearchParams, route: { settingsSection?: SettingsSection; deckSettings?: DeckSettingsOverlay }) {
+  if (route.deckSettings) {
+    params.set("settingsDeck", route.deckSettings.deckId);
+    params.set("settings", route.deckSettings.section);
+  } else if (route.settingsSection) {
+    params.set("settings", route.settingsSection);
+  }
+}
+
 export function parseAppRouteFromUrl(input: string | URL = "/", options: RouteOptions = {}): AppRoute {
   const url = createUrl(input);
   const pathSegments = url.pathname.split("/").filter(Boolean).map(decodePathSegment);
-  if (pathSegments.length === 0) return createViewRoute(defaultViewId, {}, options);
   if (isReviewPath(pathSegments)) {
     const deckId = pathSegments[1];
     return normalizeAppRoute({
@@ -334,6 +349,7 @@ export function parseAppRouteFromUrl(input: string | URL = "/", options: RouteOp
         deckContent: url.searchParams.get("returnContent") === "1",
         deckContentTab: url.searchParams.get("returnTab") ?? undefined,
       },
+      deckSettings: parseDeckSettings(url),
     }, options);
   }
   const reviewReturnValue = url.searchParams.get("reviewReturn");
@@ -356,13 +372,9 @@ export function parseAppRouteFromUrl(input: string | URL = "/", options: RouteOp
     completedDeckId: url.searchParams.get("done") ?? undefined,
     completedCount: url.searchParams.get("doneCount") ?? undefined,
     completionKind: url.searchParams.get("doneKind") ?? undefined,
-    settingsTarget: url.searchParams.get("target") ?? undefined,
-    settingsReturnContext: pathSegments[0] === "stapel-einstellungen" ? {
-      view: reviewReturnRoute?.mode === "study" ? "review" : url.searchParams.get("returnView") ?? undefined,
-      cardId: url.searchParams.get("returnCard") ?? undefined,
-      reviewReturnContext: reviewReturnRoute?.mode === "study" ? cardEditorReturnContext : undefined,
-    } : undefined,
     cardEditorReturnContext,
+    settingsSection: url.searchParams.get("settings") ?? undefined,
+    deckSettings: parseDeckSettings(url),
   }, options);
 }
 
@@ -375,11 +387,12 @@ export function appRouteToUrl(route: unknown, options: RouteOptions = {}): strin
     if (normalized.returnContext.cardId) params.set("returnCard", normalized.returnContext.cardId);
     if (normalized.returnContext.deckContent) params.set("returnContent", "1");
     if (normalized.returnContext.deckContentTab) params.set("returnTab", normalized.returnContext.deckContentTab);
+    writeOverlayParams(params, normalized);
     return `/decks/${encodeURIComponent(normalized.deckId)}/review?${params.toString()}`;
   }
   const path = normalized.viewId === defaultViewId ? "/" : `/${encodeURIComponent(normalized.viewId)}`;
   const params = new URLSearchParams();
-  if (["lernen", "kartenstapel", "stapel-einstellungen"].includes(normalized.viewId) && normalized.focusedDeckId) {
+  if (["lernen", "kartenstapel"].includes(normalized.viewId) && normalized.focusedDeckId) {
     params.set("deck", normalized.focusedDeckId);
   }
   if (normalized.viewId === "kartenstapel" && normalized.selectedCardId) params.set("card", normalized.selectedCardId);
@@ -392,26 +405,13 @@ export function appRouteToUrl(route: unknown, options: RouteOptions = {}): strin
   if (normalized.viewId === "neue-karten" && normalized.completedDeckId) params.set("done", normalized.completedDeckId);
   if (normalized.viewId === "neue-karten" && normalized.completedDeckId && normalized.completedCount != null) params.set("doneCount", String(normalized.completedCount));
   if (normalized.viewId === "neue-karten" && normalized.completedDeckId && normalized.completionKind) params.set("doneKind", normalized.completionKind);
-  if (normalized.settingsTarget) params.set("target", normalized.settingsTarget);
-  const settingsReturnContext = normalized.settingsReturnContext;
-  if (normalized.viewId === "stapel-einstellungen" && settingsReturnContext) {
-    params.set("returnView", settingsReturnContext.view);
-    if (settingsReturnContext.view === "decks" && settingsReturnContext.cardId) {
-      params.set("returnCard", settingsReturnContext.cardId);
-    }
-    if (settingsReturnContext.view === "review" && settingsReturnContext.reviewReturnContext) {
-      params.set("reviewReturn", appRouteToUrl({
-        mode: "study",
-        ...settingsReturnContext.reviewReturnContext,
-      }));
-    }
-  }
   if (normalized.viewId === "kartenstapel" && normalized.cardEditorReturnContext) {
     params.set("reviewReturn", appRouteToUrl({
       mode: "study",
       ...normalized.cardEditorReturnContext,
     }));
   }
+  writeOverlayParams(params, normalized);
   const search = params.toString();
   return `${path}${search ? `?${search}` : ""}`;
 }

@@ -12,7 +12,8 @@ test("PomodoroTimerControl exposes the collapsed global and study entry points",
     assert.match(markup, /aria-expanded="false"/);
     assert.match(markup, /aria-controls=/);
     assert.match(markup, /25 Min\./);
-    assert.match(markup, /data-pomodoro-icon="tomato"/);
+    if (variant === "study") assert.match(markup, /data-pomodoro-icon="tomato"/);
+    else assert.match(markup, /class="core-settings-row-title">Pomodoro-Timer<[\s\S]*Ein Start ersetzt einen laufenden Timer\./);
     assert.doesNotMatch(markup, /Noch nicht verfügbar/);
   }
   assert.deepEqual(POMODORO_PRESET_MINUTES, [15, 25, 45]);

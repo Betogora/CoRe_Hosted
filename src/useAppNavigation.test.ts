@@ -18,9 +18,9 @@ test("projects view and study routes into one exhaustive shell state", () => {
     completedDeckId: "deck-1",
     completedCount: 46,
     completionKind: "import",
-    settingsTarget: null,
-    settingsReturnContext: null,
     cardEditorReturnContext: null,
+    settingsSection: null,
+    deckSettings: null,
   });
 
   const studyRoute = createStudyRoute("deck-1", {
@@ -42,46 +42,19 @@ test("projects view and study routes into one exhaustive shell state", () => {
     completedDeckId: "",
     completedCount: 0,
     completionKind: "",
-    settingsTarget: null,
-    settingsReturnContext: null,
     cardEditorReturnContext: null,
+    settingsSection: null,
+    deckSettings: null,
   });
 });
 
-test("projects the settings return context only on the settings route", () => {
-  assert.deepEqual(projectAppRoute(createViewRoute("stapel-einstellungen", {
-    focusedDeckId: "deck-1",
-    settingsTarget: "new-cards-per-day",
-    settingsReturnContext: { view: "decks", cardId: "card-2" },
-  })), {
-    activeView: "stapel-einstellungen",
-    studyRequest: null,
-    focusedDeckId: "deck-1",
-    selectedCardId: null,
-    cardEditorTab: "general",
-    deckContent: false,
-    deckContentTab: "children",
-    deckCreationParentId: "",
-    creationMethod: "",
-    creationDeckId: "",
-    completedDeckId: "",
-    completedCount: 0,
-    completionKind: "",
-    settingsTarget: "new-cards-per-day",
-    settingsReturnContext: { view: "decks", cardId: "card-2" },
-    cardEditorReturnContext: null,
-  });
-  assert.equal(projectAppRoute(createViewRoute("lernen")).settingsReturnContext, null);
-  assert.equal(projectAppRoute(createViewRoute("einstellungen", { settingsTarget: "sync-conflicts" })).settingsTarget, "sync-conflicts");
-
-  const reviewReturnContext = {
-    deckId: "deck-1",
-    returnContext: { view: "learn" as const, deckId: "deck-1" },
-  };
-  assert.deepEqual(projectAppRoute(createViewRoute("stapel-einstellungen", {
-    focusedDeckId: "deck-1",
-    settingsReturnContext: { view: "review", reviewReturnContext },
-  })).settingsReturnContext, { view: "review", reviewReturnContext });
+test("projects the open settings dialog for views and sessions", () => {
+  assert.equal(projectAppRoute(createViewRoute("kartenstapel", { focusedDeckId: "deck-1", settingsSection: "konflikte" })).settingsSection, "konflikte");
+  const deckSettings = { deckId: "deck-1", section: "tagesrunde" as const };
+  assert.deepEqual(projectAppRoute(createViewRoute("lernen", { deckSettings })).deckSettings, deckSettings);
+  const overSession = projectAppRoute(createStudyRoute("deck-1", { returnContext: { view: "learn", deckId: "deck-1" }, deckSettings }));
+  assert.deepEqual(overSession.deckSettings, deckSettings);
+  assert.equal(overSession.settingsSection, null);
 });
 
 test("browser navigation cleanup removes the exact popstate listener", () => {

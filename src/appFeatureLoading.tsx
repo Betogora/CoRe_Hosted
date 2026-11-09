@@ -8,6 +8,7 @@ import type {
   ExamPlanningScreenProps,
   GlobalCardSettingsScreenProps,
   LearnScreenProps,
+  SettingsDialogProps,
   SettingsScreenProps,
   SimulatorScreenProps,
   StatisticsScreenProps,
@@ -15,7 +16,7 @@ import type {
 } from "./appScreenProps.ts";
 import { markAppPerformance, measureAppPerformance } from "./appPerformance.ts";
 
-type AppFeatureId = "card-settings" | "creation" | "dashboard" | "deck-settings" | "decks" | "exams" | "help" | "learn" | "settings" | "simulator" | "statistics" | "study";
+type AppFeatureId = "card-settings" | "creation" | "dashboard" | "deck-settings" | "decks" | "exams" | "help" | "learn" | "settings" | "settings-dialog" | "simulator" | "statistics" | "study";
 
 const featureLoaders = {
   "card-settings": () => import("./screens/GlobalCardSettingsScreen.tsx").then(({ GlobalCardSettingsScreen }) => ({ default: GlobalCardSettingsScreen })),
@@ -27,6 +28,7 @@ const featureLoaders = {
   help: () => import("./screens/HelpScreen.tsx").then(({ HelpScreen }) => ({ default: HelpScreen })),
   learn: () => import("./screens/LearnScreen.tsx").then(({ LearnScreen }) => ({ default: LearnScreen })),
   settings: () => import("./screens/SettingsScreen.tsx").then(({ SettingsScreen }) => ({ default: SettingsScreen })),
+  "settings-dialog": () => import("./screens/SettingsDialog.tsx").then(({ SettingsDialog }) => ({ default: SettingsDialog })),
   simulator: () => import("./screens/SimulatorScreen.tsx").then(({ SimulatorScreen }) => ({ default: SimulatorScreen })),
   statistics: () => import("./screens/StatisticsScreen.tsx").then(({ StatisticsScreen }) => ({ default: StatisticsScreen })),
   study: () => import("./screens/StudyMode.tsx").then(({ StudyMode }) => ({ default: StudyMode })),
@@ -61,13 +63,14 @@ const featureByView: Record<AppViewId, AppFeatureId> = {
   statistik: "statistics",
   simulator: "simulator",
   hilfe: "help",
-  einstellungen: "settings",
-  "karten-einstellungen": "card-settings",
-  "stapel-einstellungen": "deck-settings",
 };
 
 export function preloadAppView(viewId: AppViewId): Promise<unknown> {
   return loadAppFeature(featureByView[viewId]);
+}
+
+export function preloadSettingsDialog(): Promise<unknown> {
+  return Promise.all([loadAppFeature("settings-dialog"), loadAppFeature("settings"), loadAppFeature("card-settings")]);
 }
 
 export const CreationScreen = React.lazy<React.ComponentType<CreationScreenProps>>(() => loadAppFeature("creation") as Promise<{ default: React.ComponentType<CreationScreenProps> }>);
@@ -79,6 +82,7 @@ export const HelpScreen = React.lazy(() => loadAppFeature("help"));
 export const LearnScreen = React.lazy<React.ComponentType<LearnScreenProps>>(() => loadAppFeature("learn") as Promise<{ default: React.ComponentType<LearnScreenProps> }>);
 export const GlobalCardSettingsScreen = React.lazy<React.ComponentType<GlobalCardSettingsScreenProps>>(() => loadAppFeature("card-settings") as Promise<{ default: React.ComponentType<GlobalCardSettingsScreenProps> }>);
 export const SimulatorScreen = React.lazy<React.ComponentType<SimulatorScreenProps>>(() => loadAppFeature("simulator") as Promise<{ default: React.ComponentType<SimulatorScreenProps> }>);
+export const SettingsDialog = React.lazy<React.ComponentType<SettingsDialogProps>>(() => loadAppFeature("settings-dialog") as Promise<{ default: React.ComponentType<SettingsDialogProps> }>);
 export const SettingsScreen = React.lazy<React.ComponentType<SettingsScreenProps>>(() => loadAppFeature("settings") as Promise<{ default: React.ComponentType<SettingsScreenProps> }>);
 export const StatisticsScreen = React.lazy<React.ComponentType<StatisticsScreenProps>>(() => loadAppFeature("statistics") as Promise<{ default: React.ComponentType<StatisticsScreenProps> }>);
 export const StudyMode = React.lazy<React.ComponentType<StudyModeProps>>(() => loadAppFeature("study") as Promise<{ default: React.ComponentType<StudyModeProps> }>);

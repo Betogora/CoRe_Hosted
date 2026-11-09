@@ -58,6 +58,7 @@ Noch nie nachgewiesen: DB-Restore-Probe, Storage-Restore-Probe, realer Alarmempf
 - **2026-11-02–04** — Stapeldarstellung neu: Tageszahlen in Statusfarbe, Unterstapel im Listendesign, Kacheln ohne Aktionsleiste.
 - **2026-11-03–04** — Zusammenfassung: Werkzeugleiste im Notiz-App-Muster, Belege als ausklappbare Fußnoten.
 - **2026-11-04** — Navigation: `Karten` als eigener Hauptreiter, Statistik als Icon; Karteneditor mit einheitlichen Panels.
+- **2026-11-04–07** — Einstellungen als Dialog: Bereichs-Sidebar statt zweier Seiten, kastenlose Zeilen, Wochenrhythmus als Tabelle, gemeinsames Zahlenfeld; Stapeleinstellungen als eigener Dialog über Ansicht oder Sitzung, die Seite `stapel-einstellungen` entfällt.
 
 ### Oktober 2026
 

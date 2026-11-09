@@ -1,6 +1,7 @@
 import { expect, test, type Locator, type Page } from "@playwright/test";
 import { createCoreDeck } from "../../src/coreModel.ts";
 import { readActiveAccountState, resetToFreshLocalState } from "./support/appState.ts";
+import { deckSettingsDialog, openSettingsArea } from "./support/settingsDialog.ts";
 
 const DECK_IDS = {
   root: "deck_world_capitals",
@@ -165,8 +166,8 @@ test("dashboard shows the full grouped tree without progress ring and direct dra
   await expect(dashboardMenu.getByRole("button", { name: "Verschieben" })).toBeVisible();
   await expect(dashboardMenu.getByRole("button", { name: /Umbenennen|Unterstapel|Lernen|Löschen/ })).toHaveCount(0);
   await dashboardMenu.getByRole("button", { name: "Einstellungen" }).click();
-  await expect(page).toHaveURL(new RegExp(`/stapel-einstellungen\\?deck=${DECK_IDS.root}&returnView=today$`));
-  await page.getByRole("button", { name: "Zurück zur Übersicht" }).click();
+  await expect(page).toHaveURL(new RegExp(`/\\?settingsDeck=${DECK_IDS.root}&settings=start$`));
+  await deckSettingsDialog(page).getByRole("button", { name: "Stapeleinstellungen schließen" }).click();
   await expect(rootRow).toBeVisible();
 
   await dispatchDeckDrop(page, southAmericaRow, europeRow);
@@ -476,8 +477,8 @@ test("learning rows activate directly while expand and settings remain independe
   await europeRow.getByRole("button", { name: "Stapeloptionen für Welt-Hauptstädte / Europa" }).click();
   await page.getByTestId(`deck-options-menu-${DECK_IDS.europe}`).getByRole("button", { name: "Einstellungen" }).click();
   await expect(page.getByTestId(`deck-settings-${DECK_IDS.europe}`)).toBeVisible();
-  await expect(page).toHaveURL(new RegExp(`/stapel-einstellungen\\?deck=${DECK_IDS.europe}&returnView=learn$`));
-  await page.getByRole("button", { name: "Zurück zu Lernen" }).click();
+  await expect(page).toHaveURL(new RegExp(`/lernen\\?(?:.*&)?settingsDeck=${DECK_IDS.europe}&settings=start$`));
+  await deckSettingsDialog(page).getByRole("button", { name: "Stapeleinstellungen schließen" }).click();
   await expect(europeRow).toBeVisible();
 
   await europeRow.getByRole("button", { name: "Welt-Hauptstädte / Europa lernen" }).press("Enter");
@@ -491,12 +492,13 @@ test("deck presentation form saves name, icon and color together", async ({ page
   await mainMenu(page).getByRole("button", { name: "Lernen" }).click();
   await page.getByRole("button", { name: "Stapeloptionen für Welt-Hauptstädte / Europa" }).click();
   await page.getByTestId(`deck-options-menu-${DECK_IDS.europe}`).getByRole("button", { name: "Einstellungen" }).click();
+  await openSettingsArea(deckSettingsDialog(page), "stapel");
 
   const original = await storedDeckPresentation(page, DECK_IDS.europe);
   const iconTrigger = page.getByRole("button", { name: "Icon auswählen" });
   const colorTrigger = page.getByRole("button", { name: "Farbe auswählen" });
   const titleIcon = page.getByTestId("deck-settings-title-icon");
-  const nameInput = page.getByRole("textbox", { name: "Stapelname" });
+  const nameInput = deckSettingsDialog(page).getByRole("textbox", { name: "Stapelname" });
   const primaryControls = page.getByTestId("deck-settings-primary-controls");
   const saveBar = page.getByTestId("settings-save-bar");
   const saveButton = saveBar.getByRole("button", { name: "Speichern" });
@@ -597,7 +599,6 @@ test("deck presentation form saves name, icon and color together", async ({ page
     await expect(page.getByTestId("deck-settings-title-name")).toBeVisible();
     await expect(nameInput).toBeVisible();
     await expect(page.getByRole("button", { name: "Name und Darstellung speichern" })).toHaveCount(0);
-    await expect.poll(() => primaryControls.evaluate((element) => getComputedStyle(element).gridTemplateColumns.split(" ").length)).toBe(viewport.width >= 768 ? 3 : 1);
     await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
   }
   await expect.poll(() => storedDeckPresentation(page, DECK_IDS.europe)).toMatchObject({
@@ -607,25 +608,24 @@ test("deck presentation form saves name, icon and color together", async ({ page
   const saved = await storedDeckPresentation(page, DECK_IDS.europe);
   expect(saved.iconColor).not.toBe(original.iconColor);
 
-  await mainMenu(page).getByRole("button", { name: "Lernen" }).click();
+  await deckSettingsDialog(page).getByRole("button", { name: "Stapeleinstellungen schließen" }).click();
   await page.getByRole("button", { name: "Stapeloptionen für Welt-Hauptstädte", exact: true }).click();
   await page.getByTestId(`deck-options-menu-${DECK_IDS.root}`).getByRole("button", { name: "Einstellungen" }).click();
+  await openSettingsArea(deckSettingsDialog(page), "stapel");
   await nameInput.fill("Welt-Hauptstädte kompakt");
   await expect(saveBar.getByRole("button", { name: "Stapel und Unterstapel speichern" })).toBeVisible();
   await expect(saveBar.getByRole("button", { name: "Nur diesen Stapel speichern" })).toBeVisible();
   await expect(saveBar.getByRole("button", { name: "Änderungen verwerfen" })).toBeVisible();
   const barBox = await saveBar.boundingBox();
-  const bottomBarBox = await page.locator('[data-navigation-layout="bottom-bar"]').boundingBox();
   expect(barBox).not.toBeNull();
-  expect(bottomBarBox).not.toBeNull();
-  expect(barBox!.x).toBeGreaterThanOrEqual(16);
-  expect(barBox!.x + barBox!.width).toBeLessThanOrEqual(375);
-  expect(barBox!.y + barBox!.height).toBeLessThanOrEqual(bottomBarBox!.y);
+  expect(barBox!.x).toBeGreaterThanOrEqual(0);
+  expect(barBox!.x + barBox!.width).toBeLessThanOrEqual(390);
+  expect(barBox!.y + barBox!.height).toBeLessThanOrEqual(844);
   expect(await saveBar.getByRole("button").evaluateAll((buttons) => buttons.every((button) => button.getBoundingClientRect().height >= 44))).toBe(true);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
   await saveBar.getByRole("button", { name: "Änderungen verwerfen" }).click();
 
-  await page.getByRole("button", { name: "Zurück zu Lernen" }).click();
+  await deckSettingsDialog(page).getByRole("button", { name: "Stapeleinstellungen schließen" }).click();
   const europeRow = page.getByTestId(`learn-deck-row-${DECK_IDS.europe}`);
   await expect(europeRow).toContainText("Europa kompakt");
   await expect.poll(() => europeRow.locator('[data-deck-icon="true"]').first().evaluate((element) => getComputedStyle(element).color)).toBe(cssRgbFromHex(saved.iconColor));

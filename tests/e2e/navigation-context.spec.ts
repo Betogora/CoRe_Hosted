@@ -7,6 +7,7 @@ import type { Deck, Note } from "../../src/coreTypes.ts";
 import { readActiveAccountState, resetToFreshLocalState } from "./support/appState.ts";
 import { e2eAuthStatePath, loadE2EEnvironment } from "./support/e2eEnvironment.ts";
 import { seedAccountState } from "../support/seedAccountState.ts";
+import { deckSettingsDialog } from "./support/settingsDialog.ts";
 
 const DECK_IDS = {
   rootA: "navigation-root-a",
@@ -515,7 +516,7 @@ test("[Vertrag: Review-Karteneditor] Bearbeiten und Schließen kehren reload-fä
   await expect(page).toHaveURL(`/kartenstapel?deck=${DECK_IDS.childA}`);
 });
 
-test("[Vertrag: Review-Stapeleinstellungen] Sitzungsstapel und Rückweg bleiben reload-fähig", async ({ page }) => {
+test("[Vertrag: Review-Stapeleinstellungen] der Stapeldialog liegt reload-fähig über der Sitzung", async ({ page }) => {
   await page.goto(`/lernen?deck=${DECK_IDS.rootA}`);
   await waitForApp(page);
   await page.getByRole("button", { name: "Bereich A lernen" }).click();
@@ -524,21 +525,23 @@ test("[Vertrag: Review-Stapeleinstellungen] Sitzungsstapel und Rückweg bleiben 
   await page.getByRole("button", { name: "Lerneinstellungen" }).click();
   await page.getByRole("dialog", { name: "Lerneinstellungen" }).getByRole("button", { name: "Stapel bearbeiten" }).click();
   await expect(page).toHaveURL(new RegExp(
-    `/stapel-einstellungen\\?deck=${DECK_IDS.rootA}&returnView=review&reviewReturn=`,
+    `/decks/${DECK_IDS.rootA}/review\\?returnView=learn&returnDeck=${DECK_IDS.rootA}&settingsDeck=${DECK_IDS.rootA}&settings=start$`,
   ));
   await page.reload();
-  await expect(page.getByRole("heading", { name: "Bereich A" })).toBeVisible();
-  await page.getByRole("button", { name: "Zurück zur Sitzung" }).click();
+  const dialog = deckSettingsDialog(page);
+  await expect(dialog.getByTestId("deck-settings-title-name")).toHaveText("Bereich A");
+  // After the reload the dialog closes by replacing the URL; Escape must not also end the session.
+  await page.keyboard.press("Escape");
 
+  await expect(dialog).toHaveCount(0);
   await expect(page).toHaveURL(new RegExp(
     `/decks/${DECK_IDS.rootA}/review\\?returnView=learn&returnDeck=${DECK_IDS.rootA}$`,
   ));
   await expect(page.frameLocator('iframe[title="Frage"]').getByText("Karte A", { exact: true })).toBeVisible();
 
-  const invalidReturn = encodeURIComponent(`/lernen?deck=${DECK_IDS.rootA}`);
-  await page.goto(`/stapel-einstellungen?deck=${DECK_IDS.rootA}&returnView=review&reviewReturn=${invalidReturn}`);
+  await page.goto(`/lernen?deck=${DECK_IDS.rootA}&settingsDeck=${DECK_IDS.rootA}`);
   await waitForApp(page);
-  await page.getByRole("button", { name: "Zurück zu Lernen" }).click();
+  await deckSettingsDialog(page).getByRole("button", { name: "Stapeleinstellungen schließen" }).click();
   await expect(page).toHaveURL(`/lernen?deck=${DECK_IDS.rootA}`);
 });
 

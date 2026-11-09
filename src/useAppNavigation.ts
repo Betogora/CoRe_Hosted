@@ -1,7 +1,7 @@
 import React from "react";
 import type { AuthPhase } from "./accountSession.ts";
 import { shouldShowAppShell } from "./accountSession.ts";
-import type { AppRoute, AppViewId, CardEditorTab, DeckContentTab, ReviewResumeContext, SettingsReturnContext, SettingsTarget, StudyRoute, ViewRoute } from "./appNavigation.ts";
+import type { AppRoute, AppViewId, CardEditorTab, DeckContentTab, DeckSettingsOverlay, ReviewResumeContext, SettingsSection, StudyRoute, ViewRoute } from "./appNavigation.ts";
 import {
   appRouteToUrl,
   areAppRoutesEqual,
@@ -27,9 +27,9 @@ interface AppNavigationProjection {
   completedDeckId: string;
   completedCount: number;
   completionKind: "import" | "manual" | "";
-  settingsTarget: SettingsTarget | null;
-  settingsReturnContext: SettingsReturnContext | null;
   cardEditorReturnContext: ReviewResumeContext | null;
+  settingsSection: SettingsSection | null;
+  deckSettings: DeckSettingsOverlay | null;
 }
 
 interface BrowserHistoryTarget {
@@ -39,7 +39,7 @@ interface BrowserHistoryTarget {
   removeEventListener(type: "popstate", listener: (event: PopStateEvent) => void): void;
 }
 
-const focusedDeckViewIds = new Set<AppViewId>(["lernen", "kartenstapel", "stapel-einstellungen"]);
+const focusedDeckViewIds = new Set<AppViewId>(["lernen", "kartenstapel"]);
 const appHistoryPositionKey = "coreAppHistoryPosition";
 
 function readAppHistoryPosition(historyState: unknown): number | null {
@@ -79,9 +79,9 @@ export function projectAppRoute(route: AppRoute): AppNavigationProjection {
     completedDeckId: viewRoute.viewId === "neue-karten" ? (viewRoute.completedDeckId ?? "") : "",
     completedCount: viewRoute.viewId === "neue-karten" ? (viewRoute.completedCount ?? 0) : 0,
     completionKind: viewRoute.viewId === "neue-karten" ? (viewRoute.completionKind ?? "") : "",
-    settingsTarget: viewRoute.settingsTarget ?? null,
-    settingsReturnContext: viewRoute.viewId === "stapel-einstellungen" ? (viewRoute.settingsReturnContext ?? null) : null,
     cardEditorReturnContext: viewRoute.viewId === "kartenstapel" ? (viewRoute.cardEditorReturnContext ?? null) : null,
+    settingsSection: route.mode === "view" ? (route.settingsSection ?? null) : null,
+    deckSettings: route.deckSettings ?? null,
   };
 }
 
@@ -162,6 +162,8 @@ export function useAppNavigation({ authPhase, defaultViewId, onBeforeNavigation 
     return createViewRoute("lernen", { focusedDeckId: currentRoute.returnContext.deckId });
   }, []);
 
+  const getCurrentRoute = React.useCallback((): AppRoute => currentRouteRef.current, []);
+
   const resetBrowserRouteToDefault = React.useCallback(() => {
     historyInitializedRef.current = false;
     writeBrowserRoute(createViewRoute(defaultViewId), { replace: true, apply: false });
@@ -209,6 +211,7 @@ export function useAppNavigation({ authPhase, defaultViewId, onBeforeNavigation 
     navigateToRoute,
     navigateToView,
     getStudyReturnRoute,
+    getCurrentRoute,
     resetBrowserRouteToDefault,
   };
 }

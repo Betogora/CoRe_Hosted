@@ -3,6 +3,11 @@ import React from "react";
 const FOCUSABLE_SELECTOR =
   'button:not([disabled]), iframe, [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
+function isInsideOtherDialog(target: Element, dialog: HTMLElement | null) {
+  const owner = target.closest('[role="dialog"], [role="alertdialog"]');
+  return Boolean(owner && owner !== dialog);
+}
+
 export function useModalDialog({
   open,
   onClose,
@@ -32,6 +37,8 @@ export function useModalDialog({
 
     function handleKeyDown(event: KeyboardEvent) {
       if (event.key === "Escape") {
+        // An open selection list or a confirmation stacked on top handles its own Escape first.
+        if (event.target instanceof Element && (event.target.closest("[data-radix-popper-content-wrapper]") || isInsideOtherDialog(event.target, dialogRef.current))) return;
         event.preventDefault();
         if (stopEscapePropagation) event.stopPropagation();
         onCloseRef.current();

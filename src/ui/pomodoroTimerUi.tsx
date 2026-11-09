@@ -84,35 +84,32 @@ export function PomodoroTimerControl({ timer, variant, onStart }: PomodoroTimerC
   }
 
   return (
-    <div className={isSettings ? "border-b border-core-border last:border-b-0" : ""} data-pomodoro-control={variant}>
+    <div data-pomodoro-control={variant}>
       <button
         type="button"
         className={isSettings
-          ? "flex min-h-[4.75rem] w-full items-center gap-3 px-4 py-3 text-left transition hover:bg-core-hover sm:px-6"
+          ? "flex w-full items-center gap-6 py-4 text-left"
           : "flex min-h-control w-full items-center justify-between gap-3 py-1 text-left"}
         aria-expanded={open}
         aria-controls={regionId}
         onClick={() => setOpen((current) => !current)}
       >
-        <span className={isSettings ? "flex min-w-0 flex-1 items-center gap-3" : "core-field-label flex min-w-0 flex-1 items-center gap-2"}>
-          <span className={isSettings
-            ? "grid size-10 shrink-0 place-items-center rounded-control bg-core-subtle text-core-action"
-            : "contents"}
-          >
-            <TomatoIcon className={isSettings ? "shrink-0" : "shrink-0 text-core-muted"} size={isSettings ? 18 : 16} />
+        {isSettings ? (
+          <span className="core-settings-row-text flex-1">
+            <span className="core-settings-row-title">Pomodoro-Timer</span>
+            <span className="core-settings-row-hint">
+              {snapshot.running ? `Aktiv · noch ${snapshot.remainingMinutes} Min.` : "Läuft in diesem Browser. Ein Start ersetzt einen laufenden Timer."}
+            </span>
           </span>
-          <span className="min-w-0 flex-1">
-            <span className={isSettings ? "block core-heading-3 text-core-text" : "block"}>Pomodoro-Timer</span>
-            {isSettings ? (
-              <span className="block truncate core-caption font-normal text-core-muted">
-                {snapshot.running ? `Aktiv · noch ${snapshot.remainingMinutes} Min.` : "Dauer festlegen und global starten"}
-              </span>
-            ) : null}
+        ) : (
+          <span className="core-field-label flex min-w-0 flex-1 items-center gap-2">
+            <TomatoIcon className="shrink-0 text-core-muted" size={16} />
+            <span className="min-w-0 flex-1">Pomodoro-Timer</span>
           </span>
-        </span>
+        )}
         <span className="flex shrink-0 items-center gap-2 core-body font-normal text-core-muted">
           {value}
-          <ChevronRight className={`${isSettings ? "text-core-text" : "text-core-muted"} transition-transform ${open ? "rotate-90" : ""}`} size={isSettings ? 17 : 16} aria-hidden="true" />
+          <ChevronRight className={`text-core-muted transition-transform ${open ? "rotate-90" : ""}`} size={16} aria-hidden="true" />
         </span>
       </button>
 
@@ -122,7 +119,7 @@ export function PomodoroTimerControl({ timer, variant, onStart }: PomodoroTimerC
           aria-label="Pomodoro-Timer einstellen"
           noValidate
           className={isSettings
-            ? "grid gap-3 bg-core-subtle px-4 py-4 sm:px-6"
+            ? "grid gap-3 pb-4"
             : "mb-2 grid gap-3 rounded-control bg-core-subtle p-3"}
           onSubmit={start}
         >
