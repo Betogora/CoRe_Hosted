@@ -241,6 +241,18 @@ test("eine Cloudseite zeigt Karten mit noch nicht synchronisierter lokaler Ände
   assert.deepEqual(withCreated.items.map((entry) => entry.id), ["card-0", "card-9"], "eine hier angelegte, noch nicht hochgeladene Karte steht auf der letzten Seite");
   assert.equal(withCreated.totalCount, 2);
   assert.deepEqual(await service.listCardIds({ deckIds: [deck.id], sort: { field: "sortField", direction: "asc" } }), ["card-0", "card-9"], "die Id-Liste (Treffer lernen, Alle Treffer) folgt denselben lokalen Änderungen");
+
+  // The upload finishes while the cloud answer travels: the answer is older than the upload but the card still shows.
+  const uploading = createWorkspaceHydrationService({
+    repository,
+    mediaStore: null,
+    client: { async rpc() {
+      repository.outbox.markFlushed(repository.outbox.listPending().map((mutation) => mutation.id));
+      return { data: { items: cloudRows, totalCount: 2, hasMore: false, nextCursor: null }, error: null };
+    } },
+  });
+  const duringUpload = await uploading.queryCardPage({ deckId: deck.id, page: 0, pageSize: 50, sort: { field: "sortField", direction: "asc" } });
+  assert.ok(duringUpload.items.some((entry) => entry.id === "card-9"), "eine während der Anfrage hochgeladene neue Karte bleibt sichtbar");
   repository.close();
 });
 

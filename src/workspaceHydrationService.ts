@@ -260,10 +260,13 @@ export function createWorkspaceHydrationService({
     return graph?.cards.some((card) => card.id === cardId && deckIds.includes(card.deckId)) ? { ...graph, cardId } : null;
   };
 
-  /** Cards and contents whose local change still waits in the outbox, so the cloud does not show it yet. */
-  const pendingOutboxIds = () => {
-    const cardIds = new Set<string>();
-    const noteIds = new Set<string>();
+  /**
+   * Cards and contents whose local change still waits in the outbox, so the cloud does not show it yet. A cloud answer
+   * passes the ids pending when it was asked: a change uploaded while the answer travels is in neither of them.
+   */
+  const pendingOutboxIds = (askedWhilePending?: { cardIds: ReadonlySet<string>; noteIds: ReadonlySet<string> }) => {
+    const cardIds = new Set<string>(askedWhilePending?.cardIds);
+    const noteIds = new Set<string>(askedWhilePending?.noteIds);
     for (const mutation of repository.outbox.listPending()) {
       if (mutation.type === "review-atomic") cardIds.add((mutation.payload as { card: { id: string } }).card.id);
       else if (mutation.table === "cards" && mutation.entityId) cardIds.add(mutation.entityId);
@@ -280,9 +283,9 @@ export function createWorkspaceHydrationService({
    * a card deleted here leaves the page. The last page also lists cards created here that the cloud does not know yet
    * and that match the request, so new cards appear before their upload.
    */
-  const withPendingLocalRows = async (page: { items: CardCatalogEntry[]; hasMore: boolean; totalCount: number }, request: CardPageRequest) => {
+  const withPendingLocalRows = async (page: { items: CardCatalogEntry[]; hasMore: boolean; totalCount: number }, request: CardPageRequest, askedWhilePending: ReturnType<typeof pendingOutboxIds>) => {
     const { items } = page;
-    const { cardIds, noteIds } = pendingOutboxIds();
+    const { cardIds, noteIds } = pendingOutboxIds(askedWhilePending);
     if (!cardIds.size && !noteIds.size) return page;
     const changed = items.filter((entry) => cardIds.has(entry.id) || noteIds.has(entry.noteId));
     const local = changed.length ? await repository.loadCatalogEntries(changed.map((entry) => entry.id)) : new Map<string, CardCatalogEntry>();
@@ -311,7 +314,9 @@ export function createWorkspaceHydrationService({
     }
     let cloudPage = null;
     let cloudError: unknown = null;
+    let askedWhilePending: ReturnType<typeof pendingOutboxIds> | null = null;
     if (isOnline() && (status.catalogCompleteness !== "complete" || (Boolean(query) && !searchesLocally))) {
+      askedWhilePending = pendingOutboxIds();
       try {
         cloudPage = await fetchCatalogPage(request);
       } catch (error) {
@@ -321,7 +326,7 @@ export function createWorkspaceHydrationService({
       }
     }
     const local = cloudPage ? null : await repository.listCardPage(request.deckIds ?? request.deckId, { ...request, selectedCardId: null });
-    const shownCloudPage = cloudPage ? await withPendingLocalRows(cloudPage, request) : null;
+    const shownCloudPage = cloudPage && askedWhilePending ? await withPendingLocalRows(cloudPage, request, askedWhilePending) : null;
     const entries = shownCloudPage?.items ?? local!.items;
     markReplicaStartupGate("catalogUsable", { itemCount: entries.length });
     if (entries.length === 0 && cloudError) throw cloudError;
@@ -355,6 +360,7 @@ export function createWorkspaceHydrationService({
       return repository.listCardIds(request.deckIds, { query: request.query, searchContext: request.searchContext, sort: request.sort });
     }
     const ids: string[] = [];
+    const askedWhilePending = pendingOutboxIds();
     for (let page = 0; ; page += 1) {
       // The list key only names the cursor cache of this walk; the scope comes from `deckIds`.
       const result = await fetchCatalogPage({ ...request, deckId: "__ids__", page, pageSize: 50 });
@@ -362,7 +368,7 @@ export function createWorkspaceHydrationService({
       ids.push(...result.items.map((entry) => entry.id));
       if (!result.hasMore || !result.items.length) break;
     }
-    const { cardIds } = pendingOutboxIds();
+    const { cardIds } = pendingOutboxIds(askedWhilePending);
     if (!cardIds.size) return ids;
     // Like a page: a card deleted here leaves the list, a card created here joins it.
     const pendingKnown = ids.filter((id) => cardIds.has(id));

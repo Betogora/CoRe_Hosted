@@ -30,11 +30,13 @@ export interface CardEditorHitNavigation {
 }
 
 /**
- * Modal surface of the editor: the whole viewport on narrow screens, with a small margin on wide ones. The app
- * behind it is inert; a marked card tints header, tabs and background (`--core-marked-surface`).
+ * Surface of the editor. Modal: the whole viewport on narrow screens, with a small margin on wide ones, the app behind
+ * it inert. Docked (KV6, wide screens): beside the list, which stays usable, and as high as the viewport while the list
+ * scrolls. A marked card tints header, tabs and background (`--core-marked-surface`).
  */
-export function CardEditorSurface({ marked = false, labelledBy, label, surfaceRef, onKeyDown, children }: {
+export function CardEditorSurface({ marked = false, docked = false, labelledBy, label, surfaceRef, onKeyDown, children }: {
   marked?: boolean;
+  docked?: boolean;
   labelledBy?: string;
   label?: string;
   surfaceRef: React.RefObject<HTMLDivElement | null>;
@@ -42,6 +44,7 @@ export function CardEditorSurface({ marked = false, labelledBy, label, surfaceRe
   children: React.ReactNode;
 }) {
   React.useEffect(() => {
+    if (docked) return undefined;
     const root = document.getElementById("root");
     root?.setAttribute("inert", "");
     const previousOverflow = document.body.style.overflow;
@@ -50,7 +53,29 @@ export function CardEditorSurface({ marked = false, labelledBy, label, surfaceRe
       root?.removeAttribute("inert");
       document.body.style.overflow = previousOverflow;
     };
-  }, []);
+  }, [docked]);
+  const tone = marked ? "bg-core-marked-soft" : "bg-core-canvas";
+  const markedStyle = marked ? { "--core-text-muted": "var(--core-marked-text-muted)" } as React.CSSProperties : undefined;
+  if (docked) {
+    return (
+      <div
+        ref={surfaceRef}
+        role="dialog"
+        aria-labelledby={labelledBy}
+        aria-label={labelledBy ? undefined : label}
+        tabIndex={-1}
+        data-testid="card-detail-dialog"
+        data-docked="true"
+        data-marked={marked ? "true" : undefined}
+        onKeyDown={onKeyDown}
+        // The screen region scrolls below the app navigation; the editor keeps 1rem to its bottom edge.
+        className={`sticky top-4 flex h-[calc(100dvh-9rem)] min-w-0 flex-col overflow-hidden rounded-panel border border-core-border shadow-soft outline-none ${tone}`}
+        style={markedStyle}
+      >
+        {children}
+      </div>
+    );
+  }
   const surface = (
     <div className="fixed inset-0 z-[60] bg-[var(--core-backdrop)] lg:p-4" data-testid="card-detail-backdrop">
       <div
@@ -63,8 +88,8 @@ export function CardEditorSurface({ marked = false, labelledBy, label, surfaceRe
         data-testid="card-detail-dialog"
         data-marked={marked ? "true" : undefined}
         onKeyDown={onKeyDown}
-        className={`flex size-full min-w-0 flex-col overflow-hidden outline-none lg:rounded-overlay lg:border lg:border-core-border lg:shadow-raised ${marked ? "bg-core-marked-soft" : "bg-core-canvas"}`}
-        style={marked ? { "--core-text-muted": "var(--core-marked-text-muted)" } as React.CSSProperties : undefined}
+        className={`flex size-full min-w-0 flex-col overflow-hidden outline-none lg:rounded-overlay lg:border lg:border-core-border lg:shadow-raised ${tone}`}
+        style={markedStyle}
       >
         {children}
       </div>
@@ -151,6 +176,8 @@ export interface CardEditorDialogProps {
   syncConflict: boolean;
   services: CardEditorServices;
   surfaceRef: React.RefObject<HTMLDivElement | null>;
+  /** Beside the list instead of over it (KV6). */
+  docked?: boolean;
   onSaveNote: (graph: NoteGraph, content: NoteContent) => Promise<unknown>;
   onSetStudyState: (cardId: string, patch: CardStudyStatePatch) => Promise<NoteGraph | null>;
   onDuplicateNote: () => Promise<NoteGraph | null>;
@@ -239,7 +266,7 @@ export function CardEditorDialog(props: CardEditorDialogProps) {
   const loading = <p className="p-6 core-body text-core-muted" role="status">Wird geladen …</p>;
 
   return (
-    <CardEditorSurface marked={note.marked} labelledBy={titleId} surfaceRef={props.surfaceRef} onKeyDown={handleKeyDown}>
+    <CardEditorSurface marked={note.marked} docked={props.docked} labelledBy={titleId} surfaceRef={props.surfaceRef} onKeyDown={handleKeyDown}>
       <header className="grid shrink-0 gap-4 border-b border-core-border px-3 pb-4 pt-3 sm:px-6 sm:pt-4" data-testid="card-detail-editor">
         <div className="grid min-w-0 grid-cols-[auto_minmax(0,1fr)_auto] items-start gap-x-2 gap-y-1 sm:gap-x-3">
           {hits ? (

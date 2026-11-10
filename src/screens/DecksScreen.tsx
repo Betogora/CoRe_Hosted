@@ -241,6 +241,20 @@ const CardTableRowView = React.memo(function CardTableRowView({ virtualKey, deck
 });
 
 
+const WIDE_EDITOR_QUERY = "(min-width: 1280px)";
+
+function useWideEditor() {
+  return React.useSyncExternalStore(
+    (onChange) => {
+      const query = window.matchMedia(WIDE_EDITOR_QUERY);
+      query.addEventListener("change", onChange);
+      return () => query.removeEventListener("change", onChange);
+    },
+    () => window.matchMedia(WIDE_EDITOR_QUERY).matches,
+    () => false,
+  );
+}
+
 export function DecksScreen({
   decks,
   summaryAccountId,
@@ -464,6 +478,9 @@ export function DecksScreen({
   // Until the page answers for the selected card the editor shows the loading bar, never "Karte nicht gefunden".
   const selectedCardLoading = selectedCardMissing && Boolean(onRequestCardPage) && !selectedPage?.loadError && selectedPage?.requestedCardId !== selectedCardId;
   const detailOpen = Boolean(selectedGraph || selectedDeckMissing || selectedCardMissing);
+  // From 1280 px the editor opens beside the list, which keeps its selection and scroll position (KV6).
+  const dockedDetail = useWideEditor() && !(contentDeckId && contentTab !== "cards");
+  const splitDetail = dockedDetail && detailOpen;
   const { urls: selectedNoteMediaUrls } = useNoteMediaUrls(selectedGraph?.note.media, mediaStore);
   const handleEditorDraftStateChange = React.useCallback((guard: CardDraftGuard | null) => {
     cardDraftGuardRef.current = guard;
@@ -887,6 +904,7 @@ export function DecksScreen({
           mediaStore={mediaStore}
           services={cardEditor}
           surfaceRef={detailRef}
+          docked={dockedDetail}
           onSaveNote={onSaveNote}
           onSetStudyState={(cardId, patch) => onSetCardStudyState(selectedDeck.id, cardId, patch)}
           onDuplicateNote={() => onDuplicateNote(selectedGraph)}
@@ -905,7 +923,7 @@ export function DecksScreen({
     }
     if (selectedCardLoading) {
       return (
-        <CardEditorSurface label="Kartendetail" surfaceRef={detailRef}>
+        <CardEditorSurface label="Kartendetail" docked={dockedDetail} surfaceRef={detailRef}>
           <div className="px-3 pt-3 sm:px-6 sm:pt-4" data-testid="card-detail-loading">
             <div className="core-statistics-load-track" role="progressbar" aria-label="Karte wird geladen"><span aria-hidden="true" /></div>
           </div>
@@ -913,7 +931,7 @@ export function DecksScreen({
       );
     }
     return (
-      <CardEditorSurface label="Kartendetail" surfaceRef={detailRef}>
+      <CardEditorSurface label="Kartendetail" docked={dockedDetail} surfaceRef={detailRef}>
         <div className="grid min-h-full place-items-center p-6">
           {selectedDeckMissing ? (
             <EmptyState
@@ -1086,6 +1104,7 @@ export function DecksScreen({
           </div>
 
           {deferredQuery.trim() ? <MatchingDecks groups={tableModel.groups.filter((group) => group.deckMatches)} onOpen={(deckId) => changeQuery(withCardSearchTermState(cardSearchTerms(query).filter((term) => !/^-?did:/i.test(term)).join(" "), `did:${deckId}`, "in"))} /> : null}
+          <div className={splitDetail ? "grid min-w-0 grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)] items-start gap-4" : "contents"} data-testid="card-library-split">
           {items.length || cardsLoading ? (
             <div className="min-w-0 max-w-full overflow-clip rounded-panel border border-core-border bg-core-surface">
           <table className="w-full table-fixed border-collapse" data-testid="card-library-table" aria-busy={cardsLoading || undefined} aria-rowcount={items.length}>
@@ -1203,9 +1222,11 @@ export function DecksScreen({
               {deferredQuery.trim() ? <p className="core-body text-core-secondary">Passe die Suche an.</p> : null}
             </div>
           )}
+          {splitDetail ? renderDetailLayer() : null}
+          </div>
         </div>
       </SoftPanel>}
-      {detailOpen ? renderDetailLayer() : null}
+      {detailOpen && !dockedDetail ? renderDetailLayer() : null}
 
       <ActionDialog
         open={Boolean(pendingDetailAction)}
