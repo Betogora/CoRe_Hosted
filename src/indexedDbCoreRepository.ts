@@ -16,6 +16,7 @@ import type { CardTableSort, DeckLibrarySummary } from "./libraryModel.ts";
 import type { SyncOutboxMutation } from "./syncEngine.ts";
 import type { CloudCatalogPage, CloudEntityPage } from "./cloudRepository.ts";
 import type { ReplicatedNoteTypeSource } from "./cloudRepositoryValidation.ts";
+import { countsTowardDailyLimits } from "./reviewEventKinds.ts";
 import type { ReviewAnswerResult } from "./reviewService.ts";
 import type { ImportCommitGraph, ImportMediaFile, NoteTypeSource } from "./apkgImport.ts";
 import { createStudyHeatmapModelFromCounts, getStudyHeatmapDayKey } from "./studyHeatmapModel.ts";
@@ -1448,7 +1449,7 @@ export async function createIndexedDbCoreRepository({ userId, initialState, inde
         await applyReplicaCatalogChange(transaction, deck.id, previousCatalog, catalog, event.answeredAt);
         const overviewContext = studyOverview ? studyOverviewContext(studyOverview) : null;
         const overviewDay = overviewContext ? getStudyHeatmapDayKey(event.answeredAt, overviewContext.timeZone, overviewContext.dayStartHour) : null;
-        if (studyOverview && overviewContext && overviewDay === studyOverview.dayKey) {
+        if (studyOverview && overviewContext && overviewDay === studyOverview.dayKey && countsTowardDailyLimits(event)) {
           const range = getLearningDayRange(event.answeredAt, overviewContext);
           const priorEvents = range ? await requestResult<ReviewEvent[]>(transaction.objectStore(STORE.reviewEvents).index("cardAnswered").getAll(IDBKeyRange.bound(
             [event.cardId, new Date(range.start).toISOString(), ""],
@@ -1458,7 +1459,7 @@ export async function createIndexedDbCoreRepository({ userId, initialState, inde
           ))) : [];
           const wasNew = (candidate: ReviewEvent) => ((candidate.schedulerBefore as any)?.card?.state ?? "new") === "new";
           const isIntroduction = wasNew(event);
-          if (!priorEvents.some((prior) => prior.rating !== "manual" && wasNew(prior) === isIntroduction)) {
+          if (!priorEvents.some((prior) => countsTowardDailyLimits(prior) && wasNew(prior) === isIntroduction)) {
             const key = isIntroduction ? "introducedTodayByDeck" : "reviewedTodayByDeck";
             studyOverview = { ...studyOverview, [key]: { ...studyOverview[key], [deck.id]: (studyOverview[key][deck.id] ?? 0) + 1 }, generatedAt: event.answeredAt };
             transaction.objectStore(STORE.syncMetadata).put({ key: "accountStudyOverview", value: studyOverview });
@@ -1727,7 +1728,7 @@ export async function createIndexedDbCoreRepository({ userId, initialState, inde
         const reviewed = new Set<string>();
         if (catalogIsComplete && !overviewMatches) {
           for (const event of todayEventRows[index] ?? []) {
-            if (event.rating === "manual") continue;
+            if (!countsTowardDailyLimits(event)) continue;
             const before = (event.schedulerBefore as any)?.card;
             if (before?.state === "new" || Number(before?.reps ?? 0) === 0) introduced.add(event.cardId);
             else reviewed.add(event.cardId);
@@ -1789,10 +1790,10 @@ export async function createIndexedDbCoreRepository({ userId, initialState, inde
       return new Map(rows.filter((row): row is StoredCardCatalog => Boolean(row)).map((row) => [row.id, catalogEntry(row)]));
     },
     /** Ids of every card in scope that matches the search, in index order: `Alle N Treffer auswählen` (KV4). */
-    async listCardIds(scope: readonly string[], { query = "", searchContext }: { query?: string; searchContext?: CardSearchContext } = {}) {
+    async listCardIds(scope: readonly string[], { query = "", searchContext, sort = { field: "sortField", direction: "asc" } }: { query?: string; searchContext?: CardSearchContext; sort?: CardTableSort } = {}) {
       await writeChain;
       await ensureSearchIndex();
-      return searchIndex.slice(query, { field: "sortField", direction: "asc" }, searchContext, scope, 0, Number.MAX_SAFE_INTEGER).items.map((entry) => entry.id);
+      return searchIndex.slice(query, sort, searchContext, scope, 0, Number.MAX_SAFE_INTEGER).items.map((entry) => entry.id);
     },
     /**
      * Catalog page by page number of one deck, or of several decks as one list (the flat hit list), plus the opened

@@ -442,6 +442,11 @@ export interface Deck {
   reviewEvents: ReviewEvent[];
   /** Transient study root only, never persisted: its cards are learned in the given order without daily limits. */
   plannedOrder?: true;
+  /**
+   * With `plannedOrder`: `Treffer lernen` (KV5) learns every card of the session, due or not, without sibling burying,
+   * in the order of `cardIds` across its decks.
+   */
+  hitSession?: { cardIds: readonly string[] };
 }
 
 export interface ImportVerificationScope {

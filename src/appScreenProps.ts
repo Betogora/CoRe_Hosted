@@ -1,5 +1,6 @@
 import type { CardSearchContext } from "./cardSearchQuery.ts";
 import type { CardBatchAction, CardBatchResult, TextReplaceSession } from "./cardBatchActions.ts";
+import type { HitStudyOrder } from "./hitStudySession.ts";
 import type { Dispatch, ReactNode, SetStateAction } from "react";
 import type { AppRoute, AppViewId, CardEditorTab, DeckContentTab, DeckSettingsSection, GeneralSettingsSection, LearningSettingsSection, SettingsSection, createViewRoute } from "./appNavigation.ts";
 import type { ApkgImportSession } from "./apkgImportSession.ts";
@@ -213,8 +214,10 @@ export interface DecksScreenProps {
   onRunCardBatch?: (cardIds: string[], action: CardBatchAction) => Promise<CardBatchResult>;
   /** Loads the selected contents for `Suchen und Ersetzen` (KV5). */
   onPrepareTextReplace?: (cardIds: string[]) => Promise<TextReplaceSession>;
+  /** `Treffer lernen` (KV5): studies these cards ahead of time; they are already free of suspended and buried cards. */
+  onStudyHits?: (cardIds: string[], order: HitStudyOrder) => Promise<void>;
   /** Ids of every hit of the flat hit list, for `Alle N Treffer auswählen` (KV4). */
-  onListHitCardIds?: (request: { deckIds: string[]; query: string; searchContext: CardSearchContext }) => Promise<string[]>;
+  onListHitCardIds?: (request: { deckIds: string[]; query: string; searchContext: CardSearchContext; sort?: CardTableSort }) => Promise<string[]>;
   variantGenerationRunning?: boolean;
   onUpdateVariant: (cardId: string, variantId: string, action: "reactivate" | "deactivate" | "delete") => Promise<void>;
   selectedDeckId: string | null;

@@ -1,5 +1,5 @@
 import React from "react";
-import { ArrowDown, ArrowLeft, ArrowUp, Check, ChevronRight, FileText, Layers, ListChecks, Minus, Network, NotebookPen, PanelsTopLeft, Play, RotateCcw, Search, Star, CircleHelp, type LucideIcon } from "lucide-react";
+import { ArrowDown, ArrowLeft, ArrowUp, Check, ChevronRight, FileText, GraduationCap, Layers, ListChecks, Minus, Network, NotebookPen, PanelsTopLeft, Play, RotateCcw, Search, Star, CircleHelp, type LucideIcon } from "lucide-react";
 import type { CardDraftGuard, DecksCardPage, DecksScreenProps } from "../appScreenProps.ts";
 export type { DecksCardPage, DecksCardPageRequest } from "../appScreenProps.ts";
 export type DecksScreenCardPageProps = Pick<DecksScreenProps, "cardPages" | "onRequestCardPage">;
@@ -22,6 +22,8 @@ import { CardSearchBar } from "./cardSearch/CardSearchBar.tsx";
 import { createCardSearchMenu } from "./cardSearch/cardSearchMenu.ts";
 import { useVirtualRows } from "./cardList/virtualRows.ts";
 import { CardSelectionBar } from "./cardList/CardSelectionBar.tsx";
+import { HitStudyDialog } from "./cardList/HitStudyDialog.tsx";
+import { hitStudyQuery } from "../hitStudySession.ts";
 import type { CardBatchAction } from "../cardBatchActions.ts";
 import { CardEditorDialog, CardEditorSurface, type CardEditorHitNavigation } from "./cardEditor/CardEditorDialog.tsx";
 import { DeckSummariesPanel } from "./DeckSummariesPanel.tsx";
@@ -265,6 +267,7 @@ export function DecksScreen({
   onGenerateCardVariants,
   onRunCardBatch,
   onPrepareTextReplace,
+  onStudyHits,
   onListHitCardIds,
   variantGenerationRunning = false,
   onUpdateVariant,
@@ -707,6 +710,13 @@ export function DecksScreen({
   }
 
   const prepareSelectionReplace = useStableCallback(async () => onPrepareTextReplace!(await selectedIds()));
+  // `Treffer lernen` (KV5) studies the hits or the selection without suspended and buried cards.
+  const [hitStudy, setHitStudy] = React.useState<"hits" | "selection" | null>(null);
+  const canStudyHits = Boolean(onStudyHits && onListHitCardIds);
+  const loadHitStudyIds = useStableCallback(async () => {
+    const ids = await onListHitCardIds!({ deckIds: hitScope, query: hitStudyQuery(deferredQuery), searchContext, sort: cardSort });
+    return hitStudy === "selection" && !allHits ? ids.filter((id) => checkedIds.has(id)) : ids;
+  });
 
   async function generateSelectionVariants() {
     if (!onGenerateCardVariants) return;
@@ -969,6 +979,11 @@ export function DecksScreen({
               onAdvancedOpenChange={setAdvancedSearchOpen}
               advancedId="advanced-card-search"
               resultCount={searchResultCount}
+              resultAction={canStudyHits && searchResultCount ? (
+                <button type="button" className="inline-flex items-center gap-1.5 core-body font-semibold text-core-action hover:underline" onClick={() => setHitStudy("hits")}>
+                  <GraduationCap size={16} aria-hidden="true" />Treffer lernen
+                </button>
+              ) : undefined}
               placeholder={contentDeckId ? "Vorderseite, Rückseite, Felder oder Tags durchsuchen" : "Stapel, Vorderseite, Rückseite, Felder oder Tags durchsuchen"}
               hint={unsupportedTerms.length ? `Noch nicht unterstützt, wird als Text gesucht: ${unsupportedTerms.join(" ")}` : undefined}
             >
@@ -985,6 +1000,14 @@ export function DecksScreen({
                 />
               ) : null}
             </CardSearchBar>
+            {hitStudy ? (
+              <HitStudyDialog
+                title={hitStudy === "selection" ? "Auswahl lernen" : "Treffer lernen"}
+                loadCardIds={loadHitStudyIds}
+                onStart={onStudyHits!}
+                onClose={() => setHitStudy(null)}
+              />
+            ) : null}
             {deckStatus ? <p className={"core-body font-semibold " + (deckStatusType === "alert" ? "core-status-error" : "core-status-info")} role={deckStatusType}>{deckStatus}</p> : null}
             {deletedCardUndo ? (
               <div className="flex flex-wrap items-center gap-3 rounded-panel border border-core-border bg-core-subtle px-4 py-3">
@@ -1023,6 +1046,7 @@ export function DecksScreen({
                         timeZone={timeZone}
                         disabled={runningBatch || selectionCount === 0}
                         onGenerateVariants={onGenerateCardVariants && !variantGenerationRunning ? () => void generateSelectionVariants() : undefined}
+                        onStudy={canStudyHits ? () => setHitStudy("selection") : undefined}
                         onPrepareReplace={onPrepareTextReplace ? prepareSelectionReplace : undefined}
                         onRun={runSelectionAction}
                       />

@@ -11,7 +11,7 @@ const ALL_DECKS = "__all__";
  * Search row of the card management (KV2): free text, the deck filter (a `did:` term) and the switch for the
  * advanced search; below it the active terms as removable chips with the hit count.
  */
-export function CardSearchBar({ query, onQueryChange, decks, categories, advancedOpen, onAdvancedOpenChange, advancedId, resultCount, placeholder, hint, children }: {
+export function CardSearchBar({ query, onQueryChange, decks, categories, advancedOpen, onAdvancedOpenChange, advancedId, resultCount, resultAction, placeholder, hint, children }: {
   query: string;
   onQueryChange: (query: string) => void;
   decks: Deck[];
@@ -20,6 +20,8 @@ export function CardSearchBar({ query, onQueryChange, decks, categories, advance
   onAdvancedOpenChange: (open: boolean) => void;
   advancedId: string;
   resultCount: number | null;
+  /** Action for the hits at the end of their row, such as `Treffer lernen`. */
+  resultAction?: React.ReactNode;
   /** The open advanced menu sits above the chips, so a new chip never shifts it under the pointer. */
   children?: React.ReactNode;
   placeholder: string;
@@ -109,6 +111,7 @@ export function CardSearchBar({ query, onQueryChange, decks, categories, advance
             </ul>
           ) : null}
           {terms.length ? <button type="button" className="ml-1.5 core-body font-semibold text-core-action hover:underline" onClick={() => onQueryChange(cardSearchText(query))}>Alle zurücksetzen</button> : null}
+          {resultAction ? <div className="ml-auto shrink-0">{resultAction}</div> : null}
         </div>
       ) : null}
     </div>

@@ -181,7 +181,7 @@ Vor einem solchen Deploy deshalb alle genutzten Geräte synchronisieren, dann
 deployen.
 
 Die Kartenverwaltung 2.0 (ADR-048) bringt `20261104220000_kartensuche_volltext`
-bis `20261109120000_kartensuche_haltbarkeit`; sie gehören in denselben Release
+bis `20261110120000_treffer_lernen_tageslimits`; sie gehören in denselben Release
 wie der Client, Migrationen zuerst. Ein noch geöffneter älterer Client lehnt
 die Delta-Tabelle `note_search` ab und synchronisiert erst nach dem Neuladen
 wieder; ein neuer Client vor der Migration sucht weiter in der Cloud

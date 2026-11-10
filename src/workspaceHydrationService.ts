@@ -343,7 +343,7 @@ export function createWorkspaceHydrationService({
   const listCardIds = async (request: Pick<CardPageRequest, "deckIds" | "query" | "searchContext" | "sort" | "signal"> & { deckIds: readonly string[] }) => {
     const status = repository.getReplicaStatus();
     if (status.catalogCompleteness === "complete" && (status.searchTextsReady === true || !request.query?.trim())) {
-      return repository.listCardIds(request.deckIds, { query: request.query, searchContext: request.searchContext });
+      return repository.listCardIds(request.deckIds, { query: request.query, searchContext: request.searchContext, sort: request.sort });
     }
     const ids: string[] = [];
     for (let page = 0; ; page += 1) {

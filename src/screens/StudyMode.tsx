@@ -1,6 +1,7 @@
 import React from "react";
 import { CheckCircle2, ChevronDown, CircleAlert, RotateCcw, Shuffle, SlidersHorizontal, X } from "lucide-react";
 import type { StudyModeProps } from "../appScreenProps.ts";
+import { HIT_REVIEW_KIND } from "../reviewEventKinds.ts";
 import { DEFAULT_EASY_DAYS, createEasyDaysDueCounts, shiftEasyDaysDueCounts } from "../easyDays.ts";
 import { getLearningDayKey } from "../learningDay.ts";
 import { variantPresentation } from "../coreVariantService.ts";
@@ -301,6 +302,7 @@ export function StudyMode({ shortcutsSuspended = false, deck, decks, notes, answ
       timeZone,
       easyDaysContext,
       responseTimeMs,
+      flags: rootDeck?.hitSession ? { kind: HIT_REVIEW_KIND } : undefined,
     });
     onReview(result);
     if (result.leechTriggered) {

@@ -382,6 +382,15 @@ test("lokales Supabase isoliert Nutzer A, Nutzer B und anon über alle accountge
       assertNoError(await clientA.from("decks").update({ deck_settings: {} }).eq("id", fixtureA.decks.id), "Begraben wieder ausschalten");
       assertNoError(await clientA.from("cards").update({ deleted_at: new Date().toISOString() }).eq("id", siblingId), "Geschwister entfernen");
 
+      // KV5: reviews of `Treffer lernen` change the study state but use up no daily limit.
+      const hitCardId = `${prefix}_hit_card`;
+      assertNoError(await clientA.from("cards").insert({ ...fixtureA.cards, id: hitCardId, prompt_key: "hit" }), "Karte für Treffer lernen anlegen");
+      assertNoError(await clientA.from("review_events").insert({ ...fixtureA.review_events, id: `${prefix}_hit_review`, card_id: hitCardId, flags: { kind: "hit_review" } }), "Bewertung aus Treffer lernen anlegen");
+      const hitOverview = assertNoError(await clientA.rpc("get_account_bootstrap", { p_cursor: "", p_limit: 50, p_max_bytes: 204800 }), "Bootstrap nach Treffer lernen").studyOverview;
+      assert.equal(hitOverview.introducedTodayByDeck[fixtureA.decks.id], 1, "Treffer lernen führt keine neue Karte im Tageslimit ein");
+      assert.equal(hitOverview.reviewedTodayByDeck[fixtureA.decks.id] ?? 0, 0, "Treffer lernen zählt keine Wiederholung im Tageslimit");
+      assertNoError(await clientA.from("cards").update({ deleted_at: new Date().toISOString() }).eq("id", hitCardId), "Karte für Treffer lernen entfernen");
+
       // The delta is paged like the real sync; the fixture's catalog and search rows exceed one page.
       const pullDelta = async (cursor: number, label: string) => {
         const changes: any[] = [];

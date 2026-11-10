@@ -46,6 +46,7 @@ import type { ManualNoteSaveInput } from "./screens/ManualCreationPanel.tsx";
 import { clearPomodoroTimer, createPomodoroTimerFromSeconds, pausePomodoroTimer, resumePomodoroTimer, getPomodoroTimerStorageKey, readPomodoroTimer, writePomodoroTimer, type PomodoroTimer } from "./pomodoroTimer.ts";
 import { createDailyReviewQueue, updateDeckNewCardLimitForDate, type ReviewAnswerResult } from "./reviewService.ts";
 import { EXAM_SESSION_DECK_ID, validateExamPlanningSettings } from "./examPlanSettings.ts";
+import { createHitSessionDecks, HIT_SESSION_DECK_ID, type HitStudyOrder } from "./hitStudySession.ts";
 import { useStudySession, type StudyPreparation } from "./useStudySession.ts";
 import { useAccountWorkspace } from "./useAccountWorkspace.ts";
 import { formatSimulationDate, getSimulatedNow, normalizeSimulationOffsetMinutes } from "./simulationClock.ts";
@@ -972,7 +973,10 @@ export function App() {
     if (study.preparedKeyRef.current === preparationKey && study.decks) return;
     let active = true;
     // After a reload an exam session resumes as today's whole unit.
-    const preparing = studyRequest.deckId === EXAM_SESSION_DECK_ID ? prepareExamUnit(null) : prepareStudyWindow(studyRequest.deckId);
+    // `Treffer lernen` lives only in the screen that started it; after a reload it is gone.
+    const preparing = studyRequest.deckId === EXAM_SESSION_DECK_ID ? prepareExamUnit(null)
+      : studyRequest.deckId === HIT_SESSION_DECK_ID ? Promise.reject(new Error("Die Treffer sind nach dem Neuladen nicht mehr da. Starte „Treffer lernen“ erneut."))
+        : prepareStudyWindow(studyRequest.deckId);
     void preparing.then((preparation) => {
       if (!active || !preparation) return;
       if (!preparation.decks.some((deck) => deck.id === studyRequest.deckId)) {
@@ -1307,6 +1311,30 @@ export function App() {
       adoptStudyWindow(preparation, EXAM_SESSION_DECK_ID);
       const returnRoute = createViewRoute(activeView === "pruefungen" ? "pruefungen" : "uebersicht");
       navigateToRoute(createStudyRoute(EXAM_SESSION_DECK_ID, { returnContext: createReviewReturnContext(returnRoute) }));
+    } finally {
+      study.preparingKeyRef.current = "";
+    }
+  }
+
+  /** `Treffer lernen` with `Vorziehen` (KV5): a study session over exactly these cards, due or not, without daily limits. */
+  async function startHitSession(cardIds: string[], order: HitStudyOrder) {
+    const currentState = latestStateRef.current;
+    if (!workspaceHydrationService || !currentState) throw new Error("Die Kartenverwaltung ist noch nicht bereit.");
+    if (study.preparingKeyRef.current === HIT_SESSION_DECK_ID) return;
+    study.preparingKeyRef.current = HIT_SESSION_DECK_ID;
+    try {
+      const preferences = getGlobalSchedulerPreferences(currentState.profile);
+      const now = getLearningNow();
+      const ids = typeof navigator !== "undefined" && navigator.onLine === false ? await workspaceHydrationService.listLocalCardIds(cardIds) : cardIds;
+      const bodies = (await workspaceHydrationService.openCards(ids)).filter((body): body is { card: Card; note: Note } => Boolean(body));
+      const position = new Map(ids.map((id, index) => [id, index]));
+      bodies.sort((a, b) => (position.get(a.card.id) ?? 0) - (position.get(b.card.id) ?? 0));
+      const decks = createHitSessionDecks(currentState.decks, bodies.map(({ card }) => card), order, now);
+      const queue = createDailyReviewQueue(decks, { deckId: HIT_SESSION_DECK_ID, now, dayStartHour: preferences.dayStartHour, learnAheadMinutes: preferences.learnAheadMinutes, timeZone: learningTimeZone });
+      if (!queue.total) throw new Error(ids.length ? "Keine dieser Karten kann gerade gelernt werden." : "Diese Karten sind erst online verfügbar.");
+      const notes = [...new Map(bodies.map(({ note }) => [note.id, note])).values()];
+      adoptStudyWindow({ decks, notes, answeredToday: [], queue, cursorByDeck: {}, hasMoreCards: false, bufferSize: 50, dueForecast: null }, HIT_SESSION_DECK_ID);
+      navigateToRoute(createStudyRoute(HIT_SESSION_DECK_ID, { returnContext: createReviewReturnContext(getStudyReturnRoute()) }));
     } finally {
       study.preparingKeyRef.current = "";
     }
@@ -1943,6 +1971,7 @@ export function App() {
           } : undefined}
           onRunCardBatch={workspaceRepository && workspaceHydrationService ? runDeckCardBatch : undefined}
           onPrepareTextReplace={workspaceRepository && workspaceHydrationService ? prepareDeckTextReplace : undefined}
+          onStudyHits={workspaceHydrationService ? startHitSession : undefined}
           onListHitCardIds={workspaceHydrationService ? (request) => workspaceHydrationService.listCardIds(request) : undefined}
           variantGenerationRunning={variantBatch.running}
           onUpdateVariant={updateDeckCardVariant}

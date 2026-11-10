@@ -207,17 +207,9 @@ Referenz gelesen.
       - **Tag-Verwaltung** für das Konto: umbenennen samt Untertags,
         zusammenführen, löschen, ungenutzte bereinigen, Herkunft anzeigen; im
         Menü über die Tag-Zeile.
-      - **Treffer lernen:** lernt die aktuellen Treffer oder die Auswahl,
-        unabhängig von Fälligkeit und Tageslimits; ausgesetzte und
-        zurückgestellte Karten bleiben außen vor. Ein Startdialog nennt die
-        Kartenzahl und bietet `Vorziehen` (Standard) oder `Nur üben`, dazu die
-        Reihenfolge `Wie die Liste` oder `Gemischt`.
-        - **Vorziehen:** normale Sitzung mit gespeicherten Bewertungen über
-          den bestehenden Schreibpfad (`record_review`). Noch nicht fällige
-          Karten zählen als vorgezogene Wiederholung; FSRS rechnet mit den
-          tatsächlich vergangenen Tagen, die Haltbarkeit wächst deshalb
-          weniger als bei pünktlicher Wiederholung. Neue Karten werden
-          eingeführt, ohne das Tageslimit zu belasten.
+      - **Treffer lernen, Nur üben:** `Vorziehen` steht (Startdialog mit
+        Kartenzahl und Reihenfolge, Trefferschlange, Tageslimits bleiben
+        unberührt). Offen ist der zweite Weg im Startdialog:
         - **Nur üben:** Ablauf wie eine Sitzung (Frage, Aufdecken,
           Bewerten). `Nochmal` holt die Karte nach einigen anderen Karten
           zurück, `Schwer` noch einmal, `Gut` und `Einfach` beenden sie für
@@ -226,10 +218,8 @@ Referenz gelesen.
           unverändert, es entsteht kein Bewertungseintrag. Am Ende eine
           Übersicht (geübt, wie oft `Nochmal`) mit `Nochmal üben` für die
           schwierigen Karten.
-        - Technisch ein transienter Sitzungsstapel wie die Prüfungseinheit
-          (`plannedOrder`), aber mit einer Trefferschlange statt der
-          Fälligkeitsschlange; `Nur üben` hat keinen Schreibpfad. Damit
-          lassen sich auch Prüfungsthemen über Tags lernen.
+        - `Nur üben` nutzt dieselbe Auswahl der Karten wie `Vorziehen`, hat
+          aber keinen Schreibpfad.
       Nachweis: Modell- und Routentests, Reimport-Schutz bearbeiteter Inhalte,
       E2E je Werkzeug.
 - [ ] **KV6 – Arbeitsfluss:** Ab etwa 1280 px öffnet der Editor neben der
