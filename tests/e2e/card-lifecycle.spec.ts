@@ -510,6 +510,37 @@ test("[Vertrag: Massenaktion mit Rückgängig] @beta-core ausgewählte Karten we
   await expect(page.locator('[data-card-row][data-suspended="true"]')).toHaveCount(0);
 });
 
+test("[Vertrag: Suchen und Ersetzen mit Vorschau und Rückgängig] @beta-core ersetzt Text in den ausgewählten Inhalten", async ({ page }) => {
+  const deckName = "Ersetzen";
+  await openManualCreation(page, deckName, "basic-reversed");
+  await page.getByRole("textbox", { name: "Vorderseite" }).fill("Hauptstadt von Norwegen");
+  await page.getByRole("textbox", { name: "Rückseite" }).fill("Oslo");
+  const deck = await finishManualCreation(page, deckName, 2);
+  const frontOf = async () => (await readActiveAccountState(page)).notes.find((note: { id: string }) => note.id === deck.cards[0].noteId)?.content.fields[0].html;
+
+  await page.goto(`/kartenstapel?deck=${encodeURIComponent(deck.id)}&content=1&tab=cards`);
+  const rows = page.locator("[data-card-row]");
+  await expect(rows).toHaveCount(2);
+  await page.getByTestId("card-selection-start").click();
+  await page.getByTestId(`select-card-${deck.cards[0].id}`).click();
+  await page.getByTestId("card-selection-actions").click();
+  await page.getByRole("button", { name: "Suchen und Ersetzen" }).click();
+  const dialog = page.getByRole("dialog");
+  await dialog.getByRole("textbox", { name: "Suchen" }).fill("norwegen");
+  await dialog.getByRole("textbox", { name: "Ersetzen durch" }).fill("Schweden");
+  await expect(dialog.getByTestId("text-replace-preview")).toContainText("1 Karte ändert sich");
+  await expect(dialog.getByTestId("text-replace-preview")).toContainText("Hauptstadt von Schweden");
+  await dialog.getByRole("button", { name: "Ersetzen", exact: true }).click();
+  await expect(page.getByText("Suchen und Ersetzen: 1 Karte")).toBeVisible();
+  // Both cards of the content show its sort field.
+  await expect(rows.filter({ hasText: "Hauptstadt von Schweden" })).toHaveCount(2);
+  await expect.poll(frontOf).toBe("<p>Hauptstadt von Schweden</p>");
+
+  await page.getByRole("button", { name: "Rückgängig" }).click();
+  await expect(page.getByText("Rückgängig gemacht: 1 Karte.")).toBeVisible();
+  await expect.poll(frontOf).toBe("<p>Hauptstadt von Norwegen</p>");
+});
+
 test("[Vertrag: typgerechter Cloze-Lebenszyklus] @beta-core jede Lückengruppe bleibt eine unabhängige Karte", async ({ page }) => {
   const deckName = "Lebenszyklus Cloze";
   await openManualCreation(page, deckName, "cloze");

@@ -3,6 +3,10 @@ import type { Deck } from "../../coreTypes.ts";
 import { CARD_TABLE_PAGE_SIZE, createCardTableModel, createCardTableRow, sameCardTableSort, type CardTableSort, type LibraryOptions } from "../../libraryModel.ts";
 import type { CardCatalogEntry } from "../../workspaceReplica.ts";
 
+export function cardCount(count: number) {
+  return `${count.toLocaleString("de-DE")} ${count === 1 ? "Karte" : "Karten"}`;
+}
+
 // Card lists of the card management (KV3). Kept apart from libraryModel.ts so they load with the card management only.
 
 type CardTableRow = ReturnType<typeof createCardTableRow>;

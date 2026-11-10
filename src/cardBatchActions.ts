@@ -1,4 +1,4 @@
-import { planCardBatchEdit, planCardBatchUndo, planNoteDeletion, planNoteRestore, type CardBatchEdit } from "./coreModel.ts";
+import { planCardBatchEdit, planCardBatchUndo, planNoteDeletion, planNoteRestore, planTextReplace, planTextReplaceUndo, type CardBatchEdit, type TextReplace, type TextReplacePreview } from "./coreModel.ts";
 import type { Card, Note } from "./coreTypes.ts";
 import type { NoteGraph } from "./workspaceReplica.ts";
 
@@ -9,7 +9,9 @@ export type CardBatchAction =
   | { kind: "reset" }
   /** Each card gets one of these learning-day starts at random (Anki's `Fälligkeit setzen` with a range). */
   | { kind: "due"; dueAts: readonly string[] }
-  | { kind: "delete" };
+  | { kind: "delete" }
+  /** Literal find and replace in the contents of the selected cards (KV5). */
+  | ({ kind: "replace" } & TextReplace);
 
 export interface CardBatchRepository {
   loadNoteGraph(noteId: string): Promise<NoteGraph | null>;
@@ -36,9 +38,35 @@ export interface CardBatchResult {
   undo(): Promise<{ restoredCount: number; skippedCount: number }>;
 }
 
+const PREVIEW_LIMIT = 20;
+
 async function loadGraphs(repository: CardBatchRepository, noteIds: Iterable<string>) {
   const graphs = await Promise.all([...new Set(noteIds)].map((noteId) => repository.loadNoteGraph(noteId)));
   return graphs.filter((graph): graph is NoteGraph => Boolean(graph));
+}
+
+async function openGraphs(dependencies: CardBatchDependencies, cardIds: readonly string[]) {
+  const bodies = (await dependencies.openCards([...new Set(cardIds)])).filter((body): body is { card: Card; note: Note } => Boolean(body));
+  return { selected: new Set(bodies.map((body) => body.card.id)), graphs: await loadGraphs(dependencies.repository, bodies.map((body) => body.note.id)) };
+}
+
+export interface TextReplaceSession {
+  /** Field names of the selected contents, in the order they first appear. */
+  fieldNames: string[];
+  preview(edit: TextReplace): { changedCount: number; skippedCount: number; contents: number; examples: TextReplacePreview[] };
+}
+
+/** Loads the selected contents once, so the replace dialog offers their fields and previews each input without saving. */
+export async function prepareTextReplace(dependencies: CardBatchDependencies, cardIds: readonly string[]): Promise<TextReplaceSession> {
+  const { selected, graphs } = await openGraphs(dependencies, cardIds);
+  const fieldNames = [...new Set(graphs.flatMap((graph) => graph.note.content.fields.map((field) => field.name)))];
+  return {
+    fieldNames,
+    preview(edit) {
+      const plan = planTextReplace(graphs, selected, edit);
+      return { changedCount: plan.changedCardIds.length, skippedCount: plan.skippedCardIds.length, contents: plan.changes.length, examples: plan.previews.slice(0, PREVIEW_LIMIT) };
+    },
+  };
 }
 
 /**
@@ -72,6 +100,19 @@ export async function runCardBatch(dependencies: CardBatchDependencies, cardIds:
   }
 
   const graphs = await loadGraphs(repository, bodies.map((body) => body.note.id));
+  if (action.kind === "replace") {
+    const plan = planTextReplace(graphs, selected, action, occurredAt);
+    await repository.saveNoteGraphs(plan.changes);
+    return {
+      changedCount: plan.changedCardIds.length,
+      async undo() {
+        const current = await loadGraphs(repository, plan.changes.map((change) => change.next.note.id));
+        const undo = planTextReplaceUndo(current, plan.changes, new Set(plan.changedCardIds), dependencies.now());
+        await repository.saveNoteGraphs(undo.changes);
+        return { restoredCount: undo.changedCardIds.length, skippedCount: undo.skippedCardIds.length };
+      },
+    };
+  }
   if (action.kind === "delete") {
     const plans = graphs.map((graph) => ({ graph, plan: planNoteDeletion(graph.note, graph.cards, occurredAt) }));
     await repository.saveNoteGraphs(plans.map(({ graph, plan }) => ({ previous: graph, next: { note: plan.note, cards: plan.cards } })));

@@ -1,5 +1,5 @@
 import type { CardSearchContext } from "./cardSearchQuery.ts";
-import type { CardBatchAction, CardBatchResult } from "./cardBatchActions.ts";
+import type { CardBatchAction, CardBatchResult, TextReplaceSession } from "./cardBatchActions.ts";
 import type { Dispatch, ReactNode, SetStateAction } from "react";
 import type { AppRoute, AppViewId, CardEditorTab, DeckContentTab, DeckSettingsSection, GeneralSettingsSection, LearningSettingsSection, SettingsSection, createViewRoute } from "./appNavigation.ts";
 import type { ApkgImportSession } from "./apkgImportSession.ts";
@@ -211,6 +211,8 @@ export interface DecksScreenProps {
   onGenerateCardVariants?: (deckId: string, cardIds: string[]) => unknown;
   /** Runs a mass action on the selected cards as one local change (KV4); its result can be undone. */
   onRunCardBatch?: (cardIds: string[], action: CardBatchAction) => Promise<CardBatchResult>;
+  /** Loads the selected contents for `Suchen und Ersetzen` (KV5). */
+  onPrepareTextReplace?: (cardIds: string[]) => Promise<TextReplaceSession>;
   /** Ids of every hit of the flat hit list, for `Alle N Treffer auswählen` (KV4). */
   onListHitCardIds?: (request: { deckIds: string[]; query: string; searchContext: CardSearchContext }) => Promise<string[]>;
   variantGenerationRunning?: boolean;

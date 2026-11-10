@@ -202,11 +202,6 @@ Referenz gelesen.
       (Karte, Katalog, Residenz und Outbox je Karte).
       Nachweis: Messung mit 1.000 Karten im Produktions-Build.
 - [ ] **KV5 – Inhalte pflegen:**
-      - **Suchen und Ersetzen:** in allen Feldern, einem Feld oder Tags, für
-        Auswahl oder alle Treffer, wörtlich, mit Groß-/Kleinschreibung und Vorschau der
-        betroffenen Inhalte. Zählt als lokale Bearbeitung
-        (`contentRevision`), macht Varianten veraltet und ist rückgängig zu
-        machen.
       - **Duplikate finden:** nach Feld oder Sortierfeld, optional innerhalb der
         aktuellen Suche, im Worker; Gruppen öffnen, taggen oder löschen.
       - **Tag-Verwaltung** für das Konto: umbenennen samt Untertags,

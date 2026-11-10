@@ -1,7 +1,7 @@
 import React from "react";
 import * as Popover from "@radix-ui/react-popover";
-import { CalendarClock, CalendarRange, ChevronDown, Flag, FlagOff, MoveRight, Pause, Play, RotateCcw, Sparkles, Star, StarOff, Tag, Tags, Trash2, X, type LucideIcon } from "lucide-react";
-import type { CardBatchAction } from "../../cardBatchActions.ts";
+import { CalendarClock, CalendarRange, ChevronDown, Flag, FlagOff, MoveRight, Pause, Play, Replace, RotateCcw, Sparkles, Star, StarOff, Tag, Tags, Trash2, X, type LucideIcon } from "lucide-react";
+import type { CardBatchAction, TextReplaceSession } from "../../cardBatchActions.ts";
 import type { Deck } from "../../coreTypes.ts";
 import { addLearningDays, getLearningDayKey, getLearningDayStartForKey } from "../../learningDay.ts";
 import { IconButton } from "../../ui/actionUi.tsx";
@@ -10,11 +10,14 @@ import { ActionDialog } from "../../ui/coreUi.tsx";
 import { FlagPicker } from "../../ui/flagUi.tsx";
 import { DeckSelect } from "../../ui/selectUi.tsx";
 import { TagInput } from "../../ui/TagInput.tsx";
+import { cardCount } from "./cardListModel.ts";
+import { TextReplaceDialog } from "./TextReplaceDialog.tsx";
 
-type MenuActionId = "deck" | "tags-add" | "tags-remove" | "flag" | "flag-remove" | "mark" | "unmark" | "suspend" | "unsuspend" | "bury" | "due" | "reset" | "variants" | "delete";
+type MenuActionId = "deck" | "replace" | "tags-add" | "tags-remove" | "flag" | "flag-remove" | "mark" | "unmark" | "suspend" | "unsuspend" | "bury" | "due" | "reset" | "variants" | "delete";
 
 const MENU: ReadonlyArray<{ id: MenuActionId; label: string; icon: LucideIcon }> = [
   { id: "deck", label: "Stapel ändern", icon: MoveRight },
+  { id: "replace", label: "Suchen und Ersetzen", icon: Replace },
   { id: "tags-add", label: "Tags hinzufügen", icon: Tag },
   { id: "tags-remove", label: "Tags entfernen", icon: Tags },
   { id: "flag", label: "Flagge setzen", icon: Flag },
@@ -29,10 +32,6 @@ const MENU: ReadonlyArray<{ id: MenuActionId; label: string; icon: LucideIcon }>
   { id: "variants", label: "Varianten generieren", icon: Sparkles },
   { id: "delete", label: "Löschen", icon: Trash2 },
 ];
-
-export function cardCount(count: number) {
-  return `${count.toLocaleString("de-DE")} ${count === 1 ? "Karte" : "Karten"}`;
-}
 
 interface DialogState {
   id: MenuActionId;
@@ -63,11 +62,13 @@ export interface CardSelectionBarProps {
   timeZone?: string;
   /** Absent while variant generation is unavailable or running. */
   onGenerateVariants?: () => void;
+  /** Absent where contents cannot be loaded for `Suchen und Ersetzen`. */
+  onPrepareReplace?: () => Promise<TextReplaceSession>;
   onRun: (action: CardBatchAction, label: string) => Promise<void>;
 }
 
 /** Bar of the card table while cards are selected (KV4): count, `Alle N Treffer auswählen`, actions and clearing. */
-export function CardSelectionBar({ count, hitTotal, searching, allHits, disabled, onSelectAllHits, onClear, decks, flagNames, loadTagDirectory, now, dayStartHour, timeZone, onGenerateVariants, onRun }: CardSelectionBarProps) {
+export function CardSelectionBar({ count, hitTotal, searching, allHits, disabled, onSelectAllHits, onClear, decks, flagNames, loadTagDirectory, now, dayStartHour, timeZone, onGenerateVariants, onPrepareReplace, onRun }: CardSelectionBarProps) {
   const [dialog, setDialog] = React.useState<DialogState | null>(null);
   const [running, setRunning] = React.useState(false);
   const dayOptions = React.useMemo(() => ({ dayStartHour, timeZone }), [dayStartHour, timeZone]);
@@ -158,7 +159,7 @@ export function CardSelectionBar({ count, hitTotal, searching, allHits, disabled
         </Popover.Trigger>
         <Popover.Portal>
           <Popover.Content align="end" sideOffset={8} collisionPadding={16} className="core-overlay z-[60] grid max-h-[min(32rem,var(--radix-popover-content-available-height))] w-64 gap-0.5 overflow-y-auto rounded-panel p-1.5">
-            {MENU.filter((entry) => entry.id !== "variants" || onGenerateVariants).map(({ id, label: entryLabel, icon: Icon }) => (
+            {MENU.filter((entry) => (entry.id !== "variants" || onGenerateVariants) && (entry.id !== "replace" || onPrepareReplace)).map(({ id, label: entryLabel, icon: Icon }) => (
               <Popover.Close asChild key={id}>
                 <button type="button" className={`flex min-h-control w-full items-center gap-2.5 rounded-inset px-2.5 text-left core-body hover:bg-core-subtle ${id === "delete" ? "text-core-danger-text" : "text-core-text"}`} onClick={() => open(id)}>
                   <Icon size={16} aria-hidden="true" />{entryLabel}
@@ -168,7 +169,9 @@ export function CardSelectionBar({ count, hitTotal, searching, allHits, disabled
           </Popover.Content>
         </Popover.Portal>
       </Popover.Root>
-      {dialog ? (
+      {dialog?.id === "replace" && onPrepareReplace ? (
+        <TextReplaceDialog count={count} prepare={onPrepareReplace} onRun={onRun} onClose={() => setDialog(null)} />
+      ) : dialog ? (
         <ActionDialog
           open
           title={`${label}: ${cardCount(count)}`}

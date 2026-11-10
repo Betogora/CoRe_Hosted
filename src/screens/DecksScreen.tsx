@@ -6,7 +6,7 @@ export type DecksScreenCardPageProps = Pick<DecksScreenProps, "cardPages" | "onR
 import { noteTextIndex } from "../coreModel.ts";
 import { collectDeckTreeIds } from "../coreWorkspace.ts";
 import { CARD_TABLE_PAGE_SIZE, createCardSearchContext, createCardTableModel, createDeckLibraryModel, DEFAULT_CARD_TABLE_SORT, sameCardTableSort, type CardTableSort, type CardTableSortField } from "../libraryModel.ts";
-import { createHitListModel, createPagedCardTableModel } from "./cardList/cardListModel.ts";
+import { cardCount, createHitListModel, createPagedCardTableModel } from "./cardList/cardListModel.ts";
 import type { CardCatalogEntry, NoteGraph } from "../workspaceReplica.ts";
 import { ActionButton, IconButton } from "../ui/actionUi.tsx";
 import { useNoteMediaUrls } from "../ui/cardMedia.tsx";
@@ -21,7 +21,7 @@ import { AdvancedCardSearch } from "./cardSearch/AdvancedCardSearch.tsx";
 import { CardSearchBar } from "./cardSearch/CardSearchBar.tsx";
 import { createCardSearchMenu } from "./cardSearch/cardSearchMenu.ts";
 import { useVirtualRows } from "./cardList/virtualRows.ts";
-import { CardSelectionBar, cardCount } from "./cardList/CardSelectionBar.tsx";
+import { CardSelectionBar } from "./cardList/CardSelectionBar.tsx";
 import type { CardBatchAction } from "../cardBatchActions.ts";
 import { CardEditorDialog, CardEditorSurface, type CardEditorHitNavigation } from "./cardEditor/CardEditorDialog.tsx";
 import { DeckSummariesPanel } from "./DeckSummariesPanel.tsx";
@@ -264,6 +264,7 @@ export function DecksScreen({
   onGenerateVariant,
   onGenerateCardVariants,
   onRunCardBatch,
+  onPrepareTextReplace,
   onListHitCardIds,
   variantGenerationRunning = false,
   onUpdateVariant,
@@ -705,6 +706,8 @@ export function DecksScreen({
     }
   }
 
+  const prepareSelectionReplace = useStableCallback(async () => onPrepareTextReplace!(await selectedIds()));
+
   async function generateSelectionVariants() {
     if (!onGenerateCardVariants) return;
     const ids = await selectedIds();
@@ -1020,6 +1023,7 @@ export function DecksScreen({
                         timeZone={timeZone}
                         disabled={runningBatch || selectionCount === 0}
                         onGenerateVariants={onGenerateCardVariants && !variantGenerationRunning ? () => void generateSelectionVariants() : undefined}
+                        onPrepareReplace={onPrepareTextReplace ? prepareSelectionReplace : undefined}
                         onRun={runSelectionAction}
                       />
                     </th>

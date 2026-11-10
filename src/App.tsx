@@ -1624,6 +1624,12 @@ export function App() {
     } };
   }
 
+  async function prepareDeckTextReplace(cardIds: string[]) {
+    if (!workspaceRepository || !workspaceHydrationService) throw new Error("Die Kartenverwaltung ist noch nicht bereit.");
+    const { prepareTextReplace } = await import("./cardBatchActions.ts");
+    return prepareTextReplace({ repository: workspaceRepository, openCards: workspaceHydrationService.openCards, now: getLearningNow }, cardIds);
+  }
+
   function rescheduleDeckCards(cardIds: string[], dueAt: string, occurredAt: string) {
     return applyManualStudyChanges((repository) => repository.rescheduleCards(cardIds, dueAt, occurredAt));
   }
@@ -1936,6 +1942,7 @@ export function App() {
             if (deck) variantBatch.start(deck, { cardIds });
           } : undefined}
           onRunCardBatch={workspaceRepository && workspaceHydrationService ? runDeckCardBatch : undefined}
+          onPrepareTextReplace={workspaceRepository && workspaceHydrationService ? prepareDeckTextReplace : undefined}
           onListHitCardIds={workspaceHydrationService ? (request) => workspaceHydrationService.listCardIds(request) : undefined}
           variantGenerationRunning={variantBatch.running}
           onUpdateVariant={updateDeckCardVariant}

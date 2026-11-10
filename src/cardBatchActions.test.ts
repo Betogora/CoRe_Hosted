@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import test from "node:test";
 import { IDBKeyRange, indexedDB } from "fake-indexeddb";
-import { runCardBatch, type CardBatchDependencies } from "./cardBatchActions.ts";
+import { prepareTextReplace, runCardBatch, type CardBatchDependencies } from "./cardBatchActions.ts";
 import { createBasicNote, createCoreDeck } from "./coreModel.ts";
 import type { Card, Note } from "./coreTypes.ts";
 import type { WorkspaceState } from "./coreWorkspace.ts";
@@ -97,4 +97,26 @@ test("offline ohne lokale Kartenkörper schreibt eine Massenaktion nichts (KV4)"
   const offline = { ...dependencies, openCards: async () => { throw new Error("Diese Karten sind noch nicht offline verfügbar."); } };
   await assert.rejects(runCardBatch(offline, forward, { kind: "suspended", suspended: true }), /offline/);
   assert.equal((await repository.loadCardBody(forward[0]))?.card.status, "active");
+});
+
+test("Suchen und Ersetzen zeigt Felder und Vorschau, schreibt den Katalog neu und ist rückgängig zu machen (KV5)", async () => {
+  const { repository, dependencies, forward } = await setup(3);
+  const selection = forward.slice(0, 2);
+  const session = await prepareTextReplace(dependencies, selection);
+  assert.deepEqual(session.fieldNames, (await repository.loadCardBody(forward[0]))!.note.content.fields.map((field) => field.name));
+  const edit = { find: "frage", replace: "Prompt", target: "all", matchCase: false } as const;
+  const preview = session.preview(edit);
+  assert.deepEqual([preview.changedCount, preview.contents, preview.examples.length], [2, 2, 2]);
+  assert.equal((await repository.loadCardBody(forward[0]))?.note.content.fields[0].html, "Frage 0", "die Vorschau speichert nichts");
+
+  const result = await runCardBatch(dependencies, selection, { kind: "replace", ...edit });
+  assert.equal(result.changedCount, 2);
+  const changed = await repository.loadCardBody(forward[0]);
+  assert.equal(changed?.note.content.fields[0].html, "Prompt 0");
+  assert.equal(changed?.note.contentRevision, 2, "lokal bearbeitet");
+  assert.equal((await repository.loadCardBody(forward[2]))?.note.content.fields[0].html, "Frage 2", "nicht ausgewählte Inhalte bleiben");
+  assert.ok((await repository.listCatalogPage("deck-a")).items.find((entry) => entry.id === forward[0])?.normalizedSearchText.includes("prompt 0"), "die Suche findet den neuen Text");
+
+  assert.deepEqual(await result.undo(), { restoredCount: 2, skippedCount: 0 });
+  assert.equal((await repository.loadCardBody(forward[0]))?.note.content.fields[0].html, "Frage 0");
 });
