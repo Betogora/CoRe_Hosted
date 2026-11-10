@@ -21,7 +21,7 @@ import { AdvancedCardSearch } from "./cardSearch/AdvancedCardSearch.tsx";
 import { CardSearchBar } from "./cardSearch/CardSearchBar.tsx";
 import { createCardSearchMenu } from "./cardSearch/cardSearchMenu.ts";
 import { useVirtualRows } from "./cardList/virtualRows.ts";
-import { CardSelectionBar } from "./cardList/CardSelectionBar.tsx";
+import { CardSelectionBar, type CardSelectionActionId } from "./cardList/CardSelectionBar.tsx";
 import { DuplicatesDialog } from "./cardList/DuplicatesDialog.tsx";
 import { TagManagerDialog } from "./cardList/TagManagerDialog.tsx";
 import { renameDirectoryTag } from "../tagDirectory.ts";
@@ -717,6 +717,85 @@ export function DecksScreen({
     await runCardBatchAction(selectedIds, action, label);
   };
 
+  const lastUndoRef = React.useRef<(() => void) | null>(null);
+  // The row a key action started from takes the focus back once the action ran, so the keyboard flow goes on.
+  const keyActionRowRef = React.useRef<string | null>(null);
+  const [focusRowAfterAction, setFocusRowAfterAction] = React.useState<string | null>(null);
+  React.useEffect(() => {
+    if (!focusRowAfterAction) return;
+    const row = document.querySelector<HTMLElement>(`[data-testid="deck-card-${CSS.escape(focusRowAfterAction)}"]`);
+    if (!row) return;
+    row.focus({ preventScroll: true });
+    setFocusRowAfterAction(null);
+  }, [focusRowAfterAction, items]);
+  const [selectionRequest, setSelectionRequest] = React.useState<{ id: CardSelectionActionId; flag?: number; nonce: number } | null>(null);
+  // Keys of the card list (KV6): `/` searches; on a focused row ↑/↓ move, Enter opens, X selects, Escape clears the
+  // selection, and the action keys open the confirmation of the selection or of the focused card. Dialogs, menus, the
+  // editor and text fields keep their own keys; browser shortcuts stay untouched.
+  const handleListKey = useStableCallback((event: KeyboardEvent) => {
+    if (event.defaultPrevented || event.altKey) return;
+    const target = event.target instanceof HTMLElement ? event.target : null;
+    if (target && (target.isContentEditable || ["INPUT", "TEXTAREA", "SELECT"].includes(target.tagName))) return;
+    if (target?.closest('[role="dialog"], [role="menu"], [data-radix-popper-content-wrapper]') || document.querySelector('[aria-modal="true"]')) return;
+    if (event.ctrlKey || event.metaKey) {
+      if (event.key.toLowerCase() !== "z" || event.shiftKey || !lastUndoRef.current) return;
+      event.preventDefault();
+      lastUndoRef.current();
+      return;
+    }
+    if (event.key === "/") {
+      event.preventDefault();
+      document.querySelector<HTMLInputElement>('input[aria-label="Karten durchsuchen"]')?.focus();
+      return;
+    }
+    if (event.key === "Escape" && selecting) {
+      event.preventDefault();
+      clearSelection();
+      return;
+    }
+    const cardId = target?.dataset.testid?.startsWith("deck-card-") ? target.dataset.testid.slice("deck-card-".length) : null;
+    if (!cardId) return;
+    if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+      const step = (row: Element | null | undefined) => event.key === "ArrowDown" ? row?.nextElementSibling : row?.previousElementSibling;
+      let row = step(target!.closest("tr"));
+      while (row && !(row as HTMLElement).dataset.cardRow) row = step(row);
+      const next = row?.querySelector<HTMLElement>('[data-testid^="deck-card-"]');
+      if (!next) return;
+      event.preventDefault();
+      next.focus();
+      return;
+    }
+    if (!canSelect) return;
+    const key = event.key.toLowerCase();
+    if (key === "x") {
+      event.preventDefault();
+      toggleCheck(cardId, event.shiftKey);
+      return;
+    }
+    const entry = [...hitList.rowsByIndex.values()].find((row) => row.id === cardId)?.entry;
+    const request: { id: CardSelectionActionId; flag?: number } | null = /^[1-7]$/.test(key) ? { id: "flag", flag: Number(key) }
+      : key === "0" ? { id: "flag-remove" }
+        : key === "m" ? { id: entry?.marked ? "unmark" : "mark" }
+          : key === "a" ? { id: entry && !entry.reviewable ? "unsuspend" : "suspend" }
+            : key === "s" ? { id: "deck" }
+              : key === "t" ? { id: "tags-add" }
+                : event.key === "Delete" ? { id: "delete" } : null;
+    if (!request) return;
+    event.preventDefault();
+    // Without a selection the action takes the focused card.
+    if (!selecting || (!allHits && !checkedIds.size)) {
+      setSelecting(true);
+      setAllHits(false);
+      setCheckedIds(new Set([cardId]));
+    }
+    keyActionRowRef.current = cardId;
+    setSelectionRequest({ ...request, nonce: Date.now() });
+  });
+  React.useEffect(() => {
+    window.addEventListener("keydown", handleListKey);
+    return () => window.removeEventListener("keydown", handleListKey);
+  }, [handleListKey]);
+
   /** Runs a mass action with its toast and `Rückgängig`; true once it ran. */
   async function runCardBatchAction(loadIds: () => Promise<string[]>, action: CardBatchAction, label: string, onUndone?: () => void) {
     if (!onRunCardBatch || runningBatch) return false;
@@ -726,17 +805,18 @@ export function DecksScreen({
       const result = await onRunCardBatch(ids, action);
       if (action.kind === "delete" && selectedCardId && ids.includes(selectedCardId)) closeDetail();
       clearSelection();
-      setSuccessToast(`${label}: ${cardCount(result.changedCount)}`, {
-        action: {
-          label: "Rückgängig",
-          onAction: () => void result.undo().then(({ restoredCount, skippedCount }) => {
-            onUndone?.();
-            setSuccessToast(skippedCount
-              ? `Rückgängig gemacht: ${cardCount(restoredCount)}. ${cardCount(skippedCount)} wurden inzwischen geändert und bleiben so.`
-              : `Rückgängig gemacht: ${cardCount(restoredCount)}.`, { appearance: skippedCount ? "neutral" : "success" });
-          }, () => setSuccessToast("Rückgängig ist fehlgeschlagen.", { appearance: "neutral" })),
-        },
-      });
+      const undo = () => {
+        lastUndoRef.current = null;
+        void result.undo().then(({ restoredCount, skippedCount }) => {
+          onUndone?.();
+          setSuccessToast(skippedCount
+            ? `Rückgängig gemacht: ${cardCount(restoredCount)}. ${cardCount(skippedCount)} wurden inzwischen geändert und bleiben so.`
+            : `Rückgängig gemacht: ${cardCount(restoredCount)}.`, { appearance: skippedCount ? "neutral" : "success" });
+        }, () => setSuccessToast("Rückgängig ist fehlgeschlagen.", { appearance: "neutral" }));
+      };
+      // Ctrl+Z in the list takes the latest mass action back, like its toast (KV6).
+      lastUndoRef.current = undo;
+      setSuccessToast(`${label}: ${cardCount(result.changedCount)}`, { action: { label: "Rückgängig", onAction: undo } });
       return true;
     } catch (error) {
       setDeckStatusType("alert");
@@ -744,6 +824,9 @@ export function DecksScreen({
       return false;
     } finally {
       setRunningBatch(false);
+      // The list reloads after the action; the row takes the focus once it is rendered again.
+      setFocusRowAfterAction(keyActionRowRef.current);
+      keyActionRowRef.current = null;
     }
   }
 
@@ -1136,6 +1219,7 @@ export function DecksScreen({
                         onStudy={canStudyHits ? () => setHitStudy("selection") : undefined}
                         onPrepareReplace={onPrepareTextReplace ? prepareSelectionReplace : undefined}
                         onRun={runSelectionAction}
+                        request={selectionRequest}
                       />
                     </th>
                   </tr>

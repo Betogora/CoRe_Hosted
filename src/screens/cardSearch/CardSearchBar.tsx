@@ -50,6 +50,7 @@ export function CardSearchBar({ query, onQueryChange, decks, categories, advance
             value={input}
             placeholder={placeholder}
             aria-label="Karten durchsuchen"
+            aria-keyshortcuts="/"
             aria-describedby={hint ? "card-search-hint" : undefined}
             onChange={(event) => {
               const next = withCardSearchText(query, event.target.value);

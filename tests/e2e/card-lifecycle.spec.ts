@@ -663,6 +663,33 @@ test("[Vertrag: Duplikate finden, öffnen und taggen; Tags verwalten] @beta-core
   await expect(page.getByRole("dialog", { name: /^hauptstadt von +Island$/i })).toBeVisible();
 });
 
+test("[Vertrag: Tastenkürzel der Kartenliste] @beta-core Pfeile, Aktionstaste, Strg+Z und Suche ohne Maus", async ({ page }) => {
+  const deckName = "Tastatur";
+  await openManualCreation(page, deckName, "basic-reversed");
+  await page.getByRole("textbox", { name: "Vorderseite" }).fill("Hauptstadt von Finnland");
+  await page.getByRole("textbox", { name: "Rückseite" }).fill("Helsinki");
+  const deck = await finishManualCreation(page, deckName, 2);
+
+  await page.goto(`/kartenstapel?deck=${encodeURIComponent(deck.id)}&content=1&tab=cards`);
+  const rows = page.locator("[data-card-row]");
+  await expect(rows).toHaveCount(2);
+  const [first, second] = [rows.nth(0), rows.nth(1)];
+  await first.locator('[data-testid^="deck-card-"]').focus();
+  await page.keyboard.press("ArrowDown");
+  await expect(second.locator('[data-testid^="deck-card-"]')).toBeFocused();
+  await page.keyboard.press("a");
+  const dialog = page.getByRole("dialog", { name: "Aussetzen: 1 Karte" });
+  await dialog.getByRole("button", { name: "Aussetzen", exact: true }).click();
+  await expect(page.getByText("Aussetzen: 1 Karte")).toBeVisible();
+  await expect(second).toHaveAttribute("data-suspended", "true");
+  await expect(second.locator('[data-testid^="deck-card-"]')).toBeFocused();
+  await page.keyboard.press("Control+z");
+  await expect(page.getByText("Rückgängig gemacht: 1 Karte.")).toBeVisible();
+  await expect(rows.and(page.locator('[data-suspended="true"]'))).toHaveCount(0);
+  await page.keyboard.press("/");
+  await expect(page.getByRole("textbox", { name: "Karten durchsuchen" })).toBeFocused();
+});
+
 test("[Vertrag: typgerechter Cloze-Lebenszyklus] @beta-core jede Lückengruppe bleibt eine unabhängige Karte", async ({ page }) => {
   const deckName = "Lebenszyklus Cloze";
   await openManualCreation(page, deckName, "cloze");

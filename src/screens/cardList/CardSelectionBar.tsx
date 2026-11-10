@@ -10,28 +10,31 @@ import { ActionDialog } from "../../ui/coreUi.tsx";
 import { FlagPicker } from "../../ui/flagUi.tsx";
 import { DeckSelect } from "../../ui/selectUi.tsx";
 import { TagInput } from "../../ui/TagInput.tsx";
+import { useStableCallback } from "../../ui/useStableCallback.ts";
 import { cardCount } from "./cardListModel.ts";
 import { TextReplaceDialog } from "./TextReplaceDialog.tsx";
 
-type MenuActionId = "study" | "deck" | "replace" | "tags-add" | "tags-remove" | "flag" | "flag-remove" | "mark" | "unmark" | "suspend" | "unsuspend" | "bury" | "due" | "reset" | "variants" | "delete";
+export type CardSelectionActionId = "study" | "deck" | "replace" | "tags-add" | "tags-remove" | "flag" | "flag-remove" | "mark" | "unmark" | "suspend" | "unsuspend" | "bury" | "due" | "reset" | "variants" | "delete";
+type MenuActionId = CardSelectionActionId;
 
-const MENU: ReadonlyArray<{ id: MenuActionId; label: string; icon: LucideIcon }> = [
+/** Keys of the card list (KV6) as the menu names them; `aria-keyshortcuts` uses the key values. */
+const MENU: ReadonlyArray<{ id: MenuActionId; label: string; icon: LucideIcon; shortcut?: { label: string; keys: string } }> = [
   { id: "study", label: "Auswahl lernen", icon: GraduationCap },
-  { id: "deck", label: "Stapel ändern", icon: MoveRight },
+  { id: "deck", label: "Stapel ändern", icon: MoveRight, shortcut: { label: "S", keys: "S" } },
   { id: "replace", label: "Suchen und Ersetzen", icon: Replace },
-  { id: "tags-add", label: "Tags hinzufügen", icon: Tag },
+  { id: "tags-add", label: "Tags hinzufügen", icon: Tag, shortcut: { label: "T", keys: "T" } },
   { id: "tags-remove", label: "Tags entfernen", icon: Tags },
-  { id: "flag", label: "Flagge setzen", icon: Flag },
-  { id: "flag-remove", label: "Flagge entfernen", icon: FlagOff },
-  { id: "mark", label: "Markieren", icon: Star },
-  { id: "unmark", label: "Markierung entfernen", icon: StarOff },
-  { id: "suspend", label: "Aussetzen", icon: Pause },
-  { id: "unsuspend", label: "Reaktivieren", icon: Play },
+  { id: "flag", label: "Flagge setzen", icon: Flag, shortcut: { label: "1–7", keys: "1 2 3 4 5 6 7" } },
+  { id: "flag-remove", label: "Flagge entfernen", icon: FlagOff, shortcut: { label: "0", keys: "0" } },
+  { id: "mark", label: "Markieren", icon: Star, shortcut: { label: "M", keys: "M" } },
+  { id: "unmark", label: "Markierung entfernen", icon: StarOff, shortcut: { label: "M", keys: "M" } },
+  { id: "suspend", label: "Aussetzen", icon: Pause, shortcut: { label: "A", keys: "A" } },
+  { id: "unsuspend", label: "Reaktivieren", icon: Play, shortcut: { label: "A", keys: "A" } },
   { id: "bury", label: "Zurückstellen", icon: CalendarClock },
   { id: "due", label: "Fälligkeit setzen", icon: CalendarRange },
   { id: "reset", label: "Lernstand zurücksetzen", icon: RotateCcw },
   { id: "variants", label: "Varianten generieren", icon: Sparkles },
-  { id: "delete", label: "Löschen", icon: Trash2 },
+  { id: "delete", label: "Löschen", icon: Trash2, shortcut: { label: "Entf", keys: "Delete" } },
 ];
 
 interface DialogState {
@@ -68,10 +71,12 @@ export interface CardSelectionBarProps {
   /** Absent where contents cannot be loaded for `Suchen und Ersetzen`. */
   onPrepareReplace?: () => Promise<TextReplaceSession>;
   onRun: (action: CardBatchAction, label: string) => Promise<void>;
+  /** A key of the card list asks for an action (KV6); it opens like the menu entry, a flag preselected. */
+  request?: { id: CardSelectionActionId; flag?: number; nonce: number } | null;
 }
 
 /** Bar of the card table while cards are selected (KV4): count, `Alle N Treffer auswählen`, actions and clearing. */
-export function CardSelectionBar({ count, hitTotal, searching, allHits, disabled, onSelectAllHits, onClear, decks, flagNames, loadTagDirectory, now, dayStartHour, timeZone, onGenerateVariants, onStudy, onPrepareReplace, onRun }: CardSelectionBarProps) {
+export function CardSelectionBar({ count, hitTotal, searching, allHits, disabled, onSelectAllHits, onClear, decks, flagNames, loadTagDirectory, now, dayStartHour, timeZone, onGenerateVariants, onStudy, onPrepareReplace, onRun, request }: CardSelectionBarProps) {
   const [dialog, setDialog] = React.useState<DialogState | null>(null);
   const [running, setRunning] = React.useState(false);
   const dayOptions = React.useMemo(() => ({ dayStartHour, timeZone }), [dayStartHour, timeZone]);
@@ -79,13 +84,17 @@ export function CardSelectionBar({ count, hitTotal, searching, allHits, disabled
   const tomorrowKey = getLearningDayKey(addLearningDays(now, 1, dayOptions) ?? "", dayOptions) ?? "";
   const label = MENU.find((entry) => entry.id === dialog?.id)?.label ?? "";
 
-  function open(id: MenuActionId) {
+  function open(id: MenuActionId, flag = 1) {
     if (id === "study") {
       onStudy?.();
       return;
     }
-    setDialog({ id, deckId: decks.find((deck) => !deck.deletedAt)?.id ?? "", tags: [], flag: 1, from: tomorrowKey, to: tomorrowKey });
+    setDialog({ id, deckId: decks.find((deck) => !deck.deletedAt)?.id ?? "", tags: [], flag, from: tomorrowKey, to: tomorrowKey });
   }
+  const openRequested = useStableCallback(open);
+  React.useEffect(() => {
+    if (request) openRequested(request.id, request.flag);
+  }, [openRequested, request]);
 
   function actionOf(state: DialogState): CardBatchAction | null {
     switch (state.id) {
@@ -166,10 +175,11 @@ export function CardSelectionBar({ count, hitTotal, searching, allHits, disabled
         </Popover.Trigger>
         <Popover.Portal>
           <Popover.Content align="end" sideOffset={8} collisionPadding={16} className="core-overlay z-[60] grid max-h-[min(32rem,var(--radix-popover-content-available-height))] w-64 gap-0.5 overflow-y-auto rounded-panel p-1.5">
-            {MENU.filter((entry) => (entry.id !== "variants" || onGenerateVariants) && (entry.id !== "replace" || onPrepareReplace) && (entry.id !== "study" || onStudy)).map(({ id, label: entryLabel, icon: Icon }) => (
+            {MENU.filter((entry) => (entry.id !== "variants" || onGenerateVariants) && (entry.id !== "replace" || onPrepareReplace) && (entry.id !== "study" || onStudy)).map(({ id, label: entryLabel, icon: Icon, shortcut }) => (
               <Popover.Close asChild key={id}>
-                <button type="button" className={`flex min-h-control w-full items-center gap-2.5 rounded-inset px-2.5 text-left core-body hover:bg-core-subtle ${id === "delete" ? "text-core-danger-text" : "text-core-text"}`} onClick={() => open(id)}>
+                <button type="button" aria-keyshortcuts={shortcut?.keys} className={`flex min-h-control w-full items-center gap-2.5 rounded-inset px-2.5 text-left core-body hover:bg-core-subtle ${id === "delete" ? "text-core-danger-text" : "text-core-text"}`} onClick={() => open(id)}>
                   <Icon size={16} aria-hidden="true" />{entryLabel}
+                  {shortcut ? <span className="ml-auto core-caption tabular-nums text-core-muted" aria-hidden="true">{shortcut.label}</span> : null}
                 </button>
               </Popover.Close>
             ))}

@@ -201,13 +201,11 @@ Referenz gelesen.
       gemessen in Chromium rund 2 s, fast ganz im Schreiben von IndexedDB
       (Karte, Katalog, Residenz und Outbox je Karte).
       Nachweis: Messung mit 1.000 Karten im Produktions-Build.
-- [ ] **KV6 – Arbeitsfluss:** Ab etwa 1280 px öffnet der Editor neben der
-      Liste, darunter bleibt der Dialog; die Liste behält Auswahl und
-      Scrollposition. Tastenkürzel für Suche, Bewegen und Öffnen, Auswahl,
-      Flagge, Markieren, Aussetzen, Stapel, Tags, Löschen und Rückgängig, ohne
-      Browser-Kürzel zu überschreiben; Tooltips nennen sie.
-      Nachweis: Tastaturtests, Pflichtmatrix bei 1280 und 1440 px; Editor
-      öffnet bei lokalem Kartenkörper in höchstens 150 ms.
+- [ ] **KV6-Rest – Tempo des Editors:** Editor neben der Liste und
+      Tastenkürzel stehen. Offen: Der Editor öffnet bei lokalem Kartenkörper in
+      höchstens 150 ms.
+      Nachweis: Messung im Produktions-Build, Pflichtmatrix bei 1280 und
+      1440 px.
 - [ ] **Abschluss:** `specs.md` §5.3 und §6, `architecture.md` (Suchindex,
       Massenaktionen), ADR zu Suchmodell und Cutover, Hilfeseite.
 
