@@ -4,6 +4,7 @@ import {
   CalendarCheck,
   Clock3,
   ExternalLink,
+  Layers,
   RotateCcw,
   ShieldCheck,
   Sparkle,
@@ -817,6 +818,20 @@ function ReferenceSection() {
           <li>• Themen kommen in der geplanten Reihenfolge. Es gilt das Abrufziel der Prüfung; normale Tageslimits greifen nicht, und deine Stapeleinstellungen bleiben unverändert.</li>
           <li>• Eine Lernaufgabe wird automatisch abgehakt, sobald alle ihre Karten bewertet und erst nach heute wieder fällig sind. Selbst abhaken ändert keinen Lernstand.</li>
           <li>• Die Zielkarten eines Tages bleiben fest. Nach deinen Antworten verteilt CoRe nur noch ungesehenen Stoff neu. Ohne Verbindung startet die Einheit mit den Karten auf diesem Gerät; neu geplant wird erst wieder online.</li>
+        </ul>
+      </SoftPanel>
+
+      <SoftPanel className="p-6" data-testid="help-card-management">
+        <div className="flex items-center gap-3">
+          <OrbIcon icon={Layers} />
+          <h3 className="core-heading-2 font-semibold text-core-text">So arbeitest du in der Kartenverwaltung</h3>
+        </div>
+        <ul className="mt-4 grid gap-3 core-body leading-6 text-core-secondary lg:grid-cols-2 lg:gap-x-8">
+          <li>• Die Suche versteht Anki-Begriffe wie <code>tag:</code>, <code>is:due</code> oder <code>Feld:Text</code>. „Erweiterte Suche“ setzt sie per Klick und speichert Suchen.</li>
+          <li>• Ausgewählte Karten änderst du gemeinsam: Stapel, Tags, Flagge, Markierung, Aussetzen, Fälligkeit oder Löschen. Jede Aktion fragt nach und lässt sich rückgängig machen.</li>
+          <li>• Zur Pflege gibt es „Suchen und Ersetzen“, „Duplikate finden“ und „Tags verwalten“ für das ganze Konto.</li>
+          <li>• „Treffer lernen“ lernt die Treffer einer Suche: „Vorziehen“ zählt wie eine Sitzung ohne Tageslimit, „Nur üben“ ändert keinen Lernstand.</li>
+          <li>• Tasten: <kbd>/</kbd> sucht, <kbd>↑</kbd> <kbd>↓</kbd> wechseln die Zeile, <kbd>X</kbd> wählt aus, Ziffern setzen die Flagge, <kbd>Strg</kbd>+<kbd>Z</kbd> nimmt die letzte Aktion zurück. Das Menü „Aktionen“ nennt alle Tasten.</li>
         </ul>
       </SoftPanel>
 

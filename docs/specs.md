@@ -118,14 +118,14 @@ Akzeptanz:
 
 ### Karten bearbeiten und eine Sitzung starten
 
-Stapel und Karten lassen sich ordnen, prüfen und bearbeiten; eine Sitzung startet mit der ersten verfügbaren Karte.
+Stapel lassen sich ordnen, Karten suchen, gemeinsam ändern, pflegen und bearbeiten; eine Sitzung startet mit der ersten verfügbaren Karte oder mit den Treffern einer Suche.
 
 Ablauf:
 
 1. `Lernen` oder `Karten` öffnen.
-2. Stapel und Karten verwalten.
-3. Inhalt und Lernwerte prüfen.
-4. Sitzung vorbereiten.
+2. Stapel in `Lernen` ordnen; Karten in `Karten` suchen, filtern und auswählen.
+3. Karten gemeinsam ändern oder pflegen (Massenaktionen, `Suchen und Ersetzen`, `Duplikate finden`, `Tags verwalten`) und einzelne Karten im Editor prüfen.
+4. Sitzung vorbereiten oder `Treffer lernen` starten.
 5. Erste verfügbare Karte lernen.
 
 Akzeptanz:
@@ -391,7 +391,7 @@ Jeder Stapel bietet dasselbe Optionsmenü mit CoRe-Modus (`Aus`/`An`), Einstellu
 Verhalten:
 
 - `An` öffnet zuerst den Einschaltdialog ([CoRe-Modus und Stapelgenerierung](#core-modus-und-stapelgenerierung)); `Aus` wirkt sofort.
-- In Dashboard und `Lernen` lässt sich ein Stapel samt Unterbaum mit Maus oder Trackpad direkt auf einen anderen Stapel ziehen und wird dessen direkter Unterstapel; eine eigene Ablagezone macht ihn zum Hauptstapel. Kartenverwaltung, Touch, Tastatur und assistive Bedienung verwenden den bestätigten Verschiebedialog.
+- In Dashboard und `Lernen` lässt sich ein Stapel samt Unterbaum mit Maus oder Trackpad direkt auf einen anderen Stapel ziehen und wird dessen direkter Unterstapel; eine eigene Ablagezone macht ihn zum Hauptstapel. Touch, Tastatur und assistive Bedienung verwenden den bestätigten Verschiebedialog.
 - Selbst-, Nachfahren- und unveränderte Ziele ändern nichts; ein beendetes Ziehen öffnet den Stapel nicht.
 - Stapelanzahl und Verschieben samt Unterbaum haben kein fachliches Limit. APKG-Hierarchien behalten Elternbeziehung, Pfad, Importidentitäten und Anki-Stapelpfad; Inhalts- und Anki-Tags bleiben unverändert.
 - Die Stapellöschung nennt Stapelname, Unterstapelzahl und aktive Kartenanzahl; Abbruch ändert nichts. Das Löschen eines Baums ist destruktiv, bestätigt und darf gelöschte Inhalte nicht durch späteren Sync reaktivieren.
@@ -668,12 +668,12 @@ Der Hauptreiter `Karten` verwaltet alle Karten aller Stapel; derselbe Editor öf
 
 Zweck:
 
-Der Hauptreiter `Karten` ist die direktlinkfähige Gesamtverwaltung für Karten, Stapelstruktur, Inhalt und erweiterte Optionen aller Stapel.
+Der Hauptreiter `Karten` ist die direktlinkfähige Gesamtverwaltung aller Karten aller Stapel: suchen, auswählen, gemeinsam ändern, pflegen und gezielt lernen. Die Stapelstruktur ordnet `Lernen`.
 
 Verhalten:
 
 - Die Kartenverwaltung verbindet die [Kartensuche](#kartensuche) mit einer flachen Liste aller Karten; Stapelzeilen, Auf- und Zuklappen und das Stapelmenü gibt es dort nicht. Stapelaktionen bleiben in `Heute`, `Lernen` und den Stapeleinstellungen.
-- Die Tabelle zeigt je Karte nur `Sortierfeld` (bereinigte Vorderseite), `Datum` (`Neu` oder `TT.MM.JJJJ`) und `Variante` (Zahl der aktiven Varianten, ohne Variante ein zugänglich beschrifteter Strich). Alle Spalten sind auf- und absteigend sortierbar; Standard ist `Sortierfeld` A–Z, einheitlich für alle Sektionen und nicht persistiert. Der Spaltenkopf bleibt beim Scrollen stehen. Aufgeklappte Stapel ohne Karten und ohne Unterstapel zeigen `Keine Karten`; Elternstapel ohne eigene Karten zeigen keine Leerzeile.
+- Die Tabelle zeigt je Karte nur `Sortierfeld` (bereinigte Vorderseite), `Datum` (`Neu` oder `TT.MM.JJJJ`) und `Variante` (Zahl der aktiven Varianten, ohne Variante ein zugänglich beschrifteter Strich). Alle Spalten sind auf- und absteigend sortierbar; Standard ist `Sortierfeld` A–Z, nicht persistiert. Der Spaltenkopf bleibt beim Scrollen stehen. Ohne Karten zeigt die Liste `Keine Karten`, ohne Treffer `Keine Karten gefunden` mit dem Hinweis, die Suche anzupassen.
 - Ausgesetzte Karten bleiben mit unverändertem Datum sichtbar, sind sichtbar hervorgehoben und tragen die zugängliche Kennzeichnung `Ausgesetzt`. Markierte Karten sind sichtbar und zugänglich als markiert gekennzeichnet. Beides kann gleichzeitig erscheinen.
 - Eine gesetzte Flagge erscheint als Farbpunkt mit zugänglichem Namen.
 - Kartenzeilen sind kompakt (etwa 29 px, eine dünne Trennlinie) und einzeilig: die Vorderseite, ab `sm` rechts daneben gedämpft der Stapelpfad (höchstens 40 % der Breite), beide mit Ellipsen. Umfasst die Liste nur einen Stapel, entfällt der Pfad. `Datum` und `Variante` stehen rechts und bleiben ungekürzt; die Kartenverwaltung erzeugt keinen horizontalen Überlauf.
@@ -1335,7 +1335,7 @@ Die Stapeleinstellungen sind ein eigener Dialog im Rahmen des [Einstellungsdialo
 
 Einstieg:
 
-`Einstellungen` in den [Stapeloptionen](#stapeloptionen-verschieben-und-löschen) in Dashboard, `Lernen` und Kartenverwaltung, das [Sitzungs-Overlay](#sitzungs-overlay), der Hinweis auf ein erreichtes Tageslimit und die Zeile `Stapeleinstellungen` unter `Einstellungen → Tagesrunde & Lernprofile`. Aus dem Karteneditor wird zuerst die Karte verlassen.
+`Einstellungen` in den [Stapeloptionen](#stapeloptionen-verschieben-und-löschen) in Dashboard und `Lernen`, das [Sitzungs-Overlay](#sitzungs-overlay), der Hinweis auf ein erreichtes Tageslimit und die Zeile `Stapeleinstellungen` unter `Einstellungen → Tagesrunde & Lernprofile`. Aus dem Karteneditor wird zuerst die Karte verlassen.
 
 Verhalten:
 
@@ -1360,7 +1360,7 @@ Hilfe und Simulator erklären und erproben die Lernlogik, ohne Lernstände durch
 
 Zweck:
 
-Ein Einstieg und zwei geführte Geschichten erklären wechselnde Abrufreize und die FSRS-Kurve, ohne Workspace oder Scheduler zu verändern. Der Nachschlageteil erklärt außerdem, wie eine Prüfungssitzung abläuft.
+Ein Einstieg und zwei geführte Geschichten erklären wechselnde Abrufreize und die FSRS-Kurve, ohne Workspace oder Scheduler zu verändern. Der Nachschlageteil erklärt außerdem, wie eine Prüfungssitzung abläuft und wie die Kartenverwaltung arbeitet (Suche, Auswahl und Massenaktionen, Pflegewerkzeuge, `Treffer lernen`, Tastenkürzel).
 
 Einstieg:
 

@@ -127,8 +127,10 @@ Seitenleiste (`qt/aqt/browser/sidebar/tree.py`), Suchsyntax
 Referenz gelesen. Befund und Produktentscheidungen stehen in
 [ADR-048](decisions.md#adr-048--kartensuche-lokal-über-den-vollständigen-katalog).
 
-- [ ] **Abschluss:** `specs.md` §5.3 und §6, `architecture.md` (Suchindex,
-      Massenaktionen), ADR zu Suchmodell und Cutover, Hilfeseite.
+- [ ] **Abschluss – Cutover:** Spezifikation, Architektur und Hilfeseite sind
+      nachgezogen, das Suchmodell steht in ADR-048. Offen ist die Entscheidung,
+      ob die zehn Migrationen der Kartenverwaltung vor dem Release zu einer
+      gefaltet werden; sie kommt danach als Cutover-Abschnitt in ADR-048.
 
 ## Offene Nachweise
 

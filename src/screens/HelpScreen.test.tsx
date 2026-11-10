@@ -18,7 +18,7 @@ test("help sections carry labelled headings and the method links jump to them", 
   for (const target of ["active-recall-heading", "spaced-repetition-heading"]) {
     assert.match(markup, new RegExp(`<a(?=[^>]*href="#${target}")(?=[^>]*data-help-method-navigation="animated")`));
   }
-  for (const heading of ["So arbeitet ein Spaced-Repetition-Scheduler", "Transparenz zum aktuellen Scheduler", "So läuft eine Prüfungssitzung", "Was bei Varianten geschützt bleibt", "Mehr über FSRS"]) {
+  for (const heading of ["So arbeitet ein Spaced-Repetition-Scheduler", "Transparenz zum aktuellen Scheduler", "So läuft eine Prüfungssitzung", "So arbeitest du in der Kartenverwaltung", "Was bei Varianten geschützt bleibt", "Mehr über FSRS"]) {
     assert.match(markup, new RegExp(`<h3[^>]*>${heading}</h3>`));
   }
   assert.match(markup, /href="https:\/\/github\.com\/open-spaced-repetition\/awesome-fsrs\/wiki\/ABC-of-FSRS"/);
