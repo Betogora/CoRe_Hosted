@@ -219,7 +219,7 @@ test("eine Cloudseite zeigt Karten mit noch nicht synchronisierter lokaler Ände
   const graphs = ["Alpha", "Beta"].map((front, index) => graph("deck-pending", String(index), front, CREATED_AT));
   const deck = createCoreDeck({ id: "deck-pending", ownerId: userId, name: "Ausstehend", source: "manual", cards: graphs.map((entry) => entry.cards[0]) });
   const repository = await createIndexedDbCoreRepository({ userId, initialState: workspace(userId, [deck], graphs.map((entry) => entry.note)), indexedDb: new IDBFactory() });
-  const cloudRows = (await repository.listCatalogPage(deck.id, { limit: 50 })).items.map(catalogRow);
+  const cloudRows = (await repository.listCatalogPage(deck.id, { limit: 50 })).items.map((entry) => catalogRow(entry));
   await repository.applyCloudCatalogPage({ table: "card_catalog", entities: [], reset: false, cursor: 1 });
   repository.outbox.markFlushed(repository.outbox.listPending().map((mutation) => mutation.id));
   const [alpha, beta] = graphs;
@@ -240,6 +240,7 @@ test("eine Cloudseite zeigt Karten mit noch nicht synchronisierter lokaler Ände
   const withCreated = await service.queryCardPage({ deckId: deck.id, page: 0, pageSize: 50, sort: { field: "sortField", direction: "asc" } });
   assert.deepEqual(withCreated.items.map((entry) => entry.id), ["card-0", "card-9"], "eine hier angelegte, noch nicht hochgeladene Karte steht auf der letzten Seite");
   assert.equal(withCreated.totalCount, 2);
+  assert.deepEqual(await service.listCardIds({ deckIds: [deck.id], sort: { field: "sortField", direction: "asc" } }), ["card-0", "card-9"], "die Id-Liste (Treffer lernen, Alle Treffer) folgt denselben lokalen Änderungen");
   repository.close();
 });
 

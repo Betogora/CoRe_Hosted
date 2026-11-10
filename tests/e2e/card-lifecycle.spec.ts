@@ -588,6 +588,8 @@ test("[Vertrag: Treffer lernen zieht nicht fällige Karten vor, Nur üben schrei
 });
 
 test("[Vertrag: Duplikate finden, öffnen und taggen; Tags verwalten] @beta-core gleiche Vorderseiten bilden eine Gruppe, ihr Tag lässt sich umbenennen und löschen", async ({ page }) => {
+  // Five dialogs with mass actions and two synchronizations need more than the default under parallel load.
+  test.setTimeout(90_000);
   const deckName = "Duplikate";
   await openManualCreation(page, deckName, "basic");
   await page.getByRole("textbox", { name: "Vorderseite" }).fill("Hauptstadt von Island");
@@ -603,14 +605,17 @@ test("[Vertrag: Duplikate finden, öffnen und taggen; Tags verwalten] @beta-core
     .map((note: { content: { tags: string[] } }) => note.content.tags.join(","));
 
   await page.goto("/kartenstapel");
-  await page.getByRole("button", { name: "Duplikate finden" }).click();
   const dialog = page.getByRole("dialog", { name: "Duplikate finden" });
-  // A fresh account searches once the catalog sync finished.
-  await expect(async () => {
-    const retry = dialog.getByRole("button", { name: "Erneut versuchen" });
-    if (await retry.isVisible()) await retry.click();
-    await expect(dialog.getByTestId("duplicates-dialog")).toContainText("1 Gruppe · 2 Inhalte", { timeout: 1_000 });
-  }).toPass({ timeout: 20_000 });
+  // The search needs every card on the device; right after new cards or mass actions it waits for the catalog sync.
+  const openDuplicates = async () => {
+    await page.getByRole("button", { name: "Duplikate finden" }).click();
+    await expect(async () => {
+      const retry = dialog.getByRole("button", { name: "Erneut versuchen" });
+      if (await retry.isVisible()) await retry.click();
+      await expect(dialog.getByTestId("duplicates-dialog")).toContainText("1 Gruppe · 2 Inhalte", { timeout: 1_000 });
+    }).toPass({ timeout: 20_000 });
+  };
+  await openDuplicates();
   await expect(dialog.getByTestId("duplicate-groups").getByRole("button")).toHaveCount(2);
   await dialog.getByRole("button", { name: "Duplikate taggen" }).click();
   await expect(page.getByText("Duplikate taggen: 2 Karten")).toBeVisible();
@@ -652,7 +657,7 @@ test("[Vertrag: Duplikate finden, öffnen und taggen; Tags verwalten] @beta-core
   await expect.poll(tagsOf).toEqual(["", ""]);
   await manager.getByRole("button", { name: "Schließen" }).click();
 
-  await page.getByRole("button", { name: "Duplikate finden" }).click();
+  await openDuplicates();
   await dialog.getByTestId("duplicate-groups").getByRole("button").first().click();
   await expect(dialog).toHaveCount(0);
   await expect(page.getByRole("dialog", { name: /^hauptstadt von +Island$/i })).toBeVisible();

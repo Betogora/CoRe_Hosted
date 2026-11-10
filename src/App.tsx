@@ -640,6 +640,9 @@ export function App() {
       listTagDirectory: async () => {
         const local = () => repository().listTagDirectory();
         if (!cloud || (typeof navigator !== "undefined" && navigator.onLine === false)) return local();
+        // Tag changes still waiting here reach the cloud first, so its directory already shows them (KV5).
+        const pendingSync = syncEngineRef.current;
+        if (pendingSync?.pendingCount()) await pendingSync.flush().catch(() => undefined);
         return (await import("./cloudRepository.ts")).listAccountTags(cloud).catch(local);
       },
       listNoteTypes: async () => repository().listNoteTypes(),

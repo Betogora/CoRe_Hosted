@@ -260,13 +260,8 @@ export function createWorkspaceHydrationService({
     return graph?.cards.some((card) => card.id === cardId && deckIds.includes(card.deckId)) ? { ...graph, cardId } : null;
   };
 
-  /**
-   * A cloud page shows cards whose local change still waits in the outbox (a mass action, an edit) in their local state;
-   * a card deleted here leaves the page. The last page also lists cards created here that the cloud does not know yet
-   * and that match the request, so new cards appear before their upload.
-   */
-  const withPendingLocalRows = async (page: { items: CardCatalogEntry[]; hasMore: boolean; totalCount: number }, request: CardPageRequest) => {
-    const { items } = page;
+  /** Cards and contents whose local change still waits in the outbox, so the cloud does not show it yet. */
+  const pendingOutboxIds = () => {
     const cardIds = new Set<string>();
     const noteIds = new Set<string>();
     for (const mutation of repository.outbox.listPending()) {
@@ -274,6 +269,20 @@ export function createWorkspaceHydrationService({
       else if (mutation.table === "cards" && mutation.entityId) cardIds.add(mutation.entityId);
       else if (mutation.table === "notes" && mutation.entityId) noteIds.add(mutation.entityId);
     }
+    return { cardIds, noteIds };
+  };
+  /** Pending cards that match the request locally but are not among the cloud's ones: cards created here. */
+  const pendingCreatedIds = async (scope: readonly string[], request: Pick<CardPageRequest, "query" | "searchContext">, pending: ReadonlySet<string>, known: ReadonlySet<string>) =>
+    (await repository.listCardIds(scope, { query: request.query, searchContext: request.searchContext })).filter((id) => pending.has(id) && !known.has(id));
+
+  /**
+   * A cloud page shows cards whose local change still waits in the outbox (a mass action, an edit) in their local state;
+   * a card deleted here leaves the page. The last page also lists cards created here that the cloud does not know yet
+   * and that match the request, so new cards appear before their upload.
+   */
+  const withPendingLocalRows = async (page: { items: CardCatalogEntry[]; hasMore: boolean; totalCount: number }, request: CardPageRequest) => {
+    const { items } = page;
+    const { cardIds, noteIds } = pendingOutboxIds();
     if (!cardIds.size && !noteIds.size) return page;
     const changed = items.filter((entry) => cardIds.has(entry.id) || noteIds.has(entry.noteId));
     const local = changed.length ? await repository.loadCatalogEntries(changed.map((entry) => entry.id)) : new Map<string, CardCatalogEntry>();
@@ -282,13 +291,12 @@ export function createWorkspaceHydrationService({
       const row = local.get(entry.id);
       return row ? [{ ...row, syncChangeId: entry.syncChangeId }] : [];
     });
-    if (page.hasMore) return { ...page, items: shown };
-    const onPage = new Set(items.map((entry) => entry.id));
-    const scope = request.deckIds ?? [request.deckId];
-    const created = (await repository.listCardIds(scope, { query: request.query, searchContext: request.searchContext }))
-      .filter((id) => cardIds.has(id) && !onPage.has(id));
+    // Cards deleted here leave the count as well as the page.
+    const totalCount = page.totalCount - (items.length - shown.length);
+    if (page.hasMore) return { ...page, items: shown, totalCount };
+    const created = await pendingCreatedIds(request.deckIds ?? [request.deckId], request, cardIds, new Set(items.map((entry) => entry.id)));
     const createdRows = created.length ? [...(await repository.loadCatalogEntries(created)).values()] : [];
-    return { ...page, items: [...shown, ...createdRows], totalCount: page.totalCount + createdRows.length };
+    return { ...page, items: [...shown, ...createdRows], totalCount: totalCount + createdRows.length };
   };
 
   const queryCardPage = async (request: CardPageRequest) => {
@@ -339,7 +347,7 @@ export function createWorkspaceHydrationService({
   const openCards = (cardIds: string[]) => hydrateCards(cardIds);
   /**
    * Ids of every hit of a search over several decks (`Alle N Treffer auswählen`, KV4): from the local index when it can
-   * answer the search, otherwise page by page from the cloud.
+   * answer the search, otherwise page by page from the cloud with the local changes still waiting for upload, as on a page.
    */
   const listCardIds = async (request: Pick<CardPageRequest, "deckIds" | "query" | "searchContext" | "sort" | "signal"> & { deckIds: readonly string[] }) => {
     const status = repository.getReplicaStatus();
@@ -352,8 +360,14 @@ export function createWorkspaceHydrationService({
       const result = await fetchCatalogPage({ ...request, deckId: "__ids__", page, pageSize: 50 });
       request.signal?.throwIfAborted();
       ids.push(...result.items.map((entry) => entry.id));
-      if (!result.hasMore || !result.items.length) return ids;
+      if (!result.hasMore || !result.items.length) break;
     }
+    const { cardIds } = pendingOutboxIds();
+    if (!cardIds.size) return ids;
+    // Like a page: a card deleted here leaves the list, a card created here joins it.
+    const pendingKnown = ids.filter((id) => cardIds.has(id));
+    const stillLocal = pendingKnown.length ? await repository.loadCatalogEntries(pendingKnown) : new Map<string, CardCatalogEntry>();
+    return [...ids.filter((id) => !cardIds.has(id) || stillLocal.has(id)), ...await pendingCreatedIds(request.deckIds, request, cardIds, new Set(ids))];
   };
   /**
    * `Duplikate finden` needs every card of the account on this device, and for a field or a search their search texts
