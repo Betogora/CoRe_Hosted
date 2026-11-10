@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { cardStudyFromReviewState, createBasicNote, createCoreDeck, createReviewState, setCardSuspended } from "./coreModel.ts";
 import type { Card, ReviewSchedulerState } from "./coreTypes.ts";
-import { createHitSessionDecks, HIT_SESSION_DECK_ID, hitStudyQuery } from "./hitStudySession.ts";
+import { answerPractice, createHitSessionDecks, createPractice, HIT_SESSION_DECK_ID, hitStudyQuery } from "./hitStudySession.ts";
 import { HIT_REVIEW_KIND } from "./reviewEventKinds.ts";
 import { answerVariant, createDailyReviewQueue } from "./reviewService.ts";
 
@@ -43,4 +43,19 @@ test("Bewertungen aus Treffer lernen verbrauchen keine Tageslimits (KV5)", () =>
 test("Treffer lernen lässt ausgesetzte und zurückgestellte Karten über die Suche aus (KV5)", () => {
   assert.equal(hitStudyQuery("  tag:Prüfung or haus "), "tag:Prüfung or haus -is:suspended -is:buried");
   assert.equal(hitStudyQuery(""), "-is:suspended -is:buried");
+});
+
+test("Nur üben holt Nochmal nach einigen Karten, Schwer am Ende zurück und endet, wenn jede Karte gewusst wurde (KV5)", () => {
+  let practice = createPractice(["a", "b", "c", "d", "e", "a"]);
+  assert.deepEqual(practice.queue, ["a", "b", "c", "d", "e"]);
+  practice = answerPractice(practice, "again");
+  assert.deepEqual(practice.queue, ["b", "c", "d", "a", "e"]);
+  practice = answerPractice(practice, "hard");
+  assert.deepEqual(practice.queue, ["c", "d", "a", "e", "b"]);
+  for (const rating of ["good", "easy", "again", "good", "good", "good", "good"] as const) practice = answerPractice(practice, rating);
+  assert.deepEqual(practice.queue, []);
+  assert.deepEqual(practice.known, ["c", "d", "e", "b", "a"]);
+  assert.deepEqual(practice.againCounts, { a: 2 });
+  assert.deepEqual(practice.difficult, ["a", "b"]);
+  assert.equal(answerPractice(practice, "good"), practice, "eine beendete Übung bleibt beendet");
 });

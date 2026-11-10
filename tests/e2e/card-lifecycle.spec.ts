@@ -541,7 +541,7 @@ test("[Vertrag: Suchen und Ersetzen mit Vorschau und Rückgängig] @beta-core er
   await expect.poll(frontOf).toBe("<p>Hauptstadt von Norwegen</p>");
 });
 
-test("[Vertrag: Treffer lernen zieht nicht fällige Karten vor] @beta-core Treffer werden ohne Fälligkeit gelernt und verbrauchen kein Tageslimit", async ({ page }) => {
+test("[Vertrag: Treffer lernen zieht nicht fällige Karten vor, Nur üben schreibt nichts] @beta-core Treffer werden ohne Fälligkeit gelernt oder nur geübt", async ({ page }) => {
   const deckName = "Treffer lernen";
   await openManualCreation(page, deckName, "basic");
   await page.getByRole("textbox", { name: "Vorderseite" }).fill("Hauptstadt von Island");
@@ -549,13 +549,17 @@ test("[Vertrag: Treffer lernen zieht nicht fällige Karten vor] @beta-core Treff
   const deck = await finishManualCreation(page, deckName, 1);
   const reviewKinds = async () => ((await readActiveAccountState(page)).decks.find((candidate: { id: string }) => candidate.id === deck.id)?.reviewEvents ?? [])
     .map((event: { flags?: { kind?: string } }) => event.flags?.kind ?? "normal");
-  const studyHits = async () => {
+  const openHits = async (mode: "Vorziehen" | "Nur üben") => {
     await page.goto(`/kartenstapel?deck=${encodeURIComponent(deck.id)}&content=1&tab=cards`);
     await page.getByRole("textbox", { name: "Karten durchsuchen" }).fill("Island");
     await page.getByRole("button", { name: "Treffer lernen" }).click();
     const dialog = page.getByRole("dialog", { name: "Treffer lernen" });
     await expect(dialog.getByTestId("hit-study-dialog")).toContainText("1 Karte");
+    await dialog.getByRole("button", { name: mode, exact: true }).click();
     await dialog.getByRole("button", { name: "Lernen", exact: true }).click();
+  };
+  const studyHits = async () => {
+    await openHits("Vorziehen");
     await page.getByRole("button", { name: "Antwort anzeigen" }).click();
     await page.getByRole("button", { name: /Bewertung Leicht/ }).click();
     await expect(page.getByRole("heading", { name: "Sitzung abgeschlossen" })).toBeVisible();
@@ -566,6 +570,21 @@ test("[Vertrag: Treffer lernen zieht nicht fällige Karten vor] @beta-core Treff
   // `Leicht` planned the card days ahead; the hits still study it now.
   await studyHits();
   await expect.poll(reviewKinds).toEqual(["hit_review", "hit_review"]);
+
+  const studied = (await readActiveAccountState(page)).decks.find((candidate: { id: string }) => candidate.id === deck.id)!.cards[0].study;
+  await openHits("Nur üben");
+  const practice = page.getByRole("dialog", { name: "Nur üben" });
+  await practice.getByRole("button", { name: "Antwort anzeigen" }).click();
+  await practice.getByRole("button", { name: "Bewertung Nochmal" }).click();
+  await practice.getByRole("button", { name: "Antwort anzeigen" }).click();
+  await practice.getByRole("button", { name: "Bewertung Gut" }).click();
+  await expect(practice.getByRole("heading", { name: "Übung abgeschlossen" })).toBeVisible();
+  await expect(practice).toContainText("1 Karte geübt · 1× Nochmal");
+  await practice.getByRole("button", { name: "Fertig" }).click();
+  await expect(practice).toHaveCount(0);
+  const after = await readActiveAccountState(page);
+  expect(comparableStudy(after.decks.find((candidate: { id: string }) => candidate.id === deck.id)!.cards[0].study)).toEqual(comparableStudy(studied));
+  expect(await reviewKinds()).toEqual(["hit_review", "hit_review"]);
 });
 
 test("[Vertrag: typgerechter Cloze-Lebenszyklus] @beta-core jede Lückengruppe bleibt eine unabhängige Karte", async ({ page }) => {

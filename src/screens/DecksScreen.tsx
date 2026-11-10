@@ -22,8 +22,10 @@ import { CardSearchBar } from "./cardSearch/CardSearchBar.tsx";
 import { createCardSearchMenu } from "./cardSearch/cardSearchMenu.ts";
 import { useVirtualRows } from "./cardList/virtualRows.ts";
 import { CardSelectionBar } from "./cardList/CardSelectionBar.tsx";
+import { HitPractice } from "./cardList/HitPractice.tsx";
 import { HitStudyDialog } from "./cardList/HitStudyDialog.tsx";
-import { hitStudyQuery } from "../hitStudySession.ts";
+import type { Card, Note } from "../coreTypes.ts";
+import { hitStudyQuery, orderHits, type HitStudyMode, type HitStudyOrder } from "../hitStudySession.ts";
 import type { CardBatchAction } from "../cardBatchActions.ts";
 import { CardEditorDialog, CardEditorSurface, type CardEditorHitNavigation } from "./cardEditor/CardEditorDialog.tsx";
 import { DeckSummariesPanel } from "./DeckSummariesPanel.tsx";
@@ -268,6 +270,7 @@ export function DecksScreen({
   onRunCardBatch,
   onPrepareTextReplace,
   onStudyHits,
+  onLoadPracticeCards,
   onListHitCardIds,
   variantGenerationRunning = false,
   onUpdateVariant,
@@ -712,7 +715,14 @@ export function DecksScreen({
   const prepareSelectionReplace = useStableCallback(async () => onPrepareTextReplace!(await selectedIds()));
   // `Treffer lernen` (KV5) studies the hits or the selection without suspended and buried cards.
   const [hitStudy, setHitStudy] = React.useState<"hits" | "selection" | null>(null);
-  const canStudyHits = Boolean(onStudyHits && onListHitCardIds);
+  const canStudyHits = Boolean(onStudyHits && onLoadPracticeCards && onListHitCardIds);
+  const [practiceBodies, setPracticeBodies] = React.useState<Array<{ card: Card; note: Note }> | null>(null);
+  async function startHitStudy(cardIds: string[], order: HitStudyOrder, mode: HitStudyMode) {
+    if (mode === "advance") return onStudyHits!(cardIds, order);
+    const bodies = await onLoadPracticeCards!(cardIds);
+    if (!bodies.length) throw new Error("Diese Karten sind erst online verfügbar.");
+    setPracticeBodies(orderHits(bodies, order));
+  }
   const loadHitStudyIds = useStableCallback(async () => {
     const ids = await onListHitCardIds!({ deckIds: hitScope, query: hitStudyQuery(deferredQuery), searchContext, sort: cardSort });
     return hitStudy === "selection" && !allHits ? ids.filter((id) => checkedIds.has(id)) : ids;
@@ -1004,10 +1014,11 @@ export function DecksScreen({
               <HitStudyDialog
                 title={hitStudy === "selection" ? "Auswahl lernen" : "Treffer lernen"}
                 loadCardIds={loadHitStudyIds}
-                onStart={onStudyHits!}
+                onStart={startHitStudy}
                 onClose={() => setHitStudy(null)}
               />
             ) : null}
+            {practiceBodies ? <HitPractice bodies={practiceBodies} mediaStore={mediaStore} onClose={() => setPracticeBodies(null)} /> : null}
             {deckStatus ? <p className={"core-body font-semibold " + (deckStatusType === "alert" ? "core-status-error" : "core-status-info")} role={deckStatusType}>{deckStatus}</p> : null}
             {deletedCardUndo ? (
               <div className="flex flex-wrap items-center gap-3 rounded-panel border border-core-border bg-core-subtle px-4 py-3">

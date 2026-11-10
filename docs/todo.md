@@ -207,19 +207,6 @@ Referenz gelesen.
       - **Tag-Verwaltung** für das Konto: umbenennen samt Untertags,
         zusammenführen, löschen, ungenutzte bereinigen, Herkunft anzeigen; im
         Menü über die Tag-Zeile.
-      - **Treffer lernen, Nur üben:** `Vorziehen` steht (Startdialog mit
-        Kartenzahl und Reihenfolge, Trefferschlange, Tageslimits bleiben
-        unberührt). Offen ist der zweite Weg im Startdialog:
-        - **Nur üben:** Ablauf wie eine Sitzung (Frage, Aufdecken,
-          Bewerten). `Nochmal` holt die Karte nach einigen anderen Karten
-          zurück, `Schwer` noch einmal, `Gut` und `Einfach` beenden sie für
-          diese Übung; sie endet, wenn jede Karte einmal gewusst wurde.
-          Lernstand, Fälligkeit, FSRS-Werte und Lernbremse bleiben
-          unverändert, es entsteht kein Bewertungseintrag. Am Ende eine
-          Übersicht (geübt, wie oft `Nochmal`) mit `Nochmal üben` für die
-          schwierigen Karten.
-        - `Nur üben` nutzt dieselbe Auswahl der Karten wie `Vorziehen`, hat
-          aber keinen Schreibpfad.
       Nachweis: Modell- und Routentests, Reimport-Schutz bearbeiteter Inhalte,
       E2E je Werkzeug.
 - [ ] **KV6 – Arbeitsfluss:** Ab etwa 1280 px öffnet der Editor neben der

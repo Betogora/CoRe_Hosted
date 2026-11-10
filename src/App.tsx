@@ -1972,6 +1972,7 @@ export function App() {
           onRunCardBatch={workspaceRepository && workspaceHydrationService ? runDeckCardBatch : undefined}
           onPrepareTextReplace={workspaceRepository && workspaceHydrationService ? prepareDeckTextReplace : undefined}
           onStudyHits={workspaceHydrationService ? startHitSession : undefined}
+          onLoadPracticeCards={workspaceHydrationService ? async (cardIds) => (await workspaceHydrationService.openCards(cardIds)).filter((body): body is { card: Card; note: Note } => Boolean(body)) : undefined}
           onListHitCardIds={workspaceHydrationService ? (request) => workspaceHydrationService.listCardIds(request) : undefined}
           variantGenerationRunning={variantBatch.running}
           onUpdateVariant={updateDeckCardVariant}

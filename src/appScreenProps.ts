@@ -216,6 +216,8 @@ export interface DecksScreenProps {
   onPrepareTextReplace?: (cardIds: string[]) => Promise<TextReplaceSession>;
   /** `Treffer lernen` (KV5): studies these cards ahead of time; they are already free of suspended and buried cards. */
   onStudyHits?: (cardIds: string[], order: HitStudyOrder) => Promise<void>;
+  /** `Nur üben` (KV5): the bodies of these cards; offline only those on this device. */
+  onLoadPracticeCards?: (cardIds: string[]) => Promise<Array<{ card: Card; note: Note }>>;
   /** Ids of every hit of the flat hit list, for `Alle N Treffer auswählen` (KV4). */
   onListHitCardIds?: (request: { deckIds: string[]; query: string; searchContext: CardSearchContext; sort?: CardTableSort }) => Promise<string[]>;
   variantGenerationRunning?: boolean;
