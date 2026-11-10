@@ -124,83 +124,9 @@ nicht hinzu. Grundlage sind Sichtprüfung und Messung vom 2026-11-04
 (Konto mit 60 Stapeln, Stapel `Muskeltrainer` mit 581 Karten) und Ankis
 Seitenleiste (`qt/aqt/browser/sidebar/tree.py`), Suchsyntax
 (`rslib/src/search/`) und Tabellenmodell (`qt/aqt/browser/table/`), nur als
-Referenz gelesen.
+Referenz gelesen. Befund und Produktentscheidungen stehen in
+[ADR-048](decisions.md#adr-048--kartensuche-lokal-über-den-vollständigen-katalog).
 
-**Befund**
-
-- Die Cloud-Suche (`search_account_card_catalog`) braucht 2,5–3,6 s; sie
-  nummeriert und zählt alle Treffer je Stapel, bevor die erste Seite kommt, und
-  wertet `flag:`/`tag:` je Zeile über `jsonb_array_elements` aus. Sie läuft auch
-  bei vollständigem lokalem Katalog online (`workspaceHydrationService.ts`,
-  `queryCardPage`).
-- Während der Suche zeigt jeder Stapel `Keine Karten`; online erscheint
-  danach fälschlich `Offline werden nur bereits lokal indexierte Karten …`.
-- `is:due` und andere Anki-Begriffe werden als Freitext gesucht und liefern
-  kommentarlos nichts.
-- 581 Karten im `Muskeltrainer` tragen dasselbe Sortierfeld; welche Abfrage
-  gemeint ist, zeigt erst der Editor.
-- Kein Stapelfilter, keine Mehrfachauswahl; Seitenwechsel in 50er-Seiten je
-  Stapel zerlegt Suchtreffer über viele Stapel.
-- Spaltenkopf scrollt weg, Kartenzeilen sind nicht unter ihren Stapelkopf
-  eingerückt, das Panel heißt `Aktive Stapel`, Elternstapel zeigen
-  `Keine Karten`, obwohl Unterstapel Karten haben.
-- Mobil belegen Suche und Filter den ersten Bildschirm; Fragen werden nach
-  etwa 14 Zeichen gekürzt.
-
-**Entscheidungen (2026-11-04)**
-
-- Zielgröße: 50.000 Karten flüssig, 100.000 bedienbar. „Flüssig“ heißt die
-  Budgets unter KV1, gemessen, nicht geschätzt.
-- Ohne Suche und Filter bleibt der Stapelbaum; mit Suchtext oder einem Filter
-  außer dem Stapelfilter zeigt die Liste alle Treffer flach. Der Stapelfilter
-  allein zeigt den gewählten Teilbaum.
-- Stapel wandern aus der Trefferliste in den Stapelfilter der Suchzeile.
-- Massenaktionen bestätigen ab einer Karte mit Dialog (Wirkung und Anzahl);
-  danach folgt in jedem Fall ein Toast mit `Rückgängig`, auch bei `Löschen`.
-- Die Suche durchsucht wie heute alle Felder und kann zusätzlich in einem
-  einzelnen Feld suchen.
-- Das Menü erklärt Kombinationsregeln, Chips und Suchbegriffe selbst.
-- Menüaufbau (A/B-Runden 1 und 2): Das Menü klappt unter der Suchzeile auf.
-  Kategorien links, rechts die Einträge der gewählten Kategorie mit
-  Suchbegriff und dem Schalter `Mit`/`Egal`/`Ohne` (Ausgangsstellung
-  `Egal`, also nicht Teil der Suche). Darüber steht der erzeugte
-  Suchausdruck mit Kopieren.
-  `Speichern` legt ihn als benannte Suche ab, `Zurücksetzen` leert alle
-  Filter. Gespeicherte Suchen und Suchsyntax bilden zusammen die letzte
-  Kategorie `Gespeichert & Syntax`.
-- Mobil: Suchfeld mit Stapel- und Filter-Icon samt Zähler; das Filter-Icon
-  unterscheidet sich vom Icon des Knopfs `Lerneinstellungen`.
-- Bausteine: vorhandene UI-Komponenten (`DeckSelect`, `ActionButton`,
-  `IconButton`, `CoreSegmentedControl`, `FlagDot`, `core-field`,
-  `SoftPanel`); neu sind nur Kategorienleiste (Muster der
-  `InPageNavigation`-Leiste), Filter-Chip (Muster der `TagInput`-Chips) und
-  `CoreTriStateControl` (A/B-Runde 3, Variante A): dieselbe Schiene wie
-  `CoreSegmentedControl` (Rahmen, Radius, 3 px Innenabstand, 4 px Abstand),
-  aber quadratische Symbolsegmente ✓ | – | ⊘ in Auswahlhöhe minus 8 px
-  (30 px, bei Touch 36 px), Ausgangsstellung `Egal` in der Mitte. Der
-  Indikator gleitet in 180 ms und blendet seine Farbe in 260 ms über (blau
-  `Mit`, rot `Ohne`, neutral `Egal`); Reduced Motion schaltet beides ab. Rolle `radiogroup`, Tooltips nennen `Mit`, `Egal`, `Ohne`. Alle neuen
-  Elemente folgen der Designsprache der BengtsToolBox (ADR-046) und kommen
-  in den UI-Katalog.
-- Persistenz: so einfach wie möglich. Suche, Filter und Sortierung leben wie
-  heute nur im Bildschirmzustand; Reload oder Reiterwechsel beginnt leer.
-  Dauerhaft sind nur gespeicherte Suchen. Nachsteuern erst bei Bedarf.
-- `Suchen und Ersetzen` ersetzt wörtlichen Text; reguläre Ausdrücke gibt es
-  weder dort noch in der Suche.
-- Kein Ankis `Reposition` (Position neuer Karten): Welche Karten zuerst
-  drankommen, steuern `Treffer lernen` und die Prüfungsplanung; Importe
-  behalten ihre Reihenfolge über das Erstelldatum.
-- `Treffer lernen` bietet wie Ankis gefilterte Stapel beide Wege (KV5):
-  `Vorziehen` mit zählenden Bewertungen (Standard, wie Ankis voreingestellte
-  Option „Reschedule cards based on my answers“) und `Nur üben` ohne
-  Planänderung (Ankis Vorschaumodus).
-
-- [ ] **KV4-Rest – Tempo der Massenaktionen:** Auswahl, alle Aktionen mit
-      Rückgängig, Offline- und Konfliktfälle sowie das E2E einer Massenaktion
-      stehen. Offen ist das Ziel „1.000 Karten lokal in höchstens 1 s“:
-      gemessen in Chromium rund 2 s, fast ganz im Schreiben von IndexedDB
-      (Karte, Katalog, Residenz und Outbox je Karte).
-      Nachweis: Messung mit 1.000 Karten im Produktions-Build.
 - [ ] **Abschluss:** `specs.md` §5.3 und §6, `architecture.md` (Suchindex,
       Massenaktionen), ADR zu Suchmodell und Cutover, Hilfeseite.
 
