@@ -256,6 +256,30 @@ test("eine Cloudseite zeigt Karten mit noch nicht synchronisierter lokaler Ände
   repository.close();
 });
 
+test("eine hier angelegte Karte steht auf der Cloudseite, in deren Bereich sie sortiert; geänderte Karten anderer Seiten nicht", async () => {
+  const userId = randomUUID();
+  const graphs = ["Alpha", "Gamma", "Zulu"].map((front, index) => graph("deck-pages", String(index), front, CREATED_AT));
+  const deck = createCoreDeck({ id: "deck-pages", ownerId: userId, name: "Seiten", source: "manual", cards: graphs.map((entry) => entry.cards[0]) });
+  const repository = await createIndexedDbCoreRepository({ userId, initialState: workspace(userId, [deck], graphs.map((entry) => entry.note)), indexedDb: new IDBFactory() });
+  const rows = (await repository.listCatalogPage(deck.id, { limit: 50 })).items.map((entry) => catalogRow(entry));
+  await repository.applyCloudCatalogPage({ table: "card_catalog", entities: [], reset: false, cursor: 1 });
+  repository.outbox.markFlushed(repository.outbox.listPending().map((mutation) => mutation.id));
+  // Zulu sits on the second cloud page and only changes its flag here; Beta is new and sorts between Alpha and Gamma.
+  const zulu = graphs[2];
+  await repository.saveNoteGraphs([{ previous: zulu, next: { note: zulu.note, cards: [{ ...zulu.cards[0], ankiFlag: 2, revision: zulu.cards[0].revision + 1 }] } }]);
+  await repository.saveNoteGraphs([{ previous: null, next: graph("deck-pages", "9", "Beta", CREATED_AT) }]);
+  const firstPage = rows.filter((row) => row.id !== "card-2");
+  const service = createWorkspaceHydrationService({
+    repository,
+    mediaStore: null,
+    client: { async rpc() { return { data: { items: firstPage, totalCount: 3, hasMore: true, nextCursor: null }, error: null }; } },
+  });
+  const page = await service.queryCardPage({ deckId: deck.id, page: 0, pageSize: 2, sort: { field: "sortField", direction: "asc" } });
+  assert.deepEqual(page.items.map((entry) => entry.id), ["card-0", "card-9", "card-1"], "die neue Karte an ihrem Platz, die geänderte nicht doppelt");
+  assert.equal(page.totalCount, 4);
+  repository.close();
+});
+
 test("ein abgebrochener Suchauftrag übernimmt keine Cloudseite und meldet keinen eingeschränkten Katalog", async () => {
   const userId = randomUUID();
   const local = graph("deck-search", "local", "Zulu lokal", CREATED_AT);

@@ -19,6 +19,12 @@ function compareEntries(field: CardTableSort["field"]) {
   };
 }
 
+/** The order of a card list, as the search index sorts it. */
+export function compareCatalogEntries(sort: CardTableSort) {
+  const compare = compareEntries(sort.field);
+  return sort.direction === "desc" ? (left: CardCatalogEntry, right: CardCatalogEntry) => compare(right, left) : compare;
+}
+
 /**
  * In-memory search over the whole local catalog. Each sort order is computed once and filtered in that order,
  * so a search is one pass; results stay cached per query and sort until the catalog changes.

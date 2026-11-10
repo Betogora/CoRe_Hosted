@@ -1,4 +1,5 @@
 import type { CardSearchContext } from "./cardSearchQuery.ts";
+import { compareCatalogEntries } from "./catalogSearchIndex.ts";
 import type { DuplicateKey } from "./duplicateContents.ts";
 import type { Card, CardStudyState, Deck, Note } from "./coreTypes.ts";
 import type { IndexedDbCoreRepository, ReimportTargets } from "./indexedDbCoreRepository.ts";
@@ -264,28 +265,32 @@ export function createWorkspaceHydrationService({
    * Cards and contents whose local change still waits in the outbox, so the cloud does not show it yet. A cloud answer
    * passes the ids pending when it was asked: a change uploaded while the answer travels is in neither of them.
    */
-  const pendingOutboxIds = (askedWhilePending?: { cardIds: ReadonlySet<string>; noteIds: ReadonlySet<string> }) => {
+  const pendingOutboxIds = (askedWhilePending?: { cardIds: ReadonlySet<string>; noteIds: ReadonlySet<string>; createdCardIds: ReadonlySet<string> }) => {
     const cardIds = new Set<string>(askedWhilePending?.cardIds);
     const noteIds = new Set<string>(askedWhilePending?.noteIds);
+    // A first write (no base revision) means a card created here, which no cloud page can show yet.
+    const createdCardIds = new Set<string>(askedWhilePending?.createdCardIds);
     for (const mutation of repository.outbox.listPending()) {
       if (mutation.type === "review-atomic") cardIds.add((mutation.payload as { card: { id: string } }).card.id);
-      else if (mutation.table === "cards" && mutation.entityId) cardIds.add(mutation.entityId);
-      else if (mutation.table === "notes" && mutation.entityId) noteIds.add(mutation.entityId);
+      else if (mutation.table === "cards" && mutation.entityId) {
+        cardIds.add(mutation.entityId);
+        if (mutation.baseRevision === null) createdCardIds.add(mutation.entityId);
+      } else if (mutation.table === "notes" && mutation.entityId) noteIds.add(mutation.entityId);
     }
-    return { cardIds, noteIds };
+    return { cardIds, noteIds, createdCardIds };
   };
-  /** Pending cards that match the request locally but are not among the cloud's ones: cards created here. */
-  const pendingCreatedIds = async (scope: readonly string[], request: Pick<CardPageRequest, "query" | "searchContext">, pending: ReadonlySet<string>, known: ReadonlySet<string>) =>
-    (await repository.listCardIds(scope, { query: request.query, searchContext: request.searchContext })).filter((id) => pending.has(id) && !known.has(id));
+  /** Cards created here that match the request locally and are not among the cloud's ones. */
+  const pendingCreatedIds = async (scope: readonly string[], request: Pick<CardPageRequest, "query" | "searchContext">, created: ReadonlySet<string>, known: ReadonlySet<string>) =>
+    (await repository.listCardIds(scope, { query: request.query, searchContext: request.searchContext })).filter((id) => created.has(id) && !known.has(id));
 
   /**
    * A cloud page shows cards whose local change still waits in the outbox (a mass action, an edit) in their local state;
-   * a card deleted here leaves the page. The last page also lists cards created here that the cloud does not know yet
-   * and that match the request, so new cards appear before their upload.
+   * a card deleted here leaves the page. Cards created here that match the request join the page whose range they sort
+   * into, so a new card appears at its place before its upload; the count includes them on every page.
    */
   const withPendingLocalRows = async (page: { items: CardCatalogEntry[]; hasMore: boolean; totalCount: number }, request: CardPageRequest, askedWhilePending: ReturnType<typeof pendingOutboxIds>) => {
     const { items } = page;
-    const { cardIds, noteIds } = pendingOutboxIds(askedWhilePending);
+    const { cardIds, noteIds, createdCardIds } = pendingOutboxIds(askedWhilePending);
     if (!cardIds.size && !noteIds.size) return page;
     const changed = items.filter((entry) => cardIds.has(entry.id) || noteIds.has(entry.noteId));
     const local = changed.length ? await repository.loadCatalogEntries(changed.map((entry) => entry.id)) : new Map<string, CardCatalogEntry>();
@@ -296,10 +301,19 @@ export function createWorkspaceHydrationService({
     });
     // Cards deleted here leave the count as well as the page.
     const totalCount = page.totalCount - (items.length - shown.length);
-    if (page.hasMore) return { ...page, items: shown, totalCount };
-    const created = await pendingCreatedIds(request.deckIds ?? [request.deckId], request, cardIds, new Set(items.map((entry) => entry.id)));
-    const createdRows = created.length ? [...(await repository.loadCatalogEntries(created)).values()] : [];
-    return { ...page, items: [...shown, ...createdRows], totalCount: totalCount + createdRows.length };
+    const created = createdCardIds.size ? await pendingCreatedIds(request.deckIds ?? [request.deckId], request, createdCardIds, new Set(items.map((entry) => entry.id))) : [];
+    if (!created.length) return { ...page, items: shown, totalCount };
+    const compare = compareCatalogEntries(request.sort ?? { field: "sortField", direction: "asc" });
+    const [first, last] = [items[0], items.at(-1)];
+    const onThisPage = [...(await repository.loadCatalogEntries(created)).values()].filter((row) =>
+      (!first || !request.page || compare(row, first) >= 0) && (!last || !page.hasMore || compare(row, last) <= 0));
+    // The cloud's rows keep their order; a new card goes before the first row that sorts after it.
+    const merged = [...shown];
+    for (const row of onThisPage.sort(compare)) {
+      const at = merged.findIndex((entry) => compare(row, entry) < 0);
+      merged.splice(at < 0 ? merged.length : at, 0, row);
+    }
+    return { ...page, items: merged, totalCount: totalCount + created.length };
   };
 
   const queryCardPage = async (request: CardPageRequest) => {
@@ -368,12 +382,12 @@ export function createWorkspaceHydrationService({
       ids.push(...result.items.map((entry) => entry.id));
       if (!result.hasMore || !result.items.length) break;
     }
-    const { cardIds } = pendingOutboxIds(askedWhilePending);
+    const { cardIds, createdCardIds } = pendingOutboxIds(askedWhilePending);
     if (!cardIds.size) return ids;
     // Like a page: a card deleted here leaves the list, a card created here joins it.
     const pendingKnown = ids.filter((id) => cardIds.has(id));
     const stillLocal = pendingKnown.length ? await repository.loadCatalogEntries(pendingKnown) : new Map<string, CardCatalogEntry>();
-    return [...ids.filter((id) => !cardIds.has(id) || stillLocal.has(id)), ...await pendingCreatedIds(request.deckIds, request, cardIds, new Set(ids))];
+    return [...ids.filter((id) => !cardIds.has(id) || stillLocal.has(id)), ...await pendingCreatedIds(request.deckIds, request, createdCardIds, new Set(ids))];
   };
   /**
    * `Duplikate finden` needs every card of the account on this device, and for a field or a search their search texts
