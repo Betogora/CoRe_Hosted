@@ -1,37 +1,38 @@
 # CoRe TODO
 
-Stand: 2026-11-09
+Stand: 2026-11-10
 
 Nur offene Arbeit. Ist-Stand in [`status.md`](status.md), Entscheidungen in
 [`decisions.md`](decisions.md), erledigte Arbeit in [`history.md`](history.md).
 
-Reihenfolge = Priorität: P1 vor P2. Die bekannten Fehler sind klein und kommen
-vorab dran; offene Nachweise brauchen keinen Code und laufen unabhängig davon; die Release-Voraussetzungen sind vor dem ersten
-externen Release fällig, „Später“ ist geparkt.
+Reihenfolge = Priorität. Die Restposten sind klein und kommen gesammelt vorab
+dran. P1 und P4 laufen, P2 folgt. Offene Nachweise brauchen keinen Code und
+laufen unabhängig davon; die Release-Voraussetzungen sind vor dem ersten
+externen Release fällig. „Später“ ist geparkt.
 
-## Bekannte Fehler (vorab)
+## Restposten
 
-Aufgefallen im E2E-Lauf vom 2026-11-09; sie stammen aus Umbauten vom 02. bis
-04.11. und sind schon auf `main` vorhanden.
+Kleine Punkte aus abgeschlossenen Paketen, gemeinsam in einem PR.
 
-- [ ] **Veraltete Überschrift in `card-lifecycle`:** Die Verträge
-      „typgerechter Basic-Lebenszyklus“ und „typgerechter
-      Multiple-Choice-Lebenszyklus“ erwarten nach dem Reload der
-      Kartenverwaltung die Überschrift `Lernen`; seit `Karten` ein eigener
-      Reiter ist (`b19da09`), heißt sie `Kartenverwaltung`. Nachweis: beide
-      Tests grün.
-- [ ] **Zeilenhöhe der Kartenverwaltung:** Der Vertrag „Karten- und
-      Stapelzeilen bleiben auch in schmalen Viewports kompakt“
-      (`navigation-context`) misst eine Kartenzeile mit 40,7 px statt
-      höchstens 30 px. Klären, welcher Umbau vom 02.–04.11. die Zeile
-      vergrößert hat und ob Layout oder Erwartung falsch ist. Nachweis: Test
-      grün, Pflichtmatrix der Kartenverwaltung.
+- [ ] **Veraltete Überschrift nach Reload der Kartenverwaltung:** Die
+      Verträge „typgerechter Basic-Lebenszyklus“ und „typgerechter
+      Multiple-Choice-Lebenszyklus“ (`card-lifecycle`) sowie die
+      Offline-Löschung in `batch-resilience` erwarten nach dem Reload die
+      Überschrift `Lernen`; seit `Karten` ein eigener Reiter ist (`b19da09`),
+      heißt sie `Kartenverwaltung`. Nachweis: alle drei Tests grün.
 - [ ] **Navigationsmarkierung beim ersten Laden:** Bei einem direkten Aufruf
       etwa von `/lernen` sitzt die gleitende Hervorhebung der Top-Bar auf
       `Heute`, obwohl `Lernen` korrekt `aria-current` trägt
       (`useSlidingSelection` in `src/ui/AppNavigation.tsx`). Nachweis: Reload
       jeder Hauptansicht bei 1280 und 1440 px zeigt die Markierung am aktiven
       Ziel, dazu ein E2E-Fall.
+- [ ] **Lokale KI-Routen dokumentieren:** Das Vite-Plugin `localAiRoutes` in
+      `vite.config.ts` bedient `/api/ai/summary` und `/api/ai/card-variant`
+      unter `npm run dev`; `operations.md` nennt dafür noch `vercel dev`.
+      Festschreiben, welcher Weg gilt, und `operations.md` anpassen.
+- [ ] **Google-Login entscheiden:** Gebaut, aber per Flag aus. Entscheiden,
+      ob der OAuth-Prüfprozess und ein Datenschutztext kommen; sonst Code und
+      Flag entfernen.
 
 ## P1: KI-Varianten (Proof of Concept) abschließen
 
@@ -47,72 +48,16 @@ geglättet.
       Variantenbereich der Stapeleinstellungen und Filter `-has:variant`; dazu
       ein E2E-Test der Stapelgenerierung (Route je Aufruf mit anderer Variante
       gemockt).
-- [ ] **Nicht umformulierbare Inhalte untersuchen:** Das erzwungene Werkzeug
+- [ ] **Ausweg für nicht umformulierbare Inhalte:** Das erzwungene Werkzeug
       verlangt heute immer eine Variante; bei sinnlosen Inhalten (zufällige
-      Buchstabenfolgen) oder Insidern ohne allgemeinen Kontext bleibt dem Modell
-      nur eine Hülle („Was gehört zu …?“) oder eine erfundene Deutung. Zu
-      untersuchen: Playtest mit solchen Prüfkarten neben den bisherigen sechs,
-      danach eine Prompt-Ergänzung mit Ausweg, über den das Modell eine Karte
-      als nicht umformulierbar meldet. Offen ist, wie die Route das meldet und
-      ob die Karte danach aus Stapelläufen fällt; heute wählt jeder Lauf
-      gescheiterte und gemeldete Karten erneut. Ein neuer Zustand erscheint als
-      weitere Zustandsmarke im Reiter `Varianten` des Karteneditors
-      (ADR-045, `variantStateMarks`).
+      Buchstabenfolgen) oder Insidern ohne allgemeinen Kontext bleibt dem
+      Modell nur eine Hülle („Was gehört zu …?“) oder eine erfundene Deutung.
+      Playtest mit solchen Prüfkarten neben den bisherigen sechs, danach eine
+      Prompt-Ergänzung, über die das Modell eine Karte als nicht
+      umformulierbar meldet; die Route gibt das als eigenen Fehlergrund
+      zurück. Ein eigener Kartenzustand dafür steht unter „Später“.
       Nachweis: Playtest-Ergebnis vor und nach der Prompt-Ergänzung,
       Routentests mit solchen Karteninhalten.
-
-## P2: Karten aus einer Quelle per KI erstellen
-
-Formular und Auftragsprüfung unter `/neue-karten?method=ai-source` stehen
-(`src/aiSourceCreation.ts`, `AiSourceCreationPanel.tsx`); „Karten erstellen“
-ist deaktiviert, nichts wird gelesen oder übertragen. Offen ist alles, was die
-Oberfläche danach verspricht. Setzt P1 und das KI-Kontingent pro Nutzer
-voraus.
-
-- [ ] **Entscheidungen vor dem Code (Ergänzung zu ADR-011):** ADR-011 erlaubt
-      genau zwei KI-Routen; eine dritte Route (etwa
-      `POST /api/ai/source-cards`, gleiches Modell, ZDR, Kostenlog) braucht die
-      Ergänzung. Festlegen: ob der Browser nur extrahierten Text oder die
-      Datei überträgt (ADR-011 schließt Bildübertragung aus, Scans und
-      Diagramme bleiben damit außen vor); Obergrenzen je Auftrag (Zeichen,
-      Seiten oder Folien, Karten) und wie große Quellen ohne Serverqueue in
-      Portionen im geöffneten Tab laufen; Hinweis, dass die Quelle an den
-      Anbieter geht.
-- [ ] **Quelle auslesen:** Das Formular nimmt PDF, Text, Markdown, CSV, TSV,
-      DOCX und PPTX an. `documentModel.ts` liest die ersten fünf bereits;
-      DOCX und PPTX fehlen (ZIP und XML, ohne neue Abhängigkeit über
-      `zipReader.ts` prüfen). Jede Textstelle trägt einen echten Beleg (Seite,
-      Folie oder Abschnitt), weil der Prompt einen Quellenverweis je Karte
-      verlangt. Leere, geschützte, nur gescannte oder zu große Dokumente
-      werden mit Meldung abgelehnt, nichts wird still abgeschnitten.
-- [ ] **Generierung und Vertrag:** Anfrage- und Antwortschema in einem eigenen
-      Vertragsmodul wie `aiCardVariantContract.ts`; die Route nutzt
-      `buildAiSourceCreationPrompt` und hält Quellmaterial von Anweisungen
-      getrennt. Je Karte getrennt: Frage oder Lückentext, kurze Lösung,
-      Auswahloptionen mit Richtigkeit, quellenbasierte Erklärung, externe
-      Ergänzung, Quellenverweis. Hinweise des Modells (Material trägt das
-      Lernziel nicht, widersprüchliche oder unlesbare Stellen) kommen als
-      eigene Meldungen zurück. Fortschritt, Abbruch und Fehler folgen den
-      Regeln der Variantengenerierung.
-- [ ] **Ergebnis prüfen und übernehmen:** Vor dem Speichern eine Liste der
-      vorgeschlagenen Karten mit Vorschau, Bearbeiten und Verwerfen je Karte;
-      Bearbeiten und Vorschau nutzen den Reiter `Inhalt` des Editors V2 (P0,
-      W16), kein zweiter Editor;
-      gespeichert wird erst nach Bestätigung und nur über `coreModel.ts`
-      (Frage–Antwort, Lückentext, Single und Multiple Choice gibt es dort
-      schon). Feldzuordnung festlegen: kurze Antwort, quellenbasierte
-      Erklärung in `extra`, Quellenverweis in `source`; die externe Ergänzung
-      braucht eine sichtbar getrennte Kennzeichnung „Ergänzende Erklärung –
-      außerhalb der Quelle“ (eigene Feldrolle oder benanntes Feld). Neuer
-      Zielstapel entsteht erst bei der Übernahme. Der Entwurfsschutz gilt
-      auch für ungespeicherte Ergebnisse.
-- [ ] **Freigabe:** „Karten erstellen“ und den Hinweis „noch nicht verfügbar“
-      erst danach umstellen; ohne Verbindung bleibt die Aktion mit Meldung
-      gesperrt. Specs [Automatisch aus einer Quelle](specs.md#automatisch-aus-einer-quelle), `status.md` und `architecture.md` nachziehen.
-      Nachweis: Routen- und Vertragstests, E2E mit gemockter Route (Erfolg,
-      Hinweise, Abbruch, Fehler, nichts gespeichert vor Übernahme), echte
-      Quellen je Format mit allen vier Kartenformen, visuelle Pflichtmatrix
-      für Fortschritt und Ergebnisliste.
 
 ## P4: Kartenverwaltung 2.0
 
@@ -132,60 +77,105 @@ Referenz gelesen. Befund und Produktentscheidungen stehen in
       die Migration `20261110130000_kartenverwaltung` (`supabase db push`,
       `verify_schema_v1.sql`), dann der Client.
 
+## P2: Karten aus einer Quelle per KI erstellen
+
+Formular und Auftragsprüfung unter `/neue-karten?method=ai-source` stehen
+(`src/aiSourceCreation.ts`, `AiSourceCreationPanel.tsx`); „Karten erstellen“
+ist deaktiviert, nichts wird gelesen oder übertragen. Offen ist alles, was die
+Oberfläche danach verspricht. Setzt P1 voraus. Erste Ausbaustufe: PDF, Text,
+Markdown, CSV und TSV.
+
+- [ ] **KI-Kontingent pro Nutzer:** Alle Nutzer teilen das Ausgabenlimit des
+      OpenRouter-Schlüssels; ein Tageslimit je Account (atomare Zählung in
+      Supabase) verhindert, dass ein Nutzer es allein aufbraucht. Auch
+      Voraussetzung für das erste externe Release.
+- [ ] **Entscheidungen vor dem Code (Ergänzung zu ADR-011):** ADR-011 erlaubt
+      genau zwei KI-Routen und verlangt für ein Kontingent je Nutzer eine
+      Ergänzung; eine gemeinsame Ergänzung regelt beides und gibt die dritte
+      Route frei (etwa `POST /api/ai/source-cards`, gleiches Modell, ZDR,
+      Kostenlog). Festlegen: ob der Browser nur extrahierten Text oder die Datei
+      überträgt (ADR-011 schließt Bildübertragung aus, Scans und Diagramme
+      bleiben damit außen vor); Obergrenzen je Auftrag (Zeichen, Seiten,
+      Karten) und wie große Quellen ohne Serverqueue in Portionen im
+      geöffneten Tab laufen; Hinweis, dass die Quelle an den Anbieter geht.
+- [ ] **Quelle auslesen:** `documentModel.ts` liest PDF, Text, Markdown, CSV
+      und TSV bereits; DOCX und PPTX kommen aus der Dateiauswahl des
+      Formulars und aus den Specs heraus (Lesen steht unter „Später“). Jede
+      Textstelle trägt einen echten Beleg (Seite oder Abschnitt), weil der
+      Prompt einen Quellenverweis je Karte verlangt. Leere, geschützte, nur
+      gescannte oder zu große Dokumente werden mit Meldung abgelehnt, nichts
+      wird still abgeschnitten.
+- [ ] **Generierung und Vertrag:** Anfrage- und Antwortschema in einem eigenen
+      Vertragsmodul wie `aiCardVariantContract.ts`; die Route nutzt
+      `buildAiSourceCreationPrompt` und hält Quellmaterial von Anweisungen
+      getrennt. Je Karte getrennt: Frage oder Lückentext, kurze Lösung,
+      Auswahloptionen mit Richtigkeit, quellenbasierte Erklärung, externe
+      Ergänzung, Quellenverweis. Hinweise des Modells (Material trägt das
+      Lernziel nicht, widersprüchliche oder unlesbare Stellen) kommen als
+      eigene Meldungen zurück. Fortschritt, Abbruch und Fehler folgen den
+      Regeln der Variantengenerierung.
+- [ ] **Ergebnis prüfen und übernehmen:** Vor dem Speichern eine Liste der
+      vorgeschlagenen Karten mit Vorschau, Bearbeiten und Verwerfen je Karte;
+      Bearbeiten und Vorschau nutzen den Reiter `Inhalt` des Karteneditors
+      (ADR-045), kein zweiter Editor; gespeichert wird erst nach Bestätigung
+      und nur über `coreModel.ts` (Frage–Antwort, Lückentext, Single und
+      Multiple Choice gibt es dort schon). Feldzuordnung festlegen: kurze
+      Antwort, quellenbasierte Erklärung in `extra`, Quellenverweis in
+      `source`; die externe Ergänzung braucht eine sichtbar getrennte
+      Kennzeichnung „Ergänzende Erklärung – außerhalb der Quelle“ (eigene
+      Feldrolle oder benanntes Feld). Neuer Zielstapel entsteht erst bei der
+      Übernahme. Der Entwurfsschutz gilt auch für ungespeicherte Ergebnisse.
+- [ ] **Freigabe:** „Karten erstellen“ und den Hinweis „noch nicht verfügbar“
+      erst danach umstellen; ohne Verbindung bleibt die Aktion mit Meldung
+      gesperrt. Specs [Automatisch aus einer Quelle](specs.md#automatisch-aus-einer-quelle), `status.md` und `architecture.md` nachziehen.
+      Nachweis: Routen- und Vertragstests, E2E mit gemockter Route (Erfolg,
+      Hinweise, Abbruch, Fehler, nichts gespeichert vor Übernahme), echte
+      Quellen je Format mit allen vier Kartenformen, visuelle Pflichtmatrix
+      für Fortschritt und Ergebnisliste.
+
 ## Offene Nachweise
 
-Abnahmen der Kartenmodell-Roadmap; sie brauchen echte Geräte oder Daten, keinen
+Abnahmen gebauter Funktionen; sie brauchen echte Geräte oder Daten, keinen
 neuen Code.
 
-- [ ] **Gerätenachweise (Phase 3):** Bildschirmtastatur, Touch, Screenreader,
+- [ ] **Gerätenachweise:** Bildschirmtastatur, Touch, Screenreader,
       Sprachausgabe und 200-%-Browserzoom auf echten Smartphones; dazu die
-      Mindmap-Gesten aus W4c (Doppeltippen, Langdrücken, Zwei-Finger-Zoom,
-      Vollbild) auf iOS und Android.
-      Karteneditor V2: Tag-Eingabe mit Bildschirmtastatur (Android schickt
-      die Leertaste oft ohne Tastenereignis), Reiter und Flaggenraster bei
-      200 % Zoom.
+      Mindmap-Gesten (Doppeltippen, Langdrücken, Zwei-Finger-Zoom, Vollbild)
+      auf iOS und Android. Karteneditor: Tag-Eingabe mit Bildschirmtastatur
+      (Android schickt die Leertaste oft ohne Tastenereignis), Reiter und
+      Flaggenraster bei 200 % Zoom.
 - [ ] **Originallayout in der App (ADR-047):** Pokémon-Stapel
       (`fixtures/apkg/corpus/Pokemon_Gen_I_Auszug.apkg`) mit echtem Konto
       importieren, auf einem zweiten Gerät öffnen und offline lernen; Review,
       Editor-Vorschau und Importvorschau in Light und Dark bei 390 und 1440 px.
       Renderer, Sync und Katalog sind automatisiert und visuell belegt, die
       eingeloggte App nicht.
-- [ ] **Korpus (Phase 5):** AnKing und ein echter Lernstand mit Lern-,
-      Wiederlern-, ausgesetzten, begrabenen und geflaggten Karten. Ziel: mindestens
-      95 % voll übersetzt, 0 % nicht darstellbar. Prüfung:
+- [ ] **APKG-Korpus:** AnKing und ein echter Lernstand mit Lern-,
+      Wiederlern-, ausgesetzten, begrabenen und geflaggten Karten. Ziel:
+      mindestens 95 % voll übersetzt, 0 % nicht darstellbar. Prüfung:
       `npm run report:apkg-corpus`.
 
 ## Vor dem ersten externen Release
 
-- [ ] **Preload-Gate:** `npm run performance:measure:local` meldet für den
-      automatischen 4G-Preload einen längsten Task über 50 ms, schon auf
-      `main` (2026-10-30: max. 70 ms, mit Editor V2 PR A max. 83 ms, mit PR C
-      max. 51 ms, je mit Läufen ganz ohne langen Task). Klären, welcher Task beim Vorladen
-      blockiert (Modulauswertung der Lazy-Chunks oder Repository-Arbeit), und
-      ihn teilen oder das Gate begründet anpassen. Nachweis: zwei grüne Läufe.
+Dazu das KI-Kontingent pro Nutzer aus P2.
 
-- [ ] **KI-Kontingent pro Nutzer:** Alle Nutzer teilen das Ausgabenlimit des
-      OpenRouter-Schlüssels; ein Tageslimit je Account (atomare Zählung in
-      Supabase) verhindert, dass ein Nutzer es allein aufbraucht. Braucht eine
-      Ergänzung zu ADR-011.
-- [ ] **KI-Routen in `npm run dev`:** Das Vite-Plugin `localAiRoutes` in
-      `vite.config.ts` bedient `/api/ai/summary` und `/api/ai/card-variant`
-      bereits lokal; `operations.md` nennt dafür noch `vercel dev`. Vor dem
-      ersten Release oder wenn weitere Entwickler lokal mit KI arbeiten,
-      entscheiden, welcher Weg gilt, und `operations.md` anpassen.
-- [ ] **Login-Wege:** Magic Link und Google sind gebaut, aber per Flag aus. Für
-      Magic Link braucht es einen eigenen SMTP-Server in Supabase, freigegebene
-      Redirect-Adressen (Produktion, Preview), eine deutsche Mailvorlage und
-      zusätzlich einen 6-stelligen Code zum Eintippen, weil der Link auf
-      Mobilgeräten oft im falschen Browser landet. Google erst nach Entscheidung
-      über den OAuth-Prüfprozess und den Datenschutztext; sonst Code und Flag
-      entfernen.
+- [ ] **Magic Link:** Gebaut, aber per Flag aus. Braucht einen eigenen
+      SMTP-Server in Supabase, freigegebene Redirect-Adressen (Produktion,
+      Preview), eine deutsche Mailvorlage und zusätzlich einen 6-stelligen
+      Code zum Eintippen, weil der Link auf Mobilgeräten oft im falschen
+      Browser landet.
+- [ ] **Erste Synchronisation großer Konten:** Bei der Arbeit an P4 dauerte
+      die erste Synchronisation eines Kontos mit etwa 50.000 Karten rund
+      10 Minuten; das betrifft jeden, der einen großen Anki-Stapel mitbringt.
+      Messung reproduzieren, Zeitanteile (Netz, Validierung, IndexedDB)
+      zuordnen, Zielwert festlegen und erreichen. Nachweis: Messung mit
+      50.000 Karten vorher und nachher.
 
-## Testsuite verschlanken
+## Pflege: Testsuite verschlanken
 
-Läuft unabhängig von P1/P2, je Paket ein eigener PR. Regeln im Pflegevertrag
-von [`test-portfolio.md`](test-portfolio.md#pflegevertrag); Messung vom
-2026-10-31 im [Verlauf](history.md).
+Läuft unabhängig von den Paketen, je Paket ein eigener PR. Regeln im
+Pflegevertrag von [`test-portfolio.md`](test-portfolio.md#pflegevertrag);
+Messung vom 2026-10-31 im [Verlauf](history.md).
 
 - [ ] **D – Browserflows, Rest:** Etwa 80 Flows setzen das Cloud-Konto
       zurück, auch reine Layoutprüfungen; `card-lifecycle` doppelt vor und
@@ -195,16 +185,43 @@ von [`test-portfolio.md`](test-portfolio.md#pflegevertrag); Messung vom
       der Supabase-Specs (`product-surfaces`, `core-stabilization`,
       `world-capitals-hierarchy`) über `matrixViewports()` und `matrixThemes`
       aus `tests/e2e/support/visualMatrix.ts` kürzen. Katalogkonfiguration,
-      `--gate=affected` und die eingedampften Katalogflows sind erledigt (siehe [Verlauf](history.md)). Nachweis: Laufzeit von
+      `--gate=affected` und die eingedampften Katalogflows sind erledigt
+      (siehe [Verlauf](history.md)). Nachweis: Laufzeit von
       `npm run test:e2e:local` vorher und nachher, mit lokalem Supabase.
 
 ## Später
 
-### Anki-Austausch nach dem Karteneditor V2
+### KI
+
+- Varianten vorausschauend nur für Karten erzeugen, die in den nächsten Tagen
+  die Haltbarkeitsschwelle erreichen (Ausarbeitung in Commit `4dd2af7`).
+- Nicht umformulierbare Karten als eigener Zustand im Reiter `Varianten`;
+  gemeldete Karten fallen aus späteren Stapelläufen.
+- KI-Umformulierungen für Lückentext und andere Bausteine.
+- DOCX und PPTX als Quellen für P2 (ZIP und XML, ohne neue Abhängigkeit über
+  `zipReader.ts` prüfen; Beleg je Folie oder Abschnitt).
+
+### Lernen und Planung
+
+- Persönliche FSRS-Parameter je Stapelprofil, nur wenn sie den eigenen
+  Verlauf messbar besser vorhersagen (ADR-044; Ausarbeitung in Commit
+  `4dd2af7`).
+- Quiz als eigenes Feature (ADR-042), danach Quizplanung im Prüfungsplaner;
+  Entwurf in Commit `71a7892` (`codex/klausurplaner-design`).
+- Semantische Themenzuordnung in ungegliederten Stapeln, ohne Lernstände zu
+  ändern; ein Lösungsweg über Tags ist `Treffer lernen` aus P4.
+
+### Kartenverwaltung
+
+- Massenaktionen schneller: 1.000 Karten lokal in höchstens 1 s statt rund
+  2 s; die Zeit geht fast ganz ins Schreiben von IndexedDB.
+
+### Anki-Austausch
 
 - Stapel-Export als `.apkg`. Dabei `marked`, `leech` und Flaggen
   zurückschreiben, `importedTags` und Anki-Rohtexte nutzen.
-- Import aus `.colpkg` (bringt Flaggennamen und Einklappzustand der Tags mit).
+- Aus `.colpkg` zusätzlich Flaggennamen und Einklappzustand der Tags
+  übernehmen; der Import selbst steht.
 - AnkiHub-Schutz-Tags (`AnkiHub_Protect::Feld`) als Feldschutz beim Reimport
   auswerten.
 - Inhaltsform importierter Inhalte wechseln, als Umwandlung in einen eigenen
@@ -212,59 +229,14 @@ von [`test-portfolio.md`](test-portfolio.md#pflegevertrag); Messung vom
 - Feldeigenschaften aus Notiztypen: Schreibrichtung rechts nach links,
   Schriftart, Ausschluss von der Suche.
 
-### Weitere
+### Plattform
 
-- Sprungnavigation der Statistik ablösen: `InPageNavigation` (Sticky-Rail,
-  Scrollspy, Hashlinks) wird nach dem Einstellungsumbau nur noch dort genutzt.
-  Wird die Statistik etwa auf Reiter oder eine kürzere Gliederung umgestellt,
-  entfallen Komponente, `.core-in-page-content`, Katalogdemo und Tests
-  zusammen. Nachweis: Statistiktests, Pflichtmatrix der Statistik.
 - Native App nach ADR-036.
-- AMBOSS-Tooltips nur über eine offizielle Kooperation oder API.
 - Serverseitiger APKG-Import, falls Import auf Mobilgeräten nötig wird.
-- KI-Umformulierungen für Lückentext und andere Bausteine.
-- Quiz als eigenes Feature (ADR-042): Stapel-Tab `Quiz` ist Platzhalter.
-  Danach Quizplanung im Prüfungsplaner; einen Entwurf mit manuellen
-  Kapitel- und Gruppenquizzen und einem eigenen Lernmethoden-Schritt enthält
-  Commit `71a7892` (`codex/klausurplaner-design`).
-- KI-Varianten vorausschauend erzeugen: Heute erzeugt die Stapelaktion des
-  Proof of Concept beim Einschalten Varianten für bis zu 50 Karten auf einmal,
-  auch für Karten, die noch lange keine Variante zeigen. Künftig erzeugt CoRe
-  bei eingeschaltetem CoRe-Modus Varianten gesammelt nur für Karten, die in den
-  nächsten Tagen die Haltbarkeitsschwelle des Stapels (7/21/60 Tage) erreichen.
-  Auswahl: Karten in der Wiederholung ohne aktive Variante, deren Haltbarkeit
-  nach einem `Gut` am Fälligkeitstermin die Schwelle erreicht und die in den
-  nächsten N Tagen fällig sind; `createReviewChain` aus `scheduler.ts` rechnet
-  das ohne Buchführung je Karte. Erzeugt wird nur im geöffneten Tab, in kleinen
-  Portionen, mit der bestehenden Fortschrittsleiste und denselben Fehler- und
-  Abbruchregeln; eine Serverqueue entsteht nicht. Voraussetzungen: die offenen
-  Punkte des Proof of Concept unter P1, das KI-Kontingent pro Nutzer und eine
-  Ergänzung zu ADR-011 (automatische Erzeugung, Auswahlregel, Tageslimit).
-  Verteilt die Kosten über die Tage und verbraucht nichts für ungelernte
-  Karten. Nachweis: Test der Auswahl über die Beispielketten, E2E mit
-  gemockter Route.
-- Persönliche FSRS-Parameteroptimierung: Heute gelten für alle die
-  21 FSRS-7-Standardparameter; Abstände passen dadurch nur zum
-  Durchschnittsgedächtnis. Der Optimierer `@open-spaced-repetition/binding`
-  (WebAssembly, passend zu `ts-fsrs` 6) berechnet in einem Worker aus den
-  eigenen Bewertungen, einschließlich importierter Anki-Historie, eigene
-  Parameter je Stapelprofil. Übernommen werden sie nur, wenn sie den Verlauf
-  messbar besser vorhersagen als die Standardwerte (Log-Loss oder RMSE auf
-  zurückgehaltenen Bewertungen) und genug Bewertungen vorliegen (Mindestzahl
-  bei der Umsetzung festlegen, Größenordnung einige hundert). Die Parameter
-  liegen im Stapelprofil und synchronisieren mit. Weil Haltbarkeit von den
-  Parametern abhängt, verschieben sich Reife, Variantenfreigabe,
-  Prüfungsprognose und Statistik mit; beim Übernehmen muss deshalb
-  `study.extra.maturityBand` aller betroffenen Karten neu berechnet und
-  `study_revision` erhöht werden, damit Katalog und andere Geräte
-  nachziehen. Fälligkeiten bestehender Karten bleiben bis zur nächsten
-  Bewertung unverändert. Oberfläche: Aktion in den Stapeleinstellungen mit
-  Vergleich alt/neu und Zurück zu den Standardwerten. Rahmen in ADR-044;
-  Ablauf und Mindestzahl dort bei der Umsetzung ergänzen. Nachweis:
-  Golden-Test bleibt auf Standardparametern, Tests für Übernahme, Ablehnung
-  und Neuberechnung.
+- AMBOSS-Tooltips nur über eine offizielle Kooperation oder API.
+
+### Oberfläche
+
+- Sprungnavigation der Statistik ablösen; mit ihr entfallen `InPageNavigation`,
+  `.core-in-page-content`, Katalogdemo und Tests.
 - Bild einer eigenen Bildverdeckung im Karteneditor austauschen.
-- Prüfungsplanung: semantische Themenzuordnung innerhalb ungegliederter Stapel.
-  Heute bilden Unterstapel die Themen; eine spätere Zuordnung braucht
-  explizite, prüfbare Themengrenzen und darf Lernstände nicht ändern. Einen
-  Lösungsweg über Tags bietet P4 mit `Treffer lernen` (KV5).
