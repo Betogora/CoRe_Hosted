@@ -127,10 +127,10 @@ Seitenleiste (`qt/aqt/browser/sidebar/tree.py`), Suchsyntax
 Referenz gelesen. Befund und Produktentscheidungen stehen in
 [ADR-048](decisions.md#adr-048--kartensuche-lokal-über-den-vollständigen-katalog).
 
-- [ ] **Abschluss – Cutover:** Spezifikation, Architektur und Hilfeseite sind
-      nachgezogen, das Suchmodell steht in ADR-048. Offen ist die Entscheidung,
-      ob die zehn Migrationen der Kartenverwaltung vor dem Release zu einer
-      gefaltet werden; sie kommt danach als Cutover-Abschnitt in ADR-048.
+- [ ] **Release:** main mergen, `npm run gate:push`,
+      `npm run performance:measure:local`, Pull Request. Beim Deploy zuerst
+      die Migration `20261110130000_kartenverwaltung` (`supabase db push`,
+      `verify_schema_v1.sql`), dann der Client.
 
 ## Offene Nachweise
 
