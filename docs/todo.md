@@ -202,8 +202,6 @@ Referenz gelesen.
       (Karte, Katalog, Residenz und Outbox je Karte).
       Nachweis: Messung mit 1.000 Karten im Produktions-Build.
 - [ ] **KV5 – Inhalte pflegen:**
-      - **Duplikate finden:** nach Feld oder Sortierfeld, optional innerhalb der
-        aktuellen Suche, im Worker; Gruppen öffnen, taggen oder löschen.
       - **Tag-Verwaltung** für das Konto: umbenennen samt Untertags,
         zusammenführen, löschen, ungenutzte bereinigen, Herkunft anzeigen; im
         Menü über die Tag-Zeile.

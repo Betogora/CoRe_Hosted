@@ -1,4 +1,5 @@
 import type { CardSearchContext } from "./cardSearchQuery.ts";
+import type { DuplicateKey } from "./duplicateContents.ts";
 import type { Card, CardStudyState, Deck, Note } from "./coreTypes.ts";
 import type { IndexedDbCoreRepository, ReimportTargets } from "./indexedDbCoreRepository.ts";
 import type { CardTableSort } from "./libraryModel.ts";
@@ -354,6 +355,16 @@ export function createWorkspaceHydrationService({
       if (!result.hasMore || !result.items.length) return ids;
     }
   };
+  /**
+   * `Duplikate finden` needs every card of the account on this device, and for a field or a search their search texts
+   * too; the cloud has no such search.
+   */
+  const findDuplicates = async (request: { deckIds: readonly string[]; key: DuplicateKey; query?: string; searchContext?: CardSearchContext }) => {
+    const status = repository.getReplicaStatus();
+    const needsSearchTexts = request.key !== "sortField" || Boolean(request.query?.trim());
+    if (status.catalogCompleteness !== "complete" || (needsSearchTexts && status.searchTextsReady !== true)) throw new Error("Duplikate lassen sich finden, sobald alle Karten auf diesem Gerät durchsuchbar sind.");
+    return repository.findDuplicates(request.deckIds, request);
+  };
   /** Card ids whose bodies are on this device; offline exam units run on these only (E12). */
   const listLocalCardIds = async (cardIds: string[]) => {
     const missing = new Set(await repository.missingCardBodyIds(cardIds));
@@ -636,6 +647,7 @@ export function createWorkspaceHydrationService({
     openCard,
     openCards,
     listCardIds,
+    findDuplicates,
     listLocalCardIds,
     loadNoteGraph,
     prepareStudyWindow,

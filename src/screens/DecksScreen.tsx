@@ -1,5 +1,5 @@
 import React from "react";
-import { ArrowDown, ArrowLeft, ArrowUp, Check, ChevronRight, FileText, GraduationCap, Layers, ListChecks, Minus, Network, NotebookPen, PanelsTopLeft, Play, RotateCcw, Search, Star, CircleHelp, type LucideIcon } from "lucide-react";
+import { ArrowDown, ArrowLeft, ArrowUp, Check, ChevronRight, CopyCheck, FileText, GraduationCap, Layers, ListChecks, Minus, Network, NotebookPen, PanelsTopLeft, Play, RotateCcw, Search, Star, CircleHelp, type LucideIcon } from "lucide-react";
 import type { CardDraftGuard, DecksCardPage, DecksScreenProps } from "../appScreenProps.ts";
 export type { DecksCardPage, DecksCardPageRequest } from "../appScreenProps.ts";
 export type DecksScreenCardPageProps = Pick<DecksScreenProps, "cardPages" | "onRequestCardPage">;
@@ -22,7 +22,9 @@ import { CardSearchBar } from "./cardSearch/CardSearchBar.tsx";
 import { createCardSearchMenu } from "./cardSearch/cardSearchMenu.ts";
 import { useVirtualRows } from "./cardList/virtualRows.ts";
 import { CardSelectionBar } from "./cardList/CardSelectionBar.tsx";
+import { DuplicatesDialog } from "./cardList/DuplicatesDialog.tsx";
 import { HitPractice } from "./cardList/HitPractice.tsx";
+import type { DuplicateKey } from "../duplicateContents.ts";
 import { HitStudyDialog } from "./cardList/HitStudyDialog.tsx";
 import type { Card, Note } from "../coreTypes.ts";
 import { hitStudyQuery, orderHits, type HitStudyMode, type HitStudyOrder } from "../hitStudySession.ts";
@@ -271,6 +273,7 @@ export function DecksScreen({
   onPrepareTextReplace,
   onStudyHits,
   onLoadPracticeCards,
+  onFindDuplicates,
   onListHitCardIds,
   variantGenerationRunning = false,
   onUpdateVariant,
@@ -687,11 +690,13 @@ export function DecksScreen({
     return onListHitCardIds({ deckIds: hitScope, query: deferredQuery, searchContext });
   }
 
-  async function runSelectionAction(action: CardBatchAction, label: string) {
+  const runSelectionAction = (action: CardBatchAction, label: string) => runCardBatchAction(selectedIds, action, label);
+
+  async function runCardBatchAction(loadIds: () => Promise<string[]>, action: CardBatchAction, label: string) {
     if (!onRunCardBatch || runningBatch) return;
     setRunningBatch(true);
     try {
-      const ids = await selectedIds();
+      const ids = await loadIds();
       const result = await onRunCardBatch(ids, action);
       if (action.kind === "delete" && selectedCardId && ids.includes(selectedCardId)) closeDetail();
       clearSelection();
@@ -713,6 +718,9 @@ export function DecksScreen({
   }
 
   const prepareSelectionReplace = useStableCallback(async () => onPrepareTextReplace!(await selectedIds()));
+  // `Duplikate finden` (KV5) compares the contents of the list, optionally only its hits.
+  const [duplicatesOpen, setDuplicatesOpen] = React.useState(false);
+  const findDuplicates = useStableCallback((key: DuplicateKey, withinHits: boolean) => onFindDuplicates!({ deckIds: hitScope, key, query: withinHits ? deferredQuery : "", searchContext }));
   // `Treffer lernen` (KV5) studies the hits or the selection without suspended and buried cards.
   const [hitStudy, setHitStudy] = React.useState<"hits" | "selection" | null>(null);
   const canStudyHits = Boolean(onStudyHits && onLoadPracticeCards && onListHitCardIds);
@@ -958,7 +966,9 @@ export function DecksScreen({
               onClick={() => requestDetailAction(() => onStartDeck(contentDeck))} data-testid="deck-content-study">Karten lernen</ActionButton> : null}
           </div>
         </div>
-      ) : <LearningAreaHeader area="cards" onOpenCardSettings={onOpenCardSettings} />}
+      ) : <LearningAreaHeader area="cards" onOpenCardSettings={onOpenCardSettings} action={onFindDuplicates && onRunCardBatch ? (
+        <ActionButton type="button" variant="secondary" icon={CopyCheck} onClick={() => setDuplicatesOpen(true)}>Duplikate finden</ActionButton>
+      ) : undefined} />}
 
       {contentDeckId && contentTab === "children" ? (
         contentRow && contentLibrary ? contentRow.hasChildren ? <DeckSubstacksPanel key={contentRow.id} rows={contentLibrary.rows} current={contentRow}
@@ -1016,6 +1026,19 @@ export function DecksScreen({
                 loadCardIds={loadHitStudyIds}
                 onStart={startHitStudy}
                 onClose={() => setHitStudy(null)}
+              />
+            ) : null}
+            {duplicatesOpen ? (
+              <DuplicatesDialog
+                searching={Boolean(deferredQuery.trim())}
+                find={findDuplicates}
+                deckName={(deckId) => deckNameById.get(deckId) ?? "Unbekannter Stapel"}
+                onOpen={(deckId, cardId) => {
+                  setDuplicatesOpen(false);
+                  requestCardSelection(deckId, cardId);
+                }}
+                onTag={(cardIds) => runCardBatchAction(async () => cardIds, { kind: "tags", add: ["Duplikat"], remove: [] }, "Duplikate taggen")}
+                onClose={() => setDuplicatesOpen(false)}
               />
             ) : null}
             {practiceBodies ? <HitPractice bodies={practiceBodies} mediaStore={mediaStore} onClose={() => setPracticeBodies(null)} /> : null}

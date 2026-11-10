@@ -587,6 +587,43 @@ test("[Vertrag: Treffer lernen zieht nicht fällige Karten vor, Nur üben schrei
   expect(await reviewKinds()).toEqual(["hit_review", "hit_review"]);
 });
 
+test("[Vertrag: Duplikate finden, öffnen und taggen] @beta-core gleiche Vorderseiten bilden eine Gruppe", async ({ page }) => {
+  const deckName = "Duplikate";
+  await openManualCreation(page, deckName, "basic");
+  await page.getByRole("textbox", { name: "Vorderseite" }).fill("Hauptstadt von Island");
+  await page.getByRole("textbox", { name: "Rückseite" }).fill("Reykjavík");
+  const deck = await finishManualCreation(page, deckName, 2, async () => {
+    await page.getByRole("textbox", { name: "Vorderseite" }).fill("hauptstadt von  Island");
+    await page.getByRole("textbox", { name: "Rückseite" }).fill("Reykjavik");
+    await page.getByRole("button", { name: "Originalkarte speichern" }).click();
+    await expect(page.getByTestId("manual-save-progress")).toHaveAttribute("aria-valuenow", "100");
+  });
+  const tagsOf = async () => (await readActiveAccountState(page)).notes
+    .filter((note: { id: string }) => deck.cards.some((card) => card.noteId === note.id))
+    .map((note: { content: { tags: string[] } }) => note.content.tags.join(","));
+
+  await page.goto("/kartenstapel");
+  await page.getByRole("button", { name: "Duplikate finden" }).click();
+  const dialog = page.getByRole("dialog", { name: "Duplikate finden" });
+  // A fresh account searches once the catalog sync finished.
+  await expect(async () => {
+    const retry = dialog.getByRole("button", { name: "Erneut versuchen" });
+    if (await retry.isVisible()) await retry.click();
+    await expect(dialog.getByTestId("duplicates-dialog")).toContainText("1 Gruppe · 2 Inhalte", { timeout: 1_000 });
+  }).toPass({ timeout: 20_000 });
+  await expect(dialog.getByTestId("duplicate-groups").getByRole("button")).toHaveCount(2);
+  await dialog.getByRole("button", { name: "Duplikate taggen" }).click();
+  await expect(page.getByText("Duplikate taggen: 2 Karten")).toBeVisible();
+  await expect.poll(tagsOf).toEqual(["Duplikat", "Duplikat"]);
+  await page.getByRole("button", { name: "Rückgängig" }).click();
+  await expect.poll(tagsOf).toEqual(["", ""]);
+
+  await page.getByRole("button", { name: "Duplikate finden" }).click();
+  await dialog.getByTestId("duplicate-groups").getByRole("button").first().click();
+  await expect(dialog).toHaveCount(0);
+  await expect(page.getByRole("dialog", { name: /^hauptstadt von +Island$/i })).toBeVisible();
+});
+
 test("[Vertrag: typgerechter Cloze-Lebenszyklus] @beta-core jede Lückengruppe bleibt eine unabhängige Karte", async ({ page }) => {
   const deckName = "Lebenszyklus Cloze";
   await openManualCreation(page, deckName, "cloze");

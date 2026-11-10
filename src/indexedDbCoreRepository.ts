@@ -16,6 +16,7 @@ import type { CardTableSort, DeckLibrarySummary } from "./libraryModel.ts";
 import type { SyncOutboxMutation } from "./syncEngine.ts";
 import type { CloudCatalogPage, CloudEntityPage } from "./cloudRepository.ts";
 import type { ReplicatedNoteTypeSource } from "./cloudRepositoryValidation.ts";
+import { duplicateFieldNames, findDuplicateGroups, type DuplicateKey } from "./duplicateContents.ts";
 import { countsTowardDailyLimits } from "./reviewEventKinds.ts";
 import type { ReviewAnswerResult } from "./reviewService.ts";
 import type { ImportCommitGraph, ImportMediaFile, NoteTypeSource } from "./apkgImport.ts";
@@ -1790,6 +1791,13 @@ export async function createIndexedDbCoreRepository({ userId, initialState, inde
       return new Map(rows.filter((row): row is StoredCardCatalog => Boolean(row)).map((row) => [row.id, catalogEntry(row)]));
     },
     /** Ids of every card in scope that matches the search, in index order: `Alle N Treffer auswählen` (KV4). */
+    /** `Duplikate finden` (KV5) over the searched cards of the scope, with the field names to choose from. */
+    async findDuplicates(scope: readonly string[], { key, query = "", searchContext }: { key: DuplicateKey; query?: string; searchContext?: CardSearchContext }) {
+      await writeChain;
+      await ensureSearchIndex();
+      const entries = searchIndex.slice(query, { field: "sortField", direction: "asc" }, searchContext, scope, 0, Number.MAX_SAFE_INTEGER).items;
+      return { fieldNames: duplicateFieldNames(entries), groups: findDuplicateGroups(entries, key) };
+    },
     async listCardIds(scope: readonly string[], { query = "", searchContext, sort = { field: "sortField", direction: "asc" } }: { query?: string; searchContext?: CardSearchContext; sort?: CardTableSort } = {}) {
       await writeChain;
       await ensureSearchIndex();

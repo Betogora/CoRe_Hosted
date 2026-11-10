@@ -1,5 +1,6 @@
 import type { CardSearchContext } from "./cardSearchQuery.ts";
 import type { CardBatchAction, CardBatchResult, TextReplaceSession } from "./cardBatchActions.ts";
+import type { DuplicateGroup, DuplicateKey } from "./duplicateContents.ts";
 import type { HitStudyOrder } from "./hitStudySession.ts";
 import type { Dispatch, ReactNode, SetStateAction } from "react";
 import type { AppRoute, AppViewId, CardEditorTab, DeckContentTab, DeckSettingsSection, GeneralSettingsSection, LearningSettingsSection, SettingsSection, createViewRoute } from "./appNavigation.ts";
@@ -218,6 +219,8 @@ export interface DecksScreenProps {
   onStudyHits?: (cardIds: string[], order: HitStudyOrder) => Promise<void>;
   /** `Nur üben` (KV5): the bodies of these cards; offline only those on this device. */
   onLoadPracticeCards?: (cardIds: string[]) => Promise<Array<{ card: Card; note: Note }>>;
+  /** `Duplikate finden` (KV5) over the searched cards of these decks. */
+  onFindDuplicates?: (request: { deckIds: string[]; key: DuplicateKey; query: string; searchContext: CardSearchContext }) => Promise<{ fieldNames: string[]; groups: DuplicateGroup[] }>;
   /** Ids of every hit of the flat hit list, for `Alle N Treffer auswählen` (KV4). */
   onListHitCardIds?: (request: { deckIds: string[]; query: string; searchContext: CardSearchContext; sort?: CardTableSort }) => Promise<string[]>;
   variantGenerationRunning?: boolean;

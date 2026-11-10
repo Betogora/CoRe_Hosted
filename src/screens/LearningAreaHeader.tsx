@@ -8,17 +8,22 @@ const learnAreaHeadings = {
   cards: { eyebrow: "Alle Stapel", title: "Kartenverwaltung" },
 };
 
-export function LearningAreaHeader({ area, onOpenCardSettings }: {
+export function LearningAreaHeader({ area, onOpenCardSettings, action }: {
   area: keyof typeof learnAreaHeadings;
   onOpenCardSettings: () => unknown;
+  /** A further action of the area before `Lerneinstellungen`. */
+  action?: React.ReactNode;
 }) {
   const heading = learnAreaHeadings[area];
   return (
     <div className="[&>header]:flex-wrap">
       <PageHeader eyebrow={heading.eyebrow} title={heading.title} action={
-        <ActionButton type="button" variant="secondary" icon={Settings2} onClick={onOpenCardSettings}>
-          Lerneinstellungen
-        </ActionButton>
+        <div className="flex flex-wrap gap-2">
+          {action}
+          <ActionButton type="button" variant="secondary" icon={Settings2} onClick={onOpenCardSettings}>
+            Lerneinstellungen
+          </ActionButton>
+        </div>
       } />
     </div>
   );
