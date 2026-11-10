@@ -41,8 +41,10 @@ Abhängigkeiten oder `continue-on-error`.
   Geänderte Specs laufen immer; Produktquellen wählen über ihren Bereich, Doku und
   Modultests keine. Gemeinsame E2E-Infrastruktur, Playwright- und
   Build-Konfiguration, Abhängigkeiten, Migrationen, App-Shell und nicht
-  zugeordnete Produktquellen führen zur vollständigen Suite. Ersetzt vor einem
-  Release weder `test:e2e:local` noch die visuelle Pflichtmatrix.
+  zugeordnete Produktquellen führen zur vollständigen Suite. Die vollständige
+  Suite für einen Release-Commit liefert ein grüner `gate:nightly`-Lauf auf
+  genau diesem Commit (sonst Workflow manuell starten); die visuelle
+  Pflichtmatrix gilt je visueller UI-Änderung, nicht zusätzlich je Release.
 - `npm run test:e2e:local`: vollständige lokale Browser-Suite mit Supabase,
   einschließlich Katalogflows und Datenbanktyp-Drift.
 - `npm run test:pr:local`: Kern-RLS plus die sechs `@golden-e2e`-Flows.
@@ -135,7 +137,7 @@ Die Zielwerte stehen in [`specs.md`](specs.md#performance). Geprüft werden sie 
   automatischen 3G-Preloads, höchstens 50 ms je 4G-Preload-Task, Statistik-RPC p95
   ≤ 1.000 ms, 100k-Kartensuche ≤ 2.000 ms, Clientprojektion ≤ 50 ms).
 - Zusätzlich lokal auszuführen bei Änderungen an Bootstrap, Preload, Sync, Katalog,
-  Statistik, Service Worker, Abhängigkeiten oder Chunking sowie vor Releases.
+  Statistik, Service Worker, Abhängigkeiten oder Chunking.
 - Ein rotes Gate bleibt rot; ein fehlendes oder nur technisch erzeugtes Artefakt
   ist kein Freigabenachweis. Feld-p75/p95 und die vollständige 100k-Browserjourney
   misst der Lauf nicht.
