@@ -103,12 +103,14 @@ export function planTextReplace(graphs: readonly Graph[], cardIds: ReadonlySet<s
     if (!selected.length || graph.note.deletedAt) continue;
     const replaced = replaceInNoteContent(graph.note.content, edit);
     if (!replaced.snippet) continue;
-    let plan: ReturnType<typeof planNoteContentChange> | null = null;
-    try {
-      plan = planNoteContentChange(graph, replaced.content, updatedAt);
-    } catch {
-      plan = null;
-    }
+    // An invalid content after the replacement counts as skipped.
+    const plan = (() => {
+      try {
+        return planNoteContentChange(graph, replaced.content, updatedAt);
+      } catch {
+        return null;
+      }
+    })();
     if (!plan || plan.newCards.length || plan.removedCards.length) {
       skippedCardIds.push(...selected);
       continue;

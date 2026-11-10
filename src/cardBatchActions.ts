@@ -53,7 +53,7 @@ async function openGraphs(dependencies: CardBatchDependencies, cardIds: readonly
 export interface TextReplaceSession {
   /** Field names of the selected contents, in the order they first appear. */
   fieldNames: string[];
-  preview(edit: TextReplace): { changedCount: number; skippedCount: number; contents: number; examples: TextReplacePreview[] };
+  preview(edit: TextReplace): { changedCount: number; skippedCount: number; examples: TextReplacePreview[] };
 }
 
 /** Loads the selected contents once, so the replace dialog offers their fields and previews each input without saving. */
@@ -64,7 +64,7 @@ export async function prepareTextReplace(dependencies: CardBatchDependencies, ca
     fieldNames,
     preview(edit) {
       const plan = planTextReplace(graphs, selected, edit);
-      return { changedCount: plan.changedCardIds.length, skippedCount: plan.skippedCardIds.length, contents: plan.changes.length, examples: plan.previews.slice(0, PREVIEW_LIMIT) };
+      return { changedCount: plan.changedCardIds.length, skippedCount: plan.skippedCardIds.length, examples: plan.previews.slice(0, PREVIEW_LIMIT) };
     },
   };
 }

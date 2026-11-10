@@ -106,7 +106,7 @@ test("Suchen und Ersetzen zeigt Felder und Vorschau, schreibt den Katalog neu un
   assert.deepEqual(session.fieldNames, (await repository.loadCardBody(forward[0]))!.note.content.fields.map((field) => field.name));
   const edit = { find: "frage", replace: "Prompt", target: "all", matchCase: false } as const;
   const preview = session.preview(edit);
-  assert.deepEqual([preview.changedCount, preview.contents, preview.examples.length], [2, 2, 2]);
+  assert.deepEqual([preview.changedCount, preview.examples.length], [2, 2]);
   assert.equal((await repository.loadCardBody(forward[0]))?.note.content.fields[0].html, "Frage 0", "die Vorschau speichert nichts");
 
   const result = await runCardBatch(dependencies, selection, { kind: "replace", ...edit });
