@@ -201,11 +201,6 @@ Referenz gelesen.
       gemessen in Chromium rund 2 s, fast ganz im Schreiben von IndexedDB
       (Karte, Katalog, Residenz und Outbox je Karte).
       Nachweis: Messung mit 1.000 Karten im Produktions-Build.
-- [ ] **KV6-Rest – Tempo des Editors:** Editor neben der Liste und
-      Tastenkürzel stehen. Offen: Der Editor öffnet bei lokalem Kartenkörper in
-      höchstens 150 ms.
-      Nachweis: Messung im Produktions-Build, Pflichtmatrix bei 1280 und
-      1440 px.
 - [ ] **Abschluss:** `specs.md` §5.3 und §6, `architecture.md` (Suchindex,
       Massenaktionen), ADR zu Suchmodell und Cutover, Hilfeseite.
 
