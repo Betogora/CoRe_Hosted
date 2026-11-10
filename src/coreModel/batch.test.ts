@@ -91,3 +91,21 @@ test("Rückgängig stellt frühere Werte als neue Änderung her und überspringt
   const retagged = { ...first, note: setNoteTags(first.note, ["x"], LATER) };
   assert.equal(planCardBatchUndo([retagged], [first], new Set([first.cards[0].id]), { kind: "tags", add: ["x"], remove: [] }, LATER).changes[0].next.note.content.tags.length, 0);
 });
+
+test("Tags umbenennen nimmt Untertags mit, führt zusammen, löscht und ist rückgängig zu machen (KV5)", () => {
+  const first = graph(["Geo::Europa", "geo::europa::Nord", "Alt"]);
+  const second = graph(["Geo::Asien", "EU"]);
+  const selected = new Set([first.cards[0].id, second.cards[0].id]);
+  const renamed = planCardBatchEdit([first, second], selected, { kind: "tag-rename", from: "geo::europa", to: "EU" }, LATER);
+  assert.deepEqual(renamed.changes.map((change) => change.next.note.content.tags), [["Alt", "EU", "EU::Nord"]], "Untertags folgen, unbeteiligte Inhalte bleiben");
+  const merged = planCardBatchEdit([first, second], selected, { kind: "tag-rename", from: "Geo::Asien", to: "eu" }, LATER);
+  assert.deepEqual(merged.changes.map((change) => change.next.note.content.tags), [["EU"]], "ein vorhandener Name führt zusammen");
+  const deleted = planCardBatchEdit([first, second], selected, { kind: "tag-rename", from: "Geo", to: null }, LATER);
+  assert.deepEqual(deleted.changes.map((change) => change.next.note.content.tags), [["Alt"], ["EU"]]);
+
+  const [firstAfter, secondAfter] = saved([first, second], deleted);
+  const secondEdited = { ...secondAfter, note: setNoteTags(secondAfter.note, ["EU", "Neu"], LATER) };
+  const undo = planCardBatchUndo([firstAfter, secondEdited], [first, second], new Set(deleted.changedCardIds), { kind: "tag-rename", from: "Geo", to: null }, LATER);
+  assert.deepEqual(undo.changes.map((change) => change.next.note.content.tags), [["Geo::Europa", "geo::europa::Nord", "Alt"]]);
+  assert.deepEqual(undo.skippedCardIds, [second.cards[0].id], "seither geänderte Tags bleiben");
+});

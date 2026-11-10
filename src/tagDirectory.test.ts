@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { createBasicNote } from "./coreModel.ts";
-import { canonicalTagSpelling, createTagDirectoryBuilder, suggestTags } from "./tagDirectory.ts";
+import { canonicalTagSpelling, createTagDirectoryBuilder, renameDirectoryTag, suggestTags } from "./tagDirectory.ts";
 
 function noteWith(tags: string[], importedTags: string[] | null = null) {
   const { note } = createBasicNote("deck", "Frage", "Antwort", { tags });
@@ -32,4 +32,19 @@ test("Vorschläge sind hierarchisch und häufige Tags zuerst; die gespeicherte S
   assert.deepEqual(suggestTags(directory, " "), []);
   assert.equal(canonicalTagSpelling(directory, "#ak::lunge"), "#AK::Lunge");
   assert.equal(canonicalTagSpelling(directory, "Neu"), "Neu");
+});
+
+test("die Tag-Verwaltung zeigt eine Änderung sofort im Verzeichnis (KV5)", () => {
+  const directory = [
+    { tag: "EU", noteCount: 2, importedCount: 0 },
+    { tag: "Geo::Europa", noteCount: 3, importedCount: 1 },
+    { tag: "geo::europa::Nord", noteCount: 1, importedCount: 1 },
+    { tag: "Alt", noteCount: 4, importedCount: 0 },
+  ];
+  assert.deepEqual(renameDirectoryTag(directory, "Geo::Europa", "EU"), [
+    { tag: "Alt", noteCount: 4, importedCount: 0 },
+    { tag: "EU", noteCount: 5, importedCount: 1 },
+    { tag: "EU::Nord", noteCount: 1, importedCount: 1 },
+  ]);
+  assert.deepEqual(renameDirectoryTag(directory, "geo", null).map((entry) => entry.tag), ["Alt", "EU"]);
 });

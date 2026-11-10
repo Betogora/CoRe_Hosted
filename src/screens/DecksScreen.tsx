@@ -23,6 +23,8 @@ import { createCardSearchMenu } from "./cardSearch/cardSearchMenu.ts";
 import { useVirtualRows } from "./cardList/virtualRows.ts";
 import { CardSelectionBar } from "./cardList/CardSelectionBar.tsx";
 import { DuplicatesDialog } from "./cardList/DuplicatesDialog.tsx";
+import { TagManagerDialog } from "./cardList/TagManagerDialog.tsx";
+import { renameDirectoryTag } from "../tagDirectory.ts";
 import { HitPractice } from "./cardList/HitPractice.tsx";
 import type { DuplicateKey } from "../duplicateContents.ts";
 import { HitStudyDialog } from "./cardList/HitStudyDialog.tsx";
@@ -238,6 +240,7 @@ const CardTableRowView = React.memo(function CardTableRowView({ virtualKey, deck
   );
 });
 
+
 export function DecksScreen({
   decks,
   summaryAccountId,
@@ -331,13 +334,16 @@ export function DecksScreen({
   const unsupportedTerms = React.useMemo(() => unsupportedCardSearchTerms(deferredQuery), [deferredQuery]);
   const [advancedSearchOpen, setAdvancedSearchOpen] = React.useState(false);
   const [tagDirectory, setTagDirectory] = React.useState<Awaited<ReturnType<typeof cardEditor.listTagDirectory>>>([]);
+  const [tagManagerOpen, setTagManagerOpen] = React.useState(false);
+  // A tag change reloads the directory of the menu and the manager.
+  const [tagDirectoryVersion, setTagDirectoryVersion] = React.useState(0);
   const [noteTypes, setNoteTypes] = React.useState<Awaited<ReturnType<typeof cardEditor.listNoteTypes>>>([]);
   React.useEffect(() => {
-    if (!advancedSearchOpen) return;
+    if (!advancedSearchOpen && !tagManagerOpen) return;
     let current = true;
     void cardEditor.listTagDirectory().then((entries) => { if (current) setTagDirectory(entries); }).catch(() => undefined);
     return () => { current = false; };
-  }, [advancedSearchOpen, cardEditor]);
+  }, [advancedSearchOpen, cardEditor, tagDirectoryVersion, tagManagerOpen]);
   // Note types resolve typed `note:` terms too, so they load with the screen and again with the menu.
   React.useEffect(() => {
     let current = true;
@@ -690,10 +696,13 @@ export function DecksScreen({
     return onListHitCardIds({ deckIds: hitScope, query: deferredQuery, searchContext });
   }
 
-  const runSelectionAction = (action: CardBatchAction, label: string) => runCardBatchAction(selectedIds, action, label);
+  const runSelectionAction = async (action: CardBatchAction, label: string) => {
+    await runCardBatchAction(selectedIds, action, label);
+  };
 
-  async function runCardBatchAction(loadIds: () => Promise<string[]>, action: CardBatchAction, label: string) {
-    if (!onRunCardBatch || runningBatch) return;
+  /** Runs a mass action with its toast and `Rückgängig`; true once it ran. */
+  async function runCardBatchAction(loadIds: () => Promise<string[]>, action: CardBatchAction, label: string, onUndone?: () => void) {
+    if (!onRunCardBatch || runningBatch) return false;
     setRunningBatch(true);
     try {
       const ids = await loadIds();
@@ -703,15 +712,19 @@ export function DecksScreen({
       setSuccessToast(`${label}: ${cardCount(result.changedCount)}`, {
         action: {
           label: "Rückgängig",
-          onAction: () => void result.undo().then(({ restoredCount, skippedCount }) => setSuccessToast(skippedCount
-            ? `Rückgängig gemacht: ${cardCount(restoredCount)}. ${cardCount(skippedCount)} wurden inzwischen geändert und bleiben so.`
-            : `Rückgängig gemacht: ${cardCount(restoredCount)}.`, { appearance: skippedCount ? "neutral" : "success" }),
-          () => setSuccessToast("Rückgängig ist fehlgeschlagen.", { appearance: "neutral" })),
+          onAction: () => void result.undo().then(({ restoredCount, skippedCount }) => {
+            onUndone?.();
+            setSuccessToast(skippedCount
+              ? `Rückgängig gemacht: ${cardCount(restoredCount)}. ${cardCount(skippedCount)} wurden inzwischen geändert und bleiben so.`
+              : `Rückgängig gemacht: ${cardCount(restoredCount)}.`, { appearance: skippedCount ? "neutral" : "success" });
+          }, () => setSuccessToast("Rückgängig ist fehlgeschlagen.", { appearance: "neutral" })),
         },
       });
+      return true;
     } catch (error) {
       setDeckStatusType("alert");
       setDeckStatus(error instanceof Error ? error.message : "Die Aktion konnte nicht ausgeführt werden.");
+      return false;
     } finally {
       setRunningBatch(false);
     }
@@ -1017,6 +1030,7 @@ export function DecksScreen({
                   onClose={() => setAdvancedSearchOpen(false)}
                   savedSearches={savedSearches}
                   onSavedSearchesChange={onSavedSearchesChange}
+                  onManageTags={onRunCardBatch && onListHitCardIds ? () => setTagManagerOpen(true) : undefined}
                 />
               ) : null}
             </CardSearchBar>
@@ -1028,6 +1042,24 @@ export function DecksScreen({
                 onClose={() => setHitStudy(null)}
               />
             ) : null}
+            {tagManagerOpen ? (
+              <TagManagerDialog
+                tags={tagDirectory}
+                onRename={async (from, to) => {
+                  // Tags belong to the account: every deck, also the ones outside the list.
+                  const deckIds = decks.filter((deck) => !deck.deletedAt).map((deck) => deck.id);
+                  // The cloud directory follows only once the change is synchronized, so the list shows it locally;
+                  // reopening the manager loads it again. Undoing a plain rename renames back, anything else reloads.
+                  const merged = to !== null && tagDirectory.some((entry) => entry.tag.toLocaleLowerCase("und") === to.toLocaleLowerCase("und"));
+                  const ran = await runCardBatchAction(() => onListHitCardIds!({ deckIds, query: `tag:${from}`, searchContext }), { kind: "tag-rename", from, to }, to === null ? "Tag löschen" : "Tag umbenennen", () => {
+                    if (to !== null && !merged) setTagDirectory((entries) => renameDirectoryTag(entries, to, from));
+                    else setTagDirectoryVersion((version) => version + 1);
+                  });
+                  if (ran) setTagDirectory((entries) => renameDirectoryTag(entries, from, to));
+                }}
+                onClose={() => setTagManagerOpen(false)}
+              />
+            ) : null}
             {duplicatesOpen ? (
               <DuplicatesDialog
                 searching={Boolean(deferredQuery.trim())}
@@ -1037,7 +1069,9 @@ export function DecksScreen({
                   setDuplicatesOpen(false);
                   requestCardSelection(deckId, cardId);
                 }}
-                onTag={(cardIds) => runCardBatchAction(async () => cardIds, { kind: "tags", add: ["Duplikat"], remove: [] }, "Duplikate taggen")}
+                onTag={async (cardIds) => {
+                  await runCardBatchAction(async () => cardIds, { kind: "tags", add: ["Duplikat"], remove: [] }, "Duplikate taggen");
+                }}
                 onClose={() => setDuplicatesOpen(false)}
               />
             ) : null}

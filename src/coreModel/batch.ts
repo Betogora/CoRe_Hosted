@@ -1,7 +1,7 @@
 import type { Card, Note } from "../coreTypes.ts";
 import { moveCardToDeck, setCardFlag, setCardSuspended } from "./cards.ts";
 import { setNoteMarked, setNoteTags } from "./notes.ts";
-import { normalizeTags, tagKey } from "./tags.ts";
+import { normalizeTags, renameTag, tagKey } from "./tags.ts";
 
 interface Graph {
   note: Note;
@@ -17,7 +17,9 @@ export type CardBatchEdit =
   | { kind: "flag"; flag: number }
   | { kind: "suspended"; suspended: boolean }
   | { kind: "marked"; marked: boolean }
-  | { kind: "tags"; add: readonly string[]; remove: readonly string[] };
+  | { kind: "tags"; add: readonly string[]; remove: readonly string[] }
+  /** Tag management (KV5): renames, merges or (without `to`) deletes a tag with its subtags. */
+  | { kind: "tag-rename"; from: string; to: string | null };
 
 export interface CardBatchPlan {
   /** Changed contents with all their cards, ready for one `saveNoteGraphs` call. */
@@ -31,7 +33,7 @@ export interface CardBatchUndoPlan extends CardBatchPlan {
   skippedCardIds: string[];
 }
 
-const isNoteEdit = (edit: CardBatchEdit) => edit.kind === "marked" || edit.kind === "tags";
+const isNoteEdit = (edit: CardBatchEdit) => edit.kind === "marked" || edit.kind === "tags" || edit.kind === "tag-rename";
 
 function editCard(card: Card, edit: CardBatchEdit, updatedAt: string): Card {
   if (edit.kind === "deck") return moveCardToDeck(card, edit.deckId, updatedAt);
@@ -42,6 +44,10 @@ function editCard(card: Card, edit: CardBatchEdit, updatedAt: string): Card {
 
 function editNote(note: Note, edit: CardBatchEdit, updatedAt: string): Note {
   if (edit.kind === "marked") return setNoteMarked(note, edit.marked, updatedAt);
+  if (edit.kind === "tag-rename") {
+    const tags = renameTag(note.content.tags, edit.from, edit.to);
+    return tags === note.content.tags ? note : setNoteTags(note, tags, updatedAt);
+  }
   if (edit.kind !== "tags") return note;
   const removed = new Set(normalizeTags(edit.remove).map(tagKey));
   return setNoteTags(note, [...note.content.tags.filter((tag) => !removed.has(tagKey(tag))), ...edit.add], updatedAt);
@@ -91,6 +97,15 @@ export function planCardBatchUndo(current: readonly Graph[], before: readonly Gr
         return null;
       }
       return { note: setNoteMarked(graph.note, previous.note.marked, updatedAt), cards: graph.cards };
+    }
+    if (edit.kind === "tag-rename") {
+      // A content edited since keeps its later tags.
+      const renamed = renameTag(previous.note.content.tags, edit.from, edit.to);
+      if (JSON.stringify(graph.note.content.tags) !== JSON.stringify(renamed)) {
+        if (renamed !== previous.note.content.tags) skippedCardIds.push(...selected.map((card) => card.id));
+        return null;
+      }
+      return renamed === previous.note.content.tags ? null : { note: setNoteTags(graph.note, previous.note.content.tags, updatedAt), cards: graph.cards };
     }
     if (edit.kind === "tags") {
       const earlierKeys = new Set(previous.note.content.tags.map(tagKey));

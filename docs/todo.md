@@ -201,12 +201,6 @@ Referenz gelesen.
       gemessen in Chromium rund 2 s, fast ganz im Schreiben von IndexedDB
       (Karte, Katalog, Residenz und Outbox je Karte).
       Nachweis: Messung mit 1.000 Karten im Produktions-Build.
-- [ ] **KV5 – Inhalte pflegen:**
-      - **Tag-Verwaltung** für das Konto: umbenennen samt Untertags,
-        zusammenführen, löschen, ungenutzte bereinigen, Herkunft anzeigen; im
-        Menü über die Tag-Zeile.
-      Nachweis: Modell- und Routentests, Reimport-Schutz bearbeiteter Inhalte,
-      E2E je Werkzeug.
 - [ ] **KV6 – Arbeitsfluss:** Ab etwa 1280 px öffnet der Editor neben der
       Liste, darunter bleibt der Dialog; die Liste behält Auswahl und
       Scrollposition. Tastenkürzel für Suche, Bewegen und Öffnen, Auswahl,

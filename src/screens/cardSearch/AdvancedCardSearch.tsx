@@ -303,7 +303,7 @@ function SyntaxHelp() {
  * three-position switch on the right, above them the whole search expression. Below 768 px a full screen sheet
  * that shows the category list first.
  */
-export function AdvancedCardSearch({ id, query, onQueryChange, categories, resultCount, onClose, savedSearches, onSavedSearchesChange }: {
+export function AdvancedCardSearch({ id, query, onQueryChange, categories, resultCount, onClose, savedSearches, onSavedSearchesChange, onManageTags }: {
   id: string;
   query: string;
   onQueryChange: (query: string) => void;
@@ -312,6 +312,8 @@ export function AdvancedCardSearch({ id, query, onQueryChange, categories, resul
   onClose: () => void;
   savedSearches: readonly SavedCardSearch[];
   onSavedSearchesChange: (searches: SavedCardSearch[]) => void;
+  /** `Tags verwalten` above the tags (KV5); absent where tags cannot be changed. */
+  onManageTags?: () => void;
 }) {
   const [activeId, setActiveId] = React.useState<CardSearchMenuCategory["id"]>("heute");
   const [mobileOpen, setMobileOpen] = React.useState(false);
@@ -383,6 +385,9 @@ export function AdvancedCardSearch({ id, query, onQueryChange, categories, resul
           </ul>
         </nav>
         <div className={`min-w-0 ${mobileOpen ? "" : "max-md:hidden"}`} data-testid={`advanced-card-search-${active.id}`}>
+          {active.id === "tags" && onManageTags ? (
+            <button type="button" className="mb-2 core-body font-semibold text-core-action hover:underline" onClick={onManageTags}>Tags verwalten</button>
+          ) : null}
           {active.id === "syntax" ? (
             <div className="grid min-w-0 gap-6">
               <SavedSearches query={query} onQueryChange={onQueryChange} searches={savedSearches} onSearchesChange={onSavedSearchesChange} draftName={draftName} onDraftDone={() => setDraftName(null)} />

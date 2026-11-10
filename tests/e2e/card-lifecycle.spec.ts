@@ -587,7 +587,7 @@ test("[Vertrag: Treffer lernen zieht nicht fällige Karten vor, Nur üben schrei
   expect(await reviewKinds()).toEqual(["hit_review", "hit_review"]);
 });
 
-test("[Vertrag: Duplikate finden, öffnen und taggen] @beta-core gleiche Vorderseiten bilden eine Gruppe", async ({ page }) => {
+test("[Vertrag: Duplikate finden, öffnen und taggen; Tags verwalten] @beta-core gleiche Vorderseiten bilden eine Gruppe, ihr Tag lässt sich umbenennen und löschen", async ({ page }) => {
   const deckName = "Duplikate";
   await openManualCreation(page, deckName, "basic");
   await page.getByRole("textbox", { name: "Vorderseite" }).fill("Hauptstadt von Island");
@@ -615,8 +615,42 @@ test("[Vertrag: Duplikate finden, öffnen und taggen] @beta-core gleiche Vorders
   await dialog.getByRole("button", { name: "Duplikate taggen" }).click();
   await expect(page.getByText("Duplikate taggen: 2 Karten")).toBeVisible();
   await expect.poll(tagsOf).toEqual(["Duplikat", "Duplikat"]);
+
+  // KV5: the tag management renames with undo and deletes across the account.
+  const openTagManager = async () => {
+    const advanced = page.getByRole("button", { name: "Erweiterte Suche" });
+    if (await advanced.getAttribute("aria-pressed") !== "true") await advanced.click();
+    await page.getByRole("navigation", { name: "Filterkategorien" }).getByRole("button", { name: /^Tags/ }).click();
+    await page.getByRole("button", { name: "Tags verwalten" }).click();
+    return page.getByRole("dialog", { name: "Tags verwalten" });
+  };
+  // Online the directory comes from the cloud, so a fresh tag shows once it is synchronized.
+  let manager = page.getByRole("dialog", { name: "Tags verwalten" });
+  await expect(async () => {
+    manager = await openTagManager();
+    const row = manager.locator('li[data-tag="Duplikat"]');
+    if (!await row.isVisible()) {
+      await manager.getByRole("button", { name: "Schließen" }).click();
+      throw new Error("Tag noch nicht synchronisiert");
+    }
+    await expect(row).toContainText("2 Inhalte");
+  }).toPass({ timeout: 20_000 });
+  await manager.getByRole("button", { name: "Duplikat umbenennen" }).click();
+  await manager.getByRole("textbox", { name: "Neuer Name für Duplikat" }).fill("Geo::Doppelt");
+  await manager.getByRole("button", { name: "Umbenennen", exact: true }).click();
+  await expect(page.getByText("Tag umbenennen: 2 Karten")).toBeVisible();
+  await expect(manager.locator('li[data-tag="Geo::Doppelt"]')).toBeVisible();
+  await expect.poll(tagsOf).toEqual(["Geo::Doppelt", "Geo::Doppelt"]);
+  await manager.getByRole("button", { name: "Schließen" }).click();
   await page.getByRole("button", { name: "Rückgängig" }).click();
+  await expect.poll(tagsOf).toEqual(["Duplikat", "Duplikat"]);
+
+  manager = await openTagManager();
+  await manager.getByRole("button", { name: "Duplikat löschen" }).click();
+  await manager.getByRole("button", { name: "Löschen bestätigen" }).click();
+  await expect(page.getByText("Tag löschen: 2 Karten")).toBeVisible();
   await expect.poll(tagsOf).toEqual(["", ""]);
+  await manager.getByRole("button", { name: "Schließen" }).click();
 
   await page.getByRole("button", { name: "Duplikate finden" }).click();
   await dialog.getByTestId("duplicate-groups").getByRole("button").first().click();
