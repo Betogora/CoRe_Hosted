@@ -1,9 +1,17 @@
 # AGENTS.md
 
-This file is the compact repository entrypoint for coding agents. It defines
-project-specific sources of truth, architecture boundaries, and validation
-requirements. General working agreements are inherited from the global
-`AGENTS.md`.
+This file is the repository entrypoint for every coding agent (Codex reads it
+directly; Claude Code loads it as project instructions). It defines sources of
+truth, architecture boundaries, validation requirements, and working
+agreements. Anything the repository needs belongs here, not in personal or
+tool-specific instruction files.
+
+## Scope
+
+- Implement only what the task requires: no adjacent roadmap items, no
+  speculative options, flags, abstractions, or compatibility paths.
+- Prefer the smallest safe diff; change or delete existing code rather than
+  adding parallel implementations.
 
 ## Local Development
 
@@ -119,10 +127,14 @@ scope and gates.
 
 - Commit and push only after asking the user. Before committing finished work,
   run the `audit-last-change` skill.
+- Commits and pull requests carry no AI attribution (no agent
+  `Co-Authored-By` trailer, no "Generated with" line).
 - Create temporary and probe files only in the session scratchpad; none may
   remain in the repository.
 - Others work in the same checkout: do not switch branches in the main working
   folder without agreement; read shelved work with `git show <commit>`.
+- The local Supabase stack is shared: before local E2E runs or measurements,
+  check for migrations from other work and agree before `db reset`.
 
 ## Architecture Guidance
 
@@ -147,6 +159,7 @@ scope and gates.
   `ae`, `oe`, `ue`, and `ss` are not substitutes in user-facing German text.
 - Keep ASCII where required for technical identifiers, routes, enum values,
   JSON fields, import formats, and external API or schema names.
+- No explanatory subtitles or decorative badges; mark states clearly instead.
 
 ## Documentation
 
@@ -165,14 +178,18 @@ Update documentation when the implemented contract changes:
   `docs/architecture.md`; operations, decisions, status, and history remain in
   their own canonical files.
 - Update `docs/todo.md` only when open roadmap scope, priority, planning,
-  acceptance gates, or required evidence changes. Move completed work and
-  release evidence to the appropriate status, changelog, or runbook area; do
-  not create competing TODO files.
+  acceptance gates, or required evidence changes. Completed work leaves the
+  TODO; its details live in commits and pull requests, and only operational
+  evidence goes to `docs/history.md`. Parked items under „Später“ stay one or
+  two lines until they are scheduled. Do not create competing TODO files.
 - Do not update documentation for implementation details that do not alter a
   documented contract.
-- Do not shorten canonical documents merely because they are long. Structural
-  shortening is allowed only when the content is correctly moved to its
-  documented owner and all affected links remain valid.
+- Keep documents as short as their contracts allow. When a contract changes,
+  replace or delete the text it makes obsolete instead of appending.
+- Delete what is obsolete, completed, duplicated in another owner, or
+  derivable from code, and condense wording where meaning stays intact.
+- Never drop a still-valid contract, decision, or acceptance criterion: move
+  it to its owner from `docs/README.md` and keep affected links valid.
 
 ## Testing And Validation
 
@@ -191,6 +208,8 @@ Choose checks proportionate to the affected area.
   `tests/rls/`.
 - Module tests share processes without isolation (`docs/test-portfolio.md`):
   restore any global state a test sets and never rely on file order.
+- Run only the E2E specs a change affects; the full suite is for releases and
+  repository-wide checks.
 
 ### Standard Gate
 
