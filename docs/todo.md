@@ -20,6 +20,11 @@ Kleine Punkte aus abgeschlossenen Paketen, gemeinsam in einem PR.
       Offline-Löschung in `batch-resilience` erwarten nach dem Reload die
       Überschrift `Lernen`; seit `Karten` ein eigener Reiter ist (`b19da09`),
       heißt sie `Kartenverwaltung`. Nachweis: alle drei Tests grün.
+- [ ] **PDF-Vorschau im Browserflow:** Der Vertrag „manuell mit PDF bis
+      Bearbeiten und Review“ (`core-stabilization`) erwartet im
+      PDF-Betrachter „Seite 1 von 1“, sieht aber „PDF nicht verfügbar.“; so
+      lokal seit dem main-Stand vom 2026-11-10. Ursache klären (Worker,
+      Laden des PDF, Testaufbau) und beheben. Nachweis: der Test grün.
 - [ ] **Navigationsmarkierung beim ersten Laden:** Bei einem direkten Aufruf
       etwa von `/lernen` sitzt die gleitende Hervorhebung der Top-Bar auf
       `Heute`, obwohl `Lernen` korrekt `aria-current` trägt
@@ -42,10 +47,10 @@ geglättet.
 - [ ] **Einstiege:** Zähler der Karten ohne Variante in den Stapeleinstellungen
       (danach eine einzige Aktion, deren Beschriftung zwischen „generieren“ und
       „neu generieren“ wechselt); nach Fehlschlägen führt `Anzeigen` in der Leiste
-      zum Filter „Ohne Variante“; Stoppgründe in der Leiste kurz halten (z. B.
+      zum Filter `-has:variant`; Stoppgründe in der Leiste kurz halten (z. B.
       „Keine Verbindung“).
 - [ ] **Visuelle Pflichtmatrix:** Fortschrittsleiste, Einschalt-Dialog,
-      Variantenbereich der Stapeleinstellungen und Filter `Ohne Variante`; dazu
+      Variantenbereich der Stapeleinstellungen und Filter `-has:variant`; dazu
       ein E2E-Test der Stapelgenerierung (Route je Aufruf mit anderer Variante
       gemockt).
 - [ ] **Ausweg für nicht umformulierbare Inhalte:** Das erzwungene Werkzeug
@@ -61,16 +66,21 @@ geglättet.
 
 ## P4: Kartenverwaltung 2.0
 
-Läuft auf dem Branch `claude/kartenverwaltung-2`; Roadmap, Entscheidungen und
-offene Punkte (KV6, Abschluss) stehen in dessen `docs/todo.md` und kommen mit
-dem Merge hierher.
+Der Reiter `Karten` wird zur vollwertigen Kartenverwaltung nach dem Vorbild von
+Ankis Browser: Suche mit Filtermenü, flache Trefferliste, Massenaktionen und
+Pflegewerkzeuge in einer Version, ohne vorgeplante Folgeversion. Die Tabelle
+behält ihre Spalten `Sortierfeld`, `Datum` und `Variante`; weitere kommen
+nicht hinzu. Grundlage sind Sichtprüfung und Messung vom 2026-11-04
+(Konto mit 60 Stapeln, Stapel `Muskeltrainer` mit 581 Karten) und Ankis
+Seitenleiste (`qt/aqt/browser/sidebar/tree.py`), Suchsyntax
+(`rslib/src/search/`) und Tabellenmodell (`qt/aqt/browser/table/`), nur als
+Referenz gelesen. Befund und Produktentscheidungen stehen in
+[ADR-048](decisions.md#adr-048--kartensuche-lokal-über-den-vollständigen-katalog).
 
-- [ ] **Schmale Zeilen in der Kartenverwaltung (entschieden 2026-11-10):**
-      Karten- und Stapelzeilen sind wieder höchstens 30 px hoch; gemessen
-      waren am 2026-11-09 40,7 px. Der Vertrag „Karten- und Stapelzeilen
-      bleiben auch in schmalen Viewports kompakt“ (`navigation-context`)
-      bleibt unverändert, angepasst wird das Layout. Nachweis: Test grün,
-      Pflichtmatrix der Kartenverwaltung.
+- [ ] **Release:** main mergen, `npm run gate:push`,
+      `npm run performance:measure:local`, Pull Request. Beim Deploy zuerst
+      die Migration `20261110130000_kartenverwaltung` (`supabase db push`,
+      `verify_schema_v1.sql`), dann der Client.
 
 ## P2: Karten aus einer Quelle per KI erstellen
 

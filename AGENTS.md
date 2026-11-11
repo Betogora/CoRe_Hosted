@@ -236,7 +236,10 @@ contain changes outside the commit being pushed.
 
 Changes to bootstrap, preload, sync, catalog, statistics, service workers,
 dependencies, or chunking additionally require
-`npm run performance:measure:local` before push.
+`npm run performance:measure:local` before push. Where the local run is
+unreliable (Windows with Docker Desktop), a `weekly-performance` run on the
+pushed branch (`gh workflow run weekly-performance.yml --ref <branch>`) before
+merge is equivalent evidence.
 
 Run the complete `npm test` suite when a change is cross-cutting, affects shared
 domain behavior or several feature areas, or lacks sufficient coverage from

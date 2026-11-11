@@ -58,8 +58,7 @@ test("@beta-core @hosted-core APKG-Medium wird nach dem Deck-Commit cloudbestät
     client.auth.dispose?.();
   }
 
-  await mainMenu.getByRole("button", { name: "Karten", exact: true }).click();
-  await page.getByTestId(`deck-toggle-${importedDeck.id}`).click();
+  await page.goto(`/kartenstapel?deck=${encodeURIComponent(importedDeck.id)}&content=1&tab=cards`);
   await page.getByTestId(`deck-card-${mediaCard.id}`).click();
   await page.getByTestId("card-detail-dialog").getByRole("tab", { name: "Inhalt", exact: true }).click();
   const preview = page.getByTestId("card-live-preview");

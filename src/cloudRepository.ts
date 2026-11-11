@@ -19,6 +19,7 @@ import {
   validateDeckStudySummary,
   validateDeckStudySummaryRows,
   validateDueForecast,
+  validateNoteSearchRows,
   validateOfflineManifestRows,
   requireJsonRecord,
   validateProfileRows,
@@ -36,6 +37,7 @@ import type {
   CatalogPage,
   CatalogPageRequest,
   DeckStudySummary,
+  NoteSearchEntry,
   OfflineCardManifestEntry,
   OfflineMediaManifestEntry,
 } from "./workspaceReplica.ts";
@@ -53,7 +55,7 @@ const CARD_STUDY_FIELDS = [
 ];
 const TECHNICAL_CONTENT_FIELDS_BY_TABLE: Record<string, Set<string>> = {
   decks: new Set(["hierarchy_path"]),
-  notes: new Set(["search_text", "sort_text"]),
+  notes: new Set(["search_text", "search_fields", "sort_text"]),
   cards: new Set(CARD_STUDY_FIELDS),
   card_variants: new Set(["performance", "content_hash"]),
 };
@@ -81,6 +83,7 @@ const CONFLICT_PROTECTED_FIELDS = new Set([
   "model_run_id",
   "hierarchy_path",
   "search_text",
+  "search_fields",
   "sort_text",
   "performance",
   "content_hash",
@@ -537,12 +540,13 @@ export async function loadAccountCloudBootstrap(
 }
 
 // Anki templates travel with the catalog so the original layout (ADR-047) works on every device, also offline.
-const CATALOG_TABLES = ["decks", "card_catalog", "deck_study_summaries", "note_type_sources"] as const;
+// note_search comes last in each page: it fills the search text of catalog rows applied just before.
+const CATALOG_TABLES = ["decks", "card_catalog", "deck_study_summaries", "note_type_sources", "note_search"] as const;
 type CatalogCloudTable = typeof CATALOG_TABLES[number];
 
 export interface CloudCatalogPage {
   table: CatalogCloudTable;
-  entities: Deck[] | CardCatalogEntry[] | DeckStudySummary[] | ReplicatedNoteTypeSource[];
+  entities: Deck[] | CardCatalogEntry[] | DeckStudySummary[] | ReplicatedNoteTypeSource[] | NoteSearchEntry[];
   reset: boolean;
   cursor: number;
   advanceCursor?: boolean;
@@ -588,7 +592,9 @@ export async function streamAccountCatalogChanges(
           ? validateCardCatalogRows(rows)
           : table === "deck_study_summaries"
             ? validateDeckStudySummaryRows(rows)
-            : validateAccountRows("note_type_sources", rows).flatMap((row) => replicatedNoteTypeSourceFromRow(row) ?? []);
+            : table === "note_search"
+              ? validateNoteSearchRows(rows)
+              : validateAccountRows("note_type_sources", rows).flatMap((row) => replicatedNoteTypeSourceFromRow(row) ?? []);
       await onPage({ table, entities, reset: false, cursor: delta.nextCursor, advanceCursor: tableIndex === CATALOG_TABLES.length - 1 });
     }
     next = delta.nextCursor;
@@ -617,16 +623,18 @@ function parseCatalogPage(data: unknown, knownTotalCount?: number): CatalogPage 
 }
 
 export async function listAccountCardCatalog(client: any, request: CatalogPageRequest): Promise<CatalogPage> {
-  const search = parseCardSearchQuery(request.query);
+  const search = parseCardSearchQuery(request.query, request.searchContext);
+  const scope = request.deckId === null ? [{ kind: "deck", ids: [...(request.deckIds ?? [])], negated: false }] : [];
   const call = client.rpc("list_account_card_catalog", {
     p_deck_id: request.deckId,
     p_query: search.text,
-    p_terms: search.terms,
+    p_terms: [...search.terms, ...scope],
     p_sort_field: request.sort?.field ?? "sortField",
     p_sort_direction: request.sort?.direction ?? "asc",
     p_cursor: request.cursor ?? null,
     p_limit: Math.min(50, Math.max(1, Math.floor(request.limit ?? 50))),
     p_include_total: request.knownTotalCount == null,
+    p_offset: request.cursor ? 0 : Math.max(0, Math.floor(request.offset ?? 0)),
   });
   const { data, error } = await (request.signal ? call.abortSignal(request.signal) : call);
   if (error) throw error;
@@ -636,9 +644,9 @@ export async function listAccountCardCatalog(client: any, request: CatalogPageRe
 /** First search page of every requested deck in one request; decks without hits are absent from the result. */
 export async function searchAccountCardCatalog(
   client: any,
-  request: { deckIds: string[]; query: string; sort?: CatalogPageRequest["sort"]; limit?: number },
+  request: { deckIds: string[]; query: string; searchContext?: CatalogPageRequest["searchContext"]; sort?: CatalogPageRequest["sort"]; limit?: number },
 ): Promise<Map<string, CatalogPage>> {
-  const search = parseCardSearchQuery(request.query);
+  const search = parseCardSearchQuery(request.query, request.searchContext);
   const { data, error } = await client.rpc("search_account_card_catalog", {
     p_deck_ids: request.deckIds,
     p_query: search.text,
@@ -945,6 +953,7 @@ function noteToCloudRow(note: Note, userId: string) {
     content: note.content,
     media: note.media ?? {},
     search_text: text.searchText,
+    search_fields: text.searchFields.map((field) => ({ n: field.name, t: field.text })),
     sort_text: text.sortText,
     source: note.source,
     anki_guid: note.ankiGuid,

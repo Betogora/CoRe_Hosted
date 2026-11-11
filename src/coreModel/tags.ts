@@ -12,7 +12,7 @@ function normalizeTag(tag: string): string {
 }
 
 /** Case-insensitive identity of a tag, as Anki's `unicase`. */
-function tagKey(tag: string): string {
+export function tagKey(tag: string): string {
   return tag.toLocaleLowerCase("und");
 }
 
@@ -33,6 +33,19 @@ export function normalizeTags(tags: unknown): string[] {
     result.push(tag);
   }
   return result;
+}
+
+/**
+ * Renames a tag with its subtags (`A` and `A::x` become `B` and `B::x`); a name that exists merges into it. Without a
+ * new name the tag and its subtags go. The same tags come back when nothing matches.
+ */
+export function renameTag(tags: readonly string[], from: string, to: string | null): readonly string[] {
+  const fromKey = tagKey(normalizeTag(from));
+  const matches = (tag: string) => tagKey(tag) === fromKey || tagKey(tag).startsWith(`${fromKey}::`);
+  if (!tags.some(matches)) return tags;
+  // Untouched tags first, so a merge keeps the spelling the content already has.
+  const renamed = to === null ? [] : tags.filter(matches).map((tag) => `${to}${tag.slice(fromKey.length)}`);
+  return normalizeTags([...tags.filter((tag) => !matches(tag)), ...renamed]);
 }
 
 /** Search keys of a note's tags: each tag and all its `::` parents, lower case (`private.tag_search_keys`). */

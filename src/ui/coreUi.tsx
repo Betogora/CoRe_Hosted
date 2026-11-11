@@ -1,6 +1,6 @@
 import React, { type HTMLAttributes, type ReactNode } from "react";
 import { createPortal } from "react-dom";
-import { Star } from "lucide-react";
+import { Ban, Check, Minus, Star } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import type { CoreMode } from "../coreTypes.ts";
 import { ActionButton } from "./actionUi.tsx";
@@ -344,6 +344,40 @@ export function CoreIconSegmentedControl<T extends string>(props: Omit<CoreSegme
   options: ReadonlyArray<CoreSegmentedControlOption<T> & { icon: LucideIcon }>;
 }) {
   return <CoreSegmentedControl {...props} labels="hidden" />;
+}
+
+export type CoreTriState = "in" | "" | "out";
+
+const TRI_STATE_OPTIONS: ReadonlyArray<{ value: CoreTriState; label: string; icon: LucideIcon }> = [
+  { value: "in", label: "Mit", icon: Check },
+  { value: "", label: "Egal", icon: Minus },
+  { value: "out", label: "Ohne", icon: Ban },
+];
+
+/**
+ * Filter switch with three positions: `Mit` (blue), `Egal` (neutral, the start) and `Ohne` (red). Same rail as the
+ * segmented control with square segments; the indicator slides and fades its colour.
+ */
+export function CoreTriStateControl({ label, value, onValueChange, disabled = false }: {
+  /** What the switch filters, e.g. `Fällig`; part of the accessible name and the tooltips. */
+  label: string;
+  value: CoreTriState;
+  onValueChange: (value: CoreTriState) => void;
+  disabled?: boolean;
+}) {
+  const index = TRI_STATE_OPTIONS.findIndex((option) => option.value === value);
+  return (
+    <div role="radiogroup" aria-label={label} className="core-segmented-control core-tri-state-control" data-tri-value={value || "any"} style={{ "--core-tri-index": index } as React.CSSProperties}>
+      <span aria-hidden="true" className="core-tri-state-indicator" />
+      {TRI_STATE_OPTIONS.map((option) => (
+        <CoreTooltip key={option.label} label={`${option.label}: ${label}`}>
+          <button type="button" role="radio" aria-checked={value === option.value} aria-label={option.label} disabled={disabled} className="core-tri-state-option" onClick={() => onValueChange(option.value)}>
+            <option.icon size={16} strokeWidth={2.25} aria-hidden="true" />
+          </button>
+        </CoreTooltip>
+      ))}
+    </div>
+  );
 }
 
 export function CoreModeControl({ value, onChange }: { value: CoreMode; onChange: (value: CoreMode) => void }) {

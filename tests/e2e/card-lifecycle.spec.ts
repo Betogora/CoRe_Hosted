@@ -126,7 +126,7 @@ async function finishManualCreation(page: Page, deckName: string, expectedCardCo
 
 async function openCreatedCardEditor(page: Page, deck: Deck) {
   await page.getByRole("button", { name: "Karten prüfen" }).click();
-  await expect(page.getByRole("heading", { name: "Kartenverwaltung", exact: true })).toBeVisible();
+  await expect(page).toHaveURL(new RegExp(`deck=${deck.id}&content=1&tab=cards`));
   await page.getByTestId(`deck-card-${deck.cards[0].id}`).click();
   await openEditorTab(page, "Inhalt");
 }
@@ -482,6 +482,214 @@ test("[Vertrag: Geschwister begraben] @beta-core eine Antwort stellt die Geschwi
   await expect(page.getByRole("dialog", { name: "Keine fälligen Karten" })).toBeVisible();
 });
 
+test("[Vertrag: Massenaktion mit Rückgängig] @beta-core ausgewählte Karten werden gemeinsam ausgesetzt und wieder reaktiviert", async ({ page }) => {
+  const deckName = "Massenaktion";
+  await openManualCreation(page, deckName, "basic-reversed");
+  await page.getByRole("textbox", { name: "Vorderseite" }).fill("Hauptstadt von Norwegen");
+  await page.getByRole("textbox", { name: "Rückseite" }).fill("Oslo");
+  const deck = await finishManualCreation(page, deckName, 2);
+
+  await page.goto(`/kartenstapel?deck=${encodeURIComponent(deck.id)}&content=1&tab=cards`);
+  const rows = page.locator("[data-card-row]");
+  await expect(rows).toHaveCount(2);
+  await page.getByTestId("card-selection-start").click();
+  for (const card of deck.cards) await page.getByTestId(`select-card-${card.id}`).click();
+  await expect(page.getByTestId("card-selection-bar")).toContainText("2 Karten ausgewählt");
+  await page.getByTestId("card-selection-actions").click();
+  await page.getByRole("button", { name: "Aussetzen" }).click();
+  await page.getByRole("dialog").getByRole("button", { name: "Aussetzen" }).click();
+  await expect(page.getByText("Aussetzen: 2 Karten")).toBeVisible();
+  await expect(page.locator('[data-card-row][data-suspended="true"]')).toHaveCount(2);
+  await expect.poll(async () => (await readActiveAccountState(page)).decks.find((candidate: { id: string }) => candidate.id === deck.id)?.cards.filter((card: { status: string }) => card.status === "suspended").length).toBe(2);
+
+  await page.getByRole("button", { name: "Rückgängig" }).click();
+  await expect(page.getByText("Rückgängig gemacht: 2 Karten.")).toBeVisible();
+  await expect(page.locator('[data-card-row][data-suspended="true"]')).toHaveCount(0);
+  await page.reload();
+  await expect(rows).toHaveCount(2);
+  await expect(page.locator('[data-card-row][data-suspended="true"]')).toHaveCount(0);
+});
+
+test("[Vertrag: Suchen und Ersetzen mit Vorschau und Rückgängig] @beta-core ersetzt Text in den ausgewählten Inhalten", async ({ page }) => {
+  const deckName = "Ersetzen";
+  await openManualCreation(page, deckName, "basic-reversed");
+  await page.getByRole("textbox", { name: "Vorderseite" }).fill("Hauptstadt von Norwegen");
+  await page.getByRole("textbox", { name: "Rückseite" }).fill("Oslo");
+  const deck = await finishManualCreation(page, deckName, 2);
+  const frontOf = async () => (await readActiveAccountState(page)).notes.find((note: { id: string }) => note.id === deck.cards[0].noteId)?.content.fields[0].html;
+
+  await page.goto(`/kartenstapel?deck=${encodeURIComponent(deck.id)}&content=1&tab=cards`);
+  const rows = page.locator("[data-card-row]");
+  await expect(rows).toHaveCount(2);
+  await page.getByTestId("card-selection-start").click();
+  await page.getByTestId(`select-card-${deck.cards[0].id}`).click();
+  await page.getByTestId("card-selection-actions").click();
+  await page.getByRole("button", { name: "Suchen und Ersetzen" }).click();
+  const dialog = page.getByRole("dialog");
+  await dialog.getByRole("textbox", { name: "Suchen" }).fill("norwegen");
+  await dialog.getByRole("textbox", { name: "Ersetzen durch" }).fill("Schweden");
+  await expect(dialog.getByTestId("text-replace-preview")).toContainText("1 Karte ändert sich");
+  await expect(dialog.getByTestId("text-replace-preview")).toContainText("Hauptstadt von Schweden");
+  await dialog.getByRole("button", { name: "Ersetzen", exact: true }).click();
+  await expect(page.getByText("Suchen und Ersetzen: 1 Karte")).toBeVisible();
+  // Both cards of the content show its sort field.
+  await expect(rows.filter({ hasText: "Hauptstadt von Schweden" })).toHaveCount(2);
+  await expect.poll(frontOf).toBe("<p>Hauptstadt von Schweden</p>");
+
+  await page.getByRole("button", { name: "Rückgängig" }).click();
+  await expect(page.getByText("Rückgängig gemacht: 1 Karte.")).toBeVisible();
+  await expect.poll(frontOf).toBe("<p>Hauptstadt von Norwegen</p>");
+});
+
+test("[Vertrag: Treffer lernen zieht nicht fällige Karten vor, Nur üben schreibt nichts] @beta-core Treffer werden ohne Fälligkeit gelernt oder nur geübt", async ({ page }) => {
+  const deckName = "Treffer lernen";
+  await openManualCreation(page, deckName, "basic");
+  await page.getByRole("textbox", { name: "Vorderseite" }).fill("Hauptstadt von Island");
+  await page.getByRole("textbox", { name: "Rückseite" }).fill("Reykjavík");
+  const deck = await finishManualCreation(page, deckName, 1);
+  const reviewKinds = async () => ((await readActiveAccountState(page)).decks.find((candidate: { id: string }) => candidate.id === deck.id)?.reviewEvents ?? [])
+    .map((event: { flags?: { kind?: string } }) => event.flags?.kind ?? "normal");
+  const openHits = async (mode: "Vorziehen" | "Nur üben") => {
+    await page.goto(`/kartenstapel?deck=${encodeURIComponent(deck.id)}&content=1&tab=cards`);
+    await page.getByRole("textbox", { name: "Karten durchsuchen" }).fill("Island");
+    await page.getByRole("button", { name: "Treffer lernen" }).click();
+    const dialog = page.getByRole("dialog", { name: "Treffer lernen" });
+    await expect(dialog.getByTestId("hit-study-dialog")).toContainText("1 Karte");
+    await dialog.getByRole("button", { name: mode, exact: true }).click();
+    await dialog.getByRole("button", { name: "Lernen", exact: true }).click();
+  };
+  const studyHits = async () => {
+    await openHits("Vorziehen");
+    await page.getByRole("button", { name: "Antwort anzeigen" }).click();
+    await page.getByRole("button", { name: /Bewertung Leicht/ }).click();
+    await expect(page.getByRole("heading", { name: "Sitzung abgeschlossen" })).toBeVisible();
+  };
+
+  await studyHits();
+  await expect.poll(reviewKinds).toEqual(["hit_review"]);
+  // `Leicht` planned the card days ahead; the hits still study it now.
+  await studyHits();
+  await expect.poll(reviewKinds).toEqual(["hit_review", "hit_review"]);
+
+  const studied = (await readActiveAccountState(page)).decks.find((candidate: { id: string }) => candidate.id === deck.id)!.cards[0].study;
+  await openHits("Nur üben");
+  const practice = page.getByRole("dialog", { name: "Nur üben" });
+  await practice.getByRole("button", { name: "Antwort anzeigen" }).click();
+  await practice.getByRole("button", { name: "Bewertung Nochmal" }).click();
+  await practice.getByRole("button", { name: "Antwort anzeigen" }).click();
+  await practice.getByRole("button", { name: "Bewertung Gut" }).click();
+  await expect(practice.getByRole("heading", { name: "Übung abgeschlossen" })).toBeVisible();
+  await expect(practice).toContainText("1 Karte geübt · 1× Nochmal");
+  await practice.getByRole("button", { name: "Fertig" }).click();
+  await expect(practice).toHaveCount(0);
+  const after = await readActiveAccountState(page);
+  expect(comparableStudy(after.decks.find((candidate: { id: string }) => candidate.id === deck.id)!.cards[0].study)).toEqual(comparableStudy(studied));
+  expect(await reviewKinds()).toEqual(["hit_review", "hit_review"]);
+});
+
+test("[Vertrag: Duplikate finden, öffnen und taggen; Tags verwalten] @beta-core gleiche Vorderseiten bilden eine Gruppe, ihr Tag lässt sich umbenennen und löschen", async ({ page }) => {
+  // Five dialogs with mass actions and two synchronizations need more than the default under parallel load.
+  test.setTimeout(90_000);
+  const deckName = "Duplikate";
+  await openManualCreation(page, deckName, "basic");
+  await page.getByRole("textbox", { name: "Vorderseite" }).fill("Hauptstadt von Island");
+  await page.getByRole("textbox", { name: "Rückseite" }).fill("Reykjavík");
+  const deck = await finishManualCreation(page, deckName, 2, async () => {
+    await page.getByRole("textbox", { name: "Vorderseite" }).fill("hauptstadt von  Island");
+    await page.getByRole("textbox", { name: "Rückseite" }).fill("Reykjavik");
+    await page.getByRole("button", { name: "Originalkarte speichern" }).click();
+    await expect(page.getByTestId("manual-save-progress")).toHaveAttribute("aria-valuenow", "100");
+  });
+  const tagsOf = async () => (await readActiveAccountState(page)).notes
+    .filter((note: { id: string }) => deck.cards.some((card) => card.noteId === note.id))
+    .map((note: { content: { tags: string[] } }) => note.content.tags.join(","));
+
+  await page.goto("/kartenstapel");
+  const dialog = page.getByRole("dialog", { name: "Duplikate finden" });
+  // The search needs every card on the device; right after new cards or mass actions it waits for the catalog sync.
+  const openDuplicates = async () => {
+    await page.getByRole("button", { name: "Duplikate finden" }).click();
+    await expect(async () => {
+      const retry = dialog.getByRole("button", { name: "Erneut versuchen" });
+      if (await retry.isVisible()) await retry.click();
+      await expect(dialog.getByTestId("duplicates-dialog")).toContainText("1 Gruppe · 2 Inhalte", { timeout: 1_000 });
+    }).toPass({ timeout: 20_000 });
+  };
+  await openDuplicates();
+  await expect(dialog.getByTestId("duplicate-groups").getByRole("button")).toHaveCount(2);
+  await dialog.getByRole("button", { name: "Duplikate taggen" }).click();
+  await expect(page.getByText("Duplikate taggen: 2 Karten")).toBeVisible();
+  await expect.poll(tagsOf).toEqual(["Duplikat", "Duplikat"]);
+
+  // KV5: the tag management renames with undo and deletes across the account.
+  const openTagManager = async () => {
+    const advanced = page.getByRole("button", { name: "Erweiterte Suche" });
+    if (await advanced.getAttribute("aria-pressed") !== "true") await advanced.click();
+    await page.getByRole("navigation", { name: "Filterkategorien" }).getByRole("button", { name: /^Tags/ }).click();
+    await page.getByRole("button", { name: "Tags verwalten" }).click();
+    return page.getByRole("dialog", { name: "Tags verwalten" });
+  };
+  // Online the directory comes from the cloud, so a fresh tag shows once it is synchronized.
+  let manager = page.getByRole("dialog", { name: "Tags verwalten" });
+  await expect(async () => {
+    manager = await openTagManager();
+    const row = manager.locator('li[data-tag="Duplikat"]');
+    if (!await row.isVisible()) {
+      await manager.getByRole("button", { name: "Schließen" }).click();
+      throw new Error("Tag noch nicht synchronisiert");
+    }
+    await expect(row).toContainText("2 Inhalte");
+  }).toPass({ timeout: 20_000 });
+  await manager.getByRole("button", { name: "Duplikat umbenennen" }).click();
+  await manager.getByRole("textbox", { name: "Neuer Name für Duplikat" }).fill("Geo::Doppelt");
+  await manager.getByRole("button", { name: "Umbenennen", exact: true }).click();
+  await expect(page.getByText("Tag umbenennen: 2 Karten")).toBeVisible();
+  await expect(manager.locator('li[data-tag="Geo::Doppelt"]')).toBeVisible();
+  await expect.poll(tagsOf).toEqual(["Geo::Doppelt", "Geo::Doppelt"]);
+  await manager.getByRole("button", { name: "Schließen" }).click();
+  await page.getByRole("button", { name: "Rückgängig" }).click();
+  await expect.poll(tagsOf).toEqual(["Duplikat", "Duplikat"]);
+
+  manager = await openTagManager();
+  await manager.getByRole("button", { name: "Duplikat löschen" }).click();
+  await manager.getByRole("button", { name: "Löschen bestätigen" }).click();
+  await expect(page.getByText("Tag löschen: 2 Karten")).toBeVisible();
+  await expect.poll(tagsOf).toEqual(["", ""]);
+  await manager.getByRole("button", { name: "Schließen" }).click();
+
+  await openDuplicates();
+  await dialog.getByTestId("duplicate-groups").getByRole("button").first().click();
+  await expect(dialog).toHaveCount(0);
+  await expect(page.getByRole("dialog", { name: /^hauptstadt von +Island$/i })).toBeVisible();
+});
+
+test("[Vertrag: Tastenkürzel der Kartenliste] @beta-core Pfeile, Aktionstaste, Strg+Z und Suche ohne Maus", async ({ page }) => {
+  const deckName = "Tastatur";
+  await openManualCreation(page, deckName, "basic-reversed");
+  await page.getByRole("textbox", { name: "Vorderseite" }).fill("Hauptstadt von Finnland");
+  await page.getByRole("textbox", { name: "Rückseite" }).fill("Helsinki");
+  const deck = await finishManualCreation(page, deckName, 2);
+
+  await page.goto(`/kartenstapel?deck=${encodeURIComponent(deck.id)}&content=1&tab=cards`);
+  const rows = page.locator("[data-card-row]");
+  await expect(rows).toHaveCount(2);
+  const [first, second] = [rows.nth(0), rows.nth(1)];
+  await first.locator('[data-testid^="deck-card-"]').focus();
+  await page.keyboard.press("ArrowDown");
+  await expect(second.locator('[data-testid^="deck-card-"]')).toBeFocused();
+  await page.keyboard.press("a");
+  const dialog = page.getByRole("dialog", { name: "Aussetzen: 1 Karte" });
+  await dialog.getByRole("button", { name: "Aussetzen", exact: true }).click();
+  await expect(page.getByText("Aussetzen: 1 Karte")).toBeVisible();
+  await expect(second).toHaveAttribute("data-suspended", "true");
+  await expect(second.locator('[data-testid^="deck-card-"]')).toBeFocused();
+  await page.keyboard.press("Control+z");
+  await expect(page.getByText("Rückgängig gemacht: 1 Karte.")).toBeVisible();
+  await expect(rows.and(page.locator('[data-suspended="true"]'))).toHaveCount(0);
+  await page.keyboard.press("/");
+  await expect(page.getByRole("textbox", { name: "Karten durchsuchen" })).toBeFocused();
+});
+
 test("[Vertrag: typgerechter Cloze-Lebenszyklus] @beta-core jede Lückengruppe bleibt eine unabhängige Karte", async ({ page }) => {
   const deckName = "Lebenszyklus Cloze";
   await openManualCreation(page, deckName, "cloze");
@@ -644,8 +852,7 @@ test("[Vertrag: APKG-Reimport nach lokaler Bearbeitung] @beta-core Reimport übe
   expect(importedCard.note).toMatchObject({ source: "anki-apkg", ankiGuid: "matrix-basic", contentRevision: 1, importedContentRevision: 1 });
   const studyBeforeReimport = importedCard.study;
   await page.getByRole("button", { name: "Zur Übersicht" }).click();
-  await mainMenu(page).getByRole("button", { name: "Karten", exact: true }).click();
-  await page.getByTestId(`deck-toggle-${importedDeck.id}`).click();
+  await page.goto(`/kartenstapel?deck=${encodeURIComponent(importedDeck.id)}&content=1&tab=cards`);
   await page.getByTestId(`deck-card-${importedCard.id}`).click();
   await page.getByTestId("card-detail-dialog").getByRole("tab", { name: "Inhalt", exact: true }).click();
   await expect(page.getByRole("textbox", { name: "Feld Front", exact: true })).toContainText(importedQuestion);

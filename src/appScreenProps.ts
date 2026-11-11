@@ -1,10 +1,14 @@
+import type { CardSearchContext } from "./cardSearchQuery.ts";
+import type { CardBatchAction, CardBatchResult, TextReplaceSession } from "./cardBatchActions.ts";
+import type { DuplicateGroup, DuplicateKey } from "./duplicateContents.ts";
+import type { HitStudyOrder } from "./hitStudySession.ts";
 import type { Dispatch, ReactNode, SetStateAction } from "react";
 import type { AppRoute, AppViewId, CardEditorTab, DeckContentTab, DeckSettingsSection, GeneralSettingsSection, LearningSettingsSection, SettingsSection, createViewRoute } from "./appNavigation.ts";
 import type { ApkgImportSession } from "./apkgImportSession.ts";
 import type { AiCardVariantSuccess } from "./aiCardVariantContract.ts";
 import type { DeckMutationResult, WorkspaceState } from "./coreWorkspace.ts";
 import type { CardStudySnapshot } from "./cloudRepositoryValidation.ts";
-import type { Card, CardStudyStatePatch, CoreMode, Deck, ExamDailyTask, ExamPlanningSettings, GlobalSchedulerPreferences, LearningProfileTemplate, Note, NoteContent, Profile, ReviewEvent, SyncStatus } from "./coreTypes.ts";
+import type { Card, CardStudyStatePatch, CoreMode, Deck, ExamDailyTask, ExamPlanningSettings, GlobalSchedulerPreferences, LearningProfileTemplate, Note, NoteContent, Profile, ReviewEvent, SavedCardSearch, SyncStatus } from "./coreTypes.ts";
 import type { SimilarNote } from "./cloudRepositoryValidation.ts";
 import type { TagDirectoryEntry } from "./tagDirectory.ts";
 import type { CardTableSort } from "./libraryModel.ts";
@@ -170,6 +174,8 @@ export interface CardEditorServices {
   listReviewEvents: (cardId: string) => Promise<ReviewEvent[]>;
   /** Tags of the whole account online, of the local replica offline. */
   listTagDirectory: () => Promise<TagDirectoryEntry[]>;
+  /** Anki note types of the account for `note:` (replicated completely). */
+  listNoteTypes: () => Promise<{ id: string; name: string }[]>;
   listExamsForDeck: (deckId: string) => Promise<string[]>;
   /** Loads a neighbouring card ahead so prev/next opens without waiting. */
   prefetchCard: (cardId: string) => void;
@@ -203,8 +209,20 @@ export interface DecksScreenProps {
   onUndoDeleteNote: (undo: NoteGraph, deleted: NoteGraph) => Promise<NoteGraph | null>;
   onRescheduleCards: (cardIds: string[], dueAt: string, occurredAt: string) => Promise<Card[]>;
   onGenerateVariant: (deckId: string, cardId: string) => Promise<AiCardVariantSuccess>;
-  /** Starts variants for the opened deck's cards without one; absent while generation is unavailable. */
-  onGenerateDeckVariants?: (deck: Deck) => unknown;
+  /** Starts variants for the selected cards without one (KV4), with the settings of `deckId`; absent while generation is unavailable. */
+  onGenerateCardVariants?: (deckId: string, cardIds: string[]) => unknown;
+  /** Runs a mass action on the selected cards as one local change (KV4); its result can be undone. */
+  onRunCardBatch?: (cardIds: string[], action: CardBatchAction) => Promise<CardBatchResult>;
+  /** Loads the selected contents for `Suchen und Ersetzen` (KV5). */
+  onPrepareTextReplace?: (cardIds: string[]) => Promise<TextReplaceSession>;
+  /** `Treffer lernen` (KV5): studies these cards ahead of time; they are already free of suspended and buried cards. */
+  onStudyHits?: (cardIds: string[], order: HitStudyOrder) => Promise<void>;
+  /** `Nur üben` (KV5): the bodies of these cards; offline only those on this device. */
+  onLoadPracticeCards?: (cardIds: string[]) => Promise<Array<{ card: Card; note: Note }>>;
+  /** `Duplikate finden` (KV5) over the searched cards of these decks. */
+  onFindDuplicates?: (request: { deckIds: string[]; key: DuplicateKey; query: string; searchContext: CardSearchContext }) => Promise<{ fieldNames: string[]; groups: DuplicateGroup[] }>;
+  /** Ids of every hit of the flat hit list, for `Alle N Treffer auswählen` (KV4). */
+  onListHitCardIds?: (request: { deckIds: string[]; query: string; searchContext: CardSearchContext; sort?: CardTableSort }) => Promise<string[]>;
   variantGenerationRunning?: boolean;
   onUpdateVariant: (cardId: string, variantId: string, action: "reactivate" | "deactivate" | "delete") => Promise<void>;
   selectedDeckId: string | null;
@@ -220,31 +238,38 @@ export interface DecksScreenProps {
   onMoveDeck: (deckId: string, parentDeckId?: string | null) => DeckMutationResult | null;
   onOpenDeckSettings: (deckId: string) => unknown;
   onDraftStateChange: (guard: CardDraftGuard | null) => void;
-  expandedDeckIds: string[];
-  onSetDeckExpanded: (surface: DeckExpansionSurface, deckId: string | readonly string[], expanded: boolean) => unknown;
+  /** Saved searches of the account (`uiPreferences.savedSearches`); the whole list is written at once. */
+  savedSearches: readonly SavedCardSearch[];
+  onSavedSearchesChange: (searches: SavedCardSearch[]) => unknown;
   cardPages?: Readonly<Record<string, DecksCardPage | undefined>>;
-  onRequestCardPage?: (request: DecksCardPageRequest) => unknown;
+  /** Resolves false when the answer was dropped (replaced or aborted), so the list asks again. */
+  onRequestCardPage?: (request: DecksCardPageRequest) => Promise<boolean | undefined> | void;
   syncConflictCardIds?: ReadonlySet<string>;
 }
 
 export interface DecksCardPageRequest {
+  /** The list: a deck id, or `HIT_LIST_KEY` for the flat hit list over `deckIds` (KV3). */
   deckId: string;
+  deckIds?: string[];
   page: number;
   pageSize: 50;
   query: string;
   sort: CardTableSort;
   selectedCardId: string | null;
+  /** Today's learning day and the subtrees of `did:` terms, so the search resolves them like the screen. */
+  searchContext: CardSearchContext;
 }
 
+/** Loaded windows of one card list (a deck or the flat hit list); scrolling adds pages of `pageSize` rows (KV3). */
 export interface DecksCardPage {
   deckId: string;
-  items: CardCatalogEntry[];
-  page: number;
+  pages: Readonly<Record<number, CardCatalogEntry[]>>;
   pageSize: number;
   totalCount: number;
-  hasMore?: boolean;
   query: string;
   sort: CardTableSort;
+  /** Scope of the flat hit list; a changed scope is a new list. */
+  deckIds?: string[];
   selected?: (NoteGraph & { cardId: string }) | null;
   /** The card the last answered request asked for; until it matches the selection, the editor shows its loading bar. */
   requestedCardId?: string | null;

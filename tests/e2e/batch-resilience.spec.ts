@@ -186,7 +186,7 @@ test("[Vertrag: Batch, Pins, Deckpfade und Draftschutz] @beta-core fünf Karten 
   expect(state.decks.find((deck: Deck) => deck.id === DECK_IDS.target).cards).toHaveLength(6);
 
   await page.getByRole("button", { name: "Karten prüfen" }).click();
-  await expect(page.getByRole("heading", { name: "Kartenverwaltung", exact: true })).toBeVisible();
+  await expect(page).toHaveURL(new RegExp(`deck=${DECK_IDS.target}&content=1&tab=cards`));
   for (let index = 1; index <= 5; index += 1) {
     await expect(page.getByText(`Batch-Frage ${index}`, { exact: true })).toBeVisible();
   }
@@ -298,7 +298,7 @@ test("[Vertrag: Karten- und Stapellöschung] @beta-core Bestätigung, Undo und A
   await mainMenu(page).getByRole("button", { name: "Karten", exact: true }).click();
   const targetState = await readActiveAccountState(page);
   const existingCardId = targetState.decks.find((deck: Deck) => deck.id === DECK_IDS.target).cards[0].id;
-  await page.getByTestId(`deck-toggle-${DECK_IDS.target}`).click();
+  await page.goto(`/kartenstapel?deck=${DECK_IDS.target}&content=1&tab=cards`);
   await page.getByTestId(`deck-card-${existingCardId}`).click();
   const deleteCardButton = page.getByRole("button", { name: "Löschen", exact: true });
   await deleteCardButton.click();
@@ -319,35 +319,25 @@ test("[Vertrag: Karten- und Stapellöschung] @beta-core Bestätigung, Undo und A
   await cardDialog.getByRole("button", { name: "Abbrechen", exact: true }).click();
   await expect(page.getByRole("textbox", { name: "Feld Vorderseite" })).toContainText("Bestehende Karte");
   await page.getByRole("button", { name: "Löschen", exact: true }).click();
-  const contentRegion = page.locator('section[aria-label="Seiteninhalt"]');
-  const scrollAnchor = page.getByTestId("deck-header-batch-scroll-3");
-  await scrollAnchor.evaluate((element) => element.scrollIntoView({ block: "center" }));
-  expect(await contentRegion.evaluate((region) => region.scrollTop)).toBeGreaterThan(0);
-  const anchorTopBeforeDelete = await scrollAnchor.evaluate((element) => element.getBoundingClientRect().top);
   await cardDialog.getByRole("button", { name: "Löschen", exact: true }).click();
   await expect.poll(async () => !(await readActiveAccountState(page)).decks.some((deck: Deck) => deck.cards.some((card) => card.id === existingCardId))).toBe(true);
   const deletionToast = page.locator('[data-success-toast-region="true"]');
   await expect(deletionToast).toContainText("Karte wurde erfolgreich gelöscht.");
   await expect(page.getByTestId(`deck-card-${existingCardId}`)).toHaveCount(0);
   await expect(page.getByTestId("card-detail-dialog")).toHaveCount(0);
-  await expect.poll(() => contentRegion.evaluate((region) => region.scrollTop)).toBeGreaterThan(0);
-  await expect.poll(() => scrollAnchor.evaluate((element) => element.getBoundingClientRect().top)).toBeCloseTo(anchorTopBeforeDelete, 0);
   await expect(page.getByRole("button", { name: "Rückgängig" })).toBeVisible();
   await deletionToast.getByRole("button", { name: "Erfolgsmeldung schließen" }).click();
   await expect(deletionToast).toHaveCount(0);
   await page.getByRole("button", { name: "Rückgängig" }).click();
   await expect(page.getByTestId("card-detail-dialog").getByRole("heading", { level: 2 })).toHaveText("Bestehende Karte");
   await expect.poll(async () => (await readActiveAccountState(page)).decks.some((deck: Deck) => deck.cards.some((card) => card.id === existingCardId))).toBe(true);
+  // The restored card is in the URL, so the editor opens again after the reload.
   await page.reload();
-  if (await page.getByTestId(`deck-toggle-${DECK_IDS.target}`).getAttribute("aria-expanded") !== "true") {
-    await page.getByTestId(`deck-toggle-${DECK_IDS.target}`).click();
-  }
-  if (await page.getByTestId("card-detail-dialog").count() === 0) {
-    await page.getByTestId(`deck-card-${existingCardId}`).click();
-  }
   await expect(page.getByTestId("card-detail-dialog").getByRole("heading", { level: 2 })).toHaveText("Bestehende Karte");
   await page.getByRole("button", { name: "Detailansicht schließen" }).click();
 
+  // Deck actions live in Lernen; the card management lists cards only (KV3b).
+  await mainMenu(page).getByRole("button", { name: "Lernen", exact: true }).click();
   await page.getByTestId(`deck-options-${DECK_IDS.rootA}`).click();
   await page.getByTestId(`deck-options-menu-${DECK_IDS.rootA}`).getByRole("button", { name: "Einstellungen", exact: true }).click();
   const deckSettings = page.getByRole("region", { name: "Stapel", exact: true });
@@ -369,7 +359,7 @@ test("[Vertrag: Offline-Kartenlöschung] lokal gelöschte Karten werden nach Rec
   await mainMenu(page).getByRole("button", { name: "Karten", exact: true }).click();
   const targetState = await readActiveAccountState(page);
   const existingCardId = targetState.decks.find((deck: Deck) => deck.id === DECK_IDS.target).cards[0].id;
-  await page.getByTestId(`deck-toggle-${DECK_IDS.target}`).click();
+  await page.goto(`/kartenstapel?deck=${DECK_IDS.target}&content=1&tab=cards`);
   await page.getByTestId(`deck-card-${existingCardId}`).click();
   await expect(page.getByRole("button", { name: "Löschen", exact: true })).toBeVisible();
 

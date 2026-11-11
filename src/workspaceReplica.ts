@@ -1,5 +1,7 @@
-import type { Card, Note } from "./coreTypes.ts";
+import type { CardSearchContext } from "./cardSearchQuery.ts";
+import type { Card, Note, ReviewEvent, ReviewRating } from "./coreTypes.ts";
 import { getActiveVariants, isCardReviewBlocked, noteTextIndex, tagSearchKeys } from "./coreModel.ts";
+import { MANUAL_BURY_KIND, MANUAL_UNBURY_KIND } from "./siblingBurying.ts";
 import type { CardTableSort } from "./libraryModel.ts";
 
 export type AccountBaselineState = "uninitialized" | "nonempty" | "confirmed-empty";
@@ -16,12 +18,28 @@ export interface NoteGraph {
  * Per-card list and delta entry. The cloud projection carries no full text; locally written entries
  * search the content text, entries from the cloud catalog search their preview.
  */
+/** Text of one named field for `Feld:Text` searches; `name` is the `fieldSearchKey` of the field name. */
+export interface NoteSearchField {
+  name: string;
+  text: string;
+}
+
+/** Full search text of one content, replicated so a complete local catalog can be searched offline. */
+export interface NoteSearchEntry {
+  noteId: string;
+  searchText: string;
+  searchFields: NoteSearchField[];
+  deletedAt: string | null;
+}
+
 export interface CardCatalogEntry {
   id: string;
   deckId: string;
   noteId: string;
   frontPreview: string;
   normalizedSearchText: string;
+  /** Field texts of the content; known once its body or its replicated search text is local. */
+  searchFields?: NoteSearchField[];
   sortText: string;
   dueAt: string | null;
   scheduleState: string;
@@ -36,6 +54,34 @@ export interface CardCatalogEntry {
   hasActiveVariants: boolean;
   activeVariantCount: number;
   activeVariantId: string | null;
+  /**
+   * Learning history and values for `added:`, `edited:`, `rated:`, `introduced:`, `prop:` and the content form
+   * (`is:cloze` …). Entries stored before these fields existed lack them until the catalog delta brings them.
+   */
+  createdAt?: string;
+  editedAt?: string | null;
+  contentKind?: string;
+  intervalDays?: number;
+  difficulty?: number;
+  reps?: number;
+  lapses?: number;
+  /** Durability in days for `prop:s` (KV2e); null until the card is answered again, absent in older entries. */
+  durabilityDays?: number | null;
+  /** Times of the first answer, the last answer per rating and the last manual reschedule; other manual events do not count. */
+  firstReviewedAt?: string | null;
+  lastAgainAt?: string | null;
+  lastHardAt?: string | null;
+  lastGoodAt?: string | null;
+  lastEasyAt?: string | null;
+  lastRescheduledAt?: string | null;
+  /** Anki note type (`note:`) of the content and whether a variant of the card is outdated (`has:outdated`). */
+  noteTypeId?: string | null;
+  hasOutdatedVariants?: boolean;
+  /** Number of the prompt as in Anki's `card:N` (template, cloze or mask); null for an unknown prompt key. */
+  promptOrdinal?: number | null;
+  /** Last manual bury and unbury (`is:buried`: buried today when the bury is the later one). */
+  lastBuriedAt?: string | null;
+  lastUnburiedAt?: string | null;
   bodyRevision: number;
   studyRevision: number;
   dependencyRevision: number;
@@ -117,13 +163,24 @@ export interface ReplicaStatus {
   catalogCompleteness: "empty" | "partial" | "complete";
   catalogCursor: number;
   catalogServerCursor: number;
+  /**
+   * The local catalog carries full search texts, so a complete catalog may answer searches itself (ADR-048).
+   * False after a reconciliation without any replicated text, e.g. against a server without `note_search`.
+   */
+  searchTextsReady?: boolean;
 }
 
 export interface CatalogPageRequest {
-  deckId: string;
+  /** One deck, or null for the decks of `deckIds` as one list (the flat hit list, KV3). */
+  deckId: string | null;
+  deckIds?: readonly string[];
   query?: string;
+  /** Resolves terms relative to today or to the deck tree (`CardSearchContext`). */
+  searchContext?: CardSearchContext;
   sort?: CardTableSort;
   cursor?: { sortValue: string; id: string } | null;
+  /** Rows to skip when there is no cursor: a page far down the list opens directly (KV3). */
+  offset?: number;
   limit?: number;
   knownTotalCount?: number;
   signal?: AbortSignal;
@@ -203,7 +260,64 @@ export function bodyResidencyForRevision(
 }
 
 /** Local catalog entry with the same revisions as the cloud projection (`private.refresh_card_catalog`). */
-export function catalogEntryFromCard(card: Card, note: Note | null): CardCatalogEntry {
+/** The answer history a catalog entry keeps; the card body has no complete history, the cloud derives it from all answers. */
+export type CatalogReviewHistory = Pick<CardCatalogEntry, "firstReviewedAt" | "lastAgainAt" | "lastHardAt" | "lastGoodAt" | "lastEasyAt" | "lastRescheduledAt" | "lastBuriedAt" | "lastUnburiedAt">;
+
+/** `card:N` of a prompt key, the same mapping as `private.refresh_card_catalog`. */
+export function promptOrdinal(promptKey: string): number | null {
+  if (promptKey === "forward" || promptKey === "choice") return 1;
+  if (promptKey === "reverse") return 2;
+  const anki = /^anki-(\d{1,6})$/.exec(promptKey);
+  if (anki) return Number(anki[1]) + 1;
+  const numbered = /^(?:cloze|io):(\d{1,6})$/.exec(promptKey);
+  return numbered ? Number(numbered[1]) : null;
+}
+
+/** Kind of the manual event that sets a new due date (`resched:`). */
+export const MANUAL_RESCHEDULE_KIND = "manual_reschedule";
+
+const LAST_RATED_FIELD: Record<ReviewRating, keyof CatalogReviewHistory> = {
+  again: "lastAgainAt",
+  hard: "lastHardAt",
+  good: "lastGoodAt",
+  easy: "lastEasyAt",
+};
+
+export function catalogReviewHistory(entry: CatalogReviewHistory | null | undefined): CatalogReviewHistory {
+  return {
+    firstReviewedAt: entry?.firstReviewedAt ?? null,
+    lastAgainAt: entry?.lastAgainAt ?? null,
+    lastHardAt: entry?.lastHardAt ?? null,
+    lastGoodAt: entry?.lastGoodAt ?? null,
+    lastEasyAt: entry?.lastEasyAt ?? null,
+    lastRescheduledAt: entry?.lastRescheduledAt ?? null,
+    lastBuriedAt: entry?.lastBuriedAt ?? null,
+    lastUnburiedAt: entry?.lastUnburiedAt ?? null,
+  };
+}
+
+/** History after more study events, in any order; of the manual events only reschedules and (un)burying count. */
+export function withStudyEvents(history: CatalogReviewHistory | null | undefined, events: Iterable<Pick<ReviewEvent, "rating" | "answeredAt" | "flags">>): CatalogReviewHistory {
+  const next = catalogReviewHistory(history);
+  const later = (field: keyof CatalogReviewHistory, at: string) => {
+    if (!next[field] || Date.parse(at) > Date.parse(next[field]!)) next[field] = at;
+  };
+  for (const event of events) {
+    if (event.rating === "manual") {
+      const kind = event.flags?.kind;
+      if (kind === MANUAL_RESCHEDULE_KIND) later("lastRescheduledAt", event.answeredAt);
+      else if (kind === MANUAL_BURY_KIND) later("lastBuriedAt", event.answeredAt);
+      else if (kind === MANUAL_UNBURY_KIND) later("lastUnburiedAt", event.answeredAt);
+      continue;
+    }
+    if (!next.firstReviewedAt || Date.parse(event.answeredAt) < Date.parse(next.firstReviewedAt)) next.firstReviewedAt = event.answeredAt;
+    later(LAST_RATED_FIELD[event.rating], event.answeredAt);
+  }
+  return next;
+}
+
+/** Catalog entry of a card; the answer history comes from the previous entry or the known answers. */
+export function catalogEntryFromCard(card: Card, note: Note | null, history?: CatalogReviewHistory | null): CardCatalogEntry {
   const activeVariants = getActiveVariants(card)
     .sort((left, right) => right.updatedAt.localeCompare(left.updatedAt) || left.id.localeCompare(right.id));
   const text = note ? noteTextIndex(note.content) : null;
@@ -214,6 +328,7 @@ export function catalogEntryFromCard(card: Card, note: Note | null): CardCatalog
     noteId: card.noteId,
     frontPreview: preview.slice(0, 240),
     normalizedSearchText: text?.searchText ?? preview.toLocaleLowerCase("de"),
+    ...(text ? { searchFields: text.searchFields } : {}),
     sortText: preview.toLocaleLowerCase("de").slice(0, 128),
     dueAt: card.study.dueAt,
     scheduleState: card.study.state,
@@ -226,6 +341,16 @@ export function catalogEntryFromCard(card: Card, note: Note | null): CardCatalog
     hasActiveVariants: activeVariants.length > 0,
     activeVariantCount: activeVariants.length,
     activeVariantId: activeVariants[0]?.id ?? null,
+    createdAt: card.createdAt,
+    ...(note ? { editedAt: note.updatedAt, contentKind: note.content.interaction.kind, noteTypeId: note.noteTypeSourceId } : {}),
+    hasOutdatedVariants: card.variants.some((variant) => !variant.deletedAt && variant.meta.outdated === true),
+    promptOrdinal: promptOrdinal(card.promptKey),
+    intervalDays: card.study.intervalDays,
+    difficulty: card.study.difficulty,
+    reps: card.study.reps,
+    lapses: card.study.lapses,
+    durabilityDays: card.study.extra.durabilityDays,
+    ...catalogReviewHistory(history),
     bodyRevision: card.revision,
     studyRevision: card.studyRevision,
     dependencyRevision: (note?.revision ?? 1) + card.variants.reduce((total, variant) => total + variant.revision, 0),

@@ -1,3 +1,6 @@
+import type { CardSearchContext } from "./cardSearchQuery.ts";
+import { compareCatalogEntries } from "./catalogSearchIndex.ts";
+import type { DuplicateKey } from "./duplicateContents.ts";
 import type { Card, CardStudyState, Deck, Note } from "./coreTypes.ts";
 import type { IndexedDbCoreRepository, ReimportTargets } from "./indexedDbCoreRepository.ts";
 import type { CardTableSort } from "./libraryModel.ts";
@@ -8,12 +11,15 @@ import { markReplicaStartupGate } from "./appPerformance.ts";
 import { getLearningDayKey } from "./learningDay.ts";
 
 interface CardPageRequest {
+  /** The list: a deck id, or a key of its own for `deckIds` read as one list (the flat hit list). */
   deckId: string;
+  deckIds?: readonly string[];
   page?: number;
   pageSize?: number;
   query?: string;
   sort?: CardTableSort;
   selectedCardId?: string | null;
+  searchContext?: CardSearchContext;
   /** Aborts a stale search request before its cloud page is applied. */
   signal?: AbortSignal;
 }
@@ -105,9 +111,11 @@ export function createWorkspaceHydrationService({
   let pendingSearch: { key: string; deckIds: Set<string>; pages: Promise<Map<string, CatalogPage>> } | null = null;
   const pageKey = (request: CardPageRequest) => JSON.stringify([
     request.deckId,
+    request.deckIds ?? null,
     request.query ?? "",
     request.sort?.field ?? "sortField",
     request.sort?.direction ?? "asc",
+    request.searchContext ?? null,
   ]);
 
   /** With `allowMissing`, cards the cloud no longer has load as null instead of failing the batch. */
@@ -162,13 +170,13 @@ export function createWorkspaceHydrationService({
   const searchFirstPage = (request: CardPageRequest): Promise<CatalogPage> => {
     const query = request.query!.trim();
     const limit = Math.min(50, Math.max(1, request.pageSize ?? 50));
-    const key = JSON.stringify([query, request.sort?.field ?? "sortField", request.sort?.direction ?? "asc", limit]);
+    const key = JSON.stringify([query, request.sort?.field ?? "sortField", request.sort?.direction ?? "asc", limit, request.searchContext ?? null]);
     if (!pendingSearch || pendingSearch.key !== key) {
       const batch: NonNullable<typeof pendingSearch> = { key, deckIds: new Set(), pages: Promise.resolve(new Map()) };
       batch.pages = new Promise<void>((resolve) => setTimeout(resolve, 0)).then(async () => {
         if (pendingSearch === batch) pendingSearch = null;
         const { searchAccountCardCatalog } = await import("./cloudRepository.ts");
-        const pages = await searchAccountCardCatalog(client, { deckIds: [...batch.deckIds], query, sort: request.sort, limit });
+        const pages = await searchAccountCardCatalog(client, { deckIds: [...batch.deckIds], query, searchContext: request.searchContext, sort: request.sort, limit });
         const entities = [...pages.values()].flatMap((page) => page.items);
         if (entities.length) await repository.applyCloudCatalogPage({ table: "card_catalog", entities, reset: false, cursor: repository.getReplicaStatus().catalogCursor });
         return pages;
@@ -189,7 +197,7 @@ export function createWorkspaceHydrationService({
     const requestedPage = Math.max(0, Math.floor(request.page ?? 0));
     const cursors = pageCursors.get(key) ?? new Map([[0, null]]);
     pageCursors.set(key, cursors);
-    if (requestedPage === 0 && request.query?.trim()) {
+    if (requestedPage === 0 && request.query?.trim() && !request.deckIds) {
       const page = await searchFirstPage(request);
       request.signal?.throwIfAborted();
       totalCounts.set(key, page.totalCount);
@@ -197,35 +205,34 @@ export function createWorkspaceHydrationService({
       return page;
     }
     const { listAccountCardCatalog } = await import("./cloudRepository.ts");
-    for (let page = 0; page <= requestedPage; page += 1) {
-      if (page > 0 && !cursors.has(page)) break;
-      if (page < requestedPage && cursors.has(page + 1)) continue;
-      const cloudPage = await listAccountCardCatalog(client, {
-        deckId: request.deckId,
-        query: request.query,
-        sort: request.sort,
-        cursor: cursors.get(page) ?? null,
-        limit: Math.min(50, Math.max(1, request.pageSize ?? 50)),
-        knownTotalCount: totalCounts.get(key),
-        signal: request.signal,
-      });
-      request.signal?.throwIfAborted();
-      totalCounts.set(key, cloudPage.totalCount);
-      await repository.applyCloudCatalogPage({
-        table: "card_catalog",
-        entities: cloudPage.items,
-        reset: false,
-        cursor: repository.getReplicaStatus().catalogCursor,
-      });
-      if (cloudPage.hasMore && cloudPage.nextCursor) cursors.set(page + 1, cloudPage.nextCursor);
-      if (page === requestedPage) {
-        for (const storedPage of [...cursors.keys()].sort((a, b) => a - b).slice(0, -32)) {
-          if (storedPage !== 0 && storedPage !== requestedPage) cursors.delete(storedPage);
-        }
-        return cloudPage;
-      }
+    const limit = Math.min(50, Math.max(1, request.pageSize ?? 50));
+    // A page without a known cursor opens by offset: the continuous list jumps far without walking every page before.
+    const cursor = cursors.get(requestedPage);
+    const cloudPage = await listAccountCardCatalog(client, {
+      deckId: request.deckIds ? null : request.deckId,
+      deckIds: request.deckIds,
+      query: request.query,
+      searchContext: request.searchContext,
+      sort: request.sort,
+      cursor: cursor ?? null,
+      offset: cursor === undefined ? requestedPage * limit : 0,
+      limit,
+      knownTotalCount: totalCounts.get(key),
+      signal: request.signal,
+    });
+    request.signal?.throwIfAborted();
+    totalCounts.set(key, cloudPage.totalCount);
+    await repository.applyCloudCatalogPage({
+      table: "card_catalog",
+      entities: cloudPage.items,
+      reset: false,
+      cursor: repository.getReplicaStatus().catalogCursor,
+    });
+    if (cloudPage.hasMore && cloudPage.nextCursor) cursors.set(requestedPage + 1, cloudPage.nextCursor);
+    for (const storedPage of [...cursors.keys()].sort((a, b) => a - b).slice(0, -32)) {
+      if (storedPage !== 0 && storedPage !== requestedPage) cursors.delete(storedPage);
     }
-    return null;
+    return cloudPage;
   };
 
   /**
@@ -245,40 +252,104 @@ export function createWorkspaceHydrationService({
     while (preparedGraphs.size > PREPARED_GRAPH_LIMIT) preparedGraphs.delete(preparedGraphs.keys().next().value!);
   };
   const forgetPreparedGraphs = () => preparedGraphs.clear();
-  /** The selected card with all its siblings when it belongs to the deck, else null. */
-  const querySelectedCard = async (deckId: string, cardId: string): Promise<(NoteGraph & { cardId: string }) | null> => {
+  /** The selected card with all its siblings when it belongs to the deck (or one of the decks), else null. */
+  const querySelectedCard = async (scope: string | readonly string[], cardId: string): Promise<(NoteGraph & { cardId: string }) | null> => {
     const prepared = preparedGraphs.get(cardId);
     preparedGraphs.delete(cardId);
     const graph = (prepared ? await prepared : null) ?? await fetchCardGraph(cardId);
-    return graph?.cards.some((card) => card.id === cardId && card.deckId === deckId) ? { ...graph, cardId } : null;
+    const deckIds = typeof scope === "string" ? [scope] : scope;
+    return graph?.cards.some((card) => card.id === cardId && deckIds.includes(card.deckId)) ? { ...graph, cardId } : null;
+  };
+
+  /**
+   * Cards and contents whose local change still waits in the outbox, so the cloud does not show it yet. A cloud answer
+   * passes the ids pending when it was asked: a change uploaded while the answer travels is in neither of them.
+   */
+  const pendingOutboxIds = (askedWhilePending?: { cardIds: ReadonlySet<string>; noteIds: ReadonlySet<string>; createdCardIds: ReadonlySet<string> }) => {
+    const cardIds = new Set<string>(askedWhilePending?.cardIds);
+    const noteIds = new Set<string>(askedWhilePending?.noteIds);
+    // A first write (no base revision) means a card created here, which no cloud page can show yet.
+    const createdCardIds = new Set<string>(askedWhilePending?.createdCardIds);
+    for (const mutation of repository.outbox.listPending()) {
+      if (mutation.type === "review-atomic") cardIds.add((mutation.payload as { card: { id: string } }).card.id);
+      else if (mutation.table === "cards" && mutation.entityId) {
+        cardIds.add(mutation.entityId);
+        if (mutation.baseRevision === null) createdCardIds.add(mutation.entityId);
+      } else if (mutation.table === "notes" && mutation.entityId) noteIds.add(mutation.entityId);
+    }
+    return { cardIds, noteIds, createdCardIds };
+  };
+  /** Cards created here that match the request locally and are not among the cloud's ones. */
+  const pendingCreatedIds = async (scope: readonly string[], request: Pick<CardPageRequest, "query" | "searchContext">, created: ReadonlySet<string>, known: ReadonlySet<string>) =>
+    (await repository.listCardIds(scope, { query: request.query, searchContext: request.searchContext })).filter((id) => created.has(id) && !known.has(id));
+
+  /**
+   * A cloud page shows cards whose local change still waits in the outbox (a mass action, an edit) in their local state;
+   * a card deleted here leaves the page. Cards created here that match the request join the page whose range they sort
+   * into, so a new card appears at its place before its upload; the count includes them on every page.
+   */
+  const withPendingLocalRows = async (page: { items: CardCatalogEntry[]; hasMore: boolean; totalCount: number }, request: CardPageRequest, askedWhilePending: ReturnType<typeof pendingOutboxIds>) => {
+    const { items } = page;
+    const { cardIds, noteIds, createdCardIds } = pendingOutboxIds(askedWhilePending);
+    if (!cardIds.size && !noteIds.size) return page;
+    const changed = items.filter((entry) => cardIds.has(entry.id) || noteIds.has(entry.noteId));
+    const local = changed.length ? await repository.loadCatalogEntries(changed.map((entry) => entry.id)) : new Map<string, CardCatalogEntry>();
+    const shown = items.flatMap((entry) => {
+      if (!cardIds.has(entry.id) && !noteIds.has(entry.noteId)) return [entry];
+      const row = local.get(entry.id);
+      return row ? [{ ...row, syncChangeId: entry.syncChangeId }] : [];
+    });
+    // Cards deleted here leave the count as well as the page.
+    const totalCount = page.totalCount - (items.length - shown.length);
+    const created = createdCardIds.size ? await pendingCreatedIds(request.deckIds ?? [request.deckId], request, createdCardIds, new Set(items.map((entry) => entry.id))) : [];
+    if (!created.length) return { ...page, items: shown, totalCount };
+    const compare = compareCatalogEntries(request.sort ?? { field: "sortField", direction: "asc" });
+    const [first, last] = [items[0], items.at(-1)];
+    const onThisPage = [...(await repository.loadCatalogEntries(created)).values()].filter((row) =>
+      (!first || !request.page || compare(row, first) >= 0) && (!last || !page.hasMore || compare(row, last) <= 0));
+    // The cloud's rows keep their order; a new card goes before the first row that sorts after it.
+    const merged = [...shown];
+    for (const row of onThisPage.sort(compare)) {
+      const at = merged.findIndex((entry) => compare(row, entry) < 0);
+      merged.splice(at < 0 ? merged.length : at, 0, row);
+    }
+    return { ...page, items: merged, totalCount: totalCount + created.length };
   };
 
   const queryCardPage = async (request: CardPageRequest) => {
     const status = repository.getReplicaStatus();
-    // A complete local catalog serves unfiltered pages itself; only searches keep using the cloud cursors.
-    if (status.catalogCompleteness === "complete" && !request.query?.trim()) {
+    // A complete local catalog with search texts serves every page itself (ADR-048); otherwise searches ask the cloud.
+    const searchesLocally = status.catalogCompleteness === "complete" && status.searchTextsReady === true;
+    const query = request.query?.trim() ?? "";
+    if (status.catalogCompleteness === "complete" && (searchesLocally || !query)) {
       pageCursors.clear();
       totalCounts.clear();
+      if (searchesLocally && !query) void repository.prepareCardSearch().catch(() => undefined);
     }
     let cloudPage = null;
     let cloudError: unknown = null;
-    if (isOnline() && (status.catalogCompleteness !== "complete" || Boolean(request.query?.trim()))) {
+    let askedWhilePending: ReturnType<typeof pendingOutboxIds> | null = null;
+    if (isOnline() && (status.catalogCompleteness !== "complete" || (Boolean(query) && !searchesLocally))) {
+      askedWhilePending = pendingOutboxIds();
       try {
         cloudPage = await fetchCatalogPage(request);
       } catch (error) {
+        // A replaced request is no cloud failure: it must not fall back to the local catalog or flag it as limited.
+        if (request.signal?.aborted) throw error;
         cloudError = error;
       }
     }
-    const local = cloudPage ? null : await repository.listCardPage(request.deckId, { ...request, selectedCardId: null });
-    const entries = cloudPage?.items ?? local!.items;
+    const local = cloudPage ? null : await repository.listCardPage(request.deckIds ?? request.deckId, { ...request, selectedCardId: null });
+    const shownCloudPage = cloudPage && askedWhilePending ? await withPendingLocalRows(cloudPage, request, askedWhilePending) : null;
+    const entries = shownCloudPage?.items ?? local!.items;
     markReplicaStartupGate("catalogUsable", { itemCount: entries.length });
     if (entries.length === 0 && cloudError) throw cloudError;
-    const selected = request.selectedCardId ? await querySelectedCard(request.deckId, request.selectedCardId) : null;
+    const selected = request.selectedCardId ? await querySelectedCard(request.deckIds ?? request.deckId, request.selectedCardId) : null;
     return {
       items: entries,
       page: Math.max(0, Math.floor(request.page ?? 0)),
       pageSize: Math.min(50, Math.max(1, request.pageSize ?? 50)),
-      totalCount: cloudPage?.totalCount ?? local!.totalCount,
+      totalCount: shownCloudPage?.totalCount ?? local!.totalCount,
       hasMore: cloudPage?.hasMore ?? local!.hasMore,
       selected,
       limitedToLocalCatalog: Boolean(cloudError) || (!isOnline() && status.catalogCompleteness !== "complete"),
@@ -293,6 +364,41 @@ export function createWorkspaceHydrationService({
 
   /** Several card bodies in one hydration, in the given order; a missing body stays null. */
   const openCards = (cardIds: string[]) => hydrateCards(cardIds);
+  /**
+   * Ids of every hit of a search over several decks (`Alle N Treffer auswählen`, KV4): from the local index when it can
+   * answer the search, otherwise page by page from the cloud with the local changes still waiting for upload, as on a page.
+   */
+  const listCardIds = async (request: Pick<CardPageRequest, "deckIds" | "query" | "searchContext" | "sort" | "signal"> & { deckIds: readonly string[] }) => {
+    const status = repository.getReplicaStatus();
+    if (status.catalogCompleteness === "complete" && (status.searchTextsReady === true || !request.query?.trim())) {
+      return repository.listCardIds(request.deckIds, { query: request.query, searchContext: request.searchContext, sort: request.sort });
+    }
+    const ids: string[] = [];
+    const askedWhilePending = pendingOutboxIds();
+    for (let page = 0; ; page += 1) {
+      // The list key only names the cursor cache of this walk; the scope comes from `deckIds`.
+      const result = await fetchCatalogPage({ ...request, deckId: "__ids__", page, pageSize: 50 });
+      request.signal?.throwIfAborted();
+      ids.push(...result.items.map((entry) => entry.id));
+      if (!result.hasMore || !result.items.length) break;
+    }
+    const { cardIds, createdCardIds } = pendingOutboxIds(askedWhilePending);
+    if (!cardIds.size) return ids;
+    // Like a page: a card deleted here leaves the list, a card created here joins it.
+    const pendingKnown = ids.filter((id) => cardIds.has(id));
+    const stillLocal = pendingKnown.length ? await repository.loadCatalogEntries(pendingKnown) : new Map<string, CardCatalogEntry>();
+    return [...ids.filter((id) => !cardIds.has(id) || stillLocal.has(id)), ...await pendingCreatedIds(request.deckIds, request, createdCardIds, new Set(ids))];
+  };
+  /**
+   * `Duplikate finden` needs every card of the account on this device, and for a field or a search their search texts
+   * too; the cloud has no such search.
+   */
+  const findDuplicates = async (request: { deckIds: readonly string[]; key: DuplicateKey; query?: string; searchContext?: CardSearchContext }) => {
+    const status = repository.getReplicaStatus();
+    const needsSearchTexts = request.key !== "sortField" || Boolean(request.query?.trim());
+    if (status.catalogCompleteness !== "complete" || (needsSearchTexts && status.searchTextsReady !== true)) throw new Error("Duplikate lassen sich finden, sobald alle Karten auf diesem Gerät durchsuchbar sind.");
+    return repository.findDuplicates(request.deckIds, request);
+  };
   /** Card ids whose bodies are on this device; offline exam units run on these only (E12). */
   const listLocalCardIds = async (cardIds: string[]) => {
     const missing = new Set(await repository.missingCardBodyIds(cardIds));
@@ -574,6 +680,8 @@ export function createWorkspaceHydrationService({
     forgetPreparedGraphs,
     openCard,
     openCards,
+    listCardIds,
+    findDuplicates,
     listLocalCardIds,
     loadNoteGraph,
     prepareStudyWindow,

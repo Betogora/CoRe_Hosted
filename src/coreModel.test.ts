@@ -196,7 +196,10 @@ test("Wiederherstellen setzt Inhalt und Karten fort statt Revisionen zurückzudr
 
 test("Textindex durchsucht Felder, Lücken, Optionen und Tags und sortiert nach der ersten Frage", () => {
   const cloze = createNote({ deckId: "deck", content: createManualNoteContent({ kind: "cloze", front: "<b>{{c1::ATP}}</b> speichert&nbsp;Energie", back: "Zusatz", tags: ["Bio"] }) });
-  assert.deepEqual(noteTextIndex(cloze.note.content), { searchText: "atp speichert energie zusatz bio", sortText: "ATP speichert Energie" });
+  const clozeIndex = noteTextIndex(cloze.note.content);
+  assert.deepEqual({ searchText: clozeIndex.searchText, sortText: clozeIndex.sortText }, { searchText: "atp speichert energie zusatz bio", sortText: "ATP speichert Energie" });
+  assert.deepEqual(clozeIndex.searchFields.map((field) => field.text), ["atp speichert energie", "zusatz"], "Feldtexte je Feld, ohne Markup");
+  assert.ok(clozeIndex.searchFields.every((field) => field.name === field.name.toLocaleLowerCase("de") && !/\s/.test(field.name)));
   const choice = createNote({ deckId: "deck", content: createManualNoteContent({ kind: "single-choice", front: "Frage", back: "", answerOptions: ["Mitochondrium", "Kern"], correctOptionIndices: [0] }) });
   assert.match(noteTextIndex(choice.note.content).searchText, /mitochondrium kern/);
 });

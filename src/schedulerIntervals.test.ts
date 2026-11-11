@@ -22,7 +22,10 @@ test("jede echte Bewertung erhöht Wiederholungen und setzt lastReviewedAt", () 
     assert.equal(next.reps, 5);
     assert.equal(next.lastReviewedAt, now);
     assert.equal(next.lastRating, rating);
+    assert.equal(next.durabilityDays, getDurabilityDays(next), "jede Antwort schreibt die Haltbarkeit für prop:s (KV2e)");
+    assert.equal(cardStudyFromReviewState(next).extra.durabilityDays, next.durabilityDays);
   }
+  assert.equal(createReviewState({ state: "review", stability: 10 }).durabilityDays, null, "ältere Lernstände haben noch keine");
 });
 
 test("eine KI-Darstellung ändert nicht die FSRS-Planung der Karte", () => {

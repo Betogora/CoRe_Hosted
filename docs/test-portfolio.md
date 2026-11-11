@@ -129,7 +129,8 @@ Die Zielwerte stehen in [`specs.md`](specs.md#performance). Geprüft werden sie 
   E2E-Production-App und misst je zehn gedrosselte Läufe (Chromium, etwa 1,6 Mbit/s,
   150 ms RTT, vierfache CPU-Verlangsamung) für wiederkehrenden Browser, frischen
   Kontext, persistenten Kontext ohne Service Worker, Offline-Kaltstart und einen
-  kontrollierten 4G-Preload. Im selben Lauf misst er den Statistikpfad mit
+  kontrollierten 4G-Preload (nur Herunterladen; gemessen werden lange Tasks in
+  seinem Zeitfenster). Im selben Lauf misst er den Statistikpfad mit
   100.000 Karten und 1 Mio. logisch aggregierten Reviews.
 - Das Artefakt `test-results/performance.json` enthält nur Laufzeiten, Stapel- und
   Outboxanzahl und den Service-Worker-Status; `npm run performance:gates --
@@ -137,7 +138,12 @@ Die Zielwerte stehen in [`specs.md`](specs.md#performance). Geprüft werden sie 
   automatischen 3G-Preloads, höchstens 50 ms je 4G-Preload-Task, Statistik-RPC p95
   ≤ 1.000 ms, 100k-Kartensuche ≤ 2.000 ms, Clientprojektion ≤ 50 ms).
 - Zusätzlich lokal auszuführen bei Änderungen an Bootstrap, Preload, Sync, Katalog,
-  Statistik, Service Worker, Abhängigkeiten oder Chunking.
+  Statistik, Service Worker, Abhängigkeiten oder Chunking. Gleichwertig ist ein
+  Lauf von `weekly-performance.yml` auf dem gepushten Branch vor dem Merge
+  (`gh workflow run weekly-performance.yml --ref <branch>`, etwa 8 Minuten,
+  Artefakt `performance.json`). Unter Windows mit Docker Desktop streut die
+  lokale Messung stark (2026-11-11: Preload-Task lokal 96 ms, im Workflow 52 ms;
+  neues Gerät 3,6 statt 2,6 s) und taugt dort nur zur Aufschlüsselung der Zeitanteile.
 - Ein rotes Gate bleibt rot; ein fehlendes oder nur technisch erzeugtes Artefakt
   ist kein Freigabenachweis. Feld-p75/p95 und die vollständige 100k-Browserjourney
   misst der Lauf nicht.

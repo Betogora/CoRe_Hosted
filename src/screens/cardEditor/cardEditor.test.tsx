@@ -22,6 +22,7 @@ const services: CardEditorServices = {
   loadCard: async () => null,
   listReviewEvents: async () => [],
   listTagDirectory: async () => [],
+  listNoteTypes: async () => [],
   listExamsForDeck: async () => [],
   prefetchCard: () => undefined,
   cloud: null,

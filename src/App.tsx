@@ -1,5 +1,6 @@
 import React from "react";
-import type { Card, CardStudyState, CardStudyStatePatch, CoreMode, Deck, ExamDailyTask, ExamPlanningSettings, ImportVerificationScope, LearningProfileTemplate, NewReviewOrder, Note, NoteContent, ReviewEvent, SyncStatus } from "./coreTypes.ts";
+import type { Card, CardStudyState, CardStudyStatePatch, CoreMode, Deck, ExamDailyTask, ExamPlanningSettings, ImportVerificationScope, LearningProfileTemplate, NewReviewOrder, Note, NoteContent, ReviewEvent, SavedCardSearch, SyncStatus } from "./coreTypes.ts";
+import type { CardBatchAction } from "./cardBatchActions.ts";
 import type { ImportCommitGraph, ImportMediaFile } from "./apkgImport.ts";
 import { ArrowRight, Database, Layers, Sparkles } from "lucide-react";
 import { authPhases, createSyncErrorStatus, createSyncIdleStatus, createSyncPendingStatus, createSyncSavingStatus, shouldShowAppShell, shouldShowAuthGate } from "./accountSession.ts";
@@ -19,7 +20,7 @@ import type {
   SettingsSaveScope,
   GlobalLearningSettingsSaveScope,
 } from "./appScreenProps.ts";
-import { CreationScreen, DashboardScreen, DeckSettingsScreen, DecksScreen, ExamPlanningScreen, GlobalCardSettingsScreen, HelpScreen, LearnScreen, preloadAppView, preloadSettingsDialog, SettingsDialog, SettingsScreen, SimulatorScreen, StatisticsScreen, StudyMode } from "./appFeatureLoading.tsx";
+import { CreationScreen, DashboardScreen, DeckSettingsScreen, DecksScreen, ExamPlanningScreen, GlobalCardSettingsScreen, HelpScreen, LearnScreen, prefetchAppView, preloadAppView, preloadSettingsDialog, SettingsDialog, SettingsScreen, SimulatorScreen, StatisticsScreen, StudyMode } from "./appFeatureLoading.tsx";
 import { allowsBrowserSpeculativePreloading, startAdaptiveFeaturePreloading } from "./appFeaturePreload.ts";
 import { startAppSyncLifecycle } from "./appSyncLifecycle.ts";
 import { clearCloudAuthRedirectParams, formatCloudAuthError, getCloudUser, resetCloudPassword, signInCloudAccount, signInWithGoogle, signInWithMagicLink, signOutCloudAccount, signUpCloudAccount, updateCloudPassword } from "./cloudAuth.ts";
@@ -31,7 +32,7 @@ import { applyGlobalLearningDefaultsToDeck, createGlobalDefaultDeckSettings } fr
 import type { IndexedDbCoreRepository } from "./indexedDbCoreRepository.ts";
 import { getGlobalSchedulerPreferences, markLearningSettingsCustom, normalizeLearningProfileSource, normalizeLearningSettings, withGlobalSchedulerPreferences, type LearningSettingsInput } from "./deckSettings.ts";
 import { getLearningDayKey, getLearningDayRange, getLearningTimeZone, getNextLearningDayBoundaryDelay } from "./learningDay.ts";
-import { createDeckLibraryModel, sameCardTableSort } from "./libraryModel.ts";
+import { createDeckLibraryModel } from "./libraryModel.ts";
 import { formatLimitSummary } from "./screens/screenConstants.ts";
 import type { DeckLibrarySummary } from "./libraryModel.ts";
 import type { StudyHeatmapModel } from "./studyHeatmapModel.ts";
@@ -45,6 +46,7 @@ import type { ManualNoteSaveInput } from "./screens/ManualCreationPanel.tsx";
 import { clearPomodoroTimer, createPomodoroTimerFromSeconds, pausePomodoroTimer, resumePomodoroTimer, getPomodoroTimerStorageKey, readPomodoroTimer, writePomodoroTimer, type PomodoroTimer } from "./pomodoroTimer.ts";
 import { createDailyReviewQueue, updateDeckNewCardLimitForDate, type ReviewAnswerResult } from "./reviewService.ts";
 import { EXAM_SESSION_DECK_ID, validateExamPlanningSettings } from "./examPlanSettings.ts";
+import { createHitSessionDecks, HIT_SESSION_DECK_ID, type HitStudyOrder } from "./hitStudySession.ts";
 import { useStudySession, type StudyPreparation } from "./useStudySession.ts";
 import { useAccountWorkspace } from "./useAccountWorkspace.ts";
 import { formatSimulationDate, getSimulatedNow, normalizeSimulationOffsetMinutes } from "./simulationClock.ts";
@@ -218,7 +220,7 @@ export function App() {
   const [deckSummaries, setDeckSummaries] = React.useState<ReadonlyMap<string, DeckLibrarySummary>>(new Map());
   const [studyHeatmap, setStudyHeatmap] = React.useState<StudyHeatmapModel | undefined>();
   const [syncConflictCardIds, setSyncConflictCardIds] = React.useState<ReadonlySet<string>>(new Set());
-  const cardPageRequestRef = React.useRef(new Map<string, { key: string; controller: AbortController }>());
+  const cardPageRequestRef = React.useRef(new Map<string, { controller: AbortController; listKey: string; view: string }>());
   const cardPagesRef = React.useRef(cardPages);
   cardPagesRef.current = cardPages;
   const [syncStatus, setSyncStatus] = React.useState<SyncStatus>(createSyncIdleStatus);
@@ -638,8 +640,12 @@ export function App() {
       listTagDirectory: async () => {
         const local = () => repository().listTagDirectory();
         if (!cloud || (typeof navigator !== "undefined" && navigator.onLine === false)) return local();
+        // Tag changes still waiting here reach the cloud first, so its directory already shows them (KV5).
+        const pendingSync = syncEngineRef.current;
+        if (pendingSync?.pendingCount()) await pendingSync.flush().catch(() => undefined);
         return (await import("./cloudRepository.ts")).listAccountTags(cloud).catch(local);
       },
+      listNoteTypes: async () => repository().listNoteTypes(),
       prefetchCard: (cardId) => actions().prefetchCard(cardId),
       listExamsForDeck: async (deckId) => {
         const currentState = latestStateRef.current;
@@ -777,50 +783,73 @@ export function App() {
   }
 
   const requestCardPage = React.useCallback(async (request: DecksCardPageRequest) => {
-    if (!workspaceRepository) return;
+    if (!workspaceRepository) return false;
     const runId = bootRunRef.current;
-    const requestKey = JSON.stringify(request);
-    // A newer request for the same deck (typing in the search) cancels the stale one.
-    cardPageRequestRef.current.get(request.deckId)?.controller.abort();
+    const listKey = request.deckId;
+    const view = JSON.stringify([request.query, request.sort.field, request.sort.direction, request.deckIds ?? null]);
+    const sameView = (page: DecksCardPage | undefined): page is DecksCardPage => Boolean(page && !page.loadError
+      && JSON.stringify([page.query, page.sort.field, page.sort.direction, page.deckIds ?? null]) === view);
+    // A changed search, sort or scope cancels what the list still loads; pages of the same view load side by side.
+    const requestKey = `${listKey}#${request.page}`;
+    for (const [key, running] of cardPageRequestRef.current) {
+      if (running.listKey === listKey && (running.view !== view || key === requestKey)) {
+        running.controller.abort();
+        cardPageRequestRef.current.delete(key);
+      }
+    }
     const controller = new AbortController();
-    cardPageRequestRef.current.set(request.deckId, { key: requestKey, controller });
-    const isCurrent = () => bootRunRef.current === runId && cardPageRequestRef.current.get(request.deckId)?.key === requestKey;
+    cardPageRequestRef.current.set(requestKey, { controller, listKey, view });
+    // Identity, not a key: a repeated identical request replaces this one, whose (aborted) answer must be dropped.
+    const isCurrent = () => bootRunRef.current === runId && cardPageRequestRef.current.get(requestKey)?.controller === controller;
     // Prev/next only changes the selected card: the loaded page stays and just the card (often prefetched) is read.
-    const shown = cardPagesRef.current[request.deckId];
-    const onlySelectionChanged = Boolean(workspaceHydrationService && request.selectedCardId && shown && !shown.loadError
-      && shown.page === request.page && shown.query === request.query && sameCardTableSort(shown.sort, request.sort));
-    let page;
+    const shown = cardPagesRef.current[listKey];
+    const onlySelectionChanged = Boolean(workspaceHydrationService && request.selectedCardId && sameView(shown) && shown.pages[request.page]);
+    const scope = request.deckIds ?? request.deckId;
+    let loaded: { items?: DecksCardPage["pages"][number]; page?: number; pageSize?: number; totalCount?: number; selected?: DecksCardPage["selected"]; limitedToLocalCatalog?: boolean };
     try {
-      page = onlySelectionChanged
-        ? { ...shown!, selected: await workspaceHydrationService!.querySelectedCard(request.deckId, request.selectedCardId!) }
+      loaded = onlySelectionChanged
+        ? { selected: await workspaceHydrationService!.querySelectedCard(scope, request.selectedCardId!) }
         : workspaceHydrationService
           ? await workspaceHydrationService.queryCardPage({ ...request, signal: controller.signal })
-          : await workspaceRepository.listCardPage(request.deckId, request);
+          : await workspaceRepository.listCardPage(scope, request);
     } catch (error) {
-      if (!isCurrent() || controller.signal.aborted) return;
+      if (!isCurrent() || controller.signal.aborted) return false;
+      cardPageRequestRef.current.delete(requestKey);
       setCardPages((current) => ({
         ...current,
-        [request.deckId]: {
-          ...(current[request.deckId] ?? {
-            deckId: request.deckId,
-            items: [],
-            page: request.page,
-            pageSize: request.pageSize,
-            totalCount: 0,
-            query: request.query,
-            sort: request.sort,
-          }),
+        [listKey]: {
+          ...(current[listKey] ?? { deckId: listKey, pages: {}, pageSize: request.pageSize, totalCount: 0, query: request.query, sort: request.sort, deckIds: request.deckIds }),
           requestedCardId: request.selectedCardId,
           loadError: error instanceof Error ? error.message : "Karten konnten nicht geladen werden.",
         },
       }));
-      return;
+      return true;
     }
-    if (!isCurrent()) return;
-    setCardPages((current) => ({
-      ...current,
-      [request.deckId]: { ...page, deckId: request.deckId, query: request.query, sort: request.sort, requestedCardId: request.selectedCardId, loadError: null },
-    }));
+    if (!isCurrent()) return false;
+    cardPageRequestRef.current.delete(requestKey);
+    setCardPages((current) => {
+      const previous = sameView(current[listKey]) ? current[listKey]! : null;
+      const pages = { ...previous?.pages };
+      if (loaded.items) pages[loaded.page ?? request.page] = loaded.items;
+      // Only a request that names the open card changes it; scrolling loads pages without one.
+      const selection = request.selectedCardId ? { selected: loaded.selected ?? null, requestedCardId: request.selectedCardId } : { selected: previous?.selected, requestedCardId: previous?.requestedCardId };
+      return {
+        ...current,
+        [listKey]: {
+          deckId: listKey,
+          pages,
+          pageSize: loaded.pageSize ?? previous?.pageSize ?? request.pageSize,
+          totalCount: loaded.totalCount ?? previous?.totalCount ?? 0,
+          query: request.query,
+          sort: request.sort,
+          deckIds: request.deckIds,
+          ...selection,
+          loadError: null,
+          limitedToLocalCatalog: loaded.limitedToLocalCatalog ?? previous?.limitedToLocalCatalog,
+        },
+      };
+    });
+    return true;
   }, [workspaceHydrationService, workspaceRepository]);
 
   const queryStatistics = React.useCallback(
@@ -947,7 +976,10 @@ export function App() {
     if (study.preparedKeyRef.current === preparationKey && study.decks) return;
     let active = true;
     // After a reload an exam session resumes as today's whole unit.
-    const preparing = studyRequest.deckId === EXAM_SESSION_DECK_ID ? prepareExamUnit(null) : prepareStudyWindow(studyRequest.deckId);
+    // `Treffer lernen` lives only in the screen that started it; after a reload it is gone.
+    const preparing = studyRequest.deckId === EXAM_SESSION_DECK_ID ? prepareExamUnit(null)
+      : studyRequest.deckId === HIT_SESSION_DECK_ID ? Promise.reject(new Error("Die Treffer sind nach dem Neuladen nicht mehr da. Starte „Treffer lernen“ erneut."))
+        : prepareStudyWindow(studyRequest.deckId);
     void preparing.then((preparation) => {
       if (!active || !preparation) return;
       if (!preparation.decks.some((deck) => deck.id === studyRequest.deckId)) {
@@ -982,16 +1014,19 @@ export function App() {
       syncEngine,
       syncIntervalMinutes: state?.profile.uiPreferences.syncIntervalMinutes ?? 5,
       onStatus: setSyncStatus,
-      onSynced() {
+      onSynced(result) {
         if (!workspaceRepository) return;
-        setAppState(workspaceRepository.getShellState(), { preserveCardPages: true });
+        // While the catalog is incomplete the cloud serves the card lists; they lack local changes until those are
+        // uploaded, so a sync that sent changes loads them again.
+        const listsFromCloud = workspaceRepository.getReplicaStatus().catalogCompleteness !== "complete";
+        setAppState(workspaceRepository.getShellState(), { preserveCardPages: !(listsFromCloud && (result?.mutations ?? 0) > 0) });
       },
     });
   }, [authPhase, state?.profile.uiPreferences.syncIntervalMinutes, syncEngine, workspaceRepository]);
 
   React.useEffect(() => {
     if (authPhase !== "ready" || !workspaceRepository || !featurePreloadingAllowed) return undefined;
-    return startAdaptiveFeaturePreloading({ preload: preloadAppView });
+    return startAdaptiveFeaturePreloading({ preload: prefetchAppView });
   }, [authPhase, featurePreloadingAllowed, workspaceRepository]);
 
   React.useEffect(() => {
@@ -1284,6 +1319,30 @@ export function App() {
     }
   }
 
+  /** `Treffer lernen` with `Vorziehen` (KV5): a study session over exactly these cards, due or not, without daily limits. */
+  async function startHitSession(cardIds: string[], order: HitStudyOrder) {
+    const currentState = latestStateRef.current;
+    if (!workspaceHydrationService || !currentState) throw new Error("Die Kartenverwaltung ist noch nicht bereit.");
+    if (study.preparingKeyRef.current === HIT_SESSION_DECK_ID) return;
+    study.preparingKeyRef.current = HIT_SESSION_DECK_ID;
+    try {
+      const preferences = getGlobalSchedulerPreferences(currentState.profile);
+      const now = getLearningNow();
+      const ids = typeof navigator !== "undefined" && navigator.onLine === false ? await workspaceHydrationService.listLocalCardIds(cardIds) : cardIds;
+      const bodies = (await workspaceHydrationService.openCards(ids)).filter((body): body is { card: Card; note: Note } => Boolean(body));
+      const position = new Map(ids.map((id, index) => [id, index]));
+      bodies.sort((a, b) => (position.get(a.card.id) ?? 0) - (position.get(b.card.id) ?? 0));
+      const decks = createHitSessionDecks(currentState.decks, bodies.map(({ card }) => card), order, now);
+      const queue = createDailyReviewQueue(decks, { deckId: HIT_SESSION_DECK_ID, now, dayStartHour: preferences.dayStartHour, learnAheadMinutes: preferences.learnAheadMinutes, timeZone: learningTimeZone });
+      if (!queue.total) throw new Error(ids.length ? "Keine dieser Karten kann gerade gelernt werden." : "Diese Karten sind erst online verfügbar.");
+      const notes = [...new Map(bodies.map(({ note }) => [note.id, note])).values()];
+      adoptStudyWindow({ decks, notes, answeredToday: [], queue, cursorByDeck: {}, hasMoreCards: false, bufferSize: 50, dueForecast: null }, HIT_SESSION_DECK_ID);
+      navigateToRoute(createStudyRoute(HIT_SESSION_DECK_ID, { returnContext: createReviewReturnContext(getStudyReturnRoute()) }));
+    } finally {
+      study.preparingKeyRef.current = "";
+    }
+  }
+
   async function saveExamPlanning(settings: ExamPlanningSettings) {
     const currentState = latestStateRef.current;
     const saved = currentState
@@ -1507,18 +1566,19 @@ export function App() {
     cardPageRequestRef.current.clear();
     // Visible rows of the content's cards take over the changed preview, mark and suspension at once.
     const entries = new Map((graph?.cards ?? []).map((card) => [card.id, catalogEntryFromCard(card, graph!.note)]));
-    setCardPages((current) => Object.fromEntries(Object.entries(current).map(([deckId, page]) => {
-      if (!page) return [deckId, page];
-      // A deck that lost a card reloads as well, so a moved card leaves no row behind in its former deck.
-      if (refreshPages && (graph?.cards.some((card) => card.deckId === deckId) || page.items.some((item) => entries.has(item.id)))) return [deckId, undefined];
-      const selected = page.selected && page.selected.note.id === noteId
-        ? graph?.cards.some((card) => card.id === page.selected!.cardId) ? { ...graph, cardId: page.selected.cardId } : null
-        : page.selected;
-      const items = page.items.map((item) => {
+    setCardPages((current) => Object.fromEntries(Object.entries(current).map(([listKey, list]) => {
+      if (!list) return [listKey, list];
+      const shownItems = Object.values(list.pages).flat();
+      // A list that lost or gained a card reloads, so a moved card leaves no row behind in its former deck.
+      if (refreshPages && (graph?.cards.some((card) => card.deckId === listKey || list.deckIds?.includes(card.deckId)) || shownItems.some((item) => entries.has(item.id)))) return [listKey, undefined];
+      const selected = list.selected && list.selected.note.id === noteId
+        ? graph?.cards.some((card) => card.id === list.selected!.cardId) ? { ...graph, cardId: list.selected.cardId } : null
+        : list.selected;
+      const pages = Object.fromEntries(Object.entries(list.pages).map(([page, items]) => [page, items.map((item) => {
         const entry = entries.get(item.id);
         return entry ? { ...item, ...entry, syncChangeId: item.syncChangeId } : item;
-      });
-      return [deckId, { ...page, items, selected }];
+      })]));
+      return [listKey, { ...list, pages, selected }];
     })));
     syncEngine?.requestSync();
     return graph;
@@ -1576,6 +1636,29 @@ export function App() {
     } : page])));
     syncEngine?.requestSync();
     return cards;
+  }
+
+  /** Mass action of the card management (KV4): one local write, then the lists reload and the outbox syncs. */
+  async function runDeckCardBatch(cardIds: string[], action: CardBatchAction) {
+    if (!workspaceRepository || !workspaceHydrationService) throw new Error("Die Kartenverwaltung ist noch nicht bereit.");
+    const { runCardBatch } = await import("./cardBatchActions.ts");
+    const afterWrite = () => {
+      refresh();
+      syncEngine?.requestSync();
+    };
+    const result = await runCardBatch({ repository: workspaceRepository, openCards: workspaceHydrationService.openCards, now: getLearningNow }, cardIds, action);
+    afterWrite();
+    return { ...result, undo: async () => {
+      const undone = await result.undo();
+      afterWrite();
+      return undone;
+    } };
+  }
+
+  async function prepareDeckTextReplace(cardIds: string[]) {
+    if (!workspaceRepository || !workspaceHydrationService) throw new Error("Die Kartenverwaltung ist noch nicht bereit.");
+    const { prepareTextReplace } = await import("./cardBatchActions.ts");
+    return prepareTextReplace({ repository: workspaceRepository, openCards: workspaceHydrationService.openCards, now: getLearningNow }, cardIds);
   }
 
   function rescheduleDeckCards(cardIds: string[], dueAt: string, occurredAt: string) {
@@ -1710,6 +1793,17 @@ export function App() {
     return runRepositoryMutation((repository) => repository.saveProfile({
       ...profile,
       uiPreferences: setDeckExpanded(profile.uiPreferences, surface, deckId, expanded),
+    }), { preserveCardPages: true });
+  }
+
+  function saveSearches(searches: SavedCardSearch[]) {
+    const currentState = latestStateRef.current;
+    if (!workspaceRepository || !currentState) return null;
+    const profile = currentState.profile;
+    return runRepositoryMutation((repository) => repository.saveProfile({
+      ...profile,
+      // saveProfile normalizes the preferences (limit, lengths, duplicate ids).
+      uiPreferences: { ...profile.uiPreferences, savedSearches: searches },
     }), { preserveCardPages: true });
   }
 
@@ -1874,7 +1968,16 @@ export function App() {
           onUndoDeleteNote={undoDeleteDeckNote}
           onRescheduleCards={rescheduleDeckCards}
           onGenerateVariant={generateDeckCardVariant}
-          onGenerateDeckVariants={workspaceHydrationService ? (deck) => variantBatch.start(deck) : undefined}
+          onGenerateCardVariants={workspaceHydrationService ? (deckId, cardIds) => {
+            const deck = latestStateRef.current?.decks.find((candidate) => candidate.id === deckId);
+            if (deck) variantBatch.start(deck, { cardIds });
+          } : undefined}
+          onRunCardBatch={workspaceRepository && workspaceHydrationService ? runDeckCardBatch : undefined}
+          onPrepareTextReplace={workspaceRepository && workspaceHydrationService ? prepareDeckTextReplace : undefined}
+          onStudyHits={workspaceHydrationService ? startHitSession : undefined}
+          onFindDuplicates={workspaceHydrationService?.findDuplicates}
+          onLoadPracticeCards={workspaceHydrationService ? async (cardIds) => (await workspaceHydrationService.openCards(cardIds)).filter((body): body is { card: Card; note: Note } => Boolean(body)) : undefined}
+          onListHitCardIds={workspaceHydrationService ? (request) => workspaceHydrationService.listCardIds(request) : undefined}
           variantGenerationRunning={variantBatch.running}
           onUpdateVariant={updateDeckCardVariant}
           selectedDeckId={focusedDeckId}
@@ -1910,8 +2013,8 @@ export function App() {
           onOpenLearn={openLearn}
           onOpenCardSettings={() => openSettings("lerntag")}
           onDraftStateChange={handleCardDraftStateChange}
-          expandedDeckIds={state.profile.uiPreferences.deckManagerExpandedDeckIds}
-          onSetDeckExpanded={saveDeckExpansion}
+          savedSearches={state.profile.uiPreferences.savedSearches}
+          onSavedSearchesChange={saveSearches}
           onOpenDeckSettings={(deckId) => openDeckSettings(deckId)}
         />
       );
@@ -1952,7 +2055,8 @@ export function App() {
             completionKind: completion.kind,
           }, { replace: true })}
           onStartDeck={startDeck}
-          onReviewDeck={openDecks}
+          // `Karten prüfen` lists the new cards: the deck's own card list, not the whole card management (KV3b).
+          onReviewDeck={(deckId) => navigateToViewNow("kartenstapel", { focusedDeckId: deckId, deckContent: true, deckContentTab: "cards" })}
           onOpenDashboard={() => navigateToViewNow("uebersicht")}
         />
       );

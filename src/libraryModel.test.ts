@@ -2,13 +2,12 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { addCardVariant, cardStudyFromReviewState, createBasicNote, createCoreDeck, createReviewState, setCardSuspended } from "./coreModel.ts";
 import type { Card, Note } from "./coreTypes.ts";
-import { catalogEntryFromCard, type CardCatalogEntry } from "./workspaceReplica.ts";
+import { catalogEntryFromCard, promptOrdinal } from "./workspaceReplica.ts";
 import {
   type CardTableSort,
-  cardsWithoutVariants,
+  createCardSearchContext,
   createCardTableModel,
   createDeckLibraryModel,
-  createPagedCardTableModel,
   createStudyHeatmapModel,
 } from "./libraryModel.ts";
 import { createStudyHeatmapModelFromCounts, createStudyHeatmapWindow } from "./studyHeatmapModel.ts";
@@ -325,28 +324,6 @@ test("library model sorts every deck level alphabetically like Anki", () => {
   ]);
 });
 
-test("paged card table uses only pages for the current query and sort and keeps awaited groups", () => {
-  const cards = [libraryCard("card_nerv", { front: "Nerv" }), libraryCard("card_muskel", { front: "Muskel" })];
-  const { parent, child } = createDeckHierarchy(cards);
-  const sort: CardTableSort = { field: "sortField", direction: "asc" };
-  const items = cards.map((card) => catalogEntryFromCard(card, null));
-  const childPage = { items, page: 0, pageSize: 50, totalCount: 2, query: "nerv", sort };
-  const options = { query: "nerv", cardSort: sort, withoutVariants: false, now: "2026-07-01T08:00:00.000Z" };
-
-  const awaiting = createPagedCardTableModel([parent, child], { deck_child: childPage }, { ...options, awaitingPages: true });
-  assert.deepEqual(awaiting.groups.map((group) => group.id), ["deck_parent", "deck_child"]);
-  const childGroup = awaiting.allGroups.find((group) => group.id === "deck_child")!;
-  assert.deepEqual(childGroup.cardRows.map((row) => row.id), ["card_nerv", "card_muskel"]);
-  assert.equal(childGroup.totalCardCount, 2);
-  assert.equal(childGroup.deck.cards.length, 2);
-
-  const settled = createPagedCardTableModel([parent, child], { deck_child: childPage }, { ...options, awaitingPages: false });
-  assert.deepEqual(settled.groups.map((group) => group.id), ["deck_child"]);
-
-  const stale = createPagedCardTableModel([parent, child], { deck_child: { ...childPage, sort: { field: "variants", direction: "asc" } } }, { ...options, awaitingPages: false });
-  assert.deepEqual(stale.groups, []);
-});
-
 test("card table preserves hierarchy and card order while including empty decks", () => {
   const cards = [
     libraryCard("card-first", { front: "<b>Erste</b> Frage", back: "Erste Antwort", tags: ["alpha"] }),
@@ -432,7 +409,7 @@ test("card table sorts all columns and projects next-study labels and variant st
   }
 });
 
-test("card table pages beyond the first page and finds the last card deterministically", () => {
+test("card table lists every card of a deck and the flat hits of a search in one order", () => {
   const cards = Array.from({ length: 101 }, (_, index) => libraryCard("large-card-" + index, {
     front: "Frage " + index,
     back: "Antwort " + index,
@@ -441,17 +418,13 @@ test("card table pages beyond the first page and finds the last card determinist
   const model = createCardTableModel([deck], { notesById });
 
   assert.equal(model.cardCount, 101);
-  assert.equal(model.groups[0].cardRows.length, 50);
-  assert.equal(model.groups[0].pageCount, 3);
+  assert.equal(model.groups[0].cardRows.length, 101);
+  assert.equal(model.groups[0].rowsByIndex.get(100)?.id, model.groups[0].cardRows[100].id);
 
   const lateMatch = createCardTableModel([deck], { query: "Frage 100", notesById });
   assert.equal(lateMatch.cardCount, 1);
   assert.deepEqual(lateMatch.groups[0].cardRows.map((row) => row.id), ["large-card-100"]);
-
-  const secondPage = createCardTableModel([deck], { notesById, cardPageByDeckId: { [deck.id]: 1 } });
-  assert.equal(secondPage.groups[0].page, 1);
-  assert.equal(secondPage.groups[0].cardRows.length, 50);
-  assert.notDeepEqual(secondPage.groups[0].cardRows.map((row) => row.id), model.groups[0].cardRows.map((row) => row.id));
+  assert.deepEqual(lateMatch.hits.cardRows.map((row) => row.id), ["large-card-100"]);
 });
 
 test("study heatmap counts only rated reviews by profile day and derives the current streak", () => {
@@ -679,13 +652,23 @@ test("library metrics, card dates and heatmap share the configured learning day"
   assert.equal(table.groups[0].cardRows[0].nextStudyLabel, "10.07.2026");
 });
 
-test("the variant filter cuts a variant-sorted page at the first card with a variant and fixes the total", () => {
-  const entry = (id: string, hasActiveVariants: boolean) => ({ id, hasActiveVariants } as CardCatalogEntry);
-  const mixed = cardsWithoutVariants([entry("a", false), entry("b", false), entry("c", true)], 1, 50, 120);
-  assert.deepEqual(mixed.items.map((item) => item.id), ["a", "b"]);
-  assert.equal(mixed.totalCount, 52);
+test("deck: und note: lösen sich über Pfad und Namen auf; der Katalog kennt Notiztyp und veraltete Varianten", () => {
+  const { parent, child } = createDeckHierarchy();
+  const context = createCardSearchContext("deck:medizin note:basic_* deck:anatomie", [parent, child], {
+    now: "2026-07-01T08:00:00.000Z",
+    noteTypes: [{ id: "nt-1", name: "Basic (and reversed)" }, { id: "nt-2", name: "Cloze" }],
+  });
+  assert.deepEqual(context.deckMatches?.medizin?.slice().sort(), ["deck_child", "deck_parent"]);
+  assert.deepEqual(context.deckMatches?.anatomie, [], "nur der volle Pfad");
+  assert.deepEqual(context.noteTypeMatches, { "basic_*": ["nt-1"] });
 
-  const full = cardsWithoutVariants([entry("a", false), entry("b", false)], 0, 2, 120);
-  assert.equal(full.items.length, 2);
-  assert.equal(full.totalCount, 120, "a page without any variant keeps the known total so paging continues");
+  const card = addCardVariant(libraryCard("card_outdated"), { id: "variant_old", front: "Alt", back: "Alt" });
+  const outdated = { ...card, variants: card.variants.map((variant) => ({ ...variant, meta: { ...variant.meta, outdated: true } })) };
+  const entry = catalogEntryFromCard(outdated, { ...notesById.get(card.noteId)!, noteTypeSourceId: "nt-1" });
+  assert.deepEqual([entry.noteTypeId, entry.hasOutdatedVariants], ["nt-1", true]);
+  assert.equal(catalogEntryFromCard(card, notesById.get(card.noteId)!).hasOutdatedVariants, false);
+});
+
+test("Abfrageschlüssel werden zur Abfragenummer wie in Ankis card:N", () => {
+  assert.deepEqual(["forward", "reverse", "choice", "anki-0", "anki-1", "cloze:3", "io:12", "eigene"].map(promptOrdinal), [1, 2, 1, 1, 2, 3, 12, null]);
 });

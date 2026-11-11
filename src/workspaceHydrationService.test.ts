@@ -175,7 +175,7 @@ test("Katalogseiten zeigen Previews und hydrieren nur den geöffneten Inhalt sam
   repository.close();
 });
 
-test("partielle Kataloge geben exakt die angeforderte Cloud-Keyset-Seite zurück", async () => {
+test("partielle Kataloge holen eine Cloudseite direkt per Versatz und danach per Keyset (KV3)", async () => {
   const userId = randomUUID();
   const graphs = ["Alpha", "Mitte", "Zulu"].map((front, index) => graph("deck-keyset", String(index), front, CREATED_AT));
   const deck = createCoreDeck({ id: "deck-keyset", ownerId: userId, name: "Keyset", source: "manual", cards: graphs.map((entry) => entry.cards[0]) });
@@ -185,34 +185,108 @@ test("partielle Kataloge geben exakt die angeforderte Cloud-Keyset-Seite zurück
   const zulu = all.items.find((entry) => entry.id === "card-2")!;
   await repository.applyCloudCatalogPage({ table: "card_catalog", entities: [], reset: false, cursor: 1 });
 
-  const cursors: Array<unknown> = [];
+  const calls: Array<[unknown, unknown]> = [];
   const service = createWorkspaceHydrationService({
     repository,
     mediaStore: null,
     client: {
       async rpc(name: string, payload: any) {
         assert.equal(name, "list_account_card_catalog");
-        cursors.push(payload.p_cursor);
-        return payload.p_cursor == null
-          ? { data: { items: [catalogRow(alpha)], totalCount: 2, hasMore: true, nextCursor: { sortValue: alpha.sortText, id: alpha.id } }, error: null }
-          : { data: { items: [catalogRow(zulu)], totalCount: 2, hasMore: false, nextCursor: null }, error: null };
+        calls.push([payload.p_cursor, payload.p_offset]);
+        const second = payload.p_cursor != null || payload.p_offset === 1;
+        return second
+          ? { data: { items: [catalogRow(zulu)], totalCount: 2, hasMore: false, nextCursor: null }, error: null }
+          : { data: { items: [catalogRow(alpha)], totalCount: 2, hasMore: true, nextCursor: { sortValue: alpha.sortText, id: alpha.id } }, error: null };
       },
     },
   });
-  const page = await service.queryCardPage({ deckId: deck.id, page: 1, pageSize: 1, sort: { field: "sortField", direction: "asc" } });
+  const sort = { field: "sortField", direction: "asc" } as const;
+  const jumped = await service.queryCardPage({ deckId: deck.id, page: 1, pageSize: 1, sort });
+  assert.deepEqual(calls, [[null, 1]], "eine Anfrage statt aller Seiten davor");
+  assert.deepEqual(jumped.items.map((entry) => entry.id), ["card-2"]);
+  assert.equal(jumped.totalCount, 2);
+  assert.equal(jumped.limitedToLocalCatalog, false);
 
-  assert.deepEqual(cursors, [null, { sortValue: alpha.sortText, id: alpha.id }]);
-  assert.deepEqual(page.items.map((entry) => entry.id), ["card-2"]);
-  assert.equal(page.totalCount, 2);
-  assert.equal(page.limitedToLocalCatalog, false);
+  calls.length = 0;
+  await service.queryCardPage({ deckId: deck.id, page: 0, pageSize: 1, sort });
+  await service.queryCardPage({ deckId: deck.id, page: 1, pageSize: 1, sort });
+  assert.deepEqual(calls, [[null, 0], [{ sortValue: alpha.sortText, id: alpha.id }, 0]], "nach einer geladenen Seite gilt ihr Cursor");
   repository.close();
 });
 
-test("ein abgebrochener Suchauftrag übernimmt keine Cloudseite und fällt auf den lokalen Katalog zurück", async () => {
+test("eine Cloudseite zeigt Karten mit noch nicht synchronisierter lokaler Änderung im lokalen Stand (KV4)", async () => {
+  const userId = randomUUID();
+  const graphs = ["Alpha", "Beta"].map((front, index) => graph("deck-pending", String(index), front, CREATED_AT));
+  const deck = createCoreDeck({ id: "deck-pending", ownerId: userId, name: "Ausstehend", source: "manual", cards: graphs.map((entry) => entry.cards[0]) });
+  const repository = await createIndexedDbCoreRepository({ userId, initialState: workspace(userId, [deck], graphs.map((entry) => entry.note)), indexedDb: new IDBFactory() });
+  const cloudRows = (await repository.listCatalogPage(deck.id, { limit: 50 })).items.map((entry) => catalogRow(entry));
+  await repository.applyCloudCatalogPage({ table: "card_catalog", entities: [], reset: false, cursor: 1 });
+  repository.outbox.markFlushed(repository.outbox.listPending().map((mutation) => mutation.id));
+  const [alpha, beta] = graphs;
+  await repository.saveNoteGraphs([
+    { previous: alpha, next: { note: alpha.note, cards: [{ ...alpha.cards[0], ankiFlag: 3, revision: alpha.cards[0].revision + 1 }] } },
+    { previous: beta, next: { note: { ...beta.note, deletedAt: CREATED_AT }, cards: beta.cards.map((card) => ({ ...card, deletedAt: CREATED_AT })) } },
+  ]);
+  const service = createWorkspaceHydrationService({
+    repository,
+    mediaStore: null,
+    client: { async rpc() { return { data: { items: cloudRows, totalCount: 2, hasMore: false, nextCursor: null }, error: null }; } },
+  });
+  const page = await service.queryCardPage({ deckId: deck.id, page: 0, pageSize: 50, sort: { field: "sortField", direction: "asc" } });
+  assert.deepEqual(page.items.map((entry) => [entry.id, entry.ankiFlag]), [["card-0", 3]], "die geänderte Flagge statt des Serverstands, die gelöschte Karte fehlt");
+
+  const created = graph("deck-pending", "9", "Neu angelegt", CREATED_AT);
+  await repository.saveNoteGraphs([{ previous: null, next: created }]);
+  const withCreated = await service.queryCardPage({ deckId: deck.id, page: 0, pageSize: 50, sort: { field: "sortField", direction: "asc" } });
+  assert.deepEqual(withCreated.items.map((entry) => entry.id), ["card-0", "card-9"], "eine hier angelegte, noch nicht hochgeladene Karte steht auf der letzten Seite");
+  assert.equal(withCreated.totalCount, 2);
+  assert.deepEqual(await service.listCardIds({ deckIds: [deck.id], sort: { field: "sortField", direction: "asc" } }), ["card-0", "card-9"], "die Id-Liste (Treffer lernen, Alle Treffer) folgt denselben lokalen Änderungen");
+
+  // The upload finishes while the cloud answer travels: the answer is older than the upload but the card still shows.
+  const uploading = createWorkspaceHydrationService({
+    repository,
+    mediaStore: null,
+    client: { async rpc() {
+      repository.outbox.markFlushed(repository.outbox.listPending().map((mutation) => mutation.id));
+      return { data: { items: cloudRows, totalCount: 2, hasMore: false, nextCursor: null }, error: null };
+    } },
+  });
+  const duringUpload = await uploading.queryCardPage({ deckId: deck.id, page: 0, pageSize: 50, sort: { field: "sortField", direction: "asc" } });
+  assert.ok(duringUpload.items.some((entry) => entry.id === "card-9"), "eine während der Anfrage hochgeladene neue Karte bleibt sichtbar");
+  repository.close();
+});
+
+test("eine hier angelegte Karte steht auf der Cloudseite, in deren Bereich sie sortiert; geänderte Karten anderer Seiten nicht", async () => {
+  const userId = randomUUID();
+  const graphs = ["Alpha", "Gamma", "Zulu"].map((front, index) => graph("deck-pages", String(index), front, CREATED_AT));
+  const deck = createCoreDeck({ id: "deck-pages", ownerId: userId, name: "Seiten", source: "manual", cards: graphs.map((entry) => entry.cards[0]) });
+  const repository = await createIndexedDbCoreRepository({ userId, initialState: workspace(userId, [deck], graphs.map((entry) => entry.note)), indexedDb: new IDBFactory() });
+  const rows = (await repository.listCatalogPage(deck.id, { limit: 50 })).items.map((entry) => catalogRow(entry));
+  await repository.applyCloudCatalogPage({ table: "card_catalog", entities: [], reset: false, cursor: 1 });
+  repository.outbox.markFlushed(repository.outbox.listPending().map((mutation) => mutation.id));
+  // Zulu sits on the second cloud page and only changes its flag here; Beta is new and sorts between Alpha and Gamma.
+  const zulu = graphs[2];
+  await repository.saveNoteGraphs([{ previous: zulu, next: { note: zulu.note, cards: [{ ...zulu.cards[0], ankiFlag: 2, revision: zulu.cards[0].revision + 1 }] } }]);
+  await repository.saveNoteGraphs([{ previous: null, next: graph("deck-pages", "9", "Beta", CREATED_AT) }]);
+  const firstPage = rows.filter((row) => row.id !== "card-2");
+  const service = createWorkspaceHydrationService({
+    repository,
+    mediaStore: null,
+    client: { async rpc() { return { data: { items: firstPage, totalCount: 3, hasMore: true, nextCursor: null }, error: null }; } },
+  });
+  const page = await service.queryCardPage({ deckId: deck.id, page: 0, pageSize: 2, sort: { field: "sortField", direction: "asc" } });
+  assert.deepEqual(page.items.map((entry) => entry.id), ["card-0", "card-9", "card-1"], "die neue Karte an ihrem Platz, die geänderte nicht doppelt");
+  assert.equal(page.totalCount, 4);
+  repository.close();
+});
+
+test("ein abgebrochener Suchauftrag übernimmt keine Cloudseite und meldet keinen eingeschränkten Katalog", async () => {
   const userId = randomUUID();
   const local = graph("deck-search", "local", "Zulu lokal", CREATED_AT);
   const deck = createCoreDeck({ id: "deck-search", ownerId: userId, name: "Suche", source: "manual", cards: local.cards });
   const repository = await createIndexedDbCoreRepository({ userId, initialState: workspace(userId, [deck], [local.note]), indexedDb: new IDBFactory() });
+  // Ein noch unvollständiger Katalog sucht in der Cloud.
+  await repository.applyCloudCatalogPage({ table: "card_catalog", entities: [], reset: false, cursor: 0 });
   const [localEntry] = (await repository.listCatalogPage(deck.id)).items;
   const remoteOnly = catalogRow({ ...localEntry, id: "card-remote", noteId: "note-remote", frontPreview: "Zulu entfernt", sortText: "zulu entfernt" });
   const controller = new AbortController();
@@ -233,10 +307,8 @@ test("ein abgebrochener Suchauftrag übernimmt keine Cloudseite und fällt auf d
     },
   });
 
-  const page = await service.queryCardPage({ deckId: deck.id, query: "zulu", signal: controller.signal });
+  await withNavigator({ onLine: true }, () => assert.rejects(service.queryCardPage({ deckId: deck.id, query: "zulu", page: 1, signal: controller.signal }), { name: "AbortError" }));
 
-  assert.deepEqual(page.items.map((entry) => entry.id), ["card-local"]);
-  assert.equal(page.limitedToLocalCatalog, true);
   assert.deepEqual((await repository.listCatalogPage(deck.id)).items.map((entry) => entry.id), ["card-local"]);
   repository.close();
 });
@@ -435,6 +507,8 @@ test("Parallele Stapelsuchen gehen in einer Anfrage und blättern je Stapel mit 
   const deckA = createCoreDeck({ id: "deck-search-a", ownerId: userId, name: "A", source: "manual", cards: first.cards });
   const deckB = createCoreDeck({ id: "deck-search-b", ownerId: userId, name: "B", source: "manual", cards: second.cards });
   const repository = await createIndexedDbCoreRepository({ userId, initialState: workspace(userId, [deckA, deckB], [first.note, second.note]), indexedDb: new IDBFactory() });
+  // Ein noch unvollständiger Katalog sucht in der Cloud.
+  await repository.applyCloudCatalogPage({ table: "card_catalog", entities: [], reset: false, cursor: 0 });
   const rowA = catalogRow((await repository.listCatalogPage(deckA.id)).items[0]);
   const rowB = catalogRow((await repository.listCatalogPage(deckB.id)).items[0]);
   const calls: Array<{ name: string; payload: any }> = [];
@@ -539,5 +613,53 @@ test("Prüfungsplanung übernimmt noch nicht synchronisierte Antworten statt des
   assert.equal(cards.length, 1);
   assert.notEqual(cards[0].study.state, "new");
   assert.equal(cards[0].study.lastRating, "good");
+  repository.close();
+});
+
+test("ein vollständiger Katalog sucht lokal im Volltext aus note_search, ohne Cloudanfrage", async () => {
+  const userId = randomUUID();
+  const local = graph("deck-full", "full", "Kurz", CREATED_AT);
+  const deck = createCoreDeck({ id: "deck-full", ownerId: userId, name: "Voll", source: "manual", cards: local.cards });
+  const repository = await createIndexedDbCoreRepository({ userId, initialState: workspace(userId, [deck], [local.note]), indexedDb: new IDBFactory() });
+  await repository.applyCloudCatalogPage({ table: "note_search", entities: [{ noteId: local.note.id, searchText: "kurz mit innervation durch den nervus accessorius", searchFields: [], deletedAt: null }], reset: false, cursor: 2 });
+  await repository.completeCatalogReconciliation(2);
+  const service = createWorkspaceHydrationService({
+    repository,
+    mediaStore: null,
+    client: { rpc(name: string) { throw new Error(`Unerwartete RPC ${name}`); } },
+  });
+
+  const page = await withNavigator({ onLine: true }, () => service.queryCardPage({ deckId: deck.id, query: "accessorius", page: 0, pageSize: 50 }));
+
+  assert.deepEqual(page.items.map((entry) => entry.id), local.cards.map((card) => card.id));
+  assert.equal(page.totalCount, local.cards.length);
+  assert.equal(page.limitedToLocalCatalog, false);
+  repository.close();
+});
+
+test("ohne replizierte Suchtexte sucht auch ein vollständiger Katalog in der Cloud", async () => {
+  const userId = randomUUID();
+  const local = graph("deck-old-server", "old", "Kurz", CREATED_AT);
+  const deck = createCoreDeck({ id: "deck-old-server", ownerId: userId, name: "Alt", source: "manual", cards: local.cards });
+  const repository = await createIndexedDbCoreRepository({ userId, initialState: workspace(userId, [deck], [local.note]), indexedDb: new IDBFactory() });
+  // A server without note_search: the delta brings catalog rows but no texts.
+  await repository.applyCloudCatalogPage({ table: "card_catalog", entities: [], reset: false, cursor: 1 });
+  await repository.completeCatalogReconciliation(1);
+  assert.equal(repository.getReplicaStatus().searchTextsReady, false);
+  const calls: string[] = [];
+  const service = createWorkspaceHydrationService({
+    repository,
+    mediaStore: null,
+    client: {
+      async rpc(name: string) {
+        calls.push(name);
+        return { data: { groups: {} }, error: null };
+      },
+    },
+  });
+
+  await withNavigator({ onLine: true }, () => service.queryCardPage({ deckId: deck.id, query: "accessorius", page: 0, pageSize: 50 }));
+
+  assert.deepEqual(calls, ["search_account_card_catalog"]);
   repository.close();
 });

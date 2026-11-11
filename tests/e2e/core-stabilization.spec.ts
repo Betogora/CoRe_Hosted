@@ -881,7 +881,8 @@ test("[Vertrag: KI-Variante, Reveal, Originalkarte und Variantenverwaltung] @gol
   await expect(page.getByRole("status").filter({ hasText: "Stapeleinstellungen wurden für den Stapel gespeichert." })).toBeVisible();
   await deckSettingsDialog(page).getByRole("button", { name: "Stapeleinstellungen schließen" }).click();
   await mainMenu(page).getByRole("button", { name: "Karten", exact: true }).click();
-  await expect(page.getByTestId(`deck-toggle-${DECK_IDS.africa}`)).toHaveAttribute("aria-expanded", "true");
+  await expect(page.locator("[data-card-row]").first()).toBeVisible();
+  await page.getByRole("textbox", { name: "Karten durchsuchen" }).fill("Côte d'Ivoire");
   await page.getByRole("button", { name: "Was ist die Hauptstadt von Côte d'Ivoire?" }).click();
   await page.getByTestId("card-detail-dialog").getByRole("tab", { name: "Varianten", exact: true }).click();
   const variantTools = page.getByTestId("card-variant-tools");
@@ -931,14 +932,15 @@ test("[Vertrag: KI-Variante, Reveal, Originalkarte und Variantenverwaltung] @gol
   await expect(page.getByText("1 Karte · 0 Wiederholungen")).toBeVisible();
   await page.getByRole("button", { name: "Zurück zum Ausgangspunkt" }).click();
   await expect(page.getByRole("heading", { name: "Kartenverwaltung", exact: true })).toBeVisible();
-  await page.getByPlaceholder("Stapel, Vorderseite, Rückseite oder Tags suchen").fill("Côte d'Ivoire");
+  await page.getByPlaceholder("Stapel, Vorderseite, Rückseite, Felder oder Tags durchsuchen").fill("Côte d'Ivoire");
   await expect(page.getByRole("button", { name: "Was ist die Hauptstadt von Côte d'Ivoire?" })).toBeVisible();
 });
 
 test("card rescheduling preserves scheduler state and keeps version history out of the editor", async ({ page }: any) => {
   await resetToFreshLocalState(page);
   await mainMenu(page).getByRole("button", { name: "Karten", exact: true }).click();
-  await page.getByTestId(`deck-toggle-${DECK_IDS.africa}`).click();
+  await expect(page.locator("[data-card-row]").first()).toBeVisible();
+  await page.getByRole("textbox", { name: "Karten durchsuchen" }).fill("Côte d'Ivoire");
   await page.getByRole("button", { name: "Was ist die Hauptstadt von Côte d'Ivoire?" }).click();
   await expect(page.getByTestId("card-detail-dialog").getByRole("heading", { level: 2 })).toHaveText("Was ist die Hauptstadt von Côte d'Ivoire?");
   await expect(page.getByRole("tab", { name: "Allgemein", exact: true })).toHaveAttribute("aria-selected", "true");

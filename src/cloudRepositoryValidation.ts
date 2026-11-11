@@ -8,6 +8,7 @@ import type {
   AccountStudyOverview,
   CardCatalogEntry,
   DeckStudySummary,
+  NoteSearchEntry,
   OfflineCardManifestEntry,
   OfflineMediaManifestEntry,
 } from "./workspaceReplica.ts";
@@ -173,6 +174,26 @@ const cardCatalogRowSchema = v.looseObject({
   sync_change_id: positiveIntegerSchema,
   deleted_at: v.nullable(v.string()),
   updated_at: v.string(),
+  // Learning history and values (KV2b); a server before that migration has none of them.
+  created_at: v.optional(v.string()),
+  edited_at: v.optional(v.nullable(v.string())),
+  content_kind: v.optional(v.string()),
+  interval_days: v.optional(v.number()),
+  difficulty: v.optional(v.number()),
+  reps: v.optional(nonNegativeIntegerSchema),
+  lapses: v.optional(nonNegativeIntegerSchema),
+  durability_days: v.optional(v.nullable(v.number())),
+  first_reviewed_at: v.optional(v.nullable(v.string())),
+  last_again_at: v.optional(v.nullable(v.string())),
+  last_hard_at: v.optional(v.nullable(v.string())),
+  last_good_at: v.optional(v.nullable(v.string())),
+  last_easy_at: v.optional(v.nullable(v.string())),
+  last_rescheduled_at: v.optional(v.nullable(v.string())),
+  note_type_id: v.optional(v.nullable(v.string())),
+  has_outdated_variants: v.optional(v.boolean()),
+  prompt_ordinal: v.optional(v.nullable(v.number())),
+  last_buried_at: v.optional(v.nullable(v.string())),
+  last_unburied_at: v.optional(v.nullable(v.string())),
 });
 const cardStudyStateRowSchema = v.object({
   card_id: v.string(),
@@ -207,6 +228,12 @@ const deckStudySummarySchema = v.looseObject({
   suspendedCount: nonNegativeIntegerSchema,
   activeVariantCount: nonNegativeIntegerSchema,
   updatedAt: v.nullable(v.string()),
+});
+const noteSearchRowSchema = v.looseObject({
+  note_id: v.string(),
+  search_text: v.string(),
+  search_fields: v.array(v.object({ n: v.string(), t: v.string() })),
+  deleted_at: v.nullable(v.string()),
 });
 const deckStudySummaryRowSchema = v.looseObject({
   deck_id: v.string(),
@@ -510,6 +537,25 @@ export function validateCardCatalogRows(input: unknown): CardCatalogEntry[] {
     hasActiveVariants: row.has_active_variants,
     activeVariantCount: row.active_variant_count,
     activeVariantId: row.active_variant_id,
+    createdAt: row.created_at,
+    editedAt: row.edited_at,
+    contentKind: row.content_kind,
+    intervalDays: row.interval_days,
+    difficulty: row.difficulty,
+    reps: row.reps,
+    lapses: row.lapses,
+    durabilityDays: row.durability_days,
+    firstReviewedAt: row.first_reviewed_at,
+    lastAgainAt: row.last_again_at,
+    lastHardAt: row.last_hard_at,
+    lastGoodAt: row.last_good_at,
+    lastEasyAt: row.last_easy_at,
+    lastRescheduledAt: row.last_rescheduled_at,
+    noteTypeId: row.note_type_id,
+    hasOutdatedVariants: row.has_outdated_variants,
+    promptOrdinal: row.prompt_ordinal,
+    lastBuriedAt: row.last_buried_at,
+    lastUnburiedAt: row.last_unburied_at,
     bodyRevision: row.body_revision,
     studyRevision: row.study_revision,
     dependencyRevision: row.dependency_revision,
@@ -554,6 +600,15 @@ export function validateAccountStudyOverview(input: unknown): AccountStudyOvervi
 
 export function validateDueForecast(input: unknown) {
   return parseValue(dueForecastSchema, input, "Cloud-Fälligkeitsprognose hatte ein ungültiges Format.");
+}
+
+export function validateNoteSearchRows(input: unknown): NoteSearchEntry[] {
+  return parseRows(noteSearchRowSchema, input, "Cloud-Suchtexte hatten ein ungültiges Format.").map((row) => ({
+    noteId: row.note_id,
+    searchText: row.search_text.toLocaleLowerCase("de"),
+    searchFields: row.search_fields.map((field) => ({ name: field.n, text: field.t.toLocaleLowerCase("de") })),
+    deletedAt: row.deleted_at,
+  }));
 }
 
 export function validateDeckStudySummaryRows(input: unknown): DeckStudySummary[] {

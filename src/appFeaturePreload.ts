@@ -48,6 +48,54 @@ export function allowsBrowserSpeculativePreloading(): boolean {
   });
 }
 
+export function allowsBrowserAutomaticPreloading(): boolean {
+  return allowsAutomaticPreloading({
+    documentTarget: typeof document === "undefined" ? null : document,
+    network: browserNetwork(),
+  });
+}
+
+/** Element in `index.html` where the build lists each feature chunk's files (`vite.config.ts`). */
+export const FEATURE_CHUNKS_ELEMENT_ID = "core-feature-chunks";
+
+/** `files`: the feature's own chunks beyond the start graph; `parts`: the chunks of its lazily loaded sub-areas. */
+export interface FeatureChunks {
+  files: string[];
+  parts: string[];
+}
+
+const isFileList = (value: unknown): value is string[] => Array.isArray(value) && value.every((file) => typeof file === "string");
+
+export function parseFeatureChunks(text: string | null | undefined): Record<string, FeatureChunks> {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(text || "{}");
+  } catch {
+    return {};
+  }
+  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return {};
+  return Object.fromEntries(Object.entries(parsed).filter((entry): entry is [string, FeatureChunks] => {
+    const chunks = entry[1] as Partial<FeatureChunks> | null;
+    return Boolean(chunks) && isFileList(chunks?.files) && isFileList(chunks?.parts);
+  }));
+}
+
+/**
+ * Downloads chunks into the HTTP and service worker caches without executing them: the download leaves the main
+ * thread free, and the later `import()` only evaluates. Each file is fetched once; a failed file may be retried.
+ */
+export function createChunkPrefetcher(fetchFile: (url: string) => Promise<unknown>) {
+  const started = new Map<string, Promise<void>>();
+  return (urls: readonly string[]): Promise<void> => Promise.all(urls.map((url) => {
+    let pending = started.get(url);
+    if (!pending) {
+      pending = fetchFile(url).then(() => undefined, () => { started.delete(url); });
+      started.set(url, pending);
+    }
+    return pending;
+  })).then(() => undefined);
+}
+
 export function startAdaptiveFeaturePreloading({
   preload,
   delayMs = 1_000,

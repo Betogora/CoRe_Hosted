@@ -32,6 +32,7 @@ export {
   createBasicNote,
   createNote,
   duplicateNote,
+  fieldSearchKey,
   noteTextIndex,
   planNoteContentChange,
   planNoteDeletion,
@@ -78,5 +79,9 @@ export {
   validateOcclusionInput,
 } from "./coreModel/occlusion.ts";
 export type { DrawnOcclusionShape, OcclusionMode } from "./coreModel/occlusion.ts";
+export { planCardBatchEdit, planCardBatchUndo } from "./coreModel/batch.ts";
+export type { CardBatchEdit } from "./coreModel/batch.ts";
+export { planTextReplace, planTextReplaceUndo } from "./coreModel/replace.ts";
+export type { TextReplace, TextReplacePreview } from "./coreModel/replace.ts";
 export { createCoreDeck, normalizeCoreDeck } from "./coreModel/decks.ts";
 export { mergeImportedTags, normalizeTags, tagSearchKeys } from "./coreModel/tags.ts";

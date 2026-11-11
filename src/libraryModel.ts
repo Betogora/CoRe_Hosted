@@ -9,11 +9,12 @@ import { buildSortedDeckChildren } from "./deckOrdering.ts";
 import type { Deck, Note } from "./coreTypes.ts";
 import { catalogEntryFromCard, type CardCatalogEntry } from "./workspaceReplica.ts";
 import { getLearningDayRange } from "./learningDay.ts";
-import { isEmptyCardSearch, matchesCardSearch, parseCardSearchQuery } from "./cardSearchQuery.ts";
+import { cardSearchContextTerms, deckPatternMatches, isEmptyCardSearch, namePatternMatches, matchesCardSearch, parseCardSearchQuery, pathMatchesCardSearch, withoutCardSearchWords, type CardSearchContext } from "./cardSearchQuery.ts";
+import { collectDeckTreeIds } from "./coreWorkspace.ts";
 
 type DateInput = string | number | Date;
 
-interface LibraryOptions {
+export interface LibraryOptions {
   query?: unknown;
   cardLimit?: number;
   now?: DateInput;
@@ -21,8 +22,6 @@ interface LibraryOptions {
   dayStartHour?: number;
   learnAheadMinutes?: number;
   cardSort?: CardTableSort;
-  cardPageByDeckId?: Record<string, number>;
-  cardPageSize?: number;
   deckSummaries?: ReadonlyMap<string, DeckLibrarySummary>;
   /** Contents of locally loaded cards; without one, a card row shows its catalog preview. */
   notesById?: ReadonlyMap<string, Note>;
@@ -124,14 +123,30 @@ function createDeckRow(
 export type DeckLibraryRow = ReturnType<typeof createDeckRow>;
 
 /**
- * Rows of a page sorted by variants ascending, cut at the first card with an active variant; the cut also
- * fixes the total, since all later pages only hold cards with variants.
+ * Resolves the query's terms relative to today's learning day, its `did:` and `deck:` terms to decks with subdecks
+ * and its `note:` terms to the matching note types.
  */
-export function cardsWithoutVariants(items: CardCatalogEntry[], page: number, pageSize: number, totalCount: number) {
-  const withoutVariants = items.filter((entry) => !entry.hasActiveVariants);
+export function createCardSearchContext(
+  query: string,
+  decks: Deck[],
+  options: Pick<LibraryOptions, "now" | "dayStartHour" | "timeZone"> & { noteTypes?: readonly { id: string; name: string }[] } = {},
+): CardSearchContext {
+  const now = options.now ?? new Date();
+  const todayStart = getLearningDayRange(now, { dayStartHour: options.dayStartHour, timeZone: options.timeZone })?.start ?? new Date(now).getTime();
+  const { deckIds: ids, deckNames: names, noteTypeNames } = cardSearchContextTerms(query);
+  const subtree = (deckId: string) => [...collectDeckTreeIds(decks, deckId)];
   return {
-    items: withoutVariants,
-    totalCount: withoutVariants.length < items.length ? page * pageSize + withoutVariants.length : Math.max(withoutVariants.length, totalCount),
+    todayStart,
+    ...(ids.length ? { deckSubtrees: Object.fromEntries(ids.map((deckId) => [deckId, subtree(deckId)])) } : {}),
+    ...(names.length ? {
+      deckMatches: Object.fromEntries(names.map((pattern) => [pattern, [...new Set(decks
+        .filter((deck) => deckPatternMatches(pattern, (deck.hierarchyPath?.length ? deck.hierarchyPath : [deck.name]).join("::")))
+        .flatMap((deck) => subtree(deck.id)))]])),
+    } : {}),
+    ...(noteTypeNames.length ? {
+      noteTypeMatches: Object.fromEntries(noteTypeNames.map((pattern) => [pattern, (options.noteTypes ?? [])
+        .filter((noteType) => namePatternMatches(pattern, noteType.name)).map((noteType) => noteType.id)])),
+    } : {}),
   };
 }
 
@@ -156,12 +171,13 @@ function cardNextStudyTimestamp(entry: Pick<CardCatalogEntry, "scheduleState" | 
 type CardTableRow = ReturnType<typeof createCardTableRow>;
 
 type CardTableGroup = DeckLibraryRow & {
+  /** Loaded rows in list order; `rowsByIndex` places them at their position among `totalCardCount` rows. */
   cardRows: CardTableRow[];
+  rowsByIndex: ReadonlyMap<number, CardTableRow>;
   totalCardCount: number;
-  page: number;
-  pageCount: number;
-  pageSize: number;
   deckMatches: boolean;
+  /** The list for the current query and sort is still requested. */
+  loading: boolean;
 };
 
 type DeckInventorySummary = ReturnType<typeof summarizeDeckReview>;
@@ -394,107 +410,45 @@ export function createDeckLibraryModel(decks: Deck[] = [], options: LibraryOptio
   return { rows, dailyLearningPlan };
 }
 
-/** One catalog page of a deck; it only counts while query and sort still match the table. */
-interface CardTablePage {
-  items: CardCatalogEntry[];
-  page: number;
-  pageSize: number;
-  totalCount: number;
-  query: string;
-  sort: CardTableSort;
-}
-
 export function sameCardTableSort(left: CardTableSort, right: CardTableSort) {
   return left.field === right.field && left.direction === right.direction;
 }
 
-/**
- * Card table over server-side catalog pages: each group keeps its locally loaded deck, rows come from
- * the matching page, and groups whose page is still requested stay visible during a search.
- */
-export function createPagedCardTableModel(
-  decks: Deck[],
-  cardPages: Readonly<Record<string, CardTablePage | undefined>> | undefined,
-  options: Omit<LibraryOptions, "query" | "cardSort" | "cardPageSize" | "notesById"> & {
-    query: string;
-    cardSort: CardTableSort;
-    withoutVariants: boolean;
-    awaitingPages: boolean;
-  },
-) {
-  const { query, cardSort, withoutVariants, awaitingPages, cardPageByDeckId = {}, ...modelOptions } = options;
-  const originalDecks = new Map(decks.map((deck) => [deck.id, deck]));
-  const baseModel = createCardTableModel(decks.map((deck) => ({ ...deck, cards: [] })), modelOptions);
-  const normalizedQuery = normalizeQuery(query);
-  const searchText = parseCardSearchQuery(query).text;
-  const allGroups = baseModel.allGroups.map((group) => {
-    const candidate = cardPages?.[group.id];
-    const page = candidate && candidate.query === query && sameCardTableSort(candidate.sort, cardSort) ? candidate : undefined;
-    const pageSize = Math.max(1, Math.min(CARD_TABLE_PAGE_SIZE, Math.floor(page?.pageSize ?? CARD_TABLE_PAGE_SIZE)));
-    const pageItems = (page?.items ?? []).slice(0, pageSize);
-    const knownTotal = Math.floor(page?.totalCount ?? (normalizedQuery || withoutVariants ? 0 : options.deckSummaries?.get(group.id)?.inventory.totalCards ?? 0));
-    const { items, totalCount } = withoutVariants
-      ? cardsWithoutVariants(pageItems, Math.floor(page?.page ?? 0), pageSize, knownTotal)
-      : { items: pageItems, totalCount: knownTotal };
-    const totalCardCount = Math.max(items.length, totalCount);
-    const pageCount = Math.max(1, Math.ceil(totalCardCount / pageSize));
-    const currentPage = Math.min(Math.max(0, Math.floor(page?.page ?? cardPageByDeckId[group.id] ?? 0)), pageCount - 1);
-    const deckMatches = Boolean(searchText) && normalizeQuery(group.path).includes(searchText);
-    return {
-      ...group,
-      deck: originalDecks.get(group.id) ?? group.deck,
-      cardRows: items.map((entry) => createCardTableRow(entry, { dayStartHour: options.dayStartHour, timeZone: options.timeZone })),
-      totalCardCount,
-      page: currentPage,
-      pageCount,
-      pageSize,
-      deckMatches,
-    };
-  });
-  const groups = allGroups.filter((group) => (
-    !normalizedQuery
-    || group.deckMatches
-    || group.totalCardCount > 0
-    || (awaitingPages && !cardPages?.[group.id])
-  ));
-  return { allGroups, groups, cardSort };
-}
-
 export function createCardTableModel(decks: Deck[] = [], options: LibraryOptions = {}) {
-  const search = parseCardSearchQuery(options.query);
+  const search = parseCardSearchQuery(options.query, createCardSearchContext(String(options.query ?? ""), decks, options));
   const searching = !isEmptyCardSearch(search);
   const cardSort = options.cardSort ?? DEFAULT_CARD_TABLE_SORT;
-  const pageSize = Math.max(1, Math.min(CARD_TABLE_PAGE_SIZE, Math.floor(options.cardPageSize ?? CARD_TABLE_PAGE_SIZE)));
   const now = options.now ?? new Date();
   const rows = flattenDeckTree(decks, { now, cardLimit: 0, dayStartHour: options.dayStartHour, learnAheadMinutes: options.learnAheadMinutes, timeZone: options.timeZone, deckSummaries: options.deckSummaries });
   const deckById = new Map(decks.map((deck) => [deck.id, deck]));
+  const hitEntries: CardCatalogEntry[] = [];
   const allGroups: CardTableGroup[] = rows.map((row) => {
     // A deck whose path contains the search text lists all its cards that match the remaining terms.
-    const deckMatches = Boolean(search.text) && normalizeQuery(row.path).includes(search.text);
+    const deckMatches = pathMatchesCardSearch(row.path, search);
     const entries = listReviewableCards(deckById.get(row.id) ?? row.deck)
       .map((card) => catalogEntryFromCard(card, options.notesById?.get(card.noteId) ?? null));
     const matchingEntries = searching
-      ? entries.filter((entry) => matchesCardSearch(entry, deckMatches ? { ...search, text: "" } : search))
+      ? entries.filter((entry) => matchesCardSearch(entry, deckMatches ? withoutCardSearchWords(search) : search))
       : entries;
-    const pageCount = Math.max(1, Math.ceil(matchingEntries.length / pageSize));
-    const requestedPage = Math.max(0, Math.floor(options.cardPageByDeckId?.[row.id] ?? 0));
-    const page = Math.min(requestedPage, pageCount - 1);
-    const pageEntries = sortEntries(matchingEntries, cardSort, options).slice(page * pageSize, (page + 1) * pageSize);
+    hitEntries.push(...matchingEntries);
+    const cardRows = sortEntries(matchingEntries, cardSort, options).map((entry) => createCardTableRow(entry, options));
     return {
       ...row,
-      cardRows: pageEntries.map((entry) => createCardTableRow(entry, options)),
+      cardRows,
+      rowsByIndex: new Map(cardRows.map((cardRow, index) => [index, cardRow])),
       totalCardCount: matchingEntries.length,
-      page,
-      pageCount,
-      pageSize,
       deckMatches,
+      loading: false,
     };
   });
   const groups = allGroups.filter((group) => !searching || group.deckMatches || group.totalCardCount > 0);
+  // The flat hit list of a search (KV3): all matching cards in one order.
+  const hitRows = sortEntries(hitEntries, cardSort, options).map((entry) => createCardTableRow(entry, options));
 
   return {
     allGroups,
     groups,
+    hits: { cardRows: hitRows, rowsByIndex: new Map(hitRows.map((row, index) => [index, row])), totalCardCount: hitRows.length, loading: false },
     cardCount: groups.reduce((total, group) => total + group.totalCardCount, 0),
     cardSort,
   };

@@ -180,6 +180,17 @@ Vor einem solchen Deploy deshalb alle genutzten Geräte synchronisieren, dann
 `supabase db push`, `verify_schema_v1.sql` gegen das Projekt, dann die App
 deployen.
 
+Die Kartenverwaltung 2.0 (ADR-048) bringt die Migration
+`20261110130000_kartenverwaltung`; sie gehört in denselben Release wie der
+Client, Migration zuerst. Ein noch geöffneter älterer Client lehnt die
+Delta-Tabelle `note_search` ab und synchronisiert erst nach dem Neuladen
+wieder; ein neuer Client vor der Migration sucht weiter in der Cloud
+(`searchTextsReady`). Die Migration füllt alle Katalogzeilen neu; der Client
+mit lokaler Datenbank Version 3 lädt den Katalog beim ersten Start einmal ganz
+und sucht bis dahin in der Cloud. Lokale Datenbanken, die noch die früheren
+Einzelmigrationen `20261104220000` bis `20261110120000` tragen, setzt
+`npx supabase db reset` neu auf.
+
 Ein Reset löscht Auth-Konten, Storage-Objekte und fachliche Daten
 unwiederbringlich und ist ausschließlich für das bestätigte Pre-Release-Projekt
 zulässig:

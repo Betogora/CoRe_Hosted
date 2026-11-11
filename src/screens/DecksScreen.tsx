@@ -1,29 +1,37 @@
 import React from "react";
-import { ArrowDown, ArrowLeft, ArrowUp, ChevronDown, ChevronLeft, ChevronRight, FileText, Layers, Minus, Network, NotebookPen, PanelsTopLeft, Play, RotateCcw, Search, Snail, Sparkles, Star, CircleHelp, type LucideIcon } from "lucide-react";
-import type { CardDraftGuard, DecksScreenProps } from "../appScreenProps.ts";
+import { ArrowDown, ArrowLeft, ArrowUp, Check, ChevronRight, CopyCheck, FileText, GraduationCap, Layers, ListChecks, Minus, Network, NotebookPen, PanelsTopLeft, Play, RotateCcw, Search, Star, CircleHelp, type LucideIcon } from "lucide-react";
+import type { CardDraftGuard, DecksCardPage, DecksScreenProps } from "../appScreenProps.ts";
 export type { DecksCardPage, DecksCardPageRequest } from "../appScreenProps.ts";
 export type DecksScreenCardPageProps = Pick<DecksScreenProps, "cardPages" | "onRequestCardPage">;
 import { noteTextIndex } from "../coreModel.ts";
 import { collectDeckTreeIds } from "../coreWorkspace.ts";
-import { getVisibleDeckDepth } from "../deckHierarchy.ts";
-import { CARD_TABLE_PAGE_SIZE, createCardTableModel, createDeckLibraryModel, createPagedCardTableModel, DEFAULT_CARD_TABLE_SORT, sameCardTableSort, type CardTableSort, type CardTableSortField } from "../libraryModel.ts";
+import { CARD_TABLE_PAGE_SIZE, createCardSearchContext, createCardTableModel, createDeckLibraryModel, DEFAULT_CARD_TABLE_SORT, sameCardTableSort, type CardTableSort, type CardTableSortField } from "../libraryModel.ts";
+import { cardCount, createHitListModel, createPagedCardTableModel } from "./cardList/cardListModel.ts";
 import type { CardCatalogEntry, NoteGraph } from "../workspaceReplica.ts";
 import { ActionButton, IconButton } from "../ui/actionUi.tsx";
 import { useNoteMediaUrls } from "../ui/cardMedia.tsx";
 import { useStableCallback } from "../ui/useStableCallback.ts";
-import { ActionDialog, CoreSegmentedControl, CoreSlidingTabs, EmptyState, SoftPanel } from "../ui/coreUi.tsx";
-import { DeckOptionsMenu } from "../ui/DeckOptionsMenu.tsx";
-import { DeckSummaryRow } from "../ui/DeckSummaryRow.tsx";
+import { ActionDialog, CoreSlidingTabs, EmptyState, SoftPanel } from "../ui/coreUi.tsx";
 import { DeckAppearanceIcon } from "../ui/deckAppearance.tsx";
 import { useSuccessToast } from "../ui/feedbackUi.tsx";
 import { CoreTooltip } from "../ui/tooltipUi.tsx";
-import { FlagDot, flagName } from "../ui/flagUi.tsx";
-import { CoreSelect } from "../ui/selectUi.tsx";
-import { TagInput } from "../ui/TagInput.tsx";
-import { readCardSearchFilters, withCardSearchFilter } from "../cardSearchQuery.ts";
+import { FlagDot } from "../ui/flagUi.tsx";
+import { cardSearchTerms, unsupportedCardSearchTerms, withCardSearchTermState } from "./cardSearch/cardSearchExpression.ts";
+import { AdvancedCardSearch } from "./cardSearch/AdvancedCardSearch.tsx";
+import { CardSearchBar } from "./cardSearch/CardSearchBar.tsx";
+import { createCardSearchMenu } from "./cardSearch/cardSearchMenu.ts";
+import { useVirtualRows } from "./cardList/virtualRows.ts";
+import { CardSelectionBar, type CardSelectionActionId } from "./cardList/CardSelectionBar.tsx";
+import { DuplicatesDialog } from "./cardList/DuplicatesDialog.tsx";
+import { TagManagerDialog } from "./cardList/TagManagerDialog.tsx";
+import { renameDirectoryTag } from "../tagDirectory.ts";
+import { HitPractice } from "./cardList/HitPractice.tsx";
+import type { DuplicateKey } from "../duplicateContents.ts";
+import { HitStudyDialog } from "./cardList/HitStudyDialog.tsx";
+import type { Card, Note } from "../coreTypes.ts";
+import { hitStudyQuery, orderHits, type HitStudyMode, type HitStudyOrder } from "../hitStudySession.ts";
+import type { CardBatchAction } from "../cardBatchActions.ts";
 import { CardEditorDialog, CardEditorSurface, type CardEditorHitNavigation } from "./cardEditor/CardEditorDialog.tsx";
-import { DeckSummariesPanel } from "./DeckSummariesPanel.tsx";
-import { DeckMindMapsPanel } from "./DeckMindMapsPanel.tsx";
 import { DeckSubstacksPanel } from "./DeckSubstacksPanel.tsx";
 import { LearningAreaHeader } from "./LearningAreaHeader.tsx";
 
@@ -41,6 +49,10 @@ const deckContentTabs = [
 ] as const;
 
 const CARD_SEARCH_DEBOUNCE_MS = 250;
+/** List key of the flat hit list of a search (KV3); its pages span every deck in scope. */
+const HIT_LIST_KEY = "__hits__";
+/** Heights until a row is measured (desktop): card row (the deck path stands beside the text) and notice row. */
+const ROW_ESTIMATE = { card: 28.72, notice: 29 } as const;
 
 /** Centered state of a content tab without its own content, e.g. `Demnächst verfügbar` or `Keine Unterstapel`. */
 function DeckContentPlaceholder({ label, icon: Icon, title, action, testId }: { label: string; icon: LucideIcon; title: string; action?: React.ReactNode; testId?: string }) {
@@ -55,11 +67,28 @@ function DeckContentPlaceholder({ label, icon: Icon, title, action, testId }: { 
   );
 }
 
-function SortHeader({ field, label, sort, onChange }: {
+/** Decks whose path matches the search text, above the flat hit list: a click lists the deck's cards. */
+function MatchingDecks({ groups, onOpen }: { groups: ReadonlyArray<{ id: string; path: string }>; onOpen: (deckId: string) => void }) {
+  if (!groups.length) return null;
+  return (
+    <div className="flex min-w-0 flex-wrap items-center gap-1.5" data-testid="card-search-matching-decks">
+      <span className="mr-1 core-body text-core-muted">Passende Stapel</span>
+      {groups.map((group) => (
+        <button key={group.id} type="button" className="flex min-h-8 min-w-0 max-w-full items-center gap-1.5 rounded-inset bg-core-subtle px-2.5 core-body font-semibold text-core-text hover:bg-core-border" onClick={() => onOpen(group.id)}>
+          <Layers size={14} className="shrink-0 text-core-muted" aria-hidden="true" />
+          <span className="truncate">{group.path}</span>
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function SortHeader({ field, label, sort, onChange, leading }: {
   field: CardTableSortField;
   label: string;
   sort: CardTableSort;
   onChange: (field: CardTableSortField) => void;
+  leading?: React.ReactNode;
 }) {
   const active = sort.field === field;
   const rightAligned = field !== "sortField";
@@ -70,6 +99,8 @@ function SortHeader({ field, label, sort, onChange }: {
 
   return (
     <th scope="col" aria-sort={active ? (sort.direction === "asc" ? "ascending" : "descending") : "none"} className={`min-w-0 ${headerPadding} ${rightAligned ? "text-right" : "text-left"}`}>
+      <div className="flex min-w-0 items-center gap-1">
+      {leading}
       <button
         type="button"
         onClick={() => onChange(field)}
@@ -79,14 +110,15 @@ function SortHeader({ field, label, sort, onChange }: {
         <span className="min-w-0 truncate">{label}</span>
         <SortIcon size={14} aria-hidden="true" className={`shrink-0 ${active ? "opacity-100" : "opacity-35"}`} />
       </button>
+      </div>
     </th>
   );
 }
 
 
-const VARIANT_FILTER_SORT: CardTableSort = { field: "variants", direction: "asc" };
 
 interface CardTableRowViewProps {
+  virtualKey: string;
   deckId: string;
   card: CardCatalogEntry;
   frontPreview: string;
@@ -96,40 +128,100 @@ interface CardTableRowViewProps {
   flag: number;
   flagNames: readonly string[];
   syncConflict: boolean;
+  /** Deck path of the card; absent when the list covers a single deck. */
+  deckPath?: string;
   onSelect: (deckId: string, cardId: string) => void;
+  /** Selection for mass actions (KV4): checked, the table in selection mode, and toggling (with Shift a range). */
+  checked: boolean;
+  selecting: boolean;
+  onToggleCheck: (cardId: string, range: boolean) => void;
 }
 
+const LONG_PRESS_MS = 500;
+
 /** One card row of the table; memoized so a page of up to 50 rows does not repaint on unrelated state changes. */
-const CardTableRowView = React.memo(function CardTableRowView({ deckId, card, frontPreview, nextStudyLabel, selected, marked, flag, flagNames, syncConflict, onSelect }: CardTableRowViewProps) {
+const CardTableRowView = React.memo(function CardTableRowView({ virtualKey, deckId, card, frontPreview, nextStudyLabel, selected, marked, flag, flagNames, syncConflict, deckPath, onSelect, checked, selecting, onToggleCheck }: CardTableRowViewProps) {
   const suspended = !card.reviewable;
+  const pressTimer = React.useRef<number | null>(null);
+  const pressed = React.useRef(false);
+  const cancelPress = () => {
+    if (pressTimer.current !== null) window.clearTimeout(pressTimer.current);
+    pressTimer.current = null;
+  };
+  // A click opens the card; while selecting, or with Ctrl/Cmd or Shift, it selects. A long touch starts selecting.
+  const activate = (event: React.MouseEvent) => {
+    event.stopPropagation();
+    if (pressed.current) {
+      pressed.current = false;
+      return;
+    }
+    if (selecting || event.ctrlKey || event.metaKey || event.shiftKey) onToggleCheck(card.id, event.shiftKey);
+    else onSelect(deckId, card.id);
+  };
   return (
     <tr
-      onClick={() => onSelect(deckId, card.id)}
+      data-virtual-key={virtualKey}
+      onClick={activate}
+      onPointerDown={(event) => {
+        if (event.pointerType !== "touch") return;
+        cancelPress();
+        pressTimer.current = window.setTimeout(() => {
+          pressTimer.current = null;
+          pressed.current = true;
+          onToggleCheck(card.id, false);
+        }, LONG_PRESS_MS);
+      }}
+      onPointerUp={cancelPress}
+      onPointerCancel={cancelPress}
+      onPointerMove={(event) => { if (event.pointerType === "touch" && (Math.abs(event.movementX) > 4 || Math.abs(event.movementY) > 4)) cancelPress(); }}
+      onContextMenu={(event) => { if (pressed.current) event.preventDefault(); }}
       className={`cursor-pointer border-b border-core-border transition-colors ${suspended ? "bg-core-warning-soft hover:bg-core-warning-soft" : selected ? "bg-core-info-soft" : "bg-core-surface hover:bg-core-subtle"} ${selected ? "core-card-row-selected" : ""}`}
       data-selected={selected ? "true" : undefined}
       data-suspended={suspended ? "true" : undefined}
       data-card-row="true"
     >
-      <td className="min-w-0 px-2 py-2.5 align-middle sm:px-3 md:px-4">
+      <td className="min-w-0 px-2 py-1 align-middle sm:px-3 md:px-4">
+        <div className="flex min-w-0 items-start gap-2.5">
+        {selecting ? (
+          <span className="relative mt-px size-5 shrink-0">
+            <input
+              type="checkbox"
+              data-testid={"select-card-" + card.id}
+              aria-label={`${frontPreview} auswählen`}
+              className="absolute inset-0 size-5 cursor-pointer appearance-none rounded-marker border border-core-border bg-core-surface checked:border-core-action checked:bg-core-action"
+              checked={checked}
+              onClick={(event) => {
+                event.stopPropagation();
+                onToggleCheck(card.id, event.shiftKey);
+              }}
+              onChange={() => undefined}
+            />
+            {checked ? <Check size={16} aria-hidden="true" className="pointer-events-none absolute left-0.5 top-0.5 text-core-on-accent" /> : null}
+          </span>
+        ) : null}
         <button
           type="button"
           data-testid={"deck-card-" + card.id}
           aria-pressed={selected}
-          className="block !min-h-0 w-full truncate text-left core-body font-medium text-core-text focus-visible:rounded-inset focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--core-border-interactive)]"
-          onClick={(event) => {
-            event.stopPropagation();
-            onSelect(deckId, card.id);
-          }}
+          className="block !min-h-0 min-w-0 flex-1 truncate text-left core-body font-medium text-core-text focus-visible:rounded-inset focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--core-border-interactive)]"
+          onClick={activate}
         >
-          {frontPreview}
-          {syncConflict ? <span className="ml-2 inline-flex min-h-5 items-center rounded-round bg-core-warning-soft px-2 core-caption font-semibold text-core-warning">Synchronisierung klären</span> : null}
+          {/* One compact line: the front, from sm on the deck path beside it, both cut with an ellipsis. */}
+          <span className="flex min-w-0 items-baseline gap-2 sm:gap-3">
+            <span className="min-w-0 flex-1 truncate">
+              {frontPreview}
+              {syncConflict ? <span className="ml-2 inline-flex min-h-5 items-center rounded-round bg-core-warning-soft px-2 core-caption font-semibold text-core-warning">Synchronisierung klären</span> : null}
+            </span>
+            {deckPath ? <span className="hidden min-w-0 max-w-[40%] shrink-0 truncate core-caption font-normal text-core-muted sm:block">{deckPath}</span> : null}
+          </span>
         </button>
+        </div>
       </td>
-      <td className="min-w-0 whitespace-nowrap px-1 py-2.5 text-right align-middle core-body tabular-nums text-core-secondary">
+      <td className="min-w-0 whitespace-nowrap px-1 py-1 text-right align-middle core-body tabular-nums text-core-secondary">
         {nextStudyLabel}
         {suspended ? <span className="sr-only"> · Ausgesetzt</span> : null}
       </td>
-      <td className="min-w-0 px-1 py-2.5 text-right align-middle sm:pr-3">
+      <td className="min-w-0 px-1 py-1 text-right align-middle sm:pr-3">
         <span className="inline-flex items-center justify-end gap-1 align-middle">
           {card.activeVariantCount > 0
             ? <span className="min-w-[1.125rem] text-center core-body font-semibold tabular-nums text-core-text" aria-label={card.activeVariantCount === 1 ? "1 aktive Variante" : `${card.activeVariantCount} aktive Varianten`}>{card.activeVariantCount}</span>
@@ -145,6 +237,27 @@ const CardTableRowView = React.memo(function CardTableRowView({ deckId, card, fr
     </tr>
   );
 });
+
+
+// Summaries and mind maps are most of this screen's code but load with their tab only, so preloading the card
+// management stays below the 50 ms task budget.
+const DeckSummariesPanel = React.lazy(() => import("./DeckSummariesPanel.tsx").then((module) => ({ default: module.DeckSummariesPanel })));
+const DeckMindMapsPanel = React.lazy(() => import("./DeckMindMapsPanel.tsx").then((module) => ({ default: module.DeckMindMapsPanel })));
+const CONTENT_TAB_LOADING = <p className="p-6 core-body text-core-muted" role="status" data-testid="deck-content-tab-loading">Wird geladen …</p>;
+
+const WIDE_EDITOR_QUERY = "(min-width: 1280px)";
+
+function useWideEditor() {
+  return React.useSyncExternalStore(
+    (onChange) => {
+      const query = window.matchMedia(WIDE_EDITOR_QUERY);
+      query.addEventListener("change", onChange);
+      return () => query.removeEventListener("change", onChange);
+    },
+    () => window.matchMedia(WIDE_EDITOR_QUERY).matches,
+    () => false,
+  );
+}
 
 export function DecksScreen({
   decks,
@@ -176,7 +289,13 @@ export function DecksScreen({
   onUndoDeleteNote,
   onRescheduleCards,
   onGenerateVariant,
-  onGenerateDeckVariants,
+  onGenerateCardVariants,
+  onRunCardBatch,
+  onPrepareTextReplace,
+  onStudyHits,
+  onLoadPracticeCards,
+  onFindDuplicates,
+  onListHitCardIds,
   variantGenerationRunning = false,
   onUpdateVariant,
   onMoveDeck,
@@ -184,8 +303,8 @@ export function DecksScreen({
   onOpenCardSettings,
   onOpenDeckSettings,
   onDraftStateChange,
-  expandedDeckIds,
-  onSetDeckExpanded,
+  savedSearches,
+  onSavedSearchesChange,
   cardPages,
   onRequestCardPage,
   syncConflictCardIds,
@@ -229,28 +348,37 @@ export function DecksScreen({
   const selectedContentTab = deckContentTabs.find((tab) => tab.value === contentTab)!;
   const [query, setQuery] = React.useState("");
   const [deferredQuery, setDeferredQuery] = React.useState("");
-  // Flag, leech and tag filters are search terms in the query (Anki notation), so search and filters stay one state.
-  const searchFilters = React.useMemo(() => readCardSearchFilters(query), [query]);
-  const flagFilterOptions = React.useMemo(() => [
-    { value: "any", label: "Alle Flaggen" },
-    { value: "0", label: "Ohne Flagge" },
-    ...[1, 2, 3, 4, 5, 6, 7].map((flag) => ({ value: String(flag), label: `Flagge ${flagName(flag, cardEditor.flagNames)}` })),
-  ], [cardEditor.flagNames]);
+  // Every filter is a search term in the query (Anki notation), so search, chips and menu stay one state.
+  const unsupportedTerms = React.useMemo(() => unsupportedCardSearchTerms(deferredQuery), [deferredQuery]);
+  const [advancedSearchOpen, setAdvancedSearchOpen] = React.useState(false);
+  const [tagDirectory, setTagDirectory] = React.useState<Awaited<ReturnType<typeof cardEditor.listTagDirectory>>>([]);
+  const [tagManagerOpen, setTagManagerOpen] = React.useState(false);
+  // A tag change reloads the directory of the menu and the manager.
+  const [tagDirectoryVersion, setTagDirectoryVersion] = React.useState(0);
+  const [noteTypes, setNoteTypes] = React.useState<Awaited<ReturnType<typeof cardEditor.listNoteTypes>>>([]);
+  React.useEffect(() => {
+    if (!advancedSearchOpen && !tagManagerOpen) return;
+    let current = true;
+    void cardEditor.listTagDirectory().then((entries) => { if (current) setTagDirectory(entries); }).catch(() => undefined);
+    return () => { current = false; };
+  }, [advancedSearchOpen, cardEditor, tagDirectoryVersion, tagManagerOpen]);
+  // Note types resolve typed `note:` terms too, so they load with the screen and again with the menu.
+  React.useEffect(() => {
+    let current = true;
+    void cardEditor.listNoteTypes().then((entries) => { if (current) setNoteTypes(entries); }).catch(() => undefined);
+    return () => { current = false; };
+  }, [advancedSearchOpen, cardEditor]);
+  const searchMenu = React.useMemo(() => createCardSearchMenu({ decks: libraryDecks, tags: tagDirectory, flagNames: cardEditor.flagNames, noteTypes }), [cardEditor.flagNames, libraryDecks, noteTypes, tagDirectory]);
+  const searchContext = React.useMemo(() => createCardSearchContext(deferredQuery, decks, { now, dayStartHour, timeZone, noteTypes }), [dayStartHour, decks, deferredQuery, noteTypes, now, timeZone]);
   function changeQuery(next: string) {
     setQuery(next);
-    setCardPageByDeckId({});
   }
   React.useEffect(() => {
     if (query === deferredQuery) return;
     const timer = window.setTimeout(() => setDeferredQuery(query), CARD_SEARCH_DEBOUNCE_MS);
     return () => window.clearTimeout(timer);
   }, [deferredQuery, query]);
-  const [cardPageByDeckId, setCardPageByDeckId] = React.useState<Record<string, number>>({});
-  const [chosenSort, setChosenSort] = React.useState<CardTableSort>(DEFAULT_CARD_TABLE_SORT);
-  const [withoutVariants, setWithoutVariants] = React.useState(false);
-  // Neither the local catalog nor the cloud search filter by variants; sorting cards without one first and
-  // cutting at the first card with a variant gives the same rows on both paths.
-  const cardSort = React.useMemo<CardTableSort>(() => withoutVariants ? VARIANT_FILTER_SORT : chosenSort, [chosenSort, withoutVariants]);
+  const [cardSort, setCardSort] = React.useState<CardTableSort>(DEFAULT_CARD_TABLE_SORT);
   const [deckStatus, setDeckStatus] = React.useState("");
   const [deckStatusType, setDeckStatusType] = React.useState<"status" | "alert">("status");
   const setSuccessToast = useSuccessToast();
@@ -262,55 +390,106 @@ export function DecksScreen({
   const [savingPendingDraft, setSavingPendingDraft] = React.useState(false);
   const cardDraftGuardRef = React.useRef<CardDraftGuard | null>(null);
   const detailRef = React.useRef<HTMLDivElement | null>(null);
-  const [pendingHit, setPendingHit] = React.useState<{ deckId: string; page: number; edge: "first" | "last" } | null>(null);
+  // Prev/next to a row whose page is not loaded yet: it opens once the page arrives.
+  const [pendingHit, setPendingHit] = React.useState<{ listKey: string; index: number } | null>(null);
   const previouslySelectedCardId = React.useRef<string | null>(null);
-  const autoExpandedSelectedDeckIdRef = React.useRef<string | null>(null);
   const usesCardPages = cardPages !== undefined || Boolean(onRequestCardPage);
   const tableModel = React.useMemo(() => {
     if (!usesCardPages) {
-      return createCardTableModel(libraryDecks, { query: deferredQuery, cardSort, cardPageByDeckId, now, dayStartHour, learnAheadMinutes, timeZone, deckSummaries });
+      return createCardTableModel(libraryDecks, { query: deferredQuery, cardSort, now, dayStartHour, learnAheadMinutes, timeZone, deckSummaries });
     }
     return createPagedCardTableModel(libraryDecks, cardPages, {
-      query: deferredQuery, cardSort, cardPageByDeckId, withoutVariants, awaitingPages: Boolean(onRequestCardPage),
+      query: deferredQuery, cardSort, awaitingPages: Boolean(onRequestCardPage),
       now, dayStartHour, learnAheadMinutes, timeZone, deckSummaries,
     });
-  }, [cardPageByDeckId, cardPages, cardSort, dayStartHour, deckSummaries, libraryDecks, deferredQuery, learnAheadMinutes, now, onRequestCardPage, timeZone, usesCardPages, withoutVariants]);
-  const searchExpandsGroups = Boolean(deferredQuery.trim());
-  const [expandedDeckIdSet, setExpandedDeckIdSet] = React.useState(() => new Set(expandedDeckIds));
-  const [collapsedContentDeckIds, setCollapsedContentDeckIds] = React.useState(() => new Set<string>());
+  }, [cardPages, cardSort, dayStartHour, deckSummaries, libraryDecks, deferredQuery, learnAheadMinutes, now, onRequestCardPage, timeZone, usesCardPages]);
+  // One flat list over all decks in scope, with or without a search (KV3b); each row names its deck.
+  const hitScope = React.useMemo(() => libraryDecks.map((deck) => deck.id), [libraryDecks]);
+  const hitList = React.useMemo(() => "hits" in tableModel
+    ? tableModel.hits
+    : createHitListModel(cardPages?.[HIT_LIST_KEY], { query: deferredQuery, cardSort, awaitingPages: Boolean(onRequestCardPage), dayStartHour, timeZone }),
+  [cardPages, cardSort, dayStartHour, deferredQuery, onRequestCardPage, tableModel, timeZone]);
+  const cardsLoading = hitList.loading;
+  const searchResultCount = deferredQuery.trim() && !cardsLoading ? hitList.totalCardCount : null;
+  // Below xl the page scrolls under the sticky mobile header, so the table header sticks right beneath it.
+  const [mobileHeaderHeight, setMobileHeaderHeight] = React.useState(0);
+  React.useEffect(() => {
+    const header = document.querySelector<HTMLElement>('[data-navigation-layout="mobile-header"]');
+    if (!header) return;
+    const observer = new ResizeObserver(() => setMobileHeaderHeight(header.offsetHeight));
+    observer.observe(header);
+    return () => observer.disconnect();
+  }, []);
   const groupById = React.useMemo(() => new Map(tableModel.allGroups.map((group) => [group.id, group])), [tableModel.allGroups]);
   const deckNameById = React.useMemo(() => new Map(decks.map((deck) => [deck.id, deck.name])), [decks]);
   const selectedContentDeckId = React.useMemo(() => {
     if (!contentDeckId || !selectedCardId) return null;
-    for (const group of tableModel.allGroups) {
-      if (cardPages?.[group.id]?.selected?.cardId === selectedCardId) return group.id;
-      if (group.cardRows.some((row) => row.id === selectedCardId)) return group.id;
-    }
-    return null;
-  }, [cardPages, contentDeckId, selectedCardId, tableModel.allGroups]);
+    const hit = hitList.cardRows.find((row) => row.id === selectedCardId) ?? (cardPages?.[HIT_LIST_KEY]?.selected?.cardId === selectedCardId ? { entry: cardPages[HIT_LIST_KEY]!.selected!.cards.find((card) => card.id === selectedCardId) } : null);
+    return hit?.entry?.deckId ?? null;
+  }, [cardPages, contentDeckId, hitList, selectedCardId]);
   const selectedDeckId = selectedContentDeckId ?? focusedDeckId;
   const selectedGroup = selectedDeckId ? groupById.get(selectedDeckId) ?? null : null;
   const selectedDeck = selectedGroup?.deck ?? null;
-  const selectedPage = selectedDeckId ? cardPages?.[selectedDeckId] : undefined;
+  // The open card comes with the hit list's pages.
+  const selectedListKey = HIT_LIST_KEY;
+  const selectedPage = selectedListKey ? cardPages?.[selectedListKey] : undefined;
+
+  // Rows of the virtual table (KV3): the hits of the flat list, after an offline notice when the list is limited.
+  // Items hold only the structure; rows are looked up at render, so an arriving page does not rebuild 50,000 items.
+  type ListItem =
+    | { kind: "notice"; key: string }
+    | { kind: "card"; key: string; listKey: string; index: number };
+  const limitedHits = Boolean(cardPages?.[HIT_LIST_KEY]?.limitedToLocalCatalog);
+  const items = React.useMemo<ListItem[]>(() => {
+    const list: ListItem[] = limitedHits ? [{ kind: "notice", key: "notice:hits" }] : [];
+    for (let index = 0; index < hitList.totalCardCount; index += 1) list.push({ kind: "card", key: `hit:${index}`, listKey: HIT_LIST_KEY, index });
+    return list;
+    // The length and the notice stand for the structure; the rows are read at render.
+  }, [hitList.totalCardCount, limitedHits]);
+  const rowOf = (item: Extract<ListItem, { kind: "card" }> | undefined) => item ? hitList.rowsByIndex.get(item.index) : undefined;
+  const cardItems = React.useMemo(() => items.filter((item): item is Extract<ListItem, { kind: "card" }> => item.kind === "card"), [items]);
+  // Each list's rows are consecutive, so a row's position follows from where its list starts.
+  const listStarts = React.useMemo(() => {
+    const starts = new Map<string, { card: number; item: number }>();
+    let card = 0;
+    items.forEach((item, index) => {
+      if (item.kind !== "card") return;
+      if (!starts.has(item.listKey)) starts.set(item.listKey, { card, item: index });
+      card += 1;
+    });
+    return starts;
+  }, [items]);
+  /** Position of a loaded card among all card rows (`card`) and all items (`item`). */
+  const locateCard = (cardId: string | null) => {
+    if (!cardId) return null;
+    for (const [index, row] of hitList.rowsByIndex) {
+      const start = row.id === cardId ? listStarts.get(HIT_LIST_KEY) : undefined;
+      if (start) return { card: start.card + index, item: start.item + index };
+    }
+    return null;
+  };
+  const selectedLocation = locateCard(selectedCardId);
+  const itemKey = React.useCallback((index: number) => items[index].key, [items]);
+  const itemEstimate = React.useCallback((index: number) => {
+    const item = items[index];
+    return item.kind === "card" ? ROW_ESTIMATE.card : ROW_ESTIMATE.notice;
+  }, [items]);
+  const virtual = useVirtualRows({ count: items.length, keyAt: itemKey, estimate: itemEstimate });
+  const deckPathById = React.useMemo(() => new Map(tableModel.allGroups.map((group) => [group.id, group.path])), [tableModel.allGroups]);
   const selectedGraph = selectedPage?.selected?.cardId === selectedCardId ? selectedPage?.selected ?? null : null;
   const selectedDeckMissing = Boolean(selectedDeckId && !selectedDeck);
   const selectedCardMissing = Boolean(selectedDeck && selectedCardId && !selectedGraph);
   // Until the page answers for the selected card the editor shows the loading bar, never "Karte nicht gefunden".
   const selectedCardLoading = selectedCardMissing && Boolean(onRequestCardPage) && !selectedPage?.loadError && selectedPage?.requestedCardId !== selectedCardId;
   const detailOpen = Boolean(selectedGraph || selectedDeckMissing || selectedCardMissing);
+  // From 1280 px the editor opens beside the list, which keeps its selection and scroll position (KV6).
+  const dockedDetail = useWideEditor() && !(contentDeckId && contentTab !== "cards");
+  const splitDetail = dockedDetail && detailOpen;
   const { urls: selectedNoteMediaUrls } = useNoteMediaUrls(selectedGraph?.note.media, mediaStore);
   const handleEditorDraftStateChange = React.useCallback((guard: CardDraftGuard | null) => {
     cardDraftGuardRef.current = guard;
     onDraftStateChange(guard);
   }, [onDraftStateChange]);
-
-  React.useEffect(() => {
-    setExpandedDeckIdSet((current) => (
-      current.size === expandedDeckIds.length && expandedDeckIds.every((deckId) => current.has(deckId))
-        ? current
-        : new Set(expandedDeckIds)
-    ));
-  }, [expandedDeckIds]);
 
   React.useEffect(() => {
     if (preserveToastForSelectionChange.current) {
@@ -320,43 +499,76 @@ export function DecksScreen({
     setSuccessToast("");
   }, [selectedCardId, setSuccessToast]);
 
+  // Pages of the rows near the visible area load as the list scrolls; a list not shown for the current search, sort
+  // and scope loads its first page, which also brings its length. Each page is asked once per list version.
+  // Each request carries a token: only the latest request of a page may ask again when its answer is dropped.
+  const requestedPagesRef = React.useRef(new Map<string, { list: DecksCardPage | undefined; token: number }>());
+  const requestTokenRef = React.useRef(0);
+  // Every search, sort and scope uses the same page keys, so a new view forgets what the previous one asked.
+  const requestedViewRef = React.useRef("");
+  // A dropped answer (replaced or aborted, e.g. by a local write) frees its page, and the list asks again.
+  const [droppedPages, setDroppedPages] = React.useState(0);
+  // Emptied pages (a local write such as a mass action) load again, also those first asked before anything was shown.
+  React.useEffect(() => {
+    if (cardPages && !Object.keys(cardPages).length) requestedPagesRef.current.clear();
+  }, [cardPages]);
   React.useEffect(() => {
     if (!onRequestCardPage) return;
     if (contentDeckId && contentTab !== "cards") return;
-    const requestedGroups = tableModel.allGroups.filter((group) => (
-      Boolean(contentDeckId) || searchExpandsGroups || expandedDeckIdSet.has(group.id) || selectedDeckId === group.id
-    ));
-    for (const group of requestedGroups) {
-      const page = Math.max(0, cardPageByDeckId[group.id] ?? cardPages?.[group.id]?.page ?? 0);
-      const selectedCardForDeck = selectedDeckId === group.id ? selectedCardId : null;
-      const current = cardPages?.[group.id];
-      const hasSelectedCard = !selectedCardForDeck || current?.requestedCardId === selectedCardForDeck;
-      if (current
-        && current.page === page
-        && current.query === deferredQuery
-        && sameCardTableSort(current.sort, cardSort)
-        && (hasSelectedCard || Boolean(current.loadError))) continue;
-      void onRequestCardPage({
-        deckId: group.id,
-        page,
-        pageSize: CARD_TABLE_PAGE_SIZE,
-        query: deferredQuery,
-        sort: cardSort,
-        selectedCardId: selectedCardForDeck,
-      });
+    const isShown = (listKey: string) => {
+      const list = cardPages?.[listKey];
+      return Boolean(list && list.query === deferredQuery && sameCardTableSort(list.sort, cardSort) && (list.deckIds ?? []).join("\n") === hitScope.join("\n"));
+    };
+    const needed = new Map<string, { listKey: string; page: number }>();
+    const need = (listKey: string, page: number) => needed.set(`${listKey}#${page}`, { listKey, page });
+    if (!isShown(HIT_LIST_KEY)) need(HIT_LIST_KEY, 0);
+    for (let index = Math.max(0, virtual.start); index <= virtual.end; index += 1) {
+      const item = items[index];
+      if (item?.kind === "card" && (!rowOf(item) || !isShown(item.listKey))) need(item.listKey, Math.floor(item.index / CARD_TABLE_PAGE_SIZE));
     }
-  }, [cardPageByDeckId, cardPages, cardSort, contentDeckId, contentTab, deferredQuery, expandedDeckIdSet, onRequestCardPage, searchExpandsGroups, selectedCardId, selectedDeckId, tableModel.allGroups]);
+    if (pendingHit) need(pendingHit.listKey, Math.floor(pendingHit.index / CARD_TABLE_PAGE_SIZE));
+    const requested = requestedPagesRef.current;
+    const view = JSON.stringify([deferredQuery, cardSort, hitScope, searchContext ?? null]);
+    if (requestedViewRef.current !== view) {
+      requested.clear();
+      requestedViewRef.current = view;
+    }
+    for (const [key, { listKey, page }] of needed) {
+      const list = cardPages?.[listKey];
+      // Asked before for this very list object: still loading, or answered without that page (a shorter list).
+      const marker = isShown(listKey) ? list : undefined;
+      if (requested.has(key) && requested.get(key)!.list === marker) continue;
+      const token = ++requestTokenRef.current;
+      requested.set(key, { list: marker, token });
+      void Promise.resolve(onRequestCardPage({ deckId: listKey, deckIds: hitScope, page, pageSize: CARD_TABLE_PAGE_SIZE, query: deferredQuery, sort: cardSort, selectedCardId: null, searchContext }))
+        .then((applied) => {
+          // A request replaced by a newer one (also a repeated effect) leaves the asking to that one.
+          if (applied !== false || requested.get(key)?.token !== token) return;
+          requested.delete(key);
+          setDroppedPages((count) => count + 1);
+        });
+    }
+  }, [cardPages, cardSort, contentDeckId, contentTab, deferredQuery, droppedPages, hitList, hitScope, items, onRequestCardPage, pendingHit, searchContext, virtual.end, virtual.start]);
 
+  // The open card loads with a page of its list: a shown page when there is one, so only the card is read.
   React.useEffect(() => {
-    if (contentDeckId) return;
-    if (!selectedDeckId) {
-      autoExpandedSelectedDeckIdRef.current = null;
-      return;
-    }
-    if (autoExpandedSelectedDeckIdRef.current === selectedDeckId) return;
-    autoExpandedSelectedDeckIdRef.current = selectedDeckId;
-    if (!expandedDeckIdSet.has(selectedDeckId)) setDeckCardsExpanded(selectedDeckId, true);
-  }, [contentDeckId, expandedDeckIdSet, onSetDeckExpanded, selectedDeckId]);
+    if (!onRequestCardPage || !selectedCardId || !selectedListKey) return;
+    if (contentDeckId && contentTab !== "cards") return;
+    const list = cardPages?.[selectedListKey];
+    const shown = Boolean(list && list.query === deferredQuery && sameCardTableSort(list.sort, cardSort));
+    if (shown && (list!.requestedCardId === selectedCardId || list!.loadError)) return;
+    const loadedPage = shown ? Number(Object.keys(list!.pages)[0] ?? 0) : 0;
+    void onRequestCardPage({
+      deckId: selectedListKey,
+      deckIds: hitScope,
+      page: loadedPage,
+      pageSize: CARD_TABLE_PAGE_SIZE,
+      query: deferredQuery,
+      sort: cardSort,
+      selectedCardId,
+      searchContext,
+    });
+  }, [cardPages, cardSort, contentDeckId, contentTab, deferredQuery, hitScope, onRequestCardPage, searchContext, selectedCardId, selectedListKey]);
 
   React.useEffect(() => {
     if (!detailOpen) return;
@@ -428,51 +640,229 @@ export function DecksScreen({
   }
   const stableRequestCardSelection = useStableCallback(requestCardSelection);
 
-  // Prev/next walks the loaded rows of the expanded groups; at a page end it loads the neighbouring page (B2).
-  const hitRows = React.useMemo(() => {
-    if (onCloseSelectedCard || !selectedCardId) return null;
-    const rows: Array<{ deckId: string; cardId: string; position: number; index: number; group: (typeof tableModel.groups)[number] }> = [];
-    let offset = 0;
-    for (const group of tableModel.groups) {
-      const expanded = searchExpandsGroups || (contentDeckId ? !collapsedContentDeckIds.has(group.id) : expandedDeckIdSet.has(group.id));
-      if (!expanded) continue;
-      group.cardRows.forEach((row, index) => rows.push({ deckId: group.id, cardId: row.entry.id, position: offset + group.page * group.pageSize + index + 1, index, group }));
-      offset += group.totalCardCount;
-    }
-    return { rows, total: offset };
-  }, [collapsedContentDeckIds, contentDeckId, expandedDeckIdSet, onCloseSelectedCard, searchExpandsGroups, selectedCardId, tableModel.groups]);
+  // Prev/next walks every row of the list in table order (KV3); a row whose page is not loaded yet opens once it is.
+  const selectedPosition = selectedLocation && !onCloseSelectedCard ? selectedLocation.card : -1;
+  const previousHit = selectedPosition >= 0 ? cardItems[selectedPosition - 1] : undefined;
+  const nextHit = selectedPosition >= 0 ? cardItems[selectedPosition + 1] : undefined;
+  const previousRow = rowOf(previousHit);
+  const nextRow = rowOf(nextHit);
   const hits = React.useMemo<CardEditorHitNavigation | null>(() => {
-    const index = hitRows?.rows.findIndex((row) => row.cardId === selectedCardId) ?? -1;
-    if (!hitRows || index < 0) return null;
-    const current = hitRows.rows[index];
-    const select = (row: { deckId: string; cardId: string } | undefined) => row ? () => requestDetailAction(() => onSelectDeck(row.deckId, row.cardId, cardEditorTab)) : null;
-    const loadPage = (page: number, edge: "first" | "last") => () => requestDetailAction(() => {
-      setPendingHit({ deckId: current.deckId, page, edge });
-      setCardPageByDeckId((pages) => ({ ...pages, [current.deckId]: page }));
-    });
-    const lastOnPage = current.index === current.group.cardRows.length - 1;
-    return {
-      position: current.position,
-      total: hitRows.total,
-      onPrevious: current.index === 0 && current.group.page > 0 ? loadPage(current.group.page - 1, "last") : select(hitRows.rows[index - 1]),
-      onNext: lastOnPage && current.group.page + 1 < current.group.pageCount ? loadPage(current.group.page + 1, "first") : select(hitRows.rows[index + 1]),
-    };
+    if (selectedPosition < 0) return null;
+    const step = (item: (typeof cardItems)[number] | undefined, row: ReturnType<typeof rowOf>) => item
+      ? () => requestDetailAction(() => row ? onSelectDeck(row.entry.deckId, row.id, cardEditorTab) : setPendingHit({ listKey: item.listKey, index: item.index }))
+      : null;
+    return { position: selectedPosition + 1, total: cardItems.length, onPrevious: step(previousHit, previousRow), onNext: step(nextHit, nextRow) };
     // requestDetailAction and onSelectDeck read the latest state when they run.
-  }, [cardEditorTab, hitRows, selectedCardId]);
+  }, [cardEditorTab, cardItems.length, nextHit, nextRow, previousHit, previousRow, selectedPosition]);
   // The neighbouring hits load ahead once the open card is shown, so prev/next opens without waiting.
   React.useEffect(() => {
-    const index = selectedGraph && hitRows ? hitRows.rows.findIndex((row) => row.cardId === selectedCardId) : -1;
-    if (index < 0) return;
-    for (const row of [hitRows!.rows[index + 1], hitRows!.rows[index - 1]]) if (row) cardEditor.prefetchCard(row.cardId);
-  }, [cardEditor, hitRows, selectedCardId, selectedGraph]);
+    if (selectedPosition < 0 || !selectedGraph) return;
+    for (const row of [nextRow, previousRow]) if (row) cardEditor.prefetchCard(row.id);
+  }, [cardEditor, nextRow, previousRow, selectedGraph, selectedPosition]);
+  const pendingRow = pendingHit ? hitList.rowsByIndex.get(pendingHit.index) : undefined;
   React.useEffect(() => {
-    if (!pendingHit) return;
-    const group = tableModel.groups.find((candidate) => candidate.id === pendingHit.deckId);
-    if (!group || group.page !== pendingHit.page || !group.cardRows.length || cardPages?.[group.id]?.page !== pendingHit.page) return;
+    if (!pendingHit || !pendingRow) return;
     setPendingHit(null);
-    const row = pendingHit.edge === "first" ? group.cardRows[0] : group.cardRows.at(-1)!;
-    onSelectDeck(group.id, row.entry.id, cardEditorTab);
-  }, [cardEditorTab, cardPages, onSelectDeck, pendingHit, tableModel.groups]);
+    onSelectDeck(pendingRow.entry.deckId, pendingRow.id, cardEditorTab);
+  }, [cardEditorTab, onSelectDeck, pendingHit, pendingRow]);
+  // The open card's row scrolls into view, e.g. after prev/next, so closing the editor lands on it.
+  const selectedItemIndex = selectedLocation?.item ?? -1;
+  React.useEffect(() => {
+    if (selectedItemIndex >= 0) virtual.scrollToIndex(selectedItemIndex);
+    // Only a newly selected row scrolls; later renders of the same selection leave the scroll position alone.
+  }, [selectedCardId, selectedItemIndex >= 0]);
+
+  // Selection for mass actions (KV4): card ids, or every hit of the flat list; a new search or scope clears it.
+  const [selecting, setSelecting] = React.useState(false);
+  const [checkedIds, setCheckedIds] = React.useState<ReadonlySet<string>>(() => new Set());
+  const [allHits, setAllHits] = React.useState(false);
+  const selectionAnchorRef = React.useRef<number | null>(null);
+  const clearSelection = React.useCallback(() => {
+    setSelecting(false);
+    setCheckedIds(new Set());
+    setAllHits(false);
+    selectionAnchorRef.current = null;
+  }, []);
+  // The scope compares by its decks: a sync renews the deck list without changing it.
+  const hitScopeKey = hitScope.join("\n");
+  React.useEffect(clearSelection, [clearSelection, deferredQuery, hitScopeKey]);
+  const canSelect = Boolean(onRunCardBatch) && !onCloseSelectedCard;
+  function toggleCheck(cardId: string, range: boolean) {
+    if (!canSelect) return;
+    const position = locateCard(cardId)?.card ?? null;
+    const anchor = selectionAnchorRef.current;
+    setSelecting(true);
+    setAllHits(false);
+    setCheckedIds((current) => {
+      const next = new Set(current);
+      if (range && anchor !== null && position !== null) {
+        // A range takes the loaded rows between the last toggled row and this one.
+        for (let index = Math.min(anchor, position); index <= Math.max(anchor, position); index += 1) {
+          const row = rowOf(cardItems[index]);
+          if (row) next.add(row.id);
+        }
+      } else if (next.has(cardId)) next.delete(cardId);
+      else next.add(cardId);
+      return next;
+    });
+    selectionAnchorRef.current = position;
+  }
+  const stableToggleCheck = useStableCallback(toggleCheck);
+  const [runningBatch, setRunningBatch] = React.useState(false);
+  const selectionCount = allHits ? hitList?.totalCardCount ?? 0 : checkedIds.size;
+
+  async function selectedIds() {
+    if (!allHits) return [...checkedIds];
+    if (!onListHitCardIds) return [];
+    return onListHitCardIds({ deckIds: hitScope, query: deferredQuery, searchContext });
+  }
+
+  const runSelectionAction = async (action: CardBatchAction, label: string) => {
+    await runCardBatchAction(selectedIds, action, label);
+  };
+
+  const lastUndoRef = React.useRef<(() => void) | null>(null);
+  // The row a key action started from takes the focus back once the action ran, so the keyboard flow goes on.
+  const keyActionRowRef = React.useRef<string | null>(null);
+  const [focusRowAfterAction, setFocusRowAfterAction] = React.useState<string | null>(null);
+  React.useEffect(() => {
+    if (!focusRowAfterAction) return;
+    const row = document.querySelector<HTMLElement>(`[data-testid="deck-card-${CSS.escape(focusRowAfterAction)}"]`);
+    if (!row) return;
+    row.focus({ preventScroll: true });
+    setFocusRowAfterAction(null);
+  }, [focusRowAfterAction, items]);
+  const [selectionRequest, setSelectionRequest] = React.useState<{ id: CardSelectionActionId; flag?: number; nonce: number } | null>(null);
+  // Keys of the card list (KV6): `/` searches; on a focused row ↑/↓ move, Enter opens, X selects, Escape clears the
+  // selection, and the action keys open the confirmation of the selection or of the focused card. Dialogs, menus, the
+  // editor and text fields keep their own keys; browser shortcuts stay untouched.
+  const handleListKey = useStableCallback((event: KeyboardEvent) => {
+    if (event.defaultPrevented || event.altKey) return;
+    const target = event.target instanceof HTMLElement ? event.target : null;
+    if (target && (target.isContentEditable || ["INPUT", "TEXTAREA", "SELECT"].includes(target.tagName))) return;
+    if (target?.closest('[role="dialog"], [role="menu"], [data-radix-popper-content-wrapper]') || document.querySelector('[aria-modal="true"]')) return;
+    if (event.ctrlKey || event.metaKey) {
+      if (event.key.toLowerCase() !== "z" || event.shiftKey || !lastUndoRef.current) return;
+      event.preventDefault();
+      lastUndoRef.current();
+      return;
+    }
+    if (event.key === "/") {
+      event.preventDefault();
+      document.querySelector<HTMLInputElement>('input[aria-label="Karten durchsuchen"]')?.focus();
+      return;
+    }
+    if (event.key === "Escape" && selecting) {
+      event.preventDefault();
+      clearSelection();
+      return;
+    }
+    const cardId = target?.dataset.testid?.startsWith("deck-card-") ? target.dataset.testid.slice("deck-card-".length) : null;
+    if (!cardId) return;
+    if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+      const step = (row: Element | null | undefined) => event.key === "ArrowDown" ? row?.nextElementSibling : row?.previousElementSibling;
+      let row = step(target!.closest("tr"));
+      while (row && !(row as HTMLElement).dataset.cardRow) row = step(row);
+      const next = row?.querySelector<HTMLElement>('[data-testid^="deck-card-"]');
+      if (!next) return;
+      event.preventDefault();
+      next.focus();
+      return;
+    }
+    if (!canSelect) return;
+    const key = event.key.toLowerCase();
+    if (key === "x") {
+      event.preventDefault();
+      toggleCheck(cardId, event.shiftKey);
+      return;
+    }
+    const entry = [...hitList.rowsByIndex.values()].find((row) => row.id === cardId)?.entry;
+    const request: { id: CardSelectionActionId; flag?: number } | null = /^[1-7]$/.test(key) ? { id: "flag", flag: Number(key) }
+      : key === "0" ? { id: "flag-remove" }
+        : key === "m" ? { id: entry?.marked ? "unmark" : "mark" }
+          : key === "a" ? { id: entry && !entry.reviewable ? "unsuspend" : "suspend" }
+            : key === "s" ? { id: "deck" }
+              : key === "t" ? { id: "tags-add" }
+                : event.key === "Delete" ? { id: "delete" } : null;
+    if (!request) return;
+    event.preventDefault();
+    // Without a selection the action takes the focused card.
+    if (!selecting || (!allHits && !checkedIds.size)) {
+      setSelecting(true);
+      setAllHits(false);
+      setCheckedIds(new Set([cardId]));
+    }
+    keyActionRowRef.current = cardId;
+    setSelectionRequest({ ...request, nonce: Date.now() });
+  });
+  React.useEffect(() => {
+    window.addEventListener("keydown", handleListKey);
+    return () => window.removeEventListener("keydown", handleListKey);
+  }, [handleListKey]);
+
+  /** Runs a mass action with its toast and `Rückgängig`; true once it ran. */
+  async function runCardBatchAction(loadIds: () => Promise<string[]>, action: CardBatchAction, label: string, onUndone?: () => void) {
+    if (!onRunCardBatch || runningBatch) return false;
+    setRunningBatch(true);
+    try {
+      const ids = await loadIds();
+      const result = await onRunCardBatch(ids, action);
+      if (action.kind === "delete" && selectedCardId && ids.includes(selectedCardId)) closeDetail();
+      clearSelection();
+      const undo = () => {
+        lastUndoRef.current = null;
+        void result.undo().then(({ restoredCount, skippedCount }) => {
+          onUndone?.();
+          setSuccessToast(skippedCount
+            ? `Rückgängig gemacht: ${cardCount(restoredCount)}. ${cardCount(skippedCount)} wurden inzwischen geändert und bleiben so.`
+            : `Rückgängig gemacht: ${cardCount(restoredCount)}.`, { appearance: skippedCount ? "neutral" : "success" });
+        }, () => setSuccessToast("Rückgängig ist fehlgeschlagen.", { appearance: "neutral" }));
+      };
+      // Ctrl+Z in the list takes the latest mass action back, like its toast (KV6).
+      lastUndoRef.current = undo;
+      setSuccessToast(`${label}: ${cardCount(result.changedCount)}`, { action: { label: "Rückgängig", onAction: undo } });
+      return true;
+    } catch (error) {
+      setDeckStatusType("alert");
+      setDeckStatus(error instanceof Error ? error.message : "Die Aktion konnte nicht ausgeführt werden.");
+      return false;
+    } finally {
+      setRunningBatch(false);
+      // The list reloads after the action; the row takes the focus once it is rendered again.
+      setFocusRowAfterAction(keyActionRowRef.current);
+      keyActionRowRef.current = null;
+    }
+  }
+
+  const prepareSelectionReplace = useStableCallback(async () => onPrepareTextReplace!(await selectedIds()));
+  // `Duplikate finden` (KV5) compares the contents of the list, optionally only its hits.
+  const [duplicatesOpen, setDuplicatesOpen] = React.useState(false);
+  const findDuplicates = useStableCallback((key: DuplicateKey, withinHits: boolean) => onFindDuplicates!({ deckIds: hitScope, key, query: withinHits ? deferredQuery : "", searchContext }));
+  // `Treffer lernen` (KV5) studies the hits or the selection without suspended and buried cards.
+  const [hitStudy, setHitStudy] = React.useState<"hits" | "selection" | null>(null);
+  const canStudyHits = Boolean(onStudyHits && onLoadPracticeCards && onListHitCardIds);
+  const [practiceBodies, setPracticeBodies] = React.useState<Array<{ card: Card; note: Note }> | null>(null);
+  async function startHitStudy(cardIds: string[], order: HitStudyOrder, mode: HitStudyMode) {
+    if (mode === "advance") return onStudyHits!(cardIds, order);
+    const bodies = await onLoadPracticeCards!(cardIds);
+    if (!bodies.length) throw new Error("Diese Karten sind erst online verfügbar.");
+    setPracticeBodies(orderHits(bodies, order));
+  }
+  const loadHitStudyIds = useStableCallback(async () => {
+    const ids = await onListHitCardIds!({ deckIds: hitScope, query: hitStudyQuery(deferredQuery), searchContext, sort: cardSort });
+    return hitStudy === "selection" && !allHits ? ids.filter((id) => checkedIds.has(id)) : ids;
+  });
+
+  async function generateSelectionVariants() {
+    if (!onGenerateCardVariants) return;
+    const ids = await selectedIds();
+    const selected = new Set(ids);
+    const firstRow = [...hitList.rowsByIndex.values()].find((row) => selected.has(row.id));
+    const deckId = firstRow?.entry.deckId ?? contentDeckId ?? selectedDeckId;
+    if (!deckId || !ids.length) return;
+    onGenerateCardVariants(deckId, ids);
+    clearSelection();
+  }
 
   async function savePendingDetailDraft() {
     const guard = cardDraftGuardRef.current;
@@ -495,35 +885,9 @@ export function DecksScreen({
   }
 
   function changeSort(field: CardTableSortField) {
-    setCardPageByDeckId({});
-    setWithoutVariants(false);
-    setChosenSort((current) => current.field === field
+    setCardSort((current) => current.field === field
       ? { field, direction: current.direction === "asc" ? "desc" : "asc" }
       : { field, direction: "asc" });
-  }
-
-  function toggleDeckCards(deckId: string) {
-    setDeckCardsExpanded(deckId, contentDeckId ? collapsedContentDeckIds.has(deckId) : !expandedDeckIdSet.has(deckId));
-  }
-
-  function setDeckCardsExpanded(deckId: string, expanded: boolean) {
-    if (contentDeckId) {
-      setCollapsedContentDeckIds((current) => {
-        const next = new Set(current);
-        if (expanded) next.delete(deckId);
-        else next.add(deckId);
-        return next;
-      });
-      return;
-    }
-    setExpandedDeckIdSet((current) => {
-      if (current.has(deckId) === expanded) return current;
-      const next = new Set(current);
-      if (expanded) next.add(deckId);
-      else next.delete(deckId);
-      return next;
-    });
-    onSetDeckExpanded("deck-manager", deckId, expanded);
   }
 
   function requestCardDelete() {
@@ -627,6 +991,7 @@ export function DecksScreen({
           mediaStore={mediaStore}
           services={cardEditor}
           surfaceRef={detailRef}
+          docked={dockedDetail}
           onSaveNote={onSaveNote}
           onSetStudyState={(cardId, patch) => onSetCardStudyState(selectedDeck.id, cardId, patch)}
           onDuplicateNote={() => onDuplicateNote(selectedGraph)}
@@ -645,7 +1010,7 @@ export function DecksScreen({
     }
     if (selectedCardLoading) {
       return (
-        <CardEditorSurface label="Kartendetail" surfaceRef={detailRef}>
+        <CardEditorSurface label="Kartendetail" docked={dockedDetail} surfaceRef={detailRef}>
           <div className="px-3 pt-3 sm:px-6 sm:pt-4" data-testid="card-detail-loading">
             <div className="core-statistics-load-track" role="progressbar" aria-label="Karte wird geladen"><span aria-hidden="true" /></div>
           </div>
@@ -653,7 +1018,7 @@ export function DecksScreen({
       );
     }
     return (
-      <CardEditorSurface label="Kartendetail" surfaceRef={detailRef}>
+      <CardEditorSurface label="Kartendetail" docked={dockedDetail} surfaceRef={detailRef}>
         <div className="grid min-h-full place-items-center p-6">
           {selectedDeckMissing ? (
             <EmptyState
@@ -670,12 +1035,14 @@ export function DecksScreen({
               action={<div className="flex flex-wrap justify-center gap-2">
                 {selectedPage?.loadError && selectedDeckId && onRequestCardPage ? (
                   <ActionButton type="button" variant="primary" onClick={() => onRequestCardPage({
-                    deckId: selectedDeckId,
-                    page: selectedPage.page,
+                    deckId: selectedListKey ?? selectedDeckId,
+                    deckIds: selectedListKey === HIT_LIST_KEY ? hitScope : undefined,
+                    page: 0,
                     pageSize: CARD_TABLE_PAGE_SIZE,
                     query: selectedPage.query,
                     sort: selectedPage.sort,
                     selectedCardId,
+                    searchContext,
                   })}>Erneut laden</ActionButton>
                 ) : null}
                 <ActionButton type="button" variant="secondary" onClick={closeDetail}>Zur Kartenliste</ActionButton>
@@ -717,7 +1084,9 @@ export function DecksScreen({
               onClick={() => requestDetailAction(() => onStartDeck(contentDeck))} data-testid="deck-content-study">Karten lernen</ActionButton> : null}
           </div>
         </div>
-      ) : <LearningAreaHeader area="cards" onOpenCardSettings={onOpenCardSettings} />}
+      ) : <LearningAreaHeader area="cards" onOpenCardSettings={onOpenCardSettings} action={onFindDuplicates && onRunCardBatch ? (
+        <ActionButton type="button" variant="secondary" icon={CopyCheck} onClick={() => setDuplicatesOpen(true)}>Duplikate finden</ActionButton>
+      ) : undefined} />}
 
       {contentDeckId && contentTab === "children" ? (
         contentRow && contentLibrary ? contentRow.hasChildren ? <DeckSubstacksPanel key={contentRow.id} rows={contentLibrary.rows} current={contentRow}
@@ -727,63 +1096,91 @@ export function DecksScreen({
             action={<ActionButton variant="secondary" icon={Play} disabled={!hasStudyCards} onClick={() => onStartDeck(contentRow.deck)}>Karten lernen</ActionButton>} />
           : <EmptyState icon={Layers} title="Stapel nicht gefunden oder nicht verfügbar." />
       ) : contentDeckId && contentTab === "summary" ? (
-        contentDeck ? <DeckSummariesPanel key={`${summaryAccountId ?? contentDeck.ownerId}:${contentDeck.id}`} deck={contentDeck}
-          userId={summaryAccountId ?? contentDeck.ownerId} cloud={learningContentCloud} onGenerateSummary={onGenerateSummary} onDraftStateChange={handleEditorDraftStateChange} />
+        contentDeck ? <React.Suspense fallback={CONTENT_TAB_LOADING}><DeckSummariesPanel key={`${summaryAccountId ?? contentDeck.ownerId}:${contentDeck.id}`} deck={contentDeck}
+          userId={summaryAccountId ?? contentDeck.ownerId} cloud={learningContentCloud} onGenerateSummary={onGenerateSummary} onDraftStateChange={handleEditorDraftStateChange} /></React.Suspense>
           : <EmptyState icon={FileText} title="Stapel nicht gefunden oder nicht verfügbar." />
       ) : contentDeckId && contentTab === "mind-map" ? (
-        contentDeck ? <DeckMindMapsPanel key={`${summaryAccountId ?? contentDeck.ownerId}:${contentDeck.id}`} deck={contentDeck}
-          userId={summaryAccountId ?? contentDeck.ownerId} cloud={learningContentCloud} onGenerateSummary={onGenerateSummary} onDraftStateChange={handleEditorDraftStateChange} />
+        contentDeck ? <React.Suspense fallback={CONTENT_TAB_LOADING}><DeckMindMapsPanel key={`${summaryAccountId ?? contentDeck.ownerId}:${contentDeck.id}`} deck={contentDeck}
+          userId={summaryAccountId ?? contentDeck.ownerId} cloud={learningContentCloud} onGenerateSummary={onGenerateSummary} onDraftStateChange={handleEditorDraftStateChange} /></React.Suspense>
           : <EmptyState icon={Network} title="Stapel nicht gefunden oder nicht verfügbar." />
       ) : contentDeckId && contentTab !== "cards" ? (
         <DeckContentPlaceholder label={selectedContentTab.label} icon={selectedContentTab.icon} title="Demnächst verfügbar" />
-      ) : <SoftPanel className="min-w-0 overflow-hidden p-5 sm:p-6" aria-labelledby={contentDeckId ? undefined : "card-library-heading"} aria-label={contentDeckId ? "Karten" : undefined} data-testid="card-library-panel">
+      ) : <SoftPanel className="min-w-0 overflow-clip p-5 sm:p-6" aria-label="Karten" data-testid="card-library-panel">
         <div className="grid gap-6">
-          {!contentDeckId ? <h3 id="card-library-heading" className="flex min-h-control items-center whitespace-nowrap core-heading-2 text-core-text">Aktive Stapel</h3> : null}
           <div className="grid gap-4">
-            <label className="grid min-w-0 gap-2">
-                <span className="core-field-label">Karten durchsuchen</span>
-                <span className="relative flex min-w-0">
-                  <Search className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-core-muted" size={16} aria-hidden="true" />
-                  <input className="core-field min-w-0 !pl-10" value={query} onChange={(event) => changeQuery(event.target.value)} placeholder={contentDeckId ? "Vorderseite, Rückseite oder Tags suchen" : "Stapel, Vorderseite, Rückseite oder Tags suchen"} aria-label="Karten durchsuchen" />
-                </span>
-              </label>
-            <div className="flex flex-wrap items-center gap-3">
-              <CoreSegmentedControl
-                ariaLabel="Karten nach Variante filtern"
-                value={withoutVariants ? "without" : "all"}
-                options={[{ value: "all", label: "Alle Karten" }, { value: "without", label: "Ohne Variante" }]}
-                onValueChange={(value) => { setWithoutVariants(value === "without"); setCardPageByDeckId({}); }}
-              />
-              <CoreSelect
-                ariaLabel="Nach Flagge filtern"
-                value={searchFilters.flag === null ? "any" : String(searchFilters.flag)}
-                options={flagFilterOptions}
-                onValueChange={(value) => changeQuery(withCardSearchFilter(query, "flag", value === "any" ? null : Number(value)))}
-              />
-              <button
-                type="button"
-                aria-pressed={searchFilters.leech}
-                className="core-action-secondary aria-pressed:border-core-action aria-pressed:bg-[var(--core-action-soft)] aria-pressed:text-core-action"
-                onClick={() => changeQuery(withCardSearchFilter(query, "leech", !searchFilters.leech))}
-              >
-                <Snail size={16} aria-hidden="true" />Lernbremse
-              </button>
-              <div className="min-w-0 flex-1 basis-56">
-                <TagInput
-                  tags={searchFilters.tags}
-                  loadDirectory={cardEditor.listTagDirectory}
-                  label="Nach Tags filtern"
-                  labelHidden
-                  placeholder="Nach Tag filtern"
-                  onChange={(tags) => changeQuery(withCardSearchFilter(query, "tags", tags))}
+            <CardSearchBar
+              query={query}
+              onQueryChange={changeQuery}
+              decks={libraryDecks}
+              categories={searchMenu}
+              advancedOpen={advancedSearchOpen}
+              onAdvancedOpenChange={setAdvancedSearchOpen}
+              advancedId="advanced-card-search"
+              resultCount={searchResultCount}
+              resultAction={canStudyHits && searchResultCount ? (
+                <button type="button" className="inline-flex items-center gap-1.5 core-body font-semibold text-core-action hover:underline" onClick={() => setHitStudy("hits")}>
+                  <GraduationCap size={16} aria-hidden="true" />Treffer lernen
+                </button>
+              ) : undefined}
+              placeholder={contentDeckId ? "Vorderseite, Rückseite, Felder oder Tags durchsuchen" : "Stapel, Vorderseite, Rückseite, Felder oder Tags durchsuchen"}
+              hint={unsupportedTerms.length ? `Noch nicht unterstützt, wird als Text gesucht: ${unsupportedTerms.join(" ")}` : undefined}
+            >
+              {advancedSearchOpen ? (
+                <AdvancedCardSearch
+                  id="advanced-card-search"
+                  query={query}
+                  onQueryChange={changeQuery}
+                  categories={searchMenu}
+                  resultCount={searchResultCount}
+                  onClose={() => setAdvancedSearchOpen(false)}
+                  savedSearches={savedSearches}
+                  onSavedSearchesChange={onSavedSearchesChange}
+                  onManageTags={onRunCardBatch && onListHitCardIds ? () => setTagManagerOpen(true) : undefined}
                 />
-              </div>
-              {withoutVariants && contentDeck && onGenerateDeckVariants ? (
-                <ActionButton type="button" variant="secondary" icon={Sparkles} disabled={variantGenerationRunning} onClick={() => onGenerateDeckVariants(contentDeck)}>
-                  Für diese Karten Varianten generieren
-                </ActionButton>
               ) : null}
-            </div>
+            </CardSearchBar>
+            {hitStudy ? (
+              <HitStudyDialog
+                title={hitStudy === "selection" ? "Auswahl lernen" : "Treffer lernen"}
+                loadCardIds={loadHitStudyIds}
+                onStart={startHitStudy}
+                onClose={() => setHitStudy(null)}
+              />
+            ) : null}
+            {tagManagerOpen ? (
+              <TagManagerDialog
+                tags={tagDirectory}
+                onRename={async (from, to) => {
+                  // Tags belong to the account: every deck, also the ones outside the list.
+                  const deckIds = decks.filter((deck) => !deck.deletedAt).map((deck) => deck.id);
+                  // The cloud directory follows only once the change is synchronized, so the list shows it locally;
+                  // reopening the manager loads it again. Undoing a plain rename renames back, anything else reloads.
+                  const merged = to !== null && tagDirectory.some((entry) => entry.tag.toLocaleLowerCase("und") === to.toLocaleLowerCase("und"));
+                  const ran = await runCardBatchAction(() => onListHitCardIds!({ deckIds, query: `tag:${from}`, searchContext }), { kind: "tag-rename", from, to }, to === null ? "Tag löschen" : "Tag umbenennen", () => {
+                    if (to !== null && !merged) setTagDirectory((entries) => renameDirectoryTag(entries, to, from));
+                    else setTagDirectoryVersion((version) => version + 1);
+                  });
+                  if (ran) setTagDirectory((entries) => renameDirectoryTag(entries, from, to));
+                }}
+                onClose={() => setTagManagerOpen(false)}
+              />
+            ) : null}
+            {duplicatesOpen ? (
+              <DuplicatesDialog
+                searching={Boolean(deferredQuery.trim())}
+                find={findDuplicates}
+                deckName={(deckId) => deckNameById.get(deckId) ?? "Unbekannter Stapel"}
+                onOpen={(deckId, cardId) => {
+                  setDuplicatesOpen(false);
+                  requestCardSelection(deckId, cardId);
+                }}
+                onTag={async (cardIds) => {
+                  await runCardBatchAction(async () => cardIds, { kind: "tags", add: ["Duplikat"], remove: [] }, "Duplikate taggen");
+                }}
+                onClose={() => setDuplicatesOpen(false)}
+              />
+            ) : null}
+            {practiceBodies ? <HitPractice bodies={practiceBodies} mediaStore={mediaStore} onClose={() => setPracticeBodies(null)} /> : null}
             {deckStatus ? <p className={"core-body font-semibold " + (deckStatusType === "alert" ? "core-status-error" : "core-status-info")} role={deckStatusType}>{deckStatus}</p> : null}
             {deletedCardUndo ? (
               <div className="flex flex-wrap items-center gap-3 rounded-panel border border-core-border bg-core-subtle px-4 py-3">
@@ -793,119 +1190,131 @@ export function DecksScreen({
             ) : null}
           </div>
 
-          {tableModel.groups.length ? (
-            <div className="min-w-0 max-w-full overflow-hidden rounded-panel border border-core-border bg-core-surface">
-          <table className="w-full table-fixed border-collapse" data-testid="card-library-table">
+          {deferredQuery.trim() ? <MatchingDecks groups={tableModel.groups.filter((group) => group.deckMatches)} onOpen={(deckId) => changeQuery(withCardSearchTermState(cardSearchTerms(query).filter((term) => !/^-?did:/i.test(term)).join(" "), `did:${deckId}`, "in"))} /> : null}
+          <div className={splitDetail ? "grid min-w-0 grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)] items-start gap-4" : "contents"} data-testid="card-library-split">
+          {items.length || cardsLoading ? (
+            <div className="min-w-0 max-w-full overflow-clip rounded-panel border border-core-border bg-core-surface">
+          <table className="w-full table-fixed border-collapse" data-testid="card-library-table" aria-busy={cardsLoading || undefined} aria-rowcount={items.length}>
               <colgroup>
                 <col />
                 <col className="w-20 sm:w-[5.75rem]" />
                 <col className="w-20" />
               </colgroup>
-              <thead className="sticky top-0 z-10 bg-core-surface">
-                <tr className="core-table-header-row h-10 border-b border-core-border">
-                  <SortHeader field="sortField" label="Sortierfeld" sort={cardSort} onChange={changeSort} />
-                  <SortHeader field="nextStudyDate" label="Datum" sort={cardSort} onChange={changeSort} />
-                  <SortHeader field="variants" label="Variante" sort={cardSort} onChange={changeSort} />
-                </tr>
-              </thead>
-              {tableModel.groups.map((group) => {
-                const expanded = searchExpandsGroups || (contentDeckId ? !collapsedContentDeckIds.has(group.id) : expandedDeckIdSet.has(group.id));
-                const visibleDepth = getVisibleDeckDepth(group.depth);
-                const groupLeadingControl = (
-                  <span className="grid size-9 shrink-0 place-items-center text-core-action" aria-hidden="true">
-                    {expanded ? <ChevronDown size={18} aria-hidden="true" /> : <ChevronRight size={18} aria-hidden="true" />}
-                  </span>
-                );
-                const groupActions = (
-                  <DeckOptionsMenu
-                    row={group}
-                    decks={decks}
-                    onSetCoreMode={onSetDeckCoreMode}
-                    onOpenSettings={onOpenDeckSettings}
-                    onMoveDeck={onMoveDeck}
-                  />
-                );
-                return (
-                <tbody key={group.id} id={"deck-card-list-" + group.id} data-testid={"card-group-" + group.id}>
-                  {!contentDeckId || libraryDecks.length > 1 ? <tr
-                    data-testid={"deck-header-" + group.id}
-                    data-deck-depth={visibleDepth}
-                    className="core-deck-summary-row"
-                    style={selectedDeckId === group.id ? { backgroundColor: "var(--core-info-surface)" } : undefined}
-                  >
-                    <th scope="rowgroup" colSpan={3} className="relative px-3 text-left">
-                      <button
-                        type="button"
-                        data-testid={"deck-toggle-" + group.id}
-                        aria-expanded={expanded}
-                        aria-controls={"deck-card-list-" + group.id}
-                        aria-label={expanded ? `Karten von ${group.path} einklappen` : `Karten von ${group.path} aufklappen`}
-                        onClick={() => toggleDeckCards(group.id)}
-                        data-deck-row-activation="true"
-                        className="absolute inset-0 z-0 cursor-pointer transition-colors hover:bg-[var(--core-focus-ring-soft)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-core-focus"
-                      />
-                      <DeckSummaryRow
-                        row={group}
-                        leadingControl={groupLeadingControl}
-                        actions={groupActions}
-                        density="responsive"
+              {/* From xl the screen region scrolls; its top padding (xl:py-10 in App) would otherwise hold the header 40 px low. */}
+              <thead className="sticky top-[var(--core-card-table-sticky-top)] z-10 bg-core-surface xl:-top-10" style={{ "--core-card-table-sticky-top": `${mobileHeaderHeight}px` } as React.CSSProperties}>
+                {selecting ? (
+                  <tr className="border-b border-core-border bg-core-info-soft">
+                    <th scope="col" colSpan={3} className="p-0 text-left font-normal">
+                      <CardSelectionBar
+                        count={selectionCount}
+                        hitTotal={onListHitCardIds && !cardsLoading ? hitList.totalCardCount : null}
+                        searching={Boolean(deferredQuery.trim())}
+                        allHits={allHits}
+                        onSelectAllHits={() => setAllHits(true)}
+                        onClear={clearSelection}
+                        decks={decks}
+                        flagNames={cardEditor.flagNames}
+                        loadTagDirectory={cardEditor.listTagDirectory}
+                        now={now}
+                        dayStartHour={dayStartHour}
+                        timeZone={timeZone}
+                        disabled={runningBatch || selectionCount === 0}
+                        onGenerateVariants={onGenerateCardVariants && !variantGenerationRunning ? () => void generateSelectionVariants() : undefined}
+                        onStudy={canStudyHits ? () => setHitStudy("selection") : undefined}
+                        onPrepareReplace={onPrepareTextReplace ? prepareSelectionReplace : undefined}
+                        onRun={runSelectionAction}
+                        request={selectionRequest}
                       />
                     </th>
-                  </tr> : null}
-                  {expanded && cardPages?.[group.id]?.limitedToLocalCatalog ? (
-                    <tr className="border-b border-core-border bg-core-warning-soft">
-                      <td colSpan={3} className="px-3 py-2.5 core-caption text-core-secondary sm:px-4">
-                        Offline werden nur bereits lokal indexierte Karten durchsucht und sortiert.
-                      </td>
-                    </tr>
-                  ) : null}
-                  {expanded && group.cardRows.length ? <>{group.cardRows.map(({ entry: card, frontPreview, nextStudyLabel }) => (
+                  </tr>
+                ) : (
+                  <tr className="core-table-header-row border-b border-core-border">
+                    <SortHeader
+                      field="sortField"
+                      label="Sortierfeld"
+                      sort={cardSort}
+                      onChange={changeSort}
+                      leading={canSelect ? (
+                        // Touch starts selecting with a long press, so the narrow header stays compact.
+                        <CoreTooltip label="Karten auswählen">
+                          <button type="button" aria-label="Karten auswählen" data-testid="card-selection-start" className="hidden size-6 !min-h-0 shrink-0 place-items-center rounded-inset text-core-muted hover:bg-core-subtle hover:text-core-text sm:grid" onClick={() => setSelecting(true)}>
+                            <ListChecks size={16} aria-hidden="true" />
+                          </button>
+                        </CoreTooltip>
+                      ) : null}
+                    />
+                    <SortHeader field="nextStudyDate" label="Datum" sort={cardSort} onChange={changeSort} />
+                    <SortHeader field="variants" label="Variante" sort={cardSort} onChange={changeSort} />
+                  </tr>
+                )}
+                {cardsLoading ? (
+                  <tr aria-hidden="true">
+                    <td colSpan={3} className="p-0">
+                      <div className="core-statistics-load-track !mt-0" data-testid="card-library-loading"><span /></div>
+                    </td>
+                  </tr>
+                ) : null}
+              </thead>
+              <tbody ref={virtual.listRef as React.Ref<HTMLTableSectionElement>} data-testid="card-library-rows" className={cardsLoading ? "[&>tr[data-card-row]]:opacity-60" : undefined}>
+                {virtual.paddingTop > 0 ? <tr aria-hidden="true" style={{ height: virtual.paddingTop }} /> : null}
+                {items.slice(virtual.start, virtual.end + 1).map((item) => {
+                  if (item.kind === "notice") {
+                    return (
+                      <tr key={item.key} data-virtual-key={item.key} className="border-b border-core-border bg-core-warning-soft">
+                        <td colSpan={3} className="px-3 py-1.5 core-caption text-core-secondary sm:px-4">
+                          Offline werden nur bereits lokal indexierte Karten durchsucht und sortiert.
+                        </td>
+                      </tr>
+                    );
+                  }
+                  const row = rowOf(item);
+                  if (!row) {
+                    return (
+                      <tr key={item.key} data-virtual-key={item.key} aria-hidden="true" className="border-b border-core-border bg-core-surface" data-card-placeholder="true">
+                        <td colSpan={3} className="px-3 py-1 sm:px-4">
+                          <span className="block h-5 w-2/3 rounded-inset bg-core-subtle" />
+                        </td>
+                      </tr>
+                    );
+                  }
+                  const { entry: card, frontPreview, nextStudyLabel } = row;
+                  return (
                     <CardTableRowView
-                      key={card.id}
-                      deckId={group.id}
+                      key={item.key}
+                      virtualKey={item.key}
+                      deckId={card.deckId}
                       card={card}
                       frontPreview={frontPreview}
                       nextStudyLabel={nextStudyLabel}
                       selected={selectedCardId === card.id}
-                      marked={selectedGraph?.note.id === card.noteId ? selectedGraph.note.marked : card.marked}
+                      marked={selectedGraph && selectedGraph.note.id === card.noteId ? selectedGraph.note.marked : card.marked}
                       flag={selectedGraph?.cards.find((candidate) => candidate.id === card.id)?.ankiFlag ?? card.ankiFlag}
                       flagNames={cardEditor.flagNames}
                       syncConflict={Boolean(syncConflictCardIds?.has(card.id))}
+                      deckPath={hitScope.length > 1 ? deckPathById.get(card.deckId) : undefined}
                       onSelect={stableRequestCardSelection}
+                      checked={allHits || checkedIds.has(card.id)}
+                      selecting={selecting}
+                      onToggleCheck={stableToggleCheck}
                     />
-                  ))}{group.pageCount > 1 ? (
-                    <tr className="border-b border-core-border bg-core-surface" data-testid={`card-page-${group.id}`}>
-                      <td colSpan={3} className="px-3 py-2">
-                        <div className="flex items-center justify-end gap-2">
-                          <CoreTooltip label="Vorherige Seite anzeigen">
-                            <IconButton label="Vorherige Seite anzeigen" icon={ChevronLeft} className="shrink-0" disabled={group.page === 0} onClick={() => setCardPageByDeckId((pages) => ({ ...pages, [group.id]: Math.max(0, group.page - 1) }))} />
-                          </CoreTooltip>
-                          <span className="core-body tabular-nums text-core-secondary">Seite {group.page + 1} von {group.pageCount}</span>
-                          <CoreTooltip label="Nächste Seite anzeigen">
-                            <IconButton label="Nächste Seite anzeigen" icon={ChevronRight} className="shrink-0" disabled={group.page + 1 >= group.pageCount} onClick={() => setCardPageByDeckId((pages) => ({ ...pages, [group.id]: Math.min(group.pageCount - 1, group.page + 1) }))} />
-                          </CoreTooltip>
-                        </div>
-                      </td>
-                    </tr>
-                  ) : null}</> : expanded ? (
-                    <tr className="border-b border-core-border bg-core-surface">
-                      <td colSpan={3} className="px-3 py-2.5 core-body text-core-muted sm:px-4">Keine Karten</td>
-                    </tr>
-                  ) : null}
-                </tbody>
-              );})}
+                  );
+                })}
+                {virtual.paddingBottom > 0 ? <tr aria-hidden="true" style={{ height: virtual.paddingBottom }} /> : null}
+              </tbody>
           </table>
             </div>
           ) : (
             <div className="grid justify-items-center gap-3 rounded-panel border border-core-border p-6 text-center sm:p-8" role="status">
               <span className="grid size-12 place-items-center rounded-control bg-core-subtle text-core-action" aria-hidden="true"><Search size={22} /></span>
-              <h4 className="core-heading-3 text-core-text">Keine Karten gefunden</h4>
-              <p className="core-body text-core-secondary">Passe die Suche an.</p>
+              <h4 className="core-heading-3 text-core-text">{deferredQuery.trim() ? "Keine Karten gefunden" : "Keine Karten"}</h4>
+              {deferredQuery.trim() ? <p className="core-body text-core-secondary">Passe die Suche an.</p> : null}
             </div>
           )}
+          {splitDetail ? renderDetailLayer() : null}
+          </div>
         </div>
       </SoftPanel>}
-      {detailOpen ? renderDetailLayer() : null}
+      {detailOpen && !dockedDetail ? renderDetailLayer() : null}
 
       <ActionDialog
         open={Boolean(pendingDetailAction)}

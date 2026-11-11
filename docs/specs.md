@@ -118,14 +118,14 @@ Akzeptanz:
 
 ### Karten bearbeiten und eine Sitzung starten
 
-Stapel und Karten lassen sich ordnen, prüfen und bearbeiten; eine Sitzung startet mit der ersten verfügbaren Karte.
+Stapel lassen sich ordnen, Karten suchen, gemeinsam ändern, pflegen und bearbeiten; eine Sitzung startet mit der ersten verfügbaren Karte oder mit den Treffern einer Suche.
 
 Ablauf:
 
 1. `Lernen` oder `Karten` öffnen.
-2. Stapel und Karten verwalten.
-3. Inhalt und Lernwerte prüfen.
-4. Sitzung vorbereiten.
+2. Stapel in `Lernen` ordnen; Karten in `Karten` suchen, filtern und auswählen.
+3. Karten gemeinsam ändern oder pflegen (Massenaktionen, `Suchen und Ersetzen`, `Duplikate finden`, `Tags verwalten`) und einzelne Karten im Editor prüfen.
+4. Sitzung vorbereiten oder `Treffer lernen` starten.
 5. Erste verfügbare Karte lernen.
 
 Akzeptanz:
@@ -369,7 +369,7 @@ Verhalten:
 
 Zweck:
 
-`Heute`, `Lernen` und die Kartenverwaltung zeigen dieselbe Stapelhierarchie mit denselben Stapelaktionen.
+`Heute` und `Lernen` zeigen dieselbe Stapelhierarchie mit denselben Stapelaktionen; die Kartenverwaltung listet Karten flach und nennt je Karte ihren Stapel.
 
 Verhalten:
 
@@ -379,7 +379,7 @@ Verhalten:
 - Die Tageszahlen berücksichtigen verbleibende Limits: ausgewählte neue Karten (`Neu`), heutiges Learning/Relearning, auch noch nicht vorziehbares (`Offen`), und ausgewählte fällige Reviews (`Fällig`). Elternzeilen aggregieren den Teilbaum nach den Einstellungen des dargestellten Stapels. Ausgesetzte und begrabene Karten zählen nirgends.
 - Dashboard und `Lernen` bieten eine Listen- und eine Kachelansicht; die Wahl gilt browserlokal und je Bereich getrennt. In der Liste lassen sich alle Elternstapel gemeinsam auf- und zuklappen.
 - Ein Stapel öffnet seine [Stapelinhalte](#stapelinhalte); eine eigene Lernaktion startet ihn samt Unterstapeln und Limits. In der Kachelansicht führen Kacheln mit Unterstapeln Ebene für Ebene zu ihren Unterstapeln und zu den Stapelinhalten; eine Kachel ohne Unterstapel öffnet direkt die Stapelinhalte.
-- Auf-/Zuklappzustände sind je Ansicht kontogebunden und überstehen Navigation, Reload und Neuanmeldung. Ohne gespeicherten Zustand starten die Stapel der Kartenverwaltung eingeklappt; ein fokussierter Stapel oder eine verlinkte Karte klappt den betroffenen Stapel auf und speichert diesen Zustand.
+- Auf-/Zuklappzustände von `Heute` und `Lernen` sind je Ansicht kontogebunden und überstehen Navigation, Reload und Neuanmeldung.
 - Stapelauswahlen nennen den vollständigen Pfad, ordnen die Stapel als alphabetischen Baum und bieten bei vielen Stapeln eine Pfadsuche.
 
 ### Stapeloptionen, Verschieben und Löschen
@@ -391,7 +391,7 @@ Jeder Stapel bietet dasselbe Optionsmenü mit CoRe-Modus (`Aus`/`An`), Einstellu
 Verhalten:
 
 - `An` öffnet zuerst den Einschaltdialog ([CoRe-Modus und Stapelgenerierung](#core-modus-und-stapelgenerierung)); `Aus` wirkt sofort.
-- In Dashboard und `Lernen` lässt sich ein Stapel samt Unterbaum mit Maus oder Trackpad direkt auf einen anderen Stapel ziehen und wird dessen direkter Unterstapel; eine eigene Ablagezone macht ihn zum Hauptstapel. Kartenverwaltung, Touch, Tastatur und assistive Bedienung verwenden den bestätigten Verschiebedialog.
+- In Dashboard und `Lernen` lässt sich ein Stapel samt Unterbaum mit Maus oder Trackpad direkt auf einen anderen Stapel ziehen und wird dessen direkter Unterstapel; eine eigene Ablagezone macht ihn zum Hauptstapel. Touch, Tastatur und assistive Bedienung verwenden den bestätigten Verschiebedialog.
 - Selbst-, Nachfahren- und unveränderte Ziele ändern nichts; ein beendetes Ziehen öffnet den Stapel nicht.
 - Stapelanzahl und Verschieben samt Unterbaum haben kein fachliches Limit. APKG-Hierarchien behalten Elternbeziehung, Pfad, Importidentitäten und Anki-Stapelpfad; Inhalts- und Anki-Tags bleiben unverändert.
 - Die Stapellöschung nennt Stapelname, Unterstapelzahl und aktive Kartenanzahl; Abbruch ändert nichts. Das Löschen eines Baums ist destruktiv, bestätigt und darf gelöschte Inhalte nicht durch späteren Sync reaktivieren.
@@ -416,7 +416,7 @@ Verhalten:
 - Die Reiter lauten `Unterstapel`, `Zusammenfassungen`, `Quiz`, `Mind Map`, `Karten` und `Quelle`; zu Beginn ist `Unterstapel` aktiv. Der Reiter ist Teil des Links und bleibt beim Rückweg aus einer Sitzung erhalten; ein geöffneter Karteneditor öffnet `Karten`.
 - Reiterwechsel und Stapelpfad schützen ungespeicherte Entwürfe mit demselben Speichern-/Verwerfen-Dialog.
 - `Unterstapel` zeigt den Zweig des geöffneten Stapels wie die Liste in `Lernen` mit Tageszahlen, Lernaktion und Stapeloptionen je Stapel; anfangs sind nur die direkten Unterstapel aufgeklappt. Ein Unterstapel öffnet seine eigenen Stapelinhalte. Ohne Unterstapel bietet der Reiter direkt das Lernen der Karten an.
-- `Karten` zeigt die Karten des Stapels samt aller Unterstapel mit gemeinsamer Suche und Sortierung, gegliedert nach Unterstapeln. Der Reiter nutzt dieselben Kartenzeilen, denselben Editor und dieselben Änderungen wie die [Kartenverwaltung](#kartenverwaltung); Aktionen wirken im tatsächlich zugehörigen Unterstapel. Ein Kartenlink und das Schließen des Editors erhalten den Inhaltskontext auch nach Reload. Elternstapel und andere Zweige bleiben ausgeschlossen.
+- `Karten` zeigt die Karten des Stapels samt aller Unterstapel als eine flache Liste mit gemeinsamer Suche und Sortierung; jede Zeile nennt ihren Unterstapel. Der Reiter nutzt dieselben Kartenzeilen, denselben Editor und dieselben Änderungen wie die [Kartenverwaltung](#kartenverwaltung); Aktionen wirken im tatsächlich zugehörigen Unterstapel. Ein Kartenlink und das Schließen des Editors erhalten den Inhaltskontext auch nach Reload. Elternstapel und andere Zweige bleiben ausgeschlossen.
 - `Zusammenfassungen` und `Mind Map` folgen [Zusammenfassungen und Mindmaps](#11-zusammenfassungen-und-mindmaps).
 - In allen Reitern startet eine Lernaktion die Sitzung samt Unterstapeln. Sie ist nur bei leerem Stapelbaum deaktiviert; die Suche beeinflusst sie nicht. Das Verlassen der Sitzung führt zu den Stapelinhalten zurück.
 
@@ -668,16 +668,27 @@ Der Hauptreiter `Karten` verwaltet alle Karten aller Stapel; derselbe Editor öf
 
 Zweck:
 
-Der Hauptreiter `Karten` ist die direktlinkfähige Gesamtverwaltung für Karten, Stapelstruktur, Inhalt und erweiterte Optionen aller Stapel.
+Der Hauptreiter `Karten` ist die direktlinkfähige Gesamtverwaltung aller Karten aller Stapel: suchen, auswählen, gemeinsam ändern, pflegen und gezielt lernen. Die Stapelstruktur ordnet `Lernen`.
 
 Verhalten:
 
-- Die Kartenverwaltung verbindet die Stapelhierarchie ([Stapelbäume](#stapelbäume)), die [Kartensuche](#kartensuche) und eine nach Stapeln gruppierte Liste aller Karten.
-- Je Karte erscheinen Sortierfeld (bereinigte Vorderseite), Fälligkeitsdatum (bei neuen Karten `Neu`) und die Zahl aktiver Varianten. Alle drei sind auf- und absteigend sortierbar; Standard ist das Sortierfeld A–Z, einheitlich für alle Stapel und nicht gespeichert.
-- Ein Filter zeigt nur Karten ohne aktive Variante; ein Sortierwechsel hebt ihn auf. In den Stapelinhalten startet er auf Wunsch für genau diese Karten dieselbe Variantengenerierung wie die Stapeleinstellungen.
-- Karten lassen sich markieren, aussetzen und mit Flaggen versehen; ausgesetzte Karten bleiben mit unverändertem Datum in der Verwaltung auffindbar.
-- Filter wählen Flagge, Lernbremse und Tags.
-- Große Listen sind blätterbar. Wie große Bestände laden, regelt [Laden großer Bestände](#laden-großer-bestände); Konfliktkarten folgen [Sync-Status und Konflikte](#sync-status-und-konflikte).
+- Die Kartenverwaltung verbindet die [Kartensuche](#kartensuche) mit einer flachen Liste aller Karten; Stapelzeilen, Auf- und Zuklappen und das Stapelmenü gibt es dort nicht. Stapelaktionen bleiben in `Heute`, `Lernen` und den Stapeleinstellungen.
+- Die Tabelle zeigt je Karte nur `Sortierfeld` (bereinigte Vorderseite), `Datum` (`Neu` oder `TT.MM.JJJJ`) und `Variante` (Zahl der aktiven Varianten, ohne Variante ein zugänglich beschrifteter Strich). Alle Spalten sind auf- und absteigend sortierbar; Standard ist `Sortierfeld` A–Z, nicht persistiert. Der Spaltenkopf bleibt beim Scrollen stehen. Ohne Karten zeigt die Liste `Keine Karten`, ohne Treffer `Keine Karten gefunden` mit dem Hinweis, die Suche anzupassen.
+- Ausgesetzte Karten bleiben mit unverändertem Datum sichtbar, sind sichtbar hervorgehoben und tragen die zugängliche Kennzeichnung `Ausgesetzt`. Markierte Karten sind sichtbar und zugänglich als markiert gekennzeichnet. Beides kann gleichzeitig erscheinen.
+- Eine gesetzte Flagge erscheint als Farbpunkt mit zugänglichem Namen.
+- Kartenzeilen sind kompakt (etwa 29 px, eine dünne Trennlinie) und einzeilig: die Vorderseite, ab `sm` rechts daneben gedämpft der Stapelpfad (höchstens 40 % der Breite), beide mit Ellipsen. Umfasst die Liste nur einen Stapel, entfällt der Pfad. `Datum` und `Variante` stehen rechts und bleiben ungekürzt; die Kartenverwaltung erzeugt keinen horizontalen Überlauf.
+- Die Kartenliste ist durchgehend, ohne Seiten: Gerendert werden nur die Zeilen nahe am sichtbaren Bereich. Noch nicht geladene Zeilen halten als ruhige Platzhalter ihren Platz und füllen sich beim Scrollen.
+- Die Tabelle zeigt mit und ohne Suche eine flache Liste aller Karten beziehungsweise Treffer im Bereich (alle Stapel, in geöffneten Stapelinhalten deren Unterstapel) in der gewählten Sortierung. Mit Suche stehen Stapel, deren Pfad jedes Suchwort enthält, stehen über der Liste als `Passende Stapel`; ein Klick filtert auf diesen Stapel.
+- Bis die Seite einer geänderten Suche oder Sortierung da ist, bleiben die bisherigen Zeilen gedimmt stehen und unter dem Spaltenkopf läuft der Ladebalken der Statistik; `Keine Karten` erscheint erst mit der Antwort.
+- Mehrfachauswahl: `Karten auswählen` im Kopf der ersten Spalte, Strg- oder Cmd-Klick, Umschalt-Klick (Bereich der geladenen Zeilen seit der zuletzt gewählten) oder Langdrücken (500 ms) auf Touch starten die Auswahl. Solange sie läuft, trägt jede Kartenzeile ein Kontrollkästchen, ein Klick wählt statt zu öffnen, und eine Auswahlleiste ersetzt die Sortierköpfe: Anzahl, `Alle N Karten auswählen` (mit Suche `Alle N Treffer auswählen`), `Aktionen` und `Auswahl aufheben`. Eine neue Suche oder ein anderer Bereich hebt die Auswahl auf; aus der Lernsitzung geöffnet gibt es keine Auswahl.
+- `Aktionen` bietet `Stapel ändern`, `Tags hinzufügen`, `Tags entfernen`, `Flagge setzen`, `Flagge entfernen`, `Markieren`, `Markierung entfernen`, `Aussetzen`, `Reaktivieren`, `Zurückstellen`, `Fälligkeit setzen` (Datum oder Zeitraum; jede Karte bekommt einen zufälligen Tag darin), `Lernstand zurücksetzen`, `Varianten generieren` (für ausgewählte Karten ohne Variante, wie die Stapelgenerierung) und `Löschen` (die Inhalte der Karten samt ihrer weiteren Karten). Jede Aktion fragt ab einer Karte nach und meldet danach `<Aktion>: N Karten` mit `Rückgängig`. Rückgängig ist eine neue Änderung: Karten, die seither anders geändert wurden, behalten ihren neuen Stand, und die Meldung nennt ihre Zahl. Flagge, Aussetzen und Stapel gelten je Karte, Markierung und Tags für den Inhalt. Offline wirken Massenaktionen nur auf Karten, die auf dem Gerät liegen; sonst meldet die Aktion, dass die Karten noch nicht offline verfügbar sind, und ändert nichts.
+- Tastenkürzel der Liste: `/` setzt den Fokus in die Suche; auf einer Kartenzeile wechseln ↑/↓ die Zeile, Enter öffnet die Karte, `X` wählt sie aus oder ab (mit Umschalt einen Bereich), Escape hebt die Auswahl auf. `1`–`7` setzt eine Flagge, `0` entfernt sie, `M` markiert oder entfernt die Markierung, `A` setzt aus oder reaktiviert, `S` ändert den Stapel, `T` fügt Tags hinzu, `Entf` löscht; jede Taste öffnet die Bestätigung der Aktion für die Auswahl oder, ohne Auswahl, für die Karte der Zeile, die danach den Fokus zurückbekommt. Strg+Z (⌘Z) nimmt außerhalb von Textfeldern die letzte Massenaktion zurück. In Dialogen, Menüs, Textfeldern und im Editor gelten deren eigene Tasten; Browser-Kürzel bleiben unberührt. `Aktionen` nennt die Taste neben jedem Eintrag.
+- `Suchen und Ersetzen` (in `Aktionen` nach `Stapel ändern`) ersetzt wörtlichen Text in den Inhalten der ausgewählten Karten, ohne reguläre Ausdrücke: in `Alle Felder`, einem Feld der ausgewählten Inhalte oder `Tags`, wahlweise mit `Groß-/Kleinschreibung beachten`. Ersetzt wird nur sichtbarer Text, nie Formatierung oder Links. Während der Eingabe zeigt die Vorschau, wie viele Karten sich ändern, und bis zu 20 Inhalte mit Stelle, altem und neuem Text. Ein Inhalt, dessen Karten sich dadurch ändern würden (etwa eine andere Lückennummer), bleibt unverändert und wird gezählt. Das Ersetzen in Feldern gilt als lokale Bearbeitung: Ein Reimport überschreibt den Inhalt nicht mehr, Varianten geänderter Abfragen werden veraltet, der Lernstand bleibt. `Rückgängig` stellt den früheren Text her, außer bei Inhalten, die seither bearbeitet wurden.
+- `Treffer lernen` steht bei einer Suche am Ende der Trefferzeile, `Auswahl lernen` in `Aktionen`. Gelernt werden die Treffer beziehungsweise die ausgewählten Karten ohne ausgesetzte und heute zurückgestellte, unabhängig von Fälligkeit und Tageslimits. Der Startdialog nennt die Kartenzahl und bietet `Vorziehen` (Standard) oder `Nur üben` sowie die Reihenfolge `Wie die Liste` (die aktuelle Sortierung) oder `Gemischt`. Mit `Vorziehen` startet `Lernen` eine normale Sitzung `Treffer lernen` mit gespeicherten Bewertungen. Noch nicht fällige Karten zählen als vorgezogene Wiederholung, FSRS rechnet mit den tatsächlich vergangenen Tagen. Jede Karte folgt den Optionen ihres Stapels; Geschwister werden in dieser Sitzung nicht zurückgestellt. Die Bewertungen verbrauchen keine Tageslimits für neue Karten und Wiederholungen. Nach einem Neuladen ist die Sitzung beendet und meldet das.
+- `Nur üben` läuft als Vollbild über der Kartenverwaltung wie eine Sitzung (Frage, `Antwort anzeigen`, Bewerten, Tasten wie beim Lernen, `Escape` beendet). `Nochmal` holt die Karte nach drei anderen zurück, `Schwer` noch einmal ans Ende, `Gut` und `Leicht` beenden sie für diese Übung; der Fortschritt zählt gewusste Karten. Lernstand, Fälligkeit, FSRS-Werte und Lernbremse bleiben unverändert, es entsteht kein Bewertungseintrag. Am Ende stehen `Übung abgeschlossen`, die Zahl der geübten Karten und der `Nochmal`-Antworten, `Nochmal üben` für Karten mit `Nochmal` oder `Schwer` und `Fertig`.
+- `Duplikate finden` im Kopf der Kartenverwaltung vergleicht die Inhalte der Liste nach `Sortierfeld` oder einem Feld (Name wie bei `Feld:`-Suchen), ohne Groß-/Kleinschreibung und mehrfache Leerzeichen; leere Felder zählen nicht. Bei einer Suche ist `Nur in den Treffern` vorausgewählt. Der Dialog nennt Gruppen und Inhalte, größte Gruppen zuerst; ein Inhalt öffnet im Editor (dort auch `Löschen`). `Duplikate taggen` gibt allen Inhalten der Gruppen den Tag `Duplikat` und meldet das mit `Rückgängig`. Die Suche braucht alle Karten auf dem Gerät; solange der Abgleich läuft, meldet der Dialog das mit `Erneut versuchen`.
+- `Tags verwalten` steht in der erweiterten Suche über den Tags und gilt für das ganze Konto. Die Liste lässt sich durchsuchen und nennt je Tag die Zahl der Inhalte und, wie viele davon ihn aus einem Import tragen. `Umbenennen` nimmt die Untertags mit (`A::x` wird `B::x`); ein vorhandener Name führt zusammen, der Dialog sagt das vorher, die vorhandene Schreibweise bleibt. `Löschen` entfernt den Tag samt Untertags nach einer Bestätigung in der Zeile. Beides läuft als Massenaktion mit `Rückgängig`; die Liste zeigt die Änderung sofort, das vollständige Verzeichnis aus der Cloud beim nächsten Öffnen. Ungenutzte Tags gibt es nicht: Tags existieren nur an Inhalten, ein `Bereinigen` entfällt deshalb.
+- Wie große Bestände laden, regelt [Laden großer Bestände](#laden-großer-bestände); Konfliktkarten folgen [Sync-Status und Konflikte](#sync-status-und-konflikte).
 
 Grenzen:
 
@@ -687,14 +698,16 @@ Einen Direkteinstieg zur Kartenerstellung gibt es dort nicht.
 
 Verhalten:
 
-- Die Suche umfasst Stapelpfad, alle Felder, Antwortoptionen und Tags; Ergebnisse älterer Eingaben überschreiben nie neuere.
-- Die Suche versteht Begriffe in Anki-Schreibweise: `flag:1` bis `flag:7` (`flag:0` ohne Flagge), `tag:x` (auch Unter-Tags, ohne Rücksicht auf Groß-/Kleinschreibung), `tag:none`, `tag:leech` (Lernbremse), `tag:marked` und `is:suspended`; ein vorangestelltes `-` verneint einen Begriff.
-- Alle Begriffe müssen zutreffen, der übrige Text sucht als Freitext. Online- und Offline-Suche liefern dieselben Treffer.
-- Während einer Suche sind Stapel mit Treffern aufgeklappt; die gespeicherten Aufklappzustände bleiben unverändert.
+- Die Suchzeile ist einzeilig: Suchfeld `Karten durchsuchen`, ab `md` daneben der Stapelfilter (`Alle Stapel` oder ein Stapel samt Unterstapeln) und rechts `Erweiterte Suche` mit der Zahl der aktiven Filter; schmal bleibt dort nur das Filter-Icon. Das Suchfeld zeigt nur den freien Text; fertig getippte Begriffe wie `tag:x ` werden zu Filtern.
+- Unter der Suchzeile stehen bei aktiven Filtern die Trefferzahl, je Filter ein Chip aus Kategorie und Wert (verneint als `ohne <Kategorie>` in Gefahrfarbe) mit Entfernen-Knopf sowie `Alle zurücksetzen`. Ein geöffnetes Menü steht über den Chips, damit neue Chips es nicht verschieben.
+- `Erweiterte Suche` öffnet unter der Suchzeile ein Menü mit dem vollständigen Suchausdruck samt Kopier- und Speicherknopf, `Zurücksetzen` und den Kategorien `Heute` (fällig, überfällig, morgen fällig, gelernt, `Nochmal`, erstmals gelernt, hinzugefügt, bearbeitet, neu geplant), `Kartenstatus` (mit `Manuell zurückgestellt`), `Flaggen`, `Stapel`, `Tags` (als Baum, mit `Ohne Tags`), `Inhalt` (Variante, veraltete Variante, die Inhaltsformen `Frage–Antwort`, `Auswahl`, `Lückentext`, `Bildverdeckung`, `Abfrage 1 (vorwärts)`, `Abfrage 2 (rückwärts)` und je Anki-Notiztyp eine Zeile `Notiztyp <Name>`, gleichnamige zusammengefasst), `Zeitraum`, `Werte`, `Felder` und `Gespeichert & Syntax`; jede Kategorie zählt ihre aktiven Filter. Jede Zeile trägt einen Dreifachschalter `Mit`/`Egal`/`Ohne` und, außer bei Stapeln, ihren Begriff. `Zeitraum` fügt einen Begriff für die letzten N Tage hinzu (gelernt, je Bewertung, erstmals gelernt, hinzugefügt, bearbeitet, neu geplant), `Werte` einen Vergleich für Intervall, Schwierigkeit, Wiederholungen oder Fehler, `Felder` einen Begriff `Feld:Text`; darunter stehen die so geschriebenen Begriffe mit eigenem Schalter, Chips nennen sie lesbar (`Nochmal, letzte 7 Tage`, `Intervall ≥ 21 Tage`). `Gespeichert & Syntax` zeigt oben die gespeicherten Suchen und darunter die Erklärung der Schreibweise. Unter `md` ist das Menü ein Vollbild: erst die Kategorienliste, dann die Kategorie mit Zurück-Pfeil, unten Zurücksetzen und `N Karten anzeigen`.
+- Die Suche umfasst alle Felder, Antwortoptionen und Tags (Stapelpfade über `Passende Stapel`), startet 250 ms nach der letzten Eingabe und bricht veraltete Anfragen ab. Einen Modusfilter gibt es nicht.
+- Die Suche versteht Begriffe in Anki-Schreibweise: `flag:1` bis `flag:7` (`flag:0` ohne Flagge), `tag:x` (auch Unter-Tags, ohne Rücksicht auf Groß-/Kleinschreibung), `tag:none`, `tag:leech` (Lernbremse), `tag:marked`, `is:suspended`, `is:new`, `is:learn` (auch Wiederlernen), `is:review`, `is:young` und `is:mature` (Reife `Jung` beziehungsweise `Reif`), `is:due` (bis Ende des Lerntags fällig und lernbar), `prop:due` mit `<`, `<=`, `=`, `>=`, `>` und Tagen ab heute (`prop:due<0` überfällig, `prop:due=1` morgen fällig; neue Karten sind nie fällig), `did:<Stapel-ID>` und `deck:Name` (Stapel nach vollem Pfad `A::B` samt Unterstapeln, `*` beliebiger Text, `_` ein Zeichen), `has:variant` (mit aktiver Variante), `added:n`, `edited:n`, `introduced:n` (erste Antwort) und `resched:n` (manuell neu geplant) für heute und die n − 1 Tage davor, `rated:n` und `rated:n:1` bis `rated:n:4` (beantwortet, mit `Nochmal`, `Schwer`, `Gut`, `Einfach`), `prop:ivl`, `prop:d` (Schwierigkeit 1 bis 10), `prop:s` (Haltbarkeit in Tagen), `prop:reps` und `prop:lapses` mit `<`, `<=`, `=`, `!=`, `>=`, `>` (Intervall, Schwierigkeit und Haltbarkeit nur für Karten, die nicht neu sind; die Haltbarkeit kennt eine Karte erst ab ihrer nächsten Antwort), die Inhaltsformen `is:reveal`, `is:choice`, `is:cloze`, `is:occlusion`, `note:Name` (Anki-Notiztyp mit denselben Platzhaltern wie `deck:`, Leerzeichen als `_`) und `mid:<Notiztyp-ID>`, `has:outdated` (mit veralteter Variante), `card:N` (Nummer der Abfrage wie in Anki: Vorlage, Lücke oder Maske; `forward` ist 1, `reverse` 2), `is:buried` (heute manuell zurückgestellt und nicht wieder hervorgeholt; zurückgestellte Geschwister entstehen erst in der Lernsitzung und zählen nicht) und `Feld:Text` (Text nur in dem Feld dieses Namens, ohne Rücksicht auf Groß-/Kleinschreibung, Leerzeichen im Feldnamen als `_`, etwa `ursprung:scaleni` oder `back_extra:merke`); ein vorangestelltes `-` verneint einen Begriff. Jedes Wort und jeder Begriff muss zutreffen. `"…"` sucht eine Wortfolge am Stück und fasst Begriffe mit Leerzeichen zusammen (`deck:"Anatomie 1"`); `or` verlangt nur eine Seite und bindet schwächer als das Nebeneinander (`and` ist erlaubt und ändert nichts); Klammern fassen zusammen, `-(…)` verneint eine ganze Gruppe. Im Menü verlangen mehrere Zeilen einer Kategorie auf `Mit` nur eine davon: Sie stehen als Gruppe `(a or b)` im Ausdruck und als ein Filter `a oder b`. Eine Suche, die über 1.024 Bedingungen ergäbe, findet nichts. Lerntag und Stapelbaum gehen aufgelöst in die Anfrage, daher liefern Online- und Offline-Suche dieselben Treffer. Weitere Anki-Begriffe wie `prop:r` oder `card:Name` nennt eine Zeile unter der Suche als noch nicht unterstützt; sie werden als Text gesucht.
+- Gespeicherte Suchen gehören zum Konto und synchronisieren mit den Oberflächeneinstellungen (höchstens 100, Name höchstens 60 Zeichen). Der Speicherknopf am Suchausdruck öffnet `Gespeichert & Syntax` mit einem Namensfeld, vorbelegt mit den lesbaren Filtern und dem Text; `Speichern` legt die Suche an und bestätigt es. Ein Klick auf eine gespeicherte Suche ersetzt den Suchausdruck; die gerade aktive ist markiert. Relative Begriffe wie `rated:1` gelten beim Anwenden für den jeweiligen Tag. Umbenennen geschieht in der Zeile, Löschen sofort mit `Rückgängig` in der Meldung.
 
 Grenzen:
 
-Einen Modusfilter gibt es nicht.
+Einen Modusfilter und reguläre Ausdrücke gibt es nicht.
 
 ### Karten löschen
 
@@ -719,8 +732,9 @@ Aus der Kartenverwaltung öffnet `Allgemein`, aus einer Sitzung (mit validiertem
 
 Verhalten:
 
+- Ab 1280 px Breite öffnet der Editor in der Kartenverwaltung neben der Liste (Suchzeile darüber, Liste links, Editor rechts in voller Fensterhöhe, beim Scrollen der Liste stehend); die Liste bleibt bedienbar, behält Auswahl und Scrollposition, und ein Klick auf eine andere Zeile wechselt die Karte. Darunter und außerhalb der Kartenliste (etwa aus einer Sitzung) bleibt er ein Dialog über der Ansicht.
 - Stapel, Karte und Reiter sind Teil des Links; nur bekannte Reiter sind erlaubt. Reload und Browser-Zurück/-Vorwärts bleiben deterministisch, ein Reiterwechsel fragt nie nach.
-- Aus der Kartenverwaltung blättert der Editor durch die geladenen Treffer und lädt am Listenende nach; ohne Trefferliste, etwa aus einer Sitzung, entfällt das Blättern.
+- Aus der Kartenverwaltung blättert der Editor mit Vor/Zurück durch alle Zeilen der Tabelle in ihrer Reihenfolge (`12 / 48`); eine noch nicht geladene Zeile öffnet, sobald ihre Seite da ist, die benachbarten Treffer werden vorgeladen, und die Zeile der geöffneten Karte rückt beim Wechsel in den sichtbaren Bereich. Ohne Trefferliste, etwa aus einer Sitzung, entfällt das Blättern.
 - Der Editor nennt den Status der Karte (Markierung, Flagge, Aussetzung, Lernbremse) und bietet Duplizieren und Löschen.
 - Die Reiter lauten `Allgemein`, `Inhalt`, `Varianten` und `Lernen`.
 - Speichern, Flagge, Markierung und der Wechsel zur vorigen oder nächsten Karte haben Tastenkürzel.
@@ -1321,7 +1335,7 @@ Die Stapeleinstellungen sind ein eigener Dialog im Rahmen des [Einstellungsdialo
 
 Einstieg:
 
-`Einstellungen` in den [Stapeloptionen](#stapeloptionen-verschieben-und-löschen) in Dashboard, `Lernen` und Kartenverwaltung, das [Sitzungs-Overlay](#sitzungs-overlay), der Hinweis auf ein erreichtes Tageslimit und die Zeile `Stapeleinstellungen` unter `Einstellungen → Tagesrunde & Lernprofile`. Aus dem Karteneditor wird zuerst die Karte verlassen.
+`Einstellungen` in den [Stapeloptionen](#stapeloptionen-verschieben-und-löschen) in Dashboard und `Lernen`, das [Sitzungs-Overlay](#sitzungs-overlay), der Hinweis auf ein erreichtes Tageslimit und die Zeile `Stapeleinstellungen` unter `Einstellungen → Tagesrunde & Lernprofile`. Aus dem Karteneditor wird zuerst die Karte verlassen.
 
 Verhalten:
 
@@ -1346,7 +1360,7 @@ Hilfe und Simulator erklären und erproben die Lernlogik, ohne Lernstände durch
 
 Zweck:
 
-Ein Einstieg und zwei geführte Geschichten erklären wechselnde Abrufreize und die FSRS-Kurve, ohne Workspace oder Scheduler zu verändern. Der Nachschlageteil erklärt außerdem, wie eine Prüfungssitzung abläuft.
+Ein Einstieg und zwei geführte Geschichten erklären wechselnde Abrufreize und die FSRS-Kurve, ohne Workspace oder Scheduler zu verändern. Der Nachschlageteil erklärt außerdem, wie eine Prüfungssitzung abläuft und wie die Kartenverwaltung arbeitet (Suche, Auswahl und Massenaktionen, Pflegewerkzeuge, `Treffer lernen`, Tastenkürzel).
 
 Einstieg:
 
@@ -1693,7 +1707,7 @@ Zustände und Meldungen:
 
 Verhalten:
 
-- Die Kartenverwaltung zeigt lokal vorhandene Vorschauseiten sofort und ergänzt online serverseitige Suche, Sortierung und seitenweises Laden; jeder aufgeklappte Stapel blättert unabhängig, und erst das Öffnen einer Karte lädt ihren vollständigen Inhalt.
+- Ist der Katalog auf dem Gerät vollständig, sucht, sortiert und blättert die Kartenverwaltung lokal über alle Felder, Antwortoptionen und Tags, online wie offline und ohne Warten auf die Cloud. Solange er unvollständig ist, zeigt sie vorhandene 50er-Previewseiten sofort und ergänzt online serverseitige Suche, Sortierung und Keyset-Pagination; die erste Suchseite aller aufgeklappten Stapel kommt in einer Anfrage, danach blättert jeder Stapel unabhängig weiter; erst Öffnen lädt den Kartenkörper, bei Fehlern bleiben Preview und Wiederholen sichtbar. Offline durchsucht CoRe transparent nur den vorhandenen Katalog; der Hinweis darauf erscheint nur offline oder nach einem Cloudfehler, nie für eine durch neue Eingabe ersetzte Anfrage.
 - Offline durchsucht CoRe transparent nur den vorhandenen Katalog.
 - App-Start, Kartenliste und Lernstart laden keine vollständigen Stapel.
 
@@ -1720,7 +1734,7 @@ Zustände und Meldungen:
 Verhalten:
 
 - Wird der Browserspeicher knapp, entfernt CoRe nur bestätigte Karteninhalte und Medien, die nicht offline verfügbar gemacht wurden; ausstehende Änderungen, Konflikte, Downloads und aktive Lernkarten bleiben. Die Schwellen regelt [`architecture.md`](architecture.md#persistenz-sync-und-medien).
-- Nach lokaler Bereitschaft dürfen Stapelübersicht und Kartenverwaltung vorsichtig vorbereitet werden; Datensparmodus, langsame Verbindung, unsichtbarer Tab oder Interaktion stoppen das. Andere Bereiche lädt CoRe erst bei absehbarer Nutzung vor, APKG, PDF, Statistik, Simulator und große Medien nie pauschal.
+- Nach lokaler Bereitschaft lädt CoRe Lernen und Kartenverwaltung herunter, ohne sie schon auszuführen; Datensparmodus, langsame Verbindung, unsichtbarer Tab oder Interaktion stoppen das. Ausgeführt wird ein Bereich erst bei absehbarer Nutzung (Zeigen, Fokus oder Berühren seines Menüpunkts) oder beim Aufruf. Ein geöffneter Bereich lädt seine Unterbereiche, etwa Zusammenfassungen und Mindmaps, im Leerlauf herunter. Andere Bereiche lädt CoRe erst bei absehbarer Nutzung vor, APKG, PDF, Statistik, Simulator und große Medien nie pauschal.
 - Die Einstellungen zeigen, ob der Speicher dauerhaft ist, sowie belegten und verfügbaren Platz. Die App-Hülle ist offline verfügbar; Medien bleiben selektiv, und ohne dauerhafte Speicherfreigabe kann der Browser Daten entfernen.
 
 Zustände und Meldungen:

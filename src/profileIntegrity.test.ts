@@ -14,9 +14,9 @@ const cloudProfile: Profile = {
   uiPreferences: {
     dashboardCollapsedDeckIds: [],
     learnCollapsedDeckIds: [],
-    deckManagerExpandedDeckIds: [],
     syncIntervalMinutes: 5,
     flagNames: ["", "", "", "", "", "", ""],
+    savedSearches: [],
   },
 };
 

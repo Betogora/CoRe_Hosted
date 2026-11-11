@@ -1,5 +1,5 @@
 import { cardStudyFromReviewState, createBasicNote, createCoreDeck, createReviewState } from "../coreModel.ts";
-import { getMaturityBand, simulateRatingOutcome } from "../scheduler.ts";
+import { getDurabilityDays, getMaturityBand, simulateRatingOutcome } from "../scheduler.ts";
 import worldCapitalsSource from "../../library/world-capitals/world-capitals.source.json" with { type: "json" };
 import type { Card, Deck, DeckAppearance, Note, ReviewEvent, ReviewRating, ReviewState } from "../coreTypes.ts";
 import type { ImportCommitGraph } from "../apkgImport.ts";
@@ -229,6 +229,7 @@ function createFinalReviewState({ profile, cardIndex, eventCount, firstReviewedA
     reps: eventCount,
     lapses: typeof profile.lapses === "function" ? profile.lapses(cardIndex) : 0,
     maturityBand: getMaturityBand({ state: "review", stability: profile.stability(cardIndex), stabilityFast: profile.stability(cardIndex), difficulty: profile.difficulty(cardIndex) }),
+    durabilityDays: getDurabilityDays({ state: "review", stability: profile.stability(cardIndex), stabilityFast: profile.stability(cardIndex), difficulty: profile.difficulty(cardIndex) }),
     lastReviewedAt,
     lastRating: "good",
     firstLearningAt: firstReviewedAt,

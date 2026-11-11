@@ -15,18 +15,36 @@ export type Database = {
           active_variant_id: string | null
           anki_flag: number
           body_revision: number
+          content_kind: string
           created_at: string
           deck_id: string
           deleted_at: string | null
           dependency_revision: number
+          difficulty: number
           due_at: string | null
+          durability_days: number | null
+          edited_at: string | null
+          first_reviewed_at: string | null
           front_preview: string
           has_active_variants: boolean
+          has_outdated_variants: boolean
           id: string
+          interval_days: number
+          lapses: number
+          last_again_at: string | null
+          last_buried_at: string | null
+          last_easy_at: string | null
+          last_good_at: string | null
+          last_hard_at: string | null
+          last_rescheduled_at: string | null
+          last_unburied_at: string | null
           leeched: boolean
           marked: boolean
           maturity_band: string
           note_id: string
+          note_type_id: string | null
+          prompt_ordinal: number | null
+          reps: number
           reviewable: boolean
           schedule_state: string
           sort_text: string
@@ -41,18 +59,36 @@ export type Database = {
           active_variant_id?: string | null
           anki_flag?: number
           body_revision?: number
+          content_kind?: string
           created_at: string
           deck_id: string
           deleted_at?: string | null
           dependency_revision?: number
+          difficulty?: number
           due_at?: string | null
+          durability_days?: number | null
+          edited_at?: string | null
+          first_reviewed_at?: string | null
           front_preview?: string
           has_active_variants?: boolean
+          has_outdated_variants?: boolean
           id: string
+          interval_days?: number
+          lapses?: number
+          last_again_at?: string | null
+          last_buried_at?: string | null
+          last_easy_at?: string | null
+          last_good_at?: string | null
+          last_hard_at?: string | null
+          last_rescheduled_at?: string | null
+          last_unburied_at?: string | null
           leeched?: boolean
           marked?: boolean
           maturity_band?: string
           note_id: string
+          note_type_id?: string | null
+          prompt_ordinal?: number | null
+          reps?: number
           reviewable?: boolean
           schedule_state?: string
           sort_text?: string
@@ -67,18 +103,36 @@ export type Database = {
           active_variant_id?: string | null
           anki_flag?: number
           body_revision?: number
+          content_kind?: string
           created_at?: string
           deck_id?: string
           deleted_at?: string | null
           dependency_revision?: number
+          difficulty?: number
           due_at?: string | null
+          durability_days?: number | null
+          edited_at?: string | null
+          first_reviewed_at?: string | null
           front_preview?: string
           has_active_variants?: boolean
+          has_outdated_variants?: boolean
           id?: string
+          interval_days?: number
+          lapses?: number
+          last_again_at?: string | null
+          last_buried_at?: string | null
+          last_easy_at?: string | null
+          last_good_at?: string | null
+          last_hard_at?: string | null
+          last_rescheduled_at?: string | null
+          last_unburied_at?: string | null
           leeched?: boolean
           marked?: boolean
           maturity_band?: string
           note_id?: string
+          note_type_id?: string | null
+          prompt_ordinal?: number | null
+          reps?: number
           reviewable?: boolean
           schedule_state?: string
           sort_text?: string
@@ -514,6 +568,44 @@ export type Database = {
           },
         ]
       }
+      note_search: {
+        Row: {
+          deleted_at: string | null
+          note_id: string
+          search_fields: Json
+          search_text: string
+          sync_change_id: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          deleted_at?: string | null
+          note_id: string
+          search_fields?: Json
+          search_text?: string
+          sync_change_id?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          deleted_at?: string | null
+          note_id?: string
+          search_fields?: Json
+          search_text?: string
+          sync_change_id?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "note_search_note_owner_fk"
+            columns: ["user_id", "note_id"]
+            isOneToOne: true
+            referencedRelation: "notes"
+            referencedColumns: ["user_id", "id"]
+          },
+        ]
+      }
       note_sources: {
         Row: {
           created_at: string
@@ -621,6 +713,7 @@ export type Database = {
           media: Json
           note_type_source_id: string | null
           revision: number
+          search_fields: Json
           search_text: string
           sort_text: string
           source: string
@@ -643,6 +736,7 @@ export type Database = {
           media?: Json
           note_type_source_id?: string | null
           revision?: number
+          search_fields?: Json
           search_text?: string
           sort_text?: string
           source: string
@@ -665,6 +759,7 @@ export type Database = {
           media?: Json
           note_type_source_id?: string | null
           revision?: number
+          search_fields?: Json
           search_text?: string
           sort_text?: string
           source?: string
@@ -1002,6 +1097,7 @@ export type Database = {
           p_deck_id: string
           p_include_total?: boolean
           p_limit?: number
+          p_offset?: number
           p_query?: string
           p_sort_direction?: string
           p_sort_field?: string

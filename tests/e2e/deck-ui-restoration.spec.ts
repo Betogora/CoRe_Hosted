@@ -88,7 +88,8 @@ test("Stapelinhalte behalten aktuelle Reiter und Lernaktion ohne zusätzliche K�
   await expect(product.getByTestId("deck-mindmaps-panel")).toBeVisible();
   await expect(product.getByTestId("deck-content-study")).toBeVisible();
   await page.getByRole("button", { name: "Produktansicht schließen", exact: true }).click();
-  await page.getByRole("button", { name: "Kartenverwaltung öffnen", exact: true }).click();
+  // The card management lists cards only (KV3b); deck icons live in Lernen.
+  await page.getByRole("button", { name: "Lernen öffnen", exact: true }).click();
   const icons = product.locator("[data-deck-icon]");
   await expect(icons.first()).toBeVisible();
   expect(await icons.evaluateAll((elements) => elements.every((element) => {
@@ -124,6 +125,10 @@ for (const theme of matrixThemes) {
       };
       await page.getByRole("button", { name: "Lernen öffnen", exact: true }).click();
       await capture("learn-list");
+      await product.getByRole("button", { name: "Stapeloptionen für Welt-Hauptstädte", exact: true }).click();
+      await expect(page.getByTestId("deck-move-button-catalog-world")).toBeVisible();
+      await capture("menu");
+      await page.keyboard.press("Escape");
       await product.getByRole("button", { name: "Als Kacheln anzeigen", exact: true }).click();
       await capture("learn-tiles");
       await product.getByRole("button", { name: "Unterstapel von Welt-Hauptstädte öffnen", exact: true }).click();
@@ -143,10 +148,6 @@ for (const theme of matrixThemes) {
       await close.click();
       await page.getByRole("button", { name: "Kartenverwaltung öffnen", exact: true }).click();
       await capture("cards");
-      await product.getByRole("button", { name: "Stapeloptionen für Welt-Hauptstädte", exact: true }).click();
-      await expect(page.getByTestId("deck-move-button-catalog-world")).toBeVisible();
-      await capture("menu");
-      await page.keyboard.press("Escape");
       await close.click();
       await page.getByRole("button", { name: "Tagesübersicht öffnen", exact: true }).click();
       await capture("dashboard");

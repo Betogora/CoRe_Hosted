@@ -335,6 +335,7 @@ test("lokales Supabase isoliert Nutzer A, Nutzer B und anon über alle accountge
         note_media: { user_id: userA.id, note_id: fixtureA.notes.id, sha1: "e".repeat(40) },
         card_catalog: { user_id: userA.id, id: `${prefix}_forged_catalog`, deck_id: fixtureA.decks.id, note_id: fixtureA.notes.id },
         deck_study_summaries: { user_id: userA.id, deck_id: fixtureA.decks.id },
+        note_search: { user_id: userA.id, note_id: fixtureA.notes.id, search_text: "gefälscht" },
       };
       for (const [table, row] of Object.entries(projectionRows)) {
         assertPostgresError(await clientA.from(table).insert(row), "42501", `${table}: direkter Write auf Projektion`);
@@ -342,6 +343,9 @@ test("lokales Supabase isoliert Nutzer A, Nutzer B und anon über alle accountge
       const ownCatalog = assertNoError(await clientA.from("card_catalog").select("id,note_id").eq("id", fixtureA.cards.id), "eigenen Katalogeintrag lesen");
       assert.deepEqual(ownCatalog, [{ id: fixtureA.cards.id, note_id: fixtureA.notes.id }]);
       assert.deepEqual(assertNoError(await clientB.from("card_catalog").select("id").eq("id", fixtureA.cards.id), "fremden Katalogeintrag lesen"), []);
+      const ownSearch = assertNoError(await clientA.from("note_search").select("note_id,search_text").eq("note_id", fixtureA.notes.id), "eigenen Suchtext lesen");
+      assert.equal(ownSearch.length, 1, "notes pflegt note_search per Trigger");
+      assert.deepEqual(assertNoError(await clientB.from("note_search").select("note_id").eq("note_id", fixtureA.notes.id), "fremden Suchtext lesen"), []);
     });
 
     await t.test("Replica-RPCs liefern ausschließlich Daten des angemeldeten Accounts", async () => {
@@ -378,14 +382,45 @@ test("lokales Supabase isoliert Nutzer A, Nutzer B und anon über alle accountge
       assertNoError(await clientA.from("decks").update({ deck_settings: {} }).eq("id", fixtureA.decks.id), "Begraben wieder ausschalten");
       assertNoError(await clientA.from("cards").update({ deleted_at: new Date().toISOString() }).eq("id", siblingId), "Geschwister entfernen");
 
-      const deltaA = assertNoError(await clientA.rpc("pull_account_catalog_delta", { p_cursor: 0, p_limit: 500, p_max_bytes: 1048576 }), "Katalog-Delta für Nutzer A");
+      // KV5: reviews of `Treffer lernen` change the study state but use up no daily limit.
+      const hitCardId = `${prefix}_hit_card`;
+      assertNoError(await clientA.from("cards").insert({ ...fixtureA.cards, id: hitCardId, prompt_key: "hit" }), "Karte für Treffer lernen anlegen");
+      assertNoError(await clientA.from("review_events").insert({ ...fixtureA.review_events, id: `${prefix}_hit_review`, card_id: hitCardId, flags: { kind: "hit_review" } }), "Bewertung aus Treffer lernen anlegen");
+      const hitOverview = assertNoError(await clientA.rpc("get_account_bootstrap", { p_cursor: "", p_limit: 50, p_max_bytes: 204800 }), "Bootstrap nach Treffer lernen").studyOverview;
+      assert.equal(hitOverview.introducedTodayByDeck[fixtureA.decks.id], 1, "Treffer lernen führt keine neue Karte im Tageslimit ein");
+      assert.equal(hitOverview.reviewedTodayByDeck[fixtureA.decks.id] ?? 0, 0, "Treffer lernen zählt keine Wiederholung im Tageslimit");
+      assertNoError(await clientA.from("cards").update({ deleted_at: new Date().toISOString() }).eq("id", hitCardId), "Karte für Treffer lernen entfernen");
+
+      // The delta is paged like the real sync; the fixture's catalog and search rows exceed one page.
+      const pullDelta = async (cursor: number, label: string) => {
+        const changes: any[] = [];
+        for (let next = cursor, more = true; more;) {
+          const page = assertNoError(await clientA.rpc("pull_account_catalog_delta", { p_cursor: next, p_limit: 500, p_max_bytes: 1048576 }), label);
+          changes.push(...page.changes);
+          next = page.nextCursor;
+          more = page.hasMore;
+          if (!more) return { changes, nextCursor: next };
+        }
+        return { changes, nextCursor: cursor };
+      };
+      const deltaA = await pullDelta(0, "Katalog-Delta für Nutzer A");
       assert.ok(deltaA.changes.length > 0);
       assert.ok(deltaA.changes.every((entry: any) => entry.row.user_id === userA.id));
       assert.ok(deltaA.changes.some((entry: any) => entry.table === "note_type_sources" && entry.row.id === fixtureA.note_type_sources.id), "Anki-Vorlagen laufen durch den Katalog-Delta-Sync");
       // A reimport replaces the template; the new cursor position brings it to other devices.
       assertNoError(await clientA.from("note_type_sources").update({ definition: { kind: 0, verified: true, css: ".neu{}" } }).eq("id", fixtureA.note_type_sources.id), "Vorlage per Reimport ersetzen");
-      const sourceDelta = assertNoError(await clientA.rpc("pull_account_catalog_delta", { p_cursor: deltaA.nextCursor, p_limit: 500, p_max_bytes: 1048576 }), "Katalog-Delta nach geänderter Vorlage");
+      const sourceDelta = await pullDelta(deltaA.nextCursor, "Katalog-Delta nach geänderter Vorlage");
       assert.deepEqual(sourceDelta.changes.filter((entry: any) => entry.table === "note_type_sources").map((entry: any) => entry.row.definition.css), [".neu{}"]);
+      assert.ok(deltaA.changes.some((entry: any) => entry.table === "note_search" && entry.row.note_id === fixtureA.notes.id), "Suchtexte laufen durch den Katalog-Delta-Sync");
+      // Only a changed text brings a new search row; other note changes such as the mark do not.
+      assertNoError(await clientA.from("notes").update({ marked: true }).eq("id", fixtureA.notes.id), "Inhalt markieren");
+      const markDelta = await pullDelta(sourceDelta.nextCursor, "Katalog-Delta nach Markierung");
+      assert.equal(markDelta.changes.filter((entry: any) => entry.table === "note_search").length, 0);
+      const [{ search_text: originalText }] = assertNoError(await clientA.from("notes").select("search_text").eq("id", fixtureA.notes.id), "Suchtext lesen");
+      assertNoError(await clientA.from("notes").update({ search_text: "neuer volltext a" }).eq("id", fixtureA.notes.id), "Suchtext ändern");
+      const textDelta = await pullDelta(markDelta.nextCursor, "Katalog-Delta nach neuem Text");
+      assert.deepEqual(textDelta.changes.filter((entry: any) => entry.table === "note_search").map((entry: any) => entry.row.search_text), ["neuer volltext a"]);
+      assertNoError(await clientA.from("notes").update({ search_text: originalText }).eq("id", fixtureA.notes.id), "Suchtext zurücksetzen");
 
       const catalogRequest = { p_deck_id: fixtureA.decks.id, p_query: "", p_sort_field: "sortField", p_sort_direction: "asc", p_cursor: null, p_limit: 50 };
       const catalogA = assertNoError(await clientA.rpc("list_account_card_catalog", catalogRequest), "Kartenkatalog für Nutzer A");
@@ -394,7 +429,81 @@ test("lokales Supabase isoliert Nutzer A, Nutzer B und anon über alle accountge
       const searchA = assertNoError(await clientA.rpc("list_account_card_catalog", { ...catalogRequest, p_query: "antwort a" }), "Volltextsuche für Nutzer A");
       assert.ok(searchA.items.some((entry: any) => entry.id === fixtureA.cards.id), "Die Suche findet auch Text der Antwort");
       assert.deepEqual(assertNoError(await clientB.rpc("list_account_card_catalog", catalogRequest), "fremden Kartenkatalog für Nutzer B").items, []);
+      // The flat hit list (KV3) reads across decks: no p_deck_id, the scope comes as a deck term.
+      const flatRequest = (ids: string[]) => ({ ...catalogRequest, p_deck_id: null, p_include_total: true, p_terms: [{ kind: "deck", ids, negated: false }] });
+      const flatA = assertNoError(await clientA.rpc("list_account_card_catalog", flatRequest([fixtureA.decks.id, fixtureB.decks.id])), "flache Trefferliste für Nutzer A");
+      assert.ok(flatA.items.some((entry: any) => entry.id === fixtureA.cards.id));
+      assert.ok(flatA.items.every((entry: any) => entry.user_id === undefined || entry.user_id === userA.id), "nur eigene Karten, auch wenn ein fremder Stapel im Bereich steht");
+      assert.equal(flatA.items.some((entry: any) => entry.id === fixtureB.cards.id), false);
+      assert.equal(flatA.totalCount, flatA.items.length);
+      assert.deepEqual(assertNoError(await clientA.rpc("list_account_card_catalog", flatRequest(["kein-stapel"])), "flache Liste ohne Stapel").items, []);
+      assert.deepEqual(assertNoError(await clientB.rpc("list_account_card_catalog", flatRequest([fixtureA.decks.id])), "fremde flache Liste für Nutzer B").items, []);
       const searchRequest = { p_deck_ids: [fixtureA.decks.id], p_query: "antwort a", p_sort_field: "sortField", p_sort_direction: "asc", p_limit: 50 };
+      // `Feld:Text` reads the field texts of note_search, the same data the local search uses.
+      assertNoError(await clientA.from("notes").update({ search_fields: [{ n: "rückseite", t: "antwort a" }] }).eq("id", fixtureA.notes.id), "Feldtexte setzen");
+      const fieldTerm = (name: string) => ({ ...catalogRequest, p_terms: [{ kind: "field", name, value: "antwort", negated: false }] });
+      const fieldHits = assertNoError(await clientA.rpc("list_account_card_catalog", fieldTerm("rückseite")), "Feldsuche für Nutzer A");
+      assert.ok(fieldHits.items.some((entry: any) => entry.id === fixtureA.cards.id), "Feldsuche findet den Text im genannten Feld");
+      assert.deepEqual(assertNoError(await clientA.rpc("list_account_card_catalog", fieldTerm("vorderseite")), "Feldsuche im anderen Feld").items, []);
+      const groupedFieldHits = assertNoError(await clientA.rpc("search_account_card_catalog", { p_deck_ids: [fixtureA.decks.id], p_query: "", p_terms: [{ kind: "field", name: "rückseite", value: "antwort", negated: false }] }), "stapelübergreifende Feldsuche");
+      assert.ok(groupedFieldHits.groups[fixtureA.decks.id]?.items.some((entry: any) => entry.id === fixtureA.cards.id));
+      // Learning state, variants, decks and due bounds arrive resolved from parseCardSearchQuery (KV2a).
+      const hitsWith = async (terms: unknown[]) => assertNoError(await clientA.rpc("list_account_card_catalog", { ...catalogRequest, p_terms: terms }), "Lernstandsbegriffe")
+        .items.some((entry: any) => entry.id === fixtureA.cards.id);
+      assert.equal(await hitsWith([{ kind: "state", value: "new", negated: false }]), true);
+      assert.equal(await hitsWith([{ kind: "state", value: "review", negated: false }]), false);
+      assert.equal(await hitsWith([{ kind: "maturity", value: "new", negated: false }]), true);
+      assert.equal(await hitsWith([{ kind: "variant", negated: false }]), true, "drei aktive Varianten");
+      assert.equal(await hitsWith([{ kind: "variant", negated: true }]), false);
+      assert.equal(await hitsWith([{ kind: "deck", ids: [fixtureA.decks.id], negated: false }]), true);
+      assert.equal(await hitsWith([{ kind: "deck", ids: ["fremder-stapel"], negated: false }]), false);
+      assert.equal(await hitsWith([{ kind: "due", from: null, to: "2099-01-01T00:00:00.000Z", reviewableOnly: false, negated: false }]), false, "neue Karten sind nie fällig");
+      // Learning history, values and content form (KV2b); a missing value never matches, its negation always does.
+      const catalogRow = assertNoError(await clientA.from("card_catalog").select("created_at, content_kind").eq("id", fixtureA.cards.id).single(), "Katalogzeile lesen");
+      assert.equal(catalogRow.content_kind, "reveal");
+      const since = (field: string, from: string, rating: string | null = null, negated = false) => hitsWith([{ kind: "since", field, rating, from, negated }]);
+      assert.equal(await since("added", catalogRow.created_at), true);
+      assert.equal(await since("added", "2099-01-01T00:00:00.000Z"), false);
+      assert.equal(await since("rated", "2000-01-01T00:00:00.000Z", "again"), false, "kein Nochmal");
+      assert.equal(await since("rescheduled", "2000-01-01T00:00:00.000Z"), false);
+      assert.equal(await since("rescheduled", "2000-01-01T00:00:00.000Z", null, true), true, "ohne Neuplanung trifft die Verneinung");
+      const prop = (field: string, operator: string, value: number) => hitsWith([{ kind: "prop", field, operator, value, negated: false }]);
+      assert.equal(await prop("ivl", ">=", 0), false, "neue Karten haben kein Intervall");
+      assert.equal(await prop("d", "<=", 10), false, "und keine Schwierigkeit");
+      assert.equal(await prop("lapses", "=", 0), true);
+      assert.equal(await prop("reps", "!=", 0), false);
+      // KV2e: durability comes from study_extra.durabilityDays, written by the client with each answer.
+      assert.equal(await prop("s", ">=", 0), false, "ohne Antwort keine Haltbarkeit");
+      const [studyBefore] = assertNoError(await clientA.from("cards").select("state, study_extra").eq("id", fixtureA.cards.id), "Lernstand lesen");
+      assertNoError(await clientA.from("cards").update({ state: "review", study_extra: { ...studyBefore.study_extra as object, durabilityDays: 120.5 } }).eq("id", fixtureA.cards.id), "Haltbarkeit setzen");
+      assert.equal(await prop("s", ">=", 90), true);
+      assert.equal(await prop("s", "<", 90), false);
+      const groupedDurability = assertNoError(await clientA.rpc("search_account_card_catalog", { p_deck_ids: [fixtureA.decks.id], p_query: "", p_terms: [{ kind: "prop", field: "s", operator: ">", value: 120, negated: false }] }), "stapelübergreifende Haltbarkeit");
+      assert.ok(groupedDurability.groups[fixtureA.decks.id]?.items.some((entry: any) => entry.id === fixtureA.cards.id && entry.durability_days === 120.5));
+      assertNoError(await clientA.from("cards").update({ state: studyBefore.state, study_extra: studyBefore.study_extra }).eq("id", fixtureA.cards.id), "Lernstand zurücksetzen");
+      assert.equal(await hitsWith([{ kind: "form", value: "reveal", negated: false }]), true);
+      assert.equal(await hitsWith([{ kind: "form", value: "cloze", negated: false }]), false);
+      // Note type and outdated variants (KV2b-Rest): the fixture's own content has no Anki note type.
+      assert.equal(await hitsWith([{ kind: "notetype", ids: ["irgendein-typ"], negated: false }]), false);
+      assert.equal(await hitsWith([{ kind: "notetype", ids: ["irgendein-typ"], negated: true }]), true, "ohne Notiztyp trifft die Verneinung");
+      assert.equal(await hitsWith([{ kind: "outdated", negated: false }]), false);
+      assert.equal(await hitsWith([{ kind: "outdated", negated: true }]), true);
+      assert.equal(await hitsWith([{ kind: "card", value: 1, negated: false }]), true, "forward ist Abfrage 1");
+      assert.equal(await hitsWith([{ kind: "card", value: 2, negated: false }]), false);
+      assert.equal(await hitsWith([{ kind: "buried", from: "2000-01-01T00:00:00.000Z", negated: false }]), false);
+      assert.equal(await hitsWith([{ kind: "buried", from: "2000-01-01T00:00:00.000Z", negated: true }]), true);
+      // KV2d: an `any` clause needs one of its terms, an empty one matches nothing; every word is a `text` term.
+      const flag = (value: number, negated = false) => ({ kind: "flag", value, negated });
+      const text = (value: string, negated = false) => ({ kind: "text", value, negated });
+      const any = (...terms: unknown[]) => ({ kind: "any", terms, negated: false });
+      assert.equal(await hitsWith([any(flag(3), flag(1))]), true, "die Karte trägt Flagge 1");
+      assert.equal(await hitsWith([any(flag(3), flag(4))]), false);
+      assert.equal(await hitsWith([any()]), false, "eine leere Auswahl trifft nichts");
+      assert.equal(await hitsWith([any(flag(0, true), text("antwort"))]), true, "Verneinung und Text innerhalb einer Klausel");
+      assert.equal(await hitsWith([text("antwort"), text("kein-solches-wort")]), false, "jedes Wort muss zutreffen");
+      assert.equal(await hitsWith([text("antwort", true)]), false);
+      const groupedAny = assertNoError(await clientA.rpc("search_account_card_catalog", { p_deck_ids: [fixtureA.decks.id], p_query: "", p_terms: [any(text("kein-solches-wort"), flag(1))] }), "stapelübergreifende Oder-Suche");
+      assert.ok(groupedAny.groups[fixtureA.decks.id]?.items.some((entry: any) => entry.id === fixtureA.cards.id));
       const groupedA = assertNoError(await clientA.rpc("search_account_card_catalog", searchRequest), "Stapelübergreifende Suche für Nutzer A");
       assert.ok(groupedA.groups[fixtureA.decks.id].items.some((entry: any) => entry.id === fixtureA.cards.id), "Die gebündelte Suche findet die Karte im Stapel");
       assert.deepEqual(assertNoError(await clientB.rpc("search_account_card_catalog", searchRequest), "fremde Stapelsuche für Nutzer B").groups, {});
@@ -661,6 +770,10 @@ test("lokales Supabase isoliert Nutzer A, Nutzer B und anon über alle accountge
         assert.equal(first.card.study_revision, currentCard.study_revision + 1);
         assert.equal(first.variant.revision, currentVariant.revision);
         assert.equal(first.event.id, eventId);
+        const history = assertNoError(await clientA.from("card_catalog").select("first_reviewed_at, last_good_at, last_again_at").eq("id", fixtureA.cards.id).single(), "Lernverlauf im Katalog lesen");
+        assert.equal(Date.parse(history.last_good_at), Date.parse(answeredAt), "die Auffrischung sieht die Antwort derselben Transaktion");
+        assert.ok(Date.parse(history.first_reviewed_at) <= Date.parse(answeredAt));
+        assert.equal(history.last_again_at, null);
         const [deckAfter, noteAfter] = await Promise.all([
           clientA.from("decks").select("revision,sync_change_id").eq("id", fixtureA.decks.id).single(),
           clientA.from("notes").select("revision,content_revision").eq("id", fixtureA.notes.id).single(),

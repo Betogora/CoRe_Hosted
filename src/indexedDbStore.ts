@@ -1,8 +1,10 @@
 // Private to indexedDbCoreRepository.ts: schema, stores and stored record forms of the web replica.
-import type { Card, CardVariant, Deck, Note } from "./coreTypes.ts";
+import type { Card, CardVariant, Deck, Note, ReviewEvent } from "./coreTypes.ts";
 import type { WorkspaceState } from "./coreWorkspace.ts";
 import {
   catalogEntryFromCard,
+  type CatalogReviewHistory,
+  withStudyEvents,
   type BodyResidency,
   type CardBodyResidencyRecord,
   type CardCatalogEntry,
@@ -11,7 +13,7 @@ import {
 } from "./workspaceReplica.ts";
 
 // ADR-034: a fresh database without upgrade path.
-const DATABASE_VERSION = 1;
+const DATABASE_VERSION = 3;
 
 const DATABASE_PREFIX = "core.workspace.entities.v5.";
 
@@ -28,6 +30,7 @@ export const STORE = Object.freeze({
   syncMetadata: "syncMetadata",
   deckStudySummaries: "deckStudySummaries",
   cardCatalog: "cardCatalog",
+  noteSearch: "noteSearch",
   bodyResidency: "bodyResidency",
   offlineDecks: "offlineDecks",
   offlineManifests: "offlineManifests",
@@ -38,7 +41,7 @@ export const LOCAL_WRITE_CHUNK_SIZE = 250;
 
 export const CATALOG_PAGE_LIMIT = 50;
 
-const NO_DUE_DATE = "9999-12-31T23:59:59.999Z";
+export const NO_DUE_DATE = "9999-12-31T23:59:59.999Z";
 
 export type StoredCard = Omit<Card, "variants">;
 
@@ -96,8 +99,22 @@ export function iterateCursor<T>(request: IDBRequest<IDBCursorWithValue | null>,
 export function openDatabase(indexedDb: IDBFactory, userId: string): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
     const request = indexedDb.open(`${DATABASE_PREFIX}${userId}`, DATABASE_VERSION);
-    request.onupgradeneeded = () => {
+    request.onupgradeneeded = (event) => {
       const database = request.result;
+      if (event.oldVersion >= 1) {
+        // Full search texts per content (version 2, KV1) and learning history in the catalog (version 3, KV2b). An
+        // existing replica pulls its whole catalog again from cursor 0: an older client may already have taken the
+        // rows the migration changed and dropped their new columns. Until then searches stay in the cloud.
+        if (event.oldVersion < 2) database.createObjectStore(STORE.noteSearch, { keyPath: "noteId" });
+        const metadata = request.transaction!.objectStore(STORE.syncMetadata);
+        const read = metadata.get("replicaStatus");
+        read.onsuccess = () => {
+          const row = read.result as { key: string; value?: { catalogCompleteness?: string; catalogCursor?: number } } | undefined;
+          if (row?.value) metadata.put({ ...row, value: { ...row.value, catalogCompleteness: "partial", catalogCursor: 0 } });
+        };
+        return;
+      }
+      database.createObjectStore(STORE.noteSearch, { keyPath: "noteId" });
       database.createObjectStore(STORE.meta, { keyPath: "key" });
       database.createObjectStore(STORE.decks, { keyPath: "id" }).createIndex("parentDeckId", "parentDeckId", { unique: false });
       database.createObjectStore(STORE.notes, { keyPath: "id" }).createIndex("ankiGuid", "ankiGuid", { unique: false });
@@ -164,8 +181,8 @@ export function catalogEntry(record: StoredCardCatalog): CardCatalogEntry {
   return { ...entry, reviewable: record.reviewable === 1, hasActiveVariants: record.hasActiveVariants === 1 };
 }
 
-export function catalogRecordFor(card: Card, note: Note | null): StoredCardCatalog {
-  return storedCatalogRecord(catalogEntryFromCard(card, note));
+export function catalogRecordFor(card: Card, note: Note | null, history?: CatalogReviewHistory | null): StoredCardCatalog {
+  return storedCatalogRecord(catalogEntryFromCard(card, note, history));
 }
 
 export function residencyRecord(
@@ -228,11 +245,17 @@ export function writeState(database: IDBDatabase, state: WorkspaceState): Promis
   for (const note of state.notes) transaction.objectStore(STORE.notes).put(note);
   const summaries = new Map<string, DeckStudySummary>();
   const reviewHourCounts: Record<string, number> = {};
+  const eventsByCardId = new Map<string, ReviewEvent[]>();
+  for (const event of state.decks.flatMap((deck) => deck.reviewEvents)) {
+    const events = eventsByCardId.get(event.cardId);
+    if (events) events.push(event);
+    else eventsByCardId.set(event.cardId, [event]);
+  }
   for (const deck of state.decks) {
     transaction.objectStore(STORE.decks).put(deckRecord(deck));
     const summary = summaries.get(deck.id) ?? emptyDeckStudySummary(deck.id);
     for (const card of deck.cards) {
-      const catalog = catalogRecordFor(card, notesById.get(card.noteId) ?? null);
+      const catalog = catalogRecordFor(card, notesById.get(card.noteId) ?? null, withStudyEvents(null, eventsByCardId.get(card.id) ?? []));
       const counts = catalogSummaryContribution(catalog);
       summary.totalCount += counts.totalCount;
       summary.newCount += counts.newCount;
@@ -261,6 +284,8 @@ export function writeState(database: IDBDatabase, state: WorkspaceState): Promis
       catalogCompleteness: state.decks.some((deck) => deck.cards.length > 0) ? "complete" : "empty",
       catalogCursor: 0,
       catalogServerCursor: 0,
+      // Catalog rows written from local contents carry their full text.
+      searchTextsReady: true,
     } satisfies ReplicaStatus,
   });
   return transactionDone(transaction);

@@ -733,6 +733,70 @@ video {
     grid-auto-columns: var(--core-control-height);
   }
 
+  /* CoreTriStateControl: rail of the segmented control with square segments (KV2, accepted 2026-11-04). */
+  .core-tri-state-control {
+    --core-tri-size: calc(var(--core-selection-height) - 8px);
+    grid-auto-columns: var(--core-tri-size);
+  }
+
+  .core-tri-state-option {
+    position: relative;
+    z-index: 1;
+    display: grid;
+    place-items: center;
+    width: var(--core-tri-size);
+    height: 100%;
+    min-width: 0 !important;
+    min-height: 0 !important;
+    padding: 0;
+    line-height: 0;
+    border-radius: var(--core-radius-control);
+    color: var(--core-text-secondary);
+    transition: color 200ms cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .core-tri-state-option:not([aria-checked="true"]):hover {
+    color: var(--core-text);
+  }
+
+  .core-tri-state-option[aria-checked="true"] {
+    transition: color 260ms cubic-bezier(0.4, 0, 0.2, 1) 20ms;
+  }
+
+  .core-tri-state-option svg {
+    transition: transform 180ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  .core-tri-state-option[aria-checked="true"] svg {
+    transform: scale(1.08);
+  }
+
+  .core-tri-state-option:disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+  }
+
+  .core-tri-state-indicator {
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    z-index: 0;
+    width: var(--core-tri-size);
+    height: calc(100% - 6px);
+    border-radius: var(--core-radius-control);
+    background: var(--core-surface);
+    box-shadow: var(--core-selection-indicator-shadow);
+    pointer-events: none;
+    transform: translateX(calc(var(--core-tri-index) * (var(--core-tri-size) + 0.25rem)));
+    transition: transform 180ms cubic-bezier(0.22, 1, 0.36, 1), background-color 260ms cubic-bezier(0.4, 0, 0.2, 1) 20ms;
+  }
+
+  .core-tri-state-control[data-tri-value="any"] .core-tri-state-option[aria-checked="true"] { color: var(--core-text); }
+  .core-tri-state-control[data-tri-value="in"] .core-tri-state-indicator { background: var(--core-action-primary); }
+  .core-tri-state-control[data-tri-value="in"] .core-tri-state-option[aria-checked="true"] { color: var(--core-text-on-accent); }
+  .core-tri-state-control[data-tri-value="out"] .core-tri-state-indicator { background: var(--core-danger); }
+  .core-tri-state-control[data-tri-value="out"] .core-tri-state-option[aria-checked="true"] { color: var(--core-text-on-danger); }
+
   /*
    * The card editor's four equally wide tabs (ARIA tabs) in the shared selection rail: as wide as the labels from
    * 640 px, full width below; the sliding indicator marks the selected one.
@@ -779,7 +843,10 @@ video {
   }
 
   @media (prefers-reduced-motion: reduce) {
-    .core-segmented-control-indicator {
+    .core-segmented-control-indicator,
+    .core-tri-state-indicator,
+    .core-tri-state-option,
+    .core-tri-state-option svg {
       transition: none;
     }
 
@@ -1354,6 +1421,9 @@ video {
 .static {
   position: static;
 }
+.\!fixed {
+  position: fixed !important;
+}
 .fixed {
   position: fixed;
 }
@@ -1485,6 +1555,9 @@ video {
 .top-\[calc\(100\%\+0\.5rem\)\] {
   top: calc(100% + 0.5rem);
 }
+.top-\[var\(--core-card-table-sticky-top\)\] {
+  top: var(--core-card-table-sticky-top);
+}
 .top-full {
   top: 100%;
 }
@@ -1594,6 +1667,9 @@ video {
   margin-top: 1rem;
   margin-bottom: 1rem;
 }
+.\!mt-0 {
+  margin-top: 0px !important;
+}
 .-me-2 {
   margin-inline-end: -0.5rem;
 }
@@ -1624,11 +1700,20 @@ video {
 .mb-8 {
   margin-bottom: 2rem;
 }
+.ml-1\.5 {
+  margin-left: 0.375rem;
+}
 .ml-2 {
   margin-left: 0.5rem;
 }
 .ml-auto {
   margin-left: auto;
+}
+.mr-1 {
+  margin-right: 0.25rem;
+}
+.mr-1\.5 {
+  margin-right: 0.375rem;
 }
 .mr-2 {
   margin-right: 0.5rem;
@@ -1665,6 +1750,9 @@ video {
 }
 .mt-auto {
   margin-top: auto;
+}
+.mt-px {
+  margin-top: 1px;
 }
 .line-clamp-2 {
   overflow: hidden;
@@ -1746,6 +1834,10 @@ video {
   width: 1.25rem;
   height: 1.25rem;
 }
+.size-6 {
+  width: 1.5rem;
+  height: 1.5rem;
+}
 .size-7 {
   width: 1.75rem;
   height: 1.75rem;
@@ -1786,9 +1878,6 @@ video {
 }
 .h-1\.5 {
   height: 0.375rem;
-}
-.h-10 {
-  height: 2.5rem;
 }
 .h-11 {
   height: 2.75rem;
@@ -1850,6 +1939,9 @@ video {
 .h-\[39rem\] {
   height: 39rem;
 }
+.h-\[calc\(100dvh-9rem\)\] {
+  height: calc(100dvh - 9rem);
+}
 .h-auto {
   height: auto;
 }
@@ -1871,8 +1963,14 @@ video {
 .max-h-44 {
   max-height: 11rem;
 }
+.max-h-56 {
+  max-height: 14rem;
+}
 .max-h-64 {
   max-height: 16rem;
+}
+.max-h-72 {
+  max-height: 18rem;
 }
 .max-h-80 {
   max-height: 20rem;
@@ -1894,6 +1992,9 @@ video {
 }
 .max-h-\[min\(26rem\2c calc\(100dvh-10rem\)\)\] {
   max-height: min(26rem, calc(100dvh - 10rem));
+}
+.max-h-\[min\(32rem\2c var\(--radix-popover-content-available-height\)\)\] {
+  max-height: min(32rem, var(--radix-popover-content-available-height));
 }
 .max-h-\[min\(88dvh\2c 42rem\)\] {
   max-height: min(88dvh, 42rem);
@@ -1948,6 +2049,12 @@ video {
 }
 .min-h-72 {
   min-height: 18rem;
+}
+.min-h-8 {
+  min-height: 2rem;
+}
+.min-h-\[2\.875rem\] {
+  min-height: 2.875rem;
 }
 .min-h-\[20rem\] {
   min-height: 20rem;
@@ -2019,6 +2126,9 @@ video {
 .w-16 {
   width: 4rem;
 }
+.w-2\/3 {
+  width: 66.666667%;
+}
 .w-20 {
   width: 5rem;
 }
@@ -2040,6 +2150,9 @@ video {
 .w-4\/5 {
   width: 80%;
 }
+.w-64 {
+  width: 16rem;
+}
 .w-7 {
   width: 1.75rem;
 }
@@ -2048,6 +2161,9 @@ video {
 }
 .w-8 {
   width: 2rem;
+}
+.w-\[45\%\] {
+  width: 45%;
 }
 .w-\[calc\(100\%\+1rem\)\] {
   width: calc(100% + 1rem);
@@ -2117,6 +2233,9 @@ video {
 .min-w-4 {
   min-width: 1rem;
 }
+.min-w-40 {
+  min-width: 10rem;
+}
 .min-w-44 {
   min-width: 11rem;
 }
@@ -2157,11 +2276,17 @@ video {
 .max-w-48 {
   max-width: 12rem;
 }
+.max-w-4xl {
+  max-width: 56rem;
+}
 .max-w-5xl {
   max-width: 64rem;
 }
 .max-w-7xl {
   max-width: 80rem;
+}
+.max-w-\[14rem\] {
+  max-width: 14rem;
 }
 .max-w-\[15rem\] {
   max-width: 15rem;
@@ -2171,6 +2296,9 @@ video {
 }
 .max-w-\[4\.5rem\] {
   max-width: 4.5rem;
+}
+.max-w-\[40\%\] {
+  max-width: 40%;
 }
 .max-w-\[calc\(100vw-1\.5rem\)\] {
   max-width: calc(100vw - 1.5rem);
@@ -2202,6 +2330,9 @@ video {
 .flex-\[1_1_16rem\] {
   flex: 1 1 16rem;
 }
+.flex-\[2\] {
+  flex: 2;
+}
 .shrink {
   flex-shrink: 1;
 }
@@ -2211,6 +2342,21 @@ video {
 .grow {
   flex-grow: 1;
 }
+.basis-20 {
+  flex-basis: 5rem;
+}
+.basis-24 {
+  flex-basis: 6rem;
+}
+.basis-28 {
+  flex-basis: 7rem;
+}
+.basis-32 {
+  flex-basis: 8rem;
+}
+.basis-40 {
+  flex-basis: 10rem;
+}
 .basis-44 {
   flex-basis: 11rem;
 }
@@ -2219,9 +2365,6 @@ video {
 }
 .basis-52 {
   flex-basis: 13rem;
-}
-.basis-56 {
-  flex-basis: 14rem;
 }
 .basis-64 {
   flex-basis: 16rem;
@@ -2406,6 +2549,9 @@ video {
 .grid-cols-\[minmax\(0\2c 1fr\)_auto_minmax\(0\2c 1fr\)\] {
   grid-template-columns: minmax(0,1fr) auto minmax(0,1fr);
 }
+.grid-cols-\[minmax\(0\2c 1fr\)_minmax\(0\2c 1\.2fr\)\] {
+  grid-template-columns: minmax(0,1fr) minmax(0,1.2fr);
+}
 .grid-cols-\[minmax\(13rem\2c 1fr\)_auto\] {
   grid-template-columns: minmax(13rem,1fr) auto;
 }
@@ -2517,6 +2663,10 @@ video {
 .gap-px {
   gap: 1px;
 }
+.gap-x-1\.5 {
+  -moz-column-gap: 0.375rem;
+       column-gap: 0.375rem;
+}
 .gap-x-2 {
   -moz-column-gap: 0.5rem;
        column-gap: 0.5rem;
@@ -2577,6 +2727,9 @@ video {
 }
 .overflow-hidden {
   overflow: hidden;
+}
+.overflow-clip {
+  overflow: clip;
 }
 .overflow-x-auto {
   overflow-x: auto;
@@ -2786,6 +2939,9 @@ video {
 .fill-\[var\(--core-warning\)\] {
   fill: var(--core-warning);
 }
+.p-0 {
+  padding: 0px;
+}
 .p-0\.5 {
   padding: 0.125rem;
 }
@@ -2960,6 +3116,9 @@ video {
 .pr-2 {
   padding-right: 0.5rem;
 }
+.pr-3 {
+  padding-right: 0.75rem;
+}
 .pr-9 {
   padding-right: 2.25rem;
 }
@@ -2989,6 +3148,9 @@ video {
 }
 .text-right {
   text-align: right;
+}
+.align-top {
+  vertical-align: top;
 }
 .align-middle {
   vertical-align: middle;
@@ -3183,6 +3345,9 @@ video {
 .blur {
   --tw-blur: blur(8px);
   filter: var(--tw-blur) var(--tw-brightness) var(--tw-contrast) var(--tw-grayscale) var(--tw-hue-rotate) var(--tw-invert) var(--tw-saturate) var(--tw-sepia) var(--tw-drop-shadow);
+}
+.\!filter {
+  filter: var(--tw-blur) var(--tw-brightness) var(--tw-contrast) var(--tw-grayscale) var(--tw-hue-rotate) var(--tw-invert) var(--tw-saturate) var(--tw-sepia) var(--tw-drop-shadow) !important;
 }
 .filter {
   filter: var(--tw-blur) var(--tw-brightness) var(--tw-contrast) var(--tw-grayscale) var(--tw-hue-rotate) var(--tw-invert) var(--tw-saturate) var(--tw-sepia) var(--tw-drop-shadow);
@@ -5397,6 +5562,9 @@ summary {
 .last\:border-0:last-child {
   border-width: 0px;
 }
+.last\:border-b-0:last-child {
+  border-bottom-width: 0px;
+}
 .checked\:border-core-action:checked {
   border-color: var(--core-action-primary);
 }
@@ -5426,11 +5594,11 @@ summary {
 .hover\:border-core-border-strong:hover {
   border-color: var(--core-border-interactive);
 }
-.hover\:bg-\[var\(--core-focus-ring-soft\)\]:hover {
-  background-color: var(--core-focus-ring-soft);
-}
 .hover\:bg-core-action-hover:hover {
   background-color: var(--core-action-primary-hover);
+}
+.hover\:bg-core-border:hover {
+  background-color: var(--core-border);
 }
 .hover\:bg-core-hover:hover {
   background-color: var(--core-surface-hover);
@@ -5585,6 +5753,9 @@ summary {
 .aria-selected\:font-semibold[aria-selected="true"] {
   font-weight: var(--core-weight-emphasis);
 }
+.aria-\[current\=true\]\:text-core-action[aria-current="true"] {
+  color: var(--core-action-primary);
+}
 .data-\[state\=open\]\:border-core-action[data-state="open"] {
   border-color: var(--core-action-primary);
 }
@@ -5630,6 +5801,77 @@ summary {
     border-width: 0;
   }
 }
+@media not all and (min-width: 768px) {
+
+  .max-md\:sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border-width: 0;
+  }
+
+  .max-md\:fixed {
+    position: fixed;
+  }
+
+  .max-md\:absolute {
+    position: absolute;
+  }
+
+  .max-md\:inset-0 {
+    inset: 0px;
+  }
+
+  .max-md\:-right-1\.5 {
+    right: -0.375rem;
+  }
+
+  .max-md\:-top-1\.5 {
+    top: -0.375rem;
+  }
+
+  .max-md\:z-50 {
+    z-index: 50;
+  }
+
+  .max-md\:hidden {
+    display: none;
+  }
+
+  .max-md\:size-control {
+    width: var(--core-control-height);
+    height: var(--core-control-height);
+  }
+
+  .max-md\:content-start {
+    align-content: flex-start;
+  }
+
+  .max-md\:overflow-y-auto {
+    overflow-y: auto;
+  }
+
+  .max-md\:rounded-none {
+    border-radius: 0px;
+  }
+
+  .max-md\:border-0 {
+    border-width: 0px;
+  }
+
+  .max-md\:p-0 {
+    padding: 0px;
+  }
+
+  .max-md\:pb-28 {
+    padding-bottom: 7rem;
+  }
+}
 @media not all and (min-width: 640px) {
 
   .max-sm\:sr-only {
@@ -5642,6 +5884,10 @@ summary {
     clip: rect(0, 0, 0, 0);
     white-space: nowrap;
     border-width: 0;
+  }
+
+  .max-sm\:hidden {
+    display: none;
   }
 
   .max-sm\:px-2\.5 {
@@ -5701,6 +5947,10 @@ summary {
     grid-column: span 1 / span 1;
   }
 
+  .sm\:col-span-2 {
+    grid-column: span 2 / span 2;
+  }
+
   .sm\:col-start-2 {
     grid-column-start: 2;
   }
@@ -5724,12 +5974,20 @@ summary {
     -webkit-line-clamp: 1;
   }
 
+  .sm\:block {
+    display: block;
+  }
+
   .sm\:inline {
     display: inline;
   }
 
   .sm\:flex {
     display: flex;
+  }
+
+  .sm\:grid {
+    display: grid;
   }
 
   .sm\:hidden {
@@ -6017,6 +6275,10 @@ summary {
     top: 0px;
   }
 
+  .md\:-ml-px {
+    margin-left: -1px;
+  }
+
   .md\:block {
     display: block;
   }
@@ -6046,6 +6308,10 @@ summary {
     min-height: 2rem;
   }
 
+  .md\:min-h-control {
+    min-height: var(--core-control-height);
+  }
+
   .md\:w-56 {
     width: 14rem;
   }
@@ -6070,6 +6336,10 @@ summary {
     max-width: 36rem;
   }
 
+  .md\:flex-\[1\.4\] {
+    flex: 1.4;
+  }
+
   .md\:shrink-0 {
     flex-shrink: 0;
   }
@@ -6088,6 +6358,10 @@ summary {
 
   .md\:grid-cols-6 {
     grid-template-columns: repeat(6, minmax(0, 1fr));
+  }
+
+  .md\:grid-cols-\[13rem_minmax\(0\2c 1fr\)\] {
+    grid-template-columns: 13rem minmax(0,1fr);
   }
 
   .md\:grid-cols-\[minmax\(0\2c 1fr\)_12rem_auto\] {
@@ -6114,6 +6388,10 @@ summary {
     align-items: center;
   }
 
+  .md\:gap-3 {
+    gap: 0.75rem;
+  }
+
   .md\:gap-x-6 {
     -moz-column-gap: 1.5rem;
          column-gap: 1.5rem;
@@ -6123,16 +6401,37 @@ summary {
     border-radius: var(--core-radius-overlay);
   }
 
+  .md\:rounded-r-control {
+    border-top-right-radius: var(--core-radius-control);
+    border-bottom-right-radius: var(--core-radius-control);
+  }
+
   .md\:border-b {
     border-bottom-width: var(--core-border-width);
+  }
+
+  .md\:border-l {
+    border-left-width: var(--core-border-width);
+  }
+
+  .md\:border-l-strong {
+    border-left-width: var(--core-border-width-strong);
   }
 
   .md\:border-r {
     border-right-width: var(--core-border-width);
   }
 
+  .md\:border-core-action {
+    border-color: var(--core-action-primary);
+  }
+
   .md\:border-core-border {
     border-color: var(--core-border);
+  }
+
+  .md\:border-transparent {
+    border-color: transparent;
   }
 
   .md\:bg-core-subtle {
@@ -6143,9 +6442,23 @@ summary {
     padding: 1rem;
   }
 
+  .md\:p-5 {
+    padding: 1.25rem;
+  }
+
+  .md\:px-3 {
+    padding-left: 0.75rem;
+    padding-right: 0.75rem;
+  }
+
   .md\:px-4 {
     padding-left: 1rem;
     padding-right: 1rem;
+  }
+
+  .md\:py-2 {
+    padding-top: 0.5rem;
+    padding-bottom: 0.5rem;
   }
 
   .md\:pr-8 {
@@ -6250,6 +6563,10 @@ summary {
 
   .xl\:sticky {
     position: sticky;
+  }
+
+  .xl\:-top-10 {
+    top: -2.5rem;
   }
 
   .xl\:bottom-4 {
@@ -6398,6 +6715,9 @@ summary {
 }
 .\[\&\>svg\]\:text-core-muted>svg {
   color: var(--core-text-muted);
+}
+.\[\&\>tr\[data-card-row\]\]\:opacity-60>tr[data-card-row] {
+  opacity: 0.6;
 }
 .\[\&_span\]\:min-w-0 span {
   min-width: 0px;
@@ -6805,13 +7125,13 @@ html:has(.catalog-preview) { scroll-behavior: auto; }
 <li>Die automatische Erstellung folgt <a href="#specs--automatisch-aus-einer-quelle">Automatisch aus einer Quelle</a>.</li>
 </ul>
 <h3 id="specs--karten-bearbeiten-und-eine-sitzung-starten" class="core-heading-3" tabindex="-1">Karten bearbeiten und eine Sitzung starten <a class="docs-anchor" href="#specs--karten-bearbeiten-und-eine-sitzung-starten" aria-label="Link zu Karten bearbeiten und eine Sitzung starten">#</a></h3>
-<p>Stapel und Karten lassen sich ordnen, prüfen und bearbeiten; eine Sitzung startet mit der ersten verfügbaren Karte.</p>
+<p>Stapel lassen sich ordnen, Karten suchen, gemeinsam ändern, pflegen und bearbeiten; eine Sitzung startet mit der ersten verfügbaren Karte oder mit den Treffern einer Suche.</p>
 <p class="docs-label">Ablauf</p>
 <ol>
 <li><code>Lernen</code> oder <code>Karten</code> öffnen.</li>
-<li>Stapel und Karten verwalten.</li>
-<li>Inhalt und Lernwerte prüfen.</li>
-<li>Sitzung vorbereiten.</li>
+<li>Stapel in <code>Lernen</code> ordnen; Karten in <code>Karten</code> suchen, filtern und auswählen.</li>
+<li>Karten gemeinsam ändern oder pflegen (Massenaktionen, <code>Suchen und Ersetzen</code>, <code>Duplikate finden</code>, <code>Tags verwalten</code>) und einzelne Karten im Editor prüfen.</li>
+<li>Sitzung vorbereiten oder <code>Treffer lernen</code> starten.</li>
 <li>Erste verfügbare Karte lernen.</li>
 </ol>
 <p class="docs-label">Akzeptanz</p>
@@ -7004,7 +7324,7 @@ html:has(.catalog-preview) { scroll-behavior: auto; }
 </ul>
 <h3 id="specs--stapelbäume" class="core-heading-3" tabindex="-1">Stapelbäume <a class="docs-anchor" href="#specs--stapelbäume" aria-label="Link zu Stapelbäume">#</a></h3>
 <p class="docs-label">Zweck</p>
-<p><code>Heute</code>, <code>Lernen</code> und die Kartenverwaltung zeigen dieselbe Stapelhierarchie mit denselben Stapelaktionen.</p>
+<p><code>Heute</code> und <code>Lernen</code> zeigen dieselbe Stapelhierarchie mit denselben Stapelaktionen; die Kartenverwaltung listet Karten flach und nennt je Karte ihren Stapel.</p>
 <p class="docs-label">Verhalten</p>
 <ul>
 <li>Stapel bilden Eltern- und Unterstapel ohne Tiefenlimit; APKG-Hierarchien bleiben mit unmittelbaren Eltern und vollständigen Pfaden erhalten. Einklappen verbirgt den gesamten Unterbaum; Eltern aggregieren alle Unterstapel.</li>
@@ -7013,7 +7333,7 @@ html:has(.catalog-preview) { scroll-behavior: auto; }
 <li>Die Tageszahlen berücksichtigen verbleibende Limits: ausgewählte neue Karten (<code>Neu</code>), heutiges Learning/Relearning, auch noch nicht vorziehbares (<code>Offen</code>), und ausgewählte fällige Reviews (<code>Fällig</code>). Elternzeilen aggregieren den Teilbaum nach den Einstellungen des dargestellten Stapels. Ausgesetzte und begrabene Karten zählen nirgends.</li>
 <li>Dashboard und <code>Lernen</code> bieten eine Listen- und eine Kachelansicht; die Wahl gilt browserlokal und je Bereich getrennt. In der Liste lassen sich alle Elternstapel gemeinsam auf- und zuklappen.</li>
 <li>Ein Stapel öffnet seine <a href="#specs--stapelinhalte">Stapelinhalte</a>; eine eigene Lernaktion startet ihn samt Unterstapeln und Limits. In der Kachelansicht führen Kacheln mit Unterstapeln Ebene für Ebene zu ihren Unterstapeln und zu den Stapelinhalten; eine Kachel ohne Unterstapel öffnet direkt die Stapelinhalte.</li>
-<li>Auf-/Zuklappzustände sind je Ansicht kontogebunden und überstehen Navigation, Reload und Neuanmeldung. Ohne gespeicherten Zustand starten die Stapel der Kartenverwaltung eingeklappt; ein fokussierter Stapel oder eine verlinkte Karte klappt den betroffenen Stapel auf und speichert diesen Zustand.</li>
+<li>Auf-/Zuklappzustände von <code>Heute</code> und <code>Lernen</code> sind je Ansicht kontogebunden und überstehen Navigation, Reload und Neuanmeldung.</li>
 <li>Stapelauswahlen nennen den vollständigen Pfad, ordnen die Stapel als alphabetischen Baum und bieten bei vielen Stapeln eine Pfadsuche.</li>
 </ul>
 <h3 id="specs--stapeloptionen-verschieben-und-löschen" class="core-heading-3" tabindex="-1">Stapeloptionen, Verschieben und Löschen <a class="docs-anchor" href="#specs--stapeloptionen-verschieben-und-löschen" aria-label="Link zu Stapeloptionen, Verschieben und Löschen">#</a></h3>
@@ -7022,7 +7342,7 @@ html:has(.catalog-preview) { scroll-behavior: auto; }
 <p class="docs-label">Verhalten</p>
 <ul>
 <li><code>An</code> öffnet zuerst den Einschaltdialog (<a href="#specs--core-modus-und-stapelgenerierung">CoRe-Modus und Stapelgenerierung</a>); <code>Aus</code> wirkt sofort.</li>
-<li>In Dashboard und <code>Lernen</code> lässt sich ein Stapel samt Unterbaum mit Maus oder Trackpad direkt auf einen anderen Stapel ziehen und wird dessen direkter Unterstapel; eine eigene Ablagezone macht ihn zum Hauptstapel. Kartenverwaltung, Touch, Tastatur und assistive Bedienung verwenden den bestätigten Verschiebedialog.</li>
+<li>In Dashboard und <code>Lernen</code> lässt sich ein Stapel samt Unterbaum mit Maus oder Trackpad direkt auf einen anderen Stapel ziehen und wird dessen direkter Unterstapel; eine eigene Ablagezone macht ihn zum Hauptstapel. Touch, Tastatur und assistive Bedienung verwenden den bestätigten Verschiebedialog.</li>
 <li>Selbst-, Nachfahren- und unveränderte Ziele ändern nichts; ein beendetes Ziehen öffnet den Stapel nicht.</li>
 <li>Stapelanzahl und Verschieben samt Unterbaum haben kein fachliches Limit. APKG-Hierarchien behalten Elternbeziehung, Pfad, Importidentitäten und Anki-Stapelpfad; Inhalts- und Anki-Tags bleiben unverändert.</li>
 <li>Die Stapellöschung nennt Stapelname, Unterstapelzahl und aktive Kartenanzahl; Abbruch ändert nichts. Das Löschen eines Baums ist destruktiv, bestätigt und darf gelöschte Inhalte nicht durch späteren Sync reaktivieren.</li>
@@ -7040,7 +7360,7 @@ html:has(.catalog-preview) { scroll-behavior: auto; }
 <li>Die Reiter lauten <code>Unterstapel</code>, <code>Zusammenfassungen</code>, <code>Quiz</code>, <code>Mind Map</code>, <code>Karten</code> und <code>Quelle</code>; zu Beginn ist <code>Unterstapel</code> aktiv. Der Reiter ist Teil des Links und bleibt beim Rückweg aus einer Sitzung erhalten; ein geöffneter Karteneditor öffnet <code>Karten</code>.</li>
 <li>Reiterwechsel und Stapelpfad schützen ungespeicherte Entwürfe mit demselben Speichern-/Verwerfen-Dialog.</li>
 <li><code>Unterstapel</code> zeigt den Zweig des geöffneten Stapels wie die Liste in <code>Lernen</code> mit Tageszahlen, Lernaktion und Stapeloptionen je Stapel; anfangs sind nur die direkten Unterstapel aufgeklappt. Ein Unterstapel öffnet seine eigenen Stapelinhalte. Ohne Unterstapel bietet der Reiter direkt das Lernen der Karten an.</li>
-<li><code>Karten</code> zeigt die Karten des Stapels samt aller Unterstapel mit gemeinsamer Suche und Sortierung, gegliedert nach Unterstapeln. Der Reiter nutzt dieselben Kartenzeilen, denselben Editor und dieselben Änderungen wie die <a href="#specs--kartenverwaltung">Kartenverwaltung</a>; Aktionen wirken im tatsächlich zugehörigen Unterstapel. Ein Kartenlink und das Schließen des Editors erhalten den Inhaltskontext auch nach Reload. Elternstapel und andere Zweige bleiben ausgeschlossen.</li>
+<li><code>Karten</code> zeigt die Karten des Stapels samt aller Unterstapel als eine flache Liste mit gemeinsamer Suche und Sortierung; jede Zeile nennt ihren Unterstapel. Der Reiter nutzt dieselben Kartenzeilen, denselben Editor und dieselben Änderungen wie die <a href="#specs--kartenverwaltung">Kartenverwaltung</a>; Aktionen wirken im tatsächlich zugehörigen Unterstapel. Ein Kartenlink und das Schließen des Editors erhalten den Inhaltskontext auch nach Reload. Elternstapel und andere Zweige bleiben ausgeschlossen.</li>
 <li><code>Zusammenfassungen</code> und <code>Mind Map</code> folgen <a href="#specs--11-zusammenfassungen-und-mindmaps">Zusammenfassungen und Mindmaps</a>.</li>
 <li>In allen Reitern startet eine Lernaktion die Sitzung samt Unterstapeln. Sie ist nur bei leerem Stapelbaum deaktiviert; die Suche beeinflusst sie nicht. Das Verlassen der Sitzung führt zu den Stapelinhalten zurück.</li>
 </ul>
@@ -7244,28 +7564,41 @@ html:has(.catalog-preview) { scroll-behavior: auto; }
 <p>Der Hauptreiter <code>Karten</code> verwaltet alle Karten aller Stapel; derselbe Editor öffnet sich aus Kartenverwaltung, Stapelinhalten und Sitzung.</p>
 <h3 id="specs--kartenverwaltung" class="core-heading-3" tabindex="-1">Kartenverwaltung <a class="docs-anchor" href="#specs--kartenverwaltung" aria-label="Link zu Kartenverwaltung">#</a></h3>
 <p class="docs-label">Zweck</p>
-<p>Der Hauptreiter <code>Karten</code> ist die direktlinkfähige Gesamtverwaltung für Karten, Stapelstruktur, Inhalt und erweiterte Optionen aller Stapel.</p>
+<p>Der Hauptreiter <code>Karten</code> ist die direktlinkfähige Gesamtverwaltung aller Karten aller Stapel: suchen, auswählen, gemeinsam ändern, pflegen und gezielt lernen. Die Stapelstruktur ordnet <code>Lernen</code>.</p>
 <p class="docs-label">Verhalten</p>
 <ul>
-<li>Die Kartenverwaltung verbindet die Stapelhierarchie (<a href="#specs--stapelb%C3%A4ume">Stapelbäume</a>), die <a href="#specs--kartensuche">Kartensuche</a> und eine nach Stapeln gruppierte Liste aller Karten.</li>
-<li>Je Karte erscheinen Sortierfeld (bereinigte Vorderseite), Fälligkeitsdatum (bei neuen Karten <code>Neu</code>) und die Zahl aktiver Varianten. Alle drei sind auf- und absteigend sortierbar; Standard ist das Sortierfeld A–Z, einheitlich für alle Stapel und nicht gespeichert.</li>
-<li>Ein Filter zeigt nur Karten ohne aktive Variante; ein Sortierwechsel hebt ihn auf. In den Stapelinhalten startet er auf Wunsch für genau diese Karten dieselbe Variantengenerierung wie die Stapeleinstellungen.</li>
-<li>Karten lassen sich markieren, aussetzen und mit Flaggen versehen; ausgesetzte Karten bleiben mit unverändertem Datum in der Verwaltung auffindbar.</li>
-<li>Filter wählen Flagge, Lernbremse und Tags.</li>
-<li>Große Listen sind blätterbar. Wie große Bestände laden, regelt <a href="#specs--laden-gro%C3%9Fer-best%C3%A4nde">Laden großer Bestände</a>; Konfliktkarten folgen <a href="#specs--sync-status-und-konflikte">Sync-Status und Konflikte</a>.</li>
+<li>Die Kartenverwaltung verbindet die <a href="#specs--kartensuche">Kartensuche</a> mit einer flachen Liste aller Karten; Stapelzeilen, Auf- und Zuklappen und das Stapelmenü gibt es dort nicht. Stapelaktionen bleiben in <code>Heute</code>, <code>Lernen</code> und den Stapeleinstellungen.</li>
+<li>Die Tabelle zeigt je Karte nur <code>Sortierfeld</code> (bereinigte Vorderseite), <code>Datum</code> (<code>Neu</code> oder <code>TT.MM.JJJJ</code>) und <code>Variante</code> (Zahl der aktiven Varianten, ohne Variante ein zugänglich beschrifteter Strich). Alle Spalten sind auf- und absteigend sortierbar; Standard ist <code>Sortierfeld</code> A–Z, nicht persistiert. Der Spaltenkopf bleibt beim Scrollen stehen. Ohne Karten zeigt die Liste <code>Keine Karten</code>, ohne Treffer <code>Keine Karten gefunden</code> mit dem Hinweis, die Suche anzupassen.</li>
+<li>Ausgesetzte Karten bleiben mit unverändertem Datum sichtbar, sind sichtbar hervorgehoben und tragen die zugängliche Kennzeichnung <code>Ausgesetzt</code>. Markierte Karten sind sichtbar und zugänglich als markiert gekennzeichnet. Beides kann gleichzeitig erscheinen.</li>
+<li>Eine gesetzte Flagge erscheint als Farbpunkt mit zugänglichem Namen.</li>
+<li>Kartenzeilen sind kompakt (etwa 29 px, eine dünne Trennlinie) und einzeilig: die Vorderseite, ab <code>sm</code> rechts daneben gedämpft der Stapelpfad (höchstens 40 % der Breite), beide mit Ellipsen. Umfasst die Liste nur einen Stapel, entfällt der Pfad. <code>Datum</code> und <code>Variante</code> stehen rechts und bleiben ungekürzt; die Kartenverwaltung erzeugt keinen horizontalen Überlauf.</li>
+<li>Die Kartenliste ist durchgehend, ohne Seiten: Gerendert werden nur die Zeilen nahe am sichtbaren Bereich. Noch nicht geladene Zeilen halten als ruhige Platzhalter ihren Platz und füllen sich beim Scrollen.</li>
+<li>Die Tabelle zeigt mit und ohne Suche eine flache Liste aller Karten beziehungsweise Treffer im Bereich (alle Stapel, in geöffneten Stapelinhalten deren Unterstapel) in der gewählten Sortierung. Mit Suche stehen Stapel, deren Pfad jedes Suchwort enthält, stehen über der Liste als <code>Passende Stapel</code>; ein Klick filtert auf diesen Stapel.</li>
+<li>Bis die Seite einer geänderten Suche oder Sortierung da ist, bleiben die bisherigen Zeilen gedimmt stehen und unter dem Spaltenkopf läuft der Ladebalken der Statistik; <code>Keine Karten</code> erscheint erst mit der Antwort.</li>
+<li>Mehrfachauswahl: <code>Karten auswählen</code> im Kopf der ersten Spalte, Strg- oder Cmd-Klick, Umschalt-Klick (Bereich der geladenen Zeilen seit der zuletzt gewählten) oder Langdrücken (500 ms) auf Touch starten die Auswahl. Solange sie läuft, trägt jede Kartenzeile ein Kontrollkästchen, ein Klick wählt statt zu öffnen, und eine Auswahlleiste ersetzt die Sortierköpfe: Anzahl, <code>Alle N Karten auswählen</code> (mit Suche <code>Alle N Treffer auswählen</code>), <code>Aktionen</code> und <code>Auswahl aufheben</code>. Eine neue Suche oder ein anderer Bereich hebt die Auswahl auf; aus der Lernsitzung geöffnet gibt es keine Auswahl.</li>
+<li><code>Aktionen</code> bietet <code>Stapel ändern</code>, <code>Tags hinzufügen</code>, <code>Tags entfernen</code>, <code>Flagge setzen</code>, <code>Flagge entfernen</code>, <code>Markieren</code>, <code>Markierung entfernen</code>, <code>Aussetzen</code>, <code>Reaktivieren</code>, <code>Zurückstellen</code>, <code>Fälligkeit setzen</code> (Datum oder Zeitraum; jede Karte bekommt einen zufälligen Tag darin), <code>Lernstand zurücksetzen</code>, <code>Varianten generieren</code> (für ausgewählte Karten ohne Variante, wie die Stapelgenerierung) und <code>Löschen</code> (die Inhalte der Karten samt ihrer weiteren Karten). Jede Aktion fragt ab einer Karte nach und meldet danach <code>&lt;Aktion&gt;: N Karten</code> mit <code>Rückgängig</code>. Rückgängig ist eine neue Änderung: Karten, die seither anders geändert wurden, behalten ihren neuen Stand, und die Meldung nennt ihre Zahl. Flagge, Aussetzen und Stapel gelten je Karte, Markierung und Tags für den Inhalt. Offline wirken Massenaktionen nur auf Karten, die auf dem Gerät liegen; sonst meldet die Aktion, dass die Karten noch nicht offline verfügbar sind, und ändert nichts.</li>
+<li>Tastenkürzel der Liste: <code>/</code> setzt den Fokus in die Suche; auf einer Kartenzeile wechseln ↑/↓ die Zeile, Enter öffnet die Karte, <code>X</code> wählt sie aus oder ab (mit Umschalt einen Bereich), Escape hebt die Auswahl auf. <code>1</code>–<code>7</code> setzt eine Flagge, <code>0</code> entfernt sie, <code>M</code> markiert oder entfernt die Markierung, <code>A</code> setzt aus oder reaktiviert, <code>S</code> ändert den Stapel, <code>T</code> fügt Tags hinzu, <code>Entf</code> löscht; jede Taste öffnet die Bestätigung der Aktion für die Auswahl oder, ohne Auswahl, für die Karte der Zeile, die danach den Fokus zurückbekommt. Strg+Z (⌘Z) nimmt außerhalb von Textfeldern die letzte Massenaktion zurück. In Dialogen, Menüs, Textfeldern und im Editor gelten deren eigene Tasten; Browser-Kürzel bleiben unberührt. <code>Aktionen</code> nennt die Taste neben jedem Eintrag.</li>
+<li><code>Suchen und Ersetzen</code> (in <code>Aktionen</code> nach <code>Stapel ändern</code>) ersetzt wörtlichen Text in den Inhalten der ausgewählten Karten, ohne reguläre Ausdrücke: in <code>Alle Felder</code>, einem Feld der ausgewählten Inhalte oder <code>Tags</code>, wahlweise mit <code>Groß-/Kleinschreibung beachten</code>. Ersetzt wird nur sichtbarer Text, nie Formatierung oder Links. Während der Eingabe zeigt die Vorschau, wie viele Karten sich ändern, und bis zu 20 Inhalte mit Stelle, altem und neuem Text. Ein Inhalt, dessen Karten sich dadurch ändern würden (etwa eine andere Lückennummer), bleibt unverändert und wird gezählt. Das Ersetzen in Feldern gilt als lokale Bearbeitung: Ein Reimport überschreibt den Inhalt nicht mehr, Varianten geänderter Abfragen werden veraltet, der Lernstand bleibt. <code>Rückgängig</code> stellt den früheren Text her, außer bei Inhalten, die seither bearbeitet wurden.</li>
+<li><code>Treffer lernen</code> steht bei einer Suche am Ende der Trefferzeile, <code>Auswahl lernen</code> in <code>Aktionen</code>. Gelernt werden die Treffer beziehungsweise die ausgewählten Karten ohne ausgesetzte und heute zurückgestellte, unabhängig von Fälligkeit und Tageslimits. Der Startdialog nennt die Kartenzahl und bietet <code>Vorziehen</code> (Standard) oder <code>Nur üben</code> sowie die Reihenfolge <code>Wie die Liste</code> (die aktuelle Sortierung) oder <code>Gemischt</code>. Mit <code>Vorziehen</code> startet <code>Lernen</code> eine normale Sitzung <code>Treffer lernen</code> mit gespeicherten Bewertungen. Noch nicht fällige Karten zählen als vorgezogene Wiederholung, FSRS rechnet mit den tatsächlich vergangenen Tagen. Jede Karte folgt den Optionen ihres Stapels; Geschwister werden in dieser Sitzung nicht zurückgestellt. Die Bewertungen verbrauchen keine Tageslimits für neue Karten und Wiederholungen. Nach einem Neuladen ist die Sitzung beendet und meldet das.</li>
+<li><code>Nur üben</code> läuft als Vollbild über der Kartenverwaltung wie eine Sitzung (Frage, <code>Antwort anzeigen</code>, Bewerten, Tasten wie beim Lernen, <code>Escape</code> beendet). <code>Nochmal</code> holt die Karte nach drei anderen zurück, <code>Schwer</code> noch einmal ans Ende, <code>Gut</code> und <code>Leicht</code> beenden sie für diese Übung; der Fortschritt zählt gewusste Karten. Lernstand, Fälligkeit, FSRS-Werte und Lernbremse bleiben unverändert, es entsteht kein Bewertungseintrag. Am Ende stehen <code>Übung abgeschlossen</code>, die Zahl der geübten Karten und der <code>Nochmal</code>-Antworten, <code>Nochmal üben</code> für Karten mit <code>Nochmal</code> oder <code>Schwer</code> und <code>Fertig</code>.</li>
+<li><code>Duplikate finden</code> im Kopf der Kartenverwaltung vergleicht die Inhalte der Liste nach <code>Sortierfeld</code> oder einem Feld (Name wie bei <code>Feld:</code>-Suchen), ohne Groß-/Kleinschreibung und mehrfache Leerzeichen; leere Felder zählen nicht. Bei einer Suche ist <code>Nur in den Treffern</code> vorausgewählt. Der Dialog nennt Gruppen und Inhalte, größte Gruppen zuerst; ein Inhalt öffnet im Editor (dort auch <code>Löschen</code>). <code>Duplikate taggen</code> gibt allen Inhalten der Gruppen den Tag <code>Duplikat</code> und meldet das mit <code>Rückgängig</code>. Die Suche braucht alle Karten auf dem Gerät; solange der Abgleich läuft, meldet der Dialog das mit <code>Erneut versuchen</code>.</li>
+<li><code>Tags verwalten</code> steht in der erweiterten Suche über den Tags und gilt für das ganze Konto. Die Liste lässt sich durchsuchen und nennt je Tag die Zahl der Inhalte und, wie viele davon ihn aus einem Import tragen. <code>Umbenennen</code> nimmt die Untertags mit (<code>A::x</code> wird <code>B::x</code>); ein vorhandener Name führt zusammen, der Dialog sagt das vorher, die vorhandene Schreibweise bleibt. <code>Löschen</code> entfernt den Tag samt Untertags nach einer Bestätigung in der Zeile. Beides läuft als Massenaktion mit <code>Rückgängig</code>; die Liste zeigt die Änderung sofort, das vollständige Verzeichnis aus der Cloud beim nächsten Öffnen. Ungenutzte Tags gibt es nicht: Tags existieren nur an Inhalten, ein <code>Bereinigen</code> entfällt deshalb.</li>
+<li>Wie große Bestände laden, regelt <a href="#specs--laden-gro%C3%9Fer-best%C3%A4nde">Laden großer Bestände</a>; Konfliktkarten folgen <a href="#specs--sync-status-und-konflikte">Sync-Status und Konflikte</a>.</li>
 </ul>
 <p class="docs-label">Grenzen</p>
 <p>Einen Direkteinstieg zur Kartenerstellung gibt es dort nicht.</p>
 <h3 id="specs--kartensuche" class="core-heading-3" tabindex="-1">Kartensuche <a class="docs-anchor" href="#specs--kartensuche" aria-label="Link zu Kartensuche">#</a></h3>
 <p class="docs-label">Verhalten</p>
 <ul>
-<li>Die Suche umfasst Stapelpfad, alle Felder, Antwortoptionen und Tags; Ergebnisse älterer Eingaben überschreiben nie neuere.</li>
-<li>Die Suche versteht Begriffe in Anki-Schreibweise: <code>flag:1</code> bis <code>flag:7</code> (<code>flag:0</code> ohne Flagge), <code>tag:x</code> (auch Unter-Tags, ohne Rücksicht auf Groß-/Kleinschreibung), <code>tag:none</code>, <code>tag:leech</code> (Lernbremse), <code>tag:marked</code> und <code>is:suspended</code>; ein vorangestelltes <code>-</code> verneint einen Begriff.</li>
-<li>Alle Begriffe müssen zutreffen, der übrige Text sucht als Freitext. Online- und Offline-Suche liefern dieselben Treffer.</li>
-<li>Während einer Suche sind Stapel mit Treffern aufgeklappt; die gespeicherten Aufklappzustände bleiben unverändert.</li>
+<li>Die Suchzeile ist einzeilig: Suchfeld <code>Karten durchsuchen</code>, ab <code>md</code> daneben der Stapelfilter (<code>Alle Stapel</code> oder ein Stapel samt Unterstapeln) und rechts <code>Erweiterte Suche</code> mit der Zahl der aktiven Filter; schmal bleibt dort nur das Filter-Icon. Das Suchfeld zeigt nur den freien Text; fertig getippte Begriffe wie <code>tag:x </code> werden zu Filtern.</li>
+<li>Unter der Suchzeile stehen bei aktiven Filtern die Trefferzahl, je Filter ein Chip aus Kategorie und Wert (verneint als <code>ohne &lt;Kategorie&gt;</code> in Gefahrfarbe) mit Entfernen-Knopf sowie <code>Alle zurücksetzen</code>. Ein geöffnetes Menü steht über den Chips, damit neue Chips es nicht verschieben.</li>
+<li><code>Erweiterte Suche</code> öffnet unter der Suchzeile ein Menü mit dem vollständigen Suchausdruck samt Kopier- und Speicherknopf, <code>Zurücksetzen</code> und den Kategorien <code>Heute</code> (fällig, überfällig, morgen fällig, gelernt, <code>Nochmal</code>, erstmals gelernt, hinzugefügt, bearbeitet, neu geplant), <code>Kartenstatus</code> (mit <code>Manuell zurückgestellt</code>), <code>Flaggen</code>, <code>Stapel</code>, <code>Tags</code> (als Baum, mit <code>Ohne Tags</code>), <code>Inhalt</code> (Variante, veraltete Variante, die Inhaltsformen <code>Frage–Antwort</code>, <code>Auswahl</code>, <code>Lückentext</code>, <code>Bildverdeckung</code>, <code>Abfrage 1 (vorwärts)</code>, <code>Abfrage 2 (rückwärts)</code> und je Anki-Notiztyp eine Zeile <code>Notiztyp &lt;Name&gt;</code>, gleichnamige zusammengefasst), <code>Zeitraum</code>, <code>Werte</code>, <code>Felder</code> und <code>Gespeichert &amp; Syntax</code>; jede Kategorie zählt ihre aktiven Filter. Jede Zeile trägt einen Dreifachschalter <code>Mit</code>/<code>Egal</code>/<code>Ohne</code> und, außer bei Stapeln, ihren Begriff. <code>Zeitraum</code> fügt einen Begriff für die letzten N Tage hinzu (gelernt, je Bewertung, erstmals gelernt, hinzugefügt, bearbeitet, neu geplant), <code>Werte</code> einen Vergleich für Intervall, Schwierigkeit, Wiederholungen oder Fehler, <code>Felder</code> einen Begriff <code>Feld:Text</code>; darunter stehen die so geschriebenen Begriffe mit eigenem Schalter, Chips nennen sie lesbar (<code>Nochmal, letzte 7 Tage</code>, <code>Intervall ≥ 21 Tage</code>). <code>Gespeichert &amp; Syntax</code> zeigt oben die gespeicherten Suchen und darunter die Erklärung der Schreibweise. Unter <code>md</code> ist das Menü ein Vollbild: erst die Kategorienliste, dann die Kategorie mit Zurück-Pfeil, unten Zurücksetzen und <code>N Karten anzeigen</code>.</li>
+<li>Die Suche umfasst alle Felder, Antwortoptionen und Tags (Stapelpfade über <code>Passende Stapel</code>), startet 250 ms nach der letzten Eingabe und bricht veraltete Anfragen ab. Einen Modusfilter gibt es nicht.</li>
+<li>Die Suche versteht Begriffe in Anki-Schreibweise: <code>flag:1</code> bis <code>flag:7</code> (<code>flag:0</code> ohne Flagge), <code>tag:x</code> (auch Unter-Tags, ohne Rücksicht auf Groß-/Kleinschreibung), <code>tag:none</code>, <code>tag:leech</code> (Lernbremse), <code>tag:marked</code>, <code>is:suspended</code>, <code>is:new</code>, <code>is:learn</code> (auch Wiederlernen), <code>is:review</code>, <code>is:young</code> und <code>is:mature</code> (Reife <code>Jung</code> beziehungsweise <code>Reif</code>), <code>is:due</code> (bis Ende des Lerntags fällig und lernbar), <code>prop:due</code> mit <code>&lt;</code>, <code>&lt;=</code>, <code>=</code>, <code>&gt;=</code>, <code>&gt;</code> und Tagen ab heute (<code>prop:due&lt;0</code> überfällig, <code>prop:due=1</code> morgen fällig; neue Karten sind nie fällig), <code>did:&lt;Stapel-ID&gt;</code> und <code>deck:Name</code> (Stapel nach vollem Pfad <code>A::B</code> samt Unterstapeln, <code>*</code> beliebiger Text, <code>_</code> ein Zeichen), <code>has:variant</code> (mit aktiver Variante), <code>added:n</code>, <code>edited:n</code>, <code>introduced:n</code> (erste Antwort) und <code>resched:n</code> (manuell neu geplant) für heute und die n − 1 Tage davor, <code>rated:n</code> und <code>rated:n:1</code> bis <code>rated:n:4</code> (beantwortet, mit <code>Nochmal</code>, <code>Schwer</code>, <code>Gut</code>, <code>Einfach</code>), <code>prop:ivl</code>, <code>prop:d</code> (Schwierigkeit 1 bis 10), <code>prop:s</code> (Haltbarkeit in Tagen), <code>prop:reps</code> und <code>prop:lapses</code> mit <code>&lt;</code>, <code>&lt;=</code>, <code>=</code>, <code>!=</code>, <code>&gt;=</code>, <code>&gt;</code> (Intervall, Schwierigkeit und Haltbarkeit nur für Karten, die nicht neu sind; die Haltbarkeit kennt eine Karte erst ab ihrer nächsten Antwort), die Inhaltsformen <code>is:reveal</code>, <code>is:choice</code>, <code>is:cloze</code>, <code>is:occlusion</code>, <code>note:Name</code> (Anki-Notiztyp mit denselben Platzhaltern wie <code>deck:</code>, Leerzeichen als <code>_</code>) und <code>mid:&lt;Notiztyp-ID&gt;</code>, <code>has:outdated</code> (mit veralteter Variante), <code>card:N</code> (Nummer der Abfrage wie in Anki: Vorlage, Lücke oder Maske; <code>forward</code> ist 1, <code>reverse</code> 2), <code>is:buried</code> (heute manuell zurückgestellt und nicht wieder hervorgeholt; zurückgestellte Geschwister entstehen erst in der Lernsitzung und zählen nicht) und <code>Feld:Text</code> (Text nur in dem Feld dieses Namens, ohne Rücksicht auf Groß-/Kleinschreibung, Leerzeichen im Feldnamen als <code>_</code>, etwa <code>ursprung:scaleni</code> oder <code>back_extra:merke</code>); ein vorangestelltes <code>-</code> verneint einen Begriff. Jedes Wort und jeder Begriff muss zutreffen. <code>&quot;…&quot;</code> sucht eine Wortfolge am Stück und fasst Begriffe mit Leerzeichen zusammen (<code>deck:&quot;Anatomie 1&quot;</code>); <code>or</code> verlangt nur eine Seite und bindet schwächer als das Nebeneinander (<code>and</code> ist erlaubt und ändert nichts); Klammern fassen zusammen, <code>-(…)</code> verneint eine ganze Gruppe. Im Menü verlangen mehrere Zeilen einer Kategorie auf <code>Mit</code> nur eine davon: Sie stehen als Gruppe <code>(a or b)</code> im Ausdruck und als ein Filter <code>a oder b</code>. Eine Suche, die über 1.024 Bedingungen ergäbe, findet nichts. Lerntag und Stapelbaum gehen aufgelöst in die Anfrage, daher liefern Online- und Offline-Suche dieselben Treffer. Weitere Anki-Begriffe wie <code>prop:r</code> oder <code>card:Name</code> nennt eine Zeile unter der Suche als noch nicht unterstützt; sie werden als Text gesucht.</li>
+<li>Gespeicherte Suchen gehören zum Konto und synchronisieren mit den Oberflächeneinstellungen (höchstens 100, Name höchstens 60 Zeichen). Der Speicherknopf am Suchausdruck öffnet <code>Gespeichert &amp; Syntax</code> mit einem Namensfeld, vorbelegt mit den lesbaren Filtern und dem Text; <code>Speichern</code> legt die Suche an und bestätigt es. Ein Klick auf eine gespeicherte Suche ersetzt den Suchausdruck; die gerade aktive ist markiert. Relative Begriffe wie <code>rated:1</code> gelten beim Anwenden für den jeweiligen Tag. Umbenennen geschieht in der Zeile, Löschen sofort mit <code>Rückgängig</code> in der Meldung.</li>
 </ul>
 <p class="docs-label">Grenzen</p>
-<p>Einen Modusfilter gibt es nicht.</p>
+<p>Einen Modusfilter und reguläre Ausdrücke gibt es nicht.</p>
 <h3 id="specs--karten-löschen" class="core-heading-3" tabindex="-1">Karten löschen <a class="docs-anchor" href="#specs--karten-löschen" aria-label="Link zu Karten löschen">#</a></h3>
 <p class="docs-label">Verhalten</p>
 <ul>
@@ -7281,8 +7614,9 @@ html:has(.catalog-preview) { scroll-behavior: auto; }
 <p>Aus der Kartenverwaltung öffnet <code>Allgemein</code>, aus einer Sitzung (mit validiertem Rückkontext) <code>Inhalt</code>.</p>
 <p class="docs-label">Verhalten</p>
 <ul>
+<li>Ab 1280 px Breite öffnet der Editor in der Kartenverwaltung neben der Liste (Suchzeile darüber, Liste links, Editor rechts in voller Fensterhöhe, beim Scrollen der Liste stehend); die Liste bleibt bedienbar, behält Auswahl und Scrollposition, und ein Klick auf eine andere Zeile wechselt die Karte. Darunter und außerhalb der Kartenliste (etwa aus einer Sitzung) bleibt er ein Dialog über der Ansicht.</li>
 <li>Stapel, Karte und Reiter sind Teil des Links; nur bekannte Reiter sind erlaubt. Reload und Browser-Zurück/-Vorwärts bleiben deterministisch, ein Reiterwechsel fragt nie nach.</li>
-<li>Aus der Kartenverwaltung blättert der Editor durch die geladenen Treffer und lädt am Listenende nach; ohne Trefferliste, etwa aus einer Sitzung, entfällt das Blättern.</li>
+<li>Aus der Kartenverwaltung blättert der Editor mit Vor/Zurück durch alle Zeilen der Tabelle in ihrer Reihenfolge (<code>12 / 48</code>); eine noch nicht geladene Zeile öffnet, sobald ihre Seite da ist, die benachbarten Treffer werden vorgeladen, und die Zeile der geöffneten Karte rückt beim Wechsel in den sichtbaren Bereich. Ohne Trefferliste, etwa aus einer Sitzung, entfällt das Blättern.</li>
 <li>Der Editor nennt den Status der Karte (Markierung, Flagge, Aussetzung, Lernbremse) und bietet Duplizieren und Löschen.</li>
 <li>Die Reiter lauten <code>Allgemein</code>, <code>Inhalt</code>, <code>Varianten</code> und <code>Lernen</code>.</li>
 <li>Speichern, Flagge, Markierung und der Wechsel zur vorigen oder nächsten Karte haben Tastenkürzel.</li>
@@ -7761,7 +8095,7 @@ html:has(.catalog-preview) { scroll-behavior: auto; }
 <p class="docs-label">Zweck</p>
 <p>Die Stapeleinstellungen sind ein eigener Dialog im Rahmen des <a href="#specs--einstellungsdialog">Einstellungsdialogs</a> über der Ansicht oder Sitzung, aus der sie geöffnet wurden, mit den Bereichen <code>Stapel</code>, <code>Tagesrunde &amp; Lernprofile</code> und <code>Scheduler &amp; CoRe</code>.</p>
 <p class="docs-label">Einstieg</p>
-<p><code>Einstellungen</code> in den <a href="#specs--stapeloptionen-verschieben-und-l%C3%B6schen">Stapeloptionen</a> in Dashboard, <code>Lernen</code> und Kartenverwaltung, das <a href="#specs--sitzungs-overlay">Sitzungs-Overlay</a>, der Hinweis auf ein erreichtes Tageslimit und die Zeile <code>Stapeleinstellungen</code> unter <code>Einstellungen → Tagesrunde &amp; Lernprofile</code>. Aus dem Karteneditor wird zuerst die Karte verlassen.</p>
+<p><code>Einstellungen</code> in den <a href="#specs--stapeloptionen-verschieben-und-l%C3%B6schen">Stapeloptionen</a> in Dashboard und <code>Lernen</code>, das <a href="#specs--sitzungs-overlay">Sitzungs-Overlay</a>, der Hinweis auf ein erreichtes Tageslimit und die Zeile <code>Stapeleinstellungen</code> unter <code>Einstellungen → Tagesrunde &amp; Lernprofile</code>. Aus dem Karteneditor wird zuerst die Karte verlassen.</p>
 <p class="docs-label">Verhalten</p>
 <ul>
 <li>Der Abschnitt <code>Stapel</code> bündelt Name, Icon, Farbe, den <code>CoRe-Modus</code>, bei eingeschaltetem CoRe die <code>Kartenvarianten</code>, die Lernbremse, <code>Offline-Nutzung</code>, das Anlegen von Unterstapeln und das Löschen. Unterstapel entstehen dort mit vorausgewähltem Elternstapel oder über die Ebenenauswahl des Schnellformulars.</li>
@@ -7779,7 +8113,7 @@ html:has(.catalog-preview) { scroll-behavior: auto; }
 <p>Hilfe und Simulator erklären und erproben die Lernlogik, ohne Lernstände durch bloßes Ansehen oder Umstellen zu verändern.</p>
 <h3 id="specs--hilfe" class="core-heading-3" tabindex="-1">Hilfe <a class="docs-anchor" href="#specs--hilfe" aria-label="Link zu Hilfe">#</a></h3>
 <p class="docs-label">Zweck</p>
-<p>Ein Einstieg und zwei geführte Geschichten erklären wechselnde Abrufreize und die FSRS-Kurve, ohne Workspace oder Scheduler zu verändern. Der Nachschlageteil erklärt außerdem, wie eine Prüfungssitzung abläuft.</p>
+<p>Ein Einstieg und zwei geführte Geschichten erklären wechselnde Abrufreize und die FSRS-Kurve, ohne Workspace oder Scheduler zu verändern. Der Nachschlageteil erklärt außerdem, wie eine Prüfungssitzung abläuft und wie die Kartenverwaltung arbeitet (Suche, Auswahl und Massenaktionen, Pflegewerkzeuge, <code>Treffer lernen</code>, Tastenkürzel).</p>
 <p class="docs-label">Einstieg</p>
 <p><code>Hilfe</code> in der App-Navigation; <code>Über uns</code> in den Einstellungen verweist ebenfalls dorthin.</p>
 <p class="docs-label">Verhalten</p>
@@ -8057,7 +8391,7 @@ html:has(.catalog-preview) { scroll-behavior: auto; }
 <h3 id="specs--laden-großer-bestände" class="core-heading-3" tabindex="-1">Laden großer Bestände <a class="docs-anchor" href="#specs--laden-großer-bestände" aria-label="Link zu Laden großer Bestände">#</a></h3>
 <p class="docs-label">Verhalten</p>
 <ul>
-<li>Die Kartenverwaltung zeigt lokal vorhandene Vorschauseiten sofort und ergänzt online serverseitige Suche, Sortierung und seitenweises Laden; jeder aufgeklappte Stapel blättert unabhängig, und erst das Öffnen einer Karte lädt ihren vollständigen Inhalt.</li>
+<li>Ist der Katalog auf dem Gerät vollständig, sucht, sortiert und blättert die Kartenverwaltung lokal über alle Felder, Antwortoptionen und Tags, online wie offline und ohne Warten auf die Cloud. Solange er unvollständig ist, zeigt sie vorhandene 50er-Previewseiten sofort und ergänzt online serverseitige Suche, Sortierung und Keyset-Pagination; die erste Suchseite aller aufgeklappten Stapel kommt in einer Anfrage, danach blättert jeder Stapel unabhängig weiter; erst Öffnen lädt den Kartenkörper, bei Fehlern bleiben Preview und Wiederholen sichtbar. Offline durchsucht CoRe transparent nur den vorhandenen Katalog; der Hinweis darauf erscheint nur offline oder nach einem Cloudfehler, nie für eine durch neue Eingabe ersetzte Anfrage.</li>
 <li>Offline durchsucht CoRe transparent nur den vorhandenen Katalog.</li>
 <li>App-Start, Kartenliste und Lernstart laden keine vollständigen Stapel.</li>
 </ul>
@@ -8080,7 +8414,7 @@ html:has(.catalog-preview) { scroll-behavior: auto; }
 <p class="docs-label">Verhalten</p>
 <ul>
 <li>Wird der Browserspeicher knapp, entfernt CoRe nur bestätigte Karteninhalte und Medien, die nicht offline verfügbar gemacht wurden; ausstehende Änderungen, Konflikte, Downloads und aktive Lernkarten bleiben. Die Schwellen regelt <a href="architecture.md#persistenz-sync-und-medien"><code>architecture.md</code></a>.</li>
-<li>Nach lokaler Bereitschaft dürfen Stapelübersicht und Kartenverwaltung vorsichtig vorbereitet werden; Datensparmodus, langsame Verbindung, unsichtbarer Tab oder Interaktion stoppen das. Andere Bereiche lädt CoRe erst bei absehbarer Nutzung vor, APKG, PDF, Statistik, Simulator und große Medien nie pauschal.</li>
+<li>Nach lokaler Bereitschaft lädt CoRe Lernen und Kartenverwaltung herunter, ohne sie schon auszuführen; Datensparmodus, langsame Verbindung, unsichtbarer Tab oder Interaktion stoppen das. Ausgeführt wird ein Bereich erst bei absehbarer Nutzung (Zeigen, Fokus oder Berühren seines Menüpunkts) oder beim Aufruf. Ein geöffneter Bereich lädt seine Unterbereiche, etwa Zusammenfassungen und Mindmaps, im Leerlauf herunter. Andere Bereiche lädt CoRe erst bei absehbarer Nutzung vor, APKG, PDF, Statistik, Simulator und große Medien nie pauschal.</li>
 <li>Die Einstellungen zeigen, ob der Speicher dauerhaft ist, sowie belegten und verfügbaren Platz. Die App-Hülle ist offline verfügbar; Medien bleiben selektiv, und ohne dauerhafte Speicherfreigabe kann der Browser Daten entfernen.</li>
 </ul>
 <p class="docs-label">Zustände und Meldungen</p>
@@ -8244,7 +8578,7 @@ html:has(.catalog-preview) { scroll-behavior: auto; }
 <li>KI-Bildvariation, breiter OCR-Worker oder vollständige Anki-Template-Ausführung.</li>
 </ul>
 <h2 id="specs--codeumfang-der-produktbereiche" class="core-heading-2" tabindex="-1">Codeumfang der Produktbereiche <a class="docs-anchor" href="#specs--codeumfang-der-produktbereiche" aria-label="Link zu Codeumfang der Produktbereiche">#</a></h2>
-<p>CoRe ist eine App mit mehreren Bereichen. Die Tabelle zeigt deren Anteil am Bildschirmcode; gemeinsam genutzte Logik, UI und API stehen separat.</p><div class="docs-code-stats"><dl data-size="compact" class="flex flex-col rounded-control border border-core-border bg-core-surface px-4 py-3 shadow-soft min-w-0"><dt class="core-caption font-medium text-core-muted"><span>Bildschirmcode</span></dt><dd class="core-metric mt-auto pt-1 text-core-text">7.042</dd></dl><dl data-size="compact" class="flex flex-col rounded-control border border-core-border bg-core-surface px-4 py-3 shadow-soft min-w-0"><dt class="core-caption font-medium text-core-muted"><span>Gemeinsamer Code &amp; API</span></dt><dd class="core-metric mt-auto pt-1 text-core-text">39.938</dd></dl><dl data-size="compact" class="flex flex-col rounded-control border border-core-border bg-core-surface px-4 py-3 shadow-soft min-w-0"><dt class="core-caption font-medium text-core-muted"><span>Quelldateien</span></dt><dd class="core-metric mt-auto pt-1 text-core-text">225</dd></dl></div><div class="docs-code-chart"><div class="docs-table-scroll" tabindex="0" role="region" aria-label="Codeumfang je Produktbereich"><table><thead><tr><th>Bereich</th><th>Zeilen</th><th>Anteil</th></tr></thead><tbody><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-status-learned)" aria-hidden="true"></span>Heute</th><td>320</td><td>4,5 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-status-new)" aria-hidden="true"></span>Lernen & Karten</th><td>2.354</td><td>33,4 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-status-in-progress)" aria-hidden="true"></span>Erstellen & Import</th><td>1.788</td><td>25,4 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-action-primary)" aria-hidden="true"></span>Prüfungen</th><td>430</td><td>6,1 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-status-due)" aria-hidden="true"></span>Statistik</th><td>567</td><td>8,1 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-progress-completed)" aria-hidden="true"></span>Konto & Sync</th><td>781</td><td>11,1 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-text-secondary)" aria-hidden="true"></span>Hilfe</th><td>802</td><td>11,4 %</td></tr></tbody></table></div></div><p class="docs-source">Beim Erzeugen gemessen: nichtleere Zeilen in <code>src/</code> und <code>api/</code> (TS/TSX) sowie <code>src/styles.css</code>. Ohne Tests, Typdeklarationen, generierte Datenbanktypen, Dokumentation und Fremdcode. Bereichszuordnung nach Bildschirmdateien in <a href="../src/screens/README.md">der Screen-Landkarte</a>; übriger Code zählt gemeinsam. Enthält Kommentare und misst weder Laufzeit noch Komplexität.</p></article></main></div><script>function initializeDocsViewer() {
+<p>CoRe ist eine App mit mehreren Bereichen. Die Tabelle zeigt deren Anteil am Bildschirmcode; gemeinsam genutzte Logik, UI und API stehen separat.</p><div class="docs-code-stats"><dl data-size="compact" class="flex flex-col rounded-control border border-core-border bg-core-surface px-4 py-3 shadow-soft min-w-0"><dt class="core-caption font-medium text-core-muted"><span>Bildschirmcode</span></dt><dd class="core-metric mt-auto pt-1 text-core-text">7.461</dd></dl><dl data-size="compact" class="flex flex-col rounded-control border border-core-border bg-core-surface px-4 py-3 shadow-soft min-w-0"><dt class="core-caption font-medium text-core-muted"><span>Gemeinsamer Code &amp; API</span></dt><dd class="core-metric mt-auto pt-1 text-core-text">43.444</dd></dl><dl data-size="compact" class="flex flex-col rounded-control border border-core-border bg-core-surface px-4 py-3 shadow-soft min-w-0"><dt class="core-caption font-medium text-core-muted"><span>Quelldateien</span></dt><dd class="core-metric mt-auto pt-1 text-core-text">245</dd></dl></div><div class="docs-code-chart"><div class="docs-table-scroll" tabindex="0" role="region" aria-label="Codeumfang je Produktbereich"><table><thead><tr><th>Bereich</th><th>Zeilen</th><th>Anteil</th></tr></thead><tbody><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-status-learned)" aria-hidden="true"></span>Heute</th><td>320</td><td>4,3 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-status-new)" aria-hidden="true"></span>Lernen & Karten</th><td>2.759</td><td>37 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-status-in-progress)" aria-hidden="true"></span>Erstellen & Import</th><td>1.788</td><td>24 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-action-primary)" aria-hidden="true"></span>Prüfungen</th><td>430</td><td>5,8 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-status-due)" aria-hidden="true"></span>Statistik</th><td>567</td><td>7,6 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-progress-completed)" aria-hidden="true"></span>Konto & Sync</th><td>781</td><td>10,5 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-text-secondary)" aria-hidden="true"></span>Hilfe</th><td>816</td><td>10,9 %</td></tr></tbody></table></div></div><p class="docs-source">Beim Erzeugen gemessen: nichtleere Zeilen in <code>src/</code> und <code>api/</code> (TS/TSX) sowie <code>src/styles.css</code>. Ohne Tests, Typdeklarationen, generierte Datenbanktypen, Dokumentation und Fremdcode. Bereichszuordnung nach Bildschirmdateien in <a href="../src/screens/README.md">der Screen-Landkarte</a>; übriger Code zählt gemeinsam. Enthält Kommentare und misst weder Laufzeit noch Komplexität.</p></article></main></div><script>function initializeDocsViewer() {
     const theme = document.getElementById("docs-theme");
     theme.addEventListener("click", () => {
         const dark = document.documentElement.dataset.coreTheme !== "dark";

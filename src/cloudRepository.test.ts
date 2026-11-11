@@ -10,6 +10,7 @@ import {
   loadReimportTargets,
   recordAtomicReview,
   reviewEventToCloudRow,
+  streamAccountCatalogChanges,
 } from "./cloudRepository.ts";
 import type { ReviewEvent } from "./coreTypes.ts";
 import { noteFromRow, validateAccountRows, validateOfflineManifestRows } from "./cloudRepositoryValidation.ts";
@@ -236,4 +237,48 @@ test("Reimport-Ziele liefern Inhalte, Karten mit Anki-Karten-ID und Vorlagen", a
   assert.deepEqual(targets.noteTypeSources, [{ id: "source", ankiNotetypeId: "1600000000000" }]);
   const invalid = { async rpc() { return { data: { notes: [], cards: [{ id: "card" }], noteTypeSources: [] }, error: null }; } };
   await assert.rejects(() => loadReimportTargets(invalid, ["guid-1"]), /ungültige Karte/);
+});
+
+test("Suchtexte kommen zuletzt in jeder Delta-Seite und schließen sie ab", async () => {
+  const delta = (rows: unknown[]) => ({
+    async rpc() {
+      return { data: { changes: rows.map((row) => ({ table: "note_search", row })), nextCursor: 9, hasMore: false }, error: null };
+    },
+  });
+  const pages: Array<{ table: string; entities: unknown[]; advanceCursor?: boolean }> = [];
+  const cursor = await streamAccountCatalogChanges(delta([{ note_id: "note-1", search_text: "Herz MUSKEL", search_fields: [{ n: "vorderseite", t: "Herz" }], deleted_at: null, sync_change_id: 9 }]), 0, async (page) => {
+    pages.push(page);
+  });
+
+  assert.equal(cursor, 9);
+  assert.deepEqual(pages.map((page) => page.table), ["decks", "card_catalog", "deck_study_summaries", "note_type_sources", "note_search"]);
+  assert.deepEqual(pages.at(-1), { table: "note_search", entities: [{ noteId: "note-1", searchText: "herz muskel", searchFields: [{ name: "vorderseite", text: "herz" }], deletedAt: null }], reset: false, cursor: 9, advanceCursor: true });
+  assert.ok(pages.slice(0, -1).every((page) => page.advanceCursor === false));
+  await assert.rejects(streamAccountCatalogChanges(delta([{ note_id: "note-1" }]), 0, async () => undefined), /Suchtexte/);
+});
+
+test("Katalogzeilen bringen Lernverlauf und Werte mit, ein Server ohne sie bleibt lesbar", async () => {
+  const row = {
+    id: "card-1", deck_id: "deck-1", note_id: "note-1", front_preview: "Herz", sort_text: "herz", due_at: null,
+    schedule_state: "review", maturity_band: "young", reviewable: true, marked: false, anki_flag: 0, leeched: false,
+    tag_keys: [], has_active_variants: false, active_variant_count: 0, active_variant_id: null, body_revision: 1,
+    study_revision: 2, dependency_revision: 1, sync_change_id: 4, deleted_at: null, updated_at: "2026-11-05T08:00:00+00:00",
+  };
+  const history = {
+    created_at: "2026-11-01T08:00:00+00:00", edited_at: "2026-11-02T08:00:00+00:00", content_kind: "cloze",
+    interval_days: 12, difficulty: 6.5, reps: 4, lapses: 1, first_reviewed_at: "2026-11-01T09:00:00+00:00",
+    last_again_at: "2026-11-03T09:00:00+00:00", last_hard_at: null, last_good_at: "2026-11-04T09:00:00+00:00",
+    last_easy_at: null, last_rescheduled_at: null, note_type_id: "nt-1", has_outdated_variants: true,
+    prompt_ordinal: 2, last_buried_at: "2026-11-05T07:00:00+00:00", last_unburied_at: null,
+  };
+  const delta = { async rpc() { return { data: { changes: [{ table: "card_catalog", row: { ...row, ...history } }, { table: "card_catalog", row: { ...row, id: "card-2" } }], nextCursor: 4, hasMore: false }, error: null }; } };
+  const pages: Array<{ table: string; entities: any[] }> = [];
+  await streamAccountCatalogChanges(delta, 0, async (page) => { pages.push(page); });
+
+  const [withHistory, withoutHistory] = pages.find((page) => page.table === "card_catalog")!.entities;
+  assert.deepEqual(
+    [withHistory.contentKind, withHistory.intervalDays, withHistory.difficulty, withHistory.reps, withHistory.lapses, withHistory.lastAgainAt, withHistory.lastHardAt, withHistory.noteTypeId, withHistory.hasOutdatedVariants, withHistory.promptOrdinal, withHistory.lastBuriedAt],
+    ["cloze", 12, 6.5, 4, 1, "2026-11-03T09:00:00+00:00", null, "nt-1", true, 2, "2026-11-05T07:00:00+00:00"],
+  );
+  assert.equal(withoutHistory.firstReviewedAt, undefined, "ohne Migration fehlt der Verlauf, die Zeile bleibt gültig");
 });

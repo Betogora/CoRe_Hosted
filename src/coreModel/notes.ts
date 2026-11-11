@@ -250,17 +250,29 @@ function plainText(html: string): string {
   return stripSanitizedHtml(clozePlainText(html)).replace(/&nbsp;/gi, " ").replace(/\s+/g, " ").trim();
 }
 
-/** Derived search and sort text of a content: all fields, choice options and tags; sorted by the first question. */
-export function noteTextIndex(content: NoteContent): { searchText: string; sortText: string } {
+/** Key of a field name in `Feld:Text` searches: lower case, spaces as underscores. */
+export function fieldSearchKey(name: string): string {
+  return name.trim().toLocaleLowerCase("de").replace(/\s+/g, "_");
+}
+
+/**
+ * Derived search and sort text of a content: all fields, choice options and tags; sorted by the first question.
+ * `searchFields` holds each named field's text for `Feld:Text` searches.
+ */
+export function noteTextIndex(content: NoteContent): { searchText: string; sortText: string; searchFields: Array<{ name: string; text: string }> } {
   const sortField = content.fields.find((field) => field.role === "prompt") ?? content.fields[0];
+  const fieldTexts = content.fields.map((field) => ({ name: fieldSearchKey(field.name), text: plainText(field.html) }));
   const parts = [
-    ...content.fields.map((field) => plainText(field.html)),
+    ...fieldTexts.map((field) => field.text),
     ...(content.interaction.kind === "choice" ? content.interaction.options.map((option) => plainText(option.html)) : []),
     ...content.tags,
   ].filter(Boolean);
   return {
     searchText: parts.join(" ").toLocaleLowerCase("de").slice(0, SEARCH_TEXT_LIMIT),
     sortText: (sortField ? plainText(sortField.html) : "").slice(0, SORT_TEXT_LIMIT),
+    searchFields: fieldTexts
+      .filter((field) => field.name && field.text)
+      .map((field) => ({ name: field.name, text: field.text.toLocaleLowerCase("de").slice(0, SEARCH_TEXT_LIMIT) })),
   };
 }
 

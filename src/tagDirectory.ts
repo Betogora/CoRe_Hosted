@@ -28,6 +28,26 @@ export function createTagDirectoryBuilder() {
   };
 }
 
+/**
+ * The directory right after a tag management change, until the reloaded one arrives: the tag and its subtags take the
+ * new name (merged counts add up, an upper bound) or go.
+ */
+export function renameDirectoryTag(directory: readonly TagDirectoryEntry[], from: string, to: string | null): TagDirectoryEntry[] {
+  const fromKey = key(from);
+  const entries = new Map<string, TagDirectoryEntry>();
+  const add = (entry: TagDirectoryEntry) => {
+    const known = entries.get(key(entry.tag));
+    entries.set(key(entry.tag), known ? { tag: known.tag, noteCount: known.noteCount + entry.noteCount, importedCount: known.importedCount + entry.importedCount } : entry);
+  };
+  const moved: TagDirectoryEntry[] = [];
+  for (const entry of directory) {
+    if (key(entry.tag) === fromKey || key(entry.tag).startsWith(`${fromKey}::`)) moved.push(entry);
+    else add(entry);
+  }
+  if (to !== null) for (const entry of moved) add({ ...entry, tag: `${to}${entry.tag.slice(from.length)}` });
+  return [...entries.values()].sort((left, right) => left.tag.localeCompare(right.tag, "de"));
+}
+
 /** The spelling a tag already has in the account wins, like in Anki. */
 export function canonicalTagSpelling(directory: readonly TagDirectoryEntry[], tag: string): string {
   return directory.find((entry) => key(entry.tag) === key(tag))?.tag ?? tag;

@@ -532,6 +532,70 @@
     grid-auto-columns: var(--core-control-height);
   }
 
+  /* CoreTriStateControl: rail of the segmented control with square segments (KV2, accepted 2026-11-04). */
+  .core-tri-state-control {
+    --core-tri-size: calc(var(--core-selection-height) - 8px);
+    grid-auto-columns: var(--core-tri-size);
+  }
+
+  .core-tri-state-option {
+    position: relative;
+    z-index: 1;
+    display: grid;
+    place-items: center;
+    width: var(--core-tri-size);
+    height: 100%;
+    min-width: 0 !important;
+    min-height: 0 !important;
+    padding: 0;
+    line-height: 0;
+    border-radius: var(--core-radius-control);
+    color: var(--core-text-secondary);
+    transition: color 200ms cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .core-tri-state-option:not([aria-checked="true"]):hover {
+    color: var(--core-text);
+  }
+
+  .core-tri-state-option[aria-checked="true"] {
+    transition: color 260ms cubic-bezier(0.4, 0, 0.2, 1) 20ms;
+  }
+
+  .core-tri-state-option svg {
+    transition: transform 180ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  .core-tri-state-option[aria-checked="true"] svg {
+    transform: scale(1.08);
+  }
+
+  .core-tri-state-option:disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+  }
+
+  .core-tri-state-indicator {
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    z-index: 0;
+    width: var(--core-tri-size);
+    height: calc(100% - 6px);
+    border-radius: var(--core-radius-control);
+    background: var(--core-surface);
+    box-shadow: var(--core-selection-indicator-shadow);
+    pointer-events: none;
+    transform: translateX(calc(var(--core-tri-index) * (var(--core-tri-size) + 0.25rem)));
+    transition: transform 180ms cubic-bezier(0.22, 1, 0.36, 1), background-color 260ms cubic-bezier(0.4, 0, 0.2, 1) 20ms;
+  }
+
+  .core-tri-state-control[data-tri-value="any"] .core-tri-state-option[aria-checked="true"] { color: var(--core-text); }
+  .core-tri-state-control[data-tri-value="in"] .core-tri-state-indicator { background: var(--core-action-primary); }
+  .core-tri-state-control[data-tri-value="in"] .core-tri-state-option[aria-checked="true"] { color: var(--core-text-on-accent); }
+  .core-tri-state-control[data-tri-value="out"] .core-tri-state-indicator { background: var(--core-danger); }
+  .core-tri-state-control[data-tri-value="out"] .core-tri-state-option[aria-checked="true"] { color: var(--core-text-on-danger); }
+
   /*
    * The card editor's four equally wide tabs (ARIA tabs) in the shared selection rail: as wide as the labels from
    * 640 px, full width below; the sliding indicator marks the selected one.
@@ -577,7 +641,10 @@
   }
 
   @media (prefers-reduced-motion: reduce) {
-    .core-segmented-control-indicator {
+    .core-segmented-control-indicator,
+    .core-tri-state-indicator,
+    .core-tri-state-option,
+    .core-tri-state-option svg {
       transition: none;
     }
 
