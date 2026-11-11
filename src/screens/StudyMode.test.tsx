@@ -30,6 +30,7 @@ function studyCallbacks(deck: Deck, notes: Note[]) {
     onSetCardStudyState: () => ({ deck, note: notes[0] }),
     onSetDeckReviewOrder: () => deck,
     onReview: () => undefined,
+    onAskCardHelp: async () => "",
   };
 }
 
@@ -37,10 +38,10 @@ test("review ratings keep their German labels, shortcuts and canonical color ord
   assert.deepEqual(
     ratingButtons.map(({ shortcutKey, label, className }) => ({ shortcutKey, label, className })),
     [
-      { shortcutKey: "1", label: "Nochmal", className: "border-core-accent bg-core-accent-soft text-core-text" },
-      { shortcutKey: "2", label: "Schwer", className: "border-core-warning bg-core-warning-soft text-core-text" },
-      { shortcutKey: "3", label: "Gut", className: "border-core-success bg-core-success-soft text-core-text" },
-      { shortcutKey: "4", label: "Leicht", className: "border-core-info bg-core-info-soft text-core-text" },
+      { shortcutKey: "1", label: "Nochmal", className: "core-rating-again" },
+      { shortcutKey: "2", label: "Schwer", className: "core-rating-hard" },
+      { shortcutKey: "3", label: "Gut", className: "core-rating-good" },
+      { shortcutKey: "4", label: "Leicht", className: "core-rating-easy" },
     ],
   );
 });
@@ -85,6 +86,7 @@ test("StudyMode exposes no origin or scheduler hints before reveal", () => {
   assert.match(markup, /Kartendarstellung wird vorbereitet …/);
   assert.match(markup, /data-testid="study-card-content"/);
   assert.match(markup, /Antwort anzeigen/);
+  assert.doesNotMatch(markup, /KI hilft/);
   assert.match(markup, /core-study-card/);
   assert.doesNotMatch(markup, /core-study-card[^"]*min-h/);
   assert.doesNotMatch(markup, />Frage<\/p>|>Antwort<\/p>/);

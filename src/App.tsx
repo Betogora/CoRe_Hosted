@@ -5,6 +5,7 @@ import type { ImportCommitGraph, ImportMediaFile } from "./apkgImport.ts";
 import { ArrowRight, Database, Layers, Sparkles } from "lucide-react";
 import { authPhases, createSyncErrorStatus, createSyncIdleStatus, createSyncPendingStatus, createSyncSavingStatus, shouldShowAppShell, shouldShowAuthGate } from "./accountSession.ts";
 import { aiCardVariantAvoidTexts, createAiGeneratedVariantDraft, requestAiCardVariant } from "./aiCardVariant.ts";
+import { requestAiCardHelp } from "./aiCardHelp.ts";
 import { AiCardVariantContractError } from "./aiCardVariantContract.ts";
 import { createReviewReturnContext, createStudyRoute, createViewRoute, reviewReturnContextToViewRoute, settingsContentSection, settingsSectionGroup, type AppRoute, type DeckSettingsOverlay, type DeckSettingsSection, type GeneralSettingsSection, type LearningSettingsSection, type ReviewReturnContext, type SettingsSection } from "./appNavigation.ts";
 import { startAppMediaRetryLifecycle } from "./appMediaLifecycle.ts";
@@ -2268,6 +2269,7 @@ export function App() {
           onSetCardStudyState={setStudyCardStudyState}
           onSetDeckReviewOrder={setStudyDeckReviewOrder}
           onReview={recordReview}
+          onAskCardHelp={(request, signal) => requestAiCardHelp(request, supabase ?? null, { signal })}
           sessionPlan={studySessionProjection ? {
             progress: studySessionProjection.progress,
             initialCardCount: studySessionProjection.startableCount,

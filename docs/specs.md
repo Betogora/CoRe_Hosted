@@ -150,7 +150,7 @@ Ablauf:
 
 Akzeptanz:
 
-- Die Sitzung folgt [Lernsitzung](#lernsitzung), [Werkzeuge auf der Karte](#werkzeuge-auf-der-karte) und [Sitzungs-Overlay](#sitzungs-overlay).
+- Die Sitzung folgt [Lernsitzung](#lernsitzung), [Werkzeuge auf der Karte](#werkzeuge-auf-der-karte), [KI hilft](#ki-hilft) und [Sitzungs-Overlay](#sitzungs-overlay).
 - Tagesmenge und Planung folgen [Tagesmenge und Limits](#tagesmenge-und-limits), [Scheduler](#scheduler) und [Vorziehen und Lerntag](#vorziehen-und-lerntag).
 - Reload, Rückkehr und Abschluss folgen [Start, Ende und Wiederaufnahme](#start-ende-und-wiederaufnahme).
 - Offline-Lernen folgt [Offline lernen und Downloads](#offline-lernen-und-downloads).
@@ -435,7 +435,8 @@ Verhalten:
 - Vor dem Aufdecken zeigt die Sitzung nur den Lerninhalt und die Aktion zum Aufdecken, ohne Herkunfts-, Varianten-, Reife- oder Schedulerhinweise. Die Kartenfläche folgt [Kartenflächen](#kartenflächen).
 - Die Sitzung nennt den Stapel und den Tagesfortschritt, aber keine Kartenposition oder Wiederholungsnummer.
 - Die gezeigte Karte wechselt erst mit ihrer Bewertung; nachgeladene Karten reihen sich nur dahinter ein. Die nächsten Karten samt Medien werden während des Lernens vorbereitet, damit sie ohne Ladezustand erscheinen.
-- `Nochmal`, `Schwer`, `Gut` und `Leicht` sind per Zeiger und mit den Tasten `1` bis `4` wählbar. Jede Bewertung nennt ihr Intervall; die Vorschau stimmt mit der tatsächlich angewendeten Bewertung überein.
+- Kopf und Aktionsleiste bleiben beim Scrollen stehen, die Karte läuft darunter durch; während der Sitzung steht die Aktionsleiste an der Stelle der globalen Navigation. Sie trägt vor dem Aufdecken `Antwort anzeigen`, danach die Bewertungen.
+- `Nochmal`, `Schwer`, `Gut` und `Leicht` sind per Zeiger und mit den Tasten `1` bis `4` wählbar und farblich unterschieden (Orange, Gelb, Gelbgrün, Blaugrün). Jede Bewertung nennt ihr Intervall; die Vorschau stimmt mit der tatsächlich angewendeten Bewertung überein.
 - Der Tagesfortschritt gliedert sich in `Gelernt`, `Neu`, `Offen` und `Fällig`. Jede abgeschlossene Karte wechselt nach `Gelernt`; ein abgeschlossener Tag besteht ganz aus `Gelernt`. Der Zähler nennt gelernte und heute relevante Karten; die Zählung regelt [Tagesmenge und Limits](#tagesmenge-und-limits).
 - Nur während eines laufenden Pomodoro-Timers zeigt die Sitzung dessen Restzeit.
 - Varianten erscheinen nach [Freigabe der Varianten](#freigabe-der-varianten) und [Varianten im Review](#varianten-im-review).
@@ -450,6 +451,26 @@ Verhalten:
 Grenzen:
 
 Ohne Markierung gibt es kein AMBOSS-Angebot; Werkzeuge erscheinen nur, wenn sie verfügbar sind.
+
+### KI hilft
+
+Zweck:
+
+Eine Lernhilfe zur gerade aufgedeckten Karte (ADR-011).
+
+Verhalten:
+
+- Nach dem Aufdecken öffnet `KI hilft` über der Aktionsleiste einen Dialog mit Begrüßung, `Erklären`, `Beispiel` und einer freien Frage bis 500 Zeichen. Schließen, `Escape` oder ein Klick auf den abgedunkelten Hintergrund schließen nur den Dialog; die Tastenkürzel der Sitzung ruhen, solange er offen ist.
+- An die KI gehen nur der Klartext der Karte, wie sie abgefragt wurde (bei Lückentext nur die eigene Lücke verdeckt, bei Auswahlfragen richtige und falsche Optionen), Hinweis-, Zusatz- und Notizfelder, der Modus, die Frage und höchstens sechs frühere Antworten zu dieser Karte. Quellenfeld, Medien, Tags und Lernstand bleiben lokal.
+- Antworten erscheinen als Klartext und werden angesagt; solange eine lädt, sind weitere Fragen gesperrt. Der Verlauf bleibt beim Schließen erhalten, endet mit der Karte und wird nie gespeichert; ein Kartenwechsel bricht eine laufende Anfrage ab.
+
+Zustände und Meldungen:
+
+Zeitüberschreitung, fehlende Verbindung, Limit oder Anbieterfehler erscheinen als Fehlermeldung im Verlauf, ohne automatischen Neuversuch; die nächste Frage ist sofort möglich.
+
+Grenzen:
+
+Bildverdeckungen und Karten ohne lesbaren Text zeigen `KI hilft` nicht. Es gibt keinen Chat ohne Kartenbezug und keine Bilder.
 
 ### Sitzungs-Overlay
 
@@ -1856,7 +1877,7 @@ Offene Gates und Evidenz stehen ausschließlich in [`todo.md`](todo.md).
 
 - Community, Rankings oder soziale Leistungsmetriken.
 - Generische Backend-, Auth- oder LLM-Adapter.
-- Externer KI-Chat oder breite bzw. multimodale Kartenerstellung jenseits der textbasierten Variantenroute.
+- KI-Chat ohne Kartenbezug oder breite bzw. multimodale Kartenerstellung jenseits der textbasierten Variantenroute.
 - Vollständiges Admin-Portal, Zahlungen oder Abonnements.
 - Native Store-Apps oder Push-Benachrichtigungen.
 - KI-Bildvariation, breiter OCR-Worker oder vollständige Anki-Template-Ausführung.
