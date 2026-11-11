@@ -192,9 +192,10 @@ test("deck content opens on its subdecks with path, heading and branch actions",
   assert.doesNotMatch(leaf, /content-deck-row-/);
   const top = renderScreen([root, child], { contentDeckId: root.id, contentTab: "summary" });
   assert.match(top, /aria-label="Zur Stapelübersicht"/);
-  assert.match(top, /data-testid="deck-summaries-panel"/);
+  // Summaries and mind maps load with their tab, so the first render shows the tab's loading state.
+  assert.match(top, /data-testid="deck-content-tab-loading"/);
   const mindMap = renderScreen([root, child], { contentDeckId: root.id, contentTab: "mind-map" });
-  assert.match(mindMap, /Mindmap wird geladen/);
+  assert.match(mindMap, /data-testid="deck-content-tab-loading"/);
 });
 
 test("substack tree starts collapsed and keeps other branches outside the opened deck", () => {

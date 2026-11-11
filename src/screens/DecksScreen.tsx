@@ -32,8 +32,6 @@ import type { Card, Note } from "../coreTypes.ts";
 import { hitStudyQuery, orderHits, type HitStudyMode, type HitStudyOrder } from "../hitStudySession.ts";
 import type { CardBatchAction } from "../cardBatchActions.ts";
 import { CardEditorDialog, CardEditorSurface, type CardEditorHitNavigation } from "./cardEditor/CardEditorDialog.tsx";
-import { DeckSummariesPanel } from "./DeckSummariesPanel.tsx";
-import { DeckMindMapsPanel } from "./DeckMindMapsPanel.tsx";
 import { DeckSubstacksPanel } from "./DeckSubstacksPanel.tsx";
 import { LearningAreaHeader } from "./LearningAreaHeader.tsx";
 
@@ -240,6 +238,12 @@ const CardTableRowView = React.memo(function CardTableRowView({ virtualKey, deck
   );
 });
 
+
+// Summaries and mind maps are most of this screen's code but load with their tab only, so preloading the card
+// management stays below the 50 ms task budget.
+const DeckSummariesPanel = React.lazy(() => import("./DeckSummariesPanel.tsx").then((module) => ({ default: module.DeckSummariesPanel })));
+const DeckMindMapsPanel = React.lazy(() => import("./DeckMindMapsPanel.tsx").then((module) => ({ default: module.DeckMindMapsPanel })));
+const CONTENT_TAB_LOADING = <p className="p-6 core-body text-core-muted" role="status" data-testid="deck-content-tab-loading">Wird geladen …</p>;
 
 const WIDE_EDITOR_QUERY = "(min-width: 1280px)";
 
@@ -1092,12 +1096,12 @@ export function DecksScreen({
             action={<ActionButton variant="secondary" icon={Play} disabled={!hasStudyCards} onClick={() => onStartDeck(contentRow.deck)}>Karten lernen</ActionButton>} />
           : <EmptyState icon={Layers} title="Stapel nicht gefunden oder nicht verfügbar." />
       ) : contentDeckId && contentTab === "summary" ? (
-        contentDeck ? <DeckSummariesPanel key={`${summaryAccountId ?? contentDeck.ownerId}:${contentDeck.id}`} deck={contentDeck}
-          userId={summaryAccountId ?? contentDeck.ownerId} cloud={learningContentCloud} onGenerateSummary={onGenerateSummary} onDraftStateChange={handleEditorDraftStateChange} />
+        contentDeck ? <React.Suspense fallback={CONTENT_TAB_LOADING}><DeckSummariesPanel key={`${summaryAccountId ?? contentDeck.ownerId}:${contentDeck.id}`} deck={contentDeck}
+          userId={summaryAccountId ?? contentDeck.ownerId} cloud={learningContentCloud} onGenerateSummary={onGenerateSummary} onDraftStateChange={handleEditorDraftStateChange} /></React.Suspense>
           : <EmptyState icon={FileText} title="Stapel nicht gefunden oder nicht verfügbar." />
       ) : contentDeckId && contentTab === "mind-map" ? (
-        contentDeck ? <DeckMindMapsPanel key={`${summaryAccountId ?? contentDeck.ownerId}:${contentDeck.id}`} deck={contentDeck}
-          userId={summaryAccountId ?? contentDeck.ownerId} cloud={learningContentCloud} onGenerateSummary={onGenerateSummary} onDraftStateChange={handleEditorDraftStateChange} />
+        contentDeck ? <React.Suspense fallback={CONTENT_TAB_LOADING}><DeckMindMapsPanel key={`${summaryAccountId ?? contentDeck.ownerId}:${contentDeck.id}`} deck={contentDeck}
+          userId={summaryAccountId ?? contentDeck.ownerId} cloud={learningContentCloud} onGenerateSummary={onGenerateSummary} onDraftStateChange={handleEditorDraftStateChange} /></React.Suspense>
           : <EmptyState icon={Network} title="Stapel nicht gefunden oder nicht verfügbar." />
       ) : contentDeckId && contentTab !== "cards" ? (
         <DeckContentPlaceholder label={selectedContentTab.label} icon={selectedContentTab.icon} title="Demnächst verfügbar" />
