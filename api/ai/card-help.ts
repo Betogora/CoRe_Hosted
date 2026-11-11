@@ -29,7 +29,7 @@ const SYSTEM_PROMPT = [
 ].join(" ");
 
 const TEXTS: ProviderTexts = {
-  rateLimited: "Gerade wurden zu viele Fragen gestellt. Bitte versuche es in einer Minute erneut.",
+  rateLimited: "Die KI-Hilfe ist gerade ausgelastet. Bitte versuche es in einer Minute erneut.",
   unavailable: "Die KI-Hilfe ist gerade nicht verfügbar.",
   rejected: "OpenRouter hat die Frage abgelehnt.",
   failed: "Das Modell konnte keine Antwort erstellen.",
