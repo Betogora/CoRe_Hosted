@@ -20,6 +20,11 @@ Kleine Punkte aus abgeschlossenen Paketen, gemeinsam in einem PR.
       Offline-Löschung in `batch-resilience` erwarten nach dem Reload die
       Überschrift `Lernen`; seit `Karten` ein eigener Reiter ist (`b19da09`),
       heißt sie `Kartenverwaltung`. Nachweis: alle drei Tests grün.
+- [ ] **PDF-Vorschau im Browserflow:** Der Vertrag „manuell mit PDF bis
+      Bearbeiten und Review“ (`core-stabilization`) erwartet im
+      PDF-Betrachter „Seite 1 von 1“, sieht aber „PDF nicht verfügbar.“; so
+      lokal seit dem main-Stand vom 2026-11-10. Ursache klären (Worker,
+      Laden des PDF, Testaufbau) und beheben. Nachweis: der Test grün.
 - [ ] **Navigationsmarkierung beim ersten Laden:** Bei einem direkten Aufruf
       etwa von `/lernen` sitzt die gleitende Hervorhebung der Top-Bar auf
       `Heute`, obwohl `Lernen` korrekt `aria-current` trägt
