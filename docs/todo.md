@@ -1,12 +1,12 @@
 # CoRe TODO
 
-Stand: 2026-11-10
+Stand: 2026-11-11
 
 Nur offene Arbeit. Ist-Stand in [`status.md`](status.md), Entscheidungen in
 [`decisions.md`](decisions.md), erledigte Arbeit in [`history.md`](history.md).
 
 Reihenfolge = Priorität. Die Restposten sind klein und kommen gesammelt vorab
-dran. P1 und P4 laufen, P2 folgt. Offene Nachweise brauchen keinen Code und
+dran. P3 beginnt als Nächstes mit der Lernansicht; P1 und P4 laufen, P2 folgt; P5 wartet, bis alle KI-Prompts stehen. Offene Nachweise brauchen keinen Code und
 laufen unabhängig davon; die Release-Voraussetzungen sind vor dem ersten
 externen Release fällig. „Später“ ist geparkt.
 
@@ -39,6 +39,75 @@ Kleine Punkte aus abgeschlossenen Paketen, gemeinsam in einem PR.
       ob der OAuth-Prüfprozess und ein Datenschutztext kommen; sonst Code und
       Flag entfernen.
 
+## P3: Lernansicht 2 und „KI hilft“
+
+Gewählt am 2026-11-11 aus zwei Entwürfen: schwebende Leisten, neue
+Bewertungsfarben und eine Lernhilfe zur aufgedeckten Karte (ADR-011). Die
+Lernansicht geht sofort live; das KI-Fenster wird vorher fertig gebaut, kommt
+aber erst zusammen mit der Route nach `main`, damit Lernende keine Funktion
+ohne Wirkung sehen.
+
+- [ ] **Lernansicht: Leisten und Farben (zuerst):** In `StudyMode` bleiben
+      Kopf (Schließen, Stapelname, Lerneinstellungen, Simulationshinweis,
+      Lernfortschritt, Pomodoro) und Aktionsleiste beim Scrollen stehen; die
+      Karte läuft darunter durch, `scroll-padding` hält Fokus und Sprungziele
+      frei. Kopf ab 768 px als schwebende, durchscheinende Insel mit Abstand
+      zum Rand, darunter als randbündige Leiste über die volle Breite.
+      Aktionsleiste immer als Insel; mobil übernimmt sie Position, Breite,
+      Radius, Fläche und Schatten der mobilen Bottom-Bar
+      (`core-mobile-bottom-navigation`), steht also beim Lernen an deren
+      Stelle (die globale Navigation bleibt im Lernmodus ausgeblendet). Sie
+      trägt vorn „Antwort anzeigen“, hinten die vier Bewertungen, mobil
+      nebeneinander mit dem Intervall unter dem Namen. Namen bleiben Nochmal,
+      Schwer, Gut, Leicht; Farben sanft (helle Füllung, farbiger Rand und
+      farbige Schrift) in tiefem Orange, Gelb, hellem Gelbgrün und Blaugrün
+      als Tokens `--core-rating-*` hell und dunkel, die `ratingButtons`
+      nutzt; Kontrast ≥ 4,5 : 1. Nachweis: `StudyMode.test.tsx`, betroffene
+      E2E-Specs, Katalog-Demo der Bewertungsknöpfe, visuelle Pflichtmatrix
+      (kurze und lange Karte, Vorder- und Rückseite, Variante mit
+      Originalkarte, Abschluss- und Ladezustände, hell und dunkel).
+- [ ] **KI-Fenster als Oberfläche:** Nur bei aufgedeckter Antwort schwebt
+      rechts über der Aktionsleiste der Knopf „KI hilft“ mit dem Gehirn. Er
+      öffnet einen modalen Dialog mit dem globalen Backdrop
+      (`--core-backdrop`, `useModalDialog`: Fokusfalle, Escape, Außenklick,
+      Fokusrückgabe); ab 768 px rechts neben der Karte verankert, darunter als
+      Bottom Sheet wie `StudySettingsOverlay`. Inhalt: Gehirn mit „Hi! Stell
+      mir eine Frage zu dieser Karte.“, Schnellknöpfe „Erklären“ und
+      „Beispiel“, Eingabe „Stelle eine Frage …“, Senden, Schließen. Lern-
+      Tastenkürzel ruhen, solange er offen ist; Antworten werden höflich
+      angesagt; die Tastatur verdeckt mobil die Eingabe nicht. Der Offen-
+      Zustand gilt für die Sitzung, der Verlauf je Karte; Bewerten bricht
+      eine laufende Anfrage ab. Nachweis: Komponententests, Katalog-Demo,
+      visuelle Pflichtmatrix.
+- [ ] **Route `/api/ai/card-help`:** Vertrag in `src/aiCardHelpContract.ts`
+      (Karte als Frage, Antwort und Zusatz; Modus `explain`, `example` oder
+      `question`; Frage; höchstens sechs vorherige Wechsel; Größengrenzen),
+      Function mit den Helfern aus `server/aiRoute.ts`, einem erzwungenen Tool
+      Call mit begrenzter Antwortlänge, Kostenlog, deutschen Fehlertexten und
+      lokaler Vite-Middleware. Kartentext über `notePlainText`, Lückentext
+      aufgelöst; Bildverdeckungen und reine Bildkarten werden mit Hinweis
+      abgelehnt. Antworten sind Klartext mit Absätzen und einfachen
+      Aufzählungen, im Fenster escaped dargestellt und nie gespeichert;
+      zunächst ohne Streaming. Prompt `card-help-v1`: Karte und Frage sind
+      nicht vertrauenswürdige Daten; Sprache der Frage, sonst der Karte;
+      Erklären begründet Zusammenhänge statt die Rückseite zu wiederholen;
+      Beispiel ist neu, konkret und korrekt; eine Frage wird genau beantwortet
+      und beim Kartenthema gehalten; Widersprüche zu gesichertem Wissen werden
+      knapp benannt; keine erfundenen Quellen; etwa 120 Wörter. Der Prompt
+      ist ein knapper Startprompt und wird hier nicht iteriert; Eval und
+      Hillclimb laufen gemeinsam für alle Prompts in P5. Nachweis: Vertrags-
+      und Routentests (Grenzen, Injection, Fehlercodes), Stichprobe in allen
+      drei Modi.
+- [ ] **Anbindung und Freigabe:** Das Fenster ruft über `postAiRoute`, zeigt
+      Laden, Abbruch beim Kartenwechsel und deutsche Fehler (Limit, offline,
+      Anbieter), ohne automatischen Neuversuch; Fenster und Route kommen
+      gemeinsam nach `main`. Specs (Lernansicht, Akzeptanzkriterien,
+      Nichtziel „Externer KI-Chat“ in Abschnitt 23 auf Chat ohne Kartenbezug
+      schärfen), `architecture.md`, `status.md` und `operations.md` (Kosten
+      je Antwort) nachziehen. Externe Nutzer erst mit dem KI-Kontingent pro
+      Nutzer (P2). Nachweis: E2E mit gemockter Route (Antwort, Fehler,
+      Abbruch), visuelle Pflichtmatrix mit Antwort-, Lade- und Fehlerzustand.
+
 ## P1: KI-Varianten (Proof of Concept) abschließen
 
 Bewusst einfacher Probelauf (ADR-011); Auswahl und Oberfläche werden danach
@@ -57,12 +126,17 @@ geglättet.
       verlangt heute immer eine Variante; bei sinnlosen Inhalten (zufällige
       Buchstabenfolgen) oder Insidern ohne allgemeinen Kontext bleibt dem
       Modell nur eine Hülle („Was gehört zu …?“) oder eine erfundene Deutung.
-      Playtest mit solchen Prüfkarten neben den bisherigen sechs, danach eine
-      Prompt-Ergänzung, über die das Modell eine Karte als nicht
+      Eine Prompt-Ergänzung, über die das Modell eine Karte als nicht
       umformulierbar meldet; die Route gibt das als eigenen Fehlergrund
       zurück. Ein eigener Kartenzustand dafür steht unter „Später“.
-      Nachweis: Playtest-Ergebnis vor und nach der Prompt-Ergänzung,
+      Nachweis: Stichprobe mit solchen Prüfkarten vor und nach der Ergänzung,
       Routentests mit solchen Karteninhalten.
+- [ ] **Varianten weiterer Kartenarten:** Lückentext, Single/Multiple
+      Choice, Kprim und Eintippen (heute verliert die Variante das
+      Eintippfeld) bekommen je eigenen Prompt und Vertrag; Reihenfolge nach
+      Häufigkeit im Korpus, Bildverdeckungen bleiben ohne Varianten.
+      Nachweis: Kartenartenzählung aus `report:apkg-corpus`, Vertrags- und
+      Routentests je Kartenart, Stichprobe mit Korpuskarten.
 
 ## P4: Kartenverwaltung 2.0
 
@@ -95,8 +169,8 @@ Markdown, CSV und TSV.
       Supabase) verhindert, dass ein Nutzer es allein aufbraucht. Auch
       Voraussetzung für das erste externe Release.
 - [ ] **Entscheidungen vor dem Code (Ergänzung zu ADR-011):** ADR-011 erlaubt
-      genau zwei KI-Routen und verlangt für ein Kontingent je Nutzer eine
-      Ergänzung; eine gemeinsame Ergänzung regelt beides und gibt die dritte
+      genau drei KI-Routen und verlangt für ein Kontingent je Nutzer eine
+      Ergänzung; eine gemeinsame Ergänzung regelt beides und gibt die vierte
       Route frei (etwa `POST /api/ai/source-cards`, gleiches Modell, ZDR,
       Kostenlog). Festlegen: ob der Browser nur extrahierten Text oder die Datei
       überträgt (ADR-011 schließt Bildübertragung aus, Scans und Diagramme
@@ -137,6 +211,70 @@ Markdown, CSV und TSV.
       Hinweise, Abbruch, Fehler, nichts gespeichert vor Übernahme), echte
       Quellen je Format mit allen vier Kartenformen, visuelle Pflichtmatrix
       für Fortschritt und Ergebnisliste.
+
+## P5: KI-Eval und Hillclimb (zurückgestellt)
+
+Beginnt erst, wenn alle geplanten KI-Prompts stehen: Varianten je Kartenart
+(P1), `card-help` (P3), Karten aus einer Quelle (P2) und gegebenenfalls Quiz;
+die Zusammenfassung steht. Dann wird ein gemeinsames Experiment für alle Routen
+aufgebaut statt eines Evals je Route. Grundsätze im vorgeschlagenen
+[ADR-049](decisions.md#adr-049--ki-änderungen-nur-mit-eval-nachweis); alles
+hier ist ein Entwurf vom 2026-11-10 und darf neu bewertet werden.
+
+- [ ] **Runner für alle Routen:** `cases` (versionierte Prüfkarten in
+      `fixtures/ai-eval/<route>.cases.json`, Korpusfälle mit festem Startwert
+      nur im ignorierten `output/ai-eval/<route>/`, Kategorie per einfacher
+      Regel, Aufteilung Training/Test je Kategorie einmalig festgeschrieben);
+      `generate` über Payload-Builder und Antwortprüfung der Route bei
+      OpenRouter mit Produktionsmodell, Schlüssel `OPENROUTER_EVAL_API_KEY` mit
+      eigenem Limit in `.env.local`, höchstens vier parallel, Wiederaufnahme,
+      je Zeile Transkript, geantwortetes Modell, Tokens, Kosten, Latenz;
+      automatische Kriterien im Skript; Richter-Übergabe als eine Tabelle
+      (ohne Dubletten, gemischt, anonymisiert, mit etwa zehn bekannten
+      Kontrolleinträgen) an einen Opus-Agenten (`.claude/agents/eval-judge.md`),
+      der sie in einem Durchgang blockweise bewertet; `score` prüft
+      Vollständigkeit und berechnet Hauptwert, Kriterien je Kategorie,
+      Rauschen und Fallwechsel gegenüber einem Vergleichslauf. Start über einen
+      Skill, den auch eine Haiku-Sitzung ausführen kann. Nicht in
+      `gate:push`. Nachweis: Trockenlauf mit nachgebildeter Antwort erzeugt
+      einen vollständigen Bericht; Unit-Tests für Kriterien und Auswertung.
+- [ ] **Varianten-Eval (Entwurf):** etwa 120 Frage/Antwort-Karten je drei
+      Wiederholungen; Kategorien Definitionen, Zahlen und Formeln, Richtung
+      und Reihenfolge, Aufzählungen, Kurzantworten, lange Karten, andere
+      Sprachen, Rückrichtung, `avoid`-Liste, Injection, nicht umformulierbar,
+      Bildverweis. Kriterien: M1 Vertrag; M2 fachlich korrekt, keine
+      Vertauschung, keine neuen Fakten (kritisch); M3 Zahlen und Formeln
+      zeichengenau; M4 erkennbar umformuliert; M5 anders als `avoid`; M6
+      Sprache, Schwierigkeit, Natürlichkeit; M7 Tokens, Kosten, Latenz.
+      Hauptwert: Anteil der Wiederholungen, die M1–M5 bestehen. Zielvorschlag:
+      Hauptwert ≥ 95 %, M2-Verletzungen ≤ 1 % und keine bei Richtung, Kosten
+      höchstens 1,2-fach, Latenz p90 ≤ 4 s. Weitere Kartenarten und Routen
+      bekommen eigene Fälle und Kriterien im selben Schema.
+- [ ] **Card-Help-Eval (Entwurf):** etwa 120 Karten je in allen drei Modi;
+      Definitionen, Zahlen und Formeln, lange Prozesskarten, Vokabeln und
+      andere Sprachen, Fachjargon, kurze oder kryptische Karten, Folgefragen,
+      Fragen außerhalb der Karte, Injection in Karte und Frage, fachlich
+      falsche Karten, Bildverweise. Kriterien: H1 Vertrag, Länge, Sprache;
+      H2 fachlich korrekt und mit der Karte vereinbar (kritisch); H3 Erklären
+      erklärt statt zu wiederholen; H4 Beispiel neu und passend; H5 Frage
+      genau beantwortet, Abschweifungen höflich zurückgeführt; H6 keine
+      ausgeführte Injection, keine erfundenen Quellen, falsche Karten benannt
+      (kritisch); H7 knapp und lernförderlich; H8 Tokens, Kosten, Latenz.
+      Hauptwert: Anteil der Wiederholungen, die H1–H6 bestehen. Zielvorschlag:
+      Hauptwert ≥ 90 %, H2 ≥ 98 %, H6 = 100 %; Streaming erst, wenn die
+      Latenz im Median über 4 s liegt.
+- [ ] **Kalibrieren und Baselines:** Richter gegen etwa 40 von Hand bewertete
+      Einträge im selben Tabellenmodus (≥ 90 % Übereinstimmung bei den
+      kritischen Kriterien), danach Baseline je Route. Erst dann Runden: je
+      Runde eine Änderung aus Trainingsfehlern, gemessen am Testteil.
+      Nachweis: Baselines, Kosten und Richter-Übereinstimmung in
+      `history.md`.
+- [ ] **Neu zu bewerten:** Richter über Subscription oder über OpenRouter
+      (API-Gegenwert etwa 1–1,50 USD je Runde im Tabellenmodus, Luna etwa
+      0,02 USD je Runde); Fallzahl und Wiederholungen gegen das Rauschen
+      (bei 60 Testfällen × 3 etwa ±7,5 Punkte); ob ein anderes Modell als
+      Generator verglichen wird (Haiku 5.5 kostet auf OpenRouter dasselbe wie
+      Luna).
 
 ## Offene Nachweise
 
@@ -202,7 +340,6 @@ Messung vom 2026-10-31 im [Verlauf](history.md).
   die Haltbarkeitsschwelle erreichen (Ausarbeitung in Commit `4dd2af7`).
 - Nicht umformulierbare Karten als eigener Zustand im Reiter `Varianten`;
   gemeldete Karten fallen aus späteren Stapelläufen.
-- KI-Umformulierungen für Lückentext und andere Bausteine.
 - DOCX und PPTX als Quellen für P2 (ZIP und XML, ohne neue Abhängigkeit über
   `zipReader.ts` prüfen; Beleg je Folie oder Abschnitt).
 

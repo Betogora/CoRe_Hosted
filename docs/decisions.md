@@ -1,6 +1,6 @@
 # CoRe-Entscheidungen
 
-Stand: 2026-11-04
+Stand: 2026-11-11
 
 Geltende, dauerhafte Produkt- und Architekturentscheidungen und vor allem ihr
 **Warum**. Das genaue Verhalten steht in [`specs.md`](specs.md), die technische
@@ -42,10 +42,10 @@ stehen in [`todo.md`](todo.md).
 ## ADR-011 — Schmale KI-Routen über OpenRouter
 
 **Status:** angenommen
-**Kontext:** Karten sollen auf ausdrückliche Aktion umformuliert und Stapel zusammengefasst werden, ohne die entfernte breite KI-, Labs- und Job-Infrastruktur zurückzubringen und ohne Anbieterschlüssel im Browser. Verworfen wurden freie Modellwahl, Non-ZDR-Fallbacks und eine Serverqueue.
-**Entscheidung:** Genau `POST /api/ai/card-variant` und `POST /api/ai/summary` sind als authentifizierte Vercel Functions freigegeben. Beide nutzen fest ein bezahltes Modell über OpenRouter mit Zero-Data-Retention und Trainingsverbot; das Key-Limit begrenzt die Kosten. An den Anbieter geht nur der bereinigte Text, den die jeweilige Funktion braucht. Stapelgenerierung läuft nacheinander im geöffneten Tab.
-**Konsequenzen:** Keine Jobtabelle, Chatfläche, Anbieteradapter oder Bildübertragung; jede Route schreibt ein Kostenlog. Automatische Erzeugung bei Reife oder ein Kontingent je Nutzer brauchen eine Ergänzung dieser Entscheidung.
-**Datum:** 2026-08-04
+**Kontext:** Karten sollen auf ausdrückliche Aktion umformuliert und Stapel zusammengefasst werden, ohne die entfernte breite KI-, Labs- und Job-Infrastruktur zurückzubringen und ohne Anbieterschlüssel im Browser. Beim Lernen sollen Lernende außerdem zu genau der aufgedeckten Karte eine Erklärung, ein Beispiel oder eine Antwort auf eine eigene Frage bekommen. Verworfen wurden eine Modellwahl durch Nutzer, Non-ZDR-Fallbacks, eine Serverqueue und ein freier Chat ohne Kartenbezug.
+**Entscheidung:** Genau `POST /api/ai/card-variant`, `POST /api/ai/summary` und `POST /api/ai/card-help` sind als authentifizierte Vercel Functions freigegeben. Alle nutzen ein serverseitig festgelegtes, bezahltes Modell über OpenRouter mit Zero-Data-Retention und Trainingsverbot; das Key-Limit begrenzt die Kosten. Welches Modell mit welchem Reasoning gilt, ist keine Architekturentscheidung: Es steht im Code (`OPENROUTER_MODEL`); wie ein Wechsel belegt wird, schlägt [ADR-049](#adr-049--ki-änderungen-nur-mit-eval-nachweis) vor. An den Anbieter geht nur der bereinigte Text, den die jeweilige Funktion braucht. Stapelgenerierung läuft nacheinander im geöffneten Tab. `card-help` ist eine flüchtige Lernhilfe auf der Rückseite: Sie erhält nur den bereinigten Text der aktuellen Karte, den Modus (Erklären, Beispiel, eigene Frage) und höchstens sechs vorherige Wechsel; der Verlauf lebt nur im geöffneten Fenster und wird beim Kartenwechsel verworfen.
+**Konsequenzen:** Keine Jobtabelle, gespeicherten oder synchronisierten Chatverläufe, Chatfläche ohne Kartenbezug, Anbieteradapter oder Bildübertragung; Bildverdeckungen und reine Bildkarten bekommen keine Lernhilfe. Jede Route schreibt ein Kostenlog. Weil die Lernhilfe deutlich mehr Aufrufe erzeugt, ist ein Kontingent je Nutzer Voraussetzung, bevor sie externen Nutzern offensteht. Automatische Erzeugung bei Reife oder das Kontingent selbst brauchen eine Ergänzung dieser Entscheidung.
+**Datum:** 2026-11-11
 
 ## ADR-013 — Transiente Lernuhr für echte Accountkarten
 
@@ -206,3 +206,11 @@ stehen in [`todo.md`](todo.md).
 - Kein Ankis `Reposition` (Position neuer Karten): Welche Karten zuerst drankommen, steuern `Treffer lernen` und die Prüfungsplanung; Importe behalten ihre Reihenfolge über das Erstelldatum.
 - `Treffer lernen` bietet wie Ankis gefilterte Stapel beide Wege (KV5): `Vorziehen` mit zählenden Bewertungen (Standard, wie Ankis voreingestellte Option „Reschedule cards based on my answers“) und `Nur üben` ohne Planänderung (Ankis Vorschaumodus).
 **Datum:** 2026-11-04
+
+## ADR-049 — KI-Änderungen nur mit Eval-Nachweis
+
+**Status:** vorgeschlagen
+**Kontext:** Der Variantenprompt wurde bis `card-variant-v4` in Chat-Playtests mit sechs Karten iteriert. Das war nicht reproduzierbar, trennte nicht zwischen gelesenen und gewerteten Fällen und hielt Kosten und Qualität nicht fest. Verworfen wurden weitere Chat-Playtests und ein Ersatzmodell als Generator (etwa Haiku über Claude Code), weil es ein anderes Modell in einem anderen Rahmen misst. Zurückgestellt am 2026-11-11, bis alle geplanten KI-Prompts stehen; bis dahin entstehen Prompts mit Vertrags- und Routentests und Stichproben.
+**Entscheidung:** Prompt, Werkzeugschema, Reasoning, Ausgabegrenzen oder Modell einer KI-Route ändern sich nur mit Eval-Nachweis. Ein Eval hat einen festen Fallsatz mit zufälliger, nach Kategorie geschichteter Aufteilung in Training und Test; erzeugt wird ausschließlich über den Payload-Builder und die Antwortprüfung der Route bei OpenRouter, also mit Produktionsmodell und ZDR. Bewertet wird automatisch und durch ein stärkeres, vom getesteten unabhängiges Modell, das vor der ersten Runde gegen menschliche Urteile kalibriert ist. Übernommen wird eine Änderung nur, wenn der Testwert über das Rauschen steigt und kein kritisches Kriterium schlechter wird. Varianten haben je Kartenart einen eigenen Prompt und Vertrag.
+**Konsequenzen:** Der Eval ist ein manueller, bezahlter Lauf außerhalb von `gate:push` mit eigenem OpenRouter-Schlüssel und eigenem Limit. Fälle aus echten Stapeln und Laufergebnisse bleiben lokal, nur von Hand geschriebene Prüfkarten werden versioniert. Jede übernommene Änderung erhöht die Promptversion. Bildverdeckungen bekommen keine Varianten, solange ADR-011 keine Bildübertragung erlaubt. Der Entwurf steht unter [P5 in `todo.md`](todo.md#p5-ki-eval-und-hillclimb-zurückgestellt).
+**Datum:** 2026-11-11
