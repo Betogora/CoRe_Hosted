@@ -33,6 +33,8 @@ import { CoreTag } from "../ui/coreUi.tsx";
 import { FlagDot } from "../ui/flagUi.tsx";
 import { CoreTooltip } from "../ui/tooltipUi.tsx";
 import { formatLimitSummary, formatReviewIntervalLabel, ratingButtons } from "./screenConstants.ts";
+import { StudyAiHelp } from "./StudyAiHelp.tsx";
+import { aiCardHelpCard } from "../aiCardHelp.ts";
 import type { Card, CardStudyState, CardStudyStatePatch, Deck, Note, ReviewRating } from "../coreTypes.ts";
 
 function createEasyDaysContext(
@@ -59,7 +61,7 @@ function createEasyDaysContext(
 // Cards rendered and media loaded ahead: enough to answer quickly without holding many images.
 const PREFETCH_CARD_COUNT = 3;
 
-export function StudyMode({ shortcutsSuspended = false, deck, decks, notes, answeredToday, deckId, mediaStore, getNow, learningDayKey, dayStartHour = 0, learnAheadMinutes = 20, easyDays = DEFAULT_EASY_DAYS, dueForecast = null, timeZone, simulationOffsetMinutes, pomodoroTimer, onStartPomodoro, onExit, onReturnToLearn, onEditCard, onEditDeck, flagNames, onSetCardStudyState, onSetDeckReviewOrder, onReview, sessionPlan, bufferSize = 50, hasMoreCards = false, onLoadMoreCards }: StudyModeProps) {
+export function StudyMode({ shortcutsSuspended = false, deck, decks, notes, answeredToday, deckId, mediaStore, getNow, learningDayKey, dayStartHour = 0, learnAheadMinutes = 20, easyDays = DEFAULT_EASY_DAYS, dueForecast = null, timeZone, simulationOffsetMinutes, pomodoroTimer, onStartPomodoro, onExit, onReturnToLearn, onEditCard, onEditDeck, flagNames, onSetCardStudyState, onSetDeckReviewOrder, onReview, onAskCardHelp, sessionPlan, bufferSize = 50, hasMoreCards = false, onLoadMoreCards }: StudyModeProps) {
   const [sessionDecks, setSessionDecks] = React.useState(decks);
   const [sessionNotes, setSessionNotes] = React.useState(() => new Map(notes.map((note) => [note.id, note])));
   const sessionIndexRef = React.useRef<ReturnType<typeof createDailyReviewSessionIndex> | null>(null);
@@ -75,6 +77,7 @@ export function StudyMode({ shortcutsSuspended = false, deck, decks, notes, answ
   const [showAnswer, setShowAnswer] = React.useState(false);
   const [showOriginal, setShowOriginal] = React.useState(false);
   const [showSettings, setShowSettings] = React.useState(false);
+  const [showAiHelp, setShowAiHelp] = React.useState(false);
   const [moreCardsAvailable, setMoreCardsAvailable] = React.useState(hasMoreCards);
   const [activeBufferSize, setActiveBufferSize] = React.useState(Math.max(1, bufferSize));
   const [loadingMoreCards, setLoadingMoreCards] = React.useState(false);
@@ -143,6 +146,7 @@ export function StudyMode({ shortcutsSuspended = false, deck, decks, notes, answ
     () => current && currentNote && current.variant ? variantPresentation(currentNote, current.card, current.variant) : current && currentNote ? { note: currentNote, card: current.card } : null,
     [current, currentNote],
   );
+  const helpCard = React.useMemo(() => presented ? aiCardHelpCard(presented.note, presented.card) : null, [presented]);
   const isCurrentVariant = Boolean(current?.variant);
   const { urls: studyMediaUrls, missing: studyMissingMedia } = useNoteMediaUrls(currentNote?.media, mediaStore);
   // The next cards of the session render and load their media while the learner looks at this one.
@@ -386,7 +390,7 @@ export function StudyMode({ shortcutsSuspended = false, deck, decks, notes, answ
 
   React.useEffect(() => {
     function handleKeyDown(event: KeyboardEvent) {
-      if (showSettings || shortcutsSuspended) return;
+      if (showSettings || showAiHelp || shortcutsSuspended) return;
       // Strg+1–7 switches the flag like in Anki; the dot in the header shows it, without a toast (W20).
       if ((event.ctrlKey || event.metaKey) && !event.altKey && !event.shiftKey && /^[1-7]$/.test(event.key) && current) {
         event.preventDefault();
@@ -409,12 +413,12 @@ export function StudyMode({ shortcutsSuspended = false, deck, decks, notes, answ
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [current, showAnswer, showSettings, shortcutsSuspended, sessionDecks, reviewSession]);
+  }, [current, showAnswer, showSettings, showAiHelp, shortcutsSuspended, sessionDecks, reviewSession]);
 
   return (
-    <main className="min-h-screen bg-core-canvas p-4 text-core-text sm:p-8">
+    <main className={`min-h-screen bg-core-canvas p-4 text-core-text sm:p-8 ${current ? (showAnswer ? "pb-40 sm:pb-40" : "pb-28 sm:pb-28") : ""}`}>
       <div className="mx-auto flex min-h-[calc(100vh-2rem)] w-full max-w-7xl flex-col sm:min-h-[calc(100vh-4rem)]">
-        <header className="grid grid-cols-1 gap-4">
+        <header className="sticky top-0 z-30 -mx-4 -mt-4 grid grid-cols-1 gap-3 border-b border-core-border bg-core-surface px-4 py-3 sm:-mx-8 sm:-mt-8 sm:px-8 md:top-3 md:mx-0 md:mt-0 md:rounded-panel md:border md:p-3 md:shadow-floating" data-testid="study-header">
           <div className="flex items-center justify-between gap-4">
             <IconButton type="button" onClick={onExit} label="Lernmodus verlassen" icon={X} />
             <div className="flex min-w-0 items-center justify-center gap-2 text-center">
@@ -476,7 +480,7 @@ export function StudyMode({ shortcutsSuspended = false, deck, decks, notes, answ
                   {showAnswer && isCurrentVariant ? (
                     <CoreTag tone="info" className="mb-4" data-testid="review-variant-badge">Variante</CoreTag>
                   ) : null}
-                  <div ref={showAnswer ? answerContentRef : questionContentRef} tabIndex={-1} role="group" aria-label={showAnswer ? "Antwort" : "Frage"} className="min-w-0 outline-none" data-testid="study-card-content">
+                  <div ref={showAnswer ? answerContentRef : questionContentRef} tabIndex={-1} role="group" aria-label={showAnswer ? "Antwort" : "Frage"} className="min-w-0 scroll-mb-28 scroll-mt-40 outline-none" data-testid="study-card-content">
                     {presented ? (
                       <NoteCardContent note={presented.note} card={presented.card} mediaUrls={studyMediaUrls} revealed={showAnswer} onReveal={revealAnswer} />
                     ) : (
@@ -502,12 +506,7 @@ export function StudyMode({ shortcutsSuspended = false, deck, decks, notes, answ
                         </ActionButton>
                       </div>
                     ) : null
-                  ) : (
-                    <button type="button" onClick={() => setShowAnswer(true)} className="mx-auto mt-12 core-action-primary">
-                      <RotateCcw size={16} aria-hidden="true" />
-                      Antwort anzeigen
-                    </button>
-                  )}
+                  ) : null}
                 </div>
               </>
             ) : loadMoreError && pausedOffline ? (
@@ -571,21 +570,31 @@ export function StudyMode({ shortcutsSuspended = false, deck, decks, notes, answ
           </div>
         </section>
 
-        {showAnswer ? (
-          <footer className="grid gap-2 sm:grid-cols-4 sm:gap-3">
-            {ratingButtons.map((rating) => {
-              const ratingKey = rating.key as ReviewRating;
-              const intervalLabel = formatReviewIntervalLabel(current?.ratingButtonOptions?.[ratingKey]?.intervalLabel ?? "");
-              return <CoreTooltip key={rating.key} label={`Taste ${rating.shortcutKey}`}>
-                <button type="button" onClick={() => grade(ratingKey)} disabled={!current} aria-label={`Bewertung ${rating.label}${intervalLabel ? `: ${intervalLabel}` : ""}`} className={`core-rating-button ${rating.className}`}>
-                  <span className="core-rating-dot" aria-hidden="true" />
-                  <span className="core-control-label">{rating.label}</span>
-                  {intervalLabel ? <span className="core-caption font-medium tabular-nums text-core-secondary">{intervalLabel}</span> : null}
-                </button>
-              </CoreTooltip>
-            })}
+        {current ? (
+          <footer className="core-study-action-bar" data-testid="study-action-bar">
+            {showAnswer ? (
+              <div className="grid grid-cols-4 gap-1">
+                {ratingButtons.map((rating) => {
+                  const ratingKey = rating.key as ReviewRating;
+                  const intervalLabel = formatReviewIntervalLabel(current.ratingButtonOptions?.[ratingKey]?.intervalLabel ?? "");
+                  return <CoreTooltip key={rating.key} label={`Taste ${rating.shortcutKey}`}>
+                    <button type="button" onClick={() => grade(ratingKey)} aria-label={`Bewertung ${rating.label}${intervalLabel ? `: ${intervalLabel}` : ""}`} className={`core-rating-button ${rating.className}`}>
+                      <span className="core-rating-dot" aria-hidden="true" />
+                      <span className="core-control-label">{rating.label}</span>
+                      {intervalLabel ? <span className="core-caption font-medium tabular-nums">{intervalLabel}</span> : null}
+                    </button>
+                  </CoreTooltip>
+                })}
+              </div>
+            ) : (
+              <button type="button" onClick={() => setShowAnswer(true)} className="core-action-primary min-h-11 w-full">
+                <RotateCcw size={16} aria-hidden="true" />
+                Antwort anzeigen
+              </button>
+            )}
           </footer>
         ) : null}
+        {showAnswer && helpCard ? <StudyAiHelp card={helpCard} onAsk={onAskCardHelp} open={showAiHelp} onOpenChange={setShowAiHelp} /> : null}
       </div>
     </main>
   );

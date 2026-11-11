@@ -13,7 +13,7 @@ npm run dev
 ```
 
 Die lokale URL ist `http://127.0.0.1:5190/`. `npm run dev` bedient auch die
-KI-Routen `/api/ai/summary` und `/api/ai/card-variant` (Vite-Plugin
+KI-Routen `/api/ai/summary`, `/api/ai/card-variant` und `/api/ai/card-help` (Vite-Plugin
 `localAiRoutes` in `vite.config.ts`); ihre serverseitigen Variablen
 (`OPENROUTER_API_KEY`, `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`, ersatzweise
 die `VITE_SUPABASE_*`-Werte) kommen aus der Umgebung oder der ignorierten
@@ -45,10 +45,10 @@ außerhalb des Browsers. Nachweise enthalten keine Werte, Tokens, Passwörter,
 
 - Im OpenRouter-Account gibt es einen modellagnostischen Schlüssel `CoRe` mit Ausgabenlimit. Die Routen verlangen ZDR und verbieten Training je Anfrage selbst.
 - In Vercel steht `OPENROUTER_API_KEY` für Production und Preview als sensitive Variable. Development unterstützt Sensitive nicht; dort wird derselbe Name als normal verschlüsselte Variable oder lokal über eine ignorierte `.env.local` bereitgestellt. Den Wert trägt nur die berechtigte Person direkt ein, nie über Chat, Logs oder Nachweise.
-- Das Key-Limit ist die Kostenbremse: Die Variantenroute nutzt derzeit `openai/gpt-6-luna` (`OPENROUTER_MODEL`) mit Reasoning `low` (gemessen etwa 0,00006 USD je Variante). Ist das Limit erreicht, meldet die Route `provider_budget_exhausted`; es wird dann bewusst im Account angehoben.
+- Das Key-Limit ist die Kostenbremse, bis das KI-Kontingent pro Nutzer steht: Alle Routen nutzen derzeit `openai/gpt-6-luna` (`OPENROUTER_MODEL`) mit Reasoning `low` (gemessen etwa 0,00006 USD je Variante). Ist das Limit erreicht, meldet die Route `provider_budget_exhausted`; es wird dann bewusst im Account angehoben.
 - Nach Anlage oder Rotation ist ein neues Deployment nötig. Geprüft werden nur Variablenname, Umgebungszuordnung und ein authentifizierter Aufruf mit einer freigegebenen Testkarte.
 - Verbrauch und Restbudget zeigt `GET https://openrouter.ai/api/v1/key` (`usage`, `limit_remaining`). Andere Projekte desselben Accounts teilen das Guthaben, nicht das Key-Limit.
-- Jeder Erzeugungsversuch schreibt genau eine JSON-Logzeile `ai_card_variant` bzw. `ai_learning_summary` mit Ergebnis-Code, HTTP-Status, Latenz, Modell, Tokenzahl und Kosten in die Vercel-Logs. `rate_limited` ist ein Anfragelimit, `provider_budget_exhausted` das Key-Limit, `no_provider_endpoint` ein fehlender ZDR-Endpunkt.
+- Jeder Erzeugungsversuch schreibt genau eine JSON-Logzeile `ai_card_variant`, `ai_card_help` bzw. `ai_learning_summary` mit Ergebnis-Code, HTTP-Status, Latenz, Modell, Tokenzahl und Kosten in die Vercel-Logs. `rate_limited` ist ein Anfragelimit, `provider_budget_exhausted` das Key-Limit, `no_provider_endpoint` ein fehlender ZDR-Endpunkt.
 - Bei Providerfehlern zuerst diese Logzeilen, OpenRouter-Verfügbarkeit und Key-Limit prüfen. Karteninhalte, Bearer und Providerantworten gehören nie in Diagnoseausgaben.
 
 ## 3. Preview- und Production-Freigabe

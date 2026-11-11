@@ -78,6 +78,59 @@ test("leerer Account erstellt die erste manuelle Karte und erreicht den Review",
   await expect(emptyDialog.locator("button")).toHaveCount(1);
 });
 
+test("KI hilft beantwortet Fragen zur aufgedeckten Karte, zeigt Fehler und bricht beim Kartenwechsel ab", async ({ page }) => {
+  await page.getByRole("button", { name: /Erste Karte erstellen/ }).click();
+  for (const [front, back] of [["Was ist ATP?", "Ein Energieträger"], ["Was bildet ATP?", "Mitochondrien"]]) {
+    await page.getByRole("textbox", { name: "Vorderseite" }).fill(front);
+    await page.getByRole("textbox", { name: "Rückseite" }).fill(back);
+    await page.getByRole("button", { name: "Originalkarte speichern" }).click();
+  }
+  await page.getByRole("button", { name: "Fertig" }).click();
+  await page.getByRole("button", { name: "Jetzt lernen" }).click();
+
+  const bodies: any[] = [];
+  let hold: (() => void) | null = null;
+  await page.route("**/api/ai/card-help", async (route) => {
+    bodies.push(route.request().postDataJSON());
+    if (bodies.length === 1) return route.fulfill({ json: { answer: "ATP speichert Energie.\n\n- Es entsteht in der Zellatmung.", model: "test", privacyMode: "zdr", usage: null } });
+    if (bodies.length === 2) return route.fulfill({ status: 429, json: { error: { code: "rate_limited", message: "Gerade wurden zu viele Fragen gestellt. Bitte versuche es in einer Minute erneut." } } });
+    await new Promise<void>((resolve) => { hold = resolve; });
+    await route.abort().catch(() => undefined);
+  });
+
+  await expect(page.getByRole("button", { name: "KI hilft" })).toHaveCount(0);
+  await page.getByRole("button", { name: "Antwort anzeigen" }).click();
+  await page.getByRole("button", { name: "KI hilft" }).click();
+  const help = page.getByRole("dialog", { name: "KI hilft" });
+  await help.getByRole("button", { name: "Erklären" }).click();
+  await expect(help.getByText("ATP speichert Energie.")).toBeVisible();
+  const firstCard = bodies[0].card.prompt;
+  expect(bodies[0]).toEqual({ card: { prompt: firstCard, answer: firstCard === "Was ist ATP?" ? "Ein Energieträger" : "Mitochondrien" }, mode: "explain" });
+
+  await help.getByRole("textbox", { name: "Frage zu dieser Karte" }).fill("Warum Phosphat?");
+  await help.getByRole("button", { name: "Frage senden" }).click();
+  await expect(help.getByText("Gerade wurden zu viele Fragen gestellt.", { exact: false })).toBeVisible();
+  expect(bodies[1]).toMatchObject({ mode: "question", question: "Warum Phosphat?", history: [{ question: "Erkläre mir diese Karte.", answer: "ATP speichert Energie.\n\n- Es entsteht in der Zellatmung." }] });
+
+  await help.getByRole("button", { name: "Beispiel" }).click();
+  await expect(help.getByText("Ich denke nach …")).toBeVisible();
+  await expect(help.getByRole("button", { name: "Erklären" })).toBeDisabled();
+  await help.getByRole("textbox", { name: "Frage zu dieser Karte" }).fill("Noch eine Frage");
+  await expect(help.getByRole("button", { name: "Frage senden" })).toBeDisabled();
+  await page.keyboard.press("Escape");
+  await expect(help).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Antwort anzeigen" })).toHaveCount(0);
+  const aborted = page.waitForEvent("requestfailed", (request) => request.url().endsWith("/api/ai/card-help"));
+  await page.getByRole("button", { name: /Bewertung Gut/ }).click();
+  await aborted;
+  (hold as (() => void) | null)?.();
+
+  await page.getByRole("button", { name: "Antwort anzeigen" }).click();
+  await page.getByRole("button", { name: "KI hilft" }).click();
+  await expect(help.getByText("Erkläre mir diese Karte.")).toHaveCount(0);
+  await expect(help.getByText("Ich denke nach …")).toHaveCount(0);
+});
+
 test("ungenutzte neue Karten verlinken gezielt zum fokussierten Tageslimit", async ({ page }) => {
   await page.getByRole("button", { name: /Erste Karte erstellen/ }).click();
   await page.getByRole("textbox", { name: "Vorderseite" }).fill("Welche Farbe hat Schnee?");
