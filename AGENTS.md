@@ -208,8 +208,10 @@ Choose checks proportionate to the affected area.
   `tests/rls/`.
 - Module tests share processes without isolation (`docs/test-portfolio.md`):
   restore any global state a test sets and never rely on file order.
-- Run only the E2E specs a change affects; the full suite is for releases and
-  repository-wide checks.
+- Run only the E2E specs a change affects (`npm run test:e2e:affected:local`);
+  it escalates to the full suite itself for shared infrastructure, migrations,
+  app shell, or dependencies. Full-suite coverage of a release commit comes
+  from a green `gate:nightly` run on that commit.
 
 ### Standard Gate
 
@@ -233,12 +235,12 @@ compact output, and the production build with bundle budgets in parallel. Git pu
 contain changes outside the commit being pushed.
 
 Changes to bootstrap, preload, sync, catalog, statistics, service workers,
-dependencies, or chunking, as well as releases, additionally require
-`npm run performance:measure:local` before push or release.
+dependencies, or chunking additionally require
+`npm run performance:measure:local` before push.
 
 Run the complete `npm test` suite when a change is cross-cutting, affects shared
 domain behavior or several feature areas, lacks sufficient coverage from
-focused tests, or is part of a release or repository-wide verification.
+focused tests.
 
 ### Database Validation
 
