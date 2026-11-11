@@ -298,9 +298,9 @@ test("Tastenkürzel: Navigation, Escape im Textfeld, Duplizieren, Entfernen, Rü
   const panel = await openMindMaps(page); await children(panel);
   const cards = panel.getByTestId("mindmap-node"), focusedLabel = () => page.evaluate(() => document.activeElement?.getAttribute("aria-label") ?? "");
   await node(panel, "Main").click(); await page.keyboard.press("ArrowRight");
-  expect(await focusedLabel()).toMatch(/„Ast [AB]“/);
+  await expect.poll(focusedLabel).toMatch(/„Ast [AB]“/);
   await page.keyboard.press("Enter"); const title = panel.getByRole("textbox", { name: "Kartentitel bearbeiten", exact: true }); await expect(title).toBeFocused();
-  await page.keyboard.press("Escape"); await expect(title).toHaveCount(0); expect(await focusedLabel()).toMatch(/„Ast [AB]“/);
+  await page.keyboard.press("Escape"); await expect(title).toHaveCount(0); await expect.poll(focusedLabel).toMatch(/„Ast [AB]“/);
   await expect(cards).toHaveCount(3);
   await page.keyboard.press("Control+d"); await expect(cards).toHaveCount(4);
   await page.keyboard.press("Delete"); await expect(cards).toHaveCount(3);

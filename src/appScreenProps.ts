@@ -6,6 +6,7 @@ import type { Dispatch, ReactNode, SetStateAction } from "react";
 import type { AppRoute, AppViewId, CardEditorTab, DeckContentTab, DeckSettingsSection, GeneralSettingsSection, LearningSettingsSection, SettingsSection, createViewRoute } from "./appNavigation.ts";
 import type { ApkgImportSession } from "./apkgImportSession.ts";
 import type { AiCardVariantSuccess } from "./aiCardVariantContract.ts";
+import type { AskCardHelp } from "./screens/StudyAiHelp.tsx";
 import type { DeckMutationResult, WorkspaceState } from "./coreWorkspace.ts";
 import type { CardStudySnapshot } from "./cloudRepositoryValidation.ts";
 import type { Card, CardStudyStatePatch, CoreMode, Deck, ExamDailyTask, ExamPlanningSettings, GlobalSchedulerPreferences, LearningProfileTemplate, Note, NoteContent, Profile, ReviewEvent, SavedCardSearch, SyncStatus } from "./coreTypes.ts";
@@ -392,6 +393,7 @@ export interface StudyModeProps {
   onSetCardStudyState: (deckId: string, cardId: string, patch: CardStudyStatePatch) => { deck: Deck; note: Note } | null;
   onSetDeckReviewOrder: (deckId: string, order: import("./coreTypes.ts").NewReviewOrder) => Deck | null;
   onReview: (result: ReviewAnswerResult) => unknown;
+  onAskCardHelp: AskCardHelp;
   sessionPlan?: {
     progress: DailyReviewProgressSummary;
     initialCardCount: number;

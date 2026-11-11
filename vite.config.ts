@@ -124,7 +124,7 @@ function localAiRoutes(): Plugin {
     configureServer(server) {
       server.middlewares.use((req, res, next) => {
         const path = req.url?.split("?")[0];
-        if (path !== "/api/ai/summary" && path !== "/api/ai/card-variant") { next(); return; }
+        if (path !== "/api/ai/summary" && path !== "/api/ai/card-variant" && path !== "/api/ai/card-help") { next(); return; }
         void server.ssrLoadModule(`${path}.ts`).then((module) => module.default(req, res)).catch(() => {
           if (res.writableEnded) return;
           res.statusCode = 500;

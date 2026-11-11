@@ -1651,6 +1651,10 @@ video {
   margin-left: -0.75rem;
   margin-right: -0.75rem;
 }
+.-mx-4 {
+  margin-left: -1rem;
+  margin-right: -1rem;
+}
 .mx-1 {
   margin-left: 0.25rem;
   margin-right: 0.25rem;
@@ -1678,6 +1682,9 @@ video {
 }
 .-mt-2 {
   margin-top: -0.5rem;
+}
+.-mt-4 {
+  margin-top: -1rem;
 }
 .mb-1 {
   margin-bottom: 0.25rem;
@@ -1942,6 +1949,9 @@ video {
 .h-\[calc\(100dvh-9rem\)\] {
   height: calc(100dvh - 9rem);
 }
+.h-\[min\(80dvh\2c 40rem\)\] {
+  height: min(80dvh, 40rem);
+}
 .h-auto {
   height: auto;
 }
@@ -2123,6 +2133,9 @@ video {
 .w-10 {
   width: 2.5rem;
 }
+.w-11 {
+  width: 2.75rem;
+}
 .w-16 {
   width: 4rem;
 }
@@ -2302,6 +2315,12 @@ video {
 }
 .max-w-\[40\%\] {
   max-width: 40%;
+}
+.max-w-\[85\%\] {
+  max-width: 85%;
+}
+.max-w-\[90\%\] {
+  max-width: 90%;
 }
 .max-w-\[calc\(100vw-1\.5rem\)\] {
   max-width: calc(100vw - 1.5rem);
@@ -2484,8 +2503,14 @@ video {
 .resize {
   resize: both;
 }
+.scroll-mb-28 {
+  scroll-margin-bottom: 7rem;
+}
 .scroll-mt-24 {
   scroll-margin-top: 6rem;
+}
+.scroll-mt-40 {
+  scroll-margin-top: 10rem;
 }
 .scroll-mt-6 {
   scroll-margin-top: 1.5rem;
@@ -2763,6 +2788,9 @@ video {
 .whitespace-nowrap {
   white-space: nowrap;
 }
+.whitespace-pre-line {
+  white-space: pre-line;
+}
 .whitespace-pre-wrap {
   white-space: pre-wrap;
 }
@@ -2843,9 +2871,6 @@ video {
 .border-dashed {
   border-style: dashed;
 }
-.border-core-accent {
-  border-color: var(--core-accent);
-}
 .border-core-action {
   border-color: var(--core-action-primary);
 }
@@ -2884,9 +2909,6 @@ video {
 }
 .bg-\[var\(--core-selection-track\)\] {
   background-color: var(--core-selection-track);
-}
-.bg-core-accent-soft {
-  background-color: var(--core-accent-surface);
 }
 .bg-core-action {
   background-color: var(--core-action-primary);
@@ -3071,11 +3093,17 @@ video {
 .pb-2\.5 {
   padding-bottom: 0.625rem;
 }
+.pb-28 {
+  padding-bottom: 7rem;
+}
 .pb-32 {
   padding-bottom: 8rem;
 }
 .pb-4 {
   padding-bottom: 1rem;
+}
+.pb-40 {
+  padding-bottom: 10rem;
 }
 .pb-\[max\(\.75rem\2c env\(safe-area-inset-bottom\)\)\] {
   padding-bottom: max(.75rem, env(safe-area-inset-bottom));
@@ -3124,6 +3152,9 @@ video {
 }
 .pr-3 {
   padding-right: 0.75rem;
+}
+.pr-4 {
+  padding-right: 1rem;
 }
 .pr-9 {
   padding-right: 2.25rem;
@@ -3705,6 +3736,19 @@ video {
   /* A marked card tints header, tabs and background; muted text there stays at 4.5:1. */
   --core-marked-surface: #fdf6df;
   --core-marked-text-muted: var(--core-text-secondary);
+  /* Review ratings Nochmal to Leicht: deep orange, yellow, light yellow-green, blue-green; labels keep 4.5:1 on their fill. */
+  --core-rating-again-surface: #ffedd5;
+  --core-rating-again-border: #fdba74;
+  --core-rating-again-text: #c2410c;
+  --core-rating-hard-surface: #fef9c3;
+  --core-rating-hard-border: #fde047;
+  --core-rating-hard-text: #a16207;
+  --core-rating-good-surface: #ecfccb;
+  --core-rating-good-border: #bef264;
+  --core-rating-good-text: #4d7c0f;
+  --core-rating-easy-surface: #d1fae5;
+  --core-rating-easy-border: #6ee7b7;
+  --core-rating-easy-text: #047857;
 
 }
 
@@ -3793,6 +3837,18 @@ video {
   --core-danger-text: #f0a07e;
   --core-marked-surface: #26221a;
   --core-marked-text-muted: var(--core-text-muted);
+  --core-rating-again-surface: #402920;
+  --core-rating-again-border: #8b3d17;
+  --core-rating-again-text: #fdba74;
+  --core-rating-hard-surface: #3c3820;
+  --core-rating-hard-border: #806816;
+  --core-rating-hard-text: #fde047;
+  --core-rating-good-surface: #2a3c22;
+  --core-rating-good-border: #4d741e;
+  --core-rating-good-text: #bef264;
+  --core-rating-easy-surface: #153c37;
+  --core-rating-easy-border: #137358;
+  --core-rating-easy-text: #6ee7b7;
   --core-help-stack-front: var(--core-surface-raised);
   --core-help-stack-middle: #182b3b;
   --core-help-stack-back: var(--core-brand-secondary);
@@ -4613,7 +4669,12 @@ summary {
   font: var(--core-weight-emphasis) clamp(1.125rem, 1.4vw, 1.375rem)/1.4 var(--core-font-sans);
 }
 
-/* Rating buttons: ToolBox soft buttons; the rating role (border + soft fill) comes from ratingButtons. */
+/* Rating buttons: ToolBox soft buttons; the rating role (fill, border, label) comes from ratingButtons. */
+.core-rating-again { border-color: var(--core-rating-again-border); background: var(--core-rating-again-surface); color: var(--core-rating-again-text); }
+.core-rating-hard { border-color: var(--core-rating-hard-border); background: var(--core-rating-hard-surface); color: var(--core-rating-hard-text); }
+.core-rating-good { border-color: var(--core-rating-good-border); background: var(--core-rating-good-surface); color: var(--core-rating-good-text); }
+.core-rating-easy { border-color: var(--core-rating-easy-border); background: var(--core-rating-easy-surface); color: var(--core-rating-easy-text); }
+
 .core-rating-button {
   display: inline-flex;
   min-height: 2.75rem;
@@ -4650,6 +4711,60 @@ summary {
   border: 0.25rem solid;
   border-color: inherit;
   border-radius: var(--core-radius-round);
+}
+
+/* The study action bar takes the place and shape of the mobile bottom navigation, which the study mode hides. */
+.core-study-action-bar {
+  position: fixed;
+  bottom: max(0.75rem, env(safe-area-inset-bottom));
+  left: 50dvw;
+  z-index: 30;
+  width: calc(100dvw - 2rem);
+  max-width: 34rem;
+  transform: translateX(-50%);
+  border: var(--core-border-width) solid var(--core-border);
+  border-radius: var(--core-radius-panel);
+  background: var(--core-selection-track);
+  padding: 3px;
+  box-shadow: var(--core-shadow-raised);
+}
+
+@media (min-width: 40rem) {
+  .core-study-action-bar { width: calc(100dvw - 6rem); }
+}
+
+@media (min-width: 48rem) {
+  .core-study-action-bar { max-width: 56rem; }
+}
+
+@media (max-width: 47.9375rem) {
+  .core-study-action-bar .core-rating-button {
+    min-height: 3.25rem;
+    flex-direction: column;
+    gap: 0;
+    padding: 0.375rem 0.25rem;
+  }
+
+  .core-study-action-bar .core-rating-dot { display: none; }
+}
+
+@media (max-width: 18.75rem) {
+  .core-study-action-bar { width: calc(100dvw - 0.5rem); }
+}
+
+/* "KI hilft" floats at the right just above the study action bar. */
+.core-study-ai-entry {
+  position: fixed;
+  right: 1rem;
+  bottom: calc(max(0.75rem, env(safe-area-inset-bottom)) + 4.5rem);
+  z-index: 30;
+}
+
+@media (min-width: 48rem) {
+  .core-study-ai-entry {
+    right: 2rem;
+    bottom: calc(max(0.75rem, env(safe-area-inset-bottom)) + 4rem);
+  }
 }
 
 .core-help-keyword {
@@ -5969,6 +6084,15 @@ summary {
     grid-row-start: 1;
   }
 
+  .sm\:-mx-8 {
+    margin-left: -2rem;
+    margin-right: -2rem;
+  }
+
+  .sm\:-mt-8 {
+    margin-top: -2rem;
+  }
+
   .sm\:mt-1 {
     margin-top: 0.25rem;
   }
@@ -6251,6 +6375,14 @@ summary {
     padding-bottom: 1rem;
   }
 
+  .sm\:pb-28 {
+    padding-bottom: 7rem;
+  }
+
+  .sm\:pb-40 {
+    padding-bottom: 10rem;
+  }
+
   .sm\:pr-0 {
     padding-right: 0px;
   }
@@ -6281,8 +6413,21 @@ summary {
     top: 0px;
   }
 
+  .md\:top-3 {
+    top: 0.75rem;
+  }
+
+  .md\:mx-0 {
+    margin-left: 0px;
+    margin-right: 0px;
+  }
+
   .md\:-ml-px {
     margin-left: -1px;
+  }
+
+  .md\:mt-0 {
+    margin-top: 0px;
   }
 
   .md\:block {
@@ -6304,6 +6449,10 @@ summary {
 
   .md\:h-\[min\(48rem\2c 88dvh\)\] {
     height: min(48rem, 88dvh);
+  }
+
+  .md\:h-auto {
+    height: auto;
   }
 
   .md\:min-h-40 {
@@ -6336,6 +6485,10 @@ summary {
 
   .md\:max-w-5xl {
     max-width: 64rem;
+  }
+
+  .md\:max-w-md {
+    max-width: 28rem;
   }
 
   .md\:max-w-xl {
@@ -6394,6 +6547,14 @@ summary {
     align-items: center;
   }
 
+  .md\:items-stretch {
+    align-items: stretch;
+  }
+
+  .md\:justify-end {
+    justify-content: flex-end;
+  }
+
   .md\:gap-3 {
     gap: 0.75rem;
   }
@@ -6407,9 +6568,17 @@ summary {
     border-radius: var(--core-radius-overlay);
   }
 
+  .md\:rounded-panel {
+    border-radius: var(--core-radius-panel);
+  }
+
   .md\:rounded-r-control {
     border-top-right-radius: var(--core-radius-control);
     border-bottom-right-radius: var(--core-radius-control);
+  }
+
+  .md\:border {
+    border-width: var(--core-border-width);
   }
 
   .md\:border-b {
@@ -6442,6 +6611,10 @@ summary {
 
   .md\:bg-core-subtle {
     background-color: var(--core-surface-muted);
+  }
+
+  .md\:p-3 {
+    padding: 0.75rem;
   }
 
   .md\:p-4 {
@@ -6481,6 +6654,12 @@ summary {
 
   .md\:text-core-action {
     color: var(--core-action-primary);
+  }
+
+  .md\:shadow-floating {
+    --tw-shadow: var(--core-shadow-floating);
+    --tw-shadow-colored: var(--core-shadow-floating);
+    box-shadow: var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow);
   }
 }
 @media (min-width: 1024px) {

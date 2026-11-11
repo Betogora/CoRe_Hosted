@@ -20,7 +20,7 @@ export interface ProviderTexts {
 }
 
 export type AiRouteLogEntry = {
-  event: "ai_card_variant" | "ai_learning_summary";
+  event: "ai_card_variant" | "ai_card_help" | "ai_learning_summary";
   outcome: string;
   status: number;
   latencyMs: number;

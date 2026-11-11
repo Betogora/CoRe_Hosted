@@ -5,79 +5,10 @@ Stand: 2026-11-11
 Nur offene Arbeit. Ist-Stand in [`status.md`](status.md), Entscheidungen in
 [`decisions.md`](decisions.md), erledigte Arbeit in [`history.md`](history.md).
 
-Reihenfolge = Priorität. P3 beginnt als Nächstes mit der Lernansicht; P1 läuft,
+Reihenfolge = Priorität. P1 läuft,
 P2 folgt; P5 wartet, bis alle KI-Prompts stehen. Offene Nachweise brauchen keinen Code und
 laufen unabhängig davon; die Release-Voraussetzungen sind vor dem ersten
 externen Release fällig. „Später“ ist geparkt.
-
-## P3: Lernansicht 2 und „KI hilft“
-
-Gewählt am 2026-11-11 aus zwei Entwürfen: schwebende Leisten, neue
-Bewertungsfarben und eine Lernhilfe zur aufgedeckten Karte (ADR-011). Die
-Lernansicht geht sofort live; das KI-Fenster wird vorher fertig gebaut, kommt
-aber erst zusammen mit der Route nach `main`, damit Lernende keine Funktion
-ohne Wirkung sehen.
-
-- [ ] **Lernansicht: Leisten und Farben (zuerst):** In `StudyMode` bleiben
-      Kopf (Schließen, Stapelname, Lerneinstellungen, Simulationshinweis,
-      Lernfortschritt, Pomodoro) und Aktionsleiste beim Scrollen stehen; die
-      Karte läuft darunter durch, `scroll-padding` hält Fokus und Sprungziele
-      frei. Kopf ab 768 px als schwebende, durchscheinende Insel mit Abstand
-      zum Rand, darunter als randbündige Leiste über die volle Breite.
-      Aktionsleiste immer als Insel; mobil übernimmt sie Position, Breite,
-      Radius, Fläche und Schatten der mobilen Bottom-Bar
-      (`core-mobile-bottom-navigation`), steht also beim Lernen an deren
-      Stelle (die globale Navigation bleibt im Lernmodus ausgeblendet). Sie
-      trägt vorn „Antwort anzeigen“, hinten die vier Bewertungen, mobil
-      nebeneinander mit dem Intervall unter dem Namen. Namen bleiben Nochmal,
-      Schwer, Gut, Leicht; Farben sanft (helle Füllung, farbiger Rand und
-      farbige Schrift) in tiefem Orange, Gelb, hellem Gelbgrün und Blaugrün
-      als Tokens `--core-rating-*` hell und dunkel, die `ratingButtons`
-      nutzt; Kontrast ≥ 4,5 : 1. Nachweis: `StudyMode.test.tsx`, betroffene
-      E2E-Specs, Katalog-Demo der Bewertungsknöpfe, visuelle Pflichtmatrix
-      (kurze und lange Karte, Vorder- und Rückseite, Variante mit
-      Originalkarte, Abschluss- und Ladezustände, hell und dunkel).
-- [ ] **KI-Fenster als Oberfläche:** Nur bei aufgedeckter Antwort schwebt
-      rechts über der Aktionsleiste der Knopf „KI hilft“ mit dem Gehirn. Er
-      öffnet einen modalen Dialog mit dem globalen Backdrop
-      (`--core-backdrop`, `useModalDialog`: Fokusfalle, Escape, Außenklick,
-      Fokusrückgabe); ab 768 px rechts neben der Karte verankert, darunter als
-      Bottom Sheet wie `StudySettingsOverlay`. Inhalt: Gehirn mit „Hi! Stell
-      mir eine Frage zu dieser Karte.“, Schnellknöpfe „Erklären“ und
-      „Beispiel“, Eingabe „Stelle eine Frage …“, Senden, Schließen. Lern-
-      Tastenkürzel ruhen, solange er offen ist; Antworten werden höflich
-      angesagt; die Tastatur verdeckt mobil die Eingabe nicht. Der Offen-
-      Zustand gilt für die Sitzung, der Verlauf je Karte; Bewerten bricht
-      eine laufende Anfrage ab. Nachweis: Komponententests, Katalog-Demo,
-      visuelle Pflichtmatrix.
-- [ ] **Route `/api/ai/card-help`:** Vertrag in `src/aiCardHelpContract.ts`
-      (Karte als Frage, Antwort und Zusatz; Modus `explain`, `example` oder
-      `question`; Frage; höchstens sechs vorherige Wechsel; Größengrenzen),
-      Function mit den Helfern aus `server/aiRoute.ts`, einem erzwungenen Tool
-      Call mit begrenzter Antwortlänge, Kostenlog, deutschen Fehlertexten und
-      lokaler Vite-Middleware. Kartentext über `notePlainText`, Lückentext
-      aufgelöst; Bildverdeckungen und reine Bildkarten werden mit Hinweis
-      abgelehnt. Antworten sind Klartext mit Absätzen und einfachen
-      Aufzählungen, im Fenster escaped dargestellt und nie gespeichert;
-      zunächst ohne Streaming. Prompt `card-help-v1`: Karte und Frage sind
-      nicht vertrauenswürdige Daten; Sprache der Frage, sonst der Karte;
-      Erklären begründet Zusammenhänge statt die Rückseite zu wiederholen;
-      Beispiel ist neu, konkret und korrekt; eine Frage wird genau beantwortet
-      und beim Kartenthema gehalten; Widersprüche zu gesichertem Wissen werden
-      knapp benannt; keine erfundenen Quellen; etwa 120 Wörter. Der Prompt
-      ist ein knapper Startprompt und wird hier nicht iteriert; Eval und
-      Hillclimb laufen gemeinsam für alle Prompts in P5. Nachweis: Vertrags-
-      und Routentests (Grenzen, Injection, Fehlercodes), Stichprobe in allen
-      drei Modi.
-- [ ] **Anbindung und Freigabe:** Das Fenster ruft über `postAiRoute`, zeigt
-      Laden, Abbruch beim Kartenwechsel und deutsche Fehler (Limit, offline,
-      Anbieter), ohne automatischen Neuversuch; Fenster und Route kommen
-      gemeinsam nach `main`. Specs (Lernansicht, Akzeptanzkriterien,
-      Nichtziel „Externer KI-Chat“ in Abschnitt 23 auf Chat ohne Kartenbezug
-      schärfen), `architecture.md`, `status.md` und `operations.md` (Kosten
-      je Antwort) nachziehen. Externe Nutzer erst mit dem KI-Kontingent pro
-      Nutzer (P2). Nachweis: E2E mit gemockter Route (Antwort, Fehler,
-      Abbruch), visuelle Pflichtmatrix mit Antwort-, Lade- und Fehlerzustand.
 
 ## P1: KI-Varianten (Proof of Concept) abschließen
 
@@ -168,11 +99,14 @@ Markdown, CSV und TSV.
 ## P5: KI-Eval und Hillclimb (zurückgestellt)
 
 Beginnt erst, wenn alle geplanten KI-Prompts stehen: Varianten je Kartenart
-(P1), `card-help` (P3), Karten aus einer Quelle (P2) und gegebenenfalls Quiz;
+(P1), `card-help` (steht), Karten aus einer Quelle (P2) und gegebenenfalls Quiz;
 die Zusammenfassung steht. Dann wird ein gemeinsames Experiment für alle Routen
 aufgebaut statt eines Evals je Route. Grundsätze im vorgeschlagenen
 [ADR-049](decisions.md#adr-049--ki-änderungen-nur-mit-eval-nachweis); alles
-hier ist ein Entwurf vom 2026-11-10 und darf neu bewertet werden.
+hier ist ein Entwurf vom 2026-11-10 und darf neu bewertet werden. Kosten sind
+in jedem Eval eine feste Metrik: je Route, Prompt-Version, Modell und
+Reasoning-Stufe, pro Antwort und hochgerechnet; die Zielwerte werden beim
+Start von P5 festgelegt und in `operations.md` übernommen.
 
 - [ ] **Runner für alle Routen:** `cases` (versionierte Prüfkarten in
       `fixtures/ai-eval/<route>.cases.json`, Korpusfälle mit festem Startwert
@@ -206,11 +140,15 @@ hier ist ein Entwurf vom 2026-11-10 und darf neu bewertet werden.
 - [ ] **Card-Help-Eval (Entwurf):** etwa 120 Karten je in allen drei Modi;
       Definitionen, Zahlen und Formeln, lange Prozesskarten, Vokabeln und
       andere Sprachen, Fachjargon, kurze oder kryptische Karten, Folgefragen,
-      Fragen außerhalb der Karte, Injection in Karte und Frage, fachlich
-      falsche Karten, Bildverweise. Kriterien: H1 Vertrag, Länge, Sprache;
-      H2 fachlich korrekt und mit der Karte vereinbar (kritisch); H3 Erklären
-      erklärt statt zu wiederholen; H4 Beispiel neu und passend; H5 Frage
-      genau beantwortet, Abschweifungen höflich zurückgeführt; H6 keine
+      Fragen außerhalb der Karte, Freitext ohne echte Frage (Dank,
+      Bestätigung, eigener Antwortversuch, Bitte wie „einfacher“,
+      Unverständnis, Unsinn, Text ohne Kartenbezug), Injection in Karte und
+      Frage, fachlich falsche Karten, Bildverweise. Kriterien: H1 Vertrag,
+      Länge, Sprache; H2 fachlich korrekt und mit der Karte vereinbar
+      (kritisch); H3 Erklären erklärt statt zu wiederholen; H4 Beispiel neu
+      und passend; H5 Frage genau beantwortet, Freitext ohne Frage sinnvoll
+      aufgegriffen (Antwortversuch geprüft, Bitte erfüllt, Unklares
+      nachgefragt), Abschweifungen höflich zurückgeführt; H6 keine
       ausgeführte Injection, keine erfundenen Quellen, falsche Karten benannt
       (kritisch); H7 knapp und lernförderlich; H8 Tokens, Kosten, Latenz.
       Hauptwert: Anteil der Wiederholungen, die H1–H6 bestehen. Zielvorschlag:
@@ -239,7 +177,8 @@ neuen Code.
       Mindmap-Gesten (Doppeltippen, Langdrücken, Zwei-Finger-Zoom, Vollbild)
       auf iOS und Android. Karteneditor: Tag-Eingabe mit Bildschirmtastatur
       (Android schickt die Leertaste oft ohne Tastenereignis), Reiter und
-      Flaggenraster bei 200 % Zoom.
+      Flaggenraster bei 200 % Zoom. „KI hilft“: Die Tastatur verdeckt die
+      Eingabe im Bottom Sheet nicht.
 - [ ] **Originallayout in der App (ADR-047):** Pokémon-Stapel
       (`fixtures/apkg/corpus/Pokemon_Gen_I_Auszug.apkg`) mit echtem Konto
       importieren, auf einem zweiten Gerät öffnen und offline lernen; Review,
