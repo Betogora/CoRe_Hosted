@@ -239,7 +239,7 @@ dependencies, or chunking additionally require
 `npm run performance:measure:local` before push.
 
 Run the complete `npm test` suite when a change is cross-cutting, affects shared
-domain behavior or several feature areas, lacks sufficient coverage from
+domain behavior or several feature areas, or lacks sufficient coverage from
 focused tests.
 
 ### Database Validation
