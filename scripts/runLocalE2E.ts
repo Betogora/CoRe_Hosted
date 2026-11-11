@@ -97,7 +97,7 @@ async function stopOrphanedLocalViteServers() {
   if (process.platform !== "win32") return;
   const script = [
     "$workspace = [IO.Path]::GetFullPath($env:CORE_E2E_WORKSPACE).TrimEnd('\\')",
-    "$ports = 5190,5191,5192,5193",
+    "$ports = 5190,5191",
     "$owners = Get-NetTCPConnection -State Listen -ErrorAction SilentlyContinue | Where-Object { $_.LocalPort -in $ports } | Select-Object -ExpandProperty OwningProcess -Unique",
     "foreach ($ownerPid in $owners) {",
     "  $process = Get-CimInstance Win32_Process -Filter \"ProcessId = $ownerPid\" -ErrorAction SilentlyContinue",

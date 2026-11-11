@@ -705,3 +705,29 @@ test("[Vertrag: Lerninhalte] Zusammenfassungen und Mindmaps liegen online: ein z
     await expect(other.getByTestId("deck-mindmaps-panel").getByRole("group", { name: "Textkarte „Geteilt“", exact: true }).locator("img")).toHaveAttribute("src", /^blob:/);
   } finally { await second.close(); }
 });
+
+test("[Vertrag: Navigation] ein Direktaufruf zeigt seine Ansicht ab dem ersten Bild, ohne hereingleitende Markierung", async ({ page }) => {
+  await page.setViewportSize({ width: 1024, height: 844 });
+  await page.addInitScript(() => {
+    const target = globalThis as typeof globalThis & { __firstNavigationFrame?: { active: string; offset: number } };
+    const sample = () => {
+      const navigation = document.querySelector('[data-navigation-layout="bottom-bar"]');
+      const indicator = navigation?.querySelector<HTMLElement>(".core-segmented-control-indicator");
+      const active = navigation?.querySelector<HTMLElement>('[aria-current="page"]');
+      if (!indicator || !active) {
+        requestAnimationFrame(sample);
+        return;
+      }
+      target.__firstNavigationFrame = {
+        active: active.textContent?.trim() ?? "",
+        offset: Math.round(Math.abs(indicator.getBoundingClientRect().x - active.getBoundingClientRect().x)),
+      };
+    };
+    requestAnimationFrame(sample);
+  });
+  for (const [path, label] of [["/lernen", "Lernen"], ["/kartenstapel", "Karten"], ["/pruefungen", "Prüfung"]] as const) {
+    await page.goto(path);
+    await expect.poll(() => page.evaluate(() => (globalThis as typeof globalThis & { __firstNavigationFrame?: unknown }).__firstNavigationFrame ?? null))
+      .toEqual({ active: label, offset: 0 });
+  }
+});

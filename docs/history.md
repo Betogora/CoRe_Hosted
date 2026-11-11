@@ -1,6 +1,6 @@
 # CoRe-Verlauf
 
-Stand: 2026-11-04
+Stand: 2026-11-11
 
 Diese Datei hält zwei Dinge fest, die Git nicht abbildet:
 
@@ -27,6 +27,7 @@ Neueste zuerst. Projekt `hirbiuiydczmnjqtoyqx` ist `CoRe-Database`.
 
 | Datum | Art | Nachweis |
 | --- | --- | --- |
+| 2026-11-11 | Migration, Release | `20261110130000_kartenverwaltung` (Kartenverwaltung 2.0, ADR-048) per `supabase db push` nach Probelauf; `verify_schema_v1.sql` grün. Unmittelbar danach PR #91 gemergt, Production-Deployment von `d663436` erfolgreich. Hosted-Smoke ausgelassen (Entscheidung des Nutzers); `gate:nightly` auf `d663436`: bekannte Fehler und zwei neue Befunde (Editor-Modus beim Breitenwechsel, Datumsspalte), behoben im folgenden Restposten-PR. |
 | 2026-11-02 | Migration | `20261102102620_originallayout_vorlagen_sync` per `supabase db push` nach Probelauf; `verify_schema_v1.sql` grün. |
 | 2026-10-30 | Hosted-Smoke | `test:beta:hosted` gegen `https://core-hosted.vercel.app`, Production-Deployment von `7663022` (PR #52): 10/10. **Letzter bestätigter Production-Stand.** |
 | 2026-10-30 | Migration | `migration repair --status reverted` für die zwölf Versionen `20261008101057`–`20261030004024`; Baseline `20261030103636` angewandt, danach `20261030180000_karteneditor_v2`; `supabase db diff --linked` leer. |
@@ -59,6 +60,7 @@ Noch nie nachgewiesen: DB-Restore-Probe, Storage-Restore-Probe, realer Alarmempf
 - **2026-11-03–04** — Zusammenfassung: Werkzeugleiste im Notiz-App-Muster, Belege als ausklappbare Fußnoten.
 - **2026-11-04** — Navigation: `Karten` als eigener Hauptreiter, Statistik als Icon; Karteneditor mit einheitlichen Panels.
 - **2026-11-04–07** — Einstellungen als Dialog: Bereichs-Sidebar statt zweier Seiten, kastenlose Zeilen, Wochenrhythmus als Tabelle, gemeinsames Zahlenfeld; Stapeleinstellungen als eigener Dialog über Ansicht oder Sitzung, die Seite `stapel-einstellungen` entfällt.
+- **2026-11-04–11** — Kartenverwaltung 2.0 nach Ankis Browser: lokale Suche mit Anki-Syntax über den ganzen Katalog, flache virtualisierte Liste, Massenaktionen mit Rückgängig, Suchen und Ersetzen, Treffer lernen, Duplikate, Tags verwalten, Editor neben der Liste (ADR-048); dazu gestuftes Vorladen und ein Startgraph ohne Realtime.
 
 ### Oktober 2026
 

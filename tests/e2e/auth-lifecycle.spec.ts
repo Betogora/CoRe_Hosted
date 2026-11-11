@@ -86,26 +86,6 @@ test.describe("lokaler Auth-Lifecycle", () => {
     await page.locator("form").getByRole("button", { name: "Magic Link senden" }).click();
     await expect(page.getByRole("alert")).toContainText("Bitte warte kurz");
   });
-
-  test("Google-Start übergibt Provider und exakte App-Rücksprungadresse an die Drittanbieter-Seam", async ({ page }) => {
-    let authorizeUrl: URL | undefined;
-    await page.route(/\/auth\/v1\/authorize(?:\?.*)?$/, async (route) => {
-      authorizeUrl = new URL(route.request().url());
-      await route.fulfill({
-        status: 200,
-        contentType: "text/html",
-        body: "<h1>Google OAuth seam</h1>",
-      });
-    });
-
-    await page.goto("/");
-    await page.getByRole("button", { name: "Mit Google anmelden" }).click();
-    await expect(page.getByRole("heading", { name: "Google OAuth seam" })).toBeVisible();
-
-    expect(authorizeUrl?.searchParams.get("provider")).toBe("google");
-    expect(authorizeUrl?.searchParams.get("redirect_to")).toBe("http://127.0.0.1:5190/");
-    await expect(page).toHaveURL(/\/auth\/v1\/authorize/);
-  });
 });
 
 async function requestEmailLink(page: Page, mode: "Magic Link" | "Passwort vergessen", email: string, submitLabel: string) {

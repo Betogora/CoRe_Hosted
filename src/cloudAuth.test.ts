@@ -14,7 +14,6 @@ import {
   markCloudSignedOut,
   readCloudAuthRedirectOutcome,
   resetCloudPassword,
-  signInWithGoogle,
   signInCloudAccount,
   signInWithMagicLink,
   signUpCloudAccount,
@@ -270,27 +269,6 @@ test("cloud auth sends magic links only for existing users", async () => {
   assert.equal(calls[0].email, "noemi@example.test");
   assert.equal(calls[0].options.emailRedirectTo, "https://core-hosted.vercel.app");
   assert.equal(calls[0].options.shouldCreateUser, false);
-});
-
-test("cloud auth starts Google OAuth with the configured redirect", async () => {
-  const calls: any[] = [];
-  const client = {
-    from() {
-      return {};
-    },
-    auth: {
-      async signInWithOAuth(input: any) {
-        calls.push(input);
-        return { data: { url: "https://accounts.google.test" }, error: null };
-      },
-    },
-  };
-
-  const result = await signInWithGoogle(client, "https://core-hosted.vercel.app");
-
-  assert.equal(result.url, "https://accounts.google.test");
-  assert.equal(calls[0].provider, "google");
-  assert.equal(calls[0].options.redirectTo, "https://core-hosted.vercel.app");
 });
 
 test("cloud auth updates a recovered password through Supabase", async () => {

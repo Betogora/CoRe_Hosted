@@ -103,7 +103,11 @@ interface UseAppNavigationOptions {
 export function useAppNavigation({ authPhase, defaultViewId, onBeforeNavigation }: UseAppNavigationOptions) {
   const historyInitializedRef = React.useRef(false);
   const historyPositionRef = React.useRef(0);
-  const currentRouteRef = React.useRef<AppRoute>(createViewRoute(defaultViewId));
+  // The first render of the app shell already shows the view from the URL, so nothing starts on the default and moves.
+  const [initialRoute] = React.useState<AppRoute>(() => typeof window === "undefined"
+    ? createViewRoute(defaultViewId)
+    : normalizeAppRoute(parseAppRouteFromUrl(window.location.href)));
+  const currentRouteRef = React.useRef<AppRoute>(initialRoute);
   const onBeforeNavigationRef = React.useRef(onBeforeNavigation);
   const [projection, setProjection] = React.useState<AppNavigationProjection>(() => projectAppRoute(currentRouteRef.current));
   onBeforeNavigationRef.current = onBeforeNavigation;

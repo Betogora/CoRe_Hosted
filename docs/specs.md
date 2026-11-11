@@ -50,7 +50,7 @@ Die verbindliche Reifeentscheidung steht in [ADR-001](decisions.md#adr-001--prod
 ### Disabled
 
 - Anki-Pakete über 2 GiB; sie werden lokal abgewiesen.
-- Google und Magic Link, solange ihr jeweiliges Auth-Flag deaktiviert ist.
+- Magic Link, solange sein Auth-Flag deaktiviert ist.
 - DOCX als Quelle der manuellen Erstellung und der Zusammenfassungen sowie OCR. Nur die [automatische Erstellung](#automatisch-aus-einer-quelle) nimmt DOCX und PPTX als Quelle ihres Auftrags an.
 - Vollständige Art.-15-Auskunft und Account-Löschung.
 
@@ -732,7 +732,7 @@ Aus der Kartenverwaltung öffnet `Allgemein`, aus einer Sitzung (mit validiertem
 
 Verhalten:
 
-- Ab 1280 px Breite öffnet der Editor in der Kartenverwaltung neben der Liste (Suchzeile darüber, Liste links, Editor rechts in voller Fensterhöhe, beim Scrollen der Liste stehend); die Liste bleibt bedienbar, behält Auswahl und Scrollposition, und ein Klick auf eine andere Zeile wechselt die Karte. Darunter und außerhalb der Kartenliste (etwa aus einer Sitzung) bleibt er ein Dialog über der Ansicht.
+- Ab 1280 px Breite öffnet der Editor in der Kartenverwaltung neben der Liste (Suchzeile darüber, Liste links, Editor rechts in voller Fensterhöhe, beim Scrollen der Liste stehend); die Liste bleibt bedienbar, behält Auswahl und Scrollposition, und ein Klick auf eine andere Zeile wechselt die Karte. Darunter und außerhalb der Kartenliste (etwa aus einer Sitzung) bleibt er ein Dialog über der Ansicht. Ändert sich die Fensterbreite über diese Grenze, während ein Entwurf ungespeichert ist, behält der Editor seine Darstellung bis zum Speichern oder Verwerfen; der Entwurf bleibt erhalten.
 - Stapel, Karte und Reiter sind Teil des Links; nur bekannte Reiter sind erlaubt. Reload und Browser-Zurück/-Vorwärts bleiben deterministisch, ein Reiterwechsel fragt nie nach.
 - Aus der Kartenverwaltung blättert der Editor mit Vor/Zurück durch alle Zeilen der Tabelle in ihrer Reihenfolge (`12 / 48`); eine noch nicht geladene Zeile öffnet, sobald ihre Seite da ist, die benachbarten Treffer werden vorgeladen, und die Zeile der geöffneten Karte rückt beim Wechsel in den sichtbaren Bereich. Ohne Trefferliste, etwa aus einer Sitzung, entfällt das Blättern.
 - Der Editor nennt den Status der Karte (Markierung, Flagge, Aussetzung, Lernbremse) und bietet Duplizieren und Löschen.

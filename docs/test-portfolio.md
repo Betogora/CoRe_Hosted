@@ -49,8 +49,8 @@ Abhängigkeiten oder `continue-on-error`.
   einschließlich Katalogflows und Datenbanktyp-Drift.
 - `npm run test:pr:local`: Kern-RLS plus die sechs `@golden-e2e`-Flows.
   `npm run test:e2e:golden:local` führt nur die Golden-Flows aus.
-- `npm run test:beta`: `gate:push`, Kern-RLS und die `@beta-core`-Flows; Google
-  und Magic Link bleiben deaktiviert. `npm run test:beta:hosted` läuft gegen eine
+- `npm run test:beta`: `gate:push`, Kern-RLS und die `@beta-core`-Flows; Magic Link
+  bleibt deaktiviert. `npm run test:beta:hosted` läuft gegen eine
   gehostete URL (siehe [Hosted-Core-Smoke](operations.md#hosted-core-smoke)).
 - `npm run test:rls:local`: vollständiges RLS isoliert.
 - `npm run test:release:local`: Integration, komplette RLS- und Browser-Suite,

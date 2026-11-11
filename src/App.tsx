@@ -23,7 +23,7 @@ import type {
 import { CreationScreen, DashboardScreen, DeckSettingsScreen, DecksScreen, ExamPlanningScreen, GlobalCardSettingsScreen, HelpScreen, LearnScreen, prefetchAppView, preloadAppView, preloadSettingsDialog, SettingsDialog, SettingsScreen, SimulatorScreen, StatisticsScreen, StudyMode } from "./appFeatureLoading.tsx";
 import { allowsBrowserSpeculativePreloading, startAdaptiveFeaturePreloading } from "./appFeaturePreload.ts";
 import { startAppSyncLifecycle } from "./appSyncLifecycle.ts";
-import { clearCloudAuthRedirectParams, formatCloudAuthError, getCloudUser, resetCloudPassword, signInCloudAccount, signInWithGoogle, signInWithMagicLink, signOutCloudAccount, signUpCloudAccount, updateCloudPassword } from "./cloudAuth.ts";
+import { clearCloudAuthRedirectParams, formatCloudAuthError, getCloudUser, resetCloudPassword, signInCloudAccount, signInWithMagicLink, signOutCloudAccount, signUpCloudAccount, updateCloudPassword } from "./cloudAuth.ts";
 import { createImportCloudSyncTask, type ImportCloudSyncTask } from "./importCloudSyncTask.ts";
 import { addCardVariant, applyCardStudyStatePatch, createDefaultDeckSettings, createNote, duplicateNote, moveCardToDeck, planNoteContentChange, planNoteDeletion, planNoteRestore, removeUnusedNoteMedia, replaceOutdatedVariants } from "./coreModel.ts";
 import { cardVariantSource, deactivateVariant, deleteVariant, editVariantText, isEditedVariant, reactivateVariant } from "./coreVariantService.ts";
@@ -68,7 +68,6 @@ import { CARD_VARIANT_BATCH_LIMIT, type CardVariantBatchMode } from "./cardVaria
 import { SettingsSaveBar } from "./ui/SettingsSaveBar.tsx";
 import { applyDeckSettingsDraftChanges, createDeckSettingsDraft, normalizeDeckSettingsDraft, type DeckLearningSettingsDraft, type DeckSettingsDraft, type GeneralSettingsDraft, type GlobalCardSettingsDraft } from "./settingsDraft.ts";
 const menu = createMenuModel();
-const googleAuthEnabled = import.meta.env.VITE_ENABLE_GOOGLE_AUTH === "true";
 const magicLinkEnabled = import.meta.env.VITE_ENABLE_MAGIC_LINK === "true";
 
 interface SignInInput { email: string; password: string }
@@ -1139,22 +1138,6 @@ export function App() {
     }
   }
 
-  async function handleGoogleSignIn() {
-    if (!supabase) return;
-    setAuthBusy(true);
-    setAuthMessage("");
-    try {
-      await signInWithGoogle(supabase);
-      setAuthMessage("Weiterleitung zu Google wird geöffnet.");
-      setAuthMessageType("status");
-    } catch (error) {
-      setAuthMessage(formatCloudAuthError(error, "Google-Anmeldung konnte nicht gestartet werden."));
-      setAuthMessageType("alert");
-    } finally {
-      setAuthBusy(false);
-    }
-  }
-
   async function handleUpdatePassword({ password, passwordRepeat }: PasswordUpdateInput) {
     if (!supabase) return;
     setAuthBusy(true);
@@ -2158,9 +2141,7 @@ export function App() {
         onSignUp={handleSignUp}
         onResetPassword={handleResetPassword}
         onMagicLink={handleMagicLink}
-        onGoogleSignIn={handleGoogleSignIn}
         showMagicLink={magicLinkEnabled}
-        showGoogleSignIn={googleAuthEnabled}
         onUpdatePassword={handleUpdatePassword}
       />
     );
