@@ -2,6 +2,7 @@ import { createCloudProfile, saveCloudProfile } from "./cloudAuth.ts";
 import { noteTextIndex } from "./coreModel.ts";
 import { parseCardSearchQuery } from "./cardSearchQuery.ts";
 import type { Card, CardVariant, Deck, ImportVerificationRepairScope, ImportVerificationScope, Note, ReviewEvent } from "./coreTypes.ts";
+import type { Tables } from "./database.types.ts";
 import {
   cardFromRow,
   deckFromRow,
@@ -41,6 +42,58 @@ import type {
   OfflineCardManifestEntry,
   OfflineMediaManifestEntry,
 } from "./workspaceReplica.ts";
+
+/** A row this module reads without a validator from `cloudRepositoryValidation.ts`. */
+type CloudRow = Record<string, unknown>;
+interface CloudUser { id: string }
+interface CloudError { code?: string; message?: string }
+interface CloudResponse { data: unknown; error: CloudError | null }
+interface CloudRequest extends PromiseLike<CloudResponse> {
+  abortSignal(signal: AbortSignal): PromiseLike<CloudResponse>;
+}
+interface CloudQuery extends CloudRequest {
+  select(columns?: string): CloudQuery;
+  eq(column: string, value: unknown): CloudQuery;
+  in(column: string, values: readonly unknown[]): CloudQuery;
+  gt(column: string, value: unknown): CloudQuery;
+  order(column: string, options?: { ascending?: boolean }): CloudQuery;
+  limit(count: number): CloudQuery;
+  single(): PromiseLike<CloudResponse>;
+  maybeSingle(): PromiseLike<CloudResponse>;
+}
+interface CloudTable {
+  select(columns?: string): CloudQuery;
+  insert(values: object): CloudQuery;
+  upsert(values: object, options?: { onConflict?: string; ignoreDuplicates?: boolean }): CloudQuery;
+  update(values: object): CloudQuery;
+}
+
+/**
+ * The part of the Supabase client this module and the sync engine use; every answer stays `unknown` until validated.
+ * `from` is `unknown` because PostgREST's builder types exceed the compiler's depth in a structural comparison (TS2589);
+ * `cloudTable` reads it as `CloudTable`.
+ */
+export interface CloudClient {
+  auth: { getUser(): PromiseLike<{ data: { user: CloudUser | null } | null; error: unknown }> };
+  rpc(fn: string, args?: Record<string, unknown>): CloudRequest;
+  from(table: string): unknown;
+}
+
+function cloudTable(client: CloudClient, table: string) {
+  return client.from(table) as CloudTable;
+}
+
+/** Rows of a select or write answer as PostgREST returns them, without validation. */
+function unvalidatedRows<Row = CloudRow>(data: unknown) {
+  return data as Row[] | null;
+}
+
+/** `sync_conflicts` row; no validator covers this table, its JSON values hold rows written by `markConflictForUser`. */
+type SyncConflictRow = Omit<Tables<"sync_conflicts">, "local_value" | "remote_value" | "resolution"> & {
+  local_value?: CloudRow | null;
+  remote_value?: CloudRow | null;
+  resolution?: unknown;
+};
 
 const ACCOUNT_UPSERT_CONFLICT = "user_id,id";
 const REVISIONED_TABLES = ["decks", "notes", "cards", "card_variants"];
@@ -139,7 +192,17 @@ class CloudRevisionConflictError extends Error {
   readonly remoteValue: Record<string, unknown>;
   readonly conflict: unknown;
 
-  constructor({ entityTable, entityId, baseRevision = null, localRevision = null, remoteRevision = null, remoteDeleted = false, localValue = {}, remoteValue = {}, conflict = null }: any = {}) {
+  constructor({ entityTable, entityId, baseRevision = null, localRevision = null, remoteRevision = null, remoteDeleted = false, localValue = {}, remoteValue = {}, conflict = null }: {
+    entityTable?: string;
+    entityId?: string;
+    baseRevision?: number | null;
+    localRevision?: number | null;
+    remoteRevision?: number | null;
+    remoteDeleted?: boolean;
+    localValue?: CloudRow;
+    remoteValue?: CloudRow;
+    conflict?: unknown;
+  } = {}) {
     super("Auf einem anderen Gerät liegt bereits eine neuere Version vor. Bitte lade die Cloud-Daten neu.");
     this.name = "CloudRevisionConflictError";
     this.entityTable = entityTable ?? "unknown";
@@ -163,24 +226,24 @@ class SyncConflictChangedError extends Error {
   }
 }
 
-function toArray(value: any): any[] {
+function toArray<T = unknown>(value: unknown): T[] {
   return Array.isArray(value) ? value : [];
 }
 
-function toJson(value: any, fallback: any) {
+function toJson<T, F>(value: T, fallback: F) {
   return value == null ? fallback : value;
 }
 
-function toObject(value: any): Record<string, any> {
-  return value && typeof value === "object" && !Array.isArray(value) ? value : {};
+function toObject(value: unknown): CloudRow {
+  return value && typeof value === "object" && !Array.isArray(value) ? value as CloudRow : {};
 }
 
-function normalizeRevision(value: any, fallback: any = 1) {
+function normalizeRevision(value: unknown, fallback = 1) {
   const revision = Number(value);
   return Number.isInteger(revision) && revision >= 1 ? revision : fallback;
 }
 
-function syncFields(entity: any = {}) {
+function syncFields(entity: { revision?: unknown; deletedAt?: string | null; updatedByDeviceId?: string | null } = {}) {
   return {
     revision: normalizeRevision(entity.revision),
     deleted_at: entity.deletedAt ?? null,
@@ -188,13 +251,13 @@ function syncFields(entity: any = {}) {
   };
 }
 
-function stableValue(value: any): any {
+function stableValue(value: unknown): unknown {
   if (Array.isArray(value)) return value.map(stableValue);
   if (!value || typeof value !== "object") return value;
-  return Object.fromEntries(Object.keys(value).sort().map((key: any) => [key, stableValue(value[key])]));
+  return Object.fromEntries(Object.keys(value).sort().map((key) => [key, stableValue((value as CloudRow)[key])]));
 }
 
-function jsonValuesEqual(left: any, right: any) {
+function jsonValuesEqual(left: unknown, right: unknown) {
   return JSON.stringify(stableValue(left ?? null)) === JSON.stringify(stableValue(right ?? null));
 }
 
@@ -204,35 +267,35 @@ function normalizeComparableTimestamp(value: unknown) {
   return Number.isNaN(milliseconds) ? value : new Date(milliseconds).toISOString();
 }
 
-function comparableRow(row: any = {}, entityTable = "") {
+function comparableRow(row: CloudRow = {}, entityTable = "") {
   const tableFields = TECHNICAL_CONTENT_FIELDS_BY_TABLE[entityTable] ?? new Set<string>();
   return Object.fromEntries(
     Object.entries(row)
-      .filter(([key]: any) => !ROW_IDENTITY_FIELDS.has(key) && !tableFields.has(key))
+      .filter(([key]) => !ROW_IDENTITY_FIELDS.has(key) && !tableFields.has(key))
       .map(([key, value]) => [key, COMPARABLE_TIMESTAMP_FIELDS.has(key) ? normalizeComparableTimestamp(value) : value]),
   );
 }
 
-function rowsHaveSameContent(left: any, right: any, entityTable = "") {
+function rowsHaveSameContent(left: CloudRow, right: CloudRow, entityTable = "") {
   return JSON.stringify(stableValue(comparableRow(left, entityTable))) === JSON.stringify(stableValue(comparableRow(right, entityTable)));
 }
 
-function conflictValue(row: any = {}) {
-  return Object.fromEntries(Object.entries(row).filter(([key]: any) => key !== "user_id"));
+function conflictValue(row: object = {}): CloudRow {
+  return Object.fromEntries(Object.entries(row).filter(([key]) => key !== "user_id"));
 }
 
-function isTombstoneConflict(localValue: any, remoteValue: any) {
+function isTombstoneConflict(localValue: CloudRow, remoteValue: CloudRow) {
   return Boolean(localValue.deleted_at || remoteValue.deleted_at || Object.keys(localValue).length === 0 || Object.keys(remoteValue).length === 0);
 }
 
-function conflictFieldKeys(localValue: any = {}, remoteValue: any = {}) {
+function conflictFieldKeys(localValue: CloudRow = {}, remoteValue: CloudRow = {}) {
   return [...new Set([...Object.keys(localValue), ...Object.keys(remoteValue)])]
-    .filter((field: any) => !CONFLICT_PROTECTED_FIELDS.has(field) && field !== "deleted_at")
-    .filter((field: any) => !jsonValuesEqual(localValue[field], remoteValue[field]))
-    .sort((left: any, right: any) => ((CONFLICT_FIELD_LABELS as Record<string, string>)[left] ?? left).localeCompare((CONFLICT_FIELD_LABELS as Record<string, string>)[right] ?? right, "de"));
+    .filter((field) => !CONFLICT_PROTECTED_FIELDS.has(field) && field !== "deleted_at")
+    .filter((field) => !jsonValuesEqual(localValue[field], remoteValue[field]))
+    .sort((left, right) => ((CONFLICT_FIELD_LABELS as Record<string, string>)[left] ?? left).localeCompare((CONFLICT_FIELD_LABELS as Record<string, string>)[right] ?? right, "de"));
 }
 
-function formatConflictDisplayValue(value: any) {
+function formatConflictDisplayValue(value: unknown) {
   if (value == null || value === "") return "—";
   if (typeof value === "boolean") return value ? "Ja" : "Nein";
   if (typeof value === "string") return value.length > 500 ? `${value.slice(0, 497)}…` : value;
@@ -240,17 +303,17 @@ function formatConflictDisplayValue(value: any) {
   return serialized.length > 700 ? `${serialized.slice(0, 697)}…` : serialized;
 }
 
-function conflictEntityTitle(row: any = {}) {
+function conflictEntityTitle(row: SyncConflictRow) {
   const local = row.local_value ?? {};
   const remote = row.remote_value ?? {};
   return local.name ?? remote.name ?? (local.sort_text || null) ?? (remote.sort_text || null) ?? local.front ?? remote.front ?? row.entity_id;
 }
 
-function createConflictProjection(row: any = {}) {
+function createConflictProjection(row: SyncConflictRow) {
   const localValue = conflictValue(row.local_value ?? {});
   const remoteValue = conflictValue(row.remote_value ?? {});
   const tombstone = isTombstoneConflict(localValue, remoteValue);
-  const fields = conflictFieldKeys(localValue, remoteValue).map((field: any) => ({
+  const fields = conflictFieldKeys(localValue, remoteValue).map((field) => ({
     key: field,
     label: (CONFLICT_FIELD_LABELS as Record<string, string>)[field] ?? field,
     localText: formatConflictDisplayValue(localValue[field]),
@@ -285,19 +348,19 @@ function createConflictProjection(row: any = {}) {
   };
 }
 
-function conflictIdFor({ entityTable, entityId, baseRevision, remoteRevision }: any) {
-  return ["sync-conflict", entityTable, entityId, baseRevision ?? "new", remoteRevision ?? "missing"].map((value: any) => encodeURIComponent(String(value))).join(":");
+function conflictIdFor({ entityTable, entityId, baseRevision, remoteRevision }: { entityTable: string; entityId: string; baseRevision: number | null; remoteRevision: number | null }) {
+  return ["sync-conflict", entityTable, entityId, baseRevision ?? "new", remoteRevision ?? "missing"].map((value) => encodeURIComponent(String(value))).join(":");
 }
 
-function uniqueRowsById(rows: any) {
-  const byId = new Map();
+function uniqueRowsById<Row extends { id?: unknown }>(rows: Row[]) {
+  const byId = new Map<unknown, Row>();
   for (const row of rows) {
     if (row?.id) byId.set(row.id, row);
   }
   return [...byId.values()];
 }
 
-async function getAuthenticatedUser(client: any) {
+async function getAuthenticatedUser(client: CloudClient | null | undefined) {
   if (!client?.auth || !client?.from) throw new Error("Supabase ist noch nicht konfiguriert.");
   const { data, error } = await client.auth.getUser();
   if (error) throw error;
@@ -309,18 +372,18 @@ async function getAuthenticatedUser(client: any) {
   return data.user;
 }
 
-function authenticatedUserForKnownSession(client: any, userId?: string) {
+function authenticatedUserForKnownSession(client: CloudClient, userId?: string): Promise<CloudUser> {
   if (!userId) return getAuthenticatedUser(client);
   if (!client?.auth || !client?.from) throw new Error("Supabase ist noch nicht konfiguriert.");
   return Promise.resolve({ id: requireNonEmptyString(userId, "Nutzer-ID fehlt.") });
 }
 
-function requireNonEmptyString(value: any, message: any) {
+function requireNonEmptyString(value: unknown, message: string) {
   if (typeof value !== "string" || !value.trim()) throw new Error(message);
   return value.trim();
 }
 
-function requireTimestamp(value: any, fallback: any, message: any) {
+function requireTimestamp(value: unknown, fallback: () => string, message: string) {
   const timestamp = value ?? fallback();
   if (typeof timestamp !== "string" || Number.isNaN(Date.parse(timestamp))) throw new Error(message);
   return timestamp;
@@ -331,9 +394,9 @@ function serializedBytes(value: unknown) {
   return typeof TextEncoder === "undefined" ? serialized.length : new TextEncoder().encode(serialized).byteLength;
 }
 
-function chunkRows(rows: any[] = []) {
-  const chunks: any[][] = [];
-  let chunk: any[] = [];
+function chunkRows<Row>(rows: Row[] = []) {
+  const chunks: Row[][] = [];
+  let chunk: Row[] = [];
   let chunkBytes = 2;
   for (const row of rows) {
     const rowBytes = serializedBytes(row) + (chunk.length > 0 ? 1 : 0);
@@ -365,26 +428,26 @@ async function mapWithConcurrency<T, R>(items: T[], worker: (item: T) => Promise
   return results;
 }
 
-async function upsertRows(client: any, table: any, rows: any[], options: any = {}) {
+async function upsertRows(client: CloudClient, table: string, rows: object[], options: { concurrency?: number; ignoreDuplicates?: boolean } = {}) {
   const { concurrency = 1, ...upsertOptions } = options;
   await mapWithConcurrency(chunkRows(rows), async (chunk) => {
-    const { error } = await client.from(table).upsert(chunk, { onConflict: ACCOUNT_UPSERT_CONFLICT, ...upsertOptions });
+    const { error } = await cloudTable(client, table).upsert(chunk, { onConflict: ACCOUNT_UPSERT_CONFLICT, ...upsertOptions });
     if (error) throw error;
   }, concurrency);
 }
 
-async function selectKeysetRows(client: any, table: string, userId: string, columns = "*", { optional = false }: any = {}) {
-  const rows: any[] = [];
+async function selectKeysetRows<Row extends { id?: unknown } = CloudRow>(client: CloudClient, table: string, userId: string, columns = "*", { optional = false }: { optional?: boolean } = {}) {
+  const rows: Row[] = [];
   let cursor: string | null = null;
   while (true) {
-    let query = client.from(table).select(columns).eq("user_id", userId).order("id", { ascending: true }).limit(CLOUD_PAGE_SIZE);
+    let query = cloudTable(client, table).select(columns).eq("user_id", userId).order("id", { ascending: true }).limit(CLOUD_PAGE_SIZE);
     if (cursor) query = query.gt("id", cursor);
     const { data, error } = await query;
     if (error) {
       if (optional && (String(error?.code ?? "") === "42P01" || /does not exist|not exist/i.test(error?.message ?? ""))) return [];
       throw error;
     }
-    const page = data ?? [];
+    const page = unvalidatedRows<Row>(data) ?? [];
     rows.push(...page);
     if (page.length < CLOUD_PAGE_SIZE) break;
     const nextCursor = String(page.at(-1)?.id ?? "");
@@ -394,15 +457,14 @@ async function selectKeysetRows(client: any, table: string, userId: string, colu
   return rows;
 }
 
-async function selectRowsByField(client: any, table: AccountTable, userId: string, field: string, values: string[]) {
+async function selectRowsByField(client: CloudClient, table: AccountTable, userId: string, field: string, values: string[]) {
   const uniqueValues = [...new Set(values.filter(Boolean))];
-  const rows: any[] = [];
+  const rows: CloudRow[] = [];
   for (let offset = 0; offset < uniqueValues.length; offset += 100) {
     const batch = uniqueValues.slice(offset, offset + 100);
     let cursor: string | null = null;
     while (true) {
-      let query = client
-        .from(table)
+      let query = cloudTable(client, table)
         .select("*")
         .eq("user_id", userId)
         .in(field, batch)
@@ -430,14 +492,16 @@ export class ImportGraphVerificationError extends Error {
   }
 }
 
-function missingVerifiedRows(expectedIds: string[], rows: any[]) {
+function missingVerifiedRows(expectedIds: string[], rows: CloudRow[]) {
   const expected = new Set(expectedIds);
   const received = new Set(rows.filter((row) => !row.deleted_at).map((row) => String(row.id)));
   return [...expected].filter((id) => !received.has(id));
 }
 
-export async function verifyAccountImportGraph(client: any, scope: ImportVerificationScope) {
-  const user = await getAuthenticatedUser(client);
+export async function verifyAccountImportGraph(maybeClient: CloudClient | null | undefined, scope: ImportVerificationScope) {
+  const user = await getAuthenticatedUser(maybeClient);
+  // getAuthenticatedUser rejects a missing client.
+  const client = maybeClient as CloudClient;
   const [decks, noteTypeSources, notes, noteSources, cards, reviews] = await Promise.all([
     selectRowsByField(client, "decks", user.id, "id", scope.deckIds),
     selectRowsByField(client, "note_type_sources", user.id, "id", scope.noteTypeSourceIds),
@@ -501,7 +565,7 @@ interface AccountBootstrapPage {
 }
 
 export async function loadAccountCloudBootstrap(
-  client: any,
+  client: CloudClient,
   user: { id: string; email?: string | null },
   { cursor = "", limit = 200, maxBytes = 200 * 1024 }: { cursor?: string; limit?: number; maxBytes?: number } = {},
 ): Promise<AccountBootstrapPage> {
@@ -570,7 +634,7 @@ function validateCatalogDeltaResponse(value: unknown) {
 
 /** Applies every delta page with all its tables in one call; the next page loads while the previous one is applied. */
 export async function streamAccountCatalogChanges(
-  client: any,
+  client: CloudClient,
   cursor: number,
   onPage: (pages: CloudCatalogPage[]) => Promise<void>,
 ): Promise<number> {
@@ -631,7 +695,7 @@ function parseCatalogPage(data: unknown, knownTotalCount?: number): CatalogPage 
   };
 }
 
-export async function listAccountCardCatalog(client: any, request: CatalogPageRequest): Promise<CatalogPage> {
+export async function listAccountCardCatalog(client: CloudClient, request: CatalogPageRequest): Promise<CatalogPage> {
   const search = parseCardSearchQuery(request.query, request.searchContext);
   const scope = request.deckId === null ? [{ kind: "deck", ids: [...(request.deckIds ?? [])], negated: false }] : [];
   const call = client.rpc("list_account_card_catalog", {
@@ -652,7 +716,7 @@ export async function listAccountCardCatalog(client: any, request: CatalogPageRe
 
 /** First search page of every requested deck in one request; decks without hits are absent from the result. */
 export async function searchAccountCardCatalog(
-  client: any,
+  client: CloudClient,
   request: { deckIds: string[]; query: string; searchContext?: CatalogPageRequest["searchContext"]; sort?: CatalogPageRequest["sort"]; limit?: number },
 ): Promise<Map<string, CatalogPage>> {
   const search = parseCardSearchQuery(request.query, request.searchContext);
@@ -673,7 +737,7 @@ export async function searchAccountCardCatalog(
 const CARD_STUDY_STATE_PAGE_SIZE = 2000;
 
 /** Study state of every card in the given decks without card bodies (ADR-034), paged by card id. */
-export async function listAccountCardStudyStates(client: any, deckIds: string[], signal?: AbortSignal): Promise<CardStudySnapshot[]> {
+export async function listAccountCardStudyStates(client: CloudClient, deckIds: string[], signal?: AbortSignal): Promise<CardStudySnapshot[]> {
   const ids = [...new Set(deckIds.filter(Boolean))];
   if (ids.length > 5000) throw new Error("Höchstens 5000 Stapel können gleichzeitig geladen werden.");
   const snapshots: CardStudySnapshot[] = [];
@@ -691,7 +755,7 @@ export async function listAccountCardStudyStates(client: any, deckIds: string[],
 }
 
 /** Card bodies with their contents and variants; note ids additionally load all sibling cards. */
-export async function hydrateAccountCards(client: any, cardIds: string[], noteIds: string[] = []) {
+export async function hydrateAccountCards(client: CloudClient, cardIds: string[], noteIds: string[] = []) {
   const ids = [...new Set(cardIds.filter(Boolean))];
   const noteIdList = [...new Set(noteIds.filter(Boolean))];
   if (ids.length > 50 || noteIdList.length > 50) throw new Error("Höchstens 50 Karten oder Inhalte können gleichzeitig geladen werden.");
@@ -717,7 +781,7 @@ interface DeckOfflineManifestPage {
 }
 
 export async function loadDeckOfflineManifest(
-  client: any,
+  client: CloudClient,
   deckId: string,
   cursor = "",
 ): Promise<DeckOfflineManifestPage> {
@@ -738,7 +802,7 @@ export async function loadDeckOfflineManifest(
 }
 
 export async function loadAccountStatistics(
-  client: any,
+  client: CloudClient,
   { deckIds = null, from = null, to = null, timeZone = "UTC", dayStartHour = 0 }: { deckIds?: string[] | null; from?: string | null; to?: string | null; timeZone?: string; dayStartHour?: number } = {},
 ): Promise<AccountStatisticsSnapshot> {
   const { data, error } = await client.rpc("get_account_statistics", {
@@ -753,8 +817,8 @@ export async function loadAccountStatistics(
 }
 
 export async function deleteAccountDeckTree(
-  client: any,
-  deckId: string,
+  client: CloudClient,
+  deckId: string | undefined,
   { deletedAt = new Date().toISOString(), deviceId = null }: { deletedAt?: string; deviceId?: string | null } = {},
 ) {
   const { data, error } = await client.rpc("delete_account_deck_tree", {
@@ -776,14 +840,14 @@ export async function deleteAccountDeckTree(
 }
 
 /** 365-day forecast of next due dates; loaded after the first dashboard render. */
-export async function loadAccountDueForecast(client: any) {
+export async function loadAccountDueForecast(client: CloudClient) {
   const { data, error } = await client.rpc("get_account_due_forecast");
   if (error) throw error;
   return validateDueForecast(data);
 }
 
 /** Unedited imports whose translator is older than `currentVersions` (K5.4), with sources and cards. */
-export async function listRetranslationCandidates(client: any, currentVersions: Record<string, number>, cursor = "") {
+export async function listRetranslationCandidates(client: CloudClient, currentVersions: Record<string, number>, cursor = "") {
   const { data, error } = await client.rpc("list_retranslation_candidates", {
     p_current_versions: currentVersions,
     p_cursor: cursor,
@@ -803,7 +867,7 @@ export async function listRetranslationCandidates(client: any, currentVersions: 
 }
 
 /** Media files no active (or recently deleted) content references any more. */
-export async function listReleasableMedia(client: any, limit = 100): Promise<Array<{ sha1: string; storagePath: string }>> {
+export async function listReleasableMedia(client: CloudClient, limit = 100): Promise<Array<{ sha1: string; storagePath: string }>> {
   const { data, error } = await client.rpc("list_releasable_media", { p_limit: limit });
   if (error) throw error;
   if (!Array.isArray(data) || data.some((entry) => !entry || typeof entry.sha1 !== "string" || typeof entry.storagePath !== "string")) {
@@ -813,15 +877,15 @@ export async function listReleasableMedia(client: any, limit = 100): Promise<Arr
 }
 
 /** All answers of one card, oldest first, including manual events (`review_events_user_card_answered_idx`). */
-export async function listCardReviewEvents(client: any, cardId: string, signal?: AbortSignal): Promise<ReviewEvent[]> {
-  const call = client.from("review_events").select("*").eq("card_id", cardId).order("answered_at").order("id").limit(2000);
+export async function listCardReviewEvents(client: CloudClient, cardId: string, signal?: AbortSignal): Promise<ReviewEvent[]> {
+  const call = cloudTable(client, "review_events").select("*").eq("card_id", cardId).order("answered_at").order("id").limit(2000);
   const { data, error } = await (signal ? call.abortSignal(signal) : call);
   if (error) throw error;
   return validateAccountRows("review_events", data ?? []).map(reviewEventFromRow);
 }
 
 /** Up to three contents with similar text, each with a card to open. */
-export async function listSimilarNotes(client: any, noteId: string, signal?: AbortSignal) {
+export async function listSimilarNotes(client: CloudClient, noteId: string, signal?: AbortSignal) {
   const call = client.rpc("list_similar_notes", { p_note_id: noteId, p_limit: 3 });
   const { data, error } = await (signal ? call.abortSignal(signal) : call);
   if (error) throw error;
@@ -829,33 +893,43 @@ export async function listSimilarNotes(client: any, noteId: string, signal?: Abo
 }
 
 /** Account-wide tags with the number of contents and how many of them carry the tag from an import. */
-export async function listAccountTags(client: any, signal?: AbortSignal) {
+export async function listAccountTags(client: CloudClient, signal?: AbortSignal) {
   const call = client.rpc("list_account_tags");
   const { data, error } = await (signal ? call.abortSignal(signal) : call);
   if (error) throw error;
   return validateAccountTagRows(data ?? []);
 }
 
-async function selectProfileRows(client: any, userId: any) {
-  const { data, error } = await client.from("profiles").select("*").eq("id", userId);
+async function selectProfileRows(client: CloudClient, userId: string) {
+  const { data, error } = await cloudTable(client, "profiles").select("*").eq("id", userId);
   if (error) throw error;
   return validateProfileRows(data ?? []);
 }
 
-async function selectRowById(client: any, table: any, userId: any, entityId: any, columns: any = "*") {
-  const { data, error } = await client.from(table).select(columns).eq("user_id", userId).eq("id", entityId).maybeSingle();
+async function selectRowById<Row = CloudRow>(client: CloudClient, table: string, userId: string, entityId: string, columns = "*") {
+  const { data, error } = await cloudTable(client, table).select(columns).eq("user_id", userId).eq("id", entityId).maybeSingle();
   if (error) throw error;
-  return data ?? null;
+  return (data ?? null) as Row | null;
 }
 
-function requireBaseRevision(value: any) {
+function requireBaseRevision(value: unknown) {
   if (value === null) return null;
   const revision = Number(value);
   if (!Number.isInteger(revision) || revision < 1) throw new Error("Basisrevision ist ungültig.");
   return revision;
 }
 
-async function markConflictForUser(client: any, user: any, input: any = {}, { deviceId, createdAt }: any = {}) {
+interface ConflictMarkInput {
+  entityTable?: unknown;
+  entityId?: unknown;
+  baseRevision?: unknown;
+  localRevision?: unknown;
+  remoteRevision?: unknown;
+  localValue?: CloudRow;
+  remoteValue?: CloudRow;
+}
+
+async function markConflictForUser(client: CloudClient, user: CloudUser, input: ConflictMarkInput = {}, { deviceId, createdAt }: { deviceId?: string; createdAt?: string } = {}) {
   const entityTable = requireNonEmptyString(input.entityTable, "Konflikttabelle fehlt.");
   const entityId = requireNonEmptyString(input.entityId, "Konfliktentität fehlt.");
   const resolvedDeviceId = requireNonEmptyString(deviceId, "Geräte-ID fehlt.");
@@ -863,13 +937,13 @@ async function markConflictForUser(client: any, user: any, input: any = {}, { de
   const baseRevision = input.baseRevision == null ? null : requireBaseRevision(input.baseRevision);
   const localRevision = input.localRevision == null ? null : normalizeRevision(input.localRevision);
   const remoteRevision = input.remoteRevision == null ? null : normalizeRevision(input.remoteRevision);
-  const { data: existingRows, error: existingError } = await client.from("sync_conflicts")
+  const { data: existingRows, error: existingError } = await cloudTable(client, "sync_conflicts")
     .select("*")
     .eq("user_id", user.id)
     .eq("entity_table", entityTable)
     .eq("entity_id", entityId);
   if (existingError) throw existingError;
-  const existing = toArray(existingRows)
+  const existing = toArray<SyncConflictRow>(existingRows)
     .filter((candidate) => candidate.status === "open" || candidate.status === "ignored")
     .sort((left, right) => String(right.created_at).localeCompare(String(left.created_at)))[0];
   const id = existing?.id ?? conflictIdFor({ entityTable, entityId, baseRevision, remoteRevision });
@@ -888,31 +962,39 @@ async function markConflictForUser(client: any, user: any, input: any = {}, { de
     updated_by_device_id: resolvedDeviceId,
     created_at: resolvedCreatedAt,
   };
-  const { error } = await client.from("sync_conflicts").upsert(row, {
+  const { error } = await cloudTable(client, "sync_conflicts").upsert(row, {
     onConflict: ACCOUNT_UPSERT_CONFLICT,
   });
   let persistedId = id;
   if (error && String(error.code ?? "") === "23505") {
-    const { data: racedRows, error: racedError } = await client.from("sync_conflicts")
+    const { data: racedRows, error: racedError } = await cloudTable(client, "sync_conflicts")
       .select("*")
       .eq("user_id", user.id)
       .eq("entity_table", entityTable)
       .eq("entity_id", entityId);
     if (racedError) throw racedError;
-    const raced = toArray(racedRows).find((candidate) => candidate.status === "open" || candidate.status === "ignored");
+    const raced = toArray<SyncConflictRow>(racedRows).find((candidate) => candidate.status === "open" || candidate.status === "ignored");
     if (!raced) throw error;
     persistedId = raced.id;
-    const { error: updateError } = await client.from("sync_conflicts").upsert({ ...row, id: persistedId }, { onConflict: ACCOUNT_UPSERT_CONFLICT });
+    const { error: updateError } = await cloudTable(client, "sync_conflicts").upsert({ ...row, id: persistedId }, { onConflict: ACCOUNT_UPSERT_CONFLICT });
     if (updateError) throw updateError;
   } else if (error) {
     throw error;
   }
-  const persisted = await selectRowById(client, "sync_conflicts", user.id, persistedId);
+  const persisted = await selectRowById<SyncConflictRow>(client, "sync_conflicts", user.id, persistedId);
   if (!persisted) throw new Error("Der Synchronisierungskonflikt konnte nicht bestätigt werden.");
   return createConflictProjection(persisted);
 }
 
-async function throwRevisionConflict(client: any, user: any, { entityTable, entityId, baseRevision, localValue, remoteValue, deviceId, createdAt }: any) {
+async function throwRevisionConflict(client: CloudClient, user: CloudUser, { entityTable, entityId, baseRevision, localValue, remoteValue, deviceId, createdAt }: {
+  entityTable: string;
+  entityId: string;
+  baseRevision: number | null;
+  localValue: CloudRow;
+  remoteValue: CloudRow;
+  deviceId: string;
+  createdAt: string;
+}): Promise<never> {
   const remoteRevision = remoteValue?.revision == null ? null : normalizeRevision(remoteValue.revision);
   const localRevision = localValue?.revision == null ? baseRevision : normalizeRevision(localValue.revision);
   const conflict = await markConflictForUser(client, user, {
@@ -937,7 +1019,7 @@ async function throwRevisionConflict(client: any, user: any, { entityTable, enti
   });
 }
 
-export function deckToCloudRow(deck: any, userId: any) {
+export function deckToCloudRow(deck: Omit<Deck, "cards" | "reviewEvents">, userId: string) {
   return {
     id: deck.id,
     user_id: userId,
@@ -1054,7 +1136,7 @@ export function reviewEventToCloudRow(event: ReviewEvent, userId: string, { devi
   };
 }
 
-function noteTypeSourceToCloudRow(source: any, userId: string) {
+function noteTypeSourceToCloudRow(source: unknown, userId: string) {
   const { id, ankiNotetypeId, name, revision, createdAt, updatedAt, deletedAt, updatedByDeviceId, ...definition } = toObject(source);
   const timestamp = updatedAt ?? createdAt ?? nowIso();
   return {
@@ -1071,7 +1153,19 @@ function noteTypeSourceToCloudRow(source: any, userId: string) {
   };
 }
 
-function noteSourceToCloudRow(source: any, userId: string) {
+interface NoteSourceEntity {
+  id?: string;
+  noteId?: string;
+  noteTypeSourceId?: string;
+  fields?: unknown;
+  createdAt?: string;
+  updatedAt?: string;
+  revision?: unknown;
+  deletedAt?: string | null;
+  updatedByDeviceId?: string | null;
+}
+
+function noteSourceToCloudRow(source: NoteSourceEntity, userId: string) {
   const timestamp = source.updatedAt ?? source.createdAt ?? nowIso();
   return {
     id: source.noteId ?? source.id,
@@ -1088,7 +1182,7 @@ function noteSourceToCloudRow(source: any, userId: string) {
 
 /** Full cloud rows of a state, used for seeding and the content footprint measurement. */
 export function createCloudStateRows(
-  state: { decks?: Deck[]; notes?: Note[]; noteTypeSources?: unknown[]; noteSources?: unknown[] },
+  state: { decks?: Deck[]; notes?: Note[]; noteTypeSources?: unknown[]; noteSources?: NoteSourceEntity[] },
   userId: string,
   { deviceId = null }: { deviceId?: string | null } = {},
 ) {
@@ -1097,15 +1191,15 @@ export function createCloudStateRows(
   return {
     decks: uniqueRowsById(decks.map((deck) => deckToCloudRow(deck, userId))),
     note_type_sources: uniqueRowsById(toArray(state.noteTypeSources).map((source) => noteTypeSourceToCloudRow(source, userId))),
-    notes: uniqueRowsById(toArray(state.notes).map((note) => noteToCloudRow(note, userId))),
-    note_sources: uniqueRowsById(toArray(state.noteSources).map((source) => noteSourceToCloudRow(source, userId))),
+    notes: uniqueRowsById(toArray<Note>(state.notes).map((note) => noteToCloudRow(note, userId))),
+    note_sources: uniqueRowsById(toArray<NoteSourceEntity>(state.noteSources).map((source) => noteSourceToCloudRow(source, userId))),
     cards: uniqueRowsById(cards.map((card) => cardToCloudRow(card, userId))),
     card_variants: uniqueRowsById(cards.flatMap((card) => card.variants.map((variant) => variantToCloudRow(variant, userId)))),
     review_events: uniqueRowsById(decks.flatMap((deck) => deck.reviewEvents.map((event) => reviewEventToCloudRow(event, userId, { deviceId })))),
   };
 }
 
-export async function registerAccountSyncDevice(client: any, device: any, { lastSeenAt, userId }: any = {}) {
+export async function registerAccountSyncDevice(client: CloudClient, device: { id?: unknown; label?: unknown; userAgent?: unknown }, { lastSeenAt, userId }: { lastSeenAt?: string; userId?: string } = {}) {
   const id = requireNonEmptyString(device?.id, "Geräte-ID fehlt.");
   const label = requireNonEmptyString(device?.label, "Gerätebezeichnung fehlt.");
   if (typeof device?.userAgent !== "string") throw new Error("User-Agent des Geräts fehlt.");
@@ -1118,8 +1212,7 @@ export async function registerAccountSyncDevice(client: any, device: any, { last
     last_seen_at: seenAt,
     user_agent: device.userAgent,
   };
-  const { data, error } = await client
-    .from("sync_devices")
+  const { data, error } = await cloudTable(client, "sync_devices")
     .upsert(row, { onConflict: ACCOUNT_UPSERT_CONFLICT })
     .select("*")
     .single();
@@ -1128,15 +1221,15 @@ export async function registerAccountSyncDevice(client: any, device: any, { last
   return data;
 }
 
-function updatePayload(row: any, { revision, deviceId, now }: any) {
-  const payload = Object.fromEntries(Object.entries(row).filter(([key]: any) => !["id", "user_id", "created_at"].includes(key)));
+function updatePayload(row: CloudRow, { revision, deviceId, now }: { revision: number; deviceId: string; now: () => string }) {
+  const payload = Object.fromEntries(Object.entries(row).filter(([key]) => !["id", "user_id", "created_at"].includes(key)));
   payload.revision = revision;
   payload.updated_by_device_id = deviceId ?? row.updated_by_device_id ?? null;
   if (Object.hasOwn(payload, "updated_at")) payload.updated_at = now();
   return payload;
 }
 
-function revisionMutationResult(entityTable: any, row: any, { applied = false, idempotent = false }: any = {}) {
+function revisionMutationResult(entityTable: string, row: CloudRow | null | undefined, { applied = false, idempotent = false }: { applied?: boolean; idempotent?: boolean } = {}) {
   return {
     entityTable,
     entityId: row?.id ?? null,
@@ -1150,7 +1243,7 @@ function revisionMutationResult(entityTable: any, row: any, { applied = false, i
 }
 
 /** Card edits never overwrite the remote study state; reviews own it via `record_review_atomic`. */
-function preserveRemoteLearningProjection(entityTable: string, desiredRow: any, remoteRow: any) {
+function preserveRemoteLearningProjection(entityTable: string, desiredRow: CloudRow, remoteRow: CloudRow | null) {
   if (!remoteRow) return desiredRow;
   if (entityTable === "cards") {
     return { ...desiredRow, ...Object.fromEntries(CARD_STUDY_FIELDS.map((field) => [field, remoteRow[field]])) };
@@ -1161,7 +1254,16 @@ function preserveRemoteLearningProjection(entityTable: string, desiredRow: any, 
   return desiredRow;
 }
 
-async function applyRevisionedRowMutation(client: any, user: any, entityTable: any, desiredRow: any, options: any = {}) {
+interface RevisionedWriteOptions {
+  deviceId?: string;
+  flushedAt?: string;
+  baseRevision?: unknown;
+  /** Remote row already loaded by a batch; `null` means it does not exist. */
+  remoteRow?: CloudRow | null;
+  forceWrite?: boolean;
+}
+
+async function applyRevisionedRowMutation(client: CloudClient, user: CloudUser, entityTable: string, desiredRow: CloudRow, options: RevisionedWriteOptions = {}) {
   if (!REVISIONED_TABLE_SET.has(entityTable)) throw new Error(`Nicht revisionierbare Cloud-Tabelle: ${entityTable}`);
   const entityId = requireNonEmptyString(desiredRow?.id, "Entitäts-ID fehlt.");
   const deviceId = requireNonEmptyString(options.deviceId, "Geräte-ID fehlt.");
@@ -1169,7 +1271,7 @@ async function applyRevisionedRowMutation(client: any, user: any, entityTable: a
   const baseRevision = requireBaseRevision(options.baseRevision);
   const flushedAt = requireTimestamp(options.flushedAt, nowIso, "Flush-Zeitpunkt ist ungültig.");
   const writeNow = () => flushedAt;
-  let row = { ...desiredRow, id: entityId, user_id: user.id };
+  let row: CloudRow = { ...desiredRow, id: entityId, user_id: user.id };
   let remoteRow = Object.hasOwn(options, "remoteRow") ? options.remoteRow : await selectRowById(client, entityTable, user.id, entityId);
 
   if (remoteRow && rowsHaveSameContent(row, remoteRow, entityTable) && options.forceWrite !== true) {
@@ -1194,8 +1296,9 @@ async function applyRevisionedRowMutation(client: any, user: any, entityTable: a
       updated_by_device_id: deviceId,
       updated_at: flushedAt,
     };
-    const { data, error } = await client.from(entityTable).insert(candidate).select("*");
-    if (!error && data?.[0]) return revisionMutationResult(entityTable, data[0], { applied: true });
+    const { data, error } = await cloudTable(client, entityTable).insert(candidate).select("*");
+    const inserted = unvalidatedRows(data);
+    if (!error && inserted?.[0]) return revisionMutationResult(entityTable, inserted[0], { applied: true });
     if (error && String(error.code ?? "") !== "23505" && !/duplicate/i.test(error.message ?? "")) throw error;
     remoteRow = await selectRowById(client, entityTable, user.id, entityId);
     if (remoteRow && rowsHaveSameContent(candidate, remoteRow, entityTable)) {
@@ -1232,15 +1335,15 @@ async function applyRevisionedRowMutation(client: any, user: any, entityTable: a
 
   const nextRevision = effectiveBaseRevision + 1;
   const payload = updatePayload(row, { revision: nextRevision, deviceId, now: writeNow });
-  const { data, error } = await client
-    .from(entityTable)
+  const { data, error } = await cloudTable(client, entityTable)
     .update(payload)
     .eq("user_id", user.id)
     .eq("id", entityId)
     .eq("revision", effectiveBaseRevision)
     .select("*");
   if (error) throw error;
-  if (data?.[0]) return revisionMutationResult(entityTable, data[0], { applied: true });
+  const updated = unvalidatedRows(data);
+  if (updated?.[0]) return revisionMutationResult(entityTable, updated[0], { applied: true });
 
   remoteRow = await selectRowById(client, entityTable, user.id, entityId);
   if (remoteRow && rowsHaveSameContent({ ...row, revision: nextRevision, updated_by_device_id: deviceId }, remoteRow, entityTable)) {
@@ -1257,7 +1360,7 @@ async function applyRevisionedRowMutation(client: any, user: any, entityTable: a
   });
 }
 
-async function softDeleteEntityForUser(client: any, user: any, input: any = {}, options: any = {}) {
+async function softDeleteEntityForUser(client: CloudClient, user: CloudUser, input: { entityTable?: unknown; entityId?: unknown; baseRevision?: unknown; deletedAt?: unknown } = {}, options: RevisionedWriteOptions = {}) {
   const entityTable = requireNonEmptyString(input.entityTable, "Tabelle für Soft-Delete fehlt.");
   if (!REVISIONED_TABLE_SET.has(entityTable)) throw new Error(`Soft-Delete ist für diese Tabelle nicht erlaubt: ${entityTable}`);
   const entityId = requireNonEmptyString(input.entityId, "Entitäts-ID für Soft-Delete fehlt.");
@@ -1286,15 +1389,15 @@ async function softDeleteEntityForUser(client: any, user: any, input: any = {}, 
     updated_by_device_id: deviceId,
     updated_at: deletedAt,
   };
-  const { data, error } = await client
-    .from(entityTable)
+  const { data, error } = await cloudTable(client, entityTable)
     .update(payload)
     .eq("user_id", user.id)
     .eq("id", entityId)
     .eq("revision", baseRevision)
     .select("*");
   if (error) throw error;
-  if (data?.[0]) return revisionMutationResult(entityTable, data[0], { applied: true });
+  const deleted = unvalidatedRows(data);
+  if (deleted?.[0]) return revisionMutationResult(entityTable, deleted[0], { applied: true });
 
   const latest = await selectRowById(client, entityTable, user.id, entityId);
   if (!latest || latest.deleted_at) return revisionMutationResult(entityTable, latest ?? { id: entityId }, { idempotent: true });
@@ -1309,17 +1412,17 @@ async function softDeleteEntityForUser(client: any, user: any, input: any = {}, 
   });
 }
 
-export async function markConflict(client: any, input: any, options: any = {}) {
+export async function markConflict(client: CloudClient, input: ConflictMarkInput, options: { deviceId?: string; createdAt?: string } = {}) {
   const user = await getAuthenticatedUser(client);
   return markConflictForUser(client, user, input, options);
 }
 
-async function insertRowsReturning(client: any, table: any, rows: any) {
-  const inserted = [];
+async function insertRowsReturning(client: CloudClient, table: string, rows: object[]) {
+  const inserted: CloudRow[] = [];
   for (const chunk of chunkRows(rows)) {
-    const { data, error } = await client.from(table).insert(chunk).select("*");
+    const { data, error } = await cloudTable(client, table).insert(chunk).select("*");
     if (error) throw error;
-    inserted.push(...(data ?? []));
+    inserted.push(...(unvalidatedRows(data) ?? []));
   }
   return inserted;
 }
@@ -1330,14 +1433,24 @@ export interface CloudEntityPage {
   reset: boolean;
 }
 
-function projectCloudEntities(table: AccountTable, rows: any[]) {
+function projectCloudEntities(table: AccountTable, rows: CloudRow[]) {
   if (table === "decks") return rows.map(deckFromRow);
   if (table === "notes") return rows.map(noteFromRow);
   if (table === "cards") return rows.map((row) => cardFromRow(row));
   return rows.map(variantFromRow);
 }
 
-export async function applyEntityMutation(client: any, mutation: any, options: any = {}): Promise<any> {
+/** Entity mutation as the outbox stores it; `entity` has the domain shape of `table` (a deck, note, card, ...). */
+export interface EntityMutationPayload {
+  table?: unknown;
+  tombstone?: boolean;
+  entityId?: unknown;
+  baseRevision?: unknown;
+  deletedAt?: unknown;
+  entity?: any;
+}
+
+export async function applyEntityMutation(client: CloudClient, mutation: EntityMutationPayload, options: RevisionedWriteOptions = {}) {
   const user = await getAuthenticatedUser(client);
   const entityTable = requireNonEmptyString(mutation?.table, "Tabelle der Entity-Mutation fehlt.");
   if (mutation?.tombstone) {
@@ -1365,7 +1478,7 @@ export async function applyEntityMutation(client: any, mutation: any, options: a
   });
 }
 
-function entityMutationRow(entityTable: string, mutation: any, userId: string) {
+function entityMutationRow(entityTable: string, mutation: EntityMutationPayload, userId: string) {
   const entity = mutation?.entity;
   if (entityTable === "decks") return deckToCloudRow(entity, userId);
   if (entityTable === "notes") return noteToCloudRow(entity, userId);
@@ -1376,26 +1489,26 @@ function entityMutationRow(entityTable: string, mutation: any, userId: string) {
   return null;
 }
 
-async function upsertImportSourceRows(client: any, user: any, entityTable: string, mutations: any[], options: any = {}) {
+async function upsertImportSourceRows(client: CloudClient, user: CloudUser, entityTable: string, mutations: EntityMutationPayload[], options: RevisionedWriteOptions = {}) {
   const flushedAt = requireTimestamp(options.flushedAt, nowIso, "Flush-Zeitpunkt ist ungültig.");
   const deviceId = requireNonEmptyString(options.deviceId, "Geräte-ID fehlt.");
-  const rows: any[] = mutations.map((mutation) => ({
+  const rows: CloudRow[] = mutations.map((mutation) => ({
     ...entityMutationRow(entityTable, mutation, user.id),
     updated_at: flushedAt,
     updated_by_device_id: deviceId,
   }));
-  const persisted: any[] = [];
+  const persisted: CloudRow[] = [];
   for (const chunk of chunkRows(rows)) {
-    const { data, error } = await client.from(entityTable).upsert(chunk, { onConflict: ACCOUNT_UPSERT_CONFLICT }).select("id, revision, updated_at, deleted_at, updated_by_device_id");
+    const { data, error } = await cloudTable(client, entityTable).upsert(chunk, { onConflict: ACCOUNT_UPSERT_CONFLICT }).select("id, revision, updated_at, deleted_at, updated_by_device_id");
     if (error) throw error;
-    persisted.push(...(data ?? []));
+    persisted.push(...(unvalidatedRows(data) ?? []));
   }
   const persistedById = new Map(persisted.map((row) => [row.id, row]));
   return rows.map((row) => revisionMutationResult(entityTable, persistedById.get(row.id) ?? row, { applied: true }));
 }
 
 /** Existing imported contents per Anki GUID (K5.7), with the identity of their cards and templates. */
-export async function loadReimportTargets(client: any, ankiGuids: string[]) {
+export async function loadReimportTargets(client: CloudClient, ankiGuids: string[]) {
   const notes: Note[] = [];
   const cards: Array<{ id: string; noteId: string; deckId: string; promptKey: string; ankiCardId: string | null }> = [];
   const noteTypeSources: Array<{ id: string; ankiNotetypeId: string }> = [];
@@ -1406,13 +1519,13 @@ export async function loadReimportTargets(client: any, ankiGuids: string[]) {
     const candidate = requireJsonRecord(data, "Reimport-Antwort ist ungültig.");
     if (!Array.isArray(candidate.cards) || !Array.isArray(candidate.noteTypeSources)) throw new Error("Reimport-Antwort ist unvollständig.");
     notes.push(...validateAccountRows("notes", candidate.notes).map(noteFromRow));
-    for (const card of candidate.cards as any[]) {
+    for (const card of candidate.cards as Array<CloudRow | null>) {
       if (typeof card?.id !== "string" || typeof card.noteId !== "string" || typeof card.deckId !== "string" || typeof card.promptKey !== "string") {
         throw new Error("Reimport-Antwort enthält eine ungültige Karte.");
       }
       cards.push({ id: card.id, noteId: card.noteId, deckId: card.deckId, promptKey: card.promptKey, ankiCardId: typeof card.ankiCardId === "string" ? card.ankiCardId : null });
     }
-    for (const source of candidate.noteTypeSources as any[]) {
+    for (const source of candidate.noteTypeSources as Array<CloudRow | null>) {
       if (typeof source?.id !== "string" || typeof source.ankiNotetypeId !== "string") throw new Error("Reimport-Antwort enthält eine ungültige Vorlage.");
       noteTypeSources.push({ id: source.id, ankiNotetypeId: source.ankiNotetypeId });
     }
@@ -1420,7 +1533,7 @@ export async function loadReimportTargets(client: any, ankiGuids: string[]) {
   return { notes, cards, noteTypeSources };
 }
 
-export async function applyEntityMutationBatch(client: any, mutations: any[], options: any = {}) {
+export async function applyEntityMutationBatch(client: CloudClient, mutations: EntityMutationPayload[], options: RevisionedWriteOptions = {}) {
   if (!mutations.length) return [];
   const user = await getAuthenticatedUser(client);
   const entityTable = requireNonEmptyString(mutations[0]?.table, "Tabelle der Entity-Mutation fehlt.");
@@ -1431,7 +1544,7 @@ export async function applyEntityMutationBatch(client: any, mutations: any[], op
   if (entityTable === "review_events") {
     const desiredRows = mutations.map((mutation) => reviewEventToCloudRow(mutation.entity, user.id, options));
     const remoteRows = await selectRowsByField(client, "review_events", user.id, "id", desiredRows.map((row) => row.id));
-    const remoteById = new Map(remoteRows.map((row: any) => [row.id, row]));
+    const remoteById = new Map(remoteRows.map((row) => [row.id, row]));
     const missingRows = desiredRows.filter((row) => !remoteById.has(row.id));
     const missingIds = new Set(missingRows.map((row) => row.id));
     if (missingRows.length) {
@@ -1447,9 +1560,10 @@ export async function applyEntityMutationBatch(client: any, mutations: any[], op
   }
   const rows = mutations.map((mutation) => entityMutationRow(entityTable, mutation, user.id));
   if (rows.some((row) => !row)) throw new Error(`Entity-Mutation wird für ${entityTable} nicht unterstützt.`);
-  const validRows = rows as any[];
+  // Only revisioned tables reach this point; their rows carry a string id.
+  const validRows = rows as Array<CloudRow & { id: string }>;
   const remoteRows = await selectRowsByField(client, entityTable as AccountTable, user.id, "id", validRows.map((row) => row.id));
-  const remoteById = new Map(remoteRows.map((row: any) => [row.id, row]));
+  const remoteById = new Map(remoteRows.map((row) => [row.id, row]));
   const results = new Array(mutations.length);
   const inserts = mutations.flatMap((mutation, index) => mutation.baseRevision == null && !remoteById.has(validRows[index].id) ? [{ mutation, index }] : []);
   if (inserts.length) {
@@ -1463,7 +1577,7 @@ export async function applyEntityMutationBatch(client: any, mutations: any[], op
     }));
     try {
       const persisted = await insertRowsReturning(client, entityTable, candidates);
-      const persistedById = new Map(persisted.map((row: any) => [row.id, row]));
+      const persistedById = new Map(persisted.map((row) => [row.id, row]));
       for (const { index } of inserts) results[index] = revisionMutationResult(entityTable, persistedById.get(validRows[index].id), { applied: true });
     } catch {
       await mapWithConcurrency(inserts, async ({ mutation, index }) => {
@@ -1482,9 +1596,16 @@ export async function applyEntityMutationBatch(client: any, mutations: any[], op
   return results;
 }
 
-export async function recordAtomicReview(client: any, input: any, { deviceId, mutationId }: any = {}) {
+/** Review as the outbox stores it for `record_review_atomic`. */
+export interface AtomicReviewPayload {
+  card?: Pick<Card, "id" | "study" | "updatedAt">;
+  variant?: Pick<CardVariant, "id" | "performance" | "updatedAt"> | null;
+  event?: ReviewEvent;
+}
+
+export async function recordAtomicReview(client: CloudClient, input: AtomicReviewPayload, { deviceId, mutationId }: { deviceId?: string; mutationId?: string } = {}) {
   const user = await getAuthenticatedUser(client);
-  const card = input?.card as Pick<Card, "id" | "study" | "updatedAt"> | undefined;
+  const card = input?.card;
   const variant = input?.variant;
   const event = input?.event as ReviewEvent;
   const eventRow = reviewEventToCloudRow(event, user.id, { deviceId });
@@ -1523,18 +1644,18 @@ export async function recordAtomicReview(client: any, input: any, { deviceId, mu
   };
 }
 
-export async function upsertAccountCloudProfile(client: any, profile: unknown, { mutationId, flushedAt }: any = {}) {
+export async function upsertAccountCloudProfile(client: CloudClient, profile: unknown, { mutationId, flushedAt }: { mutationId?: string; flushedAt?: string } = {}) {
   const resolvedMutationId = requireNonEmptyString(mutationId, "Mutation-ID fehlt.");
   const writeTimestamp = requireTimestamp(flushedAt, nowIso, "Flush-Zeitpunkt ist ungültig.");
   await saveCloudProfile(client, requireCompleteProfile(profile), writeTimestamp);
   return { acknowledgedMutationId: resolvedMutationId };
 }
 
-function conflictTargetKey(row: any) {
+function conflictTargetKey(row: SyncConflictRow) {
   return `${row.entity_table}\u0000${row.entity_id}`;
 }
 
-async function selectCurrentConflictRows(client: any, userId: string, rows: any[]) {
+async function selectCurrentConflictRows(client: CloudClient, userId: string, rows: SyncConflictRow[]) {
   const idsByTable = new Map<AccountTable, string[]>();
   for (const row of rows) {
     const table = row.entity_table as AccountTable;
@@ -1544,67 +1665,76 @@ async function selectCurrentConflictRows(client: any, userId: string, rows: any[
     table,
     await selectRowsByField(client, table, userId, "id", ids),
   ] as const));
-  return new Map(selections.flatMap(([table, currentRows]) => currentRows.map((row: any) => [`${table}\u0000${row.id}`, row])));
+  return new Map<string, CloudRow>(selections.flatMap(([table, currentRows]) => currentRows.map((row) => [`${table}\u0000${row.id}`, row])));
 }
 
-async function refreshConflictRemote(client: any, userId: string, row: any, currentRemote: any) {
+async function refreshConflictRemote(client: CloudClient, userId: string, row: SyncConflictRow, currentRemote: CloudRow | null) {
   const currentRevision = currentRemote?.revision == null ? null : normalizeRevision(currentRemote.revision);
   const savedRevision = row.remote_revision == null ? null : normalizeRevision(row.remote_revision);
   if (currentRevision === savedRevision) return { row, checked: true, currentRemote };
-  const { data, error } = await client.from("sync_conflicts")
+  const { data, error } = await cloudTable(client, "sync_conflicts")
     .update({ remote_value: conflictValue(currentRemote ?? {}), remote_revision: currentRevision })
     .eq("user_id", userId)
     .eq("id", row.id)
     .select("*");
   if (error) throw error;
   return {
-    row: data?.[0] ?? { ...row, remote_value: conflictValue(currentRemote ?? {}), remote_revision: currentRevision },
+    row: unvalidatedRows<SyncConflictRow>(data)?.[0] ?? { ...row, remote_value: conflictValue(currentRemote ?? {}), remote_revision: currentRevision },
     checked: true,
     currentRemote,
   };
 }
 
-async function closeObsoleteConflict(client: any, userId: string, row: any, remoteSnapshot: { checked: boolean; currentRemote: any } = { checked: false, currentRemote: null }) {
+async function closeObsoleteConflict(client: CloudClient, userId: string, row: SyncConflictRow, remoteSnapshot: { checked: boolean; currentRemote: CloudRow | null } = { checked: false, currentRemote: null }) {
   const localValue = conflictValue(row.local_value ?? {});
   const remoteValue = conflictValue(row.remote_value ?? {});
   let obsolete = rowsHaveSameContent(localValue, remoteValue, row.entity_table);
   if (!obsolete && remoteSnapshot.checked) obsolete = Boolean(remoteSnapshot.currentRemote && rowsHaveSameContent(localValue, remoteSnapshot.currentRemote, row.entity_table));
   if (!obsolete) return row;
   const resolvedAt = nowIso();
-  const { data, error } = await client.from("sync_conflicts")
+  const { data, error } = await cloudTable(client, "sync_conflicts")
     .update({ status: "resolved", resolution: { action: "automatic-repair" }, resolved_at: resolvedAt })
     .eq("user_id", userId)
     .eq("id", row.id)
     .select("*");
   if (error) throw error;
-  return data?.[0] ?? { ...row, status: "resolved", resolved_at: resolvedAt };
+  return unvalidatedRows<SyncConflictRow>(data)?.[0] ?? { ...row, status: "resolved", resolved_at: resolvedAt };
 }
 
-export async function listAccountSyncConflicts(client: any, { refreshRemote = false, userId }: { refreshRemote?: boolean; userId?: string } = {}) {
+export async function listAccountSyncConflicts(client: CloudClient, { refreshRemote = false, userId }: { refreshRemote?: boolean; userId?: string } = {}) {
   const user = await authenticatedUserForKnownSession(client, userId);
-  const activeRows = (await selectKeysetRows(client, "sync_conflicts", user.id, "*", { optional: true }))
-    .filter((row: any) => row.status === "open" || row.status === "ignored");
-  const rowsToCheck = activeRows.filter((row: any) => REVISIONED_TABLE_SET.has(row.entity_table) && (
+  const activeRows = (await selectKeysetRows<SyncConflictRow>(client, "sync_conflicts", user.id, "*", { optional: true }))
+    .filter((row) => row.status === "open" || row.status === "ignored");
+  const rowsToCheck = activeRows.filter((row) => REVISIONED_TABLE_SET.has(row.entity_table) && (
     refreshRemote || !rowsHaveSameContent(conflictValue(row.local_value ?? {}), conflictValue(row.remote_value ?? {}), row.entity_table)
   ));
   const checkedTargets = new Set(rowsToCheck.map(conflictTargetKey));
   const currentRows = await selectCurrentConflictRows(client, user.id, rowsToCheck);
-  const snapshots = await Promise.all(activeRows.map(async (row: any) => {
+  const snapshots = await Promise.all(activeRows.map(async (row) => {
     const checked = checkedTargets.has(conflictTargetKey(row));
     const currentRemote = currentRows.get(conflictTargetKey(row)) ?? null;
     return refreshRemote && checked
       ? refreshConflictRemote(client, user.id, row, currentRemote)
       : { row, checked, currentRemote };
   }));
-  const rows = await Promise.all(snapshots.map(({ row, ...snapshot }: any) => closeObsoleteConflict(client, user.id, row, snapshot)));
+  const rows = await Promise.all(snapshots.map(({ row, ...snapshot }) => closeObsoleteConflict(client, user.id, row, snapshot)));
   const statusOrder: Record<string, number> = { open: 0, ignored: 1 };
   return rows
-    .filter((row: any) => row.status === "open" || row.status === "ignored")
-    .sort((left: any, right: any) => (statusOrder[left.status] - statusOrder[right.status]) || String(right.created_at).localeCompare(String(left.created_at)))
+    .filter((row) => row.status === "open" || row.status === "ignored")
+    .sort((left, right) => (statusOrder[left.status] - statusOrder[right.status]) || String(right.created_at).localeCompare(String(left.created_at)))
     .map(createConflictProjection);
 }
 
-function normalizeConflictDecision(decision: any = {}, conflictRow: any = {}) {
+interface ConflictDecision {
+  action: string;
+  fieldChoices: Record<string, unknown>;
+  localValue: CloudRow;
+  remoteValue: CloudRow;
+  fields: string[];
+  tombstone: boolean;
+}
+
+function normalizeConflictDecision(decision: { action?: unknown; fieldChoices?: unknown } = {}, conflictRow: Pick<SyncConflictRow, "local_value" | "remote_value"> = {}): ConflictDecision {
   const action = requireNonEmptyString(decision.action, "Konfliktentscheidung fehlt.");
   if (!CONFLICT_ACTIONS.has(action)) throw new Error("Konfliktentscheidung ist ungültig.");
   const localValue = conflictValue(conflictRow.local_value ?? {});
@@ -1614,17 +1744,17 @@ function normalizeConflictDecision(decision: any = {}, conflictRow: any = {}) {
 
   if (action !== "merge-fields") return { action, fieldChoices: {}, localValue, remoteValue, fields, tombstone };
   if (tombstone) throw new Error("Gelöschte Inhalte können nicht feldweise zusammengeführt werden.");
-  const fieldChoices = decision.fieldChoices && typeof decision.fieldChoices === "object" ? decision.fieldChoices : {};
+  const fieldChoices = (decision.fieldChoices && typeof decision.fieldChoices === "object" ? decision.fieldChoices : {}) as Record<string, unknown>;
   for (const field of Object.keys(fieldChoices)) {
     if (!fields.includes(field) || CONFLICT_PROTECTED_FIELDS.has(field)) throw new Error(`Konfliktfeld ist nicht auswählbar: ${field}`);
     if (fieldChoices[field] !== "local" && fieldChoices[field] !== "remote") throw new Error(`Auswahl für ${field} ist ungültig.`);
   }
-  const missing = fields.filter((field: any) => fieldChoices[field] !== "local" && fieldChoices[field] !== "remote");
+  const missing = fields.filter((field) => fieldChoices[field] !== "local" && fieldChoices[field] !== "remote");
   if (missing.length) throw new Error("Bitte entscheide jedes geänderte Feld.");
-  return { action, fieldChoices: Object.fromEntries(fields.map((field: any) => [field, fieldChoices[field]])), localValue, remoteValue, fields, tombstone };
+  return { action, fieldChoices: Object.fromEntries(fields.map((field) => [field, fieldChoices[field]])), localValue, remoteValue, fields, tombstone };
 }
 
-function chosenConflictRow(normalized: any) {
+function chosenConflictRow(normalized: ConflictDecision) {
   if (normalized.action === "keep-local") return { ...normalized.localValue };
   if (normalized.action === "keep-remote") return { ...normalized.remoteValue };
   if (normalized.action !== "merge-fields") return null;
@@ -1633,7 +1763,7 @@ function chosenConflictRow(normalized: any) {
   return chosen;
 }
 
-async function persistConflictChoice(client: any, user: any, conflictRow: any, normalized: any, { deviceId, resolvedAt }: any) {
+async function persistConflictChoice(client: CloudClient, user: CloudUser, conflictRow: SyncConflictRow, normalized: ConflictDecision, { deviceId, resolvedAt }: { deviceId: string; resolvedAt: string }) {
   const entityTable = conflictRow.entity_table;
   if (!REVISIONED_TABLE_SET.has(entityTable)) throw new Error(`Konfliktauflösung ist für ${entityTable} nicht unterstützt.`);
   const currentRemote = await selectRowById(client, entityTable, user.id, conflictRow.entity_id);
@@ -1668,24 +1798,24 @@ async function persistConflictChoice(client: any, user: any, conflictRow: any, n
     updated_at: resolvedAt,
   };
   if (!currentRemote) {
-    const { data, error } = await client.from(entityTable).insert(candidate).select("*");
+    const { data, error } = await cloudTable(client, entityTable).insert(candidate).select("*");
     if (error) throw error;
-    return data?.[0] ?? null;
+    return unvalidatedRows(data)?.[0] ?? null;
   }
   const payload = updatePayload(candidate, { revision: candidate.revision, deviceId, now: () => resolvedAt });
-  const { data, error } = await client
-    .from(entityTable)
+  const { data, error } = await cloudTable(client, entityTable)
     .update(payload)
     .eq("user_id", user.id)
     .eq("id", conflictRow.entity_id)
     .eq("revision", currentRemoteRevision)
     .select("*");
   if (error) throw error;
-  if (!data?.[0]) throw new SyncConflictChangedError();
-  return data[0];
+  const updated = unvalidatedRows(data);
+  if (!updated?.[0]) throw new SyncConflictChangedError();
+  return updated[0];
 }
 
-async function updateConflictResolution(client: any, user: any, conflictRow: any, normalized: any, { deviceId, resolvedAt }: any) {
+async function updateConflictResolution(client: CloudClient, user: CloudUser, conflictRow: SyncConflictRow, normalized: ConflictDecision, { deviceId, resolvedAt }: { deviceId: string; resolvedAt: string }) {
   const ignored = normalized.action === "ignore";
   const reopened = normalized.action === "reopen";
   const payload = {
@@ -1694,8 +1824,7 @@ async function updateConflictResolution(client: any, user: any, conflictRow: any
     resolved_at: ignored || reopened ? null : resolvedAt,
     updated_by_device_id: deviceId,
   };
-  const { data, error } = await client
-    .from("sync_conflicts")
+  const { data, error } = await cloudTable(client, "sync_conflicts")
     .update(payload)
     .eq("user_id", user.id)
     .eq("id", conflictRow.id)
@@ -1703,15 +1832,20 @@ async function updateConflictResolution(client: any, user: any, conflictRow: any
     .maybeSingle();
   if (error) throw error;
   if (!data) throw new Error("Der Synchronisierungskonflikt wurde nicht gefunden.");
-  return data;
+  return data as SyncConflictRow;
 }
 
-export async function resolveAccountSyncConflict(client: any, conflictId: any, decision: any, options: any = {}) {
+export async function resolveAccountSyncConflict(
+  client: CloudClient,
+  conflictId: unknown,
+  decision: { action?: unknown; fieldChoices?: unknown },
+  options: { userId?: string; deviceId?: string; resolvedAt?: string } = {},
+) {
   const user = await authenticatedUserForKnownSession(client, options.userId);
   const id = requireNonEmptyString(conflictId, "Konflikt-ID fehlt.");
   const deviceId = requireNonEmptyString(options.deviceId, "Geräte-ID fehlt.");
   const resolvedAt = requireTimestamp(options.resolvedAt, nowIso, "Konfliktzeitpunkt ist ungültig.");
-  const conflictRow = await selectRowById(client, "sync_conflicts", user.id, id);
+  const conflictRow = await selectRowById<SyncConflictRow>(client, "sync_conflicts", user.id, id);
   if (!conflictRow) throw new Error("Der Synchronisierungskonflikt wurde nicht gefunden.");
   const normalized = normalizeConflictDecision(decision, conflictRow);
 
@@ -1733,7 +1867,7 @@ export async function resolveAccountSyncConflict(client: any, conflictId: any, d
     conflict: createConflictProjection(updatedConflict),
     resolvedPage: persisted ? {
       table: conflictRow.entity_table,
-      entities: projectCloudEntities(conflictRow.entity_table, [persisted]),
+      entities: projectCloudEntities(conflictRow.entity_table as AccountTable, [persisted]),
       reset: false,
     } : null,
     resolutionTarget: { table: conflictRow.entity_table, entityId: conflictRow.entity_id, action: normalized.action },

@@ -1,4 +1,5 @@
 import { SYNC_MUTATION_TYPES } from "./syncMutationPlanner.ts";
+import type { SyncStatus } from "./coreTypes.ts";
 import {
   applyEntityMutation,
   applyEntityMutationBatch,
@@ -8,6 +9,9 @@ import {
   recordAtomicReview,
   resolveAccountSyncConflict,
   upsertAccountCloudProfile,
+  type AtomicReviewPayload,
+  type CloudClient,
+  type EntityMutationPayload,
 } from "./cloudRepository.ts";
 import {
   createSyncConflictStatus,
@@ -26,9 +30,12 @@ function getDefaultNetworkTarget() {
   return typeof window !== "undefined" ? window : null;
 }
 
-function collectErrorValues(error: any) {
-  const values: any[] = [];
-  let current = error;
+/** Fields of a thrown value that the retry and conflict rules read; anything can be thrown. */
+type ThrownValue = { code?: unknown; status?: unknown; statusCode?: unknown; name?: unknown; message?: unknown; cause?: unknown; conflict?: unknown } | null | undefined;
+
+function collectErrorValues(error: unknown) {
+  const values: unknown[] = [];
+  let current = error as ThrownValue;
   for (let depth = 0; current && depth < 4; depth += 1) {
     values.push(
       current?.code,
@@ -37,22 +44,22 @@ function collectErrorValues(error: any) {
       current?.name,
       current?.message,
     );
-    current = current?.cause;
+    current = current?.cause as ThrownValue;
   }
-  return values.filter((value: any) => value !== undefined && value !== null);
+  return values.filter((value) => value !== undefined && value !== null);
 }
 
-function errorText(error: any) {
-  return collectErrorValues(error).map((value: any) => String(value).toLowerCase()).join(" ");
+function errorText(error: unknown) {
+  return collectErrorValues(error).map((value) => String(value).toLowerCase()).join(" ");
 }
 
-function errorStatuses(error: any) {
+function errorStatuses(error: unknown) {
   return collectErrorValues(error)
-    .map((value: any) => Number(value))
-    .filter((value: any) => Number.isInteger(value));
+    .map((value) => Number(value))
+    .filter((value) => Number.isInteger(value));
 }
 
-function isConnectivityError(error: any) {
+function isConnectivityError(error: unknown) {
   const combined = errorText(error);
   return (
     combined.includes("failed to fetch") ||
@@ -65,14 +72,14 @@ function isConnectivityError(error: any) {
   );
 }
 
-function isRetryableSyncError(error: any) {
-  if (error?.code === "sync_mutation_retry") return true;
+function isRetryableSyncError(error: unknown) {
+  if ((error as ThrownValue)?.code === "sync_mutation_retry") return true;
   if (isConnectivityError(error)) return true;
-  return errorStatuses(error).some((status: any) => RETRYABLE_HTTP_STATUSES.has(status) || status >= 500);
+  return errorStatuses(error).some((status) => RETRYABLE_HTTP_STATUSES.has(status) || status >= 500);
 }
 
-function isSyncConflictError(error: any) {
-  return error?.code === "cloud_revision_conflict" || Boolean(error?.conflict);
+function isSyncConflictError(error: unknown) {
+  return (error as ThrownValue)?.code === "cloud_revision_conflict" || Boolean((error as ThrownValue)?.conflict);
 }
 
 function createRetryableMutationError() {
@@ -81,7 +88,7 @@ function createRetryableMutationError() {
   return error;
 }
 
-function addMilliseconds(timestamp: any, milliseconds: any) {
+function addMilliseconds(timestamp: string, milliseconds: number) {
   const parsed = Date.parse(timestamp);
   return new Date((Number.isFinite(parsed) ? parsed : Date.now()) + milliseconds).toISOString();
 }
@@ -96,16 +103,16 @@ const ENTITY_UPSERT_ORDER: Record<string, number> = {
   review_events: 6,
 };
 
-function orderMutationBatch(mutations: any[]) {
+function orderMutationBatch(mutations: QueuedMutation[]) {
   return mutations
     .map((mutation, index) => ({ mutation, index }))
     .sort((left, right) => {
-      const priority = (entry: { mutation: any }) => {
+      const priority = (entry: { mutation: QueuedMutation }) => {
         const mutation = entry.mutation;
         if (mutation.type === SYNC_MUTATION_TYPES.profilePatch) return -10;
         if (mutation.type !== SYNC_MUTATION_TYPES.entityMutation) return 20;
         const table = mutation.payload?.table ?? mutation.table;
-        const tableOrder = ENTITY_UPSERT_ORDER[table] ?? 10;
+        const tableOrder = ENTITY_UPSERT_ORDER[String(table)] ?? 10;
         return mutation.payload?.tombstone ? 10 - tableOrder : tableOrder;
       };
       return priority(left) - priority(right) || left.index - right.index;
@@ -129,15 +136,40 @@ export interface SyncOutboxMutation {
   lastError?: string | null;
 }
 
+/** Payload fields the engine and its default adapter read; which ones are set depends on the mutation type. */
+interface SyncMutationPayload extends EntityMutationPayload, AtomicReviewPayload {
+  table?: string;
+  profile?: unknown;
+  deckId?: string;
+  deletedAt?: string;
+}
+
+/** Outbox entry as the engine reads it; the outbox stores the payloads that `enqueueMutation` received. */
+type QueuedMutation = Omit<SyncOutboxMutation, "payload"> & { payload: SyncMutationPayload };
+
+interface SyncFlushResult {
+  mutations: number;
+  conflicts: unknown[];
+  saved: null;
+  deviceId?: string;
+  flushedAt?: string;
+  pulledChanges?: boolean;
+  syncStatus?: SyncStatus;
+  deferred?: boolean;
+  paused?: boolean;
+  offline?: boolean;
+  retryScheduled?: boolean;
+}
+
 function nowIso() {
   return new Date().toISOString();
 }
 
-function makeId(prefix: any = "sync") {
+function makeId(prefix = "sync") {
   return `${prefix}_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
 }
 
-function normalizeDevice(device: any = {}) {
+function normalizeDevice(device: { id?: unknown; label?: unknown; userAgent?: unknown } = {}) {
   const id = String(device?.id ?? "").trim();
   if (!id) throw new Error("Sync-Engine braucht eine Geräte-ID.");
   return {
@@ -147,14 +179,24 @@ function normalizeDevice(device: any = {}) {
   };
 }
 
-function createDeviceRegistrationError(error: any) {
+function createDeviceRegistrationError(error: unknown) {
   const registrationError = new Error("Dieses Gerät konnte nicht für die Synchronisierung registriert werden.", { cause: error }) as Error & { code: string };
   registrationError.name = "SyncDeviceRegistrationError";
   registrationError.code = "sync_device_registration_failed";
   return registrationError;
 }
 
-function createMutation(input: any = {}, now: any = nowIso, deviceId: any) {
+interface SyncMutationInput {
+  id?: string;
+  type?: string;
+  payload?: SyncMutationPayload;
+  baseRevision?: number | null;
+  table?: string | null;
+  entityId?: string | null;
+  createdAt?: string;
+}
+
+function createMutation(input: SyncMutationInput = {}, now: () => string = nowIso, deviceId: string) {
   return {
     id: input.id ?? makeId("mutation"),
     type: input.type,
@@ -167,29 +209,29 @@ function createMutation(input: any = {}, now: any = nowIso, deviceId: any) {
   };
 }
 
-function createDefaultAdapter(client: any, userId: string) {
+function createDefaultAdapter(client: CloudClient, userId: string) {
   return {
-    registerDevice(device: any, context: any = {}) {
+    registerDevice(device: ReturnType<typeof normalizeDevice>, context: { lastSeenAt?: string } = {}) {
       return registerAccountSyncDevice(client, device, { lastSeenAt: context.lastSeenAt, userId });
     },
-    listConflicts(options: any = {}) {
+    listConflicts(options: { refreshRemote?: boolean } = {}) {
       return listAccountSyncConflicts(client, { ...options, userId });
     },
-    resolveConflict(conflictId: any, decision: any, context: any = {}) {
+    resolveConflict(conflictId: string, decision: Record<string, unknown>, context: { deviceId?: string; resolvedAt?: string } = {}) {
       return resolveAccountSyncConflict(client, conflictId, decision, { ...context, userId });
     },
-    async applyMutationBatch(mutations: any, context: any = {}) {
-      const acknowledgedMutationIds: any[] = [];
-      const failedMutationIds: any[] = [];
-      const failures: any[] = [];
-      const conflicts: any[] = [];
-      const persistedRows: any[] = [];
-      const recordFailure = (mutationId: any, error: any) => {
+    async applyMutationBatch(mutations: QueuedMutation[], context: { deviceId?: string; flushedAt?: string } = {}) {
+      const acknowledgedMutationIds: string[] = [];
+      const failedMutationIds: string[] = [];
+      const failures: Array<{ mutationId: string; error: unknown }> = [];
+      const conflicts: unknown[] = [];
+      const persistedRows: Array<{ table: string | null | undefined; row: unknown; entity?: unknown }> = [];
+      const recordFailure = (mutationId: string, error: unknown) => {
         failedMutationIds.push(mutationId);
         failures.push({ mutationId, error });
-        if (error?.conflict) conflicts.push(error.conflict);
+        if ((error as ThrownValue)?.conflict) conflicts.push((error as ThrownValue)?.conflict);
       };
-      const entityOptions = (item: any) => ({ deviceId: item.deviceId ?? context.deviceId, flushedAt: context.flushedAt });
+      const entityOptions = (item: QueuedMutation) => ({ deviceId: item.deviceId ?? context.deviceId, flushedAt: context.flushedAt });
       for (let mutationIndex = 0; mutationIndex < mutations.length;) {
         const mutation = mutations[mutationIndex];
         if (mutation.type === SYNC_MUTATION_TYPES.entityMutation && !mutation.payload?.tombstone) {
@@ -202,8 +244,8 @@ function createDefaultAdapter(client: any, userId: string) {
           ) groupEnd += 1;
           const group = mutations.slice(mutationIndex, groupEnd);
           try {
-            const acknowledgements = await applyEntityMutationBatch(client, group.map((item: any) => item.payload), entityOptions(mutation));
-            group.forEach((item: any, index: number) => {
+            const acknowledgements = await applyEntityMutationBatch(client, group.map((item) => item.payload), entityOptions(mutation));
+            group.forEach((item, index) => {
               acknowledgedMutationIds.push(item.id);
               if (acknowledgements[index]?.persistedRow) persistedRows.push({ table: item.payload.table, row: acknowledgements[index].persistedRow });
             });
@@ -222,7 +264,7 @@ function createDefaultAdapter(client: any, userId: string) {
           continue;
         }
         mutationIndex += 1;
-        if (![SYNC_MUTATION_TYPES.profilePatch, SYNC_MUTATION_TYPES.entityMutation, SYNC_MUTATION_TYPES.reviewAtomic, SYNC_MUTATION_TYPES.deckCommand].includes(mutation.type)) {
+        if (!([SYNC_MUTATION_TYPES.profilePatch, SYNC_MUTATION_TYPES.entityMutation, SYNC_MUTATION_TYPES.reviewAtomic, SYNC_MUTATION_TYPES.deckCommand] as string[]).includes(mutation.type)) {
           failedMutationIds.push(mutation.id);
           failures.push({ mutationId: mutation.id, error: createRetryableMutationError() });
           continue;
@@ -247,7 +289,12 @@ function createDefaultAdapter(client: any, userId: string) {
                     mutationId: mutation.id,
                     deviceId: mutation.deviceId ?? context.deviceId,
                   });
-          const acknowledged = acknowledgement as any;
+          const acknowledged: {
+            acknowledgedMutationId?: string;
+            persistedRow?: unknown;
+            rows?: { card?: unknown; variant?: unknown };
+            entities?: { card?: unknown; variant?: unknown };
+          } = acknowledgement;
           if (acknowledged?.acknowledgedMutationId === mutation.id) {
             acknowledgedMutationIds.push(mutation.id);
             if (acknowledged.persistedRow) persistedRows.push({ table: mutation.payload?.table ?? mutation.table, row: acknowledged.persistedRow });
@@ -282,8 +329,8 @@ export function createSyncEngine({
   networkTarget = getDefaultNetworkTarget(),
   documentTarget = typeof document !== "undefined" ? document : null,
   isOnline = () => networkTarget?.navigator?.onLine !== false,
-  setTimer = (callback: any, delay: any) => setTimeout(callback, delay),
-  clearTimer = (timerId: any) => clearTimeout(timerId),
+  setTimer = (callback: () => void, delay: number) => setTimeout(callback, delay),
+  clearTimer = (timerId: ReturnType<typeof setTimeout>) => clearTimeout(timerId),
   random = Math.random,
   retryBaseDelayMs = DEFAULT_RETRY_BASE_DELAY_MS,
   retryMaxDelayMs = DEFAULT_RETRY_MAX_DELAY_MS,
@@ -292,19 +339,19 @@ export function createSyncEngine({
   if (!adapter) throw new Error("Sync-Engine braucht einen Adapter.");
   if (!outbox) throw new Error("Sync-Engine braucht eine persistente Outbox.");
   const syncDevice = normalizeDevice(device);
-  let lastFlush: any = null;
+  let lastFlush: SyncFlushResult | null = null;
   let activeFlush: any = null;
   let flushRequestedDuringActive = false;
-  let retryTimer: any = null;
-  let localChangeTimer: any = null;
-  let intervalTimer: any = null;
+  let retryTimer: unknown = null;
+  let localChangeTimer: unknown = null;
+  let intervalTimer: unknown = null;
   let retryAttempt = 0;
-  let lastRetryableError: any = null;
+  let lastRetryableError: unknown = null;
   let lifecycleActive = false;
   let lifecycleVersion = 0;
-  let statusListener: any = null;
-  let flushListener: any = null;
-  let lifecycleCleanup: any = null;
+  let statusListener: ((status: SyncStatus) => void) | null = null;
+  let flushListener: ((result: SyncFlushResult) => void) | null = null;
+  let lifecycleCleanup: (() => void) | null = null;
   let syncIntervalMinutes = 5;
   let currentStatus = createSyncIdleStatus();
   let lastOnlineStatus = currentStatus;
@@ -317,7 +364,7 @@ export function createSyncEngine({
     }
   }
 
-  function emitStatus(status: any) {
+  function emitStatus(status: SyncStatus) {
     currentStatus = status;
     if (status?.status !== "offline") lastOnlineStatus = status;
     statusListener?.(status);
@@ -337,7 +384,7 @@ export function createSyncEngine({
     }
   }
 
-  function enqueuePendingMutation(mutation: any) {
+  function enqueuePendingMutation(mutation: ReturnType<typeof createMutation>) {
     const queued = outbox.enqueue(mutation);
     requestLocalSync();
     return queued;
@@ -362,7 +409,7 @@ export function createSyncEngine({
     lastRetryableError = null;
   }
 
-  function deferredResult(extra: any = {}) {
+  function deferredResult(extra: Partial<SyncFlushResult> = {}): SyncFlushResult {
     return {
       mutations: outbox.count(),
       conflicts: [],
@@ -376,13 +423,13 @@ export function createSyncEngine({
   function flushForActiveLifecycle() {
     const version = lifecycleVersion;
     void api.flush()
-      .then((result: any) => {
+      .then((result) => {
         if (lifecycleActive && lifecycleVersion === version) flushListener?.(result);
       })
       .catch(() => {});
   }
 
-  function retryDelayForAttempt(attempt: any) {
+  function retryDelayForAttempt(attempt: number) {
     const ceiling = Math.min(
       Math.max(1, Number(retryMaxDelayMs) || DEFAULT_RETRY_MAX_DELAY_MS),
       Math.max(1, Number(retryBaseDelayMs) || DEFAULT_RETRY_BASE_DELAY_MS) * (2 ** Math.max(0, attempt - 1)),
@@ -391,7 +438,7 @@ export function createSyncEngine({
     return Math.round(ceiling * (0.5 + (jitter * 0.5)));
   }
 
-  function scheduleRetry(error: any) {
+  function scheduleRetry(error: unknown) {
     const pendingCount = outbox.count();
     if (pendingCount === 0 || currentStatus.status === "conflict") {
       resetRetry();
@@ -408,7 +455,7 @@ export function createSyncEngine({
     if (!lifecycleActive) {
       emitStatus(isConnectivityError(error)
         ? createSyncOfflineStatus({ pendingCount })
-        : { ...createSyncPendingStatus(pendingCount), message: "Synchronisierung wird automatisch erneut versucht." });
+        : { ...createSyncPendingStatus(pendingCount), message: "Synchronisierung wird automatisch erneut versucht." } as SyncStatus);
       return null;
     }
 
@@ -431,7 +478,7 @@ export function createSyncEngine({
     return retryTimer;
   }
 
-  async function refreshConflicts(options?: any) {
+  async function refreshConflicts(options?: { refreshRemote?: boolean }) {
     const conflicts = adapter.listConflicts ? await adapter.listConflicts(options) : [];
     await persistConflictState?.(conflicts);
     return conflicts;
@@ -458,7 +505,7 @@ export function createSyncEngine({
       await initialize?.();
       emitStatus(outbox.count() > 0 ? createSyncPendingStatus(outbox.count()) : createSyncSavedStatus("Cloud geladen.", now));
     },
-    enqueueMutation(input: any = {}) {
+    enqueueMutation(input: SyncMutationInput = {}) {
       const mutation = createMutation(input, now, syncDevice.id);
       if (!mutation.type) throw new Error("Sync-Mutation braucht einen Typ.");
       if (mutation.type === SYNC_MUTATION_TYPES.profilePatch) {
@@ -466,8 +513,8 @@ export function createSyncEngine({
           throw new Error("Profil-Mutation braucht ein vollständiges Profil.");
         }
         const staleProfilePatchIds = outbox.listPending()
-          .filter((pending: any) => pending.type === SYNC_MUTATION_TYPES.profilePatch)
-          .map((pending: any) => pending.id);
+          .filter((pending: QueuedMutation) => pending.type === SYNC_MUTATION_TYPES.profilePatch)
+          .map((pending: QueuedMutation) => pending.id);
         outbox.remove(staleProfilePatchIds);
         return enqueuePendingMutation(mutation);
       }
@@ -476,10 +523,10 @@ export function createSyncEngine({
         const entityId = mutation.entityId ?? mutation.payload?.entity?.id ?? mutation.payload?.entityId;
         if (!table || !entityId) throw new Error("Entity-Mutation braucht Tabelle und ID.");
         const staleEntityMutationIds = outbox.listPending()
-          .filter((pending: any) => pending.type === SYNC_MUTATION_TYPES.entityMutation
+          .filter((pending: QueuedMutation) => pending.type === SYNC_MUTATION_TYPES.entityMutation
             && (pending.payload?.table ?? pending.table) === table
             && (pending.entityId ?? pending.payload?.entity?.id ?? pending.payload?.entityId) === entityId)
-          .map((pending: any) => pending.id);
+          .map((pending: QueuedMutation) => pending.id);
         outbox.remove(staleEntityMutationIds);
         return enqueuePendingMutation(mutation);
       }
@@ -498,7 +545,7 @@ export function createSyncEngine({
       return api.flush({ force: true });
     },
 
-    async flush({ force = false }: any = {}) {
+    async flush({ force = false }: { force?: boolean } = {}) {
       if (activeFlush) {
         flushRequestedDuringActive = true;
         return activeFlush;
@@ -513,43 +560,43 @@ export function createSyncEngine({
       activeFlush = (async () => {
         await beforeFlush?.();
         await outbox.flushPersistence?.();
-        const batch = outbox.listPending();
+        const batch: QueuedMutation[] = outbox.listPending();
         emitStatus(createSyncSavingStatus());
-        const result: any = {
+        const result: SyncFlushResult = {
           mutations: batch.length,
           conflicts: [],
           saved: null,
           deviceId: syncDevice.id,
           flushedAt: now(),
         };
-        let batchFailure: any = null;
+        let batchFailure: unknown = null;
         const remaining = orderMutationBatch(batch);
         if (remaining.length > 0 && adapter.applyMutationBatch) {
           try {
             const batchResult = await adapter.applyMutationBatch(remaining, { deviceId: syncDevice.id, flushedAt: result.flushedAt });
             result.conflicts = batchResult?.conflicts ?? [];
-            const remainingIds = new Set(remaining.map((mutation: any) => mutation.id));
-            const acknowledgedMutationIds = (batchResult?.acknowledgedMutationIds ?? []).filter((id: any) => remainingIds.has(id));
+            const remainingIds = new Set(remaining.map((mutation) => mutation.id));
+            const acknowledgedMutationIds = (batchResult?.acknowledgedMutationIds ?? []).filter((id: string) => remainingIds.has(id));
             if (acknowledgedMutationIds.length > 0 && batchResult?.persistedRows?.length > 0) {
               await persistMutationAcknowledgements?.(batchResult.persistedRows);
             }
-            const failedMutationIds = (batchResult?.failedMutationIds ?? []).filter((id: any) => remainingIds.has(id));
+            const failedMutationIds = (batchResult?.failedMutationIds ?? []).filter((id: string) => remainingIds.has(id));
             outbox.markFlushed(acknowledgedMutationIds, result.flushedAt);
             outbox.remove(acknowledgedMutationIds);
             outbox.markFailed(failedMutationIds, new Error("Mutation konnte nicht synchronisiert werden."));
             if (failedMutationIds.length > 0) {
               const failureErrors = (batchResult?.failures ?? [])
-                .filter((failure: any) => failedMutationIds.includes(failure?.mutationId) && failure?.error)
-                .map((failure: any) => failure.error);
-              batchFailure = failureErrors.find((error: any) => !isSyncConflictError(error)) ?? null;
+                .filter((failure: { mutationId?: string; error?: unknown } | null) => failedMutationIds.includes(failure?.mutationId) && failure?.error)
+                .map((failure: { error: unknown }) => failure.error);
+              batchFailure = failureErrors.find((error: unknown) => !isSyncConflictError(error)) ?? null;
             }
           } catch (error) {
-            outbox.markFailed(remaining.map((mutation: any) => mutation.id), error);
+            outbox.markFailed(remaining.map((mutation) => mutation.id), error);
             throw error;
           }
         } else if (remaining.length > 0) {
           batchFailure = new Error("Sync-Adapter unterstützt diese Mutation nicht.");
-          outbox.markFailed(remaining.map((mutation: any) => mutation.id), batchFailure);
+          outbox.markFailed(remaining.map((mutation) => mutation.id), batchFailure);
         }
 
         if (batchFailure) throw batchFailure;
@@ -600,7 +647,7 @@ export function createSyncEngine({
       }
     },
 
-    startSyncLifecycle({ onStatus, onFlush, intervalMinutes = 0 }: any = {}) {
+    startSyncLifecycle({ onStatus, onFlush, intervalMinutes = 0 }: { onStatus?: (status: SyncStatus) => void; onFlush?: (result: SyncFlushResult) => void; intervalMinutes?: number } = {}) {
       if (typeof onStatus !== "function") throw new Error("Sync-Lifecycle braucht einen Status-Listener.");
       lifecycleCleanup?.();
       lifecycleActive = true;
@@ -666,9 +713,9 @@ export function createSyncEngine({
       return lifecycleCleanup;
     },
 
-    listConflicts: (options: any = {}) => refreshConflicts(options),
+    listConflicts: (options: { refreshRemote?: boolean } = {}) => refreshConflicts(options),
 
-    async resolveConflict(conflictId: any, decision: any) {
+    async resolveConflict(conflictId: string, decision: Record<string, unknown>) {
       if (!adapter.resolveConflict) throw new Error("Dieser Sync-Adapter kann Konflikte nicht auflösen.");
       emitStatus(createSyncSavingStatus());
       const resolvedAt = now();
@@ -695,7 +742,7 @@ export function createSyncEngine({
   return api;
 }
 
-export function createAccountSyncEngine(client: any, options: any = {}) {
+export function createAccountSyncEngine(client: CloudClient, options: any = {}) {
   if (!options.userId || !options.device || !options.outbox) {
     throw new Error("Account-Sync braucht Nutzer-ID, accountgebundenen Speicher und Gerätedaten.");
   }

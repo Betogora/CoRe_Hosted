@@ -1,5 +1,6 @@
 import { TRANSLATOR_VERSIONS, retranslateNoteContent, type NoteSource, type NoteTypeSource } from "./apkgNoteTranslation.ts";
 import { planNoteContentChange, planNoteDeletion } from "./coreModel.ts";
+import type { CloudClient } from "./cloudRepository.ts";
 import type { Card, Note } from "./coreTypes.ts";
 import type { IndexedDbCoreRepository, NoteGraphChange } from "./indexedDbCoreRepository.ts";
 import { createMainThreadBudget } from "./mainThreadBudget.ts";
@@ -57,7 +58,7 @@ const MARKER_KEY = "retranslatedTranslatorVersions";
  * translator versions and writes only changed contents, which then sync like any edit. Returns the number of
  * updated contents.
  */
-export async function runAccountRetranslation(client: unknown, repository: Pick<IndexedDbCoreRepository, "readSyncMetadata" | "writeSyncMetadata" | "saveNoteGraphs" | "loadNotes">): Promise<number> {
+export async function runAccountRetranslation(client: CloudClient, repository: Pick<IndexedDbCoreRepository, "readSyncMetadata" | "writeSyncMetadata" | "saveNoteGraphs" | "loadNotes">): Promise<number> {
   const marker = JSON.stringify(TRANSLATOR_VERSIONS);
   if (await repository.readSyncMetadata(MARKER_KEY) === marker) return 0;
   const [{ listRetranslationCandidates }, { noteSourceForTranslation, noteTypeSourceForTranslation }] = await Promise.all([
