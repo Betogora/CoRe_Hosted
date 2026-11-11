@@ -35,7 +35,7 @@ async function setup(count: number) {
   const repository = await createIndexedDbCoreRepository({ userId: randomUUID(), initialState, indexedDb: indexedDB as unknown as IDBFactory });
   const dependencies: CardBatchDependencies = {
     repository,
-    openCards: (ids) => Promise.all(ids.map((id) => repository.loadCardBody(id))),
+    openCards: (ids) => repository.loadCardBodies(ids),
     now: () => NOW,
     random: () => 0,
   };

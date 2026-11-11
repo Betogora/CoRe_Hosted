@@ -25,16 +25,40 @@ export function compareCatalogEntries(sort: CardTableSort) {
   return sort.direction === "desc" ? (left: CardCatalogEntry, right: CardCatalogEntry) => compare(right, left) : compare;
 }
 
+/** Index of `entry` in `sorted`, or where it belongs; `sorted` is in `compare` order. */
+function position(sorted: readonly CardCatalogEntry[], entry: CardCatalogEntry, compare: (left: CardCatalogEntry, right: CardCatalogEntry) => number) {
+  let low = 0;
+  let high = sorted.length;
+  while (low < high) {
+    const middle = (low + high) >>> 1;
+    if (compare(sorted[middle], entry) < 0) low = middle + 1;
+    else high = middle;
+  }
+  return low;
+}
+
 /**
  * In-memory search over the whole local catalog. Each sort order is computed once and filtered in that order,
- * so a search is one pass; results stay cached per query and sort until the catalog changes.
+ * so a search is one pass; a changed or removed entry moves only itself within the computed orders.
+ * Results stay cached per query and sort until the catalog changes.
  */
 export function createCatalogSearchIndex() {
   const entries = new Map<string, CardCatalogEntry>();
   const orders = new Map<CardTableSort["field"], CardCatalogEntry[]>();
   let cached: { key: string; all: CardCatalogEntry[]; byDeck: Map<string, CardCatalogEntry[]>; scoped: Map<string, CardCatalogEntry[]> } | null = null;
-  const changed = () => {
-    orders.clear();
+  const move = (previous: CardCatalogEntry | undefined, next: CardCatalogEntry | undefined) => {
+    for (const [field, sorted] of orders) {
+      const compare = compareEntries(field);
+      if (previous) {
+        const at = position(sorted, previous, compare);
+        if (next && catalogSortValue(previous, field) === catalogSortValue(next, field)) {
+          sorted[at] = next;
+          continue;
+        }
+        sorted.splice(at, 1);
+      }
+      if (next) sorted.splice(position(sorted, next, compare), 0, next);
+    }
     cached = null;
   };
   const order = (field: CardTableSort["field"]) => {
@@ -49,15 +73,18 @@ export function createCatalogSearchIndex() {
     replaceAll(rows: Iterable<CardCatalogEntry>) {
       entries.clear();
       for (const row of rows) if (!row.deletedAt) entries.set(row.id, row);
-      changed();
+      orders.clear();
+      cached = null;
     },
     put(row: CardCatalogEntry) {
+      const previous = entries.get(row.id);
       if (row.deletedAt) entries.delete(row.id);
       else entries.set(row.id, row);
-      changed();
+      move(previous, row.deletedAt ? undefined : row);
     },
     remove(id: string) {
-      if (entries.delete(id)) changed();
+      const previous = entries.get(id);
+      if (previous && entries.delete(id)) move(previous, undefined);
     },
     /** Matching entries per deck in the requested order. */
     search(query: string, sort: CardTableSort, context?: CardSearchContext): ReadonlyMap<string, readonly CardCatalogEntry[]> {

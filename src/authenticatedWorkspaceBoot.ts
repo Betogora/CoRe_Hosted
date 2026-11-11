@@ -182,8 +182,10 @@ async function finishAuthenticatedWorkspaceBootstrap(
   markStartupPhaseReady("bootstrapRpc", { deckCount: bootstrap.decks.length });
   markStartupPhaseStarted("bootstrapApply");
   const localCatalogCursor = repository.getReplicaStatus().catalogCursor;
-  await repository.applyCloudCatalogPage({ table: "decks", entities: bootstrap.decks.map((entry) => entry.deck), reset: false, cursor: localCatalogCursor });
-  await repository.applyCloudCatalogPage({ table: "deck_study_summaries", entities: bootstrap.decks.map((entry) => entry.summary), reset: false, cursor: localCatalogCursor });
+  await repository.applyCloudCatalogPages([
+    { table: "decks", entities: bootstrap.decks.map((entry) => entry.deck), reset: false, cursor: localCatalogCursor },
+    { table: "deck_study_summaries", entities: bootstrap.decks.map((entry) => entry.summary), reset: false, cursor: localCatalogCursor },
+  ]);
   if (bootstrap.studyOverview) await repository.applyAccountStudyOverview(bootstrap.studyOverview);
   await applyBootstrapProfile(repository, bootstrap.profile, user.id, pendingMutationsAtRequest);
   await repository.setAccountBaselineState(bootstrap.confirmedEmpty ? "confirmed-empty" : "nonempty", bootstrap.serverCatalogCursor);
@@ -217,7 +219,7 @@ async function finishAuthenticatedWorkspaceCloudSync(
   ]);
   const pullChanges = async () => {
     const previousCursor = repository.getReplicaStatus().catalogCursor;
-    const nextCursor = await streamAccountCatalogChanges(supabase, previousCursor, repository.applyCloudCatalogPage);
+    const nextCursor = await streamAccountCatalogChanges(supabase, previousCursor, repository.applyCloudCatalogPages);
     await repository.completeCatalogReconciliation(nextCursor);
     markReplicaStartupGate("catalogReconciled", { cursor: nextCursor });
     return nextCursor !== previousCursor;

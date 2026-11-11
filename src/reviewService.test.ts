@@ -274,6 +274,15 @@ test("zurückgestellte Karten warten bis zum nächsten Lerntag; das letzte manue
   assert.ok(tomorrow.items.some((item) => item.cardId === "buried"));
 });
 
+test("eine unveränderte Queue lässt die Lernsitzung unverändert", () => {
+  const items = [{ deckId: "deck", cardId: "a" }, { deckId: "deck", cardId: "b" }, { deckId: "deck", cardId: "c" }];
+  const answered = advanceDailyReviewSession(createDailyReviewSessionState(items), { key: "deck:a", rating: "good", nextReviewState: { state: "review" } });
+  assert.equal(reconcileDailyReviewSessionState(answered, items.slice(1)), answered);
+  const reordered = reconcileDailyReviewSessionState(answered, [items[2], items[1]]);
+  assert.notEqual(reordered, answered);
+  assert.deepEqual(reordered.remainingInitialKeys, ["deck:c", "deck:b"]);
+});
+
 test("die gezeigte Karte bleibt aktuell, wenn nachgeladene Karten die Reihenfolge davor ändern", () => {
   const cards = ["a", "b", "c"].map((id) => cardInPhase(id, "review", "2026-08-21T07:00:00.000Z"));
   const deck = createCoreDeck({ id: "deck", cards });

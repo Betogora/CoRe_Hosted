@@ -666,11 +666,12 @@ export function reconcileDailyReviewSessionState(
   for (const key of completed) remainingInitialKeys.delete(key);
   for (const key of repeats) remainingInitialKeys.delete(key);
 
-  return {
-    ...session,
-    initialKeys: [...session.completedInitialKeys, ...remainingInitialKeys],
-    remainingInitialKeys: [...remainingInitialKeys],
-  };
+  const remaining = [...remainingInitialKeys];
+  const initialKeys = [...session.completedInitialKeys, ...remaining];
+  const same = (left: string[], right: string[]) => left.length === right.length && left.every((key, index) => key === right[index]);
+  // An unchanged queue keeps the session itself, so an answer costs no second render of the study screen.
+  if (same(remaining, session.remainingInitialKeys) && same(initialKeys, session.initialKeys)) return session;
+  return { ...session, initialKeys, remainingInitialKeys: remaining };
 }
 
 export function removeDailyReviewSessionItem(session: DailyReviewSessionState, key: string): DailyReviewSessionState {

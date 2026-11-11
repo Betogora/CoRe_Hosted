@@ -540,7 +540,7 @@ export async function loadAccountCloudBootstrap(
 }
 
 // Anki templates travel with the catalog so the original layout (ADR-047) works on every device, also offline.
-// note_search comes last in each page: it fills the search text of catalog rows applied just before.
+// note_search comes last in each page; its search texts reach the catalog rows of the same page before they are written.
 const CATALOG_TABLES = ["decks", "card_catalog", "deck_study_summaries", "note_type_sources", "note_search"] as const;
 type CatalogCloudTable = typeof CATALOG_TABLES[number];
 
@@ -549,7 +549,6 @@ export interface CloudCatalogPage {
   entities: Deck[] | CardCatalogEntry[] | DeckStudySummary[] | ReplicatedNoteTypeSource[] | NoteSearchEntry[];
   reset: boolean;
   cursor: number;
-  advanceCursor?: boolean;
 }
 
 function validateCatalogDeltaResponse(value: unknown) {
@@ -569,22 +568,32 @@ function validateCatalogDeltaResponse(value: unknown) {
   return { changes, nextCursor, hasMore: candidate.hasMore };
 }
 
+/** Applies every delta page with all its tables in one call; the next page loads while the previous one is applied. */
 export async function streamAccountCatalogChanges(
   client: any,
   cursor: number,
-  onPage: (page: CloudCatalogPage) => Promise<void>,
+  onPage: (pages: CloudCatalogPage[]) => Promise<void>,
 ): Promise<number> {
-  let next = Number.isSafeInteger(cursor) && cursor >= 0 ? cursor : 0;
-  while (true) {
+  const pull = async (from: number) => {
     const { data, error } = await client.rpc("pull_account_catalog_delta", {
-      p_cursor: next,
+      p_cursor: from,
       p_limit: CLOUD_PAGE_SIZE,
       p_max_bytes: CLOUD_WRITE_BYTE_LIMIT,
     });
     if (error) throw error;
-    const delta = validateCatalogDeltaResponse(data);
+    return validateCatalogDeltaResponse(data);
+  };
+  let next = Number.isSafeInteger(cursor) && cursor >= 0 ? cursor : 0;
+  let pending = pull(next);
+  while (true) {
+    const delta = await pending;
     if (delta.hasMore && delta.nextCursor <= next) throw new Error("Katalog-Delta-Cursor konnte nicht fortgesetzt werden.");
-    for (const [tableIndex, table] of CATALOG_TABLES.entries()) {
+    if (delta.hasMore) {
+      pending = pull(delta.nextCursor);
+      // A failed apply ends the stream; the page loaded ahead is then dropped without an unhandled rejection.
+      pending.catch(() => undefined);
+    }
+    await onPage(CATALOG_TABLES.map((table) => {
       const rows = delta.changes.filter((change) => change.table === table).map((change) => change.row);
       const entities = table === "decks"
         ? validateAccountRows("decks", rows).map(deckFromRow)
@@ -595,8 +604,8 @@ export async function streamAccountCatalogChanges(
             : table === "note_search"
               ? validateNoteSearchRows(rows)
               : validateAccountRows("note_type_sources", rows).flatMap((row) => replicatedNoteTypeSourceFromRow(row) ?? []);
-      await onPage({ table, entities, reset: false, cursor: delta.nextCursor, advanceCursor: tableIndex === CATALOG_TABLES.length - 1 });
-    }
+      return { table, entities, reset: false, cursor: delta.nextCursor };
+    }));
     next = delta.nextCursor;
     if (!delta.hasMore) return next;
   }
