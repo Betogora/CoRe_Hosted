@@ -66,6 +66,14 @@ test("primary actions keep AA text contrast in both themes", () => {
   }
 });
 
+test("review rating labels keep AA contrast on their fill in both themes", () => {
+  for (const tokens of [lightTokens, darkTokens]) {
+    for (const rating of ["again", "hard", "good", "easy"]) {
+      assert.ok(contrastRatio(tokenColor(`rating-${rating}-surface`, tokens), tokenColor(`rating-${rating}-text`, tokens)) >= 4.5, rating);
+    }
+  }
+});
+
 test("product UI consumes the shared geometry scale instead of independent utility values", () => {
   for (const file of ["src/App.tsx", "src/AppErrorBoundary.tsx", ...productionFiles("src/screens"), ...productionFiles("src/ui"), "scripts/uiCatalogDemos.tsx", "scripts/uiCatalogPatterns.html"]) {
     const source = readFileSync(file, "utf8");

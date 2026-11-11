@@ -20,7 +20,7 @@ vollständig.
 - Production: `https://core-hosted.vercel.app`; Datenbank ist das Pre-Release-Projekt `CoRe-Database` (`hirbiuiydczmnjqtoyqx`), zuletzt am 2026-10-08 vollständig zurückgesetzt.
 - Schema: einzige Baseline `20261030103636_kartenmodell_baseline.sql` plus spätere Migrationen; keine Upgrade- oder Backfillkette (ADR-034).
 - Browser-Replica: IndexedDB `core.workspace.entities.v5.<userId>`, ohne Lesepfade für frühere lokale Datenbanken.
-- Server: nur die authentifizierten KI-Routen `/api/ai/card-variant` und `/api/ai/summary` über OpenRouter (ADR-011).
+- Server: nur die authentifizierten KI-Routen `/api/ai/card-variant`, `/api/ai/summary` und `/api/ai/card-help` über OpenRouter (ADR-011).
 - Kartenmodell `Note`/`Card` in App, Import, Persistenz und Sync (ADR-032); Scheduler FSRS-7 mit Reife aus der Haltbarkeit (ADR-044).
 
 ## Reifestatus
