@@ -239,22 +239,47 @@ test("Reimport-Ziele liefern Inhalte, Karten mit Anki-Karten-ID und Vorlagen", a
   await assert.rejects(() => loadReimportTargets(invalid, ["guid-1"]), /ungültige Karte/);
 });
 
-test("Suchtexte kommen zuletzt in jeder Delta-Seite und schließen sie ab", async () => {
+test("jede Delta-Seite kommt mit allen Tabellen in einem Aufruf, Suchtexte zuletzt", async () => {
   const delta = (rows: unknown[]) => ({
     async rpc() {
       return { data: { changes: rows.map((row) => ({ table: "note_search", row })), nextCursor: 9, hasMore: false }, error: null };
     },
   });
-  const pages: Array<{ table: string; entities: unknown[]; advanceCursor?: boolean }> = [];
-  const cursor = await streamAccountCatalogChanges(delta([{ note_id: "note-1", search_text: "Herz MUSKEL", search_fields: [{ n: "vorderseite", t: "Herz" }], deleted_at: null, sync_change_id: 9 }]), 0, async (page) => {
-    pages.push(page);
+  const calls: Array<Array<{ table: string; entities: unknown[] }>> = [];
+  const cursor = await streamAccountCatalogChanges(delta([{ note_id: "note-1", search_text: "Herz MUSKEL", search_fields: [{ n: "vorderseite", t: "Herz" }], deleted_at: null, sync_change_id: 9 }]), 0, async (pages) => {
+    calls.push(pages);
   });
 
   assert.equal(cursor, 9);
-  assert.deepEqual(pages.map((page) => page.table), ["decks", "card_catalog", "deck_study_summaries", "note_type_sources", "note_search"]);
-  assert.deepEqual(pages.at(-1), { table: "note_search", entities: [{ noteId: "note-1", searchText: "herz muskel", searchFields: [{ name: "vorderseite", text: "herz" }], deletedAt: null }], reset: false, cursor: 9, advanceCursor: true });
-  assert.ok(pages.slice(0, -1).every((page) => page.advanceCursor === false));
+  assert.equal(calls.length, 1);
+  assert.deepEqual(calls[0].map((page) => page.table), ["decks", "card_catalog", "deck_study_summaries", "note_type_sources", "note_search"]);
+  assert.deepEqual(calls[0].at(-1), { table: "note_search", entities: [{ noteId: "note-1", searchText: "herz muskel", searchFields: [{ name: "vorderseite", text: "herz" }], deletedAt: null }], reset: false, cursor: 9 });
   await assert.rejects(streamAccountCatalogChanges(delta([{ note_id: "note-1" }]), 0, async () => undefined), /Suchtexte/);
+});
+
+test("die nächste Delta-Seite lädt, während die vorige geschrieben wird; ein Schreibfehler beendet den Abgleich", async () => {
+  const requested: number[] = [];
+  const client = {
+    async rpc(_name: string, { p_cursor }: { p_cursor: number }) {
+      requested.push(p_cursor);
+      return { data: { changes: [], nextCursor: p_cursor + 1, hasMore: p_cursor < 2 }, error: null };
+    },
+  };
+  const applied: number[] = [];
+  const cursor = await streamAccountCatalogChanges(client, 0, async (pages) => {
+    assert.ok(requested.includes(pages[0].cursor) || pages[0].cursor === 3, "die Folgeseite ist schon angefragt");
+    applied.push(pages[0].cursor);
+  });
+  assert.equal(cursor, 3);
+  assert.deepEqual(applied, [1, 2, 3]);
+  assert.deepEqual(requested, [0, 1, 2]);
+
+  applied.length = 0;
+  await assert.rejects(streamAccountCatalogChanges(client, 0, async (pages) => {
+    applied.push(pages[0].cursor);
+    throw new Error("Schreiben fehlgeschlagen");
+  }), /Schreiben fehlgeschlagen/);
+  assert.deepEqual(applied, [1], "nach dem Fehler wird keine vorgeladene Seite mehr geschrieben");
 });
 
 test("Katalogzeilen bringen Lernverlauf und Werte mit, ein Server ohne sie bleibt lesbar", async () => {
@@ -273,7 +298,7 @@ test("Katalogzeilen bringen Lernverlauf und Werte mit, ein Server ohne sie bleib
   };
   const delta = { async rpc() { return { data: { changes: [{ table: "card_catalog", row: { ...row, ...history } }, { table: "card_catalog", row: { ...row, id: "card-2" } }], nextCursor: 4, hasMore: false }, error: null }; } };
   const pages: Array<{ table: string; entities: any[] }> = [];
-  await streamAccountCatalogChanges(delta, 0, async (page) => { pages.push(page); });
+  await streamAccountCatalogChanges(delta, 0, async (delivered) => { pages.push(...delivered); });
 
   const [withHistory, withoutHistory] = pages.find((page) => page.table === "card_catalog")!.entities;
   assert.deepEqual(

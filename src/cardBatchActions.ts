@@ -14,7 +14,7 @@ export type CardBatchAction =
   | ({ kind: "replace" } & TextReplace);
 
 export interface CardBatchRepository {
-  loadNoteGraph(noteId: string): Promise<NoteGraph | null>;
+  loadNoteGraphs(noteIds: string[]): Promise<Array<NoteGraph | null>>;
   saveNoteGraphs(changes: Array<{ previous: NoteGraph | null; next: NoteGraph }>): Promise<void>;
   buryCards(cardIds: string[], buried: boolean, occurredAt?: string): Promise<Card[]>;
   resetCards(cardIds: string[], occurredAt?: string): Promise<Card[]>;
@@ -41,7 +41,7 @@ export interface CardBatchResult {
 const PREVIEW_LIMIT = 20;
 
 async function loadGraphs(repository: CardBatchRepository, noteIds: Iterable<string>) {
-  const graphs = await Promise.all([...new Set(noteIds)].map((noteId) => repository.loadNoteGraph(noteId)));
+  const graphs = await repository.loadNoteGraphs([...new Set(noteIds)]);
   return graphs.filter((graph): graph is NoteGraph => Boolean(graph));
 }
 
