@@ -5,23 +5,10 @@ Stand: 2026-11-11
 Nur offene Arbeit. Ist-Stand in [`status.md`](status.md), Entscheidungen in
 [`decisions.md`](decisions.md), erledigte Arbeit in [`history.md`](history.md).
 
-Reihenfolge = Priorität. P3 braucht nur noch Nachweise; P1 läuft,
+Reihenfolge = Priorität. P1 läuft,
 P2 folgt; P5 wartet, bis alle KI-Prompts stehen. Offene Nachweise brauchen keinen Code und
 laufen unabhängig davon; die Release-Voraussetzungen sind vor dem ersten
 externen Release fällig. „Später“ ist geparkt.
-
-## P3: „KI hilft“ nachweisen
-
-Lernansicht 2 und [KI hilft](specs.md#ki-hilft) sind umgesetzt (ADR-011).
-
-- [ ] **Stichprobe mit dem Produktionsmodell:** Nach dem ersten
-      Preview-Deployment `card-help-v1` mit `openai/gpt-6-luna` in allen
-      drei Modi an freigegebenen Testkarten prüfen und die Kosten je Antwort
-      in `operations.md` nachtragen. Lokal fehlt der Schlüssel; eine
-      Ersatzstichprobe mit Haiku 5.5 (zehn Fälle mit Injection, Abschweifung,
-      falscher Karte und Sprachwechsel) hielt alle Regeln ein.
-- [ ] **Mobile Tastatur:** Auf einem echten Telefon prüfen, dass die
-      Bildschirmtastatur die Eingabe im Bottom Sheet nicht verdeckt.
 
 ## P1: KI-Varianten (Proof of Concept) abschließen
 
@@ -112,11 +99,14 @@ Markdown, CSV und TSV.
 ## P5: KI-Eval und Hillclimb (zurückgestellt)
 
 Beginnt erst, wenn alle geplanten KI-Prompts stehen: Varianten je Kartenart
-(P1), `card-help` (P3), Karten aus einer Quelle (P2) und gegebenenfalls Quiz;
+(P1), `card-help` (steht), Karten aus einer Quelle (P2) und gegebenenfalls Quiz;
 die Zusammenfassung steht. Dann wird ein gemeinsames Experiment für alle Routen
 aufgebaut statt eines Evals je Route. Grundsätze im vorgeschlagenen
 [ADR-049](decisions.md#adr-049--ki-änderungen-nur-mit-eval-nachweis); alles
-hier ist ein Entwurf vom 2026-11-10 und darf neu bewertet werden.
+hier ist ein Entwurf vom 2026-11-10 und darf neu bewertet werden. Kosten sind
+in jedem Eval eine feste Metrik: je Route, Prompt-Version, Modell und
+Reasoning-Stufe, pro Antwort und hochgerechnet; die Zielwerte werden beim
+Start von P5 festgelegt und in `operations.md` übernommen.
 
 - [ ] **Runner für alle Routen:** `cases` (versionierte Prüfkarten in
       `fixtures/ai-eval/<route>.cases.json`, Korpusfälle mit festem Startwert
@@ -187,7 +177,8 @@ neuen Code.
       Mindmap-Gesten (Doppeltippen, Langdrücken, Zwei-Finger-Zoom, Vollbild)
       auf iOS und Android. Karteneditor: Tag-Eingabe mit Bildschirmtastatur
       (Android schickt die Leertaste oft ohne Tastenereignis), Reiter und
-      Flaggenraster bei 200 % Zoom.
+      Flaggenraster bei 200 % Zoom. „KI hilft“: Die Tastatur verdeckt die
+      Eingabe im Bottom Sheet nicht.
 - [ ] **Originallayout in der App (ADR-047):** Pokémon-Stapel
       (`fixtures/apkg/corpus/Pokemon_Gen_I_Auszug.apkg`) mit echtem Konto
       importieren, auf einem zweiten Gerät öffnen und offline lernen; Review,
