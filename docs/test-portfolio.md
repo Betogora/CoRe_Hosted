@@ -24,7 +24,8 @@ Abhängigkeiten oder `continue-on-error`.
 
 ## Lokale Befehle
 
-- `npm run gate:push`: Typecheck (inkrementell), Prüfung auf Ungenutztes
+- `npm run gate:push`: Typecheck (inkrementell) samt Modulgrenzen- und
+  Obergrenzenprüfung (`scripts/verifyModuleBoundaries.ts`), Prüfung auf Ungenutztes
   (`npm run check:unused`, knip), generierte Dokumente (`npm run check:docs`),
   alle Unit-, Contract- und Integrationstests mit kompakter Ausgabe und der
   Production-Build mit Bundlebudgets laufen parallel (`scripts/runQualityGate.ts`).

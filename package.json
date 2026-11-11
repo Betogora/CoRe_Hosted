@@ -8,7 +8,7 @@
   },
   "scripts": {
     "dev": "vite",
-    "typecheck": "tsc -p tsconfig.json && tsx scripts/verifyTypePolicy.ts && npm run check:unused",
+    "typecheck": "tsc -p tsconfig.json && tsx scripts/verifyTypePolicy.ts && tsx scripts/verifyModuleBoundaries.ts && npm run check:unused",
     "test": "tsx scripts/runModuleTests.ts unit contract integration",
     "test:unit": "tsx scripts/runModuleTests.ts unit",
     "test:contract": "tsx scripts/runModuleTests.ts contract",
@@ -34,7 +34,7 @@
     "docs:build": "tsx scripts/generateDocs.ts --write",
     "mascots:build": "tsx scripts/generateMascots.tsx",
     "check:unused": "knip --no-config-hints && knip --production --include exports,types,nsExports,nsTypes --no-config-hints",
-    "check:docs": "tsx --test scripts/docsSite.test.ts && tsx scripts/generateDocs.ts --check",
+    "check:docs": "tsx --test scripts/docsSite.test.ts scripts/verifyModuleBoundaries.test.ts && tsx scripts/generateDocs.ts --check",
     "build": "vite build",
     "benchmark:apkg": "python scripts/create_world_capitals_apkg.py --benchmark-output test-results/apkg/core-local-benchmark.apkg --benchmark-repeat 5000 --benchmark-item-count 5 --benchmark-media-count 1000 && tsx scripts/benchmarkApkgImport.ts test-results/apkg/core-local-benchmark.apkg",
     "benchmark:apkg:large": "python scripts/create_world_capitals_apkg.py --benchmark-output test-results/apkg/core-large-benchmark.apkg --benchmark-repeat 5000 --benchmark-item-count 5 --benchmark-media-count 1000 --benchmark-media-bytes 2100000 && tsx scripts/benchmarkApkgImport.ts test-results/apkg/core-large-benchmark.apkg --large",
