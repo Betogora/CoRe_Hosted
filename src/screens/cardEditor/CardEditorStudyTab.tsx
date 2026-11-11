@@ -9,11 +9,9 @@ import { ActionButton } from "../../ui/actionUi.tsx";
 import { ActionDialog } from "../../ui/coreUi.tsx";
 import { useSuccessToast } from "../../ui/feedbackUi.tsx";
 import { CardEditorSection as Section } from "./CardEditorSection.tsx";
+import { RetrievabilityChart } from "./RetrievabilityChart.tsx";
 import { createRetrievabilityCurve } from "./retrievabilityCurve.ts";
 import { useOnline } from "./useOnline.ts";
-
-// The chart library loads only when a card with answers shows its curve.
-const RetrievabilityChart = React.lazy(() => import("./RetrievabilityChart.tsx").then((module) => ({ default: module.RetrievabilityChart })));
 
 const BANDS: Array<{ value: MaturityBand; label: string }> = [
   { value: "new", label: "Neu" },
@@ -160,9 +158,7 @@ export function CardEditorStudyTab({ card, now, dayStartHour, timeZone, services
         </Section>
         <Section title="Abrufverlauf" testId="card-review-curve">
           {events === null ? <p className="core-body text-core-muted" role="status">Wird geladen …</p> : curve.length ? (
-            <React.Suspense fallback={<div className="h-56" />}>
-              <RetrievabilityChart points={curve} targetPercent={study.extra.desiredRetention * 100} now={Date.parse(now)} />
-            </React.Suspense>
+            <RetrievabilityChart points={curve} targetPercent={study.extra.desiredRetention * 100} now={Date.parse(now)} />
           ) : <p className="core-body text-core-muted">Noch keine Bewertungen.</p>}
         </Section>
       </div>
