@@ -5,39 +5,10 @@ Stand: 2026-11-11
 Nur offene Arbeit. Ist-Stand in [`status.md`](status.md), Entscheidungen in
 [`decisions.md`](decisions.md), erledigte Arbeit in [`history.md`](history.md).
 
-Reihenfolge = Priorität. Die Restposten sind klein und kommen gesammelt vorab
-dran. P3 beginnt als Nächstes mit der Lernansicht; P1 und P4 laufen, P2 folgt; P5 wartet, bis alle KI-Prompts stehen. Offene Nachweise brauchen keinen Code und
+Reihenfolge = Priorität. P3 beginnt als Nächstes mit der Lernansicht; P1 läuft,
+P2 folgt; P5 wartet, bis alle KI-Prompts stehen. Offene Nachweise brauchen keinen Code und
 laufen unabhängig davon; die Release-Voraussetzungen sind vor dem ersten
 externen Release fällig. „Später“ ist geparkt.
-
-## Restposten
-
-Kleine Punkte aus abgeschlossenen Paketen, gemeinsam in einem PR.
-
-- [ ] **Veraltete Überschrift nach Reload der Kartenverwaltung:** Die
-      Verträge „typgerechter Basic-Lebenszyklus“ und „typgerechter
-      Multiple-Choice-Lebenszyklus“ (`card-lifecycle`) sowie die
-      Offline-Löschung in `batch-resilience` erwarten nach dem Reload die
-      Überschrift `Lernen`; seit `Karten` ein eigener Reiter ist (`b19da09`),
-      heißt sie `Kartenverwaltung`. Nachweis: alle drei Tests grün.
-- [ ] **PDF-Vorschau im Browserflow:** Der Vertrag „manuell mit PDF bis
-      Bearbeiten und Review“ (`core-stabilization`) erwartet im
-      PDF-Betrachter „Seite 1 von 1“, sieht aber „PDF nicht verfügbar.“; so
-      lokal seit dem main-Stand vom 2026-11-10. Ursache klären (Worker,
-      Laden des PDF, Testaufbau) und beheben. Nachweis: der Test grün.
-- [ ] **Navigationsmarkierung beim ersten Laden:** Bei einem direkten Aufruf
-      etwa von `/lernen` sitzt die gleitende Hervorhebung der Top-Bar auf
-      `Heute`, obwohl `Lernen` korrekt `aria-current` trägt
-      (`useSlidingSelection` in `src/ui/AppNavigation.tsx`). Nachweis: Reload
-      jeder Hauptansicht bei 1280 und 1440 px zeigt die Markierung am aktiven
-      Ziel, dazu ein E2E-Fall.
-- [ ] **Lokale KI-Routen dokumentieren:** Das Vite-Plugin `localAiRoutes` in
-      `vite.config.ts` bedient `/api/ai/summary` und `/api/ai/card-variant`
-      unter `npm run dev`; `operations.md` nennt dafür noch `vercel dev`.
-      Festschreiben, welcher Weg gilt, und `operations.md` anpassen.
-- [ ] **Google-Login entscheiden:** Gebaut, aber per Flag aus. Entscheiden,
-      ob der OAuth-Prüfprozess und ein Datenschutztext kommen; sonst Code und
-      Flag entfernen.
 
 ## P3: Lernansicht 2 und „KI hilft“
 
@@ -137,24 +108,6 @@ geglättet.
       Häufigkeit im Korpus, Bildverdeckungen bleiben ohne Varianten.
       Nachweis: Kartenartenzählung aus `report:apkg-corpus`, Vertrags- und
       Routentests je Kartenart, Stichprobe mit Korpuskarten.
-
-## P4: Kartenverwaltung 2.0
-
-Der Reiter `Karten` wird zur vollwertigen Kartenverwaltung nach dem Vorbild von
-Ankis Browser: Suche mit Filtermenü, flache Trefferliste, Massenaktionen und
-Pflegewerkzeuge in einer Version, ohne vorgeplante Folgeversion. Die Tabelle
-behält ihre Spalten `Sortierfeld`, `Datum` und `Variante`; weitere kommen
-nicht hinzu. Grundlage sind Sichtprüfung und Messung vom 2026-11-04
-(Konto mit 60 Stapeln, Stapel `Muskeltrainer` mit 581 Karten) und Ankis
-Seitenleiste (`qt/aqt/browser/sidebar/tree.py`), Suchsyntax
-(`rslib/src/search/`) und Tabellenmodell (`qt/aqt/browser/table/`), nur als
-Referenz gelesen. Befund und Produktentscheidungen stehen in
-[ADR-048](decisions.md#adr-048--kartensuche-lokal-über-den-vollständigen-katalog).
-
-- [ ] **Release:** main mergen, `npm run gate:push`,
-      `npm run performance:measure:local`, Pull Request. Beim Deploy zuerst
-      die Migration `20261110130000_kartenverwaltung` (`supabase db push`,
-      `verify_schema_v1.sql`), dann der Client.
 
 ## P2: Karten aus einer Quelle per KI erstellen
 
@@ -307,7 +260,7 @@ Dazu das KI-Kontingent pro Nutzer aus P2.
       Preview), eine deutsche Mailvorlage und zusätzlich einen 6-stelligen
       Code zum Eintippen, weil der Link auf Mobilgeräten oft im falschen
       Browser landet.
-- [ ] **Erste Synchronisation großer Konten:** Bei der Arbeit an P4 dauerte
+- [ ] **Erste Synchronisation großer Konten:** Bei der Arbeit an der Kartenverwaltung 2.0 dauerte
       die erste Synchronisation eines Kontos mit etwa 50.000 Karten rund
       10 Minuten; das betrifft jeden, der einen großen Anki-Stapel mitbringt.
       Messung reproduzieren, Zeitanteile (Netz, Validierung, IndexedDB)
@@ -351,7 +304,7 @@ Messung vom 2026-10-31 im [Verlauf](history.md).
 - Quiz als eigenes Feature (ADR-042), danach Quizplanung im Prüfungsplaner;
   Entwurf in Commit `71a7892` (`codex/klausurplaner-design`).
 - Semantische Themenzuordnung in ungegliederten Stapeln, ohne Lernstände zu
-  ändern; ein Lösungsweg über Tags ist `Treffer lernen` aus P4.
+  ändern; ein Lösungsweg über Tags ist `Treffer lernen` der Kartenverwaltung.
 
 ### Kartenverwaltung
 

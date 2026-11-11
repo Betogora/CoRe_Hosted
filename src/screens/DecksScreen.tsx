@@ -483,11 +483,17 @@ export function DecksScreen({
   const selectedCardLoading = selectedCardMissing && Boolean(onRequestCardPage) && !selectedPage?.loadError && selectedPage?.requestedCardId !== selectedCardId;
   const detailOpen = Boolean(selectedGraph || selectedDeckMissing || selectedCardMissing);
   // From 1280 px the editor opens beside the list, which keeps its selection and scroll position (KV6).
-  const dockedDetail = useWideEditor() && !(contentDeckId && contentTab !== "cards");
+  const wideDetail = useWideEditor() && !(contentDeckId && contentTab !== "cards");
+  // Switching between docked and modal mounts the editor anew; while a draft is unsaved it keeps its mode instead.
+  const [lockedDock, setLockedDock] = React.useState<boolean | null>(null);
+  const dockedDetail = lockedDock ?? wideDetail;
+  const dockedDetailRef = React.useRef(dockedDetail);
+  dockedDetailRef.current = dockedDetail;
   const splitDetail = dockedDetail && detailOpen;
   const { urls: selectedNoteMediaUrls } = useNoteMediaUrls(selectedGraph?.note.media, mediaStore);
   const handleEditorDraftStateChange = React.useCallback((guard: CardDraftGuard | null) => {
     cardDraftGuardRef.current = guard;
+    setLockedDock((locked) => guard ? locked ?? dockedDetailRef.current : null);
     onDraftStateChange(guard);
   }, [onDraftStateChange]);
 
@@ -1197,7 +1203,7 @@ export function DecksScreen({
           <table className="w-full table-fixed border-collapse" data-testid="card-library-table" aria-busy={cardsLoading || undefined} aria-rowcount={items.length}>
               <colgroup>
                 <col />
-                <col className="w-20 sm:w-[5.75rem]" />
+                <col className="w-[5.5rem] sm:w-[5.75rem]" />
                 <col className="w-20" />
               </colgroup>
               {/* From xl the screen region scrolls; its top padding (xl:py-10 in App) would otherwise hold the header 40 px low. */}

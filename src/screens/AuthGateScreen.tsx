@@ -1,5 +1,5 @@
 import React from "react";
-import { Chrome, KeyRound, Link2, Lock, Mail, RotateCcw, ShieldCheck, UserPlus } from "lucide-react";
+import { KeyRound, Link2, Lock, Mail, RotateCcw, ShieldCheck, UserPlus } from "lucide-react";
 import { OrbIcon, SoftPanel } from "../ui/coreUi.tsx";
 import { CoreWordmark } from "../ui/CoreWordmark.tsx";
 
@@ -9,13 +9,11 @@ export function AuthGateScreen({
   busy = false,
   message = "",
   messageType = "status",
-  showGoogleSignIn = false,
   showMagicLink = false,
   onSignIn,
   onSignUp,
   onResetPassword,
   onMagicLink,
-  onGoogleSignIn,
   onUpdatePassword,
 }: any) {
   const [mode, setMode] = React.useState(recoveryMode ? "recovery" : "sign-in");
@@ -138,18 +136,6 @@ export function AuthGateScreen({
                 {busy ? `${primaryLabel} läuft` : primaryLabel}
               </button>
             </form>
-
-            {!isRecovery && showGoogleSignIn ? (
-              <button
-                type="button"
-                onClick={onGoogleSignIn}
-                disabled={!configured || busy}
-                className="core-action-secondary mt-3 w-full"
-              >
-                <Chrome size={16} aria-hidden="true" />
-                Mit Google anmelden
-              </button>
-            ) : null}
 
             {!isRecovery ? (
               <div className="mt-4 flex flex-wrap justify-center gap-2">

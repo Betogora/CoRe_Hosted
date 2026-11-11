@@ -334,17 +334,6 @@ export async function signInWithMagicLink(client: any, email: any, redirectTo: a
   return { email: normalizedEmail };
 }
 
-export async function signInWithGoogle(client: any, redirectTo: any = getDefaultAuthRedirectTo()) {
-  await assertCloudClient(client);
-  const { data, error } = await client.auth.signInWithOAuth({
-    provider: "google",
-    options: redirectTo ? { redirectTo } : undefined,
-  });
-  if (error) throw error;
-
-  return data;
-}
-
 export async function signOutCloudAccount(client: any, profile: any, timestamp: any = nowIso()) {
   await assertCloudClient(client);
   const { error } = await client.auth.signOut();

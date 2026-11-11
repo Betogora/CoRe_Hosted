@@ -1,6 +1,6 @@
-import { readFileSync } from "node:fs";
+import { readFileSync, realpathSync } from "node:fs";
 import { fileURLToPath } from "node:url";
-import { defineConfig, loadEnv, type HtmlTagDescriptor, type Plugin } from "vite";
+import { defineConfig, loadEnv, searchForWorkspaceRoot, type HtmlTagDescriptor, type Plugin } from "vite";
 import react from "@vitejs/plugin-react";
 import { FEATURE_CHUNKS_ELEMENT_ID } from "./src/appFeaturePreload.ts";
 
@@ -163,6 +163,9 @@ export default defineConfig({
     host: "127.0.0.1",
     port: 5190,
     strictPort: true,
+    // Worktrees link node_modules to the main checkout; without its real path the dev server refuses files loaded by
+    // URL, such as the PDF worker.
+    fs: { allow: [searchForWorkspaceRoot(process.cwd()), realpathSync(fileURLToPath(new URL("./node_modules", import.meta.url)))] },
   },
   preview: {
     host: "127.0.0.1",

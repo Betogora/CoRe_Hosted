@@ -388,7 +388,7 @@ test("[Vertrag: Offline-Kartenlöschung] lokal gelöschte Karten werden nach Rec
   await client.auth.signOut({ scope: "local" });
   client.auth.dispose?.();
   await page.reload();
-  await expect(page.getByRole("heading", { name: "Lernen", exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Batch-Ziel", exact: true })).toBeVisible();
   await expect(page.getByTestId(`deck-card-${existingCardId}`)).toHaveCount(0);
 });
 

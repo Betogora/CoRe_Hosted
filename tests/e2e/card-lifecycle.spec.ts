@@ -186,7 +186,7 @@ test("[Vertrag: typgerechter Basic-Lebenszyklus] @beta-core Basic erstellen, bea
   await expect(page.getByTestId(`deck-card-${copiedCard.id}`)).toBeAttached();
   await waitForCloudCard(copiedCard.id, (card) => JSON.stringify(card.content).includes("(Kopie)"));
   await page.reload();
-  await expect(page.getByRole("heading", { name: "Lernen", exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: deckName, exact: true })).toBeVisible();
   await expect(page.getByTestId(`deck-card-${copiedCard.id}`)).toBeAttached();
   await expect(page.getByRole("textbox", { name: "Feld Vorderseite", exact: true })).toContainText("Basic Frage neu");
   await page.getByRole("button", { name: "Detailansicht schließen" }).click();
@@ -336,8 +336,14 @@ test("[Vertrag: modale Kartenvorschau] @beta-core Erstellung und Editor zeigen d
   expect((await editorRevealedBody.innerText()).match(/Ungespeicherte Editorfrage/g)).toHaveLength(1);
   expect((await editorRevealedBody.innerText()).match(/Ungespeicherte Editorantwort/g)).toHaveLength(1);
 
+  // Crossing 1280 px keeps the docked editor while the draft is unsaved, so the draft survives; saving lets it follow.
   await page.setViewportSize({ width: 390, height: 844 });
   const editorDialog = page.getByTestId("card-detail-dialog");
+  await expect(editorDialog).toHaveAttribute("data-docked", "true");
+  await expect(page.getByRole("textbox", { name: "Feld Vorderseite", exact: true })).toContainText("Ungespeicherte Editorfrage");
+  await page.getByRole("textbox", { name: "Feld Vorderseite", exact: true }).press("Control+Enter");
+  await expect(editorDialog).not.toHaveAttribute("data-docked", "true");
+  await expect(page.getByRole("textbox", { name: "Feld Vorderseite", exact: true })).toContainText("Ungespeicherte Editorfrage");
   const mobileBox = await editorDialog.boundingBox();
   expect(mobileBox).not.toBeNull();
   expect(mobileBox!.x).toBeLessThanOrEqual(1);
@@ -819,7 +825,7 @@ test("[Vertrag: typgerechter Multiple-Choice-Lebenszyklus] @beta-core Optionen, 
   expect(fieldHtml(savedCard, "Frage")).toBe("<p>Welche Option ist jetzt richtig?</p>");
   expect(fieldHtml(savedCard, "Erklärung")).toContain("Gamma neu ist nach der Bearbeitung richtig.");
   await page.reload();
-  await expect(page.getByRole("heading", { name: "Lernen", exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: deckName, exact: true })).toBeVisible();
   const detail = page.getByTestId("card-detail-dialog");
   if (!await detail.isVisible().catch(() => false)) await page.getByTestId(`deck-card-${deck.cards[0].id}`).click();
   await page.getByRole("button", { name: "Detailansicht schließen" }).click();

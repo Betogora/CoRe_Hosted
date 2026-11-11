@@ -381,7 +381,7 @@ test("cards page lists every card of every deck as one flat sortable list withou
   assert.match(markup, /aria-sort="ascending"/);
   assert.doesNotMatch(markup, /aria-label="Lernstand für|aria-label="Gesamtfortschritt für|data-deck-count=|data-donut-/);
   assert.doesNotMatch(markup, /min-w-\[46rem\]|overflow-x-auto|sticky left-0 w-\[calc\(100dvw/);
-  assert.match(markup, /<col class="w-20 sm:w-\[5\.75rem\]"\/><col class="w-20"\/>/);
+  assert.match(markup, /<col class="w-\[5\.5rem\] sm:w-\[5\.75rem\]"\/><col class="w-20"\/>/);
   assert.match(markup, /aria-label="Sortierfeld aufsteigend sortieren"/);
   assert.match(markup, /core-table-header-row/);
   assert.match(markup, /core-table-header-control/);

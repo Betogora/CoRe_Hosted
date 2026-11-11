@@ -307,6 +307,8 @@ test("Tastenkürzel: Navigation, Escape im Textfeld, Duplizieren, Entfernen, Rü
   await page.keyboard.press("Control+z"); await expect(cards).toHaveCount(4);
   await node(panel, "Main").click(); await page.keyboard.press("Control+Enter"); await expect(panel.getByRole("textbox", { name: "Kartentitel bearbeiten", exact: true })).toBeFocused();
   await expect(cards).toHaveCount(5); await page.keyboard.press("Escape");
+  // Escape hands focus back to the card asynchronously; "?" only reaches the map from there.
+  await expect.poll(() => page.evaluate(() => Boolean(document.activeElement?.closest("[data-node-id]")))).toBe(true);
   await page.keyboard.press("?"); const dialog = page.getByRole("dialog", { name: "Tastenkürzel", exact: true });
   await expect(dialog).toContainText("Alt + Pfeiltaste"); await dialog.getByRole("button", { name: "Schließen", exact: true }).click();
   await panel.getByRole("button", { name: "Rückgängig", exact: true }).hover(); await expect(page.getByText(/^Rückgängig · (Strg|⌘)\+Z$/)).toBeVisible();

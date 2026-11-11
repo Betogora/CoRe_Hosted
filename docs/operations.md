@@ -12,9 +12,12 @@ npm install
 npm run dev
 ```
 
-Die lokale URL ist `http://127.0.0.1:5190/`. Für einen lokalen Test der Vercel
-Functions samt serverseitiger Umgebungsvariablen dient stattdessen
-`vercel dev --listen 5190`.
+Die lokale URL ist `http://127.0.0.1:5190/`. `npm run dev` bedient auch die
+KI-Routen `/api/ai/summary` und `/api/ai/card-variant` (Vite-Plugin
+`localAiRoutes` in `vite.config.ts`); ihre serverseitigen Variablen
+(`OPENROUTER_API_KEY`, `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`, ersatzweise
+die `VITE_SUPABASE_*`-Werte) kommen aus der Umgebung oder der ignorierten
+`.env.local`.
 
 Bei „Ein Programmteil konnte nicht geladen werden“ zuerst Verbindung prüfen,
 offene Änderungen speichern und neu laden. Ein lange geöffneter Tab kann nach
@@ -34,8 +37,7 @@ Erlaubte Supabase-Redirects:
 - `http://127.0.0.1:5190/**` lokal
 
 Browser-sichtbar sind ausschließlich öffentliche Werte wie `VITE_SUPABASE_URL`,
-`VITE_SUPABASE_PUBLISHABLE_KEY`, `VITE_ENABLE_GOOGLE_AUTH` und
-`VITE_ENABLE_MAGIC_LINK`. Service-Role-Secrets und `OPENROUTER_API_KEY` bleiben
+`VITE_SUPABASE_PUBLISHABLE_KEY` und `VITE_ENABLE_MAGIC_LINK`. Service-Role-Secrets und `OPENROUTER_API_KEY` bleiben
 außerhalb des Browsers. Nachweise enthalten keine Werte, Tokens, Passwörter,
 `.env`-Dateien oder Auth-Screenshots.
 
@@ -54,7 +56,7 @@ außerhalb des Browsers. Nachweise enthalten keine Werte, Tokens, Passwörter,
 ### Voraussetzungen
 
 - Freizugebender Commit und alle Pflicht-Checks stimmen überein und sind grün; der Working Tree ist sauber.
-- `npm run test:beta` ist lokal grün (E-Mail/Passwort, Golden-Flows, Kern-RLS, Sync/Offline/Konflikte, kleiner APKG-Import mit Medium). Google und Magic Link sind keine Beta-Kriterien.
+- `npm run test:beta` ist lokal grün (E-Mail/Passwort, Golden-Flows, Kern-RLS, Sync/Offline/Konflikte, kleiner APKG-Import mit Medium). Magic Link ist kein Beta-Kriterium.
 - Preview und Production enthalten die benötigten Variablennamen; Werte werden nicht ausgelesen.
 - Schemaänderungen besitzen einen vorwärtskompatiblen Migrations- und Rückfallplan.
 - Die Performance-Gates aus [`test-portfolio.md`](test-portfolio.md#performance-gates) sind erfüllt.
@@ -83,7 +85,7 @@ weil dieser auch Supabase-Fetches erreichen könnte.
 Der Lauf deckt Login und Cloud-Laden, kleinen APKG-Import, transiente PDF-Hilfe,
 Review mit Offline-Pending, Reconnect und Reload sowie die KI-Variante mit Reveal,
 Originalkarte und Verwaltung ab, dazu APKG-Medien in DB und privatem Storage und
-einen Konfliktstatus. Nicht geprüft: Google, Magic Link, Dateien über 250 MB.
+einen Konfliktstatus. Nicht geprüft: Magic Link, Dateien über 250 MB.
 
 Reihenfolge: zuerst Preview, danach die mit `--skip-domain` bereitgestellte
 staged Production. Ein fehlgeschlagener Schritt stoppt die Freigabe; nach einer
@@ -155,10 +157,10 @@ wiederhergestelltes Deployment protokollieren.
 3. SPF, DKIM, Return-Path und DMARC prüfen.
 4. Mit einer neuen, nicht persönlichen Adresse Registrierung, Bestätigung und Login prüfen.
 5. Recovery anfordern, neues Passwort setzen, abmelden, neu anmelden; altes Passwort und wiederverwendeter Link müssen scheitern.
-6. Google und Magic Link nur bei ausdrücklicher Freigabe vollständig durchspielen; sonst bleiben beide Schalter leer und die Einstiege unsichtbar.
+6. Magic Link nur bei ausdrücklicher Freigabe vollständig durchspielen; sonst bleibt sein Schalter leer und der Einstieg unsichtbar.
 7. Security Advisor und Leaked-Password-Protection prüfen.
 
-Lokal bleibt Google deaktiviert. Lifecycle-Tests halten lokale Secrets nur im
+Lifecycle-Tests halten lokale Secrets nur im
 privilegierten Node-Prozess; Vite und Playwright erhalten keine Service Role.
 
 ## 6. Datenbank, RLS und Restore

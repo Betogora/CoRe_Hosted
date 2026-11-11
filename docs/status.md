@@ -27,7 +27,7 @@ vollständig.
 
 - **Core:** Account, Heute, Erstellen und APKG-Import, Lernen, Kartenverwaltung und Karteneditor, Prüfungsplaner, Zusammenfassungen und Mindmaps, Statistik, Einstellungen, accountgebundene Persistenz mit Sync. Bildverdeckung gehört zum Kern.
 - **Vorbereitet, nicht aktiv:** Karten aus einer Quelle per KI ist bis zur Auftragsprüfung bedienbar; „Karten erstellen“ bleibt deaktiviert.
-- **Disabled:** Anki-Pakete über 2 GiB (ohne Serverfallback abgewiesen), Google und Magic Link (eigene Schalter), DOCX/OCR bei der manuellen Erstellung, vollständige Account-Auskunft und -Löschung.
+- **Disabled:** Anki-Pakete über 2 GiB (ohne Serverfallback abgewiesen), Magic Link (eigener Schalter), DOCX/OCR bei der manuellen Erstellung, vollständige Account-Auskunft und -Löschung.
 - **Entfernt:** Labs-Oberflächen und -Routen, serverseitiger APKG-Import und ihre Persistenz.
 
 Die verbindliche Reifeentscheidung steht in [ADR-001](decisions.md#adr-001--produktumfang-nur-mit-auftrag).

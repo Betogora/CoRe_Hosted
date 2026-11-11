@@ -28,7 +28,7 @@ stehen in [`todo.md`](todo.md).
 **Status:** angenommen
 **Kontext:** Der frühe MVP enthielt Labs-, Community-, Graph-, breite KI- und serverseitige Groß-APKG-Pfade unterschiedlicher Reife, die UI, Modell, APIs und Betrieb durchzogen, ohne zum freigegebenen Kern zu gehören. Sichtbarkeit allein darf nicht als Freigabe gelten.
 **Entscheidung:** CoRe enthält nur Funktionen mit ausdrücklichem Auftrag und eigener Abnahme. Ausgemusterte Flächen werden samt Routen, Zustand, Daten und Tests vollständig entfernt; es gibt weder Labs noch eine Produktoberflächen-Registry. APKG wird bis 2 GiB lokal im Browser importiert, ohne Serverpfad. Stapel sind privat.
-**Konsequenzen:** Eine frühere Route oder Altstruktur begründet keinen Produktanspruch. Schalter für gebaute, noch nicht freigegebene Loginwege (Google, Magic Link) sind zulässig. Produktive Datenlöschung erfolgt nur nach App-Deployment und verifizierter Projekt-Ref.
+**Konsequenzen:** Eine frühere Route oder Altstruktur begründet keinen Produktanspruch. Schalter für gebaute, noch nicht freigegebene Loginwege (Magic Link) sind zulässig. Produktive Datenlöschung erfolgt nur nach App-Deployment und verifizierter Projekt-Ref.
 **Datum:** 2026-07-15
 
 ## ADR-006 — Keine generische Anbieteradapter-Schicht
