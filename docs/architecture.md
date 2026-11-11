@@ -52,6 +52,8 @@ CoRe ist eine Vite-/React-SPA mit TypeScript. Accountgebundene Browsermodule kap
 
 Die Pfade in der Tabelle liegen unter `src/`, soweit kein anderer Pfad angegeben ist. Fremdpayloads bleiben `unknown`, bis das besitzende Modul sie validiert. Es gibt keine zentrale Sammelvalidierung oder allgemeine Anbieter-Adapterebene.
 
+`scripts/verifyModuleBoundaries.ts` prüft in `npm run typecheck` die Importgrenzen: `screens/` und `ui/` laden Persistenz- und Cloud-Module höchstens als Typ, APKG-Interna nur über `apkgImport.ts`, `coreModel/` nur über `coreModel.ts`, `ui/` nichts aus `screens/`, `.ts`-Module direkt unter `src/` außer `use*.ts` und `appScreenProps.ts` weder React noch `screens/`/`ui/`. Dazu hält es Obergrenzen, die nur sinken dürfen (Zeilen von `App.tsx` und `appScreenProps.ts`, `any`-Typen in `cloudRepository.ts` und `syncEngine.ts`); bekannte Ausnahmen und Obergrenzen stehen als Konstanten `IMPORT_EXCEPTIONS` und `MODULE_LIMITS` im Skript.
+
 ### Theme- und UI-Vertrag
 
 `styles.css` besitzt Palette, semantische Rollen, Typografie und gemeinsame Control-Styles. `coreTheme.ts` besitzt Browserpräferenz und Dokumentattribut. `CoreSegmentedControl` und die untere `AppNavigation` teilen `useSlidingSelection`; die fachliche Auswahl bleibt beim Aufrufer. UI-Details stehen ausschließlich im [UI-Modulindex](../src/ui/README.md); [UI-Elements](ui-elements.html) ist die erzeugte Referenz nach Elementfamilien. Gemeinsame Änderungen werden dort synchronisiert und visuell geprüft.
