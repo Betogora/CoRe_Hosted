@@ -20,7 +20,7 @@ import type {
   SettingsSaveScope,
   GlobalLearningSettingsSaveScope,
 } from "./appScreenProps.ts";
-import { CreationScreen, DashboardScreen, DeckSettingsScreen, DecksScreen, ExamPlanningScreen, GlobalCardSettingsScreen, HelpScreen, LearnScreen, preloadAppView, preloadSettingsDialog, SettingsDialog, SettingsScreen, SimulatorScreen, StatisticsScreen, StudyMode } from "./appFeatureLoading.tsx";
+import { CreationScreen, DashboardScreen, DeckSettingsScreen, DecksScreen, ExamPlanningScreen, GlobalCardSettingsScreen, HelpScreen, LearnScreen, prefetchAppView, preloadAppView, preloadSettingsDialog, SettingsDialog, SettingsScreen, SimulatorScreen, StatisticsScreen, StudyMode } from "./appFeatureLoading.tsx";
 import { allowsBrowserSpeculativePreloading, startAdaptiveFeaturePreloading } from "./appFeaturePreload.ts";
 import { startAppSyncLifecycle } from "./appSyncLifecycle.ts";
 import { clearCloudAuthRedirectParams, formatCloudAuthError, getCloudUser, resetCloudPassword, signInCloudAccount, signInWithGoogle, signInWithMagicLink, signOutCloudAccount, signUpCloudAccount, updateCloudPassword } from "./cloudAuth.ts";
@@ -1026,7 +1026,7 @@ export function App() {
 
   React.useEffect(() => {
     if (authPhase !== "ready" || !workspaceRepository || !featurePreloadingAllowed) return undefined;
-    return startAdaptiveFeaturePreloading({ preload: preloadAppView });
+    return startAdaptiveFeaturePreloading({ preload: prefetchAppView });
   }, [authPhase, featurePreloadingAllowed, workspaceRepository]);
 
   React.useEffect(() => {

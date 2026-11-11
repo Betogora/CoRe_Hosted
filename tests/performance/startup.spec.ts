@@ -150,8 +150,8 @@ async function measureRun(
   await waitForMark(page, targetMark);
   await waitForMark(page, appPerformanceMarks.firstDeckSummariesReady);
   if (waitForAutomaticPreloads) {
-    await waitForMark(page, "core:feature:learn:ready");
-    await waitForMark(page, "core:feature:decks:ready");
+    await waitForMark(page, "core:feature:learn:prefetched");
+    await waitForMark(page, "core:feature:decks:prefetched");
   }
   await page.waitForTimeout(BACKGROUND_OBSERVATION_MS);
   const result = await page.evaluate(({ marks, measures, selectedTarget, includeAutomaticPreloads }) => {
@@ -173,9 +173,10 @@ async function measureRun(
       `core:feature:${feature}:start`,
       `core:feature:${feature}:ready`,
     ));
+    // The automatic preload only downloads (`prefetchAppView`); a long task in its window comes from elsewhere.
     const automaticPreloadIntervals = ["learn", "decks"].map((feature) => interval(
-      `core:feature:${feature}:start`,
-      `core:feature:${feature}:ready`,
+      `core:feature:${feature}:prefetch-start`,
+      `core:feature:${feature}:prefetched`,
     ));
     const longestFeatureLoadTaskMs = Math.max(0, ...featureIntervals.map(longestOverlappingTask));
     const longestAutomaticPreloadTaskMs = Math.max(0, ...automaticPreloadIntervals.map(longestOverlappingTask));
@@ -193,8 +194,8 @@ async function measureRun(
       bootstrapApplyMs: measure(measures.bootstrapApply),
       renderAfterBootstrapMs: (mark(selectedTarget)?.startTime ?? Number.NaN) - (mark(marks.bootstrapApplyReady)?.startTime ?? Number.NaN),
       dashboardFeatureLoadMs: measure("core:feature:dashboard:load"),
-      learnPreloadMs: measure("core:feature:learn:load"),
-      decksPreloadMs: measure("core:feature:decks:load"),
+      learnPreloadMs: measure("core:feature:learn:prefetch"),
+      decksPreloadMs: measure("core:feature:decks:prefetch"),
       deckCount: Number(detail(marks.firstDeckSummariesReady)?.deckCount ?? detail(marks.indexedDbShellReady)?.deckCount ?? 0),
       outboxCount: Number(detail(marks.indexedDbStartupMetadataReady)?.outboxCount ?? 0),
       projectionRebuildCount: Number(detail(marks.firstDeckSummariesReady)?.rebuildCount ?? 0),

@@ -1734,7 +1734,7 @@ Zustände und Meldungen:
 Verhalten:
 
 - Wird der Browserspeicher knapp, entfernt CoRe nur bestätigte Karteninhalte und Medien, die nicht offline verfügbar gemacht wurden; ausstehende Änderungen, Konflikte, Downloads und aktive Lernkarten bleiben. Die Schwellen regelt [`architecture.md`](architecture.md#persistenz-sync-und-medien).
-- Nach lokaler Bereitschaft dürfen Stapelübersicht und Kartenverwaltung vorsichtig vorbereitet werden; Datensparmodus, langsame Verbindung, unsichtbarer Tab oder Interaktion stoppen das. Andere Bereiche lädt CoRe erst bei absehbarer Nutzung vor, APKG, PDF, Statistik, Simulator und große Medien nie pauschal.
+- Nach lokaler Bereitschaft lädt CoRe Lernen und Kartenverwaltung herunter, ohne sie schon auszuführen; Datensparmodus, langsame Verbindung, unsichtbarer Tab oder Interaktion stoppen das. Ausgeführt wird ein Bereich erst bei absehbarer Nutzung (Zeigen, Fokus oder Berühren seines Menüpunkts) oder beim Aufruf. Ein geöffneter Bereich lädt seine Unterbereiche, etwa Zusammenfassungen und Mindmaps, im Leerlauf herunter. Andere Bereiche lädt CoRe erst bei absehbarer Nutzung vor, APKG, PDF, Statistik, Simulator und große Medien nie pauschal.
 - Die Einstellungen zeigen, ob der Speicher dauerhaft ist, sowie belegten und verfügbaren Platz. Die App-Hülle ist offline verfügbar; Medien bleiben selektiv, und ohne dauerhafte Speicherfreigabe kann der Browser Daten entfernen.
 
 Zustände und Meldungen:
