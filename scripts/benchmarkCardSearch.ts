@@ -49,16 +49,22 @@ const percentile = (values: number[], share: number) => [...values].sort((a, b) 
 
 const firstSearch = time(() => index.search("muskel", sorts[0]));
 const durations: number[] = [];
+const afterPut: number[] = [];
 for (let run = 0; run < runs; run += 1) {
-  // A changed card invalidates orders and results, as an edit does before the next search.
+  // A changed card invalidates the cached results, as an edit does before the next search.
   index.put({ ...entries[run], sortText: `${entries[run].sortText} ${run}` });
   for (const sort of sorts) {
-    for (const query of queries) durations.push(time(() => index.search(query, sort)));
+    for (const [position, query] of queries.entries()) {
+      const duration = time(() => index.search(query, sort));
+      durations.push(duration);
+      if (position === 0) afterPut.push(duration);
+    }
   }
 }
 const p95 = percentile(durations, 0.95);
 const median = percentile(durations, 0.5);
 console.log(`Kartensuche: ${cardCount.toLocaleString("de-DE")} Karten, erste Suche ${firstSearch.toFixed(1)} ms, Median ${median.toFixed(1)} ms, p95 ${p95.toFixed(1)} ms`);
+console.log(`Suche direkt nach einer Einzeländerung: Median ${percentile(afterPut, 0.5).toFixed(1)} ms, p95 ${percentile(afterPut, 0.95).toFixed(1)} ms`);
 const failures = [
   firstSearch > FIRST_SEARCH_BUDGET_MS ? `erste Suche ${firstSearch.toFixed(1)} ms > ${FIRST_SEARCH_BUDGET_MS} ms` : null,
   p95 > SEARCH_BUDGET_MS ? `p95 ${p95.toFixed(1)} ms > ${SEARCH_BUDGET_MS} ms` : null,
