@@ -79,6 +79,7 @@ const IMPORT_EXCEPTIONS: readonly ImportException[] = [
 const MODULE_LIMITS: readonly ModuleLimit[] = [
   { file: "src/App.tsx", measure: "Zeilen", max: 2487 },
   { file: "src/appScreenProps.ts", measure: "Zeilen", max: 409 },
+  { file: "src/indexedDbCoreRepository.ts", measure: "Zeilen", max: 915 },
   { file: "src/cloudRepository.ts", measure: "any-Typen", max: 182 },
   { file: "src/syncEngine.ts", measure: "any-Typen", max: 84 },
 ];

@@ -12,7 +12,7 @@ export function manualChunkForModule(moduleId = "") {
   if (id.includes("/node_modules/@supabase/")) return "supabase-vendor";
   if (id.includes("/node_modules/ts-fsrs/")) return "scheduler-vendor";
   if (id.includes("/node_modules/xss/")) return "html-safety-vendor";
-  if (/\/src\/indexedDbCoreRepository\.ts$/.test(id)) return "local-persistence";
+  if (/\/src\/indexedDb(?:CoreRepository|Outbox|CatalogSearch|CatalogSync|StudyOverview|CardBodies|ImportCommit)\.ts$/.test(id)) return "local-persistence";
   return undefined;
 }
 
