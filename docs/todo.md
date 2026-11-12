@@ -193,6 +193,59 @@ Dazu das KI-Kontingent pro Nutzer aus P2.
       und den Zielwert festlegen (Vorschlag: höchstens 2 Minuten). Nachweis:
       Messung mit 50.000 Karten vom Login bis zum vollständigen Katalog.
 
+## Pflege: Designsprache vereinheitlichen
+
+Regeln in [ADR-051](decisions.md). Je Paket ein Branch, zusammengeführt auf
+`worktree-designsprache`; D1 und D2 zuerst, D3–D7 bauen darauf auf. Abnahme
+je Paket: Fokustests, `npm run typecheck`, Katalogdemo für jeden neuen oder
+geänderten gemeinsamen Baustein, betroffene Ansichten in der visuellen
+Pflichtmatrix hell und dunkel. Die Bewertungsbuttons der Lernsitzung bleiben
+unverändert.
+
+- [ ] **D1 – Grundlage:** Gewichte 500/600/650, keine Schatten auf statischen
+      Flächen und Buttons, Kennzahlen proportional; `PageHeader` ohne Eyebrow,
+      `EmptyState` ohne gestrichelten Rahmen und Icon-Kreis, Segmentschiene
+      ohne Rahmen, Querlink als Textlink, liegende Aktionskarte, `StatTile`
+      ohne Icon-Kachel und mit rahmenloser Form, Heatmap-Kopf ohne Kachel.
+      Neue Bausteine mit Katalogdemo: Abschnittskopf, Kennzahlzeile,
+      Schrittlinie, Unterstreichungs-Reiter, Dialograhmen, Tag-Töne.
+- [ ] **D2 – Formelemente:** Checkbox und Checkbox-Gruppe, Schalter,
+      Schieberegler, Datumsauswahl und Antwortoptionen (Single und Multiple
+      Choice, einzeilig) nach HeroUI v3 in CoRe-Farben; alle nativen
+      Checkboxen, Radios und Schieberegler der App umgestellt. Rahmen der
+      Dokumentenwerkzeuge des Texteditors liegt nicht mehr hinter der Leiste.
+- [ ] **D3 – Heute, Stapelliste, Erststart:** Tagesziel als Auftakt mit
+      großer Restzahl und Start daneben, Kennzahlen als eine Zeile, ein Kopf
+      je Kachel, keine Hinweise; Stapelliste ohne Außenrahmen mit 48-px-Zeilen,
+      engeren Kennzahlspalten, betontem Lernen-Pfeil nur bei Arbeit und
+      Schnellformular als letzter Zeile; Erststart mit einem Titel, liegenden
+      Karten und Maskottchen, ohne die drei Aussagen darunter.
+- [ ] **D4 – Lernsitzung, Statistik, Hilfe, Login:** Lernsitzung im
+      bisherigen Aufbau, Kopf flach statt schwebend (Schließen, Stapelname mit
+      Zähler, Einstellungen, 4-px-Fortschritt), auf Mobil mit dem bisherigen
+      Antwort-Button; Statistik mit Kennzahlen als Kopfzeile ohne Panel und
+      Filter ohne Panel; Hilfe ohne Leerraum und Eyebrows; Login ohne Kasten
+      mit großer Marke.
+- [ ] **D5 – Erstellen:** Start mit drei kompakten Karten; Formular mit einem
+      Kopf und Zurück als Textlink; KI-Erstellung ohne Schritt-Eyebrows und
+      Icon-Kacheln, Fragen als Feldlabels, einzeilige Optionskarten; Import
+      mit Schrittlinie über die volle Kastenbreite und leichter Animation.
+- [ ] **D6 – Kartenverwaltung und Karteneditor:** Suche und Filter ohne Panel,
+      Tabelle als ein Blatt mit unveränderter Zeilenhöhe; Kopf der
+      Stapelinhalte mit Titel und `Karten lernen` auf einer Linie und
+      Unterstreichungs-Reitern; erweiterte Suche ohne Kasten im Kasten;
+      Karteneditor ab 1024 px als Dialog statt geteilter Ansicht, innen
+      Abschnitte mit Haarlinie, Lernstand als Zeilenliste ohne abgeschnittene
+      Beschriftungen und als Schrittlinie.
+- [ ] **D7 – Prüfungen und Einstellungen:** Kalender ohne Außenrahmen, Titel
+      und Umschalter in einer Zeile, Prüfungs-Chip und verschiebbare
+      Wochenaufgabe wie bisher; Planung mit Schrittlinie und sachlichen
+      Titeln; `Abmelden` als ruhige Gefahrenform, Untertitel nur mit Geltung
+      oder Folge.
+- [ ] **D8 – Zusammenführung:** `npm run docs:build`, `npm run gate:push`,
+      betroffene E2E-Specs und die visuelle Pflichtmatrix auf dem
+      zusammengeführten Stand.
+
 ## Pflege: Testsuite verschlanken
 
 Läuft unabhängig von den Paketen, je Paket ein eigener PR. Regeln im
@@ -259,6 +312,9 @@ Messung vom 2026-10-31 im [Verlauf](history.md).
 
 ### Oberfläche
 
+- Designsprache flächendeckend (ADR-051): übrige lokale Rahmenrezepte auf eine
+  flache Innenfläche mit Vertragstest, gemeinsame Listenzeile, Dialograhmen
+  für alle Dialoge, `styles.css` nach Tokens, Bausteinen und Features gliedern.
 - Sprungnavigation der Statistik ablösen; mit ihr entfallen `InPageNavigation`,
   `.core-in-page-content`, Katalogdemo und Tests.
 - Bild einer eigenen Bildverdeckung im Karteneditor austauschen.
