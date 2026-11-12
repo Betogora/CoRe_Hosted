@@ -77,7 +77,7 @@ const IMPORT_EXCEPTIONS: readonly ImportException[] = [
 
 /** Obergrenzen, die nur sinken dürfen: Istwert darüber oder darunter bricht ab. */
 const MODULE_LIMITS: readonly ModuleLimit[] = [
-  { file: "src/App.tsx", measure: "Zeilen", max: 2484 },
+  { file: "src/App.tsx", measure: "Zeilen", max: 1716 },
   { file: "src/appScreenProps.ts", measure: "Zeilen", max: 394 },
   { file: "src/cloudRepository.ts", measure: "any-Typen", max: 182 },
   { file: "src/syncEngine.ts", measure: "any-Typen", max: 84 },
