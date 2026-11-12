@@ -1434,8 +1434,8 @@ video {
   .core-slider[data-disabled] { opacity: 0.5; }
   .core-slider[data-disabled] input { cursor: not-allowed; }
 
-  /* Date picker: field with segments 14/20 (padding 0 2 px, radius 6 px, focused segment on the soft accent, placeholder
-     and dots muted, 1 px apart) and a 24-px calendar trigger with a 16-px icon, 12 px in from the start. Popover:
+  /* Date picker: field with segments 14/20 (padding 0 1 px, radius 6 px, focused segment on the soft accent, placeholder
+     and dots muted, set flush with 1 px padding) and a 24-px calendar trigger with a 16-px icon, 12 px in from the start. Popover:
      12-px padding, enters from 95 % in 150 ms; header with heading 14/20 weight 500 and 24-px round month buttons,
      16 px above the grid; weekdays 12/16 weight 500 muted, 8 px above the days; day cells square and round (252 / 7 =
      36 px; 44 px for touch), 14/20 weight 500; today on the soft accent, selection filled, hover neutral, pressed 95 %
@@ -1444,8 +1444,8 @@ video {
   .core-date-field { display: flex; align-items: center; gap: var(--core-space-xs); padding-block: 0; padding-inline-end: var(--core-space-sm); }
   .core-date-field:has(.core-date-segment:focus) { border-color: var(--core-action-primary); box-shadow: var(--core-shadow-selection); }
   .core-date-field[data-invalid] { border-color: var(--core-danger); box-shadow: 0 0 0 3px color-mix(in srgb, var(--core-danger) 12%, transparent); }
-  .core-date-field-segments { display: flex; flex: 1 1 auto; align-items: center; gap: 1px; min-width: 0; font-variant-numeric: tabular-nums; }
-  .core-date-segment { padding-inline: 0.125rem; border-radius: var(--core-radius-marker); color: var(--core-text); cursor: text; outline: none !important; -webkit-user-select: none; -moz-user-select: none; user-select: none; }
+  .core-date-field-segments { display: flex; flex: 1 1 auto; align-items: center; gap: 0; min-width: 0; font-variant-numeric: tabular-nums; }
+  .core-date-segment { padding-inline: 1px; border-radius: var(--core-radius-marker); color: var(--core-text); cursor: text; outline: none !important; -webkit-user-select: none; -moz-user-select: none; user-select: none; }
   .core-date-segment[data-placeholder] { color: var(--core-text-muted); }
   .core-date-segment:focus { background: var(--core-action-soft); color: var(--core-action-primary); }
   .core-date-field[data-invalid] .core-date-segment { color: var(--core-danger); }
@@ -2319,9 +2319,6 @@ video {
 .min-w-\[1\.125rem\] {
   min-width: 1.125rem;
 }
-.min-w-\[15rem\] {
-  min-width: 15rem;
-}
 .min-w-\[38rem\] {
   min-width: 38rem;
 }
@@ -2614,18 +2611,6 @@ video {
 .grid-cols-\[minmax\(0\2c 1fr\)_auto_minmax\(0\2c 1fr\)\] {
   grid-template-columns: minmax(0,1fr) auto minmax(0,1fr);
 }
-.grid-cols-\[minmax\(13rem\2c 1fr\)_auto\] {
-  grid-template-columns: minmax(13rem,1fr) auto;
-}
-.grid-cols-\[minmax\(13rem\2c 1fr\)_minmax\(15rem\2c auto\)_auto\] {
-  grid-template-columns: minmax(13rem,1fr) minmax(15rem,auto) auto;
-}
-.grid-cols-\[minmax\(5rem\2c 1fr\)_auto\] {
-  grid-template-columns: minmax(5rem,1fr) auto;
-}
-.grid-cols-\[minmax\(5rem\2c 1fr\)_auto_auto\] {
-  grid-template-columns: minmax(5rem,1fr) auto auto;
-}
 .grid-rows-\[auto_minmax\(0\2c 1fr\)\] {
   grid-template-rows: auto minmax(0,1fr);
 }
@@ -2727,6 +2712,10 @@ video {
 }
 .gap-8 {
   gap: 2rem;
+}
+.gap-x-1 {
+  -moz-column-gap: 0.25rem;
+       column-gap: 0.25rem;
 }
 .gap-x-1\.5 {
   -moz-column-gap: 0.375rem;
@@ -4563,6 +4552,15 @@ summary {
   border-radius: var(--core-radius-round);
 }
 
+/* Exam filter in the calendar head: a CoreTag with the exam colour as dot; hidden exams fade to an outline with a hollow dot.
+   The button keeps the control height as touch target around the 24-px tag. */
+.core-exam-filter { display: inline-flex; min-width: 0; max-width: 100%; min-height: var(--core-button-height); align-items: center; border-radius: var(--core-radius-control); }
+.core-exam-filter .core-tag { max-width: 100%; overflow-wrap: anywhere; transition: background-color 120ms ease, color 120ms ease; }
+.core-exam-filter[aria-pressed="true"]:hover .core-tag { --core-tag-surface: var(--core-surface-hover); }
+.core-exam-filter[aria-pressed="false"] .core-tag { --core-tag-text: var(--core-text-muted); }
+.core-exam-filter[aria-pressed="false"]:hover .core-tag { --core-tag-text: var(--core-text-secondary); }
+.core-exam-filter[aria-pressed="false"] .core-tag-dot { background: transparent !important; box-shadow: inset 0 0 0 1.5px var(--core-exam-tint); }
+
 /* SectionHeader: one head per surface; the minimum height keeps neighbouring heads on one baseline (ADR-051). */
 .core-section-header {
   display: flex;
@@ -4773,11 +4771,13 @@ button.core-steps-step:disabled {
 .core-tabs[data-overflow-start] .core-tabs-list { -webkit-mask-image: linear-gradient(to left, #000 calc(100% - 3rem), transparent); mask-image: linear-gradient(to left, #000 calc(100% - 3rem), transparent); }
 .core-tabs[data-overflow-start][data-overflow-end] .core-tabs-list { -webkit-mask-image: linear-gradient(to right, transparent, #000 3rem, #000 calc(100% - 3rem), transparent); mask-image: linear-gradient(to right, transparent, #000 3rem, #000 calc(100% - 3rem), transparent); }
 
+/* The label sits low above the line: a third of the centred gap below it is taken away, the click area keeps the control height. */
 .core-tabs-tab {
   display: inline-grid;
   flex-shrink: 0;
-  align-items: center;
+  align-content: end;
   min-height: var(--core-control-height);
+  padding-bottom: calc((var(--core-control-height) - var(--core-leading-body)) / 3);
   color: var(--core-text-secondary);
   font: var(--core-weight-control) var(--core-type-body)/var(--core-leading-body) var(--core-font-sans);
   white-space: nowrap;
@@ -6501,10 +6501,6 @@ button.core-steps-step:disabled {
 }
 .last\:border-b-0:last-child {
   border-bottom-width: 0px;
-}
-.hover\:-translate-y-0\.5:hover {
-  --tw-translate-y: -0.125rem;
-  transform: translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y));
 }
 .hover\:scale-105:hover {
   --tw-scale-x: 1.05;

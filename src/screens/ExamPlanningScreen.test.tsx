@@ -180,13 +180,13 @@ test("ausgeblendete Prüfungen behalten ihren Umschaltknopf und freie Wochenblö
   ] };
   const original = structuredClone(capacity);
   const week = renderToStaticMarkup(<ExamWeekCalendar exams={[first, second]} shown={[second]} onToggleExam={() => undefined} decks={[]} capacity={capacity} forecast={null} today={today} date={today} busy={false} color={() => "#1749e5"} onSelect={() => undefined} onChange={() => { assert.fail("Filtern darf keine Planung ändern"); }} />);
-  assert.match(week, /aria-pressed="false"[^>]*>Anatomie<\/button>/);
-  assert.match(week, /aria-pressed="true"[^>]*>Physiologie<\/button>/);
+  assert.match(week, /aria-pressed="false"[^>]*><span class="core-tag core-tag-outline">[\s\S]*?Anatomie<\/span><\/button>/);
+  assert.match(week, /aria-pressed="true"[^>]*><span class="core-tag core-tag-neutral">[\s\S]*?Physiologie<\/span><\/button>/);
   assert.doesNotMatch(week, /data-week-block="assigned"/);
   assert.match(week, /data-week-block="open"/);
   const month = renderToStaticMarkup(<ExamMonthCalendar exams={[first, second]} shown={[]} onToggleExam={() => undefined} forecast={null} today={today} date={today} color={() => "#1749e5"} onSelect={() => undefined} />);
-  assert.match(month, /aria-pressed="false"[^>]*>Anatomie<\/button>/);
-  assert.match(month, /aria-pressed="false"[^>]*>Physiologie<\/button>/);
+  assert.match(month, /aria-pressed="false"[^>]*><span class="core-tag core-tag-outline">[\s\S]*?Anatomie<\/span><\/button>/);
+  assert.match(month, /aria-pressed="false"[^>]*><span class="core-tag core-tag-outline">[\s\S]*?Physiologie<\/span><\/button>/);
   assert.doesNotMatch(month, /data-exam-appointment=/);
   assert.deepEqual(capacity, original);
 });

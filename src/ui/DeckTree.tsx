@@ -1,19 +1,146 @@
-import React from "react";
+import React, { type CSSProperties, type ReactNode } from "react";
 import { ArrowLeft, ChevronDown, ChevronRight, Grid2x2, List, PanelsTopLeft, Play, X } from "lucide-react";
 import { createPortal } from "react-dom";
 import { createDeckPlacementValidator, type DeckMutationResult } from "../coreWorkspace.ts";
 import type { CoreMode, Deck } from "../coreTypes.ts";
-import { getVisibleDeckDepth } from "../deckHierarchy.ts";
+import { DECK_DEPTH_INDENT_PX, getVisibleDeckDepth } from "../deckHierarchy.ts";
 import type { DeckLibraryRow } from "../libraryModel.ts";
 import { DeckOptionsMenu } from "./DeckOptionsMenu.tsx";
-import { DeckSummaryHeader, DeckSummaryRow } from "./DeckSummaryRow.tsx";
 import { ActionButton, IconButton } from "./actionUi.tsx";
 import { CoreIconSegmentedControl } from "./coreUi.tsx";
 import { CoreTooltip } from "./tooltipUi.tsx";
-import { getDeckAppearance } from "./deckAppearance.tsx";
+import { DeckAppearanceIcon, getDeckAppearance } from "./deckAppearance.tsx";
+import { LEARNING_STATUS_UI } from "./learningStatusUi.ts";
 import { useStableCallback } from "./useStableCallback.ts";
 
 export type DeckTreeView = "list" | "tiles";
+
+const DECK_COUNT_DEFINITIONS = [
+  { ...LEARNING_STATUS_UI.new, valueKey: "newCards", metric: "new" },
+  { ...LEARNING_STATUS_UI.inProgress, valueKey: "inProgressCards", metric: "in-progress" },
+  { ...LEARNING_STATUS_UI.due, valueKey: "dueCards", metric: "due" },
+] as const;
+
+const useDeckNameLayoutEffect = typeof window === "undefined" ? React.useEffect : React.useLayoutEffect;
+
+function AdaptiveDeckName({ name, className }: { name: string; className: string }) {
+  const containerRef = React.useRef<HTMLSpanElement>(null);
+  const measurementRef = React.useRef<HTMLSpanElement>(null);
+  const [wraps, setWraps] = React.useState(false);
+
+  useDeckNameLayoutEffect(() => {
+    const container = containerRef.current;
+    const measurement = measurementRef.current;
+    if (!container || !measurement) return undefined;
+
+    const synchronize = () => {
+      const nextWraps = measurement.getBoundingClientRect().width > container.clientWidth + 0.5;
+      setWraps((current) => current === nextWraps ? current : nextWraps);
+    };
+    synchronize();
+
+    const observer = typeof ResizeObserver === "undefined" ? null : new ResizeObserver(synchronize);
+    observer?.observe(container);
+    document.fonts?.addEventListener("loadingdone", synchronize);
+    return () => {
+      observer?.disconnect();
+      document.fonts?.removeEventListener("loadingdone", synchronize);
+    };
+  }, [name]);
+
+  return (
+    <>
+      <span
+        ref={containerRef}
+        className={`core-deck-summary-name min-w-0 flex-1 ${className}`}
+        data-deck-name-wrap={wraps ? "true" : "false"}
+      >
+        {name}
+      </span>
+      <span ref={measurementRef} className={`core-deck-summary-name-measure ${className}`} aria-hidden="true">{name}</span>
+    </>
+  );
+}
+
+function DeckSummaryHeader() {
+  return (
+    <div className="core-deck-summary-container min-w-0" data-testid="deck-summary-header" aria-hidden="true">
+      <div data-deck-study-header="true" className="core-deck-summary-responsive core-table-header-row grid min-w-0 grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-1 border-b border-core-border px-1 core-caption font-medium text-core-muted">
+        <span className="min-w-0 truncate whitespace-nowrap">Stapel</span>
+        <div className="core-deck-summary-counts core-deck-summary-metrics grid items-center text-center">
+          {DECK_COUNT_DEFINITIONS.map((count) => (
+            <span key={count.metric} className="core-deck-summary-count min-w-0">
+              <span className="core-deck-summary-metric-label-full">{count.label}</span>
+            </span>
+          ))}
+        </div>
+        <span className="core-deck-summary-actions flex items-center justify-end gap-0.5">
+          <span className="core-deck-summary-actions-spacer h-0 shrink-0" />
+        </span>
+      </div>
+    </div>
+  );
+}
+
+/** One deck row of the tree; `folder` and `subfolder` project the same row as a tile of the tile view. */
+function DeckSummaryRow({ row, leadingControl, actions, studyAction, presentation }: {
+  row: Pick<DeckLibraryRow, "deck" | "name" | "path" | "depth" | "summary">;
+  leadingControl: ReactNode;
+  actions: ReactNode;
+  studyAction?: ReactNode;
+  presentation: "row" | "folder" | "subfolder";
+}) {
+  const folder = presentation !== "row";
+  const subfolder = presentation === "subfolder";
+  // Hierarchy reads from weight alone: a main deck (or folder tile) in 600, every subdeck in 500.
+  const mainDeck = folder ? !subfolder : row.depth === 0;
+  const gridClass = folder
+    ? `core-deck-folder-summary${subfolder ? " core-deck-subfolder-summary" : ""}`
+    : "core-deck-summary-responsive grid-cols-[minmax(0,1fr)_auto_auto] gap-1 px-1";
+
+  return (
+    <div className="core-deck-summary-container min-w-0">
+      <div
+        className={`pointer-events-none relative z-[1] grid min-h-control min-w-0 items-center ${gridClass}`}
+        style={{ "--core-deck-depth": folder ? 0 : getVisibleDeckDepth(row.depth), "--core-deck-icon-background": "transparent" } as CSSProperties}
+        data-deck-study-row={studyAction ? "true" : undefined}
+        data-deck-summary-row-content="responsive"
+      >
+        <div className="core-deck-summary-leading flex min-w-0 items-center gap-1.5" style={{ paddingInlineStart: `calc(var(--core-deck-depth) * var(--core-deck-depth-indent, ${DECK_DEPTH_INDENT_PX}px))` }}>
+          {leadingControl}
+          <DeckAppearanceIcon
+            data-deck-icon="true"
+            deck={row.deck}
+            className={folder ? subfolder ? "size-5" : "size-6" : "size-8 core-deck-summary-icon [&>svg]:size-[15px]"}
+            iconSize={folder ? subfolder ? 18 : 24 : 18}
+          />
+          <span className="flex min-w-0 flex-1 items-center gap-1">
+            <AdaptiveDeckName name={row.name} className={`${mainDeck ? "font-semibold" : "font-medium"} text-core-text ${folder ? "core-body-large" : "core-body"}`} />
+          </span>
+        </div>
+
+        <dl className="core-deck-summary-counts core-deck-summary-metrics grid grid-cols-3 items-center gap-1" aria-label={`Lernstand für ${row.path}`}>
+          {DECK_COUNT_DEFINITIONS.map((count) => {
+            const value = row.summary[count.valueKey];
+            return (
+              <div key={count.metric} className="core-deck-summary-count min-w-4 text-center" data-deck-count={count.metric}>
+                <dt className={folder ? "core-caption text-core-muted" : "sr-only"}>{count.label}</dt>
+                <dd className="core-deck-summary-count-value" data-count-empty={value === 0 ? "true" : undefined} style={{ "--core-deck-count-color": count.color } as CSSProperties}>{value}</dd>
+              </div>
+            );
+          })}
+        </dl>
+
+        <div className="core-deck-summary-actions flex items-center justify-end gap-0.5">
+          <span className="inline-flex items-center gap-1">
+            {studyAction}
+            {actions}
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 const DECK_TREE_VIEW_OPTIONS = [
   { value: "tiles", label: "Als Kacheln anzeigen", icon: Grid2x2 },
@@ -236,14 +363,12 @@ const DeckTreeRow = React.memo(function DeckTreeRow({ row, mode, presentation, d
 
       <DeckSummaryRow
         row={row}
-        learningStatus={{ summary: row.summary, metricLabels: "sr-only" }}
         studyAction={tile ? undefined : studyAction}
         leadingControl={collapseControl}
         actions={tile ? <>
           {studyAction}
           {optionsMenu}
         </> : optionsMenu}
-        density="responsive"
         presentation={presentation}
       />
     </div>

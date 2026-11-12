@@ -38,6 +38,11 @@ test("deck tree keeps one visual header and all three accessibly labelled metric
   assert.equal((markup.match(/data-testid="deck-summary-header"/g) ?? []).length, 1);
   assert.match(markup, /data-testid="deck-summary-header"[^>]*aria-hidden="true"[\s\S]*>Stapel<[\s\S]*>Neu<[\s\S]*>Offen<[\s\S]*>Fällig</);
   assert.equal((markup.match(/data-deck-summary-row-content="responsive"/g) ?? []).length, 2);
+  // Rows show the local name only, the main deck in 600 and its subdeck in 500, with a transparent icon ground.
+  assert.match(markup, /class="core-deck-summary-name min-w-0 flex-1 font-semibold text-core-text core-body" data-deck-name-wrap="false">Bereich<\/span>/);
+  assert.match(markup, /class="core-deck-summary-name min-w-0 flex-1 font-medium text-core-text core-body" data-deck-name-wrap="false">Grundlagen<\/span>/);
+  assert.match(markup, /--core-deck-depth:1;--core-deck-icon-background:transparent/);
+  assert.match(markup, /padding-inline-start:calc\(var\(--core-deck-depth\) \* var\(--core-deck-depth-indent, 8px\)\)/);
   assert.equal((markup.match(/data-testid="deck-options-/g) ?? []).length, 2);
   assert.equal((markup.match(/data-deck-count="new"><dt class="sr-only">Neu<\/dt>/g) ?? []).length, 2);
   assert.equal((markup.match(/data-deck-count="in-progress"><dt class="sr-only">Offen<\/dt>/g) ?? []).length, 2);
@@ -100,6 +105,7 @@ test("deck tree maps six visible levels to group depths and clamps anything deep
   for (let level = 7; level <= 12; level += 1) {
     assert.match(markup, new RegExp(`data-testid="learn-deck-row-depth-${level}"[^>]*data-deck-depth="5"`));
   }
+  assert.equal((markup.match(/--core-deck-depth:5;/g) ?? []).length, 7);
   for (let level = 1; level < 12; level += 1) {
     assert.match(markup, new RegExp(`aria-label="Unterstapel von [^"]*Ebene ${level} ausblenden"`));
   }
