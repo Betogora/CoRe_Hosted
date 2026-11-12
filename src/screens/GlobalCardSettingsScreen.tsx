@@ -12,6 +12,7 @@ import { flagName } from "../ui/flagUi.tsx";
 import { normalizeFlagNames } from "../uiPreferences.ts";
 import { CoreNumberField } from "../ui/CoreNumberField.tsx";
 import { useSuccessToast } from "../ui/feedbackUi.tsx";
+import { CoreRadio } from "../ui/formControls.tsx";
 import { LearningSettingsPanel } from "../ui/LearningSettingsPanel.tsx";
 import { PomodoroTimerControl } from "../ui/pomodoroTimerUi.tsx";
 import { DeckSelect } from "../ui/selectUi.tsx";
@@ -110,7 +111,7 @@ export function GlobalCardSettingsScreen({ section, decks, onOpenDeckSettings, t
     <>
       {section === "lerntag" ? (
         <section id={sectionIds.planning} className="core-settings-section" aria-labelledby="card-settings-planning-heading">
-          <h2 id="card-settings-planning-heading" tabIndex={-1} className="core-heading-2 font-semibold text-core-text outline-none">Lerntag & Planung</h2>
+          <h2 id="card-settings-planning-heading" tabIndex={-1} className="core-heading-2 text-core-text outline-none">Lerntag & Planung</h2>
           <p className="core-settings-row-hint">Gilt kontoweit. Stapel und Lernprofile ändern diese Werte nicht.</p>
           <div className="core-settings-list">
             <div className="core-settings-row">
@@ -154,14 +155,12 @@ export function GlobalCardSettingsScreen({ section, decks, onOpenDeckSettings, t
                     {easyDayOptions.map((option) => (
                       <td key={option.value}>
                         <label className="core-settings-matrix-cell" data-level={option.value}>
-                          <input
-                            type="radio"
+                          <CoreRadio
                             name={`card-settings-easy-day-${key}`}
                             value={option.value}
                             checked={draft.easyDays[key] === option.value}
                             aria-label={`${weekdayLabels[key]}: ${option.label}`}
-                            className="size-4 cursor-pointer accent-core-action"
-                            onChange={() => setDraft((current) => ({ ...current, easyDays: { ...current.easyDays, [key]: option.value } }))}
+                            onCheckedChange={() => setDraft((current) => ({ ...current, easyDays: { ...current.easyDays, [key]: option.value } }))}
                           />
                         </label>
                       </td>
@@ -195,10 +194,7 @@ export function GlobalCardSettingsScreen({ section, decks, onOpenDeckSettings, t
           <h3 className="core-heading-3 text-core-text">Einzelne Stapel</h3>
           <div className="core-settings-list">
             <div className="core-settings-row" data-layout="inline">
-              <div className="core-settings-row-text">
-                <span className="core-settings-row-title">Stapeleinstellungen</span>
-                <p className="core-settings-row-hint">Werte einzelner Stapel weichen vom Standard ab.</p>
-              </div>
+              <span className="core-settings-row-title">Stapeleinstellungen</span>
               <div className="core-settings-row-control md:w-72">
                 <DeckSelect ariaLabel="Stapeleinstellungen öffnen" value="" decks={decks} specialOption={{ value: "", label: "Stapel wählen", icon: Layers }} onValueChange={(deckId) => { if (deckId) onOpenDeckSettings(deckId); }} testId="card-settings-open-deck" className="w-full" />
               </div>
@@ -209,7 +205,7 @@ export function GlobalCardSettingsScreen({ section, decks, onOpenDeckSettings, t
 
       {section === "flaggen" ? (
         <section id={sectionIds.flags} className="core-settings-section" aria-labelledby="card-settings-flags-heading">
-          <h2 id="card-settings-flags-heading" tabIndex={-1} className="core-heading-2 font-semibold text-core-text outline-none">Flaggen</h2>
+          <h2 id="card-settings-flags-heading" tabIndex={-1} className="core-heading-2 text-core-text outline-none">Flaggen</h2>
           <p className="core-settings-row-hint">Eigene Namen gelten kontoweit. Ein leeres Feld zeigt den Farbnamen.</p>
           <div className="core-settings-list">
             {draft.flagNames.map((name, index) => {
@@ -240,7 +236,7 @@ export function GlobalCardSettingsScreen({ section, decks, onOpenDeckSettings, t
 
       {section === "fokus" ? (
         <section id={sectionIds.focus} className="core-settings-section" aria-labelledby="card-settings-focus-heading">
-          <h2 id="card-settings-focus-heading" tabIndex={-1} className="core-heading-2 font-semibold text-core-text outline-none">Fokuswerkzeuge</h2>
+          <h2 id="card-settings-focus-heading" tabIndex={-1} className="core-heading-2 text-core-text outline-none">Fokuswerkzeuge</h2>
           <div className="core-settings-list">
             <div className="core-settings-row" data-layout="inline">
               <div className="core-settings-row-text">

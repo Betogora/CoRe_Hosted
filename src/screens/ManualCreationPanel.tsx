@@ -1,7 +1,7 @@
 import React from "react";
 import type { TagDirectoryEntry } from "../tagDirectory.ts";
 import { TagInput } from "../ui/TagInput.tsx";
-import { ArrowDown, ArrowUp, CircleAlert, Database, Eye, FileText, ImagePlus, PenLine, Pin, PinOff, Plus, X } from "lucide-react";
+import { ArrowDown, ArrowUp, CircleAlert, Database, Eye, FileText, ImagePlus, Pin, PinOff, Plus, X } from "lucide-react";
 import {
   createManualBatchSession,
   manualDraftsEqual,
@@ -15,9 +15,10 @@ import type { MediaSyncProgress } from "../mediaStore.ts";
 import type { Deck, NoteContent, OcclusionMask } from "../coreTypes.ts";
 import { isReadableSourceDocument, READABLE_SOURCE_DOCUMENT_ACCEPT, READABLE_SOURCE_DOCUMENT_LABEL, type TransientSourceDocument } from "../documentModel.ts";
 import { ActionButton, IconButton } from "../ui/actionUi.tsx";
-import { ActionDialog, CoreSegmentedControl, OrbIcon, SoftPanel } from "../ui/coreUi.tsx";
+import { ActionDialog, CoreSegmentedControl, SoftPanel } from "../ui/coreUi.tsx";
 import { useSuccessToast } from "../ui/feedbackUi.tsx";
 import { FileDropField } from "../ui/FileDropField.tsx";
+import { CoreCheckbox, CoreRadio } from "../ui/formControls.tsx";
 import { PdfDocumentViewer } from "../ui/PdfDocumentViewer.tsx";
 import { RichTextEditor, type RichTextImageActions } from "../ui/RichTextEditor.tsx";
 import { CardPreviewDialog } from "../ui/CardPreviewDialog.tsx";
@@ -46,8 +47,7 @@ const QUESTION_TYPE_OPTIONS = [
   { value: "standard", label: "Standard" },
   { value: "single-choice", label: "Single Choice" },
   { value: "multiple-choice", label: "Multiple Choice" },
-  // The soft hyphen lets the long word break at 320 px; the accessible name stays „Bildverdeckung“.
-  { value: "image-occlusion", label: "Bild\u00ADverdeckung" },
+  { value: "image-occlusion", label: "Bildverdeckung" },
 ] as const;
 /** Image occlusion draft; the image is a prepared manual image named by its SHA-1. */
 type OcclusionDraft = { image: string | null; mode: OcclusionMode; masks: OcclusionMask[] };
@@ -73,6 +73,8 @@ export interface ManualCreationPanelProps {
   onTargetDeckChange?: (deckId: string) => unknown;
   onFinish?: (result: { createdCount: number; targetDeckId: string }) => void;
   onDraftStateChange?: (dirty: boolean, focusDraft: (() => void) | null, saving: boolean) => void;
+  /** The page head with the panel's actions on the right; the screen owns title and back link. */
+  renderHeader: (actions: React.ReactNode) => React.ReactNode;
 }
 
 interface PinFieldButtonProps {
@@ -132,6 +134,7 @@ export function ManualCreationPanel({
   onTargetDeckChange = () => undefined,
   onFinish = () => undefined,
   onDraftStateChange = () => undefined,
+  renderHeader,
 }: ManualCreationPanelProps) {
   const editorRootRef = React.useRef<HTMLDivElement | null>(null);
   const saveProgressRef = React.useRef<HTMLDivElement | null>(null);
@@ -646,7 +649,6 @@ export function ManualCreationPanel({
             });
             setFieldErrors((current) => ({ ...current, front: undefined }));
           }} clozeActions={isChoice || isOcclusion ? undefined : { groupId: nextClozeGroup }} imageActions={imageActions} isActive={frontFieldActive} minHeightClass={isOcclusion ? "min-h-20" : "min-h-32"} ariaLabel={isChoice ? `${isSingleChoice ? "Single" : "Multiple"}-Choice-Frage` : frontLabel} ariaInvalid={Boolean(fieldErrors.front)} />
-          {!isChoice && !isOcclusion ? <p className="core-caption text-core-muted">Markiere Text und wähle in der Toolbar „Lücke“. CoRe erzeugt die Lückengruppe automatisch.</p> : null}
           {fieldErrors.front ? <p className="core-caption font-medium text-core-danger" role="alert">{fieldErrors.front}</p> : null}
         </div>
         {occlusion ? (
@@ -684,18 +686,11 @@ export function ManualCreationPanel({
               const removalLocked = answerOptions.length <= 2 || (isMultipleChoice && correctnessLocked);
               return (
                 <div key={index} className="flex min-w-0 items-center gap-2">
-                  <label className="grid size-control shrink-0 place-items-center">
-                    <input
-                      className="size-5 accent-core-action"
-                      type={isSingleChoice ? "radio" : "checkbox"}
-                      name={isSingleChoice ? "manual-correct-option" : undefined}
-                      checked={isCorrect}
-                      disabled={correctnessLocked}
-                      onChange={() => toggleCorrectOption(index)}
-                      aria-label={`Option ${index + 1} als richtig markieren`}
-                      aria-invalid={Boolean(fieldErrors.correctOptions)}
-                    />
-                  </label>
+                  <span className="grid size-control shrink-0 place-items-center">
+                    {isSingleChoice
+                      ? <CoreRadio name="manual-correct-option" checked={isCorrect} disabled={correctnessLocked} invalid={Boolean(fieldErrors.correctOptions)} onCheckedChange={() => toggleCorrectOption(index)} aria-label={`Option ${index + 1} als richtig markieren`} />
+                      : <CoreCheckbox checked={isCorrect} disabled={correctnessLocked} invalid={Boolean(fieldErrors.correctOptions)} onCheckedChange={() => toggleCorrectOption(index)} aria-label={`Option ${index + 1} als richtig markieren`} />}
+                  </span>
                   <input data-manual-focus={index === 0 ? "option-0" : undefined} className="core-field min-w-0 flex-1" value={option} onChange={(event) => updateAnswerOption(index, event.target.value)} placeholder={`Option ${index + 1}`} aria-label={`Antwortoption ${index + 1}`} aria-invalid={Boolean(fieldErrors.options)} />
                   <IconButton type="button" icon={X} label={`Antwortoption ${index + 1} entfernen`} onClick={() => removeAnswerOption(index)} disabled={removalLocked} />
                 </div>
@@ -851,20 +846,16 @@ export function ManualCreationPanel({
   );
 
   return (
-    <SoftPanel className="core-responsive-panel-padding min-h-[calc(100vh-15rem)] p-6">
-      <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-3">
-          <OrbIcon icon={PenLine} />
-          <h2 className="core-heading-2 font-semibold text-core-text">Karte selbst erstellen</h2>
-        </div>
+    <>
+      {renderHeader(
         <div className="flex flex-wrap gap-2">
           {documentMode
             ? <ActionButton type="button" variant="secondary" icon={X} disabled={isSaving} onClick={closeDocument}>Quelle schließen</ActionButton>
             : <ActionButton type="button" variant="secondary" icon={FileText} onClick={() => setDocumentMode(true)}>PDF/Text anfügen</ActionButton>}
           <ActionButton ref={previewButtonRef} type="button" variant="secondary" icon={Eye} disabled={isSaving} onClick={() => setPreviewOpen(true)}>Vorschau</ActionButton>
-        </div>
-      </div>
-
+        </div>,
+      )}
+      <SoftPanel className="core-responsive-panel-padding min-h-[calc(100vh-15rem)] p-6">
       {documentMode ? (
         <div className={`grid gap-4 ${document ? "xl:grid-cols-2" : ""}`}>
           <div className="grid content-start gap-4" inert={isSaving} aria-disabled={isSaving || undefined}>
@@ -889,6 +880,7 @@ export function ManualCreationPanel({
       ) : (
         editor
       )}
-    </SoftPanel>
+      </SoftPanel>
+    </>
   );
 }

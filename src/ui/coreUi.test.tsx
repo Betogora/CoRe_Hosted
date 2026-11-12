@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { renderToStaticMarkup } from "react-dom/server";
-import { ActionDialog, CardMarkButton, CoreIconSegmentedControl, CoreModeControl, CoreSegmentedControl, CoreSlidingTabs, PageHeader } from "./coreUi.tsx";
-import { FileText, NotebookPen } from "lucide-react";
+import { ActionDialog, CardMarkButton, CoreIconSegmentedControl, CoreModeControl, CoreSegmentedControl, CoreSlidingTabs, CoreTag, EmptyState, PageHeader, StatTile } from "./coreUi.tsx";
+import { FileText, NotebookPen, Star } from "lucide-react";
 
 test("sliding tabs keep every icon and accessible label but show only the selected label", () => {
   const markup = renderToStaticMarkup(<CoreSlidingTabs ariaLabel="Stapelinhalte" options={[
@@ -34,13 +34,51 @@ test("icon segmented control names every option without visible labels and adds 
 
 test("page header keeps an optional action inside the header after its title", () => {
   const markup = renderToStaticMarkup(
-    <PageHeader eyebrow="Review" title="Lernen" action={<button type="button">Bereich</button>} />,
+    <PageHeader title="Lernen" action={<button type="button">Bereich</button>} />,
   );
 
   const header = markup.match(/<header[\s\S]*<\/header>/)?.[0] ?? "";
   assert.match(header, /<h2[^>]*data-screen-heading[^>]*>Lernen<\/h2>/);
   assert.match(header, /<button type="button">Bereich<\/button>/);
   assert.ok(header.indexOf("Lernen") < header.indexOf("Bereich"));
+  assert.doesNotMatch(header, /<p/, "kein Eyebrow über dem Titel");
+});
+
+test("page header leads with a back link above the title instead of an eyebrow", () => {
+  const markup = renderToStaticMarkup(<PageHeader title="Karte selbst erstellen" back={{ label: "Erstellen", onSelect: () => undefined }} />);
+
+  assert.match(markup, /class="core-page-header-back"><button type="button"[^>]*><svg[^>]*lucide-arrow-left[\s\S]*?Erstellen<\/button><\/div><h2[^>]*>Karte selbst erstellen<\/h2>/);
+});
+
+test("page header reads the greeting as the start of the heading and keeps a page tag outside its name", () => {
+  const greeting = renderToStaticMarkup(<PageHeader greeting="Willkommen zurück," title="Noemi!" />);
+  assert.match(greeting, /<p aria-hidden="true"[^>]*>Willkommen zurück,<\/p><h2[^>]*><span class="sr-only">Willkommen zurück, <\/span>Noemi!<\/h2>/);
+
+  const tagged = renderToStaticMarkup(<PageHeader title="Simulator" tag={<CoreTag tone="neutral">Nur lokal</CoreTag>} />);
+  assert.match(tagged, /<h2[^>]*>Simulator<\/h2><span class="core-tag core-tag-neutral">Nur lokal<\/span>/);
+});
+
+test("core tag offers five tones and an optional domain-colour dot", () => {
+  for (const tone of ["neutral", "info", "warning", "success", "outline"] as const) {
+    assert.match(renderToStaticMarkup(<CoreTag tone={tone}>Status</CoreTag>), new RegExp(`class="core-tag core-tag-${tone}">Status<`));
+  }
+  const dotted = renderToStaticMarkup(<CoreTag tone="neutral" dot="var(--core-exam-color-1)">Geografie</CoreTag>);
+  assert.match(dotted, /<span aria-hidden="true" class="core-tag-dot" style="background:var\(--core-exam-color-1\)"><\/span>Geografie/);
+});
+
+test("stat tile renders a definition list without an icon tile, boxed or plain", () => {
+  const boxed = renderToStaticMarkup(<StatTile size="compact" label="Reviews" value="12" />);
+  assert.match(boxed, /<dl data-size="compact" data-variant="boxed" class="[^"]*border[^"]*"><dt class="core-status-label text-core-muted">Reviews<\/dt><dd class="core-metric[^"]*">12<\/dd><\/dl>/);
+  const plain = renderToStaticMarkup(<StatTile variant="plain" label="Erfolgsrate" value="83,3 %" />);
+  assert.match(plain, /<dl data-size="default" data-variant="plain" class="flex flex-col min-w-0">/);
+  assert.doesNotMatch(plain, /border|rounded|shadow|<svg/);
+});
+
+test("empty state stands on a hairline surface with a free icon", () => {
+  const markup = renderToStaticMarkup(<EmptyState icon={Star} title="Noch keine Karten" body="Erstelle deine erste Karte." />);
+  assert.match(markup, /<section class="min-w-0 rounded-panel border border-core-border bg-core-surface p-7">/);
+  assert.doesNotMatch(markup, /border-dashed|rounded-round|bg-core-subtle/);
+  assert.match(markup, /<h3 class="core-heading-3 text-core-text">Noch keine Karten<\/h3>/);
 });
 
 test("action dialog exposes its accessible three-action contract", () => {
@@ -106,7 +144,7 @@ test("shared card mark control exposes pressed semantics", () => {
   assert.match(markup, /fill="currentColor"/);
 });
 
-test("segmented controls expose one icon-free pressed brick", () => {
+test("segmented controls expose one icon-free pressed brick and the CoRe mode is a switch", () => {
   const markup = renderToStaticMarkup(
     <>
       <CoreSegmentedControl
@@ -123,10 +161,11 @@ test("segmented controls expose one icon-free pressed brick", () => {
     </>,
   );
 
-  assert.equal((markup.match(/role="group"/g) ?? []).length, 2);
-  assert.equal((markup.match(/aria-pressed="true"/g) ?? []).length, 2);
-  assert.equal((markup.match(/aria-pressed="(true|false)"/g) ?? []).length, 5);
+  assert.equal((markup.match(/role="group"/g) ?? []).length, 1);
+  assert.equal((markup.match(/aria-pressed="true"/g) ?? []).length, 1);
+  assert.equal((markup.match(/aria-pressed="(true|false)"/g) ?? []).length, 3);
   assert.doesNotMatch(markup, /<svg/);
+  assert.match(markup, /<input type="checkbox" role="switch" aria-label="CoRe-Modus" checked=""\/>/);
 });
 
 test("segmented controls disable every option together", () => {

@@ -19,15 +19,8 @@ export interface NoteCardContentProps {
 }
 
 type Speech = Awaited<ReturnType<typeof renderNoteSpeech>>;
-type OptionTone = "idle" | "selected" | "correct" | "wrong" | "muted";
-
-const OPTION_TONE: Record<OptionTone, string> = {
-  idle: "border-core-border bg-core-surface",
-  selected: "border-core-action bg-[var(--core-action-soft)]",
-  correct: "core-mcq-option-correct border-core-success bg-core-success-soft",
-  wrong: "core-mcq-option-wrong border-core-danger bg-core-danger-soft",
-  muted: "border-core-border bg-core-surface text-core-muted",
-};
+/** `missed`: a correct option that was not chosen. */
+type OptionTone = "idle" | "selected" | "correct" | "missed" | "wrong" | "muted";
 
 function readTheme(): NotePresentationTheme | null {
   if (typeof document === "undefined") return null;
@@ -216,27 +209,31 @@ function NoteCardContentBody({ note, card, revealed, onReveal, surface = "review
         const letter = String.fromCharCode(65 + index);
         const tone: OptionTone = !revealed ? (isSelected && interaction.mode !== "kprim" ? "selected" : "idle")
           : interaction.mode === "kprim" ? (result.selected === null ? "idle" : result.correct ? "correct" : "wrong")
-            : option.correct ? "correct" : isSelected ? "wrong" : "muted";
-        const StateIcon = tone === "correct" ? CheckCircle2 : tone === "wrong" ? XCircle : null;
-        const stateIcon = StateIcon ? <StateIcon className="shrink-0 text-core-text" size={20} aria-hidden="true" /> : null;
+            : option.correct ? (isSelected ? "correct" : "missed") : isSelected ? "wrong" : "muted";
+        const StateIcon = tone === "correct" || tone === "missed" ? CheckCircle2 : tone === "wrong" ? XCircle : null;
+        const stateIcon = StateIcon ? <StateIcon className="core-mcq-state-icon" size={20} aria-hidden="true" /> : null;
         const badge = <span aria-hidden="true" className={`grid h-7 w-7 shrink-0 place-items-center rounded-inset border core-caption font-semibold ${tone === "selected" ? "border-core-action bg-core-action text-core-on-accent" : "border-core-border text-core-muted"}`}>{letter}</span>;
         const html = resolvePresentationMedia(presentation.options.find((item) => item.id === option.id)?.html ?? "", mediaUrls).replace(/\s(?:src|poster)="(?!data:|blob:)[^"]*"/gi, "");
         const text = <div className="card-html min-w-0 flex-1 overflow-x-auto core-body text-inherit" dangerouslySetInnerHTML={{ __html: html }} />;
         const plain = notePlainText(option.html);
-        if (interaction.mode === "kprim") return <div key={option.id} className={`grid gap-3 rounded-control border p-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center ${OPTION_TONE[tone]}`}>
+        const feedback = tone === "correct" ? "core-mcq-option-correct" : tone === "wrong" ? "core-mcq-option-wrong" : "";
+        if (interaction.mode === "kprim") return <div key={option.id} data-tone={tone} className={`core-kprim-option grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center ${feedback}`}>
           <div className="flex min-w-0 items-start gap-3">{badge}{text}</div>
           <div className="grid gap-2 sm:justify-items-end">
             <CoreSegmentedControl className="w-full sm:w-52" disabled={revealed} ariaLabel={`Aussage ${letter}`} value={result.selected === null ? "" : result.selected ? "richtig" : "falsch"} options={[{ value: "richtig", label: "richtig" }, { value: "falsch", label: "falsch" }]} onValueChange={(value) => setSelected((current) => ({ ...current, [option.id]: value === "richtig" }))} />
             {revealed ? <p className="flex items-center gap-1.5 core-caption font-semibold text-core-text">{stateIcon}Lösung: {option.correct ? "richtig" : "falsch"}</p> : null}
           </div>
         </div>;
-        return <button key={option.id} type="button" disabled={revealed} aria-pressed={isSelected}
-          aria-label={`Antwortoption ${letter}: ${plain}${tone === "correct" ? " (richtig)" : tone === "wrong" ? " (falsch gewählt)" : ""}`}
-          className={`core-mcq-option flex min-h-12 w-full items-center gap-3 rounded-control border px-3 py-2.5 text-left text-core-text ${OPTION_TONE[tone]}`}
+        const indicator = stateIcon ?? <span aria-hidden="true" className="core-mcq-indicator" data-shape={interaction.mode === "single" ? "dot" : "box"}>
+          {interaction.mode === "single" ? null : <svg viewBox="0 0 17 18"><polyline points="1 9 7 14 15 4" /></svg>}
+        </span>;
+        return <button key={option.id} type="button" disabled={revealed} aria-pressed={isSelected} data-tone={tone}
+          aria-label={`Antwortoption ${letter}: ${plain}${tone === "correct" || tone === "missed" ? " (richtig)" : tone === "wrong" ? " (falsch gewählt)" : ""}`}
+          className={`core-mcq-option ${feedback}`}
           onClick={() => {
             setSelected((current) => interaction.mode === "single" ? { [option.id]: true } : { ...current, [option.id]: !current[option.id] });
             if (interaction.mode === "single") onReveal();
-          }}>{badge}{text}{stateIcon}</button>;
+          }}>{badge}{text}{indicator}</button>;
       })}
       {!revealed && interaction.mode !== "single" ? <ActionButton variant="primary" className="mt-1 w-fit" disabled={!choiceResult!.complete} onClick={onReveal}>Antwort prüfen</ActionButton> : null}
       {revealed ? <StatusMessage className="mt-1" tone={!choiceResult!.complete ? "info" : choiceResult!.correct ? "success" : "error"} announce="polite">{!choiceResult!.complete ? "Lösung aufgedeckt." : choiceResult!.correct ? "Richtig ausgewählt."

@@ -16,6 +16,7 @@ import { ActionButton, IconButton } from "./actionUi.tsx";
 import { ActionDialog, CoreSegmentedControl } from "./coreUi.tsx";
 import { CoreNumberField } from "./CoreNumberField.tsx";
 import { useSuccessToast } from "./feedbackUi.tsx";
+import { CoreSlider, CoreSwitch } from "./formControls.tsx";
 import { CoreSelect } from "./selectUi.tsx";
 
 const learningStepOptions = [
@@ -190,7 +191,7 @@ export function LearningSettingsPanel({ draft, profiles, defaultProfileName, con
     <>
       {section === "daily" ? (
         <section id={dailySectionId} className="core-settings-section" aria-labelledby={dailyHeadingId}>
-          <h2 id={dailyHeadingId} tabIndex={-1} className="core-heading-2 font-semibold text-core-text outline-none">Tagesrunde & Lernprofile</h2>
+          <h2 id={dailyHeadingId} tabIndex={-1} className="core-heading-2 text-core-text outline-none">Tagesrunde & Lernprofile</h2>
           <div className="core-settings-list">
             <SettingsRow
               title="Lernprofil-Vorlage"
@@ -243,7 +244,7 @@ export function LearningSettingsPanel({ draft, profiles, defaultProfileName, con
                 <label key={option.key} className="core-settings-row cursor-pointer" data-layout="inline">
                   <span className="core-settings-row-title">{option.label}</span>
                   <span className="core-settings-row-control">
-                    <input type="checkbox" className="size-4 shrink-0 cursor-pointer accent-core-action" checked={draft[option.key]} data-testid={option.testId} onChange={(event) => editLearning({ [option.key]: event.target.checked })} />
+                    <CoreSwitch checked={draft[option.key]} data-testid={option.testId} onCheckedChange={(checked) => editLearning({ [option.key]: checked })} />
                   </span>
                 </label>
               ))}
@@ -254,7 +255,7 @@ export function LearningSettingsPanel({ draft, profiles, defaultProfileName, con
 
       {section === "scheduler" ? (
         <section id={schedulerSectionId} className="core-settings-section" aria-labelledby={schedulerHeadingId}>
-          <h2 id={schedulerHeadingId} tabIndex={-1} className="core-heading-2 font-semibold text-core-text outline-none">Scheduler & CoRe</h2>
+          <h2 id={schedulerHeadingId} tabIndex={-1} className="core-heading-2 text-core-text outline-none">Scheduler & CoRe</h2>
           <div className="core-settings-group mt-2">
             <h3 className="core-heading-3 text-core-text">Lernablauf</h3>
             <div className="core-settings-list">
@@ -281,10 +282,7 @@ export function LearningSettingsPanel({ draft, profiles, defaultProfileName, con
                   {draft.schedulerProfile.desiredRetention > 0.97 ? <p className="mt-1 flex items-center gap-1 text-core-text"><AlertTriangle className="shrink-0 text-core-warning" size={14} aria-hidden="true" />Über 97 % steigt die tägliche Belastung meist sehr stark.</p> : null}
                 </>}
               >
-                <span className="flex min-h-control w-full items-center gap-3 md:w-72">
-                  <input id="learning-settings-retention" type="range" min="70" max="99" value={retentionPercent} aria-valuetext={`${retentionPercent} %`} data-testid="learning-settings-retention" className="min-w-0 flex-1 cursor-pointer accent-core-action" onChange={(event) => editLearning({ schedulerProfile: { desiredRetention: Number(event.target.value) / 100 } })} />
-                  <output htmlFor="learning-settings-retention" className="min-w-12 text-right core-body tabular-nums text-core-text">{retentionPercent} %</output>
-                </span>
+                <CoreSlider id="learning-settings-retention" className="w-full md:w-72" min={70} max={99} value={retentionPercent} formatValue={(percent) => `${percent} %`} data-testid="learning-settings-retention" onValueChange={(percent) => editLearning({ schedulerProfile: { desiredRetention: percent / 100 } })} />
               </SettingsRow>
               <SettingsRow title="Maximales Intervall" htmlFor="learning-settings-maximum-interval">
                 <CoreNumberField id="learning-settings-maximum-interval" value={draft.schedulerProfile.maximumIntervalDays} min={30} max={36500} unit="Tage" className="w-36" onChange={(value) => editLearning({ schedulerProfile: { maximumIntervalDays: value } })} />

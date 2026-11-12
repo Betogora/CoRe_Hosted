@@ -259,6 +259,9 @@ Messung vom 2026-10-31 im [Verlauf](history.md).
 
 ### Oberfläche
 
+- Designsprache flächendeckend (ADR-051): übrige lokale Rahmenrezepte auf eine
+  flache Innenfläche mit Vertragstest, gemeinsame Listenzeile, Dialograhmen
+  für alle Dialoge, `styles.css` nach Tokens, Bausteinen und Features gliedern.
 - Sprungnavigation der Statistik ablösen; mit ihr entfallen `InPageNavigation`,
   `.core-in-page-content`, Katalogdemo und Tests.
 - Bild einer eigenen Bildverdeckung im Karteneditor austauschen.

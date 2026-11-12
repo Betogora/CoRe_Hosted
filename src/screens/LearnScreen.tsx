@@ -1,5 +1,5 @@
 import React from "react";
-import { ChevronRight, FolderPlus, Layers } from "lucide-react";
+import { ChevronRight, FolderPlus, Layers, Plus } from "lucide-react";
 import type { LearnScreenProps } from "../appScreenProps.ts";
 import { createDeckLibraryModel } from "../libraryModel.ts";
 import { useWorkspaceValue } from "../useWorkspaceStore.ts";
@@ -75,39 +75,38 @@ export function LearnScreen({ decks, now, dayStartHour, learnAheadMinutes, timeZ
     window.requestAnimationFrame(() => deckNameRef.current?.focus());
   }
 
+  // Last row of the deck list: borderless fields with accessible names instead of visible labels.
   const deckCreateForm = (
     <form
       onSubmit={createDeckFromDraft}
-      className="core-deck-create-form grid min-w-0 gap-3"
+      className="core-deck-create-form grid min-w-0"
       data-testid="learn-deck-create-form"
     >
-      <label className="grid min-w-0 gap-2 core-field-label">
-        Stapelname
+      <label className="core-deck-create-name relative grid min-w-0">
+        <span className="sr-only">Stapelname</span>
+        <Plus size={16} className="core-deck-create-plus" aria-hidden="true" />
         <input
           className="core-field min-w-0"
           ref={deckNameRef}
           value={deckDraft.name}
           onChange={(event) => updateDeckDraft("name", event.target.value)}
-          placeholder="z. B. Anatomie"
+          placeholder="Neuer Stapel, z. B. Anatomie"
           aria-invalid={deckStatusType === "alert" || undefined}
           aria-describedby={deckStatus ? "learn-deck-create-status" : undefined}
           data-testid="learn-deck-name-input"
         />
       </label>
-      <label className="grid min-w-0 gap-2 core-field-label">
-        Ebene
-        <DeckSelect
-          ariaLabel="Ebene"
-          className="w-full"
-          value={deckDraft.parentDeckId}
-          decks={decks}
-          selectableDeckIds={eligibleParentDeckIds}
-          specialOption={{ value: "", label: "Als Hauptstapel", icon: Layers }}
-          onValueChange={(parentDeckId) => updateDeckDraft("parentDeckId", parentDeckId)}
-          testId="learn-deck-parent-select"
-        />
-      </label>
-      <ActionButton type="submit" variant="secondary" icon={FolderPlus} className="min-h-control self-end">
+      <DeckSelect
+        ariaLabel="Ebene"
+        className="w-full"
+        value={deckDraft.parentDeckId}
+        decks={decks}
+        selectableDeckIds={eligibleParentDeckIds}
+        specialOption={{ value: "", label: "Als Hauptstapel", icon: Layers }}
+        onValueChange={(parentDeckId) => updateDeckDraft("parentDeckId", parentDeckId)}
+        testId="learn-deck-parent-select"
+      />
+      <ActionButton type="submit" variant="secondary" icon={FolderPlus} className="core-deck-create-submit">
         Anlegen
       </ActionButton>
       {deckStatus ? <p id="learn-deck-create-status" className={`col-span-full core-body font-semibold ${deckStatusType === "alert" ? "core-status-error" : "core-status-info"}`} role={deckStatusType}>{deckStatus}</p> : null}

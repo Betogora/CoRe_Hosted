@@ -106,9 +106,23 @@ test("pointer focus stays frameless while keyboard focus shows one outline", () 
   assert.doesNotMatch(source, /focus(?:-visible)?:(?:border|shadow)/);
 });
 
+test("weights separate label, action and heading; only floating layers cast shadows; metrics run proportionally (ADR-051)", () => {
+  for (const [role, weight] of [["body", 400], ["control", 500], ["emphasis", 600], ["heading", 650]] as const) {
+    assert.match(lightTokens, new RegExp(`--core-weight-${role}:\\s*${weight};`), role);
+  }
+  assert.match(styles, /\.core-heading-3\s*\{\s*font:\s*var\(--core-weight-heading\)/);
+  for (const tokens of [lightTokens, darkTokens]) assert.match(tokens, /--core-shadow-soft:\s*0 0 #0000;/);
+  const metric = styles.match(/\.core-metric\s*\{[^}]*\}/)![0];
+  assert.match(metric, /letter-spacing:\s*-0\.01em;/);
+  assert.doesNotMatch(metric, /tabular-nums/);
+  const source = ["src/App.tsx", ...productionFiles("src/screens"), ...productionFiles("src/ui")].map((path) => readFileSync(path, "utf8")).join("\n");
+  assert.doesNotMatch(source, /["`][^"`\n]*\bcore-heading-[123]\b[^"`\n]*\bfont-(?:semibold|bold)\b/, "Überschriften tragen ihr Gewicht selbst");
+  assert.doesNotMatch(source, /["`][^"`\n]*\bfont-(?:semibold|bold)\b[^"`\n]*\bcore-heading-[123]\b/, "Überschriften tragen ihr Gewicht selbst");
+});
+
 test("the UI catalog lists every canonical shared export", () => {
   const catalog = readFileSync("src/ui/README.md", "utf8");
-  for (const name of ["SoftPanel", "PageHeader", "EmptyState", "ActionDialog", "OrbIcon", "StatTile", "DailyReviewProgress", "CoreModeControl", "ActionButton", "IconButton", "StatusMessage", "SuccessToast", "SuccessToastProvider", "useSuccessToast"]) {
+  for (const name of ["SoftPanel", "PageHeader", "EmptyState", "ActionDialog", "OrbIcon", "StatTile", "SectionHeader", "MetricRow", "Steps", "CoreTabs", "CoreTabPanel", "DialogFrame", "DailyReviewProgress", "CoreModeControl", "ActionButton", "IconButton", "StatusMessage", "SuccessToast", "SuccessToastProvider", "useSuccessToast"]) {
     assert.match(catalog, new RegExp(`\\b${name}\\b`));
   }
 });

@@ -4,7 +4,7 @@ import { cardSearchTermState, cardSearchTerms, cardSearchTermsOfKind, cardSearch
 import { fieldSearchKey } from "../../coreModel.ts";
 import type { SavedCardSearch } from "../../coreTypes.ts";
 import { SAVED_SEARCH_LIMIT, SAVED_SEARCH_NAME_LENGTH } from "../../uiPreferences.ts";
-import { ActionButton, IconButton } from "../../ui/actionUi.tsx";
+import { ActionButton, CrossLinkButton, IconButton } from "../../ui/actionUi.tsx";
 import { CoreTriStateControl } from "../../ui/coreUi.tsx";
 import { useSuccessToast } from "../../ui/feedbackUi.tsx";
 import { FlagDot } from "../../ui/flagUi.tsx";
@@ -51,15 +51,15 @@ type WrittenCategory = keyof typeof WRITTEN_KINDS;
 function TermRow({ item, query, onQueryChange, siblings }: { item: CardSearchMenuItem; query: string; onQueryChange: (query: string) => void; siblings?: readonly string[] }) {
   const state = cardSearchTermState(query, item.term);
   return (
-    <li className="grid min-h-[2.875rem] min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-3 border-b border-core-border py-1 last:border-b-0 sm:grid-cols-[minmax(0,1fr)_auto_auto]" style={item.depth ? { paddingLeft: item.depth * 20 } : undefined}>
+    <li className="core-card-search-term grid min-h-10 min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-3 border-b border-core-border py-0.5 last:border-b-0 sm:grid-cols-[minmax(0,1fr)_auto_auto]" style={item.depth ? { paddingLeft: item.depth * 20 } : undefined}>
       <span className={`flex min-w-0 items-center gap-2 core-body ${state === "in" ? "font-semibold text-core-action" : state === "out" ? "text-core-danger-text" : "text-core-text"}`}>
         {item.flag ? <FlagDot flag={item.flag} size={10} /> : null}
         <span className="grid min-w-0">
           <span className={`truncate ${state === "out" ? "line-through" : ""}`}>{item.label}</span>
-          {item.hideTerm ? null : <code className="truncate font-mono core-caption font-normal text-core-muted sm:hidden">{item.term}</code>}
+          {item.hideTerm ? null : <code className="core-card-search-term-code truncate font-mono core-caption font-normal sm:hidden">{item.term}</code>}
         </span>
       </span>
-      {item.hideTerm ? <span className="max-sm:hidden" /> : <code className="hidden max-w-[14rem] truncate font-mono core-caption text-core-muted sm:block">{item.term}</code>}
+      {item.hideTerm ? <span className="max-sm:hidden" /> : <code className="core-card-search-term-code hidden max-w-[14rem] truncate font-mono core-caption sm:block">{item.term}</code>}
       <CoreTriStateControl label={item.label} value={state} onValueChange={(next) => onQueryChange(withCardSearchTermState(query, item.term, next, siblings))} />
     </li>
   );
@@ -361,18 +361,18 @@ export function AdvancedCardSearch({ id, query, onQueryChange, categories, resul
       </div>
       <div className="grid min-w-0 items-start gap-5 md:grid-cols-[13rem_minmax(0,1fr)]">
         <nav aria-label="Filterkategorien" className={`min-w-0 ${mobileOpen ? "max-md:hidden" : ""}`}>
-          <ul className="grid min-w-0">
+          <ul className="grid min-w-0 md:gap-0.5">
             {categories.map((category, index) => {
               const Icon = category.icon;
               const selected = category.id === active.id;
               const count = activeCount(category);
               return (
-                <li key={category.id} className={`min-w-0 md:border-l md:border-core-border ${index === categories.length - 1 ? "mt-2 border-t border-core-border pt-2" : ""}`}>
+                <li key={category.id} className={`min-w-0 ${index === categories.length - 1 ? "mt-2 border-t border-core-border pt-2" : ""}`}>
                   <button
                     type="button"
                     aria-current={selected ? "true" : undefined}
                     onClick={() => { setActiveId(category.id); setMobileOpen(true); }}
-                    className={`flex min-h-12 w-full min-w-0 items-center gap-3 px-1 text-left core-body transition-colors md:-ml-px md:min-h-control md:rounded-r-control md:border-l-strong md:px-3 md:py-2 ${selected ? "md:border-core-action md:bg-core-subtle md:font-semibold md:text-core-action" : "font-medium text-core-secondary md:border-transparent hover:bg-core-subtle hover:text-core-text"}`}
+                    className={`flex min-h-12 w-full min-w-0 items-center gap-3 px-1 text-left core-body text-core-text transition-colors hover:bg-core-subtle md:min-h-button md:rounded-control md:px-3 ${selected ? "md:bg-core-subtle md:font-semibold md:text-core-action" : ""}`}
                   >
                     <Icon className="size-[1.125rem] shrink-0" aria-hidden="true" />
                     <span className="min-w-0 flex-1 break-words">{category.label}</span>
@@ -386,7 +386,7 @@ export function AdvancedCardSearch({ id, query, onQueryChange, categories, resul
         </nav>
         <div className={`min-w-0 ${mobileOpen ? "" : "max-md:hidden"}`} data-testid={`advanced-card-search-${active.id}`}>
           {active.id === "tags" && onManageTags ? (
-            <button type="button" className="mb-2 core-body font-semibold text-core-action hover:underline" onClick={onManageTags}>Tags verwalten</button>
+            <CrossLinkButton className="mb-1" onSelect={onManageTags}>Tags verwalten</CrossLinkButton>
           ) : null}
           {active.id === "syntax" ? (
             <div className="grid min-w-0 gap-6">

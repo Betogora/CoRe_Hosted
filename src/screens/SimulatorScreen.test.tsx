@@ -26,7 +26,7 @@ test("simulator exposes bounded calendar controls", () => {
   assert.match(markup, /\+30 Tage/);
   assert.match(markup, /aria-label="Simuliertes Datum"/);
   assert.match(markup, /data-core-date-picker="trigger"/);
-  assert.match(markup, />09\.08\.2026</);
+  assert.match(markup, /aria-label="Tag"[^>]*>09<[\s\S]*?aria-label="Monat"[^>]*>08<[\s\S]*?aria-label="Jahr"[^>]*>2026</);
   assert.doesNotMatch(markup, /type="date"/);
   assert.match(markup, /\d{2}:\d{2} Uhr/);
   assert.match(markup, /echte Reviews/);

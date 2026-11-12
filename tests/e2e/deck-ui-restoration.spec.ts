@@ -31,8 +31,8 @@ test("Unterstapel zeigen den Zweig wie die Lernen-Liste und öffnen jeden Stapel
   await expect(lisbon).toBeVisible();
   await portugal.getByRole("button", { name: /^Inhalte von .* öffnen$/ }).click();
   await expect(heading.getByRole("heading", { name: "Portugal", exact: true })).toBeVisible();
-  const tabs = product.getByRole("group", { name: "Stapelinhalte", exact: true });
-  await expect(tabs.getByRole("button", { name: "Unterstapel", exact: true })).toHaveAttribute("aria-pressed", "true");
+  const tabs = product.getByRole("tablist", { name: "Stapelinhalte", exact: true });
+  await expect(tabs.getByRole("tab", { name: "Unterstapel", exact: true })).toHaveAttribute("aria-selected", "true");
   await expect(europe).toHaveCount(0);
   await expect(tree.getByTestId("content-deck-row-catalog-substack-1")).toHaveAttribute("data-deck-depth", "0");
   await lisbon.getByRole("button", { name: /^Inhalte von .* öffnen$/ }).click();
@@ -78,13 +78,13 @@ test("Stapelinhalte behalten aktuelle Reiter und Lernaktion ohne zusätzliche K�
   await expect(product).not.toContainText("Einschließlich");
   await expect(product).not.toContainText("direkter Unterstapel");
   await expect(product.locator("[data-donut-segment], [data-donut-empty], .core-deck-group-description")).toHaveCount(0);
-  const tabs = product.getByRole("group", { name: "Stapelinhalte", exact: true });
-  await expect(tabs.getByRole("button")).toHaveCount(6);
+  const tabs = product.getByRole("tablist", { name: "Stapelinhalte", exact: true });
+  await expect(tabs.getByRole("tab")).toHaveCount(6);
   await expect(product.getByTestId("deck-content-study")).toBeVisible();
-  await tabs.getByRole("button", { name: "Zusammenfassungen", exact: true }).click();
+  await tabs.getByRole("tab", { name: "Zusammenfassungen", exact: true }).click();
   await expect(product.getByTestId("deck-summaries-panel")).toBeVisible();
   await expect(product.getByTestId("deck-content-study")).toBeVisible();
-  await tabs.getByRole("button", { name: "Mind Map", exact: true }).click();
+  await tabs.getByRole("tab", { name: "Mind Map", exact: true }).click();
   await expect(product.getByTestId("deck-mindmaps-panel")).toBeVisible();
   await expect(product.getByTestId("deck-content-study")).toBeVisible();
   await page.getByRole("button", { name: "Produktansicht schließen", exact: true }).click();
@@ -135,12 +135,12 @@ for (const theme of matrixThemes) {
       await expect(product.getByTestId("learn-deck-folder-panel")).toBeVisible();
       await capture("learn-branch");
       await product.getByRole("button", { name: "Inhalte von Welt-Hauptstädte öffnen", exact: true }).click();
-      const tabs = product.getByRole("group", { name: "Stapelinhalte", exact: true });
+      const tabs = product.getByRole("tablist", { name: "Stapelinhalte", exact: true });
       for (const [label, name] of [
         ["Unterstapel", "children"], ["Zusammenfassungen", "summary"], ["Quiz", "quiz"],
         ["Mind Map", "mind-map"], ["Karten", "cards"], ["Quelle", "source"],
       ]) {
-        await tabs.getByRole("button", { name: label, exact: true }).click();
+        await tabs.getByRole("tab", { name: label, exact: true }).click();
         await expect(product.getByTestId("deck-content-study")).toBeVisible();
         await close.press("Control+Home");
         await capture(`content-${name}`);

@@ -24,7 +24,7 @@ for (const [width, height, scale] of viewports) test.describe(`${width}×${heigh
     await product.getByRole("button", { name: "Prüfung hinzufügen", exact: true }).click();
     const editor = product.getByTestId("exam-plan-editor");
     await editor.getByRole("textbox", { name: "Name", exact: true }).fill("Klausur mit sehr langem Namen: Herz und Lunge");
-    const goals = editor.getByRole("group", { name: "Was ist dein Ziel für die Prüfung?", exact: true });
+    const goals = editor.getByRole("group", { name: "Ziel", exact: true });
     await expect(goals.getByRole("radio")).toHaveCount(4);
     await expect(goals.getByRole("radio", { name: "Gute Note", exact: true })).toBeChecked();
     await goals.getByRole("radio", { name: "Sehr gute Note", exact: true }).check();
@@ -46,7 +46,7 @@ for (const [width, height, scale] of viewports) test.describe(`${width}×${heigh
     }
     if (visualOutput) await product.screenshot({ path: info.outputPath("03b-themenfolge.png") });
     await editor.getByRole("button", { name: "Weiter zur Lernzeit", exact: true }).click();
-    await editor.getByRole("checkbox", { name: "Vor neuen Themen Zusammenfassung lesen", exact: true }).check();
+    await editor.getByRole("switch", { name: "Vor neuen Themen Zusammenfassung lesen", exact: true }).check();
     await expect(editor.getByRole("combobox", { name: "Abrufziel für Wiederholungen", exact: true })).toHaveCount(0);
     await editor.getByRole("spinbutton", { name: "Lernzeit pro Lerntag · Min.", exact: true }).fill("15");
     await expect(editor.getByTestId("exam-calendar")).toHaveCount(0);
@@ -126,7 +126,7 @@ test("Stapelzweige, Suche und individuelle Wochentagszeiten bleiben beim Speiche
   await expect(selection.getByRole("checkbox", { name: "Herz und Kreislauf", exact: true })).not.toBeChecked();
   await expect(editor.getByRole("list", { name: "Themenreihenfolge", exact: true })).toBeHidden();
   await editor.getByRole("button", { name: "Weiter zur Lernzeit", exact: true }).click();
-  await editor.getByRole("checkbox", { name: "Vor neuen Themen Zusammenfassung lesen", exact: true }).check();
+  await editor.getByRole("switch", { name: "Vor neuen Themen Zusammenfassung lesen", exact: true }).check();
   await editor.getByRole("button", { name: "Lernzeit je Wochentag festlegen", exact: true }).click();
   await editor.getByRole("spinbutton", { name: "Montag · Min.", exact: true }).fill("30");
   await editor.getByRole("spinbutton", { name: "Dienstag · Min.", exact: true }).fill("180");
@@ -154,7 +154,7 @@ test("Stapelzweige, Suche und individuelle Wochentagszeiten bleiben beim Speiche
   await expect(editor.getByRole("radio", { name: "Bestmöglich abschneiden", exact: true })).toBeChecked();
   await expect(editor.getByRole("radio", { name: "Bestmöglich abschneiden", exact: true })).toHaveValue("0.97");
   await editor.getByText("Lernzeit und weitere Einstellungen", { exact: true }).click();
-  await expect(editor.getByRole("checkbox", { name: "Vor neuen Themen Zusammenfassung lesen", exact: true })).toBeChecked();
+  await expect(editor.getByRole("switch", { name: "Vor neuen Themen Zusammenfassung lesen", exact: true })).toBeChecked();
   await expect(editor.getByRole("spinbutton", { name: "Montag · Min.", exact: true })).toHaveValue("30");
   await expect(editor.getByRole("spinbutton", { name: "Dienstag · Min.", exact: true })).toHaveValue("180");
   await expect(editor.getByRole("spinbutton", { name: "Samstag · Min.", exact: true })).toHaveValue("0");
@@ -217,28 +217,31 @@ test("die Schrittleiste erlaubt genau einen gültigen Schritt vorwärts und beli
   await page.getByRole("button", { name: "Prüfungen öffnen", exact: true }).click();
   await page.getByRole("button", { name: "Prüfung hinzufügen", exact: true }).click();
   const editor = page.getByTestId("exam-plan-editor"), steps = editor.getByRole("list", { name: "Schritte der Prüfungsplanung", exact: true });
-  const step = (name: string) => steps.getByRole("button", { name, exact: true });
-  await expect(step("2. Lernstoff")).toBeDisabled();
-  await expect(step("3. Lernzeit")).toBeDisabled();
+  const step = (name: string) => steps.getByRole("button", { name: new RegExp(`^${name}( ?, erledigt)?$`) });
+  const current = steps.locator('[aria-current="step"]');
+  await expect(step("Lernstoff")).toBeDisabled();
+  await expect(step("Lernzeit")).toBeDisabled();
   await editor.getByRole("textbox", { name: "Name", exact: true }).fill("Navigationstest");
-  await expect(step("2. Lernstoff")).toBeEnabled();
-  await expect(step("3. Lernzeit")).toBeDisabled();
-  await step("2. Lernstoff").click();
-  await expect(step("2. Lernstoff")).toHaveAttribute("aria-current", "step");
-  await expect(step("3. Lernzeit")).toBeDisabled();
+  await expect(step("Lernstoff")).toBeEnabled();
+  await expect(step("Lernzeit")).toBeDisabled();
+  await step("Lernstoff").click();
+  await expect(current).toHaveText("Lernstoff");
+  await expect(step("Lernzeit")).toBeDisabled();
   await editor.getByRole("checkbox").first().check();
-  await expect(step("3. Lernzeit")).toBeEnabled();
-  await expect(step("4. Dein Plan")).toBeDisabled();
-  await step("3. Lernzeit").focus();
+  await expect(step("Lernzeit")).toBeEnabled();
+  await expect(step("Lernplan")).toBeDisabled();
+  await step("Lernzeit").focus();
   await page.keyboard.press("Enter");
-  await expect(step("3. Lernzeit")).toHaveAttribute("aria-current", "step");
-  await step("4. Dein Plan").click();
-  await expect(step("4. Dein Plan")).toHaveAttribute("aria-current", "step");
-  await step("1. Prüfung").click();
+  await expect(current).toHaveText("Lernzeit");
+  await step("Lernplan").click();
+  await expect(current).toHaveText("Lernplan");
+  await expect(editor.getByRole("heading", { name: "Lernplan", exact: true })).toBeVisible();
+  await step("Prüfung").click();
+  await expect(editor.getByRole("heading", { name: "Prüfung", exact: true })).toBeVisible();
   await expect(editor.getByRole("textbox", { name: "Name", exact: true })).toHaveValue("Navigationstest");
-  await expect(step("2. Lernstoff")).toBeEnabled();
-  await expect(step("3. Lernzeit")).toBeDisabled();
-  await expect(step("4. Dein Plan")).toBeDisabled();
+  await expect(step("Lernstoff")).toBeEnabled();
+  await expect(step("Lernzeit")).toBeDisabled();
+  await expect(step("Lernplan")).toBeDisabled();
 });
 
 
@@ -251,24 +254,24 @@ test("Lernstart ist heute vorbelegt und bleibt beim Speichern und Bearbeiten erh
   await product.getByRole("button", { name: "Weitere Prüfung planen", exact: true }).click();
   const editor = product.getByTestId("exam-plan-editor");
   await editor.getByRole("textbox", { name: "Name", exact: true }).fill("Plan mit späterem Start");
-  const start = editor.getByRole("button", { name: "Lernstart auswählen", exact: true });
+  const start = editor.getByRole("group", { name: "Lernstart auswählen", exact: true });
   await expect(start).toHaveText("14.10.2026");
-  await start.click();
+  await start.getByRole("button", { name: "Lernstart auswählen: Kalender öffnen", exact: true }).click();
   const picker = page.getByRole("dialog", { name: "Lernstart auswählen: Datum auswählen", exact: true });
   await expect(picker.locator('[data-date-key="2026-10-13"]')).toBeDisabled();
   await picker.locator('[data-date-key="2026-10-19"]').click();
   await expect(start).toHaveText("19.10.2026");
   await expect(editor.getByTestId("exam-setup-context")).toContainText("Mo., 19.10.");
   const steps = editor.getByRole("list", { name: "Schritte der Prüfungsplanung", exact: true });
-  await steps.getByRole("button", { name: "2. Lernstoff", exact: true }).click();
+  await steps.getByRole("button", { name: "Lernstoff", exact: true }).click();
   await editor.getByRole("checkbox").first().check();
-  for (const name of ["3. Lernzeit", "4. Dein Plan"]) await steps.getByRole("button", { name, exact: true }).click();
+  for (const name of ["Lernzeit", "Lernplan"]) await steps.getByRole("button", { name, exact: true }).click();
   await expect(editor.getByTestId("exam-topic-preview")).toBeVisible();
   await expect(editor.getByTestId("exam-setup-context")).toHaveCount(0);
   await editor.getByRole("button", { name: "Plan aktivieren", exact: true }).click();
   await product.getByRole("button", { name: "Plan mit späterem Start: Details öffnen", exact: true }).click();
   await product.getByTestId("exam-card-details").last().getByRole("button", { name: "Bearbeiten", exact: true }).click();
-  await expect(editor.getByRole("button", { name: "Lernstart auswählen", exact: true })).toHaveText("19.10.2026");
+  await expect(editor.getByRole("group", { name: "Lernstart auswählen", exact: true })).toHaveText("19.10.2026");
 });
 
 

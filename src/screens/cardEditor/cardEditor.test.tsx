@@ -71,12 +71,14 @@ test("the study tab names the nine figures, the maturity band and the leech with
   const reviewed = { ...card, study: { ...card.study, state: "review" as const, reps: 9, lapses: 8, stability: 30, difficulty: 6.4, intervalDays: 21, lastReviewedAt: "2026-07-20T10:00:00.000Z", leechedAt: "2026-07-20T10:00:00.000Z", extra: { ...card.study.extra, stabilityFast: 30 } } };
   const markup = renderToStaticMarkup(<CardEditorStudyTab card={reviewed} now={NOW} services={services} />);
   const figures = markup.match(/data-testid="card-study-figures"[\s\S]*?<\/dl>/)?.[0] ?? "";
-  assert.equal([...figures.matchAll(/<dt/g)].length, 9);
+  assert.equal([...figures.matchAll(/<div class="core-card-editor-row"><dt>/g)].length, 9, "eine Zeile je Wert, Beschriftung links");
+  assert.doesNotMatch(figures, /truncate/, "keine Beschriftung wird abgeschnitten");
   for (const label of ["Fällig", "Haltbarkeit", "Abrufwahrscheinlichkeit", "Schwierigkeit", "Wiederholungen", "Fehler"]) assert.match(figures, new RegExp(`>${label}<`));
   assert.match(figures, />6,4 von 10</);
   const band = markup.match(/data-testid="card-maturity-band"[\s\S]*?<\/ol>/)?.[0] ?? "";
-  assert.deepEqual([...band.matchAll(/<li[^>]*>([^<]+)/g)].map((match) => match[1]), ["Neu", "Lernen", "Jung", "Reif"]);
-  assert.match(band, /aria-current="step"[^>]*>(Jung|Reif)</);
+  assert.match(band, /class="core-steps core-card-editor-maturity" data-stretch="true"><ol aria-label="Reifeband">/, "eine Schrittlinie statt einer Schalterform");
+  assert.deepEqual([...band.matchAll(/core-steps-label">([^<]+)/g)].map((match) => match[1]), ["Neu", "Lernen", "Jung", "Reif"]);
+  assert.match(band, /aria-current="step"><span aria-hidden="true" class="core-steps-line"><\/span><span class="core-steps-step"><span aria-hidden="true" class="core-steps-dot"><\/span><span class="core-steps-label">(Jung|Reif)</);
   assert.match(markup, /Lernbremse seit 20\.07\.2026/);
   assert.match(markup, />Lernstand zurücksetzen …</);
   assert.doesNotMatch(markup, /XP/);

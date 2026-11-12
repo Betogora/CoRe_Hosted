@@ -8,6 +8,7 @@ import { calculateRetrievability, getDurabilityDays, getMaturityBand } from "../
 import { ActionButton } from "../../ui/actionUi.tsx";
 import { ActionDialog } from "../../ui/coreUi.tsx";
 import { useSuccessToast } from "../../ui/feedbackUi.tsx";
+import { Steps } from "../../ui/Steps.tsx";
 import { CardEditorSection as Section } from "./CardEditorSection.tsx";
 import { RetrievabilityChart } from "./RetrievabilityChart.tsx";
 import { createRetrievabilityCurve } from "./retrievabilityCurve.ts";
@@ -125,24 +126,17 @@ export function CardEditorStudyTab({ card, now, dayStartHour, timeZone, services
   }
 
   return (
-    <div className="grid min-w-0 content-start gap-4 p-4 sm:p-6 md:grid-cols-2 md:items-start" data-testid="card-study-tab">
-      <div className="grid min-w-0 content-start gap-4">
+    <div className="core-card-editor-sections" data-testid="card-study-tab">
+      <div className="core-card-editor-column">
         <Section title="Lernstand" testId="card-study-state">
-          <ol className="grid grid-cols-4 gap-1 rounded-panel bg-core-subtle p-1" aria-label="Reifeband" data-testid="card-maturity-band">
-            {BANDS.map((entry) => {
-              const current = entry.value === band;
-              return (
-                <li key={entry.value} aria-current={current ? "step" : undefined} className={`grid min-h-control place-items-center rounded-control px-1 core-control-label ${current ? "bg-core-action text-core-on-accent" : "text-core-muted"}`}>
-                  {entry.label}
-                </li>
-              );
-            })}
-          </ol>
-          <dl className="grid grid-cols-2 gap-x-4 gap-y-4 sm:grid-cols-3" data-testid="card-study-figures">
+          <div data-testid="card-maturity-band">
+            <Steps ariaLabel="Reifeband" items={BANDS} current={BANDS.findIndex((entry) => entry.value === band)} stretch className="core-card-editor-maturity" />
+          </div>
+          <dl className="core-card-editor-rows" data-testid="card-study-figures">
             {figures.map((figure) => (
-              <div key={figure.label} className="min-w-0">
-                <dt className="truncate core-body text-core-muted">{figure.label}</dt>
-                <dd className="break-words core-heading-2 tabular-nums text-core-text hyphens-auto">{figure.value}</dd>
+              <div key={figure.label} className="core-card-editor-row">
+                <dt>{figure.label}</dt>
+                <dd className="font-semibold tabular-nums">{figure.value}</dd>
               </div>
             ))}
           </dl>
@@ -151,7 +145,7 @@ export function CardEditorStudyTab({ card, now, dayStartHour, timeZone, services
               <Snail size={18} className="text-core-danger-text" aria-hidden="true" />Lernbremse seit {formatDateTime(study.leechedAt)}
             </p>
           ) : null}
-          <div className="border-t border-core-border pt-4">
+          <div>
             <ActionButton variant="secondary" icon={RotateCcw} disabled={!reviewed && !study.leechedAt} onClick={() => setConfirmReset(true)}>Lernstand zurücksetzen …</ActionButton>
           </div>
           {error ? <p className="core-status-error core-body" role="alert">{error}</p> : null}
@@ -167,8 +161,8 @@ export function CardEditorStudyTab({ card, now, dayStartHour, timeZone, services
           <table className="w-full table-fixed border-collapse core-body" data-testid="card-review-list">
             <thead>
               <tr className="border-b border-core-border text-left text-core-muted">
-                <th scope="col" className="w-1/2 py-2 font-semibold">Zeitpunkt</th>
-                <th scope="col" className="py-2 font-semibold">Bewertung</th>
+                <th scope="col" className="w-1/2 py-2 font-medium">Zeitpunkt</th>
+                <th scope="col" className="py-2 font-medium">Bewertung</th>
               </tr>
             </thead>
             <tbody>

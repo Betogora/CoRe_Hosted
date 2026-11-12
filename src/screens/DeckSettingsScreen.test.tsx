@@ -128,7 +128,7 @@ test("deckless settings route offers a real searchable deck selector", () => {
   const html = renderScreen(null, [deck]);
   assert.match(html, />Stapel auswählen</);
   assert.match(html, /data-testid="deck-settings-select"/);
-  assert.doesNotMatch(html, /Stapel nicht gefunden/);
+  assert.doesNotMatch(html, /Stapel nicht gefunden|gelten je Stapel/);
 });
 
 test("the new-card target points at the stable daily-limit field", () => {

@@ -13,6 +13,7 @@ import { ActionDialog, CoreSegmentedControl, CoreSlidingTabs, SoftPanel } from "
 import { COLOR_PICKER_PRESETS, ColorPicker } from "../ui/ColorPicker.tsx";
 import { normalizeColor } from "../colorMath.ts";
 import { StatusMessage } from "../ui/feedbackUi.tsx";
+import { CoreCheckbox, CoreSlider } from "../ui/formControls.tsx";
 import { RichTextEditor } from "../ui/RichTextEditor.tsx";
 import { CoreSelect } from "../ui/selectUi.tsx";
 import { CoreTooltip } from "../ui/tooltipUi.tsx";
@@ -347,7 +348,7 @@ export function DeckMindMapsPanel({ deck, userId, cloud = null, onGenerateSummar
     if (boundary) return <>
       <label className="core-field-group core-mindmap-compact-field"><span className="core-caption text-core-muted">Beschriftung</span><input className="core-field-input" aria-label="Umrandung beschriften" maxLength={120} value={boundary.label} onChange={(e) => editBoundary({ label: e.target.value })}/></label>
       <ColorControl label="Rahmenfarbe" value={boundary.color} onChange={(color) => editBoundary({ color })}/><ColorControl label="Hintergrundfarbe" value={boundary.fillColor} onChange={(fillColor) => editBoundary({ fillColor })}/>
-      <label className="core-field-group core-mindmap-compact-field"><span className="core-caption text-core-muted">Transparenz</span><input type="range" min={0} max={100} aria-label="Transparenz" value={Math.round((1 - (boundary.opacity ?? 0.08)) * 100)} onChange={(e) => editBoundary({ opacity: 1 - Number(e.target.value) / 100 })}/></label>
+      <CoreSlider className="core-mindmap-compact-field" label="Transparenz" min={0} max={100} value={Math.round((1 - (boundary.opacity ?? 0.08)) * 100)} formatValue={(percent) => `${percent} %`} onValueChange={(percent) => editBoundary({ opacity: 1 - percent / 100 })}/>
       <CoreSegmentedControl ariaLabel="Rahmenstärke" value={String(boundary.strokeWidth ?? 2)} options={[{ value: "2", label: "Fein" }, { value: "4", label: "Mittel" }, { value: "8", label: "Dick" }]} onValueChange={(value) => editBoundary({ strokeWidth: Number(value) as 2 | 4 | 8 })}/>
       <CoreSelect ariaLabel="Rahmenform" value={boundary.shape} options={[{ value: "rectangle", label: "Rechteck" }, { value: "rounded", label: "Abgerundet" }, { value: "ellipse", label: "Ellipse" }]} onValueChange={(shape) => editBoundary({ shape: shape as NonNullable<typeof boundary>["shape"] })}/>
       <ActionButton variant="destructive" icon={Trash2} onClick={() => removeSelected()}>Umrandung entfernen</ActionButton>
@@ -379,7 +380,7 @@ export function DeckMindMapsPanel({ deck, userId, cloud = null, onGenerateSummar
         </div> : onGenerateSummary ? <>
           <div className="flex min-w-0 flex-wrap items-center gap-x-4 gap-y-2">
             <ActionButton className="min-w-0 max-w-full whitespace-normal" variant="primary" icon={Sparkles} loading={generating} onClick={() => void generateSummaryAndMap()}>Zusammenfassung und Mindmap erzeugen</ActionButton>
-            <label className="core-mindmap-scope core-body"><input type="checkbox" checked={generationScope === "tree"} disabled={generating} onChange={(event) => setGenerationScope(event.target.checked ? "tree" : "deck")}/><span>Unterstapel einbeziehen</span></label>
+            <CoreCheckbox label="Unterstapel einbeziehen" checked={generationScope === "tree"} disabled={generating} onCheckedChange={(checked) => setGenerationScope(checked ? "tree" : "deck")}/>
             {generating ? <ActionButton variant="secondary" onClick={() => generationRef.current?.abort()}>Erstellung abbrechen</ActionButton> : <ActionButton variant="secondary" onClick={() => setCreateFromSummary(false)}>Abbrechen</ActionButton>}
           </div>
           {generating && <StatusMessage tone="info" announce="polite">Material wird geladen und die KI-Zusammenfassung erstellt …</StatusMessage>}

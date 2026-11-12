@@ -336,13 +336,16 @@ test("[Vertrag: modale Kartenvorschau] @beta-core Erstellung und Editor zeigen d
   expect((await editorRevealedBody.innerText()).match(/Ungespeicherte Editorfrage/g)).toHaveLength(1);
   expect((await editorRevealedBody.innerText()).match(/Ungespeicherte Editorantwort/g)).toHaveLength(1);
 
-  // Crossing 1280 px keeps the docked editor while the draft is unsaved, so the draft survives; saving lets it follow.
-  await page.setViewportSize({ width: 390, height: 844 });
+  // The editor is a centred dialog from 1024 px and full screen below; crossing the width keeps the unsaved draft.
   const editorDialog = page.getByTestId("card-detail-dialog");
-  await expect(editorDialog).toHaveAttribute("data-docked", "true");
+  const wideBox = await editorDialog.boundingBox();
+  expect(wideBox).not.toBeNull();
+  expect(wideBox!.width).toBeLessThanOrEqual(961);
+  expect(wideBox!.x).toBeGreaterThan(100);
+  await page.setViewportSize({ width: 390, height: 844 });
   await expect(page.getByRole("textbox", { name: "Feld Vorderseite", exact: true })).toContainText("Ungespeicherte Editorfrage");
   await page.getByRole("textbox", { name: "Feld Vorderseite", exact: true }).press("Control+Enter");
-  await expect(editorDialog).not.toHaveAttribute("data-docked", "true");
+  await expect(page.getByText("Karte wurde erfolgreich gespeichert.", { exact: true })).toBeVisible();
   await expect(page.getByRole("textbox", { name: "Feld Vorderseite", exact: true })).toContainText("Ungespeicherte Editorfrage");
   const mobileBox = await editorDialog.boundingBox();
   expect(mobileBox).not.toBeNull();
@@ -434,7 +437,7 @@ test("[Vertrag: typgerechter Reverse-Lebenszyklus] @beta-core Reverse erzeugt zw
   expect(reverse!.variants).toHaveLength(0);
 
   await openCreatedCardEditor(page, deck);
-  await expect(page.getByTestId("card-detail-editor")).toContainText("2 Karten aus diesem Inhalt");
+  await expect(page.getByTestId("card-sibling-position")).toContainText("2 Karten aus diesem Inhalt");
   await expect(page.getByRole("textbox", { name: "Feld Vorderseite", exact: true })).toContainText("Reverse vorne alt");
   await page.getByRole("textbox", { name: "Feld Vorderseite", exact: true }).fill("Reverse vorne neu");
   await page.getByRole("textbox", { name: "Feld Rückseite", exact: true }).fill("Reverse hinten neu");
@@ -461,9 +464,9 @@ test("[Vertrag: Geschwister begraben] @beta-core eine Antwort stellt die Geschwi
   const deck = await finishManualCreation(page, deckName, 2);
 
   await page.goto(`/lernen?settingsDeck=${encodeURIComponent(deck.id)}&settings=tagesrunde`);
-  const buryNew = page.getByRole("checkbox", { name: "Neue Geschwisterkarten begraben" });
+  const buryNew = page.getByRole("switch", { name: "Neue Geschwisterkarten begraben" });
   await expect(buryNew).not.toBeChecked();
-  await expect(page.getByRole("checkbox", { name: "Fällige Geschwisterkarten begraben" })).not.toBeChecked();
+  await expect(page.getByRole("switch", { name: "Fällige Geschwisterkarten begraben" })).not.toBeChecked();
   await buryNew.check();
   await page.getByTestId("settings-save-bar").getByRole("button", { name: "Speichern" }).click();
   await expect.poll(async () => (await readActiveAccountState(page)).decks.find((candidate: { id: string }) => candidate.id === deck.id)?.deckSettings.buryNewSiblings).toBe(true);
@@ -799,7 +802,7 @@ test("[Vertrag: typgerechter Multiple-Choice-Lebenszyklus] @beta-core Optionen, 
   await previewDialog.getByRole("button", { name: "Antwort prüfen" }).click();
   await expect(previewDialog.getByRole("button", { name: "Rückseite" })).toHaveAttribute("aria-pressed", "true");
   await expect(previewDialog.getByText("Nicht ganz. Vergleiche deine Auswahl mit der Lösung.", { exact: true })).toBeVisible();
-  await expect(previewDialog.locator(".core-mcq-option-correct")).toContainText("Beta");
+  await expect(previewDialog.locator('[data-tone="missed"]')).toContainText("Beta");
   await expect(previewDialog.getByRole("button", { name: /Bewertung/ })).toHaveCount(0);
   await previewDialog.getByRole("button", { name: "Vorderseite" }).click();
   await expect(previewDialog.getByRole("button", { name: "Antwortoption A: Alpha" })).toHaveAttribute("aria-pressed", "false");
@@ -833,7 +836,7 @@ test("[Vertrag: typgerechter Multiple-Choice-Lebenszyklus] @beta-core Optionen, 
   await page.getByTestId(`learn-deck-row-${deck.id}`).getByRole("button", { name: /lernen$/ }).click();
   await page.getByRole("button", { name: "Antwortoption A: Alpha" }).click();
   await page.getByRole("button", { name: "Antwort prüfen" }).click();
-  await expect(page.locator(".core-mcq-option-correct")).toContainText("Gamma neu");
+  await expect(page.locator('[data-tone="missed"]')).toContainText("Gamma neu");
   await expect(page.getByText("Nicht ganz. Vergleiche deine Auswahl mit der Lösung.", { exact: true })).toBeVisible();
   await expect(page.frameLocator('iframe[title="Antwort"]').getByText("Gamma neu ist nach der Bearbeitung richtig.", { exact: true })).toBeVisible();
   await page.getByRole("button", { name: /Bewertung Gut/ }).click();

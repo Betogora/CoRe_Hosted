@@ -1,5 +1,5 @@
 import React from "react";
-import { ArrowLeft, CheckCircle2 } from "lucide-react";
+import { CheckCircle2 } from "lucide-react";
 import type { CreationScreenProps } from "../appScreenProps.ts";
 import { createEmptyApkgImportSession } from "../apkgImportSession.ts";
 import { createCreationWorkflow } from "../creationWorkflow.ts";
@@ -47,6 +47,11 @@ export function CreationScreen({
   const onResetApkgImportSession = controlledResetApkgImportSession ?? (() => setLocalApkgImportSession((current) => createEmptyApkgImportSession(current.version + 1)));
   const selectedMethod = initialMethod;
   const selectedMethodMeta = creationMethods.find((method) => method.id === selectedMethod);
+  const backToCreation = { label: "Erstellen", onSelect: () => {
+    setSessionCompletion(null);
+    onMethodChange("");
+  } };
+  const methodHeader = (action?: React.ReactNode) => <PageHeader title={selectedMethodMeta?.pageTitle ?? "Neue Karte"} back={backToCreation} action={action} />;
   const completedDeck = decks.find((deck) => deck.id === (sessionCompletion?.deckId || completedDeckId)) ?? null;
   const resolvedCompletionKind = sessionCompletion?.kind ?? completionKind;
   const resolvedCompletedCount = sessionCompletion?.createdCount ?? completedCount;
@@ -72,10 +77,12 @@ export function CreationScreen({
 
   function renderSelectedMethod() {
     if (selectedMethod === "ai-source") {
-      return <AiSourceCreationPanel key={initialTargetDeckId} decks={decks} initialTargetDeckId={initialTargetDeckId} onDraftStateChange={onDraftStateChange} />;
+      return <>{methodHeader()}<AiSourceCreationPanel key={initialTargetDeckId} decks={decks} initialTargetDeckId={initialTargetDeckId} onDraftStateChange={onDraftStateChange} /></>;
     }
     if (selectedMethod === "import") {
       return (
+        <>
+        {methodHeader()}
         <ApkgImportPanel
           workflow={accountWorkflow}
           session={apkgImportSession}
@@ -86,6 +93,7 @@ export function CreationScreen({
             completeSession(completion.deck.id, completion.createdCount, "import", { partial: completion.partial, reimport: completion.reimport });
           }}
         />
+        </>
       );
     }
     if (selectedMethod === "manual") {
@@ -99,6 +107,7 @@ export function CreationScreen({
           listTagDirectory={listTagDirectory}
           onFinish={({ createdCount, targetDeckId }) => completeSession(targetDeckId, createdCount, "manual")}
           onDraftStateChange={onDraftStateChange}
+          renderHeader={methodHeader}
         />
       );
     }
@@ -107,14 +116,12 @@ export function CreationScreen({
 
   return (
     <div className="grid min-w-0 min-h-[calc(100vh-10rem)] content-start gap-6">
-      <PageHeader eyebrow="Erstellen" title={completedDeck && resolvedCompletionKind === "import" ? "Import abgeschlossen" : "Neue Karte"} />
       {completedDeck ? (
+        <>
+        <PageHeader title={creationMethods.find((method) => method.id === (resolvedCompletionKind === "import" ? "import" : "manual"))!.pageTitle} back={backToCreation} />
         <SoftPanel className="mx-auto w-full max-w-3xl p-6 text-center sm:p-10">
-          <span className="mx-auto grid size-12 place-items-center rounded-control bg-core-success-soft text-core-success">
-            <CheckCircle2 size={24} aria-hidden="true" />
-          </span>
-          <p className="mt-5 core-caption font-medium text-core-muted">Gespeichert</p>
-          <h2 ref={completionHeadingRef} tabIndex={-1} className="mt-1 core-heading-2 text-core-text outline-none">
+          <CheckCircle2 size={32} className="mx-auto text-core-success" aria-hidden="true" />
+          <h2 ref={completionHeadingRef} tabIndex={-1} className="mt-4 core-heading-2 text-core-text outline-none">
             {resolvedCompletionKind !== "import" ? "Deine Karten sind bereit" : importResult?.partial ? "Import lokal abgeschlossen" : "Import erfolgreich"}
           </h2>
           <p className="mx-auto mt-3 max-w-xl core-body text-core-secondary">
@@ -138,16 +145,16 @@ export function CreationScreen({
             )}
           </div>
         </SoftPanel>
+        </>
       ) : selectedMethod ? (
-        <section className="grid min-w-0 min-h-[calc(100vh-16rem)] content-start gap-4" aria-label={selectedMethodMeta?.title ?? "Kartenerstellung"}>
-          <button type="button" onClick={() => onMethodChange("")} className="core-action-secondary w-fit">
-            <ArrowLeft size={16} aria-hidden="true" />
-            Erstellen
-          </button>
+        <section className="core-creation-way grid min-w-0 min-h-[calc(100vh-10rem)] content-start gap-6" aria-label={selectedMethodMeta?.title ?? "Kartenerstellung"}>
           {renderSelectedMethod()}
         </section>
       ) : (
-        <CreationHome onSelect={onMethodChange} />
+        <>
+          <PageHeader title="Neue Karte" />
+          <CreationHome onSelect={onMethodChange} />
+        </>
       )}
     </div>
   );

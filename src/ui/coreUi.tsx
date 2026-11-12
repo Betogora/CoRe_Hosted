@@ -3,7 +3,8 @@ import { createPortal } from "react-dom";
 import { Ban, Check, Minus, Star } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import type { CoreMode } from "../coreTypes.ts";
-import { ActionButton } from "./actionUi.tsx";
+import { ActionButton, CrossLinkButton } from "./actionUi.tsx";
+import { CoreSwitch } from "./formControls.tsx";
 import { CoreTooltip } from "./tooltipUi.tsx";
 
 interface SoftPanelProps extends HTMLAttributes<HTMLElement> {
@@ -175,9 +176,19 @@ export function ActionDialog({
   return typeof document === "undefined" ? dialog : createPortal(dialog, document.body);
 }
 
-/** Short label in the shared tag shape; `neutral` is gray, `info` CoRe blue. Colors live in `.core-tag-*`. */
-export function CoreTag({ tone, className = "", ...props }: { tone: "neutral" | "info" } & HTMLAttributes<HTMLSpanElement>) {
-  return <span {...props} className={`core-tag core-tag-${tone} ${className}`.trim()} />;
+type CoreTagTone = "neutral" | "info" | "warning" | "success" | "outline";
+
+/**
+ * Short state label in the shared tag shape. The tone swaps the color roles in `.core-tag-*`; `dot` puts a domain
+ * color (any CSS color value, e.g. an exam color) as a point before the label instead of a saturated fill.
+ */
+export function CoreTag({ tone, dot, className = "", children, ...props }: { tone: CoreTagTone; dot?: string } & HTMLAttributes<HTMLSpanElement>) {
+  return (
+    <span {...props} className={`core-tag core-tag-${tone} ${className}`.trim()}>
+      {dot ? <span aria-hidden="true" className="core-tag-dot" style={{ background: dot }} /> : null}
+      {children}
+    </span>
+  );
 }
 
 export function OrbIcon({ icon: Icon, className = "bg-core-subtle text-core-action" }: { icon: LucideIcon; className?: string }) {
@@ -189,47 +200,53 @@ export function OrbIcon({ icon: Icon, className = "bg-core-subtle text-core-acti
 }
 
 type StatTileProps = Omit<HTMLAttributes<HTMLDListElement>, "children"> & {
-  icon?: LucideIcon;
   label: ReactNode;
   value: ReactNode;
   hint?: ReactNode;
-  accent?: string;
   size?: "default" | "compact";
+  /** `plain` drops frame and surface: label above, value below, for metrics that stand free in a row or table. */
+  variant?: "boxed" | "plain";
 };
 
 export function StatTile({
-  icon: Icon,
   label,
   value,
   hint,
-  accent = "text-core-action",
   size = "default",
+  variant = "boxed",
   className = "",
   ...props
 }: StatTileProps) {
   const compact = size === "compact";
+  const plain = variant === "plain";
+  const frame = plain ? "flex flex-col" : compact ? "flex flex-col rounded-control border border-core-border bg-core-surface px-4 py-3" : "core-surface-raised rounded-panel p-5";
   return (
-    <dl
-      {...props}
-      data-size={size}
-      className={`${compact ? "flex flex-col rounded-control border border-core-border bg-core-surface px-4 py-3 shadow-soft" : "core-surface-raised rounded-panel p-5"} min-w-0 ${className}`.trim()}
-    >
-      <dt className={`${compact ? "core-caption font-medium" : "core-status-label"} text-core-muted`}>
-        {Icon ? <OrbIcon icon={Icon} className={`bg-core-subtle ${accent}`} /> : null}
-        <span className={Icon ? "mt-6 block" : undefined}>{label}</span>
-      </dt>
-      <dd className={`core-metric ${compact ? "mt-auto pt-1" : "mt-2"} text-core-text`}>{value}</dd>
+    <dl {...props} data-size={size} data-variant={variant} className={`${frame} min-w-0 ${className}`.trim()}>
+      <dt className="core-status-label text-core-muted">{label}</dt>
+      <dd className={`core-metric ${plain ? "mt-0.5" : compact ? "mt-auto pt-1" : "mt-2"} text-core-text`}>{value}</dd>
       {hint ? <dd className="core-body mt-1 text-core-muted">{hint}</dd> : null}
     </dl>
   );
 }
 
-export function PageHeader({ eyebrow, title, action }: { eyebrow?: ReactNode; title: ReactNode; action?: ReactNode }) {
+/**
+ * Page title (heading 1) with an optional area-wide action on the right. `greeting` is reserved for the welcome
+ * line of `Heute`: it stands above the title and is read as the start of the heading. `tag` marks a state of the
+ * whole page (a `CoreTag`) beside the title without becoming part of the heading's name.
+ */
+export function PageHeader({ title, action, greeting, tag, back }: { title: ReactNode; action?: ReactNode; greeting?: string; tag?: ReactNode; back?: { label: string; onSelect: () => void } }) {
+  const heading = (
+    <h2 className="core-heading-1 text-core-text outline-none" data-screen-heading tabIndex={-1}>
+      {greeting ? <span className="sr-only">{`${greeting} `}</span> : null}
+      {title}
+    </h2>
+  );
   return (
     <header className={action ? "core-page-header-with-action flex min-w-0 items-end justify-between gap-3" : "min-w-0"}>
       <div className="min-w-0 space-y-1">
-        {eyebrow ? <p className="core-caption font-medium text-core-muted">{eyebrow}</p> : null}
-        <h2 className="core-heading-1 text-core-text outline-none" data-screen-heading tabIndex={-1}>{title}</h2>
+        {back ? <div className="core-page-header-back"><CrossLinkButton direction="back" onSelect={back.onSelect}>{back.label}</CrossLinkButton></div> : null}
+        {greeting ? <p aria-hidden="true" className="core-status-label text-core-muted">{greeting}</p> : null}
+        {tag ? <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1">{heading}{tag}</div> : heading}
       </div>
       {action ? <div className="core-page-header-action min-w-0 shrink-0">{action}</div> : null}
     </header>
@@ -238,10 +255,10 @@ export function PageHeader({ eyebrow, title, action }: { eyebrow?: ReactNode; ti
 
 export function EmptyState({ icon: Icon, title, body, action }: { icon: LucideIcon; title: ReactNode; body?: ReactNode; action?: ReactNode }) {
   return (
-    <section className="min-w-0 rounded-panel border border-dashed border-core-border-strong p-7">
+    <section className="min-w-0 rounded-panel border border-core-border bg-core-surface p-7">
       <div className="flex flex-wrap items-center justify-between gap-4">
-        <div className="flex items-center gap-4">
-          <span className="grid size-11 shrink-0 place-items-center rounded-round bg-core-subtle text-core-secondary"><Icon size={20} aria-hidden="true" /></span>
+        <div className="flex items-start gap-3">
+          <Icon size={22} className="mt-px shrink-0 text-core-secondary" aria-hidden="true" />
           <div>
             <h3 className="core-heading-3 text-core-text">{title}</h3>
             {body ? <p className="core-body mt-1 text-core-secondary">{body}</p> : null}
@@ -269,10 +286,6 @@ export interface CoreSegmentedControlProps<T extends string> {
   labels?: "visible" | "active" | "hidden";
 }
 
-const CORE_MODE_OPTIONS: ReadonlyArray<CoreSegmentedControlOption<CoreMode>> = [
-  { value: "off", label: "Aus" },
-  { value: "on", label: "An" },
-];
 const useSelectionLayoutEffect = typeof window === "undefined" ? React.useEffect : React.useLayoutEffect;
 
 export function useSlidingSelection<T extends HTMLElement>(value: string, options: ReadonlyArray<unknown>) {
@@ -381,14 +394,7 @@ export function CoreTriStateControl({ label, value, onValueChange, disabled = fa
 }
 
 export function CoreModeControl({ value, onChange }: { value: CoreMode; onChange: (value: CoreMode) => void }) {
-  return (
-    <CoreSegmentedControl
-      ariaLabel="CoRe-Modus"
-      options={CORE_MODE_OPTIONS}
-      value={value}
-      onValueChange={onChange}
-    />
-  );
+  return <CoreSwitch aria-label="CoRe-Modus" checked={value === "on"} onCheckedChange={(on) => onChange(on ? "on" : "off")} />;
 }
 
 export function CardMarkButton({ marked, onMarkedChange, disabled = false, className = "" }: {

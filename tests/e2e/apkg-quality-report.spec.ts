@@ -23,7 +23,7 @@ test("latest APKG preview shows the complete quality report without mutating acc
   await expect(page.getByText("Importbericht erscheint nach dem Upload")).toHaveCount(0);
   await page.locator('input[type="file"][accept=".apkg,.colpkg"]').setInputFiles(MEDIA_APKG_FIXTURE);
 
-  await expect(page.getByText("Importvorschau", { exact: true })).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByRole("button", { name: "Import übernehmen" })).toBeVisible({ timeout: 30_000 });
   await expect(page.getByRole("heading", { name: "Matrix Medien" })).toBeVisible();
   const statTiles = page.getByTestId("apkg-stat-tile");
   await expect(statTiles).toHaveCount(4);
@@ -34,7 +34,7 @@ test("latest APKG preview shows the complete quality report without mutating acc
   for (const tile of await statTiles.all()) {
     await expect(tile).toHaveAttribute("data-size", "compact");
     await expect(tile).toHaveCSS("border-width", "1px");
-    await expect(tile).not.toHaveCSS("box-shadow", "none");
+    await expect(tile).toHaveCSS("box-shadow", "none");
   }
   const notetypes = page.getByRole("region", { name: "Notiztypen" });
   await expect(notetypes.getByTestId("apkg-notetype-report")).toHaveCount(2);
@@ -61,7 +61,7 @@ test("latest APKG preview shows the complete quality report without mutating acc
   expect(after.decks?.length ?? 0).toBe(beforeDeckCount);
 
   await page.setViewportSize({ width: 390, height: 844 });
-  await expect(page.getByText("Importvorschau", { exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Matrix Medien" })).toBeVisible();
   await expect(page.getByRole("region", { name: "Notiztypen" })).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)).toBe(true);
   const unexpectedBrowserErrors = browserErrors.filter((message) => ![

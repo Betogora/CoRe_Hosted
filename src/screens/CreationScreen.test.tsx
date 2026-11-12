@@ -20,6 +20,9 @@ test("completed manual creation keeps its follow-up actions", () => {
   assert.match(markup, /Deine Karten sind bereit/);
   assert.match(markup, /Jetzt lernen/);
   assert.match(markup, /Karten prüfen/);
+  assert.match(markup, /data-screen-heading[^>]*>Karte selbst erstellen<\/h2>/);
+  assert.match(markup, /core-page-header-back[\s\S]*?>Erstellen<\/button>/);
+  assert.doesNotMatch(markup, />Gespeichert</);
 });
 
 test("completed import shows the verified count and only study or dashboard actions", () => {
@@ -28,7 +31,7 @@ test("completed import shows the verified count and only study or dashboard acti
     <CreationScreen decks={[deck]} completedDeckId={deck.id} completedCount={46} completionKind="import" {...callbacks} />,
   );
 
-  assert.match(markup, /Import abgeschlossen/);
+  assert.match(markup, /data-screen-heading[^>]*>Anki-Dateien importieren<\/h2>/);
   assert.match(markup, /Import erfolgreich/);
   assert.match(markup, /46 Karten wurden/);
   assert.match(markup, /Jetzt lernen/);
@@ -51,8 +54,16 @@ test("source creation offers office files and settings without a generation acti
   const markup = renderToStaticMarkup(<CreationScreen decks={[]} initialMethod="ai-source" {...callbacks} />);
   assert.match(markup, /Die automatische Erstellung ist noch nicht verfügbar/);
   assert.match(markup, /accept="\.pdf,\.txt,\.md,\.markdown,\.csv,\.tsv,\.docx,\.pptx"/);
-  for (const label of ["Quelle &amp; Stapel", "Deine Lernwünsche", "Deine Karten", "Wie ausführlich soll der Stoff abgedeckt werden?", "Wie ausführlich sollen die Antworten sein?", "In welcher Sprache sollen die Karten sein?", "Wie sollen die Karten formuliert sein?", "Was sollen wir außerdem beachten?", "Auftrag prüfen"]) assert.ok(markup.includes(label), label);
-  assert.equal((markup.match(/type="checkbox"[^>]*checked=""/g) ?? []).length, 4);
+  assert.match(markup, /data-screen-heading[^>]*>Karten automatisch erstellen lassen<\/h2>/);
+  for (const title of ["Quelle und Stapel", "Vorgaben", "Karten"]) assert.match(markup, new RegExp(`<h3[^>]*>${title}</h3>`), title);
+  for (const label of ["Quelle", "Stapelname", "Abdeckung", "Antwortlänge", "Sprache", "Formulierung", "Vorwissen", "Weitere Hinweise", "Kartenformate", "Ergänzungen über die Quelle hinaus", "Zielstapel"]) assert.match(markup, new RegExp(`>${label}(?: <|</)`), label);
+  assert.match(markup, /role="switch"[\s\S]*?Neuen Stapel anlegen/);
+  assert.doesNotMatch(markup, /Schritt 0|Schritt 1 von 3|\?</);
+  assert.match(markup, /<ol aria-label="Schritte der automatischen Erstellung"/);
+  assert.equal((markup.match(/class="core-ai-source-format"/g) ?? []).length, 4);
+  assert.match(markup, /Auftrag prüfen/);
+  assert.equal((markup.match(/type="checkbox"(?! role="switch")[^>]*checked=""/g) ?? []).length, 4);
+  assert.match(markup, /type="checkbox" role="switch"[^>]*checked=""/);
   assert.match(markup, /xl:grid-cols-3/);
   assert.doesNotMatch(markup, /type="range"|type="number"|>Karten erstellen<\/span>/);
 });
@@ -60,8 +71,11 @@ test("source creation offers office files and settings without a generation acti
 test("import creation exposes only APKG without a format selector", () => {
   const markup = renderToStaticMarkup(<CreationScreen decks={[]} initialMethod="import" {...callbacks} />);
 
-  assert.match(markup, />Erstellen<\/button>/);
-  assert.match(markup, /Anki-Dateien importieren/);
+  assert.match(markup, /core-page-header-back[\s\S]*?>Erstellen<\/button>/);
+  assert.match(markup, /data-screen-heading[^>]*>Anki-Dateien importieren<\/h2>/);
+  assert.equal((markup.match(/<h2/g) ?? []).length, 1);
+  assert.match(markup, /<ol aria-label="Importstatus">/);
+  assert.doesNotMatch(markup, /aria-current="step"/);
   assert.match(markup, /accept="\.apkg,\.colpkg"/);
   assert.match(markup, /APKG- oder COLPKG-Datei hier ablegen \(Max\. 2 GiB\)/);
   assert.match(markup, /data-file-drop-field="true"/);
@@ -72,8 +86,10 @@ test("import creation exposes only APKG without a format selector", () => {
 test("manual source entry stays compact until the document field is requested", () => {
   const markup = renderToStaticMarkup(<CreationScreen decks={[]} initialMethod="manual" {...callbacks} />);
 
-  assert.match(markup, /<h2[^>]*>Karte selbst erstellen<\/h2>/);
-  assert.match(markup, />Vorschau<\/span><\/button>/);
+  assert.match(markup, /data-screen-heading[^>]*>Karte selbst erstellen<\/h2>/);
+  assert.equal((markup.match(/<h2/g) ?? []).length, 1);
+  assert.match(markup, /core-page-header-action[\s\S]*?PDF\/Text anfügen[\s\S]*?>Vorschau<\/span><\/button>/);
+  assert.doesNotMatch(markup, /Markiere Text und wähle/);
   assert.equal((markup.match(/PDF\/Text anfügen/g) ?? []).length, 1);
   assert.equal((markup.match(/data-file-drop-field="true"/g) ?? []).length, 0);
   assert.doesNotMatch(markup, /Quelldatei auswählen oder ablegen/);
@@ -104,6 +120,7 @@ test("manual options share one desktop row and keep labeled segmented choices", 
   assert.match(markup, /aria-label="Fragentyp"[^>]*core-segmented-control/);
   assert.match(markup, />Single Choice</);
   assert.match(markup, />Multiple Choice</);
+  assert.match(markup, />Bildverdeckung</);
   assert.match(markup, />Lernrichtung</);
   assert.match(markup, /aria-label="Lernrichtung"[^>]*core-segmented-control/);
   assert.match(markup, />Beide Richtungen</);

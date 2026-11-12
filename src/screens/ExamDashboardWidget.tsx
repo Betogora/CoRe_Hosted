@@ -8,8 +8,9 @@ import { getLearningDayKey, getLearningTimeZone } from "../learningDay.ts";
 import { getGlobalSchedulerPreferences } from "../learningProfiles.ts";
 import { ActionButton, IconButton } from "../ui/actionUi.tsx";
 import { SoftPanel } from "../ui/coreUi.tsx";
+import { CoreCheckbox } from "../ui/formControls.tsx";
 import { StatusMessage } from "../ui/feedbackUi.tsx";
-import { examColor, formatExamCount, formatExamDistance } from "./examPlanningUi.ts";
+import { examColor, examTextColor, formatExamCount, formatExamDistance } from "./examPlanningUi.ts";
 import { useExamForecast, type ExamForecastState } from "./useExamForecast.ts";
 import { DashboardTaskText } from "./DashboardTaskText.tsx";
 
@@ -110,7 +111,7 @@ export function ExamDashboardWidget({ state, now, onLoad, onStart, onSaveTasks, 
     const checked = task.completed !== null, local = localCount(task);
     const inputId = `${taskListId}-${task.id}`;
     const text = <span className="min-w-0"><strong className={`block break-words hyphens-auto core-body text-core-text ${checked ? "line-through" : ""}`}>{task.kind === "summary" ? "Zusammenfassung lesen" : title}</strong><span className="block break-words core-caption text-core-muted">{task.kind === "summary" ? title : formatExamCount(task.cardIds.length, "Karte", "Karten")}{task.completed === "automatic" ? " · Automatisch erledigt" : checked ? " · Erledigt" : ""}</span></span>;
-    const checkbox = <input id={inputId} type="checkbox" checked={checked} disabled={!ready || busy || saving || starting || task.completed === "automatic"} aria-label={`${task.kind === "summary" ? "Zusammenfassung lesen: " : ""}${title} als erledigt markieren`} onChange={(event) => void persist(setExamDailyTaskChecked(tasks, task.id, event.target.checked))} className="size-5 shrink-0" style={{ accentColor: color }}/>;
+    const checkbox = <CoreCheckbox id={inputId} checked={checked} disabled={!ready || busy || saving || starting || task.completed === "automatic"} aria-label={`${task.kind === "summary" ? "Zusammenfassung lesen: " : ""}${title} als erledigt markieren`} onCheckedChange={(next) => void persist(setExamDailyTaskChecked(tasks, task.id, next))} accent={{ fill: color, on: examTextColor(exams.find((exam) => exam.id === task.examId) ?? {}) }}/>;
     return <li key={task.id} data-exam-todo={task.id} data-exam-block={task.kind} className={preview ? "flex min-w-0 items-center gap-2" : "flex min-w-0 items-center gap-2 rounded-control border border-core-border bg-core-surface p-2 shadow-soft"}>
       <div className="min-h-control min-w-0 flex-1 content-center">
         {preview ? <DashboardTaskText checkbox={checkbox}>{text}</DashboardTaskText> : <label className="flex min-h-control min-w-0 cursor-pointer items-center gap-3">{checkbox}{text}</label>}
@@ -122,7 +123,7 @@ export function ExamDashboardWidget({ state, now, onLoad, onStart, onSaveTasks, 
     </li>;
   }
   return <SoftPanel className="exam-today-layout grid min-w-0 gap-4 p-3 min-[360px]:p-4 sm:p-6" data-testid="dashboard-exam-unit">
-    <div className="flex flex-wrap items-center justify-between gap-3"><h2 className="core-heading-3 font-semibold text-core-text">Prüfungen · Heute</h2>{onOpen ? <ActionButton variant="secondary" onClick={onOpen}>Lernkalender öffnen</ActionButton> : null}</div>
+    <div className="flex flex-wrap items-center justify-between gap-3"><h2 className="core-heading-3 text-core-text">Prüfungen · Heute</h2>{onOpen ? <ActionButton variant="secondary" onClick={onOpen}>Lernkalender öffnen</ActionButton> : null}</div>
     {busy ? <p role="status" className="core-body text-core-muted">Deine Aufgaben werden berechnet …</p> : null}
     {offline ? <StatusMessage tone="info">{tasks.length ? "Offline: zuletzt geplante Aufgaben" : "Die Prüfungsplanung braucht eine Verbindung."}</StatusMessage> : null}
     {error || startError ? <StatusMessage tone="error">{startError || error}</StatusMessage> : null}

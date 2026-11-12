@@ -150,7 +150,11 @@ test("deck content shows only its own cards without deck headings and uses the e
   assert.doesNotMatch(markup, /data-testid="deck-explorer"|Stapel wechseln/);
   assert.doesNotMatch(renderScreen([deck, other], { cardPages }), /data-testid="deck-explorer"|Stapel wechseln/);
   assert.match(markup, /aria-label="Stapelinhalte"/);
-  for (const label of ["Unterstapel", "Zusammenfassungen", "Quiz", "Mind Map", "Karten", "Quelle"]) assert.match(markup, new RegExp(`aria-label="${label}"`));
+  const tabs = markup.match(/<div role="tablist" aria-label="Stapelinhalte"[\s\S]*?<\/div>/)?.[0] ?? "";
+  assert.deepEqual([...tabs.matchAll(/role="tab"[^>]*>([^<]+)<\/button>/g)].map((match) => match[1]), ["Unterstapel", "Zusammenfassungen", "Quiz", "Mind Map", "Karten", "Quelle"], "alle sechs Reiter mit Wort");
+  assert.doesNotMatch(tabs, /<svg/, "Reiter ohne Icons");
+  assert.match(tabs, /aria-selected="true"[^>]*data-label="Karten"/);
+  assert.match(markup, /role="tabpanel" aria-labelledby="[^"]+-tab-cards"/);
   assert.match(markup, /aria-label="Karten durchsuchen"/);
   assert.match(markup, /aria-expanded="false" aria-controls="advanced-card-search"/);
   assert.match(markup, /Was ist ATP\?/);
@@ -159,7 +163,6 @@ test("deck content shows only its own cards without deck headings and uses the e
   const actions = markup.slice(markup.indexOf('data-testid="deck-content-actions"'));
   assert.ok(actions.indexOf('aria-label="Stapelinhalte"') < actions.indexOf('data-testid="deck-content-study"'));
   assert.doesNotMatch(markup.slice(markup.indexOf('data-testid="deck-content-heading"'), markup.indexOf('data-testid="deck-content-actions"')), /data-testid="deck-content-study"/);
-  assert.doesNotMatch(markup, /core-deck-content-study/);
   assert.match(markup, /aria-label="Karten durchsuchen"/);
   const editor = renderScreen([deck, other], {
     contentDeckId: deck.id,
@@ -180,8 +183,9 @@ test("deck content opens on its subdecks with path, heading and branch actions",
 
   assert.match(markup, /<nav[^>]*aria-label="Stapelpfad"[\s\S]*>Alle Stapel<[\s\S]*>Hauptstapel<[\s\S]*aria-current="page">Kapitel</);
   assert.match(markup, /<h2[^>]*data-screen-heading[^>]*>Kapitel<\/h2>/);
-  assert.match(markup, /aria-label="Eine Ebene zurück"/);
-  assert.match(markup, /aria-pressed="true"[^>]*aria-label="Unterstapel"|aria-label="Unterstapel"[^>]*aria-pressed="true"/);
+  assert.doesNotMatch(markup, /aria-label="Eine Ebene zurück"|aria-label="Zur Stapelübersicht"/, "die Brotkrumen ersetzen den Zurück-Button");
+  assert.match(markup, /aria-selected="true"[^>]*data-label="Unterstapel"/);
+  assert.match(markup, /<h2 class="core-deck-content-title[^"]*"[^>]*>Kapitel<\/h2>/);
   assert.match(markup, /data-testid="deck-content-substacks"/);
   assert.match(markup, /aria-label="Stapelgruppe Kapitel" data-deck-group="child"/);
   assert.match(markup, /data-testid="content-deck-row-grandchild"/);
@@ -197,7 +201,7 @@ test("deck content opens on its subdecks with path, heading and branch actions",
   assert.match(leaf, /data-testid="deck-content-study"/);
   assert.doesNotMatch(leaf, /content-deck-row-/);
   const top = renderScreen([root, child], { contentDeckId: root.id, contentTab: "summary" });
-  assert.match(top, /aria-label="Zur Stapelübersicht"/);
+  assert.match(top, /aria-selected="true"[^>]*data-label="Zusammenfassungen"/);
   // Summaries and mind maps load with their tab, so the first render shows the tab's loading state.
   assert.match(top, /data-testid="deck-content-tab-loading"/);
   const mindMap = renderScreen([root, child], { contentDeckId: root.id, contentTab: "mind-map" });
@@ -372,7 +376,7 @@ test("cards page lists every card of every deck as one flat sortable list withou
   const cardPages = { [originalDeck.id]: cardPage(originalDeck.id, [atp]) };
   const markup = renderScreen(decks, { cardPages });
 
-  assert.match(markup, />Alle Stapel<\/p><h2[^>]*>Kartenverwaltung<\/h2>/);
+  assert.match(markup, /<div class="min-w-0 space-y-1"><h2[^>]*>Kartenverwaltung<\/h2><\/div>/);
   assert.match(markup, />Lerneinstellungen<\/span><\/button>/);
   assert.doesNotMatch(markup, /Bereich in Lernen|>Stapelübersicht</);
   assert.doesNotMatch(markup, /Aktive Stapel/);
@@ -390,7 +394,9 @@ test("cards page lists every card of every deck as one flat sortable list withou
   assert.doesNotMatch(markup, /min-w-\[46rem\]|overflow-x-auto|sticky left-0 w-\[calc\(100dvw/);
   assert.match(markup, /<col class="w-\[5\.5rem\] sm:w-\[5\.75rem\]"\/><col class="w-20"\/>/);
   assert.match(markup, /aria-label="Sortierfeld aufsteigend sortieren"/);
-  assert.match(markup, /core-table-header-row/);
+  assert.match(markup, /<tr class="core-card-table-header border-b border-core-border">/, "Kopfzeile und Auswahlleiste teilen eine Höhe");
+  assert.match(markup, /<div class="min-w-0 max-w-full overflow-clip rounded-panel border border-core-border bg-core-surface" data-testid="card-library-sheet"><table/, "die Tabelle ist ein Blatt ohne zweiten Rahmen");
+  assert.doesNotMatch(markup, /core-surface[^"]*" aria-label="Karten"/, "Suche und Tabelle liegen ohne Panel unter dem Kopf");
   assert.match(markup, /core-table-header-control/);
   assert.match(markup, /text-right/);
   assert.match(markup, /justify-end/);
@@ -447,24 +453,25 @@ test("card selection opens the full-surface editor dialog with header, tabs and 
     cardPages: { [deck.id]: cardPage(deck.id, [selected], { selected: selectedOf(selected) }) },
   });
 
-  assert.match(markup, /role="dialog" aria-modal="true" aria-labelledby="[^"]+-title"[^>]*data-testid="card-detail-dialog"/);
-  assert.match(markup, /data-testid="card-detail-backdrop"/);
+  assert.match(markup, /role="dialog" aria-modal="true" aria-labelledby="[^"]+" data-size="l" data-testid="card-detail-dialog" class="core-dialog-frame core-card-editor-frame"/);
+  assert.match(markup, /class="core-dialog-frame-backdrop"/);
   assert.doesNotMatch(markup, /<aside|lg:w-1\/2/);
-  assert.match(markup, /<h2[^>]*>Welche Funktion hat ATP\?<\/h2>/);
+  assert.match(markup, /<h2[^>]*><span tabindex="-1" class="outline-none" data-card-editor-heading="true">Welche Funktion hat ATP\?<\/span><\/h2>/);
   assert.match(markup, /data-testid="card-sibling-position">Frage und Antwort</);
   assert.match(markup, /<button[^>]*disabled=""[^>]*aria-label="Vorige Karte"/);
   assert.match(markup, /aria-label="Karte 1 von 1">1 \/ 1</);
   for (const label of ["Duplizieren", "Löschen", "Detailansicht schließen"]) assert.match(markup, new RegExp(`aria-label="${label}"`));
-  const tabs = markup.match(/<div role="tablist"[\s\S]*?<\/div>/)?.[0] ?? "";
-  assert.deepEqual([...tabs.matchAll(/role="tab"[^>]*><span[^>]*>([^<]+)/g)].map((match) => match[1]), ["Allgemein", "Inhalt", "Varianten", "Lernen"]);
-  assert.match(tabs, /aria-selected="true"[^>]*><span[^>]*>Allgemein/);
+  const tabs = markup.match(/<div role="tablist" aria-label="Bereiche der Karte"[\s\S]*?<\/div>/)?.[0] ?? "";
+  assert.deepEqual([...tabs.matchAll(/role="tab"[^>]*>([^<]+)<\/button>/g)].map((match) => match[1]), ["Allgemein", "Inhalt", "Varianten", "Lernen"]);
+  assert.match(tabs, /aria-selected="true"[^>]*>Allgemein</);
+  assert.match(markup, /<header class="core-dialog-frame-header" data-tabs="true"><div class="core-card-editor-paging" data-testid="card-hit-navigation">/, "Blättern steht vor dem Titel");
   assert.match(markup, /data-testid="card-general-tab"/);
   assert.match(markup, /aria-label="Flagge Rot"/);
   assert.match(markup, /aria-label="Karte markieren"/);
   assert.match(markup, /data-testid="card-plan-state">Fällig am 05\.08\.2026</);
   assert.match(markup, /data-core-date-picker="trigger"/);
   assert.doesNotMatch(markup, />Neu planen</, "Neu planen erscheint erst nach einer Datumsänderung");
-  assert.match(markup, /aria-pressed="false"[^>]*><svg[^>]*>[\s\S]*?<\/svg>Aussetzen/);
+  assert.match(markup, /<input type="checkbox" role="switch"\/><span class="core-switch-thumb" aria-hidden="true"><\/span><\/span><span class="core-switch-label">Aussetzen</);
   assert.match(markup, />Zurückstellen</);
   assert.match(markup, />Verschieben</);
   assert.match(markup, /Tags bearbeiten/);
@@ -486,7 +493,7 @@ test("from a session the editor opens without a hit list", () => {
     cardPages: { [deck.id]: cardPage(deck.id, [graph], { selected: selectedOf(graph) }) },
   });
   assert.doesNotMatch(markup, /data-testid="card-hit-navigation"/);
-  assert.match(markup, /aria-selected="true"[^>]*><span[^>]*>Inhalt/);
+  assert.match(markup, /aria-selected="true"[^>]*>Inhalt</);
   assert.match(markup, /data-testid="card-content-tab"/);
 });
 
@@ -516,14 +523,13 @@ test("cards page shows suspended rows and marked stars; the editor tints only a 
   assert.match(markup, /sr-only[^>]*> · Ausgesetzt</);
   assert.match(markup, /aria-label="Keine Variante"[\s\S]*?<span class="grid size-\[1\.125rem\] place-items-center"><svg[^>]*aria-label="Markiert"/);
   const dialog = markup.match(/<div[^>]*data-testid="card-detail-dialog"[^>]*>/)?.[0] ?? "";
-  assert.match(dialog, /data-marked="true"/);
-  assert.match(dialog, /bg-core-marked-soft/);
-  assert.match(dialog, /--core-text-muted:var\(--core-marked-text-muted\)/);
+  assert.match(dialog, /class="core-dialog-frame core-card-editor-frame is-marked"/);
+  assert.match(markup, /data-selected="true"/, "die bearbeitete Zeile bleibt markiert");
   assert.doesNotMatch(dialog, /warning-surface/, "Aussetzen färbt keine Fläche");
   const icons = markup.slice(markup.indexOf('data-testid="card-status-icons"'), markup.indexOf('role="tablist"'));
   for (const label of ["Markiert", "Flagge Orange", "Ausgesetzt"]) assert.match(icons, new RegExp(`aria-label="${label}"`));
   assert.match(markup, /aria-label="Markierung entfernen"/);
-  assert.match(markup, /aria-pressed="true"[^>]*><svg[^>]*>[\s\S]*?<\/svg>Aussetzen/);
+  assert.match(markup, /<input type="checkbox" role="switch" checked=""\/><span class="core-switch-thumb" aria-hidden="true"><\/span><\/span><span class="core-switch-label">Aussetzen</);
   assert.match(markup, /aria-pressed="true" aria-label="Flagge Orange"/);
   assert.match(markup, /data-testid="card-plan-state">Ausgesetzt</);
 });
@@ -577,7 +583,7 @@ test("the editor names the card's position and lists its siblings with deck and 
     cardPages: { [clozeDeck.id]: cardPage(clozeDeck.id, [cloze], { selected: selectedOf(cloze, cloze.cards[1].id) }) },
   });
   assert.match(clozeMarkup, />Lückentext · Lücke 2 von 3</);
-  assert.match(clozeMarkup, /<h2[^>]*>ATP ist ein Energieträger der Zelle\.<\/h2>/);
+  assert.match(clozeMarkup, /data-card-editor-heading="true">ATP ist ein Energieträger der Zelle\.<\/span><\/h2>/);
 });
 test("cards page shows safe deterministic fallbacks for unavailable URL targets", () => {
   const deck = deckOf("deck-bio", "Biologie", [basicGraph("deck-bio", "ATP", "Energie")]);

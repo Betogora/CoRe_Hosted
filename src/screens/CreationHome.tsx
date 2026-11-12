@@ -8,6 +8,8 @@ type SelectableCreationMethod = Exclude<CreationMethod, "">;
 export interface CreationMethodDefinition {
   id: SelectableCreationMethod;
   title: string;
+  /** Page title while this way is open; it names the way instead of a second panel title. */
+  pageTitle: string;
   icon: LucideIcon;
 }
 
@@ -19,16 +21,19 @@ export const creationMethods: CreationMethodDefinition[] = [
   {
     id: "manual",
     title: "Karten selbst erstellen",
+    pageTitle: "Karte selbst erstellen",
     icon: PenLine,
   },
   {
     id: "import",
     title: "Import",
+    pageTitle: "Anki-Dateien importieren",
     icon: FileSpreadsheet,
   },
   {
     id: "ai-source",
     title: "Karten automatisch erstellen lassen",
+    pageTitle: "Karten automatisch erstellen lassen",
     icon: Sparkles,
   },
 ];

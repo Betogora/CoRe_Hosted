@@ -1,10 +1,15 @@
 import { registerAppModuleLoadErrors } from "../src/pwa.ts";
 import { CreationActionCard } from "../src/ui/CreationActionCard.tsx";
+import { SectionHeader } from "../src/ui/SectionHeader.tsx";
+import { MetricRow } from "../src/ui/MetricRow.tsx";
+import { Steps } from "../src/ui/Steps.tsx";
+import { CoreTabPanel, CoreTabs } from "../src/ui/CoreTabs.tsx";
+import { DialogFrame } from "../src/ui/DialogFrame.tsx";
 import { CoreWordmark } from "../src/ui/CoreWordmark.tsx";
 import { BrainMascot } from "../src/ui/BrainMascot.tsx";
 import { DailyMotivationWidget } from "../src/screens/DailyMotivationWidget.tsx";
 import React, { useRef, useState } from "react";
-import { ArrowUpRight, Ban, BookOpen, ChevronRight, Copy, Eye, Grid2x2, Highlighter, Home, Info, Layers, List, Pencil, Plus, RefreshCw, Save, Settings, Sparkles, Star, Trash2, X, type LucideIcon } from "lucide-react";
+import { ArrowUpRight, Ban, BookOpen, ChevronRight, Copy, Eye, FileSpreadsheet, FileText, Grid2x2, Highlighter, Home, Info, Layers, List, MoreHorizontal, Pencil, PenLine, Play, Plus, RefreshCw, Save, Settings, Sparkles, Star, Trash2, X, type LucideIcon } from "lucide-react";
 import { addCardVariant, addNoteField, cardStudyFromReviewState, type OcclusionMode, createBasicNote, createCoreDeck, createManualNoteContent, createNote, createReviewState, noteBlocks, setNoteTypeIn, type ManualContentKind } from "../src/coreModel.ts";
 import type { ExamPlanningSettings, CoreMode, NewReviewOrder, NoteContent, NoteField, OcclusionMask, SavedCardSearch, SyncStatus } from "../src/coreTypes.ts";
 import type { CardEditorServices, DecksCardPageRequest } from "../src/appScreenProps.ts";
@@ -25,6 +30,7 @@ import { createAccountMediaStore, type AccountMediaStore } from "../src/mediaSto
 import { CoreSelect, DeckMultiSelect, DeckSelect } from "../src/ui/selectUi.tsx";
 import { CoreTooltip } from "../src/ui/tooltipUi.tsx";
 import { CoreDatePicker } from "../src/ui/CoreDatePicker.tsx";
+import { CoreCheckbox, CoreCheckboxGroup, CoreRadio, CoreRadioGroup, CoreSlider, CoreSwitch } from "../src/ui/formControls.tsx";
 import { FlagDot, FlagPicker } from "../src/ui/flagUi.tsx";
 import { TagInput } from "../src/ui/TagInput.tsx";
 import { ColorPicker } from "../src/ui/ColorPicker.tsx";
@@ -38,7 +44,6 @@ import { bindFieldTimingsAccount } from "../src/fieldTimings.ts";
 import { InPageNavigation } from "../src/ui/InPageNavigation.tsx";
 import { DeckAppearanceIcon } from "../src/ui/deckAppearance.tsx";
 import { DeckOptionsMenu } from "../src/ui/DeckOptionsMenu.tsx";
-import { DeckSummaryHeader, DeckSummaryRow } from "../src/ui/DeckSummaryRow.tsx";
 import { DeckTree, type DeckTreeView } from "../src/ui/DeckTree.tsx";
 import { DeckSubstacksPanel } from "../src/screens/DeckSubstacksPanel.tsx";
 import { DailyReviewProgress } from "../src/ui/DailyReviewProgress.tsx";
@@ -74,6 +79,7 @@ import { ExamTopicOrder } from "../src/screens/ExamTopicOrder.tsx";
 import { LearnScreen } from "../src/screens/LearnScreen.tsx";
 import { CreationScreen } from "../src/screens/CreationScreen.tsx";
 import { DecksScreen } from "../src/screens/DecksScreen.tsx";
+import { CardEditorStudyTab } from "../src/screens/cardEditor/CardEditorStudyTab.tsx";
 import { NoteBlockControls } from "../src/ui/NoteBlockControls.tsx";
 import { OcclusionEditor } from "../src/ui/OcclusionEditor.tsx";
 import { SettingsScreen } from "../src/screens/SettingsScreen.tsx";
@@ -151,31 +157,87 @@ function ActionsDemo({ section }: { section: string }) {
   return <>
     {section === "buttons" && <Demo title="ActionButton · Varianten und Zustände">
       <div className="catalog-row">{(["primary", "secondary", "destructive"] as const).map((variant) => <ActionButton key={variant} variant={variant} icon={variant === "destructive" ? Trash2 : Save} onClick={() => toast("Beispielaktion ausgeführt.")}>{variant === "primary" ? "Speichern" : variant === "secondary" ? "Abbrechen" : "Löschen"}</ActionButton>)}</div>
+      <div className="catalog-row"><ActionButton variant="destructive-secondary" icon={X} onClick={() => toast("Beispielaktion ausgeführt.")}>Abmelden</ActionButton></div>
       <div className="catalog-row"><ActionButton variant="primary" disabled>Deaktiviert</ActionButton><ActionButton variant="primary" loading>Wird gespeichert …</ActionButton></div>
     </Demo>}
-    {section === "buttons" && <Demo title="CreationActionCard"><CreationActionCard title="Anki-Stapel importieren" description="Eine vorhandene APKG-Datei übernehmen." icon={Layers} onSelect={() => toast("Import gewählt.")} /></Demo>}
+    {section === "buttons" && <Demo title="CreationActionCard · im Raster mit und ohne Beschreibung"><div className="grid gap-4">
+      <div className="catalog-two">{([["Karten selbst erstellen", PenLine], ["Import", FileSpreadsheet]] as const).map(([title, icon]) => <CreationActionCard key={title} title={title} icon={icon} onSelect={() => toast(`${title} gewählt.`)} />)}</div>
+      <CreationActionCard title="Anki-Stapel importieren" description="Eine vorhandene APKG-Datei übernehmen." icon={Layers} onSelect={() => toast("Import gewählt.")} />
+    </div></Demo>}
     {section === "buttons" && <Demo title="IconButton · normal, destruktiv, destruktiv-dezent und ghost"><div className="catalog-row">{(["secondary", "destructive", "destructive-quiet", "ghost"] as const).map((variant) => <CoreTooltip key={variant} label={variant}><IconButton variant={variant} label={`${variant}: Beispielaktion`} icon={variant.startsWith("destructive") ? Trash2 : Settings} onClick={() => toast("Icon-Aktion ausgeführt.")} /></CoreTooltip>)}</div></Demo>}
-    {section === "buttons" && <Demo title="CrossLinkButton"><CrossLinkButton onSelect={() => toast("Querlink gewählt.")}>Alle ansehen</CrossLinkButton></Demo>}
+    {section === "buttons" && <Demo title="CrossLinkButton · weiter und zurück"><div className="catalog-row"><CrossLinkButton onSelect={() => toast("Querlink gewählt.")}>Alle ansehen</CrossLinkButton><CrossLinkButton direction="back" onSelect={() => toast("Zurück gewählt.")}>Erstellen</CrossLinkButton></div></Demo>}
     {section === "tooltips" && <Demo title="CoreTooltip · Text, Wert und Stapel"><div className="catalog-row"><CoreTooltip label="Kurzer Hinweis"><IconButton label="Hinweis anzeigen" icon={Info} /></CoreTooltip><CoreTooltip label="Neu" value="12 Karten" swatchColor="var(--core-learning-status-new)"><span tabIndex={0}>Lernstatus</span></CoreTooltip><CoreTooltip label="Welt-Hauptstädte" deckAppearance={deck.deckSettings.appearance}><span tabIndex={0}>Stapelhinweis</span></CoreTooltip></div></Demo>}
   </>;
 }
 
 function BadgesDemo() {
-  return <Demo title="CoreTag · neutral und CoRe-Blau"><div className="catalog-row"><CoreTag tone="info">Variante</CoreTag><CoreTag tone="neutral">Originalkarte</CoreTag></div></Demo>;
+  return <>
+    <Demo title="CoreTag · fünf Töne"><div className="catalog-row"><CoreTag tone="neutral">Originalkarte</CoreTag><CoreTag tone="info">Variante</CoreTag><CoreTag tone="warning">1 offen</CoreTag><CoreTag tone="success">Fertig</CoreTag><CoreTag tone="outline">Stand heute</CoreTag></div></Demo>
+    <Demo title="CoreTag · Fachfarbe als Punkt"><div className="catalog-row"><CoreTag tone="neutral" dot="var(--core-exam-color-1)">Geografie-Testat</CoreTag><CoreTag tone="neutral" dot="var(--core-exam-color-3)">Anatomie</CoreTag></div></Demo>
+  </>;
 }
 
 function FoundationsDemo({ section }: { section: string }) {
   return <>
     {section === "surfaces" && <Demo title="SoftPanel"><SoftPanel className="p-6"><p className="core-body text-core-text">Erhöhte Inhaltsfläche mit kanonischem Schatten.</p></SoftPanel></Demo>}
-    {section === "headings" && <Demo title="PageHeader"><PageHeader eyebrow="Review" title="Heute lernen" action={<IconButton label="Hinzufügen" icon={Plus} />} /></Demo>}
+    {section === "headings" && <Demo title="PageHeader"><PageHeader title="Heute lernen" action={<IconButton label="Hinzufügen" icon={Plus} />} /></Demo>}
+    {section === "headings" && <Demo title="PageHeader · Begrüßung von Heute und Seitenzustand"><div className="grid gap-6"><PageHeader greeting="Willkommen zurück," title="Noemi!" /><PageHeader title="Simulator" tag={<CoreTag tone="neutral">Nur lokal</CoreTag>} /></div></Demo>}
+    {section === "headings" && <Demo title="PageHeader · Rücklink und Aktionen eines Erstellungswegs"><div className="core-creation-way"><PageHeader title="Karte selbst erstellen" back={{ label: "Erstellen", onSelect: () => undefined }} action={<div className="flex flex-wrap gap-2"><ActionButton variant="secondary" icon={FileText}>PDF/Text anfügen</ActionButton><ActionButton variant="secondary" icon={Eye}>Vorschau</ActionButton></div>} /></div></Demo>}
     {section === "surfaces" && <Demo title="EmptyState"><EmptyState icon={BookOpen} title="Noch keine Karten" body="Erstelle deine erste Karte oder importiere einen Anki-Stapel." action={<ActionButton variant="primary" icon={Plus}>Erste Karte erstellen</ActionButton>} /></Demo>}
     {section === "symbols" && <Demo title="OrbIcon und DeckAppearanceIcon"><div className="catalog-row"><OrbIcon icon={BookOpen} /><DeckAppearanceIcon deck={deck} /></div></Demo>}
-    {section === "charts" && <Demo title="StatTile · Standard und kompakt"><div className="catalog-two"><StatTile label="Karten" value="128" icon={Layers} hint="In deiner Sammlung" /><StatTile label="Lernzeit" value="24 Min." size="compact" /></div></Demo>}
+    {section === "charts" && <Demo title="StatTile · Standard, kompakt und rahmenlos"><div className="catalog-row items-stretch"><StatTile label="Karten" value="128" hint="In deiner Sammlung" /><StatTile label="Lernzeit" value="24 Min." size="compact" /><StatTile label="Erfolgsrate" value="83,3 %" variant="plain" /></div></Demo>}
+    {section === "charts" && <Demo title="MetricRow · mit Statuspunkt und ohne" wide><div className="grid gap-6">
+      <MetricRow aria-label="Heute" items={[{ label: "Gelernt", value: 9, dot: "var(--core-learning-progress-completed)" }, { label: "Neu", value: 107, dot: "var(--core-learning-status-new)" }, { label: "Offen", value: 5, dot: "var(--core-learning-status-in-progress)" }, { label: "Fällig", value: 0, dot: "var(--core-learning-status-due)" }]} />
+      <MetricRow aria-label="Überblick" items={[{ label: "Reviews", value: "12" }, { label: "Erfolgsrate", value: "83,3 %" }, { label: "Lernzeit", value: "12 Sek." }, { label: "Serie", value: "1 Tag" }]} />
+    </div></Demo>}
+  </>;
+}
+
+const STEP_DEMO_ITEMS = [{ label: "Analysieren" }, { label: "Vorschau" }, { label: "Übernehmen" }, { label: "Cloud" }, { label: "Medien" }, { label: "Fertig" }];
+const TAB_DEMO_ITEMS = [{ value: "substacks", label: "Unterstapel" }, { value: "summaries", label: "Zusammenfassungen" }, { value: "quiz", label: "Quiz" }, { value: "mindmap", label: "Mind Map" }, { value: "cards", label: "Karten" }, { value: "source", label: "Quelle" }] as const;
+
+function StructureDemo({ section }: { section: string }) {
+  const [planStep, setPlanStep] = useState(1);
+  const [tab, setTab] = useState<(typeof TAB_DEMO_ITEMS)[number]["value"]>("cards");
+  const [headTab, setHeadTab] = useState<(typeof TAB_DEMO_ITEMS)[number]["value"]>("cards");
+  const [view, setView] = useState("list");
+  const [dialog, setDialog] = useState<"s" | "m" | "l" | null>(null);
+  const [dialogTab, setDialogTab] = useState<"content" | "study">("content");
+  const toast = useSuccessToast();
+  return <>
+    {section === "struktur" && <Demo title="SectionHeader · mit Zähler und Aktionen, daneben ohne" wide><div className="catalog-two">
+      <SoftPanel className="p-5"><SectionHeader level={3} title="Aktive Stapel" count={8} action={<><CrossLinkButton onSelect={() => toast("Alle eingeklappt.")}>Alle einklappen</CrossLinkButton><CoreIconSegmentedControl ariaLabel="Stapelansicht" value={view} options={[{ value: "tiles", label: "Als Kacheln anzeigen", icon: Grid2x2 }, { value: "list", label: "Als Liste anzeigen", icon: List }]} onValueChange={setView} /></>} /></SoftPanel>
+      <SoftPanel className="p-5"><SectionHeader level={3} title="Lernaktivität" action={<IconButton variant="ghost" label="Statistik öffnen" icon={ArrowUpRight} />} /><p className="core-body text-core-secondary">Gleiche Höhe und Grundlinie wie der Kopf daneben.</p></SoftPanel>
+    </div></Demo>}
+    {section === "struktur" && <Demo title="Steps · auswählbar, gestreckt und laufend" wide><div className="grid gap-6">
+      <Steps ariaLabel="Schritte der Prüfungsplanung" items={[{ label: "Prüfung" }, { label: "Lernstoff" }, { label: "Lernzeit", disabled: planStep < 1 }, { label: "Lernplan", disabled: planStep < 2 }]} current={planStep} onSelect={setPlanStep} />
+      <Steps ariaLabel="Importstatus" items={STEP_DEMO_ITEMS} current={2} stretch animated />
+      <Steps ariaLabel="Import fehlgeschlagen" items={STEP_DEMO_ITEMS.map((item, index) => index === 3 ? { ...item, failed: true } : item)} current={3} stretch />
+    </div></Demo>}
+    {section === "struktur" && <Demo title="CoreTabs und CoreTabPanel" wide><CoreTabs ariaLabel="Stapelinhalte" tabs={TAB_DEMO_ITEMS} value={tab} onValueChange={setTab} panelId="catalog-deck-content" /><CoreTabPanel panelId="catalog-deck-content" value={tab} className="pt-4 core-body text-core-secondary">Inhalt des Reiters {TAB_DEMO_ITEMS.find((item) => item.value === tab)?.label}.</CoreTabPanel></Demo>}
+    {section === "struktur" && <Demo title="Kopf der Stapelinhalte · Brotkrumen, Titel und Karten lernen auf einer Linie, Unterstreichungs-Reiter" wide>
+      <div className="core-deck-content-head">
+        <nav className="core-deck-folder-breadcrumb" aria-label="Stapelpfad"><button type="button">Alle Stapel</button><ChevronRight size={16} aria-hidden="true" /><button type="button">Welt-Hauptstädte</button><ChevronRight size={16} aria-hidden="true" /><span aria-current="page">Europa</span></nav>
+        <div className="core-deck-content-heading"><DeckAppearanceIcon deck={child} className="size-7" iconSize={16} /><h3 className="core-deck-content-title">Europa</h3></div>
+        <div className="core-deck-content-tabs"><CoreTabs ariaLabel="Inhalte von Europa" tabs={TAB_DEMO_ITEMS} value={headTab} onValueChange={setHeadTab} panelId="catalog-deck-head" /></div>
+        <ActionButton variant="primary" icon={Play} className="core-deck-content-study" onClick={() => toast("Lernsitzung startet.")}>Karten lernen</ActionButton>
+      </div>
+      <CoreTabPanel panelId="catalog-deck-head" value={headTab} className="core-body text-core-secondary">Inhalt des Reiters {TAB_DEMO_ITEMS.find((item) => item.value === headTab)?.label}.</CoreTabPanel>
+    </Demo>}
+    {section === "struktur" && <Demo title="Karteneditor · Abschnitte auf einer Fläche, Lernstand als Schrittlinie und Zeilenliste" wide>
+      <div className="core-card-editor-frame overflow-hidden rounded-panel border border-core-border"><CardEditorStudyTab card={variantStudyCard} now={`${today}T09:00:00Z`} services={catalogCardEditorServices} /></div>
+    </Demo>}
+    {section === "dialogs" && <Demo title="DialogFrame · s, m mit Reitern, l"><div className="catalog-row">{(["s", "m", "l"] as const).map((size) => <ActionButton key={size} variant="secondary" onClick={() => setDialog(size)}>{`Dialog ${size.toUpperCase()} öffnen`}</ActionButton>)}</div>
+      <DialogFrame open={dialog !== null} size={dialog ?? "m"} title={dialog === "m" ? "Karte bearbeiten" : "Tags verwalten"} onClose={() => setDialog(null)}
+        tabs={dialog === "m" ? <CoreTabs ariaLabel="Bereiche" tabs={[{ value: "content", label: "Inhalt" }, { value: "study", label: "Lernen" }]} value={dialogTab} onValueChange={setDialogTab} panelId="catalog-dialog-panel" /> : undefined}
+        footer={<><ActionButton variant="secondary" onClick={() => setDialog(null)}>Abbrechen</ActionButton><ActionButton variant="primary" onClick={() => { setDialog(null); toast("Beispiel gespeichert."); }}>Speichern</ActionButton></>}>
+        {dialog === "m" ? <CoreTabPanel panelId="catalog-dialog-panel" value={dialogTab} className="core-body text-core-text">{dialogTab === "content" ? "Felder der Karte." : "Lernstand der Karte."}</CoreTabPanel> : <ul className="core-settings-list">{["geo", "hauptstaedte", "europa", "afrika"].map((tag, index) => <li key={tag} className="flex min-h-12 items-center justify-between gap-3 core-body"><span className="font-medium text-core-text">{tag}</span><span className="text-core-muted">{`${(index + 1) * 13} Karten`}</span></li>)}</ul>}
+      </DialogFrame>
+    </Demo>}
   </>;
 }
 
 function ControlsDemo({ section }: { section: string }) {
-  const [mode, setMode] = useState<CoreMode>("on");
   const [tab, setTab] = useState("front");
   const [iconView, setIconView] = useState<DeckTreeView>("tiles");
   const [marked, setMarked] = useState(false);
@@ -188,9 +250,64 @@ function ControlsDemo({ section }: { section: string }) {
     {section === "segments" && <Demo title="CoreSegmentedControl"><CoreSegmentedControl ariaLabel="Kartenseite" value={tab} options={options} onValueChange={setTab} /></Demo>}
     {section === "segments" && <Demo title="CoreIconSegmentedControl"><CoreIconSegmentedControl ariaLabel="Stapelansicht" value={iconView} options={[{ value: "tiles", label: "Als Kacheln anzeigen", icon: Grid2x2 }, { value: "list", label: "Als Liste anzeigen", icon: List }]} onValueChange={setIconView} /></Demo>}
     {section === "segments" && <Demo title="CoreSlidingTabs"><CoreSlidingTabs ariaLabel="Vorschautabs" value={tab} options={options} onValueChange={setTab} /></Demo>}
-    {section === "segments" && <Demo title="CoreModeControl"><CoreModeControl value={mode} onChange={setMode} /></Demo>}
     {section === "segments" && <Demo title="CoreTriStateControl"><CoreTriStateControl label="Fällig" value={due} onValueChange={setDue} /><CoreTriStateControl label="Heute gelernt" value={again} onValueChange={setAgain} /><CoreTriStateControl label="Lernbremse" value={leech} onValueChange={setLeech} /></Demo>}
     {section === "buttons" && <Demo title="CardMarkButton und CardStudyStateControls"><CardMarkButton marked={marked} onMarkedChange={setMarked} /><CardStudyStateControls marked={marked} suspended={suspended} onMarkedChange={setMarked} onSuspendedChange={setSuspended} /></Demo>}
+  </>;
+}
+
+function ChoiceControlsDemo() {
+  const [mode, setMode] = useState<CoreMode>("on");
+  const [states, setStates] = useState({ plain: false, checked: true, described: true, invalid: false });
+  const [forms, setForms] = useState<Array<"basic" | "cloze" | "single" | "multiple">>(["basic", "cloze"]);
+  const [extra, setExtra] = useState(false);
+  const [day, setDay] = useState<"normal" | "reduced" | "minimum">("normal");
+  const [switches, setSwitches] = useState({ small: false, medium: true, large: false, start: true, described: false });
+  const [retention, setRetention] = useState(90);
+  const [opacity, setOpacity] = useState(40);
+  const someForms = forms.length > 0 && forms.length < 4;
+  return <>
+    <Demo title="CoreCheckbox · Zustände">
+      <div className="grid">
+        <CoreCheckbox label="Nicht ausgewählt" checked={states.plain} onCheckedChange={(plain) => setStates({ ...states, plain })} />
+        <CoreCheckbox label="Ausgewählt" checked={states.checked} onCheckedChange={(checked) => setStates({ ...states, checked })} />
+        <CoreCheckbox label="Alle Kartenformate" checked={forms.length === 4} indeterminate={someForms} onCheckedChange={(checked) => setForms(checked ? ["basic", "cloze", "single", "multiple"] : [])} />
+        <CoreCheckbox label="Beispiele aufnehmen" description="Nur Beispiele aus dem eigenen Material." checked={states.described} onCheckedChange={(described) => setStates({ ...states, described })} />
+        <CoreCheckbox label="Ungültig" invalid checked={states.invalid} onCheckedChange={(invalid) => setStates({ ...states, invalid })} />
+        <CoreCheckbox label="Deaktiviert" disabled checked={false} />
+        <CoreCheckbox label="Deaktiviert und ausgewählt" disabled checked />
+        <div className="catalog-row"><CoreCheckbox aria-label="Ohne sichtbare Beschriftung" checked={states.plain} onCheckedChange={(plain) => setStates({ ...states, plain })} /><CoreCheckbox aria-label="In Prüfungsfarbe" accent={{ fill: "var(--core-exam-color-3)", on: "var(--core-exam-on-color)" }} checked /></div>
+      </div>
+    </Demo>
+    <Demo title="CoreCheckboxGroup">
+      <CoreCheckboxGroup label="Welche Kartenformate möchtest du?" description="Mindestens ein Format." value={forms} onValueChange={setForms} options={[{ value: "basic", label: "Frage–Antwort" }, { value: "cloze", label: "Lückentext" }, { value: "single", label: "Single Choice" }, { value: "multiple", label: "Multiple Choice", disabled: true }]} errorMessage={forms.length ? undefined : "Wähle mindestens ein Kartenformat."} />
+    </Demo>
+    <Demo title="CoreRadio und CoreRadioGroup">
+      <div className="grid gap-4">
+        <CoreRadioGroup label="Ergänzungen der KI" value={extra} onValueChange={setExtra} options={[{ value: false, label: "Nur meine Quelle verwenden" }, { value: true, label: "Ergänzungen erlauben und kennzeichnen", description: "Ergänzungen werden deutlich markiert." }]} />
+        <CoreRadioGroup label="Montag" orientation="horizontal" value={day} onValueChange={setDay} options={[{ value: "normal", label: "Normal" }, { value: "reduced", label: "Weniger" }, { value: "minimum", label: "Minimum", disabled: true }]} />
+        <CoreRadioGroup label="Ungültig" value={day} onValueChange={setDay} errorMessage="Bitte eine Stufe wählen." options={[{ value: "normal", label: "Normal" }, { value: "reduced", label: "Weniger" }]} />
+        <div className="catalog-row" role="radiogroup" aria-label="Dienstag">{(["normal", "reduced", "minimum"] as const).map((level) => <CoreRadio key={level} name="catalog-radio-tuesday" aria-label={`Dienstag: ${level}`} checked={day === level} onCheckedChange={() => setDay(level)} />)}</div>
+      </div>
+    </Demo>
+    <Demo title="CoreSwitch · Größen, Beschriftung und Zustände">
+      <div className="grid">
+        <CoreSwitch size="sm" label="Klein" checked={switches.small} onCheckedChange={(small) => setSwitches({ ...switches, small })} />
+        <CoreSwitch label="Mittel (Standard)" checked={switches.medium} onCheckedChange={(medium) => setSwitches({ ...switches, medium })} />
+        <CoreSwitch size="lg" label="Groß" checked={switches.large} onCheckedChange={(large) => setSwitches({ ...switches, large })} />
+        <CoreSwitch labelPlacement="start" label="Beschriftung vorne" checked={switches.start} onCheckedChange={(start) => setSwitches({ ...switches, start })} />
+        <CoreSwitch label="Varianten einbeziehen" description="Umformulierte Karten zählen zum Plan." checked={switches.described} onCheckedChange={(described) => setSwitches({ ...switches, described })} />
+        <CoreSwitch label="Deaktiviert" disabled checked={false} />
+        <CoreSwitch label="Deaktiviert und an" disabled checked />
+      </div>
+    </Demo>
+    <Demo title="CoreModeControl"><CoreModeControl value={mode} onChange={setMode} /></Demo>
+    <Demo title="CoreSlider · Label, Wert und Zustände">
+      <div className="grid gap-6">
+        <CoreSlider label="Gewünschte Erinnerungsrate" min={70} max={99} value={retention} formatValue={(value) => `${value} %`} onValueChange={setRetention} />
+        <CoreSlider aria-label="Transparenz" min={0} max={100} step={5} value={opacity} formatValue={null} onValueChange={setOpacity} />
+        <CoreSlider label="Deaktiviert" disabled min={0} max={100} value={30} onValueChange={() => undefined} />
+      </div>
+    </Demo>
   </>;
 }
 
@@ -206,7 +323,7 @@ function FormsDemo({ section }: { section: string }) {
     {section === "forms" && <Demo title="DeckSelect · Hierarchie und Suche"><DeckSelect ariaLabel="Zielstapel" value={deckId} onValueChange={setDeckId} decks={sampleDecks} /></Demo>}
     {section === "forms" && <Demo title="DeckMultiSelect · eingeschlossene Unterstapel"><DeckMultiSelect value={scope} onValueChange={setScope} decks={sampleDecks} /></Demo>}
     {section === "forms" && <Demo title="CoreDatePicker"><CoreDatePicker today={today} value={date} min="2026-09-01" max="2027-12-31" ariaLabel="Lerndatum wählen" onValueChange={setDate} /></Demo>}
-    {section === "forms" && <Demo title="Native Felder"><label className="catalog-field">Stapelname<input className="min-h-control rounded-control border border-core-border px-3 text-core-text" defaultValue="Biologie" /></label><label className="catalog-field">Neue Karten pro Tag<input type="number" defaultValue={20} min={0} className="min-h-control rounded-control border border-core-border px-3 text-core-text" /></label><label className="catalog-field">Ungültige Eingabe<input aria-invalid="true" aria-describedby="catalog-input-error" className="min-h-control rounded-control border border-core-danger px-3" defaultValue="" /><span id="catalog-input-error" className="text-core-danger">Bitte einen Namen eingeben.</span></label><label className="catalog-row"><input type="checkbox" defaultChecked /> Auswahl aktiviert</label><label className="catalog-field">Mehrzeiliger Inhalt<textarea defaultValue="Zusätzlicher Kontext" className="rounded-control border border-core-border p-3" /></label><label className="catalog-field">Passwort<input type="password" defaultValue="beispiel" className="min-h-control rounded-control border border-core-border px-3" /></label><label className="catalog-row"><input type="radio" name="catalog-radio" defaultChecked /> Einzelwahl</label><label className="catalog-field">Deaktiviertes Feld<input disabled defaultValue="Nicht verfügbar" className="min-h-control rounded-control border border-core-border px-3 disabled:opacity-50" /></label></Demo>}
+    {section === "forms" && <Demo title="Native Felder"><label className="catalog-field">Stapelname<input className="min-h-control rounded-control border border-core-border px-3 text-core-text" defaultValue="Biologie" /></label><label className="catalog-field">Neue Karten pro Tag<input type="number" defaultValue={20} min={0} className="min-h-control rounded-control border border-core-border px-3 text-core-text" /></label><label className="catalog-field">Ungültige Eingabe<input aria-invalid="true" aria-describedby="catalog-input-error" className="min-h-control rounded-control border border-core-danger px-3" defaultValue="" /><span id="catalog-input-error" className="text-core-danger">Bitte einen Namen eingeben.</span></label><label className="catalog-field">Mehrzeiliger Inhalt<textarea defaultValue="Zusätzlicher Kontext" className="rounded-control border border-core-border p-3" /></label><label className="catalog-field">Passwort<input type="password" defaultValue="beispiel" className="min-h-control rounded-control border border-core-border px-3" /></label><label className="catalog-field">Deaktiviertes Feld<input disabled defaultValue="Nicht verfügbar" className="min-h-control rounded-control border border-core-border px-3 disabled:opacity-50" /></label></Demo>}
     {section === "forms" && <Demo title="CoreNumberField · Einstellungszeile" wide><div className="core-settings-list w-full"><div className="core-settings-row"><div className="core-settings-row-text"><label htmlFor="catalog-learn-ahead" className="core-settings-row-title">Lernkarten vorziehen</label><p id="catalog-learn-ahead-hint" className="core-settings-row-hint">Lernkarten, die in diesem Zeitraum fällig werden, erscheinen schon jetzt. 0 schaltet aus.</p></div><div className="core-settings-row-control"><CoreNumberField id="catalog-learn-ahead" value={learnAhead} min={0} max={720} unit="Min." ariaDescribedBy="catalog-learn-ahead-hint" className="w-32" onChange={setLearnAhead} /></div></div><div className="core-settings-row" data-layout="inline"><span className="core-settings-row-title">Profilzeitzone</span><div className="core-settings-row-control"><span className="core-settings-row-value">Europe/Berlin</span></div></div></div></Demo>}
     {section === "forms" && <Demo title="FileDropField"><FileDropField accept="image/*" pasteImages ariaLabel="Bild einfügen oder ablegen" prompt="Bild mit Strg+V einfügen oder hier ablegen" actionLabel={fileName ? "Bild ersetzen" : "Bild auswählen"} onFile={(file) => setFileName(file.name)}>{fileName && <p className="core-body">{fileName}</p>}</FileDropField></Demo>}
   </>;
@@ -265,12 +382,15 @@ function DecksDemo({ section }: { section: string }) {
   function move(id: string, parentDeckId: string | null) { setDecks((current) => current.map((entry) => entry.id === id ? { ...entry, parentDeckId } : entry)); return null; }
   return <>
     {section === "stapel" && <Demo title="DeckSubstacksPanel" wide><DeckSubstacksPanel rows={rows} current={row} onOpenDeck={(id) => toast(`Stapel: ${rows.find((entry) => entry.id === id)?.path}`)} onStudy={(entry) => toast(`Lernstart: ${entry.name}`)} onOpenSettings={() => toast("Stapeleinstellungen geöffnet.")} onSetCoreMode={mode} onMoveDeck={move} /></Demo>}
-    {section === "stapel" && <Demo title="DeckSummaryHeader und DeckSummaryRow" wide><DeckSummaryHeader /><DeckSummaryRow row={row} density="responsive" leadingControl={<ChevronRight size={18} />} actions={<IconButton label="Stapeloptionen" icon={Settings} variant="ghost" />} learningStatus={{ summary: row.summary, metricLabels: "sr-only" }} studyAction={<IconButton label="Jetzt lernen" icon={BookOpen} variant="ghost" />} /></Demo>}
     {section === "stapel" && <Demo title="DeckOptionsMenu"><DeckOptionsMenu row={row} decks={decks} onSetCoreMode={mode} onMoveDeck={move} onOpenSettings={() => toast("Stapeleinstellungen geöffnet.")} /></Demo>}
     {section === "stapel" && <Demo title="DeckTree" wide><div className="catalog-row"><CoreSelect ariaLabel="Baumkontext" value={treeMode} onValueChange={(value) => setTreeMode(value as typeof treeMode)} options={[{ value: "dashboard", label: "Dashboard" }, { value: "learn", label: "Lernen" }]} /></div><DeckTree rows={rows} mode={treeMode} view={treeView} onViewChange={setTreeView} headerAction={treeMode === "dashboard" ? <IconButton icon={ArrowUpRight} variant="ghost" label="Alle Stapel öffnen" onClick={() => toast("Lernen geöffnet.")} /> : undefined} onActivate={(entry) => toast(`Inhalt: ${entry.name}`)} onStudy={(entry) => toast(`Lernstart: ${entry.name}`)} onOpenSettings={() => toast("Stapeleinstellungen geöffnet.")} onSetDeckCoreMode={mode} onMoveDeck={move} collapsedDeckIds={collapsed} onDeckExpansionChange={(id, expanded) => setCollapsed((current) => {
       const ids: readonly string[] = typeof id === "string" ? [id] : id;
       return expanded ? current.filter((value) => !ids.includes(value)) : [...new Set([...current, ...ids])];
     })} /></Demo>}
+    {section === "stapel" && <Demo title="DeckTree · schmale Liste mit Kennzahlen als Unterzeile"><div className="max-w-sm"><DeckTree rows={rows} mode="learn" onActivate={(entry) => toast(`Inhalt: ${entry.name}`)} onStudy={(entry) => toast(`Lernstart: ${entry.name}`)} onOpenSettings={() => toast("Stapeleinstellungen geöffnet.")} onSetDeckCoreMode={mode} onMoveDeck={move} collapsedDeckIds={collapsed} onDeckExpansionChange={(id, expanded) => setCollapsed((current) => {
+      const ids: readonly string[] = typeof id === "string" ? [id] : id;
+      return expanded ? current.filter((value) => !ids.includes(value)) : [...new Set([...current, ...ids])];
+    })} /></div></Demo>}
     {section === "charts" && <Demo title="StudyHeatmap" wide><StudyHeatmap heatmap={createStudyHeatmapModelFromCounts({ todayKey: today, countsByDay: new Map([["2026-09-27", 3], ["2026-09-28", 8], ["2026-09-29", 12], ["2026-09-30", 5], ["2026-10-01", 7], [today, 11]]), forecastCountsByDay: new Map([["2026-10-03", 10], ["2026-10-05", 20], ["2026-11-02", 35]]) })} formatDayLabel={(day) => `${day.key}: ${day.count} gelernt, ${day.forecastCount} voraussichtlich fällig`} /></Demo>}
   </>;
 }
@@ -412,7 +532,7 @@ function LearningDemo({ section }: { section: string }) {
     {section === "progress" && <Demo title="PomodoroProgress"><PomodoroProgress timer={timer ?? demoTimer} variant="study" /></Demo>}
     {section === "dialogs" && <Demo title="StudySettingsOverlay"><ActionButton variant="secondary" onClick={() => setSettings(true)}>Lerneinstellungen öffnen</ActionButton><StudySettingsOverlay open={settings} canEditCard marked={marked} suspended={suspended} reviewOrder={order} pomodoroTimer={timer} onOpenChange={setSettings} onEditCard={() => setSettings(false)} onEditDeck={() => setSettings(false)} onMarkedChange={setMarked} onSuspendedChange={setSuspended} flag={flag} flagNames={[]} onFlagChange={setFlag} onReviewOrderChange={setOrder} onStartPomodoro={(minutes) => { start(minutes); setSettings(false); }} /></Demo>}
     {section === "forms" && <Demo title="LearningSettingsPanel · Tagesrunde und Scheduler" wide><LearningSettingsPanel section="daily" draft={draft} profiles={profiles} defaultProfileName="Standard" onProfilesChange={setProfiles} onDraftChange={setDraft} onApplyProfile={(next) => { setDraft(next); return true; }} /><LearningSettingsPanel section="scheduler" draft={draft} profiles={profiles} defaultProfileName="Standard" onProfilesChange={setProfiles} onDraftChange={setDraft} onApplyProfile={(next) => { setDraft(next); return true; }} /></Demo>}
-    {section === "buttons" && <Demo title="Reviewratings"><div className="grid grid-cols-2 gap-2 sm:grid-cols-4">{ratingButtons.map((rating, index) => <button type="button" key={rating.key} className={`min-h-14 rounded-control border px-3 py-1.5 text-center shadow-soft transition hover:-translate-y-0.5 ${rating.className}`}><span className="block core-body font-semibold">{rating.label}</span><small className="block core-caption">{["1 min", "5 min", "1 Tag", "4 Tage"][index]}</small></button>)}</div></Demo>}
+    {section === "buttons" && <Demo title="Reviewratings"><div className="grid grid-cols-2 gap-2">{ratingButtons.map((rating, index) => <button type="button" key={rating.key} className={`core-rating-button ${rating.className}`}><span className="core-rating-dot" aria-hidden="true" /><span className="core-control-label">{rating.label}</span><span className="core-caption font-medium tabular-nums">{["1 min", "5 min", "1 Tag", "4 Tage"][index]}</span></button>)}</div></Demo>}
   </>;
 }
 
@@ -483,7 +603,7 @@ function ExamTopicOrderDemo() {
   return <Demo title="Prüfungen · Themenreihenfolge" wide><ExamTopicOrder topics={topics} onChange={(ids) => setTopics((current) => ids.map((id) => current.find((topic) => topic.id === id)!))} /></Demo>;
 }
 
-const PRODUCT_VIEWS = ["auth", "conflict", "statistics", "simulator", "help", "dashboard", "learn", "exams", "creation", "ai-source", "manual", "import", "decks", "deck-content", "deck-settings", "study", "study-variant", "study-variant-image"];
+const PRODUCT_VIEWS = ["auth", "conflict", "statistics", "simulator", "help", "dashboard", "dashboard-empty", "learn", "exams", "creation", "ai-source", "manual", "import", "decks", "deck-content", "deck-settings", "study", "study-variant", "study-variant-image"];
 
 /**
  * Browser-test harness outside the catalog: `?preview=cards` shows every renderer case, any other value lists the
@@ -578,15 +698,16 @@ function ProductViewsDemo({ kind }: { kind: string }) {
   }), [examDemoDecks, selection.now]);
   const views = [["auth", "AuthGateScreen · Anmeldung, Registrierung und Reset", "Anmeldung"], ["conflict", "SyncConflictPanel · Feldvergleich und Zusammenführung", "Konfliktauflösung"], ["statistics", "StatisticsScreenContent · alle Diagramme und Tabellen", "Statistik"], ["simulator", "SimulatorScreen · Lernuhr und Datumauswahl", "Simulator"], ["help", "HelpScreen · Lernmethoden und FSRS-Illustrationen", "Lernmethoden"]];
   views.push(
-    ["dashboard", "DashboardScreen · Nachrückende Widgets, Widget-Leiste und direkt einstellbarer Timer", "Tagesübersicht"],
+    ["dashboard", "DashboardScreen · Tagesziel als Auftakt, nachrückende Widgets, Widget-Leiste und direkt einstellbarer Timer", "Tagesübersicht"],
+    ["dashboard-empty", "DashboardScreen · Erststart ohne Daten", "Erststart"],
     ["learn", "LearnScreen · Stapel und Schnellformular", "Lernen"],
     ["exams", "ExamPlanningScreen · lokaler Plus-Einstieg bei leerer Prüfungsliste und durchgehendes Plus-Feld Weitere Prüfung planen unter bestehenden Prüfungen · einzeln umschaltbare Prüfungsfarben im Kalenderkopf statt globalem Dropdown, ausgefüllt oder hell umrandet · gemeinsame Monatskachel je Fach für Karten und Lesen, auch ohne neue Karten · Kalender ab aktueller Woche mit Rücknavigation · vier Schritte mit Rücksprüngen und genau einem Schritt vorwärts über die Leiste, Lernstart mit Vorgabe heute und sichtbarem Prüfungsziel auf der ersten Seite · durchsuchbare Stapelzweige mit Plusauswahl ohne Teilmarkierung · alternative Zeitangaben mit Durchschnitt oder direkt editierbaren Wochentagszeiten, freie Tage mit 0 Minuten · Vorschau mit Lerntagen, auf Kalenderhöhe begrenzter ausklappbarer Themenfolge, dauerhaftem Prüfungstermin und erreichbarer Planbestätigung · nichtmodale Tagesdetails", "Prüfungen"],
     ["creation", "CreationScreen · Drei Erstellungswege", "Erstellen"],
-    ["ai-source", "AiSourceCreationPanel · Drei Schritte: Quelle und Stapel, Lernwünsche, Karten", "Automatische Erstellung"],
+    ["ai-source", "AiSourceCreationPanel · Drei Abschnitte: Quelle und Stapel, Vorgaben, Karten", "Automatische Erstellung"],
     ["manual", "ManualCreationPanel · Formular und Bausteine", "Manuelle Erstellung"],
     ["import", "ApkgImportPanel · Dateiauswahl", "Anki-Import"],
-    ["decks", "DecksScreen · Tabelle und Karteneditor", "Kartenverwaltung"],
-    ["deck-content", "DecksScreen · Karten lernen direkt neben den Inhaltsreitern", "Stapelinhalte"],
+    ["decks", "DecksScreen · Tabelle als ein Blatt, Karteneditor als Dialog", "Kartenverwaltung"],
+    ["deck-content", "DecksScreen · Titel und Karten lernen auf einer Linie, Unterstreichungs-Reiter", "Stapelinhalte"],
     ["settings", "SettingsDialog · alle Bereiche der Einstellungen", "Einstellungen"],
     ["deck-settings", "DeckSettingsScreen · Darstellung und Lernwerte", "Stapeleinstellungen"],
     ["study", "StudyMode · Frage, Antwort und Bewertungen", "Lernsitzung"],
@@ -601,6 +722,7 @@ function ProductViewsDemo({ kind }: { kind: string }) {
     {view === "simulator" && <SimulatorScreen systemNow={selection.now} offsetMinutes={offset} onOffsetChange={setOffset} />}
     {view === "help" && <HelpScreen />}
     {view === "dashboard" && <DashboardScreen pomodoroTimer={dashboardTimer} onStartPomodoro={(minutes) => setDashboardTimer(createPomodoroTimerFromSeconds(Math.round(minutes * 60)))} onPausePomodoro={() => setDashboardTimer(pausePomodoroTimer)} onResumePomodoro={() => setDashboardTimer(resumePomodoroTimer)} onResetPomodoro={() => setDashboardTimer(null)} onLoadExamPlanningData={loadExamPlanningData} onLoadExamSummaryAvailability={async () => false} onSaveExamTasks={async (dailyTasks) => setDemoPlanning(withExamDailyTasks(getGlobalSchedulerPreferences(examWorkspace.profile).examPlanning, dailyTasks))} onStartExamUnit={async () => { examDemoDecks.flatMap((candidate) => candidate.cards).forEach((card) => completedDemoExamCards.current.add(card.id)); toast("Lernaufgabe in dieser lokalen Demo abgeschlossen."); }} state={examWorkspace} now={selection.now} onNavigate={navigate} onStartDeck={noop} onStartAdditionalCards={() => ({ ok: true })} onCreateDemo={async () => sampleDecks} onSetDeckCoreMode={noop} onMoveDeck={() => null} onOpenDeckSettings={noop} onSetDeckExpanded={noop} />}
+    {view === "dashboard-empty" && <DashboardScreen state={{ ...examWorkspace, decks: [] }} now={selection.now} onNavigate={navigate} onStartDeck={noop} onStartAdditionalCards={() => ({ ok: true })} onCreateDemo={async () => sampleDecks} onSetDeckCoreMode={noop} onMoveDeck={() => null} onOpenDeckSettings={noop} onSetDeckExpanded={noop} />}
     {view === "exams" && <ExamPlanningScreen state={examWorkspace} now={selection.now} onLoadSummaryAvailability={async () => false} onLoadPlanningData={loadExamPlanningData} onSavePlanning={async (next) => { setDemoPlanning(next); const previous = getGlobalSchedulerPreferences(examWorkspace.profile).examPlanning; if (JSON.stringify([previous.exams, previous.capacity]) !== JSON.stringify([next.exams, next.capacity])) toast("Plan für diese lokale Vorschau übernommen."); }} onSaveTasks={async (dailyTasks) => setDemoPlanning(withExamDailyTasks(getGlobalSchedulerPreferences(examWorkspace.profile).examPlanning, dailyTasks))} onStartUnit={async () => toast("In der Vorschau startet keine Sitzung.")} />}
     {view === "learn" && <LearnScreen decks={sampleDecks} now={selection.now} onStartDeck={noop} onCreateDeck={() => deck} focusedDeckId={focusedDemoDeckId} initialParentDeckId="" onDeckCreationHandled={noop} onFocusDeck={setFocusedDemoDeckId} onOpenCardCreation={noop} onOpenDecks={(id) => { setFocusedDemoDeckId(id ?? null); setView("decks"); }} onOpenDeckContent={(id) => { setFocusedDemoDeckId(id); setContentTab("children"); setSelectedCardId(null); setView("deck-content"); }} onOpenCardSettings={noop} onOpenDeckSettings={noop} onSetDeckCoreMode={noop} onMoveDeck={() => null} collapsedDeckIds={collapsedDemoDeckIds} onSetDeckExpanded={(_surface, id, expanded) => setCollapsedDemoDeckIds((current) => expanded ? current.filter((value) => !(typeof id === "string" ? [id] : id).includes(value)) : [...new Set([...current, ...(typeof id === "string" ? [id] : id)])])} />}
     {["creation", "manual", "import", "ai-source"].includes(view) && <CreationScreen decks={sampleDecks} initialMethod={view === "manual" ? "manual" : view === "import" ? "import" : view === "ai-source" ? "ai-source" : ""} onMethodChange={(method) => setView(method || "creation")} />}
@@ -660,20 +782,22 @@ export type CatalogSectionId = "grundlagen" | "primitive" | "shared" | "fachmust
 
 export const DEMO_GROUPS = [
   { id: "aktionen", section: "primitive", title: "Button", description: "Text-, Icon-, Querlink-, Aktionskarten-, Markierungs- und Bewertungsbuttons.", components: ["ActionButton", "IconButton", "CrossLinkButton", "CreationActionCard", "CardMarkButton", "CardStudyStateControls"], render: () => <><ActionsDemo section="buttons" /><ControlsDemo section="buttons" /><LearningDemo section="buttons" /></> },
-  { id: "auswahl", section: "primitive", title: "SegmentedControl", description: "Segmente, gleitende Tabs, reine Icon-Auswahl, CoRe-Modus und Dreifach-Schalter.", components: ["CoreSegmentedControl", "CoreSlidingTabs", "CoreIconSegmentedControl", "CoreModeControl", "CoreTriStateControl"], render: () => <ControlsDemo section="segments" /> },
-  { id: "formulare", section: "primitive", title: "Input- und Select-Familie", description: "Text, Zahl mit Einheit, Passwort, mehrzeilige Eingaben, Checkbox, Radio, Select, Datum, Datei, Einstellungszeilen und Lerneinstellungen.", components: ["CoreSelect", "CoreNumberField", "DeckSelect", "DeckMultiSelect", "CoreDatePicker", "FileDropField", "PomodoroTimerControl", "LearningSettingsPanel"], wide: true, render: () => <><FormsDemo section="forms" /><LearningDemo section="forms" /></> },
-  { id: "badges", section: "primitive", title: "Tag", description: "Gemeinsames Tag in neutral und CoRe-Blau.", components: ["CoreTag"], render: BadgesDemo },
+  { id: "auswahl", section: "primitive", title: "SegmentedControl", description: "Segmente, gleitende Tabs, reine Icon-Auswahl und Dreifach-Schalter.", components: ["CoreSegmentedControl", "CoreSlidingTabs", "CoreIconSegmentedControl", "CoreTriStateControl"], render: () => <ControlsDemo section="segments" /> },
+  { id: "formulare", section: "primitive", title: "Input- und Select-Familie", description: "Text, Zahl mit Einheit, Passwort, mehrzeilige Eingaben, Select, Datum, Datei, Einstellungszeilen und Lerneinstellungen.", components: ["CoreSelect", "CoreNumberField", "DeckSelect", "DeckMultiSelect", "CoreDatePicker", "FileDropField", "PomodoroTimerControl", "LearningSettingsPanel"], wide: true, render: () => <><FormsDemo section="forms" /><LearningDemo section="forms" /></> },
+  { id: "auswahlfelder", section: "primitive", title: "Checkbox, Radio, Schalter und Schieberegler", description: "Auswahl einzelner und mehrerer Werte, Ein/Aus-Zustände und Werte auf einer Skala.", components: ["CoreCheckbox", "CoreCheckboxGroup", "CoreRadio", "CoreRadioGroup", "CoreSwitch", "CoreModeControl", "CoreSlider"], render: ChoiceControlsDemo },
+  { id: "badges", section: "primitive", title: "Tag", description: "Gemeinsames Tag in fünf Tönen und mit Farbpunkt.", components: ["CoreTag"], render: BadgesDemo },
   { id: "tooltips", section: "primitive", title: "Tooltip", description: "Hinweise mit Text, Wert oder Stapelidentität.", components: ["CoreTooltip", "CoreTooltipProvider"], render: () => <ActionsDemo section="tooltips" /> },
   { id: "feedback", section: "primitive", title: "Toaster / StatusMessage", description: "Info, Erfolg, Warnung, Fehler und schließbare Toasts.", components: ["StatusMessage", "SuccessToast", "SuccessToastProvider"], render: () => <FeedbackDemo section="feedback" /> },
   { id: "progress", section: "primitive", title: "Fortschritt", description: "Tagesfortschritt, Zeitfortschritt sowie bestimmte und unbestimmte Prozessanzeigen.", components: ["DailyReviewProgress", "PomodoroProgress", "VariantGenerationBar"], render: () => <><FeedbackDemo section="progress" /><LearningDemo section="progress" /></> },
-  { id: "dialogs", section: "primitive", title: "Dialog-Familie", description: "Bestätigung, Speicherleiste, Kartenvorschau und Lerneinstellungen.", components: ["ActionDialog", "SettingsSaveBar", "CardPreviewDialog", "StudySettingsOverlay"], render: () => <><FeedbackDemo section="dialogs" /><ContentDemo section="dialogs" /><LearningDemo section="dialogs" /></> },
+  { id: "dialogs", section: "primitive", title: "Dialog-Familie", description: "Bestätigung, Dialograhmen, Speicherleiste, Kartenvorschau und Lerneinstellungen.", components: ["ActionDialog", "DialogFrame", "SettingsSaveBar", "CardPreviewDialog", "StudySettingsOverlay"], render: () => <><FeedbackDemo section="dialogs" /><StructureDemo section="dialogs" /><ContentDemo section="dialogs" /><LearningDemo section="dialogs" /></> },
   { id: "tags-flags", section: "primitive", title: "Tags und Flaggen", description: "Tag-Eingabe, Flaggenwähler und Flaggenpunkt.", components: ["TagInput", "FlagPicker", "FlagDot"], render: TagsAndFlagsDemo },
   { id: "colors", section: "primitive", title: "ColorPicker", description: "Farbfeld oder Werkzeug, Farbkreis und Schnellwahl.", components: ["ColorPicker"], render: () => <ContentDemo section="colors" /> },
   { id: "flaechen", section: "shared", title: "SoftPanel und EmptyState", description: "Inhaltsflächen und leere Zustände.", components: ["SoftPanel", "EmptyState"], render: () => <FoundationsDemo section="surfaces" /> },
+  { id: "struktur", section: "shared", title: "Abschnittskopf, Schritte und Reiter", description: "Kopf jeder Fläche, Schrittlinie und Unterstreichungs-Reiter, im Stapelkopf und im Karteneditor.", components: ["SectionHeader", "Steps", "CoreTabs", "CoreTabPanel"], wide: true, render: () => <StructureDemo section="struktur" /> },
   { id: "headings", section: "shared", title: "PageHeader und LearningAreaHeader", description: "Seitentitel sowie Köpfe von Lernen und Kartenverwaltung.", components: ["PageHeader", "LearningAreaHeader"], render: () => <><FoundationsDemo section="headings" /><NavigationDemo section="headings" /></> },
   { id: "navigation", section: "shared", title: "AppNavigation, Einstellungsdialog und InPageNavigation", description: "Responsive Hauptnavigation, CoRe-Wortmarke, der gemeinsame Rahmen der Einstellungsdialoge und die Sprunglinks der Statistik.", components: ["AppNavigation", "CoreWordmark", "SettingsDialog", "InPageNavigation"], render: () => <><NavigationDemo section="navigation" /><ProductViewsDemo kind="settings" /></> },
-  { id: "stapel", section: "shared", title: "Stapeltabelle, Baum und Menü", description: "Tabellenzeile, Stapelbaum, Unterstapel und Optionsmenü.", components: ["DeckSummaryHeader", "DeckSummaryRow", "DeckOptionsMenu", "DeckTree"], wide: true, render: () => <DecksDemo section="stapel" /> },
-  { id: "charts", section: "fachmuster", title: "Kennzahlen und Heatmap", description: "Kennzahlen und Lern-Heatmap.", components: ["StatTile", "StudyHeatmap"], wide: true, render: () => <><FoundationsDemo section="charts" /><DecksDemo section="charts" /></> },
+  { id: "stapel", section: "shared", title: "Stapeltabelle, Baum und Menü", description: "Stapelbaum mit seinen Zeilen, Unterstapel und Optionsmenü.", components: ["DeckOptionsMenu", "DeckTree"], wide: true, render: () => <DecksDemo section="stapel" /> },
+  { id: "charts", section: "fachmuster", title: "Kennzahlen und Heatmap", description: "Einzelne Kennzahl, Kennzahlzeile und Lern-Heatmap.", components: ["StatTile", "MetricRow", "StudyHeatmap"], wide: true, render: () => <><FoundationsDemo section="charts" /><DecksDemo section="charts" /></> },
   { id: "inhalt", section: "fachmuster", title: "Karteninhalte", description: "Sanitisiertes HTML, Kartenfläche und Lernkarte. Alle Kartentypen stehen in der eigenen Referenz.", components: ["CardHtml", "CardPresentationSurface", "NoteCardContent"], wide: true, render: () => <ContentDemo section="inhalt" /> },
   { id: "editor", section: "fachmuster", title: "Texteditor und Inhaltsbausteine", description: "Rich-Text-Toolbar und Inhaltsbausteine.", components: ["RichTextEditor", "NoteBlockControls"], wide: true, render: () => <><ContentDemo section="editor" /><NoteBlocksDemo /></> },
   { id: "bildverdeckung-editor", section: "fachmuster", title: "Bildverdeckungs-Editor", description: "Masken zeichnen, gruppieren und den Verdeckungsmodus wählen.", components: ["OcclusionEditor"], wide: true, render: OcclusionEditorDemo },

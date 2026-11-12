@@ -12,8 +12,8 @@ const sourceFile = { name: "Zellatmung_Teil-1.PPTX", mimeType: "application/vnd.
 test("mobile Schritte erhalten Text, Lernwünsche und ein einziges Stapelziel bis zur Prüfung", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   const panel = await openCatalogFlow(page);
-  await expect(panel.getByRole("heading", { name: "Quelle & Stapel", exact: true })).toBeVisible();
-  await expect(panel.getByRole("heading", { name: "Deine Lernwünsche", exact: true })).toBeHidden();
+  await expect(panel.getByRole("heading", { name: "Quelle und Stapel", exact: true })).toBeVisible();
+  await expect(panel.getByRole("heading", { name: "Vorgaben", exact: true })).toBeHidden();
   await panel.getByRole("button", { name: "Weiter", exact: true }).click();
   await expect(panel.getByRole("alert").filter({ hasText: "Wähle eine Quelldatei" })).toBeVisible();
   await panel.getByRole("button", { name: "Text einfügen", exact: true }).click();
@@ -22,11 +22,11 @@ test("mobile Schritte erhalten Text, Lernwünsche und ein einziges Stapelziel bi
   await expect(panel.getByRole("alert").filter({ hasText: "Füge einen Text" })).toBeVisible();
   const text = "ATP ist ein Energieträger. <script>window.untrustedSource = true</script>";
   await panel.getByLabel("Dein Quelltext").fill(text);
-  await panel.getByLabel("Wie soll der neue Stapel heißen?").fill("Textstapel");
+  await panel.getByLabel("Stapelname").fill("Textstapel");
   await panel.getByRole("button", { name: "Weiter", exact: true }).click();
-  await panel.getByRole("combobox", { name: "Wie sollen die Karten formuliert sein?", exact: true }).click();
+  await panel.getByRole("combobox", { name: "Formulierung", exact: true }).click();
   await page.getByRole("option", { name: "Einfach verständlich", exact: true }).click();
-  await panel.getByRole("textbox", { name: /Was sollen wir außerdem beachten/ }).fill("Bitte Abkürzungen erklären.");
+  await panel.getByRole("textbox", { name: /Weitere Hinweise/ }).fill("Bitte Abkürzungen erklären.");
   await panel.getByRole("button", { name: "Zurück", exact: true }).click();
   await expect(panel.getByLabel("Dein Quelltext")).toHaveValue(text);
   await panel.getByRole("button", { name: "Datei", exact: true }).click();
@@ -34,13 +34,13 @@ test("mobile Schritte erhalten Text, Lernwünsche und ein einziges Stapelziel bi
   await panel.getByRole("button", { name: "Text einfügen", exact: true }).click();
   await expect(panel.getByLabel("Dein Quelltext")).toHaveValue(text);
   await panel.getByRole("button", { name: "Weiter", exact: true }).click();
-  await expect(panel.getByRole("combobox", { name: "Wie sollen die Karten formuliert sein?", exact: true })).toContainText("Einfach verständlich");
+  await expect(panel.getByRole("combobox", { name: "Formulierung", exact: true })).toContainText("Einfach verständlich");
   await panel.getByRole("button", { name: "Weiter", exact: true }).click();
   await expect(panel.getByTestId("ai-source-target")).toHaveText("Textstapel (neuer Stapel)");
   await panel.getByRole("radio", { name: "Ergänzungen erlauben und kennzeichnen", exact: true }).check();
   await panel.getByRole("button", { name: "Stapel ändern", exact: true }).click();
-  await expect(panel.getByRole("heading", { name: "Möchtest du einen neuen Stapel anlegen?", exact: true })).toBeFocused();
-  await panel.getByLabel("Wie soll der neue Stapel heißen?").fill("Geänderter Textstapel");
+  await expect(panel.getByRole("switch", { name: "Neuen Stapel anlegen", exact: true })).toBeFocused();
+  await panel.getByLabel("Stapelname").fill("Geänderter Textstapel");
   await page.setViewportSize({ width: 1440, height: 900 });
   const columns = panel.getByTestId("ai-source-steps").locator(":scope > section");
   const boxes = await columns.evaluateAll((elements) => elements.map((element) => { const { x, y, width } = element.getBoundingClientRect(); return { x, y, width }; }));
@@ -69,16 +69,16 @@ test("Quelle, Lernwünsche und Ziel bleiben bis zur Auftragsprüfung lokal erhal
   });
   const panel = await openCatalogFlow(page);
   await panel.locator('input[type="file"]').setInputFiles(sourceFile);
-  await expect(panel.getByLabel("Wie soll der neue Stapel heißen?")).toHaveValue("Zellatmung Teil 1");
-  await panel.getByLabel("Wie soll der neue Stapel heißen?").fill("Eigener Lernstapel");
-  await panel.getByRole("combobox", { name: "Wie ausführlich soll der Stoff abgedeckt werden?", exact: true }).press("Enter");
+  await expect(panel.getByLabel("Stapelname")).toHaveValue("Zellatmung Teil 1");
+  await panel.getByLabel("Stapelname").fill("Eigener Lernstapel");
+  await panel.getByRole("combobox", { name: "Abdeckung", exact: true }).press("Enter");
   await page.getByRole("option", { name: "Sehr genau", exact: true }).click();
   await panel.getByRole("checkbox", { name: "Single Choice", exact: true }).uncheck();
   await panel.getByRole("checkbox", { name: "Multiple Choice", exact: true }).uncheck();
-  await panel.getByRole("textbox", { name: /Was sollen wir außerdem beachten/ }).fill("Abitur; Schwerpunkt Zellatmung");
-  await panel.getByRole("combobox", { name: "In welcher Sprache sollen die Karten sein?", exact: true }).click();
+  await panel.getByRole("textbox", { name: /Weitere Hinweise/ }).fill("Abitur; Schwerpunkt Zellatmung");
+  await panel.getByRole("combobox", { name: "Sprache", exact: true }).click();
   await page.getByRole("option", { name: "Englisch", exact: true }).click();
-  await panel.getByRole("combobox", { name: "Wie sollen die Karten formuliert sein?", exact: true }).click();
+  await panel.getByRole("combobox", { name: "Formulierung", exact: true }).click();
   await page.getByRole("option", { name: "Fachsprache verwenden", exact: true }).click();
   await panel.getByRole("radio", { name: "Nur meine Quelle verwenden", exact: true }).check();
   await panel.getByRole("button", { name: "Auftrag prüfen", exact: true }).click();
@@ -93,11 +93,11 @@ test("Quelle, Lernwünsche und Ziel bleiben bis zur Auftragsprüfung lokal erhal
   await expect(summary).not.toContainText("Single Choice");
   await expect(summary.getByRole("button", { name: "Karten erstellen", exact: true })).toBeDisabled();
   await summary.getByRole("button", { name: "Einstellungen bearbeiten", exact: true }).click();
-  await expect(panel.getByLabel("Wie soll der neue Stapel heißen?")).toHaveValue("Eigener Lernstapel");
+  await expect(panel.getByLabel("Stapelname")).toHaveValue("Eigener Lernstapel");
   await panel.locator('input[type="file"]').setInputFiles({ ...sourceFile, name: "Andere_Quelle.docx" });
-  await expect(panel.getByLabel("Wie soll der neue Stapel heißen?")).toHaveValue("Eigener Lernstapel");
-  await panel.getByRole("button", { name: "Nein", exact: true }).click();
-  await panel.getByRole("combobox", { name: "Welchen vorhandenen Stapel möchtest du verwenden?", exact: true }).click();
+  await expect(panel.getByLabel("Stapelname")).toHaveValue("Eigener Lernstapel");
+  await panel.getByRole("switch", { name: "Neuen Stapel anlegen", exact: true }).uncheck();
+  await panel.getByRole("combobox", { name: "Stapel", exact: true }).click();
   await page.getByRole("option").filter({ hasNotText: "Stapel auswählen" }).first().click();
   await panel.getByRole("button", { name: "Auftrag prüfen", exact: true }).click();
   await expect(summary).not.toContainText("(neuer Stapel)");
@@ -121,7 +121,7 @@ test("ungültige Quellen ersetzen nichts; fehlende Kartenformen und Dateiauswahl
   await expect(page.getByTestId("ai-source-summary")).toHaveCount(0);
   await panel.getByRole("button", { name: "Datei entfernen", exact: true }).click();
   await expect(panel.getByTestId("ai-source-file-name")).toHaveCount(0);
-  await expect(panel.getByLabel("Wie soll der neue Stapel heißen?")).toHaveValue("");
+  await expect(panel.getByLabel("Stapelname")).toHaveValue("");
 });
 
 /** An isolated fake account exercises the real shell without accessing a user's cloud data. */
@@ -192,7 +192,7 @@ test("fehlendes Stapelziel bleibt sichtbar und lässt sich durch einen neuen Sta
   await panel.getByRole("button", { name: "Auftrag prüfen", exact: true }).click();
   await expect(panel.getByText("Wähle einen verfügbaren Zielstapel aus.")).toBeVisible();
   await expect(page.getByTestId("ai-source-summary")).toHaveCount(0);
-  await panel.getByRole("button", { name: "Ja", exact: true }).click();
+  await panel.getByRole("switch", { name: "Neuen Stapel anlegen", exact: true }).check();
   await panel.getByRole("button", { name: "Auftrag prüfen", exact: true }).click();
   await expect(page.getByTestId("ai-source-summary")).toContainText("Quelle (neuer Stapel)");
 });
@@ -207,20 +207,20 @@ for (const theme of ["light", "dark"] as const) {
     if (theme === "dark") await page.getByRole("button", { name: "Dark Mode einschalten", exact: true }).click();
     const panel = page.getByTestId("ai-source-creation");
     await panel.locator('input[type="file"]').setInputFiles(sourceFile);
-    await panel.getByLabel("Wie soll der neue Stapel heißen?").fill("Biologie – Zellatmung");
+    await panel.getByLabel("Stapelname").fill("Biologie – Zellatmung");
     await page.setViewportSize({ width: 1440, height: 1400 });
     await panel.screenshot({ path: testInfo.outputPath("desktop-panel.png"), animations: "disabled" });
     for (const width of [639, 640, 767, 768, 1279, 1280]) {
       await page.setViewportSize({ width, height: 900 });
-      await expect(panel.getByRole("heading", { name: "Quelle & Stapel", exact: true })).toBeVisible();
-      await expect(panel.getByLabel("Wie soll der neue Stapel heißen?")).toHaveValue("Biologie – Zellatmung");
+      await expect(panel.getByRole("heading", { name: "Quelle und Stapel", exact: true })).toBeVisible();
+      await expect(panel.getByLabel("Stapelname")).toHaveValue("Biologie – Zellatmung");
       if (width < 1280) {
-        await expect(panel.getByRole("heading", { name: "Deine Lernwünsche", exact: true })).toBeHidden();
+        await expect(panel.getByRole("heading", { name: "Vorgaben", exact: true })).toBeHidden();
         await panel.getByRole("button", { name: "Weiter", exact: true }).click();
-        await expect(panel.getByRole("heading", { name: "Deine Lernwünsche", exact: true })).toBeVisible();
+        await expect(panel.getByRole("heading", { name: "Vorgaben", exact: true })).toBeVisible();
         await panel.getByRole("button", { name: "Weiter", exact: true }).click();
       } else {
-        await expect(panel.getByRole("heading", { name: "Deine Lernwünsche", exact: true })).toBeVisible();
+        await expect(panel.getByRole("heading", { name: "Vorgaben", exact: true })).toBeVisible();
       }
       await expect(panel.getByTestId("ai-source-target")).toHaveText("Biologie – Zellatmung (neuer Stapel)");
       await page.screenshot({ path: testInfo.outputPath(`form-${width}.png`), animations: "disabled", fullPage: true });
@@ -267,9 +267,9 @@ for (const theme of ["light", "dark"] as const) {
       await capture("form-errors");
       await panel.locator('input[type="file"]').setInputFiles({ ...sourceFile, name: "Lange_Quelldatei_Zellatmung_Bedingungen_und_Ausnahmen_des_Energiestoffwechsels.PPTX" });
       if (await panel.getByRole("button", { name: "Weiter", exact: true }).isVisible()) await panel.getByRole("button", { name: "Weiter", exact: true }).click();
-      await panel.getByRole("textbox", { name: /Was sollen wir außerdem beachten/ }).fill("Biologie-Abitur; Schwerpunkt Zellatmung; historische Entdeckungen weglassen.");
+      await panel.getByRole("textbox", { name: /Weitere Hinweise/ }).fill("Biologie-Abitur; Schwerpunkt Zellatmung; historische Entdeckungen weglassen.");
       await capture("form-wishes");
-      await panel.getByRole("combobox", { name: "Wie sollen die Karten formuliert sein?", exact: true }).click();
+      await panel.getByRole("combobox", { name: "Formulierung", exact: true }).click();
       await expect(page.getByRole("option", { name: "Fachsprache verwenden", exact: true })).toBeVisible();
       await capture("select-open");
       await page.getByRole("option", { name: "Fachsprache verwenden", exact: true }).click();

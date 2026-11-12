@@ -72,6 +72,8 @@ test("account settings show the login e-mail read-only in one wide panel", () =>
   assert.match(html, /Login-E-Mail/);
   assert.match(html, /readOnly=""[^>]*value="login@example\.test"/);
   assert.doesNotMatch(html, /xl:grid-cols-\[1fr_0\.8fr\]/);
+  assert.match(html, /<button type="button" class="core-action-secondary core-action-destructive-secondary [^"]*">(?:(?!<\/button>).)*<span>Abmelden<\/span><\/button>/);
+  assert.doesNotMatch(html, /core-action-destructive"|class="core-action-destructive /);
 });
 
 test("general settings do not contain global card settings", () => {
@@ -86,6 +88,7 @@ test("the conflict panel is a focusable deep-link target inside data and sync", 
   assert.match(dataSection, /<section id="settings-sync-conflicts" aria-labelledby="settings-sync-conflicts-heading"/);
   assert.match(dataSection, /<h3 id="settings-sync-conflicts-heading" tabindex="-1"[^>]*>Änderungskonflikte lösen<\/h3>/);
   assert.doesNotMatch(dataSection, /core-surface-raised|rounded-panel/);
+  assert.doesNotMatch(dataSection, /Derselbe Inhalt wurde an zwei Stellen/);
 });
 
 test("conflict previews count only the selected direction", () => {

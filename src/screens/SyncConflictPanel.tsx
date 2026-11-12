@@ -1,6 +1,9 @@
 import React from "react";
 import { CheckCircle2, GitMerge, RefreshCw, RotateCcw } from "lucide-react";
+import { ActionButton } from "../ui/actionUi.tsx";
+import { CoreTag } from "../ui/coreUi.tsx";
 import { useSuccessToast } from "../ui/feedbackUi.tsx";
+import { CoreRadio } from "../ui/formControls.tsx";
 
 const FIELD_SOURCES = [["local", "Dieser Browser"], ["remote", "Cloud im Account"]];
 const PREVIEW_TABLE_LABELS: Record<string, string> = { decks: "Stapel", cards: "Karten", card_variants: "Varianten" };
@@ -142,12 +145,9 @@ export function SyncConflictPanel({ id, onListConflicts, onResolveConflict }: an
     <section id={id} aria-labelledby={id ? `${id}-heading` : undefined} className="core-settings-group" data-testid="sync-conflict-panel">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h3 id={id ? `${id}-heading` : undefined} tabIndex={id ? -1 : undefined} className="core-heading-3 text-core-text outline-none">Änderungskonflikte lösen</h3>
-        <button ref={refreshButtonRef} type="button" onClick={loadConflicts} disabled={loading || Boolean(busyId)} className="core-action-secondary">
-          <RefreshCw size={16} aria-hidden="true" />
-          Neu laden
-        </button>
+        <ActionButton ref={refreshButtonRef} type="button" variant="secondary" icon={RefreshCw} onClick={loadConflicts} disabled={loading || Boolean(busyId)}>Neu laden</ActionButton>
       </div>
-      <p className="core-settings-row-hint">Derselbe Inhalt wurde an zwei Stellen unterschiedlich geändert. Wähle, welche Fassung gilt.</p>
+      {openConflicts.length > 0 ? <p className="core-settings-row-hint">Derselbe Inhalt wurde an zwei Stellen unterschiedlich geändert. Wähle, welche Fassung gilt.</p> : null}
 
       {loading ? <p className="core-body text-core-muted" role="status">Konflikte werden geladen.</p> : null}
       {error ? <p className="core-status-error core-body" role="alert">{error}</p> : null}
@@ -166,7 +166,7 @@ export function SyncConflictPanel({ id, onListConflicts, onResolveConflict }: an
               <p className="core-settings-row-hint">{previewText(cloudPreview)} · Konfliktfreie Inhalte, Reviews und Medien bleiben erhalten.</p>
             </div>
             <div className="core-settings-row-control">
-              <button type="button" className="core-action-secondary" disabled={Boolean(busyId)} onClick={() => void resolveAll("cloud")}>Cloud-Stand für diese Konflikte übernehmen</button>
+              <ActionButton type="button" variant="secondary" disabled={Boolean(busyId)} onClick={() => void resolveAll("cloud")}>Cloud-Stand für diese Konflikte übernehmen</ActionButton>
             </div>
           </div>
           <div className="core-settings-row">
@@ -175,7 +175,7 @@ export function SyncConflictPanel({ id, onListConflicts, onResolveConflict }: an
               <p className="core-settings-row-hint">{previewText(localPreview)} · Konfliktfreie Inhalte, Reviews und Medien bleiben erhalten.</p>
             </div>
             <div className="core-settings-row-control">
-              <button type="button" className="core-action-primary" disabled={Boolean(busyId)} onClick={() => void resolveAll("local")}>Lokalen Stand für diese Konflikte übernehmen</button>
+              <ActionButton type="button" variant="primary" disabled={Boolean(busyId)} onClick={() => void resolveAll("local")}>Lokalen Stand für diese Konflikte übernehmen</ActionButton>
             </div>
           </div>
         </div>
@@ -198,7 +198,7 @@ export function SyncConflictPanel({ id, onListConflicts, onResolveConflict }: an
                       <h5 className="core-settings-row-title">{conflict.title}</h5>
                       <p className="core-settings-row-hint">Erkannt am {formatConflictDate(conflict.createdAt)}</p>
                     </div>
-                    <span className="inline-flex min-h-5 items-center rounded-round bg-core-warning-soft px-2 core-status-label text-core-warning">Entscheidung nötig</span>
+                    <CoreTag tone="warning">Entscheidung nötig</CoreTag>
                   </div>
 
                   {conflict.fields.length > 0 ? (
@@ -222,15 +222,12 @@ export function SyncConflictPanel({ id, onListConflicts, onResolveConflict }: an
                   ) : <p className="core-body text-core-muted">Eine Seite wurde gelöscht oder ist nicht mehr vorhanden.</p>}
 
                   <div className="flex flex-wrap gap-2">
-                    <button type="button" disabled={busy} onClick={() => decide(conflict, { action: "keep-local" })} className="core-action-primary" aria-label={`${conflict.title}: Diesen Browser übernehmen`}>Diesen Browser übernehmen</button>
-                    <button type="button" disabled={busy} onClick={() => decide(conflict, { action: "keep-remote" })} className="core-action-secondary" aria-label={`${conflict.title}: Cloud übernehmen`}>Cloud übernehmen</button>
+                    <ActionButton type="button" variant="primary" disabled={busy} onClick={() => decide(conflict, { action: "keep-local" })} aria-label={`${conflict.title}: Diesen Browser übernehmen`}>Diesen Browser übernehmen</ActionButton>
+                    <ActionButton type="button" variant="secondary" disabled={busy} onClick={() => decide(conflict, { action: "keep-remote" })} aria-label={`${conflict.title}: Cloud übernehmen`}>Cloud übernehmen</ActionButton>
                     {conflict.allowedActions.includes("merge-fields") ? (
-                      <button type="button" disabled={busy} aria-expanded={merging} aria-controls={`sync-conflict-merge-fields-${conflict.id}`} onClick={() => toggleMerge(conflict.id)} className="core-action-secondary" data-testid={`sync-conflict-merge-${conflict.id}`}>
-                        <GitMerge size={16} aria-hidden="true" />
-                        Manuell zusammenführen
-                      </button>
+                      <ActionButton type="button" variant="secondary" icon={GitMerge} disabled={busy} aria-expanded={merging} aria-controls={`sync-conflict-merge-fields-${conflict.id}`} onClick={() => toggleMerge(conflict.id)} data-testid={`sync-conflict-merge-${conflict.id}`}>Manuell zusammenführen</ActionButton>
                     ) : null}
-                    <button type="button" disabled={busy} onClick={() => decide(conflict, { action: "ignore" })} className="core-action-ghost" aria-label={`${conflict.title}: Später entscheiden`}>Später entscheiden</button>
+                    <ActionButton type="button" variant="secondary" disabled={busy} onClick={() => decide(conflict, { action: "ignore" })} aria-label={`${conflict.title}: Später entscheiden`}>Später entscheiden</ActionButton>
                   </div>
 
                   {merging ? (
@@ -242,16 +239,13 @@ export function SyncConflictPanel({ id, onListConflicts, onResolveConflict }: an
                             <span className="core-settings-row-title">{field.label}</span>
                             <div className="core-settings-row-control gap-4">
                               {FIELD_SOURCES.map(([source, label]) => (
-                                <label key={source} className="inline-flex min-h-control items-center gap-2 core-body text-core-secondary">
-                                  <input type="radio" className="size-4 accent-core-action" name={`${conflict.id}-${field.key}`} checked={choices[field.key] === source} onChange={() => chooseField(conflict.id, field.key, source)} aria-label={`${field.label}: ${label}`} />
-                                  {label}
-                                </label>
+                                <CoreRadio key={source} name={`${conflict.id}-${field.key}`} label={label} checked={choices[field.key] === source} onCheckedChange={() => chooseField(conflict.id, field.key, source)} aria-label={`${field.label}: ${label}`} />
                               ))}
                             </div>
                           </div>
                         ))}
                       </div>
-                      <button type="button" disabled={busy || !allFieldsChosen} onClick={() => decide(conflict, { action: "merge-fields", fieldChoices: choices })} className="mt-2 w-fit core-action-primary">Zusammenführung speichern</button>
+                      <ActionButton type="button" variant="primary" disabled={busy || !allFieldsChosen} onClick={() => decide(conflict, { action: "merge-fields", fieldChoices: choices })} className="mt-2 w-fit">Zusammenführung speichern</ActionButton>
                     </fieldset>
                   ) : null}
                 </article>
@@ -270,10 +264,7 @@ export function SyncConflictPanel({ id, onListConflicts, onResolveConflict }: an
               <div key={conflict.id} className="core-settings-row" data-layout="inline">
                 <span className="core-settings-row-title">{conflict.entityLabel}: {conflict.title}</span>
                 <div className="core-settings-row-control">
-                  <button type="button" disabled={busyId === conflict.id} onClick={() => decide(conflict, { action: "reopen" })} className="core-action-secondary">
-                    <RotateCcw size={16} aria-hidden="true" />
-                    Wieder aufnehmen
-                  </button>
+                  <ActionButton type="button" variant="secondary" icon={RotateCcw} disabled={busyId === conflict.id} onClick={() => decide(conflict, { action: "reopen" })}>Wieder aufnehmen</ActionButton>
                 </div>
               </div>
             ))}

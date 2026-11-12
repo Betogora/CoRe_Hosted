@@ -32,8 +32,9 @@ import {
 import type { StudyHeatmapDay } from "../studyHeatmapModel.ts";
 import type { MaturityBand } from "../coreTypes.ts";
 import { ActionButton } from "../ui/actionUi.tsx";
-import { CoreSegmentedControl, EmptyState, PageHeader, SoftPanel, StatTile } from "../ui/coreUi.tsx";
+import { CoreSegmentedControl, CoreTag, EmptyState, PageHeader, SoftPanel, StatTile } from "../ui/coreUi.tsx";
 import { InPageNavigation } from "../ui/InPageNavigation.tsx";
+import { MetricRow } from "../ui/MetricRow.tsx";
 import { StatusMessage } from "../ui/feedbackUi.tsx";
 import { DeckMultiSelect } from "../ui/selectUi.tsx";
 import { StudyHeatmap } from "../ui/StudyHeatmap.tsx";
@@ -196,7 +197,7 @@ function PanelHeader({ title, titleId, snapshot = false }: { title: string; titl
   return (
     <div className="flex flex-wrap items-center justify-between gap-3">
       <h3 id={titleId} tabIndex={titleId ? -1 : undefined} className={`core-heading-3 text-core-text ${titleId ? "rounded-inset focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-core-focus focus-visible:ring-offset-4" : ""}`.trim()}>{title}</h3>
-      {snapshot ? <span className="inline-flex min-h-5 items-center rounded-round border border-core-border bg-core-surface px-2 core-caption font-semibold text-core-secondary">Stand heute</span> : null}
+      {snapshot ? <CoreTag tone="outline">Stand heute</CoreTag> : null}
     </div>
   );
 }
@@ -327,16 +328,14 @@ function PlanningChart({ planning }: { planning: StatisticsProjection["planning"
   if (!planning.points.some((point) => point.total > 0)) return <NoChartData>Für den gewählten Horizont sind keine Wiederholungen eingeplant.</NoChartData>;
   return (
     <>
-      <div className="grid gap-3 sm:grid-cols-4">
-        {[
-          { label: "Überfällig", value: planning.overdue },
-          { label: "Morgen fällig", value: planning.dueTomorrow },
-          { label: "Im Horizont", value: planning.dueInHorizon },
-          { label: "Arbeitspensum/Tag", value: planning.dailyWorkload },
-        ].map(({ label, value }) => (
-          <StatTile size="compact" key={label} label={label} value={formatNumber(value, 1)} />
-        ))}
-      </div>
+      <MetricRow
+        items={[
+          { label: "Überfällig", value: formatNumber(planning.overdue, 1) },
+          { label: "Morgen fällig", value: formatNumber(planning.dueTomorrow, 1) },
+          { label: "Im Horizont", value: formatNumber(planning.dueInHorizon, 1) },
+          { label: "Arbeitspensum/Tag", value: formatNumber(planning.dailyWorkload, 1) },
+        ]}
+      />
       <CartesianStatisticsChart data={planning.points} ariaLabel="Diagramm zu geplanten Wiederholungen" className="mt-6 h-72 w-full" minTickGap={28} rightAxis="cumulative" tooltip={<StatisticsTooltip />}>
         <Bar dataKey="learning" name="Lernen" stackId="due" fill={CATEGORY_COLORS.learning} isAnimationActive={false} />
         <Bar dataKey="relearning" name="Wiederlernen/Rückstand" stackId="due" fill={CATEGORY_COLORS.relearning} isAnimationActive={false} />
@@ -441,7 +440,7 @@ export function StatisticsScreenContent({ dataset: { decks, projection: statisti
   if (decks.length === 0) {
     return (
       <div className="space-y-8">
-        <PageHeader eyebrow="Lernanalyse" title="Statistik" />
+        <PageHeader title="Statistik" />
         <EmptyState icon={BarChart3} title="Noch keine Statistik verfügbar" body="Erstelle oder importiere zuerst einen Stapel. Sobald Karten vorhanden sind, zeigt CoRe Planung, FSRS-Zustand und Lernverlauf." action={<ActionButton variant="primary" onClick={() => onNavigate("neue-karten")}>Stapel erstellen</ActionButton>} />
       </div>
     );
@@ -449,33 +448,33 @@ export function StatisticsScreenContent({ dataset: { decks, projection: statisti
 
   return (
     <div className="min-w-0 max-w-full space-y-8">
-      <div className="flex flex-wrap items-end justify-between gap-4">
-        <PageHeader eyebrow="Lernanalyse" title="Statistik" />
-        <p className="core-body text-core-muted">{statistics.dateRangeLabel}</p>
-      </div>
-
-      <SoftPanel className="core-statistics-filters p-5 sm:p-6">
+      <div className="space-y-5">
         <div className="flex flex-wrap items-end justify-between gap-4">
-          <div ref={periodRef} className="min-w-0 max-w-full shrink-0">
-            <p className="core-field-label">Globaler Zeitraum</p>
-            <CoreSegmentedControl
-              ariaLabel="Statistikzeitraum"
-              options={PERIOD_OPTIONS}
-              value={period}
-              onValueChange={changePeriod}
-              className="mt-2 max-w-full"
-            />
-          </div>
-          <div className="min-w-0 max-w-full flex-1 basis-52 sm:max-w-72">
-            <p className="core-field-label">Stapel</p>
-            <div className="mt-2"><DeckMultiSelect decks={decks} value={deckSelection} onValueChange={changeDecks} /></div>
-          </div>
+          <PageHeader title="Statistik" />
+          <p className="core-body text-core-muted">{statistics.dateRangeLabel}</p>
         </div>
-        <div className="core-statistics-load-track" role={loading ? "progressbar" : undefined} aria-label={loading ? "Statistik wird aktualisiert" : undefined}>
-          {loading ? <span aria-hidden="true" /> : null}
+
+        <div className="core-statistics-filters">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div ref={periodRef} className="min-w-0 max-w-full shrink-0">
+              <CoreSegmentedControl
+                ariaLabel="Statistikzeitraum"
+                options={PERIOD_OPTIONS}
+                value={period}
+                onValueChange={changePeriod}
+                className="max-w-full"
+              />
+            </div>
+            <div className="min-w-0 max-w-full flex-1 basis-52 sm:max-w-72">
+              <DeckMultiSelect decks={decks} value={deckSelection} onValueChange={changeDecks} />
+            </div>
+          </div>
+          <div className="core-statistics-load-track" role={loading ? "progressbar" : undefined} aria-label={loading ? "Statistik wird aktualisiert" : undefined}>
+            {loading ? <span aria-hidden="true" /> : null}
+          </div>
+          <p role="status" aria-live="polite" className="sr-only">{loading ? "Statistik wird aktualisiert." : ""}</p>
         </div>
-        <p role="status" aria-live="polite" className="sr-only">{loading ? "Statistik wird aktualisiert." : ""}</p>
-      </SoftPanel>
+      </div>
 
       {error ? <StatusMessage tone="error" announce="assertive" className="rounded-control p-4">
         <p className="core-body">Die Statistik konnte nicht aktualisiert werden. Die angezeigten Daten entsprechen der letzten erfolgreichen Auswahl.</p>
@@ -487,18 +486,20 @@ export function StatisticsScreenContent({ dataset: { decks, projection: statisti
 
       <div className={loading || error ? "opacity-60" : undefined} aria-busy={loading || undefined}>
       <InPageNavigation ariaLabel="Bereiche der Statistik" items={statisticsSections}>
-      <section id={STATISTICS_SECTION_IDS.overview} className="min-w-0" aria-labelledby="statistics-overview-title">
-        <ChartPanel title="Überblick" titleId="statistics-overview-title">
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-            <StatTile size="compact" label="Reviews" value={formatNumber(statistics.summary.reviewCount)} />
-            <StatTile size="compact" label="Erfolgsrate" value={formatPercent(statistics.summary.successPercent)} />
-            <StatTile size="compact" label="Wahre Quote" value={statistics.summary.trueRetentionSample > 0 ? formatPercent(statistics.summary.trueRetentionPercent) : "–"} />
-            <StatTile size="compact" label="Gemessene Lernzeit" value={formatDuration(statistics.summary.totalDurationMs)} />
-            <StatTile size="compact" label="Zeit pro Antwort" value={statistics.summary.timedCount > 0 ? formatDuration(statistics.summary.averageResponseMs) : "–"} />
-            <StatTile size="compact" label="Aktive Lerntage" value={formatNumber(statistics.summary.activeDays)} />
-            <StatTile size="compact" label="Aktuelle Serie" value={`${formatNumber(statistics.summary.currentStreak)} ${statistics.summary.currentStreak === 1 ? "Tag" : "Tage"}`} />
-          </div>
-        </ChartPanel>
+      <section id={STATISTICS_SECTION_IDS.overview} className="min-w-0 pb-2" aria-labelledby="statistics-overview-title">
+        <StatisticsSectionHeading id="statistics-overview-title">Überblick</StatisticsSectionHeading>
+        <MetricRow
+          className="core-statistics-overview"
+          items={[
+            { label: "Reviews", value: formatNumber(statistics.summary.reviewCount) },
+            { label: "Erfolgsrate", value: formatPercent(statistics.summary.successPercent) },
+            { label: "Wahre Quote", value: statistics.summary.trueRetentionSample > 0 ? formatPercent(statistics.summary.trueRetentionPercent) : "–" },
+            { label: "Gemessene Lernzeit", value: formatDuration(statistics.summary.totalDurationMs) },
+            { label: "Zeit pro Antwort", value: statistics.summary.timedCount > 0 ? formatDuration(statistics.summary.averageResponseMs) : "–" },
+            { label: "Aktive Lerntage", value: formatNumber(statistics.summary.activeDays) },
+            { label: "Aktuelle Serie", value: `${formatNumber(statistics.summary.currentStreak)} ${statistics.summary.currentStreak === 1 ? "Tag" : "Tage"}` },
+          ]}
+        />
       </section>
 
       <section id={STATISTICS_SECTION_IDS.activity} className="grid min-w-0 gap-4 xl:grid-cols-2" aria-labelledby="statistics-activity-title">
@@ -542,12 +543,12 @@ export function StatisticsScreenContent({ dataset: { decks, projection: statisti
                 <th scope="row">
                   <button type="button" className="min-h-control w-full text-left font-semibold text-core-text [overflow-wrap:anywhere] hover:text-core-action" aria-label={`Stapelinhalte öffnen: ${row.name}`} onClick={() => onNavigate("kartenstapel", { focusedDeckId: row.id, deckContent: true })}>{row.name}</button>
                 </th>
-                <td><StatTile size="compact" label="Reviews" value={formatNumber(row.reviewCount)} /></td>
-                <td><StatTile size="compact" label="Erfolg" value={formatPercent(row.successPercent)} /></td>
-                <td><StatTile size="compact" label="Nochmal" value={formatPercent(row.againPercent)} /></td>
-                <td><StatTile size="compact" label="Erinnerung" value={formatPercent(row.trueRetentionPercent)} /></td>
-                <td><StatTile size="compact" label="Ø Intervall" value={`${formatNumber(row.averageIntervalDays, 1)} T.`} /></td>
-                <td><StatTile size="compact" label="Nächste Fälligkeit" value={formatDate(row.nextDueAt, timeZone, dayStartHour)} /></td>
+                <td><StatTile size="compact" variant="plain" label="Reviews" value={formatNumber(row.reviewCount)} /></td>
+                <td><StatTile size="compact" variant="plain" label="Erfolg" value={formatPercent(row.successPercent)} /></td>
+                <td><StatTile size="compact" variant="plain" label="Nochmal" value={formatPercent(row.againPercent)} /></td>
+                <td><StatTile size="compact" variant="plain" label="Erinnerung" value={formatPercent(row.trueRetentionPercent)} /></td>
+                <td><StatTile size="compact" variant="plain" label="Ø Intervall" value={`${formatNumber(row.averageIntervalDays, 1)} T.`} /></td>
+                <td><StatTile size="compact" variant="plain" label="Nächste Fälligkeit" value={formatDate(row.nextDueAt, timeZone, dayStartHour)} /></td>
               </tr>
             ))}</tbody>
           </table>
@@ -589,7 +590,7 @@ export function StatisticsScreen({ decks, queryStatistics, now, timeZone, daySta
   if (loadState.status === "error") {
     return (
       <div className="space-y-8">
-        <PageHeader eyebrow="Lernanalyse" title="Statistik" />
+        <PageHeader title="Statistik" />
         <EmptyState
           icon={BarChart3}
           title="Statistik konnte nicht geladen werden"
@@ -601,7 +602,7 @@ export function StatisticsScreen({ decks, queryStatistics, now, timeZone, daySta
   }
   return (
     <div className="space-y-8" aria-busy="true">
-      <PageHeader eyebrow="Lernanalyse" title="Statistik" />
+      <PageHeader title="Statistik" />
       <SoftPanel className="p-6" role="status" aria-live="polite">
         <p className="core-body text-core-muted">Statistik wird geladen …</p>
       </SoftPanel>

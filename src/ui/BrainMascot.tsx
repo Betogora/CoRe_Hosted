@@ -122,7 +122,7 @@ export function BrainMascot({ id, interactive = false }: { id: BrainMascotId; in
   }, [id, interactive]);
   const drawing = <span className="brain-mascot-drawing"><Artwork id={id} prefix={prefix} /></span>;
   return <div className="brain-mascot" data-brain-mascot={id} ref={host}>
-    {interactive ? <button type="button" className="brain-mascot-button" aria-label="Gehirn begrüßen" aria-describedby={`${prefix}-hint`}>{drawing}</button> : drawing}
-    {interactive ? <><span id={`${prefix}-hint`} className="brain-mascot-hint">Tipp mich an</span><span className="brain-mascot-feedback" data-brain-feedback="" role="status" /></> : null}
+    {interactive ? <button type="button" className="brain-mascot-button" aria-label="Gehirn begrüßen">{drawing}</button> : drawing}
+    {interactive ? <span className="brain-mascot-feedback" data-brain-feedback="" role="status" /> : null}
   </div>;
 }

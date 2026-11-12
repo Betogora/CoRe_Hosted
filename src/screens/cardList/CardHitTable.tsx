@@ -1,8 +1,10 @@
 import React from "react";
-import { ArrowDown, ArrowUp, Check, Layers, ListChecks, Minus, Search, Star } from "lucide-react";
+import { ArrowDown, ArrowUp, Layers, ListChecks, Minus, Search, Star } from "lucide-react";
 import type { CardTableSort, CardTableSortField } from "../../libraryModel.ts";
 import type { CardCatalogEntry, NoteGraph } from "../../workspaceReplica.ts";
 import { FlagDot } from "../../ui/flagUi.tsx";
+import { CoreTag, EmptyState } from "../../ui/coreUi.tsx";
+import { CoreCheckbox } from "../../ui/formControls.tsx";
 import { CoreTooltip } from "../../ui/tooltipUi.tsx";
 import type { createHitListModel } from "./cardListModel.ts";
 import type { useVirtualRows } from "./virtualRows.ts";
@@ -34,7 +36,7 @@ function SortHeader({ field, label, sort, onChange, leading }: {
       <button
         type="button"
         onClick={() => onChange(field)}
-        className={`core-table-header-control flex w-full min-w-0 items-center ${headerGap} rounded-inset core-caption font-semibold text-core-muted hover:text-core-text focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--core-border-interactive)] ${rightAligned ? "justify-end" : ""}`}
+        className={`core-table-header-control flex w-full min-w-0 items-center ${headerGap} rounded-inset core-caption font-medium text-core-muted hover:text-core-text focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--core-border-interactive)] ${rightAligned ? "justify-end" : ""}`}
         aria-label={`${label} ${directionLabel} sortieren`}
       >
         <span className="min-w-0 truncate">{label}</span>
@@ -111,34 +113,29 @@ const CardTableRowView = React.memo(function CardTableRowView({ virtualKey, deck
       <td className="min-w-0 px-2 py-1 align-middle sm:px-3 md:px-4">
         <div className="flex min-w-0 items-start gap-2.5">
         {selecting ? (
-          <span className="relative mt-px size-5 shrink-0">
-            <input
-              type="checkbox"
-              data-testid={"select-card-" + card.id}
-              aria-label={`${frontPreview} auswählen`}
-              className="absolute inset-0 size-5 cursor-pointer appearance-none rounded-marker border border-core-border bg-core-surface checked:border-core-action checked:bg-core-action"
-              checked={checked}
-              onClick={(event) => {
-                event.stopPropagation();
-                onToggleCheck(card.id, event.shiftKey);
-              }}
-              onChange={() => undefined}
-            />
-            {checked ? <Check size={16} aria-hidden="true" className="pointer-events-none absolute left-0.5 top-0.5 text-core-on-accent" /> : null}
-          </span>
+          <CoreCheckbox
+            className="mt-0.5 shrink-0"
+            data-testid={"select-card-" + card.id}
+            aria-label={`${frontPreview} auswählen`}
+            checked={checked}
+            onClick={(event) => {
+              event.stopPropagation();
+              onToggleCheck(card.id, event.shiftKey);
+            }}
+          />
         ) : null}
         <button
           type="button"
           data-testid={"deck-card-" + card.id}
           aria-pressed={selected}
-          className="block !min-h-0 min-w-0 flex-1 truncate text-left core-body font-medium text-core-text focus-visible:rounded-inset focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--core-border-interactive)]"
+          className="block !min-h-0 min-w-0 flex-1 truncate text-left core-body text-core-text focus-visible:rounded-inset focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--core-border-interactive)]"
           onClick={activate}
         >
           {/* One compact line: the front, from sm on the deck path beside it, both cut with an ellipsis. */}
           <span className="flex min-w-0 items-baseline gap-2 sm:gap-3">
             <span className="min-w-0 flex-1 truncate">
               {frontPreview}
-              {syncConflict ? <span className="ml-2 inline-flex min-h-5 items-center rounded-round bg-core-warning-soft px-2 core-caption font-semibold text-core-warning">Synchronisierung klären</span> : null}
+              {syncConflict ? <CoreTag tone="warning" className="ml-2">Synchronisierung klären</CoreTag> : null}
             </span>
             {deckPath ? <span className="hidden min-w-0 max-w-[40%] shrink-0 truncate core-caption font-normal text-core-muted sm:block">{deckPath}</span> : null}
           </span>
@@ -220,7 +217,7 @@ export function CardHitTable({ items, rowOf, virtual, loading, searching, select
     return () => observer.disconnect();
   }, []);
   return items.length || loading ? (
-    <div className="min-w-0 max-w-full overflow-clip rounded-panel border border-core-border bg-core-surface">
+    <div className="min-w-0 max-w-full overflow-clip rounded-panel border border-core-border bg-core-surface" data-testid="card-library-sheet">
   <table className="w-full table-fixed border-collapse" data-testid="card-library-table" aria-busy={loading || undefined} aria-rowcount={items.length}>
       <colgroup>
         <col />
@@ -230,13 +227,13 @@ export function CardHitTable({ items, rowOf, virtual, loading, searching, select
       {/* From xl the screen region scrolls; its top padding (xl:py-10 in App) would otherwise hold the header 40 px low. */}
       <thead className="sticky top-[var(--core-card-table-sticky-top)] z-10 bg-core-surface xl:-top-10" style={{ "--core-card-table-sticky-top": `${mobileHeaderHeight}px` } as React.CSSProperties}>
         {selectionBar ? (
-          <tr className="border-b border-core-border bg-core-info-soft">
+          <tr className="core-card-table-header border-b border-core-border">
             <th scope="col" colSpan={3} className="p-0 text-left font-normal">
               {selectionBar}
             </th>
           </tr>
         ) : (
-          <tr className="core-table-header-row border-b border-core-border">
+          <tr className="core-card-table-header border-b border-core-border">
             <SortHeader
               field="sortField"
               label="Sortierfeld"
@@ -312,10 +309,6 @@ export function CardHitTable({ items, rowOf, virtual, loading, searching, select
   </table>
     </div>
   ) : (
-    <div className="grid justify-items-center gap-3 rounded-panel border border-core-border p-6 text-center sm:p-8" role="status">
-      <span className="grid size-12 place-items-center rounded-control bg-core-subtle text-core-action" aria-hidden="true"><Search size={22} /></span>
-      <h4 className="core-heading-3 text-core-text">{searching ? "Keine Karten gefunden" : "Keine Karten"}</h4>
-      {searching ? <p className="core-body text-core-secondary">Passe die Suche an.</p> : null}
-    </div>
+    <EmptyState icon={Search} title={searching ? "Keine Karten gefunden" : "Keine Karten"} />
   );
 }

@@ -11,6 +11,8 @@ test("ActionButton centralizes variants and the labeled loading contract", () =>
     assert.match(markup, new RegExp(`core-action-${variant}`));
   }
 
+  assert.match(renderToStaticMarkup(<ActionButton variant="destructive-secondary">Abmelden</ActionButton>), /class="core-action-secondary core-action-destructive-secondary /);
+
   const loading = renderToStaticMarkup(<ActionButton variant="primary" icon={Save} loading>Speichern</ActionButton>);
   assert.match(loading, /aria-busy="true"/);
   assert.match(loading, /disabled=""/);
@@ -55,4 +57,13 @@ test("CrossLinkButton centralizes the compact cross-link style for buttons and a
   assert.match(markup, /<button type="button"[^>]*min-h-button[^>]*>Alle ansehen/);
   assert.match(markup, /<a href="#global"[^>]*min-h-button[^>]*>Globale Einstellungen/);
   assert.equal(markup.match(/lucide-chevron-right/g)?.length, 2);
+  assert.match(markup, /text-core-action[^"]*hover:underline/, "Textlink in Handlungsblau, beim Hovern unterstrichen");
+  assert.doesNotMatch(markup, /bg-core-subtle|hover:bg-/, "ohne Füllfläche");
+});
+
+test("CrossLinkButton leads back to the parent surface with an arrow before its label", () => {
+  const markup = renderToStaticMarkup(<CrossLinkButton direction="back" onSelect={() => undefined}>Erstellen</CrossLinkButton>);
+
+  assert.match(markup, /<button type="button"[^>]*><svg[^>]*lucide-arrow-left[\s\S]*?<\/svg>Erstellen<\/button>/);
+  assert.doesNotMatch(markup, /lucide-chevron-right/);
 });

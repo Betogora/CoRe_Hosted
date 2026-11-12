@@ -21,7 +21,7 @@ export interface DeckOptionsMenuProps {
   onMoveDeck: (deckId: string, parentDeckId: string | null) => DeckMutationResult | null;
 }
 
-const menuActionClass = "flex min-h-button w-full items-center gap-2.5 rounded-inset px-2.5 text-left core-body text-core-text transition-colors hover:bg-core-subtle focus-visible:bg-core-subtle focus-visible:outline-none [&>svg]:shrink-0 [&>svg]:text-core-muted";
+const menuActionClass = "flex min-h-11 w-full items-center gap-2.5 rounded-inset px-2.5 text-left core-body text-core-text transition-colors hover:bg-core-subtle focus-visible:bg-core-subtle focus-visible:outline-none [&>svg]:shrink-0 [&>svg]:text-core-muted";
 
 export const DeckOptionsMenu = React.memo(function DeckOptionsMenu({ row, decks, onSetCoreMode, onOpenSettings, onMoveDeck }: DeckOptionsMenuProps) {
   const [moveDialogOpen, setMoveDialogOpen] = React.useState(false);
@@ -84,13 +84,13 @@ export const DeckOptionsMenu = React.memo(function DeckOptionsMenu({ row, decks,
             className="core-overlay z-[60] grid w-72 gap-1 rounded-panel p-1.5"
           >
             <div className="flex min-w-0 items-center gap-2.5 px-2.5 pt-2">
-              <DeckAppearanceIcon appearance={deckAppearance} className="size-8" iconSize={16} data-deck-icon="true" />
+              <DeckAppearanceIcon appearance={deckAppearance} className="size-4" iconSize={16} data-deck-icon="true" style={{ backgroundColor: "transparent" }} />
               <div className="min-w-0">
                 <p className="break-words core-body font-semibold text-core-text">{row.deck.name}</p>
               </div>
             </div>
-            <div className="grid gap-1.5 px-2.5 pb-2.5 pt-2">
-              <span className="core-caption font-semibold text-core-muted">CoRe-Modus</span>
+            <div className="flex items-center justify-between gap-3 px-2.5 pb-2.5 pt-2">
+              <span className="core-caption font-medium text-core-muted">CoRe-Modus</span>
               <CoreModeControl value={row.coreMode} onChange={(mode) => onSetCoreMode(row.id, mode)} />
             </div>
             <div className="-mx-1.5 grid gap-0.5 border-t border-core-border px-1.5 pt-1.5">
