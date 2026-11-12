@@ -424,27 +424,22 @@ export function StudyMode({ shortcutsSuspended = false, deck, decks, notes, answ
   return (
     <main className={`min-h-screen bg-core-canvas p-4 text-core-text sm:p-8 ${current ? (showAnswer ? "pb-40 sm:pb-40" : "pb-28 sm:pb-28") : ""}`}>
       <div className="mx-auto flex min-h-[calc(100vh-2rem)] w-full max-w-7xl flex-col sm:min-h-[calc(100vh-4rem)]">
-        <header className="sticky top-0 z-30 -mx-4 -mt-4 grid grid-cols-1 gap-3 border-b border-core-border bg-core-surface px-4 py-3 sm:-mx-8 sm:-mt-8 sm:px-8 md:top-3 md:mx-0 md:mt-0 md:rounded-panel md:border md:p-3 md:shadow-floating" data-testid="study-header">
-          <div className="flex items-center justify-between gap-4">
+        <header className="core-study-header" data-testid="study-header">
+          <div className="flex items-center justify-between gap-3">
             <IconButton type="button" onClick={onExit} label="Lernmodus verlassen" icon={X} />
-            <div className="flex min-w-0 items-center justify-center gap-2 text-center">
+            <div className="flex min-w-0 items-center justify-center gap-2">
               <p className="min-w-0 truncate core-heading-3 text-core-text">{rootDeck?.name ?? deck?.name}</p>
+              <span className="shrink-0 core-body font-medium tabular-nums text-core-muted">{sessionDailyProgress.completedTodayCount} / {sessionDailyProgress.total} Karten</span>
               {current?.card.ankiFlag ? <FlagDot flag={current.card.ankiFlag} names={flagNames} /> : null}
             </div>
             <IconButton ref={settingsButtonRef} type="button" onClick={() => setShowSettings((value) => !value)} label="Lerneinstellungen" icon={SlidersHorizontal} aria-haspopup="dialog" aria-expanded={showSettings} aria-controls="study-settings-overlay" />
           </div>
+          <DailyReviewProgress progress={sessionDailyProgress} />
           {simulationOffsetMinutes > 0 ? (
             <p className="core-status-warning text-center font-semibold" role="status">
               Simulation aktiv · {formatSimulationDate(getNow())} · +{formatSimulationDuration(simulationOffsetMinutes)}
             </p>
           ) : null}
-          <div className="grid gap-2">
-            <div className="flex items-center justify-between gap-3 core-caption font-medium text-core-muted">
-              <span>Lernfortschritt</span>
-              <span className="tabular-nums">{sessionDailyProgress.completedTodayCount} / {sessionDailyProgress.total} Karten</span>
-            </div>
-            <DailyReviewProgress progress={sessionDailyProgress} />
-          </div>
           <PomodoroProgress timer={pomodoroTimer} variant="study" />
           {studyMissingMedia.length > 0 ? <p className="core-status-warning text-center core-body" role="status">{studyMissingMedia[0].status}{studyMissingMedia.length > 1 ? ` (${studyMissingMedia.length} Medien)` : ""}</p> : null}
         </header>

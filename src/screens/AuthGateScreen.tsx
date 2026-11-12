@@ -1,6 +1,5 @@
 import React from "react";
-import { KeyRound, Link2, Lock, Mail, RotateCcw, ShieldCheck, UserPlus } from "lucide-react";
-import { OrbIcon, SoftPanel } from "../ui/coreUi.tsx";
+import { Mail } from "lucide-react";
 import { CoreWordmark } from "../ui/CoreWordmark.tsx";
 
 export function AuthGateScreen({
@@ -37,7 +36,6 @@ export function AuthGateScreen({
   const isRecovery = mode === "recovery";
   const title = isRecovery ? "Neues Passwort setzen" : isMagicLink ? "Magic Link senden" : isReset ? "Passwort zurücksetzen" : isSignUp ? "Account erstellen" : "Login";
   const primaryLabel = isRecovery ? "Passwort speichern" : isMagicLink ? "Magic Link senden" : isReset ? "Reset-Link senden" : isSignUp ? "Account erstellen" : "Anmelden";
-  const PrimaryIcon = isRecovery ? KeyRound : isMagicLink ? Link2 : isReset ? RotateCcw : isSignUp ? UserPlus : ShieldCheck;
   const needsEmail = !isRecovery;
   const needsPassword = !isReset && !isMagicLink;
 
@@ -66,19 +64,16 @@ export function AuthGateScreen({
     <main className="core-centered-viewport grid min-h-dvh min-w-0 grid-cols-[minmax(0,1fr)] place-items-center bg-core-canvas px-6 py-10 text-core-text">
       <div className="min-w-0 w-full max-w-md">
           <div className="mb-8 text-center">
-            <img src="/core-brain.svg" alt="" className="mx-auto mb-5 h-28 w-auto" />
-            <h1 className="core-heading-1 tracking-normal"><CoreWordmark /></h1>
+            <img src="/core-brain.svg" alt="" className="core-auth-mascot mx-auto mb-6 w-auto" />
+            <h1 className="core-auth-wordmark"><CoreWordmark /></h1>
             <p className="mt-2 core-body-large text-core-muted">Content Repetition</p>
           </div>
 
-          <SoftPanel className="core-auth-panel p-6">
-            <div className="core-auth-heading mb-6 flex min-w-0 items-center gap-3">
-              <OrbIcon icon={Lock} className="core-auth-heading-icon bg-core-subtle text-core-action" />
-              <h2 className="core-heading-2 min-w-0 break-words text-core-text">{title}</h2>
-            </div>
+          <div className="core-auth-panel">
+            <h2 className={mode === "sign-in" ? "sr-only" : "mb-5 core-heading-2 min-w-0 break-words text-core-text"}>{title}</h2>
 
             {!configured ? (
-              <p className="core-status-error core-body font-semibold" role="alert">
+              <p className="mb-4 core-status-error core-body font-semibold" role="alert">
                 Supabase ist für diese Umgebung noch nicht konfiguriert.
               </p>
             ) : null}
@@ -132,7 +127,6 @@ export function AuthGateScreen({
               ) : null}
 
               <button type="submit" disabled={!configured || busy} className="core-action-primary">
-                <PrimaryIcon size={16} aria-hidden="true" />
                 {busy ? `${primaryLabel} läuft` : primaryLabel}
               </button>
             </form>
@@ -140,19 +134,19 @@ export function AuthGateScreen({
             {!isRecovery ? (
               <div className="mt-4 flex flex-wrap justify-center gap-2">
                 {mode !== "sign-in" ? (
-                  <button type="button" onClick={() => setMode("sign-in")} className="rounded-control px-2 core-body font-semibold text-core-action transition-colors hover:bg-core-subtle" aria-pressed={false}>
+                  <button type="button" onClick={() => setMode("sign-in")} className="min-h-control rounded-control px-2 core-body font-semibold text-core-action transition-colors hover:bg-core-subtle" aria-pressed={false}>
                     Anmelden
                   </button>
                 ) : null}
                 {showMagicLink ? (
-                  <button type="button" onClick={() => setMode("magic-link")} className="rounded-control px-2 core-body font-semibold text-core-action transition-colors hover:bg-core-subtle" aria-pressed={isMagicLink}>
+                  <button type="button" onClick={() => setMode("magic-link")} className="min-h-control rounded-control px-2 core-body font-semibold text-core-action transition-colors hover:bg-core-subtle" aria-pressed={isMagicLink}>
                     Magic Link
                   </button>
                 ) : null}
-                <button type="button" onClick={() => setMode("sign-up")} className="rounded-control px-2 core-body font-semibold text-core-action transition-colors hover:bg-core-subtle" aria-pressed={isSignUp}>
+                <button type="button" onClick={() => setMode("sign-up")} className="min-h-control rounded-control px-2 core-body font-semibold text-core-action transition-colors hover:bg-core-subtle" aria-pressed={isSignUp}>
                   Account erstellen
                 </button>
-                <button type="button" onClick={() => setMode("reset")} className="rounded-control px-2 core-body font-semibold text-core-action transition-colors hover:bg-core-subtle" aria-pressed={isReset}>
+                <button type="button" onClick={() => setMode("reset")} className="min-h-control rounded-control px-2 core-body font-semibold text-core-action transition-colors hover:bg-core-subtle" aria-pressed={isReset}>
                   Passwort vergessen
                 </button>
               </div>
@@ -163,7 +157,7 @@ export function AuthGateScreen({
                 {message}
               </p>
             ) : null}
-          </SoftPanel>
+          </div>
       </div>
     </main>
   );

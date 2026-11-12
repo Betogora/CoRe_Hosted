@@ -201,13 +201,6 @@ Katalogdemo für jeden neuen oder geänderten gemeinsamen Baustein, betroffene
 Ansichten in der visuellen Pflichtmatrix hell und dunkel. Die
 Bewertungsbuttons der Lernsitzung bleiben unverändert.
 
-- [ ] **D4 – Lernsitzung, Statistik, Hilfe, Login:** Lernsitzung im
-      bisherigen Aufbau, Kopf flach statt schwebend (Schließen, Stapelname mit
-      Zähler, Einstellungen, 4-px-Fortschritt), auf Mobil mit dem bisherigen
-      Antwort-Button; Statistik mit Kennzahlen als Kopfzeile ohne Panel und
-      Filter ohne Panel; Hilfe ohne Leerraum und Eyebrows; Login ohne Kasten
-      mit großer Marke.
-
 - [ ] **D8 – Zusammenführung:** `npm run docs:build`, `npm run gate:push`,
       betroffene E2E-Specs und die visuelle Pflichtmatrix auf dem
       zusammengeführten Stand.

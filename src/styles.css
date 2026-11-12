@@ -26,6 +26,20 @@
   }
 }
 
+/* Login: the form stands on the canvas without a panel below a large brand; fields and action are 44 px high. */
+.core-auth-mascot {
+  height: 9.5rem;
+}
+
+.core-auth-wordmark {
+  font: var(--core-weight-heading) 2.5rem/2.75rem var(--core-font-sans);
+  letter-spacing: -0.02em;
+}
+
+.core-auth-panel :is(.core-field, .core-action-primary) {
+  min-height: 2.75rem;
+}
+
 @media (max-width: 18.75rem) {
   .core-centered-viewport {
     padding: 0.25rem;
@@ -66,18 +80,6 @@
     min-width: 0;
     max-width: 100%;
     padding-inline: 0.25rem;
-    overflow-wrap: anywhere;
-  }
-
-  .core-auth-heading {
-    gap: 0.25rem;
-  }
-
-  .core-auth-heading-icon {
-    display: none;
-  }
-
-  .core-auth-heading h2 {
     overflow-wrap: anywhere;
   }
 
@@ -2883,6 +2885,24 @@ button.core-steps-step:disabled {
   border-radius: var(--core-radius-round);
 }
 
+/* Study header: one flat row on the canvas with a 4 px progress line; it stays on top and covers the scrolling card. */
+.core-study-header {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  display: grid;
+  gap: 0.75rem;
+  margin: -0.75rem -1rem 0;
+  padding: 0.75rem 1rem;
+  background: var(--core-canvas);
+}
+
+.core-study-header [data-testid="study-daily-progress"] { height: 0.25rem; }
+
+@media (min-width: 40rem) {
+  .core-study-header { margin-inline: 0; padding-inline: 0; }
+}
+
 /* The study action bar takes the place and shape of the mobile bottom navigation, which the study mode hides. */
 .core-study-action-bar {
   position: fixed;
@@ -3323,6 +3343,19 @@ button.core-steps-step:disabled {
 
 .core-heatmap-period-select {
   width: 7rem;
+}
+
+/* Statistics overview: the key figures head the content without a panel, larger than other metric rows (K08). */
+.core-statistics-overview .core-metric {
+  font-size: 1.75rem;
+  line-height: 2.25rem;
+}
+
+@container (max-width: 29.99rem) {
+  .core-statistics-overview .core-metric {
+    font-size: 1.5rem;
+    line-height: 2rem;
+  }
 }
 
 .core-deck-comparison-container {

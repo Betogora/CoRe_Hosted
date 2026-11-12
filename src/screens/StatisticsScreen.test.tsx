@@ -34,8 +34,10 @@ test("statistics screen exposes one global filter and the complete CoRe analysis
     />,
   );
 
-  assert.equal((markup.match(/Globaler Zeitraum/g) ?? []).length, 1);
+  assert.doesNotMatch(markup, /Globaler Zeitraum|core-field-label/);
+  assert.match(markup, /<div class="core-statistics-filters">/);
   assert.match(markup, /aria-label="Statistikzeitraum"[^>]*core-segmented-control/);
+  assert.match(markup, /aria-label="Stapel filtern\. Aktuell: Gesamte Sammlung"/);
   assert.match(markup, /Gesamte Sammlung/);
   assert.match(markup, /Wiederholungen/);
   assert.match(markup, /Zeitplanung/);
@@ -53,7 +55,11 @@ test("statistics screen exposes one global filter and the complete CoRe analysis
   }
   const overviewMarkup = markup.match(/<section id="statistics-overview"[\s\S]*?<\/section>/)?.[0];
   assert.ok(overviewMarkup);
-  assert.match(overviewMarkup, /<h3 id="statistics-overview-title"[^>]*>Überblick<\/h3>/);
+  assert.match(overviewMarkup, /<h3 id="statistics-overview-title" tabindex="-1" class="sr-only">Überblick<\/h3>/);
+  assert.match(overviewMarkup, /class="core-metric-row core-statistics-overview"/);
+  assert.equal((overviewMarkup.match(/<dt /g) ?? []).length, 7);
+  assert.doesNotMatch(overviewMarkup, /core-surface-raised|data-variant="boxed"/);
+  assert.doesNotMatch(markup, /data-variant="boxed"/);
   assert.match(overviewMarkup, /Reviews/);
   assert.doesNotMatch(overviewMarkup, /Wiederholungen/);
   assert.match(overviewMarkup, /Erfolgsrate/);
