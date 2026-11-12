@@ -91,7 +91,7 @@ test("liest Karten deterministisch aus dem neuen leeren Namespace", async () => 
 
 test("liefert nach abgeschlossenem Katalogabgleich die aktuellen Tageszähler", async () => {
   const repository = await openRepository(workspaceState(3));
-  await repository.applyCloudCatalogPage({ table: "card_catalog", entities: [], reset: false, cursor: 0 });
+  await repository.applyCloudCatalogPages([{ table: "card_catalog", entities: [], reset: false, cursor: 0 }]);
 
   const partial = await repository.listDeckSummaries(SUMMARY_CONTEXT);
   assert.equal(partial.summaries.get("deck-idb")?.dailyProgress.newCount, 0);
@@ -376,7 +376,7 @@ test("Tageszähler ziehen Geschwister heute beantworteter Inhalte ab, wenn der S
       createCoreDeck({ id: "deck-a", name: "A", source: "manual", cards: [shared.cards[0], other.cards[0]] }),
       deckB,
     ], [shared.note, other.note]));
-    await repository.applyCloudCatalogPage({ table: "card_catalog", entities: [], reset: false, cursor: 0 });
+    await repository.applyCloudCatalogPages([{ table: "card_catalog", entities: [], reset: false, cursor: 0 }]);
     await repository.completeCatalogReconciliation();
     repository.recordReview(answerVariant(deckB, "card-0-reverse", null, "good", { now: "2026-08-21T10:00:00.000Z" }));
     await repository.flush();
@@ -434,12 +434,12 @@ test("Anki-Vorlagen aus dem Katalog-Delta liegen lokal vor; Löschungen entferne
   });
   await repository.commitImportGraph(importGraph([{ kind: "note-type-sources", values: [source("lokal", ".lokal{}")] }]), { deckSettings: {}, reimportTargets: { notes: [], cards: [], noteTypeSources: [] } });
 
-  await repository.applyCloudCatalogPage({ table: "note_type_sources", entities: [source("vorlage", ".card{}.meta{}"), source("lokal", ".cloud{}")], reset: false, cursor: 1 });
+  await repository.applyCloudCatalogPages([{ table: "note_type_sources", entities: [source("vorlage", ".card{}.meta{}"), source("lokal", ".cloud{}")], reset: false, cursor: 1 }]);
   assert.equal((await repository.loadNoteTypeSource("vorlage"))?.css, ".card{}.meta{}");
   assert.equal(await repository.loadNoteTypeSource("vorlage"), await repository.loadNoteTypeSource("vorlage"), "Eine unveränderte Vorlage bleibt dasselbe Objekt");
   assert.equal((await repository.loadNoteTypeSource("lokal"))?.css, ".lokal{}", "Ein noch nicht gesendeter Import bleibt maßgeblich");
 
-  await repository.applyCloudCatalogPage({ table: "note_type_sources", entities: [source("vorlage", ".card{}", CREATED_AT)], reset: false, cursor: 2 });
+  await repository.applyCloudCatalogPages([{ table: "note_type_sources", entities: [source("vorlage", ".card{}", CREATED_AT)], reset: false, cursor: 2 }]);
   assert.equal(await repository.loadNoteTypeSource("vorlage"), null);
   repository.close();
 });
@@ -689,9 +689,9 @@ test("die Suche folgt Katalogänderungen nach ihrem ersten Aufbau", async () => 
   const search = () => repository.listCatalogPage("deck-idb", { query: "frage 1" }).then((page) => page.items.map((entry) => entry.id));
   assert.deepEqual(await search(), ["card-1"]);
   const [entry] = (await repository.listCatalogPage("deck-idb", { query: "frage 1" })).items;
-  await repository.applyCloudCatalogPage({ table: "card_catalog", entities: [{ ...entry, deletedAt: CREATED_AT }], reset: false, cursor: 1 });
+  await repository.applyCloudCatalogPages([{ table: "card_catalog", entities: [{ ...entry, deletedAt: CREATED_AT }], reset: false, cursor: 1 }]);
   assert.deepEqual(await search(), []);
-  await repository.applyCloudCatalogPage({ table: "note_search", entities: [{ noteId: "note-2", searchText: "frage 2 über frage 1 hinaus", searchFields: [{ name: "vorderseite", text: "frage 2" }], deletedAt: null }], reset: false, cursor: 2 });
+  await repository.applyCloudCatalogPages([{ table: "note_search", entities: [{ noteId: "note-2", searchText: "frage 2 über frage 1 hinaus", searchFields: [{ name: "vorderseite", text: "frage 2" }], deletedAt: null }], reset: false, cursor: 2 }]);
   assert.deepEqual(await search(), ["card-2"], "der replizierte Volltext gilt für alle Karten des Inhalts");
   const fieldSearch = (query: string) => repository.listCatalogPage("deck-idb", { query }).then((page) => page.items.map((entry) => entry.id));
   assert.deepEqual(await fieldSearch("vorderseite:2"), ["card-2"], "Feldtexte kommen mit dem replizierten Suchtext");
@@ -723,4 +723,109 @@ test("ein Upgrade der lokalen Datenbank legt den Suchtext-Speicher an und lädt 
     assert.deepEqual(status.value, { catalogCompleteness: "partial", catalogCursor: 0 }, `von Version ${version}`);
     database.close();
   }
+});
+
+function offlineDeck(deckId: string) {
+  return {
+    id: deckId, deckId, state: "available" as const, expectedCardCount: 0, verifiedCardCount: 0, expectedMediaCount: 0, verifiedMediaCount: 0,
+    expectedBytes: 0, downloadedBytes: 0, manifestCursor: "", failureMessage: null, updatedAt: CREATED_AT,
+  };
+}
+
+test("eine Delta-Seite in einem Aufruf endet wie ihre Tabellen einzeln nacheinander", async () => {
+  const run = async (combined: boolean) => {
+    const repository = await openRepository(twoDeckState());
+    for (const deckId of ["deck-a", "deck-b"]) await repository.saveOfflineDeck(offlineDeck(deckId));
+    const search = (deckId: string, query: string) => repository.listCatalogPage(deckId, { query }).then((page) => page.items.map((entry) => entry.id));
+    assert.deepEqual(await search("deck-a", "frage"), ["card-0", "card-1"], "der Suchindex steht vor dem Abgleich");
+    const entry = async (deckId: string, id: string) => (await repository.listCatalogPage(deckId)).items.find((item) => item.id === id)!;
+    const [card0, card1, reverse] = [await entry("deck-a", "card-0"), await entry("deck-a", "card-1"), await entry("deck-b", "card-0-reverse")];
+    await repository.applyCloudCatalogPages([{ table: "note_search", entities: [{ noteId: "note-8", searchText: "früher text acht", searchFields: [], deletedAt: null }], reset: false, cursor: 1 }]);
+    const fresh = (id: string, noteId: string) => ({ ...card1, id, noteId, frontPreview: id, normalizedSearchText: id, searchFields: undefined, studyRevision: 0 });
+    const pages = [
+      { table: "decks" as const, entities: [] },
+      { table: "card_catalog" as const, entities: [
+        { ...card0, studyRevision: card0.studyRevision + 1, dueAt: "2026-08-22T04:00:00.000Z", normalizedSearchText: "frage 0" },
+        { ...card1, deckId: "deck-b", bodyRevision: card1.bodyRevision + 1 },
+        { ...reverse, deletedAt: CREATED_AT },
+        fresh("card-9", "note-9"),
+        fresh("card-8", "note-8"),
+        { ...fresh("card-7", "note-7"), studyRevision: 3 },
+        { ...fresh("card-7", "note-7"), studyRevision: 4, deckId: "deck-b" },
+      ] },
+      { table: "deck_study_summaries" as const, entities: [] },
+      { table: "note_type_sources" as const, entities: [] },
+      { table: "note_search" as const, entities: [
+        { noteId: "note-0", searchText: "neuer volltext null", searchFields: [{ name: "vorderseite", text: "neuer" }], deletedAt: null },
+        { noteId: "note-9", searchText: "volltext neun", searchFields: [], deletedAt: null },
+        { noteId: "note-1", searchText: "", searchFields: [], deletedAt: CREATED_AT },
+      ] },
+    ].map((page) => ({ ...page, reset: false, cursor: 5 }));
+    if (combined) await repository.applyCloudCatalogPages(pages);
+    else for (const page of pages) await repository.applyCloudCatalogPages([page]);
+    const catalog = Object.fromEntries(await Promise.all(["deck-a", "deck-b"].map(async (deckId) => [deckId, (await repository.listCatalogPage(deckId)).items] as const)));
+    const result = {
+      catalog,
+      summaries: await repository.listDeckStudySummaries(),
+      offline: (await repository.listOfflineDecks()).map((deck) => [deck.deckId, deck.state]),
+      cursor: repository.getReplicaStatus().catalogCursor,
+      volltext: [...await search("deck-a", "volltext"), ...await search("deck-b", "volltext")],
+      acht: await search("deck-a", "acht"),
+      bodies: await Promise.all(["card-0", "card-0-reverse", "card-1"].map(async (id) => Boolean(await repository.loadCardBody(id)))),
+    };
+    repository.close();
+    return result;
+  };
+  const combined = await run(true);
+  assert.deepEqual(combined, await run(false));
+  assert.deepEqual(combined.catalog["deck-a"].map((item) => item.id), ["card-0", "card-8", "card-9"]);
+  assert.deepEqual(combined.catalog["deck-b"].map((item) => [item.id, item.studyRevision]), [["card-1", 0], ["card-7", 4]]);
+  assert.equal(combined.catalog["deck-a"][0].normalizedSearchText, "neuer volltext null", "der Suchtext derselben Seite gilt");
+  assert.deepEqual(combined.volltext, ["card-0", "card-9"]);
+  assert.deepEqual(combined.acht, ["card-8"], "ein früher replizierter Suchtext kommt in die neue Zeile");
+  assert.deepEqual(Object.fromEntries(combined.summaries.map((summary) => [summary.deckId, summary.totalCount])), { "deck-a": 3, "deck-b": 2 });
+  assert.deepEqual(combined.offline, [["deck-a", "outdated"], ["deck-b", "outdated"]]);
+  assert.equal(combined.cursor, 5);
+  assert.deepEqual(combined.bodies, [false, false, false], "eine neue Revision lässt nur den Katalogeintrag lokal");
+});
+
+test("wartende lokale Änderungen bleiben bei Delta-Seiten und beim Zurücksetzen des Katalogs geschützt", async () => {
+  for (const reset of [false, true]) {
+    const repository = await openRepository(workspaceState(2));
+    const graph = (await repository.loadNoteGraph("note-0"))!;
+    const plan = planNoteContentChange(graph, {
+      ...graph.note.content,
+      fields: graph.note.content.fields.map((field) => field.id === "front" ? { ...field, html: "Lokale Frage" } : field),
+    });
+    await repository.saveNoteGraphs([{ previous: graph, next: { note: plan.note, cards: plan.keptCards } }]);
+    // The reset keeps rows of cards with their own pending change; a pending content edit alone only blocks cloud rows.
+    await repository.buryCards(["card-0"], true, "2026-08-21T10:00:00.000Z");
+    const [local] = (await repository.listCatalogPage("deck-idb", { query: "lokale frage" })).items;
+    await repository.applyCloudCatalogPages([
+      { table: "card_catalog", entities: [{ ...local, frontPreview: "Cloud", normalizedSearchText: "cloud", dependencyRevision: 1, studyRevision: 9 }], reset, cursor: 3 },
+      { table: "note_search", entities: [{ noteId: "note-0", searchText: "cloud volltext", searchFields: [], deletedAt: null }], reset: false, cursor: 3 },
+    ]);
+    const items = (await repository.listCatalogPage("deck-idb")).items;
+    assert.deepEqual(items.map((item) => item.id).sort(), reset ? ["card-0"] : ["card-0", "card-1"], `reset ${reset}`);
+    const kept = items.find((item) => item.id === "card-0")!;
+    assert.deepEqual([kept.frontPreview, kept.studyRevision], ["Lokale Frage", local.studyRevision]);
+    assert.deepEqual((await repository.listCatalogPage("deck-idb", { query: "cloud" })).items, []);
+    assert.equal(repository.getReplicaStatus().catalogCursor, 3);
+    repository.close();
+  }
+});
+
+test("eine fehlgeschlagene Delta-Seite lässt den Cursor stehen, ihre Wiederholung schreibt sie vollständig", async () => {
+  const repository = await openRepository(workspaceState(2));
+  const [entry] = (await repository.listCatalogPage("deck-idb")).items;
+  const changed = { ...entry, studyRevision: entry.studyRevision + 1, dueAt: "2026-08-23T04:00:00.000Z" };
+  await assert.rejects(repository.applyCloudCatalogPages([
+    { table: "card_catalog", entities: [changed, { ...entry, id: undefined as unknown as string }], reset: false, cursor: 4 },
+  ]));
+  assert.equal(repository.getReplicaStatus().catalogCursor, 0);
+  await repository.applyCloudCatalogPages([{ table: "card_catalog", entities: [changed], reset: false, cursor: 4 }]);
+  assert.equal(repository.getReplicaStatus().catalogCursor, 4);
+  assert.equal((await repository.listCatalogPage("deck-idb")).items.find((item) => item.id === entry.id)?.studyRevision, changed.studyRevision);
+  assert.deepEqual(await summaryTotals(repository), { "deck-idb": 2 });
+  repository.close();
 });

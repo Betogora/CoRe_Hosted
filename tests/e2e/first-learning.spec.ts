@@ -93,7 +93,7 @@ test("KI hilft beantwortet Fragen zur aufgedeckten Karte, zeigt Fehler und brich
   await page.route("**/api/ai/card-help", async (route) => {
     bodies.push(route.request().postDataJSON());
     if (bodies.length === 1) return route.fulfill({ json: { answer: "ATP speichert Energie.\n\n- Es entsteht in der Zellatmung.", model: "test", privacyMode: "zdr", usage: null } });
-    if (bodies.length === 2) return route.fulfill({ status: 429, json: { error: { code: "rate_limited", message: "Gerade wurden zu viele Fragen gestellt. Bitte versuche es in einer Minute erneut." } } });
+    if (bodies.length === 2) return route.fulfill({ status: 429, json: { error: { code: "rate_limited", message: "Die KI-Hilfe ist gerade ausgelastet. Bitte versuche es in einer Minute erneut." } } });
     await new Promise<void>((resolve) => { hold = resolve; });
     await route.abort().catch(() => undefined);
   });
@@ -109,7 +109,7 @@ test("KI hilft beantwortet Fragen zur aufgedeckten Karte, zeigt Fehler und brich
 
   await help.getByRole("textbox", { name: "Frage zu dieser Karte" }).fill("Warum Phosphat?");
   await help.getByRole("button", { name: "Frage senden" }).click();
-  await expect(help.getByText("Gerade wurden zu viele Fragen gestellt.", { exact: false })).toBeVisible();
+  await expect(help.getByText("Die KI-Hilfe ist gerade ausgelastet.", { exact: false })).toBeVisible();
   expect(bodies[1]).toMatchObject({ mode: "question", question: "Warum Phosphat?", history: [{ question: "Erkläre mir diese Karte.", answer: "ATP speichert Energie.\n\n- Es entsteht in der Zellatmung." }] });
 
   await help.getByRole("button", { name: "Beispiel" }).click();

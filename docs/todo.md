@@ -199,12 +199,12 @@ Dazu das KI-Kontingent pro Nutzer aus P2.
       Preview), eine deutsche Mailvorlage und zusätzlich einen 6-stelligen
       Code zum Eintippen, weil der Link auf Mobilgeräten oft im falschen
       Browser landet.
-- [ ] **Erste Synchronisation großer Konten:** Bei der Arbeit an der Kartenverwaltung 2.0 dauerte
-      die erste Synchronisation eines Kontos mit etwa 50.000 Karten rund
-      10 Minuten; das betrifft jeden, der einen großen Anki-Stapel mitbringt.
-      Messung reproduzieren, Zeitanteile (Netz, Validierung, IndexedDB)
-      zuordnen, Zielwert festlegen und erreichen. Nachweis: Messung mit
-      50.000 Karten vorher und nachher.
+- [ ] **Erste Synchronisation großer Konten:** Der lokale Schreibpfad für
+      50.000 Karten sank von 570 auf rund 80 bis 110 s (isoliert in Chromium,
+      ohne Netz); Validierung kostet etwa 1 s, der Rest ist IndexedDB mit
+      sechs Katalogindizes. Offen: Gesamtdauer gegen den echten Server messen
+      und den Zielwert festlegen (Vorschlag: höchstens 2 Minuten). Nachweis:
+      Messung mit 50.000 Karten vom Login bis zum vollständigen Katalog.
 
 ## Pflege: Testsuite verschlanken
 
@@ -248,7 +248,8 @@ Messung vom 2026-10-31 im [Verlauf](history.md).
 ### Kartenverwaltung
 
 - Massenaktionen schneller: 1.000 Karten lokal in höchstens 1 s statt rund
-  2 s; die Zeit geht fast ganz ins Schreiben von IndexedDB.
+  2 s; Untergrenze sind die sechs Katalogindizes (1,1 bis 1,7 s je 1.000
+  Zeilen), also nur mit weniger Indizes und einem Upgrade der lokalen Datenbank.
 
 ### Anki-Austausch
 

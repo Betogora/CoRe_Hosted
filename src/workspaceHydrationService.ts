@@ -139,7 +139,7 @@ export function createWorkspaceHydrationService({
     const idsToMark = residency === "downloaded" ? ids : missing;
     if (idsToMark.length > 0) await repository.markCardBodiesResident(idsToMark, residency);
     await repository.touchCardBodies(ids);
-    return Promise.all(ids.map((id) => repository.loadCardBody(id)));
+    return repository.loadCardBodies(ids);
   };
 
   /** A content with all its cards; online it is refreshed from the cloud so no sibling in another deck is missed. */
@@ -178,7 +178,7 @@ export function createWorkspaceHydrationService({
         const { searchAccountCardCatalog } = await import("./cloudRepository.ts");
         const pages = await searchAccountCardCatalog(client, { deckIds: [...batch.deckIds], query, searchContext: request.searchContext, sort: request.sort, limit });
         const entities = [...pages.values()].flatMap((page) => page.items);
-        if (entities.length) await repository.applyCloudCatalogPage({ table: "card_catalog", entities, reset: false, cursor: repository.getReplicaStatus().catalogCursor });
+        if (entities.length) await repository.applyCloudCatalogPages([{ table: "card_catalog", entities, reset: false, cursor: repository.getReplicaStatus().catalogCursor }]);
         return pages;
       });
       pendingSearch = batch;
@@ -222,12 +222,12 @@ export function createWorkspaceHydrationService({
     });
     request.signal?.throwIfAborted();
     totalCounts.set(key, cloudPage.totalCount);
-    await repository.applyCloudCatalogPage({
+    await repository.applyCloudCatalogPages([{
       table: "card_catalog",
       entities: cloudPage.items,
       reset: false,
       cursor: repository.getReplicaStatus().catalogCursor,
-    });
+    }]);
     if (cloudPage.hasMore && cloudPage.nextCursor) cursors.set(requestedPage + 1, cloudPage.nextCursor);
     for (const storedPage of [...cursors.keys()].sort((a, b) => a - b).slice(0, -32)) {
       if (storedPage !== 0 && storedPage !== requestedPage) cursors.delete(storedPage);
@@ -452,7 +452,7 @@ export function createWorkspaceHydrationService({
     }
     let session = await repository.loadReviewSession(deckIds, { ...options, limit: bufferSize, cardIds: hydrationIds });
     if (hydrationIds.length > 0 && session.cards.length === 0) {
-      const loaded = (await Promise.all(hydrationIds.map((id) => repository.loadCardBody(id)))).filter((body): body is { card: Card; note: Note } => Boolean(body));
+      const loaded = (await repository.loadCardBodies(hydrationIds)).filter((body): body is { card: Card; note: Note } => Boolean(body));
       if (loaded.length === 0) throw new Error("Fällige Karten konnten nicht geladen werden; sie wurden nicht übersprungen.");
       session = {
         ...session,

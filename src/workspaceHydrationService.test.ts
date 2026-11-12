@@ -183,7 +183,7 @@ test("partielle Kataloge holen eine Cloudseite direkt per Versatz und danach per
   const all = await repository.listCatalogPage(deck.id, { limit: 50 });
   const alpha = all.items.find((entry) => entry.id === "card-0")!;
   const zulu = all.items.find((entry) => entry.id === "card-2")!;
-  await repository.applyCloudCatalogPage({ table: "card_catalog", entities: [], reset: false, cursor: 1 });
+  await repository.applyCloudCatalogPages([{ table: "card_catalog", entities: [], reset: false, cursor: 1 }]);
 
   const calls: Array<[unknown, unknown]> = [];
   const service = createWorkspaceHydrationService({
@@ -220,7 +220,7 @@ test("eine Cloudseite zeigt Karten mit noch nicht synchronisierter lokaler Ände
   const deck = createCoreDeck({ id: "deck-pending", ownerId: userId, name: "Ausstehend", source: "manual", cards: graphs.map((entry) => entry.cards[0]) });
   const repository = await createIndexedDbCoreRepository({ userId, initialState: workspace(userId, [deck], graphs.map((entry) => entry.note)), indexedDb: new IDBFactory() });
   const cloudRows = (await repository.listCatalogPage(deck.id, { limit: 50 })).items.map((entry) => catalogRow(entry));
-  await repository.applyCloudCatalogPage({ table: "card_catalog", entities: [], reset: false, cursor: 1 });
+  await repository.applyCloudCatalogPages([{ table: "card_catalog", entities: [], reset: false, cursor: 1 }]);
   repository.outbox.markFlushed(repository.outbox.listPending().map((mutation) => mutation.id));
   const [alpha, beta] = graphs;
   await repository.saveNoteGraphs([
@@ -262,7 +262,7 @@ test("eine hier angelegte Karte steht auf der Cloudseite, in deren Bereich sie s
   const deck = createCoreDeck({ id: "deck-pages", ownerId: userId, name: "Seiten", source: "manual", cards: graphs.map((entry) => entry.cards[0]) });
   const repository = await createIndexedDbCoreRepository({ userId, initialState: workspace(userId, [deck], graphs.map((entry) => entry.note)), indexedDb: new IDBFactory() });
   const rows = (await repository.listCatalogPage(deck.id, { limit: 50 })).items.map((entry) => catalogRow(entry));
-  await repository.applyCloudCatalogPage({ table: "card_catalog", entities: [], reset: false, cursor: 1 });
+  await repository.applyCloudCatalogPages([{ table: "card_catalog", entities: [], reset: false, cursor: 1 }]);
   repository.outbox.markFlushed(repository.outbox.listPending().map((mutation) => mutation.id));
   // Zulu sits on the second cloud page and only changes its flag here; Beta is new and sorts between Alpha and Gamma.
   const zulu = graphs[2];
@@ -286,7 +286,7 @@ test("ein abgebrochener Suchauftrag übernimmt keine Cloudseite und meldet keine
   const deck = createCoreDeck({ id: "deck-search", ownerId: userId, name: "Suche", source: "manual", cards: local.cards });
   const repository = await createIndexedDbCoreRepository({ userId, initialState: workspace(userId, [deck], [local.note]), indexedDb: new IDBFactory() });
   // Ein noch unvollständiger Katalog sucht in der Cloud.
-  await repository.applyCloudCatalogPage({ table: "card_catalog", entities: [], reset: false, cursor: 0 });
+  await repository.applyCloudCatalogPages([{ table: "card_catalog", entities: [], reset: false, cursor: 0 }]);
   const [localEntry] = (await repository.listCatalogPage(deck.id)).items;
   const remoteOnly = catalogRow({ ...localEntry, id: "card-remote", noteId: "note-remote", frontPreview: "Zulu entfernt", sortText: "zulu entfernt" });
   const controller = new AbortController();
@@ -508,7 +508,7 @@ test("Parallele Stapelsuchen gehen in einer Anfrage und blättern je Stapel mit 
   const deckB = createCoreDeck({ id: "deck-search-b", ownerId: userId, name: "B", source: "manual", cards: second.cards });
   const repository = await createIndexedDbCoreRepository({ userId, initialState: workspace(userId, [deckA, deckB], [first.note, second.note]), indexedDb: new IDBFactory() });
   // Ein noch unvollständiger Katalog sucht in der Cloud.
-  await repository.applyCloudCatalogPage({ table: "card_catalog", entities: [], reset: false, cursor: 0 });
+  await repository.applyCloudCatalogPages([{ table: "card_catalog", entities: [], reset: false, cursor: 0 }]);
   const rowA = catalogRow((await repository.listCatalogPage(deckA.id)).items[0]);
   const rowB = catalogRow((await repository.listCatalogPage(deckB.id)).items[0]);
   const calls: Array<{ name: string; payload: any }> = [];
@@ -621,7 +621,7 @@ test("ein vollständiger Katalog sucht lokal im Volltext aus note_search, ohne C
   const local = graph("deck-full", "full", "Kurz", CREATED_AT);
   const deck = createCoreDeck({ id: "deck-full", ownerId: userId, name: "Voll", source: "manual", cards: local.cards });
   const repository = await createIndexedDbCoreRepository({ userId, initialState: workspace(userId, [deck], [local.note]), indexedDb: new IDBFactory() });
-  await repository.applyCloudCatalogPage({ table: "note_search", entities: [{ noteId: local.note.id, searchText: "kurz mit innervation durch den nervus accessorius", searchFields: [], deletedAt: null }], reset: false, cursor: 2 });
+  await repository.applyCloudCatalogPages([{ table: "note_search", entities: [{ noteId: local.note.id, searchText: "kurz mit innervation durch den nervus accessorius", searchFields: [], deletedAt: null }], reset: false, cursor: 2 }]);
   await repository.completeCatalogReconciliation(2);
   const service = createWorkspaceHydrationService({
     repository,
@@ -643,7 +643,7 @@ test("ohne replizierte Suchtexte sucht auch ein vollständiger Katalog in der Cl
   const deck = createCoreDeck({ id: "deck-old-server", ownerId: userId, name: "Alt", source: "manual", cards: local.cards });
   const repository = await createIndexedDbCoreRepository({ userId, initialState: workspace(userId, [deck], [local.note]), indexedDb: new IDBFactory() });
   // A server without note_search: the delta brings catalog rows but no texts.
-  await repository.applyCloudCatalogPage({ table: "card_catalog", entities: [], reset: false, cursor: 1 });
+  await repository.applyCloudCatalogPages([{ table: "card_catalog", entities: [], reset: false, cursor: 1 }]);
   await repository.completeCatalogReconciliation(1);
   assert.equal(repository.getReplicaStatus().searchTextsReady, false);
   const calls: string[] = [];
