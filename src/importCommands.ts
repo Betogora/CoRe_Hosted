@@ -24,16 +24,29 @@ interface ImportCommandsContext {
 
 export type ImportCommands = ReturnType<typeof createImportCommands>;
 
+/** A cloud confirmation and the workspace it runs in; it moves along when the account opens a new workspace. */
+interface PendingConfirmation {
+  task: ImportCloudSyncTask;
+  workspace: Pick<ImportCommandsContext, "repository" | "cloud" | "syncEngine">;
+}
+
+const pendingByCommands = new WeakMap<ImportCommands, Set<PendingConfirmation>>();
+const isWaiting = ({ task }: PendingConfirmation) => task.status !== "cloud-ready" && task.status !== "blocked";
+const accountOf = (workspace: PendingConfirmation["workspace"]) => workspace.repository.getShellState()?.profile.userId;
+
 /**
  * Imports into the open workspace: an import graph committed chunk by chunk with the global defaults for new decks,
  * the demo collection, and the cloud confirmation that follows each import and retries after every saved sync while
- * it waits locally; plus the one-time re-translation of unedited imports after a translator release.
+ * it waits locally, also in the account's next workspace; plus the one-time re-translation of unedited imports after a
+ * translator release.
  */
-export function createImportCommands({ store, repository, hydration, cloud, syncEngine, refresh }: ImportCommandsContext) {
-  const cloudTasks = new Set<ImportCloudSyncTask>();
+export function createImportCommands(context: ImportCommandsContext) {
+  const { store, repository, hydration, cloud, syncEngine, refresh } = context;
+  const pending = new Set<PendingConfirmation>();
 
   function createTrackedImportCloudTask(verificationScope: ImportVerificationScope) {
-    const task = createImportCloudSyncTask(async () => {
+    const confirmation: PendingConfirmation = { workspace: context, task: createImportCloudSyncTask(async () => {
+      const { repository, cloud, syncEngine } = confirmation.workspace;
       await repository.flush();
       const activeSyncEngine = syncEngine();
       if (!activeSyncEngine) {
@@ -61,15 +74,10 @@ export function createImportCommands({ store, repository, hydration, cloud, sync
         return { status: "local-pending", message: "Die Karten sind lokal gespeichert; die vollständige Cloud-Bestätigung steht noch aus." };
       }
       return { status: "cloud-ready", message: "Karten und Wiederholungen sind in der Cloud bestätigt." };
-    });
-    cloudTasks.add(task);
-    const unsubscribe = task.subscribe((result) => {
-      if (result.status !== "cloud-ready" && result.status !== "blocked") return;
-      cloudTasks.delete(task);
-      unsubscribe();
-    });
-    void task.retry();
-    return task;
+    }) };
+    pending.add(confirmation);
+    void confirmation.task.retry();
+    return confirmation.task;
   }
 
   /** Commits an import graph chunk by chunk, applies global defaults to new decks and starts the cloud confirmation. */
@@ -109,10 +117,26 @@ export function createImportCommands({ store, repository, hydration, cloud, sync
       if (next === syncStatus) return;
       syncStatus = next;
       if (next.status !== "saved") return;
-      for (const task of cloudTasks) {
-        if (task.status === "local-pending") void task.retry();
+      for (const confirmation of pending) {
+        if (!isWaiting(confirmation)) pending.delete(confirmation);
+        else if (confirmation.task.status === "local-pending") void confirmation.task.retry();
       }
     });
+  }
+
+  /**
+   * Takes over the confirmations still waiting in the previous workspace of the same account, which continue with
+   * this workspace's repository and sync engine; those of another account lapse.
+   */
+  function continuePendingFrom(previous: ImportCommands) {
+    const account = accountOf(context);
+    const previousPending = pendingByCommands.get(previous) ?? new Set<PendingConfirmation>();
+    for (const confirmation of previousPending) {
+      if (!isWaiting(confirmation) || accountOf(confirmation.workspace) !== account) continue;
+      confirmation.workspace = context;
+      pending.add(confirmation);
+    }
+    previousPending.clear();
   }
 
   /** K5.4: after a translator release, unedited imports are re-translated once; returns how many contents changed. */
@@ -127,5 +151,7 @@ export function createImportCommands({ store, repository, hydration, cloud, sync
     return count;
   }
 
-  return { commitImport, importDemo, followSyncStatus, retranslate };
+  const commands = { commitImport, importDemo, followSyncStatus, continuePendingFrom, retranslate };
+  pendingByCommands.set(commands, pending);
+  return commands;
 }

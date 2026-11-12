@@ -5,8 +5,9 @@ import { useSuccessToast } from "./ui/feedbackUi.tsx";
 
 /**
  * The APKG import session, which keeps parsing and its preview while the creation screen is left and ends with the
- * account, plus the import upkeep of the open workspace: cloud confirmations follow the sync status, and once the
- * workspace is ready unedited imports are re-translated after a translator release.
+ * account, plus the import upkeep of the open workspace: cloud confirmations follow the sync status and move on to the
+ * account's next workspace, and once the workspace is ready unedited imports are re-translated after a translator
+ * release.
  */
 export function useImportSession(commands: ImportCommands | null, accountId: string | null, retranslationReady: boolean) {
   const setSuccessToast = useSuccessToast();
@@ -40,7 +41,14 @@ export function useImportSession(commands: ImportCommands | null, accountId: str
     reset(false);
   }, [accountId, reset]);
 
-  React.useEffect(() => commands?.followSyncStatus(), [commands]);
+  // A new workspace of the same account carries on the cloud confirmations its predecessor still waited for.
+  const previousCommands = React.useRef<ImportCommands | null>(null);
+  React.useEffect(() => {
+    if (!commands) return undefined;
+    if (previousCommands.current && previousCommands.current !== commands) commands.continuePendingFrom(previousCommands.current);
+    previousCommands.current = commands;
+    return commands.followSyncStatus();
+  }, [commands]);
 
   React.useEffect(() => {
     if (!retranslationReady || !commands) return undefined;
