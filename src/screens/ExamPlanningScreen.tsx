@@ -16,7 +16,6 @@ import { ExamDashboardWidget } from "./ExamDashboardWidget.tsx";
 import { useExamForecast } from "./useExamForecast.ts";
 import { useWorkspaceValue } from "../useWorkspaceStore.ts";
 
-export const EXAM_METHOD_LABELS = { new: "Neue Karten", review: "Wiederholungen", relearning: "Lernschritte", variant: "Varianten" } as const;
 const STATUS_LABELS = { paused: "Pausiert", completed: "Abgeschlossen" } as const;
 
 interface ExamCardProps {

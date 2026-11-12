@@ -6,6 +6,9 @@ import { getGlobalSchedulerPreferences, normalizeLearningProfileSource, normaliz
 import { validateExamPlanningSettings } from "./examPlanSettings.ts";
 import { applyGlobalLearningDefaultsToDeck, createGlobalDefaultDeckSettings } from "./globalLearningDefaults.ts";
 import type { IndexedDbCoreRepository } from "./indexedDbCoreRepository.ts";
+import { getLearningTimeZone } from "./learningDay.ts";
+import { createDeckLibraryModel } from "./libraryModel.ts";
+import { updateDeckNewCardLimitForDate } from "./reviewService.ts";
 import { applyDeckSettingsDraftChanges, createDeckSettingsDraft, normalizeDeckSettingsDraft, type DeckSettingsDraft, type GeneralSettingsDraft, type GlobalCardSettingsDraft } from "./settingsDraft.ts";
 import { setDeckExpanded, type DeckExpansionSurface } from "./uiPreferences.ts";
 import type { WorkspaceStore } from "./workspaceStore.ts";
@@ -52,8 +55,8 @@ function withDeckLearningSettings(deck: Deck, settings: LearningSettingsInput): 
 
 /**
  * Deck and settings commands of the open workspace: decks with their placement and settings in the scopes `deck`,
- * `deck-tree`, `all-decks` and `new-decks`, learning profiles, general settings, exam planning, expanded decks and
- * saved searches. Each write is local first, then refreshes the store and asks for a sync.
+ * `deck-tree`, `all-decks` and `new-decks`, more new cards for today, learning profiles, general settings, exam
+ * planning, expanded decks and saved searches. Each write is local first, then refreshes the store and asks for a sync.
  */
 export function createDeckCommands({ store, repository, refresh, requestSync, syncNow, updateStudyDecks }: DeckCommandsContext) {
   function runRepositoryMutation<T>(mutation: (current: IndexedDbCoreRepository) => T, refreshOptions?: RefreshOptions): T {
@@ -85,6 +88,41 @@ export function createDeckCommands({ store, repository, refresh, requestSync, sy
     const saved = deck ? runRepositoryMutation((current) => current.saveDeckMetadata([updater(deck)])[0] ?? null) : null;
     if (saved) synchronizeStudyDeckMetadata([saved]);
     return saved;
+  }
+
+  /**
+   * More new cards for today once today's plan is achieved: raises only today's new-card limit of the deck, by at most
+   * the new cards it still has. `now` is the learning time.
+   */
+  function addAdditionalNewCards(deckId: string, requestedCount: number, now: string): { ok: true; deck: Deck } | { ok: false; message: string } {
+    const currentState = store.get().state!;
+    const currentPreferences = getGlobalSchedulerPreferences(currentState.profile);
+    const currentTimeZone = getLearningTimeZone(currentState.profile);
+    const currentPlan = createDeckLibraryModel(currentState.decks, {
+      now,
+      dayStartHour: currentPreferences.dayStartHour,
+      learnAheadMinutes: currentPreferences.learnAheadMinutes,
+      timeZone: currentTimeZone,
+      deckSummaries: store.get().deckSummaries,
+    }).dailyLearningPlan;
+    const session = currentPlan.sessions.find((candidate) => candidate.deckId === deckId) ?? null;
+    const additionalCount = Math.min(
+      Math.max(0, Math.floor(Number(requestedCount) || 0)),
+      session?.additionalNewCount ?? 0,
+    );
+
+    if (currentPlan.status !== "achieved" || !session || additionalCount === 0) {
+      return { ok: false, message: "Für diesen Stapel sind keine zusätzlichen neuen Karten verfügbar." };
+    }
+
+    const deck = store.get().state?.decks.find((candidate) => candidate.id === deckId);
+    const updatedDeck = deck ? updateDeck(deckId, (current) => updateDeckNewCardLimitForDate(
+      current,
+      Math.max(session.effectiveNewLimit, session.introducedTodayCount) + additionalCount,
+      { dateKey: currentPlan.dateKey, updatedAt: new Date().toISOString() },
+    )) : null;
+    if (!updatedDeck) return { ok: false, message: "Die zusätzlichen Karten konnten nicht gespeichert werden." };
+    return { ok: true, deck: updatedDeck };
   }
 
   async function deleteDeck(deckId: string) {
@@ -247,6 +285,7 @@ export function createDeckCommands({ store, repository, refresh, requestSync, sy
   return {
     createDeck,
     updateDeck,
+    addAdditionalNewCards,
     deleteDeck,
     moveDeck,
     setDeckCoreMode,

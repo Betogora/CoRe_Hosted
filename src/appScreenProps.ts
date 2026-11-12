@@ -17,7 +17,6 @@ import type { AccountMediaStore } from "./mediaStore.ts";
 import type { CommitImport } from "./creationWorkflow.ts";
 import type { ManualNoteSaveInput } from "./screens/ManualCreationPanel.tsx";
 import type { PomodoroTimer } from "./pomodoroTimer.ts";
-import type { StatisticsDeckSelection, StatisticsPeriod, StatisticsProjection } from "./statisticsModel.ts";
 import type { AnsweredTodayCard, DailyReviewProgressSummary, ReviewAnswerResult } from "./reviewService.ts";
 import type { CreationMethod } from "./useAppNavigation.ts";
 import type { DeckExpansionSurface } from "./uiPreferences.ts";
@@ -331,15 +330,6 @@ export interface GlobalCardSettingsScreenProps {
   simulationDateLabel: string;
   pomodoroTimer: PomodoroTimer | null;
   onStartPomodoro: (minutes: number) => void;
-}
-
-export interface StatisticsScreenProps {
-  decks: Deck[];
-  queryStatistics: (selection: { period: StatisticsPeriod; deckIds: StatisticsDeckSelection }) => Promise<StatisticsProjection>;
-  now: string;
-  timeZone: string;
-  dayStartHour?: number;
-  onNavigate: NavigateToView;
 }
 
 export interface SimulatorScreenProps {

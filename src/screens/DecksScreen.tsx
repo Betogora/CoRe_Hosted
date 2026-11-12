@@ -1,7 +1,7 @@
 import React from "react";
 import { ArrowDown, ArrowLeft, ArrowUp, Check, ChevronRight, CopyCheck, FileText, GraduationCap, Layers, ListChecks, Minus, Network, NotebookPen, PanelsTopLeft, Play, RotateCcw, Search, Star, CircleHelp, type LucideIcon } from "lucide-react";
 import type { CardDraftGuard, DecksCardPage, DecksScreenProps } from "../appScreenProps.ts";
-export type { DecksCardPage, DecksCardPageRequest } from "../appScreenProps.ts";
+export type { DecksCardPage } from "../appScreenProps.ts";
 import { noteTextIndex } from "../coreModel.ts";
 import { collectDeckTreeIds } from "../coreWorkspace.ts";
 import { CARD_TABLE_PAGE_SIZE, createCardSearchContext, createCardTableModel, createDeckLibraryModel, DEFAULT_CARD_TABLE_SORT, sameCardTableSort, type CardTableSort, type CardTableSortField } from "../libraryModel.ts";

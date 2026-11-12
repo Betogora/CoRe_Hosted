@@ -111,3 +111,26 @@ test("Stapel löschen entfernt seine Unterstapel samt Karten", async () => {
   assert.equal(await repository.loadCardBody("card-1"), null);
   assert.ok(await repository.loadCardBody("card-2"));
 });
+
+test("Zusatzkarten erhöhen erst nach erreichtem Tagesplan nur das heutige Neulimit des gewählten Stapels", async () => {
+  const { repository, store, commands } = await setup();
+  const now = "2026-11-12T10:00:00.000Z";
+  const loadDeckCounts = async () => store.set({ deckSummaries: (await repository.listDeckSummaries({ now, timeZone: "Europe/Berlin" })).summaries });
+  await loadDeckCounts();
+  assert.deepEqual(commands.addAdditionalNewCards("deck-other", 3, now), { ok: false, message: "Für diesen Stapel sind keine zusätzlichen neuen Karten verfügbar." }, "solange neue Karten offen sind, bleibt das Limit");
+
+  const preferences = getGlobalSchedulerPreferences(store.get().state!.profile);
+  commands.saveGlobalCardSettings(withNewCardsPerDay(createGlobalCardSettingsDraft(preferences, store.get().state!.profile.uiPreferences.flagNames), 0), "all-decks");
+  await loadDeckCounts();
+  const settingsOf = () => Object.fromEntries(store.get().state!.decks.map((candidate) => [candidate.id, candidate.deckSettings]));
+  const before = settingsOf();
+
+  const added = commands.addAdditionalNewCards("deck-other", 3, now);
+
+  assert.equal(added.ok, true);
+  assert.deepEqual(settingsOf(), {
+    ...before,
+    "deck-other": { ...before["deck-other"], newCardsTodayOverride: { date: "2026-11-12", limit: 1 } },
+  }, "nur das heutige Limit des gewählten Stapels steigt, höchstens um die neuen Karten, die er noch hat");
+  assert.deepEqual(repository.getShellState().decks.find((candidate) => candidate.id === "deck-other")?.deckSettings.newCardsTodayOverride, { date: "2026-11-12", limit: 1 }, "lokal gespeichert");
+});

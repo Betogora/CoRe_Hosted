@@ -32,6 +32,8 @@ export interface CardCommandsContext {
   bootRun: { readonly current: number };
 }
 
+export type CardCommands = ReturnType<typeof createCardCommands>;
+
 /**
  * Card management commands of the open workspace: content, study state, variants, media, mass actions and the card
  * pages of the lists. Each local write refreshes the store, updates the card pages that show the content and asks
