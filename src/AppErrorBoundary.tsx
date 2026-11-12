@@ -1,7 +1,7 @@
 import React from "react";
 import { AlertTriangle, Home, RefreshCw } from "lucide-react";
 import { ActionButton } from "./ui/actionUi.tsx";
-import { OrbIcon, SoftPanel } from "./ui/coreUi.tsx";
+import { SoftPanel } from "./ui/coreUi.tsx";
 
 interface AppErrorBoundaryProps { children?: React.ReactNode }
 interface AppErrorBoundaryState { hasError: boolean }
@@ -12,7 +12,7 @@ function AppErrorFallback({ onReload, onOpenHome }: AppErrorFallbackProps) {
     <main className="core-centered-viewport grid min-h-dvh min-w-0 place-items-center bg-core-surface px-6 py-10 text-core-text">
       <SoftPanel className="w-full max-w-xl p-6 sm:p-8" role="alert" aria-live="assertive">
         <div className="flex items-start gap-3">
-          <OrbIcon icon={AlertTriangle} className="bg-core-danger-soft text-core-text" />
+          <AlertTriangle size={22} className="mt-0.5 shrink-0 text-core-danger-text" aria-hidden="true" />
           <div className="min-w-0">
             <p className="core-caption font-medium text-core-muted">Unerwarteter Fehler</p>
             <h1 className="core-heading-1 mt-1 text-core-text">CoRe konnte nicht geladen werden</h1>

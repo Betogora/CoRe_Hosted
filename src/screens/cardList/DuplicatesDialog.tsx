@@ -1,6 +1,7 @@
 import React from "react";
 import type { DuplicateGroup, DuplicateKey } from "../../duplicateContents.ts";
-import { ActionDialog } from "../../ui/coreUi.tsx";
+import { ActionButton } from "../../ui/actionUi.tsx";
+import { DialogFrame } from "../../ui/DialogFrame.tsx";
 import { CoreCheckbox } from "../../ui/formControls.tsx";
 import { CoreSelect } from "../../ui/selectUi.tsx";
 
@@ -54,15 +55,12 @@ export function DuplicatesDialog({ searching, find, deckName, onOpen, onTag, onC
   }
 
   return (
-    <ActionDialog
+    <DialogFrame
       open
       title="Duplikate finden"
-      confirmLabel="Duplikate taggen"
-      cancelLabel="Schließen"
-      confirmLoading={tagging}
-      onCancel={onClose}
-      onConfirm={() => void tag()}
-      description={(
+      onClose={onClose}
+      footer={<ActionButton variant="primary" loading={tagging} disabled={tagging} onClick={() => void tag()}>Duplikate taggen</ActionButton>}
+    >
         <div className="grid gap-3" data-testid="duplicates-dialog">
           <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
             <CoreSelect
@@ -86,7 +84,7 @@ export function DuplicatesDialog({ searching, find, deckName, onOpen, onTag, onC
               : !result ? <p className="core-caption text-core-muted">Duplikate werden gesucht …</p>
                 : <p className="core-body font-semibold text-core-text">{groups.length ? `${groups.length} ${groups.length === 1 ? "Gruppe" : "Gruppen"} · ${contentCount} Inhalte` : "Keine Duplikate"}</p>}
             {groups.length ? (
-              <ul className="grid max-h-72 gap-2 overflow-y-auto rounded-inset border border-core-border p-2" data-testid="duplicate-groups">
+              <ul className="grid gap-2" data-testid="duplicate-groups">
                 {groups.map((group) => (
                   <li key={group.contents[0].noteId} className="grid min-w-0 gap-0.5">
                     <p className="truncate core-caption font-semibold text-core-secondary">{group.text} · {group.contents.length}</p>
@@ -102,7 +100,6 @@ export function DuplicatesDialog({ searching, find, deckName, onOpen, onTag, onC
             ) : null}
           </div>
         </div>
-      )}
-    />
+    </DialogFrame>
   );
 }

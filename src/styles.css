@@ -2,110 +2,14 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ── Foundations: font, light and dark tokens, element defaults ── */
+
 @font-face {
   font-family: "Manrope Variable";
   src: url("/fonts/manrope/manrope-variable.woff2") format("woff2");
   font-style: normal;
   font-weight: 200 800;
   font-display: swap;
-}
-
-/* Sync status or Pomodoro next to the four utilities leave no room for the wordmark; the logo keeps the brand. */
-@media (max-width: 26.8125rem) {
-  .core-mobile-header > div:has([data-navigation-utility="sync"], [data-pomodoro-progress]) [data-navigation-brand] > span {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    overflow: hidden;
-    clip-path: inset(50%);
-    white-space: nowrap;
-  }
-
-  .core-mobile-header > div:has([data-navigation-utility="sync"], [data-pomodoro-progress]) [data-navigation-utilities="true"] {
-    gap: 0;
-  }
-}
-
-/* Login: the form stands on the canvas without a panel below a large brand; fields and action are 44 px high. */
-.core-auth-mascot {
-  height: 9.5rem;
-}
-
-.core-auth-wordmark {
-  font: var(--core-weight-heading) 2.5rem/2.75rem var(--core-font-sans);
-  letter-spacing: -0.02em;
-}
-
-.core-auth-panel :is(.core-field, .core-action-primary) {
-  min-height: 2.75rem;
-}
-
-@media (max-width: 18.75rem) {
-  .core-centered-viewport {
-    padding: 0.25rem;
-  }
-
-  .core-mobile-header {
-    padding-inline: 0.25rem;
-  }
-
-  .core-mobile-header > div {
-    gap: 0.125rem;
-  }
-
-  .core-mobile-brand {
-    font-size: 0;
-  }
-
-  .core-mobile-brand::first-letter {
-    font-size: var(--core-type-body-large);
-  }
-
-  .core-mobile-header [data-navigation-utilities="true"] {
-    gap: 0;
-  }
-
-  .core-mobile-bottom-navigation {
-    width: calc(100dvw - 0.5rem);
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: 0;
-    padding-inline: 0.125rem;
-  }
-
-  .core-auth-panel {
-    padding: 0.5rem;
-  }
-
-  .core-auth-panel button {
-    min-width: 0;
-    max-width: 100%;
-    padding-inline: 0.25rem;
-    overflow-wrap: anywhere;
-  }
-
-  .core-screen-region {
-    padding: 0.5rem 0 5rem;
-  }
-
-  .core-responsive-panel-padding {
-    padding: 0.25rem;
-  }
-
-  .core-responsive-panel-padding :is(.core-action-primary, .core-action-secondary, .core-action-destructive) {
-    min-width: 0;
-    max-width: 100%;
-    padding-inline: 0.5rem;
-    white-space: normal;
-  }
-
-  .core-responsive-panel-padding .rich-text-field {
-    padding: 0.5rem;
-  }
-
-  .core-responsive-panel-padding [role="toolbar"] {
-    gap: 0;
-    padding: 0.125rem;
-  }
 }
 
 :root {
@@ -382,6 +286,72 @@
   --core-help-stack-divider: var(--core-border);
 }
 
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-width: 0;
+  background: var(--core-canvas);
+  color: var(--core-text);
+  font: var(--core-weight-body) var(--core-type-body)/var(--core-leading-body) var(--core-font-sans);
+  font-synthesis-weight: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+::selection {
+  background: var(--core-selection);
+  color: var(--core-text-on-accent);
+}
+
+input[type="email"]:autofill {
+  -webkit-text-fill-color: var(--core-text);
+  caret-color: var(--core-text);
+  box-shadow: inset 0 0 0 1000px var(--core-surface);
+}
+
+::placeholder {
+  color: var(--core-text-muted);
+  opacity: 1;
+}
+
+button {
+  font: inherit;
+  min-height: var(--core-button-height);
+}
+
+summary {
+  min-height: var(--core-control-height);
+}
+
+:where(a, button, input, select, textarea, summary, [tabindex]:not([tabindex="-1"])):focus {
+  outline: none !important;
+  --tw-ring-offset-shadow: 0 0 #0000 !important;
+  --tw-ring-shadow: 0 0 #0000 !important;
+}
+
+/* Keyboard focus stays visible (WCAG 2.4.7); pointer and programmatic focus after a click show no frame. Fields keep their own focus surface. */
+:where(a, button, summary, [tabindex]:not([tabindex="-1"])):focus-visible {
+  outline: 2px solid var(--core-focus-ring) !important;
+  outline-offset: 3px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ── Building blocks: classes of the shared components in src/ui ── */
+
 @layer components {
   .core-heatmap-level-0,
   .core-heatmap-level-1,
@@ -509,34 +479,6 @@
     box-shadow: none;
   }
 
-  .core-statistics-load-track {
-    height: 3px;
-    margin-top: 0.5rem;
-    overflow: hidden;
-    border-radius: var(--core-radius-marker);
-  }
-
-  .core-statistics-load-track[role="progressbar"] {
-    background: var(--core-surface-muted);
-  }
-
-  .core-statistics-load-track > span {
-    display: block;
-    height: 100%;
-    width: 200%;
-    background: repeating-linear-gradient(
-      to right,
-      var(--core-action-primary) 0 8%,
-      transparent 8% 20%
-    );
-    animation: core-statistics-loading 1.2s linear infinite;
-  }
-
-  @keyframes core-statistics-loading {
-    from { transform: translateX(-20%); }
-    to { transform: translateX(0); }
-  }
-
   .core-segmented-control[data-sliding="true"] .core-segmented-control-option[aria-pressed="true"] {
     background: transparent;
     box-shadow: none;
@@ -631,65 +573,8 @@
   .core-tri-state-control[data-tri-value="out"] .core-tri-state-indicator { background: var(--core-danger); }
   .core-tri-state-control[data-tri-value="out"] .core-tri-state-option[aria-checked="true"] { color: var(--core-text-on-danger); }
 
-  @media (pointer: coarse), (max-width: 767px) {
-    .core-segmented-touch.core-segmented-control {
-      height: calc(var(--core-control-height) + 0.5rem);
-    }
-  }
-
   .core-icon-segmented-control .core-segmented-control-option {
     padding-inline: 0;
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    .core-segmented-control-indicator,
-    .core-tri-state-indicator,
-    .core-tri-state-option,
-    .core-tri-state-option svg {
-      transition: none;
-    }
-
-    .core-statistics-load-track > span {
-      animation: none;
-      width: 100%;
-      background: var(--core-action-primary);
-      opacity: 0.65;
-    }
-  }
-
-  @media (max-width: 30rem) {
-    .core-statistics-filters .core-segmented-control-option {
-      padding-inline: 0.5rem;
-    }
-
-    .core-page-header-with-action {
-      flex-wrap: wrap;
-      gap: 0.25rem;
-    }
-
-    .core-page-header-action {
-      max-width: 100%;
-    }
-
-    .core-page-header-with-action h2 {
-      font-size: var(--core-type-metric);
-      line-height: var(--core-leading-metric);
-    }
-  }
-
-  /* Four question types need two rows on phones and tablets; every label stays whole on one line. */
-  @media (max-width: 47.9375rem) {
-    .core-question-type-control {
-      width: 100%;
-      height: auto;
-      grid-auto-flow: row;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-
-    .core-question-type-control .core-segmented-control-option {
-      min-height: calc(var(--core-control-height) - 0.5rem);
-      padding-inline: 0.25rem;
-    }
   }
 
   .core-overlay {
@@ -722,11 +607,6 @@
     min-height: 1.75rem;
   }
 
-  .core-table-header-control {
-    height: 100%;
-    min-height: 0;
-  }
-
   .core-deck-summary-row[data-deck-depth="0"] { background-color: var(--core-group-depth-0); }
   .core-deck-summary-row[data-deck-depth="1"] { background-color: var(--core-group-depth-1); }
   .core-deck-summary-row[data-deck-depth="2"] { background-color: var(--core-group-depth-2); }
@@ -750,10 +630,6 @@
   .core-deck-summary-row[data-drop-state="invalid"] {
     border-color: var(--core-danger);
     box-shadow: 0 0 0 var(--core-border-width-strong) var(--core-danger);
-  }
-
-  .core-card-row-selected {
-    box-shadow: inset var(--core-border-width-strong) 0 0 var(--core-action-primary);
   }
 
   .core-tooltip {
@@ -1052,102 +928,7 @@
     }
   }
 
-  .core-settings-matrix {
-    width: 100%;
-    max-width: 32rem;
-    border-collapse: collapse;
-    table-layout: fixed;
-  }
-
-  .core-settings-matrix tr > th:first-child {
-    width: 6.5rem;
-  }
-
-  .core-settings-matrix th {
-    color: var(--core-text);
-    font: var(--core-weight-control) var(--core-type-body)/var(--core-leading-body) var(--core-font-sans);
-    text-align: left;
-  }
-
-  .core-settings-matrix thead th {
-    padding-bottom: var(--core-space-sm);
-    color: var(--core-text-muted);
-    font: var(--core-weight-control) var(--core-type-caption)/var(--core-leading-caption) var(--core-font-sans);
-    text-align: center;
-  }
-
-  .core-settings-matrix tbody tr + tr {
-    border-top: var(--core-border-width) solid var(--core-border);
-  }
-
-  .core-settings-matrix td {
-    padding: var(--core-space-xs);
-  }
-
-  .core-settings-matrix-cell {
-    display: grid;
-    min-height: var(--core-button-height);
-    place-items: center;
-    border-radius: var(--core-radius-control);
-    cursor: pointer;
-    transition: background-color 120ms ease;
-  }
-
-  .core-settings-matrix-cell:hover {
-    background: var(--core-surface-hover);
-  }
-
-  .core-settings-matrix-cell[data-level="normal"]:has(input:checked) {
-    background: var(--core-surface-muted);
-  }
-
-  .core-settings-matrix-cell[data-level="reduced"]:has(input:checked) {
-    background: var(--core-warning-surface);
-  }
-
-  .core-settings-matrix-cell[data-level="minimum"]:has(input:checked) {
-    background: var(--core-info-surface);
-  }
-}
-
-* {
-  box-sizing: border-box;
-}
-
-body {
-  margin: 0;
-  min-width: 0;
-  background: var(--core-canvas);
-  color: var(--core-text);
-  font: var(--core-weight-body) var(--core-type-body)/var(--core-leading-body) var(--core-font-sans);
-  font-synthesis-weight: none;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
-
-svg.lucide {
-  stroke-width: 1.75;
-}
-
-::selection {
-  background: var(--core-selection);
-  color: var(--core-text-on-accent);
-}
-
-input[type="email"]:autofill {
-  -webkit-text-fill-color: var(--core-text);
-  caret-color: var(--core-text);
-  box-shadow: inset 0 0 0 1000px var(--core-surface);
-}
-
-::placeholder {
-  color: var(--core-text-muted);
-  opacity: 1;
-}
-
-/* Inside the components layer so utilities such as font-semibold or leading-7 can refine a role. */
-@layer components {
+  /* Inside the components layer so utilities such as font-semibold or leading-7 can refine a role. */
   .core-heading-1 {
     font: var(--core-weight-heading) var(--core-type-heading-1)/var(--core-leading-heading-1) var(--core-font-sans);
     letter-spacing: -0.02em;
@@ -1203,24 +984,205 @@ input[type="email"]:autofill {
   .core-status-label {
     font: var(--core-weight-control) var(--core-type-caption)/var(--core-leading-caption) var(--core-font-sans);
   }
+
+  /* One menu row for every menu (ADR-051): 44 px, muted 16 px icon, 14/20 · 500 label, neutral hover. */
+  .core-menu-row {
+    display: flex;
+    width: 100%;
+    min-height: 2.75rem;
+    align-items: center;
+    gap: 0.625rem;
+    border-radius: var(--core-radius-inset);
+    padding-inline: 0.625rem;
+    color: var(--core-text);
+    text-align: left;
+    font: var(--core-weight-control) var(--core-type-body)/var(--core-leading-body) var(--core-font-sans);
+    transition: background-color 150ms ease;
+  }
+
+  .core-menu-row > svg {
+    flex-shrink: 0;
+    color: var(--core-text-muted);
+  }
+
+  .core-menu-row:is(:hover, :focus-visible):not(:disabled) {
+    background: var(--core-surface-muted);
+    outline: none;
+  }
+
+  .core-menu-row[data-tone="danger"],
+  .core-menu-row[data-tone="danger"] > svg {
+    color: var(--core-danger-text);
+  }
+  /*
+   * Form elements after HeroUI v3 (measured 2026-11-12 on heroui.com), in CoRe colours: 1-px border instead of the field
+   * shadow, accent = action blue, keyboard focus after the global rule (2 px, 3 px offset), disabled at 50 %.
+   * Unselected boxes and circles use muted text at 80 % for a 3:1 contour (HeroUI relies on a soft shadow).
+   * Shared rows: label 14/20 weight 500 next to the control at 12 px, description 12/16 muted and indented by control + gap,
+   * group options 16 px apart (here: rows in button height without gap).
+   */
+  .core-checkbox, .core-radio, .core-switch { display: inline-flex; flex-direction: column; gap: var(--core-space-xs); min-width: 0; -webkit-tap-highlight-color: transparent; }
+  .core-checkbox-content, .core-radio-content, .core-switch-content { display: inline-flex; align-items: center; gap: var(--core-space-md); min-width: 0; min-height: var(--core-button-height); cursor: pointer; color: var(--core-text); font: 500 var(--core-type-body)/var(--core-leading-body) var(--core-font-sans); user-select: none; }
+  .core-checkbox-label, .core-radio-label, .core-switch-label { min-width: 0; overflow-wrap: anywhere; }
+  .core-checkbox-description, .core-radio-description { padding-inline-start: 1.75rem; color: var(--core-text-muted); font: var(--core-weight-body) var(--core-type-caption)/var(--core-leading-caption) var(--core-font-sans); }
+  :is(.core-checkbox, .core-radio, .core-switch)[data-disabled] { opacity: 0.5; }
+  :is(.core-checkbox, .core-radio, .core-switch)[data-disabled] :is(label, input) { cursor: not-allowed; }
+  .core-checkbox-control, .core-radio-control, .core-switch-control { position: relative; display: inline-grid; flex-shrink: 0; place-items: center; }
+  .core-checkbox-control > input, .core-radio-control > input, .core-switch-control > input { position: absolute; inset: 0; z-index: 1; width: 100%; height: 100%; margin: 0; opacity: 0; cursor: pointer; }
+  @media (pointer: coarse) {
+    /* A bare control keeps a 44-px touch target around its 16-px mark. */
+    .core-checkbox-control > input, .core-radio-control > input { inset: -0.9375rem; width: auto; height: auto; }
+    .core-switch-control > input { inset: -0.75rem -0.25rem; width: auto; height: auto; }
+  }
+  :is(.core-checkbox-control, .core-radio-control, .core-switch-control):has(> input:focus-visible) { outline: 2px solid var(--core-focus-ring); outline-offset: 3px; }
+
+  /* Checkbox: box 16 px, radius 6 px; fill scales 70 → 100 % (100 ms linear) and fades in (200 ms linear); check 10 px,
+     stroke 2.5, dash 22 drawn from offset 66 to 44 in 150 ms linear after 15 ms; indeterminate bar 12 px, stroke 3;
+     pressed 95 % (100 ms ease-out); invalid: danger contour, checked invalid fills danger. */
+  .core-checkbox { --core-check-fill: var(--core-check-accent, var(--core-action-primary)); }
+  .core-checkbox-control { width: 1rem; height: 1rem; border: var(--core-border-width) solid color-mix(in srgb, var(--core-text-muted) 80%, var(--core-surface)); border-radius: var(--core-radius-marker); background: var(--core-surface); color: var(--core-check-on-accent, var(--core-text-on-accent)); transition: border-color 200ms cubic-bezier(0, 0, 0.2, 1), transform 100ms cubic-bezier(0, 0, 0.2, 1); }
+  .core-checkbox-control::before { content: ""; position: absolute; inset: calc(-1 * var(--core-border-width)); border-radius: inherit; background: var(--core-check-fill); opacity: 0; scale: 0.7; transition: scale 100ms linear, opacity 200ms linear, background-color 200ms cubic-bezier(0, 0, 0.2, 1); pointer-events: none; }
+  .core-checkbox-mark { position: relative; width: 0.625rem; height: 0.625rem; fill: none; stroke: currentColor; stroke-width: 2.5px; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 22; stroke-dashoffset: 66; pointer-events: none; }
+  .core-checkbox-mark[data-mark="indeterminate"] { width: 0.75rem; height: 0.75rem; stroke-width: 3px; stroke-dasharray: none; stroke-dashoffset: 0; opacity: 0; }
+  .core-checkbox:hover .core-checkbox-control { border-color: var(--core-text-muted); }
+  .core-checkbox:hover:not([data-state="unchecked"]) .core-checkbox-control::before { background: color-mix(in srgb, var(--core-check-fill) 90%, var(--core-surface)); }
+  .core-checkbox:not([data-state="unchecked"]) .core-checkbox-control { border-color: transparent; }
+  .core-checkbox:not([data-state="unchecked"]) .core-checkbox-control::before { opacity: 1; scale: 1; }
+  .core-checkbox[data-state="checked"] .core-checkbox-mark { stroke-dashoffset: 44; transition: stroke-dashoffset 150ms linear 15ms; }
+  .core-checkbox[data-state="indeterminate"] .core-checkbox-mark { opacity: 1; }
+  .core-checkbox-control:has(> input:active:not(:disabled)) { transform: scale(0.95); }
+  .core-checkbox[data-invalid][data-state="unchecked"] .core-checkbox-control { border-color: var(--core-danger); }
+  .core-checkbox[data-invalid] { --core-check-fill: var(--core-danger); --core-check-on-accent: var(--core-text-on-danger); }
+
+  /* Radio: circle 16 px; selected fills the accent (200 ms ease-out) while the inner disc shrinks to a 6.86-px dot (42.86 %
+     of 16 px, here 49 % of the 14-px inner disc), 9.14 px while pressed; control pressed 95 %. */
+  .core-radio-control { width: 1rem; height: 1rem; border: var(--core-border-width) solid color-mix(in srgb, var(--core-text-muted) 80%, var(--core-surface)); border-radius: var(--core-radius-round); background: var(--core-surface); transition: background-color 200ms cubic-bezier(0, 0, 0.2, 1), border-color 200ms cubic-bezier(0, 0, 0.2, 1), transform 100ms cubic-bezier(0, 0, 0.2, 1); }
+  .core-radio-dot { position: absolute; inset: 0; border-radius: inherit; background: var(--core-surface); scale: 1; transition: scale 200ms cubic-bezier(0, 0, 0.2, 1), background-color 200ms cubic-bezier(0, 0, 0.2, 1); pointer-events: none; }
+  .core-radio:hover .core-radio-control { border-color: var(--core-text-muted); }
+  .core-radio[data-state="checked"] .core-radio-control { border-color: transparent; background: var(--core-action-primary); }
+  .core-radio[data-state="checked"] .core-radio-dot { background: var(--core-text-on-accent); scale: 0.49; }
+  .core-radio[data-state="checked"]:hover .core-radio-control { background: var(--core-action-primary-hover); }
+  .core-radio-control:has(> input:active:not(:disabled)) { transform: scale(0.95); }
+  .core-radio[data-state="checked"] .core-radio-control:has(> input:active:not(:disabled)) .core-radio-dot { scale: 0.653; }
+  .core-radio[data-invalid] .core-radio-control { border-color: var(--core-danger); }
+  .core-radio[data-invalid][data-state="checked"] .core-radio-control { background: var(--core-danger); }
+
+  /* Switch md: track 40 × 20, thumb 22 × 16 (radius 8 px) 2 px from the edge; sm 32 × 16 / 16.5 × 12; lg 48 × 24 /
+     27.5 × 20. Thumb travels in 300 ms cubic-bezier(.32, .72, 0, 1), track colour 250 ms ease; hover and pressed lighten
+     the track by 20 %. Description indented by track + 12 px. */
+  .core-switch { --core-switch-width: 2.5rem; --core-switch-height: 1.25rem; --core-switch-thumb-width: 1.375rem; --core-switch-thumb-height: 1rem; }
+  .core-switch[data-size="sm"] { --core-switch-width: 2rem; --core-switch-height: 1rem; --core-switch-thumb-width: 1.03125rem; --core-switch-thumb-height: 0.75rem; }
+  .core-switch[data-size="lg"] { --core-switch-width: 3rem; --core-switch-height: 1.5rem; --core-switch-thumb-width: 1.71875rem; --core-switch-thumb-height: 1.25rem; }
+  .core-switch[data-label-placement="start"] .core-switch-content { flex-direction: row-reverse; justify-content: flex-end; }
+  .core-switch-description { padding-inline-start: calc(var(--core-switch-width) + var(--core-space-md)); color: var(--core-text-muted); font: var(--core-weight-body) var(--core-type-caption)/var(--core-leading-caption) var(--core-font-sans); }
+  .core-switch[data-label-placement="start"] .core-switch-description { padding-inline-start: 0; }
+  .core-switch-control { place-items: center start; width: var(--core-switch-width); height: var(--core-switch-height); border-radius: var(--core-radius-round); background: var(--core-border-interactive); transition: background-color 250ms ease; }
+  .core-switch-thumb { width: var(--core-switch-thumb-width); height: var(--core-switch-thumb-height); margin-inline-start: 0.125rem; border-radius: var(--core-radius-round); background: var(--core-surface); box-shadow: var(--core-shadow-soft); transition: translate 300ms cubic-bezier(0.32, 0.72, 0, 1), background-color 200ms cubic-bezier(0, 0, 0.2, 1); pointer-events: none; }
+  .core-switch:hover .core-switch-control { background: color-mix(in srgb, var(--core-border-interactive) 80%, var(--core-text-muted)); }
+  .core-switch[data-state="checked"] .core-switch-control { background: var(--core-action-primary); }
+  .core-switch[data-state="checked"]:hover .core-switch-control { background: var(--core-action-primary-hover); }
+  .core-switch[data-state="checked"] .core-switch-thumb { translate: calc(var(--core-switch-width) - var(--core-switch-thumb-width) - 0.25rem) 0; background: var(--core-text-on-accent); }
+  [data-core-theme="dark"] .core-switch-thumb { background: var(--core-text-secondary); }
+  [data-core-theme="dark"] .core-switch[data-state="checked"] .core-switch-thumb { background: var(--core-text-on-accent); }
+
+  /* Choice group: title, options in rows, hint or error below; horizontal groups wrap at 16 px. */
+  .core-choice-group { display: grid; gap: var(--core-space-sm); min-width: 0; }
+  .core-choice-group-options { display: grid; min-width: 0; }
+  .core-choice-group[data-orientation="horizontal"] .core-choice-group-options { display: flex; flex-wrap: wrap; column-gap: var(--core-space-lg); }
+
+  /* Slider: label and value 14/20 above the track at 4 px; track 20 px pill with 12-px inline end caps; fill ends at the
+     thumb centre; thumb 28 × 20 accent pill around a 24 × 16 disc (radius 8 px) that shrinks to 90 % while dragged;
+     thumb colour 250 ms ease, transform 250 ms ease-out. The native range sits on the track with a 24-px thumb so both
+     travel the same 12-px-inset path. */
+  .core-slider { --core-slider-cap: 0.75rem; display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "label output" "track track"; gap: var(--core-space-xs) var(--core-space-md); min-width: 0; }
+  .core-slider-label { grid-area: label; min-width: 0; color: var(--core-text); font: 550 0.8125rem/1.125rem var(--core-font-sans); }
+  .core-slider-output { grid-area: output; color: var(--core-text); font: 500 var(--core-type-body)/var(--core-leading-body) var(--core-font-sans); font-variant-numeric: tabular-nums; text-align: end; }
+  .core-slider-track { position: relative; grid-area: track; height: 1.25rem; border-radius: var(--core-radius-round); background: var(--core-surface-hover); }
+  .core-slider-fill { position: absolute; inset-block: 0; inset-inline-start: 0; width: calc(var(--core-slider-cap) + (100% - 2 * var(--core-slider-cap)) * var(--core-slider-ratio)); border-radius: inherit; background: var(--core-action-primary); pointer-events: none; }
+  .core-slider-thumb { position: absolute; inset-block: 0; inset-inline-start: calc(var(--core-slider-cap) + (100% - 2 * var(--core-slider-cap)) * var(--core-slider-ratio)); display: grid; width: 1.75rem; place-items: center; border-radius: var(--core-radius-round); background: var(--core-action-primary); translate: -50% 0; transition: background-color 250ms ease, transform 250ms cubic-bezier(0, 0, 0.2, 1); pointer-events: none; }
+  .core-slider-thumb::after { content: ""; width: 1.5rem; height: 1rem; border-radius: var(--core-radius-inset); background: var(--core-text-on-accent); box-shadow: var(--core-shadow-soft); transition: scale 150ms cubic-bezier(0.4, 0, 0.2, 1); }
+  .core-slider-track > input { position: absolute; inset: -0.75rem 0; width: 100%; height: calc(100% + 1.5rem); margin: 0; opacity: 0; cursor: pointer; -webkit-appearance: none; appearance: none; background: transparent; touch-action: none; }
+  .core-slider-track > input::-webkit-slider-thumb { width: 1.5rem; height: 2.75rem; -webkit-appearance: none; appearance: none; }
+  .core-slider-track > input::-moz-range-thumb { width: 1.5rem; height: 2.75rem; border: 0; }
+  .core-slider:has(input:active) .core-slider-thumb::after { scale: 0.9; }
+  .core-slider:has(input:active) .core-slider-thumb { cursor: grabbing; }
+  .core-slider:has(input:focus-visible) .core-slider-thumb { z-index: 1; outline: 2px solid var(--core-focus-ring); outline-offset: 3px; }
+  .core-slider:hover .core-slider-thumb { background: var(--core-action-primary-hover); }
+  .core-slider[data-disabled] { opacity: 0.5; }
+  .core-slider[data-disabled] input { cursor: not-allowed; }
+
+  /* Date picker: field with segments 14/20 (padding 0 1 px, radius 6 px, focused segment on the soft accent, placeholder
+     and dots muted, set flush with 1 px padding) and a 24-px calendar trigger with a 16-px icon, 12 px in from the start. Popover:
+     12-px padding, enters from 95 % in 150 ms; header with heading 14/20 weight 500 and 24-px round month buttons,
+     16 px above the grid; weekdays 12/16 weight 500 muted, 8 px above the days; day cells square and round (252 / 7 =
+     36 px; 44 px for touch), 14/20 weight 500; today on the soft accent, selection filled, hover neutral, pressed 95 %
+     (250 ms ease-out), other months muted at 50 %, unavailable days 50 % and struck through. Year grid from the heading:
+     three columns 4 px apart, 32-px round cells, fading in over the days (200 ms after 50 ms). */
+  .core-date-field { display: flex; align-items: center; gap: var(--core-space-xs); padding-block: 0; padding-inline-end: var(--core-space-sm); }
+  .core-date-field:has(.core-date-segment:focus) { border-color: var(--core-action-primary); box-shadow: var(--core-shadow-selection); }
+  .core-date-field[data-invalid] { border-color: var(--core-danger); box-shadow: 0 0 0 3px color-mix(in srgb, var(--core-danger) 12%, transparent); }
+  .core-date-field-segments { display: flex; flex: 1 1 auto; align-items: center; gap: 0; min-width: 0; font-variant-numeric: tabular-nums; }
+  .core-date-segment { padding-inline: 1px; border-radius: var(--core-radius-marker); color: var(--core-text); cursor: text; outline: none !important; user-select: none; }
+  .core-date-segment[data-placeholder] { color: var(--core-text-muted); }
+  .core-date-segment:focus { background: var(--core-action-soft); color: var(--core-action-primary); }
+  .core-date-field[data-invalid] .core-date-segment { color: var(--core-danger); }
+  .core-date-field[data-invalid] .core-date-segment:focus { background: var(--core-danger-surface); }
+  .core-date-segment-literal { color: var(--core-text-muted); }
+  .core-date-field-trigger { position: relative; display: grid; width: 1.5rem; height: 1.5rem; flex-shrink: 0; place-items: center; border-radius: var(--core-radius-round); color: var(--core-text-muted); transition: background-color 150ms ease, color 150ms ease; }
+  .core-date-field-trigger:hover, .core-date-field-trigger[data-state="open"] { background: var(--core-surface-hover); color: var(--core-text); }
+  .core-date-calendar { --core-calendar-cell: 2.25rem; width: calc(7 * var(--core-calendar-cell) + 1.5rem); max-width: calc(100vw - 1.5rem); padding: var(--core-space-md); border-radius: var(--core-radius-overlay); transform-origin: var(--radix-popover-content-transform-origin); animation: core-date-calendar-enter 150ms ease; }
+  .core-date-calendar-header { display: flex; align-items: center; gap: var(--core-space-xs); padding: 0 0.125rem var(--core-space-lg); }
+  .core-date-calendar-heading { display: inline-flex; flex: 1 1 auto; align-items: center; gap: var(--core-space-xs); min-width: 0; min-height: 1.5rem; border-radius: var(--core-radius-inset); color: var(--core-text); font: 500 var(--core-type-body)/var(--core-leading-body) var(--core-font-sans); text-transform: capitalize; }
+  .core-date-calendar-heading[aria-expanded="true"] { color: var(--core-action-primary); }
+  .core-date-calendar-heading[aria-expanded="true"] > svg { transform: rotate(180deg); }
+  .core-date-calendar-nav { display: grid; width: 1.5rem; height: 1.5rem; flex-shrink: 0; place-items: center; border-radius: var(--core-radius-round); color: var(--core-action-primary); transition: transform 250ms cubic-bezier(0, 0, 0.2, 1), background-color 100ms cubic-bezier(0, 0, 0.2, 1), opacity 150ms cubic-bezier(0, 0, 0.2, 1); }
+  .core-date-calendar-nav:not(:disabled):hover { background: var(--core-surface-hover); }
+  .core-date-calendar-nav:not(:disabled):active { transform: scale(0.95); }
+  .core-date-calendar-nav:disabled { cursor: not-allowed; opacity: 0.5; }
+  .core-date-calendar-body { position: relative; }
+  .core-date-calendar-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); transition: opacity 150ms cubic-bezier(0, 0, 0.2, 1); }
+  .core-date-calendar-grid[aria-hidden="true"] { visibility: hidden; opacity: 0; }
+  .core-date-calendar-weekday { overflow: hidden; padding-bottom: var(--core-space-md); color: var(--core-text-muted); font: 500 var(--core-type-caption)/var(--core-leading-caption) var(--core-font-sans); text-align: center; white-space: nowrap; }
+  .core-date-calendar-day { display: grid; width: 100%; aspect-ratio: 1; place-items: center; border-radius: var(--core-radius-round); color: var(--core-text); font: 500 var(--core-type-body)/var(--core-leading-body) var(--core-font-sans); font-variant-numeric: tabular-nums; transition: transform 250ms cubic-bezier(0, 0, 0.2, 1), background-color 150ms ease, color 150ms ease; }
+  .core-date-calendar-day:not(:disabled):hover { background: var(--core-surface-hover); }
+  .core-date-calendar-day:not(:disabled):active { transform: scale(0.95); }
+  .core-date-calendar-day[data-outside-month] { color: var(--core-text-muted); opacity: 0.5; }
+  .core-date-calendar-day[aria-current="date"] { background: var(--core-action-soft); color: var(--core-action-primary); }
+  .core-date-calendar-day[aria-pressed="true"] { background: var(--core-action-primary); color: var(--core-text-on-accent); opacity: 1; }
+  .core-date-calendar-day[aria-pressed="true"]:not(:disabled):hover { background: var(--core-action-primary-hover); }
+  .core-date-calendar-day:disabled { cursor: not-allowed; opacity: 0.5; }
+  .core-date-calendar-day:disabled:not([data-outside-month]) { text-decoration: line-through; }
+  .core-date-calendar-years { position: absolute; inset: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); align-content: start; gap: var(--core-space-xs); overflow-y: auto; padding: var(--core-space-xs); animation: core-date-years-enter 200ms cubic-bezier(0, 0, 0.2, 1) 50ms both; }
+  .core-date-calendar-year { height: 2rem; border-radius: var(--core-radius-round); color: var(--core-text); font: 500 var(--core-type-body)/var(--core-leading-body) var(--core-font-sans); font-variant-numeric: tabular-nums; transition: background-color 100ms ease, scale 100ms ease; }
+  .core-date-calendar-year:hover { background: var(--core-surface-hover); }
+  .core-date-calendar-year[aria-pressed="true"] { background: var(--core-action-primary); color: var(--core-text-on-accent); }
+  @media (pointer: coarse) {
+    .core-date-field-trigger { width: 2.75rem; height: var(--core-control-height); margin-inline-end: calc(-1 * var(--core-space-sm)); border-radius: var(--core-radius-control); }
+    .core-date-calendar { --core-calendar-cell: 2.75rem; }
+    .core-date-calendar-heading, .core-date-calendar-nav, .core-date-calendar-year { min-height: 2.75rem; }
+    .core-date-calendar-nav { width: 2.75rem; height: 2.75rem; }
+    .core-date-calendar-year { height: 2.75rem; }
+  }
 }
 
-strong,
-.core-emphasis {
-  font-weight: var(--core-weight-emphasis);
+/* Sync status or Pomodoro next to the four utilities leave no room for the wordmark; the logo keeps the brand. */
+@media (max-width: 26.8125rem) {
+  .core-mobile-header > div:has([data-navigation-utility="sync"], [data-pomodoro-progress]) [data-navigation-brand] > span {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  .core-mobile-header > div:has([data-navigation-utility="sync"], [data-pomodoro-progress]) [data-navigation-utilities="true"] {
+    gap: 0;
+  }
 }
 
-button {
-  font: inherit;
-  min-height: var(--core-button-height);
-}
-
-button[aria-label] {
-  min-width: var(--core-button-height);
-}
-
-.core-in-page-content section[id] {
-  scroll-margin-top: var(--core-in-page-scroll-margin, 1.5rem);
+svg.lucide {
+  stroke-width: 1.75;
 }
 
 .core-study-heatmap-container {
@@ -1425,7 +1387,6 @@ button[aria-label] {
 }
 
 /* Stapelsammlung nach fitzbert (ADR-041): Liste, Ordner und Stapelinhalte. */
-
 .core-deck-folder-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(min(100%, 19rem), 1fr));
@@ -1452,13 +1413,6 @@ button[aria-label] {
   color: var(--core-text-muted);
   font-size: var(--core-type-body);
   line-height: var(--core-leading-body);
-}
-.core-deck-folder-breadcrumb button {
-  min-height: var(--core-control-height);
-  min-width: var(--core-control-height);
-  text-align: start;
-  overflow-wrap: anywhere;
-  color: var(--core-action-secondary);
 }
 .core-deck-folder-breadcrumb button:hover { text-decoration: underline; }
 .core-deck-folder-breadcrumb > svg { flex-shrink: 0; }
@@ -1599,37 +1553,6 @@ button[aria-label] {
   --core-deck-icon-background: transparent;
 }
 .core-deck-tree-header + .core-deck-tree-create { border-top: var(--core-border-width) solid var(--core-border-interactive); }
-.core-deck-create-form {
-  grid-template-columns: minmax(0, 1fr) auto;
-  align-items: center;
-  gap: 0 var(--core-space-sm);
-}
-.core-deck-create-name { grid-column: 1 / -1; }
-.core-deck-create-plus {
-  position: absolute;
-  inset-inline-start: 0.75rem;
-  top: 50%;
-  translate: 0 -50%;
-  color: var(--core-text-muted);
-  pointer-events: none;
-}
-.core-deck-create-form .core-field { padding-inline-start: 2.5rem; }
-.core-deck-create-form .core-field:not(:focus-visible):not([aria-invalid="true"]),
-.core-deck-create-form [data-deck-select-trigger]:not([data-state="open"]),
-.core-deck-create-form .core-deck-create-submit {
-  border-color: transparent;
-  background: transparent;
-  box-shadow: none;
-}
-.core-deck-create-form [data-deck-select-trigger] { color: var(--core-text-secondary); }
-.core-deck-create-form [data-deck-select-trigger] > span:first-child { border-color: transparent; background: transparent; }
-.core-deck-create-form .core-deck-create-submit { color: var(--core-action-primary); }
-.core-deck-create-form :is([data-deck-select-trigger], .core-deck-create-submit):hover { background: var(--core-surface-hover); }
-
-@container core-deck-tree (min-width: 38rem) {
-  .core-deck-create-form { grid-template-columns: minmax(0, 1fr) minmax(12rem, 16rem) auto; }
-  .core-deck-create-name { grid-column: auto; }
-}
 
 @container core-deck-tree (max-width: 32rem) {
   .core-deck-tree-group { --core-deck-depth-indent: 10px; }
@@ -1724,50 +1647,6 @@ button[aria-label] {
   .core-deck-tree-group [data-deck-study-row="true"] .core-deck-summary-actions { grid-row: 1; }
 }
 
-summary {
-  min-height: var(--core-control-height);
-}
-
-:where(a, button, input, select, textarea, summary, [tabindex]:not([tabindex="-1"])):focus {
-  outline: none !important;
-  --tw-ring-offset-shadow: 0 0 #0000 !important;
-  --tw-ring-shadow: 0 0 #0000 !important;
-}
-
-/* Keyboard focus stays visible (WCAG 2.4.7); pointer and programmatic focus after a click show no frame. Fields keep their own focus surface. */
-:where(a, button, summary, [tabindex]:not([tabindex="-1"])):focus-visible {
-  outline: 2px solid var(--core-focus-ring) !important;
-  outline-offset: 3px;
-}
-
-.core-status-info,
-.core-status-success,
-.core-status-warning,
-.core-status-error {
-  border: var(--core-border-width) solid;
-  border-radius: var(--core-radius-control);
-  padding: var(--core-space-md) var(--core-space-lg);
-  font: var(--core-weight-body) var(--core-type-body)/var(--core-leading-body) var(--core-font-sans);
-}
-
-.core-status-info {
-  --core-status-tone: var(--core-info);
-  border-color: color-mix(in srgb, var(--core-info) 28%, var(--core-border));
-  background: var(--core-info-surface);
-  color: var(--core-text);
-}
-
-.core-status-success {
-  --core-status-tone: var(--core-success);
-  border-color: color-mix(in srgb, var(--core-success) 28%, var(--core-border));
-  background: var(--core-success-surface);
-  color: var(--core-text);
-}
-
-:is(.core-status-info, .core-status-success, .core-status-warning, .core-status-error) > svg {
-  color: var(--core-status-tone);
-}
-
 /* Shared tag: one shape, the tone only swaps the two color roles. */
 .core-tag {
   display: inline-flex;
@@ -1815,15 +1694,6 @@ summary {
   margin-right: 0.375rem;
   border-radius: var(--core-radius-round);
 }
-
-/* Exam filter in the calendar head: a CoreTag with the exam colour as dot; hidden exams fade to an outline with a hollow dot.
-   The button keeps the control height as touch target around the 24-px tag. */
-.core-exam-filter { display: inline-flex; min-width: 0; max-width: 100%; min-height: var(--core-button-height); align-items: center; border-radius: var(--core-radius-control); }
-.core-exam-filter .core-tag { max-width: 100%; overflow-wrap: anywhere; transition: background-color 120ms ease, color 120ms ease; }
-.core-exam-filter[aria-pressed="true"]:hover .core-tag { --core-tag-surface: var(--core-surface-hover); }
-.core-exam-filter[aria-pressed="false"] .core-tag { --core-tag-text: var(--core-text-muted); }
-.core-exam-filter[aria-pressed="false"]:hover .core-tag { --core-tag-text: var(--core-text-secondary); }
-.core-exam-filter[aria-pressed="false"] .core-tag-dot { background: transparent !important; box-shadow: inset 0 0 0 1.5px var(--core-exam-tint); }
 
 /* SectionHeader: one head per surface; the minimum height keeps neighbouring heads on one baseline (ADR-051). */
 .core-section-header {
@@ -1943,13 +1813,6 @@ summary {
   color: inherit;
   font: var(--core-weight-control) 0.8125rem/1.25rem var(--core-font-sans);
   white-space: nowrap;
-}
-
-button.core-steps-step {
-  min-height: var(--core-button-height);
-  border-radius: var(--core-radius-inset);
-  padding-inline: var(--core-space-xs);
-  margin-inline: calc(-1 * var(--core-space-xs));
 }
 
 button.core-steps-step:not(:disabled):hover .core-steps-label {
@@ -2164,6 +2027,734 @@ button.core-steps-step:disabled {
   min-width: 0;
   color: var(--core-text-muted);
   font: var(--core-weight-body) var(--core-type-body)/var(--core-leading-body) var(--core-font-sans);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .core-steps[data-animated] li[data-after-current] .core-steps-line { animation: none; background: var(--core-action-primary); opacity: 0.5; }
+  .core-tabs-tab { transition: none; }
+}
+
+@keyframes core-success-toast-dismiss {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  to {
+    opacity: 0;
+    transform: translateY(-0.375rem);
+  }
+}
+
+.core-success-toast {
+  animation: core-success-toast-dismiss 200ms ease-out 10s forwards;
+}
+
+/* A toast waits while it is pointed at or focused, so its action stays reachable (W7). It lies below modal
+   dialogs and waits until the last one closes, so it never covers their controls. */
+.core-success-toast:hover,
+.core-success-toast:focus-within,
+body:has([aria-modal="true"]) .core-success-toast {
+  animation-play-state: paused;
+}
+
+.core-success-toast,
+.core-success-toast[data-appearance="neutral"] {
+  border-color: var(--core-border);
+  background: var(--core-surface-raised);
+  color: var(--core-text);
+}
+
+.core-success-toast[data-appearance="neutral"] > svg {
+  color: var(--core-text-muted);
+}
+
+.core-file-drop[data-drop-state="idle"]:hover {
+  border-color: color-mix(in srgb, var(--core-action-primary) 45%, var(--core-border));
+}
+
+.core-file-drop[data-drop-state="dragging"] {
+  border-color: var(--core-action-primary);
+  background: var(--core-action-soft);
+}
+
+.core-file-drop[data-drop-state="inactive"] {
+  cursor: not-allowed;
+  border-color: var(--core-border);
+  opacity: 0.7;
+}
+
+/* Back link of PageHeader: the touch height stays, the line takes 24 px and the arrow starts at the title edge. */
+.core-page-header-back {
+  display: flex;
+  margin-block: calc((1.5rem - var(--core-button-height)) / 2);
+  margin-inline-start: -0.25rem;
+}
+
+@keyframes core-date-calendar-enter {
+  from { opacity: 0; transform: scale(0.95); }
+}
+
+@keyframes core-date-years-enter {
+  from { opacity: 0; }
+}
+
+/*
+ * Answer options after HeroUI Pro „Checkbox Button Group“, one row: hairline card (radius 16 → CoRe panel 14 px,
+ * padding 16 × 20 → 12 × 16 for the one-row form), selected = 2-px inset accent ring with a light tint, indicator on the
+ * right (box for multiple choice, dot for single choice, 16 px). After revealing, the same form carries the success and
+ * danger roles; a correct option that was not chosen keeps the ring without the tint.
+ */
+.core-mcq-option, .core-kprim-option { border: var(--core-border-width) solid var(--core-border); border-radius: var(--core-radius-panel); background: var(--core-surface); color: var(--core-text); transition: box-shadow 150ms cubic-bezier(0, 0, 0.2, 1), border-color 150ms cubic-bezier(0, 0, 0.2, 1), background-color 150ms cubic-bezier(0, 0, 0.2, 1), color 150ms ease; }
+.core-mcq-option { display: flex; width: 100%; min-height: 3rem; align-items: center; gap: var(--core-space-md); padding: var(--core-space-md) var(--core-space-lg); text-align: start; }
+.core-kprim-option { padding: var(--core-space-md) var(--core-space-lg); }
+.core-mcq-option:not(:disabled):hover { border-color: var(--core-border-interactive); }
+:is(.core-mcq-option, .core-kprim-option):is([data-tone="selected"], [data-tone="correct"], [data-tone="missed"], [data-tone="wrong"]) { border-color: transparent; box-shadow: inset 0 0 0 2px var(--core-mcq-role); }
+:is(.core-mcq-option, .core-kprim-option)[data-tone="selected"] { --core-mcq-role: var(--core-action-primary); background: var(--core-action-soft); }
+:is(.core-mcq-option, .core-kprim-option)[data-tone="correct"] { --core-mcq-role: var(--core-success); background: var(--core-success-surface); }
+:is(.core-mcq-option, .core-kprim-option)[data-tone="missed"] { --core-mcq-role: var(--core-success); }
+:is(.core-mcq-option, .core-kprim-option)[data-tone="wrong"] { --core-mcq-role: var(--core-danger); background: var(--core-danger-surface); }
+.core-mcq-option[data-tone="muted"] { color: var(--core-text-muted); }
+.core-mcq-indicator { display: grid; width: 1rem; height: 1rem; flex-shrink: 0; place-items: center; border: var(--core-border-width) solid color-mix(in srgb, var(--core-text-muted) 80%, var(--core-surface)); border-radius: var(--core-radius-marker); background: var(--core-surface); color: var(--core-text-on-accent); transition: background-color 200ms cubic-bezier(0, 0, 0.2, 1), border-color 200ms cubic-bezier(0, 0, 0.2, 1); }
+.core-mcq-indicator[data-shape="dot"] { border-radius: var(--core-radius-round); }
+.core-mcq-indicator[data-shape="dot"]::after { content: ""; width: 42.86%; height: 42.86%; border-radius: inherit; background: currentColor; scale: 0; transition: scale 200ms cubic-bezier(0, 0, 0.2, 1); }
+.core-mcq-indicator > svg { width: 0.625rem; height: 0.625rem; fill: none; stroke: currentColor; stroke-width: 2.5px; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 22; stroke-dashoffset: 66; }
+.core-mcq-option[data-tone="selected"] .core-mcq-indicator { border-color: transparent; background: var(--core-action-primary); }
+.core-mcq-option[data-tone="selected"] .core-mcq-indicator[data-shape="dot"]::after { scale: 1; }
+.core-mcq-option[data-tone="selected"] .core-mcq-indicator > svg { stroke-dashoffset: 44; transition: stroke-dashoffset 150ms linear 15ms; }
+.core-mcq-state-icon { flex-shrink: 0; color: var(--core-mcq-role); }
+
+.core-mcq-option-correct {
+  animation: core-answer-pulse 360ms ease-out;
+}
+
+.core-mcq-option-wrong {
+  animation: core-answer-shake 240ms ease-in-out;
+}
+
+.core-study-card .card-html {
+  overflow: visible;
+}
+
+.core-study-card .core-mcq-option {
+  font: var(--core-weight-emphasis) clamp(1.125rem, 1.4vw, 1.375rem)/1.4 var(--core-font-sans);
+}
+
+.core-study-settings-backdrop {
+  animation: core-study-settings-backdrop-in 160ms ease-out;
+}
+
+.core-study-settings-overlay {
+  animation: core-study-settings-sheet-in 220ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.core-card-preview-backdrop {
+  animation: core-study-settings-backdrop-in 160ms ease-out;
+}
+
+.core-card-preview-dialog {
+  animation: core-study-settings-dialog-in 180ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@media (min-width: 768px) {
+  .core-study-settings-overlay {
+    animation-name: core-study-settings-dialog-in;
+    animation-duration: 180ms;
+  }
+}
+
+.card-html {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.card-html p,
+.rich-text-field p {
+  margin: 0 0 0.65rem;
+}
+
+.card-html p:last-child,
+.rich-text-field p:last-child {
+  margin-bottom: 0;
+}
+
+.card-html ul,
+.rich-text-field ul {
+  margin: 0.45rem 0 0.65rem;
+  padding-left: 1.4rem;
+  list-style: disc;
+}
+
+.card-html ol,
+.rich-text-field ol {
+  margin: 0.45rem 0 0.65rem;
+  padding-left: 1.4rem;
+  list-style: decimal;
+}
+
+.card-html li,
+.rich-text-field li {
+  margin: 0.2rem 0;
+}
+
+.card-html mark,
+.rich-text-field mark {
+  border-radius: var(--core-radius-marker);
+  padding: 0.02rem 0.16rem;
+}
+
+.rich-text-field:empty::before {
+  content: attr(aria-label);
+  color: var(--core-text-muted);
+}
+
+.card-html img,
+.rich-text-field img,
+.card-html video,
+.card-html canvas,
+.card-html svg,
+.card-html iframe {
+  max-width: 100%;
+}
+
+.card-html img,
+.rich-text-field img,
+.card-html video,
+.card-html canvas,
+.card-html svg {
+  height: auto;
+}
+
+.card-html img,
+.rich-text-field img {
+  max-height: 9rem;
+  border-radius: var(--core-radius-control);
+}
+
+.card-html table {
+  display: block;
+  max-width: 100%;
+  overflow-x: auto;
+  border-collapse: collapse;
+}
+
+.card-html pre,
+.card-html code {
+  max-width: 100%;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.core-pdf-control {
+  display: inline-flex;
+  min-width: var(--core-button-height);
+  min-height: var(--core-button-height);
+  align-items: center;
+  justify-content: center;
+  gap: 0.3rem;
+  border: var(--core-border-width) solid var(--core-border);
+  border-radius: var(--core-radius-control);
+  background: var(--core-surface);
+  box-shadow: var(--core-shadow-soft);
+  color: var(--core-text);
+  font-size: var(--core-type-caption);
+  font-weight: var(--core-weight-heading);
+  transition:
+    border-color 140ms ease,
+    background-color 140ms ease,
+    color 140ms ease;
+}
+
+.core-pdf-control:not(:disabled):hover {
+  background: var(--core-surface-muted);
+  color: var(--core-text);
+}
+
+.core-pdf-control:disabled {
+  cursor: not-allowed;
+  opacity: 0.42;
+}
+
+.core-pdf-scroll {
+  height: 37rem;
+  overflow: auto;
+  background: var(--core-surface-muted);
+  scroll-behavior: smooth;
+  scrollbar-color: var(--core-border) var(--core-surface-muted);
+}
+
+.core-pdf-pages {
+  display: grid;
+  width: max-content;
+  min-width: 100%;
+  justify-items: center;
+  gap: 1rem;
+  padding: 1rem;
+}
+
+.core-pdf-page {
+  position: relative;
+  flex: none;
+  overflow: hidden;
+  border: var(--core-border-width) solid var(--core-border);
+  border-radius: var(--core-radius-marker);
+  background: var(--core-surface);
+  box-shadow: var(--core-shadow-raised);
+}
+
+.core-pdf-page canvas {
+  display: block;
+  margin: 0;
+}
+
+.core-pdf-text-layer {
+  --min-font-size: 1;
+  --min-font-size-inv: calc(1 / var(--min-font-size));
+  --text-scale-factor: calc(var(--total-scale-factor) * var(--min-font-size));
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  overflow: clip;
+  color-scheme: only light;
+  line-height: 1;
+  letter-spacing: normal;
+  word-spacing: normal;
+  transform-origin: 0 0;
+  caret-color: var(--core-text);
+  forced-color-adjust: none;
+  text-align: initial;
+  -webkit-text-size-adjust: none;
+  -moz-text-size-adjust: none;
+  text-size-adjust: none;
+}
+
+.core-pdf-text-layer :is(span, br) {
+  position: absolute;
+  color: transparent;
+  white-space: pre;
+  cursor: text;
+  transform-origin: 0 0;
+  -webkit-user-select: text;
+  user-select: text;
+}
+
+.core-pdf-text-layer > :not(.markedContent),
+.core-pdf-text-layer .markedContent span:not(.markedContent) {
+  --font-height: 0;
+  --scale-x: 1;
+  --rotate: 0deg;
+  z-index: 1;
+  font-size: calc(var(--text-scale-factor) * var(--font-height));
+  transform: rotate(var(--rotate)) scaleX(var(--scale-x)) scale(var(--min-font-size-inv));
+}
+
+.core-pdf-text-layer .markedContent {
+  display: contents;
+}
+
+.core-pdf-text-layer ::selection {
+  background: var(--core-selection);
+  color: transparent;
+}
+
+.core-pdf-text-layer .endOfContent {
+  position: absolute;
+  inset: 100% 0 0;
+  display: block;
+  z-index: 0;
+  cursor: default;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.core-rich-text-extra-tools:not([hidden]) {
+  display: flex;
+}
+
+/* ToolBox muted footer surface with ghost icon tools. */
+.core-rich-text-toolbar {
+  background: color-mix(in srgb, var(--core-surface-muted) 50%, var(--core-surface));
+}
+
+.core-rich-text-tool {
+  display: grid;
+  width: var(--core-button-height);
+  height: var(--core-button-height);
+  flex-shrink: 0;
+  place-items: center;
+  border-radius: var(--core-radius-control);
+  color: var(--core-text-secondary);
+  transition: background-color 140ms ease, color 140ms ease;
+}
+
+.core-rich-text-tool:not(:disabled):hover,
+.core-rich-text-tool[aria-expanded="true"] {
+  background: var(--core-surface-hover);
+  color: var(--core-text);
+}
+
+.core-rich-text-tool:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.core-heatmap-period-select {
+  width: 7rem;
+}
+
+.core-deck-icon-action {
+  width: var(--core-button-height);
+  height: var(--core-button-height);
+  min-width: var(--core-button-height);
+  padding: 0;
+  flex-shrink: 0;
+  border-color: transparent;
+  background: transparent;
+  box-shadow: none;
+}
+
+.core-deck-icon-action > svg {
+  width: 1rem;
+  height: 1rem;
+}
+.core-rich-text-tool[aria-pressed="true"] { background: var(--core-action-soft); color: var(--core-action-primary); }
+
+/* ── Features: classes of single views in src/screens ── */
+
+@layer components {
+  .core-statistics-load-track {
+    height: 3px;
+    margin-top: 0.5rem;
+    overflow: hidden;
+    border-radius: var(--core-radius-marker);
+  }
+
+  .core-statistics-load-track[role="progressbar"] {
+    background: var(--core-surface-muted);
+  }
+
+  .core-statistics-load-track > span {
+    display: block;
+    height: 100%;
+    width: 200%;
+    background: repeating-linear-gradient(
+      to right,
+      var(--core-action-primary) 0 8%,
+      transparent 8% 20%
+    );
+    animation: core-statistics-loading 1.2s linear infinite;
+  }
+
+  @keyframes core-statistics-loading {
+    from { transform: translateX(-20%); }
+    to { transform: translateX(0); }
+  }
+
+  @media (pointer: coarse), (max-width: 767px) {
+    .core-segmented-touch.core-segmented-control {
+      height: calc(var(--core-control-height) + 0.5rem);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .core-segmented-control-indicator,
+    .core-tri-state-indicator,
+    .core-tri-state-option,
+    .core-tri-state-option svg {
+      transition: none;
+    }
+
+    .core-statistics-load-track > span {
+      animation: none;
+      width: 100%;
+      background: var(--core-action-primary);
+      opacity: 0.65;
+    }
+  }
+
+  @media (max-width: 30rem) {
+    .core-statistics-filters .core-segmented-control-option {
+      padding-inline: 0.5rem;
+    }
+
+    .core-page-header-with-action {
+      flex-wrap: wrap;
+      gap: 0.25rem;
+    }
+
+    .core-page-header-action {
+      max-width: 100%;
+    }
+
+    .core-page-header-with-action h2 {
+      font-size: var(--core-type-metric);
+      line-height: var(--core-leading-metric);
+    }
+  }
+
+  /* Four question types need two rows on phones and tablets; every label stays whole on one line. */
+  @media (max-width: 47.9375rem) {
+    .core-question-type-control {
+      width: 100%;
+      height: auto;
+      grid-auto-flow: row;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .core-question-type-control .core-segmented-control-option {
+      min-height: calc(var(--core-control-height) - 0.5rem);
+      padding-inline: 0.25rem;
+    }
+  }
+
+  .core-table-header-control {
+    height: 100%;
+    min-height: 0;
+  }
+
+  .core-card-row-selected {
+    box-shadow: inset var(--core-border-width-strong) 0 0 var(--core-action-primary);
+  }
+
+  .core-settings-matrix {
+    width: 100%;
+    max-width: 32rem;
+    border-collapse: collapse;
+    table-layout: fixed;
+  }
+
+  .core-settings-matrix tr > th:first-child {
+    width: 6.5rem;
+  }
+
+  .core-settings-matrix th {
+    color: var(--core-text);
+    font: var(--core-weight-control) var(--core-type-body)/var(--core-leading-body) var(--core-font-sans);
+    text-align: left;
+  }
+
+  .core-settings-matrix thead th {
+    padding-bottom: var(--core-space-sm);
+    color: var(--core-text-muted);
+    font: var(--core-weight-control) var(--core-type-caption)/var(--core-leading-caption) var(--core-font-sans);
+    text-align: center;
+  }
+
+  .core-settings-matrix tbody tr + tr {
+    border-top: var(--core-border-width) solid var(--core-border);
+  }
+
+  .core-settings-matrix td {
+    padding: var(--core-space-xs);
+  }
+
+  .core-settings-matrix-cell {
+    display: grid;
+    min-height: var(--core-button-height);
+    place-items: center;
+    border-radius: var(--core-radius-control);
+    cursor: pointer;
+    transition: background-color 120ms ease;
+  }
+
+  .core-settings-matrix-cell:hover {
+    background: var(--core-surface-hover);
+  }
+
+  .core-settings-matrix-cell[data-level="normal"]:has(input:checked) {
+    background: var(--core-surface-muted);
+  }
+
+  .core-settings-matrix-cell[data-level="reduced"]:has(input:checked) {
+    background: var(--core-warning-surface);
+  }
+
+  .core-settings-matrix-cell[data-level="minimum"]:has(input:checked) {
+    background: var(--core-info-surface);
+  }
+
+  .core-menu-separator {
+    margin: 0.25rem -0.375rem;
+    border-top: var(--core-border-width) solid var(--core-border);
+  }
+  /* Kept after .core-tri-state-option svg for the cascade. */
+  .core-date-calendar-heading > svg { color: var(--core-action-primary); transition: transform 150ms cubic-bezier(0, 0, 0.2, 1); }
+}
+
+/* Login: the form stands on the canvas without a panel below a large brand; fields and action are 44 px high. */
+.core-auth-mascot {
+  height: 9.5rem;
+}
+
+.core-auth-wordmark {
+  font: var(--core-weight-heading) 2.5rem/2.75rem var(--core-font-sans);
+  letter-spacing: -0.02em;
+}
+
+.core-auth-panel :is(.core-field, .core-action-primary) {
+  min-height: 2.75rem;
+}
+
+@media (max-width: 18.75rem) {
+  .core-centered-viewport {
+    padding: 0.25rem;
+  }
+
+  .core-mobile-header {
+    padding-inline: 0.25rem;
+  }
+
+  .core-mobile-header > div {
+    gap: 0.125rem;
+  }
+
+  .core-mobile-brand {
+    font-size: 0;
+  }
+
+  .core-mobile-brand::first-letter {
+    font-size: var(--core-type-body-large);
+  }
+
+  .core-mobile-header [data-navigation-utilities="true"] {
+    gap: 0;
+  }
+
+  .core-mobile-bottom-navigation {
+    width: calc(100dvw - 0.5rem);
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 0;
+    padding-inline: 0.125rem;
+  }
+
+  .core-auth-panel {
+    padding: 0.5rem;
+  }
+
+  .core-auth-panel button {
+    min-width: 0;
+    max-width: 100%;
+    padding-inline: 0.25rem;
+    overflow-wrap: anywhere;
+  }
+
+  .core-screen-region {
+    padding: 0.5rem 0 5rem;
+  }
+
+  .core-responsive-panel-padding {
+    padding: 0.25rem;
+  }
+
+  .core-responsive-panel-padding :is(.core-action-primary, .core-action-secondary, .core-action-destructive) {
+    min-width: 0;
+    max-width: 100%;
+    padding-inline: 0.5rem;
+    white-space: normal;
+  }
+
+  .core-responsive-panel-padding .rich-text-field {
+    padding: 0.5rem;
+  }
+
+  .core-responsive-panel-padding [role="toolbar"] {
+    gap: 0;
+    padding: 0.125rem;
+  }
+}
+
+strong,
+.core-emphasis {
+  font-weight: var(--core-weight-emphasis);
+}
+
+/* Kept after .core-auth-panel button for the cascade. */
+button[aria-label] {
+  min-width: var(--core-button-height);
+}
+/* Kept after .core-auth-panel button for the cascade. */
+.core-deck-folder-breadcrumb button {
+  min-height: var(--core-control-height);
+  min-width: var(--core-control-height);
+  text-align: start;
+  overflow-wrap: anywhere;
+  color: var(--core-action-secondary);
+}
+.core-deck-create-form {
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0 var(--core-space-sm);
+}
+.core-deck-create-name { grid-column: 1 / -1; }
+.core-deck-create-plus {
+  position: absolute;
+  inset-inline-start: 0.75rem;
+  top: 50%;
+  translate: 0 -50%;
+  color: var(--core-text-muted);
+  pointer-events: none;
+}
+.core-deck-create-form .core-field { padding-inline-start: 2.5rem; }
+.core-deck-create-form .core-field:not(:focus-visible):not([aria-invalid="true"]),
+.core-deck-create-form [data-deck-select-trigger]:not([data-state="open"]),
+.core-deck-create-form .core-deck-create-submit {
+  border-color: transparent;
+  background: transparent;
+  box-shadow: none;
+}
+.core-deck-create-form [data-deck-select-trigger] { color: var(--core-text-secondary); }
+.core-deck-create-form [data-deck-select-trigger] > span:first-child { border-color: transparent; background: transparent; }
+.core-deck-create-form .core-deck-create-submit { color: var(--core-action-primary); }
+.core-deck-create-form :is([data-deck-select-trigger], .core-deck-create-submit):hover { background: var(--core-surface-hover); }
+
+@container core-deck-tree (min-width: 38rem) {
+  .core-deck-create-form { grid-template-columns: minmax(0, 1fr) minmax(12rem, 16rem) auto; }
+  .core-deck-create-name { grid-column: auto; }
+}
+
+.core-status-info,
+.core-status-success,
+.core-status-warning,
+.core-status-error {
+  border: var(--core-border-width) solid;
+  border-radius: var(--core-radius-control);
+  padding: var(--core-space-md) var(--core-space-lg);
+  font: var(--core-weight-body) var(--core-type-body)/var(--core-leading-body) var(--core-font-sans);
+}
+
+.core-status-info {
+  --core-status-tone: var(--core-info);
+  border-color: color-mix(in srgb, var(--core-info) 28%, var(--core-border));
+  background: var(--core-info-surface);
+  color: var(--core-text);
+}
+
+.core-status-success {
+  --core-status-tone: var(--core-success);
+  border-color: color-mix(in srgb, var(--core-success) 28%, var(--core-border));
+  background: var(--core-success-surface);
+  color: var(--core-text);
+}
+
+:is(.core-status-info, .core-status-success, .core-status-warning, .core-status-error) > svg {
+  color: var(--core-status-tone);
+}
+
+/* Exam filter in the calendar head: a CoreTag with the exam colour as dot; hidden exams fade to an outline with a hollow dot.
+   The button keeps the control height as touch target around the 24-px tag. */
+.core-exam-filter { display: inline-flex; min-width: 0; max-width: 100%; min-height: var(--core-button-height); align-items: center; border-radius: var(--core-radius-control); }
+.core-exam-filter .core-tag { max-width: 100%; overflow-wrap: anywhere; transition: background-color 120ms ease, color 120ms ease; }
+.core-exam-filter[aria-pressed="true"]:hover .core-tag { --core-tag-surface: var(--core-surface-hover); }
+.core-exam-filter[aria-pressed="false"] .core-tag { --core-tag-text: var(--core-text-muted); }
+.core-exam-filter[aria-pressed="false"]:hover .core-tag { --core-tag-text: var(--core-text-secondary); }
+.core-exam-filter[aria-pressed="false"] .core-tag-dot { background: transparent !important; box-shadow: inset 0 0 0 1.5px var(--core-exam-tint); }
+
+/* Kept after .core-auth-panel button for the cascade. */
+button.core-steps-step {
+  min-height: var(--core-button-height);
+  border-radius: var(--core-radius-inset);
+  padding-inline: var(--core-space-xs);
+  margin-inline: calc(-1 * var(--core-space-xs));
 }
 
 /*
@@ -2553,44 +3144,6 @@ button.core-steps-step:disabled {
   }
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .core-steps[data-animated] li[data-after-current] .core-steps-line { animation: none; background: var(--core-action-primary); opacity: 0.5; }
-  .core-tabs-tab { transition: none; }
-}
-
-@keyframes core-success-toast-dismiss {
-  from {
-    opacity: 1;
-    transform: translateY(0);
-  }
-
-  to {
-    opacity: 0;
-    transform: translateY(-0.375rem);
-  }
-}
-
-.core-success-toast {
-  animation: core-success-toast-dismiss 200ms ease-out 10s forwards;
-}
-
-/* A toast waits while it is pointed at or focused, so its action stays reachable (W7). */
-.core-success-toast:hover,
-.core-success-toast:focus-within {
-  animation-play-state: paused;
-}
-
-.core-success-toast,
-.core-success-toast[data-appearance="neutral"] {
-  border-color: var(--core-border);
-  background: var(--core-surface-raised);
-  color: var(--core-text);
-}
-
-.core-success-toast[data-appearance="neutral"] > svg {
-  color: var(--core-text-muted);
-}
-
 .core-status-warning {
   --core-status-tone: var(--core-warning);
   border-color: color-mix(in srgb, var(--core-warning) 32%, var(--core-border));
@@ -2598,6 +3151,7 @@ button.core-steps-step:disabled {
   color: var(--core-text);
 }
 
+/* Kept after .core-status-error for the cascade. */
 .core-status-error {
   --core-status-tone: var(--core-danger);
   border-color: color-mix(in srgb, var(--core-danger) 28%, var(--core-border));
@@ -2605,30 +3159,8 @@ button.core-steps-step:disabled {
   color: var(--core-text);
 }
 
-.core-file-drop[data-drop-state="idle"]:hover {
-  border-color: color-mix(in srgb, var(--core-action-primary) 45%, var(--core-border));
-}
-
-.core-file-drop[data-drop-state="dragging"] {
-  border-color: var(--core-action-primary);
-  background: var(--core-action-soft);
-}
-
-.core-file-drop[data-drop-state="inactive"] {
-  cursor: not-allowed;
-  border-color: var(--core-border);
-  opacity: 0.7;
-}
-
-/* Back link of PageHeader: the touch height stays, the line takes 24 px and the arrow starts at the title edge. */
-.core-page-header-back {
-  display: flex;
-  margin-block: calc((1.5rem - var(--core-button-height)) / 2);
-  margin-inline-start: -0.25rem;
-}
-
 .core-creation-progress-fill {
-  background: var(--core-action-soft);
+  background: color-mix(in srgb, var(--core-action-primary) 16%, var(--core-surface-muted));
 }
 
 /* A partial import ends in amber: the cards are stored, cloud or media sync is still open. */
@@ -2652,209 +3184,6 @@ button.core-steps-step:disabled {
   .core-apkg-steps:not(:has([aria-current])) {
     display: none;
   }
-}
-
-
-@layer components {
-  /*
-   * Form elements after HeroUI v3 (measured 2026-11-12 on heroui.com), in CoRe colours: 1-px border instead of the field
-   * shadow, accent = action blue, keyboard focus after the global rule (2 px, 3 px offset), disabled at 50 %.
-   * Unselected boxes and circles use muted text at 80 % for a 3:1 contour (HeroUI relies on a soft shadow).
-   * Shared rows: label 14/20 weight 500 next to the control at 12 px, description 12/16 muted and indented by control + gap,
-   * group options 16 px apart (here: rows in button height without gap).
-   */
-  .core-checkbox, .core-radio, .core-switch { display: inline-flex; flex-direction: column; gap: var(--core-space-xs); min-width: 0; -webkit-tap-highlight-color: transparent; }
-  .core-checkbox-content, .core-radio-content, .core-switch-content { display: inline-flex; align-items: center; gap: var(--core-space-md); min-width: 0; min-height: var(--core-button-height); cursor: pointer; color: var(--core-text); font: 500 var(--core-type-body)/var(--core-leading-body) var(--core-font-sans); user-select: none; }
-  .core-checkbox-label, .core-radio-label, .core-switch-label { min-width: 0; overflow-wrap: anywhere; }
-  .core-checkbox-description, .core-radio-description { padding-inline-start: 1.75rem; color: var(--core-text-muted); font: var(--core-weight-body) var(--core-type-caption)/var(--core-leading-caption) var(--core-font-sans); }
-  :is(.core-checkbox, .core-radio, .core-switch)[data-disabled] { opacity: 0.5; }
-  :is(.core-checkbox, .core-radio, .core-switch)[data-disabled] :is(label, input) { cursor: not-allowed; }
-  .core-checkbox-control, .core-radio-control, .core-switch-control { position: relative; display: inline-grid; flex-shrink: 0; place-items: center; }
-  .core-checkbox-control > input, .core-radio-control > input, .core-switch-control > input { position: absolute; inset: 0; z-index: 1; width: 100%; height: 100%; margin: 0; opacity: 0; cursor: pointer; }
-  @media (pointer: coarse) {
-    /* A bare control keeps a 44-px touch target around its 16-px mark. */
-    .core-checkbox-control > input, .core-radio-control > input { inset: -0.9375rem; width: auto; height: auto; }
-    .core-switch-control > input { inset: -0.75rem -0.25rem; width: auto; height: auto; }
-  }
-  :is(.core-checkbox-control, .core-radio-control, .core-switch-control):has(> input:focus-visible) { outline: 2px solid var(--core-focus-ring); outline-offset: 3px; }
-
-  /* Checkbox: box 16 px, radius 6 px; fill scales 70 → 100 % (100 ms linear) and fades in (200 ms linear); check 10 px,
-     stroke 2.5, dash 22 drawn from offset 66 to 44 in 150 ms linear after 15 ms; indeterminate bar 12 px, stroke 3;
-     pressed 95 % (100 ms ease-out); invalid: danger contour, checked invalid fills danger. */
-  .core-checkbox { --core-check-fill: var(--core-check-accent, var(--core-action-primary)); }
-  .core-checkbox-control { width: 1rem; height: 1rem; border: var(--core-border-width) solid color-mix(in srgb, var(--core-text-muted) 80%, var(--core-surface)); border-radius: var(--core-radius-marker); background: var(--core-surface); color: var(--core-check-on-accent, var(--core-text-on-accent)); transition: border-color 200ms cubic-bezier(0, 0, 0.2, 1), transform 100ms cubic-bezier(0, 0, 0.2, 1); }
-  .core-checkbox-control::before { content: ""; position: absolute; inset: calc(-1 * var(--core-border-width)); border-radius: inherit; background: var(--core-check-fill); opacity: 0; scale: 0.7; transition: scale 100ms linear, opacity 200ms linear, background-color 200ms cubic-bezier(0, 0, 0.2, 1); pointer-events: none; }
-  .core-checkbox-mark { position: relative; width: 0.625rem; height: 0.625rem; fill: none; stroke: currentColor; stroke-width: 2.5px; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 22; stroke-dashoffset: 66; pointer-events: none; }
-  .core-checkbox-mark[data-mark="indeterminate"] { width: 0.75rem; height: 0.75rem; stroke-width: 3px; stroke-dasharray: none; stroke-dashoffset: 0; opacity: 0; }
-  .core-checkbox:hover .core-checkbox-control { border-color: var(--core-text-muted); }
-  .core-checkbox:hover:not([data-state="unchecked"]) .core-checkbox-control::before { background: color-mix(in srgb, var(--core-check-fill) 90%, var(--core-surface)); }
-  .core-checkbox:not([data-state="unchecked"]) .core-checkbox-control { border-color: transparent; }
-  .core-checkbox:not([data-state="unchecked"]) .core-checkbox-control::before { opacity: 1; scale: 1; }
-  .core-checkbox[data-state="checked"] .core-checkbox-mark { stroke-dashoffset: 44; transition: stroke-dashoffset 150ms linear 15ms; }
-  .core-checkbox[data-state="indeterminate"] .core-checkbox-mark { opacity: 1; }
-  .core-checkbox-control:has(> input:active:not(:disabled)) { transform: scale(0.95); }
-  .core-checkbox[data-invalid][data-state="unchecked"] .core-checkbox-control { border-color: var(--core-danger); }
-  .core-checkbox[data-invalid] { --core-check-fill: var(--core-danger); --core-check-on-accent: var(--core-text-on-danger); }
-
-  /* Radio: circle 16 px; selected fills the accent (200 ms ease-out) while the inner disc shrinks to a 6.86-px dot (42.86 %
-     of 16 px, here 49 % of the 14-px inner disc), 9.14 px while pressed; control pressed 95 %. */
-  .core-radio-control { width: 1rem; height: 1rem; border: var(--core-border-width) solid color-mix(in srgb, var(--core-text-muted) 80%, var(--core-surface)); border-radius: var(--core-radius-round); background: var(--core-surface); transition: background-color 200ms cubic-bezier(0, 0, 0.2, 1), border-color 200ms cubic-bezier(0, 0, 0.2, 1), transform 100ms cubic-bezier(0, 0, 0.2, 1); }
-  .core-radio-dot { position: absolute; inset: 0; border-radius: inherit; background: var(--core-surface); scale: 1; transition: scale 200ms cubic-bezier(0, 0, 0.2, 1), background-color 200ms cubic-bezier(0, 0, 0.2, 1); pointer-events: none; }
-  .core-radio:hover .core-radio-control { border-color: var(--core-text-muted); }
-  .core-radio[data-state="checked"] .core-radio-control { border-color: transparent; background: var(--core-action-primary); }
-  .core-radio[data-state="checked"] .core-radio-dot { background: var(--core-text-on-accent); scale: 0.49; }
-  .core-radio[data-state="checked"]:hover .core-radio-control { background: var(--core-action-primary-hover); }
-  .core-radio-control:has(> input:active:not(:disabled)) { transform: scale(0.95); }
-  .core-radio[data-state="checked"] .core-radio-control:has(> input:active:not(:disabled)) .core-radio-dot { scale: 0.653; }
-  .core-radio[data-invalid] .core-radio-control { border-color: var(--core-danger); }
-  .core-radio[data-invalid][data-state="checked"] .core-radio-control { background: var(--core-danger); }
-
-  /* Switch md: track 40 × 20, thumb 22 × 16 (radius 8 px) 2 px from the edge; sm 32 × 16 / 16.5 × 12; lg 48 × 24 /
-     27.5 × 20. Thumb travels in 300 ms cubic-bezier(.32, .72, 0, 1), track colour 250 ms ease; hover and pressed lighten
-     the track by 20 %. Description indented by track + 12 px. */
-  .core-switch { --core-switch-width: 2.5rem; --core-switch-height: 1.25rem; --core-switch-thumb-width: 1.375rem; --core-switch-thumb-height: 1rem; }
-  .core-switch[data-size="sm"] { --core-switch-width: 2rem; --core-switch-height: 1rem; --core-switch-thumb-width: 1.03125rem; --core-switch-thumb-height: 0.75rem; }
-  .core-switch[data-size="lg"] { --core-switch-width: 3rem; --core-switch-height: 1.5rem; --core-switch-thumb-width: 1.71875rem; --core-switch-thumb-height: 1.25rem; }
-  .core-switch[data-label-placement="start"] .core-switch-content { flex-direction: row-reverse; justify-content: flex-end; }
-  .core-switch-description { padding-inline-start: calc(var(--core-switch-width) + var(--core-space-md)); color: var(--core-text-muted); font: var(--core-weight-body) var(--core-type-caption)/var(--core-leading-caption) var(--core-font-sans); }
-  .core-switch[data-label-placement="start"] .core-switch-description { padding-inline-start: 0; }
-  .core-switch-control { place-items: center start; width: var(--core-switch-width); height: var(--core-switch-height); border-radius: var(--core-radius-round); background: var(--core-border-interactive); transition: background-color 250ms ease; }
-  .core-switch-thumb { width: var(--core-switch-thumb-width); height: var(--core-switch-thumb-height); margin-inline-start: 0.125rem; border-radius: var(--core-radius-round); background: var(--core-surface); box-shadow: var(--core-shadow-soft); transition: translate 300ms cubic-bezier(0.32, 0.72, 0, 1), background-color 200ms cubic-bezier(0, 0, 0.2, 1); pointer-events: none; }
-  .core-switch:hover .core-switch-control { background: color-mix(in srgb, var(--core-border-interactive) 80%, var(--core-text-muted)); }
-  .core-switch[data-state="checked"] .core-switch-control { background: var(--core-action-primary); }
-  .core-switch[data-state="checked"]:hover .core-switch-control { background: var(--core-action-primary-hover); }
-  .core-switch[data-state="checked"] .core-switch-thumb { translate: calc(var(--core-switch-width) - var(--core-switch-thumb-width) - 0.25rem) 0; background: var(--core-text-on-accent); }
-  [data-core-theme="dark"] .core-switch-thumb { background: var(--core-text-secondary); }
-  [data-core-theme="dark"] .core-switch[data-state="checked"] .core-switch-thumb { background: var(--core-text-on-accent); }
-
-  /* Choice group: title, options in rows, hint or error below; horizontal groups wrap at 16 px. */
-  .core-choice-group { display: grid; gap: var(--core-space-sm); min-width: 0; }
-  .core-choice-group-options { display: grid; min-width: 0; }
-  .core-choice-group[data-orientation="horizontal"] .core-choice-group-options { display: flex; flex-wrap: wrap; column-gap: var(--core-space-lg); }
-
-  /* Slider: label and value 14/20 above the track at 4 px; track 20 px pill with 12-px inline end caps; fill ends at the
-     thumb centre; thumb 28 × 20 accent pill around a 24 × 16 disc (radius 8 px) that shrinks to 90 % while dragged;
-     thumb colour 250 ms ease, transform 250 ms ease-out. The native range sits on the track with a 24-px thumb so both
-     travel the same 12-px-inset path. */
-  .core-slider { --core-slider-cap: 0.75rem; display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "label output" "track track"; gap: var(--core-space-xs) var(--core-space-md); min-width: 0; }
-  .core-slider-label { grid-area: label; min-width: 0; color: var(--core-text); font: 550 0.8125rem/1.125rem var(--core-font-sans); }
-  .core-slider-output { grid-area: output; color: var(--core-text); font: 500 var(--core-type-body)/var(--core-leading-body) var(--core-font-sans); font-variant-numeric: tabular-nums; text-align: end; }
-  .core-slider-track { position: relative; grid-area: track; height: 1.25rem; border-radius: var(--core-radius-round); background: var(--core-surface-hover); }
-  .core-slider-fill { position: absolute; inset-block: 0; inset-inline-start: 0; width: calc(var(--core-slider-cap) + (100% - 2 * var(--core-slider-cap)) * var(--core-slider-ratio)); border-radius: inherit; background: var(--core-action-primary); pointer-events: none; }
-  .core-slider-thumb { position: absolute; inset-block: 0; inset-inline-start: calc(var(--core-slider-cap) + (100% - 2 * var(--core-slider-cap)) * var(--core-slider-ratio)); display: grid; width: 1.75rem; place-items: center; border-radius: var(--core-radius-round); background: var(--core-action-primary); translate: -50% 0; transition: background-color 250ms ease, transform 250ms cubic-bezier(0, 0, 0.2, 1); pointer-events: none; }
-  .core-slider-thumb::after { content: ""; width: 1.5rem; height: 1rem; border-radius: var(--core-radius-inset); background: var(--core-text-on-accent); box-shadow: var(--core-shadow-soft); transition: scale 150ms cubic-bezier(0.4, 0, 0.2, 1); }
-  .core-slider-track > input { position: absolute; inset: -0.75rem 0; width: 100%; height: calc(100% + 1.5rem); margin: 0; opacity: 0; cursor: pointer; -webkit-appearance: none; appearance: none; background: transparent; touch-action: none; }
-  .core-slider-track > input::-webkit-slider-thumb { width: 1.5rem; height: 2.75rem; -webkit-appearance: none; appearance: none; }
-  .core-slider-track > input::-moz-range-thumb { width: 1.5rem; height: 2.75rem; border: 0; }
-  .core-slider:has(input:active) .core-slider-thumb::after { scale: 0.9; }
-  .core-slider:has(input:active) .core-slider-thumb { cursor: grabbing; }
-  .core-slider:has(input:focus-visible) .core-slider-thumb { z-index: 1; outline: 2px solid var(--core-focus-ring); outline-offset: 3px; }
-  .core-slider:hover .core-slider-thumb { background: var(--core-action-primary-hover); }
-  .core-slider[data-disabled] { opacity: 0.5; }
-  .core-slider[data-disabled] input { cursor: not-allowed; }
-
-  /* Date picker: field with segments 14/20 (padding 0 1 px, radius 6 px, focused segment on the soft accent, placeholder
-     and dots muted, set flush with 1 px padding) and a 24-px calendar trigger with a 16-px icon, 12 px in from the start. Popover:
-     12-px padding, enters from 95 % in 150 ms; header with heading 14/20 weight 500 and 24-px round month buttons,
-     16 px above the grid; weekdays 12/16 weight 500 muted, 8 px above the days; day cells square and round (252 / 7 =
-     36 px; 44 px for touch), 14/20 weight 500; today on the soft accent, selection filled, hover neutral, pressed 95 %
-     (250 ms ease-out), other months muted at 50 %, unavailable days 50 % and struck through. Year grid from the heading:
-     three columns 4 px apart, 32-px round cells, fading in over the days (200 ms after 50 ms). */
-  .core-date-field { display: flex; align-items: center; gap: var(--core-space-xs); padding-block: 0; padding-inline-end: var(--core-space-sm); }
-  .core-date-field:has(.core-date-segment:focus) { border-color: var(--core-action-primary); box-shadow: var(--core-shadow-selection); }
-  .core-date-field[data-invalid] { border-color: var(--core-danger); box-shadow: 0 0 0 3px color-mix(in srgb, var(--core-danger) 12%, transparent); }
-  .core-date-field-segments { display: flex; flex: 1 1 auto; align-items: center; gap: 0; min-width: 0; font-variant-numeric: tabular-nums; }
-  .core-date-segment { padding-inline: 1px; border-radius: var(--core-radius-marker); color: var(--core-text); cursor: text; outline: none !important; user-select: none; }
-  .core-date-segment[data-placeholder] { color: var(--core-text-muted); }
-  .core-date-segment:focus { background: var(--core-action-soft); color: var(--core-action-primary); }
-  .core-date-field[data-invalid] .core-date-segment { color: var(--core-danger); }
-  .core-date-field[data-invalid] .core-date-segment:focus { background: var(--core-danger-surface); }
-  .core-date-segment-literal { color: var(--core-text-muted); }
-  .core-date-field-trigger { position: relative; display: grid; width: 1.5rem; height: 1.5rem; flex-shrink: 0; place-items: center; border-radius: var(--core-radius-round); color: var(--core-text-muted); transition: background-color 150ms ease, color 150ms ease; }
-  .core-date-field-trigger:hover, .core-date-field-trigger[data-state="open"] { background: var(--core-surface-hover); color: var(--core-text); }
-  .core-date-calendar { --core-calendar-cell: 2.25rem; width: calc(7 * var(--core-calendar-cell) + 1.5rem); max-width: calc(100vw - 1.5rem); padding: var(--core-space-md); border-radius: var(--core-radius-overlay); transform-origin: var(--radix-popover-content-transform-origin); animation: core-date-calendar-enter 150ms ease; }
-  .core-date-calendar-header { display: flex; align-items: center; gap: var(--core-space-xs); padding: 0 0.125rem var(--core-space-lg); }
-  .core-date-calendar-heading { display: inline-flex; flex: 1 1 auto; align-items: center; gap: var(--core-space-xs); min-width: 0; min-height: 1.5rem; border-radius: var(--core-radius-inset); color: var(--core-text); font: 500 var(--core-type-body)/var(--core-leading-body) var(--core-font-sans); text-transform: capitalize; }
-  .core-date-calendar-heading > svg { color: var(--core-action-primary); transition: transform 150ms cubic-bezier(0, 0, 0.2, 1); }
-  .core-date-calendar-heading[aria-expanded="true"] { color: var(--core-action-primary); }
-  .core-date-calendar-heading[aria-expanded="true"] > svg { transform: rotate(180deg); }
-  .core-date-calendar-nav { display: grid; width: 1.5rem; height: 1.5rem; flex-shrink: 0; place-items: center; border-radius: var(--core-radius-round); color: var(--core-action-primary); transition: transform 250ms cubic-bezier(0, 0, 0.2, 1), background-color 100ms cubic-bezier(0, 0, 0.2, 1), opacity 150ms cubic-bezier(0, 0, 0.2, 1); }
-  .core-date-calendar-nav:not(:disabled):hover { background: var(--core-surface-hover); }
-  .core-date-calendar-nav:not(:disabled):active { transform: scale(0.95); }
-  .core-date-calendar-nav:disabled { cursor: not-allowed; opacity: 0.5; }
-  .core-date-calendar-body { position: relative; }
-  .core-date-calendar-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); transition: opacity 150ms cubic-bezier(0, 0, 0.2, 1); }
-  .core-date-calendar-grid[aria-hidden="true"] { visibility: hidden; opacity: 0; }
-  .core-date-calendar-weekday { overflow: hidden; padding-bottom: var(--core-space-md); color: var(--core-text-muted); font: 500 var(--core-type-caption)/var(--core-leading-caption) var(--core-font-sans); text-align: center; white-space: nowrap; }
-  .core-date-calendar-day { display: grid; width: 100%; aspect-ratio: 1; place-items: center; border-radius: var(--core-radius-round); color: var(--core-text); font: 500 var(--core-type-body)/var(--core-leading-body) var(--core-font-sans); font-variant-numeric: tabular-nums; transition: transform 250ms cubic-bezier(0, 0, 0.2, 1), background-color 150ms ease, color 150ms ease; }
-  .core-date-calendar-day:not(:disabled):hover { background: var(--core-surface-hover); }
-  .core-date-calendar-day:not(:disabled):active { transform: scale(0.95); }
-  .core-date-calendar-day[data-outside-month] { color: var(--core-text-muted); opacity: 0.5; }
-  .core-date-calendar-day[aria-current="date"] { background: var(--core-action-soft); color: var(--core-action-primary); }
-  .core-date-calendar-day[aria-pressed="true"] { background: var(--core-action-primary); color: var(--core-text-on-accent); opacity: 1; }
-  .core-date-calendar-day[aria-pressed="true"]:not(:disabled):hover { background: var(--core-action-primary-hover); }
-  .core-date-calendar-day:disabled { cursor: not-allowed; opacity: 0.5; }
-  .core-date-calendar-day:disabled:not([data-outside-month]) { text-decoration: line-through; }
-  .core-date-calendar-years { position: absolute; inset: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); align-content: start; gap: var(--core-space-xs); overflow-y: auto; padding: var(--core-space-xs); animation: core-date-years-enter 200ms cubic-bezier(0, 0, 0.2, 1) 50ms both; }
-  .core-date-calendar-year { height: 2rem; border-radius: var(--core-radius-round); color: var(--core-text); font: 500 var(--core-type-body)/var(--core-leading-body) var(--core-font-sans); font-variant-numeric: tabular-nums; transition: background-color 100ms ease, scale 100ms ease; }
-  .core-date-calendar-year:hover { background: var(--core-surface-hover); }
-  .core-date-calendar-year[aria-pressed="true"] { background: var(--core-action-primary); color: var(--core-text-on-accent); }
-  @media (pointer: coarse) {
-    .core-date-field-trigger { width: 2.75rem; height: var(--core-control-height); margin-inline-end: calc(-1 * var(--core-space-sm)); border-radius: var(--core-radius-control); }
-    .core-date-calendar { --core-calendar-cell: 2.75rem; }
-    .core-date-calendar-heading, .core-date-calendar-nav, .core-date-calendar-year { min-height: 2.75rem; }
-    .core-date-calendar-nav { width: 2.75rem; height: 2.75rem; }
-    .core-date-calendar-year { height: 2.75rem; }
-  }
-}
-
-@keyframes core-date-calendar-enter {
-  from { opacity: 0; transform: scale(0.95); }
-}
-
-@keyframes core-date-years-enter {
-  from { opacity: 0; }
-}
-
-/*
- * Answer options after HeroUI Pro „Checkbox Button Group“, one row: hairline card (radius 16 → CoRe panel 14 px,
- * padding 16 × 20 → 12 × 16 for the one-row form), selected = 2-px inset accent ring with a light tint, indicator on the
- * right (box for multiple choice, dot for single choice, 16 px). After revealing, the same form carries the success and
- * danger roles; a correct option that was not chosen keeps the ring without the tint.
- */
-.core-mcq-option, .core-kprim-option { border: var(--core-border-width) solid var(--core-border); border-radius: var(--core-radius-panel); background: var(--core-surface); color: var(--core-text); transition: box-shadow 150ms cubic-bezier(0, 0, 0.2, 1), border-color 150ms cubic-bezier(0, 0, 0.2, 1), background-color 150ms cubic-bezier(0, 0, 0.2, 1), color 150ms ease; }
-.core-mcq-option { display: flex; width: 100%; min-height: 3rem; align-items: center; gap: var(--core-space-md); padding: var(--core-space-md) var(--core-space-lg); text-align: start; }
-.core-kprim-option { padding: var(--core-space-md) var(--core-space-lg); }
-.core-mcq-option:not(:disabled):hover { border-color: var(--core-border-interactive); }
-:is(.core-mcq-option, .core-kprim-option):is([data-tone="selected"], [data-tone="correct"], [data-tone="missed"], [data-tone="wrong"]) { border-color: transparent; box-shadow: inset 0 0 0 2px var(--core-mcq-role); }
-:is(.core-mcq-option, .core-kprim-option)[data-tone="selected"] { --core-mcq-role: var(--core-action-primary); background: var(--core-action-soft); }
-:is(.core-mcq-option, .core-kprim-option)[data-tone="correct"] { --core-mcq-role: var(--core-success); background: var(--core-success-surface); }
-:is(.core-mcq-option, .core-kprim-option)[data-tone="missed"] { --core-mcq-role: var(--core-success); }
-:is(.core-mcq-option, .core-kprim-option)[data-tone="wrong"] { --core-mcq-role: var(--core-danger); background: var(--core-danger-surface); }
-.core-mcq-option[data-tone="muted"] { color: var(--core-text-muted); }
-.core-mcq-indicator { display: grid; width: 1rem; height: 1rem; flex-shrink: 0; place-items: center; border: var(--core-border-width) solid color-mix(in srgb, var(--core-text-muted) 80%, var(--core-surface)); border-radius: var(--core-radius-marker); background: var(--core-surface); color: var(--core-text-on-accent); transition: background-color 200ms cubic-bezier(0, 0, 0.2, 1), border-color 200ms cubic-bezier(0, 0, 0.2, 1); }
-.core-mcq-indicator[data-shape="dot"] { border-radius: var(--core-radius-round); }
-.core-mcq-indicator[data-shape="dot"]::after { content: ""; width: 42.86%; height: 42.86%; border-radius: inherit; background: currentColor; scale: 0; transition: scale 200ms cubic-bezier(0, 0, 0.2, 1); }
-.core-mcq-indicator > svg { width: 0.625rem; height: 0.625rem; fill: none; stroke: currentColor; stroke-width: 2.5px; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 22; stroke-dashoffset: 66; }
-.core-mcq-option[data-tone="selected"] .core-mcq-indicator { border-color: transparent; background: var(--core-action-primary); }
-.core-mcq-option[data-tone="selected"] .core-mcq-indicator[data-shape="dot"]::after { scale: 1; }
-.core-mcq-option[data-tone="selected"] .core-mcq-indicator > svg { stroke-dashoffset: 44; transition: stroke-dashoffset 150ms linear 15ms; }
-.core-mcq-state-icon { flex-shrink: 0; color: var(--core-mcq-role); }
-
-.core-mcq-option-correct {
-  animation: core-answer-pulse 360ms ease-out;
-}
-
-.core-mcq-option-wrong {
-  animation: core-answer-shake 240ms ease-in-out;
-}
-
-.core-study-card .card-html {
-  overflow: visible;
-}
-
-.core-study-card .core-mcq-option {
-  font: var(--core-weight-emphasis) clamp(1.125rem, 1.4vw, 1.375rem)/1.4 var(--core-font-sans);
 }
 
 /* Rating buttons: ToolBox soft buttons; the rating role (fill, border, label) comes from ratingButtons. */
@@ -3083,282 +3412,9 @@ button.core-steps-step:disabled {
   to { opacity: 1; transform: translateY(0) scale(1); }
 }
 
-.core-study-settings-backdrop {
-  animation: core-study-settings-backdrop-in 160ms ease-out;
-}
-
-.core-study-settings-overlay {
-  animation: core-study-settings-sheet-in 220ms cubic-bezier(0.22, 1, 0.36, 1);
-}
-
-.core-card-preview-backdrop {
-  animation: core-study-settings-backdrop-in 160ms ease-out;
-}
-
-.core-card-preview-dialog {
-  animation: core-study-settings-dialog-in 180ms cubic-bezier(0.22, 1, 0.36, 1);
-}
-
-@media (min-width: 768px) {
-  .core-study-settings-overlay {
-    animation-name: core-study-settings-dialog-in;
-    animation-duration: 180ms;
-  }
-}
-
-.card-html {
-  overflow-wrap: anywhere;
-  word-break: break-word;
-}
-
-.card-html p,
-.rich-text-field p {
-  margin: 0 0 0.65rem;
-}
-
-.card-html p:last-child,
-.rich-text-field p:last-child {
-  margin-bottom: 0;
-}
-
-.card-html ul,
-.rich-text-field ul {
-  margin: 0.45rem 0 0.65rem;
-  padding-left: 1.4rem;
-  list-style: disc;
-}
-
-.card-html ol,
-.rich-text-field ol {
-  margin: 0.45rem 0 0.65rem;
-  padding-left: 1.4rem;
-  list-style: decimal;
-}
-
-.card-html li,
-.rich-text-field li {
-  margin: 0.2rem 0;
-}
-
-.card-html mark,
-.rich-text-field mark {
-  border-radius: var(--core-radius-marker);
-  padding: 0.02rem 0.16rem;
-}
-
-.rich-text-field:empty::before {
-  content: attr(aria-label);
-  color: var(--core-text-muted);
-}
-
-.card-html img,
-.rich-text-field img,
-.card-html video,
-.card-html canvas,
-.card-html svg,
-.card-html iframe {
-  max-width: 100%;
-}
-
-.card-html img,
-.rich-text-field img,
-.card-html video,
-.card-html canvas,
-.card-html svg {
-  height: auto;
-}
-
-.card-html img,
-.rich-text-field img {
-  max-height: 9rem;
-  border-radius: var(--core-radius-control);
-}
-
-.card-html table {
-  display: block;
-  max-width: 100%;
-  overflow-x: auto;
-  border-collapse: collapse;
-}
-
-.card-html pre,
-.card-html code {
-  max-width: 100%;
-  white-space: pre-wrap;
-  overflow-wrap: anywhere;
-}
-
-.core-pdf-control {
-  display: inline-flex;
-  min-width: var(--core-button-height);
-  min-height: var(--core-button-height);
-  align-items: center;
-  justify-content: center;
-  gap: 0.3rem;
-  border: var(--core-border-width) solid var(--core-border);
-  border-radius: var(--core-radius-control);
-  background: var(--core-surface);
-  box-shadow: var(--core-shadow-soft);
-  color: var(--core-text);
-  font-size: var(--core-type-caption);
-  font-weight: var(--core-weight-heading);
-  transition:
-    border-color 140ms ease,
-    background-color 140ms ease,
-    color 140ms ease;
-}
-
-.core-pdf-control:not(:disabled):hover {
-  background: var(--core-surface-muted);
-  color: var(--core-text);
-}
-
-.core-pdf-control:disabled {
-  cursor: not-allowed;
-  opacity: 0.42;
-}
-
-.core-pdf-scroll {
-  height: 37rem;
-  overflow: auto;
-  background: var(--core-surface-muted);
-  scroll-behavior: smooth;
-  scrollbar-color: var(--core-border) var(--core-surface-muted);
-}
-
-.core-pdf-pages {
-  display: grid;
-  width: max-content;
-  min-width: 100%;
-  justify-items: center;
-  gap: 1rem;
-  padding: 1rem;
-}
-
-.core-pdf-page {
-  position: relative;
-  flex: none;
-  overflow: hidden;
-  border: var(--core-border-width) solid var(--core-border);
-  border-radius: var(--core-radius-marker);
-  background: var(--core-surface);
-  box-shadow: var(--core-shadow-raised);
-}
-
-.core-pdf-page canvas {
-  display: block;
-  margin: 0;
-}
-
-.core-pdf-text-layer {
-  --min-font-size: 1;
-  --min-font-size-inv: calc(1 / var(--min-font-size));
-  --text-scale-factor: calc(var(--total-scale-factor) * var(--min-font-size));
-  position: absolute;
-  inset: 0;
-  z-index: 2;
-  overflow: clip;
-  color-scheme: only light;
-  line-height: 1;
-  letter-spacing: normal;
-  word-spacing: normal;
-  transform-origin: 0 0;
-  caret-color: var(--core-text);
-  forced-color-adjust: none;
-  text-align: initial;
-  -webkit-text-size-adjust: none;
-  -moz-text-size-adjust: none;
-  text-size-adjust: none;
-}
-
-.core-pdf-text-layer :is(span, br) {
-  position: absolute;
-  color: transparent;
-  white-space: pre;
-  cursor: text;
-  transform-origin: 0 0;
-  -webkit-user-select: text;
-  user-select: text;
-}
-
-.core-pdf-text-layer > :not(.markedContent),
-.core-pdf-text-layer .markedContent span:not(.markedContent) {
-  --font-height: 0;
-  --scale-x: 1;
-  --rotate: 0deg;
-  z-index: 1;
-  font-size: calc(var(--text-scale-factor) * var(--font-height));
-  transform: rotate(var(--rotate)) scaleX(var(--scale-x)) scale(var(--min-font-size-inv));
-}
-
-.core-pdf-text-layer .markedContent {
-  display: contents;
-}
-
-.core-pdf-text-layer ::selection {
-  background: var(--core-selection);
-  color: transparent;
-}
-
-.core-pdf-text-layer .endOfContent {
-  position: absolute;
-  inset: 100% 0 0;
-  display: block;
-  z-index: 0;
-  cursor: default;
-  -webkit-user-select: none;
-  user-select: none;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
-    scroll-behavior: auto !important;
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
-  }
-}
-
 .core-dashboard-name {
   display: block;
   overflow-wrap: anywhere;
-}
-
-.core-rich-text-extra-tools:not([hidden]) {
-  display: flex;
-}
-
-/* ToolBox muted footer surface with ghost icon tools. */
-.core-rich-text-toolbar {
-  background: color-mix(in srgb, var(--core-surface-muted) 50%, var(--core-surface));
-}
-
-.core-rich-text-tool {
-  display: grid;
-  width: var(--core-button-height);
-  height: var(--core-button-height);
-  flex-shrink: 0;
-  place-items: center;
-  border-radius: var(--core-radius-control);
-  color: var(--core-text-secondary);
-  transition: background-color 140ms ease, color 140ms ease;
-}
-
-.core-rich-text-tool:not(:disabled):hover,
-.core-rich-text-tool[aria-expanded="true"] {
-  background: var(--core-surface-hover);
-  color: var(--core-text);
-}
-
-.core-rich-text-tool:disabled {
-  cursor: not-allowed;
-  opacity: 0.5;
-}
-
-.core-heatmap-period-select {
-  width: 7rem;
 }
 
 /* Statistics overview: the key figures head the content without a panel, larger than other metric rows (K08). */
@@ -3479,25 +3535,10 @@ button.core-steps-step:disabled {
   }
 }
 
-.core-deck-icon-action {
-  width: var(--core-button-height);
-  height: var(--core-button-height);
-  min-width: var(--core-button-height);
-  padding: 0;
-  flex-shrink: 0;
-  border-color: transparent;
-  background: transparent;
-  box-shadow: none;
-}
-
+/* Kept after .core-deck-create-form [data-deck-select-trigger]:not([data-state="open"]) for the cascade. */
 .core-deck-icon-action:not(:disabled):is(:hover, :active, [data-state="open"]) {
   border-color: transparent;
   background: var(--core-surface-hover);
-}
-
-.core-deck-icon-action > svg {
-  width: 1rem;
-  height: 1rem;
 }
 
 .core-summary-panel { container: core-summary / inline-size; }
@@ -3646,7 +3687,6 @@ button.core-steps-step:disabled {
 .core-summary-text-tools { display: contents; }
 .core-summary-text-tools[hidden] { display: none; }
 .core-summary-text-tools [role="toolbar"] { position: static; border: 0; padding: 0; background: transparent; }
-.core-rich-text-tool[aria-pressed="true"] { background: var(--core-action-soft); color: var(--core-action-primary); }
 .core-summary-swatch, .core-summary-ink-dot { display: grid; place-items: center; width: var(--core-button-height); height: var(--core-button-height); flex-shrink: 0; border-radius: var(--core-radius-control); transition: background-color 140ms ease; }
 .core-summary-swatch:hover { background: var(--core-surface-hover); }
 .core-summary-swatch span { width: 1.25rem; height: 1.25rem; border-radius: var(--core-radius-round); background: var(--summary-ink); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--core-text) 30%, transparent); }
@@ -3870,4 +3910,3 @@ button.core-steps-step:disabled {
   .dashboard-widget-resize { display: none; }
   .dashboard-widget-grid { column-gap: 1rem; }
 }
-

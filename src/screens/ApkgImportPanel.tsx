@@ -124,11 +124,11 @@ function studyLabel(study: ApkgTranslationReport["notetypes"][number]["study"]) 
 
 function NotetypeReport({ report }: { report: ApkgTranslationReport }) {
   return (
-    <section className="overflow-hidden rounded-panel border border-core-border bg-core-surface shadow-soft" aria-labelledby="apkg-notetypes-heading">
-      <h4 id="apkg-notetypes-heading" className="border-b border-core-border bg-core-subtle px-4 py-2.5 core-caption font-semibold text-core-muted">Notiztypen</h4>
+    <section aria-labelledby="apkg-notetypes-heading">
+      <h4 id="apkg-notetypes-heading" className="border-b border-core-border pb-2 core-caption font-semibold text-core-muted">Notiztypen</h4>
       <ul className="grid core-body text-core-secondary">
         {report.notetypes.map((notetype) => (
-          <li key={notetype.ankiNotetypeId} data-testid="apkg-notetype-report" className="grid gap-1 border-b border-core-border px-4 py-3 last:border-0">
+          <li key={notetype.ankiNotetypeId} data-testid="apkg-notetype-report" className="grid gap-1 border-b border-core-border py-3 last:border-0">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <span className="font-semibold text-core-text">{notetype.name}</span>
               <CoreTag tone="neutral">{TRANSLATOR_LABELS[notetype.translator.id] ?? notetype.translator.id}</CoreTag>
@@ -413,7 +413,7 @@ export function ApkgImportPanel({ workflow, session, onSessionChange, isSessionC
 
         {selectedFile ? (
           <div
-            className="relative mt-4 overflow-hidden rounded-control border border-core-border bg-core-surface px-4 py-3 shadow-soft"
+            className="relative mt-4 overflow-hidden rounded-inset bg-core-subtle px-4 py-3"
             data-testid="apkg-file-progress"
             role={activeProgressPhase ? "progressbar" : undefined}
             aria-label={activeProgressPhase ? `Importfortschritt für ${selectedFile.name}` : undefined}
@@ -501,7 +501,7 @@ export function ApkgImportPanel({ workflow, session, onSessionChange, isSessionC
                   <ActionButton type="button" variant="primary" icon={Database} loading={isParsing} disabled={previewErrors.length > 0} onClick={() => void handleCommit()}>Import übernehmen</ActionButton>
                 ) : null}
               </div>
-              <div className="mt-4 rounded-control border border-core-border bg-core-subtle px-4 py-3 core-body text-core-muted">
+              <div className="mt-4 rounded-inset bg-core-subtle px-4 py-3 core-body text-core-muted">
                 <span className="font-semibold text-core-text">{job?.fileName ?? selectedFile?.name ?? "APKG-Datei"}</span>
                 <span> · {formatBytes(job?.fileSize ?? selectedFile?.size ?? 0)}</span>
               </div>

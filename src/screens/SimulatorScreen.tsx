@@ -61,9 +61,7 @@ export function SimulatorScreen({ systemNow, offsetMinutes, onOffsetChange }: Si
       <SoftPanel className="p-5 sm:p-6">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div className="flex min-w-0 items-center gap-3">
-            <span className="grid size-10 shrink-0 place-items-center rounded-control bg-core-subtle text-core-action">
-              <CalendarClock size={20} aria-hidden="true" />
-            </span>
+            <CalendarClock size={20}className="shrink-0 text-core-action" aria-hidden="true" />
             <div className="min-w-0">
               <p className="core-heading-3 text-core-text">
                 {offsetMinutes === 0 ? "Heute" : formatSimulationHeading(offsetMinutes)}

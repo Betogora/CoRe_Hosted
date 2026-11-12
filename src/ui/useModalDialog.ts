@@ -5,6 +5,9 @@ const FOCUSABLE_SELECTOR =
 
 /** Dialogs of this hook in opening order; only the last one answers Escape. */
 const openDialogs: HTMLElement[] = [];
+/** Open dialogs share one scroll lock; the page scrolls again once the last one closes, in any closing order. */
+let scrollLocks = 0;
+let unlockedOverflow = "";
 
 /**
  * Another dialog lies on top, also while the focus rests on the page: a later one of this hook, or a foreign modal
@@ -45,8 +48,10 @@ export function useModalDialog({
   React.useEffect(() => {
     if (!open) return undefined;
     fallbackReturnFocusRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
+    if (scrollLocks++ === 0) {
+      unlockedOverflow = document.body.style.overflow;
+      document.body.style.overflow = "hidden";
+    }
     const frame = window.requestAnimationFrame(() => initialFocusRef.current?.focus());
     const dialog = dialogRef.current;
     if (dialog) openDialogs.push(dialog);
@@ -79,7 +84,7 @@ export function useModalDialog({
     document.addEventListener("keydown", handleKeyDown);
     return () => {
       window.cancelAnimationFrame(frame);
-      document.body.style.overflow = previousOverflow;
+      if (--scrollLocks === 0) document.body.style.overflow = unlockedOverflow;
       document.removeEventListener("keydown", handleKeyDown);
       if (dialog) openDialogs.splice(openDialogs.indexOf(dialog), 1);
       const returnFocus = returnFocusRef?.current ?? fallbackReturnFocusRef.current;

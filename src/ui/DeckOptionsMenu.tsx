@@ -4,8 +4,9 @@ import { Layers, MoreHorizontal, MoveRight, Settings } from "lucide-react";
 import { createDeckPlacementValidator, type DeckMutationResult } from "../coreWorkspace.ts";
 import type { CoreMode, Deck } from "../coreTypes.ts";
 import type { DeckLibraryRow } from "../libraryModel.ts";
-import { IconButton } from "./actionUi.tsx";
-import { ActionDialog, CoreModeControl } from "./coreUi.tsx";
+import { ActionButton, IconButton } from "./actionUi.tsx";
+import { CoreModeControl } from "./coreUi.tsx";
+import { DialogFrame } from "./DialogFrame.tsx";
 import { DeckAppearanceIcon, getDeckAppearance } from "./deckAppearance.tsx";
 import { useSuccessToast } from "./feedbackUi.tsx";
 import { DeckSelect } from "./selectUi.tsx";
@@ -20,8 +21,6 @@ export interface DeckOptionsMenuProps {
   onOpenSettings: (deckId: string) => unknown;
   onMoveDeck: (deckId: string, parentDeckId: string | null) => DeckMutationResult | null;
 }
-
-const menuActionClass = "flex min-h-11 w-full items-center gap-2.5 rounded-inset px-2.5 text-left core-body text-core-text transition-colors hover:bg-core-subtle focus-visible:bg-core-subtle focus-visible:outline-none [&>svg]:shrink-0 [&>svg]:text-core-muted";
 
 export const DeckOptionsMenu = React.memo(function DeckOptionsMenu({ row, decks, onSetCoreMode, onOpenSettings, onMoveDeck }: DeckOptionsMenuProps) {
   const [moveDialogOpen, setMoveDialogOpen] = React.useState(false);
@@ -43,6 +42,11 @@ export const DeckOptionsMenu = React.memo(function DeckOptionsMenu({ row, decks,
     setMoveTargetId(row.deck.parentDeckId ?? "");
     setMoveError("");
     setMoveDialogOpen(true);
+  }
+
+  function closeMoveDialog() {
+    setMoveDialogOpen(false);
+    setMoveError("");
   }
 
   function confirmMove() {
@@ -95,12 +99,12 @@ export const DeckOptionsMenu = React.memo(function DeckOptionsMenu({ row, decks,
             </div>
             <div className="-mx-1.5 grid gap-0.5 border-t border-core-border px-1.5 pt-1.5">
               <Popover.Close asChild>
-                <button type="button" className={menuActionClass} onClick={() => onOpenSettings(row.id)}>
+                <button type="button" className="core-menu-row" onClick={() => onOpenSettings(row.id)}>
                   <Settings size={16} aria-hidden="true" />Einstellungen
                 </button>
               </Popover.Close>
               <Popover.Close asChild>
-                <button type="button" className={menuActionClass} data-testid={`deck-move-button-${row.id}`} onClick={openMoveDialog}>
+                <button type="button" className="core-menu-row" data-testid={`deck-move-button-${row.id}`} onClick={openMoveDialog}>
                   <MoveRight size={16} aria-hidden="true" />Verschieben
                 </button>
               </Popover.Close>
@@ -110,11 +114,18 @@ export const DeckOptionsMenu = React.memo(function DeckOptionsMenu({ row, decks,
       </Popover.Root>
 
       {moveDialogOpen ? (
-        <ActionDialog
+        <DialogFrame
           open
           title="Stapel verschieben"
-          description={(
+          size="s"
+          onClose={closeMoveDialog}
+          footer={(
             <>
+              <ActionButton variant="secondary" onClick={closeMoveDialog}>Abbrechen</ActionButton>
+              <ActionButton variant="primary" icon={MoveRight} onClick={confirmMove}>Verschieben</ActionButton>
+            </>
+          )}
+        >
               <DeckSelect
                 ariaLabel={`Ziel für ${row.deck.name}`}
                 className="w-full"
@@ -128,17 +139,7 @@ export const DeckOptionsMenu = React.memo(function DeckOptionsMenu({ row, decks,
                 }}
               />
               {moveError ? <p className="core-body mt-3 font-semibold text-core-text" role="alert">{moveError}</p> : null}
-            </>
-          )}
-          confirmLabel="Verschieben"
-          cancelLabel="Abbrechen"
-          actionIcons={{ confirm: MoveRight }}
-          onCancel={() => {
-            setMoveDialogOpen(false);
-            setMoveError("");
-          }}
-          onConfirm={confirmMove}
-        />
+        </DialogFrame>
       ) : null}
     </>
   );

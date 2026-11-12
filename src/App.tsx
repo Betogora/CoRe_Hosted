@@ -32,7 +32,7 @@ import { useSettingsOverlay } from "./useSettingsOverlay.ts";
 import { requestPersistentWorkspaceStorage } from "./workspaceStorage.ts";
 import { AuthGateScreen } from "./screens/AuthGateScreen.tsx";
 import { AppNavigation } from "./ui/AppNavigation.tsx";
-import { ActionDialog, EmptyState, OrbIcon, SoftPanel } from "./ui/coreUi.tsx";
+import { ActionDialog, EmptyState, SoftPanel } from "./ui/coreUi.tsx";
 import { ActionButton } from "./ui/actionUi.tsx";
 import { CoreCheckbox } from "./ui/formControls.tsx";
 import { CoreWordmark } from "./ui/CoreWordmark.tsx";
@@ -63,7 +63,7 @@ function LoadingScreen({ message = "CoRe wird geladen.", onRetry }: { message?: 
     <main className="core-centered-viewport grid min-h-dvh min-w-0 place-items-center bg-core-surface px-6 py-10 text-core-text">
       <SoftPanel className="w-full max-w-md p-6">
         <div className="flex items-center gap-3">
-          <OrbIcon icon={Database} />
+          <Database size={22} className="shrink-0 text-core-action" aria-hidden="true" />
           <div>
             <h1 className="core-heading-2"><CoreWordmark /></h1>
             <p className="mt-1 core-body text-core-muted" role="status" aria-live="polite">
@@ -475,13 +475,11 @@ function AppContent() {
         <ActionDialog
           open={Boolean(emptyStudyStart)}
           title={emptyStudyStart?.limitSummary ? "Tageslimit erreicht" : "Keine fälligen Karten"}
-          description={emptyStudyStart ? (
+          description={emptyStudyStart && (emptyStudyStart.limitSummary || emptyStudyStart.hasAdditionalNewCards) ? (
             <div className="grid gap-2">
-              <p>
-                {emptyStudyStart.limitSummary
-                  ? `„${emptyStudyStart.deckName}“: ${formatLimitSummary(emptyStudyStart.limitSummary.hiddenDueCount, emptyStudyStart.limitSummary.hiddenNewCount)}`
-                  : `Dieser Stapel hat für heute keine Karten in der Lern-Queue.`}
-              </p>
+              {emptyStudyStart.limitSummary ? (
+                <p>„{emptyStudyStart.deckName}“: {formatLimitSummary(emptyStudyStart.limitSummary.hiddenDueCount, emptyStudyStart.limitSummary.hiddenNewCount)}</p>
+              ) : null}
               {emptyStudyStart.hasAdditionalNewCards ? (
                 <p>Möchtest du die Anzahl neuer Karten pro Tag erhöhen?</p>
               ) : null}

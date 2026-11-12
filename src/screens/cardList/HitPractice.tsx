@@ -99,8 +99,8 @@ export function HitPractice({ bodies, mediaStore, onClose }: HitPracticeProps) {
               </div>
             ) : (
               <div className="text-center">
-                <span className="core-surface mx-auto grid size-12 place-items-center rounded-control text-core-success" aria-hidden="true"><CheckCircle2 size={24} /></span>
-                <h1 ref={headingRef} tabIndex={-1} className="mt-4 core-heading-2 text-core-text outline-none">Übung abgeschlossen</h1>
+                <CheckCircle2 size={28} className="mx-auto text-core-success" aria-hidden="true" />
+                <h1 ref={headingRef} tabIndex={-1} className="mt-3 core-heading-2 text-core-text outline-none">Übung abgeschlossen</h1>
                 <p className="mt-2 core-body text-core-secondary">{cardCount(practice.known.length)} geübt · {againTotal}× Nochmal</p>
                 <div className="mt-6 flex flex-wrap justify-center gap-3">
                   {practice.difficult.length ? (

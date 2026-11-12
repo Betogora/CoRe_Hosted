@@ -1,6 +1,8 @@
 import React from "react";
 import type { HitStudyMode, HitStudyOrder } from "../../hitStudySession.ts";
-import { ActionDialog, CoreSegmentedControl } from "../../ui/coreUi.tsx";
+import { ActionButton } from "../../ui/actionUi.tsx";
+import { CoreSegmentedControl } from "../../ui/coreUi.tsx";
+import { DialogFrame } from "../../ui/DialogFrame.tsx";
 import { cardCount } from "./cardListModel.ts";
 
 export interface HitStudyDialogProps {
@@ -43,15 +45,18 @@ export function HitStudyDialog({ title, loadCardIds, onStart, onClose }: HitStud
   }
 
   return (
-    <ActionDialog
+    <DialogFrame
       open
       title={title}
-      confirmLabel="Lernen"
-      cancelLabel="Abbrechen"
-      confirmLoading={starting}
-      onCancel={onClose}
-      onConfirm={() => void start()}
-      description={(
+      size="s"
+      onClose={onClose}
+      footer={(
+        <>
+          <ActionButton variant="secondary" disabled={starting} onClick={onClose}>Abbrechen</ActionButton>
+          <ActionButton variant="primary" loading={starting} disabled={starting} onClick={() => void start()}>Lernen</ActionButton>
+        </>
+      )}
+    >
         <div className="grid gap-3" data-testid="hit-study-dialog">
           <p className="core-body font-semibold text-core-text" aria-live="polite">
             {cardIds === null ? "Karten werden gezählt …" : cardIds.length ? cardCount(cardIds.length) : "Keine Karte zum Lernen"}
@@ -72,7 +77,6 @@ export function HitStudyDialog({ title, loadCardIds, onStart, onClose }: HitStud
           />
           {error ? <p className="core-field-error" role="alert">{error}</p> : null}
         </div>
-      )}
-    />
+    </DialogFrame>
   );
 }

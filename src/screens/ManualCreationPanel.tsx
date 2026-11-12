@@ -674,8 +674,8 @@ export function ManualCreationPanel({
           </div>
         ) : null}
         {isChoice ? (
-          <fieldset className="grid gap-3 rounded-panel border border-core-border bg-core-surface p-4 shadow-soft">
-            <legend className="px-1 core-field-label">
+          <fieldset className="grid gap-3">
+            <legend className="mb-2 core-field-label">
               Antwortoptionen und {isSingleChoice ? "richtige Antwort" : "richtige Antworten"}
             </legend>
             {answerOptions.map((option, index) => {
@@ -716,7 +716,7 @@ export function ManualCreationPanel({
 
       <div className="grid gap-4">
           {additionalFields.map((field, index) => (
-            <div key={field.id} className="grid min-w-0 gap-3 rounded-panel border border-core-border bg-core-surface p-4 shadow-soft">
+            <div key={field.id} className="grid min-w-0 gap-3 rounded-inset bg-core-subtle p-4">
               <div className="grid min-w-0 gap-3 md:grid-cols-[minmax(0,1fr)_12rem_auto]">
                 <label className="grid gap-2 core-field-label">
                   Feldname
@@ -776,7 +776,7 @@ export function ManualCreationPanel({
       {saveProgress ? (
         <div
           ref={saveProgressRef}
-          className="relative overflow-hidden rounded-control border border-core-border bg-core-surface px-4 py-3 shadow-soft outline-none focus-visible:ring-2 focus-visible:ring-core-focus focus-visible:ring-offset-2"
+          className="relative overflow-hidden rounded-inset bg-core-subtle px-4 py-3 outline-none focus-visible:ring-2 focus-visible:ring-core-focus focus-visible:ring-offset-2"
           data-testid="manual-save-progress"
           role="progressbar"
           aria-label="Fortschritt der Kartenspeicherung"
@@ -863,7 +863,7 @@ export function ManualCreationPanel({
               {document ? <p className="truncate core-caption text-core-muted">{document.fileName}</p> : null}
             </FileDropField>
             {document && !shouldShowPdfViewer ? (
-              <div className="rounded-control border border-core-border bg-core-subtle p-3 core-body text-core-muted">
+              <div className="rounded-inset bg-core-subtle p-3 core-body text-core-muted">
                 <p>{documentStatusMessage(document)}</p>
               </div>
             ) : null}

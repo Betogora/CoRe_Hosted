@@ -274,6 +274,13 @@ test("statistics uses the shared filtered heatmap without clipped shadows or ret
   await expect(page.getByTestId("study-heatmap-header").getByRole("heading", { name: /Tage? Streak/ })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Lernkalender" })).toHaveCount(0);
   await expect(page.locator('section[aria-labelledby="statistics-overview-title"] dt')).toHaveCount(7);
+  const areas = page.getByRole("tablist", { name: "Bereiche der Statistik" });
+  for (const [area, chart] of [["Planung & Kartenbestand", "Zeitplanung"], ["FSRS-Gedächtnismodell", "FSRS-Schwierigkeit"], ["Antwortverhalten", "Wahre Erinnerungsquote"], ["Stapelvergleich", "Stapelvergleich"]] as const) {
+    await areas.getByRole("tab", { name: area, exact: true }).click();
+    await expect(page.getByRole("tabpanel").getByRole("heading", { name: chart, exact: true })).toBeVisible();
+  }
+  await expect(page.getByRole("button", { name: /^Stapelinhalte öffnen:/ }).first()).toBeVisible();
+  await areas.getByRole("tab", { name: "Lernaktivität", exact: true }).click();
   for (const removedText of [
     "Alle historischen Diagramme",
     "pro aktivem Tag",
@@ -483,7 +490,8 @@ test("Lerneinstellungen wechseln bei 768 px zwischen Bottom Sheet und zentrierte
     const style = window.getComputedStyle(element);
     return { top: style.borderTopWidth, bottom: style.borderBottomWidth };
   }));
-  expect(contentBorders.every((border: { top: string; bottom: string }) => border.top === "0px" && border.bottom === "0px")).toBe(true);
+  // No boxed rows; one hairline separates the groups „Karte“ and „Sitzung“.
+  expect(contentBorders.filter((border: { top: string; bottom: string }) => border.top !== "0px" || border.bottom !== "0px")).toEqual([{ top: "1px", bottom: "0px" }]);
 
   await page.setViewportSize({ width: 768, height: 640 });
   await page.waitForTimeout(250);

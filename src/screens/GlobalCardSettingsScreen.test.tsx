@@ -37,7 +37,7 @@ test("learning settings render exactly the requested dialog area without a page 
     const html = renderSettings(section);
     assert.equal(html.match(/<h2 /g)?.length, 1);
     assert.match(html, new RegExp(`<h2[^>]*tabindex="-1"[^>]*>${heading}</h2>`));
-    assert.doesNotMatch(html, />Lerneinstellungen<|data-in-page-navigation/);
+    assert.doesNotMatch(html, />Lerneinstellungen</);
   }
   assert.match(renderSettings("tagesrunde"), />Stapeleinstellungen<[\s\S]*?aria-label="Stapeleinstellungen öffnen"[^>]*data-testid="card-settings-open-deck"/);
   assert.doesNotMatch(renderSettings("tagesrunde"), /Werte einzelner Stapel/);

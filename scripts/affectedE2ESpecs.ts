@@ -24,7 +24,7 @@ const AREAS: [RegExp, string[]][] = [
   [/auth|Auth/, ["auth-gate", "auth-lifecycle", "auth-resilience"]],
   [/apkg|Apkg|media|Media|zipReader|sqliteReader|importRetranslation|importUiState/, ["apkg-quality-report", "first-learning", "zz-media-import", "batch-resilience", "world-capitals-hierarchy"]],
   [/cloud|Cloud|sync|Sync|coreRepository|accountDatabase|accountStorage|offline/, ["batch-resilience", "card-lifecycle", "core-stabilization", "navigation-context", "exam-planning", "auth-resilience", "zz-media-import"]],
-  [/appNavigation|AppNavigation|menuModel|InPageNavigation|appRoute/, ["navigation-context", "product-surfaces"]],
+  [/appNavigation|AppNavigation|menuModel|appRoute/, ["navigation-context", "product-surfaces"]],
   [/Settings|settings|learningProfiles|LearningDefaults|SaveBar/, ["product-surfaces", "core-stabilization"]],
   [/[Cc]reation|coreModel|cardEditor|NoteContentEditor|[Rr]ichText|[Tt]ag(?:Input|Directory)/, ["card-lifecycle", "batch-resilience", "first-learning", "ai-source-creation"]],
   [/Simulator|DatePicker/, ["core-stabilization"]],

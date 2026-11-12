@@ -122,7 +122,7 @@ test("weights separate label, action and heading; only floating layers cast shad
 
 test("the UI catalog lists every canonical shared export", () => {
   const catalog = readFileSync("src/ui/README.md", "utf8");
-  for (const name of ["SoftPanel", "PageHeader", "EmptyState", "ActionDialog", "OrbIcon", "StatTile", "SectionHeader", "MetricRow", "Steps", "CoreTabs", "CoreTabPanel", "DialogFrame", "DailyReviewProgress", "CoreModeControl", "ActionButton", "IconButton", "StatusMessage", "SuccessToast", "SuccessToastProvider", "useSuccessToast"]) {
+  for (const name of ["SoftPanel", "PageHeader", "EmptyState", "ActionDialog", "StatTile", "SectionHeader", "MetricRow", "Steps", "CoreTabs", "CoreTabPanel", "DialogFrame", "DailyReviewProgress", "CoreModeControl", "ActionButton", "IconButton", "StatusMessage", "SuccessToast", "SuccessToastProvider", "useSuccessToast"]) {
     assert.match(catalog, new RegExp(`\\b${name}\\b`));
   }
 });

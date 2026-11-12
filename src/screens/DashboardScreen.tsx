@@ -11,7 +11,8 @@ import type { Deck } from "../coreTypes.ts";
 import { getLearningDayKey, getLearningTimeZone } from "../learningDay.ts";
 import type { StudyHeatmapDay } from "../studyHeatmapModel.ts";
 import { ActionButton, CrossLinkButton, IconButton } from "../ui/actionUi.tsx";
-import { ActionDialog, CoreSegmentedControl, PageHeader, SoftPanel } from "../ui/coreUi.tsx";
+import { CoreSegmentedControl, PageHeader, SoftPanel } from "../ui/coreUi.tsx";
+import { DialogFrame } from "../ui/DialogFrame.tsx";
 import { DailyReviewProgress, DAILY_REVIEW_PROGRESS_SEGMENTS } from "../ui/DailyReviewProgress.tsx";
 import { DeckTree, useStoredDeckTreeView } from "../ui/DeckTree.tsx";
 import { StatusMessage } from "../ui/feedbackUi.tsx";
@@ -87,10 +88,18 @@ function AdditionalCardsDialog({
   }
 
   return (
-    <ActionDialog
+    <DialogFrame
       open={open}
       title="Zusätzliche Karten lernen"
-      description={(
+      size="s"
+      onClose={closeDialog}
+      footer={(
+        <>
+          <ActionButton variant="secondary" onClick={closeDialog}>Abbrechen</ActionButton>
+          <ActionButton variant="primary" onClick={confirmAdditionalCards}>{selectedAmount ? `${selectedAmount} ${Number(selectedAmount) === 1 ? "Karte" : "Karten"} lernen` : "Karten lernen"}</ActionButton>
+        </>
+      )}
+    >
         <div className="grid gap-4">
           <div className="core-field-group">
             <span className="core-field-label">Hauptstapel</span>
@@ -122,12 +131,7 @@ function AdditionalCardsDialog({
           </div>
           {status ? <StatusMessage tone="error" announce="assertive">{status}</StatusMessage> : null}
         </div>
-      )}
-      confirmLabel={selectedAmount ? `${selectedAmount} ${Number(selectedAmount) === 1 ? "Karte" : "Karten"} lernen` : "Karten lernen"}
-      cancelLabel="Abbrechen"
-      onConfirm={confirmAdditionalCards}
-      onCancel={closeDialog}
-    />
+    </DialogFrame>
   );
 }
 

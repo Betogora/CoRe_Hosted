@@ -4,9 +4,10 @@ import { CalendarClock, CalendarRange, ChevronDown, Flag, GraduationCap, FlagOff
 import type { CardBatchAction, TextReplaceSession } from "../../cardBatchActions.ts";
 import type { Deck } from "../../coreTypes.ts";
 import { addLearningDays, getLearningDayKey, getLearningDayStartForKey } from "../../learningDay.ts";
-import { CrossLinkButton, IconButton } from "../../ui/actionUi.tsx";
+import { ActionButton, CrossLinkButton, IconButton } from "../../ui/actionUi.tsx";
 import { CoreDatePicker } from "../../ui/CoreDatePicker.tsx";
 import { ActionDialog } from "../../ui/coreUi.tsx";
+import { DialogFrame } from "../../ui/DialogFrame.tsx";
 import { FlagPicker } from "../../ui/flagUi.tsx";
 import { DeckSelect } from "../../ui/selectUi.tsx";
 import { TagInput } from "../../ui/TagInput.tsx";
@@ -36,6 +37,9 @@ const MENU: ReadonlyArray<{ id: MenuActionId; label: string; icon: LucideIcon; s
   { id: "variants", label: "Varianten generieren", icon: Sparkles },
   { id: "delete", label: "Löschen", icon: Trash2, shortcut: { label: "Entf", keys: "Delete" } },
 ];
+
+/** First entries of the menu groups: study · content and tags · flag and mark · planning · variants · delete. */
+const GROUP_STARTS = new Set<MenuActionId>(["deck", "flag", "suspend", "variants", "delete"]);
 
 interface DialogState {
   id: MenuActionId;
@@ -143,7 +147,7 @@ export function CardSelectionBar({ count, hitTotal, searching, allHits, disabled
   const patch = (next: Partial<DialogState>) => setDialog((current) => current && { ...current, ...next });
   const fields = dialog ? (
     dialog.id === "deck" ? <DeckSelect ariaLabel="Zielstapel" className="w-full" value={dialog.deckId} decks={decks} onValueChange={(deckId) => patch({ deckId })} />
-      : dialog.id === "tags-add" || dialog.id === "tags-remove" ? <TagInput tags={dialog.tags} loadDirectory={loadTagDirectory} label="Tags" labelHidden onChange={(tags) => patch({ tags })} />
+      : dialog.id === "tags-add" || dialog.id === "tags-remove" ? <div className="min-h-[19rem]"><TagInput tags={dialog.tags} loadDirectory={loadTagDirectory} label="Tags" labelHidden onChange={(tags) => patch({ tags })} /></div>
         : dialog.id === "flag" ? <FlagPicker value={dialog.flag} names={flagNames} onValueChange={(flag) => patch({ flag: flag || dialog.flag })} />
           : dialog.id === "due" ? (
             <div className="grid gap-3 sm:grid-cols-2">
@@ -153,11 +157,9 @@ export function CardSelectionBar({ count, hitTotal, searching, allHits, disabled
               <label className="grid gap-1.5 core-caption font-semibold text-core-secondary">Spätestens
                 <CoreDatePicker value={dialog.to} min={dialog.from || tomorrowKey} today={todayKey} ariaLabel="Spätestens fällig" onValueChange={(to) => patch({ to })} />
               </label>
-              <p className="core-caption text-core-muted sm:col-span-2">Jede Karte bekommt einen zufälligen Tag im Zeitraum.</p>
             </div>
           )
-            : dialog.id === "delete" ? <p className="core-body text-core-secondary">Gelöscht werden die Inhalte der Karten samt ihrer weiteren Karten.</p>
-              : null
+            : null
   ) : null;
 
   return (
@@ -175,24 +177,42 @@ export function CardSelectionBar({ count, hitTotal, searching, allHits, disabled
         </Popover.Trigger>
         <Popover.Portal>
           <Popover.Content align="end" sideOffset={8} collisionPadding={16} className="core-overlay z-[60] grid max-h-[min(32rem,var(--radix-popover-content-available-height))] w-64 gap-0.5 overflow-y-auto rounded-panel p-1.5">
-            {MENU.filter((entry) => (entry.id !== "variants" || onGenerateVariants) && (entry.id !== "replace" || onPrepareReplace) && (entry.id !== "study" || onStudy)).map(({ id, label: entryLabel, icon: Icon, shortcut }) => (
-              <Popover.Close asChild key={id}>
-                <button type="button" aria-keyshortcuts={shortcut?.keys} className={`flex min-h-control w-full items-center gap-2.5 rounded-inset px-2.5 text-left core-body hover:bg-core-subtle ${id === "delete" ? "text-core-danger-text" : "text-core-text"}`} onClick={() => open(id)}>
-                  <Icon size={16} aria-hidden="true" />{entryLabel}
-                  {shortcut ? <span className="ml-auto core-caption tabular-nums text-core-muted" aria-hidden="true">{shortcut.label}</span> : null}
-                </button>
-              </Popover.Close>
+            {MENU.filter((entry) => (entry.id !== "variants" || onGenerateVariants) && (entry.id !== "replace" || onPrepareReplace) && (entry.id !== "study" || onStudy)).map(({ id, label: entryLabel, icon: Icon, shortcut }, index) => (
+              <React.Fragment key={id}>
+                {index > 0 && GROUP_STARTS.has(id) ? <div className="core-menu-separator" role="separator" /> : null}
+                <Popover.Close asChild>
+                  <button type="button" aria-keyshortcuts={shortcut?.keys} className="core-menu-row" data-tone={id === "delete" ? "danger" : undefined} onClick={() => open(id)}>
+                    <Icon size={16} aria-hidden="true" />{entryLabel}
+                    {shortcut ? <span className="ml-auto core-caption tabular-nums text-core-muted" aria-hidden="true">{shortcut.label}</span> : null}
+                  </button>
+                </Popover.Close>
+              </React.Fragment>
             ))}
           </Popover.Content>
         </Popover.Portal>
       </Popover.Root>
       {dialog?.id === "replace" && onPrepareReplace ? (
         <TextReplaceDialog count={count} prepare={onPrepareReplace} onRun={onRun} onClose={() => setDialog(null)} />
+      ) : dialog && fields ? (
+        <DialogFrame
+          open
+          title={`${label}: ${cardCount(count)}`}
+          size="s"
+          onClose={() => setDialog(null)}
+          footer={(
+            <>
+              <ActionButton variant="secondary" disabled={running} onClick={() => setDialog(null)}>Abbrechen</ActionButton>
+              <ActionButton variant="primary" loading={running} disabled={running} onClick={() => void confirm()}>{label}</ActionButton>
+            </>
+          )}
+        >
+          {fields}
+        </DialogFrame>
       ) : dialog ? (
         <ActionDialog
           open
           title={`${label}: ${cardCount(count)}`}
-          description={fields ?? undefined}
+          description={dialog.id === "delete" ? "Gelöscht werden die Inhalte der Karten samt ihrer weiteren Karten." : undefined}
           confirmLabel={label}
           cancelLabel="Abbrechen"
           destructive={dialog.id === "delete"}
