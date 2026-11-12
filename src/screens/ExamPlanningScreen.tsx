@@ -14,8 +14,8 @@ import { ExamPlanEditor } from "./ExamPlanEditor.tsx";
 import { ExamCalendar } from "./ExamCalendar.tsx";
 import { ExamDashboardWidget } from "./ExamDashboardWidget.tsx";
 import { useExamForecast } from "./useExamForecast.ts";
+import { useWorkspaceValue } from "../useWorkspaceStore.ts";
 
-export const EXAM_METHOD_LABELS = { new: "Neue Karten", review: "Wiederholungen", relearning: "Lernschritte", variant: "Varianten" } as const;
 const STATUS_LABELS = { paused: "Pausiert", completed: "Abgeschlossen" } as const;
 
 interface ExamCardProps {
@@ -92,8 +92,9 @@ function ExamCard({ exam, color, summary, progress, civilToday, busy, editor, on
 }
 
 /** Global exam planner (ADR-042), with relative study time for each exam. */
-export function ExamPlanningScreen({ state, deckSummaries, now, onLoadPlanningData, onSavePlanning, onSaveTasks, onStartUnit, onLoadSummaryAvailability, onLoadLocalCardIds, onDraftStateChange }: ExamPlanningScreenProps) {
+export function ExamPlanningScreen({ state, now, onLoadPlanningData, onSavePlanning, onSaveTasks, onStartUnit, onLoadSummaryAvailability, onLoadLocalCardIds, onDraftStateChange }: ExamPlanningScreenProps) {
   const preferences = getGlobalSchedulerPreferences(state.profile);
+  const deckSummaries = useWorkspaceValue((snapshot) => snapshot.deckSummaries);
   const [calendarDraft, setCalendarDraft] = React.useState<ExamPlanningSettings | null>(null);
   const { exams, capacity } = calendarDraft ?? preferences.examPlanning;
   const timeZone = getLearningTimeZone(state.profile);

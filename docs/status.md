@@ -1,6 +1,6 @@
 # CoRe-Status
 
-Stand: 2026-11-04
+Stand: 2026-11-12
 
 Was heute vorhanden ist und was noch fehlt. Das Verhalten jeder Funktion steht
 in [`specs.md`](specs.md), offene Arbeit in [`todo.md`](todo.md), datierte
@@ -37,7 +37,7 @@ Die verbindliche Reifeentscheidung steht in [ADR-001](decisions.md#adr-001--prod
 
 - **Abnahmen:** P0-Produktgate mit Zielviewports, Tastatur- und Screenreader-Abnahme offen; Hosted-Account-Lifecycle, vollständiger Art.-15-Export und Löschung fehlen.
 - **Betrieb:** realer Alarmempfang sowie getrennte DB- und Storage-Restore-Proben fehlen ([`operations.md`](operations.md#6-datenbank-rls-und-restore)).
-- **Performance:** Alle gedrosselten Startgates bestehen („Neues Gerät bis Dashboard“ p75 2.574 ms bei 3.000 ms Grenze). Offen sind die vollständige 100k-Browserjourney, Feld-p75/p95 und Hosted-Rohdatenkapazität: 1 Mio. physische `review_events` überschreiten das aktuelle Volume; der tägliche Statistikrollup funktioniert.
+- **Performance:** Alle gedrosselten Startgates bestehen („Neues Gerät bis Dashboard“ p75 2.574 ms bei 3.000 ms Grenze). Offen sind die vollständige 100k-Browserjourney, Feldwerte von Testgeräten (die App zeichnet sie lokal auf, ADR-050; eingesammelt ist noch nichts) und Hosted-Rohdatenkapazität: 1 Mio. physische `review_events` überschreiten das aktuelle Volume; der tägliche Statistikrollup funktioniert.
 - **Import-Korpus:** Ankizin v5, Ankiphil, Dellas, Image Occlusion Enhanced, Anki-Bildverdeckung und ein Auszug mit FSRS-Lernstand werden vollständig übersetzt. AnKing sowie Lernstände mit Lern-, Wiederlern-, ausgesetzten, begrabenen und geflaggten Karten fehlen im Korpus und sind nur synthetisch über die Matrix belegt.
 - **Bewusst nicht ausgeführt:** Template-JavaScript, Add-on- und Custom-Filter, native LaTeX-Toolchains und nicht browserfähige Codecs bleiben erhalten, laufen aber nicht.
 - **Begraben:** Stapelzähler zählen zwei noch unbeantwortete Geschwister bis zur ersten Antwort beide (Anki zeigt eines). Ein Gerät mit unvollständigem lokalen Katalog übernimmt Antworten erst mit dem nächsten Bootstrap in die Zähler.

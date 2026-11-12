@@ -1,6 +1,6 @@
 # CoRe-Verlauf
 
-Stand: 2026-11-11
+Stand: 2026-11-12
 
 Diese Datei hält zwei Dinge fest, die Git nicht abbildet:
 
@@ -61,6 +61,7 @@ Noch nie nachgewiesen: DB-Restore-Probe, Storage-Restore-Probe, realer Alarmempf
 - **2026-11-04** — Navigation: `Karten` als eigener Hauptreiter, Statistik als Icon; Karteneditor mit einheitlichen Panels.
 - **2026-11-04–07** — Einstellungen als Dialog: Bereichs-Sidebar statt zweier Seiten, kastenlose Zeilen, Wochenrhythmus als Tabelle, gemeinsames Zahlenfeld; Stapeleinstellungen als eigener Dialog über Ansicht oder Sitzung, die Seite `stapel-einstellungen` entfällt.
 - **2026-11-04–11** — Kartenverwaltung 2.0 nach Ankis Browser: lokale Suche mit Anki-Syntax über den ganzen Katalog, flache virtualisierte Liste, Massenaktionen mit Rückgängig, Suchen und Ersetzen, Treffer lernen, Duplikate, Tags verwalten, Editor neben der Liste (ADR-048); dazu gestuftes Vorladen und ein Startgraph ohne Realtime.
+- **2026-11-11–12** — Architekturumbau ohne Verhaltensänderung: `App.tsx` als Shell (2.487 auf 536 Zeilen) mit Workspace-Store, Befehlsmodulen und einer Verdrahtung je Bildschirm; lokales Repository in sechs Modulen, typisierte Sync-Grenze, Modulgrenzen und sinkende Obergrenzen im Typecheck. Dazu Sync-Schreibpfad in einer Transaktion je Seite, vorbereitete Antwortseite in der Lernansicht und lokale Feldwerte (ADR-050).
 
 ### Oktober 2026
 

@@ -1,110 +1,32 @@
 import React from "react";
-import type { Card, Deck, Note } from "./coreTypes.ts";
-import type { WorkspaceState } from "./coreWorkspace.ts";
+import type { CardCommands } from "./cardCommands.ts";
+import { applyCardStudyStatePatch } from "./coreModel.ts";
+import type { CardStudyStatePatch, Deck, NewReviewOrder, Note } from "./coreTypes.ts";
+import { markLearningSettingsCustom } from "./deckSettings.ts";
 import type { IndexedDbCoreRepository } from "./indexedDbCoreRepository.ts";
-import { createDailyReviewQueue, type AnsweredTodayCard } from "./reviewService.ts";
-import { buriesSiblings } from "./siblingBurying.ts";
-import type { StudyWindowCursor, WorkspaceHydrationService } from "./workspaceHydrationService.ts";
+import type { AnsweredTodayCard, ReviewAnswerResult } from "./reviewService.ts";
+import type { StudyPreparation, StudyPreparationCommands } from "./studyPreparation.ts";
+import { useStableCallback } from "./ui/useStableCallback.ts";
+import type { StudyWindowCursor } from "./workspaceHydrationService.ts";
 
 interface StudySessionContext {
-  workspaceRepository: IndexedDbCoreRepository | null;
-  workspaceHydrationService: WorkspaceHydrationService | null;
-  latestStateRef: React.RefObject<WorkspaceState | null>;
+  /** Loads the next windows; null while no workspace is open. */
+  preparation: StudyPreparationCommands | null;
+  repository: IndexedDbCoreRepository | null;
+  cardCommands: CardCommands | null;
+  /** Applies the repository's shell state to the store. */
+  refresh: (options?: { preserveCardPages?: boolean }) => unknown;
+  requestSync: () => void;
+  /** The learning time the shown counts were computed for. */
   now: string;
-  dayStartHour: number;
-  learnAheadMinutes: number;
-  timeZone?: string;
-}
-
-export interface StudyPreparation {
-  decks: Deck[];
-  notes: Note[];
-  answeredToday: AnsweredTodayCard[];
-  queue: ReturnType<typeof createDailyReviewQueue>;
-  cursorByDeck: Record<string, StudyWindowCursor>;
-  hasMoreCards: boolean;
-  bufferSize: number;
-  /** Account-wide due counts per future day at session start, for Easy Days; null without a current overview. */
-  dueForecast: ReadonlyMap<string, number> | null;
-}
-
-/** The studied deck with all its subdecks. */
-function scopeDeckIds(decks: WorkspaceState["decks"], deckId: string): string[] {
-  const scopeIds = new Set<string>([deckId]);
-  let changed = true;
-  while (changed) {
-    changed = false;
-    for (const deck of decks) {
-      if (deck.parentDeckId && scopeIds.has(deck.parentDeckId) && !scopeIds.has(deck.id)) {
-        scopeIds.add(deck.id);
-        changed = true;
-      }
-    }
-  }
-  return [...scopeIds];
-}
-
-function groupByDeck<T extends { deckId: string }>(items: readonly T[]): Map<string, T[]> {
-  const groups = new Map<string, T[]>();
-  for (const item of items) {
-    const bucket = groups.get(item.deckId);
-    if (bucket) bucket.push(item);
-    else groups.set(item.deckId, [item]);
-  }
-  return groups;
 }
 
 /**
- * Loads study windows until the queue has a card or nothing is left, so the session never starts on an empty page.
- * Returns null while no workspace is ready.
+ * The running study session: the loaded decks, contents and today's answers with window paging, and the writes made
+ * from it (answers, quick study-state changes, the new-card order). Its callbacks keep their identity, so the
+ * memoized study screen does not render for an unchanged session.
  */
-async function prepareStudyWindow(
-  context: StudySessionContext,
-  deckId: string,
-  cursorByDeck: Record<string, StudyWindowCursor>,
-): Promise<StudyPreparation | null> {
-  const { workspaceRepository, workspaceHydrationService, now, dayStartHour, learnAheadMinutes, timeZone } = context;
-  const shellState = context.latestStateRef.current;
-  if (!workspaceRepository || !shellState) return null;
-  const ids = scopeDeckIds(shellState.decks, deckId);
-  const answeredSiblings = shellState.decks.some((deck) => ids.includes(deck.id) && buriesSiblings(deck.deckSettings));
-  let nextCursorByDeck = cursorByDeck;
-  const dueForecast = Object.keys(cursorByDeck).length === 0 ? await workspaceRepository.loadDueForecast({ now, dayStartHour, timeZone }) : null;
-  while (true) {
-    const session = workspaceHydrationService
-      ? await workspaceHydrationService.prepareStudyWindow(ids, { now, dayStartHour, timeZone, cursorByDeck: nextCursorByDeck, answeredSiblings })
-      : await workspaceRepository.loadReviewSession(ids, { now, dayStartHour, timeZone, limit: 50, cursorByDeck: nextCursorByDeck, answeredSiblings });
-    const cardsByDeck = groupByDeck<{ deckId: string; card: Card }>(session.cards);
-    const eventsByDeck = groupByDeck(session.reviewEvents);
-    const decks = ids.flatMap((id) => {
-      const summary = shellState.decks.find((deck) => deck.id === id);
-      if (!summary) return [];
-      return [{ ...summary, cards: (cardsByDeck.get(id) ?? []).map(({ card }) => card), reviewEvents: eventsByDeck.get(id) ?? [] } as Deck];
-    });
-    const queue = createDailyReviewQueue(decks, { deckId, now, dayStartHour, learnAheadMinutes, timeZone, answeredToday: session.answeredToday });
-    const cursorAdvanced = Object.entries(session.cursorByDeck).some(([candidateDeckId, cursor]) => {
-      const previous = nextCursorByDeck[candidateDeckId];
-      const queueRank = "queueRank" in cursor ? cursor.queueRank : undefined;
-      return !previous || previous.queueRank !== queueRank || previous.dueAt !== cursor.dueAt || previous.id !== cursor.id;
-    });
-    if (queue.total > 0 || !session.hasMore || !cursorAdvanced) {
-      return {
-        decks,
-        notes: session.notes,
-        answeredToday: session.answeredToday,
-        queue,
-        cursorByDeck: session.cursorByDeck,
-        hasMoreCards: session.hasMore && cursorAdvanced,
-        bufferSize: "bufferSize" in session ? Math.max(1, Number(session.bufferSize) || 50) : 50,
-        dueForecast,
-      };
-    }
-    nextCursorByDeck = session.cursorByDeck;
-  }
-}
-
-/** State of the running study session: the loaded decks, contents and today's answers, plus window paging. */
-export function useStudySession(context: StudySessionContext) {
+export function useStudySession({ preparation, repository, cardCommands, refresh, requestSync, now }: StudySessionContext) {
   const [decks, setDecks] = React.useState<Deck[] | null>(null);
   const [notes, setNotes] = React.useState<Note[]>([]);
   const [answeredToday, setAnsweredToday] = React.useState<AnsweredTodayCard[]>([]);
@@ -116,27 +38,17 @@ export function useStudySession(context: StudySessionContext) {
   const preparedKeyRef = React.useRef("");
   /** Key of a start in progress, so a double click starts once. */
   const preparingKeyRef = React.useRef("");
-  const { workspaceRepository, workspaceHydrationService, latestStateRef, now, dayStartHour, learnAheadMinutes, timeZone } = context;
-
-  const prepare = React.useCallback(
-    (deckId: string, cursorByDeck: Record<string, StudyWindowCursor> = {}) => prepareStudyWindow(
-      { workspaceRepository, workspaceHydrationService, latestStateRef, now, dayStartHour, learnAheadMinutes, timeZone },
-      deckId,
-      cursorByDeck,
-    ),
-    [dayStartHour, latestStateRef, learnAheadMinutes, now, timeZone, workspaceHydrationService, workspaceRepository],
-  );
 
   /** Takes over a prepared window; with a key the session counts as prepared. */
-  const adopt = React.useCallback((preparation: StudyPreparation, preparedKey: string | null) => {
+  const adopt = React.useCallback((prepared: StudyPreparation, preparedKey: string | null) => {
     if (preparedKey !== null) preparedKeyRef.current = preparedKey;
-    cursorRef.current = preparation.cursorByDeck;
-    setHasMoreCards(preparation.hasMoreCards);
-    setBufferSize(preparation.bufferSize);
-    setDueForecast(preparation.dueForecast);
-    setDecks(preparation.decks);
-    setNotes(preparation.notes);
-    setAnsweredToday(preparation.answeredToday);
+    cursorRef.current = prepared.cursorByDeck;
+    setHasMoreCards(prepared.hasMoreCards);
+    setBufferSize(prepared.bufferSize);
+    setDueForecast(prepared.dueForecast);
+    setDecks(prepared.decks);
+    setNotes(prepared.notes);
+    setAnsweredToday(prepared.answeredToday);
   }, []);
 
   const reset = React.useCallback(() => {
@@ -150,15 +62,15 @@ export function useStudySession(context: StudySessionContext) {
 
   /** Loads the next window and merges it into the running session. */
   const loadMore = React.useCallback(async (deckId: string) => {
-    const preparation = await prepare(deckId, cursorRef.current);
-    if (!preparation) return { decks: [], notes: [], hasMoreCards: false, bufferSize };
-    cursorRef.current = preparation.cursorByDeck;
-    setHasMoreCards(preparation.hasMoreCards);
-    setBufferSize(preparation.bufferSize);
-    setNotes((current) => [...new Map([...current, ...preparation.notes].map((note) => [note.id, note])).values()]);
-    setAnsweredToday((current) => [...new Map([...current, ...preparation.answeredToday].map((answered) => [answered.cardId, answered])).values()]);
+    const prepared = await preparation?.prepareWindow(deckId, now, cursorRef.current) ?? null;
+    if (!prepared) return { decks: [], notes: [], hasMoreCards: false, bufferSize };
+    cursorRef.current = prepared.cursorByDeck;
+    setHasMoreCards(prepared.hasMoreCards);
+    setBufferSize(prepared.bufferSize);
+    setNotes((current) => [...new Map([...current, ...prepared.notes].map((note) => [note.id, note])).values()]);
+    setAnsweredToday((current) => [...new Map([...current, ...prepared.answeredToday].map((answered) => [answered.cardId, answered])).values()]);
     setDecks((current) => current?.map((currentDeck) => {
-      const page = preparation.decks.find((candidate) => candidate.id === currentDeck.id);
+      const page = prepared.decks.find((candidate) => candidate.id === currentDeck.id);
       if (!page) return currentDeck;
       const cards = new Map(currentDeck.cards.map((card) => [card.id, card]));
       for (const card of page.cards) cards.set(card.id, card);
@@ -166,8 +78,55 @@ export function useStudySession(context: StudySessionContext) {
       for (const event of page.reviewEvents) events.set(event.id, event);
       return { ...currentDeck, cards: [...cards.values()], reviewEvents: [...events.values()] };
     }) ?? current);
-    return { decks: preparation.decks, notes: preparation.notes, hasMoreCards: preparation.hasMoreCards, bufferSize: preparation.bufferSize };
-  }, [bufferSize, prepare]);
+    return { decks: prepared.decks, notes: prepared.notes, hasMoreCards: prepared.hasMoreCards, bufferSize: prepared.bufferSize };
+  }, [bufferSize, now, preparation]);
 
-  return { decks, setDecks, notes, setNotes, answeredToday, hasMoreCards, bufferSize, dueForecast, preparedKeyRef, preparingKeyRef, prepare, adopt, reset, loadMore };
+  const recordReview = useStableCallback((result: ReviewAnswerResult) => {
+    if (!repository) return;
+    preparation?.forgetExamPlanningData();
+    repository.recordReview(result);
+    requestSync();
+  });
+
+  const setCardStudyState = useStableCallback((deckId: string, cardId: string, patch: CardStudyStatePatch) => {
+    const deck = decks?.find((candidate) => candidate.id === deckId);
+    const card = deck?.cards.find((candidate) => candidate.id === cardId);
+    const note = card ? notes.find((candidate) => candidate.id === card.noteId) : null;
+    if (!deck || !card || !note) return null;
+    const updatedAt = new Date().toISOString();
+    const { note: nextNote, card: nextCard } = applyCardStudyStatePatch(note, card, patch, updatedAt);
+    const updated = { ...deck, updatedAt, cards: deck.cards.map((candidate) => candidate.id === cardId ? nextCard : candidate) };
+    setDecks((current) => current?.map((candidate) => candidate.id === deckId ? updated : candidate) ?? current);
+    setNotes((current) => current.map((candidate) => candidate.id === note.id ? nextNote : candidate));
+    void cardCommands?.applyCardStudyState(cardId, patch).then(() => {
+      refresh({ preserveCardPages: true });
+      requestSync();
+    });
+    return { deck: updated, note: nextNote };
+  });
+
+  const setDeckReviewOrder = useStableCallback((deckId: string, newReviewOrder: NewReviewOrder) => {
+    const deck = decks?.find((candidate) => candidate.id === deckId);
+    if (!deck) return null;
+    const nextDeckSettings = {
+      ...deck.deckSettings,
+      ...markLearningSettingsCustom({ ...deck.deckSettings, newReviewOrder }),
+      learningProfileSource: null,
+    };
+    const updated = {
+      ...deck,
+      updatedAt: new Date().toISOString(),
+      deckSettings: nextDeckSettings,
+    };
+    setDecks((current) => current?.map((candidate) => candidate.id === deckId ? updated : candidate) ?? current);
+    // A planned session root exists only in the session.
+    if (!deck.plannedOrder && repository) {
+      repository.updateDeckSettings(deckId, nextDeckSettings);
+      refresh({ preserveCardPages: true });
+      requestSync();
+    }
+    return updated;
+  });
+
+  return { decks, setDecks, notes, answeredToday, hasMoreCards, bufferSize, dueForecast, preparedKeyRef, preparingKeyRef, adopt, reset, loadMore, recordReview, setCardStudyState, setDeckReviewOrder };
 }

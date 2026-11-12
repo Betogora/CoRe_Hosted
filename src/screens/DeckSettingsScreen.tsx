@@ -6,6 +6,7 @@ import type { DeckSettingsSaveScope, DeckSettingsScreenProps, SettingsSaveOutcom
 import { CARD_VARIANT_BATCH_LIMIT } from "../cardVariantBatch.ts";
 import { createDefaultDeckSettings, normalizeDeckAppearance } from "../coreModel.ts";
 import { createDeckLibraryModel } from "../libraryModel.ts";
+import { useWorkspaceValue } from "../useWorkspaceStore.ts";
 import { ActionButton, CrossLinkButton } from "../ui/actionUi.tsx";
 import { ColorPicker } from "../ui/ColorPicker.tsx";
 import { DeckAppearanceIcon, deckIconOptions, getDeckIcon } from "../ui/deckAppearance.tsx";
@@ -69,7 +70,7 @@ const LEECH_ACTION_OPTIONS = [
   { value: "suspend", label: "Aussetzen" },
 ] as const;
 
-export function DeckSettingsScreen({ section, onSelectSection, deck, decks, deckSummaries, learningProfiles, onSaveSettings, onApplyLearningProfile, onSaveLearningProfiles, onDraftStateChange, onRequestContextAction, onCreateSubdeck, onDeleteDeck, onSelectDeck, onOpenGlobalSettings, offlineDeck = null, bodyCache = null, onDownloadDeck, onRemoveDeckDownload, onGenerateVariants, variantGenerationRunning = false, onClose, footer }: DeckSettingsScreenProps) {
+export function DeckSettingsScreen({ section, onSelectSection, deck, decks, learningProfiles, onSaveSettings, onApplyLearningProfile, onSaveLearningProfiles, onDraftStateChange, onRequestContextAction, onCreateSubdeck, onDeleteDeck, onSelectDeck, onOpenGlobalSettings, offlineDeck = null, bodyCache = null, onDownloadDeck, onRemoveDeckDownload, onGenerateVariants, variantGenerationRunning = false, onClose, footer }: DeckSettingsScreenProps) {
   const initialDraft = deck ? createDeckSettingsDraft(deck) : null;
   const [baseline, setBaseline] = React.useState<DeckSettingsDraft | null>(initialDraft);
   const [draft, setDraft] = React.useState<DeckSettingsDraft | null>(initialDraft);
@@ -83,6 +84,7 @@ export function DeckSettingsScreen({ section, onSelectSection, deck, decks, deck
   const area: DeckSettingsArea = section === "start" ? "stapel" : targetsNewCards ? "tagesrunde" : section;
   const showAreaList = section === "start";
   const setSuccessToast = useSuccessToast();
+  const deckSummaries = useWorkspaceValue((snapshot) => snapshot.deckSummaries);
   const deckRow = React.useMemo(() => deleteDialogOpen && deck ? createDeckLibraryModel(decks, { deckSummaries }).rows.find((row) => row.id === deck.id) ?? null : null, [deck, decks, deckSummaries, deleteDialogOpen]);
 
   const persistedDraft = deck ? createDeckSettingsDraft(deck) : null;

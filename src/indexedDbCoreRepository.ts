@@ -1,10 +1,9 @@
-import { createDefaultDeckSettings, mergeImportedTags, normalizeCoreDeck, rescheduleCard, resetCardStudy, restoreCardStudy, setCardLeech } from "./coreModel.ts";
+import { createDefaultDeckSettings, rescheduleCard, resetCardStudy, restoreCardStudy, setCardLeech } from "./coreModel.ts";
 import { normalizeWorkspaceState } from "./coreRepository.ts";
 import type {
   Card,
   CardVariant,
   Deck,
-  DeckSettings,
   ImportVerificationRepairScope,
   ImportVerificationScope,
   Note,
@@ -12,50 +11,35 @@ import type {
   ReviewEvent,
 } from "./coreTypes.ts";
 import type { WorkspaceState } from "./coreWorkspace.ts";
-import type { CardTableSort, DeckLibrarySummary } from "./libraryModel.ts";
+import type { CardTableSort } from "./libraryModel.ts";
 import type { SyncOutboxMutation } from "./syncEngine.ts";
 import type { CloudCatalogPage, CloudEntityPage } from "./cloudRepository.ts";
-import type { ReplicatedNoteTypeSource } from "./cloudRepositoryValidation.ts";
-import { duplicateFieldNames, findDuplicateGroups, type DuplicateKey } from "./duplicateContents.ts";
-import { countsTowardDailyLimits } from "./reviewEventKinds.ts";
 import type { ReviewAnswerResult } from "./reviewService.ts";
-import type { ImportCommitGraph, ImportMediaFile, NoteTypeSource } from "./apkgImport.ts";
-import { createStudyHeatmapModelFromCounts, getStudyHeatmapDayKey } from "./studyHeatmapModel.ts";
+import type { ImportCommitGraph, NoteTypeSource } from "./apkgImport.ts";
 import { getLearningDayKey, getLearningDayRange } from "./learningDay.ts";
 import { insertEntityMutation, planEntityMutations } from "./syncMutationPlanner.ts";
 import { isEmptyCardSearch, parseCardSearchQuery, type CardSearchContext } from "./cardSearchQuery.ts";
-import { catalogSortValue, createCatalogSearchIndex } from "./catalogSearchIndex.ts";
 import { MANUAL_BURY_KIND, MANUAL_UNBURY_KIND } from "./siblingBurying.ts";
 import { createTagDirectoryBuilder } from "./tagDirectory.ts";
 import type { StatisticsSelection } from "./statisticsModel.ts";
 import { requireCompleteProfile } from "./profileIntegrity.ts";
 import { markStartupPhaseReady, markStartupPhaseStarted } from "./appPerformance.ts";
 import {
-  bodyResidencyForRevision,
   catalogEntryFromCard,
   withStudyEvents,
   MANUAL_RESCHEDULE_KIND,
   type AccountBaselineState,
   type AccountStatisticsSnapshot,
   type AccountStudyOverview,
-  type BodyResidency,
   type CardBodyResidencyRecord,
-  type CardCatalogEntry,
   type DeckStudySummary,
-  type NoteGraph,
-  type NoteSearchEntry,
-  type NoteSearchField,
-  type OfflineCardManifestEntry,
-  type OfflineDeckRecord,
-  type OfflineMediaManifestEntry,
   type ReplicaStatus,
 } from "./workspaceReplica.ts";
 import {
   STORE,
-  LOCAL_WRITE_CHUNK_SIZE,
   CATALOG_PAGE_LIMIT,
+  type NoteGraphChange,
   type StoredCard,
-  type StoredVariant,
   type StoredCardCatalog,
   type StoredReviewDayCounts,
   type WorkspaceDeckSummary,
@@ -67,71 +51,29 @@ import {
   variantRecord,
   hydrateCard,
   storedCatalogRecord,
-  catalogEntry,
   catalogRecordFor,
   residencyRecord,
   deckRecord,
-  serializedBytes,
-  reviewHourKey,
   mutationId,
   loadShell,
   writeState,
   emptyDeckStudySummary,
 } from "./indexedDbStore.ts";
-import {
-  studyOverviewContext,
-  overviewScheduleBucket,
-  applyCatalogSummaryChanges,
-  type BuriedSiblingCounts,
-  buriedSiblingsByDeck,
-  loadAnsweredTodayFrom,
-} from "./indexedDbStudyCounts.ts";
-import { createMainThreadBudget } from "./mainThreadBudget.ts";
+import { loadAnsweredTodayFrom } from "./indexedDbStudyCounts.ts";
+import { createReplicaOutbox } from "./indexedDbOutbox.ts";
+import { createCatalogSearch, type CatalogCursor } from "./indexedDbCatalogSearch.ts";
+import { createStudyOverview } from "./indexedDbStudyOverview.ts";
+import { writeCloudCatalogPages } from "./indexedDbCatalogSync.ts";
+import { createCardBodies, readCardBodies, readNotes } from "./indexedDbCardBodies.ts";
+import { commitImportGraph, type ImportCommitOptions } from "./indexedDbImportCommit.ts";
 
-export type { WorkspaceDeckSummary } from "./indexedDbStore.ts";
+export type { NoteGraphChange, WorkspaceDeckSummary } from "./indexedDbStore.ts";
+export type { ReimportTargets } from "./indexedDbImportCommit.ts";
 
 interface IndexedDbRepositoryOptions {
   userId: string;
   initialState: WorkspaceState;
   indexedDb?: IDBFactory | null;
-}
-
-interface CatalogCursor {
-  sortValue: string;
-  id: string;
-}
-
-/** Catalog rows read per transaction while the search index loads; small enough to keep each task short. */
-const SEARCH_INDEX_BATCH_SIZE = 1_000;
-
-/** Object stores each catalog table writes; one call opens the union of the tables it applies. */
-const CATALOG_PAGE_STORES: Record<CloudCatalogPage["table"], string[]> = {
-  decks: [STORE.decks],
-  note_type_sources: [STORE.noteTypeSources],
-  deck_study_summaries: [STORE.deckStudySummaries],
-  note_search: [STORE.noteSearch, STORE.cardCatalog],
-  card_catalog: [STORE.cardCatalog, STORE.noteSearch, STORE.cards, STORE.variants, STORE.bodyResidency, STORE.deckStudySummaries, STORE.offlineDecks, STORE.syncMetadata],
-};
-
-export interface NoteGraphChange {
-  previous: NoteGraph | null;
-  next: NoteGraph;
-}
-
-/** Existing imported contents found per Anki GUID before a commit (K5.7). */
-export interface ReimportTargets {
-  notes: Note[];
-  cards: Array<{ id: string; noteId: string; deckId: string; promptKey: string; ankiCardId: string | null }>;
-  noteTypeSources: Array<{ id: string; ankiNotetypeId: string }>;
-}
-
-interface ImportCommitResult {
-  decks: WorkspaceDeckSummary[];
-  scope: ImportVerificationScope;
-  /** Reimported contents whose local edits were kept. */
-  keptLocalEdits: number;
-  /** Cards present in CoRe but no longer in the package; they are only reported. */
-  missingInPackage: number;
 }
 
 export async function createIndexedDbCoreRepository({ userId, initialState, indexedDb = globalThis.indexedDB }: IndexedDbRepositoryOptions) {
@@ -170,42 +112,16 @@ export async function createIndexedDbCoreRepository({ userId, initialState, inde
   await transactionDone(startupTransaction);
   markStartupPhaseReady("indexedDbStartupMetadata", { outboxCount: outboxRows.filter((mutation) => !mutation.flushedAt).length });
 
-  const pendingOutbox = new Map<string, SyncOutboxMutation>(outboxRows.map((mutation) => [mutation.id, mutation]));
-  const mutationTargetKey = (mutation: Pick<SyncOutboxMutation, "type" | "table" | "entityId">) => (
-    mutation.type === "profile-patch" ? "profile" : `${mutation.type}:${mutation.table}:${mutation.entityId}`
-  );
-  const pendingByTarget = new Map<string, SyncOutboxMutation>();
-  for (const mutation of pendingOutbox.values()) if (!mutation.flushedAt) pendingByTarget.set(mutationTargetKey(mutation), mutation);
-  const rememberPending = (mutation: SyncOutboxMutation) => {
-    pendingOutbox.set(mutation.id, mutation);
-    if (!mutation.flushedAt) pendingByTarget.set(mutationTargetKey(mutation), mutation);
-  };
-  const forgetPending = (id: string) => {
-    const mutation = pendingOutbox.get(id);
-    if (!mutation) return;
-    pendingOutbox.delete(id);
-    const key = mutationTargetKey(mutation);
-    if (pendingByTarget.get(key)?.id === id) pendingByTarget.delete(key);
-  };
-  const reviewTargetId = (mutation: SyncOutboxMutation, table: string) => {
-    const payload = mutation.payload as any;
-    return table === "cards" ? payload?.card?.id
-      : table === "card_variants" ? payload?.variant?.id
-        : table === "review_events" ? payload?.event?.id
-          : null;
-  };
-  const pendingEntityMutation = (table: string, entityId: string) => pendingByTarget.get(mutationTargetKey({ type: "entity-mutation", table, entityId }))
-    ?? (table === "cards" || table === "card_variants" || table === "review_events"
-      ? [...pendingByTarget.values()].find((mutation) => mutation.type === "review-atomic" && reviewTargetId(mutation, table) === entityId)
-      : undefined);
-  const pendingEntityIdsForTable = (table: string) => [...pendingByTarget.values()].flatMap((mutation) => {
-    if (mutation.type === "entity-mutation" && mutation.table === table && mutation.entityId) return [mutation.entityId];
-    if (mutation.type !== "review-atomic") return [];
-    const id = reviewTargetId(mutation, table);
-    return id ? [id] : [];
-  });
-  let reviewHourCounts: Record<string, number> | null = reviewHourCountRow?.value ?? null;
-  let reviewDayCountsCache: StoredReviewDayCounts | null = reviewDayCountRow?.value ?? null;
+  const flushWrites = () => writeChain;
+  const {
+    outbox,
+    rememberPending,
+    pendingEntityMutation,
+    pendingEntityIdsForTable,
+    pendingEntityMutationIds,
+    queueMutations,
+    writeOutbox,
+  } = createReplicaOutbox({ userId, database, outboxRows, enqueueWrite, flushWrites });
   let syncConflictCardIds = new Set<string>(syncConflictCardIdRow?.value ?? []);
   let replicaStatus: ReplicaStatus = replicaStatusRow?.value ?? {
     accountBaselineState: shell!.decks.length > 0 ? "nonempty" : "uninitialized",
@@ -213,176 +129,41 @@ export async function createIndexedDbCoreRepository({ userId, initialState, inde
     catalogCursor: 0,
     catalogServerCursor: 0,
   };
-  let studyOverview: AccountStudyOverview | null = studyOverviewRow?.value ?? null;
-  let firstDeckSummariesStarted = false;
   const pageCursorsByKey = new Map<string, Map<number, CatalogCursor | null>>();
-  // Searches run over an in-memory copy of the catalog (KV1). Writes only mark rows; the copy catches up before the
-  // next search, and a cleared catalog reloads it in batches that do not block the page.
-  const searchIndex = createCatalogSearchIndex();
-  let searchIndexGeneration = 0;
-  let searchIndexReady = false;
-  let searchIndexLoad: Promise<void> | null = null;
-  const changedCatalogIds = new Set<string>();
-  const markCatalogChanged = (id: string) => { changedCatalogIds.add(id); };
-  const markCatalogReset = () => {
-    searchIndexGeneration += 1;
-    searchIndexReady = false;
-    changedCatalogIds.clear();
-  };
-  const loadSearchIndex = async () => {
-    const generation = searchIndexGeneration;
-    changedCatalogIds.clear();
-    const rows: CardCatalogEntry[] = [];
-    let after: string | null = null;
-    while (true) {
-      const transaction = database.transaction(STORE.cardCatalog, "readonly");
-      const range: IDBKeyRange | undefined = after === null ? undefined : IDBKeyRange.lowerBound(after, true);
-      const batch: StoredCardCatalog[] = await requestResult<StoredCardCatalog[]>(transaction.objectStore(STORE.cardCatalog).getAll(range, SEARCH_INDEX_BATCH_SIZE));
-      for (const row of batch) rows.push(catalogEntry(row));
-      if (batch.length < SEARCH_INDEX_BATCH_SIZE) break;
-      after = batch.at(-1)!.id;
-      await new Promise<void>((resolve) => setTimeout(resolve, 0));
-    }
-    if (generation !== searchIndexGeneration) return;
-    searchIndex.replaceAll(rows);
-    searchIndexReady = true;
-  };
-  // Rows written since the index last read them; a caller that finds them being read waits, so no page is served from
-  // the index in between (a mass action followed by its list reload).
-  let changedRowsRead: Promise<void> | null = null;
-  const readChangedRows = async (ids: string[]) => {
-    const transaction = database.transaction(STORE.cardCatalog, "readonly");
-    const store = transaction.objectStore(STORE.cardCatalog);
-    const rows = await Promise.all(ids.map((id) => requestResult<StoredCardCatalog | undefined>(store.get(id))));
-    ids.forEach((id, index) => {
-      const row = rows[index];
-      if (row) searchIndex.put(catalogEntry(row));
-      else searchIndex.remove(id);
-    });
-  };
-  const ensureSearchIndex = async () => {
-    await writeChain;
-    while (!searchIndexReady) {
-      searchIndexLoad ??= loadSearchIndex().finally(() => { searchIndexLoad = null; });
-      await searchIndexLoad;
-    }
-    while (changedRowsRead || changedCatalogIds.size) {
-      if (!changedRowsRead) {
-        const ids = [...changedCatalogIds];
-        changedCatalogIds.clear();
-        changedRowsRead = readChangedRows(ids).finally(() => { changedRowsRead = null; });
-      }
-      await changedRowsRead;
-    }
+  const catalogSearch = createCatalogSearch(database, flushWrites);
+  const { searchIndex, markCatalogChanged, ensureSearchIndex } = catalogSearch;
+
+  const putSyncMetadata = async (key: string, value: unknown) => {
+    const transaction = database.transaction(STORE.syncMetadata, "readwrite");
+    transaction.objectStore(STORE.syncMetadata).put({ key, value });
+    await transactionDone(transaction);
   };
 
-  const adjustOverviewCount = (counts: Record<string, number>, key: string, delta: number) => {
-    const next = Math.max(0, (counts[key] ?? 0) + delta);
-    if (next === 0) delete counts[key];
-    else counts[key] = next;
-  };
-
-  /**
-   * Deck counters and the study overview after catalog changes. A mass change passes all its rows at once, so each
-   * deck summary and the overview are written once (KV4).
-   */
-  const applyReplicaCatalogChanges = async (
-    transaction: IDBTransaction,
-    changes: ReadonlyArray<{ deckId: string; before: StoredCardCatalog | null; after: StoredCardCatalog | null }>,
-    referenceAt = new Date().toISOString(),
-    updateOverview = true,
-  ) => {
-    await applyCatalogSummaryChanges(transaction, changes);
-    if (!studyOverview || !updateOverview) return;
-    let next: Pick<AccountStudyOverview, "dueByDeck" | "availableNewByDeck" | "availableLearningByDeck" | "forecastByDay"> | null = null;
-    for (const { before, after } of changes) {
-      const previousBucket = overviewScheduleBucket(before, studyOverview, referenceAt);
-      const nextBucket = overviewScheduleBucket(after, studyOverview, referenceAt);
-      if (previousBucket?.kind === nextBucket?.kind && previousBucket?.key === nextBucket?.key) continue;
-      next ??= {
-        dueByDeck: { ...studyOverview.dueByDeck },
-        availableNewByDeck: { ...studyOverview.availableNewByDeck },
-        availableLearningByDeck: { ...studyOverview.availableLearningByDeck },
-        forecastByDay: { ...studyOverview.forecastByDay },
-      };
-      const counts = next;
-      const countsFor = (kind: "available-new" | "available-learning" | "due" | "forecast") => (
-        kind === "available-new" ? counts.availableNewByDeck
-          : kind === "available-learning" ? counts.availableLearningByDeck
-            : kind === "due" ? counts.dueByDeck
-              : counts.forecastByDay
-      );
-      if (previousBucket) adjustOverviewCount(countsFor(previousBucket.kind), previousBucket.key, -1);
-      if (nextBucket) adjustOverviewCount(countsFor(nextBucket.kind), nextBucket.key, 1);
-    }
-    if (!next) return;
-    studyOverview = { ...studyOverview, ...next, generatedAt: referenceAt };
-    transaction.objectStore(STORE.syncMetadata).put({ key: "accountStudyOverview", value: studyOverview });
-  };
-  const applyReplicaCatalogChange = (
-    transaction: IDBTransaction,
-    deckId: string,
-    before: StoredCardCatalog | null,
-    after: StoredCardCatalog | null,
-    referenceAt = new Date().toISOString(),
-    updateOverview = true,
-  ) => applyReplicaCatalogChanges(transaction, [{ deckId, before, after }], referenceAt, updateOverview);
-
-  const queueMutations = (inputs: any[]) => {
-    const queued: SyncOutboxMutation[] = [];
-    const removedIds: string[] = [];
-    for (const input of inputs) {
-      const targetKey = mutationTargetKey(input);
-      const replaced = pendingByTarget.get(targetKey);
-      if (replaced) {
-        forgetPending(replaced.id);
-        removedIds.push(replaced.id);
-      }
-      // Replacing a pending insert keeps it an insert; the cloud then matches it to the device's own row.
-      const keepsPendingInsert = replaced?.type === "entity-mutation" && replaced.baseRevision == null && !(replaced.payload as any)?.tombstone && !input.payload?.tombstone;
-      const mutation: SyncOutboxMutation = {
-        id: mutationId(),
-        userId,
-        deviceId: null,
-        type: input.type,
-        table: input.table ?? null,
-        entityId: input.entityId ?? null,
-        baseRevision: keepsPendingInsert ? null : input.baseRevision ?? null,
-        payload: keepsPendingInsert ? { ...input.payload, baseRevision: null } : input.payload ?? {},
-        createdAt: new Date().toISOString(),
-        flushedAt: null,
-        retryCount: 0,
-        lastError: null,
-      };
-      rememberPending(mutation);
-      queued.push(mutation);
-    }
-    return { queued, removedIds };
-  };
-
-  const writeOutbox = (transaction: IDBTransaction, batch: { queued: SyncOutboxMutation[]; removedIds: string[] }) => {
-    const store = transaction.objectStore(STORE.outbox);
-    for (const id of batch.removedIds) store.delete(id);
-    for (const mutation of batch.queued) store.put(mutation);
-  };
+  const studyOverview = createStudyOverview({
+    database,
+    flushWrites,
+    decks: () => shell!.decks,
+    isCatalogComplete: () => replicaStatus.catalogCompleteness === "complete",
+    putSyncMetadata,
+    initial: {
+      studyOverview: studyOverviewRow?.value ?? null,
+      reviewHourCounts: reviewHourCountRow?.value ?? null,
+      reviewDayCounts: reviewDayCountRow?.value ?? null,
+    },
+  });
+  const { applyReplicaCatalogChanges, applyReplicaCatalogChange } = studyOverview;
+  const cardBodies = createCardBodies(database, {
+    flushWrites,
+    pendingEntityMutation,
+    pendingEntityIdsForTable,
+    markCatalogChanged,
+    applyReplicaCatalogChange,
+  });
+  const { loadCardBody, loadCardBodies, loadNoteGraph, applyHydratedBodies } = cardBodies;
 
   const replaceShellDecks = (decks: WorkspaceDeckSummary[], updatedAt = new Date().toISOString()) => {
     const replacements = new Map(decks.map((deck) => [deck.id, deck]));
     shell = { ...shell!, decks: [...decks, ...shell!.decks.filter((deck) => !replacements.has(deck.id))], updatedAt };
-  };
-
-  const readNotes = async (transaction: IDBTransaction, noteIds: string[]) => {
-    const store = transaction.objectStore(STORE.notes);
-    const notes = await Promise.all([...new Set(noteIds)].map((id) => requestResult<Note | undefined>(store.get(id))));
-    return new Map(notes.filter((note): note is Note => Boolean(note)).map((note) => [note.id, note]));
-  };
-
-  const readCardBodies = async (transaction: IDBTransaction, cardIds: string[]) => {
-    const cardStore = transaction.objectStore(STORE.cards);
-    const variantIndex = transaction.objectStore(STORE.variants).index("cardId");
-    const records = await Promise.all(cardIds.map((id) => requestResult<StoredCard | undefined>(cardStore.get(id))));
-    const variants = await Promise.all(cardIds.map((id) => requestResult<StoredVariant[]>(variantIndex.getAll(id))));
-    return records.map((record, index) => record ? hydrateCard(record, variants[index]) : null);
   };
 
   /**
@@ -520,21 +301,6 @@ export async function createIndexedDbCoreRepository({ userId, initialState, inde
     shell = { ...shell!, updatedAt };
   });
 
-  const putSyncMetadata = async (key: string, value: unknown) => {
-    const transaction = database.transaction(STORE.syncMetadata, "readwrite");
-    transaction.objectStore(STORE.syncMetadata).put({ key, value });
-    await transactionDone(transaction);
-  };
-
-  const persistOutboxEntries = (ids: string[]) => void enqueueWrite(async () => {
-    const transaction = database.transaction(STORE.outbox, "readwrite");
-    for (const id of ids) {
-      const mutation = pendingOutbox.get(id);
-      if (mutation) transaction.objectStore(STORE.outbox).put(mutation);
-    }
-    await transactionDone(transaction);
-  });
-
   const persistReplicaStatus = async (patch: Partial<ReplicaStatus>) => {
     replicaStatus = { ...replicaStatus, ...patch };
     await putSyncMetadata("replicaStatus", replicaStatus);
@@ -547,374 +313,18 @@ export async function createIndexedDbCoreRepository({ userId, initialState, inde
    */
   const applyCloudCatalogPages = async (pages: CloudCatalogPage[]) => {
     await writeChain;
-    const tables = new Set(pages.map((page) => page.table));
-    const transaction = database.transaction([...new Set(pages.flatMap((page) => CATALOG_PAGE_STORES[page.table]))], "readwrite");
-    const done = transactionDone(transaction);
-    // A pending local edit keeps its own, newer rows and text until its upload comes back.
-    const pendingCardIds = new Set(tables.has("card_catalog") ? pendingEntityIdsForTable("cards") : []);
-    const pendingNoteIds = new Set(tables.has("card_catalog") || tables.has("note_search") ? pendingEntityIdsForTable("notes") : []);
-    const incomingSearch = new Map<string, { searchText: string; searchFields: NoteSearchField[] }>();
-    for (const page of pages) {
-      if (page.table !== "note_search") continue;
-      for (const entry of page.entities as NoteSearchEntry[]) {
-        if (!entry.deletedAt) incomingSearch.set(entry.noteId, { searchText: entry.searchText.slice(0, 4_000), searchFields: entry.searchFields });
-      }
-    }
-    const rowsWithIncomingText = new Set<string>();
-    for (const page of pages) {
-      if (page.table === "decks") {
-        const entities = (page.entities as Deck[]).filter((entity) => !pendingEntityMutation("decks", entity.id));
-        const store = transaction.objectStore(STORE.decks);
-        if (page.reset) {
-          const protectedRows = (await Promise.all(pendingEntityIdsForTable("decks").map((id) => requestResult<WorkspaceDeckSummary | undefined>(store.get(id))))).filter(Boolean);
-          store.clear();
-          for (const row of protectedRows) store.put(row);
-        }
-        for (const entity of entities) {
-          if (entity.deletedAt) store.delete(entity.id);
-          else store.put(deckRecord(entity));
-        }
-      } else if (page.table === "note_type_sources") {
-        const store = transaction.objectStore(STORE.noteTypeSources);
-        for (const source of page.entities as ReplicatedNoteTypeSource[]) {
-          if (pendingEntityMutation("note_type_sources", source.id)) continue;
-          if (source.deletedAt) store.delete(source.id);
-          else store.put(source);
-        }
-      } else if (page.table === "deck_study_summaries") {
-        const store = transaction.objectStore(STORE.deckStudySummaries);
-        if (page.reset) store.clear();
-        for (const entity of page.entities as DeckStudySummary[]) store.put(entity);
-      } else if (page.table === "note_search") {
-        const searchStore = transaction.objectStore(STORE.noteSearch);
-        const catalogStore = transaction.objectStore(STORE.cardCatalog);
-        const entries = page.entities as NoteSearchEntry[];
-        for (const entry of entries) {
-          if (entry.deletedAt) searchStore.delete(entry.noteId);
-          else searchStore.put({ noteId: entry.noteId, ...incomingSearch.get(entry.noteId)! });
-        }
-        const noteIds = [...new Set(entries.filter((entry) => !entry.deletedAt && !pendingNoteIds.has(entry.noteId)).map((entry) => entry.noteId))];
-        const rowsByNote = await Promise.all(noteIds.map((noteId) => requestResult<StoredCardCatalog[]>(catalogStore.index("noteId").getAll(noteId))));
-        noteIds.forEach((noteId, index) => {
-          const { searchText, searchFields } = incomingSearch.get(noteId)!;
-          for (const row of rowsByNote[index]) {
-            if (rowsWithIncomingText.has(row.id)) continue;
-            catalogStore.put({ ...row, normalizedSearchText: searchText, searchFields }); markCatalogChanged(row.id);
-          }
-        });
-      } else {
-        const catalogStore = transaction.objectStore(STORE.cardCatalog);
-        const searchStore = transaction.objectStore(STORE.noteSearch);
-        const variantStore = transaction.objectStore(STORE.variants);
-        const residencyStore = transaction.objectStore(STORE.bodyResidency);
-        const offlineStore = transaction.objectStore(STORE.offlineDecks);
-        if (page.reset) {
-          const protectedRows = (await Promise.all(pendingEntityIdsForTable("cards").map((id) => requestResult<StoredCardCatalog | undefined>(catalogStore.get(id))))).filter(Boolean);
-          catalogStore.clear(); markCatalogReset();
-          for (const row of protectedRows) catalogStore.put(row);
-        }
-        const entities = (page.entities as CardCatalogEntry[]).filter((entity) => !pendingCardIds.has(entity.id) && !pendingNoteIds.has(entity.noteId));
-        // All reads of the page go out at once; the maps then follow the page's own writes.
-        const ids = [...new Set(entities.map((entity) => entity.id))];
-        const deletedIds = [...new Set(entities.filter((entity) => entity.deletedAt).map((entity) => entity.id))];
-        const [storedCatalogs, storedResidencies, deletedVariantKeys] = await Promise.all([
-          Promise.all(ids.map((id) => requestResult<StoredCardCatalog | undefined>(catalogStore.get(id)))),
-          Promise.all(ids.map((id) => requestResult<CardBodyResidencyRecord | undefined>(residencyStore.get(id)))),
-          Promise.all(deletedIds.map((id) => requestResult<IDBValidKey[]>(variantStore.index("cardId").getAllKeys(id)))),
-        ]);
-        const catalogs = new Map(ids.map((id, index) => [id, storedCatalogs[index] ?? null]));
-        const residencies = new Map(ids.map((id, index) => [id, storedResidencies[index]]));
-        const variantKeys = new Map(deletedIds.map((id, index) => [id, deletedVariantKeys[index]]));
-        // Cloud entries carry only the preview; the full text comes from a local content or the replicated note search.
-        const keepsLocalText = (entity: CardCatalogEntry, previous: StoredCardCatalog | null): previous is StoredCardCatalog => (
-          Boolean(previous && previous.noteId === entity.noteId && previous.dependencyRevision === entity.dependencyRevision)
-        );
-        type StoredSearch = { searchText: string; searchFields?: NoteSearchField[] } | undefined;
-        const searchNoteIds = [...new Set(entities
-          .filter((entity) => !entity.deletedAt && !incomingSearch.has(entity.noteId) && !keepsLocalText(entity, catalogs.get(entity.id)!))
-          .map((entity) => entity.noteId))];
-        const storedSearch = await Promise.all(searchNoteIds.map((noteId) => requestResult<StoredSearch>(searchStore.get(noteId))));
-        const searchTexts = new Map(searchNoteIds.map((noteId, index) => [noteId, storedSearch[index]]));
-        const referenceAt = new Date().toISOString();
-        const catalogChanges: Array<{ deckId: string; before: StoredCardCatalog | null; after: StoredCardCatalog | null }> = [];
-        const changedDeckIds = new Set<string>();
-        for (const entity of entities) {
-          const previousCatalog = catalogs.get(entity.id)!;
-          if (!previousCatalog || previousCatalog.bodyRevision !== entity.bodyRevision || previousCatalog.studyRevision !== entity.studyRevision
-            || previousCatalog.dependencyRevision !== entity.dependencyRevision || previousCatalog.deletedAt !== entity.deletedAt) {
-            changedDeckIds.add(entity.deckId);
-          }
-          if (entity.deletedAt) {
-            catalogChanges.push({ deckId: entity.deckId, before: previousCatalog, after: null });
-            catalogStore.delete(entity.id); markCatalogChanged(entity.id);
-            transaction.objectStore(STORE.cards).delete(entity.id);
-            residencyStore.delete(entity.id);
-            for (const key of variantKeys.get(entity.id)!) variantStore.delete(key);
-            catalogs.set(entity.id, null);
-            residencies.set(entity.id, undefined);
-            continue;
-          }
-          const incoming = incomingSearch.get(entity.noteId);
-          const keepsText = !incoming && keepsLocalText(entity, previousCatalog);
-          const replicated = incoming ?? (keepsText ? null
-            : searchTexts.has(entity.noteId) ? searchTexts.get(entity.noteId) : await requestResult<StoredSearch>(searchStore.get(entity.noteId)));
-          const catalog = storedCatalogRecord({
-            ...entity,
-            normalizedSearchText: keepsText ? previousCatalog.normalizedSearchText : replicated?.searchText ?? entity.normalizedSearchText,
-            searchFields: keepsText ? previousCatalog.searchFields : replicated?.searchFields,
-          });
-          if (incoming) rowsWithIncomingText.add(catalog.id);
-          if (previousCatalog && previousCatalog.deckId !== catalog.deckId) catalogChanges.push({ deckId: previousCatalog.deckId, before: previousCatalog, after: null });
-          catalogChanges.push({ deckId: catalog.deckId, before: previousCatalog?.deckId === catalog.deckId ? previousCatalog : null, after: catalog });
-          catalogStore.put(catalog); markCatalogChanged(catalog.id);
-          catalogs.set(catalog.id, catalog);
-          const residency = residencies.get(entity.id);
-          if (residency && bodyResidencyForRevision(residency, entity) === "catalog-only") {
-            const next: CardBodyResidencyRecord = { ...residency, state: "catalog-only", bodyRevision: entity.bodyRevision, studyRevision: entity.studyRevision, dependencyRevision: entity.dependencyRevision };
-            residencyStore.put(next);
-            residencies.set(entity.id, next);
-          }
-        }
-        await applyReplicaCatalogChanges(transaction, catalogChanges, referenceAt, !page.reset);
-        const deckIds = [...changedDeckIds];
-        const downloads = await Promise.all(deckIds.map((deckId) => requestResult<OfflineDeckRecord | undefined>(offlineStore.get(deckId))));
-        for (const download of downloads) {
-          if (download?.state === "available") offlineStore.put({ ...download, state: "outdated", updatedAt: new Date().toISOString() });
-        }
-      }
-    }
-    await done;
-    if (tables.has("decks")) shell = await loadShell(database);
+    await writeCloudCatalogPages(database, pages, {
+      pendingEntityMutation,
+      pendingEntityIdsForTable,
+      markCatalogChanged,
+      markCatalogReset: catalogSearch.markCatalogReset,
+      applyReplicaCatalogChanges,
+    });
+    if (pages.some((page) => page.table === "decks")) shell = await loadShell(database);
     await persistReplicaStatus({
       catalogCursor: Math.max(replicaStatus.catalogCursor, ...pages.map((page) => page.cursor)),
       catalogCompleteness: "partial",
     });
-  };
-
-  /** Keyset page of a deck's local catalog; a query is answered from the in-memory search index. */
-  const listCatalogPage = async (deckId: string, {
-    cursor = null,
-    limit = CATALOG_PAGE_LIMIT,
-    query = "",
-    sort = { field: "sortField", direction: "asc" } as CardTableSort,
-    includeTotal = false,
-    searchContext,
-  }: { cursor?: CatalogCursor | null; limit?: number; query?: string; sort?: CardTableSort; includeTotal?: boolean; searchContext?: CardSearchContext } = {}) => {
-    await writeChain;
-    const pageLimit = Math.min(CATALOG_PAGE_LIMIT, Math.max(1, Math.floor(Number(limit))));
-    if (!isEmptyCardSearch(parseCardSearchQuery(query))) {
-      await ensureSearchIndex();
-      const matches = searchIndex.search(query, sort, searchContext).get(deckId) ?? [];
-      const descending = sort.direction === "desc";
-      const start = cursor ? matches.findIndex((entry) => {
-        const value = catalogSortValue(entry, sort.field);
-        const order = value !== cursor.sortValue ? (value < cursor.sortValue ? -1 : 1) : (entry.id < cursor.id ? -1 : entry.id > cursor.id ? 1 : 0);
-        return descending ? order < 0 : order > 0;
-      }) : 0;
-      const from = start < 0 ? matches.length : start;
-      const items = matches.slice(from, from + pageLimit);
-      const hasMore = from + pageLimit < matches.length;
-      const lastItem = items.at(-1);
-      return {
-        items,
-        totalCount: includeTotal ? matches.length : null,
-        hasMore,
-        nextCursor: hasMore && lastItem ? { sortValue: catalogSortValue(lastItem, sort.field), id: lastItem.id } : null,
-      };
-    }
-    const indexName = sort.field === "nextStudyDate" ? "deckDue" : sort.field === "variants" ? "deckVariants" : "deckSort";
-    const sortValueOf = (row: StoredCardCatalog) => indexName === "deckDue" ? row.dueSort : indexName === "deckVariants" ? String(row.hasActiveVariants) : row.sortText;
-    const keyFor = (value: string, id: string): IDBValidKey => indexName === "deckVariants" ? [deckId, Number(value), id] : [deckId, value, id];
-    const lower = indexName === "deckVariants" ? [deckId, 0, ""] : [deckId, "", ""];
-    const upper = indexName === "deckVariants" ? [deckId, 1, "￿"] : [deckId, "￿", "￿"];
-    const descending = sort.direction === "desc";
-    const rows: StoredCardCatalog[] = [];
-    let totalCount: number | null = null;
-    let boundary: IDBValidKey | null = cursor ? keyFor(cursor.sortValue, cursor.id) : null;
-    let complete = false;
-    let hasMore = false;
-    if (includeTotal) {
-      const countTransaction = database.transaction(STORE.cardCatalog, "readonly");
-      totalCount = await requestResult(countTransaction.objectStore(STORE.cardCatalog).index(indexName).count(IDBKeyRange.bound(lower, upper)));
-      await transactionDone(countTransaction);
-    }
-    while (!complete && rows.length <= pageLimit) {
-      const transaction = database.transaction(STORE.cardCatalog, "readonly");
-      const index = transaction.objectStore(STORE.cardCatalog).index(indexName);
-      const range = boundary == null
-        ? IDBKeyRange.bound(lower, upper)
-        : descending ? IDBKeyRange.bound(lower, boundary, false, true) : IDBKeyRange.bound(boundary, upper, true, false);
-      const request = index.openCursor(range, descending ? "prev" : "next");
-      const startedAt = globalThis.performance?.now?.() ?? Date.now();
-      let scanned = 0;
-      await new Promise<void>((resolve, reject) => {
-        request.onerror = () => reject(request.error ?? new Error("Kartenkatalog konnte nicht gelesen werden."));
-        request.onsuccess = () => {
-          const entry = request.result;
-          if (!entry) { complete = true; resolve(); return; }
-          const row = entry.value as StoredCardCatalog;
-          scanned += 1;
-          boundary = entry.key;
-          if (!row.deletedAt) rows.push(row);
-          const elapsed = (globalThis.performance?.now?.() ?? Date.now()) - startedAt;
-          if (rows.length > pageLimit || scanned >= LOCAL_WRITE_CHUNK_SIZE || elapsed >= 25) { resolve(); return; }
-          entry.continue();
-        };
-      });
-      await transactionDone(transaction);
-      if (!complete && rows.length <= pageLimit) await new Promise<void>((resolve) => setTimeout(resolve, 0));
-    }
-    if (rows.length > pageLimit) {
-      rows.length = pageLimit;
-      hasMore = true;
-    }
-    const last = rows.at(-1);
-    return {
-      items: rows.map(catalogEntry),
-      totalCount,
-      hasMore,
-      nextCursor: hasMore && last ? { sortValue: sortValueOf(last), id: last.id } : null,
-    };
-  };
-
-  const missingCardBodyIds = async (cardIds: string[]) => {
-    await writeChain;
-    const transaction = database.transaction([STORE.cardCatalog, STORE.cards, STORE.notes, STORE.bodyResidency], "readonly");
-    const ids = [...new Set(cardIds.filter(Boolean))];
-    const [catalogs, cards, residencies] = await Promise.all([
-      Promise.all(ids.map((id) => requestResult<StoredCardCatalog | undefined>(transaction.objectStore(STORE.cardCatalog).get(id)))),
-      Promise.all(ids.map((id) => requestResult<StoredCard | undefined>(transaction.objectStore(STORE.cards).get(id)))),
-      Promise.all(ids.map((id) => requestResult<CardBodyResidencyRecord | undefined>(transaction.objectStore(STORE.bodyResidency).get(id)))),
-    ]);
-    const notes = await readNotes(transaction, cards.flatMap((card) => card ? [card.noteId] : []));
-    await transactionDone(transaction);
-    return ids.filter((_id, index) => {
-      const catalog = catalogs[index];
-      const card = cards[index];
-      return !catalog || !card || !notes.has(card.noteId) || bodyResidencyForRevision(residencies[index], catalog) === "catalog-only";
-    });
-  };
-
-  const markCardBodiesResident = async (cardIds: string[], state: Exclude<BodyResidency, "catalog-only">) => {
-    await writeChain;
-    const transaction = database.transaction([STORE.cardCatalog, STORE.bodyResidency], "readwrite");
-    const catalogs = await Promise.all([...new Set(cardIds.filter(Boolean))].map((id) => requestResult<StoredCardCatalog | undefined>(transaction.objectStore(STORE.cardCatalog).get(id))));
-    for (const catalog of catalogs) if (catalog) transaction.objectStore(STORE.bodyResidency).put(residencyRecord(catalog, state));
-    await transactionDone(transaction);
-  };
-
-  const touchCardBodies = async (cardIds: string[], protectedUntil: string | null = null) => {
-    const transaction = database.transaction(STORE.bodyResidency, "readwrite");
-    const store = transaction.objectStore(STORE.bodyResidency);
-    const records = await Promise.all([...new Set(cardIds.filter(Boolean))].map((id) => requestResult<CardBodyResidencyRecord | undefined>(store.get(id))));
-    const lastAccessedAt = new Date().toISOString();
-    for (const record of records) if (record) store.put({ ...record, lastAccessedAt, protectedUntil: protectedUntil ?? record.protectedUntil ?? null });
-    await transactionDone(transaction);
-  };
-
-  /** Resident cards with their contents in the given order; null where only the catalog entry is local. */
-  const loadCardBodies = async (cardIds: string[]): Promise<Array<{ card: Card; note: Note } | null>> => {
-    await writeChain;
-    const transaction = database.transaction([STORE.cards, STORE.variants, STORE.notes, STORE.cardCatalog, STORE.bodyResidency], "readonly");
-    const [cards, catalogs, residencies] = await Promise.all([
-      readCardBodies(transaction, cardIds),
-      Promise.all(cardIds.map((id) => requestResult<StoredCardCatalog | undefined>(transaction.objectStore(STORE.cardCatalog).get(id)))),
-      Promise.all(cardIds.map((id) => requestResult<CardBodyResidencyRecord | undefined>(transaction.objectStore(STORE.bodyResidency).get(id)))),
-    ]);
-    const notes = await readNotes(transaction, cards.flatMap((card) => card ? [card.noteId] : []));
-    await transactionDone(transaction);
-    return cards.map((card, index) => {
-      const note = card ? notes.get(card.noteId) : undefined;
-      const catalog = catalogs[index];
-      if (!card || !note || (catalog && bodyResidencyForRevision(residencies[index], catalog) === "catalog-only")) return null;
-      return { card, note };
-    });
-  };
-
-  const loadCardBody = async (cardId: string) => (await loadCardBodies([cardId]))[0];
-
-  const loadNotes = async (noteIds: string[]) => {
-    await writeChain;
-    const transaction = database.transaction(STORE.notes, "readonly");
-    const notes = await readNotes(transaction, noteIds.filter(Boolean));
-    await transactionDone(transaction);
-    return [...notes.values()];
-  };
-
-  /** A content with all its cards when every sibling the catalog knows is resident; otherwise null. */
-  // The renderer prepares each template object once, so an unchanged template is returned as the same object.
-  const loadedNoteTypeSources = new Map<string, NoteTypeSource & { updatedAt: string }>();
-  /** The Anki template of an imported content, for its original layout (ADR-047); kept on every device. */
-  const loadNoteTypeSource = async (id: string): Promise<NoteTypeSource | null> => {
-    await writeChain;
-    const transaction = database.transaction(STORE.noteTypeSources, "readonly");
-    const source = await requestResult<(NoteTypeSource & { updatedAt: string }) | undefined>(transaction.objectStore(STORE.noteTypeSources).get(id));
-    await transactionDone(transaction);
-    if (!source) return null;
-    const known = loadedNoteTypeSources.get(id);
-    if (known?.updatedAt === source.updatedAt) return known;
-    loadedNoteTypeSources.set(id, source);
-    return source;
-  };
-
-  /** Contents with all their cards in the given order; null where a sibling the catalog knows is not resident. */
-  const loadNoteGraphs = async (noteIds: string[]): Promise<Array<NoteGraph | null>> => {
-    await writeChain;
-    const transaction = database.transaction([STORE.notes, STORE.cards, STORE.variants, STORE.cardCatalog], "readonly");
-    const [notes, cardKeys, catalogRows] = await Promise.all([
-      Promise.all(noteIds.map((id) => requestResult<Note | undefined>(transaction.objectStore(STORE.notes).get(id)))),
-      Promise.all(noteIds.map((id) => requestResult<IDBValidKey[]>(transaction.objectStore(STORE.cards).index("noteId").getAllKeys(id)))),
-      Promise.all(noteIds.map((id) => requestResult<StoredCardCatalog[]>(transaction.objectStore(STORE.cardCatalog).index("noteId").getAll(id)))),
-    ]);
-    const cardIds = cardKeys.map((keys) => keys.map(String));
-    const cards = new Map((await readCardBodies(transaction, cardIds.flat())).flatMap((card) => card && !card.deletedAt ? [[card.id, card] as const] : []));
-    await transactionDone(transaction);
-    return noteIds.map((_id, index) => {
-      const note = notes[index];
-      if (!note || catalogRows[index].some((row) => !row.deletedAt && !cardIds[index].includes(row.id))) return null;
-      return { note, cards: cardIds[index].flatMap((id) => cards.get(id) ?? []) };
-    });
-  };
-
-  const loadNoteGraph = async (noteId: string) => (await loadNoteGraphs([noteId]))[0];
-
-  /** Writes card bodies and contents loaded from the cloud; local changes still waiting for sync win. */
-  const applyHydratedBodies = async ({ cards, notes }: { cards: Card[]; notes: Note[] }, state: Exclude<BodyResidency, "catalog-only"> = "cached") => {
-    await writeChain;
-    const notesById = new Map(notes.map((note) => [note.id, note]));
-    const transaction = database.transaction([STORE.notes, STORE.cards, STORE.variants, STORE.cardCatalog, STORE.bodyResidency, STORE.deckStudySummaries, STORE.syncMetadata], "readwrite");
-    for (const note of notes) {
-      if (!pendingEntityMutation("notes", note.id)) transaction.objectStore(STORE.notes).put(note);
-    }
-    const catalogStore = transaction.objectStore(STORE.cardCatalog);
-    for (const hydrated of cards) {
-      if (pendingEntityMutation("cards", hydrated.id) || hydrated.deletedAt) continue;
-      // Variants still waiting for sync (e.g. a freshly generated AI variant) win over the cloud body.
-      const variantStore = transaction.objectStore(STORE.variants);
-      const storedVariants = await requestResult<StoredVariant[]>(variantStore.index("cardId").getAll(hydrated.id));
-      const pendingVariants = storedVariants
-        .filter((variant) => pendingEntityMutation("card_variants", variant.id))
-        .map(({ deckId: _deckId, activeForSummary: _active, ...variant }) => variant);
-      const card: Card = {
-        ...hydrated,
-        variants: [...hydrated.variants.filter((variant) => !pendingEntityMutation("card_variants", variant.id)), ...pendingVariants],
-      };
-      const note = notesById.get(card.noteId) ?? await requestResult<Note | undefined>(transaction.objectStore(STORE.notes).get(card.noteId)) ?? null;
-      const before = await requestResult<StoredCardCatalog | undefined>(catalogStore.get(card.id)) ?? null;
-      const catalog = catalogRecordFor(card, note, before);
-      await applyReplicaCatalogChange(transaction, card.deckId, before?.deckId === card.deckId ? before : null, catalog);
-      if (before && before.deckId !== card.deckId) await applyReplicaCatalogChange(transaction, before.deckId, before, null);
-      transaction.objectStore(STORE.cards).put(cardRecord(card));
-      catalogStore.put(catalog); markCatalogChanged(catalog.id);
-      const residency = await requestResult<CardBodyResidencyRecord | undefined>(transaction.objectStore(STORE.bodyResidency).get(card.id));
-      transaction.objectStore(STORE.bodyResidency).put({
-        ...residencyRecord(catalog, residency?.state === "downloaded" ? "downloaded" : state),
-        protectedUntil: residency?.protectedUntil ?? null,
-      });
-      for (const variant of storedVariants) variantStore.delete(variant.id);
-      for (const variant of card.variants) variantStore.put(variantRecord(variant, card.deckId));
-    }
-    await transactionDone(transaction);
   };
 
   const updateCard = async (cardId: string, updater: (card: Card, note: Note) => Card) => {
@@ -948,310 +358,6 @@ export async function createIndexedDbCoreRepository({ userId, initialState, inde
     return next.map((deck) => ({ ...deck, cards: [], reviewEvents: [] } as Deck));
   };
 
-  const commitImportGraph = async (
-    graph: ImportCommitGraph,
-    { deckSettings, reimportTargets = { notes: [], cards: [], noteTypeSources: [] }, onMedia = async () => {} }: {
-      deckSettings: Partial<DeckSettings>;
-      reimportTargets?: ReimportTargets;
-      onMedia?: (file: ImportMediaFile) => Promise<void>;
-    },
-  ): Promise<ImportCommitResult> => {
-    await writeChain;
-    const now = new Date().toISOString();
-    const scope: ImportVerificationScope = { deckIds: [], noteTypeSourceIds: [], noteIds: [], cardIds: [], reviewEventIds: [] };
-    const persistedDeckIds = new Map<string, string>();
-    const persistedNoteTypeSourceIds = new Map<string, string>();
-    const persistedCardIds = new Map<string, string>();
-    let keptLocalEdits = 0;
-    let missingInPackage = 0;
-
-    // Existing imports: local records first, cloud targets (loaded before the commit) for everything else.
-    const targetNotesByGuid = new Map(reimportTargets.notes.flatMap((note) => note.ankiGuid ? [[note.ankiGuid, note] as const] : []));
-    const targetCardsByNote = new Map<string, ReimportTargets["cards"]>();
-    for (const card of reimportTargets.cards) targetCardsByNote.set(card.noteId, [...(targetCardsByNote.get(card.noteId) ?? []), card]);
-    const targetSourceByAnkiId = new Map(reimportTargets.noteTypeSources.map((source) => [source.ankiNotetypeId, source.id]));
-
-    const queueAndWrite = async (stores: string[], inputs: any[], write: (transaction: IDBTransaction) => Promise<void> | void) => {
-      const batch = queueMutations(inputs);
-      const transaction = database.transaction([...new Set([...stores, STORE.outbox])], "readwrite");
-      const done = transactionDone(transaction);
-      await write(transaction);
-      writeOutbox(transaction, batch);
-      await done;
-    };
-
-    await graph.streamChunks(async (chunk) => {
-      if (chunk.kind === "media") {
-        await onMedia(chunk.file);
-        return;
-      }
-      if (chunk.kind === "decks") {
-        const decks: WorkspaceDeckSummary[] = [];
-        const inputs: any[] = [];
-        for (const incoming of chunk.decks) {
-          const existing = shell!.decks.find((deck) => deck.source === "anki-apkg" && (
-            (incoming.ankiDeckId && deck.ankiDeckId === incoming.ankiDeckId)
-            || (!incoming.ankiDeckId && !deck.ankiDeckId && deck.hierarchyPath.join("::") === incoming.hierarchyPath.join("::"))
-          ));
-          // Reimport keeps the local name, parent, path and settings of an existing deck.
-          const deck: WorkspaceDeckSummary = existing ?? {
-            ...deckRecord(normalizeCoreDeck({
-              id: incoming.id,
-              ownerId: userId,
-              name: incoming.name,
-              source: "anki-apkg",
-              ankiDeckId: incoming.ankiDeckId,
-              parentDeckId: incoming.parentDeckId ? persistedDeckIds.get(incoming.parentDeckId) ?? incoming.parentDeckId : null,
-              hierarchyPath: incoming.hierarchyPath,
-              deckSettings: incoming.appearance ? { ...deckSettings, appearance: incoming.appearance } : deckSettings,
-              createdAt: now,
-            })),
-          };
-          persistedDeckIds.set(incoming.id, deck.id);
-          scope.deckIds.push(deck.id);
-          if (!existing) {
-            decks.push(deck);
-            inputs.push(...planEntityMutations({}, { decks: [{ ...deck, cards: [], reviewEvents: [] } as Deck] }));
-          }
-        }
-        await queueAndWrite([STORE.decks, STORE.deckStudySummaries], inputs, (transaction) => {
-          for (const deck of decks) {
-            transaction.objectStore(STORE.decks).put(deck);
-            transaction.objectStore(STORE.deckStudySummaries).put(emptyDeckStudySummary(deck.id));
-          }
-        });
-        replaceShellDecks(decks, now);
-        return;
-      }
-      if (chunk.kind === "note-type-sources") {
-        const sources: Array<NoteTypeSource & { revision: number; createdAt: string; updatedAt: string }> = [];
-        const read = database.transaction(STORE.noteTypeSources, "readonly");
-        for (const incoming of chunk.values) {
-          const local = await requestResult<Array<{ id: string }>>(read.objectStore(STORE.noteTypeSources).index("ankiNotetypeId").getAll(incoming.ankiNotetypeId));
-          const id = local[0]?.id ?? targetSourceByAnkiId.get(incoming.ankiNotetypeId) ?? incoming.id;
-          persistedNoteTypeSourceIds.set(incoming.id, id);
-          sources.push({ ...incoming, id, revision: 1, createdAt: now, updatedAt: now });
-          scope.noteTypeSourceIds.push(id);
-        }
-        await transactionDone(read);
-        await queueAndWrite(
-          [STORE.noteTypeSources],
-          sources.map((source) => insertEntityMutation("note_type_sources", source)),
-          (transaction) => { for (const source of sources) transaction.objectStore(STORE.noteTypeSources).put(source); },
-        );
-        return;
-      }
-      if (chunk.kind === "notes") {
-        const read = database.transaction([STORE.notes, STORE.cards], "readonly");
-        const changes: NoteGraphChange[] = [];
-        const persistedNoteIds = new Map<string, string>();
-        const incomingCardsByNote = new Map<string, Card[]>();
-        for (const card of chunk.cards) incomingCardsByNote.set(card.noteId, [...(incomingCardsByNote.get(card.noteId) ?? []), card]);
-        for (const incoming of chunk.notes) {
-          const noteTypeSourceId = incoming.noteTypeSourceId ? persistedNoteTypeSourceIds.get(incoming.noteTypeSourceId) ?? incoming.noteTypeSourceId : null;
-          const localMatches = incoming.ankiGuid ? await requestResult<Note[]>(read.objectStore(STORE.notes).index("ankiGuid").getAll(incoming.ankiGuid)) : [];
-          const existing = localMatches.find((note) => !note.deletedAt) ?? (incoming.ankiGuid ? targetNotesByGuid.get(incoming.ankiGuid) : undefined);
-          const incomingCards = (incomingCardsByNote.get(incoming.id) ?? []).map((card) => ({ ...card, deckId: persistedDeckIds.get(card.deckId) ?? card.deckId }));
-          if (!existing) {
-            const note: Note = { ...incoming, userId, noteTypeSourceId };
-            persistedNoteIds.set(incoming.id, note.id);
-            changes.push({ previous: null, next: { note, cards: incomingCards } });
-            for (const card of incomingCards) persistedCardIds.set(card.id, card.id);
-            continue;
-          }
-          // K5.7: local edits, study state, suspension, flag, leech, mark and deck placement stay; new prompts become new
-          // cards. Tags are no content: they merge three-way against the tags of the last import, even after local edits.
-          persistedNoteIds.set(incoming.id, existing.id);
-          const locallyEdited = existing.importedContentRevision === null || existing.contentRevision > existing.importedContentRevision;
-          if (locallyEdited) keptLocalEdits += 1;
-          const importedTags = incoming.importedTags ?? incoming.content.tags;
-          const tags = mergeImportedTags(existing.content.tags, existing.importedTags, importedTags);
-          const contentChanged = !locallyEdited
-            && JSON.stringify({ ...existing.content, tags: [] }) !== JSON.stringify({ ...incoming.content, tags: [] });
-          const tagsChanged = JSON.stringify(tags) !== JSON.stringify(existing.content.tags)
-            || JSON.stringify(importedTags) !== JSON.stringify(existing.importedTags);
-          const note: Note = contentChanged
-            ? {
-              ...existing,
-              content: { ...incoming.content, tags },
-              media: incoming.media,
-              translator: incoming.translator,
-              noteTypeSourceId,
-              contentRevision: existing.contentRevision + 1,
-              importedContentRevision: existing.contentRevision + 1,
-              importedTags,
-              revision: existing.revision + 1,
-              updatedAt: now,
-            }
-            : tagsChanged
-              ? { ...existing, content: { ...existing.content, tags }, importedTags, revision: existing.revision + 1, updatedAt: now }
-              : existing;
-          const localCards = (await Promise.all((await requestResult<IDBValidKey[]>(read.objectStore(STORE.cards).index("noteId").getAllKeys(existing.id)))
-            .map((id) => requestResult<StoredCard | undefined>(read.objectStore(STORE.cards).get(id)))))
-            .filter((card): card is StoredCard => Boolean(card && !card.deletedAt));
-          const knownCards = [...localCards, ...(targetCardsByNote.get(existing.id) ?? [])];
-          const existingIds = new Map<string, string>();
-          for (const card of knownCards) {
-            if (card.ankiCardId) existingIds.set(`anki:${card.ankiCardId}`, card.id);
-            existingIds.set(`key:${card.promptKey}`, card.id);
-          }
-          const newCards: Card[] = [];
-          const matchedIds = new Set<string>();
-          for (const card of incomingCards) {
-            const matched = (card.ankiCardId ? existingIds.get(`anki:${card.ankiCardId}`) : undefined) ?? existingIds.get(`key:${card.promptKey}`);
-            if (matched) {
-              persistedCardIds.set(card.id, matched);
-              matchedIds.add(matched);
-            } else if (!locallyEdited) {
-              newCards.push({ ...card, noteId: existing.id });
-              persistedCardIds.set(card.id, card.id);
-            }
-          }
-          missingInPackage += new Set(knownCards.map((card) => card.id).filter((id) => !matchedIds.has(id))).size;
-          if (note !== existing || newCards.length) changes.push({ previous: { note: existing, cards: [] }, next: { note, cards: newCards } });
-        }
-        await transactionDone(read);
-        // Raw field values are kept for every imported content; re-translation only touches unedited ones.
-        const noteSources = chunk.noteSources.map((source) => ({
-          noteId: persistedNoteIds.get(source.noteId) ?? source.noteId,
-          noteTypeSourceId: persistedNoteTypeSourceIds.get(source.noteTypeSourceId) ?? source.noteTypeSourceId,
-          fields: source.fields,
-          revision: 1,
-          createdAt: now,
-          updatedAt: now,
-        }));
-        if (changes.length) await writeNoteGraphs(changes);
-        await queueAndWrite(
-          [STORE.noteSources],
-          noteSources.map((source) => insertEntityMutation("note_sources", source, source.noteId)),
-          (transaction) => { for (const source of noteSources) transaction.objectStore(STORE.noteSources).put(source); },
-        );
-        for (const change of changes) {
-          scope.noteIds.push(change.next.note.id);
-          for (const card of change.next.cards) scope.cardIds.push(card.id);
-        }
-        return;
-      }
-      const events: ReviewEvent[] = chunk.values.flatMap((incoming) => {
-        const cardId = persistedCardIds.get(incoming.cardId);
-        if (!cardId) return [];
-        return [{
-          id: incoming.id,
-          userId,
-          deckId: "",
-          cardId,
-          variantId: null,
-          rating: incoming.rating,
-          answeredAt: incoming.answeredAt,
-          responseTimeMs: incoming.responseTimeMs,
-          schedulerBefore: incoming.schedulerBefore,
-          schedulerAfter: incoming.schedulerAfter,
-          flags: incoming.flags,
-          createdAt: incoming.answeredAt,
-        }];
-      });
-      const read = database.transaction([STORE.cards, STORE.reviewEvents], "readonly");
-      const cards = await Promise.all(events.map((event) => requestResult<StoredCard | undefined>(read.objectStore(STORE.cards).get(event.cardId))));
-      const existing = await Promise.all(events.map((event) => requestResult<IDBValidKey | undefined>(read.objectStore(STORE.reviewEvents).getKey(event.id))));
-      await transactionDone(read);
-      const newEvents = events
-        .map((event, index) => ({ ...event, deckId: cards[index]?.deckId ?? "" }))
-        .filter((event, index) => event.deckId && existing[index] == null);
-      await queueAndWrite(
-        [STORE.reviewEvents],
-        newEvents.map((event) => insertEntityMutation("review_events", event)),
-        (transaction) => { for (const event of newEvents) transaction.objectStore(STORE.reviewEvents).put(event); },
-      );
-      scope.reviewEventIds.push(...newEvents.map((event) => event.id));
-    });
-
-    const finalScope = {
-      deckIds: [...new Set(scope.deckIds)].sort(),
-      noteTypeSourceIds: [...new Set(scope.noteTypeSourceIds)].sort(),
-      noteIds: [...new Set(scope.noteIds)].sort(),
-      cardIds: [...new Set(scope.cardIds)].sort(),
-      reviewEventIds: [...new Set(scope.reviewEventIds)].sort(),
-    };
-    return {
-      decks: finalScope.deckIds.map((id) => shell!.decks.find((deck) => deck.id === id)).filter((deck): deck is WorkspaceDeckSummary => Boolean(deck)),
-      scope: finalScope,
-      keptLocalEdits,
-      missingInPackage,
-    };
-  };
-
-  const outbox = {
-    enqueue(input: Partial<SyncOutboxMutation> = {}) {
-      if (!input.id || !input.type) throw new Error("Sync-Mutation braucht ID und Typ.");
-      const existing = pendingOutbox.get(input.id);
-      if (existing) return existing;
-      const mutation = {
-        id: input.id,
-        userId,
-        deviceId: input.deviceId ?? null,
-        type: input.type,
-        table: input.table ?? null,
-        entityId: input.entityId ?? null,
-        baseRevision: input.baseRevision ?? null,
-        payload: input.payload ?? {},
-        createdAt: input.createdAt ?? new Date().toISOString(),
-        flushedAt: input.flushedAt ?? null,
-        retryCount: Number(input.retryCount ?? 0),
-        lastError: input.lastError ?? null,
-      } satisfies SyncOutboxMutation;
-      rememberPending(mutation);
-      void enqueueWrite(async () => {
-        const transaction = database.transaction(STORE.outbox, "readwrite");
-        transaction.objectStore(STORE.outbox).put(mutation);
-        await transactionDone(transaction);
-      });
-      return mutation;
-    },
-    listPending: () => [...pendingOutbox.values()].filter((mutation) => !mutation.flushedAt).sort((left, right) => left.createdAt.localeCompare(right.createdAt) || left.id.localeCompare(right.id)),
-    markFlushed(idsToFlush: string[] = [], flushedAt = new Date().toISOString()) {
-      for (const id of idsToFlush) {
-        const mutation = pendingOutbox.get(id);
-        if (mutation) {
-          forgetPending(id);
-          pendingOutbox.set(id, { ...mutation, flushedAt });
-        }
-      }
-      persistOutboxEntries(idsToFlush);
-      return [...pendingOutbox.values()];
-    },
-    markFailed(idsToFail: string[] = [], error: unknown = null) {
-      for (const id of idsToFail) {
-        const mutation = pendingOutbox.get(id);
-        if (mutation) pendingOutbox.set(id, {
-          ...mutation,
-          retryCount: mutation.retryCount + 1,
-          lastError: error ? String((error as Error).message ?? error).slice(0, 300) : null,
-        });
-      }
-      persistOutboxEntries(idsToFail);
-      return [...pendingOutbox.values()];
-    },
-    remove(idsToRemove: string[] = []) {
-      for (const id of idsToRemove) forgetPending(id);
-      void enqueueWrite(async () => {
-        const transaction = database.transaction(STORE.outbox, "readwrite");
-        for (const id of idsToRemove) transaction.objectStore(STORE.outbox).delete(id);
-        await transactionDone(transaction);
-      });
-      return [...pendingOutbox.values()];
-    },
-    count: () => [...pendingOutbox.values()].filter((mutation) => !mutation.flushedAt).length,
-    flushPersistence: () => writeChain,
-  };
-
-  const reviewDayCountUpdate = (answeredAt: string) => {
-    const hourKey = reviewHourKey(answeredAt);
-    if (hourKey) reviewHourCounts = { ...(reviewHourCounts ?? {}), [hourKey]: ((reviewHourCounts ?? {})[hourKey] ?? 0) + 1 };
-    if (!reviewDayCountsCache) return;
-    const dayKey = getStudyHeatmapDayKey(answeredAt, reviewDayCountsCache.timeZone, reviewDayCountsCache.dayStartHour);
-    if (dayKey) reviewDayCountsCache = { ...reviewDayCountsCache, counts: { ...reviewDayCountsCache.counts, [dayKey]: (reviewDayCountsCache.counts[dayKey] ?? 0) + 1 } };
-  };
-
   return {
     loadShell: async () => shell!,
     getShellState(): WorkspaceState {
@@ -1281,125 +387,31 @@ export async function createIndexedDbCoreRepository({ userId, initialState, inde
         catalogServerCursor: Math.max(replicaStatus.catalogServerCursor, serverCatalogCursor),
       });
     },
-    async applyAccountStudyOverview(overview: AccountStudyOverview) {
-      studyOverview = overview;
-      await putSyncMetadata("accountStudyOverview", overview);
-    },
-    /** Account-wide due counts per future learning day, or null while no overview for this learning day exists. */
-    async loadDueForecast({ now = new Date().toISOString(), dayStartHour = 0, timeZone }: { now?: string; dayStartHour?: number; timeZone?: string } = {}) {
-      await writeChain;
-      const todayKey = getStudyHeatmapDayKey(now, timeZone, dayStartHour);
-      const matches = studyOverview?.contextKey === `${timeZone ?? "local"}:${dayStartHour}` && studyOverview.dayKey === todayKey;
-      return matches ? new Map(Object.entries(studyOverview!.forecastByDay)) : null;
-    },
-    /** The 365-day forecast arrives after the bootstrap and only completes the matching overview. */
-    async applyDueForecast(forecast: { contextKey: string; forecastByDay: Record<string, number> }) {
-      if (!studyOverview || studyOverview.contextKey !== forecast.contextKey) return;
-      studyOverview = { ...studyOverview, forecastByDay: forecast.forecastByDay };
-      await putSyncMetadata("accountStudyOverview", studyOverview);
-    },
+    applyAccountStudyOverview: studyOverview.applyAccountStudyOverview,
+    loadDueForecast: studyOverview.loadDueForecast,
+    applyDueForecast: studyOverview.applyDueForecast,
     applyCloudCatalogPages,
-    listCatalogPage,
-    missingCardBodyIds,
-    markCardBodiesResident,
-    touchCardBodies,
+    listCatalogPage: catalogSearch.listCatalogPage,
+    missingCardBodyIds: cardBodies.missingCardBodyIds,
+    markCardBodiesResident: cardBodies.markCardBodiesResident,
+    touchCardBodies: cardBodies.touchCardBodies,
     loadCardBody,
     loadCardBodies,
-    loadNotes,
+    loadNotes: cardBodies.loadNotes,
     loadNoteGraph,
-    loadNoteGraphs,
-    loadNoteTypeSource,
+    loadNoteGraphs: cardBodies.loadNoteGraphs,
+    loadNoteTypeSource: cardBodies.loadNoteTypeSource,
     applyHydratedBodies,
     saveNoteGraphs: writeNoteGraphs,
     updateCard,
-    async saveOfflineDeck(record: OfflineDeckRecord) {
-      const transaction = database.transaction(STORE.offlineDecks, "readwrite");
-      transaction.objectStore(STORE.offlineDecks).put({ ...record, id: record.deckId });
-      await transactionDone(transaction);
-    },
-    async getOfflineDeck(deckId: string) {
-      const transaction = database.transaction(STORE.offlineDecks, "readonly");
-      const value = await requestResult<OfflineDeckRecord | undefined>(transaction.objectStore(STORE.offlineDecks).get(deckId));
-      await transactionDone(transaction);
-      return value ?? null;
-    },
-    async listOfflineDecks() {
-      const transaction = database.transaction(STORE.offlineDecks, "readonly");
-      const values = await requestResult<OfflineDeckRecord[]>(transaction.objectStore(STORE.offlineDecks).getAll());
-      await transactionDone(transaction);
-      return values;
-    },
-    async appendOfflineManifest(deckId: string, cards: OfflineCardManifestEntry[], media: OfflineMediaManifestEntry[], { reset = false }: { reset?: boolean } = {}) {
-      const transaction = database.transaction(STORE.offlineManifests, "readwrite");
-      const store = transaction.objectStore(STORE.offlineManifests);
-      if (reset) for (const key of await requestResult<IDBValidKey[]>(store.index("deckId").getAllKeys(deckId))) store.delete(key);
-      for (const card of cards) store.put({ id: `${deckId}\u0000card\u0000${card.id}`, deckId, kind: "card", value: card });
-      for (const entry of media) store.put({ id: `${deckId}\u0000media\u0000${entry.sha1}`, deckId, kind: "media", value: entry });
-      await transactionDone(transaction);
-    },
-    async readOfflineManifest(deckId: string) {
-      const transaction = database.transaction(STORE.offlineManifests, "readonly");
-      const rows = await requestResult<Array<{ kind: "card" | "media"; value: OfflineCardManifestEntry | OfflineMediaManifestEntry }>>(
-        transaction.objectStore(STORE.offlineManifests).index("deckId").getAll(deckId),
-      );
-      await transactionDone(transaction);
-      return {
-        cards: rows.filter((row) => row.kind === "card").map((row) => row.value as OfflineCardManifestEntry),
-        media: rows.filter((row) => row.kind === "media").map((row) => row.value as OfflineMediaManifestEntry),
-      };
-    },
-    async clearOfflineManifest(deckId: string) {
-      const transaction = database.transaction(STORE.offlineManifests, "readwrite");
-      const store = transaction.objectStore(STORE.offlineManifests);
-      for (const key of await requestResult<IDBValidKey[]>(store.index("deckId").getAllKeys(deckId))) store.delete(key);
-      await transactionDone(transaction);
-    },
-    async removeOfflineDeck(deckId: string) {
-      const transaction = database.transaction([STORE.offlineDecks, STORE.bodyResidency, STORE.offlineManifests], "readwrite");
-      transaction.objectStore(STORE.offlineDecks).delete(deckId);
-      const manifestStore = transaction.objectStore(STORE.offlineManifests);
-      for (const key of await requestResult<IDBValidKey[]>(manifestStore.index("deckId").getAllKeys(deckId))) manifestStore.delete(key);
-      const index = transaction.objectStore(STORE.bodyResidency).index("deckAccess");
-      await iterateCursor<CardBodyResidencyRecord>(index.openCursor(IDBKeyRange.bound([deckId, "", ""], [deckId, "￿", "￿"])), (record) => {
-        if (record.state === "downloaded") transaction.objectStore(STORE.bodyResidency).put({ ...record, state: "cached" });
-      });
-      await transactionDone(transaction);
-    },
-    /** Frees unpinned card bodies; a content goes once no resident card of it remains. */
-    async evictCachedCardBodies(bytesToFree: number, protectedCardIds: string[] = []) {
-      await writeChain;
-      const protectedIds = new Set([...protectedCardIds, ...pendingEntityIdsForTable("cards")]);
-      const read = database.transaction(STORE.bodyResidency, "readonly");
-      const candidates = await requestResult<CardBodyResidencyRecord[]>(
-        read.objectStore(STORE.bodyResidency).index("stateAccess").getAll(IDBKeyRange.bound(["cached", "", ""], ["cached", "￿", "￿"])),
-      );
-      await transactionDone(read);
-      let freedBytes = 0;
-      let evictedCount = 0;
-      for (const candidate of candidates) {
-        if (freedBytes >= Math.max(0, bytesToFree)) break;
-        if (protectedIds.has(candidate.id) || (candidate.protectedUntil && Date.parse(candidate.protectedUntil) > Date.now())) continue;
-        const transaction = database.transaction([STORE.cards, STORE.variants, STORE.notes, STORE.bodyResidency], "readwrite");
-        const card = await requestResult<StoredCard | undefined>(transaction.objectStore(STORE.cards).get(candidate.id));
-        const variants = await requestResult<StoredVariant[]>(transaction.objectStore(STORE.variants).index("cardId").getAll(candidate.id));
-        if (card) {
-          freedBytes += serializedBytes(card) + serializedBytes(variants);
-          transaction.objectStore(STORE.cards).delete(candidate.id);
-          for (const variant of variants) transaction.objectStore(STORE.variants).delete(variant.id);
-          transaction.objectStore(STORE.bodyResidency).put({ ...candidate, state: "catalog-only" });
-          const siblings = await requestResult<IDBValidKey[]>(transaction.objectStore(STORE.cards).index("noteId").getAllKeys(card.noteId));
-          if (!siblings.some((id) => id !== candidate.id) && !pendingEntityMutation("notes", card.noteId)) {
-            const note = await requestResult<Note | undefined>(transaction.objectStore(STORE.notes).get(card.noteId));
-            if (note) freedBytes += serializedBytes(note);
-            transaction.objectStore(STORE.notes).delete(card.noteId);
-          }
-          evictedCount += 1;
-        }
-        await transactionDone(transaction);
-        if (evictedCount % 25 === 0) await new Promise<void>((resolve) => setTimeout(resolve, 0));
-      }
-      return { freedBytes, evictedCount };
-    },
+    saveOfflineDeck: cardBodies.saveOfflineDeck,
+    getOfflineDeck: cardBodies.getOfflineDeck,
+    listOfflineDecks: cardBodies.listOfflineDecks,
+    appendOfflineManifest: cardBodies.appendOfflineManifest,
+    readOfflineManifest: cardBodies.readOfflineManifest,
+    clearOfflineManifest: cardBodies.clearOfflineManifest,
+    removeOfflineDeck: cardBodies.removeOfflineDeck,
+    evictCachedCardBodies: cardBodies.evictCachedCardBodies,
     async cacheStatisticsSnapshot(id: string, snapshot: AccountStatisticsSnapshot) {
       const transaction = database.transaction(STORE.statisticsSnapshots, "readwrite");
       transaction.objectStore(STORE.statisticsSnapshots).put({ id, ...snapshot });
@@ -1419,19 +431,7 @@ export async function createIndexedDbCoreRepository({ userId, initialState, inde
       await transactionDone(transaction);
       return summaries;
     },
-    async getDeckBodyResidencySummary(deckId: string) {
-      const transaction = database.transaction([STORE.cardCatalog, STORE.bodyResidency], "readonly");
-      const total = await requestResult(transaction.objectStore(STORE.cardCatalog).index("deckScan").count(IDBKeyRange.bound([deckId, ""], [deckId, "￿"])));
-      const residency = await requestResult<CardBodyResidencyRecord[]>(transaction.objectStore(STORE.bodyResidency).index("deckAccess").getAll(
-        IDBKeyRange.bound([deckId, "", ""], [deckId, "￿", "￿"]),
-      ));
-      await transactionDone(transaction);
-      return {
-        total,
-        cached: residency.filter((record) => record.state === "cached").length,
-        downloaded: residency.filter((record) => record.state === "downloaded").length,
-      };
-    },
+    getDeckBodyResidencySummary: cardBodies.getDeckBodyResidencySummary,
     /** All local answers of one card, oldest first, including manual events. */
     async listCardReviewEvents(cardId: string) {
       await writeChain;
@@ -1498,7 +498,7 @@ export async function createIndexedDbCoreRepository({ userId, initialState, inde
         lastError: null,
       };
       rememberPending(mutation);
-      reviewDayCountUpdate(event.answeredAt);
+      studyOverview.countReview(event.answeredAt);
       void enqueueWrite(async () => {
         const transaction = database.transaction([STORE.cards, STORE.variants, STORE.notes, STORE.cardCatalog, STORE.bodyResidency, STORE.deckStudySummaries, STORE.reviewEvents, STORE.outbox, STORE.meta, STORE.syncMetadata], "readwrite");
         const catalogStore = transaction.objectStore(STORE.cardCatalog);
@@ -1507,24 +507,7 @@ export async function createIndexedDbCoreRepository({ userId, initialState, inde
         const history = withStudyEvents(previousCatalog, [event]);
         const catalog = note ? catalogRecordFor(updatedCard, note, history) : storedCatalogRecord({ ...catalogEntryFromCard(updatedCard, null, history), ...(previousCatalog ? { frontPreview: previousCatalog.frontPreview, sortText: previousCatalog.sortText, normalizedSearchText: previousCatalog.normalizedSearchText, marked: previousCatalog.marked, tagKeys: previousCatalog.tagKeys, editedAt: previousCatalog.editedAt, contentKind: previousCatalog.contentKind, noteTypeId: previousCatalog.noteTypeId } : {}) });
         await applyReplicaCatalogChange(transaction, deck.id, previousCatalog, catalog, event.answeredAt);
-        const overviewContext = studyOverview ? studyOverviewContext(studyOverview) : null;
-        const overviewDay = overviewContext ? getStudyHeatmapDayKey(event.answeredAt, overviewContext.timeZone, overviewContext.dayStartHour) : null;
-        if (studyOverview && overviewContext && overviewDay === studyOverview.dayKey && countsTowardDailyLimits(event)) {
-          const range = getLearningDayRange(event.answeredAt, overviewContext);
-          const priorEvents = range ? await requestResult<ReviewEvent[]>(transaction.objectStore(STORE.reviewEvents).index("cardAnswered").getAll(IDBKeyRange.bound(
-            [event.cardId, new Date(range.start).toISOString(), ""],
-            [event.cardId, new Date(range.end).toISOString(), ""],
-            false,
-            true,
-          ))) : [];
-          const wasNew = (candidate: ReviewEvent) => ((candidate.schedulerBefore as any)?.card?.state ?? "new") === "new";
-          const isIntroduction = wasNew(event);
-          if (!priorEvents.some((prior) => countsTowardDailyLimits(prior) && wasNew(prior) === isIntroduction)) {
-            const key = isIntroduction ? "introducedTodayByDeck" : "reviewedTodayByDeck";
-            studyOverview = { ...studyOverview, [key]: { ...studyOverview[key], [deck.id]: (studyOverview[key][deck.id] ?? 0) + 1 }, generatedAt: event.answeredAt };
-            transaction.objectStore(STORE.syncMetadata).put({ key: "accountStudyOverview", value: studyOverview });
-          }
-        }
+        await studyOverview.countReviewInOverview(transaction, event, deck.id);
         // A leech the deck suspends also changes the card itself; that edit syncs like any other card change.
         const stored = await requestResult<StoredCard | undefined>(transaction.objectStore(STORE.cards).get(updatedCard.id));
         if (stored && stored.status !== updatedCard.status) {
@@ -1537,13 +520,23 @@ export async function createIndexedDbCoreRepository({ userId, initialState, inde
         transaction.objectStore(STORE.reviewEvents).put(event);
         transaction.objectStore(STORE.outbox).put(mutation);
         transaction.objectStore(STORE.meta).put({ key: "updatedAt", value: event.answeredAt });
-        transaction.objectStore(STORE.syncMetadata).put({ key: "reviewHourCounts", value: reviewHourCounts ?? {} });
-        if (reviewDayCountsCache) transaction.objectStore(STORE.syncMetadata).put({ key: "reviewDayCounts", value: reviewDayCountsCache });
+        studyOverview.writeReviewCounts(transaction);
         await transactionDone(transaction);
       });
       return result;
     },
-    commitImportGraph,
+    async commitImportGraph(graph: ImportCommitGraph, options: ImportCommitOptions) {
+      await writeChain;
+      return commitImportGraph({
+        database,
+        userId,
+        shellDecks: () => shell!.decks,
+        replaceShellDecks,
+        queueMutations,
+        writeOutbox,
+        writeNoteGraphs,
+      }, graph, options);
+    },
     /** Re-queues the inserts of a verified import graph; the cloud matches existing rows idempotently. */
     async requeueImportVerificationScope(scope: ImportVerificationScope, repairScope: ImportVerificationRepairScope | null = null) {
       await writeChain;
@@ -1602,9 +595,7 @@ export async function createIndexedDbCoreRepository({ userId, initialState, inde
     async prepareConflictResolution(result: any, decision: any) {
       const target = result?.resolutionTarget;
       if (!target || !["keep-local", "keep-remote", "merge-fields"].includes(decision?.action)) return;
-      const mutationIds = [...pendingByTarget.values()]
-        .filter((mutation) => mutation.type === "entity-mutation" && mutation.table === target.table && mutation.entityId === target.entityId)
-        .map((mutation) => mutation.id);
+      const mutationIds = pendingEntityMutationIds(target.table, target.entityId);
       outbox.remove(mutationIds);
       await outbox.flushPersistence();
       if (decision.action !== "keep-remote" || result.resolvedPage) return;
@@ -1728,140 +719,12 @@ export async function createIndexedDbCoreRepository({ userId, initialState, inde
       });
       return completeProfile;
     },
-    async listDeckSummaries({ now = new Date().toISOString(), dayStartHour = 0, timeZone }: { now?: string; dayStartHour?: number; learnAheadMinutes?: number; timeZone?: string } = {}) {
-      const measureFirstRun = !firstDeckSummariesStarted;
-      if (measureFirstRun) {
-        firstDeckSummariesStarted = true;
-        markStartupPhaseStarted("firstDeckSummaries");
-      }
-      await writeChain;
-      const todayKey = getStudyHeatmapDayKey(now, timeZone, dayStartHour) ?? now.slice(0, 10);
-      const contextKey = `${timeZone ?? "local"}:${dayStartHour}`;
-      const dayRange = getLearningDayRange(now, { dayStartHour, timeZone });
-      const overviewMatches = studyOverview?.contextKey === contextKey && studyOverview.dayKey === todayKey;
-      const catalogIsComplete = replicaStatus.catalogCompleteness === "complete";
-      const transaction = database.transaction([
-        STORE.deckStudySummaries,
-        ...(catalogIsComplete ? [STORE.cardCatalog] : []),
-        ...(!overviewMatches && catalogIsComplete ? [STORE.reviewEvents] : []),
-      ], "readonly");
-      const countState = (deckId: string, state: string) => requestResult(transaction.objectStore(STORE.cardCatalog).index("deckReviewDue").count(IDBKeyRange.bound(
-        [deckId, 1, state, "", ""],
-        [deckId, 1, state, new Date(dayRange!.end).toISOString(), ""],
-        false,
-        true,
-      )));
-      const [summaryRows, todayEventRows, dueRows, availableNewRows, availableLearningRows] = await Promise.all([
-        requestResult<DeckStudySummary[]>(transaction.objectStore(STORE.deckStudySummaries).getAll()),
-        dayRange && catalogIsComplete && !overviewMatches
-          ? Promise.all(shell!.decks.map((deck) => requestResult<ReviewEvent[]>(transaction.objectStore(STORE.reviewEvents).index("deckAnswered").getAll(IDBKeyRange.bound(
-            [deck.id, new Date(dayRange.start).toISOString(), ""],
-            [deck.id, new Date(dayRange.end).toISOString(), ""],
-            false,
-            true,
-          )))))
-          : Promise.resolve([] as ReviewEvent[][]),
-        dayRange && catalogIsComplete ? Promise.all(shell!.decks.map((deck) => countState(deck.id, "review"))) : Promise.resolve([] as number[]),
-        dayRange && catalogIsComplete ? Promise.all(shell!.decks.map((deck) => countState(deck.id, "new"))) : Promise.resolve([] as number[]),
-        dayRange && catalogIsComplete
-          ? Promise.all(shell!.decks.map(async (deck) => (await countState(deck.id, "learning")) + (await countState(deck.id, "relearning"))))
-          : Promise.resolve([] as number[]),
-      ]);
-      await transactionDone(transaction);
-
-      if (reviewDayCountsCache?.contextKey !== contextKey) {
-        reviewDayCountsCache = { contextKey, timeZone, dayStartHour, counts: {} };
-        await putSyncMetadata("reviewDayCounts", reviewDayCountsCache);
-      }
-
-      // Counts from the server overview already leave out today's buried siblings.
-      const buriedByDeck = dayRange && catalogIsComplete
-        ? await buriedSiblingsByDeck(database, shell!.decks, dayRange, overviewMatches ? null : todayEventRows)
-        : new Map<string, BuriedSiblingCounts>();
-      const summaries = new Map(summaryRows.map((summary) => [summary.deckId, summary]));
-      const result = new Map<string, DeckLibrarySummary>();
-      const pause = createMainThreadBudget();
-      for (const [index, deck] of shell!.decks.entries()) {
-        await pause();
-        const summary = summaries.get(deck.id) ?? emptyDeckStudySummary(deck.id);
-        const introduced = new Set<string>();
-        const reviewed = new Set<string>();
-        if (catalogIsComplete && !overviewMatches) {
-          for (const event of todayEventRows[index] ?? []) {
-            if (!countsTowardDailyLimits(event)) continue;
-            const before = (event.schedulerBefore as any)?.card;
-            if (before?.state === "new" || Number(before?.reps ?? 0) === 0) introduced.add(event.cardId);
-            else reviewed.add(event.cardId);
-          }
-          for (const key of introduced) reviewed.delete(key);
-        }
-        const introducedCount = overviewMatches ? studyOverview!.introducedTodayByDeck[deck.id] ?? 0 : catalogIsComplete ? introduced.size : 0;
-        const reviewedCount = overviewMatches ? studyOverview!.reviewedTodayByDeck[deck.id] ?? 0 : catalogIsComplete ? reviewed.size : 0;
-        const dueCards = catalogIsComplete ? dueRows[index] ?? 0 : overviewMatches ? studyOverview!.dueByDeck[deck.id] ?? 0 : 0;
-        const availableNewCards = catalogIsComplete ? availableNewRows[index] ?? 0 : overviewMatches ? studyOverview!.availableNewByDeck?.[deck.id] ?? 0 : 0;
-        const availableLearningCards = catalogIsComplete ? availableLearningRows[index] ?? 0 : overviewMatches ? studyOverview!.availableLearningByDeck?.[deck.id] ?? 0 : 0;
-        const buried = buriedByDeck.get(deck.id);
-        const studyNewCards = Math.max(0, availableNewCards - (buried?.newCards ?? 0));
-        const studyLearningCards = Math.max(0, availableLearningCards - (buried?.learningCards ?? 0));
-        const studyDueCards = Math.max(0, dueCards - (buried?.dueCards ?? 0));
-        const settings = createDefaultDeckSettings(deck.deckSettings);
-        const newLimit = Math.max(0, settings.newCardsTodayOverride?.date === todayKey ? settings.newCardsTodayOverride.limit : settings.newCardsPerDay);
-        const remainingNew = Math.max(0, newLimit - introducedCount);
-        const remainingReviews = Math.max(0, settings.maximumReviewsPerDay - introducedCount - reviewedCount);
-        const selectedNew = Math.min(studyNewCards, remainingNew, remainingReviews);
-        const selectedDue = Math.min(studyDueCards + studyLearningCards, Math.max(0, remainingReviews - selectedNew));
-        const completedTodayCount = introducedCount + reviewedCount;
-        result.set(deck.id, {
-          inventory: {
-            totalCards: Math.max(0, summary.totalCount - summary.suspendedCount),
-            dueCards,
-            newCards: summary.newCount,
-            inProgressCards: summary.learningCount,
-            matureCards: summary.matureCount,
-            activeVariants: summary.activeVariantCount,
-          },
-          dailyProgress: { completedTodayCount, newCount: selectedNew, inProgressCount: studyLearningCards, dueCount: Math.max(0, selectedDue - studyLearningCards), total: completedTodayCount + selectedNew + selectedDue },
-          startableCount: selectedNew + selectedDue,
-          additionalNewCount: Math.max(0, studyNewCards - selectedNew),
-          effectiveNewLimit: newLimit,
-          introducedTodayCount: introducedCount,
-          dateKey: todayKey,
-        });
-      }
-      const summaryResult = {
-        summaries: result,
-        studyHeatmap: createStudyHeatmapModelFromCounts({
-          todayKey,
-          countsByDay: new Map(Object.entries(reviewDayCountsCache?.counts ?? {})),
-          forecastCountsByDay: overviewMatches ? new Map(Object.entries(studyOverview!.forecastByDay)) : new Map(),
-        }),
-      };
-      if (measureFirstRun) markStartupPhaseReady("firstDeckSummaries", { deckCount: result.size });
-      return summaryResult;
-    },
+    listDeckSummaries: studyOverview.listDeckSummaries,
     /** Loads the search index ahead of the first search, in short batches. */
     prepareCardSearch: () => ensureSearchIndex(),
-    /** Local catalog rows of the given cards; missing ones (e.g. deleted here) are absent. */
-    async loadCatalogEntries(cardIds: readonly string[]) {
-      await writeChain;
-      const transaction = database.transaction(STORE.cardCatalog, "readonly");
-      const store = transaction.objectStore(STORE.cardCatalog);
-      const rows = await Promise.all(cardIds.map((id) => requestResult<StoredCardCatalog | undefined>(store.get(id))));
-      return new Map(rows.filter((row): row is StoredCardCatalog => Boolean(row)).map((row) => [row.id, catalogEntry(row)]));
-    },
-    /** Ids of every card in scope that matches the search, in index order: `Alle N Treffer auswählen` (KV4). */
-    /** `Duplikate finden` (KV5) over the searched cards of the scope, with the field names to choose from. */
-    async findDuplicates(scope: readonly string[], { key, query = "", searchContext }: { key: DuplicateKey; query?: string; searchContext?: CardSearchContext }) {
-      await writeChain;
-      await ensureSearchIndex();
-      const entries = searchIndex.slice(query, { field: "sortField", direction: "asc" }, searchContext, scope, 0, Number.MAX_SAFE_INTEGER).items;
-      return { fieldNames: duplicateFieldNames(entries), groups: findDuplicateGroups(entries, key) };
-    },
-    async listCardIds(scope: readonly string[], { query = "", searchContext, sort = { field: "sortField", direction: "asc" } }: { query?: string; searchContext?: CardSearchContext; sort?: CardTableSort } = {}) {
-      await writeChain;
-      await ensureSearchIndex();
-      return searchIndex.slice(query, sort, searchContext, scope, 0, Number.MAX_SAFE_INTEGER).items.map((entry) => entry.id);
-    },
+    loadCatalogEntries: catalogSearch.loadCatalogEntries,
+    findDuplicates: catalogSearch.findDuplicates,
+    listCardIds: catalogSearch.listCardIds,
     /**
      * Catalog page by page number of one deck, or of several decks as one list (the flat hit list), plus the opened
      * content with its siblings. The search index answers any page at once (KV3); a single deck without a search
@@ -1882,7 +745,7 @@ export async function createIndexedDbCoreRepository({ userId, initialState, inde
         return selectedGraph && selectedBody ? { ...selectedGraph, cardId: selectedBody.card.id } : null;
       };
       await writeChain;
-      if (deckIds.length !== 1 || searchIndexReady || !isEmptyCardSearch(parseCardSearchQuery(query))) {
+      if (deckIds.length !== 1 || catalogSearch.isSearchIndexReady() || !isEmptyCardSearch(parseCardSearchQuery(query))) {
         await ensureSearchIndex();
         const requestedPage = Math.max(0, Math.floor(page));
         const slice = searchIndex.slice(query, sort, searchContext, deckIds, requestedPage * pageSize, pageSize);
@@ -1901,11 +764,11 @@ export async function createIndexedDbCoreRepository({ userId, initialState, inde
       pageCursorsByKey.set(key, cursors);
       let requestedPage = Math.max(0, Math.floor(page));
       while (!cursors.has(requestedPage)) requestedPage -= 1;
-      let result = await listCatalogPage(deckId, { cursor: cursors.get(requestedPage) ?? null, limit: pageSize, query, sort, includeTotal: true, searchContext });
+      let result = await catalogSearch.listCatalogPage(deckId, { cursor: cursors.get(requestedPage) ?? null, limit: pageSize, query, sort, includeTotal: true, searchContext });
       while (requestedPage < page && result.nextCursor) {
         requestedPage += 1;
         cursors.set(requestedPage, result.nextCursor);
-        result = await listCatalogPage(deckId, { cursor: result.nextCursor, limit: pageSize, query, sort, includeTotal: true, searchContext });
+        result = await catalogSearch.listCatalogPage(deckId, { cursor: result.nextCursor, limit: pageSize, query, sort, includeTotal: true, searchContext });
       }
       if (result.nextCursor) cursors.set(requestedPage + 1, result.nextCursor);
       return {

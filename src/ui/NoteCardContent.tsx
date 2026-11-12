@@ -84,6 +84,44 @@ export function useNoteCardPrefetch(items: ReadonlyArray<{ note: Note; card: Car
   }, [items, layout]);
 }
 
+/**
+ * Whether the review loads the answer side unseen while the question is read. Not where the answer side follows input
+ * made before revealing: typed comparison, or the host's choice selection. Nor where a hidden frame could play sound or
+ * video: an original layout's template may carry `autoplay`, which the CoRe design never renders.
+ */
+export function preparesAnswerAhead(note: Note, card: Card, surface: NonNullable<NoteCardContentProps["surface"]>, answer: NotePresentationResult): boolean {
+  const interaction = note.content.interaction;
+  if (surface !== "review" || interaction.kind === "choice") return false;
+  if (answer.layout === "original" && answer.interactions.some((item) => item === "audio" || item === "video")) return false;
+  if (interaction.kind !== "reveal") return true;
+  const prompt = interaction.prompts.find((item) => item.key === card.promptKey);
+  return Boolean(prompt && !prompt.typeInFieldId);
+}
+
+export type AnswerAhead = "none" | "loading" | "ready";
+
+/**
+ * The answer frame loaded ahead: hidden until revealed, then shown. A single frame that turns to its back (cloze,
+ * image occlusion, original layout) takes the prepared one only once it has loaded, otherwise it turns as without one.
+ */
+export function preparedAnswerFrame(ahead: AnswerAhead, revealed: boolean, oneFrame: boolean): "hidden" | "shown" | null {
+  if (ahead === "none") return null;
+  if (!revealed) return "hidden";
+  return ahead === "ready" || !oneFrame ? "shown" : null;
+}
+
+/** Runs once the frame just loaded is drawn and the browser is idle; returns the cancel. */
+function whenDrawnAndIdle(run: () => void) {
+  let idle: number | undefined;
+  const frame = requestAnimationFrame(() => {
+    idle = typeof requestIdleCallback === "function" ? requestIdleCallback(run) : window.setTimeout(run, 0);
+  });
+  return () => {
+    cancelAnimationFrame(frame);
+    if (idle !== undefined) (typeof cancelIdleCallback === "function" ? cancelIdleCallback : window.clearTimeout)(idle);
+  };
+}
+
 export function NoteCardContent(props: NoteCardContentProps) {
   return <NoteCardContentBody key={`${props.card.id}:${props.note.contentRevision}`} {...props} />;
 }
@@ -99,6 +137,9 @@ function NoteCardContentBody({ note, card, revealed, onReveal, surface = "review
   const [selected, setSelected] = React.useState<Record<string, boolean>>({});
   const [selectedText, setSelectedText] = React.useState("");
   const [speechError, setSpeechError] = React.useState("");
+  // At most one answer frame is prepared, per card: a new card starts a new body.
+  const [answerAhead, setAnswerAhead] = React.useState<AnswerAhead>("none");
+  const cancelPreparation = React.useRef<(() => void) | null>(null);
 
   const interaction = note.content.interaction;
   const prompt = interaction.kind === "reveal" ? interaction.prompts.find((item) => item.key === card.promptKey) : null;
@@ -129,6 +170,7 @@ function NoteCardContentBody({ note, card, revealed, onReveal, surface = "review
     })().catch(() => { if (active) setError("Die Karte konnte nicht dargestellt werden."); });
     return () => { active = false; };
   }, [card, layout, note, surface, theme, typedAnswer]);
+  React.useEffect(() => () => cancelPreparation.current?.(), []);
 
   if (error) return <StatusMessage tone="error" announce="assertive">{error}</StatusMessage>;
   if (!presentation) return <StatusMessage tone="info" announce="polite">Kartendarstellung wird vorbereitet …</StatusMessage>;
@@ -141,6 +183,11 @@ function NoteCardContentBody({ note, card, revealed, onReveal, surface = "review
   const diagnostics = [...presentation.question.diagnostics, ...(answerResult?.diagnostics ?? [])].filter((item, index, all) => all.findIndex((candidate) => candidate.code === item.code && candidate.detail === item.detail) === index);
   const speech = presentation.speech[revealed ? "answer" : "question"];
   const frameProps = { surface: "review" as const, mediaUrls, onTextSelectionChange: setSelectedText };
+  const prepared = preparedAnswerFrame(answerAhead, revealed, oneFrame);
+  // Never in the same step as the card change: only once the question has loaded, is drawn and the browser is idle.
+  const prepareAnswer = preparesAnswerAhead(note, card, surface, presentation.answer) && !revealed && answerAhead === "none" ? () => {
+    cancelPreparation.current ??= whenDrawnAndIdle(() => setAnswerAhead("loading"));
+  } : undefined;
   const speak = (item: Speech[number]) => {
     const utterance = new SpeechSynthesisUtterance(item.text);
     utterance.lang = item.language;
@@ -150,9 +197,9 @@ function NoteCardContentBody({ note, card, revealed, onReveal, surface = "review
     window.speechSynthesis.speak(utterance);
   };
 
-  return <div className="grid min-w-0 gap-4" data-note-card={card.promptKey}>
+  return <div className="relative grid min-w-0 gap-4" data-note-card={card.promptKey}>
     {presentation.mathCss && interaction.kind === "choice" ? <style>{presentation.mathCss}</style> : null}
-    <CardPresentationSurface {...frameProps} presentation={oneFrame && answerResult ? answerResult : presentation.question} title={oneFrame && answerResult ? "Aufgedeckte Karte" : "Frage"} scrollTargetId={original && answerResult && surface === "review" ? "answer" : undefined} />
+    {oneFrame && prepared === "shown" ? null : <CardPresentationSurface {...frameProps} presentation={oneFrame && answerResult ? answerResult : presentation.question} title={oneFrame && answerResult ? "Aufgedeckte Karte" : "Frage"} scrollTargetId={original && answerResult && surface === "review" ? "answer" : undefined} onLoad={prepareAnswer} />}
 
     {typeIn && !revealed ? <div className="grid gap-2">
       <label className="core-field-label" htmlFor={`typed-${card.id}`}>Antwort eingeben</label>
@@ -197,7 +244,7 @@ function NoteCardContentBody({ note, card, revealed, onReveal, surface = "review
           : "Nicht ganz. Vergleiche deine Auswahl mit der Lösung."}</StatusMessage> : null}
     </div> : null}
 
-    {answerResult && !oneFrame ? <CardPresentationSurface {...frameProps} presentation={answerResult} title="Antwort" /> : null}
+    {prepared || (answerResult && !oneFrame) ? <CardPresentationSurface {...frameProps} presentation={answerResult ?? presentation.answer} title={oneFrame ? "Aufgedeckte Karte" : "Antwort"} concealed={prepared === "hidden"} scrollTargetId={original ? "answer" : undefined} onLoad={revealed ? undefined : () => setAnswerAhead("ready")} /> : null}
     {diagnostics.length ? <StatusMessage tone="warning">{diagnostics.map((item, index) => <p key={index}>{item.message}</p>)}</StatusMessage> : null}
 
     {speech.length || (surface === "review" && selectedText) ? <div className="flex flex-wrap items-center gap-x-3 gap-y-2">

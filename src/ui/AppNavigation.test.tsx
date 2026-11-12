@@ -4,19 +4,22 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { createMenuModel } from "../menuModel.ts";
 import { createPomodoroTimer, type PomodoroTimer } from "../pomodoroTimer.ts";
 import type { SyncStatus } from "../coreTypes.ts";
+import { WorkspaceStoreContext } from "../useWorkspaceStore.ts";
+import { createWorkspaceStore } from "../workspaceStore.ts";
 import { AppNavigation } from "./AppNavigation.tsx";
 
 const navigationItems = createMenuModel().listNavigationItems();
 
 function renderNavigation(activeView = "uebersicht", simulationOffsetMinutes = 0, pomodoroTimer: PomodoroTimer | null = null, syncStatus: SyncStatus = { status: "idle" }, manualSync = false, settingsOpen = false) {
+  const store = createWorkspaceStore();
+  store.set({ syncStatus });
   return renderToStaticMarkup(
-    <AppNavigation
+    <WorkspaceStoreContext.Provider value={store}><AppNavigation
       navigationItems={navigationItems}
       activeView={activeView}
       simulationOffsetMinutes={simulationOffsetMinutes}
       simulationDateLabel="Sonntag, 9. August 2026"
       pomodoroTimer={pomodoroTimer}
-      syncStatus={syncStatus}
       manualSync={manualSync}
       onSyncNow={() => undefined}
       onOpenSyncSettings={() => undefined}
@@ -24,7 +27,7 @@ function renderNavigation(activeView = "uebersicht", simulationOffsetMinutes = 0
       onOpenSettings={() => undefined}
       onNavigate={() => undefined}
       onResetSimulation={() => undefined}
-    />,
+    /></WorkspaceStoreContext.Provider>,
   );
 }
 
