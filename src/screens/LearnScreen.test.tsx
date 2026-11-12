@@ -47,6 +47,9 @@ test("learning rows expose shared counts, direct activation, settings and drag-a
   assert.match(markup, />Aktive Stapel<\/h3>/);
   assert.match(markup, /data-testid="learn-deck-create-form"/);
   assert.ok(markup.indexOf('data-testid="deck-summary-header"') < markup.indexOf('data-testid="learn-deck-create-form"'));
+  assert.match(markup, /<span class="sr-only">Stapelname<\/span>/);
+  assert.match(markup, /placeholder="Neuer Stapel, z\. B\. Anatomie"/);
+  assert.match(markup, /<button type="submit"[^>]*core-deck-create-submit[^>]*>[\s\S]*?<span>Anlegen<\/span>/);
   assert.match(markup, /aria-label="Stapelansicht"[^>]*core-icon-segmented-control/);
   assert.match(markup, /aria-pressed="false" aria-label="Als Kacheln anzeigen"/);
   assert.match(markup, /aria-pressed="true" aria-label="Als Liste anzeigen"/);

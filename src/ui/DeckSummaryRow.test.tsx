@@ -28,7 +28,9 @@ test("deck summary row keeps responsive identity and accessible metrics without 
   for (const label of ["Neu", "Offen", "Fällig"]) assert.match(markup, new RegExp(`<dt class="sr-only">${label}</dt>`));
   assert.doesNotMatch(markup, /data-deck-count="total"|>Gesamt</);
   assert.match(markup, /data-deck-icon="true"/);
-  assert.match(markup, /padding-inline-start:calc\(1 \* var\(--core-deck-depth-indent, 8px\)\)/);
+  assert.match(markup, /--core-deck-depth:1;--core-deck-icon-background:transparent/);
+  assert.match(markup, /padding-inline-start:calc\(var\(--core-deck-depth\) \* var\(--core-deck-depth-indent, 8px\)\)/);
+  assert.match(markup, /class="core-deck-summary-name min-w-0 flex-1 font-medium /);
   assert.doesNotMatch(markup, /data-donut-|Gesamtfortschritt|Keine aktiven Karten/);
   assert.match(markup, /aria-label="Stapeloptionen"/);
 });
@@ -53,8 +55,17 @@ test("deck summary row caps visual indentation at level six", () => {
   );
 
   assert.equal(deepRow.depth, 11);
-  assert.match(markup, /padding-inline-start:calc\(5 \* var\(--core-deck-depth-indent, 8px\)\)/);
+  assert.match(markup, /--core-deck-depth:5;/);
   assert.doesNotMatch(markup, /deck-hierarchy-overflow|lucide-git-branch/);
+});
+
+test("deck summary row sets a main deck in 600", () => {
+  const rootRow = createDeckLibraryModel([parent, child]).rows[0];
+  const markup = renderToStaticMarkup(
+    <DeckSummaryRow row={rootRow} leadingControl={<span aria-hidden="true" />} actions={null} density="responsive" />,
+  );
+
+  assert.match(markup, /class="core-deck-summary-name min-w-0 flex-1 font-semibold /);
 });
 
 test("deck summary row omits the complete learning status block for management rows", () => {
@@ -83,7 +94,7 @@ test("deck summary row projects a tile with visible metric labels and no indenta
     />,
   );
 
-  assert.match(markup, /padding-inline-start:0/);
-  assert.doesNotMatch(markup, /padding-inline-start:calc/);
+  assert.match(markup, /--core-deck-depth:0;/);
+  assert.match(markup, /class="core-deck-summary-name min-w-0 flex-1 font-semibold text-core-text core-body-large"/);
   for (const label of ["Neu", "Offen", "Fällig"]) assert.match(markup, new RegExp(`<dt class="(?![^"]*sr-only)[^"]*">${label}</dt>`));
 });

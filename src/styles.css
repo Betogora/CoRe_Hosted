@@ -1354,21 +1354,6 @@ button[aria-label] {
   }
 }
 
-@container core-deck-summary (max-width: 24rem) {
-  [data-deck-study-row="true"] {
-    grid-template-columns: minmax(0, 1fr) auto;
-  }
-
-  [data-deck-study-row="true"] .core-deck-summary-leading {
-    grid-column: 1 / -1;
-    min-height: var(--core-control-height);
-  }
-
-  [data-deck-study-row="true"] .core-deck-summary-counts {
-    justify-self: end;
-  }
-}
-
 @container core-deck-summary (max-width: 32rem) {
   .core-deck-summary-responsive {
     column-gap: 0;
@@ -1468,10 +1453,7 @@ button[aria-label] {
 
 }
 
-/* Stapelsammlung nach fitzbert (ADR-041): gruppierte Liste, Ordner und Stapelinhalte. */
-@container core-deck-tree (min-width: 38rem) {
-  .core-deck-create-form { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto; }
-}
+/* Stapelsammlung nach fitzbert (ADR-041): Liste, Ordner und Stapelinhalte. */
 
 .core-deck-content-tabs {
   height: calc(var(--core-control-height) + 2 * var(--core-space-xs));
@@ -1581,7 +1563,7 @@ button[aria-label] {
   flex-wrap: wrap;
   gap: var(--core-space-sm);
 }
-.core-deck-folder-summary .core-deck-summary-leading > [data-deck-icon] { order: -1; border-radius: var(--core-radius-control); }
+.core-deck-folder-summary .core-deck-summary-leading > [data-deck-icon] { order: -1; }
 .core-deck-folder-summary .core-deck-summary-leading > button { margin-inline-start: auto; }
 .core-deck-folder-summary .core-deck-summary-leading > span[aria-hidden="true"] { display: none; }
 .core-deck-folder-summary .core-deck-summary-leading > span:last-child { flex-basis: 100%; }
@@ -1595,17 +1577,7 @@ button[aria-label] {
 .core-deck-folder-summary .core-deck-summary-count-value { font-size: var(--core-type-heading-3); line-height: var(--core-leading-heading-3); }
 .core-deck-subfolder-summary .core-deck-summary-count-value { font-size: var(--core-type-body-large); line-height: var(--core-leading-body-large); }
 .core-deck-folder-summary .core-deck-summary-actions { align-self: end; }
-.core-deck-folder-summary .core-deck-summary-actions > span { gap: var(--core-space-sm); }
-.core-deck-folder-summary .core-deck-summary-actions .core-deck-icon-action,
-.core-deck-folder-summary .core-deck-summary-actions .core-deck-icon-action:not(:disabled):is(:hover, :active, [data-state="open"]) {
-  border: var(--core-border-width) solid var(--core-border);
-  border-radius: var(--core-radius-control);
-  background: var(--core-surface);
-  box-shadow: var(--core-shadow-soft);
-}
-.core-deck-folder-summary .core-deck-summary-actions .core-deck-icon-action:not(:disabled):is(:hover, :active, [data-state="open"]) {
-  background: var(--core-surface-muted);
-}
+.core-deck-folder-summary .core-deck-summary-actions > span { gap: 0; }
 .core-deck-subfolder-summary { gap: var(--core-space-sm); padding: var(--core-space-md); }
 .core-deck-subfolder-summary .core-deck-summary-leading { min-height: var(--core-control-height); flex-wrap: nowrap; }
 .core-deck-subfolder-summary .core-deck-summary-leading > span:last-child { flex-basis: auto; }
@@ -1616,106 +1588,168 @@ button[aria-label] {
   grid-template-columns: minmax(0, 1fr) auto;
 }
 
-.core-deck-tree-container .core-deck-tree-layout { gap: var(--core-space-md); }
+.core-deck-tree-container .core-deck-tree-layout { gap: var(--core-space-sm); }
 
+/* Stapelliste (ADR-051): no frame and no own surface; the list lies on the table or in its panel and only hairlines
+   structure it. Every level is a 48-px comfort row; weight (600 main deck, 500 subdeck) and indent carry the hierarchy. */
 .core-deck-tree-groups {
   display: grid;
-  gap: var(--core-space-md);
-  margin-top: var(--core-space-sm);
+  border-top: var(--core-border-width) solid var(--core-border-interactive);
 }
 
-.core-deck-tree-group {
-  min-width: 0;
-  border: var(--core-border-width) solid var(--core-border);
-  border-radius: var(--core-radius-panel);
-  background: var(--core-surface);
-  box-shadow: var(--core-shadow-soft);
-}
+.core-deck-tree-group { min-width: 0; }
 
 .core-deck-tree-group > .core-deck-summary-row {
+  border-bottom: var(--core-border-width) solid var(--core-border);
   background: transparent;
-  --core-deck-icon-background: transparent;
 }
 
-.core-deck-tree-group > .core-deck-summary-row + .core-deck-summary-row {
-  border-top: var(--core-border-width) solid var(--core-border);
-}
-
-.core-deck-tree-group > .core-deck-summary-row:first-child {
-  border-start-start-radius: calc(var(--core-radius-panel) - var(--core-border-width));
-  border-start-end-radius: calc(var(--core-radius-panel) - var(--core-border-width));
-}
-
-.core-deck-tree-group > .core-deck-summary-row:last-child {
-  border-end-start-radius: calc(var(--core-radius-panel) - var(--core-border-width));
-  border-end-end-radius: calc(var(--core-radius-panel) - var(--core-border-width));
-}
-
-.core-deck-tree-group > .core-deck-summary-row > [data-deck-row-activation] {
-  border-radius: inherit;
-}
-
-.core-deck-tree-group > .core-deck-summary-row[data-deck-depth="0"] {
-  background: color-mix(in srgb, var(--core-deck-group-accent) 6%, color-mix(in srgb, var(--core-surface-muted) 65%, var(--core-surface)));
-  --core-deck-icon-background: var(--core-surface);
-}
-
-.core-deck-tree-group > .core-deck-summary-row[data-deck-depth="0"] > [data-deck-row-activation]:hover {
-  background: color-mix(in srgb, var(--core-deck-group-accent) 7%, var(--core-surface-hover));
-}
+.core-deck-tree-group > .core-deck-summary-row > [data-deck-row-activation]:hover { background: var(--core-surface-hover); }
 
 .core-deck-tree-group [data-deck-summary-row-content] {
-  min-height: 3.5rem;
-  padding-block: var(--core-space-xs);
-}
-
-.core-deck-tree-group [data-deck-depth="0"] [data-deck-summary-row-content] {
-  min-height: 3.75rem;
+  min-height: 3rem;
+  padding-block: 0;
 }
 
 .core-deck-tree-group [data-deck-icon] {
-  border: 0;
-  border-radius: var(--core-radius-control);
-  background: transparent;
   width: 1.5rem;
   height: 2rem;
 }
 
-.core-deck-tree-group [data-deck-depth="0"] [data-deck-icon] {
-  width: 2rem;
-  background: var(--core-surface);
+.core-deck-tree-group .core-deck-summary-leading { gap: var(--core-space-sm); }
+.core-deck-tree-group .core-deck-summary-name { width: 100%; }
+.core-deck-tree-group .core-deck-summary-name,
+.core-deck-tree-group .core-deck-summary-count-value {
+  font-size: var(--core-type-body);
+  line-height: var(--core-leading-body);
+}
+.core-deck-tree-group .core-deck-summary-count { text-align: center; }
+.core-deck-tree-group .core-deck-summary-icon > svg { width: 1rem; height: 1rem; }
+
+/* Rows and header start at the edge of the surface title; the count columns are 44 px wide. */
+.core-deck-tree-container[data-deck-view="list"] .core-deck-summary-responsive {
+  column-gap: 0;
+  padding-inline: 0;
+}
+.core-deck-tree-container[data-deck-view="list"] .core-deck-summary-responsive.core-table-header-row {
+  border: 0;
+  padding-inline-start: 0.75rem;
+}
+.core-deck-tree-container[data-deck-view="list"] .core-deck-summary-metrics {
+  grid-template-columns: repeat(3, 2.75rem);
+  width: 8.25rem;
+}
+.core-deck-tree-container[data-deck-view="list"] .core-deck-summary-metric-label-full { display: inline; }
+.core-deck-tree-container[data-deck-view="list"] .core-deck-summary-actions {
+  margin: 0;
+  gap: var(--core-space-sm);
 }
 
-.core-deck-tree-group .core-deck-summary-name {
-  width: 100%;
-}
+/* The study arrow is action blue only while the deck has new, open or due cards today. */
+.core-deck-study-action[data-deck-has-work="true"] > svg { color: var(--core-action-primary); }
+.core-deck-study-action[data-deck-has-work="false"] > svg { color: var(--core-text-muted); }
 
+/* Quick-create form as the last row of the list: borderless fields, `Anlegen` as a text action. */
 .core-deck-tree-create {
-  padding: 1.25rem;
-  border: var(--core-border-width) solid var(--core-border);
-  border-radius: var(--core-radius-panel);
-  background: var(--core-surface);
-  box-shadow: var(--core-shadow-soft);
+  padding-block: var(--core-space-xs);
+  border-bottom: var(--core-border-width) solid var(--core-border);
+  --core-deck-icon-background: transparent;
+}
+.core-deck-tree-header + .core-deck-tree-create { border-top: var(--core-border-width) solid var(--core-border-interactive); }
+.core-deck-create-form {
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0 var(--core-space-sm);
+}
+.core-deck-create-name { grid-column: 1 / -1; }
+.core-deck-create-plus {
+  position: absolute;
+  inset-inline-start: 0.75rem;
+  top: 50%;
+  translate: 0 -50%;
+  color: var(--core-text-muted);
+  pointer-events: none;
+}
+.core-deck-create-form .core-field { padding-inline-start: 2.5rem; }
+.core-deck-create-form .core-field:not(:focus-visible):not([aria-invalid="true"]),
+.core-deck-create-form [data-deck-select-trigger]:not([data-state="open"]),
+.core-deck-create-form .core-deck-create-submit {
+  border-color: transparent;
+  background: transparent;
+  box-shadow: none;
+}
+.core-deck-create-form [data-deck-select-trigger] { color: var(--core-text-secondary); }
+.core-deck-create-form [data-deck-select-trigger] > span:first-child { border-color: transparent; background: transparent; }
+.core-deck-create-form .core-deck-create-submit { color: var(--core-action-primary); }
+.core-deck-create-form :is([data-deck-select-trigger], .core-deck-create-submit):hover { background: var(--core-surface-hover); }
+
+@container core-deck-tree (min-width: 38rem) {
+  .core-deck-create-form { grid-template-columns: minmax(0, 1fr) minmax(12rem, 16rem) auto; }
+  .core-deck-create-name { grid-column: auto; }
 }
 
 @container core-deck-tree (max-width: 32rem) {
-  .core-deck-tree-create { padding: var(--core-space-lg); }
+  .core-deck-tree-group { --core-deck-depth-indent: 10px; }
+  .core-deck-tree-container .core-deck-tree-header { grid-template-columns: minmax(0, 1fr); align-items: start; gap: var(--core-space-sm); }
+  .core-deck-tree-container .core-deck-tree-header-action { grid-column: 1; grid-row: 2; justify-self: start; gap: var(--core-space-xs); }
 }
 
+@container core-deck-tree (max-width: 28rem) {
+  .core-deck-tree-rows > .core-deck-summary-container { display: none; }
+}
+
+/* Narrow list (phone, narrow tile): one row per deck with the counts as a subline („107 Neu · 5 Offen · 0 Fällig“),
+   about 60 px, actions centred on the right. The subline starts at the text edge of the deck name. */
 @container core-deck-summary (max-width: 28rem) {
-  .core-deck-tree-group [data-deck-study-row="true"] { grid-template-columns: minmax(0, 1fr) auto; }
-  .core-deck-tree-group [data-deck-study-row="true"] .core-deck-summary-leading { grid-column: 1 / -1; min-height: var(--core-control-height); }
+  .core-deck-tree-group [data-deck-study-row="true"] {
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-rows: auto auto;
+    align-content: center;
+    row-gap: 0;
+    min-height: 3.75rem;
+    padding-block: 0.375rem 0.5rem;
+  }
+
+  .core-deck-tree-group [data-deck-study-row="true"] .core-deck-summary-leading {
+    grid-column: 1;
+    grid-row: 1;
+    min-height: 1.75rem;
+    gap: var(--core-space-xs);
+  }
+
+  /* The 40/44-px collapse target overlaps the subline area instead of stretching the name line. */
+  .core-deck-tree-group [data-deck-study-row="true"] .core-deck-summary-leading > :first-child {
+    margin-block: calc((1.75rem - var(--core-control-height)) / 2);
+  }
+
+  .core-deck-tree-group [data-deck-study-row="true"] [data-deck-icon] { height: 1.75rem; }
+
   .core-deck-tree-group [data-deck-study-row="true"] .core-deck-summary-counts {
+    display: flex;
+    flex-wrap: wrap;
+    grid-column: 1;
+    grid-row: 2;
     justify-self: start;
-    margin-inline-start: var(--core-space-sm);
+    gap: 0 0.25rem;
+    width: auto;
+    font-size: var(--core-type-caption);
+    line-height: var(--core-leading-caption);
+    margin-inline-start: calc(var(--core-deck-depth) * var(--core-deck-depth-indent) + var(--core-control-height) - 0.5rem + 2 * var(--core-space-xs) + 1.5rem);
   }
 
-  .core-deck-tree-group .core-deck-summary-responsive .core-deck-summary-metrics {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    width: 8.25rem;
+  .core-deck-tree-group [data-deck-study-row="true"] .core-deck-summary-count {
+    display: flex;
+    align-items: baseline;
+    gap: 0.25rem;
+    min-width: 0;
   }
 
-  .core-deck-tree-group .core-deck-summary-count > dt {
+  .core-deck-tree-group [data-deck-study-row="true"] .core-deck-summary-count + .core-deck-summary-count::before {
+    content: "·" / "";
+    color: var(--core-text-muted);
+  }
+
+  .core-deck-tree-group [data-deck-study-row="true"] .core-deck-summary-count > dt {
     position: static;
     width: auto;
     height: auto;
@@ -1723,67 +1757,28 @@ button[aria-label] {
     overflow: visible;
     clip: auto;
     clip-path: none;
-    white-space: normal;
+    white-space: nowrap;
+    order: 1;
+    color: var(--core-text-muted);
+    font: var(--core-weight-body) var(--core-type-caption)/var(--core-leading-caption) var(--core-font-sans);
+  }
+
+  .core-deck-tree-group [data-deck-study-row="true"] .core-deck-summary-count-value {
     font-size: var(--core-type-caption);
     line-height: var(--core-leading-caption);
-    color: var(--core-text-muted);
-    font-weight: var(--core-weight-body);
-    order: 1;
   }
 
-  .core-deck-tree-group .core-deck-summary-count {
-    display: flex;
-    flex-direction: column;
-    gap: var(--core-space-xs);
+  .core-deck-tree-group [data-deck-study-row="true"] .core-deck-summary-actions {
+    grid-column: 2;
+    grid-row: 1 / span 2;
+    align-self: center;
   }
 }
 
-@container core-deck-tree (max-width: 28rem) {
-  .core-deck-tree-rows > .core-deck-summary-container {
-    display: none;
-  }
-}
-
-.core-deck-tree-container[data-deck-view="list"] .core-deck-summary-responsive {
-  column-gap: 0;
-  padding-inline: var(--core-space-md);
-}
-.core-deck-tree-group .core-deck-summary-leading { gap: var(--core-space-sm); }
-.core-deck-tree-group .core-deck-summary-name,
-.core-deck-tree-group .core-deck-summary-count-value {
-  font-size: var(--core-type-body);
-  line-height: var(--core-leading-body);
-}
-.core-deck-tree-group [data-deck-depth="0"] .core-deck-summary-name,
-.core-deck-tree-group [data-deck-depth="0"] .core-deck-summary-name-measure { font-weight: var(--core-weight-heading); }
-.core-deck-tree-group .core-deck-summary-count { text-align: center; }
-.core-deck-tree-container[data-deck-view="list"] .core-deck-summary-metrics {
-  grid-template-columns: repeat(3, 3.25rem);
-  width: 9.75rem;
-}
-.core-deck-tree-container[data-deck-view="list"] .core-deck-summary-actions {
-  margin: 0;
-  gap: var(--core-space-sm);
-}
-.core-deck-tree-group .core-deck-summary-icon > svg { width: 1rem; height: 1rem; }
-.core-deck-tree-container[data-deck-view="list"] .core-table-header-row {
-  border: 0;
-  padding-inline: calc(var(--core-space-md) + var(--core-border-width));
-}
-
-@container core-deck-tree (max-width: 32rem) {
-  .core-deck-tree-group { --core-deck-depth-indent: 10px; }
-  .core-deck-tree-container[data-deck-view="list"] .core-deck-tree-group .core-deck-summary-responsive { padding-inline: var(--core-space-sm); }
-  .core-deck-tree-container .core-deck-tree-header { grid-template-columns: minmax(0, 1fr); align-items: start; gap: var(--core-space-sm); }
-  .core-deck-tree-container .core-deck-tree-header-action { grid-column: 1; grid-row: 2; justify-self: start; gap: var(--core-space-xs); }
-  .core-deck-tree-container[data-deck-view="list"] .core-deck-summary-metrics { grid-template-columns: repeat(3, 2.75rem); width: 8.25rem; }
-}
-
-@container core-deck-summary (max-width: 28rem) {
-  .core-deck-tree-group [data-deck-summary-row-content] { padding: var(--core-space-sm) var(--core-space-xs); row-gap: var(--core-space-xs); }
-  .core-deck-tree-group .core-deck-summary-leading { gap: var(--core-space-xs); }
-  .core-deck-tree-group .core-deck-summary-counts { margin-inline-start: var(--core-space-xs); }
-  .core-deck-tree-group .core-deck-summary-count { gap: 0; }
+/* Smallest phones: the subline runs below the actions so it stays on one line; the actions sit beside the name. */
+@container core-deck-summary (max-width: 22rem) {
+  .core-deck-tree-group [data-deck-study-row="true"] .core-deck-summary-counts { grid-column: 1 / -1; }
+  .core-deck-tree-group [data-deck-study-row="true"] .core-deck-summary-actions { grid-row: 1; }
 }
 
 summary {
@@ -3420,7 +3415,40 @@ button.core-steps-step:disabled {
 .dashboard-mini-bar i:nth-child(4) { background: var(--core-learning-status-due); }
 .dashboard-mini-cells { display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px; width: 100%; }
 .dashboard-mini-cells i { height: 8px; border-radius: var(--core-radius-marker); background: var(--core-learning-status-new); }
-.dashboard-learning-metrics { display: flex; flex-wrap: wrap; gap: 16px 20px; }
+/* Lernkachel: the remaining count and the labelled start lead the page, below the bar and the four counts as one calm row
+   (number and word after an 8-px dot in the colour of the bar segment) with the card counter on the right. */
+.dashboard-learning { container: dashboard-learning / inline-size; }
+.dashboard-learning-body { display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "goal goal" "bar bar" "metrics total"; align-items: center; }
+.dashboard-learning-goal { grid-area: goal; display: flex; flex-wrap: wrap; align-items: center; gap: var(--core-space-md) var(--core-space-xl); }
+.dashboard-learning-goal-title { min-width: 0; color: var(--core-text); font: var(--core-weight-control) var(--core-type-body-large)/var(--core-leading-body-large) var(--core-font-sans); }
+.dashboard-learning-goal-count { margin-inline-end: 0.375rem; color: var(--core-text); font-size: var(--core-type-heading-1); line-height: var(--core-leading-heading-1); font-weight: var(--core-weight-heading); letter-spacing: -0.01em; }
+.dashboard-learning-bar { grid-area: bar; margin-top: var(--core-space-xl); }
+.dashboard-learning-metrics { grid-area: metrics; display: flex; flex-wrap: wrap; gap: var(--core-space-sm) var(--core-space-xl); margin-top: var(--core-space-md); }
+.dashboard-learning-metric { display: flex; align-items: baseline; gap: 0.375rem; white-space: nowrap; }
+.dashboard-learning-dot { align-self: center; width: 0.5rem; height: 0.5rem; margin-inline-end: 0.125rem; border-radius: var(--core-radius-round); }
+.dashboard-learning-metric-value { color: var(--core-text); font: var(--core-weight-emphasis) var(--core-type-body-large)/var(--core-leading-body-large) var(--core-font-sans); }
+.dashboard-learning-total { grid-area: total; align-self: end; margin-top: var(--core-space-md); padding-inline-start: var(--core-space-lg); line-height: var(--core-leading-body-large); }
+/* Narrow tile and phone: the start spans the width under the count, the counter moves above the bar, two count columns. */
+@container dashboard-learning (max-width: 32rem) {
+  .dashboard-learning-body { grid-template-columns: minmax(0, 1fr); grid-template-areas: "goal" "total" "bar" "metrics"; }
+  .dashboard-learning-goal > .core-action-primary { flex: 1 0 100%; }
+  .dashboard-learning-total { justify-self: end; padding-inline-start: 0; }
+  .dashboard-learning-bar { margin-top: var(--core-space-sm); }
+  .dashboard-learning-metrics { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+/* Erststart: the mascot stands left of the question and the three action cards, above them on narrow screens. */
+.dashboard-first-start { display: grid; gap: var(--core-space-xl) 2.5rem; align-items: center; }
+.dashboard-first-start-mascot { width: 9rem; height: auto; }
+@media (min-width: 768px) {
+  .dashboard-first-start { grid-template-columns: 10rem minmax(0, 1fr); }
+  .dashboard-first-start-mascot { width: 100%; }
+}
+/* The three cards stand side by side, titles on one line, once each keeps its one-line description. */
+.dashboard-first-start-content { container: dashboard-first-start / inline-size; }
+@container dashboard-first-start (min-width: 60rem) {
+  .dashboard-first-start-actions { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
 .dashboard-timer-clock { position: relative; width: min(100%, 208px); aspect-ratio: 1; align-self: center; display: grid; place-items: center; }
 .dashboard-timer-ring { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; fill: none; stroke-width: 3; transform: rotate(-90deg); }
 .dashboard-timer-track { stroke: var(--core-border); }
@@ -3438,9 +3466,6 @@ button.core-steps-step:disabled {
 .dashboard-todos [data-testid="dashboard-exam-unit"] { padding: 1rem 0 0; border: 0; background: none; box-shadow: none; }
 .dashboard-todos [data-testid="dashboard-exam-unit"] > div:first-child { display: none; }
 .dashboard-todos [data-testid="dashboard-exam-unit"] > .grid { grid-template-columns: minmax(0, 1fr); }
-@media (min-width: 640px) {
-  .dashboard-widget[data-width="small"] [data-daily-learning-metric] { flex-basis: calc(50% - .5rem); }
-}
 @media (min-width: 1000px) {
   .dashboard-widget[data-width="small"] { grid-column: span 4; }
   .dashboard-widget[data-width="wide"] { grid-column: span 8; }
@@ -3451,7 +3476,8 @@ button.core-steps-step:disabled {
   .dashboard-widget[data-width="small"] { grid-column: span 1; }
 }
 @media (max-width: 639px) {
-  .dashboard-modules .core-page-header-with-action { flex-wrap: wrap; align-items: center; }
+  /* The edit pencil stays beside a long name; the name wraps instead. */
+  .dashboard-modules .core-page-header-with-action { flex-wrap: nowrap; align-items: flex-end; }
   .dashboard-widget-resize { display: none; }
   .dashboard-widget-grid { column-gap: 1rem; }
 }

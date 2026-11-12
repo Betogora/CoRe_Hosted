@@ -3,6 +3,7 @@ import { getDailyMotivation } from "../dailyMotivation.ts";
 import { getNextLearningDayBoundaryDelay } from "../learningDay.ts";
 import { BrainMascot } from "../ui/BrainMascot.tsx";
 import { SoftPanel } from "../ui/coreUi.tsx";
+import { SectionHeader } from "../ui/SectionHeader.tsx";
 
 export function DailyMotivationWidget({ now, timeZone, dayStartHour }: { now: string; timeZone: string; dayStartHour: number }) {
   // Advance the supplied (possibly simulated) clock without replacing it with wall time.
@@ -26,7 +27,7 @@ export function DailyMotivationWidget({ now, timeZone, dayStartHour }: { now: st
   }, [now, timeZone, dayStartHour]);
   const motivation = getDailyMotivation(clock, { timeZone, dayStartHour });
   return <SoftPanel className="motivation-widget p-5 sm:p-6" data-brain-zone="" data-motivation-day={motivation.day}>
-    <h2 className="core-heading-3 text-core-text">Dein Motivationsimpuls</h2>
+    <SectionHeader level={2} title="Dein Motivationsimpuls" />
     <div className="motivation-widget-layout">
       <div><p className="motivation-widget-quote core-body-large font-medium text-core-text">{motivation.text}</p></div>
       <BrainMascot id={motivation.mascotId} interactive />

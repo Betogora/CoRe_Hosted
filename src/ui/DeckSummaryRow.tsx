@@ -69,7 +69,7 @@ export interface DeckSummaryRowProps {
 export function DeckSummaryHeader() {
   return (
     <div className="core-deck-summary-container min-w-0" data-testid="deck-summary-header" aria-hidden="true">
-      <div data-deck-study-header="true" className="core-deck-summary-responsive core-table-header-row grid min-w-0 grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-1 border-b border-core-border px-1 core-caption font-semibold text-core-muted">
+      <div data-deck-study-header="true" className="core-deck-summary-responsive core-table-header-row grid min-w-0 grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-1 border-b border-core-border px-1 core-caption font-medium text-core-muted">
         <span className="min-w-0 truncate whitespace-nowrap">Stapel</span>
         <div className="core-deck-summary-counts core-deck-summary-metrics grid items-center text-center">
           {DECK_COUNT_DEFINITIONS.map((count) => (
@@ -93,6 +93,8 @@ export function DeckSummaryRow({ row, learningStatus, leadingControl, actions, s
   const responsive = density === "responsive";
   const compactAtBase = compact || responsive;
   const metricLabels = learningStatus?.metricLabels ?? "responsive";
+  // Hierarchy reads from weight alone: a main deck (or folder tile) in 600, every subdeck in 500.
+  const mainDeck = folder ? !subfolder : row.depth === 0;
   const gridClass = folder
     ? `core-deck-folder-summary${subfolder ? " core-deck-subfolder-summary" : ""}`
     : learningStatus
@@ -116,21 +118,22 @@ export function DeckSummaryRow({ row, learningStatus, leadingControl, actions, s
     <div className={responsive ? "core-deck-summary-container min-w-0" : "min-w-0"}>
       <div
         className={`pointer-events-none relative z-[1] grid min-h-control min-w-0 items-center ${gridClass} ${className}`}
+        style={{ "--core-deck-depth": folder ? 0 : getVisibleDeckDepth(row.depth), "--core-deck-icon-background": "transparent" } as CSSProperties}
         data-deck-study-row={studyAction ? "true" : undefined}
         data-deck-summary-row-content={density === "default" ? "true" : density}
       >
-        <div className={`core-deck-summary-leading flex min-w-0 items-center ${compactAtBase ? "gap-1.5" : "gap-2"}`} style={{ paddingInlineStart: folder ? 0 : `calc(${getVisibleDeckDepth(row.depth)} * var(--core-deck-depth-indent, ${DECK_DEPTH_INDENT_PX}px))` }}>
+        <div className={`core-deck-summary-leading flex min-w-0 items-center ${compactAtBase ? "gap-1.5" : "gap-2"}`} style={{ paddingInlineStart: `calc(var(--core-deck-depth) * var(--core-deck-depth-indent, ${DECK_DEPTH_INDENT_PX}px))` }}>
           {leadingControl}
           <DeckAppearanceIcon
             data-deck-icon="true"
             deck={row.deck}
-            className={`${folder ? subfolder ? "size-8" : "size-11" : compactAtBase ? "size-8" : "size-9"} ${responsive && !folder ? "core-deck-summary-icon [&>svg]:size-[15px]" : ""} rounded-control bg-core-subtle`}
+            className={`${folder ? subfolder ? "size-5" : "size-6" : compactAtBase ? "size-8" : "size-9"} ${responsive && !folder ? "core-deck-summary-icon [&>svg]:size-[15px]" : ""}`}
             iconSize={folder ? subfolder ? 18 : 24 : compact ? 15 : 18}
           />
           <span className="flex min-w-0 flex-1 items-center gap-1">
             <AdaptiveDeckName
               name={row.name}
-              className={`font-semibold text-core-text ${folder ? subfolder ? "core-body-large" : "core-heading-3" : compactAtBase ? "core-body" : "core-body-large"}`}
+              className={`${mainDeck ? "font-semibold" : "font-medium"} text-core-text ${folder ? "core-body-large" : compactAtBase ? "core-body" : "core-body-large"}`}
             />
           </span>
         </div>

@@ -67,9 +67,8 @@ test("empty dashboard offers only explicit first-learning paths without seeded s
   assert.match(markup, /Anki-Stapel importieren/);
   assert.match(markup, /Erste Karte erstellen/);
   assert.match(markup, /Demo ausprobieren/);
-  assert.match(markup, /Zeitlich passend wiederholen\./);
-  assert.match(markup, /Später anders formuliert prüfen\./);
-  assert.match(markup, /Die Originalkarte bleibt erhalten\./);
+  assert.match(markup, /<h2[^>]*>Womit möchtest du starten\?<\/h2>/);
+  assert.match(markup, /<img src="\/core-brain\.svg" alt=""/);
   assert.doesNotMatch(markup, /Noemi|Guten Morgen|Lern-Heatmap|Aktive Stapel/);
 });
 
@@ -97,13 +96,15 @@ test("populated dashboard shows the aggregated open daily learning overview", ()
   assert.match(markup, /<h2[^>]*data-screen-heading[^>]*><span class="sr-only">Willkommen zurück, <\/span><span class="core-dashboard-name">Noemi!<\/span><\/h2>/);
   assert.doesNotMatch(markup, />Heute<\//);
   assert.match(markup, /data-testid="daily-learning-overview" data-status="open"/);
-  assert.match(markup, /Dein Lernen heute/);
+  assert.match(markup, /<h2 class="dashboard-learning-goal-title"><span class="dashboard-learning-goal-count">1<\/span> <span[^>]*>Karte noch heute<\/span><\/h2>/);
   assert.match(markup, /data-testid="daily-learning-total">0 \/ 1 Karten/);
   assert.match(markup, /data-testid="dashboard-daily-progress"/);
   assert.match(markup, /aria-valuetext="Gelernt: 0 Karten, Neu: 1 Karte, Offen: 0 Karten, Fällig: 0 Karten"/);
-  assert.match(markup, /<button[^>]*aria-label="Jetzt lernen"[^>]*>[\s\S]*?lucide-play/);
-  assert.doesNotMatch(markup, />Jetzt lernen<|Plan ansehen|Plan für morgen ansehen/);
-  for (const metric of ["learned", "new", "in-progress", "due"]) assert.match(markup, new RegExp(`data-daily-learning-metric="${metric}"`));
+  assert.match(markup, /<button[^>]*core-action-primary[^>]*>(?:(?!<\/button>)[\s\S])*lucide-play(?:(?!<\/button>)[\s\S])*<span>Jetzt lernen<\/span><\/button>/);
+  assert.doesNotMatch(markup, /Plan ansehen|Plan für morgen ansehen/);
+  for (const metric of ["learned", "new", "in-progress", "due"]) assert.match(markup, new RegExp(`data-daily-learning-metric="${metric}"><span class="dashboard-learning-dot"`));
+  assert.match(markup, /<h2 class="core-section-header-title">To-dos<\/h2><div class="core-section-header-action">/);
+  assert.match(markup, /core-section-header-action">[\s\S]*?aria-label="Eigene Aufgabe hinzufügen"[\s\S]*?aria-label="Planer öffnen"/);
   assert.doesNotMatch(markup, /geschätzte Dauer|Dranbleiben lohnt sich|Für heute alles geschafft/);
   assert.match(markup, /data-testid="deck-summary-header"[^>]*aria-hidden="true"/);
   assert.match(markup, />Stapel<[\s\S]*>Neu<[\s\S]*>Offen<[\s\S]*>Fällig</);
@@ -238,7 +239,7 @@ test("dashboard keeps later same-day learning steps in a disabled waiting state"
 
   assert.match(markup, /data-status="waiting"/);
   assert.match(markup, /Offen: 1 Karte/);
-  assert.match(markup, /<button[^>]*disabled=""[^>]*aria-label="Später weiterlernen"/);
+  assert.match(markup, /<button[^>]*disabled=""[^>]*>(?:(?!<\/button>)[\s\S])*Später weiterlernen/);
   assert.doesNotMatch(markup, /Tagesziel erreicht/);
 });
 
@@ -274,7 +275,7 @@ test("achieved dashboard offers additional new cards only when stock remains bey
   const noExtraMarkup = renderToStaticMarkup(<DashboardScreen state={{ ...baseState, decks: [noExtraDeck] }} now="2026-08-06T10:00:00.000Z" {...dashboardCallbacks} />);
 
   assert.match(extraMarkup, /Tagesziel erreicht/);
-  assert.match(extraMarkup, /<button(?![^>]*disabled)[^>]*aria-label="Zusätzliche Karten lernen"/);
+  assert.match(extraMarkup, /<button(?![^>]*disabled)[^>]*>(?:(?!<\/button>)[\s\S])*Zusätzliche Karten lernen/);
   assert.doesNotMatch(extraMarkup, /Plan ansehen|Plan für morgen ansehen/);
-  assert.match(noExtraMarkup, /<button[^>]*disabled=""[^>]*aria-label="Zusätzliche Karten lernen"/);
+  assert.match(noExtraMarkup, /<button[^>]*disabled=""[^>]*>(?:(?!<\/button>)[\s\S])*Zusätzliche Karten lernen/);
 });

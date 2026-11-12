@@ -201,9 +201,11 @@ const DeckTreeRow = React.memo(function DeckTreeRow({ row, mode, presentation, d
       {isCollapsed ? <ChevronRight size={16} aria-hidden="true" /> : <ChevronDown size={16} aria-hidden="true" />}
     </button>
   ) : <span className="-me-2 size-control shrink-0" aria-hidden="true" />;
+  // The study arrow carries the action color only while the deck has work today; otherwise it steps back.
+  const hasWork = row.summary.newCards + row.summary.inProgressCards + row.summary.dueCards > 0;
   const studyAction = (
     <CoreTooltip label={`${row.name} lernen`} deckAppearance={getDeckAppearance(row.deck)}>
-      <IconButton label={`${row.path} lernen`} icon={Play} variant={tile ? "secondary" : "ghost"} className={`${tile ? "" : "core-deck-icon-action "}pointer-events-auto`} onClick={() => onStudy(row)} />
+      <IconButton label={`${row.path} lernen`} icon={Play} variant="ghost" className="core-deck-icon-action core-deck-study-action pointer-events-auto" data-deck-has-work={hasWork ? "true" : "false"} onClick={() => onStudy(row)} />
     </CoreTooltip>
   );
   const optionsMenu = <DeckOptionsMenu row={row} decks={decks} onSetCoreMode={onSetCoreMode} onOpenSettings={onOpenSettings} onMoveDeck={onMoveDeck} />;
@@ -645,7 +647,6 @@ export function DeckTree({ rows, rootDeckIds, mode, view = "list", onViewChange,
               </div>
             ) : null}
           </div> : null}
-          {rows.length === 0 ? contentAfterRows : null}
           {view === "tiles" && rows.length > 0 ? (
             <div className="core-deck-folder-grid" ref={folderGridRef} data-testid={`${mode}-deck-tiles`}>
               {rootRows.map((row, index) => (
@@ -665,7 +666,6 @@ export function DeckTree({ rows, rootDeckIds, mode, view = "list", onViewChange,
                     className="core-deck-tree-group"
                     aria-label={`Stapelgruppe ${group.root.name}`}
                     data-deck-group={group.root.id}
-                    style={{ "--core-deck-group-accent": getDeckAppearance(group.root.deck).iconColor } as React.CSSProperties}
                   >
                     {group.rows.map((row) => renderRow(row))}
                   </section>
@@ -673,7 +673,7 @@ export function DeckTree({ rows, rootDeckIds, mode, view = "list", onViewChange,
               </div>
             </div>
           ) : null}
-          {rows.length > 0 && contentAfterRows ? <div className="core-deck-tree-create">{contentAfterRows}</div> : null}
+          {contentAfterRows ? <div className="core-deck-tree-create">{contentAfterRows}</div> : null}
         </div>
       </section>
       {portalContent}

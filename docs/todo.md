@@ -201,12 +201,6 @@ Katalogdemo für jeden neuen oder geänderten gemeinsamen Baustein, betroffene
 Ansichten in der visuellen Pflichtmatrix hell und dunkel. Die
 Bewertungsbuttons der Lernsitzung bleiben unverändert.
 
-- [ ] **D3 – Heute, Stapelliste, Erststart:** Tagesziel als Auftakt mit
-      großer Restzahl und Start daneben, Kennzahlen als eine Zeile, ein Kopf
-      je Kachel, keine Hinweise; Stapelliste ohne Außenrahmen mit 48-px-Zeilen,
-      engeren Kennzahlspalten, betontem Lernen-Pfeil nur bei Arbeit und
-      Schnellformular als letzter Zeile; Erststart mit einem Titel, liegenden
-      Karten und Maskottchen, ohne die drei Aussagen darunter.
 - [ ] **D4 – Lernsitzung, Statistik, Hilfe, Login:** Lernsitzung im
       bisherigen Aufbau, Kopf flach statt schwebend (Schließen, Stapelname mit
       Zähler, Einstellungen, 4-px-Fortschritt), auf Mobil mit dem bisherigen
