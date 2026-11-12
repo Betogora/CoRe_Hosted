@@ -7012,6 +7012,22 @@ body { margin: 0; color: var(--core-text); background: var(--core-canvas); font:
 [data-phase="learning"] { --docs-phase: var(--core-action-primary); }
 [data-phase="review"] { --docs-phase: var(--core-success); }
 [data-phase="relearning"] { --docs-phase: var(--core-danger); }
+/* KI-Eval: Verlauf des Hauptwerts je Anfragetyp; gefüllte Punkte bilden den Bestand, hohle wurden verworfen. */
+.docs-eval { margin: var(--core-space-md) 0 var(--core-space-xl); }
+.docs-eval th, .docs-eval td { white-space: nowrap; font-variant-numeric: tabular-nums; }
+.docs-eval tbody th { font-weight: var(--core-weight-control); }
+.docs-eval-change { display: block; min-width: 16rem; white-space: normal; }
+.docs-eval-plot { display: block; }
+.docs-eval svg text { fill: var(--core-text-secondary); font: var(--core-type-caption)/var(--core-leading-caption) var(--core-font-sans); font-variant-numeric: tabular-nums; }
+.docs-eval svg .value { fill: var(--core-text); font-weight: var(--core-weight-emphasis); }
+.docs-eval svg .grid { stroke: var(--core-border); }
+.docs-eval svg .target { stroke: var(--core-text-muted); stroke-dasharray: 4 4; }
+.docs-eval svg .interval { stroke: var(--core-text-muted); stroke-width: 1.5; }
+.docs-eval svg .best { fill: none; stroke: var(--core-action-primary); stroke-width: 2; }
+.docs-eval svg circle { fill: var(--core-action-primary); stroke: var(--core-canvas); stroke-width: 2; }
+.docs-eval svg [data-decision="rejected"] circle { fill: var(--core-canvas); stroke: var(--core-text-muted); }
+.docs-document .docs-eval-legend { display: flex; flex-wrap: wrap; gap: var(--core-space-sm) var(--core-space-lg); margin: var(--core-space-sm) 0 var(--core-space-lg); padding: 0; list-style: none; color: var(--core-text-secondary); font-size: var(--core-type-caption); line-height: var(--core-leading-caption); }
+.docs-document .docs-eval-legend li { display: inline-flex; align-items: center; gap: var(--core-space-xs); margin: 0; }
 /* Specs-Leseansicht im Aufbau des UI-Elemente-Katalogs. */
 .catalog-section-heading p + p { margin-top: var(--core-space-sm); }
 @media (max-width: 1279px) {
@@ -7161,7 +7177,7 @@ html { scroll-behavior: smooth; }
 /* The preview harness has no jump links; smooth scrolling would only delay its pointer interactions. */
 html:has(.catalog-preview) { scroll-behavior: auto; }
 @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
-</style></head><body><div class="docs-frame"><aside class="docs-sidebar"><nav class="docs-panel docs-pages" aria-label="Doku-Seiten"><div class="docs-panel-head"><a class="docs-brand" href="index.html">CoRe <span>Docs</span></a><button type="button" id="docs-theme" aria-label="Dark Mode einschalten" style="color:var(--core-text)" class="core-action-ghost min-w-button p-2 size-button shrink-0 rounded-control"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-sun" aria-hidden="true"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2"></path><path d="M12 20v2"></path><path d="m4.93 4.93 1.41 1.41"></path><path d="m17.66 17.66 1.41 1.41"></path><path d="M2 12h2"></path><path d="M20 12h2"></path><path d="m6.34 17.66-1.41 1.41"></path><path d="m19.07 4.93-1.41 1.41"></path></svg><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-moon" aria-hidden="true"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"></path></svg></button></div><div class="docs-panel-links"><a href="index.html" aria-current="page">Docs</a><a href="specs.html">Specs</a><a href="journeys.html">Journeys</a><a href="ui-elements.html">UI-Elements</a><a href="card-types.html">Kartenbausteine</a></div></nav><div class="docs-panel docs-search-panel" role="search"><label class="catalog-search"><span class="catalog-search-label">Docs durchsuchen</span><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-search" aria-hidden="true"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.3-4.3"></path></svg><input id="docs-search" type="search" placeholder="Abschnitt, Begriff …" autocomplete="off"></label><p id="docs-search-count" class="docs-count" role="status"></p></div><nav class="docs-panel docs-toc" aria-label="Inhalt"><strong>Inhalt</strong><div id="docs-toc" class="docs-panel-links"></div></nav></aside><main class="docs-main"><article id="readme--document" class="docs-document"><p class="docs-source">Verbindliche Quelle: <a href="README.md">README.md</a></p><h1 id="readme--docs" class="core-heading-1" tabindex="-1">Docs <a class="docs-anchor" href="#readme--docs" aria-label="Link zu Docs">#</a></h1>
+</style></head><body><div class="docs-frame"><aside class="docs-sidebar"><nav class="docs-panel docs-pages" aria-label="Doku-Seiten"><div class="docs-panel-head"><a class="docs-brand" href="index.html">CoRe <span>Docs</span></a><button type="button" id="docs-theme" aria-label="Dark Mode einschalten" style="color:var(--core-text)" class="core-action-ghost min-w-button p-2 size-button shrink-0 rounded-control"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-sun" aria-hidden="true"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2"></path><path d="M12 20v2"></path><path d="m4.93 4.93 1.41 1.41"></path><path d="m17.66 17.66 1.41 1.41"></path><path d="M2 12h2"></path><path d="M20 12h2"></path><path d="m6.34 17.66-1.41 1.41"></path><path d="m19.07 4.93-1.41 1.41"></path></svg><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-moon" aria-hidden="true"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"></path></svg></button></div><div class="docs-panel-links"><a href="index.html" aria-current="page">Docs</a><a href="specs.html">Specs</a><a href="journeys.html">Journeys</a><a href="ui-elements.html">UI-Elements</a><a href="card-types.html">Kartenbausteine</a><a href="ai-eval.html">KI-Eval</a></div></nav><div class="docs-panel docs-search-panel" role="search"><label class="catalog-search"><span class="catalog-search-label">Docs durchsuchen</span><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-search" aria-hidden="true"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.3-4.3"></path></svg><input id="docs-search" type="search" placeholder="Abschnitt, Begriff …" autocomplete="off"></label><p id="docs-search-count" class="docs-count" role="status"></p></div><nav class="docs-panel docs-toc" aria-label="Inhalt"><strong>Inhalt</strong><div id="docs-toc" class="docs-panel-links"></div></nav></aside><main class="docs-main"><article id="readme--document" class="docs-document"><p class="docs-source">Verbindliche Quelle: <a href="README.md">README.md</a></p><h1 id="readme--docs" class="core-heading-1" tabindex="-1">Docs <a class="docs-anchor" href="#readme--docs" aria-label="Link zu Docs">#</a></h1>
 <h2 id="readme--leseseiten" class="core-heading-2" tabindex="-1">Leseseiten <a class="docs-anchor" href="#readme--leseseiten" aria-label="Link zu Leseseiten">#</a></h2>
 <table>
 <thead>
@@ -7195,6 +7211,11 @@ html:has(.catalog-preview) { scroll-behavior: auto; }
 <td><a href="card-types.html">Kartenbausteine</a></td>
 <td>alle Renderer-Fälle mit Erstellungsweg</td>
 <td>dieselben Demos und CoRe-Modellhelfer</td>
+</tr>
+<tr>
+<td><a href="ai-eval.html">KI-Eval</a></td>
+<td>den besten gemessenen Prompt je Anfragetyp und den Verlauf aller Läufe</td>
+<td><code>ai-eval.md</code>, <code>fixtures/ai-eval/ledger.json</code></td>
 </tr>
 </tbody></table>
 <p>Die Seiten lassen sich direkt öffnen oder über <code>npm run dev</code> unter
@@ -7239,6 +7260,11 @@ Gerüst der Katalog-Browsertests.</p>
 <td>Wie wird getestet und geprüft?</td>
 <td><a href="test-portfolio.md"><code>test-portfolio.md</code></a></td>
 <td>Release-Abläufe</td>
+</tr>
+<tr>
+<td>Welcher KI-Prompt ist gemessen, wie lief der Hillclimb?</td>
+<td><a href="ai-eval.html#ai-eval--document"><code>ai-eval.md</code></a></td>
+<td>Prompttexte (stehen im Code), offene Evals</td>
 </tr>
 <tr>
 <td>Wie wird freigegeben, zurückgerollt, wiederhergestellt?</td>

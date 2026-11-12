@@ -96,70 +96,52 @@ Markdown, CSV und TSV.
       Quellen je Format mit allen vier Kartenformen, visuelle Pflichtmatrix
       für Fortschritt und Ergebnisliste.
 
-## P5: KI-Eval und Hillclimb (zurückgestellt)
+## P5: KI-Eval und Hillclimb
 
-Beginnt erst, wenn alle geplanten KI-Prompts stehen: Varianten je Kartenart
-(P1), `card-help` (steht), Karten aus einer Quelle (P2) und gegebenenfalls Quiz;
-die Zusammenfassung steht. Dann wird ein gemeinsames Experiment für alle Routen
-aufgebaut statt eines Evals je Route. Grundsätze im vorgeschlagenen
-[ADR-049](decisions.md#adr-049--ki-änderungen-nur-mit-eval-nachweis); alles
-hier ist ein Entwurf vom 2026-11-10 und darf neu bewertet werden. Kosten sind
-in jedem Eval eine feste Metrik: je Route, Prompt-Version, Modell und
-Reasoning-Stufe, pro Antwort und hochgerechnet; die Zielwerte werden beim
-Start von P5 festgelegt und in `operations.md` übernommen.
+Zurückgestellt, bis alle geplanten KI-Prompts stehen. Als Bauvorleistung
+steht der Runner für Varianten Frage/Antwort und `card-help`; Ablauf, Ablage
+und Stand stehen unter [KI-Eval](ai-eval.md). Gemessen ist noch nichts: kein
+echter Lauf, keine Kalibrierung, kein Ledger-Eintrag.
+Varianten je Kartenart (P1), Karten aus einer Quelle (P2) und gegebenenfalls
+Quiz bekommen eine eigene Definition im selben Schema, sobald ihre Prompts
+stehen; für die Zusammenfassung fehlt ein Eval-Entwurf. Grundsätze im
+vorgeschlagenen
+[ADR-049](decisions.md#adr-049--ki-änderungen-nur-mit-eval-nachweis);
+Fallzahlen und Zielwerte sind ein Entwurf vom 2026-11-10 und dürfen neu
+bewertet werden.
 
-- [ ] **Runner für alle Routen:** `cases` (versionierte Prüfkarten in
-      `fixtures/ai-eval/<route>.cases.json`, Korpusfälle mit festem Startwert
-      nur im ignorierten `output/ai-eval/<route>/`, Kategorie per einfacher
-      Regel, Aufteilung Training/Test je Kategorie einmalig festgeschrieben);
-      `generate` über Payload-Builder und Antwortprüfung der Route bei
-      OpenRouter mit Produktionsmodell, Schlüssel `OPENROUTER_EVAL_API_KEY` mit
-      eigenem Limit in `.env.local`, höchstens vier parallel, Wiederaufnahme,
-      je Zeile Transkript, geantwortetes Modell, Tokens, Kosten, Latenz;
-      automatische Kriterien im Skript; Richter-Übergabe als eine Tabelle
-      (ohne Dubletten, gemischt, anonymisiert, mit etwa zehn bekannten
-      Kontrolleinträgen) an einen Opus-Agenten (`.claude/agents/eval-judge.md`),
-      der sie in einem Durchgang blockweise bewertet; `score` prüft
-      Vollständigkeit und berechnet Hauptwert, Kriterien je Kategorie,
-      Rauschen und Fallwechsel gegenüber einem Vergleichslauf. Start über einen
-      Skill, den auch eine Haiku-Sitzung ausführen kann. Nicht in
-      `gate:push`. Nachweis: Trockenlauf mit nachgebildeter Antwort erzeugt
-      einen vollständigen Bericht; Unit-Tests für Kriterien und Auswertung.
-- [ ] **Varianten-Eval (Entwurf):** etwa 120 Frage/Antwort-Karten je drei
-      Wiederholungen; Kategorien Definitionen, Zahlen und Formeln, Richtung
-      und Reihenfolge, Aufzählungen, Kurzantworten, lange Karten, andere
-      Sprachen, Rückrichtung, `avoid`-Liste, Injection, nicht umformulierbar,
-      Bildverweis. Kriterien: M1 Vertrag; M2 fachlich korrekt, keine
-      Vertauschung, keine neuen Fakten (kritisch); M3 Zahlen und Formeln
-      zeichengenau; M4 erkennbar umformuliert; M5 anders als `avoid`; M6
-      Sprache, Schwierigkeit, Natürlichkeit; M7 Tokens, Kosten, Latenz.
-      Hauptwert: Anteil der Wiederholungen, die M1–M5 bestehen. Zielvorschlag:
-      Hauptwert ≥ 95 %, M2-Verletzungen ≤ 1 % und keine bei Richtung, Kosten
-      höchstens 1,2-fach, Latenz p90 ≤ 4 s. Weitere Kartenarten und Routen
-      bekommen eigene Fälle und Kriterien im selben Schema.
-- [ ] **Card-Help-Eval (Entwurf):** etwa 120 Karten je in allen drei Modi;
-      Definitionen, Zahlen und Formeln, lange Prozesskarten, Vokabeln und
-      andere Sprachen, Fachjargon, kurze oder kryptische Karten, Folgefragen,
-      Fragen außerhalb der Karte, Freitext ohne echte Frage (Dank,
-      Bestätigung, eigener Antwortversuch, Bitte wie „einfacher“,
-      Unverständnis, Unsinn, Text ohne Kartenbezug), Injection in Karte und
-      Frage, fachlich falsche Karten, Bildverweise. Kriterien: H1 Vertrag,
-      Länge, Sprache; H2 fachlich korrekt und mit der Karte vereinbar
-      (kritisch); H3 Erklären erklärt statt zu wiederholen; H4 Beispiel neu
-      und passend; H5 Frage genau beantwortet, Freitext ohne Frage sinnvoll
-      aufgegriffen (Antwortversuch geprüft, Bitte erfüllt, Unklares
-      nachgefragt), Abschweifungen höflich zurückgeführt; H6 keine
-      ausgeführte Injection, keine erfundenen Quellen, falsche Karten benannt
-      (kritisch); H7 knapp und lernförderlich; H8 Tokens, Kosten, Latenz.
-      Hauptwert: Anteil der Wiederholungen, die H1–H6 bestehen. Zielvorschlag:
-      Hauptwert ≥ 90 %, H2 ≥ 98 %, H6 = 100 %; Streaming erst, wenn die
-      Latenz im Median über 4 s liegt.
-- [ ] **Kalibrieren und Baselines:** Richter gegen etwa 40 von Hand bewertete
-      Einträge im selben Tabellenmodus (≥ 90 % Übereinstimmung bei den
-      kritischen Kriterien), danach Baseline je Route. Erst dann Runden: je
-      Runde eine Änderung aus Trainingsfehlern, gemessen am Testteil.
-      Nachweis: Baselines, Kosten und Richter-Übereinstimmung in
-      `history.md`.
+- [ ] **Eval-Schlüssel und Kostenziele:** `OPENROUTER_EVAL_API_KEY` mit
+      eigenem Limit in `.env.local` anlegen. Kosten sind in jedem Lauf eine
+      feste Metrik (pro Antwort und hochgerechnet); die Zielwerte je
+      Anfragetyp werden mit der ersten Baseline festgelegt und in
+      `operations.md` übernommen.
+- [ ] **Fallsätze ausbauen:** Je Anfragetyp stehen 24 Prüfkarten, zwei je
+      Kategorie. Ziel etwa 120 Fälle je Anfragetyp aus weiteren Prüfkarten
+      und Korpusfällen (`cases --corpus`), `card-help` je Karte in allen drei
+      Modi. „Freitext ohne echte Frage“ deckt Dank, Bestätigung, eigenen
+      Antwortversuch, Bitte wie „einfacher“, Unverständnis, Unsinn und Text
+      ohne Kartenbezug ab.
+- [ ] **Kalibrieren und Baselines:** Je Anfragetyp ein Bewertungsbogen (je
+      Kriterium bestanden oder nicht, mit je einem Beispiel) und etwa 40
+      Einträge, nach Kategorie geschichtet und mit gezielt eingebauten
+      Fehlern je kritischem Kriterium, weil echte Antworten zu selten
+      durchfallen. Handurteil blind im selben Tabellenmodus wie der Richter.
+      Maße: Übereinstimmung und Cohens Kappa je Kriterium, dazu die Fälle, die
+      der Richter bei einem kritischen Kriterium fälschlich bestehen lässt
+      (Ziel ≥ 90 % Übereinstimmung bei den kritischen Kriterien, kein falsch
+      bestandener gesäter Fehler). Abweichungen durchsehen, Bogen oder
+      Richterauftrag schärfen und an frischen Einträgen bestätigen; derselbe
+      Richter zweimal über dieselbe Tabelle misst sein eigenes Rauschen. Aus
+      den Einträgen entstehen die etwa zehn Kontrolleinträge jeder
+      Richtertabelle. Richtermodell, Auftrag und Bogen sind danach
+      eingefroren; jede Änderung daran kalibriert neu. Danach Baseline je
+      Anfragetyp, erst dann Runden: je Runde eine Änderung aus
+      Trainingsfehlern, gemessen am Testteil. Nachweis: Kalibrierung und
+      Baseline je Anfragetyp im Ledger.
+- [ ] **Zielwerte (Entwurf):** Varianten: Hauptwert ≥ 95 %, M2-Verletzungen
+      ≤ 1 % und keine bei Richtung, Kosten höchstens 1,2-fach, Latenz p90
+      ≤ 4 s. `card-help`: Hauptwert ≥ 90 %, H2 ≥ 98 %, H6 = 100 %; Streaming
+      erst, wenn die Latenz im Median über 4 s liegt.
 - [ ] **Neu zu bewerten:** Richter über Subscription oder über OpenRouter
       (API-Gegenwert etwa 1–1,50 USD je Runde im Tabellenmodus, Luna etwa
       0,02 USD je Runde); Fallzahl und Wiederholungen gegen das Rauschen

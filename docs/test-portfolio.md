@@ -161,7 +161,7 @@ Die Zielwerte stehen in [`specs.md`](specs.md#performance). Geprüft werden sie 
 | `performance` | Bundle-, Start-, Preload-, Statistik- und Skalierungsgrenzen | Build, weekly, manuell |
 
 Die Zuordnung der Modultests liegt in `scripts/runModuleTests.ts`. Neue
-`src/**/*.test.ts(x)` sind zunächst `unit`, API- und Screen-Tests `contract`. Der
+`src/**/*.test.ts(x)` und `scripts/aiEval/*.test.ts` sind zunächst `unit`, API- und Screen-Tests `contract`. Der
 Runner verteilt die Dateien auf einen Prozess je CPU-Kern ohne Prozessisolation
 (`--test-isolation=none`): Ein Test räumt jeden globalen Zustand, den er setzt
 (Mocks, Timer, `globalThis`, Fake-IndexedDB), selbst ab und setzt weder

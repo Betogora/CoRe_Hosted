@@ -18,7 +18,9 @@ import { synchronizeBrainLogo } from "./generateMascots.tsx";
 import type { CatalogData } from "./uiCatalog.tsx";
 import { StatTile } from "../src/ui/coreUi.tsx";
 import { EXAMPLE_CHAINS, EXAMPLE_RETENTIONS, EXAMPLE_SITUATIONS, EXAMPLE_VARIANT_THRESHOLDS, exampleRatingEffects, runExampleChain, type ExampleContact, type ExampleOutcome } from "../src/schedulerExampleChains.ts";
-import { DOCUMENT_PAGES, DOC_PAGES, documentId, htmlPage, inlineScript, markdownAnchor, renderMarkdown } from "./docsSite.ts";
+import { DOCUMENT_PAGES, DOC_PAGES, appendToSection, documentId, htmlPage, inlineScript, markdownAnchor, renderMarkdown } from "./docsSite.ts";
+import { readLedger } from "./aiEval/ledger.ts";
+import { aiEvalDocument } from "./aiEval/page.ts";
 
 const root = process.cwd();
 const docs = path.join(root, "docs");
@@ -116,11 +118,7 @@ type SpecsBlock = { id: string; title: string; html: string };
 export function specsDocument(markdown: string, appendix?: { title: string; html: string }, generated: Record<string, SpecsBlock[]> = {}) {
   let html = renderMarkdown(markdown, "specs.md").replace(/<hr>\n?/g, "").replace(/<p>(\p{L}[\p{L}\s/-]{0,40}):<\/p>/gu, '<p class="docs-label">$1</p>');
   for (const [id, blocks] of Object.entries(generated)) {
-    const start = html.indexOf(`<h3 id="${id}"`);
-    if (start < 0) throw new Error(`Abschnitt ${id} fehlt in docs/specs.md.`);
-    const next = html.slice(start + 1).search(/<h[123] id=/);
-    const end = next < 0 ? html.length : start + 1 + next;
-    html = html.slice(0, end) + blocks.map((block) => `<h4 id="${block.id}" class="core-control-label" tabindex="-1">${block.title}</h4>${block.html}`).join("") + html.slice(end);
+    html = appendToSection(html, id, blocks.map((block) => `<h4 id="${block.id}" class="core-control-label" tabindex="-1">${block.title}</h4>${block.html}`).join(""), "specs.md");
   }
   if (appendix) html += renderMarkdown(`## ${appendix.title}`, "specs.md") + appendix.html;
   return `<article id="specs--document" class="docs-document">${html}</article>`;
@@ -288,6 +286,7 @@ export async function synchronizeDocs(mode: "write" | "check") {
   reader("index.html", document("README.md"));
   const footprint = { title: "Codeumfang der Produktbereiche", html: `<p>CoRe ist eine App mit mehreren Bereichen. Die Tabelle zeigt deren Anteil am Bildschirmcode; gemeinsam genutzte Logik, UI und API stehen separat.</p>${codeFootprintMarkup()}` };
   reader("specs.html", specsDocument(text("docs/specs.md"), footprint, { "specs--lernverlauf-einer-karte": cardHistoryCards() }));
+  reader("ai-eval.html", aiEvalDocument(text("docs/ai-eval.md"), readLedger()));
   reader("journeys.html", `<article class="docs-document"><h1 id="journeys--document" class="core-heading-1" tabindex="-1">Journeys</h1></article>${journeyProjection(text("docs/specs.md"))}`);
   for (const [file, catalog] of [["ui-elements.html", "ui"], ["card-types.html", "cards"]]) {
     const content = `<div id="catalog-root"></div><script id="catalog-data" type="application/json">${JSON.stringify(data).replaceAll("<", "\\u003c")}</script>`;

@@ -1,0 +1,7 @@
+interface:
+  display_name: "KI-Eval"
+  short_description: "KI-Prompt messen, Hillclimb-Runde auswerten, Richter kalibrieren"
+  default_prompt: "Nutze $ai-eval, um einen Lauf des KI-Evals auszuführen und auszuwerten."
+
+policy:
+  allow_implicit_invocation: true
