@@ -84,4 +84,4 @@ export type { CardBatchEdit } from "./coreModel/batch.ts";
 export { planTextReplace, planTextReplaceUndo } from "./coreModel/replace.ts";
 export type { TextReplace, TextReplacePreview } from "./coreModel/replace.ts";
 export { createCoreDeck, normalizeCoreDeck } from "./coreModel/decks.ts";
-export { mergeImportedTags, normalizeTags, tagSearchKeys } from "./coreModel/tags.ts";
+export { mergeImportedTags, normalizeTags, splitAnkiSystemTags, tagSearchKeys } from "./coreModel/tags.ts";

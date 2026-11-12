@@ -18,6 +18,7 @@ import { createStudyPreparation } from "./studyPreparation.ts";
 import { useStudySession } from "./useStudySession.ts";
 import { useStudyStart } from "./useStudyStart.ts";
 import { useAccountWorkspace } from "./useAccountWorkspace.ts";
+import { useDeckSummaries } from "./useDeckSummaries.ts";
 import { AppServicesContext } from "./useAppServices.ts";
 import { useImportSession } from "./useImportSession.ts";
 import { useLearningClock } from "./useLearningClock.ts";
@@ -119,7 +120,6 @@ function AppContent() {
   });
   const { supabase, supabaseUrl, authPhase, cloudUser, workspaceRepository, syncEngine, syncEngineRef, bootRunRef } = account;
   const state = useWorkspaceValue((snapshot) => snapshot.state);
-  const workspaceRevision = useWorkspaceValue((snapshot) => snapshot.revision);
   const [mediaStore, setMediaStore] = React.useState<AccountMediaStore | null>(null);
   const featurePreloadingAllowed = () => !["saving", "pending"].includes(workspaceStore.get().syncStatus.status);
   const screenRegionRef = React.useRef<HTMLElement | null>(null);
@@ -128,7 +128,7 @@ function AppContent() {
   const settings = useSettingsOverlay(navigation);
   const { openSettings, openDeckSettings } = settings;
   const clock = useLearningClock(activeView);
-  const { learningNow, learningTimeZone, globalSchedulerPreferences } = clock;
+  const { learningNow } = clock;
   const pomodoro = usePomodoroTimer(cloudUser?.id);
   React.useEffect(() => {
     let active = true;
@@ -195,21 +195,8 @@ function AppContent() {
     };
   }, [activeView, authPhase, studyRequest]);
 
-  // Deck counts load only while a view shows them; a study session catches up when it ends.
-  const deckCountsShown = !studyRequest || Boolean(deckSettings);
-  React.useEffect(() => {
-    if (!workspaceRepository || !state || !deckCountsShown) return;
-    let active = true;
-    void workspaceRepository.listDeckSummaries({
-      now: learningNow,
-      dayStartHour: globalSchedulerPreferences.dayStartHour,
-      learnAheadMinutes: globalSchedulerPreferences.learnAheadMinutes,
-      timeZone: learningTimeZone,
-    }).then((result) => {
-      if (active) workspaceStore.set({ deckSummaries: result.summaries, studyHeatmap: result.studyHeatmap });
-    });
-    return () => { active = false; };
-  }, [deckCountsShown, globalSchedulerPreferences.dayStartHour, globalSchedulerPreferences.learnAheadMinutes, learningNow, learningTimeZone, state, workspaceRepository, workspaceRevision, workspaceStore]);
+  // Deck counts load only while a view shows them; a study session catches up when it ends or a new learning day begins.
+  useDeckSummaries({ repository: workspaceRepository, store: workspaceStore, countsShown: !studyRequest || Boolean(deckSettings), clock });
 
   // The commands live as long as the workspace; what changes within it they read when they run.
   const latestRefresh = useStableCallback(sync.refresh);

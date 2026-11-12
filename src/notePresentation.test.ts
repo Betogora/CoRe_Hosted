@@ -2,8 +2,8 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import type { NoteTypeSource } from "./apkgNoteTranslation.ts";
 import type { NoteContent, NoteField, OcclusionShape } from "./coreTypes.ts";
-import { createNote } from "./coreModel/notes.ts";
-import { colorContrast } from "./ui/colorMath.ts";
+import { createNote } from "./coreModel.ts";
+import { colorContrast } from "./colorMath.ts";
 import { compareTypedAnswer, evaluateNoteChoice, notePlainText, renderCard, renderNoteChoiceOptions, renderNoteSpeech, type NotePresentationTheme } from "./notePresentation.ts";
 
 const theme: NotePresentationTheme = { mode: "light", colors: { surface: "#ffffff", "surface-muted": "#edf1f6", text: "#181d25", "text-muted": "#667492", border: "#d5dbe5", "border-interactive": "#6f7e9e", success: "#d6a3d2", "success-surface": "#f5e8f4", danger: "#e28b68", "danger-surface": "#f8e2d9", "learning-goal-achieved": "#2f7d68" } };

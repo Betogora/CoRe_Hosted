@@ -487,6 +487,49 @@ export function noteSourceFromRow(row: AccountRow): StoredNoteSource {
   };
 }
 
+/**
+ * The fields of a written row the local replica takes over as confirmation; the rest of the row passes along
+ * unchanged. Import sources answer with exactly these columns.
+ */
+const revisionAcknowledgementSchema = v.looseObject({
+  id: v.string(),
+  revision: positiveIntegerSchema,
+  updated_at: v.string(),
+  deleted_at: v.nullable(v.string()),
+  updated_by_device_id: v.nullable(v.string()),
+});
+
+export function validateRevisionAcknowledgements(input: unknown): AccountRow[] {
+  return parseRows(revisionAcknowledgementSchema, input, "Die Cloud-Bestätigung einer Änderung hatte ein ungültiges Format.");
+}
+
+const conflictRevisionSchema = v.nullable(v.pipe(v.number(), v.safeInteger()));
+/** The compared rows are JSON objects as `markConflictForUser` writes them; any other JSON value counts as no row. */
+const conflictValueSchema = v.pipe(v.unknown(), v.transform((value): AccountRow => (
+  value !== null && typeof value === "object" && !Array.isArray(value) ? value as AccountRow : {}
+)));
+const syncConflictRowSchema = v.looseObject({
+  id: v.string(),
+  user_id: v.string(),
+  entity_table: v.string(),
+  entity_id: v.string(),
+  base_revision: conflictRevisionSchema,
+  local_revision: conflictRevisionSchema,
+  remote_revision: conflictRevisionSchema,
+  local_value: conflictValueSchema,
+  remote_value: conflictValueSchema,
+  status: v.picklist(["open", "resolved", "ignored"]),
+  resolution: v.unknown(),
+  updated_by_device_id: v.nullable(v.string()),
+  created_at: v.string(),
+  resolved_at: v.nullable(v.string()),
+});
+export type SyncConflictRow = v.InferOutput<typeof syncConflictRowSchema>;
+
+export function validateSyncConflictRows(input: unknown): SyncConflictRow[] {
+  return parseRows(syncConflictRowSchema, input, "Synchronisierungskonflikte aus der Cloud hatten ein ungültiges Format.");
+}
+
 export function validateProfileRows(input: unknown) {
   return parseRows(profileRowSchema, input, "Cloud-Profildaten hatten ein ungültiges Format.");
 }

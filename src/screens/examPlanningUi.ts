@@ -1,4 +1,4 @@
-import { colorContrast } from "../ui/colorMath.ts";
+import { colorContrast } from "../colorMath.ts";
 
 const LONG_DATE = new Intl.DateTimeFormat("de-DE", { day: "numeric", month: "long", year: "numeric", timeZone: "UTC" });
 const SHORT_DATE = new Intl.DateTimeFormat("de-DE", { weekday: "short", day: "numeric", month: "numeric", timeZone: "UTC" });

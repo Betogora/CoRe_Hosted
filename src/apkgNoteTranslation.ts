@@ -14,12 +14,17 @@ import type {
   ReviewRating,
   ReviewSchedulerState,
 } from "./coreTypes.ts";
-import { makeId, stableContentHash } from "./coreModel/coreValues.ts";
-import { noteContentMediaRefs } from "./coreModel/noteContent.ts";
+import {
+  cardStudyFromReviewState,
+  createNote,
+  createReviewState,
+  makeId,
+  noteContentMediaRefs,
+  normalizeTags,
+  splitAnkiSystemTags,
+  stableContentHash,
+} from "./coreModel.ts";
 import { cssMediaNames, hasOwnDesign, needsScript } from "./originalLayout.ts";
-import { createNote } from "./coreModel/notes.ts";
-import { normalizeTags, splitAnkiSystemTags } from "./coreModel/tags.ts";
-import { cardStudyFromReviewState, createReviewState } from "./coreModel/reviewState.ts";
 import { compileSafeTemplate, type SafeTemplateAstNode } from "./safeTemplate.ts";
 import { scheduleWithFsrs } from "./scheduler.ts";
 import { sha1DigestHex } from "./sha1.ts";

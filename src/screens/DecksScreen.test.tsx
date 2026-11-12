@@ -10,7 +10,8 @@ import { summarizeDeckReview } from "../scheduler.ts";
 import { WorkspaceStoreContext } from "../useWorkspaceStore.ts";
 import { catalogEntryFromCard, type NoteGraph } from "../workspaceReplica.ts";
 import { createWorkspaceStore, type WorkspaceSnapshot } from "../workspaceStore.ts";
-import { DecksScreen, type DecksCardPage } from "./DecksScreen.tsx";
+import type { DecksCardPage } from "../appScreenProps.ts";
+import { DecksScreen } from "./DecksScreen.tsx";
 
 const NOW = "2026-08-06T10:00:00.000Z";
 const SORT = { field: "sortField", direction: "asc" } as const;

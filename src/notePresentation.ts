@@ -4,9 +4,9 @@ import type { CoreTheme } from "./coreTheme.ts";
 import { compileSafeTemplate, type SafeTemplateAstNode, type TemplateDiagnostic } from "./safeTemplate.ts";
 import { cssMediaNames, hasOwnDesign, needsScript } from "./originalLayout.ts";
 import { sanitizeLayoutHtml, sanitizeNoteHtml } from "./htmlSafety.ts";
-import { noteContentMediaRefs } from "./coreModel/noteContent.ts";
+import { noteContentMediaRefs } from "./coreModel.ts";
 import { buildSrcdoc } from "./presentationFrame.ts";
-import { colorContrast, ensureTextContrast, hexToHsv, resolveCssColor } from "./ui/colorMath.ts";
+import { colorContrast, ensureTextContrast, hexToHsv, resolveCssColor } from "./colorMath.ts";
 
 /** Semantic tokens copied into the card frame as `--core-<name>`. */
 export const NOTE_THEME_COLORS = ["surface", "surface-muted", "text", "text-muted", "border", "border-interactive", "success", "success-surface", "danger", "danger-surface", "learning-goal-achieved"] as const;

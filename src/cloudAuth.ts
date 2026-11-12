@@ -1,5 +1,5 @@
 import * as v from "valibot";
-import type { Tables, TablesInsert } from "./database.types.ts";
+import type { Tables } from "./database.types.ts";
 import { withGlobalSchedulerPreferences } from "./deckSettings.ts";
 import { normalizeUiPreferences } from "./uiPreferences.ts";
 
@@ -22,7 +22,53 @@ interface CloudAuthHistory {
 }
 
 type ProfileRow = Tables<"profiles">;
-type ProfileInsert = TablesInsert<"profiles">;
+
+/** A Supabase user as far as this module reads it; callers get back their own user type. */
+interface CloudAuthUser {
+  id: string;
+  email?: string | null;
+  created_at?: string;
+}
+
+/** Profile fields the auth calls read; other fields of the caller's profile are ignored. */
+interface ProfileFields {
+  userId?: string;
+  email?: string | null;
+  displayName?: string;
+  timezone?: string;
+  onboardingComplete?: boolean;
+  schedulerPreferences?: unknown;
+  uiPreferences?: unknown;
+  account?: { authProvider?: string; [field: string]: unknown };
+}
+
+interface AuthAnswer<Data> {
+  data: Data | null;
+  error: unknown;
+}
+
+/** The Supabase client as far as these calls use it; `from` stays `unknown` as in `CloudClient` (cloudRepository.ts). */
+interface UserClient<User extends CloudAuthUser> {
+  auth: {
+    getUser(): PromiseLike<AuthAnswer<{ user: User | null }>>;
+    getSession?(): PromiseLike<AuthAnswer<{ session: { user: User } | null }>>;
+  };
+  from(table: string): unknown;
+}
+
+interface AuthClient<Auth> {
+  auth: Auth;
+  from(table: string): unknown;
+}
+
+type RedirectOptions = { emailRedirectTo?: string };
+
+/** The `profiles` calls of the query builder; the answer stays `unknown` until `validateProfileRow`. */
+interface ProfilesTable {
+  upsert(row: object, options: { onConflict: string; ignoreDuplicates?: boolean }): PromiseLike<{ error: unknown }> & {
+    select(columns: string): { single(): PromiseLike<{ data: unknown; error: unknown }> };
+  };
+}
 const profileRowSchema = v.looseObject({
   id: v.string(),
   email: v.optional(v.string()),
@@ -45,11 +91,11 @@ function nowIso() {
   return new Date().toISOString();
 }
 
-function normalizeEmail(email: any) {
+function normalizeEmail(email: unknown) {
   return String(email ?? "").trim().toLowerCase();
 }
 
-function accountFromUser(user: any, status: any = "signed-in", timestamp: any = nowIso()) {
+function accountFromUser(user: Partial<CloudAuthUser> | null | undefined, status = "signed-in", timestamp = nowIso()) {
   return {
     status,
     authProvider: "supabase",
@@ -69,7 +115,7 @@ function isSessionMissing(error: any) {
   );
 }
 
-export function formatCloudAuthError(error: any, fallback: any = "Aktion konnte nicht abgeschlossen werden.") {
+export function formatCloudAuthError(error: any, fallback = "Aktion konnte nicht abgeschlossen werden."): string {
   const code = String(error?.code ?? error?.status ?? error?.name ?? "").toLowerCase();
   const message = String(error?.message ?? "").toLowerCase();
   const causeCode = String(error?.cause?.code ?? error?.cause?.status ?? error?.cause?.name ?? "").toLowerCase();
@@ -149,7 +195,7 @@ export function formatCloudAuthError(error: any, fallback: any = "Aktion konnte 
   return error?.message || fallback;
 }
 
-export function createCloudAuthRedirectUrl(origin: any) {
+export function createCloudAuthRedirectUrl(origin: string) {
   try {
     return new URL("/", origin).toString();
   } catch {
@@ -162,7 +208,7 @@ function getDefaultAuthRedirectTo() {
   return createCloudAuthRedirectUrl(window.location.origin);
 }
 
-export function createProfileRow(profile: any, user: any, timestamp: any = nowIso()): ProfileInsert {
+export function createProfileRow<Fields extends ProfileFields>(profile: Fields | null | undefined, user: CloudAuthUser, timestamp = nowIso()) {
   const email = normalizeEmail(user?.email ?? profile?.email);
 
   return {
@@ -177,7 +223,7 @@ export function createProfileRow(profile: any, user: any, timestamp: any = nowIs
   };
 }
 
-export function createCloudProfile(row: any, user: any, fallback: any = {}, timestamp: any = nowIso()) {
+export function createCloudProfile<Fields extends ProfileFields>(row: unknown, user: CloudAuthUser | null | undefined, fallback: Fields | ProfileFields = {}, timestamp = nowIso()) {
   const validatedRow = row == null ? null : validateProfileRow(row);
   const email = normalizeEmail(validatedRow?.email ?? user?.email ?? fallback?.email);
 
@@ -202,7 +248,7 @@ function isConnectivityFailure(error: any) {
     || combined.includes("offline");
 }
 
-export function createPendingCloudProfile(profile: any, user: any, timestamp: any = nowIso()) {
+export function createPendingCloudProfile<Fields extends ProfileFields>(profile: Fields | null | undefined, user: CloudAuthUser | null | undefined, timestamp = nowIso()) {
   const email = normalizeEmail(user?.email ?? profile?.email);
 
   return withGlobalSchedulerPreferences({
@@ -217,7 +263,7 @@ export function createPendingCloudProfile(profile: any, user: any, timestamp: an
   });
 }
 
-export function markCloudSignedOut(profile: any, timestamp: any = nowIso()) {
+export function markCloudSignedOut<Fields extends ProfileFields>(profile: Fields, timestamp = nowIso()) {
   return {
     ...profile,
     account: {
@@ -229,24 +275,24 @@ export function markCloudSignedOut(profile: any, timestamp: any = nowIso()) {
   };
 }
 
-async function assertCloudClient(client: any) {
+async function assertCloudClient(client: { auth?: unknown; from?: unknown } | null | undefined) {
   if (!client?.auth || !client?.from) {
     throw new Error("Supabase ist noch nicht konfiguriert.");
   }
 }
 
-async function getCurrentUser(client: any) {
+async function getCurrentUser<User extends CloudAuthUser>(client: UserClient<User>) {
   await assertCloudClient(client);
   const { data, error } = await client.auth.getUser();
   if (error && !isSessionMissing(error)) throw error;
   return data?.user ?? null;
 }
 
-export async function getCloudUser(client: any) {
+export async function getCloudUser<User extends CloudAuthUser>(client: UserClient<User>) {
   return getCurrentUser(client);
 }
 
-export async function getPersistedCloudUser(client: any) {
+export async function getPersistedCloudUser<User extends CloudAuthUser>(client: UserClient<User>) {
   await assertCloudClient(client);
   if (typeof client?.auth?.getSession !== "function") return null;
   const { data, error } = await client.auth.getSession();
@@ -254,8 +300,8 @@ export async function getPersistedCloudUser(client: any) {
   return data?.session?.user ?? null;
 }
 
-export async function getCloudWorkspaceUser(
-  client: any,
+export async function getCloudWorkspaceUser<User extends CloudAuthUser>(
+  client: UserClient<User>,
   online = typeof navigator === "undefined" || navigator.onLine !== false,
 ) {
   if (!online) return getPersistedCloudUser(client);
@@ -267,18 +313,26 @@ export async function getCloudWorkspaceUser(
   }
 }
 
-export async function saveCloudProfile(client: any, profile: any, timestamp: any = nowIso()) {
+export async function saveCloudProfile<User extends CloudAuthUser>(client: UserClient<User>, profile: ProfileFields, timestamp = nowIso()) {
   const user = await getCurrentUser(client);
   if (!user) throw new Error("Bitte melde dich zuerst an.");
 
   const row = createProfileRow(profile, user, timestamp);
-  const { data, error } = await client.from("profiles").upsert(row, { onConflict: "id" }).select("*").single();
+  const { data, error } = await (client.from("profiles") as ProfilesTable).upsert(row, { onConflict: "id" }).select("*").single();
   if (error) throw error;
 
   return createCloudProfile(data, user, profile, timestamp);
 }
 
-export async function signUpCloudAccount(client: any, profile: any, password: any, timestamp: any = nowIso(), redirectTo: any = getDefaultAuthRedirectTo()) {
+export async function signUpCloudAccount<User extends CloudAuthUser>(
+  client: UserClient<User> & AuthClient<{
+    signUp(credentials: { email: string; password: string; options: RedirectOptions & { data: Record<string, unknown> } }): PromiseLike<AuthAnswer<{ user: User | null; session: unknown }>>;
+  }>,
+  profile: ProfileFields,
+  password: string,
+  timestamp = nowIso(),
+  redirectTo = getDefaultAuthRedirectTo(),
+) {
   await assertCloudClient(client);
   const email = normalizeEmail(profile?.email);
   if (!email || !email.includes("@")) throw new Error("Eine gültige E-Mail-Adresse ist erforderlich.");
@@ -300,7 +354,12 @@ export async function signUpCloudAccount(client: any, profile: any, password: an
   return saveCloudProfile(client, createCloudProfile(null, data.user, profile, timestamp), timestamp);
 }
 
-export async function signInCloudAccount(client: any, profile: any, password: any, timestamp: any = nowIso()) {
+export async function signInCloudAccount(
+  client: AuthClient<{ signInWithPassword(credentials: { email: string; password: string }): PromiseLike<{ data: { user: CloudAuthUser | null }; error: unknown }> }>,
+  profile: ProfileFields,
+  password: string,
+  timestamp = nowIso(),
+) {
   await assertCloudClient(client);
   const email = normalizeEmail(profile?.email);
   if (!email || !email.includes("@")) throw new Error("Eine gültige E-Mail-Adresse ist erforderlich.");
@@ -309,15 +368,19 @@ export async function signInCloudAccount(client: any, profile: any, password: an
   if (error) throw error;
 
   const initialProfile = createCloudProfile(null, data.user, profile, timestamp);
-  const { error: profileError } = await client.from("profiles").upsert(
-    createProfileRow(initialProfile, data.user, timestamp),
+  const { error: profileError } = await (client.from("profiles") as ProfilesTable).upsert(
+    createProfileRow(initialProfile, data.user!, timestamp),
     { onConflict: "id", ignoreDuplicates: true },
   );
   if (profileError) throw profileError;
   return initialProfile;
 }
 
-export async function signInWithMagicLink(client: any, email: any, redirectTo: any = getDefaultAuthRedirectTo()) {
+export async function signInWithMagicLink(
+  client: AuthClient<{ signInWithOtp(credentials: { email: string; options: RedirectOptions & { shouldCreateUser: boolean } }): PromiseLike<{ error: unknown }> }>,
+  email: string,
+  redirectTo = getDefaultAuthRedirectTo(),
+) {
   await assertCloudClient(client);
   const normalizedEmail = normalizeEmail(email);
   if (!normalizedEmail || !normalizedEmail.includes("@")) throw new Error("Eine gültige E-Mail-Adresse ist erforderlich.");
@@ -334,7 +397,7 @@ export async function signInWithMagicLink(client: any, email: any, redirectTo: a
   return { email: normalizedEmail };
 }
 
-export async function signOutCloudAccount(client: any, profile: any, timestamp: any = nowIso()) {
+export async function signOutCloudAccount<Fields extends ProfileFields>(client: AuthClient<{ signOut(): PromiseLike<{ error: unknown }> }>, profile: Fields, timestamp = nowIso()) {
   await assertCloudClient(client);
   const { error } = await client.auth.signOut();
   if (error) throw error;
@@ -342,7 +405,11 @@ export async function signOutCloudAccount(client: any, profile: any, timestamp: 
   return markCloudSignedOut(profile, timestamp);
 }
 
-export async function resetCloudPassword(client: any, email: any, redirectTo: any = getDefaultAuthRedirectTo()) {
+export async function resetCloudPassword(
+  client: AuthClient<{ resetPasswordForEmail(email: string, options?: { redirectTo: string }): PromiseLike<{ error: unknown }> }>,
+  email: string,
+  redirectTo = getDefaultAuthRedirectTo(),
+) {
   await assertCloudClient(client);
   const normalizedEmail = normalizeEmail(email);
   if (!normalizedEmail || !normalizedEmail.includes("@")) throw new Error("Eine gültige E-Mail-Adresse ist erforderlich.");
@@ -352,7 +419,10 @@ export async function resetCloudPassword(client: any, email: any, redirectTo: an
   return { email: normalizedEmail };
 }
 
-export async function updateCloudPassword(client: any, password: any) {
+export async function updateCloudPassword<User extends CloudAuthUser>(
+  client: AuthClient<{ updateUser(attributes: { password: string }): PromiseLike<AuthAnswer<{ user: User | null }>> }>,
+  password: string,
+) {
   await assertCloudClient(client);
   if (String(password ?? "").length < 8) throw new Error("Das Passwort muss mindestens 8 Zeichen haben.");
 
