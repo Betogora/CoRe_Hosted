@@ -40,6 +40,23 @@ test("trusted sanitized card HTML can be projected to text without changing its 
   assert.equal(sanitized, "<b>ATP</b>");
 });
 
+test("plain text separates line breaks and blocks in the browser like without a DOM", () => {
+  const html = "Höhe des Ösophagus?<br />Th9–Th11<div>Lamina externa</div><ul><li>A</li><li>B</li></ul>";
+  const plain = (text: string) => text.replace(/\s+/g, " ").trim();
+  const expected = "Höhe des Ösophagus? Th9–Th11 Lamina externa A B";
+  assert.equal(plain(stripSanitizedHtml(html)), expected);
+  // Like a browser's `textContent`: tags vanish without a separator.
+  const element = { set innerHTML(value: string) { this.textContent = value.replace(/<[^>]*>/g, ""); }, textContent: "" };
+  const previous = Object.getOwnPropertyDescriptor(globalThis, "document");
+  Object.defineProperty(globalThis, "document", { configurable: true, value: { createElement: () => element } });
+  try {
+    assert.equal(plain(stripSanitizedHtml(html)), expected);
+  } finally {
+    if (previous) Object.defineProperty(globalThis, "document", previous);
+    else Reflect.deleteProperty(globalThis, "document");
+  }
+});
+
 test("note HTML keeps semantic formatting and classes and drops fonts and layout", () => {
   assert.equal(
     sanitizeNoteHtml('<p class="anking" id="x" style="font-family:Arial;font-size:24px;color:#c00;position:absolute;float:right;width:300px">A</p>'),
