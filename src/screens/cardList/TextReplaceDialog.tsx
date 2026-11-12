@@ -2,6 +2,7 @@ import React from "react";
 import type { CardBatchAction, TextReplaceSession } from "../../cardBatchActions.ts";
 import type { TextReplace } from "../../coreModel.ts";
 import { ActionDialog } from "../../ui/coreUi.tsx";
+import { CoreCheckbox } from "../../ui/formControls.tsx";
 import { CoreSelect } from "../../ui/selectUi.tsx";
 import { cardCount } from "./cardListModel.ts";
 
@@ -82,10 +83,7 @@ export function TextReplaceDialog({ count, prepare, onRun, onClose }: TextReplac
           </div>
           <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
             <CoreSelect ariaLabel="Suchen in" className="min-w-40" value={target} options={options} onValueChange={setTarget} />
-            <label className="flex items-center gap-2 core-body text-core-text">
-              <input type="checkbox" className="size-5 shrink-0 accent-core-action" checked={matchCase} onChange={(event) => setMatchCase(event.target.checked)} />
-              Groß-/Kleinschreibung beachten
-            </label>
+            <CoreCheckbox label="Groß-/Kleinschreibung beachten" checked={matchCase} onCheckedChange={setMatchCase} />
           </div>
           <div aria-live="polite" className="grid gap-2" data-testid="text-replace-preview">
             {loadError ? <p className="core-field-error" role="alert">{loadError}</p>

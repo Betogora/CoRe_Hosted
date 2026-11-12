@@ -12,6 +12,7 @@ import { flagName } from "../ui/flagUi.tsx";
 import { normalizeFlagNames } from "../uiPreferences.ts";
 import { CoreNumberField } from "../ui/CoreNumberField.tsx";
 import { useSuccessToast } from "../ui/feedbackUi.tsx";
+import { CoreRadio } from "../ui/formControls.tsx";
 import { LearningSettingsPanel } from "../ui/LearningSettingsPanel.tsx";
 import { PomodoroTimerControl } from "../ui/pomodoroTimerUi.tsx";
 import { DeckSelect } from "../ui/selectUi.tsx";
@@ -154,14 +155,12 @@ export function GlobalCardSettingsScreen({ section, decks, onOpenDeckSettings, t
                     {easyDayOptions.map((option) => (
                       <td key={option.value}>
                         <label className="core-settings-matrix-cell" data-level={option.value}>
-                          <input
-                            type="radio"
+                          <CoreRadio
                             name={`card-settings-easy-day-${key}`}
                             value={option.value}
                             checked={draft.easyDays[key] === option.value}
                             aria-label={`${weekdayLabels[key]}: ${option.label}`}
-                            className="size-4 cursor-pointer accent-core-action"
-                            onChange={() => setDraft((current) => ({ ...current, easyDays: { ...current.easyDays, [key]: option.value } }))}
+                            onCheckedChange={() => setDraft((current) => ({ ...current, easyDays: { ...current.easyDays, [key]: option.value } }))}
                           />
                         </label>
                       </td>

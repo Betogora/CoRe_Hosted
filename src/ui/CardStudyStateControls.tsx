@@ -1,11 +1,7 @@
 import type { ReactNode } from "react";
 import { Ban, Star } from "lucide-react";
-import { CardMarkButton, CoreSegmentedControl } from "./coreUi.tsx";
-
-const SUSPEND_OPTIONS = [
-  { value: "active", label: "Nicht aussetzen" },
-  { value: "suspended", label: "Aussetzen" },
-] as const;
+import { CardMarkButton } from "./coreUi.tsx";
+import { CoreSwitch } from "./formControls.tsx";
 
 export interface CardStudyStateControlsProps {
   marked: boolean;
@@ -47,14 +43,7 @@ export function CardStudyStateControls({
         <CardMarkButton marked={marked} disabled={disabled} onMarkedChange={onMarkedChange} />
       </CardStudyStateRow>
       <CardStudyStateRow icon={Ban} label="Aussetzen" disabled={disabled}>
-        <CoreSegmentedControl
-          value={suspended ? "suspended" : "active"}
-          options={SUSPEND_OPTIONS}
-          ariaLabel="Aussetzstatus der Karte"
-          disabled={disabled}
-          className="ml-auto max-w-[15rem] flex-1 basis-48"
-          onValueChange={(value) => onSuspendedChange(value === "suspended")}
-        />
+        <CoreSwitch aria-label="Aussetzen" checked={suspended} disabled={disabled} onCheckedChange={onSuspendedChange} />
       </CardStudyStateRow>
     </div>
   );

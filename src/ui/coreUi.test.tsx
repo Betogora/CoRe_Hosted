@@ -106,7 +106,7 @@ test("shared card mark control exposes pressed semantics", () => {
   assert.match(markup, /fill="currentColor"/);
 });
 
-test("segmented controls expose one icon-free pressed brick", () => {
+test("segmented controls expose one icon-free pressed brick and the CoRe mode is a switch", () => {
   const markup = renderToStaticMarkup(
     <>
       <CoreSegmentedControl
@@ -123,10 +123,11 @@ test("segmented controls expose one icon-free pressed brick", () => {
     </>,
   );
 
-  assert.equal((markup.match(/role="group"/g) ?? []).length, 2);
-  assert.equal((markup.match(/aria-pressed="true"/g) ?? []).length, 2);
-  assert.equal((markup.match(/aria-pressed="(true|false)"/g) ?? []).length, 5);
+  assert.equal((markup.match(/role="group"/g) ?? []).length, 1);
+  assert.equal((markup.match(/aria-pressed="true"/g) ?? []).length, 1);
+  assert.equal((markup.match(/aria-pressed="(true|false)"/g) ?? []).length, 3);
   assert.doesNotMatch(markup, /<svg/);
+  assert.match(markup, /<input type="checkbox" role="switch" aria-label="CoRe-Modus" checked=""\/>/);
 });
 
 test("segmented controls disable every option together", () => {

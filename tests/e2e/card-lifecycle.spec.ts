@@ -461,9 +461,9 @@ test("[Vertrag: Geschwister begraben] @beta-core eine Antwort stellt die Geschwi
   const deck = await finishManualCreation(page, deckName, 2);
 
   await page.goto(`/lernen?settingsDeck=${encodeURIComponent(deck.id)}&settings=tagesrunde`);
-  const buryNew = page.getByRole("checkbox", { name: "Neue Geschwisterkarten begraben" });
+  const buryNew = page.getByRole("switch", { name: "Neue Geschwisterkarten begraben" });
   await expect(buryNew).not.toBeChecked();
-  await expect(page.getByRole("checkbox", { name: "Fällige Geschwisterkarten begraben" })).not.toBeChecked();
+  await expect(page.getByRole("switch", { name: "Fällige Geschwisterkarten begraben" })).not.toBeChecked();
   await buryNew.check();
   await page.getByTestId("settings-save-bar").getByRole("button", { name: "Speichern" }).click();
   await expect.poll(async () => (await readActiveAccountState(page)).decks.find((candidate: { id: string }) => candidate.id === deck.id)?.deckSettings.buryNewSiblings).toBe(true);

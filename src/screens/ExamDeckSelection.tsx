@@ -1,7 +1,8 @@
 import React from "react";
-import { ChevronDown, ChevronRight, Plus, Search, X } from "lucide-react";
+import { ChevronDown, ChevronRight, Search, X } from "lucide-react";
 import type { createDeckLibraryModel } from "../libraryModel.ts";
 import { IconButton } from "../ui/actionUi.tsx";
+import { CoreCheckbox } from "../ui/formControls.tsx";
 
 /** Expansion and search only change the view; selecting a branch remains an exam-model operation. */
 export function ExamDeckSelection({ rows, selected, onToggle }: {
@@ -37,10 +38,7 @@ export function ExamDeckSelection({ rows, selected, onToggle }: {
         return <li key={row.id} className="flex min-w-0 items-center rounded-inset transition-colors hover:bg-core-subtle" style={{ marginInlineStart: `${Math.min(row.depth, 4) * 0.75}rem` }}>
           {row.childrenCount ? <IconButton variant="ghost" icon={open ? ChevronDown : ChevronRight} label={`${row.name}: Unterstapel ${open ? "einklappen" : "ausklappen"}`} aria-expanded={open} disabled={Boolean(search)} onClick={() => setExpanded((current) => { const next = new Set(current); if (next.has(row.id)) next.delete(row.id); else next.add(row.id); return next; })} /> : <span className="w-button shrink-0" aria-hidden="true" />}
           <label className="flex min-h-control min-w-0 flex-1 cursor-pointer items-center gap-3 px-2 py-2">
-            <span className="relative size-5 shrink-0">
-              <input type="checkbox" aria-label={`${row.name}${row.childrenCount ? ", mit Unterstapeln" : ""}`} className="absolute inset-0 size-5 cursor-pointer appearance-none rounded-marker border border-core-border bg-core-surface checked:border-core-action checked:bg-core-action" checked={checked} onChange={(event) => onToggle(row.id, event.target.checked)} />
-              {checked ? <Plus size={16} aria-hidden="true" className="pointer-events-none absolute left-0.5 top-0.5 text-core-on-accent" /> : null}
-            </span>
+            <CoreCheckbox aria-label={`${row.name}${row.childrenCount ? ", mit Unterstapeln" : ""}`} checked={checked} onCheckedChange={(next) => onToggle(row.id, next)} />
             <span className="min-w-0 flex-1 break-words core-body text-core-text">{row.name}</span>
             <span className="shrink-0 core-caption tabular-nums text-core-muted">{row.summary.totalCards}</span>
           </label>

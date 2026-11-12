@@ -1,6 +1,7 @@
 import React from "react";
 import { CheckCircle2, GitMerge, RefreshCw, RotateCcw } from "lucide-react";
 import { useSuccessToast } from "../ui/feedbackUi.tsx";
+import { CoreRadio } from "../ui/formControls.tsx";
 
 const FIELD_SOURCES = [["local", "Dieser Browser"], ["remote", "Cloud im Account"]];
 const PREVIEW_TABLE_LABELS: Record<string, string> = { decks: "Stapel", cards: "Karten", card_variants: "Varianten" };
@@ -242,10 +243,7 @@ export function SyncConflictPanel({ id, onListConflicts, onResolveConflict }: an
                             <span className="core-settings-row-title">{field.label}</span>
                             <div className="core-settings-row-control gap-4">
                               {FIELD_SOURCES.map(([source, label]) => (
-                                <label key={source} className="inline-flex min-h-control items-center gap-2 core-body text-core-secondary">
-                                  <input type="radio" className="size-4 accent-core-action" name={`${conflict.id}-${field.key}`} checked={choices[field.key] === source} onChange={() => chooseField(conflict.id, field.key, source)} aria-label={`${field.label}: ${label}`} />
-                                  {label}
-                                </label>
+                                <CoreRadio key={source} name={`${conflict.id}-${field.key}`} label={label} checked={choices[field.key] === source} onCheckedChange={() => chooseField(conflict.id, field.key, source)} aria-label={`${field.label}: ${label}`} />
                               ))}
                             </div>
                           </div>

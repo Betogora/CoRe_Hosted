@@ -10,6 +10,7 @@ import { ActionButton } from "../ui/actionUi.tsx";
 import { CoreDatePicker } from "../ui/CoreDatePicker.tsx";
 import { ColorPicker } from "../ui/ColorPicker.tsx";
 import { ActionDialog, PageHeader } from "../ui/coreUi.tsx";
+import { CoreCheckbox, CoreRadio, CoreSwitch } from "../ui/formControls.tsx";
 import { StatusMessage } from "../ui/feedbackUi.tsx";
 import { ExamCalendar } from "./ExamCalendar.tsx";
 import { ExamTopicPreview } from "./ExamTopicPreview.tsx";
@@ -111,7 +112,7 @@ export function ExamPlanEditor({ embedded = false, onDirtyChange, decks, deckSum
         <fieldset className="grid min-w-0 gap-3" aria-describedby={`${plan.id}-goal-hint`}>
           <legend className="mb-3 core-field-label">Was ist dein Ziel für die Prüfung?</legend>
           <div className="grid min-w-0 gap-2 sm:grid-cols-2">{EXAM_GOALS.map(({ retention, label }) => <label key={retention} className={`flex min-h-control min-w-0 cursor-pointer items-center justify-between gap-3 rounded-control border px-4 py-3 core-body ${plan.desiredRetention === retention ? "border-core-action bg-core-info-soft text-core-text" : "border-core-border bg-core-surface text-core-text"}`}>
-            <span className="min-w-0 break-words">{label}</span><input type="radio" name={`${plan.id}-goal`} value={retention} className="size-5 shrink-0 accent-core-action" checked={plan.desiredRetention === retention} onChange={() => patch({ desiredRetention: retention })} />
+            <span className="min-w-0 break-words">{label}</span><CoreRadio name={`${plan.id}-goal`} value={retention} checked={plan.desiredRetention === retention} onCheckedChange={() => patch({ desiredRetention: retention })} />
           </label>)}</div>
           <p id={`${plan.id}-goal-hint`} className="core-field-hint">Ein höheres Ziel plant häufigere Wiederholungen ein.</p>
         </fieldset>
@@ -159,7 +160,7 @@ export function ExamPlanEditor({ embedded = false, onDirtyChange, decks, deckSum
           patch({ studyTime: { ...time, dailyMinutes: minutes.length ? Math.round(minutes.reduce((sum, value) => sum + value, 0) / minutes.length) : 0, weekdays: time.weekdays.map((selected, index) => selected && time.weeklyMinutes![index] > 0), weeklyMinutes: undefined } });
         }} className="flex min-h-control w-full items-center justify-between gap-3 px-4 py-3 text-left core-control-label font-semibold text-core-text"><span>Lerntage und durchschnittliche Lernzeit</span><ChevronDown size={16} aria-hidden="true" className={`shrink-0 text-core-muted transition-transform motion-reduce:transition-none ${!time.weeklyMinutes ? "rotate-180" : ""}`} /></button>
         {!time.weeklyMinutes ? <div id={`${plan.id}-average-time`} className="grid min-w-0 gap-4 px-4 pb-4">
-          <div className="grid grid-cols-4 gap-1 sm:grid-cols-7 sm:gap-2" role="group" aria-label="Lerntage">{WEEKDAYS.map((name, index) => <label key={name} className={`flex min-h-control cursor-pointer flex-col items-center justify-center gap-2 rounded-control border px-1 py-3 core-caption font-semibold ${time.weekdays[index] ? "border-core-action bg-core-info-soft text-core-text" : "border-core-border text-core-muted"}`}><input type="checkbox" aria-label={name} className="size-4 accent-core-action" checked={time.weekdays[index]} onChange={(event) => patch({ studyTime: { ...time, weekdays: time.weekdays.map((value, i) => i === index ? event.target.checked : value) } })} /><span aria-hidden="true">{name.slice(0, 2)}</span></label>)}</div>
+          <div className="grid grid-cols-4 gap-1 sm:grid-cols-7 sm:gap-2" role="group" aria-label="Lerntage">{WEEKDAYS.map((name, index) => <label key={name} className={`flex min-h-control cursor-pointer flex-col items-center justify-center gap-2 rounded-control border px-1 py-3 core-caption font-semibold ${time.weekdays[index] ? "border-core-action bg-core-info-soft text-core-text" : "border-core-border text-core-muted"}`}><CoreCheckbox aria-label={name} checked={time.weekdays[index]} onCheckedChange={(checked) => patch({ studyTime: { ...time, weekdays: time.weekdays.map((value, i) => i === index ? checked : value) } })} /><span aria-hidden="true">{name.slice(0, 2)}</span></label>)}</div>
           <label className={`${LABEL} sm:max-w-xs`}>Lernzeit pro Lerntag · Min.<input className={FIELD} type="number" inputMode="numeric" min={0} max={1440} step={15} value={time.dailyMinutes} onChange={(event) => patch({ studyTime: { ...time, dailyMinutes: Math.min(1440, Math.max(0, Math.round(Number(event.target.value) || 0))) } })} /></label>
         </div> : null}
       </div>
@@ -173,10 +174,10 @@ export function ExamPlanEditor({ embedded = false, onDirtyChange, decks, deckSum
         }} /></label>)}</div> : null}
       </div>
     </div>
-    <label className="flex min-h-control items-center gap-3 core-body text-core-text"><input type="checkbox" className="size-5 accent-core-action" checked={plan.readSummaryBeforeTopics ?? false} onChange={(event) => patch({ readSummaryBeforeTopics: event.target.checked })} />Vor neuen Themen Zusammenfassung lesen</label>
+    <CoreSwitch label="Vor neuen Themen Zusammenfassung lesen" checked={plan.readSummaryBeforeTopics ?? false} onCheckedChange={(readSummaryBeforeTopics) => patch({ readSummaryBeforeTopics })} />
     <div className="flex min-w-0 items-start gap-3 rounded-control bg-core-subtle px-4 py-3 core-body text-core-secondary"><CalendarClock size={18} aria-hidden="true" className="mt-0.5 shrink-0 text-core-muted" /><p>Konkrete Lernzeiten kannst du später im Kalender der Planerübersicht festlegen.</p></div>
     <details className="group min-w-0"><Summary>Weitere Lerneinstellungen</Summary><div className="mt-3 grid gap-4">
-      <label className="flex min-h-control items-center gap-3 core-body text-core-text"><input type="checkbox" className="size-5 accent-core-action" checked={plan.variants} onChange={(event) => patch({ variants: event.target.checked })} />Varianten einbeziehen</label>
+      <CoreSwitch label="Varianten einbeziehen" checked={plan.variants} onCheckedChange={(variants) => patch({ variants })} />
     </div></details>
   </>; }
   function renderContext() { return <aside className="core-surface-raised grid min-w-0 gap-4 rounded-panel p-5" aria-label="Deine Prüfung" data-testid="exam-setup-context">

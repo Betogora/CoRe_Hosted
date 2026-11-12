@@ -16,6 +16,7 @@ import { ActionButton, IconButton } from "./actionUi.tsx";
 import { ActionDialog, CoreSegmentedControl } from "./coreUi.tsx";
 import { CoreNumberField } from "./CoreNumberField.tsx";
 import { useSuccessToast } from "./feedbackUi.tsx";
+import { CoreSlider, CoreSwitch } from "./formControls.tsx";
 import { CoreSelect } from "./selectUi.tsx";
 
 const learningStepOptions = [
@@ -243,7 +244,7 @@ export function LearningSettingsPanel({ draft, profiles, defaultProfileName, con
                 <label key={option.key} className="core-settings-row cursor-pointer" data-layout="inline">
                   <span className="core-settings-row-title">{option.label}</span>
                   <span className="core-settings-row-control">
-                    <input type="checkbox" className="size-4 shrink-0 cursor-pointer accent-core-action" checked={draft[option.key]} data-testid={option.testId} onChange={(event) => editLearning({ [option.key]: event.target.checked })} />
+                    <CoreSwitch checked={draft[option.key]} data-testid={option.testId} onCheckedChange={(checked) => editLearning({ [option.key]: checked })} />
                   </span>
                 </label>
               ))}
@@ -281,10 +282,7 @@ export function LearningSettingsPanel({ draft, profiles, defaultProfileName, con
                   {draft.schedulerProfile.desiredRetention > 0.97 ? <p className="mt-1 flex items-center gap-1 text-core-text"><AlertTriangle className="shrink-0 text-core-warning" size={14} aria-hidden="true" />Über 97 % steigt die tägliche Belastung meist sehr stark.</p> : null}
                 </>}
               >
-                <span className="flex min-h-control w-full items-center gap-3 md:w-72">
-                  <input id="learning-settings-retention" type="range" min="70" max="99" value={retentionPercent} aria-valuetext={`${retentionPercent} %`} data-testid="learning-settings-retention" className="min-w-0 flex-1 cursor-pointer accent-core-action" onChange={(event) => editLearning({ schedulerProfile: { desiredRetention: Number(event.target.value) / 100 } })} />
-                  <output htmlFor="learning-settings-retention" className="min-w-12 text-right core-body tabular-nums text-core-text">{retentionPercent} %</output>
-                </span>
+                <CoreSlider id="learning-settings-retention" className="w-full md:w-72" min={70} max={99} value={retentionPercent} formatValue={(percent) => `${percent} %`} data-testid="learning-settings-retention" onValueChange={(percent) => editLearning({ schedulerProfile: { desiredRetention: percent / 100 } })} />
               </SettingsRow>
               <SettingsRow title="Maximales Intervall" htmlFor="learning-settings-maximum-interval">
                 <CoreNumberField id="learning-settings-maximum-interval" value={draft.schedulerProfile.maximumIntervalDays} min={30} max={36500} unit="Tage" className="w-36" onChange={(value) => editLearning({ schedulerProfile: { maximumIntervalDays: value } })} />

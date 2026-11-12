@@ -383,7 +383,7 @@ test("[Vertrag: Kartenverwaltung] Aussetzen aktualisiert die Kartenzeile ohne Ed
   await waitForApp(page);
   const detail = page.getByTestId("card-detail-dialog");
   await expect(detail).toBeVisible();
-  const suspendToggle = detail.getByRole("button", { name: "Aussetzen", exact: true });
+  const suspendToggle = detail.getByRole("switch", { name: "Aussetzen", exact: true });
 
   await page.evaluate(() => {
     const runtimeWindow = window as CardDetailObserverWindow;
@@ -395,13 +395,13 @@ test("[Vertrag: Kartenverwaltung] Aussetzen aktualisiert die Kartenzeile ohne Ed
   });
 
   await suspendToggle.click();
-  await expect(suspendToggle).toHaveAttribute("aria-pressed", "true");
+  await expect(suspendToggle).toBeChecked();
   await expect(page.getByTestId(`deck-card-${CARD_IDS.b2}`)).toBeVisible();
   const cardRow = page.getByTestId(`deck-card-${CARD_IDS.b2}`).locator("xpath=ancestor::tr");
   await expect(cardRow).toHaveAttribute("data-suspended", "true");
 
   await suspendToggle.click();
-  await expect(suspendToggle).toHaveAttribute("aria-pressed", "false");
+  await expect(suspendToggle).not.toBeChecked();
   await expect(cardRow).not.toHaveAttribute("data-suspended");
 
   const detailWasRemoved = await page.evaluate(() => {
