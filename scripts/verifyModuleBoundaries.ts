@@ -81,6 +81,7 @@ const MODULE_LIMITS: readonly ModuleLimit[] = [
   { file: "src/appScreenProps.ts", measure: "Zeilen", max: 384 },
   { file: "src/cloudRepository.ts", measure: "any-Typen", max: 2 },
   { file: "src/syncEngine.ts", measure: "any-Typen", max: 3 },
+  { file: "src/indexedDbCoreRepository.ts", measure: "Zeilen", max: 915 },
 ];
 
 const MEASURES = {
