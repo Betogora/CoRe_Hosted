@@ -217,10 +217,13 @@ export function stripHtml(html: unknown) {
   return stripSanitizedHtml(sanitizeCardHtml(html));
 }
 
+/** Line breaks and block boundaries separate words; `textContent` alone would join „Frage?<br>Antwort“. */
+const WORD_BREAK_TAG_PATTERN = /<(?:br|hr|\/?(?:blockquote|dd|div|dl|dt|figcaption|figure|h[1-6]|li|ol|p|pre|table|tbody|td|tfoot|th|thead|tr|ul))\b[^>]*>/gi;
+
 export function stripSanitizedHtml(html: string) {
   if (typeof document !== "undefined") {
     const element = document.createElement("div");
-    element.innerHTML = html;
+    element.innerHTML = html.replace(WORD_BREAK_TAG_PATTERN, " ");
     return element.textContent ?? "";
   }
 
