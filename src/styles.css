@@ -904,6 +904,14 @@
     color: var(--core-danger-text);
   }
 
+  .core-action-destructive-secondary:not(:disabled) {
+    color: var(--core-danger-text);
+  }
+
+  .core-action-destructive-secondary:not(:disabled):hover {
+    background: var(--core-danger-surface);
+  }
+
   .core-action-ghost:disabled {
     cursor: not-allowed;
     border-color: transparent;

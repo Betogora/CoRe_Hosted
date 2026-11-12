@@ -224,11 +224,6 @@ Bewertungsbuttons der Lernsitzung bleiben unverändert.
       Karteneditor ab 1024 px als Dialog statt geteilter Ansicht, innen
       Abschnitte mit Haarlinie, Lernstand als Zeilenliste ohne abgeschnittene
       Beschriftungen und als Schrittlinie.
-- [ ] **D7 – Prüfungen und Einstellungen:** Kalender ohne Außenrahmen, Titel
-      und Umschalter in einer Zeile, Prüfungs-Chip und verschiebbare
-      Wochenaufgabe wie bisher; Planung mit Schrittlinie und sachlichen
-      Titeln; `Abmelden` als ruhige Gefahrenform, Untertitel nur mit Geltung
-      oder Folge.
 - [ ] **D8 – Zusammenführung:** `npm run docs:build`, `npm run gate:push`,
       betroffene E2E-Specs und die visuelle Pflichtmatrix auf dem
       zusammengeführten Stand.

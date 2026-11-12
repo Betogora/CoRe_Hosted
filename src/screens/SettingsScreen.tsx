@@ -154,7 +154,7 @@ export function SettingsScreen({ section, focusConflicts = false, profile, onSav
             <div className="core-settings-row" data-layout="inline">
               <span className="core-settings-row-title">Abmelden</span>
               <div className="core-settings-row-control">
-                <ActionButton type="button" variant="destructive" icon={X} onClick={() => void signOut()} disabled={accountBusy}>Abmelden</ActionButton>
+                <ActionButton type="button" variant="destructive-secondary" icon={X} onClick={() => void signOut()} disabled={accountBusy}>Abmelden</ActionButton>
               </div>
             </div>
           </div>

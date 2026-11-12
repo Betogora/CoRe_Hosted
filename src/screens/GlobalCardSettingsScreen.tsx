@@ -194,10 +194,7 @@ export function GlobalCardSettingsScreen({ section, decks, onOpenDeckSettings, t
           <h3 className="core-heading-3 text-core-text">Einzelne Stapel</h3>
           <div className="core-settings-list">
             <div className="core-settings-row" data-layout="inline">
-              <div className="core-settings-row-text">
-                <span className="core-settings-row-title">Stapeleinstellungen</span>
-                <p className="core-settings-row-hint">Werte einzelner Stapel weichen vom Standard ab.</p>
-              </div>
+              <span className="core-settings-row-title">Stapeleinstellungen</span>
               <div className="core-settings-row-control md:w-72">
                 <DeckSelect ariaLabel="Stapeleinstellungen öffnen" value="" decks={decks} specialOption={{ value: "", label: "Stapel wählen", icon: Layers }} onValueChange={(deckId) => { if (deckId) onOpenDeckSettings(deckId); }} testId="card-settings-open-deck" className="w-full" />
               </div>

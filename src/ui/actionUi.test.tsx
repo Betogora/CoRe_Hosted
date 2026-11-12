@@ -11,6 +11,8 @@ test("ActionButton centralizes variants and the labeled loading contract", () =>
     assert.match(markup, new RegExp(`core-action-${variant}`));
   }
 
+  assert.match(renderToStaticMarkup(<ActionButton variant="destructive-secondary">Abmelden</ActionButton>), /class="core-action-secondary core-action-destructive-secondary /);
+
   const loading = renderToStaticMarkup(<ActionButton variant="primary" icon={Save} loading>Speichern</ActionButton>);
   assert.match(loading, /aria-busy="true"/);
   assert.match(loading, /disabled=""/);

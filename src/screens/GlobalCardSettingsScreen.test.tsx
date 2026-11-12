@@ -40,6 +40,7 @@ test("learning settings render exactly the requested dialog area without a page 
     assert.doesNotMatch(html, />Lerneinstellungen<|data-in-page-navigation/);
   }
   assert.match(renderSettings("tagesrunde"), />Stapeleinstellungen<[\s\S]*?aria-label="Stapeleinstellungen öffnen"[^>]*data-testid="card-settings-open-deck"/);
+  assert.doesNotMatch(renderSettings("tagesrunde"), /Werte einzelner Stapel/);
 });
 
 test("global learning settings combine account-wide planning and reusable deck defaults", () => {

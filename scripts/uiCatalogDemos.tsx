@@ -157,6 +157,7 @@ function ActionsDemo({ section }: { section: string }) {
   return <>
     {section === "buttons" && <Demo title="ActionButton · Varianten und Zustände">
       <div className="catalog-row">{(["primary", "secondary", "destructive"] as const).map((variant) => <ActionButton key={variant} variant={variant} icon={variant === "destructive" ? Trash2 : Save} onClick={() => toast("Beispielaktion ausgeführt.")}>{variant === "primary" ? "Speichern" : variant === "secondary" ? "Abbrechen" : "Löschen"}</ActionButton>)}</div>
+      <div className="catalog-row"><ActionButton variant="destructive-secondary" icon={X} onClick={() => toast("Beispielaktion ausgeführt.")}>Abmelden</ActionButton></div>
       <div className="catalog-row"><ActionButton variant="primary" disabled>Deaktiviert</ActionButton><ActionButton variant="primary" loading>Wird gespeichert …</ActionButton></div>
     </Demo>}
     {section === "buttons" && <Demo title="CreationActionCard · im Raster mit und ohne Beschreibung"><div className="grid gap-4">
@@ -207,7 +208,7 @@ function StructureDemo({ section }: { section: string }) {
       <SoftPanel className="p-5"><SectionHeader level={3} title="Lernaktivität" action={<IconButton variant="ghost" label="Statistik öffnen" icon={ArrowUpRight} />} /><p className="core-body text-core-secondary">Gleiche Höhe und Grundlinie wie der Kopf daneben.</p></SoftPanel>
     </div></Demo>}
     {section === "struktur" && <Demo title="Steps · auswählbar, gestreckt und laufend" wide><div className="grid gap-6">
-      <Steps ariaLabel="Schritte der Prüfungsplanung" items={[{ label: "Prüfung" }, { label: "Lernstoff" }, { label: "Lernzeit", disabled: planStep < 1 }, { label: "Dein Plan", disabled: planStep < 2 }]} current={planStep} onSelect={setPlanStep} />
+      <Steps ariaLabel="Schritte der Prüfungsplanung" items={[{ label: "Prüfung" }, { label: "Lernstoff" }, { label: "Lernzeit", disabled: planStep < 1 }, { label: "Lernplan", disabled: planStep < 2 }]} current={planStep} onSelect={setPlanStep} />
       <Steps ariaLabel="Importstatus" items={STEP_DEMO_ITEMS} current={2} stretch animated />
       <Steps ariaLabel="Import fehlgeschlagen" items={STEP_DEMO_ITEMS.map((item, index) => index === 3 ? { ...item, failed: true } : item)} current={3} stretch />
     </div></Demo>}
