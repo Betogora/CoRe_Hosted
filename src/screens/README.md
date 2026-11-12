@@ -2,7 +2,7 @@
 
 Stand: 2026-10-02
 
-`src/App.tsx` owns app composition, account-scoped workspace state, workspace-command wiring, route selection and persistence callbacks. `authenticatedWorkspaceBoot.ts`, `useAppNavigation.ts`, `appSyncLifecycle.ts` and `appMediaLifecycle.ts` own the corresponding React lifecycle wiring. Auth phase and sync status wording live in `src/accountSession.ts`; cloud persistence and conflict behavior stay in `src/syncEngine.ts` and `src/cloudRepository.ts`.
+`src/App.tsx` owns app composition, writes the account-scoped workspace state into `src/workspaceStore.ts` (screens subscribe to their part through `useWorkspaceValue`), workspace-command wiring, route selection and persistence callbacks. `authenticatedWorkspaceBoot.ts`, `useAppNavigation.ts`, `appSyncLifecycle.ts` and `appMediaLifecycle.ts` own the corresponding React lifecycle wiring. Auth phase and sync status wording live in `src/accountSession.ts`; cloud persistence and conflict behavior stay in `src/syncEngine.ts` and `src/cloudRepository.ts`.
 
 Each exported screen in this folder is a UI module with a small props interface. Keep screen-specific panels private in the same file when they are only used by that screen. Move shared presentational pieces to `src/ui/`; its available modules and reuse decision are documented in [`../ui/README.md`](../ui/README.md). Move domain behavior to the existing deep modules such as `coreWorkspace.ts`, `creationWorkflow.ts`, `reviewService.ts`, `coreVariantService.ts`, `apkgImport.ts`, and `mediaStore.ts`.
 

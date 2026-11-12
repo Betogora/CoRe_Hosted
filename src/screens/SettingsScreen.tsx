@@ -10,6 +10,7 @@ import { useSuccessToast } from "../ui/feedbackUi.tsx";
 import { createGeneralSettingsDraft, settingsDraftsEqual, type GeneralSettingsDraft } from "../settingsDraft.ts";
 import { SyncConflictPanel } from "./SyncConflictPanel.tsx";
 import { formatStorageBytes } from "../workspaceStorage.ts";
+import { useWorkspaceValue } from "../useWorkspaceStore.ts";
 
 const sectionIds = {
   account: "settings-account",
@@ -32,7 +33,8 @@ const syncIntervalOptions = [
   { value: "30", label: "30" },
 ];
 
-export function SettingsScreen({ section, focusConflicts = false, profile, syncStatus, lastSyncedAt = null, storageStatus = null, onSaveSettings, onDraftStateChange, onSyncNow, onListConflicts, onResolveConflict, onSignOut, onNavigate }: SettingsScreenProps) {
+export function SettingsScreen({ section, focusConflicts = false, profile, onSaveSettings, onDraftStateChange, onSyncNow, onListConflicts, onResolveConflict, onSignOut, onNavigate }: SettingsScreenProps) {
+  const { syncStatus, lastSyncedAt, storageStatus } = useWorkspaceValue(({ syncStatus, lastSyncedAt, storageStatus }) => ({ syncStatus, lastSyncedAt, storageStatus }));
   const persistedDraft = createGeneralSettingsDraft(profile);
   const persistedDraftKey = JSON.stringify(persistedDraft);
   const [baseline, setBaseline] = React.useState<GeneralSettingsDraft>(persistedDraft);

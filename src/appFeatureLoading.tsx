@@ -121,4 +121,5 @@ export const SimulatorScreen = React.lazy<React.ComponentType<SimulatorScreenPro
 export const SettingsDialog = React.lazy<React.ComponentType<SettingsDialogProps>>(() => loadAppFeature("settings-dialog") as Promise<{ default: React.ComponentType<SettingsDialogProps> }>);
 export const SettingsScreen = React.lazy<React.ComponentType<SettingsScreenProps>>(() => loadAppFeature("settings") as Promise<{ default: React.ComponentType<SettingsScreenProps> }>);
 export const StatisticsScreen = React.lazy<React.ComponentType<StatisticsScreenProps>>(() => loadAppFeature("statistics") as Promise<{ default: React.ComponentType<StatisticsScreenProps> }>);
-export const StudyMode = React.lazy<React.ComponentType<StudyModeProps>>(() => loadAppFeature("study") as Promise<{ default: React.ComponentType<StudyModeProps> }>);
+// Memoized: an app render without changed session data leaves the running session alone.
+export const StudyMode = React.memo(React.lazy<React.ComponentType<StudyModeProps>>(() => loadAppFeature("study") as Promise<{ default: React.ComponentType<StudyModeProps> }>));

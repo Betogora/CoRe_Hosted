@@ -5,11 +5,12 @@ import type { IndexedDbCoreRepository } from "./indexedDbCoreRepository.ts";
 import { createDailyReviewQueue, type AnsweredTodayCard } from "./reviewService.ts";
 import { buriesSiblings } from "./siblingBurying.ts";
 import type { StudyWindowCursor, WorkspaceHydrationService } from "./workspaceHydrationService.ts";
+import type { WorkspaceStore } from "./workspaceStore.ts";
 
 interface StudySessionContext {
   workspaceRepository: IndexedDbCoreRepository | null;
   workspaceHydrationService: WorkspaceHydrationService | null;
-  latestStateRef: React.RefObject<WorkspaceState | null>;
+  workspaceStore: WorkspaceStore;
   now: string;
   dayStartHour: number;
   learnAheadMinutes: number;
@@ -64,7 +65,7 @@ async function prepareStudyWindow(
   cursorByDeck: Record<string, StudyWindowCursor>,
 ): Promise<StudyPreparation | null> {
   const { workspaceRepository, workspaceHydrationService, now, dayStartHour, learnAheadMinutes, timeZone } = context;
-  const shellState = context.latestStateRef.current;
+  const shellState = context.workspaceStore.get().state;
   if (!workspaceRepository || !shellState) return null;
   const ids = scopeDeckIds(shellState.decks, deckId);
   const answeredSiblings = shellState.decks.some((deck) => ids.includes(deck.id) && buriesSiblings(deck.deckSettings));
@@ -116,15 +117,15 @@ export function useStudySession(context: StudySessionContext) {
   const preparedKeyRef = React.useRef("");
   /** Key of a start in progress, so a double click starts once. */
   const preparingKeyRef = React.useRef("");
-  const { workspaceRepository, workspaceHydrationService, latestStateRef, now, dayStartHour, learnAheadMinutes, timeZone } = context;
+  const { workspaceRepository, workspaceHydrationService, workspaceStore, now, dayStartHour, learnAheadMinutes, timeZone } = context;
 
   const prepare = React.useCallback(
     (deckId: string, cursorByDeck: Record<string, StudyWindowCursor> = {}) => prepareStudyWindow(
-      { workspaceRepository, workspaceHydrationService, latestStateRef, now, dayStartHour, learnAheadMinutes, timeZone },
+      { workspaceRepository, workspaceHydrationService, workspaceStore, now, dayStartHour, learnAheadMinutes, timeZone },
       deckId,
       cursorByDeck,
     ),
-    [dayStartHour, latestStateRef, learnAheadMinutes, now, timeZone, workspaceHydrationService, workspaceRepository],
+    [dayStartHour, learnAheadMinutes, now, timeZone, workspaceHydrationService, workspaceRepository, workspaceStore],
   );
 
   /** Takes over a prepared window; with a key the session counts as prepared. */

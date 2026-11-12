@@ -11,8 +11,9 @@ CoRe ist eine Vite-/React-SPA mit TypeScript. Accountgebundene Browsermodule kap
 
 | Eigentümer | Verantwortung |
 | --- | --- |
-| `App.tsx`, `screens/` | App-Koordination und Produkt-UI; [Screen-Landkarte](../src/screens/README.md) |
-| `useAccountWorkspace.ts`, `useStudySession.ts` | Sitzung, accountgebundener Workspace-Start und Cloud-Bootstrap; Lernfenster der laufenden Sitzung samt Nachladen |
+| `App.tsx`, `screens/` | App-Koordination und Produkt-UI; `App` schreibt den Kontozustand in den Workspace-Store und liest daraus nur, was es selbst ausgibt; [Screen-Landkarte](../src/screens/README.md) |
+| `useAccountWorkspace.ts`, `useStudySession.ts` | Sitzung, accountgebundener Workspace-Start und Cloud-Bootstrap (`opened` füllt, `discarded` leert den Workspace-Store); Lernfenster der laufenden Sitzung samt Nachladen |
+| `workspaceStore.ts`, `useWorkspaceStore.ts` | Workspace-Store des geöffneten Kontos ohne React: Arbeitsbereich mit Revision je angewandtem Stand, Stapelzahlen, Heatmap, Sync-Status samt letztem Erfolg, Konfliktkarten, Kartenseiten, Offline-Stapel und Speicherstatus; `get`, `set`, `subscribe`, `clear`. `App` stellt ihn per Context bereit; Bildschirme abonnieren mit `useWorkspaceValue` nur ihren Teil und rendern nur bei inhaltlicher Änderung. Stapelzahlen lädt `App` nur, solange eine Ansicht sie zeigt; eine Lernsitzung holt sie beim Verlassen nach |
 | `appNavigation.ts`, `useAppNavigation.ts` | typisierter AppRoute, URL-Kontext und einzige Browser-History-Anbindung |
 | `ui/`, `styles.css`, `coreTheme.ts` | gemeinsame UI, semantische Tokens und validierte Theme-Präferenz; [UI-Verträge](../src/ui/README.md) |
 | `coreTypes.ts`, `coreModel.ts` | kanonische `Note`/`Card`-Typen; einzige Grenze für Inhaltserzeugung, Änderungs-, Lösch- und Wiederherstellungsplanung, Editorwerte und manuelle Formen |

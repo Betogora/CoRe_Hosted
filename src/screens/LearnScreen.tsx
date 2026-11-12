@@ -2,6 +2,7 @@ import React from "react";
 import { ChevronRight, FolderPlus, Layers } from "lucide-react";
 import type { LearnScreenProps } from "../appScreenProps.ts";
 import { createDeckLibraryModel } from "../libraryModel.ts";
+import { useWorkspaceValue } from "../useWorkspaceStore.ts";
 import { ActionButton } from "../ui/actionUi.tsx";
 import { EmptyState } from "../ui/coreUi.tsx";
 import { DeckTree, useStoredDeckTreeView } from "../ui/DeckTree.tsx";
@@ -16,7 +17,8 @@ function createDefaultDeckDraft(parentDeckId = "") {
   };
 }
 
-export function LearnScreen({ decks, deckSummaries, now, dayStartHour, learnAheadMinutes, timeZone, onStartDeck, onCreateDeck, focusedDeckId = null, initialParentDeckId = "", onDeckCreationHandled, onFocusDeck, onOpenCardCreation, onOpenDecks, onOpenDeckContent, onOpenCardSettings, onOpenDeckSettings, onSetDeckCoreMode, onMoveDeck, collapsedDeckIds, onSetDeckExpanded }: LearnScreenProps) {
+export function LearnScreen({ decks, now, dayStartHour, learnAheadMinutes, timeZone, onStartDeck, onCreateDeck, focusedDeckId = null, initialParentDeckId = "", onDeckCreationHandled, onFocusDeck, onOpenCardCreation, onOpenDecks, onOpenDeckContent, onOpenCardSettings, onOpenDeckSettings, onSetDeckCoreMode, onMoveDeck, collapsedDeckIds, onSetDeckExpanded }: LearnScreenProps) {
+  const deckSummaries = useWorkspaceValue((snapshot) => snapshot.deckSummaries);
   const library = React.useMemo(() => createDeckLibraryModel(decks, { now, dayStartHour, learnAheadMinutes, timeZone, deckSummaries }), [dayStartHour, deckSummaries, decks, learnAheadMinutes, now, timeZone]);
   const [deckDraft, setDeckDraft] = React.useState(() => createDefaultDeckDraft(initialParentDeckId));
   const [deckView, setDeckView] = useStoredDeckTreeView("core.learn.deckView.v1");
