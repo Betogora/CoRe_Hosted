@@ -5,6 +5,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { createViewRoute } from "../appNavigation.ts";
 import { createCoreRepository } from "../coreRepository.ts";
 import type { SyncStatus } from "../coreTypes.ts";
+import { bindFieldTimingsAccount, finishFieldTiming, startFieldTiming } from "../fieldTimings.ts";
 import { WorkspaceStoreContext } from "../useWorkspaceStore.ts";
 import { createWorkspaceStore } from "../workspaceStore.ts";
 import { SettingsScreen } from "./SettingsScreen.tsx";
@@ -50,6 +51,20 @@ test("about settings contain help, legal placeholders, and the only visible vers
   assert.equal(html.match(/>In Vorbereitung</g)?.length, 2);
   assert.match(html, /aria-label="Aktuelle Version">v0\.0\.0</);
   assert.equal(html.match(/v0\.0\.0/g)?.length, 1);
+});
+
+test("about settings copy performance data only once the account has measurements", (context) => {
+  context.after(() => bindFieldTimingsAccount(null));
+  const copyButton = (html: string) => html.match(/<button[^>]*>(?:(?!<\/button>).)*Leistungsdaten kopieren/)?.[0] ?? "";
+  bindFieldTimingsAccount("settings-test");
+  assert.match(copyButton(renderSettings("ueber")), /disabled=""/);
+
+  startFieldTiming("core:answer_shown");
+  finishFieldTiming("card-frame");
+  const button = copyButton(renderSettings("ueber"));
+  assert.ok(button);
+  assert.doesNotMatch(button, /disabled/);
+  assert.doesNotMatch(renderSettings("konto"), /Leistungsdaten/);
 });
 
 test("account settings show the login e-mail read-only in one wide panel", () => {

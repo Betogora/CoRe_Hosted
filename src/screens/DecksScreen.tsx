@@ -4,6 +4,7 @@ import type { CardDraftGuard, DecksCardPage, DecksScreenProps } from "../appScre
 export type { DecksCardPage } from "../appScreenProps.ts";
 import { noteTextIndex } from "../coreModel.ts";
 import { collectDeckTreeIds } from "../coreWorkspace.ts";
+import { cancelFieldTiming, finishFieldTiming, startFieldTiming } from "../fieldTimings.ts";
 import { CARD_TABLE_PAGE_SIZE, createCardSearchContext, createCardTableModel, createDeckLibraryModel, DEFAULT_CARD_TABLE_SORT, sameCardTableSort, type CardTableSort, type CardTableSortField } from "../libraryModel.ts";
 import { cardCount, createHitListModel, createPagedCardTableModel } from "./cardList/cardListModel.ts";
 import type { CardCatalogEntry, NoteGraph } from "../workspaceReplica.ts";
@@ -369,6 +370,7 @@ export function DecksScreen({
   const searchMenu = React.useMemo(() => createCardSearchMenu({ decks: libraryDecks, tags: tagDirectory, flagNames: cardEditor.flagNames, noteTypes }), [cardEditor.flagNames, libraryDecks, noteTypes, tagDirectory]);
   const searchContext = React.useMemo(() => createCardSearchContext(deferredQuery, decks, { now, dayStartHour, timeZone, noteTypes }), [dayStartHour, decks, deferredQuery, noteTypes, now, timeZone]);
   function changeQuery(next: string) {
+    startFieldTiming("core:card_search_results");
     setQuery(next);
   }
   React.useEffect(() => {
@@ -409,6 +411,11 @@ export function DecksScreen({
   [cardPages, cardSort, dayStartHour, deferredQuery, onRequestCardPage, tableModel, timeZone]);
   const cardsLoading = hitList.loading;
   const searchResultCount = deferredQuery.trim() && !cardsLoading ? hitList.totalCardCount : null;
+  // The search timing ends once the shown list belongs to the typed query; leaving the screen drops it.
+  React.useEffect(() => {
+    if (query === deferredQuery && !cardsLoading) finishFieldTiming("card-list");
+  }, [cardsLoading, deferredQuery, query]);
+  React.useEffect(() => () => cancelFieldTiming("card-list"), []);
   // Below xl the page scrolls under the sticky mobile header, so the table header sticks right beneath it.
   const [mobileHeaderHeight, setMobileHeaderHeight] = React.useState(0);
   React.useEffect(() => {

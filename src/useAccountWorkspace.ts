@@ -7,6 +7,7 @@ import { bootAuthenticatedWorkspace, startAuthenticatedWorkspaceSessionLifecycle
 import { clearCloudAuthRedirectParams, formatCloudAuthError, getCloudUser, resetCloudPassword, signInCloudAccount, signInWithMagicLink, signOutCloudAccount, signUpCloudAccount, updateCloudPassword } from "./cloudAuth.ts";
 import type { Profile, SyncStatus } from "./coreTypes.ts";
 import type { WorkspaceState } from "./coreWorkspace.ts";
+import { bindFieldTimingsAccount } from "./fieldTimings.ts";
 import type { IndexedDbCoreRepository } from "./indexedDbCoreRepository.ts";
 import type { createSupabaseBrowserClient } from "./supabaseClient.ts";
 import type { AccountSyncEngine } from "./syncEngine.ts";
@@ -69,6 +70,7 @@ export function useAccountWorkspace(events: AccountWorkspaceEvents) {
     setSyncEngine(null);
     setWorkspaceRepository(null);
     setCloudUser(user);
+    bindFieldTimingsAccount(null);
     eventsRef.current.discarded();
   }
 
@@ -93,6 +95,7 @@ export function useAccountWorkspace(events: AccountWorkspaceEvents) {
     syncEngineRef.current = null;
     setSyncEngine(null);
     setCloudUser(user);
+    bindFieldTimingsAccount(user.id);
     setAccountBaselineState(started.baselineState);
     eventsRef.current.opened(started);
     markWorkspaceLocalReady();
