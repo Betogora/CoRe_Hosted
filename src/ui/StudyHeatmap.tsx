@@ -8,7 +8,7 @@ import {
   type StudyHeatmapWindow,
 } from "../studyHeatmapModel.ts";
 import { OrbIcon, SoftPanel } from "./coreUi.tsx";
-import { normalizeColor } from "./colorMath.ts";
+import { normalizeColor } from "../colorMath.ts";
 import { ColorPicker } from "./ColorPicker.tsx";
 import { CoreSelect } from "./selectUi.tsx";
 import { CoreTooltip } from "./tooltipUi.tsx";

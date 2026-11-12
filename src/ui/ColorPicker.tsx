@@ -1,7 +1,7 @@
 import * as Popover from "@radix-ui/react-popover";
 import React from "react";
 import type { LucideIcon } from "lucide-react";
-import { clampNumber, hexToHsv, hsvToHex, normalizeColor } from "./colorMath.ts";
+import { clampNumber, hexToHsv, hsvToHex, normalizeColor } from "../colorMath.ts";
 import { CoreTooltip } from "./tooltipUi.tsx";
 
 /** Quick picks as a two-row rainbow: each column is one hue, strong above and lightened below. */

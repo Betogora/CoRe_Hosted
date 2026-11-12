@@ -64,16 +64,7 @@ const IMPORT_RULES: readonly ImportRule[] = [
 ];
 
 /** Bekannte Verstöße; die Liste darf nur schrumpfen. */
-const COREMODEL_RULE = "3 coreModel/ nur über coreModel.ts";
-const TRANSLATION_REASON = "Übersetzer importiert Kernbausteine direkt, splitAnkiSystemTags fehlt in coreModel.ts";
-const IMPORT_EXCEPTIONS: readonly ImportException[] = [
-  ...["coreValues", "noteContent", "notes", "tags", "reviewState"].map((module) => ({
-    rule: COREMODEL_RULE, file: "src/apkgNoteTranslation.ts", target: `src/coreModel/${module}.ts`, reason: TRANSLATION_REASON,
-  })),
-  { rule: COREMODEL_RULE, file: "src/notePresentation.ts", target: "src/coreModel/noteContent.ts", reason: "Renderer liest Medienverweise direkt aus dem Inhaltsmodul" },
-  { rule: COREMODEL_RULE, file: "src/notePresentation.test.ts", target: "src/coreModel/notes.ts", reason: "Renderertest baut Notizen direkt" },
-  { rule: "5 Domänenmodule ohne React", file: "src/notePresentation.ts", target: "src/ui/colorMath.ts", reason: "React-freie Farbrechnung liegt unter ui/" },
-];
+const IMPORT_EXCEPTIONS: readonly ImportException[] = [];
 
 /** Obergrenzen, die nur sinken dürfen: Istwert darüber oder darunter bricht ab. */
 const MODULE_LIMITS: readonly ModuleLimit[] = [
