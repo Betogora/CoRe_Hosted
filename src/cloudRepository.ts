@@ -1,6 +1,6 @@
 import { createCloudProfile } from "./cloudAuth.ts";
 import { parseCardSearchQuery } from "./cardSearchQuery.ts";
-import type { Card, CardVariant, Deck, Note, ReviewEvent } from "./coreTypes.ts";
+import type { CardVariant, Deck, Note, ReviewEvent } from "./coreTypes.ts";
 import {
   cardFromRow,
   deckFromRow,
@@ -383,12 +383,6 @@ export async function listAccountTags(client: CloudClient, signal?: AbortSignal)
   const { data, error } = await (signal ? call.abortSignal(signal) : call);
   if (error) throw error;
   return validateAccountTagRows(data ?? []);
-}
-
-async function selectProfileRows(client: CloudClient, userId: string) {
-  const { data, error } = await cloudTable(client, "profiles").select("*").eq("id", userId);
-  if (error) throw error;
-  return validateProfileRows(data ?? []);
 }
 
 /** Existing imported contents per Anki GUID (K5.7), with the identity of their cards and templates. */
