@@ -26,6 +26,20 @@
   }
 }
 
+/* Login: the form stands on the canvas without a panel below a large brand; fields and action are 44 px high. */
+.core-auth-mascot {
+  height: 9.5rem;
+}
+
+.core-auth-wordmark {
+  font: var(--core-weight-heading) 2.5rem/2.75rem var(--core-font-sans);
+  letter-spacing: -0.02em;
+}
+
+.core-auth-panel :is(.core-field, .core-action-primary) {
+  min-height: 2.75rem;
+}
+
 @media (max-width: 18.75rem) {
   .core-centered-viewport {
     padding: 0.25rem;
@@ -66,18 +80,6 @@
     min-width: 0;
     max-width: 100%;
     padding-inline: 0.25rem;
-    overflow-wrap: anywhere;
-  }
-
-  .core-auth-heading {
-    gap: 0.25rem;
-  }
-
-  .core-auth-heading-icon {
-    display: none;
-  }
-
-  .core-auth-heading h2 {
     overflow-wrap: anywhere;
   }
 
