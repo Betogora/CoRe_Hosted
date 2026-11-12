@@ -29,11 +29,49 @@ export function markdownAnchor(value: string) {
 
 export function documentId(file: string) { return file.replace(/\.md$/, "").toLowerCase(); }
 
+const DIAGRAM_TONES: Record<string, string> = { primär: "primary", erfolg: "success", warnung: "warning", gefahr: "danger", info: "info" };
+
+/**
+ * Rendert einen `schaubild`-Codeblock. Zeilen: `Titel: …`, `Folge: …` (Kästen mit Pfeilen) oder `Gruppe: …` (Kästen nebeneinander),
+ * `Pfeil: …` (nach unten zur nächsten Zeile), `-> …` (Beschriftung des nächsten Pfeils einer Folge), sonst ein Kasten `[Ton] Titel | Detail | …`.
+ */
+export function diagramMarkup(source: string) {
+  let caption = "";
+  let label = "";
+  let row: { arrows: boolean; title: string; boxes: string[] } | undefined;
+  const parts: string[] = [];
+  const closeRow = () => {
+    if (!row) return;
+    if (!row.boxes.length) throw new Error(`Schaubild: Zeile „${row.title}“ enthält keinen Kasten.`);
+    parts.push(`<div class="docs-diagram-row">${row.title ? `<p class="docs-diagram-lane">${escapeHtml(row.title)}</p>` : ""}<ol class="docs-diagram-boxes">${row.boxes.join("")}</ol></div>`);
+    row = undefined;
+  };
+  for (const line of source.split("\n").map((entry) => entry.trim()).filter(Boolean)) {
+    const [, directive, value] = line.match(/^(Titel|Folge|Gruppe|Pfeil):\s*(.*)$/) ?? [];
+    if (directive === "Titel") caption = value;
+    else if (directive === "Pfeil") { closeRow(); parts.push(`<p class="docs-diagram-down">${escapeHtml(value)}</p>`); }
+    else if (directive) { closeRow(); row = { arrows: directive === "Folge", title: value, boxes: [] }; }
+    else if (!row) throw new Error(`Schaubild: „${line}“ steht vor der ersten Folge oder Gruppe.`);
+    else if (line.startsWith("->")) label = line.slice(2).trim();
+    else {
+      const [, tone, content] = line.match(/^(?:\[([^\]]+)\]\s*)?(.+)$/)!;
+      if (tone && !DIAGRAM_TONES[tone]) throw new Error(`Schaubild: Ton „${tone}“ ist unbekannt.`);
+      const [title, ...details] = content.split(" | ").map(escapeHtml);
+      if (row.arrows && row.boxes.length) row.boxes.push(`<li class="docs-diagram-link"${label ? "" : ' aria-hidden="true"'}>${escapeHtml(label)}</li>`);
+      label = "";
+      row.boxes.push(`<li class="docs-diagram-box"${tone ? ` data-tone="${DIAGRAM_TONES[tone]}"` : ""}><strong>${title}</strong>${details.map((detail) => `<span>${detail}</span>`).join("")}</li>`);
+    }
+  }
+  closeRow();
+  return `<figure class="docs-diagram">${caption ? `<figcaption>${escapeHtml(caption)}</figcaption>` : ""}${parts.join("")}</figure>\n`;
+}
+
 export function renderMarkdown(source: string, file: string, prefix = documentId(file)) {
   const anchors = new Map<string, number>();
   const renderer = new Marked({
     gfm: true,
     renderer: {
+      code({ text, lang }) { return lang === "schaubild" ? diagramMarkup(text) : false; },
       heading({ text, depth, tokens }) {
         const base = markdownAnchor(text);
         const count = anchors.get(base) ?? 0;

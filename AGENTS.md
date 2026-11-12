@@ -24,8 +24,9 @@ tool-specific instruction files.
 Use `docs/README.md` when the relevant source of truth is unclear. Read only the
 documents and sections required for the current task.
 
-- `docs/specs.md`: canonical product behavior, core journeys, functional
-  requirements, and product acceptance criteria.
+- `docs/specs.md`: canonical product intent per feature (purpose, rules, data
+  flows, decisions, deliberate limits), core journeys, and product acceptance
+  criteria; no UI detail.
 - `docs/specs.html`: generated visual mirror of `docs/specs.md`; do not treat it
   as a separate authoring source.
 - `docs/index.html`: shared HTML entrypoint, with Specs, Journeys, UI-Elements,
@@ -55,7 +56,7 @@ documents and sections required for the current task.
   it before making such changes.
 - `supabase/`: schema anchors, migrations, policies, and verification SQL.
 
-For targeted navigation, use `docs/specs.md` for visible behavior,
+For targeted navigation, use `docs/specs.md` for intended behavior and rules,
 `docs/architecture.md` for ownership and technical contracts,
 `docs/decisions.md` for established decisions, and `docs/todo.md` only for open
 scope and gates.
@@ -128,8 +129,10 @@ scope and gates.
 
 ## Working Agreements
 
-- Commit and push only after asking the user. Before committing finished work,
-  run the `audit-last-change` skill.
+- On a work branch, commit, push, and open pull requests without asking, once
+  `audit-last-change` has run on the finished diff; stage only your own
+  changes. Ask the user before anything lands on `main` (commit, push, or
+  merge; `main` deploys production) and before rewriting pushed history.
 - Commits and pull requests carry no AI attribution (no agent
   `Co-Authored-By` trailer, no "Generated with" line).
 - Create temporary and probe files only in the session scratchpad; none may
@@ -177,7 +180,11 @@ Update documentation when the implemented contract changes:
 
 - Update the relevant role source from `docs/README.md`. Product behavior and
   acceptance criteria belong in `docs/specs.md`; then synchronize
-  `docs/specs.html`. Architecture and public technical interfaces belong in
+  `docs/specs.html`. Write specs as purpose, rules, data flows, and decisions
+  that would survive a full UI redesign; controls, labels, layout, sizes,
+  shortcuts, input devices, and per-view states stay out. The rule, form, and
+  diagram blocks are defined in its section „Pflege dieser Datei“.
+  Architecture and public technical interfaces belong in
   `docs/architecture.md`; operations, decisions, status, and history remain in
   their own canonical files.
 - Update `docs/todo.md` only when open roadmap scope, priority, planning,

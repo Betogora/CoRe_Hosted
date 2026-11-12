@@ -270,7 +270,7 @@ export function DecksScreen({
       requestDetailAction(closeDetail);
     }
 
-    // A click beside the delete question cancels it and also closes the editor (specs.md#karten-löschen).
+    // A click beside the delete question cancels it and also closes the editor (specs.md#karten-löschen-und-duplizieren).
     function handleOutsidePointer(event: PointerEvent) {
       const target = event.target;
       if (!pendingCardDelete || !(target instanceof Element) || !target.matches('[data-testid="action-dialog-backdrop"]')) return;
