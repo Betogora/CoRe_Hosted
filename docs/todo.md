@@ -207,12 +207,6 @@ Bewertungsbuttons der Lernsitzung bleiben unverändert.
       engeren Kennzahlspalten, betontem Lernen-Pfeil nur bei Arbeit und
       Schnellformular als letzter Zeile; Erststart mit einem Titel, liegenden
       Karten und Maskottchen, ohne die drei Aussagen darunter.
-- [ ] **D4 – Lernsitzung, Statistik, Hilfe, Login:** Lernsitzung im
-      bisherigen Aufbau, Kopf flach statt schwebend (Schließen, Stapelname mit
-      Zähler, Einstellungen, 4-px-Fortschritt), auf Mobil mit dem bisherigen
-      Antwort-Button; Statistik mit Kennzahlen als Kopfzeile ohne Panel und
-      Filter ohne Panel; Hilfe ohne Leerraum und Eyebrows; Login ohne Kasten
-      mit großer Marke.
 - [ ] **D5 – Erstellen:** Start mit drei kompakten Karten; Formular mit einem
       Kopf und Zurück als Textlink; KI-Erstellung ohne Schritt-Eyebrows und
       Icon-Kacheln, Fragen als Feldlabels, einzeilige Optionskarten; Import
