@@ -213,10 +213,6 @@ Bewertungsbuttons der Lernsitzung bleiben unverändert.
       Antwort-Button; Statistik mit Kennzahlen als Kopfzeile ohne Panel und
       Filter ohne Panel; Hilfe ohne Leerraum und Eyebrows; Login ohne Kasten
       mit großer Marke.
-- [ ] **D5 – Erstellen:** Start mit drei kompakten Karten; Formular mit einem
-      Kopf und Zurück als Textlink; KI-Erstellung ohne Schritt-Eyebrows und
-      Icon-Kacheln, Fragen als Feldlabels, einzeilige Optionskarten; Import
-      mit Schrittlinie über die volle Kastenbreite und leichter Animation.
 - [ ] **D6 – Kartenverwaltung und Karteneditor:** Suche und Filter ohne Panel,
       Tabelle als ein Blatt mit unveränderter Zeilenhöhe; Kopf der
       Stapelinhalte mit Titel und `Karten lernen` auf einer Linie und

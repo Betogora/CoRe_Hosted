@@ -9,7 +9,7 @@ import { CoreWordmark } from "../src/ui/CoreWordmark.tsx";
 import { BrainMascot } from "../src/ui/BrainMascot.tsx";
 import { DailyMotivationWidget } from "../src/screens/DailyMotivationWidget.tsx";
 import React, { useRef, useState } from "react";
-import { ArrowUpRight, Ban, BookOpen, ChevronRight, Copy, Eye, FileSpreadsheet, Grid2x2, Highlighter, Home, Info, Layers, List, Pencil, PenLine, Plus, RefreshCw, Save, Settings, Sparkles, Star, Trash2, X, type LucideIcon } from "lucide-react";
+import { ArrowUpRight, Ban, BookOpen, ChevronRight, Copy, Eye, FileSpreadsheet, FileText, Grid2x2, Highlighter, Home, Info, Layers, List, Pencil, PenLine, Plus, RefreshCw, Save, Settings, Sparkles, Star, Trash2, X, type LucideIcon } from "lucide-react";
 import { addCardVariant, addNoteField, cardStudyFromReviewState, type OcclusionMode, createBasicNote, createCoreDeck, createManualNoteContent, createNote, createReviewState, noteBlocks, setNoteTypeIn, type ManualContentKind } from "../src/coreModel.ts";
 import type { ExamPlanningSettings, CoreMode, NewReviewOrder, NoteContent, NoteField, OcclusionMask, SavedCardSearch, SyncStatus } from "../src/coreTypes.ts";
 import type { CardEditorServices, DecksCardPageRequest } from "../src/appScreenProps.ts";
@@ -164,7 +164,7 @@ function ActionsDemo({ section }: { section: string }) {
       <CreationActionCard title="Anki-Stapel importieren" description="Eine vorhandene APKG-Datei übernehmen." icon={Layers} onSelect={() => toast("Import gewählt.")} />
     </div></Demo>}
     {section === "buttons" && <Demo title="IconButton · normal, destruktiv, destruktiv-dezent und ghost"><div className="catalog-row">{(["secondary", "destructive", "destructive-quiet", "ghost"] as const).map((variant) => <CoreTooltip key={variant} label={variant}><IconButton variant={variant} label={`${variant}: Beispielaktion`} icon={variant.startsWith("destructive") ? Trash2 : Settings} onClick={() => toast("Icon-Aktion ausgeführt.")} /></CoreTooltip>)}</div></Demo>}
-    {section === "buttons" && <Demo title="CrossLinkButton"><CrossLinkButton onSelect={() => toast("Querlink gewählt.")}>Alle ansehen</CrossLinkButton></Demo>}
+    {section === "buttons" && <Demo title="CrossLinkButton · weiter und zurück"><div className="catalog-row"><CrossLinkButton onSelect={() => toast("Querlink gewählt.")}>Alle ansehen</CrossLinkButton><CrossLinkButton direction="back" onSelect={() => toast("Zurück gewählt.")}>Erstellen</CrossLinkButton></div></Demo>}
     {section === "tooltips" && <Demo title="CoreTooltip · Text, Wert und Stapel"><div className="catalog-row"><CoreTooltip label="Kurzer Hinweis"><IconButton label="Hinweis anzeigen" icon={Info} /></CoreTooltip><CoreTooltip label="Neu" value="12 Karten" swatchColor="var(--core-learning-status-new)"><span tabIndex={0}>Lernstatus</span></CoreTooltip><CoreTooltip label="Welt-Hauptstädte" deckAppearance={deck.deckSettings.appearance}><span tabIndex={0}>Stapelhinweis</span></CoreTooltip></div></Demo>}
   </>;
 }
@@ -181,6 +181,7 @@ function FoundationsDemo({ section }: { section: string }) {
     {section === "surfaces" && <Demo title="SoftPanel"><SoftPanel className="p-6"><p className="core-body text-core-text">Erhöhte Inhaltsfläche mit kanonischem Schatten.</p></SoftPanel></Demo>}
     {section === "headings" && <Demo title="PageHeader"><PageHeader title="Heute lernen" action={<IconButton label="Hinzufügen" icon={Plus} />} /></Demo>}
     {section === "headings" && <Demo title="PageHeader · Begrüßung von Heute und Seitenzustand"><div className="grid gap-6"><PageHeader greeting="Willkommen zurück," title="Noemi!" /><PageHeader title="Simulator" tag={<CoreTag tone="neutral">Nur lokal</CoreTag>} /></div></Demo>}
+    {section === "headings" && <Demo title="PageHeader · Rücklink und Aktionen eines Erstellungswegs"><div className="core-creation-way"><PageHeader title="Karte selbst erstellen" back={{ label: "Erstellen", onSelect: () => undefined }} action={<div className="flex flex-wrap gap-2"><ActionButton variant="secondary" icon={FileText}>PDF/Text anfügen</ActionButton><ActionButton variant="secondary" icon={Eye}>Vorschau</ActionButton></div>} /></div></Demo>}
     {section === "surfaces" && <Demo title="EmptyState"><EmptyState icon={BookOpen} title="Noch keine Karten" body="Erstelle deine erste Karte oder importiere einen Anki-Stapel." action={<ActionButton variant="primary" icon={Plus}>Erste Karte erstellen</ActionButton>} /></Demo>}
     {section === "symbols" && <Demo title="OrbIcon und DeckAppearanceIcon"><div className="catalog-row"><OrbIcon icon={BookOpen} /><DeckAppearanceIcon deck={deck} /></div></Demo>}
     {section === "charts" && <Demo title="StatTile · Standard, kompakt und rahmenlos"><div className="catalog-row items-stretch"><StatTile label="Karten" value="128" hint="In deiner Sammlung" /><StatTile label="Lernzeit" value="24 Min." size="compact" /><StatTile label="Erfolgsrate" value="83,3 %" variant="plain" /></div></Demo>}
@@ -684,7 +685,7 @@ function ProductViewsDemo({ kind }: { kind: string }) {
     ["learn", "LearnScreen · Stapel und Schnellformular", "Lernen"],
     ["exams", "ExamPlanningScreen · lokaler Plus-Einstieg bei leerer Prüfungsliste und durchgehendes Plus-Feld Weitere Prüfung planen unter bestehenden Prüfungen · einzeln umschaltbare Prüfungsfarben im Kalenderkopf statt globalem Dropdown, ausgefüllt oder hell umrandet · gemeinsame Monatskachel je Fach für Karten und Lesen, auch ohne neue Karten · Kalender ab aktueller Woche mit Rücknavigation · vier Schritte mit Rücksprüngen und genau einem Schritt vorwärts über die Leiste, Lernstart mit Vorgabe heute und sichtbarem Prüfungsziel auf der ersten Seite · durchsuchbare Stapelzweige mit Plusauswahl ohne Teilmarkierung · alternative Zeitangaben mit Durchschnitt oder direkt editierbaren Wochentagszeiten, freie Tage mit 0 Minuten · Vorschau mit Lerntagen, auf Kalenderhöhe begrenzter ausklappbarer Themenfolge, dauerhaftem Prüfungstermin und erreichbarer Planbestätigung · nichtmodale Tagesdetails", "Prüfungen"],
     ["creation", "CreationScreen · Drei Erstellungswege", "Erstellen"],
-    ["ai-source", "AiSourceCreationPanel · Drei Schritte: Quelle und Stapel, Lernwünsche, Karten", "Automatische Erstellung"],
+    ["ai-source", "AiSourceCreationPanel · Drei Abschnitte: Quelle und Stapel, Vorgaben, Karten", "Automatische Erstellung"],
     ["manual", "ManualCreationPanel · Formular und Bausteine", "Manuelle Erstellung"],
     ["import", "ApkgImportPanel · Dateiauswahl", "Anki-Import"],
     ["decks", "DecksScreen · Tabelle und Karteneditor", "Kartenverwaltung"],
