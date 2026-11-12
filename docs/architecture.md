@@ -50,7 +50,7 @@ CoRe ist eine Vite-/React-SPA mit TypeScript. Accountgebundene Browsermodule kap
 | `indexedDbCoreRepository.ts`, `workspaceHydrationService.ts` | accountgebundene Web-Replica, begrenzte Hydrierung, Offline-Download und Quota-Bereinigung; `indexedDbStore.ts` (Schema, Datensatzformen) und `indexedDbStudyCounts.ts` (Tageszähler) bleiben privat |
 | `cloudRepository.ts`, `cloudRepositoryValidation.ts` | accountgefilterte Cloudmutationen, Revisionen, Konflikte und Row-/JSONB-Validierung |
 | `accountStorage.ts`, `profileIntegrity.ts` | kleine Accountnamespaces und vollständige Profilpatches |
-| `fieldTimings.ts`, `fieldTimingsReport.ts` | Feldwerte (ADR-050): Ringpuffer von 200 Werten je Messgröße im Accountnamespace (`core.fieldTimings.v1`, nur die laufende App-Version, beim Lesen validiert), gespeichert im Leerlauf oder beim Verbergen der Seite. Startphasen liest ein `PerformanceObserver` aus den Messungen von `appPerformance.ts`, je Seitenaufruf einmal; `Antwort anzeigen` und die Bewertung starten in `StudyMode` und enden einen Frame nach dem Laden eines Review-Rahmens (`CardPresentationSurface`), die Suche startet mit der Eingabe in `DecksScreen` und endet, sobald die Liste zur Eingabe gehört. `fieldTimingsReport.ts` lädt mit den Einstellungen und bildet Anzahl, Median und p95 samt Geräte- und Katalogklassen |
+| `fieldTimings.ts`, `fieldTimingsReport.ts` | Feldwerte (ADR-050): Ringpuffer von 200 Werten je Messgröße im Accountnamespace (`core.fieldTimings.v1`, nur die laufende App-Version, beim Lesen validiert), gespeichert im Leerlauf oder beim Verbergen der Seite. Startphasen liest ein `PerformanceObserver` aus den Messungen von `appPerformance.ts`, je Seitenaufruf einmal; `Antwort anzeigen` und die Bewertung starten in `StudyMode` und enden einen Frame, nachdem ein geladener Review-Rahmen erscheint (`CardPresentationSurface`: beim Laden oder beim Einblenden eines vorbereiteten Antwort-Rahmens), die Suche startet mit der Eingabe in `DecksScreen` und endet, sobald die Liste zur Eingabe gehört. `fieldTimingsReport.ts` lädt mit den Einstellungen und bildet Anzahl, Median und p95 samt Geräte- und Katalogklassen |
 | `mediaStore.ts`, `cloudMediaStore.ts` | öffentliche Cache-/Queue-/URL-Grenze; private Storage-, Signed-URL- und TUS-Details |
 | `aiCardVariantContract.ts`, `aiCardVariant.ts`, `api/ai/card-variant.ts` | validierter Textvertrag, Browseraufruf und serverseitiger Providerzugriff |
 | `aiCardHelpContract.ts`, `aiCardHelp.ts`, `api/ai/card-help.ts` | Vertrag der Lernhilfe, Kartentext der aufgedeckten Karte, Browseraufruf und serverseitiger Providerzugriff |
@@ -224,7 +224,15 @@ Kartenhintergrund bis an den gerundeten Rand reicht.
 `NoteCardContent` rendert Vorder-, Rückseite, Auswahloptionen und Vorlesetexte einer
 Karte gemeinsam und hält das Ergebnis je Inhaltsobjekt (`WeakMap`); Varianten sind
 eigene Objekte und teilen nichts mit ihrem Original. `useNoteCardPrefetch` rendert
-so die nächsten drei Karten der Lernsitzung voraus. `ui/cardMedia.tsx` teilt
+so die nächsten drei Karten der Lernsitzung voraus. Im Review lädt der Host zusätzlich
+die Antwortseite der gezeigten Karte in einen verborgenen Rahmen, sobald die Frage
+geladen und gezeichnet ist und der Browser ruht; bis zum Aufdecken ist er `inert`,
+`aria-hidden` und ohne Platz, beim Aufdecken wird er nur eingeblendet. Das gilt nach
+`preparesAnswerAhead` für Frage-Antwort-, Lücken-, Bildverdeckungs- und
+Originallayout-Karten, nicht für Eintippen und Auswahlfragen, deren Antwortseite von
+der Eingabe abhängt, und nicht für ein Originallayout mit Ton oder Video, dessen
+Vorlage `autoplay` tragen darf (das CoRe-Design rendert es nie); ein einzelner Rahmen, der zur Rückseite wechselt, übernimmt den
+vorbereiteten nur geladen und wechselt sonst wie ohne ihn. `ui/cardMedia.tsx` teilt
 aufgelöste Medien je Medienspeicher und Medienmenge zwischen aktueller Karte und
 `useNoteMediaPrefetch`; Blob-URLs werden fünf Sekunden nach dem letzten Halter
 freigegeben. Der Lernmodus hält die gezeigte Karte über

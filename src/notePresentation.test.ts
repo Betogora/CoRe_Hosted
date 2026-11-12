@@ -358,3 +358,18 @@ test("Im Dark Mode trägt das Originallayout Ankis Nachtklassen und ohne eigene 
   const own = await renderLayout(layoutSource(POKEMON_NAMES, POKEMON_FRONT, POKEMON_FRONT, { css: `${POKEMON_CSS}.nightMode .card{color:#eee}` }), pokemon, "question", { mode: "dark" });
   assert.doesNotMatch(own.srcdoc, /#2c2c2c/);
 });
+
+test("Im CoRe-Design spielt kein Ton und kein Video von selbst; ein Originallayout meldet seine Medien", async () => {
+  const media = '[sound:ton.mp3]<audio src="a.mp3" autoplay controls></audio><video src="v.mp4" autoplay muted loop></video>';
+  const core = await render(content({ kind: "reveal", prompts: [{ key: "forward", name: "Vorwärts", instruction: "", questionFieldIds: ["front"], answerFieldIds: ["back"], requires: null, typeInFieldId: null }] }, [field("front", "prompt", media), field("back", "answer", media)]), "answer");
+  assert.match(core.srcdoc, /<audio controls preload="none" src="ton.mp3">/);
+  assert.match(core.srcdoc, /<video/);
+  assert.doesNotMatch(core.srcdoc, /autoplay/i);
+  assert.match(core.srcdoc, /script-src 'none'/);
+  // The template's own markup keeps `autoplay` like in Anki; the host does not load such an answer side ahead.
+  const original = await renderLayout(layoutSource(POKEMON_NAMES, POKEMON_FRONT, `{{FrontSide}}<hr id=answer><audio autoplay src="b.mp3"></audio>`), pokemon, "answer");
+  assert.equal(original.layout, "original");
+  assert.match(original.srcdoc, /<audio autoplay/);
+  assert.ok(original.interactions.includes("audio"));
+  assert.doesNotMatch(original.srcdoc, /<script/i);
+});
