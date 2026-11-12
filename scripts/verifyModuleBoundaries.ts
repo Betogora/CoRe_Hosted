@@ -24,7 +24,7 @@ const IMPORT_RULES: readonly ImportRule[] = [
     id: "1 Persistenz nicht in UI",
     appliesTo: (file) => inUiLayer(file) && !isTest(file),
     forbids: (target) =>
-      /^src\/(?:cloudRepository|cloudRepositoryValidation|cloudMediaStore|syncEngine|supabaseClient)\.ts$/.test(target)
+      /^src\/(?:cloudRepository|cloudRepositoryValidation|cloudQueries|cloudRows|cloudConflicts|cloudRevisionedWrites|cloudImportVerification|cloudMediaStore|syncEngine|supabaseClient)\.ts$/.test(target)
       || /^src\/indexedDb[^/]*\.ts$/.test(target)
       || target.startsWith("@supabase/"),
     typeImportsAllowed: true,
@@ -70,7 +70,9 @@ const IMPORT_EXCEPTIONS: readonly ImportException[] = [];
 const MODULE_LIMITS: readonly ModuleLimit[] = [
   { file: "src/App.tsx", measure: "Zeilen", max: 523 },
   { file: "src/appScreenProps.ts", measure: "Zeilen", max: 384 },
-  { file: "src/cloudRepository.ts", measure: "any-Typen", max: 2 },
+  { file: "src/cloudRepository.ts", measure: "Zeilen", max: 418 },
+  { file: "src/cloudRepository.ts", measure: "any-Typen", max: 0 },
+  { file: "src/cloudRevisionedWrites.ts", measure: "any-Typen", max: 2 },
   { file: "src/syncEngine.ts", measure: "any-Typen", max: 3 },
   { file: "src/indexedDbCoreRepository.ts", measure: "Zeilen", max: 915 },
   { file: "src/apkgImportInternal.ts", measure: "any-Typen", max: 3 },
