@@ -27,6 +27,7 @@ Neueste zuerst. Projekt `hirbiuiydczmnjqtoyqx` ist `CoRe-Database`.
 
 | Datum | Art | Nachweis |
 | --- | --- | --- |
+| 2026-11-12 | Release, Migration, Datenkorrektur | PR #105 gemergt, Production-Deployment von `08d219c` erfolgreich; danach `20261112120000_klartext_leerzeichen` per `supabase db push` nach Probelauf, `verify_schema_v1.sql` grün. Such-, Sortier- und Feldtexte neu berechnet: in `notes` (9.158 Inhalte) und `card_catalog` keine verklebten Satzübergänge mehr. Hosted-Smoke nicht ausgeführt. |
 | 2026-11-11 | Migration, Release | `20261110130000_kartenverwaltung` (Kartenverwaltung 2.0, ADR-048) per `supabase db push` nach Probelauf; `verify_schema_v1.sql` grün. Unmittelbar danach PR #91 gemergt, Production-Deployment von `d663436` erfolgreich. Hosted-Smoke ausgelassen (Entscheidung des Nutzers); `gate:nightly` auf `d663436`: bekannte Fehler und zwei neue Befunde (Editor-Modus beim Breitenwechsel, Datumsspalte), behoben im folgenden Restposten-PR. |
 | 2026-11-02 | Migration | `20261102102620_originallayout_vorlagen_sync` per `supabase db push` nach Probelauf; `verify_schema_v1.sql` grün. |
 | 2026-10-30 | Hosted-Smoke | `test:beta:hosted` gegen `https://core-hosted.vercel.app`, Production-Deployment von `7663022` (PR #52): 10/10. **Letzter bestätigter Production-Stand.** |
