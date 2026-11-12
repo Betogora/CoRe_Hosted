@@ -39,6 +39,9 @@ documents and sections required for the current task.
   test runs, the visual acceptance matrix, and performance gates.
 - `docs/decisions.md`: canonical ADRs and durable product/architecture
   decisions.
+- `docs/ai-eval.md`: canonical layout and ledger format of the AI eval; its
+  generated page shows the best measured prompt per request type and all runs
+  from `fixtures/ai-eval/ledger.json`.
 - `docs/history.md`: operational evidence (releases, hosted smokes, remote
   migrations, restore probes) and short dated milestones; details of completed
   work live in commit and pull-request descriptions.

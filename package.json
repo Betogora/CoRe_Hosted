@@ -43,6 +43,7 @@
     "benchmark:exams": "tsx scripts/benchmarkExamPlanning.ts",
     "fixtures:apkg-matrix": "python scripts/create_apkg_matrix_fixtures.py",
     "report:apkg-corpus": "tsx scripts/reportApkgCorpus.ts",
+    "ai-eval": "tsx scripts/aiEval/cli.ts",
     "measure:footprint": "python scripts/create_footprint_apkg.py && tsx scripts/measureContentFootprint.ts",
     "performance:measure:local": "tsx scripts/runLocalE2E.ts --gate=performance && npm run performance:gates",
     "performance:gates": "tsx scripts/verifyPerformanceGates.ts",

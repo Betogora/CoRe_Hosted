@@ -5,7 +5,7 @@ import path from "node:path";
 import { pathToFileURL } from "node:url";
 
 const TSX_CLI_PATH = path.join(process.cwd(), "node_modules", "tsx", "dist", "cli.mjs");
-const MODULE_TEST_ROOTS = ["src"] as const;
+const MODULE_TEST_ROOTS = ["src", "scripts/aiEval"] as const;
 const CATEGORIES = ["unit", "contract", "integration"] as const;
 type TestCategory = (typeof CATEGORIES)[number];
 

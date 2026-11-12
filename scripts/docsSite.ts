@@ -11,10 +11,11 @@ export const DOC_PAGES = [
   { file: "journeys.html", label: "Journeys", search: "Journeys durchsuchen", placeholder: "Ablauf, Regel …" },
   { file: "ui-elements.html", label: "UI-Elements", search: "Katalog durchsuchen", placeholder: "Komponente, Zustand …" },
   { file: "card-types.html", label: "Kartenbausteine", search: "Kartenbausteine durchsuchen", placeholder: "Baustein, Beispiel …" },
+  { file: "ai-eval.html", label: "KI-Eval", search: "KI-Eval durchsuchen", placeholder: "Anfragetyp, Kriterium …" },
 ] as const;
 
 export const DOCUMENT_PAGES: Record<string, string> = {
-  "README.md": "index.html", "specs.md": "specs.html",
+  "README.md": "index.html", "specs.md": "specs.html", "ai-eval.md": "ai-eval.html",
 };
 
 export function escapeHtml(value: string) {
@@ -52,6 +53,15 @@ export function renderMarkdown(source: string, file: string, prefix = documentId
     const page = DOCUMENT_PAGES[relative];
     return page ? `href="${page}#${documentId(relative)}--${fragment ?? "document"}"` : match;
   });
+}
+
+/** Hängt erzeugtes HTML an das Ende des Abschnitts mit dieser Überschrift, vor die nächste Überschrift bis Ebene 3. */
+export function appendToSection(html: string, id: string, addition: string, file: string) {
+  const start = html.search(new RegExp(`<h[1-6] id="${id}"`));
+  if (start < 0) throw new Error(`Abschnitt ${id} fehlt in docs/${file}.`);
+  const next = html.slice(start + 1).search(/<h[123] id=/);
+  const end = next < 0 ? html.length : start + 1 + next;
+  return html.slice(0, end) + addition + html.slice(end);
 }
 
 /** Seitenleiste jeder Leseseite: Seitenwechsel, Suche und Inhaltsnavigation untereinander, ohne Kopfleiste. */

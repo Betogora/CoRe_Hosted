@@ -9,6 +9,7 @@
 | [Journeys](journeys.html) | die Kernjourneys mit Zweck, Schrittkette und verlinkter Akzeptanz | Kapitel „Kernjourneys“ von `specs.md` |
 | [UI-Elements](ui-elements.html) | jede UI-Komponente und jedes Format genau einmal, als echte Komponente | `scripts/uiCatalogDemos.tsx`, `scripts/uiCatalogPatterns.html` |
 | [Kartenbausteine](card-types.html) | alle Renderer-Fälle mit Erstellungsweg | dieselben Demos und CoRe-Modellhelfer |
+| [KI-Eval](ai-eval.html) | den besten gemessenen Prompt je Anfragetyp und den Verlauf aller Läufe | `ai-eval.md`, `fixtures/ai-eval/ledger.json` |
 
 Die Seiten lassen sich direkt öffnen oder über `npm run dev` unter
 `http://127.0.0.1:5190/docs/index.html` lesen; sie laden nichts von außen.
@@ -25,6 +26,7 @@ Gerüst der Katalog-Browsertests.
 | Was ist warum entschieden? | [`decisions.md`](decisions.md) | offene Schritte, Layoutregeln |
 | Was ist als Nächstes zu tun? | [`todo.md`](todo.md) | Erledigtes |
 | Wie wird getestet und geprüft? | [`test-portfolio.md`](test-portfolio.md) | Release-Abläufe |
+| Welcher KI-Prompt ist gemessen, wie lief der Hillclimb? | [`ai-eval.md`](ai-eval.md) | Prompttexte (stehen im Code), offene Evals |
 | Wie wird freigegeben, zurückgerollt, wiederhergestellt? | [`operations.md`](operations.md) | Testinventur, ausgefüllte Nachweise |
 | Was lief auf Production, was waren die Meilensteine? | [`history.md`](history.md) | heutiger Vertrag, Arbeitsdetails (stehen in Commits) |
 | Wie verhält sich Anki? | [`anki-format-analysis.md`](anki-format-analysis.md) | CoRes Übersetzung (steht in der Architektur) |
