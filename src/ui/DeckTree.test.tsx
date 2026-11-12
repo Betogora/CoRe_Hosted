@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { renderToStaticMarkup } from "react-dom/server";
 import { createCoreDeck } from "../coreModel.ts";
+import { createWorldCapitalsSeed } from "../fixtures/worldCapitals.ts";
 import { createDeckLibraryModel } from "../libraryModel.ts";
 import { DeckTree } from "./DeckTree.tsx";
 
@@ -26,6 +27,7 @@ test("deck tree keeps one visual header and all three accessibly labelled metric
   assert.match(markup, /aria-label="Bereich lernen"/);
   assert.match(markup, /aria-label="Inhalte von Bereich öffnen"/);
   assert.match(markup, /lucide-play/);
+  assert.equal((markup.match(/data-deck-has-work="false"/g) ?? []).length, 2);
   assert.doesNotMatch(markup, /data-donut-|Gesamtfortschritt/);
   assert.match(markup, /aria-label="Bereich \/ Grundlagen lernen"/);
   assert.doesNotMatch(markup, />Bereich \/ Grundlagen</);
@@ -55,6 +57,15 @@ test("deck tree keeps one visual header and all three accessibly labelled metric
   assert.doesNotMatch(markup, /data-core-tooltip="Stapeloptionen für Bereich \/ Grundlagen"/);
 });
 
+test("deck tree marks the study arrow as action only for decks with work today", () => {
+  const workRows = createDeckLibraryModel(createWorldCapitalsSeed().decks, { now: "2026-08-06T10:00:00.000Z" }).rows;
+  const markup = renderToStaticMarkup(
+    <DeckTree rows={workRows} mode="learn" collapsedDeckIds={[]} onDeckExpansionChange={() => undefined} onActivate={() => undefined} onStudy={() => undefined} onOpenSettings={() => undefined} onSetDeckCoreMode={() => undefined} onMoveDeck={() => null} />,
+  );
+
+  assert.match(markup, /data-deck-has-work="true"[^>]*aria-label="Welt-Hauptstädte lernen"/);
+});
+
 test("deck tree places caller content below the collection and omits an empty row frame", () => {
   const content = <form data-testid="panel-content"><input aria-label="Stapelname" /></form>;
   const populated = renderToStaticMarkup(
@@ -66,7 +77,7 @@ test("deck tree places caller content below the collection and omits an empty ro
 
   assert.ok(populated.indexOf('data-testid="deck-summary-header"') < populated.indexOf('data-testid="panel-content"'));
   assert.ok(populated.indexOf('data-testid="learn-deck-row-child"') < populated.indexOf('data-testid="panel-content"'));
-  assert.match(empty, /data-testid="panel-content"/);
+  for (const markup of [populated, empty]) assert.match(markup, /<div class="core-deck-tree-create"><form data-testid="panel-content">/);
   assert.doesNotMatch(empty, /data-testid="deck-summary-header"|data-deck-group=/);
 });
 
@@ -119,7 +130,7 @@ test("deck tree keeps the compact summary order across dashboard and learning", 
   for (const markup of [dashboard, learning]) assert.match(markup, />Alle einklappen</);
 });
 
-test("deck tree groups every main deck with its subdecks in one tinted group", () => {
+test("deck tree groups every main deck with its subdecks without a tinted surface", () => {
   const groupedDecks = [
     ...decks,
     createCoreDeck({ id: "second-root", name: "Zweiter Bereich", hierarchyPath: ["Zweiter Bereich"], source: "manual", cards: [] }),
@@ -129,7 +140,7 @@ test("deck tree groups every main deck with its subdecks in one tinted group", (
   );
 
   assert.equal((markup.match(/aria-label="Stapelgruppe [^"]+" data-deck-group=/g) ?? []).length, 2);
-  assert.match(markup, /aria-label="Stapelgruppe Bereich"[^>]*data-deck-group="root"[^>]*style="--core-deck-group-accent:#[0-9A-Fa-f]{6}"/);
+  assert.match(markup, /<section class="core-deck-tree-group" aria-label="Stapelgruppe Bereich" data-deck-group="root">/);
   assert.match(markup, />Alle aufklappen</);
   assert.doesNotMatch(markup, /Hauptstapel<|Unterstapel<\/span>/);
 });

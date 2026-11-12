@@ -3,14 +3,14 @@ import { DashboardWidgets } from "./DashboardWidgets.tsx";
 import { DailyMotivationWidget } from "./DailyMotivationWidget.tsx";
 import { ExamDashboardWidget } from "./ExamDashboardWidget.tsx";
 import { CreationActionCard } from "../ui/CreationActionCard.tsx";
-import { ArrowUpRight, CalendarDays, CheckCircle2, FileArchive, PenLine, Play, RefreshCcw, Sparkles } from "lucide-react";
+import { ArrowUpRight, FileArchive, PenLine, Play, Sparkles } from "lucide-react";
 import { createDeckLibraryModel, createStudyHeatmapModel, type DailyLearningPlan, type DailyLearningSession } from "../libraryModel.ts";
 import { getGlobalSchedulerPreferences } from "../deckSettings.ts";
 import type { DashboardScreenProps } from "../appScreenProps.ts";
 import type { Deck } from "../coreTypes.ts";
 import { getLearningDayKey, getLearningTimeZone } from "../learningDay.ts";
 import type { StudyHeatmapDay } from "../studyHeatmapModel.ts";
-import { ActionButton, IconButton } from "../ui/actionUi.tsx";
+import { ActionButton, CrossLinkButton, IconButton } from "../ui/actionUi.tsx";
 import { ActionDialog, CoreSegmentedControl, PageHeader, SoftPanel } from "../ui/coreUi.tsx";
 import { DailyReviewProgress, DAILY_REVIEW_PROGRESS_SEGMENTS } from "../ui/DailyReviewProgress.tsx";
 import { DeckTree, useStoredDeckTreeView } from "../ui/DeckTree.tsx";
@@ -18,10 +18,7 @@ import { StatusMessage } from "../ui/feedbackUi.tsx";
 import { formatLearningCardCount } from "../ui/learningStatusUi.ts";
 import { DeckSelect } from "../ui/selectUi.tsx";
 import { StudyHeatmap } from "../ui/StudyHeatmap.tsx";
-import { CoreTooltip } from "../ui/tooltipUi.tsx";
 import { useWorkspaceValue } from "../useWorkspaceStore.ts";
-
-const DAILY_METRIC_ICONS = { learned: CheckCircle2, new: Sparkles, "in-progress": RefreshCcw, due: CalendarDays } as const;
 
 function formatHeatmapDate(key: string) {
   const [year, month, date] = key.split("-");
@@ -149,7 +146,13 @@ function DailyLearningOverview({
   const achieved = plan.status === "achieved";
   const firstStartableDeck = decks.find((deck) => deck.id === plan.firstStartableDeckId) ?? null;
   const additionalSessions = plan.sessions.filter((session) => session.additionalNewCount > 0);
-  const title = achieved ? "Tagesziel erreicht" : "Dein Lernen heute";
+  const { progress } = plan;
+  const remaining = progress.newCount + progress.inProgressCount + progress.dueCount;
+  // The goal line leads the tile: the cards still open today, or today's learned cards once the goal is reached.
+  const goalCount = achieved ? progress.completedTodayCount : remaining;
+  const goalLabel = achieved
+    ? `${goalCount === 1 ? "Karte" : "Karten"} gelernt · Tagesziel erreicht`
+    : `${goalCount === 1 ? "Karte" : "Karten"} noch heute`;
   const primaryLabel = achieved ? "Zusätzliche Karten lernen" : plan.status === "waiting" ? "Später weiterlernen" : "Jetzt lernen";
   const primaryDisabled = achieved ? additionalSessions.length === 0 : plan.status === "waiting" || !firstStartableDeck;
 
@@ -163,56 +166,30 @@ function DailyLearningOverview({
 
   return (
     <>
-      <SoftPanel className="overflow-hidden" data-testid="daily-learning-overview" data-status={plan.status}>
-        <div className="min-w-0 p-6">
-          <div className="flex items-center gap-3 sm:gap-4">
-            <h2 className={`min-w-0 flex-1 core-heading-3 ${achieved ? "text-[var(--core-learning-goal-achieved)]" : "text-core-text"}`}>{title}</h2>
-            <CoreTooltip label={primaryLabel}>
-              <IconButton
-                type="button"
-                label={primaryLabel}
-                icon={Play}
-                variant="ghost"
-                disabled={primaryDisabled}
-                onClick={activatePrimaryAction}
-                className="core-deck-icon-action shrink-0"
-              />
-            </CoreTooltip>
+      <SoftPanel className="dashboard-learning min-w-0 p-6" data-testid="daily-learning-overview" data-status={plan.status}>
+        <div className="dashboard-learning-body">
+          <div className="dashboard-learning-goal">
+            <h2 className="dashboard-learning-goal-title">
+              <span className="dashboard-learning-goal-count">{goalCount}</span>{" "}
+              <span className={achieved ? "text-[var(--core-learning-goal-achieved)]" : "text-core-secondary"}>{goalLabel}</span>
+            </h2>
+            <ActionButton variant="primary" icon={Play} disabled={primaryDisabled} onClick={activatePrimaryAction}>
+              {primaryLabel}
+            </ActionButton>
           </div>
-
-          <div className="mt-6 grid gap-2">
-            <div className="flex items-center justify-between gap-3">
-              <span className="core-field-label">Tagesziel</span>
-              <span className="core-caption font-medium tabular-nums text-core-muted" data-testid="daily-learning-total">{plan.progress.completedTodayCount} / {plan.progress.total} Karten</span>
-            </div>
-            <DailyReviewProgress
-              progress={plan.progress}
-              achieved={achieved}
-              ariaLabel="Tagesziel"
-              testId="dashboard-daily-progress"
-            />
+          <div className="dashboard-learning-bar">
+            <DailyReviewProgress progress={progress} achieved={achieved} ariaLabel="Tagesziel" testId="dashboard-daily-progress" />
           </div>
-
-          <dl className="dashboard-learning-metrics mt-5">
-            {DAILY_REVIEW_PROGRESS_SEGMENTS.map((segment) => {
-              const MetricIcon = DAILY_METRIC_ICONS[segment.key];
-              const color = achieved && segment.key === "learned" ? "var(--core-learning-goal-achieved)" : segment.color;
-              return (
-                <div key={segment.key} className="flex min-w-max flex-1 basis-[calc(50%-0.5rem)] items-center gap-2 sm:basis-0 sm:gap-3" data-daily-learning-metric={segment.key}>
-                  <span
-                    className="grid size-10 shrink-0 place-items-center rounded-control"
-                    style={{ color, backgroundColor: `color-mix(in srgb, ${color} 14%, var(--core-surface))` }}
-                  >
-                    <MetricIcon size={18} aria-hidden="true" />
-                  </span>
-                  <div className="flex items-baseline gap-1.5 whitespace-nowrap">
-                    <dt className="order-2 core-body text-core-secondary">{segment.label}</dt>
-                    <dd className="order-1 core-metric text-core-text">{plan.progress[segment.countKey]}</dd>
-                  </div>
-                </div>
-              );
-            })}
+          <dl className="dashboard-learning-metrics">
+            {DAILY_REVIEW_PROGRESS_SEGMENTS.map((segment) => (
+              <div key={segment.key} className="dashboard-learning-metric" data-daily-learning-metric={segment.key}>
+                <span className="dashboard-learning-dot" style={{ backgroundColor: segment.key === "learned" ? "var(--core-learning-progress-completed)" : segment.color }} aria-hidden="true" />
+                <dt className="order-2 core-body text-core-muted">{segment.label}</dt>
+                <dd className="order-1 dashboard-learning-metric-value">{progress[segment.countKey]}</dd>
+              </div>
+            ))}
           </dl>
+          <span className="dashboard-learning-total core-caption font-medium tabular-nums text-core-muted" data-testid="daily-learning-total">{progress.completedTodayCount} / {progress.total} Karten</span>
         </div>
       </SoftPanel>
 
@@ -273,31 +250,17 @@ export function DashboardScreen({ state, now, onNavigate, onStartDeck, onStartAd
       <div className="grid min-w-0 gap-6">
         <PageHeader greeting={welcomeGreeting} title={welcomeTitle} />
 
-        <SoftPanel className="overflow-hidden p-6 sm:p-9">
-          <div className="max-w-3xl">
-            <p className="core-caption font-semibold text-core-action">Dein erster Lernerfolg</p>
-            <h2 className="mt-1 core-heading-2 text-core-text">Womit möchtest du starten?</h2>
-            <p className="mt-2 max-w-2xl core-body text-core-secondary">Lege eigenes Lernmaterial an oder probiere CoRe bewusst mit Beispieldaten aus.</p>
+        <SoftPanel className="dashboard-first-start overflow-hidden p-6 sm:p-9">
+          <img src="/core-brain.svg" alt="" className="dashboard-first-start-mascot" draggable={false} />
+          <div className="dashboard-first-start-content min-w-0">
+            <h2 className="core-heading-2 text-core-text">Womit möchtest du starten?</h2>
+            <div className="dashboard-first-start-actions mt-6 grid gap-4">
+              <CreationActionCard title="Erste Karte erstellen" description="Frage und Antwort direkt eingeben." icon={PenLine} onSelect={() => onNavigate("neue-karten", { creationMethod: "manual" })} />
+              <CreationActionCard title="Anki-Stapel importieren" description="Vorhandene APKG-Datei laden." icon={FileArchive} onSelect={() => onNavigate("neue-karten", { creationMethod: "import" })} />
+              <CreationActionCard title="Demo ausprobieren" description={demoStatus === "busy" ? "Beispielstapel wird angelegt …" : "Beispielstapel auf Klick anlegen."} icon={Sparkles} onSelect={() => void createDemo()} />
+            </div>
+            {demoStatus === "error" ? <StatusMessage className="mt-4" tone="error" announce="assertive">Die Demo konnte nicht angelegt werden. Bitte versuche es erneut.</StatusMessage> : null}
           </div>
-
-          <div className="mt-6 grid gap-4 lg:grid-cols-3">
-            <CreationActionCard title="Erste Karte erstellen" description="Frage und Antwort direkt eingeben." icon={PenLine} onSelect={() => onNavigate("neue-karten", { creationMethod: "manual" })} />
-            <CreationActionCard title="Anki-Stapel importieren" description="Eine vorhandene APKG-Datei übernehmen." icon={FileArchive} onSelect={() => onNavigate("neue-karten", { creationMethod: "import" })} />
-            <CreationActionCard title="Demo ausprobieren" description={demoStatus === "busy" ? "Beispielstapel wird angelegt …" : "Beispielstapel mit neuen Karten nur auf deinen Klick anlegen."} icon={Sparkles} onSelect={() => void createDemo()} />
-          </div>
-          {demoStatus === "error" ? <StatusMessage className="mt-4" tone="error" announce="assertive">Die Demo konnte nicht angelegt werden. Bitte versuche es erneut.</StatusMessage> : null}
-        </SoftPanel>
-
-        <SoftPanel className="p-6">
-          <h2 className="core-heading-3 text-core-text">Das macht CoRe</h2>
-          <ul className="mt-4 grid gap-3 md:grid-cols-3">
-            {["Zeitlich passend wiederholen.", "Später anders formuliert prüfen.", "Die Originalkarte bleibt erhalten."].map((point) => (
-              <li key={point} className="flex gap-3 core-body text-core-secondary">
-                <CheckCircle2 size={16} className="mt-0.5 shrink-0 text-core-action" aria-hidden="true" />
-                {point}
-              </li>
-            ))}
-          </ul>
         </SoftPanel>
       </div>
     );
@@ -321,7 +284,7 @@ export function DashboardScreen({ state, now, onNavigate, onStartDeck, onStartAd
       {{
         learning: <DailyLearningOverview plan={dailyLearningPlan} decks={state.decks} onStartDeck={onStartDeck} onStartAdditionalCards={onStartAdditionalCards} />,
         motivation: <DailyMotivationWidget now={now} timeZone={getLearningTimeZone(state.profile)} dayStartHour={globalSettings.dayStartHour} />,
-        heatmap: <StudyHeatmap heatmap={studyHeatmap} formatDayLabel={heatmapDayLabel} />,
+        heatmap: <StudyHeatmap heatmap={studyHeatmap} formatDayLabel={heatmapDayLabel} className="p-5" />,
         decks: <SoftPanel className="min-w-0 p-5 sm:p-6"><DeckTree
           rows={library.rows}
           rootDeckIds={teaserRootIds}
@@ -336,7 +299,7 @@ export function DashboardScreen({ state, now, onNavigate, onStartDeck, onStartAd
           onOpenSettings={onOpenDeckSettings}
           onSetDeckCoreMode={onSetDeckCoreMode}
           onMoveDeck={onMoveDeck}
-        />{deckRoots.length > 3 ? <button type="button" className="core-action-ghost mt-3" onClick={() => onNavigate("lernen")}>Alle {deckRoots.length} Hauptstapel ansehen</button> : null}</SoftPanel>,
+        />{deckRoots.length > 3 ? <CrossLinkButton className="mt-3" onSelect={() => onNavigate("lernen")}>Alle {deckRoots.length} Hauptstapel ansehen</CrossLinkButton> : null}</SoftPanel>,
       }}
     </DashboardWidgets>
   );

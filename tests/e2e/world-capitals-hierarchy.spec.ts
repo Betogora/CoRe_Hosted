@@ -157,7 +157,8 @@ test("dashboard shows the full grouped tree without progress ring and direct dra
   const restingFill = await rootActivation.evaluate((element) => getComputedStyle(element).backgroundColor);
   await rootActivation.hover();
   await expect.poll(() => rootActivation.evaluate((element) => getComputedStyle(element).backgroundColor)).not.toBe(restingFill);
-  await expect(rootRow).toHaveCSS("border-bottom-width", "0px");
+  // The list has no frame; a hairline closes every row, the main deck included.
+  await expect(rootRow).toHaveCSS("border-bottom-width", "1px");
 
   await rootRow.getByRole("button", { name: "Stapeloptionen für Welt-Hauptstädte" }).click();
   const dashboardMenu = page.getByTestId(`deck-options-menu-${DECK_IDS.root}`);
@@ -389,22 +390,20 @@ test("active deck header and rows fit every target width and toggle reliably on 
     }, { rootDeckId: DECK_IDS.root, rootLeafName });
 
     expect(layout.fits).toBe(true);
-    // Narrow groups stack each row and label its counts instead of showing the table header (ADR-041).
+    // Narrow lists keep one row per deck with labelled counts as a subline instead of the table header (ADR-051).
     const stacked = layout.headerHeight === 0;
     if (stacked) {
       expect(layout.rowLabelsHidden).toBe(false);
     } else {
       expect(layout.headerHeight).toBeLessThanOrEqual(30);
-      expect(layout.headerTitleInset).toBeCloseTo(13, 0);
-      expect(layout.headerLabels).toEqual(layout.summaryWidth <= 512
-        ? ["Stapel"]
-        : ["Stapel", "Neu", "Offen", "Fällig"]);
+      expect(layout.headerTitleInset).toBeCloseTo(12, 0);
+      expect(layout.headerLabels).toEqual(["Stapel", "Neu", "Offen", "Fällig"]);
       expect(layout.headerLabelsFit).toBe(true);
       expect(layout.rowLabelsHidden).toBe(true);
       expect(layout.headerStatusGapSpread).toBeLessThanOrEqual(1);
       if (layout.headerLabels.length > 1) expect(layout.headerRowAlignment).toBeLessThanOrEqual(1);
-      // The grouped list keeps fixed metric columns: 2.75rem in narrow trees, 3.25rem otherwise.
-      expect(layout.metricWidth).toBeCloseTo(layout.summaryWidth <= 512 ? 44 : 52, 0);
+      // The list keeps fixed 44-px metric columns at every width.
+      expect(layout.metricWidth).toBeCloseTo(44, 0);
     }
     expect(layout.collapseControlSize).toEqual(width < 768 ? [44, 44] : [40, 40]);
     expect(layout.collapseSurfaceSize).toEqual(width < 768 ? [32, 36] : [28, 32]);
