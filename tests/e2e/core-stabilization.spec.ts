@@ -273,7 +273,7 @@ test("statistics uses the shared filtered heatmap without clipped shadows or ret
 
   await expect(page.getByTestId("study-heatmap-header").getByRole("heading", { name: /Tage? Streak/ })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Lernkalender" })).toHaveCount(0);
-  await expect(page.locator('section[aria-labelledby="statistics-overview-title"] dl')).toHaveCount(7);
+  await expect(page.locator('section[aria-labelledby="statistics-overview-title"] dt')).toHaveCount(7);
   for (const removedText of [
     "Alle historischen Diagramme",
     "pro aktivem Tag",

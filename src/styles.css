@@ -3004,6 +3004,19 @@ button.core-steps-step:disabled {
   width: 7rem;
 }
 
+/* Statistics overview: the key figures head the content without a panel, larger than other metric rows (K08). */
+.core-statistics-overview .core-metric {
+  font-size: 1.75rem;
+  line-height: 2.25rem;
+}
+
+@container (max-width: 29.99rem) {
+  .core-statistics-overview .core-metric {
+    font-size: 1.5rem;
+    line-height: 2rem;
+  }
+}
+
 .core-deck-comparison-container {
   container: core-deck-comparison / inline-size;
 }
