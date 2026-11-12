@@ -5351,6 +5351,11 @@ button.core-steps-step {
   padding-block: var(--core-space-sm);
 }
 
+/* A long title shrinks beside paging and actions instead of wrapping onto its own row; narrow it takes one (below). */
+.core-card-editor-frame .core-dialog-frame-heading {
+  flex-basis: 0;
+}
+
 .core-card-editor-frame .core-dialog-frame-title {
   display: -webkit-box;
   overflow: hidden;
