@@ -673,22 +673,12 @@
       font-size: var(--core-type-metric);
       line-height: var(--core-leading-metric);
     }
-
-    .core-question-type-control {
-      grid-auto-columns: auto;
-    }
-
-    .core-question-type-control .core-segmented-control-option {
-      white-space: normal;
-      hyphens: manual;
-      padding-inline: 0.25rem;
-      line-height: var(--core-leading-caption);
-    }
   }
 
-  /* Four question types do not fit one row below 360 px; two rows keep every label inside its option. */
-  @media (max-width: 22.4375rem) {
+  /* Four question types need two rows on phones and tablets; every label stays whole on one line. */
+  @media (max-width: 47.9375rem) {
     .core-question-type-control {
+      width: 100%;
       height: auto;
       grid-auto-flow: row;
       grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -696,6 +686,7 @@
 
     .core-question-type-control .core-segmented-control-option {
       min-height: calc(var(--core-control-height) - 0.5rem);
+      padding-inline: 0.25rem;
     }
   }
 
@@ -1994,6 +1985,16 @@ button.core-steps-step:disabled {
     clip: rect(0, 0, 0, 0);
     white-space: nowrap;
   }
+
+  /* Six steps still fit 240 px: tighter gaps, and a long current word wraps instead of leaving the row. */
+  .core-steps > ol,
+  .core-steps li {
+    gap: var(--core-space-xs);
+  }
+
+  .core-steps li[aria-current] .core-steps-step {
+    white-space: normal;
+  }
 }
 
 /* CoreTabs: words on one continuous hairline; the active tab carries a 2 px action-blue line over it. */
@@ -2598,46 +2599,40 @@ button.core-steps-step:disabled {
   opacity: 0.7;
 }
 
-.core-ai-card-form:has(:checked) {
-  border-color: color-mix(in srgb, var(--core-action-primary) 45%, var(--core-border));
-  background: var(--core-action-soft);
+/* Back link of PageHeader: the touch height stays, the line takes 24 px and the arrow starts at the title edge. */
+.core-page-header-back {
+  display: flex;
+  margin-block: calc((1.5rem - var(--core-button-height)) / 2);
+  margin-inline-start: -0.25rem;
 }
 
 .core-creation-progress-fill {
   background: var(--core-action-soft);
 }
 
-.core-apkg-step {
-  border-color: var(--core-border);
-  background: var(--core-surface);
-  color: var(--core-text-secondary);
-}
-
-.core-apkg-step[data-step-state="done"] {
+/* A partial import ends in amber: the cards are stored, cloud or media sync is still open. */
+.core-apkg-steps-partial li[aria-current] {
   color: var(--core-text);
 }
 
-.core-apkg-step[data-step-state="done"] > svg {
-  color: var(--core-success);
+.core-apkg-steps-partial li[aria-current] .core-steps-dot {
+  border-color: var(--core-warning);
+  background: var(--core-warning);
+  box-shadow: none;
 }
 
-.core-apkg-step[data-step-state="active"] {
-  border-color: color-mix(in srgb, var(--core-action-primary) 45%, var(--core-border));
-  background: var(--core-action-soft);
-  color: var(--core-action-primary);
+/* The panel actions of a creation way move below its title when both no longer fit one row. */
+.core-creation-way .core-page-header-with-action {
+  flex-wrap: wrap;
 }
 
-.core-apkg-step[data-step-state="partial"] {
-  border-color: color-mix(in srgb, var(--core-warning) 45%, var(--core-border));
-  background: var(--core-warning-surface);
-  color: var(--core-text);
+/* Before a file is chosen the compact import line would show unlabeled points only; it appears with the file. */
+@media (max-width: 37.4375rem) {
+  .core-apkg-steps:not(:has([aria-current])) {
+    display: none;
+  }
 }
 
-.core-apkg-step[data-step-state="failed"] {
-  border-color: color-mix(in srgb, var(--core-danger) 45%, var(--core-border));
-  background: var(--core-danger-surface);
-  color: var(--core-danger);
-}
 
 @layer components {
   /*
@@ -3672,53 +3667,49 @@ button.core-steps-step:disabled {
 
 /* Automatische Kartenerstellung */
 .core-ai-source-column {
+  gap: 1.25rem;
   padding: var(--core-space-xl);
   border: var(--core-border-width) solid var(--core-border);
   border-radius: var(--core-radius-panel);
   background: var(--core-surface);
-  box-shadow: var(--core-shadow-soft);
 }
-.core-ai-source-section-heading { display: flex; align-items: center; gap: var(--core-space-md); margin-bottom: var(--core-space-xs); }
-.core-ai-source-section-icon {
+/* Card formats as one-row option cards in the selection language of the answer options (.core-mcq-option). */
+.core-ai-source-formats {
   display: grid;
-  place-items: center;
-  width: 2.75rem;
-  height: 2.75rem;
-  flex-shrink: 0;
-  border-radius: var(--core-radius-control);
-  background: var(--core-surface-muted);
-  color: var(--core-text-secondary);
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 11rem), 1fr));
+  gap: var(--core-space-sm);
 }
 .core-ai-source-format {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  align-content: space-between;
-  gap: var(--core-space-md);
-  min-height: 5rem;
+  display: flex;
+  align-items: center;
+  gap: var(--core-space-sm);
+  min-height: 3rem;
+  padding: var(--core-space-sm) 0.625rem;
   cursor: pointer;
-  border: var(--core-border-width) solid transparent;
-  border-radius: var(--core-radius-control);
-  padding: var(--core-space-md);
-  background: var(--core-surface-muted);
+  border: var(--core-border-width) solid var(--core-border);
+  border-radius: var(--core-radius-panel);
+  background: var(--core-surface);
+  color: var(--core-text);
+  transition: box-shadow 150ms cubic-bezier(0, 0, 0.2, 1), border-color 150ms cubic-bezier(0, 0, 0.2, 1), background-color 150ms cubic-bezier(0, 0, 0.2, 1);
 }
+.core-ai-source-format > svg { flex-shrink: 0; color: var(--core-text-secondary); }
+.core-ai-source-format-label { flex: 1; min-width: 0; font: var(--core-weight-control) var(--core-type-body)/var(--core-leading-body) var(--core-font-sans); }
+.core-ai-source-format:hover { border-color: var(--core-border-interactive); }
 .core-ai-source-format:has(input:checked) {
-  border-color: var(--core-action-primary);
+  border-color: transparent;
   background: var(--core-action-soft);
+  box-shadow: inset 0 0 0 2px var(--core-action-primary);
 }
-.core-ai-source-format:hover { border-color: var(--core-action-primary); }
-.core-ai-source-format .core-checkbox { justify-self: end; }
 .core-ai-source-radio + .core-ai-source-radio { border-top: var(--core-border-width) solid var(--core-border); }
 .core-ai-source-target {
   display: flex;
   align-items: center;
   gap: var(--core-space-md);
+  border: var(--core-border-width) solid var(--core-border);
   border-radius: var(--core-radius-control);
-  padding: var(--core-space-sm) var(--core-space-md);
-  background: var(--core-surface-muted);
+  padding: var(--core-space-xs) var(--core-space-xs) var(--core-space-xs) var(--core-space-md);
+  background: var(--core-surface);
 }
-.core-ai-source-progress { display: flex; gap: var(--core-space-xs); }
-.core-ai-source-progress span { width: 1.5rem; height: var(--core-space-xs); border-radius: var(--core-radius-round); background: var(--core-border); }
-.core-ai-source-progress span[data-complete="true"] { background: var(--core-action-primary); }
 @media (max-width: 639px) {
   .core-ai-source-column { padding: var(--core-space-lg); }
 }

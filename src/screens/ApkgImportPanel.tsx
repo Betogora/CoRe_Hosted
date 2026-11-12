@@ -1,5 +1,5 @@
 import React from "react";
-import { AlertCircle, CheckCircle2, ChevronDown, Database, FileArchive, Loader2 } from "lucide-react";
+import { AlertCircle, ChevronDown, Database } from "lucide-react";
 import type { ApkgCreationPreview, CreationWorkflow } from "../creationWorkflow.ts";
 import type { ApkgCloudProgress, ApkgImportJob, ApkgImportSession, ApkgProgressPhase } from "../apkgImportSession.ts";
 import type { Card, Deck, Note } from "../coreTypes.ts";
@@ -9,8 +9,9 @@ import { ANKI_PACKAGE_MAX_BYTES, type ApkgTranslationReport, type ImportMediaFil
 import { ActionButton } from "../ui/actionUi.tsx";
 import { NoteCardContent } from "../ui/NoteCardContent.tsx";
 import { NoteLayoutContext, type NoteLayoutSource } from "../ui/noteLayoutContext.ts";
-import { CoreTag, OrbIcon, SoftPanel, StatTile } from "../ui/coreUi.tsx";
+import { CoreTag, SoftPanel, StatTile } from "../ui/coreUi.tsx";
 import { FileDropField } from "../ui/FileDropField.tsx";
+import { Steps } from "../ui/Steps.tsx";
 import { formatBytes, importSteps } from "./screenConstants.ts";
 
 type ApkgWorkflow = Pick<CreationWorkflow, "commitApkgPreview" | "parseApkgFile">;
@@ -375,6 +376,15 @@ export function ApkgImportPanel({ workflow, session, onSessionChange, isSessionC
   const fileInteractionLocked = activeProgressPhase !== null;
   const progressRunning = fileInteractionLocked && !progressPaused;
   const previewVisible = Boolean(preview) && !["failed_terminal", "cancelled"].includes(uiState.status);
+  const importFailed = uiState.status === "failed_terminal" || uiState.status === "cancelled";
+  // A failure marks the step that was running; the steps after it never ran.
+  const failedStepIndex = !importFailed ? -1 : completedDeck ? (cloudTask?.status === "cloud-ready" ? 4 : 3) : preview ? 2 : 0;
+  // Before a file is chosen no step is current; after success every step is done.
+  const stepCurrent = uiState.status === "idle" ? -1 : uiState.status === "succeeded" ? importSteps.length : importFailed ? failedStepIndex : currentStepIndex;
+  const stepItems = importSteps.map((step, index) => ({
+    label: index === failedStepIndex || (!importFailed && step.id === "complete" && currentStepIndex === index) ? importStatusLabel(uiState.status) : step.label,
+    failed: index === failedStepIndex,
+  }));
 
   React.useEffect(() => {
     if (!activeProgressPhase || progressPaused || prefersReducedMotion) return undefined;
@@ -391,11 +401,6 @@ export function ApkgImportPanel({ workflow, session, onSessionChange, isSessionC
   return (
     <div className="grid gap-4">
       <SoftPanel className="p-6">
-        <div className="mb-6 flex items-center gap-3">
-          <OrbIcon icon={FileArchive} />
-          <h2 className="core-heading-2 text-core-text">Anki-Dateien importieren</h2>
-        </div>
-
         <FileDropField
           accept=".apkg,.colpkg"
           ariaLabel="Anki-Datei (APKG oder COLPKG) auswählen oder ablegen"
@@ -439,21 +444,7 @@ export function ApkgImportPanel({ workflow, session, onSessionChange, isSessionC
           <ActionButton type="button" variant="secondary" className="mt-3" onClick={() => session.analysisAbort?.abort()}>Analyse abbrechen</ActionButton>
         ) : null}
 
-        <ol className="mt-6 grid gap-2 md:grid-cols-6" aria-label="Importstatus">
-          {importSteps.map((step) => {
-            const stepIndex = importSteps.findIndex((item) => item.id === step.id);
-            const isActive = stepIndex === currentStepIndex;
-            const isDone = stepIndex < currentStepIndex || uiState.status === "succeeded";
-            const isFailure = uiState.status === "failed_terminal" || uiState.status === "cancelled";
-            const label = step.id === "complete" && currentStepIndex === 5 ? importStatusLabel(uiState.status) : step.label;
-            return (
-              <li key={step.id} data-step-state={isActive ? isFailure ? "failed" : uiState.status === "partial" ? "partial" : "active" : isDone ? "done" : "pending"} className="core-apkg-step flex min-h-control items-center gap-2 rounded-control border px-3 py-2">
-                {isActive && progressRunning ? <Loader2 className="shrink-0 animate-spin motion-reduce:animate-none" size={16} aria-hidden="true" /> : isDone ? <CheckCircle2 className="shrink-0" size={16} aria-hidden="true" /> : isActive && isFailure ? <AlertCircle className="shrink-0" size={16} aria-hidden="true" /> : <span className="size-4 shrink-0 rounded-round border border-core-border-strong" />}
-                <span className="core-caption font-semibold">{label}</span>
-              </li>
-            );
-          })}
-        </ol>
+        <Steps ariaLabel="Importstatus" items={stepItems} current={stepCurrent} stretch animated={progressRunning} className={`core-apkg-steps mt-5 ${uiState.status === "partial" ? "core-apkg-steps-partial" : ""}`.trim()} />
 
         {uiState.status === "syncing_cloud" && cloudTask?.status === "local-pending" ? (
           <div className="core-status-warning mt-4 core-body" role="status">

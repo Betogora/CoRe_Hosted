@@ -44,6 +44,12 @@ test("page header keeps an optional action inside the header after its title", (
   assert.doesNotMatch(header, /<p/, "kein Eyebrow über dem Titel");
 });
 
+test("page header leads with a back link above the title instead of an eyebrow", () => {
+  const markup = renderToStaticMarkup(<PageHeader title="Karte selbst erstellen" back={{ label: "Erstellen", onSelect: () => undefined }} />);
+
+  assert.match(markup, /class="core-page-header-back"><button type="button"[^>]*><svg[^>]*lucide-arrow-left[\s\S]*?Erstellen<\/button><\/div><h2[^>]*>Karte selbst erstellen<\/h2>/);
+});
+
 test("page header reads the greeting as the start of the heading and keeps a page tag outside its name", () => {
   const greeting = renderToStaticMarkup(<PageHeader greeting="Willkommen zurück," title="Noemi!" />);
   assert.match(greeting, /<p aria-hidden="true"[^>]*>Willkommen zurück,<\/p><h2[^>]*><span class="sr-only">Willkommen zurück, <\/span>Noemi!<\/h2>/);

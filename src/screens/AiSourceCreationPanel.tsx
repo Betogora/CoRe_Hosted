@@ -1,5 +1,5 @@
 import React from "react";
-import { ArrowLeft, ArrowRight, CircleDot, FileText, FileUp, Layers3, ListChecks, MessageSquare, Pencil, SlidersHorizontal, Sparkles, TextCursorInput, X } from "lucide-react";
+import { ArrowLeft, ArrowRight, CircleDot, FileText, Layers3, ListChecks, MessageSquare, Pencil, Sparkles, TextCursorInput, X } from "lucide-react";
 import type { CreationScreenProps } from "../appScreenProps.ts";
 import {
   AI_SOURCE_ACCEPT, AI_SOURCE_ANSWER_LENGTHS, AI_SOURCE_CARD_FORMS, AI_SOURCE_FORMAT_LABEL, AI_SOURCE_COVERAGE, AI_SOURCE_LANGUAGES, AI_SOURCE_PRIOR_KNOWLEDGE, AI_SOURCE_REGISTERS,
@@ -7,32 +7,36 @@ import {
   type AiSourceSettings,
 } from "../aiSourceCreation.ts";
 import { ActionButton, IconButton } from "../ui/actionUi.tsx";
-import { CoreSegmentedControl, OrbIcon, SoftPanel } from "../ui/coreUi.tsx";
+import { CoreSegmentedControl, SoftPanel } from "../ui/coreUi.tsx";
 import { StatusMessage } from "../ui/feedbackUi.tsx";
 import { CoreCheckbox, CoreRadio, CoreSwitch } from "../ui/formControls.tsx";
 import { FileDropField } from "../ui/FileDropField.tsx";
+import { SectionHeader } from "../ui/SectionHeader.tsx";
 import { CoreSelect, DeckSelect } from "../ui/selectUi.tsx";
+import { Steps } from "../ui/Steps.tsx";
 import { formatBytes } from "./screenConstants.ts";
 
 type AiSourceCreationPanelProps = Pick<CreationScreenProps, "decks" | "initialTargetDeckId" | "onDraftStateChange">;
 
 const learningQuestions = [
-  { key: "coverage", label: "Wie ausführlich soll der Stoff abgedeckt werden?", options: AI_SOURCE_COVERAGE },
-  { key: "answerLength", label: "Wie ausführlich sollen die Antworten sein?", options: AI_SOURCE_ANSWER_LENGTHS },
-  { key: "language", label: "In welcher Sprache sollen die Karten sein?", options: AI_SOURCE_LANGUAGES },
-  { key: "register", label: "Wie sollen die Karten formuliert sein?", options: AI_SOURCE_REGISTERS },
-  { key: "priorKnowledge", label: "Wie gut kennst du das Thema bereits?", options: AI_SOURCE_PRIOR_KNOWLEDGE },
+  { key: "coverage", label: "Abdeckung", options: AI_SOURCE_COVERAGE },
+  { key: "answerLength", label: "Antwortlänge", options: AI_SOURCE_ANSWER_LENGTHS },
+  { key: "language", label: "Sprache", options: AI_SOURCE_LANGUAGES },
+  { key: "register", label: "Formulierung", options: AI_SOURCE_REGISTERS },
+  { key: "priorKnowledge", label: "Vorwissen", options: AI_SOURCE_PRIOR_KNOWLEDGE },
 ] as const;
-const steps = ["Quelle & Stapel", "Deine Lernwünsche", "Deine Karten"];
+const steps = ["Quelle und Stapel", "Vorgaben", "Karten"];
+const STEP_ITEMS = steps.map((label) => ({ label }));
 const cardFormIcons = { basic: MessageSquare, cloze: TextCursorInput, "single-choice": CircleDot, "multiple-choice": ListChecks };
-const extraInformationQuestion = "Dürfen Informationen ergänzt werden, die in deiner Quelle fehlen?";
+const extraInformationLabel = "Ergänzungen über die Quelle hinaus";
 
 export function AiSourceCreationPanel({ decks, initialTargetDeckId, onDraftStateChange }: AiSourceCreationPanelProps) {
   const [draft, setDraft] = React.useState(() => createAiSourceCreationDraft(initialTargetDeckId));
   const initialDraft = React.useRef(draft);
   const nameEdited = React.useRef(false);
-  const headingRef = React.useRef<HTMLHeadingElement | null>(null);
-  const targetHeadingRef = React.useRef<HTMLHeadingElement | null>(null);
+  // The review heading, or the section of the current step, takes the focus after each change of view.
+  const focusRef = React.useRef<HTMLElement | null>(null);
+  const targetRef = React.useRef<HTMLDivElement | null>(null);
   const [review, setReview] = React.useState(false);
   const [step, setStep] = React.useState(0);
   const [fileError, setFileError] = React.useState<string | null>(null);
@@ -46,8 +50,9 @@ export function AiSourceCreationPanel({ decks, initialTargetDeckId, onDraftState
     ? draft.deckName.trim() ? `${draft.deckName.trim()} (neuer Stapel)` : "Noch kein Stapelname eingegeben"
     : targetDeck ? (targetDeck.hierarchyPath.length ? targetDeck.hierarchyPath : [targetDeck.name]).join(" / ") : "Zielstapel nicht verfügbar";
   const focusDraft = React.useCallback(() => {
-    headingRef.current?.focus({ preventScroll: true });
-    headingRef.current?.scrollIntoView({ block: "nearest" });
+    const target = focusRef.current;
+    target?.focus({ preventScroll: true });
+    (target?.querySelector("h3") ?? target)?.scrollIntoView({ block: "nearest" });
   }, []);
 
   React.useEffect(() => {
@@ -84,27 +89,22 @@ export function AiSourceCreationPanel({ decks, initialTargetDeckId, onDraftState
 
   const settingsRows = [
     ...learningQuestions.map(({ key, label, options }) => [label, options.find(({ value }) => value === settings[key])!.label]),
-    ["Welche Kartenformate möchtest du?", AI_SOURCE_CARD_FORMS.filter(({ value }) => settings.cardForms.includes(value)).map(({ label }) => label).join(", ")],
-    ["Was sollen wir außerdem beachten?", settings.wishes.trim() || "Keine besonderen Wünsche"],
-    [extraInformationQuestion, settings.allowExtraInformation ? "Ergänzungen erlauben und kennzeichnen" : "Nur meine Quelle verwenden"],
+    ["Kartenformate", AI_SOURCE_CARD_FORMS.filter(({ value }) => settings.cardForms.includes(value)).map(({ label }) => label).join(", ")],
+    ["Weitere Hinweise", settings.wishes.trim() || "Keine besonderen Wünsche"],
+    [extraInformationLabel, settings.allowExtraInformation ? "Ergänzungen erlauben und kennzeichnen" : "Nur meine Quelle verwenden"],
   ];
 
   return (
-    <section className={`core-ai-source mx-auto grid w-full min-w-0 gap-6 ${review ? "max-w-3xl" : "max-w-7xl"}`} data-testid="ai-source-creation">
-      <div className="flex min-w-0 items-center gap-3">
-        <OrbIcon icon={Sparkles} />
-        <h2 ref={headingRef} tabIndex={-1} className="min-w-0 scroll-mt-24 core-heading-2 text-core-text outline-none">
-          {review ? "Auftrag prüfen" : "Karten automatisch erstellen lassen"}
-        </h2>
-      </div>
+    <section className={`core-ai-source grid w-full min-w-0 gap-6 ${review ? "max-w-3xl" : "max-w-7xl"}`} data-testid="ai-source-creation">
       <StatusMessage tone="info">Die automatische Erstellung ist noch nicht verfügbar.</StatusMessage>
       {review ? (
         <SoftPanel className="grid min-w-0 gap-6 p-4 sm:p-6" data-testid="ai-source-summary">
+          <h3 ref={(element) => { focusRef.current = element; }} tabIndex={-1} className="min-w-0 scroll-mt-24 core-heading-3 text-core-text outline-none">Auftrag prüfen</h3>
           <p className="core-body-large text-core-text">{describeAiSourceSettings(settings)}</p>
           <dl className="grid min-w-0 overflow-hidden rounded-panel border border-core-border">
             {[
-              ["Woraus sollen die Karten entstehen?", draft.sourceMode === "text" ? `Eingefügter Text · ${draft.sourceText.trim().length} Zeichen` : draft.file ? `${draft.file.name} · ${formatBytes(draft.file.size)}` : "Keine Quelle ausgewählt"],
-              ["In welchem Stapel werden die Karten gespeichert?", targetLabel],
+              ["Quelle", draft.sourceMode === "text" ? `Eingefügter Text · ${draft.sourceText.trim().length} Zeichen` : draft.file ? `${draft.file.name} · ${formatBytes(draft.file.size)}` : "Keine Quelle ausgewählt"],
+              ["Zielstapel", targetLabel],
               ...settingsRows,
             ].map(([label, value]) => (
               <div key={label} className="grid min-w-0 gap-1 border-b border-core-border px-4 py-3 last:border-0 sm:grid-cols-[11rem_minmax(0,1fr)] sm:gap-4">
@@ -128,12 +128,12 @@ export function AiSourceCreationPanel({ decks, initialTargetDeckId, onDraftState
           if (valid) setReview(true);
           else setStep(errors.source || errors.target ? 0 : 2);
         }}>
-          <div className="flex items-center justify-between gap-4 xl:hidden"><p className="core-caption text-core-muted" aria-live="polite">Schritt {step + 1} von 3</p><div className="core-ai-source-progress" aria-hidden="true">{steps.map((label, index) => <span key={label} data-complete={index <= step} />)}</div></div>
+          <Steps ariaLabel="Schritte der automatischen Erstellung" items={STEP_ITEMS} current={step} className="xl:hidden" />
           <div className="grid min-w-0 gap-4 xl:grid-cols-3 xl:items-start" data-testid="ai-source-steps">
-            <section aria-labelledby="ai-source-step-1" className={`core-ai-source-column min-w-0 content-start gap-6 ${step === 0 ? "grid" : "hidden xl:grid"}`}>
-              <div className="core-ai-source-section-heading"><span className="core-ai-source-section-icon" aria-hidden="true"><FileUp size={21} /></span><div><p className="core-caption text-core-muted" aria-hidden="true">Schritt 01</p><h3 id="ai-source-step-1" className="core-heading-3 text-core-text">{steps[0]}</h3></div></div>
+            <section ref={step === 0 ? focusRef : undefined} tabIndex={-1} aria-labelledby="ai-source-step-1" className={`core-ai-source-column min-w-0 scroll-mt-24 content-start outline-none ${step === 0 ? "grid" : "hidden xl:grid"}`}>
+              <SectionHeader level={3} id="ai-source-step-1" title={steps[0]} />
               <fieldset className="grid min-w-0 gap-3">
-                <legend className="mb-3 core-field-label">Woraus sollen die Karten entstehen?</legend>
+                <legend className="mb-3 core-field-label">Quelle</legend>
                 <CoreSegmentedControl ariaLabel="Art der Quelle" className="w-full" value={draft.sourceMode} options={[{ value: "file", label: "Datei" }, { value: "text", label: "Text einfügen" }]} onValueChange={(value) => { setFileError(null); setDraft((current) => ({ ...current, sourceMode: value as "file" | "text" })); }} />
                 {draft.sourceMode === "file" ? <>
                   <FileDropField accept={AI_SOURCE_ACCEPT} ariaLabel="Quelle für automatische Karten auswählen oder ablegen" prompt={`Quelldatei hier ablegen (${AI_SOURCE_FORMAT_LABEL})`} actionLabel={draft.file ? "Ersetzen" : "Datei auswählen"} onFile={selectFile}>
@@ -155,12 +155,11 @@ export function AiSourceCreationPanel({ decks, initialTargetDeckId, onDraftState
                 </> : <label className="core-field-group min-w-0"><span className="core-field-label">Dein Quelltext</span><textarea className="core-field min-h-40 w-full resize-y" rows={7} value={draft.sourceText} aria-invalid={showErrors && Boolean(errors.source)} onChange={(event) => setDraft((current) => ({ ...current, sourceText: event.target.value }))} placeholder="Füge hier den Text ein, aus dem deine Karten entstehen sollen." /></label>}
                 {fileError || (showErrors && errors.source) ? <p className="core-field-error" role="alert">{fileError || errors.source}</p> : null}
               </fieldset>
-              <div className="grid min-w-0 gap-3">
-                <h4 ref={targetHeadingRef} tabIndex={-1} className="scroll-mt-24 core-field-label outline-none">Möchtest du einen neuen Stapel anlegen?</h4>
+              <div ref={targetRef} className="grid min-w-0 scroll-mt-24 gap-3">
                 <CoreSwitch label="Neuen Stapel anlegen" checked={draft.targetMode === "new"} onCheckedChange={(createDeck) => setDraft((current) => ({ ...current, targetMode: createDeck ? "new" : "existing" }))} />
                 {draft.targetMode === "new" ? (
                   <label className="core-field-group min-w-0">
-                    <span className="core-field-label">Wie soll der neue Stapel heißen?</span>
+                    <span className="core-field-label">Stapelname</span>
                     <input className="core-field w-full" value={draft.deckName} aria-invalid={showErrors && Boolean(errors.target)} onChange={(event) => {
                       nameEdited.current = true;
                       setDraft((current) => ({ ...current, deckName: event.target.value }));
@@ -168,45 +167,45 @@ export function AiSourceCreationPanel({ decks, initialTargetDeckId, onDraftState
                   </label>
                 ) : decks.length ? (
                   <div className="core-field-group min-w-0">
-                    <label className="core-field-label" htmlFor="ai-source-deck">Welchen vorhandenen Stapel möchtest du verwenden?</label>
-                    <DeckSelect id="ai-source-deck" ariaLabel="Welchen vorhandenen Stapel möchtest du verwenden?" value={draft.deckId} decks={decks} specialOption={{ value: "", label: "Stapel auswählen", icon: FileText }} onValueChange={(deckId) => setDraft((current) => ({ ...current, deckId }))} />
+                    <label className="core-field-label" htmlFor="ai-source-deck">Stapel</label>
+                    <DeckSelect id="ai-source-deck" ariaLabel="Stapel" value={draft.deckId} decks={decks} specialOption={{ value: "", label: "Stapel auswählen", icon: FileText }} onValueChange={(deckId) => setDraft((current) => ({ ...current, deckId }))} />
                   </div>
-                ) : <p className="core-field-hint">Du hast noch keine Stapel. Wähle „Ja“, um einen neuen anzulegen.</p>}
+                ) : <p className="core-field-hint">Du hast noch keine Stapel. Lege einen neuen an.</p>}
                 {(showErrors || draft.targetMode === "existing") && errors.target ? <p className="core-field-error" role="alert">{errors.target}</p> : null}
               </div>
             </section>
-            <section aria-labelledby="ai-source-step-2" className={`core-ai-source-column min-w-0 content-start gap-6 ${step === 1 ? "grid" : "hidden xl:grid"}`}>
-              <div className="core-ai-source-section-heading"><span className="core-ai-source-section-icon" aria-hidden="true"><SlidersHorizontal size={21} /></span><div><p className="core-caption text-core-muted" aria-hidden="true">Schritt 02</p><h3 id="ai-source-step-2" className="core-heading-3 text-core-text">{steps[1]}</h3></div></div>
+            <section ref={step === 1 ? focusRef : undefined} tabIndex={-1} aria-labelledby="ai-source-step-2" className={`core-ai-source-column min-w-0 scroll-mt-24 content-start outline-none ${step === 1 ? "grid" : "hidden xl:grid"}`}>
+              <SectionHeader level={3} id="ai-source-step-2" title={steps[1]} />
               {learningQuestions.map(({ key, label, options }) => <div key={key} className="core-field-group min-w-0">
                 <label className="core-field-label" htmlFor={`ai-source-${key}`}>{label}</label>
                 <CoreSelect id={`ai-source-${key}`} ariaLabel={label} value={settings[key]} options={options} onValueChange={(value) => changeSetting(key, value as AiSourceSettings[typeof key])} />
               </div>)}
               <label className="core-field-group min-w-0">
-                <span className="core-field-label">Was sollen wir außerdem beachten? <span className="font-normal text-core-muted">(optional)</span></span>
+                <span className="core-field-label">Weitere Hinweise <span className="font-normal text-core-muted">(optional)</span></span>
                 <textarea className="core-field min-h-20 w-full resize-y" rows={2} value={settings.wishes} onChange={(event) => changeSetting("wishes", event.target.value)} placeholder="Zum Beispiel: Zellatmung vertiefen, Abkürzungen erklären …" />
               </label>
             </section>
-            <section aria-labelledby="ai-source-step-3" className={`core-ai-source-column min-w-0 content-start gap-6 ${step === 2 ? "grid" : "hidden xl:grid"}`}>
-              <div className="core-ai-source-section-heading"><span className="core-ai-source-section-icon" aria-hidden="true"><Layers3 size={21} /></span><div><p className="core-caption text-core-muted" aria-hidden="true">Schritt 03</p><h3 id="ai-source-step-3" className="core-heading-3 text-core-text">{steps[2]}</h3></div></div>
+            <section ref={step === 2 ? focusRef : undefined} tabIndex={-1} aria-labelledby="ai-source-step-3" className={`core-ai-source-column min-w-0 scroll-mt-24 content-start outline-none ${step === 2 ? "grid" : "hidden xl:grid"}`}>
+              <SectionHeader level={3} id="ai-source-step-3" title={steps[2]} />
               <fieldset className="grid min-w-0 gap-2">
-                <legend className="mb-3 core-field-label">Welche Kartenformate möchtest du?</legend>
-                <div className="grid grid-cols-2 gap-2">
+                <legend className="mb-3 core-field-label">Kartenformate</legend>
+                <div className="core-ai-source-formats">
                   {AI_SOURCE_CARD_FORMS.map(({ value, label }) => {
                     const Icon = cardFormIcons[value];
-                    return <label key={value} className="core-ai-source-format core-body text-core-text">
-                      <Icon size={20} className="text-core-action" aria-hidden="true" />
+                    return <label key={value} className="core-ai-source-format">
+                      <Icon size={16} aria-hidden="true" />
+                      <span className="core-ai-source-format-label">{label}</span>
                       <CoreCheckbox checked={settings.cardForms.includes(value)} onCheckedChange={(checked) => {
                         const selected = checked ? [...settings.cardForms, value] : settings.cardForms.filter((form) => form !== value);
                         changeSetting("cardForms", AI_SOURCE_CARD_FORMS.filter((form) => selected.includes(form.value)).map((form) => form.value));
                       }} />
-                      <span className="col-span-2 core-caption font-semibold">{label}</span>
                     </label>;
                   })}
                 </div>
                 {errors.cardForms ? <p className="core-field-error" role="alert">{errors.cardForms}</p> : null}
               </fieldset>
               <fieldset className="grid min-w-0 gap-2">
-                <legend className="mb-3 core-field-label">{extraInformationQuestion}</legend>
+                <legend className="mb-3 core-field-label">{extraInformationLabel}</legend>
                 {[
                   { value: false, label: "Nur meine Quelle verwenden" },
                   { value: true, label: "Ergänzungen erlauben und kennzeichnen" },
@@ -214,8 +213,8 @@ export function AiSourceCreationPanel({ decks, initialTargetDeckId, onDraftState
                 <p className="core-field-hint">Ergänzungen schließen fachliche Lücken und werden deutlich gekennzeichnet.</p>
               </fieldset>
               <div className="grid min-w-0 gap-3">
-                <p className="core-field-label">In welchem Stapel werden die Karten gespeichert?</p>
-                <div className="core-ai-source-target"><Layers3 size={19} className="shrink-0 text-core-action" aria-hidden="true" /><p className="min-w-0 flex-1 [overflow-wrap:anywhere] core-body text-core-text" data-testid="ai-source-target">{targetLabel}</p><IconButton type="button" label="Stapel ändern" variant="ghost" icon={Pencil} onClick={() => { setStep(0); requestAnimationFrame(() => { targetHeadingRef.current?.focus(); targetHeadingRef.current?.scrollIntoView({ block: "nearest" }); }); }} /></div>
+                <p className="core-field-label">Zielstapel</p>
+                <div className="core-ai-source-target"><Layers3 size={19} className="shrink-0 text-core-action" aria-hidden="true" /><p className="min-w-0 flex-1 [overflow-wrap:anywhere] core-body text-core-text" data-testid="ai-source-target">{targetLabel}</p><IconButton type="button" label="Stapel ändern" variant="ghost" icon={Pencil} onClick={() => { setStep(0); requestAnimationFrame(() => { targetRef.current?.querySelector("input")?.focus(); targetRef.current?.scrollIntoView({ block: "nearest" }); }); }} /></div>
               </div>
             </section>
           </div>

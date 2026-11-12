@@ -68,6 +68,8 @@ test("cloud-pending APKG session never projects a finished import", () => {
   const markup = renderPanel(session);
 
   assert.match(markup, /Cloud-Daten werden synchronisiert/);
+  assert.match(markup, /<li data-state="current"[^>]*aria-current="step">[\s\S]*?Cloud-Daten synchronisieren/);
+  assert.match(markup, /class="core-steps core-apkg-steps mt-5" data-stretch="true"(?! data-animated)/, "a paused sync does not animate");
   assert.match(markup, /Die Karten sind lokal gespeichert; die Synchronisierung steht noch aus\./);
   assert.match(markup, />Cloud-Sync erneut versuchen</);
   assert.doesNotMatch(markup, /Import erfolgreich abgeschlossen/);
@@ -148,6 +150,9 @@ test("ein Analysefehler wird als Alarm ohne Vorschau angezeigt", () => {
   });
 
   assert.match(markup, /role="alert"[^>]*><p>Die Anki-Datei ist größer als 2 GiB\. Bitte wähle eine kleinere Datei aus\.<\/p>/);
+  assert.match(markup, /<li data-state="failed"[^>]*aria-current="step">[\s\S]*?Fehlgeschlagen/);
+  assert.doesNotMatch(markup, /data-state="done"/, "an analysis failure marks no later step as done");
+  assert.equal((markup.match(/>Fehlgeschlagen</g) ?? []).length, 2, "once in the step line, once in the file row");
   assert.doesNotMatch(markup, /Import übernehmen/);
 });
 
@@ -162,6 +167,8 @@ test("eine laufende Analyse lässt sich abbrechen und endet ohne übernommene Ka
     phaseProgress: { phase: "analyzing", percent: 25 },
   });
   assert.match(analyzing, />Analyse abbrechen</);
+  assert.match(analyzing, /data-stretch="true" data-animated="true"/);
+  assert.match(analyzing, /<li data-state="current"[^>]*aria-current="step">[\s\S]*?Analysieren/);
 
   const cancelled = renderPanel({
     ...createEmptyApkgImportSession(),
@@ -169,5 +176,33 @@ test("eine laufende Analyse lässt sich abbrechen und endet ohne übernommene Ka
     job: { fileName: file.name, fileSize: file.size, status: "cancelled", warnings: [], errors: [] },
   });
   assert.match(cancelled, /Analyse abgebrochen\. Es wurden keine Karten übernommen/);
+  assert.match(cancelled, /<li data-state="failed"[^>]*aria-current="step">[\s\S]*?Abgebrochen/);
+  assert.doesNotMatch(cancelled, /data-state="done"/);
   assert.doesNotMatch(cancelled, />Analyse abbrechen</);
+});
+
+test("die Schrittlinie hebt vor der Dateiauswahl nichts hervor und unterscheidet Erfolg und Teilabschluss", () => {
+  const empty = renderPanel(createEmptyApkgImportSession());
+  assert.match(empty, /<ol aria-label="Importstatus">/);
+  assert.doesNotMatch(empty, /aria-current="step"|data-state="(?:current|done|failed)"/);
+
+  const file = { name: "karten.apkg", size: 1_000 } as File;
+  const progress = { completed: 1, total: 2, uploaded: 1, reused: 0, currentName: "", processedBytes: 1, totalBytes: 2 };
+  const partial = renderPanel({
+    ...createEmptyApkgImportSession(),
+    selectedFile: file,
+    job: { fileName: file.name, fileSize: file.size, status: "partial", warnings: [], errors: [] },
+    cloudProgress: { ...progress, status: "partial" },
+  });
+  assert.match(partial, /class="core-steps core-apkg-steps mt-5 core-apkg-steps-partial"/);
+  assert.match(partial, /<li data-state="current"[^>]*aria-current="step">[\s\S]*?Teilweise fertig/);
+  assert.equal((partial.match(/data-state="done"/g) ?? []).length, 5);
+
+  const succeeded = renderPanel({
+    ...createEmptyApkgImportSession(),
+    selectedFile: file,
+    job: { fileName: file.name, fileSize: file.size, status: "done", warnings: [], errors: [] },
+  });
+  assert.equal((succeeded.match(/data-state="done"/g) ?? []).length, 6);
+  assert.match(succeeded, />Erfolgreich</);
 });
