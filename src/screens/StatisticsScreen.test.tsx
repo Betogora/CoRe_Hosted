@@ -40,20 +40,14 @@ test("statistics screen exposes one global filter and the complete CoRe analysis
   assert.match(markup, /aria-label="Stapel filtern\. Aktuell: Gesamte Sammlung"/);
   assert.match(markup, /Gesamte Sammlung/);
   assert.match(markup, /Wiederholungen/);
-  assert.match(markup, /Zeitplanung/);
-  assert.equal((markup.match(/<nav aria-label="Bereiche der Statistik"/g) ?? []).length, 2);
-  for (const sectionId of [
-    "statistics-overview",
-    "statistics-activity",
-    "statistics-planning",
-    "statistics-memory-model",
-    "statistics-response-behavior",
-    "statistics-deck-comparison",
-  ]) {
-    assert.equal((markup.match(new RegExp(`href="#${sectionId}"`, "g")) ?? []).length, 2);
-    assert.match(markup, new RegExp(`<section id="${sectionId}"`));
+  assert.match(markup, /role="tablist" aria-label="Bereiche der Statistik"/);
+  for (const label of ["Lernaktivität", "Planung &amp; Kartenbestand", "FSRS-Gedächtnismodell", "Antwortverhalten", "Stapelvergleich"]) {
+    assert.match(markup, new RegExp(`role="tab"[^>]*>${label}</button>`));
   }
-  const overviewMarkup = markup.match(/<section id="statistics-overview"[\s\S]*?<\/section>/)?.[0];
+  assert.match(markup, /aria-selected="true"[^>]*>Lernaktivität<\/button>/);
+  // Only the selected area renders its charts.
+  assert.doesNotMatch(markup, /Zeitplanung|FSRS-Schwierigkeit|Wahre Erinnerungsquote|Stapelinhalte öffnen/);
+  const overviewMarkup = markup.match(/<section class="min-w-0 pb-2" aria-labelledby="statistics-overview-title"[\s\S]*?<\/section>/)?.[0];
   assert.ok(overviewMarkup);
   assert.match(overviewMarkup, /<h3 id="statistics-overview-title" tabindex="-1" class="sr-only">Überblick<\/h3>/);
   assert.match(overviewMarkup, /class="core-metric-row core-statistics-overview"/);
@@ -67,11 +61,6 @@ test("statistics screen exposes one global filter and the complete CoRe analysis
   assert.match(overviewMarkup, /Wahre Quote/);
   assert.doesNotMatch(overviewMarkup, /Erinnerungsquote/);
   assert.match(overviewMarkup, /1 Tag/);
-  assert.match(markup, /FSRS-Schwierigkeit/);
-  assert.match(markup, /Wahre Erinnerungsquote/);
-  assert.match(markup, /Stapelvergleich/);
-  assert.match(markup, /aria-label="Stapelinhalte öffnen: Biologie"/);
-  assert.match(markup, /scope="row"/);
   assert.doesNotMatch(markup, /Schwierige Karten/);
   assert.match(markup, /0 Tage Streak/);
   assert.match(markup, /aria-label="Heatmap-Zeitraum"/);
@@ -86,8 +75,7 @@ test("statistics screen exposes one global filter and the complete CoRe analysis
       onNavigate={() => undefined}
     />,
   );
-  assert.doesNotMatch(singleDeckMarkup, /href="#statistics-deck-comparison"/);
-  assert.doesNotMatch(singleDeckMarkup, /id="statistics-deck-comparison"/);
+  assert.doesNotMatch(singleDeckMarkup, /Stapelvergleich/);
 });
 
 test("statistics refresh keeps previous results and shows the requested filter with an indeterminate inline bar", () => {
@@ -102,7 +90,7 @@ test("statistics refresh keeps previous results and shows the requested filter w
   assert.doesNotMatch(pending, /aria-valuenow|Statistik wird geladen/);
   assert.match(pending, /class="opacity-60" aria-busy="true"/);
   assert.match(pending, />42<\/dd>/);
-  assert.match(pending, /href="#statistics-deck-comparison"/);
+  assert.match(pending, /role="tab"[^>]*>Stapelvergleich<\/button>/);
   assert.match(pending, /class="sr-only">Statistik wird aktualisiert\./);
   const ready = render(false);
   assert.match(ready, /class="core-statistics-load-track"><\/div>/);

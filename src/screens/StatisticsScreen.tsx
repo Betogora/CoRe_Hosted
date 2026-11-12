@@ -1,11 +1,6 @@
 import React from "react";
 import {
-  Activity,
   BarChart3,
-  BrainCircuit,
-  CalendarDays,
-  Layers,
-  Timer,
 } from "lucide-react";
 import {
   Area,
@@ -33,7 +28,7 @@ import type { StudyHeatmapDay } from "../studyHeatmapModel.ts";
 import type { MaturityBand } from "../coreTypes.ts";
 import { ActionButton } from "../ui/actionUi.tsx";
 import { CoreSegmentedControl, CoreTag, EmptyState, PageHeader, SoftPanel, StatTile } from "../ui/coreUi.tsx";
-import { InPageNavigation } from "../ui/InPageNavigation.tsx";
+import { CoreTabPanel, CoreTabs, type CoreTab } from "../ui/CoreTabs.tsx";
 import { MetricRow } from "../ui/MetricRow.tsx";
 import { StatusMessage } from "../ui/feedbackUi.tsx";
 import { DeckMultiSelect } from "../ui/selectUi.tsx";
@@ -63,25 +58,14 @@ const PERIOD_OPTIONS: Array<{ value: StatisticsPeriod; label: string }> = [
   { value: "365d", label: "1 Jahr" },
   { value: "all", label: "Gesamt" },
 ];
-const STATISTICS_SECTION_IDS = {
-  overview: "statistics-overview",
-  activity: "statistics-activity",
-  planning: "statistics-planning",
-  memory: "statistics-memory-model",
-  responses: "statistics-response-behavior",
-  comparison: "statistics-deck-comparison",
-} as const;
-const STATISTICS_SECTIONS = [
-  { id: STATISTICS_SECTION_IDS.overview, label: "Überblick", icon: Activity },
-  { id: STATISTICS_SECTION_IDS.activity, label: "Lernaktivität", icon: BarChart3 },
-  { id: STATISTICS_SECTION_IDS.planning, label: "Planung & Kartenbestand", icon: CalendarDays },
-  { id: STATISTICS_SECTION_IDS.memory, label: "FSRS-Gedächtnismodell", icon: BrainCircuit },
-  { id: STATISTICS_SECTION_IDS.responses, label: "Antwortverhalten", icon: Timer },
-] as const;
-const STATISTICS_SECTIONS_WITH_COMPARISON = [
-  ...STATISTICS_SECTIONS,
-  { id: STATISTICS_SECTION_IDS.comparison, label: "Stapelvergleich", icon: Layers },
-] as const;
+type StatisticsTab = "activity" | "planning" | "memory" | "responses" | "comparison";
+const STATISTICS_TABS: ReadonlyArray<CoreTab<StatisticsTab>> = [
+  { value: "activity", label: "Lernaktivität" },
+  { value: "planning", label: "Planung & Kartenbestand" },
+  { value: "memory", label: "FSRS-Gedächtnismodell" },
+  { value: "responses", label: "Antwortverhalten" },
+];
+const STATISTICS_TABS_WITH_COMPARISON: ReadonlyArray<CoreTab<StatisticsTab>> = [...STATISTICS_TABS, { value: "comparison", label: "Stapelvergleich" }];
 // Review categories follow the learning-status roles; young intervals are a lighter tint of learned.
 const CATEGORY_COLORS = {
   learning: "var(--core-learning-status-in-progress)",
@@ -428,7 +412,8 @@ export function StatisticsScreenContent({ dataset: { decks, projection: statisti
   const periodRef = React.useRef<HTMLDivElement>(null);
   const { period, deckIds: deckSelection } = selection ?? statistics.selection;
   const showDeckComparison = statistics.selection.deckIds === "all" || statistics.scopeDeckIds.length > 1;
-  const statisticsSections = showDeckComparison ? STATISTICS_SECTIONS_WITH_COMPARISON : STATISTICS_SECTIONS;
+  const [tab, setTab] = React.useState<StatisticsTab>("activity");
+  const activeTab = tab === "comparison" && !showDeckComparison ? "activity" : tab;
 
   function changePeriod(value: StatisticsPeriod) {
     onSelectionChange?.({ period: value, deckIds: deckSelection });
@@ -485,8 +470,8 @@ export function StatisticsScreenContent({ dataset: { decks, projection: statisti
       </StatusMessage> : null}
 
       <div className={loading || error ? "opacity-60" : undefined} aria-busy={loading || undefined}>
-      <InPageNavigation ariaLabel="Bereiche der Statistik" items={statisticsSections}>
-      <section id={STATISTICS_SECTION_IDS.overview} className="min-w-0 pb-2" aria-labelledby="statistics-overview-title">
+      <div className="grid min-w-0 gap-6">
+      <section className="min-w-0 pb-2" aria-labelledby="statistics-overview-title">
         <StatisticsSectionHeading id="statistics-overview-title">Überblick</StatisticsSectionHeading>
         <MetricRow
           className="core-statistics-overview"
@@ -502,15 +487,17 @@ export function StatisticsScreenContent({ dataset: { decks, projection: statisti
         />
       </section>
 
-      <section id={STATISTICS_SECTION_IDS.activity} className="grid min-w-0 gap-4 xl:grid-cols-2" aria-labelledby="statistics-activity-title">
+      <CoreTabs ariaLabel="Bereiche der Statistik" tabs={showDeckComparison ? STATISTICS_TABS_WITH_COMPARISON : STATISTICS_TABS} value={activeTab} onValueChange={setTab} panelId="statistics-area" />
+      <CoreTabPanel panelId="statistics-area" value={activeTab} className="min-w-0">
+      {activeTab === "activity" ? <section className="grid min-w-0 gap-4 xl:grid-cols-2" aria-labelledby="statistics-activity-title">
         <StatisticsSectionHeading id="statistics-activity-title">Lernaktivität</StatisticsSectionHeading>
         <ChartPanel title="Wiederholungen" className="xl:col-span-2"><ActivityChart points={statistics.activity} /></ChartPanel>
         <ChartPanel title="Lernzeit"><ActivityChart points={statistics.activity} duration /></ChartPanel>
         <ChartPanel title="Hinzugefügte Karten"><AddedCardsChart points={statistics.addedCards} /></ChartPanel>
         <StudyHeatmap heatmap={statistics.studyHeatmap} formatDayLabel={statisticsHeatmapDayLabel} className="xl:col-span-2" />
-      </section>
+      </section> : null}
 
-      <section id={STATISTICS_SECTION_IDS.planning} className="grid min-w-0 gap-4 xl:grid-cols-2" aria-labelledby="statistics-planning-title">
+      {activeTab === "planning" ? <section className="grid min-w-0 gap-4 xl:grid-cols-2" aria-labelledby="statistics-planning-title">
         <StatisticsSectionHeading id="statistics-planning-title">Planung & Kartenbestand</StatisticsSectionHeading>
         <ChartPanel title="Zeitplanung" className="xl:col-span-2"><PlanningChart planning={statistics.planning} /></ChartPanel>
         <ChartPanel title="Status" snapshot><StatusChart status={statistics.status} /></ChartPanel>
@@ -518,23 +505,23 @@ export function StatisticsScreenContent({ dataset: { decks, projection: statisti
           <DistributionChart points={statistics.intervals.points} countLabel="Karten" />
           <div className="mt-4 grid grid-cols-3 gap-3 border-t border-core-border pt-4 text-center core-caption text-core-muted"><span>Mittelwert<br /><strong className="core-heading-3 tabular-nums text-core-text">{formatNumber(statistics.intervals.averageDays, 1)} Tage</strong></span><span>Median<br /><strong className="core-heading-3 tabular-nums text-core-text">{formatNumber(statistics.intervals.medianDays)} Tage</strong></span><span>95. Perzentil<br /><strong className="core-heading-3 tabular-nums text-core-text">{formatNumber(statistics.intervals.percentile95Days)} Tage</strong></span></div>
         </ChartPanel>
-      </section>
+      </section> : null}
 
-      <section id={STATISTICS_SECTION_IDS.memory} className="grid min-w-0 gap-4 xl:grid-cols-3" aria-labelledby="statistics-memory-model-title">
+      {activeTab === "memory" ? <section className="grid min-w-0 gap-4 xl:grid-cols-3" aria-labelledby="statistics-memory-model-title">
         <StatisticsSectionHeading id="statistics-memory-model-title">FSRS-Gedächtnismodell</StatisticsSectionHeading>
         <ChartPanel title="FSRS-Schwierigkeit" snapshot><DistributionChart points={statistics.fsrs.difficulty} countLabel="Karten" /></ChartPanel>
         <ChartPanel title="FSRS-Stabilität" snapshot><DistributionChart points={statistics.fsrs.stability} countLabel="Karten" /></ChartPanel>
         <ChartPanel title="Abrufwahrscheinlichkeit" snapshot><DistributionChart points={statistics.fsrs.retrievability} countLabel="Karten" /></ChartPanel>
-      </section>
+      </section> : null}
 
-      <section id={STATISTICS_SECTION_IDS.responses} className="grid min-w-0 gap-4 xl:grid-cols-2" aria-labelledby="statistics-response-behavior-title">
+      {activeTab === "responses" ? <section className="grid min-w-0 gap-4 xl:grid-cols-2" aria-labelledby="statistics-response-behavior-title">
         <StatisticsSectionHeading id="statistics-response-behavior-title">Antwortverhalten</StatisticsSectionHeading>
         <ChartPanel title="Nach Uhrzeit"><HourlyChart points={statistics.hourly} /></ChartPanel>
         <ChartPanel title="Antwortknöpfe"><RatingChart points={statistics.ratings} /></ChartPanel>
         <ChartPanel title="Wahre Erinnerungsquote" className="xl:col-span-2"><RetentionTable rows={statistics.retention} /></ChartPanel>
-      </section>
+      </section> : null}
 
-      {showDeckComparison ? <section id={STATISTICS_SECTION_IDS.comparison} className="min-w-0" aria-labelledby="statistics-deck-comparison-title">
+      {activeTab === "comparison" ? <section className="min-w-0" aria-labelledby="statistics-deck-comparison-title">
         <ChartPanel title="Stapelvergleich" titleId="statistics-deck-comparison-title" className="core-deck-comparison-container">
           <table className="core-deck-comparison w-full border-collapse text-left core-body">
             <thead><tr><th scope="col">Stapel</th><th scope="col">Reviews</th><th scope="col">Erfolg</th><th scope="col">Nochmal</th><th scope="col">Erinnerung</th><th scope="col">Ø Intervall</th><th scope="col">Nächste Fälligkeit</th></tr></thead>
@@ -554,8 +541,8 @@ export function StatisticsScreenContent({ dataset: { decks, projection: statisti
           </table>
         </ChartPanel>
       </section> : null}
-
-      </InPageNavigation>
+      </CoreTabPanel>
+      </div>
       </div>
     </div>
   );

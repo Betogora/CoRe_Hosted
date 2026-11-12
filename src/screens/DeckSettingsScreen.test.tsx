@@ -46,7 +46,7 @@ test("deck settings are one dialog in the shared settings frame with three areas
   assert.match(html, /data-testid="deck-settings-select"/);
   assert.match(html, />Standardwerte</);
   assert.match(html, /aria-label="Stapeleinstellungen schließen"/);
-  assert.doesNotMatch(html, /data-in-page-navigation|Zurück zu (?:Lernen|zur|der)|>Lerneinstellungen</);
+  assert.doesNotMatch(html, /Zurück zu (?:Lernen|zur|der)|>Lerneinstellungen</);
   assert.doesNotMatch(html, /CoRe Automatisch|CoRe auto/);
 });
 

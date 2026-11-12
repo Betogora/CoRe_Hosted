@@ -8,8 +8,9 @@ import { addLearningDays, getLearningDayKey, getLearningDayRange, getLearningDay
 import { manuallyBuriedCardIds } from "../../siblingBurying.ts";
 import type { NoteGraph } from "../../workspaceReplica.ts";
 import { ActionButton, IconButton } from "../../ui/actionUi.tsx";
-import { ActionDialog, CardMarkButton } from "../../ui/coreUi.tsx";
+import { CardMarkButton } from "../../ui/coreUi.tsx";
 import { CoreDatePicker } from "../../ui/CoreDatePicker.tsx";
+import { DialogFrame } from "../../ui/DialogFrame.tsx";
 import { useSuccessToast } from "../../ui/feedbackUi.tsx";
 import { CoreSwitch } from "../../ui/formControls.tsx";
 import { FlagPicker } from "../../ui/flagUi.tsx";
@@ -326,16 +327,20 @@ export function CardEditorGeneralTab({ decks, graph, card, now, dayStartHour, ti
           </dl>
         </Section>
       </div>
-      <ActionDialog
+      <DialogFrame
         open={moveOpen}
         title="Karte verschieben"
-        description={<DeckSelect ariaLabel="Zielstapel" className="w-full" value={moveTarget} decks={decks} selectableDeckIds={moveTargets} onValueChange={setMoveTarget} />}
-        confirmLabel="Verschieben"
-        cancelLabel="Abbrechen"
-        actionIcons={{ confirm: MoveRight }}
-        onCancel={() => setMoveOpen(false)}
-        onConfirm={() => void move()}
-      />
+        size="s"
+        onClose={() => setMoveOpen(false)}
+        footer={(
+          <>
+            <ActionButton variant="secondary" onClick={() => setMoveOpen(false)}>Abbrechen</ActionButton>
+            <ActionButton variant="primary" icon={MoveRight} onClick={() => void move()}>Verschieben</ActionButton>
+          </>
+        )}
+      >
+        <DeckSelect ariaLabel="Zielstapel" className="w-full" value={moveTarget} decks={decks} selectableDeckIds={moveTargets} onValueChange={setMoveTarget} />
+      </DialogFrame>
     </div>
   );
 }

@@ -47,7 +47,8 @@ test("StudySettingsOverlay renders one responsive dialog with the canonical sect
   assert.doesNotMatch(markup, /Nicht aussetzen/);
   assert.doesNotMatch(markup, />Stapel</);
   assert.doesNotMatch(markup, /Neue Karten pro Tag|Max\. Wiederholungen/);
-  assert.doesNotMatch(markup, /<section class="[^"]*border/);
+  assert.doesNotMatch(markup, /<section class="[^"]*(?<![\w-])border(?![\w-])/);
+  assert.match(markup, /<section class="border-t border-core-border/);
   assert.doesNotMatch(markup, /Kartenverwaltung öffnen|Reset|Mischen|Nur normale Karten|Ansicht/);
 });
 

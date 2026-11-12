@@ -191,8 +191,8 @@ export function NoteContentEditor({ note, value, structure, onValueChange, onStr
         );
       })}
       {choiceMode ? (
-        <fieldset className="grid gap-3 rounded-control border border-core-border bg-core-surface p-4">
-          <legend className="px-1 core-body font-medium text-core-secondary">Antwortoptionen und {choiceMode === "single" ? "richtige Antwort" : "richtige Antworten"}</legend>
+        <fieldset className="grid gap-3">
+          <legend className="mb-2 core-body font-medium text-core-secondary">Antwortoptionen und {choiceMode === "single" ? "richtige Antwort" : "richtige Antworten"}</legend>
           {options.map((option, index) => (
             <div key={option.id} className="flex min-w-0 items-center gap-2">
               {choiceMode === "single"
@@ -247,7 +247,7 @@ export function NoteContentEditor({ note, value, structure, onValueChange, onStr
           }}
         />
       </div>
-      <div className="core-study-card min-w-0 rounded-panel border border-core-border bg-core-surface px-4 py-6 sm:px-6">
+      <div className="core-study-card -mx-4 -mt-4 min-w-0">
         {previewCard ? (
           <NoteCardContent key={`${round}:${preview.version}`} note={preview.note} card={previewCard.card} surface="preview" mediaUrls={mediaUrls} revealed={side === "answer"} onReveal={() => setSide("answer")} />
         ) : null}

@@ -1,7 +1,8 @@
 import React from "react";
 import type { CardBatchAction, TextReplaceSession } from "../../cardBatchActions.ts";
 import type { TextReplace } from "../../coreModel.ts";
-import { ActionDialog } from "../../ui/coreUi.tsx";
+import { ActionButton } from "../../ui/actionUi.tsx";
+import { DialogFrame } from "../../ui/DialogFrame.tsx";
 import { CoreCheckbox } from "../../ui/formControls.tsx";
 import { CoreSelect } from "../../ui/selectUi.tsx";
 import { cardCount } from "./cardListModel.ts";
@@ -63,15 +64,17 @@ export function TextReplaceDialog({ count, prepare, onRun, onClose }: TextReplac
   ];
 
   return (
-    <ActionDialog
+    <DialogFrame
       open
       title={`${LABEL}: ${cardCount(count)}`}
-      confirmLabel="Ersetzen"
-      cancelLabel="Abbrechen"
-      confirmLoading={running}
-      onCancel={onClose}
-      onConfirm={() => void confirm()}
-      description={(
+      onClose={onClose}
+      footer={(
+        <>
+          <ActionButton variant="secondary" disabled={running} onClick={onClose}>Abbrechen</ActionButton>
+          <ActionButton variant="primary" loading={running} disabled={running} onClick={() => void confirm()}>Ersetzen</ActionButton>
+        </>
+      )}
+    >
         <div className="grid gap-3" data-testid="text-replace-dialog">
           <div className="grid gap-3 sm:grid-cols-2">
             <label className="core-field-group min-w-0"><span className="core-field-label">Suchen</span>
@@ -93,7 +96,7 @@ export function TextReplaceDialog({ count, prepare, onRun, onClose }: TextReplac
                     <p className="core-body font-semibold text-core-text">{preview.changedCount ? `${cardCount(preview.changedCount)} ${preview.changedCount === 1 ? "ändert" : "ändern"} sich` : "Keine Treffer"}</p>
                     {preview.skippedCount ? <p className="core-caption text-core-muted">{cardCount(preview.skippedCount)} {preview.skippedCount === 1 ? "bleibt" : "bleiben"} unverändert, weil sich sonst ihre Karten ändern würden.</p> : null}
                     {preview.examples.length ? (
-                      <ul className="grid max-h-56 gap-1.5 overflow-y-auto rounded-inset border border-core-border p-2">
+                      <ul className="grid gap-1.5">
                         {preview.examples.map((example) => (
                           <li key={example.noteId} className="grid min-w-0 gap-0.5 core-caption">
                             <span className="font-semibold text-core-secondary">{example.place}</span>
@@ -107,7 +110,6 @@ export function TextReplaceDialog({ count, prepare, onRun, onClose }: TextReplac
                 ) : null}
           </div>
         </div>
-      )}
-    />
+    </DialogFrame>
   );
 }

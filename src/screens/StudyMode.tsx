@@ -512,15 +512,15 @@ export function StudyMode({ shortcutsSuspended = false, deck, decks, notes, answ
               </>
             ) : loadMoreError && pausedOffline ? (
               <div className="text-center" role="status">
-                <span className="core-surface mx-auto grid size-12 place-items-center rounded-control text-core-warning" aria-hidden="true"><CircleAlert size={24} /></span>
-                <h1 ref={completionHeadingRef} tabIndex={-1} className="mt-4 core-heading-2 text-core-text outline-none">Lernen pausiert – du bist offline</h1>
+                <CircleAlert size={28} className="mx-auto text-core-warning" aria-hidden="true" />
+                <h1 ref={completionHeadingRef} tabIndex={-1} className="mt-3 core-heading-2 text-core-text outline-none">Lernen pausiert – du bist offline</h1>
                 <p className="mt-2 core-body text-core-secondary">Die nächsten fälligen Karten liegen nicht auf diesem Gerät. Deine Bewertungen sind gespeichert; sobald die Verbindung zurück ist, geht es automatisch weiter.</p>
                 <p className="mt-2 core-body text-core-secondary">Stapel, die du ohne Verbindung lernen willst, machst du vorher mit „Offline verfügbar machen“ verfügbar.</p>
               </div>
             ) : loadMoreError ? (
               <div className="text-center">
-                <span className="core-surface mx-auto grid size-12 place-items-center rounded-control text-core-warning" aria-hidden="true"><CircleAlert size={24} /></span>
-                <h1 ref={completionHeadingRef} tabIndex={-1} className="mt-4 core-heading-2 text-core-text outline-none">Weitere Karten konnten nicht geladen werden</h1>
+                <CircleAlert size={28} className="mx-auto text-core-warning" aria-hidden="true" />
+                <h1 ref={completionHeadingRef} tabIndex={-1} className="mt-3 core-heading-2 text-core-text outline-none">Weitere Karten konnten nicht geladen werden</h1>
                 <p className="mt-2 core-body text-core-secondary">{loadMoreError}</p>
                 <button type="button" onClick={() => setLoadMoreError("")} className="mt-6 core-action-primary">
                   Erneut versuchen
@@ -529,12 +529,11 @@ export function StudyMode({ shortcutsSuspended = false, deck, decks, notes, answ
             ) : loadingMoreCards || moreCardsAvailable ? (
               <div className="text-center" role="status">
                 <h1 ref={completionHeadingRef} tabIndex={-1} className="core-heading-2 text-core-text outline-none">Weitere Karten werden geladen</h1>
-                <p className="mt-2 core-body text-core-secondary">Deine bisherige Sitzung bleibt erhalten.</p>
               </div>
             ) : limitReachedAtStart ? (
               <div className="text-center">
-                <span className="core-surface mx-auto grid size-12 place-items-center rounded-control text-core-warning" aria-hidden="true"><CircleAlert size={24} /></span>
-                <h1 ref={completionHeadingRef} tabIndex={-1} className="mt-4 core-heading-2 text-core-text outline-none">Tageslimit erreicht</h1>
+                <CircleAlert size={28} className="mx-auto text-core-warning" aria-hidden="true" />
+                <h1 ref={completionHeadingRef} tabIndex={-1} className="mt-3 core-heading-2 text-core-text outline-none">Tageslimit erreicht</h1>
                 <p className="mt-2 core-body text-core-secondary">{limitSummaryText}</p>
                 <button type="button" onClick={onReturnToLearn} className="mt-6 core-action-primary">
                   Zurück zum Ausgangspunkt
@@ -542,8 +541,8 @@ export function StudyMode({ shortcutsSuspended = false, deck, decks, notes, answ
               </div>
             ) : hasWaitingLearningCards ? (
               <div className="text-center">
-                <span className="core-surface mx-auto grid size-12 place-items-center rounded-control text-core-success" aria-hidden="true"><CheckCircle2 size={24} /></span>
-                <h1 ref={completionHeadingRef} tabIndex={-1} className="mt-4 core-heading-2 text-core-text outline-none">Für jetzt geschafft</h1>
+                <CheckCircle2 size={28} className="mx-auto text-core-success" aria-hidden="true" />
+                <h1 ref={completionHeadingRef} tabIndex={-1} className="mt-3 core-heading-2 text-core-text outline-none">Für jetzt geschafft</h1>
                 <p className="mt-2 core-body text-core-secondary">Die restlichen Lernkarten sind vorgemerkt und bleiben „Offen“.</p>
                 {queue.limitSummary.reached ? <p className="mt-4 core-status-warning" role="status">{limitSummaryText}</p> : null}
                 <button type="button" onClick={onReturnToLearn} className="mt-6 core-action-primary">
@@ -552,8 +551,8 @@ export function StudyMode({ shortcutsSuspended = false, deck, decks, notes, answ
               </div>
             ) : answeredCount > 0 ? (
               <div className="text-center">
-                <span className="core-surface mx-auto grid size-12 place-items-center rounded-control text-core-success" aria-hidden="true"><CheckCircle2 size={24} /></span>
-                <h1 ref={completionHeadingRef} tabIndex={-1} className="mt-4 core-heading-2 text-core-text outline-none">Sitzung abgeschlossen</h1>
+                <CheckCircle2 size={28} className="mx-auto text-core-success" aria-hidden="true" />
+                <h1 ref={completionHeadingRef} tabIndex={-1} className="mt-3 core-heading-2 text-core-text outline-none">Sitzung abgeschlossen</h1>
                 <p className="mt-2 core-body text-core-secondary">
                   {completedInitialCount} {completedInitialCount === 1 ? "Karte" : "Karten"} · {repeatCount} {repeatCount === 1 ? "Wiederholung" : "Wiederholungen"}
                 </p>
@@ -565,7 +564,6 @@ export function StudyMode({ shortcutsSuspended = false, deck, decks, notes, answ
             ) : (
               <div className="text-center">
                 <h1 className="core-heading-2 text-core-text">Keine fälligen Karten</h1>
-                <p className="mt-2 core-body text-core-secondary">Dieser Stapel hat für heute keine Karten in der Lern-Queue.</p>
               </div>
             )}
           </div>

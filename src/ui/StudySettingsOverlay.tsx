@@ -53,9 +53,9 @@ function EditMenuRow({ icon: Icon, label, disabled = false, onClick }: {
       type="button"
       disabled={disabled}
       onClick={onClick}
-      className="group -mx-2 flex min-h-control w-[calc(100%+1rem)] items-center justify-between gap-3 rounded-inset px-2 py-1 text-left transition hover:bg-core-subtle disabled:cursor-not-allowed disabled:bg-transparent"
+      className="group -mx-2 flex min-h-11 w-[calc(100%+1rem)] items-center justify-between gap-3 rounded-inset px-2 text-left transition hover:bg-core-subtle disabled:cursor-not-allowed disabled:bg-transparent"
     >
-      <span className="core-field-label flex min-w-0 items-center gap-2 group-disabled:text-core-muted">
+      <span className="core-control-label flex min-w-0 items-center gap-2 text-core-text group-disabled:text-core-muted">
         <Icon className="shrink-0 text-core-muted" size={16} aria-hidden="true" />
         {label}
       </span>
@@ -143,11 +143,11 @@ export function StudySettingsOverlay({
                 onMarkedChange={onMarkedChange}
                 onSuspendedChange={onSuspendedChange}
               />
-              <FlagPicker value={flag} names={flagNames} disabled={!canEditCard} onValueChange={onFlagChange} />
+              <FlagPicker className="min-h-11 content-center" value={flag} names={flagNames} disabled={!canEditCard} onValueChange={onFlagChange} />
             </div>
           </section>
 
-          <section className="py-4" aria-labelledby={`${titleId}-session`}>
+          <section className="border-t border-core-border py-4" aria-labelledby={`${titleId}-session`}>
             <h3 id={`${titleId}-session`} className="core-caption font-medium text-core-muted">Sitzung</h3>
             <div className="mt-1">
               <PomodoroTimerControl
@@ -158,8 +158,8 @@ export function StudySettingsOverlay({
                   closeDialog();
                 }}
               />
-              <div className="grid min-h-control gap-2 py-1 sm:grid-cols-[minmax(0,1fr)_minmax(12rem,16rem)] sm:items-center">
-                <span className="core-field-label flex min-w-0 items-center gap-2">
+              <div className="grid min-h-11 pb-1 sm:grid-cols-[minmax(0,1fr)_minmax(12rem,16rem)] sm:items-center sm:gap-2 sm:pb-0">
+                <span className="core-control-label flex min-h-11 min-w-0 items-center gap-2 text-core-text">
                   <ListOrdered className="shrink-0 text-core-muted" size={16} aria-hidden="true" />
                   <span>Kartenreihenfolge</span>
                 </span>

@@ -191,14 +191,6 @@ export function CoreTag({ tone, dot, className = "", children, ...props }: { ton
   );
 }
 
-export function OrbIcon({ icon: Icon, className = "bg-core-subtle text-core-action" }: { icon: LucideIcon; className?: string }) {
-  return (
-    <div className={`grid size-10 shrink-0 place-items-center rounded-control [&_svg]:size-[18px] ${className}`}>
-      <Icon size={22} aria-hidden="true" />
-    </div>
-  );
-}
-
 type StatTileProps = Omit<HTMLAttributes<HTMLDListElement>, "children"> & {
   label: ReactNode;
   value: ReactNode;

@@ -89,7 +89,7 @@ export function PomodoroTimerControl({ timer, variant, onStart }: PomodoroTimerC
         type="button"
         className={isSettings
           ? "flex w-full items-center gap-6 py-4 text-left"
-          : "flex min-h-control w-full items-center justify-between gap-3 py-1 text-left"}
+          : "flex min-h-11 w-full items-center justify-between gap-3 text-left"}
         aria-expanded={open}
         aria-controls={regionId}
         onClick={() => setOpen((current) => !current)}
@@ -102,7 +102,7 @@ export function PomodoroTimerControl({ timer, variant, onStart }: PomodoroTimerC
             </span>
           </span>
         ) : (
-          <span className="core-field-label flex min-w-0 flex-1 items-center gap-2">
+          <span className="core-control-label flex min-w-0 flex-1 items-center gap-2 text-core-text">
             <TomatoIcon className="shrink-0 text-core-muted" size={16} />
             <span className="min-w-0 flex-1">Pomodoro-Timer</span>
           </span>

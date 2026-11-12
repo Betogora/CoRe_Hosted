@@ -233,7 +233,6 @@ export function SummaryDocumentEditor({ value, onChange, busy }: {
           </div>}
         </>}
         {tool === "eraser" && <div className="core-summary-tool-group">
-          <span className="core-caption text-core-muted">Strich zum Entfernen antippen</span>
           <CoreTooltip label="Alle Zeichnungen entfernen"><IconButton variant="ghost" label="Alle Zeichnungen entfernen" icon={Trash2} disabled={!pages.some((page) => page.strokes.length)} onClick={() => changeInk(pages.map((page) => ({ ...page, strokes: [] })))}/></CoreTooltip>
         </div>}
       </div>

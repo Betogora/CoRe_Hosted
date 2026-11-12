@@ -2,7 +2,7 @@ import React from "react";
 import { Check, Pencil, Trash2, X } from "lucide-react";
 import type { TagDirectoryEntry } from "../../tagDirectory.ts";
 import { IconButton } from "../../ui/actionUi.tsx";
-import { ActionDialog } from "../../ui/coreUi.tsx";
+import { DialogFrame } from "../../ui/DialogFrame.tsx";
 
 export interface TagManagerDialogProps {
   tags: readonly TagDirectoryEntry[];
@@ -37,16 +37,11 @@ export function TagManagerDialog({ tags, onRename, onClose }: TagManagerDialogPr
   const mergesInto = editing && target && key(target) !== key(editing.tag) ? target : null;
 
   return (
-    <ActionDialog
-      open
-      title="Tags verwalten"
-      cancelLabel="Schließen"
-      onCancel={onClose}
-      description={(
+    <DialogFrame open title="Tags verwalten" onClose={onClose}>
         <div className="grid gap-3" data-testid="tag-manager">
           <input className="core-field w-full" value={filter} placeholder="Tags durchsuchen" aria-label="Tags durchsuchen" onChange={(event) => setFilter(event.target.value)} />
           {shown.length ? (
-            <ul className="grid max-h-80 gap-1 overflow-y-auto" aria-label="Tags">
+            <ul className="grid gap-1" aria-label="Tags">
               {shown.map((entry) => (
                 <li key={entry.tag} className="grid min-w-0 gap-1 rounded-inset px-1.5 py-1 hover:bg-core-subtle" data-tag={entry.tag}>
                   {editing?.tag === entry.tag ? (
@@ -81,7 +76,6 @@ export function TagManagerDialog({ tags, onRename, onClose }: TagManagerDialogPr
             </ul>
           ) : <p className="core-body text-core-muted">Keine Tags</p>}
         </div>
-      )}
-    />
+    </DialogFrame>
   );
 }

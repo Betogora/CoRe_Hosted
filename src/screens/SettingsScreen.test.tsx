@@ -40,7 +40,7 @@ test("general settings render exactly the requested dialog area without a page s
     const html = renderSettings(section);
     assert.equal(html.match(/<h2 /g)?.length, 1);
     assert.match(html, new RegExp(`<h2[^>]*tabindex="-1"[^>]*>${heading}</h2>`));
-    assert.doesNotMatch(html, /Allgemeine Einstellungen|data-in-page-navigation|>Lerneinstellungen</);
+    assert.doesNotMatch(html, /Allgemeine Einstellungen|>Lerneinstellungen</);
   }
 });
 

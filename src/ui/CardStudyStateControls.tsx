@@ -19,8 +19,8 @@ function CardStudyStateRow({ icon: Icon, label, children, disabled = false }: {
   disabled?: boolean;
 }) {
   return (
-    <div className="flex min-h-control flex-wrap items-center justify-between gap-x-3 gap-y-2 py-1" aria-disabled={disabled || undefined}>
-      <span className={`core-field-label flex shrink-0 items-center gap-2 whitespace-nowrap ${disabled ? "text-core-muted" : ""}`}>
+    <div className="flex min-h-11 flex-wrap items-center justify-between gap-x-3 gap-y-2" aria-disabled={disabled || undefined}>
+      <span className={`core-control-label flex shrink-0 items-center gap-2 whitespace-nowrap ${disabled ? "text-core-muted" : "text-core-text"}`}>
         <Icon className="shrink-0 text-core-muted" size={16} aria-hidden="true" />
         <span>{label}</span>
       </span>
