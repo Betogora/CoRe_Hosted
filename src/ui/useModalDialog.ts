@@ -3,6 +3,20 @@ import React from "react";
 const FOCUSABLE_SELECTOR =
   'button:not([disabled]), iframe, [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
+/** Dialogs of this hook in opening order; only the last one answers Escape. */
+const openDialogs: HTMLElement[] = [];
+
+/**
+ * Another dialog lies on top, also while the focus rests on the page: a later one of this hook, or a foreign modal
+ * such as `ActionDialog` portalled after this one.
+ */
+function isCoveredByOtherDialog(dialog: HTMLElement | null) {
+  if (!dialog) return false;
+  if (openDialogs.at(-1) !== dialog) return true;
+  return [...document.querySelectorAll<HTMLElement>('[aria-modal="true"]')]
+    .some((other) => !openDialogs.includes(other) && Boolean(dialog.compareDocumentPosition(other) & Node.DOCUMENT_POSITION_FOLLOWING));
+}
+
 function isInsideOtherDialog(target: Element, dialog: HTMLElement | null) {
   const owner = target.closest('[role="dialog"], [role="alertdialog"]');
   return Boolean(owner && owner !== dialog);
@@ -34,19 +48,23 @@ export function useModalDialog({
     const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
     const frame = window.requestAnimationFrame(() => initialFocusRef.current?.focus());
+    const dialog = dialogRef.current;
+    if (dialog) openDialogs.push(dialog);
 
     function handleKeyDown(event: KeyboardEvent) {
       if (event.key === "Escape") {
         // An open selection list or a confirmation stacked on top handles its own Escape first.
         if (event.target instanceof Element && (event.target.closest("[data-radix-popper-content-wrapper]") || isInsideOtherDialog(event.target, dialogRef.current))) return;
+        if (isCoveredByOtherDialog(dialog)) return;
         event.preventDefault();
         if (stopEscapePropagation) event.stopPropagation();
         onCloseRef.current();
         return;
       }
       if (event.key !== "Tab") return;
-      const focusable = dialogRef.current?.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR);
-      if (!focusable?.length) return;
+      // Content of hidden panels stays mounted but cannot take the focus.
+      const focusable = [...dialogRef.current?.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR) ?? []].filter((element) => element.getClientRects().length > 0);
+      if (!focusable.length) return;
       const first = focusable[0];
       const last = focusable[focusable.length - 1];
       if (event.shiftKey && document.activeElement === first) {
@@ -63,6 +81,7 @@ export function useModalDialog({
       window.cancelAnimationFrame(frame);
       document.body.style.overflow = previousOverflow;
       document.removeEventListener("keydown", handleKeyDown);
+      if (dialog) openDialogs.splice(openDialogs.indexOf(dialog), 1);
       const returnFocus = returnFocusRef?.current ?? fallbackReturnFocusRef.current;
       window.requestAnimationFrame(() => returnFocus?.focus());
     };
