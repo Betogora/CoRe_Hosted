@@ -234,9 +234,9 @@ Messung vom 2026-10-31 im [Verlauf](history.md).
 
 ### Kartenverwaltung
 
-- Massenaktionen schneller: 1.000 Karten lokal in höchstens 1 s statt rund
-  2 s; Untergrenze sind die sechs Katalogindizes (1,1 bis 1,7 s je 1.000
-  Zeilen), also nur mit weniger Indizes und einem Upgrade der lokalen Datenbank.
+- Massenaktionen schneller: 1.000 Karten lokal in höchstens 1 s statt 2 bis 4 s.
+  Weniger Katalogindizes reichen nicht (auch ohne Index über 1 s); Hebel sind
+  weniger Stores je Aktion und Katalogzeilen nur bei geänderten Feldern schreiben.
 
 ### Anki-Austausch
 
