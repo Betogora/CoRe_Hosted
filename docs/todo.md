@@ -209,11 +209,6 @@ unverändert.
       ohne Icon-Kachel und mit rahmenloser Form, Heatmap-Kopf ohne Kachel.
       Neue Bausteine mit Katalogdemo: Abschnittskopf, Kennzahlzeile,
       Schrittlinie, Unterstreichungs-Reiter, Dialograhmen, Tag-Töne.
-- [ ] **D2 – Formelemente:** Checkbox und Checkbox-Gruppe, Schalter,
-      Schieberegler, Datumsauswahl und Antwortoptionen (Single und Multiple
-      Choice, einzeilig) nach HeroUI v3 in CoRe-Farben; alle nativen
-      Checkboxen, Radios und Schieberegler der App umgestellt. Rahmen der
-      Dokumentenwerkzeuge des Texteditors liegt nicht mehr hinter der Leiste.
 - [ ] **D3 – Heute, Stapelliste, Erststart:** Tagesziel als Auftakt mit
       großer Restzahl und Start daneben, Kennzahlen als eine Zeile, ein Kopf
       je Kachel, keine Hinweise; Stapelliste ohne Außenrahmen mit 48-px-Zeilen,

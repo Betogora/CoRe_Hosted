@@ -49,6 +49,11 @@ test("date picker renders German day, month and year segments and a calendar tri
   assert.doesNotMatch(markup, /type="date"|data-invalid/);
 });
 
+test("a value outside min and max handed in by the caller is not marked invalid", () => {
+  const markup = renderToStaticMarkup(<CoreDatePicker value="2026-08-01" min="2026-08-10" today="2026-08-09" ariaLabel="Fälligkeit" onValueChange={() => undefined} />);
+  assert.doesNotMatch(markup, /data-invalid|aria-invalid/);
+});
+
 test("an empty date picker shows German placeholders", () => {
   const markup = renderToStaticMarkup(<CoreDatePicker value="" today="2026-08-19" ariaLabel="Tag" onValueChange={() => undefined} />);
   assert.deepEqual([...markup.matchAll(/data-placeholder="true" class="core-date-segment">([^<]+)</g)].map((match) => match[1]), ["TT", "MM", "JJJJ"]);

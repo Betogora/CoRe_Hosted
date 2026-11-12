@@ -268,7 +268,7 @@ test("Lernstart ist heute vorbelegt und bleibt beim Speichern und Bearbeiten erh
   await editor.getByRole("button", { name: "Plan aktivieren", exact: true }).click();
   await product.getByRole("button", { name: "Plan mit späterem Start: Details öffnen", exact: true }).click();
   await product.getByTestId("exam-card-details").last().getByRole("button", { name: "Bearbeiten", exact: true }).click();
-  await expect(editor.getByRole("button", { name: "Lernstart auswählen", exact: true })).toHaveText("19.10.2026");
+  await expect(editor.getByRole("group", { name: "Lernstart auswählen", exact: true })).toHaveText("19.10.2026");
 });
 
 

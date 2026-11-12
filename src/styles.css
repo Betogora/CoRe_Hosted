@@ -1978,6 +1978,7 @@ summary {
   /*
    * Form elements after HeroUI v3 (measured 2026-11-12 on heroui.com), in CoRe colours: 1-px border instead of the field
    * shadow, accent = action blue, keyboard focus after the global rule (2 px, 3 px offset), disabled at 50 %.
+   * Unselected boxes and circles use muted text at 80 % for a 3:1 contour (HeroUI relies on a soft shadow).
    * Shared rows: label 14/20 weight 500 next to the control at 12 px, description 12/16 muted and indented by control + gap,
    * group options 16 px apart (here: rows in button height without gap).
    */
@@ -1991,7 +1992,7 @@ summary {
   .core-checkbox-control > input, .core-radio-control > input, .core-switch-control > input { position: absolute; inset: 0; z-index: 1; width: 100%; height: 100%; margin: 0; opacity: 0; cursor: pointer; }
   @media (pointer: coarse) {
     /* A bare control keeps a 44-px touch target around its 16-px mark. */
-    .core-checkbox-control > input, .core-radio-control > input { inset: -0.875rem; width: auto; height: auto; }
+    .core-checkbox-control > input, .core-radio-control > input { inset: -0.9375rem; width: auto; height: auto; }
     .core-switch-control > input { inset: -0.75rem -0.25rem; width: auto; height: auto; }
   }
   :is(.core-checkbox-control, .core-radio-control, .core-switch-control):has(> input:focus-visible) { outline: 2px solid var(--core-focus-ring); outline-offset: 3px; }
@@ -2000,7 +2001,7 @@ summary {
      stroke 2.5, dash 22 drawn from offset 66 to 44 in 150 ms linear after 15 ms; indeterminate bar 12 px, stroke 3;
      pressed 95 % (100 ms ease-out); invalid: danger contour, checked invalid fills danger. */
   .core-checkbox { --core-check-fill: var(--core-check-accent, var(--core-action-primary)); }
-  .core-checkbox-control { width: 1rem; height: 1rem; border: var(--core-border-width) solid var(--core-border-interactive); border-radius: var(--core-radius-marker); background: var(--core-surface); color: var(--core-check-on-accent, var(--core-text-on-accent)); transition: border-color 200ms cubic-bezier(0, 0, 0.2, 1), transform 100ms cubic-bezier(0, 0, 0.2, 1); }
+  .core-checkbox-control { width: 1rem; height: 1rem; border: var(--core-border-width) solid color-mix(in srgb, var(--core-text-muted) 80%, var(--core-surface)); border-radius: var(--core-radius-marker); background: var(--core-surface); color: var(--core-check-on-accent, var(--core-text-on-accent)); transition: border-color 200ms cubic-bezier(0, 0, 0.2, 1), transform 100ms cubic-bezier(0, 0, 0.2, 1); }
   .core-checkbox-control::before { content: ""; position: absolute; inset: calc(-1 * var(--core-border-width)); border-radius: inherit; background: var(--core-check-fill); opacity: 0; scale: 0.7; transition: scale 100ms linear, opacity 200ms linear, background-color 200ms cubic-bezier(0, 0, 0.2, 1); pointer-events: none; }
   .core-checkbox-mark { position: relative; width: 0.625rem; height: 0.625rem; fill: none; stroke: currentColor; stroke-width: 2.5px; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 22; stroke-dashoffset: 66; pointer-events: none; }
   .core-checkbox-mark[data-mark="indeterminate"] { width: 0.75rem; height: 0.75rem; stroke-width: 3px; stroke-dasharray: none; stroke-dashoffset: 0; opacity: 0; }
@@ -2014,16 +2015,16 @@ summary {
   .core-checkbox[data-invalid][data-state="unchecked"] .core-checkbox-control { border-color: var(--core-danger); }
   .core-checkbox[data-invalid] { --core-check-fill: var(--core-danger); --core-check-on-accent: var(--core-text-on-danger); }
 
-  /* Radio: circle 16 px; selected fills the accent (200 ms ease-out) while the inner disc shrinks to 42.86 % as the dot,
-     57.14 % while pressed; control pressed 95 %. */
-  .core-radio-control { width: 1rem; height: 1rem; border: var(--core-border-width) solid var(--core-border-interactive); border-radius: var(--core-radius-round); background: var(--core-surface); transition: background-color 200ms cubic-bezier(0, 0, 0.2, 1), border-color 200ms cubic-bezier(0, 0, 0.2, 1), transform 100ms cubic-bezier(0, 0, 0.2, 1); }
-  .core-radio-dot { position: absolute; inset: calc(-1 * var(--core-border-width)); border-radius: inherit; background: var(--core-surface); scale: 1; transition: scale 200ms cubic-bezier(0, 0, 0.2, 1), background-color 200ms cubic-bezier(0, 0, 0.2, 1); pointer-events: none; }
+  /* Radio: circle 16 px; selected fills the accent (200 ms ease-out) while the inner disc shrinks to a 6.86-px dot (42.86 %
+     of 16 px, here 49 % of the 14-px inner disc), 9.14 px while pressed; control pressed 95 %. */
+  .core-radio-control { width: 1rem; height: 1rem; border: var(--core-border-width) solid color-mix(in srgb, var(--core-text-muted) 80%, var(--core-surface)); border-radius: var(--core-radius-round); background: var(--core-surface); transition: background-color 200ms cubic-bezier(0, 0, 0.2, 1), border-color 200ms cubic-bezier(0, 0, 0.2, 1), transform 100ms cubic-bezier(0, 0, 0.2, 1); }
+  .core-radio-dot { position: absolute; inset: 0; border-radius: inherit; background: var(--core-surface); scale: 1; transition: scale 200ms cubic-bezier(0, 0, 0.2, 1), background-color 200ms cubic-bezier(0, 0, 0.2, 1); pointer-events: none; }
   .core-radio:hover .core-radio-control { border-color: var(--core-text-muted); }
   .core-radio[data-state="checked"] .core-radio-control { border-color: transparent; background: var(--core-action-primary); }
-  .core-radio[data-state="checked"] .core-radio-dot { background: var(--core-text-on-accent); scale: 0.4286; }
+  .core-radio[data-state="checked"] .core-radio-dot { background: var(--core-text-on-accent); scale: 0.49; }
   .core-radio[data-state="checked"]:hover .core-radio-control { background: var(--core-action-primary-hover); }
   .core-radio-control:has(> input:active:not(:disabled)) { transform: scale(0.95); }
-  .core-radio[data-state="checked"] .core-radio-control:has(> input:active:not(:disabled)) .core-radio-dot { scale: 0.5714; }
+  .core-radio[data-state="checked"] .core-radio-control:has(> input:active:not(:disabled)) .core-radio-dot { scale: 0.653; }
   .core-radio[data-invalid] .core-radio-control { border-color: var(--core-danger); }
   .core-radio[data-invalid][data-state="checked"] .core-radio-control { background: var(--core-danger); }
 
@@ -2150,7 +2151,7 @@ summary {
 :is(.core-mcq-option, .core-kprim-option)[data-tone="missed"] { --core-mcq-role: var(--core-success); }
 :is(.core-mcq-option, .core-kprim-option)[data-tone="wrong"] { --core-mcq-role: var(--core-danger); background: var(--core-danger-surface); }
 .core-mcq-option[data-tone="muted"] { color: var(--core-text-muted); }
-.core-mcq-indicator { display: grid; width: 1rem; height: 1rem; flex-shrink: 0; place-items: center; border: var(--core-border-width) solid var(--core-border-interactive); border-radius: var(--core-radius-marker); background: var(--core-surface); color: var(--core-text-on-accent); transition: background-color 200ms cubic-bezier(0, 0, 0.2, 1), border-color 200ms cubic-bezier(0, 0, 0.2, 1); }
+.core-mcq-indicator { display: grid; width: 1rem; height: 1rem; flex-shrink: 0; place-items: center; border: var(--core-border-width) solid color-mix(in srgb, var(--core-text-muted) 80%, var(--core-surface)); border-radius: var(--core-radius-marker); background: var(--core-surface); color: var(--core-text-on-accent); transition: background-color 200ms cubic-bezier(0, 0, 0.2, 1), border-color 200ms cubic-bezier(0, 0, 0.2, 1); }
 .core-mcq-indicator[data-shape="dot"] { border-radius: var(--core-radius-round); }
 .core-mcq-indicator[data-shape="dot"]::after { content: ""; width: 42.86%; height: 42.86%; border-radius: inherit; background: currentColor; scale: 0; transition: scale 200ms cubic-bezier(0, 0, 0.2, 1); }
 .core-mcq-indicator > svg { width: 0.625rem; height: 0.625rem; fill: none; stroke: currentColor; stroke-width: 2.5px; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 22; stroke-dashoffset: 66; }
@@ -2921,6 +2922,8 @@ summary {
 }
 .core-summary-document-editor { min-width: 0; container: summary-document / inline-size; }
 .core-summary-tools { position: sticky; top: 0; z-index: 20; display: flex; flex-wrap: wrap; align-items: center; gap: var(--core-space-md); padding: var(--core-space-sm); border: var(--core-border-width) solid var(--core-border); border-radius: var(--core-radius-control); }
+/* Canvas band above the stuck tools: covers the gap to the scroll area edge so the sheet never shows above them. */
+.core-summary-tools::before { content: ""; position: absolute; inset-inline: calc(-1 * var(--core-border-width)); bottom: calc(100% + var(--core-border-width)); height: var(--core-space-sm); background: var(--core-canvas); pointer-events: none; }
 .core-summary-tool-context, .core-summary-tool-group, .core-summary-tool-actions, .core-rich-text-document-toolbar, .core-rich-text-group { display: flex; align-items: center; min-width: 0; }
 .core-summary-tool-context, .core-rich-text-document-toolbar { flex: 1 1 0; flex-wrap: wrap; gap: var(--core-space-xs) var(--core-space-md); }
 .core-summary-tool-group, .core-rich-text-group { flex: none; gap: var(--core-space-xs); }

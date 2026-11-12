@@ -144,7 +144,8 @@ export function CoreDatePicker({ value, min, max, today, ariaLabel, ariaDescribe
   const days = open ? createCoreDatePickerMonth(visibleMonth, { value, today, min, max }) : [];
   const draftKey = keyFromDraft(draft);
   const complete = SEGMENTS.every((segment) => draft[segment.type]);
-  const invalid = !typing && complete && (!draftKey || clampDayKey(draftKey, min, max) !== draftKey);
+  // Only an own entry is marked; the value handed in by the caller is never flagged.
+  const invalid = !typing && complete && draftKey !== value && (!draftKey || clampDayKey(draftKey, min, max) !== draftKey);
 
   React.useEffect(() => setDraft(draftFromKey(value)), [value]);
 
@@ -228,13 +229,18 @@ export function CoreDatePicker({ value, min, max, today, ariaLabel, ariaDescribe
       focusSegment(index + (event.key === "ArrowLeft" ? -1 : 1));
       return;
     }
+    if (event.key === "Enter") {
+      event.preventDefault();
+      setTyping(null);
+      commitDraft(draft);
+      return;
+    }
     const edit = editDateSegment(draft, type, event.key, typing?.type === type ? typing.digits : null, draftFromKey(resolveAnchor(value, today, min, max)));
     if (!edit) return;
     event.preventDefault();
     setTyping(edit.typed === null ? null : { type, digits: edit.typed });
+    // Callers act on every value (exam plans drop later topics), so the entry commits only with Enter or on leaving.
     setDraft(edit.draft);
-    // An entry in progress commits once its segment is full, so a half-typed day never reaches the caller.
-    if (edit.typed === null) commitDraft(edit.draft);
     if (edit.advance) focusSegment(index + 1);
   }
 
@@ -257,14 +263,18 @@ export function CoreDatePicker({ value, min, max, today, ariaLabel, ariaDescribe
           data-core-date-picker="field"
           data-invalid={invalid || undefined}
           className={`core-field core-date-field ${className}`}
-          onBlur={(event) => {
-            if (event.currentTarget.contains(event.relatedTarget as Node | null)) return;
-            setTyping(null);
-            commitDraft(draft);
-            setDraft(draftFromKey(value));
-          }}
         >
-          <span className="core-date-field-segments">
+          {/* Inside a caller's <label>, a click would otherwise activate the calendar trigger instead of the segment. */}
+          <span
+            className="core-date-field-segments"
+            onClick={(event) => event.preventDefault()}
+            onBlur={(event) => {
+              if (event.currentTarget.contains(event.relatedTarget as Node | null)) return;
+              setTyping(null);
+              commitDraft(draft);
+              setDraft(draftFromKey(value));
+            }}
+          >
             {SEGMENTS.map((segment, index) => {
               const text = draft[segment.type];
               const range = segmentRange(segment.type, draft);
