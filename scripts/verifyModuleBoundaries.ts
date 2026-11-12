@@ -73,6 +73,9 @@ const MODULE_LIMITS: readonly ModuleLimit[] = [
   { file: "src/cloudRepository.ts", measure: "any-Typen", max: 2 },
   { file: "src/syncEngine.ts", measure: "any-Typen", max: 3 },
   { file: "src/indexedDbCoreRepository.ts", measure: "Zeilen", max: 915 },
+  { file: "src/apkgImportInternal.ts", measure: "any-Typen", max: 3 },
+  { file: "src/cloudAuth.ts", measure: "any-Typen", max: 3 },
+  { file: "src/documentModel.ts", measure: "any-Typen", max: 0 },
 ];
 
 const MEASURES = {

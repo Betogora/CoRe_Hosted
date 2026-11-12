@@ -219,6 +219,9 @@ test("cloud auth passes the app URL into confirmation and reset email redirects"
       return {};
     },
     auth: {
+      async getUser() {
+        return { data: { user }, error: null };
+      },
       async signUp(input: any) {
         signUpCalls.push(input);
         return { data: { user, session: null }, error: null };
@@ -287,7 +290,7 @@ test("cloud auth updates a recovered password through Supabase", async () => {
 
   const updated = await updateCloudPassword(client, "supersecret");
 
-  assert.equal(updated.id, user.id);
+  assert.equal(updated?.id, user.id);
   assert.deepEqual(calls[0], { password: "supersecret" });
   await assert.rejects(() => updateCloudPassword(client, "short"), /mindestens 8 Zeichen/);
 });

@@ -20,20 +20,20 @@ const PDF_EXTENSIONS = [".pdf"];
 export const READABLE_SOURCE_DOCUMENT_ACCEPT = [...TEXT_EXTENSIONS, ...PDF_EXTENSIONS].join(",");
 export const READABLE_SOURCE_DOCUMENT_LABEL = "PDF, Text, Markdown, CSV oder TSV";
 
-function extensionOf(fileName: any = "") {
+function extensionOf(fileName: unknown = "") {
   const match = String(fileName).toLowerCase().match(/\.[^.]+$/);
   return match?.[0] ?? "";
 }
 
 const TEXT_MIME_TYPES = ["text/plain", "text/markdown", "text/csv", "text/tab-separated-values"];
 
-function isTextReadableFile(file: any) {
+function isTextReadableFile(file: Pick<File, "name" | "type">) {
   const type = file?.type ?? "";
   const extension = extensionOf(file?.name);
   return TEXT_MIME_TYPES.includes(type) || TEXT_EXTENSIONS.includes(extension);
 }
 
-function isPdfFile(file: any) {
+function isPdfFile(file: Pick<File, "name" | "type">) {
   const type = file?.type ?? "";
   const extension = extensionOf(file?.name);
   return type === "application/pdf" || PDF_EXTENSIONS.includes(extension);
@@ -44,7 +44,7 @@ export function isReadableSourceDocument(file: Pick<File, "name" | "type">): boo
   return isTextReadableFile(file) || isPdfFile(file);
 }
 
-function createBaseMetadata(file: any, overrides: any = {}) {
+function createBaseMetadata(file: Pick<File, "size" | "lastModified">, overrides: Record<string, unknown> = {}) {
   return {
     size: file.size ?? 0,
     lastModified: file.lastModified ? new Date(file.lastModified).toISOString() : null,
@@ -52,7 +52,19 @@ function createBaseMetadata(file: any, overrides: any = {}) {
   };
 }
 
-function normalizePdfTextItem(item: any) {
+/** A text item of a PDF page as pdf.js delivers it; marked-content entries carry neither field. */
+interface PdfTextItem {
+  str?: unknown;
+  transform?: unknown;
+}
+
+interface PdfPageText {
+  pageNumber: number;
+  text: string;
+  textItemCount: number;
+}
+
+function normalizePdfTextItem(item: PdfTextItem | null | undefined) {
   const transform = Array.isArray(item?.transform) ? item.transform : [];
   return {
     text: String(item?.str ?? "").replace(/\s+/g, " ").trim(),
@@ -61,13 +73,13 @@ function normalizePdfTextItem(item: any) {
   };
 }
 
-function formatPdfTextContentItems(items: any = [], { pageNumber = null }: any = {}) {
-  const normalizedItems = items.map(normalizePdfTextItem).filter((item: any) => item.text);
+function formatPdfTextContentItems(items: readonly PdfTextItem[] = [], { pageNumber = null }: { pageNumber?: number | null } = {}) {
+  const normalizedItems = items.map(normalizePdfTextItem).filter((item) => item.text);
   if (normalizedItems.length === 0) return pageNumber ? `Seite ${pageNumber}\nKein Textlayer gefunden.` : "";
 
-  const lines: any[] = [];
-  for (const item of normalizedItems.sort((left: any, right: any) => right.y - left.y || left.x - right.x)) {
-    const existingLine = lines.find((line: any) => Math.abs(line.y - item.y) <= 3);
+  const lines: Array<{ y: number; items: typeof normalizedItems }> = [];
+  for (const item of normalizedItems.sort((left, right) => right.y - left.y || left.x - right.x)) {
+    const existingLine = lines.find((line) => Math.abs(line.y - item.y) <= 3);
     if (existingLine) {
       existingLine.items.push(item);
       existingLine.y = (existingLine.y + item.y) / 2;
@@ -77,11 +89,11 @@ function formatPdfTextContentItems(items: any = [], { pageNumber = null }: any =
   }
 
   const textLines = lines
-    .sort((left: any, right: any) => right.y - left.y)
-    .map((line: any) =>
+    .sort((left, right) => right.y - left.y)
+    .map((line) =>
       line.items
-        .sort((left: any, right: any) => left.x - right.x)
-        .map((item: any) => item.text)
+        .sort((left, right) => left.x - right.x)
+        .map((item) => item.text)
         .join(" ")
         .replace(/\s+([,.;:!?])/g, "$1")
         .trim(),
@@ -91,10 +103,10 @@ function formatPdfTextContentItems(items: any = [], { pageNumber = null }: any =
   return [pageNumber ? `Seite ${pageNumber}` : "", ...textLines].filter(Boolean).join("\n");
 }
 
-function joinPageTexts(pages: any) {
+function joinPageTexts(pages: readonly PdfPageText[]) {
   let cursor = 0;
-  const parts: any[] = [];
-  const pagesWithOffsets = pages.map((page: any) => {
+  const parts: string[] = [];
+  const pagesWithOffsets = pages.map((page) => {
     const text = String(page.text ?? "").trim();
     const charStart = cursor;
     parts.push(text);
@@ -112,7 +124,7 @@ function joinPageTexts(pages: any) {
   };
 }
 
-async function readPdfText(file: any) {
+async function readPdfText(file: Pick<File, "arrayBuffer">) {
   const pdfjs = await loadPdfJs();
 
   const data = new Uint8Array(await file.arrayBuffer());
@@ -122,7 +134,7 @@ async function readPdfText(file: any) {
     isEvalSupported: false,
   });
   const pdf = await loadingTask.promise;
-  const pages: any[] = [];
+  const pages: PdfPageText[] = [];
 
   try {
     for (let pageNumber = 1; pageNumber <= pdf.numPages; pageNumber += 1) {
@@ -142,7 +154,7 @@ async function readPdfText(file: any) {
   return joinPageTexts(pages);
 }
 
-export async function createDocumentFromFile(file: any) {
+export async function createDocumentFromFile(file: File) {
   if (!file) {
     throw new Error("Es wurde keine Datei übergeben.");
   }
@@ -151,13 +163,13 @@ export async function createDocumentFromFile(file: any) {
   const extension = extensionOf(file.name);
   const mimeType =
     file.type ||
-    {
+    ({
       ".pdf": "application/pdf",
       ".md": "text/markdown",
       ".markdown": "text/markdown",
       ".csv": "text/csv",
       ".tsv": "text/tab-separated-values",
-    }[extension] ||
+    } as Record<string, string | undefined>)[extension] ||
     "application/octet-stream";
 
   if (canReadText) {

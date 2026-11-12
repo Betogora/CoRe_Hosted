@@ -11,6 +11,13 @@ const ZSTD_MAGIC = [0x28, 0xb5, 0x2f, 0xfd];
 const textDecoder = new TextDecoder("utf-8");
 let protobufDecoders: Promise<typeof import("./apkgImportProtobuf.ts")> | null = null;
 
+type SqliteRow = Record<string, unknown>;
+/** The SQLite tables of an Anki collection; cells stay `unknown` until read. */
+interface AnkiDatabase {
+  readTable(tableName: string): SqliteRow[];
+}
+type ZipArchive = Awaited<ReturnType<typeof readZipArchive>>;
+
 function loadProtobufDecoders() {
   protobufDecoders ??= import("./apkgImportProtobuf.ts");
   return protobufDecoders;
@@ -96,7 +103,7 @@ export function normalizeAnkiReviewHistory(rows: unknown): AnkiReviewHistoryPayl
   return { entries, totalRows: rows.length, skippedRows };
 }
 
-function parseJson(value: any, fallback: any) {
+function parseJson(value: unknown, fallback: unknown): unknown {
   if (!value || typeof value !== "string") return fallback;
 
   try {
@@ -106,7 +113,7 @@ function parseJson(value: any, fallback: any) {
   }
 }
 
-function normalizeMediaFileName(value: any) {
+function normalizeMediaFileName(value: unknown) {
   return String(value ?? "")
     .replace(/\\/g, "/")
     .split("/")
@@ -114,7 +121,7 @@ function normalizeMediaFileName(value: any) {
     .at(-1);
 }
 
-function maybeDecompressZstdBytes(bytes: any) {
+function maybeDecompressZstdBytes(bytes: Uint8Array) {
   if (!hasZstdSignature(bytes)) return bytes;
 
   try {
@@ -124,11 +131,11 @@ function maybeDecompressZstdBytes(bytes: any) {
   }
 }
 
-function rotateLeft(value: any, bits: any) {
+function rotateLeft(value: number, bits: number) {
   return (value << bits) | (value >>> (32 - bits));
 }
 
-function sha1HexSync(bytes: any) {
+function sha1HexSync(bytes: Uint8Array) {
   const paddedLength = Math.ceil((bytes.length + 9) / 64) * 64;
   const padded = new Uint8Array(paddedLength);
   padded.set(bytes);
@@ -193,15 +200,15 @@ function sha1HexSync(bytes: any) {
     h4 = (h4 + e) >>> 0;
   }
 
-  return [h0, h1, h2, h3, h4].map((word: any) => word.toString(16).padStart(8, "0")).join("");
+  return [h0, h1, h2, h3, h4].map((word) => word.toString(16).padStart(8, "0")).join("");
 }
 
-async function sha1Hex(bytes: any) {
+async function sha1Hex(bytes: Uint8Array<ArrayBuffer>) {
   if (globalThis.crypto?.subtle) return sha1DigestHex(bytes);
   return sha1HexSync(bytes);
 }
 
-function inferMimeType(name: any, bytes: any = new Uint8Array()) {
+function inferMimeType(name: unknown, bytes: Uint8Array = new Uint8Array()) {
   const normalized = String(name ?? "").toLowerCase();
 
   if (bytes[0] === 0xff && bytes[1] === 0xd8) return "image/jpeg";
@@ -219,24 +226,25 @@ function inferMimeType(name: any, bytes: any = new Uint8Array()) {
   return "application/octet-stream";
 }
 
-function getDecksFromCollection(colRows: any) {
-  const first = colRows[0] ?? {};
-  const deckMap = parseJson(first.decks, {});
+function getDecksFromCollection(colRows: SqliteRow[]) {
+  const first: SqliteRow = colRows[0] ?? {};
+  // The collection's JSON column holds an object of decks; nothing here checks it, as before.
+  const deckMap = parseJson(first.decks, {}) as Record<string, SqliteRow>;
 
-  return Object.values(deckMap).map((deck: any) => ({
+  return Object.values(deckMap).map((deck) => ({
     id: String(deck.id ?? ""),
     name: deck.name ?? "Anki Deck",
     filtered: Number(deck.dyn ?? 0) === 1,
   }));
 }
 
-function getModelsFromCollection(colRows: any) {
-  const first = colRows[0] ?? {};
-  const rawModels = parseJson(first.models, {});
-  return Object.fromEntries(Object.entries(rawModels).map(([modelKey, candidate]: [string, any]) => {
-    const model = candidate && typeof candidate === "object" ? candidate : {};
+function getModelsFromCollection(colRows: SqliteRow[]) {
+  const first: SqliteRow = colRows[0] ?? {};
+  const rawModels = parseJson(first.models, {}) as Record<string, unknown>;
+  return Object.fromEntries(Object.entries(rawModels).map(([modelKey, candidate]) => {
+    const model: SqliteRow = candidate && typeof candidate === "object" ? candidate as SqliteRow : {};
     const requirements = Array.isArray(model.req)
-      ? model.req.map((requirement: any) => ({
+      ? model.req.map((requirement) => ({
         cardOrdinal: Number(requirement?.[0] ?? 0),
         kind: requirement?.[1] === "all" ? 2 : requirement?.[1] === "any" ? 1 : 0,
         fieldOrdinals: Array.isArray(requirement?.[2]) ? requirement[2].map(Number) : [],
@@ -265,7 +273,7 @@ function getModelsFromCollection(colRows: any) {
       id: String(model.id ?? modelKey),
       type: config.kind,
       config,
-      flds: fields.map((field: any, index: number) => ({
+      flds: fields.map((field, index: number) => ({
         ...field,
         name: String(field?.name ?? ""),
         ord: Number(field?.ord ?? index),
@@ -286,7 +294,7 @@ function getModelsFromCollection(colRows: any) {
           otherBase64: null,
         },
       })),
-      tmpls: templates.map((template: any, index: number) => ({
+      tmpls: templates.map((template, index: number) => ({
         ...template,
         name: String(template?.name ?? ""),
         ord: Number(template?.ord ?? index),
@@ -308,20 +316,20 @@ function getModelsFromCollection(colRows: any) {
   }));
 }
 
-async function extractApkgArchive(file: any) {
+async function extractApkgArchive(file: Parameters<typeof readZipArchive>[0]) {
   return readZipArchive(file);
 }
 
-function hasSqliteSignature(bytes: any) {
+function hasSqliteSignature(bytes: Uint8Array) {
   return textDecoder.decode(bytes.slice(0, SQLITE_SIGNATURE.length)) === SQLITE_SIGNATURE;
 }
 
-function hasZstdSignature(bytes: any) {
-  return ZSTD_MAGIC.every((byte: any, index: any) => bytes[index] === byte);
+function hasZstdSignature(bytes: Uint8Array) {
+  return ZSTD_MAGIC.every((byte, index) => bytes[index] === byte);
 }
 
-async function findReadableCollectionDatabase(archive: any) {
-  const entries = COLLECTION_NAMES.map((name: any) => archive.getEntry(name)).filter(Boolean);
+async function findReadableCollectionDatabase(archive: ZipArchive) {
+  const entries = COLLECTION_NAMES.map((name) => archive.getEntry(name)).filter((entry) => entry !== undefined);
 
   if (entries.length === 0) {
     throw new Error("Keine Anki-Collection gefunden. Erwartet wurde collection.anki2, collection.anki21 oder collection.anki21b.");
@@ -358,35 +366,35 @@ async function findReadableCollectionDatabase(archive: any) {
   throw new Error("Keine lesbare SQLite-Collection gefunden. Dieses APKG nutzt vermutlich ein neueres Collection-Format, das der lokale MVP noch nicht entpacken kann.");
 }
 
-function parseAnkiDecks(database: any) {
+function parseAnkiDecks(database: AnkiDatabase) {
   const deckRows = database.readTable("decks");
 
   if (deckRows.length > 0) {
     return deckRows
-      .map((deck: any) => ({
+      .map((deck) => ({
         id: String(deck.id ?? deck.rowid ?? ""),
         name: normalizeAnkiDeckPath(deck.name),
         // V18 `kind` is a protobuf oneof: field 1 = normal, field 2 = filtered.
         filtered: deck.kind instanceof Uint8Array && deck.kind[0] === 0x12,
       }))
-      .sort((left: any, right: any) => {
+      .sort((left, right) => {
         const leftDefault = left.name === "Default" ? 1 : 0;
         const rightDefault = right.name === "Default" ? 1 : 0;
         return leftDefault - rightDefault;
       });
   }
 
-  return getDecksFromCollection(database.readTable("col")).map((deck: any) => ({
+  return getDecksFromCollection(database.readTable("col")).map((deck) => ({
     ...deck,
     name: normalizeAnkiDeckPath(deck.name),
   }));
 }
 
-function parseAnkiNotes(database: any) {
+function parseAnkiNotes(database: AnkiDatabase) {
   return database.readTable("notes");
 }
 
-function parseAnkiCards(database: any) {
+function parseAnkiCards(database: AnkiDatabase) {
   return database.readTable("cards");
 }
 
@@ -394,7 +402,7 @@ function parseAnkiReviewHistory(database: { readTable(tableName: string): unknow
   return normalizeAnkiReviewHistory(database.readTable("revlog"));
 }
 
-async function parsePackageMetadataBytes(bytes: any) {
+async function parsePackageMetadataBytes(bytes: Uint8Array) {
   try {
     const { decodePackageMetadata } = await loadProtobufDecoders();
     return decodePackageMetadata(bytes);
@@ -403,7 +411,7 @@ async function parsePackageMetadataBytes(bytes: any) {
   }
 }
 
-async function parseMediaEntriesBytes(bytes: any) {
+async function parseMediaEntriesBytes(bytes: Uint8Array) {
   try {
     const { decodeMediaEntries } = await loadProtobufDecoders();
     return decodeMediaEntries(bytes);
@@ -412,7 +420,7 @@ async function parseMediaEntriesBytes(bytes: any) {
   }
 }
 
-async function parseAnkiPackageMetadata(archive: any) {
+async function parseAnkiPackageMetadata(archive: ZipArchive) {
   const metaEntry = archive.getEntry("meta");
 
   if (!metaEntry) {
@@ -446,7 +454,7 @@ export interface AnkiPackage {
   media: { format: string; files: AnkiPackageMediaFile[]; missing: string[] };
 }
 
-async function readAnkiMediaIndex(archive: any): Promise<AnkiPackage["media"]> {
+async function readAnkiMediaIndex(archive: ZipArchive): Promise<AnkiPackage["media"]> {
   const mediaEntry = archive.getEntry("media");
   if (!mediaEntry) return { format: "none", files: [], missing: [] };
   const mediaBytes = maybeDecompressZstdBytes(await mediaEntry.readBytes());
@@ -470,7 +478,7 @@ async function readAnkiMediaIndex(archive: any): Promise<AnkiPackage["media"]> {
       missing.push(descriptor.name);
       continue;
     }
-    const readBytes = async () => maybeDecompressZstdBytes(await entry.readBytes()) as Uint8Array;
+    const readBytes = async () => maybeDecompressZstdBytes(await entry.readBytes()) as Uint8Array<ArrayBuffer>;
     let { sha1, size } = descriptor;
     if (sha1 === null) {
       const bytes = await readBytes();
@@ -490,7 +498,7 @@ export async function readAnkiPackage(file: Blob & { name: string }, onStep: (st
   const archive = await extractApkgArchive(file);
   onStep("collection");
   const { bytes } = await findReadableCollectionDatabase(archive);
-  const database = readSqliteDatabase(bytes);
+  const database: AnkiDatabase = readSqliteDatabase(bytes);
   const colRows = database.readTable("col");
   onStep("cards");
   const metadata = await parseAnkiPackageMetadata(archive);
@@ -517,7 +525,7 @@ function normalizeAnkiDeckPath(value: unknown) {
     .join("::");
 }
 
-async function getModelsFromDatabase(database: any, colRows: any) {
+async function getModelsFromDatabase(database: AnkiDatabase, colRows: SqliteRow[]) {
   const legacyModels = getModelsFromCollection(colRows);
   if (Object.keys(legacyModels).length > 0) return legacyModels;
   const {
@@ -529,8 +537,8 @@ async function getModelsFromDatabase(database: any, colRows: any) {
   const notetypes = database.readTable("notetypes");
   const fields = database.readTable("fields");
   const templates = database.readTable("templates");
-  const fieldsByNotetype = new Map<string, any[]>();
-  const templatesByNotetype = new Map<string, any[]>();
+  const fieldsByNotetype = new Map<string, SqliteRow[]>();
+  const templatesByNotetype = new Map<string, SqliteRow[]>();
 
   for (const field of fields) {
     const id = String(field.ntid ?? "");
@@ -546,7 +554,7 @@ async function getModelsFromDatabase(database: any, colRows: any) {
   }
 
   return Object.fromEntries(
-    notetypes.map((notetype: any) => {
+    notetypes.map((notetype) => {
       const id = String(notetype.id ?? notetype.rowid ?? "");
       const name = String(notetype.name ?? "Unknown Note Type");
       const config = decodeAnkiNotetypeConfig(notetype.config);
