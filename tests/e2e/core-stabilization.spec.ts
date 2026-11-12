@@ -950,7 +950,8 @@ test("card rescheduling preserves scheduler state and keeps version history out 
   const dueDate = page.getByRole("group", { name: "Nächste Fälligkeit", exact: true });
   await expect(dueDate).toContainText(/\d{2}\.\d{2}\.\d{4}/);
   await expect(page.getByRole("button", { name: "Neu planen" })).toHaveCount(0);
-  await page.getByRole("switch", { name: "Aussetzen", exact: true }).check();
+  // Der Schalter ist kontrolliert und folgt dem gespeicherten Zustand erst nach der Mutation.
+  await page.getByRole("switch", { name: "Aussetzen", exact: true }).click();
   await expect(page.getByRole("switch", { name: "Aussetzen", exact: true })).toBeChecked();
   await expect.poll(async () => (await storedCard(page, DECK_IDS.africa, "card_world_capitals_civ"))?.status).toBe("suspended");
   const before = await storedCard(page, DECK_IDS.africa, "card_world_capitals_civ");

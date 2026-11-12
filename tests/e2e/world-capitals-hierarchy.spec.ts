@@ -401,6 +401,8 @@ test("active deck header and rows fit every target width and toggle reliably on 
       expect(layout.headerLabelsFit).toBe(true);
       expect(layout.rowLabelsHidden).toBe(true);
       expect(layout.headerStatusGapSpread).toBeLessThanOrEqual(1);
+      // Stacked rows set their counts as one inline line, so even column spacing only applies to the table layout.
+      expect(layout.statusGapSpread).toBeLessThanOrEqual(1);
       if (layout.headerLabels.length > 1) expect(layout.headerRowAlignment).toBeLessThanOrEqual(1);
       // The list keeps fixed 44-px metric columns at every width.
       expect(layout.metricWidth).toBeCloseTo(44, 0);
@@ -411,7 +413,6 @@ test("active deck header and rows fit every target width and toggle reliably on 
     expect(layout.collapseChevronCenterOffset).toBeCloseTo(0, 0);
     expect(layout.rootIconOffset).toBeCloseTo(0, 0);
     if (layout.nameWrapping.some(Boolean) && layout.nameWrapping.some((wraps) => !wraps)) mixedNameWrappingSeen = true;
-    expect(layout.statusGapSpread).toBeLessThanOrEqual(1);
     expect(layout.nameWidth).toBeGreaterThan(0);
     if (width >= 700) expect(layout.nameWidth).toBeGreaterThanOrEqual(layout.iconWidth);
   }

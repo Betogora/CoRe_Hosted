@@ -802,7 +802,7 @@ test("[Vertrag: typgerechter Multiple-Choice-Lebenszyklus] @beta-core Optionen, 
   await previewDialog.getByRole("button", { name: "Antwort prüfen" }).click();
   await expect(previewDialog.getByRole("button", { name: "Rückseite" })).toHaveAttribute("aria-pressed", "true");
   await expect(previewDialog.getByText("Nicht ganz. Vergleiche deine Auswahl mit der Lösung.", { exact: true })).toBeVisible();
-  await expect(previewDialog.locator(".core-mcq-option-correct")).toContainText("Beta");
+  await expect(previewDialog.locator('[data-tone="missed"]')).toContainText("Beta");
   await expect(previewDialog.getByRole("button", { name: /Bewertung/ })).toHaveCount(0);
   await previewDialog.getByRole("button", { name: "Vorderseite" }).click();
   await expect(previewDialog.getByRole("button", { name: "Antwortoption A: Alpha" })).toHaveAttribute("aria-pressed", "false");
@@ -836,7 +836,7 @@ test("[Vertrag: typgerechter Multiple-Choice-Lebenszyklus] @beta-core Optionen, 
   await page.getByTestId(`learn-deck-row-${deck.id}`).getByRole("button", { name: /lernen$/ }).click();
   await page.getByRole("button", { name: "Antwortoption A: Alpha" }).click();
   await page.getByRole("button", { name: "Antwort prüfen" }).click();
-  await expect(page.locator(".core-mcq-option-correct")).toContainText("Gamma neu");
+  await expect(page.locator('[data-tone="missed"]')).toContainText("Gamma neu");
   await expect(page.getByText("Nicht ganz. Vergleiche deine Auswahl mit der Lösung.", { exact: true })).toBeVisible();
   await expect(page.frameLocator('iframe[title="Antwort"]').getByText("Gamma neu ist nach der Bearbeitung richtig.", { exact: true })).toBeVisible();
   await page.getByRole("button", { name: /Bewertung Gut/ }).click();
