@@ -5,7 +5,7 @@
 | Seite | Zeigt | Erzeugt aus |
 | --- | --- | --- |
 | [Docs](index.html) | diesen Wegweiser | `README.md` |
-| [Specs](specs.html) | den vollständigen Produktvertrag | `specs.md` |
+| [Specs](specs.html) | je Funktion Absicht, Regeln und Entscheidungen, mit Schaubildern | `specs.md` |
 | [Journeys](journeys.html) | die Kernjourneys mit Zweck, Schrittkette und verlinkter Akzeptanz | Kapitel „Kernjourneys“ von `specs.md` |
 | [UI-Elements](ui-elements.html) | jede UI-Komponente und jedes Format genau einmal, als echte Komponente | `scripts/uiCatalogDemos.tsx`, `scripts/uiCatalogPatterns.html` |
 | [Kartenbausteine](card-types.html) | alle Renderer-Fälle mit Erstellungsweg | dieselben Demos und CoRe-Modellhelfer |
@@ -20,7 +20,7 @@ Gerüst der Katalog-Browsertests.
 
 | Frage | Quelle | Gehört nicht hinein |
 | --- | --- | --- |
-| Was soll das Produkt tun? | [`specs.md`](specs.md) | Architektur, APIs, Runbooks, Roadmap |
+| Was soll das Produkt tun und warum? | [`specs.md`](specs.md) | Oberflächendetails, Architektur, APIs, Messwerte, Runbooks, Roadmap ([Pflegeregel](specs.md#pflege-dieser-datei)) |
 | Wie ist es gebaut, wem gehört was? | [`architecture.md`](architecture.md) | Produktstatus, Nachweise |
 | Was ist heute da, was fehlt? | [`status.md`](status.md) | Verhalten (steht in den Specs), Planung |
 | Was ist warum entschieden? | [`decisions.md`](decisions.md) | offene Schritte, Layoutregeln |
@@ -52,6 +52,10 @@ Technische Einstiege außerhalb von `docs/`:
    [visuellen Pflichtmatrix](test-portfolio.md#visuelle-pflichtmatrix) ansehen;
    ein technischer Check ersetzt das nicht.
 
+- Schaubilder stehen als `schaubild`-Codeblock im Markdown: `Titel:`, dann Zeilen aus Kästen als
+  `Folge:` (mit Pfeilen) oder `Gruppe:` (nebeneinander), dazwischen `Pfeil:` nach unten. Ein Kasten ist
+  `Titel | Detail`, wahlweise mit Ton davor (`[primär]`, `[erfolg]`, `[warnung]`, `[gefahr]`, `[info]`);
+  `-> Text` beschriftet den nächsten Pfeil einer Folge.
 - Erledigtes verschwindet aus `todo.md`; Details stehen in Commit und Pull
   Request, Production- und Datenbankschritte als Betriebsnachweis in `history.md`.
 - Offene Gestaltungsvarianten werden per `visual-ab-review` als temporäre

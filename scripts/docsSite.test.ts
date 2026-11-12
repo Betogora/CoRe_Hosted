@@ -57,6 +57,15 @@ test("Markdown rendert Tabellen, verschachtelte Listen und Code vollständig", (
   assert.match(html, /&lt;/);
 });
 
+test("Schaubild-Blöcke werden Kästen; nur Folgen tragen Pfeile, und Fehler in der Schreibweise brechen den Bau ab", () => {
+  const html = renderMarkdown("```schaubild\nTitel: Weg <1>\nFolge: Oben\nA | erst\n-> dann\n[erfolg] B\nPfeil: sonst\nGruppe:\nC\nD\n```", "specs.md");
+  assert.match(html, /^<figure class="docs-diagram"><figcaption>Weg &lt;1&gt;<\/figcaption>/);
+  assert.match(html, /<p class="docs-diagram-lane">Oben<\/p><ol class="docs-diagram-boxes"><li class="docs-diagram-box"><strong>A<\/strong><span>erst<\/span><\/li><li class="docs-diagram-link">dann<\/li><li class="docs-diagram-box" data-tone="success"><strong>B<\/strong><\/li><\/ol>/);
+  assert.match(html, /<p class="docs-diagram-down">sonst<\/p><div class="docs-diagram-row"><ol class="docs-diagram-boxes"><li class="docs-diagram-box"><strong>C<\/strong><\/li><li class="docs-diagram-box"><strong>D<\/strong><\/li><\/ol>/);
+  assert.throws(() => renderMarkdown("```schaubild\nA\n```", "specs.md"), /vor der ersten Folge/);
+  assert.throws(() => renderMarkdown("```schaubild\nFolge:\n[lila] A\n```", "specs.md"), /Ton „lila“/);
+});
+
 test("Journey-Projektion zeigt je Kernjourney ihren Ablauf und verlinkt die Akzeptanz in die Specs", () => {
   const specs = readFileSync("docs/specs.md", "utf8").replace(/\r\n/g, "\n");
   const html = journeyProjection(specs);
