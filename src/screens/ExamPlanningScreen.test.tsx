@@ -13,7 +13,7 @@ import { ExamWeekCalendar } from "./ExamWeekCalendar.tsx";
 import { createExamPlan, createStudyTimeCapacity } from "../examPlanSettings.ts";
 import { type ExamPortfolioForecast, type StudyPlanBlock } from "../examPlanning.ts";
 import { examColor, examTextColor } from "./examPlanningUi.ts";
-import { colorContrast } from "../ui/colorMath.ts";
+import { colorContrast } from "../colorMath.ts";
 
 test("freie Prüfungsfarben behalten ihren Farbwert mit lesbarer Schrift", () => {
   for (const color of ["#ffffff", "#ffff00", "#00ff00", "#ff0000", "#0000ff", "#000000", "#6f7e9e"]) {

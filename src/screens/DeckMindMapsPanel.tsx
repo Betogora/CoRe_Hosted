@@ -11,7 +11,7 @@ import { textToCardHtml } from "../richText.ts";
 import { ActionButton, IconButton } from "../ui/actionUi.tsx";
 import { ActionDialog, CoreSegmentedControl, CoreSlidingTabs, SoftPanel } from "../ui/coreUi.tsx";
 import { COLOR_PICKER_PRESETS, ColorPicker } from "../ui/ColorPicker.tsx";
-import { normalizeColor } from "../ui/colorMath.ts";
+import { normalizeColor } from "../colorMath.ts";
 import { StatusMessage } from "../ui/feedbackUi.tsx";
 import { CoreCheckbox, CoreSlider } from "../ui/formControls.tsx";
 import { RichTextEditor } from "../ui/RichTextEditor.tsx";

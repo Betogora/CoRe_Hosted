@@ -7,15 +7,16 @@ import type { WorkspaceState } from "./coreWorkspace.ts";
 import { createImportCommands } from "./importCommands.ts";
 import type { ImportCloudSyncResult } from "./importCloudSyncTask.ts";
 import { createIndexedDbCoreRepository } from "./indexedDbCoreRepository.ts";
+import type { AccountSyncEngine } from "./syncEngine.ts";
 import { createWorkspaceStore } from "./workspaceStore.ts";
 
 Object.assign(globalThis, { IDBKeyRange });
 
-async function setup() {
+async function setup({ userId = randomUUID() as string, syncEngine = null as AccountSyncEngine | null } = {}) {
   const initialState: WorkspaceState = {
     version: 6,
     profile: {
-      userId: randomUUID(),
+      userId,
       timezone: "Europe/Berlin",
       schedulerPreferences: { settingsVersion: 2, dayStartHour: 0 },
       uiPreferences: { syncIntervalMinutes: 5, flagNames: ["", "", "", "", "", "", ""], savedSearches: [] },
@@ -32,7 +33,7 @@ async function setup() {
     return state;
   };
   refresh();
-  const commands = createImportCommands({ store, repository, hydration: () => null, cloud: null, syncEngine: () => null, refresh });
+  const commands = createImportCommands({ store, repository, hydration: () => null, cloud: null, syncEngine: () => syncEngine, refresh });
   return { repository, store, commands };
 }
 
@@ -62,6 +63,43 @@ test("ein übernommener Import steht im Store und stößt die Cloud-Bestätigung
   results.length = 0;
   store.set({ syncStatus: createSyncSavedStatus() });
   assert.deepEqual(results, [], "nach dem Abmelden vom Sync-Status bleibt sie stehen");
+});
+
+test("wartende Cloud-Bestätigungen laufen im nächsten Arbeitsbereich desselben Kontos weiter, die eines anderen verfallen", async () => {
+  const { createWorldCapitalsImportGraph } = await import("./fixtures/worldCapitals.ts");
+  const pausedEngine = () => {
+    const engine = { flushes: 0, flush: async () => { engine.flushes += 1; return { paused: true }; }, pendingCount: () => 0 };
+    return engine;
+  };
+  const previous = await setup();
+  const { cloudTask } = await previous.commands.commitImport(createWorldCapitalsImportGraph(), { onMedia: async () => {} });
+  await waitFor(() => cloudTask.status === "local-pending");
+  previous.repository.close();
+
+  const otherEngine = pausedEngine();
+  const otherAccount = await setup({ syncEngine: otherEngine as unknown as AccountSyncEngine });
+  const stopOther = otherAccount.commands.followSyncStatus();
+  otherAccount.commands.continuePendingFrom(previous.commands);
+  otherAccount.store.set({ syncStatus: createSyncSavedStatus() });
+  await new Promise((resolve) => setTimeout(resolve, 20));
+  assert.equal(otherEngine.flushes, 0, "ein anderes Konto übernimmt nichts");
+  assert.equal(cloudTask.status, "local-pending");
+  stopOther();
+
+  const ended = await setup();
+  const { cloudTask: waiting } = await ended.commands.commitImport(createWorldCapitalsImportGraph(), { onMedia: async () => {} });
+  await waitFor(() => waiting.status === "local-pending");
+  ended.repository.close();
+  const nextEngine = pausedEngine();
+  const next = await setup({ userId: ended.store.get().state!.profile.userId, syncEngine: nextEngine as unknown as AccountSyncEngine });
+  const stopNext = next.commands.followSyncStatus();
+  next.commands.continuePendingFrom(ended.commands);
+  next.store.set({ syncStatus: createSyncSavedStatus() });
+  await waitFor(() => waiting.status === "blocked");
+  assert.equal(nextEngine.flushes, 1, "die Bestätigung läuft mit der Sync-Engine des neuen Arbeitsbereichs");
+  stopNext();
+  next.repository.close();
+  otherAccount.repository.close();
 });
 
 async function waitFor(condition: () => boolean) {

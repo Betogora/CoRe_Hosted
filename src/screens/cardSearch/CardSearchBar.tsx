@@ -29,9 +29,11 @@ export function CardSearchBar({ query, onQueryChange, decks, categories, advance
   hint?: React.ReactNode;
 }) {
   const [input, setInput] = React.useState(() => cardSearchText(query));
-  // A reset or a term written elsewhere changes the query; the field follows its text part.
+  // A reset or a term written elsewhere changes the query; the field follows its text part. Typing already set both,
+  // so the field is left alone then: even an unchanged state update would cost the list another commit.
   React.useEffect(() => {
-    setInput((current) => cardSearchText(current) === cardSearchText(query) ? current : cardSearchText(query));
+    if (cardSearchText(input) !== cardSearchText(query)) setInput(cardSearchText(query));
+    // Only a changed query moves the field; `input` is the one rendered with it.
   }, [query]);
   const terms = cardSearchTerms(query);
   // The deck filter shows a single `did:` term; it replaces every deck term, also a group of several decks.

@@ -1,5 +1,7 @@
 import assert from "node:assert/strict";
+import { randomUUID } from "node:crypto";
 import test from "node:test";
+import { IDBKeyRange, indexedDB } from "fake-indexeddb";
 import { addCardVariant, createBasicNote, createCoreDeck } from "./coreModel.ts";
 import { answerVariant } from "./reviewService.ts";
 import {
@@ -14,7 +16,18 @@ import {
 } from "./cloudRepository.ts";
 import type { CloudClient } from "./cloudRepository.ts";
 import type { ReviewEvent } from "./coreTypes.ts";
-import { noteFromRow, validateAccountRows, validateOfflineManifestRows } from "./cloudRepositoryValidation.ts";
+import type { WorkspaceState } from "./coreWorkspace.ts";
+import {
+  noteFromRow,
+  validateAccountRows,
+  validateOfflineManifestRows,
+  validateRevisionAcknowledgements,
+  validateSyncConflictRows,
+} from "./cloudRepositoryValidation.ts";
+import { createIndexedDbCoreRepository } from "./indexedDbCoreRepository.ts";
+import { createAccountSyncEngine } from "./syncEngine.ts";
+
+Object.assign(globalThis, { IDBKeyRange });
 
 /** A fake implements only what the tested function calls. */
 function fakeCloudClient(fake: object) {
@@ -140,6 +153,89 @@ test("Cloudzeilen weisen ungültige Revisionen und JSONB-Strukturen vor der Übe
     { content_revision: 0 }, { imported_content_revision: 1.5 }, { content: [] }, { media: { "bild.png": "kein-hash" } }, { marked: "ja" },
   ]) assert.throws(() => validateAccountRows("notes", [{ ...note, ...change }]), /ungültiges Format/, JSON.stringify(change));
   assert.throws(() => noteFromRow({ ...note, content: { schemaVersion: 1, fields: [] } }), /ungültig/);
+});
+
+test("Konfliktzeilen werden geprüft; erlaubte null-Werte bleiben gültig, fremde JSON-Werte zählen als leere Zeile", () => {
+  const row = {
+    id: "konflikt", user_id: "user", entity_table: "cards", entity_id: "card", base_revision: 1, local_revision: 2, remote_revision: 3,
+    local_value: { id: "card", deck_id: "a" }, remote_value: { id: "card", deck_id: "b" }, status: "open", resolution: {},
+    updated_by_device_id: "device", created_at: now, resolved_at: null,
+  };
+  assert.deepEqual(validateSyncConflictRows([row]), [row]);
+  const nullable = { ...row, base_revision: null, local_revision: null, remote_revision: null, updated_by_device_id: null, resolved_at: null };
+  assert.deepEqual(validateSyncConflictRows([nullable]), [nullable]);
+  assert.deepEqual(validateSyncConflictRows([{ ...row, local_value: null, remote_value: [1] }])[0].local_value, {});
+  const { entity_id: _missing, ...withoutEntity } = row;
+  for (const invalid of [withoutEntity, { ...row, status: "gelöscht" }, { ...row, base_revision: "1" }, { ...row, created_at: null }]) {
+    assert.throws(() => validateSyncConflictRows([invalid]), /Synchronisierungskonflikte aus der Cloud hatten ein ungültiges Format/, JSON.stringify(invalid));
+  }
+});
+
+test("Quittierungen prüfen Revision, Zeitpunkte und Gerät und lassen die übrige Zeile durch", () => {
+  const acknowledgement = { id: "deck", revision: 2, updated_at: now, deleted_at: null, updated_by_device_id: null, name: "Stapel" };
+  assert.deepEqual(validateRevisionAcknowledgements([acknowledgement]), [acknowledgement]);
+  assert.deepEqual(validateRevisionAcknowledgements([{ ...acknowledgement, deleted_at: now, updated_by_device_id: "device" }])[0].deleted_at, now);
+  const { revision: _missing, ...withoutRevision } = acknowledgement;
+  for (const invalid of [withoutRevision, { ...acknowledgement, revision: "2" }, { ...acknowledgement, revision: 0 }, { ...acknowledgement, updated_at: null }, { ...acknowledgement, deleted_at: 5 }]) {
+    assert.throws(() => validateRevisionAcknowledgements([invalid]), /Die Cloud-Bestätigung einer Änderung hatte ein ungültiges Format/, JSON.stringify(invalid));
+  }
+});
+
+/** Answers every table query from `answer`; the operation is the write the query started with, else `select`. */
+function fakeTableClient(userId: string, answer: (table: string, operation: "select" | "insert" | "update" | "upsert") => unknown[]) {
+  return fakeCloudClient({
+    auth: { getUser: async () => ({ data: { user: { id: userId } }, error: null }) },
+    from(table: string) {
+      let operation: "select" | "insert" | "update" | "upsert" = "select";
+      const query = {
+        select: () => query, eq: () => query, in: () => query, gt: () => query, order: () => query, limit: () => query,
+        insert: () => { operation = "insert"; return query; },
+        update: () => { operation = "update"; return query; },
+        upsert: () => { operation = "upsert"; return query; },
+        maybeSingle: async () => ({ data: answer(table, operation)[0] ?? null, error: null }),
+        then: (resolve: (value: unknown) => unknown, reject: (error: unknown) => unknown) => Promise.resolve({ data: answer(table, operation), error: null }).then(resolve, reject),
+      };
+      return query;
+    },
+  });
+}
+
+test("eine ungültige Cloud-Bestätigung lässt lokale Revision und Outbox unverändert", async () => {
+  const userId = randomUUID();
+  const deck = createCoreDeck({ id: "deck-quittung", ownerId: userId, name: "Quittung", createdAt: now, updatedAt: now });
+  const initialState = { version: 6, profile: { userId, uiPreferences: {} }, decks: [deck], notes: [], updatedAt: now } as unknown as WorkspaceState;
+  const open = () => createIndexedDbCoreRepository({ userId, initialState, indexedDb: indexedDB as unknown as IDBFactory });
+  const localRevision = async () => {
+    const reopened = await open();
+    const revision = reopened.getShellState().decks.find((candidate) => candidate.id === deck.id)?.revision;
+    reopened.close();
+    return revision;
+  };
+  const repository = await open();
+  repository.updateDeckSettings(deck.id, {});
+  await repository.flush();
+  const remote = { ...deckToCloudRow(deck, userId), name: "Vorher", revision: 1, sync_change_id: 1 };
+  let acknowledgedRevision: unknown = "zwei";
+  const client = fakeTableClient(userId, (table, operation) => table !== "decks" ? []
+    : operation === "update" ? [{ ...remote, revision: acknowledgedRevision, updated_at: now, updated_by_device_id: "device-quittung" }]
+      : [remote]);
+  const engine = createAccountSyncEngine(client, {
+    userId, device: { id: "device-quittung", label: "Test", userAgent: "Test" }, outbox: repository.outbox,
+    persistMutationAcknowledgements: repository.persistMutationAcknowledgements, documentTarget: null,
+  });
+  const before = await localRevision();
+
+  await assert.rejects(engine.flush({ force: true }), /Die Cloud-Bestätigung einer Änderung hatte ein ungültiges Format/);
+  await repository.flush();
+  assert.equal(await localRevision(), before, "die ungültige Quittierung wird nicht übernommen");
+  assert.equal(repository.outbox.count(), 1, "die Änderung wartet weiter auf eine gültige Bestätigung");
+
+  acknowledgedRevision = 2;
+  await engine.flush({ force: true });
+  await repository.flush();
+  assert.equal(await localRevision(), 2, "eine gültige Quittierung übernimmt die Revision");
+  assert.equal(repository.outbox.count(), 0);
+  repository.close();
 });
 
 test("Offline-Manifeste akzeptieren leere Medien, aber keine beschädigten Revisionen oder Hashes", () => {

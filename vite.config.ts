@@ -13,6 +13,7 @@ export function manualChunkForModule(moduleId = "") {
   if (id.includes("/node_modules/ts-fsrs/")) return "scheduler-vendor";
   if (id.includes("/node_modules/xss/")) return "html-safety-vendor";
   if (/\/src\/indexedDb(?:CoreRepository|Outbox|CatalogSearch|CatalogSync|StudyOverview|CardBodies|ImportCommit)\.ts$/.test(id)) return "local-persistence";
+  if (/\/src\/cloud(?:Repository|Queries|Rows|Conflicts|RevisionedWrites|ImportVerification)\.ts$/.test(id)) return "cloud-repository";
   return undefined;
 }
 

@@ -24,7 +24,7 @@ const IMPORT_RULES: readonly ImportRule[] = [
     id: "1 Persistenz nicht in UI",
     appliesTo: (file) => inUiLayer(file) && !isTest(file),
     forbids: (target) =>
-      /^src\/(?:cloudRepository|cloudRepositoryValidation|cloudMediaStore|syncEngine|supabaseClient)\.ts$/.test(target)
+      /^src\/(?:cloudRepository|cloudRepositoryValidation|cloudQueries|cloudRows|cloudConflicts|cloudRevisionedWrites|cloudImportVerification|cloudMediaStore|syncEngine|supabaseClient)\.ts$/.test(target)
       || /^src\/indexedDb[^/]*\.ts$/.test(target)
       || target.startsWith("@supabase/"),
     typeImportsAllowed: true,
@@ -64,24 +64,21 @@ const IMPORT_RULES: readonly ImportRule[] = [
 ];
 
 /** Bekannte Verstöße; die Liste darf nur schrumpfen. */
-const COREMODEL_RULE = "3 coreModel/ nur über coreModel.ts";
-const TRANSLATION_REASON = "Übersetzer importiert Kernbausteine direkt, splitAnkiSystemTags fehlt in coreModel.ts";
-const IMPORT_EXCEPTIONS: readonly ImportException[] = [
-  ...["coreValues", "noteContent", "notes", "tags", "reviewState"].map((module) => ({
-    rule: COREMODEL_RULE, file: "src/apkgNoteTranslation.ts", target: `src/coreModel/${module}.ts`, reason: TRANSLATION_REASON,
-  })),
-  { rule: COREMODEL_RULE, file: "src/notePresentation.ts", target: "src/coreModel/noteContent.ts", reason: "Renderer liest Medienverweise direkt aus dem Inhaltsmodul" },
-  { rule: COREMODEL_RULE, file: "src/notePresentation.test.ts", target: "src/coreModel/notes.ts", reason: "Renderertest baut Notizen direkt" },
-  { rule: "5 Domänenmodule ohne React", file: "src/notePresentation.ts", target: "src/ui/colorMath.ts", reason: "React-freie Farbrechnung liegt unter ui/" },
-];
+const IMPORT_EXCEPTIONS: readonly ImportException[] = [];
 
 /** Obergrenzen, die nur sinken dürfen: Istwert darüber oder darunter bricht ab. */
 const MODULE_LIMITS: readonly ModuleLimit[] = [
-  { file: "src/App.tsx", measure: "Zeilen", max: 530 },
+  { file: "src/App.tsx", measure: "Zeilen", max: 517 },
   { file: "src/appScreenProps.ts", measure: "Zeilen", max: 384 },
-  { file: "src/cloudRepository.ts", measure: "any-Typen", max: 2 },
+  { file: "src/screens/DecksScreen.tsx", measure: "Zeilen", max: 786 },
+  { file: "src/cloudRepository.ts", measure: "Zeilen", max: 412 },
+  { file: "src/cloudRepository.ts", measure: "any-Typen", max: 0 },
+  { file: "src/cloudRevisionedWrites.ts", measure: "any-Typen", max: 2 },
   { file: "src/syncEngine.ts", measure: "any-Typen", max: 3 },
   { file: "src/indexedDbCoreRepository.ts", measure: "Zeilen", max: 915 },
+  { file: "src/apkgImportInternal.ts", measure: "any-Typen", max: 3 },
+  { file: "src/cloudAuth.ts", measure: "any-Typen", max: 3 },
+  { file: "src/documentModel.ts", measure: "any-Typen", max: 0 },
 ];
 
 const MEASURES = {

@@ -30,7 +30,7 @@ export function StudyModeWiring() {
   }));
   const editStudyDeck = useStableCallback((currentDeckId: string) => currentDeckId === EXAM_SESSION_DECK_ID ? navigateToViewNow("pruefungen") : settings.openDeckSettings(currentDeckId));
   const askStudyCardHelp = useStableCallback((...[request, signal]: Parameters<StudyModeProps["onAskCardHelp"]>) => requestAiCardHelp(request, cloud, { signal }));
-  // The plan a session starts from; deck counts stay as they were at the start while it runs.
+  // The plan a session starts from; deck counts stay as they were at the start until a new learning day begins.
   const studyDeckSummaries = useWorkspaceValue((snapshot) => studyRequest ? snapshot.deckSummaries : undefined);
   const studySessionPlan = React.useMemo(() => {
     const session = studyRequest && shellDecks && studyDeckSummaries?.has(studyRequest.deckId)

@@ -129,8 +129,10 @@ scope and gates.
 
 ## Working Agreements
 
-- Commit and push only after asking the user. Before committing finished work,
-  run the `audit-last-change` skill.
+- On a work branch, commit, push, and open pull requests without asking, once
+  `audit-last-change` has run on the finished diff; stage only your own
+  changes. Ask the user before anything lands on `main` (commit, push, or
+  merge; `main` deploys production) and before rewriting pushed history.
 - Commits and pull requests carry no AI attribution (no agent
   `Co-Authored-By` trailer, no "Generated with" line).
 - Create temporary and probe files only in the session scratchpad; none may
