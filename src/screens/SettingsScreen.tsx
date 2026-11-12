@@ -1,16 +1,18 @@
 import React from "react";
-import { RefreshCw, X } from "lucide-react";
+import { Copy, RefreshCw, X } from "lucide-react";
 import { formatSyncStatusText } from "../accountSession.ts";
 import { APP_RUNTIME_INFO } from "../appRuntime.ts";
 import type { SettingsSaveOutcome, SettingsScreenProps } from "../appScreenProps.ts";
 import type { SyncIntervalMinutes } from "../coreTypes.ts";
+import { readFieldTimings } from "../fieldTimings.ts";
+import { formatFieldTimingsReport, readFieldTimingContext } from "../fieldTimingsReport.ts";
 import { ActionButton, CrossLinkButton } from "../ui/actionUi.tsx";
 import { CoreSegmentedControl } from "../ui/coreUi.tsx";
 import { useSuccessToast } from "../ui/feedbackUi.tsx";
 import { createGeneralSettingsDraft, settingsDraftsEqual, type GeneralSettingsDraft } from "../settingsDraft.ts";
 import { SyncConflictPanel } from "./SyncConflictPanel.tsx";
 import { formatStorageBytes } from "../workspaceStorage.ts";
-import { useWorkspaceValue } from "../useWorkspaceStore.ts";
+import { useWorkspaceStore, useWorkspaceValue } from "../useWorkspaceStore.ts";
 
 const sectionIds = {
   account: "settings-account",
@@ -42,6 +44,8 @@ export function SettingsScreen({ section, focusConflicts = false, profile, onSav
   const [accountMessage, setAccountMessage] = React.useState("");
   const [accountBusy, setAccountBusy] = React.useState(false);
   const setSuccessToast = useSuccessToast();
+  const workspaceStore = useWorkspaceStore();
+  const fieldTimingsAvailable = React.useMemo(() => section === "ueber" && Object.keys(readFieldTimings()).length > 0, [section]);
   React.useEffect(() => {
     setDraft((current) => settingsDraftsEqual(current, baseline) ? persistedDraft : current);
     setBaseline(persistedDraft);
@@ -103,6 +107,15 @@ export function SettingsScreen({ section, focusConflicts = false, profile, onSav
       setAccountMessage(error instanceof Error ? error.message : "Synchronisierung fehlgeschlagen.");
     } finally {
       setAccountBusy(false);
+    }
+  }
+
+  async function copyFieldTimings() {
+    try {
+      await navigator.clipboard.writeText(formatFieldTimingsReport(readFieldTimings(), readFieldTimingContext(workspaceStore.get().deckSummaries)));
+      setSuccessToast("Leistungsdaten kopiert.");
+    } catch {
+      setSuccessToast("Leistungsdaten konnten nicht kopiert werden.", { appearance: "neutral" });
     }
   }
 
@@ -214,6 +227,12 @@ export function SettingsScreen({ section, focusConflicts = false, profile, onSav
             <div className="core-settings-row" data-layout="inline">
               <dt className="core-settings-row-title">Version</dt>
               <dd className="core-settings-row-control core-settings-row-value" aria-label="Aktuelle Version">{`v${APP_RUNTIME_INFO.version}`}</dd>
+            </div>
+            <div className="core-settings-row">
+              <dt className="core-settings-row-title">Leistungsdaten</dt>
+              <dd className="core-settings-row-control">
+                <ActionButton type="button" variant="secondary" icon={Copy} disabled={!fieldTimingsAvailable} onClick={() => void copyFieldTimings()}>Leistungsdaten kopieren</ActionButton>
+              </dd>
             </div>
           </dl>
         </section>

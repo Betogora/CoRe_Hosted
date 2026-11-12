@@ -1,4 +1,5 @@
 import React from "react";
+import { finishFieldTiming } from "../fieldTimings.ts";
 import { resolvePresentationMedia } from "../presentationFrame.ts";
 import type { NotePresentationResult } from "../notePresentation.ts";
 import { StatusMessage } from "./feedbackUi.tsx";
@@ -115,6 +116,8 @@ export function CardPresentationSurface({
     window.addEventListener("resize", updateHeight);
     frameFitCleanupRef.current = () => { observer?.disconnect(); window.removeEventListener("resize", updateHeight); };
     updateHeight();
+    // A revealed answer or the next card is on screen once its frame has loaded and is fitted.
+    finishFieldTiming("card-frame");
   };
   return (
     <div className={`grid min-w-0 gap-3 ${className}`.trim()}>

@@ -3,6 +3,7 @@ import { CheckCircle2, ChevronDown, CircleAlert, RotateCcw, Shuffle, SlidersHori
 import type { StudyModeProps } from "../appScreenProps.ts";
 import { HIT_REVIEW_KIND } from "../reviewEventKinds.ts";
 import { DEFAULT_EASY_DAYS, createEasyDaysDueCounts, shiftEasyDaysDueCounts } from "../easyDays.ts";
+import { cancelFieldTiming, startFieldTiming } from "../fieldTimings.ts";
 import { getLearningDayKey } from "../learningDay.ts";
 import { variantPresentation } from "../coreVariantService.ts";
 import { resolveReviewShortcut } from "../reviewShortcuts.ts";
@@ -288,13 +289,18 @@ export function StudyMode({ shortcutsSuspended = false, deck, decks, notes, answ
     setShowOriginal(false);
   }
 
+  // Both timings end when a card frame of the session has loaded (`CardPresentationSurface`); leaving drops them.
+  React.useEffect(() => () => cancelFieldTiming("card-frame"), []);
+
   function revealAnswer() {
     if (showAnswer) return;
+    startFieldTiming("core:answer_shown");
     setShowAnswer(true);
   }
 
   function grade(rating: ReviewRating) {
     if (!current || !currentDeck) return;
+    startFieldTiming("core:rating_to_next_card");
     const responseTimeMs = responseTimer.stop();
     const result = answerVariant({
       ...currentDeck,
@@ -405,7 +411,7 @@ export function StudyMode({ shortcutsSuspended = false, deck, decks, notes, answ
       if (action.type === "exit") {
         onExit();
       } else if (action.type === "reveal") {
-        setShowAnswer(true);
+        revealAnswer();
       } else if (action.type === "rate") {
         if (action.rating) grade(action.rating);
       }
@@ -587,7 +593,7 @@ export function StudyMode({ shortcutsSuspended = false, deck, decks, notes, answ
                 })}
               </div>
             ) : (
-              <button type="button" onClick={() => setShowAnswer(true)} className="core-action-primary min-h-11 w-full">
+              <button type="button" onClick={revealAnswer} className="core-action-primary min-h-11 w-full">
                 <RotateCcw size={16} aria-hidden="true" />
                 Antwort anzeigen
               </button>

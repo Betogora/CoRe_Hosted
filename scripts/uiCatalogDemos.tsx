@@ -34,6 +34,7 @@ import { VariantGenerationBar } from "../src/ui/VariantGenerationBar.tsx";
 import { AppNavigation } from "../src/ui/AppNavigation.tsx";
 import { WorkspaceStoreContext } from "../src/useWorkspaceStore.ts";
 import { createWorkspaceStore } from "../src/workspaceStore.ts";
+import { bindFieldTimingsAccount } from "../src/fieldTimings.ts";
 import { InPageNavigation } from "../src/ui/InPageNavigation.tsx";
 import { DeckAppearanceIcon } from "../src/ui/deckAppearance.tsx";
 import { DeckOptionsMenu } from "../src/ui/DeckOptionsMenu.tsx";
@@ -513,6 +514,8 @@ function ProductViewsDemo({ kind }: { kind: string }) {
   const [catalogStore] = useState(() => {
     const store = createWorkspaceStore();
     store.set({ syncStatus: { status: "saved", message: "Synchronisiert", savedAt: selection.now } });
+    // Answers in the preview session are timed, so `Über uns` can copy them like in the app.
+    bindFieldTimingsAccount("ui-catalog");
     return store;
   });
   const listConflicts = React.useCallback(async () => conflicts.current, []);
