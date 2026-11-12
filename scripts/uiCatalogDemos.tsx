@@ -1,10 +1,15 @@
 import { registerAppModuleLoadErrors } from "../src/pwa.ts";
 import { CreationActionCard } from "../src/ui/CreationActionCard.tsx";
+import { SectionHeader } from "../src/ui/SectionHeader.tsx";
+import { MetricRow } from "../src/ui/MetricRow.tsx";
+import { Steps } from "../src/ui/Steps.tsx";
+import { CoreTabPanel, CoreTabs } from "../src/ui/CoreTabs.tsx";
+import { DialogFrame } from "../src/ui/DialogFrame.tsx";
 import { CoreWordmark } from "../src/ui/CoreWordmark.tsx";
 import { BrainMascot } from "../src/ui/BrainMascot.tsx";
 import { DailyMotivationWidget } from "../src/screens/DailyMotivationWidget.tsx";
 import React, { useRef, useState } from "react";
-import { ArrowUpRight, Ban, BookOpen, ChevronRight, Copy, Eye, Grid2x2, Highlighter, Home, Info, Layers, List, Pencil, Plus, RefreshCw, Save, Settings, Sparkles, Star, Trash2, X, type LucideIcon } from "lucide-react";
+import { ArrowUpRight, Ban, BookOpen, ChevronRight, Copy, Eye, FileSpreadsheet, Grid2x2, Highlighter, Home, Info, Layers, List, Pencil, PenLine, Plus, RefreshCw, Save, Settings, Sparkles, Star, Trash2, X, type LucideIcon } from "lucide-react";
 import { addCardVariant, addNoteField, cardStudyFromReviewState, type OcclusionMode, createBasicNote, createCoreDeck, createManualNoteContent, createNote, createReviewState, noteBlocks, setNoteTypeIn, type ManualContentKind } from "../src/coreModel.ts";
 import type { ExamPlanningSettings, CoreMode, NewReviewOrder, NoteContent, NoteField, OcclusionMask, SavedCardSearch, SyncStatus } from "../src/coreTypes.ts";
 import type { CardEditorServices, DecksCardPageRequest } from "../src/appScreenProps.ts";
@@ -153,7 +158,10 @@ function ActionsDemo({ section }: { section: string }) {
       <div className="catalog-row">{(["primary", "secondary", "destructive"] as const).map((variant) => <ActionButton key={variant} variant={variant} icon={variant === "destructive" ? Trash2 : Save} onClick={() => toast("Beispielaktion ausgeführt.")}>{variant === "primary" ? "Speichern" : variant === "secondary" ? "Abbrechen" : "Löschen"}</ActionButton>)}</div>
       <div className="catalog-row"><ActionButton variant="primary" disabled>Deaktiviert</ActionButton><ActionButton variant="primary" loading>Wird gespeichert …</ActionButton></div>
     </Demo>}
-    {section === "buttons" && <Demo title="CreationActionCard"><CreationActionCard title="Anki-Stapel importieren" description="Eine vorhandene APKG-Datei übernehmen." icon={Layers} onSelect={() => toast("Import gewählt.")} /></Demo>}
+    {section === "buttons" && <Demo title="CreationActionCard · im Raster mit und ohne Beschreibung"><div className="grid gap-4">
+      <div className="catalog-two">{([["Karten selbst erstellen", PenLine], ["Import", FileSpreadsheet]] as const).map(([title, icon]) => <CreationActionCard key={title} title={title} icon={icon} onSelect={() => toast(`${title} gewählt.`)} />)}</div>
+      <CreationActionCard title="Anki-Stapel importieren" description="Eine vorhandene APKG-Datei übernehmen." icon={Layers} onSelect={() => toast("Import gewählt.")} />
+    </div></Demo>}
     {section === "buttons" && <Demo title="IconButton · normal, destruktiv, destruktiv-dezent und ghost"><div className="catalog-row">{(["secondary", "destructive", "destructive-quiet", "ghost"] as const).map((variant) => <CoreTooltip key={variant} label={variant}><IconButton variant={variant} label={`${variant}: Beispielaktion`} icon={variant.startsWith("destructive") ? Trash2 : Settings} onClick={() => toast("Icon-Aktion ausgeführt.")} /></CoreTooltip>)}</div></Demo>}
     {section === "buttons" && <Demo title="CrossLinkButton"><CrossLinkButton onSelect={() => toast("Querlink gewählt.")}>Alle ansehen</CrossLinkButton></Demo>}
     {section === "tooltips" && <Demo title="CoreTooltip · Text, Wert und Stapel"><div className="catalog-row"><CoreTooltip label="Kurzer Hinweis"><IconButton label="Hinweis anzeigen" icon={Info} /></CoreTooltip><CoreTooltip label="Neu" value="12 Karten" swatchColor="var(--core-learning-status-new)"><span tabIndex={0}>Lernstatus</span></CoreTooltip><CoreTooltip label="Welt-Hauptstädte" deckAppearance={deck.deckSettings.appearance}><span tabIndex={0}>Stapelhinweis</span></CoreTooltip></div></Demo>}
@@ -161,16 +169,55 @@ function ActionsDemo({ section }: { section: string }) {
 }
 
 function BadgesDemo() {
-  return <Demo title="CoreTag · neutral und CoRe-Blau"><div className="catalog-row"><CoreTag tone="info">Variante</CoreTag><CoreTag tone="neutral">Originalkarte</CoreTag></div></Demo>;
+  return <>
+    <Demo title="CoreTag · fünf Töne"><div className="catalog-row"><CoreTag tone="neutral">Originalkarte</CoreTag><CoreTag tone="info">Variante</CoreTag><CoreTag tone="warning">1 offen</CoreTag><CoreTag tone="success">Fertig</CoreTag><CoreTag tone="outline">Stand heute</CoreTag></div></Demo>
+    <Demo title="CoreTag · Fachfarbe als Punkt"><div className="catalog-row"><CoreTag tone="neutral" dot="var(--core-exam-color-1)">Geografie-Testat</CoreTag><CoreTag tone="neutral" dot="var(--core-exam-color-3)">Anatomie</CoreTag></div></Demo>
+  </>;
 }
 
 function FoundationsDemo({ section }: { section: string }) {
   return <>
     {section === "surfaces" && <Demo title="SoftPanel"><SoftPanel className="p-6"><p className="core-body text-core-text">Erhöhte Inhaltsfläche mit kanonischem Schatten.</p></SoftPanel></Demo>}
-    {section === "headings" && <Demo title="PageHeader"><PageHeader eyebrow="Review" title="Heute lernen" action={<IconButton label="Hinzufügen" icon={Plus} />} /></Demo>}
+    {section === "headings" && <Demo title="PageHeader"><PageHeader title="Heute lernen" action={<IconButton label="Hinzufügen" icon={Plus} />} /></Demo>}
+    {section === "headings" && <Demo title="PageHeader · Begrüßung von Heute und Seitenzustand"><div className="grid gap-6"><PageHeader greeting="Willkommen zurück," title="Noemi!" /><PageHeader title="Simulator" tag={<CoreTag tone="neutral">Nur lokal</CoreTag>} /></div></Demo>}
     {section === "surfaces" && <Demo title="EmptyState"><EmptyState icon={BookOpen} title="Noch keine Karten" body="Erstelle deine erste Karte oder importiere einen Anki-Stapel." action={<ActionButton variant="primary" icon={Plus}>Erste Karte erstellen</ActionButton>} /></Demo>}
     {section === "symbols" && <Demo title="OrbIcon und DeckAppearanceIcon"><div className="catalog-row"><OrbIcon icon={BookOpen} /><DeckAppearanceIcon deck={deck} /></div></Demo>}
-    {section === "charts" && <Demo title="StatTile · Standard und kompakt"><div className="catalog-two"><StatTile label="Karten" value="128" icon={Layers} hint="In deiner Sammlung" /><StatTile label="Lernzeit" value="24 Min." size="compact" /></div></Demo>}
+    {section === "charts" && <Demo title="StatTile · Standard, kompakt und rahmenlos"><div className="catalog-row items-stretch"><StatTile label="Karten" value="128" hint="In deiner Sammlung" /><StatTile label="Lernzeit" value="24 Min." size="compact" /><StatTile label="Erfolgsrate" value="83,3 %" variant="plain" /></div></Demo>}
+    {section === "charts" && <Demo title="MetricRow · mit Statuspunkt und ohne" wide><div className="grid gap-6">
+      <MetricRow aria-label="Heute" items={[{ label: "Gelernt", value: 9, dot: "var(--core-learning-progress-completed)" }, { label: "Neu", value: 107, dot: "var(--core-learning-status-new)" }, { label: "Offen", value: 5, dot: "var(--core-learning-status-in-progress)" }, { label: "Fällig", value: 0, dot: "var(--core-learning-status-due)" }]} />
+      <MetricRow aria-label="Überblick" items={[{ label: "Reviews", value: "12" }, { label: "Erfolgsrate", value: "83,3 %" }, { label: "Lernzeit", value: "12 Sek." }, { label: "Serie", value: "1 Tag" }]} />
+    </div></Demo>}
+  </>;
+}
+
+const STEP_DEMO_ITEMS = [{ label: "Analysieren" }, { label: "Vorschau" }, { label: "Übernehmen" }, { label: "Cloud" }, { label: "Medien" }, { label: "Fertig" }];
+const TAB_DEMO_ITEMS = [{ value: "substacks", label: "Unterstapel" }, { value: "summaries", label: "Zusammenfassungen" }, { value: "quiz", label: "Quiz" }, { value: "mindmap", label: "Mind Map" }, { value: "cards", label: "Karten" }, { value: "source", label: "Quelle" }] as const;
+
+function StructureDemo({ section }: { section: string }) {
+  const [planStep, setPlanStep] = useState(1);
+  const [tab, setTab] = useState<(typeof TAB_DEMO_ITEMS)[number]["value"]>("cards");
+  const [view, setView] = useState("list");
+  const [dialog, setDialog] = useState<"s" | "m" | "l" | null>(null);
+  const [dialogTab, setDialogTab] = useState<"content" | "study">("content");
+  const toast = useSuccessToast();
+  return <>
+    {section === "struktur" && <Demo title="SectionHeader · mit Zähler und Aktionen, daneben ohne" wide><div className="catalog-two">
+      <SoftPanel className="p-5"><SectionHeader level={3} title="Aktive Stapel" count={8} action={<><CrossLinkButton onSelect={() => toast("Alle eingeklappt.")}>Alle einklappen</CrossLinkButton><CoreIconSegmentedControl ariaLabel="Stapelansicht" value={view} options={[{ value: "tiles", label: "Als Kacheln anzeigen", icon: Grid2x2 }, { value: "list", label: "Als Liste anzeigen", icon: List }]} onValueChange={setView} /></>} /></SoftPanel>
+      <SoftPanel className="p-5"><SectionHeader level={3} title="Lernaktivität" action={<IconButton variant="ghost" label="Statistik öffnen" icon={ArrowUpRight} />} /><p className="core-body text-core-secondary">Gleiche Höhe und Grundlinie wie der Kopf daneben.</p></SoftPanel>
+    </div></Demo>}
+    {section === "struktur" && <Demo title="Steps · auswählbar, gestreckt und laufend" wide><div className="grid gap-6">
+      <Steps ariaLabel="Schritte der Prüfungsplanung" items={[{ label: "Prüfung" }, { label: "Lernstoff" }, { label: "Lernzeit", disabled: planStep < 1 }, { label: "Dein Plan", disabled: planStep < 2 }]} current={planStep} onSelect={setPlanStep} />
+      <Steps ariaLabel="Importstatus" items={STEP_DEMO_ITEMS} current={2} stretch animated />
+      <Steps ariaLabel="Import fehlgeschlagen" items={STEP_DEMO_ITEMS.map((item, index) => index === 3 ? { ...item, failed: true } : item)} current={3} stretch />
+    </div></Demo>}
+    {section === "struktur" && <Demo title="CoreTabs und CoreTabPanel" wide><CoreTabs ariaLabel="Stapelinhalte" tabs={TAB_DEMO_ITEMS} value={tab} onValueChange={setTab} panelId="catalog-deck-content" /><CoreTabPanel panelId="catalog-deck-content" value={tab} className="pt-4 core-body text-core-secondary">Inhalt des Reiters {TAB_DEMO_ITEMS.find((item) => item.value === tab)?.label}.</CoreTabPanel></Demo>}
+    {section === "dialogs" && <Demo title="DialogFrame · s, m mit Reitern, l"><div className="catalog-row">{(["s", "m", "l"] as const).map((size) => <ActionButton key={size} variant="secondary" onClick={() => setDialog(size)}>{`Dialog ${size.toUpperCase()} öffnen`}</ActionButton>)}</div>
+      <DialogFrame open={dialog !== null} size={dialog ?? "m"} title={dialog === "m" ? "Karte bearbeiten" : "Tags verwalten"} onClose={() => setDialog(null)}
+        tabs={dialog === "m" ? <CoreTabs ariaLabel="Bereiche" tabs={[{ value: "content", label: "Inhalt" }, { value: "study", label: "Lernen" }]} value={dialogTab} onValueChange={setDialogTab} panelId="catalog-dialog-panel" /> : undefined}
+        footer={<><ActionButton variant="secondary" onClick={() => setDialog(null)}>Abbrechen</ActionButton><ActionButton variant="primary" onClick={() => { setDialog(null); toast("Beispiel gespeichert."); }}>Speichern</ActionButton></>}>
+        {dialog === "m" ? <CoreTabPanel panelId="catalog-dialog-panel" value={dialogTab} className="core-body text-core-text">{dialogTab === "content" ? "Felder der Karte." : "Lernstand der Karte."}</CoreTabPanel> : <ul className="core-settings-list">{["geo", "hauptstaedte", "europa", "afrika"].map((tag, index) => <li key={tag} className="flex min-h-12 items-center justify-between gap-3 core-body"><span className="font-medium text-core-text">{tag}</span><span className="text-core-muted">{`${(index + 1) * 13} Karten`}</span></li>)}</ul>}
+      </DialogFrame>
+    </Demo>}
   </>;
 }
 
@@ -662,18 +709,19 @@ export const DEMO_GROUPS = [
   { id: "aktionen", section: "primitive", title: "Button", description: "Text-, Icon-, Querlink-, Aktionskarten-, Markierungs- und Bewertungsbuttons.", components: ["ActionButton", "IconButton", "CrossLinkButton", "CreationActionCard", "CardMarkButton", "CardStudyStateControls"], render: () => <><ActionsDemo section="buttons" /><ControlsDemo section="buttons" /><LearningDemo section="buttons" /></> },
   { id: "auswahl", section: "primitive", title: "SegmentedControl", description: "Segmente, gleitende Tabs, reine Icon-Auswahl, CoRe-Modus und Dreifach-Schalter.", components: ["CoreSegmentedControl", "CoreSlidingTabs", "CoreIconSegmentedControl", "CoreModeControl", "CoreTriStateControl"], render: () => <ControlsDemo section="segments" /> },
   { id: "formulare", section: "primitive", title: "Input- und Select-Familie", description: "Text, Zahl mit Einheit, Passwort, mehrzeilige Eingaben, Checkbox, Radio, Select, Datum, Datei, Einstellungszeilen und Lerneinstellungen.", components: ["CoreSelect", "CoreNumberField", "DeckSelect", "DeckMultiSelect", "CoreDatePicker", "FileDropField", "PomodoroTimerControl", "LearningSettingsPanel"], wide: true, render: () => <><FormsDemo section="forms" /><LearningDemo section="forms" /></> },
-  { id: "badges", section: "primitive", title: "Tag", description: "Gemeinsames Tag in neutral und CoRe-Blau.", components: ["CoreTag"], render: BadgesDemo },
+  { id: "badges", section: "primitive", title: "Tag", description: "Gemeinsames Tag in fünf Tönen und mit Farbpunkt.", components: ["CoreTag"], render: BadgesDemo },
   { id: "tooltips", section: "primitive", title: "Tooltip", description: "Hinweise mit Text, Wert oder Stapelidentität.", components: ["CoreTooltip", "CoreTooltipProvider"], render: () => <ActionsDemo section="tooltips" /> },
   { id: "feedback", section: "primitive", title: "Toaster / StatusMessage", description: "Info, Erfolg, Warnung, Fehler und schließbare Toasts.", components: ["StatusMessage", "SuccessToast", "SuccessToastProvider"], render: () => <FeedbackDemo section="feedback" /> },
   { id: "progress", section: "primitive", title: "Fortschritt", description: "Tagesfortschritt, Zeitfortschritt sowie bestimmte und unbestimmte Prozessanzeigen.", components: ["DailyReviewProgress", "PomodoroProgress", "VariantGenerationBar"], render: () => <><FeedbackDemo section="progress" /><LearningDemo section="progress" /></> },
-  { id: "dialogs", section: "primitive", title: "Dialog-Familie", description: "Bestätigung, Speicherleiste, Kartenvorschau und Lerneinstellungen.", components: ["ActionDialog", "SettingsSaveBar", "CardPreviewDialog", "StudySettingsOverlay"], render: () => <><FeedbackDemo section="dialogs" /><ContentDemo section="dialogs" /><LearningDemo section="dialogs" /></> },
+  { id: "dialogs", section: "primitive", title: "Dialog-Familie", description: "Bestätigung, Dialograhmen, Speicherleiste, Kartenvorschau und Lerneinstellungen.", components: ["ActionDialog", "DialogFrame", "SettingsSaveBar", "CardPreviewDialog", "StudySettingsOverlay"], render: () => <><FeedbackDemo section="dialogs" /><StructureDemo section="dialogs" /><ContentDemo section="dialogs" /><LearningDemo section="dialogs" /></> },
   { id: "tags-flags", section: "primitive", title: "Tags und Flaggen", description: "Tag-Eingabe, Flaggenwähler und Flaggenpunkt.", components: ["TagInput", "FlagPicker", "FlagDot"], render: TagsAndFlagsDemo },
   { id: "colors", section: "primitive", title: "ColorPicker", description: "Farbfeld oder Werkzeug, Farbkreis und Schnellwahl.", components: ["ColorPicker"], render: () => <ContentDemo section="colors" /> },
   { id: "flaechen", section: "shared", title: "SoftPanel und EmptyState", description: "Inhaltsflächen und leere Zustände.", components: ["SoftPanel", "EmptyState"], render: () => <FoundationsDemo section="surfaces" /> },
+  { id: "struktur", section: "shared", title: "Abschnittskopf, Schritte und Reiter", description: "Kopf jeder Fläche, Schrittlinie und Unterstreichungs-Reiter.", components: ["SectionHeader", "Steps", "CoreTabs", "CoreTabPanel"], wide: true, render: () => <StructureDemo section="struktur" /> },
   { id: "headings", section: "shared", title: "PageHeader und LearningAreaHeader", description: "Seitentitel sowie Köpfe von Lernen und Kartenverwaltung.", components: ["PageHeader", "LearningAreaHeader"], render: () => <><FoundationsDemo section="headings" /><NavigationDemo section="headings" /></> },
   { id: "navigation", section: "shared", title: "AppNavigation, Einstellungsdialog und InPageNavigation", description: "Responsive Hauptnavigation, CoRe-Wortmarke, der gemeinsame Rahmen der Einstellungsdialoge und die Sprunglinks der Statistik.", components: ["AppNavigation", "CoreWordmark", "SettingsDialog", "InPageNavigation"], render: () => <><NavigationDemo section="navigation" /><ProductViewsDemo kind="settings" /></> },
   { id: "stapel", section: "shared", title: "Stapeltabelle, Baum und Menü", description: "Tabellenzeile, Stapelbaum, Unterstapel und Optionsmenü.", components: ["DeckSummaryHeader", "DeckSummaryRow", "DeckOptionsMenu", "DeckTree"], wide: true, render: () => <DecksDemo section="stapel" /> },
-  { id: "charts", section: "fachmuster", title: "Kennzahlen und Heatmap", description: "Kennzahlen und Lern-Heatmap.", components: ["StatTile", "StudyHeatmap"], wide: true, render: () => <><FoundationsDemo section="charts" /><DecksDemo section="charts" /></> },
+  { id: "charts", section: "fachmuster", title: "Kennzahlen und Heatmap", description: "Einzelne Kennzahl, Kennzahlzeile und Lern-Heatmap.", components: ["StatTile", "MetricRow", "StudyHeatmap"], wide: true, render: () => <><FoundationsDemo section="charts" /><DecksDemo section="charts" /></> },
   { id: "inhalt", section: "fachmuster", title: "Karteninhalte", description: "Sanitisiertes HTML, Kartenfläche und Lernkarte. Alle Kartentypen stehen in der eigenen Referenz.", components: ["CardHtml", "CardPresentationSurface", "NoteCardContent"], wide: true, render: () => <ContentDemo section="inhalt" /> },
   { id: "editor", section: "fachmuster", title: "Texteditor und Inhaltsbausteine", description: "Rich-Text-Toolbar und Inhaltsbausteine.", components: ["RichTextEditor", "NoteBlockControls"], wide: true, render: () => <><ContentDemo section="editor" /><NoteBlocksDemo /></> },
   { id: "bildverdeckung-editor", section: "fachmuster", title: "Bildverdeckungs-Editor", description: "Masken zeichnen, gruppieren und den Verdeckungsmodus wählen.", components: ["OcclusionEditor"], wide: true, render: OcclusionEditorDemo },

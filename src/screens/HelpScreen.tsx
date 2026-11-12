@@ -322,7 +322,7 @@ function StoryStepCard<TSelection extends string>({
         aria-current={active ? "step" : undefined}
       >
         <p className="core-caption font-medium text-core-muted">{step.eyebrow}</p>
-        <h3 className="core-heading-2 mt-3 font-semibold text-core-text">{step.title}</h3>
+        <h3 className="core-heading-2 mt-3 text-core-text">{step.title}</h3>
         <p className="mt-4 core-body-large leading-7 text-core-secondary">{step.text}</p>
         {step.note ? <p className="mt-4 core-caption leading-5 text-core-secondary">{step.note}</p> : null}
       </article>
@@ -459,7 +459,7 @@ function IntroSection() {
     <section className="grid min-w-0 min-h-[72svh] items-center gap-12 lg:grid-cols-[0.9fr_1.1fr]" aria-labelledby="help-intro-heading">
       <div className="max-w-2xl">
         <p className="core-caption font-medium text-core-muted">Lernen, das wirklich bleibt</p>
-        <h2 id="help-intro-heading" className="core-heading-1 mt-4 font-semibold text-core-text">Wir wollen Lernen verbessern.</h2>
+        <h2 id="help-intro-heading" className="core-heading-1 mt-4 text-core-text">Wir wollen Lernen verbessern.</h2>
         <p className="mt-6 core-body-large leading-8 text-core-secondary">
           CoRe hilft dir, Wissen nicht nur für den nächsten Test, sondern langfristig abrufbar zu machen. Dafür verbinden wir zwei etablierte Methoden und entwickeln sie weiter.
         </p>
@@ -566,7 +566,7 @@ function ActiveRecallStory() {
     <section className="grid min-w-0 gap-8" aria-labelledby="active-recall-heading">
       <div className="max-w-3xl">
         <p className="core-caption font-medium text-core-muted">Methode 1</p>
-        <h2 id="active-recall-heading" className="core-heading-1 mt-3 scroll-mt-6 font-semibold text-core-text">Active Recall</h2>
+        <h2 id="active-recall-heading" className="core-heading-1 mt-3 scroll-mt-6 text-core-text">Active Recall</h2>
       </div>
       <div ref={containerRef} className="grid min-w-0 gap-8 xl:grid-cols-[minmax(0,0.9fr)_minmax(20rem,1.1fr)] xl:gap-12">
         <div className="min-w-0 self-start xl:sticky xl:top-6">
@@ -750,7 +750,7 @@ function SpacedRepetitionStory() {
     <section className="grid min-w-0 gap-8" aria-labelledby="spaced-repetition-heading">
       <div className="max-w-3xl">
         <p className="core-caption font-medium text-core-muted">Methode 2</p>
-        <h2 id="spaced-repetition-heading" className="core-heading-1 mt-3 scroll-mt-6 font-semibold text-core-text">Spaced Repetition findet den passenden Zeitpunkt</h2>
+        <h2 id="spaced-repetition-heading" className="core-heading-1 mt-3 scroll-mt-6 text-core-text">Spaced Repetition findet den passenden Zeitpunkt</h2>
         <p className="mt-4 core-body-large leading-7 text-core-secondary">Bei Spaced Repetition werden Fragen in gezielt gewählten Abständen wiederholt, um dem Vergessen entgegenzuwirken. CoRe nutzt dafür den FSRS-Algorithmus, der anhand verschiedener Parameter berechnet, wie wahrscheinlich du dich noch an eine Karte erinnerst.</p>
       </div>
       <div ref={containerRef} className="grid min-w-0 gap-8 xl:grid-cols-[minmax(19rem,0.65fr)_minmax(38rem,1.35fr)] xl:gap-10">
@@ -772,14 +772,14 @@ function ReferenceSection() {
     <section className="grid min-w-0 gap-8" aria-labelledby="reference-heading">
       <div>
         <p className="core-caption font-medium text-core-muted">Zum Nachlesen</p>
-        <h2 id="reference-heading" className="core-heading-1 mt-3 font-semibold text-core-text">Das Wichtigste auf einen Blick</h2>
+        <h2 id="reference-heading" className="core-heading-1 mt-3 text-core-text">Das Wichtigste auf einen Blick</h2>
       </div>
 
       <div className="grid gap-4 lg:grid-cols-2">
         <SoftPanel className="p-6">
           <div className="flex items-center gap-3">
             <OrbIcon icon={Clock3} />
-            <h3 className="core-heading-2 font-semibold text-core-text">So arbeitet ein Spaced-Repetition-Scheduler</h3>
+            <h3 className="core-heading-2 text-core-text">So arbeitet ein Spaced-Repetition-Scheduler</h3>
           </div>
           <ol className="mt-6 border-t border-core-border">
             {SCHEDULING_STEPS.map((step, index) => (
@@ -797,7 +797,7 @@ function ReferenceSection() {
         <SoftPanel className="p-6">
           <div className="flex items-center gap-3">
             <OrbIcon icon={ShieldCheck} />
-            <h3 className="core-heading-2 font-semibold text-core-text">Transparenz zum aktuellen Scheduler</h3>
+            <h3 className="core-heading-2 text-core-text">Transparenz zum aktuellen Scheduler</h3>
           </div>
           <p className="mt-6 core-body leading-6 text-core-secondary">
             CoRe verwendet FSRS-7 mit den offiziellen Standardparametern. Es berücksichtigt alle Reviews einschließlich mehrerer Abrufe am selben Tag. Die persönliche Optimierung der Parameter aus deiner eigenen Reviewhistorie ist noch nicht aktiviert.
@@ -811,7 +811,7 @@ function ReferenceSection() {
       <SoftPanel className="p-6" data-testid="help-exam-session">
         <div className="flex items-center gap-3">
           <OrbIcon icon={CalendarCheck} />
-          <h3 className="core-heading-2 font-semibold text-core-text">So läuft eine Prüfungssitzung</h3>
+          <h3 className="core-heading-2 text-core-text">So läuft eine Prüfungssitzung</h3>
         </div>
         <ul className="mt-4 grid gap-3 core-body leading-6 text-core-secondary lg:grid-cols-2 lg:gap-x-8">
           <li>• „Heutige Einheit lernen“ enthält die geplanten neuen Karten deiner Prüfungsthemen, ihre Lernschritte und die heute fälligen Wiederholungen dieser Stapel. Eine einzelne Lernaufgabe startet nur ihr Thema.</li>
@@ -824,7 +824,7 @@ function ReferenceSection() {
       <SoftPanel className="p-6" data-testid="help-card-management">
         <div className="flex items-center gap-3">
           <OrbIcon icon={Layers} />
-          <h3 className="core-heading-2 font-semibold text-core-text">So arbeitest du in der Kartenverwaltung</h3>
+          <h3 className="core-heading-2 text-core-text">So arbeitest du in der Kartenverwaltung</h3>
         </div>
         <ul className="mt-4 grid gap-3 core-body leading-6 text-core-secondary lg:grid-cols-2 lg:gap-x-8">
           <li>• Die Suche versteht Anki-Begriffe wie <code>tag:</code>, <code>is:due</code> oder <code>Feld:Text</code>. „Erweiterte Suche“ setzt sie per Klick und speichert Suchen.</li>
@@ -848,7 +848,7 @@ function ReferenceSection() {
         <SoftPanel className="p-6">
           <div className="flex items-center gap-3">
             <OrbIcon icon={RotateCcw} />
-            <h3 className="core-heading-2 font-semibold text-core-text">Was bei Varianten geschützt bleibt</h3>
+            <h3 className="core-heading-2 text-core-text">Was bei Varianten geschützt bleibt</h3>
           </div>
           <ul className="mt-4 grid gap-3 core-body leading-6 text-core-secondary">
             <li>• Die Variante prüft dieselbe Wissenseinheit und führt keine neuen Fakten ein.</li>
@@ -862,7 +862,7 @@ function ReferenceSection() {
         <div className="border-y border-core-border py-6">
           <div className="flex items-center gap-3">
             <OrbIcon icon={Brain} />
-            <h3 className="core-heading-2 font-semibold text-core-text">Mehr über FSRS</h3>
+            <h3 className="core-heading-2 text-core-text">Mehr über FSRS</h3>
           </div>
           <p className="mt-4 core-body leading-6 text-core-secondary">Die offizielle Einführung erklärt das vollständige FSRS-Modell, seine Modellparameter und die Zielerinnerung.</p>
           <a className="core-action-secondary mt-6 w-fit" href="https://github.com/open-spaced-repetition/awesome-fsrs/wiki/ABC-of-FSRS" target="_blank" rel="noreferrer noopener">
@@ -878,7 +878,7 @@ function ReferenceSection() {
 export function HelpScreen() {
   return (
     <div className="grid min-w-0 gap-24 pb-16">
-      <PageHeader eyebrow="Hilfe" title="Wie CoRe dein Lernen stärkt" />
+      <PageHeader title="Wie CoRe dein Lernen stärkt" />
       <IntroSection />
       <ActiveRecallStory />
       <SpacedRepetitionStory />

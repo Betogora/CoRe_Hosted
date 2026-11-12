@@ -122,7 +122,7 @@ export function ExamDashboardWidget({ state, now, onLoad, onStart, onSaveTasks, 
     </li>;
   }
   return <SoftPanel className="exam-today-layout grid min-w-0 gap-4 p-3 min-[360px]:p-4 sm:p-6" data-testid="dashboard-exam-unit">
-    <div className="flex flex-wrap items-center justify-between gap-3"><h2 className="core-heading-3 font-semibold text-core-text">Prüfungen · Heute</h2>{onOpen ? <ActionButton variant="secondary" onClick={onOpen}>Lernkalender öffnen</ActionButton> : null}</div>
+    <div className="flex flex-wrap items-center justify-between gap-3"><h2 className="core-heading-3 text-core-text">Prüfungen · Heute</h2>{onOpen ? <ActionButton variant="secondary" onClick={onOpen}>Lernkalender öffnen</ActionButton> : null}</div>
     {busy ? <p role="status" className="core-body text-core-muted">Deine Aufgaben werden berechnet …</p> : null}
     {offline ? <StatusMessage tone="info">{tasks.length ? "Offline: zuletzt geplante Aufgaben" : "Die Prüfungsplanung braucht eine Verbindung."}</StatusMessage> : null}
     {error || startError ? <StatusMessage tone="error">{startError || error}</StatusMessage> : null}

@@ -1,5 +1,5 @@
 import React from "react";
-import { Activity, ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import {
   createStudyHeatmapWindow,
   type StudyHeatmapDay,
@@ -7,7 +7,7 @@ import {
   type StudyHeatmapPeriod,
   type StudyHeatmapWindow,
 } from "../studyHeatmapModel.ts";
-import { OrbIcon, SoftPanel } from "./coreUi.tsx";
+import { SoftPanel } from "./coreUi.tsx";
 import { normalizeColor } from "./colorMath.ts";
 import { ColorPicker } from "./ColorPicker.tsx";
 import { CoreSelect } from "./selectUi.tsx";
@@ -307,10 +307,7 @@ export function StudyHeatmap({
       data-heatmap-history-color={historyColor}
     >
       <div className="core-study-heatmap-header grid items-center gap-4" data-testid="study-heatmap-header">
-        <div className="flex min-w-0 items-center gap-4">
-          <OrbIcon icon={Activity} />
-          <h3 className="whitespace-nowrap core-heading-3 font-semibold text-core-text">{formatStudyHeatmapTitle(heatmap.currentStreak)}</h3>
-        </div>
+        <h3 className="min-w-0 whitespace-nowrap core-heading-3 text-core-text">{formatStudyHeatmapTitle(heatmap.currentStreak)}</h3>
         <div className="core-study-heatmap-controls flex max-w-full items-center justify-end gap-2 whitespace-nowrap" data-testid="study-heatmap-controls">
           <ColorPicker ariaLabel="Heatmap-Farbe ändern" value={historyColor} onValueCommit={setHistoryColor} />
           <CoreSelect
@@ -325,7 +322,7 @@ export function StudyHeatmap({
               type="button"
               onClick={() => setAnchorKey(visibleHeatmap.previousAnchorKey)}
               disabled={!visibleHeatmap.canShowPrevious}
-              className="inline-flex size-control shrink-0 items-center justify-center rounded-control border border-core-border bg-core-surface text-core-text shadow-soft transition hover:bg-core-subtle disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none"
+              className="inline-flex size-control shrink-0 items-center justify-center rounded-control text-core-text transition hover:bg-core-subtle disabled:cursor-not-allowed disabled:opacity-50"
               aria-label={navigationLabels.previous}
             >
               <ChevronLeft size={16} aria-hidden="true" />
@@ -336,7 +333,7 @@ export function StudyHeatmap({
               type="button"
               onClick={() => setAnchorKey(visibleHeatmap.nextAnchorKey)}
               disabled={!visibleHeatmap.canShowNext}
-              className="inline-flex size-control shrink-0 items-center justify-center rounded-control border border-core-border bg-core-surface text-core-text shadow-soft transition hover:bg-core-subtle disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none"
+              className="inline-flex size-control shrink-0 items-center justify-center rounded-control text-core-text transition hover:bg-core-subtle disabled:cursor-not-allowed disabled:opacity-50"
               aria-label={navigationLabels.next}
             >
               <ChevronRight size={16} aria-hidden="true" />

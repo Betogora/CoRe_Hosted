@@ -166,7 +166,7 @@ function DailyLearningOverview({
       <SoftPanel className="overflow-hidden" data-testid="daily-learning-overview" data-status={plan.status}>
         <div className="min-w-0 p-6">
           <div className="flex items-center gap-3 sm:gap-4">
-            <h2 className={`min-w-0 flex-1 core-heading-3 font-semibold ${achieved ? "text-[var(--core-learning-goal-achieved)]" : "text-core-text"}`}>{title}</h2>
+            <h2 className={`min-w-0 flex-1 core-heading-3 ${achieved ? "text-[var(--core-learning-goal-achieved)]" : "text-core-text"}`}>{title}</h2>
             <CoreTooltip label={primaryLabel}>
               <IconButton
                 type="button"
@@ -250,8 +250,8 @@ export function DashboardScreen({ state, now, onNavigate, onStartDeck, onStartAd
   const [demoStatus, setDemoStatus] = React.useState<"idle" | "busy" | "error">("idle");
   const demoBusyRef = React.useRef(false);
   const displayName = state.profile?.displayName?.trim();
-  const welcomeTitle = displayName ? <><span className="sr-only">Willkommen zurück, </span><span className="core-dashboard-name">{displayName}!</span></> : "Willkommen bei CoRe";
-  const welcomeEyebrow = displayName ? <span aria-hidden="true">Willkommen zurück,</span> : undefined;
+  const welcomeTitle = displayName ? <span className="core-dashboard-name">{displayName}!</span> : "Willkommen bei CoRe";
+  const welcomeGreeting = displayName ? "Willkommen zurück," : undefined;
 
   async function createDemo() {
     // A ref, not state: a fast double click must not start a second commit before the re-render.
@@ -271,12 +271,12 @@ export function DashboardScreen({ state, now, onNavigate, onStartDeck, onStartAd
   if (state.decks.length === 0) {
     return (
       <div className="grid min-w-0 gap-6">
-        <PageHeader eyebrow={welcomeEyebrow} title={welcomeTitle} />
+        <PageHeader greeting={welcomeGreeting} title={welcomeTitle} />
 
         <SoftPanel className="overflow-hidden p-6 sm:p-9">
           <div className="max-w-3xl">
             <p className="core-caption font-semibold text-core-action">Dein erster Lernerfolg</p>
-            <h2 className="mt-1 core-heading-2 font-semibold text-core-text">Womit möchtest du starten?</h2>
+            <h2 className="mt-1 core-heading-2 text-core-text">Womit möchtest du starten?</h2>
             <p className="mt-2 max-w-2xl core-body text-core-secondary">Lege eigenes Lernmaterial an oder probiere CoRe bewusst mit Beispieldaten aus.</p>
           </div>
 
@@ -289,7 +289,7 @@ export function DashboardScreen({ state, now, onNavigate, onStartDeck, onStartAd
         </SoftPanel>
 
         <SoftPanel className="p-6">
-          <h2 className="core-heading-3 font-semibold text-core-text">Das macht CoRe</h2>
+          <h2 className="core-heading-3 text-core-text">Das macht CoRe</h2>
           <ul className="mt-4 grid gap-3 md:grid-cols-3">
             {["Zeitlich passend wiederholen.", "Später anders formuliert prüfen.", "Die Originalkarte bleibt erhalten."].map((point) => (
               <li key={point} className="flex gap-3 core-body text-core-secondary">
@@ -307,7 +307,7 @@ export function DashboardScreen({ state, now, onNavigate, onStartDeck, onStartAd
     <DashboardWidgets
       key={state.profile.userId}
       userId={state.profile.userId}
-      header={(action) => <PageHeader eyebrow={welcomeEyebrow} title={welcomeTitle} action={action} />}
+      header={(action) => <PageHeader greeting={welcomeGreeting} title={welcomeTitle} action={action} />}
       timer={pomodoroTimer}
       onStartTimer={onStartPomodoro}
       onPauseTimer={onPausePomodoro}

@@ -121,7 +121,7 @@ export function NoteContentEditor({ note, value, structure, onValueChange, onStr
   const fields = (
     <div className="grid min-w-0 content-start gap-4" inert={disabled}>
       <div className="flex min-w-0 flex-wrap items-center gap-x-4 gap-y-2" data-testid="note-direction">
-        <h3 className="core-heading-3 font-semibold text-core-text">{noteKindLabel({ content: structure })}</h3>
+        <h3 className="core-heading-3 text-core-text">{noteKindLabel({ content: structure })}</h3>
         {structureEditable && blocks.reverse !== null ? (
           <CoreSegmentedControl
             ariaLabel="Lernrichtung"
@@ -209,7 +209,7 @@ export function NoteContentEditor({ note, value, structure, onValueChange, onStr
 
   const previewColumn = occlusionImage && interaction.kind === "image-occlusion" ? (
     <div className="grid min-w-0 content-start gap-2" data-testid="note-occlusion">
-      <h3 className="core-heading-3 font-semibold text-core-text">Bild und Masken</h3>
+      <h3 className="core-heading-3 text-core-text">Bild und Masken</h3>
       <React.Suspense fallback={<p className="core-body text-core-muted" role="status">Masken-Editor wird geladen …</p>}>
         <OcclusionEditor
           imageUrl={occlusionImage}
@@ -232,7 +232,7 @@ export function NoteContentEditor({ note, value, structure, onValueChange, onStr
             options={previewCards.map((entry) => ({ value: entry.card.id, label: entry.label }))}
             onValueChange={(id) => { setPreviewCardId(id); setSide("question"); setRound((current) => current + 1); }}
           />
-        ) : <h3 className="core-heading-3 font-semibold text-core-text">Vorschau</h3>}
+        ) : <h3 className="core-heading-3 text-core-text">Vorschau</h3>}
         <CoreSegmentedControl
           ariaLabel="Kartenseite in der Vorschau"
           className="core-segmented-touch"

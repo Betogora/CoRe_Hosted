@@ -167,10 +167,9 @@ test("dashboard heatmap changes its header layout only once across responsive wi
 
       const layout = await page.getByTestId("study-heatmap-header").evaluate((header: HTMLElement) => {
         const centerY = (rect: DOMRect) => rect.top + rect.height / 2;
-        const titleGroup = header.firstElementChild as HTMLElement;
+        const title = header.firstElementChild as HTMLElement;
         const controls = header.lastElementChild as HTMLElement;
-        const title = titleGroup.querySelector<HTMLElement>("h3")!;
-        const titleRect = titleGroup.getBoundingClientRect();
+        const titleRect = title.getBoundingClientRect();
         const controlsRect = controls.getBoundingClientRect();
         const controlRects = [...controls.children].map((control) => control.getBoundingClientRect());
         const panel = header.closest<HTMLElement>(".core-study-heatmap-container")!;

@@ -110,7 +110,7 @@ export function GlobalCardSettingsScreen({ section, decks, onOpenDeckSettings, t
     <>
       {section === "lerntag" ? (
         <section id={sectionIds.planning} className="core-settings-section" aria-labelledby="card-settings-planning-heading">
-          <h2 id="card-settings-planning-heading" tabIndex={-1} className="core-heading-2 font-semibold text-core-text outline-none">Lerntag & Planung</h2>
+          <h2 id="card-settings-planning-heading" tabIndex={-1} className="core-heading-2 text-core-text outline-none">Lerntag & Planung</h2>
           <p className="core-settings-row-hint">Gilt kontoweit. Stapel und Lernprofile ändern diese Werte nicht.</p>
           <div className="core-settings-list">
             <div className="core-settings-row">
@@ -209,7 +209,7 @@ export function GlobalCardSettingsScreen({ section, decks, onOpenDeckSettings, t
 
       {section === "flaggen" ? (
         <section id={sectionIds.flags} className="core-settings-section" aria-labelledby="card-settings-flags-heading">
-          <h2 id="card-settings-flags-heading" tabIndex={-1} className="core-heading-2 font-semibold text-core-text outline-none">Flaggen</h2>
+          <h2 id="card-settings-flags-heading" tabIndex={-1} className="core-heading-2 text-core-text outline-none">Flaggen</h2>
           <p className="core-settings-row-hint">Eigene Namen gelten kontoweit. Ein leeres Feld zeigt den Farbnamen.</p>
           <div className="core-settings-list">
             {draft.flagNames.map((name, index) => {
@@ -240,7 +240,7 @@ export function GlobalCardSettingsScreen({ section, decks, onOpenDeckSettings, t
 
       {section === "fokus" ? (
         <section id={sectionIds.focus} className="core-settings-section" aria-labelledby="card-settings-focus-heading">
-          <h2 id="card-settings-focus-heading" tabIndex={-1} className="core-heading-2 font-semibold text-core-text outline-none">Fokuswerkzeuge</h2>
+          <h2 id="card-settings-focus-heading" tabIndex={-1} className="core-heading-2 text-core-text outline-none">Fokuswerkzeuge</h2>
           <div className="core-settings-list">
             <div className="core-settings-row" data-layout="inline">
               <div className="core-settings-row-text">

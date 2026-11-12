@@ -71,7 +71,7 @@ export type CrossLinkButtonProps = CrossLinkBaseProps & (
   | { href?: never; onSelect: () => void }
 );
 
-const CROSS_LINK_CLASS = "inline-flex min-h-button items-center gap-2 whitespace-nowrap rounded-control bg-core-subtle px-4 core-control-label font-semibold text-core-text transition hover:bg-core-hover hover:text-core-action";
+const CROSS_LINK_CLASS = "inline-flex min-h-button items-center gap-1 whitespace-nowrap rounded-control px-1 core-control-label font-semibold text-core-action underline-offset-4 hover:underline";
 
 export function CrossLinkButton({ children, className = "", ...action }: CrossLinkButtonProps) {
   const content = (

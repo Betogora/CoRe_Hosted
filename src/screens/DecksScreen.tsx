@@ -12,7 +12,7 @@ import { ActionButton, IconButton } from "../ui/actionUi.tsx";
 import { useNoteMediaUrls } from "../ui/cardMedia.tsx";
 import { useStableCallback } from "../ui/useStableCallback.ts";
 import { useWorkspaceValue } from "../useWorkspaceStore.ts";
-import { ActionDialog, CoreSlidingTabs, EmptyState, SoftPanel } from "../ui/coreUi.tsx";
+import { ActionDialog, CoreSlidingTabs, CoreTag, EmptyState, SoftPanel } from "../ui/coreUi.tsx";
 import { DeckAppearanceIcon } from "../ui/deckAppearance.tsx";
 import { useSuccessToast } from "../ui/feedbackUi.tsx";
 import { CoreTooltip } from "../ui/tooltipUi.tsx";
@@ -211,7 +211,7 @@ const CardTableRowView = React.memo(function CardTableRowView({ virtualKey, deck
           <span className="flex min-w-0 items-baseline gap-2 sm:gap-3">
             <span className="min-w-0 flex-1 truncate">
               {frontPreview}
-              {syncConflict ? <span className="ml-2 inline-flex min-h-5 items-center rounded-round bg-core-warning-soft px-2 core-caption font-semibold text-core-warning">Synchronisierung klären</span> : null}
+              {syncConflict ? <CoreTag tone="warning" className="ml-2">Synchronisierung klären</CoreTag> : null}
             </span>
             {deckPath ? <span className="hidden min-w-0 max-w-[40%] shrink-0 truncate core-caption font-normal text-core-muted sm:block">{deckPath}</span> : null}
           </span>

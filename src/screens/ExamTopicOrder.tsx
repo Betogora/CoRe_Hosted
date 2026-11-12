@@ -2,6 +2,7 @@ import React from "react";
 import { createPortal } from "react-dom";
 import { ArrowDown, ArrowUp, ChevronDown, GripVertical } from "lucide-react";
 import { IconButton } from "../ui/actionUi.tsx";
+import { CoreTag } from "../ui/coreUi.tsx";
 
 interface Topic { id: string; name: string }
 interface Drag {
@@ -85,7 +86,7 @@ export function ExamTopicOrder({ topics, disabled = false, onChange }: {
   return <details className="exam-topic-order min-w-0 rounded-control border border-core-border bg-core-surface shadow-soft" onToggle={(event) => { if (!event.currentTarget.open) cancel(); }}>
     <summary data-exam-topic-order-toggle className="flex min-h-control cursor-pointer list-none items-center gap-3 rounded-control px-4 py-2 core-control-label font-semibold text-core-text [&::-webkit-details-marker]:hidden">
       <ChevronDown size={16} aria-hidden="true" className="order-last shrink-0 text-core-muted transition-transform motion-reduce:transition-none" />
-      <span className="min-w-0 break-words">Themenreihenfolge ändern</span><span className="ml-auto inline-flex min-h-5 shrink-0 items-center rounded-round border border-core-border px-2 core-caption font-semibold tabular-nums text-core-secondary">{topics.length}</span>
+      <span className="min-w-0 break-words">Themenreihenfolge ändern</span><CoreTag tone="outline" className="ml-auto shrink-0 tabular-nums">{topics.length}</CoreTag>
     </summary>
     <p id={helpId} className="sr-only">Am Griff ziehen, um Themen zu verschieben. Alternativ die Pfeilschaltflächen oder am Griff die Pfeiltasten verwenden. Escape bricht das Ziehen ab.</p>
     <ol ref={list} aria-label="Themenreihenfolge" className="grid max-h-[28rem] gap-2 overflow-y-auto border-t border-core-border p-3"

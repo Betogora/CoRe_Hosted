@@ -15,7 +15,7 @@ export function CardEditorSection({ title, aside, testId, children }: {
   return (
     <SoftPanel aria-labelledby={id} data-testid={testId} className="grid grid-cols-[minmax(0,1fr)] content-start gap-4 p-4 sm:p-6">
       <div className="flex min-w-0 flex-wrap items-center justify-between gap-x-3 gap-y-1">
-        <h3 id={id} className="core-heading-3 font-semibold text-core-text">{title}</h3>
+        <h3 id={id} className="core-heading-3 text-core-text">{title}</h3>
         {aside}
       </div>
       {children}

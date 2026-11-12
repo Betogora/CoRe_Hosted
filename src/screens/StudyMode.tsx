@@ -479,9 +479,9 @@ export function StudyMode({ shortcutsSuspended = false, deck, decks, notes, answ
               <>
                 <div className="w-full">
                   {current.sessionInfo?.isRepeat ? (
-                    <p className="mb-4 inline-flex min-h-5 items-center rounded-round bg-core-info-soft px-2 core-caption font-semibold text-core-action" role="status">
+                    <CoreTag tone="info" className="mb-4" role="status">
                       {current.sessionInfo.isEarlyRepeat ? "Vorgezogene Wiederholung" : "Wiederholung"}
-                    </p>
+                    </CoreTag>
                   ) : null}
                   {showAnswer && isCurrentVariant ? (
                     <CoreTag tone="info" className="mb-4" data-testid="review-variant-badge">Variante</CoreTag>

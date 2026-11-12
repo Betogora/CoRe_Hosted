@@ -29,7 +29,7 @@ test("@beta-core @hosted-core APKG-Medium wird nach dem Deck-Commit cloudbestät
   await mainMenu.getByRole("button", { name: "Erstellen" }).click();
   await page.getByRole("button", { name: /Import/ }).click();
   await page.locator('input[type="file"][accept=".apkg,.colpkg"]').setInputFiles(fixturePath);
-  await expect(page.getByText("Importvorschau", { exact: true })).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByRole("button", { name: "Import übernehmen" })).toBeVisible({ timeout: 30_000 });
   await expect(page.getByText("Medien vorhanden", { exact: true })).toBeVisible();
   await page.getByRole("button", { name: "Import übernehmen" }).click();
   await expect(page.getByRole("heading", { name: "Import erfolgreich" })).toBeVisible({ timeout: 60_000 });

@@ -598,7 +598,7 @@ export function DeckTree({ rows, rootDeckIds, mode, view = "list", onViewChange,
         </React.Fragment>)}
       </nav>
       <div className="flex min-w-0 flex-wrap items-start justify-between gap-3">
-        <h4 className="min-w-0 flex-1 basis-44 break-words core-heading-3 font-semibold text-core-text">{folderRow.name}</h4>
+        <h4 className="min-w-0 flex-1 basis-44 break-words core-heading-3 text-core-text">{folderRow.name}</h4>
         <div className="flex shrink-0 gap-2">
           <CoreTooltip label="Stapel öffnen">
             <IconButton label={`Inhalte von ${folderRow.path} öffnen`} icon={PanelsTopLeft} onClick={() => onActivate(folderRow)} />
@@ -629,7 +629,7 @@ export function DeckTree({ rows, rootDeckIds, mode, view = "list", onViewChange,
         <div className="core-deck-tree-layout grid">
           {title || headerAction || showExpandAll || showViewControl ? <div className={`core-deck-tree-header grid min-h-control items-center gap-3${showViewControl ? " core-deck-tree-view-header" : ""}`} data-testid={`${mode}-deck-list-header`}>
             <div className="core-deck-tree-heading min-w-0">
-              {title ? <h3 className="core-deck-tree-title break-words core-heading-3 font-semibold text-core-text">{title}</h3> : null}
+              {title ? <h3 className="core-deck-tree-title break-words core-heading-3 text-core-text">{title}</h3> : null}
             </div>
             {headerAction || showExpandAll || showViewControl ? (
               <div className="core-deck-tree-header-action flex flex-wrap items-center justify-end gap-2 justify-self-end">

@@ -413,7 +413,7 @@ test("[Vertrag: partieller Importabschluss] @beta-core Karten bleiben nach Medie
   await mainMenu(page).getByRole("button", { name: "Erstellen" }).click();
   await page.getByRole("button", { name: /^Import\b/ }).click();
   await page.locator('input[type="file"][accept=".apkg,.colpkg"]').setInputFiles(MEDIA_APKG_FIXTURE);
-  await expect(page.getByText("Importvorschau", { exact: true })).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByRole("button", { name: "Import übernehmen" })).toBeVisible({ timeout: 30_000 });
   await page.route("**/storage/v1/object/core-media/**", (route) => route.abort("failed"));
   await page.getByRole("button", { name: "Import übernehmen" }).click();
   await expect(page.getByText(/Import teilweise abgeschlossen/)).toBeVisible({ timeout: 30_000 });

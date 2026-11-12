@@ -855,7 +855,7 @@ export function ManualCreationPanel({
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
           <OrbIcon icon={PenLine} />
-          <h2 className="core-heading-2 font-semibold text-core-text">Karte selbst erstellen</h2>
+          <h2 className="core-heading-2 text-core-text">Karte selbst erstellen</h2>
         </div>
         <div className="flex flex-wrap gap-2">
           {documentMode

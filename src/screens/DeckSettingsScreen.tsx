@@ -181,7 +181,7 @@ export function DeckSettingsScreen({ section, onSelectSection, deck, decks, lear
       >
         {decks.length > 0 ? (
           <section className="core-settings-section" aria-labelledby="deck-settings-select-heading">
-            <h2 id="deck-settings-select-heading" tabIndex={-1} className="core-heading-2 font-semibold text-core-text outline-none">Stapel auswählen</h2>
+            <h2 id="deck-settings-select-heading" tabIndex={-1} className="core-heading-2 text-core-text outline-none">Stapel auswählen</h2>
             <div className="core-settings-list">
               <div className="core-settings-row">
                 <div className="core-settings-row-text">
@@ -268,7 +268,7 @@ export function DeckSettingsScreen({ section, onSelectSection, deck, decks, lear
     <div className="min-w-0" data-testid={`deck-settings-${deck.id}`}>
       {area === "stapel" ? (
         <section id="deck-identity" className="core-settings-section" aria-labelledby="deck-identity-heading">
-          <h2 id="deck-identity-heading" tabIndex={-1} className="core-heading-2 font-semibold text-core-text outline-none">Stapel</h2>
+          <h2 id="deck-identity-heading" tabIndex={-1} className="core-heading-2 text-core-text outline-none">Stapel</h2>
           <div className="core-settings-list" data-testid="deck-settings-primary-controls">
             <div className="core-settings-row">
               <div className="core-settings-row-text">

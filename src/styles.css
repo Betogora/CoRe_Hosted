@@ -141,8 +141,8 @@
   --core-leading-metric: 1.75rem;
   --core-leading-heading-1: 2.25rem;
   --core-weight-body: 400;
-  --core-weight-control: 600;
-  --core-weight-emphasis: 650;
+  --core-weight-control: 500;
+  --core-weight-emphasis: 600;
   --core-weight-heading: 650;
   --core-font-sans: "Manrope Variable", Manrope, ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
 
@@ -230,7 +230,8 @@
   --core-warning-surface: #fffaeb;
   --core-danger-surface: #fef3f2;
   --core-backdrop: rgba(17, 24, 39, 0.32);
-  --core-shadow-soft: 0 1px 2px rgba(0, 0, 0, 0.05);
+  /* Static surfaces, buttons and fields are flat (ADR-051); only floating layers cast shadows. A transparent zero shadow keeps composed shadow lists valid. */
+  --core-shadow-soft: 0 0 #0000;
   --core-shadow-raised: 0 16px 40px -12px rgba(16, 24, 40, 0.18), 0 0 0 1px rgba(16, 24, 40, 0.05);
   --core-shadow-inset: inset 0 1px 2px rgba(16, 24, 40, 0.05);
   --core-action-soft: #ebf3f9;
@@ -334,7 +335,7 @@
   --core-warning-surface: #2f2511;
   --core-danger-surface: #3a1c1c;
   --core-backdrop: rgba(0, 0, 0, 0.6);
-  --core-shadow-soft: 0 1px 2px rgba(0, 0, 0, 0.05);
+  --core-shadow-soft: 0 0 #0000;
   --core-shadow-raised: 0 16px 40px -12px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(255, 255, 255, 0.06);
   --core-shadow-inset: inset 0 1px 2px rgba(0, 0, 0, 0.3);
   --core-action-soft: #182b3b;
@@ -439,7 +440,7 @@
     align-items: stretch;
     gap: 0.25rem;
     padding: 3px;
-    border: var(--core-border-width) solid var(--core-border);
+    border: var(--core-border-width) solid transparent;
     border-radius: var(--core-radius-panel);
     background: var(--core-selection-track);
     color: var(--core-text-secondary);
@@ -467,10 +468,17 @@
     flex-shrink: 0;
   }
 
+  .core-segmented-control-option:is([aria-pressed="true"], [aria-selected="true"]) {
+    color: var(--core-text);
+  }
+
+  .core-segmented-control-option:is([aria-pressed="true"], [aria-selected="true"]) svg {
+    color: var(--core-action-primary);
+  }
+
   .core-segmented-control-option[aria-pressed="true"] {
     background: var(--core-surface);
     box-shadow: var(--core-selection-indicator-shadow);
-    color: var(--core-action-primary);
   }
 
   .core-segmented-control-option:not([aria-pressed="true"]):hover {
@@ -650,10 +658,6 @@
     .core-segmented-touch.core-segmented-control {
       height: calc(var(--core-control-height) + 0.5rem);
     }
-  }
-
-  .core-card-editor-tabs .core-segmented-control-option[aria-selected="true"] {
-    color: var(--core-action-primary);
   }
 
   .core-card-editor-tabs:not([data-sliding="true"]) .core-segmented-control-option[aria-selected="true"] {
@@ -1184,13 +1188,13 @@ input[type="email"]:autofill {
   }
 
   .core-heading-3 {
-    font: var(--core-weight-emphasis) var(--core-type-heading-3)/var(--core-leading-heading-3) var(--core-font-sans);
+    font: var(--core-weight-heading) var(--core-type-heading-3)/var(--core-leading-heading-3) var(--core-font-sans);
     letter-spacing: -0.01em;
   }
 
   .core-metric {
     font: var(--core-weight-heading) var(--core-type-metric)/var(--core-leading-metric) var(--core-font-sans);
-    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.01em;
   }
 
   .core-brand {
@@ -1206,29 +1210,6 @@ input[type="email"]:autofill {
     .core-dialog-title-compact {
       font-size: var(--core-type-heading-2);
       line-height: var(--core-leading-heading-2);
-    }
-
-    .core-creation-action-title {
-      font-size: 1.25rem;
-      line-height: 1.2;
-      letter-spacing: -0.01em;
-      text-wrap: balance;
-    }
-  }
-
-  .core-creation-action {
-    transition: transform 200ms ease, border-color 200ms ease, box-shadow 200ms ease;
-  }
-
-  .core-creation-action:hover {
-    border-color: color-mix(in srgb, var(--core-action-primary) 45%, var(--core-border));
-    box-shadow: var(--core-shadow-floating);
-    transform: translateY(-2px);
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    .core-creation-action:hover {
-      transform: none;
     }
   }
 
@@ -1871,6 +1852,32 @@ summary {
   --core-tag-text: var(--core-action-primary);
 }
 
+/* Warning and success labels are mixed toward the text color so they keep 4.5:1 on their tinted surface. */
+.core-tag-warning {
+  --core-tag-surface: var(--core-warning-surface);
+  --core-tag-text: color-mix(in srgb, var(--core-warning) 62%, var(--core-text));
+}
+
+.core-tag-success {
+  --core-tag-surface: var(--core-success-surface);
+  --core-tag-text: color-mix(in srgb, var(--core-success) 78%, var(--core-text));
+}
+
+.core-tag-outline {
+  --core-tag-surface: transparent;
+  --core-tag-text: var(--core-text-secondary);
+  box-shadow: inset 0 0 0 var(--core-border-width) var(--core-border-interactive);
+}
+
+.core-tag-dot,
+.core-metric-row-dot {
+  flex-shrink: 0;
+  width: 0.5rem;
+  height: 0.5rem;
+  margin-right: 0.375rem;
+  border-radius: var(--core-radius-round);
+}
+
 /* SectionHeader: one head per surface; the minimum height keeps neighbouring heads on one baseline (ADR-051). */
 .core-section-header {
   display: flex;
@@ -1933,14 +1940,6 @@ summary {
   min-width: 0;
   color: var(--core-text-secondary);
   font: var(--core-weight-control) 0.8125rem/1.25rem var(--core-font-sans);
-}
-
-.core-metric-row-dot {
-  flex-shrink: 0;
-  width: 0.5rem;
-  height: 0.5rem;
-  margin-right: 0.375rem;
-  border-radius: var(--core-radius-round);
 }
 
 @container (max-width: 47.99rem) {

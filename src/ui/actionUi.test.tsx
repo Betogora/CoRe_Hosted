@@ -55,4 +55,6 @@ test("CrossLinkButton centralizes the compact cross-link style for buttons and a
   assert.match(markup, /<button type="button"[^>]*min-h-button[^>]*>Alle ansehen/);
   assert.match(markup, /<a href="#global"[^>]*min-h-button[^>]*>Globale Einstellungen/);
   assert.equal(markup.match(/lucide-chevron-right/g)?.length, 2);
+  assert.match(markup, /text-core-action[^"]*hover:underline/, "Textlink in Handlungsblau, beim Hovern unterstrichen");
+  assert.doesNotMatch(markup, /bg-core-subtle|hover:bg-/, "ohne Füllfläche");
 });
