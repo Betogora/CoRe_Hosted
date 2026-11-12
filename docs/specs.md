@@ -1285,7 +1285,7 @@ Verhalten:
 - Unter 768 px füllt der Dialog den Bildschirm und zeigt zuerst die Bereichsliste, dann den Bereich mit `Zurück zu den Bereichen`. Einstellungen stehen als Zeilen ohne Kästen; die Zeilenregeln beschreibt [`src/ui/README.md`](../src/ui/README.md).
 - `Daten & Synchronisierung` folgt [Sync-Status und Konflikte](#sync-status-und-konflikte) und [Speicherplatz und Vorladen](#speicherplatz-und-vorladen). `Fokuswerkzeuge` enthält den Start des [Pomodoro-Timers](#pomodoro-timer) und den Einstieg zum [Simulator](#simulator).
 - `Über uns` verweist auf die Hilfe, nennt `Impressum` und `Datenschutzerklärung` als in Vorbereitung und zeigt die Paketversion. Keine andere Oberfläche zeigt Version, Umgebung oder Commit.
-- `Leistungsdaten kopieren` in `Über uns` legt einen Text in die Zwischenablage: je Messgröße Anzahl, Median und p95, darunter Version, Zeitraum in Tagen, Geräteklasse (Kerne, Arbeitsspeicher, Zeiger) und Katalogumfang in Stufen. Ohne Messwerte ist der Knopf deaktiviert; Erfolg und Fehlschlag meldet ein Toast.
+- `Leistungsdaten kopieren` in `Über uns` legt einen Text in die Zwischenablage: je Messgröße ihre deutsche Bezeichnung mit Anzahl, Median und p95, darunter Version, Zeitraum in Tagen, Geräteklasse (Kerne, Arbeitsspeicher, Zeiger) und Katalogumfang in Stufen. Ohne Messwerte ist der Knopf deaktiviert; Erfolg und Fehlschlag meldet ein Toast.
 - Zahlenwerte werden beim Verlassen des Felds auf ihren gültigen Bereich begrenzt.
 
 ### Konto und Anmeldung

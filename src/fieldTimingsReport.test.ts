@@ -19,8 +19,8 @@ test("the copied text names counts, median and p95 per metric, then coarse conte
   const text = formatFieldTimingsReport(samples, { version: "0.2.0", cores: 8, memoryGb: 4, pointer: "coarse", cardCount: 12_345 });
   assert.equal(text, [
     "CoRe-Leistungsdaten",
-    "core:answer_shown: 3 Werte, Median 30 ms, p95 40 ms",
-    "core:session_check: 1 Wert, Median 180 ms, p95 180 ms",
+    "Antwort anzeigen: 3 Werte, Median 30 ms, p95 40 ms",
+    "Sitzung prüfen: 1 Wert, Median 180 ms, p95 180 ms",
     "",
     "Version: 0.2.0",
     "Zeitraum: 2025-11-08 bis 2025-11-12",
@@ -32,13 +32,13 @@ test("the copied text names counts, median and p95 per metric, then coarse conte
 });
 
 test("the copied text contains only keys from a fixed list and only numbers or coarse classes", () => {
-  const allowedKeys = new Set([
-    "core:answer_shown", "core:rating_to_next_card", "core:card_search_results",
-    "core:session_check", "core:local_workspace_start", "core:cloud_bootstrap_after_start", "core:cloud_sync_after_start",
-    "core:indexeddb_open", "core:indexeddb_shell", "core:indexeddb_startup_metadata", "core:first_deck_summaries",
-    "core:bootstrap_rpc", "core:bootstrap_apply",
-    "Version", "Zeitraum", "Prozessorkerne", "Arbeitsspeicher", "Zeiger", "Katalog",
-  ]);
+  const metricLabels = [
+    "Antwort anzeigen", "Bewertung bis nächste Karte", "Suche in der Kartenverwaltung",
+    "Sitzung prüfen", "Lokalen Arbeitsbereich starten", "Cloud-Stand nach Start laden", "Synchronisation nach Start",
+    "Lokale Datenbank öffnen", "Lokale Stapel lesen", "Lokale Startdaten lesen", "Erste Stapelzahlen",
+    "Cloud-Stand abrufen", "Cloud-Stand übernehmen",
+  ];
+  const allowedKeys = new Set([...metricLabels, "Version", "Zeitraum", "Prozessorkerne", "Arbeitsspeicher", "Zeiger", "Katalog"]);
   const samples = Object.fromEntries([...FIELD_TIMING_METRICS, "core:secret note@example.test"].map((metric) => [metric, [[12, 20_404]]])) as FieldTimingSamples;
   for (const context of [
     { version: "0.2.0", cores: 2, memoryGb: 0.5, pointer: "fine" as const, cardCount: 0 },
@@ -51,8 +51,9 @@ test("the copied text contains only keys from a fixed list and only numbers or c
       assert.ok(allowedKeys.has(key), `unerwarteter Schlüssel: ${line}`);
       assert.match(line.slice(key.length + 2), /^[\d\s,.\-–a-zA-ZäöüÄÖÜß]+$/u, line);
     }
-    assert.equal(lines.filter((line) => line.startsWith("core:")).length, FIELD_TIMING_METRICS.length);
-    assert.doesNotMatch(lines.join("\n"), /secret|@|https?:/);
+    const shownLabels = lines.filter((line) => line.includes(" ms, p95 ")).map((line) => line.slice(0, line.indexOf(": ")));
+    assert.deepEqual(shownLabels.sort(), [...metricLabels].sort(), "jede Messgröße erscheint mit genau einer eigenen Bezeichnung");
+    assert.doesNotMatch(lines.join("\n"), /core:|secret|@|https?:/);
   }
 });
 

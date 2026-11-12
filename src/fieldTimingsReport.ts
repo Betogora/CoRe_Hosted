@@ -1,5 +1,22 @@
 import { APP_RUNTIME_INFO } from "./appRuntime.ts";
-import { FIELD_TIMING_METRICS, type FieldTimingSamples } from "./fieldTimings.ts";
+import { FIELD_TIMING_METRICS, type FieldTimingMetric, type FieldTimingSamples } from "./fieldTimings.ts";
+
+/** German names in the copied text; the stored keys stay technical. */
+const FIELD_TIMING_LABELS: Readonly<Record<FieldTimingMetric, string>> = {
+  "core:answer_shown": "Antwort anzeigen",
+  "core:rating_to_next_card": "Bewertung bis nächste Karte",
+  "core:card_search_results": "Suche in der Kartenverwaltung",
+  "core:session_check": "Sitzung prüfen",
+  "core:local_workspace_start": "Lokalen Arbeitsbereich starten",
+  "core:cloud_bootstrap_after_start": "Cloud-Stand nach Start laden",
+  "core:cloud_sync_after_start": "Synchronisation nach Start",
+  "core:indexeddb_open": "Lokale Datenbank öffnen",
+  "core:indexeddb_shell": "Lokale Stapel lesen",
+  "core:indexeddb_startup_metadata": "Lokale Startdaten lesen",
+  "core:first_deck_summaries": "Erste Stapelzahlen",
+  "core:bootstrap_rpc": "Cloud-Stand abrufen",
+  "core:bootstrap_apply": "Cloud-Stand übernehmen",
+};
 
 /** Coarse device and catalog facts copied below the values; nothing that names a person, a card or a moment. */
 export interface FieldTimingContext {
@@ -34,7 +51,7 @@ export function formatFieldTimingsReport(samples: FieldTimingSamples, context: F
     const summary = summarizeDurations(values.map(([durationMs]) => durationMs));
     if (!summary) continue;
     days.push(...values.map(([, day]) => day));
-    lines.push(`${metric}: ${summary.count} ${summary.count === 1 ? "Wert" : "Werte"}, Median ${summary.median} ms, p95 ${summary.p95} ms`);
+    lines.push(`${FIELD_TIMING_LABELS[metric]}: ${summary.count} ${summary.count === 1 ? "Wert" : "Werte"}, Median ${summary.median} ms, p95 ${summary.p95} ms`);
   }
   const first = days.length ? isoDay(Math.min(...days)) : "";
   const last = days.length ? isoDay(Math.max(...days)) : "";
