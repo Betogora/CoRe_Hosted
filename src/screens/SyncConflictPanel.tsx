@@ -1,5 +1,6 @@
 import React from "react";
 import { CheckCircle2, GitMerge, RefreshCw, RotateCcw } from "lucide-react";
+import { CoreTag } from "../ui/coreUi.tsx";
 import { useSuccessToast } from "../ui/feedbackUi.tsx";
 
 const FIELD_SOURCES = [["local", "Dieser Browser"], ["remote", "Cloud im Account"]];
@@ -198,7 +199,7 @@ export function SyncConflictPanel({ id, onListConflicts, onResolveConflict }: an
                       <h5 className="core-settings-row-title">{conflict.title}</h5>
                       <p className="core-settings-row-hint">Erkannt am {formatConflictDate(conflict.createdAt)}</p>
                     </div>
-                    <span className="inline-flex min-h-5 items-center rounded-round bg-core-warning-soft px-2 core-status-label text-core-warning">Entscheidung nötig</span>
+                    <CoreTag tone="warning">Entscheidung nötig</CoreTag>
                   </div>
 
                   {conflict.fields.length > 0 ? (

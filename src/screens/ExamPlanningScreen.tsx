@@ -8,7 +8,7 @@ import { examDayDistance, getExamCurrentProgress, getExamStatus, type ExamForeca
 import { getLearningDayKey, getLearningTimeZone } from "../learningDay.ts";
 import { getGlobalSchedulerPreferences } from "../learningProfiles.ts";
 import { ActionButton, IconButton } from "../ui/actionUi.tsx";
-import { ActionDialog, EmptyState, PageHeader, SoftPanel } from "../ui/coreUi.tsx";
+import { ActionDialog, CoreTag, EmptyState, PageHeader, SoftPanel } from "../ui/coreUi.tsx";
 import { StatusMessage } from "../ui/feedbackUi.tsx";
 import { ExamPlanEditor } from "./ExamPlanEditor.tsx";
 import { ExamCalendar } from "./ExamCalendar.tsx";
@@ -51,7 +51,7 @@ function ExamCard({ exam, color, summary, progress, civilToday, busy, editor, on
             <span className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1">
               <span className="size-2.5 shrink-0 rounded-round" style={{ backgroundColor: color, boxShadow: "inset 0 0 0 1px color-mix(in srgb, var(--core-text) 12%, transparent)" }} aria-hidden="true" />
               <span className="min-w-0 break-words core-heading-3 text-core-text">{exam.name}</span>
-              {status !== "active" ? <span className={`inline-flex min-h-5 items-center rounded-round px-2 core-caption font-semibold ${status === "paused" ? "bg-core-warning-soft text-core-warning" : "bg-core-success-soft text-core-success"}`}>{STATUS_LABELS[status]}</span> : null}
+              {status !== "active" ? <CoreTag tone={status === "paused" ? "warning" : "success"}>{STATUS_LABELS[status]}</CoreTag> : null}
             </span>
             <span className="mt-1 block core-caption font-normal text-core-muted">{formatExamDate(exam.examDate)} · {past ? "Termin erreicht" : formatExamDistance(daysLeft)}</span>
           </span>
@@ -159,7 +159,6 @@ export function ExamPlanningScreen({ state, now, onLoadPlanningData, onSavePlann
   return (
     <div className="grid min-w-0 gap-6" data-testid="exam-planning-screen">
       <PageHeader
-        eyebrow="Planung"
         title="Prüfungen"
         action={<ActionButton variant="primary" icon={Plus} disabled={addDisabled} onClick={() => requestEditing("new")}>Prüfung hinzufügen</ActionButton>}
       />

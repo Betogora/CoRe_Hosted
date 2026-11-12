@@ -9,7 +9,7 @@ import { ANKI_PACKAGE_MAX_BYTES, type ApkgTranslationReport, type ImportMediaFil
 import { ActionButton } from "../ui/actionUi.tsx";
 import { NoteCardContent } from "../ui/NoteCardContent.tsx";
 import { NoteLayoutContext, type NoteLayoutSource } from "../ui/noteLayoutContext.ts";
-import { OrbIcon, SoftPanel, StatTile } from "../ui/coreUi.tsx";
+import { CoreTag, OrbIcon, SoftPanel, StatTile } from "../ui/coreUi.tsx";
 import { FileDropField } from "../ui/FileDropField.tsx";
 import { formatBytes, importSteps } from "./screenConstants.ts";
 
@@ -81,7 +81,7 @@ function importStatusLabel(status: ImportUiState["status"]): string {
 }
 
 function ApkgPreviewBadge({ children }: { children: React.ReactNode }) {
-  return <span className="inline-flex min-h-5 items-center rounded-round bg-core-info-soft px-2 core-caption font-semibold text-core-action">{children}</span>;
+  return <CoreTag tone="info">{children}</CoreTag>;
 }
 
 /** Object URLs for the sample media of the preview; they are revoked with the preview. */
@@ -130,7 +130,7 @@ function NotetypeReport({ report }: { report: ApkgTranslationReport }) {
           <li key={notetype.ankiNotetypeId} data-testid="apkg-notetype-report" className="grid gap-1 border-b border-core-border px-4 py-3 last:border-0">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <span className="font-semibold text-core-text">{notetype.name}</span>
-              <span className="inline-flex min-h-5 items-center rounded-round bg-core-subtle px-2 core-caption font-semibold text-core-secondary">{TRANSLATOR_LABELS[notetype.translator.id] ?? notetype.translator.id}</span>
+              <CoreTag tone="neutral">{TRANSLATOR_LABELS[notetype.translator.id] ?? notetype.translator.id}</CoreTag>
             </div>
             <p>
               {notetype.notes} {notetype.notes === 1 ? "Inhalt" : "Inhalte"} · {notetype.cards} {notetype.cards === 1 ? "Karte" : "Karten"} · {studyLabel(notetype.study)} · {notetype.layout === "original" ? "Originallayout" : "CoRe-Design"}
@@ -505,10 +505,7 @@ export function ApkgImportPanel({ workflow, session, onSessionChange, isSessionC
           <>
             <SoftPanel className="p-6">
               <div className="flex flex-wrap items-start justify-between gap-4">
-                <div>
-                  <p className="core-caption font-medium text-core-muted">Importvorschau</p>
-                  <h3 className="mt-1 core-heading-2 text-core-text">{preview.rootDeckName}</h3>
-                </div>
+                <h3 className="core-heading-2 text-core-text">{preview.rootDeckName}</h3>
                 {uiState.status === "preview" ? (
                   <ActionButton type="button" variant="primary" icon={Database} loading={isParsing} disabled={previewErrors.length > 0} onClick={() => void handleCommit()}>Import übernehmen</ActionButton>
                 ) : null}

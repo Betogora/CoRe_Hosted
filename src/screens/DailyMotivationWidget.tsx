@@ -26,7 +26,7 @@ export function DailyMotivationWidget({ now, timeZone, dayStartHour }: { now: st
   }, [now, timeZone, dayStartHour]);
   const motivation = getDailyMotivation(clock, { timeZone, dayStartHour });
   return <SoftPanel className="motivation-widget p-5 sm:p-6" data-brain-zone="" data-motivation-day={motivation.day}>
-    <h2 className="core-heading-3 font-semibold text-core-text">Dein Motivationsimpuls</h2>
+    <h2 className="core-heading-3 text-core-text">Dein Motivationsimpuls</h2>
     <div className="motivation-widget-layout">
       <div><p className="motivation-widget-quote core-body-large font-medium text-core-text">{motivation.text}</p></div>
       <BrainMascot id={motivation.mascotId} interactive />

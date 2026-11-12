@@ -13,7 +13,7 @@ import {
 } from "../simulationClock.ts";
 import { IconButton } from "../ui/actionUi.tsx";
 import { CoreDatePicker } from "../ui/CoreDatePicker.tsx";
-import { PageHeader, SoftPanel } from "../ui/coreUi.tsx";
+import { CoreTag, PageHeader, SoftPanel } from "../ui/coreUi.tsx";
 import { StatusMessage } from "../ui/feedbackUi.tsx";
 
 const quickOffsets = [
@@ -52,7 +52,7 @@ export function SimulatorScreen({ systemNow, offsetMinutes, onOffsetChange }: Si
 
   return (
     <div className="grid min-w-0 gap-6">
-      <PageHeader eyebrow="Werkzeug · nur lokal" title="Simulator" />
+      <PageHeader title="Simulator" tag={<CoreTag tone="neutral">Nur lokal</CoreTag>} />
 
       <StatusMessage tone="warning">
         Das Verschieben der Zeit verändert keine Karten. Bewertungen an einem simulierten Zukunftstag sind echte Reviews und werden dauerhaft gespeichert und synchronisiert. „Heute“ setzt nur die simulierte Uhr zurück, nicht bereits gespeicherte Reviews.
@@ -65,7 +65,7 @@ export function SimulatorScreen({ systemNow, offsetMinutes, onOffsetChange }: Si
               <CalendarClock size={20} aria-hidden="true" />
             </span>
             <div className="min-w-0">
-              <p className="core-heading-3 font-semibold text-core-text">
+              <p className="core-heading-3 text-core-text">
                 {offsetMinutes === 0 ? "Heute" : formatSimulationHeading(offsetMinutes)}
               </p>
               <p className="core-body text-core-secondary">{formatSimulationDate(simulatedNow)} · {formatSimulationTime(simulatedNow)} Uhr</p>

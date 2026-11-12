@@ -7,15 +7,14 @@ export interface CreationActionCardProps {
   onSelect: () => unknown;
 }
 
+/** Flat lying action card: free icon on the left, title on the first line, so titles in a grid share one baseline. */
 export function CreationActionCard({ title, description, icon: Icon, onSelect }: CreationActionCardProps) {
   return (
-    <button type="button" onClick={onSelect} className="core-creation-action group grid content-start gap-3 rounded-panel border border-core-border bg-core-surface p-5 text-left shadow-soft focus:outline-none focus-visible:ring-2 focus-visible:ring-core-focus md:min-h-40 md:content-between">
-      <span className="core-creation-action-icon grid size-12 place-items-center rounded-control bg-core-subtle text-core-action transition-colors duration-200 group-hover:bg-core-action group-hover:text-core-on-accent">
-        <Icon size={24} aria-hidden="true" />
-      </span>
+    <button type="button" onClick={onSelect} className="grid grid-cols-[auto_minmax(0,1fr)] content-start items-start gap-3.5 rounded-control border border-core-border bg-core-surface px-5 py-6 text-left transition-colors hover:border-core-border-strong hover:bg-core-subtle">
+      <Icon size={24} className="text-core-action" aria-hidden="true" />
       <span className="grid gap-1">
-        <span className="core-creation-action-title block max-w-full core-heading-3 text-core-text transition-colors duration-200 group-hover:text-core-action">{title}</span>
-        {description && <span className="core-creation-action-description block core-body text-core-secondary">{description}</span>}
+        <span className="block max-w-full break-words core-heading-3 text-core-text">{title}</span>
+        {description && <span className="block core-body text-core-secondary">{description}</span>}
       </span>
     </button>
   );

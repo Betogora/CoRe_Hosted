@@ -32,7 +32,7 @@ import {
 import type { StudyHeatmapDay } from "../studyHeatmapModel.ts";
 import type { MaturityBand } from "../coreTypes.ts";
 import { ActionButton } from "../ui/actionUi.tsx";
-import { CoreSegmentedControl, EmptyState, PageHeader, SoftPanel, StatTile } from "../ui/coreUi.tsx";
+import { CoreSegmentedControl, CoreTag, EmptyState, PageHeader, SoftPanel, StatTile } from "../ui/coreUi.tsx";
 import { InPageNavigation } from "../ui/InPageNavigation.tsx";
 import { StatusMessage } from "../ui/feedbackUi.tsx";
 import { DeckMultiSelect } from "../ui/selectUi.tsx";
@@ -196,7 +196,7 @@ function PanelHeader({ title, titleId, snapshot = false }: { title: string; titl
   return (
     <div className="flex flex-wrap items-center justify-between gap-3">
       <h3 id={titleId} tabIndex={titleId ? -1 : undefined} className={`core-heading-3 text-core-text ${titleId ? "rounded-inset focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-core-focus focus-visible:ring-offset-4" : ""}`.trim()}>{title}</h3>
-      {snapshot ? <span className="inline-flex min-h-5 items-center rounded-round border border-core-border bg-core-surface px-2 core-caption font-semibold text-core-secondary">Stand heute</span> : null}
+      {snapshot ? <CoreTag tone="outline">Stand heute</CoreTag> : null}
     </div>
   );
 }
@@ -441,7 +441,7 @@ export function StatisticsScreenContent({ dataset: { decks, projection: statisti
   if (decks.length === 0) {
     return (
       <div className="space-y-8">
-        <PageHeader eyebrow="Lernanalyse" title="Statistik" />
+        <PageHeader title="Statistik" />
         <EmptyState icon={BarChart3} title="Noch keine Statistik verfügbar" body="Erstelle oder importiere zuerst einen Stapel. Sobald Karten vorhanden sind, zeigt CoRe Planung, FSRS-Zustand und Lernverlauf." action={<ActionButton variant="primary" onClick={() => onNavigate("neue-karten")}>Stapel erstellen</ActionButton>} />
       </div>
     );
@@ -450,7 +450,7 @@ export function StatisticsScreenContent({ dataset: { decks, projection: statisti
   return (
     <div className="min-w-0 max-w-full space-y-8">
       <div className="flex flex-wrap items-end justify-between gap-4">
-        <PageHeader eyebrow="Lernanalyse" title="Statistik" />
+        <PageHeader title="Statistik" />
         <p className="core-body text-core-muted">{statistics.dateRangeLabel}</p>
       </div>
 
@@ -589,7 +589,7 @@ export function StatisticsScreen({ decks, queryStatistics, now, timeZone, daySta
   if (loadState.status === "error") {
     return (
       <div className="space-y-8">
-        <PageHeader eyebrow="Lernanalyse" title="Statistik" />
+        <PageHeader title="Statistik" />
         <EmptyState
           icon={BarChart3}
           title="Statistik konnte nicht geladen werden"
@@ -601,7 +601,7 @@ export function StatisticsScreen({ decks, queryStatistics, now, timeZone, daySta
   }
   return (
     <div className="space-y-8" aria-busy="true">
-      <PageHeader eyebrow="Lernanalyse" title="Statistik" />
+      <PageHeader title="Statistik" />
       <SoftPanel className="p-6" role="status" aria-live="polite">
         <p className="core-body text-core-muted">Statistik wird geladen …</p>
       </SoftPanel>

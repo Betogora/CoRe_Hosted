@@ -134,7 +134,7 @@ export function SettingsScreen({ section, focusConflicts = false, profile, onSav
     <>
       {section === "konto" ? (
         <section id={sectionIds.account} className="core-settings-section" aria-labelledby="settings-account-heading">
-          <h2 id="settings-account-heading" tabIndex={-1} className="core-heading-2 font-semibold text-core-text outline-none">Konto</h2>
+          <h2 id="settings-account-heading" tabIndex={-1} className="core-heading-2 text-core-text outline-none">Konto</h2>
           <div className="core-settings-list">
             <div className="core-settings-row">
               <label htmlFor="settings-display-name" className="core-settings-row-title">Anzeigename</label>
@@ -164,7 +164,7 @@ export function SettingsScreen({ section, focusConflicts = false, profile, onSav
 
       {section === "daten" ? (
         <section id={sectionIds.data} className="core-settings-section" aria-labelledby="settings-data-heading">
-          <h2 id="settings-data-heading" tabIndex={-1} className="core-heading-2 font-semibold text-core-text outline-none">Daten & Synchronisierung</h2>
+          <h2 id="settings-data-heading" tabIndex={-1} className="core-heading-2 text-core-text outline-none">Daten & Synchronisierung</h2>
           <div className="core-settings-list">
             <div className="core-settings-row">
               <div className="core-settings-row-text">
@@ -210,7 +210,7 @@ export function SettingsScreen({ section, focusConflicts = false, profile, onSav
 
       {section === "ueber" ? (
         <section id={sectionIds.about} className="core-settings-section" aria-labelledby="settings-about-heading">
-          <h2 id="settings-about-heading" tabIndex={-1} className="core-heading-2 font-semibold text-core-text outline-none">Über uns</h2>
+          <h2 id="settings-about-heading" tabIndex={-1} className="core-heading-2 text-core-text outline-none">Über uns</h2>
           <dl className="core-settings-list">
             <div className="core-settings-row" data-layout="inline">
               <dt className="core-settings-row-title">Über CoRe</dt>

@@ -107,7 +107,7 @@ export function CreationScreen({
 
   return (
     <div className="grid min-w-0 min-h-[calc(100vh-10rem)] content-start gap-6">
-      <PageHeader eyebrow="Erstellen" title={completedDeck && resolvedCompletionKind === "import" ? "Import abgeschlossen" : "Neue Karte"} />
+      <PageHeader title={completedDeck && resolvedCompletionKind === "import" ? "Import abgeschlossen" : "Neue Karte"} />
       {completedDeck ? (
         <SoftPanel className="mx-auto w-full max-w-3xl p-6 text-center sm:p-10">
           <span className="mx-auto grid size-12 place-items-center rounded-control bg-core-success-soft text-core-success">

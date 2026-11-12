@@ -79,7 +79,6 @@ test("die Vorschau zeigt Kennzahlen, den Notiztyp-Bericht und Kartenbeispiele", 
   const preview = await fixturePreview("matrix/standard-latest.apkg");
   const markup = renderPanel(previewSession(preview));
 
-  assert.match(markup, />Importvorschau</);
   assert.match(markup, />Matrix Standard</);
   assert.match(markup, />Import übernehmen</);
   assert.match(markup, /Erkannte Stapel/);
@@ -149,7 +148,7 @@ test("ein Analysefehler wird als Alarm ohne Vorschau angezeigt", () => {
   });
 
   assert.match(markup, /role="alert"[^>]*><p>Die Anki-Datei ist größer als 2 GiB\. Bitte wähle eine kleinere Datei aus\.<\/p>/);
-  assert.doesNotMatch(markup, /Importvorschau|Import übernehmen/);
+  assert.doesNotMatch(markup, /Import übernehmen/);
 });
 
 test("eine laufende Analyse lässt sich abbrechen und endet ohne übernommene Karten", () => {

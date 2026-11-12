@@ -371,7 +371,7 @@ test("cards page lists every card of every deck as one flat sortable list withou
   const cardPages = { [originalDeck.id]: cardPage(originalDeck.id, [atp]) };
   const markup = renderScreen(decks, { cardPages });
 
-  assert.match(markup, />Alle Stapel<\/p><h2[^>]*>Kartenverwaltung<\/h2>/);
+  assert.match(markup, /<div class="min-w-0 space-y-1"><h2[^>]*>Kartenverwaltung<\/h2><\/div>/);
   assert.match(markup, />Lerneinstellungen<\/span><\/button>/);
   assert.doesNotMatch(markup, /Bereich in Lernen|>Stapelübersicht</);
   assert.doesNotMatch(markup, /Aktive Stapel/);

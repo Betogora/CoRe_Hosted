@@ -195,20 +195,13 @@ Dazu das KI-Kontingent pro Nutzer aus P2.
 
 ## Pflege: Designsprache vereinheitlichen
 
-Regeln in [ADR-051](decisions.md). Je Paket ein Branch, zusammengeführt auf
-`worktree-designsprache`; D1 und D2 zuerst, D3–D7 bauen darauf auf. Abnahme
-je Paket: Fokustests, `npm run typecheck`, Katalogdemo für jeden neuen oder
-geänderten gemeinsamen Baustein, betroffene Ansichten in der visuellen
-Pflichtmatrix hell und dunkel. Die Bewertungsbuttons der Lernsitzung bleiben
-unverändert.
+Regeln in [ADR-051](decisions.md), Bausteine in `src/ui/README.md`. Je Paket
+ein Branch, zusammengeführt auf `worktree-designsprache`; D2 zuerst, D3–D7
+bauen darauf auf. Abnahme je Paket: Fokustests, `npm run typecheck`,
+Katalogdemo für jeden neuen oder geänderten gemeinsamen Baustein, betroffene
+Ansichten in der visuellen Pflichtmatrix hell und dunkel. Die
+Bewertungsbuttons der Lernsitzung bleiben unverändert.
 
-- [ ] **D1 – Grundlage:** Gewichte 500/600/650, keine Schatten auf statischen
-      Flächen und Buttons, Kennzahlen proportional; `PageHeader` ohne Eyebrow,
-      `EmptyState` ohne gestrichelten Rahmen und Icon-Kreis, Segmentschiene
-      ohne Rahmen, Querlink als Textlink, liegende Aktionskarte, `StatTile`
-      ohne Icon-Kachel und mit rahmenloser Form, Heatmap-Kopf ohne Kachel.
-      Neue Bausteine mit Katalogdemo: Abschnittskopf, Kennzahlzeile,
-      Schrittlinie, Unterstreichungs-Reiter, Dialograhmen, Tag-Töne.
 - [ ] **D2 – Formelemente:** Checkbox und Checkbox-Gruppe, Schalter,
       Schieberegler, Datumsauswahl und Antwortoptionen (Single und Multiple
       Choice, einzeilig) nach HeroUI v3 in CoRe-Farben; alle nativen

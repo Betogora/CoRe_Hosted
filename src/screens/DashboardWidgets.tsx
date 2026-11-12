@@ -4,7 +4,7 @@ import { ArrowDown, ArrowUp, ArrowUpRight, Check, ChevronDown, ChevronUp, GripVe
 import { DASHBOARD_WIDGETS, moveDashboardWidget, readDashboardPreferences, writeDashboardPreferences, type DashboardPreferences, type DashboardWidgetId } from "../dashboardWidgets.ts";
 import { getPomodoroTimerSnapshot, type PomodoroTimer } from "../pomodoroTimer.ts";
 import { ActionButton, IconButton } from "../ui/actionUi.tsx";
-import { SoftPanel } from "../ui/coreUi.tsx";
+import { CoreTag, SoftPanel } from "../ui/coreUi.tsx";
 import { BrainMascot } from "../ui/BrainMascot.tsx";
 import { StatusMessage } from "../ui/feedbackUi.tsx";
 import { CoreTooltip } from "../ui/tooltipUi.tsx";
@@ -97,7 +97,7 @@ export function DashboardWidgets({ userId, header, children, planner, onOpenPlan
     {storageError ? <StatusMessage tone="error">Die Änderungen sind aktuell nur bis zum Neuladen verfügbar. Der Browserspeicher ist nicht erreichbar.</StatusMessage> : null}
     <p className="sr-only" role="status">{announcement}</p>
     {editing ? <section id="dashboard-customize" aria-label="Widgets" className="dashboard-customize core-surface-raised rounded-panel p-5 sm:p-6">
-      <div className="flex flex-wrap items-center justify-between gap-3"><h2 className="core-heading-3 font-semibold text-core-text">Widgets</h2><div className="dashboard-customize-actions">{libraryToggle("header")}<CoreTooltip label="Standardlayout"><IconButton variant="ghost" icon={RotateCcw} label="Standardlayout" onClick={() => update({ ...preferences, widgets: DASHBOARD_WIDGETS.map(({ id, width }) => ({ id, width })) })} /></CoreTooltip></div></div>
+      <div className="flex flex-wrap items-center justify-between gap-3"><h2 className="core-heading-3 text-core-text">Widgets</h2><div className="dashboard-customize-actions">{libraryToggle("header")}<CoreTooltip label="Standardlayout"><IconButton variant="ghost" icon={RotateCcw} label="Standardlayout" onClick={() => update({ ...preferences, widgets: DASHBOARD_WIDGETS.map(({ id, width }) => ({ id, width })) })} /></CoreTooltip></div></div>
       <p id={dragHelpId} className="sr-only">Mit Maus oder Touch ziehen. Escape bricht ab. Alternativ die Pfeiltasten am Griff oder die Pfeilschaltflächen verwenden.</p>
       <div className="mt-4"><div ref={library} id={libraryId} role="group" aria-label="Widgets auswählen" className="dashboard-widget-library">{(libraryExpanded ? DASHBOARD_WIDGETS : DASHBOARD_WIDGETS.slice(0, libraryColumns)).map((widget) => {
         const active = preferences.widgets.some((entry) => entry.id === widget.id);
@@ -149,7 +149,7 @@ function DashboardTodos({ todos, onChange, planner, onOpenPlanner }: { todos: Da
     return <li key={todo.id} className="flex min-h-control min-w-0 items-center gap-2" data-own-todo={todo.id}><DashboardTaskText checkbox={<input id={id} type="checkbox" className="size-5 shrink-0 accent-[var(--core-action-primary)]" checked={todo.done} onChange={() => onChange(todos.map((entry) => entry.id === todo.id ? { ...entry, done: !entry.done } : entry))}/>}><span className={`core-body ${todo.done ? "text-core-muted line-through" : "text-core-text"}`}>{todo.text}</span></DashboardTaskText><IconButton icon={Trash2} variant="destructive-quiet" label={`Aufgabe löschen: ${todo.text}`} onClick={() => onChange(todos.filter((entry) => entry.id !== todo.id))} /></li>;
   }
   return <SoftPanel className="dashboard-todos min-w-0 p-5 sm:p-6">
-    <div className="flex items-center justify-between gap-3"><h2 className="core-heading-3 font-semibold text-core-text">To-dos{count ? <span className="ml-2 inline-flex min-h-5 items-center rounded-round bg-core-subtle px-2 align-middle core-caption font-semibold tabular-nums text-core-secondary">{count} offen</span> : null}</h2><IconButton icon={ArrowUpRight} variant="ghost" label="Planer öffnen" onClick={onOpenPlanner} /></div>
+    <div className="flex items-center justify-between gap-3"><h2 className="core-heading-3 text-core-text">To-dos{count ? <CoreTag tone="neutral" className="ml-2 align-middle">{count} offen</CoreTag> : null}</h2><IconButton icon={ArrowUpRight} variant="ghost" label="Planer öffnen" onClick={onOpenPlanner} /></div>
     <div id={listId}>
     {open.length ? <ul className="mt-3 grid gap-1">{(showAll ? open : open.slice(0, ownLimit)).map(task)}</ul> : null}
     <div className="mt-2"><IconButton ref={addButton} icon={Plus} variant="ghost" label="Eigene Aufgabe hinzufügen" aria-expanded={adding} onClick={() => setAdding(!adding)} /></div>
@@ -219,7 +219,7 @@ function DashboardTimer({ timer, onStart, onPause, onResume, onReset }: { timer:
   }, [snapshot.running]);
   const progress = timer && !edited ? snapshot.progress : 1;
   return <SoftPanel className="dashboard-timer flex flex-col p-5 sm:p-6">
-    <h2 className="core-heading-3 font-semibold text-core-text">Lerntimer</h2>
+    <h2 className="core-heading-3 text-core-text">Lerntimer</h2>
     <div className="dashboard-timer-clock my-4">
     <svg className="dashboard-timer-ring" viewBox="0 0 200 200" aria-hidden="true"><circle className="dashboard-timer-track" cx="100" cy="100" r="94" /><circle data-testid="timer-countdown-ring" className="dashboard-timer-remaining" cx="100" cy="100" r="94" pathLength="1" strokeDasharray="1" strokeDashoffset={1 - progress} /></svg>
     <div ref={dial} className="dashboard-timer-dial" role="group" aria-label="Timerdauer" onPointerLeave={() => { scroll.current.delta = 0; }}>

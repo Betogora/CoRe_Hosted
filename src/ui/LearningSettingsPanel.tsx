@@ -190,7 +190,7 @@ export function LearningSettingsPanel({ draft, profiles, defaultProfileName, con
     <>
       {section === "daily" ? (
         <section id={dailySectionId} className="core-settings-section" aria-labelledby={dailyHeadingId}>
-          <h2 id={dailyHeadingId} tabIndex={-1} className="core-heading-2 font-semibold text-core-text outline-none">Tagesrunde & Lernprofile</h2>
+          <h2 id={dailyHeadingId} tabIndex={-1} className="core-heading-2 text-core-text outline-none">Tagesrunde & Lernprofile</h2>
           <div className="core-settings-list">
             <SettingsRow
               title="Lernprofil-Vorlage"
@@ -254,7 +254,7 @@ export function LearningSettingsPanel({ draft, profiles, defaultProfileName, con
 
       {section === "scheduler" ? (
         <section id={schedulerSectionId} className="core-settings-section" aria-labelledby={schedulerHeadingId}>
-          <h2 id={schedulerHeadingId} tabIndex={-1} className="core-heading-2 font-semibold text-core-text outline-none">Scheduler & CoRe</h2>
+          <h2 id={schedulerHeadingId} tabIndex={-1} className="core-heading-2 text-core-text outline-none">Scheduler & CoRe</h2>
           <div className="core-settings-group mt-2">
             <h3 className="core-heading-3 text-core-text">Lernablauf</h3>
             <div className="core-settings-list">
