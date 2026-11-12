@@ -193,18 +193,6 @@ Dazu das KI-Kontingent pro Nutzer aus P2.
       und den Zielwert festlegen (Vorschlag: höchstens 2 Minuten). Nachweis:
       Messung mit 50.000 Karten vom Login bis zum vollständigen Katalog.
 
-## Pflege: Designsprache vereinheitlichen
-
-Regeln in [ADR-051](decisions.md), Bausteine in `src/ui/README.md`. Je Paket
-ein Branch, zusammengeführt auf `worktree-designsprache`. Abnahme je Paket: Fokustests, `npm run typecheck`,
-Katalogdemo für jeden neuen oder geänderten gemeinsamen Baustein, betroffene
-Ansichten in der visuellen Pflichtmatrix hell und dunkel. Die
-Bewertungsbuttons der Lernsitzung bleiben unverändert.
-
-- [ ] **D8 – Zusammenführung:** `npm run docs:build`, `npm run gate:push`,
-      betroffene E2E-Specs und die visuelle Pflichtmatrix auf dem
-      zusammengeführten Stand.
-
 ## Pflege: Testsuite verschlanken
 
 Läuft unabhängig von den Paketen, je Paket ein eigener PR. Regeln im
