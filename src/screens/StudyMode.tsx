@@ -289,7 +289,7 @@ export function StudyMode({ shortcutsSuspended = false, deck, decks, notes, answ
     setShowOriginal(false);
   }
 
-  // Both timings end when a card frame of the session has loaded (`CardPresentationSurface`); leaving drops them.
+  // Both timings end when a loaded card frame of the session is shown (`CardPresentationSurface`); leaving drops them.
   React.useEffect(() => () => cancelFieldTiming("card-frame"), []);
 
   function revealAnswer() {

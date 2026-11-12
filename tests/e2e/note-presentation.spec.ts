@@ -110,7 +110,7 @@ test("Kartenbausteine: KaTeX lädt eingebettete Schriften, Diagnosen erst auf ih
 });
 
 test("Kartenbausteine: Audio und MP4 spielen im scriptfreien Frame, Vorlesen bleibt im Host", async ({ page }) => {
-  const frame = page.locator('[data-note-demo="rich-media"]').frameLocator("iframe");
+  const frame = page.locator('[data-note-demo="rich-media"]').frameLocator('iframe[title="Frage"]');
   for (const kind of ["audio", "video"]) {
     const media = frame.locator(kind);
     await media.evaluate(async (element: HTMLMediaElement) => { element.load(); await element.play(); });

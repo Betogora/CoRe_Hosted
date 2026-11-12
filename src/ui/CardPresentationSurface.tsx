@@ -58,6 +58,9 @@ export interface CardPresentationSurfaceProps {
   className?: string;
   /** Element of the card scrolled into view once loaded, like Anki's `#answer` after revealing. */
   scrollTargetId?: string;
+  /** Loaded ahead and absent for people and assistive technology until shown; showing it ends the field timing. */
+  concealed?: boolean;
+  onLoad?: () => void;
 }
 
 export function CardPresentationSurface({
@@ -69,12 +72,15 @@ export function CardPresentationSurface({
   loadingLabel = "Kartendarstellung wird vorbereitet …",
   className = "",
   scrollTargetId,
+  concealed = false,
+  onLoad,
 }: CardPresentationSurfaceProps) {
   const [fontFaceCss, setFontFaceCss] = React.useState(cachedPresentationFontCss);
   const frameRef = React.useRef<HTMLIFrameElement>(null);
   const [initialReviewHeight] = React.useState(() => lastReviewFrameHeight);
   const frameFitCleanupRef = React.useRef<(() => void) | null>(null);
   const selectionCleanupRef = React.useRef<(() => void) | null>(null);
+  const loadedRef = React.useRef(false);
 
   React.useEffect(() => {
     let active = true;
@@ -93,9 +99,19 @@ export function CardPresentationSurface({
 
   // A new document keeps the frame's height until it is measured on load; collapsing here showed as a blank jump.
   React.useLayoutEffect(() => {
+    loadedRef.current = false;
     selectionCleanupRef.current?.();
     if (surface === "review") frameFitCleanupRef.current?.();
   }, [srcdoc, surface]);
+
+  // A frame loaded ahead is on screen with the commit that shows it; `#answer` is scrolled to after the host's focus.
+  React.useLayoutEffect(() => {
+    if (concealed || !loadedRef.current) return;
+    finishFieldTiming("card-frame");
+    if (!scrollTargetId) return;
+    const frame = requestAnimationFrame(() => frameRef.current?.contentDocument?.getElementById(scrollTargetId)?.scrollIntoView({ block: "nearest" }));
+    return () => cancelAnimationFrame(frame);
+  }, [concealed]);
 
   if (!presentation) {
     return <StatusMessage tone="info" announce="polite" className={className}>{loadingLabel}</StatusMessage>;
@@ -117,10 +133,10 @@ export function CardPresentationSurface({
     frameFitCleanupRef.current = () => { observer?.disconnect(); window.removeEventListener("resize", updateHeight); };
     updateHeight();
     // A revealed answer or the next card is on screen once its frame has loaded and is fitted.
-    finishFieldTiming("card-frame");
+    if (!concealed) finishFieldTiming("card-frame");
   };
   return (
-    <div className={`grid min-w-0 gap-3 ${className}`.trim()}>
+    <div className={`grid min-w-0 gap-3 ${concealed ? "pointer-events-none invisible absolute inset-x-0 top-0 h-0 overflow-hidden " : ""}${className}`.trim()} inert={concealed || undefined} aria-hidden={concealed || undefined}>
       <div className="relative min-w-0">
         <iframe
           ref={frameRef}
@@ -132,15 +148,17 @@ export function CardPresentationSurface({
           className={frameClassName}
           style={surface === "review" ? { height: initialReviewHeight } : undefined}
           onLoad={() => {
+            loadedRef.current = true;
             resizeReviewFrame();
             selectionCleanupRef.current?.();
             const frameDocument = frameRef.current?.contentDocument;
-            if (scrollTargetId) frameDocument?.getElementById(scrollTargetId)?.scrollIntoView({ block: "nearest" });
+            if (scrollTargetId && !concealed) frameDocument?.getElementById(scrollTargetId)?.scrollIntoView({ block: "nearest" });
             if (onTextSelectionChange && frameDocument) {
               const update = () => onTextSelectionChange(frameDocument.getSelection()?.toString().trim() ?? "");
               frameDocument.addEventListener("selectionchange", update);
               selectionCleanupRef.current = () => frameDocument.removeEventListener("selectionchange", update);
             }
+            onLoad?.();
           }}
         />
       </div>
