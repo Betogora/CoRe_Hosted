@@ -14,7 +14,7 @@ const axisText = { fill: "var(--core-text-muted)", fontSize: 11 };
 
 interface Active { index: number; x: number; y: number }
 
-/** Retrievability over time with the target line, like the editor draft of round 3 (specs.md#editor-reiter-lernen). */
+/** Retrievability over time with the target line, like the editor draft of round 3 (specs.md#karteneditor). */
 export function RetrievabilityChart({ points, targetPercent, now }: { points: readonly RetrievabilityPoint[]; targetPercent: number; now: number }) {
   const first = points[0].at;
   const target = Math.round(targetPercent);

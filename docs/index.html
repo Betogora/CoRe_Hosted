@@ -7012,6 +7012,31 @@ body { margin: 0; color: var(--core-text); background: var(--core-canvas); font:
 [data-phase="learning"] { --docs-phase: var(--core-action-primary); }
 [data-phase="review"] { --docs-phase: var(--core-success); }
 [data-phase="relearning"] { --docs-phase: var(--core-danger); }
+/* Schaubilder aus `schaubild`-Blöcken: Zeilen aus Kästen, als Folge mit Pfeilen; in schmalen Spalten untereinander. */
+.docs-diagram { container-type: inline-size; display: grid; gap: var(--core-space-md); margin: var(--core-space-lg) 0 var(--core-space-xl); padding: var(--core-space-lg); border: var(--core-border-width) solid var(--core-border); border-radius: var(--core-radius-panel); background: var(--core-surface-muted); }
+.docs-diagram figcaption { color: var(--core-text); font: var(--core-weight-emphasis) var(--core-type-body)/var(--core-leading-body) var(--core-font-sans); }
+.docs-document .docs-diagram-lane { margin: 0 0 var(--core-space-sm); color: var(--core-text-muted); font: var(--core-weight-control) var(--core-type-caption)/var(--core-leading-caption) var(--core-font-sans); }
+.docs-document .docs-diagram-boxes { display: flex; flex-wrap: wrap; gap: var(--core-space-sm); margin: 0; padding: 0; list-style: none; }
+.docs-document .docs-diagram-boxes:has(.docs-diagram-link) { flex-wrap: nowrap; }
+.docs-document .docs-diagram-boxes li { margin: 0; }
+.docs-diagram-box { flex: 1 1 9rem; display: grid; align-content: start; gap: var(--core-space-xs); min-width: 0; padding: var(--core-space-md); border: var(--core-border-width) solid var(--core-border); border-left: var(--core-border-width-strong) solid var(--docs-tone, var(--core-border-interactive)); border-radius: var(--core-radius-control); background: var(--core-surface); box-shadow: var(--core-shadow-soft); }
+.docs-diagram-box strong { font-size: var(--core-type-body); line-height: var(--core-leading-body); font-weight: var(--core-weight-control); }
+.docs-diagram-box span { color: var(--core-text-secondary); font-size: var(--core-type-caption); line-height: var(--core-leading-caption); }
+.docs-diagram-link, .docs-document .docs-diagram-down { display: flex; flex: none; align-items: center; justify-content: center; gap: var(--core-space-xs); margin: 0; color: var(--core-text-muted); font-size: var(--core-type-caption); line-height: var(--core-leading-caption); text-align: center; }
+.docs-diagram-link { flex-direction: column; max-width: 6.5rem; }
+.docs-diagram-link::after, .docs-diagram-down::after { content: ""; flex: none; width: 1.125rem; height: 1.125rem; background: currentColor; mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12h14'/%3E%3Cpath d='m12 5 7 7-7 7'/%3E%3C/svg%3E") center / contain no-repeat; }
+.docs-diagram-down::after { rotate: 90deg; }
+[data-tone="primary"] { --docs-tone: var(--core-action-primary); }
+[data-tone="success"] { --docs-tone: var(--core-success); }
+[data-tone="warning"] { --docs-tone: var(--core-warning); }
+[data-tone="danger"] { --docs-tone: var(--core-danger); }
+[data-tone="info"] { --docs-tone: var(--core-info); }
+@container (max-width: 46rem) {
+  .docs-document .docs-diagram-boxes:has(.docs-diagram-link) { flex-direction: column; }
+  .docs-diagram-box { flex-basis: auto; }
+  .docs-diagram-link { flex-direction: row; max-width: none; }
+  .docs-diagram-link::after { rotate: 90deg; }
+}
 /* KI-Eval: Verlauf des Hauptwerts je Anfragetyp; gefüllte Punkte bilden den Bestand, hohle wurden verworfen. */
 .docs-eval { margin: var(--core-space-md) 0 var(--core-space-xl); }
 .docs-eval th, .docs-eval td { white-space: nowrap; font-variant-numeric: tabular-nums; }
@@ -7194,7 +7219,7 @@ html:has(.catalog-preview) { scroll-behavior: auto; }
 </tr>
 <tr>
 <td><a href="specs.html">Specs</a></td>
-<td>den vollständigen Produktvertrag</td>
+<td>je Funktion Absicht, Regeln und Entscheidungen, mit Schaubildern</td>
 <td><code>specs.md</code></td>
 </tr>
 <tr>
@@ -7232,9 +7257,9 @@ Gerüst der Katalog-Browsertests.</p>
 </tr>
 </thead>
 <tbody><tr>
-<td>Was soll das Produkt tun?</td>
+<td>Was soll das Produkt tun und warum?</td>
 <td><a href="specs.html#specs--document"><code>specs.md</code></a></td>
-<td>Architektur, APIs, Runbooks, Roadmap</td>
+<td>Oberflächendetails, Architektur, APIs, Messwerte, Runbooks, Roadmap (<a href="specs.html#specs--pflege-dieser-datei">Pflegeregel</a>)</td>
 </tr>
 <tr>
 <td>Wie ist es gebaut, wem gehört was?</td>
@@ -7307,6 +7332,10 @@ UI-Komponenten zu Demos. HTML-Dateien nie direkt bearbeiten.</li>
 ein technischer Check ersetzt das nicht.</li>
 </ol>
 <ul>
+<li>Schaubilder stehen als <code>schaubild</code>-Codeblock im Markdown: <code>Titel:</code>, dann Zeilen aus Kästen als
+<code>Folge:</code> (mit Pfeilen) oder <code>Gruppe:</code> (nebeneinander), dazwischen <code>Pfeil:</code> nach unten. Ein Kasten ist
+<code>Titel | Detail</code>, wahlweise mit Ton davor (<code>[primär]</code>, <code>[erfolg]</code>, <code>[warnung]</code>, <code>[gefahr]</code>, <code>[info]</code>);
+<code>-&gt; Text</code> beschriftet den nächsten Pfeil einer Folge.</li>
 <li>Erledigtes verschwindet aus <code>todo.md</code>; Details stehen in Commit und Pull
 Request, Production- und Datenbankschritte als Betriebsnachweis in <code>history.md</code>.</li>
 <li>Offene Gestaltungsvarianten werden per <code>visual-ab-review</code> als temporäre

@@ -165,7 +165,7 @@ neuen Code.
       uns „Leistungsdaten kopieren“ auf mehreren Geräten nach einigen
       Lernsitzungen ausführen und Median und p95 für Start, „Antwort
       anzeigen“, Bewertung und Kartensuche gegen die Laborwerte in
-      [`specs.md`](specs.md#performance) halten.
+      [`test-portfolio.md`](test-portfolio.md#performance-gates) halten.
 - [ ] **Originallayout in der App (ADR-047):** Pokémon-Stapel
       (`fixtures/apkg/corpus/Pokemon_Gen_I_Auszug.apkg`) mit echtem Konto
       importieren, auf einem zweiten Gerät öffnen und offline lernen; Review,

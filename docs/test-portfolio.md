@@ -122,7 +122,26 @@ Builds, Entwürfe oder Mockups ersetzen die Sichtprüfung nicht.
 
 ## Performance-Gates
 
-Die Zielwerte stehen in [`specs.md`](specs.md#performance). Geprüft werden sie so:
+Zielwerte:
+
+| Messgröße | Ziel |
+| --- | --- |
+| LCP / INP / CLS / TTFB (p75) | ≤ 2,5 s / ≤ 200 ms / ≤ 0,1 / ≤ 800 ms |
+| Wiederkehrendes oder offline eingerichtetes Gerät bis lokaler Workspace | p75 ≤ 1,5 s, p95 ≤ 3 s |
+| Neues Gerät bis Stapel-Bootstrap | p75 ≤ 3 s; Vollabgleich läuft danach weiter |
+| Sichtbare Tab- oder Reviewreaktion | Beginn ≤ 100 ms |
+| Vorgeladener Tab vollständig bereit | p75 ≤ 300 ms, p95 ≤ 750 ms |
+| Nicht vorgeladener Tab vollständig bereit | p75 ≤ 1 s, p95 ≤ 2 s |
+| Erste Seite eines 100k-Stapels und Lernstart | p75 ≤ 1 s, p95 ≤ 2 s |
+| Review lokal dauerhaft gespeichert | p95 ≤ 250 ms |
+| Normaler Delta-Sync | p75 ≤ 2 s, p95 ≤ 5 s, nie startblockierend |
+| Initiales JavaScript (gzip) | Ziel ≤ 250 KiB, Grenze 300 KiB |
+| Normaler Feature-Tab (gzip) | Ziel ≤ 150 KiB, Grenze 200 KiB |
+| Statistik-Tab (gzip) | Ziel ≤ 175 KiB, Grenze 200 KiB; die Diagrammbibliothek macht rund 80 % aus |
+| Bootstrapdaten | < 200 KiB komprimiert, ohne Kartenkörper oder Medien |
+| Hintergrundarbeit | Portionen von höchstens 50 ms |
+
+Geprüft werden sie so:
 
 - Der Production-Build erzwingt die Bundle-Grenzen (300 KiB gzip initial, 200 KiB
   je Lazy-Feature) bei jedem `gate:push`.
@@ -212,7 +231,7 @@ getrennt mit realer SMTP-Zustellung abgenommen.
 
 - Ein Test wird nur entfernt, wenn sein Vertrag anderswo nachweisbar bleibt oder aus dem Produkt entfernt wurde.
 - Ein Export, den außer Tests niemand nutzt, ist toter Code; Funktion und Test entfallen gemeinsam. Ausnahmen tragen `/** @internal */` (bewusst nur für Tests angebotene Seam-Hilfe) oder `/** @public */` (fertige Schnittstelle mit ausstehendem Aufrufer).
-- Abwesenheitsprüfungen gehören zur Entfernung selbst. Ausgenommen sind die Browserprüfungen für [Beta-Abnahme Punkt 4](specs.md#22-beta-abnahme), auch hosted.
+- Abwesenheitsprüfungen gehören zur Entfernung selbst. Ausgenommen sind die Browserprüfungen für [Beta-Abnahme Punkt 4](specs.md#beta-abnahme), auch hosted.
 - Browserflows setzen das Cloud-Konto nur zurück, wenn sie Cloudzustand prüfen oder voraussetzen.
 - Eine neue Spec steht in `tests/e2e/support/catalogSpecs.ts` (ohne Supabase) oder in einem Projekt von `playwright.config.ts` und ist in `AREAS` von `scripts/affectedE2ESpecs.ts` zugeordnet; `src/affectedE2ESpecs.test.ts` meldet Lücken.
 - Golden- und RLS-Testnamen beginnen mit `[Vertrag: …]`.

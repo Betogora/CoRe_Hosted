@@ -132,7 +132,7 @@ stehen in [`todo.md`](todo.md).
 **Status:** angenommen
 **Kontext:** Ein Ebenenlimit und die APKG-Abflachung verloren echte Elternbeziehungen. Der Arbeitsstand `fitzbert` brachte eine neue Stapeldarstellung, die mit dem Kartenmodell und der Designsprache von main zusammenzuführen war.
 **Entscheidung:** Stapel haben kein fachliches Ebenenlimit; Anlegen, Import und Verschieben erhalten die echte Elternbeziehung samt Pfad, ein Drop bedeutet immer „als direkter Unterstapel“. Ab Ebene 6 bleibt nur die Einrückung konstant. Aus `fitzbert` gelten Gruppen je Hauptstapel, die Wahl zwischen Liste und Kacheln und die Stapelinhalte mit Reitern; Explorer-Spalte, Anzahl-Badges, Fortschrittsringe und fremde Bedienhöhen nicht.
-**Konsequenzen:** Verschieben prüft nur fehlende Ziele, Selbstbezug und Zyklen und aktualisiert den ganzen Unterbaum. Die Darstellungsregeln stehen unter [Stapelbäume](specs.md#stapelbäume).
+**Konsequenzen:** Verschieben prüft nur fehlende Ziele, Selbstbezug und Zyklen und aktualisiert den ganzen Unterbaum. Die Regeln stehen unter [Stapel](specs.md#stapel).
 **Datum:** 2026-10-12
 
 ## ADR-042 — Globaler Prüfungsplaner mit gemeinsamer Kontaktplanung
@@ -140,7 +140,7 @@ stehen in [`todo.md`](todo.md).
 **Status:** angenommen
 **Kontext:** `fitzbert` plante Prüfungen je Stapel in einem Dialog und lud dafür alle Kartenkörper. Prüfungen gehören aber zum Nutzer: Mehrere Prüfungen teilen Lernzeit und Karten, und main hält nur ein Lernfenster lokal. Verworfen wurden Priorität, Machbarkeitssperre, Zeitbedarf je Karte und Quizplanung.
 **Entscheidung:** `Prüfungen` ist ein eigener Hauptbereich; Pläne liegen versioniert im Profil. Eine begrenzte deterministische Kontaktplanung verteilt alle ungesehenen Karten mit dem echten Scheduler bis zum Einführungsstichtag und gleicht die erwartete Last aus; teilen sich Prüfungen Stapel, wird jede Karte genau einmal eingeführt. Lernaufgaben laufen als normale Lernsitzung mit der Zielerinnerung der Prüfung. Speichern ist mit gültigen Angaben immer möglich; Unrealistisches erzeugt nur einen Hinweis.
-**Konsequenzen:** Neu geplant wird nur online; offline bleiben die letzten Tagesziele nutzbar. Stapeleinstellungen bleiben unverändert, nach der Prüfung plant der normale Scheduler weiter. Quiz kehrt nur als eigenes Feature zurück. Die Detailregeln stehen unter [Prüfung](specs.md#10-prüfung).
+**Konsequenzen:** Neu geplant wird nur online; offline bleiben die letzten Tagesziele nutzbar. Stapeleinstellungen bleiben unverändert, nach der Prüfung plant der normale Scheduler weiter. Quiz kehrt nur als eigenes Feature zurück. Die Detailregeln stehen unter [Prüfungsplanung](specs.md#7-prüfungsplanung).
 **Datum:** 2026-10-12
 
 ## ADR-043 — Zusammenfassungen und Mindmaps als versionierte Online-Dokumente
@@ -164,7 +164,7 @@ stehen in [`todo.md`](todo.md).
 **Status:** angenommen
 **Kontext:** Tags wurden an `#`, `,` und `;` zerlegt, zählten als Inhaltsänderung und blockierten Import-Updates; ein Reimport ersetzte sie. Anki-Flaggen wurden nicht angeboten, `leech` blieb ein gewöhnliches Tag. Ein späterer Stapel-Export soll verlustfrei möglich bleiben.
 **Entscheidung:** Tags und Flaggen werden genau wie in Anki gespeichert und erst in der Oberfläche vereinfacht. Eine Tag-Änderung ist keine Inhaltsänderung; ein Reimport führt eigene und importierte Tags dreiseitig zusammen. `marked` wird zur Markierung, `leech` zur Lernbremse, einem Lernstandsfeld getrennt von der Aussetzung, erkannt nach Ankis Schwellenregel. Manuelle Lernstandsänderungen sind manuelle Review-Ereignisse. Suche und Filter verstehen Ankis Begriffe online wie offline gleich. Der Karteneditor ist ein Dialog mit Reitern und Rückgängig für Sofortaktionen.
-**Konsequenzen:** Tags, Flaggen, Markierung und Lernbremse überstehen Reimport und Sync; ein künftiger `.apkg`-Export kann sie zurückschreiben. Flaggennamen sind aus `.apkg` nicht übernehmbar. Oberfläche: [Kartendetail und Editor](specs.md#kartendetail-und-editor).
+**Konsequenzen:** Tags, Flaggen, Markierung und Lernbremse überstehen Reimport und Sync; ein künftiger `.apkg`-Export kann sie zurückschreiben. Flaggennamen sind aus `.apkg` nicht übernehmbar. Verhalten: [Karteneditor](specs.md#karteneditor).
 **Datum:** 2026-10-30
 
 ## ADR-046 — Vollständige ToolBox-Designsprache
@@ -180,7 +180,7 @@ stehen in [`todo.md`](todo.md).
 **Status:** angenommen
 **Kontext:** Im reinen CoRe-Design verlieren eigene Notiztypen von Stapelautoren nicht nur Optik, sondern auch Struktur: Zeilen aus mehreren Feldern mit festem Text lassen sich mit Feldrollen nicht ausdrücken, und jeder solche Fall würde eine Sonderregel im Übersetzer.
 **Entscheidung:** Generisch übersetzte Inhalte, deren Vorlage eigenes CSS ohne Script, Event-Handler oder Button mitbringt, erscheinen im Layout ihrer Herkunftsvorlage, gerendert aus den CoRe-Feldern im bestehenden Sandbox-Rahmen. Das ist eine Darstellungseigenschaft ohne Schalter; alles andere bleibt im CoRe-Design, ebenso die Oberfläche um die Karte.
-**Konsequenzen:** Vorlagen werden mit den Inhalten auf alle Geräte synchronisiert. Karten eines Stapels können unterschiedlich aussehen, weil ihre Autoren es so gestaltet haben. Die Einzelregeln stehen unter [Kartenflächen](specs.md#kartenflächen) und in [`architecture.md`](architecture.md#kartendarstellung).
+**Konsequenzen:** Vorlagen werden mit den Inhalten auf alle Geräte synchronisiert. Karten eines Stapels können unterschiedlich aussehen, weil ihre Autoren es so gestaltet haben. Die Einzelregeln stehen unter [Kartendarstellung](specs.md#kartendarstellung) und in [`architecture.md`](architecture.md#kartendarstellung).
 **Datum:** 2026-11-02
 
 ## ADR-048 — Kartensuche lokal über den vollständigen Katalog
