@@ -9,6 +9,7 @@ import {
   type CardBodyResidencyRecord,
   type CardCatalogEntry,
   type DeckStudySummary,
+  type NoteGraph,
   type ReplicaStatus,
 } from "./workspaceReplica.ts";
 
@@ -67,6 +68,11 @@ export interface WorkspaceShell {
   profile: WorkspaceState["profile"];
   decks: WorkspaceDeckSummary[];
   updatedAt: string;
+}
+
+export interface NoteGraphChange {
+  previous: NoteGraph | null;
+  next: NoteGraph;
 }
 
 export function requestResult<T>(request: IDBRequest<T>): Promise<T> {

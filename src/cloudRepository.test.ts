@@ -12,8 +12,14 @@ import {
   reviewEventToCloudRow,
   streamAccountCatalogChanges,
 } from "./cloudRepository.ts";
+import type { CloudClient } from "./cloudRepository.ts";
 import type { ReviewEvent } from "./coreTypes.ts";
 import { noteFromRow, validateAccountRows, validateOfflineManifestRows } from "./cloudRepositoryValidation.ts";
+
+/** A fake implements only what the tested function calls. */
+function fakeCloudClient(fake: object) {
+  return fake as CloudClient;
+}
 
 const now = "2026-08-21T10:00:00.000Z";
 
@@ -79,7 +85,7 @@ test("atomare Reviews senden nur den Lernstand und übernehmen studyRevision sta
   const { rows, deck, card } = fixture();
   const result = answerVariant(deck, card.id, null, "good", { now });
   let parameters: Record<string, any> | null = null;
-  const client = {
+  const client = fakeCloudClient({
     auth: { getUser: async () => ({ data: { user: { id: "user" } }, error: null }) },
     from: () => ({}),
     rpc: async (name: string, input: Record<string, any>) => {
@@ -91,7 +97,7 @@ test("atomare Reviews senden nur den Lernstand und übernehmen studyRevision sta
         event: { ...input.p_event },
       }, error: null };
     },
-  };
+  });
 
   const acknowledgement = await recordAtomicReview(client, { card: result.updatedCard, variant: null, event: result.event }, { deviceId: "device", mutationId: "mutation" });
 
@@ -155,13 +161,13 @@ test("Kartenkörper kommen mit Inhalten und Varianten; Inhalt-IDs laden alle Ges
   const sibling = { ...card, id: "card-sibling", promptKey: "reverse", deckId: "deck-other" };
   const rows = createCloudStateRows({ decks: [{ ...deck, cards: [withVariant] }, createCoreDeck({ id: "deck-other", cards: [sibling] })], notes: [note] }, "user");
   const requests: unknown[] = [];
-  const client = {
+  const client = fakeCloudClient({
     async rpc(name: string, input: { p_card_ids: string[]; p_note_ids: string[] }) {
       assert.equal(name, "hydrate_account_cards");
       requests.push(input);
       return { data: { cards: rows.cards, variants: rows.card_variants, notes: rows.notes }, error: null };
     },
-  };
+  });
 
   const result = await hydrateAccountCards(client, [card.id, card.id], [note.id]);
 
@@ -179,14 +185,14 @@ test("Lernstände ganzer Stapel kommen ohne Kartenkörper und seitenweise nach K
     created_at: "2026-10-01T08:00:00+00:00", stability_fast: 9.5,
   });
   const requests: Array<Record<string, unknown>> = [];
-  const client = {
+  const client = fakeCloudClient({
     async rpc(name: string, input: Record<string, unknown>) {
       assert.equal(name, "list_account_card_study_states");
       requests.push(input);
       const start = input.p_after_card_id ? 2000 : 0;
       return { data: Array.from({ length: start ? 3 : 2000 }, (_, index) => row(start + index)), error: null };
     },
-  };
+  });
 
   const snapshots = await listAccountCardStudyStates(client, ["deck-a", "deck-a", ""]);
 
@@ -205,7 +211,7 @@ test("Lernstände ganzer Stapel kommen ohne Kartenkörper und seitenweise nach K
   });
   assert.deepEqual(await listAccountCardStudyStates(client, []), []);
   assert.equal(requests.length, 2, "ohne Stapel entsteht keine Anfrage");
-  const invalid = { async rpc() { return { data: [{ ...row(0), stability: -1 }], error: null }; } };
+  const invalid = fakeCloudClient({ async rpc() { return { data: [{ ...row(0), stability: -1 }], error: null }; } });
   await assert.rejects(() => listAccountCardStudyStates(invalid, ["deck-a"]), /Lernstände/);
 });
 
@@ -213,7 +219,7 @@ test("Reimport-Ziele liefern Inhalte, Karten mit Anki-Karten-ID und Vorlagen", a
   const { rows } = fixture();
   const importedNote = { ...rows.notes[0], source: "anki-apkg", anki_guid: "guid-1", imported_content_revision: 1 };
   const guidsRequested: string[][] = [];
-  const client = {
+  const client = fakeCloudClient({
     async rpc(name: string, input: { p_guids: string[] }) {
       assert.equal(name, "load_reimport_targets");
       guidsRequested.push(input.p_guids);
@@ -226,7 +232,7 @@ test("Reimport-Ziele liefern Inhalte, Karten mit Anki-Karten-ID und Vorlagen", a
         noteTypeSources: [{ id: "source", ankiNotetypeId: "1600000000000" }],
       }, error: null };
     },
-  };
+  });
 
   const targets = await loadReimportTargets(client, ["guid-1", "guid-1", ""]);
 
@@ -235,12 +241,12 @@ test("Reimport-Ziele liefern Inhalte, Karten mit Anki-Karten-ID und Vorlagen", a
   assert.equal(targets.notes[0].importedContentRevision, 1);
   assert.deepEqual(targets.cards.map((card) => card.ankiCardId), ["1700000000001", null]);
   assert.deepEqual(targets.noteTypeSources, [{ id: "source", ankiNotetypeId: "1600000000000" }]);
-  const invalid = { async rpc() { return { data: { notes: [], cards: [{ id: "card" }], noteTypeSources: [] }, error: null }; } };
+  const invalid = fakeCloudClient({ async rpc() { return { data: { notes: [], cards: [{ id: "card" }], noteTypeSources: [] }, error: null }; } });
   await assert.rejects(() => loadReimportTargets(invalid, ["guid-1"]), /ungültige Karte/);
 });
 
 test("jede Delta-Seite kommt mit allen Tabellen in einem Aufruf, Suchtexte zuletzt", async () => {
-  const delta = (rows: unknown[]) => ({
+  const delta = (rows: unknown[]) => fakeCloudClient({
     async rpc() {
       return { data: { changes: rows.map((row) => ({ table: "note_search", row })), nextCursor: 9, hasMore: false }, error: null };
     },
@@ -259,12 +265,12 @@ test("jede Delta-Seite kommt mit allen Tabellen in einem Aufruf, Suchtexte zulet
 
 test("die nächste Delta-Seite lädt, während die vorige geschrieben wird; ein Schreibfehler beendet den Abgleich", async () => {
   const requested: number[] = [];
-  const client = {
+  const client = fakeCloudClient({
     async rpc(_name: string, { p_cursor }: { p_cursor: number }) {
       requested.push(p_cursor);
       return { data: { changes: [], nextCursor: p_cursor + 1, hasMore: p_cursor < 2 }, error: null };
     },
-  };
+  });
   const applied: number[] = [];
   const cursor = await streamAccountCatalogChanges(client, 0, async (pages) => {
     assert.ok(requested.includes(pages[0].cursor) || pages[0].cursor === 3, "die Folgeseite ist schon angefragt");
@@ -296,7 +302,7 @@ test("Katalogzeilen bringen Lernverlauf und Werte mit, ein Server ohne sie bleib
     last_easy_at: null, last_rescheduled_at: null, note_type_id: "nt-1", has_outdated_variants: true,
     prompt_ordinal: 2, last_buried_at: "2026-11-05T07:00:00+00:00", last_unburied_at: null,
   };
-  const delta = { async rpc() { return { data: { changes: [{ table: "card_catalog", row: { ...row, ...history } }, { table: "card_catalog", row: { ...row, id: "card-2" } }], nextCursor: 4, hasMore: false }, error: null }; } };
+  const delta = fakeCloudClient({ async rpc() { return { data: { changes: [{ table: "card_catalog", row: { ...row, ...history } }, { table: "card_catalog", row: { ...row, id: "card-2" } }], nextCursor: 4, hasMore: false }, error: null }; } });
   const pages: Array<{ table: string; entities: any[] }> = [];
   await streamAccountCatalogChanges(delta, 0, async (delivered) => { pages.push(...delivered); });
 

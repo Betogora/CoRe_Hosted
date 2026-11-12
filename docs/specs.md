@@ -1034,6 +1034,7 @@ Gruppe:
 
 - Der lokale Stand erscheint vor dem Netz; Sync blockiert nie den Start.
 - Eine Bewertung ist gespeichert, bevor die nächste Karte erscheint.
+- CoRe zeichnet die Dauer von Start, Aufdecken, Bewertung und Kartensuche nur auf dem Gerät auf, ohne Inhalte. Übertragen wird nichts; Lernende kopieren die Zusammenfassung selbst und geben sie weiter, wenn sie wollen ([ADR-050](decisions.md#adr-050--leistungsdaten-nur-lokal)).
 - Zielwerte und Messung stehen unter [Performance-Gates](test-portfolio.md#performance-gates).
 
 ### Beta-Abnahme

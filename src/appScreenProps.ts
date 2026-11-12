@@ -9,20 +9,16 @@ import type { AiCardVariantSuccess } from "./aiCardVariantContract.ts";
 import type { AskCardHelp } from "./screens/StudyAiHelp.tsx";
 import type { DeckMutationResult, WorkspaceState } from "./coreWorkspace.ts";
 import type { CardStudySnapshot } from "./cloudRepositoryValidation.ts";
-import type { Card, CardStudyStatePatch, CoreMode, Deck, ExamDailyTask, ExamPlanningSettings, GlobalSchedulerPreferences, LearningProfileTemplate, Note, NoteContent, Profile, ReviewEvent, SavedCardSearch, SyncStatus } from "./coreTypes.ts";
+import type { Card, CardStudyStatePatch, CoreMode, Deck, ExamDailyTask, ExamPlanningSettings, GlobalSchedulerPreferences, LearningProfileTemplate, Note, NoteContent, Profile, ReviewEvent, SavedCardSearch } from "./coreTypes.ts";
 import type { SimilarNote } from "./cloudRepositoryValidation.ts";
 import type { TagDirectoryEntry } from "./tagDirectory.ts";
 import type { CardTableSort } from "./libraryModel.ts";
-import type { DeckLibrarySummary } from "./libraryModel.ts";
-import type { StudyHeatmapModel } from "./studyHeatmapModel.ts";
 import type { AccountMediaStore } from "./mediaStore.ts";
 import type { CommitImport } from "./creationWorkflow.ts";
 import type { ManualNoteSaveInput } from "./screens/ManualCreationPanel.tsx";
 import type { PomodoroTimer } from "./pomodoroTimer.ts";
-import type { StatisticsDeckSelection, StatisticsPeriod, StatisticsProjection } from "./statisticsModel.ts";
 import type { AnsweredTodayCard, DailyReviewProgressSummary, ReviewAnswerResult } from "./reviewService.ts";
 import type { CreationMethod } from "./useAppNavigation.ts";
-import type { WorkspaceStorageStatus } from "./workspaceStorage.ts";
 import type { DeckExpansionSurface } from "./uiPreferences.ts";
 import type { DeckLearningSettingsDraft, DeckSettingsDraft, GeneralSettingsDraft, GlobalCardSettingsDraft } from "./settingsDraft.ts";
 import type { CardCatalogEntry, NoteGraph, OfflineDeckRecord } from "./workspaceReplica.ts";
@@ -83,8 +79,6 @@ export interface DashboardScreenProps {
   pomodoroTimer?: PomodoroTimer | null;
   onStartPomodoro?: (minutes: number) => void;
   state: WorkspaceState;
-  deckSummaries?: ReadonlyMap<string, DeckLibrarySummary>;
-  studyHeatmap?: StudyHeatmapModel;
   now: string;
   onNavigate: NavigateToView;
   onStartDeck: (deck: Deck) => void;
@@ -109,7 +103,6 @@ export interface ExamPlanningData {
 
 export interface ExamPlanningScreenProps {
   state: WorkspaceState;
-  deckSummaries?: ReadonlyMap<string, DeckLibrarySummary>;
   now: string;
   /** May answer from a short-lived cache; `fresh` asks for study states straight from the cloud. */
   onLoadPlanningData: (deckIds: string[], signal: AbortSignal, options?: { fresh?: boolean }) => Promise<ExamPlanningData>;
@@ -129,7 +122,6 @@ export interface DeckSettingsScreenProps {
   onSelectSection: (section: DeckSettingsSection) => unknown;
   deck: Deck | null;
   decks: Deck[];
-  deckSummaries?: ReadonlyMap<string, DeckLibrarySummary>;
   learningProfiles: LearningProfileTemplate[];
   onSaveSettings: (deckId: string, draft: DeckSettingsDraft, scope: DeckSettingsSaveScope, baseline: DeckSettingsDraft) => DeckMutationResult | null;
   onApplyLearningProfile: (deckId: string, settings: DeckLearningSettingsDraft) => Deck | null;
@@ -191,7 +183,6 @@ export interface DecksScreenProps {
   /** Online storage for summaries and mind maps of the signed-in account. */
   learningContentCloud?: import("@supabase/supabase-js").SupabaseClient | null;
   onGenerateSummary?: (input: import("./aiLearningSummary.ts").SummaryGenerationInput, signal: AbortSignal) => Promise<import("./aiLearningSummary.ts").SummaryGenerationResult>;
-  deckSummaries?: ReadonlyMap<string, DeckLibrarySummary>;
   onStartDeck: (deck: Deck) => void;
   contentDeckId?: string | null;
   contentTab?: DeckContentTab;
@@ -242,10 +233,8 @@ export interface DecksScreenProps {
   /** Saved searches of the account (`uiPreferences.savedSearches`); the whole list is written at once. */
   savedSearches: readonly SavedCardSearch[];
   onSavedSearchesChange: (searches: SavedCardSearch[]) => unknown;
-  cardPages?: Readonly<Record<string, DecksCardPage | undefined>>;
-  /** Resolves false when the answer was dropped (replaced or aborted), so the list asks again. */
+  /** Loads a page of a card list into the account's store; resolves false when the answer was dropped (replaced or aborted), so the list asks again. */
   onRequestCardPage?: (request: DecksCardPageRequest) => Promise<boolean | undefined> | void;
-  syncConflictCardIds?: ReadonlySet<string>;
 }
 
 export interface DecksCardPageRequest {
@@ -280,7 +269,6 @@ export interface DecksCardPage {
 
 export interface LearnScreenProps {
   decks: Deck[];
-  deckSummaries?: ReadonlyMap<string, DeckLibrarySummary>;
   now: string;
   dayStartHour?: number;
   learnAheadMinutes?: number;
@@ -316,10 +304,6 @@ export interface SettingsScreenProps {
   /** Moves focus to the sync conflicts inside the data area. */
   focusConflicts?: boolean;
   profile: Profile;
-  syncStatus: SyncStatus;
-  /** Time of the last successful sync in this session; stays visible while changes are pending. */
-  lastSyncedAt?: string | null;
-  storageStatus?: WorkspaceStorageStatus | null;
   onSaveSettings: (draft: GeneralSettingsDraft) => Profile | null | Promise<Profile | null>;
   onDraftStateChange: (guard: SettingsDraftGuard | null) => void;
   onSyncNow: () => Promise<unknown>;
@@ -346,15 +330,6 @@ export interface GlobalCardSettingsScreenProps {
   simulationDateLabel: string;
   pomodoroTimer: PomodoroTimer | null;
   onStartPomodoro: (minutes: number) => void;
-}
-
-export interface StatisticsScreenProps {
-  decks: Deck[];
-  queryStatistics: (selection: { period: StatisticsPeriod; deckIds: StatisticsDeckSelection }) => Promise<StatisticsProjection>;
-  now: string;
-  timeZone: string;
-  dayStartHour?: number;
-  onNavigate: NavigateToView;
 }
 
 export interface SimulatorScreenProps {

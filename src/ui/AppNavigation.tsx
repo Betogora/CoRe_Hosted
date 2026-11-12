@@ -7,6 +7,7 @@ import type { MenuViewId } from "../menuModel.ts";
 import type { PomodoroTimer } from "../pomodoroTimer.ts";
 import type { SyncStatus } from "../coreTypes.ts";
 import { formatSimulationDuration } from "../simulationClock.ts";
+import { useWorkspaceValue } from "../useWorkspaceStore.ts";
 import { IconButton } from "./actionUi.tsx";
 import { useSlidingSelection } from "./coreUi.tsx";
 import { CoreWordmark } from "./CoreWordmark.tsx";
@@ -27,7 +28,6 @@ export interface AppNavigationProps {
   onNavigate: (viewId: MenuViewId) => unknown;
   onPreloadView?: (viewId: MenuViewId) => unknown;
   onResetSimulation: () => unknown;
-  syncStatus: SyncStatus;
   /** Without automatic sync the header keeps a direct sync action. */
   manualSync: boolean;
   onSyncNow: () => unknown;
@@ -69,7 +69,7 @@ function NavigationBrand({ onNavigate }: Pick<AppNavigationProps, "onNavigate">)
   );
 }
 
-type SyncUtilityProps = Pick<AppNavigationProps, "syncStatus" | "manualSync" | "onSyncNow" | "onOpenSyncSettings" | "onPreloadSettings">;
+type SyncUtilityProps = { syncStatus: SyncStatus } & Pick<AppNavigationProps, "manualSync" | "onSyncNow" | "onOpenSyncSettings" | "onPreloadSettings">;
 
 function SyncUtilityButton({ syncStatus, manualSync, onSyncNow, onOpenSyncSettings, onPreloadSettings }: SyncUtilityProps) {
   const preloadSettings = () => onPreloadSettings?.();
@@ -127,9 +127,10 @@ function SyncUtilityButton({ syncStatus, manualSync, onSyncNow, onOpenSyncSettin
   );
 }
 
-type UtilityProps = Pick<ResponsiveNavigationProps, "activeView" | "theme" | "onNavigate" | "onPreloadView" | "onToggleTheme" | "syncStatus" | "manualSync" | "onSyncNow" | "onOpenSyncSettings" | "settingsOpen" | "onOpenSettings" | "onPreloadSettings">;
+type UtilityProps = Pick<ResponsiveNavigationProps, "activeView" | "theme" | "onNavigate" | "onPreloadView" | "onToggleTheme" | "manualSync" | "onSyncNow" | "onOpenSyncSettings" | "settingsOpen" | "onOpenSettings" | "onPreloadSettings">;
 
 function NavigationUtilityButtons({ activeView, theme, onNavigate, onPreloadView, onToggleTheme, settingsOpen, onOpenSettings, ...syncProps }: UtilityProps) {
+  const syncStatus = useWorkspaceValue((snapshot) => snapshot.syncStatus);
   const darkModeActive = theme === "dark";
   const ThemeIcon = darkModeActive ? Moon : Sun;
   const pageButton = (viewId: "statistik" | "hilfe", utility: string, label: string, icon: LucideIcon) => {
@@ -165,8 +166,8 @@ function NavigationUtilityButtons({ activeView, theme, onNavigate, onPreloadView
   );
 
   return (
-    <div className="flex shrink-0 items-center gap-0 min-[360px]:gap-1.5" data-navigation-utilities="true" data-sync-status={syncProps.syncStatus.status}>
-      <SyncUtilityButton {...syncProps} />
+    <div className="flex shrink-0 items-center gap-0 min-[360px]:gap-1.5" data-navigation-utilities="true" data-sync-status={syncStatus.status}>
+      <SyncUtilityButton syncStatus={syncStatus} {...syncProps} />
       {pageButton("statistik", "statistics", "Statistik öffnen", BarChart3)}
       {themeButton}
       {pageButton("hilfe", "help", "Hilfe öffnen", CircleHelp)}
@@ -198,7 +199,7 @@ function SimulationStatus({ simulationDateLabel, simulationOffsetMinutes, onRese
   );
 }
 
-function DesktopTopBar({ navigationItems, activeView, simulationOffsetMinutes, simulationDateLabel, pomodoroTimer, onNavigate, onPreloadView, onResetSimulation, theme, onToggleTheme, syncStatus, manualSync, onSyncNow, onOpenSyncSettings, settingsOpen, onOpenSettings, onPreloadSettings }: ResponsiveNavigationProps) {
+function DesktopTopBar({ navigationItems, activeView, simulationOffsetMinutes, simulationDateLabel, pomodoroTimer, onNavigate, onPreloadView, onResetSimulation, theme, onToggleTheme, manualSync, onSyncNow, onOpenSyncSettings, settingsOpen, onOpenSettings, onPreloadSettings }: ResponsiveNavigationProps) {
   return (
     <header className="hidden min-w-0 px-4 pt-2 xl:block" data-navigation-layout="top-bar">
       <div className="mx-auto grid h-16 max-w-7xl grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-4 rounded-panel border border-core-border bg-core-surface px-6 shadow-floating">
@@ -233,7 +234,7 @@ function DesktopTopBar({ navigationItems, activeView, simulationOffsetMinutes, s
 
         <div className="flex min-w-0 items-center justify-end gap-3">
           <PomodoroProgress timer={pomodoroTimer} variant="header" />
-          <NavigationUtilityButtons activeView={activeView} theme={theme} onNavigate={onNavigate} onPreloadView={onPreloadView} onToggleTheme={onToggleTheme} syncStatus={syncStatus} manualSync={manualSync} onSyncNow={onSyncNow} onOpenSyncSettings={onOpenSyncSettings} settingsOpen={settingsOpen} onOpenSettings={onOpenSettings} onPreloadSettings={onPreloadSettings} />
+          <NavigationUtilityButtons activeView={activeView} theme={theme} onNavigate={onNavigate} onPreloadView={onPreloadView} onToggleTheme={onToggleTheme} manualSync={manualSync} onSyncNow={onSyncNow} onOpenSyncSettings={onOpenSyncSettings} settingsOpen={settingsOpen} onOpenSettings={onOpenSettings} onPreloadSettings={onPreloadSettings} />
         </div>
       </div>
       {simulationOffsetMinutes > 0 ? <SimulationStatus simulationDateLabel={simulationDateLabel} simulationOffsetMinutes={simulationOffsetMinutes} onResetSimulation={onResetSimulation} /> : null}
@@ -241,7 +242,7 @@ function DesktopTopBar({ navigationItems, activeView, simulationOffsetMinutes, s
   );
 }
 
-function MobileHeader({ activeView, simulationOffsetMinutes, simulationDateLabel, pomodoroTimer, onNavigate, onPreloadView, onResetSimulation, theme, onToggleTheme, syncStatus, manualSync, onSyncNow, onOpenSyncSettings, settingsOpen, onOpenSettings, onPreloadSettings }: ResponsiveNavigationProps) {
+function MobileHeader({ activeView, simulationOffsetMinutes, simulationDateLabel, pomodoroTimer, onNavigate, onPreloadView, onResetSimulation, theme, onToggleTheme, manualSync, onSyncNow, onOpenSyncSettings, settingsOpen, onOpenSettings, onPreloadSettings }: ResponsiveNavigationProps) {
   return (
     <header className="core-mobile-header sticky top-0 z-30 min-w-0 px-2 py-2 xl:hidden" data-navigation-layout="mobile-header">
       <div className="flex h-16 min-w-0 items-center justify-between gap-3 rounded-panel border border-core-border bg-core-surface px-3 shadow-floating">
@@ -249,7 +250,7 @@ function MobileHeader({ activeView, simulationOffsetMinutes, simulationDateLabel
           <NavigationBrand onNavigate={onNavigate} />
         </h1>
         <PomodoroProgress timer={pomodoroTimer} variant="header" />
-        <NavigationUtilityButtons activeView={activeView} theme={theme} onNavigate={onNavigate} onPreloadView={onPreloadView} onToggleTheme={onToggleTheme} syncStatus={syncStatus} manualSync={manualSync} onSyncNow={onSyncNow} onOpenSyncSettings={onOpenSyncSettings} settingsOpen={settingsOpen} onOpenSettings={onOpenSettings} onPreloadSettings={onPreloadSettings} />
+        <NavigationUtilityButtons activeView={activeView} theme={theme} onNavigate={onNavigate} onPreloadView={onPreloadView} onToggleTheme={onToggleTheme} manualSync={manualSync} onSyncNow={onSyncNow} onOpenSyncSettings={onOpenSyncSettings} settingsOpen={settingsOpen} onOpenSettings={onOpenSettings} onPreloadSettings={onPreloadSettings} />
       </div>
       {simulationOffsetMinutes > 0 ? <SimulationStatus simulationDateLabel={simulationDateLabel} simulationOffsetMinutes={simulationOffsetMinutes} onResetSimulation={onResetSimulation} /> : null}
     </header>

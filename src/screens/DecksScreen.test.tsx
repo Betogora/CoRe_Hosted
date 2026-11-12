@@ -7,7 +7,9 @@ import { addCardVariant, addNoteField, createBasicNote, createCoreDeck, createMa
 import type { Deck } from "../coreTypes.ts";
 import type { DeckLibrarySummary } from "../libraryModel.ts";
 import { summarizeDeckReview } from "../scheduler.ts";
+import { WorkspaceStoreContext } from "../useWorkspaceStore.ts";
 import { catalogEntryFromCard, type NoteGraph } from "../workspaceReplica.ts";
+import { createWorkspaceStore, type WorkspaceSnapshot } from "../workspaceStore.ts";
 import { DecksScreen, type DecksCardPage } from "./DecksScreen.tsx";
 
 const NOW = "2026-08-06T10:00:00.000Z";
@@ -71,8 +73,8 @@ const CARD_EDITOR_SERVICES: CardEditorServices = {
  * The card management reads one flat hit list over its scope (KV3b); tests describe cards per deck, so their pages
  * become that list in scope order.
  */
-function hitPages(decks: Deck[], cardPages: DecksScreenProps["cardPages"], contentDeckId: string | null | undefined): DecksScreenProps["cardPages"] {
-  if (!cardPages || "__hits__" in cardPages) return cardPages;
+function hitPages(decks: Deck[], cardPages: WorkspaceSnapshot["cardPages"], contentDeckId: string | null | undefined): WorkspaceSnapshot["cardPages"] {
+  if ("__hits__" in cardPages) return cardPages;
   const scope = contentDeckId ? decks.filter((deck) => collectDeckTreeIds(decks, contentDeckId).has(deck.id)) : decks;
   const lists = scope.map((deck) => cardPages[deck.id]).filter((list): list is DecksCardPage => Boolean(list));
   if (!lists.length) return {};
@@ -92,7 +94,8 @@ function hitPages(decks: Deck[], cardPages: DecksScreenProps["cardPages"], conte
   };
 }
 
-function renderScreen(decks: Deck[], overrides: Partial<DecksScreenProps> = {}) {
+/** Card pages, deck counts and conflicts come from the account store, as in the app; pages need a page loader. */
+function renderScreen(decks: Deck[], { syncConflictCardIds, deckSummaries, cardPages, ...overrides }: Partial<DecksScreenProps> & Partial<Pick<WorkspaceSnapshot, "syncConflictCardIds" | "deckSummaries" | "cardPages">> = {}) {
   const props: DecksScreenProps = {
     decks,
     contentTab: "cards",
@@ -128,10 +131,12 @@ function renderScreen(decks: Deck[], overrides: Partial<DecksScreenProps> = {}) 
     onDraftStateChange: () => undefined,
     savedSearches: [],
     onSavedSearchesChange: () => undefined,
+    ...(cardPages ? { onRequestCardPage: () => undefined } : {}),
     ...overrides,
-    cardPages: hitPages(decks, overrides.cardPages, overrides.contentDeckId),
   };
-  return renderToStaticMarkup(<DecksScreen {...props} />);
+  const store = createWorkspaceStore();
+  store.set({ deckSummaries, ...(syncConflictCardIds ? { syncConflictCardIds } : {}), ...(cardPages ? { cardPages: hitPages(decks, cardPages, overrides.contentDeckId) } : {}) });
+  return renderToStaticMarkup(<WorkspaceStoreContext.Provider value={store}><DecksScreen {...props} /></WorkspaceStoreContext.Provider>);
 }
 
 test("deck content shows only its own cards without deck headings and uses the existing editor", () => {
@@ -349,8 +354,9 @@ test("cards page ignores catalog pages for another query or sort", () => {
   const render = (candidate: DecksCardPage) => renderScreen([deck], { cardPages: { [deck.id]: candidate } });
 
   assert.match(render(page), /Gefilterte Karte/);
-  assert.doesNotMatch(render({ ...page, query: "gefiltert" }), /Gefilterte Karte/);
-  assert.doesNotMatch(render({ ...page, sort: { field: "nextStudyDate", direction: "asc" } }), /Gefilterte Karte/);
+  assert.doesNotMatch(render(page), /data-testid="card-library-loading"/);
+  assert.match(render({ ...page, query: "gefiltert" }), /data-testid="card-library-loading"/);
+  assert.match(render({ ...page, sort: { field: "nextStudyDate", direction: "asc" } }), /data-testid="card-library-loading"/);
 });
 
 test("cards page lists every card of every deck as one flat sortable list without learning metrics (KV3b)", () => {

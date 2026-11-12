@@ -1,6 +1,6 @@
 # CoRe TODO
 
-Stand: 2026-11-11
+Stand: 2026-11-12
 
 Nur offene Arbeit. Ist-Stand in [`status.md`](status.md), Entscheidungen in
 [`decisions.md`](decisions.md), erledigte Arbeit in [`history.md`](history.md).
@@ -161,6 +161,11 @@ neuen Code.
       (Android schickt die Leertaste oft ohne Tastenereignis), Reiter und
       Flaggenraster bei 200 % Zoom. „KI hilft“: Die Tastatur verdeckt die
       Eingabe im Bottom Sheet nicht.
+- [ ] **Feldwerte von Testgeräten (ADR-050):** Unter Einstellungen → Über
+      uns „Leistungsdaten kopieren“ auf mehreren Geräten nach einigen
+      Lernsitzungen ausführen und Median und p95 für Start, „Antwort
+      anzeigen“, Bewertung und Kartensuche gegen die Laborwerte in
+      [`test-portfolio.md`](test-portfolio.md#performance-gates) halten.
 - [ ] **Originallayout in der App (ADR-047):** Pokémon-Stapel
       (`fixtures/apkg/corpus/Pokemon_Gen_I_Auszug.apkg`) mit echtem Konto
       importieren, auf einem zweiten Gerät öffnen und offline lernen; Review,

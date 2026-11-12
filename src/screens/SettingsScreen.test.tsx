@@ -4,20 +4,25 @@ import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { createViewRoute } from "../appNavigation.ts";
 import { createCoreRepository } from "../coreRepository.ts";
+import type { SyncStatus } from "../coreTypes.ts";
+import { bindFieldTimingsAccount, finishFieldTiming, startFieldTiming } from "../fieldTimings.ts";
+import { WorkspaceStoreContext } from "../useWorkspaceStore.ts";
+import { createWorkspaceStore } from "../workspaceStore.ts";
 import { SettingsScreen } from "./SettingsScreen.tsx";
 import { createConflictImpactPreview } from "./SyncConflictPanel.tsx";
 
 type GeneralSection = React.ComponentProps<typeof SettingsScreen>["section"];
 
-function renderSettings(section: GeneralSection = "konto", sync: Pick<React.ComponentProps<typeof SettingsScreen>, "syncStatus" | "lastSyncedAt"> = { syncStatus: { status: "idle" } }) {
+function renderSettings(section: GeneralSection = "konto", sync: { syncStatus: SyncStatus; lastSyncedAt?: string } = { syncStatus: { status: "idle" } }) {
   const state = createCoreRepository().getState();
   const profile = { ...state.profile, email: "login@example.test", displayName: "Ada", timezone: "Europe/Berlin" };
+  const store = createWorkspaceStore();
+  if (sync.lastSyncedAt) store.set({ syncStatus: { status: "saved", message: "Synchronisiert.", savedAt: sync.lastSyncedAt } });
+  store.set({ syncStatus: sync.syncStatus });
   return renderToStaticMarkup(
-    <SettingsScreen
+    <WorkspaceStoreContext.Provider value={store}><SettingsScreen
       section={section}
       profile={profile}
-      syncStatus={sync.syncStatus}
-      lastSyncedAt={sync.lastSyncedAt}
       onSaveSettings={() => profile}
       onDraftStateChange={() => undefined}
       onSyncNow={async () => undefined}
@@ -25,7 +30,7 @@ function renderSettings(section: GeneralSection = "konto", sync: Pick<React.Comp
       onResolveConflict={async () => undefined}
       onSignOut={async () => undefined}
       onNavigate={() => createViewRoute("uebersicht")}
-    />,
+    /></WorkspaceStoreContext.Provider>,
   );
 }
 
@@ -46,6 +51,20 @@ test("about settings contain help, legal placeholders, and the only visible vers
   assert.equal(html.match(/>In Vorbereitung</g)?.length, 2);
   assert.match(html, /aria-label="Aktuelle Version">v0\.0\.0</);
   assert.equal(html.match(/v0\.0\.0/g)?.length, 1);
+});
+
+test("about settings copy performance data only once the account has measurements", (context) => {
+  context.after(() => bindFieldTimingsAccount(null));
+  const copyButton = (html: string) => html.match(/<button[^>]*>(?:(?!<\/button>).)*Leistungsdaten kopieren/)?.[0] ?? "";
+  bindFieldTimingsAccount("settings-test");
+  assert.match(copyButton(renderSettings("ueber")), /disabled=""/);
+
+  startFieldTiming("core:answer_shown");
+  finishFieldTiming("card-frame");
+  const button = copyButton(renderSettings("ueber"));
+  assert.ok(button);
+  assert.doesNotMatch(button, /disabled/);
+  assert.doesNotMatch(renderSettings("konto"), /Leistungsdaten/);
 });
 
 test("account settings show the login e-mail read-only in one wide panel", () => {

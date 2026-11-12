@@ -47,6 +47,19 @@ test("renders review content without a framed card surface", () => {
   assert.doesNotMatch(iframe, /rounded-control|border-core-border|bg-core-surface/);
 });
 
+test("a frame loaded ahead is inert, hidden from assistive technology and takes no space until shown", () => {
+  const concealed = renderToStaticMarkup(<CardPresentationSurface {...fixture()} title="Antwort" surface="review" concealed />);
+  const root = concealed.match(/^<div[^>]+>/)?.[0] ?? "";
+  assert.match(root, /\sinert=""/);
+  assert.match(root, /aria-hidden="true"/);
+  assert.match(root, /\binvisible\b/);
+  assert.match(root, /\babsolute\b.*\bh-0\b.*\boverflow-hidden\b/);
+  assert.match(concealed, /<iframe[^>]+title="Antwort"/);
+
+  const shown = renderToStaticMarkup(<CardPresentationSurface {...fixture()} title="Antwort" surface="review" />);
+  assert.doesNotMatch(shown, /inert|aria-hidden|invisible/);
+});
+
 test("remeasures review content from a collapsed frame instead of retaining a tall previous card", () => {
   const style = { height: "900px" };
   const heightsAtMeasurement: string[] = [];

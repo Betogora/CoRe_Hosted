@@ -1,16 +1,17 @@
 import React from "react";
 import { ArrowDown, ArrowLeft, ArrowUp, Check, ChevronRight, CopyCheck, FileText, GraduationCap, Layers, ListChecks, Minus, Network, NotebookPen, PanelsTopLeft, Play, RotateCcw, Search, Star, CircleHelp, type LucideIcon } from "lucide-react";
 import type { CardDraftGuard, DecksCardPage, DecksScreenProps } from "../appScreenProps.ts";
-export type { DecksCardPage, DecksCardPageRequest } from "../appScreenProps.ts";
-export type DecksScreenCardPageProps = Pick<DecksScreenProps, "cardPages" | "onRequestCardPage">;
+export type { DecksCardPage } from "../appScreenProps.ts";
 import { noteTextIndex } from "../coreModel.ts";
 import { collectDeckTreeIds } from "../coreWorkspace.ts";
+import { cancelFieldTiming, finishFieldTiming, startFieldTiming } from "../fieldTimings.ts";
 import { CARD_TABLE_PAGE_SIZE, createCardSearchContext, createCardTableModel, createDeckLibraryModel, DEFAULT_CARD_TABLE_SORT, sameCardTableSort, type CardTableSort, type CardTableSortField } from "../libraryModel.ts";
 import { cardCount, createHitListModel, createPagedCardTableModel } from "./cardList/cardListModel.ts";
 import type { CardCatalogEntry, NoteGraph } from "../workspaceReplica.ts";
 import { ActionButton, IconButton } from "../ui/actionUi.tsx";
 import { useNoteMediaUrls } from "../ui/cardMedia.tsx";
 import { useStableCallback } from "../ui/useStableCallback.ts";
+import { useWorkspaceValue } from "../useWorkspaceStore.ts";
 import { ActionDialog, CoreSlidingTabs, EmptyState, SoftPanel } from "../ui/coreUi.tsx";
 import { DeckAppearanceIcon } from "../ui/deckAppearance.tsx";
 import { useSuccessToast } from "../ui/feedbackUi.tsx";
@@ -264,7 +265,6 @@ export function DecksScreen({
   summaryAccountId,
   learningContentCloud = null,
   onGenerateSummary,
-  deckSummaries,
   onStartDeck,
   contentDeckId = null,
   contentTab: requestedContentTab = "children",
@@ -305,10 +305,9 @@ export function DecksScreen({
   onDraftStateChange,
   savedSearches,
   onSavedSearchesChange,
-  cardPages,
   onRequestCardPage,
-  syncConflictCardIds,
 }: DecksScreenProps) {
+  const { deckSummaries, syncConflictCardIds, cardPages } = useWorkspaceValue(({ deckSummaries, syncConflictCardIds, cardPages }) => ({ deckSummaries, syncConflictCardIds, cardPages }));
   const contentTab = selectedCardId ? "cards" : requestedContentTab;
   const contentLibrary = React.useMemo(() => contentDeckId ? createDeckLibraryModel(decks, { now, dayStartHour, learnAheadMinutes, timeZone, deckSummaries }) : null,
     [contentDeckId, dayStartHour, deckSummaries, decks, learnAheadMinutes, now, timeZone]);
@@ -371,6 +370,7 @@ export function DecksScreen({
   const searchMenu = React.useMemo(() => createCardSearchMenu({ decks: libraryDecks, tags: tagDirectory, flagNames: cardEditor.flagNames, noteTypes }), [cardEditor.flagNames, libraryDecks, noteTypes, tagDirectory]);
   const searchContext = React.useMemo(() => createCardSearchContext(deferredQuery, decks, { now, dayStartHour, timeZone, noteTypes }), [dayStartHour, decks, deferredQuery, noteTypes, now, timeZone]);
   function changeQuery(next: string) {
+    startFieldTiming("core:card_search_results");
     setQuery(next);
   }
   React.useEffect(() => {
@@ -393,7 +393,7 @@ export function DecksScreen({
   // Prev/next to a row whose page is not loaded yet: it opens once the page arrives.
   const [pendingHit, setPendingHit] = React.useState<{ listKey: string; index: number } | null>(null);
   const previouslySelectedCardId = React.useRef<string | null>(null);
-  const usesCardPages = cardPages !== undefined || Boolean(onRequestCardPage);
+  const usesCardPages = Boolean(onRequestCardPage);
   const tableModel = React.useMemo(() => {
     if (!usesCardPages) {
       return createCardTableModel(libraryDecks, { query: deferredQuery, cardSort, now, dayStartHour, learnAheadMinutes, timeZone, deckSummaries });
@@ -411,6 +411,11 @@ export function DecksScreen({
   [cardPages, cardSort, dayStartHour, deferredQuery, onRequestCardPage, tableModel, timeZone]);
   const cardsLoading = hitList.loading;
   const searchResultCount = deferredQuery.trim() && !cardsLoading ? hitList.totalCardCount : null;
+  // The search timing ends once the shown list belongs to the typed query; leaving the screen drops it.
+  React.useEffect(() => {
+    if (query === deferredQuery && !cardsLoading) finishFieldTiming("card-list");
+  }, [cardsLoading, deferredQuery, query]);
+  React.useEffect(() => () => cancelFieldTiming("card-list"), []);
   // Below xl the page scrolls under the sticky mobile header, so the table header sticks right beneath it.
   const [mobileHeaderHeight, setMobileHeaderHeight] = React.useState(0);
   React.useEffect(() => {
@@ -989,7 +994,7 @@ export function DecksScreen({
           tab={cardEditorTab}
           onTabChange={onCardEditorTabChange}
           hits={hits}
-          syncConflict={syncConflictCardIds?.has(selectedGraph.cardId) ?? false}
+          syncConflict={syncConflictCardIds.has(selectedGraph.cardId)}
           now={now}
           dayStartHour={dayStartHour}
           timeZone={timeZone}
@@ -1296,7 +1301,7 @@ export function DecksScreen({
                       marked={selectedGraph && selectedGraph.note.id === card.noteId ? selectedGraph.note.marked : card.marked}
                       flag={selectedGraph?.cards.find((candidate) => candidate.id === card.id)?.ankiFlag ?? card.ankiFlag}
                       flagNames={cardEditor.flagNames}
-                      syncConflict={Boolean(syncConflictCardIds?.has(card.id))}
+                      syncConflict={syncConflictCardIds.has(card.id)}
                       deckPath={hitScope.length > 1 ? deckPathById.get(card.deckId) : undefined}
                       onSelect={stableRequestCardSelection}
                       checked={allHits || checkedIds.has(card.id)}
