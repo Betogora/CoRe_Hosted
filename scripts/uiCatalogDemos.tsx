@@ -9,7 +9,7 @@ import { CoreWordmark } from "../src/ui/CoreWordmark.tsx";
 import { BrainMascot } from "../src/ui/BrainMascot.tsx";
 import { DailyMotivationWidget } from "../src/screens/DailyMotivationWidget.tsx";
 import React, { useRef, useState } from "react";
-import { ArrowUpRight, Ban, BookOpen, ChevronRight, Copy, Eye, FileSpreadsheet, Grid2x2, Highlighter, Home, Info, Layers, List, Pencil, PenLine, Plus, RefreshCw, Save, Settings, Sparkles, Star, Trash2, X, type LucideIcon } from "lucide-react";
+import { ArrowUpRight, Ban, BookOpen, ChevronRight, Copy, Eye, FileSpreadsheet, Grid2x2, Highlighter, Home, Info, Layers, List, Pencil, PenLine, Play, Plus, RefreshCw, Save, Settings, Sparkles, Star, Trash2, X, type LucideIcon } from "lucide-react";
 import { addCardVariant, addNoteField, cardStudyFromReviewState, type OcclusionMode, createBasicNote, createCoreDeck, createManualNoteContent, createNote, createReviewState, noteBlocks, setNoteTypeIn, type ManualContentKind } from "../src/coreModel.ts";
 import type { ExamPlanningSettings, CoreMode, NewReviewOrder, NoteContent, NoteField, OcclusionMask, SavedCardSearch, SyncStatus } from "../src/coreTypes.ts";
 import type { CardEditorServices, DecksCardPageRequest } from "../src/appScreenProps.ts";
@@ -80,6 +80,7 @@ import { ExamTopicOrder } from "../src/screens/ExamTopicOrder.tsx";
 import { LearnScreen } from "../src/screens/LearnScreen.tsx";
 import { CreationScreen } from "../src/screens/CreationScreen.tsx";
 import { DecksScreen } from "../src/screens/DecksScreen.tsx";
+import { CardEditorStudyTab } from "../src/screens/cardEditor/CardEditorStudyTab.tsx";
 import { NoteBlockControls } from "../src/ui/NoteBlockControls.tsx";
 import { OcclusionEditor } from "../src/ui/OcclusionEditor.tsx";
 import { SettingsScreen } from "../src/screens/SettingsScreen.tsx";
@@ -197,6 +198,7 @@ const TAB_DEMO_ITEMS = [{ value: "substacks", label: "Unterstapel" }, { value: "
 function StructureDemo({ section }: { section: string }) {
   const [planStep, setPlanStep] = useState(1);
   const [tab, setTab] = useState<(typeof TAB_DEMO_ITEMS)[number]["value"]>("cards");
+  const [headTab, setHeadTab] = useState<(typeof TAB_DEMO_ITEMS)[number]["value"]>("cards");
   const [view, setView] = useState("list");
   const [dialog, setDialog] = useState<"s" | "m" | "l" | null>(null);
   const [dialogTab, setDialogTab] = useState<"content" | "study">("content");
@@ -212,6 +214,18 @@ function StructureDemo({ section }: { section: string }) {
       <Steps ariaLabel="Import fehlgeschlagen" items={STEP_DEMO_ITEMS.map((item, index) => index === 3 ? { ...item, failed: true } : item)} current={3} stretch />
     </div></Demo>}
     {section === "struktur" && <Demo title="CoreTabs und CoreTabPanel" wide><CoreTabs ariaLabel="Stapelinhalte" tabs={TAB_DEMO_ITEMS} value={tab} onValueChange={setTab} panelId="catalog-deck-content" /><CoreTabPanel panelId="catalog-deck-content" value={tab} className="pt-4 core-body text-core-secondary">Inhalt des Reiters {TAB_DEMO_ITEMS.find((item) => item.value === tab)?.label}.</CoreTabPanel></Demo>}
+    {section === "struktur" && <Demo title="Kopf der Stapelinhalte · Brotkrumen, Titel und Karten lernen auf einer Linie, Unterstreichungs-Reiter" wide>
+      <div className="core-deck-content-head">
+        <nav className="core-deck-folder-breadcrumb" aria-label="Stapelpfad"><button type="button">Alle Stapel</button><ChevronRight size={16} aria-hidden="true" /><button type="button">Welt-Hauptstädte</button><ChevronRight size={16} aria-hidden="true" /><span aria-current="page">Europa</span></nav>
+        <div className="core-deck-content-heading"><DeckAppearanceIcon deck={child} className="size-7" iconSize={16} /><h3 className="core-deck-content-title">Europa</h3></div>
+        <div className="core-deck-content-tabs"><CoreTabs ariaLabel="Inhalte von Europa" tabs={TAB_DEMO_ITEMS} value={headTab} onValueChange={setHeadTab} panelId="catalog-deck-head" /></div>
+        <ActionButton variant="primary" icon={Play} className="core-deck-content-study" onClick={() => toast("Lernsitzung startet.")}>Karten lernen</ActionButton>
+      </div>
+      <CoreTabPanel panelId="catalog-deck-head" value={headTab} className="core-body text-core-secondary">Inhalt des Reiters {TAB_DEMO_ITEMS.find((item) => item.value === headTab)?.label}.</CoreTabPanel>
+    </Demo>}
+    {section === "struktur" && <Demo title="Karteneditor · Abschnitte auf einer Fläche, Lernstand als Schrittlinie und Zeilenliste" wide>
+      <div className="core-card-editor-frame overflow-hidden rounded-panel border border-core-border"><CardEditorStudyTab card={variantStudyCard} now={`${today}T09:00:00Z`} services={catalogCardEditorServices} /></div>
+    </Demo>}
     {section === "dialogs" && <Demo title="DialogFrame · s, m mit Reitern, l"><div className="catalog-row">{(["s", "m", "l"] as const).map((size) => <ActionButton key={size} variant="secondary" onClick={() => setDialog(size)}>{`Dialog ${size.toUpperCase()} öffnen`}</ActionButton>)}</div>
       <DialogFrame open={dialog !== null} size={dialog ?? "m"} title={dialog === "m" ? "Karte bearbeiten" : "Tags verwalten"} onClose={() => setDialog(null)}
         tabs={dialog === "m" ? <CoreTabs ariaLabel="Bereiche" tabs={[{ value: "content", label: "Inhalt" }, { value: "study", label: "Lernen" }]} value={dialogTab} onValueChange={setDialogTab} panelId="catalog-dialog-panel" /> : undefined}
@@ -687,8 +701,8 @@ function ProductViewsDemo({ kind }: { kind: string }) {
     ["ai-source", "AiSourceCreationPanel · Drei Schritte: Quelle und Stapel, Lernwünsche, Karten", "Automatische Erstellung"],
     ["manual", "ManualCreationPanel · Formular und Bausteine", "Manuelle Erstellung"],
     ["import", "ApkgImportPanel · Dateiauswahl", "Anki-Import"],
-    ["decks", "DecksScreen · Tabelle und Karteneditor", "Kartenverwaltung"],
-    ["deck-content", "DecksScreen · Karten lernen direkt neben den Inhaltsreitern", "Stapelinhalte"],
+    ["decks", "DecksScreen · Tabelle als ein Blatt, Karteneditor als Dialog", "Kartenverwaltung"],
+    ["deck-content", "DecksScreen · Titel und Karten lernen auf einer Linie, Unterstreichungs-Reiter", "Stapelinhalte"],
     ["settings", "SettingsDialog · alle Bereiche der Einstellungen", "Einstellungen"],
     ["deck-settings", "DeckSettingsScreen · Darstellung und Lernwerte", "Stapeleinstellungen"],
     ["study", "StudyMode · Frage, Antwort und Bewertungen", "Lernsitzung"],
@@ -773,7 +787,7 @@ export const DEMO_GROUPS = [
   { id: "tags-flags", section: "primitive", title: "Tags und Flaggen", description: "Tag-Eingabe, Flaggenwähler und Flaggenpunkt.", components: ["TagInput", "FlagPicker", "FlagDot"], render: TagsAndFlagsDemo },
   { id: "colors", section: "primitive", title: "ColorPicker", description: "Farbfeld oder Werkzeug, Farbkreis und Schnellwahl.", components: ["ColorPicker"], render: () => <ContentDemo section="colors" /> },
   { id: "flaechen", section: "shared", title: "SoftPanel und EmptyState", description: "Inhaltsflächen und leere Zustände.", components: ["SoftPanel", "EmptyState"], render: () => <FoundationsDemo section="surfaces" /> },
-  { id: "struktur", section: "shared", title: "Abschnittskopf, Schritte und Reiter", description: "Kopf jeder Fläche, Schrittlinie und Unterstreichungs-Reiter.", components: ["SectionHeader", "Steps", "CoreTabs", "CoreTabPanel"], wide: true, render: () => <StructureDemo section="struktur" /> },
+  { id: "struktur", section: "shared", title: "Abschnittskopf, Schritte und Reiter", description: "Kopf jeder Fläche, Schrittlinie und Unterstreichungs-Reiter, im Stapelkopf und im Karteneditor.", components: ["SectionHeader", "Steps", "CoreTabs", "CoreTabPanel"], wide: true, render: () => <StructureDemo section="struktur" /> },
   { id: "headings", section: "shared", title: "PageHeader und LearningAreaHeader", description: "Seitentitel sowie Köpfe von Lernen und Kartenverwaltung.", components: ["PageHeader", "LearningAreaHeader"], render: () => <><FoundationsDemo section="headings" /><NavigationDemo section="headings" /></> },
   { id: "navigation", section: "shared", title: "AppNavigation, Einstellungsdialog und InPageNavigation", description: "Responsive Hauptnavigation, CoRe-Wortmarke, der gemeinsame Rahmen der Einstellungsdialoge und die Sprunglinks der Statistik.", components: ["AppNavigation", "CoreWordmark", "SettingsDialog", "InPageNavigation"], render: () => <><NavigationDemo section="navigation" /><ProductViewsDemo kind="settings" /></> },
   { id: "stapel", section: "shared", title: "Stapeltabelle, Baum und Menü", description: "Tabellenzeile, Stapelbaum, Unterstapel und Optionsmenü.", components: ["DeckSummaryHeader", "DeckSummaryRow", "DeckOptionsMenu", "DeckTree"], wide: true, render: () => <DecksDemo section="stapel" /> },

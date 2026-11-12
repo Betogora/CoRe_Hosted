@@ -131,13 +131,13 @@ test("[Vertrag: Stapelinhalte] Flächeneinstieg, Vorschautabs und gemeinsamer Ed
   await expect(page.getByRole("navigation", { name: "Stapelpfad" })).toContainText("Gemeinsam");
   await expect(page.getByTestId("deck-content-substacks")).toBeVisible();
   await expect(page.getByTestId(`deck-card-${CARD_IDS.b1}`)).toHaveCount(0);
-  const tabs = page.getByRole("group", { name: "Stapelinhalte", exact: true });
+  const tabs = page.getByRole("tablist", { name: "Stapelinhalte", exact: true });
   for (const width of [320, 390, 430, 640, 768, 1280, 1920]) {
     await page.setViewportSize({ width, height: 900 });
     for (const label of ["Zusammenfassungen", "Quiz", "Mind Map", "Quelle", "Unterstapel", "Karten"]) {
-      const tab = tabs.getByRole("button", { name: label, exact: true });
+      const tab = tabs.getByRole("tab", { name: label, exact: true });
       await tab.click();
-      await expect(tab).toHaveAttribute("aria-pressed", "true");
+      await expect(tab).toHaveAttribute("aria-selected", "true");
       if (label === "Karten") {
         await expect(page.getByTestId(`deck-card-${CARD_IDS.b1}`)).toBeVisible();
         await expect(page.getByTestId(`deck-card-${CARD_IDS.a}`)).toHaveCount(0);
@@ -602,7 +602,7 @@ const SUMMARY_RESULT = { summary: { sections: [{ heading: "Bereich B", paragraph
 
 test("[Vertrag: Lerninhalte] Tabs öffnen per URL; Entwürfe sind bei Tab-, Bereichswechsel und Reload geschützt, Verwerfen lässt Fassungen unverändert", async ({ page }) => {
   const summaries = page.getByTestId("deck-summaries-panel"), guard = page.getByRole("dialog", { name: "Änderungen übernehmen?", exact: true });
-  const tab = (name: string) => page.getByRole("group", { name: "Stapelinhalte", exact: true }).getByRole("button", { name, exact: true });
+  const tab = (name: string) => page.getByRole("tablist", { name: "Stapelinhalte", exact: true }).getByRole("tab", { name, exact: true });
   const editor = summaries.getByRole("textbox", { name: "Zusammenfassung bearbeiten", exact: true });
   await page.goto(`${CONTENT_URL}summary`);
   await summaries.getByRole("button", { name: "Zusammenfassung schreiben", exact: true }).click();

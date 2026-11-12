@@ -125,7 +125,7 @@ export function CardEditorVariantsTab({ deck, note, card, services, onGenerateVa
   }
 
   return (
-    <div className="grid min-w-0 content-start gap-4 p-4 sm:p-6 md:grid-cols-2 md:items-start" data-testid="card-variant-tools">
+    <div className="core-card-editor-sections" data-testid="card-variant-tools">
       <Section title="Original" testId="card-variant-original">
         {original ? (
           <div className="grid min-w-0 gap-0.5">

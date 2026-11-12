@@ -629,40 +629,10 @@
   .core-tri-state-control[data-tri-value="out"] .core-tri-state-indicator { background: var(--core-danger); }
   .core-tri-state-control[data-tri-value="out"] .core-tri-state-option[aria-checked="true"] { color: var(--core-text-on-danger); }
 
-  /*
-   * The card editor's four equally wide tabs (ARIA tabs) in the shared selection rail: as wide as the labels from
-   * 640 px, full width below; the sliding indicator marks the selected one.
-   */
-  .core-card-editor-tabs {
-    display: grid;
-    width: 100%;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-  }
-
-  .core-card-editor-tabs .core-segmented-control-option {
-    padding-inline: 0.25rem;
-  }
-
-  @media (min-width: 640px) {
-    .core-card-editor-tabs {
-      width: fit-content;
-      grid-template-columns: repeat(4, minmax(7.5rem, 1fr));
-    }
-
-    .core-card-editor-tabs .core-segmented-control-option {
-      padding-inline: var(--core-space-lg);
-    }
-  }
-
   @media (pointer: coarse), (max-width: 767px) {
     .core-segmented-touch.core-segmented-control {
       height: calc(var(--core-control-height) + 0.5rem);
     }
-  }
-
-  .core-card-editor-tabs:not([data-sliding="true"]) .core-segmented-control-option[aria-selected="true"] {
-    background: var(--core-surface);
-    box-shadow: var(--core-selection-indicator-shadow);
   }
 
   .core-icon-segmented-control .core-segmented-control-option {
@@ -1473,34 +1443,6 @@ button[aria-label] {
   .core-deck-create-form { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto; }
 }
 
-.core-deck-content-tabs {
-  height: calc(var(--core-control-height) + 2 * var(--core-space-xs));
-}
-
-.core-deck-content-tab-scroll {
-  min-width: 0;
-  max-width: 100%;
-  overflow-x: auto;
-  padding-bottom: var(--core-space-xs);
-}
-
-.core-deck-content-tab-scroll .core-deck-content-tabs {
-  width: max-content;
-  min-width: 29rem;
-  max-width: none;
-}
-
-.core-deck-content-tabs .core-segmented-control-option {
-  flex: 0 0 var(--core-control-height);
-  min-height: var(--core-control-height);
-}
-
-.core-deck-content-tabs .core-segmented-control-option[aria-pressed="true"] {
-  flex: 1 1 auto;
-  min-width: 9rem;
-  padding-inline: var(--core-space-md);
-}
-
 .core-deck-folder-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(min(100%, 19rem), 1fr));
@@ -2188,6 +2130,405 @@ button.core-steps-step:disabled {
 
   .core-dialog-frame[data-size="s"] { max-width: 28rem; }
   .core-dialog-frame[data-size="l"] { max-width: 60rem; }
+}
+
+/* DialogFrame: an optional line below the title, e.g. a type and state marks. */
+.core-dialog-frame-heading {
+  display: grid;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.core-dialog-frame-subtitle {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--core-space-xs) var(--core-space-sm);
+  min-width: 0;
+  color: var(--core-text-muted);
+  font: var(--core-weight-body) var(--core-type-body)/var(--core-leading-body) var(--core-font-sans);
+}
+
+/*
+ * Card editor (D6): DialogFrame `l` with a fixed height from 1024 px and full screen below, so paging and tab
+ * changes never resize it. A marked card tints the whole dialog. Sections lie on its one surface.
+ */
+.core-card-editor-frame {
+  --core-card-editor-surface: var(--core-surface-raised);
+  background: var(--core-card-editor-surface);
+}
+
+.core-card-editor-frame.is-marked {
+  --core-card-editor-surface: var(--core-marked-surface);
+  --core-text-muted: var(--core-marked-text-muted);
+}
+
+.core-card-editor-frame .core-dialog-frame-header {
+  flex-wrap: wrap;
+  padding-block: var(--core-space-sm);
+}
+
+.core-card-editor-frame .core-dialog-frame-title {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.core-card-editor-frame .core-dialog-frame-body {
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+}
+
+.core-card-editor-paging,
+.core-card-editor-actions {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: var(--core-space-xs);
+}
+
+/* The first arrow's icon starts on the content edge. */
+.core-card-editor-paging {
+  margin-left: calc((1rem - var(--core-button-height)) / 2);
+}
+
+.core-card-editor-position {
+  min-width: 3.5rem;
+  padding-inline: var(--core-space-xs);
+  color: var(--core-text-muted);
+  font: var(--core-weight-emphasis) var(--core-type-body)/var(--core-leading-body) var(--core-font-sans);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.core-card-editor-panel {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.core-card-editor-sections {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-items: start;
+  gap: 1.25rem 2.5rem;
+  padding: 1.25rem;
+}
+
+.core-card-editor-column {
+  display: grid;
+  align-content: start;
+  gap: 1.25rem;
+  min-width: 0;
+}
+
+.core-card-editor-section {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-content: start;
+  gap: var(--core-space-md);
+  min-width: 0;
+}
+
+/* Stacked sections are separated by a hairline; side by side they are not. */
+.core-card-editor-section + .core-card-editor-section,
+.core-card-editor-column + .core-card-editor-column > .core-card-editor-section:first-child,
+.core-card-editor-column + .core-card-editor-section,
+.core-card-editor-content > .core-card-editor-section {
+  padding-top: 1.25rem;
+  border-top: var(--core-border-width) solid var(--core-border);
+}
+
+/* Label left, value right, 36 px, hairline between; labels never shrink, values wrap or cut. */
+.core-card-editor-rows {
+  display: grid;
+  min-width: 0;
+  margin: 0;
+}
+
+.core-card-editor-row {
+  display: flex;
+  align-items: center;
+  gap: var(--core-space-md);
+  min-width: 0;
+  min-height: 2.25rem;
+  padding-block: 0.125rem;
+  font: var(--core-weight-body) var(--core-type-body)/var(--core-leading-body) var(--core-font-sans);
+}
+
+.core-card-editor-row + .core-card-editor-row {
+  border-top: var(--core-border-width) solid var(--core-border);
+}
+
+.core-card-editor-row > dt {
+  flex: 1 0 auto;
+  color: var(--core-text-muted);
+}
+
+.core-card-editor-row > dd {
+  min-width: 0;
+  margin: 0;
+  color: var(--core-text);
+  text-align: right;
+  overflow-wrap: anywhere;
+}
+
+/* The four maturity words are short, so all of them stay visible at every width. */
+.core-card-editor-maturity.core-steps li:not([aria-current]) .core-steps-label {
+  position: static;
+  width: auto;
+  height: auto;
+  overflow: visible;
+  clip: auto;
+}
+
+.core-card-editor-content {
+  display: grid;
+  flex: 1 1 auto;
+  align-content: start;
+  gap: 1.25rem;
+  min-width: 0;
+  padding: 1.25rem;
+}
+
+.core-card-editor-panes {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-items: start;
+  gap: 1.25rem 2.5rem;
+  min-width: 0;
+}
+
+/* Both pane heads share the height of their switches, so the columns start on one line. */
+.core-card-editor-pane-head {
+  min-height: var(--core-selection-height);
+}
+
+.core-card-editor-footer {
+  position: sticky;
+  bottom: 0;
+  z-index: 10;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--core-space-md);
+  min-width: 0;
+  padding: var(--core-space-md) 1.25rem max(var(--core-space-md), env(safe-area-inset-bottom));
+  border-top: var(--core-border-width) solid var(--core-border);
+  background: var(--core-card-editor-surface);
+}
+
+@media (pointer: coarse), (max-width: 767px) {
+  .core-card-editor-pane-head {
+    min-height: calc(var(--core-control-height) + 0.5rem);
+  }
+}
+
+@media (max-width: 639px) {
+  .core-card-editor-frame .core-dialog-frame-heading {
+    order: 1;
+    flex-basis: 100%;
+    padding-bottom: var(--core-space-xs);
+  }
+
+  .core-card-editor-actions {
+    margin-left: auto;
+  }
+
+  .core-card-editor-position {
+    display: none;
+  }
+}
+
+/* The four editor tabs stay complete on the narrowest phones. */
+@media (max-width: 359px) {
+  .core-card-editor-frame .core-tabs-list {
+    gap: var(--core-space-lg);
+  }
+}
+
+@media (min-width: 48rem) {
+  .core-card-editor-sections,
+  .core-card-editor-panes {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .core-card-editor-column + .core-card-editor-column > .core-card-editor-section:first-child,
+  .core-card-editor-column + .core-card-editor-section,
+  .core-card-editor-sections > .core-card-editor-section + .core-card-editor-section {
+    padding-top: 0;
+    border-top: 0;
+  }
+}
+
+/* Wide, the flag dots start on the content edge like every other control. */
+@media (min-width: 640px) {
+  .core-card-editor-section [data-flag-picker] {
+    margin-left: -0.75rem;
+  }
+}
+
+@media (min-width: 48rem) and (pointer: fine) {
+  .core-card-editor-row > button {
+    width: 2rem;
+    min-width: 2rem;
+    height: 2rem;
+    min-height: 2rem;
+  }
+}
+
+@media (min-width: 48rem) and (max-width: 1023px) {
+  .core-dialog-frame-backdrop:has(> .core-card-editor-frame) {
+    align-items: stretch;
+    padding: 0;
+  }
+
+  .core-card-editor-frame.core-dialog-frame {
+    max-width: none;
+    height: 100dvh;
+    max-height: none;
+    border-radius: initial;
+  }
+}
+
+@media (min-width: 1024px) {
+  .core-card-editor-frame.core-dialog-frame {
+    height: min(48rem, calc(100dvh - 2rem));
+  }
+}
+
+/*
+ * Card table (D6): one sheet below the search row. Header row and selection bar share one compact height (touch:
+ * the button height), so the rows do not move when selecting starts; the bar's clear button sits on the checkbox
+ * axis, its count where the questions start.
+ */
+.core-card-table-header {
+  --core-card-table-header-height: 1.75rem;
+  /* The row also holds half of its collapsed bottom border. */
+  height: calc(var(--core-card-table-header-height) + var(--core-border-width));
+}
+
+@media (pointer: coarse) {
+  .core-card-table-header {
+    --core-card-table-header-height: var(--core-button-height);
+  }
+}
+
+.core-card-selection-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  column-gap: var(--core-space-md);
+  min-width: 0;
+  min-height: var(--core-card-table-header-height);
+  padding-inline: var(--core-space-sm);
+}
+
+.core-card-selection-bar > button {
+  min-height: var(--core-card-table-header-height);
+}
+
+.core-card-selection-bar > .core-card-selection-clear {
+  width: var(--core-card-table-header-height);
+  min-width: var(--core-card-table-header-height);
+  height: var(--core-card-table-header-height);
+  margin-inline: calc(0.5rem - var(--core-card-table-header-height) / 2) calc(1.125rem - var(--core-card-table-header-height) / 2 - var(--core-space-md));
+  padding: 0;
+}
+
+.core-card-selection-bar > .core-card-selection-actions {
+  height: var(--core-card-table-header-height);
+  padding-block: 0;
+  padding-inline: var(--core-space-md);
+}
+
+@media (min-width: 640px) {
+  .core-card-selection-bar {
+    padding-inline: var(--core-space-md);
+  }
+}
+
+@media (min-width: 768px) {
+  .core-card-selection-bar {
+    padding-inline: var(--core-space-lg);
+  }
+}
+
+/* Advanced card search (D6): term rows 40 px, the three-way switch 32 px with a fine pointer, quieter terms. */
+.core-card-search-term-code {
+  color: color-mix(in srgb, var(--core-text-muted) 72%, transparent);
+}
+
+@media (min-width: 768px) and (pointer: fine) {
+  .core-card-search-term .core-tri-state-control {
+    --core-tri-size: calc(2rem - 8px);
+    height: 2rem;
+  }
+}
+
+/* Head of the deck contents (D6): path, deck tile with title and `Karten lernen` on one line, underline tabs. */
+.core-deck-content-head {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas: "path path" "title study" "tabs tabs";
+  align-items: center;
+  column-gap: var(--core-space-lg);
+  min-width: 0;
+}
+
+.core-deck-content-head > .core-deck-folder-breadcrumb {
+  grid-area: path;
+}
+
+.core-deck-content-heading {
+  display: flex;
+  grid-area: title;
+  align-items: center;
+  gap: var(--core-space-sm);
+  min-width: 0;
+}
+
+.core-deck-content-title {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  color: var(--core-text);
+  font: var(--core-weight-heading) 1.5rem/2rem var(--core-font-sans);
+  letter-spacing: -0.015em;
+}
+
+.core-deck-content-study {
+  grid-area: study;
+}
+
+.core-deck-content-tabs {
+  grid-area: tabs;
+  min-width: 0;
+  margin-top: var(--core-space-lg);
+}
+
+@media (max-width: 639px) {
+  .core-deck-content-head {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas: "path" "title" "tabs" "study";
+  }
+
+  .core-deck-content-title {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .core-deck-content-tabs {
+    margin-top: var(--core-space-md);
+  }
+
+  .core-deck-content-study {
+    width: 100%;
+    margin-top: var(--core-space-lg);
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -3456,9 +3797,3 @@ button.core-steps-step:disabled {
   .dashboard-widget-grid { column-gap: 1rem; }
 }
 
-/* Very narrow phones keep all four card editor tab names complete. */
-@media (max-width: 359px) {
-  .core-card-editor-tabs.core-control-label {
-    font-size: var(--core-type-caption);
-  }
-}

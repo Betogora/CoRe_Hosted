@@ -1,9 +1,9 @@
 import React from "react";
-import { SoftPanel } from "../../ui/coreUi.tsx";
+import { SectionHeader } from "../../ui/SectionHeader.tsx";
 
 /**
- * A titled panel of the card editor tabs: settings typography (16-px title, 24-px padding) and an optional
- * right-aligned status or action next to the title.
+ * A titled section of the card editor tabs: no surface of its own, the shared head with an optional right-aligned
+ * status or action, and a hairline to the section above (`.core-card-editor-section`).
  */
 export function CardEditorSection({ title, aside, testId, children }: {
   title: string;
@@ -13,12 +13,9 @@ export function CardEditorSection({ title, aside, testId, children }: {
 }) {
   const id = React.useId();
   return (
-    <SoftPanel aria-labelledby={id} data-testid={testId} className="grid grid-cols-[minmax(0,1fr)] content-start gap-4 p-4 sm:p-6">
-      <div className="flex min-w-0 flex-wrap items-center justify-between gap-x-3 gap-y-1">
-        <h3 id={id} className="core-heading-3 text-core-text">{title}</h3>
-        {aside}
-      </div>
+    <section aria-labelledby={id} data-testid={testId} className="core-card-editor-section">
+      <SectionHeader id={id} level={3} title={title} action={aside} />
       {children}
-    </SoftPanel>
+    </section>
   );
 }

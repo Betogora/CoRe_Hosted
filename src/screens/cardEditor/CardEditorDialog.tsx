@@ -1,13 +1,13 @@
 import React from "react";
-import { createPortal } from "react-dom";
-import { ChevronDown, ChevronUp, Copy, Pause, Snail, Star, Trash2, X } from "lucide-react";
+import { ChevronDown, ChevronUp, Copy, Pause, Snail, Star, Trash2 } from "lucide-react";
 import type { CardEditorTab } from "../../appNavigation.ts";
 import type { CardDraftGuard, CardEditorServices, DecksScreenProps } from "../../appScreenProps.ts";
 import type { Card, CardStudyStatePatch, Deck, NoteContent } from "../../coreTypes.ts";
 import type { AccountMediaStore } from "../../mediaStore.ts";
 import type { NoteGraph } from "../../workspaceReplica.ts";
 import { CrossLinkButton, IconButton } from "../../ui/actionUi.tsx";
-import { useSlidingSelection } from "../../ui/coreUi.tsx";
+import { CoreTabPanel, CoreTabs } from "../../ui/CoreTabs.tsx";
+import { DialogFrame } from "../../ui/DialogFrame.tsx";
 import { useSuccessToast } from "../../ui/feedbackUi.tsx";
 import { FlagDot } from "../../ui/flagUi.tsx";
 import { CoreTooltip } from "../../ui/tooltipUi.tsx";
@@ -29,74 +29,8 @@ export interface CardEditorHitNavigation {
   onNext: (() => void) | null;
 }
 
-/**
- * Surface of the editor. Modal: the whole viewport on narrow screens, with a small margin on wide ones, the app behind
- * it inert. Docked (KV6, wide screens): beside the list, which stays usable, and as high as the viewport while the list
- * scrolls. A marked card tints header, tabs and background (`--core-marked-surface`).
- */
-export function CardEditorSurface({ marked = false, docked = false, labelledBy, label, surfaceRef, onKeyDown, children }: {
-  marked?: boolean;
-  docked?: boolean;
-  labelledBy?: string;
-  label?: string;
-  surfaceRef: React.RefObject<HTMLDivElement | null>;
-  onKeyDown?: (event: React.KeyboardEvent<HTMLDivElement>) => void;
-  children: React.ReactNode;
-}) {
-  React.useEffect(() => {
-    if (docked) return undefined;
-    const root = document.getElementById("root");
-    root?.setAttribute("inert", "");
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => {
-      root?.removeAttribute("inert");
-      document.body.style.overflow = previousOverflow;
-    };
-  }, [docked]);
-  const tone = marked ? "bg-core-marked-soft" : "bg-core-canvas";
-  const markedStyle = marked ? { "--core-text-muted": "var(--core-marked-text-muted)" } as React.CSSProperties : undefined;
-  if (docked) {
-    return (
-      <div
-        ref={surfaceRef}
-        role="dialog"
-        aria-labelledby={labelledBy}
-        aria-label={labelledBy ? undefined : label}
-        tabIndex={-1}
-        data-testid="card-detail-dialog"
-        data-docked="true"
-        data-marked={marked ? "true" : undefined}
-        onKeyDown={onKeyDown}
-        // The screen region scrolls below the app navigation; the editor keeps 1rem to its bottom edge.
-        className={`sticky top-4 flex h-[calc(100dvh-9rem)] min-w-0 flex-col overflow-hidden rounded-panel border border-core-border shadow-soft outline-none ${tone}`}
-        style={markedStyle}
-      >
-        {children}
-      </div>
-    );
-  }
-  const surface = (
-    <div className="fixed inset-0 z-[60] bg-[var(--core-backdrop)] lg:p-4" data-testid="card-detail-backdrop">
-      <div
-        ref={surfaceRef}
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby={labelledBy}
-        aria-label={labelledBy ? undefined : label}
-        tabIndex={-1}
-        data-testid="card-detail-dialog"
-        data-marked={marked ? "true" : undefined}
-        onKeyDown={onKeyDown}
-        className={`flex size-full min-w-0 flex-col overflow-hidden outline-none lg:rounded-overlay lg:border lg:border-core-border lg:shadow-raised ${tone}`}
-        style={markedStyle}
-      >
-        {children}
-      </div>
-    </div>
-  );
-  return typeof document === "undefined" ? surface : createPortal(surface, document.body);
-}
+/** Class of the editor's `DialogFrame`: fixed height from 1024 px, full screen below; a marked card tints it. */
+export const cardEditorFrameClass = (marked = false) => marked ? "core-card-editor-frame is-marked" : "core-card-editor-frame";
 
 function StatusIcon({ label, children }: { label: string; children: React.ReactElement }) {
   return (
@@ -118,48 +52,6 @@ function CardStatusIcons({ card, marked, flagNames }: { card: Card; marked: bool
   );
 }
 
-function EditorTabs({ value, onChange, idPrefix }: { value: CardEditorTab; onChange: (tab: CardEditorTab) => void; idPrefix: string }) {
-  const { containerRef, indicator } = useSlidingSelection<HTMLDivElement>(value, TABS);
-  const select = (index: number) => {
-    const next = TABS[(index + TABS.length) % TABS.length];
-    onChange(next.value);
-    window.requestAnimationFrame(() => containerRef.current?.querySelector<HTMLElement>(`#${CSS.escape(`${idPrefix}-tab-${next.value}`)}`)?.focus());
-  };
-  return (
-    <div
-      ref={containerRef}
-      role="tablist"
-      aria-label="Bereiche der Karte"
-      data-sliding={indicator ? "true" : undefined}
-      className="core-segmented-control core-card-editor-tabs core-control-label"
-      onKeyDown={(event) => {
-        const index = TABS.findIndex((tab) => tab.value === value);
-        const key = { ArrowRight: index + 1, ArrowLeft: index - 1, Home: 0, End: TABS.length - 1 }[event.key];
-        if (key === undefined) return;
-        event.preventDefault();
-        select(key);
-      }}
-    >
-      {indicator ? <span aria-hidden="true" className="core-segmented-control-indicator" style={{ transform: `translate(${indicator.x}px, ${indicator.y}px)`, width: indicator.width, height: indicator.height }} /> : null}
-      {TABS.map((tab) => (
-        <button
-          key={tab.value}
-          type="button"
-          role="tab"
-          id={`${idPrefix}-tab-${tab.value}`}
-          aria-selected={tab.value === value}
-          aria-controls={`${idPrefix}-panel-${tab.value}`}
-          tabIndex={tab.value === value ? 0 : -1}
-          className="core-segmented-control-option"
-          onClick={() => onChange(tab.value)}
-        >
-          <span className="truncate">{tab.label}</span>
-        </button>
-      ))}
-    </div>
-  );
-}
-
 export interface CardEditorDialogProps {
   deck: Deck;
   decks: readonly Deck[];
@@ -175,9 +67,6 @@ export interface CardEditorDialogProps {
   mediaStore: AccountMediaStore | null;
   syncConflict: boolean;
   services: CardEditorServices;
-  surfaceRef: React.RefObject<HTMLDivElement | null>;
-  /** Beside the list instead of over it (KV6). */
-  docked?: boolean;
   onSaveNote: (graph: NoteGraph, content: NoteContent) => Promise<unknown>;
   onSetStudyState: (cardId: string, patch: CardStudyStatePatch) => Promise<NoteGraph | null>;
   onDuplicateNote: () => Promise<NoteGraph | null>;
@@ -193,13 +82,12 @@ export interface CardEditorDialogProps {
   onDraftStateChange: (guard: CardDraftGuard | null) => void;
 }
 
-/** Full-surface card editor with the tabs `Allgemein`, `Inhalt`, `Varianten` and `Lernen` (specs.md#karteneditor). */
+/** Card editor dialog with the tabs `Allgemein`, `Inhalt`, `Varianten` and `Lernen` (specs.md#karteneditor). */
 export function CardEditorDialog(props: CardEditorDialogProps) {
   const { graph, cardId, tab, onTabChange, hits, services, onSetStudyState, onDraftStateChange } = props;
   const { note } = graph;
   const card = graph.cards.find((candidate) => candidate.id === cardId) ?? null;
-  const idPrefix = React.useId().replace(/:/g, "");
-  const titleId = `${idPrefix}-title`;
+  const panelId = `${React.useId().replace(/:/g, "")}-panel`;
   const setSuccessToast = useSuccessToast();
   // The content tab stays mounted once opened, so its draft survives tab changes (W5).
   const [contentMounted, setContentMounted] = React.useState(tab === "content");
@@ -259,56 +147,59 @@ export function CardEditorDialog(props: CardEditorDialogProps) {
   }
 
   const panel = (value: CardEditorTab, children: React.ReactNode) => (
-    <div key={value} role="tabpanel" id={`${idPrefix}-panel-${value}`} aria-labelledby={`${idPrefix}-tab-${value}`} hidden={tab !== value} className="min-h-0 min-w-0 flex-1">
+    <div key={value} hidden={tab !== value} className={tab === value ? "flex min-w-0 flex-1 flex-col" : undefined}>
       {children}
     </div>
   );
   const loading = <p className="p-6 core-body text-core-muted" role="status">Wird geladen …</p>;
 
   return (
-    <CardEditorSurface marked={note.marked} docked={props.docked} labelledBy={titleId} surfaceRef={props.surfaceRef} onKeyDown={handleKeyDown}>
-      <header className="grid shrink-0 gap-4 border-b border-core-border px-3 pb-4 pt-3 sm:px-6 sm:pt-4" data-testid="card-detail-editor">
-        <div className="grid min-w-0 grid-cols-[auto_minmax(0,1fr)_auto] items-start gap-x-2 gap-y-1 sm:gap-x-3">
-          {hits ? (
-            <div className="col-start-1 row-start-1 flex shrink-0 items-center gap-1" data-testid="card-hit-navigation">
-              <CoreTooltip label="Vorige Karte · Alt+↑">
-                <IconButton icon={ChevronUp} label="Vorige Karte" variant="ghost" disabled={!hits.onPrevious} onClick={() => hits.onPrevious?.()} />
-              </CoreTooltip>
-              <CoreTooltip label="Nächste Karte · Alt+↓">
-                <IconButton icon={ChevronDown} label="Nächste Karte" variant="ghost" disabled={!hits.onNext} onClick={() => hits.onNext?.()} />
-              </CoreTooltip>
-              <span className="hidden min-w-14 whitespace-nowrap core-body font-semibold tabular-nums text-core-muted sm:inline" aria-label={`Karte ${hits.position} von ${hits.total}`}>{hits.position} / {hits.total}</span>
-            </div>
-          ) : null}
-          <div className="col-span-3 row-start-2 min-w-0 sm:col-span-1 sm:col-start-2 sm:row-start-1 sm:pt-1">
-            <h2 id={titleId} tabIndex={-1} className="line-clamp-2 break-words core-heading-2 text-core-text outline-none sm:line-clamp-1" data-card-editor-heading>{cardEditorTitle(note)}</h2>
-            <p className="mt-0.5 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 core-body text-core-muted">
-              <span className="min-w-0 truncate" data-testid="card-sibling-position">{cardHeaderLabel(note, card, siblings.length)}</span>
-              <CardStatusIcons card={card} marked={note.marked} flagNames={services.flagNames} />
-            </p>
-          </div>
-          <div className="col-start-3 row-start-1 flex shrink-0 items-center gap-1">
-            <CoreTooltip label="Duplizieren">
-              <IconButton icon={Copy} label="Duplizieren" variant="ghost" disabled={isDuplicating} onClick={() => void duplicate()} />
-            </CoreTooltip>
-            <CoreTooltip label="Löschen">
-              <IconButton icon={Trash2} variant="destructive-quiet" label="Löschen" onClick={props.onDeleteNote} />
-            </CoreTooltip>
-            <CoreTooltip label="Schließen · Esc">
-              <IconButton icon={X} label="Detailansicht schließen" variant="ghost" onClick={props.onClose} />
-            </CoreTooltip>
-          </div>
+    <DialogFrame
+      open
+      size="l"
+      testId="card-detail-dialog"
+      className={cardEditorFrameClass(note.marked)}
+      title={<span tabIndex={-1} className="outline-none" data-card-editor-heading>{cardEditorTitle(note)}</span>}
+      subtitle={<>
+        <span className="min-w-0 truncate" data-testid="card-sibling-position">{cardHeaderLabel(note, card, siblings.length)}</span>
+        <CardStatusIcons card={card} marked={note.marked} flagNames={services.flagNames} />
+      </>}
+      leading={hits ? (
+        <div className="core-card-editor-paging" data-testid="card-hit-navigation">
+          <CoreTooltip label="Vorige Karte · Alt+↑">
+            <IconButton icon={ChevronUp} label="Vorige Karte" variant="ghost" disabled={!hits.onPrevious} onClick={() => hits.onPrevious?.()} />
+          </CoreTooltip>
+          <CoreTooltip label="Nächste Karte · Alt+↓">
+            <IconButton icon={ChevronDown} label="Nächste Karte" variant="ghost" disabled={!hits.onNext} onClick={() => hits.onNext?.()} />
+          </CoreTooltip>
+          <span className="core-card-editor-position" aria-label={`Karte ${hits.position} von ${hits.total}`}>{hits.position} / {hits.total}</span>
         </div>
-        {duplicateError ? <p className="core-status-error core-body" role="alert">{duplicateError}</p> : null}
+      ) : null}
+      actions={
+        <div className="core-card-editor-actions">
+          <CoreTooltip label="Duplizieren">
+            <IconButton icon={Copy} label="Duplizieren" variant="ghost" disabled={isDuplicating} onClick={() => void duplicate()} />
+          </CoreTooltip>
+          <CoreTooltip label="Löschen">
+            <IconButton icon={Trash2} variant="destructive-quiet" label="Löschen" onClick={props.onDeleteNote} />
+          </CoreTooltip>
+        </div>
+      }
+      closeLabel="Detailansicht schließen"
+      onClose={props.onClose}
+      onKeyDown={handleKeyDown}
+      tabs={<>
+        {duplicateError ? <p className="core-status-error core-body pb-3" role="alert">{duplicateError}</p> : null}
         {props.syncConflict ? (
-          <div className="flex flex-wrap items-center justify-between gap-3 rounded-control border border-core-warning bg-core-warning-soft px-3 py-2 core-body text-core-text" role="status">
+          <div className="mb-3 flex flex-wrap items-center justify-between gap-3 rounded-control border border-core-warning bg-core-warning-soft px-3 py-2 core-body text-core-text" role="status">
             <span className="font-semibold">Synchronisierung klären</span>
             <CrossLinkButton onSelect={services.openSyncConflicts}>Konflikt öffnen</CrossLinkButton>
           </div>
         ) : null}
-        <EditorTabs value={tab} onChange={onTabChange} idPrefix={idPrefix} />
-      </header>
-      <div className="flex min-h-0 flex-1 flex-col overflow-y-auto [scrollbar-gutter:stable]" data-testid="card-editor-body">
+        <CoreTabs ariaLabel="Bereiche der Karte" tabs={TABS} value={tab} onValueChange={onTabChange} panelId={panelId} />
+      </>}
+    >
+      <CoreTabPanel panelId={panelId} value={tab} className="core-card-editor-panel">
         {panel("general", tab === "general" ? (
           <CardEditorGeneralTab
             decks={props.decks}
@@ -362,7 +253,7 @@ export function CardEditorDialog(props: CardEditorDialogProps) {
             <CardEditorStudyTab card={card} now={props.now} dayStartHour={props.dayStartHour} timeZone={props.timeZone} services={services} />
           </React.Suspense>
         ) : null)}
-      </div>
-    </CardEditorSurface>
+      </CoreTabPanel>
+    </DialogFrame>
   );
 }
