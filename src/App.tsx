@@ -33,6 +33,7 @@ import { AuthGateScreen } from "./screens/AuthGateScreen.tsx";
 import { AppNavigation } from "./ui/AppNavigation.tsx";
 import { ActionDialog, EmptyState, OrbIcon, SoftPanel } from "./ui/coreUi.tsx";
 import { ActionButton } from "./ui/actionUi.tsx";
+import { CoreCheckbox } from "./ui/formControls.tsx";
 import { CoreWordmark } from "./ui/CoreWordmark.tsx";
 import { useSuccessToast } from "./ui/feedbackUi.tsx";
 import { NoteLayoutContext, type NoteLayoutSource } from "./ui/noteLayoutContext.ts";
@@ -444,22 +445,15 @@ function AppContent() {
                 <li>Varianten erscheinen beim Lernen erst, wenn eine Karte die Haltbarkeit des Stapels erreicht (Standard: 21 Tage).</li>
                 <li>Nur der bereinigte Text von Frage und Antwort geht an GPT-6 Luna; der Anbieter speichert ihn nicht.</li>
               </ul>
-              <label className="flex items-start gap-3 rounded-control border border-core-border p-3 core-body font-semibold text-core-text">
-                <input
-                  type="checkbox"
-                  className="mt-0.5 size-5 shrink-0 accent-core-action"
-                  checked={generateOnCoreEnable}
-                  disabled={variantBatch.running}
-                  data-testid="core-enable-generate-variants"
-                  onChange={(event) => setGenerateOnCoreEnable(event.target.checked)}
-                />
-                <span>
-                  Jetzt Varianten für bis zu {CARD_VARIANT_BATCH_LIMIT} Karten generieren
-                  <span className="mt-0.5 block core-caption font-normal text-core-muted">
-                    {variantBatch.running ? "Es läuft bereits eine Generierung; starte sie danach in den Stapeleinstellungen." : "Läuft im Hintergrund, solange CoRe geöffnet ist."}
-                  </span>
-                </span>
-              </label>
+              <CoreCheckbox
+                className="flex rounded-control border border-core-border px-3 py-2"
+                checked={generateOnCoreEnable}
+                disabled={variantBatch.running}
+                data-testid="core-enable-generate-variants"
+                onCheckedChange={setGenerateOnCoreEnable}
+                label={`Jetzt Varianten für bis zu ${CARD_VARIANT_BATCH_LIMIT} Karten generieren`}
+                description={variantBatch.running ? "Es läuft bereits eine Generierung; starte sie danach in den Stapeleinstellungen." : "Läuft im Hintergrund, solange CoRe geöffnet ist."}
+              />
             </div>
           )}
           confirmLabel="Einschalten"

@@ -10,6 +10,9 @@ import { CoreSelect } from "../ui/selectUi.tsx";
 import { CoreTooltip } from "../ui/tooltipUi.tsx";
 import { RichTextEditor } from "../ui/RichTextEditor.tsx";
 
+/** Gap between the scroll area edge and the stuck tools, in px (`--core-space-sm`). */
+const SUMMARY_TOOLS_GAP = 8;
+
 type Tool = "text" | "pen" | "marker" | "eraser";
 const toolOptions = [{ value: "text", label: "Schreiben", icon: Type }, { value: "pen", label: "Stift", icon: PenLine }, { value: "marker", label: "Zeichenmarker", icon: Highlighter }, { value: "eraser", label: "Radierer", icon: Eraser }] as const;
 const inkPresets = {
@@ -96,7 +99,7 @@ export function SummaryDocumentEditor({ value, onChange, busy }: {
   const sheetRef = React.useRef<HTMLDivElement>(null);
   const expandRef = React.useRef<HTMLButtonElement>(null);
   const [sheetSize, setSheetSize] = React.useState({ width: 794, height: 640 });
-  const [headerHeight, setHeaderHeight] = React.useState(0);
+  const [stickyTop, setStickyTop] = React.useState(0);
   const fieldId = React.useId();
   const drawing = React.useMemo(() => summaryDrawingLayout(liveStroke ? pages.map((page, index) => index === 0 ? { ...page, strokes: [...page.strokes, liveStroke] } : page) : pages, value.pageFormat), [pages, liveStroke, value.pageFormat]);
   const scale = sheetSize.width / drawing.width;
@@ -119,9 +122,14 @@ export function SummaryDocumentEditor({ value, onChange, busy }: {
     const sheet = sheetRef.current;
     if (!sheet) return;
     const header = expanded ? null : document.querySelector<HTMLElement>('[data-navigation-layout="mobile-header"]');
+    let scroller: HTMLElement | null = rootRef.current;
+    while (scroller && !/(auto|scroll)/.test(getComputedStyle(scroller).overflowY)) scroller = scroller.parentElement;
     const measure = () => {
       setSheetSize((previous) => previous.width === sheet.clientWidth && previous.height === sheet.clientHeight ? previous : { width: sheet.clientWidth, height: sheet.clientHeight });
-      setHeaderHeight(header?.getBoundingClientRect().height ?? 0);
+      // Sticky offsets count from the scroll area's padding; the tools stick a small gap below its edge instead, and
+      // their canvas band (`.core-summary-tools::before`) hides the sheet scrolling through that gap.
+      const inset = scroller ? parseFloat(getComputedStyle(scroller).paddingTop) - SUMMARY_TOOLS_GAP : 0;
+      setStickyTop((header?.getBoundingClientRect().height ?? 0) - inset);
     };
     const observer = new ResizeObserver(measure); observer.observe(sheet); if (header) observer.observe(header); measure();
     return () => observer.disconnect();
@@ -205,7 +213,7 @@ export function SummaryDocumentEditor({ value, onChange, busy }: {
         else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first?.focus(); }
       }
     }}>
-    <div className="core-summary-tools core-surface-raised" style={{ top: headerHeight, scrollMarginTop: headerHeight + 12 }} inert={busy}>
+    <div className="core-summary-tools core-surface-raised" style={{ top: stickyTop, scrollMarginTop: Math.max(stickyTop, 0) + 12 }} inert={busy}>
       <CoreIconSegmentedControl ariaLabel="Schreiben und Zeichnen" className="core-summary-tool-modes" options={toolOptions} value={tool} onValueChange={setTool}/>
       <div className="core-summary-tool-context">
         <div ref={setToolbarContainer} className="core-summary-text-tools" hidden={tool !== "text"}/>

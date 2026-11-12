@@ -27,7 +27,7 @@ test("learning settings render as rows without boxed panels", () => {
 
   assert.ok((html.match(/class="core-settings-row"/g)?.length ?? 0) >= 12);
   assert.doesNotMatch(html, /core-surface-raised|rounded-panel|bg-core-subtle p-4/);
-  for (const testId of ["learning-settings-bury-new", "learning-settings-bury-review", "learning-settings-bury-interday"]) assert.match(html, new RegExp(`type="checkbox"[^>]*data-testid="${testId}"`));
+  for (const testId of ["learning-settings-bury-new", "learning-settings-bury-review", "learning-settings-bury-interday"]) assert.match(html, new RegExp(`type="checkbox" role="switch" data-testid="${testId}"`));
 });
 
 test("preset choices mark the stored preset and show its value", () => {

@@ -606,12 +606,15 @@ export function RichTextEditor({ value = "", onChange, onFocus, isActive = false
 
   const toolbarShown = !toolbarOnFocus || focusWithin || colorMenuOpen;
   const active = isActive || (toolbarOnFocus && focusWithin);
-  const fieldClass = `${minHeightClass} rich-text-field min-w-0 ${toolbarShown ? "rounded-b-control border-t-0" : "rounded-control"} border bg-core-surface p-4 core-body-large font-normal leading-7 text-core-text outline-none transition ${
+  // Only a toolbar rendered here shares the frame; a hosted one leaves the field its own top edge.
+  const toolbarAttached = toolbarShown && !toolbarHost;
+  const toolbarFrame = `rounded-t-control border p-1 ${active ? "border-core-action" : "border-core-border"}`;
+  const fieldClass = `${minHeightClass} rich-text-field min-w-0 ${toolbarAttached ? "rounded-b-control border-t-0" : "rounded-control"} border bg-core-surface p-4 core-body-large font-normal leading-7 text-core-text outline-none transition ${
     active ? "border-core-action" : "border-core-border"
   } ${active && toolbarHost ? "shadow-selection" : ""}`;
   const editorDescribedBy = [ariaDescribedBy, clozeStatus ? clozeStatusId : null, imageStatus || imageError ? imageStatusId : null].filter(Boolean).join(" ") || undefined;
   const toolbar = documentTools ? (
-      <div role="toolbar" aria-label="Werkzeuge zur Textformatierung" className="core-rich-text-toolbar core-rich-text-document-toolbar">
+      <div role="toolbar" aria-label="Werkzeuge zur Textformatierung" className={`core-rich-text-toolbar core-rich-text-document-toolbar ${toolbarHost ? "" : toolbarFrame}`}>
         <div className="core-rich-text-group" role="group" aria-label="Verlauf">
           <ToolbarButton label="Rückgängig" icon={Undo2} onRun={() => runCommand("undo")} />
           <ToolbarButton label="Wiederholen" icon={Redo2} onRun={() => runCommand("redo")} />
@@ -636,7 +639,7 @@ export function RichTextEditor({ value = "", onChange, onFocus, isActive = false
         </div>
       </div>
   ) : (
-      <div role="toolbar" aria-label="Werkzeuge zur Textformatierung" className={`core-rich-text-toolbar flex max-w-full min-w-0 flex-wrap items-center gap-0.5 rounded-t-control border p-1 ${active ? "border-core-action" : "border-core-border"}`}>
+      <div role="toolbar" aria-label="Werkzeuge zur Textformatierung" className={`core-rich-text-toolbar flex max-w-full min-w-0 flex-wrap items-center gap-0.5 ${toolbarFrame}`}>
         <ToolbarButton label="Fett" icon={Bold} onRun={() => runCommand("bold")} />
         <ToolbarButton label="Kursiv" icon={Italic} onRun={() => runCommand("italic")} />
         {imageActions ? (

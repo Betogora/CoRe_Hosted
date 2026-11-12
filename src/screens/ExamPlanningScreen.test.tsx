@@ -144,7 +144,7 @@ test("Bearbeiten lässt gültige Angaben ohne fertige Planung speichern", () => 
   const html = renderToStaticMarkup(<ExamPlanEditor embedded decks={[deck]} exams={[exam]} capacity={createStudyTimeCapacity()} initialPlan={exam} preferences={getGlobalSchedulerPreferences(state.profile)} timeZone="Europe/Berlin" now="2026-10-18T12:00:00Z" onLoadPlanningData={() => new Promise(() => undefined)} onSave={async () => undefined} onCancel={() => undefined} saving={false} saveError="" />);
   assert.match(html, /Was ist dein Ziel für die Prüfung/);
   assert.match(html, /aria-label="Lernstart auswählen"/);
-  assert.match(html, />18\.10\.2026<\/span>/);
+  assert.match(html, /aria-label="Tag"[^>]*>18<\/span><span aria-hidden="true" class="core-date-segment-literal">\.<\/span><span[^>]*aria-label="Monat"[^>]*>10<\/span>/);
   assert.match(html, /<input(?=[^>]*type="radio")(?=[^>]*value="0.9")(?=[^>]*checked)[^>]*>/);
   assert.doesNotMatch(html, /Abrufziel für Wiederholungen/);
   assert.match(html, /Dein Plan wird berechnet/);

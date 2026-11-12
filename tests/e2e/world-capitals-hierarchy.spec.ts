@@ -507,7 +507,7 @@ test("deck presentation form saves name, icon and color together", async ({ page
   await expect(colorTrigger).toHaveCSS("width", "36px");
   await expect(colorTrigger).toHaveCSS("height", "36px");
   await expect(titleIcon).toBeVisible();
-  await expect(primaryControls.getByRole("group", { name: "CoRe-Modus" })).toBeVisible();
+  await expect(primaryControls.getByRole("switch", { name: "CoRe-Modus" })).toBeVisible();
   await expect(primaryControls.getByRole("button", { name: "Lernen", exact: true })).toHaveCount(0);
   await expect(primaryControls.getByRole("button", { name: "Varianten lernen", exact: true })).toHaveCount(0);
   await expect(primaryControls).toHaveCSS("border-top-width", "0px");

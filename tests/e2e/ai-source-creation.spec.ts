@@ -96,7 +96,7 @@ test("Quelle, Lernwünsche und Ziel bleiben bis zur Auftragsprüfung lokal erhal
   await expect(panel.getByLabel("Wie soll der neue Stapel heißen?")).toHaveValue("Eigener Lernstapel");
   await panel.locator('input[type="file"]').setInputFiles({ ...sourceFile, name: "Andere_Quelle.docx" });
   await expect(panel.getByLabel("Wie soll der neue Stapel heißen?")).toHaveValue("Eigener Lernstapel");
-  await panel.getByRole("button", { name: "Nein", exact: true }).click();
+  await panel.getByRole("switch", { name: "Neuen Stapel anlegen", exact: true }).uncheck();
   await panel.getByRole("combobox", { name: "Welchen vorhandenen Stapel möchtest du verwenden?", exact: true }).click();
   await page.getByRole("option").filter({ hasNotText: "Stapel auswählen" }).first().click();
   await panel.getByRole("button", { name: "Auftrag prüfen", exact: true }).click();
@@ -192,7 +192,7 @@ test("fehlendes Stapelziel bleibt sichtbar und lässt sich durch einen neuen Sta
   await panel.getByRole("button", { name: "Auftrag prüfen", exact: true }).click();
   await expect(panel.getByText("Wähle einen verfügbaren Zielstapel aus.")).toBeVisible();
   await expect(page.getByTestId("ai-source-summary")).toHaveCount(0);
-  await panel.getByRole("button", { name: "Ja", exact: true }).click();
+  await panel.getByRole("switch", { name: "Neuen Stapel anlegen", exact: true }).check();
   await panel.getByRole("button", { name: "Auftrag prüfen", exact: true }).click();
   await expect(page.getByTestId("ai-source-summary")).toContainText("Quelle (neuer Stapel)");
 });

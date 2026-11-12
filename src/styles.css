@@ -2298,17 +2298,191 @@ button.core-steps-step:disabled {
   color: var(--core-danger);
 }
 
-.core-mcq-option {
-  transition:
-    transform 160ms ease,
-    border-color 160ms ease,
-    background-color 160ms ease,
-    color 160ms ease;
+@layer components {
+  /*
+   * Form elements after HeroUI v3 (measured 2026-11-12 on heroui.com), in CoRe colours: 1-px border instead of the field
+   * shadow, accent = action blue, keyboard focus after the global rule (2 px, 3 px offset), disabled at 50 %.
+   * Unselected boxes and circles use muted text at 80 % for a 3:1 contour (HeroUI relies on a soft shadow).
+   * Shared rows: label 14/20 weight 500 next to the control at 12 px, description 12/16 muted and indented by control + gap,
+   * group options 16 px apart (here: rows in button height without gap).
+   */
+  .core-checkbox, .core-radio, .core-switch { display: inline-flex; flex-direction: column; gap: var(--core-space-xs); min-width: 0; -webkit-tap-highlight-color: transparent; }
+  .core-checkbox-content, .core-radio-content, .core-switch-content { display: inline-flex; align-items: center; gap: var(--core-space-md); min-width: 0; min-height: var(--core-button-height); cursor: pointer; color: var(--core-text); font: 500 var(--core-type-body)/var(--core-leading-body) var(--core-font-sans); user-select: none; }
+  .core-checkbox-label, .core-radio-label, .core-switch-label { min-width: 0; overflow-wrap: anywhere; }
+  .core-checkbox-description, .core-radio-description { padding-inline-start: 1.75rem; color: var(--core-text-muted); font: var(--core-weight-body) var(--core-type-caption)/var(--core-leading-caption) var(--core-font-sans); }
+  :is(.core-checkbox, .core-radio, .core-switch)[data-disabled] { opacity: 0.5; }
+  :is(.core-checkbox, .core-radio, .core-switch)[data-disabled] :is(label, input) { cursor: not-allowed; }
+  .core-checkbox-control, .core-radio-control, .core-switch-control { position: relative; display: inline-grid; flex-shrink: 0; place-items: center; }
+  .core-checkbox-control > input, .core-radio-control > input, .core-switch-control > input { position: absolute; inset: 0; z-index: 1; width: 100%; height: 100%; margin: 0; opacity: 0; cursor: pointer; }
+  @media (pointer: coarse) {
+    /* A bare control keeps a 44-px touch target around its 16-px mark. */
+    .core-checkbox-control > input, .core-radio-control > input { inset: -0.9375rem; width: auto; height: auto; }
+    .core-switch-control > input { inset: -0.75rem -0.25rem; width: auto; height: auto; }
+  }
+  :is(.core-checkbox-control, .core-radio-control, .core-switch-control):has(> input:focus-visible) { outline: 2px solid var(--core-focus-ring); outline-offset: 3px; }
+
+  /* Checkbox: box 16 px, radius 6 px; fill scales 70 → 100 % (100 ms linear) and fades in (200 ms linear); check 10 px,
+     stroke 2.5, dash 22 drawn from offset 66 to 44 in 150 ms linear after 15 ms; indeterminate bar 12 px, stroke 3;
+     pressed 95 % (100 ms ease-out); invalid: danger contour, checked invalid fills danger. */
+  .core-checkbox { --core-check-fill: var(--core-check-accent, var(--core-action-primary)); }
+  .core-checkbox-control { width: 1rem; height: 1rem; border: var(--core-border-width) solid color-mix(in srgb, var(--core-text-muted) 80%, var(--core-surface)); border-radius: var(--core-radius-marker); background: var(--core-surface); color: var(--core-check-on-accent, var(--core-text-on-accent)); transition: border-color 200ms cubic-bezier(0, 0, 0.2, 1), transform 100ms cubic-bezier(0, 0, 0.2, 1); }
+  .core-checkbox-control::before { content: ""; position: absolute; inset: calc(-1 * var(--core-border-width)); border-radius: inherit; background: var(--core-check-fill); opacity: 0; scale: 0.7; transition: scale 100ms linear, opacity 200ms linear, background-color 200ms cubic-bezier(0, 0, 0.2, 1); pointer-events: none; }
+  .core-checkbox-mark { position: relative; width: 0.625rem; height: 0.625rem; fill: none; stroke: currentColor; stroke-width: 2.5px; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 22; stroke-dashoffset: 66; pointer-events: none; }
+  .core-checkbox-mark[data-mark="indeterminate"] { width: 0.75rem; height: 0.75rem; stroke-width: 3px; stroke-dasharray: none; stroke-dashoffset: 0; opacity: 0; }
+  .core-checkbox:hover .core-checkbox-control { border-color: var(--core-text-muted); }
+  .core-checkbox:hover:not([data-state="unchecked"]) .core-checkbox-control::before { background: color-mix(in srgb, var(--core-check-fill) 90%, var(--core-surface)); }
+  .core-checkbox:not([data-state="unchecked"]) .core-checkbox-control { border-color: transparent; }
+  .core-checkbox:not([data-state="unchecked"]) .core-checkbox-control::before { opacity: 1; scale: 1; }
+  .core-checkbox[data-state="checked"] .core-checkbox-mark { stroke-dashoffset: 44; transition: stroke-dashoffset 150ms linear 15ms; }
+  .core-checkbox[data-state="indeterminate"] .core-checkbox-mark { opacity: 1; }
+  .core-checkbox-control:has(> input:active:not(:disabled)) { transform: scale(0.95); }
+  .core-checkbox[data-invalid][data-state="unchecked"] .core-checkbox-control { border-color: var(--core-danger); }
+  .core-checkbox[data-invalid] { --core-check-fill: var(--core-danger); --core-check-on-accent: var(--core-text-on-danger); }
+
+  /* Radio: circle 16 px; selected fills the accent (200 ms ease-out) while the inner disc shrinks to a 6.86-px dot (42.86 %
+     of 16 px, here 49 % of the 14-px inner disc), 9.14 px while pressed; control pressed 95 %. */
+  .core-radio-control { width: 1rem; height: 1rem; border: var(--core-border-width) solid color-mix(in srgb, var(--core-text-muted) 80%, var(--core-surface)); border-radius: var(--core-radius-round); background: var(--core-surface); transition: background-color 200ms cubic-bezier(0, 0, 0.2, 1), border-color 200ms cubic-bezier(0, 0, 0.2, 1), transform 100ms cubic-bezier(0, 0, 0.2, 1); }
+  .core-radio-dot { position: absolute; inset: 0; border-radius: inherit; background: var(--core-surface); scale: 1; transition: scale 200ms cubic-bezier(0, 0, 0.2, 1), background-color 200ms cubic-bezier(0, 0, 0.2, 1); pointer-events: none; }
+  .core-radio:hover .core-radio-control { border-color: var(--core-text-muted); }
+  .core-radio[data-state="checked"] .core-radio-control { border-color: transparent; background: var(--core-action-primary); }
+  .core-radio[data-state="checked"] .core-radio-dot { background: var(--core-text-on-accent); scale: 0.49; }
+  .core-radio[data-state="checked"]:hover .core-radio-control { background: var(--core-action-primary-hover); }
+  .core-radio-control:has(> input:active:not(:disabled)) { transform: scale(0.95); }
+  .core-radio[data-state="checked"] .core-radio-control:has(> input:active:not(:disabled)) .core-radio-dot { scale: 0.653; }
+  .core-radio[data-invalid] .core-radio-control { border-color: var(--core-danger); }
+  .core-radio[data-invalid][data-state="checked"] .core-radio-control { background: var(--core-danger); }
+
+  /* Switch md: track 40 × 20, thumb 22 × 16 (radius 8 px) 2 px from the edge; sm 32 × 16 / 16.5 × 12; lg 48 × 24 /
+     27.5 × 20. Thumb travels in 300 ms cubic-bezier(.32, .72, 0, 1), track colour 250 ms ease; hover and pressed lighten
+     the track by 20 %. Description indented by track + 12 px. */
+  .core-switch { --core-switch-width: 2.5rem; --core-switch-height: 1.25rem; --core-switch-thumb-width: 1.375rem; --core-switch-thumb-height: 1rem; }
+  .core-switch[data-size="sm"] { --core-switch-width: 2rem; --core-switch-height: 1rem; --core-switch-thumb-width: 1.03125rem; --core-switch-thumb-height: 0.75rem; }
+  .core-switch[data-size="lg"] { --core-switch-width: 3rem; --core-switch-height: 1.5rem; --core-switch-thumb-width: 1.71875rem; --core-switch-thumb-height: 1.25rem; }
+  .core-switch[data-label-placement="start"] .core-switch-content { flex-direction: row-reverse; justify-content: flex-end; }
+  .core-switch-description { padding-inline-start: calc(var(--core-switch-width) + var(--core-space-md)); color: var(--core-text-muted); font: var(--core-weight-body) var(--core-type-caption)/var(--core-leading-caption) var(--core-font-sans); }
+  .core-switch[data-label-placement="start"] .core-switch-description { padding-inline-start: 0; }
+  .core-switch-control { place-items: center start; width: var(--core-switch-width); height: var(--core-switch-height); border-radius: var(--core-radius-round); background: var(--core-border-interactive); transition: background-color 250ms ease; }
+  .core-switch-thumb { width: var(--core-switch-thumb-width); height: var(--core-switch-thumb-height); margin-inline-start: 0.125rem; border-radius: var(--core-radius-round); background: var(--core-surface); box-shadow: var(--core-shadow-soft); transition: translate 300ms cubic-bezier(0.32, 0.72, 0, 1), background-color 200ms cubic-bezier(0, 0, 0.2, 1); pointer-events: none; }
+  .core-switch:hover .core-switch-control { background: color-mix(in srgb, var(--core-border-interactive) 80%, var(--core-text-muted)); }
+  .core-switch[data-state="checked"] .core-switch-control { background: var(--core-action-primary); }
+  .core-switch[data-state="checked"]:hover .core-switch-control { background: var(--core-action-primary-hover); }
+  .core-switch[data-state="checked"] .core-switch-thumb { translate: calc(var(--core-switch-width) - var(--core-switch-thumb-width) - 0.25rem) 0; background: var(--core-text-on-accent); }
+  [data-core-theme="dark"] .core-switch-thumb { background: var(--core-text-secondary); }
+  [data-core-theme="dark"] .core-switch[data-state="checked"] .core-switch-thumb { background: var(--core-text-on-accent); }
+
+  /* Choice group: title, options in rows, hint or error below; horizontal groups wrap at 16 px. */
+  .core-choice-group { display: grid; gap: var(--core-space-sm); min-width: 0; }
+  .core-choice-group-options { display: grid; min-width: 0; }
+  .core-choice-group[data-orientation="horizontal"] .core-choice-group-options { display: flex; flex-wrap: wrap; column-gap: var(--core-space-lg); }
+
+  /* Slider: label and value 14/20 above the track at 4 px; track 20 px pill with 12-px inline end caps; fill ends at the
+     thumb centre; thumb 28 × 20 accent pill around a 24 × 16 disc (radius 8 px) that shrinks to 90 % while dragged;
+     thumb colour 250 ms ease, transform 250 ms ease-out. The native range sits on the track with a 24-px thumb so both
+     travel the same 12-px-inset path. */
+  .core-slider { --core-slider-cap: 0.75rem; display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "label output" "track track"; gap: var(--core-space-xs) var(--core-space-md); min-width: 0; }
+  .core-slider-label { grid-area: label; min-width: 0; color: var(--core-text); font: 550 0.8125rem/1.125rem var(--core-font-sans); }
+  .core-slider-output { grid-area: output; color: var(--core-text); font: 500 var(--core-type-body)/var(--core-leading-body) var(--core-font-sans); font-variant-numeric: tabular-nums; text-align: end; }
+  .core-slider-track { position: relative; grid-area: track; height: 1.25rem; border-radius: var(--core-radius-round); background: var(--core-surface-hover); }
+  .core-slider-fill { position: absolute; inset-block: 0; inset-inline-start: 0; width: calc(var(--core-slider-cap) + (100% - 2 * var(--core-slider-cap)) * var(--core-slider-ratio)); border-radius: inherit; background: var(--core-action-primary); pointer-events: none; }
+  .core-slider-thumb { position: absolute; inset-block: 0; inset-inline-start: calc(var(--core-slider-cap) + (100% - 2 * var(--core-slider-cap)) * var(--core-slider-ratio)); display: grid; width: 1.75rem; place-items: center; border-radius: var(--core-radius-round); background: var(--core-action-primary); translate: -50% 0; transition: background-color 250ms ease, transform 250ms cubic-bezier(0, 0, 0.2, 1); pointer-events: none; }
+  .core-slider-thumb::after { content: ""; width: 1.5rem; height: 1rem; border-radius: var(--core-radius-inset); background: var(--core-text-on-accent); box-shadow: var(--core-shadow-soft); transition: scale 150ms cubic-bezier(0.4, 0, 0.2, 1); }
+  .core-slider-track > input { position: absolute; inset: -0.75rem 0; width: 100%; height: calc(100% + 1.5rem); margin: 0; opacity: 0; cursor: pointer; -webkit-appearance: none; appearance: none; background: transparent; touch-action: none; }
+  .core-slider-track > input::-webkit-slider-thumb { width: 1.5rem; height: 2.75rem; -webkit-appearance: none; appearance: none; }
+  .core-slider-track > input::-moz-range-thumb { width: 1.5rem; height: 2.75rem; border: 0; }
+  .core-slider:has(input:active) .core-slider-thumb::after { scale: 0.9; }
+  .core-slider:has(input:active) .core-slider-thumb { cursor: grabbing; }
+  .core-slider:has(input:focus-visible) .core-slider-thumb { z-index: 1; outline: 2px solid var(--core-focus-ring); outline-offset: 3px; }
+  .core-slider:hover .core-slider-thumb { background: var(--core-action-primary-hover); }
+  .core-slider[data-disabled] { opacity: 0.5; }
+  .core-slider[data-disabled] input { cursor: not-allowed; }
+
+  /* Date picker: field with segments 14/20 (padding 0 2 px, radius 6 px, focused segment on the soft accent, placeholder
+     and dots muted, 1 px apart) and a 24-px calendar trigger with a 16-px icon, 12 px in from the start. Popover:
+     12-px padding, enters from 95 % in 150 ms; header with heading 14/20 weight 500 and 24-px round month buttons,
+     16 px above the grid; weekdays 12/16 weight 500 muted, 8 px above the days; day cells square and round (252 / 7 =
+     36 px; 44 px for touch), 14/20 weight 500; today on the soft accent, selection filled, hover neutral, pressed 95 %
+     (250 ms ease-out), other months muted at 50 %, unavailable days 50 % and struck through. Year grid from the heading:
+     three columns 4 px apart, 32-px round cells, fading in over the days (200 ms after 50 ms). */
+  .core-date-field { display: flex; align-items: center; gap: var(--core-space-xs); padding-block: 0; padding-inline-end: var(--core-space-sm); }
+  .core-date-field:has(.core-date-segment:focus) { border-color: var(--core-action-primary); box-shadow: var(--core-shadow-selection); }
+  .core-date-field[data-invalid] { border-color: var(--core-danger); box-shadow: 0 0 0 3px color-mix(in srgb, var(--core-danger) 12%, transparent); }
+  .core-date-field-segments { display: flex; flex: 1 1 auto; align-items: center; gap: 1px; min-width: 0; font-variant-numeric: tabular-nums; }
+  .core-date-segment { padding-inline: 0.125rem; border-radius: var(--core-radius-marker); color: var(--core-text); cursor: text; outline: none !important; user-select: none; }
+  .core-date-segment[data-placeholder] { color: var(--core-text-muted); }
+  .core-date-segment:focus { background: var(--core-action-soft); color: var(--core-action-primary); }
+  .core-date-field[data-invalid] .core-date-segment { color: var(--core-danger); }
+  .core-date-field[data-invalid] .core-date-segment:focus { background: var(--core-danger-surface); }
+  .core-date-segment-literal { color: var(--core-text-muted); }
+  .core-date-field-trigger { position: relative; display: grid; width: 1.5rem; height: 1.5rem; flex-shrink: 0; place-items: center; border-radius: var(--core-radius-round); color: var(--core-text-muted); transition: background-color 150ms ease, color 150ms ease; }
+  .core-date-field-trigger:hover, .core-date-field-trigger[data-state="open"] { background: var(--core-surface-hover); color: var(--core-text); }
+  .core-date-calendar { --core-calendar-cell: 2.25rem; width: calc(7 * var(--core-calendar-cell) + 1.5rem); max-width: calc(100vw - 1.5rem); padding: var(--core-space-md); border-radius: var(--core-radius-overlay); transform-origin: var(--radix-popover-content-transform-origin); animation: core-date-calendar-enter 150ms ease; }
+  .core-date-calendar-header { display: flex; align-items: center; gap: var(--core-space-xs); padding: 0 0.125rem var(--core-space-lg); }
+  .core-date-calendar-heading { display: inline-flex; flex: 1 1 auto; align-items: center; gap: var(--core-space-xs); min-width: 0; min-height: 1.5rem; border-radius: var(--core-radius-inset); color: var(--core-text); font: 500 var(--core-type-body)/var(--core-leading-body) var(--core-font-sans); text-transform: capitalize; }
+  .core-date-calendar-heading > svg { color: var(--core-action-primary); transition: transform 150ms cubic-bezier(0, 0, 0.2, 1); }
+  .core-date-calendar-heading[aria-expanded="true"] { color: var(--core-action-primary); }
+  .core-date-calendar-heading[aria-expanded="true"] > svg { transform: rotate(180deg); }
+  .core-date-calendar-nav { display: grid; width: 1.5rem; height: 1.5rem; flex-shrink: 0; place-items: center; border-radius: var(--core-radius-round); color: var(--core-action-primary); transition: transform 250ms cubic-bezier(0, 0, 0.2, 1), background-color 100ms cubic-bezier(0, 0, 0.2, 1), opacity 150ms cubic-bezier(0, 0, 0.2, 1); }
+  .core-date-calendar-nav:not(:disabled):hover { background: var(--core-surface-hover); }
+  .core-date-calendar-nav:not(:disabled):active { transform: scale(0.95); }
+  .core-date-calendar-nav:disabled { cursor: not-allowed; opacity: 0.5; }
+  .core-date-calendar-body { position: relative; }
+  .core-date-calendar-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); transition: opacity 150ms cubic-bezier(0, 0, 0.2, 1); }
+  .core-date-calendar-grid[aria-hidden="true"] { visibility: hidden; opacity: 0; }
+  .core-date-calendar-weekday { overflow: hidden; padding-bottom: var(--core-space-md); color: var(--core-text-muted); font: 500 var(--core-type-caption)/var(--core-leading-caption) var(--core-font-sans); text-align: center; white-space: nowrap; }
+  .core-date-calendar-day { display: grid; width: 100%; aspect-ratio: 1; place-items: center; border-radius: var(--core-radius-round); color: var(--core-text); font: 500 var(--core-type-body)/var(--core-leading-body) var(--core-font-sans); font-variant-numeric: tabular-nums; transition: transform 250ms cubic-bezier(0, 0, 0.2, 1), background-color 150ms ease, color 150ms ease; }
+  .core-date-calendar-day:not(:disabled):hover { background: var(--core-surface-hover); }
+  .core-date-calendar-day:not(:disabled):active { transform: scale(0.95); }
+  .core-date-calendar-day[data-outside-month] { color: var(--core-text-muted); opacity: 0.5; }
+  .core-date-calendar-day[aria-current="date"] { background: var(--core-action-soft); color: var(--core-action-primary); }
+  .core-date-calendar-day[aria-pressed="true"] { background: var(--core-action-primary); color: var(--core-text-on-accent); opacity: 1; }
+  .core-date-calendar-day[aria-pressed="true"]:not(:disabled):hover { background: var(--core-action-primary-hover); }
+  .core-date-calendar-day:disabled { cursor: not-allowed; opacity: 0.5; }
+  .core-date-calendar-day:disabled:not([data-outside-month]) { text-decoration: line-through; }
+  .core-date-calendar-years { position: absolute; inset: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); align-content: start; gap: var(--core-space-xs); overflow-y: auto; padding: var(--core-space-xs); animation: core-date-years-enter 200ms cubic-bezier(0, 0, 0.2, 1) 50ms both; }
+  .core-date-calendar-year { height: 2rem; border-radius: var(--core-radius-round); color: var(--core-text); font: 500 var(--core-type-body)/var(--core-leading-body) var(--core-font-sans); font-variant-numeric: tabular-nums; transition: background-color 100ms ease, scale 100ms ease; }
+  .core-date-calendar-year:hover { background: var(--core-surface-hover); }
+  .core-date-calendar-year[aria-pressed="true"] { background: var(--core-action-primary); color: var(--core-text-on-accent); }
+  @media (pointer: coarse) {
+    .core-date-field-trigger { width: 2.75rem; height: var(--core-control-height); margin-inline-end: calc(-1 * var(--core-space-sm)); border-radius: var(--core-radius-control); }
+    .core-date-calendar { --core-calendar-cell: 2.75rem; }
+    .core-date-calendar-heading, .core-date-calendar-nav, .core-date-calendar-year { min-height: 2.75rem; }
+    .core-date-calendar-nav { width: 2.75rem; height: 2.75rem; }
+    .core-date-calendar-year { height: 2.75rem; }
+  }
 }
 
-.core-mcq-option:not(:disabled):hover {
-  transform: translateY(-1px);
+@keyframes core-date-calendar-enter {
+  from { opacity: 0; transform: scale(0.95); }
 }
+
+@keyframes core-date-years-enter {
+  from { opacity: 0; }
+}
+
+/*
+ * Answer options after HeroUI Pro „Checkbox Button Group“, one row: hairline card (radius 16 → CoRe panel 14 px,
+ * padding 16 × 20 → 12 × 16 for the one-row form), selected = 2-px inset accent ring with a light tint, indicator on the
+ * right (box for multiple choice, dot for single choice, 16 px). After revealing, the same form carries the success and
+ * danger roles; a correct option that was not chosen keeps the ring without the tint.
+ */
+.core-mcq-option, .core-kprim-option { border: var(--core-border-width) solid var(--core-border); border-radius: var(--core-radius-panel); background: var(--core-surface); color: var(--core-text); transition: box-shadow 150ms cubic-bezier(0, 0, 0.2, 1), border-color 150ms cubic-bezier(0, 0, 0.2, 1), background-color 150ms cubic-bezier(0, 0, 0.2, 1), color 150ms ease; }
+.core-mcq-option { display: flex; width: 100%; min-height: 3rem; align-items: center; gap: var(--core-space-md); padding: var(--core-space-md) var(--core-space-lg); text-align: start; }
+.core-kprim-option { padding: var(--core-space-md) var(--core-space-lg); }
+.core-mcq-option:not(:disabled):hover { border-color: var(--core-border-interactive); }
+:is(.core-mcq-option, .core-kprim-option):is([data-tone="selected"], [data-tone="correct"], [data-tone="missed"], [data-tone="wrong"]) { border-color: transparent; box-shadow: inset 0 0 0 2px var(--core-mcq-role); }
+:is(.core-mcq-option, .core-kprim-option)[data-tone="selected"] { --core-mcq-role: var(--core-action-primary); background: var(--core-action-soft); }
+:is(.core-mcq-option, .core-kprim-option)[data-tone="correct"] { --core-mcq-role: var(--core-success); background: var(--core-success-surface); }
+:is(.core-mcq-option, .core-kprim-option)[data-tone="missed"] { --core-mcq-role: var(--core-success); }
+:is(.core-mcq-option, .core-kprim-option)[data-tone="wrong"] { --core-mcq-role: var(--core-danger); background: var(--core-danger-surface); }
+.core-mcq-option[data-tone="muted"] { color: var(--core-text-muted); }
+.core-mcq-indicator { display: grid; width: 1rem; height: 1rem; flex-shrink: 0; place-items: center; border: var(--core-border-width) solid color-mix(in srgb, var(--core-text-muted) 80%, var(--core-surface)); border-radius: var(--core-radius-marker); background: var(--core-surface); color: var(--core-text-on-accent); transition: background-color 200ms cubic-bezier(0, 0, 0.2, 1), border-color 200ms cubic-bezier(0, 0, 0.2, 1); }
+.core-mcq-indicator[data-shape="dot"] { border-radius: var(--core-radius-round); }
+.core-mcq-indicator[data-shape="dot"]::after { content: ""; width: 42.86%; height: 42.86%; border-radius: inherit; background: currentColor; scale: 0; transition: scale 200ms cubic-bezier(0, 0, 0.2, 1); }
+.core-mcq-indicator > svg { width: 0.625rem; height: 0.625rem; fill: none; stroke: currentColor; stroke-width: 2.5px; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 22; stroke-dashoffset: 66; }
+.core-mcq-option[data-tone="selected"] .core-mcq-indicator { border-color: transparent; background: var(--core-action-primary); }
+.core-mcq-option[data-tone="selected"] .core-mcq-indicator[data-shape="dot"]::after { scale: 1; }
+.core-mcq-option[data-tone="selected"] .core-mcq-indicator > svg { stroke-dashoffset: 44; transition: stroke-dashoffset 150ms linear 15ms; }
+.core-mcq-state-icon { flex-shrink: 0; color: var(--core-mcq-role); }
 
 .core-mcq-option-correct {
   animation: core-answer-pulse 360ms ease-out;
@@ -2962,8 +3136,6 @@ button.core-steps-step:disabled {
 .core-summary-preview:hover { border-color: var(--core-border-interactive); background-color: var(--core-surface-hover); }
 .core-summary-excerpt { max-height: 6rem; overflow: hidden; overflow-wrap: anywhere; white-space: pre-line; mask-image: linear-gradient(#000 45%, transparent); }
 .core-summary-preview-action { flex-shrink: 0; }
-.core-summary-checkbox { display: flex; align-items: center; gap: var(--core-space-sm); min-height: var(--core-control-height); }
-.core-summary-checkbox input { width: 1.25rem; height: 1.25rem; flex-shrink: 0; accent-color: var(--core-action-primary); }
 .core-summary-editor .rich-text-field { font-family: var(--summary-font); font-size: var(--summary-size); overflow-wrap: anywhere; }
 .core-summary-editor .rich-text-field :is(h1, h2, h3, h4) { font-weight: var(--core-weight-heading); margin-block: var(--core-space-lg) var(--core-space-sm); }
 .core-summary-editor .rich-text-field h1 { font-size: var(--core-type-heading-1); }
@@ -2985,7 +3157,6 @@ button.core-steps-step:disabled {
 .core-mindmap-primary-tools .core-segmented-control-option[aria-pressed="true"] { flex: 1 0 auto; }
 .core-mindmap-tools { display: flex; align-items: center; flex-wrap: wrap; gap: var(--core-space-sm); padding: var(--core-space-sm); min-width: 0; }
 .core-mindmap-compact-field { width: 160px; max-width: 100%; }
-.core-mindmap-compact-field input[type="range"] { min-height: 44px; }
 .core-mindmap-text-toolbar:empty { display: none; }
 .core-mindmap-text-toolbar > [role="toolbar"] { border-radius: var(--core-radius-control); position: relative; }
 .core-mindmap-canvas { position: relative; min-width: 0; height: 640px; max-height: 75dvh; min-height: 360px; overflow: hidden; touch-action: none; background-color: var(--core-surface); background-image: radial-gradient(circle, var(--core-border) 1px, transparent 1px); cursor: grab; }
@@ -3002,8 +3173,6 @@ button.core-steps-step:disabled {
 .core-mindmap-node.is-link-source { border-color: var(--core-info); box-shadow: var(--core-shadow-selection); }
 .core-mindmap-node-label { font-weight: 700; overflow: hidden; overflow-wrap: anywhere; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
 .core-mindmap-source-action { margin-left: auto; }
-.core-mindmap-scope { display: flex; align-items: center; gap: var(--core-space-sm); min-height: var(--core-control-height); cursor: pointer; }
-.core-mindmap-scope input { width: 1.25rem; height: 1.25rem; flex-shrink: 0; accent-color: var(--core-action-primary); }
 .core-mindmap-node.is-keyword:not(.is-expanded) { justify-content: center; }
 .core-mindmap-node.is-keyword .core-mindmap-node-label, .core-mindmap-node.is-keyword .core-mindmap-inline-title { text-align: center; }
 .core-mindmap-node.is-keyword .core-mindmap-node-icons { justify-content: center; }
@@ -3077,6 +3246,8 @@ button.core-steps-step:disabled {
 }
 .core-summary-document-editor { min-width: 0; container: summary-document / inline-size; }
 .core-summary-tools { position: sticky; top: 0; z-index: 20; display: flex; flex-wrap: wrap; align-items: center; gap: var(--core-space-md); padding: var(--core-space-sm); border: var(--core-border-width) solid var(--core-border); border-radius: var(--core-radius-control); }
+/* Canvas band above the stuck tools: covers the gap to the scroll area edge so the sheet never shows above them. */
+.core-summary-tools::before { content: ""; position: absolute; inset-inline: calc(-1 * var(--core-border-width)); bottom: calc(100% + var(--core-border-width)); height: var(--core-space-sm); background: var(--core-canvas); pointer-events: none; }
 .core-summary-tool-context, .core-summary-tool-group, .core-summary-tool-actions, .core-rich-text-document-toolbar, .core-rich-text-group { display: flex; align-items: center; min-width: 0; }
 .core-summary-tool-context, .core-rich-text-document-toolbar { flex: 1 1 0; flex-wrap: wrap; gap: var(--core-space-xs) var(--core-space-md); }
 .core-summary-tool-group, .core-rich-text-group { flex: none; gap: var(--core-space-xs); }
@@ -3194,7 +3365,7 @@ button.core-steps-step:disabled {
   background: var(--core-action-soft);
 }
 .core-ai-source-format:hover { border-color: var(--core-action-primary); }
-.core-ai-source-format input { justify-self: end; }
+.core-ai-source-format .core-checkbox { justify-self: end; }
 .core-ai-source-radio + .core-ai-source-radio { border-top: var(--core-border-width) solid var(--core-border); }
 .core-ai-source-target {
   display: flex;

@@ -1,5 +1,5 @@
 import React from "react";
-import { ArrowDown, ArrowLeft, ArrowUp, Check, ChevronRight, CopyCheck, FileText, GraduationCap, Layers, ListChecks, Minus, Network, NotebookPen, PanelsTopLeft, Play, RotateCcw, Search, Star, CircleHelp, type LucideIcon } from "lucide-react";
+import { ArrowDown, ArrowLeft, ArrowUp, ChevronRight, CopyCheck, FileText, GraduationCap, Layers, ListChecks, Minus, Network, NotebookPen, PanelsTopLeft, Play, RotateCcw, Search, Star, CircleHelp, type LucideIcon } from "lucide-react";
 import type { CardDraftGuard, DecksCardPage, DecksScreenProps } from "../appScreenProps.ts";
 export type { DecksCardPage } from "../appScreenProps.ts";
 import { noteTextIndex } from "../coreModel.ts";
@@ -14,6 +14,7 @@ import { useStableCallback } from "../ui/useStableCallback.ts";
 import { useWorkspaceValue } from "../useWorkspaceStore.ts";
 import { ActionDialog, CoreSlidingTabs, CoreTag, EmptyState, SoftPanel } from "../ui/coreUi.tsx";
 import { DeckAppearanceIcon } from "../ui/deckAppearance.tsx";
+import { CoreCheckbox } from "../ui/formControls.tsx";
 import { useSuccessToast } from "../ui/feedbackUi.tsx";
 import { CoreTooltip } from "../ui/tooltipUi.tsx";
 import { FlagDot } from "../ui/flagUi.tsx";
@@ -184,21 +185,16 @@ const CardTableRowView = React.memo(function CardTableRowView({ virtualKey, deck
       <td className="min-w-0 px-2 py-1 align-middle sm:px-3 md:px-4">
         <div className="flex min-w-0 items-start gap-2.5">
         {selecting ? (
-          <span className="relative mt-px size-5 shrink-0">
-            <input
-              type="checkbox"
-              data-testid={"select-card-" + card.id}
-              aria-label={`${frontPreview} auswählen`}
-              className="absolute inset-0 size-5 cursor-pointer appearance-none rounded-marker border border-core-border bg-core-surface checked:border-core-action checked:bg-core-action"
-              checked={checked}
-              onClick={(event) => {
-                event.stopPropagation();
-                onToggleCheck(card.id, event.shiftKey);
-              }}
-              onChange={() => undefined}
-            />
-            {checked ? <Check size={16} aria-hidden="true" className="pointer-events-none absolute left-0.5 top-0.5 text-core-on-accent" /> : null}
-          </span>
+          <CoreCheckbox
+            className="mt-0.5 shrink-0"
+            data-testid={"select-card-" + card.id}
+            aria-label={`${frontPreview} auswählen`}
+            checked={checked}
+            onClick={(event) => {
+              event.stopPropagation();
+              onToggleCheck(card.id, event.shiftKey);
+            }}
+          />
         ) : null}
         <button
           type="button"

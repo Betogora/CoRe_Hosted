@@ -468,7 +468,7 @@ test("Lerneinstellungen wechseln bei 768 px zwischen Bottom Sheet und zentrierte
   await expect(dialog.getByText("Reset", { exact: true })).toHaveCount(0);
   await expect(dialog.getByText("Mischen", { exact: true })).toHaveCount(0);
   await expect(dialog.getByText("Nur normale Karten", { exact: true })).toHaveCount(0);
-  await expect(dialog.getByRole("group", { name: "Aussetzstatus der Karte" })).toBeVisible();
+  await expect(dialog.getByRole("switch", { name: "Aussetzen", exact: true })).toBeVisible();
   await expect(dialog.getByRole("combobox", { name: "Kartenreihenfolge" })).toHaveText(/Fällige Karten zuerst/);
 
   const mobileGeometry = await dialog.evaluate((element: HTMLElement) => {
@@ -586,7 +586,7 @@ test("Lerneinstellungen speichern Markierung, Aussetzung und Kartenreihenfolge s
   await page.getByRole("button", { name: "Lerneinstellungen" }).click();
   dialog = page.getByRole("dialog", { name: "Lerneinstellungen" });
   await expect(dialog.getByRole("button", { name: "Markierung entfernen" })).toBeVisible();
-  await dialog.getByRole("group", { name: "Aussetzstatus der Karte" }).getByRole("button", { name: "Aussetzen", exact: true }).click();
+  await dialog.getByRole("switch", { name: "Aussetzen", exact: true }).click();
   await expect(dialog).toHaveCount(0);
   await expect(page.getByText("Karte ausgesetzt. Der Lernstand bleibt erhalten. Reaktivieren unter Karte bearbeiten.", { exact: true })).toBeVisible();
   await expect.poll(async () => {
@@ -947,17 +947,17 @@ test("card rescheduling preserves scheduler state and keeps version history out 
   await expect(page.getByText("Änderungslogeinträge")).toHaveCount(0);
   await expect(page.getByRole("combobox", { name: "Version zum Wiederherstellen" })).toHaveCount(0);
 
-  const dueDate = page.getByRole("button", { name: "Nächste Fälligkeit" });
+  const dueDate = page.getByRole("group", { name: "Nächste Fälligkeit", exact: true });
   await expect(dueDate).toContainText(/\d{2}\.\d{2}\.\d{4}/);
   await expect(page.getByRole("button", { name: "Neu planen" })).toHaveCount(0);
-  await page.getByRole("button", { name: "Aussetzen", exact: true }).click();
-  await expect(page.getByRole("button", { name: "Aussetzen", exact: true })).toHaveAttribute("aria-pressed", "true");
+  await page.getByRole("switch", { name: "Aussetzen", exact: true }).check();
+  await expect(page.getByRole("switch", { name: "Aussetzen", exact: true })).toBeChecked();
   await expect.poll(async () => (await storedCard(page, DECK_IDS.africa, "card_world_capitals_civ"))?.status).toBe("suspended");
   const before = await storedCard(page, DECK_IDS.africa, "card_world_capitals_civ");
   const reviewEventsBefore = (await readAppState(page)).decks
     .find((deck: { id: string }) => deck.id === DECK_IDS.africa).reviewEvents.length;
 
-  await dueDate.click();
+  await dueDate.getByRole("button", { name: "Nächste Fälligkeit: Kalender öffnen", exact: true }).click();
   const datePicker = page.getByRole("dialog", { name: "Nächste Fälligkeit: Datum auswählen" });
   await expect(datePicker).toBeVisible();
   const focusedDay = datePicker.locator('button[data-date-key]:focus');
@@ -1030,9 +1030,9 @@ test("shared CoRe date picker updates the simulator within its bounded range", a
   await page.goto("/simulator");
   await expect(page.getByRole("heading", { name: "Simulator", exact: true })).toBeVisible();
 
-  const dateTrigger = page.getByRole("button", { name: "Simuliertes Datum" });
+  const dateTrigger = page.getByRole("group", { name: "Simuliertes Datum", exact: true });
   const initialLabel = await dateTrigger.innerText();
-  await dateTrigger.click();
+  await dateTrigger.getByRole("button", { name: "Simuliertes Datum: Kalender öffnen", exact: true }).click();
   const datePicker = page.getByRole("dialog", { name: "Simuliertes Datum: Datum auswählen" });
   await expect(datePicker).toBeVisible();
   await expect(datePicker.locator('button[data-date-key][aria-current="date"]')).toHaveCount(1);

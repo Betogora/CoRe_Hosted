@@ -30,6 +30,7 @@ import { createAccountMediaStore, type AccountMediaStore } from "../src/mediaSto
 import { CoreSelect, DeckMultiSelect, DeckSelect } from "../src/ui/selectUi.tsx";
 import { CoreTooltip } from "../src/ui/tooltipUi.tsx";
 import { CoreDatePicker } from "../src/ui/CoreDatePicker.tsx";
+import { CoreCheckbox, CoreCheckboxGroup, CoreRadio, CoreRadioGroup, CoreSlider, CoreSwitch } from "../src/ui/formControls.tsx";
 import { FlagDot, FlagPicker } from "../src/ui/flagUi.tsx";
 import { TagInput } from "../src/ui/TagInput.tsx";
 import { ColorPicker } from "../src/ui/ColorPicker.tsx";
@@ -222,7 +223,6 @@ function StructureDemo({ section }: { section: string }) {
 }
 
 function ControlsDemo({ section }: { section: string }) {
-  const [mode, setMode] = useState<CoreMode>("on");
   const [tab, setTab] = useState("front");
   const [iconView, setIconView] = useState<DeckTreeView>("tiles");
   const [marked, setMarked] = useState(false);
@@ -235,9 +235,64 @@ function ControlsDemo({ section }: { section: string }) {
     {section === "segments" && <Demo title="CoreSegmentedControl"><CoreSegmentedControl ariaLabel="Kartenseite" value={tab} options={options} onValueChange={setTab} /></Demo>}
     {section === "segments" && <Demo title="CoreIconSegmentedControl"><CoreIconSegmentedControl ariaLabel="Stapelansicht" value={iconView} options={[{ value: "tiles", label: "Als Kacheln anzeigen", icon: Grid2x2 }, { value: "list", label: "Als Liste anzeigen", icon: List }]} onValueChange={setIconView} /></Demo>}
     {section === "segments" && <Demo title="CoreSlidingTabs"><CoreSlidingTabs ariaLabel="Vorschautabs" value={tab} options={options} onValueChange={setTab} /></Demo>}
-    {section === "segments" && <Demo title="CoreModeControl"><CoreModeControl value={mode} onChange={setMode} /></Demo>}
     {section === "segments" && <Demo title="CoreTriStateControl"><CoreTriStateControl label="Fällig" value={due} onValueChange={setDue} /><CoreTriStateControl label="Heute gelernt" value={again} onValueChange={setAgain} /><CoreTriStateControl label="Lernbremse" value={leech} onValueChange={setLeech} /></Demo>}
     {section === "buttons" && <Demo title="CardMarkButton und CardStudyStateControls"><CardMarkButton marked={marked} onMarkedChange={setMarked} /><CardStudyStateControls marked={marked} suspended={suspended} onMarkedChange={setMarked} onSuspendedChange={setSuspended} /></Demo>}
+  </>;
+}
+
+function ChoiceControlsDemo() {
+  const [mode, setMode] = useState<CoreMode>("on");
+  const [states, setStates] = useState({ plain: false, checked: true, described: true, invalid: false });
+  const [forms, setForms] = useState<Array<"basic" | "cloze" | "single" | "multiple">>(["basic", "cloze"]);
+  const [extra, setExtra] = useState(false);
+  const [day, setDay] = useState<"normal" | "reduced" | "minimum">("normal");
+  const [switches, setSwitches] = useState({ small: false, medium: true, large: false, start: true, described: false });
+  const [retention, setRetention] = useState(90);
+  const [opacity, setOpacity] = useState(40);
+  const someForms = forms.length > 0 && forms.length < 4;
+  return <>
+    <Demo title="CoreCheckbox · Zustände">
+      <div className="grid">
+        <CoreCheckbox label="Nicht ausgewählt" checked={states.plain} onCheckedChange={(plain) => setStates({ ...states, plain })} />
+        <CoreCheckbox label="Ausgewählt" checked={states.checked} onCheckedChange={(checked) => setStates({ ...states, checked })} />
+        <CoreCheckbox label="Alle Kartenformate" checked={forms.length === 4} indeterminate={someForms} onCheckedChange={(checked) => setForms(checked ? ["basic", "cloze", "single", "multiple"] : [])} />
+        <CoreCheckbox label="Beispiele aufnehmen" description="Nur Beispiele aus dem eigenen Material." checked={states.described} onCheckedChange={(described) => setStates({ ...states, described })} />
+        <CoreCheckbox label="Ungültig" invalid checked={states.invalid} onCheckedChange={(invalid) => setStates({ ...states, invalid })} />
+        <CoreCheckbox label="Deaktiviert" disabled checked={false} />
+        <CoreCheckbox label="Deaktiviert und ausgewählt" disabled checked />
+        <div className="catalog-row"><CoreCheckbox aria-label="Ohne sichtbare Beschriftung" checked={states.plain} onCheckedChange={(plain) => setStates({ ...states, plain })} /><CoreCheckbox aria-label="In Prüfungsfarbe" accent={{ fill: "var(--core-exam-color-3)", on: "var(--core-exam-on-color)" }} checked /></div>
+      </div>
+    </Demo>
+    <Demo title="CoreCheckboxGroup">
+      <CoreCheckboxGroup label="Welche Kartenformate möchtest du?" description="Mindestens ein Format." value={forms} onValueChange={setForms} options={[{ value: "basic", label: "Frage–Antwort" }, { value: "cloze", label: "Lückentext" }, { value: "single", label: "Single Choice" }, { value: "multiple", label: "Multiple Choice", disabled: true }]} errorMessage={forms.length ? undefined : "Wähle mindestens ein Kartenformat."} />
+    </Demo>
+    <Demo title="CoreRadio und CoreRadioGroup">
+      <div className="grid gap-4">
+        <CoreRadioGroup label="Ergänzungen der KI" value={extra} onValueChange={setExtra} options={[{ value: false, label: "Nur meine Quelle verwenden" }, { value: true, label: "Ergänzungen erlauben und kennzeichnen", description: "Ergänzungen werden deutlich markiert." }]} />
+        <CoreRadioGroup label="Montag" orientation="horizontal" value={day} onValueChange={setDay} options={[{ value: "normal", label: "Normal" }, { value: "reduced", label: "Weniger" }, { value: "minimum", label: "Minimum", disabled: true }]} />
+        <CoreRadioGroup label="Ungültig" value={day} onValueChange={setDay} errorMessage="Bitte eine Stufe wählen." options={[{ value: "normal", label: "Normal" }, { value: "reduced", label: "Weniger" }]} />
+        <div className="catalog-row" role="radiogroup" aria-label="Dienstag">{(["normal", "reduced", "minimum"] as const).map((level) => <CoreRadio key={level} name="catalog-radio-tuesday" aria-label={`Dienstag: ${level}`} checked={day === level} onCheckedChange={() => setDay(level)} />)}</div>
+      </div>
+    </Demo>
+    <Demo title="CoreSwitch · Größen, Beschriftung und Zustände">
+      <div className="grid">
+        <CoreSwitch size="sm" label="Klein" checked={switches.small} onCheckedChange={(small) => setSwitches({ ...switches, small })} />
+        <CoreSwitch label="Mittel (Standard)" checked={switches.medium} onCheckedChange={(medium) => setSwitches({ ...switches, medium })} />
+        <CoreSwitch size="lg" label="Groß" checked={switches.large} onCheckedChange={(large) => setSwitches({ ...switches, large })} />
+        <CoreSwitch labelPlacement="start" label="Beschriftung vorne" checked={switches.start} onCheckedChange={(start) => setSwitches({ ...switches, start })} />
+        <CoreSwitch label="Varianten einbeziehen" description="Umformulierte Karten zählen zum Plan." checked={switches.described} onCheckedChange={(described) => setSwitches({ ...switches, described })} />
+        <CoreSwitch label="Deaktiviert" disabled checked={false} />
+        <CoreSwitch label="Deaktiviert und an" disabled checked />
+      </div>
+    </Demo>
+    <Demo title="CoreModeControl"><CoreModeControl value={mode} onChange={setMode} /></Demo>
+    <Demo title="CoreSlider · Label, Wert und Zustände">
+      <div className="grid gap-6">
+        <CoreSlider label="Gewünschte Erinnerungsrate" min={70} max={99} value={retention} formatValue={(value) => `${value} %`} onValueChange={setRetention} />
+        <CoreSlider aria-label="Transparenz" min={0} max={100} step={5} value={opacity} formatValue={null} onValueChange={setOpacity} />
+        <CoreSlider label="Deaktiviert" disabled min={0} max={100} value={30} onValueChange={() => undefined} />
+      </div>
+    </Demo>
   </>;
 }
 
@@ -253,7 +308,7 @@ function FormsDemo({ section }: { section: string }) {
     {section === "forms" && <Demo title="DeckSelect · Hierarchie und Suche"><DeckSelect ariaLabel="Zielstapel" value={deckId} onValueChange={setDeckId} decks={sampleDecks} /></Demo>}
     {section === "forms" && <Demo title="DeckMultiSelect · eingeschlossene Unterstapel"><DeckMultiSelect value={scope} onValueChange={setScope} decks={sampleDecks} /></Demo>}
     {section === "forms" && <Demo title="CoreDatePicker"><CoreDatePicker today={today} value={date} min="2026-09-01" max="2027-12-31" ariaLabel="Lerndatum wählen" onValueChange={setDate} /></Demo>}
-    {section === "forms" && <Demo title="Native Felder"><label className="catalog-field">Stapelname<input className="min-h-control rounded-control border border-core-border px-3 text-core-text" defaultValue="Biologie" /></label><label className="catalog-field">Neue Karten pro Tag<input type="number" defaultValue={20} min={0} className="min-h-control rounded-control border border-core-border px-3 text-core-text" /></label><label className="catalog-field">Ungültige Eingabe<input aria-invalid="true" aria-describedby="catalog-input-error" className="min-h-control rounded-control border border-core-danger px-3" defaultValue="" /><span id="catalog-input-error" className="text-core-danger">Bitte einen Namen eingeben.</span></label><label className="catalog-row"><input type="checkbox" defaultChecked /> Auswahl aktiviert</label><label className="catalog-field">Mehrzeiliger Inhalt<textarea defaultValue="Zusätzlicher Kontext" className="rounded-control border border-core-border p-3" /></label><label className="catalog-field">Passwort<input type="password" defaultValue="beispiel" className="min-h-control rounded-control border border-core-border px-3" /></label><label className="catalog-row"><input type="radio" name="catalog-radio" defaultChecked /> Einzelwahl</label><label className="catalog-field">Deaktiviertes Feld<input disabled defaultValue="Nicht verfügbar" className="min-h-control rounded-control border border-core-border px-3 disabled:opacity-50" /></label></Demo>}
+    {section === "forms" && <Demo title="Native Felder"><label className="catalog-field">Stapelname<input className="min-h-control rounded-control border border-core-border px-3 text-core-text" defaultValue="Biologie" /></label><label className="catalog-field">Neue Karten pro Tag<input type="number" defaultValue={20} min={0} className="min-h-control rounded-control border border-core-border px-3 text-core-text" /></label><label className="catalog-field">Ungültige Eingabe<input aria-invalid="true" aria-describedby="catalog-input-error" className="min-h-control rounded-control border border-core-danger px-3" defaultValue="" /><span id="catalog-input-error" className="text-core-danger">Bitte einen Namen eingeben.</span></label><label className="catalog-field">Mehrzeiliger Inhalt<textarea defaultValue="Zusätzlicher Kontext" className="rounded-control border border-core-border p-3" /></label><label className="catalog-field">Passwort<input type="password" defaultValue="beispiel" className="min-h-control rounded-control border border-core-border px-3" /></label><label className="catalog-field">Deaktiviertes Feld<input disabled defaultValue="Nicht verfügbar" className="min-h-control rounded-control border border-core-border px-3 disabled:opacity-50" /></label></Demo>}
     {section === "forms" && <Demo title="CoreNumberField · Einstellungszeile" wide><div className="core-settings-list w-full"><div className="core-settings-row"><div className="core-settings-row-text"><label htmlFor="catalog-learn-ahead" className="core-settings-row-title">Lernkarten vorziehen</label><p id="catalog-learn-ahead-hint" className="core-settings-row-hint">Lernkarten, die in diesem Zeitraum fällig werden, erscheinen schon jetzt. 0 schaltet aus.</p></div><div className="core-settings-row-control"><CoreNumberField id="catalog-learn-ahead" value={learnAhead} min={0} max={720} unit="Min." ariaDescribedBy="catalog-learn-ahead-hint" className="w-32" onChange={setLearnAhead} /></div></div><div className="core-settings-row" data-layout="inline"><span className="core-settings-row-title">Profilzeitzone</span><div className="core-settings-row-control"><span className="core-settings-row-value">Europe/Berlin</span></div></div></div></Demo>}
     {section === "forms" && <Demo title="FileDropField"><FileDropField accept="image/*" pasteImages ariaLabel="Bild einfügen oder ablegen" prompt="Bild mit Strg+V einfügen oder hier ablegen" actionLabel={fileName ? "Bild ersetzen" : "Bild auswählen"} onFile={(file) => setFileName(file.name)}>{fileName && <p className="core-body">{fileName}</p>}</FileDropField></Demo>}
   </>;
@@ -707,8 +762,9 @@ export type CatalogSectionId = "grundlagen" | "primitive" | "shared" | "fachmust
 
 export const DEMO_GROUPS = [
   { id: "aktionen", section: "primitive", title: "Button", description: "Text-, Icon-, Querlink-, Aktionskarten-, Markierungs- und Bewertungsbuttons.", components: ["ActionButton", "IconButton", "CrossLinkButton", "CreationActionCard", "CardMarkButton", "CardStudyStateControls"], render: () => <><ActionsDemo section="buttons" /><ControlsDemo section="buttons" /><LearningDemo section="buttons" /></> },
-  { id: "auswahl", section: "primitive", title: "SegmentedControl", description: "Segmente, gleitende Tabs, reine Icon-Auswahl, CoRe-Modus und Dreifach-Schalter.", components: ["CoreSegmentedControl", "CoreSlidingTabs", "CoreIconSegmentedControl", "CoreModeControl", "CoreTriStateControl"], render: () => <ControlsDemo section="segments" /> },
-  { id: "formulare", section: "primitive", title: "Input- und Select-Familie", description: "Text, Zahl mit Einheit, Passwort, mehrzeilige Eingaben, Checkbox, Radio, Select, Datum, Datei, Einstellungszeilen und Lerneinstellungen.", components: ["CoreSelect", "CoreNumberField", "DeckSelect", "DeckMultiSelect", "CoreDatePicker", "FileDropField", "PomodoroTimerControl", "LearningSettingsPanel"], wide: true, render: () => <><FormsDemo section="forms" /><LearningDemo section="forms" /></> },
+  { id: "auswahl", section: "primitive", title: "SegmentedControl", description: "Segmente, gleitende Tabs, reine Icon-Auswahl und Dreifach-Schalter.", components: ["CoreSegmentedControl", "CoreSlidingTabs", "CoreIconSegmentedControl", "CoreTriStateControl"], render: () => <ControlsDemo section="segments" /> },
+  { id: "formulare", section: "primitive", title: "Input- und Select-Familie", description: "Text, Zahl mit Einheit, Passwort, mehrzeilige Eingaben, Select, Datum, Datei, Einstellungszeilen und Lerneinstellungen.", components: ["CoreSelect", "CoreNumberField", "DeckSelect", "DeckMultiSelect", "CoreDatePicker", "FileDropField", "PomodoroTimerControl", "LearningSettingsPanel"], wide: true, render: () => <><FormsDemo section="forms" /><LearningDemo section="forms" /></> },
+  { id: "auswahlfelder", section: "primitive", title: "Checkbox, Radio, Schalter und Schieberegler", description: "Auswahl einzelner und mehrerer Werte, Ein/Aus-Zustände und Werte auf einer Skala.", components: ["CoreCheckbox", "CoreCheckboxGroup", "CoreRadio", "CoreRadioGroup", "CoreSwitch", "CoreModeControl", "CoreSlider"], render: ChoiceControlsDemo },
   { id: "badges", section: "primitive", title: "Tag", description: "Gemeinsames Tag in fünf Tönen und mit Farbpunkt.", components: ["CoreTag"], render: BadgesDemo },
   { id: "tooltips", section: "primitive", title: "Tooltip", description: "Hinweise mit Text, Wert oder Stapelidentität.", components: ["CoreTooltip", "CoreTooltipProvider"], render: () => <ActionsDemo section="tooltips" /> },
   { id: "feedback", section: "primitive", title: "Toaster / StatusMessage", description: "Info, Erfolg, Warnung, Fehler und schließbare Toasts.", components: ["StatusMessage", "SuccessToast", "SuccessToastProvider"], render: () => <FeedbackDemo section="feedback" /> },

@@ -1,5 +1,5 @@
 import React from "react";
-import { CalendarClock, CalendarDays, Check, Copy, Layers, MoveRight, Pause, Snail } from "lucide-react";
+import { CalendarClock, CalendarDays, Check, Copy, Layers, MoveRight, Snail } from "lucide-react";
 import type { CardEditorServices, DecksScreenProps } from "../../appScreenProps.ts";
 import type { SimilarNote } from "../../cloudRepositoryValidation.ts";
 import { notePromptLabel } from "../../coreModel.ts";
@@ -11,6 +11,7 @@ import { ActionButton, IconButton } from "../../ui/actionUi.tsx";
 import { ActionDialog, CardMarkButton } from "../../ui/coreUi.tsx";
 import { CoreDatePicker } from "../../ui/CoreDatePicker.tsx";
 import { useSuccessToast } from "../../ui/feedbackUi.tsx";
+import { CoreSwitch } from "../../ui/formControls.tsx";
 import { FlagPicker } from "../../ui/flagUi.tsx";
 import { DeckSelect } from "../../ui/selectUi.tsx";
 import { TagInput } from "../../ui/TagInput.tsx";
@@ -245,9 +246,7 @@ export function CardEditorGeneralTab({ decks, graph, card, now, dayStartHour, ti
             {canReschedule ? <ActionButton variant="primary" loading={busy === "reschedule"} onClick={() => void reschedule()}>Neu planen</ActionButton> : null}
           </div>
           <div className="flex flex-wrap gap-2 border-t border-core-border pt-3">
-            <button type="button" aria-pressed={suspended} className="core-action-secondary aria-pressed:border-core-action aria-pressed:bg-[var(--core-action-soft)] aria-pressed:text-core-action" onClick={() => void onSetStudyState(card.id, { suspended: !suspended })}>
-              <Pause size={16} aria-hidden="true" />Aussetzen
-            </button>
+            <CoreSwitch label="Aussetzen" checked={suspended} onCheckedChange={(next) => void onSetStudyState(card.id, { suspended: next })} />
             {buried ? (
               <ActionButton variant="secondary" icon={CalendarClock} loading={busy === "bury"} onClick={() => void bury(false)}>Zurückstellen aufheben</ActionButton>
             ) : (

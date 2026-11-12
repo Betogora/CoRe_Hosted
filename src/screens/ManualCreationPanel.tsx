@@ -18,6 +18,7 @@ import { ActionButton, IconButton } from "../ui/actionUi.tsx";
 import { ActionDialog, CoreSegmentedControl, OrbIcon, SoftPanel } from "../ui/coreUi.tsx";
 import { useSuccessToast } from "../ui/feedbackUi.tsx";
 import { FileDropField } from "../ui/FileDropField.tsx";
+import { CoreCheckbox, CoreRadio } from "../ui/formControls.tsx";
 import { PdfDocumentViewer } from "../ui/PdfDocumentViewer.tsx";
 import { RichTextEditor, type RichTextImageActions } from "../ui/RichTextEditor.tsx";
 import { CardPreviewDialog } from "../ui/CardPreviewDialog.tsx";
@@ -684,18 +685,11 @@ export function ManualCreationPanel({
               const removalLocked = answerOptions.length <= 2 || (isMultipleChoice && correctnessLocked);
               return (
                 <div key={index} className="flex min-w-0 items-center gap-2">
-                  <label className="grid size-control shrink-0 place-items-center">
-                    <input
-                      className="size-5 accent-core-action"
-                      type={isSingleChoice ? "radio" : "checkbox"}
-                      name={isSingleChoice ? "manual-correct-option" : undefined}
-                      checked={isCorrect}
-                      disabled={correctnessLocked}
-                      onChange={() => toggleCorrectOption(index)}
-                      aria-label={`Option ${index + 1} als richtig markieren`}
-                      aria-invalid={Boolean(fieldErrors.correctOptions)}
-                    />
-                  </label>
+                  <span className="grid size-control shrink-0 place-items-center">
+                    {isSingleChoice
+                      ? <CoreRadio name="manual-correct-option" checked={isCorrect} disabled={correctnessLocked} invalid={Boolean(fieldErrors.correctOptions)} onCheckedChange={() => toggleCorrectOption(index)} aria-label={`Option ${index + 1} als richtig markieren`} />
+                      : <CoreCheckbox checked={isCorrect} disabled={correctnessLocked} invalid={Boolean(fieldErrors.correctOptions)} onCheckedChange={() => toggleCorrectOption(index)} aria-label={`Option ${index + 1} als richtig markieren`} />}
+                  </span>
                   <input data-manual-focus={index === 0 ? "option-0" : undefined} className="core-field min-w-0 flex-1" value={option} onChange={(event) => updateAnswerOption(index, event.target.value)} placeholder={`Option ${index + 1}`} aria-label={`Antwortoption ${index + 1}`} aria-invalid={Boolean(fieldErrors.options)} />
                   <IconButton type="button" icon={X} label={`Antwortoption ${index + 1} entfernen`} onClick={() => removeAnswerOption(index)} disabled={removalLocked} />
                 </div>

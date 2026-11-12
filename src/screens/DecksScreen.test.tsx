@@ -463,7 +463,7 @@ test("card selection opens the full-surface editor dialog with header, tabs and 
   assert.match(markup, /data-testid="card-plan-state">Fällig am 05\.08\.2026</);
   assert.match(markup, /data-core-date-picker="trigger"/);
   assert.doesNotMatch(markup, />Neu planen</, "Neu planen erscheint erst nach einer Datumsänderung");
-  assert.match(markup, /aria-pressed="false"[^>]*><svg[^>]*>[\s\S]*?<\/svg>Aussetzen/);
+  assert.match(markup, /<input type="checkbox" role="switch"\/><span class="core-switch-thumb" aria-hidden="true"><\/span><\/span><span class="core-switch-label">Aussetzen</);
   assert.match(markup, />Zurückstellen</);
   assert.match(markup, />Verschieben</);
   assert.match(markup, /Tags bearbeiten/);
@@ -522,7 +522,7 @@ test("cards page shows suspended rows and marked stars; the editor tints only a 
   const icons = markup.slice(markup.indexOf('data-testid="card-status-icons"'), markup.indexOf('role="tablist"'));
   for (const label of ["Markiert", "Flagge Orange", "Ausgesetzt"]) assert.match(icons, new RegExp(`aria-label="${label}"`));
   assert.match(markup, /aria-label="Markierung entfernen"/);
-  assert.match(markup, /aria-pressed="true"[^>]*><svg[^>]*>[\s\S]*?<\/svg>Aussetzen/);
+  assert.match(markup, /<input type="checkbox" role="switch" checked=""\/><span class="core-switch-thumb" aria-hidden="true"><\/span><\/span><span class="core-switch-label">Aussetzen</);
   assert.match(markup, /aria-pressed="true" aria-label="Flagge Orange"/);
   assert.match(markup, /data-testid="card-plan-state">Ausgesetzt</);
 });

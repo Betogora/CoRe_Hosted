@@ -89,7 +89,7 @@ export const DeckOptionsMenu = React.memo(function DeckOptionsMenu({ row, decks,
                 <p className="break-words core-body font-semibold text-core-text">{row.deck.name}</p>
               </div>
             </div>
-            <div className="grid gap-1.5 px-2.5 pb-2.5 pt-2">
+            <div className="flex items-center justify-between gap-3 px-2.5 pb-2.5 pt-2">
               <span className="core-caption font-semibold text-core-muted">CoRe-Modus</span>
               <CoreModeControl value={row.coreMode} onChange={(mode) => onSetCoreMode(row.id, mode)} />
             </div>

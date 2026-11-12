@@ -196,17 +196,11 @@ Dazu das KI-Kontingent pro Nutzer aus P2.
 ## Pflege: Designsprache vereinheitlichen
 
 Regeln in [ADR-051](decisions.md), Bausteine in `src/ui/README.md`. Je Paket
-ein Branch, zusammengeführt auf `worktree-designsprache`; D2 zuerst, D3–D7
-bauen darauf auf. Abnahme je Paket: Fokustests, `npm run typecheck`,
+ein Branch, zusammengeführt auf `worktree-designsprache`. Abnahme je Paket: Fokustests, `npm run typecheck`,
 Katalogdemo für jeden neuen oder geänderten gemeinsamen Baustein, betroffene
 Ansichten in der visuellen Pflichtmatrix hell und dunkel. Die
 Bewertungsbuttons der Lernsitzung bleiben unverändert.
 
-- [ ] **D2 – Formelemente:** Checkbox und Checkbox-Gruppe, Schalter,
-      Schieberegler, Datumsauswahl und Antwortoptionen (Single und Multiple
-      Choice, einzeilig) nach HeroUI v3 in CoRe-Farben; alle nativen
-      Checkboxen, Radios und Schieberegler der App umgestellt. Rahmen der
-      Dokumentenwerkzeuge des Texteditors liegt nicht mehr hinter der Leiste.
 - [ ] **D3 – Heute, Stapelliste, Erststart:** Tagesziel als Auftakt mit
       großer Restzahl und Start daneben, Kennzahlen als eine Zeile, ein Kopf
       je Kachel, keine Hinweise; Stapelliste ohne Außenrahmen mit 48-px-Zeilen,

@@ -9,6 +9,7 @@ import {
 import { ActionButton, IconButton } from "../ui/actionUi.tsx";
 import { CoreSegmentedControl, OrbIcon, SoftPanel } from "../ui/coreUi.tsx";
 import { StatusMessage } from "../ui/feedbackUi.tsx";
+import { CoreCheckbox, CoreRadio, CoreSwitch } from "../ui/formControls.tsx";
 import { FileDropField } from "../ui/FileDropField.tsx";
 import { CoreSelect, DeckSelect } from "../ui/selectUi.tsx";
 import { formatBytes } from "./screenConstants.ts";
@@ -156,9 +157,7 @@ export function AiSourceCreationPanel({ decks, initialTargetDeckId, onDraftState
               </fieldset>
               <div className="grid min-w-0 gap-3">
                 <h4 ref={targetHeadingRef} tabIndex={-1} className="scroll-mt-24 core-field-label outline-none">Möchtest du einen neuen Stapel anlegen?</h4>
-                <CoreSegmentedControl ariaLabel="Möchtest du einen neuen Stapel anlegen?" className="w-full" value={draft.targetMode} options={[
-                  { value: "new", label: "Ja" }, { value: "existing", label: "Nein" },
-                ]} onValueChange={(value) => setDraft((current) => ({ ...current, targetMode: value as "new" | "existing" }))} />
+                <CoreSwitch label="Neuen Stapel anlegen" checked={draft.targetMode === "new"} onCheckedChange={(createDeck) => setDraft((current) => ({ ...current, targetMode: createDeck ? "new" : "existing" }))} />
                 {draft.targetMode === "new" ? (
                   <label className="core-field-group min-w-0">
                     <span className="core-field-label">Wie soll der neue Stapel heißen?</span>
@@ -196,8 +195,8 @@ export function AiSourceCreationPanel({ decks, initialTargetDeckId, onDraftState
                     const Icon = cardFormIcons[value];
                     return <label key={value} className="core-ai-source-format core-body text-core-text">
                       <Icon size={20} className="text-core-action" aria-hidden="true" />
-                      <input type="checkbox" className="size-5 shrink-0 accent-core-action" checked={settings.cardForms.includes(value)} onChange={(event) => {
-                        const selected = event.target.checked ? [...settings.cardForms, value] : settings.cardForms.filter((form) => form !== value);
+                      <CoreCheckbox checked={settings.cardForms.includes(value)} onCheckedChange={(checked) => {
+                        const selected = checked ? [...settings.cardForms, value] : settings.cardForms.filter((form) => form !== value);
                         changeSetting("cardForms", AI_SOURCE_CARD_FORMS.filter((form) => selected.includes(form.value)).map((form) => form.value));
                       }} />
                       <span className="col-span-2 core-caption font-semibold">{label}</span>
@@ -211,7 +210,7 @@ export function AiSourceCreationPanel({ decks, initialTargetDeckId, onDraftState
                 {[
                   { value: false, label: "Nur meine Quelle verwenden" },
                   { value: true, label: "Ergänzungen erlauben und kennzeichnen" },
-                ].map(({ value, label }) => <label key={String(value)} className="core-ai-source-radio flex min-h-control cursor-pointer items-start gap-3 py-2 core-body text-core-text"><input type="radio" name="ai-source-extra-information" className="mt-0.5 size-5 shrink-0 accent-core-action" checked={settings.allowExtraInformation === value} onChange={() => changeSetting("allowExtraInformation", value)} /><span>{label}</span></label>)}
+                ].map(({ value, label }) => <CoreRadio key={String(value)} className="core-ai-source-radio flex py-1" name="ai-source-extra-information" label={label} checked={settings.allowExtraInformation === value} onCheckedChange={() => changeSetting("allowExtraInformation", value)} />)}
                 <p className="core-field-hint">Ergänzungen schließen fachliche Lücken und werden deutlich gekennzeichnet.</p>
               </fieldset>
               <div className="grid min-w-0 gap-3">

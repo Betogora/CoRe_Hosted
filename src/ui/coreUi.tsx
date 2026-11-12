@@ -4,6 +4,7 @@ import { Ban, Check, Minus, Star } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import type { CoreMode } from "../coreTypes.ts";
 import { ActionButton } from "./actionUi.tsx";
+import { CoreSwitch } from "./formControls.tsx";
 import { CoreTooltip } from "./tooltipUi.tsx";
 
 interface SoftPanelProps extends HTMLAttributes<HTMLElement> {
@@ -284,10 +285,6 @@ export interface CoreSegmentedControlProps<T extends string> {
   labels?: "visible" | "active" | "hidden";
 }
 
-const CORE_MODE_OPTIONS: ReadonlyArray<CoreSegmentedControlOption<CoreMode>> = [
-  { value: "off", label: "Aus" },
-  { value: "on", label: "An" },
-];
 const useSelectionLayoutEffect = typeof window === "undefined" ? React.useEffect : React.useLayoutEffect;
 
 export function useSlidingSelection<T extends HTMLElement>(value: string, options: ReadonlyArray<unknown>) {
@@ -396,14 +393,7 @@ export function CoreTriStateControl({ label, value, onValueChange, disabled = fa
 }
 
 export function CoreModeControl({ value, onChange }: { value: CoreMode; onChange: (value: CoreMode) => void }) {
-  return (
-    <CoreSegmentedControl
-      ariaLabel="CoRe-Modus"
-      options={CORE_MODE_OPTIONS}
-      value={value}
-      onValueChange={onChange}
-    />
-  );
+  return <CoreSwitch aria-label="CoRe-Modus" checked={value === "on"} onCheckedChange={(on) => onChange(on ? "on" : "off")} />;
 }
 
 export function CardMarkButton({ marked, onMarkedChange, disabled = false, className = "" }: {

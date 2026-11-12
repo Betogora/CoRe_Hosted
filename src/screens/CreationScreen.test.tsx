@@ -52,7 +52,8 @@ test("source creation offers office files and settings without a generation acti
   assert.match(markup, /Die automatische Erstellung ist noch nicht verfügbar/);
   assert.match(markup, /accept="\.pdf,\.txt,\.md,\.markdown,\.csv,\.tsv,\.docx,\.pptx"/);
   for (const label of ["Quelle &amp; Stapel", "Deine Lernwünsche", "Deine Karten", "Wie ausführlich soll der Stoff abgedeckt werden?", "Wie ausführlich sollen die Antworten sein?", "In welcher Sprache sollen die Karten sein?", "Wie sollen die Karten formuliert sein?", "Was sollen wir außerdem beachten?", "Auftrag prüfen"]) assert.ok(markup.includes(label), label);
-  assert.equal((markup.match(/type="checkbox"[^>]*checked=""/g) ?? []).length, 4);
+  assert.equal((markup.match(/type="checkbox"(?! role="switch")[^>]*checked=""/g) ?? []).length, 4);
+  assert.match(markup, /type="checkbox" role="switch"[^>]*checked=""/);
   assert.match(markup, /xl:grid-cols-3/);
   assert.doesNotMatch(markup, /type="range"|type="number"|>Karten erstellen<\/span>/);
 });

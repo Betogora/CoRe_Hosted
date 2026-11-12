@@ -4,6 +4,7 @@ import { addNoteField, canRemoveNoteField, isMovableNoteField, moveNoteField, no
 import type { Card, Note, NoteContent } from "../../coreTypes.ts";
 import { IconButton } from "../../ui/actionUi.tsx";
 import { CoreSegmentedControl, SoftPanel } from "../../ui/coreUi.tsx";
+import { CoreCheckbox, CoreRadio } from "../../ui/formControls.tsx";
 import { NOTE_FIELD_ROLE_LABELS, NoteBlockControls } from "../../ui/NoteBlockControls.tsx";
 import { NoteCardContent } from "../../ui/NoteCardContent.tsx";
 import { RichTextEditor, type RichTextImageActions } from "../../ui/RichTextEditor.tsx";
@@ -194,7 +195,9 @@ export function NoteContentEditor({ note, value, structure, onValueChange, onStr
           <legend className="px-1 core-body font-semibold text-core-secondary">Antwortoptionen und {choiceMode === "single" ? "richtige Antwort" : "richtige Antworten"}</legend>
           {options.map((option, index) => (
             <div key={option.id} className="flex min-w-0 items-center gap-2">
-              <input type={choiceMode === "single" ? "radio" : "checkbox"} name={choiceMode === "single" ? `correct-option-${note.id}` : undefined} checked={option.correct} disabled={correctnessLocked(index)} onChange={() => toggleCorrect(index)} aria-label={`Option ${index + 1} als richtig markieren`} />
+              {choiceMode === "single"
+                ? <CoreRadio name={`correct-option-${note.id}`} checked={option.correct} disabled={correctnessLocked(index)} onCheckedChange={() => toggleCorrect(index)} aria-label={`Option ${index + 1} als richtig markieren`} />
+                : <CoreCheckbox checked={option.correct} disabled={correctnessLocked(index)} onCheckedChange={() => toggleCorrect(index)} aria-label={`Option ${index + 1} als richtig markieren`} />}
               <input className="min-h-control min-w-0 flex-1 rounded-control border border-core-border px-3" value={option.text} onChange={(event) => updateOptions(options.map((candidate, optionIndex) => optionIndex === index ? { ...candidate, text: event.target.value } : candidate))} aria-label={`Antwortoption ${index + 1}`} aria-invalid={Boolean(errors.options)} />
               <button type="button" onClick={() => removeOption(index)} disabled={options.length <= 2 || correctnessLocked(index)} className="grid size-control place-items-center rounded-control border border-core-border text-core-muted disabled:opacity-40" aria-label={`Antwortoption ${index + 1} entfernen`}><X size={16} aria-hidden="true" /></button>
             </div>

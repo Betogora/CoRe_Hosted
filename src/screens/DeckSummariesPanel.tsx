@@ -10,6 +10,7 @@ import { createLearningSummary, createSummarySettings, deleteLearningSummary, lo
 import { ActionButton, IconButton } from "../ui/actionUi.tsx";
 import { ActionDialog, CoreSegmentedControl } from "../ui/coreUi.tsx";
 import { StatusMessage, useSuccessToast } from "../ui/feedbackUi.tsx";
+import { CoreCheckbox } from "../ui/formControls.tsx";
 import { SummaryDocumentEditor } from "./SummaryDocumentEditor.tsx";
 import { CoreSelect } from "../ui/selectUi.tsx";
 
@@ -199,8 +200,8 @@ export function DeckSummariesPanel({ deck, userId, cloud = null, onGenerateSumma
             </div>
             <label className="core-field-group"><span className="core-field-label">Thematischer Fokus <span className="font-normal text-core-muted">(optional)</span></span><textarea className="core-field" rows={3} maxLength={600} value={settings.focus} onChange={(event) => changeSetting("focus", event.target.value)} placeholder="z. B. Begriffe vergleichen und Zusammenhänge erklären" /></label>
             <div className="core-field-group"><span className="core-field-label">Sprache</span><CoreSegmentedControl ariaLabel="Sprache" options={summaryChoices.register} value={settings.register} onValueChange={(value) => changeSetting("register", value)} /></div>
-            <label className="core-summary-checkbox core-body"><input type="checkbox" checked={settings.includeExamples} onChange={(event) => changeSetting("includeExamples", event.target.checked)}/>Beispiele aus dem Material aufnehmen</label>
-            <label className="core-summary-checkbox core-body"><input type="checkbox" checked={settings.showReferences} onChange={(event) => changeSetting("showReferences", event.target.checked)}/>Karten verlinken und Quellenstellen anzeigen</label>
+            <CoreCheckbox label="Beispiele aus dem Material aufnehmen" checked={settings.includeExamples} onCheckedChange={(checked) => changeSetting("includeExamples", checked)}/>
+            <CoreCheckbox label="Karten verlinken und Quellenstellen anzeigen" checked={settings.showReferences} onCheckedChange={(checked) => changeSetting("showReferences", checked)}/>
             </div> : null}
             {error ? <StatusMessage tone="error" announce="assertive">{error}</StatusMessage> : null}
             <div className="core-summary-actions flex flex-wrap justify-end gap-3"><ActionButton type="button" variant="secondary" disabled={busy} onClick={() => request(backToList)}>Abbrechen</ActionButton><ActionButton variant="primary" type="submit" loading={busy} icon={Sparkles}>Mit KI erstellen</ActionButton></div>

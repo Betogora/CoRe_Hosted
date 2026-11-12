@@ -1,6 +1,7 @@
 import React from "react";
 import type { DuplicateGroup, DuplicateKey } from "../../duplicateContents.ts";
 import { ActionDialog } from "../../ui/coreUi.tsx";
+import { CoreCheckbox } from "../../ui/formControls.tsx";
 import { CoreSelect } from "../../ui/selectUi.tsx";
 
 const SORT_FIELD = "sortField";
@@ -72,10 +73,7 @@ export function DuplicatesDialog({ searching, find, deckName, onOpen, onTag, onC
               onValueChange={setTarget}
             />
             {searching ? (
-              <label className="flex items-center gap-2 core-body text-core-text">
-                <input type="checkbox" className="size-5 shrink-0 accent-core-action" checked={withinHits} onChange={(event) => setWithinHits(event.target.checked)} />
-                Nur in den Treffern
-              </label>
+              <CoreCheckbox label="Nur in den Treffern" checked={withinHits} onCheckedChange={setWithinHits} />
             ) : null}
           </div>
           <div aria-live="polite" className="grid gap-2">

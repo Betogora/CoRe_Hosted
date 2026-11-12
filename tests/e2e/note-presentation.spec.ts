@@ -30,8 +30,8 @@ test("Kartenbausteine: Single, Multiple und Kprim prüfen unterschiedliche Antwo
   await expect(single.getByRole("status")).toHaveText("Richtig ausgewählt.");
   await single.getByRole("button", { name: "Zurücksetzen", exact: true }).click();
   await single.getByRole("button", { name: "Antwortoption B: Die Lunge produziert Blut.", exact: true }).click();
-  await expect(single.getByRole("button", { name: "Antwortoption A: Das Herz pumpt Blut. (richtig)", exact: true })).toHaveClass(/border-core-success/);
-  await expect(single.getByRole("button", { name: "Antwortoption B: Die Lunge produziert Blut. (falsch gewählt)", exact: true })).toHaveClass(/border-core-danger/);
+  await expect(single.getByRole("button", { name: "Antwortoption A: Das Herz pumpt Blut. (richtig)", exact: true })).toHaveAttribute("data-tone", "missed");
+  await expect(single.getByRole("button", { name: "Antwortoption B: Die Lunge produziert Blut. (falsch gewählt)", exact: true })).toHaveAttribute("data-tone", "wrong");
   const multiple = page.locator('[data-note-demo="multiple"]');
   await multiple.getByRole("button", { name: "Antwortoption A: Das Herz pumpt Blut.", exact: true }).click();
   await multiple.getByRole("button", { name: "Antwortoption C: Blut transportiert Sauerstoff.", exact: true }).click();
