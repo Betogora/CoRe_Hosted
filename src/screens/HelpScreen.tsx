@@ -10,7 +10,7 @@ import {
   Sparkle,
   Sparkles,
 } from "lucide-react";
-import { OrbIcon, PageHeader, SoftPanel } from "../ui/coreUi.tsx";
+import { PageHeader, SoftPanel } from "../ui/coreUi.tsx";
 
 type ReviewId = "first" | "variant";
 type RatingId = "again" | "hard" | "good" | "easy";
@@ -34,7 +34,6 @@ interface RatingPath {
 
 interface StoryStep<TSelection extends string> {
   id: string;
-  eyebrow: string;
   title: string;
   text: string;
   selection: TSelection;
@@ -93,14 +92,12 @@ const INITIAL_CURVE_PATH = "M 74 92 C 118 104, 176 168, 220 248";
 const ACTIVE_RECALL_STEPS: readonly StoryStep<"stack" | "blur" | "variants">[] = [
   {
     id: "active-stack",
-    eyebrow: "01 · Viele Karten",
     title: "Wiederholen kann überraschend passiv werden",
     text: "Karteikartenlernen wird schnell anstrengend, besonders wenn viele ähnliche Karten nacheinander kommen. Unser Gehirn versucht, möglichst energiesparend zu arbeiten.",
     selection: "stack",
   },
   {
     id: "active-blur",
-    eyebrow: "02 · Vertraute Form",
     title: "Irgendwann erkennst du eher die Karte als den Inhalt",
     text: "Nach einiger Zeit bleiben leicht Position, Satzlänge oder einzelne Signalwörter hängen. Die Antwort fühlt sich bekannt an, obwohl die eigentliche Frage nicht mehr vollständig verstanden wird.",
     selection: "blur",
@@ -108,7 +105,6 @@ const ACTIVE_RECALL_STEPS: readonly StoryStep<"stack" | "blur" | "variants">[] =
   },
   {
     id: "active-variants",
-    eyebrow: "03 · Smarter Recall",
     title: "CoRe verändert die Frage, nicht das Wissen",
     text: "Wie ein Tutor formuliert CoRe dieselbe Wissenseinheit nach ausreichender Reife neu. Die Varianten fragen denselben Inhalt anders ab, ohne neue Fakten einzuführen.",
     selection: "variants",
@@ -141,49 +137,42 @@ const ACTIVE_RECALL_VARIANTS = [
 const SPACED_REPETITION_STEPS: readonly StoryStep<ExplorerSelectionId>[] = [
   {
     id: "spaced-idea",
-    eyebrow: "01 · Grundidee",
     title: "Wiederholt wird, kurz bevor du vergisst",
     text: "Ohne Wiederholung sinkt die Abrufwahrscheinlichkeit mit der Zeit. FSRS plant jede Karte so, dass du sie wiederholst, kurz bevor sie unter deine Zielerinnerung fällt. So wiederholst du nur, was du sonst vergessen würdest.",
     selection: "overview",
   },
   {
     id: "spaced-first-review",
-    eyebrow: "02 · Erste Wiederholung",
     title: "Die erste Wiederholung aktualisiert den Gedächtniszustand",
     text: "Die Originalkarte erreicht im Beispiel 90 Prozent Abrufwahrscheinlichkeit. Nach deiner Antwort schätzt FSRS Stabilität S und Schwierigkeit D neu.",
     selection: "review-first",
   },
   {
     id: "spaced-ratings",
-    eyebrow: "03 · Bewertung",
     title: "Deine Antwort bestimmt das nächste Intervall",
     text: "„Nochmal“, „Schwer“, „Gut“ und „Leicht“ führen gemeinsam betrachtet zu zunehmend längeren Intervallen. Je sicherer der Abruf, desto später wird die Karte erneut fällig.",
     selection: "ratings",
   },
   {
     id: "spaced-variant",
-    eyebrow: "04 · Ausreichende Haltbarkeit",
     title: "Erst dann kommt eine Variante als neuer Punkt hinzu",
     text: "Sobald die Haltbarkeit die Schwelle des Stapels erreicht, kann CoRe denselben Inhalt mit einer neuen Frageform prüfen. Der Variantenpunkt ist ein Beispiel und keine garantierte Reviewnummer.",
     selection: "review-variant",
   },
   {
     id: "spaced-d",
-    eyebrow: "05 · D",
     title: "D beschreibt die dauerhafte Schwierigkeit",
     text: "Schwierige Inhalte bauen Stabilität langsamer auf. Die Rauten markieren D an den Wiederholungspunkten; D ist keine zweite Prozentkurve.",
     selection: "parameter-d",
   },
   {
     id: "spaced-r",
-    eyebrow: "06 · R",
     title: "R ist deine aktuelle Abrufwahrscheinlichkeit",
     text: "Nach einem erfolgreichen Review liegt R wieder nahe 100 Prozent und fällt anschließend mit der Zeit. Die gestrichelte Linie zeigt eine Zielerinnerung von 90 Prozent.",
     selection: "parameter-r",
   },
   {
     id: "spaced-s",
-    eyebrow: "07 · S",
     title: "S beschreibt, wie lange die Erinnerung hält",
     text: "CoRe zeigt S als Haltbarkeit: die Tage, bis R von 100 auf 90 Prozent fällt. Die vier Pfeile zeigen qualitativ, wie deine Antwort das nächste Intervall beeinflusst.",
     selection: "parameter-s",
@@ -321,8 +310,7 @@ function StoryStepCard<TSelection extends string>({
         onFocus={onFocus}
         aria-current={active ? "step" : undefined}
       >
-        <p className="core-caption font-medium text-core-muted">{step.eyebrow}</p>
-        <h3 className="core-heading-2 mt-3 text-core-text">{step.title}</h3>
+        <h3 className="core-heading-2 text-core-text">{step.title}</h3>
         <p className="mt-4 core-body-large leading-7 text-core-secondary">{step.text}</p>
         {step.note ? <p className="mt-4 core-caption leading-5 text-core-secondary">{step.note}</p> : null}
       </article>
@@ -456,10 +444,9 @@ function IntroSection() {
   }
 
   return (
-    <section className="grid min-w-0 min-h-[72svh] items-center gap-12 lg:grid-cols-[0.9fr_1.1fr]" aria-labelledby="help-intro-heading">
+    <section className="grid min-w-0 items-start gap-12 lg:grid-cols-[0.9fr_1.1fr]" aria-labelledby="help-intro-heading">
       <div className="max-w-2xl">
-        <p className="core-caption font-medium text-core-muted">Lernen, das wirklich bleibt</p>
-        <h2 id="help-intro-heading" className="core-heading-1 mt-4 text-core-text">Wir wollen Lernen verbessern.</h2>
+        <h2 id="help-intro-heading" className="core-heading-1 text-core-text">Wir wollen Lernen verbessern.</h2>
         <p className="mt-6 core-body-large leading-8 text-core-secondary">
           CoRe hilft dir, Wissen nicht nur für den nächsten Test, sondern langfristig abrufbar zu machen. Dafür verbinden wir zwei etablierte Methoden und entwickeln sie weiter.
         </p>
@@ -564,10 +551,7 @@ function ActiveRecallStory() {
 
   return (
     <section className="grid min-w-0 gap-8" aria-labelledby="active-recall-heading">
-      <div className="max-w-3xl">
-        <p className="core-caption font-medium text-core-muted">Methode 1</p>
-        <h2 id="active-recall-heading" className="core-heading-1 mt-3 scroll-mt-6 text-core-text">Active Recall</h2>
-      </div>
+      <h2 id="active-recall-heading" className="core-heading-1 max-w-3xl scroll-mt-6 text-core-text">Active Recall</h2>
       <div ref={containerRef} className="grid min-w-0 gap-8 xl:grid-cols-[minmax(0,0.9fr)_minmax(20rem,1.1fr)] xl:gap-12">
         <div className="min-w-0 self-start xl:sticky xl:top-6">
           <ActiveRecallVisual activeIndex={activeIndex} />
@@ -749,8 +733,7 @@ function SpacedRepetitionStory() {
   return (
     <section className="grid min-w-0 gap-8" aria-labelledby="spaced-repetition-heading">
       <div className="max-w-3xl">
-        <p className="core-caption font-medium text-core-muted">Methode 2</p>
-        <h2 id="spaced-repetition-heading" className="core-heading-1 mt-3 scroll-mt-6 text-core-text">Spaced Repetition findet den passenden Zeitpunkt</h2>
+        <h2 id="spaced-repetition-heading" className="core-heading-1 scroll-mt-6 text-core-text">Spaced Repetition findet den passenden Zeitpunkt</h2>
         <p className="mt-4 core-body-large leading-7 text-core-secondary">Bei Spaced Repetition werden Fragen in gezielt gewählten Abständen wiederholt, um dem Vergessen entgegenzuwirken. CoRe nutzt dafür den FSRS-Algorithmus, der anhand verschiedener Parameter berechnet, wie wahrscheinlich du dich noch an eine Karte erinnerst.</p>
       </div>
       <div ref={containerRef} className="grid min-w-0 gap-8 xl:grid-cols-[minmax(19rem,0.65fr)_minmax(38rem,1.35fr)] xl:gap-10">
@@ -770,15 +753,12 @@ function SpacedRepetitionStory() {
 function ReferenceSection() {
   return (
     <section className="grid min-w-0 gap-8" aria-labelledby="reference-heading">
-      <div>
-        <p className="core-caption font-medium text-core-muted">Zum Nachlesen</p>
-        <h2 id="reference-heading" className="core-heading-1 mt-3 text-core-text">Das Wichtigste auf einen Blick</h2>
-      </div>
+      <h2 id="reference-heading" className="core-heading-1 text-core-text">Das Wichtigste auf einen Blick</h2>
 
       <div className="grid gap-4 lg:grid-cols-2">
         <SoftPanel className="p-6">
           <div className="flex items-center gap-3">
-            <OrbIcon icon={Clock3} />
+            <Clock3 size={20} aria-hidden="true" className="shrink-0 text-core-secondary" />
             <h3 className="core-heading-2 text-core-text">So arbeitet ein Spaced-Repetition-Scheduler</h3>
           </div>
           <ol className="mt-6 border-t border-core-border">
@@ -796,7 +776,7 @@ function ReferenceSection() {
 
         <SoftPanel className="p-6">
           <div className="flex items-center gap-3">
-            <OrbIcon icon={ShieldCheck} />
+            <ShieldCheck size={20} aria-hidden="true" className="shrink-0 text-core-secondary" />
             <h3 className="core-heading-2 text-core-text">Transparenz zum aktuellen Scheduler</h3>
           </div>
           <p className="mt-6 core-body leading-6 text-core-secondary">
@@ -810,7 +790,7 @@ function ReferenceSection() {
 
       <SoftPanel className="p-6" data-testid="help-exam-session">
         <div className="flex items-center gap-3">
-          <OrbIcon icon={CalendarCheck} />
+          <CalendarCheck size={20} aria-hidden="true" className="shrink-0 text-core-secondary" />
           <h3 className="core-heading-2 text-core-text">So läuft eine Prüfungssitzung</h3>
         </div>
         <ul className="mt-4 grid gap-3 core-body leading-6 text-core-secondary lg:grid-cols-2 lg:gap-x-8">
@@ -823,7 +803,7 @@ function ReferenceSection() {
 
       <SoftPanel className="p-6" data-testid="help-card-management">
         <div className="flex items-center gap-3">
-          <OrbIcon icon={Layers} />
+          <Layers size={20} aria-hidden="true" className="shrink-0 text-core-secondary" />
           <h3 className="core-heading-2 text-core-text">So arbeitest du in der Kartenverwaltung</h3>
         </div>
         <ul className="mt-4 grid gap-3 core-body leading-6 text-core-secondary lg:grid-cols-2 lg:gap-x-8">
@@ -847,7 +827,7 @@ function ReferenceSection() {
       <div className="grid gap-6 lg:grid-cols-[1fr_0.8fr]" aria-label="Sichere Varianten und weiterführende Informationen">
         <SoftPanel className="p-6">
           <div className="flex items-center gap-3">
-            <OrbIcon icon={RotateCcw} />
+            <RotateCcw size={20} aria-hidden="true" className="shrink-0 text-core-secondary" />
             <h3 className="core-heading-2 text-core-text">Was bei Varianten geschützt bleibt</h3>
           </div>
           <ul className="mt-4 grid gap-3 core-body leading-6 text-core-secondary">
@@ -861,7 +841,7 @@ function ReferenceSection() {
 
         <div className="border-y border-core-border py-6">
           <div className="flex items-center gap-3">
-            <OrbIcon icon={Brain} />
+            <Brain size={20} aria-hidden="true" className="shrink-0 text-core-secondary" />
             <h3 className="core-heading-2 text-core-text">Mehr über FSRS</h3>
           </div>
           <p className="mt-4 core-body leading-6 text-core-secondary">Die offizielle Einführung erklärt das vollständige FSRS-Modell, seine Modellparameter und die Zielerinnerung.</p>
@@ -878,8 +858,10 @@ function ReferenceSection() {
 export function HelpScreen() {
   return (
     <div className="grid min-w-0 gap-24 pb-16">
-      <PageHeader title="Wie CoRe dein Lernen stärkt" />
-      <IntroSection />
+      <div className="grid min-w-0 gap-16">
+        <PageHeader title="Wie CoRe dein Lernen stärkt" />
+        <IntroSection />
+      </div>
       <ActiveRecallStory />
       <SpacedRepetitionStory />
       <ReferenceSection />
