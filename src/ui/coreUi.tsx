@@ -3,7 +3,7 @@ import { createPortal } from "react-dom";
 import { Ban, Check, Minus, Star } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import type { CoreMode } from "../coreTypes.ts";
-import { ActionButton } from "./actionUi.tsx";
+import { ActionButton, CrossLinkButton } from "./actionUi.tsx";
 import { CoreSwitch } from "./formControls.tsx";
 import { CoreTooltip } from "./tooltipUi.tsx";
 
@@ -234,7 +234,7 @@ export function StatTile({
  * line of `Heute`: it stands above the title and is read as the start of the heading. `tag` marks a state of the
  * whole page (a `CoreTag`) beside the title without becoming part of the heading's name.
  */
-export function PageHeader({ title, action, greeting, tag }: { title: ReactNode; action?: ReactNode; greeting?: string; tag?: ReactNode }) {
+export function PageHeader({ title, action, greeting, tag, back }: { title: ReactNode; action?: ReactNode; greeting?: string; tag?: ReactNode; back?: { label: string; onSelect: () => void } }) {
   const heading = (
     <h2 className="core-heading-1 text-core-text outline-none" data-screen-heading tabIndex={-1}>
       {greeting ? <span className="sr-only">{`${greeting} `}</span> : null}
@@ -244,6 +244,7 @@ export function PageHeader({ title, action, greeting, tag }: { title: ReactNode;
   return (
     <header className={action ? "core-page-header-with-action flex min-w-0 items-end justify-between gap-3" : "min-w-0"}>
       <div className="min-w-0 space-y-1">
+        {back ? <div className="core-page-header-back"><CrossLinkButton direction="back" onSelect={back.onSelect}>{back.label}</CrossLinkButton></div> : null}
         {greeting ? <p aria-hidden="true" className="core-status-label text-core-muted">{greeting}</p> : null}
         {tag ? <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1">{heading}{tag}</div> : heading}
       </div>

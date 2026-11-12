@@ -1,5 +1,5 @@
 import React from "react";
-import { ChevronRight, LoaderCircle, type LucideIcon } from "lucide-react";
+import { ArrowLeft, ChevronRight, LoaderCircle, type LucideIcon } from "lucide-react";
 
 const ACTION_VARIANT_CLASS = {
   primary: "core-action-primary",
@@ -64,6 +64,8 @@ export const IconButton = React.forwardRef<HTMLButtonElement, IconButtonProps>(f
 interface CrossLinkBaseProps {
   children: React.ReactNode;
   className?: string;
+  /** `back` leads with an arrow to the parent surface instead of the trailing chevron. */
+  direction?: "forward" | "back";
 }
 
 export type CrossLinkButtonProps = CrossLinkBaseProps & (
@@ -73,8 +75,13 @@ export type CrossLinkButtonProps = CrossLinkBaseProps & (
 
 const CROSS_LINK_CLASS = "inline-flex min-h-button items-center gap-1 whitespace-nowrap rounded-control px-1 core-control-label font-semibold text-core-action underline-offset-4 hover:underline";
 
-export function CrossLinkButton({ children, className = "", ...action }: CrossLinkButtonProps) {
-  const content = (
+export function CrossLinkButton({ children, className = "", direction = "forward", ...action }: CrossLinkButtonProps) {
+  const content = direction === "back" ? (
+    <>
+      <ArrowLeft size={15} aria-hidden="true" />
+      {children}
+    </>
+  ) : (
     <>
       {children}
       <ChevronRight size={15} aria-hidden="true" />

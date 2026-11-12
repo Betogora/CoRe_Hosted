@@ -58,3 +58,10 @@ test("CrossLinkButton centralizes the compact cross-link style for buttons and a
   assert.match(markup, /text-core-action[^"]*hover:underline/, "Textlink in Handlungsblau, beim Hovern unterstrichen");
   assert.doesNotMatch(markup, /bg-core-subtle|hover:bg-/, "ohne Füllfläche");
 });
+
+test("CrossLinkButton leads back to the parent surface with an arrow before its label", () => {
+  const markup = renderToStaticMarkup(<CrossLinkButton direction="back" onSelect={() => undefined}>Erstellen</CrossLinkButton>);
+
+  assert.match(markup, /<button type="button"[^>]*><svg[^>]*lucide-arrow-left[\s\S]*?<\/svg>Erstellen<\/button>/);
+  assert.doesNotMatch(markup, /lucide-chevron-right/);
+});
