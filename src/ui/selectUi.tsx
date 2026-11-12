@@ -180,7 +180,7 @@ function SpecialOptionIcon({ option }: { option: DeckSelectSpecialOption }) {
   const danger = option.tone === "danger";
 
   return (
-    <span className={`grid size-7 shrink-0 place-items-center rounded-inset border ${danger ? "border-core-danger bg-core-danger-soft text-core-danger" : "border-core-border bg-core-subtle text-core-muted"}`}>
+    <span className={`grid size-7 shrink-0 place-items-center ${danger ? "text-core-danger" : "text-core-muted"}`}>
       <Icon size={14} aria-hidden="true" />
     </span>
   );

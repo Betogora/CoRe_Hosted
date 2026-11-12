@@ -251,8 +251,8 @@ export function CardEditorContentTab({ graph, card, mediaUrls, mediaStore, daySt
   saveRef.current = save;
 
   return (
-    <div ref={containerRef} className="flex min-h-full min-w-0 flex-col" data-testid="card-content-tab">
-      <div className="grid min-w-0 flex-1 content-start gap-4 p-4 sm:p-6">
+    <div ref={containerRef} className="flex min-w-0 flex-1 flex-col" data-testid="card-content-tab">
+      <div className="core-card-editor-content">
         <NoteContentEditor
           note={baseGraph.note}
           value={form}
@@ -280,7 +280,7 @@ export function CardEditorContentTab({ graph, card, mediaUrls, mediaStore, daySt
         <NoteMediaList graph={graph} mediaUrls={mediaUrls} services={services} />
       </div>
       {active ? (
-        <footer className="sticky bottom-0 z-10 flex min-w-0 flex-wrap items-center gap-3 border-t border-core-border bg-core-raised px-4 py-3 pb-[max(.75rem,env(safe-area-inset-bottom))] sm:px-6" data-testid="card-draft-footer">
+        <footer className="core-card-editor-footer" data-testid="card-draft-footer">
           <p className={`min-w-0 flex-1 basis-64 core-body ${saveError ? "core-status-error" : "text-core-secondary"}`} role={saveError ? "alert" : "status"} aria-live="polite" data-testid="draft-change-summary">
             {saveStatus || summary || (dirty ? "Ungespeicherte Änderungen." : "")}
           </p>

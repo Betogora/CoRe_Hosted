@@ -336,13 +336,16 @@ test("[Vertrag: modale Kartenvorschau] @beta-core Erstellung und Editor zeigen d
   expect((await editorRevealedBody.innerText()).match(/Ungespeicherte Editorfrage/g)).toHaveLength(1);
   expect((await editorRevealedBody.innerText()).match(/Ungespeicherte Editorantwort/g)).toHaveLength(1);
 
-  // Crossing 1280 px keeps the docked editor while the draft is unsaved, so the draft survives; saving lets it follow.
-  await page.setViewportSize({ width: 390, height: 844 });
+  // The editor is a centred dialog from 1024 px and full screen below; crossing the width keeps the unsaved draft.
   const editorDialog = page.getByTestId("card-detail-dialog");
-  await expect(editorDialog).toHaveAttribute("data-docked", "true");
+  const wideBox = await editorDialog.boundingBox();
+  expect(wideBox).not.toBeNull();
+  expect(wideBox!.width).toBeLessThanOrEqual(961);
+  expect(wideBox!.x).toBeGreaterThan(100);
+  await page.setViewportSize({ width: 390, height: 844 });
   await expect(page.getByRole("textbox", { name: "Feld Vorderseite", exact: true })).toContainText("Ungespeicherte Editorfrage");
   await page.getByRole("textbox", { name: "Feld Vorderseite", exact: true }).press("Control+Enter");
-  await expect(editorDialog).not.toHaveAttribute("data-docked", "true");
+  await expect(page.getByText("Karte wurde erfolgreich gespeichert.", { exact: true })).toBeVisible();
   await expect(page.getByRole("textbox", { name: "Feld Vorderseite", exact: true })).toContainText("Ungespeicherte Editorfrage");
   const mobileBox = await editorDialog.boundingBox();
   expect(mobileBox).not.toBeNull();
@@ -434,7 +437,7 @@ test("[Vertrag: typgerechter Reverse-Lebenszyklus] @beta-core Reverse erzeugt zw
   expect(reverse!.variants).toHaveLength(0);
 
   await openCreatedCardEditor(page, deck);
-  await expect(page.getByTestId("card-detail-editor")).toContainText("2 Karten aus diesem Inhalt");
+  await expect(page.getByTestId("card-sibling-position")).toContainText("2 Karten aus diesem Inhalt");
   await expect(page.getByRole("textbox", { name: "Feld Vorderseite", exact: true })).toContainText("Reverse vorne alt");
   await page.getByRole("textbox", { name: "Feld Vorderseite", exact: true }).fill("Reverse vorne neu");
   await page.getByRole("textbox", { name: "Feld Rückseite", exact: true }).fill("Reverse hinten neu");

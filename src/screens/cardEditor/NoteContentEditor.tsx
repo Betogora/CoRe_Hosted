@@ -3,7 +3,7 @@ import { ArrowDown, ArrowUp, Keyboard, PlusSquare, X } from "lucide-react";
 import { addNoteField, canRemoveNoteField, isMovableNoteField, moveNoteField, noteBlocks, removeNoteField, renameNoteField, setNoteFieldRole, setNoteReverse, setNoteTypeIn, validateNoteEditorValue, type AddableFieldRole, type NoteEditorErrors, type NoteEditorValue } from "../../coreModel.ts";
 import type { Card, Note, NoteContent } from "../../coreTypes.ts";
 import { IconButton } from "../../ui/actionUi.tsx";
-import { CoreSegmentedControl, SoftPanel } from "../../ui/coreUi.tsx";
+import { CoreSegmentedControl } from "../../ui/coreUi.tsx";
 import { CoreCheckbox, CoreRadio } from "../../ui/formControls.tsx";
 import { NOTE_FIELD_ROLE_LABELS, NoteBlockControls } from "../../ui/NoteBlockControls.tsx";
 import { NoteCardContent } from "../../ui/NoteCardContent.tsx";
@@ -121,7 +121,7 @@ export function NoteContentEditor({ note, value, structure, onValueChange, onStr
 
   const fields = (
     <div className="grid min-w-0 content-start gap-4" inert={disabled}>
-      <div className="flex min-w-0 flex-wrap items-center gap-x-4 gap-y-2" data-testid="note-direction">
+      <div className="core-card-editor-pane-head flex min-w-0 flex-wrap items-center gap-x-4 gap-y-2" data-testid="note-direction">
         <h3 className="core-heading-3 text-core-text">{noteKindLabel({ content: structure })}</h3>
         {structureEditable && blocks.reverse !== null ? (
           <CoreSegmentedControl
@@ -148,17 +148,17 @@ export function NoteContentEditor({ note, value, structure, onValueChange, onStr
           </span>
         );
         return (
-          <div key={field.id} className="grid min-w-0 gap-2 core-body font-semibold text-core-secondary">
+          <div key={field.id} className="grid min-w-0 gap-2 core-body font-medium text-core-secondary">
             {structureEditable && canRemoveNoteField(structure, field.id) && field.id !== "front" && field.id !== "back" ? (
               <div className="flex min-w-0 flex-wrap items-end gap-2">
                 <label className="grid min-w-0 flex-1 basis-48 gap-1">
-                  <span className="core-caption font-semibold text-core-muted">{FIELD_ROLE_NAMES[field.role]} · Feldname</span>
+                  <span className="core-caption font-medium text-core-muted">{FIELD_ROLE_NAMES[field.role]} · Feldname</span>
                   <input className="min-h-control min-w-0 rounded-control border border-core-border bg-core-surface px-3" value={field.name} onChange={(event) => onStructureChange(renameNoteField(structure, field.id, event.target.value))} aria-label={`Name von ${field.name}`} />
                 </label>
                 {isMovableNoteField(field) ? (
                   <>
                     <label className="grid gap-1">
-                      <span className="core-caption font-semibold text-core-muted">Rolle</span>
+                      <span className="core-caption font-medium text-core-muted">Rolle</span>
                       <CoreSelect
                         ariaLabel={`Rolle von ${field.name}`}
                         value={field.role}
@@ -192,7 +192,7 @@ export function NoteContentEditor({ note, value, structure, onValueChange, onStr
       })}
       {choiceMode ? (
         <fieldset className="grid gap-3 rounded-control border border-core-border bg-core-surface p-4">
-          <legend className="px-1 core-body font-semibold text-core-secondary">Antwortoptionen und {choiceMode === "single" ? "richtige Antwort" : "richtige Antworten"}</legend>
+          <legend className="px-1 core-body font-medium text-core-secondary">Antwortoptionen und {choiceMode === "single" ? "richtige Antwort" : "richtige Antworten"}</legend>
           {options.map((option, index) => (
             <div key={option.id} className="flex min-w-0 items-center gap-2">
               {choiceMode === "single"
@@ -227,7 +227,7 @@ export function NoteContentEditor({ note, value, structure, onValueChange, onStr
     </div>
   ) : (
     <section className="grid min-w-0 content-start gap-4" aria-label="Live-Vorschau" data-testid="card-live-preview">
-      <div className="flex min-w-0 flex-wrap items-center justify-between gap-2">
+      <div className="core-card-editor-pane-head flex min-w-0 flex-wrap items-center justify-between gap-2">
         {previewCards.length > 1 ? (
           <CoreSelect
             ariaLabel="Karte in der Vorschau"
@@ -258,9 +258,9 @@ export function NoteContentEditor({ note, value, structure, onValueChange, onStr
   return (
     <div className="grid min-w-0 gap-4">
       <CoreSegmentedControl ariaLabel="Ansicht" options={MOBILE_OPTIONS} value={mobileView} onValueChange={setMobileView} className="core-segmented-touch w-full md:hidden" />
-      <div className="grid min-w-0 gap-4 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] md:items-start">
-        <SoftPanel className={`p-4 sm:p-6 ${mobileView === "edit" ? "" : "hidden md:block"}`}>{fields}</SoftPanel>
-        <SoftPanel className={`p-4 sm:p-6 ${mobileView === "preview" ? "" : "hidden md:block"} md:sticky md:top-0`}>{previewColumn}</SoftPanel>
+      <div className="core-card-editor-panes">
+        <div className={mobileView === "edit" ? "min-w-0" : "hidden min-w-0 md:block"}>{fields}</div>
+        <div className={`${mobileView === "preview" ? "min-w-0" : "hidden min-w-0 md:block"} md:sticky md:top-5`}>{previewColumn}</div>
       </div>
     </div>
   );

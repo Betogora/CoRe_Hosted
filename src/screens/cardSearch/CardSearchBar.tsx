@@ -2,6 +2,7 @@ import React from "react";
 import { Layers, ListFilter, Search, X } from "lucide-react";
 import { cardSearchGroupMembers, cardSearchTerms, cardSearchText, withCardSearchTermState, withCardSearchText, withoutCardSearchItem } from "./cardSearchExpression.ts";
 import type { Deck } from "../../coreTypes.ts";
+import { CrossLinkButton } from "../../ui/actionUi.tsx";
 import { DeckSelect } from "../../ui/selectUi.tsx";
 import { cardSearchTermLabel, type CardSearchMenuCategory } from "./cardSearchMenu.ts";
 
@@ -111,7 +112,7 @@ export function CardSearchBar({ query, onQueryChange, decks, categories, advance
               })}
             </ul>
           ) : null}
-          {terms.length ? <button type="button" className="ml-1.5 core-body font-semibold text-core-action hover:underline" onClick={() => onQueryChange(cardSearchText(query))}>Alle zurücksetzen</button> : null}
+          {terms.length ? <CrossLinkButton className="ml-1" onSelect={() => onQueryChange(cardSearchText(query))}>Alle zurücksetzen</CrossLinkButton> : null}
           {resultAction ? <div className="ml-auto shrink-0">{resultAction}</div> : null}
         </div>
       ) : null}

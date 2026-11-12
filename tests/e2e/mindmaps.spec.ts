@@ -193,11 +193,11 @@ test("Gestalten enthält Zeichnen, Radieren und Schreiben mit Farben und Strichs
 
 test("Zusammenfassungsquellen und Entwurfsschutz bleiben im neuen Editor erhalten", async ({ page }) => {
   await page.goto("./docs/ui-elements.html?preview=screens"); await page.getByRole("button", { name: "Stapelinhalte öffnen", exact: true }).click();
-  const tabs = page.getByRole("group", { name: "Stapelinhalte", exact: true }); await tabs.getByRole("button", { name: "Mind Map", exact: true }).click();
+  const tabs = page.getByRole("tablist", { name: "Stapelinhalte", exact: true }); await tabs.getByRole("tab", { name: "Mind Map", exact: true }).click();
   const panel = page.getByTestId("deck-mindmaps-panel"); await root(panel, "Mein Entwurf"); await save(panel); await node(panel, "Mein Entwurf").dblclick();
   await page.evaluate(() => { const put = IDBDatabase.prototype.transaction; IDBDatabase.prototype.transaction = function (...args: Parameters<IDBDatabase["transaction"]>) { const tx = put.apply(this, args); if (args[1] === "readwrite") Object.defineProperty(tx, "oncomplete", { set(handler: (event: Event) => void) { tx.addEventListener("complete", (event) => setTimeout(() => handler.call(tx, event), 1500)); } }); return tx; }; });
-  await panel.getByRole("textbox", { name: "Kartentext bearbeiten" }).fill("Noch nicht fertig gespeichert"); await tabs.getByRole("button", { name: "Karten", exact: true }).click();
-  const dialog = page.getByRole("dialog", { name: "Änderungen übernehmen?", exact: true }); await dialog.getByRole("button", { name: "Speichern", exact: true }).click(); await tabs.getByRole("button", { name: "Mind Map", exact: true }).click();
+  await panel.getByRole("textbox", { name: "Kartentext bearbeiten" }).fill("Noch nicht fertig gespeichert"); await tabs.getByRole("tab", { name: "Karten", exact: true }).click();
+  const dialog = page.getByRole("dialog", { name: "Änderungen übernehmen?", exact: true }); await dialog.getByRole("button", { name: "Speichern", exact: true }).click(); await tabs.getByRole("tab", { name: "Mind Map", exact: true }).click();
   await expect(node(panel, "Mein Entwurf")).toBeVisible();
   await page.getByRole("button", { name: "Produktansicht schließen", exact: true }).click();
   await page.getByRole("button", { name: "Mindmaps öffnen", exact: true }).click();
@@ -236,17 +236,17 @@ test("Mehrfachauswahl per Antippen erstellt Gruppen ohne Tastaturmodifikator", a
 
 test("Ein laufender Bildimport wird vor dem Speichern beim Tabwechsel vollständig übernommen", async ({ page }) => {
   await page.goto("./docs/ui-elements.html?preview=screens"); await page.getByRole("button", { name: "Stapelinhalte öffnen", exact: true }).click();
-  const tabs = page.getByRole("group", { name: "Stapelinhalte", exact: true }); await tabs.getByRole("button", { name: "Mind Map", exact: true }).click();
+  const tabs = page.getByRole("tablist", { name: "Stapelinhalte", exact: true }); await tabs.getByRole("tab", { name: "Mind Map", exact: true }).click();
   const panel = page.getByTestId("deck-mindmaps-panel"); await root(panel, "Bildnotiz"); await node(panel, "Bildnotiz").dblclick();
   await panel.getByRole("group", { name: "Kastenart", exact: true }).getByRole("button", { name: "Textkarte", exact: true }).click(); await finish(panel); await save(panel);
   await node(panel, "Bildnotiz").dblclick();
   await page.evaluate(() => { const digest = crypto.subtle.digest.bind(crypto.subtle); crypto.subtle.digest = (...args: Parameters<SubtleCrypto["digest"]>) => new Promise((resolve) => setTimeout(() => resolve(digest(...args)), 1500)); });
   await panel.getByLabel("Bild hinzufügen", { exact: true }).setInputFiles(image);
   await expect(panel).toContainText("Bilder werden geladen");
-  await tabs.getByRole("button", { name: "Karten", exact: true }).click();
+  await tabs.getByRole("tab", { name: "Karten", exact: true }).click();
   await page.getByRole("dialog", { name: "Änderungen übernehmen?", exact: true }).getByRole("button", { name: "Speichern", exact: true }).click();
-  await tabs.getByRole("button", { name: "Mind Map", exact: true }).click(); await expect(node(panel, "Bildnotiz").locator("img")).toBeVisible();
-  await page.reload(); await page.getByRole("button", { name: "Stapelinhalte öffnen", exact: true }).click(); await tabs.getByRole("button", { name: "Mind Map", exact: true }).click();
+  await tabs.getByRole("tab", { name: "Mind Map", exact: true }).click(); await expect(node(panel, "Bildnotiz").locator("img")).toBeVisible();
+  await page.reload(); await page.getByRole("button", { name: "Stapelinhalte öffnen", exact: true }).click(); await tabs.getByRole("tab", { name: "Mind Map", exact: true }).click();
   await expect(node(panel, "Bildnotiz").locator("img")).toBeVisible();
 });
 
@@ -442,7 +442,7 @@ test("Mindmap-Werkzeuge und Erstellungsoptionen: visuelle Pflichtmatrix", async 
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.getByRole("button", { name: "Stapelinhalte öffnen", exact: true }).click();
   const product = page.locator(".catalog-product-preview");
-  await product.getByRole("group", { name: "Stapelinhalte", exact: true }).getByRole("button", { name: "Mind Map", exact: true }).click();
+  await product.getByRole("tablist", { name: "Stapelinhalte", exact: true }).getByRole("tab", { name: "Mind Map", exact: true }).click();
   await expect(product.getByTestId("mindmap-canvas")).toBeVisible();
   for (const width of [390, 1440]) {
     await page.setViewportSize({ width, height: 900 });

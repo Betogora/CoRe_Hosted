@@ -33,8 +33,8 @@ const formatInstant = (iso: string) => new Date(iso).toLocaleDateString("de-DE",
 
 function DetailRow({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <div className="grid min-h-control min-w-0 grid-cols-[8rem_minmax(0,1fr)_auto] items-center gap-x-3">
-      <dt className="core-body text-core-muted">{label}</dt>
+    <div className="core-card-editor-row">
+      <dt>{label}</dt>
       {children}
     </div>
   );
@@ -44,7 +44,7 @@ function CopyableId({ label, value }: { label: string; value: string }) {
   const [copied, setCopied] = React.useState(false);
   return (
     <DetailRow label={label}>
-      <dd className="min-w-0 truncate font-mono core-body text-core-text">{value}</dd>
+      <dd className="truncate font-mono">{value}</dd>
       <CoreTooltip label={copied ? "Kopiert" : "Kopieren"}>
         <IconButton icon={copied ? Check : Copy} variant="ghost" label={`${label} kopieren`} onClick={() => {
           void navigator.clipboard?.writeText(value).then(() => {
@@ -217,12 +217,12 @@ export function CardEditorGeneralTab({ decks, graph, card, now, dayStartHour, ti
   const moveTargets = React.useMemo(() => decks.filter((candidate) => !candidate.deletedAt).map((candidate) => candidate.id), [decks]);
 
   return (
-    <div className="grid min-w-0 gap-4 p-4 sm:p-6 md:grid-cols-2 md:items-start" data-testid="card-general-tab">
-      <div className="grid min-w-0 gap-4">
+    <div className="core-card-editor-sections" data-testid="card-general-tab">
+      <div className="core-card-editor-column">
         <Section title="Flagge" testId="card-flag">
           <FlagPicker value={card.ankiFlag} names={services.flagNames} onValueChange={onSetFlag} onEditNames={services.openFlagNames} />
           <div className="flex min-h-control items-center justify-between gap-3 border-t border-core-border pt-3">
-            <span className="core-body font-semibold text-core-text">Markiert</span>
+            <span className="core-body font-medium text-core-text">Markiert</span>
             <CoreTooltip label="Markieren · Strg+K">
               <CardMarkButton marked={note.marked} onMarkedChange={onSetMarked} />
             </CoreTooltip>
@@ -240,7 +240,7 @@ export function CardEditorGeneralTab({ decks, graph, card, now, dayStartHour, ti
           </div>
           <div className="flex min-w-0 flex-wrap items-end gap-3">
             <label className="core-field-group min-w-0 flex-1 basis-48">
-              <span className="core-field-label inline-flex items-center gap-2 font-semibold"><CalendarDays size={17} aria-hidden="true" />Nächste Fälligkeit</span>
+              <span className="core-field-label inline-flex items-center gap-2"><CalendarDays size={17} aria-hidden="true" />Nächste Fälligkeit</span>
               <CoreDatePicker id={`card-due-date-${card.id}`} ariaLabel="Nächste Fälligkeit" value={date} min={minimumKey} today={todayKey} onValueChange={(value) => { setDate(value); setError(""); }} />
             </label>
             {canReschedule ? <ActionButton variant="primary" loading={busy === "reschedule"} onClick={() => void reschedule()}>Neu planen</ActionButton> : null}
@@ -267,7 +267,7 @@ export function CardEditorGeneralTab({ decks, graph, card, now, dayStartHour, ti
         </Section>
         {error ? <p className="core-status-error core-body" role="alert">{error}</p> : null}
       </div>
-      <div className="grid min-w-0 gap-4">
+      <div className="core-card-editor-column">
         <Section title="Tags" testId="card-tags">
           <TagInput tags={note.content.tags} importedTags={note.importedTags ?? []} loadDirectory={services.listTagDirectory} label="Tags bearbeiten" labelHidden onChange={(tags, change) => void changeTags(tags, change)} disabled={busy === "tags"} />
         </Section>
@@ -315,10 +315,10 @@ export function CardEditorGeneralTab({ decks, graph, card, now, dayStartHour, ti
           </Section>
         ) : null}
         <Section title="Details" testId="card-details">
-          <dl className="grid divide-y divide-core-border">
-            <DetailRow label="Quelle"><dd className="col-span-2 min-w-0 core-body text-core-text">{note.source === "anki-apkg" ? "Anki-Import" : "Eigener Inhalt"}</dd></DetailRow>
-            <DetailRow label="Prüfung"><dd className="col-span-2 min-w-0 core-body text-core-text">{exams === null ? "…" : exams.length ? exams.join(", ") : "Keine"}</dd></DetailRow>
-            <DetailRow label="Erstellt"><dd className="col-span-2 min-w-0 core-body text-core-text">{formatInstant(card.createdAt)}</dd></DetailRow>
+          <dl className="core-card-editor-rows">
+            <DetailRow label="Quelle"><dd>{note.source === "anki-apkg" ? "Anki-Import" : "Eigener Inhalt"}</dd></DetailRow>
+            <DetailRow label="Prüfung"><dd>{exams === null ? "…" : exams.length ? exams.join(", ") : "Keine"}</dd></DetailRow>
+            <DetailRow label="Erstellt"><dd>{formatInstant(card.createdAt)}</dd></DetailRow>
             <CopyableId label="Karten-ID" value={card.id} />
             <CopyableId label="Inhalts-ID" value={note.id} />
             {card.ankiCardId ? <CopyableId label="Anki-Karten-ID" value={card.ankiCardId} /> : null}

@@ -217,13 +217,6 @@ Bewertungsbuttons der Lernsitzung bleiben unverändert.
       Kopf und Zurück als Textlink; KI-Erstellung ohne Schritt-Eyebrows und
       Icon-Kacheln, Fragen als Feldlabels, einzeilige Optionskarten; Import
       mit Schrittlinie über die volle Kastenbreite und leichter Animation.
-- [ ] **D6 – Kartenverwaltung und Karteneditor:** Suche und Filter ohne Panel,
-      Tabelle als ein Blatt mit unveränderter Zeilenhöhe; Kopf der
-      Stapelinhalte mit Titel und `Karten lernen` auf einer Linie und
-      Unterstreichungs-Reitern; erweiterte Suche ohne Kasten im Kasten;
-      Karteneditor ab 1024 px als Dialog statt geteilter Ansicht, innen
-      Abschnitte mit Haarlinie, Lernstand als Zeilenliste ohne abgeschnittene
-      Beschriftungen und als Schrittlinie.
 - [ ] **D7 – Prüfungen und Einstellungen:** Kalender ohne Außenrahmen, Titel
       und Umschalter in einer Zeile, Prüfungs-Chip und verschiebbare
       Wochenaufgabe wie bisher; Planung mit Schrittlinie und sachlichen

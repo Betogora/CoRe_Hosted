@@ -1,5 +1,5 @@
 import React from "react";
-import { ArrowDown, ArrowLeft, ArrowUp, ChevronRight, CopyCheck, FileText, GraduationCap, Layers, ListChecks, Minus, Network, NotebookPen, PanelsTopLeft, Play, RotateCcw, Search, Star, CircleHelp, type LucideIcon } from "lucide-react";
+import { ArrowDown, ArrowUp, ChevronRight, CopyCheck, FileText, GraduationCap, Layers, ListChecks, Minus, Network, NotebookPen, PanelsTopLeft, Play, RotateCcw, Search, Star, CircleHelp, type LucideIcon } from "lucide-react";
 import type { CardDraftGuard, DecksCardPage, DecksScreenProps } from "../appScreenProps.ts";
 export type { DecksCardPage } from "../appScreenProps.ts";
 import { noteTextIndex } from "../coreModel.ts";
@@ -8,12 +8,14 @@ import { cancelFieldTiming, finishFieldTiming, startFieldTiming } from "../field
 import { CARD_TABLE_PAGE_SIZE, createCardSearchContext, createCardTableModel, createDeckLibraryModel, DEFAULT_CARD_TABLE_SORT, sameCardTableSort, type CardTableSort, type CardTableSortField } from "../libraryModel.ts";
 import { cardCount, createHitListModel, createPagedCardTableModel } from "./cardList/cardListModel.ts";
 import type { CardCatalogEntry, NoteGraph } from "../workspaceReplica.ts";
-import { ActionButton, IconButton } from "../ui/actionUi.tsx";
+import { ActionButton, CrossLinkButton } from "../ui/actionUi.tsx";
 import { useNoteMediaUrls } from "../ui/cardMedia.tsx";
 import { useStableCallback } from "../ui/useStableCallback.ts";
 import { useWorkspaceValue } from "../useWorkspaceStore.ts";
-import { ActionDialog, CoreSlidingTabs, CoreTag, EmptyState, SoftPanel } from "../ui/coreUi.tsx";
+import { ActionDialog, CoreTag, EmptyState, SoftPanel } from "../ui/coreUi.tsx";
+import { CoreTabPanel, CoreTabs } from "../ui/CoreTabs.tsx";
 import { DeckAppearanceIcon } from "../ui/deckAppearance.tsx";
+import { DialogFrame } from "../ui/DialogFrame.tsx";
 import { CoreCheckbox } from "../ui/formControls.tsx";
 import { useSuccessToast } from "../ui/feedbackUi.tsx";
 import { CoreTooltip } from "../ui/tooltipUi.tsx";
@@ -33,7 +35,7 @@ import { HitStudyDialog } from "./cardList/HitStudyDialog.tsx";
 import type { Card, Note } from "../coreTypes.ts";
 import { hitStudyQuery, orderHits, type HitStudyMode, type HitStudyOrder } from "../hitStudySession.ts";
 import type { CardBatchAction } from "../cardBatchActions.ts";
-import { CardEditorDialog, CardEditorSurface, type CardEditorHitNavigation } from "./cardEditor/CardEditorDialog.tsx";
+import { CardEditorDialog, cardEditorFrameClass, type CardEditorHitNavigation } from "./cardEditor/CardEditorDialog.tsx";
 import { DeckSubstacksPanel } from "./DeckSubstacksPanel.tsx";
 import { LearningAreaHeader } from "./LearningAreaHeader.tsx";
 
@@ -61,7 +63,7 @@ function DeckContentPlaceholder({ label, icon: Icon, title, action, testId }: { 
   return (
     <SoftPanel aria-label={label} className="flex min-h-[214px] items-center justify-center p-6 sm:p-10" data-testid={testId}>
       <div className="flex min-w-0 flex-col items-center gap-4 text-center">
-        <span className="grid size-12 place-items-center rounded-control bg-core-subtle text-core-action"><Icon size={22} aria-hidden="true" /></span>
+        <Icon size={22} className="text-core-secondary" aria-hidden="true" />
         <p className="core-heading-3 text-core-text" role="status">{title}</p>
         {action}
       </div>
@@ -106,7 +108,7 @@ function SortHeader({ field, label, sort, onChange, leading }: {
       <button
         type="button"
         onClick={() => onChange(field)}
-        className={`core-table-header-control flex w-full min-w-0 items-center ${headerGap} rounded-inset core-caption font-semibold text-core-muted hover:text-core-text focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--core-border-interactive)] ${rightAligned ? "justify-end" : ""}`}
+        className={`core-table-header-control flex w-full min-w-0 items-center ${headerGap} rounded-inset core-caption font-medium text-core-muted hover:text-core-text focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--core-border-interactive)] ${rightAligned ? "justify-end" : ""}`}
         aria-label={`${label} ${directionLabel} sortieren`}
       >
         <span className="min-w-0 truncate">{label}</span>
@@ -200,7 +202,7 @@ const CardTableRowView = React.memo(function CardTableRowView({ virtualKey, deck
           type="button"
           data-testid={"deck-card-" + card.id}
           aria-pressed={selected}
-          className="block !min-h-0 min-w-0 flex-1 truncate text-left core-body font-medium text-core-text focus-visible:rounded-inset focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--core-border-interactive)]"
+          className="block !min-h-0 min-w-0 flex-1 truncate text-left core-body text-core-text focus-visible:rounded-inset focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--core-border-interactive)]"
           onClick={activate}
         >
           {/* One compact line: the front, from sm on the deck path beside it, both cut with an ellipsis. */}
@@ -241,20 +243,6 @@ const CardTableRowView = React.memo(function CardTableRowView({ virtualKey, deck
 const DeckSummariesPanel = React.lazy(() => import("./DeckSummariesPanel.tsx").then((module) => ({ default: module.DeckSummariesPanel })));
 const DeckMindMapsPanel = React.lazy(() => import("./DeckMindMapsPanel.tsx").then((module) => ({ default: module.DeckMindMapsPanel })));
 const CONTENT_TAB_LOADING = <p className="p-6 core-body text-core-muted" role="status" data-testid="deck-content-tab-loading">Wird geladen …</p>;
-
-const WIDE_EDITOR_QUERY = "(min-width: 1280px)";
-
-function useWideEditor() {
-  return React.useSyncExternalStore(
-    (onChange) => {
-      const query = window.matchMedia(WIDE_EDITOR_QUERY);
-      query.addEventListener("change", onChange);
-      return () => query.removeEventListener("change", onChange);
-    },
-    () => window.matchMedia(WIDE_EDITOR_QUERY).matches,
-    () => false,
-  );
-}
 
 export function DecksScreen({
   decks,
@@ -314,11 +302,8 @@ export function DecksScreen({
     for (let row = contentRow; row; row = contentRowById.get(row.parentDeckId ?? "")) trail.push(row);
     return trail.reverse();
   }, [contentRow, contentRowById]);
-  const contentTabsRef = React.useRef<HTMLDivElement>(null);
   const contentNavigationRef = React.useRef<HTMLDivElement>(null);
-  React.useEffect(() => {
-    contentTabsRef.current?.querySelector('[aria-pressed="true"]')?.scrollIntoView({ block: "nearest", inline: "nearest" });
-  }, [contentTab]);
+  const contentPanelId = `${React.useId().replace(/:/g, "")}-deck-content`;
   React.useEffect(() => {
     if (!contentDeckId) return;
     const frame = window.requestAnimationFrame(() => {
@@ -385,7 +370,6 @@ export function DecksScreen({
   const [pendingDetailAction, setPendingDetailAction] = React.useState<PendingDetailAction | null>(null);
   const [savingPendingDraft, setSavingPendingDraft] = React.useState(false);
   const cardDraftGuardRef = React.useRef<CardDraftGuard | null>(null);
-  const detailRef = React.useRef<HTMLDivElement | null>(null);
   // Prev/next to a row whose page is not loaded yet: it opens once the page arrives.
   const [pendingHit, setPendingHit] = React.useState<{ listKey: string; index: number } | null>(null);
   const previouslySelectedCardId = React.useRef<string | null>(null);
@@ -483,18 +467,9 @@ export function DecksScreen({
   // Until the page answers for the selected card the editor shows the loading bar, never "Karte nicht gefunden".
   const selectedCardLoading = selectedCardMissing && Boolean(onRequestCardPage) && !selectedPage?.loadError && selectedPage?.requestedCardId !== selectedCardId;
   const detailOpen = Boolean(selectedGraph || selectedDeckMissing || selectedCardMissing);
-  // From 1280 px the editor opens beside the list, which keeps its selection and scroll position (KV6).
-  const wideDetail = useWideEditor() && !(contentDeckId && contentTab !== "cards");
-  // Switching between docked and modal mounts the editor anew; while a draft is unsaved it keeps its mode instead.
-  const [lockedDock, setLockedDock] = React.useState<boolean | null>(null);
-  const dockedDetail = lockedDock ?? wideDetail;
-  const dockedDetailRef = React.useRef(dockedDetail);
-  dockedDetailRef.current = dockedDetail;
-  const splitDetail = dockedDetail && detailOpen;
   const { urls: selectedNoteMediaUrls } = useNoteMediaUrls(selectedGraph?.note.media, mediaStore);
   const handleEditorDraftStateChange = React.useCallback((guard: CardDraftGuard | null) => {
     cardDraftGuardRef.current = guard;
-    setLockedDock((locked) => guard ? locked ?? dockedDetailRef.current : null);
     onDraftStateChange(guard);
   }, [onDraftStateChange]);
 
@@ -580,20 +555,12 @@ export function DecksScreen({
   React.useEffect(() => {
     if (!detailOpen) return;
     previouslySelectedCardId.current = selectedCardId;
-    const frame = window.requestAnimationFrame(() => detailRef.current?.querySelector<HTMLElement>("[data-card-editor-heading]")?.focus() ?? detailRef.current?.focus());
+    const frame = window.requestAnimationFrame(() => document.querySelector<HTMLElement>('[data-testid="card-detail-dialog"] [data-card-editor-heading]')?.focus());
     return () => window.cancelAnimationFrame(frame);
   }, [detailOpen, selectedCardId]);
 
   React.useEffect(() => {
     if (!detailOpen) return;
-
-    // Nested dialogs and popovers handle their own Escape first (they prevent the default).
-    function handleEscape(event: KeyboardEvent) {
-      if (event.key !== "Escape" || event.defaultPrevented || pendingDetailAction || pendingCardDelete) return;
-      if (document.querySelector('[data-radix-popper-content-wrapper], [data-card-preview-overlay="true"]')) return;
-      event.preventDefault();
-      requestDetailAction(closeDetail);
-    }
 
     // A click beside the delete question cancels it and also closes the editor (specs.md#karten-löschen-und-duplizieren).
     function handleOutsidePointer(event: PointerEvent) {
@@ -606,13 +573,9 @@ export function DecksScreen({
       requestDetailAction(closeDetail);
     }
 
-    window.addEventListener("keydown", handleEscape);
     document.addEventListener("pointerdown", handleOutsidePointer, true);
-    return () => {
-      window.removeEventListener("keydown", handleEscape);
-      document.removeEventListener("pointerdown", handleOutsidePointer, true);
-    };
-  }, [deletingCard, detailOpen, pendingCardDelete, pendingDetailAction, selectedCardId, selectedDeckId]);
+    return () => document.removeEventListener("pointerdown", handleOutsidePointer, true);
+  }, [deletingCard, detailOpen, pendingCardDelete, selectedCardId, selectedDeckId]);
 
   function focusCardRow(cardId: string | null, preventScroll = false) {
     window.requestAnimationFrame(() => {
@@ -997,8 +960,6 @@ export function DecksScreen({
           mediaUrls={selectedNoteMediaUrls}
           mediaStore={mediaStore}
           services={cardEditor}
-          surfaceRef={detailRef}
-          docked={dockedDetail}
           onSaveNote={onSaveNote}
           onSetStudyState={(cardId, patch) => onSetCardStudyState(selectedDeck.id, cardId, patch)}
           onDuplicateNote={() => onDuplicateNote(selectedGraph)}
@@ -1017,16 +978,16 @@ export function DecksScreen({
     }
     if (selectedCardLoading) {
       return (
-        <CardEditorSurface label="Kartendetail" docked={dockedDetail} surfaceRef={detailRef}>
-          <div className="px-3 pt-3 sm:px-6 sm:pt-4" data-testid="card-detail-loading">
+        <DialogFrame open size="l" title="Karte" testId="card-detail-dialog" className={cardEditorFrameClass()} closeLabel="Detailansicht schließen" onClose={closeDetail}>
+          <div className="px-5 pt-5" data-testid="card-detail-loading">
             <div className="core-statistics-load-track" role="progressbar" aria-label="Karte wird geladen"><span aria-hidden="true" /></div>
           </div>
-        </CardEditorSurface>
+        </DialogFrame>
       );
     }
     return (
-      <CardEditorSurface label="Kartendetail" docked={dockedDetail} surfaceRef={detailRef}>
-        <div className="grid min-h-full place-items-center p-6">
+      <DialogFrame open size="l" title="Karte" testId="card-detail-dialog" className={cardEditorFrameClass()} closeLabel="Detailansicht schließen" onClose={closeDetail}>
+        <div className="grid flex-1 place-items-center p-6">
           {selectedDeckMissing ? (
             <EmptyState
               icon={Layers}
@@ -1057,14 +1018,230 @@ export function DecksScreen({
             />
           )}
         </div>
-      </CardEditorSurface>
+      </DialogFrame>
     );
   }
+
+  const content = contentDeckId && contentTab === "children" ? (
+    contentRow && contentLibrary ? contentRow.hasChildren ? <DeckSubstacksPanel key={contentRow.id} rows={contentLibrary.rows} current={contentRow}
+      onOpenDeck={(id) => onOpenDeckContent(id, "children")}
+      onStudy={onStartDeck} onOpenSettings={onOpenDeckSettings} onSetCoreMode={onSetDeckCoreMode} onMoveDeck={onMoveDeck} />
+      : <DeckContentPlaceholder label="Unterstapel" icon={Layers} title="Keine Unterstapel" testId="deck-content-substacks"
+        action={<ActionButton variant="secondary" icon={Play} disabled={!hasStudyCards} onClick={() => onStartDeck(contentRow.deck)}>Karten lernen</ActionButton>} />
+      : <EmptyState icon={Layers} title="Stapel nicht gefunden oder nicht verfügbar." />
+  ) : contentDeckId && contentTab === "summary" ? (
+    contentDeck ? <React.Suspense fallback={CONTENT_TAB_LOADING}><DeckSummariesPanel key={`${summaryAccountId ?? contentDeck.ownerId}:${contentDeck.id}`} deck={contentDeck}
+      userId={summaryAccountId ?? contentDeck.ownerId} cloud={learningContentCloud} onGenerateSummary={onGenerateSummary} onDraftStateChange={handleEditorDraftStateChange} /></React.Suspense>
+      : <EmptyState icon={FileText} title="Stapel nicht gefunden oder nicht verfügbar." />
+  ) : contentDeckId && contentTab === "mind-map" ? (
+    contentDeck ? <React.Suspense fallback={CONTENT_TAB_LOADING}><DeckMindMapsPanel key={`${summaryAccountId ?? contentDeck.ownerId}:${contentDeck.id}`} deck={contentDeck}
+      userId={summaryAccountId ?? contentDeck.ownerId} cloud={learningContentCloud} onGenerateSummary={onGenerateSummary} onDraftStateChange={handleEditorDraftStateChange} /></React.Suspense>
+      : <EmptyState icon={Network} title="Stapel nicht gefunden oder nicht verfügbar." />
+  ) : contentDeckId && contentTab !== "cards" ? (
+    <DeckContentPlaceholder label={selectedContentTab.label} icon={selectedContentTab.icon} title="Demnächst verfügbar" />
+  ) : <section className="grid min-w-0 gap-4" aria-label="Karten" data-testid="card-library-panel">
+      <div className="grid gap-4">
+        <CardSearchBar
+          query={query}
+          onQueryChange={changeQuery}
+          decks={libraryDecks}
+          categories={searchMenu}
+          advancedOpen={advancedSearchOpen}
+          onAdvancedOpenChange={setAdvancedSearchOpen}
+          advancedId="advanced-card-search"
+          resultCount={searchResultCount}
+          resultAction={canStudyHits && searchResultCount ? (
+            <CrossLinkButton onSelect={() => setHitStudy("hits")}><GraduationCap size={16} aria-hidden="true" />Treffer lernen</CrossLinkButton>
+          ) : undefined}
+          placeholder={contentDeckId ? "Vorderseite, Rückseite, Felder oder Tags durchsuchen" : "Stapel, Vorderseite, Rückseite, Felder oder Tags durchsuchen"}
+          hint={unsupportedTerms.length ? `Noch nicht unterstützt, wird als Text gesucht: ${unsupportedTerms.join(" ")}` : undefined}
+        >
+          {advancedSearchOpen ? (
+            <AdvancedCardSearch
+              id="advanced-card-search"
+              query={query}
+              onQueryChange={changeQuery}
+              categories={searchMenu}
+              resultCount={searchResultCount}
+              onClose={() => setAdvancedSearchOpen(false)}
+              savedSearches={savedSearches}
+              onSavedSearchesChange={onSavedSearchesChange}
+              onManageTags={onRunCardBatch && onListHitCardIds ? () => setTagManagerOpen(true) : undefined}
+            />
+          ) : null}
+        </CardSearchBar>
+        {hitStudy ? (
+          <HitStudyDialog
+            title={hitStudy === "selection" ? "Auswahl lernen" : "Treffer lernen"}
+            loadCardIds={loadHitStudyIds}
+            onStart={startHitStudy}
+            onClose={() => setHitStudy(null)}
+          />
+        ) : null}
+        {tagManagerOpen ? (
+          <TagManagerDialog
+            tags={tagDirectory}
+            onRename={async (from, to) => {
+              // Tags belong to the account: every deck, also the ones outside the list.
+              const deckIds = decks.filter((deck) => !deck.deletedAt).map((deck) => deck.id);
+              // The cloud directory follows only once the change is synchronized, so the list shows it locally;
+              // reopening the manager loads it again. Undoing a plain rename renames back, anything else reloads.
+              const merged = to !== null && tagDirectory.some((entry) => entry.tag.toLocaleLowerCase("und") === to.toLocaleLowerCase("und"));
+              const ran = await runCardBatchAction(() => onListHitCardIds!({ deckIds, query: `tag:${from}`, searchContext }), { kind: "tag-rename", from, to }, to === null ? "Tag löschen" : "Tag umbenennen", () => {
+                if (to !== null && !merged) setTagDirectory((entries) => renameDirectoryTag(entries, to, from));
+                else setTagDirectoryVersion((version) => version + 1);
+              });
+              if (ran) setTagDirectory((entries) => renameDirectoryTag(entries, from, to));
+            }}
+            onClose={() => setTagManagerOpen(false)}
+          />
+        ) : null}
+        {duplicatesOpen ? (
+          <DuplicatesDialog
+            searching={Boolean(deferredQuery.trim())}
+            find={findDuplicates}
+            deckName={(deckId) => deckNameById.get(deckId) ?? "Unbekannter Stapel"}
+            onOpen={(deckId, cardId) => {
+              setDuplicatesOpen(false);
+              requestCardSelection(deckId, cardId);
+            }}
+            onTag={async (cardIds) => {
+              await runCardBatchAction(async () => cardIds, { kind: "tags", add: ["Duplikat"], remove: [] }, "Duplikate taggen");
+            }}
+            onClose={() => setDuplicatesOpen(false)}
+          />
+        ) : null}
+        {practiceBodies ? <HitPractice bodies={practiceBodies} mediaStore={mediaStore} onClose={() => setPracticeBodies(null)} /> : null}
+        {deckStatus ? <p className={"core-body font-semibold " + (deckStatusType === "alert" ? "core-status-error" : "core-status-info")} role={deckStatusType}>{deckStatus}</p> : null}
+        {deletedCardUndo ? (
+          <div className="flex flex-wrap items-center gap-3 rounded-panel border border-core-border bg-core-subtle px-4 py-3">
+            <p className="min-w-0 flex-1 truncate core-body text-core-text">„{deletedCardUndo.description}“ gelöscht.</p>
+            <ActionButton type="button" variant="secondary" icon={RotateCcw} onClick={() => void undoCardDelete()}>Rückgängig</ActionButton>
+          </div>
+        ) : null}
+      </div>
+
+      {deferredQuery.trim() ? <MatchingDecks groups={tableModel.groups.filter((group) => group.deckMatches)} onOpen={(deckId) => changeQuery(withCardSearchTermState(cardSearchTerms(query).filter((term) => !/^-?did:/i.test(term)).join(" "), `did:${deckId}`, "in"))} /> : null}
+      {items.length || cardsLoading ? (
+        <div className="min-w-0 max-w-full overflow-clip rounded-panel border border-core-border bg-core-surface" data-testid="card-library-sheet">
+      <table className="w-full table-fixed border-collapse" data-testid="card-library-table" aria-busy={cardsLoading || undefined} aria-rowcount={items.length}>
+          <colgroup>
+            <col />
+            <col className="w-[5.5rem] sm:w-[5.75rem]" />
+            <col className="w-20" />
+          </colgroup>
+          {/* From xl the screen region scrolls; its top padding (xl:py-10 in App) would otherwise hold the header 40 px low. */}
+          <thead className="sticky top-[var(--core-card-table-sticky-top)] z-10 bg-core-surface xl:-top-10" style={{ "--core-card-table-sticky-top": `${mobileHeaderHeight}px` } as React.CSSProperties}>
+            {selecting ? (
+              <tr className="core-card-table-header border-b border-core-border">
+                <th scope="col" colSpan={3} className="p-0 text-left font-normal">
+                  <CardSelectionBar
+                    count={selectionCount}
+                    hitTotal={onListHitCardIds && !cardsLoading ? hitList.totalCardCount : null}
+                    searching={Boolean(deferredQuery.trim())}
+                    allHits={allHits}
+                    onSelectAllHits={() => setAllHits(true)}
+                    onClear={clearSelection}
+                    decks={decks}
+                    flagNames={cardEditor.flagNames}
+                    loadTagDirectory={cardEditor.listTagDirectory}
+                    now={now}
+                    dayStartHour={dayStartHour}
+                    timeZone={timeZone}
+                    disabled={runningBatch || selectionCount === 0}
+                    onGenerateVariants={onGenerateCardVariants && !variantGenerationRunning ? () => void generateSelectionVariants() : undefined}
+                    onStudy={canStudyHits ? () => setHitStudy("selection") : undefined}
+                    onPrepareReplace={onPrepareTextReplace ? prepareSelectionReplace : undefined}
+                    onRun={runSelectionAction}
+                    request={selectionRequest}
+                  />
+                </th>
+              </tr>
+            ) : (
+              <tr className="core-card-table-header border-b border-core-border">
+                <SortHeader
+                  field="sortField"
+                  label="Sortierfeld"
+                  sort={cardSort}
+                  onChange={changeSort}
+                  leading={canSelect ? (
+                    // Touch starts selecting with a long press, so the narrow header stays compact.
+                    <CoreTooltip label="Karten auswählen">
+                      <button type="button" aria-label="Karten auswählen" data-testid="card-selection-start" className="hidden size-6 !min-h-0 shrink-0 place-items-center rounded-inset text-core-muted hover:bg-core-subtle hover:text-core-text sm:grid" onClick={() => setSelecting(true)}>
+                        <ListChecks size={16} aria-hidden="true" />
+                      </button>
+                    </CoreTooltip>
+                  ) : null}
+                />
+                <SortHeader field="nextStudyDate" label="Datum" sort={cardSort} onChange={changeSort} />
+                <SortHeader field="variants" label="Variante" sort={cardSort} onChange={changeSort} />
+              </tr>
+            )}
+            {cardsLoading ? (
+              <tr aria-hidden="true">
+                <td colSpan={3} className="p-0">
+                  <div className="core-statistics-load-track !mt-0" data-testid="card-library-loading"><span /></div>
+                </td>
+              </tr>
+            ) : null}
+          </thead>
+          <tbody ref={virtual.listRef as React.Ref<HTMLTableSectionElement>} data-testid="card-library-rows" className={cardsLoading ? "[&>tr[data-card-row]]:opacity-60" : undefined}>
+            {virtual.paddingTop > 0 ? <tr aria-hidden="true" style={{ height: virtual.paddingTop }} /> : null}
+            {items.slice(virtual.start, virtual.end + 1).map((item) => {
+              if (item.kind === "notice") {
+                return (
+                  <tr key={item.key} data-virtual-key={item.key} className="border-b border-core-border bg-core-warning-soft">
+                    <td colSpan={3} className="px-3 py-1.5 core-caption text-core-secondary sm:px-4">
+                      Offline werden nur bereits lokal indexierte Karten durchsucht und sortiert.
+                    </td>
+                  </tr>
+                );
+              }
+              const row = rowOf(item);
+              if (!row) {
+                return (
+                  <tr key={item.key} data-virtual-key={item.key} aria-hidden="true" className="border-b border-core-border bg-core-surface" data-card-placeholder="true">
+                    <td colSpan={3} className="px-3 py-1 sm:px-4">
+                      <span className="block h-5 w-2/3 rounded-inset bg-core-subtle" />
+                    </td>
+                  </tr>
+                );
+              }
+              const { entry: card, frontPreview, nextStudyLabel } = row;
+              return (
+                <CardTableRowView
+                  key={item.key}
+                  virtualKey={item.key}
+                  deckId={card.deckId}
+                  card={card}
+                  frontPreview={frontPreview}
+                  nextStudyLabel={nextStudyLabel}
+                  selected={selectedCardId === card.id}
+                  marked={selectedGraph && selectedGraph.note.id === card.noteId ? selectedGraph.note.marked : card.marked}
+                  flag={selectedGraph?.cards.find((candidate) => candidate.id === card.id)?.ankiFlag ?? card.ankiFlag}
+                  flagNames={cardEditor.flagNames}
+                  syncConflict={syncConflictCardIds.has(card.id)}
+                  deckPath={hitScope.length > 1 ? deckPathById.get(card.deckId) : undefined}
+                  onSelect={stableRequestCardSelection}
+                  checked={allHits || checkedIds.has(card.id)}
+                  selecting={selecting}
+                  onToggleCheck={stableToggleCheck}
+                />
+              );
+            })}
+            {virtual.paddingBottom > 0 ? <tr aria-hidden="true" style={{ height: virtual.paddingBottom }} /> : null}
+          </tbody>
+      </table>
+        </div>
+      ) : (
+        <EmptyState icon={Search} title={deferredQuery.trim() ? "Keine Karten gefunden" : "Keine Karten"} />
+      )}
+  </section>;
 
   return (
     <div className="relative grid min-w-0 gap-6">
       {contentDeckId ? (
-        <div className="grid min-w-0 gap-6" data-deck-content-navigation="true" ref={contentNavigationRef}>
+        <div className="core-deck-content-head" data-deck-content-navigation="true" ref={contentNavigationRef}>
           <nav className="core-deck-folder-breadcrumb" aria-label="Stapelpfad" data-testid="deck-content-path">
             <button type="button" onClick={() => requestDetailAction(() => onOpenLearn(null))}>Alle Stapel</button>
             {contentTrail.map((row) => <React.Fragment key={row.id}>
@@ -1072,256 +1249,23 @@ export function DecksScreen({
               {row.id === contentDeckId ? <span aria-current="page">{row.name}</span> : <button type="button" onClick={() => requestDetailAction(() => onOpenDeckContent(row.id, "children"))}>{row.name}</button>}
             </React.Fragment>)}
           </nav>
-          <div className="flex min-w-0 items-center justify-between gap-3" data-testid="deck-content-heading">
-            <div className="flex min-w-0 items-center gap-3">
-              {contentDeck ? <DeckAppearanceIcon deck={contentDeck} className="size-11 shrink-0 rounded-control bg-core-subtle" iconSize={22} /> : null}
-              <h2 className="min-w-0 break-words core-heading-1 text-core-text outline-none" data-screen-heading tabIndex={-1}>{contentDeck?.name ?? "Stapelinhalte"}</h2>
-            </div>
-            <CoreTooltip label={contentRow?.parentDeckId ? "Eine Ebene zurück" : "Zur Stapelübersicht"}>
-              <IconButton label={contentRow?.parentDeckId ? "Eine Ebene zurück" : "Zur Stapelübersicht"} icon={ArrowLeft}
-                onClick={() => requestDetailAction(() => contentRow?.parentDeckId ? onOpenDeckContent(contentRow.parentDeckId, "children") : onOpenLearn(null))} />
-            </CoreTooltip>
+          <div className="core-deck-content-heading" data-testid="deck-content-heading">
+            {contentDeck ? <DeckAppearanceIcon deck={contentDeck} className="size-7" iconSize={16} /> : null}
+            <h2 className="core-deck-content-title outline-none" data-screen-heading tabIndex={-1}>{contentDeck?.name ?? "Stapelinhalte"}</h2>
           </div>
-          <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-start" data-testid="deck-content-actions">
-            <div className="core-deck-content-tab-scroll" ref={contentTabsRef}>
-              <CoreSlidingTabs className="core-deck-content-tabs" ariaLabel="Stapelinhalte" options={deckContentTabs} value={contentTab}
-                onValueChange={(tab) => requestDetailAction(() => onOpenDeckContent(contentDeckId, tab))} />
-            </div>
-            {contentDeck ? <ActionButton variant="primary" icon={Play} disabled={!hasStudyCards} className="shrink-0 sm:mt-1"
-              onClick={() => requestDetailAction(() => onStartDeck(contentDeck))} data-testid="deck-content-study">Karten lernen</ActionButton> : null}
+          <div className="core-deck-content-tabs" data-testid="deck-content-actions">
+            <CoreTabs ariaLabel="Stapelinhalte" tabs={deckContentTabs} value={contentTab} panelId={contentPanelId}
+              onValueChange={(tab) => requestDetailAction(() => onOpenDeckContent(contentDeckId, tab))} />
           </div>
+          {contentDeck ? <ActionButton variant="primary" icon={Play} disabled={!hasStudyCards} className="core-deck-content-study"
+            onClick={() => requestDetailAction(() => onStartDeck(contentDeck))} data-testid="deck-content-study">Karten lernen</ActionButton> : null}
         </div>
       ) : <LearningAreaHeader area="cards" onOpenCardSettings={onOpenCardSettings} action={onFindDuplicates && onRunCardBatch ? (
         <ActionButton type="button" variant="secondary" icon={CopyCheck} onClick={() => setDuplicatesOpen(true)}>Duplikate finden</ActionButton>
       ) : undefined} />}
 
-      {contentDeckId && contentTab === "children" ? (
-        contentRow && contentLibrary ? contentRow.hasChildren ? <DeckSubstacksPanel key={contentRow.id} rows={contentLibrary.rows} current={contentRow}
-          onOpenDeck={(id) => onOpenDeckContent(id, "children")}
-          onStudy={onStartDeck} onOpenSettings={onOpenDeckSettings} onSetCoreMode={onSetDeckCoreMode} onMoveDeck={onMoveDeck} />
-          : <DeckContentPlaceholder label="Unterstapel" icon={Layers} title="Keine Unterstapel" testId="deck-content-substacks"
-            action={<ActionButton variant="secondary" icon={Play} disabled={!hasStudyCards} onClick={() => onStartDeck(contentRow.deck)}>Karten lernen</ActionButton>} />
-          : <EmptyState icon={Layers} title="Stapel nicht gefunden oder nicht verfügbar." />
-      ) : contentDeckId && contentTab === "summary" ? (
-        contentDeck ? <React.Suspense fallback={CONTENT_TAB_LOADING}><DeckSummariesPanel key={`${summaryAccountId ?? contentDeck.ownerId}:${contentDeck.id}`} deck={contentDeck}
-          userId={summaryAccountId ?? contentDeck.ownerId} cloud={learningContentCloud} onGenerateSummary={onGenerateSummary} onDraftStateChange={handleEditorDraftStateChange} /></React.Suspense>
-          : <EmptyState icon={FileText} title="Stapel nicht gefunden oder nicht verfügbar." />
-      ) : contentDeckId && contentTab === "mind-map" ? (
-        contentDeck ? <React.Suspense fallback={CONTENT_TAB_LOADING}><DeckMindMapsPanel key={`${summaryAccountId ?? contentDeck.ownerId}:${contentDeck.id}`} deck={contentDeck}
-          userId={summaryAccountId ?? contentDeck.ownerId} cloud={learningContentCloud} onGenerateSummary={onGenerateSummary} onDraftStateChange={handleEditorDraftStateChange} /></React.Suspense>
-          : <EmptyState icon={Network} title="Stapel nicht gefunden oder nicht verfügbar." />
-      ) : contentDeckId && contentTab !== "cards" ? (
-        <DeckContentPlaceholder label={selectedContentTab.label} icon={selectedContentTab.icon} title="Demnächst verfügbar" />
-      ) : <SoftPanel className="min-w-0 overflow-clip p-5 sm:p-6" aria-label="Karten" data-testid="card-library-panel">
-        <div className="grid gap-6">
-          <div className="grid gap-4">
-            <CardSearchBar
-              query={query}
-              onQueryChange={changeQuery}
-              decks={libraryDecks}
-              categories={searchMenu}
-              advancedOpen={advancedSearchOpen}
-              onAdvancedOpenChange={setAdvancedSearchOpen}
-              advancedId="advanced-card-search"
-              resultCount={searchResultCount}
-              resultAction={canStudyHits && searchResultCount ? (
-                <button type="button" className="inline-flex items-center gap-1.5 core-body font-semibold text-core-action hover:underline" onClick={() => setHitStudy("hits")}>
-                  <GraduationCap size={16} aria-hidden="true" />Treffer lernen
-                </button>
-              ) : undefined}
-              placeholder={contentDeckId ? "Vorderseite, Rückseite, Felder oder Tags durchsuchen" : "Stapel, Vorderseite, Rückseite, Felder oder Tags durchsuchen"}
-              hint={unsupportedTerms.length ? `Noch nicht unterstützt, wird als Text gesucht: ${unsupportedTerms.join(" ")}` : undefined}
-            >
-              {advancedSearchOpen ? (
-                <AdvancedCardSearch
-                  id="advanced-card-search"
-                  query={query}
-                  onQueryChange={changeQuery}
-                  categories={searchMenu}
-                  resultCount={searchResultCount}
-                  onClose={() => setAdvancedSearchOpen(false)}
-                  savedSearches={savedSearches}
-                  onSavedSearchesChange={onSavedSearchesChange}
-                  onManageTags={onRunCardBatch && onListHitCardIds ? () => setTagManagerOpen(true) : undefined}
-                />
-              ) : null}
-            </CardSearchBar>
-            {hitStudy ? (
-              <HitStudyDialog
-                title={hitStudy === "selection" ? "Auswahl lernen" : "Treffer lernen"}
-                loadCardIds={loadHitStudyIds}
-                onStart={startHitStudy}
-                onClose={() => setHitStudy(null)}
-              />
-            ) : null}
-            {tagManagerOpen ? (
-              <TagManagerDialog
-                tags={tagDirectory}
-                onRename={async (from, to) => {
-                  // Tags belong to the account: every deck, also the ones outside the list.
-                  const deckIds = decks.filter((deck) => !deck.deletedAt).map((deck) => deck.id);
-                  // The cloud directory follows only once the change is synchronized, so the list shows it locally;
-                  // reopening the manager loads it again. Undoing a plain rename renames back, anything else reloads.
-                  const merged = to !== null && tagDirectory.some((entry) => entry.tag.toLocaleLowerCase("und") === to.toLocaleLowerCase("und"));
-                  const ran = await runCardBatchAction(() => onListHitCardIds!({ deckIds, query: `tag:${from}`, searchContext }), { kind: "tag-rename", from, to }, to === null ? "Tag löschen" : "Tag umbenennen", () => {
-                    if (to !== null && !merged) setTagDirectory((entries) => renameDirectoryTag(entries, to, from));
-                    else setTagDirectoryVersion((version) => version + 1);
-                  });
-                  if (ran) setTagDirectory((entries) => renameDirectoryTag(entries, from, to));
-                }}
-                onClose={() => setTagManagerOpen(false)}
-              />
-            ) : null}
-            {duplicatesOpen ? (
-              <DuplicatesDialog
-                searching={Boolean(deferredQuery.trim())}
-                find={findDuplicates}
-                deckName={(deckId) => deckNameById.get(deckId) ?? "Unbekannter Stapel"}
-                onOpen={(deckId, cardId) => {
-                  setDuplicatesOpen(false);
-                  requestCardSelection(deckId, cardId);
-                }}
-                onTag={async (cardIds) => {
-                  await runCardBatchAction(async () => cardIds, { kind: "tags", add: ["Duplikat"], remove: [] }, "Duplikate taggen");
-                }}
-                onClose={() => setDuplicatesOpen(false)}
-              />
-            ) : null}
-            {practiceBodies ? <HitPractice bodies={practiceBodies} mediaStore={mediaStore} onClose={() => setPracticeBodies(null)} /> : null}
-            {deckStatus ? <p className={"core-body font-semibold " + (deckStatusType === "alert" ? "core-status-error" : "core-status-info")} role={deckStatusType}>{deckStatus}</p> : null}
-            {deletedCardUndo ? (
-              <div className="flex flex-wrap items-center gap-3 rounded-panel border border-core-border bg-core-subtle px-4 py-3">
-                <p className="min-w-0 flex-1 truncate core-body text-core-text">„{deletedCardUndo.description}“ gelöscht.</p>
-                <ActionButton type="button" variant="secondary" icon={RotateCcw} onClick={() => void undoCardDelete()}>Rückgängig</ActionButton>
-              </div>
-            ) : null}
-          </div>
-
-          {deferredQuery.trim() ? <MatchingDecks groups={tableModel.groups.filter((group) => group.deckMatches)} onOpen={(deckId) => changeQuery(withCardSearchTermState(cardSearchTerms(query).filter((term) => !/^-?did:/i.test(term)).join(" "), `did:${deckId}`, "in"))} /> : null}
-          <div className={splitDetail ? "grid min-w-0 grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)] items-start gap-4" : "contents"} data-testid="card-library-split">
-          {items.length || cardsLoading ? (
-            <div className="min-w-0 max-w-full overflow-clip rounded-panel border border-core-border bg-core-surface">
-          <table className="w-full table-fixed border-collapse" data-testid="card-library-table" aria-busy={cardsLoading || undefined} aria-rowcount={items.length}>
-              <colgroup>
-                <col />
-                <col className="w-[5.5rem] sm:w-[5.75rem]" />
-                <col className="w-20" />
-              </colgroup>
-              {/* From xl the screen region scrolls; its top padding (xl:py-10 in App) would otherwise hold the header 40 px low. */}
-              <thead className="sticky top-[var(--core-card-table-sticky-top)] z-10 bg-core-surface xl:-top-10" style={{ "--core-card-table-sticky-top": `${mobileHeaderHeight}px` } as React.CSSProperties}>
-                {selecting ? (
-                  <tr className="border-b border-core-border bg-core-info-soft">
-                    <th scope="col" colSpan={3} className="p-0 text-left font-normal">
-                      <CardSelectionBar
-                        count={selectionCount}
-                        hitTotal={onListHitCardIds && !cardsLoading ? hitList.totalCardCount : null}
-                        searching={Boolean(deferredQuery.trim())}
-                        allHits={allHits}
-                        onSelectAllHits={() => setAllHits(true)}
-                        onClear={clearSelection}
-                        decks={decks}
-                        flagNames={cardEditor.flagNames}
-                        loadTagDirectory={cardEditor.listTagDirectory}
-                        now={now}
-                        dayStartHour={dayStartHour}
-                        timeZone={timeZone}
-                        disabled={runningBatch || selectionCount === 0}
-                        onGenerateVariants={onGenerateCardVariants && !variantGenerationRunning ? () => void generateSelectionVariants() : undefined}
-                        onStudy={canStudyHits ? () => setHitStudy("selection") : undefined}
-                        onPrepareReplace={onPrepareTextReplace ? prepareSelectionReplace : undefined}
-                        onRun={runSelectionAction}
-                        request={selectionRequest}
-                      />
-                    </th>
-                  </tr>
-                ) : (
-                  <tr className="core-table-header-row border-b border-core-border">
-                    <SortHeader
-                      field="sortField"
-                      label="Sortierfeld"
-                      sort={cardSort}
-                      onChange={changeSort}
-                      leading={canSelect ? (
-                        // Touch starts selecting with a long press, so the narrow header stays compact.
-                        <CoreTooltip label="Karten auswählen">
-                          <button type="button" aria-label="Karten auswählen" data-testid="card-selection-start" className="hidden size-6 !min-h-0 shrink-0 place-items-center rounded-inset text-core-muted hover:bg-core-subtle hover:text-core-text sm:grid" onClick={() => setSelecting(true)}>
-                            <ListChecks size={16} aria-hidden="true" />
-                          </button>
-                        </CoreTooltip>
-                      ) : null}
-                    />
-                    <SortHeader field="nextStudyDate" label="Datum" sort={cardSort} onChange={changeSort} />
-                    <SortHeader field="variants" label="Variante" sort={cardSort} onChange={changeSort} />
-                  </tr>
-                )}
-                {cardsLoading ? (
-                  <tr aria-hidden="true">
-                    <td colSpan={3} className="p-0">
-                      <div className="core-statistics-load-track !mt-0" data-testid="card-library-loading"><span /></div>
-                    </td>
-                  </tr>
-                ) : null}
-              </thead>
-              <tbody ref={virtual.listRef as React.Ref<HTMLTableSectionElement>} data-testid="card-library-rows" className={cardsLoading ? "[&>tr[data-card-row]]:opacity-60" : undefined}>
-                {virtual.paddingTop > 0 ? <tr aria-hidden="true" style={{ height: virtual.paddingTop }} /> : null}
-                {items.slice(virtual.start, virtual.end + 1).map((item) => {
-                  if (item.kind === "notice") {
-                    return (
-                      <tr key={item.key} data-virtual-key={item.key} className="border-b border-core-border bg-core-warning-soft">
-                        <td colSpan={3} className="px-3 py-1.5 core-caption text-core-secondary sm:px-4">
-                          Offline werden nur bereits lokal indexierte Karten durchsucht und sortiert.
-                        </td>
-                      </tr>
-                    );
-                  }
-                  const row = rowOf(item);
-                  if (!row) {
-                    return (
-                      <tr key={item.key} data-virtual-key={item.key} aria-hidden="true" className="border-b border-core-border bg-core-surface" data-card-placeholder="true">
-                        <td colSpan={3} className="px-3 py-1 sm:px-4">
-                          <span className="block h-5 w-2/3 rounded-inset bg-core-subtle" />
-                        </td>
-                      </tr>
-                    );
-                  }
-                  const { entry: card, frontPreview, nextStudyLabel } = row;
-                  return (
-                    <CardTableRowView
-                      key={item.key}
-                      virtualKey={item.key}
-                      deckId={card.deckId}
-                      card={card}
-                      frontPreview={frontPreview}
-                      nextStudyLabel={nextStudyLabel}
-                      selected={selectedCardId === card.id}
-                      marked={selectedGraph && selectedGraph.note.id === card.noteId ? selectedGraph.note.marked : card.marked}
-                      flag={selectedGraph?.cards.find((candidate) => candidate.id === card.id)?.ankiFlag ?? card.ankiFlag}
-                      flagNames={cardEditor.flagNames}
-                      syncConflict={syncConflictCardIds.has(card.id)}
-                      deckPath={hitScope.length > 1 ? deckPathById.get(card.deckId) : undefined}
-                      onSelect={stableRequestCardSelection}
-                      checked={allHits || checkedIds.has(card.id)}
-                      selecting={selecting}
-                      onToggleCheck={stableToggleCheck}
-                    />
-                  );
-                })}
-                {virtual.paddingBottom > 0 ? <tr aria-hidden="true" style={{ height: virtual.paddingBottom }} /> : null}
-              </tbody>
-          </table>
-            </div>
-          ) : (
-            <div className="grid justify-items-center gap-3 rounded-panel border border-core-border p-6 text-center sm:p-8" role="status">
-              <span className="grid size-12 place-items-center rounded-control bg-core-subtle text-core-action" aria-hidden="true"><Search size={22} /></span>
-              <h4 className="core-heading-3 text-core-text">{deferredQuery.trim() ? "Keine Karten gefunden" : "Keine Karten"}</h4>
-              {deferredQuery.trim() ? <p className="core-body text-core-secondary">Passe die Suche an.</p> : null}
-            </div>
-          )}
-          {splitDetail ? renderDetailLayer() : null}
-          </div>
-        </div>
-      </SoftPanel>}
-      {detailOpen && !dockedDetail ? renderDetailLayer() : null}
+      {contentDeckId ? <CoreTabPanel panelId={contentPanelId} value={contentTab} className="grid min-w-0 gap-6 outline-none">{content}</CoreTabPanel> : content}
+      {detailOpen ? renderDetailLayer() : null}
 
       <ActionDialog
         open={Boolean(pendingDetailAction)}

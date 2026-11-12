@@ -4,7 +4,7 @@ import { CalendarClock, CalendarRange, ChevronDown, Flag, GraduationCap, FlagOff
 import type { CardBatchAction, TextReplaceSession } from "../../cardBatchActions.ts";
 import type { Deck } from "../../coreTypes.ts";
 import { addLearningDays, getLearningDayKey, getLearningDayStartForKey } from "../../learningDay.ts";
-import { IconButton } from "../../ui/actionUi.tsx";
+import { CrossLinkButton, IconButton } from "../../ui/actionUi.tsx";
 import { CoreDatePicker } from "../../ui/CoreDatePicker.tsx";
 import { ActionDialog } from "../../ui/coreUi.tsx";
 import { FlagPicker } from "../../ui/flagUi.tsx";
@@ -161,15 +161,15 @@ export function CardSelectionBar({ count, hitTotal, searching, allHits, disabled
   ) : null;
 
   return (
-    <div className="flex min-h-10 min-w-0 flex-wrap items-center gap-x-3 gap-y-1 px-2 py-1 sm:px-3" data-testid="card-selection-bar">
-      <IconButton label="Auswahl aufheben" icon={X} variant="ghost" onClick={onClear} />
+    <div className="core-card-selection-bar" data-testid="card-selection-bar">
+      <IconButton label="Auswahl aufheben" icon={X} variant="ghost" className="core-card-selection-clear" onClick={onClear} />
       <span className="core-body font-semibold text-core-text tabular-nums" aria-live="polite">{allHits ? `Alle ${cardCount(count)}` : cardCount(count)} ausgewählt</span>
       {hitTotal !== null && !allHits && hitTotal > count ? (
-        <button type="button" className="core-body font-semibold text-core-action hover:underline" onClick={onSelectAllHits}>Alle {hitTotal.toLocaleString("de-DE")} {searching ? "Treffer" : "Karten"} auswählen</button>
+        <CrossLinkButton onSelect={onSelectAllHits}>Alle {hitTotal.toLocaleString("de-DE")} {searching ? "Treffer" : "Karten"} auswählen</CrossLinkButton>
       ) : null}
       <Popover.Root>
         <Popover.Trigger asChild>
-          <button type="button" disabled={disabled} className="core-action-secondary ml-auto inline-flex items-center gap-1.5" data-testid="card-selection-actions">
+          <button type="button" disabled={disabled} className="core-action-secondary core-card-selection-actions ml-auto inline-flex items-center gap-1.5" data-testid="card-selection-actions">
             Aktionen<ChevronDown size={16} aria-hidden="true" />
           </button>
         </Popover.Trigger>

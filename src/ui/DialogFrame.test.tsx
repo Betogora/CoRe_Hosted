@@ -30,3 +30,16 @@ test("dialog frame places tabs between title and content and renders nothing whi
   assert.doesNotMatch(markup, /<footer/);
   assert.equal(renderToStaticMarkup(<DialogFrame open={false} title="Zu" onClose={() => undefined}>Inhalt</DialogFrame>), "");
 });
+
+test("dialog frame places leading controls, a subtitle outside the name and actions before the close button", () => {
+  const markup = renderToStaticMarkup(
+    <DialogFrame open size="l" title="Was ist ATP?" subtitle="Frage und Antwort" leading={<button type="button">Vorige</button>} actions={<button type="button">Löschen</button>} className="core-card-editor-frame" onClose={() => undefined}>
+      Inhalt
+    </DialogFrame>,
+  );
+
+  const titleId = markup.match(/<h2 id="([^"]+)" class="core-dialog-frame-title">Was ist ATP\?<\/h2>/)?.[1];
+  assert.ok(titleId);
+  assert.match(markup, new RegExp(`aria-labelledby="${titleId}" data-size="l" class="core-dialog-frame core-card-editor-frame"`));
+  assert.match(markup, /<header class="core-dialog-frame-header"><button type="button">Vorige<\/button><div class="core-dialog-frame-heading"><h2[^>]*>Was ist ATP\?<\/h2><div class="core-dialog-frame-subtitle">Frage und Antwort<\/div><\/div><button type="button">Löschen<\/button><button[^>]*aria-label="Schließen"/);
+});
