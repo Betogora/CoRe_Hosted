@@ -155,7 +155,7 @@ export function ExamWeekCalendar({ exams, shown, onToggleExam, capacity, forecas
       <div className="flex shrink-0 gap-2"><ActionButton variant="secondary" onClick={() => { setWeek(createExamWeekDays(today)[0]); setSelectedId(""); onSelect(today, false); }}>Heute</ActionButton><IconButton label="Vorherige Woche" icon={ChevronLeft} onClick={() => { setWeek(shiftExamDay(week, -7)); setSelection(null); setSelectedId(""); }} /><IconButton label="Nächste Woche" icon={ChevronRight} onClick={() => { setWeek(shiftExamDay(week, 7)); setSelection(null); setSelectedId(""); }} /></div>
     </div>
     {activeSubject ? <p role="status" className="core-body text-core-text">{activeSubject.name} · Karten ausgewählt · Tippe einen Lernblock an, um die Aufgabe zuzuordnen.</p> : null}
-    <div ref={scroller} className="relative max-h-[40rem] overflow-auto rounded-control border border-core-border" role="region" aria-label="Wochenkalender mit Stundenraster, horizontal und vertikal scrollbar" tabIndex={0}>
+    <div ref={scroller} className="relative max-h-[40rem] overflow-auto" role="region" aria-label="Wochenkalender mit Stundenraster, horizontal und vertikal scrollbar" tabIndex={0}>
       <div className="min-w-[56rem]">
         <div data-week-todos className="sticky top-0 z-20 grid grid-cols-[3.5rem_repeat(7,minmax(0,1fr))] border-b border-core-border bg-core-surface">
           <span className="sticky left-0 z-30 bg-core-surface px-2 py-3 core-caption font-semibold text-core-muted">To-dos</span>

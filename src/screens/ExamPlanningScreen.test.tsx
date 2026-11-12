@@ -54,7 +54,10 @@ test("calendar shows new cards in subject color without duration or repetitions"
   const block = (examId: string, count: number, method: StudyPlanBlock["method"]): StudyPlanBlock => ({ id: `${examId}-${method}`, date: today, examIds: [examId], deckId: "deck", method, expectedItems: count, cardIds: Array.from({ length: count }, (_, i) => `${examId}-${method}-${i}`) });
   const forecast: ExamPortfolioForecast = { days: [{ key: today, budgetMinutes: 120, newCardIds: [], reviewCardIds: [], summaries: [], blocks: [block(first.id, 24, "new"), block(second.id, 9, "new"), block(first.id, 8, "review")] }], exams: [] };
   const html = renderToStaticMarkup(<ExamMonthCalendar onToggleExam={() => undefined} exams={[first, second]} shown={[first, second]} forecast={forecast} today={today} date={today} color={() => "var(--core-info)"} onSelect={() => undefined} />);
-  assert.match(html, /data-exam-subject="anatomy"[^]*?data-exam-task="study">24 neue Karten<\/span>/);
+  assert.match(html, /data-exam-subject="anatomy"[^]*?data-exam-task="study"><span class="sm:hidden">24<\/span><span class="hidden sm:inline">24 neue Karten<\/span><\/span>/);
+  assert.match(html, /class="exam-month-entry [^"]*rounded-r-marker border-l-strong/);
+  assert.match(html, /<div class="min-w-0" role="region" aria-label="Monatskalender">/);
+  assert.doesNotMatch(html, /gap-px|bg-core-border|shadow-inset/);
   assert.match(html, /data-exam-subject="physiology"[^]*?>9 neue Karten</);
   assert.match(html, /border-color:var\(--core-info\);background:color-mix/);
   assert.match(html, /Anatomie: 24 neue Karten\. Physiologie: 9 neue Karten/);
@@ -137,12 +140,27 @@ test("Heute zeigt Checklisten mit Prüfungsfarbpunkt ohne Zeitplanstatus und ohn
   assert.doesNotMatch(html, /Quiz/);
 });
 
+test("die geführte Planung zeigt eine Schrittlinie, sachliche Titel und einheitliche Optionskarten", () => {
+  const state = createCoreRepository().getState();
+  const deck = createCoreDeck({ id: "deck", name: "Anatomie" });
+  const html = renderToStaticMarkup(<ExamPlanEditor decks={[deck]} exams={[]} capacity={createStudyTimeCapacity()} initialPlan={null} preferences={getGlobalSchedulerPreferences(state.profile)} timeZone="Europe/Berlin" now="2026-10-18T12:00:00Z" onLoadPlanningData={() => new Promise(() => undefined)} onSave={async () => undefined} onCancel={() => undefined} saving={false} saveError="" />);
+  assert.match(html, /<div class="core-steps" data-stretch="true"><ol aria-label="Schritte der Prüfungsplanung">/);
+  assert.deepEqual([...html.matchAll(/class="core-steps-label">([^<]+)</g)].map((match) => match[1]), ["Prüfung", "Lernstoff", "Lernzeit", "Lernplan"]);
+  assert.match(html, /<li data-state="current" aria-current="step">/);
+  assert.match(html, /<h2 tabindex="-1" class="[^"]*core-heading-2[^"]*">Prüfung<\/h2>/);
+  assert.match(html, /<legend class="mb-3 core-field-label">Ziel<\/legend>/);
+  assert.doesNotMatch(html, /Welche Prüfung steht an|Was ist dein Ziel/);
+  assert.equal(html.match(/class="flex min-h-12 [^"]*rounded-control border px-4 py-2/g)?.length, 4);
+  assert.match(html, /class="flex min-h-12 [^"]*border-core-action bg-core-info-soft"/);
+  assert.match(html, /<div class="max-w-2xl"><div class="flex flex-wrap justify-between gap-3">/);
+});
+
 test("Bearbeiten lässt gültige Angaben ohne fertige Planung speichern", () => {
   const state = createCoreRepository().getState();
   const deck = createCoreDeck({ id: "deck", name: "Anatomie" });
   const exam = { ...createExamPlan("2026-10-18", [deck.id]), id: "anatomy", name: "Anatomie", examDate: "2026-11-19" };
   const html = renderToStaticMarkup(<ExamPlanEditor embedded decks={[deck]} exams={[exam]} capacity={createStudyTimeCapacity()} initialPlan={exam} preferences={getGlobalSchedulerPreferences(state.profile)} timeZone="Europe/Berlin" now="2026-10-18T12:00:00Z" onLoadPlanningData={() => new Promise(() => undefined)} onSave={async () => undefined} onCancel={() => undefined} saving={false} saveError="" />);
-  assert.match(html, /Was ist dein Ziel für die Prüfung/);
+  assert.match(html, /<legend class="mb-3 core-field-label">Ziel<\/legend>/);
   assert.match(html, /aria-label="Lernstart auswählen"/);
   assert.match(html, /aria-label="Tag"[^>]*>18<\/span><span aria-hidden="true" class="core-date-segment-literal">\.<\/span><span[^>]*aria-label="Monat"[^>]*>10<\/span>/);
   assert.match(html, /<input(?=[^>]*type="radio")(?=[^>]*value="0.9")(?=[^>]*checked)[^>]*>/);
@@ -198,7 +216,7 @@ test("Monatsansicht bündelt alle Aufgaben je Fach und zählt nur weitere Fachka
   const html = render();
   assert.equal((html.match(/data-exam-subject="anatomy"/g) ?? []).length, 1);
   assert.equal((html.match(/data-exam-subject="physiology"/g) ?? []).length, 1);
-  assert.match(html, /data-exam-subject="anatomy"[^]*?data-exam-task="study">1 neue Karte<\/span><span data-exam-task="summary">Lesen<\/span><\/span>/);
+  assert.match(html, /data-exam-subject="anatomy"[^]*?data-exam-task="study"><span class="sm:hidden">1<\/span><span class="hidden sm:inline">1 neue Karte<\/span><\/span><span data-exam-task="summary">Lesen<\/span><\/span>/);
   assert.match(html, /data-exam-subject="physiology"[^]*?data-exam-task="summary">Lesen<\/span><\/span>/);
   assert.match(html, /title="1 weiterer Eintrag in den Tagesdetails">\+1/);
   const readOnly = render([third]);

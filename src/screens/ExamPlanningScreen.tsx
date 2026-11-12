@@ -10,6 +10,7 @@ import { getGlobalSchedulerPreferences } from "../learningProfiles.ts";
 import { ActionButton, IconButton } from "../ui/actionUi.tsx";
 import { ActionDialog, CoreTag, EmptyState, PageHeader, SoftPanel } from "../ui/coreUi.tsx";
 import { StatusMessage } from "../ui/feedbackUi.tsx";
+import { SectionHeader } from "../ui/SectionHeader.tsx";
 import { ExamPlanEditor } from "./ExamPlanEditor.tsx";
 import { ExamCalendar } from "./ExamCalendar.tsx";
 import { ExamDashboardWidget } from "./ExamDashboardWidget.tsx";
@@ -172,10 +173,7 @@ export function ExamPlanningScreen({ state, now, onLoadPlanningData, onSavePlann
       {calendarDraft ? <SoftPanel className="grid gap-3 p-5"><p className="core-heading-3 text-core-text">Ungespeicherte Kalenderänderungen</p><div className="flex flex-wrap gap-3"><ActionButton variant="primary" loading={saving} disabled={saving} onClick={async () => { if (await save(calendarDraft)) setCalendarDraft(null); }}>Speichern</ActionButton><ActionButton variant="secondary" disabled={saving} onClick={() => setCalendarDraft(null)}>Verwerfen</ActionButton></div></SoftPanel> : null}
       <div className="grid min-w-0 items-start gap-6 xl:grid-cols-2">
       <div className="grid min-w-0 gap-4">
-      <div className="flex min-w-0 flex-wrap items-center justify-between gap-3">
-        <h3 id="exam-list-title" className="core-heading-2 text-core-text">Deine Prüfungen</h3>
-        <div className="flex flex-wrap gap-2">{exams.length === 0 ? <IconButton label="Erste Prüfung planen" icon={Plus} disabled={addDisabled} onClick={() => requestEditing("new")} /> : null}{forecast ? <IconButton label="Plan neu berechnen" icon={RefreshCcw} variant="ghost" disabled={busy} onClick={reload} /> : null}</div>
-      </div>
+      <SectionHeader level={3} id="exam-list-title" title="Deine Prüfungen" action={exams.length === 0 || forecast ? <>{exams.length === 0 ? <IconButton label="Erste Prüfung planen" icon={Plus} disabled={addDisabled} onClick={() => requestEditing("new")} /> : null}{forecast ? <IconButton label="Plan neu berechnen" icon={RefreshCcw} variant="ghost" disabled={busy} onClick={reload} /> : null}</> : undefined} />
       {deletedPlan ? <StatusMessage tone="success" announce="polite"><div className="flex flex-wrap items-center gap-3"><span>{deletedPlan.exam.name} wurde gelöscht.</span><ActionButton variant="secondary" icon={RotateCcw} loading={saving} onClick={async () => {
         try {
         const restored = upsertExamPlan(preferences.examPlanning, deletedPlan.exam);

@@ -6,6 +6,7 @@ import { EXAM_NEW_CARDS_PER_MINUTE_LIMIT, getExamLastNewDate, getExamStudyMinute
 import { ActionButton, IconButton } from "../ui/actionUi.tsx";
 import { CoreDatePicker } from "../ui/CoreDatePicker.tsx";
 import { SoftPanel, CoreSegmentedControl } from "../ui/coreUi.tsx";
+import { SectionHeader } from "../ui/SectionHeader.tsx";
 import { StatusMessage } from "../ui/feedbackUi.tsx";
 import { CoreSelect } from "../ui/selectUi.tsx";
 import { examColor, formatExamClock as clock, formatExamCount, formatExamDate, formatExamMinutes } from "./examPlanningUi.ts";
@@ -13,8 +14,6 @@ import { getExamCalendarWork, isExamCalendarDayLocked } from "../examCalendarMod
 import { ExamMonthCalendar } from "./ExamMonthCalendar.tsx";
 import { ExamWeekCalendar } from "./ExamWeekCalendar.tsx";
 
-const FIELD = "core-field min-w-0";
-const LABEL = "core-field-label grid min-w-0 gap-2";
 function parseClock(value: string) { const [hours, minutes] = value.split(":").map(Number); return hours * 60 + minutes; }
 
 interface ExamCalendarProps {
@@ -101,12 +100,7 @@ export function ExamCalendar({ exams, capacity, forecast, decks, today, busy, in
   }
 
   return <section className="exam-calendar-layout grid min-w-0 gap-4" aria-label="Lernkalender" data-testid="exam-calendar" aria-busy={busy}>
-    <div className="flex min-w-0 flex-wrap items-end justify-between gap-3">
-      <h3 className="core-heading-2 text-core-text">Dein Lernkalender</h3>
-    </div>
-    <div className="flex flex-wrap items-center gap-3">
-      <CoreSegmentedControl ariaLabel="Kalenderansicht" value={view} options={[{ value: "month", label: "Monat" }, { value: "week", label: "Woche" }]} onValueChange={setView} />
-    </div>
+    <SectionHeader level={3} title="Dein Lernkalender" action={<CoreSegmentedControl ariaLabel="Kalenderansicht" value={view} options={[{ value: "month", label: "Monat" }, { value: "week", label: "Woche" }]} onValueChange={setView} />} />
     <div className="exam-calendar-body grid min-w-0 items-start gap-4" data-show-day={view === "month" && detailsOpen}>
     <div className="grid min-w-0 gap-4">
     {view === "month" ? <ExamMonthCalendar exams={exams} shown={shown} onToggleExam={toggleExam} forecast={forecast} today={today} date={date} color={(exam) => examColor(exams.indexOf(exam), exam)} onSelect={(key, open = true) => { setDate(key); setDetailsOpen(open); }} /> : <ExamWeekCalendar exams={exams} shown={shown} onToggleExam={toggleExam} capacity={capacity} forecast={forecast} decks={decks} today={today} date={date} busy={busy} color={(exam) => examColor(exams.indexOf(exam), exam)} onSelect={(key, open = false) => { setDate(key); setDetailsOpen(open); }} onChange={(next) => change(exams, next)} />}
@@ -126,7 +120,7 @@ export function ExamCalendar({ exams, capacity, forecast, decks, today, busy, in
             {subjectTopics.map(({ deckId, count }) => <p key={deckId} className="break-words core-caption text-core-muted">{deckName(deckId)} · {formatExamCount(count, "Karte", "Karten")}</p>)}
             {summaries.map((entry) => <p key={entry.deckId} className="break-words core-caption text-core-muted">Zusammenfassung lesen · {deckName(entry.deckId)}</p>)}
           </div>
-          <div className="flex items-end gap-2"><label className="core-field-label grid min-w-0 gap-2">{ownBlocks ? "Aus Lernblöcken · Min." : "Lernzeit · Min."}<input className={`${FIELD} w-28`} type="number" inputMode="numeric" min={0} max={1440} step={15} disabled={ownBlocks} value={getExamStudyMinutes(date, exam, exams, capacity)} onChange={(event) => setDayMinutes(exam, Math.min(1440, Math.max(0, Math.round(Number(event.target.value) || 0))))} /></label>
+          <div className="flex items-end gap-2"><label className="core-field-group min-w-0"><span className="core-field-label">{ownBlocks ? "Aus Lernblöcken · Min." : "Lernzeit · Min."}</span><input className="core-field w-28" type="number" inputMode="numeric" min={0} max={1440} step={15} disabled={ownBlocks} value={getExamStudyMinutes(date, exam, exams, capacity)} onChange={(event) => setDayMinutes(exam, Math.min(1440, Math.max(0, Math.round(Number(event.target.value) || 0))))} /></label>
             {exam.studyTime.dateOverrides.some((day) => day.date === date) && !ownBlocks ? <IconButton label={`${exam.name}: Wochenrhythmus verwenden`} icon={RotateCcw} onClick={() => setDayMinutes(exam, null)} /> : null}</div>
         </li>;
       })}</ul> : null}
@@ -135,7 +129,7 @@ export function ExamCalendar({ exams, capacity, forecast, decks, today, busy, in
         <form className="grid min-w-0 content-start gap-3" onSubmit={(event) => { event.preventDefault(); change(exams, { ...capacity, timeBlocks: [...(capacity.timeBlocks ?? []), { id: `time_${crypto.randomUUID()}`, date, start: parseClock(start), end: parseClock(end), examId: blockTarget }] }); }}>
           <h5 className="core-control-label font-semibold text-core-text">Lernblock reservieren</h5>
           <CoreSelect className="w-full" ariaLabel="Prüfung für Lernblock" value={blockTarget ?? ""} options={[...blockSubjects.map((exam) => ({ value: exam.id, label: exam.name })), { value: "", label: "Ohne Fach" }]} onValueChange={setBlockExam} />
-          <div className="grid min-w-0 grid-cols-2 gap-3"><label className={LABEL}>Von<input type="time" step={900} required className={FIELD} value={start} onChange={(event) => setStart(event.target.value)} /></label><label className={LABEL}>Bis<input type="time" step={900} required className={FIELD} value={end} onChange={(event) => setEnd(event.target.value)} /></label></div>
+          <div className="grid min-w-0 grid-cols-2 gap-3"><label className="core-field-group min-w-0"><span className="core-field-label">Von</span><input type="time" step={900} required className="core-field" value={start} onChange={(event) => setStart(event.target.value)} /></label><label className="core-field-group min-w-0"><span className="core-field-label">Bis</span><input type="time" step={900} required className="core-field" value={end} onChange={(event) => setEnd(event.target.value)} /></label></div>
           <ActionButton type="submit" variant="secondary" icon={Plus} disabled={busy || start >= end}>Lernblock hinzufügen</ActionButton>
         </form>
       </div>
