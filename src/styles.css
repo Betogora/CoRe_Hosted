@@ -865,6 +865,14 @@
     color: var(--core-danger-text);
   }
 
+  .core-action-destructive-secondary:not(:disabled) {
+    color: var(--core-danger-text);
+  }
+
+  .core-action-destructive-secondary:not(:disabled):hover {
+    background: var(--core-danger-surface);
+  }
+
   .core-action-ghost:disabled {
     cursor: not-allowed;
     border-color: transparent;
@@ -3661,8 +3669,8 @@ button.core-steps-step:disabled {
 .exam-month-entry { min-height: 20px; overflow-wrap: anywhere; font-size: var(--core-type-caption); line-height: 16px; }
 .exam-month-more { font-size: 10px; line-height: 16px; }
 @media (max-width: 639px) {
-  .exam-month-days { --exam-month-day-height: 144px; }
-  .exam-month-entry { gap: 2px; padding-inline: 0; font-size: clamp(10px, 3vw, var(--core-type-caption)); }
+  .exam-month-days { --exam-month-day-height: 72px; }
+  .exam-month-entry { gap: 2px; padding-inline: 0.25rem 0; font-size: clamp(10px, 3vw, var(--core-type-caption)); }
 }
 
 /* Automatische Kartenerstellung */

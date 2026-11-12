@@ -5,12 +5,13 @@ const ACTION_VARIANT_CLASS = {
   primary: "core-action-primary",
   secondary: "core-action-secondary",
   destructive: "core-action-destructive",
+  "destructive-secondary": "core-action-secondary core-action-destructive-secondary",
   ghost: "core-action-ghost",
   "destructive-quiet": "core-action-ghost core-action-destructive-quiet",
 } as const;
 
 export interface ActionButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
-  variant: "primary" | "secondary" | "destructive";
+  variant: "primary" | "secondary" | "destructive" | "destructive-secondary";
   icon?: LucideIcon;
   loading?: boolean;
 }

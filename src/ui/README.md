@@ -59,7 +59,7 @@ Die interaktive Design-Arbeitsfläche liegt in [`../../docs/ui-elements.html`](.
 
 Direktimport: `import { ActionButton, CrossLinkButton, IconButton } from "../ui/actionUi.tsx"`.
 
-`ActionButton` verlangt `variant="primary | secondary | destructive"`; optional sind `icon` und `loading`. Das Modul besitzt die produktweite Buttonhöhe (`--core-button-height`: 36 px bei feinem Zeiger ab 768 px, sonst 44 px; Felder nutzen `--core-control-height` mit 40 px, Auswahl-Schienen `--core-selection-height` mit 38 px), Iconabstand, Hover/Active/Focus/Disabled sowie den Ladezustand mit erhaltenem Label und `aria-busy`. Der Aufrufer wählt Hierarchie, Label und Ereignis. Für nachgeordnete Aktionen wird die umrandete Sekundärform verwendet; der einzige randlose Textlink ist `CrossLinkButton`.
+`ActionButton` verlangt `variant="primary | secondary | destructive | destructive-secondary"`; optional sind `icon` und `loading`. `destructive-secondary` ist die ruhige Gefahrenform: Sekundärform mit weißer Fläche und Haarlinie, Text in `--core-danger-text`, beim Hovern rot getönt (etwa `Abmelden`); rot gefüllt bleibt unwiderruflichen Aktionen vorbehalten. Das Modul besitzt die produktweite Buttonhöhe (`--core-button-height`: 36 px bei feinem Zeiger ab 768 px, sonst 44 px; Felder nutzen `--core-control-height` mit 40 px, Auswahl-Schienen `--core-selection-height` mit 38 px), Iconabstand, Hover/Active/Focus/Disabled sowie den Ladezustand mit erhaltenem Label und `aria-busy`. Der Aufrufer wählt Hierarchie, Label und Ereignis. Für nachgeordnete Aktionen wird die umrandete Sekundärform verwendet; der einzige randlose Textlink ist `CrossLinkButton`.
 
 ```tsx
 <ActionButton variant="primary" icon={Save} loading={saving} onClick={save}>

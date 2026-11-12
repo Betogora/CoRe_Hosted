@@ -32,11 +32,11 @@ export function ExamMonthCalendar({ exams, shown, onToggleExam, forecast, today,
         <IconButton label="Nächster Monat" icon={ChevronRight} onClick={() => setBrowsedMonth(shiftExamMonth(month, 1))} />
       </div>
     </div>
-    <div className="min-w-0 overflow-hidden rounded-control border border-core-border bg-core-border" role="region" aria-label="Monatskalender">
-      <div className="grid grid-cols-7 gap-px border-b border-core-border">
-        {["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"].map((name) => <div key={name} className="bg-core-surface py-2 text-center core-caption font-semibold text-core-muted">{name}</div>)}
+    <div className="min-w-0" role="region" aria-label="Monatskalender">
+      <div className="grid grid-cols-7">
+        {["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"].map((name) => <div key={name} className="py-2 text-center core-caption font-medium text-core-muted">{name}</div>)}
       </div>
-      <div className="exam-month-days grid grid-cols-7 gap-px" style={{ gridAutoRows: "minmax(var(--exam-month-day-height), 1fr)" }}>
+      <div className="exam-month-days grid grid-cols-7" style={{ gridAutoRows: "minmax(var(--exam-month-day-height), 1fr)" }}>
         {days.map((key) => {
           const day = dayByKey.get(key);
           const appointments = shown.filter((exam) => exam.examDate === key);
@@ -51,11 +51,11 @@ export function ExamMonthCalendar({ exams, shown, onToggleExam, forecast, today,
           const remaining = Math.max(0, appointments.length + subjects.length - visibleEntries);
           return <button key={key} type="button" data-date={key} aria-pressed={date === key} aria-current={key === today ? "date" : undefined}
             aria-label={`${formatExamDate(key)}${key === today ? ", heute" : ""}. ${appointments.map((exam) => `Klausur: ${exam.name}. `).join("")}${countLabel}. Tagesdetails öffnen`}
-            onClick={() => onSelect(key)} className={`grid min-h-0 min-w-0 content-start gap-0.5 overflow-hidden p-1 text-left transition-colors ${date === key ? "bg-core-info-soft shadow-inset" : outside ? "bg-core-subtle hover:bg-core-hover" : "bg-core-surface hover:bg-core-subtle"}`}>
+            onClick={() => onSelect(key)} className={`grid min-h-0 min-w-0 content-start gap-0.5 overflow-hidden border-t border-core-border p-1 text-left transition-colors sm:p-1.5 ${date === key ? "bg-core-info-soft" : outside ? "bg-core-subtle hover:bg-core-hover" : "bg-core-surface hover:bg-core-subtle"}`}>
             <span className="flex h-5 min-w-0 items-center justify-between"><span className={`grid size-5 shrink-0 place-items-center rounded-round core-caption font-semibold ${key === today ? "bg-core-action text-core-on-accent" : outside ? "text-core-muted" : "text-core-text"}`}>{Number(key.slice(8))}</span>{key.slice(0, 7) > month && key.endsWith("-01") ? <span className="mr-auto pl-1 core-caption font-semibold text-core-muted">{MONTH_LABEL.format(new Date(`${key}T12:00:00Z`))}</span> : null}{remaining ? <span className="exam-month-more text-core-muted" title={`${formatExamCount(remaining, "weiterer Eintrag", "weitere Einträge")} in den Tagesdetails`}>+{remaining}</span> : null}</span>
             {appointments.slice(0, visibleEntries).map((exam) => <span key={exam.id} data-exam-appointment={exam.id} title={`Klausur: ${exam.name}`} className="exam-month-entry flex min-w-0 items-center gap-1 rounded-inset px-1 font-bold" style={{ background: color(exam), color: examTextColor(exam) }}><Flag size={11} className="shrink-0" aria-hidden="true" /><span className="truncate"><span className="sr-only">Klausur: </span>{exam.name}</span></span>)}
-            {subjects.slice(0, Math.max(0, visibleEntries - appointments.length)).map(({ exam, newCards, summary }) => <span key={exam.id} data-exam-subject={exam.id} title={exam.name} className="exam-month-entry grid min-w-0 gap-0.5 rounded-inset border-l-strong px-1 py-0.5 text-core-text" style={{ borderColor: color(exam), background: `color-mix(in srgb, ${color(exam)} 18%, var(--core-surface))` }}>
-              {newCards > 0 || !hasForecast ? <span data-exam-task="study">{hasForecast ? formatExamCount(newCards, "neue Karte", "neue Karten") : "Karten: –"}</span> : null}
+            {subjects.slice(0, Math.max(0, visibleEntries - appointments.length)).map(({ exam, newCards, summary }) => <span key={exam.id} data-exam-subject={exam.id} title={exam.name} className="exam-month-entry grid min-w-0 gap-0.5 rounded-r-marker border-l-strong px-1 py-0.5 text-core-text" style={{ borderColor: color(exam), background: `color-mix(in srgb, ${color(exam)} 18%, var(--core-surface))` }}>
+              {newCards > 0 || !hasForecast ? <span data-exam-task="study"><span className="sm:hidden">{hasForecast ? newCards : "–"}</span><span className="hidden sm:inline">{hasForecast ? formatExamCount(newCards, "neue Karte", "neue Karten") : "Karten: –"}</span></span> : null}
               {summary ? <span data-exam-task="summary">Lesen</span> : null}
             </span>)}
           </button>;
