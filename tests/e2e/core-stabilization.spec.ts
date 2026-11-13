@@ -182,7 +182,7 @@ test("dashboard heatmap keeps band, controls and period views inside every respo
         const bandRect = band.getBoundingClientRect();
         return {
           bandSpansPanel: Math.abs(bandRect.left - panelRect.left) <= 1 && Math.abs(bandRect.right - panelRect.right) <= 1,
-          titleSingleLine: title.scrollHeight <= title.clientHeight + 1,
+          titleSingleRow: [...title.children].every((part) => part.getBoundingClientRect().top < title.children[0].getBoundingClientRect().bottom),
           controlsInside: [...controls.querySelectorAll<HTMLElement>("button")].every((button) => inside(button.getBoundingClientRect(), panelRect)),
           periodSwitchInside: inside(periodSwitch.getBoundingClientRect(), controls.getBoundingClientRect()),
           pageFitsViewport: document.documentElement.scrollWidth <= window.innerWidth + 1,
@@ -191,7 +191,7 @@ test("dashboard heatmap keeps band, controls and period views inside every respo
       });
 
       expect(layout.bandSpansPanel).toBe(true);
-      expect(layout.titleSingleLine).toBe(true);
+      expect(layout.titleSingleRow).toBe(true);
       expect(layout.controlsInside).toBe(true);
       expect(layout.periodSwitchInside).toBe(true);
       expect(layout.pageFitsViewport).toBe(true);

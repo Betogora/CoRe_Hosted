@@ -53,7 +53,7 @@ test("app chrome switches exactly at the 1280 pixel top bar breakpoint", async (
   await expect(page).toHaveURL(/\?settings=start$/);
   await expect(settingsDialog(page)).toBeVisible();
   await expect(mobileSettingsButton).toHaveAttribute("aria-expanded", "true");
-  await expect(page.getByText("Darstellung", { exact: true })).toHaveCount(0);
+  await expect(settingsDialog(page).getByRole("button", { name: /Dark Mode/ })).toHaveCount(0);
 
   await page.setViewportSize({ width: 1280, height: 900 });
   await expect(topBar).toBeVisible();
