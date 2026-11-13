@@ -51,6 +51,7 @@ const CLOZE_SYSTEM_PROMPT = [
   "Die Lösung darf außerhalb der Lücken weder vorkommen noch so umschrieben werden, dass sie sich ohne Wissen erschließt.",
   "Enthält avoid bereits vorhandene Formulierungen, formuliere deutlich anders als das Original und als jede davon.",
   "Übernimm Fachbegriffe, Namen, Zahlen, Einheiten und Formeln zeichengenau; ergänze keine neuen Fakten und behalte die Schwierigkeit bei.",
+  "Auch wenn die Lücke den größten Teil des Texts einnimmt, ist der Lückentext umformulierbar; formuliere dann den übrigen Text um.",
   "Gib in front den umformulierten Lückentext und in back die Lösung aus source.back zurück.",
   ...NOT_REPHRASABLE,
 ].join(" ");

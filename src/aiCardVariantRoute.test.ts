@@ -99,6 +99,8 @@ test("a cloze variant keeps its gap group and solutions, names them nowhere else
   assert.match(buildOpenRouterPayload(cloze).messages[0].content, /Lückentext/);
   assert.doesNotMatch(buildOpenRouterPayload(input).messages[0].content, /Lückentext/);
   assert.deepEqual(extractGeneratedVariant(answer("Im Jahr 1912 ging die {{c1::Titanic}} unter."), cloze).result.variant, { front: "Im Jahr 1912 ging die {{c1::Titanic}} unter.", back: "Titanic" });
+  const formula = { kind: "cloze" as const, source: { front: "Ist {{c1::K < 1}}, überwiegt die Rückreaktion.", back: "K < 1" } };
+  assert.equal(extractGeneratedVariant(answer("Die Rückreaktion überwiegt, wenn {{c1::K < 1}} gilt."), formula).result.variant.front, "Die Rückreaktion überwiegt, wenn {{c1::K < 1}} gilt.");
   assert.equal(code("Im Jahr 1912 ging die {{c2::Titanic}} unter."), "invalid_gaps");
   assert.equal(code("Im Jahr {{c1::1912}} ging die {{c1::Titanic}} unter."), "changed_answer");
   assert.equal(code("Im Jahr 1912 ging die {{c1::Lusitania}} unter."), "changed_answer");

@@ -57,6 +57,11 @@ test("plain text separates line breaks and blocks in the browser like without a 
   }
 });
 
+test("plain text without a DOM decodes escaped characters once, like textContent", () => {
+  assert.equal(stripSanitizedHtml("<p>K &lt; 1 &amp;&nbsp;K &gt; 1</p>").trim(), "K < 1 & K > 1");
+  assert.equal(stripSanitizedHtml("a &amp;lt; b"), "a &lt; b");
+});
+
 test("note HTML keeps semantic formatting and classes and drops fonts and layout", () => {
   assert.equal(
     sanitizeNoteHtml('<p class="anking" id="x" style="font-family:Arial;font-size:24px;color:#c00;position:absolute;float:right;width:300px">A</p>'),
