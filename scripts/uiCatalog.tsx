@@ -7,7 +7,7 @@ import { CatalogPreview, DEMO_GROUPS, NOTE_CASE_TITLES, NoteCaseDemo, StudyDemo,
 
 export interface CatalogData {
   components: { name: string; file: string; group: string; usage: number; usedIn: string[] }[];
-  tokens: { name: string; light: string; dark: string; category: string }[];
+  tokens: { name: string; light: string; dark: string; touch?: string; category: string }[];
   typography: { name: string; declarations: string }[];
   cssClasses: { name: string; files: string[] }[];
   icons: { name: string; svg: string; files: string[] }[];
@@ -75,16 +75,18 @@ function ShapeTokens() {
   const radii = data.tokens.filter((token) => token.category === "Radius");
   const shadows = data.tokens.filter((token) => token.category === "Schatten" && !token.name.includes("selection"));
   const spaces = data.tokens.filter((token) => token.name.startsWith("--core-space-")).sort((a, b) => parseFloat(a.light) - parseFloat(b.light));
+  const heights = data.tokens.filter((token) => token.touch);
   return <div className="catalog-shapes">
     <div><p className="catalog-label">Radien</p><div className="catalog-shape-row">{radii.map((token) => <figure key={token.name}><span style={{ borderRadius: `var(${token.name})` }} /><figcaption className="catalog-meta">{token.name.replace("--core-radius-", "")} · {token.light}</figcaption></figure>)}</div></div>
     <div><p className="catalog-label">Schatten</p><div className="catalog-shape-row">{shadows.map((token) => <figure key={token.name}><span style={{ boxShadow: `var(${token.name})` }} /><figcaption className="catalog-meta">{token.name.replace("--core-shadow-", "")}</figcaption></figure>)}</div></div>
-    <div><p className="catalog-label">Abstände und Bedienhöhe</p><ul className="catalog-spacing">{spaces.map((token) => <li key={token.name}><span className="catalog-meta">{token.name.replace("--core-space-", "")} · {token.light}</span><i style={{ width: `var(${token.name})` }} /></li>)}<li><span className="catalog-meta">control · 40 px, Touch 44 px</span><i style={{ width: "var(--core-control-height)" }} /></li></ul></div>
+    <div><p className="catalog-label">Abstände</p><ul className="catalog-spacing">{spaces.map((token) => <li key={token.name}><span className="catalog-meta">{token.name.replace("--core-space-", "")} · {token.light}</span><i style={{ width: `var(${token.name})` }} /></li>)}</ul></div>
+    <div><p className="catalog-label">Bedienhöhe · Maus | Touch</p><ul className="catalog-heights">{heights.map((token) => <li key={token.name}><span className="catalog-meta">{token.name.replace("--core-", "")} · {token.light} | {token.touch}</span><i style={{ height: token.light }} /><i style={{ height: token.touch }} /></li>)}</ul><p className="catalog-meta">Die einzige Unterteilung ist der Zeiger: Touch (<code>pointer: coarse</code>) bekommt in jeder Fensterbreite 44 px, Maus in jeder Fensterbreite die kompakten Höhen. Breitenabfragen ändern nur das Layout.</p></div>
   </div>;
 }
 
 function AllTokens() {
   const categories = [...new Set(data.tokens.map((token) => token.category))];
-  return <details className="catalog-legacy"><summary>Alle {data.tokens.length} Design-Tokens mit Light- und Dark-Wert</summary>{categories.map((category) => <div key={category}><p className="catalog-label">{category}</p><div className="catalog-token-grid">{data.tokens.filter((token) => token.category === category).map((token) => <article className="catalog-token" key={token.name}>{category === "Farbe" ? <div className="catalog-swatch" style={{ background: `var(${token.name})` }} /> : null}<code>{token.name}</code><small>Light: {token.light}</small><small>Dark: {token.dark}</small></article>)}</div></div>)}</details>;
+  return <details className="catalog-legacy"><summary>Alle {data.tokens.length} Design-Tokens mit Light- und Dark-Wert</summary>{categories.map((category) => <div key={category}><p className="catalog-label">{category}</p><div className="catalog-token-grid">{data.tokens.filter((token) => token.category === category).map((token) => <article className="catalog-token" key={token.name}>{category === "Farbe" ? <div className="catalog-swatch" style={{ background: `var(${token.name})` }} /> : null}<code>{token.name}</code><small>Light: {token.light}</small><small>Dark: {token.dark}</small>{token.touch ? <small>Touch: {token.touch}</small> : null}</article>)}</div></div>)}</details>;
 }
 
 function ComponentInventory() {

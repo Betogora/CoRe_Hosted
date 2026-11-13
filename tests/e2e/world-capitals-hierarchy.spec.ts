@@ -407,8 +407,8 @@ test("active deck header and rows fit every target width and toggle reliably on 
       // The list keeps fixed 44-px metric columns at every width.
       expect(layout.metricWidth).toBeCloseTo(44, 0);
     }
-    expect(layout.collapseControlSize).toEqual(width < 768 ? [44, 44] : [40, 40]);
-    expect(layout.collapseSurfaceSize).toEqual(width < 768 ? [32, 36] : [28, 32]);
+    expect(layout.collapseControlSize).toEqual([40, 40]);
+    expect(layout.collapseSurfaceSize).toEqual([28, 32]);
     expect(layout.collapseSurfaceIconGap).toBeGreaterThanOrEqual(2);
     expect(layout.collapseChevronCenterOffset).toBeCloseTo(0, 0);
     expect(layout.rootIconOffset).toBeCloseTo(0, 0);
@@ -621,7 +621,7 @@ test("deck presentation form saves name, icon and color together", async ({ page
   expect(barBox!.x).toBeGreaterThanOrEqual(0);
   expect(barBox!.x + barBox!.width).toBeLessThanOrEqual(390);
   expect(barBox!.y + barBox!.height).toBeLessThanOrEqual(844);
-  expect(await saveBar.getByRole("button").evaluateAll((buttons) => buttons.every((button) => button.getBoundingClientRect().height >= 44))).toBe(true);
+  expect(await saveBar.getByRole("button").evaluateAll((buttons) => buttons.every((button) => button.getBoundingClientRect().height >= 36))).toBe(true);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
   await saveBar.getByRole("button", { name: "Änderungen verwerfen" }).click();
 
