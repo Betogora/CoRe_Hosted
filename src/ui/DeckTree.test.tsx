@@ -133,7 +133,8 @@ test("deck tree keeps the compact summary order across dashboard and learning", 
   }
   assert.match(learning, /aria-label="Bereich \/ Grundlagen lernen"/);
   assert.doesNotMatch(learning, /aria-pressed=|data-selected=/);
-  for (const markup of [dashboard, learning]) assert.match(markup, />Alle einklappen</);
+  assert.match(learning, />Alle einklappen</);
+  assert.doesNotMatch(dashboard, /Alle einklappen|Alle aufklappen/);
 });
 
 test("deck tree groups every main deck with its subdecks without a tinted surface", () => {

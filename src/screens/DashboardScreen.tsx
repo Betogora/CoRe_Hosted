@@ -216,7 +216,7 @@ export function DashboardScreen({ state, now, onNavigate, onStartDeck, onStartAd
     [deckSummaries, globalSettings.dayStartHour, globalSettings.learnAheadMinutes, now, state.decks, state.profile.timezone],
   );
   const { dailyLearningPlan } = library;
-  const [deckView, setDeckView] = useStoredDeckTreeView("core.dashboard.deckView.v1");
+  const [deckView, setDeckView] = useStoredDeckTreeView();
   const deckRoots = React.useMemo(() => library.rows.filter((row) => row.depth === 0), [library.rows]);
   const teaserRootIds = React.useMemo(() => [...deckRoots].sort((a, b) => b.dailyLearningSession.startableCount - a.dailyLearningSession.startableCount).slice(0, 3).map((row) => row.id), [deckRoots]);
   const timeZone = state.profile.timezone || undefined;
