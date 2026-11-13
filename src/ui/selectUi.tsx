@@ -92,7 +92,7 @@ function createDeckSelectRows(decks: readonly Deck[]): DeckSelectRow[] {
   const visitedDeckIds = new Set<string>();
 
   function appendBranch(deck: Deck): void {
-    const pending = [{ deck, depth: 0, parentPath: [] as string[], parentTreeNames: [] as string[] }];
+    const pending = [{ deck, depth: 0, parentPath: [] as string[], parentTreePath: "" }];
     while (pending.length > 0) {
       const current = pending.pop()!;
       if (visitedDeckIds.has(current.deck.id)) continue;
@@ -100,12 +100,12 @@ function createDeckSelectRows(decks: readonly Deck[]): DeckSelectRow[] {
       const hierarchyPath = current.deck.hierarchyPath.length
         ? current.deck.hierarchyPath
         : [...current.parentPath, current.deck.name];
-      const treeNames = [...current.parentTreeNames, current.deck.name];
+      const treePath = current.parentTreePath ? `${current.parentTreePath} / ${current.deck.name}` : current.deck.name;
       const path = hierarchyPath.join(" / ");
-      rows.push({ deck: current.deck, depth: current.depth, path, searchPath: path.toLocaleLowerCase("de-DE"), treePath: treeNames.join(" / ") });
+      rows.push({ deck: current.deck, depth: current.depth, path, searchPath: path.toLocaleLowerCase("de-DE"), treePath });
       const children = childrenByParentId.get(current.deck.id) ?? [];
       for (let index = children.length - 1; index >= 0; index -= 1) {
-        pending.push({ deck: children[index], depth: current.depth + 1, parentPath: hierarchyPath, parentTreeNames: treeNames });
+        pending.push({ deck: children[index], depth: current.depth + 1, parentPath: hierarchyPath, parentTreePath: treePath });
       }
     }
   }
