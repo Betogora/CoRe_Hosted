@@ -1,5 +1,5 @@
 import React from "react";
-import { ArrowLeft, ChevronRight, LoaderCircle, type LucideIcon } from "lucide-react";
+import { ArrowLeft, ChevronDown, ChevronRight, ChevronUp, LoaderCircle, type LucideIcon } from "lucide-react";
 
 const ACTION_VARIANT_CLASS = {
   primary: "core-action-primary",
@@ -75,6 +75,28 @@ export type CrossLinkButtonProps = CrossLinkBaseProps & (
 );
 
 const CROSS_LINK_CLASS = "inline-flex min-h-button items-center gap-1 whitespace-nowrap rounded-control px-1 core-control-label font-semibold text-core-action underline-offset-4 hover:underline";
+
+/**
+ * Opens the rest of a shortened list in place (`N weitere anzeigen`) or folds it again (`Weniger anzeigen`). `context`
+ * names the list for screen readers when several of them stand side by side.
+ */
+export function ShowMoreButton({ expanded, hiddenCount, onToggle, controls, context, className = "" }: {
+  expanded: boolean;
+  hiddenCount: number;
+  onToggle: () => void;
+  controls?: string;
+  context?: string;
+  className?: string;
+}) {
+  const label = expanded ? "Weniger anzeigen" : `${hiddenCount} weitere anzeigen`;
+  const Icon = expanded ? ChevronUp : ChevronDown;
+  return (
+    <button type="button" aria-expanded={expanded} aria-controls={controls} aria-label={context ? `${label}: ${context}` : undefined} onClick={onToggle}
+      className={`core-show-more -ml-1.5 inline-flex items-start gap-1 justify-self-start self-start rounded-inset px-1.5 py-1 text-left core-control-label font-semibold text-core-action transition-colors hover:bg-core-subtle ${className}`.trim()}>
+      <Icon size={14} className="mt-[0.2em] shrink-0" aria-hidden="true" />{label}
+    </button>
+  );
+}
 
 export function CrossLinkButton({ children, className = "", direction = "forward", ...action }: CrossLinkButtonProps) {
   const content = direction === "back" ? (

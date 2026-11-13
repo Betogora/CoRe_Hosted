@@ -197,12 +197,12 @@ test("Themenvorschau kürzt lange Listen und lässt den Prüfungstermin außerha
   const html = renderToStaticMarkup(<ExamTopicPreview topics={topics} examDate="2026-12-09" color="#1749e5" calendarRef={{ current: null }} actionsRef={{ current: null }} />);
   assert.match(html, /Deine Themenfolge/);
   assert.match(html, /aria-expanded="false"/);
-  assert.match(html, /Alle 20 Themen anzeigen/);
+  assert.match(html, /17 weitere anzeigen/);
   assert.equal((html.match(/aria-hidden="true" class="grid min-w-0 gap-1"/g) ?? []).length, 17);
   assert.ok(html.indexOf('data-testid="exam-topic-exam-date"') > html.indexOf('</ol>'));
   assert.match(html, /Mi\., 9\.12\./);
   const short = renderToStaticMarkup(<ExamTopicPreview topics={topics.slice(0, 2)} examDate="2026-12-09" calendarRef={{ current: null }} actionsRef={{ current: null }} />);
-  assert.doesNotMatch(short, /Alle 2 Themen anzeigen|aria-hidden="true" class="grid/);
+  assert.doesNotMatch(short, /weitere anzeigen|aria-hidden="true" class="grid/);
 });
 
 

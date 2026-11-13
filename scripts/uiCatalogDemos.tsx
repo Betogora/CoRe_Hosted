@@ -23,7 +23,7 @@ import { createDeckLibraryModel } from "../src/libraryModel.ts";
 import { createStudyHeatmapModelFromCounts } from "../src/studyHeatmapModel.ts";
 import { createDeckLearningSettingsDraft } from "../src/settingsDraft.ts";
 import { createPomodoroTimer, createPomodoroTimerFromSeconds, pausePomodoroTimer, resumePomodoroTimer, type PomodoroTimer } from "../src/pomodoroTimer.ts";
-import { ActionButton, CrossLinkButton, IconButton } from "../src/ui/actionUi.tsx";
+import { ActionButton, CrossLinkButton, IconButton, ShowMoreButton } from "../src/ui/actionUi.tsx";
 import { ActionDialog, CardMarkButton, CoreIconSegmentedControl, CoreTag, CoreModeControl, CoreSegmentedControl, CoreSlidingTabs, CoreTriStateControl, CoreVerdictControl, EmptyState, PageHeader, SoftPanel, StatTile, type CoreTriState } from "../src/ui/coreUi.tsx";
 import { StatusMessage, useSuccessToast } from "../src/ui/feedbackUi.tsx";
 import { createAccountMediaStore, type AccountMediaStore } from "../src/mediaStore.ts";
@@ -164,6 +164,7 @@ function ActionsDemo({ section }: { section: string }) {
       <CreationActionCard title="Anki-Stapel importieren" description="Eine vorhandene APKG-Datei übernehmen." icon={Layers} onSelect={() => toast("Import gewählt.")} />
     </div></Demo>}
     {section === "buttons" && <Demo title="IconButton · normal, destruktiv, destruktiv-dezent und ghost"><div className="catalog-row">{(["secondary", "destructive", "destructive-quiet", "ghost"] as const).map((variant) => <CoreTooltip key={variant} label={variant}><IconButton variant={variant} label={`${variant}: Beispielaktion`} icon={variant.startsWith("destructive") ? Trash2 : Settings} onClick={() => toast("Icon-Aktion ausgeführt.")} /></CoreTooltip>)}</div></Demo>}
+    {section === "buttons" && <ShowMoreDemo />}
     {section === "buttons" && <Demo title="CrossLinkButton · weiter und zurück"><div className="catalog-row"><CrossLinkButton onSelect={() => toast("Querlink gewählt.")}>Alle ansehen</CrossLinkButton><CrossLinkButton direction="back" onSelect={() => toast("Zurück gewählt.")}>Erstellen</CrossLinkButton></div></Demo>}
     {section === "tooltips" && <Demo title="CoreTooltip · Text, Wert und Stapel"><div className="catalog-row"><CoreTooltip label="Kurzer Hinweis"><IconButton label="Hinweis anzeigen" icon={Info} /></CoreTooltip><CoreTooltip label="Neu" value="12 Karten" swatchColor="var(--core-learning-status-new)"><span tabIndex={0}>Lernstatus</span></CoreTooltip><CoreTooltip label="Welt-Hauptstädte" deckAppearance={deck.deckSettings.appearance}><span tabIndex={0}>Stapelhinweis</span></CoreTooltip></div></Demo>}
   </>;
@@ -781,7 +782,7 @@ function OcclusionEditorDemo() {
 export type CatalogSectionId = "grundlagen" | "primitive" | "shared" | "fachmuster" | "icons";
 
 export const DEMO_GROUPS = [
-  { id: "aktionen", section: "primitive", title: "Button", description: "Text-, Icon-, Querlink-, Aktionskarten-, Markierungs- und Bewertungsbuttons.", components: ["ActionButton", "IconButton", "CrossLinkButton", "CreationActionCard", "CardMarkButton", "CardStudyStateControls"], render: () => <><ActionsDemo section="buttons" /><ControlsDemo section="buttons" /><LearningDemo section="buttons" /></> },
+  { id: "aktionen", section: "primitive", title: "Button", description: "Text-, Icon-, Querlink-, Aktionskarten-, Markierungs- und Bewertungsbuttons.", components: ["ActionButton", "IconButton", "CrossLinkButton", "ShowMoreButton", "CreationActionCard", "CardMarkButton", "CardStudyStateControls"], render: () => <><ActionsDemo section="buttons" /><ControlsDemo section="buttons" /><LearningDemo section="buttons" /></> },
   { id: "auswahl", section: "primitive", title: "SegmentedControl", description: "Segmente, gleitende Tabs, reine Icon-Auswahl, Dreifach-Schalter und Richtig-falsch-Urteil.", components: ["CoreSegmentedControl", "CoreSlidingTabs", "CoreIconSegmentedControl", "CoreTriStateControl", "CoreVerdictControl"], render: () => <ControlsDemo section="segments" /> },
   { id: "formulare", section: "primitive", title: "Input- und Select-Familie", description: "Text, Zahl mit Einheit, Passwort, mehrzeilige Eingaben, Select, Datum, Datei, Einstellungszeilen und Lerneinstellungen.", components: ["CoreSelect", "CoreNumberField", "DeckSelect", "DeckMultiSelect", "CoreDatePicker", "FileDropField", "PomodoroTimerControl", "LearningSettingsPanel"], wide: true, render: () => <><FormsDemo section="forms" /><LearningDemo section="forms" /></> },
   { id: "auswahlfelder", section: "primitive", title: "Checkbox, Radio, Schalter und Schieberegler", description: "Auswahl einzelner und mehrerer Werte, Ein/Aus-Zustände und Werte auf einer Skala.", components: ["CoreCheckbox", "CoreCheckboxGroup", "CoreRadio", "CoreRadioGroup", "CoreSwitch", "CoreModeControl", "CoreSlider"], render: ChoiceControlsDemo },
@@ -806,6 +807,12 @@ export const DEMO_GROUPS = [
   { id: "icon-rollen", section: "icons", title: "Häufige Icon-Rollen", description: "Wiederkehrende Aktionen und ihre Lucide-Icons.", components: [], render: IconRolesDemo },
   { id: "brain-mascots", section: "icons", title: "Gehirn-Maskottchen und Motivation", description: "SVG-Maskottchen mit interaktiven Augen und täglicher Lernimpuls.", components: ["BrainMascot", "DailyMotivationWidget"], wide: true, render: () => <><Demo title="BrainMascot"><BrainMascot id="pastell-lernen" interactive /></Demo><Demo title="DailyMotivationWidget"><DailyMotivationWidget now="2026-10-29T12:00:00Z" timeZone="Europe/Berlin" dayStartHour={3} /></Demo></> },
 ] satisfies Array<{ id: string; section: CatalogSectionId; title: string; description: string; components: string[]; wide?: boolean; render: () => React.ReactNode }>;
+
+function ShowMoreDemo() {
+  const [expanded, setExpanded] = useState(false);
+  const items = ["Zusammenfassung lesen · Atmung", "Zusammenfassung lesen · Herz", "Neue Karten · Niere", "Neue Karten · Leber", "Neue Karten · Milz"];
+  return <Demo title="ShowMoreButton · gekürzte Liste an Ort und Stelle aufklappen"><div className="grid gap-2"><ul id="show-more-demo" className="grid gap-1 core-body text-core-text">{(expanded ? items : items.slice(0, 3)).map((item) => <li key={item}>{item}</li>)}</ul><ShowMoreButton expanded={expanded} hiddenCount={items.length - 3} controls="show-more-demo" onToggle={() => setExpanded(!expanded)} /></div></Demo>;
+}
 
 const noteDemoField = (id: string, role: NoteField["role"], html: string): NoteField => ({ id, name: id, role, html });
 const noteDemoContent = (fields: NoteField[], interaction: NoteContent["interaction"], speech: NoteContent["speech"] = []): NoteContent => ({ schemaVersion: 1, fields, interaction, speech, tags: [] });

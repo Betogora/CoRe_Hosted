@@ -2088,6 +2088,10 @@ body:has([aria-modal="true"]) .core-success-toast {
   opacity: 0.7;
 }
 
+/* ShowMoreButton: the layout takes only its text line; an invisible margin keeps the touch height around it. */
+.core-show-more { position: relative; min-height: 0; }
+.core-show-more::before { content: ""; position: absolute; inset-inline: 0; inset-block: min(0px, calc((100% - var(--core-button-height)) / 2)); }
+
 /* Back link of PageHeader: the touch height stays, the line takes 24 px and the arrow starts at the title edge. */
 .core-page-header-back {
   display: flex;

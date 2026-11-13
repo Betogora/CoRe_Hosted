@@ -171,7 +171,7 @@ test("Widget-Höhen schließen Lücken und passen sich aufgeklappten Inhalten an
     await page.getByRole("button", { name: "Aufgabe hinzufügen", exact: true }).click();
   }
   await expect(page.getByRole("checkbox", { name: "Weitere Aufgabe vier", exact: true })).toHaveCount(0);
-  await page.getByRole("button", { name: /^Alle \d+ Aufgaben anzeigen$/ }).and(page.locator(".dashboard-todos > button")).click();
+  await page.getByRole("button", { name: /^\d+ weitere anzeigen$/ }).and(page.locator(".dashboard-todos > button")).click();
   await page.getByRole("checkbox", { name: "Weitere Aufgabe vier", exact: true }).click();
   await page.getByText("Erledigt (1)", { exact: true }).click();
   await expect(page.getByRole("checkbox", { name: "Weitere Aufgabe vier", exact: true })).toBeChecked();
@@ -456,7 +456,7 @@ test("Aufgaben: gemischte Dreier-Vorschau, Inline-Plus und ausklappbare lange Te
   await expect(own.getByRole("checkbox")).not.toBeChecked();
   await own.getByRole("button", { name: "Aufgabentext einklappen" }).click();
   await page.screenshot({ path: info.outputPath("aufgaben-vorschau.png") });
-  await box.getByRole("button", { name: /^Alle \d+ Aufgaben anzeigen$/ }).click();
+  await box.getByRole("button", { name: /^\d+ weitere anzeigen$/ }).click();
   await expect(box.locator('[data-own-todo]').filter({ visible: true })).toHaveCount(4);
   expect(await planned.count()).toBeGreaterThan(2);
   await box.getByRole("button", { name: "Weniger anzeigen", exact: true }).click();
@@ -490,7 +490,7 @@ for (const { width, height } of sizes) for (const theme of matrixThemes) {
     await box.locator('[data-own-todo]').getByRole("button", { name: "Vollständigen Aufgabentext anzeigen" }).click();
     if (visualOutput) await page.screenshot({ path: info.outputPath("todos-expanded.png") });
     await box.locator('[data-own-todo]').getByRole("button", { name: "Aufgabentext einklappen" }).click();
-    await box.getByRole("button", { name: /^Alle \d+ Aufgaben anzeigen$/ }).click();
+    await box.getByRole("button", { name: /^\d+ weitere anzeigen$/ }).click();
     if (visualOutput) await page.screenshot({ path: info.outputPath("todos-all.png") });
     expect(await page.locator(".catalog-product-preview").evaluate((element) => element.scrollWidth > element.clientWidth + 1)).toBe(false);
     for (const widget of [timer, box]) {
