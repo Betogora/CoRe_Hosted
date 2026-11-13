@@ -25,7 +25,7 @@ const RATINGS: Record<string, { label: string; tone: string }> = {
   again: { label: "Nochmal", tone: "var(--core-rating-again-border)" },
   hard: { label: "Schwer", tone: "var(--core-rating-hard-border)" },
   good: { label: "Gut", tone: "var(--core-rating-good-border)" },
-  easy: { label: "Einfach", tone: "var(--core-rating-easy-border)" },
+  easy: { label: "Leicht", tone: "var(--core-rating-easy-border)" },
 };
 
 const MANUAL_KINDS: Record<string, string> = {

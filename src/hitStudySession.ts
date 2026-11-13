@@ -49,7 +49,7 @@ const PRACTICE_AGAIN_GAP = 3;
 export interface PracticeState {
   /** Card ids still to show; the first is on screen. */
   queue: readonly string[];
-  /** Cards known once (`Gut` or `Einfach`), in that order. */
+  /** Cards known once (`Gut` or `Leicht`), in that order. */
   known: readonly string[];
   /** How often each card got `Nochmal`. */
   againCounts: Readonly<Record<string, number>>;
@@ -62,7 +62,7 @@ export function createPractice(cardIds: readonly string[]): PracticeState {
 }
 
 /**
- * `Nochmal` brings the card back after a few others, `Schwer` once more at the end, `Gut` and `Einfach` end it for this
+ * `Nochmal` brings the card back after a few others, `Schwer` once more at the end, `Gut` and `Leicht` end it for this
  * run; the run ends when every card was known once.
  */
 export function answerPractice(state: PracticeState, rating: "again" | "hard" | "good" | "easy"): PracticeState {
