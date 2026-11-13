@@ -114,7 +114,7 @@ export function ExamCalendar({ exams, capacity, forecast, decks, today, busy, in
       <fieldset disabled={busy || locked} className="grid min-w-0 gap-5">
       {selectedSubjects.length ? <ul className="grid gap-3" aria-label="Lernaufgaben an diesem Tag">{selectedSubjects.map(({ exam, newCards, topics: subjectTopics, summaries }) => {
         const color = examColor(exams.indexOf(exam), exam), ownBlocks = selectedBlocks.some((block) => block.examId === exam.id);
-        return <li key={exam.id} data-exam-day-subject={exam.id} className="grid min-w-0 gap-3 rounded-inset border-l-strong p-3" style={{ borderColor: color, background: `color-mix(in srgb, ${color} 10%, var(--core-surface))` }}>
+        return <li key={exam.id} data-exam-day-subject={exam.id} className="grid min-w-0 gap-3 rounded-control border-strong p-3" style={{ borderColor: color, background: `color-mix(in srgb, ${color} 16%, var(--core-surface))` }}>
           <div className="grid min-w-0 gap-1">
             <p className="break-words core-body text-core-text"><strong>{exam.name}</strong> · {hasSelectedForecast ? formatExamCount(newCards, "neue Karte", "neue Karten") : "Karten: –"}</p>
             {subjectTopics.map(({ deckId, count }) => <p key={deckId} className="break-words core-caption text-core-muted">{deckName(deckId)} · {formatExamCount(count, "Karte", "Karten")}</p>)}

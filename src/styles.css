@@ -2520,10 +2520,6 @@ body:has([aria-modal="true"]) .core-success-toast {
     min-height: 0;
   }
 
-  .core-card-row-selected {
-    box-shadow: inset var(--core-border-width-strong) 0 0 var(--core-action-primary);
-  }
-
   .core-settings-matrix {
     width: 100%;
     max-width: 32rem;

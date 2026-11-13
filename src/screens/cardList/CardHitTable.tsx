@@ -101,7 +101,7 @@ const CardTableRowView = React.memo(function CardTableRowView({ virtualKey, deck
       onPointerCancel={cancelPress}
       onPointerMove={(event) => { if (event.pointerType === "touch" && (Math.abs(event.movementX) > 4 || Math.abs(event.movementY) > 4)) cancelPress(); }}
       onContextMenu={(event) => { if (pressed.current) event.preventDefault(); }}
-      className={`cursor-pointer border-b border-core-border transition-colors ${checked ? "bg-core-info-soft" : suspended ? "bg-core-warning-soft hover:bg-core-warning-soft" : selected ? "bg-core-info-soft" : "bg-core-surface hover:bg-core-subtle"} ${selected ? "core-card-row-selected" : ""}`}
+      className={`cursor-pointer border-b border-core-border transition-colors ${checked ? "bg-core-info-soft" : suspended ? "bg-core-warning-soft hover:bg-core-warning-soft" : selected ? "bg-core-info-soft" : "bg-core-surface hover:bg-core-subtle"}`}
       data-selected={selected ? "true" : undefined}
       data-suspended={suspended ? "true" : undefined}
       data-card-row="true"
