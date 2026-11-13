@@ -3,7 +3,7 @@ import { Pencil, PowerOff, RefreshCw, RotateCcw, Settings, Sparkles, Trash2 } fr
 import type { CardEditorServices, DecksScreenProps } from "../../appScreenProps.ts";
 import { cardVariantSource, classifyCardEligibility, describeVariantReadiness, isEditedVariant } from "../../coreVariantService.ts";
 import type { Card, CardVariant, Deck, Note } from "../../coreTypes.ts";
-import { stripHtml } from "../../htmlSafety.ts";
+import { normalizeAiCardText } from "../../aiCardVariantContract.ts";
 import { ActionButton, CrossLinkButton, IconButton } from "../../ui/actionUi.tsx";
 import { ActionDialog } from "../../ui/coreUi.tsx";
 import { useSuccessToast } from "../../ui/feedbackUi.tsx";
@@ -44,8 +44,8 @@ function VariantRow({ variant, cardAnswer, index, busy, reactivationBlocked, can
           </span>
           {editing ? null : (
             <>
-              <p className="mt-2 break-words core-body font-semibold text-core-text">{stripHtml(variant.front)}</p>
-              <p className="break-words core-body text-core-muted">{cardAnswer ?? stripHtml(variant.back)}</p>
+              <p className="mt-2 break-words core-body font-semibold text-core-text">{normalizeAiCardText(variant.front)}</p>
+              <p className="break-words core-body text-core-muted">{cardAnswer ?? normalizeAiCardText(variant.back)}</p>
               {(variant.performance?.attempts ?? 0) > 0 ? <p className="mt-1 core-body text-core-muted">{variant.performance.attempts}× abgefragt · {variant.performance.correctCount} richtig</p> : null}
             </>
           )}
@@ -131,8 +131,8 @@ export function CardEditorVariantsTab({ deck, note, card, services, onGenerateVa
       <Section title="Original" testId="card-variant-original">
         {original ? (
           <div className="grid min-w-0 gap-0.5">
-            <p className="break-words core-body font-semibold text-core-text">{stripHtml(original.front)}</p>
-            <p className="break-words core-body text-core-muted">{stripHtml(original.back)}</p>
+            <p className="break-words core-body font-semibold text-core-text">{original.front}</p>
+            <p className="break-words core-body text-core-muted">{original.back}</p>
           </div>
         ) : <p className="core-body text-core-muted">{eligibility.reasons[0] ?? "Diese Karte hat keine Frage und Antwort."}</p>}
       </Section>

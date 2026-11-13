@@ -15,27 +15,14 @@ externen Release fällig. „Später“ ist geparkt.
 Bewusst einfacher Probelauf (ADR-011); Auswahl und Oberfläche werden danach
 geglättet.
 
-Pakete, je ein PR, in dieser Reihenfolge. Alle Kartenarten bleiben auf
-der Route `/api/ai/card-variant` (ADR-011): Die Anfrage nennt ihre Kartenart,
-jede Kartenart hat eigenen Prompt, eigenes Werkzeugschema und eigene Prüfung.
-Varianten bleiben in `card_variants` (`front`, `back`, `meta`); keine
-Migration. Bildverdeckungen bleiben ohne Varianten. Zum Ausprobieren je
+Pakete als Commits auf `claude/ki-varianten-a`, in dieser Reihenfolge. Alle
+Kartenarten bleiben auf der Route `/api/ai/card-variant` (ADR-011): Die
+Anfrage nennt ihre Kartenart, jede Kartenart hat eigenen Prompt und eigene
+Prüfung. Varianten bleiben in `card_variants` (`front`, `back`, `meta`);
+keine Migration. Bildverdeckungen bleiben ohne Varianten. Zum Ausprobieren je
 Kartenart drei Karten in `fixtures/apkg/ai-variant-card-kinds.apkg`
-(`scripts/create_ai_variant_demo_apkg.py`). Reihenfolge nach erwartetem
-Nutzen: Lückentext trägt die großen Medizin- und Fachstapel, Eintippen das
-Vokabellernen, Single Choice das Altfragen-Format des IMPP und die Karten
-aus P2; Multiple Choice und Kprim kommen nur über ein Add-on.
+(`scripts/create_ai_variant_demo_apkg.py`).
 
-- [ ] **B – Lückentext:** Eine Variante gehört zu ihrer Lückengruppe:
-      `front` ist der umformulierte Text mit genau dieser Lückengruppe,
-      andere Lücken stehen als Klartext; `back` hält den Lückeninhalt. Die
-      Route weist Varianten ab, deren Lückeninhalt nicht wortgleich ist,
-      die weitere Lücken enthalten oder die Lösung im Text verraten.
-      Review, Editor-Reiter `Varianten` und Stapellauf zeigen und
-      bearbeiten Lückentext-Varianten. Nachweis: Vertrags- und
-      Routentests, Lückentext-Karten des Demo-Stapels und eine Stichprobe
-      aus Ankizin und AnKing mit verschachtelten Lücken, Hinweisen und
-      Formeln, Eval-Fallsatz `card-variant-cloze`.
 - [ ] **C – Auswahl (Single, Multiple Choice, Kprim):** `front` ist der
       umformulierte Fragestamm, die Optionstexte stehen je Options-ID in
       `meta`. Richtig/Falsch kehrt eine Variante nie um (keine verneinten
@@ -138,7 +125,9 @@ bewertet werden.
       und Korpusfällen (`cases --corpus`), `card-help` je Karte in allen drei
       Modi. „Freitext ohne echte Frage“ deckt Dank, Bestätigung, eigenen
       Antwortversuch, Bitte wie „einfacher“, Unverständnis, Unsinn und Text
-      ohne Kartenbezug ab.
+      ohne Kartenbezug ab. Lückentext braucht Fälle, deren Lücke fast den
+      ganzen Text trägt: Dort umschreibt das Modell die Lösung außerhalb der
+      Lücke, was die Routenprüfung nicht erkennt (M2).
 - [ ] **Kalibrieren und Baselines:** Je Anfragetyp ein Bewertungsbogen (je
       Kriterium bestanden oder nicht, mit je einem Beispiel) und etwa 40
       Einträge, nach Kategorie geschichtet und mit gezielt eingebauten
