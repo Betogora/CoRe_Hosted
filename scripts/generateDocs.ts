@@ -170,7 +170,8 @@ export function createCatalogData(): Omit<CatalogData, "sourceHash"> {
       const name = declaration.prop;
       const category = /shadow/.test(name) ? "Schatten" : /radius/.test(name) ? "Radius" : /type-|leading-|weight-/.test(name) ? "Typografie" : /height|size|space|width/.test(name) ? "Maße" : "Farbe";
       const token = tokens.get(name) ?? { name, light: "", dark: "", category };
-      token[rule.selector.includes('data-core-theme="dark"') ? "dark" : "light"] = declaration.value;
+      const touch = rule.parent?.type === "atrule" && (rule.parent as postcss.AtRule).params === "(pointer: coarse)";
+      token[touch ? "touch" : rule.selector.includes('data-core-theme="dark"') ? "dark" : "light"] = declaration.value;
       tokens.set(name, token);
     });
     for (const [, name] of rule.selector.matchAll(/\.(core-[a-z0-9-]+)/g)) {

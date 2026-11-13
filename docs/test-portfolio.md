@@ -90,8 +90,8 @@ Menüs und Kernjourneys geprüft.
   1280 × 900; weitere betroffene Breakpoints jeweils unmittelbar darunter und darauf.
 - Light und Dark gehören immer dazu, auch wenn nur in einem Modus entwickelt wurde.
 - Prüfkriterien: lesbare lange Inhalte, vollständige Beschriftungen, keine
-  Überlagerungen, saubere Umbrüche, Touchziele (unter 768 px und auf Touchgeräten
-  mindestens 44 × 44 px, sonst 36 px für Buttons und 40 px für Felder),
+  Überlagerungen, saubere Umbrüche, Touchziele (mit Touch-Emulation in jeder
+  Breite mindestens 44 × 44 px, mit Maus 36 px für Buttons und 40 px für Felder),
   Scrollbarkeit und die erreichbare letzte Aktion oberhalb fester Navigation und
   Speicherleisten. Horizontales Hauptscrolling ist unzulässig; dokumentierte lokale
   Scrollbereiche werden auf Bedienbarkeit geprüft.

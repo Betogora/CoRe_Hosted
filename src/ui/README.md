@@ -24,6 +24,9 @@ auf der ganzen Form, nie auf einer einzelnen Kante: Prüfungsaufgaben tragen ein
 Rahmen rundum in Prüfungsfarbe mit getönter Fläche, Prüfungen in Überschriften
 einen Farbpunkt, der Prüfungstag den Klausur-Chip in voller Prüfungsfarbe;
 Hervorhebungen sind getönte Flächen.
+Kalendertage zeigen eine feste Zahl Einträge in voller Höhe, ohne Scrollen und
+Anschnitt, und fassen den Rest als „+N“ zusammen: der Monat in den Tagesdetails,
+die Woche ab dem vierten To-do zum Aufklappen an Ort und Stelle.
 
 Fachliche Farbtokens: `--core-flag-1` bis `--core-flag-7` für die Anki-Flaggen (Grafik, mindestens 3:1), `--core-danger-text` (`text-core-danger-text`) für destruktive Texte und `--core-marked-surface` (`bg-core-marked-soft`) für die Tönung markierter Karten; dort gilt `--core-marked-text-muted` als gedämpfte Schrift. `themeContract.test.ts` prüft die Kontraste hell und dunkel.
 
@@ -63,7 +66,7 @@ Die interaktive Design-Arbeitsfläche liegt in [`../../docs/ui-elements.html`](.
 
 Direktimport: `import { ActionButton, CrossLinkButton, IconButton } from "../ui/actionUi.tsx"`.
 
-`ActionButton` verlangt `variant="primary | secondary | destructive | destructive-secondary"`; optional sind `icon` und `loading`. `destructive-secondary` ist die ruhige Gefahrenform: Sekundärform mit weißer Fläche und Haarlinie, Text in `--core-danger-text`, beim Hovern rot getönt (etwa `Abmelden`); rot gefüllt bleibt unwiderruflichen Aktionen vorbehalten. Das Modul besitzt die produktweite Buttonhöhe (`--core-button-height`: 36 px bei feinem Zeiger ab 768 px, sonst 44 px; Felder nutzen `--core-control-height` mit 40 px, Auswahl-Schienen `--core-selection-height` mit 38 px), Iconabstand, Hover/Active/Focus/Disabled sowie den Ladezustand mit erhaltenem Label und `aria-busy`. Der Aufrufer wählt Hierarchie, Label und Ereignis. Für nachgeordnete Aktionen wird die umrandete Sekundärform verwendet; der einzige randlose Textlink ist `CrossLinkButton`.
+`ActionButton` verlangt `variant="primary | secondary | destructive | destructive-secondary"`; optional sind `icon` und `loading`. `destructive-secondary` ist die ruhige Gefahrenform: Sekundärform mit weißer Fläche und Haarlinie, Text in `--core-danger-text`, beim Hovern rot getönt (etwa `Abmelden`); rot gefüllt bleibt unwiderruflichen Aktionen vorbehalten. Das Modul besitzt die produktweite Buttonhöhe (`--core-button-height` 36 px, Felder `--core-control-height` 40 px, Auswahl-Schienen `--core-selection-height` 38 px; bei Touch, also `(pointer: coarse)`, alle drei 44 px), Iconabstand, Hover/Active/Focus/Disabled sowie den Ladezustand mit erhaltenem Label und `aria-busy`. Die Zeigerabfrage ist die einzige Unterteilung der Bedienhöhe und gilt in jeder Fensterbreite; Breitenabfragen ändern nur das Layout, abweichende Komponentenhöhen fragen ebenfalls nur `pointer` ab. Der Aufrufer wählt Hierarchie, Label und Ereignis. Für nachgeordnete Aktionen wird die umrandete Sekundärform verwendet; der einzige randlose Textlink ist `CrossLinkButton`.
 
 ```tsx
 <ActionButton variant="primary" icon={Save} loading={saving} onClick={save}>

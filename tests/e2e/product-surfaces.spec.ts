@@ -213,7 +213,7 @@ test("settings save bar keeps its depth and responsive position in both themes",
         };
       });
 
-      expect(layout.buttonHeight).toBeGreaterThanOrEqual(viewport.width < 768 ? 44 : 40);
+      expect(layout.buttonHeight).toBeGreaterThanOrEqual(40);
       expect(layout.boxShadow).not.toBe("none");
       expect(layout.pageFitsViewport).toBe(true);
       expect(layout.barLeft).toBeGreaterThanOrEqual(0);
