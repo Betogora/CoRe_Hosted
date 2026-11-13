@@ -372,6 +372,7 @@ test("[Vertrag: KI-Basic-Variante] @golden-e2e @beta-core @hosted-core abgefange
   const providerGate = new Promise<void>((resolve) => { releaseProvider = resolve; });
   await page.route("**/api/ai/card-variant", async (route) => {
     expect(route.request().postDataJSON()).toEqual({
+      kind: "basic",
       source: { front: "Welche Aufgabe hat ATP?", back: "ATP überträgt chemische Energie." },
     });
     expect(route.request().headers().authorization).toMatch(/^Bearer /);

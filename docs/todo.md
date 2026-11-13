@@ -15,26 +15,17 @@ externen Release fällig. „Später“ ist geparkt.
 Bewusst einfacher Probelauf (ADR-011); Auswahl und Oberfläche werden danach
 geglättet.
 
-Pakete als Commits auf `claude/ki-varianten-a`, in dieser Reihenfolge. Alle
-Kartenarten bleiben auf der Route `/api/ai/card-variant` (ADR-011): Die
-Anfrage nennt ihre Kartenart, jede Kartenart hat eigenen Prompt und eigene
-Prüfung. Varianten bleiben in `card_variants` (`front`, `back`, `meta`);
-keine Migration. Bildverdeckungen bleiben ohne Varianten. Zum Ausprobieren je
-Kartenart drei Karten in `fixtures/apkg/ai-variant-card-kinds.apkg`
+Varianten gibt es für Frage–Antwort, Eintippen, Lückentext und Auswahl
+(Branch `claude/ki-varianten-a`); Bildverdeckungen bleiben ohne. Zum
+Ausprobieren je Kartenart drei Karten in
+`fixtures/apkg/ai-variant-card-kinds.apkg`
 (`scripts/create_ai_variant_demo_apkg.py`).
 
-- [ ] **D – Einstiege und Abnahme:** Zähler der Karten ohne Variante in den
-      Stapeleinstellungen (danach eine einzige Aktion, deren Beschriftung
-      zwischen „generieren“ und „neu generieren“ wechselt); nach
-      Fehlschlägen führt `Anzeigen` in der Leiste zum Filter
-      `-has:variant`; Stoppgründe in der Leiste kurz halten (z. B. „Keine
-      Verbindung“). Visuelle Pflichtmatrix für Fortschrittsleiste,
-      Einschalt-Dialog, Variantenbereich der Stapeleinstellungen, Filter
-      `-has:variant` und die Varianten jeder Kartenart im Review; E2E-Test
-      der Stapelgenerierung über den Demo-Stapel (Route je Aufruf mit
-      anderer Variante gemockt). Specs
-      [Kartenvarianten erzeugen](specs.md#kartenvarianten-erzeugen),
-      `status.md` und `architecture.md` nachziehen.
+- [ ] **Restnachweis Pflichtmatrix:** Geprüft sind Variantenbereich der
+      Stapeleinstellungen, Fortschrittsleiste (1440 und 375 px, hell) und
+      die Kartenverwaltung nach `Anzeigen`. Offen: dunkles Theme, der
+      Einschalt-Dialog und eine Variante jeder Kartenart im Review (braucht
+      reife Karten, etwa über die Seed-Daten des E2E-Kontos).
 
 ## P2: Karten aus einer Quelle per KI erstellen
 

@@ -1221,9 +1221,8 @@ test("[Vertrag: KI-Varianten je Kartenart, Zähler, Stapellauf und Anzeigen] Der
   await page.getByRole("button", { name: "Stapeloptionen für CoRe KI-Varianten", exact: true }).click();
   await page.locator('[data-testid^="deck-options-menu-"]').getByRole("button", { name: "Einstellungen" }).click();
   const dialog = deckSettingsDialog(page);
-  await dialog.getByRole("switch", { name: "CoRe-Modus" }).click();
-  await page.getByTestId("settings-save-bar").getByRole("button", { name: "Stapel und Unterstapel speichern" }).click();
-  await expect(page.getByRole("status").filter({ hasText: "Stapeleinstellungen wurden" })).toBeVisible();
+  // Imported decks have CoRe switched on by default.
+  await expect(dialog.getByRole("switch", { name: "CoRe-Modus" })).toBeChecked();
 
   // The parent deck counts and generates over all its subdecks.
   await expect(dialog.getByTestId("deck-settings-variant-count")).toHaveText("18 Karten ohne Variante");
