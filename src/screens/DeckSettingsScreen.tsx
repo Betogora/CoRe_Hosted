@@ -70,7 +70,8 @@ const LEECH_ACTION_OPTIONS = [
   { value: "suspend", label: "Aussetzen" },
 ] as const;
 
-export function DeckSettingsScreen({ section, onSelectSection, deck, decks, learningProfiles, onSaveSettings, onApplyLearningProfile, onSaveLearningProfiles, onDraftStateChange, onRequestContextAction, onCreateSubdeck, onDeleteDeck, onSelectDeck, onOpenGlobalSettings, offlineDeck = null, bodyCache = null, onDownloadDeck, onRemoveDeckDownload, onGenerateVariants, variantGenerationRunning = false, onClose, footer }: DeckSettingsScreenProps) {
+export function DeckSettingsScreen({ section, onSelectSection, deck, decks, learningProfiles, onSaveSettings, onApplyLearningProfile, onSaveLearningProfiles, onDraftStateChange, onRequestContextAction, onCreateSubdeck, onDeleteDeck, onSelectDeck, onOpenGlobalSettings, offlineDeck = null, bodyCache = null, onDownloadDeck, onRemoveDeckDownload, variantGeneration, onClose, footer }: DeckSettingsScreenProps) {
+  const { running: variantGenerationRunning = false, cardsWithoutVariant = null } = variantGeneration ?? {};
   const initialDraft = deck ? createDeckSettingsDraft(deck) : null;
   const [baseline, setBaseline] = React.useState<DeckSettingsDraft | null>(initialDraft);
   const [draft, setDraft] = React.useState<DeckSettingsDraft | null>(initialDraft);
@@ -294,15 +295,19 @@ export function DeckSettingsScreen({ section, onSelectSection, deck, decks, lear
                 <CoreModeControl value={activeDraft.learning.coreMode} onChange={(coreMode) => changeLearningDraft({ ...activeDraft.learning, coreMode })} />
               </div>
             </div>
-            {onGenerateVariants && createDefaultDeckSettings(deck.deckSettings).coreMode === "on" ? (
+            {variantGeneration && createDefaultDeckSettings(deck.deckSettings).coreMode === "on" ? (
               <div className="core-settings-row" data-testid="deck-settings-variant-generation">
                 <div className="core-settings-row-text">
                   <span className="core-settings-row-title">Kartenvarianten</span>
-                  <p className="core-settings-row-hint">{variantGenerationRunning ? "Es läuft bereits eine Generierung." : `Je eine Variante für bis zu ${CARD_VARIANT_BATCH_LIMIT} Karten, nacheinander im Hintergrund.`}</p>
+                  <p className="core-settings-row-hint" data-testid="deck-settings-variant-count">{variantGenerationRunning ? "Es läuft bereits eine Generierung."
+                    : cardsWithoutVariant === null ? `Je eine Variante für bis zu ${CARD_VARIANT_BATCH_LIMIT} Karten, nacheinander im Hintergrund.`
+                      : cardsWithoutVariant === 0 ? "Alle Karten haben eine Variante."
+                        : `${cardsWithoutVariant.toLocaleString("de-DE")} ${cardsWithoutVariant === 1 ? "Karte" : "Karten"} ohne Variante`}</p>
                 </div>
                 <div className="core-settings-row-control">
-                  <ActionButton type="button" variant="secondary" icon={Sparkles} disabled={variantGenerationRunning} onClick={() => onGenerateVariants(deck, "missing")}>Varianten generieren</ActionButton>
-                  <ActionButton type="button" variant="secondary" icon={RefreshCw} disabled={variantGenerationRunning} onClick={() => setRefreshDialogOpen(true)}>Varianten neu generieren</ActionButton>
+                  {cardsWithoutVariant === 0
+                    ? <ActionButton type="button" variant="secondary" icon={RefreshCw} disabled={variantGenerationRunning} onClick={() => setRefreshDialogOpen(true)}>Varianten neu generieren</ActionButton>
+                    : <ActionButton type="button" variant="secondary" icon={Sparkles} disabled={variantGenerationRunning} onClick={() => variantGeneration.start(deck, "missing")}>Varianten generieren</ActionButton>}
                 </div>
               </div>
             ) : null}
@@ -369,7 +374,7 @@ export function DeckSettingsScreen({ section, onSelectSection, deck, decks, lear
         onCancel={() => setRefreshDialogOpen(false)}
         onConfirm={() => {
           setRefreshDialogOpen(false);
-          onGenerateVariants?.(deck, "refresh");
+          variantGeneration?.start(deck, "refresh");
         }}
       />
     </SettingsDialogFrame>

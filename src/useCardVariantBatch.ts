@@ -1,11 +1,13 @@
 import React from "react";
-import { runCardVariantBatch, summarizeCardVariantBatch, type CardVariantBatchMode, type CardVariantBatchSource } from "./cardVariantBatch.ts";
+import { CARD_VARIANT_CANDIDATE_QUERY, runCardVariantBatch, summarizeCardVariantBatch, type CardVariantBatchMode, type CardVariantBatchSource } from "./cardVariantBatch.ts";
 import type { Deck, DeckSettings } from "./coreTypes.ts";
+import { collectDeckTreeIds } from "./coreWorkspace.ts";
 import { DEFAULT_CARD_TABLE_SORT } from "./libraryModel.ts";
 import { catalogEntryFromCard, type CardCatalogEntry } from "./workspaceReplica.ts";
+import type { WorkspaceStore } from "./workspaceStore.ts";
 
 interface BatchCardSource {
-  queryCardPage(request: { deckId: string; page: number; pageSize: number; sort: typeof DEFAULT_CARD_TABLE_SORT }): Promise<{ items: CardCatalogEntry[]; hasMore: boolean }>;
+  queryCardPage(request: { deckId: string; deckIds: readonly string[]; query: string; page: number; pageSize: number; sort: typeof DEFAULT_CARD_TABLE_SORT }): Promise<{ items: CardCatalogEntry[]; hasMore: boolean; totalCount?: number }>;
   openCards: CardVariantBatchSource["openCards"];
 }
 
@@ -20,13 +22,21 @@ export interface CardVariantBatchView {
 }
 
 /** One app-wide AI variant action at a time, running in the open tab; a full success ends with a toast. */
-export function useCardVariantBatch({ cards, generate, onToast }: {
+export function useCardVariantBatch({ cards, store, generate, onToast }: {
   cards: BatchCardSource | null;
+  /** The workspace now; an action covers its deck with every subdeck. */
+  store: Pick<WorkspaceStore, "get">;
   generate: (deckId: string, cardId: string, mode: CardVariantBatchMode) => Promise<unknown>;
   onToast: (message: string, options?: { appearance?: "success" | "neutral" }) => void;
 }) {
   const [view, setView] = React.useState<CardVariantBatchView | null>(null);
   const controllerRef = React.useRef<AbortController | null>(null);
+  /** The candidates of a mode in the deck tree, as a catalog list of its own so the card lists keep their pages. */
+  const candidateList = React.useCallback((deck: Deck, mode: CardVariantBatchMode) => ({
+    deckId: `variants:${mode}:${deck.id}`,
+    deckIds: [...collectDeckTreeIds(store.get().state?.decks ?? [], deck.id)],
+    query: CARD_VARIANT_CANDIDATE_QUERY[mode],
+  }), [store]);
 
   /** Runs over the deck's cards, or over `cardIds` (the selected cards of the card management, KV4) in their order. */
   const start = React.useCallback((deck: Deck, { mode = "missing", deckSettings = deck.deckSettings, cardIds }: { mode?: CardVariantBatchMode; deckSettings?: Partial<DeckSettings>; cardIds?: readonly string[] } = {}) => {
@@ -41,7 +51,7 @@ export function useCardVariantBatch({ cards, generate, onToast }: {
             const bodies = await cards.openCards(cardIds.slice(page * 50, (page + 1) * 50));
             return { items: bodies.flatMap((body) => body ? [catalogEntryFromCard(body.card, body.note)] : []), hasMore: (page + 1) * 50 < cardIds.length };
           }
-          : (page) => cards.queryCardPage({ deckId: deck.id, page, pageSize: 50, sort: DEFAULT_CARD_TABLE_SORT }),
+          : (page) => cards.queryCardPage({ ...candidateList(deck, mode), page, pageSize: 50, sort: DEFAULT_CARD_TABLE_SORT }),
         openCards: cards.openCards,
       },
       deckSettings,
@@ -64,10 +74,17 @@ export function useCardVariantBatch({ cards, generate, onToast }: {
     }).finally(() => {
       controllerRef.current = null;
     });
-  }, [cards, generate, onToast]);
+  }, [cards, candidateList, generate, onToast]);
+
+  /** Cards of the deck and its subdecks without an active variant, as the deck settings show them; null without a catalog. */
+  const countWithoutVariant = React.useCallback(async (deck: Deck) => {
+    if (!cards) return null;
+    const page = await cards.queryCardPage({ ...candidateList(deck, "missing"), page: 0, pageSize: 1, sort: DEFAULT_CARD_TABLE_SORT });
+    return page.totalCount ?? null;
+  }, [cards, candidateList]);
 
   const cancel = React.useCallback(() => controllerRef.current?.abort(), []);
   const dismiss = React.useCallback(() => setView(null), []);
 
-  return { batch: view, running: Boolean(view && !view.outcome), start, cancel, dismiss };
+  return { batch: view, running: Boolean(view && !view.outcome), start, cancel, dismiss, countWithoutVariant };
 }

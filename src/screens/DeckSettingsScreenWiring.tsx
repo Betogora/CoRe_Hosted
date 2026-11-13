@@ -23,6 +23,17 @@ export function DeckSettingsScreenWiring() {
     });
     return () => { active = false; };
   }, [deckId, offlineDeck, workspaceRepository]);
+  const [cardsWithoutVariant, setCardsWithoutVariant] = React.useState<number | null>(null);
+  const { countWithoutVariant, running: variantsRunning } = variantBatch;
+  // Counted again when a generation ends, so the count and the one variant action follow it.
+  React.useEffect(() => {
+    setCardsWithoutVariant(null);
+    const deck = workspaceStore.get().state?.decks.find((candidate) => candidate.id === deckId);
+    if (!deck || variantsRunning) return undefined;
+    let active = true;
+    void countWithoutVariant(deck).then((count) => { if (active) setCardsWithoutVariant(count); }, () => undefined);
+    return () => { active = false; };
+  }, [countWithoutVariant, deckId, variantsRunning, workspaceStore]);
   if (!deckSettings || !decks) return null;
   return (
     <DeckSettingsScreen
@@ -53,8 +64,7 @@ export function DeckSettingsScreenWiring() {
       }}
       onSelectDeck={(deckId) => settings.selectSettingsOverlay({ deckSettings: { deckId, section: deckSettings.section } })}
       onOpenGlobalSettings={() => settings.openSettings("tagesrunde")}
-      variantGenerationRunning={variantBatch.running}
-      onGenerateVariants={workspaceHydrationService ? (deck, mode) => variantBatch.start(deck, { mode }) : undefined}
+      variantGeneration={workspaceHydrationService ? { start: (deck, mode) => variantBatch.start(deck, { mode }), running: variantBatch.running, cardsWithoutVariant } : undefined}
       offlineDeck={offlineDeck}
       bodyCache={focusedDeckBodyCache}
       onDownloadDeck={workspaceHydrationService ? async (deckId) => {

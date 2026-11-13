@@ -173,8 +173,8 @@ test("offline usage distinguishes cache, protected download and pending updates"
   assert.match(outdated, />Offline-Daten entfernen</);
 });
 
-test("variant generation is offered only for decks with CoRe switched on and locks while running", () => {
-  const render = (currentDeck: Deck, running: boolean) => renderToStaticMarkup(
+test("variant generation is offered only for decks with CoRe switched on, names the cards without one and locks while running", () => {
+  const render = (currentDeck: Deck, running: boolean, cardsWithoutVariant: number | null = null) => renderToStaticMarkup(
     <DeckSettingsScreen
       section="stapel"
       onSelectSection={() => undefined}
@@ -190,8 +190,7 @@ test("variant generation is offered only for decks with CoRe switched on and loc
       onDeleteDeck={async () => null}
       onSelectDeck={() => undefined}
       onOpenGlobalSettings={() => undefined}
-      onGenerateVariants={() => undefined}
-      variantGenerationRunning={running}
+      variantGeneration={{ start: () => undefined, running, cardsWithoutVariant }}
       onClose={() => undefined}
     />,
   );
@@ -202,9 +201,16 @@ test("variant generation is offered only for decks with CoRe switched on and loc
   const idle = render(coreOn, false);
   assert.match(idle, /data-testid="deck-settings-variant-generation"/);
   assert.match(idle, />Varianten generieren</);
-  assert.match(idle, />Varianten neu generieren</);
+  assert.doesNotMatch(idle, />Varianten neu generieren</, "one action: generating while some cards lack a variant");
   assert.match(idle, /Je eine Variante für bis zu 50 Karten/);
   assert.match(render(coreOn, true), /<button[^>]*disabled=""[^>]*>.*Varianten generieren/);
+  const missing = render(coreOn, false, 12);
+  assert.match(missing, /data-testid="deck-settings-variant-count"[^>]*>12 Karten ohne Variante</);
+  assert.match(missing, />Varianten generieren</);
+  const complete = render(coreOn, false, 0);
+  assert.match(complete, />Alle Karten haben eine Variante\.</);
+  assert.match(complete, />Varianten neu generieren</);
+  assert.doesNotMatch(complete, />Varianten generieren</);
 });
 
 test("the Stack section sets the leech threshold and action (default: only mark)", () => {

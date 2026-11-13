@@ -7,17 +7,17 @@ import type { CardCatalogEntry } from "./workspaceReplica.ts";
 /** At most this many generation requests per action; a further action continues with the next cards. */
 export const CARD_VARIANT_BATCH_LIMIT = 50;
 
-/** Errors that would fail every further card the same way; the batch stops instead of repeating them. */
-const STOPPING_ERROR_CODES = new Set([
-  "unauthorized",
-  "auth_unavailable",
-  "network_error",
-  "missing_openrouter_api_key",
-  "openrouter_auth_failed",
-  "provider_budget_exhausted",
-  "rate_limited",
-  "workspace_unavailable",
-]);
+/** Errors that would fail every further card the same way, with the short reason the bar names; the batch stops at them. */
+const STOP_REASONS: Readonly<Record<string, string>> = {
+  unauthorized: "Nicht angemeldet",
+  auth_unavailable: "Nicht angemeldet",
+  network_error: "Keine Verbindung",
+  missing_openrouter_api_key: "KI nicht eingerichtet",
+  openrouter_auth_failed: "KI nicht eingerichtet",
+  provider_budget_exhausted: "KI-Kontingent aufgebraucht",
+  rate_limited: "Zu viele Anfragen",
+  workspace_unavailable: "Daten nicht bereit",
+};
 
 /**
  * `missing` gives cards without an active variant their first one; `refresh` replaces the variants of cards
@@ -25,6 +25,12 @@ const STOPPING_ERROR_CODES = new Set([
  * Variants the learner edited are their own and never count as older.
  */
 export type CardVariantBatchMode = "missing" | "refresh";
+
+/** Card search (`cardSearchQuery.ts`) for the candidates of a mode; image occlusions never get variants. */
+export const CARD_VARIANT_CANDIDATE_QUERY: Readonly<Record<CardVariantBatchMode, string>> = {
+  missing: "-has:variant -is:occlusion",
+  refresh: "has:variant",
+};
 
 function needsVariant(card: Card, mode: CardVariantBatchMode) {
   const active = getActiveVariants(card);
@@ -109,9 +115,8 @@ export async function runCardVariantBatch({
       await generate(cardId);
       result.created += 1;
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Die Variante konnte nicht generiert werden.";
-      if (error instanceof AiCardVariantContractError && STOPPING_ERROR_CODES.has(error.code)) {
-        result.stopped = { reason: "error", message };
+      if (error instanceof AiCardVariantContractError && STOP_REASONS[error.code]) {
+        result.stopped = { reason: "error", message: STOP_REASONS[error.code] };
         result.hasMore = true;
         break;
       }

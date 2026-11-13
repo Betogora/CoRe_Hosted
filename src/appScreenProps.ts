@@ -136,9 +136,8 @@ export interface DeckSettingsScreenProps {
   bodyCache?: { total: number; cached: number; downloaded: number } | null;
   onDownloadDeck?: (deckId: string) => Promise<unknown>;
   onRemoveDeckDownload?: (deckId: string) => Promise<unknown>;
-  /** Starts AI variants for the deck's next cards without one, or refreshes variants from an older prompt version; absent while generation is unavailable. */
-  onGenerateVariants?: (deck: Deck, mode: "missing" | "refresh") => unknown;
-  variantGenerationRunning?: boolean;
+  /** AI variants of the deck tree: the cards without one (null while unknown; at 0 the action refreshes older ones) and the action; absent while unavailable. */
+  variantGeneration?: { start: (deck: Deck, mode: "missing" | "refresh") => unknown; running: boolean; cardsWithoutVariant: number | null };
   /** Closes the dialog towards the view it was opened from. */
   onClose: () => unknown;
   /** The save bar of the open draft. */
@@ -186,6 +185,7 @@ export interface DecksScreenProps {
   onStartDeck: (deck: Deck) => void;
   contentDeckId?: string | null;
   contentTab?: DeckContentTab;
+  cardQuery?: string;
   onOpenDeckContent: (deckId: string, tab?: DeckContentTab) => unknown;
   now: string;
   dayStartHour?: number;

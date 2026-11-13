@@ -75,7 +75,7 @@ export function DecksScreen({
   onGenerateSummary,
   onStartDeck,
   contentDeckId = null,
-  contentTab: requestedContentTab = "children",
+  contentTab: requestedContentTab = "children", cardQuery = "",
   onOpenDeckContent,
   now,
   dayStartHour,
@@ -184,7 +184,7 @@ export function DecksScreen({
   const previouslySelectedCardId = React.useRef<string | null>(null);
   const { query, deferredQuery, changeQuery, cardSort, changeSort, searchContext, tableModel, hitScope, hitList, cardsLoading, items, rowOf, cardItems, locateCard, virtual } = useCardSearch({
     decks, libraryDecks, cardPages, deckSummaries, noteTypes, now, dayStartHour, learnAheadMinutes, timeZone,
-    onRequestCardPage, paused: Boolean(contentDeckId && contentTab !== "cards"), selectedCardId, pendingHit,
+    onRequestCardPage, paused: Boolean(contentDeckId && contentTab !== "cards"), selectedCardId, pendingHit, linkedQuery: cardQuery,
   });
   // Every filter is a search term in the query (Anki notation), so search, chips and menu stay one state.
   const unsupportedTerms = React.useMemo(() => unsupportedCardSearchTerms(deferredQuery), [deferredQuery]);

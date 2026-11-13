@@ -93,7 +93,7 @@ test("batch keeps going after a single failed card but stops at errors every car
     generate: async () => { calls += 1; throw new AiCardVariantContractError("provider_budget_exhausted", "Varianten können gerade nicht generiert werden."); },
   });
   assert.equal(calls, 1);
-  assert.deepEqual(budget.stopped, { reason: "error", message: "Varianten können gerade nicht generiert werden." });
+  assert.deepEqual(budget.stopped, { reason: "error", message: "KI-Kontingent aufgebraucht" });
   assert.equal(budget.hasMore, true);
 });
 

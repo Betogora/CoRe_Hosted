@@ -18,7 +18,7 @@ const ROW_ESTIMATE = { card: 28.72, notice: 29 } as const;
  * the search timing, the sort, the list model and its virtual rows, and the page requests for the rows near the visible area
  * and for the open card.
  */
-export function useCardSearch({ decks, libraryDecks, cardPages, deckSummaries, noteTypes, now, dayStartHour, learnAheadMinutes, timeZone, onRequestCardPage, paused, selectedCardId, pendingHit }: Pick<LibraryOptions, "dayStartHour" | "learnAheadMinutes" | "timeZone" | "deckSummaries"> & {
+export function useCardSearch({ decks, libraryDecks, cardPages, deckSummaries, noteTypes, now, dayStartHour, learnAheadMinutes, timeZone, onRequestCardPage, paused, selectedCardId, pendingHit, linkedQuery = "" }: Pick<LibraryOptions, "dayStartHour" | "learnAheadMinutes" | "timeZone" | "deckSummaries"> & {
   decks: Deck[];
   /** Decks in scope: every deck, or the tree of the open deck content. */
   libraryDecks: Deck[];
@@ -31,6 +31,8 @@ export function useCardSearch({ decks, libraryDecks, cardPages, deckSummaries, n
   selectedCardId: string | null;
   /** Prev/next to a row whose page is not loaded yet. */
   pendingHit: { listKey: string; index: number } | null;
+  /** A search opened from a link; each new one replaces the typed search right away. */
+  linkedQuery?: string;
 }) {
   const [cardSort, setCardSort] = React.useState<CardTableSort>(DEFAULT_CARD_TABLE_SORT);
   function changeSort(field: CardTableSortField) {
@@ -38,8 +40,13 @@ export function useCardSearch({ decks, libraryDecks, cardPages, deckSummaries, n
       ? { field, direction: current.direction === "asc" ? "desc" : "asc" }
       : { field, direction: "asc" });
   }
-  const [query, setQuery] = React.useState("");
-  const [deferredQuery, setDeferredQuery] = React.useState("");
+  const [query, setQuery] = React.useState(linkedQuery);
+  const [deferredQuery, setDeferredQuery] = React.useState(linkedQuery);
+  React.useEffect(() => {
+    if (!linkedQuery) return;
+    setQuery(linkedQuery);
+    setDeferredQuery(linkedQuery);
+  }, [linkedQuery]);
   const searchContext = React.useMemo(() => createCardSearchContext(deferredQuery, decks, { now, dayStartHour, timeZone, noteTypes }), [dayStartHour, decks, deferredQuery, noteTypes, now, timeZone]);
   function changeQuery(next: string) {
     startFieldTiming("core:card_search_results");
