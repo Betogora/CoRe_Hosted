@@ -147,26 +147,28 @@ const DECK_TREE_VIEW_OPTIONS = [
   { value: "list", label: "Als Liste anzeigen", icon: List },
 ] as const;
 
-function readStoredDeckTreeView(storageKey: string): DeckTreeView {
+const DECK_TREE_VIEW_STORAGE_KEY = "core.deckView.v1";
+
+function readStoredDeckTreeView(): DeckTreeView {
   if (typeof window === "undefined") return "list";
   try {
-    return window.localStorage.getItem(storageKey) === "tiles" ? "tiles" : "list";
+    return window.localStorage.getItem(DECK_TREE_VIEW_STORAGE_KEY) === "tiles" ? "tiles" : "list";
   } catch {
     return "list";
   }
 }
 
-/** Browser-local view choice of one DeckTree caller. */
-export function useStoredDeckTreeView(storageKey: string) {
-  const [view, setView] = React.useState(() => readStoredDeckTreeView(storageKey));
+/** Browser-local view choice shared by the dashboard and learning deck trees. */
+export function useStoredDeckTreeView() {
+  const [view, setView] = React.useState(readStoredDeckTreeView);
   const changeView = React.useCallback((next: DeckTreeView) => {
     setView(next);
     try {
-      window.localStorage.setItem(storageKey, next);
+      window.localStorage.setItem(DECK_TREE_VIEW_STORAGE_KEY, next);
     } catch {
       // Die Ansicht bleibt ohne browserlokale Speicherung umschaltbar.
     }
-  }, [storageKey]);
+  }, []);
   return [view, changeView] as const;
 }
 
@@ -738,8 +740,8 @@ export function DeckTree({ rows, rootDeckIds, mode, view = "list", onViewChange,
     </section>
   ) : null;
   const title = mode === "content" ? null : "Aktive Stapel";
-  // The opened deck of the content view is always a parent; the switch only helps with deeper levels.
-  const showExpandAll = view === "list" && parentDeckIds.length > (mode === "content" ? 1 : 0);
+  // The dashboard teaser has no expand-all switch; the opened deck of the content view is always a parent, so there the switch only helps with deeper levels.
+  const showExpandAll = view === "list" && mode !== "dashboard" && parentDeckIds.length > (mode === "content" ? 1 : 0);
   const showViewControl = Boolean(onViewChange) && rows.length > 0;
 
   return (

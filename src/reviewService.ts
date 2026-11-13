@@ -296,7 +296,7 @@ export function updateDeckNewCardLimitForDate(deck: Deck, limit: unknown, option
     deckSettings: {
       ...deck.deckSettings,
       newCardsTodayOverride: {
-        date: getLocalReviewDateKey(now, options),
+        date: options.dateKey ?? getLocalReviewDateKey(now, options),
         limit: nextLimit,
       },
     },
