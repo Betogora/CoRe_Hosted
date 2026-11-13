@@ -1,6 +1,6 @@
 # CoRe UI-Katalog
 
-Stand: 2026-11-12
+Stand: 2026-11-13
 
 Dieser Katalog ist die code-nahe Übersicht der verfügbaren UI-Bausteine. Neue Features prüfen diese Elemente vor einer eigenen Implementierung. Wiederverwendung ist empfohlen, aber nicht verpflichtend, wenn die vorhandene Schnittstelle die Fachsemantik verschlechtern würde. Ein neues gemeinsames Modul wird erst aus mindestens drei gleichartigen aktuellen Stellen oder aus zentralisierungswürdigem Accessibility-Verhalten gewonnen.
 
@@ -19,7 +19,11 @@ Ebenen: `shadow-raised` (Overlay, Popover, Dialog, Toast), `shadow-floating`
 (Navigation) und `shadow-indicator` (Auswahlindikator der Schienen);
 `shadow-inset` und `shadow-selection` unterscheiden Vertiefung und fachliche
 Auswahl. Sichtbare Fokusrahmen erscheinen nur bei Tastaturfokus (siehe
-unten). Die Auswahlmarkierung ist kein Fokusring.
+unten). Die Auswahlmarkierung ist kein Fokusring. Farbkennung und Zustand liegen
+auf der ganzen Form, nie auf einer einzelnen Kante: Prüfungsaufgaben tragen einen
+Rahmen rundum in Prüfungsfarbe mit getönter Fläche, Prüfungen in Überschriften
+einen Farbpunkt, der Prüfungstag den Klausur-Chip in voller Prüfungsfarbe;
+Hervorhebungen sind getönte Flächen.
 
 Fachliche Farbtokens: `--core-flag-1` bis `--core-flag-7` für die Anki-Flaggen (Grafik, mindestens 3:1), `--core-danger-text` (`text-core-danger-text`) für destruktive Texte und `--core-marked-surface` (`bg-core-marked-soft`) für die Tönung markierter Karten; dort gilt `--core-marked-text-muted` als gedämpfte Schrift. `themeContract.test.ts` prüft die Kontraste hell und dunkel.
 

@@ -1,7 +1,7 @@
 import React from "react";
-import { ChevronDown, ChevronUp } from "lucide-react";
+import { ChevronDown, ChevronUp, Flag } from "lucide-react";
 import { ActionButton } from "../ui/actionUi.tsx";
-import { formatExamDate } from "./examPlanningUi.ts";
+import { examTextColor, formatExamDate } from "./examPlanningUi.ts";
 
 interface Topic { id: string; name: string; detail: string }
 
@@ -42,10 +42,10 @@ export function ExamTopicPreview({ topics, examDate, color, calendarRef, actions
     <div ref={viewport} id={topicsId} className={expanded && fit.overflow ? "min-w-0 overflow-y-auto" : "min-w-0 overflow-hidden"} style={fit.overflow ? { height: expanded ? fit.available : fit.height } : undefined} role={expanded && fit.overflow ? "region" : undefined} aria-label={expanded && fit.overflow ? "Alle Themen" : undefined} tabIndex={expanded && fit.overflow ? 0 : undefined}>
       <ol ref={list} className="relative grid gap-4" aria-label="Geplante Themenfolge">{topics.map((topic, index) => {
         const hidden = fit.overflow && !expanded && index >= fit.count;
-        return <li key={topic.id} aria-hidden={hidden || undefined} className="grid min-w-0 gap-1 border-l border-core-border pl-3" style={hidden ? { visibility: "hidden" } : undefined}><span className="break-words core-body text-core-text">{topic.name}</span><span className="core-caption text-core-muted">{topic.detail}</span></li>;
+        return <li key={topic.id} aria-hidden={hidden || undefined} className="grid min-w-0 gap-1" style={hidden ? { visibility: "hidden" } : undefined}><span className="break-words core-body text-core-text">{topic.name}</span><span className="core-caption text-core-muted">{topic.detail}</span></li>;
       })}</ol>
     </div>
     {fit.overflow ? <div ref={toggle}><ActionButton variant="secondary" icon={expanded ? ChevronUp : ChevronDown} className="w-full" aria-expanded={expanded} aria-controls={topicsId} onClick={() => { if (viewport.current) viewport.current.scrollTop = 0; setExpanded((value) => !value); }}>{expanded ? "Weniger anzeigen" : `Alle ${topics.length} Themen anzeigen`}</ActionButton></div> : null}
-    <div ref={footer} className="grid gap-1 border-l-strong pl-3" style={{ borderColor: color }} data-testid="exam-topic-exam-date"><span className="core-body text-core-text">Prüfung</span><span className="core-caption text-core-muted">{formatExamDate(examDate, "short")}</span></div>
+    <div ref={footer} className="flex w-fit min-w-0 items-center gap-1.5 rounded-inset px-2 py-1 core-caption font-bold" style={{ background: color, color: examTextColor({ color }) }} data-testid="exam-topic-exam-date"><Flag size={12} className="shrink-0" aria-hidden="true" /><span className="min-w-0 break-words">Prüfung · {formatExamDate(examDate, "short")}</span></div>
   </aside>;
 }

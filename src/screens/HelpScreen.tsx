@@ -305,7 +305,7 @@ function StoryStepCard<TSelection extends string>({
   return (
     <li id={elementId} className="flex min-w-0 min-h-[58svh] items-center py-8 xl:min-h-[68svh]" data-story-step={index} data-testid={testId}>
       <article
-        className={`min-w-0 w-full border-l-strong py-4 pl-6 transition-[border-color,opacity,transform] duration-300 motion-reduce:transition-none ${active ? "translate-x-0 border-core-action opacity-100" : "translate-x-2 border-core-border opacity-70"}`}
+        className={`min-w-0 w-full rounded-panel px-6 py-5 transition-[background-color,opacity,transform] duration-300 motion-reduce:transition-none ${active ? "translate-x-0 bg-core-surface opacity-100" : "translate-x-2 opacity-70"}`}
         tabIndex={0}
         onFocus={onFocus}
         aria-current={active ? "step" : undefined}
