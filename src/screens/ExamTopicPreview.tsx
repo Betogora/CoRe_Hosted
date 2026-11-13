@@ -1,6 +1,6 @@
 import React from "react";
-import { ChevronDown, ChevronUp, Flag } from "lucide-react";
-import { ActionButton } from "../ui/actionUi.tsx";
+import { Flag } from "lucide-react";
+import { ShowMoreButton } from "../ui/actionUi.tsx";
 import { examTextColor, formatExamDate } from "./examPlanningUi.ts";
 
 interface Topic { id: string; name: string; detail: string }
@@ -45,7 +45,7 @@ export function ExamTopicPreview({ topics, examDate, color, calendarRef, actions
         return <li key={topic.id} aria-hidden={hidden || undefined} className="grid min-w-0 gap-1" style={hidden ? { visibility: "hidden" } : undefined}><span className="break-words core-body text-core-text">{topic.name}</span><span className="core-caption text-core-muted">{topic.detail}</span></li>;
       })}</ol>
     </div>
-    {fit.overflow ? <div ref={toggle}><ActionButton variant="secondary" icon={expanded ? ChevronUp : ChevronDown} className="w-full" aria-expanded={expanded} aria-controls={topicsId} onClick={() => { if (viewport.current) viewport.current.scrollTop = 0; setExpanded((value) => !value); }}>{expanded ? "Weniger anzeigen" : `Alle ${topics.length} Themen anzeigen`}</ActionButton></div> : null}
+    {fit.overflow ? <div ref={toggle} className="-mt-2"><ShowMoreButton expanded={expanded} hiddenCount={topics.length - fit.count} controls={topicsId} onToggle={() => { if (viewport.current) viewport.current.scrollTop = 0; setExpanded((value) => !value); }} /></div> : null}
     <div ref={footer} className="flex w-fit min-w-0 items-center gap-1.5 rounded-inset px-2 py-1 core-caption font-bold" style={{ background: color, color: examTextColor({ color }) }} data-testid="exam-topic-exam-date"><Flag size={12} className="shrink-0" aria-hidden="true" /><span className="min-w-0 break-words">Prüfung · {formatExamDate(examDate, "short")}</span></div>
   </aside>;
 }

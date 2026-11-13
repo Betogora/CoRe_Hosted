@@ -38,17 +38,17 @@ test("exam checklist shows at most three tasks per exam, prioritizes open tasks 
   for (const index of [4, 5, 6]) assert.match(markup, new RegExp(`data-exam-todo="topic:exam:topic-${index}"`));
   assert.doesNotMatch(markup, /data-exam-todo="topic:exam:topic-0"/);
   assert.match(markup, /aria-expanded="false"/);
-  assert.match(markup, /Alle 7 Aufgaben anzeigen/);
+  assert.match(markup, /4 weitere anzeigen/);
   for (const count of [0, 1, 3]) {
     const short = render(tasks.slice(0, count));
     assert.equal((short.match(/data-exam-todo=/g) ?? []).length, count);
-    assert.doesNotMatch(short, /aria-expanded|Aufgaben anzeigen/);
+    assert.doesNotMatch(short, /aria-expanded|weitere anzeigen/);
   }
   for (const taskLimit of [0, 1, 2, 3, null]) {
     const compact = render(tasks, { taskLimit, onOpenTaskCountChange: () => undefined });
     assert.equal((compact.split("<details")[0].match(/data-exam-todo=/g) ?? []).length, taskLimit ?? 3);
     assert.match(compact, /Erledigt im Planer \(4\)/);
-    assert.doesNotMatch(compact, /Alle 7 Aufgaben anzeigen/);
+    assert.doesNotMatch(compact, /weitere anzeigen/);
   }
 });
 

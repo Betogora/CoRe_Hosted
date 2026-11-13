@@ -25,8 +25,8 @@ Rahmen rundum in Prüfungsfarbe mit getönter Fläche, Prüfungen in Überschrif
 einen Farbpunkt, der Prüfungstag den Klausur-Chip in voller Prüfungsfarbe;
 Hervorhebungen sind getönte Flächen.
 Kalendertage zeigen eine feste Zahl Einträge in voller Höhe, ohne Scrollen und
-Anschnitt, und fassen den Rest als „+N“ zusammen: der Monat in den Tagesdetails,
-die Woche ab dem vierten To-do zum Aufklappen an Ort und Stelle.
+Anschnitt, und fassen den Rest zusammen: der Monat als „+N“ in den Tagesdetails,
+die Woche ab dem vierten To-do per `ShowMoreButton` an Ort und Stelle.
 
 Fachliche Farbtokens: `--core-flag-1` bis `--core-flag-7` für die Anki-Flaggen (Grafik, mindestens 3:1), `--core-danger-text` (`text-core-danger-text`) für destruktive Texte und `--core-marked-surface` (`bg-core-marked-soft`) für die Tönung markierter Karten; dort gilt `--core-marked-text-muted` als gedämpfte Schrift. `themeContract.test.ts` prüft die Kontraste hell und dunkel.
 
@@ -64,9 +64,9 @@ Die interaktive Design-Arbeitsfläche liegt in [`../../docs/ui-elements.html`](.
 
 ## Actions
 
-Direktimport: `import { ActionButton, CrossLinkButton, IconButton } from "../ui/actionUi.tsx"`.
+Direktimport: `import { ActionButton, CrossLinkButton, IconButton, ShowMoreButton } from "../ui/actionUi.tsx"`.
 
-`ActionButton` verlangt `variant="primary | secondary | destructive | destructive-secondary"`; optional sind `icon` und `loading`. `destructive-secondary` ist die ruhige Gefahrenform: Sekundärform mit weißer Fläche und Haarlinie, Text in `--core-danger-text`, beim Hovern rot getönt (etwa `Abmelden`); rot gefüllt bleibt unwiderruflichen Aktionen vorbehalten. Das Modul besitzt die produktweite Buttonhöhe (`--core-button-height` 36 px, Felder `--core-control-height` 40 px, Auswahl-Schienen `--core-selection-height` 38 px; bei Touch, also `(pointer: coarse)`, alle drei 44 px), Iconabstand, Hover/Active/Focus/Disabled sowie den Ladezustand mit erhaltenem Label und `aria-busy`. Die Zeigerabfrage ist die einzige Unterteilung der Bedienhöhe und gilt in jeder Fensterbreite; Breitenabfragen ändern nur das Layout, abweichende Komponentenhöhen fragen ebenfalls nur `pointer` ab. Der Aufrufer wählt Hierarchie, Label und Ereignis. Für nachgeordnete Aktionen wird die umrandete Sekundärform verwendet; der einzige randlose Textlink ist `CrossLinkButton`.
+`ActionButton` verlangt `variant="primary | secondary | destructive | destructive-secondary"`; optional sind `icon` und `loading`. `destructive-secondary` ist die ruhige Gefahrenform: Sekundärform mit weißer Fläche und Haarlinie, Text in `--core-danger-text`, beim Hovern rot getönt (etwa `Abmelden`); rot gefüllt bleibt unwiderruflichen Aktionen vorbehalten. Das Modul besitzt die produktweite Buttonhöhe (`--core-button-height` 36 px, Felder `--core-control-height` 40 px, Auswahl-Schienen `--core-selection-height` 38 px; bei Touch, also `(pointer: coarse)`, alle drei 44 px), Iconabstand, Hover/Active/Focus/Disabled sowie den Ladezustand mit erhaltenem Label und `aria-busy`. Die Zeigerabfrage ist die einzige Unterteilung der Bedienhöhe und gilt in jeder Fensterbreite; Breitenabfragen ändern nur das Layout, abweichende Komponentenhöhen fragen ebenfalls nur `pointer` ab. Der Aufrufer wählt Hierarchie, Label und Ereignis. Für nachgeordnete Aktionen wird die umrandete Sekundärform verwendet; randlos sind nur der Querlink `CrossLinkButton` und der Expander `ShowMoreButton`.
 
 ```tsx
 <ActionButton variant="primary" icon={Save} loading={saving} onClick={save}>
@@ -77,6 +77,8 @@ Direktimport: `import { ActionButton, CrossLinkButton, IconButton } from "../ui/
 Nicht für Reviewratings, MCQ-Antworten, Tabs, Farbfelder, Navigationszeilen oder segmentierte Controls verwenden, deren Auswahlsemantik über einen normalen Action-Button hinausgeht.
 
 `CrossLinkButton` ist der einzige Querlink für Dashboard, Seitenköpfe und Einstellungsdialoge: Textlink in Handlungsblau (600) mit Chevron, ohne Füllfläche, beim Hovern unterstrichen, mit Bedienhöhe als Mindesthöhe für Touch. Er rendert abhängig vom Ziel einen nativen Button (`onSelect`) oder Link (`href`); Beschriftung und Navigation bleiben beim Aufrufer. `direction="back"` führt mit einem Pfeil vor der Beschriftung zur übergeordneten Fläche zurück, etwa als Rücklink im `PageHeader`.
+
+`ShowMoreButton` (`expanded`, `hiddenCount`, `onToggle`, `controls?`, `context?`) ist der einzige Expander für gekürzte Listen: Text in Handlungsblau mit Chevron, „N weitere anzeigen“, aufgeklappt „Weniger anzeigen“, linksbündig mit der Liste. Im Layout belegt er nur seine Textzeile, die Trefferfläche behält unsichtbar die Bedienhöhe; er steht 8 px unter dem letzten Eintrag, darunter folgt der Abstand des Containers. `context` benennt die Liste für Screenreader, wenn mehrere nebeneinander stehen.
 
 `IconButton` verlangt `label` und `icon`; Varianten sind `secondary` (Standard), `destructive`, `destructive-quiet` und `ghost`. `ghost` bleibt transparent und randlos, sodass fachliche Zeilenflächen sichtbar bleiben. `destructive-quiet` ist die dezente Löschaktion aus der BengtsToolBox: randlos und grau, erst beim Hovern rot getönt; sie ist der Standard für Mülleimer in Kopfzeilen, Listen und Verwaltungszeilen, während `destructive` (rot gefüllt) ausdrücklich gefährliche Einzelaktionen trägt. Das Modul setzt das zugängliche Label, die quadratische Größe in Bedienhöhe und die Icongröße. Für einen zusätzlichen sichtbaren Hinweis wird `CoreTooltip` verwendet; native `title`-Tooltips gehören nicht zur Produkt-UI.
 

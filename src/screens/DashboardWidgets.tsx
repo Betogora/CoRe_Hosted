@@ -3,7 +3,7 @@ import { createPortal } from "react-dom";
 import { ArrowDown, ArrowUp, ArrowUpRight, Check, ChevronDown, ChevronUp, GripVertical, LayoutGrid, Maximize2, Pause, Pencil, Play, Plus, RotateCcw, Trash2, X } from "lucide-react";
 import { DASHBOARD_WIDGETS, moveDashboardWidget, readDashboardPreferences, writeDashboardPreferences, type DashboardPreferences, type DashboardWidgetId } from "../dashboardWidgets.ts";
 import { getPomodoroTimerSnapshot, type PomodoroTimer } from "../pomodoroTimer.ts";
-import { ActionButton, IconButton } from "../ui/actionUi.tsx";
+import { ActionButton, IconButton, ShowMoreButton } from "../ui/actionUi.tsx";
 import { SoftPanel } from "../ui/coreUi.tsx";
 import { SectionHeader } from "../ui/SectionHeader.tsx";
 import { CoreCheckbox } from "../ui/formControls.tsx";
@@ -161,7 +161,7 @@ function DashboardTodos({ todos, onChange, planner, onOpenPlanner }: { todos: Da
     {done.length ? <details className="dashboard-disclosure mt-3"><summary>Erledigt ({done.length})</summary><ul className="grid gap-1">{done.map(task)}</ul></details> : null}
     {planner?.({ taskLimit: showAll ? null : 3 - ownLimit, onOpenTaskCountChange: setPlannerCount })}
     </div>
-    {count > 3 || showAll ? <button type="button" className="core-action-ghost mt-2" aria-controls={listId} aria-expanded={showAll} onClick={() => setShowAll(!showAll)}>{showAll ? "Weniger anzeigen" : `Alle ${count} Aufgaben anzeigen`}</button> : null}
+    {count > 3 || showAll ? <ShowMoreButton className="mt-2" expanded={showAll} hiddenCount={count - 3} controls={listId} onToggle={() => setShowAll(!showAll)} /> : null}
   </SoftPanel>;
 }
 

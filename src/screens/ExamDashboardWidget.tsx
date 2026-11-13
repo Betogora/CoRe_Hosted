@@ -1,12 +1,12 @@
 import React from "react";
-import { ChevronDown, ChevronUp, BookOpen, Play } from "lucide-react";
+import { BookOpen, Play } from "lucide-react";
 import type { DashboardScreenProps, ExamPlanningScreenProps } from "../appScreenProps.ts";
 import type { ExamDailyTask } from "../coreTypes.ts";
 import { reconcileExamDailyTasks, setExamDailyTaskChecked } from "../examDailyTasks.ts";
 import { examDayDistance } from "../examPlanning.ts";
 import { getLearningDayKey, getLearningTimeZone } from "../learningDay.ts";
 import { getGlobalSchedulerPreferences } from "../learningProfiles.ts";
-import { ActionButton, IconButton } from "../ui/actionUi.tsx";
+import { ActionButton, IconButton, ShowMoreButton } from "../ui/actionUi.tsx";
 import { SoftPanel } from "../ui/coreUi.tsx";
 import { CoreCheckbox } from "../ui/formControls.tsx";
 import { StatusMessage } from "../ui/feedbackUi.tsx";
@@ -141,10 +141,8 @@ export function ExamDashboardWidget({ state, now, onLoad, onStart, onSaveTasks, 
       if (preview && !shown.length) return null;
       return <section key={exam.id} className={preview ? "grid min-w-0 content-start gap-2" : "grid min-w-0 content-start gap-3 rounded-inset bg-core-subtle p-3 min-[360px]:p-4"} aria-label={exam.name}>
         <div><h3 className="flex min-w-0 items-center gap-2 core-heading-3 text-core-text"><span aria-hidden="true" className="size-2.5 shrink-0 rounded-round" style={{ backgroundColor: color }} /><span className="min-w-0 break-words">{exam.name}</span></h3><p className="mt-0.5 core-caption text-core-muted">Prüfung {formatExamDistance(examDayDistance(civilToday, exam.examDate))} · {ready ? formatExamCount(openCount, "offene Aufgabe", "offene Aufgaben") : "Aufgaben werden berechnet …"}</p></div>
-        <ul id={listId} className={preview ? "grid gap-2" : "grid divide-y divide-core-border"}>{shown.map((task) => renderTask(task, color))}</ul>
-        {!preview && own.length > 3 ? <ActionButton variant="secondary" icon={expanded ? ChevronUp : ChevronDown} aria-expanded={expanded} aria-controls={listId} onClick={() => setExpandedExams((ids) => ids.includes(exam.id) ? ids.filter((id) => id !== exam.id) : [...ids, exam.id])}>
-          {expanded ? "Weniger anzeigen" : `Alle ${own.length} Aufgaben anzeigen`}
-        </ActionButton> : null}
+        <div className="grid min-w-0 gap-2"><ul id={listId} className={preview ? "grid gap-2" : "grid divide-y divide-core-border"}>{shown.map((task) => renderTask(task, color))}</ul>
+        {!preview && own.length > 3 ? <ShowMoreButton expanded={expanded} hiddenCount={own.length - 3} controls={listId} onToggle={() => setExpandedExams((ids) => ids.includes(exam.id) ? ids.filter((id) => id !== exam.id) : [...ids, exam.id])} /> : null}</div>
         {ready && !own.length ? <p className="core-body text-core-muted">Heute keine offenen Aufgaben für diese Prüfung.</p> : null}
       </section>;
     })}</div>
