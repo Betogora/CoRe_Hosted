@@ -30,6 +30,8 @@ interface AppNavigationProjection {
   cardEditorReturnContext: ReviewResumeContext | null;
   settingsSection: SettingsSection | null;
   deckSettings: DeckSettingsOverlay | null;
+  /** Search the card management opens with (`ViewRoute.cardQuery`). */
+  cardQuery: string;
 }
 
 interface BrowserHistoryTarget {
@@ -82,6 +84,7 @@ export function projectAppRoute(route: AppRoute): AppNavigationProjection {
     cardEditorReturnContext: viewRoute.viewId === "kartenstapel" ? (viewRoute.cardEditorReturnContext ?? null) : null,
     settingsSection: route.mode === "view" ? (route.settingsSection ?? null) : null,
     deckSettings: route.deckSettings ?? null,
+    cardQuery: viewRoute.viewId === "kartenstapel" ? (viewRoute.cardQuery ?? "") : "",
   };
 }
 

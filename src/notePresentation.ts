@@ -7,6 +7,7 @@ import { sanitizeLayoutHtml, sanitizeNoteHtml } from "./htmlSafety.ts";
 import { noteContentMediaRefs } from "./coreModel.ts";
 import { buildSrcdoc } from "./presentationFrame.ts";
 import { colorContrast, ensureTextContrast, hexToHsv, resolveCssColor } from "./colorMath.ts";
+import { clozeAt, isClozeOpening } from "./clozeSyntax.ts";
 
 /** Semantic tokens copied into the card frame as `--core-<name>`. */
 export const NOTE_THEME_COLORS = ["surface", "surface-muted", "text", "text-muted", "border", "border-interactive", "success", "success-surface", "danger", "danger-surface", "learning-goal-achieved"] as const;
@@ -53,36 +54,10 @@ const MATH_START = /\\[([]|\[latex\]|\[\$\$?\]/i;
 export const noteHasMath = (note: Note) => note.content.fields.some((field) => MATH_START.test(field.html))
   || (note.content.interaction.kind === "choice" && note.content.interaction.options.some((option) => MATH_START.test(option.html)));
 
-interface ClozeToken { text: string; hint: string; ordinals: number[]; end: number }
-function clozeAt(value: string, start: number): ClozeToken | null {
-  const opening = value.slice(start).match(/^\{\{c(\d+(?:,\d+)*)::/i);
-  if (!opening) return null;
-  const textStart = start + opening[0].length;
-  let braces = 0;
-  let hintStart = -1;
-  for (let cursor = textStart; cursor < value.length; cursor += 1) {
-    if (value[cursor] === "\\") { cursor += 1; continue; }
-    const nested = clozeAtOpening(value, cursor);
-    if (nested) {
-      const child = clozeAt(value, cursor);
-      if (!child) return null;
-      cursor = child.end - 1;
-      continue;
-    }
-    if (braces === 0 && value.startsWith("}}", cursor)) {
-      return { text: value.slice(textStart, hintStart < 0 ? cursor : hintStart), hint: hintStart < 0 ? "" : value.slice(hintStart + 2, cursor), ordinals: opening[1].split(",").map(Number), end: cursor + 2 };
-    }
-    if (braces === 0 && hintStart < 0 && value.startsWith("::", cursor)) { hintStart = cursor; cursor += 1; }
-    else if (value[cursor] === "{") braces += 1;
-    else if (value[cursor] === "}" && braces > 0) braces -= 1;
-  }
-  return null;
-}
-const clozeAtOpening = (value: string, cursor: number) => value.startsWith("{{", cursor) && /^\{\{c\d+(?:,\d+)*::/i.test(value.slice(cursor));
 function renderClozes(value: string, ordinal: number, side: "question" | "answer", math: boolean, accent: string, anki = false): string {
   let output = "";
   for (let cursor = 0; cursor < value.length;) {
-    const token = clozeAtOpening(value, cursor) ? clozeAt(value, cursor) : null;
+    const token = isClozeOpening(value, cursor) ? clozeAt(value, cursor) : null;
     if (!token) { output += value[cursor++]; continue; }
     const active = token.ordinals.includes(ordinal);
     const inner = active && side === "question" ? `[${notePlainText(token.hint) || "…"}]` : renderClozes(token.text, ordinal, side, math, accent, anki);

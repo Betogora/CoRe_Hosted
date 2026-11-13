@@ -68,7 +68,7 @@ async function main(argv: string[]) {
     if (!["test", "train", "all"].includes(values.split)) throw new Error("--split ist test, train oder all.");
     const split = values.split as "test" | "train" | "all";
     const apiKey = values.dry ? "dry" : process.env.OPENROUTER_EVAL_API_KEY;
-    if (!apiKey) throw new Error("OPENROUTER_EVAL_API_KEY fehlt in .env.local. Der Eval nutzt einen eigenen Schlüssel mit eigenem Limit.");
+    if (!apiKey) throw new Error("OPENROUTER_EVAL_API_KEY fehlt (Umgebungsvariable oder .env.local). Der Eval nutzt einen eigenen Schlüssel mit eigenem Limit.");
     const cases = loadCases(definition).filter((entry) => split === "all" || entry.split === split);
     const open = await generate({ definition, cases, repetitions: Number(values.repetitions), split, directory: runDirectory(id, run()), apiKey, dry: values.dry });
     if (open) throw new Error(`${open} Antworten fehlen noch. Denselben Befehl erneut ausführen.`);

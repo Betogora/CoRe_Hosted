@@ -1,5 +1,5 @@
 // Private to indexedDbCoreRepository.ts: takes over an APKG import graph chunk by chunk, including reimports (K5.7).
-import { mergeImportedTags, normalizeCoreDeck } from "./coreModel.ts";
+import { mergeImportedTags, normalizeCoreDeck, outdateVariantsOfChangedSource } from "./coreModel.ts";
 import type { Card, Deck, DeckSettings, ImportVerificationScope, Note, ReviewEvent } from "./coreTypes.ts";
 import type { SyncOutboxMutation } from "./syncEngine.ts";
 import type { ImportCommitGraph, ImportMediaFile, NoteTypeSource } from "./apkgImport.ts";
@@ -8,7 +8,9 @@ import {
   STORE,
   type NoteGraphChange,
   type StoredCard,
+  type StoredVariant,
   type WorkspaceDeckSummary,
+  hydrateCard,
   requestResult,
   transactionDone,
   deckRecord,
@@ -140,7 +142,7 @@ export async function commitImportGraph(
       return;
     }
     if (chunk.kind === "notes") {
-      const read = database.transaction([STORE.notes, STORE.cards], "readonly");
+      const read = database.transaction([STORE.notes, STORE.cards, STORE.variants], "readonly");
       const changes: NoteGraphChange[] = [];
       const persistedNoteIds = new Map<string, string>();
       const incomingCardsByNote = new Map<string, Card[]>();
@@ -206,7 +208,17 @@ export async function commitImportGraph(
           }
         }
         missingInPackage += new Set(knownCards.map((card) => card.id).filter((id) => !matchedIds.has(id))).size;
-        if (note !== existing || newCards.length) changes.push({ previous: { note: existing, cards: [] }, next: { note, cards: newCards } });
+        // A replaced unedited content outdates the rephrasings of kept cards whose prompt changed, as an edit does;
+        // a choice variant would otherwise show old option texts graded by the new correctness.
+        const outdated: Array<{ previous: Card; next: Card }> = [];
+        for (const stored of contentChanged ? localCards.filter((card) => matchedIds.has(card.id)) : []) {
+          const previous = hydrateCard(stored, await requestResult<StoredVariant[]>(read.objectStore(STORE.variants).index("cardId").getAll(stored.id)));
+          const next = outdateVariantsOfChangedSource(existing.content, incoming.content, previous, now);
+          if (next !== previous) outdated.push({ previous, next });
+        }
+        if (note !== existing || newCards.length || outdated.length) {
+          changes.push({ previous: { note: existing, cards: outdated.map((card) => card.previous) }, next: { note, cards: [...newCards, ...outdated.map((card) => card.next)] } });
+        }
       }
       await transactionDone(read);
       // Raw field values are kept for every imported content; re-translation only touches unedited ones.
@@ -226,7 +238,9 @@ export async function commitImportGraph(
       );
       for (const change of changes) {
         scope.noteIds.push(change.next.note.id);
-        for (const card of change.next.cards) scope.cardIds.push(card.id);
+        // Kept cards with outdated variants may sit in a deck outside the import; only new cards are verified.
+        const kept = new Set(change.previous?.cards.map((card) => card.id));
+        for (const card of change.next.cards) if (!kept.has(card.id)) scope.cardIds.push(card.id);
       }
       return;
     }

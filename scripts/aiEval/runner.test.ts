@@ -13,7 +13,7 @@ import { agreement, compare, decide, evaluateAnswers, summarize, type AnswerResu
 const variant = definitionFor("card-variant-basic");
 const help = definitionFor("card-help");
 const variantType = REQUEST_TYPES[0];
-const card = (front: string, back: string, avoid?: string[]) => ({ source: { front, back }, ...(avoid ? { avoid } : {}) });
+const card = (front: string, back: string, avoid?: string[]) => ({ kind: "basic" as const, source: { front, back }, ...(avoid ? { avoid } : {}) });
 const cases: EvalCase[] = [
   { id: "a", category: "definitionen", split: "test", request: card("Was ist Osmose?", "Diffusion von Wasser") },
   { id: "b", category: "zahlen-formeln", split: "test", request: card("In welchem Jahr begann die Französische Revolution?", "1789") },
@@ -88,7 +88,7 @@ test("Erzeugung: Vertragsfehler zählen als Antwort, Infrastrukturfehler bleiben
   const directory = mkdtempSync(path.join(tmpdir(), "ai-eval-"));
   try {
     let calls = 0;
-    const answer = (front: string) => new Response(JSON.stringify(mockCompletion("create_card_variant", { front, back: "Diffusion von Wasser" })), { status: 200 });
+    const answer = (front: string) => new Response(JSON.stringify(mockCompletion("create_card_variant", { rephrasable: true, front, back: "Diffusion von Wasser" })), { status: 200 });
     const fetchImpl = (async () => {
       calls++;
       if (calls === 1) return answer("Was ist Osmose?");

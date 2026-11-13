@@ -1181,3 +1181,64 @@ test("@beta-core @hosted-core settings resolve and persist an account-bound sync
     client.auth.dispose?.();
   }
 });
+
+const AI_VARIANT_DEMO_APKG = fileURLToPath(new URL("../../fixtures/apkg/ai-variant-card-kinds.apkg", import.meta.url));
+
+test("[Vertrag: KI-Varianten je Kartenart, Zähler, Stapellauf und Anzeigen] Der Demo-Stapel erhält Varianten für alle Kartenarten und zeigt Karten ohne Variante", async ({ page }: any) => {
+  test.setTimeout(120_000);
+  const runtimeErrors = collectBrowserErrors(page);
+  await resetToFreshLocalState(page);
+
+  await mainMenu(page).getByRole("button", { name: "Erstellen" }).click();
+  await page.getByRole("button", { name: /^Import\b/ }).click();
+  await page.locator('input[type="file"][accept=".apkg,.colpkg"]').setInputFiles(AI_VARIANT_DEMO_APKG);
+  await page.getByRole("button", { name: "Import übernehmen" }).click();
+  await expect(page.getByRole("heading", { name: "Import erfolgreich" })).toBeVisible({ timeout: 30_000 });
+
+  const requests: Array<{ kind: string }> = [];
+  await page.route("**/api/ai/card-variant", async (route: any) => {
+    const request = route.request().postDataJSON() as { kind: string; source: { front: string; back: string }; choice?: { options: Array<{ id: string; text: string }> } };
+    requests.push({ kind: request.kind });
+    if (request.source.front.includes("Mona Lisa")) {
+      await route.fulfill({ status: 422, contentType: "application/json", body: JSON.stringify({ error: { code: "not_rephrasable", message: "Diese Karte lässt sich nicht sinnvoll umformulieren." } }) });
+      return;
+    }
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        variant: {
+          front: `Anders gefragt ${requests.length}: ${request.source.front}`,
+          back: request.source.back,
+          ...(request.choice ? { options: request.choice.options.map(({ id, text }) => ({ id, text: `${text} (neu)` })) } : {}),
+        },
+        model: "provider/model:free",
+        privacyMode: "zdr",
+        usage: null,
+      }),
+    });
+  });
+
+  await mainMenu(page).getByRole("button", { name: "Lernen" }).click();
+  await page.getByRole("button", { name: "Stapeloptionen für CoRe KI-Varianten", exact: true }).click();
+  await page.locator('[data-testid^="deck-options-menu-"]').getByRole("button", { name: "Einstellungen" }).click();
+  const dialog = deckSettingsDialog(page);
+  // Imported decks have CoRe switched on by default.
+  await expect(dialog.getByRole("switch", { name: "CoRe-Modus" })).toBeChecked();
+
+  // The parent deck counts and generates over all its subdecks.
+  await expect(dialog.getByTestId("deck-settings-variant-count")).toHaveText("18 Karten ohne Variante");
+  await dialog.getByRole("button", { name: "Varianten generieren" }).click();
+  const bar = page.getByTestId("variant-generation-bar");
+  await expect(bar.getByRole("status")).toHaveText("17 Varianten generiert, 1 nicht umformulierbar", { timeout: 60_000 });
+  expect(new Set(requests.map((request) => request.kind))).toEqual(new Set(["basic", "type-in", "cloze", "choice"]));
+  await expect(dialog.getByTestId("deck-settings-variant-count")).toHaveText("1 Karte ohne Variante");
+
+  await dialog.getByRole("button", { name: "Stapeleinstellungen schließen" }).click();
+  await bar.getByRole("button", { name: "Anzeigen" }).click();
+  await expect(page).toHaveURL(/[?&]q=did%3A[^&]+-has%3Avariant/);
+  await expect(page.locator("[data-card-row]")).toHaveCount(1);
+  await expect(page.locator("[data-card-row]").first()).toContainText("Mona Lisa");
+  // The mocked 422 of the card reported as not rephrasable is the browser's only resource error.
+  expect(runtimeErrors.filter((message) => !message.includes("422"))).toEqual([]);
+});

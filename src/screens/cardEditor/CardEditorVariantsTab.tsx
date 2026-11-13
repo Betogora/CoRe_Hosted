@@ -3,7 +3,7 @@ import { Pencil, PowerOff, RefreshCw, RotateCcw, Settings, Sparkles, Trash2 } fr
 import type { CardEditorServices, DecksScreenProps } from "../../appScreenProps.ts";
 import { cardVariantSource, classifyCardEligibility, describeVariantReadiness, isEditedVariant } from "../../coreVariantService.ts";
 import type { Card, CardVariant, Deck, Note } from "../../coreTypes.ts";
-import { stripHtml } from "../../htmlSafety.ts";
+import { aiVariantFieldText, type AiCardVariantSource } from "../../aiCardVariantContract.ts";
 import { ActionButton, CrossLinkButton, IconButton } from "../../ui/actionUi.tsx";
 import { ActionDialog } from "../../ui/coreUi.tsx";
 import { useSuccessToast } from "../../ui/feedbackUi.tsx";
@@ -18,8 +18,12 @@ function readinessLabel(coreMode: Deck["deckSettings"]["coreMode"], ready: boole
 }
 
 /** One variant, edited in its row and saved at once, independent of the content draft (W12). */
-function VariantRow({ variant, index, busy, reactivationBlocked, canGenerate, onEdit, onRegenerate, onUpdate, onDelete }: {
+function VariantRow({ variant, kind, cardAnswer, index, busy, reactivationBlocked, canGenerate, onEdit, onRegenerate, onUpdate, onDelete }: {
   variant: CardVariant;
+  /** Only a basic variant's answer is its own text to edit; typed, cloze and choice variants rephrase the question or text. */
+  kind: AiCardVariantSource["kind"] | null;
+  /** The card's own answer of a typed or cloze card, which the review asks instead of the variant's (`variantPresentation`). */
+  cardAnswer: string | null;
   index: number;
   busy: boolean;
   reactivationBlocked: boolean;
@@ -42,8 +46,8 @@ function VariantRow({ variant, index, busy, reactivationBlocked, canGenerate, on
           </span>
           {editing ? null : (
             <>
-              <p className="mt-2 break-words core-body font-semibold text-core-text">{stripHtml(variant.front)}</p>
-              <p className="break-words core-body text-core-muted">{stripHtml(variant.back)}</p>
+              <p className="mt-2 break-words core-body font-semibold text-core-text">{aiVariantFieldText(variant.front)}</p>
+              <p className="break-words core-body text-core-muted">{cardAnswer ?? aiVariantFieldText(variant.back)}</p>
               {(variant.performance?.attempts ?? 0) > 0 ? <p className="mt-1 core-body text-core-muted">{variant.performance.attempts}× abgefragt · {variant.performance.correctCount} richtig</p> : null}
             </>
           )}
@@ -74,7 +78,7 @@ function VariantRow({ variant, index, busy, reactivationBlocked, canGenerate, on
       {editing ? (
         <div className="grid min-w-0 gap-2" data-testid="card-variant-edit">
           <RichTextEditor value={editing.front} ariaLabel={`Frage von Variante ${number}`} toolbarOnFocus minHeightClass="min-h-16" onChange={(front) => setEditing((current) => current && { ...current, front })} />
-          <RichTextEditor value={editing.back} ariaLabel={`Antwort von Variante ${number}`} toolbarOnFocus minHeightClass="min-h-16" onChange={(back) => setEditing((current) => current && { ...current, back })} />
+          {kind === "basic" || kind === null ? <RichTextEditor value={editing.back} ariaLabel={`Antwort von Variante ${number}`} toolbarOnFocus minHeightClass="min-h-16" onChange={(back) => setEditing((current) => current && { ...current, back })} /> : null}
           <div className="flex justify-end gap-2">
             <ActionButton variant="secondary" disabled={busy} onClick={() => setEditing(null)}>Abbrechen</ActionButton>
             <ActionButton variant="primary" loading={busy} onClick={() => void onEdit(editing).then((saved) => { if (saved) setEditing(null); })}>Speichern</ActionButton>
@@ -129,8 +133,8 @@ export function CardEditorVariantsTab({ deck, note, card, services, onGenerateVa
       <Section title="Original" testId="card-variant-original">
         {original ? (
           <div className="grid min-w-0 gap-0.5">
-            <p className="break-words core-body font-semibold text-core-text">{stripHtml(original.front)}</p>
-            <p className="break-words core-body text-core-muted">{stripHtml(original.back)}</p>
+            <p className="break-words core-body font-semibold text-core-text">{original.front}</p>
+            <p className="break-words core-body text-core-muted">{original.back}</p>
           </div>
         ) : <p className="core-body text-core-muted">{eligibility.reasons[0] ?? "Diese Karte hat keine Frage und Antwort."}</p>}
       </Section>
@@ -142,6 +146,8 @@ export function CardEditorVariantsTab({ deck, note, card, services, onGenerateVa
               <VariantRow
                 key={variant.id}
                 variant={variant}
+                kind={original?.kind ?? null}
+                cardAnswer={original?.kind === "type-in" || original?.kind === "cloze" ? original.back : null}
                 index={index}
                 busy={busyId !== null}
                 reactivationBlocked={reactivationBlocked}

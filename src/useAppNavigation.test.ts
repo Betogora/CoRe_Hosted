@@ -21,6 +21,7 @@ test("projects view and study routes into one exhaustive shell state", () => {
     cardEditorReturnContext: null,
     settingsSection: null,
     deckSettings: null,
+    cardQuery: "",
   });
 
   const studyRoute = createStudyRoute("deck-1", {
@@ -45,6 +46,7 @@ test("projects view and study routes into one exhaustive shell state", () => {
     cardEditorReturnContext: null,
     settingsSection: null,
     deckSettings: null,
+    cardQuery: "",
   });
 });
 

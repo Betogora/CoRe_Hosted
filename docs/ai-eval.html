@@ -6887,6 +6887,13 @@ button.core-steps-step {
     grid-row-start: 1;
   }
 
+  .sm\:line-clamp-1 {
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 1;
+  }
+
   .sm\:block {
     display: block;
   }
@@ -7865,7 +7872,7 @@ Der Runner ist Bauvorleistung: Bis P5 beginnt, bleibt das Ledger leer.</p>
 <h2 id="ai-eval--bestand" class="core-heading-2" tabindex="-1">Bestand <a class="docs-anchor" href="#ai-eval--bestand" aria-label="Link zu Bestand">#</a></h2>
 <p>Eine Zeile je Anfragetyp: der Prompt im Code und der beste gemessene Stand.
 Weicht beides voneinander ab, ist der Prompt im Code nicht gemessen.</p>
-<div class="docs-eval"><div class="docs-table-scroll" tabindex="0" role="region" aria-label="Bestand je Anfragetyp"><table><thead><tr><th>Anfragetyp</th><th>Im Code</th><th>Stand</th><th>Bester Prompt</th><th>Hauptwert (95 %-Intervall)</th><th>Ziel</th><th>Kritisch</th><th>Kosten je Antwort</th><th>Latenz p90</th><th>Lauf vom</th><th>Richter</th></tr></thead><tbody><tr><th scope="row">Variante Frage/Antwort</th><td><code>card-variant-v4</code></td><td>Noch kein Lauf</td><td>–</td><td>–</td><td>95,0 %</td><td>–</td><td>–</td><td>–</td><td>–</td><td>nicht kalibriert</td></tr><tr><th scope="row">Lernhilfe zur Karte</th><td><code>card-help-v1</code></td><td>Noch kein Lauf</td><td>–</td><td>–</td><td>90,0 %</td><td>–</td><td>–</td><td>–</td><td>–</td><td>nicht kalibriert</td></tr><tr><th scope="row">Zusammenfassung</th><td><code>learning-summary-v4</code></td><td>Noch kein Lauf</td><td>–</td><td>–</td><td>–</td><td>–</td><td>–</td><td>–</td><td>–</td><td>nicht kalibriert</td></tr></tbody></table></div></div><p class="docs-source">Modell im Code: <code>openai/gpt-6-luna</code>. „Im Code“ liest die Versionskonstante des Vertragsmoduls beim Erzeugen.</p><h2 id="ai-eval--verlauf" class="core-heading-2" tabindex="-1">Verlauf <a class="docs-anchor" href="#ai-eval--verlauf" aria-label="Link zu Verlauf">#</a></h2>
+<div class="docs-eval"><div class="docs-table-scroll" tabindex="0" role="region" aria-label="Bestand je Anfragetyp"><table><thead><tr><th>Anfragetyp</th><th>Im Code</th><th>Stand</th><th>Bester Prompt</th><th>Hauptwert (95 %-Intervall)</th><th>Ziel</th><th>Kritisch</th><th>Kosten je Antwort</th><th>Latenz p90</th><th>Lauf vom</th><th>Richter</th></tr></thead><tbody><tr><th scope="row">Variante Frage/Antwort</th><td><code>card-variant-v5</code></td><td>Noch kein Lauf</td><td>–</td><td>–</td><td>95,0 %</td><td>–</td><td>–</td><td>–</td><td>–</td><td>nicht kalibriert</td></tr><tr><th scope="row">Variante Lückentext</th><td><code>card-variant-v5</code></td><td>Noch kein Lauf</td><td>–</td><td>–</td><td>95,0 %</td><td>–</td><td>–</td><td>–</td><td>–</td><td>nicht kalibriert</td></tr><tr><th scope="row">Variante Auswahl</th><td><code>card-variant-v5</code></td><td>Noch kein Lauf</td><td>–</td><td>–</td><td>95,0 %</td><td>–</td><td>–</td><td>–</td><td>–</td><td>nicht kalibriert</td></tr><tr><th scope="row">Lernhilfe zur Karte</th><td><code>card-help-v1</code></td><td>Noch kein Lauf</td><td>–</td><td>–</td><td>90,0 %</td><td>–</td><td>–</td><td>–</td><td>–</td><td>nicht kalibriert</td></tr><tr><th scope="row">Zusammenfassung</th><td><code>learning-summary-v4</code></td><td>Noch kein Lauf</td><td>–</td><td>–</td><td>–</td><td>–</td><td>–</td><td>–</td><td>–</td><td>nicht kalibriert</td></tr></tbody></table></div></div><p class="docs-source">Modell im Code: <code>openai/gpt-6-luna</code>. „Im Code“ liest die Versionskonstante des Vertragsmoduls beim Erzeugen.</p><h2 id="ai-eval--verlauf" class="core-heading-2" tabindex="-1">Verlauf <a class="docs-anchor" href="#ai-eval--verlauf" aria-label="Link zu Verlauf">#</a></h2>
 <p>Hauptwert auf dem Testteil je Lauf. Ein Lauf ist eine Baseline oder eine Runde
 mit genau einer Änderung.</p>
 <p>Noch kein Lauf im Ledger.</p><h2 id="ai-eval--ablauf" class="core-heading-2" tabindex="-1">Ablauf <a class="docs-anchor" href="#ai-eval--ablauf" aria-label="Link zu Ablauf">#</a></h2>

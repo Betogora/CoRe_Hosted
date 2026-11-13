@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { addCardVariant, createBasicNote, createManualNoteContent, createNote } from "./coreModel.ts";
+import { createAiCardVariantRequest } from "./aiCardVariantContract.ts";
 import {
   cardVariantSource,
   classifyCardEligibility,
@@ -29,8 +30,8 @@ function matureCard(stability = 20, reps = 0): Card {
 test("Variantenquelle liefert reinen Text der Abfrage, auch für die Rückrichtung", () => {
   const { note, cards } = createBasicNote("deck", "<p>Was ist <b>ATP</b> genau?&nbsp;</p>", "<p>Energieträger</p>", { reverse: true });
   const [forward, reverse] = cards;
-  assert.deepEqual(cardVariantSource(note, forward), { front: "Was ist ATP genau?", back: "Energieträger" });
-  assert.deepEqual(cardVariantSource(note, reverse), { front: "Energieträger", back: "Was ist ATP genau?" });
+  assert.deepEqual(cardVariantSource(note, forward), { kind: "basic", front: "Was ist ATP genau?", back: "Energieträger" });
+  assert.deepEqual(cardVariantSource(note, reverse), { kind: "basic", front: "Energieträger", back: "Was ist ATP genau?" });
   assert.equal(cardVariantSource(note, { promptKey: "unbekannt" }), null);
 });
 
@@ -42,19 +43,105 @@ test("Variantenquelle verbindet mehrere Fragefelder und verlangt Frage und Antwo
     additionalFields: [{ id: "land", name: "Land", value: "Frankreich", role: "prompt" }, { id: "info", name: "Info", value: "Seine", role: "extra" }],
   });
   const { note, cards } = createNote({ deckId: "deck", content });
-  assert.deepEqual(cardVariantSource(note, cards[0]), { front: "Hauptstadt von Frankreich", back: "Paris" });
+  assert.deepEqual(cardVariantSource(note, cards[0]), { kind: "basic", front: "Hauptstadt von Frankreich", back: "Paris" });
+  const typed = createNote({ deckId: "deck", content: createManualNoteContent({ kind: "basic", front: "Symbol für Gold?", back: "Au", typeIn: true }) });
+  assert.deepEqual(cardVariantSource(typed.note, typed.cards[0]), { kind: "type-in", front: "Symbol für Gold?", back: "Au" });
   const imageOnly = createBasicNote("deck", '<img src="bild.png">', "Antwort");
   assert.equal(cardVariantSource(imageOnly.note, imageOnly.cards[0]), null);
 });
 
-test("Lückentext und Auswahl liefern keine Variantenquelle und sind nicht geeignet", () => {
-  const cloze = createNote({ deckId: "deck", content: createManualNoteContent({ kind: "cloze", front: "{{c1::ATP}} speichert Energie", back: "" }) });
-  const choice = createNote({ deckId: "deck", content: createManualNoteContent({ kind: "single-choice", front: "Frage?", back: "", answerOptions: ["A", "B"], correctOptionIndices: [0] }) });
-  for (const { note, cards } of [cloze, choice]) {
-    assert.equal(cardVariantSource(note, cards[0]), null);
-    const eligibility = classifyCardEligibility(note, cards[0]);
-    assert.equal(eligibility.eligible, false);
-  }
+test("Auswahl-Quelle nennt Frage, Art und jede Option mit Richtigkeit; ohne Optionstext ist die Karte nicht geeignet", () => {
+  const { note, cards } = createNote({ deckId: "deck", content: createManualNoteContent({ kind: "multiple-choice", front: "<p>Welche sind <b>Kationen</b>?</p>", back: "Erklärung", answerOptions: ["Natrium", "Chlorid", "Kalium"], correctOptionIndices: [0, 2] }) });
+  const options = note.content.interaction.kind === "choice" ? note.content.interaction.options : [];
+  assert.deepEqual(cardVariantSource(note, cards[0]), {
+    kind: "choice",
+    front: "Welche sind Kationen?",
+    back: "✓ Natrium · ✗ Chlorid · ✓ Kalium",
+    choice: { mode: "multiple", options: options.map((option, index) => ({ id: option.id, text: ["Natrium", "Chlorid", "Kalium"][index], correct: index !== 1 })) },
+  });
+  assert.equal(classifyCardEligibility(note, cards[0]).eligible, true);
+
+  const imageOption = { ...note, content: { ...note.content, interaction: { kind: "choice" as const, mode: "single" as const, options: [{ id: "a", html: '<img src="a.png">', correct: true }, { id: "b", html: "B", correct: false }] } } };
+  assert.equal(cardVariantSource(imageOption, cards[0]), null);
+  assert.deepEqual(classifyCardEligibility(imageOption, cards[0]).reasons, ["Die Frage oder eine Antwortoption hat keinen Text."]);
+
+  // Cards the request contract refuses would fail on every batch; they are not eligible.
+  const oneOption = { ...note, content: { ...note.content, interaction: { kind: "choice" as const, mode: "single" as const, options: [{ id: "a", html: "A", correct: true }] } } };
+  assert.deepEqual(classifyCardEligibility(oneOption, cards[0]).reasons, ["Eine Variante braucht zwei bis 10 Antwortoptionen."]);
+  const tooLong = createBasicNote("deck", "x".repeat(1_300), "Antwort");
+  assert.equal(classifyCardEligibility(tooLong.note, tooLong.cards[0]).eligible, false);
+});
+
+test("Auswahl-Variante zeigt neue Frage und Optionstexte in eigener fester Reihenfolge; Richtigkeit und Erklärung bleiben die der Karte", () => {
+  const { note, cards } = createNote({ deckId: "deck", content: createManualNoteContent({ kind: "single-choice", front: "Welcher Ozean ist der größte?", back: "Der Pazifik bedeckt ein Drittel der Erde.", answerOptions: ["Atlantik", "Pazifik", "Indischer Ozean", "Arktischer Ozean"], correctOptionIndices: [1] }) });
+  const original = note.content.interaction.kind === "choice" ? note.content.interaction.options : [];
+  const meta = { options: original.map((option) => ({ id: option.id, html: `Der ${option.html}` })) };
+  const card = addCardVariant(cards[0], { id: "variant-1", front: "Welches ist das größte Weltmeer?", back: "egal", meta });
+  const presented = variantPresentation(note, card, card.variants[0]);
+  const interaction = presented.note.content.interaction;
+
+  assert.equal(interaction.kind, "choice");
+  if (interaction.kind !== "choice") return;
+  assert.equal(interaction.mode, "single");
+  assert.notDeepEqual(interaction.options.map((option) => option.id), original.map((option) => option.id));
+  assert.deepEqual(interaction.options.map((option) => [option.id, option.correct]).sort(), original.map((option) => [option.id, option.correct]).sort());
+  assert.equal(interaction.options.find((option) => option.correct)?.html, "Der Pazifik");
+  assert.deepEqual(variantPresentation(note, card, card.variants[0]).note.content.interaction, interaction, "die Reihenfolge ist je Variante fest");
+  assert.deepEqual(presented.note.content.fields.map((field) => [field.role, field.html]), [["prompt", "Welches ist das größte Weltmeer?"], ["extra", "Der Pazifik bedeckt ein Drittel der Erde."]]);
+  assert.equal(presented.card.promptKey, "choice");
+});
+
+test("Lückentext-Quelle behält nur die eigene Lückengruppe; andere Lücken werden Text, verschachtelte eigene Lücken haben keine Quelle", () => {
+  const cloze = (text: string) => createNote({ deckId: "deck", content: createManualNoteContent({ kind: "cloze", front: text, back: "Pankreas" }) });
+  const hormones = cloze("<p>{{c1::Insulin}} senkt, {{c2::Glukagon::Hormon}} hebt den {{c1,3::Blutzucker}}.</p>");
+  const [first, second, third] = hormones.cards;
+  assert.deepEqual(cardVariantSource(hormones.note, first), { kind: "cloze", front: "{{c1::Insulin}} senkt, Glukagon hebt den {{c1::Blutzucker}}.", back: "Insulin · Blutzucker" });
+  assert.deepEqual(cardVariantSource(hormones.note, second), { kind: "cloze", front: "Insulin senkt, {{c2::Glukagon::Hormon}} hebt den Blutzucker.", back: "Glukagon" });
+  assert.deepEqual(cardVariantSource(hormones.note, third), { kind: "cloze", front: "Insulin senkt, Glukagon hebt den {{c3::Blutzucker}}.", back: "Blutzucker" });
+
+  const nested = cloze("Die {{c1::Aortenklappe liegt {{c2::links}} vom Sternum}}.");
+  assert.deepEqual(cardVariantSource(nested.note, nested.cards[0]), { kind: "cloze", front: "Die {{c1::Aortenklappe liegt links vom Sternum}}.", back: "Aortenklappe liegt links vom Sternum" });
+  assert.deepEqual(cardVariantSource(nested.note, nested.cards[1]), { kind: "cloze", front: "Die Aortenklappe liegt {{c2::links}} vom Sternum.", back: "links" });
+  const selfNested = cloze("{{c1::außen {{c1::innen}}}}");
+  assert.equal(cardVariantSource(selfNested.note, selfNested.cards[0]), null);
+  assert.deepEqual(classifyCardEligibility(selfNested.note, selfNested.cards[0]).reasons, ["Die Lücke dieser Karte ist leer oder verschachtelt."]);
+  assert.equal(classifyCardEligibility(hormones.note, first).eligible, true);
+});
+
+test("Lückentext-Variante wird als Lückentext derselben Lückengruppe mit Zusatz der Karte gezeigt", () => {
+  const { note, cards } = createNote({ deckId: "deck", content: createManualNoteContent({ kind: "cloze", front: "{{c1::Insulin}} senkt, {{c2::Glukagon}} hebt den Blutzucker.", back: "Pankreas" }) });
+  const card = addCardVariant(cards[1], { id: "variant-1", front: "Den Blutzucker hebt {{c2::Glukagon}}, Insulin senkt ihn.", back: "Glukagon" });
+  const presented = variantPresentation(note, card, card.variants[0]);
+
+  assert.deepEqual(presented.note.content.interaction, { kind: "cloze" });
+  assert.deepEqual(presented.note.content.fields.map((field) => [field.role, field.html]), [["prompt", "Den Blutzucker hebt {{c2::Glukagon}}, Insulin senkt ihn."], ["extra", "Pankreas"]]);
+  assert.equal(presented.card.promptKey, "cloze:2");
+  assert.equal(presented.card.id, "variant-1");
+  const imported = variantPresentation({ ...note, noteTypeSourceId: "type-1", translator: { id: "generic", version: 1 } }, card, card.variants[0]);
+  assert.equal(imported.note.noteTypeSourceId, null, "eine Variante hat keine Felder des importierten Layouts");
+});
+
+test("Lückentext-Quelle mit Vergleichszeichen ohne Leerzeichen wird nicht erneut als HTML gelesen; Bearbeiten behält Leerzeichen vor Satzzeichen", () => {
+  const compare = createNote({ deckId: "deck", content: createManualNoteContent({ kind: "cloze", front: "wenn x&lt;y und y&gt;z dann {{c1::w}}", back: "" }) });
+  assert.equal(createAiCardVariantRequest(cardVariantSource(compare.note, compare.cards[0])).source.front, "wenn x<y und y>z dann {{c1::w}}");
+
+  const ratio = createNote({ deckId: "deck", content: createManualNoteContent({ kind: "cloze", front: "Das Verhältnis ist {{c1::3 : 1}}.", back: "" }) });
+  const card = addCardVariant(ratio.cards[0], { front: "Es gilt das Verhältnis {{c1::3 : 1}}.", back: "3 : 1" });
+  const edited = editVariantText(card, card.variants[0].id, { front: "<p>Als Verhältnis gilt {{c1::3 : 1}}.</p>", back: "" }, "2026-10-30T12:00:00.000Z", cardVariantSource(ratio.note, card));
+  assert.equal(edited.variants[0].back, "3 : 1");
+});
+
+test("Eine bearbeitete Lückentext-Variante braucht die Lücke der Karte mit derselben Lösung; die Antwort bleibt die der Karte", () => {
+  const { note, cards } = createNote({ deckId: "deck", content: createManualNoteContent({ kind: "cloze", front: "Die {{c1::Titanic}} sank 1912.", back: "" }) });
+  const card = addCardVariant(cards[0], { front: "Im Jahr 1912 ging die {{c1::Titanic}} unter.", back: "Titanic" });
+  const source = cardVariantSource(note, card);
+  const edit = (front: string) => editVariantText(card, card.variants[0].id, { front, back: "egal" }, "2026-10-30T12:00:00.000Z", source);
+
+  const edited = edit("<p>1912 sank die {{c1::Titanic}} im Nordatlantik.</p>");
+  assert.equal(edited.variants[0].back, "Titanic");
+  assert.throws(() => edit("1912 sank die {{c1::Lusitania}}."), /derselben Lösung/);
+  assert.throws(() => edit("1912 sank die {{c2::Titanic}}."), /derselben Lösung/);
+  assert.throws(() => edit("1912 sank die Titanic."), /derselben Lösung/);
 });
 
 test("Eignung hängt vom CoRe-Modus, vollständiger Frage und Antwort und der Variantenhöchstzahl ab", () => {
@@ -99,6 +186,32 @@ test("Variantendarstellung ersetzt Frage und Antwort und behält Zusatzfelder, T
   assert.equal(presented.card.study, card.study);
   assert.equal(presented.card.noteId, card.noteId);
   assert.equal(note.content.fields[0].html, "Original-Frage");
+});
+
+test("Eintippen-Variante fragt neu und vergleicht mit dem Antwortfeld der Karte; vorgelesen wird nur Unverändertes", () => {
+  const content = createManualNoteContent({
+    kind: "basic",
+    front: "Symbol für Gold?",
+    back: "Au",
+    typeIn: true,
+    additionalFields: [{ id: "tipp", name: "Tipp", value: "Lateinisch aurum", role: "hint" }],
+  });
+  content.speech = [{ fieldId: "front", language: "de_DE" }, { fieldId: "back", language: "de_DE" }, { fieldId: "tipp", language: "de_DE" }];
+  const { note, cards } = createNote({ deckId: "deck", content });
+  const card = addCardVariant(cards[0], { id: "variant-1", front: "Welches Elementsymbol hat Gold?", back: "Gold hat das Symbol Au" });
+  const presented = variantPresentation(note, card, card.variants[0]).note.content;
+
+  assert.deepEqual(presented.fields.map((field) => [field.id, field.role, field.html]), [
+    ["variant-front", "prompt", "Welches Elementsymbol hat Gold?"],
+    ["back", "answer", "Au"],
+    ["tipp", "hint", "Lateinisch aurum"],
+  ]);
+  assert.equal(presented.interaction.kind === "reveal" && presented.interaction.prompts[0].typeInFieldId, "back");
+  assert.deepEqual(presented.speech.map((entry) => entry.fieldId), ["back", "tipp"]);
+
+  const flipped = createNote({ deckId: "deck", content: { ...content, interaction: { kind: "reveal", prompts: [{ key: "forward", name: "Vorwärts", instruction: "", questionFieldIds: ["front"], answerFieldIds: ["back"], requires: null, typeInFieldId: null }] } } });
+  const flippedCard = addCardVariant(flipped.cards[0], { id: "variant-2", front: "Elementsymbol von Gold?", back: "Au (aurum)" });
+  assert.deepEqual(variantPresentation(flipped.note, flippedCard, flippedCard.variants[0]).note.content.speech.map((entry) => entry.fieldId), ["tipp"]);
 });
 
 test("Review wechselt reife Karten reihum zwischen Karte und Varianten ab", () => {

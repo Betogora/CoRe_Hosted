@@ -269,7 +269,9 @@ export function createCardCommands({ store, repository, hydration, cloud, syncEn
   }
 
   async function editDeckCardVariant(cardId: string, variantId: string, text: { front: string; back: string }) {
-    const saved = await repository.updateCard(cardId, (card) => editVariantText(card, variantId, text));
+    const body = await repository.loadCardBody(cardId);
+    const source = body ? cardVariantSource(body.note, body.card) : null;
+    const saved = await repository.updateCard(cardId, (card) => editVariantText(card, variantId, text, undefined, source));
     if (!saved) throw new Error("Die Variante konnte nicht gespeichert werden.");
     await reloadNoteGraph(saved.note.id);
   }

@@ -111,13 +111,27 @@ function parseOrThrow(content: unknown) {
  * Removed cards are only proposed; the caller must obtain confirmation before deleting them.
  * Content that is unchanged after sanitizing keeps the previous note and its revisions.
  */
-/** Question and answer HTML a reveal card is asked with; AI rephrasings are made from exactly these fields. */
+/**
+ * Question and answer HTML a reveal card is asked with, the cloze text of a cloze card (other gaps appear in it as
+ * text) or the question and options of a choice card; AI rephrasings are made from exactly these fields.
+ */
 function promptSourceHtml(content: NoteContent, promptKey: string): string | null {
+  const promptHtml = () => content.fields.filter((field) => field.role === "prompt").map((field) => field.html).join("\u001f");
+  if (content.interaction.kind === "cloze") return promptHtml();
+  if (content.interaction.kind === "choice") return `${promptHtml()}\u001e${JSON.stringify(content.interaction.options)}`;
   if (content.interaction.kind !== "reveal") return null;
   const prompt = content.interaction.prompts.find((candidate) => candidate.key === promptKey);
   if (!prompt) return null;
   const html = (ids: string[]) => ids.map((id) => content.fields.find((field) => field.id === id)?.html ?? "").join("\u001f");
   return `${html(prompt.questionFieldIds)}\u001e${html(prompt.answerFieldIds)}`;
+}
+
+/**
+ * The card with its active rephrasings outdated when the content its prompt is asked from changed between the two
+ * contents, e.g. on a reimport that replaces an unedited content; otherwise the card itself.
+ */
+export function outdateVariantsOfChangedSource(previous: NoteContent, next: NoteContent, card: Card, updatedAt: string): Card {
+  return promptSourceHtml(previous, card.promptKey) === promptSourceHtml(next, card.promptKey) ? card : markVariantsOutdated(card, updatedAt);
 }
 
 /** Active rephrasings of a card whose question or answer changed are outdated: no longer asked, but kept for regeneration. */

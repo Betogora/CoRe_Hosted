@@ -177,9 +177,11 @@ for (const scenario of [
     assert.deepEqual(keys(plan.newCards), scenario.added);
     assert.deepEqual(keys(plan.removedCards), scenario.removed);
     for (const card of [...plan.keptCards, ...plan.removedCards]) {
-      assert.equal(card, previous.cards.find((old) => old.id === card.id));
+      const old = previous.cards.find((candidate) => candidate.id === card.id)!;
+      assert.deepEqual({ ...card, variants: old.variants, updatedAt: old.updatedAt }, old);
       assert.equal(card.deletedAt, null);
     }
+    assert.equal(plan.keptCards[0].variants[0].meta.outdated, true, "der geänderte Lückentext macht die Varianten veraltet");
     for (const card of plan.newCards) {
       assert.equal(card.noteId, previous.note.id);
       assert.equal(card.deckId, "deck-a");
@@ -195,6 +197,15 @@ for (const scenario of [
     assert.deepEqual(previous, before);
   });
 }
+
+test("Eine geänderte Antwortoption macht die KI-Umformulierungen der Auswahlkarte veraltet", () => {
+  const graph = createNote({ deckId: "deck", content: createManualNoteContent({ kind: "single-choice", front: "Größter Ozean?", back: "", answerOptions: ["Pazifik", "Atlantik"], correctOptionIndices: [0] }) });
+  const card = addCardVariant(graph.cards[0], { front: "Welches Weltmeer ist am größten?", back: "✓ Pazifik · ✗ Atlantik" });
+  const content = structuredClone(graph.note.content);
+  if (content.interaction.kind === "choice") content.interaction.options[1].html = "Indischer Ozean";
+  const plan = planNoteContentChange({ note: graph.note, cards: [card] }, content, CHANGED_AT);
+  assert.equal(plan.keptCards[0].variants[0].meta.outdated, true);
+});
 
 test("Eine geänderte Frage oder Antwort macht die KI-Umformulierungen genau dieser Karten veraltet", () => {
   const graph = createBasicNote("deck", "Was ist ATP?", "Energieträger", { reverse: true });

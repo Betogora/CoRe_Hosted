@@ -22,6 +22,14 @@ test("deck content retains its scope and editor selection through URL and histor
   assert.deepEqual(parseAppRouteFromUrl("/lernen?deck=deck-1&content=1"), createViewRoute("lernen", { focusedDeckId: "deck-1" }));
 });
 
+test("a card search link opens the card management with its query and survives URL and history", () => {
+  const route = createViewRoute("kartenstapel", { cardQuery: " did:deck-1 -has:variant " });
+  assert.equal(route.cardQuery, "did:deck-1 -has:variant");
+  assert.deepEqual(parseAppRouteFromUrl(appRouteToUrl(route)), route);
+  assert.equal(createViewRoute("lernen", { cardQuery: "has:variant" }).cardQuery, undefined);
+  assert.equal(createViewRoute("kartenstapel", { focusedDeckId: "deck-1", cardQuery: "has:variant" }).cardQuery, undefined);
+});
+
 test("content tabs roundtrip with the selected deck and review return context", () => {
   for (const tab of ["children", "summary", "quiz", "mind-map", "cards", "source"] as const) {
     const route = createViewRoute("kartenstapel", { focusedDeckId: "child", deckContent: true, deckContentTab: tab });

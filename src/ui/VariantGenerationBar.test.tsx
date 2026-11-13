@@ -19,4 +19,9 @@ test("an outcome replaces the count and offers closing instead of cancelling", (
   assert.match(html, />16 Varianten generiert, 2 fehlgeschlagen</);
   assert.match(html, /aria-label="Schließen"/);
   assert.doesNotMatch(html, /aria-label="Abbrechen"/);
+  assert.doesNotMatch(html, /aria-label="Anzeigen"/);
+  const showable = renderToStaticMarkup(<VariantGenerationBar deck={deck} done={18} total={18} outcome="Gestoppt nach 3 Varianten: Keine Verbindung" onCancel={() => undefined} onClose={() => undefined} onShow={() => undefined} />);
+  assert.match(showable, /aria-label="Anzeigen"/);
+  const running = renderToStaticMarkup(<VariantGenerationBar deck={deck} done={3} total={18} onCancel={() => undefined} onClose={() => undefined} onShow={() => undefined} />);
+  assert.doesNotMatch(running, /aria-label="Anzeigen"/, "while running there is nothing to show yet");
 });

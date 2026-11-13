@@ -1,23 +1,23 @@
 import { AI_CARD_VARIANT_PROMPT_VERSION, AiCardVariantContractError } from "./aiCardVariantContract.ts";
 import { getActiveVariants } from "./coreModel.ts";
 import { classifyCardEligibility, isEditedVariant } from "./coreVariantService.ts";
-import type { Card, DeckSettings, Note } from "./coreTypes.ts";
+import type { Card, Deck, DeckSettings, Note } from "./coreTypes.ts";
 import type { CardCatalogEntry } from "./workspaceReplica.ts";
 
 /** At most this many generation requests per action; a further action continues with the next cards. */
 export const CARD_VARIANT_BATCH_LIMIT = 50;
 
-/** Errors that would fail every further card the same way; the batch stops instead of repeating them. */
-const STOPPING_ERROR_CODES = new Set([
-  "unauthorized",
-  "auth_unavailable",
-  "network_error",
-  "missing_openrouter_api_key",
-  "openrouter_auth_failed",
-  "provider_budget_exhausted",
-  "rate_limited",
-  "workspace_unavailable",
-]);
+/** Errors that would fail every further card the same way, with the short reason the bar names; the batch stops at them. */
+const STOP_REASONS: Readonly<Record<string, string>> = {
+  unauthorized: "Nicht angemeldet",
+  auth_unavailable: "Nicht angemeldet",
+  network_error: "Keine Verbindung",
+  missing_openrouter_api_key: "KI nicht eingerichtet",
+  openrouter_auth_failed: "KI nicht eingerichtet",
+  provider_budget_exhausted: "KI-Kontingent aufgebraucht",
+  rate_limited: "Zu viele Anfragen",
+  workspace_unavailable: "Daten nicht bereit",
+};
 
 /**
  * `missing` gives cards without an active variant their first one; `refresh` replaces the variants of cards
@@ -25,6 +25,43 @@ const STOPPING_ERROR_CODES = new Set([
  * Variants the learner edited are their own and never count as older.
  */
 export type CardVariantBatchMode = "missing" | "refresh";
+
+/** Card search (`cardSearchQuery.ts`) for the candidates of a mode; image occlusions never get variants. */
+export const CARD_VARIANT_CANDIDATE_QUERY: Readonly<Record<CardVariantBatchMode, string>> = {
+  missing: "-has:variant -is:occlusion",
+  refresh: "has:variant",
+};
+
+/**
+ * A card search for exactly the `included` decks of a deck tree (the root always): `did:` covers a deck with its
+ * subdecks, so excluded subtrees are cut out and included decks below them are added back as groups of their own.
+ */
+export function deckTreeQuery(decks: readonly Deck[], rootId: string, included: ReadonlySet<string>): string {
+  const groups: string[][] = [];
+  const childrenOf = (id: string) => decks.filter((deck) => deck.parentDeckId === id);
+  const open = (id: string) => {
+    const group = [`did:${id}`];
+    groups.push(group);
+    keep(id, group);
+  };
+  const keep = (id: string, group: string[]) => {
+    for (const child of childrenOf(id)) {
+      if (included.has(child.id)) keep(child.id, group);
+      else {
+        group.push(`-did:${child.id}`);
+        skip(child.id);
+      }
+    }
+  };
+  const skip = (id: string) => {
+    for (const child of childrenOf(id)) {
+      if (included.has(child.id)) open(child.id);
+      else skip(child.id);
+    }
+  };
+  open(rootId);
+  return groups.length === 1 ? groups[0].join(" ") : `(${groups.map((group) => `(${group.join(" ")})`).join(" or ")})`;
+}
 
 function needsVariant(card: Card, mode: CardVariantBatchMode) {
   const active = getActiveVariants(card);
@@ -46,6 +83,8 @@ export interface CardVariantBatchResult {
   created: number;
   /** Cards whose generation failed on its own; candidates that cannot get a variant (e.g. cloze) are skipped silently. */
   failed: number;
+  /** Cards the model reported as not sensibly rephrasable (`not_rephrasable`). */
+  notRephrasable: number;
   /** The action stopped before its end: cancelled by the user or after an error every card would hit. */
   stopped: { reason: "cancelled" } | { reason: "error"; message: string } | null;
   /** More candidate cards remain after this action. */
@@ -58,7 +97,7 @@ export interface CardVariantBatchResult {
  */
 export async function runCardVariantBatch({
   source,
-  deckSettings,
+  settingsFor,
   mode = "missing",
   generate,
   signal,
@@ -66,7 +105,8 @@ export async function runCardVariantBatch({
   limit = CARD_VARIANT_BATCH_LIMIT,
 }: {
   source: CardVariantBatchSource;
-  deckSettings: Partial<DeckSettings>;
+  /** Settings of the deck a card is in; a deck tree may mix decks with CoRe on and off. */
+  settingsFor: (card: Card) => Partial<DeckSettings>;
   mode?: CardVariantBatchMode;
   generate: (cardId: string) => Promise<unknown>;
   signal?: AbortSignal;
@@ -85,7 +125,7 @@ export async function runCardVariantBatch({
       // The catalog can lag behind the body, e.g. a cloud page before the last sync.
       if (body && !needsVariant(body.card, mode)) return;
       // Refreshing replaces the existing variants, so the deck's maximum does not block it.
-      if (!body || !classifyCardEligibility(body.note, mode === "refresh" ? { ...body.card, variants: [] } : body.card, deckSettings).eligible) return;
+      if (!body || !classifyCardEligibility(body.note, mode === "refresh" ? { ...body.card, variants: [] } : body.card, settingsFor(body.card)).eligible) return;
       if (selected.length < limit) selected.push(entry.id);
       else hasMore = true;
     });
@@ -95,7 +135,7 @@ export async function runCardVariantBatch({
     }
   }
 
-  const result: CardVariantBatchResult = { created: 0, failed: 0, stopped: null, hasMore };
+  const result: CardVariantBatchResult = { created: 0, failed: 0, notRephrasable: 0, stopped: null, hasMore };
   for (const [index, cardId] of selected.entries()) {
     onProgress({ phase: "generating", done: index, total: selected.length });
     if (signal?.aborted) {
@@ -107,13 +147,13 @@ export async function runCardVariantBatch({
       await generate(cardId);
       result.created += 1;
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Die Variante konnte nicht generiert werden.";
-      if (error instanceof AiCardVariantContractError && STOPPING_ERROR_CODES.has(error.code)) {
-        result.stopped = { reason: "error", message };
+      if (error instanceof AiCardVariantContractError && STOP_REASONS[error.code]) {
+        result.stopped = { reason: "error", message: STOP_REASONS[error.code] };
         result.hasMore = true;
         break;
       }
-      result.failed += 1;
+      if (error instanceof AiCardVariantContractError && error.code === "not_rephrasable") result.notRephrasable += 1;
+      else result.failed += 1;
     }
   }
   if (!result.stopped) onProgress({ phase: "generating", done: selected.length, total: selected.length });
@@ -132,8 +172,13 @@ export function summarizeCardVariantBatch(result: CardVariantBatchResult, mode: 
   if (result.stopped?.reason === "error") {
     return { kind: "bar", message: `Gestoppt nach ${variantCount(result.created)}: ${result.stopped.message}` };
   }
-  if (result.failed > 0) {
-    return { kind: "bar", message: `${variantCount(result.created)} generiert, ${result.failed} fehlgeschlagen` };
+  if (result.failed > 0 || result.notRephrasable > 0) {
+    const parts = [
+      `${variantCount(result.created)} generiert`,
+      ...(result.notRephrasable ? [`${result.notRephrasable} nicht umformulierbar`] : []),
+      ...(result.failed ? [`${result.failed} fehlgeschlagen`] : []),
+    ];
+    return { kind: "bar", message: parts.join(", ") };
   }
   if (result.stopped?.reason === "cancelled") return { kind: "toast", message: `Abgebrochen. ${variantCount(result.created)} generiert.` };
   if (result.created === 0) return { kind: "toast", message: mode === "refresh" ? "Alle Varianten stammen bereits aus der aktuellen Version." : "Keine Karte ohne Variante gefunden." };

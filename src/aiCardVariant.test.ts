@@ -3,6 +3,7 @@ import test from "node:test";
 import { aiCardVariantAvoidTexts, createAiGeneratedVariantDraft, requestAiCardVariant } from "./aiCardVariant.ts";
 import {
   AiCardVariantContractError,
+  aiVariantFieldText,
   createAiCardVariantRequest,
   parseAiCardVariantRequest,
 } from "./aiCardVariantContract.ts";
@@ -18,7 +19,8 @@ test("AI card request projects only normalized question and answer", () => {
   const { note, card } = basic('<p>  Was ist <b>ATP</b>? </p><img src="private-image.png">', "<p>Ein Energie&shy;träger.</p>", ["biologie"]);
   const request = createAiCardVariantRequest(cardVariantSource(note, card));
 
-  assert.deepEqual(Object.keys(request), ["source"]);
+  assert.deepEqual(Object.keys(request), ["kind", "source"]);
+  assert.equal(request.kind, "basic");
   assert.deepEqual(Object.keys(request.source), ["front", "back"]);
   assert.equal(request.source.front, "Was ist ATP?");
   assert.equal(request.source.back.includes("Energie"), true);
@@ -27,18 +29,13 @@ test("AI card request projects only normalized question and answer", () => {
 });
 
 test("AI card request rejects cards without question and answer and oversized cards", () => {
-  const choice = createNote({
-    deckId: "deck-1",
-    content: createManualNoteContent({ kind: "single-choice", front: "Frage", back: "Erklärung", answerOptions: ["Richtig", "Falsch"], correctOptionIndices: [0] }),
-  });
   const imageOnly = basic('<img src="image-hash.png">', "Hinten");
-  assert.throws(() => createAiCardVariantRequest(cardVariantSource(choice.note, choice.cards[0])), (error: unknown) => error instanceof AiCardVariantContractError && error.code === "unsupported_card_type");
   assert.throws(() => createAiCardVariantRequest(cardVariantSource(imageOnly.note, imageOnly.card)), (error: unknown) => error instanceof AiCardVariantContractError && error.code === "unsupported_card_type");
-  assert.throws(() => createAiCardVariantRequest({ front: "x".repeat(1_201), back: "Antwort" }), (error: unknown) => error instanceof AiCardVariantContractError && error.code === "invalid_source");
+  assert.throws(() => createAiCardVariantRequest({ kind: "basic", front: "x".repeat(1_201), back: "Antwort" }), (error: unknown) => error instanceof AiCardVariantContractError && error.code === "invalid_source");
 
-  assert.equal(parseAiCardVariantRequest({ source: { front: "x".repeat(1_201), back: "Antwort" } }).success, false);
-  assert.equal(parseAiCardVariantRequest({ source: { front: "x".repeat(1_200), back: "y".repeat(1_200) } }).success, true);
-  assert.equal(parseAiCardVariantRequest({ source: { front: "x".repeat(1_200), back: "y".repeat(1_201) } }).success, false);
+  assert.equal(parseAiCardVariantRequest({ kind: "basic", source: { front: "x".repeat(1_201), back: "Antwort" } }).success, false);
+  assert.equal(parseAiCardVariantRequest({ kind: "basic", source: { front: "x".repeat(1_200), back: "y".repeat(1_200) } }).success, true);
+  assert.equal(parseAiCardVariantRequest({ kind: "basic", source: { front: "x".repeat(1_200), back: "y".repeat(1_201) } }).success, false);
 });
 
 test("browser request authenticates, sends only card text and validates the response", async () => {
@@ -46,7 +43,7 @@ test("browser request authenticates, sends only card text and validates the resp
   let requestBody = "";
   const result = await requestAiCardVariant(cardVariantSource(note, card), {
     auth: { getSession: async () => ({ data: { session: { access_token: "session-secret" } }, error: null }) },
-  } as any, { avoid: ["Alte <b>Variante</b>", "Alte Variante", ""], fetchImpl: async (_url, init) => {
+  } as any, { avoid: ["Alte  Variante", "Alte Variante", ""], fetchImpl: async (_url, init) => {
     assert.equal((init?.headers as Record<string, string>).Authorization, "Bearer session-secret");
     requestBody = String(init?.body);
     return Response.json({
@@ -57,14 +54,14 @@ test("browser request authenticates, sends only card text and validates the resp
     });
   } });
 
-  assert.deepEqual(JSON.parse(requestBody), { source: { front: "Frage", back: "Antwort" }, avoid: ["Alte Variante"] });
+  assert.deepEqual(JSON.parse(requestBody), { kind: "basic", source: { front: "Frage", back: "Antwort" }, avoid: ["Alte Variante"] });
   assert.equal(requestBody.includes("secret-tag"), false);
   assert.equal(requestBody.includes("secret-media"), false);
   assert.equal(result.variant.front, "Neu gefragt");
 });
 
 test("browser request reports missing auth and provider errors", async () => {
-  const source = { front: "Frage", back: "Antwort" };
+  const source = { kind: "basic" as const, front: "Frage", back: "Antwort" };
   await assert.rejects(requestAiCardVariant(source, null), (error: unknown) => error instanceof AiCardVariantContractError && error.code === "auth_unavailable");
   const supabase = { auth: { getSession: async () => ({ data: { session: { access_token: "token" } }, error: null }) } } as any;
   await assert.rejects(
@@ -101,7 +98,7 @@ test("generated draft rejects changed sources and duplicate variants", () => {
   const draft = createAiGeneratedVariantDraft(source, original, generated);
   assert.equal(draft.meta.generationSource, "ai_generated");
   assert.equal(draft.front, "Anders gefragt");
-  assert.equal(draft.meta.promptVersion, "card-variant-v4");
+  assert.equal(draft.meta.promptVersion, "card-variant-v5");
   assert.equal(draft.meta.model, "provider/model:free");
 
   const changedContent = structuredClone(original.note.content);
@@ -112,6 +109,40 @@ test("generated draft rejects changed sources and duplicate variants", () => {
 
   const withDuplicate = addCardVariant(original.card, { front: "Anders gefragt", back: "Gleiche Antwort" });
   assert.throws(() => createAiGeneratedVariantDraft(source, { note: original.note, card: withDuplicate }, generated), (error: unknown) => error instanceof AiCardVariantContractError && error.code === "duplicate_variant");
+});
+
+test("a generated variant with comparison signs is stored as HTML and keeps its whole text", () => {
+  const original = basic("Wann überwiegt die Rückreaktion?", "Bei K < 1");
+  const source = cardVariantSource(original.note, original.card)!;
+  const draft = createAiGeneratedVariantDraft(source, original, {
+    variant: { front: "Unter welcher Bedingung für K überwiegt die Rückreaktion, wenn K > 0 gilt?", back: "Bei K < 1 & nur dann" },
+    model: "provider/model:free",
+    privacyMode: "zdr",
+    usage: null,
+  });
+  const stored = addCardVariant(original.card, draft).variants[0];
+  assert.equal(aiVariantFieldText(stored.front), "Unter welcher Bedingung für K überwiegt die Rückreaktion, wenn K > 0 gilt?");
+  assert.equal(aiVariantFieldText(stored.back), "Bei K < 1 & nur dann");
+});
+
+test("a choice draft stores the rephrased option texts by id and rejects a card whose options changed meanwhile", () => {
+  const original = createNote({ deckId: "deck-1", content: createManualNoteContent({ kind: "single-choice", front: "Welches Symbol hat Gold?", back: "", answerOptions: ["Au", "Ag"], correctOptionIndices: [0] }) });
+  const current = { note: original.note, card: original.cards[0] };
+  const source = cardVariantSource(current.note, current.card)!;
+  const [gold, silver] = source.choice!.options;
+  const generated = {
+    variant: { front: "Mit welchem Kürzel steht Gold im Periodensystem?", back: "✓ Au < Ag · ✗ Ag", options: [{ id: gold.id, text: "Au < Ag" }, { id: silver.id, text: "Ag" }] },
+    model: "provider/model:free",
+    privacyMode: "zdr" as const,
+    usage: null,
+  };
+  const draft = createAiGeneratedVariantDraft(source, current, generated);
+  assert.deepEqual(draft.meta.options, [{ id: gold.id, html: "Au &lt; Ag" }, { id: silver.id, html: "Ag" }]);
+
+  const changedContent = structuredClone(current.note.content);
+  if (changedContent.interaction.kind === "choice") changedContent.interaction.options[1].html = "Cu";
+  const changed = planNoteContentChange({ note: current.note, cards: [current.card] }, changedContent);
+  assert.throws(() => createAiGeneratedVariantDraft(source, { note: changed.note, card: current.card }, generated), (error: unknown) => error instanceof AiCardVariantContractError && error.code === "source_changed");
 });
 
 test("deleted variants are avoided after the existing ones, each newest first", () => {
@@ -126,9 +157,9 @@ test("deleted variants are avoided after the existing ones, each newest first", 
 });
 
 test("existing variants are sent within the request limits, newest first", () => {
-  const request = createAiCardVariantRequest({ front: "Frage", back: "Antwort" }, ["Eins", "Zwei", "Drei", "Vier", "Fünf", "Sechs", "x".repeat(1_201)]);
+  const request = createAiCardVariantRequest({ kind: "basic", front: "Frage", back: "Antwort" }, ["Eins", "Zwei", "Drei", "Vier", "Fünf", "Sechs", "x".repeat(1_201)]);
   assert.deepEqual(request.avoid, ["Eins", "Zwei", "Drei", "Vier", "Fünf"]);
-  assert.equal("avoid" in createAiCardVariantRequest({ front: "Frage", back: "Antwort" }), false);
-  assert.equal(parseAiCardVariantRequest({ source: { front: "Frage", back: "Antwort" }, avoid: Array.from({ length: 6 }, (_, index) => `V${index}`) }).success, false);
-  assert.equal(parseAiCardVariantRequest({ source: { front: "Frage", back: "Antwort" }, avoid: ["y".repeat(1_000), "y".repeat(1_000), "y".repeat(1_001)] }).success, false);
+  assert.equal("avoid" in createAiCardVariantRequest({ kind: "basic", front: "Frage", back: "Antwort" }), false);
+  assert.equal(parseAiCardVariantRequest({ kind: "basic", source: { front: "Frage", back: "Antwort" }, avoid: Array.from({ length: 6 }, (_, index) => `V${index}`) }).success, false);
+  assert.equal(parseAiCardVariantRequest({ kind: "basic", source: { front: "Frage", back: "Antwort" }, avoid: ["y".repeat(1_000), "y".repeat(1_000), "y".repeat(1_001)] }).success, false);
 });

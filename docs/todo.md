@@ -1,51 +1,21 @@
 # CoRe TODO
 
-Stand: 2026-11-12
+Stand: 2026-11-13
 
 Nur offene Arbeit. Ist-Stand in [`status.md`](status.md), Entscheidungen in
 [`decisions.md`](decisions.md), erledigte Arbeit in [`history.md`](history.md).
 
-Reihenfolge = Priorität. P1 läuft,
-P2 folgt; P5 wartet, bis alle KI-Prompts stehen. Offene Nachweise brauchen keinen Code und
+Reihenfolge = Priorität. P2 ist als
+Nächstes dran; P5 wartet, bis alle KI-Prompts stehen. Offene Nachweise brauchen keinen Code und
 laufen unabhängig davon; die Release-Voraussetzungen sind vor dem ersten
 externen Release fällig. „Später“ ist geparkt.
-
-## P1: KI-Varianten (Proof of Concept) abschließen
-
-Bewusst einfacher Probelauf (ADR-011); Auswahl und Oberfläche werden danach
-geglättet.
-
-- [ ] **Einstiege:** Zähler der Karten ohne Variante in den Stapeleinstellungen
-      (danach eine einzige Aktion, deren Beschriftung zwischen „generieren“ und
-      „neu generieren“ wechselt); nach Fehlschlägen führt `Anzeigen` in der Leiste
-      zum Filter `-has:variant`; Stoppgründe in der Leiste kurz halten (z. B.
-      „Keine Verbindung“).
-- [ ] **Visuelle Pflichtmatrix:** Fortschrittsleiste, Einschalt-Dialog,
-      Variantenbereich der Stapeleinstellungen und Filter `-has:variant`; dazu
-      ein E2E-Test der Stapelgenerierung (Route je Aufruf mit anderer Variante
-      gemockt).
-- [ ] **Ausweg für nicht umformulierbare Inhalte:** Das erzwungene Werkzeug
-      verlangt heute immer eine Variante; bei sinnlosen Inhalten (zufällige
-      Buchstabenfolgen) oder Insidern ohne allgemeinen Kontext bleibt dem
-      Modell nur eine Hülle („Was gehört zu …?“) oder eine erfundene Deutung.
-      Eine Prompt-Ergänzung, über die das Modell eine Karte als nicht
-      umformulierbar meldet; die Route gibt das als eigenen Fehlergrund
-      zurück. Ein eigener Kartenzustand dafür steht unter „Später“.
-      Nachweis: Stichprobe mit solchen Prüfkarten vor und nach der Ergänzung,
-      Routentests mit solchen Karteninhalten.
-- [ ] **Varianten weiterer Kartenarten:** Lückentext, Single/Multiple
-      Choice, Kprim und Eintippen (heute verliert die Variante das
-      Eintippfeld) bekommen je eigenen Prompt und Vertrag; Reihenfolge nach
-      Häufigkeit im Korpus, Bildverdeckungen bleiben ohne Varianten.
-      Nachweis: Kartenartenzählung aus `report:apkg-corpus`, Vertrags- und
-      Routentests je Kartenart, Stichprobe mit Korpuskarten.
 
 ## P2: Karten aus einer Quelle per KI erstellen
 
 Formular und Auftragsprüfung unter `/neue-karten?method=ai-source` stehen
 (`src/aiSourceCreation.ts`, `AiSourceCreationPanel.tsx`); „Karten erstellen“
 ist deaktiviert, nichts wird gelesen oder übertragen. Offen ist alles, was die
-Oberfläche danach verspricht. Setzt P1 voraus. Erste Ausbaustufe: PDF, Text,
+Oberfläche danach verspricht. Erste Ausbaustufe: PDF, Text,
 Markdown, CSV und TSV.
 
 - [ ] **KI-Kontingent pro Nutzer:** Alle Nutzer teilen das Ausgabenlimit des
@@ -99,19 +69,20 @@ Markdown, CSV und TSV.
 ## P5: KI-Eval und Hillclimb
 
 Zurückgestellt, bis alle geplanten KI-Prompts stehen. Als Bauvorleistung
-steht der Runner für Varianten Frage/Antwort und `card-help`; Ablauf, Ablage
-und Stand stehen unter [KI-Eval](ai-eval.md). Gemessen ist noch nichts: kein
-echter Lauf, keine Kalibrierung, kein Ledger-Eintrag.
-Varianten je Kartenart (P1), Karten aus einer Quelle (P2) und gegebenenfalls
-Quiz bekommen eine eigene Definition im selben Schema, sobald ihre Prompts
-stehen; für die Zusammenfassung fehlt ein Eval-Entwurf. Grundsätze im
+steht der Runner mit Definitionen für Varianten (Frage/Antwort, Lückentext,
+Auswahl) und `card-help`; Ablauf, Ablage und Stand stehen unter
+[KI-Eval](ai-eval.md). Gemessen ist noch nichts: kein echter Lauf, keine
+Kalibrierung, kein Ledger-Eintrag. Karten aus einer Quelle (P2) und
+gegebenenfalls Quiz bekommen eine eigene Definition im selben Schema, sobald
+ihre Prompts stehen; für die Zusammenfassung fehlt ein Eval-Entwurf. Grundsätze im
 vorgeschlagenen
 [ADR-049](decisions.md#adr-049--ki-änderungen-nur-mit-eval-nachweis);
 Fallzahlen und Zielwerte sind ein Entwurf vom 2026-11-10 und dürfen neu
 bewertet werden.
 
 - [ ] **Eval-Schlüssel und Kostenziele:** `OPENROUTER_EVAL_API_KEY` mit
-      eigenem Limit in `.env.local` anlegen. Kosten sind in jedem Lauf eine
+      eigenem Limit als Benutzer-Umgebungsvariable anlegen
+      ([operations.md](operations.md#openrouter-schlüssel)). Kosten sind in jedem Lauf eine
       feste Metrik (pro Antwort und hochgerechnet); die Zielwerte je
       Anfragetyp werden mit der ersten Baseline festgelegt und in
       `operations.md` übernommen.
@@ -120,7 +91,9 @@ bewertet werden.
       und Korpusfällen (`cases --corpus`), `card-help` je Karte in allen drei
       Modi. „Freitext ohne echte Frage“ deckt Dank, Bestätigung, eigenen
       Antwortversuch, Bitte wie „einfacher“, Unverständnis, Unsinn und Text
-      ohne Kartenbezug ab.
+      ohne Kartenbezug ab. Lückentext braucht Fälle, deren Lücke fast den
+      ganzen Text trägt: Dort umschreibt das Modell die Lösung außerhalb der
+      Lücke, was die Routenprüfung nicht erkennt (M2).
 - [ ] **Kalibrieren und Baselines:** Je Anfragetyp ein Bewertungsbogen (je
       Kriterium bestanden oder nicht, mit je einem Beispiel) und etwa 40
       Einträge, nach Kategorie geschichtet und mit gezielt eingebauten
@@ -217,8 +190,9 @@ Messung vom 2026-10-31 im [Verlauf](history.md).
 
 - Varianten vorausschauend nur für Karten erzeugen, die in den nächsten Tagen
   die Haltbarkeitsschwelle erreichen (Ausarbeitung in Commit `4dd2af7`).
-- Nicht umformulierbare Karten als eigener Zustand im Reiter `Varianten`;
-  gemeldete Karten fallen aus späteren Stapelläufen.
+- Nicht umformulierbare und dauerhaft scheiternde Karten als eigener Zustand
+  im Reiter `Varianten`; sie fallen aus späteren Stapelläufen. Heute fragt
+  jeder Lauf sie erneut an, und 50 solche Karten blockieren ihn ganz.
 - DOCX und PPTX als Quellen für P2 (ZIP und XML, ohne neue Abhängigkeit über
   `zipReader.ts` prüfen; Beleg je Folie oder Abschnitt).
 - KI-Kontingente je Nutzer im Zusammenspiel mit Bezahlstufen bzw.

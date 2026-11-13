@@ -334,7 +334,7 @@ function FormsDemo({ section }: { section: string }) {
 function FeedbackDemo({ section }: { section: string }) {
   const [dialog, setDialog] = useState(false);
   const [bar, setBar] = useState(false);
-  const [variantBar, setVariantBar] = useState(false);
+  const [variantBar, setVariantBar] = useState<"running" | "outcome" | null>(null);
   const toast = useSuccessToast();
   const progress = { total: 40, completedTodayCount: 16, newCount: 12, inProgressCount: 4, dueCount: 8 };
   return <>
@@ -343,7 +343,7 @@ function FeedbackDemo({ section }: { section: string }) {
     {section === "dialogs" && <Demo title="ActionDialog"><ActionButton variant="destructive" onClick={() => setDialog(true)}>Löschdialog öffnen</ActionButton><ActionDialog open={dialog} title="Stapel löschen?" description="Diese Demo verändert ausschließlich ihren eigenen Zustand." confirmLabel="Löschen" cancelLabel="Abbrechen" discardLabel="Entwurf verwerfen" destructive onConfirm={() => { setDialog(false); toast("Beispiel bestätigt."); }} onCancel={() => setDialog(false)} onDiscard={() => setDialog(false)} /></Demo>}
     {section === "dialogs" && <Demo title="SettingsSaveBar"><ActionButton variant="secondary" onClick={() => setBar(true)}>Speicherleiste öffnen</ActionButton><SettingsSaveBar open={bar} failed={false} mode="global" onSave={() => { setBar(false); toast("Beispiel gespeichert."); }} onDiscard={() => setBar(false)} /></Demo>}
     {section === "progress" && <Demo title="DailyReviewProgress"><DailyReviewProgress progress={progress} /></Demo>}
-    {section === "progress" && <Demo title="VariantGenerationBar"><ActionButton variant="secondary" onClick={() => setVariantBar(true)}>Variantenleiste anzeigen</ActionButton>{variantBar ? <VariantGenerationBar deck={deck} done={7} total={18} outcome={null} onCancel={() => setVariantBar(false)} onClose={() => setVariantBar(false)} /> : null}</Demo>}
+    {section === "progress" && <Demo title="VariantGenerationBar"><div className="flex flex-wrap gap-2"><ActionButton variant="secondary" onClick={() => setVariantBar("running")}>Variantenleiste anzeigen</ActionButton><ActionButton variant="secondary" onClick={() => setVariantBar("outcome")}>Mit Abschlussmeldung</ActionButton></div>{variantBar ? <VariantGenerationBar deck={deck} done={variantBar === "running" ? 7 : 18} total={18} outcome={variantBar === "outcome" ? "Gestoppt nach 7 Varianten: Keine Verbindung" : null} onCancel={() => setVariantBar(null)} onClose={() => setVariantBar(null)} onShow={() => setVariantBar(null)} /> : null}</Demo>}
     {section === "progress" && <Demo title="Prozessindikator"><div className="core-statistics-load-track" role="progressbar" aria-label="Statistik wird aktualisiert"><span className="core-statistics-load-segment" /></div></Demo>}
   </>;
 }

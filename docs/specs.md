@@ -573,6 +573,7 @@ Originalkarte | wird selbst abgefragt; nach einem Fehler so lange, bis sie wiede
 - Vor der Antwort deutet nichts auf eine Variante hin. Erst danach ist sie gekennzeichnet, und die Originalkarte lässt sich aufdecken.
 - Von dort führt der Weg in die Variantenverwaltung der Karte und zurück in die Sitzung.
 - Fehlt eine Variante oder ist sie fehlerhaft, wird die Karte selbst abgefragt.
+- Eine Variante ersetzt nur Frage und Antwort; Hinweise, Zusatz und Quelle bleiben. Vorgelesen wird nur, was die Variante unverändert übernimmt.
 - Persönliche Lerndaten werden nie in einer Variante gespeichert.
 
 ### Varianten verwalten
@@ -641,13 +642,17 @@ Eine Lernhilfe zu genau der Karte, die gerade aufgedeckt ist.
 
 Eine Variante fragt denselben Inhalt mit anderer Formulierung ab.
 
-- Varianten gibt es nur für Karten mit Frage und Antwort; Lückentexte, Auswahlfragen, Bildverdeckungen und Karten ohne Fragetext erhalten keine.
-- Die KI erhält Frage und Antwort in begrenzter Länge und die Fragen vorhandener Varianten, damit die neue sich davon unterscheidet. Sie soll die Frage möglichst anders beginnen als das Original; das ist eine Anweisung, keine Prüfung.
+- Varianten gibt es für Frage–Antwort-, Lückentext- und Auswahlkarten; Bildverdeckungen und Karten ohne Fragetext erhalten keine.
+- Eine Lückentext-Variante fragt dieselbe Lückengruppe mit derselben Lösung; andere Lücken stehen als Text. Eine Variante mit anderer Lücke, anderer Lösung oder einer Lösung im übrigen Text wird abgewiesen; selbst bearbeitet muss sie Lücke und Lösung behalten.
+- Bei einer Karte mit eingetippter Antwort bleibt die Antwort zeichengleich, und die Variante wird ebenfalls eingetippt.
+- Ergibt eine Karte keinen erkennbaren Sinn oder ist sie nur mit privatem Kontext verständlich, meldet die KI sie als nicht umformulierbar, statt eine Deutung zu erfinden; es entsteht keine Variante, und die Stapelerzeugung zählt solche Karten getrennt.
+- Eine Auswahl-Variante formuliert Frage und Optionen um; jede Option bleibt genau so richtig oder falsch wie auf der Karte. Gewinnt oder verliert die Frage oder eine Option eine Verneinung oder ändern sich die Optionen, wird die Variante abgewiesen; Karten, die zu lang sind oder weniger als zwei oder mehr als zehn Optionen haben, erhalten keine Varianten. Die Variante zeigt die Optionen in einer eigenen, festen Reihenfolge; selbst bearbeitet wird nur die Frage.
+- Die KI erhält Frage und Antwort, den Lückentext oder Frage und Optionen in begrenzter Länge und die Fragen vorhandener Varianten, damit die neue sich davon unterscheidet. Sie soll die Frage möglichst anders beginnen als das Original; das ist eine Anweisung, keine Prüfung.
 - Gespeichert wird nur, wenn die Karte während der Anfrage unverändert blieb und dieselbe Formulierung noch nicht existiert.
 - Eine Karte kann weitere Varianten erhalten, bis die Höchstzahl aktiver Varianten ihres Stapels erreicht ist.
-- **Für einen Stapel:** Eine Erzeugung bearbeitet nacheinander die ersten bis zu 50 passenden Karten ohne aktive Variante, je Karte eine Variante, und speichert jede sofort. Ein weiterer Start nimmt die nächsten Karten.
-- Die Stapelerzeugung läuft im geöffneten Tab, höchstens eine zur selben Zeit, mit sichtbarem Fortschritt. Abbrechen behält Erzeugtes; ein Fehler, der jede Karte träfe, hält den Lauf an.
-- Varianten aus einer älteren Fassung der Erzeugung lassen sich für einen Stapel nach Rückfrage ersetzen; Karten und Lernstand bleiben.
+- **Für einen Stapel:** Eine Erzeugung bearbeitet nacheinander die ersten bis zu 50 passenden Karten des Stapels und seiner Unterstapel mit eingeschaltetem CoRe ohne aktive Variante, je Karte eine Variante, und speichert jede sofort. Ein weiterer Start nimmt die nächsten Karten.
+- Die Stapeleinstellungen nennen die Zahl dieser Karten ohne Variante; fehlende Varianten lassen sich erzeugen, solange es welche gibt. Varianten aus einer älteren Fassung der Erzeugung lassen sich nach Rückfrage ersetzen; Karten und Lernstand bleiben.
+- Die Stapelerzeugung läuft im geöffneten Tab, höchstens eine zur selben Zeit, mit sichtbarem Fortschritt. Abbrechen behält Erzeugtes; ein Fehler, der jede Karte träfe, hält den Lauf mit kurzem Grund an. Bleiben Karten ohne Variante, führt die Rückmeldung zu ihnen in der Kartenverwaltung.
 
 ### KI-Zusammenfassung
 
