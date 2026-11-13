@@ -15,7 +15,8 @@ import { Check, ChevronDown, FolderTree, Layers3, Search, X, type LucideIcon } f
 import type { Deck } from "../coreTypes.ts";
 import { buildSortedDeckChildren } from "../deckOrdering.ts";
 import { DECK_DEPTH_INDENT_PX, getVisibleDeckDepth } from "../deckHierarchy.ts";
-import { DeckAppearanceIcon } from "./deckAppearance.tsx";
+import { DeckAppearanceIcon, getDeckAppearance } from "./deckAppearance.tsx";
+import { CoreTooltip } from "./tooltipUi.tsx";
 
 const SELECT_VALUE_PREFIX = "core-select:";
 const DECK_SEARCH_THRESHOLD = 5;
@@ -62,6 +63,7 @@ interface DeckSelectRow {
   depth: number;
   path: string;
   searchPath: string;
+  treePath: string;
 }
 
 interface DeckPickerContentProps {
@@ -89,8 +91,8 @@ function createDeckSelectRows(decks: readonly Deck[]): DeckSelectRow[] {
   const rows: DeckSelectRow[] = [];
   const visitedDeckIds = new Set<string>();
 
-  function appendBranch(deck: Deck, depth: number, parentPath: string[]): void {
-    const pending = [{ deck, depth, parentPath }];
+  function appendBranch(deck: Deck): void {
+    const pending = [{ deck, depth: 0, parentPath: [] as string[], parentTreeNames: [] as string[] }];
     while (pending.length > 0) {
       const current = pending.pop()!;
       if (visitedDeckIds.has(current.deck.id)) continue;
@@ -98,17 +100,18 @@ function createDeckSelectRows(decks: readonly Deck[]): DeckSelectRow[] {
       const hierarchyPath = current.deck.hierarchyPath.length
         ? current.deck.hierarchyPath
         : [...current.parentPath, current.deck.name];
+      const treeNames = [...current.parentTreeNames, current.deck.name];
       const path = hierarchyPath.join(" / ");
-      rows.push({ deck: current.deck, depth: current.depth, path, searchPath: path.toLocaleLowerCase("de-DE") });
+      rows.push({ deck: current.deck, depth: current.depth, path, searchPath: path.toLocaleLowerCase("de-DE"), treePath: treeNames.join(" / ") });
       const children = childrenByParentId.get(current.deck.id) ?? [];
       for (let index = children.length - 1; index >= 0; index -= 1) {
-        pending.push({ deck: children[index], depth: current.depth + 1, parentPath: hierarchyPath });
+        pending.push({ deck: children[index], depth: current.depth + 1, parentPath: hierarchyPath, parentTreeNames: treeNames });
       }
     }
   }
 
-  (childrenByParentId.get(null) ?? []).forEach((deck) => appendBranch(deck, 0, []));
-  decks.forEach((deck) => appendBranch(deck, 0, []));
+  (childrenByParentId.get(null) ?? []).forEach(appendBranch);
+  decks.forEach(appendBranch);
   return rows;
 }
 
@@ -411,7 +414,7 @@ export const DeckSelect = forwardRef<HTMLButtonElement, DeckSelectProps>(functio
         multiple={false}
         query={query}
         showSearch={showSearch}
-        widthClassName="w-[var(--radix-popover-trigger-width)] max-w-[calc(100vw-1.5rem)]"
+        widthClassName="w-[max(var(--radix-popover-trigger-width),24rem)] max-w-[calc(100vw-2rem)]"
         onQueryChange={setQuery}
       >
         {specialOption ? (
@@ -434,23 +437,24 @@ export const DeckSelect = forwardRef<HTMLButtonElement, DeckSelectProps>(functio
           const visibleDepth = getVisibleDeckDepth(row.depth);
           const selected = row.deck.id === value;
           return (
-            <button
-              key={row.deck.id}
-              type="button"
-              role="option"
-              aria-label={row.path}
-              aria-selected={selected}
-              data-deck-picker-option="true"
-              data-deck-select-option={row.deck.id}
-              data-deck-depth={visibleDepth}
-              onClick={() => selectValue(row.deck.id)}
-              className="relative flex min-h-control w-full items-center gap-3 rounded-inset py-2 pr-9 text-left core-body text-core-text hover:bg-core-subtle aria-selected:bg-core-subtle aria-selected:font-semibold"
-              style={{ paddingInlineStart: `calc(0.75rem + ${visibleDepth * DECK_DEPTH_INDENT_PX}px)` }}
-            >
-              <DeckAppearanceIcon data-deck-icon="true" deck={row.deck} className="size-7 shrink-0" iconSize={14} />
-              <span className="min-w-0 flex-1 truncate">{row.deck.name}</span>
-              {selected ? <Check size={16} className="absolute right-3 text-core-action" aria-hidden="true" /> : null}
-            </button>
+            <CoreTooltip key={row.deck.id} label={row.treePath} deckAppearance={getDeckAppearance(row.deck)}>
+              <button
+                type="button"
+                role="option"
+                aria-label={row.path}
+                aria-selected={selected}
+                data-deck-picker-option="true"
+                data-deck-select-option={row.deck.id}
+                data-deck-depth={visibleDepth}
+                onClick={() => selectValue(row.deck.id)}
+                className="relative flex min-h-control w-full items-center gap-3 rounded-inset py-2 pr-9 text-left core-body text-core-text hover:bg-core-subtle aria-selected:bg-core-subtle aria-selected:font-semibold"
+                style={{ paddingInlineStart: `calc(0.75rem + ${visibleDepth * DECK_DEPTH_INDENT_PX}px)` }}
+              >
+                <DeckAppearanceIcon data-deck-icon="true" deck={row.deck} className="size-7 shrink-0" iconSize={14} />
+                <span className="min-w-0 flex-1 truncate">{row.deck.name}</span>
+                {selected ? <Check size={16} className="absolute right-3 text-core-action" aria-hidden="true" /> : null}
+              </button>
+            </CoreTooltip>
           );
         })}
       </DeckPickerContent>
@@ -532,24 +536,25 @@ export function DeckMultiSelect({ decks, value, onValueChange }: DeckMultiSelect
           const checked = selectedDeckIds.has(row.deck.id) || inherited;
           const visibleDepth = getVisibleDeckDepth(row.depth);
           return (
-            <button
-              key={row.deck.id}
-              type="button"
-              role="option"
-              aria-label={row.path}
-              aria-selected={checked}
-              disabled={inherited}
-              data-deck-picker-option="true"
-              data-deck-select-option={row.deck.id}
-              data-deck-depth={visibleDepth}
-              onClick={() => toggle(row.deck.id)}
-              className="relative flex min-h-control w-full items-center gap-3 rounded-inset py-2 pr-9 text-left core-body text-core-text hover:bg-core-subtle aria-selected:bg-core-subtle aria-selected:font-semibold disabled:cursor-default"
-              style={{ paddingInlineStart: `calc(0.75rem + ${visibleDepth * DECK_DEPTH_INDENT_PX}px)` }}
-            >
-              <DeckAppearanceIcon data-deck-icon="true" deck={row.deck} className="size-7 shrink-0" iconSize={14} />
-              <span className="min-w-0 flex-1 truncate">{row.deck.name}</span>
-              {checked ? <Check size={15} className="absolute right-3 text-core-text" aria-hidden="true" /> : null}
-            </button>
+            <CoreTooltip key={row.deck.id} label={row.treePath} deckAppearance={getDeckAppearance(row.deck)}>
+              <button
+                type="button"
+                role="option"
+                aria-label={row.path}
+                aria-selected={checked}
+                disabled={inherited}
+                data-deck-picker-option="true"
+                data-deck-select-option={row.deck.id}
+                data-deck-depth={visibleDepth}
+                onClick={() => toggle(row.deck.id)}
+                className="relative flex min-h-control w-full items-center gap-3 rounded-inset py-2 pr-9 text-left core-body text-core-text hover:bg-core-subtle aria-selected:bg-core-subtle aria-selected:font-semibold disabled:cursor-default"
+                style={{ paddingInlineStart: `calc(0.75rem + ${visibleDepth * DECK_DEPTH_INDENT_PX}px)` }}
+              >
+                <DeckAppearanceIcon data-deck-icon="true" deck={row.deck} className="size-7 shrink-0" iconSize={14} />
+                <span className="min-w-0 flex-1 truncate">{row.deck.name}</span>
+                {checked ? <Check size={15} className="absolute right-3 text-core-text" aria-hidden="true" /> : null}
+              </button>
+            </CoreTooltip>
           );
         })}
       </DeckPickerContent>
