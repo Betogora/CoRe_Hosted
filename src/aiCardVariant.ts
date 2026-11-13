@@ -49,6 +49,8 @@ export function aiCardVariantAvoidTexts(card: Pick<Card, "variants">): string[] 
     .map((variant) => variant.front);
 }
 
+const asHtml = (text: string) => text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+
 /** Rejects the response when question or answer changed meanwhile or the rephrasing already exists, deleted ones included. */
 export function createAiGeneratedVariantDraft(
   source: AiCardVariantSource,
@@ -74,7 +76,9 @@ export function createAiGeneratedVariantDraft(
   if (duplicate) throw new AiCardVariantContractError("duplicate_variant", "Diese Variante gibt es schon. Bitte erneut generieren.");
 
   return {
-    ...variant,
+    // Variants are stored as HTML like note fields; the generated plain text keeps characters such as "K < 1".
+    front: asHtml(variant.front),
+    back: asHtml(variant.back),
     variantLevel: 2,
     qualityStatus: "active" as const,
     isActive: true,

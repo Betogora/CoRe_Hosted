@@ -4,6 +4,7 @@ import { aiCardVariantAvoidTexts, createAiGeneratedVariantDraft, requestAiCardVa
 import {
   AiCardVariantContractError,
   createAiCardVariantRequest,
+  normalizeAiCardText,
   parseAiCardVariantRequest,
 } from "./aiCardVariantContract.ts";
 import { addCardVariant, createBasicNote, createManualNoteContent, createNote, planNoteContentChange } from "./coreModel.ts";
@@ -113,6 +114,20 @@ test("generated draft rejects changed sources and duplicate variants", () => {
 
   const withDuplicate = addCardVariant(original.card, { front: "Anders gefragt", back: "Gleiche Antwort" });
   assert.throws(() => createAiGeneratedVariantDraft(source, { note: original.note, card: withDuplicate }, generated), (error: unknown) => error instanceof AiCardVariantContractError && error.code === "duplicate_variant");
+});
+
+test("a generated variant with comparison signs is stored as HTML and keeps its whole text", () => {
+  const original = basic("Wann überwiegt die Rückreaktion?", "Bei K < 1");
+  const source = cardVariantSource(original.note, original.card)!;
+  const draft = createAiGeneratedVariantDraft(source, original, {
+    variant: { front: "Unter welcher Bedingung für K überwiegt die Rückreaktion, wenn K > 0 gilt?", back: "Bei K < 1 & nur dann" },
+    model: "provider/model:free",
+    privacyMode: "zdr",
+    usage: null,
+  });
+  const stored = addCardVariant(original.card, draft).variants[0];
+  assert.equal(normalizeAiCardText(stored.front), "Unter welcher Bedingung für K überwiegt die Rückreaktion, wenn K > 0 gilt?");
+  assert.equal(normalizeAiCardText(stored.back), "Bei K < 1 & nur dann");
 });
 
 test("deleted variants are avoided after the existing ones, each newest first", () => {
