@@ -271,7 +271,7 @@ export function createWorkspaceHydrationService({
     // A first write (no base revision) means a card created here, which no cloud page can show yet.
     const createdCardIds = new Set<string>(askedWhilePending?.createdCardIds);
     for (const mutation of repository.outbox.listPending()) {
-      if (mutation.type === "review-atomic") cardIds.add((mutation.payload as { card: { id: string } }).card.id);
+      if (mutation.type === "review-atomic" || mutation.type === "review-undo") cardIds.add((mutation.payload as { card: { id: string } }).card.id);
       else if (mutation.table === "cards" && mutation.entityId) {
         cardIds.add(mutation.entityId);
         if (mutation.baseRevision === null) createdCardIds.add(mutation.entityId);
@@ -628,7 +628,7 @@ export function createWorkspaceHydrationService({
     const { listAccountCardStudyStates } = await import("./cloudRepository.ts");
     const cards = new Map((await listAccountCardStudyStates(client, deckIds, signal)).map((card) => [card.cardId, card]));
     for (const mutation of repository.outbox.listPending()) {
-      if (mutation.type !== "review-atomic") continue;
+      if (mutation.type !== "review-atomic" && mutation.type !== "review-undo") continue;
       const { card } = mutation.payload as { card: { id: string; study: CardStudyState } };
       const snapshot = cards.get(card.id);
       if (!snapshot) continue;

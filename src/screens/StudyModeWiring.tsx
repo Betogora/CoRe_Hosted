@@ -74,6 +74,7 @@ export function StudyModeWiring() {
       onSetCardStudyState={study.setCardStudyState}
       onSetDeckReviewOrder={study.setDeckReviewOrder}
       onReview={study.recordReview}
+      onUndoReview={study.undoReview}
       onAskCardHelp={askStudyCardHelp}
       sessionPlan={studySessionPlan}
       bufferSize={study.bufferSize}

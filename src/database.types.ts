@@ -1184,6 +1184,19 @@ export type Database = {
         }
         Returns: Json
       }
+      undo_review_atomic: {
+        Args: {
+          p_card_id: string
+          p_card_updated_at: string
+          p_device_id: string
+          p_event_id: string
+          p_study: Json
+          p_variant_id: string
+          p_variant_performance: Json
+          p_variant_updated_at: string
+        }
+        Returns: Json
+      }
     }
     Enums: {
       [_ in never]: never

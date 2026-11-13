@@ -5,6 +5,7 @@ export const SYNC_MUTATION_TYPES = Object.freeze({
   profilePatch: "profile-patch",
   entityMutation: "entity-mutation",
   reviewAtomic: "review-atomic",
+  reviewUndo: "review-undo",
   deckCommand: "deck-command",
 });
 
