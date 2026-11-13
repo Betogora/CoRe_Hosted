@@ -171,7 +171,7 @@ function ActionsDemo({ section }: { section: string }) {
 
 function BadgesDemo() {
   return <>
-    <Demo title="CoreTag · fünf Töne"><div className="catalog-row"><CoreTag tone="neutral">Originalkarte</CoreTag><CoreTag tone="info">Variante</CoreTag><CoreTag tone="warning">1 offen</CoreTag><CoreTag tone="success">Fertig</CoreTag><CoreTag tone="outline">Stand heute</CoreTag></div></Demo>
+    <Demo title="CoreTag · fünf Töne"><div className="catalog-row"><CoreTag tone="neutral">Originalkarte</CoreTag><CoreTag tone="info">Variante</CoreTag><CoreTag tone="warning">1 offen</CoreTag><CoreTag tone="success">Fertig</CoreTag><CoreTag tone="outline">Prüfung</CoreTag></div></Demo>
     <Demo title="CoreTag · Fachfarbe als Punkt"><div className="catalog-row"><CoreTag tone="neutral" dot="var(--core-exam-color-1)">Geografie-Testat</CoreTag><CoreTag tone="neutral" dot="var(--core-exam-color-3)">Anatomie</CoreTag></div></Demo>
   </>;
 }

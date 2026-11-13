@@ -7,7 +7,7 @@ import type { Card, Note } from "./coreTypes.ts";
 import type { WorkspaceState } from "./coreWorkspace.ts";
 import { createCloudStateRows } from "./cloudRepository.ts";
 import { createIndexedDbCoreRepository } from "./indexedDbCoreRepository.ts";
-import type { CardCatalogEntry } from "./workspaceReplica.ts";
+import type { AccountStatisticsSnapshot, CardCatalogEntry } from "./workspaceReplica.ts";
 import { createWorkspaceHydrationService } from "./workspaceHydrationService.ts";
 import { answerVariant } from "./reviewService.ts";
 
@@ -384,6 +384,30 @@ test("ein nach Reload fortgesetzter Deck-Download zählt bereits geprüfte Karte
   } finally {
     repository.close();
   }
+});
+
+test("ein zwischengespeicherter Statistikstand im alten Format gilt offline als fehlend", async () => {
+  const userId = randomUUID();
+  const repository = await createIndexedDbCoreRepository({ userId, initialState: workspace(userId, [], []), indexedDb: new IDBFactory() });
+  const service = createWorkspaceHydrationService({ repository, mediaStore: null, client: { async rpc() { throw new Error("offline"); } } });
+  const snapshot: AccountStatisticsSnapshot = {
+    cards: { total: 1, new: 0, learning: 0, mature: 1, suspended: 0 },
+    reviewsByDay: {}, heatmapByDay: {}, addedCardsByDay: {}, forecastByDay: {},
+    overdue: 0, dueTomorrow: 0, dailyWorkload: 0,
+    status: { activeVariants: 1, deletedItems: 0 },
+    intervals: { histogram: { "30": 1 }, averageDays: 30, medianDays: 30, percentile95Days: 30 },
+    fsrs: { difficulty: { "50": 1 }, stability: { "40": 1 }, retrievability: { "91": 1 } },
+    retention: [], hourly: [], ratings: [], deckReviews: {},
+    generatedAt: "2026-08-21T12:00:00.000Z",
+  };
+  const key = (deckIds: string[]) => JSON.stringify([deckIds, null, null, "UTC", 0]);
+  await repository.cacheStatisticsSnapshot(key(["current"]), snapshot);
+  await repository.cacheStatisticsSnapshot(key(["legacy"]), { ...snapshot, intervals: { points: [], averageDays: 30, medianDays: 30, percentile95Days: 30 } } as unknown as AccountStatisticsSnapshot);
+  await withNavigator({ onLine: false }, async () => {
+    assert.deepEqual(await service.refreshStatistics(["current"]), snapshot);
+    assert.equal(await service.refreshStatistics(["legacy"]), null);
+  });
+  repository.close();
 });
 
 test("Reimport-Ziele werden nur online und nur für vorhandene GUIDs geladen", async () => {

@@ -884,6 +884,7 @@ Die Statistik zeigt Lernaktivität, Planung und Gedächtnismodell für gewählte
 - Ein gemeinsamer Filter aus Zeitraum und Umfang (ganze Sammlung oder Stapel, Unterstapel ohne Doppelzählung) steuert alle Bereiche außer der Heatmap.
 - Die Bereiche sind Überblick, Lernaktivität, Planung und Kartenbestand, Gedächtnismodell, Antwortverhalten und Stapelvergleich.
 - Drei Arten von Werten bleiben unterscheidbar: Historie (was gelernt wurde), Momentaufnahme (heutiger Stand von Reife, Schwierigkeit, Haltbarkeit, Abrufwahrscheinlichkeit) und Ausblick (Rückstand und künftige Fälligkeiten).
+- Verteilungen des Kartenbestands (Intervalle, Stabilität, Schwierigkeit, Abrufwahrscheinlichkeit) haben feste Töpfe, die immer vollständig erscheinen; Schwierigkeit, Stabilität und Abrufwahrscheinlichkeit zählen nur bereits gelernte Karten.
 - Ausgewertet wird im Konto; noch nicht synchronisierte Bewertungen fließen sofort ein.
 - Die wahre Erinnerungsquote zählt je Karte und Lerntag nur die erste Wiederholung nach mindestens einem Tag Abstand.
 - Historische Kategorien folgen Anki und dem Zustand vor der Antwort; der Kartenstatus zählt die Reife.
