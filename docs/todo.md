@@ -221,6 +221,8 @@ Messung vom 2026-10-31 im [Verlauf](history.md).
   gemeldete Karten fallen aus späteren Stapelläufen.
 - DOCX und PPTX als Quellen für P2 (ZIP und XML, ohne neue Abhängigkeit über
   `zipReader.ts` prüfen; Beleg je Folie oder Abschnitt).
+- KI-Kontingente je Nutzer im Zusammenspiel mit Bezahlstufen bzw.
+  Abonnements (Umfang je Stufe, Credits, Abrechnung nach Kosten).
 
 ### Lernen und Planung
 
