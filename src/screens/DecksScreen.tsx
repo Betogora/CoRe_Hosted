@@ -610,6 +610,7 @@ export function DecksScreen({
           resultAction={canStudyHits && searchResultCount ? (
             <CrossLinkButton onSelect={() => setHitStudy("hits")}><GraduationCap size={16} aria-hidden="true" />Treffer lernen</CrossLinkButton>
           ) : undefined}
+          selecting={selecting} onSelectingChange={canSelect ? (next) => next ? setSelecting(true) : clearSelection() : undefined}
           placeholder={contentDeckId ? "Vorderseite, Rückseite, Felder oder Tags durchsuchen" : "Stapel, Vorderseite, Rückseite, Felder oder Tags durchsuchen"}
           hint={unsupportedTerms.length ? `Noch nicht unterstützt, wird als Text gesucht: ${unsupportedTerms.join(" ")}` : undefined}
         >
@@ -709,7 +710,6 @@ export function DecksScreen({
         ) : null}
         sort={cardSort}
         onSort={changeSort}
-        onStartSelecting={canSelect ? () => setSelecting(true) : undefined}
         selectedCardId={selectedCardId}
         selectedGraph={selectedGraph}
         flagNames={cardEditor.flagNames}

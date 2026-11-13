@@ -415,7 +415,7 @@ test("cards page lists every card of every deck as one flat sortable list withou
   assert.match(markup, />Biologie<\/span>/, "die Zeile nennt ihren Stapel");
   assert.match(markup, /aria-label="Keine Variante"/);
   assert.doesNotMatch(markup, /Mit Varianten|Ohne Varianten/);
-  assert.match(markup, /aria-label="Keine Variante"[\s\S]*?<span class="grid size-\[1\.125rem\] place-items-center"><\/span>/);
+  assert.match(markup, /<span class="grid size-\[1\.125rem\] place-items-center"><\/span><svg[^>]*aria-label="Keine Variante"/, "die Variante schließt die Spalte rechtsbündig ab, Flagge und Stern stehen davor");
 });
 test("cards page keeps stale rows dimmed while the page for a new query loads", () => {
   const atp = basicGraph("deck-parent", "Was ist ATP?", "Ein Energieträger.");
@@ -521,7 +521,7 @@ test("cards page shows suspended rows and marked stars; the editor tints only a 
 
   assert.match(markup, /data-suspended="true"/);
   assert.match(markup, /sr-only[^>]*> · Ausgesetzt</);
-  assert.match(markup, /aria-label="Keine Variante"[\s\S]*?<span class="grid size-\[1\.125rem\] place-items-center"><svg[^>]*aria-label="Markiert"/);
+  assert.match(markup, /<span class="grid size-\[1\.125rem\] place-items-center"><svg[^>]*aria-label="Markiert"[\s\S]*?<\/span><svg[^>]*aria-label="Keine Variante"/);
   const dialog = markup.match(/<div[^>]*data-testid="card-detail-dialog"[^>]*>/)?.[0] ?? "";
   assert.match(dialog, /class="core-dialog-frame core-card-editor-frame is-marked"/);
   assert.match(markup, /data-selected="true"/, "die bearbeitete Zeile bleibt markiert");
