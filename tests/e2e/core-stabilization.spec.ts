@@ -1232,6 +1232,7 @@ test("[Vertrag: KI-Varianten je Kartenart, Zähler, Stapellauf und Anzeigen] Der
   expect(new Set(requests.map((request) => request.kind))).toEqual(new Set(["basic", "type-in", "cloze", "choice"]));
   await expect(dialog.getByTestId("deck-settings-variant-count")).toHaveText("1 Karte ohne Variante");
 
+  await dialog.getByRole("button", { name: "Stapeleinstellungen schließen" }).click();
   await bar.getByRole("button", { name: "Anzeigen" }).click();
   await expect(page).toHaveURL(/[?&]q=did%3A[^&]+-has%3Avariant/);
   await expect(page.locator("[data-card-row]")).toHaveCount(1);
