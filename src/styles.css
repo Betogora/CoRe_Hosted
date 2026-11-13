@@ -180,8 +180,8 @@
 
 }
 
-/* Touch screens and narrow views keep 44 × 44 px touch targets; fine pointers use the compact ToolBox sizes. */
-@media (pointer: coarse), (max-width: 767px) {
+/* The one size split: touch (coarse pointer) keeps 44 × 44 px targets at every width; a mouse keeps the compact ToolBox sizes at every width. */
+@media (pointer: coarse) {
   :root {
     --core-control-height: 2.75rem;
     --core-button-height: 2.75rem;
@@ -2458,7 +2458,7 @@ body:has([aria-modal="true"]) .core-success-toast {
     to { transform: translateX(0); }
   }
 
-  @media (pointer: coarse), (max-width: 767px) {
+  @media (pointer: coarse) {
     .core-segmented-touch.core-segmented-control {
       height: calc(var(--core-control-height) + 0.5rem);
     }
@@ -2938,7 +2938,7 @@ button.core-steps-step {
   background: var(--core-card-editor-surface);
 }
 
-@media (pointer: coarse), (max-width: 767px) {
+@media (pointer: coarse) {
   .core-card-editor-pane-head {
     min-height: calc(var(--core-control-height) + 0.5rem);
   }
@@ -2988,7 +2988,7 @@ button.core-steps-step {
   }
 }
 
-@media (min-width: 48rem) and (pointer: fine) {
+@media (pointer: fine) {
   .core-card-editor-row > button {
     width: 2rem;
     min-width: 2rem;
@@ -3081,7 +3081,7 @@ button.core-steps-step {
   color: color-mix(in srgb, var(--core-text-muted) 72%, transparent);
 }
 
-@media (min-width: 768px) and (pointer: fine) {
+@media (pointer: fine) {
   .core-card-search-term .core-tri-state-control {
     --core-tri-size: calc(2rem - 8px);
     height: 2rem;

@@ -106,6 +106,8 @@ test("gemeinsame Dropdowns schließen durch erneutes Antippen und behalten Auswa
       await trigger.scrollIntoViewIfNeeded();
       const box = await trigger.boundingBox();
       expect(box).not.toBeNull();
+      // A touch screen keeps 44-px targets at every width.
+      expect(box!.height).toBeGreaterThanOrEqual(44);
       const activate = () => touch
         ? page.touchscreen.tap(box!.x + box!.width / 2, box!.y + box!.height / 2)
         : page.mouse.click(box!.x + box!.width / 2, box!.y + box!.height / 2);
@@ -784,7 +786,7 @@ test("deck settings save appearance, learning, scheduler and CoRe values togethe
     const targetSizes = await page.getByRole("button", { name: /^(Icon auswählen|Farbe auswählen)$/ }).evaluateAll(
       (buttons: HTMLElement[]) => buttons.map((button) => ({ width: button.getBoundingClientRect().width, height: button.getBoundingClientRect().height })),
     );
-    expect(targetSizes.every(({ width, height }: { width: number; height: number }) => width >= (viewport.width < 768 ? 44 : 36) && height >= (viewport.width < 768 ? 44 : 36))).toBe(true);
+    expect(targetSizes.every(({ width, height }: { width: number; height: number }) => width >= 36 && height >= 36)).toBe(true);
   }
 
   const iconButton = page.getByRole("button", { name: "Icon auswählen" });
