@@ -30,6 +30,7 @@ function studyCallbacks(deck: Deck, notes: Note[]) {
     onSetCardStudyState: () => ({ deck, note: notes[0] }),
     onSetDeckReviewOrder: () => deck,
     onReview: () => undefined,
+    onUndoReview: () => null,
     onAskCardHelp: async () => "",
   };
 }

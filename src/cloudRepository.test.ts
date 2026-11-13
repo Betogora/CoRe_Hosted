@@ -238,6 +238,42 @@ test("eine ungültige Cloud-Bestätigung lässt lokale Revision und Outbox unver
   repository.close();
 });
 
+test("eine zurückgenommene Bewertung geht erst nach ihrer Bewertung an den Server", async () => {
+  const { note, card, rows } = fixture();
+  const deck = createCoreDeck({ id: "deck", ownerId: "user", cards: [card], createdAt: now, updatedAt: now });
+  const initialState = { version: 6, profile: { userId: "user", uiPreferences: {} }, decks: [deck], notes: [note], updatedAt: now } as unknown as WorkspaceState;
+  const repository = await createIndexedDbCoreRepository({ userId: "user", initialState, indexedDb: indexedDB as unknown as IDBFactory });
+  const result = answerVariant(deck, card.id, null, "easy", { now });
+  repository.recordReview(result);
+  repository.undoReview(result, card);
+  await repository.flush();
+  const calls: string[] = [];
+  let reviewReaches = false;
+  const client = fakeCloudClient({
+    ...fakeTableClient("user", () => []),
+    rpc: async (name: string, input: Record<string, any>) => {
+      calls.push(name);
+      if (name === "record_review_atomic" && !reviewReaches) return { data: null, error: { message: "Netzwerk unterbrochen" } };
+      const card = { ...rows.cards[0], ...input.p_study, study_revision: calls.length };
+      return { data: name === "record_review_atomic" ? { card, variant: null, event: { ...input.p_event } } : { card, variant: null, idempotent: false }, error: null };
+    },
+  });
+  const engine = createAccountSyncEngine(client, {
+    userId: "user", device: { id: "device-rueck", label: "Test", userAgent: "Test" }, outbox: repository.outbox,
+    persistMutationAcknowledgements: repository.persistMutationAcknowledgements, documentTarget: null,
+  });
+
+  await engine.flush({ force: true }).catch(() => undefined);
+  assert.deepEqual(calls, ["record_review_atomic"], "ohne angekommene Bewertung bleibt die Rücknahme vorgemerkt");
+  assert.equal(repository.outbox.count(), 2);
+
+  reviewReaches = true;
+  await engine.flush({ force: true });
+  assert.deepEqual(calls, ["record_review_atomic", "record_review_atomic", "undo_review_atomic"]);
+  assert.equal(repository.outbox.count(), 0);
+  repository.close();
+});
+
 test("Offline-Manifeste akzeptieren leere Medien, aber keine beschädigten Revisionen oder Hashes", () => {
   const card = { id: "card", bodyRevision: 1, studyRevision: 0, dependencyRevision: 1, bodyBytes: 0, updatedAt: now };
   const media = { sha1: "a".repeat(40), size: 0, mimeType: "image/png", originalName: "bild.png", storagePath: "user/bild.png", createdAt: now };

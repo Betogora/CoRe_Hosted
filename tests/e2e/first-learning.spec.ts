@@ -51,6 +51,32 @@ test.beforeEach(async ({ page }) => {
   await openEmptyDashboard(page);
 });
 
+test("Strg+Z nimmt die letzte Bewertung zurück, die Leertaste bewertet danach mit Gut", async ({ page }) => {
+  const reviews = async () => (await readActiveAccountState(page)).decks.flatMap((deck: any) => deck.reviewEvents ?? []).map((event: any) => event.rating);
+  await page.getByRole("button", { name: /Erste Karte erstellen/ }).click();
+  await page.getByRole("textbox", { name: "Vorderseite" }).fill("Hauptstadt von Portugal?");
+  await page.getByRole("textbox", { name: "Rückseite" }).fill("Lissabon");
+  await page.getByRole("button", { name: "Originalkarte speichern" }).click();
+  await page.getByRole("button", { name: "Fertig" }).click();
+  await page.getByRole("button", { name: "Jetzt lernen" }).click();
+
+  await page.getByRole("group", { name: "Frage" }).focus();
+  await page.keyboard.press("Space");
+  await page.keyboard.press("4");
+  await expect.poll(reviews).toEqual(["easy"]);
+  await expect(page.getByRole("button", { name: "Antwort anzeigen" })).toHaveCount(0);
+
+  await page.keyboard.press("Control+z");
+  await expect(page.getByRole("button", { name: "Antwort anzeigen" })).toBeVisible();
+  await expect(page.frameLocator('iframe[title="Frage"]').getByText("Hauptstadt von Portugal?", { exact: true })).toBeVisible();
+  await expect.poll(reviews).toEqual([]);
+
+  await page.getByRole("group", { name: "Frage" }).focus();
+  await page.keyboard.press("Space");
+  await page.keyboard.press("Space");
+  await expect.poll(reviews).toEqual(["good"]);
+});
+
 test("leerer Account erstellt die erste manuelle Karte und erreicht den Review", async ({ page }) => {
   await page.getByRole("button", { name: /Erste Karte erstellen/ }).click();
   await expect(page).toHaveURL(/\/neue-karten\?method=manual$/);

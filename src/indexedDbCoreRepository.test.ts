@@ -226,6 +226,48 @@ test("eine Bewertung erhöht studyRevision statt revision und reiht eine atomare
   repository.close();
 });
 
+test("das Zurücknehmen einer Bewertung entfernt das Ereignis und stellt Lernstand und Verlauf wieder her", async () => {
+  const initialState = workspaceState(1);
+  const repository = await openRepository(initialState);
+  const previous = initialState.decks[0].cards.find((card) => card.id === "card-0")!;
+  const [catalogBefore] = (await repository.listCatalogPage("deck-idb")).items;
+  const result = answerVariant(initialState.decks[0], "card-0", null, "easy", { now: "2026-08-20T08:00:00.000Z" });
+  repository.recordReview(result);
+  await repository.flush();
+  assert.equal((await repository.listCatalogPage("deck-idb")).items[0].lastEasyAt, "2026-08-20T08:00:00.000Z");
+
+  const restored = repository.undoReview(result, previous);
+  await repository.flush();
+
+  assert.deepEqual(restored.study, previous.study);
+  assert.equal(restored.studyRevision, result.updatedCard.studyRevision + 1);
+  const body = await repository.loadCardBody("card-0");
+  assert.deepEqual(body?.card.study, previous.study);
+  assert.deepEqual(await repository.listCardReviewEvents("card-0"), []);
+  const [catalog] = (await repository.listCatalogPage("deck-idb")).items;
+  assert.deepEqual([catalog.dueAt, catalog.lastEasyAt, catalog.firstReviewedAt], [catalogBefore.dueAt, catalogBefore.lastEasyAt, catalogBefore.firstReviewedAt]);
+  const pending = repository.outbox.listPending();
+  assert.deepEqual(pending.map((mutation) => mutation.type), ["review-atomic", "review-undo"], "die Rücknahme folgt ihrer Bewertung");
+  assert.deepEqual((pending[1].payload as any).card.study, previous.study);
+  assert.equal((pending[1].payload as any).event.id, result.event.id);
+
+  // The answer's confirmation arriving after the take-back leaves the restored card until the take-back is confirmed.
+  await repository.persistMutationAcknowledgements([{ table: "cards", row: { id: "card-0", updated_at: result.updatedCard.updatedAt, deleted_at: null }, entity: result.updatedCard }]);
+  assert.deepEqual((await repository.loadCardBody("card-0"))?.card.study, previous.study);
+  repository.close();
+});
+
+test("eine Rücknahme folgt ihrer Bewertung auch bei vorauslaufender Simulationsuhr", async () => {
+  const initialState = workspaceState(1);
+  const repository = await openRepository(initialState);
+  const result = answerVariant(initialState.decks[0], "card-0", null, "good", { now: "2099-01-01T08:00:00.000Z" });
+  repository.recordReview(result);
+  repository.undoReview(result, initialState.decks[0].cards.find((card) => card.id === "card-0")!);
+  assert.deepEqual(repository.outbox.listPending().map((mutation) => mutation.type), ["review-atomic", "review-undo"]);
+  await repository.flush();
+  repository.close();
+});
+
 test("eine Bewertung aus einer alten Sitzung überschreibt keine neu gespeicherten Stapeleinstellungen", async () => {
   const userId = randomUUID();
   const initialState = workspaceState(1);
@@ -475,6 +517,35 @@ test("ein Bibliotheksstapel bringt seine Stapelfarben mit; Anki-Stapel ohne Dars
   const appearances = Object.fromEntries(repository.getShellState().decks.map((deck) => [deck.name, deck.deckSettings.appearance]));
   assert.deepEqual(appearances.Europa, { iconKey: "globe", iconColor: "#3b7dd8" });
   assert.deepEqual(appearances.Bibliothek, { iconKey: "book-open", iconColor: "#6f7e9e" });
+  repository.close();
+});
+
+test("neue Unterstapel eines Reimports übernehmen den Pfad ihres lokal verschobenen Oberstapels", async () => {
+  const root = createCoreDeck({ id: "deck-root", name: "Vorklinik", source: "anki-apkg", ankiDeckId: "anki-root" });
+  const moved = createCoreDeck({ id: "deck-moved", name: "Bewegungsapparat", source: "anki-apkg", ankiDeckId: "anki-moved", hierarchyPath: ["Bewegungsapparat"] });
+  const repository = await openRepository(state([root, moved], []));
+  const reimport = (suffix: string) => repository.commitImportGraph(importGraph([{ kind: "decks", decks: [
+    { id: `root-${suffix}`, ankiDeckId: "anki-root", name: "Vorklinik", hierarchyPath: ["Vorklinik"], parentDeckId: null },
+    { id: `moved-${suffix}`, ankiDeckId: "anki-moved", name: "Bewegungsapparat", hierarchyPath: ["Vorklinik", "Bewegungsapparat"], parentDeckId: `root-${suffix}` },
+    { id: `child-${suffix}`, ankiDeckId: null, name: "Muskeltrainer", hierarchyPath: ["Vorklinik", "Bewegungsapparat", "Muskeltrainer"], parentDeckId: `moved-${suffix}` },
+    { id: `grandchild-${suffix}`, ankiDeckId: "anki-impp", name: "IMPP", hierarchyPath: ["Vorklinik", "Bewegungsapparat", "Muskeltrainer", "IMPP"], parentDeckId: `child-${suffix}` },
+  ] }]), { deckSettings: {}, reimportTargets: { notes: [], cards: [], noteTypeSources: [] } });
+
+  await reimport("first");
+  const paths = () => Object.fromEntries(repository.getShellState().decks.map((deck) => [deck.name, `${deck.parentDeckId}:${deck.hierarchyPath.join("::")}`]));
+  assert.deepEqual(paths(), {
+    Vorklinik: "null:Vorklinik",
+    Bewegungsapparat: "null:Bewegungsapparat",
+    Muskeltrainer: "deck-moved:Bewegungsapparat::Muskeltrainer",
+    IMPP: "child-first:Bewegungsapparat::Muskeltrainer::IMPP",
+  });
+  assert.deepEqual(
+    pendingEntityMutations(repository).filter((mutation) => mutation.table === "decks").map((mutation) => mutation.entity.hierarchyPath.join("::")).sort(),
+    ["Bewegungsapparat::Muskeltrainer", "Bewegungsapparat::Muskeltrainer::IMPP"],
+  );
+
+  const second = await reimport("second");
+  assert.deepEqual(second.decks.map((deck) => deck.id).sort(), ["child-first", "deck-moved", "deck-root", "grandchild-first"], "ein Stapel ohne Anki-ID wird an seiner Baumposition wiedererkannt");
   repository.close();
 });
 

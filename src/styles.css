@@ -564,7 +564,7 @@ summary {
     box-shadow: var(--core-selection-indicator-shadow);
     pointer-events: none;
     transform: translateX(calc(var(--core-tri-index) * (var(--core-tri-size) + 0.25rem)));
-    transition: transform 180ms cubic-bezier(0.22, 1, 0.36, 1), background-color 260ms cubic-bezier(0.4, 0, 0.2, 1) 20ms;
+    transition: transform 180ms cubic-bezier(0.22, 1, 0.36, 1), background-color 260ms cubic-bezier(0.4, 0, 0.2, 1) 20ms, opacity 200ms ease;
   }
 
   .core-tri-state-control[data-tri-value="any"] .core-tri-state-option[aria-checked="true"] { color: var(--core-text); }
@@ -572,6 +572,8 @@ summary {
   .core-tri-state-control[data-tri-value="in"] .core-tri-state-option[aria-checked="true"] { color: var(--core-text-on-accent); }
   .core-tri-state-control[data-tri-value="out"] .core-tri-state-indicator { background: var(--core-danger); }
   .core-tri-state-control[data-tri-value="out"] .core-tri-state-option[aria-checked="true"] { color: var(--core-text-on-danger); }
+  .core-verdict-control[data-tri-value="in"] .core-tri-state-indicator { background: var(--core-success); }
+  .core-verdict-control[data-tri-value="none"] .core-tri-state-indicator { opacity: 0; }
 
   .core-icon-segmented-control .core-segmented-control-option {
     padding-inline: 0;
@@ -2105,7 +2107,7 @@ body:has([aria-modal="true"]) .core-success-toast {
  * Answer options after HeroUI Pro „Checkbox Button Group“, one row: hairline card (radius 16 → CoRe panel 14 px,
  * padding 16 × 20 → 12 × 16 for the one-row form), selected = 2-px inset accent ring with a light tint, indicator on the
  * right (box for multiple choice, dot for single choice, 16 px). After revealing, the same form carries the success and
- * danger roles; a correct option that was not chosen keeps the ring without the tint.
+ * danger roles; a correct option that was not chosen gets the ring dashed, without the tint.
  */
 .core-mcq-option, .core-kprim-option { border: var(--core-border-width) solid var(--core-border); border-radius: var(--core-radius-panel); background: var(--core-surface); color: var(--core-text); transition: box-shadow 150ms cubic-bezier(0, 0, 0.2, 1), border-color 150ms cubic-bezier(0, 0, 0.2, 1), background-color 150ms cubic-bezier(0, 0, 0.2, 1), color 150ms ease; }
 .core-mcq-option { display: flex; width: 100%; min-height: 3rem; align-items: center; gap: var(--core-space-md); padding: var(--core-space-md) var(--core-space-lg); text-align: start; }
@@ -2114,7 +2116,7 @@ body:has([aria-modal="true"]) .core-success-toast {
 :is(.core-mcq-option, .core-kprim-option):is([data-tone="selected"], [data-tone="correct"], [data-tone="missed"], [data-tone="wrong"]) { border-color: transparent; box-shadow: inset 0 0 0 2px var(--core-mcq-role); }
 :is(.core-mcq-option, .core-kprim-option)[data-tone="selected"] { --core-mcq-role: var(--core-action-primary); background: var(--core-action-soft); }
 :is(.core-mcq-option, .core-kprim-option)[data-tone="correct"] { --core-mcq-role: var(--core-success); background: var(--core-success-surface); }
-:is(.core-mcq-option, .core-kprim-option)[data-tone="missed"] { --core-mcq-role: var(--core-success); }
+:is(.core-mcq-option, .core-kprim-option)[data-tone="missed"] { --core-mcq-role: var(--core-success); box-shadow: none; outline: 2px dashed var(--core-mcq-role); outline-offset: -2px; }
 :is(.core-mcq-option, .core-kprim-option)[data-tone="wrong"] { --core-mcq-role: var(--core-danger); background: var(--core-danger-surface); }
 .core-mcq-option[data-tone="muted"] { color: var(--core-text-muted); }
 .core-mcq-indicator { display: grid; width: 1rem; height: 1rem; flex-shrink: 0; place-items: center; border: var(--core-border-width) solid color-mix(in srgb, var(--core-text-muted) 80%, var(--core-surface)); border-radius: var(--core-radius-marker); background: var(--core-surface); color: var(--core-text-on-accent); transition: background-color 200ms cubic-bezier(0, 0, 0.2, 1), border-color 200ms cubic-bezier(0, 0, 0.2, 1); }
@@ -2125,6 +2127,10 @@ body:has([aria-modal="true"]) .core-success-toast {
 .core-mcq-option[data-tone="selected"] .core-mcq-indicator[data-shape="dot"]::after { scale: 1; }
 .core-mcq-option[data-tone="selected"] .core-mcq-indicator > svg { stroke-dashoffset: 44; transition: stroke-dashoffset 150ms linear 15ms; }
 .core-mcq-state-icon { flex-shrink: 0; color: var(--core-mcq-role); }
+/* Option letter: bold letter without a frame; blue when chosen, the row's role colour after revealing. */
+.core-mcq-letter { width: 1.25rem; flex-shrink: 0; text-align: center; font-size: 1rem; font-weight: var(--core-weight-heading); line-height: 1.75rem; color: var(--core-text-muted); transition: color 150ms ease; }
+[data-tone="selected"] .core-mcq-letter { color: var(--core-action-primary); }
+:is([data-tone="correct"], [data-tone="missed"], [data-tone="wrong"]) .core-mcq-letter { color: var(--core-mcq-role); }
 
 .core-mcq-option-correct {
   animation: core-answer-pulse 360ms ease-out;
@@ -3055,7 +3061,9 @@ button.core-steps-step {
 }
 
 .core-card-selection-bar > .core-card-selection-actions {
-  height: var(--core-card-table-header-height);
+  /* Inset from the table edge and the header line, centred in the header. */
+  height: calc(var(--core-card-table-header-height) - 0.375rem);
+  min-height: 0;
   padding-block: 0;
   padding-inline: var(--core-space-md);
 }
