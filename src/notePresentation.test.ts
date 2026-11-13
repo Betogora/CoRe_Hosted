@@ -243,14 +243,12 @@ test("Die Antwortseite ersetzt das Eingabefeld durch den Zeichenvergleich", asyn
 
 test("Auswertung unterstützt Single, Multiple und vollständige Kprim-Antworten", () => {
   const options = [true, false, true, false].map((correct, index) => ({ id: String(index), html: `Aussage ${index}`, correct }));
-  const judged = (...args: Parameters<typeof evaluateNoteChoice>) => evaluateNoteChoice(...args).options.map((option) => option.correct);
+  const judged = (...args: Parameters<typeof evaluateNoteChoice>) => evaluateNoteChoice(...args).map((option) => option.correct);
   assert.deepEqual(judged({ kind: "choice", mode: "multiple", options }, { 0: true, 2: true }), [true, true, true, true]);
   assert.deepEqual(judged({ kind: "choice", mode: "multiple", options }, { 0: true }), [true, true, false, true]);
   assert.deepEqual(judged({ kind: "choice", mode: "single", options: options.slice(0, 2) }, { 0: true }), [true, true]);
   assert.deepEqual(judged({ kind: "choice", mode: "kprim", options }, { 0: true, 1: false, 2: true, 3: false }), [true, true, true, true]);
-  const partial = evaluateNoteChoice({ kind: "choice", mode: "kprim", options }, { 0: true, 2: true });
-  assert.equal(partial.complete, false);
-  assert.deepEqual(partial.options.map((option) => option.selected), [true, null, true, null]);
+  assert.deepEqual(evaluateNoteChoice({ kind: "choice", mode: "kprim", options }, { 0: true, 2: true }).map((option) => option.selected), [true, null, true, null]);
 });
 
 // --- Originallayout importierter Karten (ADR-047) ---

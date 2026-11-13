@@ -799,7 +799,7 @@ test("[Vertrag: typgerechter Multiple-Choice-Lebenszyklus] @beta-core Optionen, 
   await expect(previewDialog.locator('[data-tone="missed"]')).toContainText("Beta");
   await previewDialog.getByRole("button", { name: "Vorderseite" }).click();
   await previewDialog.getByRole("button", { name: "Antwortoption A: Alpha" }).click();
-  await previewDialog.getByRole("button", { name: "Antwort prüfen" }).click();
+  await previewDialog.getByRole("button", { name: "Rückseite" }).click();
   await expect(previewDialog.getByRole("button", { name: "Rückseite" })).toHaveAttribute("aria-pressed", "true");
   await expect(previewDialog.locator('[data-tone="wrong"]')).toContainText("Alpha");
   await expect(previewDialog.locator('[data-tone="missed"]')).toContainText("Beta");

@@ -115,6 +115,12 @@ function whenDrawnAndIdle(run: () => void) {
   };
 }
 
+/** Label of the host's reveal action: choices with several answers are checked, everything else is shown. */
+export function revealLabel(note: Note | undefined) {
+  const interaction = note?.content.interaction;
+  return interaction?.kind === "choice" && interaction.mode !== "single" ? "Antwort prüfen" : "Antwort anzeigen";
+}
+
 export function NoteCardContent(props: NoteCardContentProps) {
   return <NoteCardContentBody key={`${props.card.id}:${props.note.contentRevision}`} {...props} />;
 }
@@ -203,7 +209,7 @@ function NoteCardContentBody({ note, card, revealed, onReveal, surface = "review
 
     {interaction.kind === "choice" ? <div className="grid gap-2" role="group" aria-label="Antwortoptionen">
       {interaction.options.map((option, index) => {
-        const result = choiceResult!.options[index];
+        const result = choiceResult![index];
         const isSelected = selected[option.id] === true;
         const letter = String.fromCharCode(65 + index);
         const tone: OptionTone = !revealed ? (isSelected && interaction.mode !== "kprim" ? "selected" : "idle")
@@ -234,7 +240,6 @@ function NoteCardContentBody({ note, card, revealed, onReveal, surface = "review
             if (interaction.mode === "single") onReveal();
           }}>{badge}{text}{indicator}</button>;
       })}
-      {!revealed && interaction.mode !== "single" ? <ActionButton variant="primary" className="mt-1 w-fit" disabled={!choiceResult!.complete} onClick={onReveal}>Antwort prüfen</ActionButton> : null}
     </div> : null}
 
     {prepared || (answerResult && !oneFrame) ? <CardPresentationSurface {...frameProps} presentation={answerResult ?? presentation.answer} title={oneFrame ? "Aufgedeckte Karte" : "Antwort"} concealed={prepared === "hidden"} scrollTargetId={original ? "answer" : undefined} onLoad={revealed ? undefined : () => setAnswerAhead("ready")} /> : null}

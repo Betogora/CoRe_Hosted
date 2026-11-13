@@ -27,7 +27,7 @@ import { useNoteMediaPrefetch, useNoteMediaUrls } from "../ui/cardMedia.tsx";
 import { useSuccessToast } from "../ui/feedbackUi.tsx";
 import { DailyReviewProgress } from "../ui/DailyReviewProgress.tsx";
 import { PomodoroProgress } from "../ui/pomodoroTimerUi.tsx";
-import { NoteCardContent, useNoteCardPrefetch } from "../ui/NoteCardContent.tsx";
+import { NoteCardContent, revealLabel, useNoteCardPrefetch } from "../ui/NoteCardContent.tsx";
 import { StudySettingsOverlay } from "../ui/StudySettingsOverlay.tsx";
 import { ActionButton, IconButton } from "../ui/actionUi.tsx";
 import { CoreTag } from "../ui/coreUi.tsx";
@@ -588,7 +588,7 @@ export function StudyMode({ shortcutsSuspended = false, deck, decks, notes, answ
             ) : (
               <button type="button" onClick={revealAnswer} className="core-action-primary min-h-11 w-full">
                 <RotateCcw size={16} aria-hidden="true" />
-                Antwort anzeigen
+                {revealLabel(presented?.note)}
               </button>
             )}
           </footer>

@@ -515,10 +515,8 @@ export function compareTypedAnswer(expected: string, typed: string): { correct: 
 }
 
 export function evaluateNoteChoice(choice: Extract<NoteInteraction, { kind: "choice" }>, answers: Record<string, boolean>) {
-  const options = choice.options.map((option) => {
+  return choice.options.map((option) => {
     const selected = choice.mode === "kprim" ? answers[option.id] ?? null : answers[option.id] === true;
-    return { id: option.id, selected, expected: option.correct, correct: selected === option.correct };
+    return { selected, correct: selected === option.correct };
   });
-  const complete = choice.mode === "kprim" ? options.every((option) => option.selected !== null) : options.some((option) => option.selected);
-  return { complete, options };
 }

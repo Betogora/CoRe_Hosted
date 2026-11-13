@@ -35,12 +35,11 @@ test("Kartenbausteine: Single, Multiple und Kprim prüfen unterschiedliche Antwo
   const multiple = page.locator('[data-note-demo="multiple"]');
   await multiple.getByRole("button", { name: "Antwortoption A: Das Herz pumpt Blut.", exact: true }).click();
   await multiple.getByRole("button", { name: "Antwortoption C: Blut transportiert Sauerstoff.", exact: true }).click();
-  await multiple.getByRole("button", { name: "Antwort prüfen", exact: true }).click();
+  await multiple.getByRole("button", { name: "Aufdecken", exact: true }).click();
   await expect(multiple.locator('[data-tone="correct"]')).toHaveCount(2);
   const kprim = page.locator('[data-note-demo="kprim"]');
-  await expect(kprim.getByRole("button", { name: "Antwort prüfen", exact: true })).toBeDisabled();
   for (let index = 0; index < 4; index += 1) await kprim.getByRole("radiogroup", { name: `Aussage ${"ABCD"[index]}`, exact: true }).getByRole("radio", { name: index % 2 === 0 ? "Richtig" : "Falsch", exact: true }).click();
-  await kprim.getByRole("button", { name: "Antwort prüfen", exact: true }).click();
+  await kprim.getByRole("button", { name: "Aufdecken", exact: true }).click();
   await expect(kprim.locator('[data-tone="correct"]')).toHaveCount(4);
   await expect(kprim.getByRole("radiogroup", { name: "Aussage A", exact: true }).getByRole("radio", { name: "Richtig", exact: true })).toBeDisabled();
   await expect(kprim.getByText("Lösung: falsch", { exact: true })).toHaveCount(2);
