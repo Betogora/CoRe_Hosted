@@ -796,12 +796,12 @@ test("[Vertrag: typgerechter Multiple-Choice-Lebenszyklus] @beta-core Optionen, 
   await page.getByRole("button", { name: "Vorschau", exact: true }).click();
   const previewDialog = page.getByRole("dialog", { name: "Kartenvorschau" });
   await previewDialog.getByRole("button", { name: "Rückseite" }).click();
-  await expect(previewDialog.getByText("Lösung aufgedeckt.", { exact: true })).toBeVisible();
+  await expect(previewDialog.locator('[data-tone="missed"]')).toContainText("Beta");
   await previewDialog.getByRole("button", { name: "Vorderseite" }).click();
   await previewDialog.getByRole("button", { name: "Antwortoption A: Alpha" }).click();
   await previewDialog.getByRole("button", { name: "Antwort prüfen" }).click();
   await expect(previewDialog.getByRole("button", { name: "Rückseite" })).toHaveAttribute("aria-pressed", "true");
-  await expect(previewDialog.getByText("Nicht ganz. Vergleiche deine Auswahl mit der Lösung.", { exact: true })).toBeVisible();
+  await expect(previewDialog.locator('[data-tone="wrong"]')).toContainText("Alpha");
   await expect(previewDialog.locator('[data-tone="missed"]')).toContainText("Beta");
   await expect(previewDialog.getByRole("button", { name: /Bewertung/ })).toHaveCount(0);
   await previewDialog.getByRole("button", { name: "Vorderseite" }).click();
@@ -837,7 +837,7 @@ test("[Vertrag: typgerechter Multiple-Choice-Lebenszyklus] @beta-core Optionen, 
   await page.getByRole("button", { name: "Antwortoption A: Alpha" }).click();
   await page.getByRole("button", { name: "Antwort prüfen" }).click();
   await expect(page.locator('[data-tone="missed"]')).toContainText("Gamma neu");
-  await expect(page.getByText("Nicht ganz. Vergleiche deine Auswahl mit der Lösung.", { exact: true })).toBeVisible();
+  await expect(page.locator('[data-tone="wrong"]')).toContainText("Alpha");
   await expect(page.frameLocator('iframe[title="Antwort"]').getByText("Gamma neu ist nach der Bearbeitung richtig.", { exact: true })).toBeVisible();
   await page.getByRole("button", { name: /Bewertung Gut/ }).click();
 });

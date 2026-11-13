@@ -4,7 +4,7 @@ import type { Card, Note } from "../coreTypes.ts";
 import { resolvePresentationMedia } from "../presentationFrame.ts";
 import { NOTE_THEME_COLORS, evaluateNoteChoice, noteHasMath, notePlainText, renderCard, renderNoteChoiceOptions, renderNoteSpeech, type NotePresentationResult, type NotePresentationTheme } from "../notePresentation.ts";
 import { ActionButton } from "./actionUi.tsx";
-import { CoreSegmentedControl } from "./coreUi.tsx";
+import { CoreVerdictControl } from "./coreUi.tsx";
 import { StatusMessage } from "./feedbackUi.tsx";
 import { CardPresentationSurface } from "./CardPresentationSurface.tsx";
 import { NoteLayoutContext, type NoteLayoutSource } from "./noteLayoutContext.ts";
@@ -196,10 +196,9 @@ function NoteCardContentBody({ note, card, revealed, onReveal, surface = "review
 
     {typeIn && !revealed ? <div className="grid gap-2">
       <label className="core-field-label" htmlFor={`typed-${card.id}`}>Antwort eingeben</label>
-      <input id={`typed-${card.id}`} className="core-field" value={typed} autoComplete="off" autoCapitalize="off" spellCheck={false} enterKeyHint="done" aria-describedby={`typed-hint-${card.id}`}
+      <input id={`typed-${card.id}`} className="core-field" value={typed} autoComplete="off" autoCapitalize="off" spellCheck={false} enterKeyHint="done"
         onChange={(event) => setTyped(event.target.value)}
         onKeyDown={(event) => { if (event.key === "Enter" && !event.nativeEvent.isComposing) { event.preventDefault(); onReveal(); } }} />
-      <p id={`typed-hint-${card.id}`} className="core-field-hint">Mit Enter aufdecken und vergleichen.</p>
     </div> : null}
 
     {interaction.kind === "choice" ? <div className="grid gap-2" role="group" aria-label="Antwortoptionen">
@@ -212,15 +211,15 @@ function NoteCardContentBody({ note, card, revealed, onReveal, surface = "review
             : option.correct ? (isSelected ? "correct" : "missed") : isSelected ? "wrong" : "muted";
         const StateIcon = tone === "correct" || tone === "missed" ? CheckCircle2 : tone === "wrong" ? XCircle : null;
         const stateIcon = StateIcon ? <StateIcon className="core-mcq-state-icon" size={20} aria-hidden="true" /> : null;
-        const badge = <span aria-hidden="true" className={`grid h-7 w-7 shrink-0 place-items-center rounded-inset border core-caption font-semibold ${tone === "selected" ? "border-core-action bg-core-action text-core-on-accent" : "border-core-border text-core-muted"}`}>{letter}</span>;
+        const badge = <span aria-hidden="true" className="core-mcq-letter">{letter}</span>;
         const html = resolvePresentationMedia(presentation.options.find((item) => item.id === option.id)?.html ?? "", mediaUrls).replace(/\s(?:src|poster)="(?!data:|blob:)[^"]*"/gi, "");
         const text = <div className="card-html min-w-0 flex-1 overflow-x-auto core-body text-inherit" dangerouslySetInnerHTML={{ __html: html }} />;
         const plain = notePlainText(option.html);
         const feedback = tone === "correct" ? "core-mcq-option-correct" : tone === "wrong" ? "core-mcq-option-wrong" : "";
         if (interaction.mode === "kprim") return <div key={option.id} data-tone={tone} className={`core-kprim-option grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center ${feedback}`}>
-          <div className="flex min-w-0 items-start gap-3">{badge}{text}</div>
-          <div className="grid gap-2 sm:justify-items-end">
-            <CoreSegmentedControl className="w-full sm:w-52" disabled={revealed} ariaLabel={`Aussage ${letter}`} value={result.selected === null ? "" : result.selected ? "richtig" : "falsch"} options={[{ value: "richtig", label: "richtig" }, { value: "falsch", label: "falsch" }]} onValueChange={(value) => setSelected((current) => ({ ...current, [option.id]: value === "richtig" }))} />
+          <div className="flex min-w-0 items-center gap-3">{badge}{text}</div>
+          <div className="grid justify-items-start gap-2 sm:justify-items-end">
+            <CoreVerdictControl label={`Aussage ${letter}`} disabled={revealed} value={result.selected} onValueChange={(value) => setSelected((current) => ({ ...current, [option.id]: value }))} />
             {revealed ? <p className="flex items-center gap-1.5 core-caption font-semibold text-core-text">{stateIcon}Lösung: {option.correct ? "richtig" : "falsch"}</p> : null}
           </div>
         </div>;
@@ -228,7 +227,7 @@ function NoteCardContentBody({ note, card, revealed, onReveal, surface = "review
           {interaction.mode === "single" ? null : <svg viewBox="0 0 17 18"><polyline points="1 9 7 14 15 4" /></svg>}
         </span>;
         return <button key={option.id} type="button" disabled={revealed} aria-pressed={isSelected} data-tone={tone}
-          aria-label={`Antwortoption ${letter}: ${plain}${tone === "correct" || tone === "missed" ? " (richtig)" : tone === "wrong" ? " (falsch gewählt)" : ""}`}
+          aria-label={`Antwortoption ${letter}: ${plain}${tone === "correct" ? " (richtig)" : tone === "missed" ? " (richtig, nicht gewählt)" : tone === "wrong" ? " (falsch gewählt)" : ""}`}
           className={`core-mcq-option ${feedback}`}
           onClick={() => {
             setSelected((current) => interaction.mode === "single" ? { [option.id]: true } : { ...current, [option.id]: !current[option.id] });
@@ -236,9 +235,6 @@ function NoteCardContentBody({ note, card, revealed, onReveal, surface = "review
           }}>{badge}{text}{indicator}</button>;
       })}
       {!revealed && interaction.mode !== "single" ? <ActionButton variant="primary" className="mt-1 w-fit" disabled={!choiceResult!.complete} onClick={onReveal}>Antwort prüfen</ActionButton> : null}
-      {revealed ? <StatusMessage className="mt-1" tone={!choiceResult!.complete ? "info" : choiceResult!.correct ? "success" : "error"} announce="polite">{!choiceResult!.complete ? "Lösung aufgedeckt." : choiceResult!.correct ? "Richtig ausgewählt."
-        : interaction.mode === "kprim" ? `${choiceResult!.options.filter((option) => option.correct).length} von ${choiceResult!.options.length} Aussagen richtig. Vergleiche deine Auswahl mit der Lösung.`
-          : "Nicht ganz. Vergleiche deine Auswahl mit der Lösung."}</StatusMessage> : null}
     </div> : null}
 
     {prepared || (answerResult && !oneFrame) ? <CardPresentationSurface {...frameProps} presentation={answerResult ?? presentation.answer} title={oneFrame ? "Aufgedeckte Karte" : "Antwort"} concealed={prepared === "hidden"} scrollTargetId={original ? "answer" : undefined} onLoad={revealed ? undefined : () => setAnswerAhead("ready")} /> : null}
