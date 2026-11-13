@@ -12,10 +12,12 @@ import {
   Line,
   Pie,
   PieChart,
+  Rectangle,
   ResponsiveContainer,
   Tooltip,
   XAxis,
   YAxis,
+  type BarShapeProps,
 } from "recharts";
 import { getLearningDayKey } from "../learningDay.ts";
 import {
@@ -27,7 +29,7 @@ import {
 import type { StudyHeatmapDay } from "../studyHeatmapModel.ts";
 import type { MaturityBand } from "../coreTypes.ts";
 import { ActionButton } from "../ui/actionUi.tsx";
-import { CoreSegmentedControl, CoreTag, EmptyState, PageHeader, SoftPanel, StatTile } from "../ui/coreUi.tsx";
+import { CoreSegmentedControl, EmptyState, PageHeader, SoftPanel, StatTile } from "../ui/coreUi.tsx";
 import { CoreTabPanel, CoreTabs, type CoreTab } from "../ui/CoreTabs.tsx";
 import { MetricRow } from "../ui/MetricRow.tsx";
 import { StatusMessage } from "../ui/feedbackUi.tsx";
@@ -168,20 +170,6 @@ function StatisticsTooltip({
           </div>
         ))}
       </div>
-      {typeof datum.timedCount === "number" && typeof datum.total === "number" && datum.total > 0 ? (
-        <p className="core-caption mt-2 border-t border-core-border pt-2 text-core-muted">
-          Zeitmessung: {formatPercent((datum.timedCount / datum.total) * 100)} Abdeckung
-        </p>
-      ) : null}
-    </div>
-  );
-}
-
-function PanelHeader({ title, titleId, snapshot = false }: { title: string; titleId?: string; snapshot?: boolean }) {
-  return (
-    <div className="flex flex-wrap items-center justify-between gap-3">
-      <h3 id={titleId} tabIndex={titleId ? -1 : undefined} className={`core-heading-3 text-core-text ${titleId ? "rounded-inset focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-core-focus focus-visible:ring-offset-4" : ""}`.trim()}>{title}</h3>
-      {snapshot ? <CoreTag tone="outline">Stand heute</CoreTag> : null}
     </div>
   );
 }
@@ -190,18 +178,16 @@ function ChartPanel({
   title,
   titleId,
   children,
-  snapshot,
   className = "",
 }: {
   title: string;
   titleId?: string;
   children: React.ReactNode;
-  snapshot?: boolean;
   className?: string;
 }) {
   return (
     <SoftPanel className={`p-5 sm:p-6 ${className}`}>
-      <PanelHeader title={title} titleId={titleId} snapshot={snapshot} />
+      <h3 id={titleId} tabIndex={titleId ? -1 : undefined} className={`core-heading-3 text-core-text ${titleId ? "rounded-inset focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-core-focus focus-visible:ring-offset-4" : ""}`.trim()}>{title}</h3>
       <div className="mt-5 min-w-0">{children}</div>
     </SoftPanel>
   );
@@ -261,6 +247,25 @@ function CartesianStatisticsChart({
   );
 }
 
+type CategoryKey = keyof typeof CATEGORY_COLORS;
+const CATEGORY_KEYS = Object.keys(CATEGORY_COLORS) as CategoryKey[];
+
+// Only the topmost non-empty segment of each stacked bar gets rounded corners.
+function stackedCategoryBars(data: Array<Record<CategoryKey, number>>, stackId: string, names: Record<CategoryKey, string>) {
+  const topKeys = data.map((point) => [...CATEGORY_KEYS].reverse().find((key) => point[key] > 0));
+  return CATEGORY_KEYS.map((key) => (
+    <Bar
+      key={key}
+      dataKey={key}
+      name={names[key]}
+      stackId={stackId}
+      fill={CATEGORY_COLORS[key]}
+      isAnimationActive={false}
+      shape={(props: BarShapeProps) => <Rectangle {...props} radius={topKeys[props.index] === key ? [3, 3, 0, 0] : 0} />}
+    />
+  ));
+}
+
 function ActivityChart({ points, duration = false }: { points: StatisticsProjection["activity"]; duration?: boolean }) {
   if (!points.some((point) => duration ? point.durationMs > 0 : point.total > 0)) {
     return <NoChartData>{duration ? "Für diesen Zeitraum wurden noch keine Antwortzeiten gemessen." : "Im gewählten Zeitraum wurden keine Wiederholungen erfasst."}</NoChartData>;
@@ -289,10 +294,7 @@ function ActivityChart({ points, duration = false }: { points: StatisticsProject
       rightAxis="cumulative"
       tooltip={<StatisticsTooltip valueFormatter={(value) => duration ? `${formatNumber(value, 1)} Min.` : formatNumber(value)} />}
     >
-      <Bar dataKey="learning" name="Lernen" stackId="reviews" fill={CATEGORY_COLORS.learning} isAnimationActive={false} />
-      <Bar dataKey="relearning" name="Wiederlernen" stackId="reviews" fill={CATEGORY_COLORS.relearning} isAnimationActive={false} />
-      <Bar dataKey="young" name="Intervall unter 21 Tagen" stackId="reviews" fill={CATEGORY_COLORS.young} isAnimationActive={false} />
-      <Bar dataKey="mature" name="Intervall ab 21 Tagen" stackId="reviews" fill={CATEGORY_COLORS.mature} radius={[3, 3, 0, 0]} isAnimationActive={false} />
+      {stackedCategoryBars(data, "reviews", { learning: "Lernen", relearning: "Wiederlernen", young: "Intervall unter 21 Tagen", mature: "Intervall ab 21 Tagen" })}
       <Area yAxisId="cumulative" dataKey="cumulative" name="Kumuliert" stroke={SERIES_NEUTRAL} strokeWidth={1.5} fill="none" isAnimationActive={false} />
     </CartesianStatisticsChart>
   );
@@ -302,7 +304,7 @@ function AddedCardsChart({ points }: { points: StatisticsProjection["addedCards"
   if (!points.some((point) => point.count > 0)) return <NoChartData>Im gewählten Zeitraum wurden keine Karten hinzugefügt.</NoChartData>;
   return (
     <CartesianStatisticsChart data={points} ariaLabel="Diagramm zu hinzugefügten Karten" minTickGap={28} rightAxis="cumulative" tooltip={<StatisticsTooltip />}>
-      <Bar dataKey="count" name="Neu hinzugefügt" fill={SERIES_PRIMARY} radius={[4, 4, 0, 0]} isAnimationActive={false} />
+      <Bar dataKey="count" name="Neu hinzugefügt" fill={SERIES_PRIMARY} radius={[3, 3, 0, 0]} isAnimationActive={false} />
       <Line yAxisId="cumulative" dataKey="cumulative" name="Bestand" stroke={SERIES_ACCENT} strokeWidth={2} dot={false} isAnimationActive={false} />
     </CartesianStatisticsChart>
   );
@@ -321,10 +323,7 @@ function PlanningChart({ planning }: { planning: StatisticsProjection["planning"
         ]}
       />
       <CartesianStatisticsChart data={planning.points} ariaLabel="Diagramm zu geplanten Wiederholungen" className="mt-6 h-72 w-full" minTickGap={28} rightAxis="cumulative" tooltip={<StatisticsTooltip />}>
-        <Bar dataKey="learning" name="Lernen" stackId="due" fill={CATEGORY_COLORS.learning} isAnimationActive={false} />
-        <Bar dataKey="relearning" name="Wiederlernen/Rückstand" stackId="due" fill={CATEGORY_COLORS.relearning} isAnimationActive={false} />
-        <Bar dataKey="young" name="Intervall unter 21 Tagen" stackId="due" fill={CATEGORY_COLORS.young} isAnimationActive={false} />
-        <Bar dataKey="mature" name="Intervall ab 21 Tagen" stackId="due" fill={CATEGORY_COLORS.mature} isAnimationActive={false} />
+        {stackedCategoryBars(planning.points, "due", { learning: "Lernen", relearning: "Wiederlernen/Rückstand", young: "Intervall unter 21 Tagen", mature: "Intervall ab 21 Tagen" })}
         <Area yAxisId="cumulative" dataKey="cumulative" name="Kumuliert" stroke={SERIES_NEUTRAL} strokeWidth={1.5} fill="none" isAnimationActive={false} />
       </CartesianStatisticsChart>
     </>
@@ -500,8 +499,8 @@ export function StatisticsScreenContent({ dataset: { decks, projection: statisti
       {activeTab === "planning" ? <section className="grid min-w-0 gap-4 xl:grid-cols-2" aria-labelledby="statistics-planning-title">
         <StatisticsSectionHeading id="statistics-planning-title">Planung & Kartenbestand</StatisticsSectionHeading>
         <ChartPanel title="Zeitplanung" className="xl:col-span-2"><PlanningChart planning={statistics.planning} /></ChartPanel>
-        <ChartPanel title="Status" snapshot><StatusChart status={statistics.status} /></ChartPanel>
-        <ChartPanel title="Wiederholungsintervalle" snapshot>
+        <ChartPanel title="Status"><StatusChart status={statistics.status} /></ChartPanel>
+        <ChartPanel title="Wiederholungsintervalle">
           <DistributionChart points={statistics.intervals.points} countLabel="Karten" />
           <div className="mt-4 grid grid-cols-3 gap-3 border-t border-core-border pt-4 text-center core-caption text-core-muted"><span>Mittelwert<br /><strong className="core-heading-3 tabular-nums text-core-text">{formatNumber(statistics.intervals.averageDays, 1)} Tage</strong></span><span>Median<br /><strong className="core-heading-3 tabular-nums text-core-text">{formatNumber(statistics.intervals.medianDays)} Tage</strong></span><span>95. Perzentil<br /><strong className="core-heading-3 tabular-nums text-core-text">{formatNumber(statistics.intervals.percentile95Days)} Tage</strong></span></div>
         </ChartPanel>
@@ -509,9 +508,9 @@ export function StatisticsScreenContent({ dataset: { decks, projection: statisti
 
       {activeTab === "memory" ? <section className="grid min-w-0 gap-4 xl:grid-cols-3" aria-labelledby="statistics-memory-model-title">
         <StatisticsSectionHeading id="statistics-memory-model-title">FSRS-Gedächtnismodell</StatisticsSectionHeading>
-        <ChartPanel title="FSRS-Schwierigkeit" snapshot><DistributionChart points={statistics.fsrs.difficulty} countLabel="Karten" /></ChartPanel>
-        <ChartPanel title="FSRS-Stabilität" snapshot><DistributionChart points={statistics.fsrs.stability} countLabel="Karten" /></ChartPanel>
-        <ChartPanel title="Abrufwahrscheinlichkeit" snapshot><DistributionChart points={statistics.fsrs.retrievability} countLabel="Karten" /></ChartPanel>
+        <ChartPanel title="FSRS-Schwierigkeit"><DistributionChart points={statistics.fsrs.difficulty} countLabel="Karten" /></ChartPanel>
+        <ChartPanel title="FSRS-Stabilität"><DistributionChart points={statistics.fsrs.stability} countLabel="Karten" /></ChartPanel>
+        <ChartPanel title="Abrufwahrscheinlichkeit"><DistributionChart points={statistics.fsrs.retrievability} countLabel="Karten" /></ChartPanel>
       </section> : null}
 
       {activeTab === "responses" ? <section className="grid min-w-0 gap-4 xl:grid-cols-2" aria-labelledby="statistics-response-behavior-title">
