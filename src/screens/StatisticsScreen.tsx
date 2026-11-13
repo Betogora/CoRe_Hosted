@@ -218,8 +218,23 @@ function NoChartData({ children }: { children: React.ReactNode }) {
 }
 
 
-function RechartsLegend({ order }: { order?: readonly string[] }) {
-  return <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 12, paddingTop: 12 }} {...(order ? { itemSorter: (item: { dataKey?: unknown }) => order.indexOf(String(item.dataKey)) } : {})} formatter={(value) => <span className="text-core-secondary">{value}</span>} />;
+function RechartsLegend({ host, order }: { host: HTMLElement | null; order?: readonly string[] }) {
+  if (!host) return null;
+  return <Legend portal={host} iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 12 }} {...(order ? { itemSorter: (item: { dataKey?: unknown }) => order.indexOf(String(item.dataKey)) } : {})} formatter={(value) => <span className="text-core-secondary">{value}</span>} />;
+}
+
+// Every chart gets the same plot height and its legend below the plot, so neighbouring charts share
+// axis heights, grid lines and the legend's top edge however long their legends wrap.
+function StatisticsChartFrame({ ariaLabel, className, chart }: { ariaLabel: string; className?: string; chart: (legendHost: HTMLElement | null) => React.ReactElement }) {
+  const [legendHost, setLegendHost] = React.useState<HTMLDivElement | null>(null);
+  return (
+    <div className={className} aria-label={ariaLabel}>
+      <div className="h-72 w-full">
+        <ResponsiveContainer width="100%" height="100%">{chart(legendHost)}</ResponsiveContainer>
+      </div>
+      <div ref={setLegendHost} className="pt-3" />
+    </div>
+  );
 }
 
 const DATE_KEY = /^\d{4}-\d{2}-\d{2}$/;
@@ -236,7 +251,7 @@ function CartesianStatisticsChart({
   data,
   ariaLabel,
   children,
-  className = "h-72 w-full",
+  className,
   minTickGap,
   interval,
   rightAxis,
@@ -257,8 +272,7 @@ function CartesianStatisticsChart({
 }) {
   const yearStarts = yearStartKeys(data);
   return (
-    <div className={className} aria-label={ariaLabel}>
-      <ResponsiveContainer width="100%" height="100%">
+    <StatisticsChartFrame ariaLabel={ariaLabel} className={className} chart={(legendHost) => (
         <ComposedChart data={data} accessibilityLayer margin={{ top: 8, right: 0, left: 0, bottom: 10 }}>
           <CartesianGrid stroke="var(--core-border-interactive)" strokeDasharray="1 5" strokeLinecap="round" vertical={false} />
           {yearStarts
@@ -269,11 +283,10 @@ function CartesianStatisticsChart({
           {rightAxis === "cumulative" ? <YAxis yAxisId="cumulative" orientation="right" {...axisProps} width="auto" allowDecimals={false} tickFormatter={(value: number) => formatAxisValue(value, rightUnit)} /> : null}
           {rightAxis === "percent" ? <YAxis yAxisId="percent" orientation="right" {...axisProps} width="auto" domain={[0, 100]} tickFormatter={(value: number) => formatAxisValue(value, "%")} /> : null}
           <Tooltip content={tooltip} cursor={{ fill: "var(--core-surface-muted)" }} />
-          <RechartsLegend />
+          <RechartsLegend host={legendHost} />
           {children}
         </ComposedChart>
-      </ResponsiveContainer>
-    </div>
+    )} />
   );
 }
 
@@ -318,7 +331,6 @@ function ActivityChart({ points, duration = false }: { points: StatisticsProject
     <CartesianStatisticsChart
       data={data}
       ariaLabel={duration ? "Diagramm zur Lernzeit" : "Diagramm zu Wiederholungen"}
-      className="h-80 w-full"
       minTickGap={28}
       rightAxis="cumulative"
       unit={duration ? barUnit.label : undefined}
@@ -353,7 +365,7 @@ function PlanningChart({ planning }: { planning: StatisticsProjection["planning"
           { label: "Arbeitspensum/Tag", value: formatNumber(planning.dailyWorkload, 1) },
         ]}
       />
-      <CartesianStatisticsChart data={planning.points} ariaLabel="Diagramm zu geplanten Wiederholungen" className="mt-6 h-72 w-full" minTickGap={28} rightAxis="cumulative" tooltip={<StatisticsTooltip />}>
+      <CartesianStatisticsChart data={planning.points} ariaLabel="Diagramm zu geplanten Wiederholungen" className="mt-6" minTickGap={28} rightAxis="cumulative" tooltip={<StatisticsTooltip />}>
         {stackedCategoryBars(planning.points, "due", { learning: "Lernen", relearning: "Wiederlernen/Rückstand", young: "Intervall unter 21 Tagen", mature: "Intervall ab 21 Tagen" })}
         <Area yAxisId="cumulative" dataKey="cumulative" name="Kumuliert" stroke={SERIES_NEUTRAL} strokeWidth={1.5} fill="none" isAnimationActive={false} />
       </CartesianStatisticsChart>
@@ -423,7 +435,15 @@ const RATING_COLORS = {
   good: "var(--core-rating-good-border)",
   easy: "var(--core-rating-easy-border)",
 };
+const RATING_BAR_SIZE = 22;
 const RATING_CATEGORY_LABELS: Record<CategoryKey, string> = { learning: "Lernen", relearning: "Wiederlernen", young: "< 21 Tage", mature: "≥ 21 Tage" };
+
+// The hovered row is outlined around its whole stacked bar instead of crossed by the axis cursor line.
+function RatingBarOutline({ points, payload }: { points?: Array<{ x: number; y: number }>; payload?: TooltipPayload }) {
+  if (!points || !payload?.[0]?.payload?.total) return null;
+  const [start, end] = points;
+  return <rect x={start.x - 3} y={start.y - RATING_BAR_SIZE / 2 - 3} width={end.x - start.x + 6} height={RATING_BAR_SIZE + 6} rx={6} fill="none" stroke="var(--core-text-muted)" strokeWidth={1.5} pointerEvents="none" />;
+}
 
 /** One bar per review category, split into the share of each button; the tooltip adds the counts. */
 function RatingChart({ points }: { points: StatisticsProjection["ratings"] }) {
@@ -437,17 +457,16 @@ function RatingChart({ points }: { points: StatisticsProjection["ratings"] }) {
   }));
   const pressed = points.map((point) => RATING_BUTTONS.filter(([rating]) => point[rating] > 0).map(([rating]) => rating));
   return (
-    <div className="h-72 w-full" aria-label="Diagramm zu verwendeten Antwortknöpfen">
-      <ResponsiveContainer width="100%" height="100%">
+    <StatisticsChartFrame ariaLabel="Diagramm zu verwendeten Antwortknöpfen" chart={(legendHost) => (
         <ComposedChart data={rows} layout="vertical" accessibilityLayer margin={{ top: 8, right: 16, left: 0, bottom: 10 }}>
           <CartesianGrid stroke="var(--core-border-interactive)" strokeDasharray="1 5" strokeLinecap="round" horizontal={false} />
           <XAxis type="number" domain={[0, 100]} {...axisProps} tickFormatter={(value: number) => formatAxisValue(value, "%")} />
           <YAxis type="category" dataKey="label" {...axisProps} width="auto" />
           <Tooltip
             content={<StatisticsTooltip valueFormatter={(value, entry) => entry.dataKey === "total" ? `${formatNumber(value)} Antworten` : `${formatPercent(value)} · ${formatNumber((entry.payload?.counts as Record<string, number>)[String(entry.dataKey)])}`} />}
-            cursor={{ fill: "var(--core-surface-muted)" }}
+            cursor={<RatingBarOutline />}
           />
-          <RechartsLegend order={RATING_BUTTONS.map(([rating]) => rating)} />
+          <RechartsLegend host={legendHost} order={RATING_BUTTONS.map(([rating]) => rating)} />
           {RATING_BUTTONS.map(([rating, label]) => (
             <Bar
               key={rating}
@@ -455,7 +474,7 @@ function RatingChart({ points }: { points: StatisticsProjection["ratings"] }) {
               name={label}
               stackId="share"
               fill={RATING_COLORS[rating]}
-              barSize={22}
+              barSize={RATING_BAR_SIZE}
               isAnimationActive={false}
               shape={(props: BarShapeProps) => {
                 const visible = pressed[props.index] ?? [];
@@ -464,8 +483,7 @@ function RatingChart({ points }: { points: StatisticsProjection["ratings"] }) {
             />
           ))}
         </ComposedChart>
-      </ResponsiveContainer>
-    </div>
+    )} />
   );
 }
 
