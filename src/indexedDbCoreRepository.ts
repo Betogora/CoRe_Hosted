@@ -310,10 +310,10 @@ export async function createIndexedDbCoreRepository({ userId, initialState, inde
   };
 
   /**
-   * Applies the tables of one catalog delta page in one transaction, in the given order. Search texts that arrive in
-   * the same call go into the catalog rows before they are written, so each row is written once.
+   * Applies one catalog delta page per transaction, in order; search texts join their catalog rows before the write.
+   * Account deltas (`keepComplete`) only advance a complete replica, which stays searchable while the pull catches up.
    */
-  const applyCloudCatalogPages = async (pages: CloudCatalogPage[]) => {
+  const applyCloudCatalogPages = async (pages: CloudCatalogPage[], { keepComplete = false } = {}) => {
     await writeChain;
     await writeCloudCatalogPages(database, pages, {
       pendingEntityMutation,
@@ -325,7 +325,7 @@ export async function createIndexedDbCoreRepository({ userId, initialState, inde
     if (pages.some((page) => page.table === "decks")) shell = await loadShell(database);
     await persistReplicaStatus({
       catalogCursor: Math.max(replicaStatus.catalogCursor, ...pages.map((page) => page.cursor)),
-      catalogCompleteness: "partial",
+      catalogCompleteness: keepComplete && replicaStatus.catalogCompleteness === "complete" ? "complete" : "partial",
     });
   };
 

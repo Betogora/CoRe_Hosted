@@ -185,7 +185,7 @@ async function finishAuthenticatedWorkspaceBootstrap(
   await repository.applyCloudCatalogPages([
     { table: "decks", entities: bootstrap.decks.map((entry) => entry.deck), reset: false, cursor: localCatalogCursor },
     { table: "deck_study_summaries", entities: bootstrap.decks.map((entry) => entry.summary), reset: false, cursor: localCatalogCursor },
-  ]);
+  ], { keepComplete: true });
   if (bootstrap.studyOverview) await repository.applyAccountStudyOverview(bootstrap.studyOverview);
   await applyBootstrapProfile(repository, bootstrap.profile, user.id, pendingMutationsAtRequest);
   await repository.setAccountBaselineState(bootstrap.confirmedEmpty ? "confirmed-empty" : "nonempty", bootstrap.serverCatalogCursor);
@@ -219,7 +219,7 @@ async function finishAuthenticatedWorkspaceCloudSync(
   ]);
   const pullChanges = async () => {
     const previousCursor = repository.getReplicaStatus().catalogCursor;
-    const nextCursor = await streamAccountCatalogChanges(supabase, previousCursor, repository.applyCloudCatalogPages);
+    const nextCursor = await streamAccountCatalogChanges(supabase, previousCursor, (pages) => repository.applyCloudCatalogPages(pages, { keepComplete: true }));
     await repository.completeCatalogReconciliation(nextCursor);
     markReplicaStartupGate("catalogReconciled", { cursor: nextCursor });
     return nextCursor !== previousCursor;
