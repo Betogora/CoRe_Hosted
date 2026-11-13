@@ -25,7 +25,7 @@ export function ExamTopicPreview({ topics, examDate, color, calendarRef, actions
       const items = Array.from(list.current.children) as HTMLElement[];
       const ends = items.map((item) => item.offsetTop - (items[0]?.offsetTop ?? 0) + item.offsetHeight);
       const overflow = (ends.at(-1) ?? 0) > available;
-      const room = overflow ? Math.max(0, available - (toggle.current?.offsetHeight || parseFloat(style.getPropertyValue("--core-control-height"))) - gap) : available;
+      const room = overflow ? Math.max(0, available - (toggle.current?.offsetHeight || parseFloat(style.getPropertyValue("--core-control-height"))) - gap - (toggle.current ? parseFloat(getComputedStyle(toggle.current).marginTop) : 0)) : available;
       const count = ends.filter((end) => end <= room).length;
       const next = { count, height: ends[count - 1] ?? 0, available: room, overflow };
       setFit((previous) => previous.count === next.count && previous.height === next.height && previous.available === next.available && previous.overflow === next.overflow ? previous : next);
