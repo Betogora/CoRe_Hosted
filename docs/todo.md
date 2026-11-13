@@ -26,12 +26,6 @@ Nutzen: Lückentext trägt die großen Medizin- und Fachstapel, Eintippen das
 Vokabellernen, Single Choice das Altfragen-Format des IMPP und die Karten
 aus P2; Multiple Choice und Kprim kommen nur über ein Add-on.
 
-- [ ] **A – Nachweis mit echtem Modell:** Eintippen und der Ausweg für
-      nicht umformulierbare Inhalte stehen (`card-variant-v5`). Offen ist
-      die Stichprobe: Eintippen-Karten des Demo-Stapels in der App sowie
-      Prüfkarten mit sinnlosen Zeichenfolgen und Insidern unter v4
-      (Production) und v5 (Preview); dabei dürfen normale Karten nicht als
-      nicht umformulierbar gemeldet werden.
 - [ ] **B – Lückentext:** Eine Variante gehört zu ihrer Lückengruppe:
       `front` ist der umformulierte Text mit genau dieser Lückengruppe,
       andere Lücken stehen als Klartext; `back` hält den Lückeninhalt. Die
