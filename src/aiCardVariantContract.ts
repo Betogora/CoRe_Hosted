@@ -45,9 +45,14 @@ export type AiCardVariantSource = { kind: v.InferOutput<typeof kindSchema>; fron
 export type AiCardVariantRequest = v.InferOutput<typeof requestSchema>;
 export type AiCardVariantSuccess = v.InferOutput<typeof successSchema>;
 
-/** Plain text of a card or model answer; a `<` that opens no tag, as in "K < 1", is text and not markup. */
+/** Plain text of a card source or model answer with its whitespace collapsed; it is never read as HTML. */
 export function normalizeAiCardText(value: unknown): string {
-  return stripHtml(String(value ?? "").replace(/<(?![a-z/!])/gi, "&lt;")).replace(/\s+/g, " ").replace(/\s+([,.;:!?])/g, "$1").trim();
+  return String(value ?? "").replace(/\s+/g, " ").trim();
+}
+
+/** Plain text of a stored variant field, which holds HTML like a note field. */
+export function aiVariantFieldText(html: string): string {
+  return normalizeAiCardText(stripHtml(html));
 }
 
 /** Shown for the solutions of a gap group in `back`, e.g. "Insulin · Blutzucker". */

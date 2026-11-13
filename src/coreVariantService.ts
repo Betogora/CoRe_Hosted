@@ -47,7 +47,8 @@ export function cardVariantSource(note: Pick<Note, "content">, card: Pick<Card, 
 }
 
 /**
- * A rephrased variant shown as a transient content of its card; hint, extra and source fields stay.
+ * A rephrased variant shown as a transient content of its card in the CoRe design, since it has none of the fields an
+ * imported layout names; hint, extra and source fields stay.
  * A cloze variant is a cloze text asked with the card's own gap group. A typed answer keeps the card's own answer
  * fields, so the learner types exactly what the card itself expects. Speech stays only for fields taken over
  * unchanged: a rephrasing may be in another language than the voice.
@@ -69,11 +70,12 @@ export function variantPresentation(note: Note, card: Card, variant: CardVariant
     tags: note.content.tags,
   });
   if (interaction.kind === "cloze") {
-    return { note: { ...note, content: content({ id: "variant-text", name: "Text", role: "prompt", html: variant.front }, { kind: "cloze" }) }, card: { ...card, id: variant.id } };
+    return { note: { ...note, noteTypeSourceId: null, content: content({ id: "variant-text", name: "Text", role: "prompt", html: variant.front }, { kind: "cloze" }) }, card: { ...card, id: variant.id } };
   }
   return {
     note: {
       ...note,
+      noteTypeSourceId: null,
       content: content(
         { id: "variant-front", name: "Vorderseite", role: "prompt", html: variant.front },
         { kind: "reveal", prompts: [{ key: "forward", name: "Variante", instruction: "", questionFieldIds: ["variant-front"], answerFieldIds: answerFields.map((field) => field.id), requires: null, typeInFieldId: typedAnswer?.typeInFieldId ?? null }] },

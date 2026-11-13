@@ -6,6 +6,7 @@ import {
   AI_CARD_VARIANT_PROMPT_VERSION,
   AiCardVariantContractError,
   aiCardVariantSourceKey,
+  aiVariantFieldText,
   createAiCardVariantRequest,
   normalizeAiCardText,
   parseAiCardVariantSuccess,
@@ -46,7 +47,7 @@ export async function requestAiCardVariant(
 export function aiCardVariantAvoidTexts(card: Pick<Card, "variants">): string[] {
   return [...card.variants]
     .sort((left, right) => Number(Boolean(left.deletedAt)) - Number(Boolean(right.deletedAt)) || right.createdAt.localeCompare(left.createdAt))
-    .map((variant) => variant.front);
+    .map((variant) => aiVariantFieldText(variant.front));
 }
 
 const asHtml = (text: string) => text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
@@ -70,8 +71,8 @@ export function createAiGeneratedVariantDraft(
   };
   const generatedKey = aiCardVariantSourceKey(variant);
   const duplicate = current.card.variants.some((candidate) => aiCardVariantSourceKey({
-    front: normalizeAiCardText(candidate.front),
-    back: normalizeAiCardText(candidate.back),
+    front: aiVariantFieldText(candidate.front),
+    back: aiVariantFieldText(candidate.back),
   }) === generatedKey);
   if (duplicate) throw new AiCardVariantContractError("duplicate_variant", "Diese Variante gibt es schon. Bitte erneut generieren.");
 

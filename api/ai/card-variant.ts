@@ -49,6 +49,7 @@ const CLOZE_SYSTEM_PROMPT = [
   "Formuliere den Text um die Lücken herum erkennbar um, etwa mit anderer Satzstellung, anderem Satzbeginn oder anderem Blickwinkel, sodass er dieselbe Aussage trifft und nach derselben Lösung fragt.",
   "Übernimm jede Lücke zeichengenau mit Nummer, Lösung und Hinweis; füge keine Lücke hinzu, entferne keine und mache aus Klartext keine Lücke.",
   "Die Lösung darf außerhalb der Lücken weder vorkommen noch so umschrieben werden, dass sie sich ohne Wissen erschließt.",
+  "Beschreibe den Inhalt einer Lücke nie daneben mit eigenen Worten; falsch wäre etwa „Bei K > 1 liegt es auf der Produktseite ({{c1::Gleichgewicht liegt auf Seiten der Produkte}})“, richtig „Bei K > 1 gilt: {{c1::Gleichgewicht liegt auf Seiten der Produkte}}“.",
   "Enthält avoid bereits vorhandene Formulierungen, formuliere deutlich anders als das Original und als jede davon.",
   "Übernimm Fachbegriffe, Namen, Zahlen, Einheiten und Formeln zeichengenau; ergänze keine neuen Fakten und behalte die Schwierigkeit bei.",
   "Auch wenn die Lücke den größten Teil des Texts einnimmt, ist der Lückentext umformulierbar; formuliere dann den übrigen Text um.",

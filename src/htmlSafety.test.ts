@@ -26,7 +26,7 @@ test("card HTML sanitizer removes active content and external media requests", (
   );
 
   assert.doesNotMatch(sanitized, /script|iframe|onerror|onclick|javascript:|tracker\.example/i);
-  assert.equal(stripHtml(sanitized).replace(/\s+/g, " ").trim(), "Link Text");
+  assert.equal(stripHtml(sanitized).replace(/\s+/g, " ").trim(), "LinkText");
 });
 
 test("card HTML sanitizer preserves accessibility metadata without executable attributes", () => {

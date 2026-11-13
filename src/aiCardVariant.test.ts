@@ -3,8 +3,8 @@ import test from "node:test";
 import { aiCardVariantAvoidTexts, createAiGeneratedVariantDraft, requestAiCardVariant } from "./aiCardVariant.ts";
 import {
   AiCardVariantContractError,
+  aiVariantFieldText,
   createAiCardVariantRequest,
-  normalizeAiCardText,
   parseAiCardVariantRequest,
 } from "./aiCardVariantContract.ts";
 import { addCardVariant, createBasicNote, createManualNoteContent, createNote, planNoteContentChange } from "./coreModel.ts";
@@ -48,7 +48,7 @@ test("browser request authenticates, sends only card text and validates the resp
   let requestBody = "";
   const result = await requestAiCardVariant(cardVariantSource(note, card), {
     auth: { getSession: async () => ({ data: { session: { access_token: "session-secret" } }, error: null }) },
-  } as any, { avoid: ["Alte <b>Variante</b>", "Alte Variante", ""], fetchImpl: async (_url, init) => {
+  } as any, { avoid: ["Alte  Variante", "Alte Variante", ""], fetchImpl: async (_url, init) => {
     assert.equal((init?.headers as Record<string, string>).Authorization, "Bearer session-secret");
     requestBody = String(init?.body);
     return Response.json({
@@ -126,8 +126,8 @@ test("a generated variant with comparison signs is stored as HTML and keeps its 
     usage: null,
   });
   const stored = addCardVariant(original.card, draft).variants[0];
-  assert.equal(normalizeAiCardText(stored.front), "Unter welcher Bedingung für K überwiegt die Rückreaktion, wenn K > 0 gilt?");
-  assert.equal(normalizeAiCardText(stored.back), "Bei K < 1 & nur dann");
+  assert.equal(aiVariantFieldText(stored.front), "Unter welcher Bedingung für K überwiegt die Rückreaktion, wenn K > 0 gilt?");
+  assert.equal(aiVariantFieldText(stored.back), "Bei K < 1 & nur dann");
 });
 
 test("deleted variants are avoided after the existing ones, each newest first", () => {

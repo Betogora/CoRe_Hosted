@@ -228,7 +228,7 @@ export function stripSanitizedHtml(html: string) {
   }
 
   // Without a DOM (AI routes) the escaped characters of sanitized HTML are decoded like `textContent` does.
-  return html.replace(/<[^>]*>/g, " ").replace(/&(lt|gt|quot|#39|nbsp|amp);/g, (_match, entity: string) => HTML_TEXT_ENTITIES[entity]);
+  return html.replace(WORD_BREAK_TAG_PATTERN, " ").replace(/<[^>]*>/g, "").replace(/&(lt|gt|quot|#39|nbsp|amp);/g, (_match, entity: string) => HTML_TEXT_ENTITIES[entity]);
 }
 
 const HTML_TEXT_ENTITIES: Record<string, string> = { lt: "<", gt: ">", quot: "\"", "#39": "'", nbsp: " ", amp: "&" };

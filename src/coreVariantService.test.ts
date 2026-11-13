@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { addCardVariant, createBasicNote, createManualNoteContent, createNote } from "./coreModel.ts";
+import { createAiCardVariantRequest } from "./aiCardVariantContract.ts";
 import {
   cardVariantSource,
   classifyCardEligibility,
@@ -81,6 +82,18 @@ test("Lückentext-Variante wird als Lückentext derselben Lückengruppe mit Zusa
   assert.deepEqual(presented.note.content.fields.map((field) => [field.role, field.html]), [["prompt", "Den Blutzucker hebt {{c2::Glukagon}}, Insulin senkt ihn."], ["extra", "Pankreas"]]);
   assert.equal(presented.card.promptKey, "cloze:2");
   assert.equal(presented.card.id, "variant-1");
+  const imported = variantPresentation({ ...note, noteTypeSourceId: "type-1", translator: { id: "generic", version: 1 } }, card, card.variants[0]);
+  assert.equal(imported.note.noteTypeSourceId, null, "eine Variante hat keine Felder des importierten Layouts");
+});
+
+test("Lückentext-Quelle mit Vergleichszeichen ohne Leerzeichen wird nicht erneut als HTML gelesen; Bearbeiten behält Leerzeichen vor Satzzeichen", () => {
+  const compare = createNote({ deckId: "deck", content: createManualNoteContent({ kind: "cloze", front: "wenn x&lt;y und y&gt;z dann {{c1::w}}", back: "" }) });
+  assert.equal(createAiCardVariantRequest(cardVariantSource(compare.note, compare.cards[0])).source.front, "wenn x<y und y>z dann {{c1::w}}");
+
+  const ratio = createNote({ deckId: "deck", content: createManualNoteContent({ kind: "cloze", front: "Das Verhältnis ist {{c1::3 : 1}}.", back: "" }) });
+  const card = addCardVariant(ratio.cards[0], { front: "Es gilt das Verhältnis {{c1::3 : 1}}.", back: "3 : 1" });
+  const edited = editVariantText(card, card.variants[0].id, { front: "<p>Als Verhältnis gilt {{c1::3 : 1}}.</p>", back: "" }, "2026-10-30T12:00:00.000Z", cardVariantSource(ratio.note, card));
+  assert.equal(edited.variants[0].back, "3 : 1");
 });
 
 test("Eine bearbeitete Lückentext-Variante braucht die Lücke der Karte mit derselben Lösung; die Antwort bleibt die der Karte", () => {
