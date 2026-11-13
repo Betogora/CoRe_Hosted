@@ -18,7 +18,7 @@ import type { createStudyOverview } from "./indexedDbStudyOverview.ts";
 import type { ReviewAnswerResult } from "./reviewService.ts";
 import type { SyncOutboxMutation } from "./syncEngine.ts";
 import { planEntityMutations } from "./syncMutationPlanner.ts";
-import { catalogEntryFromCard, withStudyEvents } from "./workspaceReplica.ts";
+import { catalogEntryFromCard, catalogReviewHistory, withStudyEvents, type CatalogReviewHistory } from "./workspaceReplica.ts";
 
 const REVIEW_STORES = [STORE.cards, STORE.variants, STORE.notes, STORE.cardCatalog, STORE.bodyResidency, STORE.deckStudySummaries, STORE.reviewEvents, STORE.outbox, STORE.meta, STORE.syncMetadata];
 
@@ -30,8 +30,8 @@ export function createReviewWrites({ userId, database, enqueueWrite, outbox, stu
   studyOverview: ReturnType<typeof createStudyOverview>;
   markCatalogChanged: (cardId: string) => void;
 }) {
-  /** Catalog entry of a card before each answer of this app session, so taking the answer back restores its history. */
-  const catalogBeforeAnswer = new Map<string, StoredCardCatalog | null>();
+  /** Catalog history of a card before each answer of this app session, so taking the answer back restores it. */
+  const historyBeforeAnswer = new Map<string, CatalogReviewHistory>();
 
   /**
    * Stores the answered or restored card with its variant, catalog entry, counters and mutation. An answer stores its
@@ -86,7 +86,7 @@ export function createReviewWrites({ userId, database, enqueueWrite, outbox, stu
       transaction.objectStore(STORE.meta).put({ key: "updatedAt", value: at });
       studyOverview.writeReviewCounts(transaction);
       await transactionDone(transaction);
-      if (takenBack) catalogBeforeAnswer.delete(event.id);
+      if (takenBack) historyBeforeAnswer.delete(event.id);
     });
   };
 
@@ -94,7 +94,7 @@ export function createReviewWrites({ userId, database, enqueueWrite, outbox, stu
     recordReview(result: ReviewAnswerResult) {
       const { event, updatedCard, variant } = result;
       write(result, updatedCard, variant, "review-atomic", event.answeredAt, (previous, note) => {
-        catalogBeforeAnswer.set(event.id, previous);
+        historyBeforeAnswer.set(event.id, catalogReviewHistory(previous));
         const history = withStudyEvents(previous, [event]);
         return note ? catalogRecordFor(updatedCard, note, history) : storedCatalogRecord({ ...catalogEntryFromCard(updatedCard, null, history), ...(previous ? { frontPreview: previous.frontPreview, sortText: previous.sortText, normalizedSearchText: previous.normalizedSearchText, marked: previous.marked, tagKeys: previous.tagKeys, editedAt: previous.editedAt, contentKind: previous.contentKind, noteTypeId: previous.noteTypeId } : {}) });
       });
@@ -106,13 +106,11 @@ export function createReviewWrites({ userId, database, enqueueWrite, outbox, stu
      * removes the event in the account.
      */
     undoReview(result: ReviewAnswerResult, previous: Card) {
-      const at = new Date().toISOString();
+      // Never before the answer (a simulated clock runs ahead), so the take-back follows it in the outbox.
+      const at = new Date(Math.max(Date.now(), Date.parse(result.event.answeredAt))).toISOString();
       const card: Card = { ...previous, studyRevision: result.updatedCard.studyRevision + 1, updatedAt: at };
       const variant = result.variant ? previous.variants.find((candidate) => candidate.id === result.variant!.id) ?? null : null;
-      write(result, card, variant && { ...variant, updatedAt: at }, "review-undo", at, (_, note) => {
-        const before = catalogBeforeAnswer.get(result.event.id) ?? null;
-        return note ? catalogRecordFor(card, note, before) : before;
-      });
+      write(result, card, variant && { ...variant, updatedAt: at }, "review-undo", at, (_, note) => note ? catalogRecordFor(card, note, historyBeforeAnswer.get(result.event.id)) : null);
       return card;
     },
   };

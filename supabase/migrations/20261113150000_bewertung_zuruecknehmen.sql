@@ -1,8 +1,9 @@
 -- Eine Bewertung zurücknehmen (Strg+Z/U beim Lernen): Das Ereignis verschwindet aus Verlauf und Statistik
 -- (der Löschtrigger rechnet die Tageswerte nach), Karte und Variante erhalten den Lernstand von vor der Bewertung.
 -- Den Lernstand übernimmt die Karte nur, solange keine spätere Bewertung eines anderen Geräts existiert; dann bleibt
--- deren Stand. Ein schon entferntes Ereignis lässt alles unverändert (Wiederholung desselben Auftrags).
-create function public.undo_review_atomic(
+-- deren Stand; der Katalog rechnet den Verlauf trotzdem ohne das Ereignis neu. Ein schon entferntes Ereignis lässt
+-- alles unverändert (Wiederholung desselben Auftrags).
+create or replace function public.undo_review_atomic(
   p_event_id text,
   p_card_id text,
   p_study jsonb,
@@ -66,8 +67,11 @@ begin
           and (candidate.answered_at, candidate.id) > (removed_event.answered_at, removed_event.id)
       )
     returning * into persisted_card;
+    -- A later answer keeps its study state; the touch still lets the catalog recompute the history without the event.
     if persisted_card.id is null then
-      select * into persisted_card from public.cards where user_id = current_user_id and id = p_card_id;
+      update public.cards set updated_by_device_id = p_device_id
+      where user_id = current_user_id and id = p_card_id
+      returning * into persisted_card;
     end if;
 
     if p_variant_id is not null then

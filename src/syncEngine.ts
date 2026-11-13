@@ -270,8 +270,9 @@ function createDefaultAdapter(client: CloudClient, userId: string) {
           failures.push({ mutationId: mutation.id, error: createRetryableMutationError() });
           continue;
         }
-        // A take-back waits for its review: removing an event that arrives later would let it stay.
-        if (mutation.type === SYNC_MUTATION_TYPES.reviewUndo && failedMutationIds.includes(`review_${mutation.payload?.event?.id}`)) {
+        // A take-back waits until its review is confirmed: removing an event that arrives later would let it stay.
+        const reviewId = `review_${mutation.payload?.event?.id}`;
+        if (mutation.type === SYNC_MUTATION_TYPES.reviewUndo && mutations.some((candidate) => candidate.id === reviewId) && !acknowledgedMutationIds.includes(reviewId)) {
           failedMutationIds.push(mutation.id);
           failures.push({ mutationId: mutation.id, error: createRetryableMutationError() });
           continue;

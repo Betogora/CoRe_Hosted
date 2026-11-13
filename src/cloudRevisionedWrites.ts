@@ -452,6 +452,17 @@ export async function applyEntityMutationBatch(client: CloudClient, mutations: E
   return results;
 }
 
+/** A missing review function (server not yet migrated) stays retryable; the local change remains queued. */
+function throwReviewRpcError(error: { code?: unknown; message?: unknown } | null, name: string, action: string) {
+  if (!error) return;
+  if (String(error.code ?? "") === "PGRST202" || String(error.code ?? "") === "42883" || new RegExp(`${name}|function.*does not exist`, "i").test(String(error.message ?? ""))) {
+    const unavailable = new Error(`${action} ist auf dem Server noch nicht verfügbar. Die lokale Änderung bleibt vorgemerkt.`) as Error & { code: string };
+    unavailable.code = "review_rpc_unavailable";
+    throw unavailable;
+  }
+  throw error;
+}
+
 /** Review as the outbox stores it for `record_review_atomic`. */
 export interface AtomicReviewPayload {
   card?: Pick<Card, "id" | "study" | "updatedAt">;
@@ -475,15 +486,7 @@ export async function recordAtomicReview(client: CloudClient, input: AtomicRevie
     p_event: eventRow,
     p_device_id: deviceId,
   });
-  if (error) {
-    const code = String(error.code ?? "");
-    if (code === "PGRST202" || code === "42883" || /record_review_atomic|function.*does not exist/i.test(String(error.message ?? ""))) {
-      const unavailable = new Error("Die atomare Review-Synchronisierung ist auf dem Server noch nicht verfügbar. Die lokale Änderung bleibt vorgemerkt.") as Error & { code: string };
-      unavailable.code = "review_rpc_unavailable";
-      throw unavailable;
-    }
-    throw error;
-  }
+  throwReviewRpcError(error, "record_review_atomic", "Die atomare Review-Synchronisierung");
   const response = requireJsonRecord(data, "Die atomare Review-Antwort hatte ein ungültiges Format.");
   const rows = {
     card: validateAccountRows("cards", [response.card])[0],
@@ -672,15 +675,7 @@ export async function undoAtomicReview(client: CloudClient, input: AtomicReviewP
     p_variant_updated_at: variant?.updatedAt ?? null,
     p_device_id: deviceId,
   });
-  if (error) {
-    const code = String(error.code ?? "");
-    if (code === "PGRST202" || code === "42883" || /undo_review_atomic|function.*does not exist/i.test(String(error.message ?? ""))) {
-      const unavailable = new Error("Das Zurücknehmen von Bewertungen ist auf dem Server noch nicht verfügbar. Die lokale Änderung bleibt vorgemerkt.") as Error & { code: string };
-      unavailable.code = "review_rpc_unavailable";
-      throw unavailable;
-    }
-    throw error;
-  }
+  throwReviewRpcError(error, "undo_review_atomic", "Das Zurücknehmen von Bewertungen");
   const response = requireJsonRecord(data, "Die Antwort auf das Zurücknehmen hatte ein ungültiges Format.");
   const rows = {
     card: validateAccountRows("cards", [response.card])[0],

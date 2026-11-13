@@ -817,7 +817,7 @@ export async function createIndexedDbCoreRepository({ userId, initialState, inde
     },
     outbox,
     flush: () => writeChain,
-    /** Takes over revisions the cloud confirmed; a pending later change of the same row keeps its local state. */
+    /** Takes over revisions the cloud confirmed; a pending later change (deletion, taken-back answer) keeps the local state. */
     persistMutationAcknowledgements(persistedRows: Array<{ table: string; row: any; entity?: any }> = []) {
       return enqueueWrite(async () => {
         const relevant = persistedRows.filter(({ table, row }) => row?.id && ["decks", "notes", "cards", "card_variants"].includes(table));
@@ -830,7 +830,7 @@ export async function createIndexedDbCoreRepository({ userId, initialState, inde
           const current = await requestResult<any>(store.get(row.id));
           if (!current) continue;
           const pending = pendingEntityMutation(table, row.id);
-          if (pending && Boolean((pending.payload as any)?.tombstone) !== Boolean(row.deleted_at)) continue;
+          if (pending && (Boolean((pending.payload as any)?.tombstone) !== Boolean(row.deleted_at) || pending.type === "review-undo" && Date.parse(row.updated_at) !== Date.parse((pending.payload as any)?.[table === "cards" ? "card" : "variant"]?.updatedAt))) continue;
           if (table === "cards" && entity) {
             store.put(cardRecord({ ...entity, variants: [] }));
             touchedCards.add(row.id);

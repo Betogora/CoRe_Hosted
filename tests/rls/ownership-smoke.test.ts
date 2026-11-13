@@ -837,6 +837,9 @@ test("lokales Supabase isoliert Nutzer A, Nutzer B und anon über alle accountge
           .single(), "Tagesprojektion nach Rücknahme lesen");
         assert.equal(statisticsAfterUndo.review_count, 1);
         assert.deepEqual(statisticsAfterUndo.rating_counts, { "young:again": 1 });
+        const historyAfterUndo = assertNoError(await clientA.from("card_catalog").select("last_good_at, last_again_at").eq("id", fixtureA.cards.id).single(), "Lernverlauf nach Rücknahme lesen");
+        assert.notEqual(Date.parse(historyAfterUndo.last_good_at), Date.parse(answeredAt), "der Katalog nennt die zurückgenommene Bewertung nicht mehr");
+        assert.equal(Date.parse(historyAfterUndo.last_again_at), Date.parse(olderAnsweredAt));
         const undoReplay = assertNoError(await clientA.rpc("undo_review_atomic", { ...undoParameters, p_study: study() }), "Rücknahme idempotent wiederholen");
         assert.equal(undoReplay.idempotent, true);
         assert.equal(undoReplay.card.study_revision, undone.card.study_revision, "Eine wiederholte Rücknahme ändert den Lernstand nicht.");
