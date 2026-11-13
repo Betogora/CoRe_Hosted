@@ -22,6 +22,8 @@ const LAST_SLOT = 1440 - EXAM_SLOT_MINUTES;
 const gridOffset = (minute: number) => (Math.max(minute, EXAM_DAY_START) - EXAM_DAY_START) / 60 * HOUR_HEIGHT;
 const gridPercent = (minute: number) => gridOffset(minute) / GRID_HEIGHT * 100 + "%";
 const FIELD = "core-field w-full min-w-0";
+/** To-dos a day shows before `+N weitere`; each keeps its full height, the list never scrolls. */
+const VISIBLE_TODOS = 3;
 
 export function ExamWeekCalendar({ exams, shown, onToggleExam, capacity, forecast, decks, today, date, busy, color, onSelect, onChange }: {
   exams: ExamPlan[]; shown: ExamPlan[]; onToggleExam: (id: string) => void; capacity: StudyTimeCapacity; forecast: ExamPortfolioForecast | null; decks: Deck[];
@@ -33,6 +35,7 @@ export function ExamWeekCalendar({ exams, shown, onToggleExam, capacity, forecas
   const [cursor, setCursor] = React.useState({ date, minute: 480 });
   const [focusedDay, setFocusedDay] = React.useState("");
   const [selectedId, setSelectedId] = React.useState("");
+  const [openDays, setOpenDays] = React.useState<ReadonlySet<string>>(() => new Set());
   const [editing, setEditing] = React.useState<TimeRange & { id: string } | null>(null);
   const edit = React.useRef<{ id: string; y: number; move: boolean; next: TimeRange } | null>(null);
   const [task, setTask] = React.useState<Task | null>(null);
@@ -148,6 +151,17 @@ export function ExamWeekCalendar({ exams, shown, onToggleExam, capacity, forecas
     drag.current = null; setDragging(null);
   }
 
+  /** A day's to-dos: the first three, then `+N weitere`, which opens the rest in place so they stay draggable. */
+  const visibleTodos = (key: string, entries: React.ReactNode[]) => {
+    const hidden = entries.length - VISIBLE_TODOS;
+    if (hidden <= 0) return entries;
+    const open = openDays.has(key);
+    const toggle = () => setOpenDays((current) => { const next = new Set(current); if (open) next.delete(key); else next.add(key); return next; });
+    return [...(open ? entries : entries.slice(0, VISIBLE_TODOS)), <button key="more" type="button" aria-expanded={open} onClick={toggle}
+      aria-label={`${open ? "Weniger anzeigen" : `+${hidden} weitere`}: To-dos am ${formatExamDate(key)}`}
+      className="min-h-control rounded-inset px-2 text-left core-caption font-semibold text-core-action transition-colors hover:bg-core-subtle">{open ? "Weniger anzeigen" : `+${hidden} weitere`}</button>];
+  };
+
   return <SoftPanel className="grid min-w-0 gap-4 p-3 sm:p-5" data-testid="exam-week-calendar">
     <div className="flex min-w-0 flex-wrap items-center gap-2">
       <h4 className="mr-auto core-heading-3 text-core-text">{formatExamDate(days[0], "short")} – {formatExamDate(days[6], "short")}</h4>
@@ -168,15 +182,14 @@ export function ExamWeekCalendar({ exams, shown, onToggleExam, capacity, forecas
             return <div key={key} className="grid min-w-0 content-start gap-2 border-l border-core-border p-2">
               <button type="button" data-week-header={key} className={`min-h-control rounded-inset px-2 text-left core-control-label font-semibold transition-colors ${key === today ? "bg-core-info-soft text-core-action" : "text-core-text hover:bg-core-subtle"}`} onClick={() => { onSelect(key, false); setManualDate(key); }}>{formatExamDate(key, "short")}{key === today ? " · Heute" : ""}</button>
               {shown.filter((exam) => exam.examDate === key).map((exam) => <span key={exam.id} className="break-words rounded-inset p-2 core-caption font-semibold" style={{ background: color(exam), color: examTextColor(exam) }}>Klausur · {exam.name}</span>)}
-              <div className="grid max-h-44 auto-rows-max content-start gap-2 overflow-y-auto" aria-label={`To-dos am ${formatExamDate(key)}`}>
-                {tasks.map(({ exam, label }) => <button key={exam.id} type="button" data-week-task={exam.id} aria-label={`${exam.name}: ${label}. Aufgabe auswählen oder in einen Zeitblock ziehen`} aria-pressed={task?.examId === exam.id} disabled={busy || exam.status !== "active"} className="flex min-h-control min-w-0 touch-none select-none items-start gap-1 rounded-control border-strong p-2 text-left" style={{ borderColor: color(exam), background: `color-mix(in srgb, ${color(exam)} ${task?.examId === exam.id ? 30 : 16}%, var(--core-surface))` }}
+              <div className="grid auto-rows-max content-start gap-2" aria-label={`To-dos am ${formatExamDate(key)}`}>
+                {visibleTodos(key, [...tasks.map(({ exam, label }) => <button key={exam.id} type="button" data-week-task={exam.id} aria-label={`${exam.name}: ${label}. Aufgabe auswählen oder in einen Zeitblock ziehen`} aria-pressed={task?.examId === exam.id} disabled={busy || exam.status !== "active"} className="flex min-h-control min-w-0 touch-none select-none items-start gap-1 rounded-control border-strong p-2 text-left" style={{ borderColor: color(exam), background: `color-mix(in srgb, ${color(exam)} ${task?.examId === exam.id ? 30 : 16}%, var(--core-surface))` }}
                   onClick={() => { if (suppressClick.current) { suppressClick.current = false; return; } setTask(task?.examId === exam.id ? null : { examId: exam.id }); }}
                   onPointerDown={(event) => { if (event.button !== 0) return; suppressClick.current = false; drag.current = { examId: exam.id, x: event.clientX, y: event.clientY, moved: false }; event.currentTarget.setPointerCapture(event.pointerId); }}
                   onPointerMove={(event) => { const moving = drag.current; if (!moving) return; if (Math.hypot(event.clientX - moving.x, event.clientY - moving.y) > 6) moving.moved = true; if (moving.moved) setDragging({ examId: moving.examId, x: event.clientX, y: event.clientY }); }}
                   onPointerUp={dropSubject} onPointerCancel={() => { drag.current = null; setDragging(null); }}>
                   <GripVertical size={14} className="mt-0.5 shrink-0 text-core-muted" aria-hidden="true"/><span className="grid min-w-0 gap-1"><strong className="min-w-0 break-words core-caption text-core-text">{exam.name}</strong><span className="core-caption text-core-text">{label}</span></span>
-                </button>)}
-                {day?.summaries.flatMap((entry) => { const exam = shown.find((candidate) => candidate.id === entry.examId); return exam ? [<span key={`summary:${entry.examId}:${entry.deckId}`} data-exam-task="summary" className="grid min-w-0 gap-1 break-words rounded-control border-strong p-2 core-caption text-core-text" style={{ borderColor: color(exam), background: `color-mix(in srgb, ${color(exam)} 16%, var(--core-surface))` }}><strong className="min-w-0 break-words">{exam.name}</strong>Lesen · {decks.find((deck) => deck.id === entry.deckId)?.name ?? "Stapel"}</span>] : []; })}
+                </button>), ...(day?.summaries.flatMap((entry) => { const exam = shown.find((candidate) => candidate.id === entry.examId); return exam ? [<span key={`summary:${entry.examId}:${entry.deckId}`} data-exam-task="summary" className="grid min-w-0 gap-1 break-words rounded-control border-strong p-2 core-caption text-core-text" style={{ borderColor: color(exam), background: `color-mix(in srgb, ${color(exam)} 16%, var(--core-surface))` }}><strong className="min-w-0 break-words">{exam.name}</strong>Lesen · {decks.find((deck) => deck.id === entry.deckId)?.name ?? "Stapel"}</span>] : []; }) ?? [])])}
                 {!tasks.length ? <span className="core-caption text-core-muted">{day || !exams.some((exam) => exam.status === "active" && key < exam.examDate) ? "Keine neuen Karten" : key >= today ? "Plan wird berechnet …" : ""}</span> : null}
               </div>
             </div>;
