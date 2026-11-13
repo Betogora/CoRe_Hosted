@@ -572,6 +572,7 @@ Originalkarte | wird selbst abgefragt; nach einem Fehler so lange, bis sie wiede
 - Vor der Antwort deutet nichts auf eine Variante hin. Erst danach ist sie gekennzeichnet, und die Originalkarte lässt sich aufdecken.
 - Von dort führt der Weg in die Variantenverwaltung der Karte und zurück in die Sitzung.
 - Fehlt eine Variante oder ist sie fehlerhaft, wird die Karte selbst abgefragt.
+- Eine Variante ersetzt nur Frage und Antwort; Hinweise, Zusatz, Quelle und Sprachausgabe der Karte bleiben.
 - Persönliche Lerndaten werden nie in einer Variante gespeichert.
 
 ### Varianten verwalten
@@ -641,6 +642,8 @@ Eine Lernhilfe zu genau der Karte, die gerade aufgedeckt ist.
 Eine Variante fragt denselben Inhalt mit anderer Formulierung ab.
 
 - Varianten gibt es nur für Karten mit Frage und Antwort; Lückentexte, Auswahlfragen, Bildverdeckungen und Karten ohne Fragetext erhalten keine.
+- Bei einer Karte mit eingetippter Antwort bleibt die Antwort zeichengleich, und die Variante wird ebenfalls eingetippt.
+- Ergibt eine Karte keinen erkennbaren Sinn oder ist sie nur mit privatem Kontext verständlich, meldet die KI sie als nicht umformulierbar, statt eine Deutung zu erfinden; es entsteht keine Variante, und die Stapelerzeugung zählt solche Karten getrennt.
 - Die KI erhält Frage und Antwort in begrenzter Länge und die Fragen vorhandener Varianten, damit die neue sich davon unterscheidet. Sie soll die Frage möglichst anders beginnen als das Original; das ist eine Anweisung, keine Prüfung.
 - Gespeichert wird nur, wenn die Karte während der Anfrage unverändert blieb und dieselbe Formulierung noch nicht existiert.
 - Eine Karte kann weitere Varianten erhalten, bis die Höchstzahl aktiver Varianten ihres Stapels erreicht ist.

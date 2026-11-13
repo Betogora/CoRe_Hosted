@@ -259,6 +259,16 @@ MC_ROLES = {"Question": "prompt", "Title": "note", MC_QTYPE: "consumed", "Q_1": 
             "Q_4": "consumed", "Q_5": "consumed", "Answers": "consumed", "Sources": "source", "Extra 1": "extra"}
 
 
+def add_multiple_choice_notetype(col: Any) -> None:
+    add_custom_notetype(col, MC_NOTETYPE, MC_FIELDS, [(
+        MC_NOTETYPE,
+        '<script>var type="{{QType (0=kprim,1=mc,2=sc)}}";</script>{{Question}}<table id="qtable"></table>'
+        '<div class="hidden" id="Q_solutions">{{Answers}}</div><div class="hidden">{{Q_1}}|{{Q_2}}|{{Q_3}}|{{Q_4}}|{{Q_5}}</div>',
+        '{{Question}}<table id="atable"></table><p><b>Correct answers: x %</b></p><div>{{Sources}}</div><div>{{Extra 1}}</div>'
+        '<script>var solution="{{Answers}}";</script>',
+    )])
+
+
 def build_special_notetypes(col: Any) -> None:
     # CoRe-authored imitations of popular community note types; structure only, no copied code.
     hint_buttons = "".join(
@@ -270,13 +280,7 @@ def build_special_notetypes(col: Any) -> None:
         f'{{{{cloze:Text}}}}<div id="hints">{hint_buttons}</div><script>function toggle(b){{b.nextSibling.classList.toggle("hidden")}}</script>',
         f'{{{{cloze:Text}}}}<hr>{{{{Extra}}}}{hint_buttons}{{{{#AMBOSS}}}}<div class="amboss">{{{{AMBOSS}}}}</div>{{{{/AMBOSS}}}}<script>function toggle(b){{}}</script>',
     )], cloze=True, css=".hidden{display:none}")
-    add_custom_notetype(col, MC_NOTETYPE, MC_FIELDS, [(
-        MC_NOTETYPE,
-        '<script>var type="{{QType (0=kprim,1=mc,2=sc)}}";</script>{{Question}}<table id="qtable"></table>'
-        '<div class="hidden" id="Q_solutions">{{Answers}}</div><div class="hidden">{{Q_1}}|{{Q_2}}|{{Q_3}}|{{Q_4}}|{{Q_5}}</div>',
-        '{{Question}}<table id="atable"></table><p><b>Correct answers: x %</b></p><div>{{Sources}}</div><div>{{Extra 1}}</div>'
-        '<script>var solution="{{Answers}}";</script>',
-    )])
+    add_multiple_choice_notetype(col)
     add_custom_notetype(col, "CoRe-Matrix Hauptstadt", ["Land", "Hauptstadt", "Flagge"], [(
         "Hauptstadt",
         "Was ist die Hauptstadt von {{Land}}?{{#Flagge}}<br>{{Flagge}}{{/Flagge}}",

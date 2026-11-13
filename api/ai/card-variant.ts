@@ -28,8 +28,12 @@ const SYSTEM_PROMPT = [
   "Enthält avoid bereits vorhandene Formulierungen, formuliere deutlich anders als das Original und als jede davon.",
   "Die Rückseite bleibt inhaltlich gleich und knapp; übernimm Fachbegriffe, Namen, Zahlen, Einheiten und Formeln zeichengenau.",
   "Ergänze keine neuen Fakten oder Konzepte und behalte die Schwierigkeit bei.",
-  "Rufe genau einmal create_card_variant mit front und back auf und gib sonst nichts aus.",
+  "Ergibt der Inhalt keinen erkennbaren Sinn, etwa eine zufällige Zeichenfolge, oder ist er nur mit privatem Kontext verständlich, setze rephrasable auf false und lasse front und back leer; erfinde dann keine Deutung und keine Hülle wie „Was gehört zu …?“.",
+  "Kurze, knappe oder fachsprachliche Karten lassen sich umformulieren; setze dann rephrasable auf true.",
+  "Rufe genau einmal create_card_variant mit rephrasable, front und back auf und gib sonst nichts aus.",
 ].join(" ");
+
+const TYPE_IN_RULE = "Die Antwort dieser Karte wird eingetippt und zeichengenau verglichen: Gib die Rückseite exakt unverändert zurück und formuliere nur die Vorderseite um.";
 
 const TEXTS: ProviderTexts = {
   rateLimited: "Gerade wurden zu viele Varianten angefordert. Bitte versuche es in einer Minute erneut.",
@@ -45,21 +49,22 @@ export function buildOpenRouterPayload(input: AiCardVariantRequest) {
   return {
     model: OPENROUTER_MODEL,
     messages: [
-      { role: "system", content: SYSTEM_PROMPT },
+      { role: "system", content: input.kind === "type-in" ? `${SYSTEM_PROMPT} ${TYPE_IN_RULE}` : SYSTEM_PROMPT },
       { role: "user", content: JSON.stringify(input.avoid?.length ? { source: input.source, avoid: input.avoid } : { source: input.source }) },
     ],
     tools: [{
       type: "function",
       function: {
         name: "create_card_variant",
-        description: "Erstellt genau eine nahe textbasierte Variante der gegebenen Basic-Lernkarte.",
+        description: "Erstellt genau eine nahe textbasierte Variante der gegebenen Lernkarte oder meldet sie als nicht umformulierbar.",
         parameters: {
           type: "object",
           properties: {
-            front: { type: "string", minLength: 1, maxLength: MAX_AI_CARD_VARIANT_FIELD_CHARS },
-            back: { type: "string", minLength: 1, maxLength: MAX_AI_CARD_VARIANT_FIELD_CHARS },
+            rephrasable: { type: "boolean" },
+            front: { type: "string", maxLength: MAX_AI_CARD_VARIANT_FIELD_CHARS },
+            back: { type: "string", maxLength: MAX_AI_CARD_VARIANT_FIELD_CHARS },
           },
-          required: ["front", "back"],
+          required: ["rephrasable", "front", "back"],
           additionalProperties: false,
         },
       },
@@ -75,8 +80,12 @@ export function buildOpenRouterPayload(input: AiCardVariantRequest) {
 export function extractGeneratedVariant(payload: unknown, input: AiCardVariantRequest): { result: AiCardVariantSuccess; costUsd: number | null } {
   const { toolArguments, model, usage, costUsd } = readToolCall(payload, "create_card_variant", TEXTS);
   const rawArguments = toolArguments !== null && typeof toolArguments === "object" ? toolArguments as Record<string, unknown> : {};
-  if (Object.keys(rawArguments).sort().join(",") !== "back,front") throw new HttpError(502, "invalid_tool_call", TEXTS.fields);
+  if (Object.keys(rawArguments).sort().join(",") !== "back,front,rephrasable" || typeof rawArguments.rephrasable !== "boolean") {
+    throw new HttpError(502, "invalid_tool_call", TEXTS.fields);
+  }
+  if (!rawArguments.rephrasable) throw new HttpError(422, "not_rephrasable", "Diese Karte lässt sich nicht sinnvoll umformulieren.");
   const variantRequest = parseAiCardVariantRequest({
+    kind: input.kind,
     source: {
       front: normalizeAiCardText(rawArguments.front),
       back: normalizeAiCardText(rawArguments.back),
@@ -87,8 +96,7 @@ export function extractGeneratedVariant(payload: unknown, input: AiCardVariantRe
   }
   if (normalizeAiCardText(variantRequest.output.source.front).toLocaleLowerCase("de-DE") === normalizeAiCardText(input.source.front).toLocaleLowerCase("de-DE")) {
     throw new HttpError(502, "unchanged_front", "Das Modell hat die Kartenfrage nicht erkennbar umformuliert.");
-  }
-  const parsed = parseAiCardVariantSuccess({ variant: variantRequest.output.source, model, privacyMode: "zdr", usage });
+  }  const parsed = parseAiCardVariantSuccess({ variant: variantRequest.output.source, model, privacyMode: "zdr", usage });
   if (!parsed.success) throw new HttpError(502, "invalid_provider_response", TEXTS.invalid);
   return { result: parsed.output, costUsd };
 }
@@ -121,7 +129,7 @@ export function createCardVariantHandler({
       await authenticateRequest(token);
       if (!env.OPENROUTER_API_KEY) throw new HttpError(503, "missing_openrouter_api_key", "Die Variantengenerierung ist noch nicht eingerichtet.");
       const input = parseAiCardVariantRequest(await readJsonBody(req, MAX_AI_CARD_VARIANT_REQUEST_BYTES));
-      if (!input.success) throw new HttpError(400, "invalid_request", "Die Basic-Karte ist leer, zu lang oder ungültig.");
+      if (!input.success) throw new HttpError(400, "invalid_request", "Die Karte ist leer, zu lang oder ungültig.");
 
       generating = true;
       const payload = await requestOpenRouter(fetchImpl, env.OPENROUTER_API_KEY, buildOpenRouterPayload(input.output), AbortSignal.timeout(AI_CARD_VARIANT_DEADLINE_MS), TEXTS);

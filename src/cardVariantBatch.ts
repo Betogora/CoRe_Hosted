@@ -46,6 +46,8 @@ export interface CardVariantBatchResult {
   created: number;
   /** Cards whose generation failed on its own; candidates that cannot get a variant (e.g. cloze) are skipped silently. */
   failed: number;
+  /** Cards the model reported as not sensibly rephrasable (`not_rephrasable`). */
+  notRephrasable: number;
   /** The action stopped before its end: cancelled by the user or after an error every card would hit. */
   stopped: { reason: "cancelled" } | { reason: "error"; message: string } | null;
   /** More candidate cards remain after this action. */
@@ -95,7 +97,7 @@ export async function runCardVariantBatch({
     }
   }
 
-  const result: CardVariantBatchResult = { created: 0, failed: 0, stopped: null, hasMore };
+  const result: CardVariantBatchResult = { created: 0, failed: 0, notRephrasable: 0, stopped: null, hasMore };
   for (const [index, cardId] of selected.entries()) {
     onProgress({ phase: "generating", done: index, total: selected.length });
     if (signal?.aborted) {
@@ -113,7 +115,8 @@ export async function runCardVariantBatch({
         result.hasMore = true;
         break;
       }
-      result.failed += 1;
+      if (error instanceof AiCardVariantContractError && error.code === "not_rephrasable") result.notRephrasable += 1;
+      else result.failed += 1;
     }
   }
   if (!result.stopped) onProgress({ phase: "generating", done: selected.length, total: selected.length });
@@ -132,8 +135,13 @@ export function summarizeCardVariantBatch(result: CardVariantBatchResult, mode: 
   if (result.stopped?.reason === "error") {
     return { kind: "bar", message: `Gestoppt nach ${variantCount(result.created)}: ${result.stopped.message}` };
   }
-  if (result.failed > 0) {
-    return { kind: "bar", message: `${variantCount(result.created)} generiert, ${result.failed} fehlgeschlagen` };
+  if (result.failed > 0 || result.notRephrasable > 0) {
+    const parts = [
+      `${variantCount(result.created)} generiert`,
+      ...(result.notRephrasable ? [`${result.notRephrasable} nicht umformulierbar`] : []),
+      ...(result.failed ? [`${result.failed} fehlgeschlagen`] : []),
+    ];
+    return { kind: "bar", message: parts.join(", ") };
   }
   if (result.stopped?.reason === "cancelled") return { kind: "toast", message: `Abgebrochen. ${variantCount(result.created)} generiert.` };
   if (result.created === 0) return { kind: "toast", message: mode === "refresh" ? "Alle Varianten stammen bereits aus der aktuellen Version." : "Keine Karte ohne Variante gefunden." };

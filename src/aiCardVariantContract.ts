@@ -2,7 +2,7 @@ import * as v from "valibot";
 import { stripHtml } from "./htmlSafety.js";
 
 export const AI_CARD_VARIANT_ENDPOINT = "/api/ai/card-variant";
-export const AI_CARD_VARIANT_PROMPT_VERSION = "card-variant-v4";
+export const AI_CARD_VARIANT_PROMPT_VERSION = "card-variant-v5";
 export const MAX_AI_CARD_VARIANT_FIELD_CHARS = 1_200;
 const MAX_AI_CARD_VARIANT_SOURCE_CHARS = 2_400;
 /** Existing rephrasings sent along so a new one differs from them; newest first, bounded to keep the request small. */
@@ -15,7 +15,10 @@ export const AI_CARD_VARIANT_DEADLINE_MS = 25_000;
 
 const textSchema = v.pipe(v.string(), v.trim(), v.minLength(1), v.maxLength(MAX_AI_CARD_VARIANT_FIELD_CHARS));
 const sourceSchema = v.strictObject({ front: textSchema, back: textSchema });
+/** `type-in`: the learner types the answer, so a variant keeps it character for character. */
+const kindSchema = v.picklist(["basic", "type-in"]);
 const requestSchema = v.strictObject({
+  kind: kindSchema,
   source: sourceSchema,
   avoid: v.optional(v.pipe(v.array(textSchema), v.maxLength(MAX_AI_CARD_VARIANT_AVOID_ITEMS))),
 });
@@ -31,6 +34,7 @@ const successSchema = v.strictObject({
   usage: usageSchema,
 });
 
+export type AiCardVariantSource = { kind: v.InferOutput<typeof kindSchema>; front: string; back: string };
 export type AiCardVariantRequest = v.InferOutput<typeof requestSchema>;
 export type AiCardVariantSuccess = v.InferOutput<typeof successSchema>;
 
@@ -47,7 +51,7 @@ function withinRequestLimits(request: AiCardVariantRequest) {
  * Builds the request from the plain question and answer of a reveal card (`cardVariantSource`) and the
  * questions of its variants (`aiCardVariantAvoidTexts`); entries beyond the limits are left out.
  */
-export function createAiCardVariantRequest(source: { front: string; back: string } | null, avoid: string[] = []): AiCardVariantRequest {
+export function createAiCardVariantRequest(source: AiCardVariantSource | null, avoid: string[] = []): AiCardVariantRequest {
   if (!source) {
     throw new AiCardVariantContractError("unsupported_card_type", "Varianten gibt es derzeit nur für Karten mit Frage und Antwort.");
   }
@@ -59,6 +63,7 @@ export function createAiCardVariantRequest(source: { front: string; back: string
     avoidChars += text.length;
   }
   const parsed = v.safeParse(requestSchema, {
+    kind: source.kind,
     source: {
       front: normalizeAiCardText(source.front),
       back: normalizeAiCardText(source.back),

@@ -29,8 +29,8 @@ function matureCard(stability = 20, reps = 0): Card {
 test("Variantenquelle liefert reinen Text der Abfrage, auch für die Rückrichtung", () => {
   const { note, cards } = createBasicNote("deck", "<p>Was ist <b>ATP</b> genau?&nbsp;</p>", "<p>Energieträger</p>", { reverse: true });
   const [forward, reverse] = cards;
-  assert.deepEqual(cardVariantSource(note, forward), { front: "Was ist ATP genau?", back: "Energieträger" });
-  assert.deepEqual(cardVariantSource(note, reverse), { front: "Energieträger", back: "Was ist ATP genau?" });
+  assert.deepEqual(cardVariantSource(note, forward), { kind: "basic", front: "Was ist ATP genau?", back: "Energieträger" });
+  assert.deepEqual(cardVariantSource(note, reverse), { kind: "basic", front: "Energieträger", back: "Was ist ATP genau?" });
   assert.equal(cardVariantSource(note, { promptKey: "unbekannt" }), null);
 });
 
@@ -42,7 +42,9 @@ test("Variantenquelle verbindet mehrere Fragefelder und verlangt Frage und Antwo
     additionalFields: [{ id: "land", name: "Land", value: "Frankreich", role: "prompt" }, { id: "info", name: "Info", value: "Seine", role: "extra" }],
   });
   const { note, cards } = createNote({ deckId: "deck", content });
-  assert.deepEqual(cardVariantSource(note, cards[0]), { front: "Hauptstadt von Frankreich", back: "Paris" });
+  assert.deepEqual(cardVariantSource(note, cards[0]), { kind: "basic", front: "Hauptstadt von Frankreich", back: "Paris" });
+  const typed = createNote({ deckId: "deck", content: createManualNoteContent({ kind: "basic", front: "Symbol für Gold?", back: "Au", typeIn: true }) });
+  assert.deepEqual(cardVariantSource(typed.note, typed.cards[0]), { kind: "type-in", front: "Symbol für Gold?", back: "Au" });
   const imageOnly = createBasicNote("deck", '<img src="bild.png">', "Antwort");
   assert.equal(cardVariantSource(imageOnly.note, imageOnly.cards[0]), null);
 });
@@ -99,6 +101,28 @@ test("Variantendarstellung ersetzt Frage und Antwort und behält Zusatzfelder, T
   assert.equal(presented.card.study, card.study);
   assert.equal(presented.card.noteId, card.noteId);
   assert.equal(note.content.fields[0].html, "Original-Frage");
+});
+
+test("Eintippen-Variante fragt neu und vergleicht mit dem Antwortfeld der Karte; Hinweise und Sprachausgabe bleiben", () => {
+  const content = createManualNoteContent({
+    kind: "basic",
+    front: "Symbol für Gold?",
+    back: "Au",
+    typeIn: true,
+    additionalFields: [{ id: "tipp", name: "Tipp", value: "Lateinisch aurum", role: "hint" }],
+  });
+  content.speech = [{ fieldId: "front", language: "de_DE" }, { fieldId: "back", language: "de_DE" }, { fieldId: "tipp", language: "de_DE" }];
+  const { note, cards } = createNote({ deckId: "deck", content });
+  const card = addCardVariant(cards[0], { id: "variant-1", front: "Welches Elementsymbol hat Gold?", back: "Gold hat das Symbol Au" });
+  const presented = variantPresentation(note, card, card.variants[0]).note.content;
+
+  assert.deepEqual(presented.fields.map((field) => [field.id, field.role, field.html]), [
+    ["variant-front", "prompt", "Welches Elementsymbol hat Gold?"],
+    ["back", "answer", "Au"],
+    ["tipp", "hint", "Lateinisch aurum"],
+  ]);
+  assert.equal(presented.interaction.kind === "reveal" && presented.interaction.prompts[0].typeInFieldId, "back");
+  assert.deepEqual(presented.speech.map((entry) => entry.fieldId), ["variant-front", "back", "tipp"]);
 });
 
 test("Review wechselt reife Karten reihum zwischen Karte und Varianten ab", () => {

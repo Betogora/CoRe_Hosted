@@ -3,13 +3,13 @@ import test from "node:test";
 import { buildOpenRouterPayload, createCardVariantHandler, extractGeneratedVariant } from "../api/ai/card-variant.ts";
 import { OPENROUTER_CHAT_ENDPOINT, OPENROUTER_MODEL } from "../server/aiRoute.ts";
 
-const input = { source: { front: "Was ist ATP?", back: "Ein Energieträger." } };
+const input = { kind: "basic" as const, source: { front: "Was ist ATP?", back: "Ein Energieträger." } };
 const texts = { rateLimited: "zu viele", unavailable: "nicht verfügbar", rejected: "abgelehnt", failed: "fehlgeschlagen", invalid: "ungültig", tool: "Werkzeug", fields: "Felder" };
 
 function completion(modelId = OPENROUTER_MODEL) {
   return {
     model: modelId,
-    choices: [{ message: { tool_calls: [{ function: { name: "create_card_variant", arguments: JSON.stringify({ front: "Wofür steht ATP?", back: "ATP ist ein Energieträger." }) } }] } }],
+    choices: [{ message: { tool_calls: [{ function: { name: "create_card_variant", arguments: JSON.stringify({ rephrasable: true, front: "Wofür steht ATP?", back: "ATP ist ein Energieträger." }) } }] } }],
     usage: { prompt_tokens: 120, completion_tokens: 42, total_tokens: 162, cost: 0.00003 },
   };
 }
@@ -49,6 +49,8 @@ test("OpenRouter payload forces one compact tool call on the fixed model with ZD
   assert.deepEqual(payload.reasoning, { effort: "low" });
   assert.deepEqual(payload.provider, { require_parameters: true, data_collection: "deny", zdr: true });
   assert.equal(JSON.stringify(payload).includes("genau einmal create_card_variant"), true);
+  assert.doesNotMatch(payload.messages[0].content, /eingetippt/);
+  assert.match(buildOpenRouterPayload({ ...input, kind: "type-in" }).messages[0].content, /eingetippt und zeichengenau verglichen/);
   assert.deepEqual(JSON.parse(payload.messages[1].content), { source: input.source });
 
   const withAvoid = buildOpenRouterPayload({ ...input, avoid: ["Wofür steht ATP?"] });
@@ -66,19 +68,26 @@ test("provider extraction requires exactly one changed create_card_variant call"
   assert.throws(() => extractGeneratedVariant({ choices: [{ message: { tool_calls: [] } }] }, input));
   assert.throws(() => extractGeneratedVariant({
     choices: [{ message: { tool_calls: [
-      { function: { name: "create_card_variant", arguments: JSON.stringify({ front: "Neu", back: "Antwort" }) } },
-      { function: { name: "create_card_variant", arguments: JSON.stringify({ front: "Noch neuer", back: "Antwort" }) } },
+      { function: { name: "create_card_variant", arguments: JSON.stringify({ rephrasable: true, front: "Neu", back: "Antwort" }) } },
+      { function: { name: "create_card_variant", arguments: JSON.stringify({ rephrasable: true, front: "Noch neuer", back: "Antwort" }) } },
     ] } }],
   }, input));
   assert.throws(() => extractGeneratedVariant({
-    choices: [{ message: { tool_calls: [{ function: { name: "other_tool", arguments: JSON.stringify({ front: "Neu", back: "Antwort" }) } }] } }],
+    choices: [{ message: { tool_calls: [{ function: { name: "other_tool", arguments: JSON.stringify({ rephrasable: true, front: "Neu", back: "Antwort" }) } }] } }],
   }, input));
   assert.throws(() => extractGeneratedVariant({
-    choices: [{ message: { tool_calls: [{ function: { name: "create_card_variant", arguments: JSON.stringify({ front: "Neu", back: "Antwort", note: "extra" }) } }] } }],
+    choices: [{ message: { tool_calls: [{ function: { name: "create_card_variant", arguments: JSON.stringify({ rephrasable: true, front: "Neu", back: "Antwort", note: "extra" }) } }] } }],
   }, input));
   assert.throws(() => extractGeneratedVariant({
-    choices: [{ message: { tool_calls: [{ function: { name: "create_card_variant", arguments: JSON.stringify(input.source) } }] } }],
+    choices: [{ message: { tool_calls: [{ function: { name: "create_card_variant", arguments: JSON.stringify({ rephrasable: true, ...input.source }) } }] } }],
   }, input));
+});
+
+test("a card the model reports as not rephrasable becomes its own error instead of a variant", () => {
+  const report = (args: unknown) => ({ choices: [{ message: { tool_calls: [{ function: { name: "create_card_variant", arguments: JSON.stringify(args) } }] } }] });
+  assert.throws(() => extractGeneratedVariant(report({ rephrasable: false, front: "", back: "" }), input), (error: unknown) => (error as { code?: string }).code === "not_rephrasable" && (error as { statusCode?: number }).statusCode === 422);
+  assert.throws(() => extractGeneratedVariant(report({ rephrasable: "nein", front: "Neu", back: "Antwort" }), input), (error: unknown) => (error as { code?: string }).code === "invalid_tool_call");
+  assert.throws(() => extractGeneratedVariant(report({ front: "Neu", back: "Antwort" }), input), (error: unknown) => (error as { code?: string }).code === "invalid_tool_call");
 });
 
 test("route authenticates and creates a variant with one provider call and a content-free log line", async () => {

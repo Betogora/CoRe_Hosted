@@ -9,6 +9,7 @@ import {
   createAiCardVariantRequest,
   normalizeAiCardText,
   parseAiCardVariantSuccess,
+  type AiCardVariantSource,
   type AiCardVariantSuccess,
 } from "./aiCardVariantContract.ts";
 import { cardVariantSource } from "./coreVariantService.ts";
@@ -17,7 +18,7 @@ import type { Database } from "./database.types.ts";
 
 /** `avoid` carries the questions of the card's variants so the new one differs from them. */
 export async function requestAiCardVariant(
-  source: { front: string; back: string } | null,
+  source: AiCardVariantSource | null,
   supabase: SupabaseClient<Database> | null,
   { avoid = [], fetchImpl = globalThis.fetch }: { avoid?: string[]; fetchImpl?: typeof fetch } = {},
 ): Promise<AiCardVariantSuccess> {
@@ -50,7 +51,7 @@ export function aiCardVariantAvoidTexts(card: Pick<Card, "variants">): string[] 
 
 /** Rejects the response when question or answer changed meanwhile or the rephrasing already exists, deleted ones included. */
 export function createAiGeneratedVariantDraft(
-  source: { front: string; back: string },
+  source: AiCardVariantSource,
   current: { note: Note; card: Card } | null | undefined,
   generated: AiCardVariantSuccess,
 ) {

@@ -1,6 +1,6 @@
 # CoRe TODO
 
-Stand: 2026-11-12
+Stand: 2026-11-13
 
 Nur offene Arbeit. Ist-Stand in [`status.md`](status.md), Entscheidungen in
 [`decisions.md`](decisions.md), erledigte Arbeit in [`history.md`](history.md).
@@ -15,30 +15,54 @@ externen Release fällig. „Später“ ist geparkt.
 Bewusst einfacher Probelauf (ADR-011); Auswahl und Oberfläche werden danach
 geglättet.
 
-- [ ] **Einstiege:** Zähler der Karten ohne Variante in den Stapeleinstellungen
-      (danach eine einzige Aktion, deren Beschriftung zwischen „generieren“ und
-      „neu generieren“ wechselt); nach Fehlschlägen führt `Anzeigen` in der Leiste
-      zum Filter `-has:variant`; Stoppgründe in der Leiste kurz halten (z. B.
-      „Keine Verbindung“).
-- [ ] **Visuelle Pflichtmatrix:** Fortschrittsleiste, Einschalt-Dialog,
-      Variantenbereich der Stapeleinstellungen und Filter `-has:variant`; dazu
-      ein E2E-Test der Stapelgenerierung (Route je Aufruf mit anderer Variante
-      gemockt).
-- [ ] **Ausweg für nicht umformulierbare Inhalte:** Das erzwungene Werkzeug
-      verlangt heute immer eine Variante; bei sinnlosen Inhalten (zufällige
-      Buchstabenfolgen) oder Insidern ohne allgemeinen Kontext bleibt dem
-      Modell nur eine Hülle („Was gehört zu …?“) oder eine erfundene Deutung.
-      Eine Prompt-Ergänzung, über die das Modell eine Karte als nicht
-      umformulierbar meldet; die Route gibt das als eigenen Fehlergrund
-      zurück. Ein eigener Kartenzustand dafür steht unter „Später“.
-      Nachweis: Stichprobe mit solchen Prüfkarten vor und nach der Ergänzung,
-      Routentests mit solchen Karteninhalten.
-- [ ] **Varianten weiterer Kartenarten:** Lückentext, Single/Multiple
-      Choice, Kprim und Eintippen (heute verliert die Variante das
-      Eintippfeld) bekommen je eigenen Prompt und Vertrag; Reihenfolge nach
-      Häufigkeit im Korpus, Bildverdeckungen bleiben ohne Varianten.
-      Nachweis: Kartenartenzählung aus `report:apkg-corpus`, Vertrags- und
-      Routentests je Kartenart, Stichprobe mit Korpuskarten.
+Pakete, je ein PR, in dieser Reihenfolge. Alle Kartenarten bleiben auf
+der Route `/api/ai/card-variant` (ADR-011): Die Anfrage nennt ihre Kartenart,
+jede Kartenart hat eigenen Prompt, eigenes Werkzeugschema und eigene Prüfung.
+Varianten bleiben in `card_variants` (`front`, `back`, `meta`); keine
+Migration. Bildverdeckungen bleiben ohne Varianten. Zum Ausprobieren je
+Kartenart drei Karten in `fixtures/apkg/ai-variant-card-kinds.apkg`
+(`scripts/create_ai_variant_demo_apkg.py`). Reihenfolge nach erwartetem
+Nutzen: Lückentext trägt die großen Medizin- und Fachstapel, Eintippen das
+Vokabellernen, Single Choice das Altfragen-Format des IMPP und die Karten
+aus P2; Multiple Choice und Kprim kommen nur über ein Add-on.
+
+- [ ] **A – Nachweis mit echtem Modell:** Eintippen und der Ausweg für
+      nicht umformulierbare Inhalte stehen (`card-variant-v5`). Offen ist
+      die Stichprobe: Eintippen-Karten des Demo-Stapels in der App sowie
+      Prüfkarten mit sinnlosen Zeichenfolgen und Insidern unter v4
+      (Production) und v5 (Preview); dabei dürfen normale Karten nicht als
+      nicht umformulierbar gemeldet werden.
+- [ ] **B – Lückentext:** Eine Variante gehört zu ihrer Lückengruppe:
+      `front` ist der umformulierte Text mit genau dieser Lückengruppe,
+      andere Lücken stehen als Klartext; `back` hält den Lückeninhalt. Die
+      Route weist Varianten ab, deren Lückeninhalt nicht wortgleich ist,
+      die weitere Lücken enthalten oder die Lösung im Text verraten.
+      Review, Editor-Reiter `Varianten` und Stapellauf zeigen und
+      bearbeiten Lückentext-Varianten. Nachweis: Vertrags- und
+      Routentests, Lückentext-Karten des Demo-Stapels und eine Stichprobe
+      aus Ankizin und AnKing mit verschachtelten Lücken, Hinweisen und
+      Formeln, Eval-Fallsatz `card-variant-cloze`.
+- [ ] **C – Auswahl (Single, Multiple Choice, Kprim):** `front` ist der
+      umformulierte Fragestamm, die Optionstexte stehen je Options-ID in
+      `meta`. Richtig/Falsch kehrt eine Variante nie um (keine verneinten
+      Fragen, keine umgedrehten Kprim-Aussagen); dieselben Options-IDs,
+      dieselbe Anzahl und dieselbe Richtigkeit sind Pflicht. Die Variante
+      zeigt die Optionen in einer eigenen, festen Reihenfolge, damit keine
+      Position auswendig gelernt wird. Editor und Duplikatprüfung schließen
+      die Optionstexte ein. Nachweis: Vertrags- und Routentests, Auswahl-
+      Karten des Demo-Stapels, Eval-Fallsätze je Modus.
+- [ ] **D – Einstiege und Abnahme:** Zähler der Karten ohne Variante in den
+      Stapeleinstellungen (danach eine einzige Aktion, deren Beschriftung
+      zwischen „generieren“ und „neu generieren“ wechselt); nach
+      Fehlschlägen führt `Anzeigen` in der Leiste zum Filter
+      `-has:variant`; Stoppgründe in der Leiste kurz halten (z. B. „Keine
+      Verbindung“). Visuelle Pflichtmatrix für Fortschrittsleiste,
+      Einschalt-Dialog, Variantenbereich der Stapeleinstellungen, Filter
+      `-has:variant` und die Varianten jeder Kartenart im Review; E2E-Test
+      der Stapelgenerierung über den Demo-Stapel (Route je Aufruf mit
+      anderer Variante gemockt). Specs
+      [Kartenvarianten erzeugen](specs.md#kartenvarianten-erzeugen),
+      `status.md` und `architecture.md` nachziehen.
 
 ## P2: Karten aus einer Quelle per KI erstellen
 

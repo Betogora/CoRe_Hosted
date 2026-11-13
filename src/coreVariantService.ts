@@ -2,6 +2,7 @@ import { createCardVariant, createDefaultDeckSettings, getActiveVariants } from 
 import { stripSanitizedHtml } from "./htmlSafety.ts";
 import { isCardReadyForVariants } from "./coreVariantService/variantSelection.ts";
 import { getDurabilityDays } from "./scheduler.ts";
+import type { AiCardVariantSource } from "./aiCardVariantContract.ts";
 import type { Card, CardVariant, Note } from "./coreTypes.ts";
 
 type DeckSettingsInput = Parameters<typeof createDefaultDeckSettings>[0];
@@ -13,7 +14,7 @@ function plainText(html: string): string {
 }
 
 /** Plain question and answer of a reveal card; the only source of AI rephrasings (other building blocks follow later). */
-export function cardVariantSource(note: Pick<Note, "content">, card: Pick<Card, "promptKey">): { front: string; back: string } | null {
+export function cardVariantSource(note: Pick<Note, "content">, card: Pick<Card, "promptKey">): AiCardVariantSource | null {
   const { content } = note;
   if (content.interaction.kind !== "reveal") return null;
   const prompt = content.interaction.prompts.find((candidate) => candidate.key === card.promptKey);
@@ -25,12 +26,29 @@ export function cardVariantSource(note: Pick<Note, "content">, card: Pick<Card, 
     .join(" ");
   const front = fieldText(prompt.questionFieldIds);
   const back = fieldText(prompt.answerFieldIds);
-  return front && back ? { front, back } : null;
+  return front && back ? { kind: prompt.typeInFieldId ? "type-in" : "basic", front, back } : null;
 }
 
-/** A rephrased variant shown as a transient front/back content of its card; extra and source fields stay visible. */
+/**
+ * A rephrased variant shown as a transient front/back content of its card; hint, extra and source fields stay.
+ * A typed answer keeps the card's own answer fields, so the learner types exactly what the card itself expects.
+ * Speech of the question (and of a rephrased answer) reads the variant's text instead.
+ */
 export function variantPresentation(note: Note, card: Card, variant: CardVariant): { note: Note; card: Card } {
-  const supplements = note.content.fields.filter((field) => field.role === "extra" || field.role === "source");
+  const { interaction } = note.content;
+  const prompt = interaction.kind === "reveal" ? interaction.prompts.find((candidate) => candidate.key === card.promptKey) : undefined;
+  const typedAnswer = prompt?.typeInFieldId ? prompt : null;
+  const supplements = note.content.fields.filter((field) => field.role === "hint" || field.role === "extra" || field.role === "source");
+  const answerFields = typedAnswer
+    ? note.content.fields.filter((field) => typedAnswer.answerFieldIds.includes(field.id) && !supplements.includes(field))
+    : [{ id: "variant-back", name: "Rückseite", role: "answer" as const, html: variant.back }];
+  const variantFieldId = (fieldId: string) => prompt?.questionFieldIds.includes(fieldId) ? "variant-front"
+    : !typedAnswer && prompt?.answerFieldIds.includes(fieldId) ? "variant-back"
+      : [...answerFields, ...supplements].some((field) => field.id === fieldId) ? fieldId : null;
+  const speech = note.content.speech.flatMap((entry) => {
+    const fieldId = variantFieldId(entry.fieldId);
+    return fieldId ? [{ ...entry, fieldId }] : [];
+  }).filter((entry, index, all) => all.findIndex((other) => other.fieldId === entry.fieldId) === index);
   return {
     note: {
       ...note,
@@ -38,11 +56,11 @@ export function variantPresentation(note: Note, card: Card, variant: CardVariant
         schemaVersion: 1,
         fields: [
           { id: "variant-front", name: "Vorderseite", role: "prompt", html: variant.front },
-          { id: "variant-back", name: "Rückseite", role: "answer", html: variant.back },
+          ...answerFields,
           ...supplements,
         ],
-        interaction: { kind: "reveal", prompts: [{ key: "forward", name: "Variante", instruction: "", questionFieldIds: ["variant-front"], answerFieldIds: ["variant-back"], requires: null, typeInFieldId: null }] },
-        speech: [],
+        interaction: { kind: "reveal", prompts: [{ key: "forward", name: "Variante", instruction: "", questionFieldIds: ["variant-front"], answerFieldIds: answerFields.map((field) => field.id), requires: null, typeInFieldId: typedAnswer?.typeInFieldId ?? null }] },
+        speech,
         tags: note.content.tags,
       },
     },

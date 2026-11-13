@@ -82,7 +82,7 @@ const cardVariantBasic: EvalDefinition<AiCardVariantRequest, AiCardVariantReques
     const { result, costUsd } = extractGeneratedVariant(payload, request);
     return { output: result.variant, model: result.model, totalTokens: result.usage?.totalTokens ?? null, costUsd };
   },
-  mock: (request) => ({ tool: "create_card_variant", arguments: { front: `Nenne die Antwort auf folgende Frage: ${request.source.front}`, back: request.source.back } }),
+  mock: (request) => ({ tool: "create_card_variant", arguments: { rephrasable: true, front: `Nenne die Antwort auf folgende Frage: ${request.source.front}`, back: request.source.back } }),
   automatic: {
     M3: (request, output) => keepsNumbers(request.source.front, output.front) && keepsNumbers(request.source.back, output.back),
     M4: (request, output) => rephrased(request.source.front, output.front),
@@ -96,7 +96,7 @@ const cardVariantBasic: EvalDefinition<AiCardVariantRequest, AiCardVariantReques
     eingabe: { vorderseite: request.source.front, rueckseite: request.source.back, ...(request.avoid?.length ? { vorhandene_varianten: request.avoid.join(" | ") } : {}) },
     ausgabe: { vorderseite: output.front, rueckseite: output.back },
   }),
-  fromCorpus: (card) => [{ suffix: "", category: corpusCategory(card), request: { source: card } }],
+  fromCorpus: (card) => [{ suffix: "", category: corpusCategory(card), request: { kind: "basic", source: card } }],
 };
 
 const HELP_MODE: Record<AiCardHelpRequest["mode"], JudgedCriterion> = {

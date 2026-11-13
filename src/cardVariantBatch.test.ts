@@ -76,10 +76,14 @@ test("batch keeps going after a single failed card but stops at errors every car
   const single = await runCardVariantBatch({
     source: failing.source,
     deckSettings: coreOn,
-    generate: async (id) => { if (id === "card-2") throw new AiCardVariantContractError("invalid_tool_call", "Das Modell hat ungültige Kartenfelder geliefert."); },
+    generate: async (id) => {
+      if (id === "card-2") throw new AiCardVariantContractError("invalid_tool_call", "Das Modell hat ungültige Kartenfelder geliefert.");
+      if (id === "card-3") throw new AiCardVariantContractError("not_rephrasable", "Diese Karte lässt sich nicht sinnvoll umformulieren.");
+    },
   });
-  assert.equal(single.created, 2);
+  assert.equal(single.created, 1);
   assert.equal(single.failed, 1);
+  assert.equal(single.notRephrasable, 1);
   assert.equal(single.stopped, null);
 
   let calls = 0;
@@ -126,12 +130,13 @@ test("a deck with CoRe switched off creates nothing", async () => {
 });
 
 test("summary sends clean results to a toast and keeps failures and stops in the bar", () => {
-  const base = { created: 3, failed: 0, stopped: null, hasMore: false };
+  const base = { created: 3, failed: 0, notRephrasable: 0, stopped: null, hasMore: false };
   assert.deepEqual(summarizeCardVariantBatch(base), { kind: "toast", message: "3 Varianten generiert." });
   assert.deepEqual(summarizeCardVariantBatch({ ...base, created: 50, hasMore: true }), { kind: "toast", message: "50 Varianten generiert. Für weitere Karten erneut starten." });
   assert.deepEqual(summarizeCardVariantBatch({ ...base, created: 0 }), { kind: "toast", message: "Keine Karte ohne Variante gefunden." });
   assert.deepEqual(summarizeCardVariantBatch({ ...base, created: 1, stopped: { reason: "cancelled" } }), { kind: "toast", message: "Abgebrochen. 1 Variante generiert." });
   assert.deepEqual(summarizeCardVariantBatch({ ...base, failed: 1 }), { kind: "bar", message: "3 Varianten generiert, 1 fehlgeschlagen" });
+  assert.deepEqual(summarizeCardVariantBatch({ ...base, notRephrasable: 2, failed: 1 }), { kind: "bar", message: "3 Varianten generiert, 2 nicht umformulierbar, 1 fehlgeschlagen" });
   assert.deepEqual(summarizeCardVariantBatch({ ...base, created: 2, stopped: { reason: "error", message: "Varianten können gerade nicht generiert werden." } }), { kind: "bar", message: "Gestoppt nach 2 Varianten: Varianten können gerade nicht generiert werden." });
 });
 

@@ -102,7 +102,7 @@ export async function sampleCorpus(definition: EvalDefinition, count: number, se
     for (const card of graph.cards) {
       const note = notes.get(card.noteId);
       const source = note && cardVariantSource(note, card);
-      if (source && !/<img|\[sound:/i.test(note.content.fields.map((field) => field.html).join(""))) cards.set(createHash("sha1").update(`${source.front}\u0000${source.back}`).digest("hex").slice(0, 10), source);
+      if (source && !/<img|\[sound:/i.test(note.content.fields.map((field) => field.html).join(""))) cards.set(createHash("sha1").update(`${source.front}\u0000${source.back}`).digest("hex").slice(0, 10), { front: source.front, back: source.back });
     }
   }
   const keys = shuffled([...cards.keys()].sort(), seededRandom(seed));
