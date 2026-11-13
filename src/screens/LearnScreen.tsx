@@ -21,7 +21,7 @@ export function LearnScreen({ decks, now, dayStartHour, learnAheadMinutes, timeZ
   const deckSummaries = useWorkspaceValue((snapshot) => snapshot.deckSummaries);
   const library = React.useMemo(() => createDeckLibraryModel(decks, { now, dayStartHour, learnAheadMinutes, timeZone, deckSummaries }), [dayStartHour, deckSummaries, decks, learnAheadMinutes, now, timeZone]);
   const [deckDraft, setDeckDraft] = React.useState(() => createDefaultDeckDraft(initialParentDeckId));
-  const [deckView, setDeckView] = useStoredDeckTreeView("core.learn.deckView.v1");
+  const [deckView, setDeckView] = useStoredDeckTreeView();
   const [deckStatus, setDeckStatus] = React.useState("");
   const [deckStatusType, setDeckStatusType] = React.useState<"status" | "alert">("status");
   const setSuccessToast = useSuccessToast();

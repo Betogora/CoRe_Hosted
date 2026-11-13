@@ -42,7 +42,7 @@ test("Unterstapel zeigen den Zweig wie die Lernen-Liste und öffnen jeden Stapel
   await expect(product.getByTestId("deck-content-study")).toBeVisible();
 });
 
-test("Liste und Kacheln bleiben ohne Explorer und speichern die Auswahl", async ({ page }) => {
+test("Liste und Kacheln bleiben ohne Explorer und teilen die gespeicherte Auswahl mit dem Dashboard", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/docs/ui-elements.html?preview=screens");
   await page.getByRole("searchbox", { name: "Katalog durchsuchen", exact: true }).fill("Produktansichten");
@@ -65,6 +65,18 @@ test("Liste und Kacheln bleiben ohne Explorer und speichern die Auswahl", async 
   await expect(product.getByRole("button", { name: /^Inhalte von Welt-Hauptstädte \/ Europa.*öffnen$/ })).toBeVisible();
   await page.reload();
   await page.getByRole("searchbox", { name: "Katalog durchsuchen", exact: true }).fill("Produktansichten");
+  await page.getByRole("button", { name: "Lernen öffnen", exact: true }).click();
+  await expect(product.getByTestId("learn-deck-list")).toHaveAttribute("data-deck-view", "list");
+
+  await product.getByRole("button", { name: "Als Kacheln anzeigen", exact: true }).click();
+  await page.getByRole("button", { name: "Produktansicht schließen", exact: true }).click();
+  await page.getByRole("button", { name: "Tagesübersicht öffnen", exact: true }).click();
+  const dashboardDecks = product.getByTestId("dashboard-deck-list");
+  await expect(dashboardDecks).toHaveAttribute("data-deck-view", "tiles");
+  await dashboardDecks.getByRole("button", { name: "Als Liste anzeigen", exact: true }).click();
+  await expect(dashboardDecks).toHaveAttribute("data-deck-view", "list");
+  await expect(dashboardDecks.getByRole("button", { name: /^Alle (auf|ein)klappen$/ })).toHaveCount(0);
+  await page.getByRole("button", { name: "Produktansicht schließen", exact: true }).click();
   await page.getByRole("button", { name: "Lernen öffnen", exact: true }).click();
   await expect(product.getByTestId("learn-deck-list")).toHaveAttribute("data-deck-view", "list");
 });
