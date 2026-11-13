@@ -222,16 +222,17 @@ export interface AccountStatisticsSnapshot {
   dueTomorrow: number;
   dailyWorkload: number;
   status: { activeVariants: number; deletedItems: number };
+  // Card counts by value floored to an integer: days for intervals and stability, percent for difficulty and retrievability.
   intervals: {
-    points: Array<{ key: string; label: string; count: number; cumulativePercent: number }>;
+    histogram: Record<string, number>;
     averageDays: number;
     medianDays: number;
     percentile95Days: number;
   };
   fsrs: {
-    difficulty: Array<{ key: string; label: string; count: number; cumulativePercent: number }>;
-    stability: Array<{ key: string; label: string; count: number; cumulativePercent: number }>;
-    retrievability: Array<{ key: string; label: string; count: number; cumulativePercent: number }>;
+    difficulty: Record<string, number>;
+    stability: Record<string, number>;
+    retrievability: Record<string, number>;
   };
   retention: Array<{
     key: "selected" | "previous" | "all";

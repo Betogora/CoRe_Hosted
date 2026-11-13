@@ -609,7 +609,12 @@ export function createWorkspaceHydrationService({
 
   const refreshStatistics = async (deckIds: string[] | null = null, from: string | null = null, to: string | null = null, timeZone = "UTC", dayStartHour = 0) => {
     const key = JSON.stringify([deckIds, from, to, timeZone, dayStartHour]);
-    if (!isOnline()) return repository.readStatisticsSnapshot(key);
+    if (!isOnline()) {
+      const cached = await repository.readStatisticsSnapshot(key);
+      const { validateAccountStatistics } = await import("./cloudRepositoryValidation.ts");
+      // Snapshots cached by an earlier app version may have another shape; they count as missing.
+      try { return cached && validateAccountStatistics(cached); } catch { return null; }
+    }
     const { loadAccountStatistics } = await import("./cloudRepository.ts");
     const snapshot = await loadAccountStatistics(client, { deckIds, from, to, timeZone, dayStartHour });
     await repository.cacheStatisticsSnapshot(key, snapshot);

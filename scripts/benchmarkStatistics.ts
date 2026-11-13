@@ -16,9 +16,7 @@ const dayKeys = Array.from({ length: 365 }, (_, index) => new Date(Date.parse(no
 const forecastDayKeys = Array.from({ length: 365 }, (_, index) => new Date(Date.parse(now) + index * 86_400_000).toISOString().slice(0, 10));
 const dailyReviews = Math.floor(reviewCount / dayKeys.length);
 const dailyCards = Math.floor(cardCount / dayKeys.length);
-const distribution = Array.from({ length: 20 }, (_, index) => ({
-  key: String(index), label: String(index), count: Math.floor(cardCount / 20), cumulativePercent: (index + 1) * 5,
-}));
+const histogram = Object.fromEntries(Array.from({ length: 100 }, (_, index) => [String(index), Math.floor(cardCount / 100)]));
 const snapshot: AccountStatisticsSnapshot = {
   cards: { total: cardCount, new: 20_000, learning: 10_000, mature: 50_000, suspended: 2_000 },
   reviewsByDay: Object.fromEntries(dayKeys.map((key, index) => [key, {
@@ -34,8 +32,8 @@ const snapshot: AccountStatisticsSnapshot = {
   forecastByDay: Object.fromEntries(forecastDayKeys.map((key) => [key, { learning: 20, relearning: 20, young: 100, mature: 140, total: 280 }])),
   overdue: 1_000, dueTomorrow: 280, dailyWorkload: 340,
   status: { activeVariants: 25_000, deletedItems: 500 },
-  intervals: { points: distribution, averageDays: 28, medianDays: 21, percentile95Days: 90 },
-  fsrs: { difficulty: distribution, stability: distribution, retrievability: distribution },
+  intervals: { histogram, averageDays: 28, medianDays: 21, percentile95Days: 90 },
+  fsrs: { difficulty: histogram, stability: histogram, retrievability: histogram },
   retention: ["selected", "previous", "all"].map((key) => ({
     key: key as "selected" | "previous" | "all", youngRemembered: 400_000, youngTotal: 450_000, matureRemembered: 475_000, matureTotal: 550_000,
   })),
