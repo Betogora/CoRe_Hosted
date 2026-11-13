@@ -21,7 +21,7 @@ vollständig.
 - Schema: einzige Baseline `20261030103636_kartenmodell_baseline.sql` plus spätere Migrationen; keine Upgrade- oder Backfillkette (ADR-034).
 - Browser-Replica: IndexedDB `core.workspace.entities.v5.<userId>`, ohne Lesepfade für frühere lokale Datenbanken.
 - Server: nur die authentifizierten KI-Routen `/api/ai/card-variant`, `/api/ai/summary` und `/api/ai/card-help` über OpenRouter (ADR-011).
-- KI-Eval: Runner für Varianten Frage/Antwort und Lückentext sowie `card-help` (`npm run ai-eval`, ADR-049) mit je 24 Prüfkarten als Bauvorleistung für P5; kein echter Lauf, Richter nicht kalibriert, Ledger leer. Stand unter [KI-Eval](ai-eval.md).
+- KI-Eval: Runner für Varianten Frage/Antwort, Lückentext und Auswahl sowie `card-help` (`npm run ai-eval`, ADR-049) mit je 24 Prüfkarten als Bauvorleistung für P5; kein echter Lauf, Richter nicht kalibriert, Ledger leer. Stand unter [KI-Eval](ai-eval.md).
 - Kartenmodell `Note`/`Card` in App, Import, Persistenz und Sync (ADR-032); Scheduler FSRS-7 mit Reife aus der Haltbarkeit (ADR-044).
 
 ## Reifestatus

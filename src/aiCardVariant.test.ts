@@ -29,12 +29,7 @@ test("AI card request projects only normalized question and answer", () => {
 });
 
 test("AI card request rejects cards without question and answer and oversized cards", () => {
-  const choice = createNote({
-    deckId: "deck-1",
-    content: createManualNoteContent({ kind: "single-choice", front: "Frage", back: "Erklärung", answerOptions: ["Richtig", "Falsch"], correctOptionIndices: [0] }),
-  });
   const imageOnly = basic('<img src="image-hash.png">', "Hinten");
-  assert.throws(() => createAiCardVariantRequest(cardVariantSource(choice.note, choice.cards[0])), (error: unknown) => error instanceof AiCardVariantContractError && error.code === "unsupported_card_type");
   assert.throws(() => createAiCardVariantRequest(cardVariantSource(imageOnly.note, imageOnly.card)), (error: unknown) => error instanceof AiCardVariantContractError && error.code === "unsupported_card_type");
   assert.throws(() => createAiCardVariantRequest({ kind: "basic", front: "x".repeat(1_201), back: "Antwort" }), (error: unknown) => error instanceof AiCardVariantContractError && error.code === "invalid_source");
 
@@ -128,6 +123,26 @@ test("a generated variant with comparison signs is stored as HTML and keeps its 
   const stored = addCardVariant(original.card, draft).variants[0];
   assert.equal(aiVariantFieldText(stored.front), "Unter welcher Bedingung für K überwiegt die Rückreaktion, wenn K > 0 gilt?");
   assert.equal(aiVariantFieldText(stored.back), "Bei K < 1 & nur dann");
+});
+
+test("a choice draft stores the rephrased option texts by id and rejects a card whose options changed meanwhile", () => {
+  const original = createNote({ deckId: "deck-1", content: createManualNoteContent({ kind: "single-choice", front: "Welches Symbol hat Gold?", back: "", answerOptions: ["Au", "Ag"], correctOptionIndices: [0] }) });
+  const current = { note: original.note, card: original.cards[0] };
+  const source = cardVariantSource(current.note, current.card)!;
+  const [gold, silver] = source.choice!.options;
+  const generated = {
+    variant: { front: "Mit welchem Kürzel steht Gold im Periodensystem?", back: "✓ Au < Ag · ✗ Ag", options: [{ id: gold.id, text: "Au < Ag" }, { id: silver.id, text: "Ag" }] },
+    model: "provider/model:free",
+    privacyMode: "zdr" as const,
+    usage: null,
+  };
+  const draft = createAiGeneratedVariantDraft(source, current, generated);
+  assert.deepEqual(draft.meta.options, [{ id: gold.id, html: "Au &lt; Ag" }, { id: silver.id, html: "Ag" }]);
+
+  const changedContent = structuredClone(current.note.content);
+  if (changedContent.interaction.kind === "choice") changedContent.interaction.options[1].html = "Cu";
+  const changed = planNoteContentChange({ note: current.note, cards: [current.card] }, changedContent);
+  assert.throws(() => createAiGeneratedVariantDraft(source, { note: changed.note, card: current.card }, generated), (error: unknown) => error instanceof AiCardVariantContractError && error.code === "source_changed");
 });
 
 test("deleted variants are avoided after the existing ones, each newest first", () => {

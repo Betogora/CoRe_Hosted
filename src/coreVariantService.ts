@@ -2,7 +2,7 @@ import { createCardVariant, createDefaultDeckSettings, getActiveVariants } from 
 import { stripSanitizedHtml } from "./htmlSafety.ts";
 import { isCardReadyForVariants } from "./coreVariantService/variantSelection.ts";
 import { getDurabilityDays } from "./scheduler.ts";
-import { checkClozeVariant, clozeAnswerText, clozeVariantGaps, type AiCardVariantSource } from "./aiCardVariantContract.ts";
+import { answerListText, checkClozeVariant, choiceAnswerText, clozeVariantGaps, type AiCardVariantSource } from "./aiCardVariantContract.ts";
 import { mapClozes } from "./clozeSyntax.ts";
 import type { Card, CardVariant, Note, NoteContent, NoteField } from "./coreTypes.ts";
 
@@ -20,19 +20,29 @@ function plainText(html: string): string {
  */
 function clozeVariantSource(content: NoteContent, ordinal: number): AiCardVariantSource | null {
   const answers: string[] = [];
-  const text = content.fields.filter((field) => field.role === "prompt").map((field) => plainText(field.html)).filter(Boolean).join(" ");
-  const front = mapClozes(text, (token, inner) => {
+  const front = mapClozes(promptText(content), (token, inner) => {
     if (!token.ordinals.includes(ordinal)) return inner;
     answers.push(inner);
     return `{{c${ordinal}::${inner}${token.hint ? `::${token.hint}` : ""}}}`;
   });
-  return front && answers.length && clozeVariantGaps(front) ? { kind: "cloze", front, back: clozeAnswerText(answers) } : null;
+  return front && answers.length && clozeVariantGaps(front) ? { kind: "cloze", front, back: answerListText(answers) } : null;
 }
 
-/** Plain question and answer of a reveal card or the cloze text of a cloze card; the only source of AI rephrasings. */
+const promptText = (content: NoteContent) => content.fields.filter((field) => field.role === "prompt").map((field) => plainText(field.html)).filter(Boolean).join(" ");
+
+/**
+ * Plain question and answer of a reveal card, the cloze text of a cloze card, or the question and options of a choice
+ * card; the only source of AI rephrasings.
+ */
 export function cardVariantSource(note: Pick<Note, "content">, card: Pick<Card, "promptKey">): AiCardVariantSource | null {
   const { content } = note;
   if (content.interaction.kind === "cloze") return clozeVariantSource(content, Number(card.promptKey.replace(/^cloze:/, "")));
+  if (content.interaction.kind === "choice") {
+    const front = promptText(content);
+    const options = content.interaction.options.map((option) => ({ id: option.id, text: plainText(option.html), correct: option.correct }));
+    if (!front || options.some((option) => !option.text)) return null;
+    return { kind: "choice", front, back: choiceAnswerText(options), choice: { mode: content.interaction.mode, options } };
+  }
   if (content.interaction.kind !== "reveal") return null;
   const prompt = content.interaction.prompts.find((candidate) => candidate.key === card.promptKey);
   if (!prompt) return null;
@@ -44,6 +54,26 @@ export function cardVariantSource(note: Pick<Note, "content">, card: Pick<Card, 
   const front = fieldText(prompt.questionFieldIds);
   const back = fieldText(prompt.answerFieldIds);
   return front && back ? { kind: prompt.typeInFieldId ? "type-in" : "basic", front, back } : null;
+}
+
+/** Rephrased option texts of a choice variant by option id (`meta.options`); options it lacks keep the card's text. */
+function variantOptionHtml(variant: CardVariant): Map<string, string> {
+  const options = Array.isArray(variant.meta.options) ? variant.meta.options : [];
+  return new Map(options.flatMap((option: unknown) => {
+    const { id, html } = (option ?? {}) as { id?: unknown; html?: unknown };
+    return typeof id === "string" && typeof html === "string" ? [[id, html] as const] : [];
+  }));
+}
+
+/** A fixed order of its own per variant, never the card's order, so an option's position is not what is remembered. */
+function variantOptionOrder<Option extends { id: string }>(variantId: string, options: Option[]): Option[] {
+  const rank = (id: string) => {
+    let hash = 2166136261;
+    for (const character of `${variantId}:${id}`) hash = Math.imul(hash ^ character.charCodeAt(0), 16777619);
+    return hash >>> 0;
+  };
+  const ordered = [...options].sort((left, right) => rank(left.id) - rank(right.id));
+  return ordered.every((option, index) => option.id === options[index].id) ? [...options.slice(1), ...options.slice(0, 1)] : ordered;
 }
 
 /**
@@ -59,8 +89,9 @@ export function variantPresentation(note: Note, card: Card, variant: CardVariant
   const typedAnswer = prompt?.typeInFieldId ? prompt : null;
   const supplements = note.content.fields.filter((field) => field.role === "hint" || field.role === "extra" || field.role === "source");
   const answerFields = interaction.kind === "cloze" ? []
-    : typedAnswer ? note.content.fields.filter((field) => typedAnswer.answerFieldIds.includes(field.id) && !supplements.includes(field))
-      : [{ id: "variant-back", name: "Rückseite", role: "answer" as const, html: variant.back }];
+    : interaction.kind === "choice" ? note.content.fields.filter((field) => field.role === "answer")
+      : typedAnswer ? note.content.fields.filter((field) => typedAnswer.answerFieldIds.includes(field.id) && !supplements.includes(field))
+        : [{ id: "variant-back", name: "Rückseite", role: "answer" as const, html: variant.back }];
   const fields = [...answerFields, ...supplements];
   const content = (questionField: NoteField, presented: NoteContent["interaction"]): NoteContent => ({
     schemaVersion: 1,
@@ -71,6 +102,11 @@ export function variantPresentation(note: Note, card: Card, variant: CardVariant
   });
   if (interaction.kind === "cloze") {
     return { note: { ...note, noteTypeSourceId: null, content: content({ id: "variant-text", name: "Text", role: "prompt", html: variant.front }, { kind: "cloze" }) }, card: { ...card, id: variant.id } };
+  }
+  if (interaction.kind === "choice") {
+    const texts = variantOptionHtml(variant);
+    const options = variantOptionOrder(variant.id, interaction.options).map((option) => ({ ...option, html: texts.get(option.id) ?? option.html }));
+    return { note: { ...note, noteTypeSourceId: null, content: content({ id: "variant-front", name: "Frage", role: "prompt", html: variant.front }, { kind: "choice", mode: interaction.mode, options }) }, card: { ...card, id: variant.id } };
   }
   return {
     note: {
@@ -91,8 +127,10 @@ export function classifyCardEligibility(note: Pick<Note, "content">, card: Card,
   const reasons: string[] = [];
   if (settings.coreMode === "off") reasons.push("Content Repetition ist für diesen Stapel ausgeschaltet.");
   const { kind } = note.content.interaction;
-  if (kind !== "reveal" && kind !== "cloze") reasons.push("Varianten gibt es nur für Frage–Antwort- und Lückentextkarten.");
-  else if (!cardVariantSource(note, card)) reasons.push(kind === "cloze" ? "Die Lücke dieser Karte ist leer oder verschachtelt." : "Frage oder Antwort fehlt.");
+  if (kind === "image-occlusion") reasons.push("Bildverdeckungen erhalten keine Varianten.");
+  else if (!cardVariantSource(note, card)) {
+    reasons.push(kind === "cloze" ? "Die Lücke dieser Karte ist leer oder verschachtelt." : kind === "choice" ? "Die Frage oder eine Antwortoption hat keinen Text." : "Frage oder Antwort fehlt.");
+  }
   if (getActiveVariants(card).length >= settings.maxActiveVariantsPerCard) {
     reasons.push(`Die Karte hat bereits ${settings.maxActiveVariantsPerCard === 1 ? "eine aktive Variante" : `${settings.maxActiveVariantsPerCard} aktive Varianten`}; mehr erlaubt der Stapel nicht.`);
   }

@@ -198,6 +198,15 @@ for (const scenario of [
   });
 }
 
+test("Eine geänderte Antwortoption macht die KI-Umformulierungen der Auswahlkarte veraltet", () => {
+  const graph = createNote({ deckId: "deck", content: createManualNoteContent({ kind: "single-choice", front: "Größter Ozean?", back: "", answerOptions: ["Pazifik", "Atlantik"], correctOptionIndices: [0] }) });
+  const card = addCardVariant(graph.cards[0], { front: "Welches Weltmeer ist am größten?", back: "✓ Pazifik · ✗ Atlantik" });
+  const content = structuredClone(graph.note.content);
+  if (content.interaction.kind === "choice") content.interaction.options[1].html = "Indischer Ozean";
+  const plan = planNoteContentChange({ note: graph.note, cards: [card] }, content, CHANGED_AT);
+  assert.equal(plan.keptCards[0].variants[0].meta.outdated, true);
+});
+
 test("Eine geänderte Frage oder Antwort macht die KI-Umformulierungen genau dieser Karten veraltet", () => {
   const graph = createBasicNote("deck", "Was ist ATP?", "Energieträger", { reverse: true });
   const withVariants = {

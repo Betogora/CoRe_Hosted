@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { AI_CARD_VARIANT_PROMPT_VERSION, AiCardVariantContractError } from "./aiCardVariantContract.ts";
 import { runCardVariantBatch, summarizeCardVariantBatch, type CardVariantBatchProgress } from "./cardVariantBatch.ts";
-import { addCardVariant, createBasicNote, createManualNoteContent, createNote } from "./coreModel.ts";
+import { addCardVariant, createBasicNote } from "./coreModel.ts";
 import type { Card, Note } from "./coreTypes.ts";
 import type { CardCatalogEntry } from "./workspaceReplica.ts";
 
@@ -13,8 +13,8 @@ function basic(index: number): Body {
   return { note, card: { ...cards[0], id: `card-${index}` } };
 }
 
-function choice(index: number): Body {
-  const { note, cards } = createNote({ deckId: "deck-1", content: createManualNoteContent({ kind: "single-choice", front: "Was liefert Energie?", back: "", answerOptions: ["Mitochondrien", "Ribosomen"], correctOptionIndices: [0] }) });
+function imageOnly(index: number): Body {
+  const { note, cards } = createBasicNote("deck-1", '<img src="zelle.png">', "Mitochondrien");
   return { note, card: { ...cards[0], id: `card-${index}` } };
 }
 
@@ -44,7 +44,7 @@ function deck(bodies: Body[], pageSize = 3, overrides: Record<string, Partial<Ca
 const coreOn = { coreMode: "on" as const, maxActiveVariantsPerCard: 2 };
 
 test("batch generates the first cards without an active variant in deck order and skips ineligible ones", async () => {
-  const bodies = [basic(1), choice(2), basic(3), basic(4), basic(5)];
+  const bodies = [basic(1), imageOnly(2), basic(3), basic(4), basic(5)];
   const { source, opened } = deck(bodies, 3, { "card-3": { hasActiveVariants: true } });
   const generated: string[] = [];
   const progress: CardVariantBatchProgress[] = [];

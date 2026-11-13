@@ -50,10 +50,39 @@ test("Variantenquelle verbindet mehrere Fragefelder und verlangt Frage und Antwo
   assert.equal(cardVariantSource(imageOnly.note, imageOnly.cards[0]), null);
 });
 
-test("Auswahl liefert keine Variantenquelle und ist nicht geeignet", () => {
-  const { note, cards } = createNote({ deckId: "deck", content: createManualNoteContent({ kind: "single-choice", front: "Frage?", back: "", answerOptions: ["A", "B"], correctOptionIndices: [0] }) });
-  assert.equal(cardVariantSource(note, cards[0]), null);
-  assert.deepEqual(classifyCardEligibility(note, cards[0]).reasons, ["Varianten gibt es nur für Frage–Antwort- und Lückentextkarten."]);
+test("Auswahl-Quelle nennt Frage, Art und jede Option mit Richtigkeit; ohne Optionstext ist die Karte nicht geeignet", () => {
+  const { note, cards } = createNote({ deckId: "deck", content: createManualNoteContent({ kind: "multiple-choice", front: "<p>Welche sind <b>Kationen</b>?</p>", back: "Erklärung", answerOptions: ["Natrium", "Chlorid", "Kalium"], correctOptionIndices: [0, 2] }) });
+  const options = note.content.interaction.kind === "choice" ? note.content.interaction.options : [];
+  assert.deepEqual(cardVariantSource(note, cards[0]), {
+    kind: "choice",
+    front: "Welche sind Kationen?",
+    back: "✓ Natrium · ✗ Chlorid · ✓ Kalium",
+    choice: { mode: "multiple", options: options.map((option, index) => ({ id: option.id, text: ["Natrium", "Chlorid", "Kalium"][index], correct: index !== 1 })) },
+  });
+  assert.equal(classifyCardEligibility(note, cards[0]).eligible, true);
+
+  const imageOption = { ...note, content: { ...note.content, interaction: { kind: "choice" as const, mode: "single" as const, options: [{ id: "a", html: '<img src="a.png">', correct: true }, { id: "b", html: "B", correct: false }] } } };
+  assert.equal(cardVariantSource(imageOption, cards[0]), null);
+  assert.deepEqual(classifyCardEligibility(imageOption, cards[0]).reasons, ["Die Frage oder eine Antwortoption hat keinen Text."]);
+});
+
+test("Auswahl-Variante zeigt neue Frage und Optionstexte in eigener fester Reihenfolge; Richtigkeit und Erklärung bleiben die der Karte", () => {
+  const { note, cards } = createNote({ deckId: "deck", content: createManualNoteContent({ kind: "single-choice", front: "Welcher Ozean ist der größte?", back: "Der Pazifik bedeckt ein Drittel der Erde.", answerOptions: ["Atlantik", "Pazifik", "Indischer Ozean", "Arktischer Ozean"], correctOptionIndices: [1] }) });
+  const original = note.content.interaction.kind === "choice" ? note.content.interaction.options : [];
+  const meta = { options: original.map((option) => ({ id: option.id, html: `Der ${option.html}` })) };
+  const card = addCardVariant(cards[0], { id: "variant-1", front: "Welches ist das größte Weltmeer?", back: "egal", meta });
+  const presented = variantPresentation(note, card, card.variants[0]);
+  const interaction = presented.note.content.interaction;
+
+  assert.equal(interaction.kind, "choice");
+  if (interaction.kind !== "choice") return;
+  assert.equal(interaction.mode, "single");
+  assert.notDeepEqual(interaction.options.map((option) => option.id), original.map((option) => option.id));
+  assert.deepEqual(interaction.options.map((option) => [option.id, option.correct]).sort(), original.map((option) => [option.id, option.correct]).sort());
+  assert.equal(interaction.options.find((option) => option.correct)?.html, "Der Pazifik");
+  assert.deepEqual(variantPresentation(note, card, card.variants[0]).note.content.interaction, interaction, "die Reihenfolge ist je Variante fest");
+  assert.deepEqual(presented.note.content.fields.map((field) => [field.role, field.html]), [["prompt", "Welches ist das größte Weltmeer?"], ["extra", "Der Pazifik bedeckt ein Drittel der Erde."]]);
+  assert.equal(presented.card.promptKey, "choice");
 });
 
 test("Lückentext-Quelle behält nur die eigene Lückengruppe; andere Lücken werden Text, verschachtelte eigene Lücken haben keine Quelle", () => {

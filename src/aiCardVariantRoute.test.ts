@@ -109,6 +109,32 @@ test("a cloze variant keeps its gap group and solutions, names them nowhere else
   assert.equal(code("Die {{c1::Titanic}} sank im Jahr 1912."), "invalid_variant");
 });
 
+test("a choice variant rephrases stem and options by id, keeps every option's correctness and never negates the question", () => {
+  const choice = {
+    kind: "choice" as const,
+    source: { front: "Welche Elektrolyte sind Kationen?", back: "✓ Natrium · ✗ Chlorid" },
+    choice: { mode: "multiple" as const, options: [{ id: "na", text: "Natrium", correct: true }, { id: "cl", text: "Chlorid", correct: false }] },
+  };
+  const answer = (front: string, options: unknown) => ({ choices: [{ message: { tool_calls: [{ function: { name: "create_card_variant", arguments: JSON.stringify({ rephrasable: true, front, options }) } }] } }] });
+  const code = (front: string, options: unknown) => { try { extractGeneratedVariant(answer(front, options), choice); return "ok"; } catch (error) { return (error as { code?: string }).code; } };
+  const payload = buildOpenRouterPayload(choice);
+
+  assert.match(payload.messages[0].content, /Auswahlfrage/);
+  assert.deepEqual(payload.tools[0].function.parameters.required, ["rephrasable", "front", "options"]);
+  assert.deepEqual(JSON.parse(payload.messages[1].content).choice, choice.choice);
+  assert.deepEqual(extractGeneratedVariant(answer("Welche dieser Ionen sind positiv geladen?", [{ id: "cl", text: "Chlorid-Ion" }, { id: "na", text: "Natrium-Ion" }]), choice).result.variant, {
+    front: "Welche dieser Ionen sind positiv geladen?",
+    back: "✓ Natrium-Ion · ✗ Chlorid-Ion",
+    options: [{ id: "na", text: "Natrium-Ion" }, { id: "cl", text: "Chlorid-Ion" }],
+  });
+  assert.equal(code("Welche dieser Ionen sind positiv geladen?", [{ id: "na", text: "Natrium" }]), "changed_options");
+  assert.equal(code("Welche dieser Ionen sind positiv geladen?", [{ id: "na", text: "Natrium" }, { id: "k", text: "Kalium" }]), "changed_options");
+  assert.equal(code("Welche dieser Ionen sind nicht positiv geladen?", [{ id: "na", text: "Natrium" }, { id: "cl", text: "Chlorid" }]), "negated_question");
+  assert.equal(code("Welche dieser Ionen sind positiv geladen?", [{ id: "na", text: "Natrium", correct: false }, { id: "cl", text: "Chlorid" }]), "invalid_tool_call");
+  assert.equal(parseAiCardVariantRequest({ kind: "choice", source: choice.source }).success, false);
+  assert.equal(parseAiCardVariantRequest({ ...choice, choice: { ...choice.choice, options: [choice.choice.options[0], choice.choice.options[0]] } }).success, false);
+});
+
 test("a cloze request needs exactly one complete gap group", () => {
   const request = (front: string) => parseAiCardVariantRequest({ kind: "cloze", source: { front, back: "x" } }).success;
   assert.equal(request("Die {{c1::Titanic}} sank."), true);

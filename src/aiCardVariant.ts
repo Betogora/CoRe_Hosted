@@ -62,7 +62,11 @@ export function createAiGeneratedVariantDraft(
     throw new AiCardVariantContractError("source_changed", "Die Karte wurde während der Generierung geändert. Bitte starte sie erneut.");
   }
   const currentSource = cardVariantSource(current.note, current.card);
-  if (!currentSource || aiCardVariantSourceKey(createAiCardVariantRequest(currentSource).source) !== aiCardVariantSourceKey(createAiCardVariantRequest(source).source)) {
+  const requestKey = (candidate: AiCardVariantSource) => {
+    const request = createAiCardVariantRequest(candidate);
+    return `${aiCardVariantSourceKey(request.source)}\u0000${JSON.stringify(request.choice ?? null)}`;
+  };
+  if (!currentSource || requestKey(currentSource) !== requestKey(source)) {
     throw new AiCardVariantContractError("source_changed", "Die Karte wurde während der Generierung geändert. Bitte starte sie erneut.");
   }
   const variant = {
@@ -89,6 +93,8 @@ export function createAiGeneratedVariantDraft(
       model: generated.model,
       privacyMode: generated.privacyMode,
       promptVersion: AI_CARD_VARIANT_PROMPT_VERSION,
+      // Rephrased option texts of a choice variant; ids and correctness stay the card's (`variantPresentation`).
+      ...(generated.variant.options ? { options: generated.variant.options.map((option) => ({ id: option.id, html: asHtml(normalizeAiCardText(option.text)) })) } : {}),
     },
   };
 }

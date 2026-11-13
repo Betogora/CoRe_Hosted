@@ -23,15 +23,6 @@ keine Migration. Bildverdeckungen bleiben ohne Varianten. Zum Ausprobieren je
 Kartenart drei Karten in `fixtures/apkg/ai-variant-card-kinds.apkg`
 (`scripts/create_ai_variant_demo_apkg.py`).
 
-- [ ] **C – Auswahl (Single, Multiple Choice, Kprim):** `front` ist der
-      umformulierte Fragestamm, die Optionstexte stehen je Options-ID in
-      `meta`. Richtig/Falsch kehrt eine Variante nie um (keine verneinten
-      Fragen, keine umgedrehten Kprim-Aussagen); dieselben Options-IDs,
-      dieselbe Anzahl und dieselbe Richtigkeit sind Pflicht. Die Variante
-      zeigt die Optionen in einer eigenen, festen Reihenfolge, damit keine
-      Position auswendig gelernt wird. Editor und Duplikatprüfung schließen
-      die Optionstexte ein. Nachweis: Vertrags- und Routentests, Auswahl-
-      Karten des Demo-Stapels, Eval-Fallsätze je Modus.
 - [ ] **D – Einstiege und Abnahme:** Zähler der Karten ohne Variante in den
       Stapeleinstellungen (danach eine einzige Aktion, deren Beschriftung
       zwischen „generieren“ und „neu generieren“ wechselt); nach
