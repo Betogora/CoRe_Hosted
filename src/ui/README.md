@@ -24,6 +24,9 @@ auf der ganzen Form, nie auf einer einzelnen Kante: Prüfungsaufgaben tragen ein
 Rahmen rundum in Prüfungsfarbe mit getönter Fläche, Prüfungen in Überschriften
 einen Farbpunkt, der Prüfungstag den Klausur-Chip in voller Prüfungsfarbe;
 Hervorhebungen sind getönte Flächen.
+Kalendertage zeigen eine feste Zahl Einträge in voller Höhe, ohne Scrollen und
+Anschnitt, und fassen den Rest als „+N“ zusammen: der Monat in den Tagesdetails,
+die Woche ab dem vierten To-do zum Aufklappen an Ort und Stelle.
 
 Fachliche Farbtokens: `--core-flag-1` bis `--core-flag-7` für die Anki-Flaggen (Grafik, mindestens 3:1), `--core-danger-text` (`text-core-danger-text`) für destruktive Texte und `--core-marked-surface` (`bg-core-marked-soft`) für die Tönung markierter Karten; dort gilt `--core-marked-text-muted` als gedämpfte Schrift. `themeContract.test.ts` prüft die Kontraste hell und dunkel.
 

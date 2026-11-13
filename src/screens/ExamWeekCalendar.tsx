@@ -159,7 +159,7 @@ export function ExamWeekCalendar({ exams, shown, onToggleExam, capacity, forecas
     const toggle = () => setOpenDays((current) => { const next = new Set(current); if (open) next.delete(key); else next.add(key); return next; });
     return [...(open ? entries : entries.slice(0, VISIBLE_TODOS)), <button key="more" type="button" aria-expanded={open} onClick={toggle}
       aria-label={`${open ? "Weniger anzeigen" : `+${hidden} weitere`}: To-dos am ${formatExamDate(key)}`}
-      className="min-h-control rounded-inset px-2 text-left core-caption font-semibold text-core-action transition-colors hover:bg-core-subtle">{open ? "Weniger anzeigen" : `+${hidden} weitere`}</button>];
+      className="justify-self-start rounded-inset px-1 py-1 text-left core-caption font-semibold text-core-action transition-colors hover:bg-core-subtle">{open ? "Weniger anzeigen" : `+${hidden} weitere`}</button>];
   };
 
   return <SoftPanel className="grid min-w-0 gap-4 p-3 sm:p-5" data-testid="exam-week-calendar">
