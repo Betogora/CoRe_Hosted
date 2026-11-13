@@ -94,16 +94,20 @@ export function createStudyOverview({ database, flushWrites, decks, isCatalogCom
   return {
     applyReplicaCatalogChanges,
     applyReplicaCatalogChange,
-    /** Counts an answer into the hour and day counters before its write is queued. */
-    countReview(answeredAt: string) {
+    /** Counts an answer into the hour and day counters before its write is queued; a taken-back answer counts -1. */
+    countReview(answeredAt: string, delta: 1 | -1 = 1) {
+      const add = (count = 0) => Math.max(0, count + delta);
       const hourKey = reviewHourKey(answeredAt);
-      if (hourKey) reviewHourCounts = { ...(reviewHourCounts ?? {}), [hourKey]: ((reviewHourCounts ?? {})[hourKey] ?? 0) + 1 };
+      if (hourKey) reviewHourCounts = { ...(reviewHourCounts ?? {}), [hourKey]: add((reviewHourCounts ?? {})[hourKey]) };
       if (!reviewDayCountsCache) return;
       const dayKey = getStudyHeatmapDayKey(answeredAt, reviewDayCountsCache.timeZone, reviewDayCountsCache.dayStartHour);
-      if (dayKey) reviewDayCountsCache = { ...reviewDayCountsCache, counts: { ...reviewDayCountsCache.counts, [dayKey]: (reviewDayCountsCache.counts[dayKey] ?? 0) + 1 } };
+      if (dayKey) reviewDayCountsCache = { ...reviewDayCountsCache, counts: { ...reviewDayCountsCache.counts, [dayKey]: add(reviewDayCountsCache.counts[dayKey]) } };
     },
-    /** The first answer of a card today, new or review, counts once into the overview of today's learning day. */
-    async countReviewInOverview(transaction: IDBTransaction, event: ReviewEvent, deckId: string) {
+    /**
+     * The first answer of a card today, new or review, counts once into the overview of today's learning day. A
+     * taken-back answer (`delta` -1, its event already removed) leaves it when no other such answer remains today.
+     */
+    async countReviewInOverview(transaction: IDBTransaction, event: ReviewEvent, deckId: string, delta: 1 | -1 = 1) {
       const overviewContext = studyOverview ? studyOverviewContext(studyOverview) : null;
       const overviewDay = overviewContext ? getStudyHeatmapDayKey(event.answeredAt, overviewContext.timeZone, overviewContext.dayStartHour) : null;
       if (studyOverview && overviewContext && overviewDay === studyOverview.dayKey && countsTowardDailyLimits(event)) {
@@ -118,7 +122,7 @@ export function createStudyOverview({ database, flushWrites, decks, isCatalogCom
         const isIntroduction = wasNew(event);
         if (!priorEvents.some((prior) => countsTowardDailyLimits(prior) && wasNew(prior) === isIntroduction)) {
           const key = isIntroduction ? "introducedTodayByDeck" : "reviewedTodayByDeck";
-          studyOverview = { ...studyOverview, [key]: { ...studyOverview[key], [deckId]: (studyOverview[key][deckId] ?? 0) + 1 }, generatedAt: event.answeredAt };
+          studyOverview = { ...studyOverview, [key]: { ...studyOverview[key], [deckId]: Math.max(0, (studyOverview[key][deckId] ?? 0) + delta) }, generatedAt: event.answeredAt };
           transaction.objectStore(STORE.syncMetadata).put({ key: "accountStudyOverview", value: studyOverview });
         }
       }

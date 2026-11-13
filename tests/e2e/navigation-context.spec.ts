@@ -235,8 +235,9 @@ test("[Vertrag: Kartenverwaltung] Kartenzeilen bleiben auch in schmalen Viewport
       const dueCells = cardRows.map((row) => row.querySelectorAll<HTMLElement>("td")[1]);
       const variantCells = cardRows.map((row) => row.querySelectorAll<HTMLElement>("td")[2]);
       const variantLayouts = variantCells.map((cell) => cell?.firstElementChild as HTMLElement | null);
-      const variantTags = variantLayouts.map((layout) => layout?.firstElementChild as HTMLElement | null);
-      const markSlots = variantLayouts.map((layout) => layout?.lastElementChild as HTMLElement | null);
+      // Flag and mark keep their slots left of the count, which closes the column.
+      const variantTags = variantLayouts.map((layout) => layout?.lastElementChild as HTMLElement | null);
+      const markSlots = variantLayouts.map((layout) => layout?.children[1] as HTMLElement | null);
       const variantTagRightEdges = variantTags.map((tag) => tag?.getBoundingClientRect().right ?? Number.NaN);
       const sortFieldStyle = cardSortField ? window.getComputedStyle(cardSortField) : null;
       const fitsWithin = (element: HTMLElement | null | undefined, container = element) => {

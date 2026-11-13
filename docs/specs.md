@@ -455,7 +455,7 @@ Wiederholung, jung | zunächst kurze Abstände, bis die Haltbarkeit wieder wäch
 - `Gut` geht einen Lernschritt weiter und führt nach dem letzten in die Wiederholung. `Leicht` beendet die Lernphase sofort. `Schwer` bleibt mit kürzerem Abstand in der Phase. `Nochmal` beginnt die Lernschritte von vorn und führt aus der Wiederholung ins Wiederlernen.
 - Eingestellte Lernschritte haben Vorrang vor einem längeren Abstand aus dem Modell.
 - Jede Bewertung nennt vorab ihren Abstand; angezeigter und angewandter Wert sind derselbe.
-- Jede Bewertung wird als unveränderliches Ereignis mit gemessener Antwortzeit gespeichert; der Lernstand ergibt sich daraus.
+- Jede Bewertung wird als unveränderliches Ereignis mit gemessener Antwortzeit gespeichert; der Lernstand ergibt sich daraus. Nur das [Zurücknehmen in der Sitzung](#lernsitzung) entfernt ein Ereignis.
 - **Bewusst nicht:** KI-Erzeugung beim Antworten; interne Schedulerzustände in der Oberfläche.
 
 ### Lernverlauf einer Karte
@@ -530,6 +530,7 @@ Fällig | ausgewählte Wiederholungen
 - Aus der Sitzung heraus wirken sofort: Flagge, Markierung, Aussetzen, Kartenreihenfolge und Timer. Editor und Stapeleinstellungen öffnen sich über der Sitzung und führen an dieselbe Karte zurück.
 - Aussetzen pausiert die Karte samt Varianten, ohne ihren Lernstand zu ändern; sie fehlt dann in Runde, Tageszahlen und Fortschritt. Nach dem Reaktivieren ist ein vergangener Termin sofort wieder relevant.
 - Löst eine Bewertung die Lernbremse aus, weist die Sitzung einmal darauf hin.
+- Die Bewertungen der laufenden Sitzung lassen sich der Reihe nach zurücknehmen, die jüngste zuerst. Die Karte erscheint erneut mit dem Lernstand von davor; das Ereignis verschwindet aus Verlauf, Statistik und Tageszahlen auf allen Geräten. Eine andere Änderung an der Sitzung, ein neuer Lerntag oder das Verlassen beendet diese Möglichkeit.
 - Inhalte mit Vorlese-Angabe aus Anki lassen sich über die Sprachausgabe des Geräts vorlesen.
 - Markierter Text lässt sich in AMBOSS nachschlagen. Erst der ausdrückliche Klick öffnet die Suche; übertragen wird nur der markierte Text.
 - Nach dem Aufdecken steht [KI hilft](#ki-hilft) bereit.
