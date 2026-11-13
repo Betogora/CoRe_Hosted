@@ -1,4 +1,5 @@
 import React from "react";
+import { createDefaultDeckSettings } from "./coreModel.ts";
 import { CARD_VARIANT_CANDIDATE_QUERY, runCardVariantBatch, summarizeCardVariantBatch, type CardVariantBatchMode, type CardVariantBatchSource } from "./cardVariantBatch.ts";
 import type { Deck, DeckSettings } from "./coreTypes.ts";
 import { collectDeckTreeIds } from "./coreWorkspace.ts";
@@ -7,7 +8,7 @@ import { catalogEntryFromCard, type CardCatalogEntry } from "./workspaceReplica.
 import type { WorkspaceStore } from "./workspaceStore.ts";
 
 interface BatchCardSource {
-  queryCardPage(request: { deckId: string; deckIds: readonly string[]; query: string; page: number; pageSize: number; sort: typeof DEFAULT_CARD_TABLE_SORT }): Promise<{ items: CardCatalogEntry[]; hasMore: boolean; totalCount?: number }>;
+  queryCardPage(request: { deckId: string; deckIds: readonly string[]; query: string; page: number; pageSize: number; sort: typeof DEFAULT_CARD_TABLE_SORT }): Promise<{ items: CardCatalogEntry[]; hasMore: boolean; totalCount?: number; limitedToLocalCatalog?: boolean }>;
   openCards: CardVariantBatchSource["openCards"];
 }
 
@@ -19,6 +20,8 @@ export interface CardVariantBatchView {
   total: number | null;
   /** Set once the action ended with something the user should read; the bar then offers closing instead of cancelling. */
   outcome: string | null;
+  /** The action ran over selected cards rather than the deck tree. */
+  selection: boolean;
 }
 
 /** One app-wide AI variant action at a time, running in the open tab; a full success ends with a toast. */
@@ -31,19 +34,25 @@ export function useCardVariantBatch({ cards, store, generate, onToast }: {
 }) {
   const [view, setView] = React.useState<CardVariantBatchView | null>(null);
   const controllerRef = React.useRef<AbortController | null>(null);
-  /** The candidates of a mode in the deck tree, as a catalog list of its own so the card lists keep their pages. */
-  const candidateList = React.useCallback((deck: Deck, mode: CardVariantBatchMode) => ({
-    deckId: `variants:${mode}:${deck.id}`,
-    deckIds: [...collectDeckTreeIds(store.get().state?.decks ?? [], deck.id)],
-    query: CARD_VARIANT_CANDIDATE_QUERY[mode],
-  }), [store]);
+  const countRef = React.useRef(0);
+  /**
+   * The candidates of a mode in the deck and its subdecks with CoRe on (the deck itself always: switching CoRe on
+   * starts an action before the store has the new setting), as a catalog list of its own so the card lists keep their pages.
+   */
+  const candidateList = React.useCallback((deck: Deck, mode: CardVariantBatchMode, listId = `variants:${mode}:${deck.id}`) => {
+    const decks = store.get().state?.decks ?? [];
+    const tree = collectDeckTreeIds(decks, deck.id);
+    const deckIds = decks.filter((candidate) => tree.has(candidate.id) && (candidate.id === deck.id || createDefaultDeckSettings(candidate.deckSettings).coreMode === "on")).map((candidate) => candidate.id);
+    return { deckId: listId, deckIds, query: CARD_VARIANT_CANDIDATE_QUERY[mode] };
+  }, [store]);
 
   /** Runs over the deck's cards, or over `cardIds` (the selected cards of the card management, KV4) in their order. */
   const start = React.useCallback((deck: Deck, { mode = "missing", deckSettings = deck.deckSettings, cardIds }: { mode?: CardVariantBatchMode; deckSettings?: Partial<DeckSettings>; cardIds?: readonly string[] } = {}) => {
     if (!cards || controllerRef.current) return;
     const controller = new AbortController();
     controllerRef.current = controller;
-    setView({ deck, mode, done: 0, total: null, outcome: null });
+    setView({ deck, mode, done: 0, total: null, outcome: null, selection: Boolean(cardIds) });
+    const decksById = new Map((store.get().state?.decks ?? []).map((candidate) => [candidate.id, candidate]));
     void runCardVariantBatch({
       source: {
         listPage: cardIds
@@ -54,7 +63,7 @@ export function useCardVariantBatch({ cards, store, generate, onToast }: {
           : (page) => cards.queryCardPage({ ...candidateList(deck, mode), page, pageSize: 50, sort: DEFAULT_CARD_TABLE_SORT }),
         openCards: cards.openCards,
       },
-      deckSettings,
+      settingsFor: (card) => card.deckId === deck.id ? deckSettings : decksById.get(card.deckId)?.deckSettings ?? deckSettings,
       mode,
       generate: (cardId) => generate(deck.id, cardId, mode),
       signal: controller.signal,
@@ -74,13 +83,17 @@ export function useCardVariantBatch({ cards, store, generate, onToast }: {
     }).finally(() => {
       controllerRef.current = null;
     });
-  }, [cards, candidateList, generate, onToast]);
+  }, [cards, candidateList, generate, onToast, store]);
 
-  /** Cards of the deck and its subdecks without an active variant, as the deck settings show them; null without a catalog. */
+  /**
+   * Cards of the deck and its subdecks with CoRe on that have no active variant, as the deck settings show them; null
+   * without a catalog or when only a partial local catalog answered. Each count is a list of its own, so no total is reused.
+   */
   const countWithoutVariant = React.useCallback(async (deck: Deck) => {
     if (!cards) return null;
-    const page = await cards.queryCardPage({ ...candidateList(deck, "missing"), page: 0, pageSize: 1, sort: DEFAULT_CARD_TABLE_SORT });
-    return page.totalCount ?? null;
+    countRef.current += 1;
+    const page = await cards.queryCardPage({ ...candidateList(deck, "missing", `variants:count:${deck.id}:${countRef.current}`), page: 0, pageSize: 1, sort: DEFAULT_CARD_TABLE_SORT });
+    return page.limitedToLocalCatalog ? null : page.totalCount ?? null;
   }, [cards, candidateList]);
 
   const cancel = React.useCallback(() => controllerRef.current?.abort(), []);

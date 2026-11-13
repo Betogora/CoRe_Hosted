@@ -1222,12 +1222,11 @@ test("[Vertrag: KI-Varianten je Kartenart, Zähler, Stapellauf und Anzeigen] Der
   await page.locator('[data-testid^="deck-options-menu-"]').getByRole("button", { name: "Einstellungen" }).click();
   const dialog = deckSettingsDialog(page);
   await dialog.getByRole("switch", { name: "CoRe-Modus" }).click();
-  await page.getByTestId("settings-save-bar").getByRole("button", { name: "Speichern" }).click();
+  await page.getByTestId("settings-save-bar").getByRole("button", { name: "Stapel und Unterstapel speichern" }).click();
   await expect(page.getByRole("status").filter({ hasText: "Stapeleinstellungen wurden" })).toBeVisible();
 
   // The parent deck counts and generates over all its subdecks.
   await expect(dialog.getByTestId("deck-settings-variant-count")).toHaveText("18 Karten ohne Variante");
-  await expect(dialog.getByRole("button", { name: "Varianten neu generieren" })).toHaveCount(0);
   await dialog.getByRole("button", { name: "Varianten generieren" }).click();
   const bar = page.getByTestId("variant-generation-bar");
   await expect(bar.getByRole("status")).toHaveText("17 Varianten generiert, 1 nicht umformulierbar", { timeout: 60_000 });
@@ -1238,7 +1237,6 @@ test("[Vertrag: KI-Varianten je Kartenart, Zähler, Stapellauf und Anzeigen] Der
   await expect(page).toHaveURL(/[?&]q=did%3A[^&]+-has%3Avariant/);
   await expect(page.locator("[data-card-row]")).toHaveCount(1);
   await expect(page.locator("[data-card-row]").first()).toContainText("Mona Lisa");
-  await expect(bar).toHaveCount(0);
   // The mocked 422 of the card reported as not rephrasable is the browser's only resource error.
   expect(runtimeErrors.filter((message) => !message.includes("422"))).toEqual([]);
 });

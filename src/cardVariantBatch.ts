@@ -66,7 +66,7 @@ export interface CardVariantBatchResult {
  */
 export async function runCardVariantBatch({
   source,
-  deckSettings,
+  settingsFor,
   mode = "missing",
   generate,
   signal,
@@ -74,7 +74,8 @@ export async function runCardVariantBatch({
   limit = CARD_VARIANT_BATCH_LIMIT,
 }: {
   source: CardVariantBatchSource;
-  deckSettings: Partial<DeckSettings>;
+  /** Settings of the deck a card is in; a deck tree may mix decks with CoRe on and off. */
+  settingsFor: (card: Card) => Partial<DeckSettings>;
   mode?: CardVariantBatchMode;
   generate: (cardId: string) => Promise<unknown>;
   signal?: AbortSignal;
@@ -93,7 +94,7 @@ export async function runCardVariantBatch({
       // The catalog can lag behind the body, e.g. a cloud page before the last sync.
       if (body && !needsVariant(body.card, mode)) return;
       // Refreshing replaces the existing variants, so the deck's maximum does not block it.
-      if (!body || !classifyCardEligibility(body.note, mode === "refresh" ? { ...body.card, variants: [] } : body.card, deckSettings).eligible) return;
+      if (!body || !classifyCardEligibility(body.note, mode === "refresh" ? { ...body.card, variants: [] } : body.card, settingsFor(body.card)).eligible) return;
       if (selected.length < limit) selected.push(entry.id);
       else hasMore = true;
     });

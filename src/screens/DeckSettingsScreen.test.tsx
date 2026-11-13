@@ -201,7 +201,7 @@ test("variant generation is offered only for decks with CoRe switched on, names 
   const idle = render(coreOn, false);
   assert.match(idle, /data-testid="deck-settings-variant-generation"/);
   assert.match(idle, />Varianten generieren</);
-  assert.doesNotMatch(idle, />Varianten neu generieren</, "one action: generating while some cards lack a variant");
+  assert.match(idle, />Varianten neu generieren</, "refreshing stays reachable even when some cards can never get a variant");
   assert.match(idle, /Je eine Variante für bis zu 50 Karten/);
   assert.match(render(coreOn, true), /<button[^>]*disabled=""[^>]*>.*Varianten generieren/);
   const missing = render(coreOn, false, 12);

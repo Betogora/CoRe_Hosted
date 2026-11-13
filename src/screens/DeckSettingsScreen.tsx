@@ -305,9 +305,8 @@ export function DeckSettingsScreen({ section, onSelectSection, deck, decks, lear
                         : `${cardsWithoutVariant.toLocaleString("de-DE")} ${cardsWithoutVariant === 1 ? "Karte" : "Karten"} ohne Variante`}</p>
                 </div>
                 <div className="core-settings-row-control">
-                  {cardsWithoutVariant === 0
-                    ? <ActionButton type="button" variant="secondary" icon={RefreshCw} disabled={variantGenerationRunning} onClick={() => setRefreshDialogOpen(true)}>Varianten neu generieren</ActionButton>
-                    : <ActionButton type="button" variant="secondary" icon={Sparkles} disabled={variantGenerationRunning} onClick={() => variantGeneration.start(deck, "missing")}>Varianten generieren</ActionButton>}
+                  {cardsWithoutVariant === 0 ? null : <ActionButton type="button" variant="secondary" icon={Sparkles} disabled={variantGenerationRunning} onClick={() => variantGeneration.start(deck, "missing")}>Varianten generieren</ActionButton>}
+                  <ActionButton type="button" variant="secondary" icon={RefreshCw} disabled={variantGenerationRunning} onClick={() => setRefreshDialogOpen(true)}>Varianten neu generieren</ActionButton>
                 </div>
               </div>
             ) : null}

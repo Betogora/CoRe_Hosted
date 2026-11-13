@@ -16,10 +16,10 @@ export function VariantGenerationBarWiring() {
       outcome={batch.outcome}
       onCancel={variantBatch.cancel}
       onClose={variantBatch.dismiss}
-      onShow={batch.mode === "missing" ? () => {
-        navigation.navigateToViewNow("kartenstapel", { cardQuery: `did:${batch.deck.id} ${CARD_VARIANT_CANDIDATE_QUERY.missing}` });
-        variantBatch.dismiss();
-      } : undefined}
+      // Guarded like any navigation, so open drafts ask first; the bar stays until it is closed.
+      onShow={batch.mode === "missing" && !batch.selection
+        ? () => navigation.navigateToView("kartenstapel", { cardQuery: `did:${batch.deck.id} ${CARD_VARIANT_CANDIDATE_QUERY.missing}` })
+        : undefined}
     />
   );
 }

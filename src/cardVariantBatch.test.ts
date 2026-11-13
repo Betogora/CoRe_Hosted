@@ -49,7 +49,7 @@ test("batch generates the first cards without an active variant in deck order an
   const generated: string[] = [];
   const progress: CardVariantBatchProgress[] = [];
 
-  const result = await runCardVariantBatch({ source, deckSettings: coreOn, generate: async (id) => { generated.push(id); }, onProgress: (p) => progress.push(p) });
+  const result = await runCardVariantBatch({ source, settingsFor: () => coreOn, generate: async (id) => { generated.push(id); }, onProgress: (p) => progress.push(p) });
 
   assert.deepEqual(generated, ["card-1", "card-4", "card-5"]);
   assert.deepEqual(opened, [["card-1", "card-2"], ["card-4", "card-5"]], "only cards without an active variant are loaded");
@@ -64,7 +64,7 @@ test("batch stops selecting at the request limit and reports remaining cards", a
   const { source, opened } = deck([1, 2, 3, 4, 5, 6, 7].map(basic), 3);
   const generated: string[] = [];
 
-  const result = await runCardVariantBatch({ source, deckSettings: coreOn, generate: async (id) => { generated.push(id); }, limit: 2 });
+  const result = await runCardVariantBatch({ source, settingsFor: () => coreOn, generate: async (id) => { generated.push(id); }, limit: 2 });
 
   assert.deepEqual(generated, ["card-1", "card-2"]);
   assert.equal(opened.length, 1, "no further page is loaded once the limit is reached");
@@ -75,7 +75,7 @@ test("batch keeps going after a single failed card but stops at errors every car
   const failing = deck([1, 2, 3].map(basic));
   const single = await runCardVariantBatch({
     source: failing.source,
-    deckSettings: coreOn,
+    settingsFor: () => coreOn,
     generate: async (id) => {
       if (id === "card-2") throw new AiCardVariantContractError("invalid_tool_call", "Das Modell hat ungültige Kartenfelder geliefert.");
       if (id === "card-3") throw new AiCardVariantContractError("not_rephrasable", "Diese Karte lässt sich nicht sinnvoll umformulieren.");
@@ -89,7 +89,7 @@ test("batch keeps going after a single failed card but stops at errors every car
   let calls = 0;
   const budget = await runCardVariantBatch({
     source: deck([1, 2, 3].map(basic)).source,
-    deckSettings: coreOn,
+    settingsFor: () => coreOn,
     generate: async () => { calls += 1; throw new AiCardVariantContractError("provider_budget_exhausted", "Varianten können gerade nicht generiert werden."); },
   });
   assert.equal(calls, 1);
@@ -102,7 +102,7 @@ test("cancelling keeps the variants created so far and leaves the rest for the n
   const generated: string[] = [];
   const result = await runCardVariantBatch({
     source: deck([1, 2, 3].map(basic)).source,
-    deckSettings: coreOn,
+    settingsFor: () => coreOn,
     signal: controller.signal,
     generate: async (id) => { generated.push(id); if (id === "card-1") controller.abort(); },
   });
@@ -117,14 +117,14 @@ test("a card whose loaded body already has a variant is skipped even when the ca
   const withVariant = basic(1);
   withVariant.card = addCardVariant(withVariant.card, { front: "Neu gefragt", back: "Antwort 1" });
   const generated: string[] = [];
-  const result = await runCardVariantBatch({ source: deck([withVariant, basic(2)]).source, deckSettings: coreOn, generate: async (id) => { generated.push(id); } });
+  const result = await runCardVariantBatch({ source: deck([withVariant, basic(2)]).source, settingsFor: () => coreOn, generate: async (id) => { generated.push(id); } });
   assert.deepEqual(generated, ["card-2"]);
   assert.equal(result.created, 1);
 });
 
 test("a deck with CoRe switched off creates nothing", async () => {
   let calls = 0;
-  const result = await runCardVariantBatch({ source: deck([1, 2].map(basic)).source, deckSettings: { coreMode: "off" }, generate: async () => { calls += 1; } });
+  const result = await runCardVariantBatch({ source: deck([1, 2].map(basic)).source, settingsFor: () => ({ coreMode: "off" }), generate: async () => { calls += 1; } });
   assert.equal(calls, 0);
   assert.equal(result.created, 0);
 });
@@ -152,7 +152,7 @@ test("refresh replaces only variants from an older prompt version and ignores th
 
   const result = await runCardVariantBatch({
     source: deck([outdated, current, withoutVariant, edited], 4, { "card-1": { hasActiveVariants: true }, "card-2": { hasActiveVariants: true }, "card-4": { hasActiveVariants: true } }).source,
-    deckSettings: coreOn,
+    settingsFor: () => coreOn,
     mode: "refresh",
     generate: async (id) => { generated.push(id); },
   });

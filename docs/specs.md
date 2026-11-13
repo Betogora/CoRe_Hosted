@@ -649,8 +649,8 @@ Eine Variante fragt denselben Inhalt mit anderer Formulierung ab.
 - Die KI erhält Frage und Antwort, den Lückentext oder Frage und Optionen in begrenzter Länge und die Fragen vorhandener Varianten, damit die neue sich davon unterscheidet. Sie soll die Frage möglichst anders beginnen als das Original; das ist eine Anweisung, keine Prüfung.
 - Gespeichert wird nur, wenn die Karte während der Anfrage unverändert blieb und dieselbe Formulierung noch nicht existiert.
 - Eine Karte kann weitere Varianten erhalten, bis die Höchstzahl aktiver Varianten ihres Stapels erreicht ist.
-- **Für einen Stapel:** Eine Erzeugung bearbeitet nacheinander die ersten bis zu 50 passenden Karten des Stapels samt Unterstapeln ohne aktive Variante, je Karte eine Variante, und speichert jede sofort. Ein weiterer Start nimmt die nächsten Karten.
-- Die Stapeleinstellungen nennen die Zahl der Karten ohne Variante. Solange es welche gibt, erzeugt die eine Variantenaktion fehlende Varianten; sonst ersetzt sie nach Rückfrage Varianten aus einer älteren Fassung der Erzeugung. Karten und Lernstand bleiben.
+- **Für einen Stapel:** Eine Erzeugung bearbeitet nacheinander die ersten bis zu 50 passenden Karten des Stapels und seiner Unterstapel mit eingeschaltetem CoRe ohne aktive Variante, je Karte eine Variante, und speichert jede sofort. Ein weiterer Start nimmt die nächsten Karten.
+- Die Stapeleinstellungen nennen die Zahl dieser Karten ohne Variante; fehlende Varianten lassen sich erzeugen, solange es welche gibt. Varianten aus einer älteren Fassung der Erzeugung lassen sich nach Rückfrage ersetzen; Karten und Lernstand bleiben.
 - Die Stapelerzeugung läuft im geöffneten Tab, höchstens eine zur selben Zeit, mit sichtbarem Fortschritt. Abbrechen behält Erzeugtes; ein Fehler, der jede Karte träfe, hält den Lauf mit kurzem Grund an. Bleiben Karten ohne Variante, führt die Rückmeldung zu ihnen in der Kartenverwaltung.
 
 ### KI-Zusammenfassung

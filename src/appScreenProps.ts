@@ -136,7 +136,7 @@ export interface DeckSettingsScreenProps {
   bodyCache?: { total: number; cached: number; downloaded: number } | null;
   onDownloadDeck?: (deckId: string) => Promise<unknown>;
   onRemoveDeckDownload?: (deckId: string) => Promise<unknown>;
-  /** AI variants of the deck tree: the cards without one (null while unknown; at 0 the action refreshes older ones) and the action; absent while unavailable. */
+  /** AI variants of the deck tree: the cards without one (null while unknown; at 0 only refreshing is offered) and the action; absent while unavailable. */
   variantGeneration?: { start: (deck: Deck, mode: "missing" | "refresh") => unknown; running: boolean; cardsWithoutVariant: number | null };
   /** Closes the dialog towards the view it was opened from. */
   onClose: () => unknown;
