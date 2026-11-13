@@ -888,7 +888,8 @@ Die Statistik zeigt Lernaktivität, Planung und Gedächtnismodell für gewählte
 - Ausgewertet wird im Konto; noch nicht synchronisierte Bewertungen fließen sofort ein.
 - Die wahre Erinnerungsquote zählt je Karte und Lerntag nur die erste Wiederholung nach mindestens einem Tag Abstand.
 - Historische Kategorien folgen Anki und dem Zustand vor der Antwort; der Kartenstatus zählt die Reife.
-- Die Lern-Heatmap zeigt Aktivität je Lerntag und den Streak der gewählten Stapel; ein Lerntag zählt ab einer gültigen Bewertung. Für die Zukunft zeigt sie je aktiver Karte genau deren nächste Fälligkeit, ohne Folgetermine zu simulieren.
+- Die Lern-Heatmap zeigt Aktivität je Lerntag und den Streak der gewählten Stapel; ein Lerntag zählt ab einer gültigen Bewertung. Für die Zukunft zeigt sie je aktiver Karte genau deren nächste Fälligkeit, ohne Folgetermine zu simulieren. Gelernte und erwartete Tage bleiben unterscheidbar.
+- Neben dem Streak nennt sie die Lerntage des gezeigten Zeitraums, gezählt ab der ersten Aktivität, und die morgen fälligen Karten.
 - Fehlen Historie, Zeitmessung oder Stichprobe, wird das erklärt; es werden keine Nullwerte erfunden.
 - **Bewusst nicht:** Ankis klassische Leichtigkeit.
 
@@ -900,12 +901,12 @@ Jede Einstellung gilt für genau einen Bereich.
 | --- | --- |
 | Konto, auf allen Geräten | Tagesbeginn, Vorziehfenster, Easy Days, Lernprofile, Standard für neue Stapel, Flaggennamen, gespeicherte Suchen, Prüfungspläne |
 | Einen Stapel | Tageslimits, Reihenfolge und Sortierung, Begraben, Lernschritte, Zielerinnerung, maximales Intervall, CoRe-Modus, Variantenschwelle, aktive Varianten, Lernbremse, Name und Aussehen, Offline-Nutzung |
-| Diesen Browser | heller oder dunkler Modus, Anordnung von `Heute` und eigene To-dos, Pomodoro-Timer, Simulationsuhr |
+| Diesen Browser | heller oder dunkler Modus, Heatmap-Farbe, Anordnung von `Heute` und eigene To-dos, Pomodoro-Timer, Simulationsuhr |
 
 - Einstellungen werden als Entwurf geändert und ausdrücklich gespeichert oder verworfen; ein ungespeicherter Entwurf hält jedes Verlassen auf.
 - Stapeleinstellungen lassen sich für nur diesen Stapel oder samt Unterstapeln speichern; übertragen werden dabei nur die geänderten Werte.
 - Kontowerte werden nie in Stapel kopiert und von Lernprofilen nicht verändert.
-- Sofort, ohne Entwurf, wirken das Anwenden eines Lernprofils, der manuelle Sync und die Lerneinstellungen einer laufenden Sitzung.
+- Sofort, ohne Entwurf, wirken das Anwenden eines Lernprofils, der manuelle Sync, die Heatmap-Farbe und die Lerneinstellungen einer laufenden Sitzung.
 - Version und Rechtstexte stehen nur in den Einstellungen.
 
 ### Tagesrunde und Lernprofile

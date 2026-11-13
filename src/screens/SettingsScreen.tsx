@@ -8,6 +8,8 @@ import { readFieldTimings } from "../fieldTimings.ts";
 import { formatFieldTimingsReport, readFieldTimingContext } from "../fieldTimingsReport.ts";
 import { ActionButton, CrossLinkButton } from "../ui/actionUi.tsx";
 import { CoreSegmentedControl } from "../ui/coreUi.tsx";
+import { ColorPicker } from "../ui/ColorPicker.tsx";
+import { useHeatmapHistoryColor } from "../ui/StudyHeatmap.tsx";
 import { useSuccessToast } from "../ui/feedbackUi.tsx";
 import { createGeneralSettingsDraft, settingsDraftsEqual, type GeneralSettingsDraft } from "../settingsDraft.ts";
 import { SyncConflictPanel } from "./SyncConflictPanel.tsx";
@@ -16,6 +18,7 @@ import { useWorkspaceStore, useWorkspaceValue } from "../useWorkspaceStore.ts";
 
 const sectionIds = {
   account: "settings-account",
+  appearance: "settings-appearance",
   data: "settings-data-sync",
   conflicts: "settings-sync-conflicts",
   about: "settings-about",
@@ -23,6 +26,7 @@ const sectionIds = {
 
 const headingIds = {
   konto: "settings-account-heading",
+  darstellung: "settings-appearance-heading",
   daten: "settings-data-heading",
   ueber: "settings-about-heading",
 } as const;
@@ -44,6 +48,7 @@ export function SettingsScreen({ section, focusConflicts = false, profile, onSav
   const [accountMessage, setAccountMessage] = React.useState("");
   const [accountBusy, setAccountBusy] = React.useState(false);
   const setSuccessToast = useSuccessToast();
+  const [heatmapColor, setHeatmapColor] = useHeatmapHistoryColor();
   const workspaceStore = useWorkspaceStore();
   const fieldTimingsAvailable = React.useMemo(() => section === "ueber" && Object.keys(readFieldTimings()).length > 0, [section]);
   React.useEffect(() => {
@@ -159,6 +164,20 @@ export function SettingsScreen({ section, focusConflicts = false, profile, onSav
             </div>
           </div>
           {accountMessage ? <p className="core-status-error core-body" role="alert">{accountMessage}</p> : null}
+        </section>
+      ) : null}
+
+      {section === "darstellung" ? (
+        <section id={sectionIds.appearance} className="core-settings-section" aria-labelledby="settings-appearance-heading">
+          <h2 id="settings-appearance-heading" tabIndex={-1} className="core-heading-2 text-core-text outline-none">Darstellung</h2>
+          <div className="core-settings-list">
+            <div className="core-settings-row" data-layout="inline">
+              <span className="core-settings-row-title">Heatmap-Farbe</span>
+              <div className="core-settings-row-control">
+                <ColorPicker ariaLabel="Heatmap-Farbe ändern" value={heatmapColor} onValueCommit={setHeatmapColor} />
+              </div>
+            </div>
+          </div>
         </section>
       ) : null}
 

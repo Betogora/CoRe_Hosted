@@ -375,7 +375,7 @@ test("settings dialog switches between side list and area list at 768 px", async
   const dialog = settingsDialog(page);
   const areas = dialog.getByRole("navigation", { name: "Bereiche der Einstellungen" });
   await expect(areas).toBeVisible();
-  await expect(areas.locator("[data-settings-section]")).toHaveCount(8);
+  await expect(areas.locator("[data-settings-section]")).toHaveCount(9);
   await expect(dialog.getByRole("heading", { name: "Konto", exact: true })).toBeVisible();
 
   await openSettingsArea(dialog, "ueber");

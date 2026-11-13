@@ -18,7 +18,7 @@ test("the settings dialog is one labelled modal with both area groups in the sid
   assert.match(html, /<h2[^>]*>Einstellungen<\/h2>/);
   assert.match(html, /aria-label="Einstellungen schließen"/);
   assert.match(html, /<nav aria-label="Bereiche der Einstellungen"/);
-  for (const label of ["Allgemein", "Konto", "Daten &amp; Synchronisierung", "Über uns", "Lernen", "Lerntag &amp; Planung", "Tagesrunde &amp; Lernprofile", "Scheduler &amp; CoRe", "Flaggen", "Fokuswerkzeuge"]) {
+  for (const label of ["Allgemein", "Konto", "Darstellung", "Daten &amp; Synchronisierung", "Über uns", "Lernen", "Lerntag &amp; Planung", "Tagesrunde &amp; Lernprofile", "Scheduler &amp; CoRe", "Flaggen", "Fokuswerkzeuge"]) {
     assert.match(html, new RegExp(`>${label}<`));
   }
   assert.equal(html.match(/aria-current="page"/g)?.length, 1);

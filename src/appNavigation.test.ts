@@ -73,7 +73,7 @@ test("the settings dialog is an area on top of the current view and replaces the
 test("settings areas resolve to their content and draft group", () => {
   assert.equal(settingsContentSection("start"), "konto");
   assert.equal(settingsContentSection("konflikte"), "daten");
-  for (const section of ["start", "konto", "daten", "konflikte", "ueber"] as const) assert.equal(settingsSectionGroup(section), "general");
+  for (const section of ["start", "konto", "darstellung", "daten", "konflikte", "ueber"] as const) assert.equal(settingsSectionGroup(section), "general");
   for (const section of ["lerntag", "tagesrunde", "scheduler", "flaggen", "fokus"] as const) assert.equal(settingsSectionGroup(section), "learning");
 });
 
