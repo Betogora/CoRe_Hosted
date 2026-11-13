@@ -42,6 +42,9 @@ export interface StudyHeatmapWindow {
   weekdayLabels: string[];
   maxCount: number;
   maxForecastCount: number;
+  /** Past days of the window since the first activity, and how many of them have activity. */
+  trackedDayCount: number;
+  activeDayCount: number;
   canShowPrevious: boolean;
   canShowNext: boolean;
   previousAnchorKey: string;
@@ -257,6 +260,8 @@ export function createStudyHeatmapWindow(
     isToday: day.key === heatmap.todayKey,
   }));
   const weeks = Array.from({ length: days.length / 7 }, (_, index) => days.slice(index * 7, index * 7 + 7));
+  const firstActivityKey = heatmap.firstActivityKey;
+  const trackedDays = firstActivityKey == null ? [] : days.filter((day) => !day.isOutsideRange && !day.isFuture && day.key >= firstActivityKey);
   const previousAnchorKey = shiftPeriodAnchor(period, anchorKey, -1);
   const nextCandidate = shiftPeriodAnchor(period, anchorKey, 1);
   const currentAnchor = periodAnchor(period, heatmap.todayKey);
@@ -275,6 +280,8 @@ export function createStudyHeatmapWindow(
     weekdayLabels: [...HEATMAP_WEEKDAY_LABELS],
     maxCount,
     maxForecastCount,
+    trackedDayCount: trackedDays.length,
+    activeDayCount: trackedDays.filter((day) => day.count > 0).length,
     canShowPrevious: anchorKey > currentAnchor || (heatmap.firstActivityKey != null && previousRange.endKey >= heatmap.firstActivityKey),
     canShowNext: anchorKey < forecastAnchor,
     previousAnchorKey,

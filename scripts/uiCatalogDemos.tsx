@@ -21,6 +21,7 @@ import { catalogEntryFromCard } from "../src/workspaceReplica.ts";
 import { matchesCardSearch, parseCardSearchQuery } from "../src/cardSearchQuery.ts";
 import { createDeckLibraryModel } from "../src/libraryModel.ts";
 import { createStudyHeatmapModelFromCounts } from "../src/studyHeatmapModel.ts";
+import { shiftDayKey } from "../src/learningDay.ts";
 import { createDeckLearningSettingsDraft } from "../src/settingsDraft.ts";
 import { createPomodoroTimer, createPomodoroTimerFromSeconds, pausePomodoroTimer, resumePomodoroTimer, type PomodoroTimer } from "../src/pomodoroTimer.ts";
 import { ActionButton, CrossLinkButton, IconButton, ShowMoreButton } from "../src/ui/actionUi.tsx";
@@ -97,6 +98,11 @@ import { DeckMindMapsPanel } from "../src/screens/DeckMindMapsPanel.tsx";
 import { createLearningSummary, createSummarySettings, loadLearningSummaries, saveLearningSummary } from "../src/learningSummaries.ts";
 
 const today = "2026-10-02";
+const heatmapDemo = createStudyHeatmapModelFromCounts({
+  todayKey: today,
+  countsByDay: new Map(Array.from({ length: 220 }, (_, index) => [shiftDayKey(today, -index), index < 12 ? 6 + ((index * 7) % 13) : (index * 37) % 11 < 4 ? 0 : (index * 53) % 23])),
+  forecastCountsByDay: new Map(Array.from({ length: 60 }, (_, index) => [shiftDayKey(today, index + 1), (index * 29 + 4) % 9 < 3 ? 0 : 4 + ((index * 31) % 26)])),
+});
 const imageReference = "a".repeat(40);
 const sampleMedia = { [imageReference]: `data:image/svg+xml,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="400" height="160" viewBox="0 0 400 160"><rect width="400" height="160" rx="12" fill="#dde3ed"/><path d="M40 130V60l60-35 60 35v70M230 130V45h90v85M210 130h130" fill="none" stroke="#667492" stroke-width="6"/><text x="40" y="150" font-size="14">Lissabon · Beispielbild</text></svg>')}` };
 const sampleGraphs = [
@@ -392,7 +398,7 @@ function DecksDemo({ section }: { section: string }) {
       const ids: readonly string[] = typeof id === "string" ? [id] : id;
       return expanded ? current.filter((value) => !ids.includes(value)) : [...new Set([...current, ...ids])];
     })} /></div></Demo>}
-    {section === "charts" && <Demo title="StudyHeatmap" wide><StudyHeatmap heatmap={createStudyHeatmapModelFromCounts({ todayKey: today, countsByDay: new Map([["2026-09-27", 3], ["2026-09-28", 8], ["2026-09-29", 12], ["2026-09-30", 5], ["2026-10-01", 7], [today, 11]]), forecastCountsByDay: new Map([["2026-10-03", 10], ["2026-10-05", 20], ["2026-11-02", 35]]) })} formatDayLabel={(day) => `${day.key}: ${day.count} gelernt, ${day.forecastCount} voraussichtlich fällig`} /></Demo>}
+    {section === "charts" && <Demo title="StudyHeatmap" wide><StudyHeatmap heatmap={heatmapDemo} formatDayLabel={(day) => `${day.key}: ${day.count} gelernt, ${day.forecastCount} voraussichtlich fällig`} /></Demo>}
   </>;
 }
 

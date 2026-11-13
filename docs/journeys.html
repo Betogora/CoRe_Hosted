@@ -589,10 +589,19 @@ video {
     border-color: var(--core-border);
   }
 
-  .core-heatmap-forecast-level-1 { --core-heatmap-forecast-tone: color-mix(in srgb, var(--core-surface) 90%, var(--core-text)); }
-  .core-heatmap-forecast-level-2 { --core-heatmap-forecast-tone: color-mix(in srgb, var(--core-surface) 82%, var(--core-text)); }
-  .core-heatmap-forecast-level-3 { --core-heatmap-forecast-tone: color-mix(in srgb, var(--core-surface) 72%, var(--core-text)); }
-  .core-heatmap-forecast-level-4 { --core-heatmap-forecast-tone: color-mix(in srgb, var(--core-surface) 60%, var(--core-text)); }
+  .core-heatmap-forecast-level-1 { --core-heatmap-forecast-tone: var(--core-heatmap-history-level-1, var(--core-info-surface)); }
+  .core-heatmap-forecast-level-2 { --core-heatmap-forecast-tone: var(--core-heatmap-history-level-2, var(--core-info-surface)); }
+  .core-heatmap-forecast-level-3 { --core-heatmap-forecast-tone: var(--core-heatmap-history-level-3, var(--core-info)); }
+  .core-heatmap-forecast-level-4 { --core-heatmap-forecast-tone: var(--core-heatmap-history-level-4, var(--core-info)); }
+
+  .core-heatmap-forecast-level-1,
+  .core-heatmap-forecast-level-2,
+  .core-heatmap-forecast-level-3,
+  .core-heatmap-forecast-level-4 {
+    border-color: var(--core-heatmap-history-level-4, var(--core-info));
+    border-style: dashed;
+    background: color-mix(in srgb, var(--core-surface) 70%, var(--core-heatmap-forecast-tone));
+  }
 
   .core-surface {
     border: var(--core-border-width) solid var(--core-border);
@@ -1839,6 +1848,9 @@ video {
 .ml-auto {
   margin-left: auto;
 }
+.mr-0\.5 {
+  margin-right: 0.125rem;
+}
 .mr-1 {
   margin-right: 0.25rem;
 }
@@ -2010,9 +2022,6 @@ video {
 }
 .h-11 {
   height: 2.75rem;
-}
-.h-14 {
-  height: 3.5rem;
 }
 .h-16 {
   height: 4rem;
@@ -2347,6 +2356,9 @@ video {
 .min-w-\[56rem\] {
   min-width: 56rem;
 }
+.min-w-\[7\.5rem\] {
+  min-width: 7.5rem;
+}
 .min-w-button {
   min-width: var(--core-button-height);
 }
@@ -2370,6 +2382,9 @@ video {
 }
 .max-w-\[14rem\] {
   max-width: 14rem;
+}
+.max-w-\[28rem\] {
+  max-width: 28rem;
 }
 .max-w-\[34rem\] {
   max-width: 34rem;
@@ -2761,6 +2776,9 @@ video {
 }
 .gap-y-2 {
   row-gap: 0.5rem;
+}
+.gap-y-3 {
+  row-gap: 0.75rem;
 }
 .space-y-1 > :not([hidden]) ~ :not([hidden]) {
   --tw-space-y-reverse: 0;
@@ -3405,13 +3423,19 @@ video {
   --tw-ring-shadow: var(--tw-ring-inset) 0 0 0 calc(3px + var(--tw-ring-offset-width)) var(--tw-ring-color);
   box-shadow: var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow, 0 0 #0000);
 }
-.ring-\[3px\] {
+.ring-2 {
   --tw-ring-offset-shadow: var(--tw-ring-inset) 0 0 0 var(--tw-ring-offset-width) var(--tw-ring-offset-color);
-  --tw-ring-shadow: var(--tw-ring-inset) 0 0 0 calc(3px + var(--tw-ring-offset-width)) var(--tw-ring-color);
+  --tw-ring-shadow: var(--tw-ring-inset) 0 0 0 calc(2px + var(--tw-ring-offset-width)) var(--tw-ring-color);
   box-shadow: var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow, 0 0 #0000);
 }
 .ring-core-action {
   --tw-ring-color: var(--core-action-primary);
+}
+.ring-offset-2 {
+  --tw-ring-offset-width: 2px;
+}
+.ring-offset-core-surface {
+  --tw-ring-offset-color: var(--core-surface);
 }
 .blur {
   --tw-blur: blur(8px);
@@ -3902,22 +3926,15 @@ svg.lucide {
   container: core-study-heatmap / inline-size;
 }
 
-.core-study-heatmap-header {
-  grid-template-columns: minmax(0, 1fr);
-}
-
-.core-study-heatmap-controls {
-  justify-self: end;
-}
-
-@container core-study-heatmap (max-width: 22rem) {
-  .core-study-heatmap-controls {
+@container core-study-heatmap (max-width: 30rem) {
+  .core-study-heatmap-controls > .core-heatmap-period-select {
     width: 100%;
+    order: -1;
   }
 
-  .core-heatmap-period-select {
-    min-width: 0;
-    flex: 1 1 0%;
+  .core-study-heatmap-nav {
+    width: 100%;
+    justify-content: space-between;
   }
 }
 
@@ -4021,13 +4038,6 @@ svg.lucide {
 
   .core-deck-summary-metric-label-full {
     display: none;
-  }
-}
-
-/* Liegt über der Breitendelle bei 639 px (573 px innen) und unter der schmalen Dashboard-Kachel bei 1024 px (591 px innen); so wechselt der Kopf nur einmal. */
-@container core-study-heatmap (min-width: 36rem) {
-  .core-study-heatmap-header {
-    grid-template-columns: minmax(0, 1fr) auto;
   }
 }
 
@@ -5136,7 +5146,39 @@ body:has([aria-modal="true"]) .core-success-toast {
 }
 
 .core-heatmap-period-select {
-  width: 7rem;
+  width: 14rem;
+}
+
+.core-study-heatmap-band {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem 1.5rem;
+}
+
+.core-study-heatmap-band-metrics {
+  display: flex;
+  gap: 1.5rem;
+}
+
+.core-study-heatmap-band-metrics > div {
+  display: flex;
+  flex-direction: column-reverse;
+}
+
+.core-heatmap-week-track {
+  height: 8rem;
+}
+
+.core-heatmap-week-track :is(.core-heatmap-level-1, .core-heatmap-level-2, .core-heatmap-level-3, .core-heatmap-level-4) {
+  --core-heatmap-tone: var(--core-heatmap-history-level-4, var(--core-info));
+}
+
+@container core-study-heatmap (min-width: 36rem) {
+  .core-heatmap-week-track {
+    height: 10rem;
+  }
 }
 
 .core-deck-icon-action {

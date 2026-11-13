@@ -7,7 +7,7 @@ const defaultViewId = menu.defaultViewId;
 const studyFallbackViewId: AppViewId = "lernen";
 const reviewReturnViews = ["today", "learn", "decks", "exams"] as const;
 /** Areas of the settings dialog that lies over any view; `start` is the area list on narrow screens and `Konto` beside it on wide ones, `konflikte` is `daten` focused on the sync conflicts. */
-export const SETTINGS_SECTIONS = ["start", "konto", "daten", "konflikte", "ueber", "lerntag", "tagesrunde", "scheduler", "flaggen", "fokus"] as const;
+export const SETTINGS_SECTIONS = ["start", "konto", "darstellung", "daten", "konflikte", "ueber", "lerntag", "tagesrunde", "scheduler", "flaggen", "fokus"] as const;
 /** Areas of the deck settings dialog; `start` is the area list on narrow screens and `stapel` beside it on wide ones, `neue-karten` is `tagesrunde` focused on the new-card limit. */
 export const DECK_SETTINGS_SECTIONS = ["start", "stapel", "tagesrunde", "neue-karten", "scheduler"] as const;
 const deckContentTabs = ["children", "summary", "quiz", "mind-map", "cards", "source"] as const;
@@ -18,7 +18,7 @@ type ReviewReturnView = typeof reviewReturnViews[number];
 export type DeckContentTab = typeof deckContentTabs[number];
 export type CardEditorTab = typeof cardEditorTabs[number];
 export type SettingsSection = typeof SETTINGS_SECTIONS[number];
-export type GeneralSettingsSection = "konto" | "daten" | "ueber";
+export type GeneralSettingsSection = "konto" | "darstellung" | "daten" | "ueber";
 export type DeckSettingsSection = typeof DECK_SETTINGS_SECTIONS[number];
 
 /** The deck settings dialog lying over a view or a study session. */
@@ -35,7 +35,7 @@ export function settingsContentSection(section: SettingsSection): GeneralSetting
 
 /** General and learning settings keep separate drafts, so each group is one screen. */
 export function settingsSectionGroup(section: SettingsSection): "general" | "learning" {
-  return ["konto", "daten", "ueber"].includes(settingsContentSection(section)) ? "general" : "learning";
+  return ["konto", "darstellung", "daten", "ueber"].includes(settingsContentSection(section)) ? "general" : "learning";
 }
 
 export interface ReviewReturnContext {

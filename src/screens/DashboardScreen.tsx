@@ -288,7 +288,7 @@ export function DashboardScreen({ state, now, onNavigate, onStartDeck, onStartAd
       {{
         learning: <DailyLearningOverview plan={dailyLearningPlan} decks={state.decks} onStartDeck={onStartDeck} onStartAdditionalCards={onStartAdditionalCards} />,
         motivation: <DailyMotivationWidget now={now} timeZone={getLearningTimeZone(state.profile)} dayStartHour={globalSettings.dayStartHour} />,
-        heatmap: <StudyHeatmap heatmap={studyHeatmap} formatDayLabel={heatmapDayLabel} className="p-5" />,
+        heatmap: <StudyHeatmap heatmap={studyHeatmap} formatDayLabel={heatmapDayLabel} />,
         decks: <SoftPanel className="min-w-0 p-5 sm:p-6"><DeckTree
           rows={library.rows}
           rootDeckIds={teaserRootIds}
