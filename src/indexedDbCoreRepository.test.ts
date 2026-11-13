@@ -226,6 +226,33 @@ test("eine Bewertung erhöht studyRevision statt revision und reiht eine atomare
   repository.close();
 });
 
+test("das Zurücknehmen einer Bewertung entfernt das Ereignis und stellt Lernstand und Verlauf wieder her", async () => {
+  const initialState = workspaceState(1);
+  const repository = await openRepository(initialState);
+  const previous = initialState.decks[0].cards.find((card) => card.id === "card-0")!;
+  const [catalogBefore] = (await repository.listCatalogPage("deck-idb")).items;
+  const result = answerVariant(initialState.decks[0], "card-0", null, "easy", { now: "2026-08-20T08:00:00.000Z" });
+  repository.recordReview(result);
+  await repository.flush();
+  assert.equal((await repository.listCatalogPage("deck-idb")).items[0].lastEasyAt, "2026-08-20T08:00:00.000Z");
+
+  const restored = repository.undoReview(result, previous);
+  await repository.flush();
+
+  assert.deepEqual(restored.study, previous.study);
+  assert.equal(restored.studyRevision, result.updatedCard.studyRevision + 1);
+  const body = await repository.loadCardBody("card-0");
+  assert.deepEqual(body?.card.study, previous.study);
+  assert.deepEqual(await repository.listCardReviewEvents("card-0"), []);
+  const [catalog] = (await repository.listCatalogPage("deck-idb")).items;
+  assert.deepEqual([catalog.dueAt, catalog.lastEasyAt, catalog.firstReviewedAt], [catalogBefore.dueAt, catalogBefore.lastEasyAt, catalogBefore.firstReviewedAt]);
+  const pending = repository.outbox.listPending();
+  assert.deepEqual(pending.map((mutation) => mutation.type), ["review-atomic", "review-undo"], "die Rücknahme folgt ihrer Bewertung");
+  assert.deepEqual((pending[1].payload as any).card.study, previous.study);
+  assert.equal((pending[1].payload as any).event.id, result.event.id);
+  repository.close();
+});
+
 test("eine Bewertung aus einer alten Sitzung überschreibt keine neu gespeicherten Stapeleinstellungen", async () => {
   const userId = randomUUID();
   const initialState = workspaceState(1);

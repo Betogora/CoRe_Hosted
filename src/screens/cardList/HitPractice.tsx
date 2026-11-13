@@ -56,11 +56,12 @@ export function HitPractice({ bodies, mediaStore, onClose }: HitPracticeProps) {
         onClose();
         return;
       }
+      // Practice changes no study state: nothing to edit or take back here.
       const action = resolveReviewShortcut(event, { hasCurrent: Boolean(current), showAnswer: revealed });
-      if (!action) return;
+      if (action?.type === "reveal") setRevealed(true);
+      else if (action?.type === "rate" && action.rating) rate(action.rating as ReviewRating);
+      else return;
       event.preventDefault();
-      if (action.type === "reveal") setRevealed(true);
-      else if (action.type === "rate" && action.rating) rate(action.rating as ReviewRating);
     }
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);

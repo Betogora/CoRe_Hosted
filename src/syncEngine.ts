@@ -8,6 +8,7 @@ import {
   registerAccountSyncDevice,
   recordAtomicReview,
   resolveAccountSyncConflict,
+  undoAtomicReview,
   upsertAccountCloudProfile,
   type AtomicReviewPayload,
   type CloudClient,
@@ -264,7 +265,13 @@ function createDefaultAdapter(client: CloudClient, userId: string) {
           continue;
         }
         mutationIndex += 1;
-        if (!([SYNC_MUTATION_TYPES.profilePatch, SYNC_MUTATION_TYPES.entityMutation, SYNC_MUTATION_TYPES.reviewAtomic, SYNC_MUTATION_TYPES.deckCommand] as string[]).includes(mutation.type)) {
+        if (!([SYNC_MUTATION_TYPES.profilePatch, SYNC_MUTATION_TYPES.entityMutation, SYNC_MUTATION_TYPES.reviewAtomic, SYNC_MUTATION_TYPES.reviewUndo, SYNC_MUTATION_TYPES.deckCommand] as string[]).includes(mutation.type)) {
+          failedMutationIds.push(mutation.id);
+          failures.push({ mutationId: mutation.id, error: createRetryableMutationError() });
+          continue;
+        }
+        // A take-back waits for its review: removing an event that arrives later would let it stay.
+        if (mutation.type === SYNC_MUTATION_TYPES.reviewUndo && failedMutationIds.includes(`review_${mutation.payload?.event?.id}`)) {
           failedMutationIds.push(mutation.id);
           failures.push({ mutationId: mutation.id, error: createRetryableMutationError() });
           continue;
@@ -285,7 +292,7 @@ function createDefaultAdapter(client: CloudClient, userId: string) {
                 }
             : mutation.type === SYNC_MUTATION_TYPES.entityMutation
               ? { ...(await applyEntityMutation(client, mutation.payload, entityOptions(mutation))), acknowledgedMutationId: mutation.id }
-              : await recordAtomicReview(client, mutation.payload, {
+              : await (mutation.type === SYNC_MUTATION_TYPES.reviewUndo ? undoAtomicReview : recordAtomicReview)(client, mutation.payload, {
                     mutationId: mutation.id,
                     deviceId: mutation.deviceId ?? context.deviceId,
                   });

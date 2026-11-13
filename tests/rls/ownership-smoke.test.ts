@@ -813,6 +813,39 @@ test("lokales Supabase isoliert Nutzer A, Nutzer B und anon über alle accountge
         assert.equal(dailyStatistics.retention_young_remembered, 0, "Der frühere Again-Review bestimmt die Tages-Retention.");
         assert.deepEqual(dailyStatistics.rating_counts, { "young:again": 1, "young:good": 1 });
 
+        // Taking back the newest review removes it from history and statistics and restores the earlier study state.
+        const undoParameters = {
+          p_event_id: eventId,
+          p_card_id: fixtureA.cards.id,
+          p_study: study({ state: "learning", reps: 0, due_at: olderAnsweredAt, last_rating: "again" }),
+          p_card_updated_at: answeredAt,
+          p_variant_id: fixtureA.card_variants.id,
+          p_variant_performance: { reviewCount: 0 },
+          p_variant_updated_at: answeredAt,
+          p_device_id: fixtureA.sync_devices.id,
+        };
+        const undone = assertNoError(await clientA.rpc("undo_review_atomic", undoParameters), "Bewertung zurücknehmen");
+        assert.equal(undone.idempotent, false);
+        assert.equal(undone.card.reps, 0);
+        assert.equal(undone.card.study_revision, older.card.study_revision + 1);
+        assert.equal(undone.variant.performance.reviewCount, 0);
+        assert.equal(assertNoError(await clientA.from("review_events").select("id").eq("id", eventId), "zurückgenommene Bewertung lesen").length, 0);
+        const statisticsAfterUndo = assertNoError(await clientA.from("review_statistics_daily")
+          .select("review_count,rating_counts")
+          .eq("deck_id", fixtureA.decks.id)
+          .eq("day_key", "2099-07-11")
+          .single(), "Tagesprojektion nach Rücknahme lesen");
+        assert.equal(statisticsAfterUndo.review_count, 1);
+        assert.deepEqual(statisticsAfterUndo.rating_counts, { "young:again": 1 });
+        const undoReplay = assertNoError(await clientA.rpc("undo_review_atomic", { ...undoParameters, p_study: study() }), "Rücknahme idempotent wiederholen");
+        assert.equal(undoReplay.idempotent, true);
+        assert.equal(undoReplay.card.study_revision, undone.card.study_revision, "Eine wiederholte Rücknahme ändert den Lernstand nicht.");
+        const foreignUndo = await clientB.rpc("undo_review_atomic", { ...undoParameters, p_event_id: olderEventId });
+        assert.ok(foreignUndo.error, "Eine fremde Rücknahme wurde unerwartet erlaubt.");
+        const anonymousUndo = await anonClient.rpc("undo_review_atomic", { ...undoParameters, p_event_id: olderEventId });
+        assert.ok(anonymousUndo.error, "Eine anonyme Rücknahme wurde unerwartet erlaubt.");
+        assert.equal(assertNoError(await clientA.from("review_events").select("id").eq("id", olderEventId), "ältere Bewertung lesen").length, 1);
+
         const deleted = assertNoError(await clientA.from("decks")
           .update({ deleted_at: "2020-01-01T00:00:00.000Z", updated_at: "2020-01-01T00:00:00.000Z", sync_change_id: 1 })
           .eq("id", fixtureA.decks.id)

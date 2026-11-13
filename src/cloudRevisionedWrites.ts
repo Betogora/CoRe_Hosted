@@ -656,3 +656,42 @@ export async function resolveAccountSyncConflict(
     resolved: !["ignore", "reopen"].includes(normalized.action),
   };
 }
+
+/** Takes back a review (`undo_review_atomic`): the payload carries the event and the study state from before it. */
+export async function undoAtomicReview(client: CloudClient, input: AtomicReviewPayload, { deviceId, mutationId }: { deviceId?: string; mutationId?: string } = {}) {
+  const card = input?.card;
+  const variant = input?.variant;
+  const event = input?.event as ReviewEvent;
+  const { data, error } = await client.rpc("undo_review_atomic", {
+    p_event_id: event?.id,
+    p_card_id: card?.id ?? event?.cardId,
+    p_study: card ? studyToCloudColumns(card.study) : {},
+    p_card_updated_at: card?.updatedAt ?? null,
+    p_variant_id: variant?.id ?? null,
+    p_variant_performance: variant ? toJson(variant.performance, {}) : null,
+    p_variant_updated_at: variant?.updatedAt ?? null,
+    p_device_id: deviceId,
+  });
+  if (error) {
+    const code = String(error.code ?? "");
+    if (code === "PGRST202" || code === "42883" || /undo_review_atomic|function.*does not exist/i.test(String(error.message ?? ""))) {
+      const unavailable = new Error("Das Zurücknehmen von Bewertungen ist auf dem Server noch nicht verfügbar. Die lokale Änderung bleibt vorgemerkt.") as Error & { code: string };
+      unavailable.code = "review_rpc_unavailable";
+      throw unavailable;
+    }
+    throw error;
+  }
+  const response = requireJsonRecord(data, "Die Antwort auf das Zurücknehmen hatte ein ungültiges Format.");
+  const rows = {
+    card: validateAccountRows("cards", [response.card])[0],
+    variant: response.variant == null ? null : validateAccountRows("card_variants", [response.variant])[0],
+  };
+  return {
+    acknowledgedMutationId: mutationId,
+    rows,
+    entities: {
+      card: cardFromRow(rows.card),
+      variant: rows.variant ? variantFromRow(rows.variant) : null,
+    },
+  };
+}
