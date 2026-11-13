@@ -198,13 +198,13 @@ const LINK_ICON = '<svg aria-hidden="true" viewBox="0 0 24 24" width="14" height
 
 // Parts the app inserts into a card, in the CoRe design and the original layout alike.
 const APP_PART_CSS = `
-  .core-typed-comparison{display:grid;gap:.625rem;padding:.75rem 1rem;border:1px solid var(--core-border);border-left:3px solid var(--core-danger);border-radius:.75rem}
-  .core-typed-comparison[data-correct="true"]{border-left-color:var(--core-learning-goal-achieved)}
+  .core-typed-comparison{display:grid;gap:.625rem;padding:.75rem 1rem;border-radius:.875rem;background:var(--core-danger-surface);box-shadow:inset 0 0 0 2px var(--core-danger)}
+  .core-typed-comparison[data-correct="true"]{background:var(--core-success-surface);box-shadow:inset 0 0 0 2px var(--core-success)}
   .core-typed-comparison p{display:grid;gap:.125rem;margin:0}
   .core-typed-label{color:var(--core-text-muted);font-size:.75rem;font-weight:600}
   .core-typed-value{font-size:1.125rem;font-weight:600;letter-spacing:.02em}
   .typed-correct{color:var(--core-learning-goal-achieved)}
-  .typed-wrong{border-radius:.2em;background:var(--core-danger-surface);color:var(--core-text);text-decoration:line-through 1.5px var(--core-danger)}
+  .typed-wrong{border-radius:.2em;background:color-mix(in srgb,var(--core-danger) 14%,transparent);color:var(--core-text);text-decoration:line-through 1.5px var(--core-danger)}
   .typed-missing{text-decoration:underline 2px var(--core-danger);text-underline-offset:.2em}
   .typed-empty{color:var(--core-text-muted);font-weight:400;font-style:italic}
   .core-math-error{display:inline-flex;flex-wrap:wrap;align-items:baseline;gap:.375rem;padding:.125rem .5rem;border-radius:.5rem;background:var(--core-danger-surface)}
@@ -490,10 +490,8 @@ export function compareTypedAnswer(expected: string, typed: string): { correct: 
 }
 
 export function evaluateNoteChoice(choice: Extract<NoteInteraction, { kind: "choice" }>, answers: Record<string, boolean>) {
-  const options = choice.options.map((option) => {
+  return choice.options.map((option) => {
     const selected = choice.mode === "kprim" ? answers[option.id] ?? null : answers[option.id] === true;
-    return { id: option.id, selected, expected: option.correct, correct: selected === option.correct };
+    return { selected, correct: selected === option.correct };
   });
-  const complete = choice.mode === "kprim" ? options.every((option) => option.selected !== null) : options.some((option) => option.selected);
-  return { complete, correct: complete && options.every((option) => option.correct), options };
 }

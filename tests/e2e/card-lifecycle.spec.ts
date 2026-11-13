@@ -616,14 +616,10 @@ test("[Vertrag: Duplikate finden, öffnen und taggen; Tags verwalten] @beta-core
 
   await page.goto("/kartenstapel");
   const dialog = page.getByRole("dialog", { name: "Duplikate finden" });
-  // The search needs every card on the device; right after new cards or mass actions it waits for the catalog sync.
+  // A complete replica stays searchable while a reload or sync pulls catalog deltas.
   const openDuplicates = async () => {
     await page.getByRole("button", { name: "Duplikate finden" }).click();
-    await expect(async () => {
-      const retry = dialog.getByRole("button", { name: "Erneut versuchen" });
-      if (await retry.isVisible()) await retry.click();
-      await expect(dialog.getByTestId("duplicates-dialog")).toContainText("1 Gruppe · 2 Inhalte", { timeout: 1_000 });
-    }).toPass({ timeout: 20_000 });
+    await expect(dialog.getByTestId("duplicates-dialog")).toContainText("1 Gruppe · 2 Inhalte");
   };
   await openDuplicates();
   await expect(dialog.getByTestId("duplicate-groups").getByRole("button")).toHaveCount(2);
@@ -797,12 +793,12 @@ test("[Vertrag: typgerechter Multiple-Choice-Lebenszyklus] @beta-core Optionen, 
   await page.getByRole("button", { name: "Vorschau", exact: true }).click();
   const previewDialog = page.getByRole("dialog", { name: "Kartenvorschau" });
   await previewDialog.getByRole("button", { name: "Rückseite" }).click();
-  await expect(previewDialog.getByText("Lösung aufgedeckt.", { exact: true })).toBeVisible();
+  await expect(previewDialog.locator('[data-tone="missed"]')).toContainText("Beta");
   await previewDialog.getByRole("button", { name: "Vorderseite" }).click();
   await previewDialog.getByRole("button", { name: "Antwortoption A: Alpha" }).click();
-  await previewDialog.getByRole("button", { name: "Antwort prüfen" }).click();
+  await previewDialog.getByRole("button", { name: "Rückseite" }).click();
   await expect(previewDialog.getByRole("button", { name: "Rückseite" })).toHaveAttribute("aria-pressed", "true");
-  await expect(previewDialog.getByText("Nicht ganz. Vergleiche deine Auswahl mit der Lösung.", { exact: true })).toBeVisible();
+  await expect(previewDialog.locator('[data-tone="wrong"]')).toContainText("Alpha");
   await expect(previewDialog.locator('[data-tone="missed"]')).toContainText("Beta");
   await expect(previewDialog.getByRole("button", { name: /Bewertung/ })).toHaveCount(0);
   await previewDialog.getByRole("button", { name: "Vorderseite" }).click();
@@ -838,7 +834,7 @@ test("[Vertrag: typgerechter Multiple-Choice-Lebenszyklus] @beta-core Optionen, 
   await page.getByRole("button", { name: "Antwortoption A: Alpha" }).click();
   await page.getByRole("button", { name: "Antwort prüfen" }).click();
   await expect(page.locator('[data-tone="missed"]')).toContainText("Gamma neu");
-  await expect(page.getByText("Nicht ganz. Vergleiche deine Auswahl mit der Lösung.", { exact: true })).toBeVisible();
+  await expect(page.locator('[data-tone="wrong"]')).toContainText("Alpha");
   await expect(page.frameLocator('iframe[title="Antwort"]').getByText("Gamma neu ist nach der Bearbeitung richtig.", { exact: true })).toBeVisible();
   await page.getByRole("button", { name: /Bewertung Gut/ }).click();
 });

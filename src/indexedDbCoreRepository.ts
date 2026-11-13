@@ -63,6 +63,7 @@ import { loadAnsweredTodayFrom } from "./indexedDbStudyCounts.ts";
 import { createReplicaOutbox } from "./indexedDbOutbox.ts";
 import { createCatalogSearch, type CatalogCursor } from "./indexedDbCatalogSearch.ts";
 import { createStudyOverview } from "./indexedDbStudyOverview.ts";
+import { createReviewWrites } from "./indexedDbReviews.ts";
 import { writeCloudCatalogPages } from "./indexedDbCatalogSync.ts";
 import { createCardBodies, readCardBodies, readNotes } from "./indexedDbCardBodies.ts";
 import { commitImportGraph, type ImportCommitOptions } from "./indexedDbImportCommit.ts";
@@ -152,6 +153,7 @@ export async function createIndexedDbCoreRepository({ userId, initialState, inde
     },
   });
   const { applyReplicaCatalogChanges, applyReplicaCatalogChange } = studyOverview;
+  const reviewWrites = createReviewWrites({ userId, database, enqueueWrite, outbox: { rememberPending, queueMutations, writeOutbox }, studyOverview, markCatalogChanged });
   const cardBodies = createCardBodies(database, {
     flushWrites,
     pendingEntityMutation,
@@ -308,10 +310,10 @@ export async function createIndexedDbCoreRepository({ userId, initialState, inde
   };
 
   /**
-   * Applies the tables of one catalog delta page in one transaction, in the given order. Search texts that arrive in
-   * the same call go into the catalog rows before they are written, so each row is written once.
+   * Applies one catalog delta page per transaction, in order; search texts join their catalog rows before the write.
+   * Account deltas (`keepComplete`) only advance a complete replica, which stays searchable while the pull catches up.
    */
-  const applyCloudCatalogPages = async (pages: CloudCatalogPage[]) => {
+  const applyCloudCatalogPages = async (pages: CloudCatalogPage[], { keepComplete = false } = {}) => {
     await writeChain;
     await writeCloudCatalogPages(database, pages, {
       pendingEntityMutation,
@@ -323,7 +325,7 @@ export async function createIndexedDbCoreRepository({ userId, initialState, inde
     if (pages.some((page) => page.table === "decks")) shell = await loadShell(database);
     await persistReplicaStatus({
       catalogCursor: Math.max(replicaStatus.catalogCursor, ...pages.map((page) => page.cursor)),
-      catalogCompleteness: "partial",
+      catalogCompleteness: keepComplete && replicaStatus.catalogCompleteness === "complete" ? "complete" : "partial",
     });
   };
 
@@ -477,54 +479,7 @@ export async function createIndexedDbCoreRepository({ userId, initialState, inde
     buryCards(cardIds: string[], buried: boolean, occurredAt = new Date().toISOString()) {
       return applyManualStudyChanges(cardIds, buried ? MANUAL_BURY_KIND : MANUAL_UNBURY_KIND, (card) => ({ ...card, studyRevision: card.studyRevision + 1, updatedAt: occurredAt }), occurredAt);
     },
-    recordReview(result: ReviewAnswerResult) {
-      const { deck, event, updatedCard, variant } = result;
-      const mutation: SyncOutboxMutation = {
-        id: `review_${event.id}`,
-        userId,
-        deviceId: null,
-        type: "review-atomic",
-        table: "review_events",
-        entityId: event.id,
-        baseRevision: null,
-        payload: {
-          event,
-          card: { id: updatedCard.id, study: updatedCard.study, updatedAt: updatedCard.updatedAt },
-          variant: variant ? { id: variant.id, performance: variant.performance, updatedAt: variant.updatedAt } : null,
-        },
-        createdAt: event.answeredAt,
-        flushedAt: null,
-        retryCount: 0,
-        lastError: null,
-      };
-      rememberPending(mutation);
-      studyOverview.countReview(event.answeredAt);
-      void enqueueWrite(async () => {
-        const transaction = database.transaction([STORE.cards, STORE.variants, STORE.notes, STORE.cardCatalog, STORE.bodyResidency, STORE.deckStudySummaries, STORE.reviewEvents, STORE.outbox, STORE.meta, STORE.syncMetadata], "readwrite");
-        const catalogStore = transaction.objectStore(STORE.cardCatalog);
-        const previousCatalog = await requestResult<StoredCardCatalog | undefined>(catalogStore.get(updatedCard.id)) ?? null;
-        const note = await requestResult<Note | undefined>(transaction.objectStore(STORE.notes).get(updatedCard.noteId)) ?? null;
-        const history = withStudyEvents(previousCatalog, [event]);
-        const catalog = note ? catalogRecordFor(updatedCard, note, history) : storedCatalogRecord({ ...catalogEntryFromCard(updatedCard, null, history), ...(previousCatalog ? { frontPreview: previousCatalog.frontPreview, sortText: previousCatalog.sortText, normalizedSearchText: previousCatalog.normalizedSearchText, marked: previousCatalog.marked, tagKeys: previousCatalog.tagKeys, editedAt: previousCatalog.editedAt, contentKind: previousCatalog.contentKind, noteTypeId: previousCatalog.noteTypeId } : {}) });
-        await applyReplicaCatalogChange(transaction, deck.id, previousCatalog, catalog, event.answeredAt);
-        await studyOverview.countReviewInOverview(transaction, event, deck.id);
-        // A leech the deck suspends also changes the card itself; that edit syncs like any other card change.
-        const stored = await requestResult<StoredCard | undefined>(transaction.objectStore(STORE.cards).get(updatedCard.id));
-        if (stored && stored.status !== updatedCard.status) {
-          writeOutbox(transaction, queueMutations(planEntityMutations({ cards: [hydrateCard(stored)] }, { cards: [{ ...updatedCard, variants: [] }] })));
-        }
-        transaction.objectStore(STORE.cards).put(cardRecord(updatedCard));
-        catalogStore.put(catalog); markCatalogChanged(catalog.id);
-        transaction.objectStore(STORE.bodyResidency).put(residencyRecord(catalog, "cached"));
-        if (variant) transaction.objectStore(STORE.variants).put(variantRecord(variant, updatedCard.deckId));
-        transaction.objectStore(STORE.reviewEvents).put(event);
-        transaction.objectStore(STORE.outbox).put(mutation);
-        transaction.objectStore(STORE.meta).put({ key: "updatedAt", value: event.answeredAt });
-        studyOverview.writeReviewCounts(transaction);
-        await transactionDone(transaction);
-      });
-      return result;
-    },
+    ...reviewWrites,
     async commitImportGraph(graph: ImportCommitGraph, options: ImportCommitOptions) {
       await writeChain;
       return commitImportGraph({
@@ -862,7 +817,7 @@ export async function createIndexedDbCoreRepository({ userId, initialState, inde
     },
     outbox,
     flush: () => writeChain,
-    /** Takes over revisions the cloud confirmed; a pending later change of the same row keeps its local state. */
+    /** Takes over revisions the cloud confirmed; a pending later change (deletion, taken-back answer) keeps the local state. */
     persistMutationAcknowledgements(persistedRows: Array<{ table: string; row: any; entity?: any }> = []) {
       return enqueueWrite(async () => {
         const relevant = persistedRows.filter(({ table, row }) => row?.id && ["decks", "notes", "cards", "card_variants"].includes(table));
@@ -875,7 +830,7 @@ export async function createIndexedDbCoreRepository({ userId, initialState, inde
           const current = await requestResult<any>(store.get(row.id));
           if (!current) continue;
           const pending = pendingEntityMutation(table, row.id);
-          if (pending && Boolean((pending.payload as any)?.tombstone) !== Boolean(row.deleted_at)) continue;
+          if (pending && (Boolean((pending.payload as any)?.tombstone) !== Boolean(row.deleted_at) || pending.type === "review-undo" && Date.parse(row.updated_at) !== Date.parse((pending.payload as any)?.[table === "cards" ? "card" : "variant"]?.updatedAt))) continue;
           if (table === "cards" && entity) {
             store.put(cardRecord({ ...entity, variants: [] }));
             touchedCards.add(row.id);

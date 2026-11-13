@@ -26,6 +26,8 @@ export function createReplicaOutbox({ userId, database, outboxRows, enqueueWrite
     const key = mutationTargetKey(mutation);
     if (pendingByTarget.get(key)?.id === id) pendingByTarget.delete(key);
   };
+  // A review and its take-back both carry the event, the card and the variant they change.
+  const isReviewMutation = (mutation: SyncOutboxMutation) => mutation.type === "review-atomic" || mutation.type === "review-undo";
   const reviewTargetId = (mutation: SyncOutboxMutation, table: string) => {
     const payload = mutation.payload as any;
     return table === "cards" ? payload?.card?.id
@@ -35,11 +37,11 @@ export function createReplicaOutbox({ userId, database, outboxRows, enqueueWrite
   };
   const pendingEntityMutation = (table: string, entityId: string) => pendingByTarget.get(mutationTargetKey({ type: "entity-mutation", table, entityId }))
     ?? (table === "cards" || table === "card_variants" || table === "review_events"
-      ? [...pendingByTarget.values()].find((mutation) => mutation.type === "review-atomic" && reviewTargetId(mutation, table) === entityId)
+      ? [...pendingByTarget.values()].reverse().find((mutation) => isReviewMutation(mutation) && reviewTargetId(mutation, table) === entityId)
       : undefined);
   const pendingEntityIdsForTable = (table: string) => [...pendingByTarget.values()].flatMap((mutation) => {
     if (mutation.type === "entity-mutation" && mutation.table === table && mutation.entityId) return [mutation.entityId];
-    if (mutation.type !== "review-atomic") return [];
+    if (!isReviewMutation(mutation)) return [];
     const id = reviewTargetId(mutation, table);
     return id ? [id] : [];
   });

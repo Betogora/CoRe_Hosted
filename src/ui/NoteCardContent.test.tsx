@@ -3,7 +3,7 @@ import test from "node:test";
 import { createBasicNote, createNote } from "../coreModel.ts";
 import type { NoteContent, NoteField } from "../coreTypes.ts";
 import type { NotePresentationResult } from "../notePresentation.ts";
-import { preparedAnswerFrame, preparesAnswerAhead } from "./NoteCardContent.tsx";
+import { preparedAnswerFrame, preparesAnswerAhead, revealLabel } from "./NoteCardContent.tsx";
 
 const field = (id: string, role: NoteField["role"], html: string): NoteField => ({ id, name: id, role, html });
 const graph = (fields: NoteField[], interaction: NoteContent["interaction"]) => createNote({ deckId: "deck", content: { schemaVersion: 1, fields, interaction, speech: [], tags: [] } });
@@ -50,4 +50,13 @@ test("a prepared answer frame stays hidden until revealed and never replaces a s
   assert.equal(preparedAnswerFrame("loading", true, false), "shown");
   // A single frame turns to its back as without preparation.
   assert.equal(preparedAnswerFrame("loading", true, true), null);
+});
+
+test("the host's reveal action checks choices with several answers and shows everything else", () => {
+  const choice = (mode: "single" | "multiple" | "kprim") => graph([field("Frage", "prompt", "Welche Aussagen treffen zu?"), field("Antwort", "answer", "A")], { kind: "choice", mode, options: ["A", "B", "C", "D"].map((html, index) => ({ id: `o${index}`, html, correct: index === 0 })) }).note;
+  assert.equal(revealLabel(choice("multiple")), "Antwort prüfen");
+  assert.equal(revealLabel(choice("kprim")), "Antwort prüfen");
+  assert.equal(revealLabel(choice("single")), "Antwort anzeigen");
+  assert.equal(revealLabel(createBasicNote("deck", "Hauptstadt von Portugal?", "Lissabon").note), "Antwort anzeigen");
+  assert.equal(revealLabel(undefined), "Antwort anzeigen");
 });

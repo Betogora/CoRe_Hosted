@@ -55,7 +55,7 @@ test("calendar shows new cards in subject color without duration or repetitions"
   const forecast: ExamPortfolioForecast = { days: [{ key: today, budgetMinutes: 120, newCardIds: [], reviewCardIds: [], summaries: [], blocks: [block(first.id, 24, "new"), block(second.id, 9, "new"), block(first.id, 8, "review")] }], exams: [] };
   const html = renderToStaticMarkup(<ExamMonthCalendar onToggleExam={() => undefined} exams={[first, second]} shown={[first, second]} forecast={forecast} today={today} date={today} color={() => "var(--core-info)"} onSelect={() => undefined} />);
   assert.match(html, /data-exam-subject="anatomy"[^]*?data-exam-task="study"><span class="sm:hidden">24<\/span><span class="hidden sm:inline">24 neue Karten<\/span><\/span>/);
-  assert.match(html, /class="exam-month-entry [^"]*rounded-r-marker border-l-strong/);
+  assert.match(html, /class="exam-month-entry [^"]*rounded-inset border-strong/);
   assert.match(html, /<div class="min-w-0" role="region" aria-label="Monatskalender">/);
   assert.doesNotMatch(html, /gap-px|bg-core-border|shadow-inset/);
   assert.match(html, /data-exam-subject="physiology"[^]*?>9 neue Karten</);
@@ -198,7 +198,7 @@ test("Themenvorschau kürzt lange Listen und lässt den Prüfungstermin außerha
   assert.match(html, /Deine Themenfolge/);
   assert.match(html, /aria-expanded="false"/);
   assert.match(html, /Alle 20 Themen anzeigen/);
-  assert.equal((html.match(/aria-hidden="true" class="grid min-w-0 gap-1 border-l /g) ?? []).length, 17);
+  assert.equal((html.match(/aria-hidden="true" class="grid min-w-0 gap-1"/g) ?? []).length, 17);
   assert.ok(html.indexOf('data-testid="exam-topic-exam-date"') > html.indexOf('</ol>'));
   assert.match(html, /Mi\., 9\.12\./);
   const short = renderToStaticMarkup(<ExamTopicPreview topics={topics.slice(0, 2)} examDate="2026-12-09" calendarRef={{ current: null }} actionsRef={{ current: null }} />);

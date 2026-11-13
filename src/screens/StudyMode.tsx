@@ -21,13 +21,14 @@ import {
   reconcileDailyReviewSessionState,
   removeDailyReviewSessionItem,
   type DailyReviewSessionState,
+  type ReviewAnswerResult,
   updateDailyReviewSessionIndex,
 } from "../reviewService.ts";
 import { useNoteMediaPrefetch, useNoteMediaUrls } from "../ui/cardMedia.tsx";
 import { useSuccessToast } from "../ui/feedbackUi.tsx";
 import { DailyReviewProgress } from "../ui/DailyReviewProgress.tsx";
 import { PomodoroProgress } from "../ui/pomodoroTimerUi.tsx";
-import { NoteCardContent, useNoteCardPrefetch } from "../ui/NoteCardContent.tsx";
+import { NoteCardContent, revealLabel, useNoteCardPrefetch } from "../ui/NoteCardContent.tsx";
 import { StudySettingsOverlay } from "../ui/StudySettingsOverlay.tsx";
 import { ActionButton, IconButton } from "../ui/actionUi.tsx";
 import { CoreTag } from "../ui/coreUi.tsx";
@@ -62,7 +63,7 @@ function createEasyDaysContext(
 // Cards rendered and media loaded ahead: enough to answer quickly without holding many images.
 const PREFETCH_CARD_COUNT = 3;
 
-export function StudyMode({ shortcutsSuspended = false, deck, decks, notes, answeredToday, deckId, mediaStore, getNow, learningDayKey, dayStartHour = 0, learnAheadMinutes = 20, easyDays = DEFAULT_EASY_DAYS, dueForecast = null, timeZone, simulationOffsetMinutes, pomodoroTimer, onStartPomodoro, onExit, onReturnToLearn, onEditCard, onEditDeck, flagNames, onSetCardStudyState, onSetDeckReviewOrder, onReview, onAskCardHelp, sessionPlan, bufferSize = 50, hasMoreCards = false, onLoadMoreCards }: StudyModeProps) {
+export function StudyMode({ shortcutsSuspended = false, deck, decks, notes, answeredToday, deckId, mediaStore, getNow, learningDayKey, dayStartHour = 0, learnAheadMinutes = 20, easyDays = DEFAULT_EASY_DAYS, dueForecast = null, timeZone, simulationOffsetMinutes, pomodoroTimer, onStartPomodoro, onExit, onReturnToLearn, onEditCard, onEditDeck, flagNames, onSetCardStudyState, onSetDeckReviewOrder, onReview, onUndoReview, onAskCardHelp, sessionPlan, bufferSize = 50, hasMoreCards = false, onLoadMoreCards }: StudyModeProps) {
   const [sessionDecks, setSessionDecks] = React.useState(decks);
   const [sessionNotes, setSessionNotes] = React.useState(() => new Map(notes.map((note) => [note.id, note])));
   const sessionIndexRef = React.useRef<ReturnType<typeof createDailyReviewSessionIndex> | null>(null);
@@ -126,6 +127,8 @@ export function StudyMode({ shortcutsSuspended = false, deck, decks, notes, answ
   }
   const { queue, easyDaysContext } = queuePlanRef.current;
   const [sessionDailyProgress, setSessionDailyProgress] = React.useState(() => sessionPlan?.progress ?? queue.dailyProgress);
+  /** Answers Strg+Z/U can take back, newest last, each with the session as it was before it. */
+  const undoStackRef = React.useRef<Array<{ result: ReviewAnswerResult; previous: Card; key: string; session: DailyReviewSessionState; progress: typeof sessionDailyProgress }>>([]);
   const effectiveReviewSession = reviewSession ?? createDailyReviewSessionState(queue.items);
   // The card on screen until it is answered or leaves the session; loaded cards must not replace it mid-card.
   const shownKeyRef = React.useRef<string | null>(null);
@@ -165,6 +168,7 @@ export function StudyMode({ shortcutsSuspended = false, deck, decks, notes, answ
   useNoteMediaPrefetch(upcomingCards.map(({ note }) => note.media), mediaStore);
 
   React.useEffect(() => {
+    undoStackRef.current = [];
     setSessionDecks(decks);
     setSessionNotes(new Map(notes.map((note) => [note.id, note])));
     sessionIndexRef.current = createDailyReviewSessionIndex(decks);
@@ -246,6 +250,7 @@ export function StudyMode({ shortcutsSuspended = false, deck, decks, notes, answ
   React.useEffect(() => {
     if (previousLearningDayKeyRef.current === effectiveLearningDayKey) return;
     previousLearningDayKeyRef.current = effectiveLearningDayKey;
+    undoStackRef.current = [];
     setSessionDailyProgress(sessionPlan?.progress ?? queue.dailyProgress);
     setReviewSession(createDailyReviewSessionState([
       current ? { deckId: current.deckId, cardId: current.cardId } : null,
@@ -315,6 +320,8 @@ export function StudyMode({ shortcutsSuspended = false, deck, decks, notes, answ
       flags: rootDeck?.hitSession ? { kind: HIT_REVIEW_KIND } : undefined,
     });
     onReview(result);
+    const reviewedKey = current.sessionInfo?.key ?? `${current.deckId}:${current.cardId}`;
+    undoStackRef.current.push({ result, previous: current.card, key: reviewedKey, session: effectiveReviewSession, progress: sessionDailyProgress });
     if (result.leechTriggered) {
       // Once per trigger: the learner may fix the content right away (W22).
       const { deckId: leechDeckId, cardId: leechCardId } = current;
@@ -323,11 +330,36 @@ export function StudyMode({ shortcutsSuspended = false, deck, decks, notes, answ
         action: { label: "Bearbeiten", onAction: () => onEditCard(leechDeckId, leechCardId) },
       });
     }
-    finishOrNext(result.deck, result.updatedCard, rating, current.card.study, result.updatedCard.study, current.sessionInfo?.key ?? `${current.deckId}:${current.cardId}`);
+    finishOrNext(result.deck, result.updatedCard, rating, current.card.study, result.updatedCard.study, reviewedKey);
+  }
+
+  /** Takes back the last answer: the card gets its earlier study state and shows again, the session steps back. */
+  function undoLastReview() {
+    const last = undoStackRef.current.pop();
+    if (!last) return;
+    const restored = onUndoReview(last.result, last.previous);
+    if (!restored) return;
+    const sessionDeck = sessionDecks.find((candidate) => candidate.id === last.result.deck.id);
+    if (sessionDeck) {
+      const restoredDeck = {
+        ...sessionDeck,
+        cards: sessionDeck.cards.map((card) => card.id === restored.id ? restored : card),
+        reviewEvents: sessionDeck.reviewEvents.filter((event) => event.id !== last.result.event.id),
+      };
+      updateDailyReviewSessionIndex(sessionIndexRef.current!, restoredDeck, restored);
+      setSessionDecks((currentDecks) => replaceSessionDeck(restoredDeck, currentDecks));
+    }
+    setReviewSession(last.session);
+    setSessionDailyProgress(last.progress);
+    shownKeyRef.current = last.key;
+    setShowAnswer(false);
+    setShowOriginal(false);
+    setSuccessToast("Bewertung zurückgenommen.", { appearance: "neutral" });
   }
 
   function updateCurrentStudyState(patch: CardStudyStatePatch) {
     if (!current) return;
+    undoStackRef.current = [];
     const updated = onSetCardStudyState(current.deckId, current.cardId, patch);
     if (!updated) return;
     const { deck: updatedDeck, note: updatedNote } = updated;
@@ -354,6 +386,7 @@ export function StudyMode({ shortcutsSuspended = false, deck, decks, notes, answ
 
   function updateReviewOrder(newReviewOrder: Deck["deckSettings"]["newReviewOrder"]) {
     if (!rootDeck || rootDeck.deckSettings.newReviewOrder === newReviewOrder) return;
+    undoStackRef.current = [];
     const updatedRootDeck = onSetDeckReviewOrder(rootDeck.id, newReviewOrder);
     if (!updatedRootDeck) return;
     const nextDecks = replaceSessionDeck(updatedRootDeck);
@@ -413,7 +446,11 @@ export function StudyMode({ shortcutsSuspended = false, deck, decks, notes, answ
       } else if (action.type === "reveal") {
         revealAnswer();
       } else if (action.type === "rate") {
-        if (action.rating) grade(action.rating);
+        if (action.rating) grade(action.rating as ReviewRating);
+      } else if (action.type === "undo") {
+        undoLastReview();
+      } else if (action.type === "edit" && current?.deckId && current.cardId) {
+        onEditCard(current.deckId, current.cardId);
       }
     }
 
@@ -588,7 +625,7 @@ export function StudyMode({ shortcutsSuspended = false, deck, decks, notes, answ
             ) : (
               <button type="button" onClick={revealAnswer} className="core-action-primary min-h-11 w-full">
                 <RotateCcw size={16} aria-hidden="true" />
-                Antwort anzeigen
+                {revealLabel(presented?.note)}
               </button>
             )}
           </footer>

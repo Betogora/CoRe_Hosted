@@ -368,11 +368,10 @@ export interface StudyModeProps {
   onSetCardStudyState: (deckId: string, cardId: string, patch: CardStudyStatePatch) => { deck: Deck; note: Note } | null;
   onSetDeckReviewOrder: (deckId: string, order: import("./coreTypes.ts").NewReviewOrder) => Deck | null;
   onReview: (result: ReviewAnswerResult) => unknown;
+  /** Takes back a review of this session; `previous` is the card as it was answered. */
+  onUndoReview: (result: ReviewAnswerResult, previous: Card) => Card | null;
   onAskCardHelp: AskCardHelp;
-  sessionPlan?: {
-    progress: DailyReviewProgressSummary;
-    initialCardCount: number;
-  };
+  sessionPlan?: { progress: DailyReviewProgressSummary; initialCardCount: number };
   bufferSize?: number;
   hasMoreCards?: boolean;
   onLoadMoreCards?: () => Promise<{

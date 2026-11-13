@@ -117,7 +117,41 @@ test("DeckSelect projects a large deep hierarchy without recursive traversal", (
     <DeckSelect ariaLabel="Kartenstapel" value={decks.at(-1)!.id} decks={decks} onValueChange={() => undefined} />,
   );
 
-  assert.match(markup, />Stapel 2000</);
+  assert.match(markup, />Stapel 1 \/ Stapel 2 \/ .* \/ Stapel 1999 \/ Stapel 2000</);
+});
+
+test("DeckSelect names a moved deck by its current tree position instead of a stale stored path", () => {
+  const parent = createCoreDeck({ id: "moved-parent", name: "Bewegungsapparat", hierarchyPath: ["Bewegungsapparat"], source: "anki-apkg", cards: [] });
+  const child = createCoreDeck({
+    id: "moved-child",
+    parentDeckId: parent.id,
+    name: "Muskeltrainer",
+    hierarchyPath: ["Vorklinik", "Anatomie", "Bewegungsapparat", "Muskeltrainer"],
+    source: "anki-apkg",
+    cards: [],
+  });
+  const markup = renderToStaticMarkup(
+    <DeckSelect ariaLabel="Kartenstapel" value={child.id} decks={[parent, child]} onValueChange={() => undefined} />,
+  );
+
+  assert.match(markup, />Bewegungsapparat \/ Muskeltrainer</);
+  assert.doesNotMatch(markup, /Vorklinik/);
+});
+
+test("DeckSelect keeps the stored path for a deck whose parent is not among the offered decks", () => {
+  const child = createCoreDeck({
+    id: "offered-child",
+    parentDeckId: "hidden-parent",
+    name: "Zelle",
+    hierarchyPath: ["Biologie", "Zelle"],
+    source: "manual",
+    cards: [],
+  });
+  const markup = renderToStaticMarkup(
+    <DeckSelect ariaLabel="Kartenstapel" value={child.id} decks={[child]} onValueChange={() => undefined} />,
+  );
+
+  assert.match(markup, />Biologie \/ Zelle</);
 });
 
 test("DeckSelect keeps an empty special value visible with its warning icon", () => {

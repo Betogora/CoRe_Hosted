@@ -27,7 +27,9 @@ export function StatisticsScreenWiring() {
           globalSchedulerPreferences.dayStartHour,
         );
         if (!snapshot) throw new Error("Für diese Auswahl ist noch keine vollständige Offline-Statistik gespeichert.");
-        const pendingReviews = workspaceRepository.outbox.listPending().flatMap((mutation) => mutation.type === "review-atomic" && (mutation.payload as any)?.event
+        const pending = workspaceRepository.outbox.listPending();
+        const takenBack = new Set(pending.flatMap((mutation) => mutation.type === "review-undo" ? [(mutation.payload as any)?.event?.id] : []));
+        const pendingReviews = pending.flatMap((mutation) => mutation.type === "review-atomic" && (mutation.payload as any)?.event && !takenBack.has((mutation.payload as any).event.id)
           ? [(mutation.payload as any).event]
           : []);
         const { mergeAccountStatisticsSnapshot } = await import("../statisticsModel.ts");

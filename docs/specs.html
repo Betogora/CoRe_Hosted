@@ -767,7 +767,7 @@ video {
     box-shadow: var(--core-selection-indicator-shadow);
     pointer-events: none;
     transform: translateX(calc(var(--core-tri-index) * (var(--core-tri-size) + 0.25rem)));
-    transition: transform 180ms cubic-bezier(0.22, 1, 0.36, 1), background-color 260ms cubic-bezier(0.4, 0, 0.2, 1) 20ms;
+    transition: transform 180ms cubic-bezier(0.22, 1, 0.36, 1), background-color 260ms cubic-bezier(0.4, 0, 0.2, 1) 20ms, opacity 200ms ease;
   }
 
   .core-tri-state-control[data-tri-value="any"] .core-tri-state-option[aria-checked="true"] { color: var(--core-text); }
@@ -775,6 +775,8 @@ video {
   .core-tri-state-control[data-tri-value="in"] .core-tri-state-option[aria-checked="true"] { color: var(--core-text-on-accent); }
   .core-tri-state-control[data-tri-value="out"] .core-tri-state-indicator { background: var(--core-danger); }
   .core-tri-state-control[data-tri-value="out"] .core-tri-state-option[aria-checked="true"] { color: var(--core-text-on-danger); }
+  .core-verdict-control[data-tri-value="in"] .core-tri-state-indicator { background: var(--core-success); }
+  .core-verdict-control[data-tri-value="none"] .core-tri-state-indicator { opacity: 0; }
 
   .core-icon-segmented-control .core-segmented-control-option {
     padding-inline: 0;
@@ -1457,10 +1459,6 @@ video {
   .core-table-header-control {
     height: 100%;
     min-height: 0;
-  }
-
-  .core-card-row-selected {
-    box-shadow: inset var(--core-border-width-strong) 0 0 var(--core-action-primary);
   }
 
   .core-settings-matrix {
@@ -2257,9 +2255,6 @@ video {
 .w-64 {
   width: 16rem;
 }
-.w-7 {
-  width: 1.75rem;
-}
 .w-72 {
   width: 18rem;
 }
@@ -2683,6 +2678,9 @@ video {
 .justify-between {
   justify-content: space-between;
 }
+.justify-items-start {
+  justify-items: start;
+}
 .justify-items-end {
   justify-items: end;
 }
@@ -2871,10 +2869,6 @@ video {
   border-bottom-right-radius: var(--core-radius-control);
   border-bottom-left-radius: var(--core-radius-control);
 }
-.rounded-r-marker {
-  border-top-right-radius: var(--core-radius-marker);
-  border-bottom-right-radius: var(--core-radius-marker);
-}
 .rounded-t-control {
   border-top-left-radius: var(--core-radius-control);
   border-top-right-radius: var(--core-radius-control);
@@ -2904,9 +2898,6 @@ video {
 }
 .border-l {
   border-left-width: var(--core-border-width);
-}
-.border-l-strong {
-  border-left-width: var(--core-border-width-strong);
 }
 .border-t {
   border-top-width: var(--core-border-width);
@@ -3116,6 +3107,10 @@ video {
 .py-4 {
   padding-top: 1rem;
   padding-bottom: 1rem;
+}
+.py-5 {
+  padding-top: 1.25rem;
+  padding-bottom: 1.25rem;
 }
 .py-6 {
   padding-top: 1.5rem;
@@ -3433,8 +3428,8 @@ video {
   transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
   transition-duration: 150ms;
 }
-.transition-\[border-color\2c opacity\2c transform\] {
-  transition-property: border-color,opacity,transform;
+.transition-\[background-color\2c opacity\2c transform\] {
+  transition-property: background-color,opacity,transform;
   transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
   transition-duration: 150ms;
 }
@@ -4829,7 +4824,7 @@ body:has([aria-modal="true"]) .core-success-toast {
  * Answer options after HeroUI Pro „Checkbox Button Group“, one row: hairline card (radius 16 → CoRe panel 14 px,
  * padding 16 × 20 → 12 × 16 for the one-row form), selected = 2-px inset accent ring with a light tint, indicator on the
  * right (box for multiple choice, dot for single choice, 16 px). After revealing, the same form carries the success and
- * danger roles; a correct option that was not chosen keeps the ring without the tint.
+ * danger roles; a correct option that was not chosen gets the ring dashed, without the tint.
  */
 .core-mcq-option, .core-kprim-option { border: var(--core-border-width) solid var(--core-border); border-radius: var(--core-radius-panel); background: var(--core-surface); color: var(--core-text); transition: box-shadow 150ms cubic-bezier(0, 0, 0.2, 1), border-color 150ms cubic-bezier(0, 0, 0.2, 1), background-color 150ms cubic-bezier(0, 0, 0.2, 1), color 150ms ease; }
 .core-mcq-option { display: flex; width: 100%; min-height: 3rem; align-items: center; gap: var(--core-space-md); padding: var(--core-space-md) var(--core-space-lg); text-align: start; }
@@ -4838,7 +4833,7 @@ body:has([aria-modal="true"]) .core-success-toast {
 :is(.core-mcq-option, .core-kprim-option):is([data-tone="selected"], [data-tone="correct"], [data-tone="missed"], [data-tone="wrong"]) { border-color: transparent; box-shadow: inset 0 0 0 2px var(--core-mcq-role); }
 :is(.core-mcq-option, .core-kprim-option)[data-tone="selected"] { --core-mcq-role: var(--core-action-primary); background: var(--core-action-soft); }
 :is(.core-mcq-option, .core-kprim-option)[data-tone="correct"] { --core-mcq-role: var(--core-success); background: var(--core-success-surface); }
-:is(.core-mcq-option, .core-kprim-option)[data-tone="missed"] { --core-mcq-role: var(--core-success); }
+:is(.core-mcq-option, .core-kprim-option)[data-tone="missed"] { --core-mcq-role: var(--core-success); box-shadow: none; outline: 2px dashed var(--core-mcq-role); outline-offset: -2px; }
 :is(.core-mcq-option, .core-kprim-option)[data-tone="wrong"] { --core-mcq-role: var(--core-danger); background: var(--core-danger-surface); }
 .core-mcq-option[data-tone="muted"] { color: var(--core-text-muted); }
 .core-mcq-indicator { display: grid; width: 1rem; height: 1rem; flex-shrink: 0; place-items: center; border: var(--core-border-width) solid color-mix(in srgb, var(--core-text-muted) 80%, var(--core-surface)); border-radius: var(--core-radius-marker); background: var(--core-surface); color: var(--core-text-on-accent); transition: background-color 200ms cubic-bezier(0, 0, 0.2, 1), border-color 200ms cubic-bezier(0, 0, 0.2, 1); }
@@ -4849,6 +4844,10 @@ body:has([aria-modal="true"]) .core-success-toast {
 .core-mcq-option[data-tone="selected"] .core-mcq-indicator[data-shape="dot"]::after { scale: 1; }
 .core-mcq-option[data-tone="selected"] .core-mcq-indicator > svg { stroke-dashoffset: 44; transition: stroke-dashoffset 150ms linear 15ms; }
 .core-mcq-state-icon { flex-shrink: 0; color: var(--core-mcq-role); }
+/* Option letter: bold letter without a frame; blue when chosen, the row's role colour after revealing. */
+.core-mcq-letter { width: 1.25rem; flex-shrink: 0; text-align: center; font-size: 1rem; font-weight: var(--core-weight-heading); line-height: 1.75rem; color: var(--core-text-muted); transition: color 150ms ease; }
+[data-tone="selected"] .core-mcq-letter { color: var(--core-action-primary); }
+:is([data-tone="correct"], [data-tone="missed"], [data-tone="wrong"]) .core-mcq-letter { color: var(--core-mcq-role); }
 
 .core-mcq-option-correct {
   animation: core-answer-pulse 360ms ease-out;
@@ -5628,7 +5627,9 @@ button.core-steps-step {
 }
 
 .core-card-selection-bar > .core-card-selection-actions {
-  height: var(--core-card-table-header-height);
+  /* Inset from the table edge and the header line, centred in the header. */
+  height: calc(var(--core-card-table-header-height) - 0.375rem);
+  min-height: 0;
   padding-block: 0;
   padding-inline: var(--core-space-md);
 }
@@ -6942,10 +6943,6 @@ button.core-steps-step {
     width: 6rem;
   }
 
-  .sm\:w-52 {
-    width: 13rem;
-  }
-
   .sm\:w-\[5\.75rem\] {
     width: 5.75rem;
   }
@@ -8247,7 +8244,7 @@ html:has(.catalog-preview) { scroll-behavior: auto; }
 <li><code>Gut</code> geht einen Lernschritt weiter und führt nach dem letzten in die Wiederholung. <code>Leicht</code> beendet die Lernphase sofort. <code>Schwer</code> bleibt mit kürzerem Abstand in der Phase. <code>Nochmal</code> beginnt die Lernschritte von vorn und führt aus der Wiederholung ins Wiederlernen.</li>
 <li>Eingestellte Lernschritte haben Vorrang vor einem längeren Abstand aus dem Modell.</li>
 <li>Jede Bewertung nennt vorab ihren Abstand; angezeigter und angewandter Wert sind derselbe.</li>
-<li>Jede Bewertung wird als unveränderliches Ereignis mit gemessener Antwortzeit gespeichert; der Lernstand ergibt sich daraus.</li>
+<li>Jede Bewertung wird als unveränderliches Ereignis mit gemessener Antwortzeit gespeichert; der Lernstand ergibt sich daraus. Nur das <a href="#specs--lernsitzung">Zurücknehmen in der Sitzung</a> entfernt ein Ereignis.</li>
 <li><strong>Bewusst nicht:</strong> KI-Erzeugung beim Antworten; interne Schedulerzustände in der Oberfläche.</li>
 </ul>
 <h3 id="specs--lernverlauf-einer-karte" class="core-heading-3" tabindex="-1">Lernverlauf einer Karte <a class="docs-anchor" href="#specs--lernverlauf-einer-karte" aria-label="Link zu Lernverlauf einer Karte">#</a></h3>
@@ -8303,6 +8300,7 @@ html:has(.catalog-preview) { scroll-behavior: auto; }
 <li>Aus der Sitzung heraus wirken sofort: Flagge, Markierung, Aussetzen, Kartenreihenfolge und Timer. Editor und Stapeleinstellungen öffnen sich über der Sitzung und führen an dieselbe Karte zurück.</li>
 <li>Aussetzen pausiert die Karte samt Varianten, ohne ihren Lernstand zu ändern; sie fehlt dann in Runde, Tageszahlen und Fortschritt. Nach dem Reaktivieren ist ein vergangener Termin sofort wieder relevant.</li>
 <li>Löst eine Bewertung die Lernbremse aus, weist die Sitzung einmal darauf hin.</li>
+<li>Die Bewertungen der laufenden Sitzung lassen sich der Reihe nach zurücknehmen, die jüngste zuerst. Die Karte erscheint erneut mit dem Lernstand von davor; das Ereignis verschwindet aus Verlauf, Statistik und Tageszahlen auf allen Geräten. Eine andere Änderung an der Sitzung, ein neuer Lerntag oder das Verlassen beendet diese Möglichkeit.</li>
 <li>Inhalte mit Vorlese-Angabe aus Anki lassen sich über die Sprachausgabe des Geräts vorlesen.</li>
 <li>Markierter Text lässt sich in AMBOSS nachschlagen. Erst der ausdrückliche Klick öffnet die Suche; übertragen wird nur der markierte Text.</li>
 <li>Nach dem Aufdecken steht <a href="#specs--ki-hilft">KI hilft</a> bereit.</li>
@@ -8780,7 +8778,7 @@ html:has(.catalog-preview) { scroll-behavior: auto; }
 </ol>
 <p>Offene Gates und Nachweise stehen ausschließlich in <a href="todo.md"><code>todo.md</code></a>.</p>
 <h2 id="specs--codeumfang-der-produktbereiche" class="core-heading-2" tabindex="-1">Codeumfang der Produktbereiche <a class="docs-anchor" href="#specs--codeumfang-der-produktbereiche" aria-label="Link zu Codeumfang der Produktbereiche">#</a></h2>
-<p>CoRe ist eine App mit mehreren Bereichen. Die Tabelle zeigt deren Anteil am Bildschirmcode; gemeinsam genutzte Logik, UI und API stehen separat.</p><div class="docs-code-stats"><dl data-size="compact" data-variant="boxed" class="flex flex-col rounded-control border border-core-border bg-core-surface px-4 py-3 min-w-0"><dt class="core-status-label text-core-muted">Bildschirmcode</dt><dd class="core-metric mt-auto pt-1 text-core-text">6.853</dd></dl><dl data-size="compact" data-variant="boxed" class="flex flex-col rounded-control border border-core-border bg-core-surface px-4 py-3 min-w-0"><dt class="core-status-label text-core-muted">Gemeinsamer Code &amp; API</dt><dd class="core-metric mt-auto pt-1 text-core-text">47.816</dd></dl><dl data-size="compact" data-variant="boxed" class="flex flex-col rounded-control border border-core-border bg-core-surface px-4 py-3 min-w-0"><dt class="core-status-label text-core-muted">Quelldateien</dt><dd class="core-metric mt-auto pt-1 text-core-text">297</dd></dl></div><div class="docs-code-chart"><div class="docs-table-scroll" tabindex="0" role="region" aria-label="Codeumfang je Produktbereich"><table><thead><tr><th>Bereich</th><th>Zeilen</th><th>Anteil</th></tr></thead><tbody><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-status-learned)" aria-hidden="true"></span>Heute</th><td>294</td><td>4,3 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-status-new)" aria-hidden="true"></span>Lernen & Karten</th><td>2.213</td><td>32,3 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-status-in-progress)" aria-hidden="true"></span>Erstellen & Import</th><td>1.780</td><td>26 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-action-primary)" aria-hidden="true"></span>Prüfungen</th><td>427</td><td>6,2 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-status-due)" aria-hidden="true"></span>Statistik</th><td>568</td><td>8,3 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-progress-completed)" aria-hidden="true"></span>Konto & Sync</th><td>773</td><td>11,3 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-text-secondary)" aria-hidden="true"></span>Hilfe</th><td>798</td><td>11,6 %</td></tr></tbody></table></div></div><p class="docs-source">Beim Erzeugen gemessen: nichtleere Zeilen in <code>src/</code> und <code>api/</code> (TS/TSX) sowie <code>src/styles.css</code>. Ohne Tests, Typdeklarationen, generierte Datenbanktypen, Dokumentation und Fremdcode. Bereichszuordnung nach Bildschirmdateien in <a href="../src/screens/README.md">der Screen-Landkarte</a>; übriger Code zählt gemeinsam. Enthält Kommentare und misst weder Laufzeit noch Komplexität.</p></article></main></div><script>function initializeDocsViewer() {
+<p>CoRe ist eine App mit mehreren Bereichen. Die Tabelle zeigt deren Anteil am Bildschirmcode; gemeinsam genutzte Logik, UI und API stehen separat.</p><div class="docs-code-stats"><dl data-size="compact" data-variant="boxed" class="flex flex-col rounded-control border border-core-border bg-core-surface px-4 py-3 min-w-0"><dt class="core-status-label text-core-muted">Bildschirmcode</dt><dd class="core-metric mt-auto pt-1 text-core-text">6.943</dd></dl><dl data-size="compact" data-variant="boxed" class="flex flex-col rounded-control border border-core-border bg-core-surface px-4 py-3 min-w-0"><dt class="core-status-label text-core-muted">Gemeinsamer Code &amp; API</dt><dd class="core-metric mt-auto pt-1 text-core-text">47.982</dd></dl><dl data-size="compact" data-variant="boxed" class="flex flex-col rounded-control border border-core-border bg-core-surface px-4 py-3 min-w-0"><dt class="core-status-label text-core-muted">Quelldateien</dt><dd class="core-metric mt-auto pt-1 text-core-text">298</dd></dl></div><div class="docs-code-chart"><div class="docs-table-scroll" tabindex="0" role="region" aria-label="Codeumfang je Produktbereich"><table><thead><tr><th>Bereich</th><th>Zeilen</th><th>Anteil</th></tr></thead><tbody><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-status-learned)" aria-hidden="true"></span>Heute</th><td>294</td><td>4,2 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-status-new)" aria-hidden="true"></span>Lernen & Karten</th><td>2.249</td><td>32,4 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-status-in-progress)" aria-hidden="true"></span>Erstellen & Import</th><td>1.780</td><td>25,6 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-action-primary)" aria-hidden="true"></span>Prüfungen</th><td>427</td><td>6,2 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-status-due)" aria-hidden="true"></span>Statistik</th><td>622</td><td>9 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-progress-completed)" aria-hidden="true"></span>Konto & Sync</th><td>773</td><td>11,1 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-text-secondary)" aria-hidden="true"></span>Hilfe</th><td>798</td><td>11,5 %</td></tr></tbody></table></div></div><p class="docs-source">Beim Erzeugen gemessen: nichtleere Zeilen in <code>src/</code> und <code>api/</code> (TS/TSX) sowie <code>src/styles.css</code>. Ohne Tests, Typdeklarationen, generierte Datenbanktypen, Dokumentation und Fremdcode. Bereichszuordnung nach Bildschirmdateien in <a href="../src/screens/README.md">der Screen-Landkarte</a>; übriger Code zählt gemeinsam. Enthält Kommentare und misst weder Laufzeit noch Komplexität.</p></article></main></div><script>function initializeDocsViewer() {
     const theme = document.getElementById("docs-theme");
     theme.addEventListener("click", () => {
         const dark = document.documentElement.dataset.coreTheme !== "dark";

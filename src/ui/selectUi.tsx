@@ -63,7 +63,6 @@ interface DeckSelectRow {
   depth: number;
   path: string;
   searchPath: string;
-  treePath: string;
 }
 
 interface DeckPickerContentProps {
@@ -92,20 +91,20 @@ function createDeckSelectRows(decks: readonly Deck[]): DeckSelectRow[] {
   const visitedDeckIds = new Set<string>();
 
   function appendBranch(deck: Deck): void {
-    const pending = [{ deck, depth: 0, parentPath: [] as string[], parentTreePath: "" }];
+    const pending = [{ deck, depth: 0, parentPath: "" }];
     while (pending.length > 0) {
       const current = pending.pop()!;
       if (visitedDeckIds.has(current.deck.id)) continue;
       visitedDeckIds.add(current.deck.id);
-      const hierarchyPath = current.deck.hierarchyPath.length
-        ? current.deck.hierarchyPath
-        : [...current.parentPath, current.deck.name];
-      const treePath = current.parentTreePath ? `${current.parentTreePath} / ${current.deck.name}` : current.deck.name;
-      const path = hierarchyPath.join(" / ");
-      rows.push({ deck: current.deck, depth: current.depth, path, searchPath: path.toLocaleLowerCase("de-DE"), treePath });
+      const path = current.parentPath
+        ? `${current.parentPath} / ${current.deck.name}`
+        : current.deck.parentDeckId && current.deck.hierarchyPath.length
+          ? current.deck.hierarchyPath.join(" / ")
+          : current.deck.name;
+      rows.push({ deck: current.deck, depth: current.depth, path, searchPath: path.toLocaleLowerCase("de-DE") });
       const children = childrenByParentId.get(current.deck.id) ?? [];
       for (let index = children.length - 1; index >= 0; index -= 1) {
-        pending.push({ deck: children[index], depth: current.depth + 1, parentPath: hierarchyPath, parentTreePath: treePath });
+        pending.push({ deck: children[index], depth: current.depth + 1, parentPath: path });
       }
     }
   }
@@ -239,9 +238,11 @@ function DeckPickerContent({
         onOpenAutoFocus={(event) => {
           event.preventDefault();
           const content = event.currentTarget;
+          const openedByKeyboard = document.activeElement?.matches(":focus-visible") ?? false;
           requestAnimationFrame(() => {
             if (showSearch) (content as HTMLElement | null)?.querySelector<HTMLInputElement>("input")?.focus();
-            else focusDeckOption(listboxId, "selected");
+            else if (openedByKeyboard) focusDeckOption(listboxId, "selected");
+            else document.getElementById(listboxId)?.focus();
           });
         }}
       >
@@ -274,7 +275,8 @@ function DeckPickerContent({
           role="listbox"
           aria-multiselectable={multiple || undefined}
           data-deck-select-viewport="true"
-          className="min-h-0 max-h-80 overflow-y-auto"
+          tabIndex={-1}
+          className="min-h-0 max-h-80 overflow-y-auto outline-none"
           onKeyDown={(event) => handleDeckOptionKeyDown(event, listboxId)}
         >
           {children}
@@ -437,7 +439,7 @@ export const DeckSelect = forwardRef<HTMLButtonElement, DeckSelectProps>(functio
           const visibleDepth = getVisibleDeckDepth(row.depth);
           const selected = row.deck.id === value;
           return (
-            <CoreTooltip key={row.deck.id} label={row.treePath} deckAppearance={getDeckAppearance(row.deck)}>
+            <CoreTooltip key={row.deck.id} label={row.path} deckAppearance={getDeckAppearance(row.deck)}>
               <button
                 type="button"
                 role="option"
@@ -536,7 +538,7 @@ export function DeckMultiSelect({ decks, value, onValueChange }: DeckMultiSelect
           const checked = selectedDeckIds.has(row.deck.id) || inherited;
           const visibleDepth = getVisibleDeckDepth(row.depth);
           return (
-            <CoreTooltip key={row.deck.id} label={row.treePath} deckAppearance={getDeckAppearance(row.deck)}>
+            <CoreTooltip key={row.deck.id} label={row.path} deckAppearance={getDeckAppearance(row.deck)}>
               <button
                 type="button"
                 role="option"
