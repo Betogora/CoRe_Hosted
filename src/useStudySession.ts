@@ -1,7 +1,7 @@
 import React from "react";
 import type { CardCommands } from "./cardCommands.ts";
 import { applyCardStudyStatePatch } from "./coreModel.ts";
-import type { CardStudyStatePatch, Deck, NewReviewOrder, Note } from "./coreTypes.ts";
+import type { Card, CardStudyStatePatch, Deck, NewReviewOrder, Note } from "./coreTypes.ts";
 import { markLearningSettingsCustom } from "./deckSettings.ts";
 import type { IndexedDbCoreRepository } from "./indexedDbCoreRepository.ts";
 import type { AnsweredTodayCard, ReviewAnswerResult } from "./reviewService.ts";
@@ -88,6 +88,14 @@ export function useStudySession({ preparation, repository, cardCommands, refresh
     requestSync();
   });
 
+  const undoReview = useStableCallback((result: ReviewAnswerResult, previous: Card) => {
+    if (!repository) return null;
+    preparation?.forgetExamPlanningData();
+    const restored = repository.undoReview(result, previous);
+    requestSync();
+    return restored;
+  });
+
   const setCardStudyState = useStableCallback((deckId: string, cardId: string, patch: CardStudyStatePatch) => {
     const deck = decks?.find((candidate) => candidate.id === deckId);
     const card = deck?.cards.find((candidate) => candidate.id === cardId);
@@ -128,5 +136,5 @@ export function useStudySession({ preparation, repository, cardCommands, refresh
     return updated;
   });
 
-  return { decks, setDecks, notes, answeredToday, hasMoreCards, bufferSize, dueForecast, preparedKeyRef, preparingKeyRef, adopt, reset, loadMore, recordReview, setCardStudyState, setDeckReviewOrder };
+  return { decks, setDecks, notes, answeredToday, hasMoreCards, bufferSize, dueForecast, preparedKeyRef, preparingKeyRef, adopt, reset, loadMore, recordReview, undoReview, setCardStudyState, setDeckReviewOrder };
 }

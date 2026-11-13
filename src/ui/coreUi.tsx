@@ -1,6 +1,6 @@
 import React, { type HTMLAttributes, type ReactNode } from "react";
 import { createPortal } from "react-dom";
-import { Ban, Check, Minus, Star } from "lucide-react";
+import { Ban, Check, Minus, Star, X } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import type { CoreMode } from "../coreTypes.ts";
 import { ActionButton, CrossLinkButton } from "./actionUi.tsx";
@@ -370,11 +370,39 @@ export function CoreTriStateControl({ label, value, onValueChange, disabled = fa
   onValueChange: (value: CoreTriState) => void;
   disabled?: boolean;
 }) {
-  const index = TRI_STATE_OPTIONS.findIndex((option) => option.value === value);
+  return <StateRail label={label} options={TRI_STATE_OPTIONS} value={value} railValue={value || "any"} onValueChange={onValueChange} disabled={disabled} />;
+}
+
+const VERDICT_OPTIONS: ReadonlyArray<{ value: boolean; label: string; icon: LucideIcon }> = [
+  { value: true, label: "Richtig", icon: Check },
+  { value: false, label: "Falsch", icon: X },
+];
+
+/** Judgement with two positions on the rail of `CoreTriStateControl`: `Richtig` (green) and `Falsch` (red); none at the start. */
+export function CoreVerdictControl({ label, value, onValueChange, disabled = false }: {
+  /** What is judged, e.g. `Aussage A`; the accessible name and part of the tooltips. */
+  label: string;
+  value: boolean | null;
+  onValueChange: (value: boolean) => void;
+  disabled?: boolean;
+}) {
+  return <StateRail label={label} options={VERDICT_OPTIONS} value={value} railValue={value === null ? "none" : value ? "in" : "out"} className="core-verdict-control" onValueChange={onValueChange} disabled={disabled} />;
+}
+
+function StateRail<T>({ label, options, value, railValue, className = "", onValueChange, disabled }: {
+  label: string;
+  options: ReadonlyArray<{ value: T; label: string; icon: LucideIcon }>;
+  value: T | null;
+  railValue: string;
+  className?: string;
+  onValueChange: (value: T) => void;
+  disabled: boolean;
+}) {
+  const index = options.findIndex((option) => option.value === value);
   return (
-    <div role="radiogroup" aria-label={label} className="core-segmented-control core-tri-state-control" data-tri-value={value || "any"} style={{ "--core-tri-index": index } as React.CSSProperties}>
+    <div role="radiogroup" aria-label={label} className={`core-segmented-control core-tri-state-control ${className}`.trim()} data-tri-value={railValue} style={{ "--core-tri-index": Math.max(index, 0) } as React.CSSProperties}>
       <span aria-hidden="true" className="core-tri-state-indicator" />
-      {TRI_STATE_OPTIONS.map((option) => (
+      {options.map((option) => (
         <CoreTooltip key={option.label} label={`${option.label}: ${label}`}>
           <button type="button" role="radio" aria-checked={value === option.value} aria-label={option.label} disabled={disabled} className="core-tri-state-option" onClick={() => onValueChange(option.value)}>
             <option.icon size={16} strokeWidth={2.25} aria-hidden="true" />

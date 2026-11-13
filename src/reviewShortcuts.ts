@@ -7,13 +7,9 @@ export const RATING_SHORTCUT_KEYS = {
 
 const RATING_KEY_MAP: Record<string, "again" | "hard" | "good" | "easy"> = {
   [RATING_SHORTCUT_KEYS.again]: "again",
-  a: "again",
   [RATING_SHORTCUT_KEYS.hard]: "hard",
-  h: "hard",
   [RATING_SHORTCUT_KEYS.good]: "good",
-  g: "good",
   [RATING_SHORTCUT_KEYS.easy]: "easy",
-  e: "easy",
 };
 
 const EDITABLE_TARGETS = ["input", "textarea", "select", "button", "a", "summary"];
@@ -24,19 +20,20 @@ function isEditableShortcutTarget(target: EventTarget | null = null) {
   return EDITABLE_TARGETS.includes(tagName) || element?.isContentEditable === true;
 }
 
-export function resolveReviewShortcut(event: { key: any; target?: any; }, { hasCurrent = false, showAnswer = false }: any = {}) {
-  if (!hasCurrent || isEditableShortcutTarget(event?.target)) return null;
-
+/**
+ * Review keys as in Anki: Space/Enter reveals and, once revealed, rates `Gut`; 1–4 rate; `E` edits the card; `U` and
+ * Ctrl/Cmd+Z take back the last rating; Escape leaves.
+ */
+export function resolveReviewShortcut(event: { key: any; target?: any; ctrlKey?: boolean; metaKey?: boolean; altKey?: boolean; shiftKey?: boolean }, { hasCurrent = false, showAnswer = false }: any = {}) {
+  if (isEditableShortcutTarget(event?.target)) return null;
   const key = String(event?.key ?? "").toLowerCase();
+  const command = Boolean(event.ctrlKey || event.metaKey);
+  if (event.altKey || event.shiftKey) return null;
+  if (key === "u" && !command || key === "z" && command) return { type: "undo" };
+  if (!hasCurrent || command) return null;
   if (key === "escape") return { type: "exit" };
-
-  if (!showAnswer && (key === " " || key === "enter")) {
-    return { type: "reveal" };
-  }
-
-  if (showAnswer && RATING_KEY_MAP[key]) {
-    return { type: "rate", rating: RATING_KEY_MAP[key] };
-  }
-
+  if (key === "e") return { type: "edit" };
+  if (key === " " || key === "enter") return showAnswer ? { type: "rate", rating: "good" } : { type: "reveal" };
+  if (showAnswer && RATING_KEY_MAP[key]) return { type: "rate", rating: RATING_KEY_MAP[key] };
   return null;
 }

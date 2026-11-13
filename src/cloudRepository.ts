@@ -54,7 +54,7 @@ export {
   registerAccountSyncDevice,
   applyEntityMutation,
   applyEntityMutationBatch,
-  recordAtomicReview,
+  recordAtomicReview, undoAtomicReview,
   upsertAccountCloudProfile,
   resolveAccountSyncConflict,
 } from "./cloudRevisionedWrites.ts";

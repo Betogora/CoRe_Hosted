@@ -6,7 +6,7 @@ import type { AccountMediaStore } from "../../mediaStore.ts";
 import { resolveReviewShortcut } from "../../reviewShortcuts.ts";
 import { IconButton } from "../../ui/actionUi.tsx";
 import { useNoteMediaUrls } from "../../ui/cardMedia.tsx";
-import { NoteCardContent } from "../../ui/NoteCardContent.tsx";
+import { NoteCardContent, revealLabel } from "../../ui/NoteCardContent.tsx";
 import { CoreTooltip } from "../../ui/tooltipUi.tsx";
 import { ratingButtons } from "../screenConstants.ts";
 import { cardCount } from "./cardListModel.ts";
@@ -56,11 +56,12 @@ export function HitPractice({ bodies, mediaStore, onClose }: HitPracticeProps) {
         onClose();
         return;
       }
+      // Practice changes no study state: nothing to edit or take back here.
       const action = resolveReviewShortcut(event, { hasCurrent: Boolean(current), showAnswer: revealed });
-      if (!action) return;
+      if (action?.type === "reveal") setRevealed(true);
+      else if (action?.type === "rate" && action.rating) rate(action.rating as ReviewRating);
+      else return;
       event.preventDefault();
-      if (action.type === "reveal") setRevealed(true);
-      else if (action.type === "rate" && action.rating) rate(action.rating as ReviewRating);
     }
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
@@ -93,7 +94,7 @@ export function HitPractice({ bodies, mediaStore, onClose }: HitPracticeProps) {
                 {revealed ? null : (
                   <button type="button" onClick={() => setRevealed(true)} className="mx-auto mt-12 core-action-primary">
                     <RotateCcw size={16} aria-hidden="true" />
-                    Antwort anzeigen
+                    {revealLabel(current.note)}
                   </button>
                 )}
               </div>
