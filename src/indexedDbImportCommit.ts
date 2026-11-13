@@ -81,12 +81,16 @@ export async function commitImportGraph(
     if (chunk.kind === "decks") {
       const decks: WorkspaceDeckSummary[] = [];
       const inputs: any[] = [];
+      const shell = shellDecks();
+      const knownDecks = new Map(shell.map((deck) => [deck.id, deck]));
       for (const incoming of chunk.decks) {
-        const existing = shellDecks().find((deck) => deck.source === "anki-apkg" && (
+        const parentDeckId = incoming.parentDeckId ? persistedDeckIds.get(incoming.parentDeckId) ?? incoming.parentDeckId : null;
+        const existing = shell.find((deck) => deck.source === "anki-apkg" && (
           (incoming.ankiDeckId && deck.ankiDeckId === incoming.ankiDeckId)
-          || (!incoming.ankiDeckId && !deck.ankiDeckId && deck.hierarchyPath.join("::") === incoming.hierarchyPath.join("::"))
+          || (!incoming.ankiDeckId && !deck.ankiDeckId && (deck.parentDeckId ?? null) === parentDeckId && deck.name === incoming.name)
         ));
-        // Reimport keeps the local name, parent, path and settings of an existing deck.
+        // Reimport keeps the local name, parent, path and settings of an existing deck; a new deck continues the path
+        // of its persisted parent, which may have been moved or renamed locally.
         const deck: WorkspaceDeckSummary = existing ?? {
           ...deckRecord(normalizeCoreDeck({
             id: incoming.id,
@@ -94,13 +98,14 @@ export async function commitImportGraph(
             name: incoming.name,
             source: "anki-apkg",
             ankiDeckId: incoming.ankiDeckId,
-            parentDeckId: incoming.parentDeckId ? persistedDeckIds.get(incoming.parentDeckId) ?? incoming.parentDeckId : null,
-            hierarchyPath: incoming.hierarchyPath,
+            parentDeckId,
+            hierarchyPath: [...(parentDeckId ? knownDecks.get(parentDeckId)?.hierarchyPath ?? [] : []), incoming.name],
             deckSettings: incoming.appearance ? { ...deckSettings, appearance: incoming.appearance } : deckSettings,
             createdAt: now,
           })),
         };
         persistedDeckIds.set(incoming.id, deck.id);
+        knownDecks.set(deck.id, deck);
         scope.deckIds.push(deck.id);
         if (!existing) {
           decks.push(deck);

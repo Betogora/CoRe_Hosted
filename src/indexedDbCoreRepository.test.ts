@@ -478,6 +478,35 @@ test("ein Bibliotheksstapel bringt seine Stapelfarben mit; Anki-Stapel ohne Dars
   repository.close();
 });
 
+test("neue Unterstapel eines Reimports übernehmen den Pfad ihres lokal verschobenen Oberstapels", async () => {
+  const root = createCoreDeck({ id: "deck-root", name: "Vorklinik", source: "anki-apkg", ankiDeckId: "anki-root" });
+  const moved = createCoreDeck({ id: "deck-moved", name: "Bewegungsapparat", source: "anki-apkg", ankiDeckId: "anki-moved", hierarchyPath: ["Bewegungsapparat"] });
+  const repository = await openRepository(state([root, moved], []));
+  const reimport = (suffix: string) => repository.commitImportGraph(importGraph([{ kind: "decks", decks: [
+    { id: `root-${suffix}`, ankiDeckId: "anki-root", name: "Vorklinik", hierarchyPath: ["Vorklinik"], parentDeckId: null },
+    { id: `moved-${suffix}`, ankiDeckId: "anki-moved", name: "Bewegungsapparat", hierarchyPath: ["Vorklinik", "Bewegungsapparat"], parentDeckId: `root-${suffix}` },
+    { id: `child-${suffix}`, ankiDeckId: null, name: "Muskeltrainer", hierarchyPath: ["Vorklinik", "Bewegungsapparat", "Muskeltrainer"], parentDeckId: `moved-${suffix}` },
+    { id: `grandchild-${suffix}`, ankiDeckId: "anki-impp", name: "IMPP", hierarchyPath: ["Vorklinik", "Bewegungsapparat", "Muskeltrainer", "IMPP"], parentDeckId: `child-${suffix}` },
+  ] }]), { deckSettings: {}, reimportTargets: { notes: [], cards: [], noteTypeSources: [] } });
+
+  await reimport("first");
+  const paths = () => Object.fromEntries(repository.getShellState().decks.map((deck) => [deck.name, `${deck.parentDeckId}:${deck.hierarchyPath.join("::")}`]));
+  assert.deepEqual(paths(), {
+    Vorklinik: "null:Vorklinik",
+    Bewegungsapparat: "null:Bewegungsapparat",
+    Muskeltrainer: "deck-moved:Bewegungsapparat::Muskeltrainer",
+    IMPP: "child-first:Bewegungsapparat::Muskeltrainer::IMPP",
+  });
+  assert.deepEqual(
+    pendingEntityMutations(repository).filter((mutation) => mutation.table === "decks").map((mutation) => mutation.entity.hierarchyPath.join("::")).sort(),
+    ["Bewegungsapparat::Muskeltrainer", "Bewegungsapparat::Muskeltrainer::IMPP"],
+  );
+
+  const second = await reimport("second");
+  assert.deepEqual(second.decks.map((deck) => deck.id).sort(), ["child-first", "deck-moved", "deck-root", "grandchild-first"], "ein Stapel ohne Anki-ID wird an seiner Baumposition wiedererkannt");
+  repository.close();
+});
+
 test("Reimport behält lokale Bearbeitungen, erkennt Karten an der Anki-Karten-ID und zählt fehlende Karten", async () => {
   const edited = importedNote("note-edited", "guid-edited", "Lokal bearbeitet", { reverse: true, contentRevision: 2 });
   edited.cards = edited.cards.map((card) => ({ ...card, id: `card-edited-${card.promptKey}`, ankiCardId: card.promptKey === "forward" ? "anki-a1" : "anki-a2" }));
