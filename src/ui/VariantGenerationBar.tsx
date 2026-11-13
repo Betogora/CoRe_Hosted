@@ -30,7 +30,7 @@ export function VariantGenerationBar({ deck, title = "Varianten generieren", don
     >
       <div className="flex min-w-0 items-center gap-3">
         <DeckAppearanceIcon deck={deck} className="size-8" iconSize={16} aria-hidden="true" />
-        <p className="min-w-0 flex-1 truncate core-body font-semibold text-core-text" role="status" aria-live="polite" title={label}>{label}</p>
+        <p className="min-w-0 flex-1 line-clamp-2 core-body font-semibold text-core-text sm:line-clamp-1" role="status" aria-live="polite" title={label}>{label}</p>
         {outcome && onShow ? <ActionButton type="button" variant="secondary" icon={Search} aria-label="Anzeigen" className="shrink-0 max-sm:px-2.5" onClick={onShow}><span className="hidden sm:inline">Anzeigen</span></ActionButton> : null}
         {outcome
           ? <ActionButton type="button" variant="secondary" icon={X} aria-label="Schließen" className="shrink-0 max-sm:px-2.5" onClick={onClose}><span className="hidden sm:inline">Schließen</span></ActionButton>

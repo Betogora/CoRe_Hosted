@@ -1235,7 +1235,7 @@ test("[Vertrag: KI-Varianten je Kartenart, Zähler, Stapellauf und Anzeigen] Der
   await expect(dialog.getByTestId("deck-settings-variant-count")).toHaveText("1 Karte ohne Variante");
 
   await bar.getByRole("button", { name: "Anzeigen" }).click();
-  await expect(page.getByRole("textbox", { name: "Karten durchsuchen" })).toHaveValue(/-has:variant/);
+  await expect(page).toHaveURL(/[?&]q=did%3A[^&]+-has%3Avariant/);
   await expect(page.locator("[data-card-row]")).toHaveCount(1);
   await expect(page.locator("[data-card-row]").first()).toContainText("Mona Lisa");
   await expect(bar).toHaveCount(0);
