@@ -82,7 +82,8 @@ const CLOZE_PROBLEMS = {
 
 const CHOICE_PROBLEMS = {
   changed_options: "Das Modell hat die Antwortoptionen verändert.",
-  negated_question: "Das Modell hat die Frage verneint und damit richtig und falsch vertauscht.",
+  negated_question: "Die Variante hat eine Verneinung der Frage verändert; richtig und falsch könnten vertauscht sein.",
+  negated_option: "Die Variante hat eine Verneinung in einer Antwortoption verändert; richtig und falsch könnten vertauscht sein.",
 } as const;
 
 function systemPrompt(kind: AiCardVariantRequest["kind"]) {

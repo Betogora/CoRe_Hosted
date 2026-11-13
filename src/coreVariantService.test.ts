@@ -64,6 +64,12 @@ test("Auswahl-Quelle nennt Frage, Art und jede Option mit Richtigkeit; ohne Opti
   const imageOption = { ...note, content: { ...note.content, interaction: { kind: "choice" as const, mode: "single" as const, options: [{ id: "a", html: '<img src="a.png">', correct: true }, { id: "b", html: "B", correct: false }] } } };
   assert.equal(cardVariantSource(imageOption, cards[0]), null);
   assert.deepEqual(classifyCardEligibility(imageOption, cards[0]).reasons, ["Die Frage oder eine Antwortoption hat keinen Text."]);
+
+  // Cards the request contract refuses would fail on every batch; they are not eligible.
+  const oneOption = { ...note, content: { ...note.content, interaction: { kind: "choice" as const, mode: "single" as const, options: [{ id: "a", html: "A", correct: true }] } } };
+  assert.deepEqual(classifyCardEligibility(oneOption, cards[0]).reasons, ["Eine Variante braucht zwei bis 10 Antwortoptionen."]);
+  const tooLong = createBasicNote("deck", "x".repeat(1_300), "Antwort");
+  assert.equal(classifyCardEligibility(tooLong.note, tooLong.cards[0]).eligible, false);
 });
 
 test("Auswahl-Variante zeigt neue Frage und Optionstexte in eigener fester Reihenfolge; Richtigkeit und Erklärung bleiben die der Karte", () => {

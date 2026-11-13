@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { buildOpenRouterPayload, createCardVariantHandler, extractGeneratedVariant } from "../api/ai/card-variant.ts";
 import { OPENROUTER_CHAT_ENDPOINT, OPENROUTER_MODEL } from "../server/aiRoute.ts";
-import { parseAiCardVariantRequest } from "./aiCardVariantContract.ts";
+import { choiceAnswerText, parseAiCardVariantRequest } from "./aiCardVariantContract.ts";
 
 const input = { kind: "basic" as const, source: { front: "Was ist ATP?", back: "Ein Energieträger." } };
 const texts = { rateLimited: "zu viele", unavailable: "nicht verfügbar", rejected: "abgelehnt", failed: "fehlgeschlagen", invalid: "ungültig", tool: "Werkzeug", fields: "Felder" };
@@ -130,6 +130,19 @@ test("a choice variant rephrases stem and options by id, keeps every option's co
   assert.equal(code("Welche dieser Ionen sind positiv geladen?", [{ id: "na", text: "Natrium" }]), "changed_options");
   assert.equal(code("Welche dieser Ionen sind positiv geladen?", [{ id: "na", text: "Natrium" }, { id: "k", text: "Kalium" }]), "changed_options");
   assert.equal(code("Welche dieser Ionen sind nicht positiv geladen?", [{ id: "na", text: "Natrium" }, { id: "cl", text: "Chlorid" }]), "negated_question");
+  assert.equal(code("Welche dieser Ionen sind positiv geladen?", [{ id: "na", text: "kein Natrium" }, { id: "cl", text: "Chlorid" }]), "negated_option");
+
+  const negatedSource = { ...choice, source: { ...choice.source, front: "Welches Ion ist kein Kation?" } };
+  const removed = () => { try { extractGeneratedVariant(answer("Welches Ion ist positiv geladen?", [{ id: "na", text: "Natrium" }, { id: "cl", text: "Chlorid" }]), negatedSource); return "ok"; } catch (error) { return (error as { code?: string }).code; } };
+  assert.equal(removed(), "negated_question", "eine entfernte Verneinung vertauscht richtig und falsch ebenso");
+  const kprim = { kind: "choice" as const, source: { front: "Welche Aussagen stimmen?", back: "x" }, choice: { mode: "kprim" as const, options: [{ id: "a", text: "Insulin senkt den Blutzucker.", correct: true }, { id: "b", text: "Glukagon senkt ihn nicht.", correct: true }] } };
+  const kprimCode = (options: unknown) => { try { extractGeneratedVariant(answer("Welche Aussagen treffen zu?", options), kprim); return "ok"; } catch (error) { return (error as { code?: string }).code; } };
+  assert.equal(kprimCode([{ id: "a", text: "Insulin senkt den Blutzucker nicht." }, { id: "b", text: "Glukagon senkt ihn nicht." }]), "negated_option");
+  assert.equal(kprimCode([{ id: "a", text: "Insulin verringert den Blutzucker." }, { id: "b", text: "Glukagon senkt ihn." }]), "negated_option");
+  assert.equal(kprimCode([{ id: "a", text: "Insulin verringert den Blutzucker." }, { id: "b", text: "Glukagon verringert ihn nicht." }]), "ok");
+
+  const long = (index: number) => `Aussage ${index}: ${"x".repeat(290)}`;
+  assert.equal(parseAiCardVariantRequest({ kind: "choice", source: { front: "Welche Aussagen stimmen?", back: choiceAnswerText([1, 2, 3, 4].map((index) => ({ text: long(index), correct: index % 2 === 0 }))) }, choice: { mode: "kprim", options: [1, 2, 3, 4].map((index) => ({ id: `o${index}`, text: long(index), correct: index % 2 === 0 })) } }).success, true, "lange Kprim-Aussagen passen über das Feldlimit der Rückseite hinaus");
   assert.equal(code("Welche dieser Ionen sind positiv geladen?", [{ id: "na", text: "Natrium", correct: false }, { id: "cl", text: "Chlorid" }]), "invalid_tool_call");
   assert.equal(parseAiCardVariantRequest({ kind: "choice", source: choice.source }).success, false);
   assert.equal(parseAiCardVariantRequest({ ...choice, choice: { ...choice.choice, options: [choice.choice.options[0], choice.choice.options[0]] } }).success, false);

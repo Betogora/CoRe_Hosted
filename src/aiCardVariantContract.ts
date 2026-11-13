@@ -18,7 +18,9 @@ const MAX_AI_CARD_VARIANT_OPTIONS = 10;
 const MAX_AI_CARD_VARIANT_OPTION_CHARS = 400;
 
 const textSchema = v.pipe(v.string(), v.trim(), v.minLength(1), v.maxLength(MAX_AI_CARD_VARIANT_FIELD_CHARS));
-const sourceSchema = v.strictObject({ front: textSchema, back: textSchema });
+/** A choice card's `back` lists every option (`choiceAnswerText`), so it may outgrow one field; the request bounds its options. */
+const backSchema = v.pipe(v.string(), v.trim(), v.minLength(1), v.maxLength(MAX_AI_CARD_VARIANT_OPTIONS * (MAX_AI_CARD_VARIANT_OPTION_CHARS + 5)));
+const sourceSchema = v.strictObject({ front: textSchema, back: backSchema });
 const optionIdSchema = v.pipe(v.string(), v.minLength(1), v.maxLength(64));
 const optionTextSchema = v.pipe(v.string(), v.trim(), v.minLength(1), v.maxLength(MAX_AI_CARD_VARIANT_OPTION_CHARS));
 const uniqueIds = <Option extends { id: string }>(options: Option[]) => new Set(options.map((option) => option.id)).size === options.length;
@@ -42,6 +44,7 @@ const requestSchema = v.pipe(
   }),
   v.check((request) => request.kind !== "cloze" || clozeVariantGaps(request.source.front) !== null),
   v.check((request) => (request.kind === "choice") === (request.choice !== undefined)),
+  v.check((request) => request.kind === "choice" || request.source.back.length <= MAX_AI_CARD_VARIANT_FIELD_CHARS),
 );
 const usageSchema = v.nullable(v.strictObject({
   promptTokens: v.nullable(v.number()),
@@ -51,7 +54,7 @@ const usageSchema = v.nullable(v.strictObject({
 const successSchema = v.strictObject({
   variant: v.strictObject({
     front: textSchema,
-    back: textSchema,
+    back: backSchema,
     /** Rephrased option texts of a choice variant by option id. */
     options: v.optional(v.pipe(v.array(v.strictObject({ id: optionIdSchema, text: optionTextSchema })), v.minLength(2), v.maxLength(MAX_AI_CARD_VARIANT_OPTIONS), v.check(uniqueIds))),
   }),
@@ -120,16 +123,20 @@ export function checkClozeVariant(source: string, candidate: string): "invalid_g
   return variant.answers.some((answer) => revealed(variant, answer) && !revealed(original, answer)) ? "revealed_answer" : null;
 }
 
-const NEGATION = /(?<!\p{L})(?:nicht|kein\p{L}*|falsch\p{L}*|not|false|incorrect|wrong)(?!\p{L})/iu;
+const NEGATION = /(?<!\p{L})(?:nicht|kein\p{L}*|falsch\p{L}*|unzutreffend\p{L}*|unrichtig\p{L}*|außer|ausgenommen|ausnahme\p{L}*|not|none|false|incorrect|wrong|except)(?!\p{L})/iu;
 
 /**
- * Why a rephrased choice question does not ask the source's options: other option ids (`changed_options`) or a
- * negation the source's question lacks, which would turn correct and incorrect around (`negated_question`).
+ * Why a rephrased choice card does not ask the source's options: other option ids (`changed_options`), or a question
+ * or option that gained or lost a negation and so may turn correct and incorrect around (`negated_question`,
+ * `negated_option`). The check is deliberately strict: a harmless rewrite such as „asymptomatisch“ to „ohne Symptome“
+ * is refused too.
  */
-export function checkChoiceVariant(source: { front: string; choice: AiCardVariantChoice }, front: string, options: { id: string }[]): "changed_options" | "negated_question" | null {
+export function checkChoiceVariant(source: { front: string; choice: AiCardVariantChoice }, front: string, options: { id: string; text: string }[]): "changed_options" | "negated_question" | "negated_option" | null {
   const ids = (list: { id: string }[]) => list.map((option) => option.id).sort().join("\u0000");
   if (options.length !== source.choice.options.length || ids(options) !== ids(source.choice.options)) return "changed_options";
-  return NEGATION.test(front) && !NEGATION.test(source.front) ? "negated_question" : null;
+  const negationChanged = (original: string, candidate: string) => NEGATION.test(original) !== NEGATION.test(candidate);
+  if (negationChanged(source.front, front)) return "negated_question";
+  return source.choice.options.some((option) => negationChanged(option.text, options.find((candidate) => candidate.id === option.id)!.text)) ? "negated_option" : null;
 }
 
 function withinRequestLimits(request: AiCardVariantRequest) {
@@ -145,6 +152,9 @@ function withinRequestLimits(request: AiCardVariantRequest) {
 export function createAiCardVariantRequest(source: AiCardVariantSource | null, avoid: string[] = []): AiCardVariantRequest {
   if (!source) {
     throw new AiCardVariantContractError("unsupported_card_type", "Für diese Karte gibt es keine Varianten.");
+  }
+  if (source.choice && (source.choice.options.length < 2 || source.choice.options.length > MAX_AI_CARD_VARIANT_OPTIONS)) {
+    throw new AiCardVariantContractError("invalid_source", `Eine Variante braucht zwei bis ${MAX_AI_CARD_VARIANT_OPTIONS} Antwortoptionen.`);
   }
   const avoidTexts: string[] = [];
   let avoidChars = 0;

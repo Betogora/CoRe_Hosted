@@ -2,7 +2,7 @@ import { createCardVariant, createDefaultDeckSettings, getActiveVariants } from 
 import { stripSanitizedHtml } from "./htmlSafety.ts";
 import { isCardReadyForVariants } from "./coreVariantService/variantSelection.ts";
 import { getDurabilityDays } from "./scheduler.ts";
-import { answerListText, checkClozeVariant, choiceAnswerText, clozeVariantGaps, type AiCardVariantSource } from "./aiCardVariantContract.ts";
+import { answerListText, checkClozeVariant, choiceAnswerText, clozeVariantGaps, createAiCardVariantRequest, type AiCardVariantSource } from "./aiCardVariantContract.ts";
 import { mapClozes } from "./clozeSyntax.ts";
 import type { Card, CardVariant, Note, NoteContent, NoteField } from "./coreTypes.ts";
 
@@ -128,8 +128,13 @@ export function classifyCardEligibility(note: Pick<Note, "content">, card: Card,
   if (settings.coreMode === "off") reasons.push("Content Repetition ist für diesen Stapel ausgeschaltet.");
   const { kind } = note.content.interaction;
   if (kind === "image-occlusion") reasons.push("Bildverdeckungen erhalten keine Varianten.");
-  else if (!cardVariantSource(note, card)) {
-    reasons.push(kind === "cloze" ? "Die Lücke dieser Karte ist leer oder verschachtelt." : kind === "choice" ? "Die Frage oder eine Antwortoption hat keinen Text." : "Frage oder Antwort fehlt.");
+  else {
+    const source = cardVariantSource(note, card);
+    if (!source) reasons.push(kind === "cloze" ? "Die Lücke dieser Karte ist leer oder verschachtelt." : kind === "choice" ? "Die Frage oder eine Antwortoption hat keinen Text." : "Frage oder Antwort fehlt.");
+    // A card the request contract refuses (too long, too few or too many options) would fail on every generation.
+    else {
+      try { createAiCardVariantRequest(source); } catch (error) { reasons.push(error instanceof Error ? error.message : "Die Karte eignet sich nicht für eine Variante."); }
+    }
   }
   if (getActiveVariants(card).length >= settings.maxActiveVariantsPerCard) {
     reasons.push(`Die Karte hat bereits ${settings.maxActiveVariantsPerCard === 1 ? "eine aktive Variante" : `${settings.maxActiveVariantsPerCard} aktive Varianten`}; mehr erlaubt der Stapel nicht.`);
