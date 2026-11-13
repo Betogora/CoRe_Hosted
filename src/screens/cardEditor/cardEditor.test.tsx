@@ -98,7 +98,7 @@ test("the retrievability chart draws axes, target line, curve and forgotten answ
   // y runs from 100 % at the top to the 70 % floor at the bottom; x from the first answer to today.
   assert.match(markup, /<path d="M0\.0,0\.0L500\.0,933\.3L1000\.0,633\.3L1000\.0,1000L0\.0,1000Z" fill="var\(--core-action-primary\)" fill-opacity="0.08"/);
   assert.match(markup, /<line x1="0" x2="100%" y1="26\.6+\d*%" y2="26\.6+\d*%" stroke="var\(--core-text-muted\)" stroke-dasharray="4 4"/);
-  assert.equal([...markup.matchAll(/<circle cx="50%" cy="93\.3+\d*%" r="4" fill="var\(--core-danger\)"/g)].length, 1);
+  assert.equal([...markup.matchAll(/<circle cx="50%" cy="93\.3+\d*%" r="4" fill="var\(--core-rating-again-border\)"/g)].length, 1);
 });
 
 test("an edited draft keeps its base graph, so a synced version meets the conflict handling on save (W19)", () => {

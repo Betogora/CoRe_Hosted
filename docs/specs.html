@@ -3698,19 +3698,19 @@ video {
   /* A marked card tints header, tabs and background; muted text there stays at 4.5:1. */
   --core-marked-surface: #fdf6df;
   --core-marked-text-muted: var(--core-text-secondary);
-  /* Review ratings Nochmal to Leicht: deep orange, yellow, light yellow-green, blue-green; labels keep 4.5:1 on their fill. */
-  --core-rating-again-surface: #ffedd5;
-  --core-rating-again-border: #fdba74;
-  --core-rating-again-text: #c2410c;
-  --core-rating-hard-surface: #fef9c3;
-  --core-rating-hard-border: #fde047;
-  --core-rating-hard-text: #a16207;
-  --core-rating-good-surface: #ecfccb;
-  --core-rating-good-border: #bef264;
-  --core-rating-good-text: #4d7c0f;
-  --core-rating-easy-surface: #d1fae5;
-  --core-rating-easy-border: #6ee7b7;
-  --core-rating-easy-text: #047857;
+  /* Review ratings Nochmal to Leicht: muted terracotta, ochre, sage, petrol; labels keep 4.5:1 on their fill. Dark mode keeps the brighter orange to blue-green scale. */
+  --core-rating-again-surface: #f9e3dc;
+  --core-rating-again-border: #e8a48f;
+  --core-rating-again-text: #a8452a;
+  --core-rating-hard-surface: #f6edd6;
+  --core-rating-hard-border: #dfc27f;
+  --core-rating-hard-text: #8a6417;
+  --core-rating-good-surface: #e9efdc;
+  --core-rating-good-border: #b3c78e;
+  --core-rating-good-text: #56702c;
+  --core-rating-easy-surface: #dcefea;
+  --core-rating-easy-border: #8fc8b9;
+  --core-rating-easy-text: #2e7565;
 
 }
 
@@ -5844,6 +5844,14 @@ button.core-steps-step {
   opacity: 0.5;
 }
 
+/* Label and interval share one baseline; the button centres them as a group. */
+.core-rating-text {
+  display: inline-flex;
+  min-width: 0;
+  align-items: baseline;
+  gap: var(--core-space-sm);
+}
+
 .core-rating-dot {
   width: 0.5rem;
   height: 0.5rem;
@@ -5901,6 +5909,12 @@ button.core-steps-step {
     flex-direction: column;
     gap: 0;
     padding: 0.375rem 0.25rem;
+  }
+
+  .core-study-action-bar .core-rating-text {
+    flex-direction: column;
+    align-items: center;
+    gap: 0;
   }
 
   .core-study-action-bar .core-rating-dot { display: none; }
@@ -8816,7 +8830,7 @@ html:has(.catalog-preview) { scroll-behavior: auto; }
 </ol>
 <p>Offene Gates und Nachweise stehen ausschließlich in <a href="todo.md"><code>todo.md</code></a>.</p>
 <h2 id="specs--codeumfang-der-produktbereiche" class="core-heading-2" tabindex="-1">Codeumfang der Produktbereiche <a class="docs-anchor" href="#specs--codeumfang-der-produktbereiche" aria-label="Link zu Codeumfang der Produktbereiche">#</a></h2>
-<p>CoRe ist eine App mit mehreren Bereichen. Die Tabelle zeigt deren Anteil am Bildschirmcode; gemeinsam genutzte Logik, UI und API stehen separat.</p><div class="docs-code-stats"><dl data-size="compact" data-variant="boxed" class="flex flex-col rounded-control border border-core-border bg-core-surface px-4 py-3 min-w-0"><dt class="core-status-label text-core-muted">Bildschirmcode</dt><dd class="core-metric mt-auto pt-1 text-core-text">6.974</dd></dl><dl data-size="compact" data-variant="boxed" class="flex flex-col rounded-control border border-core-border bg-core-surface px-4 py-3 min-w-0"><dt class="core-status-label text-core-muted">Gemeinsamer Code &amp; API</dt><dd class="core-metric mt-auto pt-1 text-core-text">47.691</dd></dl><dl data-size="compact" data-variant="boxed" class="flex flex-col rounded-control border border-core-border bg-core-surface px-4 py-3 min-w-0"><dt class="core-status-label text-core-muted">Quelldateien</dt><dd class="core-metric mt-auto pt-1 text-core-text">296</dd></dl></div><div class="docs-code-chart"><div class="docs-table-scroll" tabindex="0" role="region" aria-label="Codeumfang je Produktbereich"><table><thead><tr><th>Bereich</th><th>Zeilen</th><th>Anteil</th></tr></thead><tbody><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-status-learned)" aria-hidden="true"></span>Heute</th><td>294</td><td>4,2 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-status-new)" aria-hidden="true"></span>Lernen & Karten</th><td>2.245</td><td>32,2 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-status-in-progress)" aria-hidden="true"></span>Erstellen & Import</th><td>1.780</td><td>25,5 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-action-primary)" aria-hidden="true"></span>Prüfungen</th><td>427</td><td>6,1 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-status-due)" aria-hidden="true"></span>Statistik</th><td>638</td><td>9,1 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-progress-completed)" aria-hidden="true"></span>Konto & Sync</th><td>792</td><td>11,4 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-text-secondary)" aria-hidden="true"></span>Hilfe</th><td>798</td><td>11,4 %</td></tr></tbody></table></div></div><p class="docs-source">Beim Erzeugen gemessen: nichtleere Zeilen in <code>src/</code> und <code>api/</code> (TS/TSX) sowie <code>src/styles.css</code>. Ohne Tests, Typdeklarationen, generierte Datenbanktypen, Dokumentation und Fremdcode. Bereichszuordnung nach Bildschirmdateien in <a href="../src/screens/README.md">der Screen-Landkarte</a>; übriger Code zählt gemeinsam. Enthält Kommentare und misst weder Laufzeit noch Komplexität.</p></article></main></div><script>function initializeDocsViewer() {
+<p>CoRe ist eine App mit mehreren Bereichen. Die Tabelle zeigt deren Anteil am Bildschirmcode; gemeinsam genutzte Logik, UI und API stehen separat.</p><div class="docs-code-stats"><dl data-size="compact" data-variant="boxed" class="flex flex-col rounded-control border border-core-border bg-core-surface px-4 py-3 min-w-0"><dt class="core-status-label text-core-muted">Bildschirmcode</dt><dd class="core-metric mt-auto pt-1 text-core-text">6.976</dd></dl><dl data-size="compact" data-variant="boxed" class="flex flex-col rounded-control border border-core-border bg-core-surface px-4 py-3 min-w-0"><dt class="core-status-label text-core-muted">Gemeinsamer Code &amp; API</dt><dd class="core-metric mt-auto pt-1 text-core-text">47.703</dd></dl><dl data-size="compact" data-variant="boxed" class="flex flex-col rounded-control border border-core-border bg-core-surface px-4 py-3 min-w-0"><dt class="core-status-label text-core-muted">Quelldateien</dt><dd class="core-metric mt-auto pt-1 text-core-text">296</dd></dl></div><div class="docs-code-chart"><div class="docs-table-scroll" tabindex="0" role="region" aria-label="Codeumfang je Produktbereich"><table><thead><tr><th>Bereich</th><th>Zeilen</th><th>Anteil</th></tr></thead><tbody><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-status-learned)" aria-hidden="true"></span>Heute</th><td>294</td><td>4,2 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-status-new)" aria-hidden="true"></span>Lernen & Karten</th><td>2.247</td><td>32,2 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-status-in-progress)" aria-hidden="true"></span>Erstellen & Import</th><td>1.780</td><td>25,5 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-action-primary)" aria-hidden="true"></span>Prüfungen</th><td>427</td><td>6,1 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-status-due)" aria-hidden="true"></span>Statistik</th><td>638</td><td>9,1 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-progress-completed)" aria-hidden="true"></span>Konto & Sync</th><td>792</td><td>11,4 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-text-secondary)" aria-hidden="true"></span>Hilfe</th><td>798</td><td>11,4 %</td></tr></tbody></table></div></div><p class="docs-source">Beim Erzeugen gemessen: nichtleere Zeilen in <code>src/</code> und <code>api/</code> (TS/TSX) sowie <code>src/styles.css</code>. Ohne Tests, Typdeklarationen, generierte Datenbanktypen, Dokumentation und Fremdcode. Bereichszuordnung nach Bildschirmdateien in <a href="../src/screens/README.md">der Screen-Landkarte</a>; übriger Code zählt gemeinsam. Enthält Kommentare und misst weder Laufzeit noch Komplexität.</p></article></main></div><script>function initializeDocsViewer() {
     const theme = document.getElementById("docs-theme");
     theme.addEventListener("click", () => {
         const dark = document.documentElement.dataset.coreTheme !== "dark";

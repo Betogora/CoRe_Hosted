@@ -616,8 +616,10 @@ export function StudyMode({ shortcutsSuspended = false, deck, decks, notes, answ
                   return <CoreTooltip key={rating.key} label={`Taste ${rating.shortcutKey}`}>
                     <button type="button" onClick={() => grade(ratingKey)} aria-label={`Bewertung ${rating.label}${intervalLabel ? `: ${intervalLabel}` : ""}`} className={`core-rating-button ${rating.className}`}>
                       <span className="core-rating-dot" aria-hidden="true" />
-                      <span className="core-control-label">{rating.label}</span>
-                      {intervalLabel ? <span className="core-caption font-medium tabular-nums">{intervalLabel}</span> : null}
+                      <span className="core-rating-text">
+                        <span className="core-control-label">{rating.label}</span>
+                        {intervalLabel ? <span className="core-caption font-medium tabular-nums">{intervalLabel}</span> : null}
+                      </span>
                     </button>
                   </CoreTooltip>
                 })}

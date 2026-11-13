@@ -119,7 +119,7 @@ const sampleDecks = [deck, child, ...["Biologie", "Medizin", "Sprachen", "Geschi
 const substackDemoDecks = [...sampleDecks];
 const variantStudyGraph = createBasicNote("catalog-variant", "Was ist die Hauptstadt von Portugal?", "Lissabon", { createdAt: `${today}T08:00:00Z` });
 // Mature, due and with an odd review count, so the session asks the variant instead of the card.
-const variantStudyCard = addCardVariant({ ...variantStudyGraph.cards[0], study: cardStudyFromReviewState(createReviewState({ state: "review", reps: 5, stability: 90, intervalDays: 60, maturityBand: "mature", dueAt: `${today}T06:00:00Z`, lastReviewedAt: "2026-08-03T08:00:00Z", lastRating: "good" })) }, { front: "Welche Stadt ist die Hauptstadt Portugals?", back: "Lissabon" }, `${today}T07:00:00Z`);
+const variantStudyCard = addCardVariant({ ...variantStudyGraph.cards[0], study: cardStudyFromReviewState(createReviewState({ state: "review", reps: 5, lapses: 1, stability: 90, intervalDays: 60, maturityBand: "mature", dueAt: `${today}T06:00:00Z`, lastReviewedAt: "2026-08-03T08:00:00Z", lastRating: "good" })) }, { front: "Welche Stadt ist die Hauptstadt Portugals?", back: "Lissabon" }, `${today}T07:00:00Z`);
 const variantStudyDeck = createCoreDeck({ id: "catalog-variant", name: "Welt-Hauptstädte · Varianten", source: "manual", cards: [variantStudyCard] });
 // Generated variants are text only; an image reaches them through the card's extra field.
 const imageVariantGraph = createNote({ deckId: "catalog-variant-image", createdAt: `${today}T08:00:00Z`, media: { [imageReference]: imageReference }, content: {
@@ -539,7 +539,7 @@ function LearningDemo({ section }: { section: string }) {
     {section === "progress" && <Demo title="PomodoroProgress"><PomodoroProgress timer={timer ?? demoTimer} variant="study" /></Demo>}
     {section === "dialogs" && <Demo title="StudySettingsOverlay"><ActionButton variant="secondary" onClick={() => setSettings(true)}>Lerneinstellungen öffnen</ActionButton><StudySettingsOverlay open={settings} canEditCard marked={marked} suspended={suspended} reviewOrder={order} pomodoroTimer={timer} onOpenChange={setSettings} onEditCard={() => setSettings(false)} onEditDeck={() => setSettings(false)} onMarkedChange={setMarked} onSuspendedChange={setSuspended} flag={flag} flagNames={[]} onFlagChange={setFlag} onReviewOrderChange={setOrder} onStartPomodoro={(minutes) => { start(minutes); setSettings(false); }} /></Demo>}
     {section === "forms" && <Demo title="LearningSettingsPanel · Tagesrunde und Scheduler" wide><LearningSettingsPanel section="daily" draft={draft} profiles={profiles} defaultProfileName="Standard" onProfilesChange={setProfiles} onDraftChange={setDraft} onApplyProfile={(next) => { setDraft(next); return true; }} /><LearningSettingsPanel section="scheduler" draft={draft} profiles={profiles} defaultProfileName="Standard" onProfilesChange={setProfiles} onDraftChange={setDraft} onApplyProfile={(next) => { setDraft(next); return true; }} /></Demo>}
-    {section === "buttons" && <Demo title="Reviewratings"><div className="grid grid-cols-2 gap-2">{ratingButtons.map((rating, index) => <button type="button" key={rating.key} className={`core-rating-button ${rating.className}`}><span className="core-rating-dot" aria-hidden="true" /><span className="core-control-label">{rating.label}</span><span className="core-caption font-medium tabular-nums">{["1 min", "5 min", "1 Tag", "4 Tage"][index]}</span></button>)}</div></Demo>}
+    {section === "buttons" && <Demo title="Reviewratings"><div className="grid grid-cols-2 gap-2">{ratingButtons.map((rating, index) => <button type="button" key={rating.key} className={`core-rating-button ${rating.className}`}><span className="core-rating-dot" aria-hidden="true" /><span className="core-rating-text"><span className="core-control-label">{rating.label}</span><span className="core-caption font-medium tabular-nums">{["1 min", "5 min", "1 Tag", "4 Tage"][index]}</span></span></button>)}</div></Demo>}
   </>;
 }
 
@@ -756,7 +756,7 @@ const catalogCardEditorServices: CardEditorServices = {
   editVariant: async () => undefined,
   removeNoteMedia: async () => null,
   loadCard: async () => null,
-  listReviewEvents: async () => [],
+  listReviewEvents: async (cardId) => cardId !== variantStudyCard.id ? [] : ([["2026-05-10", "good"], ["2026-05-20", "again"], ["2026-05-21", "hard"], ["2026-06-10", "easy"], ["2026-08-03", "good"]] as const).map(([day, rating], index) => ({ id: `catalog-card-review-${index}`, userId: "catalog", deckId: variantStudyCard.deckId, cardId, variantId: null, rating, answeredAt: `${day}T08:00:00Z`, responseTimeMs: 2400, schedulerBefore: {}, schedulerAfter: {}, flags: {}, createdAt: `${day}T08:00:00Z` })),
   listTagDirectory: async () => [{ tag: "Geografie::Europa", noteCount: 12, importedCount: 0 }, { tag: "Geografie::Asien", noteCount: 8, importedCount: 0 }],
   listNoteTypes: async () => [{ id: "demo-basic", name: "Einfach" }],
   listExamsForDeck: async () => [],
