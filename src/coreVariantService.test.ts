@@ -49,14 +49,51 @@ test("Variantenquelle verbindet mehrere Fragefelder und verlangt Frage und Antwo
   assert.equal(cardVariantSource(imageOnly.note, imageOnly.cards[0]), null);
 });
 
-test("Lückentext und Auswahl liefern keine Variantenquelle und sind nicht geeignet", () => {
-  const cloze = createNote({ deckId: "deck", content: createManualNoteContent({ kind: "cloze", front: "{{c1::ATP}} speichert Energie", back: "" }) });
-  const choice = createNote({ deckId: "deck", content: createManualNoteContent({ kind: "single-choice", front: "Frage?", back: "", answerOptions: ["A", "B"], correctOptionIndices: [0] }) });
-  for (const { note, cards } of [cloze, choice]) {
-    assert.equal(cardVariantSource(note, cards[0]), null);
-    const eligibility = classifyCardEligibility(note, cards[0]);
-    assert.equal(eligibility.eligible, false);
-  }
+test("Auswahl liefert keine Variantenquelle und ist nicht geeignet", () => {
+  const { note, cards } = createNote({ deckId: "deck", content: createManualNoteContent({ kind: "single-choice", front: "Frage?", back: "", answerOptions: ["A", "B"], correctOptionIndices: [0] }) });
+  assert.equal(cardVariantSource(note, cards[0]), null);
+  assert.deepEqual(classifyCardEligibility(note, cards[0]).reasons, ["Varianten gibt es nur für Frage–Antwort- und Lückentextkarten."]);
+});
+
+test("Lückentext-Quelle behält nur die eigene Lückengruppe; andere Lücken werden Text, verschachtelte eigene Lücken haben keine Quelle", () => {
+  const cloze = (text: string) => createNote({ deckId: "deck", content: createManualNoteContent({ kind: "cloze", front: text, back: "Pankreas" }) });
+  const hormones = cloze("<p>{{c1::Insulin}} senkt, {{c2::Glukagon::Hormon}} hebt den {{c1,3::Blutzucker}}.</p>");
+  const [first, second, third] = hormones.cards;
+  assert.deepEqual(cardVariantSource(hormones.note, first), { kind: "cloze", front: "{{c1::Insulin}} senkt, Glukagon hebt den {{c1::Blutzucker}}.", back: "Insulin · Blutzucker" });
+  assert.deepEqual(cardVariantSource(hormones.note, second), { kind: "cloze", front: "Insulin senkt, {{c2::Glukagon::Hormon}} hebt den Blutzucker.", back: "Glukagon" });
+  assert.deepEqual(cardVariantSource(hormones.note, third), { kind: "cloze", front: "Insulin senkt, Glukagon hebt den {{c3::Blutzucker}}.", back: "Blutzucker" });
+
+  const nested = cloze("Die {{c1::Aortenklappe liegt {{c2::links}} vom Sternum}}.");
+  assert.deepEqual(cardVariantSource(nested.note, nested.cards[0]), { kind: "cloze", front: "Die {{c1::Aortenklappe liegt links vom Sternum}}.", back: "Aortenklappe liegt links vom Sternum" });
+  assert.deepEqual(cardVariantSource(nested.note, nested.cards[1]), { kind: "cloze", front: "Die Aortenklappe liegt {{c2::links}} vom Sternum.", back: "links" });
+  const selfNested = cloze("{{c1::außen {{c1::innen}}}}");
+  assert.equal(cardVariantSource(selfNested.note, selfNested.cards[0]), null);
+  assert.deepEqual(classifyCardEligibility(selfNested.note, selfNested.cards[0]).reasons, ["Die Lücke dieser Karte ist leer oder verschachtelt."]);
+  assert.equal(classifyCardEligibility(hormones.note, first).eligible, true);
+});
+
+test("Lückentext-Variante wird als Lückentext derselben Lückengruppe mit Zusatz der Karte gezeigt", () => {
+  const { note, cards } = createNote({ deckId: "deck", content: createManualNoteContent({ kind: "cloze", front: "{{c1::Insulin}} senkt, {{c2::Glukagon}} hebt den Blutzucker.", back: "Pankreas" }) });
+  const card = addCardVariant(cards[1], { id: "variant-1", front: "Den Blutzucker hebt {{c2::Glukagon}}, Insulin senkt ihn.", back: "Glukagon" });
+  const presented = variantPresentation(note, card, card.variants[0]);
+
+  assert.deepEqual(presented.note.content.interaction, { kind: "cloze" });
+  assert.deepEqual(presented.note.content.fields.map((field) => [field.role, field.html]), [["prompt", "Den Blutzucker hebt {{c2::Glukagon}}, Insulin senkt ihn."], ["extra", "Pankreas"]]);
+  assert.equal(presented.card.promptKey, "cloze:2");
+  assert.equal(presented.card.id, "variant-1");
+});
+
+test("Eine bearbeitete Lückentext-Variante braucht die Lücke der Karte mit derselben Lösung; die Antwort bleibt die der Karte", () => {
+  const { note, cards } = createNote({ deckId: "deck", content: createManualNoteContent({ kind: "cloze", front: "Die {{c1::Titanic}} sank 1912.", back: "" }) });
+  const card = addCardVariant(cards[0], { front: "Im Jahr 1912 ging die {{c1::Titanic}} unter.", back: "Titanic" });
+  const source = cardVariantSource(note, card);
+  const edit = (front: string) => editVariantText(card, card.variants[0].id, { front, back: "egal" }, "2026-10-30T12:00:00.000Z", source);
+
+  const edited = edit("<p>1912 sank die {{c1::Titanic}} im Nordatlantik.</p>");
+  assert.equal(edited.variants[0].back, "Titanic");
+  assert.throws(() => edit("1912 sank die {{c1::Lusitania}}."), /derselben Lösung/);
+  assert.throws(() => edit("1912 sank die {{c2::Titanic}}."), /derselben Lösung/);
+  assert.throws(() => edit("1912 sank die Titanic."), /derselben Lösung/);
 });
 
 test("Eignung hängt vom CoRe-Modus, vollständiger Frage und Antwort und der Variantenhöchstzahl ab", () => {

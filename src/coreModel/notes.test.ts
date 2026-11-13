@@ -177,9 +177,11 @@ for (const scenario of [
     assert.deepEqual(keys(plan.newCards), scenario.added);
     assert.deepEqual(keys(plan.removedCards), scenario.removed);
     for (const card of [...plan.keptCards, ...plan.removedCards]) {
-      assert.equal(card, previous.cards.find((old) => old.id === card.id));
+      const old = previous.cards.find((candidate) => candidate.id === card.id)!;
+      assert.deepEqual({ ...card, variants: old.variants, updatedAt: old.updatedAt }, old);
       assert.equal(card.deletedAt, null);
     }
+    assert.equal(plan.keptCards[0].variants[0].meta.outdated, true, "der geänderte Lückentext macht die Varianten veraltet");
     for (const card of plan.newCards) {
       assert.equal(card.noteId, previous.note.id);
       assert.equal(card.deckId, "deck-a");

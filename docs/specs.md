@@ -641,10 +641,11 @@ Eine Lernhilfe zu genau der Karte, die gerade aufgedeckt ist.
 
 Eine Variante fragt denselben Inhalt mit anderer Formulierung ab.
 
-- Varianten gibt es nur für Karten mit Frage und Antwort; Lückentexte, Auswahlfragen, Bildverdeckungen und Karten ohne Fragetext erhalten keine.
+- Varianten gibt es für Frage–Antwort- und Lückentextkarten; Auswahlfragen, Bildverdeckungen und Karten ohne Fragetext erhalten keine.
+- Eine Lückentext-Variante fragt dieselbe Lückengruppe mit derselben Lösung; andere Lücken stehen als Text. Eine Variante mit anderer Lücke, anderer Lösung oder einer Lösung im übrigen Text wird abgewiesen; selbst bearbeitet muss sie Lücke und Lösung behalten.
 - Bei einer Karte mit eingetippter Antwort bleibt die Antwort zeichengleich, und die Variante wird ebenfalls eingetippt.
 - Ergibt eine Karte keinen erkennbaren Sinn oder ist sie nur mit privatem Kontext verständlich, meldet die KI sie als nicht umformulierbar, statt eine Deutung zu erfinden; es entsteht keine Variante, und die Stapelerzeugung zählt solche Karten getrennt.
-- Die KI erhält Frage und Antwort in begrenzter Länge und die Fragen vorhandener Varianten, damit die neue sich davon unterscheidet. Sie soll die Frage möglichst anders beginnen als das Original; das ist eine Anweisung, keine Prüfung.
+- Die KI erhält Frage und Antwort oder den Lückentext in begrenzter Länge und die Fragen vorhandener Varianten, damit die neue sich davon unterscheidet. Sie soll die Frage möglichst anders beginnen als das Original; das ist eine Anweisung, keine Prüfung.
 - Gespeichert wird nur, wenn die Karte während der Anfrage unverändert blieb und dieselbe Formulierung noch nicht existiert.
 - Eine Karte kann weitere Varianten erhalten, bis die Höchstzahl aktiver Varianten ihres Stapels erreicht ist.
 - **Für einen Stapel:** Eine Erzeugung bearbeitet nacheinander die ersten bis zu 50 passenden Karten ohne aktive Variante, je Karte eine Variante, und speichert jede sofort. Ein weiterer Start nimmt die nächsten Karten.

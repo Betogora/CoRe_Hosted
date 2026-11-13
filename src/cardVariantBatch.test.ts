@@ -13,8 +13,8 @@ function basic(index: number): Body {
   return { note, card: { ...cards[0], id: `card-${index}` } };
 }
 
-function cloze(index: number): Body {
-  const { note, cards } = createNote({ deckId: "deck-1", content: createManualNoteContent({ kind: "cloze", front: "Die {{c1::Mitochondrien}} liefern Energie.", back: "" }) });
+function choice(index: number): Body {
+  const { note, cards } = createNote({ deckId: "deck-1", content: createManualNoteContent({ kind: "single-choice", front: "Was liefert Energie?", back: "", answerOptions: ["Mitochondrien", "Ribosomen"], correctOptionIndices: [0] }) });
   return { note, card: { ...cards[0], id: `card-${index}` } };
 }
 
@@ -44,7 +44,7 @@ function deck(bodies: Body[], pageSize = 3, overrides: Record<string, Partial<Ca
 const coreOn = { coreMode: "on" as const, maxActiveVariantsPerCard: 2 };
 
 test("batch generates the first cards without an active variant in deck order and skips ineligible ones", async () => {
-  const bodies = [basic(1), cloze(2), basic(3), basic(4), basic(5)];
+  const bodies = [basic(1), choice(2), basic(3), basic(4), basic(5)];
   const { source, opened } = deck(bodies, 3, { "card-3": { hasActiveVariants: true } });
   const generated: string[] = [];
   const progress: CardVariantBatchProgress[] = [];

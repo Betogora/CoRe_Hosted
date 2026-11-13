@@ -111,8 +111,12 @@ function parseOrThrow(content: unknown) {
  * Removed cards are only proposed; the caller must obtain confirmation before deleting them.
  * Content that is unchanged after sanitizing keeps the previous note and its revisions.
  */
-/** Question and answer HTML a reveal card is asked with; AI rephrasings are made from exactly these fields. */
+/**
+ * Question and answer HTML a reveal card is asked with, or the cloze text of a cloze card (other gaps appear in it as
+ * text); AI rephrasings are made from exactly these fields.
+ */
 function promptSourceHtml(content: NoteContent, promptKey: string): string | null {
+  if (content.interaction.kind === "cloze") return content.fields.filter((field) => field.role === "prompt").map((field) => field.html).join("\u001f");
   if (content.interaction.kind !== "reveal") return null;
   const prompt = content.interaction.prompts.find((candidate) => candidate.key === promptKey);
   if (!prompt) return null;

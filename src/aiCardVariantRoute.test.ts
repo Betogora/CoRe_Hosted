@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { buildOpenRouterPayload, createCardVariantHandler, extractGeneratedVariant } from "../api/ai/card-variant.ts";
 import { OPENROUTER_CHAT_ENDPOINT, OPENROUTER_MODEL } from "../server/aiRoute.ts";
+import { parseAiCardVariantRequest } from "./aiCardVariantContract.ts";
 
 const input = { kind: "basic" as const, source: { front: "Was ist ATP?", back: "Ein Energieträger." } };
 const texts = { rateLimited: "zu viele", unavailable: "nicht verfügbar", rejected: "abgelehnt", failed: "fehlgeschlagen", invalid: "ungültig", tool: "Werkzeug", fields: "Felder" };
@@ -88,6 +89,30 @@ test("a card the model reports as not rephrasable becomes its own error instead 
   assert.throws(() => extractGeneratedVariant(report({ rephrasable: false, front: "", back: "" }), input), (error: unknown) => (error as { code?: string }).code === "not_rephrasable" && (error as { statusCode?: number }).statusCode === 422);
   assert.throws(() => extractGeneratedVariant(report({ rephrasable: "nein", front: "Neu", back: "Antwort" }), input), (error: unknown) => (error as { code?: string }).code === "invalid_tool_call");
   assert.throws(() => extractGeneratedVariant(report({ front: "Neu", back: "Antwort" }), input), (error: unknown) => (error as { code?: string }).code === "invalid_tool_call");
+});
+
+test("a cloze variant keeps its gap group and solutions, names them nowhere else and keeps the source's answer", () => {
+  const cloze = { kind: "cloze" as const, source: { front: "Die {{c1::Titanic}} sank im Jahr 1912.", back: "Titanic" } };
+  const answer = (front: string) => ({ choices: [{ message: { tool_calls: [{ function: { name: "create_card_variant", arguments: JSON.stringify({ rephrasable: true, front, back: "beliebig" }) } }] } }] });
+  const code = (front: string) => { try { extractGeneratedVariant(answer(front), cloze); return "ok"; } catch (error) { return (error as { code?: string }).code; } };
+
+  assert.match(buildOpenRouterPayload(cloze).messages[0].content, /Lückentext/);
+  assert.doesNotMatch(buildOpenRouterPayload(input).messages[0].content, /Lückentext/);
+  assert.deepEqual(extractGeneratedVariant(answer("Im Jahr 1912 ging die {{c1::Titanic}} unter."), cloze).result.variant, { front: "Im Jahr 1912 ging die {{c1::Titanic}} unter.", back: "Titanic" });
+  assert.equal(code("Im Jahr 1912 ging die {{c2::Titanic}} unter."), "invalid_gaps");
+  assert.equal(code("Im Jahr {{c1::1912}} ging die {{c1::Titanic}} unter."), "changed_answer");
+  assert.equal(code("Im Jahr 1912 ging die {{c1::Lusitania}} unter."), "changed_answer");
+  assert.equal(code("Die Titanic, also die {{c1::Titanic}}, ging 1912 unter."), "revealed_answer");
+  assert.equal(code("Im Jahr 1912 ging die {{c1::Titanic::Schiff mit Namen Titanic}} unter."), "revealed_answer");
+  assert.equal(code("Die {{c1::Titanic}} sank im Jahr 1912."), "invalid_variant");
+});
+
+test("a cloze request needs exactly one complete gap group", () => {
+  const request = (front: string) => parseAiCardVariantRequest({ kind: "cloze", source: { front, back: "x" } }).success;
+  assert.equal(request("Die {{c1::Titanic}} sank."), true);
+  assert.equal(request("Die Titanic sank."), false);
+  assert.equal(request("Die {{c1::Titanic}} sank {{c2::1912}}."), false);
+  assert.equal(request("Die {{c1::Titanic sank."), false);
 });
 
 test("route authenticates and creates a variant with one provider call and a content-free log line", async () => {

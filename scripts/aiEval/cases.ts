@@ -4,6 +4,7 @@ import path from "node:path";
 import * as v from "valibot";
 import { readAnkiPackage } from "../../src/apkgImportInternal.ts";
 import { translateAnkiPackage } from "../../src/apkgNoteTranslation.ts";
+import type { AiCardVariantSource } from "../../src/aiCardVariantContract.ts";
 import { cardVariantSource } from "../../src/coreVariantService.ts";
 import type { EvalDefinition } from "./definitions.ts";
 import { parseStrict } from "./ledger.ts";
@@ -95,14 +96,14 @@ export function loadCases(definition: EvalDefinition): EvalCase[] {
 export async function sampleCorpus(definition: EvalDefinition, count: number, seed: number, directory = "fixtures/apkg/corpus"): Promise<DraftCase[]> {
   const files = existsSync(directory) ? readdirSync(directory).filter((name) => /\.(?:apkg|colpkg)$/i.test(name)).sort() : [];
   if (!files.length) throw new Error(`Kein Korpus in ${directory}.`);
-  const cards = new Map<string, { front: string; back: string }>();
+  const cards = new Map<string, AiCardVariantSource>();
   for (const name of files) {
     const graph = await translateAnkiPackage(await readAnkiPackage(Object.assign(await openAsBlob(path.join(directory, name)), { name })));
     const notes = new Map(graph.notes.map((note) => [note.id, note]));
     for (const card of graph.cards) {
       const note = notes.get(card.noteId);
       const source = note && cardVariantSource(note, card);
-      if (source && !/<img|\[sound:/i.test(note.content.fields.map((field) => field.html).join(""))) cards.set(createHash("sha1").update(`${source.front}\u0000${source.back}`).digest("hex").slice(0, 10), { front: source.front, back: source.back });
+      if (source && !/<img|\[sound:/i.test(note.content.fields.map((field) => field.html).join(""))) cards.set(createHash("sha1").update(`${source.front}\u0000${source.back}`).digest("hex").slice(0, 10), source);
     }
   }
   const keys = shuffled([...cards.keys()].sort(), seededRandom(seed));
