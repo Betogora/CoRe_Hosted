@@ -5,34 +5,17 @@ Stand: 2026-11-13
 Nur offene Arbeit. Ist-Stand in [`status.md`](status.md), Entscheidungen in
 [`decisions.md`](decisions.md), erledigte Arbeit in [`history.md`](history.md).
 
-Reihenfolge = Priorität. P1 läuft,
-P2 folgt; P5 wartet, bis alle KI-Prompts stehen. Offene Nachweise brauchen keinen Code und
+Reihenfolge = Priorität. P2 ist als
+Nächstes dran; P5 wartet, bis alle KI-Prompts stehen. Offene Nachweise brauchen keinen Code und
 laufen unabhängig davon; die Release-Voraussetzungen sind vor dem ersten
 externen Release fällig. „Später“ ist geparkt.
-
-## P1: KI-Varianten (Proof of Concept) abschließen
-
-Bewusst einfacher Probelauf (ADR-011); Auswahl und Oberfläche werden danach
-geglättet.
-
-Varianten gibt es für Frage–Antwort, Eintippen, Lückentext und Auswahl
-(Branch `claude/ki-varianten-a`); Bildverdeckungen bleiben ohne. Zum
-Ausprobieren je Kartenart drei Karten in
-`fixtures/apkg/ai-variant-card-kinds.apkg`
-(`scripts/create_ai_variant_demo_apkg.py`).
-
-- [ ] **Restnachweis Pflichtmatrix:** Geprüft sind Variantenbereich der
-      Stapeleinstellungen, Fortschrittsleiste (1440 und 375 px, hell) und
-      die Kartenverwaltung nach `Anzeigen`. Offen: dunkles Theme, der
-      Einschalt-Dialog und eine Variante jeder Kartenart im Review (braucht
-      reife Karten, etwa über die Seed-Daten des E2E-Kontos).
 
 ## P2: Karten aus einer Quelle per KI erstellen
 
 Formular und Auftragsprüfung unter `/neue-karten?method=ai-source` stehen
 (`src/aiSourceCreation.ts`, `AiSourceCreationPanel.tsx`); „Karten erstellen“
 ist deaktiviert, nichts wird gelesen oder übertragen. Offen ist alles, was die
-Oberfläche danach verspricht. Setzt P1 voraus. Erste Ausbaustufe: PDF, Text,
+Oberfläche danach verspricht. Erste Ausbaustufe: PDF, Text,
 Markdown, CSV und TSV.
 
 - [ ] **KI-Kontingent pro Nutzer:** Alle Nutzer teilen das Ausgabenlimit des
