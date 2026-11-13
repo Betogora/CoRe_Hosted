@@ -38,6 +38,7 @@ interface StatisticsSeriesPoint {
 interface StatisticsDistributionPoint {
   key: string;
   label: string;
+  rangeLabel: string;
   count: number;
   cumulativePercent: number;
 }
@@ -127,6 +128,7 @@ type SchedulerSnapshot = Pick<ReviewState, "state" | "intervalDays" | "difficult
 type CategoryCounts = Record<StatisticsReviewCategory, number>;
 type RetentionAggregate = { youngRemembered: number; youngTotal: number; matureRemembered: number; matureTotal: number };
 type Histogram = { counts: Map<number, number>; total: number; sum: number; max: number };
+type DistributionKind = "days" | "difficulty" | "retrievability";
 
 const DAY_MS = 86_400_000;
 const PERIOD_DAYS = { "30d": 30, "90d": 90, "365d": 365 } as const;
@@ -135,6 +137,32 @@ const STATUS_LABELS: Record<MaturityBand, string> = { new: "Neu", learning: "Ler
 const STATUS_KEYS = Object.keys(STATUS_LABELS) as MaturityBand[];
 const CATEGORIES = Object.keys(CATEGORY_LABELS) as StatisticsReviewCategory[];
 const RATINGS: ReviewRating[] = ["again", "hard", "good", "easy"];
+// Fixed buckets by integer lower bound, so values floored to integers (as the account statistics deliver them) land
+// in the same bucket as the raw values. Difficulty and retrievability are percentages.
+const DISTRIBUTION_BUCKETS: Record<DistributionKind, ReadonlyArray<{ from: number; label: string; rangeLabel: string }>> = {
+  days: [
+    { from: 0, label: "<2 T", rangeLabel: "unter 2 Tagen" },
+    { from: 2, label: "2–3 T", rangeLabel: "2–3 Tage" },
+    { from: 4, label: "4–6 T", rangeLabel: "4–6 Tage" },
+    { from: 7, label: "1–2 W", rangeLabel: "1–2 Wochen" },
+    { from: 14, label: "2–3 W", rangeLabel: "2–3 Wochen" },
+    { from: 21, label: "3 W–2 M", rangeLabel: "3 Wochen bis 2 Monate" },
+    { from: 60, label: "2–6 M", rangeLabel: "2–6 Monate" },
+    { from: 180, label: "6–12 M", rangeLabel: "6–12 Monate" },
+    { from: 365, label: "1–2 J", rangeLabel: "1–2 Jahre" },
+    { from: 730, label: "2+ J", rangeLabel: "ab 2 Jahren" },
+  ],
+  difficulty: Array.from({ length: 10 }, (_, index) => ({ from: index * 10, label: `${index * 10}–${index * 10 + 10} %`, rangeLabel: `${index * 10}–${index * 10 + 10} %` })),
+  retrievability: [
+    { from: 0, label: "<50 %", rangeLabel: "unter 50 %" },
+    { from: 50, label: "50–70 %", rangeLabel: "50–70 %" },
+    { from: 70, label: "70–80 %", rangeLabel: "70–80 %" },
+    { from: 80, label: "80–85 %", rangeLabel: "80–85 %" },
+    { from: 85, label: "85–90 %", rangeLabel: "85–90 %" },
+    { from: 90, label: "90–95 %", rangeLabel: "90–95 %" },
+    { from: 95, label: "95–100 %", rangeLabel: "95–100 %" },
+  ],
+};
 const SHORT_DAY_FORMATTER = new Intl.DateTimeFormat("de-DE", { day: "2-digit", month: "short", timeZone: "UTC" });
 const LONG_DAY_FORMATTER = new Intl.DateTimeFormat("de-DE", { day: "2-digit", month: "long", year: "numeric", timeZone: "UTC" });
 const RANGE_DAY_FORMATTER = new Intl.DateTimeFormat("de-DE", { day: "2-digit", month: "short", year: "numeric", timeZone: "UTC" });
@@ -270,20 +298,23 @@ function percentile(target: Histogram, ratio: number) {
   return target.max;
 }
 
-function distribution(target: Histogram, maxValue: number, bucketCount: number, suffix: string): StatisticsDistributionPoint[] {
-  if (!target.total || maxValue <= 0) return [];
-  const width = Math.max(1, Math.ceil(maxValue / bucketCount));
-  const counts = Array.from({ length: Math.max(1, Math.ceil(maxValue / width)) }, () => 0);
-  for (const [value, count] of target.counts) {
-    if (value <= maxValue) counts[Math.min(counts.length - 1, Math.floor(value / width))] += count;
+function countValue(target: Map<number, number>, value: number) {
+  const key = Math.floor(value);
+  target.set(key, (target.get(key) ?? 0) + 1);
+}
+
+function distribution(kind: DistributionKind, counts: Iterable<[number, number]>): StatisticsDistributionPoint[] {
+  const buckets = DISTRIBUTION_BUCKETS[kind];
+  const bucketCounts = buckets.map(() => 0);
+  let total = 0;
+  for (const [value, count] of counts) {
+    let index = buckets.length - 1;
+    while (index > 0 && value < buckets[index].from) index -= 1;
+    bucketCounts[index] += count;
+    total += count;
   }
   let cumulative = 0;
-  return counts.map((count, index) => {
-    cumulative += count;
-    const start = index * width;
-    const end = Math.min(maxValue, (index + 1) * width);
-    return { key: `${start}-${end}`, label: `${start}–${end} ${suffix}`.trim(), count, cumulativePercent: percentage(cumulative, target.total) };
-  });
+  return buckets.map(({ label, rangeLabel }, index) => ({ key: String(index), label, rangeLabel, count: bucketCounts[index], cumulativePercent: percentage(cumulative += bucketCounts[index], total) }));
 }
 
 function retentionAggregate(): RetentionAggregate {
@@ -346,9 +377,10 @@ export function createStatisticsAccumulator(decks: Deck[], input: StatisticsSele
   const retentionByDeck = new Map<string, RetentionAggregate>();
   const status = new Map(STATUS_KEYS.map((key) => [key, 0]));
   const intervals = histogram();
-  const stability = histogram();
-  const difficultyCounts = Array.from({ length: 10 }, () => 0);
-  const retrievabilityCounts = Array.from({ length: 20 }, () => 0);
+  const intervalCounts = new Map<number, number>();
+  const stabilityCounts = new Map<number, number>();
+  const difficultyCounts = new Map<number, number>();
+  const retrievabilityCounts = new Map<number, number>();
   const dueByDay = new Map<number, CategoryCounts>();
   let earliestDay = nowLocal.dayIndex;
   let reviewCount = 0;
@@ -359,8 +391,6 @@ export function createStatisticsAccumulator(decks: Deck[], input: StatisticsSele
   let suspendedCards = 0;
   let deletedCards = 0;
   let activeVariants = 0;
-  let difficultyEligible = 0;
-  let retrievabilityEligible = 0;
   let dailyWorkload = 0;
   let lastRetentionKey = "";
 
@@ -368,18 +398,17 @@ export function createStatisticsAccumulator(decks: Deck[], input: StatisticsSele
     activeVariants += 1;
     status.set(state.maturityBand, (status.get(state.maturityBand) ?? 0) + 1);
     const interval = Math.max(0, finite(state.intervalDays));
-    if (input.period === "all" || interval <= PERIOD_DAYS[input.period]) addHistogram(intervals, interval);
-    const difficulty = finite(state.difficulty);
-    if (difficulty > 0 && difficulty <= 10) {
-      difficultyCounts[Math.min(9, Math.max(0, Math.ceil(difficulty) - 1))] += 1;
-      difficultyEligible += 1;
+    if (interval > 0) {
+      addHistogram(intervals, interval);
+      countValue(intervalCounts, interval);
     }
-    const stable = finite(state.stability);
-    if (stable > 0) addHistogram(stability, stable);
-    const retrievability = calculateRetrievability(state, safeNow);
-    if (Number.isFinite(retrievability) && retrievability >= 0 && retrievability <= 1) {
-      retrievabilityCounts[Math.min(19, Math.floor(retrievability * 20))] += 1;
-      retrievabilityEligible += 1;
+    if (state.state !== "new") {
+      const difficulty = finite(state.difficulty);
+      if (difficulty > 0 && difficulty <= 10) countValue(difficultyCounts, Math.max(0, ((difficulty - 1) / 9) * 100));
+      const stable = finite(state.stability);
+      if (stable > 0) countValue(stabilityCounts, stable);
+      const retrievability = stable > 0 && state.lastReviewedAt ? calculateRetrievability(state, safeNow) : Number.NaN;
+      if (Number.isFinite(retrievability) && retrievability >= 0 && retrievability <= 1) countValue(retrievabilityCounts, retrievability * 100);
     }
     const deck = deckCurrent.get(deckId) ?? { intervalTotal: 0, intervalCount: 0, nextDueAt: null };
     deck.intervalTotal += interval;
@@ -524,10 +553,6 @@ export function createStatisticsAccumulator(decks: Deck[], input: StatisticsSele
       }
       const planning = finalizeSeries(planningBuckets);
       const studyHeatmap = createStudyHeatmapModelFromCounts({ todayKey: nowKey, countsByDay: heatmapCounts, forecastCountsByDay: forecastCounts });
-      let difficultyCumulative = 0;
-      const difficulty = difficultyCounts.map((count, index) => ({ key: String(index + 1), label: String(index + 1), count, cumulativePercent: percentage(difficultyCumulative += count, difficultyEligible) }));
-      let retrievabilityCumulative = 0;
-      const retrievability = retrievabilityCounts.map((count, index) => ({ key: `${index * 5}-${(index + 1) * 5}`, label: `${index * 5}–${(index + 1) * 5} %`, count, cumulativePercent: percentage(retrievabilityCumulative += count, retrievabilityEligible) }));
       const selectedCell = retentionCell(selectedRetention.youngRemembered + selectedRetention.matureRemembered, selectedRetention.youngTotal + selectedRetention.matureTotal);
       const deckRows = scopeDeckIds.map((id) => {
         const review = deckReviews.get(id) ?? { reviewCount: 0, positive: 0, again: 0 };
@@ -567,8 +592,8 @@ export function createStatisticsAccumulator(decks: Deck[], input: StatisticsSele
         studyHeatmap,
         planning: { points: planning, overdue, dueTomorrow, dueInHorizon: planning.reduce((sum, point) => sum + point.total, 0), dailyWorkload: Math.round(dailyWorkload * 10) / 10 },
         status: { activeVariants, cards, suspendedCards, deletedCards, rows: [...status].map(([key, count]) => ({ key, label: STATUS_LABELS[key], count, percent: percentage(count, activeVariants) })) },
-        intervals: { points: distribution(intervals, input.period === "all" ? Math.max(1, intervals.max) : PERIOD_DAYS[input.period], 60, "Tage"), averageDays: intervals.total ? Math.round((intervals.sum / intervals.total) * 10) / 10 : 0, medianDays: percentile(intervals, 0.5), percentile95Days: percentile(intervals, 0.95) },
-        fsrs: { difficulty, stability: distribution(stability, Math.max(1, stability.max), 40, "Tage"), retrievability },
+        intervals: { points: distribution("days", intervalCounts), averageDays: intervals.total ? Math.round((intervals.sum / intervals.total) * 10) / 10 : 0, medianDays: percentile(intervals, 0.5), percentile95Days: percentile(intervals, 0.95) },
+        fsrs: { difficulty: distribution("difficulty", difficultyCounts), stability: distribution("days", stabilityCounts), retrievability: distribution("retrievability", retrievabilityCounts) },
         hourly: hours.map(({ success, ...row }) => ({ ...row, successPercent: percentage(success, row.reviews) })),
         ratings: [...ratings.values()].map((row) => ({ ...row, successPercent: percentage(row.total - row.again, row.total) })),
         retention: [retentionRow("selected", "Gewählter Zeitraum", selectedRetention), ...(input.period === "all" ? [] : [retentionRow("previous", "Vorheriger Zeitraum", previousRetention)]), retentionRow("all", "Gesamter Verlauf", allRetention)],
@@ -590,6 +615,10 @@ export function projectStatistics(decks: Deck[], input: StatisticsSelection): St
     for (const variant of item.variants ?? []) accumulator.addVariant(deck.id, variant);
   }
   return accumulator.finish();
+}
+
+function numericEntries(counts: Record<string, number>) {
+  return Object.entries(counts).map(([value, count]): [number, number] => [Number(value), count]);
 }
 
 export function mergeAccountStatisticsSnapshot(
@@ -762,8 +791,17 @@ export function mergeAccountStatisticsSnapshot(
       deletedCards: snapshotValue.status.deletedItems,
       rows: STATUS_KEYS.map((key) => ({ key, label: STATUS_LABELS[key], count: statusCounts[key], percent: percentage(statusCounts[key], activeCount) })),
     },
-    intervals: snapshotValue.intervals,
-    fsrs: snapshotValue.fsrs,
+    intervals: {
+      points: distribution("days", numericEntries(snapshotValue.intervals.histogram)),
+      averageDays: snapshotValue.intervals.averageDays,
+      medianDays: snapshotValue.intervals.medianDays,
+      percentile95Days: snapshotValue.intervals.percentile95Days,
+    },
+    fsrs: {
+      difficulty: distribution("difficulty", numericEntries(snapshotValue.fsrs.difficulty)),
+      stability: distribution("days", numericEntries(snapshotValue.fsrs.stability)),
+      retrievability: distribution("retrievability", numericEntries(snapshotValue.fsrs.retrievability)),
+    },
     hourly: Array.from({ length: 24 }, (_, hour) => {
       const row = hourlyMap.get(hour);
       return { hour, label: `${String(hour).padStart(2, "0")}:00`, reviews: row?.reviews ?? 0, successPercent: percentage(row?.successful ?? 0, row?.reviews ?? 0) };

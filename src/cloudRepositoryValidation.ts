@@ -694,12 +694,7 @@ export function validateAccountStatistics(input: unknown): AccountStatisticsSnap
     durationYoungMs: nonNegativeIntegerSchema,
     durationMatureMs: nonNegativeIntegerSchema,
   });
-  const distributionSchema = v.array(v.object({
-    key: v.string(),
-    label: v.string(),
-    count: nonNegativeIntegerSchema,
-    cumulativePercent: nonNegativeNumberSchema,
-  }));
+  const histogramSchema = v.record(v.pipe(v.string(), v.regex(/^\d+$/)), nonNegativeIntegerSchema);
   return parseValue(v.object({
     cards: v.object({
       total: nonNegativeIntegerSchema,
@@ -722,8 +717,8 @@ export function validateAccountStatistics(input: unknown): AccountStatisticsSnap
     dueTomorrow: nonNegativeIntegerSchema,
     dailyWorkload: nonNegativeNumberSchema,
     status: v.object({ activeVariants: nonNegativeIntegerSchema, deletedItems: nonNegativeIntegerSchema }),
-    intervals: v.object({ points: distributionSchema, averageDays: nonNegativeNumberSchema, medianDays: nonNegativeNumberSchema, percentile95Days: nonNegativeNumberSchema }),
-    fsrs: v.object({ difficulty: distributionSchema, stability: distributionSchema, retrievability: distributionSchema }),
+    intervals: v.object({ histogram: histogramSchema, averageDays: nonNegativeNumberSchema, medianDays: nonNegativeNumberSchema, percentile95Days: nonNegativeNumberSchema }),
+    fsrs: v.object({ difficulty: histogramSchema, stability: histogramSchema, retrievability: histogramSchema }),
     retention: v.array(v.object({
       key: v.picklist(["selected", "previous", "all"]),
       youngRemembered: nonNegativeIntegerSchema,
