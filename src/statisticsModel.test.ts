@@ -111,8 +111,8 @@ test("server aggregates replace a partial local history and retain pending revie
     dueTomorrow: 3,
     dailyWorkload: 3,
     status: { activeVariants: 1, deletedItems: 0 },
-    intervals: { points: [], averageDays: 4, medianDays: 3, percentile95Days: 10 },
-    fsrs: { difficulty: [], stability: [], retrievability: [] },
+    intervals: { histogram: { "1": 2, "45": 1, "800": 1 }, averageDays: 4, medianDays: 3, percentile95Days: 10 },
+    fsrs: { difficulty: { "0": 1, "100": 1 }, stability: {}, retrievability: { "49": 1, "90": 2 } },
     retention: [{ key: "selected", youngRemembered: 2, youngTotal: 3, matureRemembered: 1, matureTotal: 1 }],
     hourly: [{ hour: 10, reviews: 3, successful: 2 }],
     ratings: [{ category: "learning", rating: "good", count: 1 }],
@@ -132,4 +132,25 @@ test("server aggregates replace a partial local history and retain pending revie
   assert.equal(merged.deckRows[0].reviewCount, 3);
   assert.equal(allTime.summary.reviewCount, 3);
   assert.equal(allTime.activity[0].key <= "2026-07-01", true);
+  // Floored server values land in the same fixed buckets as local values, including the open outer buckets.
+  assert.deepEqual(merged.intervals.points.map((point) => point.count), [2, 0, 0, 0, 0, 1, 0, 0, 0, 1]);
+  assert.deepEqual(merged.fsrs.difficulty.map((point) => point.count), [1, 0, 0, 0, 0, 0, 0, 0, 0, 1]);
+  assert.deepEqual(merged.fsrs.retrievability.map((point) => point.count), [1, 0, 0, 0, 0, 2, 0]);
+  assert.equal(merged.fsrs.stability.every((point) => point.count === 0), true);
+});
+
+test("memory distributions use fixed buckets and leave out new cards", () => {
+  const reviewed = statsCard("card_reviewed", "Frage", "Antwort", "2026-06-01T08:00:00.000Z", {
+    state: "review", dueAt: "2026-07-20T08:00:00.000Z", lastReviewedAt: "2026-07-01T08:00:00.000Z", intervalDays: 400, difficulty: 5.5, stability: 3.5, reps: 5,
+  });
+  const fresh = statsCard("card_new", "Neu", "Antwort", "2026-06-01T08:00:00.000Z", { state: "new", difficulty: 5, stability: 2 });
+  const deck = createCoreDeck({ id: "deck_buckets", name: "Töpfe", source: "manual", cards: [reviewed, fresh] });
+  const result = projectStatistics([deck], { period: "30d", deckIds: "all", now: "2026-07-07T12:00:00.000Z", timeZone: "Europe/Berlin" });
+  assert.deepEqual(result.intervals.points.map((point) => point.label), ["<2 T", "2–3 T", "4–6 T", "1–2 W", "2–3 W", "3 W–2 M", "2–6 M", "6–12 M", "1–2 J", "2+ J"]);
+  // A 400-day interval stays visible although the selected period is only 30 days.
+  assert.equal(result.intervals.points[8].count, 1);
+  assert.equal(result.fsrs.difficulty.reduce((sum, point) => sum + point.count, 0), 1);
+  assert.equal(result.fsrs.difficulty[5].count, 1);
+  assert.equal(result.fsrs.stability[1].count, 1);
+  assert.equal(result.fsrs.retrievability.reduce((sum, point) => sum + point.count, 0), 1);
 });

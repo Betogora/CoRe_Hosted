@@ -108,6 +108,17 @@ function formatPercent(value: number) {
   return `${formatNumber(value, 1)} %`;
 }
 
+function formatAxisValue(value: number, unit?: string) {
+  return unit ? `${formatNumber(value, 1)} ${unit}` : formatNumber(value, 1);
+}
+
+// The duration axes pick the largest unit that still shows their maximum as at least two units.
+function durationUnit(maxMilliseconds: number) {
+  if (maxMilliseconds < 120_000) return { divisor: 1_000, label: "Sek." };
+  if (maxMilliseconds < 7_200_000) return { divisor: 60_000, label: "Min." };
+  return { divisor: 3_600_000, label: "Std." };
+}
+
 function formatDuration(milliseconds: number) {
   if (milliseconds <= 0) return "0 Min.";
   const minutes = milliseconds / 60_000;
@@ -218,6 +229,8 @@ function CartesianStatisticsChart({
   minTickGap,
   interval,
   rightAxis,
+  unit,
+  rightUnit = unit,
   tooltip,
 }: {
   data: object[];
@@ -227,17 +240,19 @@ function CartesianStatisticsChart({
   minTickGap?: number;
   interval?: number;
   rightAxis?: "cumulative" | "percent";
+  unit?: string;
+  rightUnit?: string;
   tooltip: React.ReactElement;
 }) {
   return (
     <div className={className} aria-label={ariaLabel}>
       <ResponsiveContainer width="100%" height="100%">
-        <ComposedChart data={data} accessibilityLayer margin={{ top: 8, right: 10, left: -20, bottom: 10 }}>
+        <ComposedChart data={data} accessibilityLayer margin={{ top: 8, right: 0, left: 0, bottom: 10 }}>
           <CartesianGrid stroke="var(--core-border-interactive)" strokeDasharray="1 5" strokeLinecap="round" vertical={false} />
           <XAxis dataKey="label" {...axisProps} minTickGap={minTickGap} interval={interval} />
-          <YAxis {...axisProps} allowDecimals={false} />
-          {rightAxis === "cumulative" ? <YAxis yAxisId="cumulative" orientation="right" {...axisProps} allowDecimals={false} /> : null}
-          {rightAxis === "percent" ? <YAxis yAxisId="percent" orientation="right" {...axisProps} domain={[0, 100]} unit=" %" /> : null}
+          <YAxis {...axisProps} width="auto" allowDecimals={false} tickFormatter={(value: number) => formatAxisValue(value, unit)} />
+          {rightAxis === "cumulative" ? <YAxis yAxisId="cumulative" orientation="right" {...axisProps} width="auto" allowDecimals={false} tickFormatter={(value: number) => formatAxisValue(value, rightUnit)} /> : null}
+          {rightAxis === "percent" ? <YAxis yAxisId="percent" orientation="right" {...axisProps} width="auto" domain={[0, 100]} tickFormatter={(value: number) => formatAxisValue(value, "%")} /> : null}
           <Tooltip content={tooltip} cursor={{ fill: "var(--core-surface-muted)" }} />
           <RechartsLegend />
           {children}
@@ -270,21 +285,20 @@ function ActivityChart({ points, duration = false }: { points: StatisticsProject
   if (!points.some((point) => duration ? point.durationMs > 0 : point.total > 0)) {
     return <NoChartData>{duration ? "Für diesen Zeitraum wurden noch keine Antwortzeiten gemessen." : "Im gewählten Zeitraum wurden keine Wiederholungen erfasst."}</NoChartData>;
   }
+  const barUnit = durationUnit(Math.max(...points.map((point) => point.durationMs)));
+  const cumulativeUnit = durationUnit(points.reduce((sum, point) => sum + point.durationMs, 0));
+  let cumulativeMs = 0;
   const data = duration
     ? points.map((point) => ({
         ...point,
-        learning: point.durationLearningMs / 60_000,
-        relearning: point.durationRelearningMs / 60_000,
-        young: point.durationYoungMs / 60_000,
-        mature: point.durationMatureMs / 60_000,
-        total: point.durationMs / 60_000,
-        cumulative: 0,
+        learning: point.durationLearningMs / barUnit.divisor,
+        relearning: point.durationRelearningMs / barUnit.divisor,
+        young: point.durationYoungMs / barUnit.divisor,
+        mature: point.durationMatureMs / barUnit.divisor,
+        total: point.durationMs / barUnit.divisor,
+        cumulative: (cumulativeMs += point.durationMs) / cumulativeUnit.divisor,
       }))
     : points;
-  if (duration) {
-    let cumulative = 0;
-    data.forEach((point) => { cumulative += point.total; point.cumulative = cumulative; });
-  }
   return (
     <CartesianStatisticsChart
       data={data}
@@ -292,7 +306,9 @@ function ActivityChart({ points, duration = false }: { points: StatisticsProject
       className="h-80 w-full"
       minTickGap={28}
       rightAxis="cumulative"
-      tooltip={<StatisticsTooltip valueFormatter={(value) => duration ? `${formatNumber(value, 1)} Min.` : formatNumber(value)} />}
+      unit={duration ? barUnit.label : undefined}
+      rightUnit={duration ? cumulativeUnit.label : undefined}
+      tooltip={<StatisticsTooltip valueFormatter={(value, entry) => duration ? `${formatNumber(value, 1)} ${entry.dataKey === "cumulative" ? cumulativeUnit.label : barUnit.label}` : formatNumber(value)} />}
     >
       {stackedCategoryBars(data, "reviews", { learning: "Lernen", relearning: "Wiederlernen", young: "Intervall unter 21 Tagen", mature: "Intervall ab 21 Tagen" })}
       <Area yAxisId="cumulative" dataKey="cumulative" name="Kumuliert" stroke={SERIES_NEUTRAL} strokeWidth={1.5} fill="none" isAnimationActive={false} />
