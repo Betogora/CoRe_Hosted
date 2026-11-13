@@ -13,6 +13,7 @@ import {
   Pie,
   PieChart,
   Rectangle,
+  ReferenceLine,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -217,8 +218,18 @@ function NoChartData({ children }: { children: React.ReactNode }) {
 }
 
 
-function RechartsLegend() {
-  return <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 12, paddingTop: 12 }} formatter={(value) => <span className="text-core-secondary">{value}</span>} />;
+function RechartsLegend({ order }: { order?: readonly string[] }) {
+  return <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 12, paddingTop: 12 }} {...(order ? { itemSorter: (item: { dataKey?: unknown }) => order.indexOf(String(item.dataKey)) } : {})} formatter={(value) => <span className="text-core-secondary">{value}</span>} />;
+}
+
+const DATE_KEY = /^\d{4}-\d{2}-\d{2}$/;
+
+// A date series over more than a year shows years on its x axis, ticked and divided where each year starts.
+function yearStartKeys(data: object[]) {
+  const keys = data.map((point) => (point as { key?: unknown }).key);
+  if (keys.length < 2 || !keys.every((key): key is string => typeof key === "string" && DATE_KEY.test(key))) return null;
+  if (Date.parse(keys.at(-1)!) - Date.parse(keys[0]) <= 365 * 86_400_000) return null;
+  return keys.filter((key, index) => index > 0 && key.slice(0, 4) !== keys[index - 1].slice(0, 4));
 }
 
 function CartesianStatisticsChart({
@@ -244,12 +255,16 @@ function CartesianStatisticsChart({
   rightUnit?: string;
   tooltip: React.ReactElement;
 }) {
+  const yearStarts = yearStartKeys(data);
   return (
     <div className={className} aria-label={ariaLabel}>
       <ResponsiveContainer width="100%" height="100%">
         <ComposedChart data={data} accessibilityLayer margin={{ top: 8, right: 0, left: 0, bottom: 10 }}>
           <CartesianGrid stroke="var(--core-border-interactive)" strokeDasharray="1 5" strokeLinecap="round" vertical={false} />
-          <XAxis dataKey="label" {...axisProps} minTickGap={minTickGap} interval={interval} />
+          {yearStarts
+            ? <XAxis dataKey="key" {...axisProps} ticks={yearStarts} minTickGap={8} tickFormatter={(key: string) => key.slice(0, 4)} />
+            : <XAxis dataKey="label" {...axisProps} minTickGap={minTickGap} interval={interval} />}
+          {yearStarts?.map((key) => <ReferenceLine key={key} x={key} stroke="var(--core-text-muted)" strokeOpacity={0.35} strokeDasharray="3 3" />)}
           <YAxis {...axisProps} width="auto" allowDecimals={false} tickFormatter={(value: number) => formatAxisValue(value, unit)} />
           {rightAxis === "cumulative" ? <YAxis yAxisId="cumulative" orientation="right" {...axisProps} width="auto" allowDecimals={false} tickFormatter={(value: number) => formatAxisValue(value, rightUnit)} /> : null}
           {rightAxis === "percent" ? <YAxis yAxisId="percent" orientation="right" {...axisProps} width="auto" domain={[0, 100]} tickFormatter={(value: number) => formatAxisValue(value, "%")} /> : null}
@@ -401,14 +416,56 @@ function HourlyChart({ points }: { points: StatisticsProjection["hourly"] }) {
   );
 }
 
+// The buttons keep the colours of the study view, so a share reads like the button that was pressed.
+const RATING_COLORS = {
+  again: "var(--core-rating-again-border)",
+  hard: "var(--core-rating-hard-border)",
+  good: "var(--core-rating-good-border)",
+  easy: "var(--core-rating-easy-border)",
+};
+const RATING_CATEGORY_LABELS: Record<CategoryKey, string> = { learning: "Lernen", relearning: "Wiederlernen", young: "< 21 Tage", mature: "≥ 21 Tage" };
+
+/** One bar per review category, split into the share of each button; the tooltip adds the counts. */
 function RatingChart({ points }: { points: StatisticsProjection["ratings"] }) {
   if (!points.some((point) => point.total > 0)) return <NoChartData>Im gewählten Zeitraum wurden keine Antwortknöpfe verwendet.</NoChartData>;
-  // Grouped by button so the long category names sit in the wrapping legend instead of the narrow axis.
-  const buttons = RATING_BUTTONS.map(([rating, label]) => ({ label, ...Object.fromEntries(points.map((point) => [point.category, point[rating]])) }));
+  const rows = points.map((point) => ({
+    label: RATING_CATEGORY_LABELS[point.category],
+    rangeLabel: point.label,
+    total: point.total,
+    counts: point,
+    ...Object.fromEntries(RATING_BUTTONS.map(([rating]) => [rating, point.total ? (point[rating] / point.total) * 100 : 0])),
+  }));
+  const pressed = points.map((point) => RATING_BUTTONS.filter(([rating]) => point[rating] > 0).map(([rating]) => rating));
   return (
-    <CartesianStatisticsChart data={buttons} ariaLabel="Diagramm zu verwendeten Antwortknöpfen" tooltip={<StatisticsTooltip valueFormatter={(value) => formatNumber(value)} />}>
-      {points.map((point) => <Bar key={point.category} dataKey={point.category} name={point.label} fill={CATEGORY_COLORS[point.category]} radius={[3, 3, 0, 0]} isAnimationActive={false} />)}
-    </CartesianStatisticsChart>
+    <div className="h-72 w-full" aria-label="Diagramm zu verwendeten Antwortknöpfen">
+      <ResponsiveContainer width="100%" height="100%">
+        <ComposedChart data={rows} layout="vertical" accessibilityLayer margin={{ top: 8, right: 16, left: 0, bottom: 10 }}>
+          <CartesianGrid stroke="var(--core-border-interactive)" strokeDasharray="1 5" strokeLinecap="round" horizontal={false} />
+          <XAxis type="number" domain={[0, 100]} {...axisProps} tickFormatter={(value: number) => formatAxisValue(value, "%")} />
+          <YAxis type="category" dataKey="label" {...axisProps} width="auto" />
+          <Tooltip
+            content={<StatisticsTooltip valueFormatter={(value, entry) => entry.dataKey === "total" ? `${formatNumber(value)} Antworten` : `${formatPercent(value)} · ${formatNumber((entry.payload?.counts as Record<string, number>)[String(entry.dataKey)])}`} />}
+            cursor={{ fill: "var(--core-surface-muted)" }}
+          />
+          <RechartsLegend order={RATING_BUTTONS.map(([rating]) => rating)} />
+          {RATING_BUTTONS.map(([rating, label]) => (
+            <Bar
+              key={rating}
+              dataKey={rating}
+              name={label}
+              stackId="share"
+              fill={RATING_COLORS[rating]}
+              barSize={22}
+              isAnimationActive={false}
+              shape={(props: BarShapeProps) => {
+                const visible = pressed[props.index] ?? [];
+                return <Rectangle {...props} radius={[visible[0] === rating ? 3 : 0, visible.at(-1) === rating ? 3 : 0, visible.at(-1) === rating ? 3 : 0, visible[0] === rating ? 3 : 0]} />;
+              }}
+            />
+          ))}
+        </ComposedChart>
+      </ResponsiveContainer>
+    </div>
   );
 }
 
