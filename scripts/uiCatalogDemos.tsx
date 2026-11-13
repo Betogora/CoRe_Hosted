@@ -750,7 +750,7 @@ const catalogCardEditorServices: CardEditorServices = {
   editVariant: async () => undefined,
   removeNoteMedia: async () => null,
   loadCard: async () => null,
-  listReviewEvents: async () => [],
+  listReviewEvents: async (cardId) => cardId !== variantStudyCard.id ? [] : ([["2026-05-10", "good"], ["2026-05-20", "again"], ["2026-05-21", "hard"], ["2026-06-10", "easy"], ["2026-08-03", "good"]] as const).map(([day, rating], index) => ({ id: `catalog-card-review-${index}`, userId: "catalog", deckId: variantStudyCard.deckId, cardId, variantId: null, rating, answeredAt: `${day}T08:00:00Z`, responseTimeMs: 2400, schedulerBefore: {}, schedulerAfter: {}, flags: {}, createdAt: `${day}T08:00:00Z` })),
   listTagDirectory: async () => [{ tag: "Geografie::Europa", noteCount: 12, importedCount: 0 }, { tag: "Geografie::Asien", noteCount: 8, importedCount: 0 }],
   listNoteTypes: async () => [{ id: "demo-basic", name: "Einfach" }],
   listExamsForDeck: async () => [],

@@ -63,25 +63,25 @@ const MEMORY_REVIEWS: readonly MemoryReview[] = [
 const RATING_PATHS: readonly RatingPath[] = [
   {
     id: "again",
-    color: "var(--core-danger)",
+    color: "var(--core-rating-again-text)",
     dueX: 350,
     curvePath: "M 220 92 C 258 112, 318 186, 350 248",
   },
   {
     id: "hard",
-    color: "var(--core-warning)",
+    color: "var(--core-rating-hard-text)",
     dueX: 500,
     curvePath: "M 220 92 C 292 102, 438 164, 500 248",
   },
   {
     id: "good",
-    color: "var(--core-success)",
+    color: "var(--core-rating-good-text)",
     dueX: 680,
     curvePath: "M 220 92 C 328 96, 586 146, 680 248",
   },
   {
     id: "easy",
-    color: "var(--core-info)",
+    color: "var(--core-rating-easy-text)",
     dueX: 855,
     curvePath: "M 220 92 C 364 94, 734 126, 855 248",
   },

@@ -22,10 +22,10 @@ const BANDS: Array<{ value: MaturityBand; label: string }> = [
 ];
 
 const RATINGS: Record<string, { label: string; tone: string }> = {
-  again: { label: "Nochmal", tone: "var(--core-danger)" },
-  hard: { label: "Schwer", tone: "var(--core-warning)" },
-  good: { label: "Gut", tone: "var(--core-info)" },
-  easy: { label: "Einfach", tone: "var(--core-success)" },
+  again: { label: "Nochmal", tone: "var(--core-rating-again-border)" },
+  hard: { label: "Schwer", tone: "var(--core-rating-hard-border)" },
+  good: { label: "Gut", tone: "var(--core-rating-good-border)" },
+  easy: { label: "Einfach", tone: "var(--core-rating-easy-border)" },
 };
 
 const MANUAL_KINDS: Record<string, string> = {
