@@ -86,19 +86,20 @@ Markdown, CSV und TSV.
 ## P5: KI-Eval und Hillclimb
 
 Zurückgestellt, bis alle geplanten KI-Prompts stehen. Als Bauvorleistung
-steht der Runner für Varianten Frage/Antwort und `card-help`; Ablauf, Ablage
-und Stand stehen unter [KI-Eval](ai-eval.md). Gemessen ist noch nichts: kein
-echter Lauf, keine Kalibrierung, kein Ledger-Eintrag.
-Varianten je Kartenart (P1), Karten aus einer Quelle (P2) und gegebenenfalls
-Quiz bekommen eine eigene Definition im selben Schema, sobald ihre Prompts
-stehen; für die Zusammenfassung fehlt ein Eval-Entwurf. Grundsätze im
+steht der Runner mit Definitionen für Varianten (Frage/Antwort, Lückentext,
+Auswahl) und `card-help`; Ablauf, Ablage und Stand stehen unter
+[KI-Eval](ai-eval.md). Gemessen ist noch nichts: kein echter Lauf, keine
+Kalibrierung, kein Ledger-Eintrag. Karten aus einer Quelle (P2) und
+gegebenenfalls Quiz bekommen eine eigene Definition im selben Schema, sobald
+ihre Prompts stehen; für die Zusammenfassung fehlt ein Eval-Entwurf. Grundsätze im
 vorgeschlagenen
 [ADR-049](decisions.md#adr-049--ki-änderungen-nur-mit-eval-nachweis);
 Fallzahlen und Zielwerte sind ein Entwurf vom 2026-11-10 und dürfen neu
 bewertet werden.
 
 - [ ] **Eval-Schlüssel und Kostenziele:** `OPENROUTER_EVAL_API_KEY` mit
-      eigenem Limit in `.env.local` anlegen. Kosten sind in jedem Lauf eine
+      eigenem Limit als Benutzer-Umgebungsvariable anlegen
+      ([operations.md](operations.md#openrouter-schlüssel)). Kosten sind in jedem Lauf eine
       feste Metrik (pro Antwort und hochgerechnet); die Zielwerte je
       Anfragetyp werden mit der ersten Baseline festgelegt und in
       `operations.md` übernommen.
@@ -206,8 +207,9 @@ Messung vom 2026-10-31 im [Verlauf](history.md).
 
 - Varianten vorausschauend nur für Karten erzeugen, die in den nächsten Tagen
   die Haltbarkeitsschwelle erreichen (Ausarbeitung in Commit `4dd2af7`).
-- Nicht umformulierbare Karten als eigener Zustand im Reiter `Varianten`;
-  gemeldete Karten fallen aus späteren Stapelläufen.
+- Nicht umformulierbare und dauerhaft scheiternde Karten als eigener Zustand
+  im Reiter `Varianten`; sie fallen aus späteren Stapelläufen. Heute fragt
+  jeder Lauf sie erneut an, und 50 solche Karten blockieren ihn ganz.
 - DOCX und PPTX als Quellen für P2 (ZIP und XML, ohne neue Abhängigkeit über
   `zipReader.ts` prüfen; Beleg je Folie oder Abschnitt).
 - KI-Kontingente je Nutzer im Zusammenspiel mit Bezahlstufen bzw.

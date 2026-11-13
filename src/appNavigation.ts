@@ -174,7 +174,7 @@ function normalizeViewRoute(
   const cardEditorReturnContext = normalizeReviewResumeContext(route.cardEditorReturnContext);
   const deckSettings = normalizeDeckSettings(route.deckSettings);
   const settingsSection = !deckSettings && SETTINGS_SECTIONS.includes(route.settingsSection as SettingsSection) ? route.settingsSection as SettingsSection : null;
-  const cardQuery = typeof route.cardQuery === "string" ? route.cardQuery.trim().slice(0, 500) : "";
+  const cardQuery = typeof route.cardQuery === "string" ? route.cardQuery.trim().slice(0, 4000) : "";
   const cardEditorTab = cardEditorTabs.includes(route.cardEditorTab as CardEditorTab)
     ? route.cardEditorTab as CardEditorTab
     : cardEditorReturnContext ? "content" : "general";

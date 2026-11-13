@@ -1,4 +1,3 @@
-import { CARD_VARIANT_CANDIDATE_QUERY } from "../cardVariantBatch.ts";
 import { VariantGenerationBar } from "../ui/VariantGenerationBar.tsx";
 import { useAppServices } from "../useAppServices.ts";
 
@@ -7,6 +6,7 @@ export function VariantGenerationBarWiring() {
   const { variantBatch, navigation } = useAppServices();
   const { batch } = variantBatch;
   if (!batch) return null;
+  const cardQuery = batch.mode === "missing" ? batch.cardQuery : null;
   return (
     <VariantGenerationBar
       deck={batch.deck}
@@ -17,9 +17,7 @@ export function VariantGenerationBarWiring() {
       onCancel={variantBatch.cancel}
       onClose={variantBatch.dismiss}
       // Guarded like any navigation, so open drafts ask first; the bar stays until it is closed.
-      onShow={batch.mode === "missing" && !batch.selection
-        ? () => navigation.navigateToView("kartenstapel", { cardQuery: `did:${batch.deck.id} ${CARD_VARIANT_CANDIDATE_QUERY.missing}` })
-        : undefined}
+      onShow={cardQuery ? () => navigation.navigateToView("kartenstapel", { cardQuery }) : undefined}
     />
   );
 }

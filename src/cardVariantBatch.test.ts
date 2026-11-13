@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { AI_CARD_VARIANT_PROMPT_VERSION, AiCardVariantContractError } from "./aiCardVariantContract.ts";
-import { runCardVariantBatch, summarizeCardVariantBatch, type CardVariantBatchProgress } from "./cardVariantBatch.ts";
-import { addCardVariant, createBasicNote } from "./coreModel.ts";
+import { deckTreeQuery, runCardVariantBatch, summarizeCardVariantBatch, type CardVariantBatchProgress } from "./cardVariantBatch.ts";
+import { addCardVariant, createBasicNote, createCoreDeck } from "./coreModel.ts";
 import type { Card, Note } from "./coreTypes.ts";
 import type { CardCatalogEntry } from "./workspaceReplica.ts";
 
@@ -160,4 +160,12 @@ test("refresh replaces only variants from an older prompt version and ignores th
   assert.deepEqual(generated, ["card-1"], "eine bearbeitete Variante gilt nie als veraltet");
   assert.deepEqual(summarizeCardVariantBatch(result, "refresh"), { kind: "toast", message: "1 Variante neu generiert." });
   assert.deepEqual(summarizeCardVariantBatch({ ...result, created: 0 }, "refresh"), { kind: "toast", message: "Alle Varianten stammen bereits aus der aktuellen Version." });
+});
+
+test("die Stapelsuche trifft genau die erfassten Stapel, auch eingeschaltete unter ausgeschalteten", () => {
+  const decks = [["a", undefined], ["b", "a"], ["c", "a"], ["d", "c"], ["e", "d"]].map(([id, parentDeckId]) => createCoreDeck({ id, name: id, parentDeckId }));
+  assert.equal(deckTreeQuery(decks, "a", new Set(["a", "b", "c", "d", "e"])), "did:a");
+  assert.equal(deckTreeQuery(decks, "a", new Set(["a", "b"])), "did:a -did:c");
+  assert.equal(deckTreeQuery(decks, "a", new Set(["a", "d"])), "((did:a -did:b -did:c) or (did:d -did:e))");
+  assert.equal(deckTreeQuery(decks, "a", new Set(["a", "e"])), "((did:a -did:b -did:c) or (did:e))");
 });

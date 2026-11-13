@@ -34,6 +34,7 @@ export {
   duplicateNote,
   fieldSearchKey,
   noteTextIndex,
+  outdateVariantsOfChangedSource,
   planNoteContentChange,
   planNoteDeletion,
   planNoteRestore,

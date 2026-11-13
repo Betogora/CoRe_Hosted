@@ -1,7 +1,7 @@
 import { AI_CARD_VARIANT_PROMPT_VERSION, AiCardVariantContractError } from "./aiCardVariantContract.ts";
 import { getActiveVariants } from "./coreModel.ts";
 import { classifyCardEligibility, isEditedVariant } from "./coreVariantService.ts";
-import type { Card, DeckSettings, Note } from "./coreTypes.ts";
+import type { Card, Deck, DeckSettings, Note } from "./coreTypes.ts";
 import type { CardCatalogEntry } from "./workspaceReplica.ts";
 
 /** At most this many generation requests per action; a further action continues with the next cards. */
@@ -31,6 +31,37 @@ export const CARD_VARIANT_CANDIDATE_QUERY: Readonly<Record<CardVariantBatchMode,
   missing: "-has:variant -is:occlusion",
   refresh: "has:variant",
 };
+
+/**
+ * A card search for exactly the `included` decks of a deck tree (the root always): `did:` covers a deck with its
+ * subdecks, so excluded subtrees are cut out and included decks below them are added back as groups of their own.
+ */
+export function deckTreeQuery(decks: readonly Deck[], rootId: string, included: ReadonlySet<string>): string {
+  const groups: string[][] = [];
+  const childrenOf = (id: string) => decks.filter((deck) => deck.parentDeckId === id);
+  const open = (id: string) => {
+    const group = [`did:${id}`];
+    groups.push(group);
+    keep(id, group);
+  };
+  const keep = (id: string, group: string[]) => {
+    for (const child of childrenOf(id)) {
+      if (included.has(child.id)) keep(child.id, group);
+      else {
+        group.push(`-did:${child.id}`);
+        skip(child.id);
+      }
+    }
+  };
+  const skip = (id: string) => {
+    for (const child of childrenOf(id)) {
+      if (included.has(child.id)) open(child.id);
+      else skip(child.id);
+    }
+  };
+  open(rootId);
+  return groups.length === 1 ? groups[0].join(" ") : `(${groups.map((group) => `(${group.join(" ")})`).join(" or ")})`;
+}
 
 function needsVariant(card: Card, mode: CardVariantBatchMode) {
   const active = getActiveVariants(card);

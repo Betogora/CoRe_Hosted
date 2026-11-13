@@ -126,6 +126,14 @@ function promptSourceHtml(content: NoteContent, promptKey: string): string | nul
   return `${html(prompt.questionFieldIds)}\u001e${html(prompt.answerFieldIds)}`;
 }
 
+/**
+ * The card with its active rephrasings outdated when the content its prompt is asked from changed between the two
+ * contents, e.g. on a reimport that replaces an unedited content; otherwise the card itself.
+ */
+export function outdateVariantsOfChangedSource(previous: NoteContent, next: NoteContent, card: Card, updatedAt: string): Card {
+  return promptSourceHtml(previous, card.promptKey) === promptSourceHtml(next, card.promptKey) ? card : markVariantsOutdated(card, updatedAt);
+}
+
 /** Active rephrasings of a card whose question or answer changed are outdated: no longer asked, but kept for regeneration. */
 function markVariantsOutdated(card: Card, updatedAt: string): Card {
   if (!card.variants.some((variant) => variant.isActive && !variant.deletedAt)) return card;
