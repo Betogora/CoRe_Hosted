@@ -1,11 +1,10 @@
 import React from "react";
-import { ArrowDown, ArrowUp, Layers, ListChecks, Minus, Search, Star } from "lucide-react";
+import { ArrowDown, ArrowUp, Layers, Minus, Search, Star } from "lucide-react";
 import type { CardTableSort, CardTableSortField } from "../../libraryModel.ts";
 import type { CardCatalogEntry, NoteGraph } from "../../workspaceReplica.ts";
 import { FlagDot } from "../../ui/flagUi.tsx";
 import { CoreTag, EmptyState } from "../../ui/coreUi.tsx";
 import { CoreCheckbox } from "../../ui/formControls.tsx";
-import { CoreTooltip } from "../../ui/tooltipUi.tsx";
 import type { createHitListModel } from "./cardListModel.ts";
 import type { useVirtualRows } from "./virtualRows.ts";
 
@@ -15,24 +14,22 @@ export type CardListItem =
   | { kind: "card"; key: string; listKey: string; index: number };
 type CardHitRow = ReturnType<typeof createHitListModel>["cardRows"][number];
 
-function SortHeader({ field, label, sort, onChange, leading }: {
+function SortHeader({ field, label, sort, onChange }: {
   field: CardTableSortField;
   label: string;
   sort: CardTableSort;
   onChange: (field: CardTableSortField) => void;
-  leading?: React.ReactNode;
 }) {
   const active = sort.field === field;
   const rightAligned = field !== "sortField";
-  const headerPadding = rightAligned ? "px-1" : "px-1 sm:px-3 md:px-4";
+  // Matches the padding of the column's cells, so header and values share their edge.
+  const headerPadding = field === "variants" ? "px-1 sm:pr-3" : rightAligned ? "px-1" : "px-1 sm:px-3 md:px-4";
   const headerGap = rightAligned ? "gap-0.5" : "gap-1 sm:gap-2";
   const directionLabel = active && sort.direction === "desc" ? "absteigend" : "aufsteigend";
   const SortIcon = active && sort.direction === "desc" ? ArrowDown : ArrowUp;
 
   return (
     <th scope="col" aria-sort={active ? (sort.direction === "asc" ? "ascending" : "descending") : "none"} className={`min-w-0 ${headerPadding} ${rightAligned ? "text-right" : "text-left"}`}>
-      <div className="flex min-w-0 items-center gap-1">
-      {leading}
       <button
         type="button"
         onClick={() => onChange(field)}
@@ -42,7 +39,6 @@ function SortHeader({ field, label, sort, onChange, leading }: {
         <span className="min-w-0 truncate">{label}</span>
         <SortIcon size={14} aria-hidden="true" className={`shrink-0 ${active ? "opacity-100" : "opacity-35"}`} />
       </button>
-      </div>
     </th>
   );
 }
@@ -105,7 +101,7 @@ const CardTableRowView = React.memo(function CardTableRowView({ virtualKey, deck
       onPointerCancel={cancelPress}
       onPointerMove={(event) => { if (event.pointerType === "touch" && (Math.abs(event.movementX) > 4 || Math.abs(event.movementY) > 4)) cancelPress(); }}
       onContextMenu={(event) => { if (pressed.current) event.preventDefault(); }}
-      className={`cursor-pointer border-b border-core-border transition-colors ${suspended ? "bg-core-warning-soft hover:bg-core-warning-soft" : selected ? "bg-core-info-soft" : "bg-core-surface hover:bg-core-subtle"} ${selected ? "core-card-row-selected" : ""}`}
+      className={`cursor-pointer border-b border-core-border transition-colors ${checked ? "bg-core-info-soft" : suspended ? "bg-core-warning-soft hover:bg-core-warning-soft" : selected ? "bg-core-info-soft" : "bg-core-surface hover:bg-core-subtle"} ${selected ? "core-card-row-selected" : ""}`}
       data-selected={selected ? "true" : undefined}
       data-suspended={suspended ? "true" : undefined}
       data-card-row="true"
@@ -147,16 +143,17 @@ const CardTableRowView = React.memo(function CardTableRowView({ virtualKey, deck
         {suspended ? <span className="sr-only"> · Ausgesetzt</span> : null}
       </td>
       <td className="min-w-0 px-1 py-1 text-right align-middle sm:pr-3">
+        {/* Flag and mark keep their slots left of the count, so the count closes the column under its right-aligned header. */}
         <span className="inline-flex items-center justify-end gap-1 align-middle">
-          {card.activeVariantCount > 0
-            ? <span className="min-w-[1.125rem] text-center core-body font-semibold tabular-nums text-core-text" aria-label={card.activeVariantCount === 1 ? "1 aktive Variante" : `${card.activeVariantCount} aktive Varianten`}>{card.activeVariantCount}</span>
-            : <Minus size={16} className="shrink-0 text-core-muted" role="img" aria-label="Keine Variante" />}
           <span className="grid size-[1.125rem] place-items-center">
             {flag ? <FlagDot flag={flag} names={flagNames} size={10} /> : null}
           </span>
           <span className="grid size-[1.125rem] place-items-center">
             {marked ? <Star size={18} fill="currentColor" className="text-core-warning" role="img" aria-label="Markiert" /> : null}
           </span>
+          {card.activeVariantCount > 0
+            ? <span className="min-w-4 text-right core-body font-semibold tabular-nums text-core-text" aria-label={card.activeVariantCount === 1 ? "1 aktive Variante" : `${card.activeVariantCount} aktive Varianten`}>{card.activeVariantCount}</span>
+            : <Minus size={16} className="shrink-0 text-core-muted" role="img" aria-label="Keine Variante" />}
         </span>
       </td>
     </tr>
@@ -185,7 +182,7 @@ export function MatchingDecks({ groups, onOpen }: { groups: ReadonlyArray<{ id: 
  * The flat hit list of the card management (KV3) as a virtual table: sortable header or the selection bar, a loading
  * bar while the list's pages load, and one memoized row per loaded hit; without rows the empty state.
  */
-export function CardHitTable({ items, rowOf, virtual, loading, searching, selectionBar, sort, onSort, onStartSelecting, selectedCardId, selectedGraph, flagNames, syncConflictCardIds, deckPathOf, onSelect, isChecked, selecting, onToggleCheck }: {
+export function CardHitTable({ items, rowOf, virtual, loading, searching, selectionBar, sort, onSort, selectedCardId, selectedGraph, flagNames, syncConflictCardIds, deckPathOf, onSelect, isChecked, selecting, onToggleCheck }: {
   items: CardListItem[];
   rowOf: (item: Extract<CardListItem, { kind: "card" }>) => CardHitRow | undefined;
   virtual: ReturnType<typeof useVirtualRows>;
@@ -195,7 +192,6 @@ export function CardHitTable({ items, rowOf, virtual, loading, searching, select
   selectionBar: React.ReactNode;
   sort: CardTableSort;
   onSort: (field: CardTableSortField) => void;
-  onStartSelecting?: () => void;
   selectedCardId: string | null;
   /** The open card's content; its mark and flags win over the catalog row until the list reloads. */
   selectedGraph: (NoteGraph & { cardId: string }) | null;
@@ -234,20 +230,7 @@ export function CardHitTable({ items, rowOf, virtual, loading, searching, select
           </tr>
         ) : (
           <tr className="core-card-table-header border-b border-core-border">
-            <SortHeader
-              field="sortField"
-              label="Sortierfeld"
-              sort={sort}
-              onChange={onSort}
-              leading={onStartSelecting ? (
-                // Touch starts selecting with a long press, so the narrow header stays compact.
-                <CoreTooltip label="Karten auswählen">
-                  <button type="button" aria-label="Karten auswählen" data-testid="card-selection-start" className="hidden size-6 !min-h-0 shrink-0 place-items-center rounded-inset text-core-muted hover:bg-core-subtle hover:text-core-text sm:grid" onClick={onStartSelecting}>
-                    <ListChecks size={16} aria-hidden="true" />
-                  </button>
-                </CoreTooltip>
-              ) : null}
-            />
+            <SortHeader field="sortField" label="Sortierfeld" sort={sort} onChange={onSort} />
             <SortHeader field="nextStudyDate" label="Datum" sort={sort} onChange={onSort} />
             <SortHeader field="variants" label="Variante" sort={sort} onChange={onSort} />
           </tr>

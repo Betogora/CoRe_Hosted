@@ -800,6 +800,8 @@ summary {
   .core-field-group select {
     min-height: var(--core-control-height);
     padding: 0.5rem 0.75rem;
+    /* A placeholder or value wider than a narrow field ends in an ellipsis instead of a cut word. */
+    text-overflow: ellipsis;
   }
 
   .core-field:focus-visible,
