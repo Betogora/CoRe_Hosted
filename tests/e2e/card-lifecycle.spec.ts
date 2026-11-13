@@ -615,14 +615,10 @@ test("[Vertrag: Duplikate finden, öffnen und taggen; Tags verwalten] @beta-core
 
   await page.goto("/kartenstapel");
   const dialog = page.getByRole("dialog", { name: "Duplikate finden" });
-  // The search needs every card on the device; right after new cards or mass actions it waits for the catalog sync.
+  // A complete replica stays searchable while a reload or sync pulls catalog deltas.
   const openDuplicates = async () => {
     await page.getByRole("button", { name: "Duplikate finden" }).click();
-    await expect(async () => {
-      const retry = dialog.getByRole("button", { name: "Erneut versuchen" });
-      if (await retry.isVisible()) await retry.click();
-      await expect(dialog.getByTestId("duplicates-dialog")).toContainText("1 Gruppe · 2 Inhalte", { timeout: 1_000 });
-    }).toPass({ timeout: 20_000 });
+    await expect(dialog.getByTestId("duplicates-dialog")).toContainText("1 Gruppe · 2 Inhalte");
   };
   await openDuplicates();
   await expect(dialog.getByTestId("duplicate-groups").getByRole("button")).toHaveCount(2);
