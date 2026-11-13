@@ -572,7 +572,7 @@ Originalkarte | wird selbst abgefragt; nach einem Fehler so lange, bis sie wiede
 - Vor der Antwort deutet nichts auf eine Variante hin. Erst danach ist sie gekennzeichnet, und die Originalkarte lässt sich aufdecken.
 - Von dort führt der Weg in die Variantenverwaltung der Karte und zurück in die Sitzung.
 - Fehlt eine Variante oder ist sie fehlerhaft, wird die Karte selbst abgefragt.
-- Eine Variante ersetzt nur Frage und Antwort; Hinweise, Zusatz, Quelle und Sprachausgabe der Karte bleiben.
+- Eine Variante ersetzt nur Frage und Antwort; Hinweise, Zusatz und Quelle bleiben. Vorgelesen wird nur, was die Variante unverändert übernimmt.
 - Persönliche Lerndaten werden nie in einer Variante gespeichert.
 
 ### Varianten verwalten

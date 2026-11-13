@@ -18,8 +18,10 @@ function readinessLabel(coreMode: Deck["deckSettings"]["coreMode"], ready: boole
 }
 
 /** One variant, edited in its row and saved at once, independent of the content draft (W12). */
-function VariantRow({ variant, index, busy, reactivationBlocked, canGenerate, onEdit, onRegenerate, onUpdate, onDelete }: {
+function VariantRow({ variant, typedAnswer, index, busy, reactivationBlocked, canGenerate, onEdit, onRegenerate, onUpdate, onDelete }: {
   variant: CardVariant;
+  /** The card's own answer when it is typed: the variant only rephrases the question then (`variantPresentation`). */
+  typedAnswer: string | null;
   index: number;
   busy: boolean;
   reactivationBlocked: boolean;
@@ -43,7 +45,7 @@ function VariantRow({ variant, index, busy, reactivationBlocked, canGenerate, on
           {editing ? null : (
             <>
               <p className="mt-2 break-words core-body font-semibold text-core-text">{stripHtml(variant.front)}</p>
-              <p className="break-words core-body text-core-muted">{stripHtml(variant.back)}</p>
+              <p className="break-words core-body text-core-muted">{typedAnswer ?? stripHtml(variant.back)}</p>
               {(variant.performance?.attempts ?? 0) > 0 ? <p className="mt-1 core-body text-core-muted">{variant.performance.attempts}× abgefragt · {variant.performance.correctCount} richtig</p> : null}
             </>
           )}
@@ -74,7 +76,7 @@ function VariantRow({ variant, index, busy, reactivationBlocked, canGenerate, on
       {editing ? (
         <div className="grid min-w-0 gap-2" data-testid="card-variant-edit">
           <RichTextEditor value={editing.front} ariaLabel={`Frage von Variante ${number}`} toolbarOnFocus minHeightClass="min-h-16" onChange={(front) => setEditing((current) => current && { ...current, front })} />
-          <RichTextEditor value={editing.back} ariaLabel={`Antwort von Variante ${number}`} toolbarOnFocus minHeightClass="min-h-16" onChange={(back) => setEditing((current) => current && { ...current, back })} />
+          {typedAnswer === null ? <RichTextEditor value={editing.back} ariaLabel={`Antwort von Variante ${number}`} toolbarOnFocus minHeightClass="min-h-16" onChange={(back) => setEditing((current) => current && { ...current, back })} /> : null}
           <div className="flex justify-end gap-2">
             <ActionButton variant="secondary" disabled={busy} onClick={() => setEditing(null)}>Abbrechen</ActionButton>
             <ActionButton variant="primary" loading={busy} onClick={() => void onEdit(editing).then((saved) => { if (saved) setEditing(null); })}>Speichern</ActionButton>
@@ -142,6 +144,7 @@ export function CardEditorVariantsTab({ deck, note, card, services, onGenerateVa
               <VariantRow
                 key={variant.id}
                 variant={variant}
+                typedAnswer={original?.kind === "type-in" ? original.back : null}
                 index={index}
                 busy={busyId !== null}
                 reactivationBlocked={reactivationBlocked}

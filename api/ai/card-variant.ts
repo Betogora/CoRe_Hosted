@@ -96,7 +96,8 @@ export function extractGeneratedVariant(payload: unknown, input: AiCardVariantRe
   }
   if (normalizeAiCardText(variantRequest.output.source.front).toLocaleLowerCase("de-DE") === normalizeAiCardText(input.source.front).toLocaleLowerCase("de-DE")) {
     throw new HttpError(502, "unchanged_front", "Das Modell hat die Kartenfrage nicht erkennbar umformuliert.");
-  }  const parsed = parseAiCardVariantSuccess({ variant: variantRequest.output.source, model, privacyMode: "zdr", usage });
+  }
+  const parsed = parseAiCardVariantSuccess({ variant: variantRequest.output.source, model, privacyMode: "zdr", usage });
   if (!parsed.success) throw new HttpError(502, "invalid_provider_response", TEXTS.invalid);
   return { result: parsed.output, costUsd };
 }

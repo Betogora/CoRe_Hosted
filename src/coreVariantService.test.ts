@@ -103,7 +103,7 @@ test("Variantendarstellung ersetzt Frage und Antwort und behält Zusatzfelder, T
   assert.equal(note.content.fields[0].html, "Original-Frage");
 });
 
-test("Eintippen-Variante fragt neu und vergleicht mit dem Antwortfeld der Karte; Hinweise und Sprachausgabe bleiben", () => {
+test("Eintippen-Variante fragt neu und vergleicht mit dem Antwortfeld der Karte; vorgelesen wird nur Unverändertes", () => {
   const content = createManualNoteContent({
     kind: "basic",
     front: "Symbol für Gold?",
@@ -122,7 +122,11 @@ test("Eintippen-Variante fragt neu und vergleicht mit dem Antwortfeld der Karte;
     ["tipp", "hint", "Lateinisch aurum"],
   ]);
   assert.equal(presented.interaction.kind === "reveal" && presented.interaction.prompts[0].typeInFieldId, "back");
-  assert.deepEqual(presented.speech.map((entry) => entry.fieldId), ["variant-front", "back", "tipp"]);
+  assert.deepEqual(presented.speech.map((entry) => entry.fieldId), ["back", "tipp"]);
+
+  const flipped = createNote({ deckId: "deck", content: { ...content, interaction: { kind: "reveal", prompts: [{ key: "forward", name: "Vorwärts", instruction: "", questionFieldIds: ["front"], answerFieldIds: ["back"], requires: null, typeInFieldId: null }] } } });
+  const flippedCard = addCardVariant(flipped.cards[0], { id: "variant-2", front: "Elementsymbol von Gold?", back: "Au (aurum)" });
+  assert.deepEqual(variantPresentation(flipped.note, flippedCard, flippedCard.variants[0]).note.content.speech.map((entry) => entry.fieldId), ["tipp"]);
 });
 
 test("Review wechselt reife Karten reihum zwischen Karte und Varianten ab", () => {

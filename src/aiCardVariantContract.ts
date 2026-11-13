@@ -15,7 +15,7 @@ export const AI_CARD_VARIANT_DEADLINE_MS = 25_000;
 
 const textSchema = v.pipe(v.string(), v.trim(), v.minLength(1), v.maxLength(MAX_AI_CARD_VARIANT_FIELD_CHARS));
 const sourceSchema = v.strictObject({ front: textSchema, back: textSchema });
-/** `type-in`: the learner types the answer, so a variant keeps it character for character. */
+/** `type-in`: the learner types the answer; the variant only rephrases the question and keeps the card's own answer. */
 const kindSchema = v.picklist(["basic", "type-in"]);
 const requestSchema = v.strictObject({
   kind: kindSchema,

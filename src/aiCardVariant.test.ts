@@ -131,5 +131,5 @@ test("existing variants are sent within the request limits, newest first", () =>
   assert.deepEqual(request.avoid, ["Eins", "Zwei", "Drei", "Vier", "Fünf"]);
   assert.equal("avoid" in createAiCardVariantRequest({ kind: "basic", front: "Frage", back: "Antwort" }), false);
   assert.equal(parseAiCardVariantRequest({ kind: "basic", source: { front: "Frage", back: "Antwort" }, avoid: Array.from({ length: 6 }, (_, index) => `V${index}`) }).success, false);
-  assert.equal(parseAiCardVariantRequest({ source: { front: "Frage", back: "Antwort" }, avoid: ["y".repeat(1_000), "y".repeat(1_000), "y".repeat(1_001)] }).success, false);
+  assert.equal(parseAiCardVariantRequest({ kind: "basic", source: { front: "Frage", back: "Antwort" }, avoid: ["y".repeat(1_000), "y".repeat(1_000), "y".repeat(1_001)] }).success, false);
 });
