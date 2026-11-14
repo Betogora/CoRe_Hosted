@@ -77,6 +77,9 @@ export function useNoteCardPrefetch(items: ReadonlyArray<{ note: Note; card: Car
   }, [items, layout]);
 }
 
+/** An answer side without answer fields or supplements renders an empty body: the review shows no frame for it. */
+const isEmptyAnswer = (answer: NotePresentationResult) => answer.srcdoc.endsWith("<body></body></html>");
+
 /**
  * Whether the review loads the answer side unseen while the question is read. Not where the answer side follows input
  * made before revealing: typed comparison, or the host's choice selection. Nor where a hidden frame could play sound or
@@ -84,7 +87,7 @@ export function useNoteCardPrefetch(items: ReadonlyArray<{ note: Note; card: Car
  */
 export function preparesAnswerAhead(note: Note, card: Card, surface: NonNullable<NoteCardContentProps["surface"]>, answer: NotePresentationResult): boolean {
   const interaction = note.content.interaction;
-  if (surface !== "review" || interaction.kind === "choice") return false;
+  if (surface !== "review" || interaction.kind === "choice" || isEmptyAnswer(answer)) return false;
   if (answer.layout === "original" && answer.interactions.some((item) => item === "audio" || item === "video")) return false;
   if (interaction.kind !== "reveal") return true;
   const prompt = interaction.prompts.find((item) => item.key === card.promptKey);
@@ -242,8 +245,7 @@ function NoteCardContentBody({ note, card, revealed, onReveal, surface = "review
       })}
     </div> : null}
 
-    {/* A choice without answer fields or supplements has an empty answer side: no frame then. */}
-    {prepared || (answerResult && !oneFrame && !answerResult.srcdoc.endsWith("<body></body></html>")) ? <CardPresentationSurface {...frameProps} presentation={answerResult ?? presentation.answer} title={oneFrame ? "Aufgedeckte Karte" : "Antwort"} concealed={prepared === "hidden"} scrollTargetId={original ? "answer" : undefined} onLoad={revealed ? undefined : () => setAnswerAhead("ready")} /> : null}
+    {prepared || (answerResult && !oneFrame && !isEmptyAnswer(answerResult)) ? <CardPresentationSurface {...frameProps} presentation={answerResult ?? presentation.answer} title={oneFrame ? "Aufgedeckte Karte" : "Antwort"} concealed={prepared === "hidden"} scrollTargetId={original ? "answer" : undefined} onLoad={revealed ? undefined : () => setAnswerAhead("ready")} /> : null}
     {diagnostics.length ? <StatusMessage tone="warning">{diagnostics.map((item, index) => <p key={index}>{item.message}</p>)}</StatusMessage> : null}
 
     {speech.length || (surface === "review" && selectedText) ? <div className="flex flex-wrap items-center gap-x-3 gap-y-2">

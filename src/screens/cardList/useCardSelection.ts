@@ -17,8 +17,11 @@ export function useCardSelection({ canSelect, hitList, items, cardItems, rowOf, 
   const [checkedIds, setCheckedIds] = React.useState<ReadonlySet<string>>(() => new Set());
   const [allHits, setAllHits] = React.useState(false);
   const selectionAnchorRef = React.useRef<number | null>(null);
+  // An action asked for by a key; it ends with the selection, so a new selection never reopens its dialog.
+  const [selectionRequest, setSelectionRequest] = React.useState<{ id: CardSelectionActionId; flag?: number; nonce: number } | null>(null);
   const clearSelection = React.useCallback(() => {
     setSelecting(false);
+    setSelectionRequest(null);
     setCheckedIds(new Set());
     setAllHits(false);
     selectionAnchorRef.current = null;
@@ -62,14 +65,14 @@ export function useCardSelection({ canSelect, hitList, items, cardItems, rowOf, 
     row.focus({ preventScroll: true });
     setFocusRowAfterAction(null);
   }, [focusRowAfterAction, items]);
-  const [selectionRequest, setSelectionRequest] = React.useState<{ id: CardSelectionActionId; flag?: number; nonce: number } | null>(null);
   // Keys of the card list (KV6): `/` searches; on a focused row ↑/↓ move, Enter opens, X selects, Escape clears the
   // selection, and the action keys open the confirmation of the selection or of the focused card. Dialogs, menus, the
   // editor and text fields keep their own keys; browser shortcuts stay untouched.
   const handleListKey = useStableCallback((event: KeyboardEvent) => {
     if (event.defaultPrevented || event.altKey) return;
     const target = event.target instanceof HTMLElement ? event.target : null;
-    if (target && (target.isContentEditable || ["INPUT", "TEXTAREA", "SELECT"].includes(target.tagName))) return;
+    // Text entry keeps its keys; a checkbox (the header's or a row's) leaves Escape, `/` and undo to the list.
+    if (target && (target.isContentEditable || ["TEXTAREA", "SELECT"].includes(target.tagName) || (target instanceof HTMLInputElement && target.type !== "checkbox"))) return;
     if (target?.closest('[role="dialog"], [role="menu"], [data-radix-popper-content-wrapper]') || document.querySelector('[aria-modal="true"]')) return;
     if (event.ctrlKey || event.metaKey) {
       if (event.key.toLowerCase() !== "z" || event.shiftKey || !lastUndoRef.current) return;
