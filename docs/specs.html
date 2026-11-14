@@ -7913,7 +7913,7 @@ html { scroll-behavior: smooth; }
 html:has(.catalog-preview) { scroll-behavior: auto; }
 @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
 </style></head><body><div class="docs-frame"><aside class="docs-sidebar"><nav class="docs-panel docs-pages" aria-label="Doku-Seiten"><div class="docs-panel-head"><a class="docs-brand" href="index.html">CoRe <span>Docs</span></a><button type="button" id="docs-theme" aria-label="Dark Mode einschalten" style="color:var(--core-text)" class="core-action-ghost min-w-button p-2 size-button shrink-0 rounded-control"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-sun" aria-hidden="true"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2"></path><path d="M12 20v2"></path><path d="m4.93 4.93 1.41 1.41"></path><path d="m17.66 17.66 1.41 1.41"></path><path d="M2 12h2"></path><path d="M20 12h2"></path><path d="m6.34 17.66-1.41 1.41"></path><path d="m19.07 4.93-1.41 1.41"></path></svg><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-moon" aria-hidden="true"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"></path></svg></button></div><div class="docs-panel-links"><a href="index.html">Docs</a><a href="specs.html" aria-current="page">Specs</a><a href="journeys.html">Journeys</a><a href="ui-elements.html">UI-Elements</a><a href="card-types.html">Kartenbausteine</a><a href="ai-eval.html">KI-Eval</a></div></nav><div class="docs-panel docs-search-panel" role="search"><label class="catalog-search"><span class="catalog-search-label">Specs durchsuchen</span><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-search" aria-hidden="true"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.3-4.3"></path></svg><input id="docs-search" type="search" placeholder="Anforderung, Begriff …" autocomplete="off"></label><p id="docs-search-count" class="docs-count" role="status"></p></div><nav class="docs-panel docs-toc" aria-label="Inhalt"><strong>Inhalt</strong><div id="docs-toc" class="docs-panel-links"></div></nav></aside><main class="docs-main"><article id="specs--document" class="docs-document"><h1 id="specs--specs" class="core-heading-1" tabindex="-1">Specs <a class="docs-anchor" href="#specs--specs" aria-label="Link zu Specs">#</a></h1>
-<p><strong>Stand:</strong> 2026-11-12</p>
+<p><strong>Stand:</strong> 2026-11-14</p>
 <p>Die Specs beschreiben, was CoRe tun soll und warum: je Funktion die Absicht, ihre Regeln und die Entscheidungen, die der Code umsetzt. Wer sie liest, soll das Produkt prüfen können, ohne in den Code zu schauen.</p>
 <h2 id="specs--pflege-dieser-datei" class="core-heading-2" tabindex="-1">Pflege dieser Datei <a class="docs-anchor" href="#specs--pflege-dieser-datei" aria-label="Link zu Pflege dieser Datei">#</a></h2>
 <p class="docs-label">Hinein gehört je Funktion</p>
@@ -8278,7 +8278,7 @@ html:has(.catalog-preview) { scroll-behavior: auto; }
 <li>Ein Reimport erkennt Inhalte und Karten an ihren Anki-Kennungen, auch wenn sie nur im Konto und nicht auf dem Gerät liegen.</li>
 <li>Unbearbeitete Inhalte übernehmen den Paketinhalt; lokal bearbeitete bleiben unverändert und werden gezählt.</li>
 <li>Lernstand, Aussetzung, Markierung, Flaggen und Stapelzuordnung bleiben immer. Neue Abfragen werden neue Karten; im Paket fehlende Karten bleiben und werden gezählt.</li>
-<li>Tags werden nach <a href="#specs--tags">Tags</a> zusammengeführt; lokale Stapeleinstellungen bleiben.</li>
+<li>Tags werden nach <a href="#specs--tags">Tags</a> zusammengeführt. Vorhandene Stapel behalten Name, Ort im Baum und Einstellungen; neue Stapel entstehen unter dem heutigen Ort ihres Oberstapels.</li>
 <li>Verbessert sich ein Übersetzer, übersetzt CoRe unbearbeitete Importe einmal automatisch neu, ohne eine Karte mit Lernstand zu verlieren, und nennt die Zahl der verbesserten Inhalte.</li>
 </ul>
 <h3 id="specs--automatisch-aus-einer-quelle" class="core-heading-3" tabindex="-1">Automatisch aus einer Quelle <a class="docs-anchor" href="#specs--automatisch-aus-einer-quelle" aria-label="Link zu Automatisch aus einer Quelle">#</a></h3>
@@ -8411,7 +8411,7 @@ html:has(.catalog-preview) { scroll-behavior: auto; }
 <li>KI läuft nur auf ausdrückliche Aktion, nie beim Antworten oder im Hintergrund. Jede Anfrage hat eine feste Frist; Fehler ändern nichts und werden nicht automatisch wiederholt.</li>
 <li>Die Kosten begrenzt das Limit des Schlüssels; jede Anfrage wird mit ihren Kosten protokolliert, ohne Inhalte.</li>
 <li>Prompt, Antwortstruktur oder Modell sollen sich künftig nur mit gemessenem Nachweis ändern (<a href="decisions.md#adr-049--ki-%C3%A4nderungen-nur-mit-eval-nachweis">ADR-049</a>, vorgeschlagen; Stand unter <a href="ai-eval.html#ai-eval--document">KI-Eval</a>).</li>
-<li><strong>Bewusst nicht:</strong> Modellwahl durch Nutzer, Ersatzmodelle ohne Speicherverbot, Serverwarteschlange, gespeicherte Chatverläufe. Ein Kontingent je Nutzer ist Voraussetzung, bevor die Lernhilfe externen Nutzern offensteht.</li>
+<li><strong>Bewusst nicht:</strong> Modellwahl durch Nutzer, Ersatzmodelle ohne Speicherverbot, Serverwarteschlange, gespeicherte Chatverläufe. Ein Kontingent je Nutzer ist Voraussetzung, bevor KI-Funktionen externen Nutzern offenstehen.</li>
 </ul>
 <h3 id="specs--überblick-der-ki-funktionen" class="core-heading-3" tabindex="-1">Überblick der KI-Funktionen <a class="docs-anchor" href="#specs--überblick-der-ki-funktionen" aria-label="Link zu Überblick der KI-Funktionen">#</a></h3>
 <table>
@@ -8656,7 +8656,7 @@ html:has(.catalog-preview) { scroll-behavior: auto; }
 <h3 id="specs--karten-löschen-und-duplizieren" class="core-heading-3" tabindex="-1">Karten löschen und duplizieren <a class="docs-anchor" href="#specs--karten-löschen-und-duplizieren" aria-label="Link zu Karten löschen und duplizieren">#</a></h3>
 <ul>
 <li>Löschen verlangt eine Bestätigung und betrifft den Inhalt mit allen seinen Karten, auch in anderen Stapeln und auf allen Geräten.</li>
-<li>Gelöscht wird sofort auf dem Gerät; ein ausstehender Sync hält das nicht auf. Rückgängig stellt die Karten samt Lernstand wieder her.</li>
+<li>Gelöscht wird sofort auf dem Gerät; ein ausstehender Sync hält das nicht auf. Rückgängig stellt dieselben Karten samt Lernstand wieder her.</li>
 <li>Duplizieren legt einen eigenständigen Inhalt mit neuen Karten in denselben Stapeln an: Felder, Tags und Medien bleiben, der Lernstand beginnt neu.</li>
 </ul>
 <h3 id="specs--statistik" class="core-heading-3" tabindex="-1">Statistik <a class="docs-anchor" href="#specs--statistik" aria-label="Link zu Statistik">#</a></h3>
@@ -8779,7 +8779,6 @@ html:has(.catalog-preview) { scroll-behavior: auto; }
 <ul>
 <li>Sofortaktionen an Karten lassen sich direkt zurücknehmen. Rückgängig ist eine neue, synchronisierte Änderung; hat sich die Karte inzwischen geändert, entfällt es mit Hinweis.</li>
 <li>Neu planen, Lernstand zurücksetzen, Lernbremse setzen oder zurücksetzen, Zurückstellen und ihr Rückgängig sind je genau ein manuelles Ereignis im Verlauf. Es zählt nicht als Lernen und kollidiert nie mit Bewertungen oder Inhaltsänderungen anderer Geräte.</li>
-<li>Das Rückgängig einer Löschung stellt dieselbe Karte mit demselben Lernstand wieder her.</li>
 <li><strong>Bewusst nicht:</strong> ein wiederherstellbarer Versionsverlauf von Karteninhalten.</li>
 </ul>
 <h2 id="specs--11-qualität-und-abnahme" class="core-heading-2" tabindex="-1">11. Qualität und Abnahme <a class="docs-anchor" href="#specs--11-qualität-und-abnahme" aria-label="Link zu 11. Qualität und Abnahme">#</a></h2>
@@ -8797,7 +8796,7 @@ html:has(.catalog-preview) { scroll-behavior: auto; }
 <li>Kernabläufe funktionieren mit Tastatur, Touch und Screenreader, bei 200 % Zoom und mit reduzierter Bewegung. Bedeutung wird nie nur durch Farbe vermittelt.</li>
 <li>Abbrechen eines Dialogs verändert keine Fachdaten.</li>
 <li>Texte sind korrektes Deutsch; technische Bezeichnungen gelangen nicht ungefiltert in die Oberfläche.</li>
-<li>Es gibt einen hellen und einen dunklen Modus, von Hand gewählt. Die Designsprache regelt <a href="decisions.md#adr-046--vollst%C3%A4ndige-toolbox-designsprache">ADR-046</a>, die Bausteine zeigt der <a href="ui-elements.html">UI-Katalog</a>.</li>
+<li>Es gibt einen hellen und einen dunklen Modus, von Hand gewählt. Die Designsprache regeln <a href="decisions.md#adr-046--vollst%C3%A4ndige-toolbox-designsprache">ADR-046</a> und <a href="decisions.md#adr-051--acht-regeln-der-designsprache-und-eine-gemeinsame-mittelschicht">ADR-051</a>, die Bausteine zeigt der <a href="ui-elements.html">UI-Katalog</a>.</li>
 <li>Hinweistexte erklären nur Folgen, Abwägungen und nicht offensichtliches Verhalten.</li>
 </ul>
 <h3 id="specs--rückmeldungen-und-zuverlässigkeit" class="core-heading-3" tabindex="-1">Rückmeldungen und Zuverlässigkeit <a class="docs-anchor" href="#specs--rückmeldungen-und-zuverlässigkeit" aria-label="Link zu Rückmeldungen und Zuverlässigkeit">#</a></h3>

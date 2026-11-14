@@ -1,6 +1,6 @@
 # Specs
 
-**Stand:** 2026-11-12
+**Stand:** 2026-11-14
 
 Die Specs beschreiben, was CoRe tun soll und warum: je Funktion die Absicht, ihre Regeln und die Entscheidungen, die der Code umsetzt. Wer sie liest, soll das Produkt prüfen können, ohne in den Code zu schauen.
 
@@ -414,7 +414,7 @@ Gruppe: Synchronisierung ins Konto
 - Ein Reimport erkennt Inhalte und Karten an ihren Anki-Kennungen, auch wenn sie nur im Konto und nicht auf dem Gerät liegen.
 - Unbearbeitete Inhalte übernehmen den Paketinhalt; lokal bearbeitete bleiben unverändert und werden gezählt.
 - Lernstand, Aussetzung, Markierung, Flaggen und Stapelzuordnung bleiben immer. Neue Abfragen werden neue Karten; im Paket fehlende Karten bleiben und werden gezählt.
-- Tags werden nach [Tags](#tags) zusammengeführt; lokale Stapeleinstellungen bleiben.
+- Tags werden nach [Tags](#tags) zusammengeführt. Vorhandene Stapel behalten Name, Ort im Baum und Einstellungen; neue Stapel entstehen unter dem heutigen Ort ihres Oberstapels.
 - Verbessert sich ein Übersetzer, übersetzt CoRe unbearbeitete Importe einmal automatisch neu, ohne eine Karte mit Lernstand zu verlieren, und nennt die Zahl der verbesserten Inhalte.
 
 ### Automatisch aus einer Quelle
@@ -617,7 +617,7 @@ Prüfung | Struktur und Grenzen werden validiert
 - KI läuft nur auf ausdrückliche Aktion, nie beim Antworten oder im Hintergrund. Jede Anfrage hat eine feste Frist; Fehler ändern nichts und werden nicht automatisch wiederholt.
 - Die Kosten begrenzt das Limit des Schlüssels; jede Anfrage wird mit ihren Kosten protokolliert, ohne Inhalte.
 - Prompt, Antwortstruktur oder Modell sollen sich künftig nur mit gemessenem Nachweis ändern ([ADR-049](decisions.md#adr-049--ki-änderungen-nur-mit-eval-nachweis), vorgeschlagen; Stand unter [KI-Eval](ai-eval.md)).
-- **Bewusst nicht:** Modellwahl durch Nutzer, Ersatzmodelle ohne Speicherverbot, Serverwarteschlange, gespeicherte Chatverläufe. Ein Kontingent je Nutzer ist Voraussetzung, bevor die Lernhilfe externen Nutzern offensteht.
+- **Bewusst nicht:** Modellwahl durch Nutzer, Ersatzmodelle ohne Speicherverbot, Serverwarteschlange, gespeicherte Chatverläufe. Ein Kontingent je Nutzer ist Voraussetzung, bevor KI-Funktionen externen Nutzern offenstehen.
 
 ### Überblick der KI-Funktionen
 
@@ -874,7 +874,7 @@ Derselbe Editor öffnet sich aus Kartenverwaltung, Stapelinhalten und Sitzung un
 ### Karten löschen und duplizieren
 
 - Löschen verlangt eine Bestätigung und betrifft den Inhalt mit allen seinen Karten, auch in anderen Stapeln und auf allen Geräten.
-- Gelöscht wird sofort auf dem Gerät; ein ausstehender Sync hält das nicht auf. Rückgängig stellt die Karten samt Lernstand wieder her.
+- Gelöscht wird sofort auf dem Gerät; ein ausstehender Sync hält das nicht auf. Rückgängig stellt dieselben Karten samt Lernstand wieder her.
 - Duplizieren legt einen eigenständigen Inhalt mit neuen Karten in denselben Stapeln an: Felder, Tags und Medien bleiben, der Lernstand beginnt neu.
 
 ### Statistik
@@ -1002,7 +1002,6 @@ Gruppe:
 
 - Sofortaktionen an Karten lassen sich direkt zurücknehmen. Rückgängig ist eine neue, synchronisierte Änderung; hat sich die Karte inzwischen geändert, entfällt es mit Hinweis.
 - Neu planen, Lernstand zurücksetzen, Lernbremse setzen oder zurücksetzen, Zurückstellen und ihr Rückgängig sind je genau ein manuelles Ereignis im Verlauf. Es zählt nicht als Lernen und kollidiert nie mit Bewertungen oder Inhaltsänderungen anderer Geräte.
-- Das Rückgängig einer Löschung stellt dieselbe Karte mit demselben Lernstand wieder her.
 - **Bewusst nicht:** ein wiederherstellbarer Versionsverlauf von Karteninhalten.
 
 ## 11. Qualität und Abnahme
@@ -1021,7 +1020,7 @@ Gruppe:
 - Kernabläufe funktionieren mit Tastatur, Touch und Screenreader, bei 200 % Zoom und mit reduzierter Bewegung. Bedeutung wird nie nur durch Farbe vermittelt.
 - Abbrechen eines Dialogs verändert keine Fachdaten.
 - Texte sind korrektes Deutsch; technische Bezeichnungen gelangen nicht ungefiltert in die Oberfläche.
-- Es gibt einen hellen und einen dunklen Modus, von Hand gewählt. Die Designsprache regelt [ADR-046](decisions.md#adr-046--vollständige-toolbox-designsprache), die Bausteine zeigt der [UI-Katalog](ui-elements.html).
+- Es gibt einen hellen und einen dunklen Modus, von Hand gewählt. Die Designsprache regeln [ADR-046](decisions.md#adr-046--vollständige-toolbox-designsprache) und [ADR-051](decisions.md#adr-051--acht-regeln-der-designsprache-und-eine-gemeinsame-mittelschicht), die Bausteine zeigt der [UI-Katalog](ui-elements.html).
 - Hinweistexte erklären nur Folgen, Abwägungen und nicht offensichtliches Verhalten.
 
 ### Rückmeldungen und Zuverlässigkeit
