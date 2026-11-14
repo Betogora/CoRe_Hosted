@@ -45,16 +45,13 @@ CoRe startet Anki-kompatibel, hält das Lernen ruhig und behandelt jede planbare
 
 ### Umfang
 
-Den aktuellen Stand und bekannte Lücken nennt [`status.md`](status.md).
+Was gebaut, vorbereitet oder abgeschaltet ist und welche Lücken bekannt sind, nennt [`status.md`](status.md).
 
-- **Kern:** Konto mit E-Mail und Passwort, Heute, Erstellen (manuell, Bildverdeckung, Anki-Import), Lernen mit vier Bewertungen und Content Repetition, Kartenverwaltung und Karteneditor, Prüfungsplanung, Zusammenfassungen und Mindmaps, Statistik, Einstellungen, Hilfe, Simulator, kontogebundene Speicherung mit Sync.
-- **Vorbereitet, nicht aktiv:** [Karten automatisch aus einer Quelle](#automatisch-aus-einer-quelle).
-- **Abgeschaltet:** Anki-Pakete über 2 GiB, Magic Link, DOCX und OCR in der manuellen Erstellung und bei Zusammenfassungen, vollständige Datenauskunft und Kontolöschung.
 - **Nichtziele:** Community, Rankings und soziale Leistungsmetriken; generische Backend-, Auth- oder KI-Adapter; KI-Chat ohne Kartenbezug; Bildübertragung an die KI; Admin-Portal, Zahlungen, Abonnements; Push-Benachrichtigungen; vollständige Ausführung von Anki-Templates.
 
 ### Bereiche und Gesamtbild
 
-- Hauptbereiche sind `Heute`, `Lernen`, `Erstellen`, `Karten` und `Prüfung`; Statistik, Hilfe und Einstellungen ergänzen sie.
+- Hauptbereiche sind `Heute`, `Lernen`, `Erstellen`, `Karten` und `Prüfung`; Statistik, Hilfe, Einstellungen und Simulator ergänzen sie.
 - `Lernen` führt vom Stapel in die Sitzung, `Karten` verwaltet alle Karten aller Stapel. Beide teilen den zuletzt gewählten Stapel.
 - Ansicht, Stapel, Karte und Sitzung sind Teil des Links: Reload, Direktlink und Browser-Zurück führen an dieselbe Stelle.
 
@@ -178,7 +175,7 @@ Karte
 - Verschieben macht einen Stapel samt Unterbaum zum direkten Unterstapel des Ziels oder zum Hauptstapel. Ausgeschlossen sind nur der Stapel selbst und seine Nachfahren. Importherkunft und Tags bleiben.
 - Das Löschen eines Stapelbaums ist endgültig, nennt vorher Unterstapel und Kartenzahl und wird durch späteren Sync nicht rückgängig.
 - Je Stapel zeigen `Heute` und `Lernen` die Tageszahlen `Neu`, `Offen` und `Fällig` nach [Tagesrunde und Limits](#tagesrunde-und-limits); Elternstapel zählen ihren Teilbaum.
-- Ein geöffneter Stapel bündelt Unterstapel, die Karten des ganzen Teilbaums, Zusammenfassungen und Mindmap und startet das Lernen. `Quiz` und `Quelle` sind dort Platzhalter.
+- Ein geöffneter Stapel bündelt Unterstapel, die Karten des ganzen Teilbaums, Zusammenfassungen und Mindmap und startet das Lernen.
 - Wo ein Stapel gewählt wird, steht sein vollständiger Pfad, damit gleichnamige Unterstapel unterscheidbar bleiben.
 
 ## 3. Kernjourneys
@@ -511,7 +508,6 @@ Fällig | ausgewählte Wiederholungen
 - Eine begrabene Karte wartet bis zum nächsten Lerntag, verbraucht kein Limit und behält Lernstand und Termin. Lernschritte des Tages werden nie begraben.
 - `Zurückstellen` nimmt eine einzelne Karte auf dieselbe Weise bis zum nächsten Lerntag aus Runde und Tageszahlen.
 - Beides wird nicht an der Karte gespeichert, sondern folgt aus den Ereignissen des Lerntags; es übersteht Reload und endet mit dem Tagesbeginn.
-- Bekannte Abweichung von Anki: Zwei noch unbeantwortete Geschwister zählen in den Tageszahlen bis zur ersten Antwort beide.
 
 ### Easy Days
 
@@ -573,6 +569,7 @@ Originalkarte | wird selbst abgefragt; nach einem Fehler so lange, bis sie wiede
 - Vor der Antwort deutet nichts auf eine Variante hin. Erst danach ist sie gekennzeichnet, und die Originalkarte lässt sich aufdecken.
 - Von dort führt der Weg in die Variantenverwaltung der Karte und zurück in die Sitzung.
 - Fehlt eine Variante oder ist sie fehlerhaft, wird die Karte selbst abgefragt.
+- Eine Variante ersetzt nur Frage und Antwort; Hinweise, Zusatz und Quelle bleiben. Vorgelesen wird nur, was die Variante unverändert übernimmt.
 - Persönliche Lerndaten werden nie in einer Variante gespeichert.
 
 ### Varianten verwalten
@@ -624,7 +621,7 @@ Prüfung | Struktur und Grenzen werden validiert
 | Funktion | Auslöser | Geht an die KI | Kommt zurück | Was daraus wird |
 | --- | --- | --- | --- | --- |
 | [KI hilft](#ki-hilft) | Frage zur aufgedeckten Karte | Text der Karte wie abgefragt, Hinweis-, Zusatz- und Notizfelder, die Frage, bis zu sechs frühere Antworten | eine Antwort als reiner Text | flüchtiger Verlauf, der mit der Karte endet |
-| [Kartenvariante](#kartenvarianten-erzeugen) | Aktion an einer Karte oder für einen Stapel | Frage und Antwort der Karte, Fragen ihrer vorhandenen Varianten | eine Umformulierung von Frage und Antwort | Variante an der Karte, falls neu und Karte unverändert |
+| [Kartenvariante](#kartenvarianten-erzeugen) | Aktion an einer Karte oder für einen Stapel | Frage und Antwort, Lückentext oder Frage und Optionen der Karte, Fragen ihrer vorhandenen Varianten | eine Umformulierung oder die Meldung „nicht umformulierbar“ | Variante an der Karte, falls neu und Karte unverändert |
 | [Zusammenfassung](#ki-zusammenfassung) | Erstellen einer Fassung | lesbare Inhalte des Stapels, optional eine Quelle, die Wünsche als getrennter Auftrag | Abschnitte, Stichpunkte, Belege, Querbezüge | ungespeicherter Entwurf; den Text baut die App |
 
 ### KI hilft
@@ -641,13 +638,17 @@ Eine Lernhilfe zu genau der Karte, die gerade aufgedeckt ist.
 
 Eine Variante fragt denselben Inhalt mit anderer Formulierung ab.
 
-- Varianten gibt es nur für Karten mit Frage und Antwort; Lückentexte, Auswahlfragen, Bildverdeckungen und Karten ohne Fragetext erhalten keine.
-- Die KI erhält Frage und Antwort in begrenzter Länge und die Fragen vorhandener Varianten, damit die neue sich davon unterscheidet. Sie soll die Frage möglichst anders beginnen als das Original; das ist eine Anweisung, keine Prüfung.
-- Gespeichert wird nur, wenn die Karte während der Anfrage unverändert blieb und dieselbe Formulierung noch nicht existiert.
-- Eine Karte kann weitere Varianten erhalten, bis die Höchstzahl aktiver Varianten ihres Stapels erreicht ist.
-- **Für einen Stapel:** Eine Erzeugung bearbeitet nacheinander die ersten bis zu 50 passenden Karten ohne aktive Variante, je Karte eine Variante, und speichert jede sofort. Ein weiterer Start nimmt die nächsten Karten.
-- Die Stapelerzeugung läuft im geöffneten Tab, höchstens eine zur selben Zeit, mit sichtbarem Fortschritt. Abbrechen behält Erzeugtes; ein Fehler, der jede Karte träfe, hält den Lauf an.
-- Varianten aus einer älteren Fassung der Erzeugung lassen sich für einen Stapel nach Rückfrage ersetzen; Karten und Lernstand bleiben.
+- Varianten gibt es für Frage–Antwort-, Lückentext- und Auswahlkarten; Bildverdeckungen und Karten ohne Fragetext erhalten keine.
+- Die KI erhält den Text der Karte in begrenzter Länge und die Fragen vorhandener Varianten, damit die neue sich unterscheidet. Sie soll die Frage möglichst anders beginnen; das ist eine Anweisung, keine Prüfung.
+- Bei diesen Kartenformen prüft CoRe, dass gleich bleibt, was abgefragt wird; eine Variante, die das verletzt, wird abgewiesen, auch nach eigener Bearbeitung:
+- **Lückentext:** dieselbe Lückengruppe mit derselben Lösung; andere Lücken stehen als Text, die Lösung nie im übrigen Text.
+- **Eingetippte Antwort:** Die Antwort bleibt zeichengleich, und auch die Variante wird eingetippt.
+- **Auswahl:** dieselben Optionen, jede gleich richtig oder falsch, ohne gewonnene oder verlorene Verneinung; die Variante hat eine eigene feste Reihenfolge, bearbeitbar ist nur die Frage. Karten mit zu langem Text, weniger als zwei oder mehr als zehn Optionen erhalten keine Varianten.
+- Ergibt eine Karte keinen erkennbaren Sinn oder braucht sie privaten Kontext, meldet die KI sie als nicht umformulierbar, statt eine Deutung zu erfinden; es entsteht keine Variante.
+- Eine Karte erhält Varianten bis zur Höchstzahl aktiver Varianten ihres Stapels. Gespeichert wird nur, wenn sie während der Anfrage unverändert blieb und die Formulierung neu ist.
+- **Für einen Stapel:** Eine Erzeugung bearbeitet nacheinander die ersten bis zu 50 Karten des Stapelbaums mit eingeschaltetem CoRe-Modus ohne aktive Variante, je Karte eine, und speichert jede sofort; ein weiterer Start nimmt die nächsten. Die Stapeleinstellungen nennen, wie viele Karten noch keine Variante haben.
+- Die Stapelerzeugung läuft im geöffneten Tab, höchstens eine zugleich, mit sichtbarem Fortschritt. Abbrechen behält Erzeugtes; ein Fehler, der jede Karte träfe, hält den Lauf mit kurzem Grund an. Nicht umformulierbare und übrige Karten ohne Variante werden getrennt gezählt und lassen sich in der Kartenverwaltung aufrufen.
+- Varianten aus einer älteren Fassung der Erzeugung lassen sich nach Rückfrage ersetzen; Karten und Lernstand bleiben.
 
 ### KI-Zusammenfassung
 
@@ -729,7 +730,7 @@ Prüfungssitzung | normale Sitzung mit der Zielerinnerung der Prüfung
 - Vorschau, Aufgabenliste und Sitzung nutzen dieselben Zielkarten.
 - Prüfungssitzungen sind normale Lernsitzungen mit der Zielerinnerung der Prüfung. Sie gelten ohne die Tageslimits der Stapel und halten die Themenreihenfolge ein.
 - Eine Aufgabe gilt automatisch als erledigt, wenn alle ihre Zielkarten seit dem Einplanen bewertet wurden, in der Wiederholung sind und erst nach diesem Lerntag wieder fällig werden. Wird eine Bewertung zurückgenommen, öffnet sie sich wieder.
-- Von Hand gesetzte Häkchen sind widerrufbar und ändern keinen Lernstand.
+- Von Hand als erledigt markierte Aufgaben lassen sich wieder öffnen und ändern keinen Lernstand.
 - Die Zielkarten gelten für den aktuellen Lerntag; der nächste Lerntag beginnt eine neue Liste.
 - `Heute` zeigt die Aufgaben aller aktiven Prüfungen.
 
@@ -844,7 +845,7 @@ Fassung | im Konto, mehrere je Stapel
 
 - Ausgewählt werden einzelne Karten, Bereiche oder alle Treffer einer Suche.
 - Gemeinsame Aktionen: Stapel ändern, Tags hinzufügen und entfernen, Flagge, Markierung, Aussetzen und Reaktivieren, Zurückstellen, Fälligkeit setzen (ein Datum oder ein Zeitraum, in dem jede Karte einen zufälligen Tag bekommt), Lernstand zurücksetzen, Varianten erzeugen, Löschen.
-- Jede Aktion fragt nach, nennt danach die Zahl der Karten und lässt sich zurücknehmen. Rückgängig ist eine neue Änderung: Karten, die seither anders geändert wurden, behalten ihren neuen Stand.
+- Jede Aktion fragt nach, nennt danach die Zahl der Karten und lässt sich [zurücknehmen](#rückgängig-und-manuelle-ereignisse).
 - Flagge, Aussetzung und Stapel gelten je Karte, Markierung und Tags für den Inhalt.
 - Offline wirken Massenaktionen nur, wenn die betroffenen Karten auf dem Gerät liegen; sonst ändern sie nichts und sagen das.
 - **Suchen und Ersetzen** ersetzt wörtlichen Text in Feldern oder Tags der Auswahl, nie Formatierung oder Links, mit Vorschau. Ein Inhalt, dessen Karten sich dadurch ändern würden (etwa eine andere Lückennummer), bleibt unverändert und wird gezählt. Das Ersetzen gilt als lokale Bearbeitung: Ein Reimport überschreibt den Inhalt nicht mehr, betroffene Varianten veralten, der Lernstand bleibt.
@@ -861,14 +862,14 @@ Fassung | im Konto, mehrere je Stapel
 
 Derselbe Editor öffnet sich aus Kartenverwaltung, Stapelinhalten und Sitzung und führt dorthin zurück.
 
-- **Allgemein** wirkt sofort und ist rückgängig: Flagge, Markierung, Aussetzen, Zurückstellen, Neu planen, Verschieben in einen anderen Stapel, Tags. Der Bereich zeigt alle Karten desselben Inhalts und ähnliche Inhalte.
+- **Sofortaktionen** wirken ohne Speichern und sind rückgängig: Flagge, Markierung, Aussetzen, Zurückstellen, Neu planen, Verschieben in einen anderen Stapel, Tags. Dazu nennt der Editor alle Karten desselben Inhalts und ähnliche Inhalte.
 - `Neu planen` setzt nur die Fälligkeit auf den Beginn des gewählten Lerntags; Gedächtniswerte und Aussetzung bleiben.
-- **Inhalt** ist ein Entwurf, der ausdrücklich gespeichert wird, mit Vorschau wie beim Lernen. Öffnen und Schließen ohne Eingabe ändert nichts, auch nicht an importiertem Text.
+- **Inhaltsänderungen** sind ein Entwurf, der ausdrücklich gespeichert wird, mit Vorschau wie beim Lernen. Öffnen und Schließen ohne Eingabe ändert nichts, auch nicht an importiertem Text.
 - Vor dem Speichern nennt der Editor die Wirkung: neue Karten (etwa eine Rückrichtung), entfallende Karten (etwa eine gelöschte Lücke) und veraltende Varianten. Der Lernstand entfallender Karten wird erst nach Bestätigung gelöscht; neue Abfragen werden neue Karten im Stapel des Inhalts.
 - Eine gespeicherte Inhaltsänderung macht den Inhalt lokal bearbeitet; ein Reimport überschreibt ihn dann nicht mehr.
 - Importierte Inhalte behalten ihr Feldschema und ihre Abfragen; nur eigene Inhalte lassen sich in Lernrichtung, Bausteinen und Masken umbauen.
-- **Varianten** zeigt Original und Varianten nebeneinander, mit Zustand, Aktionen und der Auskunft, ob die Karte die Schwelle erreicht hat ([Varianten verwalten](#varianten-verwalten)).
-- **Lernen** zeigt Fälligkeit, Haltbarkeit, Abrufwahrscheinlichkeit, Schwierigkeit, Wiederholungen, Fehler, Reife und Lernbremse, dazu den Abrufverlauf und alle Bewertungen.
+- **Variantenverwaltung:** Original und Varianten mit Zustand, Aktionen und der Auskunft, ob die Karte die Schwelle erreicht hat ([Varianten verwalten](#varianten-verwalten)).
+- **Lernauskunft:** Fälligkeit, Haltbarkeit, Abrufwahrscheinlichkeit, Schwierigkeit, Wiederholungen, Fehler, Reife und Lernbremse, dazu den Abrufverlauf und alle Bewertungen.
 - `Lernstand zurücksetzen` setzt die Zähler auf null und hebt die Lernbremse auf; die Karte wird wieder wie eine neue gelernt. Der Verlauf bleibt und erhält einen manuellen Eintrag.
 
 ### Karten löschen und duplizieren
@@ -907,7 +908,6 @@ Jede Einstellung gilt für genau einen Bereich.
 - Stapeleinstellungen lassen sich für nur diesen Stapel oder samt Unterstapeln speichern; übertragen werden dabei nur die geänderten Werte.
 - Kontowerte werden nie in Stapel kopiert und von Lernprofilen nicht verändert.
 - Sofort, ohne Entwurf, wirken das Anwenden eines Lernprofils, der manuelle Sync, die Heatmap-Farbe und die Lerneinstellungen einer laufenden Sitzung.
-- Version und Rechtstexte stehen nur in den Einstellungen.
 
 ### Tagesrunde und Lernprofile
 
@@ -1000,7 +1000,7 @@ Gruppe:
 
 ### Rückgängig und manuelle Ereignisse
 
-- Sofortaktionen an Karten lassen sich direkt zurücknehmen. Rückgängig ist eine neue, synchronisierte Änderung; hat sich die Karte inzwischen geändert, entfällt es mit Hinweis.
+- Sofort- und Massenaktionen an Karten lassen sich direkt zurücknehmen. Rückgängig ist eine neue, synchronisierte Änderung: Eine Karte, die sich inzwischen geändert hat, behält ihren neuen Stand, und CoRe nennt das.
 - Neu planen, Lernstand zurücksetzen, Lernbremse setzen oder zurücksetzen, Zurückstellen und ihr Rückgängig sind je genau ein manuelles Ereignis im Verlauf. Es zählt nicht als Lernen und kollidiert nie mit Bewertungen oder Inhaltsänderungen anderer Geräte.
 - **Bewusst nicht:** ein wiederherstellbarer Versionsverlauf von Karteninhalten.
 

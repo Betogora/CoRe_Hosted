@@ -10,7 +10,7 @@ const reviewReturnViews = ["today", "learn", "decks", "exams"] as const;
 export const SETTINGS_SECTIONS = ["start", "konto", "darstellung", "daten", "konflikte", "ueber", "lerntag", "tagesrunde", "scheduler", "flaggen", "fokus"] as const;
 /** Areas of the deck settings dialog; `start` is the area list on narrow screens and `stapel` beside it on wide ones, `neue-karten` is `tagesrunde` focused on the new-card limit. */
 export const DECK_SETTINGS_SECTIONS = ["start", "stapel", "tagesrunde", "neue-karten", "scheduler"] as const;
-const deckContentTabs = ["children", "summary", "quiz", "mind-map", "cards", "source"] as const;
+const deckContentTabs = ["children", "summary", "mind-map", "cards"] as const;
 const cardEditorTabs = ["general", "content", "variants", "study"] as const;
 
 export type AppViewId = MenuViewId;
