@@ -23,7 +23,7 @@ test("deck content retains its scope and editor selection through URL and histor
 });
 
 test("content tabs roundtrip with the selected deck and review return context", () => {
-  for (const tab of ["children", "summary", "quiz", "mind-map", "cards", "source"] as const) {
+  for (const tab of ["children", "summary", "mind-map", "cards"] as const) {
     const route = createViewRoute("kartenstapel", { focusedDeckId: "child", deckContent: true, deckContentTab: tab });
     assert.deepEqual(parseAppRouteFromUrl(appRouteToUrl(route)), route);
     const review = createStudyRoute("child", { returnContext: createReviewReturnContext(route) });
@@ -241,14 +241,14 @@ test("stores app routes in browser history state without losing external state",
 });
 
 test("content tabs survive reload and study return while unsupported tabs are ignored", () => {
-  for (const deckContentTab of ["children", "summary", "mind-map", "cards", "quiz", "source"] as const) {
+  for (const deckContentTab of ["children", "summary", "mind-map", "cards"] as const) {
     const route = createViewRoute("kartenstapel", { focusedDeckId: "deck_a", deckContent: true, deckContentTab });
     assert.deepEqual(parseAppRouteFromUrl(appRouteToUrl(route)), route);
     const review = parseAppRouteFromUrl(appRouteToUrl(createStudyRoute("deck_a", { returnContext: createReviewReturnContext(route) })));
     assert.ok(review.mode === "study");
     assert.deepEqual(reviewReturnContextToViewRoute(review.returnContext), route);
   }
-  const invalid = parseAppRouteFromUrl("/kartenstapel?deck=deck_a&content=1&tab=invalid");
+  const invalid = parseAppRouteFromUrl("/kartenstapel?deck=deck_a&content=1&tab=quiz");
   assert.ok(invalid.mode === "view");
   assert.equal(invalid.deckContentTab, undefined);
   const selected = createViewRoute("kartenstapel", { focusedDeckId: "deck_a", deckContent: true, deckContentTab: "summary", selectedCardId: "card_a" });

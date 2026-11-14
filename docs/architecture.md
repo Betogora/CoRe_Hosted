@@ -20,7 +20,7 @@ Nicht hinein gehört:
 
 Probe: Ein Satz gehört nicht hinein, wenn er falsch wird, sobald man eine Funktion umbenennt oder umbaut, ohne dass sich ein Vertrag ändert. Umsetzungsdetails stehen in Code, Kommentaren und Tests.
 
-Form: Stichpunkte oder Tabellenzeilen, ein Gedanke je Punkt, höchstens 600 Zeichen. Eine geänderte Regel ersetzt die alte, statt sie zu ergänzen. Angepasst wird die Datei nur bei geändertem Eigentümer, geänderter Invariante oder geänderter öffentlicher Schnittstelle. `npm run check:docs` prüft die Länge je Punkt und eine Höchstgröße der Datei, die nur sinken darf (`ARCHITECTURE_LIMITS` in `scripts/generateDocs.ts`).
+Form: Stichpunkte oder Tabellenzeilen, ein Gedanke je Punkt. Eine geänderte Regel ersetzt die alte, statt sie zu ergänzen. Angepasst wird die Datei nur bei geändertem Eigentümer, geänderter Invariante oder geänderter öffentlicher Schnittstelle. `npm run check:docs` prüft eine Höchstgröße der ganzen Datei, die nur sinken darf (`DOC_LIMITS` in `scripts/generateDocs.ts`).
 
 ## Systembild
 
@@ -353,8 +353,10 @@ Befehlsmodule laufen ohne React und entstehen je Arbeitsbereich aus Store, lokal
 
 ### Varianten und Lernhilfe
 
-- Varianten entstehen nur aus den bereinigten Klartexten einer Frage-/Antwort-Karte. Anzahl, Schema, Änderung, Duplikate und Größen werden vor der Mutation geprüft; ein inzwischen geänderter Inhalt verhindert sie.
-- Ändert sich der Text einer behaltenen Karte, markiert die Planung ihre aktiven Varianten als veraltet (`meta.outdated`); eine Neuerzeugung ersetzt sie.
+- Varianten entstehen nur aus der bereinigten Quelle einer Karte (`cardVariantSource`); die Anfrage nennt ihre Art (`basic`, `type-in`, `cloze`, `choice`). Anzahl, Schema, Änderung, Duplikate und Größen werden vor der Mutation geprüft; ein inzwischen geänderter Inhalt verhindert sie.
+- Antwort, Eintippvergleich, Lückenlösung, Options-IDs und Richtigkeit kommen bei der Darstellung immer von der Karte. Eine Auswahl-Variante speichert Stamm und Optionen in `front`/`back` und die umformulierten Optionstexte in `meta.options`. `clozeSyntax.ts` zerlegt Anki-Lücken für Renderer und Vertrag.
+- Meldet das Werkzeug `rephrasable: false`, antwortet die Route mit `not_rephrasable` (422), und es entsteht keine Variante.
+- Ändert sich der Text einer behaltenen Karte oder bringt ein Reimport geänderten Paketinhalt, markiert die Planung ihre aktiven Varianten als veraltet (`meta.outdated`); eine Neuerzeugung ersetzt sie.
 - `aiCardHelp.ts` bildet den Kartentext der Lernhilfe: Quellenfelder bleiben lokal, eine Lücke verdeckt nur sich selbst, Bildverdeckungen erhalten keine Hilfe.
 
 ### Karten aus einer Quelle
