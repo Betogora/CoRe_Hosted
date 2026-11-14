@@ -15,7 +15,7 @@ interface ColorWheelPosition { hue: number; intensity: number }
 // Exact BengtsToolBox values without a CoRe geometry token: popover radius, inner shadow and the selection ring.
 const TOOLBOX_INNER_SHADOW = "inset 0 2px 4px 0 rgb(0 0 0 / 0.05)";
 const TOOLBOX_POPOVER_RADIUS = "12px";
-const TOOLBOX_SELECTED_RING = "0 0 0 2px var(--core-surface), 0 0 0 4px color-mix(in srgb, var(--core-text) 70%, transparent), var(--core-shadow-soft)";
+const TOOLBOX_SELECTED_RING = "0 0 0 2px var(--core-surface), 0 0 0 4px color-mix(in srgb, var(--core-text) 70%, transparent)";
 
 function colorFromWheelPosition({ hue, intensity }: ColorWheelPosition) {
   return hsvToHex({ hue, saturation: clampNumber(intensity, 0, 1), value: 1 });
@@ -161,7 +161,7 @@ export function ColorPicker({
         type="button"
         aria-label={ariaLabel}
         disabled={disabled}
-        className={`size-button shrink-0 rounded-control border border-core-border bg-core-canvas p-0.5 shadow-soft transition-colors hover:border-core-action disabled:pointer-events-none disabled:opacity-50 ${className}`}
+        className={`size-button shrink-0 rounded-control border border-core-border bg-core-canvas p-0.5 transition-colors hover:border-core-action disabled:pointer-events-none disabled:opacity-50 ${className}`}
       >
         <span aria-hidden="true" className="block size-full rounded-marker border border-core-border" style={{ backgroundColor: shownColor, boxShadow: TOOLBOX_INNER_SHADOW }} />
       </button>
@@ -252,7 +252,7 @@ export function ColorPicker({
                   aria-checked={selected}
                   aria-label={`Farbe ${presetColor.toUpperCase()}`}
                   className={`size-7 min-h-0 !min-w-0 rounded-round transition-transform ${selected ? "" : "hover:scale-110"}`}
-                  style={{ backgroundColor: presetColor, boxShadow: selected ? TOOLBOX_SELECTED_RING : "var(--core-shadow-soft)" }}
+                  style={{ backgroundColor: presetColor, boxShadow: selected ? TOOLBOX_SELECTED_RING : undefined }}
                   onMouseDown={tool ? (event) => event.preventDefault() : undefined}
                   onClick={() => {
                     applyColor(presetColor);

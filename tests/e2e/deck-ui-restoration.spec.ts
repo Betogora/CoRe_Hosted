@@ -112,7 +112,7 @@ test("Stapelinhalte behalten aktuelle Reiter und Lernaktion ohne zusätzliche K�
 
 test("Escape schließt einen Dialog auch nach einem Klick auf seinen Titel", async ({ page }) => {
   await page.goto("/docs/ui-elements.html#dialogs");
-  await page.getByRole("searchbox", { name: "Katalog durchsuchen", exact: true }).fill("Dialog-Familie");
+  await page.getByRole("searchbox", { name: "Katalog durchsuchen", exact: true }).fill("Dialoge");
   await page.getByRole("button", { name: "Löschdialog öffnen", exact: true }).click();
   const dialog = page.getByRole("dialog", { name: "Stapel löschen?", exact: true });
   await dialog.getByRole("heading", { name: "Stapel löschen?", exact: true }).click();

@@ -9,7 +9,7 @@ import { buildSrcdoc } from "./presentationFrame.ts";
 import { colorContrast, ensureTextContrast, hexToHsv, resolveCssColor } from "./colorMath.ts";
 
 /** Semantic tokens copied into the card frame as `--core-<name>`. */
-export const NOTE_THEME_COLORS = ["surface", "surface-muted", "text", "text-muted", "border", "border-interactive", "success", "success-surface", "danger", "danger-surface", "learning-goal-achieved"] as const;
+export const NOTE_THEME_COLORS = ["surface", "surface-muted", "text", "text-muted", "border", "border-interactive", "success", "success-surface", "danger", "danger-surface"] as const;
 
 export interface NotePresentationTheme {
   mode: CoreTheme;
@@ -228,7 +228,7 @@ const APP_PART_CSS = `
   .core-typed-comparison p{display:grid;gap:.125rem;margin:0}
   .core-typed-label{color:var(--core-text-muted);font-size:.75rem;font-weight:600}
   .core-typed-value{font-size:1.125rem;font-weight:600;letter-spacing:.02em}
-  .typed-correct{color:var(--core-learning-goal-achieved)}
+  .typed-correct{color:var(--core-success)}
   .typed-wrong{border-radius:.2em;background:color-mix(in srgb,var(--core-danger) 14%,transparent);color:var(--core-text);text-decoration:line-through 1.5px var(--core-danger)}
   .typed-missing{text-decoration:underline 2px var(--core-danger);text-underline-offset:.2em}
   .typed-empty{color:var(--core-text-muted);font-weight:400;font-style:italic}

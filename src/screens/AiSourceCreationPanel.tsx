@@ -6,7 +6,7 @@ import {
   aiSourceFileError, createAiSourceCreationDraft, describeAiSourceSettings, suggestSourceDeckName, validateAiSourceCreation,
   type AiSourceSettings,
 } from "../aiSourceCreation.ts";
-import { ActionButton, IconButton } from "../ui/actionUi.tsx";
+import { ActionButton, Disclosure, IconButton } from "../ui/actionUi.tsx";
 import { CoreSegmentedControl, SoftPanel } from "../ui/coreUi.tsx";
 import { StatusMessage } from "../ui/feedbackUi.tsx";
 import { CoreCheckbox, CoreRadio, CoreSwitch } from "../ui/formControls.tsx";
@@ -113,7 +113,7 @@ export function AiSourceCreationPanel({ decks, initialTargetDeckId, onDraftState
               </div>
             ))}
           </dl>
-          {draft.sourceMode === "text" ? <details className="min-w-0"><summary className="min-h-control cursor-pointer core-body text-core-action">Quelltext ansehen</summary><p className="mt-2 whitespace-pre-wrap [overflow-wrap:anywhere] core-body text-core-text">{draft.sourceText.trim()}</p></details> : null}
+          {draft.sourceMode === "text" ? <Disclosure summary="Quelltext ansehen"><p className="mt-2 whitespace-pre-wrap [overflow-wrap:anywhere] core-body text-core-text">{draft.sourceText.trim()}</p></Disclosure> : null}
           {!valid ? <StatusMessage tone="warning">{Object.values(errors).filter(Boolean).join(" ")}</StatusMessage> : null}
           <div className="flex flex-wrap gap-3">
             <ActionButton type="button" variant="secondary" icon={ArrowLeft} onClick={() => setReview(false)}>Einstellungen bearbeiten</ActionButton>

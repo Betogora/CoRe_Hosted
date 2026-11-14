@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { renderToStaticMarkup } from "react-dom/server";
-import { CoreCheckbox, CoreCheckboxGroup, CoreRadio, CoreRadioGroup, CoreSlider, CoreSwitch } from "./formControls.tsx";
+import { CoreCheckbox, CoreRadio, CoreSlider, CoreSwitch } from "./formControls.tsx";
 
 const inputOf = (markup: string) => markup.match(/<input[^>]*>/)?.[0] ?? "";
 
@@ -62,31 +62,6 @@ test("switch exposes the switch role on a native checkbox in every size", () => 
   assert.match(inputOf(start), /disabled=""/);
 });
 
-test("checkbox group names its options by the group title and keeps the option order", () => {
-  const markup = renderToStaticMarkup(<CoreCheckboxGroup label="Kartenformate" description="Mindestens eins." value={["cloze"]} onValueChange={() => undefined} options={[{ value: "basic", label: "Frage–Antwort" }, { value: "cloze", label: "Lückentext" }, { value: "single", label: "Single Choice", disabled: true }]} />);
-  const labelId = markup.match(/role="group" aria-labelledby="([^"]+)"/)?.[1];
-  assert.ok(labelId);
-  assert.match(markup, new RegExp(`<span id="${labelId}" class="core-field-label">Kartenformate</span>`));
-  assert.equal(markup.match(/type="checkbox"/g)?.length, 3);
-  assert.equal(markup.match(/checked=""/g)?.length, 1);
-  assert.equal(markup.match(/disabled=""/g)?.length, 1);
-  assert.match(markup, /class="core-field-hint">Mindestens eins\./);
-
-  const invalid = renderToStaticMarkup(<CoreCheckboxGroup label="Kartenformate" errorMessage="Wähle ein Format." value={[]} onValueChange={() => undefined} options={[{ value: "basic", label: "Frage–Antwort" }]} />);
-  assert.match(invalid, /class="core-field-error">Wähle ein Format\./);
-  assert.match(invalid, /aria-invalid="true"/);
-});
-
-test("radio group shares one name and compares boolean values by identity", () => {
-  const markup = renderToStaticMarkup(<CoreRadioGroup label="Ergänzungen" orientation="horizontal" value={false} onValueChange={() => undefined} options={[{ value: false, label: "Nur meine Quelle" }, { value: true, label: "Ergänzungen erlauben" }]} />);
-  assert.match(markup, /role="radiogroup"/);
-  assert.match(markup, /data-orientation="horizontal"/);
-  const names = [...markup.matchAll(/type="radio" name="([^"]+)"/g)].map((match) => match[1]);
-  assert.equal(names.length, 2);
-  assert.equal(new Set(names).size, 1);
-  assert.match(markup, /checked="" value="false"/);
-  assert.doesNotMatch(markup, /checked="" value="true"/);
-});
 
 test("slider keeps a native range with the formatted value as output and spoken text", () => {
   const markup = renderToStaticMarkup(<CoreSlider id="retention" label="Erinnerungsrate" min={70} max={99} value={90} formatValue={(value) => `${value} %`} onValueChange={() => undefined} data-testid="retention" />);

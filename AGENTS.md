@@ -173,8 +173,7 @@ Update documentation when the implemented contract changes:
 
 - All `docs/*.html` files are generated. Update their Markdown or catalog
   sources, run `npm run docs:build`, then `npm run check:docs`. UI work must
-  update the actual component demos in `scripts/uiCatalogDemos.tsx` and any
-  affected local screen examples in `scripts/uiCatalogPatterns.html`; inspect
+  update the actual component demos in `scripts/uiCatalogDemos.tsx`; inspect
   both the catalog and app. Never hand-edit the generated HTML. New exported
   shared UI components require a catalog group and visible demo.
 

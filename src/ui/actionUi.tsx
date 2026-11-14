@@ -92,9 +92,21 @@ export function ShowMoreButton({ expanded, hiddenCount, onToggle, controls, cont
   const Icon = expanded ? ChevronUp : ChevronDown;
   return (
     <button type="button" aria-expanded={expanded} aria-controls={controls} aria-label={context ? `${label}: ${context}` : undefined} onClick={onToggle}
-      className={`core-show-more -ml-1.5 inline-flex items-start gap-1 justify-self-start self-start rounded-inset px-1.5 py-1 text-left core-control-label font-semibold text-core-action transition-colors hover:bg-core-subtle ${className}`.trim()}>
+      className={`${EXPANDER_CLASS} core-control-label justify-self-start self-start ${className}`.trim()}>
       <Icon size={14} className="mt-[0.2em] shrink-0" aria-hidden="true" />{label}
     </button>
+  );
+}
+
+const EXPANDER_CLASS = "core-show-more -ml-1.5 inline-flex items-start gap-1 rounded-inset px-1.5 py-1 text-left font-semibold text-core-action transition-colors hover:bg-core-subtle";
+
+/** Native disclosure whose summary looks like `ShowMoreButton`: action-blue text after a chevron that turns up while open. */
+export function Disclosure({ summary, children, className = "", ...props }: Omit<React.DetailsHTMLAttributes<HTMLDetailsElement>, "children"> & { summary: React.ReactNode; children: React.ReactNode }) {
+  return (
+    <details className={`core-disclosure min-w-0 ${className}`.trim()} {...props}>
+      <summary className={`${EXPANDER_CLASS} core-control-label cursor-pointer list-none [&::-webkit-details-marker]:hidden`}><ChevronDown size={14} className="mt-[0.2em] shrink-0" aria-hidden="true" />{summary}</summary>
+      {children}
+    </details>
   );
 }
 

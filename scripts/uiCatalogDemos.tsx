@@ -24,14 +24,14 @@ import { createStudyHeatmapModelFromCounts } from "../src/studyHeatmapModel.ts";
 import { shiftDayKey } from "../src/learningDay.ts";
 import { createDeckLearningSettingsDraft } from "../src/settingsDraft.ts";
 import { createPomodoroTimer, createPomodoroTimerFromSeconds, pausePomodoroTimer, resumePomodoroTimer, type PomodoroTimer } from "../src/pomodoroTimer.ts";
-import { ActionButton, CrossLinkButton, IconButton, ShowMoreButton } from "../src/ui/actionUi.tsx";
+import { ActionButton, CrossLinkButton, Disclosure, IconButton, ShowMoreButton } from "../src/ui/actionUi.tsx";
 import { ActionDialog, CardMarkButton, CoreIconSegmentedControl, CoreTag, CoreModeControl, CoreSegmentedControl, CoreSlidingTabs, CoreTriStateControl, CoreVerdictControl, EmptyState, PageHeader, SoftPanel, StatTile, type CoreTriState } from "../src/ui/coreUi.tsx";
 import { StatusMessage, useSuccessToast } from "../src/ui/feedbackUi.tsx";
 import { createAccountMediaStore, type AccountMediaStore } from "../src/mediaStore.ts";
 import { CoreSelect, DeckMultiSelect, DeckSelect } from "../src/ui/selectUi.tsx";
 import { CoreTooltip } from "../src/ui/tooltipUi.tsx";
 import { CoreDatePicker } from "../src/ui/CoreDatePicker.tsx";
-import { CoreCheckbox, CoreCheckboxGroup, CoreRadio, CoreRadioGroup, CoreSlider, CoreSwitch } from "../src/ui/formControls.tsx";
+import { CoreCheckbox, CoreRadio, CoreSlider, CoreSwitch } from "../src/ui/formControls.tsx";
 import { FlagDot, FlagPicker } from "../src/ui/flagUi.tsx";
 import { TagInput } from "../src/ui/TagInput.tsx";
 import { ColorPicker } from "../src/ui/ColorPicker.tsx";
@@ -55,7 +55,6 @@ import { CardStudyStateControls } from "../src/ui/CardStudyStateControls.tsx";
 import { StudySettingsOverlay } from "../src/ui/StudySettingsOverlay.tsx";
 import { CardPreviewDialog } from "../src/ui/CardPreviewDialog.tsx";
 import { CardPresentationSurface } from "../src/ui/CardPresentationSurface.tsx";
-import { CardHtml } from "../src/ui/cardMedia.tsx";
 import { RichTextEditor } from "../src/ui/RichTextEditor.tsx";
 import { PdfDocumentViewer } from "../src/ui/PdfDocumentViewer.tsx";
 import { LearningAreaHeader } from "../src/screens/LearningAreaHeader.tsx";
@@ -171,6 +170,7 @@ function ActionsDemo({ section }: { section: string }) {
     </div></Demo>}
     {section === "buttons" && <Demo title="IconButton · normal, destruktiv, destruktiv-dezent und ghost"><div className="catalog-row">{(["secondary", "destructive", "destructive-quiet", "ghost"] as const).map((variant) => <CoreTooltip key={variant} label={variant}><IconButton variant={variant} label={`${variant}: Beispielaktion`} icon={variant.startsWith("destructive") ? Trash2 : Settings} onClick={() => toast("Icon-Aktion ausgeführt.")} /></CoreTooltip>)}</div></Demo>}
     {section === "buttons" && <ShowMoreDemo />}
+    {section === "buttons" && <Demo title="Disclosure · Abschnitt an Ort und Stelle aufklappen"><Disclosure summary="Erledigt (2)"><ul className="mt-2 grid gap-1 core-body text-core-muted line-through"><li>Zusammenfassung lesen · Atmung</li><li>Neue Karten · Niere</li></ul></Disclosure></Demo>}
     {section === "buttons" && <Demo title="CrossLinkButton · weiter und zurück"><div className="catalog-row"><CrossLinkButton onSelect={() => toast("Querlink gewählt.")}>Alle ansehen</CrossLinkButton><CrossLinkButton direction="back" onSelect={() => toast("Zurück gewählt.")}>Erstellen</CrossLinkButton></div></Demo>}
     {section === "tooltips" && <Demo title="CoreTooltip · Text, Wert und Stapel"><div className="catalog-row"><CoreTooltip label="Kurzer Hinweis"><IconButton label="Hinweis anzeigen" icon={Info} /></CoreTooltip><CoreTooltip label="Neu" value="12 Karten" swatchColor="var(--core-learning-status-new)"><span tabIndex={0}>Lernstatus</span></CoreTooltip><CoreTooltip label="Welt-Hauptstädte" deckAppearance={deck.deckSettings.appearance}><span tabIndex={0}>Stapelhinweis</span></CoreTooltip></div></Demo>}
   </>;
@@ -267,7 +267,6 @@ function ChoiceControlsDemo() {
   const [mode, setMode] = useState<CoreMode>("on");
   const [states, setStates] = useState({ plain: false, checked: true, described: true, invalid: false });
   const [forms, setForms] = useState<Array<"basic" | "cloze" | "single" | "multiple">>(["basic", "cloze"]);
-  const [extra, setExtra] = useState(false);
   const [day, setDay] = useState<"normal" | "reduced" | "minimum">("normal");
   const [switches, setSwitches] = useState({ small: false, medium: true, large: false, start: true, described: false });
   const [retention, setRetention] = useState(90);
@@ -286,14 +285,10 @@ function ChoiceControlsDemo() {
         <div className="catalog-row"><CoreCheckbox aria-label="Ohne sichtbare Beschriftung" checked={states.plain} onCheckedChange={(plain) => setStates({ ...states, plain })} /><CoreCheckbox aria-label="In Prüfungsfarbe" accent={{ fill: "var(--core-exam-color-3)", on: "var(--core-exam-on-color)" }} checked /></div>
       </div>
     </Demo>
-    <Demo title="CoreCheckboxGroup">
-      <CoreCheckboxGroup label="Welche Kartenformate möchtest du?" description="Mindestens ein Format." value={forms} onValueChange={setForms} options={[{ value: "basic", label: "Frage–Antwort" }, { value: "cloze", label: "Lückentext" }, { value: "single", label: "Single Choice" }, { value: "multiple", label: "Multiple Choice", disabled: true }]} errorMessage={forms.length ? undefined : "Wähle mindestens ein Kartenformat."} />
-    </Demo>
-    <Demo title="CoreRadio und CoreRadioGroup">
+    <Demo title="CoreRadio · Zustände">
       <div className="grid gap-4">
-        <CoreRadioGroup label="Ergänzungen der KI" value={extra} onValueChange={setExtra} options={[{ value: false, label: "Nur meine Quelle verwenden" }, { value: true, label: "Ergänzungen erlauben und kennzeichnen", description: "Ergänzungen werden deutlich markiert." }]} />
-        <CoreRadioGroup label="Montag" orientation="horizontal" value={day} onValueChange={setDay} options={[{ value: "normal", label: "Normal" }, { value: "reduced", label: "Weniger" }, { value: "minimum", label: "Minimum", disabled: true }]} />
-        <CoreRadioGroup label="Ungültig" value={day} onValueChange={setDay} errorMessage="Bitte eine Stufe wählen." options={[{ value: "normal", label: "Normal" }, { value: "reduced", label: "Weniger" }]} />
+        <div className="grid" role="radiogroup" aria-label="Montag">{(["normal", "reduced", "minimum"] as const).map((level) => <CoreRadio key={level} name="catalog-radio-monday" label={{ normal: "Normal", reduced: "Weniger", minimum: "Minimum" }[level]} description={level === "reduced" ? "Halbe Menge neuer Karten." : undefined} disabled={level === "minimum"} checked={day === level} onCheckedChange={() => setDay(level)} />)}</div>
+        <CoreRadio name="catalog-radio-invalid" label="Ungültig" invalid checked={false} onCheckedChange={() => undefined} />
         <div className="catalog-row" role="radiogroup" aria-label="Dienstag">{(["normal", "reduced", "minimum"] as const).map((level) => <CoreRadio key={level} name="catalog-radio-tuesday" aria-label={`Dienstag: ${level}`} checked={day === level} onCheckedChange={() => setDay(level)} />)}</div>
       </div>
     </Demo>
@@ -442,7 +437,7 @@ function SurfaceDemo() {
       .then(([question, answer]) => { if (active) setSides({ question, answer }); });
     return () => { active = false; };
   }, [fixture]);
-  return <><CardPresentationSurface presentation={sides?.question ?? null} title="Vorderseite" mediaUrls={fixture.mediaUrls} /><CardPresentationSurface presentation={sides?.answer ?? null} title="Rückseite" mediaUrls={fixture.mediaUrls} /><CardPresentationSurface presentation={null} title="Noch keine Karte" loadingLabel="Kartendarstellung wird vorbereitet …" /></>;
+  return <><div className="catalog-two"><CardPresentationSurface presentation={sides?.question ?? null} title="Vorderseite" mediaUrls={fixture.mediaUrls} /><CardPresentationSurface presentation={sides?.answer ?? null} title="Rückseite" mediaUrls={fixture.mediaUrls} /></div><CardPresentationSurface presentation={null} title="Noch keine Karte" loadingLabel="Kartendarstellung wird vorbereitet …" /></>;
 }
 
 function ContentDemo({ section }: { section: string }) {
@@ -462,9 +457,7 @@ function ContentDemo({ section }: { section: string }) {
   }
   const fixture = cardFixture();
   return <>
-    {section === "inhalt" && <Demo title="CardHtml"><CardHtml html='<p>Sanitisiertes <strong>Karten-HTML</strong> mit <em>Hervorhebung</em>.</p>' /></Demo>}
-    {section === "inhalt" && <Demo title="CardPresentationSurface"><SurfaceDemo /></Demo>}
-    {section === "inhalt" && <Demo title="NoteCardContent" wide><StudyDemo /></Demo>}
+    {section === "inhalt" && <Demo title="CardPresentationSurface" wide><SurfaceDemo /></Demo>}
     {section === "dialogs" && <Demo title="CardPreviewDialog"><ActionButton variant="secondary" onClick={() => setPreview(true)}>Kartenvorschau öffnen</ActionButton><CardPreviewDialog note={fixture.note} card={fixture.card} mediaUrls={fixture.mediaUrls} open={preview} onOpenChange={setPreview} /></Demo>}
     {section === "editor" && <Demo title="RichTextEditor" wide><RichTextEditor value={text} onChange={setText} ariaLabel="Beispiel-Karteninhalt" isActive showAllTools clozeActions={{ groupId: 1 }} imageActions={{ mediaUrls, prepare: prepareImage }} /></Demo>}
     {section === "editor" && <Demo title="RichTextEditor · Dokumentwerkzeuge" wide><RichTextEditor value={text} onChange={setText} ariaLabel="Beispiel-Dokument mit Dokumentwerkzeugen" isActive documentTools /></Demo>}
@@ -785,31 +778,30 @@ function OcclusionEditorDemo() {
 }
 
 /** Catalog chapters in the order of the shared UI catalog structure. */
-export type CatalogSectionId = "grundlagen" | "primitive" | "shared" | "fachmuster" | "icons";
+export type CatalogSectionId = "grundlagen" | "primitive" | "shared" | "fachmuster" | "icons" | "inventar" | "karten";
 
 export const DEMO_GROUPS = [
-  { id: "aktionen", section: "primitive", title: "Button", description: "Text-, Icon-, Querlink-, Aktionskarten-, Markierungs- und Bewertungsbuttons.", components: ["ActionButton", "IconButton", "CrossLinkButton", "ShowMoreButton", "CreationActionCard", "CardMarkButton", "CardStudyStateControls"], render: () => <><ActionsDemo section="buttons" /><ControlsDemo section="buttons" /><LearningDemo section="buttons" /></> },
-  { id: "auswahl", section: "primitive", title: "SegmentedControl", description: "Segmente, gleitende Tabs, reine Icon-Auswahl, Dreifach-Schalter und Richtig-falsch-Urteil.", components: ["CoreSegmentedControl", "CoreSlidingTabs", "CoreIconSegmentedControl", "CoreTriStateControl", "CoreVerdictControl"], render: () => <ControlsDemo section="segments" /> },
-  { id: "formulare", section: "primitive", title: "Input- und Select-Familie", description: "Text, Zahl mit Einheit, Passwort, mehrzeilige Eingaben, Select, Datum, Datei, Einstellungszeilen und Lerneinstellungen.", components: ["CoreSelect", "CoreNumberField", "DeckSelect", "DeckMultiSelect", "CoreDatePicker", "FileDropField", "PomodoroTimerControl", "LearningSettingsPanel"], wide: true, render: () => <><FormsDemo section="forms" /><LearningDemo section="forms" /></> },
-  { id: "auswahlfelder", section: "primitive", title: "Checkbox, Radio, Schalter und Schieberegler", description: "Auswahl einzelner und mehrerer Werte, Ein/Aus-Zustände und Werte auf einer Skala.", components: ["CoreCheckbox", "CoreCheckboxGroup", "CoreRadio", "CoreRadioGroup", "CoreSwitch", "CoreModeControl", "CoreSlider"], render: ChoiceControlsDemo },
-  { id: "badges", section: "primitive", title: "Tag", description: "Gemeinsames Tag in fünf Tönen und mit Farbpunkt.", components: ["CoreTag"], render: BadgesDemo },
-  { id: "tooltips", section: "primitive", title: "Tooltip", description: "Hinweise mit Text, Wert oder Stapelidentität.", components: ["CoreTooltip", "CoreTooltipProvider"], render: () => <ActionsDemo section="tooltips" /> },
-  { id: "feedback", section: "primitive", title: "Toaster / StatusMessage", description: "Info, Erfolg, Warnung, Fehler und schließbare Toasts.", components: ["StatusMessage", "SuccessToast", "SuccessToastProvider"], render: () => <FeedbackDemo section="feedback" /> },
-  { id: "progress", section: "primitive", title: "Fortschritt", description: "Tagesfortschritt, Zeitfortschritt sowie bestimmte und unbestimmte Prozessanzeigen.", components: ["DailyReviewProgress", "PomodoroProgress", "VariantGenerationBar"], render: () => <><FeedbackDemo section="progress" /><LearningDemo section="progress" /></> },
-  { id: "dialogs", section: "primitive", title: "Dialog-Familie", description: "Bestätigung, Dialograhmen, Speicherleiste, Kartenvorschau und Lerneinstellungen.", components: ["ActionDialog", "DialogFrame", "SettingsSaveBar", "CardPreviewDialog", "StudySettingsOverlay"], render: () => <><FeedbackDemo section="dialogs" /><StructureDemo section="dialogs" /><ContentDemo section="dialogs" /><LearningDemo section="dialogs" /></> },
+  { id: "aktionen", section: "primitive", title: "Buttons und Aufklapper", description: "Text-, Icon-, Querlink-, Aufklapp-, Aktionskarten-, Markierungs- und Bewertungsbuttons.", components: ["ActionButton", "IconButton", "CrossLinkButton", "ShowMoreButton", "Disclosure", "CreationActionCard", "CardMarkButton", "CardStudyStateControls"], render: () => <><ActionsDemo section="buttons" /><ControlsDemo section="buttons" /><LearningDemo section="buttons" /></> },
+  { id: "auswahl", section: "primitive", title: "Segmentauswahl", description: "Segmente, gleitende Tabs, reine Icon-Auswahl, Dreifach-Schalter und Richtig-falsch-Urteil.", components: ["CoreSegmentedControl", "CoreSlidingTabs", "CoreIconSegmentedControl", "CoreTriStateControl", "CoreVerdictControl"], render: () => <ControlsDemo section="segments" /> },
+  { id: "formulare", section: "primitive", title: "Eingabe- und Auswahlfelder", description: "Text, Zahl mit Einheit, Passwort, mehrzeilige Eingaben, Select, Datum, Datei, Einstellungszeilen und Lerneinstellungen.", components: ["CoreSelect", "CoreNumberField", "DeckSelect", "DeckMultiSelect", "CoreDatePicker", "FileDropField", "PomodoroTimerControl", "LearningSettingsPanel"], wide: true, render: () => <><FormsDemo section="forms" /><LearningDemo section="forms" /></> },
+  { id: "auswahlfelder", section: "primitive", title: "Kontrollkästchen, Optionen und Regler", description: "Auswahl einzelner und mehrerer Werte, Ein/Aus-Zustände und Werte auf einer Skala.", components: ["CoreCheckbox", "CoreRadio", "CoreSwitch", "CoreModeControl", "CoreSlider"], render: ChoiceControlsDemo },
+  { id: "badges", section: "primitive", title: "Etiketten", description: "Gemeinsames Tag in fünf Tönen und mit Farbpunkt.", components: ["CoreTag"], render: BadgesDemo },
+  { id: "tooltips", section: "primitive", title: "Tooltips", description: "Hinweise mit Text, Wert oder Stapelidentität.", components: ["CoreTooltip", "CoreTooltipProvider"], render: () => <ActionsDemo section="tooltips" /> },
+  { id: "feedback", section: "primitive", title: "Statusmeldungen und Toasts", description: "Info, Erfolg, Warnung, Fehler und schließbare Toasts.", components: ["StatusMessage", "SuccessToast", "SuccessToastProvider"], render: () => <FeedbackDemo section="feedback" /> },
+  { id: "progress", section: "primitive", title: "Fortschritt", description: "Tagesfortschritt, Zeitfortschritt sowie bestimmte und unbestimmte Prozessanzeigen.", components: ["DailyReviewProgress", "PomodoroProgress", "VariantGenerationBar"], render: () => <><FeedbackDemo section="progress" /><LearningDemo section="progress" /><ProductViewsDemo kind="import" /></> },
+  { id: "dialogs", section: "primitive", title: "Dialoge", description: "Bestätigung, Dialograhmen, Speicherleiste, Kartenvorschau und Lerneinstellungen.", components: ["ActionDialog", "DialogFrame", "SettingsSaveBar", "CardPreviewDialog", "StudySettingsOverlay"], render: () => <><FeedbackDemo section="dialogs" /><StructureDemo section="dialogs" /><ContentDemo section="dialogs" /><LearningDemo section="dialogs" /></> },
   { id: "tags-flags", section: "primitive", title: "Tags und Flaggen", description: "Tag-Eingabe, Flaggenwähler und Flaggenpunkt.", components: ["TagInput", "FlagPicker", "FlagDot"], render: TagsAndFlagsDemo },
-  { id: "colors", section: "primitive", title: "ColorPicker", description: "Farbfeld oder Werkzeug, Farbkreis und Schnellwahl.", components: ["ColorPicker"], render: () => <ContentDemo section="colors" /> },
-  { id: "flaechen", section: "shared", title: "SoftPanel und EmptyState", description: "Inhaltsflächen und leere Zustände.", components: ["SoftPanel", "EmptyState"], render: () => <FoundationsDemo section="surfaces" /> },
+  { id: "colors", section: "primitive", title: "Farbwahl", description: "Farbfeld oder Werkzeug, Farbkreis und Schnellwahl.", components: ["ColorPicker"], render: () => <ContentDemo section="colors" /> },
+  { id: "flaechen", section: "shared", title: "Flächen und leere Zustände", description: "Inhaltsflächen und leere Zustände.", components: ["SoftPanel", "EmptyState"], render: () => <FoundationsDemo section="surfaces" /> },
   { id: "struktur", section: "shared", title: "Abschnittskopf, Schritte und Reiter", description: "Kopf jeder Fläche, Schrittlinie und Unterstreichungs-Reiter, im Stapelkopf und im Karteneditor.", components: ["SectionHeader", "Steps", "CoreTabs", "CoreTabPanel"], wide: true, render: () => <StructureDemo section="struktur" /> },
-  { id: "headings", section: "shared", title: "PageHeader und LearningAreaHeader", description: "Seitentitel sowie Köpfe von Lernen und Kartenverwaltung.", components: ["PageHeader", "LearningAreaHeader"], render: () => <><FoundationsDemo section="headings" /><NavigationDemo section="headings" /></> },
-  { id: "navigation", section: "shared", title: "AppNavigation und Einstellungsdialog", description: "Responsive Hauptnavigation, CoRe-Wortmarke und der gemeinsame Rahmen der Einstellungsdialoge.", components: ["AppNavigation", "CoreWordmark", "SettingsDialog"], render: () => <><NavigationDemo section="navigation" /><ProductViewsDemo kind="settings" /></> },
-  { id: "stapel", section: "shared", title: "Stapeltabelle, Baum und Menü", description: "Stapelbaum mit seinen Zeilen, Unterstapel und Optionsmenü.", components: ["DeckOptionsMenu", "DeckTree"], wide: true, render: () => <DecksDemo section="stapel" /> },
+  { id: "headings", section: "shared", title: "Seitenköpfe", description: "Seitentitel sowie Köpfe von Lernen und Kartenverwaltung.", components: ["PageHeader", "LearningAreaHeader"], render: () => <><FoundationsDemo section="headings" /><NavigationDemo section="headings" /></> },
+  { id: "navigation", section: "shared", title: "Navigation und Einstellungsdialog", description: "Responsive Hauptnavigation, CoRe-Wortmarke und der gemeinsame Rahmen der Einstellungsdialoge.", components: ["AppNavigation", "CoreWordmark", "SettingsDialog"], render: () => <><NavigationDemo section="navigation" /><ProductViewsDemo kind="settings" /></> },
+  { id: "stapel", section: "shared", title: "Stapelbaum, Menü, Identität und Kartentabelle", description: "Stapelbaum mit seinen Zeilen, Unterstapel, Optionsmenü, Icon und Farbe eines Stapels sowie die Kartentabelle der Kartenverwaltung.", components: ["DeckOptionsMenu", "DeckTree", "DeckAppearanceIcon"], wide: true, render: () => <><DecksDemo section="stapel" /><FoundationsDemo section="symbols" /><ProductViewsDemo kind="decks" /></> },
   { id: "charts", section: "fachmuster", title: "Kennzahlen und Heatmap", description: "Einzelne Kennzahl, Kennzahlzeile und Lern-Heatmap.", components: ["StatTile", "MetricRow", "StudyHeatmap"], wide: true, render: () => <><FoundationsDemo section="charts" /><DecksDemo section="charts" /></> },
-  { id: "inhalt", section: "fachmuster", title: "Karteninhalte", description: "Sanitisiertes HTML, Kartenfläche und Lernkarte. Alle Kartentypen stehen in der eigenen Referenz.", components: ["CardHtml", "CardPresentationSurface", "NoteCardContent"], wide: true, render: () => <ContentDemo section="inhalt" /> },
+  { id: "inhalt", section: "karten", title: "Kartendarstellung", description: "Kartenfläche der Verwaltungsvorschau mit Vorder- und Rückseite.", components: ["CardPresentationSurface", "NoteCardContent"], wide: true, render: () => <ContentDemo section="inhalt" /> },
   { id: "editor", section: "fachmuster", title: "Texteditor und Inhaltsbausteine", description: "Rich-Text-Toolbar und Inhaltsbausteine.", components: ["RichTextEditor", "NoteBlockControls"], wide: true, render: () => <><ContentDemo section="editor" /><NoteBlocksDemo /></> },
   { id: "bildverdeckung-editor", section: "fachmuster", title: "Bildverdeckungs-Editor", description: "Masken zeichnen, gruppieren und den Verdeckungsmodus wählen.", components: ["OcclusionEditor"], wide: true, render: OcclusionEditorDemo },
   { id: "media", section: "fachmuster", title: "PDF-Vorschau", description: "PDF-Vorschau mit Textauswahl.", components: ["PdfDocumentViewer"], wide: true, render: () => <ContentDemo section="media" /> },
-  { id: "symbols", section: "icons", title: "Stapelidentität", description: "Icon und Farbe eines Stapels.", components: ["DeckAppearanceIcon"], render: () => <FoundationsDemo section="symbols" /> },
   { id: "icon-rollen", section: "icons", title: "Häufige Icon-Rollen", description: "Wiederkehrende Aktionen und ihre Lucide-Icons.", components: [], render: IconRolesDemo },
   { id: "brain-mascots", section: "icons", title: "Gehirn-Maskottchen und Motivation", description: "SVG-Maskottchen mit interaktiven Augen und täglicher Lernimpuls.", components: ["BrainMascot", "DailyMotivationWidget"], wide: true, render: () => <><Demo title="BrainMascot"><BrainMascot id="pastell-lernen" interactive /></Demo><Demo title="DailyMotivationWidget"><DailyMotivationWidget now="2026-10-29T12:00:00Z" timeZone="Europe/Berlin" dayStartHour={3} /></Demo></> },
 ] satisfies Array<{ id: string; section: CatalogSectionId; title: string; description: string; components: string[]; wide?: boolean; render: () => React.ReactNode }>;

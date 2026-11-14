@@ -94,7 +94,7 @@ export function SimulatorScreen({ systemNow, offsetMinutes, onOffsetChange }: Si
                 type="button"
                 aria-pressed={offsetMinutes === option.minutes}
                 onClick={() => selectOffset(option.minutes)}
-                className={`min-h-button rounded-control border px-3 core-control-label font-semibold tabular-nums transition active:translate-y-px ${offsetMinutes === option.minutes ? "border-core-action bg-[var(--core-action-soft)] text-core-action" : "border-core-border bg-core-surface text-core-text shadow-soft hover:bg-core-subtle"}`}
+                className={`min-h-button rounded-control border px-3 core-control-label font-semibold tabular-nums transition active:translate-y-px ${offsetMinutes === option.minutes ? "border-core-action bg-[var(--core-action-soft)] text-core-action" : "border-core-border bg-core-surface text-core-text hover:bg-core-subtle"}`}
               >
                 {option.label}
               </button>

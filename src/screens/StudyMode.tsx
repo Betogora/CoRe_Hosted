@@ -528,7 +528,7 @@ export function StudyMode({ shortcutsSuspended = false, deck, decks, notes, answ
                   {showAnswer ? (
                     isCurrentVariant && currentNote ? (
                       <div className="mt-8 grid justify-items-end gap-4" data-testid="review-answer-tools">
-                        <section className="w-full rounded-panel border border-core-border bg-core-surface shadow-soft" data-testid="base-card-reference">
+                        <section className="w-full rounded-panel border border-core-border bg-core-surface" data-testid="base-card-reference">
                           <button type="button" onClick={() => setShowOriginal((value) => !value)} aria-expanded={showOriginal} aria-controls="study-original-card" className="flex min-h-control w-full items-center justify-between gap-3 p-4 text-left sm:px-5">
                             <CoreTag tone="neutral">Originalkarte</CoreTag>
                             <ChevronDown size={18} aria-hidden="true" className={`shrink-0 text-core-muted transition-transform motion-reduce:transition-none ${showOriginal ? "rotate-180" : ""}`} />

@@ -40,7 +40,7 @@ Each exported screen in this folder is a UI module with a small props interface.
 - Keep main `PageHeader` usage compact: eyebrow plus title only. Do not add tab-level subtitles/third lines or decorative right-side header icons; place real actions as normal controls in the screen content.
 - Keep Rich Text, HTML sanitization, import normalization, learning-setting normalization, scheduler intervals and media URL behavior in `richText.ts`, `htmlSafety.ts`, `importService.ts`, `deckSettings.ts`, `scheduler.ts` and `mediaStore.ts`.
 - Update this map when adding, renaming, or moving screens so future agent work starts in the right module.
-- Besondere Produktansichten und lokale UI-Muster in `docs/ui-elements.html` werden über `scripts/uiCatalogDemos.tsx` beziehungsweise `scripts/uiCatalogPatterns.html` gepflegt. Nach Designänderungen `npm run docs:build` und `npm run check:docs` ausführen; erzeugte HTML-Dateien nicht direkt bearbeiten.
+- Besondere Produktansichten und lokale UI-Muster in `docs/ui-elements.html` werden über `scripts/uiCatalogDemos.tsx` gepflegt. Nach Designänderungen `npm run docs:build` und `npm run check:docs` ausführen; erzeugte HTML-Dateien nicht direkt bearbeiten.
 
 - `DeckSummariesPanel.tsx`: lokale Fassungen, KI-Formular und Rich-Text-Editor mit Entwurfsschutz.
 - `SummaryDocumentEditor.tsx`: durchgehende Schreibfläche mit Text-, Stift-, Marker- und Radierwerkzeugen; vorhandene Seitenzeichnungen werden über `summaryDocumentLayout.ts` verlustfrei projiziert. Speichern beim Verlassen besitzt `DeckSummariesPanel`.
