@@ -870,7 +870,7 @@ export function ManualCreationPanel({
             {shouldShowPdfViewer && document ? (
               <PdfDocumentViewer document={document} src={documentObjectUrl} onSelection={applySelection} />
             ) : documentText ? (
-              <div className="max-h-[40rem] min-h-[40rem] overflow-auto rounded-panel border border-core-border bg-core-surface p-4 shadow-soft core-body leading-6 text-core-text" onMouseUp={captureSelection} onKeyUp={captureSelection} tabIndex={0}>
+              <div className="max-h-[40rem] min-h-[40rem] overflow-auto rounded-panel border border-core-border bg-core-surface p-4 core-body leading-6 text-core-text" onMouseUp={captureSelection} onKeyUp={captureSelection} tabIndex={0}>
                 <pre className="whitespace-pre-wrap break-words font-sans">{documentText}</pre>
               </div>
             ) : null}

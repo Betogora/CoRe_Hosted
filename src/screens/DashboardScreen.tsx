@@ -175,7 +175,7 @@ function DailyLearningOverview({
           <div className="dashboard-learning-goal">
             <h2 className="dashboard-learning-goal-title">
               <span className="dashboard-learning-goal-count">{goalCount}</span>{" "}
-              <span className={achieved ? "text-[var(--core-learning-goal-achieved)]" : "text-core-secondary"}>{goalLabel}</span>
+              <span className={achieved ? "text-[var(--core-success)]" : "text-core-secondary"}>{goalLabel}</span>
             </h2>
             <ActionButton variant="primary" icon={Play} disabled={primaryDisabled} onClick={activatePrimaryAction}>
               {primaryLabel}

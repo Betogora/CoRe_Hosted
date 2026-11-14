@@ -620,12 +620,12 @@ export function StatisticsScreenContent({ dataset: { decks, projection: statisti
                 <th scope="row">
                   <button type="button" className="min-h-control w-full text-left font-semibold text-core-text [overflow-wrap:anywhere] hover:text-core-action" aria-label={`Stapelinhalte öffnen: ${row.name}`} onClick={() => onNavigate("kartenstapel", { focusedDeckId: row.id, deckContent: true })}>{row.name}</button>
                 </th>
-                <td><StatTile size="compact" variant="plain" label="Reviews" value={formatNumber(row.reviewCount)} /></td>
-                <td><StatTile size="compact" variant="plain" label="Erfolg" value={formatPercent(row.successPercent)} /></td>
-                <td><StatTile size="compact" variant="plain" label="Nochmal" value={formatPercent(row.againPercent)} /></td>
-                <td><StatTile size="compact" variant="plain" label="Erinnerung" value={formatPercent(row.trueRetentionPercent)} /></td>
-                <td><StatTile size="compact" variant="plain" label="Ø Intervall" value={`${formatNumber(row.averageIntervalDays, 1)} T.`} /></td>
-                <td><StatTile size="compact" variant="plain" label="Nächste Fälligkeit" value={formatDate(row.nextDueAt, timeZone, dayStartHour)} /></td>
+                <td><StatTile label="Reviews" value={formatNumber(row.reviewCount)} /></td>
+                <td><StatTile label="Erfolg" value={formatPercent(row.successPercent)} /></td>
+                <td><StatTile label="Nochmal" value={formatPercent(row.againPercent)} /></td>
+                <td><StatTile label="Erinnerung" value={formatPercent(row.trueRetentionPercent)} /></td>
+                <td><StatTile label="Ø Intervall" value={`${formatNumber(row.averageIntervalDays, 1)} T.`} /></td>
+                <td><StatTile label="Nächste Fälligkeit" value={formatDate(row.nextDueAt, timeZone, dayStartHour)} /></td>
               </tr>
             ))}</tbody>
           </table>

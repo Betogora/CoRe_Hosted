@@ -82,7 +82,7 @@ export function CardPreviewDialog({
 
         <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain bg-core-canvas p-3 sm:p-6">
           <div className="mx-auto grid min-h-full w-full max-w-5xl place-items-center">
-            <div className="core-card-preview-stage core-study-card flex min-h-[56vh] w-full flex-col justify-center rounded-panel border border-core-border bg-core-surface px-4 py-6 shadow-soft sm:px-8 sm:py-10">
+            <div className="core-card-preview-stage core-study-card flex min-h-[56vh] w-full flex-col justify-center rounded-panel border border-core-border bg-core-surface px-4 py-6 sm:px-8 sm:py-10">
               {note && card ? (
                 <div ref={answerContentRef} tabIndex={-1} className="min-w-0 outline-none">
                   <NoteCardContent key={round} note={note} card={card} surface="preview" mediaUrls={mediaUrls} revealed={side === "answer"} onReveal={() => setSide("answer")} />

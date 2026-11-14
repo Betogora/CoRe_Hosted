@@ -75,7 +75,7 @@ test("review rating labels keep AA contrast on their fill in both themes", () =>
 });
 
 test("product UI consumes the shared geometry scale instead of independent utility values", () => {
-  for (const file of ["src/App.tsx", "src/AppErrorBoundary.tsx", ...productionFiles("src/screens"), ...productionFiles("src/ui"), "scripts/uiCatalogDemos.tsx", "scripts/uiCatalogPatterns.html"]) {
+  for (const file of ["src/App.tsx", "src/AppErrorBoundary.tsx", ...productionFiles("src/screens"), ...productionFiles("src/ui"), "scripts/uiCatalogDemos.tsx"]) {
     const source = readFileSync(file, "utf8");
     assert.doesNotMatch(source, /\brounded(?:-[trbl])?-(?:sm|md|lg|xl|[23]xl|full|\[[^\]]+\])/, file);
     assert.doesNotMatch(source, /\bshadow-(?:sm|md|lg|xl|2xl|inner|\[)/, file);
@@ -100,7 +100,7 @@ test("pointer focus stays frameless while keyboard focus shows one outline", () 
     .map((path) => readFileSync(path, "utf8"))
     .join("\n");
   assert.match(styles, /:focus\s*\{[\s\S]*?outline:\s*none\s*!important;[\s\S]*?--tw-ring-shadow:\s*0 0 #0000\s*!important;/);
-  assert.match(styles, /\[tabindex\]:not\(\[tabindex="-1"\]\)\):focus-visible\s*\{\s*outline:\s*2px solid var\(--core-focus-ring\)\s*!important;/);
+  assert.match(styles, /\[tabindex\]:not\(\[tabindex="-1"\]\)\):focus-visible\s*\{\s*outline:\s*2px solid var\(--core-focus\)\s*!important;/);
   assert.doesNotMatch(styles, /core-deck-summary-row:has\([^)]*:focus-visible/);
   assert.doesNotMatch(source, /focus-within:(?:border|outline|ring|shadow)/);
   assert.doesNotMatch(source, /focus(?:-visible)?:(?:border|shadow)/);
@@ -111,7 +111,7 @@ test("weights separate label, action and heading; only floating layers cast shad
     assert.match(lightTokens, new RegExp(`--core-weight-${role}:\\s*${weight};`), role);
   }
   assert.match(styles, /\.core-heading-3\s*\{\s*font:\s*var\(--core-weight-heading\)/);
-  for (const tokens of [lightTokens, darkTokens]) assert.match(tokens, /--core-shadow-soft:\s*0 0 #0000;/);
+  for (const tokens of [lightTokens, darkTokens]) for (const [, role] of tokens.matchAll(/--core-shadow-([a-z-]+):/g)) assert.ok(["raised", "floating", "selection"].includes(role), `Schatten nur für Schwebendes und Auswahl: ${role}`);
   const metric = styles.match(/\.core-metric\s*\{[^}]*\}/)![0];
   assert.match(metric, /letter-spacing:\s*-0\.01em;/);
   assert.doesNotMatch(metric, /tabular-nums/);

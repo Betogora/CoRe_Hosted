@@ -33,6 +33,22 @@ function sourceFiles(directory: string): string[] {
   }).sort();
 }
 
+type DocLimit = { file: string; maxBytes: number };
+
+/** Feste Obergrenze je ganze Datei; Platz entsteht durch Verdichten, nicht durch Anheben. */
+export const DOC_LIMITS: readonly DocLimit[] = [
+  { file: "docs/architecture.md", maxBytes: 35_000 },
+  { file: "docs/specs.md", maxBytes: 81_000 },
+  { file: "README.md", maxBytes: 2_500 },
+];
+
+export function docLimitFailures(read: (file: string) => string, limits: readonly DocLimit[] = DOC_LIMITS) {
+  return limits.flatMap(({ file, maxBytes }) => {
+    const bytes = Buffer.byteLength(read(file));
+    return bytes > maxBytes ? [`${file}: ${bytes} Bytes, Obergrenze ${maxBytes}; Text verdichten oder an seinen Eigentümer verlagern statt die Grenze anzuheben.`] : [];
+  });
+}
+
 export function codeFootprint() {
   const groups = [
     { label: "Heute", files: ["DashboardScreen"], color: "var(--core-learning-status-learned)" },
@@ -58,9 +74,9 @@ export function codeFootprintMarkup() {
   const footprint = codeFootprint();
   const number = (value: number) => value.toLocaleString("de-DE");
   const tiles = renderToStaticMarkup(React.createElement("div", { className: "docs-code-stats" },
-    React.createElement(StatTile, { size: "compact", label: "Bildschirmcode", value: number(footprint.screens) }),
-    React.createElement(StatTile, { size: "compact", label: "Gemeinsamer Code & API", value: number(footprint.shared) }),
-    React.createElement(StatTile, { size: "compact", label: "Quelldateien", value: number(footprint.files) }),
+    React.createElement(StatTile, { label: "Bildschirmcode", value: number(footprint.screens) }),
+    React.createElement(StatTile, { label: "Gemeinsamer Code & API", value: number(footprint.shared) }),
+    React.createElement(StatTile, { label: "Quelldateien", value: number(footprint.files) }),
   ));
   const rows = footprint.areas.map((area) => `<tr><th scope="row"><span class="docs-code-dot" style="background:${area.color}" aria-hidden="true"></span>${area.label}</th><td>${number(area.lines)}</td><td>${(area.lines / footprint.screens * 100).toLocaleString("de-DE", { maximumFractionDigits: 1 })} %</td></tr>`).join("");
   return `${tiles}<div class="docs-code-chart"><div class="docs-table-scroll" tabindex="0" role="region" aria-label="Codeumfang je Produktbereich"><table><thead><tr><th>Bereich</th><th>Zeilen</th><th>Anteil</th></tr></thead><tbody>${rows}</tbody></table></div></div><p class="docs-source">Beim Erzeugen gemessen: nichtleere Zeilen in <code>src/</code> und <code>api/</code> (TS/TSX) sowie <code>src/styles.css</code>. Ohne Tests, Typdeklarationen, generierte Datenbanktypen, Dokumentation und Fremdcode. Bereichszuordnung nach Bildschirmdateien in <a href="../src/screens/README.md">der Screen-Landkarte</a>; übriger Code zählt gemeinsam. Enthält Kommentare und misst weder Laufzeit noch Komplexität.</p>`;
@@ -185,7 +201,6 @@ export function createCatalogData(): Omit<CatalogData, "sourceHash"> {
     typography: [...typography].map(([name, declarations]) => ({ name, declarations })),
     cssClasses: [...classes].map((name) => ({ name, files: sources.filter(({ source }) => new RegExp(`\\b${name}\\b`).test(source)).map(({ file }) => file) })).sort((a, b) => a.name.localeCompare(b.name)),
     icons: [...iconFiles].sort(([a], [b]) => a.localeCompare(b)).map(([name, used]) => ({ name, files: [...used], svg: renderToStaticMarkup(React.createElement(Reflect.get(lucide, name) as LucideIcon, { size: 24, "aria-hidden": true })) })),
-    patterns: Object.fromEntries([...text("scripts/uiCatalogPatterns.html").matchAll(/<template data-family="([a-z]+)">([\s\S]*?)<\/template>/g)].map(([, family, html]) => [family, html])),
   };
 }
 
@@ -269,7 +284,7 @@ export async function synchronizeDocs(mode: "write" | "check") {
   await synchronizeBrainLogo(mode);
   const inputs = catalogInputHash();
   const data: CatalogData = { ...createCatalogData(), sourceHash: inputs.slice(0, 16) };
-  const raw = sourceFiles("src").map(text).join("\n") + text("scripts/uiCatalog.tsx") + text("scripts/uiCatalogDemos.tsx") + text("scripts/generateDocs.ts") + text("scripts/docsSite.ts") + Object.values(data.patterns).join("\n");
+  const raw = sourceFiles("src").map(text).join("\n") + text("scripts/uiCatalog.tsx") + text("scripts/uiCatalogDemos.tsx") + text("scripts/generateDocs.ts") + text("scripts/docsSite.ts");
   let styles = (await postcss([tailwindcss({ ...tailwindConfig, content: [{ raw, extension: "tsx" }] }), autoprefixer]).process(text("src/styles.css"), { from: path.join(root, "src/styles.css") })).css;
   const fonts = new Map(readdirSync(path.join(root, "public/fonts"), { recursive: true, encoding: "utf8" })
     .filter((file) => file.endsWith(".woff2"))
@@ -293,7 +308,7 @@ export async function synchronizeDocs(mode: "write" | "check") {
     const content = `<div id="catalog-root"></div><script id="catalog-data" type="application/json">${JSON.stringify(data).replaceAll("<", "\\u003c")}</script>`;
     results.set(file, htmlPage(file, content, css, `${viewer}\n${runtimeHeader(inputs, runtime)}${runtime}${RUNTIME_END}`).replace("<body>", `<body data-catalog="${catalog}">`));
   }
-  const failures: string[] = [];
+  const failures = docLimitFailures(text);
   for (const [file, generated] of results) {
     const current = await readFile(path.join(docs, file), "utf8").catch(() => "");
     if (current.replace(/\r\n?/g, "\n") !== generated) {
@@ -301,8 +316,8 @@ export async function synchronizeDocs(mode: "write" | "check") {
       else failures.push(`${file} ist veraltet`);
     }
   }
-  const uiAnchors = new Set([...[...text("scripts/uiCatalog.tsx").matchAll(/\{ id: "([a-z-]+)", (?:nav|section): /g)].map((match) => match[1]), ...DEMO_GROUPS.map((group) => group.id)]);
-  const cardAnchors = new Set([...text("scripts/uiCatalog.tsx").matchAll(/\{ id: "([a-z-]+)", label: /g)].map((match) => match[1]));
+  const uiAnchors = new Set([...[...text("scripts/uiCatalog.tsx").matchAll(/\{ id: "([a-z-]+)", (?:nav|section): /g)].map((match) => match[1]), ...DEMO_GROUPS.filter((group) => group.section !== "karten").map((group) => group.id)]);
+  const cardAnchors = new Set([...[...text("scripts/uiCatalog.tsx").matchAll(/\{ id: "([a-z-]+)", label: /g)].map((match) => match[1]), ...DEMO_GROUPS.filter((group) => group.section === "karten").map((group) => group.id)]);
   const linkSources = new Map([...results].filter(([file]) => file !== "ui-elements.html" && file !== "card-types.html"));
   for (const file of readdirSync(docs).filter((file) => file.endsWith(".md"))) {
     linkSources.set(file, renderMarkdown(text(`docs/${file}`), file));
@@ -316,6 +331,7 @@ export async function synchronizeDocs(mode: "write" | "check") {
       const exists = !anchor || (target === "ui-elements.html" ? uiAnchors.has(anchor) : target === "card-types.html" ? cardAnchors.has(anchor) : results.get(target)!.includes(`id="${anchor}"`));
       if (!exists) failures.push(`${file}: Anker ${href} fehlt`);
     } else if (!existsSync(path.resolve(docs, target || file))) failures.push(`${file}: Ziel ${href} fehlt`);
+    else if (fragment && linkedTarget && linkSources.has(target) && !linkSources.get(target)!.includes(`id="${documentId(target)}--${decodeURIComponent(fragment)}"`)) failures.push(`${file}: Anker ${href} fehlt`);
   }
   if (failures.length) throw new Error(`${failures.join("\n")}\nQuellen korrigieren und npm run docs:build ausführen.`);
   console.log(`Dokumentation ${mode === "write" ? "erzeugt" : "geprüft"}: ${DOC_PAGES.length} Leseseiten, ${data.components.length} Komponenten, ${data.tokens.length} Tokens, ${data.icons.length} Icons.`);

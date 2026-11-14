@@ -223,7 +223,7 @@ export function ExamWeekCalendar({ exams, shown, onToggleExam, capacity, forecas
                   <div className={`absolute right-0 ${block.start < EXAM_DAY_START + 60 ? "top-0" : "bottom-full mb-1"}`}><IconButton label="Lernzeit im Kalender löschen" icon={X} disabled={!editable} onClick={() => removeBlock(block)} /></div>
                   <button type="button" role="slider" aria-label="Ende der Lernzeit ändern" aria-valuemin={block.start + EXAM_SLOT_MINUTES} aria-valuemax={1440} aria-valuenow={end} aria-valuetext={`${formatExamClock(end)}. Ziehen oder Pfeiltasten verlängern oder verkürzen die Lernzeit um 30 Minuten.`} disabled={!editable} className="absolute -bottom-5 left-1/2 flex h-control w-control -translate-x-1/2 touch-none select-none items-center justify-center rounded-control text-core-text disabled:cursor-default disabled:opacity-50 enabled:cursor-ns-resize"
                     {...gestures(false)} onKeyDown={(event) => editByKeyboard(event, block, false)}>
-                    <span aria-hidden="true" className="h-2 w-8 rounded-round border border-core-border-strong bg-core-text shadow-soft" />
+                    <span aria-hidden="true" className="h-2 w-8 rounded-round border border-core-border-strong bg-core-text" />
                   </button>
                 </> : null}
               </div>;
