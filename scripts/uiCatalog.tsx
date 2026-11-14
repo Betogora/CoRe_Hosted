@@ -208,11 +208,12 @@ function Catalog() {
 
 function CardBlocks() {
   const query = useDocsSearch();
-  const visible = CARD_BLOCKS.filter((block) => !query || [block.label, block.description, block.creation, ...block.demos.map((demo) => "case" in demo ? NOTE_CASE_TITLES[demo.case] : demo.title)].join(" ").toLocaleLowerCase("de").includes(query));
-  const visibleGroups = CARD_GROUPS.filter((group) => !query || `${group.title} ${group.description}`.toLocaleLowerCase("de").includes(query));
+  const visible = React.useMemo(() => CARD_BLOCKS.filter((block) => !query || [block.label, block.description, block.creation, ...block.demos.map((demo) => "case" in demo ? NOTE_CASE_TITLES[demo.case] : demo.title)].join(" ").toLocaleLowerCase("de").includes(query)), [query]);
+  const visibleGroups = React.useMemo(() => CARD_GROUPS.filter((group) => !query || `${group.title} ${group.description}`.toLocaleLowerCase("de").includes(query)), [query]);
+  const navigation = React.useMemo(() => [...visible.map((block) => ({ id: block.id, label: block.label })), ...visibleGroups.map((group) => ({ id: group.id, label: group.title }))], [visible, visibleGroups]);
   return <CoreTooltipProvider><SuccessToastProvider><CatalogFrame
     title="Kartenbausteine"
-    navigation={[...CARD_BLOCKS.map((block) => ({ id: block.id, label: block.label })), ...CARD_GROUPS.map((group) => ({ id: group.id, label: group.title }))]}
+    navigation={navigation}
     footer={<>Alle Komponenten der Oberfläche zeigt <a href="ui-elements.html">UI-Elements</a>.</>}
   >
     {visible.length === 0 && !visibleGroups.length ? <p className="catalog-empty" role="status">Keine Kartenbausteine passen zur Suche.</p> : null}
