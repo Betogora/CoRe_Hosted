@@ -141,6 +141,9 @@ scope and gates.
   folder without agreement; read shelved work with `git show <commit>`.
 - The local Supabase stack is shared: before local E2E runs or measurements,
   check for migrations from other work and agree before `db reset`.
+- Repository skills have their only content source in `.agents/skills/`; the
+  same-named `.claude/skills/` entries only point there. A changed
+  `description` is updated in both.
 
 ## Architecture Guidance
 

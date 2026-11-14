@@ -2,34 +2,15 @@
 
 **Stand:** 2026-11-14
 
-Die Specs beschreiben, was CoRe tun soll und warum: je Funktion die Absicht, ihre Regeln und die Entscheidungen, die der Code umsetzt. Wer sie liest, soll das Produkt prüfen können, ohne in den Code zu schauen.
+**CoRe ist ein Lernwerkzeug für alle, die große Stoffmengen über Monate sicher im Kopf behalten müssen, zuerst für Studierende und Auszubildende auf dem Weg zur Prüfung.** Es wiederholt nicht Karten, sondern Inhalte: Gefestigtes Wissen kehrt in neuer Formulierung zurück, damit Verstehen geübt wird statt Wiedererkennen. Ziel ist Wissen, das in der Prüfung abrufbar ist, auch wenn die Frage anders gestellt wird.
 
-## Pflege dieser Datei
-
-Hinein gehört je Funktion:
-
-- **Zweck:** wozu es sie gibt, in einem Satz.
-- **Regeln:** was unter welcher Bedingung geschieht, in fachlichen Begriffen.
-- **Daten:** was gespeichert wird, was erhalten bleibt und was Gerät oder Konto verlässt. Bei KI: was hineingeht, was zurückkommt und was daraus wird.
-- **Entscheidungen:** der gewählte Weg und bewusste Grenzen („Bewusst nicht“), mit Verweis auf das ADR, wenn es eines gibt.
-- **Zahlen** nur, wenn sie das Verhalten fachlich bestimmen (Schwellen, Standards, Obergrenzen).
-
-Nicht hinein gehört:
-
-- **Oberfläche:** Bedienelemente, Beschriftungen, Anordnung, Maße, Farben, Breakpoints, Tastenkürzel, Gesten und Eingabegeräte. Das steht im Code und im [UI-Katalog](ui-elements.html).
-- **Zustände einzelner Ansichten** (Laden, leer, Fehler, Bestätigung) und Meldungstexte. Dafür gelten einmal die Regeln unter [Rückmeldungen und Zuverlässigkeit](#rückmeldungen-und-zuverlässigkeit).
-- **Technik:** Module, Tabellen, Routen und Protokolle stehen in [`architecture.md`](architecture.md), Messwerte und Budgets in [`test-portfolio.md`](test-portfolio.md), Offenes in [`todo.md`](todo.md).
-- **Vollständige Aufzählungen,** die die App selbst zeigt (Suchsyntax, Tastenkürzel, Formatlisten).
-
-Probe: Ein Satz gehört hinein, wenn er nach einer vollständigen Neugestaltung der Oberfläche unverändert gälte und eine Abweichung davon ein fachlicher Fehler wäre.
-
-Form: Stichpunkte, ein Gedanke je Punkt. Eine neue Regel ersetzt die alte, statt sie zu ergänzen. Wo Funktionen logisch voneinander abhängen, steht ein Schaubild als `schaubild`-Block direkt beim Text und wird mit ihm geändert (Schreibweise in [`README.md`](README.md#pflege)). In Schaubildern sind KI-Schritte blau, Ergebnisse grün markiert.
+Die Specs beschreiben, was CoRe tun soll und warum: je Funktion die Absicht, ihre Regeln und die Entscheidungen, die der Code umsetzt. Wer sie liest, soll das Produkt prüfen können, ohne in den Code zu schauen. Wie die Datei gepflegt wird, steht [am Ende](#pflege-dieser-datei).
 
 ## 1. Produkt
 
-### Vision und Zielgruppen
+### Zielgruppen
 
-CoRe startet Anki-kompatibel, hält das Lernen ruhig und behandelt jede planbare Karte als eigene Lerneinheit. Gelernt wird der Inhalt, nicht Layout, Wortlaut oder Lückenposition.
+CoRe startet Anki-kompatibel, hält das Lernen ruhig und behandelt jede planbare Karte als eigene Lerneinheit.
 
 - Für Studierende und Auszubildende mit großen, langfristig gepflegten Kartenbeständen.
 - Für Anki-Nutzer, die vorhandene Stapel weiterverwenden wollen.
@@ -1053,3 +1034,24 @@ Der Beta-Kern gilt als erfüllt, wenn:
 8. automatisierte Tests konkrete Produkt- und Sicherheitsverträge schützen, ohne Testanzahl als Produktabnahme zu behandeln.
 
 Offene Gates und Nachweise stehen ausschließlich in [`todo.md`](todo.md).
+
+## Pflege dieser Datei
+
+Hinein gehört je Funktion:
+
+- **Zweck:** wozu es sie gibt, in einem Satz.
+- **Regeln:** was unter welcher Bedingung geschieht, in fachlichen Begriffen.
+- **Daten:** was gespeichert wird, was erhalten bleibt und was Gerät oder Konto verlässt. Bei KI: was hineingeht, was zurückkommt und was daraus wird.
+- **Entscheidungen:** der gewählte Weg und bewusste Grenzen („Bewusst nicht“), mit Verweis auf das ADR, wenn es eines gibt.
+- **Zahlen** nur, wenn sie das Verhalten fachlich bestimmen (Schwellen, Standards, Obergrenzen).
+
+Nicht hinein gehört:
+
+- **Oberfläche:** Bedienelemente, Beschriftungen, Anordnung, Maße, Farben, Breakpoints, Tastenkürzel, Gesten und Eingabegeräte. Das steht im Code und im [UI-Katalog](ui-elements.html).
+- **Zustände einzelner Ansichten** (Laden, leer, Fehler, Bestätigung) und Meldungstexte. Dafür gelten einmal die Regeln unter [Rückmeldungen und Zuverlässigkeit](#rückmeldungen-und-zuverlässigkeit).
+- **Technik:** Module, Tabellen, Routen und Protokolle stehen in [`architecture.md`](architecture.md), Messwerte und Budgets in [`test-portfolio.md`](test-portfolio.md), Offenes in [`todo.md`](todo.md).
+- **Vollständige Aufzählungen,** die die App selbst zeigt (Suchsyntax, Tastenkürzel, Formatlisten).
+
+Probe: Ein Satz gehört hinein, wenn er nach einer vollständigen Neugestaltung der Oberfläche unverändert gälte und eine Abweichung davon ein fachlicher Fehler wäre.
+
+Form: Stichpunkte, ein Gedanke je Punkt. Eine neue Regel ersetzt die alte, statt sie zu ergänzen. Wo Funktionen logisch voneinander abhängen, steht ein Schaubild als `schaubild`-Block direkt beim Text und wird mit ihm geändert (Schreibweise in [`README.md`](README.md#pflege)). In Schaubildern sind KI-Schritte blau, Ergebnisse grün markiert.
