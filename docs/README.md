@@ -21,7 +21,7 @@ Gerüst der Katalog-Browsertests.
 | Frage | Quelle | Gehört nicht hinein |
 | --- | --- | --- |
 | Was soll das Produkt tun und warum? | [`specs.md`](specs.md) | Oberflächendetails, Architektur, APIs, Messwerte, Runbooks, Roadmap ([Pflegeregel](specs.md#pflege-dieser-datei)) |
-| Wie ist es gebaut, wem gehört was? | [`architecture.md`](architecture.md) | Produktstatus, Nachweise |
+| Wie ist es gebaut, wem gehört was? | [`architecture.md`](architecture.md) | Umsetzungsdetails (stehen in Code, Kommentaren und Tests), Produktregeln, Nachweise ([Pflegeregel](architecture.md#pflege-dieser-datei)) |
 | Was ist heute da, was fehlt? | [`status.md`](status.md) | Verhalten (steht in den Specs), Planung |
 | Was ist warum entschieden? | [`decisions.md`](decisions.md) | offene Schritte, Layoutregeln |
 | Was ist als Nächstes zu tun? | [`todo.md`](todo.md) | Erledigtes |
@@ -56,6 +56,9 @@ Technische Einstiege außerhalb von `docs/`:
   `Folge:` (mit Pfeilen) oder `Gruppe:` (nebeneinander), dazwischen `Pfeil:` nach unten. Ein Kasten ist
   `Titel | Detail`, wahlweise mit Ton davor (`[primär]`, `[erfolg]`, `[warnung]`, `[gefahr]`, `[info]`);
   `-> Text` beschriftet den nächsten Pfeil einer Folge.
+- `architecture.md` ändert sich nur mit einem Eigentümer, einer Invariante
+  oder einer öffentlichen Schnittstelle; `npm run check:docs` begrenzt ihre
+  Größe (nur sinkend) und die Länge je Absatz.
 - Erledigtes verschwindet aus `todo.md`; Details stehen in Commit und Pull
   Request, Production- und Datenbankschritte als Betriebsnachweis in `history.md`.
 - Offene Gestaltungsvarianten werden per `visual-ab-review` als temporäre

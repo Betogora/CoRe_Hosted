@@ -7974,7 +7974,7 @@ Gerüst der Katalog-Browsertests.</p>
 <tr>
 <td>Wie ist es gebaut, wem gehört was?</td>
 <td><a href="architecture.md"><code>architecture.md</code></a></td>
-<td>Produktstatus, Nachweise</td>
+<td>Umsetzungsdetails (stehen in Code, Kommentaren und Tests), Produktregeln, Nachweise (<a href="architecture.md#pflege-dieser-datei">Pflegeregel</a>)</td>
 </tr>
 <tr>
 <td>Was ist heute da, was fehlt?</td>
@@ -8046,6 +8046,9 @@ ein technischer Check ersetzt das nicht.</li>
 <code>Folge:</code> (mit Pfeilen) oder <code>Gruppe:</code> (nebeneinander), dazwischen <code>Pfeil:</code> nach unten. Ein Kasten ist
 <code>Titel | Detail</code>, wahlweise mit Ton davor (<code>[primär]</code>, <code>[erfolg]</code>, <code>[warnung]</code>, <code>[gefahr]</code>, <code>[info]</code>);
 <code>-&gt; Text</code> beschriftet den nächsten Pfeil einer Folge.</li>
+<li><code>architecture.md</code> ändert sich nur mit einem Eigentümer, einer Invariante
+oder einer öffentlichen Schnittstelle; <code>npm run check:docs</code> begrenzt ihre
+Größe (nur sinkend) und die Länge je Absatz.</li>
 <li>Erledigtes verschwindet aus <code>todo.md</code>; Details stehen in Commit und Pull
 Request, Production- und Datenbankschritte als Betriebsnachweis in <code>history.md</code>.</li>
 <li>Offene Gestaltungsvarianten werden per <code>visual-ab-review</code> als temporäre

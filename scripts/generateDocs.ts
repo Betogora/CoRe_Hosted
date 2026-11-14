@@ -33,6 +33,30 @@ function sourceFiles(directory: string): string[] {
   }).sort();
 }
 
+/**
+ * Wachstumsbremse für docs/architecture.md: Die Höchstgröße darf nur sinken. Liegt die Datei mehr als `slackBytes`
+ * darunter, wird `maxBytes` auf die Istgröße gesenkt; jeder Absatz, Stichpunkt und jede Tabellenzeile bleibt unter `blockChars`.
+ */
+export const ARCHITECTURE_LIMITS = { file: "docs/architecture.md", maxBytes: 33_750, slackBytes: 1_024, blockChars: 600 };
+
+export function architectureLimitFailures(source: string, limits = ARCHITECTURE_LIMITS) {
+  const { file, maxBytes, slackBytes, blockChars } = limits;
+  const bytes = Buffer.byteLength(source);
+  const failures: string[] = [];
+  if (bytes > maxBytes) failures.push(`${file}: ${bytes} Bytes, Obergrenze ${maxBytes}; Umsetzungsdetails in Code, Kommentare und Tests verlagern statt die Grenze anzuheben.`);
+  if (bytes < maxBytes - slackBytes) failures.push(`${file}: auf ${bytes} Bytes gesunken; ARCHITECTURE_LIMITS.maxBytes in scripts/generateDocs.ts von ${maxBytes} auf ${bytes} senken.`);
+  const blocks: string[] = [];
+  let fenced = false;
+  for (const line of source.split("\n")) {
+    if (line.startsWith("```")) fenced = !fenced;
+    else if (fenced || !line.trim() || line.startsWith("#")) blocks.push("");
+    else if (/^(?:[-*] |\d+\. |\|)/.test(line) || !blocks.at(-1)) blocks.push(line.trim());
+    else blocks[blocks.length - 1] += ` ${line.trim()}`;
+  }
+  for (const block of blocks) if (block.length > blockChars) failures.push(`${file}: Absatz mit ${block.length} Zeichen (höchstens ${blockChars}): „${block.slice(0, 60)}…“`);
+  return failures;
+}
+
 export function codeFootprint() {
   const groups = [
     { label: "Heute", files: ["DashboardScreen"], color: "var(--core-learning-status-learned)" },
@@ -293,7 +317,7 @@ export async function synchronizeDocs(mode: "write" | "check") {
     const content = `<div id="catalog-root"></div><script id="catalog-data" type="application/json">${JSON.stringify(data).replaceAll("<", "\\u003c")}</script>`;
     results.set(file, htmlPage(file, content, css, `${viewer}\n${runtimeHeader(inputs, runtime)}${runtime}${RUNTIME_END}`).replace("<body>", `<body data-catalog="${catalog}">`));
   }
-  const failures: string[] = [];
+  const failures = architectureLimitFailures(text(ARCHITECTURE_LIMITS.file));
   for (const [file, generated] of results) {
     const current = await readFile(path.join(docs, file), "utf8").catch(() => "");
     if (current.replace(/\r\n?/g, "\n") !== generated) {
@@ -316,6 +340,7 @@ export async function synchronizeDocs(mode: "write" | "check") {
       const exists = !anchor || (target === "ui-elements.html" ? uiAnchors.has(anchor) : target === "card-types.html" ? cardAnchors.has(anchor) : results.get(target)!.includes(`id="${anchor}"`));
       if (!exists) failures.push(`${file}: Anker ${href} fehlt`);
     } else if (!existsSync(path.resolve(docs, target || file))) failures.push(`${file}: Ziel ${href} fehlt`);
+    else if (fragment && linkedTarget && linkSources.has(target) && !linkSources.get(target)!.includes(`id="${documentId(target)}--${decodeURIComponent(fragment)}"`)) failures.push(`${file}: Anker ${href} fehlt`);
   }
   if (failures.length) throw new Error(`${failures.join("\n")}\nQuellen korrigieren und npm run docs:build ausführen.`);
   console.log(`Dokumentation ${mode === "write" ? "erzeugt" : "geprüft"}: ${DOC_PAGES.length} Leseseiten, ${data.components.length} Komponenten, ${data.tokens.length} Tokens, ${data.icons.length} Icons.`);

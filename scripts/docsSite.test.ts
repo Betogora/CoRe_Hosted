@@ -3,7 +3,7 @@ import test from "node:test";
 import { readFileSync } from "node:fs";
 import { htmlPage, inlineScript, markdownAnchor, renderMarkdown } from "./docsSite.ts";
 import { runInNewContext } from "node:vm";
-import { cardHistoryCards, codeFootprint, codeFootprintMarkup, createCatalogData, journeyProjection, journeySpecsLinks, specsDocument } from "./generateDocs.ts";
+import { architectureLimitFailures, cardHistoryCards, codeFootprint, codeFootprintMarkup, createCatalogData, journeyProjection, journeySpecsLinks, specsDocument } from "./generateDocs.ts";
 import { EXAMPLE_CHAINS, EXAMPLE_RETENTIONS } from "../src/schedulerExampleChains.ts";
 import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
@@ -48,6 +48,14 @@ test("Dokumentverweise führen auf die HTML-Ansicht und behalten den kanonischen
   assert.match(html, /href="operations.md#visuelle-pflichtmatrix"/);
   assert.match(html, /href="..\/src\/ui\/README.md"/);
   assert.match(html, /index.html#readme--document/);
+});
+
+test("architecture.md darf nicht wachsen: Höchstgröße sinkt nur, kein Absatz über der Zeichengrenze", () => {
+  const limits = { file: "a.md", maxBytes: 120, slackBytes: 20, blockChars: 30 };
+  assert.deepEqual(architectureLimitFailures("# Titel\n\n- kurz\n- auch kurz\n| a | b |\n\n```\n" + "x".repeat(40) + "\n```\n" + "y".repeat(20), limits), []);
+  assert.match(architectureLimitFailures("z".repeat(121), { ...limits, blockChars: 200 }).join(), /121 Bytes, Obergrenze 120/);
+  assert.match(architectureLimitFailures("kurz", limits).join(), /von 120 auf 4 senken/);
+  assert.match(architectureLimitFailures(`${"w".repeat(70)}\n- ${"v".repeat(20)}\n  ${"u".repeat(20)}`, limits).join("\n"), /Absatz mit 43 Zeichen/);
 });
 
 test("Markdown rendert Tabellen, verschachtelte Listen und Code vollständig", () => {
