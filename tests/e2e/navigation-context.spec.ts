@@ -221,6 +221,8 @@ test("[Vertrag: Kartenverwaltung] Kartenzeilen bleiben auch in schmalen Viewport
     { width: 390, height: 844 },
   ]) {
     await page.setViewportSize(viewport);
+    // The header places „Sortierfeld“ from a ResizeObserver, which reports in the next rendering step.
+    await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))));
 
     const geometry = await page.evaluate(({ cardId }) => {
       const cardSortField = document.querySelector<HTMLElement>(`[data-testid="deck-card-${cardId}"]`);

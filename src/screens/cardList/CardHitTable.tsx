@@ -236,7 +236,8 @@ export function CardHitTable({ items, rowOf, virtual, loading, searching, select
     };
     place();
     const observer = new ResizeObserver(place);
-    for (const element of [head, dueLabel, variantLabel]) observer.observe(element);
+    // The labels themselves change width when the web font arrives; the head changes with the columns.
+    for (const element of [head, sortLabel, dueLabel.firstElementChild!, variantLabel.firstElementChild!]) observer.observe(element);
     return () => observer.disconnect();
   }, [barShown, tableShown]);
   const [mobileHeaderHeight, setMobileHeaderHeight] = React.useState(0);
