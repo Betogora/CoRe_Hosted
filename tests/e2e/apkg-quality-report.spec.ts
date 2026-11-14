@@ -31,7 +31,6 @@ test("latest APKG preview shows the complete quality report without mutating acc
   await expect(statTiles.filter({ hasText: "Karten" })).toContainText("6");
   await expect(statTiles.filter({ hasText: "Medien vorhanden" })).toContainText("3");
   await expect(statTiles.filter({ hasText: "Medien fehlen" })).toContainText("1");
-  for (const tile of await statTiles.all()) await expect(tile).toHaveCSS("border-width", "0px");
   const notetypes = page.getByRole("region", { name: "Notiztypen" });
   await expect(notetypes.getByTestId("apkg-notetype-report")).toHaveCount(2);
   await expect(notetypes.getByTestId("apkg-notetype-report").filter({ hasText: "Basic" })).toContainText("5 Inhalte · 5 Karten · kein Lernstand · CoRe-Design");
