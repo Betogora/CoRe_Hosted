@@ -192,8 +192,11 @@ Update documentation when the implemented contract changes:
   their own canonical files.
 - Change `docs/architecture.md` only when an owner, an invariant, or a public
   interface changes (its section „Pflege dieser Datei“); implementation
-  details stay in code, comments, and tests. `npm run check:docs` enforces a
-  size cap that may only shrink and a length limit per paragraph.
+  details stay in code, comments, and tests.
+- `npm run check:docs` caps the whole-file size of `docs/architecture.md`,
+  `docs/specs.md`, and `README.md` (`DOC_LIMITS` in `scripts/generateDocs.ts`);
+  a cap may only shrink. Make room by condensing or moving text to its owner,
+  not by raising the cap.
 - Update `docs/todo.md` only when open roadmap scope, priority, planning,
   acceptance gates, or required evidence changes. Completed work leaves the
   TODO; its details live in commits and pull requests, and only operational

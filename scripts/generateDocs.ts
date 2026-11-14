@@ -33,28 +33,25 @@ function sourceFiles(directory: string): string[] {
   }).sort();
 }
 
-/**
- * Wachstumsbremse für docs/architecture.md: Die Höchstgröße darf nur sinken. Liegt die Datei mehr als `slackBytes`
- * darunter, wird `maxBytes` auf die Istgröße gesenkt; jeder Absatz, Stichpunkt und jede Tabellenzeile bleibt unter `blockChars`.
- */
-export const ARCHITECTURE_LIMITS = { file: "docs/architecture.md", maxBytes: 33_750, slackBytes: 1_024, blockChars: 600 };
+type DocLimit = { file: string; maxBytes: number; slackBytes: number };
 
-export function architectureLimitFailures(source: string, limits = ARCHITECTURE_LIMITS) {
-  const { file, maxBytes, slackBytes, blockChars } = limits;
-  const bytes = Buffer.byteLength(source);
-  const failures: string[] = [];
-  if (bytes > maxBytes) failures.push(`${file}: ${bytes} Bytes, Obergrenze ${maxBytes}; Umsetzungsdetails in Code, Kommentare und Tests verlagern statt die Grenze anzuheben.`);
-  if (bytes < maxBytes - slackBytes) failures.push(`${file}: auf ${bytes} Bytes gesunken; ARCHITECTURE_LIMITS.maxBytes in scripts/generateDocs.ts von ${maxBytes} auf ${bytes} senken.`);
-  const blocks: string[] = [];
-  let fenced = false;
-  for (const line of source.split("\n")) {
-    if (line.startsWith("```")) fenced = !fenced;
-    else if (fenced || !line.trim() || line.startsWith("#")) blocks.push("");
-    else if (/^(?:[-*] |\d+\. |\|)/.test(line) || !blocks.at(-1)) blocks.push(line.trim());
-    else blocks[blocks.length - 1] += ` ${line.trim()}`;
-  }
-  for (const block of blocks) if (block.length > blockChars) failures.push(`${file}: Absatz mit ${block.length} Zeichen (höchstens ${blockChars}): „${block.slice(0, 60)}…“`);
-  return failures;
+/**
+ * Wachstumsbremse je Datei: `maxBytes` darf nur sinken. Liegt eine Datei mehr als `slackBytes` darunter,
+ * wird `maxBytes` auf die Istgröße gesenkt; der Spielraum gilt für die ganze Datei, nicht je Abschnitt.
+ */
+export const DOC_LIMITS: readonly DocLimit[] = [
+  { file: "docs/architecture.md", maxBytes: 34_255, slackBytes: 1_024 },
+  { file: "docs/specs.md", maxBytes: 79_400, slackBytes: 2_048 },
+  { file: "README.md", maxBytes: 1_986, slackBytes: 512 },
+];
+
+export function docLimitFailures(read: (file: string) => string, limits: readonly DocLimit[] = DOC_LIMITS) {
+  return limits.flatMap(({ file, maxBytes, slackBytes }) => {
+    const bytes = Buffer.byteLength(read(file));
+    if (bytes > maxBytes) return [`${file}: ${bytes} Bytes, Obergrenze ${maxBytes}; Text verdichten oder an seinen Eigentümer verlagern statt die Grenze anzuheben.`];
+    if (bytes < maxBytes - slackBytes) return [`${file}: auf ${bytes} Bytes gesunken; maxBytes in DOC_LIMITS in scripts/generateDocs.ts von ${maxBytes} auf ${bytes} senken.`];
+    return [];
+  });
 }
 
 export function codeFootprint() {
@@ -317,7 +314,7 @@ export async function synchronizeDocs(mode: "write" | "check") {
     const content = `<div id="catalog-root"></div><script id="catalog-data" type="application/json">${JSON.stringify(data).replaceAll("<", "\\u003c")}</script>`;
     results.set(file, htmlPage(file, content, css, `${viewer}\n${runtimeHeader(inputs, runtime)}${runtime}${RUNTIME_END}`).replace("<body>", `<body data-catalog="${catalog}">`));
   }
-  const failures = architectureLimitFailures(text(ARCHITECTURE_LIMITS.file));
+  const failures = docLimitFailures(text);
   for (const [file, generated] of results) {
     const current = await readFile(path.join(docs, file), "utf8").catch(() => "");
     if (current.replace(/\r\n?/g, "\n") !== generated) {

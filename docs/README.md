@@ -57,8 +57,11 @@ Technische Einstiege außerhalb von `docs/`:
   `Titel | Detail`, wahlweise mit Ton davor (`[primär]`, `[erfolg]`, `[warnung]`, `[gefahr]`, `[info]`);
   `-> Text` beschriftet den nächsten Pfeil einer Folge.
 - `architecture.md` ändert sich nur mit einem Eigentümer, einer Invariante
-  oder einer öffentlichen Schnittstelle; `npm run check:docs` begrenzt ihre
-  Größe (nur sinkend) und die Länge je Absatz.
+  oder einer öffentlichen Schnittstelle.
+- `npm run check:docs` begrenzt die Größe von `architecture.md`, `specs.md`
+  und dem Root-`README.md` je ganze Datei (`DOC_LIMITS` in
+  `scripts/generateDocs.ts`); eine Grenze sinkt nur. Platz entsteht durch
+  Verdichten, nicht durch Anheben.
 - Erledigtes verschwindet aus `todo.md`; Details stehen in Commit und Pull
   Request, Production- und Datenbankschritte als Betriebsnachweis in `history.md`.
 - Offene Gestaltungsvarianten werden per `visual-ab-review` als temporäre
