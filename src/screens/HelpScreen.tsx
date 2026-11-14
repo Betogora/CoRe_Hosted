@@ -346,7 +346,7 @@ function HelpExampleCardStack({
       {HELP_EXAMPLE_STACK_LAYERS.map((layer) => (
         <div
           key={layer.id}
-          className={`core-help-stack-card absolute inset-x-[8%] top-20 h-[30rem] rounded-overlay border border-core-border-strong shadow-soft sm:h-[21rem] ${layer.className}`}
+          className={`core-help-stack-card absolute inset-x-[8%] top-20 h-[30rem] rounded-overlay border border-core-border-strong sm:h-[21rem] ${layer.className}`}
           aria-hidden="true"
           data-testid={layerTestId}
           data-help-example-stack-layer={layer.id}
@@ -512,7 +512,7 @@ function ActiveRecallVariantCards() {
       {ACTIVE_RECALL_VARIANTS.map((variant) => (
         <div
           key={variant.id}
-          className={`core-help-stack-card core-help-variant-card absolute grid min-h-60 place-items-center rounded-overlay border border-core-border-strong p-6 pr-12 text-center shadow-raised sm:p-8 sm:pr-12 ${variant.className}`}
+          className={`core-help-stack-card absolute grid min-h-60 place-items-center rounded-overlay border border-core-border-strong p-6 pr-12 text-center shadow-raised sm:p-8 sm:pr-12 ${variant.className}`}
           data-testid="active-recall-variant-card"
           data-help-variant-tone={variant.tone}
         >
@@ -693,7 +693,7 @@ function MemoryCurveGraphic({ selection, onSelectionChange }: { selection: Explo
               <button
                 key={review.id}
                 type="button"
-                className="absolute z-20 grid size-control place-items-center rounded-round border bg-core-raised core-body font-semibold shadow-soft transition-[transform,opacity] motion-reduce:transition-none"
+                className="absolute z-20 grid size-control place-items-center rounded-round border bg-core-raised core-body font-semibold transition-[transform,opacity] motion-reduce:transition-none"
                 style={{
                   left: `${(review.reviewX / 960) * 100}%`,
                   top: `${(248 / 540) * 100}%`,

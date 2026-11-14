@@ -327,7 +327,7 @@ export const CoreSelect = forwardRef<HTMLButtonElement, CoreSelectProps>(functio
             setOpen(false);
           }
         }}
-        className={`group inline-flex min-h-control min-w-0 items-center gap-3 rounded-control border border-core-border bg-core-surface px-3 text-left core-body text-core-text shadow-soft transition data-[state=open]:border-core-action data-[state=open]:shadow-selection ${className}`}
+        className={`group inline-flex min-h-control min-w-0 items-center gap-3 rounded-control border border-core-border bg-core-surface px-3 text-left core-body text-core-text transition data-[state=open]:border-core-action data-[state=open]:shadow-selection ${className}`}
       >
         {TriggerIcon ? <TriggerIcon size={17} className="shrink-0 text-core-text" aria-hidden="true" /> : null}
         <span className="min-w-0 flex-1 truncate">
@@ -396,7 +396,7 @@ export const DeckSelect = forwardRef<HTMLButtonElement, DeckSelectProps>(functio
           data-state={open ? "open" : "closed"}
           data-deck-select-trigger="true"
           data-deck-select-searchable={showSearch ? "true" : "false"}
-          className={`group inline-flex min-h-control min-w-0 items-center gap-2 rounded-control border border-core-border bg-core-surface px-3 text-left core-body text-core-text shadow-soft transition data-[state=open]:border-core-action data-[state=open]:shadow-selection ${className}`}
+          className={`group inline-flex min-h-control min-w-0 items-center gap-2 rounded-control border border-core-border bg-core-surface px-3 text-left core-body text-core-text transition data-[state=open]:border-core-action data-[state=open]:shadow-selection ${className}`}
         >
           {selectedDeckRow ? (
             <DeckAppearanceIcon data-deck-icon="true" deck={selectedDeckRow.deck} className="size-7" iconSize={14} />

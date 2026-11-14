@@ -1,5 +1,4 @@
 import React from "react";
-import { resolvePresentationMedia } from "../presentationFrame.ts";
 import type { AccountMediaStore } from "../mediaStore.ts";
 
 interface NoteMediaState {
@@ -70,9 +69,4 @@ export function useNoteMediaPrefetch(mediaSets: ReadonlyArray<Record<string, str
     for (const signature of held) void acquireMedia(mediaStore, signature).promise.catch(() => undefined);
     return () => { for (const signature of held) releaseMedia(mediaStore, signature); };
   }, [mediaStore, signatures]);
-}
-
-export function CardHtml({ html, mediaUrls = {} }: { html?: string; mediaUrls?: Record<string, string> }) {
-  const renderedHtml = React.useMemo(() => resolvePresentationMedia(html || "<span></span>", mediaUrls), [html, mediaUrls]);
-  return <div className="card-html min-w-0 max-w-full overflow-x-auto core-body leading-6 text-inherit" dangerouslySetInnerHTML={{ __html: renderedHtml }} />;
 }

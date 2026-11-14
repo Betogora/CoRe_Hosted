@@ -6,7 +6,7 @@ import { reconcileExamDailyTasks, setExamDailyTaskChecked } from "../examDailyTa
 import { examDayDistance } from "../examPlanning.ts";
 import { getLearningDayKey, getLearningTimeZone } from "../learningDay.ts";
 import { getGlobalSchedulerPreferences } from "../learningProfiles.ts";
-import { ActionButton, IconButton, ShowMoreButton } from "../ui/actionUi.tsx";
+import { ActionButton, Disclosure, IconButton, ShowMoreButton } from "../ui/actionUi.tsx";
 import { SoftPanel } from "../ui/coreUi.tsx";
 import { CoreCheckbox } from "../ui/formControls.tsx";
 import { StatusMessage } from "../ui/feedbackUi.tsx";
@@ -146,6 +146,6 @@ export function ExamDashboardWidget({ state, now, onLoad, onStart, onSaveTasks, 
         {ready && !own.length ? <p className="core-body text-core-muted">Heute keine offenen Aufgaben für diese Prüfung.</p> : null}
       </section>;
     })}</div>
-    {preview && completedTasks.length ? <details className="dashboard-disclosure"><summary>Erledigt im Planer ({completedTasks.length})</summary><ul className="grid gap-2">{completedTasks.map((task) => renderTask(task, examColor(exams.findIndex((exam) => exam.id === task.examId), exams.find((exam) => exam.id === task.examId))))}</ul></details> : null}
+    {preview && completedTasks.length ? <Disclosure summary={`Erledigt im Planer (${completedTasks.length})`}><ul className="mt-2 grid gap-2">{completedTasks.map((task) => renderTask(task, examColor(exams.findIndex((exam) => exam.id === task.examId), exams.find((exam) => exam.id === task.examId))))}</ul></Disclosure> : null}
   </SoftPanel>;
 }

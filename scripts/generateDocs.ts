@@ -185,7 +185,6 @@ export function createCatalogData(): Omit<CatalogData, "sourceHash"> {
     typography: [...typography].map(([name, declarations]) => ({ name, declarations })),
     cssClasses: [...classes].map((name) => ({ name, files: sources.filter(({ source }) => new RegExp(`\\b${name}\\b`).test(source)).map(({ file }) => file) })).sort((a, b) => a.name.localeCompare(b.name)),
     icons: [...iconFiles].sort(([a], [b]) => a.localeCompare(b)).map(([name, used]) => ({ name, files: [...used], svg: renderToStaticMarkup(React.createElement(Reflect.get(lucide, name) as LucideIcon, { size: 24, "aria-hidden": true })) })),
-    patterns: Object.fromEntries([...text("scripts/uiCatalogPatterns.html").matchAll(/<template data-family="([a-z]+)">([\s\S]*?)<\/template>/g)].map(([, family, html]) => [family, html])),
   };
 }
 
@@ -269,7 +268,7 @@ export async function synchronizeDocs(mode: "write" | "check") {
   await synchronizeBrainLogo(mode);
   const inputs = catalogInputHash();
   const data: CatalogData = { ...createCatalogData(), sourceHash: inputs.slice(0, 16) };
-  const raw = sourceFiles("src").map(text).join("\n") + text("scripts/uiCatalog.tsx") + text("scripts/uiCatalogDemos.tsx") + text("scripts/generateDocs.ts") + text("scripts/docsSite.ts") + Object.values(data.patterns).join("\n");
+  const raw = sourceFiles("src").map(text).join("\n") + text("scripts/uiCatalog.tsx") + text("scripts/uiCatalogDemos.tsx") + text("scripts/generateDocs.ts") + text("scripts/docsSite.ts");
   let styles = (await postcss([tailwindcss({ ...tailwindConfig, content: [{ raw, extension: "tsx" }] }), autoprefixer]).process(text("src/styles.css"), { from: path.join(root, "src/styles.css") })).css;
   const fonts = new Map(readdirSync(path.join(root, "public/fonts"), { recursive: true, encoding: "utf8" })
     .filter((file) => file.endsWith(".woff2"))
@@ -301,8 +300,8 @@ export async function synchronizeDocs(mode: "write" | "check") {
       else failures.push(`${file} ist veraltet`);
     }
   }
-  const uiAnchors = new Set([...[...text("scripts/uiCatalog.tsx").matchAll(/\{ id: "([a-z-]+)", (?:nav|section): /g)].map((match) => match[1]), ...DEMO_GROUPS.map((group) => group.id)]);
-  const cardAnchors = new Set([...text("scripts/uiCatalog.tsx").matchAll(/\{ id: "([a-z-]+)", label: /g)].map((match) => match[1]));
+  const uiAnchors = new Set([...[...text("scripts/uiCatalog.tsx").matchAll(/\{ id: "([a-z-]+)", (?:nav|section): /g)].map((match) => match[1]), ...DEMO_GROUPS.filter((group) => group.section !== "karten").map((group) => group.id)]);
+  const cardAnchors = new Set([...[...text("scripts/uiCatalog.tsx").matchAll(/\{ id: "([a-z-]+)", label: /g)].map((match) => match[1]), ...DEMO_GROUPS.filter((group) => group.section === "karten").map((group) => group.id)]);
   const linkSources = new Map([...results].filter(([file]) => file !== "ui-elements.html" && file !== "card-types.html"));
   for (const file of readdirSync(docs).filter((file) => file.endsWith(".md"))) {
     linkSources.set(file, renderMarkdown(text(`docs/${file}`), file));

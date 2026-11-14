@@ -12,13 +12,11 @@ Geometrieskala verwendet `rounded-marker` (6 px), `rounded-inset` (8 px),
 und `rounded-round`. Gerichtete Rundungen verwenden
 dieselben Stufen; eckige Flächen bleiben `rounded-none`. Normale Rahmen nutzen
 `--core-border-width` (1 px), hervorgehobene Rahmen `border-strong` (2 px).
-Statische Flächen, Buttons, Felder und Kacheln sind flach (ADR-051):
-`--core-shadow-soft` ist in beiden Themes ein transparenter Nullschatten, damit
-zusammengesetzte Schattenlisten gültig bleiben. Schatten tragen nur schwebende
-Ebenen: `shadow-raised` (Overlay, Popover, Dialog, Toast), `shadow-floating`
+Statische Flächen, Buttons, Felder und Kacheln sind flach (ADR-051); es gibt
+keinen Schatten-Token für sie. Schatten tragen nur schwebende Ebenen:
+`shadow-raised` (Overlay, Popover, Dialog, Toast), `shadow-floating`
 (Navigation) und `shadow-indicator` (Auswahlindikator der Schienen);
-`shadow-inset` und `shadow-selection` unterscheiden Vertiefung und fachliche
-Auswahl. Sichtbare Fokusrahmen erscheinen nur bei Tastaturfokus (siehe
+`shadow-selection` markiert fachliche Auswahl. Sichtbare Fokusrahmen erscheinen nur bei Tastaturfokus (siehe
 unten). Die Auswahlmarkierung ist kein Fokusring. Farbkennung und Zustand liegen
 auf der ganzen Form, nie auf einer einzelnen Kante: Prüfungsaufgaben tragen einen
 Rahmen rundum in Prüfungsfarbe mit getönter Fläche, Prüfungen in Überschriften
@@ -55,7 +53,7 @@ und den Katalogbeispielen.
 
 `src/styles.css` besitzt die primitiven CoRe-Farben, alle semantischen Light-/Dark-Rollen und die Typostufen. Produktcode verwendet semantische Klassen beziehungsweise Variablen. Der umrundete Theme-Button in der responsiven Navigation setzt ausschließlich `data-core-theme="light"` beziehungsweise `data-core-theme="dark"` am Dokumentelement; `src/coreTheme.ts` besitzt Validierung und lokale Persistenz der Auswahl. Eine automatische Systempräferenz gibt es bewusst nicht.
 
-Die interaktive Design-Arbeitsfläche liegt in [`../../docs/ui-elements.html`](../../docs/ui-elements.html); Einstieg und Pflegeregeln stehen in [`../../docs/README.md`](../../docs/README.md). Sie zeigt die tatsächlichen gemeinsamen Komponenten, alle CoRe-Tokens, Typostufen und importierten Icons. Demos leben in `scripts/uiCatalogDemos.tsx`, ergänzende lokale Screen-Muster in `scripts/uiCatalogPatterns.html`. Bei jeder UI-Änderung die betroffenen Demos und Zustände ergänzen, die App-Quelle ändern, `npm run docs:build` und `npm run check:docs` ausführen und visuell prüfen. `typecheck` prüft die erzeugten Seiten und meldet neue Komponenten ohne Katalogzuordnung. HTML-Ausgaben werden nie direkt bearbeitet; die Referenz ist der gemeinsame Ausgangspunkt für iterative Designaufträge.
+Die interaktive Design-Arbeitsfläche liegt in [`../../docs/ui-elements.html`](../../docs/ui-elements.html); Einstieg und Pflegeregeln stehen in [`../../docs/README.md`](../../docs/README.md). Sie zeigt die tatsächlichen gemeinsamen Komponenten, alle CoRe-Tokens, Typostufen und importierten Icons. Demos leben in `scripts/uiCatalogDemos.tsx`; lokale Screens erscheinen dort als echte Produktansicht. Bei jeder UI-Änderung die betroffenen Demos und Zustände ergänzen, die App-Quelle ändern, `npm run docs:build` und `npm run check:docs` ausführen und visuell prüfen. `typecheck` prüft die erzeugten Seiten und meldet neue Komponenten ohne Katalogzuordnung. HTML-Ausgaben werden nie direkt bearbeitet; die Referenz ist der gemeinsame Ausgangspunkt für iterative Designaufträge.
 
 - Überschriften: `core-heading-1`, `core-heading-2`, `core-heading-3`.
 - Fließtext: `core-body-large`, `core-body`, `core-caption`.
@@ -64,9 +62,9 @@ Die interaktive Design-Arbeitsfläche liegt in [`../../docs/ui-elements.html`](.
 
 ## Actions
 
-Direktimport: `import { ActionButton, CrossLinkButton, IconButton, ShowMoreButton } from "../ui/actionUi.tsx"`.
+Direktimport: `import { ActionButton, CrossLinkButton, Disclosure, IconButton, ShowMoreButton } from "../ui/actionUi.tsx"`.
 
-`ActionButton` verlangt `variant="primary | secondary | destructive | destructive-secondary"`; optional sind `icon` und `loading`. `destructive-secondary` ist die ruhige Gefahrenform: Sekundärform mit weißer Fläche und Haarlinie, Text in `--core-danger-text`, beim Hovern rot getönt (etwa `Abmelden`); rot gefüllt bleibt unwiderruflichen Aktionen vorbehalten. Das Modul besitzt die produktweite Buttonhöhe (`--core-button-height` 36 px, Felder `--core-control-height` 40 px, Auswahl-Schienen `--core-selection-height` 38 px; bei Touch, also `(pointer: coarse)`, alle drei 44 px), Iconabstand, Hover/Active/Focus/Disabled sowie den Ladezustand mit erhaltenem Label und `aria-busy`. Die Zeigerabfrage ist die einzige Unterteilung der Bedienhöhe und gilt in jeder Fensterbreite; Breitenabfragen ändern nur das Layout, abweichende Komponentenhöhen fragen ebenfalls nur `pointer` ab. Der Aufrufer wählt Hierarchie, Label und Ereignis. Für nachgeordnete Aktionen wird die umrandete Sekundärform verwendet; randlos sind nur der Querlink `CrossLinkButton` und der Expander `ShowMoreButton`.
+`ActionButton` verlangt `variant="primary | secondary | destructive | destructive-secondary"`; optional sind `icon` und `loading`. `destructive-secondary` ist die ruhige Gefahrenform: Sekundärform mit weißer Fläche und Haarlinie, Text in `--core-danger-text`, beim Hovern rot getönt (etwa `Abmelden`); rot gefüllt bleibt unwiderruflichen Aktionen vorbehalten. Das Modul besitzt die produktweite Buttonhöhe (`--core-button-height` 36 px, Felder `--core-control-height` 40 px, Auswahl-Schienen `--core-selection-height` 38 px; bei Touch, also `(pointer: coarse)`, alle drei 44 px), Iconabstand, Hover/Active/Focus/Disabled sowie den Ladezustand mit erhaltenem Label und `aria-busy`. Die Zeigerabfrage ist die einzige Unterteilung der Bedienhöhe und gilt in jeder Fensterbreite; Breitenabfragen ändern nur das Layout, abweichende Komponentenhöhen fragen ebenfalls nur `pointer` ab. Der Aufrufer wählt Hierarchie, Label und Ereignis. Für nachgeordnete Aktionen wird die umrandete Sekundärform verwendet; randlos sind nur der Querlink `CrossLinkButton` und die Aufklapper `ShowMoreButton` und `Disclosure`.
 
 ```tsx
 <ActionButton variant="primary" icon={Save} loading={saving} onClick={save}>
@@ -79,6 +77,8 @@ Nicht für Reviewratings, MCQ-Antworten, Tabs, Farbfelder, Navigationszeilen ode
 `CrossLinkButton` ist der einzige Querlink für Dashboard, Seitenköpfe und Einstellungsdialoge: Textlink in Handlungsblau (600) mit Chevron, ohne Füllfläche, beim Hovern unterstrichen, mit Bedienhöhe als Mindesthöhe für Touch. Er rendert abhängig vom Ziel einen nativen Button (`onSelect`) oder Link (`href`); Beschriftung und Navigation bleiben beim Aufrufer. `direction="back"` führt mit einem Pfeil vor der Beschriftung zur übergeordneten Fläche zurück, etwa als Rücklink im `PageHeader`.
 
 `ShowMoreButton` (`expanded`, `hiddenCount`, `onToggle`, `controls?`, `context?`) ist der einzige Expander für gekürzte Listen: Text in Handlungsblau mit Chevron, „N weitere anzeigen“, aufgeklappt „Weniger anzeigen“, linksbündig mit der Liste. Im Layout belegt er nur seine Textzeile, die Trefferfläche behält unsichtbar die Bedienhöhe; er steht 8 px unter dem letzten Eintrag, darunter folgt der Abstand des Containers. `context` benennt die Liste für Screenreader, wenn mehrere nebeneinander stehen.
+
+`Disclosure` (`summary`, Attribute von `details`) ist der einzige Aufklapper für einen Abschnitt an Ort und Stelle, etwa erledigte To-dos, einen Quelltext oder Verwendungen im Katalog: natives `details`, dessen Zeile wie `ShowMoreButton` aussieht (Handlungsblau 600 hinter einem Chevron, geöffnet zeigt er nach oben, gleiche Trefferfläche); ein Dreieck des Browsers erscheint nirgends. Gespeichertes Zusammenfassungs-HTML trägt seine `Belege` als natives `details`; `styles.css` gibt ihm dasselbe Aussehen.
 
 `IconButton` verlangt `label` und `icon`; Varianten sind `secondary` (Standard), `destructive`, `destructive-quiet` und `ghost`. `ghost` bleibt transparent und randlos, sodass fachliche Zeilenflächen sichtbar bleiben. `destructive-quiet` ist die dezente Löschaktion aus der BengtsToolBox: randlos und grau, erst beim Hovern rot getönt; sie ist der Standard für Mülleimer in Kopfzeilen, Listen und Verwaltungszeilen, während `destructive` (rot gefüllt) ausdrücklich gefährliche Einzelaktionen trägt. Das Modul setzt das zugängliche Label, die quadratische Größe in Bedienhöhe und die Icongröße. Für einen zusätzlichen sichtbaren Hinweis wird `CoreTooltip` verwendet; native `title`-Tooltips gehören nicht zur Produkt-UI.
 
@@ -173,7 +173,6 @@ Auswahlfelder aus `src/ui/formControls.tsx` folgen Form und Verhalten von HeroUI
 
 - `CoreCheckbox`: `checked`, `onCheckedChange`, `label?`, `description?`, `invalid?`, `disabled?`, `indeterminate?`, `accent?: { fill, on }` (Fachfarbe statt Aktionsblau, etwa die Prüfungsfarbe).
 - `CoreRadio`: dieselben Props ohne `indeterminate` und `accent`, dazu Pflicht-`name`.
-- `CoreCheckboxGroup` und `CoreRadioGroup`: `label`, `options: { value, label, description?, disabled? }[]`, `value`, `onValueChange`, `description?`, `errorMessage?`, `orientation?: "vertical" | "horizontal"`, `disabled?`; die Radiogruppe vergleicht Werte per Identität, also auch Zahlen und Wahrheitswerte.
 - `CoreSwitch`: wie `CoreCheckbox` ohne `invalid`, `indeterminate` und `accent`, dazu `size?: "sm" | "md" | "lg"` und `labelPlacement?: "start" | "end"`; das native Element trägt `role="switch"`.
 - `CoreSlider`: `value`, `min`, `max`, `step?`, `onValueChange`, `label?`, `formatValue?` (sichtbarer und gesprochener Wert, `null` blendet ihn aus); darunter liegt ein natives `type="range"`.
 
@@ -228,7 +227,6 @@ Die Statistik verwendet lokal `.core-statistics-load-track`: dauerhaft 3 px Höh
 - `PdfDocumentViewer` aus `src/ui/PdfDocumentViewer.tsx`: PDF-Rendering, Zoom, Navigation und Textauswahl.
 - `LearningSettingsPanel` aus `src/ui/LearningSettingsPanel.tsx`: kontrollierte Projektion für Tagesrunde, konto-weite Copy-on-apply-Lernprofil-Vorlagen, Scheduler und getrennte CoRe-Parameter, je Stapel (`context="deck"`) und als globaler Standard für neue Stapel (`context="global"`), im Einstellungszeilenmuster ohne Kästen. Lernschritte, Varianten-Schwelle und aktive Varianten zeigen Voreinstellungen als Segmente mit dem gespeicherten Wert als Text; Werte außerhalb der Voreinstellungen erscheinen als `Eigene · …`. Feldänderungen fließen in den Seitendraft; eine eigene Speichern-Aktion besitzt das Panel nicht. Vorlagen werden explizit und unmittelbar angewandt; direkte Lernwertänderungen löschen die Herkunft, CoRe-Werte bleiben bei Profilwechseln erhalten. Eigene Vorlagen können angelegt, umbenannt, versioniert aktualisiert und bestätigt gelöscht werden. `learnAheadMinutes` und `dayStartHour` erscheinen hier nicht.
 - `DeckAppearanceIcon` aus `src/ui/deckAppearance.tsx`: normalisierte, nutzerdefinierte Stapeldarstellung.
-- `CardHtml` aus `src/ui/cardMedia.tsx`: sanitisiertes Karten-HTML mit aufgelösten Medien.
 
 Diese Module nicht zu generischen Primitives verbreitern; ihre Fachverantwortung bleibt Bestandteil der Schnittstelle.
 

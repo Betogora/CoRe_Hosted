@@ -6,7 +6,7 @@ import { createNote } from "./coreModel.ts";
 import { colorContrast } from "./colorMath.ts";
 import { compareTypedAnswer, evaluateNoteChoice, notePlainText, renderCard, renderNoteChoiceOptions, renderNoteSpeech, type NotePresentationTheme } from "./notePresentation.ts";
 
-const theme: NotePresentationTheme = { mode: "light", colors: { surface: "#ffffff", "surface-muted": "#edf1f6", text: "#181d25", "text-muted": "#667492", border: "#d5dbe5", "border-interactive": "#6f7e9e", success: "#d6a3d2", "success-surface": "#f5e8f4", danger: "#e28b68", "danger-surface": "#f8e2d9", "learning-goal-achieved": "#2f7d68" } };
+const theme: NotePresentationTheme = { mode: "light", colors: { surface: "#ffffff", "surface-muted": "#edf1f6", text: "#181d25", "text-muted": "#667492", border: "#d5dbe5", "border-interactive": "#6f7e9e", success: "#d6a3d2", "success-surface": "#f5e8f4", danger: "#e28b68", "danger-surface": "#f8e2d9" } };
 const field = (id: string, role: NoteField["role"], html: string): NoteField => ({ id, name: id, role, html });
 function content(interaction: NoteContent["interaction"], fields = [field("front", "prompt", "Frage"), field("back", "answer", "Antwort")]): NoteContent {
   return { schemaVersion: 1, fields, interaction, tags: [], speech: [] };
