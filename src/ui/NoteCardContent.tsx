@@ -242,7 +242,8 @@ function NoteCardContentBody({ note, card, revealed, onReveal, surface = "review
       })}
     </div> : null}
 
-    {prepared || (answerResult && !oneFrame) ? <CardPresentationSurface {...frameProps} presentation={answerResult ?? presentation.answer} title={oneFrame ? "Aufgedeckte Karte" : "Antwort"} concealed={prepared === "hidden"} scrollTargetId={original ? "answer" : undefined} onLoad={revealed ? undefined : () => setAnswerAhead("ready")} /> : null}
+    {/* A choice without answer fields or supplements has an empty answer side: no frame then. */}
+    {prepared || (answerResult && !oneFrame && !answerResult.srcdoc.endsWith("<body></body></html>")) ? <CardPresentationSurface {...frameProps} presentation={answerResult ?? presentation.answer} title={oneFrame ? "Aufgedeckte Karte" : "Antwort"} concealed={prepared === "hidden"} scrollTargetId={original ? "answer" : undefined} onLoad={revealed ? undefined : () => setAnswerAhead("ready")} /> : null}
     {diagnostics.length ? <StatusMessage tone="warning">{diagnostics.map((item, index) => <p key={index}>{item.message}</p>)}</StatusMessage> : null}
 
     {speech.length || (surface === "review" && selectedText) ? <div className="flex flex-wrap items-center gap-x-3 gap-y-2">

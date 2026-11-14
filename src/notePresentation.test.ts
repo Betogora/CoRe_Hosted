@@ -222,6 +222,18 @@ test("Auswahloptionen erhalten denselben sicheren Formel- und Medienrenderer", a
   assert.doesNotMatch(options[1].html, /onerror/);
 });
 
+test("Die Trennlinie steht nur über Antwort oder Zusatzinfos, nie allein unter einer Auswahlfrage", async () => {
+  const choice: NoteContent["interaction"] = { kind: "choice", mode: "single", options: [{ id: "a", html: "Pazifik", correct: true }, { id: "b", html: "Atlantik", correct: false }] };
+  for (const surface of ["review", "preview"] as const) {
+    const bare = await render(content(choice, [field("front", "prompt", "Welcher Ozean?")]), "answer", undefined, surface);
+    assert.doesNotMatch(bare.srcdoc, /<hr\b/, `${surface}: ohne Inhalt darunter keine Linie`);
+    if (surface === "review") assert.match(bare.srcdoc, /<body><\/body>/, "die leere Antwortseite lässt die Lernansicht ohne Antwortrahmen");
+    const extra = await render(content(choice, [field("front", "prompt", "Welcher Ozean?"), field("Extra 1", "extra", "Der größte Ozean.")]), "answer", undefined, surface);
+    assert.match(extra.srcdoc, /<hr class="core-card-answer-separator"\/><section class="core-note-supplement"><h3>Extra 1<\/h3>/, `${surface}: die Zusatzinfo steht unter der Linie`);
+  }
+  assert.doesNotMatch((await render(content(basic().interaction, [field("front", "prompt", "Frage"), field("back", "answer", "")]), "answer")).srcdoc, /<hr\b/, "eine leere Antwort trennt nichts ab");
+});
+
 test("Die Antwortseite ersetzt das Eingabefeld durch den Zeichenvergleich", async () => {
   const value = basic();
   if (value.interaction.kind !== "reveal") throw new Error("Test braucht eine Abfrage.");

@@ -15,7 +15,7 @@ export interface TextReplaceDialogProps {
   count: number;
   /** Loads the selected contents for their fields and the preview. */
   prepare: () => Promise<TextReplaceSession>;
-  onRun: (action: CardBatchAction, label: string) => Promise<void>;
+  onRun: (action: CardBatchAction, done: (cards: string) => string) => Promise<void>;
   onClose: () => void;
 }
 
@@ -50,7 +50,7 @@ export function TextReplaceDialog({ count, prepare, onRun, onClose }: TextReplac
     if (!edit.find || !preview?.changedCount) return;
     setRunning(true);
     try {
-      await onRun({ kind: "replace", ...edit }, LABEL);
+      await onRun({ kind: "replace", ...edit }, (cards) => `Text in ${cards} ersetzt`);
       onClose();
     } finally {
       setRunning(false);
@@ -66,7 +66,8 @@ export function TextReplaceDialog({ count, prepare, onRun, onClose }: TextReplac
   return (
     <DialogFrame
       open
-      title={`${LABEL}: ${cardCount(count)}`}
+      title={LABEL}
+      size="s"
       onClose={onClose}
       footer={(
         <>
@@ -75,8 +76,9 @@ export function TextReplaceDialog({ count, prepare, onRun, onClose }: TextReplac
         </>
       )}
     >
-        <div className="grid gap-3" data-testid="text-replace-dialog">
-          <div className="grid gap-3 sm:grid-cols-2">
+        <div className="grid gap-4" data-testid="text-replace-dialog">
+          <p className="core-body text-core-secondary">Wörtlicher Text in den Inhalten von <strong className="font-semibold text-core-text">{cardCount(count)}</strong>, nie Formatierung oder Links.</p>
+          <div className="grid gap-3">
             <label className="core-field-group min-w-0"><span className="core-field-label">Suchen</span>
               <input className="core-field w-full" value={find} autoFocus onChange={(event) => setFind(event.target.value)} />
             </label>
@@ -84,10 +86,10 @@ export function TextReplaceDialog({ count, prepare, onRun, onClose }: TextReplac
               <input className="core-field w-full" value={replace} onChange={(event) => setReplace(event.target.value)} />
             </label>
           </div>
-          <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-            <CoreSelect ariaLabel="Suchen in" className="min-w-40" value={target} options={options} onValueChange={setTarget} />
-            <CoreCheckbox label="Groß-/Kleinschreibung beachten" checked={matchCase} onCheckedChange={setMatchCase} />
+          <div className="core-field-group min-w-0"><span className="core-field-label" aria-hidden="true">Suchen in</span>
+            <CoreSelect ariaLabel="Suchen in" className="w-full" value={target} options={options} onValueChange={setTarget} />
           </div>
+          <CoreCheckbox label="Groß-/Kleinschreibung beachten" checked={matchCase} onCheckedChange={setMatchCase} />
           <div aria-live="polite" className="grid gap-2" data-testid="text-replace-preview">
             {loadError ? <p className="core-field-error" role="alert">{loadError}</p>
               : !session ? <p className="core-caption text-core-muted">Inhalte werden geladen …</p>

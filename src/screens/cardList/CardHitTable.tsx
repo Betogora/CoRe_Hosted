@@ -14,31 +14,36 @@ export type CardListItem =
   | { kind: "card"; key: string; listKey: string; index: number };
 type CardHitRow = ReturnType<typeof createHitListModel>["cardRows"][number];
 
-function SortHeader({ field, label, sort, onChange }: {
+function SortHeader({ field, label, sort, onChange, leading }: {
   field: CardTableSortField;
   label: string;
   sort: CardTableSort;
   onChange: (field: CardTableSortField) => void;
+  /** Precedes the label, such as the checkbox that starts selecting. */
+  leading?: React.ReactNode;
 }) {
   const active = sort.field === field;
   const rightAligned = field !== "sortField";
   // Matches the padding of the column's cells, so header and values share their edge.
-  const headerPadding = field === "variants" ? "px-1 sm:pr-3" : rightAligned ? "px-1" : "px-1 sm:px-3 md:px-4";
-  const headerGap = rightAligned ? "gap-0.5" : "gap-1 sm:gap-2";
+  const headerPadding = field === "variants" ? "px-1 sm:pr-3" : rightAligned ? "px-1" : "px-2 sm:px-3 md:px-4";
   const directionLabel = active && sort.direction === "desc" ? "absteigend" : "aufsteigend";
   const SortIcon = active && sort.direction === "desc" ? ArrowDown : ArrowUp;
 
+  const button = (
+    <button
+      type="button"
+      onClick={() => onChange(field)}
+      className={`core-table-header-control flex w-full min-w-0 items-center gap-0.5 rounded-inset core-caption font-medium text-core-muted hover:text-core-text focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--core-border-interactive)] ${rightAligned ? "justify-end" : ""}`}
+      aria-label={`${label} ${directionLabel} sortieren`}
+    >
+      <span className="min-w-0 truncate">{label}</span>
+      <SortIcon size={14} aria-hidden="true" className={`shrink-0 ${active ? "opacity-100" : "opacity-35"}`} />
+    </button>
+  );
   return (
-    <th scope="col" aria-sort={active ? (sort.direction === "asc" ? "ascending" : "descending") : "none"} className={`min-w-0 ${headerPadding} ${rightAligned ? "text-right" : "text-left"}`}>
-      <button
-        type="button"
-        onClick={() => onChange(field)}
-        className={`core-table-header-control flex w-full min-w-0 items-center ${headerGap} rounded-inset core-caption font-medium text-core-muted hover:text-core-text focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--core-border-interactive)] ${rightAligned ? "justify-end" : ""}`}
-        aria-label={`${label} ${directionLabel} sortieren`}
-      >
-        <span className="min-w-0 truncate">{label}</span>
-        <SortIcon size={14} aria-hidden="true" className={`shrink-0 ${active ? "opacity-100" : "opacity-35"}`} />
-      </button>
+    <th scope="col" aria-sort={active ? (sort.direction === "asc" ? "ascending" : "descending") : "none"} className={`min-w-0 ${headerPadding} ${leading ? "py-0" : ""} ${rightAligned ? "text-right" : "text-left"}`}>
+      {/* The leading control sits on the axis of the rows' checkboxes, about one box width before the label. */}
+      {leading ? <div className="flex h-[var(--core-card-table-header-height)] min-w-0 items-center gap-[1.625rem]">{leading}{button}</div> : button}
     </th>
   );
 }
@@ -182,7 +187,7 @@ export function MatchingDecks({ groups, onOpen }: { groups: ReadonlyArray<{ id: 
  * The flat hit list of the card management (KV3) as a virtual table: sortable header or the selection bar, a loading
  * bar while the list's pages load, and one memoized row per loaded hit; without rows the empty state.
  */
-export function CardHitTable({ items, rowOf, virtual, loading, searching, selectionBar, sort, onSort, selectedCardId, selectedGraph, flagNames, syncConflictCardIds, deckPathOf, onSelect, isChecked, selecting, onToggleCheck }: {
+export function CardHitTable({ items, rowOf, virtual, loading, searching, selectionBar, sort, onSort, onStartSelecting, selectedCardId, selectedGraph, flagNames, syncConflictCardIds, deckPathOf, onSelect, isChecked, selecting, onToggleCheck }: {
   items: CardListItem[];
   rowOf: (item: Extract<CardListItem, { kind: "card" }>) => CardHitRow | undefined;
   virtual: ReturnType<typeof useVirtualRows>;
@@ -192,6 +197,8 @@ export function CardHitTable({ items, rowOf, virtual, loading, searching, select
   selectionBar: React.ReactNode;
   sort: CardTableSort;
   onSort: (field: CardTableSortField) => void;
+  /** The header's checkbox starts selecting; absent where cards cannot be selected. */
+  onStartSelecting?: () => void;
   selectedCardId: string | null;
   /** The open card's content; its mark and flags win over the catalog row until the list reloads. */
   selectedGraph: (NoteGraph & { cardId: string }) | null;
@@ -204,6 +211,15 @@ export function CardHitTable({ items, rowOf, virtual, loading, searching, select
   onToggleCheck: (cardId: string, range: boolean) => void;
 }) {
   // Below xl the page scrolls under the sticky mobile header, so the table header sticks right beneath it.
+  // The header's checkbox swaps the sort header and the selection bar; the checkbox in its place takes the focus.
+  const theadRef = React.useRef<HTMLTableSectionElement>(null);
+  const toggledInHeader = React.useRef(false);
+  const barShown = Boolean(selectionBar);
+  React.useEffect(() => {
+    if (!toggledInHeader.current) return;
+    toggledInHeader.current = false;
+    theadRef.current?.querySelector<HTMLInputElement>(".core-checkbox input")?.focus();
+  }, [barShown]);
   const [mobileHeaderHeight, setMobileHeaderHeight] = React.useState(0);
   React.useEffect(() => {
     const header = document.querySelector<HTMLElement>('[data-navigation-layout="mobile-header"]');
@@ -221,7 +237,7 @@ export function CardHitTable({ items, rowOf, virtual, loading, searching, select
         <col className="w-20" />
       </colgroup>
       {/* From xl the screen region scrolls; its top padding (xl:py-10 in App) would otherwise hold the header 40 px low. */}
-      <thead className="sticky top-[var(--core-card-table-sticky-top)] z-10 bg-core-surface xl:-top-10" style={{ "--core-card-table-sticky-top": `${mobileHeaderHeight}px` } as React.CSSProperties}>
+      <thead ref={theadRef} onChangeCapture={(event) => { toggledInHeader.current = event.target instanceof HTMLInputElement && event.target.type === "checkbox" && event.currentTarget.contains(event.target); }} className="sticky top-[var(--core-card-table-sticky-top)] z-10 bg-core-surface xl:-top-10" style={{ "--core-card-table-sticky-top": `${mobileHeaderHeight}px` } as React.CSSProperties}>
         {selectionBar ? (
           <tr className="core-card-table-header border-b border-core-border">
             <th scope="col" colSpan={3} className="p-0 text-left font-normal">
@@ -230,7 +246,13 @@ export function CardHitTable({ items, rowOf, virtual, loading, searching, select
           </tr>
         ) : (
           <tr className="core-card-table-header border-b border-core-border">
-            <SortHeader field="sortField" label="Sortierfeld" sort={sort} onChange={onSort} />
+            <SortHeader
+              field="sortField"
+              label="Sortierfeld"
+              sort={sort}
+              onChange={onSort}
+              leading={onStartSelecting ? <CoreCheckbox className="shrink-0" data-testid="card-selection-start" aria-label="Karten auswählen" checked={false} onCheckedChange={onStartSelecting} /> : null}
+            />
             <SortHeader field="nextStudyDate" label="Datum" sort={sort} onChange={onSort} />
             <SortHeader field="variants" label="Variante" sort={sort} onChange={onSort} />
           </tr>

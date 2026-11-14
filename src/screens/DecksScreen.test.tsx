@@ -398,6 +398,9 @@ test("cards page lists every card of every deck as one flat sortable list withou
   assert.match(markup, /<div class="min-w-0 max-w-full overflow-clip rounded-panel border border-core-border bg-core-surface" data-testid="card-library-sheet"><table/, "die Tabelle ist ein Blatt ohne zweiten Rahmen");
   assert.doesNotMatch(markup, /core-surface[^"]*" aria-label="Karten"/, "Suche und Tabelle liegen ohne Panel unter dem Kopf");
   assert.match(markup, /core-table-header-control/);
+  assert.doesNotMatch(markup, /card-selection-start/, "ohne Massenaktionen kein Auswahlkästchen");
+  const selectable = renderScreen(decks, { cardPages, onRunCardBatch: async () => ({ changedCount: 0, undo: async () => ({ restoredCount: 0, skippedCount: 0 }) }) });
+  assert.match(selectable, /<th[^>]*><div[^>]*><span class="core-checkbox shrink-0" data-state="unchecked">[\s\S]*?data-testid="card-selection-start" aria-label="Karten auswählen"[\s\S]*?aria-label="Sortierfeld aufsteigend sortieren"/, "das Auswahlkästchen steht im Tabellenkopf links vom Sortierfeld");
   assert.match(markup, /text-right/);
   assert.match(markup, /justify-end/);
   assert.match(markup, /aria-label="Karten durchsuchen"/);
