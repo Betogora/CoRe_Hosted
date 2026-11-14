@@ -20,7 +20,7 @@ Nicht hinein gehört:
 
 Probe: Ein Satz gehört nicht hinein, wenn er falsch wird, sobald man eine Funktion umbenennt oder umbaut, ohne dass sich ein Vertrag ändert. Umsetzungsdetails stehen in Code, Kommentaren und Tests.
 
-Form: Stichpunkte oder Tabellenzeilen, ein Gedanke je Punkt. Eine geänderte Regel ersetzt die alte, statt sie zu ergänzen. Angepasst wird die Datei nur bei geändertem Eigentümer, geänderter Invariante oder geänderter öffentlicher Schnittstelle. `npm run check:docs` prüft eine Höchstgröße der ganzen Datei, die nur sinken darf (`DOC_LIMITS` in `scripts/generateDocs.ts`).
+Form: Stichpunkte oder Tabellenzeilen, ein Gedanke je Punkt. Eine geänderte Regel ersetzt die alte, statt sie zu ergänzen. Angepasst wird die Datei nur bei geändertem Eigentümer, geänderter Invariante oder geänderter öffentlicher Schnittstelle. `npm run check:docs` prüft eine feste Höchstgröße der ganzen Datei (`DOC_LIMITS` in `scripts/generateDocs.ts`).
 
 ## Systembild
 

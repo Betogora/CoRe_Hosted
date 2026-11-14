@@ -59,8 +59,8 @@ Technische Einstiege außerhalb von `docs/`:
 - `architecture.md` ändert sich nur mit einem Eigentümer, einer Invariante
   oder einer öffentlichen Schnittstelle.
 - `npm run check:docs` begrenzt die Größe von `architecture.md`, `specs.md`
-  und dem Root-`README.md` je ganze Datei (`DOC_LIMITS` in
-  `scripts/generateDocs.ts`); eine Grenze sinkt nur. Platz entsteht durch
+  und dem Root-`README.md` je ganze Datei auf eine feste Obergrenze
+  (`DOC_LIMITS` in `scripts/generateDocs.ts`). Platz entsteht durch
   Verdichten, nicht durch Anheben.
 - Erledigtes verschwindet aus `todo.md`; Details stehen in Commit und Pull
   Request, Production- und Datenbankschritte als Betriebsnachweis in `history.md`.

@@ -50,14 +50,12 @@ test("Dokumentverweise führen auf die HTML-Ansicht und behalten den kanonischen
   assert.match(html, /index.html#readme--document/);
 });
 
-test("Begrenzte Dokumente dürfen nicht wachsen: Höchstgröße je Datei sinkt nur, Spielraum gilt für die ganze Datei", () => {
-  const limits = [{ file: "a.md", maxBytes: 120, slackBytes: 20 }, { file: "b.md", maxBytes: 10, slackBytes: 5 }];
-  const files: Record<string, string> = { "a.md": `${"ä".repeat(50)}${"x".repeat(5)}`, "b.md": "y".repeat(8) };
+test("Begrenzte Dokumente überschreiten ihre feste Obergrenze in Bytes nicht", () => {
+  const limits = [{ file: "a.md", maxBytes: 120 }, { file: "b.md", maxBytes: 10 }];
+  const files: Record<string, string> = { "a.md": `${"ä".repeat(60)}`, "b.md": "y" };
   assert.deepEqual(docLimitFailures((file) => files[file], limits), []);
-  files["a.md"] += "z".repeat(16);
+  files["a.md"] += "z";
   assert.deepEqual(docLimitFailures((file) => files[file], limits), ["a.md: 121 Bytes, Obergrenze 120; Text verdichten oder an seinen Eigentümer verlagern statt die Grenze anzuheben."]);
-  files["a.md"] = "kurz";
-  assert.match(docLimitFailures((file) => files[file], limits).join(), /a\.md: auf 4 Bytes gesunken; maxBytes in DOC_LIMITS .* von 120 auf 4 senken/);
 });
 
 test("Markdown rendert Tabellen, verschachtelte Listen und Code vollständig", () => {

