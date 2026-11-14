@@ -230,7 +230,7 @@ test("[Vertrag: Kartenverwaltung] Kartenzeilen bleiben auch in schmalen Viewport
       const tableHeader = table?.querySelector<HTMLElement>("thead tr");
       const headers = [...document.querySelectorAll<HTMLElement>('[data-testid="card-library-table"] thead th')];
       const headerRects = headers.map((header) => header.getBoundingClientRect());
-      const headerLabels = headers.map((header) => header.querySelector<HTMLElement>("span"));
+      const headerLabels = headers.map((header) => header.querySelector<HTMLElement>(".core-table-header-control span"));
       const cardRows = [...document.querySelectorAll<HTMLElement>('[data-card-row="true"]')];
       const dueCells = cardRows.map((row) => row.querySelectorAll<HTMLElement>("td")[1]);
       const variantCells = cardRows.map((row) => row.querySelectorAll<HTMLElement>("td")[2]);
