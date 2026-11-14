@@ -42,6 +42,9 @@ tabellarische Ziffern (`tabular-nums`) bleiben Tabellenspalten und Zählern
 vorbehalten. Die Palette besteht aus den ToolBox-Markenfarben
 `--core-brand-*` und den semantischen Rollen; Primär ist `#236492`, der Akzent
 `#b55b43`.
+Listen kennen zwei Zeilendichten: Komfortzeile 48 px, Kompaktzeile 36 px; die
+Kartentabelle bleibt bewusst enger. Alle Menüs teilen eine 44-px-Zeile mit
+gedämpftem 16-px-Icon und Trennern nur zwischen Gruppen (`core-menu-row`).
 Gemeinsame Abstände verwenden 4, 8, 12, 16 und 24 px; bestehende lokale
 Layoutabstände und fachliche Messwerte bleiben in der Tailwind-Skala.
 Reguläre Panel-Layouts verwenden 24 px Innenabstand; größere Leer- und
@@ -155,7 +158,7 @@ const setSuccessToast = useSuccessToast();
 setSuccessToast("Import erfolgreich abgeschlossen.");
 ```
 
-Mit `{ action: { label, onAction } }` erhält der Toast eine Sekundäraktion, etwa `Rückgängig` für Sofortaktionen im Karteneditor (W7, W20). Mauszeiger und Tastaturfokus halten den Ablauf der zehn Sekunden an; ein neuer Toast ersetzt den vorigen samt Aktion. Die Aktion schließt den Toast und ist nie der einzige Weg zurück: Das auslösende Bedienelement zeigt seinen Zustand weiter selbst.
+Mit `{ action: { label, onAction } }` erhält der Toast eine Sekundäraktion, etwa `Rückgängig` für Sofortaktionen im Karteneditor (W7, W20). Mauszeiger und Tastaturfokus halten den Ablauf der zehn Sekunden an; ein neuer Toast ersetzt den vorigen samt Aktion. Die Aktion schließt den Toast und ist nie der einzige Weg zurück: Das auslösende Bedienelement zeigt seinen Zustand weiter selbst. Toasts liegen unter modalen Dialogen und laufen erst ab, wenn der letzte geschlossen ist, damit sie keine Dialogbedienung verdecken und `Rückgängig` erreichbar bleibt.
 
 ```tsx
 setSuccessToast("Karte verschoben.", { action: { label: "Rückgängig", onAction: undo } });
@@ -198,7 +201,7 @@ Stapelbezogene Auswahl verwendet `DeckSelect` für genau einen Stapel und `DeckM
 
 Die Statistik verwendet lokal `.core-statistics-load-track`: dauerhaft 3 px Höhe und 8 px Abstand unter der Filterzeile, während einer Abfrage als benannter unbestimmter `progressbar` ohne sichtbaren Ladetext. Gleichmäßig durchlaufende Segmente zeigen einen laufenden Prozess ohne Fortschrittswert; nur ihre CSS-Transformation wird animiert. Eine separate unsichtbare Live-Region meldet die Aktualisierung; Reduced Motion zeigt den Balken statisch. Dieses einzelne fachliche Muster benötigt keine allgemeine Fortschrittskomponente.
 
-`StatTile` aus `src/ui/coreUi.tsx` (`label`, `value`, `hint?`, `size?`, `variant?`) deckt einzelne Kennzahlen ab; Stapeldarstellungen verwenden keinen Ring (ADR-041). `StatTile` rendert Beschriftung (12/16 · 500, gedämpft), Wert (`core-metric`) und optionalen Hinweis als zusammengehörige Definitionsliste, ohne Icon. `size="default"` ist die Panelfläche, `size="compact"` die flache weiße Mini-Karte mit 1-px-Rahmen für dichte Berichte. `variant="plain"` lässt Rahmen und Fläche weg: Beschriftung oben, Wert darunter, für frei stehende Kennzahlen in Zeilen und Tabellen. Mehrere Kennzahlen nebeneinander zeigt `MetricRow`.
+`StatTile` aus `src/ui/coreUi.tsx` (`label`, `value`, `hint?`) deckt einzelne Kennzahlen ab; Stapeldarstellungen verwenden keinen Ring (ADR-041). `StatTile` steht frei ohne Rahmen, Fläche und Icon: Beschriftung (12/16 · 500, gedämpft) oben, Wert (`core-metric`) darunter, optionaler Hinweis als dritte Zeile einer Definitionsliste; so auch in Tabellen und Berichten. Mehrere Kennzahlen nebeneinander zeigt `MetricRow`.
 
 `VariantGenerationBar` aus `src/ui/VariantGenerationBar.tsx` ist die app-weite, zweizeilige Infobox einer laufenden KI-Variantengenerierung: Stapel-Icon, „Varianten generieren X von Y“ und `Abbrechen`, darunter der neutrale Balken im Stil von `PomodoroProgress` (`bg-core-subtle`/`bg-core-action`). Sie schwebt unter 1280 px über der Bottom-Bar und ab 1280 px zentriert über dem Inhaltsbereich. Ein Ergebnis, das Aufmerksamkeit braucht, ersetzt die Zählzeile und bietet `Schließen`; Zustand und Ablauf besitzt `useCardVariantBatch`.
 

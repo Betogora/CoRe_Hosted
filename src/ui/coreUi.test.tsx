@@ -66,12 +66,10 @@ test("core tag offers five tones and an optional domain-colour dot", () => {
   assert.match(dotted, /<span aria-hidden="true" class="core-tag-dot" style="background:var\(--core-exam-color-1\)"><\/span>Geografie/);
 });
 
-test("stat tile renders a definition list without an icon tile, boxed or plain", () => {
-  const boxed = renderToStaticMarkup(<StatTile size="compact" label="Reviews" value="12" />);
-  assert.match(boxed, /<dl data-size="compact" data-variant="boxed" class="[^"]*border[^"]*"><dt class="core-status-label text-core-muted">Reviews<\/dt><dd class="core-metric[^"]*">12<\/dd><\/dl>/);
-  const plain = renderToStaticMarkup(<StatTile variant="plain" label="Erfolgsrate" value="83,3 %" />);
-  assert.match(plain, /<dl data-size="default" data-variant="plain" class="flex flex-col min-w-0">/);
-  assert.doesNotMatch(plain, /border|rounded|shadow|<svg/);
+test("stat tile stands free as a definition list without frame or icon", () => {
+  const markup = renderToStaticMarkup(<StatTile label="Erfolgsrate" value="83,3 %" />);
+  assert.match(markup, /<dl class="flex min-w-0 flex-col"><dt class="core-status-label text-core-muted">Erfolgsrate<\/dt><dd class="core-metric[^"]*">83,3 %<\/dd><\/dl>/);
+  assert.doesNotMatch(markup, /border|rounded|shadow|<svg/);
 });
 
 test("empty state stands on a hairline surface with a free icon", () => {

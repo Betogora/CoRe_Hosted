@@ -58,9 +58,9 @@ export function codeFootprintMarkup() {
   const footprint = codeFootprint();
   const number = (value: number) => value.toLocaleString("de-DE");
   const tiles = renderToStaticMarkup(React.createElement("div", { className: "docs-code-stats" },
-    React.createElement(StatTile, { size: "compact", label: "Bildschirmcode", value: number(footprint.screens) }),
-    React.createElement(StatTile, { size: "compact", label: "Gemeinsamer Code & API", value: number(footprint.shared) }),
-    React.createElement(StatTile, { size: "compact", label: "Quelldateien", value: number(footprint.files) }),
+    React.createElement(StatTile, { label: "Bildschirmcode", value: number(footprint.screens) }),
+    React.createElement(StatTile, { label: "Gemeinsamer Code & API", value: number(footprint.shared) }),
+    React.createElement(StatTile, { label: "Quelldateien", value: number(footprint.files) }),
   ));
   const rows = footprint.areas.map((area) => `<tr><th scope="row"><span class="docs-code-dot" style="background:${area.color}" aria-hidden="true"></span>${area.label}</th><td>${number(area.lines)}</td><td>${(area.lines / footprint.screens * 100).toLocaleString("de-DE", { maximumFractionDigits: 1 })} %</td></tr>`).join("");
   return `${tiles}<div class="docs-code-chart"><div class="docs-table-scroll" tabindex="0" role="region" aria-label="Codeumfang je Produktbereich"><table><thead><tr><th>Bereich</th><th>Zeilen</th><th>Anteil</th></tr></thead><tbody>${rows}</tbody></table></div></div><p class="docs-source">Beim Erzeugen gemessen: nichtleere Zeilen in <code>src/</code> und <code>api/</code> (TS/TSX) sowie <code>src/styles.css</code>. Ohne Tests, Typdeklarationen, generierte Datenbanktypen, Dokumentation und Fremdcode. Bereichszuordnung nach Bildschirmdateien in <a href="../src/screens/README.md">der Screen-Landkarte</a>; übriger Code zählt gemeinsam. Enthält Kommentare und misst weder Laufzeit noch Komplexität.</p>`;
