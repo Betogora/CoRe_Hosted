@@ -2170,8 +2170,8 @@ video {
 .min-h-8 {
   min-height: 2rem;
 }
-.min-h-\[19rem\] {
-  min-height: 19rem;
+.min-h-\[12rem\] {
+  min-height: 12rem;
 }
 .min-h-\[2\.875rem\] {
   min-height: 2.875rem;
@@ -4670,7 +4670,7 @@ button.core-steps-step:disabled {
   box-shadow: inset 0 calc(-1 * var(--core-border-width-strong)) 0 var(--core-action-primary);
 }
 
-/* DialogFrame: full screen below 768 px, centred card in three widths above. */
+/* DialogFrame: full screen below 768 px (the small one stays a card), centred card in three widths above. */
 .core-dialog-frame-backdrop {
   position: fixed;
   inset: 0;
@@ -4734,6 +4734,25 @@ button.core-steps-step:disabled {
   gap: var(--core-space-sm);
   padding: var(--core-space-md) 1.25rem;
   border-top: var(--core-border-width) solid var(--core-border);
+}
+
+/* The small frame stays a centred card below 768 px as well. */
+.core-dialog-frame-backdrop:has(> .core-dialog-frame[data-size="s"]) {
+  align-items: center;
+  padding: var(--core-space-lg);
+}
+
+.core-dialog-frame[data-size="s"] {
+  height: auto;
+  max-height: calc(100dvh - 2rem);
+  border-radius: var(--core-radius-overlay);
+}
+
+/* On a phone its actions stack at full width, the confirmation on top. */
+@media (max-width: 39.9375rem) {
+  .core-dialog-frame[data-size="s"] .core-dialog-frame-footer {
+    flex-direction: column-reverse;
+  }
 }
 
 @media (min-width: 48rem) {
@@ -6877,8 +6896,36 @@ button.core-steps-step {
     border-width: 0;
   }
 
+  .max-sm\:left-4 {
+    left: 1rem;
+  }
+
+  .max-sm\:order-last {
+    order: 9999;
+  }
+
   .max-sm\:hidden {
     display: none;
+  }
+
+  .max-sm\:\!w-auto {
+    width: auto !important;
+  }
+
+  .max-sm\:basis-\[calc\(100\%-3\.5rem\)\] {
+    flex-basis: calc(100% - 3.5rem);
+  }
+
+  .max-sm\:flex-wrap {
+    flex-wrap: wrap;
+  }
+
+  .max-sm\:\!items-start {
+    align-items: flex-start !important;
+  }
+
+  .max-sm\:gap-y-1 {
+    row-gap: 0.25rem;
   }
 
   .max-sm\:px-2\.5 {
@@ -7620,6 +7667,12 @@ button.core-steps-step {
 .\[\&\>svg\]\:size-\[15px\]>svg {
   width: 15px;
   height: 15px;
+}
+@media not all and (min-width: 640px) {
+
+  .max-sm\:\[\&\>svg\]\:\!mt-3>svg {
+    margin-top: 0.75rem !important;
+  }
 }
 .\[\&\>tr\[data-card-row\]\]\:opacity-60>tr[data-card-row] {
   opacity: 0.6;

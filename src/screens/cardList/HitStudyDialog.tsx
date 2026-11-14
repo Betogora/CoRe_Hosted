@@ -57,24 +57,28 @@ export function HitStudyDialog({ title, loadCardIds, onStart, onClose }: HitStud
         </>
       )}
     >
-        <div className="grid gap-3" data-testid="hit-study-dialog">
-          <p className="core-body font-semibold text-core-text" aria-live="polite">
-            {cardIds === null ? "Karten werden gezählt …" : cardIds.length ? cardCount(cardIds.length) : "Keine Karte zum Lernen"}
+        <div className="grid gap-4" data-testid="hit-study-dialog">
+          <p className="core-body text-core-secondary" aria-live="polite">
+            {cardIds === null ? "Karten werden gezählt …" : cardIds.length ? <><strong className="font-semibold text-core-text">{cardCount(cardIds.length)}</strong> lernen, unabhängig von Fälligkeit und Tageslimits.</> : "Keine Karte zum Lernen"}
           </p>
-          <CoreSegmentedControl<HitStudyMode>
-            ariaLabel="Lernweg"
-            className="w-full"
-            value={mode}
-            options={[{ value: "advance", label: "Vorziehen" }, { value: "practice", label: "Nur üben" }]}
-            onValueChange={setMode}
-          />
-          <CoreSegmentedControl<HitStudyOrder>
-            ariaLabel="Reihenfolge"
-            className="w-full"
-            value={order}
-            options={[{ value: "list", label: "Wie die Liste" }, { value: "shuffled", label: "Gemischt" }]}
-            onValueChange={setOrder}
-          />
+          <div className="core-field-group"><span className="core-field-label" aria-hidden="true">Lernweg</span>
+            <CoreSegmentedControl<HitStudyMode>
+              ariaLabel="Lernweg"
+              className="w-full"
+              value={mode}
+              options={[{ value: "advance", label: "Vorziehen" }, { value: "practice", label: "Nur üben" }]}
+              onValueChange={setMode}
+            />
+          </div>
+          <div className="core-field-group"><span className="core-field-label" aria-hidden="true">Reihenfolge</span>
+            <CoreSegmentedControl<HitStudyOrder>
+              ariaLabel="Reihenfolge"
+              className="w-full"
+              value={order}
+              options={[{ value: "list", label: "Wie die Liste" }, { value: "shuffled", label: "Gemischt" }]}
+              onValueChange={setOrder}
+            />
+          </div>
           {error ? <p className="core-field-error" role="alert">{error}</p> : null}
         </div>
     </DialogFrame>

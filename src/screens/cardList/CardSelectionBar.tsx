@@ -6,7 +6,6 @@ import type { Deck } from "../../coreTypes.ts";
 import { addLearningDays, getLearningDayKey, getLearningDayStartForKey } from "../../learningDay.ts";
 import { ActionButton, CrossLinkButton } from "../../ui/actionUi.tsx";
 import { CoreDatePicker } from "../../ui/CoreDatePicker.tsx";
-import { ActionDialog } from "../../ui/coreUi.tsx";
 import { DialogFrame } from "../../ui/DialogFrame.tsx";
 import { FlagPicker } from "../../ui/flagUi.tsx";
 import { CoreCheckbox } from "../../ui/formControls.tsx";
@@ -38,6 +37,30 @@ const MENU: ReadonlyArray<{ id: MenuActionId; label: string; icon: LucideIcon; s
   { id: "variants", label: "Varianten generieren", icon: Sparkles },
   { id: "delete", label: "Löschen", icon: Trash2, shortcut: { label: "Entf", keys: "Delete" } },
 ];
+
+type DialogActionId = Exclude<MenuActionId, "study" | "replace">;
+
+/**
+ * One sentence per action dialog: the cards (bold count) and what happens to them; `done` names the result in the toast
+ * (variant generation reports its own progress).
+ * `danger` actions confirm with the destructive button.
+ */
+const EFFECT: Record<DialogActionId, { lead: (cards: React.ReactNode, one: boolean) => React.ReactNode; done?: (cards: string) => string; danger?: true }> = {
+  deck: { lead: (cards, one) => <>{cards} {one ? "wechselt" : "wechseln"} in diesen Stapel.</>, done: (cards) => `${cards} verschoben` },
+  "tags-add": { lead: (cards) => <>Diese Tags kommen zu den Inhalten von {cards} hinzu.</>, done: (cards) => `Tags zu ${cards} hinzugefügt` },
+  "tags-remove": { lead: (cards) => <>Diese Tags verschwinden von den Inhalten von {cards}.</>, done: (cards) => `Tags von ${cards} entfernt` },
+  flag: { lead: (cards, one) => <>{cards} {one ? "erhält" : "erhalten"} diese Flagge.</>, done: (cards) => `Flagge bei ${cards} gesetzt` },
+  "flag-remove": { lead: (cards, one) => <>{cards} {one ? "verliert ihre" : "verlieren ihre"} Flagge.</>, done: (cards) => `Flagge bei ${cards} entfernt` },
+  mark: { lead: (cards) => <>Die Inhalte von {cards} werden markiert.</>, done: (cards) => `${cards} markiert` },
+  unmark: { lead: (cards) => <>Die Inhalte von {cards} verlieren ihre Markierung.</>, done: (cards) => `Markierung bei ${cards} entfernt` },
+  suspend: { lead: (cards, one) => <>{cards} {one ? "kommt" : "kommen"} nicht mehr in Lernsitzungen, bis du sie reaktivierst.</>, done: (cards) => `${cards} ausgesetzt` },
+  unsuspend: { lead: (cards, one) => <>{cards} {one ? "kommt" : "kommen"} wieder in Lernsitzungen.</>, done: (cards) => `${cards} reaktiviert` },
+  bury: { lead: (cards, one) => <>{cards} {one ? "pausiert" : "pausieren"} bis zum nächsten Lerntag.</>, done: (cards) => `${cards} zurückgestellt` },
+  due: { lead: (cards, one) => one ? <>{cards} wird an einem Tag in diesem Zeitraum fällig.</> : <>{cards} werden in diesem Zeitraum fällig, jede an einem zufälligen Tag.</>, done: (cards) => `Fälligkeit für ${cards} gesetzt` },
+  reset: { lead: (cards, one) => <>{cards} {one ? "wird" : "werden"} wieder wie neu gelernt. Der Verlauf bleibt erhalten.</>, done: (cards) => `Lernstand von ${cards} zurückgesetzt`, danger: true },
+  variants: { lead: (cards) => <>Die KI erzeugt Varianten für {cards}.</> },
+  delete: { lead: (cards) => <>Die Inhalte von {cards} werden gelöscht, samt ihrer weiteren Karten.</>, done: (cards) => `${cards} gelöscht`, danger: true },
+};
 
 /** First entries of the menu groups: study · content and tags · flag and mark · planning · variants · delete. */
 const GROUP_STARTS = new Set<MenuActionId>(["deck", "flag", "suspend", "variants", "delete"]);
@@ -75,7 +98,8 @@ export interface CardSelectionBarProps {
   onStudy?: () => void;
   /** Absent where contents cannot be loaded for `Suchen und Ersetzen`. */
   onPrepareReplace?: () => Promise<TextReplaceSession>;
-  onRun: (action: CardBatchAction, label: string) => Promise<void>;
+  /** Runs the action; `done` names its result for the toast. */
+  onRun: (action: CardBatchAction, done: (cards: string) => string) => Promise<void>;
   /** A key of the card list asks for an action (KV6); it opens like the menu entry, a flag preselected. */
   request?: { id: CardSelectionActionId; flag?: number; nonce: number } | null;
 }
@@ -135,27 +159,29 @@ export function CardSelectionBar({ count, hitTotal, searching, allHits, disabled
       return;
     }
     const action = actionOf(dialog);
-    if (!action) return;
+    const done = effect?.done;
+    if (!action || !done) return;
     setRunning(true);
     try {
-      await onRun(action, label);
+      await onRun(action, done);
       setDialog(null);
     } finally {
       setRunning(false);
     }
   }
 
+  const effect = dialog && dialog.id !== "study" && dialog.id !== "replace" ? EFFECT[dialog.id] : null;
   const patch = (next: Partial<DialogState>) => setDialog((current) => current && { ...current, ...next });
   const fields = dialog ? (
     dialog.id === "deck" ? <DeckSelect ariaLabel="Zielstapel" className="w-full" value={dialog.deckId} decks={decks} onValueChange={(deckId) => patch({ deckId })} />
-      : dialog.id === "tags-add" || dialog.id === "tags-remove" ? <div className="min-h-[19rem]"><TagInput tags={dialog.tags} loadDirectory={loadTagDirectory} label="Tags" labelHidden onChange={(tags) => patch({ tags })} /></div>
+      : dialog.id === "tags-add" || dialog.id === "tags-remove" ? <div className="min-h-[12rem]"><TagInput tags={dialog.tags} loadDirectory={loadTagDirectory} label="Tags" labelHidden onChange={(tags) => patch({ tags })} /></div>
         : dialog.id === "flag" ? <FlagPicker value={dialog.flag} names={flagNames} onValueChange={(flag) => patch({ flag: flag || dialog.flag })} />
           : dialog.id === "due" ? (
             <div className="grid gap-3 sm:grid-cols-2">
-              <label className="grid gap-1.5 core-caption font-semibold text-core-secondary">Frühestens
+              <label className="core-field-group min-w-0"><span className="core-field-label">Frühestens</span>
                 <CoreDatePicker value={dialog.from} min={tomorrowKey} today={todayKey} ariaLabel="Frühestens fällig" onValueChange={(from) => patch({ from, to: dialog.to < from ? from : dialog.to })} />
               </label>
-              <label className="grid gap-1.5 core-caption font-semibold text-core-secondary">Spätestens
+              <label className="core-field-group min-w-0"><span className="core-field-label">Spätestens</span>
                 <CoreDatePicker value={dialog.to} min={dialog.from || tomorrowKey} today={todayKey} ariaLabel="Spätestens fällig" onValueChange={(to) => patch({ to })} />
               </label>
             </div>
@@ -194,33 +220,24 @@ export function CardSelectionBar({ count, hitTotal, searching, allHits, disabled
       </Popover.Root>
       {dialog?.id === "replace" && onPrepareReplace ? (
         <TextReplaceDialog count={count} prepare={onPrepareReplace} onRun={onRun} onClose={() => setDialog(null)} />
-      ) : dialog && fields ? (
+      ) : dialog && effect ? (
         <DialogFrame
           open
-          title={`${label}: ${cardCount(count)}`}
+          title={label}
           size="s"
           onClose={() => setDialog(null)}
           footer={(
             <>
               <ActionButton variant="secondary" disabled={running} onClick={() => setDialog(null)}>Abbrechen</ActionButton>
-              <ActionButton variant="primary" loading={running} disabled={running} onClick={() => void confirm()}>{label}</ActionButton>
+              <ActionButton variant={effect.danger ? "destructive" : "primary"} loading={running} disabled={running} onClick={() => void confirm()}>{label}</ActionButton>
             </>
           )}
         >
-          {fields}
+          <div className="grid gap-4">
+            <p className="core-body text-core-secondary">{effect.lead(<strong className="font-semibold text-core-text">{cardCount(count)}</strong>, count === 1)}</p>
+            {fields}
+          </div>
         </DialogFrame>
-      ) : dialog ? (
-        <ActionDialog
-          open
-          title={`${label}: ${cardCount(count)}`}
-          description={dialog.id === "delete" ? "Gelöscht werden die Inhalte der Karten samt ihrer weiteren Karten." : undefined}
-          confirmLabel={label}
-          cancelLabel="Abbrechen"
-          destructive={dialog.id === "delete"}
-          confirmLoading={running}
-          onCancel={() => setDialog(null)}
-          onConfirm={() => void confirm()}
-        />
       ) : null}
     </div>
   );
