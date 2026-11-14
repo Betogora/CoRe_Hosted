@@ -1,415 +1,376 @@
-# CoRe-Architektur und Invarianten
+# CoRe-Architektur
 
-**Rolle:** aktuelle technische Grenzen und Invarianten. **Stand:** 2026-11-04.
-Produktverhalten: [Specs](specs.md). Ist-Stand: [Status](status.md). Gates: [Betrieb](operations.md). Offene Änderungen: [TODO](todo.md). Formatdetails: [Anki-Referenz](anki-format-analysis.md).
+**Rolle:** Aufbau der Codebase, Eigentümer, Invarianten und öffentliche Schnittstellen. **Stand:** 2026-11-14.
+Produktverhalten: [Specs](specs.md). Ist-Stand: [Status](status.md). Betrieb: [Operations](operations.md). Abwägungen: [Entscheidungen](decisions.md). Offene Umbauten: [TODO](todo.md). Anki-Format: [Anki-Referenz](anki-format-analysis.md).
 
-## Systemkontext
+## Pflege dieser Datei
 
-CoRe ist eine Vite-/React-SPA mit TypeScript. Accountgebundene Browsermodule kapseln Supabase Auth, Postgres und privaten Storage. Vercel liefert die SPA und eine authentifizierte Function für textbasierte Kartenvarianten. React orchestriert UI; Domänenmodule besitzen Validierung, Datenformung und Persistenz.
+Hinein gehört:
 
-## Modulgrenzen
+- **Eigentümer:** welches Modul welchen Zustand, welche Regel oder welche Grenze besitzt.
+- **Invarianten,** die über Modulgrenzen hinweg gelten.
+- **Öffentliche Schnittstellen:** Routen, RPCs, Tabellen, Buckets, Speicher- und Datenbanknamen, Outbox-Arten und persistierte Schlüssel.
+- **Gründe,** die der Code nicht zeigt; Abwägungen zwischen Alternativen gehören in ein ADR.
+
+Nicht hinein gehört:
+
+- Funktions- und Exportlisten, Algorithmen Schritt für Schritt, Aufzählungen von URL-Parametern, Einstellungsbereichen oder Zuständen.
+- Maße, Breakpoints, Tastenkürzel, Messwerte und Etappenkürzel aus der Planung.
+- Was die [Specs](specs.md) fachlich regeln, offene Umbauten ([TODO](todo.md)) und Betriebsabläufe ([Operations](operations.md)).
+
+Probe: Ein Satz gehört nicht hinein, wenn er falsch wird, sobald man eine Funktion umbenennt oder umbaut, ohne dass sich ein Vertrag ändert. Umsetzungsdetails stehen in Code, Kommentaren und Tests.
+
+Form: Stichpunkte oder Tabellenzeilen, ein Gedanke je Punkt. Eine geänderte Regel ersetzt die alte, statt sie zu ergänzen. Angepasst wird die Datei nur bei geändertem Eigentümer, geänderter Invariante oder geänderter öffentlicher Schnittstelle. `npm run check:docs` prüft eine Höchstgröße der ganzen Datei, die nur sinken darf (`DOC_LIMITS` in `scripts/generateDocs.ts`).
+
+## Systembild
+
+CoRe ist eine Vite-/React-SPA in TypeScript. Jede Änderung wird zuerst in einer accountgebundenen IndexedDB-Replica gespeichert und danach mit Supabase (Auth, Postgres mit RLS, privater Storage) synchronisiert. Vercel liefert die SPA und drei authentifizierte KI-Routen.
+
+```schaubild
+Titel: Schichten; Abhängigkeiten zeigen nur nach unten
+Gruppe: Screens und Verdrahtung
+App-Shell | App.tsx: Anmeldung, Navigation, aktiver Bildschirm
+Screens | screens/: Produkt-UI, je Bildschirm eine Verdrahtung
+UI-Bausteine | ui/: gemeinsame Komponenten und Tokens
+Pfeil: über useAppServices
+Gruppe: Dienste und Hooks
+Arbeitsbereich | Anmeldung, Store, Sync-Status
+Navigation | AppRoute, Entwurfsschutz, Einstellungsdialoge
+Lernsitzung | Vorbereitung, Start, laufende Sitzung
+Pfeil: schreiben über
+Gruppe: Befehle
+cardCommands | Inhalte, Karten, Massenaktionen
+deckCommands | Stapel, Einstellungen, Profil
+importCommands | Importgraph, Bestätigung, Neuübersetzung
+Pfeil: planen mit
+Gruppe: Domäne
+[primär] coreModel | Inhalte und Karten
+Lernen | Queue, FSRS-7, Prüfungsplanung
+Darstellung | Renderer, Sanitizer, Rahmen
+Import | APKG lesen und übersetzen
+Pfeil: speichern in
+Gruppe: Lokales Repository und Sync
+[erfolg] Web-Replica | IndexedDB mit Outbox
+Hydrierung | Kartenseiten, Suche, Offline
+Sync | Outbox senden, Deltas holen
+Medien | Cache und Upload-Queue
+Pfeil: gegen
+Gruppe: Cloud und KI-Routen
+Supabase | Postgres mit RLS und RPCs, Storage
+[info] /api/ai/* | card-variant, card-help, summary über OpenRouter
+```
+
+## Modulkarte
+
+Pfade liegen unter `src/`, soweit kein anderer angegeben ist. Private Teilmodule stehen nur, wo sie eine Importgrenze bilden.
+
+### Screens und Verdrahtung
 
 | Eigentümer | Verantwortung |
 | --- | --- |
-| `App.tsx`, `screens/` | App-Shell und Produkt-UI; `App` stellt Workspace-Store und Dienste bereit, zeigt Anmelde- und Ladezustände, Navigation und Bildschirmbereich mit Fokus, wählt den aktiven Bildschirm und hält die globalen Dialoge; es erzeugt die Befehlsmodule einmal je Arbeitsbereich und hält Medienablage, Hydrierung, Stapelzahlen, Speicherquote und Vorladen. Je Bildschirm stellt eine Verdrahtung `screens/*Wiring.tsx` dessen Props aus Store und Diensten zusammen und lädt mit ihm; [Screen-Landkarte](../src/screens/README.md) |
-| `useAppServices.ts` | einziger Zugang der Verdrahtungen zu den Diensten des geöffneten Arbeitsbereichs: Navigation, Einstellungsdialoge, Lernuhr, Fokustimer, Sync, Lernsitzung und -start, Befehle, Importsitzung, Variantenlauf, Repository, Hydrierung, Cloud-Client und Medienablage; `App` stellt sie per Context bereit |
-| `useAccountWorkspace.ts`, `useWorkspaceSync.ts` | Supabase-Client und -Sitzung, Anmelden, Registrieren, Passwort-Reset, Magic Link, neues Passwort und Abmelden, accountgebundener Workspace-Start und Cloud-Bootstrap (`opened` füllt, `discarded` leert den Workspace-Store, `signedOut` beendet Route, Simulation und Importsitzung); Übernahme des Repository-Stands in den Store (`setAppState`, `refresh`), Sync-Lebenszyklus, `syncNow` und Konflikte |
-| `studyPreparation.ts`, `useStudyStart.ts`, `useStudySession.ts` | Vorbereitung einer Lernsitzung ohne React: Lernfenster eines Stapels samt Unterstapeln, heutige Prüfungseinheit, `Treffer lernen`, leerer Start mit zurückgehaltenen Karten und fehlgeschlagene Vorbereitung mit Meldung, Prüfungslernstände (eine Minute geteilt, nach jeder eigenen Antwort verworfen); Starts aus den Bildschirmen und aus einer Lernroute mit den Dialogzuständen; laufende Sitzung mit Nachladen, Antworten, Sofortänderungen des Lernstands und Neureihenfolge, deren Callbacks ihre Identität behalten |
-| `importCommands.ts`, `useImportSession.ts` | Importe ohne React: Importgraph mit globalen Vorgaben für neue Stapel, Demo, Cloud-Bestätigung je Import, die nach jedem gespeicherten Sync erneut läuft und im nächsten Arbeitsbereich desselben Kontos weiterläuft, und einmalige Neuübersetzung; APKG-Importsitzung über den Bildschirm hinaus bis zum Kontowechsel und Anstoß der Neuübersetzung |
-| `useLearningClock.ts`, `usePomodoroTimer.ts` | app-weite Lernzeit mit Simulationsversatz, Tagesbeginn, Zeitzone und selbsttätigem Lerntagwechsel; accountgebundener Fokustimer über Tabs mit Ablaufmeldung |
-| `workspaceStore.ts`, `useWorkspaceStore.ts` | Workspace-Store des geöffneten Kontos ohne React: Arbeitsbereich mit Revision je angewandtem Stand, Stapelzahlen, Heatmap, Sync-Status samt letztem Erfolg, Konfliktkarten, Kartenseiten, Offline-Stapel und Speicherstatus; `get`, `set`, `subscribe`, `clear`. `App` stellt ihn per Context bereit; Bildschirme abonnieren mit `useWorkspaceValue` nur ihren Teil und rendern nur bei inhaltlicher Änderung. Stapelzahlen lädt `App` über `useDeckSummaries` nur, solange eine Ansicht sie zeigt; eine Lernsitzung lädt sie nur bei einem neuen Lerntag einmal neu und holt sie beim Verlassen nach |
-| `appNavigation.ts`, `useAppNavigation.ts` | typisierter AppRoute, URL-Kontext und einzige Browser-History-Anbindung |
-| `useNavigationGuard.ts`, `useSettingsOverlay.ts` | App-Navigation mit Entwurfsschutz: offene Erstellungs-, Prüfungs- und Kartenentwürfe fragen vor dem Verlassen, die zurückgehaltene Navigation läuft erst nach Speichern oder Verwerfen; Einstellungsdialoge (allgemein, Lernen, Stapel) mit History-Einträgen, Einstellungsentwurf, Speicherleiste und Warnung vor dem Neuladen |
-| `cardCommands.ts`, `deckCommands.ts` | Befehle des geöffneten Arbeitsbereichs ohne React, je Arbeitsbereich aus Store, lokalem Repository und Sync erzeugt: Kartenseiten der Listen, Inhalt speichern, löschen und wiederherstellen, duplizieren, verschieben, Lernstand (Sofortänderungen nacheinander), Varianten, Medien, Massenaktionen, manuelle Erstellung und die `CardEditorServices`; Stapel anlegen, ändern, verschieben, löschen samt Unterstapeln, zusätzliche neue Karten für heute nach erreichtem Tagesplan, Stapeleinstellungen je Geltungsbereich, globale, allgemeine und Prüfungseinstellungen, Lernprofile, Aufklappzustand und gespeicherte Suchen. Jede Schreibung übernimmt den Stand des Repositorys in den Store und fordert einen Sync an |
-| `ui/`, `styles.css`, `coreTheme.ts` | gemeinsame UI, semantische Tokens und validierte Theme-Präferenz; [UI-Verträge](../src/ui/README.md) |
-| `coreTypes.ts`, `coreModel.ts` | kanonische `Note`/`Card`-Typen; einzige Grenze für Inhaltserzeugung, Änderungs-, Lösch- und Wiederherstellungsplanung, Editorwerte und manuelle Formen |
-| `coreWorkspace.ts`, `coreRepository.ts` | Arbeitsbereichszustand, Stapelbefehle und Platzierungs-/Zyklusprüfung |
-| `deckSettings.ts`, `settingsDraft.ts` | normalisierte Lernwerte, Presets und Snapshot-Gleichheit von Entwürfen |
-| `libraryModel.ts`, `deckHierarchy.ts` | Stapel-/Kartentabellenprojektion und rein visuelle Tiefenkappung |
-| `examPlanning.ts`, `examPlanSettings.ts` | Prüfungsplanung (FSRS-Kontaktmodell, dynamische Einführung, Themenfolge und relative Lernzeit je Klausur), Sitzungsstapel und validierte Planablage im Profil (ADR-042) |
-| `statisticsModel.ts`, `studyHeatmapModel.ts` | begrenzte Statistikreihen, Tageszähler, Streak und Kalenderprojektionen |
-| `reviewService.ts`, `scheduler.ts`, `easyDays.ts`, `siblingBurying.ts` | Queue, Bewertung samt Lernbremsen-Erkennung, FSRS-7 mit Haltbarkeit und Reifeband (`getDurabilityDays`, `getMaturityBand`), deterministische Intervallentlastung, die Begrabregel und das Zurückstellen einzelner Karten |
-| `cardSearchQuery.ts`, `tagDirectory.ts` | Suchbegriffe in Anki-Schreibweise, ihre Offline-Auswertung und die Filter der Kartenverwaltung als Suchbegriffe; lokales Tag-Verzeichnis, hierarchische Vorschläge und gespeicherte Schreibweise (ADR-045) |
-| `screens/cardSearch/` | Suchzeile, Filterchips, erweiterte Suche und gespeicherte Suchen (`uiPreferences.savedSearches`, normalisiert in `uiPreferences.ts`, gespeichert über das Profil) der Kartenverwaltung; `cardSearchMenu.ts` leitet die Kategorien und Zeilen aus Stapeln, Tag-Verzeichnis und Flaggennamen ab, jede Zeile setzt nur einen Begriff im Suchausdruck (`withCardSearchTermState`) |
-| `cardBatchActions.ts`, `coreModel/batch.ts`, `coreModel/replace.ts` | Massenaktionen der Kartenverwaltung: Planung von Karten- und Inhaltsänderungen, wörtlichem Ersetzen und `tag-rename`, Ausführung als ein lokaler Schreibvorgang, Rückgängig als neue Änderung ([Kartenverwaltung](#kartenverwaltung)) |
-| `hitStudySession.ts`, `reviewEventKinds.ts` | `Treffer lernen`: Sitzungsstapel `hit-session`, Trefferschlange und Übungsschlange; Bewertungsart `hit_review`, die keine Tageslimits verbraucht |
-| `duplicateContents.ts`, `screens/cardList/` | Duplikatgruppen über Katalogzeilen; Liste (`CardHitTable.tsx`), Suchzustand mit Entprellen, Sortierung und Seitenanforderung (`useCardSearch.ts`), Mehrfachauswahl und Listentasten (`useCardSelection.ts`), Auswahlleiste, Dialoge (Ersetzen, Treffer lernen, Duplikate, Tags verwalten) und Übung der Kartenverwaltung |
-| `catalogSearchIndex.ts` | In-Memory-Suche über den vollständigen lokalen Katalog: je Sortierung einmal geordnet (eine geänderte oder gelöschte Zeile wird nur selbst neu eingeordnet), Treffer je Stapel in einem Durchlauf, zwischengespeichert bis zur nächsten Katalogänderung (ADR-048); das Repository lädt und führt sie nach |
-| `schedulerExampleChains.ts` | Beispielketten über Scheduler und Variantenwahl; Golden-Test und `npm run docs:build` ([Lernverlauf einer Karte](specs.md#lernverlauf-einer-karte)) lesen dieselben Ketten, die App importiert sie nicht |
-| `cardVariantBatch.ts`, `useCardVariantBatch.ts` | Stapelgenerierung: Auswahl der ersten Karten ohne aktive Variante über Katalogseiten und gebündelte Hydrierung, Eignungsprüfung, sequentielle Erzeugung mit Abbruch und Stopp bei kartenübergreifenden Fehlern; der Hook hält den einen app-weiten Lauf und dessen Rückmeldung |
-| `coreVariantService.ts` | Erzeugungseignung (CoRe-Modus, Inhaltsform, Höchstzahl), Bereitschaft nach Haltbarkeit, Variantenquelle, Variantenwahl im Review, Variantendarstellung sowie Abschalten, Melden, Reaktivieren, Bearbeiten und Löschen einzelner Varianten |
-| `creationBatch.ts`, `creationWorkflow.ts` | manuelle Erstellung einschließlich Bildverdeckung (Bild als SHA-1-benanntes Medium), Batchzustand und getrennte lokale Medienvorbereitung |
-| `aiSourceCreation.ts`, `screens/AiSourceCreationPanel.tsx` | diskrete Lernwünsche, Dateiformat- und Zielvalidierung, reine deutsche Prompt-Zusammenstellung; flüchtiges Formular mit Auftragsprüfung, ohne Parser, Upload, KI-Aufruf oder Persistenz |
-| `importUiState.ts`, `apkgImportSession.ts` | sichtbare Importphasen und flüchtige accountgebundene Sitzung |
-| `apkgImport.ts` | öffentliche APKG-Grenze: Vorschau und gestreamter Importgraph; Worker, Protokoll, ZIP und SQLite bleiben privat |
-| `apkgNoteTranslation.ts`, `importRetranslation.ts` | Übersetzung eines gelesenen Anki-Pakets in den `Note`/`Card`-Importgraphen und automatische Neuübersetzung unbearbeiteter Importe |
-| `library/` (Repository-Wurzel), `fixtures/worldCapitals.ts` | Grundbibliothek: je Stapel eine versionierte Quelle mit stabilen Inhalts-IDs; `scripts/create_world_capitals_apkg.py` erzeugt daraus das Anki-Paket. Die Demo committet Welt-Hauptstädte als Importgraph; `ImportDeck.appearance` trägt dabei die Stapelfarbe, die Anki-Pakete nicht kennen |
-| `notePresentation.ts`, `presentationFrame.ts` | asynchroner Kartenrenderer sowie gemeinsames CSP-Gerüst und Medienauflösung |
-| `CardPresentationSurface`, `NoteCardContent`, `CardPreviewDialog` | Iframe-Rahmen, Antwort-Host mit transientem Eingabe-/Auswahlzustand und Vorschau |
-| `mainThreadBudget.ts` | teilt lange Hauptthread-Schleifen (Stapelzähler, Neuübersetzung) in Scheiben von höchstens 50 ms |
-| `indexedDbCoreRepository.ts`, `workspaceHydrationService.ts` | accountgebundene Web-Replica, begrenzte Hydrierung, Offline-Download und Quota-Bereinigung; privat bleiben `indexedDbStore.ts` (Schema, Datensatzformen), `indexedDbStudyCounts.ts` (Tageszähler), `indexedDbOutbox.ts` (wartende Outbox im Speicher und ihre Schreibzugriffe), `indexedDbCatalogSearch.ts` (Suchindex mit Änderungsmarken, Keyset-Seiten, Trefferlisten), `indexedDbStudyOverview.ts` (Lernübersicht, Antwortzähler, Stapelzusammenfassungen), `indexedDbReviews.ts` (Antworten und ihr Zurücknehmen als je ein Schreibvorgang mit Outbox-Mutation), `indexedDbCatalogSync.ts` (Katalog-Deltaseiten unter Schutz wartender Änderungen), `indexedDbCardBodies.ts` (Kartenkörper laden, hydrieren und markieren, Offline-Stapel, Quota-Bereinigung) und `indexedDbImportCommit.ts` (Übernahme eines Importgraphen samt Reimport) |
-| `cloudRepository.ts`, `cloudRepositoryValidation.ts` | accountgefilterte Cloudmutationen, Revisionen, Konflikte und Row-/JSONB-Validierung; `cloudRepository.ts` ist die einzige öffentliche Grenze und liest selbst Bootstrap, Katalog und Statistik; privat bleiben `cloudQueries.ts` (Client-Form, accountgefilterte Abfragen, gestückelte Schreibzugriffe, Eingabeprüfungen), `cloudRows.ts` (Entitäten als Cloudzeilen), `cloudConflicts.ts` (Zeilenvergleich, Konflikte markieren und auflisten), `cloudRevisionedWrites.ts` (revisionierte und gebündelte Schreibzugriffe, atomare Reviews, Geräte- und Profilschreiben, Konfliktauflösung) und `cloudImportVerification.ts` (Importbestätigung) |
-| `accountStorage.ts`, `profileIntegrity.ts` | kleine Accountnamespaces und vollständige Profilpatches |
-| `fieldTimings.ts`, `fieldTimingsReport.ts` | Feldwerte (ADR-050): Ringpuffer von 200 Werten je Messgröße im Accountnamespace (`core.fieldTimings.v1`, nur die laufende App-Version, beim Lesen validiert), gespeichert im Leerlauf oder beim Verbergen der Seite. Startphasen liest ein `PerformanceObserver` aus den Messungen von `appPerformance.ts`, je Seitenaufruf einmal; `Antwort anzeigen` und die Bewertung starten in `StudyMode` und enden einen Frame, nachdem ein geladener Review-Rahmen erscheint (`CardPresentationSurface`: beim Laden oder beim Einblenden eines vorbereiteten Antwort-Rahmens), die Suche startet mit der Eingabe in `DecksScreen` und endet, sobald die Liste zur Eingabe gehört. `fieldTimingsReport.ts` lädt mit den Einstellungen und bildet Anzahl, Median und p95 samt Geräte- und Katalogklassen |
-| `mediaStore.ts`, `cloudMediaStore.ts` | öffentliche Cache-/Queue-/URL-Grenze; private Storage-, Signed-URL- und TUS-Details |
-| `aiCardVariantContract.ts`, `aiCardVariant.ts`, `api/ai/card-variant.ts` | validierter Textvertrag, Browseraufruf und serverseitiger Providerzugriff |
-| `aiCardHelpContract.ts`, `aiCardHelp.ts`, `api/ai/card-help.ts` | Vertrag der Lernhilfe, Kartentext der aufgedeckten Karte, Browseraufruf und serverseitiger Providerzugriff |
-| `dashboardWidgets.ts`, `screens/DashboardWidgets.tsx` | validierte kontogebundene Browserablage für Widgetlayout und eigene To-dos; lokale Dashboard-Komposition, Reihenfolge und Größen. Planeraufgaben bleiben bei `ExamDashboardWidget`; dessen optionale Dashboard-Vorschau erhält ein gemeinsames Aufgabenlimit und meldet die offene Gesamtzahl zurück. Timerbesitz inklusive Reset bleibt bei `usePomodoroTimer.ts`/`pomodoroTimer.ts`, der Dashboard-Ring verwendet den bestehenden Snapshot |
-| `brainMascots.ts`, `ui/BrainMascot.tsx`, `brainMascotInteraction.ts` | Register der 37 SVG-Motive, gemeinsame Zeichnung und begrenzte Zeiger-/Aktivierungsinteraktion; `brainMascotPalette.ts` hält die gemeinsame Illustrationspalette; `scripts/generateMascots.tsx` erzeugt daraus das statische App-Logo `public/core-brain.svg` (über `docs:build`) und lokal auf Anfrage den Vorrat autarker HTML-Dateien unter `output/mascots/`. `dailyMotivation.ts` wählt aus 60 lokalen Impulsen anhand des Lerntages eine feste Text-/Motivkombination; `screens/DailyMotivationWidget.tsx` aktualisiert sie am Tagesbeginn und bei Rückkehr zur Seite. Keine Cloud-Persistenz oder externen Anfragen. |
-| `pomodoroTimer.ts` | einziger accountgebundener Timer, Validierung und Endzeitprojektion; sekundengenaue Dauer sowie persistierter Pausezeitpunkt, Fortsetzen verschiebt Start- und Endzeit um die Pausendauer |
+| `App.tsx` | App-Shell: Anmelde- und Ladezustand, Navigation, aktiver Bildschirm, globale Dialoge; erzeugt die Befehle je Arbeitsbereich |
+| `screens/`, `screens/*Wiring.tsx` | Produkt-UI; je Bildschirm stellt eine Verdrahtung die Props aus Store und Diensten zusammen ([Screen-Landkarte](../src/screens/README.md)) |
+| `ui/`, `styles.css`, `coreTheme.ts` | gemeinsame UI, semantische Tokens und Theme-Präferenz ([UI-Module](../src/ui/README.md), [UI-Elements](ui-elements.html)) |
+| `appFeatureLoading.tsx`, `appFeaturePreload.ts` | gestuftes Vorladen der Bildschirm-Chunks nach Verbindung und Absicht |
+| `pwa.ts`, `public/sw.js` | Service Worker und Modulladefehler als deutscher Neuladehinweis |
 
-Die Pfade in der Tabelle liegen unter `src/`, soweit kein anderer Pfad angegeben ist. Fremdpayloads bleiben `unknown`, bis das besitzende Modul sie validiert. Es gibt keine zentrale Sammelvalidierung oder allgemeine Anbieter-Adapterebene.
+### Dienste und Hooks
 
-`scripts/verifyModuleBoundaries.ts` prüft in `npm run typecheck` die Importgrenzen: `screens/` und `ui/` laden Persistenz- und Cloud-Module höchstens als Typ, APKG-Interna nur über `apkgImport.ts`, `coreModel/` nur über `coreModel.ts`, `ui/` nichts aus `screens/`, `.ts`-Module direkt unter `src/` außer `use*.ts` und `appScreenProps.ts` weder React noch `screens/`/`ui/`. Dazu hält es Obergrenzen, die nur sinken dürfen (Zeilen von `App.tsx` und `appScreenProps.ts`, `any`-Typen in `cloudRepository.ts` und `syncEngine.ts`); bekannte Ausnahmen und Obergrenzen stehen als Konstanten `IMPORT_EXCEPTIONS` und `MODULE_LIMITS` im Skript.
+| Eigentümer | Verantwortung |
+| --- | --- |
+| `useAppServices.ts` | einziger Zugang der Verdrahtungen zu den Diensten des geöffneten Arbeitsbereichs |
+| `useAccountWorkspace.ts`, `authenticatedWorkspaceBoot.ts`, `cloudAuth.ts` | Anmeldung, Sitzungsprüfung und accountgebundener Start (ADR-038) |
+| `useWorkspaceSync.ts`, `appSyncLifecycle.ts` | Sync-Lebenszyklus, Status und Konflikte |
+| `workspaceStore.ts`, `useWorkspaceStore.ts` | Store des geöffneten Kontos ohne React; Bildschirme abonnieren nur ihren Teil |
+| `appNavigation.ts`, `useAppNavigation.ts` | typisierter AppRoute und einzige Browser-History-Anbindung |
+| `useNavigationGuard.ts`, `useSettingsOverlay.ts` | Entwurfsschutz vor jeder Navigation; Einstellungsdialoge mit Entwurf |
+| `studyPreparation.ts`, `useStudyStart.ts`, `useStudySession.ts` | Lernsitzung vorbereiten (ohne React), starten und führen |
+| `useLearningClock.ts`, `learningDay.ts`, `simulationClock.ts` | Lernzeit mit Simulationsversatz, Tagesbeginn, Zeitzone und Lerntagwechsel |
+| `usePomodoroTimer.ts`, `pomodoroTimer.ts` | einziger accountgebundener Fokustimer über Tabs |
+| `useImportSession.ts`, `apkgImportSession.ts`, `importUiState.ts` | flüchtige APKG-Importsitzung bis zum Kontowechsel und ihre sichtbaren Phasen |
+| `useCardVariantBatch.ts` | der eine app-weite Variantenlauf und seine Rückmeldung |
 
-### Theme- und UI-Vertrag
+### Befehle
 
-`styles.css` besitzt Palette, semantische Rollen, Typografie und gemeinsame Control-Styles. `coreTheme.ts` besitzt Browserpräferenz und Dokumentattribut. `CoreSegmentedControl` und die untere `AppNavigation` teilen `useSlidingSelection`; die fachliche Auswahl bleibt beim Aufrufer. UI-Details stehen ausschließlich im [UI-Modulindex](../src/ui/README.md); [UI-Elements](ui-elements.html) ist die erzeugte Referenz nach Elementfamilien. Gemeinsame Änderungen werden dort synchronisiert und visuell geprüft.
+Befehlsmodule laufen ohne React und entstehen je Arbeitsbereich aus Store, lokalem Repository und Sync. Jede Schreibung übernimmt den Repository-Stand in den Store und fordert einen Sync an.
 
-### Navigation und URL-Kontext
+| Eigentümer | Verantwortung |
+| --- | --- |
+| `cardCommands.ts` | Kartenseiten, Inhalte speichern, löschen, wiederherstellen, duplizieren, verschieben; Lernstand, Varianten, Medien, manuelle Erstellung |
+| `deckCommands.ts` | Stapel, Stapel- und globale Einstellungen, Lernprofile, Prüfungsaufgaben, gespeicherte Suchen |
+| `importCommands.ts` | Importgraph übernehmen, Cloud-Bestätigung je Import, einmalige Neuübersetzung |
+| `cardBatchActions.ts` | Massenaktionen der Kartenverwaltung als ein Schreibvorgang, Rückgängig als neue Änderung |
+| `cardVariantBatch.ts` | Stapelgenerierung von Varianten mit Abbruch |
 
-Der AppRoute enthält View sowie zulässigen Deck-, Karten-, Erstellungs- und Reviewkontext. Parse/Serialize validiert die Kombinationen; `useAppNavigation` ist die einzige History-Anbindung. `deckContent` und `returnContent=1` erhalten die Inhaltsansicht bei der Review-Rückkehr; `deckContentTab` (`tab=`/`returnTab=`) trägt den Inhaltstab (`children`, `summary`, `quiz`, `mind-map`, `cards`, `source`), fehlt er, gilt `children`, und eine gewählte Karte erzwingt `cards`. `cardEditorTab` (`cardTab=`) trägt den Reiter des Karteneditors aus der festen Liste `general`, `content`, `variants`, `study`; fehlt er, öffnet die Tabelle `general` und ein Rückkontext aus der Sitzung `content` (W6). Ein Reiterwechsel ersetzt den History-Eintrag und fragt nie nach. `settings=` (`settingsSection`) öffnet auf jeder View den Einstellungsdialog `src/screens/SettingsDialog.tsx` mit einem Bereich aus `SETTINGS_SECTIONS`: `start` (Bereichsliste, breit `konto`), `konto`, `daten`, `konflikte` (`daten` mit Fokus auf die Konflikte), `ueber`, `lerntag`, `tagesrunde`, `scheduler`, `flaggen`, `fokus`; eigene Routen für Einstellungen gibt es nicht. `settingsDeck=` (`deckSettings`) öffnet auf Views und Sitzungsrouten die Stapeleinstellungen mit einem Bereich aus `DECK_SETTINGS_SECTIONS` in `settings=`: `start`, `stapel`, `tagesrunde`, `neue-karten` (`tagesrunde` mit Fokus auf das Neulimit), `scheduler`; ein Stapeldialog schließt den allgemeinen aus. `settingsSectionGroup` teilt die Bereiche in die Entwurfsgruppen `general` (`SettingsScreen`) und `learning` (`GlobalCardSettingsScreen`); `useSettingsOverlay` erlaubt mit offenem Entwurf nur Wechsel innerhalb derselben Gruppe bzw. desselben Stapels; der Wechsel zwischen beiden Dialogen ersetzt den History-Eintrag. Öffnen legt einen History-Eintrag an, Bereichswechsel ersetzen ihn, Schließen geht zurück oder ersetzt ihn bei Direktaufruf. Eine Prüfungssitzung trägt den nur in der Sitzung bestehenden Stapel `exam-session` und kehrt nach `Heute` oder `Prüfungen` zurück (`returnView=exams`); nach einem Neuladen wird die heutige Einheit neu vorbereitet. Browser-Zurück/-Vorwärts darf keine History-Schleifen erzeugen. Entwürfe und Fokus bleiben transient; offene Einstellungsentwürfe blockieren Navigation ohne Zielpuffer. Unbekannte Routen fallen auf die Übersicht zurück.
+### Domäne
+
+| Eigentümer | Verantwortung |
+| --- | --- |
+| `coreTypes.ts`, `coreModel.ts` | kanonische Typen; einzige Grenze zum Anlegen, Ändern, Löschen und Wiederherstellen von Inhalten und Karten |
+| `coreWorkspace.ts`, `coreRepository.ts` | Arbeitsbereich, Stapelbaum, Platzierungs- und Zyklusprüfung |
+| `deckSettings.ts`, `learningProfiles.ts`, `settingsDraft.ts` | normalisierte Lernwerte, Lernprofile (ADR-018), Entwurfsvergleich |
+| `reviewService.ts`, `siblingBurying.ts`, `reviewEventKinds.ts` | Tagesqueue, Begrabregel, Bewertungsarten und ihr Tagesverbrauch |
+| `scheduler.ts`, `easyDays.ts` | FSRS-7 über `ts-fsrs`, Haltbarkeit, Reifeband, Easy-Days-Entlastung (ADR-044, ADR-019) |
+| `coreVariantService.ts` | Eignung, Bereitschaft und Wahl von Varianten im Review |
+| `cardSearchQuery.ts`, `tagDirectory.ts` | Suchsprache in Anki-Schreibweise und ihre lokale Auswertung; Tag-Verzeichnis (ADR-045) |
+| `catalogSearchIndex.ts`, `duplicateContents.ts` | In-Memory-Suche über den vollständigen Katalog (ADR-048); Duplikatgruppen |
+| `hitStudySession.ts` | `Treffer lernen` und Üben ohne Schreibpfad |
+| `examPlanning.ts`, `examPlanSettings.ts`, `examDailyTasks.ts`, `examCalendarModel.ts` | Prüfungsplanung, Planablage im Profil, Tagesaufgaben, Kalenderprojektion (ADR-042) |
+| `statisticsModel.ts`, `studyHeatmapModel.ts` | Statistikreihen, Tageszähler, Streak, Kalender |
+| `creationWorkflow.ts`, `creationBatch.ts` | manuelle Erstellung samt Bildverdeckung und lokaler Medienvorbereitung |
+| `notePresentation.ts`, `presentationFrame.ts`, `originalLayout.ts`, `htmlSafety.ts` | Kartenrenderer, CSP-Rahmen, Regel des Originallayouts, Sanitizer |
+| `apkgImport.ts`, `apkgNoteTranslation.ts`, `importRetranslation.ts` | APKG-Vorschau und gestreamter Importgraph, Übersetzung, Neuübersetzung |
+| `learningSummaries.ts`, `learningMindMaps.ts` | Zusammenfassungen und Mindmaps: Format, Operationen, lokale Ablage und Abgleich |
+| `aiSourceCreation.ts` | Auftrag „Karten aus einer Quelle“: Validierung und Prompt, noch ohne Ausführung |
+| `dashboardWidgets.ts`, `dailyMotivation.ts`, `brainMascots.ts` | Dashboard-Layout und To-dos, Tagesimpuls, Maskottchen; nur lokal |
+| `fieldTimings.ts` | Feldwerte nur auf dem Gerät (ADR-050) |
+| `mainThreadBudget.ts` | teilt lange Hauptthread-Schleifen in begrenzte Scheiben |
+
+### Lokales Repository und Sync
+
+| Eigentümer | Verantwortung |
+| --- | --- |
+| `indexedDbCoreRepository.ts` | accountgebundene Web-Replica; einzige öffentliche Grenze vor den privaten `indexedDb*.ts` |
+| `workspaceHydrationService.ts` | Hydrierung, Kartenseiten und Suche, Offline-Download, Quota-Bereinigung |
+| `workspaceReplica.ts` | Datensatzformen der Replica (Katalogzeile, Kartenkörper, Status) |
+| `syncEngine.ts`, `syncMutationPlanner.ts` | Sync-Zyklus und Outbox-Arten |
+| `mediaStore.ts` | Mediencache, persistente Upload-Queue, URL-Auflösung |
+| `accountStorage.ts`, `profileIntegrity.ts`, `uiPreferences.ts` | kleine Accountnamespaces, vollständige Profilpatches, UI-Präferenzen im Profil |
+
+### Cloud und KI-Routen
+
+| Eigentümer | Verantwortung |
+| --- | --- |
+| `cloudRepository.ts`, `cloudRepositoryValidation.ts` | einzige öffentliche Cloudgrenze: accountgefilterte Abfragen und Mutationen, Revisionen, Konflikte, Zeilenvalidierung |
+| `cloudMediaStore.ts` | Supabase Storage, Signed URLs, TUS |
+| `cloudLearningDocuments.ts` | revisionierte Tabellen der Zusammenfassungen und Mindmaps |
+| `supabaseClient.ts`, `supabaseRealtimeStub.ts` | Supabase-Client; Realtime im Browserbuild ersetzt, weil CoRe keine Kanäle öffnet |
+| `aiRouteRequest.ts`, `ai*Contract.ts`, `aiCardVariant.ts`, `aiCardHelp.ts`, `aiLearningSummary.ts` | Browseraufrufe und validierte Verträge der drei KI-Routen |
+| `api/ai/*.ts`, `server/aiRoute.ts` | Vercel Functions mit gemeinsamen Origin-, Bearer-, Body-, Provider- und Loghelfern |
+| `supabase/migrations/`, `supabase/verify_schema_v1.sql` | ausführbare SQL-Quellen; `database.types.ts` wird nur daraus erzeugt |
+
+### Außerhalb der App
+
+| Eigentümer | Verantwortung |
+| --- | --- |
+| `library/`, `fixtures/worldCapitals.ts` | Grundbibliothek mit stabilen Inhalts-IDs; die Demo committet Welt-Hauptstädte als Importgraph |
+| `schedulerExampleChains.ts` | Beispielketten, die Golden-Test und `docs:build` lesen; die App importiert sie nicht |
+| `scripts/` | Doku-Bau, Gates und Messungen ([Testportfolio](test-portfolio.md)) |
+
+## Importgrenzen
+
+`scripts/verifyModuleBoundaries.ts` prüft sie in `npm run typecheck`; Ausnahmen und Obergrenzen, die nur sinken dürfen, stehen dort als `IMPORT_EXCEPTIONS` und `MODULE_LIMITS`.
+
+- `screens/` und `ui/` laden Persistenz-, Sync- und Cloud-Module höchstens als Typ.
+- APKG-Interna (Worker, Protokoll, ZIP, SQLite) nur über `apkgImport.ts`; `coreModel/` nur über `coreModel.ts`.
+- `ui/` importiert nichts aus `screens/`.
+- `.ts`-Module direkt unter `src/` außer `use*.ts` und `appScreenProps.ts` kennen weder React noch `screens/` oder `ui/`.
+
+## Navigation und URL-Kontext
+
+- `AppRoute` trägt View sowie zulässigen Stapel-, Karten-, Erstellungs-, Review- und Einstellungskontext; Parse und Serialize prüfen die Kombinationen, unbekannte Routen führen zur Übersicht.
+- Einstellungsdialoge sind URL-Kontext jeder View, keine eigenen Routen. Öffnen legt einen History-Eintrag an, Bereichs- und Reiterwechsel ersetzen ihn, Schließen geht zurück.
+- Die Sitzungsstapel `exam-session` und `hit-session` bestehen nur in der Sitzung; nach einem Neuladen wird die Prüfungseinheit neu vorbereitet.
+- Entwürfe und Fokus bleiben transient. Offene Erstellungs-, Prüfungs-, Karten- und Einstellungsentwürfe halten App- und Browsernavigation an, bis gespeichert oder verworfen ist (`useNavigationGuard`).
 
 ## Domäneninvarianten
 
-- Ein Inhalt (`Note`) speichert Felder mit Rollen, Interaktion, Tags, Medienzuordnung (Name → SHA-1), Herkunft, Markierung und den Tag-Stand des letzten Imports (`importedTags`) genau einmal. Seine Abfrageschlüssel bestimmen die Kartenmenge; jede Karte (`Card`) trägt Stapel, Abfrageschlüssel, Status, Anki-Flagge (0–7), eigenen Lernstand samt Lernbremse (`study.leechedAt`) und Varianten.
-- Tags sind Anki-Rohtexte (`normalizeTags`: NFC, ohne Leerraum und Steuerzeichen, Duplikate ohne Rücksicht auf Groß-/Kleinschreibung entfernt, nie an `#`, `,` oder `;` getrennt). Eine reine Tag-Änderung erhöht wie die Markierung nur die Revision, nicht `contentRevision` (`setNoteTags`, `planNoteContentChange`). Sofortaktionen auf Inhalt und Karte (Markierung, Tags, Aussetzung, Flagge) laufen über `applyCardStudyStatePatch`. Reverse-Richtungen, Lückengruppen und reale Anki-Karten sind Geschwister desselben Inhalts und dürfen in verschiedenen Stapeln liegen.
-- KI-Varianten in `card.variants[]` bleiben an ihre Karte gebunden, haben keinen eigenen Lernstand oder Termin und zählen nicht zusätzlich für Queue oder Bestand. Im Review werden sie als transienter Frage-/Antwort-Inhalt mit den Zusatz- und Quellenfeldern des Inhalts dargestellt.
-- `selectReviewVariant` wählt ausschließlich aus Stapeleinstellungen und Lernstand: Nur bei `coreMode: "on"`, Phase `review`, letzter Bewertung ungleich `again` und `getDurabilityDays(study) >= variantThresholdDays` rotiert `study.reps` über die Karte selbst und ihre ältesten `maxActiveVariantsPerCard` aktiven Varianten. Es gibt keinen gespeicherten Rückfall- oder Bevorzugungszustand; ein Fehler führt über Wiederlernen und eingebrochene Haltbarkeit zur Originalkarte.
-- Die Reife wird bei jeder Bewertung aus dem FSRS-7-Gedächtniszustand (`stability`, `study.extra.stabilityFast`, `difficulty`) abgeleitet und als `study.extra.maturityBand` mitgeschrieben; Katalog, Stapelzahlen und Statistik lesen dieses Band, Prüfungsfortschritt und Variantenwahl rechnen mit derselben Funktion. Ein Lernstand ohne schnelle Spur (Anki-Speicherstand ohne Verlauf) setzt sie gleich der Stabilität.
-- Inhaltsänderungen laufen über `planNoteContentChange`: unveränderter bereinigter Inhalt meldet `changed: false` und schreibt nichts; neue Abfragen werden neue Karten, entfallende Karten werden erst nach Bestätigung soft-gelöscht. Ändert sich der bereinigte Frage- oder Antworttext einer behaltenen Karte, markiert die Planung deren aktive KI-Varianten als veraltet (`isActive: false`, `meta.outdated: true`, Revision +1); `replaceOutdatedVariants` ersetzt sie bei der Neuerzeugung durch eine neue Variante und soft-löscht die veralteten. Löschen betrifft immer den Inhalt mit allen Geschwistern; Undo stellt die vorherigen Datensätze mit fortlaufenden Revisionen wieder her. Die Markierung erhöht nur die Entitätsrevision, nicht `contentRevision`.
-- Der Lernstand besitzt mit `studyRevision` eine eigene Konfliktgrenze. Reviews erhöhen sie atomar über `record_review_atomic`, Inhalts- und Kartenänderungen die Entitätsrevision; ein Review auf einem Gerät und eine Inhaltskorrektur auf einem anderen kollidieren daher nicht. Manuelle Lernstandsänderungen (Neu planen, Lernstand zurücksetzen, Lernbremse setzen oder aufheben, Zurückstellen, Wiederherstellen) sind manuelle Review-Ereignisse mit `flags.kind` auf demselben Weg (`applyManualStudyChanges` im lokalen Repository). Löst eine Bewertung die Lernbremse aus und setzt der Stapel `leechAction: "suspend"`, wird die Aussetzung zusätzlich als Kartenänderung synchronisiert.
-- Darstellung, Sanitization und URL-Auflösung bleiben getrennt. Scripts und externe Ressourcen werden nicht ausgeführt; lokale Darstellung verwendet nur `blob:`/`data:`, Sandbox-CSP und eingebettete Basisschriften. Gerendertes HTML wird nie persistiert.
-- Manuelle Speicherung ist Single Flight mit unveränderlichem Snapshot. Reihenfolge: lokale Bildvorbereitung, Mediencache mit persistenter Upload-Queue, lokaler Inhalt samt Karten, Upload. Cloudfehler nach lokalem Erfolg sind Teilabschlüsse. APKG-Medien werden nicht verkleinert.
-- Reimport ordnet Inhalte über die Anki-GUID und Karten über die Anki-Kartenidentität zu (lokal und über `load_reimport_targets` in der Cloud). Lokale Inhaltsänderungen (`contentRevision` > `importedContentRevision`), Lernstand samt Lernbremse, Aussetzung, Flagge, Markierung und Stapelordnung bleiben; Tags werden auch bei lokal bearbeitetem Inhalt dreiseitig gegen `importedTags` zusammengeführt (`mergeImportedTags`); neue Abfragen werden neue Karten, im Paket fehlende Karten werden nur gezählt. Vorhandene Stapel behalten Name, Oberstapel, Pfad und Einstellungen; Stapel ohne Anki-ID erkennt der Reimport an Oberstapel und Name.
-- `Deck.hierarchyPath` ist immer der Pfad der Baumposition: Pfad des Oberstapels (`parentDeckId`) plus eigener Name. `updateDeckTreePlacement` schreibt ihn beim Verschieben und Umbenennen für den ganzen Teilbaum neu; ein Import legt neue Stapel unter dem Pfad ihres persistierten Oberstapels an, nicht mit dem Anki-Pfad.
-- `Card.ankiFlag` (0–7) trägt die Anki-Flagge; eigene Flaggennamen liegen kontoweit in `uiPreferences.flagNames` des Profils und sind aus `.apkg` nicht übernehmbar.
-- Der FSRS-7-Scheduler kapselt `ts-fsrs`: `Leicht` beendet die Lernphase sofort mit dem unveränderten `ts-fsrs`-Intervall; `Nochmal` und `Schwer` folgen der Standard-Lernschrittstrategie von `ts-fsrs`.
-- Manuelle Review Events tragen `rating: "manual"` und ihre Art; eine manuelle Neuplanung ist genau ein `ReviewEvent` mit `rating: "manual"`, das alten und neuen Termin festhält.
-- `Zusätzliche Karten lernen` erhöht nur `newCardsTodayOverride` des gewählten Stapels für den aktuellen Lerntag; eine Änderung des Neulimits hebt den Override auf.
-- Review Events sind append-only und accountgebunden. `revlog` wird deterministisch dedupliziert. Initialer Schedulerstate folgt einem FSRS-7-Replay der vollständigen Historie ab neuer Karte, sonst dem FSRS-Memory-State von Anki, klassischem Kartenstatus, neuer Karte; ab dem ersten CoRe-Review besitzt FSRS-7 den State.
-- KI-Varianten entstehen nur aus den bereinigten Klartexten von Frage und Antwort einer Frage-/Antwort-Karte (`cardVariantSource`). Toolname, Anzahl, Schema, Änderung, Duplikate und Größenlimits werden vor der Variantenmutation geprüft. Ein inzwischen geänderter Inhalt verhindert die Mutation.
-- React kennt keine Parser-, Storage-, RLS-, Scheduler-, Provider- oder Persistenzdetails. Ein aktiver Workerfehler bleibt sichtbar; es gibt keinen stillen Direktparser-Retry.
+- Ein Inhalt (`Note`) speichert Felder mit Rollen, Interaktion, Tags, Medien (Name → SHA-1), Herkunft, Markierung und `importedTags` genau einmal. Jede Karte (`Card`) trägt Stapel, Abfrageschlüssel, Status, Flagge, eigenen Lernstand und Varianten.
+- `Deck.cards` enthält nur geladene Karten, nie Inhaltskopien. Aufrufer von `coreModel.ts` übergeben die vollständige, nicht gelöschte Kartenmenge eines Inhalts; fremde oder doppelte Karten werden abgewiesen.
+- Inhaltsänderungen planen nur über `coreModel.ts`; unveränderter bereinigter Inhalt schreibt nichts. Tags und Markierung erhöhen nur `revision`, nicht `contentRevision`. Löschen betrifft immer den Inhalt mit allen Geschwistern.
+- Importierte Inhalte tragen beim Import `importedContentRevision` = `contentRevision`, manuelle `null`; lokal bearbeitet ist ein Inhalt mit `contentRevision` > `importedContentRevision`.
+- Varianten in `card.variants[]` haben keinen eigenen Lernstand oder Termin und zählen nicht für Queue oder Bestand. Ihre Wahl im Review folgt nur aus Stapeleinstellungen und Lernstand; es gibt keinen gespeicherten Wahlzustand.
+- Der Lernstand hat mit `studyRevision` eine eigene Konfliktgrenze. Bewertungen und manuelle Lernstandsänderungen laufen als `ReviewEvent` über `record_review_atomic`, Inhalts- und Kartenänderungen über die Entitätsrevision; Review und Inhaltskorrektur auf zwei Geräten kollidieren nicht.
+- Review Events sind accountgebunden und unveränderlich; manuelle tragen `rating: "manual"` und ihre Art in `flags.kind`. Nur das Zurücknehmen einer Bewertung entfernt ein Ereignis (`undo_review_atomic`).
+- Das Reifeband (`study.extra.maturityBand`) wird bei jeder Bewertung aus dem FSRS-7-Zustand abgeleitet und mitgeschrieben. Katalog, Stapelzahlen und Statistik lesen das Band, Prüfungsplanung und Variantenwahl rechnen mit derselben Funktion.
+- Begraben und Zurückstellen sind nicht persistiert: `siblingBurying.ts` leitet sie aus den Ereignissen des Lerntags ab. `get_account_bootstrap` bildet die Regel in SQL nach; ein RLS-Test prüft beide gegen dieselben Fälle.
+- Bewertungsarten bestimmen den Tagesverbrauch an einer Stelle (`reviewEventKinds.ts`); Lernplan, Replica und `get_account_bootstrap` zählen gleich, `hit_review` verbraucht keine Limits.
+- `Deck.hierarchyPath` ist immer der Pfad des Oberstapels plus eigener Name und wird beim Verschieben und Umbenennen für den ganzen Teilbaum neu geschrieben.
+- Fremdpayloads bleiben `unknown`, bis das besitzende Modul sie validiert. Es gibt keine zentrale Sammelvalidierung und keine Anbieter-Adapterebene (ADR-006).
+- React kennt keine Parser-, Storage-, RLS-, Scheduler-, Provider- oder Persistenzdetails. Ein Fehler des APKG-Workers bleibt sichtbar; es gibt keinen stillen Direktparser-Retry.
+- Gerendertes HTML wird nie persistiert. Kartenrahmen führen kein Script aus und laden nichts von außen.
+- Ownership stammt aus Supabase Auth, nie aus veränderbaren User-Metadaten; RLS schützt jede Nutzertabelle.
 
 ## Inhalte und Karten
 
-`coreTypes.ts` definiert `Note`, `Card` und `CardStudyState` nach ADR-032, ADR-034
-bis ADR-036. Queue-Werte des Lernstands sind direkt typisiert, weitere Lern- und
-Variantenwerte liegen typisiert in `study.extra`. Scheduler und Queue arbeiten
-auf der flachen Sicht `ReviewState`; `reviewStateFromCardStudy` und
-`cardStudyFromReviewState` bilden beide Formen verlustfrei aufeinander ab.
+`coreTypes.ts` definiert `Note`, `Card` und `CardStudyState` nach ADR-032. Fachbegriffe und ihre Namen im Code:
 
-Das Begraben von Geschwistern (`buryNewSiblings`, `buryReviewSiblings`,
-`buryInterdayLearningSiblings` in `LearningSettings`) ist kein persistiertes
-Feld, ebenso wenig das Zurückstellen einer einzelnen Karte: Das jüngste
-manuelle Ereignis `manual_bury` oder `manual_unbury` des Lerntags entscheidet
-(`manuallyBuriedCardIds`). Die Regel steht einmal in `siblingBurying.ts`; Queue und lokale Zähler
-nutzen sie, das SQL in `get_account_bootstrap` bildet sie nach und wird im
-RLS-Test gegen dieselben Fälle geprüft. `createDailyReviewQueue` leitet es bei jedem Aufbau ab: Heutige
-Reviewereignisse der gelernten Stapel und `options.answeredToday` (heute
-beantwortete Karten mit Inhalt und Stapel) markieren Inhalte als gesehen, danach
-folgen Lernschritte des Tages, tagesübergreifende Lern- und fällige Karten und
-neue Karten. Eine Karte ist begraben, wenn ihr Inhalt vorher gesehen wurde und
-die vereinigten Optionen der Stapel der zuvor gesehenen Geschwister ihre Art
-begraben; Karten jenseits eines Limits zählen nicht als gesehen, begrabene
-verbrauchen kein Limit. Die Queue liefert `buriedKeys`; die Sitzung entfernt
-damit offene Geschwister nach einer Antwort. `loadReviewSession` lädt
-`answeredToday` aus Katalog und Reviewereignissen (auch Geschwister geladener
-Karten in anderen Stapeln), aber nur mit `answeredSiblings`, das die App setzt,
-wenn ein Stapel der Auswahl eine Option aktiviert hat. Die Tageszahlen
-(`listDeckSummaries` bei vollständigem Katalog, sonst die Übersicht aus
-`get_account_bootstrap`) ziehen nach derselben Regel Geschwister heute
-beantworteter Inhalte und zurückgestellte Karten ab; beide lesen dafür nur die
-heutigen Ereignisse, die betroffenen Karten und deren Geschwister. Das Begraben unter noch
-unbeantworteten Geschwistern kennt nur die Queue.
-Importierte Inhalte tragen `importedContentRevision` = `contentRevision` beim
-Import; manuelle Inhalte tragen `null`. `Deck.cards` enthält die geladenen
-Karten eines Stapels, nie Inhaltskopien.
+| Fachbegriff | Code | Tabelle |
+| --- | --- | --- |
+| Stapel | `Deck` | `decks` |
+| Inhalt | `Note` | `notes`, Rohfelder in `note_sources` |
+| Karte | `Card` | `cards` |
+| Variante | `CardVariant` | `card_variants` |
+| Lernstand | `CardStudyState`, flach `ReviewState` | Spalten von `cards`, Zusatzwerte in `study_extra` |
+| Bewertungsereignis | `ReviewEvent` | `review_events` |
+| Lernbremse, Aussetzen, Zurückstellen | `leech`, `suspended`, `bury` | – |
 
-`coreModel.ts` exportiert `createNote`, `planNoteContentChange`,
-`planNoteDeletion`, `planNoteRestore`, `setNoteMarked`,
-`applyCardStudyStatePatch`, die Kartenaktionen (`setCardSuspended`,
-`rescheduleCard`, `moveCardToDeck`, `resetCardStudy`, `setCardLeech`,
-`restoreCardStudy`), die Tag-Regeln (`normalizeTags`, `mergeImportedTags`,
-`tagSearchKeys`), `duplicateNote`,
-`noteTextIndex`, `notePromptLabel` (sichtbarer Name einer Abfrage, etwa
-`Lücke 2`), die Editorwerte (`noteEditorValue`, `applyNoteEditorValue`,
-`validateNoteEditorValue`), die Inhaltsbausteine (`noteBlocks`, `setNoteReverse`,
-`setNoteTypeIn`, `addNoteField`, `canRemoveNoteField`, `removeNoteField`,
-`renameNoteField`; Richtung und Eintippen nur für reine Vorwärts-/Rückwärts-
-Abfragen, Feldrollen Zusatzfrage, Hinweis, Zusatz und Quelle), die Maskenhelfer der
-Bildverdeckung (`createOcclusionNoteContent`, `validateOcclusionInput`,
-`addOcclusionMask`, `moveOcclusionMasks`, `updateOcclusionMaskShape`,
-`removeOcclusionMasks`, `groupOcclusionMasks`, `ungroupOcclusionMasks`,
-`setOcclusionMasksAlwaysOccluded`, `occlusionGroups`; Gruppennummern werden nie
-neu vergeben) und die manuellen Formen (`createManualNoteContent`,
-`validateManualNoteInput`; Basic, Basic mit Rückrichtung, Lückentext, Single und
-Multiple Choice; Zusatzfelder tragen eine Rolle, Basic optional Eintippen). Inhaltseingaben bleiben `unknown`, bis `parseNoteContent` sie
-validiert und bereinigt. Aufrufer übergeben die vollständige, nicht gelöschte
-Kartenmenge eines Inhalts; fremde Karten sowie doppelte Karten oder
-Abfrageschlüssel werden abgewiesen. `updatedByDeviceId` setzt der Cloud-Write,
-nicht die Planung.
+- Scheduler und Queue arbeiten auf `ReviewState`; `reviewStateFromCardStudy` und `cardStudyFromReviewState` bilden beide Formen verlustfrei ab.
+- Abfrageschlüssel sind persistiert: `forward`/`reverse`, `anki-<Ordinal>`, `cloze:N`, `io:N` und `choice`.
+- `updatedByDeviceId` setzt der Cloud-Write, nicht die Planung.
 
-### Kartendarstellung
+## Kartendarstellung
 
-`notePresentation.ts` rendert validierte `Note`/`Card`-Paare asynchron über
-`renderCard({ note, card, side, surface, theme, typedAnswer?, noteTypeSource? })`. Das Ergebnis enthält
-`srcdoc`, `accessibleText`, stabile `mediaReferences`, `interactions`, `diagnostics`
-und `layout` (`core` oder `original`); HTML wird nie persistiert.
-Der Theme-Snapshot enthält die aktuellen semantischen Farben. Feld-HTML
-durchläuft `sanitizeNoteHtml`. Farbige Marker (`background-color`) ändern ihre
-Helligkeit, bis die Kartenschrift des Themes darauf 4,5 : 1 erreicht; graue,
-weiße und schwarze Hintergründe aus kopiertem Webtext entfallen. Textfarben
-erreichen 4,5 : 1 zu ihrem Marker oder zum Kartenhintergrund; unlesbare farblose
-Textfarben übernehmen die Kartenschrift. `var(…)` in Farbwerten gilt als deckend.
-Das Bild einer Bildverdeckung trägt den ersten Fragetext als Beschreibung
-(„Herzklappen – Bild mit verdeckten Bereichen“).
-Lücken werden verschachtelt tokenisiert. Bildmasken liegen in einer Ebene in
-Bildgröße; ihre Positionen sind relativ zu Bildbreite und -höhe. Rechtecke,
-Ellipsen und Beschriftungen drehen sich wie in Anki in Bildpixeln um ihre linke
-obere Ecke (HTML mit CSS-Drehung), Polygone werden nie gedreht und liegen im
-gestreckten 0–1-SVG. Beschriftungen verwenden Ankis Schrift Arial; `fontSize`
-ist wie Ankis `fs` relativ zur Bildhöhe (umgesetzt in `cqh`), ohne `fontSize`
-gilt `scale` als Vielfaches der Kartenschrift.
-`alwaysOccluded` hält fremde Maskengruppen auch im Modus „eine verdecken“ sichtbar;
-die aktive Gruppe wird auf der Antwortseite trotzdem zum Umriss. Masken mit
-`ordinal` 0 sind nur verdeckt und bilden keine eigene Karte; sie sind nur mit
-`alwaysOccluded` gültig. Eine Maske der Form `overlay` legt ein ganzes Maskenbild
-über das Bild (Frage- und optional Antwortbild, der Rückfall für Image Occlusion
-Enhanced); sie erscheint nur für die aktive Gruppe und zeichnet keinen Umriss.
-Review-Antworten ergänzen nur Antwort und Trennlinie; Vorschau und Verwaltung
-enthalten beide Seiten. Lücken und Bildmasken ersetzen die Frage beim Aufdecken.
-Zusätze stehen vor den Quellen; Quellen mit Link erscheinen gemeinsam als Chips am
-Kartenende. Mit `typedAnswer` ersetzt die Antwortseite das Eingabefeld durch den
-Zeichenvergleich aus `compareTypedAnswer`. Eine Quelle, die nur eine Webadresse
-enthält, wird zum Link mit dem Feldnamen.
-
-Originallayout (ADR-047): Mit der Herkunftsvorlage (`noteTypeSource`) rendert
-`renderCard` deren Template samt CSS statt des CoRe-Designs, wenn der Inhalt vom
-generischen Übersetzer stammt, die Vorlage CSS über Ankis Standardblock `.card`
-hinaus mitbringt und weder Script, Event-Handler noch Button enthält. Das Template
-wird aus den CoRe-Feldern über ihre Anki-Position (`fN`) befüllt: Bedingungen,
-`{{FrontSide}}`, `Tags`, `Type`, `Card`, `CardFlag` sowie die Filter `text`,
-`cloze` (Ankis `<span class="cloze">`), `hint` (natives `<details>`), `type`
-(Zeichenvergleich auf der Rückseite), `furigana`/`kana`/`kanji` und `tts` (Vorlesen
-über die App); unbekannte Filter lassen das Feld unverändert. Ein Feld in einem
-Tag wird als escapter Text eingesetzt. `sanitizeLayoutHtml` behält Klassen, IDs,
-`data-*` und Inline-Layout ohne nachladbare Werte; aus dem CSS entfallen
-`@import`, externe `url()` und `</style`. Der Rahmen trägt `card cardN` und im
-Dark Mode `nightMode night_mode`; ohne eigene Nachtregeln erhält `.card` Ankis
-dunkle Grundfarben. Die Kontrastanpassung entfällt. Bleibt die Vorderseite ohne
-sichtbaren Inhalt, rendert die Karte im CoRe-Design mit der Diagnose
-„Originallayout nicht darstellbar.“ Designprüfung, aufbereitetes CSS und
-zerlegte Templates werden je Vorlage zwischengespeichert; die Regel selbst (`hasOwnDesign`,
-`needsScript`) liegt in `originalLayout.ts`, das auch der Importbericht nutzt
-(`ApkgNotetypeReport.layout`). `NoteCardContent` liest Vorlage und Stapelpfad
-(`{{Deck}}`, `{{Subdeck}}`) über `NoteLayoutContext` aus `ui/noteLayoutContext.ts`:
-die App bindet ihn an `loadNoteTypeSource` der Replica, die ein unverändertes
-Template als dasselbe Objekt liefert, die Importvorschau an die Vorlage der
-Vorschaukarte. Nur Inhalte des generischen Übersetzers lesen eine Vorlage. Im
-Originallayout zeigt der Host einen Rahmen, der beim Aufdecken zur Rückseite
-wechselt; `CardPresentationSurface` scrollt dann `#answer` in den Blick.
-
-`presentationFrame.ts` besitzt das gemeinsame CSP-Gerüst und die bestehende
-Blob-/Data-URL-Auflösung. Der Rahmen enthält kein Script und erlaubt keine
-externen Ressourcen. `CardPresentationSurface` zeigt ein fertiges Renderergebnis
-im Sandbox-Iframe, erlaubt isolierte externe Popups und meldet Textauswahl an den
-Host. Im Review wächst der Iframe mit seinem Inhalt, `vh` bezöge sich dort also auf
-den Rahmen; der Host setzt deshalb `--core-media-max-height` (50 % der
-Fensterhöhe), an der der Rahmen Bilder und Videos begrenzt. Ein neuer Inhalt behält
-die Höhe des Rahmens, bis er geladen und gemessen ist, und eine neue Karte startet
-mit der zuletzt gemessenen Höhe; die Messung zieht den Rahmen nur innerhalb eines
-Schritts zusammen. Im Originallayout entfällt die Scrollleisten-Reserve, damit der
-Kartenhintergrund bis an den gerundeten Rand reicht.
-
-`NoteCardContent` rendert Vorder-, Rückseite, Auswahloptionen und Vorlesetexte einer
-Karte gemeinsam und hält das Ergebnis je Inhaltsobjekt (`WeakMap`); Varianten sind
-eigene Objekte und teilen nichts mit ihrem Original. `useNoteCardPrefetch` rendert
-so die nächsten drei Karten der Lernsitzung voraus. Im Review lädt der Host zusätzlich
-die Antwortseite der gezeigten Karte in einen verborgenen Rahmen, sobald die Frage
-geladen und gezeichnet ist und der Browser ruht; bis zum Aufdecken ist er `inert`,
-`aria-hidden` und ohne Platz, beim Aufdecken wird er nur eingeblendet. Das gilt nach
-`preparesAnswerAhead` für Frage-Antwort-, Lücken-, Bildverdeckungs- und
-Originallayout-Karten, nicht für Eintippen und Auswahlfragen, deren Antwortseite von
-der Eingabe abhängt, und nicht für ein Originallayout mit Ton oder Video, dessen
-Vorlage `autoplay` tragen darf (das CoRe-Design rendert es nie); ein einzelner Rahmen, der zur Rückseite wechselt, übernimmt den
-vorbereiteten nur geladen und wechselt sonst wie ohne ihn. `ui/cardMedia.tsx` teilt
-aufgelöste Medien je Medienspeicher und Medienmenge zwischen aktueller Karte und
-`useNoteMediaPrefetch`; Blob-URLs werden fünf Sekunden nach dem letzten Halter
-freigegeben. Der Lernmodus hält die gezeigte Karte über
-`getNextDailyReviewSessionItem({ shownKey })`, bis sie bewertet ist oder die Sitzung
-verlässt; nachgeladene Karten ordnen nur die Karten dahinter.
-
-`ui/NoteCardContent.tsx` besitzt ausschließlich transienten Eingabe-, Auswahl-
-und Darstellungszustand. Das Eingabefeld steht bis zum Aufdecken im Host; danach
-rendert der Host die Antwortseite einmal mit der Eingabe neu. `compareTypedAnswer`
-und `evaluateNoteChoice` bleiben reine Renderer-Helfer; `notePlainText` erhält Wörter und Satzzeichen über
-Inline-HTML hinweg und trennt Blockinhalte. Vorlesen verwendet bereinigte, der aktuellen Kartenseite
-entsprechende Texte und die System-Sprachausgabe im Host. AMBOSS öffnet die Suche
-mit dem markierten Begriff. KaTeX wird nur bei erkannten Formeln (`\(…\)`,
-`\[…\]`, `[$]`, `[$$]`, `[latex]`) importiert;
-`noteMathAssets.ts` lädt lokale WOFF2-Assets einmal und bettet sie mit dem CSS
-als Data-URLs in den Rahmen ein. Review, Vorschau, Kartenverwaltung, manuelle
-Erstellung und Importvorschau verwenden denselben Host; Medien-URLs löst
-`useNoteMediaUrls` über `note.media` auf.
+- `notePresentation.ts` rendert validierte `Note`/`Card`-Paare asynchron. Das Ergebnis trägt `srcdoc`, zugänglichen Text, Medienverweise, Interaktionen, Diagnosen und das Layout `core` oder `original`.
+- `presentationFrame.ts` besitzt das gemeinsame CSP-Gerüst und die Auflösung zu `blob:`/`data:`-URLs. `CardPresentationSurface` zeigt das Ergebnis im Sandbox-Iframe; Schriften und Formeln werden eingebettet, weil der Rahmen nichts nachlädt.
+- `ui/NoteCardContent.tsx` ist der einzige Host für Review, Vorschau, Kartenverwaltung, Erstellung und Importvorschau und besitzt nur transienten Eingabe-, Auswahl- und Darstellungszustand. Medien löst er über `note.media` auf.
+- Feld-HTML durchläuft `sanitizeNoteHtml`, Vorlagen-HTML `sanitizeLayoutHtml` (`htmlSafety.ts`). Eingabevergleich und Auswahlauswertung bleiben reine Helfer des Renderers.
+- Originallayout (ADR-047): Die Regel steht einmal in `originalLayout.ts`, das auch der Importbericht nutzt. Der Host liest Vorlage und Stapelpfad über `NoteLayoutContext`, den die App an die replizierten `noteTypeSources` und die Importvorschau an ihre Vorlage bindet. Ist die Vorderseite leer, rendert die Karte im CoRe-Design mit Diagnose.
+- Vorgerenderte Ergebnisse und aufgelöste Medien werden je Inhaltsobjekt beziehungsweise Medienmenge geteilt; Varianten sind eigene Objekte und teilen nichts mit ihrem Original.
 
 ## Persistenz, Sync und Medien
 
-- IndexedDB `core.workspace.entities.v5.<userId>` trennt Deck-Hüllen, Summaries, Katalog, Volltexte je Inhalt (`noteSearch`, seit Version 2; das Upgrade markiert einen vollständigen Katalog als `partial`, bis der nächste Delta-Pull die Texte gebracht hat), Inhalte, Kartenkörper, Varianten, Reviewereignisse, Anki-Vorlagen (`noteTypeSources`), rohe Anki-Felder (`noteSources`), Outbox und Konflikte. `accountStorage` hält nur `core.accountState.v2` und `core.syncDevice.v2`.
-- Hydrierung lädt begrenzte Karten-/Lernfenster samt Inhalten (`hydrate_account_cards` nach Karten- oder Inhalts-IDs); ein Kartenkörper ist aktuell, wenn Körper-, Lernstands- und Abhängigkeitsrevision zum Katalog passen. Die Kartenverwaltung lädt einen Inhalt online immer mit allen Geschwistern; offline nur bei vollständigem Katalog. Offline-Downloads pinnen Karten, Inhalte, Varianten und hashgeprüfte Medien; Quota-Bereinigung entfernt ab 80 % bis 70 % ausschließlich ungepinnte bestätigte Körper und danach ungepinnte Medien nach `accessedAt` (zuletzt genutzt); Medien mit ausstehendem Upload bleiben. Sie läuft beim Start, nach Lernfenstern und nach Offline-Downloads, nie parallel.
-- Lokale Mutationen und Outbox werden atomar persistiert (`saveNoteGraphs` schreibt Inhalt, Karten, Katalog, Summaries und Outbox in einer Transaktion). Revisiongeprüfte Cloudwrites und bestätigte lokale Applies besitzen getrennte Abschlussgrenzen; fehlgeschlagener Cloud-Sync setzt den lokalen Erfolg nicht zurück. Anki-Vorlagen und rohe Felder sind Upsert-Tabellen (letzter Write gewinnt).
-- Ein Sync-Zyklus schreibt zuerst lokale IndexedDB-Transaktionen, überträgt dann nur vorgemerkte Outbox-Mutationen, lädt alle Cloud-Deltas seit den gespeicherten `sync_change_id`-Cursorn und aktualisiert zuletzt Konflikt- und Statusdaten.
-- `revision` ist die fachliche Entitätsversion; der Lernstand besitzt mit `studyRevision` eine eigene Grenze, sodass Review und Inhaltskorrektur auf zwei Geräten keinen Konflikt erzeugen. Geräte-, Zeit-, Zähler-, Importzusammenfassungs-, Eigentümer- und Schedulerprojektionen erzeugen allein keinen Inhaltskonflikt. Kartenwrites erhalten den Cloud-Lernstand, Varianteninhaltswrites ihre Performance.
-- Neuplanungen laufen als manuelle Reviewereignisse über dieselbe offline persistente `review-atomic`-Outbox und `record_review_atomic`; die jeweils spätere Aktion bestimmt den Termin.
-- Zurückgenommene Bewertungen (`StudyMode`, `undoReview` im Repository): Die Sitzung hält je Bewertung den Sitzungsstand davor. Lokal entfernt eine Transaktion das Ereignis, setzt Karte und Variante auf den Stand vor der Bewertung, stellt den Katalogverlauf aus dem Eintrag vor der Bewertung wieder her und zählt Stunden-, Tages- und Übersichtszähler zurück. Die Outbox-Mutation `review-undo` (`review_undo_<Ereignis>`) folgt ihrer `review-atomic`-Mutation und wird nicht gesendet, solange diese im selben Lauf scheitert; `undo_review_atomic` löscht das Ereignis (der Löschtrigger rechnet die Statistik nach) und übernimmt den alten Lernstand nur ohne spätere Bewertung. Ausstehende Rücknahmen schützen Karte und Ereignis wie ausstehende Bewertungen vor dem Überschreiben durch Abrufe.
-- Ab 80 Prozent Browserquote entfernt CoRe ungepinnte, bestätigte Kartenkörper und Medien nach LRU bis höchstens 70 Prozent; Hüllen, Summaries, Katalog, Outbox, Konflikte, Downloads und aktive Lernkarten bleiben.
-- Die Outbox hält je Entität höchstens eine ausstehende Mutation. Ersetzt eine Änderung einen noch nicht bestätigten Insert, bleibt sie ein Insert ohne Basisrevision. Existiert die Zeile in der Cloud bereits und hat sie zuletzt dasselbe Gerät geschrieben, war nur die Antwort verloren; die Mutation wird dann als Update auf diese Revision angewandt. Fremde oder gelöschte Zeilen bleiben Konflikte. Löschungen laufen nach Inserts und Updates in umgekehrter Fremdschlüsselreihenfolge. Gleichzeitige Sync-Anforderungen teilen sich einen laufenden Durchlauf; wurde während eines Durchlaufs ein weiterer angefordert und enthält die Outbox danach noch Mutationen, folgt unmittelbar ein zweiter.
-- Konfliktmetadaten bleiben lokal erhalten. Betroffene Karten – bei einem Inhaltskonflikt alle Geschwister – fehlen im Review-Scope und bleiben in der Verwaltung sichtbar. Auflösung betrifft ausschließlich geprüfte Konflikte und bewahrt konfliktfreie Inhalte, Reviews und Medien.
-- Der Katalog führt neben Vorschau, Lernstand und Markierung die Flagge (`anki_flag`), die Lernbremse (`leeched`) und `tag_keys` (jedes Tag mit allen `::`-Elternpfaden in Kleinschreibung, `private.tag_search_keys` bzw. `tagSearchKeys`). `list_account_card_catalog` und `search_account_card_catalog` nehmen neben dem Suchtext eine Begriffsliste `p_terms` aus `parseCardSearchQuery`; der lokale Katalog wertet dieselbe Liste mit `matchesCardSearch` aus. Die Liste besteht aus Klauseln, die alle zutreffen müssen (KV2d): einem Begriff oder `kind: "any"` mit Begriffen, von denen einer genügt (leer trifft nichts). `parseCardSearchQuery` formt `or`, Klammern und Verneinung in diese Form um (höchstens 1.024 Klauseln, darüber trifft die Suche nichts); jedes Wort und jede Phrase ist ein `text`-Begriff (`notes.search_text` bzw. `normalizedSearchText`), das längste positive filtert zusätzlich als `text`/`p_query` vor. Menü und Suchfeld schreiben Gruppen einer Kategorie über `withCardSearchTermState(…, siblings)`. Relative Begriffe löst `parseCardSearchQuery` mit einem `CardSearchContext` (`createCardSearchContext` in `libraryModel.ts`: Beginn des Lerntags und Stapel samt Unterstapeln) auf, bevor sie lokal oder in der Cloud gelten: `is:due` und `prop:due` werden zu `kind: "due"` mit festen Zeitgrenzen, `did:` zu `kind: "deck"` mit allen Stapel-IDs; `is:new|learn|review` (`state`), `is:young|mature` (`maturity`) und `has:variant` (`variant`) prüfen die Katalogspalten. `deck:` löst `createCardSearchContext` über `deckPatternMatches` zu Stapel-IDs auf (`deckMatches`). `added:`, `edited:`, `introduced:`, `resched:` und `rated:` werden zu `kind: "since"` mit fester Untergrenze, `prop:ivl|d|s|reps|lapses` zu `kind: "prop"` (`s` liest `durability_days`, die `private.refresh_card_catalog` aus `study_extra.durabilityDays` übernimmt; der Scheduler schreibt sie mit jeder Antwort neben `maturityBand`, ältere Lernstände haben `null` und treffen nicht), die Inhaltsformen zu `kind: "form"`. Ihre Daten führt der Katalog selbst: `created_at`, `edited_at` (Inhalt), `content_kind`, `interval_days`, `difficulty`, `reps`, `lapses` sowie den Verlauf `first_reviewed_at`, `last_again_at`, `last_hard_at`, `last_good_at`, `last_easy_at` und `last_rescheduled_at`, den `private.refresh_card_catalog` aus `review_events` ableitet (Antworten; von den manuellen Ereignissen nur `manual_reschedule`). Lokal hat der Kartenkörper keinen vollständigen Verlauf: jede lokale Katalogschreibung übernimmt ihn aus der vorigen Katalogzeile (`catalogRecordFor(card, note, history)`), eine Antwort oder Neuplanung schreibt ihn mit `withStudyEvents` fort, `writeState` leitet ihn aus den vorhandenen Ereignissen ab. Ein fehlender Wert trifft nie, seine Verneinung immer; die RPCs fassen jeden dieser Vergleiche dafür in `coalesce(…, false)`. `note:` löst `createCardSearchContext` über `namePatternMatches` und die replizierten Vorlagen (`listNoteTypes`) zu Vorlagen-IDs auf (`noteTypeMatches`, `kind: "notetype"`, wie `mid:`); der Katalog führt dafür `note_type_id` und für `has:outdated` `has_outdated_variants` (eine nicht gelöschte Variante mit `meta.outdated`), für `card:N` `prompt_ordinal` (`promptOrdinal` in `workspaceReplica.ts`, dieselbe Abbildung wie die SQL-Auffrischung) und für `is:buried` `last_buried_at` und `last_unburied_at` aus den manuellen Ereignissen. Die Kartenliste ist eine Liste von Seiten je Liste (KV3): `DecksCardPage.pages` sammelt die geladenen Seiten der flachen Liste (`HIT_LIST_KEY`, Bereich `deckIds`), die die Kartenverwaltung mit und ohne Suche zeigt (KV3b); Stapelzeilen und ihr Aufklappzustand gibt es dort nicht, `requestCardPage` in `cardCommands.ts` bricht nur bei geänderter Suche, Sortierung oder Bereich ab. `listCardPage(scope)` liest jede Seite direkt als Ausschnitt des Suchindex (`catalogSearchIndex.slice`), auch über mehrere Stapel; ein einzelner Stapel ohne Suche nutzt Keyset-Seiten nur, bis der Index geladen ist. Ein unvollständiger Katalog fragt die Cloud: `list_account_card_catalog` ohne `p_deck_id` liest stapelübergreifend mit einem `deck`-Begriff für den Bereich. `src/screens/cardList/cardListModel.ts` setzt die geladenen Seiten einer Liste an ihre Positionen (eine Tabellenzeile je Katalogeintrag wird nur einmal gebaut) und lädt nur mit der Kartenverwaltung; `src/screens/cardList/virtualRows.ts` rendert nur die Zeilen nahe am sichtbaren Bereich (gemessene Höhen, sonst Schätzwerte; neu gerechnet wird nur bei abweichender Höhe; Fenster per Binärsuche) und folgt dem Scrollen von Seite oder Bildschirmbereich. Ohne Cursor öffnet die Cloudliste eine Seite per `p_offset`; der Index `card_catalog_active_note_idx` hält die Volltextsuche über alle Stapel schnell. Die lokale Datenbank Version 3 setzt beim Upgrade den Katalogcursor auf 0, weil ein älterer Client die geänderten Zeilen der Migration ohne die neuen Spalten übernommen haben kann. Der Kontext gehört zum Seiten- und Indexschlüssel. Ist der Katalog vollständig und hat seine Abstimmung Suchtexte gebracht (`ReplicaStatus.searchTextsReady`, gesetzt in `completeCatalogReconciliation`, wenn der Katalog leer ist oder `noteSearch` Zeilen hat), beantwortet `workspaceHydrationService.queryCardPage` jede Seite lokal, Suchen eingeschlossen: `listCatalogPage` liest Treffer, Cursor und Gesamtzahl aus `catalogSearchIndex.ts`. Das Repository lädt den Index beim ersten Öffnen der Kartenverwaltung in Stapeln zu 1.000 Zeilen, merkt sich jede Katalogschreibung und liest nur diese Zeilen vor der nächsten Suche nach; ein geleerter Katalog lädt ihn neu. Den Volltext liefert `note_search` (eine Zeile je Inhalt mit `search_text`, `search_fields`, `sync_change_id` und Löschmarke, Owner-RLS, gepflegt per Trigger aus `notes`, nur bei geändertem Text, geänderten Feldtexten oder geänderter Löschung). `noteTextIndex` leitet neben Such- und Sortiertext die Feldtexte ab (`searchFields`, Schlüssel aus `fieldSearchKey`: Kleinschreibung, Leerzeichen als `_`); der Client lädt sie als `notes.search_fields` (`[{n, t}]`) hoch. Der Begriff `Feld:Text` (`kind: "field"`) prüft lokal die `searchFields` der Katalogzeile und in `list_account_card_catalog` und `search_account_card_catalog` die `search_fields` aus `note_search`. Er läuft als letzte Tabelle jeder Seite durch das Katalog-Delta. `applyCloudCatalogPages` schreibt jede Delta-Seite in einer Transaktion und rückt den Cursor erst danach vor; die nächste Seite lädt währenddessen. Deltas aus Start und Abgleich (`keepComplete`) lassen einen vollständigen Katalog vollständig; Cloudseiten der Anzeige markieren ihn als unvollständig. Der Suchtext ersetzt den Vorschautext aller Katalogzeilen des Inhalts, bei Zeilen derselben Seite schon vor dem Schreiben; eine Katalogzeile ohne passenden lokalen Text übernimmt ihn aus `noteSearch`. Ein Inhalt mit ausstehender lokaler Änderung behält seinen eigenen Text. Ist der Katalog unvollständig, sucht weiterhin die Cloud. `list_account_tags()` liefert das Tag-Verzeichnis, `list_similar_notes(note_id)` bis zu drei Inhalte mit Trigramm-Ähnlichkeit ab 0,5; den Bewertungsverlauf einer Karte liest der Client direkt aus `review_events` (`review_events_user_card_answered_idx`).
-- `card_catalog` und `deck_study_summaries` sind die Cloudprojektionen mit Account-RLS und Keyset-/Deck-/Sortier-/Reviewindizes; nur Stapel, Katalog, Summaries, Anki-Vorlagen (`note_type_sources`) und Volltexte (`note_search`) tragen `sync_change_id`. Vorlagen laufen mit dem Katalog-Delta auf jedes Gerät und liegen dort vollständig in der Replica, damit das Originallayout (ADR-047) auch offline gilt; ein Reimport ersetzt sie per Upsert und erhält so einen neuen Cursor. Anweisungsbezogene Trigger mit Übergangstabellen pflegen sie mengenbasiert ohne fachliche Revisionsänderung; der Katalog übernimmt Vorschau, Sortiertext und Markierung aus dem Inhalt. Die Suche läuft per Trigramm-Index über `notes.search_text`. Fälligkeit wird für den Lerntag indexgestützt ermittelt.
-- `get_account_bootstrap()` liefert Stapel, Summaries und Tagesübersicht, `get_account_due_forecast()` die Prognose nachgelagert (das lokale Repository schreibt sie bei Katalogänderungen fort; Easy Days liest sie zum Lernstart über `loadDueForecast`), `list_account_card_catalog()` eine Keyset-Seite (Gesamtzahl nur auf Anfrage), `search_account_card_catalog()` die erste Suchseite vieler Stapel in einer Abfrage (danach blättert jeder Stapel mit seinem eigenen Cursor über `list_account_card_catalog()`), `list_account_card_study_states()` den Lernstand aller Karten gewählter Stapel samt Erstellzeit und schneller FSRS-7-Spur (`stability_fast` aus `study_extra`, ohne Wert 0) ohne Körper in Seiten von höchstens 5.000 Karten nach Karten-ID (Client: `listAccountCardStudyStates`, Validierung in `cloudRepositoryValidation.ts`; nicht in die Replica übernommen), `get_deck_offline_manifest()` Revisionen/Größen/Medienhashes, `get_account_statistics()` begrenzte Aggregate (Verteilungen als Kartenzahl je abgerundetem Wert; die festen Töpfe legt `statisticsModel.ts` fest), `load_reimport_targets()` bestehende Inhalte je Anki-GUID und `list_retranslation_candidates()` unbearbeitete Importe älterer Übersetzerversionen.
-- Medien liegen privat unter `<userId>/<sha1>` im Bucket `core-media`; `media_files` registriert jede Datei einmal je Account, `note_media` wird per Trigger aus `notes.media` gepflegt. Vorlagenmedien (nach Ankis Konvention mit `_` beginnend), die CSS oder statisches Template-HTML eines Notiztyps im Originallayout nennen, übernimmt der Import in `notes.media` jedes Inhalts dieses Typs; Bearbeiten, Duplizieren und `removeUnusedNoteMedia` behalten `_`-Einträge, damit Schriften und Bilder des Originallayouts (ADR-047) verknüpft, offline verfügbar und vor der Freigabe geschützt bleiben. Inhalte persistieren nur Namen und SHA-1, keine Bytes, Tokens oder Signed URLs. Die lokale Mediendatenbank `core-media-store.v3` hält Dateien und eine persistente SHA-1-Upload-Queue; Upload wartet auf bestätigte Cloud-Eltern. Nicht mehr referenzierte Dateien gibt `list_releasable_media()` nach einem Tag (gelöschte Inhalte nach sieben Tagen) frei.
-- Start (ADR-038): `startAuthenticatedWorkspaceSessionLifecycle` liest online die gespeicherte Sitzung und ruft `onBoot` sofort auf; `getUser()` bestätigt parallel, eine Ablehnung ruft `onSessionRejected`, das den Lauf über `bootRunRef` verwirft und seine Bootstrap-Wiederholungen beendet. Der Build lädt den Supabase-Client-Chunk per `modulepreload` mit dem Einstieg (`vite.config.ts`), damit die Sitzungsprüfung nicht erst nach dem ersten Render nachlädt. Im Browserbuild ersetzt ein Alias `@supabase/realtime-js` durch `src/supabaseRealtimeStub.ts`: CoRe öffnet keine Realtime-Kanäle, der WebSocket-Client bleibt so aus dem Startgraph; `supabaseRealtimeStub.test.ts` prüft den Ersatz gegen die Aufrufe des installierten supabase-js.
-- Vorladen in Stufen: Der Build schreibt je dynamisch geladenem Bildschirm seine Dateien außerhalb des Startgraphen (`files`) und die seiner nachgeladenen Unterbereiche bis 80 KB je Datei (`parts`) als JSON in `index.html` (`featureChunkMap` in `vite.config.ts`, Element `core-feature-chunks`). Die automatische Stufe (`startAdaptiveFeaturePreloading` mit `prefetchAppView`) lädt die `files` von Lernen und Karten nur herunter, in HTTP- und Service-Worker-Cache, ohne sie auszuführen; ausgeführt wird ein Bildschirm erst bei Zeigen, Fokus oder Berühren seines Menüpunkts (`preloadAppView`) oder beim Aufruf. Läuft ein Bildschirm, lädt `appFeatureLoading.tsx` im Leerlauf seine `parts` herunter (nur bei 4G oder unbekannter Verbindung, ohne Datensparmodus). Im Dev-Server fehlt die Liste; dort lädt nichts automatisch vor.
-- App-Shell: Vercel revalidiert HTML und Service Worker; fehlende Assets und API-Pfade sind vom SPA-Rewrite ausgenommen. `public/sw.js` akzeptiert für JavaScript ausschließlich erfolgreiche Antworten mit JavaScript-MIME-Typ und umgeht falsch befüllte Cacheeinträge. Die Cacheversion bleibt erhalten, damit gültige Offline-Dateien weiter verfügbar sind; falsch befüllte JavaScript-Einträge werden beim nächsten erfolgreichen Abruf ersetzt. `pwa.ts` übersetzt Vite-Modulladefehler in einen deutschen Verbindung-/Neuladehinweis; Fehler bleiben sichtbar. Ein automatischer Reload findet nicht statt, damit offene Entwürfe erhalten bleiben.
-- Profilpatches enthalten das vollständige Profil. Nur erfolgreicher Cloud-Bootstrap darf unvollständige alte Profilpatches ersetzen und gültige UI-Präferenzen retten; vollständige Offlinepatches und andere Outbox-Mutationen bleiben erhalten.
+### Lokale Ablage
 
-Die Migrationsbaseline in `supabase/migrations/` und `supabase/verify_schema_v1.sql` sind die ausführbaren SQL-Quellen. `database.types.ts` wird ausschließlich aus der frisch aufgebauten lokalen Datenbank generiert. RLS schützt Nutzertabellen; Ownership stammt nicht aus veränderbaren User-Metadaten.
+| Name | Ort | Inhalt |
+| --- | --- | --- |
+| `core.workspace.entities.v5.<userId>` | IndexedDB | Stapel, Summaries, Katalog, Volltexte (`noteSearch`), Inhalte, Kartenkörper, Varianten, Reviewereignisse, `noteTypeSources`, `noteSources`, Outbox, Konflikte |
+| `core-media-store.v3` | IndexedDB | Mediendateien und persistente SHA-1-Upload-Queue |
+| `core.learningSummaries.v2.<userId>`, `core.learningMindMaps.v2.<userId>` | IndexedDB | Zwischenspeicher und Warteschlange der Lerndokumente |
+| `core.accountState.v2`, `core.syncDevice.v2` | `accountStorage` | Accountzustand und Gerät; darin `core.fieldTimings.v1` |
+| `core.pomodoroTimer.v1`, `core.dashboard.widgets.v1` | Accountnamespace | Fokustimer, Widgetlayout und eigene To-dos |
+| `core.theme.v1` | Browser | Theme-Präferenz |
+
+### Sync
+
+- Lokale Mutation und Outbox werden in einer Transaktion geschrieben. Cloudwrite und lokaler Abschluss haben getrennte Grenzen; ein gescheiterter Sync setzt den lokalen Erfolg nicht zurück.
+- Ein Sync-Zyklus sendet die Outbox (`entity-mutation`, `deck-command`, `profile-patch`, `review-atomic`, `review-undo`), lädt alle Deltas seit den `sync_change_id`-Cursorn und aktualisiert zuletzt Konflikte und Status. Gleichzeitige Anforderungen teilen einen Lauf.
+- Die Outbox hält je Entität höchstens eine Mutation. Ein ersetzter unbestätigter Insert bleibt Insert; eine Zeile, die zuletzt dasselbe Gerät schrieb, gilt als verlorene Antwort und wird Update. Löschungen laufen zuletzt in umgekehrter Fremdschlüsselreihenfolge.
+- `review-undo` folgt seiner `review-atomic`-Mutation und wird nicht gesendet, solange diese scheitert. Ausstehende Bewertungen und Rücknahmen schützen Karte und Ereignis vor dem Überschreiben durch Abrufe.
+- Geräte-, Zeit-, Zähler-, Eigentümer- und Schedulerprojektionen erzeugen allein keinen Inhaltskonflikt. Kartenwrites erhalten den Cloud-Lernstand. Konfliktmetadaten bleiben lokal; betroffene Karten (bei Inhaltskonflikt alle Geschwister) fehlen im Review und bleiben in der Verwaltung sichtbar.
+- Profilpatches enthalten das vollständige Profil. Nur ein erfolgreicher Cloud-Bootstrap darf unvollständige alte Profilpatches ersetzen.
+- Start (ADR-038): Die gespeicherte Sitzung startet sofort, `getUser()` bestätigt parallel; eine Ablehnung verwirft den Lauf.
+
+### Hydrierung und Offline
+
+- Hydrierung lädt begrenzte Karten- und Lernfenster samt Inhalten (`hydrate_account_cards`). Ein Kartenkörper ist aktuell, wenn Körper-, Lernstands- und Abhängigkeitsrevision zum Katalog passen.
+- Die Kartenverwaltung lädt einen Inhalt immer mit allen Geschwistern; offline geht das nur bei vollständigem Katalog.
+- Offline-Downloads pinnen Karten, Inhalte, Varianten und hashgeprüfte Medien. Die Quota-Bereinigung entfernt ab 80 % bis 70 % nur ungepinnte, bestätigte Kartenkörper und Medien nach letzter Nutzung, nie Medien mit ausstehendem Upload, und läuft nie parallel.
+
+### Cloud-Schnittstellen
+
+- Tabellen mit Owner-RLS: `decks`, `notes`, `cards`, `card_variants`, `review_events`, `note_sources`, `note_type_sources`, `note_search`, `media_files`, `note_media`, `profiles`, `sync_devices`, `sync_conflicts`, `learning_summaries`, `learning_mind_maps`; Projektionen `card_catalog`, `deck_study_summaries`, `review_statistics_daily`.
+- Projektionen pflegen anweisungsbezogene Trigger ohne fachliche Revisionsänderung. Nur Stapel, Katalog, Summaries, `note_type_sources` und `note_search` tragen `sync_change_id`.
+
+| RPC | Liefert |
+| --- | --- |
+| `get_account_bootstrap` | Stapel, Summaries, Tagesübersicht |
+| `get_account_due_forecast` | Fälligkeitsprognose |
+| `pull_account_catalog_delta` | Katalog-Delta seit Cursor |
+| `list_account_card_catalog`, `search_account_card_catalog` | Keyset-Seiten und erste Suchseite vieler Stapel |
+| `hydrate_account_cards` | Kartenkörper und Inhalte |
+| `list_account_card_study_states` | Lernstände ganzer Stapel ohne Körper, nicht in die Replica |
+| `record_review_atomic`, `undo_review_atomic` | Bewertung schreiben und zurücknehmen |
+| `delete_account_deck_tree` | Stapel samt Unterstapeln löschen |
+| `get_deck_offline_manifest` | Revisionen, Größen, Medienhashes |
+| `get_account_statistics` | begrenzte Aggregate |
+| `load_reimport_targets`, `list_retranslation_candidates` | Reimportziele je Anki-GUID; unbearbeitete Importe älterer Übersetzer |
+| `list_account_tags`, `list_similar_notes` | Tag-Verzeichnis; ähnliche Inhalte |
+| `list_releasable_media` | nicht mehr referenzierte Medien |
+
+### Medien
+
+- Medien liegen privat unter `<userId>/<sha1>` im Bucket `core-media`; `media_files` registriert jede Datei einmal je Konto, `note_media` folgt per Trigger `notes.media`.
+- Inhalte speichern nur Namen und SHA-1, keine Bytes, Tokens oder Signed URLs. Uploads warten auf bestätigte Cloud-Eltern.
+- Vorlagenmedien mit `_`-Präfix stehen in `notes.media` jedes Inhalts ihres Notiztyps und überleben Bearbeiten und Bereinigen, damit das Originallayout offline und vor der Freigabe geschützt bleibt.
+
+### Katalog und Suche
+
+- Der Katalog führt je Karte alle Werte, nach denen gesucht und sortiert wird (Lernstand, Flagge, Lernbremse, `tag_keys`, Inhaltsform, Bewertungsverlauf); `private.refresh_card_catalog` leitet sie in der Cloud ab, lokal schreibt jede Katalogschreibung sie fort.
+- `parseCardSearchQuery` liefert Klauseln, die alle zutreffen müssen. Relative Begriffe löst ein `CardSearchContext` vorher zu festen Grenzen und IDs auf. Dieselbe Liste wertet lokal `matchesCardSearch` und in der Cloud `p_terms` aus; ein fehlender Wert trifft nie, seine Verneinung immer.
+- Ist der Katalog vollständig und hat Suchtexte (`ReplicaStatus.searchTextsReady`), beantwortet `catalogSearchIndex.ts` jede Seite lokal; sonst fragt die Cloud (ADR-048). Den Volltext liefert `note_search` als letzte Tabelle des Katalog-Deltas.
+- Delta-Seiten werden je in einer Transaktion geschrieben, der Cursor rückt erst danach vor. Cloudseiten zeigen lokal ausstehende Karten mit ihrer lokalen Zeile; ein Inhalt mit ausstehender Änderung behält seinen eigenen Text.
 
 ### Kartenverwaltung
 
-- **Liste:** `DecksScreen` zeigt immer eine flache, virtualisierte Liste (`screens/cardList/cardListModel.ts`, `virtualRows.ts`). Ein vollständiger Katalog mit Suchtexten bedient jede Seite aus `catalogSearchIndex.ts` (ADR-048), sonst die Cloud. Eine Cloudseite zeigt Karten, deren lokale Änderung noch in der Outbox wartet (gemerkt vor der Anfrage), mit ihrer lokalen Katalogzeile; hier angelegte Karten (erster Schreibvorgang ohne Basisrevision) stehen auf der Seite, in deren Sortierbereich sie fallen; lokal gelöschte fehlen (`withPendingLocalRows` in `workspaceHydrationService.ts`, `loadCatalogEntries` im Repository). Gleichzeitige Seitenabfragen warten auf das laufende Nachlesen geänderter Katalogzeilen in den Suchindex, damit keine Seite einen veralteten Stand zeigt.
-- **Massenaktionen (KV4):** `runCardBatch` in `cardBatchActions.ts` lädt die Kartenkörper (`workspaceHydrationService.openCards`, offline nur lokal vorhandene), plant Karten- und Inhaltsänderungen mit `planCardBatchEdit` aus `coreModel.ts` und schreibt sie mit einem `saveNoteGraphs`-Aufruf; Zurückstellen, Fälligkeit (`rescheduleCards` mit einem Datum je Karte) und Zurücksetzen laufen als manuelle Lernereignisse. Rückgängig ist eine neue Änderung: `planCardBatchUndo` stellt nur Werte zurück, die noch dem Ergebnis der Aktion entsprechen, Lernstände nur bei unveränderter `studyRevision`, Löschen über `planNoteRestore`. `writeNoteGraphs` stellt alle Lesezugriffe einer Änderung auf einmal, schreibt eine unverändert übergebene Karte nicht neu und schreibt Stapelzähler und Lernübersicht je Aktion einmal (`applyReplicaCatalogChanges`).
-- **Auswahl:** `Alle N Treffer auswählen` liest die Ids aller Treffer mit `workspaceHydrationService.listCardIds` aus dem lokalen Suchindex oder seitenweise aus der Cloud, dort mit denselben wartenden lokalen Änderungen wie eine Cloudseite. Auswahl und Leiste (`screens/cardList/CardSelectionBar.tsx`) gehören zu `DecksScreen`; `App.runDeckCardBatch` lädt danach die Listen neu und stößt die Synchronisierung an. `Varianten generieren` startet `useCardVariantBatch` mit den ausgewählten Ids.
-- **Tastenkürzel (KV6):** `handleListKey` in `DecksScreen` hört auf `window` und lässt Dialoge, Menüs, Textfelder und den Editor aus. Aktionstasten öffnen über die Prop `request` der Auswahlleiste dieselben Bestätigungen wie das Menü; danach erhält die Zeile den Fokus zurück, sobald die neu geladene Liste sie wieder zeigt. Strg+Z ruft das Rückgängig der letzten Massenaktion (`lastUndoRef`).
-- **Editor:** `CardEditorDialog` liegt auf jeder Breite als modaler `DialogFrame` (`l`) über der Liste, ab 1024 px zentriert mit fester Höhe, darunter im Vollbild (`.core-card-editor-frame`). Escape, Außenklick und Schließen laufen über `requestDetailAction`, ein ungespeicherter Entwurf fragt also nach; die Liste behält Breite, Scrollstand und die markierte Zeile.
-- **Suchen und Ersetzen (KV5):** Aktion `replace`. `coreModel/replace.ts` ersetzt wörtlich nur im Text zwischen HTML-Tags (unberührte Textstücke behalten ihre Entities) und plant jeden Inhalt über `planNoteContentChange`; Inhalte, deren Kartensatz sich ändern würde, bleiben unverändert. `prepareTextReplace` lädt die ausgewählten Inhalte einmal für Feldnamen und Vorschau (`TextReplaceDialog.tsx`); `planTextReplaceUndo` stellt nur Inhalte zurück, die noch den gespeicherten Ersatztext tragen.
-- **Treffer lernen (KV5):** `hitStudySession.ts` holt die Ids mit `hitStudyQuery` (ohne `is:suspended` und `is:buried`) in der Sortierung der Liste. `Vorziehen` startet über `App.startHitSession` einen transienten Sitzungsstapel `hit-session` wie die Prüfungseinheit: Die Wurzel trägt `plannedOrder` und `hitSession.cardIds`, die Unterstapel sind die echten Stapel mit ihren Optionen, und `createDailyReviewQueue` nimmt jede lernbare Karte ohne Fälligkeit, Tageslimits und Geschwister-Zurückstellen in dieser Reihenfolge auf. `StudyMode` schreibt Bewertungen mit `flags.kind = 'hit_review'`; `countsTowardDailyLimits` (`reviewEventKinds.ts`) lässt sie im Tagesverbrauch von Lernplan, Replik und `get_account_bootstrap` aus. `Nur üben` hat keinen Schreibpfad: `createPractice`/`answerPractice` führen die Übungsschlange, `HitPractice.tsx` zeigt sie mit `NoteCardContent`.
-- **Duplikate finden (KV5):** `duplicateContents.ts` gruppiert die Katalogzeilen des Suchindex nach Inhalt und vergleichbarem Text (`findDuplicateGroups`, Feldnamen über `fieldSearchKey`). `workspaceHydrationService.findDuplicates` verlangt einen vollständigen Katalog und für Felder oder eine Suche auch die Suchtexte. Die Gruppierung braucht gemessen 24–48 ms für 50.000 und 48–96 ms für 100.000 Zeilen und läuft deshalb ohne Worker im Hauptthread. Taggen läuft als Massenaktion `tags`.
-- **Tags verwalten (KV5):** `TagManagerDialog.tsx` nutzt die Massenaktion `tag-rename` (`renameTag` in `coreModel/tags.ts`; Rückgängig nur für Inhalte, die noch die umbenannten Tags tragen) über alle Karten mit `tag:<Name>` im Konto. `renameDirectoryTag` (`tagDirectory.ts`) zeigt die Änderung im Verzeichnis, bis es neu geladen wird; vor dem Laden des Cloud-Verzeichnisses lädt `listTagDirectory` wartende Änderungen hoch (`syncEngine.flush`).
+- Seitenabfragen der Kartenliste warten auf das Nachlesen geänderter Zeilen in den Suchindex, damit keine Seite einen veralteten Stand zeigt.
+- Massenaktionen planen über `coreModel.ts` und schreiben mit einem Repository-Aufruf; Lernstandsänderungen laufen als manuelle Ereignisse. Rückgängig stellt nur Werte zurück, die noch dem Ergebnis entsprechen, Lernstände nur bei unveränderter `studyRevision`.
+- Suchen und Ersetzen ändert nur Text zwischen HTML-Tags und plant jeden Inhalt über `coreModel.ts`; Inhalte, deren Kartenmenge sich ändern würde, bleiben unverändert.
+- Duplikate brauchen den vollständigen Katalog und laufen ohne Worker, weil die Gruppierung auch bei 100.000 Zeilen kurz bleibt. Vor dem Laden des Cloud-Tag-Verzeichnisses wird die Outbox gesendet.
+
+### App-Shell und Vorladen
+
+- Vercel revalidiert HTML und Service Worker; Assets und API-Pfade sind vom SPA-Rewrite ausgenommen. `public/sw.js` cacht JavaScript nur mit JavaScript-MIME-Typ. Es gibt keinen automatischen Reload, damit offene Entwürfe erhalten bleiben.
+- Automatisches Vorladen lädt Bildschirm-Chunks nur herunter; ausgeführt wird ein Bildschirm erst bei erkennbarer Absicht oder Aufruf.
 
 ## API-Vertrag
 
-`POST /api/ai/card-variant`, `POST /api/ai/card-help` und `POST /api/ai/summary` sind die einzigen CoRe-Serverendpunkte; Origin-, Bearer-, Body-, Provider- und Loghelfer teilen sie über `server/aiRoute.ts`, den Browserpfad über `postAiRoute` (`aiRouteRequest.ts`). Die Variantenroute verlangt Same Origin und einen Supabase-Bearer, dessen Signatur lokal gegen die gecachten JWKS geprüft wird, akzeptiert `{ source: { front, back }, avoid? }` (höchstens fünf Variantenfragen der Karte, vorhandene vor gelöschten), begrenzt den Body auf 8 KiB und jedes Feld auf 1.200 Zeichen und antwortet mit `Cache-Control: no-store`. OpenRouter-Zugang bleibt ausschließlich in `process.env`. Die Function ruft das in `OPENROUTER_MODEL` festgelegte Modell, derzeit `openai/gpt-6-luna`, mit Reasoning `low` auf, verlangt ZDR und verbietet Training (`data_collection: "deny"`); einen Modellkatalog oder Fallback gibt es nicht. Die Erzeugung endet nach `AI_CARD_VARIANT_DEADLINE_MS` (25 s). Genau ein erzwungener Tool Call erzeugt eine Umformulierung. Die Lernhilfe `card-help` nutzt dieselben Helfer, dasselbe Modell und dieselbe Frist; sie akzeptiert `{ card: { prompt, answer, extra? }, mode, question?, history? }` mit `mode` `explain`, `example` oder `question` (Frage genau bei `question`, höchstens sechs frühere Wechsel, Body bis 48 KiB) und liefert über einen erzwungenen Tool Call `answer_learner` eine Klartextantwort bis 2.000 Zeichen; `aiCardHelpCard` bildet den Kartentext (Quellenfeld bleibt lokal, Lückentext verdeckt nur die eigene Lücke, Bildverdeckungen erhalten keine Hilfe). Vertragsdetails stehen bei `aiCardVariantContract.ts` und `aiCardHelpContract.ts`, der operative Umgang in [Betrieb](operations.md). Andere Produktdatenzugriffe laufen über die gekapselten Supabase-Module. Secrets gehören weder in `VITE_*`, Browsercode, `localStorage`, Exporte noch Logs.
+- `POST /api/ai/card-variant`, `POST /api/ai/card-help` und `POST /api/ai/summary` sind die einzigen CoRe-Serverendpunkte. Sie teilen `server/aiRoute.ts`, der Browser ruft sie über `aiRouteRequest.ts`; `npm run dev` stellt sie per Vite-Middleware bereit.
+- Jede Route verlangt Same Origin und einen Supabase-Bearer, den sie lokal gegen die gecachten JWKS prüft, begrenzt den Body, antwortet mit `no-store` und erzeugt genau einen erzwungenen Tool Call.
+- Eingaben, Grenzen und Antworten validieren `aiCardVariantContract.ts`, `aiCardHelpContract.ts` und `aiLearningSummaryContract.ts`; dort stehen auch die Fristen.
+- Modell ist `OPENROUTER_MODEL` in `server/aiRoute.ts`, derzeit `openai/gpt-6-luna` mit Reasoning `low`, ZDR verlangt und Training verboten (`data_collection: "deny"`); kein Modellkatalog, kein Fallback (ADR-011).
+- Der OpenRouter-Zugang steht nur in `process.env`; Secrets gehören weder in `VITE_*`, Browsercode, `localStorage`, Exporte noch Logs. Alle anderen Datenzugriffe laufen über die Supabase-Module. Betrieb: [Operations](operations.md).
 
-## Importregeln
+## Import und Übersetzung
 
-Der Worker erhält die `File`, liest sie mit `readAnkiPackage`, übersetzt einmal mit `translateAnkiPackage` und hält den Importgraphen bis zum Commit oder Verwerfen. Die Vorschau enthält Bericht, bis zu fünf Beispielinhalte und deren Medien (höchstens 20 MiB). Beim Commit streamt der Worker begrenzte Chunks (Stapel, Anki-Vorlagen, je 250 Inhalte mit rohen Feldern und Karten, je 500 Reviewereignisse, dann jede Mediendatei einzeln mit SHA-1-Prüfung); der Main Thread schreibt sie nach IndexedDB, bevor er den nächsten Chunk anfordert. Persistierte IDs werden vor dem Schreiben zugeordnet (Reimport). Die flüchtige APKG-Sitzung überlebt interne Navigation; Reload-Wiederanlauf gehört nur Outbox und Medienqueue. Legacy-JSON und V18-Protobuf sind unterstützte externe Anki-Formate. Ankis Format-, Template- und Mediendetails stehen in der [Anki-Referenz](anki-format-analysis.md); sichtbare Phasen, Dateigrenzen und Teilabschlüsse in [Specs](specs.md). Der ZIP-Leser liest Einträge einzeln aus dem `Blob`, statt das Archiv vollständig zu laden.
+### Ablauf
 
-Die Importsteuerung unterscheidet `idle`, `analyzing`, `preview`, `committing`, `syncing_cloud`, `syncing_media`, `succeeded`, `partial`, `failed_terminal` und `cancelled`. Während `analyzing` bricht `Analyse abbrechen` den Worker ab und führt nach `cancelled`; es wird nichts übernommen. Die Phasen `analyzing`, `committing`, `syncing_cloud` und `syncing_media` zeigen in der Dateizeile einen eigenen monotonen Fortschritt.
+- Der Worker erhält die Datei, liest sie mit `readAnkiPackage`, übersetzt einmal und hält den Importgraphen bis Commit oder Verwerfen. Der ZIP-Leser liest Einträge einzeln aus dem `Blob`, damit große Pakete nicht ganz im Speicher liegen.
+- Beim Commit streamt der Worker begrenzte Chunks in Fremdschlüsselreihenfolge und Medien einzeln mit SHA-1-Prüfung; der Main Thread schreibt jeden Chunk in IndexedDB, bevor er den nächsten anfordert.
+- Die flüchtige Importsitzung überlebt interne Navigation; nach einem Neuladen laufen nur Outbox und Medienqueue weiter. Die Cloud-Bestätigung je Import läuft nach jedem gespeicherten Sync erneut und zieht in den nächsten Arbeitsbereich desselben Kontos mit.
+
+### Reimport
+
+- Reimport ordnet Inhalte über die Anki-GUID und Karten über die Anki-Kartenidentität zu, lokal und über `load_reimport_targets`; persistierte IDs stehen vor dem Schreiben fest.
+- Lokale Inhaltsänderungen, Lernstand, Aussetzung, Flagge, Markierung und Stapelplatz bleiben. Tags werden dreiseitig gegen `importedTags` zusammengeführt; im Paket fehlende Karten werden nur gezählt.
+- Vorhandene Stapel behalten Name, Oberstapel und Einstellungen; Stapel ohne Anki-ID erkennt der Reimport an Oberstapel und Name. Neue Stapel entstehen unter dem Pfad ihres persistierten Oberstapels.
 
 ### Note-Übersetzung
 
-`readAnkiPackage(file)` in `apkgImportInternal.ts` liest `.apkg` und `.colpkg`
-bis 2 GiB (`ANKI_PACKAGE_MAX_BYTES`) zu Stapeln mit Filterkennung, Notizen,
-Karten, Notiztypen, Revlog, Sammlungsdatum und einem Medienindex. Medien bleiben
-im Archiv und werden erst über `readBytes()` gelesen; moderne Pakete liefern
-SHA-1 und Größe aus `MediaEntries` (Eintrag *i* ist ZIP-Eintrag `i`), Legacy-Medien
-werden einzeln gehasht.
+- Die Übersetzer-Registry erkennt in fester Reihenfolge: native Bildverdeckung, „Multiple Choice for Anki“, Image Occlusion Enhanced, AnKing-/Ankizin-Familie, Anki-Standardtypen, generischer Übersetzer. Jeder Inhalt trägt `translator: { id, version }`.
+- Standardtypen zählen nur mit unveränderten Standardvorlagen, weil Anki `originalStockKind` auch an geklonte Notiztypen vergibt.
+- Der generische Übersetzer leitet Feldrollen aus der Position im Template ab, das `compileSafeTemplate` ohne Scripts auswertet. Ein Inhalt, der zu keinem Übersetzer passt, wird Feldliste (Übersetzer `field-list`) statt verloren zu gehen.
+- Der Lernstand folgt einem FSRS-7-Replay der vollständigen Historie, sonst Ankis FSRS-Gedächtnis, klassischem Intervall oder bleibt neu. Reviewereignisse tragen deterministische IDs je Revlog-Zeile.
+- Medien zählen nur aus `src`, `poster` und `[sound:…]`; je SHA-1 bleibt eine Datei, übernommen werden nur referenzierte.
+- `noteTypeSources` (Vorlage je Notiztyp) und `noteSources` (rohe Feldwerte je Inhalt) sind die Eingabe jeder Neuübersetzung. Ankis Format- und Templatedetails stehen in der [Anki-Referenz](anki-format-analysis.md).
 
-`translateAnkiPackage(pkg)` in `apkgNoteTranslation.ts` liest vorab nur die
-Masken-SVGs von Image Occlusion Enhanced (je höchstens 1 MiB) aus dem Paket,
-übersetzt dann ohne weitere Ein- und Ausgabe und liefert asynchron `{ decks,
-notes, cards, mediaFiles, reviewEvents, noteTypeSources, noteSources, report }`:
+### Neuübersetzung
 
-- **Stapel:** Karten liegen in `did`, in gefilterten Stapeln im Heimatstapel
-  `odid`. Angelegt werden nur Stapel mit Karten und ihre Vorfahren; gefilterte
-  Stapel nie.
-- **Übersetzer-Registry** in Erkennungsreihenfolge: native Image Occlusion
-  (`originalStockKind` 6), „Multiple Choice for Anki“ (Felder plus
-  `qtable`/`Q_solutions`), Image Occlusion Enhanced (drei Maskenfelder; die
-  Formen des Frage-SVG werden auf die SVG-Größe normiert zu CoRe-Masken, die
-  Form oder Gruppe mit `class="qshape"` als Abfrage `io:1`, alle übrigen mit
-  `ordinal` 0 dauerhaft verdeckt; nur SVGs mit Beschriftungen, Pfaden oder
-  Transformationen bleiben eine `overlay`-Maske), AnKing-/Ankizin-Familie (Lückentyp mit `Text`, `Extra` und
-  Hinweis-Buttons), Anki-Standardtypen und der generische Übersetzer. Weil Anki
-  `originalStockKind` auch an geklonte und neu angelegte Notiztypen vergibt,
-  zählen Basic-Familie und Lückentext nur mit unveränderten Standardvorlagen
-  als Standardtyp. Jeder Inhalt trägt `translator: { id, version }`.
-- **Generischer Übersetzer:** wertet die Vorlagen mit `compileSafeTemplate`
-  ohne Script-Blöcke und Kommentare aus. Angezeigte Vorderseitenfelder werden
-  Frage, direkt sichtbare neue Rückseitenfelder nach `{{FrontSide}}` oder
-  `<hr id=answer>` Antwort, `hint:` Hinweis; nie angezeigte Felder bleiben
-  Notiz. Felder in einem `{{#Feld}}`-Abschnitt mit Button werden vorn Hinweis,
-  hinten wie per `display:none` verborgene Felder und Felder namens `Extra`
-  Zusatz; Lückentypen führen alle Rückseitenfelder als Zusatz. Metadaten (`Note ID`, `ankihub_id`, `Date Stamp`,
-  GUID) bleiben unabhängig von ihrer Position Notiz; `Source`/`Quelle` und
-  AMBOSS-, Link- oder URL-Felder werden Quelle. Ein Feld in `href="…{{Feld}}…"`
-  wird Quelle und bleibt roh; den Link baut die Darstellung. Felder in anderen
-  Attributen (`data-*`, `class`, `alt` …) gelten nicht als angezeigt; nur
-  `src="{{Feld}}"` zeigt das Feld vorerst weiter. Statischer Text
-  auf der Zeile eines Fragefelds (ohne Buttons, Links und Tag-Inhalt, ohne
-  führende Trennzeichen wie `·`) wird Anweisung mit
-  `…`, ersatzweise eine mit `?` oder `:` endende Zeile direkt darüber, eine vollständig umschließende Bedingung `requires`, `type:` Eintippen,
-  `tts` Vorlesen und `furigana:`/`kana:`/`kanji:` Ruby-Text. Die
-  AnKing-/Ankizin-Familie nutzt dieselbe Positionsanalyse.
-- **Abfrageschlüssel:** Basic-Familie `forward`/`reverse`, sonst `anki-<Ordinal>`,
-  Lückentext `cloze:N`, Bildverdeckung `io:N`, Auswahl `choice`. Die Kartenmenge
-  folgt dem Inhalt: fehlende Anki-Karten werden abgeleitet, Anki-Karten ohne
-  Abfrage berichtet. Passt ein Inhalt nicht zum Übersetzer, wird er Feldliste
-  (`field-list`), statt verloren zu gehen.
-- **Lernstand:** Phase, Fälligkeit (Tageswerte relativ zum Sammlungsdatum),
-  Zähler, Aussetzung und `flags & 7` kommen von der Anki-Karte; das Gedächtnis
-  folgt einem FSRS-7-Replay der vollständigen Historie, sonst FSRS-Memory-State,
-  klassischem Intervall oder bleibt neu.
-  Zurückgesetzte Karten beginnen neu. Das Tag `marked` wird zu `note.marked`.
-  Reviewereignisse tragen deterministische IDs je Anki-Revlog-Zeile.
-- **Medien:** Verweise nur aus `src`, `poster` und `[sound:…]`, verglichen nach
-  HTML-, URL- und NFC-Normalisierung; der Feldtext verweist danach auf den
-  kanonischen Namen. Je SHA-1 bleibt eine Datei; übernommen werden nur
-  referenzierte Medien.
-- **Bericht:** je Notiztyp Übersetzer, Inhalte, Karten, Feldrollen, nicht
-  zugeordnete Felder, Feldlisten- und nicht darstellbare Inhalte, fehlende
-  Medien und übernommener Lernstand nach Herkunft.
+- `TRANSLATOR_VERSIONS` nennt die Version je Übersetzer. Nach dem Sync prüft `runAccountRetranslation` einmal je Übersetzerstand und Gerät die Kandidaten aus `list_retranslation_candidates`.
+- Karten behalten Identität und Lernstand. Würde eine Karte mit Lernstand entfallen, fehlt die Eingabe (Image Occlusion Enhanced) oder wartet eine lokale Änderung, bleibt der Inhalt unverändert.
+- Geschrieben werden nur geänderte Inhalte, mit `importedContentRevision` = `contentRevision`.
 
-`noteTypeSources` enthält die unsichtbare Anki-Vorlage je genutztem Notiztyp,
-`noteSources` die rohen Anki-Feldwerte je Inhalt (Mediennamen bereits
-kanonisch), auch die vom Übersetzer verbrauchten Felder. Beide zusammen sind die
-Eingabe jeder Neuübersetzung.
+## Lernen und Prüfungsplanung
 
-### Neuübersetzung (K5.4)
+### Lernen
 
-`TRANSLATOR_VERSIONS` nennt die aktuelle Version je Übersetzer. Nach dem
-Cloud-Sync prüft `runAccountRetranslation` einmal je Übersetzerstand und Gerät
-die unbearbeiteten Importe älterer Versionen seitenweise. `planRetranslation`
-übersetzt die rohen Felder mit `retranslateNoteContent` neu: Karten behalten
-Identität und Lernstand (generische `anki-N`-Schlüssel erhalten den Schlüssel des
-besseren Übersetzers), neue Abfragen werden neue Karten. Würde eine Karte mit
-Lernstand entfallen oder ist der Inhalt nicht übersetzbar, bleibt er unverändert.
-Image Occlusion Enhanced braucht dafür die Masken-SVGs des Pakets, die nach dem
-Import nicht mehr vorliegen; solche Inhalte bleiben bei der Neuübersetzung
-unverändert.
-Nur geänderte Inhalte werden geschrieben, mit `importedContentRevision` =
-`contentRevision`; Inhalte mit ausstehender lokaler Änderung werden
-übersprungen. Die App meldet die Zahl aktualisierter Inhalte.
+- `reviewService.ts` baut die Tagesqueue aus Lernständen, Ereignissen des Lerntags und Stapeloptionen und liefert die begrabenen Schlüssel; die Sitzung hält die gezeigte Karte, bis sie bewertet ist.
+- `scheduler.ts` kapselt `ts-fsrs`. Die Prüfungsplanung simuliert Laufbahnen über dieselbe FSRS-7-Planung samt Easy Days, nur ohne Buchführung zwischen den Antworten.
+- Eine Neuplanung ist genau ein manuelles `ReviewEvent`, das alten und neuen Termin festhält. Setzt ein Stapel bei Lernbremse `suspend`, wird die Aussetzung zusätzlich als Kartenänderung synchronisiert.
+- `newCardsTodayOverride` gilt für einen Stapel und Lerntag; eine Änderung des Neulimits hebt ihn auf.
 
-## Automatische Kartenerstellung
+### Prüfungsplanung
 
-`CreationMethod` und die URL-Projektion akzeptieren `ai-source`. `AiSourceCreationPanel` hält eine `File`-Referenz, alternativ aktiven Quelltext, ein einziges Stapelziel und `AiSourceSettings` ausschließlich im React-Entwurf. Drei Bereiche stehen ab 1280 px nebeneinander; darunter hält der Screen den aktiven Schritt lokal und validiert Quelle und Ziel vor dem Weitergehen. Die Zielanzeige im dritten Bereich wird aus demselben Entwurf abgeleitet. `aiSourceCreation.ts` besitzt Defaults, Auswahlbedeutungen, Validierung der aktiven Quelle und `buildAiSourceCreationPrompt`; die Promptfunktion erzeugt ausschließlich Anweisungen und liest keine Quelldaten. Sprache und Formulierungsstil sind unabhängig vom Vorwissen; eine Lernzielauswahl gibt es nicht. Der spätere Serverpfad muss Material separat validieren und übergeben. Quellenbasierte Aussagen und optionale, ausdrücklich gekennzeichnete externe Ergänzungen bleiben fachlich getrennt; nur eine explizite Freigabe erlaubt Ergänzungen zum Schließen von Lücken. Der Browser-Navigationsguard erhält Zielroute und Herkunft (`app` oder `browser`), damit ausstehende Erstellungsentwürfe auch bei History-Navigation bestätigt verworfen werden. Neue Note-/Card-Persistenz, API-Routen und Dokumentparser gehören nicht zu diesem vorbereiteten Ablauf.
+- Pläne liegen in `schedulerPreferences.examPlanning` (Version 3) im Profil und werden von `examPlanSettings.ts` validiert; andere Formate liest die App nicht, frühere haben Migrationen einmalig umgestellt.
+- `examPlanning.ts` ist die öffentliche Planungsschnittstelle; die Kontaktplanung in `examContactPlanning.ts` ist privat, deterministisch und teilt mit der Lastverteilung ein Hauptthread-Budget.
+- `workspaceHydrationService.loadExamPlanningData` lädt Lernstände über `list_account_card_study_states` und ersetzt sie durch noch nicht synchronisierte Antworten.
+- Die Zeitzone aller Prüfungsansichten liefert `getLearningTimeZone` (Profil, sonst Browser, sonst UTC).
+- Die Tagescheckliste besitzt `examDailyTasks.ts` mit Grenzen in `EXAM_PLANNING_LIMITS`; `deckCommands.ts` mischt sie in den jeweils aktuellen Profilstand.
+- `createExamSessionDecks` und `Treffer lernen` markieren ihren transienten Wurzelstapel mit `plannedOrder`; nur dann hebt `reviewService.ts` Mengengrenzen auf und erhält die Reihenfolge, ohne die Planung zu kennen.
+- Ohne Verbindung meldet die Prognose `offline`, die Tagesaufgaben arbeiten mit den gespeicherten Zielen und der Sitzungsstart mit den lokal vorhandenen Zielkarten.
 
-## Zusammenfassungen und Mindmaps
+## KI und Lerninhalte
 
-`SummaryDocumentEditor.tsx` besitzt eine durchgehende Schreibfläche mit kontextbezogenen Text-, Stift-, Marker- und Radierwerkzeugen sowie einen optionalen bildschirmfüllenden Editor mit Fokusführung. Die Schreibfläche hat eine begrenzte lesbare Breite und wächst nach unten; sie paginiert nicht. `summaryDocumentLayout.ts` projiziert vorhandene Striche aus gespeicherten Seiten und Ursprungsräumen proportional auf diese Fläche, ohne ihre gespeicherten Punkte zu ändern. `learningSummaries.ts` validiert weiterhin die gespeicherten optionalen `pages`, `pageFormat` und Strich-Ursprungsräume, damit vorhandene Fassungen verlustfrei lesbar bleiben. Die UI bietet keine Seiten- oder Formatumschaltung. Bei Textänderungen enthält der erste vorhandene Seiten-Datensatz den vollständigen Text, weitere Datensätze behalten nur ihre bestehenden Striche. Neue Striche verwenden den ersten Datensatz und den Koordinatenraum `portrait` als feste 794-Pixel-Breite mit unbegrenzter Höhe innerhalb der vorhandenen Koordinatengrenze. Die vollständige sanitierte HTML-Projektion bleibt für Suche, Lesezeit und Mindmap-Quellen verfügbar. `DeckSummariesPanel` hält manuelle und generierte Fassungen als Entwürfe und speichert erst über den bestehenden Entwurfsschutz beim Verlassen. Offline-, Cloud- und Konfliktverträge bleiben erhalten.
+### Varianten und Lernhilfe
 
-`learningSummaries.ts` und `learningMindMaps.ts` validieren und speichern accountgebunden in eigenen lokalen IndexedDB-Datenbanken. Zusammenfassungen liegen zusätzlich online in `learning_summaries` (eine Zeile je Fassung, `document` als versioniertes JSONB, Owner-RLS, Fremdschlüssel auf den eigenen Stapel, `deleted_at` als Löschmarke). Die Datenbank vergibt `revision` und `updated_at` per Trigger; `cloudLearningDocuments.ts` schreibt nur gegen die bekannte Revision und liefert sonst den neueren Cloudstand, `cloudRepositoryValidation.ts` prüft die Zeilen. Die lokale Datenbank `core.learningSummaries.v2.<userId>` ist Zwischenspeicher und Warteschlange: Speichern schreibt zuerst lokal, lädt dann hoch und markiert offline gespeicherte Fassungen und Löschungen als ausstehend; `loadLearningSummaries` gleicht beim Öffnen mit der Cloud ab und lädt Ausstehendes nach. Ein Revisionskonflikt erzeugt eine `Konfliktfassung von …` mit den eigenen Änderungen, das Original übernimmt den Cloudstand. Ohne Supabase-Client (Katalog, nicht konfigurierte App) bleibt alles lokal. Zusammenfassungen besitzen benannte Fassungen; `duplicateLearningSummary` erzeugt eine validierte Kopie mit neuer ID, `deleteLearningSummary` entfernt eine Fassung accountgebunden, und `clearMindMap` leert eine Map bis auf Titel und Einstellungen samt ihrer Quellenmomentaufnahmen; `loadInfinityMindMap` lädt beziehungsweise erstellt genau eine Infinity Map je Stapel. Online liegt sie in `learning_mind_maps` (Zeilen-ID = Stapel-ID, gleiches Schema, gleicher Revisionstrigger wie `learning_summaries`); die lokale Datenbank `core.learningMindMaps.v2.<userId>` hält je Stapel Map, Basisrevision und Ausstehend-Marke sowie die Bilder. Speichern schreibt lokal, lädt zuerst noch nicht hochgeladene Bilder in den privaten Bucket `learning-mind-map-images` (`<userId>/<sha1>`) und dann die Map; bei einem Revisionskonflikt schreibt es erneut gegen die Cloudrevision, der zuletzt gespeicherte Stand gewinnt und das Panel meldet das Ersetzen. Ein gleichzeitiges erstes Speichern zweier Geräte (`23505`) gilt ebenfalls als Konflikt. `appendMindMap` ergänzt Graphen ohne Überlagerung und speichert Quellenmomentaufnahmen einmal; Knoten referenzieren sie über `sourceId`. Die Erweiterungen des Versions-1-Datensatzes sind optional und erhalten alte Datensätze: Knoten besitzen `parentId` für eine azyklische Hierarchie, `side` für Astorientierung, optionales `autoPosition` für neue automatisch platzierte Karten und sanitisiertes `html` mit abgeleitetem Klartext. Bei wachsender Kartengeometrie werden nur als automatisch gekennzeichnete Karten kollisionsarm nach unten verschoben; explizite Bewegung und Koordinatenbearbeitung entfernen diese Kennzeichnung. Alte Datensätze ohne Kennzeichnung gelten als manuell positioniert. Der Knotenwert `kind: freeText` nutzt dieselbe validierte Text-, Positions-, Lösch- und Persistenzschnittstelle für rahmenlosen Flächentext; die UI bietet dafür keine Hierarchie-Plusaktionen oder Kartenart. `mindMapNeighbor` liefert die Nachbarkarte für die Pfeiltasten-Navigation, `copyMindMapNodes`/`pasteMindMapNodes` kopieren Karten samt Unterbäumen und vollständig enthaltenen Verweisen mit neuen IDs, und `mindMapLimitError` benennt die erste überschrittene Größengrenze; `readLearningMindMap` und das Panel lehnen Änderungen darüber hinaus mit dieser Meldung ab. `connectMindMapElements` hängt lose Karten beziehungsweise Unterbäume als normale Äste an, erhält relative Positionen und verwendet für bereits angegliederte Äste weiterhin Querverbindungen. Die `edges` bleiben unabhängige Querverbindungen zwischen Knoten; bestehende freie Verbindungen werden nicht nachträglich als Hierarchie interpretiert. Farben erlauben semantische CoRe-Werte oder validierte Hexwerte. Bilder liegen lokal im Store `images` als Blob unter dem SHA-1 ihrer gespeicherten Bytes, mit Marke für den erfolgten Upload; Knoten speichern bis zu vier Verweise `{id, name}`, eine Map höchstens zehn verschiedene. `storeMindMapImages` verkleinert, hasht und speichert gewählte Dateien, bevor eine Karte sie referenziert, `loadMindMapImages` liefert die Blobs und lädt fehlende aus dem Bucket nach, das Panel zeigt sie über Objekt-URLs und gibt sie beim Schließen frei. Beim Öffnen gibt `loadInfinityMindMap` lokale Bilder frei, die keine lokal gespeicherte Map mehr referenziert und die älter als ein Tag sind, damit Rückgängig und Entwürfe in anderen Tabs sie behalten; hochgeladene davon löscht es im Bucket, wenn auch keine Online-Map des Kontos sie nutzt. Linien speichern Farbe und Stärke. Die additive, validierte Eigenschaft `connectionColor` speichert `gray` oder `node`; ältere Maps verwenden `node`. `mindMapNodeColor` liefert neben Farbton und Tiefe eine nach außen steigende Farbstärke und hält Klammer-Zusammenfassungsknoten unabhängig von alten Farbwerten neutral. Zonen, eingebettete Base64-Bilder und getrennte Einzel-Maps gibt es nicht mehr; nur lokal gespeicherte Altstände entfallen mit der lokalen v1-Datenbank (ADR-043).
+- Varianten entstehen nur aus der bereinigten Quelle einer Karte (`cardVariantSource`); die Anfrage nennt ihre Art (`basic`, `type-in`, `cloze`, `choice`). Anzahl, Schema, Änderung, Duplikate und Größen werden vor der Mutation geprüft; ein inzwischen geänderter Inhalt verhindert sie.
+- Antwort, Eintippvergleich, Lückenlösung, Options-IDs und Richtigkeit kommen bei der Darstellung immer von der Karte. Eine Auswahl-Variante speichert Stamm und Optionen in `front`/`back` und die umformulierten Optionstexte in `meta.options`. `clozeSyntax.ts` zerlegt Anki-Lücken für Renderer und Vertrag.
+- Meldet das Werkzeug `rephrasable: false`, antwortet die Route mit `not_rephrasable` (422), und es entsteht keine Variante.
+- Ändert sich der Text einer behaltenen Karte oder bringt ein Reimport geänderten Paketinhalt, markiert die Planung ihre aktiven Varianten als veraltet (`meta.outdated`); eine Neuerzeugung ersetzt sie.
+- `aiCardHelp.ts` bildet den Kartentext der Lernhilfe: Quellenfelder bleiben lokal, eine Lücke verdeckt nur sich selbst, Bildverdeckungen erhalten keine Hilfe.
 
-`mindMapNodeDirection` leitet die Richtung der Plusaktionen aus den tatsächlichen Kartenpositionen zum Elternknoten ab. Relative Knotenerstellung verteilt neue direkte Hauptäste auf die weniger belegte Seite und dort auf die weniger belegte vertikale Hälfte; bestehende Positionen bleiben erhalten. Unteräste wachsen nach außen, Geschwister oberhalb beziehungsweise unterhalb gemäß ihrer Lage. Der Screen beginnt Kartenbewegungen nur bei bereits ausgewählten Karten. `learningMindMaps.ts` besitzt auch die Operationen für relative Knotenerstellung, Umstrukturierung, Bearbeitung, dynamische Gruppenrechtecke, Bewegung, Größenänderung und referenzsicheres Entfernen. `summaries` referenzieren einen gleichrangigen Knotenbereich und einen separaten Zusammenfassungsknoten; `boundaries` gruppieren nur visuell. Gruppengrößen werden aus den Mitgliedern abgeleitet; manuelle Knotenpositionen bleiben dabei unverändert. Zusammenführung schreibt interne Referenzen um; Entfernen bereinigt Verbindungen und Mitgliedschaften und hängt Kinder entfernter Karten an deren Eltern.
+### Karten aus einer Quelle
 
-Die Screens `DeckSummariesPanel` und `DeckMindMapsPanel` orchestrieren Entwürfe und verwenden den gemeinsamen Entwurfsschutz. Das Autospeichern der Mindmap läuft über `createLatestSaver` (`src/latestSaver.ts`): gleichzeitige Aufrufe teilen einen Lauf, ein laufender Bildimport wird abgewartet, und Änderungen während einer Speicherung werden danach mit dem neuesten Stand gespeichert. Der Mindmap-Screen hält Auswahl, Gesten und Ansicht lokal und delegiert Datenänderungen an das Modell. Karten sind benannte Gruppen mit einem flächigen Auswahl-Button hinter dem Inhalt; Doppeltippen, Langdrücken und Zwei-Finger-Zoom erkennt das Panel selbst, weil Touch-Browser `dblclick` und `contextmenu` nicht verlässlich liefern. Direkte Textbearbeitung verwendet `RichTextEditor`; dessen optionaler `toolbarHost` verschiebt ausschließlich die bestehende Toolbar über ein React-Portal in die obere Werkzeugleiste und erhält die DOM-Auswahl. Der optionale Schalter `showAllTools` zeigt die bestehenden Textwerkzeuge direkt in einer einzigen umbrechenden Leiste. Ohne diese Optionen bleiben bestehende Verbraucher unverändert. Der Screen speichert nach Eingabepausen automatisch in einer seriellen Schleife; Änderungen während einer laufenden Transaktion werden anschließend ebenfalls gespeichert und niemals vom älteren gespeicherten Snapshot überschrieben. Sichtbare Speicherfehler behalten den Entwurf und ermöglichen einen erneuten Versuch. Laufende lokale Bildvorbereitung gehört zum Entwurfsschutz; eine Speicheranforderung wartet auf ihre vollständige Übernahme in den Entwurf. Cloud-Sync ist für diese Dokumente noch nicht implementiert.
+- `ai-source` ist vorbereitet: `aiSourceCreation.ts` validiert den Auftrag und baut nur Anweisungen. Parser, Upload, KI-Route und Persistenz fehlen; ein künftiger Serverpfad muss das Material selbst validieren.
 
-`aiLearningSummary.ts` verarbeitet ausschließlich vollständig geladene Notes und deren Karten aus dem gewählten Stapelbaum. `workspaceHydrationService.prepareContentDecks` lädt alle Katalogseiten und die zugehörigen `{ decks, notes }`, prüft nach jeder Seite Abbruchsignal und Notizbudget und bricht bei Überschreitung sofort ab; fehlende oder unvollständige Inhalte werden sichtbar abgewiesen. Die Anfrage überträgt die Stapelhierarchie mit kurzen IDs und kompakte Einheiten ohne Feldnamen; die Antwort liefert Abschnitte, Unterabschnitte und Stichpunkte mit Stichwort, aus denen die App semantisches HTML (`h2`/`h3`, `<strong>Stichwort</strong>: Aussage`) erzeugt. `mindMapFromSummary` liest genau dieses HTML: Überschriften werden Äste, Stichwörter und kurze Blöcke Karten, längere Absätze Text ihrer Abschnittskarte; der Hinweisabschnitt (`SUMMARY_NOTES_HEADING`) entfällt. Zusammenfassungspassagen werden als bearbeitbarer `text` und unabhängig davon als unveränderlicher `sourceText` übernommen. Blätter werden `text`-Karten, alle Eltern `keyword`-Karten; die Vorgabe wird ausschließlich bei der Erzeugung angewandt. Die Karten werden über `addMindMapRelativeNode` mit ihrer endgültigen Kartenart und ihrem Inhalt platziert, optionale `relations` der Generierung werden Querverbindungen; `addMindMapFromSummary` speichert am Quellenschnappschuss eine Signatur des erzeugten Baums, `mindMapSummaryTree` erkennt damit spätere Bearbeitungen, und `replaceMindMapFromSummary` ersetzt nur diesen Baum samt angehängten Karten und Verweisen an der Position seiner Wurzel. Mehrere Karten derselben Note liefern genau eine Materialeinheit. Anfrage und Werkzeugantwort werden in `aiLearningSummaryContract.ts` validiert. `/api/ai/summary` nutzt dieselben Helfer und dasselbe feste Modell `openai/gpt-6-luna` mit Reasoning `low`, ZDR und ohne Training; die Erzeugung endet nach `AI_LEARNING_SUMMARY_DEADLINE_MS` (120 s); die lokale Vite-Middleware stellt die Route auch mit `npm run dev` bereit.
+### Zusammenfassungen und Mindmaps
 
-Prompt-Grundlage und Werkzeugvertrag: Die Anfrage enthält die Stapelhierarchie (`decks` mit kurzen IDs und Elternverweis) und je Note genau eine kompakte Einheit (`F:`/`A:`/`Hinweis:`/`Zusatz:`, bei Auswahlkarten `Richtig:`/`Falsch:`) mit Stapelverweis. Systemanweisung, Nutzereinstellungen und nicht vertrauenswürdiges Material werden getrennt übergeben. Einzige Quelle des Prompttexts ist `buildLearningSummaryPrompt` in `aiLearningSummaryContract.ts`; dort stehen auch Werkzeugvertrag und Grenzen. Der Prompt verlangt Materialtreue ohne externes Wissen, erhält Definitionen, Zahlen, Einheiten, Formeln, Verneinungen, Bedingungen und Ausnahmen, nennt Widersprüche mit beiden Fundstellen und fehlendes Material in `warnings`, priorisiert bei knapper Länge Fokus und zentrale Konzepte und erfindet keine Prüfungsrelevanz. Auftragsvariablen: `scope`, `material`, `length`/abgeleitetes Wortbudget, `detail`, `format`, `goal`, `register`, `focus`, `includeExamples`, `showReferences`.
-
-
-## Architekturänderungen
-
-Änderungen erhalten diese Grenzen und Invarianten. Dauerhafte Trade-offs gehören in [Entscheidungen](decisions.md), offene Umbauten nur in [TODO](todo.md). Implementierungs- und Layoutdetails werden in ihren besitzenden Quellen gepflegt und hier nicht dupliziert.
-
-Die Prüfungsplanung liegt in `schedulerPreferences.examPlanning` (Version 3). `workspaceHydrationService.loadExamPlanningData` lädt Lernstände ohne Antwortzeiten und ersetzt sie durch noch nicht synchronisierte Antworten der Outbox. Die Zeitzone aller Prüfungsansichten liefert `getLearningTimeZone` (Profil, sonst Browser, sonst UTC). `examPlanSettings.ts` validiert Pläne, Farben, Tagesausnahmen, Themenreihenfolge und Zeitblöcke. Andere Formate liest die App nicht; Bestände haben `20261024153629_exam_planning_format_2.sql` (gemeinsame Zeit geteilt auf aktive Prüfungen, Puffer in Kalendertage) und `20261025192248_exam_planning_format_3.sql` (Quiz entfernt, Ausnahmen für nicht gewählte Unterstapel, Stichtag mindestens 1) einmalig umgestellt. Global liegen nur Zeitblöcke in `capacity.timeBlocks`. `deckIds` und `excludedDeckIds` markieren Teilbäume; `getExamDeckIds` leitet die Stapel einer Prüfung über die nächste Markierung ab, `toggleExamDeckSelection` hält die Markierungen minimal. `getExamPlanningKey` bündelt alles, was den Plan einer Prüfung formt, einschließlich ihrer eigenen Zeitblöcke. `studyTime` hält je Klausur Durchschnitt, Wochentage, optional einzelne Wochentagsminuten (`weeklyMinutes`) und Datums-Ausnahmen; die Editor-Eingabewege Durchschnitt und Einzelzeiten sind gegenseitig geöffnet. Einzelzeiten übernehmen beim Wechsel die wirksamen Durchschnittswerte und setzen beim Editieren `weekdays` passend zu positiven Minuten; der Rückwechsel übernimmt deren gerundeten Mittelwert. Kalenderblöcke werden im Lernzeitschritt nicht mehr erfasst, ihre vorhandene Planung und Speicherung bleiben erhalten; `topicOrder` hält die eigene Themenfolge; `completedSummaryDeckIds` erhält erledigte Leseaufgaben über Tageswechsel.
-
-`examPlanning.ts` ist die öffentliche Planungsschnittstelle. `ExamPlan.studyStartDate` ist ein optionales kalendarisches Startdatum vor `examDate`; neue Pläne setzen es auf heute, vorhandene Pläne ohne Feld behalten ihr Verhalten. Es bleibt in der Profilnormalisierung erhalten und fließt in den Planungsschlüssel ein. Vor dem Datum liefern Lernzeit und Aufgaben keine Einträge; zugeordnete Blöcke sind erst ab diesem Datum gültig. Die Vorschaukennzahl `studyDays` zählt je Prüfung die Tage mit positiver wirksamer Lernzeit im gesamten Planungshorizont vor ihrem Termin, unabhängig vom Einführungsstichtag; Rhythmus, Tagesausnahmen, zugeordnete Lernblöcke und lernfreie Prüfungstage wirken über dieselbe Zeitberechnung wie die eingeplanten Minuten. Die private `examContactPlanning.ts` führt eine begrenzte deterministische Ganzzahlsuche mit exakter Mengenerhaltung durch: minimierte Spitzenlast pro relativem Tagesgewicht, danach Lastschwankungen, danach erwartete Gesamterinnerung. Globale Kandidaten entstehen aus geglätteten Maximumsfunktionen und Simplexprojektion, ganzzahlige Paartausche verbessern sie nach dem lexikographischen Ziel. Es gibt keinen behaupteten Optimalitätsnachweis und keine Antwortzeit-, Minutenkosten- oder Machbarkeitsrechnung. FSRS-7-Laufbahnen berücksichtigen bestehende Zustände und konkrete Lernfenster. Bewertungsverteilungen, die die Planung selbst aus den letzten Bewertungen der geladenen Karten bildet, ergeben ein vereinfachtes deterministisches Szenario; unter zehn Beobachtungen gilt Normal. Kohorten teilen identische Profile und Zustände. Planung und Lastverteilung teilen ein Hauptthread-Budget von 50 ms; Tauschschritte der Lastverteilung werden inkrementell bewertet. `scheduler.ts` baut FSRS-Instanzen je Konfiguration einmal; Laufbahnen simuliert die Planung über `createReviewChain`, das je Antwort dieselbe FSRS-7-Planung und Easy-Day-Fälligkeit wie `scheduleWithFsrs` ausführt, aber ohne dessen Buchführung (Lernfortschritt, Reifeband, Anzeigeintervall) zwischen den Antworten. Die Ketten einer Prognose teilen über `createReviewChainMemo` die `ts-fsrs`-Ergebnisse je Konfiguration, Gedächtniszustand, Phase, Lernschritt, vergangener Zeit und Bewertung; zusammenlaufende Ketten rufen die Bibliothek dann nicht erneut auf. Die Lastverteilung summiert Kohortenspalten nur über ihre belegten Tage; `learningDay.ts` hält Zeitzonenversätze je UTC-Viertelstunde vor. `npm run benchmark:exams` misst feste Szenarien mit alltäglichem Bewertungsmix (10/10/75/5 %, Budget 1 s) und einen Stressfall mit gleich häufigen Bewertungen (Budget 2 s); ein Median über dem Budget beendet den Lauf mit Fehlercode. Prüfungen werden in der Reihenfolge ihrer Einführungsstichtage geplant; jeder Stapel gehört der ersten Prüfung, die ihn enthält, und spätere Prüfungen sehen deren erwartete Kontakte anteilig ihrer Lernzeit als Grundlast. Alle noch ungesehenen Karten werden bis zum Einführungsstichtag zugeordnet, sofern Einführungstage und gewünschte Themenstarttage das zulassen. Ganze/halbe Themengrenzen werden innerhalb 25 Prozent Tagesabweichung bevorzugt, große Themen fortgesetzt und Reste vollständig weitergegeben. Hypothetische Wiederholungen werden nicht als zukünftige Kalenderaufgaben ausgegeben. Heutige echte Fälligkeiten bleiben ohne Minutenlimit sichtbar.
-
-`examCalendarModel.ts` besitzt Monats-/Wochenprojektionen; `createExamMonthDays` beginnt mit angegebenem heutigem Datum im laufenden Monat bei der aktuellen Woche und ergänzt Folgewochen bis mindestens vier Wochen; ohne Datum liefert es den vollständigen gewählten Monat, `isExamCalendarDayLocked` ist der gemeinsame Bearbeitungshorizont von Tag und Woche. `getExamStudyMinutes` löst Durchschnitt, Tagesausnahme und fachspezifische Blöcke in relative Gewichte auf; Blöcke ohne Fach sind Notizen. Andere Fächer und Daten verlieren ihre Zeit durch einzelne Blöcke nicht. `isExamDayOverloaded` markiert Tage mit mehr als zwei neuen Karten pro geplanter Minute; `getExamStatus` führt Prüfungen ab dem Folgetag ihres Termins als abgeschlossen. `ExamDeckSelection` besitzt ausschließlich Suche und aufklappbare Darstellung der Stapelauswahl; die Teilbaum-Auswahl bleibt bei `toggleExamDeckSelection`. `ExamPlanEditor` verwendet die abgeleitete Prüfungsübersicht in den ersten drei Schritten. Die abschließende Vorschau zeigt stattdessen `ExamTopicPreview` mit Themenreihenfolge und Lernbeginn aus der aktuellen Prognose. Ein ResizeObserver begrenzt vollständig sichtbare Themen auf die Kalenderhöhe und den sichtbaren Desktop-Platz oberhalb der Bestätigung; mobil gilt zusätzlich 320 Pixel. Aufgeklappt scrollt ausschließlich die Themenliste innerhalb dieses Budgets. Prüfungstermin und Umschalter stehen außerhalb der Liste; die Bestätigung bleibt als lokale Sticky-Aktion erreichbar. Tagesdetails bleiben nichtmodal; die Darstellung neben dem Kalender richtet sich nach dessen Containerbreite. `ExamCalendar` hält die ausgeblendeten Prüfungs-IDs als lokalen Ansichtsstatus für Monat, Woche und Tagesdetails; `ExamCalendarFilters` rendert die gemeinsamen Umschaltknöpfe. Unzugeordnete Blöcke bleiben sichtbar, ausgeblendete Blöcke bleiben bei Kollisionsprüfung und Speicherung erhalten. Die Kalenderkomponenten besitzen lokale Entwürfe und prüfen Änderungen mit `isValidExamCalendar` gegen das aktuelle Format; Persistenz bleibt beim Aufrufer. `ExamPlanningScreen` meldet ungespeicherte Bearbeitungen und Kalenderentwürfe über `onDraftStateChange`; `useNavigationGuard` bestätigt damit das Verlassen über die Hauptnavigation wie bei Karten- und Erstellungsentwürfen. Die vorhandenen Prüfungsfarben und ihre Kontrastwahl bleiben erhalten.
-
-`examDailyTasks.ts` besitzt die Tagescheckliste: gespeicherte Ziele bleiben während des Lerntags erhalten, tatsächliche Fälligkeiten werden ergänzt, geänderte Planungsschlüssel ersetzen offene Ziele. Manuelle und automatisch belegte Erledigung bleiben unterscheidbar. Limits: 4.000 Aufgaben und 5.000 Kartenverweise je Lerntag (`EXAM_PLANNING_LIMITS`); der Abgleich kürzt Zielkarten darauf, der Rest bleibt im Plan für Folgetage. Beim Lesen fallen ungültige Zeitblöcke und Tagesaufgaben einzeln weg. `withExamDailyTasks` übernimmt Lesehäkchen in die Klausur. `getExamSummaryTaskDeckId` und `getExamSessionTargetIds` besitzen das Aufgaben-ID-Format und die Kartenauswahl einer Sitzung; `studyPreparation.ts` orchestriert nur Laden und Öffnen der Kartenkörper, `useStudyStart.ts` die Navigation. `ExamDashboardWidget` wird auf Heute und Prüfungen verwendet und orchestriert Verfügbarkeit von Zusammenfassungen und Start; auf Prüfungen übernimmt es die Planung der Seite statt eine zweite zu berechnen. `useExamForecast` plant nur neu, wenn sich Zielkarten oder andere Eingaben ändern, nicht beim Abhaken. Scheitert das Laden ohne Verbindung, meldet der Hook `offline` statt eines Fehlers und plant beim Wiederverbinden neu; das Widget arbeitet dann mit den gespeicherten Zielen, `listLocalCardIds` der Hydrierung zählt die lokal vorhandenen Zielkarten, und der Sitzungsstart beschränkt sich offline auf sie (E12). `studyPreparation.ts` hält geladene Lernstände eine Minute für Heute und Prüfungen vor, verwirft sie bei jeder eigenen Antwort und lädt bei „Plan neu berechnen“ frisch; gespeichert wird über `saveExamTasks` in `deckCommands.ts`, das die Checkliste in den jeweils aktuellen Profilstand mischt. Der Sitzungsstart verwendet die gespeicherten Ziele des Lerntags ohne neue Planung; nur Kalenderblöcke oder eine fehlende Checkliste planen neu. Die Themenreihenfolge bleibt dieselbe. `createExamSessionDecks` markiert den transienten Wurzelstapel mit `plannedOrder`; nur für solche Stapel hebt `reviewService` normale Mengengrenzen auf und erhält die geplante Neureihenfolge, ohne die Prüfungsplanung zu kennen. Antworten bleiben bei den eigenen Karten.
+- Online liegen sie in `learning_summaries` (eine Zeile je Fassung) und `learning_mind_maps` (Zeilen-ID = Stapel-ID), mit `document` als versioniertem JSONB, Owner-RLS, Fremdschlüssel auf den eigenen Stapel und `deleted_at` (ADR-043).
+- Die Datenbank vergibt `revision` und `updated_at` per Trigger; `cloudLearningDocuments.ts` schreibt nur gegen die bekannte Revision. Ohne Supabase-Client bleibt alles lokal.
+- Speichern schreibt zuerst lokal und lädt dann hoch; offline Gespeichertes bleibt als ausstehend markiert und wird beim nächsten Öffnen abgeglichen.
+- Konflikte: Eine Zusammenfassung erhält eine `Konfliktfassung von …`, das Original den Cloudstand. Bei einer Mindmap gewinnt der zuletzt gespeicherte Stand; ein gleichzeitiges erstes Speichern (`23505`) gilt ebenfalls als Konflikt.
+- Mindmap-Bilder liegen lokal unter ihrem SHA-1 und online im privaten Bucket `learning-mind-map-images` (`<userId>/<sha1>`). Sie werden vor der Map hochgeladen und erst freigegeben, wenn keine lokale und keine Online-Map sie mehr nutzt.
+- Erweiterungen des Dokumentformats sind optional, damit ältere Fassungen lesbar bleiben. In Mindmaps bilden `parentId` die azyklische Hierarchie und `edges` unabhängige Querverbindungen.
+- Mindmap-Operationen besitzt `learningMindMaps.ts`, der Screen nur Auswahl, Gesten und Ansicht. Autospeichern über `latestSaver.ts` überschreibt nie einen neueren Stand mit einem älteren.
+- `aiLearningSummary.ts` verarbeitet nur vollständig geladene Inhalte des gewählten Stapelbaums, je Inhalt eine Einheit. `aiLearningSummaryContract.ts` ist die einzige Quelle des Prompts und trennt Anweisung, Einstellungen und nicht vertrauenswürdiges Material.
+- Die App setzt die Antwort zu semantischem HTML zusammen; `mindMapFromSummary` liest genau dieses HTML. Eine Signatur des erzeugten Baums erlaubt, ihn später nur unbearbeitet zu ersetzen.

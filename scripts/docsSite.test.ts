@@ -3,7 +3,7 @@ import test from "node:test";
 import { readFileSync } from "node:fs";
 import { htmlPage, inlineScript, markdownAnchor, renderMarkdown } from "./docsSite.ts";
 import { runInNewContext } from "node:vm";
-import { cardHistoryCards, codeFootprint, codeFootprintMarkup, createCatalogData, journeyProjection, journeySpecsLinks, specsDocument } from "./generateDocs.ts";
+import { cardHistoryCards, docLimitFailures, codeFootprint, codeFootprintMarkup, createCatalogData, journeyProjection, journeySpecsLinks, specsDocument } from "./generateDocs.ts";
 import { EXAMPLE_CHAINS, EXAMPLE_RETENTIONS } from "../src/schedulerExampleChains.ts";
 import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
@@ -48,6 +48,16 @@ test("Dokumentverweise führen auf die HTML-Ansicht und behalten den kanonischen
   assert.match(html, /href="operations.md#visuelle-pflichtmatrix"/);
   assert.match(html, /href="..\/src\/ui\/README.md"/);
   assert.match(html, /index.html#readme--document/);
+});
+
+test("Begrenzte Dokumente dürfen nicht wachsen: Höchstgröße je Datei sinkt nur, Spielraum gilt für die ganze Datei", () => {
+  const limits = [{ file: "a.md", maxBytes: 120, slackBytes: 20 }, { file: "b.md", maxBytes: 10, slackBytes: 5 }];
+  const files: Record<string, string> = { "a.md": `${"ä".repeat(50)}${"x".repeat(5)}`, "b.md": "y".repeat(8) };
+  assert.deepEqual(docLimitFailures((file) => files[file], limits), []);
+  files["a.md"] += "z".repeat(16);
+  assert.deepEqual(docLimitFailures((file) => files[file], limits), ["a.md: 121 Bytes, Obergrenze 120; Text verdichten oder an seinen Eigentümer verlagern statt die Grenze anzuheben."]);
+  files["a.md"] = "kurz";
+  assert.match(docLimitFailures((file) => files[file], limits).join(), /a\.md: auf 4 Bytes gesunken; maxBytes in DOC_LIMITS .* von 120 auf 4 senken/);
 });
 
 test("Markdown rendert Tabellen, verschachtelte Listen und Code vollständig", () => {

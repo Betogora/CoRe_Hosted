@@ -151,7 +151,7 @@ test("deck content shows only its own cards without deck headings and uses the e
   assert.doesNotMatch(renderScreen([deck, other], { cardPages }), /data-testid="deck-explorer"|Stapel wechseln/);
   assert.match(markup, /aria-label="Stapelinhalte"/);
   const tabs = markup.match(/<div role="tablist" aria-label="Stapelinhalte"[\s\S]*?<\/div>/)?.[0] ?? "";
-  assert.deepEqual([...tabs.matchAll(/role="tab"[^>]*>([^<]+)<\/button>/g)].map((match) => match[1]), ["Unterstapel", "Zusammenfassungen", "Quiz", "Mind Map", "Karten", "Quelle"], "alle sechs Reiter mit Wort");
+  assert.deepEqual([...tabs.matchAll(/role="tab"[^>]*>([^<]+)<\/button>/g)].map((match) => match[1]), ["Unterstapel", "Zusammenfassungen", "Mind Map", "Karten"], "alle vier Reiter mit Wort");
   assert.doesNotMatch(tabs, /<svg/, "Reiter ohne Icons");
   assert.match(tabs, /aria-selected="true"[^>]*data-label="Karten"/);
   assert.match(markup, /role="tabpanel" aria-labelledby="[^"]+-tab-cards"/);

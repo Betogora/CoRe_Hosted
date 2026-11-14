@@ -141,6 +141,9 @@ scope and gates.
   folder without agreement; read shelved work with `git show <commit>`.
 - The local Supabase stack is shared: before local E2E runs or measurements,
   check for migrations from other work and agree before `db reset`.
+- Repository skills have their only content source in `.agents/skills/`; the
+  same-named `.claude/skills/` entries only point there. A changed
+  `description` is updated in both.
 
 ## Architecture Guidance
 
@@ -187,6 +190,13 @@ Update documentation when the implemented contract changes:
   Architecture and public technical interfaces belong in
   `docs/architecture.md`; operations, decisions, status, and history remain in
   their own canonical files.
+- Change `docs/architecture.md` only when an owner, an invariant, or a public
+  interface changes (its section „Pflege dieser Datei“); implementation
+  details stay in code, comments, and tests.
+- `npm run check:docs` caps the whole-file size of `docs/architecture.md`,
+  `docs/specs.md`, and `README.md` (`DOC_LIMITS` in `scripts/generateDocs.ts`);
+  a cap may only shrink. Make room by condensing or moving text to its owner,
+  not by raising the cap.
 - Update `docs/todo.md` only when open roadmap scope, priority, planning,
   acceptance gates, or required evidence changes. Completed work leaves the
   TODO; its details live in commits and pull requests, and only operational

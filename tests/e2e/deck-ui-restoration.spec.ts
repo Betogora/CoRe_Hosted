@@ -91,7 +91,7 @@ test("Stapelinhalte behalten aktuelle Reiter und Lernaktion ohne zusätzliche K�
   await expect(product).not.toContainText("direkter Unterstapel");
   await expect(product.locator("[data-donut-segment], [data-donut-empty], .core-deck-group-description")).toHaveCount(0);
   const tabs = product.getByRole("tablist", { name: "Stapelinhalte", exact: true });
-  await expect(tabs.getByRole("tab")).toHaveCount(6);
+  await expect(tabs.getByRole("tab")).toHaveCount(4);
   await expect(product.getByTestId("deck-content-study")).toBeVisible();
   await tabs.getByRole("tab", { name: "Zusammenfassungen", exact: true }).click();
   await expect(product.getByTestId("deck-summaries-panel")).toBeVisible();
@@ -149,8 +149,8 @@ for (const theme of matrixThemes) {
       await product.getByRole("button", { name: "Inhalte von Welt-Hauptstädte öffnen", exact: true }).click();
       const tabs = product.getByRole("tablist", { name: "Stapelinhalte", exact: true });
       for (const [label, name] of [
-        ["Unterstapel", "children"], ["Zusammenfassungen", "summary"], ["Quiz", "quiz"],
-        ["Mind Map", "mind-map"], ["Karten", "cards"], ["Quelle", "source"],
+        ["Unterstapel", "children"], ["Zusammenfassungen", "summary"],
+        ["Mind Map", "mind-map"], ["Karten", "cards"],
       ]) {
         await tabs.getByRole("tab", { name: label, exact: true }).click();
         await expect(product.getByTestId("deck-content-study")).toBeVisible();
