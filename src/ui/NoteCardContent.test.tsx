@@ -33,6 +33,8 @@ test("the answer side is prepared ahead only where it does not follow input made
   assert.equal(prepared(basic, "review", answer("original")), true);
   assert.equal(prepared(basic, "review", answer("original", ["audio"])), false);
   assert.equal(prepared(basic, "review", answer("original", ["video"])), false);
+  // An empty answer side (no answer fields, no supplements) has no frame to prepare.
+  assert.equal(prepared(basic, "review", { ...answer("core"), srcdoc: "<!doctype html><html><head></head><body></body></html>" }), false);
   // Preview and card management show both sides at once.
   assert.equal(prepared(basic, "preview"), false);
   assert.equal(prepared(basic, "management"), false);

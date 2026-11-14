@@ -14,7 +14,7 @@ export interface DialogFrameProps {
   /** Actions between the title and the close button. */
   actions?: ReactNode;
   onClose: () => void;
-  /** Width from 768 px: `s` 28 rem, `m` 40 rem (default), `l` 60 rem. Below 768 px the frame fills the screen. */
+  /** Width from 768 px: `s` 28 rem, `m` 40 rem (default), `l` 60 rem. Below 768 px `m` and `l` fill the screen, `s` stays a card. */
   size?: "s" | "m" | "l";
   /** Row below the title, typically `CoreTabs`. */
   tabs?: ReactNode;

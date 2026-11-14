@@ -84,13 +84,6 @@ test("eine reine Textsuche nennt ihre Trefferzahl ohne Filterchips", () => {
   assert.doesNotMatch(markup, /Aktive Filter|Alle zurücksetzen/);
 });
 
-test("der Auswahlschalter steht in der Suchleiste und zeigt den Auswahlmodus (KV4)", () => {
-  const bar = (props: { selecting?: boolean; onSelectingChange?: (selecting: boolean) => void }) => renderToStaticMarkup(<CardSearchBar query="" onQueryChange={() => undefined} decks={[parent]} categories={menu} advancedOpen={false} onAdvancedOpenChange={() => undefined} advancedId="menu" resultCount={null} placeholder="Suchen" {...props} />);
-  assert.doesNotMatch(bar({}), /card-selection-start/, "ohne Auswahl keine Schaltfläche");
-  assert.match(bar({ onSelectingChange: () => undefined }), /aria-pressed="false"[^>]*data-testid="card-selection-start"[\s\S]*?>Auswählen</);
-  assert.match(bar({ selecting: true, onSelectingChange: () => undefined }), /aria-pressed="true"[^>]*data-testid="card-selection-start"/);
-});
-
 test("eine Menügruppe ist ein Chip mit „oder“, ihre Zeilen stehen auf Mit (KV2d)", () => {
   assert.deepEqual(cardSearchTermLabel("(flag:5 or flag:0)", menu), { label: "Prüfung oder Ohne Flagge", category: "Flaggen", negated: false });
   const bar = renderToStaticMarkup(<CardSearchBar query="herz (flag:5 or flag:0)" onQueryChange={() => undefined} decks={[parent]} categories={menu} advancedOpen={false} onAdvancedOpenChange={() => undefined} advancedId="menu" resultCount={2} placeholder="Suchen" />);

@@ -27,6 +27,10 @@ export const DeckOptionsMenu = React.memo(function DeckOptionsMenu({ row, decks,
   const [moveTargetId, setMoveTargetId] = React.useState(row.deck.parentDeckId ?? "");
   const [moveError, setMoveError] = React.useState("");
   const setSuccessToast = useSuccessToast();
+  // The menu hands the focus back to its button only after the move dialog closes; returning it while the dialog
+  // opens would show the button's tooltip above the dialog.
+  const triggerRef = React.useRef<HTMLButtonElement>(null);
+  const openingDialog = React.useRef(false);
   const deckAppearance = getDeckAppearance(row.deck);
   const validMoveTargetDeckIds = React.useMemo(() => {
     if (!moveDialogOpen) return [];
@@ -39,6 +43,7 @@ export const DeckOptionsMenu = React.memo(function DeckOptionsMenu({ row, decks,
   }, [decks, moveDialogOpen, row.id]);
 
   function openMoveDialog() {
+    openingDialog.current = true;
     setMoveTargetId(row.deck.parentDeckId ?? "");
     setMoveError("");
     setMoveDialogOpen(true);
@@ -71,6 +76,7 @@ export const DeckOptionsMenu = React.memo(function DeckOptionsMenu({ row, decks,
         <CoreTooltip label={`Stapeloptionen für ${row.deck.name}`} deckAppearance={deckAppearance}>
           <Popover.Trigger asChild>
             <IconButton
+              ref={triggerRef}
               label={`Stapeloptionen für ${row.path}`}
               icon={MoreHorizontal}
               variant="ghost"
@@ -82,6 +88,11 @@ export const DeckOptionsMenu = React.memo(function DeckOptionsMenu({ row, decks,
         <Popover.Portal>
           <Popover.Content
             data-testid={`deck-options-menu-${row.id}`}
+            onCloseAutoFocus={(event) => {
+              if (!openingDialog.current) return;
+              openingDialog.current = false;
+              event.preventDefault();
+            }}
             align="end"
             sideOffset={8}
             collisionPadding={16}
@@ -118,6 +129,7 @@ export const DeckOptionsMenu = React.memo(function DeckOptionsMenu({ row, decks,
           open
           title="Stapel verschieben"
           size="s"
+          returnFocusRef={triggerRef}
           onClose={closeMoveDialog}
           footer={(
             <>

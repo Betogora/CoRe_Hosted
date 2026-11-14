@@ -507,12 +507,12 @@ test("[Vertrag: Massenaktion mit Rückgängig] @beta-core ausgewählte Karten we
   await page.getByTestId("card-selection-actions").click();
   await page.getByRole("button", { name: "Aussetzen" }).click();
   await page.getByRole("dialog").getByRole("button", { name: "Aussetzen" }).click();
-  await expect(page.getByText("Aussetzen: 2 Karten")).toBeVisible();
+  await expect(page.getByText("2 Karten ausgesetzt")).toBeVisible();
   await expect(page.locator('[data-card-row][data-suspended="true"]')).toHaveCount(2);
   await expect.poll(async () => (await readActiveAccountState(page)).decks.find((candidate: { id: string }) => candidate.id === deck.id)?.cards.filter((card: { status: string }) => card.status === "suspended").length).toBe(2);
 
   await page.getByRole("button", { name: "Rückgängig" }).click();
-  await expect(page.getByText("Rückgängig gemacht: 2 Karten.")).toBeVisible();
+  await expect(page.getByText("Rückgängig gemacht: 2 Karten")).toBeVisible();
   await expect(page.locator('[data-card-row][data-suspended="true"]')).toHaveCount(0);
   await page.reload();
   await expect(rows).toHaveCount(2);
@@ -540,13 +540,13 @@ test("[Vertrag: Suchen und Ersetzen mit Vorschau und Rückgängig] @beta-core er
   await expect(dialog.getByTestId("text-replace-preview")).toContainText("1 Karte ändert sich");
   await expect(dialog.getByTestId("text-replace-preview")).toContainText("Hauptstadt von Schweden");
   await dialog.getByRole("button", { name: "Ersetzen", exact: true }).click();
-  await expect(page.getByText("Suchen und Ersetzen: 1 Karte")).toBeVisible();
+  await expect(page.getByText("Text in 1 Karte ersetzt")).toBeVisible();
   // Both cards of the content show its sort field.
   await expect(rows.filter({ hasText: "Hauptstadt von Schweden" })).toHaveCount(2);
   await expect.poll(frontOf).toBe("<p>Hauptstadt von Schweden</p>");
 
   await page.getByRole("button", { name: "Rückgängig" }).click();
-  await expect(page.getByText("Rückgängig gemacht: 1 Karte.")).toBeVisible();
+  await expect(page.getByText("Rückgängig gemacht: 1 Karte")).toBeVisible();
   await expect.poll(frontOf).toBe("<p>Hauptstadt von Norwegen</p>");
 });
 
@@ -623,7 +623,7 @@ test("[Vertrag: Duplikate finden, öffnen und taggen; Tags verwalten] @beta-core
   await openDuplicates();
   await expect(dialog.getByTestId("duplicate-groups").getByRole("button")).toHaveCount(2);
   await dialog.getByRole("button", { name: "Duplikate taggen" }).click();
-  await expect(page.getByText("Duplikate taggen: 2 Karten")).toBeVisible();
+  await expect(page.getByText("2 Karten als Duplikat getaggt")).toBeVisible();
   await expect.poll(tagsOf).toEqual(["Duplikat", "Duplikat"]);
 
   // KV5: the tag management renames with undo and deletes across the account.
@@ -648,7 +648,7 @@ test("[Vertrag: Duplikate finden, öffnen und taggen; Tags verwalten] @beta-core
   await manager.getByRole("button", { name: "Duplikat umbenennen" }).click();
   await manager.getByRole("textbox", { name: "Neuer Name für Duplikat" }).fill("Geo::Doppelt");
   await manager.getByRole("button", { name: "Umbenennen", exact: true }).click();
-  await expect(page.getByText("Tag umbenennen: 2 Karten")).toBeVisible();
+  await expect(page.getByText("Tag bei 2 Karten umbenannt")).toBeVisible();
   await expect(manager.locator('li[data-tag="Geo::Doppelt"]')).toBeVisible();
   await expect.poll(tagsOf).toEqual(["Geo::Doppelt", "Geo::Doppelt"]);
   await manager.getByRole("button", { name: "Schließen" }).click();
@@ -658,7 +658,7 @@ test("[Vertrag: Duplikate finden, öffnen und taggen; Tags verwalten] @beta-core
   manager = await openTagManager();
   await manager.getByRole("button", { name: "Duplikat löschen" }).click();
   await manager.getByRole("button", { name: "Löschen bestätigen" }).click();
-  await expect(page.getByText("Tag löschen: 2 Karten")).toBeVisible();
+  await expect(page.getByText("Tag bei 2 Karten gelöscht")).toBeVisible();
   await expect.poll(tagsOf).toEqual(["", ""]);
   await manager.getByRole("button", { name: "Schließen" }).click();
 
@@ -683,13 +683,13 @@ test("[Vertrag: Tastenkürzel der Kartenliste] @beta-core Pfeile, Aktionstaste, 
   await page.keyboard.press("ArrowDown");
   await expect(second.locator('[data-testid^="deck-card-"]')).toBeFocused();
   await page.keyboard.press("a");
-  const dialog = page.getByRole("dialog", { name: "Aussetzen: 1 Karte" });
+  const dialog = page.getByRole("dialog", { name: "Aussetzen" });
   await dialog.getByRole("button", { name: "Aussetzen", exact: true }).click();
-  await expect(page.getByText("Aussetzen: 1 Karte")).toBeVisible();
+  await expect(page.getByText("1 Karte ausgesetzt")).toBeVisible();
   await expect(second).toHaveAttribute("data-suspended", "true");
   await expect(second.locator('[data-testid^="deck-card-"]')).toBeFocused();
   await page.keyboard.press("Control+z");
-  await expect(page.getByText("Rückgängig gemacht: 1 Karte.")).toBeVisible();
+  await expect(page.getByText("Rückgängig gemacht: 1 Karte")).toBeVisible();
   await expect(rows.and(page.locator('[data-suspended="true"]'))).toHaveCount(0);
   await page.keyboard.press("/");
   await expect(page.getByRole("textbox", { name: "Karten durchsuchen" })).toBeFocused();
