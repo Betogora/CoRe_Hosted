@@ -1,14 +1,15 @@
 import React from "react";
 import * as Popover from "@radix-ui/react-popover";
-import { CalendarClock, CalendarRange, ChevronDown, Flag, GraduationCap, FlagOff, MoveRight, Pause, Play, Replace, RotateCcw, Sparkles, Star, StarOff, Tag, Tags, Trash2, X, type LucideIcon } from "lucide-react";
+import { CalendarClock, CalendarRange, ChevronDown, Flag, GraduationCap, FlagOff, MoveRight, Pause, Play, Replace, RotateCcw, Sparkles, Star, StarOff, Tag, Tags, Trash2, type LucideIcon } from "lucide-react";
 import type { CardBatchAction, TextReplaceSession } from "../../cardBatchActions.ts";
 import type { Deck } from "../../coreTypes.ts";
 import { addLearningDays, getLearningDayKey, getLearningDayStartForKey } from "../../learningDay.ts";
-import { ActionButton, CrossLinkButton, IconButton } from "../../ui/actionUi.tsx";
+import { ActionButton, CrossLinkButton } from "../../ui/actionUi.tsx";
 import { CoreDatePicker } from "../../ui/CoreDatePicker.tsx";
 import { ActionDialog } from "../../ui/coreUi.tsx";
 import { DialogFrame } from "../../ui/DialogFrame.tsx";
 import { FlagPicker } from "../../ui/flagUi.tsx";
+import { CoreCheckbox } from "../../ui/formControls.tsx";
 import { DeckSelect } from "../../ui/selectUi.tsx";
 import { TagInput } from "../../ui/TagInput.tsx";
 import { useStableCallback } from "../../ui/useStableCallback.ts";
@@ -79,7 +80,7 @@ export interface CardSelectionBarProps {
   request?: { id: CardSelectionActionId; flag?: number; nonce: number } | null;
 }
 
-/** Bar of the card table while cards are selected (KV4): count, `Alle N Treffer auswählen`, actions and clearing. */
+/** Bar of the card table while cards are selected (KV4): the checked header checkbox that ends selecting, count, `Alle N Treffer auswählen` and actions. */
 export function CardSelectionBar({ count, hitTotal, searching, allHits, disabled, onSelectAllHits, onClear, decks, flagNames, loadTagDirectory, now, dayStartHour, timeZone, onGenerateVariants, onStudy, onPrepareReplace, onRun, request }: CardSelectionBarProps) {
   const [dialog, setDialog] = React.useState<DialogState | null>(null);
   const [running, setRunning] = React.useState(false);
@@ -164,7 +165,7 @@ export function CardSelectionBar({ count, hitTotal, searching, allHits, disabled
 
   return (
     <div className="core-card-selection-bar" data-testid="card-selection-bar">
-      <IconButton label="Auswahl aufheben" icon={X} variant="ghost" className="core-card-selection-clear" onClick={onClear} />
+      <CoreCheckbox className="core-card-selection-clear" aria-label="Auswahl aufheben" checked onCheckedChange={onClear} />
       <span className="core-body font-semibold text-core-text tabular-nums" aria-live="polite">{allHits ? `Alle ${cardCount(count)}` : cardCount(count)} ausgewählt</span>
       {hitTotal !== null && !allHits && hitTotal > count ? (
         <CrossLinkButton onSelect={onSelectAllHits}>Alle {hitTotal.toLocaleString("de-DE")} {searching ? "Treffer" : "Karten"} auswählen</CrossLinkButton>

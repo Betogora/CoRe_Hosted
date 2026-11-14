@@ -1,5 +1,5 @@
 import React from "react";
-import { Layers, ListChecks, ListFilter, Search, X } from "lucide-react";
+import { Layers, ListFilter, Search, X } from "lucide-react";
 import { cardSearchGroupMembers, cardSearchTerms, cardSearchText, withCardSearchTermState, withCardSearchText, withoutCardSearchItem } from "./cardSearchExpression.ts";
 import type { Deck } from "../../coreTypes.ts";
 import { CrossLinkButton } from "../../ui/actionUi.tsx";
@@ -10,10 +10,9 @@ const ALL_DECKS = "__all__";
 
 /**
  * Search row of the card management (KV2): free text, the deck filter (a `did:` term) and the switch for the
- * advanced search and, where cards can be selected, the switch of the selection mode (KV4); below it the active terms
- * as removable chips with the hit count.
+ * advanced search; below it the active terms as removable chips with the hit count.
  */
-export function CardSearchBar({ query, onQueryChange, decks, categories, advancedOpen, onAdvancedOpenChange, advancedId, resultCount, resultAction, placeholder, hint, children, selecting = false, onSelectingChange }: {
+export function CardSearchBar({ query, onQueryChange, decks, categories, advancedOpen, onAdvancedOpenChange, advancedId, resultCount, resultAction, placeholder, hint, children }: {
   query: string;
   onQueryChange: (query: string) => void;
   decks: Deck[];
@@ -28,9 +27,6 @@ export function CardSearchBar({ query, onQueryChange, decks, categories, advance
   children?: React.ReactNode;
   placeholder: string;
   hint?: React.ReactNode;
-  /** Selection mode of the list for mass actions; without `onSelectingChange` the switch is absent. */
-  selecting?: boolean;
-  onSelectingChange?: (selecting: boolean) => void;
 }) {
   const [input, setInput] = React.useState(() => cardSearchText(query));
   // A reset or a term written elsewhere changes the query; the field follows its text part. Typing already set both,
@@ -91,18 +87,6 @@ export function CardSearchBar({ query, onQueryChange, decks, categories, advance
           <span className="max-md:sr-only">Erweiterte Suche</span>
           {filterCount ? <span className="grid min-h-5 min-w-5 place-items-center rounded-round bg-core-action px-1 core-caption font-bold text-core-on-accent max-md:absolute max-md:-right-1.5 max-md:-top-1.5" aria-label={`${filterCount} Filter aktiv`}>{filterCount}</span> : null}
         </button>
-        {onSelectingChange ? (
-          <button
-            type="button"
-            aria-pressed={selecting}
-            data-testid="card-selection-start"
-            onClick={() => onSelectingChange(!selecting)}
-            className="core-action-secondary shrink-0 gap-2 aria-pressed:border-core-action aria-pressed:bg-[var(--core-action-soft)] aria-pressed:text-core-action max-md:size-control max-md:p-0"
-          >
-            <ListChecks size={16} aria-hidden="true" />
-            <span className="max-md:sr-only">Auswählen</span>
-          </button>
-        ) : null}
       </div>
       {hint ? <p id="card-search-hint" className="core-field-hint" data-testid="card-search-unsupported">{hint}</p> : null}
       {children}

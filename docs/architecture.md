@@ -178,7 +178,9 @@ die aktive Gruppe wird auf der Antwortseite trotzdem zum Umriss. Masken mit
 über das Bild (Frage- und optional Antwortbild, der Rückfall für Image Occlusion
 Enhanced); sie erscheint nur für die aktive Gruppe und zeichnet keinen Umriss.
 Review-Antworten ergänzen nur Antwort und Trennlinie; Vorschau und Verwaltung
-enthalten beide Seiten. Lücken und Bildmasken ersetzen die Frage beim Aufdecken.
+enthalten beide Seiten. Die Trennlinie steht nur über sichtbarer Antwort oder
+Zusätzen; eine Auswahlfrage ohne beides deckt in der Lernansicht keinen
+Antwortrahmen auf. Lücken und Bildmasken ersetzen die Frage beim Aufdecken.
 Zusätze stehen vor den Quellen; Quellen mit Link erscheinen gemeinsam als Chips am
 Kartenende. Mit `typedAnswer` ersetzt die Antwortseite das Eingabefeld durch den
 Zeichenvergleich aus `compareTypedAnswer`. Eine Quelle, die nur eine Webadresse

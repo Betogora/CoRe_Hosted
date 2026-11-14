@@ -3080,11 +3080,8 @@ button.core-steps-step {
 }
 
 .core-card-selection-bar > .core-card-selection-clear {
-  width: var(--core-card-table-header-height);
-  min-width: var(--core-card-table-header-height);
-  height: var(--core-card-table-header-height);
-  margin-inline: calc(0.5rem - var(--core-card-table-header-height) / 2) calc(1.125rem - var(--core-card-table-header-height) / 2 - var(--core-space-md));
-  padding: 0;
+  /* On the rows' checkbox axis; the count starts where their text does (gap-2.5). */
+  margin-inline-end: calc(0.625rem - var(--core-space-md));
 }
 
 .core-card-selection-bar > .core-card-selection-actions {
