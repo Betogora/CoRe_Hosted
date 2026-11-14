@@ -198,7 +198,7 @@ export function CardSelectionBar({ count, hitTotal, searching, allHits, disabled
       ) : null}
       <Popover.Root>
         <Popover.Trigger asChild>
-          <button type="button" disabled={disabled} className="core-action-secondary core-card-selection-actions ml-auto inline-flex items-center gap-1.5" data-testid="card-selection-actions">
+          <button type="button" disabled={disabled} className="core-action-primary core-card-selection-actions ml-auto inline-flex items-center gap-1.5" data-testid="card-selection-actions">
             Aktionen<ChevronDown size={16} aria-hidden="true" />
           </button>
         </Popover.Trigger>

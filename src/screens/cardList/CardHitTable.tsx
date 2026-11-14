@@ -19,13 +19,13 @@ function SortHeader({ field, label, sort, onChange, leading }: {
   label: string;
   sort: CardTableSort;
   onChange: (field: CardTableSortField) => void;
-  /** Precedes the label, such as the checkbox that starts selecting. */
+  /** Precedes the label at the start of the column, such as the checkbox that starts selecting. */
   leading?: React.ReactNode;
 }) {
   const active = sort.field === field;
-  const rightAligned = field !== "sortField";
+  const first = field === "sortField";
   // Matches the padding of the column's cells, so header and values share their edge.
-  const headerPadding = field === "variants" ? "px-1 sm:pr-3" : rightAligned ? "px-1" : "px-2 sm:px-3 md:px-4";
+  const headerPadding = field === "variants" ? "px-1 sm:pr-3" : first ? "px-2 sm:px-3 md:px-4" : "px-1";
   const directionLabel = active && sort.direction === "desc" ? "absteigend" : "aufsteigend";
   const SortIcon = active && sort.direction === "desc" ? ArrowDown : ArrowUp;
 
@@ -33,7 +33,7 @@ function SortHeader({ field, label, sort, onChange, leading }: {
     <button
       type="button"
       onClick={() => onChange(field)}
-      className={`core-table-header-control flex w-full min-w-0 items-center gap-0.5 rounded-inset core-caption font-medium text-core-muted hover:text-core-text focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--core-border-interactive)] ${rightAligned ? "justify-end" : ""}`}
+      className={`core-table-header-control flex min-w-0 items-center justify-end gap-0.5 rounded-inset core-caption font-medium text-core-muted hover:text-core-text focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--core-border-interactive)] ${first ? "relative z-[1] ml-auto" : "w-full"}`}
       aria-label={`${label} ${directionLabel} sortieren`}
     >
       <span className="min-w-0 truncate">{label}</span>
@@ -41,9 +41,9 @@ function SortHeader({ field, label, sort, onChange, leading }: {
     </button>
   );
   return (
-    <th scope="col" aria-sort={active ? (sort.direction === "asc" ? "ascending" : "descending") : "none"} className={`min-w-0 ${headerPadding} ${leading ? "py-0" : ""} ${rightAligned ? "text-right" : "text-left"}`}>
-      {/* The leading control sits on the axis of the rows' checkboxes, about one box width before the label. */}
-      {leading ? <div className="flex h-[var(--core-card-table-header-height)] min-w-0 items-center gap-[1.625rem]">{leading}{button}</div> : button}
+    <th scope="col" aria-sort={active ? (sort.direction === "asc" ? "ascending" : "descending") : "none"} className={`min-w-0 ${headerPadding} ${first ? "py-0 text-left" : "text-right"}`}>
+      {/* The leading control sits on the axis of the rows' checkboxes; the label closes the column like the others. */}
+      {first ? <div className="flex h-[var(--core-card-table-header-height)] min-w-0 items-center gap-3">{leading}{button}</div> : button}
     </th>
   );
 }
@@ -215,11 +215,30 @@ export function CardHitTable({ items, rowOf, virtual, loading, searching, select
   const theadRef = React.useRef<HTMLTableSectionElement>(null);
   const toggledInHeader = React.useRef(false);
   const barShown = Boolean(selectionBar);
+  const tableShown = Boolean(items.length || loading);
   React.useEffect(() => {
     if (!toggledInHeader.current) return;
     toggledInHeader.current = false;
     theadRef.current?.querySelector<HTMLInputElement>(".core-checkbox input")?.focus();
   }, [barShown]);
+  // „Sortierfeld“ ends as far before „Datum“ as „Datum“ before „Variante“. The column widths and label lengths set
+  // that gap, so it is measured; the label moves into the empty start of the date column.
+  React.useLayoutEffect(() => {
+    const head = theadRef.current;
+    if (!head || barShown) return undefined;
+    const [sortLabel, dueLabel, variantLabel] = [...head.querySelectorAll<HTMLElement>(".core-table-header-control")];
+    if (!variantLabel) return undefined;
+    const edge = (control: HTMLElement, side: "left" | "right") => (side === "left" ? control.firstElementChild : control.lastElementChild)!.getBoundingClientRect()[side];
+    const place = () => {
+      sortLabel.style.translate = "";
+      const gap = edge(variantLabel, "left") - edge(dueLabel, "right");
+      sortLabel.style.translate = `${edge(dueLabel, "left") - gap - edge(sortLabel, "right")}px`;
+    };
+    place();
+    const observer = new ResizeObserver(place);
+    for (const element of [head, dueLabel, variantLabel]) observer.observe(element);
+    return () => observer.disconnect();
+  }, [barShown, tableShown]);
   const [mobileHeaderHeight, setMobileHeaderHeight] = React.useState(0);
   React.useEffect(() => {
     const header = document.querySelector<HTMLElement>('[data-navigation-layout="mobile-header"]');
@@ -228,7 +247,7 @@ export function CardHitTable({ items, rowOf, virtual, loading, searching, select
     observer.observe(header);
     return () => observer.disconnect();
   }, []);
-  return items.length || loading ? (
+  return tableShown ? (
     <div className="min-w-0 max-w-full overflow-clip rounded-panel border border-core-border bg-core-surface" data-testid="card-library-sheet">
   <table className="w-full table-fixed border-collapse" data-testid="card-library-table" aria-busy={loading || undefined} aria-rowcount={items.length}>
       <colgroup>
@@ -251,7 +270,13 @@ export function CardHitTable({ items, rowOf, virtual, loading, searching, select
               label="Sortierfeld"
               sort={sort}
               onChange={onSort}
-              leading={onStartSelecting ? <CoreCheckbox className="shrink-0" data-testid="card-selection-start" aria-label="Karten auswählen" checked={false} onCheckedChange={onStartSelecting} /> : null}
+              leading={onStartSelecting ? (
+                <label className="flex shrink-0 cursor-pointer items-center gap-1.5 core-caption font-medium text-core-muted hover:text-core-text">
+                  <CoreCheckbox className="shrink-0" data-testid="card-selection-start" aria-label="Karten auswählen" checked={false} onCheckedChange={onStartSelecting} />
+                  {/* Below 384 px the word would cut „Sortierfeld“; the checkbox keeps its name. */}
+                  <span aria-hidden="true" className="max-[383px]:hidden">Auswählen</span>
+                </label>
+              ) : null}
             />
             <SortHeader field="nextStudyDate" label="Datum" sort={sort} onChange={onSort} />
             <SortHeader field="variants" label="Variante" sort={sort} onChange={onSort} />

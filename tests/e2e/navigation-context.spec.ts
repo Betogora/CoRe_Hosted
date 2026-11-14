@@ -258,7 +258,14 @@ test("[Vertrag: Kartenverwaltung] Kartenzeilen bleiben auch in schmalen Viewport
         headersDoNotOverlap: headerRects.every((rect, index) => index === 0 || rect.left >= headerRects[index - 1].right - 1),
         headerLabels: headerLabels.map((label) => label?.textContent?.trim()),
         headerAccessibleNames: headers.map((header) => header.querySelector(".core-table-header-control")?.getAttribute("aria-label")),
-        headersFit: headers.every((header) => header.scrollWidth <= header.clientWidth + 1),
+        // „Sortierfeld“ moves into the empty start of the date column; the labels themselves are never cut.
+        headersFit: headerLabels.every((label) => Boolean(label) && label!.scrollWidth <= label!.clientWidth + 1),
+        sortGaps: (() => {
+          const controls = headers.map((header) => header.querySelector<HTMLElement>(".core-table-header-control"));
+          const left = (control: HTMLElement | null) => control?.firstElementChild?.getBoundingClientRect().left ?? Number.NaN;
+          const right = (control: HTMLElement | null) => control?.lastElementChild?.getBoundingClientRect().right ?? Number.NaN;
+          return [left(controls[1]) - right(controls[0]), left(controls[2]) - right(controls[1])];
+        })(),
         dueLabels: dueCells.map((cell) => cell?.textContent?.trim()),
         dueLabelsFit: dueCells.every((cell) => fitsWithin(cell)),
         variantLabels: variantTags.map((tag) => tag?.getAttribute("aria-label")),
@@ -280,6 +287,7 @@ test("[Vertrag: Kartenverwaltung] Kartenzeilen bleiben auch in schmalen Viewport
     expect(geometry.headerLabels).toEqual(["Sortierfeld", "Datum", "Variante"]);
     expect(geometry.headerAccessibleNames).toEqual(["Sortierfeld aufsteigend sortieren", "Datum aufsteigend sortieren", "Variante aufsteigend sortieren"]);
     expect(geometry.headersFit).toBe(true);
+    expect(Math.abs(geometry.sortGaps[0] - geometry.sortGaps[1]), "Sortierfeld steht so weit vor Datum wie Datum vor Variante").toBeLessThanOrEqual(1);
     expect(geometry.dueLabels).toEqual(["23.08.2026", "Neu"]);
     expect(geometry.dueLabelsFit).toBe(true);
     expect(geometry.variantLabels).toEqual(["Keine Variante", "1 aktive Variante"]);
