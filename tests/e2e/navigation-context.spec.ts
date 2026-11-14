@@ -134,7 +134,7 @@ test("[Vertrag: Stapelinhalte] Flächeneinstieg, Vorschautabs und gemeinsamer Ed
   const tabs = page.getByRole("tablist", { name: "Stapelinhalte", exact: true });
   for (const width of [320, 390, 430, 640, 768, 1280, 1920]) {
     await page.setViewportSize({ width, height: 900 });
-    for (const label of ["Zusammenfassungen", "Quiz", "Mind Map", "Quelle", "Unterstapel", "Karten"]) {
+    for (const label of ["Zusammenfassungen", "Mind Map", "Unterstapel", "Karten"]) {
       const tab = tabs.getByRole("tab", { name: label, exact: true });
       await tab.click();
       await expect(tab).toHaveAttribute("aria-selected", "true");
@@ -144,11 +144,8 @@ test("[Vertrag: Stapelinhalte] Flächeneinstieg, Vorschautabs und gemeinsamer Ed
         await expect(page.getByTestId(`deck-header-${DECK_IDS.childB}`)).toHaveCount(0);
       } else if (label === "Unterstapel") {
         await expect(page.getByTestId("deck-content-substacks")).toBeVisible();
-      } else if (label === "Zusammenfassungen" || label === "Mind Map") {
-        await expect(page.getByTestId(label === "Mind Map" ? "deck-mindmaps-panel" : "deck-summaries-panel")).toBeVisible();
-        await expect(page.getByTestId(`deck-card-${CARD_IDS.b1}`)).toHaveCount(0);
       } else {
-        await expect(page.getByRole("region", { name: label, exact: true })).toContainText("Demnächst verfügbar");
+        await expect(page.getByTestId(label === "Mind Map" ? "deck-mindmaps-panel" : "deck-summaries-panel")).toBeVisible();
         await expect(page.getByTestId(`deck-card-${CARD_IDS.b1}`)).toHaveCount(0);
       }
     }

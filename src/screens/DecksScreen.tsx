@@ -1,5 +1,5 @@
 import React from "react";
-import { ChevronRight, CopyCheck, FileText, GraduationCap, Layers, Network, NotebookPen, PanelsTopLeft, Play, RotateCcw, CircleHelp, type LucideIcon } from "lucide-react";
+import { ChevronRight, CopyCheck, FileText, GraduationCap, Layers, Network, Play, RotateCcw, type LucideIcon } from "lucide-react";
 import type { CardDraftGuard, DecksScreenProps } from "../appScreenProps.ts";
 import { noteTextIndex } from "../coreModel.ts";
 import { collectDeckTreeIds } from "../coreWorkspace.ts";
@@ -41,15 +41,13 @@ interface PendingDetailAction {
 }
 
 const deckContentTabs = [
-  { value: "children", label: "Unterstapel", icon: Layers },
-  { value: "summary", label: "Zusammenfassungen", icon: NotebookPen },
-  { value: "quiz", label: "Quiz", icon: CircleHelp },
-  { value: "mind-map", label: "Mind Map", icon: Network },
-  { value: "cards", label: "Karten", icon: PanelsTopLeft },
-  { value: "source", label: "Quelle", icon: FileText },
+  { value: "children", label: "Unterstapel" },
+  { value: "summary", label: "Zusammenfassungen" },
+  { value: "mind-map", label: "Mind Map" },
+  { value: "cards", label: "Karten" },
 ] as const;
 
-/** Centered state of a content tab without its own content, e.g. `Demnächst verfügbar` or `Keine Unterstapel`. */
+/** Centered state of a content tab without its own content, e.g. `Keine Unterstapel`. */
 function DeckContentPlaceholder({ label, icon: Icon, title, action, testId }: { label: string; icon: LucideIcon; title: string; action?: React.ReactNode; testId?: string }) {
   return (
     <SoftPanel aria-label={label} className="flex min-h-[214px] items-center justify-center p-6 sm:p-10" data-testid={testId}>
@@ -149,7 +147,6 @@ export function DecksScreen({
   const hasStudyCards = React.useMemo(() => Boolean(contentDeckId) && libraryDecks.some((deck) => (
     !deck.deletedAt && ((deckSummaries?.get(deck.id)?.inventory.totalCards ?? 0) > 0 || deck.cards.some((card) => !card.deletedAt))
   )), [contentDeckId, deckSummaries, libraryDecks]);
-  const selectedContentTab = deckContentTabs.find((tab) => tab.value === contentTab)!;
   const [advancedSearchOpen, setAdvancedSearchOpen] = React.useState(false);
   const [tagDirectory, setTagDirectory] = React.useState<Awaited<ReturnType<typeof cardEditor.listTagDirectory>>>([]);
   const [tagManagerOpen, setTagManagerOpen] = React.useState(false);
@@ -594,8 +591,6 @@ export function DecksScreen({
     contentDeck ? <React.Suspense fallback={CONTENT_TAB_LOADING}><DeckMindMapsPanel key={`${summaryAccountId ?? contentDeck.ownerId}:${contentDeck.id}`} deck={contentDeck}
       userId={summaryAccountId ?? contentDeck.ownerId} cloud={learningContentCloud} onGenerateSummary={onGenerateSummary} onDraftStateChange={handleEditorDraftStateChange} /></React.Suspense>
       : <EmptyState icon={Network} title="Stapel nicht gefunden oder nicht verfügbar." />
-  ) : contentDeckId && contentTab !== "cards" ? (
-    <DeckContentPlaceholder label={selectedContentTab.label} icon={selectedContentTab.icon} title="Demnächst verfügbar" />
   ) : <section className="grid min-w-0 gap-4" aria-label="Karten" data-testid="card-library-panel">
       <div className="grid gap-4">
         <CardSearchBar
