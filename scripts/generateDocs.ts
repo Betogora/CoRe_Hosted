@@ -33,6 +33,22 @@ function sourceFiles(directory: string): string[] {
   }).sort();
 }
 
+type DocLimit = { file: string; maxBytes: number };
+
+/** Feste Obergrenze je ganze Datei; Platz entsteht durch Verdichten, nicht durch Anheben. */
+export const DOC_LIMITS: readonly DocLimit[] = [
+  { file: "docs/architecture.md", maxBytes: 35_000 },
+  { file: "docs/specs.md", maxBytes: 81_000 },
+  { file: "README.md", maxBytes: 2_500 },
+];
+
+export function docLimitFailures(read: (file: string) => string, limits: readonly DocLimit[] = DOC_LIMITS) {
+  return limits.flatMap(({ file, maxBytes }) => {
+    const bytes = Buffer.byteLength(read(file));
+    return bytes > maxBytes ? [`${file}: ${bytes} Bytes, Obergrenze ${maxBytes}; Text verdichten oder an seinen Eigentümer verlagern statt die Grenze anzuheben.`] : [];
+  });
+}
+
 export function codeFootprint() {
   const groups = [
     { label: "Heute", files: ["DashboardScreen"], color: "var(--core-learning-status-learned)" },
@@ -293,7 +309,7 @@ export async function synchronizeDocs(mode: "write" | "check") {
     const content = `<div id="catalog-root"></div><script id="catalog-data" type="application/json">${JSON.stringify(data).replaceAll("<", "\\u003c")}</script>`;
     results.set(file, htmlPage(file, content, css, `${viewer}\n${runtimeHeader(inputs, runtime)}${runtime}${RUNTIME_END}`).replace("<body>", `<body data-catalog="${catalog}">`));
   }
-  const failures: string[] = [];
+  const failures = docLimitFailures(text);
   for (const [file, generated] of results) {
     const current = await readFile(path.join(docs, file), "utf8").catch(() => "");
     if (current.replace(/\r\n?/g, "\n") !== generated) {
@@ -316,6 +332,7 @@ export async function synchronizeDocs(mode: "write" | "check") {
       const exists = !anchor || (target === "ui-elements.html" ? uiAnchors.has(anchor) : target === "card-types.html" ? cardAnchors.has(anchor) : results.get(target)!.includes(`id="${anchor}"`));
       if (!exists) failures.push(`${file}: Anker ${href} fehlt`);
     } else if (!existsSync(path.resolve(docs, target || file))) failures.push(`${file}: Ziel ${href} fehlt`);
+    else if (fragment && linkedTarget && linkSources.has(target) && !linkSources.get(target)!.includes(`id="${documentId(target)}--${decodeURIComponent(fragment)}"`)) failures.push(`${file}: Anker ${href} fehlt`);
   }
   if (failures.length) throw new Error(`${failures.join("\n")}\nQuellen korrigieren und npm run docs:build ausführen.`);
   console.log(`Dokumentation ${mode === "write" ? "erzeugt" : "geprüft"}: ${DOC_PAGES.length} Leseseiten, ${data.components.length} Komponenten, ${data.tokens.length} Tokens, ${data.icons.length} Icons.`);

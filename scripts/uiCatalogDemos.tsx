@@ -200,7 +200,7 @@ function FoundationsDemo({ section }: { section: string }) {
 }
 
 const STEP_DEMO_ITEMS = [{ label: "Analysieren" }, { label: "Vorschau" }, { label: "Übernehmen" }, { label: "Cloud" }, { label: "Medien" }, { label: "Fertig" }];
-const TAB_DEMO_ITEMS = [{ value: "substacks", label: "Unterstapel" }, { value: "summaries", label: "Zusammenfassungen" }, { value: "quiz", label: "Quiz" }, { value: "mindmap", label: "Mind Map" }, { value: "cards", label: "Karten" }, { value: "source", label: "Quelle" }] as const;
+const TAB_DEMO_ITEMS = [{ value: "substacks", label: "Unterstapel" }, { value: "summaries", label: "Zusammenfassungen" }, { value: "mindmap", label: "Mind Map" }, { value: "cards", label: "Karten" }] as const;
 
 function StructureDemo({ section }: { section: string }) {
   const [planStep, setPlanStep] = useState(1);

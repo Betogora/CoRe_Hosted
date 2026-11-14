@@ -7913,29 +7913,12 @@ html { scroll-behavior: smooth; }
 html:has(.catalog-preview) { scroll-behavior: auto; }
 @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
 </style></head><body><div class="docs-frame"><aside class="docs-sidebar"><nav class="docs-panel docs-pages" aria-label="Doku-Seiten"><div class="docs-panel-head"><a class="docs-brand" href="index.html">CoRe <span>Docs</span></a><button type="button" id="docs-theme" aria-label="Dark Mode einschalten" style="color:var(--core-text)" class="core-action-ghost min-w-button p-2 size-button shrink-0 rounded-control"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-sun" aria-hidden="true"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2"></path><path d="M12 20v2"></path><path d="m4.93 4.93 1.41 1.41"></path><path d="m17.66 17.66 1.41 1.41"></path><path d="M2 12h2"></path><path d="M20 12h2"></path><path d="m6.34 17.66-1.41 1.41"></path><path d="m19.07 4.93-1.41 1.41"></path></svg><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-moon" aria-hidden="true"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"></path></svg></button></div><div class="docs-panel-links"><a href="index.html">Docs</a><a href="specs.html" aria-current="page">Specs</a><a href="journeys.html">Journeys</a><a href="ui-elements.html">UI-Elements</a><a href="card-types.html">Kartenbausteine</a><a href="ai-eval.html">KI-Eval</a></div></nav><div class="docs-panel docs-search-panel" role="search"><label class="catalog-search"><span class="catalog-search-label">Specs durchsuchen</span><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-search" aria-hidden="true"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.3-4.3"></path></svg><input id="docs-search" type="search" placeholder="Anforderung, Begriff …" autocomplete="off"></label><p id="docs-search-count" class="docs-count" role="status"></p></div><nav class="docs-panel docs-toc" aria-label="Inhalt"><strong>Inhalt</strong><div id="docs-toc" class="docs-panel-links"></div></nav></aside><main class="docs-main"><article id="specs--document" class="docs-document"><h1 id="specs--specs" class="core-heading-1" tabindex="-1">Specs <a class="docs-anchor" href="#specs--specs" aria-label="Link zu Specs">#</a></h1>
-<p><strong>Stand:</strong> 2026-11-12</p>
-<p>Die Specs beschreiben, was CoRe tun soll und warum: je Funktion die Absicht, ihre Regeln und die Entscheidungen, die der Code umsetzt. Wer sie liest, soll das Produkt prüfen können, ohne in den Code zu schauen.</p>
-<h2 id="specs--pflege-dieser-datei" class="core-heading-2" tabindex="-1">Pflege dieser Datei <a class="docs-anchor" href="#specs--pflege-dieser-datei" aria-label="Link zu Pflege dieser Datei">#</a></h2>
-<p class="docs-label">Hinein gehört je Funktion</p>
-<ul>
-<li><strong>Zweck:</strong> wozu es sie gibt, in einem Satz.</li>
-<li><strong>Regeln:</strong> was unter welcher Bedingung geschieht, in fachlichen Begriffen.</li>
-<li><strong>Daten:</strong> was gespeichert wird, was erhalten bleibt und was Gerät oder Konto verlässt. Bei KI: was hineingeht, was zurückkommt und was daraus wird.</li>
-<li><strong>Entscheidungen:</strong> der gewählte Weg und bewusste Grenzen („Bewusst nicht“), mit Verweis auf das ADR, wenn es eines gibt.</li>
-<li><strong>Zahlen</strong> nur, wenn sie das Verhalten fachlich bestimmen (Schwellen, Standards, Obergrenzen).</li>
-</ul>
-<p class="docs-label">Nicht hinein gehört</p>
-<ul>
-<li><strong>Oberfläche:</strong> Bedienelemente, Beschriftungen, Anordnung, Maße, Farben, Breakpoints, Tastenkürzel, Gesten und Eingabegeräte. Das steht im Code und im <a href="ui-elements.html">UI-Katalog</a>.</li>
-<li><strong>Zustände einzelner Ansichten</strong> (Laden, leer, Fehler, Bestätigung) und Meldungstexte. Dafür gelten einmal die Regeln unter <a href="#specs--r%C3%BCckmeldungen-und-zuverl%C3%A4ssigkeit">Rückmeldungen und Zuverlässigkeit</a>.</li>
-<li><strong>Technik:</strong> Module, Tabellen, Routen und Protokolle stehen in <a href="architecture.md"><code>architecture.md</code></a>, Messwerte und Budgets in <a href="test-portfolio.md"><code>test-portfolio.md</code></a>, Offenes in <a href="todo.md"><code>todo.md</code></a>.</li>
-<li><strong>Vollständige Aufzählungen,</strong> die die App selbst zeigt (Suchsyntax, Tastenkürzel, Formatlisten).</li>
-</ul>
-<p>Probe: Ein Satz gehört hinein, wenn er nach einer vollständigen Neugestaltung der Oberfläche unverändert gälte und eine Abweichung davon ein fachlicher Fehler wäre.</p>
-<p>Form: Stichpunkte, ein Gedanke je Punkt. Eine neue Regel ersetzt die alte, statt sie zu ergänzen. Wo Funktionen logisch voneinander abhängen, steht ein Schaubild als <code>schaubild</code>-Block direkt beim Text und wird mit ihm geändert (Schreibweise in <a href="index.html#readme--pflege"><code>README.md</code></a>). In Schaubildern sind KI-Schritte blau, Ergebnisse grün markiert.</p>
+<p><strong>Stand:</strong> 2026-11-14</p>
+<p><strong>CoRe ist ein Lernwerkzeug für alle, die große Stoffmengen über Monate sicher im Kopf behalten müssen, zuerst für Studierende und Auszubildende auf dem Weg zur Prüfung.</strong> Es wiederholt nicht Karten, sondern Inhalte: Gefestigtes Wissen kehrt in neuer Formulierung zurück, damit Verstehen geübt wird statt Wiedererkennen. Ziel ist Wissen, das in der Prüfung abrufbar ist, auch wenn die Frage anders gestellt wird.</p>
+<p>Die Specs beschreiben, was CoRe tun soll und warum: je Funktion die Absicht, ihre Regeln und die Entscheidungen, die der Code umsetzt. Wer sie liest, soll das Produkt prüfen können, ohne in den Code zu schauen. Wie die Datei gepflegt wird, steht <a href="#specs--pflege-dieser-datei">am Ende</a>.</p>
 <h2 id="specs--1-produkt" class="core-heading-2" tabindex="-1">1. Produkt <a class="docs-anchor" href="#specs--1-produkt" aria-label="Link zu 1. Produkt">#</a></h2>
-<h3 id="specs--vision-und-zielgruppen" class="core-heading-3" tabindex="-1">Vision und Zielgruppen <a class="docs-anchor" href="#specs--vision-und-zielgruppen" aria-label="Link zu Vision und Zielgruppen">#</a></h3>
-<p>CoRe startet Anki-kompatibel, hält das Lernen ruhig und behandelt jede planbare Karte als eigene Lerneinheit. Gelernt wird der Inhalt, nicht Layout, Wortlaut oder Lückenposition.</p>
+<h3 id="specs--zielgruppen" class="core-heading-3" tabindex="-1">Zielgruppen <a class="docs-anchor" href="#specs--zielgruppen" aria-label="Link zu Zielgruppen">#</a></h3>
+<p>CoRe startet Anki-kompatibel, hält das Lernen ruhig und behandelt jede planbare Karte als eigene Lerneinheit.</p>
 <ul>
 <li>Für Studierende und Auszubildende mit großen, langfristig gepflegten Kartenbeständen.</li>
 <li>Für Anki-Nutzer, die vorhandene Stapel weiterverwenden wollen.</li>
@@ -7950,16 +7933,13 @@ html:has(.catalog-preview) { scroll-behavior: auto; }
 <li><strong>Sparsam ausbauen:</strong> Nicht jede Karte wird variiert; neue Produktflächen brauchen einen belegten Auftrag (<a href="decisions.md#adr-001--produktumfang-nur-mit-auftrag">ADR-001</a>).</li>
 </ol>
 <h3 id="specs--umfang" class="core-heading-3" tabindex="-1">Umfang <a class="docs-anchor" href="#specs--umfang" aria-label="Link zu Umfang">#</a></h3>
-<p>Den aktuellen Stand und bekannte Lücken nennt <a href="status.md"><code>status.md</code></a>.</p>
+<p>Was gebaut, vorbereitet oder abgeschaltet ist und welche Lücken bekannt sind, nennt <a href="status.md"><code>status.md</code></a>.</p>
 <ul>
-<li><strong>Kern:</strong> Konto mit E-Mail und Passwort, Heute, Erstellen (manuell, Bildverdeckung, Anki-Import), Lernen mit vier Bewertungen und Content Repetition, Kartenverwaltung und Karteneditor, Prüfungsplanung, Zusammenfassungen und Mindmaps, Statistik, Einstellungen, Hilfe, Simulator, kontogebundene Speicherung mit Sync.</li>
-<li><strong>Vorbereitet, nicht aktiv:</strong> <a href="#specs--automatisch-aus-einer-quelle">Karten automatisch aus einer Quelle</a>.</li>
-<li><strong>Abgeschaltet:</strong> Anki-Pakete über 2 GiB, Magic Link, DOCX und OCR in der manuellen Erstellung und bei Zusammenfassungen, vollständige Datenauskunft und Kontolöschung.</li>
 <li><strong>Nichtziele:</strong> Community, Rankings und soziale Leistungsmetriken; generische Backend-, Auth- oder KI-Adapter; KI-Chat ohne Kartenbezug; Bildübertragung an die KI; Admin-Portal, Zahlungen, Abonnements; Push-Benachrichtigungen; vollständige Ausführung von Anki-Templates.</li>
 </ul>
 <h3 id="specs--bereiche-und-gesamtbild" class="core-heading-3" tabindex="-1">Bereiche und Gesamtbild <a class="docs-anchor" href="#specs--bereiche-und-gesamtbild" aria-label="Link zu Bereiche und Gesamtbild">#</a></h3>
 <ul>
-<li>Hauptbereiche sind <code>Heute</code>, <code>Lernen</code>, <code>Erstellen</code>, <code>Karten</code> und <code>Prüfung</code>; Statistik, Hilfe und Einstellungen ergänzen sie.</li>
+<li>Hauptbereiche sind <code>Heute</code>, <code>Lernen</code>, <code>Erstellen</code>, <code>Karten</code> und <code>Prüfung</code>; Statistik, Hilfe, Einstellungen und Simulator ergänzen sie.</li>
 <li><code>Lernen</code> führt vom Stapel in die Sitzung, <code>Karten</code> verwaltet alle Karten aller Stapel. Beide teilen den zuletzt gewählten Stapel.</li>
 <li>Ansicht, Stapel, Karte und Sitzung sind Teil des Links: Reload, Direktlink und Browser-Zurück führen an dieselbe Stelle.</li>
 </ul>
@@ -8082,7 +8062,7 @@ html:has(.catalog-preview) { scroll-behavior: auto; }
 <li>Verschieben macht einen Stapel samt Unterbaum zum direkten Unterstapel des Ziels oder zum Hauptstapel. Ausgeschlossen sind nur der Stapel selbst und seine Nachfahren. Importherkunft und Tags bleiben.</li>
 <li>Das Löschen eines Stapelbaums ist endgültig, nennt vorher Unterstapel und Kartenzahl und wird durch späteren Sync nicht rückgängig.</li>
 <li>Je Stapel zeigen <code>Heute</code> und <code>Lernen</code> die Tageszahlen <code>Neu</code>, <code>Offen</code> und <code>Fällig</code> nach <a href="#specs--tagesrunde-und-limits">Tagesrunde und Limits</a>; Elternstapel zählen ihren Teilbaum.</li>
-<li>Ein geöffneter Stapel bündelt Unterstapel, die Karten des ganzen Teilbaums, Zusammenfassungen und Mindmap und startet das Lernen. <code>Quiz</code> und <code>Quelle</code> sind dort Platzhalter.</li>
+<li>Ein geöffneter Stapel bündelt Unterstapel, die Karten des ganzen Teilbaums, Zusammenfassungen und Mindmap und startet das Lernen.</li>
 <li>Wo ein Stapel gewählt wird, steht sein vollständiger Pfad, damit gleichnamige Unterstapel unterscheidbar bleiben.</li>
 </ul>
 <h2 id="specs--3-kernjourneys" class="core-heading-2" tabindex="-1">3. Kernjourneys <a class="docs-anchor" href="#specs--3-kernjourneys" aria-label="Link zu 3. Kernjourneys">#</a></h2>
@@ -8278,7 +8258,7 @@ html:has(.catalog-preview) { scroll-behavior: auto; }
 <li>Ein Reimport erkennt Inhalte und Karten an ihren Anki-Kennungen, auch wenn sie nur im Konto und nicht auf dem Gerät liegen.</li>
 <li>Unbearbeitete Inhalte übernehmen den Paketinhalt; lokal bearbeitete bleiben unverändert und werden gezählt.</li>
 <li>Lernstand, Aussetzung, Markierung, Flaggen und Stapelzuordnung bleiben immer. Neue Abfragen werden neue Karten; im Paket fehlende Karten bleiben und werden gezählt.</li>
-<li>Tags werden nach <a href="#specs--tags">Tags</a> zusammengeführt; lokale Stapeleinstellungen bleiben.</li>
+<li>Tags werden nach <a href="#specs--tags">Tags</a> zusammengeführt. Vorhandene Stapel behalten Name, Ort im Baum und Einstellungen; neue Stapel entstehen unter dem heutigen Ort ihres Oberstapels.</li>
 <li>Verbessert sich ein Übersetzer, übersetzt CoRe unbearbeitete Importe einmal automatisch neu, ohne eine Karte mit Lernstand zu verlieren, und nennt die Zahl der verbesserten Inhalte.</li>
 </ul>
 <h3 id="specs--automatisch-aus-einer-quelle" class="core-heading-3" tabindex="-1">Automatisch aus einer Quelle <a class="docs-anchor" href="#specs--automatisch-aus-einer-quelle" aria-label="Link zu Automatisch aus einer Quelle">#</a></h3>
@@ -8337,7 +8317,6 @@ html:has(.catalog-preview) { scroll-behavior: auto; }
 <li>Eine begrabene Karte wartet bis zum nächsten Lerntag, verbraucht kein Limit und behält Lernstand und Termin. Lernschritte des Tages werden nie begraben.</li>
 <li><code>Zurückstellen</code> nimmt eine einzelne Karte auf dieselbe Weise bis zum nächsten Lerntag aus Runde und Tageszahlen.</li>
 <li>Beides wird nicht an der Karte gespeichert, sondern folgt aus den Ereignissen des Lerntags; es übersteht Reload und endet mit dem Tagesbeginn.</li>
-<li>Bekannte Abweichung von Anki: Zwei noch unbeantwortete Geschwister zählen in den Tageszahlen bis zur ersten Antwort beide.</li>
 </ul>
 <h3 id="specs--easy-days" class="core-heading-3" tabindex="-1">Easy Days <a class="docs-anchor" href="#specs--easy-days" aria-label="Link zu Easy Days">#</a></h3>
 <ul>
@@ -8382,6 +8361,7 @@ html:has(.catalog-preview) { scroll-behavior: auto; }
 <li>Vor der Antwort deutet nichts auf eine Variante hin. Erst danach ist sie gekennzeichnet, und die Originalkarte lässt sich aufdecken.</li>
 <li>Von dort führt der Weg in die Variantenverwaltung der Karte und zurück in die Sitzung.</li>
 <li>Fehlt eine Variante oder ist sie fehlerhaft, wird die Karte selbst abgefragt.</li>
+<li>Eine Variante ersetzt nur Frage und Antwort; Hinweise, Zusatz und Quelle bleiben. Vorgelesen wird nur, was die Variante unverändert übernimmt.</li>
 <li>Persönliche Lerndaten werden nie in einer Variante gespeichert.</li>
 </ul>
 <h3 id="specs--varianten-verwalten" class="core-heading-3" tabindex="-1">Varianten verwalten <a class="docs-anchor" href="#specs--varianten-verwalten" aria-label="Link zu Varianten verwalten">#</a></h3>
@@ -8411,7 +8391,7 @@ html:has(.catalog-preview) { scroll-behavior: auto; }
 <li>KI läuft nur auf ausdrückliche Aktion, nie beim Antworten oder im Hintergrund. Jede Anfrage hat eine feste Frist; Fehler ändern nichts und werden nicht automatisch wiederholt.</li>
 <li>Die Kosten begrenzt das Limit des Schlüssels; jede Anfrage wird mit ihren Kosten protokolliert, ohne Inhalte.</li>
 <li>Prompt, Antwortstruktur oder Modell sollen sich künftig nur mit gemessenem Nachweis ändern (<a href="decisions.md#adr-049--ki-%C3%A4nderungen-nur-mit-eval-nachweis">ADR-049</a>, vorgeschlagen; Stand unter <a href="ai-eval.html#ai-eval--document">KI-Eval</a>).</li>
-<li><strong>Bewusst nicht:</strong> Modellwahl durch Nutzer, Ersatzmodelle ohne Speicherverbot, Serverwarteschlange, gespeicherte Chatverläufe. Ein Kontingent je Nutzer ist Voraussetzung, bevor die Lernhilfe externen Nutzern offensteht.</li>
+<li><strong>Bewusst nicht:</strong> Modellwahl durch Nutzer, Ersatzmodelle ohne Speicherverbot, Serverwarteschlange, gespeicherte Chatverläufe. Ein Kontingent je Nutzer ist Voraussetzung, bevor KI-Funktionen externen Nutzern offenstehen.</li>
 </ul>
 <h3 id="specs--überblick-der-ki-funktionen" class="core-heading-3" tabindex="-1">Überblick der KI-Funktionen <a class="docs-anchor" href="#specs--überblick-der-ki-funktionen" aria-label="Link zu Überblick der KI-Funktionen">#</a></h3>
 <table>
@@ -8434,8 +8414,8 @@ html:has(.catalog-preview) { scroll-behavior: auto; }
 <tr>
 <td><a href="#specs--kartenvarianten-erzeugen">Kartenvariante</a></td>
 <td>Aktion an einer Karte oder für einen Stapel</td>
-<td>Frage und Antwort der Karte, Fragen ihrer vorhandenen Varianten</td>
-<td>eine Umformulierung von Frage und Antwort</td>
+<td>Frage und Antwort, Lückentext oder Frage und Optionen der Karte, Fragen ihrer vorhandenen Varianten</td>
+<td>eine Umformulierung oder die Meldung „nicht umformulierbar“</td>
 <td>Variante an der Karte, falls neu und Karte unverändert</td>
 </tr>
 <tr>
@@ -8458,13 +8438,17 @@ html:has(.catalog-preview) { scroll-behavior: auto; }
 <h3 id="specs--kartenvarianten-erzeugen" class="core-heading-3" tabindex="-1">Kartenvarianten erzeugen <a class="docs-anchor" href="#specs--kartenvarianten-erzeugen" aria-label="Link zu Kartenvarianten erzeugen">#</a></h3>
 <p>Eine Variante fragt denselben Inhalt mit anderer Formulierung ab.</p>
 <ul>
-<li>Varianten gibt es nur für Karten mit Frage und Antwort; Lückentexte, Auswahlfragen, Bildverdeckungen und Karten ohne Fragetext erhalten keine.</li>
-<li>Die KI erhält Frage und Antwort in begrenzter Länge und die Fragen vorhandener Varianten, damit die neue sich davon unterscheidet. Sie soll die Frage möglichst anders beginnen als das Original; das ist eine Anweisung, keine Prüfung.</li>
-<li>Gespeichert wird nur, wenn die Karte während der Anfrage unverändert blieb und dieselbe Formulierung noch nicht existiert.</li>
-<li>Eine Karte kann weitere Varianten erhalten, bis die Höchstzahl aktiver Varianten ihres Stapels erreicht ist.</li>
-<li><strong>Für einen Stapel:</strong> Eine Erzeugung bearbeitet nacheinander die ersten bis zu 50 passenden Karten ohne aktive Variante, je Karte eine Variante, und speichert jede sofort. Ein weiterer Start nimmt die nächsten Karten.</li>
-<li>Die Stapelerzeugung läuft im geöffneten Tab, höchstens eine zur selben Zeit, mit sichtbarem Fortschritt. Abbrechen behält Erzeugtes; ein Fehler, der jede Karte träfe, hält den Lauf an.</li>
-<li>Varianten aus einer älteren Fassung der Erzeugung lassen sich für einen Stapel nach Rückfrage ersetzen; Karten und Lernstand bleiben.</li>
+<li>Varianten gibt es für Frage–Antwort-, Lückentext- und Auswahlkarten; Bildverdeckungen und Karten ohne Fragetext erhalten keine.</li>
+<li>Die KI erhält den Text der Karte in begrenzter Länge und die Fragen vorhandener Varianten, damit die neue sich unterscheidet. Sie soll die Frage möglichst anders beginnen; das ist eine Anweisung, keine Prüfung.</li>
+<li>Bei diesen Kartenformen prüft CoRe, dass gleich bleibt, was abgefragt wird; eine Variante, die das verletzt, wird abgewiesen, auch nach eigener Bearbeitung:</li>
+<li><strong>Lückentext:</strong> dieselbe Lückengruppe mit derselben Lösung; andere Lücken stehen als Text, die Lösung nie im übrigen Text.</li>
+<li><strong>Eingetippte Antwort:</strong> Die Antwort bleibt zeichengleich, und auch die Variante wird eingetippt.</li>
+<li><strong>Auswahl:</strong> dieselben Optionen, jede gleich richtig oder falsch, ohne gewonnene oder verlorene Verneinung; die Variante hat eine eigene feste Reihenfolge, bearbeitbar ist nur die Frage. Karten mit zu langem Text, weniger als zwei oder mehr als zehn Optionen erhalten keine Varianten.</li>
+<li>Ergibt eine Karte keinen erkennbaren Sinn oder braucht sie privaten Kontext, meldet die KI sie als nicht umformulierbar, statt eine Deutung zu erfinden; es entsteht keine Variante.</li>
+<li>Eine Karte erhält Varianten bis zur Höchstzahl aktiver Varianten ihres Stapels. Gespeichert wird nur, wenn sie während der Anfrage unverändert blieb und die Formulierung neu ist.</li>
+<li><strong>Für einen Stapel:</strong> Eine Erzeugung bearbeitet nacheinander die ersten bis zu 50 Karten des Stapelbaums mit eingeschaltetem CoRe-Modus ohne aktive Variante, je Karte eine, und speichert jede sofort; ein weiterer Start nimmt die nächsten. Die Stapeleinstellungen nennen, wie viele Karten noch keine Variante haben.</li>
+<li>Die Stapelerzeugung läuft im geöffneten Tab, höchstens eine zugleich, mit sichtbarem Fortschritt. Abbrechen behält Erzeugtes; ein Fehler, der jede Karte träfe, hält den Lauf mit kurzem Grund an. Nicht umformulierbare und übrige Karten ohne Variante werden getrennt gezählt und lassen sich in der Kartenverwaltung aufrufen.</li>
+<li>Varianten aus einer älteren Fassung der Erzeugung lassen sich nach Rückfrage ersetzen; Karten und Lernstand bleiben.</li>
 </ul>
 <h3 id="specs--ki-zusammenfassung" class="core-heading-3" tabindex="-1">KI-Zusammenfassung <a class="docs-anchor" href="#specs--ki-zusammenfassung" aria-label="Link zu KI-Zusammenfassung">#</a></h3>
 <p>Aus den Karten eines Stapels entsteht eine gegliederte, belegte Fassung zum Lesen.</p>
@@ -8530,7 +8514,7 @@ html:has(.catalog-preview) { scroll-behavior: auto; }
 <li>Vorschau, Aufgabenliste und Sitzung nutzen dieselben Zielkarten.</li>
 <li>Prüfungssitzungen sind normale Lernsitzungen mit der Zielerinnerung der Prüfung. Sie gelten ohne die Tageslimits der Stapel und halten die Themenreihenfolge ein.</li>
 <li>Eine Aufgabe gilt automatisch als erledigt, wenn alle ihre Zielkarten seit dem Einplanen bewertet wurden, in der Wiederholung sind und erst nach diesem Lerntag wieder fällig werden. Wird eine Bewertung zurückgenommen, öffnet sie sich wieder.</li>
-<li>Von Hand gesetzte Häkchen sind widerrufbar und ändern keinen Lernstand.</li>
+<li>Von Hand als erledigt markierte Aufgaben lassen sich wieder öffnen und ändern keinen Lernstand.</li>
 <li>Die Zielkarten gelten für den aktuellen Lerntag; der nächste Lerntag beginnt eine neue Liste.</li>
 <li><code>Heute</code> zeigt die Aufgaben aller aktiven Prüfungen.</li>
 </ul>
@@ -8627,7 +8611,7 @@ html:has(.catalog-preview) { scroll-behavior: auto; }
 <ul>
 <li>Ausgewählt werden einzelne Karten, Bereiche oder alle Treffer einer Suche.</li>
 <li>Gemeinsame Aktionen: Stapel ändern, Tags hinzufügen und entfernen, Flagge, Markierung, Aussetzen und Reaktivieren, Zurückstellen, Fälligkeit setzen (ein Datum oder ein Zeitraum, in dem jede Karte einen zufälligen Tag bekommt), Lernstand zurücksetzen, Varianten erzeugen, Löschen.</li>
-<li>Jede Aktion fragt nach, nennt danach die Zahl der Karten und lässt sich zurücknehmen. Rückgängig ist eine neue Änderung: Karten, die seither anders geändert wurden, behalten ihren neuen Stand.</li>
+<li>Jede Aktion fragt nach, nennt danach die Zahl der Karten und lässt sich <a href="#specs--r%C3%BCckg%C3%A4ngig-und-manuelle-ereignisse">zurücknehmen</a>.</li>
 <li>Flagge, Aussetzung und Stapel gelten je Karte, Markierung und Tags für den Inhalt.</li>
 <li>Offline wirken Massenaktionen nur, wenn die betroffenen Karten auf dem Gerät liegen; sonst ändern sie nichts und sagen das.</li>
 <li><strong>Suchen und Ersetzen</strong> ersetzt wörtlichen Text in Feldern oder Tags der Auswahl, nie Formatierung oder Links, mit Vorschau. Ein Inhalt, dessen Karten sich dadurch ändern würden (etwa eine andere Lückennummer), bleibt unverändert und wird gezählt. Das Ersetzen gilt als lokale Bearbeitung: Ein Reimport überschreibt den Inhalt nicht mehr, betroffene Varianten veralten, der Lernstand bleibt.</li>
@@ -8643,20 +8627,20 @@ html:has(.catalog-preview) { scroll-behavior: auto; }
 <h3 id="specs--karteneditor" class="core-heading-3" tabindex="-1">Karteneditor <a class="docs-anchor" href="#specs--karteneditor" aria-label="Link zu Karteneditor">#</a></h3>
 <p>Derselbe Editor öffnet sich aus Kartenverwaltung, Stapelinhalten und Sitzung und führt dorthin zurück.</p>
 <ul>
-<li><strong>Allgemein</strong> wirkt sofort und ist rückgängig: Flagge, Markierung, Aussetzen, Zurückstellen, Neu planen, Verschieben in einen anderen Stapel, Tags. Der Bereich zeigt alle Karten desselben Inhalts und ähnliche Inhalte.</li>
+<li><strong>Sofortaktionen</strong> wirken ohne Speichern und sind rückgängig: Flagge, Markierung, Aussetzen, Zurückstellen, Neu planen, Verschieben in einen anderen Stapel, Tags. Dazu nennt der Editor alle Karten desselben Inhalts und ähnliche Inhalte.</li>
 <li><code>Neu planen</code> setzt nur die Fälligkeit auf den Beginn des gewählten Lerntags; Gedächtniswerte und Aussetzung bleiben.</li>
-<li><strong>Inhalt</strong> ist ein Entwurf, der ausdrücklich gespeichert wird, mit Vorschau wie beim Lernen. Öffnen und Schließen ohne Eingabe ändert nichts, auch nicht an importiertem Text.</li>
+<li><strong>Inhaltsänderungen</strong> sind ein Entwurf, der ausdrücklich gespeichert wird, mit Vorschau wie beim Lernen. Öffnen und Schließen ohne Eingabe ändert nichts, auch nicht an importiertem Text.</li>
 <li>Vor dem Speichern nennt der Editor die Wirkung: neue Karten (etwa eine Rückrichtung), entfallende Karten (etwa eine gelöschte Lücke) und veraltende Varianten. Der Lernstand entfallender Karten wird erst nach Bestätigung gelöscht; neue Abfragen werden neue Karten im Stapel des Inhalts.</li>
 <li>Eine gespeicherte Inhaltsänderung macht den Inhalt lokal bearbeitet; ein Reimport überschreibt ihn dann nicht mehr.</li>
 <li>Importierte Inhalte behalten ihr Feldschema und ihre Abfragen; nur eigene Inhalte lassen sich in Lernrichtung, Bausteinen und Masken umbauen.</li>
-<li><strong>Varianten</strong> zeigt Original und Varianten nebeneinander, mit Zustand, Aktionen und der Auskunft, ob die Karte die Schwelle erreicht hat (<a href="#specs--varianten-verwalten">Varianten verwalten</a>).</li>
-<li><strong>Lernen</strong> zeigt Fälligkeit, Haltbarkeit, Abrufwahrscheinlichkeit, Schwierigkeit, Wiederholungen, Fehler, Reife und Lernbremse, dazu den Abrufverlauf und alle Bewertungen.</li>
+<li><strong>Variantenverwaltung:</strong> Original und Varianten mit Zustand, Aktionen und der Auskunft, ob die Karte die Schwelle erreicht hat (<a href="#specs--varianten-verwalten">Varianten verwalten</a>).</li>
+<li><strong>Lernauskunft:</strong> Fälligkeit, Haltbarkeit, Abrufwahrscheinlichkeit, Schwierigkeit, Wiederholungen, Fehler, Reife und Lernbremse, dazu den Abrufverlauf und alle Bewertungen.</li>
 <li><code>Lernstand zurücksetzen</code> setzt die Zähler auf null und hebt die Lernbremse auf; die Karte wird wieder wie eine neue gelernt. Der Verlauf bleibt und erhält einen manuellen Eintrag.</li>
 </ul>
 <h3 id="specs--karten-löschen-und-duplizieren" class="core-heading-3" tabindex="-1">Karten löschen und duplizieren <a class="docs-anchor" href="#specs--karten-löschen-und-duplizieren" aria-label="Link zu Karten löschen und duplizieren">#</a></h3>
 <ul>
 <li>Löschen verlangt eine Bestätigung und betrifft den Inhalt mit allen seinen Karten, auch in anderen Stapeln und auf allen Geräten.</li>
-<li>Gelöscht wird sofort auf dem Gerät; ein ausstehender Sync hält das nicht auf. Rückgängig stellt die Karten samt Lernstand wieder her.</li>
+<li>Gelöscht wird sofort auf dem Gerät; ein ausstehender Sync hält das nicht auf. Rückgängig stellt dieselben Karten samt Lernstand wieder her.</li>
 <li>Duplizieren legt einen eigenständigen Inhalt mit neuen Karten in denselben Stapeln an: Felder, Tags und Medien bleiben, der Lernstand beginnt neu.</li>
 </ul>
 <h3 id="specs--statistik" class="core-heading-3" tabindex="-1">Statistik <a class="docs-anchor" href="#specs--statistik" aria-label="Link zu Statistik">#</a></h3>
@@ -8701,7 +8685,6 @@ html:has(.catalog-preview) { scroll-behavior: auto; }
 <li>Stapeleinstellungen lassen sich für nur diesen Stapel oder samt Unterstapeln speichern; übertragen werden dabei nur die geänderten Werte.</li>
 <li>Kontowerte werden nie in Stapel kopiert und von Lernprofilen nicht verändert.</li>
 <li>Sofort, ohne Entwurf, wirken das Anwenden eines Lernprofils, der manuelle Sync, die Heatmap-Farbe und die Lerneinstellungen einer laufenden Sitzung.</li>
-<li>Version und Rechtstexte stehen nur in den Einstellungen.</li>
 </ul>
 <h3 id="specs--tagesrunde-und-lernprofile" class="core-heading-3" tabindex="-1">Tagesrunde und Lernprofile <a class="docs-anchor" href="#specs--tagesrunde-und-lernprofile" aria-label="Link zu Tagesrunde und Lernprofile">#</a></h3>
 <ul>
@@ -8777,9 +8760,8 @@ html:has(.catalog-preview) { scroll-behavior: auto; }
 </ul>
 <h3 id="specs--rückgängig-und-manuelle-ereignisse" class="core-heading-3" tabindex="-1">Rückgängig und manuelle Ereignisse <a class="docs-anchor" href="#specs--rückgängig-und-manuelle-ereignisse" aria-label="Link zu Rückgängig und manuelle Ereignisse">#</a></h3>
 <ul>
-<li>Sofortaktionen an Karten lassen sich direkt zurücknehmen. Rückgängig ist eine neue, synchronisierte Änderung; hat sich die Karte inzwischen geändert, entfällt es mit Hinweis.</li>
+<li>Sofort- und Massenaktionen an Karten lassen sich direkt zurücknehmen. Rückgängig ist eine neue, synchronisierte Änderung: Eine Karte, die sich inzwischen geändert hat, behält ihren neuen Stand, und CoRe nennt das.</li>
 <li>Neu planen, Lernstand zurücksetzen, Lernbremse setzen oder zurücksetzen, Zurückstellen und ihr Rückgängig sind je genau ein manuelles Ereignis im Verlauf. Es zählt nicht als Lernen und kollidiert nie mit Bewertungen oder Inhaltsänderungen anderer Geräte.</li>
-<li>Das Rückgängig einer Löschung stellt dieselbe Karte mit demselben Lernstand wieder her.</li>
 <li><strong>Bewusst nicht:</strong> ein wiederherstellbarer Versionsverlauf von Karteninhalten.</li>
 </ul>
 <h2 id="specs--11-qualität-und-abnahme" class="core-heading-2" tabindex="-1">11. Qualität und Abnahme <a class="docs-anchor" href="#specs--11-qualität-und-abnahme" aria-label="Link zu 11. Qualität und Abnahme">#</a></h2>
@@ -8797,7 +8779,7 @@ html:has(.catalog-preview) { scroll-behavior: auto; }
 <li>Kernabläufe funktionieren mit Tastatur, Touch und Screenreader, bei 200 % Zoom und mit reduzierter Bewegung. Bedeutung wird nie nur durch Farbe vermittelt.</li>
 <li>Abbrechen eines Dialogs verändert keine Fachdaten.</li>
 <li>Texte sind korrektes Deutsch; technische Bezeichnungen gelangen nicht ungefiltert in die Oberfläche.</li>
-<li>Es gibt einen hellen und einen dunklen Modus, von Hand gewählt. Die Designsprache regelt <a href="decisions.md#adr-046--vollst%C3%A4ndige-toolbox-designsprache">ADR-046</a>, die Bausteine zeigt der <a href="ui-elements.html">UI-Katalog</a>.</li>
+<li>Es gibt einen hellen und einen dunklen Modus, von Hand gewählt. Die Designsprache regeln <a href="decisions.md#adr-046--vollst%C3%A4ndige-toolbox-designsprache">ADR-046</a> und <a href="decisions.md#adr-051--acht-regeln-der-designsprache-und-eine-gemeinsame-mittelschicht">ADR-051</a>, die Bausteine zeigt der <a href="ui-elements.html">UI-Katalog</a>.</li>
 <li>Hinweistexte erklären nur Folgen, Abwägungen und nicht offensichtliches Verhalten.</li>
 </ul>
 <h3 id="specs--rückmeldungen-und-zuverlässigkeit" class="core-heading-3" tabindex="-1">Rückmeldungen und Zuverlässigkeit <a class="docs-anchor" href="#specs--rückmeldungen-und-zuverlässigkeit" aria-label="Link zu Rückmeldungen und Zuverlässigkeit">#</a></h3>
@@ -8829,8 +8811,26 @@ html:has(.catalog-preview) { scroll-behavior: auto; }
 <li>automatisierte Tests konkrete Produkt- und Sicherheitsverträge schützen, ohne Testanzahl als Produktabnahme zu behandeln.</li>
 </ol>
 <p>Offene Gates und Nachweise stehen ausschließlich in <a href="todo.md"><code>todo.md</code></a>.</p>
+<h2 id="specs--pflege-dieser-datei" class="core-heading-2" tabindex="-1">Pflege dieser Datei <a class="docs-anchor" href="#specs--pflege-dieser-datei" aria-label="Link zu Pflege dieser Datei">#</a></h2>
+<p class="docs-label">Hinein gehört je Funktion</p>
+<ul>
+<li><strong>Zweck:</strong> wozu es sie gibt, in einem Satz.</li>
+<li><strong>Regeln:</strong> was unter welcher Bedingung geschieht, in fachlichen Begriffen.</li>
+<li><strong>Daten:</strong> was gespeichert wird, was erhalten bleibt und was Gerät oder Konto verlässt. Bei KI: was hineingeht, was zurückkommt und was daraus wird.</li>
+<li><strong>Entscheidungen:</strong> der gewählte Weg und bewusste Grenzen („Bewusst nicht“), mit Verweis auf das ADR, wenn es eines gibt.</li>
+<li><strong>Zahlen</strong> nur, wenn sie das Verhalten fachlich bestimmen (Schwellen, Standards, Obergrenzen).</li>
+</ul>
+<p class="docs-label">Nicht hinein gehört</p>
+<ul>
+<li><strong>Oberfläche:</strong> Bedienelemente, Beschriftungen, Anordnung, Maße, Farben, Breakpoints, Tastenkürzel, Gesten und Eingabegeräte. Das steht im Code und im <a href="ui-elements.html">UI-Katalog</a>.</li>
+<li><strong>Zustände einzelner Ansichten</strong> (Laden, leer, Fehler, Bestätigung) und Meldungstexte. Dafür gelten einmal die Regeln unter <a href="#specs--r%C3%BCckmeldungen-und-zuverl%C3%A4ssigkeit">Rückmeldungen und Zuverlässigkeit</a>.</li>
+<li><strong>Technik:</strong> Module, Tabellen, Routen und Protokolle stehen in <a href="architecture.md"><code>architecture.md</code></a>, Messwerte und Budgets in <a href="test-portfolio.md"><code>test-portfolio.md</code></a>, Offenes in <a href="todo.md"><code>todo.md</code></a>.</li>
+<li><strong>Vollständige Aufzählungen,</strong> die die App selbst zeigt (Suchsyntax, Tastenkürzel, Formatlisten).</li>
+</ul>
+<p>Probe: Ein Satz gehört hinein, wenn er nach einer vollständigen Neugestaltung der Oberfläche unverändert gälte und eine Abweichung davon ein fachlicher Fehler wäre.</p>
+<p>Form: Stichpunkte, ein Gedanke je Punkt. Eine neue Regel ersetzt die alte, statt sie zu ergänzen. Wo Funktionen logisch voneinander abhängen, steht ein Schaubild als <code>schaubild</code>-Block direkt beim Text und wird mit ihm geändert (Schreibweise in <a href="index.html#readme--pflege"><code>README.md</code></a>). In Schaubildern sind KI-Schritte blau, Ergebnisse grün markiert.</p>
 <h2 id="specs--codeumfang-der-produktbereiche" class="core-heading-2" tabindex="-1">Codeumfang der Produktbereiche <a class="docs-anchor" href="#specs--codeumfang-der-produktbereiche" aria-label="Link zu Codeumfang der Produktbereiche">#</a></h2>
-<p>CoRe ist eine App mit mehreren Bereichen. Die Tabelle zeigt deren Anteil am Bildschirmcode; gemeinsam genutzte Logik, UI und API stehen separat.</p><div class="docs-code-stats"><dl data-size="compact" data-variant="boxed" class="flex flex-col rounded-control border border-core-border bg-core-surface px-4 py-3 min-w-0"><dt class="core-status-label text-core-muted">Bildschirmcode</dt><dd class="core-metric mt-auto pt-1 text-core-text">6.976</dd></dl><dl data-size="compact" data-variant="boxed" class="flex flex-col rounded-control border border-core-border bg-core-surface px-4 py-3 min-w-0"><dt class="core-status-label text-core-muted">Gemeinsamer Code &amp; API</dt><dd class="core-metric mt-auto pt-1 text-core-text">47.703</dd></dl><dl data-size="compact" data-variant="boxed" class="flex flex-col rounded-control border border-core-border bg-core-surface px-4 py-3 min-w-0"><dt class="core-status-label text-core-muted">Quelldateien</dt><dd class="core-metric mt-auto pt-1 text-core-text">296</dd></dl></div><div class="docs-code-chart"><div class="docs-table-scroll" tabindex="0" role="region" aria-label="Codeumfang je Produktbereich"><table><thead><tr><th>Bereich</th><th>Zeilen</th><th>Anteil</th></tr></thead><tbody><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-status-learned)" aria-hidden="true"></span>Heute</th><td>294</td><td>4,2 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-status-new)" aria-hidden="true"></span>Lernen & Karten</th><td>2.247</td><td>32,2 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-status-in-progress)" aria-hidden="true"></span>Erstellen & Import</th><td>1.780</td><td>25,5 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-action-primary)" aria-hidden="true"></span>Prüfungen</th><td>427</td><td>6,1 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-status-due)" aria-hidden="true"></span>Statistik</th><td>638</td><td>9,1 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-progress-completed)" aria-hidden="true"></span>Konto & Sync</th><td>792</td><td>11,4 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-text-secondary)" aria-hidden="true"></span>Hilfe</th><td>798</td><td>11,4 %</td></tr></tbody></table></div></div><p class="docs-source">Beim Erzeugen gemessen: nichtleere Zeilen in <code>src/</code> und <code>api/</code> (TS/TSX) sowie <code>src/styles.css</code>. Ohne Tests, Typdeklarationen, generierte Datenbanktypen, Dokumentation und Fremdcode. Bereichszuordnung nach Bildschirmdateien in <a href="../src/screens/README.md">der Screen-Landkarte</a>; übriger Code zählt gemeinsam. Enthält Kommentare und misst weder Laufzeit noch Komplexität.</p></article></main></div><script>function initializeDocsViewer() {
+<p>CoRe ist eine App mit mehreren Bereichen. Die Tabelle zeigt deren Anteil am Bildschirmcode; gemeinsam genutzte Logik, UI und API stehen separat.</p><div class="docs-code-stats"><dl data-size="compact" data-variant="boxed" class="flex flex-col rounded-control border border-core-border bg-core-surface px-4 py-3 min-w-0"><dt class="core-status-label text-core-muted">Bildschirmcode</dt><dd class="core-metric mt-auto pt-1 text-core-text">6.971</dd></dl><dl data-size="compact" data-variant="boxed" class="flex flex-col rounded-control border border-core-border bg-core-surface px-4 py-3 min-w-0"><dt class="core-status-label text-core-muted">Gemeinsamer Code &amp; API</dt><dd class="core-metric mt-auto pt-1 text-core-text">47.703</dd></dl><dl data-size="compact" data-variant="boxed" class="flex flex-col rounded-control border border-core-border bg-core-surface px-4 py-3 min-w-0"><dt class="core-status-label text-core-muted">Quelldateien</dt><dd class="core-metric mt-auto pt-1 text-core-text">296</dd></dl></div><div class="docs-code-chart"><div class="docs-table-scroll" tabindex="0" role="region" aria-label="Codeumfang je Produktbereich"><table><thead><tr><th>Bereich</th><th>Zeilen</th><th>Anteil</th></tr></thead><tbody><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-status-learned)" aria-hidden="true"></span>Heute</th><td>294</td><td>4,2 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-status-new)" aria-hidden="true"></span>Lernen & Karten</th><td>2.242</td><td>32,2 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-status-in-progress)" aria-hidden="true"></span>Erstellen & Import</th><td>1.780</td><td>25,5 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-action-primary)" aria-hidden="true"></span>Prüfungen</th><td>427</td><td>6,1 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-status-due)" aria-hidden="true"></span>Statistik</th><td>638</td><td>9,2 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-progress-completed)" aria-hidden="true"></span>Konto & Sync</th><td>792</td><td>11,4 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-text-secondary)" aria-hidden="true"></span>Hilfe</th><td>798</td><td>11,4 %</td></tr></tbody></table></div></div><p class="docs-source">Beim Erzeugen gemessen: nichtleere Zeilen in <code>src/</code> und <code>api/</code> (TS/TSX) sowie <code>src/styles.css</code>. Ohne Tests, Typdeklarationen, generierte Datenbanktypen, Dokumentation und Fremdcode. Bereichszuordnung nach Bildschirmdateien in <a href="../src/screens/README.md">der Screen-Landkarte</a>; übriger Code zählt gemeinsam. Enthält Kommentare und misst weder Laufzeit noch Komplexität.</p></article></main></div><script>function initializeDocsViewer() {
     const theme = document.getElementById("docs-theme");
     theme.addEventListener("click", () => {
         const dark = document.documentElement.dataset.coreTheme !== "dark";
