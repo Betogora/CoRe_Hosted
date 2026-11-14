@@ -273,7 +273,7 @@ export function OcclusionEditor({ imageUrl, imageAlt, masks, mode, onMasksChange
       <ul className="flex min-w-0 flex-wrap gap-2" data-testid="occlusion-groups">
         {groups.map((group) => (
           <li key={group.ordinal}>
-            <button type="button" disabled={disabled} onClick={() => setSelected(group.masks.map((mask) => mask.id))} className="inline-flex min-h-button items-center gap-2 rounded-control border border-core-border bg-core-surface px-3 core-body font-medium text-core-text shadow-soft transition-colors hover:bg-core-subtle">
+            <button type="button" disabled={disabled} onClick={() => setSelected(group.masks.map((mask) => mask.id))} className="inline-flex min-h-button items-center gap-2 rounded-control border border-core-border bg-core-surface px-3 core-body font-medium text-core-text transition-colors hover:bg-core-subtle">
               <span className="size-3 rounded-round" style={{ background: groupColor(group.masks[0]) }} aria-hidden="true" />
               Karte {group.ordinal}{group.masks.length > 1 ? ` · ${group.masks.length} Masken` : ""}
             </button>
@@ -324,7 +324,7 @@ export function OcclusionEditor({ imageUrl, imageAlt, masks, mode, onMasksChange
   return (
     <div className="grid min-w-0 gap-4 lg:grid-cols-[minmax(0,1fr)_15rem] lg:items-start" data-testid="occlusion-editor" onKeyDown={onEditorKeyDown}>
       <div className="grid min-w-0 gap-2">{canvas}{hint}</div>
-      <aside className="grid min-w-0 gap-4 rounded-panel border border-core-border bg-core-surface p-4 shadow-soft" aria-label="Maskenwerkzeuge">
+      <aside className="grid min-w-0 gap-4 rounded-panel border border-core-border bg-core-surface p-4" aria-label="Maskenwerkzeuge">
         <div className="grid gap-2"><span className="core-field-label">Werkzeuge</span>{toolButtons}</div>
         <div className="grid gap-2"><span className="core-field-label">Auswahl</span>{selectionActions}</div>
         {labelField}

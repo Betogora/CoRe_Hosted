@@ -52,8 +52,7 @@ test("statistics screen exposes one global filter and the complete CoRe analysis
   assert.match(overviewMarkup, /<h3 id="statistics-overview-title" tabindex="-1" class="sr-only">Überblick<\/h3>/);
   assert.match(overviewMarkup, /class="core-metric-row core-statistics-overview"/);
   assert.equal((overviewMarkup.match(/<dt /g) ?? []).length, 7);
-  assert.doesNotMatch(overviewMarkup, /core-surface-raised|data-variant="boxed"/);
-  assert.doesNotMatch(markup, /data-variant="boxed"/);
+  assert.doesNotMatch(overviewMarkup, /core-surface-raised/);
   assert.match(overviewMarkup, /Reviews/);
   assert.doesNotMatch(overviewMarkup, /Wiederholungen/);
   assert.match(overviewMarkup, /Erfolgsrate/);

@@ -20,9 +20,7 @@ export default {
         round: "var(--core-radius-round)",
       },
       boxShadow: {
-        soft: "var(--core-shadow-soft)",
         raised: "var(--core-shadow-raised)",
-        inset: "var(--core-shadow-inset)",
         selection: "var(--core-shadow-selection)",
         floating: "var(--core-shadow-floating)",
         indicator: "var(--core-selection-indicator-shadow)",

@@ -512,7 +512,7 @@ export function ApkgImportPanel({ workflow, session, onSessionChange, isSessionC
                   { label: "Medien vorhanden", value: report?.imported.mediaFiles ?? 0 },
                   { label: "Medien fehlen", value: report?.missingMedia.length ?? 0 },
                 ].map(({ label, value }) => (
-                  <StatTile key={label} data-testid="apkg-stat-tile" size="compact" label={label} value={value} />
+                  <StatTile key={label} data-testid="apkg-stat-tile" label={label} value={value} />
                 ))}
               </div>
               {report ? (

@@ -195,27 +195,14 @@ type StatTileProps = Omit<HTMLAttributes<HTMLDListElement>, "children"> & {
   label: ReactNode;
   value: ReactNode;
   hint?: ReactNode;
-  size?: "default" | "compact";
-  /** `plain` drops frame and surface: label above, value below, for metrics that stand free in a row or table. */
-  variant?: "boxed" | "plain";
 };
 
-export function StatTile({
-  label,
-  value,
-  hint,
-  size = "default",
-  variant = "boxed",
-  className = "",
-  ...props
-}: StatTileProps) {
-  const compact = size === "compact";
-  const plain = variant === "plain";
-  const frame = plain ? "flex flex-col" : compact ? "flex flex-col rounded-control border border-core-border bg-core-surface px-4 py-3" : "core-surface-raised rounded-panel p-5";
+/** One key figure standing free as word above number (ADR-051), without frame, surface or icon. */
+export function StatTile({ label, value, hint, className = "", ...props }: StatTileProps) {
   return (
-    <dl {...props} data-size={size} data-variant={variant} className={`${frame} min-w-0 ${className}`.trim()}>
+    <dl {...props} className={`flex min-w-0 flex-col ${className}`.trim()}>
       <dt className="core-status-label text-core-muted">{label}</dt>
-      <dd className={`core-metric ${plain ? "mt-0.5" : compact ? "mt-auto pt-1" : "mt-2"} text-core-text`}>{value}</dd>
+      <dd className="core-metric mt-0.5 text-core-text">{value}</dd>
       {hint ? <dd className="core-body mt-1 text-core-muted">{hint}</dd> : null}
     </dl>
   );

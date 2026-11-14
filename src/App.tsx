@@ -81,7 +81,7 @@ function ScreenLoadingFallback() {
   return (
     <div className="grid min-h-[20rem] place-items-center" role="status" aria-live="polite">
       <SoftPanel className="flex items-center gap-3 px-6 py-4 core-body font-medium text-core-muted">
-        <span className="size-3 animate-pulse rounded-round bg-[var(--core-action-secondary)]" aria-hidden="true" />
+        <span className="size-3 animate-pulse rounded-round bg-[var(--core-action-primary)]" aria-hidden="true" />
         Bereich wird geladen.
       </SoftPanel>
     </div>

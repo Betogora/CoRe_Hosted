@@ -3,7 +3,7 @@ import { createPortal } from "react-dom";
 import { ArrowDown, ArrowUp, ArrowUpRight, Check, ChevronDown, ChevronUp, GripVertical, LayoutGrid, Maximize2, Pause, Pencil, Play, Plus, RotateCcw, Trash2, X } from "lucide-react";
 import { DASHBOARD_WIDGETS, moveDashboardWidget, readDashboardPreferences, writeDashboardPreferences, type DashboardPreferences, type DashboardWidgetId } from "../dashboardWidgets.ts";
 import { getPomodoroTimerSnapshot, type PomodoroTimer } from "../pomodoroTimer.ts";
-import { ActionButton, IconButton, ShowMoreButton } from "../ui/actionUi.tsx";
+import { ActionButton, Disclosure, IconButton, ShowMoreButton } from "../ui/actionUi.tsx";
 import { SoftPanel } from "../ui/coreUi.tsx";
 import { SectionHeader } from "../ui/SectionHeader.tsx";
 import { CoreCheckbox } from "../ui/formControls.tsx";
@@ -158,7 +158,7 @@ function DashboardTodos({ todos, onChange, planner, onOpenPlanner }: { todos: Da
       <IconButton icon={Plus} label="Aufgabe hinzufügen" type="submit" disabled={!text.trim() || todos.length >= 500} />
     </form> : null}
     {open.length ? <ul className="mt-3 grid gap-1">{(showAll ? open : open.slice(0, ownLimit)).map(task)}</ul> : null}
-    {done.length ? <details className="dashboard-disclosure mt-3"><summary>Erledigt ({done.length})</summary><ul className="grid gap-1">{done.map(task)}</ul></details> : null}
+    {done.length ? <Disclosure className="mt-3" summary={`Erledigt (${done.length})`}><ul className="mt-2 grid gap-1">{done.map(task)}</ul></Disclosure> : null}
     {planner?.({ taskLimit: showAll ? null : 3 - ownLimit, onOpenTaskCountChange: setPlannerCount })}
     </div>
     {count > 3 || showAll ? <ShowMoreButton className="mt-2" expanded={showAll} hiddenCount={count - 3} controls={listId} onToggle={() => setShowAll(!showAll)} /> : null}

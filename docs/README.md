@@ -7,7 +7,7 @@
 | [Docs](index.html) | diesen Wegweiser | `README.md` |
 | [Specs](specs.html) | je Funktion Absicht, Regeln und Entscheidungen, mit Schaubildern | `specs.md` |
 | [Journeys](journeys.html) | die Kernjourneys mit Zweck, Schrittkette und verlinkter Akzeptanz | Kapitel „Kernjourneys“ von `specs.md` |
-| [UI-Elements](ui-elements.html) | jede UI-Komponente und jedes Format genau einmal, als echte Komponente | `scripts/uiCatalogDemos.tsx`, `scripts/uiCatalogPatterns.html` |
+| [UI-Elements](ui-elements.html) | jede UI-Komponente und jedes Format genau einmal, als echte Komponente | `scripts/uiCatalogDemos.tsx` |
 | [Kartenbausteine](card-types.html) | alle Renderer-Fälle mit Erstellungsweg | dieselben Demos und CoRe-Modellhelfer |
 | [KI-Eval](ai-eval.html) | den besten gemessenen Prompt je Anfragetyp und den Verlauf aller Läufe | `ai-eval.md`, `fixtures/ai-eval/ledger.json` |
 
@@ -44,7 +44,7 @@ Technische Einstiege außerhalb von `docs/`:
 
 1. Eine Änderung nur in der Quelle ihrer Rolle vornehmen; andere Dokumente verlinken.
 2. UI-Änderungen in den App-Quellen umsetzen und die betroffenen Demos in
-   `scripts/uiCatalogDemos.tsx` bzw. `scripts/uiCatalogPatterns.html` mitziehen.
+   `scripts/uiCatalogDemos.tsx` mitziehen.
 3. `npm run docs:build` erzeugt die Leseseiten, `npm run check:docs` prüft
    Quellenstand, Verweise, Journey-Regeln und die Zuordnung aller exportierten
    UI-Komponenten zu Demos. HTML-Dateien nie direkt bearbeiten.
