@@ -43,8 +43,8 @@ function SortHeader({ field, label, sort, onChange, leading }: {
   );
   return (
     <th scope="col" aria-sort={active ? (sort.direction === "asc" ? "ascending" : "descending") : "none"} className={`min-w-0 ${headerPadding} ${rightAligned ? "text-right" : "text-left"}`}>
-      {/* The leading control sits on the axis of the rows' checkboxes. */}
-      {leading ? <div className="flex h-[var(--core-card-table-header-height)] min-w-0 items-center gap-2.5">{leading}{button}</div> : button}
+      {/* The leading control sits on the axis of the rows' checkboxes, about one box width before the label. */}
+      {leading ? <div className="flex h-[var(--core-card-table-header-height)] min-w-0 items-center gap-[1.625rem]">{leading}{button}</div> : button}
     </th>
   );
 }
