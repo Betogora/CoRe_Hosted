@@ -26,7 +26,6 @@ function SortHeader({ field, label, sort, onChange, leading }: {
   const rightAligned = field !== "sortField";
   // Matches the padding of the column's cells, so header and values share their edge.
   const headerPadding = field === "variants" ? "px-1 sm:pr-3" : rightAligned ? "px-1" : "px-2 sm:px-3 md:px-4";
-  const headerGap = rightAligned ? "gap-0.5" : "gap-1 sm:gap-2";
   const directionLabel = active && sort.direction === "desc" ? "absteigend" : "aufsteigend";
   const SortIcon = active && sort.direction === "desc" ? ArrowDown : ArrowUp;
 
@@ -34,7 +33,7 @@ function SortHeader({ field, label, sort, onChange, leading }: {
     <button
       type="button"
       onClick={() => onChange(field)}
-      className={`core-table-header-control flex w-full min-w-0 items-center ${headerGap} rounded-inset core-caption font-medium text-core-muted hover:text-core-text focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--core-border-interactive)] ${rightAligned ? "justify-end" : ""}`}
+      className={`core-table-header-control flex w-full min-w-0 items-center gap-0.5 rounded-inset core-caption font-medium text-core-muted hover:text-core-text focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--core-border-interactive)] ${rightAligned ? "justify-end" : ""}`}
       aria-label={`${label} ${directionLabel} sortieren`}
     >
       <span className="min-w-0 truncate">{label}</span>
