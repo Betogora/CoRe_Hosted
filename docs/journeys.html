@@ -5625,7 +5625,8 @@ button.core-steps-step {
        column-gap: var(--core-space-md);
   min-width: 0;
   min-height: var(--core-card-table-header-height);
-  padding-inline: var(--core-space-sm);
+  --core-card-selection-inset: var(--core-space-sm);
+  padding-inline: var(--core-card-selection-inset);
 }
 
 .core-card-selection-bar > button {
@@ -5635,6 +5636,15 @@ button.core-steps-step {
 .core-card-selection-bar > .core-card-selection-clear {
   /* On the rows' checkbox axis; the count starts where their text does (gap-2.5). */
   margin-inline-end: calc(0.625rem - var(--core-space-md));
+}
+
+.core-card-selection-bar > .core-card-selection-close {
+  width: var(--core-card-table-header-height);
+  min-width: 0;
+  height: var(--core-card-table-header-height);
+  padding: 0;
+  /* The 16 px icon ends where the variants column ends (its cells: 4 px, from sm 12 px inset). */
+  margin-inline-end: calc((1rem - var(--core-card-table-header-height)) / 2 + 0.25rem - var(--core-card-selection-inset));
 }
 
 .core-card-selection-bar > .core-card-selection-actions {
@@ -5647,13 +5657,17 @@ button.core-steps-step {
 
 @media (min-width: 640px) {
   .core-card-selection-bar {
-    padding-inline: var(--core-space-md);
+    --core-card-selection-inset: var(--core-space-md);
+  }
+
+  .core-card-selection-bar > .core-card-selection-close {
+    margin-inline-end: calc((1rem - var(--core-card-table-header-height)) / 2 + 0.75rem - var(--core-card-selection-inset));
   }
 }
 
 @media (min-width: 768px) {
   .core-card-selection-bar {
-    padding-inline: var(--core-space-lg);
+    --core-card-selection-inset: var(--core-space-lg);
   }
 }
 
