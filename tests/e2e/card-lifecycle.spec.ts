@@ -583,7 +583,13 @@ test("[Vertrag: Treffer lernen zieht nicht fällige Karten vor, Nur üben schrei
   const studied = (await readActiveAccountState(page)).decks.find((candidate: { id: string }) => candidate.id === deck.id)!.cards[0].study;
   await openHits("Nur üben");
   const practice = page.getByRole("dialog", { name: "Nur üben" });
-  await practice.getByRole("button", { name: "Antwort anzeigen" }).click();
+  // The closing start dialog returns the focus one frame later; it stays with the practice, so Space reveals instead
+  // of reopening the dialog.
+  await expect(practice).toBeVisible();
+  await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+  await expect(practice).toBeFocused();
+  await page.keyboard.press("Space");
+  await expect(page.getByRole("dialog", { name: "Treffer lernen" })).toHaveCount(0);
   await practice.getByRole("button", { name: "Bewertung Nochmal" }).click();
   await practice.getByRole("button", { name: "Antwort anzeigen" }).click();
   await practice.getByRole("button", { name: "Bewertung Gut" }).click();

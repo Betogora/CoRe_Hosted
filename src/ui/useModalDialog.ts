@@ -88,7 +88,12 @@ export function useModalDialog({
       document.removeEventListener("keydown", handleKeyDown);
       if (dialog) openDialogs.splice(openDialogs.indexOf(dialog), 1);
       const returnFocus = returnFocusRef?.current ?? fallbackReturnFocusRef.current;
-      window.requestAnimationFrame(() => returnFocus?.focus());
+      window.requestAnimationFrame(() => {
+        // What opened in the dialog's place, such as `Nur üben`, keeps the focus it took.
+        const active = document.activeElement;
+        if (active && active !== document.body && !dialog?.contains(active)) return;
+        returnFocus?.focus();
+      });
     };
   }, [open, returnFocusRef, stopEscapePropagation]);
 
