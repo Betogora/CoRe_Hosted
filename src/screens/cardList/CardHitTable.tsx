@@ -33,7 +33,7 @@ function SortHeader({ field, label, sort, onChange, leading }: {
     <button
       type="button"
       onClick={() => onChange(field)}
-      className={`core-table-header-control flex min-w-0 items-center justify-end gap-0.5 rounded-inset core-caption font-medium text-core-muted hover:text-core-text focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--core-border-interactive)] ${first ? "relative z-[1] ml-auto" : "w-full"}`}
+      className={`core-table-header-control flex min-w-0 items-center justify-end gap-0.5 rounded-inset core-caption font-medium text-core-muted hover:text-core-text focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--core-border-interactive)] ${first ? "ml-auto" : "w-full"}`}
       aria-label={`${label} ${directionLabel} sortieren`}
     >
       <span className="min-w-0 truncate">{label}</span>
@@ -221,25 +221,6 @@ export function CardHitTable({ items, rowOf, virtual, loading, searching, select
     toggledInHeader.current = false;
     theadRef.current?.querySelector<HTMLInputElement>(".core-checkbox input")?.focus();
   }, [barShown]);
-  // „Sortierfeld“ ends as far before „Datum“ as „Datum“ before „Variante“. The column widths and label lengths set
-  // that gap, so it is measured; the label moves into the empty start of the date column.
-  React.useLayoutEffect(() => {
-    const head = theadRef.current;
-    if (!head || barShown) return undefined;
-    const [sortLabel, dueLabel, variantLabel] = [...head.querySelectorAll<HTMLElement>(".core-table-header-control")];
-    if (!variantLabel) return undefined;
-    const edge = (control: HTMLElement, side: "left" | "right") => (side === "left" ? control.firstElementChild : control.lastElementChild)!.getBoundingClientRect()[side];
-    const place = () => {
-      sortLabel.style.translate = "";
-      const gap = edge(variantLabel, "left") - edge(dueLabel, "right");
-      sortLabel.style.translate = `${edge(dueLabel, "left") - gap - edge(sortLabel, "right")}px`;
-    };
-    place();
-    const observer = new ResizeObserver(place);
-    // The labels themselves change width when the web font arrives; the head changes with the columns.
-    for (const element of [head, sortLabel, dueLabel.firstElementChild!, variantLabel.firstElementChild!]) observer.observe(element);
-    return () => observer.disconnect();
-  }, [barShown, tableShown]);
   const [mobileHeaderHeight, setMobileHeaderHeight] = React.useState(0);
   React.useEffect(() => {
     const header = document.querySelector<HTMLElement>('[data-navigation-layout="mobile-header"]');

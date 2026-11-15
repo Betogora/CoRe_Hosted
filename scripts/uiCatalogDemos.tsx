@@ -211,8 +211,8 @@ function StructureDemo({ section }: { section: string }) {
   const [dialogTab, setDialogTab] = useState<"content" | "study">("content");
   const toast = useSuccessToast();
   return <>
-    {section === "struktur" && <Demo title="SectionHeader · mit Zähler und Aktionen, daneben ohne" wide><div className="catalog-two">
-      <SoftPanel className="p-5"><SectionHeader level={3} title="Aktive Stapel" count={8} action={<><CrossLinkButton onSelect={() => toast("Alle eingeklappt.")}>Alle einklappen</CrossLinkButton><CoreIconSegmentedControl ariaLabel="Stapelansicht" value={view} options={[{ value: "tiles", label: "Als Kacheln anzeigen", icon: Grid2x2 }, { value: "list", label: "Als Liste anzeigen", icon: List }]} onValueChange={setView} /></>} /></SoftPanel>
+    {section === "struktur" && <Demo title="SectionHeader · mit Zähler und Aktion, daneben ohne" wide><div className="catalog-two">
+      <SoftPanel className="p-5"><SectionHeader level={3} title="Aktive Stapel" count={8} action={<CoreIconSegmentedControl ariaLabel="Stapelansicht" value={view} options={[{ value: "tiles", label: "Als Kacheln anzeigen", icon: Grid2x2 }, { value: "list", label: "Als Liste anzeigen", icon: List }]} onValueChange={setView} />} /></SoftPanel>
       <SoftPanel className="p-5"><SectionHeader level={3} title="Lernaktivität" action={<IconButton variant="ghost" label="Statistik öffnen" icon={ArrowUpRight} />} /><p className="core-body text-core-secondary">Gleiche Höhe und Grundlinie wie der Kopf daneben.</p></SoftPanel>
     </div></Demo>}
     {section === "struktur" && <Demo title="Steps · auswählbar, gestreckt und laufend" wide><div className="grid gap-6">
