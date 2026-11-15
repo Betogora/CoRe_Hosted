@@ -504,8 +504,9 @@ test("[Vertrag: Massenaktion mit Rückgängig] @beta-core ausgewählte Karten we
   await page.getByTestId("card-selection-start").click();
   await page.getByTestId(`select-card-${deck.cards[0].id}`).click();
   // The X at the end of the bar ends selecting like the header checkbox.
-  await page.getByTestId("card-selection-close").click();
+  await page.getByTestId("card-selection-close").press("Enter");
   await expect(page.getByTestId("card-selection-bar")).toHaveCount(0);
+  await expect(page.getByTestId("card-selection-start"), "der Fokus bleibt im Kopf").toBeFocused();
   await expect(page.getByTestId(`select-card-${deck.cards[0].id}`)).toHaveCount(0);
   await page.getByTestId("card-selection-start").click();
   for (const card of deck.cards) await page.getByTestId(`select-card-${card.id}`).click();

@@ -262,6 +262,17 @@ test("[Vertrag: Kartenverwaltung] Kartenzeilen bleiben auch in schmalen Viewport
           const contentRight = (element: HTMLElement | undefined) => element ? element.getBoundingClientRect().right - parseFloat(window.getComputedStyle(element).paddingRight) : Number.NaN;
           return headers.map((header, index) => Math.abs((header.querySelector<HTMLElement>(".core-table-header-control")?.getBoundingClientRect().right ?? Number.NaN) - contentRight(cells[index])));
         })(),
+        // The date column just fits a date: the first column's text, the date and the variants' slots stand equally far apart.
+        valueGaps: (() => {
+          const firstCell = cardRows[0]?.querySelector<HTMLElement>("td");
+          const date = dueCells[0]?.firstChild;
+          if (!firstCell || !date || !variantLayouts[0]) return [Number.NaN, Number.NaN];
+          const range = document.createRange();
+          range.selectNodeContents(date);
+          const dateRect = range.getBoundingClientRect();
+          const textEnd = firstCell.getBoundingClientRect().right - parseFloat(window.getComputedStyle(firstCell).paddingRight);
+          return [dateRect.left - textEnd, variantLayouts[0].getBoundingClientRect().left - dateRect.right];
+        })(),
         dueLabels: dueCells.map((cell) => cell?.textContent?.trim()),
         dueLabelsFit: dueCells.every((cell) => fitsWithin(cell)),
         variantLabels: variantTags.map((tag) => tag?.getAttribute("aria-label")),
@@ -285,6 +296,7 @@ test("[Vertrag: Kartenverwaltung] Kartenzeilen bleiben auch in schmalen Viewport
     expect(geometry.headersFit).toBe(true);
     for (const offset of geometry.headerRightOffsets) expect(offset, "Sortierkopf schließt rechtsbündig mit seiner Spalte").toBeLessThanOrEqual(1);
     expect(geometry.dueLabels).toEqual(["23.08.2026", "Neu"]);
+    expect(Math.abs(geometry.valueGaps[0] - geometry.valueGaps[1]), "Text, Datum und Varianten stehen gleich weit auseinander").toBeLessThanOrEqual(1);
     expect(geometry.dueLabelsFit).toBe(true);
     expect(geometry.variantLabels).toEqual([null, "1 aktive Variante"]);
     expect(geometry.variantTagsFit).toBe(true);

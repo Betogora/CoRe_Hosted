@@ -25,7 +25,7 @@ function SortHeader({ field, label, sort, onChange, leading }: {
   const active = sort.field === field;
   const first = field === "sortField";
   // Matches the padding of the column's cells, so header and values share their edge.
-  const headerPadding = field === "variants" ? "px-1 sm:pr-3" : first ? "px-2 sm:px-3 md:px-4" : "px-1";
+  const headerPadding = field === "variants" ? "px-1 sm:pr-3" : first ? "pl-2 pr-4 sm:pl-3 md:pl-4" : "px-1";
   const directionLabel = active && sort.direction === "desc" ? "absteigend" : "aufsteigend";
   const SortIcon = active && sort.direction === "desc" ? ArrowDown : ArrowUp;
 
@@ -111,7 +111,7 @@ const CardTableRowView = React.memo(function CardTableRowView({ virtualKey, deck
       data-suspended={suspended ? "true" : undefined}
       data-card-row="true"
     >
-      <td className="min-w-0 px-2 py-1 align-middle sm:px-3 md:px-4">
+      <td className="min-w-0 py-1 pl-2 pr-4 align-middle sm:pl-3 md:pl-4">
         <div className="flex min-w-0 items-start gap-2.5">
         {selecting ? (
           <CoreCheckbox
@@ -210,7 +210,7 @@ export function CardHitTable({ items, rowOf, virtual, loading, searching, select
   onToggleCheck: (cardId: string, range: boolean) => void;
 }) {
   // Below xl the page scrolls under the sticky mobile header, so the table header sticks right beneath it.
-  // The header's checkbox swaps the sort header and the selection bar; the checkbox in its place takes the focus.
+  // The header's checkbox (or the bar's X) swaps the sort header and the selection bar; the checkbox in its place takes the focus.
   const theadRef = React.useRef<HTMLTableSectionElement>(null);
   const toggledInHeader = React.useRef(false);
   const barShown = Boolean(selectionBar);
@@ -233,11 +233,12 @@ export function CardHitTable({ items, rowOf, virtual, loading, searching, select
   <table className="w-full table-fixed border-collapse" data-testid="card-library-table" aria-busy={loading || undefined} aria-rowcount={items.length}>
       <colgroup>
         <col />
-        <col className="w-[5.5rem] sm:w-[5.75rem]" />
+        {/* The date column just fits a date, so deck path, date and the variants' slots stand equally far apart. */}
+        <col className="w-[5.3125rem]" />
         <col className="w-20 sm:w-[5.5rem]" />
       </colgroup>
       {/* From xl the screen region scrolls; its top padding (xl:py-10 in App) would otherwise hold the header 40 px low. */}
-      <thead ref={theadRef} onChangeCapture={(event) => { toggledInHeader.current = event.target instanceof HTMLInputElement && event.target.type === "checkbox" && event.currentTarget.contains(event.target); }} className="sticky top-[var(--core-card-table-sticky-top)] z-10 bg-core-surface xl:-top-10" style={{ "--core-card-table-sticky-top": `${mobileHeaderHeight}px` } as React.CSSProperties}>
+      <thead ref={theadRef} onChangeCapture={(event) => { toggledInHeader.current = event.target instanceof HTMLInputElement && event.target.type === "checkbox" && event.currentTarget.contains(event.target); }} onClickCapture={(event) => { if (event.target instanceof Element && event.target.closest(".core-card-selection-close")) toggledInHeader.current = true; }} className="sticky top-[var(--core-card-table-sticky-top)] z-10 bg-core-surface xl:-top-10" style={{ "--core-card-table-sticky-top": `${mobileHeaderHeight}px` } as React.CSSProperties}>
         {selectionBar ? (
           <tr className="core-card-table-header border-b border-core-border">
             <th scope="col" colSpan={3} className="p-0 text-left font-normal">

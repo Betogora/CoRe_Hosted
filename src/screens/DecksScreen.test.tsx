@@ -391,7 +391,7 @@ test("cards page lists every card of every deck as one flat sortable list withou
   assert.match(markup, /aria-sort="ascending"/);
   assert.doesNotMatch(markup, /aria-label="Lernstand für|aria-label="Gesamtfortschritt für|data-deck-count=|data-donut-/);
   assert.doesNotMatch(markup, /min-w-\[46rem\]|overflow-x-auto|sticky left-0 w-\[calc\(100dvw/);
-  assert.match(markup, /<col class="w-\[5\.5rem\] sm:w-\[5\.75rem\]"\/><col class="w-20 sm:w-\[5\.5rem\]"\/>/);
+  assert.match(markup, /<col class="w-\[5\.3125rem\]"\/><col class="w-20 sm:w-\[5\.5rem\]"\/>/);
   assert.match(markup, /aria-label="Sortierfeld aufsteigend sortieren"/);
   assert.match(markup, /<tr class="core-card-table-header border-b border-core-border">/, "Kopfzeile und Auswahlleiste teilen eine Höhe");
   assert.match(markup, /<div class="min-w-0 max-w-full overflow-clip rounded-panel border border-core-border bg-core-surface" data-testid="card-library-sheet"><table/, "die Tabelle ist ein Blatt ohne zweiten Rahmen");
@@ -413,7 +413,7 @@ test("cards page lists every card of every deck as one flat sortable list withou
   assert.match(markup, /Was ist ATP\?/, "auch ohne Suche stehen alle Karten in der Liste");
   assert.doesNotMatch(markup, /<b>/);
   assert.match(markup, /<tr[^>]*class="cursor-pointer border-b border-core-border[^"]*"[^>]*data-card-row="true"/);
-  assert.match(markup, /<td class="min-w-0 px-2 py-1 align-middle/, "die kompakte Zeilenhöhe von vor der ToolBox-Gestaltung");
+  assert.match(markup, /<td class="min-w-0 py-1 pl-2 pr-4 align-middle/, "die kompakte Zeilenhöhe von vor der ToolBox-Gestaltung");
   assert.match(markup, />Biologie<\/span>/, "die Zeile nennt ihren Stapel");
   assert.doesNotMatch(markup, /Mit Varianten|Ohne Varianten|lucide-minus/);
   assert.match(markup, /<span class="grid size-\[1\.125rem\] place-items-center"><\/span><span class="min-w-4 text-right[^"]*"><\/span>/, "ohne Variante bleibt der Platz am Spaltenende leer, Flagge und Stern stehen davor");
