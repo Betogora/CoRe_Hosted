@@ -1,5 +1,5 @@
 import React from "react";
-import { ArrowDown, ArrowUp, Layers, Minus, Search, Star } from "lucide-react";
+import { ArrowDown, ArrowUp, Layers, Search, Star } from "lucide-react";
 import type { CardTableSort, CardTableSortField } from "../../libraryModel.ts";
 import type { CardCatalogEntry, NoteGraph } from "../../workspaceReplica.ts";
 import { FlagDot } from "../../ui/flagUi.tsx";
@@ -156,9 +156,8 @@ const CardTableRowView = React.memo(function CardTableRowView({ virtualKey, deck
           <span className="grid size-[1.125rem] place-items-center">
             {marked ? <Star size={18} fill="currentColor" className="text-core-warning" role="img" aria-label="Markiert" /> : null}
           </span>
-          {card.activeVariantCount > 0
-            ? <span className="min-w-4 text-right core-body font-semibold tabular-nums text-core-text" aria-label={card.activeVariantCount === 1 ? "1 aktive Variante" : `${card.activeVariantCount} aktive Varianten`}>{card.activeVariantCount}</span>
-            : <Minus size={16} className="shrink-0 text-core-muted" role="img" aria-label="Keine Variante" />}
+          {/* Without variants the slot stays empty, so the few cards with variants stand out. */}
+          <span className="min-w-4 text-right core-body font-semibold tabular-nums text-core-text" aria-label={card.activeVariantCount ? card.activeVariantCount === 1 ? "1 aktive Variante" : `${card.activeVariantCount} aktive Varianten` : undefined}>{card.activeVariantCount || null}</span>
         </span>
       </td>
     </tr>
@@ -235,7 +234,7 @@ export function CardHitTable({ items, rowOf, virtual, loading, searching, select
       <colgroup>
         <col />
         <col className="w-[5.5rem] sm:w-[5.75rem]" />
-        <col className="w-20" />
+        <col className="w-20 sm:w-[5.5rem]" />
       </colgroup>
       {/* From xl the screen region scrolls; its top padding (xl:py-10 in App) would otherwise hold the header 40 px low. */}
       <thead ref={theadRef} onChangeCapture={(event) => { toggledInHeader.current = event.target instanceof HTMLInputElement && event.target.type === "checkbox" && event.currentTarget.contains(event.target); }} className="sticky top-[var(--core-card-table-sticky-top)] z-10 bg-core-surface xl:-top-10" style={{ "--core-card-table-sticky-top": `${mobileHeaderHeight}px` } as React.CSSProperties}>
@@ -261,7 +260,7 @@ export function CardHitTable({ items, rowOf, virtual, loading, searching, select
               ) : null}
             />
             <SortHeader field="nextStudyDate" label="Datum" sort={sort} onChange={onSort} />
-            <SortHeader field="variants" label="Variante" sort={sort} onChange={onSort} />
+            <SortHeader field="variants" label="Varianten" sort={sort} onChange={onSort} />
           </tr>
         )}
         {loading ? (

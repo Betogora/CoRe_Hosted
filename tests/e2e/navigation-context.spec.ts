@@ -280,13 +280,13 @@ test("[Vertrag: Kartenverwaltung] Kartenzeilen bleiben auch in schmalen Viewport
     expect(geometry.documentFitsViewport).toBe(true);
     expect(geometry.sortFieldOverflow).toBe("ellipsis");
     expect(geometry.sortFieldWhiteSpace).toBe("nowrap");
-    expect(geometry.headerLabels).toEqual(["Sortierfeld", "Datum", "Variante"]);
-    expect(geometry.headerAccessibleNames).toEqual(["Sortierfeld aufsteigend sortieren", "Datum aufsteigend sortieren", "Variante aufsteigend sortieren"]);
+    expect(geometry.headerLabels).toEqual(["Sortierfeld", "Datum", "Varianten"]);
+    expect(geometry.headerAccessibleNames).toEqual(["Sortierfeld aufsteigend sortieren", "Datum aufsteigend sortieren", "Varianten aufsteigend sortieren"]);
     expect(geometry.headersFit).toBe(true);
     for (const offset of geometry.headerRightOffsets) expect(offset, "Sortierkopf schließt rechtsbündig mit seiner Spalte").toBeLessThanOrEqual(1);
     expect(geometry.dueLabels).toEqual(["23.08.2026", "Neu"]);
     expect(geometry.dueLabelsFit).toBe(true);
-    expect(geometry.variantLabels).toEqual(["Keine Variante", "1 aktive Variante"]);
+    expect(geometry.variantLabels).toEqual([null, "1 aktive Variante"]);
     expect(geometry.variantTagsFit).toBe(true);
     expect(geometry.variantTagsAligned).toBe(true);
     expect(geometry.markSlotWidths).toEqual([18, 18]);
