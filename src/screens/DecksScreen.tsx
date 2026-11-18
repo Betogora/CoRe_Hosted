@@ -26,11 +26,9 @@ import { useCardSelection } from "./cardList/useCardSelection.ts";
 import { DuplicatesDialog } from "./cardList/DuplicatesDialog.tsx";
 import { TagManagerDialog } from "./cardList/TagManagerDialog.tsx";
 import { renameDirectoryTag } from "../tagDirectory.ts";
-import { HitPractice } from "./cardList/HitPractice.tsx";
 import type { DuplicateKey } from "../duplicateContents.ts";
-import { HitStudyDialog } from "./cardList/HitStudyDialog.tsx";
-import type { Card, Note } from "../coreTypes.ts";
-import { hitStudyQuery, orderHits, type HitStudyMode, type HitStudyOrder } from "../hitStudySession.ts";
+import { HitStudyFlow } from "./cardList/HitStudyFlow.tsx";
+import { hitStudyQuery } from "../hitStudySession.ts";
 import type { CardBatchAction } from "../cardBatchActions.ts";
 import { CardEditorDialog, cardEditorFrameClass, type CardEditorHitNavigation } from "./cardEditor/CardEditorDialog.tsx";
 import { DeckSubstacksPanel } from "./DeckSubstacksPanel.tsx";
@@ -72,6 +70,7 @@ export function DecksScreen({
   learningContentCloud = null,
   onGenerateSummary,
   onStartDeck,
+  onPracticeDeck,
   contentDeckId = null,
   contentTab: requestedContentTab = "children",
   onOpenDeckContent,
@@ -371,13 +370,6 @@ export function DecksScreen({
   // `Treffer lernen` (KV5) studies the hits or the selection without suspended and buried cards.
   const [hitStudy, setHitStudy] = React.useState<"hits" | "selection" | null>(null);
   const canStudyHits = Boolean(onStudyHits && onLoadPracticeCards && onListHitCardIds);
-  const [practiceBodies, setPracticeBodies] = React.useState<Array<{ card: Card; note: Note }> | null>(null);
-  async function startHitStudy(cardIds: string[], order: HitStudyOrder, mode: HitStudyMode) {
-    if (mode === "advance") return onStudyHits!(cardIds, order);
-    const bodies = await onLoadPracticeCards!(cardIds);
-    if (!bodies.length) throw new Error("Diese Karten sind erst online verfügbar.");
-    setPracticeBodies(orderHits(bodies, order));
-  }
   const loadHitStudyIds = useStableCallback(async () => {
     const ids = await onListHitCardIds!({ deckIds: hitScope, query: hitStudyQuery(deferredQuery), searchContext, sort: cardSort });
     return hitStudy === "selection" && !allHits ? ids.filter((id) => checkedIds.has(id)) : ids;
@@ -579,7 +571,7 @@ export function DecksScreen({
   const content = contentDeckId && contentTab === "children" ? (
     contentRow && contentLibrary ? contentRow.hasChildren ? <DeckSubstacksPanel key={contentRow.id} rows={contentLibrary.rows} current={contentRow}
       onOpenDeck={(id) => onOpenDeckContent(id, "children")}
-      onStudy={onStartDeck} onOpenSettings={onOpenDeckSettings} onSetCoreMode={onSetDeckCoreMode} onMoveDeck={onMoveDeck} />
+      onStudy={onStartDeck} onPractice={onPracticeDeck} onOpenSettings={onOpenDeckSettings} onSetCoreMode={onSetDeckCoreMode} onMoveDeck={onMoveDeck} />
       : <DeckContentPlaceholder label="Unterstapel" icon={Layers} title="Keine Unterstapel" testId="deck-content-substacks"
         action={<ActionButton variant="secondary" icon={Play} disabled={!hasStudyCards} onClick={() => onStartDeck(contentRow.deck)}>Karten lernen</ActionButton>} />
       : <EmptyState icon={Layers} title="Stapel nicht gefunden oder nicht verfügbar." />
@@ -623,10 +615,12 @@ export function DecksScreen({
           ) : null}
         </CardSearchBar>
         {hitStudy ? (
-          <HitStudyDialog
+          <HitStudyFlow
             title={hitStudy === "selection" ? "Auswahl lernen" : "Treffer lernen"}
             loadCardIds={loadHitStudyIds}
-            onStart={startHitStudy}
+            onStudy={onStudyHits}
+            loadPracticeCards={onLoadPracticeCards!}
+            mediaStore={mediaStore}
             onClose={() => setHitStudy(null)}
           />
         ) : null}
@@ -663,7 +657,6 @@ export function DecksScreen({
             onClose={() => setDuplicatesOpen(false)}
           />
         ) : null}
-        {practiceBodies ? <HitPractice bodies={practiceBodies} mediaStore={mediaStore} onClose={() => setPracticeBodies(null)} /> : null}
         {deckStatus ? <p className={"core-body font-semibold " + (deckStatusType === "alert" ? "core-status-error" : "core-status-info")} role={deckStatusType}>{deckStatus}</p> : null}
         {deletedCardUndo ? (
           <div className="flex flex-wrap items-center gap-3 rounded-panel border border-core-border bg-core-subtle px-4 py-3">

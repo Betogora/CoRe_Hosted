@@ -6,18 +6,23 @@ import { DialogFrame } from "../../ui/DialogFrame.tsx";
 import { cardCount } from "./cardListModel.ts";
 
 export interface HitStudyDialogProps {
-  /** `Treffer lernen` or `Auswahl lernen`. */
+  /** `Treffer lernen`, `Auswahl lernen` or `Alle Karten frei üben`. */
   title: string;
+  /** Deck whose cards are only practised: the dialog names it and offers no `Vorziehen`. */
+  practiceDeckName?: string;
   /** Ids of the cards to study, without suspended and buried ones. */
   loadCardIds: () => Promise<string[]>;
+  /** Starts the study; the caller closes or replaces the dialog. */
   onStart: (cardIds: string[], order: HitStudyOrder, mode: HitStudyMode) => Promise<void>;
   onClose: () => void;
+  returnFocusRef?: React.RefObject<HTMLElement | null>;
 }
 
 /** Start dialog of `Treffer lernen` (KV5): names the cards, `Vorziehen` or `Nur üben` and the order. */
-export function HitStudyDialog({ title, loadCardIds, onStart, onClose }: HitStudyDialogProps) {
+export function HitStudyDialog({ title, practiceDeckName, loadCardIds, onStart, onClose, returnFocusRef }: HitStudyDialogProps) {
+  const practiceOnly = practiceDeckName !== undefined;
   const [cardIds, setCardIds] = React.useState<string[] | null>(null);
-  const [mode, setMode] = React.useState<HitStudyMode>("advance");
+  const [mode, setMode] = React.useState<HitStudyMode>(practiceOnly ? "practice" : "advance");
   const [order, setOrder] = React.useState<HitStudyOrder>("list");
   const [error, setError] = React.useState("");
   const [starting, setStarting] = React.useState(false);
@@ -36,7 +41,6 @@ export function HitStudyDialog({ title, loadCardIds, onStart, onClose }: HitStud
     setError("");
     try {
       await onStart(cardIds, order, mode);
-      onClose();
     } catch (failure) {
       setError(failure instanceof Error ? failure.message : "Das Lernen konnte nicht starten.");
     } finally {
@@ -44,38 +48,42 @@ export function HitStudyDialog({ title, loadCardIds, onStart, onClose }: HitStud
     }
   }
 
+  const verb = practiceOnly ? "üben" : "lernen";
   return (
     <DialogFrame
       open
       title={title}
       size="s"
       onClose={onClose}
+      returnFocusRef={returnFocusRef}
       footer={(
         <>
           <ActionButton variant="secondary" disabled={starting} onClick={onClose}>Abbrechen</ActionButton>
-          <ActionButton variant="primary" loading={starting} disabled={starting} onClick={() => void start()}>Lernen</ActionButton>
+          <ActionButton variant="primary" loading={starting} disabled={starting || !cardIds?.length} onClick={() => void start()}>{practiceOnly ? "Üben" : "Lernen"}</ActionButton>
         </>
       )}
     >
         <div className="grid gap-4" data-testid="hit-study-dialog">
           <p className="core-body text-core-secondary" aria-live="polite">
-            {cardIds === null ? "Karten werden gezählt …" : cardIds.length ? <><strong className="font-semibold text-core-text">{cardCount(cardIds.length)}</strong> lernen, unabhängig von Fälligkeit und Tageslimits.</> : "Keine Karte zum Lernen"}
+            {cardIds === null ? "Karten werden gezählt …" : cardIds.length ? <><strong className="font-semibold text-core-text">{cardCount(cardIds.length)}</strong>{practiceOnly ? ` aus „${practiceDeckName}“` : ""} {verb}, unabhängig von Fälligkeit und Tageslimits.</> : `Keine Karte zum ${practiceOnly ? "Üben" : "Lernen"}`}
           </p>
-          <div className="core-field-group"><span className="core-field-label" aria-hidden="true">Lernweg</span>
-            <CoreSegmentedControl<HitStudyMode>
-              ariaLabel="Lernweg"
-              className="w-full"
-              value={mode}
-              options={[{ value: "advance", label: "Vorziehen" }, { value: "practice", label: "Nur üben" }]}
-              onValueChange={setMode}
-            />
-          </div>
+          {practiceOnly ? null : (
+            <div className="core-field-group"><span className="core-field-label" aria-hidden="true">Lernweg</span>
+              <CoreSegmentedControl<HitStudyMode>
+                ariaLabel="Lernweg"
+                className="w-full"
+                value={mode}
+                options={[{ value: "advance", label: "Vorziehen" }, { value: "practice", label: "Nur üben" }]}
+                onValueChange={setMode}
+              />
+            </div>
+          )}
           <div className="core-field-group"><span className="core-field-label" aria-hidden="true">Reihenfolge</span>
             <CoreSegmentedControl<HitStudyOrder>
               ariaLabel="Reihenfolge"
               className="w-full"
               value={order}
-              options={[{ value: "list", label: "Wie die Liste" }, { value: "shuffled", label: "Gemischt" }]}
+              options={[{ value: "list", label: "Wie im Stapel" }, { value: "shuffled", label: "Gemischt" }]}
               onValueChange={setOrder}
             />
           </div>
