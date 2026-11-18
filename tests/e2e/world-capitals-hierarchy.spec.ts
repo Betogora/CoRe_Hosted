@@ -724,8 +724,6 @@ test("unlimited logical hierarchy keeps deep drag, subtree moves, dialogs and vi
 
   // Touch moves through the confirmed dialog of the deck menu in Lernen; the card management has no deck rows (KV3b).
   await page.setViewportSize({ width: 390, height: 844 });
-  const expandAll = page.getByRole("button", { name: "Alle aufklappen" });
-  if (await expandAll.count()) await expandAll.first().click();
   await page.getByTestId(`deck-options-${DEEP_DECK_IDS.leaf}`).click();
   await page.getByTestId(`deck-options-menu-${DEEP_DECK_IDS.leaf}`).getByRole("button", { name: "Verschieben" }).click();
   await page.getByRole("combobox", { name: "Ziel für Tiefes Blatt" }).click();

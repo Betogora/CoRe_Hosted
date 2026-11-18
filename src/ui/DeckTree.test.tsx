@@ -133,8 +133,6 @@ test("deck tree keeps the compact summary order across dashboard and learning", 
   }
   assert.match(learning, /aria-label="Bereich \/ Grundlagen lernen"/);
   assert.doesNotMatch(learning, /aria-pressed=|data-selected=/);
-  assert.match(learning, />Alle einklappen</);
-  assert.doesNotMatch(dashboard, /Alle einklappen|Alle aufklappen/);
 });
 
 test("deck tree groups every main deck with its subdecks without a tinted surface", () => {
@@ -148,7 +146,6 @@ test("deck tree groups every main deck with its subdecks without a tinted surfac
 
   assert.equal((markup.match(/aria-label="Stapelgruppe [^"]+" data-deck-group=/g) ?? []).length, 2);
   assert.match(markup, /<section class="core-deck-tree-group" aria-label="Stapelgruppe Bereich" data-deck-group="root">/);
-  assert.match(markup, />Alle aufklappen</);
   assert.doesNotMatch(markup, /Hauptstapel<|Unterstapel<\/span>/);
 });
 
@@ -169,7 +166,7 @@ test("deck tree tiles show main decks as tiles with study and options beside the
   assert.match(markup, /aria-label="Bereich lernen"/);
   assert.match(markup, /Stapeloptionen für Bereich/);
   for (const label of ["Neu", "Offen", "Fällig"]) assert.match(markup, new RegExp(`<dt class="(?![^"]*sr-only)[^"]*">${label}</dt>`));
-  assert.doesNotMatch(markup, /learn-deck-row-child|deck-summary-header|Alle einklappen|learn-deck-folder-panel/);
+  assert.doesNotMatch(markup, /learn-deck-row-child|deck-summary-header|learn-deck-folder-panel/);
 });
 
 test("deck tree content mode shows one branch with its opened deck as group head", () => {

@@ -26,10 +26,7 @@ export function DeckSubstacksPanel({ rows, current, onOpenDeck, onStudy, onPract
         rootDeckIds={rootDeckIds}
         mode="content"
         collapsedDeckIds={collapsedDeckIds}
-        onDeckExpansionChange={(deckId, expanded) => setCollapsedDeckIds((previous) => {
-          const deckIds: readonly string[] = typeof deckId === "string" ? [deckId] : deckId;
-          return expanded ? previous.filter((id) => !deckIds.includes(id)) : [...new Set([...previous, ...deckIds])];
-        })}
+        onDeckExpansionChange={(deckId, expanded) => setCollapsedDeckIds((previous) => expanded ? previous.filter((id) => id !== deckId) : [...new Set([...previous, deckId])])}
         onActivate={(row) => onOpenDeck(row.id)}
         onStudy={(row) => onStudy(row.deck)}
         onPractice={onPractice && ((row, returnFocus) => onPractice(row.deck, returnFocus))}

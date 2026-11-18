@@ -64,15 +64,13 @@ export function normalizeUiPreferences(value: unknown): UiPreferences {
 export function setDeckExpanded(
   value: unknown,
   surface: DeckExpansionSurface,
-  deckId: string | readonly string[],
+  deckId: string,
   expanded: boolean,
 ): UiPreferences {
   const preferences = normalizeUiPreferences(value);
   const key = surface === "dashboard" ? "dashboardCollapsedDeckIds" : "learnCollapsedDeckIds";
   const ids = new Set(preferences[key]);
-  for (const id of typeof deckId === "string" ? [deckId] : deckId) {
-    if (!expanded) ids.add(id);
-    else ids.delete(id);
-  }
+  if (expanded) ids.delete(deckId);
+  else ids.add(deckId);
   return { ...preferences, [key]: [...ids] };
 }

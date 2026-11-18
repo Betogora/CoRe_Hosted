@@ -1,5 +1,5 @@
 import React from "react";
-import { ArrowDown, ArrowUp, Layers, Minus, Search, Star } from "lucide-react";
+import { ArrowDown, ArrowUp, Layers, Search, Star } from "lucide-react";
 import type { CardTableSort, CardTableSortField } from "../../libraryModel.ts";
 import type { CardCatalogEntry, NoteGraph } from "../../workspaceReplica.ts";
 import { FlagDot } from "../../ui/flagUi.tsx";
@@ -14,18 +14,20 @@ export type CardListItem =
   | { kind: "card"; key: string; listKey: string; index: number };
 type CardHitRow = ReturnType<typeof createHitListModel>["cardRows"][number];
 
-function SortHeader({ field, label, sort, onChange, leading }: {
+function SortHeader({ field, label, sort, onChange, leading, children }: {
   field: CardTableSortField;
   label: string;
   sort: CardTableSort;
   onChange: (field: CardTableSortField) => void;
   /** Precedes the label at the start of the column, such as the checkbox that starts selecting. */
   leading?: React.ReactNode;
+  /** Follows the label, such as the invisible sample date that sizes the date column. */
+  children?: React.ReactNode;
 }) {
   const active = sort.field === field;
   const first = field === "sortField";
   // Matches the padding of the column's cells, so header and values share their edge.
-  const headerPadding = field === "variants" ? "px-1 sm:pr-3" : first ? "px-2 sm:px-3 md:px-4" : "px-1";
+  const headerPadding = field === "variants" ? "px-1 sm:pr-3" : first ? "px-2 sm:pl-3 sm:pr-4 md:pl-4" : "px-1";
   const directionLabel = active && sort.direction === "desc" ? "absteigend" : "aufsteigend";
   const SortIcon = active && sort.direction === "desc" ? ArrowDown : ArrowUp;
 
@@ -33,7 +35,7 @@ function SortHeader({ field, label, sort, onChange, leading }: {
     <button
       type="button"
       onClick={() => onChange(field)}
-      className={`core-table-header-control flex min-w-0 items-center justify-end gap-0.5 rounded-inset core-caption font-medium text-core-muted hover:text-core-text focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--core-border-interactive)] ${first ? "relative z-[1] ml-auto" : "w-full"}`}
+      className={`core-table-header-control flex min-w-0 items-center justify-end gap-0.5 rounded-inset core-caption font-medium text-core-muted hover:text-core-text focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--core-border-interactive)] ${first ? "ml-auto" : "w-full"}`}
       aria-label={`${label} ${directionLabel} sortieren`}
     >
       <span className="min-w-0 truncate">{label}</span>
@@ -43,7 +45,7 @@ function SortHeader({ field, label, sort, onChange, leading }: {
   return (
     <th scope="col" aria-sort={active ? (sort.direction === "asc" ? "ascending" : "descending") : "none"} className={`min-w-0 ${headerPadding} ${first ? "py-0 text-left" : "text-right"}`}>
       {/* The leading control sits on the axis of the rows' checkboxes; the label closes the column like the others. */}
-      {first ? <div className="flex h-[var(--core-card-table-header-height)] min-w-0 items-center gap-3">{leading}{button}</div> : button}
+      {first ? <div className="flex h-[var(--core-card-table-header-height)] min-w-0 items-center gap-3">{leading}{button}</div> : <>{button}{children}</>}
     </th>
   );
 }
@@ -111,7 +113,7 @@ const CardTableRowView = React.memo(function CardTableRowView({ virtualKey, deck
       data-suspended={suspended ? "true" : undefined}
       data-card-row="true"
     >
-      <td className="min-w-0 px-2 py-1 align-middle sm:px-3 md:px-4">
+      <td className="min-w-0 px-2 py-1 align-middle sm:pl-3 sm:pr-4 md:pl-4">
         <div className="flex min-w-0 items-start gap-2.5">
         {selecting ? (
           <CoreCheckbox
@@ -156,9 +158,8 @@ const CardTableRowView = React.memo(function CardTableRowView({ virtualKey, deck
           <span className="grid size-[1.125rem] place-items-center">
             {marked ? <Star size={18} fill="currentColor" className="text-core-warning" role="img" aria-label="Markiert" /> : null}
           </span>
-          {card.activeVariantCount > 0
-            ? <span className="min-w-4 text-right core-body font-semibold tabular-nums text-core-text" aria-label={card.activeVariantCount === 1 ? "1 aktive Variante" : `${card.activeVariantCount} aktive Varianten`}>{card.activeVariantCount}</span>
-            : <Minus size={16} className="shrink-0 text-core-muted" role="img" aria-label="Keine Variante" />}
+          {/* Without variants the slot stays empty, so the few cards with variants stand out. */}
+          <span className="min-w-4 text-right core-body font-semibold tabular-nums text-core-text" aria-label={card.activeVariantCount ? card.activeVariantCount === 1 ? "1 aktive Variante" : `${card.activeVariantCount} aktive Varianten` : undefined}>{card.activeVariantCount || null}</span>
         </span>
       </td>
     </tr>
@@ -211,8 +212,10 @@ export function CardHitTable({ items, rowOf, virtual, loading, searching, select
   onToggleCheck: (cardId: string, range: boolean) => void;
 }) {
   // Below xl the page scrolls under the sticky mobile header, so the table header sticks right beneath it.
-  // The header's checkbox swaps the sort header and the selection bar; the checkbox in its place takes the focus.
+  // The header's checkbox (or the bar's X) swaps the sort header and the selection bar; the checkbox in its place takes the focus.
   const theadRef = React.useRef<HTMLTableSectionElement>(null);
+  const dueColumnRef = React.useRef<HTMLTableColElement>(null);
+  const dueSampleRef = React.useRef<HTMLSpanElement>(null);
   const toggledInHeader = React.useRef(false);
   const barShown = Boolean(selectionBar);
   const tableShown = Boolean(items.length || loading);
@@ -221,23 +224,16 @@ export function CardHitTable({ items, rowOf, virtual, loading, searching, select
     toggledInHeader.current = false;
     theadRef.current?.querySelector<HTMLInputElement>(".core-checkbox input")?.focus();
   }, [barShown]);
-  // „Sortierfeld“ ends as far before „Datum“ as „Datum“ before „Variante“. The column widths and label lengths set
-  // that gap, so it is measured; the label moves into the empty start of the date column.
+  // Platforms round glyph widths differently, so the date column takes the rendered width of a date: the first
+  // column's deck path (from sm, where it shows), the date and the variants' slots then stand equally far apart; on
+  // phones the first column keeps its 8 px so „Auswählen“ and „Sortierfeld“ fit. The class width is the fallback.
   React.useLayoutEffect(() => {
-    const head = theadRef.current;
-    if (!head || barShown) return undefined;
-    const [sortLabel, dueLabel, variantLabel] = [...head.querySelectorAll<HTMLElement>(".core-table-header-control")];
-    if (!variantLabel) return undefined;
-    const edge = (control: HTMLElement, side: "left" | "right") => (side === "left" ? control.firstElementChild : control.lastElementChild)!.getBoundingClientRect()[side];
-    const place = () => {
-      sortLabel.style.translate = "";
-      const gap = edge(variantLabel, "left") - edge(dueLabel, "right");
-      sortLabel.style.translate = `${edge(dueLabel, "left") - gap - edge(sortLabel, "right")}px`;
-    };
-    place();
-    const observer = new ResizeObserver(place);
-    // The labels themselves change width when the web font arrives; the head changes with the columns.
-    for (const element of [head, sortLabel, dueLabel.firstElementChild!, variantLabel.firstElementChild!]) observer.observe(element);
+    const sample = dueSampleRef.current;
+    if (!sample) return undefined;
+    const fit = () => { if (dueColumnRef.current) dueColumnRef.current.style.width = `calc(${sample.getBoundingClientRect().width}px + 0.5rem)`; };
+    fit();
+    const observer = new ResizeObserver(fit);
+    observer.observe(sample);
     return () => observer.disconnect();
   }, [barShown, tableShown]);
   const [mobileHeaderHeight, setMobileHeaderHeight] = React.useState(0);
@@ -253,11 +249,11 @@ export function CardHitTable({ items, rowOf, virtual, loading, searching, select
   <table className="w-full table-fixed border-collapse" data-testid="card-library-table" aria-busy={loading || undefined} aria-rowcount={items.length}>
       <colgroup>
         <col />
-        <col className="w-[5.5rem] sm:w-[5.75rem]" />
-        <col className="w-20" />
+        <col ref={dueColumnRef} className="w-[5.5rem]" />
+        <col className="w-20 sm:w-[5.5rem]" />
       </colgroup>
       {/* From xl the screen region scrolls; its top padding (xl:py-10 in App) would otherwise hold the header 40 px low. */}
-      <thead ref={theadRef} onChangeCapture={(event) => { toggledInHeader.current = event.target instanceof HTMLInputElement && event.target.type === "checkbox" && event.currentTarget.contains(event.target); }} className="sticky top-[var(--core-card-table-sticky-top)] z-10 bg-core-surface xl:-top-10" style={{ "--core-card-table-sticky-top": `${mobileHeaderHeight}px` } as React.CSSProperties}>
+      <thead ref={theadRef} onChangeCapture={(event) => { toggledInHeader.current = event.target instanceof HTMLInputElement && event.target.type === "checkbox" && event.currentTarget.contains(event.target); }} onClickCapture={(event) => { if (event.target instanceof Element && event.target.closest(".core-card-selection-close")) toggledInHeader.current = true; }} className="sticky top-[var(--core-card-table-sticky-top)] z-10 bg-core-surface xl:-top-10" style={{ "--core-card-table-sticky-top": `${mobileHeaderHeight}px` } as React.CSSProperties}>
         {selectionBar ? (
           <tr className="core-card-table-header border-b border-core-border">
             <th scope="col" colSpan={3} className="p-0 text-left font-normal">
@@ -279,8 +275,10 @@ export function CardHitTable({ items, rowOf, virtual, loading, searching, select
                 </label>
               ) : null}
             />
-            <SortHeader field="nextStudyDate" label="Datum" sort={sort} onChange={onSort} />
-            <SortHeader field="variants" label="Variante" sort={sort} onChange={onSort} />
+            <SortHeader field="nextStudyDate" label="Datum" sort={sort} onChange={onSort}>
+              <span ref={dueSampleRef} aria-hidden="true" className="invisible block h-0 w-max overflow-hidden whitespace-nowrap core-body tabular-nums">00.00.0000</span>
+            </SortHeader>
+            <SortHeader field="variants" label="Varianten" sort={sort} onChange={onSort} />
           </tr>
         )}
         {loading ? (

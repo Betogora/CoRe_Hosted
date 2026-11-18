@@ -502,6 +502,13 @@ test("[Vertrag: Massenaktion mit Rückgängig] @beta-core ausgewählte Karten we
   const rows = page.locator("[data-card-row]");
   await expect(rows).toHaveCount(2);
   await page.getByTestId("card-selection-start").click();
+  await page.getByTestId(`select-card-${deck.cards[0].id}`).click();
+  // The X at the end of the bar ends selecting like the header checkbox.
+  await page.getByTestId("card-selection-close").press("Enter");
+  await expect(page.getByTestId("card-selection-bar")).toHaveCount(0);
+  await expect(page.getByTestId("card-selection-start"), "der Fokus bleibt im Kopf").toBeFocused();
+  await expect(page.getByTestId(`select-card-${deck.cards[0].id}`)).toHaveCount(0);
+  await page.getByTestId("card-selection-start").click();
   for (const card of deck.cards) await page.getByTestId(`select-card-${card.id}`).click();
   await expect(page.getByTestId("card-selection-bar")).toContainText("2 Karten ausgewählt");
   await page.getByTestId("card-selection-actions").click();

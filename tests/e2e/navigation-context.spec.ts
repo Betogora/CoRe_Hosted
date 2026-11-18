@@ -218,8 +218,6 @@ test("[Vertrag: Kartenverwaltung] Kartenzeilen bleiben auch in schmalen Viewport
     { width: 390, height: 844 },
   ]) {
     await page.setViewportSize(viewport);
-    // The header places „Sortierfeld“ from a ResizeObserver, which reports in the next rendering step.
-    await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))));
 
     const geometry = await page.evaluate(({ cardId }) => {
       const cardSortField = document.querySelector<HTMLElement>(`[data-testid="deck-card-${cardId}"]`);
@@ -257,13 +255,23 @@ test("[Vertrag: Kartenverwaltung] Kartenzeilen bleiben auch in schmalen Viewport
         headersDoNotOverlap: headerRects.every((rect, index) => index === 0 || rect.left >= headerRects[index - 1].right - 1),
         headerLabels: headerLabels.map((label) => label?.textContent?.trim()),
         headerAccessibleNames: headers.map((header) => header.querySelector(".core-table-header-control")?.getAttribute("aria-label")),
-        // „Sortierfeld“ moves into the empty start of the date column; the labels themselves are never cut.
         headersFit: headerLabels.every((label) => Boolean(label) && label!.scrollWidth <= label!.clientWidth + 1),
-        sortGaps: (() => {
-          const controls = headers.map((header) => header.querySelector<HTMLElement>(".core-table-header-control"));
-          const left = (control: HTMLElement | null) => control?.firstElementChild?.getBoundingClientRect().left ?? Number.NaN;
-          const right = (control: HTMLElement | null) => control?.lastElementChild?.getBoundingClientRect().right ?? Number.NaN;
-          return [left(controls[1]) - right(controls[0]), left(controls[2]) - right(controls[1])];
+        // Every sort header closes its column at the content edge of the column's cells.
+        headerRightOffsets: (() => {
+          const cells = cardRow ? [...cardRow.querySelectorAll<HTMLElement>("td")] : [];
+          const contentRight = (element: HTMLElement | undefined) => element ? element.getBoundingClientRect().right - parseFloat(window.getComputedStyle(element).paddingRight) : Number.NaN;
+          return headers.map((header, index) => Math.abs((header.querySelector<HTMLElement>(".core-table-header-control")?.getBoundingClientRect().right ?? Number.NaN) - contentRight(cells[index])));
+        })(),
+        // The date column just fits a date: from sm the first column's text, the date and the variants' slots stand equally far apart.
+        valueGaps: (() => {
+          const firstCell = cardRows[0]?.querySelector<HTMLElement>("td");
+          const date = dueCells[0]?.firstChild;
+          if (!firstCell || !date || !variantLayouts[0]) return [Number.NaN, Number.NaN];
+          const range = document.createRange();
+          range.selectNodeContents(date);
+          const dateRect = range.getBoundingClientRect();
+          const textEnd = firstCell.getBoundingClientRect().right - parseFloat(window.getComputedStyle(firstCell).paddingRight);
+          return [dateRect.left - textEnd, variantLayouts[0].getBoundingClientRect().left - dateRect.right];
         })(),
         dueLabels: dueCells.map((cell) => cell?.textContent?.trim()),
         dueLabelsFit: dueCells.every((cell) => fitsWithin(cell)),
@@ -283,13 +291,14 @@ test("[Vertrag: Kartenverwaltung] Kartenzeilen bleiben auch in schmalen Viewport
     expect(geometry.documentFitsViewport).toBe(true);
     expect(geometry.sortFieldOverflow).toBe("ellipsis");
     expect(geometry.sortFieldWhiteSpace).toBe("nowrap");
-    expect(geometry.headerLabels).toEqual(["Sortierfeld", "Datum", "Variante"]);
-    expect(geometry.headerAccessibleNames).toEqual(["Sortierfeld aufsteigend sortieren", "Datum aufsteigend sortieren", "Variante aufsteigend sortieren"]);
+    expect(geometry.headerLabels).toEqual(["Sortierfeld", "Datum", "Varianten"]);
+    expect(geometry.headerAccessibleNames).toEqual(["Sortierfeld aufsteigend sortieren", "Datum aufsteigend sortieren", "Varianten aufsteigend sortieren"]);
     expect(geometry.headersFit).toBe(true);
-    expect(Math.abs(geometry.sortGaps[0] - geometry.sortGaps[1]), "Sortierfeld steht so weit vor Datum wie Datum vor Variante").toBeLessThanOrEqual(1);
+    for (const offset of geometry.headerRightOffsets) expect(offset, "Sortierkopf schließt rechtsbündig mit seiner Spalte").toBeLessThanOrEqual(1);
     expect(geometry.dueLabels).toEqual(["23.08.2026", "Neu"]);
+    if (viewport.width >= 640) expect(Math.abs(geometry.valueGaps[0] - geometry.valueGaps[1]), "Text, Datum und Varianten stehen gleich weit auseinander").toBeLessThanOrEqual(1);
     expect(geometry.dueLabelsFit).toBe(true);
-    expect(geometry.variantLabels).toEqual(["Keine Variante", "1 aktive Variante"]);
+    expect(geometry.variantLabels).toEqual([null, "1 aktive Variante"]);
     expect(geometry.variantTagsFit).toBe(true);
     expect(geometry.variantTagsAligned).toBe(true);
     expect(geometry.markSlotWidths).toEqual([18, 18]);

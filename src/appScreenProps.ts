@@ -93,7 +93,7 @@ export interface DashboardScreenProps extends DeckTreeScreenProps {
   onStartAdditionalCards: (deckId: string, additionalCount: number) => { ok: boolean; message?: string };
   onCreateDemo: () => Promise<Deck[] | null>;
   onMoveDeck: (deckId: string, parentDeckId: string | null) => DeckMutationResult | null;
-  onSetDeckExpanded: (surface: DeckExpansionSurface, deckId: string | readonly string[], expanded: boolean) => unknown;
+  onSetDeckExpanded: (surface: DeckExpansionSurface, deckId: string, expanded: boolean) => unknown;
   /** Starts today's exam unit (ADR-042); the action leads the page while an exam is active. */
   onStartExamUnit?: (blockId: string | null) => Promise<void>;
   onLoadExamPlanningData?: ExamPlanningScreenProps["onLoadPlanningData"];
@@ -287,7 +287,7 @@ export interface LearnScreenProps extends DeckTreeScreenProps {
   onOpenCardSettings: () => unknown;
   onMoveDeck: (deckId: string, parentDeckId: string | null) => DeckMutationResult | null;
   collapsedDeckIds: string[];
-  onSetDeckExpanded: (surface: DeckExpansionSurface, deckId: string | readonly string[], expanded: boolean) => unknown;
+  onSetDeckExpanded: (surface: DeckExpansionSurface, deckId: string, expanded: boolean) => unknown;
 }
 
 export interface SettingsDialogProps {

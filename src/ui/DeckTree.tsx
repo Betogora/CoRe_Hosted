@@ -6,7 +6,7 @@ import type { CoreMode, Deck } from "../coreTypes.ts";
 import { DECK_DEPTH_INDENT_PX, getVisibleDeckDepth } from "../deckHierarchy.ts";
 import type { DeckLibraryRow } from "../libraryModel.ts";
 import { DeckOptionsMenu } from "./DeckOptionsMenu.tsx";
-import { ActionButton, IconButton } from "./actionUi.tsx";
+import { IconButton } from "./actionUi.tsx";
 import { CoreIconSegmentedControl } from "./coreUi.tsx";
 import { CoreTooltip } from "./tooltipUi.tsx";
 import { DeckAppearanceIcon, getDeckAppearance } from "./deckAppearance.tsx";
@@ -193,7 +193,7 @@ export interface DeckTreeProps {
   onSetDeckCoreMode: (deckId: string, coreMode: CoreMode) => unknown;
   onMoveDeck: (deckId: string, parentDeckId: string | null) => DeckMutationResult | null;
   collapsedDeckIds: string[];
-  onDeckExpansionChange: (deckId: string | readonly string[], expanded: boolean) => unknown;
+  onDeckExpansionChange: (deckId: string, expanded: boolean) => unknown;
 }
 
 interface DropIntent {
@@ -416,8 +416,6 @@ export function DeckTree({ rows, rootDeckIds, mode, view = "list", onViewChange,
     }
     return groups;
   }, [visibleRows]);
-  const parentDeckIds = React.useMemo(() => shownRows.filter((row) => row.hasChildren).map((row) => row.id), [shownRows]);
-  const anyCollapsed = parentDeckIds.some((deckId) => collapsedDeckIdSet.has(deckId));
 
   // Tile view: the opened folder and the column count that decides where its branch panel is inserted.
   const [folderDeckId, setFolderDeckId] = React.useState<string | null>(null);
@@ -474,11 +472,6 @@ export function DeckTree({ rows, rootDeckIds, mode, view = "list", onViewChange,
       return;
     }
     setDeckExpanded(deckId, collapsedDeckIdSet.has(deckId));
-  }
-
-  function setAllExpanded(expanded: boolean) {
-    setCollapsedDeckIdSet(expanded ? new Set() : new Set(parentDeckIds));
-    onDeckExpansionChange(parentDeckIds, expanded);
   }
 
   function closeFolder() {
@@ -747,8 +740,6 @@ export function DeckTree({ rows, rootDeckIds, mode, view = "list", onViewChange,
     </section>
   ) : null;
   const title = mode === "content" ? null : "Aktive Stapel";
-  // The dashboard teaser has no expand-all switch; the opened deck of the content view is always a parent, so there the switch only helps with deeper levels.
-  const showExpandAll = view === "list" && mode !== "dashboard" && parentDeckIds.length > (mode === "content" ? 1 : 0);
   const showViewControl = Boolean(onViewChange) && rows.length > 0;
 
   return (
@@ -763,17 +754,12 @@ export function DeckTree({ rows, rootDeckIds, mode, view = "list", onViewChange,
       >
         <span className="sr-only" role="status" aria-live="polite">{dragStatus}</span>
         <div className="core-deck-tree-layout grid">
-          {title || headerAction || showExpandAll || showViewControl ? <div className={`core-deck-tree-header grid min-h-control items-center gap-3${showViewControl ? " core-deck-tree-view-header" : ""}`} data-testid={`${mode}-deck-list-header`}>
+          {title || headerAction || showViewControl ? <div className={`core-deck-tree-header grid min-h-control items-center gap-3${showViewControl ? " core-deck-tree-view-header" : ""}`} data-testid={`${mode}-deck-list-header`}>
             <div className="core-deck-tree-heading min-w-0">
               {title ? <h3 className="core-deck-tree-title break-words core-heading-3 text-core-text">{title}</h3> : null}
             </div>
-            {headerAction || showExpandAll || showViewControl ? (
+            {headerAction || showViewControl ? (
               <div className="core-deck-tree-header-action flex flex-wrap items-center justify-end gap-2 justify-self-end">
-                {showExpandAll ? (
-                  <ActionButton variant="secondary" icon={ChevronDown} onClick={() => setAllExpanded(anyCollapsed)}>
-                    {anyCollapsed ? "Alle aufklappen" : "Alle einklappen"}
-                  </ActionButton>
-                ) : null}
                 {showViewControl && onViewChange ? (
                   <CoreIconSegmentedControl ariaLabel="Stapelansicht" options={DECK_TREE_VIEW_OPTIONS} value={view} onValueChange={onViewChange} />
                 ) : null}

@@ -5632,7 +5632,8 @@ button.core-steps-step {
        column-gap: var(--core-space-md);
   min-width: 0;
   min-height: var(--core-card-table-header-height);
-  padding-inline: var(--core-space-sm);
+  --core-card-selection-inset: var(--core-space-sm);
+  padding-inline: var(--core-card-selection-inset);
 }
 
 .core-card-selection-bar > button {
@@ -5642,6 +5643,15 @@ button.core-steps-step {
 .core-card-selection-bar > .core-card-selection-clear {
   /* On the rows' checkbox axis; the count starts where their text does (gap-2.5). */
   margin-inline-end: calc(0.625rem - var(--core-space-md));
+}
+
+.core-card-selection-bar > .core-card-selection-close {
+  width: var(--core-card-table-header-height);
+  min-width: 0;
+  height: var(--core-card-table-header-height);
+  padding: 0;
+  /* The 16 px icon ends where the variants column ends (its cells: 4 px, from sm 12 px inset). */
+  margin-inline-end: calc((1rem - var(--core-card-table-header-height)) / 2 + 0.25rem - var(--core-card-selection-inset));
 }
 
 .core-card-selection-bar > .core-card-selection-actions {
@@ -5654,13 +5664,17 @@ button.core-steps-step {
 
 @media (min-width: 640px) {
   .core-card-selection-bar {
-    padding-inline: var(--core-space-md);
+    --core-card-selection-inset: var(--core-space-md);
+  }
+
+  .core-card-selection-bar > .core-card-selection-close {
+    margin-inline-end: calc((1rem - var(--core-card-table-header-height)) / 2 + 0.75rem - var(--core-card-selection-inset));
   }
 }
 
 @media (min-width: 768px) {
   .core-card-selection-bar {
-    padding-inline: var(--core-space-lg);
+    --core-card-selection-inset: var(--core-space-lg);
   }
 }
 
@@ -7021,8 +7035,8 @@ button.core-steps-step {
     width: 6rem;
   }
 
-  .sm\:w-\[5\.75rem\] {
-    width: 5.75rem;
+  .sm\:w-\[5\.5rem\] {
+    width: 5.5rem;
   }
 
   .sm\:w-\[calc\(100dvw-6rem\)\] {
@@ -7191,11 +7205,6 @@ button.core-steps-step {
     padding-right: 0px;
   }
 
-  .sm\:px-3 {
-    padding-left: 0.75rem;
-    padding-right: 0.75rem;
-  }
-
   .sm\:px-4 {
     padding-left: 1rem;
     padding-right: 1rem;
@@ -7238,6 +7247,10 @@ button.core-steps-step {
     padding-bottom: 10rem;
   }
 
+  .sm\:pl-3 {
+    padding-left: 0.75rem;
+  }
+
   .sm\:pr-0 {
     padding-right: 0px;
   }
@@ -7248,6 +7261,10 @@ button.core-steps-step {
 
   .sm\:pr-3 {
     padding-right: 0.75rem;
+  }
+
+  .sm\:pr-4 {
+    padding-right: 1rem;
   }
 }
 @media (min-width: 768px) {
@@ -7415,9 +7432,8 @@ button.core-steps-step {
     padding-right: 0.75rem;
   }
 
-  .md\:px-4 {
+  .md\:pl-4 {
     padding-left: 1rem;
-    padding-right: 1rem;
   }
 
   .md\:pr-8 {
