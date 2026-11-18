@@ -182,7 +182,7 @@ function WeekHeatmap({ window, formatDayLabel }: { window: StudyHeatmapWindow; f
             />
             <span className={`core-caption text-center font-medium ${day.isToday ? "text-core-action" : "text-core-muted"}`}>
               <span className="block">{day.isToday ? "Heute" : compactWeekLabel(day.key)}</span>
-              <span className="block whitespace-nowrap">{compactDate(day.key)}</span>
+              <span className="core-heatmap-week-date block whitespace-nowrap">{compactDate(day.key)}</span>
             </span>
           </div>
         );
@@ -203,9 +203,9 @@ function MonthHeatmap({ window, formatDayLabel }: { window: StudyHeatmapWindow; 
       <div className="mx-auto mb-2 grid max-w-[28rem] grid-cols-7 gap-1.5 sm:gap-2" aria-hidden="true">
         {window.weekdayLabels.map((label) => <span key={label} className="text-center core-caption font-medium text-core-muted">{label}</span>)}
       </div>
-      <div className="mx-auto grid max-w-[28rem] grid-cols-7 gap-1.5 sm:gap-2">
+      <div className="core-heatmap-month-grid mx-auto grid max-w-[28rem] grid-cols-7 gap-1.5 sm:gap-2">
         {window.days.map((day) => (
-          <HeatmapDayCell key={day.key} day={day} label={heatmapDayLabel(day, formatDayLabel)} className="aspect-square w-full rounded-inset">
+          <HeatmapDayCell key={day.key} day={day} label={heatmapDayLabel(day, formatDayLabel)} className="core-heatmap-month-cell w-full rounded-inset">
             <span className="core-caption font-semibold tabular-nums" style={{ color: !day.isFuture && day.level === 4 ? "var(--core-heatmap-on-strong)" : "var(--core-text)" }}>{day.dayOfMonth}</span>
           </HeatmapDayCell>
         ))}
@@ -347,7 +347,7 @@ export function StudyHeatmap({
           <div><dt className="core-caption font-medium">Morgen fällig</dt><dd className="core-metric tabular-nums">{(heatmap.forecastCountsByDay.get(shiftDayKey(heatmap.todayKey, 1)) ?? 0).toLocaleString("de-DE")}</dd></div>
         </dl>
       </div>
-      <div className="p-5 sm:p-6">
+      <div className="core-study-heatmap-body p-5 sm:p-6">
         <div className="core-study-heatmap-controls flex w-full flex-wrap items-center justify-between gap-x-4 gap-y-3" data-testid="study-heatmap-controls">
           <div className="core-study-heatmap-nav flex items-center gap-1">
             <CoreTooltip label={navigationLabels.previous}>
@@ -376,7 +376,7 @@ export function StudyHeatmap({
           </div>
           <CoreSegmentedControl ariaLabel="Heatmap-Zeitraum" options={PERIOD_OPTIONS} value={period} onValueChange={selectPeriod} className="core-heatmap-period-select" />
         </div>
-        <div className="mt-5 min-w-0">
+        <div className="core-study-heatmap-view mt-5 min-w-0">
           {period === "week" ? <WeekHeatmap window={visibleHeatmap} formatDayLabel={formatDayLabel} /> : null}
           {period === "month" ? <MonthHeatmap window={visibleHeatmap} formatDayLabel={formatDayLabel} /> : null}
           {period === "year" ? <YearHeatmap window={visibleHeatmap} formatDayLabel={formatDayLabel} scrollerRef={yearScrollerRef} /> : null}
