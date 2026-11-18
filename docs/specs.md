@@ -840,6 +840,7 @@ Fassung | im Konto, mehrere je Stapel
 - Treffer einer Suche oder eine Auswahl lassen sich unabhängig von Fälligkeit und Tageslimits lernen, ohne ausgesetzte und heute zurückgestellte Karten.
 - **Vorziehen** (Standard) ist eine normale Sitzung mit gespeicherten Bewertungen. Noch nicht fällige Karten zählen als vorgezogene Wiederholung; der Scheduler rechnet mit den tatsächlich vergangenen Tagen. Jede Karte folgt den Optionen ihres Stapels, Geschwister werden nicht zurückgestellt, und Tageslimits werden nicht verbraucht.
 - **Nur üben** ändert nichts: kein Lernstand, kein Termin, kein Bewertungsereignis. `Nochmal` und `Schwer` holen die Karte in derselben Übung zurück, `Gut` und `Leicht` beenden sie.
+- Ein Stapel lässt sich samt Unterstapeln direkt aus der Stapelliste frei üben: alle seine Karten nach denselben Regeln wie `Nur üben`, in der Reihenfolge des Stapels oder gemischt.
 
 ### Karteneditor
 

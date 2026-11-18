@@ -165,7 +165,9 @@ test("dashboard shows the full grouped tree without progress ring and direct dra
   await expect(dashboardMenu.locator('[data-deck-icon="true"]')).toBeVisible();
   await expect(dashboardMenu.getByRole("button", { name: "Einstellungen" })).toBeVisible();
   await expect(dashboardMenu.getByRole("button", { name: "Verschieben" })).toBeVisible();
-  await expect(dashboardMenu.getByRole("button", { name: /Umbenennen|Unterstapel|Lernen|Löschen/ })).toHaveCount(0);
+  await expect(dashboardMenu.getByRole("button", { name: "Lernen", exact: true })).toBeVisible();
+  await expect(dashboardMenu.getByRole("button", { name: "Alle Karten frei üben" })).toBeVisible();
+  await expect(dashboardMenu.getByRole("button", { name: /Umbenennen|Unterstapel|Löschen/ })).toHaveCount(0);
   await dashboardMenu.getByRole("button", { name: "Einstellungen" }).click();
   await expect(page).toHaveURL(new RegExp(`/\\?settingsDeck=${DECK_IDS.root}&settings=start$`));
   await deckSettingsDialog(page).getByRole("button", { name: "Stapeleinstellungen schließen" }).click();

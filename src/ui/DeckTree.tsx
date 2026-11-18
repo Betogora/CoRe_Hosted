@@ -187,6 +187,8 @@ export interface DeckTreeProps {
   contentAfterRows?: React.ReactNode;
   onActivate: (row: DeckLibraryRow) => void;
   onStudy: (row: DeckLibraryRow) => void;
+  /** `Alle Karten frei üben` in the deck menu; without it the menu offers no practice. */
+  onPractice?: (row: DeckLibraryRow, returnFocus: HTMLElement | null) => void;
   onOpenSettings: (deckId: string) => void;
   onSetDeckCoreMode: (deckId: string, coreMode: CoreMode) => unknown;
   onMoveDeck: (deckId: string, parentDeckId: string | null) => DeckMutationResult | null;
@@ -310,13 +312,14 @@ interface DeckTreeRowProps {
   onPointerDown: (event: React.PointerEvent<HTMLButtonElement>, row: DeckLibraryRow) => void;
   onKeyDown: () => void;
   onStudy: (row: DeckLibraryRow) => void;
+  onPractice: DeckTreeProps["onPractice"];
   onOpenSettings: DeckTreeProps["onOpenSettings"];
   onSetCoreMode: DeckTreeProps["onSetDeckCoreMode"];
   onMoveDeck: DeckTreeProps["onMoveDeck"];
 }
 
 /** One deck row; memoized so sync status, drag hover on other rows or parent renders do not repaint the whole tree. */
-const DeckTreeRow = React.memo(function DeckTreeRow({ row, mode, presentation, decks, isCollapsed, isSelected, isDragged, dropState, onToggle, onActivate, onPointerDown, onKeyDown, onStudy, onOpenSettings, onSetCoreMode, onMoveDeck }: DeckTreeRowProps) {
+const DeckTreeRow = React.memo(function DeckTreeRow({ row, mode, presentation, decks, isCollapsed, isSelected, isDragged, dropState, onToggle, onActivate, onPointerDown, onKeyDown, onStudy, onPractice, onOpenSettings, onSetCoreMode, onMoveDeck }: DeckTreeRowProps) {
   const tile = presentation !== "row";
   const activationLabel = tile ? row.hasChildren ? `Unterstapel von ${row.path} öffnen` : `Stapel ${row.path} öffnen` : `Inhalte von ${row.path} öffnen`;
   const collapseControl = row.hasChildren ? (
@@ -337,7 +340,9 @@ const DeckTreeRow = React.memo(function DeckTreeRow({ row, mode, presentation, d
       <IconButton label={`${row.path} lernen`} icon={Play} variant="ghost" className="core-deck-icon-action core-deck-study-action pointer-events-auto" data-deck-has-work={hasWork ? "true" : "false"} onClick={() => onStudy(row)} />
     </CoreTooltip>
   );
-  const optionsMenu = <DeckOptionsMenu row={row} decks={decks} onSetCoreMode={onSetCoreMode} onOpenSettings={onOpenSettings} onMoveDeck={onMoveDeck} />;
+  const study = React.useCallback(() => onStudy(row), [onStudy, row]);
+  const practice = React.useMemo(() => onPractice && ((returnFocus: HTMLElement | null) => onPractice(row, returnFocus)), [onPractice, row]);
+  const optionsMenu = <DeckOptionsMenu row={row} decks={decks} onStudy={study} onPractice={practice} onSetCoreMode={onSetCoreMode} onOpenSettings={onOpenSettings} onMoveDeck={onMoveDeck} />;
 
   return (
     <div
@@ -377,7 +382,7 @@ const DeckTreeRow = React.memo(function DeckTreeRow({ row, mode, presentation, d
   );
 });
 
-export function DeckTree({ rows, rootDeckIds, mode, view = "list", onViewChange, headerAction, contentAfterRows, onActivate, onStudy, onOpenSettings, onSetDeckCoreMode, onMoveDeck, collapsedDeckIds, onDeckExpansionChange }: DeckTreeProps) {
+export function DeckTree({ rows, rootDeckIds, mode, view = "list", onViewChange, headerAction, contentAfterRows, onActivate, onStudy, onPractice, onOpenSettings, onSetDeckCoreMode, onMoveDeck, collapsedDeckIds, onDeckExpansionChange }: DeckTreeProps) {
   const [draggedDeckId, setDraggedDeckId] = React.useState<string | null>(null);
   const [dropIntent, setDropIntent] = React.useState<DropIntent | null>(null);
   const [dragFocusLayout, setDragFocusLayout] = React.useState<DragFocusLayout | null>(null);
@@ -643,6 +648,7 @@ export function DeckTree({ rows, rootDeckIds, mode, view = "list", onViewChange,
   const stablePointerDown = useStableCallback(startPointer);
   const stableKeyDown = useStableCallback(() => { suppressedClickDeckIdRef.current = null; });
   const stableStudy = useStableCallback(onStudy);
+  const stablePractice = useStableCallback((row: DeckLibraryRow, returnFocus: HTMLElement | null) => onPractice?.(row, returnFocus));
   const stableOpenSettings = useStableCallback(onOpenSettings);
   const stableSetCoreMode = useStableCallback(onSetDeckCoreMode);
   const stableMoveDeck = useStableCallback(onMoveDeck);
@@ -703,6 +709,7 @@ export function DeckTree({ rows, rootDeckIds, mode, view = "list", onViewChange,
         onPointerDown={stablePointerDown}
         onKeyDown={stableKeyDown}
         onStudy={stableStudy}
+        onPractice={onPractice ? stablePractice : undefined}
         onOpenSettings={stableOpenSettings}
         onSetCoreMode={stableSetCoreMode}
         onMoveDeck={stableMoveDeck}
