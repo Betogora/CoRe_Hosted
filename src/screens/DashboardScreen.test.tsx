@@ -27,7 +27,7 @@ const dashboardCallbacks = {
   onSetDeckExpanded: () => undefined,
 };
 
-test("exam checklist shows at most three tasks per exam, prioritizes open tasks and only offers expansion when needed", () => {
+test("exam checklist shows at most three tasks per exam, prioritizes open tasks and only offers expansion when needed; the dashboard preview lists all open tasks", () => {
   const base = createCoreRepository().getState();
   const date = "2026-10-18";
   const exam = { ...createExamPlan(date, Array.from({ length: 7 }, (_, index) => `topic-${index}`)), id: "exam", name: "Patho", examDate: "2026-11-20" };
@@ -44,12 +44,11 @@ test("exam checklist shows at most three tasks per exam, prioritizes open tasks 
     assert.equal((short.match(/data-exam-todo=/g) ?? []).length, count);
     assert.doesNotMatch(short, /aria-expanded|weitere anzeigen/);
   }
-  for (const taskLimit of [0, 1, 2, 3, null]) {
-    const compact = render(tasks, { taskLimit, onOpenTaskCountChange: () => undefined });
-    assert.equal((compact.split("<details")[0].match(/data-exam-todo=/g) ?? []).length, taskLimit ?? 3);
-    assert.match(compact, /Erledigt im Planer \(4\)/);
-    assert.doesNotMatch(compact, /weitere anzeigen/);
-  }
+  // The dashboard preview lists every open task; its widget scrolls instead of truncating.
+  const preview = render(tasks, { onOpenTaskCountChange: () => undefined });
+  assert.equal((preview.split("<details")[0].match(/data-exam-todo=/g) ?? []).length, 3);
+  assert.match(preview, /Erledigt im Planer \(4\)/);
+  assert.doesNotMatch(preview, /weitere anzeigen/);
 });
 
 test("empty dashboard offers only explicit first-learning paths without seeded statistics", () => {

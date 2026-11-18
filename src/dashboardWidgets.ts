@@ -1,21 +1,21 @@
 import { createAccountStorage } from "./accountStorage.ts";
 
 export const DASHBOARD_WIDGETS = [
-  { id: "learning", title: "Dein Lernen heute", description: "Tagesziel und Fortschritt auf einen Blick.", width: "wide" },
+  { id: "learning", title: "Dein Lernen heute", description: "Tagesziel und Fortschritt auf einen Blick.", width: "small" },
   { id: "motivation", title: "Dein Motivationsimpuls", description: "Ein täglicher Lernimpuls mit deinem Gehirn-Maskottchen.", width: "small" },
   { id: "timer", title: "Lerntimer", description: "Zeit für Fokus. Und für eine kleine Pause.", width: "small" },
-  { id: "decks", title: "Aktive Stapel", description: "Deine Stapel mit direktem Lernstart.", width: "wide" },
+  { id: "decks", title: "Aktive Stapel", description: "Deine Stapel mit direktem Lernstart.", width: "full" },
   { id: "todos", title: "To-dos", description: "Aufgaben aus dem Planer und eigene Vorhaben.", width: "small" },
-  { id: "heatmap", title: "Lernaktivität", description: "Deine Heatmap mit Rückblick und Ausblick.", width: "wide" },
+  { id: "heatmap", title: "Lernaktivität", description: "Deine Heatmap mit Rückblick und Ausblick.", width: "small" },
 ] as const;
 export type DashboardWidgetId = typeof DASHBOARD_WIDGETS[number]["id"];
-type DashboardWidgetWidth = "small" | "wide" | "full";
-export interface DashboardWidget { id: DashboardWidgetId; width: DashboardWidgetWidth }
+/** Every widget has one fixed format: one grid column ("small") or the full width ("full"). */
+export interface DashboardWidget { id: DashboardWidgetId }
 interface DashboardTodo { id: string; text: string; done: boolean }
 export interface DashboardPreferences { widgets: DashboardWidget[]; todos: DashboardTodo[] }
 
 export function normalizeDashboardPreferences(value: unknown): DashboardPreferences {
-  const defaults = { widgets: DASHBOARD_WIDGETS.map(({ id, width }) => ({ id, width })), todos: [] };
+  const defaults = { widgets: DASHBOARD_WIDGETS.map(({ id }) => ({ id })), todos: [] };
   if (!value || typeof value !== "object") return defaults;
   const data = value as Record<string, unknown>;
   const seen = new Set<string>();
@@ -26,7 +26,7 @@ export function normalizeDashboardPreferences(value: unknown): DashboardPreferen
     const definition = DASHBOARD_WIDGETS.find((entry) => entry.id === candidate.id);
     if (!definition || seen.has(definition.id)) continue;
     seen.add(definition.id);
-    widgets.push({ id: definition.id, width: candidate.width === "small" || candidate.width === "wide" || candidate.width === "full" ? candidate.width : definition.width });
+    widgets.push({ id: definition.id });
   }
   const todos: DashboardTodo[] = [];
   const todoIds = new Set<string>();
@@ -55,7 +55,7 @@ export function readDashboardPreferences(userId: string): DashboardPreferences {
     const stored: unknown = JSON.parse(createAccountStorage(userId).getItem(STORAGE_KEY) ?? "null");
     const preferences = normalizeDashboardPreferences(stored);
     if (stored && typeof stored === "object" && !("motivationIntroduced" in stored && stored.motivationIntroduced === true)) {
-      if (!preferences.widgets.some((widget) => widget.id === "motivation")) preferences.widgets.push({ id: "motivation", width: "small" });
+      if (!preferences.widgets.some((widget) => widget.id === "motivation")) preferences.widgets.push({ id: "motivation" });
       writeDashboardPreferences(userId, preferences);
     }
     return preferences;
