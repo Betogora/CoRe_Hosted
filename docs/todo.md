@@ -44,29 +44,14 @@ geglättet.
 
 Formular und Auftragsprüfung unter `/neue-karten?method=ai-source` stehen
 (`src/aiSourceCreation.ts`, `AiSourceCreationPanel.tsx`); „Karten erstellen“
-ist deaktiviert, nichts wird gelesen oder übertragen. Drei Pakete, je ein PR.
+ist deaktiviert, nichts wird gelesen oder übertragen. Route und Vertrag
+stehen (`POST /api/ai/source-cards`, `aiSourceCardsContract.ts`, ADR-011).
 Quellen: PDF, Text, Markdown, CSV und TSV. Bewusst nicht: Ergänzungen
 außerhalb der Quelle, DOCX und PPTX, Scans und Bilder, Kprim und Eintippen,
 Neu-Generieren einzelner Vorschläge, Abgleich mit vorhandenen Karten des
 Zielstapels, Speichern von Quelle oder Vorschlägen, Serverqueue, automatische
 Varianten.
 
-- [ ] **P2a – Auftrag, Route und Vertrag:** Eine Ergänzung zu ADR-011 gibt
-      `POST /api/ai/source-cards` frei (gleiches Modell, ZDR, Kostenlog, nur
-      extrahierter Text). Auftrag bereinigen: „Stoffabdeckung“ wird
-      „Kartenmenge“ (Weniger, Normal, Mehr) mit eigener Promptzeile, was je
-      Stufe abgedeckt wird; Karten nur für sinnvolle Informationsstücke, keine
-      Füllkarten, höchstens 100 Vorschläge je Auftrag. Die Auswahl
-      „Ergänzungen über die Quelle hinaus“ entfällt in Formular, Prompt und
-      Specs; DOCX und PPTX verlassen Dateiauswahl und Specs. Vertragsmodul wie
-      `aiCardVariantContract.ts`: Anfrage aus Auftrag, Text-Einheiten mit ID
-      und Beleg (Seite oder Abschnitt) und den Fragen vorheriger Portionen;
-      Antwort je Karte Form, Frage oder Lückentext, kurze Lösung,
-      Auswahloptionen mit Richtigkeit, quellenbasierte Erklärung und
-      Einheiten-ID als Beleg, dazu Hinweise des Modells als eigene Meldungen
-      (Material trägt den Wunsch nicht, widersprüchliche oder unlesbare
-      Stellen). Unbekannte Belege, ungültige Formen und abgeschnittene
-      Antworten werden abgewiesen. Nachweis: Vertrags- und Routentests.
 - [ ] **P2b – Quelle zu Vorschlägen:** Die Quelle wird im Browser ausgelesen
       (`documentModel.ts`, Grenzen wie bei der Zusammenfassung); leere,
       geschützte, gescannte oder zu große Quellen werden mit Meldung
@@ -74,9 +59,11 @@ Varianten.
       CSV und TSV in Abschnitte mit echtem Beleg. Portionen laufen
       nacheinander im geöffneten Tab mit Fortschritt, Abbruch und den
       Fehlerregeln des Variantenlaufs; jede Portion erhält die Fragen der
-      vorigen. Ergebnis ist eine flüchtige Vorschlagsliste mit Vorschau und
-      Hinweisen; nichts wird gespeichert. Nachweis: Modultests für Zerlegung
-      und Lauf.
+      vorigen. Erreicht ein Auftrag 100 Vorschläge, endet der Lauf und das
+      Ergebnis nennt, ab welcher Stelle die Quelle nicht ausgewertet wurde.
+      Ergebnis ist eine flüchtige Vorschlagsliste mit Vorschau, Hinweisen und
+      der Zahl verworfener Vorschläge; nichts wird gespeichert. Nachweis:
+      Modultests für Zerlegung und Lauf.
 - [ ] **P2c – Prüfen, übernehmen, freischalten:** Bearbeiten und Verwerfen je
       Vorschlag; Bearbeiten und Vorschau nutzen den Reiter `Inhalt` des
       [Karteneditors](specs.md#karteneditor), kein zweiter Editor. Gespeichert

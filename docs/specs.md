@@ -399,11 +399,12 @@ Gruppe: Synchronisierung ins Konto
 
 Vorbereitet: Der Auftrag lässt sich bis zur Prüfung zusammenstellen. Es werden noch keine Dateien ausgelesen oder übertragen und keine Karten angelegt.
 
-- Ein Auftrag besteht aus Quelle (eine Datei oder eingefügter Text), genau einem Zielstapel (neu oder vorhanden), Lernwünschen und erlaubten Kartenformen.
-- Lernwünsche sind Stoffabdeckung, Antwortumfang, Sprache, Formulierung, Vorwissen und freie Wünsche. Abdeckung und Antwortumfang sind unabhängig: Mehr Abdeckung bedeutet mehr Karten, nicht längere Antworten.
+- Ein Auftrag besteht aus Quelle (eine Datei als PDF, Text, Markdown, CSV oder TSV oder eingefügter Text), genau einem Zielstapel (neu oder vorhanden), Lernwünschen und erlaubten Kartenformen.
+- Lernwünsche sind Kartenmenge, Antwortumfang, Sprache, Formulierung, Vorwissen und freie Wünsche. Kartenmenge und Antwortumfang sind unabhängig: Mehr Karten bedeuten nicht längere Antworten.
+- Die Kartenmenge (weniger, normal, mehr) bestimmt, wie viel des Stoffs abgefragt wird. Ein Auftrag ergibt höchstens 100 Vorschläge und nur so viele, wie die Quelle sinnvolle Informationsstücke trägt; Füllkarten entstehen nicht.
 - Kartenformen (Frage–Antwort, Lückentext, Single Choice, Multiple Choice) werden erlaubt, nicht erzwungen; passende Abruf-, Verständnis- und Anwendungsfragen werden ohne feste Quoten gemischt.
-- Standard ist „nur meine Quelle“. Erlaubte Ergänzungen müssen überall als außerhalb der Quelle gekennzeichnet sein; Belege werden nie erfunden.
-- **Bewusst nicht:** Kartenanzahl, Mischungsverhältnisse, Lernzielauswahl.
+- Karten stammen nur aus der Quelle. Jede Karte nennt ihre Stelle (Seite oder Abschnitt); Belege werden nie erfunden.
+- **Bewusst nicht:** feste Kartenanzahl, Mischungsverhältnisse, Lernzielauswahl, Wissen außerhalb der Quelle.
 
 ## 5. Lernen
 

@@ -7,7 +7,7 @@ async function openCatalogFlow(page: Page) {
   return page.getByTestId("ai-source-creation");
 }
 
-const sourceFile = { name: "Zellatmung_Teil-1.PPTX", mimeType: "application/vnd.openxmlformats-officedocument.presentationml.presentation", buffer: Buffer.from("Lokale Testquelle, wird nicht ausgelesen.") };
+const sourceFile = { name: "Zellatmung_Teil-1.PDF", mimeType: "application/pdf", buffer: Buffer.from("Lokale Testquelle, wird nicht ausgelesen.") };
 
 test("mobile Schritte erhalten Text, Lernwünsche und ein einziges Stapelziel bis zur Prüfung", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
@@ -37,7 +37,6 @@ test("mobile Schritte erhalten Text, Lernwünsche und ein einziges Stapelziel bi
   await expect(panel.getByRole("combobox", { name: "Formulierung", exact: true })).toContainText("Einfach verständlich");
   await panel.getByRole("button", { name: "Weiter", exact: true }).click();
   await expect(panel.getByTestId("ai-source-target")).toHaveText("Textstapel (neuer Stapel)");
-  await panel.getByRole("radio", { name: "Ergänzungen erlauben und kennzeichnen", exact: true }).check();
   await panel.getByRole("button", { name: "Stapel ändern", exact: true }).click();
   await expect(panel.getByRole("switch", { name: "Neuen Stapel anlegen", exact: true })).toBeFocused();
   await panel.getByLabel("Stapelname").fill("Geänderter Textstapel");
@@ -54,7 +53,6 @@ test("mobile Schritte erhalten Text, Lernwünsche und ein einziges Stapelziel bi
   await expect(summary).not.toContainText(sourceFile.name);
   await expect(summary).toContainText("Einfach verständlich");
   await expect(summary).toContainText("Bitte Abkürzungen erklären.");
-  await expect(summary).toContainText("Ergänzungen erlauben und kennzeichnen");
   await summary.getByText("Quelltext ansehen", { exact: true }).click();
   await expect(summary).toContainText(text);
   expect(await page.evaluate(() => "untrustedSource" in window)).toBe(false);
@@ -71,8 +69,8 @@ test("Quelle, Lernwünsche und Ziel bleiben bis zur Auftragsprüfung lokal erhal
   await panel.locator('input[type="file"]').setInputFiles(sourceFile);
   await expect(panel.getByLabel("Stapelname")).toHaveValue("Zellatmung Teil 1");
   await panel.getByLabel("Stapelname").fill("Eigener Lernstapel");
-  await panel.getByRole("combobox", { name: "Abdeckung", exact: true }).press("Enter");
-  await page.getByRole("option", { name: "Sehr genau", exact: true }).click();
+  await panel.getByRole("combobox", { name: "Kartenmenge", exact: true }).press("Enter");
+  await page.getByRole("option", { name: "Mehr", exact: true }).click();
   await panel.getByRole("checkbox", { name: "Single Choice", exact: true }).uncheck();
   await panel.getByRole("checkbox", { name: "Multiple Choice", exact: true }).uncheck();
   await panel.getByRole("textbox", { name: /Weitere Hinweise/ }).fill("Abitur; Schwerpunkt Zellatmung");
@@ -80,21 +78,19 @@ test("Quelle, Lernwünsche und Ziel bleiben bis zur Auftragsprüfung lokal erhal
   await page.getByRole("option", { name: "Englisch", exact: true }).click();
   await panel.getByRole("combobox", { name: "Formulierung", exact: true }).click();
   await page.getByRole("option", { name: "Fachsprache verwenden", exact: true }).click();
-  await panel.getByRole("radio", { name: "Nur meine Quelle verwenden", exact: true }).check();
   await panel.getByRole("button", { name: "Auftrag prüfen", exact: true }).click();
   const summary = page.getByTestId("ai-source-summary");
   await expect(panel.getByRole("heading", { name: "Auftrag prüfen", exact: true })).toBeFocused();
   await expect(summary).toContainText("Eigener Lernstapel (neuer Stapel)");
   await expect(summary).toContainText(sourceFile.name);
-  await expect(summary).toContainText("Sehr genaue Abdeckung mit kurzen Erklärungen.");
-  await expect(summary).toContainText("Nur meine Quelle verwenden");
+  await expect(summary).toContainText("Mehr Karten mit kurzen Erklärungen.");
   await expect(summary).toContainText("Englisch");
   await expect(summary).toContainText("Fachsprache verwenden");
   await expect(summary).not.toContainText("Single Choice");
   await expect(summary.getByRole("button", { name: "Karten erstellen", exact: true })).toBeDisabled();
   await summary.getByRole("button", { name: "Einstellungen bearbeiten", exact: true }).click();
   await expect(panel.getByLabel("Stapelname")).toHaveValue("Eigener Lernstapel");
-  await panel.locator('input[type="file"]').setInputFiles({ ...sourceFile, name: "Andere_Quelle.docx" });
+  await panel.locator('input[type="file"]').setInputFiles({ ...sourceFile, name: "Andere_Quelle.md" });
   await expect(panel.getByLabel("Stapelname")).toHaveValue("Eigener Lernstapel");
   await panel.getByRole("switch", { name: "Neuen Stapel anlegen", exact: true }).uncheck();
   await panel.getByRole("combobox", { name: "Stapel", exact: true }).click();
@@ -265,7 +261,7 @@ for (const theme of ["light", "dark"] as const) {
       await capture("form-empty");
       await panel.getByRole("button", { name: width < 1280 ? "Weiter" : "Auftrag prüfen", exact: true }).click();
       await capture("form-errors");
-      await panel.locator('input[type="file"]').setInputFiles({ ...sourceFile, name: "Lange_Quelldatei_Zellatmung_Bedingungen_und_Ausnahmen_des_Energiestoffwechsels.PPTX" });
+      await panel.locator('input[type="file"]').setInputFiles({ ...sourceFile, name: "Lange_Quelldatei_Zellatmung_Bedingungen_und_Ausnahmen_des_Energiestoffwechsels.PDF" });
       if (await panel.getByRole("button", { name: "Weiter", exact: true }).isVisible()) await panel.getByRole("button", { name: "Weiter", exact: true }).click();
       await panel.getByRole("textbox", { name: /Weitere Hinweise/ }).fill("Biologie-Abitur; Schwerpunkt Zellatmung; historische Entdeckungen weglassen.");
       await capture("form-wishes");
