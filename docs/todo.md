@@ -20,8 +20,8 @@ Markdown, CSV und TSV.
 
 Route, Vertrag, Auslesen, Abschnittslauf und Vorschlagsliste stehen
 (`POST /api/ai/source-cards`, `aiSourceCardsContract.ts`, `aiSourceCards.ts`,
-ADR-011); in der App fehlt der Abruf, nur der UI-Katalog zeigt den Lauf. Bewusst nicht: Ergänzungen
-außerhalb der Quelle, DOCX und PPTX, Scans und Bilder, Kprim und Eintippen,
+ADR-011); in der App fehlt der Abruf, nur der UI-Katalog zeigt den Lauf.
+Bewusst nicht: Ergänzungen außerhalb der Quelle, DOCX und PPTX, Scans und Bilder, Kprim und Eintippen,
 Neu-Generieren einzelner Vorschläge, Abgleich mit vorhandenen Karten des
 Zielstapels, Speichern von Quelle oder Vorschlägen, Serverqueue, automatische
 Varianten.
