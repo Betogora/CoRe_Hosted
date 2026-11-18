@@ -1,4 +1,3 @@
-import type { AiSourceCardsRequester } from "./aiSourceCards.ts";
 import type { CardSearchContext } from "./cardSearchQuery.ts";
 import type { CardBatchAction, CardBatchResult, TextReplaceSession } from "./cardBatchActions.ts";
 import type { DuplicateGroup, DuplicateKey } from "./duplicateContents.ts";
@@ -64,8 +63,6 @@ export interface CreationScreenProps {
   onMethodChange: (method: CreationMethod) => unknown;
   onTargetDeckChange: (deckId: string) => unknown;
   onSaveManualNote: (input: ManualNoteSaveInput) => Promise<{ deck: Deck; cardIds: string[] } | null>;
-  /** Sends one portion of a source to the AI; without it, automatic creation stays unavailable. */
-  onRequestSourceCards?: AiSourceCardsRequester;
   /** Tags of the account for suggestions in the tag input. */
   listTagDirectory: () => Promise<TagDirectoryEntry[]>;
   onDraftStateChange: (dirty: boolean, focusDraft: (() => void) | null, saving: boolean) => void;

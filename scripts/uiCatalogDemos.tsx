@@ -542,12 +542,12 @@ function LearningDemo({ section }: { section: string }) {
 /** Local stand-in for the source cards route: a few proposals per portion, built from its first unit, without AI. */
 async function requestSourceCardsDemo(request: AiSourceCardsRequest, signal: AbortSignal): Promise<GeneratedSourceCards> {
   await new Promise<void>((resolve, reject) => {
-    const timer = window.setTimeout(() => { signal.removeEventListener("abort", abort); resolve(); }, 600);
+    const timer = window.setTimeout(() => { signal.removeEventListener("abort", abort); resolve(); }, 1_500);
     const abort = () => { window.clearTimeout(timer); reject(new Error("Erstellung abgebrochen.")); };
     if (signal.aborted) abort(); else signal.addEventListener("abort", abort, { once: true });
   });
   const unit = request.units[0];
-  const sentence = unit.text.split(/(?<=[.!?])\s+/).map((part) => part.replace(/\s+/g, " ").trim()).find((part) => part.split(" ").length > 3) ?? unit.text.slice(0, 160).trim();
+  const sentence = unit.text.replace(/^#+\s.*$/gm, "").split(/(?<=[.!?])\s+/).map((part) => part.replace(/\s+/g, " ").trim()).find((part) => part.split(" ").length > 3) ?? unit.text.slice(0, 160).trim();
   const term = sentence.split(" ").map((word) => word.replace(/[^\p{L}\p{N}-]/gu, "")).reduce((longest, word) => word.length > longest.length ? word : longest, "");
   const sources = [unit.id];
   const cards: GeneratedSourceCard[] = [

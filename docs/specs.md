@@ -397,13 +397,16 @@ Gruppe: Synchronisierung ins Konto
 
 ### Automatisch aus einer Quelle
 
-Vorbereitet: Der Auftrag lässt sich bis zur Prüfung zusammenstellen. Es werden noch keine Dateien ausgelesen oder übertragen und keine Karten angelegt.
+Vorbereitet: Der Auftrag lässt sich bis zur Prüfung zusammenstellen; die Erstellung ist noch nicht freigeschaltet, es werden keine Dateien übertragen und keine Karten angelegt.
 
 - Ein Auftrag besteht aus Quelle (eine Datei als PDF, Text, Markdown, CSV oder TSV oder eingefügter Text), genau einem Zielstapel (neu oder vorhanden), Lernwünschen und erlaubten Kartenformen.
 - Lernwünsche sind Kartenmenge, Antwortumfang, Sprache, Formulierung, Vorwissen und freie Wünsche. Kartenmenge und Antwortumfang sind unabhängig: Mehr Karten bedeuten nicht längere Antworten.
 - Die Kartenmenge (weniger, normal, mehr) bestimmt, wie viel des Stoffs abgefragt wird. Ein Auftrag ergibt höchstens 100 Vorschläge und nur so viele, wie die Quelle sinnvolle Informationsstücke trägt; Füllkarten entstehen nicht.
 - Kartenformen (Frage–Antwort, Lückentext, Single Choice, Multiple Choice) werden erlaubt, nicht erzwungen; passende Abruf-, Verständnis- und Anwendungsfragen werden ohne feste Quoten gemischt.
-- Karten stammen nur aus der Quelle. Jede Karte nennt ihre Stelle (Seite oder Abschnitt); Belege werden nie erfunden.
+- Karten stammen nur aus der Quelle. Jede Karte nennt ihre Stelle (PDF-Seite oder Zeilen einer Text-, Markdown- oder Tabellendatei); Belege werden nie erfunden.
+- Die Quelle wird nur im Browser gelesen. Leere, geschützte, gescannte oder zu große Quellen (20 MiB, 400.000 Zeichen) werden abgewiesen, nie still gekürzt; Seiten ohne Textlayer werden genannt.
+- Größere Quellen laufen abschnittweise nacheinander im geöffneten Tab mit sichtbarem Fortschritt; jeder Abschnitt kennt die bisherigen Fragen. Abbrechen behält Erhaltenes, ein Fehler, der jeden Abschnitt träfe, stoppt den Lauf, ein einzeln gescheiterter Abschnitt wird genannt. Endet der Lauf vorzeitig oder an der Obergrenze, nennt das Ergebnis die erste nicht ausgewertete Stelle.
+- Das Ergebnis ist eine ungespeicherte Liste der Vorschläge mit Stelle, Hinweisen der KI und der Zahl verworfener Vorschläge. Verwerfen behält den Auftrag.
 - **Bewusst nicht:** feste Kartenanzahl, Mischungsverhältnisse, Lernzielauswahl, Wissen außerhalb der Quelle.
 
 ## 5. Lernen

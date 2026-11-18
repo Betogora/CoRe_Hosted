@@ -1,3 +1,4 @@
+import type { AiSourceCardsRequester } from "../aiSourceCards.ts";
 import React from "react";
 import { CheckCircle2 } from "lucide-react";
 import type { CreationScreenProps } from "../appScreenProps.ts";
@@ -11,7 +12,10 @@ import { CreationHome, creationMethods } from "./CreationHome.tsx";
 import { ManualCreationPanel } from "./ManualCreationPanel.tsx";
 import { AiSourceCreationPanel } from "./AiSourceCreationPanel.tsx";
 
-export type CreationScreenViewProps = Partial<CreationScreenProps>;
+export type CreationScreenViewProps = Partial<CreationScreenProps> & {
+  /** Sends one portion of a source to the AI; without it, automatic creation stays unavailable. */
+  onRequestSourceCards?: AiSourceCardsRequester;
+};
 
 export function CreationScreen({
   decks = [],

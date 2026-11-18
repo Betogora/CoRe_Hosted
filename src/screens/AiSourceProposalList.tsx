@@ -12,7 +12,7 @@ const formLabels = Object.fromEntries(AI_SOURCE_CARD_FORMS.map(({ value, label }
 function ClozeText({ text }: { text: string }) {
   const match = /\{\{c1::(.*?)(?:::.*?)?\}\}/.exec(text);
   if (!match) return <>{text}</>;
-  return <>{text.slice(0, match.index)}<span className="rounded-sm bg-core-accent-soft px-1 text-core-text">{match[1]}</span>{text.slice(match.index + match[0].length)}</>;
+  return <>{text.slice(0, match.index)}<span className="rounded-marker bg-core-accent-soft px-1 text-core-text">{match[1]}</span>{text.slice(match.index + match[0].length)}</>;
 }
 
 function Proposal({ proposal }: { proposal: SourceCardProposal }) {

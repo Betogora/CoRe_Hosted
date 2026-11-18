@@ -1,7 +1,7 @@
 import React from "react";
 import { ArrowLeft, ArrowRight, CircleDot, FileText, Layers3, ListChecks, MessageSquare, Pencil, Sparkles, TextCursorInput, X } from "lucide-react";
 import type { CreationScreenProps } from "../appScreenProps.ts";
-import { readAiSource, runAiSourceCards, type AiSourceCardsRunResult } from "../aiSourceCards.ts";
+import { describeAiSourceCardsRun, readAiSource, runAiSourceCards, type AiSourceCardsRequester, type AiSourceCardsRunResult } from "../aiSourceCards.ts";
 import {
   AI_SOURCE_ACCEPT, AI_SOURCE_ANSWER_LENGTHS, AI_SOURCE_CARD_FORMS, AI_SOURCE_FORMAT_LABEL, AI_SOURCE_AMOUNTS, AI_SOURCE_LANGUAGES, AI_SOURCE_PRIOR_KNOWLEDGE, AI_SOURCE_REGISTERS, MAX_AI_SOURCE_WISHES_CHARS,
   aiSourceFileError, createAiSourceCreationDraft, describeAiSourceSettings, suggestSourceDeckName, validateAiSourceCreation,
@@ -18,8 +18,8 @@ import { Steps } from "../ui/Steps.tsx";
 import { AiSourceProposalList } from "./AiSourceProposalList.tsx";
 import { formatBytes } from "./screenConstants.ts";
 
-type AiSourceCreationPanelProps = Pick<CreationScreenProps, "decks" | "initialTargetDeckId" | "onDraftStateChange" | "onRequestSourceCards">;
-type SourceCardsRun = { phase: "running"; done: number; total: number | null } | { phase: "done"; result: AiSourceCardsRunResult; notices: string[] };
+type AiSourceCreationPanelProps = Pick<CreationScreenProps, "decks" | "initialTargetDeckId" | "onDraftStateChange"> & { onRequestSourceCards?: AiSourceCardsRequester };
+type SourceCardsRun = { phase: "running"; done: number; total: number | null; cancelling: boolean } | { phase: "done"; result: AiSourceCardsRunResult; notices: string[] };
 
 const learningQuestions = [
   { key: "amount", label: "Kartenmenge", options: AI_SOURCE_AMOUNTS },
@@ -99,15 +99,18 @@ export function AiSourceCreationPanel({ decks, initialTargetDeckId, onDraftState
     const controller = new AbortController();
     runRef.current = controller;
     setRunError("");
-    setRun({ phase: "running", done: 0, total: null });
+    setRun({ phase: "running", done: 0, total: null, cancelling: false });
     try {
       const source = await readAiSource(draft);
+      if (controller.signal.aborted) { setRun(null); return; }
       const result = await runAiSourceCards({
         units: source.units, settings: draft.settings, request: onRequestSourceCards, signal: controller.signal,
-        onProgress: ({ done, total }) => { if (!controller.signal.aborted) setRun({ phase: "running", done, total }); },
+        onProgress: ({ done, total }) => { if (!controller.signal.aborted) setRun({ phase: "running", done, total, cancelling: false }); },
       });
-      // A run cancelled before its first proposal returns to the order instead of showing an empty list.
-      setRun(result.stopped?.reason === "cancelled" && !result.proposals.length ? null : { phase: "done", result, notices: source.notices });
+      if (result.proposals.length) { setRun({ phase: "done", result, notices: source.notices }); return; }
+      // Without a single proposal there is no list to look at: back to the order, with the reason unless cancelled.
+      setRun(null);
+      if (result.stopped?.reason !== "cancelled") setRunError(describeAiSourceCardsRun(result).join(" "));
     } catch (error) {
       setRun(null);
       if (!controller.signal.aborted) setRunError(error instanceof Error ? error.message : "Die Karten konnten nicht erstellt werden.");
@@ -128,11 +131,11 @@ export function AiSourceCreationPanel({ decks, initialTargetDeckId, onDraftState
       {run?.phase === "running" ? (
         <SoftPanel className="grid min-w-0 gap-4 p-4 sm:p-6" data-testid="ai-source-progress">
           <h3 ref={(element) => { focusRef.current = element; }} tabIndex={-1} className="min-w-0 scroll-mt-24 core-heading-3 text-core-text outline-none">Karten werden erstellt</h3>
-          <p className="core-body text-core-text" role="status" aria-live="polite">{run.total === null ? "Quelle wird gelesen …" : `Abschnitt ${Math.min(run.done + 1, run.total).toLocaleString("de-DE")} von ${run.total.toLocaleString("de-DE")}`}</p>
-          <div className="h-1.5 overflow-hidden rounded-round bg-core-subtle" role="progressbar" aria-label="Fortschritt der Kartenerstellung" aria-valuemin={0} aria-valuemax={run.total ?? 0} aria-valuenow={run.done}>
+          <p className="core-body text-core-text" role="status" aria-live="polite">{run.cancelling ? "Wird abgebrochen …" : run.total === null ? "Quelle wird gelesen …" : `Abschnitt ${Math.min(run.done + 1, run.total).toLocaleString("de-DE")} von ${run.total.toLocaleString("de-DE")}`}</p>
+          <div className="h-1.5 overflow-hidden rounded-round bg-core-subtle" role="progressbar" aria-label="Fortschritt der Kartenerstellung" {...run.total === null ? {} : { "aria-valuemin": 0, "aria-valuemax": run.total, "aria-valuenow": run.done }}>
             <div className="h-full rounded-round bg-core-action transition-[width] duration-300 ease-out" style={{ width: `${run.total ? run.done / run.total * 100 : 0}%` }} aria-hidden="true" />
           </div>
-          <div><ActionButton type="button" variant="secondary" icon={X} onClick={() => runRef.current?.abort()}>Abbrechen</ActionButton></div>
+          <div><ActionButton type="button" variant="secondary" icon={X} disabled={run.cancelling} onClick={() => { runRef.current?.abort(); setRun({ ...run, cancelling: true }); }}>Abbrechen</ActionButton></div>
         </SoftPanel>
       ) : run?.phase === "done" ? (
         <AiSourceProposalList result={run.result} notices={run.notices} headingRef={(element) => { focusRef.current = element; }} onDiscard={() => setConfirmDiscard(true)} />
@@ -156,7 +159,7 @@ export function AiSourceCreationPanel({ decks, initialTargetDeckId, onDraftState
           {!valid ? <StatusMessage tone="warning">{Object.values(errors).filter(Boolean).join(" ")}</StatusMessage> : null}
           {runError ? <StatusMessage tone="error" announce="assertive">{runError}</StatusMessage> : null}
           <div className="flex flex-wrap gap-3">
-            <ActionButton type="button" variant="secondary" icon={ArrowLeft} onClick={() => setReview(false)}>Einstellungen bearbeiten</ActionButton>
+            <ActionButton type="button" variant="secondary" icon={ArrowLeft} onClick={() => { setReview(false); setRunError(""); }}>Einstellungen bearbeiten</ActionButton>
             <ActionButton type="button" variant="primary" icon={Sparkles} disabled={!onRequestSourceCards || !valid} onClick={() => void createCards()}>Karten erstellen</ActionButton>
           </div>
         </SoftPanel>

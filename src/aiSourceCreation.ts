@@ -5,6 +5,7 @@ export const AI_SOURCE_FORMAT_LABEL = "PDF, Text, Markdown, CSV oder TSV";
 /** Upper bound of suggestions per order; the amount setting decides how much of it meaningful material uses. */
 export const MAX_AI_SOURCE_CARDS = 100;
 export const MAX_AI_SOURCE_WISHES_CHARS = 2_000;
+const MAX_AI_SOURCE_FILE_BYTES = 20 * 1_024 * 1_024;
 
 export const AI_SOURCE_AMOUNTS = [
   { value: "less", label: "Weniger", instruction: "Erstelle Karten nur für die zentralen Kernaussagen." },
@@ -77,6 +78,7 @@ export function aiSourceFileError(file: Pick<File, "name" | "size">): string | n
   const extension = file.name.toLowerCase().match(/\.[^.]+$/)?.[0];
   if (!extension || !AI_SOURCE_ACCEPT.split(",").includes(extension)) return `Wähle eine Datei im Format ${AI_SOURCE_FORMAT_LABEL}.`;
   if (file.size === 0) return "Die Datei ist leer. Wähle eine Datei mit Inhalt.";
+  if (file.size > MAX_AI_SOURCE_FILE_BYTES) return "Die Datei ist zu groß. Wähle eine Datei bis 20 MiB.";
   return null;
 }
 
