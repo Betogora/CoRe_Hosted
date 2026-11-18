@@ -1,6 +1,6 @@
 # CoRe TODO
 
-Stand: 2026-11-18
+Stand: 2026-11-12
 
 Nur offene Arbeit. Ist-Stand in [`status.md`](status.md), Entscheidungen in
 [`decisions.md`](decisions.md), erledigte Arbeit in [`history.md`](history.md).
@@ -44,9 +44,12 @@ geglättet.
 
 Formular und Auftragsprüfung unter `/neue-karten?method=ai-source` stehen
 (`src/aiSourceCreation.ts`, `AiSourceCreationPanel.tsx`); „Karten erstellen“
-ist deaktiviert, nichts wird gelesen oder übertragen. Route und Vertrag
-stehen (`POST /api/ai/source-cards`, `aiSourceCardsContract.ts`, ADR-011).
-Quellen: PDF, Text, Markdown, CSV und TSV. Bewusst nicht: Ergänzungen
+ist deaktiviert, nichts wird gelesen oder übertragen. Offen ist alles, was die
+Oberfläche danach verspricht. Erste Ausbaustufe: PDF, Text,
+Markdown, CSV und TSV.
+
+Route und Vertrag stehen (`POST /api/ai/source-cards`,
+`aiSourceCardsContract.ts`, ADR-011). Bewusst nicht: Ergänzungen
 außerhalb der Quelle, DOCX und PPTX, Scans und Bilder, Kprim und Eintippen,
 Neu-Generieren einzelner Vorschläge, Abgleich mit vorhandenen Karten des
 Zielstapels, Speichern von Quelle oder Vorschlägen, Serverqueue, automatische
