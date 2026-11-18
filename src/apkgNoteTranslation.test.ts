@@ -65,7 +65,7 @@ test("Ungültige Übersetzungen fallen auf eine Feldliste zurück, ohne die Anki
     cards: [card("200", "100")],
   }), { importedAt: IMPORTED_AT });
 
-  assert.deepEqual(graph.notes[0].translator, { id: "field-list", version: 1 });
+  assert.deepEqual(graph.notes[0].translator, { id: "field-list", version: 2 });
   assert.equal(graph.notes[0].content.interaction.kind, "reveal");
   assert.deepEqual(graph.cards.map((item) => [item.promptKey, item.ankiCardId]), [["anki-0", "200"]]);
   assert.equal(graph.report.notetypes[0].translator.id, "multiple-choice-for-anki");

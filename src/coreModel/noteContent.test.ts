@@ -104,10 +104,11 @@ test("Auswahlfragen prüfen Modus und richtige Antworten", () => {
   const question = field("question", "prompt", "Welche Aussagen stimmen?", "Frage");
   assert.deepEqual(parsed(note([question], { kind: "choice", mode: "single", options: options([true, false, false]) })).promptKeys, ["choice"]);
   parsed(note([question], { kind: "choice", mode: "multiple", options: options([true, true, false]) }));
-  parsed(note([question], { kind: "choice", mode: "kprim", options: options([true, true, true, true]) }));
+  // Kprim has no fixed number of statements, like the Anki add-on that fills as many as Q_ fields.
+  for (const count of [1, 3, 4, 5]) parsed(note([question], { kind: "choice", mode: "kprim", options: options(Array(count).fill(true)) }));
   rejected(note([question], { kind: "choice", mode: "single", options: options([true, true]) }), /genau eine richtige/);
   rejected(note([question], { kind: "choice", mode: "multiple", options: options([true, true]) }), /eine falsche/);
-  rejected(note([question], { kind: "choice", mode: "kprim", options: options([true, false, true]) }), /genau vier/);
+  rejected(note([question], { kind: "choice", mode: "kprim", options: [] }), /mindestens eine Aussage/);
 });
 
 test("Bildverdeckung erzeugt eine Karte je Maskengruppe und verweist auf ihr Bild", () => {
