@@ -8,6 +8,7 @@ async function openCatalogFlow(page: Page) {
 }
 
 const sourceFile = { name: "Zellatmung_Teil-1.PDF", mimeType: "application/pdf", buffer: Buffer.from("Lokale Testquelle, wird nicht ausgelesen.") };
+const sourceText = "# Zellatmung\nDie Atmungskette liegt in der inneren Mitochondrienmembran.\n\n# Glykolyse\nDie Glykolyse findet im Cytosol der Zelle statt.";
 
 test("mobile Schritte erhalten Text, Lernwünsche und ein einziges Stapelziel bis zur Prüfung", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
@@ -87,7 +88,7 @@ test("Quelle, Lernwünsche und Ziel bleiben bis zur Auftragsprüfung lokal erhal
   await expect(summary).toContainText("Englisch");
   await expect(summary).toContainText("Fachsprache verwenden");
   await expect(summary).not.toContainText("Single Choice");
-  await expect(summary.getByRole("button", { name: "Karten erstellen", exact: true })).toBeDisabled();
+  await expect(summary.getByRole("button", { name: "Karten erstellen", exact: true })).toBeEnabled();
   await summary.getByRole("button", { name: "Einstellungen bearbeiten", exact: true }).click();
   await expect(panel.getByLabel("Stapelname")).toHaveValue("Eigener Lernstapel");
   await panel.locator('input[type="file"]').setInputFiles({ ...sourceFile, name: "Andere_Quelle.md" });
@@ -97,6 +98,42 @@ test("Quelle, Lernwünsche und Ziel bleiben bis zur Auftragsprüfung lokal erhal
   await page.getByRole("option").filter({ hasNotText: "Stapel auswählen" }).first().click();
   await panel.getByRole("button", { name: "Auftrag prüfen", exact: true }).click();
   await expect(summary).not.toContainText("(neuer Stapel)");
+  expect(remoteRequests).toEqual([]);
+});
+
+test("Karten aus einer Quelle: Lauf mit Fortschritt, belegte Vorschläge, Abbrechen und Verwerfen behalten den Auftrag", async ({ page }) => {
+  const remoteRequests: string[] = [];
+  page.on("request", (request) => { if (/\/api\/ai\//.test(request.url())) remoteRequests.push(request.url()); });
+  await page.setViewportSize({ width: 1440, height: 900 });
+  const panel = await openCatalogFlow(page);
+  await panel.getByRole("button", { name: "Text einfügen", exact: true }).click();
+  await panel.getByLabel("Dein Quelltext").fill(sourceText);
+  await panel.getByLabel("Stapelname").fill("Zellatmung");
+  await panel.getByRole("button", { name: "Auftrag prüfen", exact: true }).click();
+  const summary = page.getByTestId("ai-source-summary");
+  await summary.getByRole("button", { name: "Karten erstellen", exact: true }).click();
+  const progress = page.getByTestId("ai-source-progress");
+  await expect(progress.getByRole("heading", { name: "Karten werden erstellt", exact: true })).toBeFocused();
+  await progress.getByRole("button", { name: "Abbrechen", exact: true }).click();
+  await expect(panel.getByRole("heading", { name: "Auftrag prüfen", exact: true })).toBeVisible();
+  await expect(page.getByTestId("ai-source-proposals")).toHaveCount(0);
+
+  await summary.getByRole("button", { name: "Karten erstellen", exact: true }).click();
+  const proposals = page.getByTestId("ai-source-proposals");
+  await expect(proposals.getByRole("heading", { name: "4 Vorschläge", exact: true })).toBeFocused();
+  await expect(proposals.getByTestId("ai-source-proposal")).toHaveCount(4);
+  await expect(proposals.getByTestId("ai-source-proposal").first()).toContainText("Frage–Antwort · Zellatmung · Zeilen 1–2");
+  await expect(proposals.getByTestId("ai-source-proposal").nth(1)).not.toContainText("{{c1::");
+  await expect(proposals.getByLabel("Richtig")).toHaveCount(3);
+  await expect(proposals).toContainText("Hinweise der KI");
+  await proposals.getByRole("button", { name: "Vorschläge verwerfen", exact: true }).click();
+  const dialog = page.getByRole("dialog", { name: "Vorschläge verwerfen?" });
+  await dialog.getByRole("button", { name: "Behalten", exact: true }).click();
+  await expect(proposals.getByTestId("ai-source-proposal")).toHaveCount(4);
+  await proposals.getByRole("button", { name: "Vorschläge verwerfen", exact: true }).click();
+  await dialog.getByRole("button", { name: "Verwerfen", exact: true }).click();
+  await expect(panel.getByRole("heading", { name: "Auftrag prüfen", exact: true })).toBeVisible();
+  await expect(summary).toContainText("Zellatmung (neuer Stapel)");
   expect(remoteRequests).toEqual([]);
 });
 
@@ -272,6 +309,7 @@ for (const theme of ["light", "dark"] as const) {
       if (await panel.getByRole("button", { name: "Weiter", exact: true }).isVisible()) await panel.getByRole("button", { name: "Weiter", exact: true }).click();
       await capture("form-cards");
       await panel.getByRole("button", { name: "Auftrag prüfen", exact: true }).click();
+      await expect(panel.getByRole("button", { name: "Karten erstellen", exact: true })).toBeDisabled();
       await capture("summary");
       await page.getByRole("button", { name: "Erstellen", exact: true }).last().click();
       await expect(page.getByRole("dialog", { name: "Ungespeicherten Entwurf verlassen?" })).toBeVisible();
@@ -289,10 +327,15 @@ for (const theme of ["light", "dark"] as const) {
       if (theme === "dark") await page.locator("#docs-theme").click();
       await page.locator("#screens").getByRole("button", { name: "Automatische Erstellung öffnen", exact: true }).click();
       await capture("catalog-form");
-      await page.getByTestId("ai-source-creation").locator('input[type="file"]').setInputFiles(sourceFile);
+      await page.getByTestId("ai-source-creation").locator('input[type="file"]').setInputFiles({ name: "Zellatmung.md", mimeType: "text/markdown", buffer: Buffer.from(sourceText) });
       for (let next = 0; next < 2 && await page.getByRole("button", { name: "Weiter", exact: true }).isVisible(); next++) await page.getByRole("button", { name: "Weiter", exact: true }).click();
       await page.getByRole("button", { name: "Auftrag prüfen", exact: true }).click();
       await capture("catalog-summary");
+      await page.getByRole("button", { name: "Karten erstellen", exact: true }).click();
+      await expect(page.getByTestId("ai-source-progress")).toBeVisible();
+      await capture("catalog-progress");
+      await expect(page.getByTestId("ai-source-proposals")).toBeVisible();
+      await capture("catalog-proposals");
     });
   }
 }

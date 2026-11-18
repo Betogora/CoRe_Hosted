@@ -7,8 +7,8 @@ import {
 export const AI_SOURCE_CARDS_PROMPT_VERSION = "source-cards-v1";
 export const AI_SOURCE_CARDS_DEADLINE_MS = 120_000;
 /** One request carries one portion of the source; the browser sends larger sources portion by portion. */
-const MAX_SOURCE_PORTION_CHARS = 15_000;
-const MAX_SOURCE_PORTION_UNITS = 200;
+export const MAX_SOURCE_PORTION_CHARS = 15_000;
+export const MAX_SOURCE_PORTION_UNITS = 200;
 /** With the explanation bound, 25 cards stay well below the output budget; the order limit of 100 spans several portions. */
 export const MAX_SOURCE_CARDS_PER_PORTION = 25;
 export const MAX_SOURCE_CARDS_REQUEST_BYTES = 512 * 1_024;

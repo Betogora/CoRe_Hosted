@@ -35,6 +35,7 @@ export function CreationScreen({
   onStartDeck = () => undefined,
   onReviewDeck = () => undefined,
   onOpenDashboard = () => undefined,
+  onRequestSourceCards,
 }: CreationScreenViewProps) {
   const completionHeadingRef = React.useRef<HTMLHeadingElement | null>(null);
   const [sessionCompletion, setSessionCompletion] = React.useState<{ deckId: string; createdCount: number; kind: "import" | "manual"; importResult?: Pick<ImportCompletion, "partial" | "reimport"> } | null>(null);
@@ -77,7 +78,7 @@ export function CreationScreen({
 
   function renderSelectedMethod() {
     if (selectedMethod === "ai-source") {
-      return <>{methodHeader()}<AiSourceCreationPanel key={initialTargetDeckId} decks={decks} initialTargetDeckId={initialTargetDeckId} onDraftStateChange={onDraftStateChange} /></>;
+      return <>{methodHeader()}<AiSourceCreationPanel key={initialTargetDeckId} decks={decks} initialTargetDeckId={initialTargetDeckId} onDraftStateChange={onDraftStateChange} onRequestSourceCards={onRequestSourceCards} /></>;
     }
     if (selectedMethod === "import") {
       return (
