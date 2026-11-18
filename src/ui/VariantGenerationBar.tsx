@@ -1,4 +1,4 @@
-import { X } from "lucide-react";
+import { Search, X } from "lucide-react";
 import { ActionButton } from "./actionUi.tsx";
 import { DeckAppearanceIcon } from "./deckAppearance.tsx";
 import type { Deck } from "../coreTypes.ts";
@@ -14,10 +14,12 @@ interface VariantGenerationBarProps {
   outcome?: string | null;
   onCancel: () => void;
   onClose: () => void;
+  /** Opens the cards still without a variant; offered with the final message of an action that left some. */
+  onShow?: () => void;
 }
 
 /** App-wide two-line progress of an AI variant action: deck, count and action, then the bar. */
-export function VariantGenerationBar({ deck, title = "Varianten generieren", done, total, outcome = null, onCancel, onClose }: VariantGenerationBarProps) {
+export function VariantGenerationBar({ deck, title = "Varianten generieren", done, total, outcome = null, onCancel, onClose, onShow }: VariantGenerationBarProps) {
   const progress = outcome ? 1 : total ? done / total : 0;
   const label = outcome ?? (total === null ? `${title} …` : `${title} ${done.toLocaleString("de-DE")} von ${total.toLocaleString("de-DE")}`);
   return (
@@ -28,7 +30,8 @@ export function VariantGenerationBar({ deck, title = "Varianten generieren", don
     >
       <div className="flex min-w-0 items-center gap-3">
         <DeckAppearanceIcon deck={deck} className="size-8" iconSize={16} aria-hidden="true" />
-        <p className="min-w-0 flex-1 truncate core-body font-semibold text-core-text" role="status" aria-live="polite" title={label}>{label}</p>
+        <p className="min-w-0 flex-1 line-clamp-2 core-body font-semibold text-core-text sm:line-clamp-1" role="status" aria-live="polite" title={label}>{label}</p>
+        {outcome && onShow ? <ActionButton type="button" variant="secondary" icon={Search} aria-label="Anzeigen" className="shrink-0 max-sm:px-2.5" onClick={onShow}><span className="hidden sm:inline">Anzeigen</span></ActionButton> : null}
         {outcome
           ? <ActionButton type="button" variant="secondary" icon={X} aria-label="Schließen" className="shrink-0 max-sm:px-2.5" onClick={onClose}><span className="hidden sm:inline">Schließen</span></ActionButton>
           : <ActionButton type="button" variant="secondary" icon={X} aria-label="Abbrechen" className="shrink-0 max-sm:px-2.5" onClick={onCancel}><span className="hidden sm:inline">Abbrechen</span></ActionButton>}

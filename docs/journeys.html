@@ -2863,9 +2863,6 @@ video {
 .rounded-round {
   border-radius: var(--core-radius-round);
 }
-.rounded-sm {
-  border-radius: 0.125rem;
-}
 .rounded-b-control {
   border-bottom-right-radius: var(--core-radius-control);
   border-bottom-left-radius: var(--core-radius-control);
@@ -6985,6 +6982,13 @@ button.core-steps-step {
 
   .sm\:row-start-1 {
     grid-row-start: 1;
+  }
+
+  .sm\:line-clamp-1 {
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 1;
   }
 
   .sm\:block {

@@ -6,9 +6,11 @@ import {
   AI_CARD_VARIANT_PROMPT_VERSION,
   AiCardVariantContractError,
   aiCardVariantSourceKey,
+  aiVariantFieldText,
   createAiCardVariantRequest,
   normalizeAiCardText,
   parseAiCardVariantSuccess,
+  type AiCardVariantSource,
   type AiCardVariantSuccess,
 } from "./aiCardVariantContract.ts";
 import { cardVariantSource } from "./coreVariantService.ts";
@@ -17,7 +19,7 @@ import type { Database } from "./database.types.ts";
 
 /** `avoid` carries the questions of the card's variants so the new one differs from them. */
 export async function requestAiCardVariant(
-  source: { front: string; back: string } | null,
+  source: AiCardVariantSource | null,
   supabase: SupabaseClient<Database> | null,
   { avoid = [], fetchImpl = globalThis.fetch }: { avoid?: string[]; fetchImpl?: typeof fetch } = {},
 ): Promise<AiCardVariantSuccess> {
@@ -45,12 +47,14 @@ export async function requestAiCardVariant(
 export function aiCardVariantAvoidTexts(card: Pick<Card, "variants">): string[] {
   return [...card.variants]
     .sort((left, right) => Number(Boolean(left.deletedAt)) - Number(Boolean(right.deletedAt)) || right.createdAt.localeCompare(left.createdAt))
-    .map((variant) => variant.front);
+    .map((variant) => aiVariantFieldText(variant.front));
 }
+
+const asHtml = (text: string) => text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 
 /** Rejects the response when question or answer changed meanwhile or the rephrasing already exists, deleted ones included. */
 export function createAiGeneratedVariantDraft(
-  source: { front: string; back: string },
+  source: AiCardVariantSource,
   current: { note: Note; card: Card } | null | undefined,
   generated: AiCardVariantSuccess,
 ) {
@@ -58,7 +62,11 @@ export function createAiGeneratedVariantDraft(
     throw new AiCardVariantContractError("source_changed", "Die Karte wurde während der Generierung geändert. Bitte starte sie erneut.");
   }
   const currentSource = cardVariantSource(current.note, current.card);
-  if (!currentSource || aiCardVariantSourceKey(createAiCardVariantRequest(currentSource).source) !== aiCardVariantSourceKey(createAiCardVariantRequest(source).source)) {
+  const requestKey = (candidate: AiCardVariantSource) => {
+    const request = createAiCardVariantRequest(candidate);
+    return `${aiCardVariantSourceKey(request.source)}\u0000${JSON.stringify(request.choice ?? null)}`;
+  };
+  if (!currentSource || requestKey(currentSource) !== requestKey(source)) {
     throw new AiCardVariantContractError("source_changed", "Die Karte wurde während der Generierung geändert. Bitte starte sie erneut.");
   }
   const variant = {
@@ -67,13 +75,15 @@ export function createAiGeneratedVariantDraft(
   };
   const generatedKey = aiCardVariantSourceKey(variant);
   const duplicate = current.card.variants.some((candidate) => aiCardVariantSourceKey({
-    front: normalizeAiCardText(candidate.front),
-    back: normalizeAiCardText(candidate.back),
+    front: aiVariantFieldText(candidate.front),
+    back: aiVariantFieldText(candidate.back),
   }) === generatedKey);
   if (duplicate) throw new AiCardVariantContractError("duplicate_variant", "Diese Variante gibt es schon. Bitte erneut generieren.");
 
   return {
-    ...variant,
+    // Variants are stored as HTML like note fields; the generated plain text keeps characters such as "K < 1".
+    front: asHtml(variant.front),
+    back: asHtml(variant.back),
     variantLevel: 2,
     qualityStatus: "active" as const,
     isActive: true,
@@ -83,6 +93,8 @@ export function createAiGeneratedVariantDraft(
       model: generated.model,
       privacyMode: generated.privacyMode,
       promptVersion: AI_CARD_VARIANT_PROMPT_VERSION,
+      // Rephrased option texts of a choice variant; ids and correctness stay the card's (`variantPresentation`).
+      ...(generated.variant.options ? { options: generated.variant.options.map((option) => ({ id: option.id, html: asHtml(normalizeAiCardText(option.text)) })) } : {}),
     },
   };
 }
