@@ -1,6 +1,6 @@
 # CoRe TODO
 
-Stand: 2026-11-12
+Stand: 2026-11-18
 
 Nur offene Arbeit. Ist-Stand in [`status.md`](status.md), Entscheidungen in
 [`decisions.md`](decisions.md), erledigte Arbeit in [`history.md`](history.md).
@@ -44,57 +44,56 @@ geglättet.
 
 Formular und Auftragsprüfung unter `/neue-karten?method=ai-source` stehen
 (`src/aiSourceCreation.ts`, `AiSourceCreationPanel.tsx`); „Karten erstellen“
-ist deaktiviert, nichts wird gelesen oder übertragen. Offen ist alles, was die
-Oberfläche danach verspricht. Setzt P1 voraus. Erste Ausbaustufe: PDF, Text,
-Markdown, CSV und TSV.
+ist deaktiviert, nichts wird gelesen oder übertragen. Drei Pakete, je ein PR.
+Quellen: PDF, Text, Markdown, CSV und TSV. Bewusst nicht: Ergänzungen
+außerhalb der Quelle, DOCX und PPTX, Scans und Bilder, Kprim und Eintippen,
+Neu-Generieren einzelner Vorschläge, Abgleich mit vorhandenen Karten des
+Zielstapels, Speichern von Quelle oder Vorschlägen, Serverqueue, automatische
+Varianten.
 
-- [ ] **KI-Kontingent pro Nutzer:** Alle Nutzer teilen das Ausgabenlimit des
-      OpenRouter-Schlüssels; ein Tageslimit je Account (atomare Zählung in
-      Supabase) verhindert, dass ein Nutzer es allein aufbraucht. Auch
-      Voraussetzung für das erste externe Release.
-- [ ] **Entscheidungen vor dem Code (Ergänzung zu ADR-011):** ADR-011 erlaubt
-      genau drei KI-Routen und verlangt für ein Kontingent je Nutzer eine
-      Ergänzung; eine gemeinsame Ergänzung regelt beides und gibt die vierte
-      Route frei (etwa `POST /api/ai/source-cards`, gleiches Modell, ZDR,
-      Kostenlog). Festlegen: ob der Browser nur extrahierten Text oder die Datei
-      überträgt (ADR-011 schließt Bildübertragung aus, Scans und Diagramme
-      bleiben damit außen vor); Obergrenzen je Auftrag (Zeichen, Seiten,
-      Karten) und wie große Quellen ohne Serverqueue in Portionen im
-      geöffneten Tab laufen; Hinweis, dass die Quelle an den Anbieter geht.
-- [ ] **Quelle auslesen:** `documentModel.ts` liest PDF, Text, Markdown, CSV
-      und TSV bereits; DOCX und PPTX kommen aus der Dateiauswahl des
-      Formulars und aus den Specs heraus (Lesen steht unter „Später“). Jede
-      Textstelle trägt einen echten Beleg (Seite oder Abschnitt), weil der
-      Prompt einen Quellenverweis je Karte verlangt. Leere, geschützte, nur
-      gescannte oder zu große Dokumente werden mit Meldung abgelehnt, nichts
-      wird still abgeschnitten.
-- [ ] **Generierung und Vertrag:** Anfrage- und Antwortschema in einem eigenen
-      Vertragsmodul wie `aiCardVariantContract.ts`; die Route nutzt
-      `buildAiSourceCreationPrompt` und hält Quellmaterial von Anweisungen
-      getrennt. Je Karte getrennt: Frage oder Lückentext, kurze Lösung,
-      Auswahloptionen mit Richtigkeit, quellenbasierte Erklärung, externe
-      Ergänzung, Quellenverweis. Hinweise des Modells (Material trägt das
-      Lernziel nicht, widersprüchliche oder unlesbare Stellen) kommen als
-      eigene Meldungen zurück. Fortschritt, Abbruch und Fehler folgen den
-      Regeln der Variantengenerierung.
-- [ ] **Ergebnis prüfen und übernehmen:** Vor dem Speichern eine Liste der
-      vorgeschlagenen Karten mit Vorschau, Bearbeiten und Verwerfen je Karte;
-      Bearbeiten und Vorschau nutzen den Reiter `Inhalt` des Karteneditors
-      (ADR-045), kein zweiter Editor; gespeichert wird erst nach Bestätigung
-      und nur über `coreModel.ts` (Frage–Antwort, Lückentext, Single und
-      Multiple Choice gibt es dort schon). Feldzuordnung festlegen: kurze
-      Antwort, quellenbasierte Erklärung in `extra`, Quellenverweis in
-      `source`; die externe Ergänzung braucht eine sichtbar getrennte
-      Kennzeichnung „Ergänzende Erklärung – außerhalb der Quelle“ (eigene
-      Feldrolle oder benanntes Feld). Neuer Zielstapel entsteht erst bei der
-      Übernahme. Der Entwurfsschutz gilt auch für ungespeicherte Ergebnisse.
-- [ ] **Freigabe:** „Karten erstellen“ und den Hinweis „noch nicht verfügbar“
-      erst danach umstellen; ohne Verbindung bleibt die Aktion mit Meldung
-      gesperrt. Specs [Automatisch aus einer Quelle](specs.md#automatisch-aus-einer-quelle), `status.md` und `architecture.md` nachziehen.
-      Nachweis: Routen- und Vertragstests, E2E mit gemockter Route (Erfolg,
-      Hinweise, Abbruch, Fehler, nichts gespeichert vor Übernahme), echte
-      Quellen je Format mit allen vier Kartenformen, visuelle Pflichtmatrix
-      für Fortschritt und Ergebnisliste.
+- [ ] **P2a – Auftrag, Route und Vertrag:** Eine Ergänzung zu ADR-011 gibt
+      `POST /api/ai/source-cards` frei (gleiches Modell, ZDR, Kostenlog, nur
+      extrahierter Text). Auftrag bereinigen: „Stoffabdeckung“ wird
+      „Kartenmenge“ (Weniger, Normal, Mehr) mit eigener Promptzeile, was je
+      Stufe abgedeckt wird; Karten nur für sinnvolle Informationsstücke, keine
+      Füllkarten, höchstens 100 Vorschläge je Auftrag. Die Auswahl
+      „Ergänzungen über die Quelle hinaus“ entfällt in Formular, Prompt und
+      Specs; DOCX und PPTX verlassen Dateiauswahl und Specs. Vertragsmodul wie
+      `aiCardVariantContract.ts`: Anfrage aus Auftrag, Text-Einheiten mit ID
+      und Beleg (Seite oder Abschnitt) und den Fragen vorheriger Portionen;
+      Antwort je Karte Form, Frage oder Lückentext, kurze Lösung,
+      Auswahloptionen mit Richtigkeit, quellenbasierte Erklärung und
+      Einheiten-ID als Beleg, dazu Hinweise des Modells als eigene Meldungen
+      (Material trägt den Wunsch nicht, widersprüchliche oder unlesbare
+      Stellen). Unbekannte Belege, ungültige Formen und abgeschnittene
+      Antworten werden abgewiesen. Nachweis: Vertrags- und Routentests.
+- [ ] **P2b – Quelle zu Vorschlägen:** Die Quelle wird im Browser ausgelesen
+      (`documentModel.ts`, Grenzen wie bei der Zusammenfassung); leere,
+      geschützte, gescannte oder zu große Quellen werden mit Meldung
+      abgewiesen, nie still gekürzt. PDF zerfällt in Seiten, Text, Markdown,
+      CSV und TSV in Abschnitte mit echtem Beleg. Portionen laufen
+      nacheinander im geöffneten Tab mit Fortschritt, Abbruch und den
+      Fehlerregeln des Variantenlaufs; jede Portion erhält die Fragen der
+      vorigen. Ergebnis ist eine flüchtige Vorschlagsliste mit Vorschau und
+      Hinweisen; nichts wird gespeichert. Nachweis: Modultests für Zerlegung
+      und Lauf.
+- [ ] **P2c – Prüfen, übernehmen, freischalten:** Bearbeiten und Verwerfen je
+      Vorschlag; Bearbeiten und Vorschau nutzen den Reiter `Inhalt` des
+      [Karteneditors](specs.md#karteneditor), kein zweiter Editor. Gespeichert
+      wird erst nach Bestätigung und nur über `coreModel.ts` (kurze Antwort,
+      Erklärung in `extra`, Beleg in `source`); ein neuer Zielstapel entsteht
+      erst bei der Übernahme; der Entwurfsschutz gilt auch für ungespeicherte
+      Vorschläge. Danach „Karten erstellen“ freischalten, ohne Verbindung mit
+      Meldung gesperrt; Specs
+      [Automatisch aus einer Quelle](specs.md#automatisch-aus-einer-quelle),
+      `status.md` und `architecture.md` nachziehen. Nachweis: E2E mit
+      gemockter Route (Erfolg, Hinweise, Abbruch, Fehler, nichts gespeichert
+      vor Übernahme), visuelle Pflichtmatrix für Fortschritt und
+      Vorschlagsliste, Stichprobe gegen die Preview mit 4–6 selbst
+      geschriebenen oder frei lizenzierten Prüfdokumenten unter `fixtures/`
+      (jedes Format, alle vier Kartenformen); die inhaltsfreie Auswertung
+      steht im PR und in `history.md`. Optimierung, Eval und Hillclimb folgen
+      in P5.
 
 ## P5: KI-Eval und Hillclimb
 
@@ -179,8 +178,10 @@ neuen Code.
 
 ## Vor dem ersten externen Release
 
-Dazu das KI-Kontingent pro Nutzer aus P2.
-
+- [ ] **KI-Kontingent pro Nutzer:** Alle Nutzer teilen das Ausgabenlimit des
+      OpenRouter-Schlüssels; ein Tageslimit je Account (atomare Zählung in
+      Supabase) verhindert, dass ein Nutzer es allein aufbraucht. Braucht eine
+      Ergänzung zu ADR-011.
 - [ ] **Magic Link:** Gebaut, aber per Flag aus. Braucht einen eigenen
       SMTP-Server in Supabase, freigegebene Redirect-Adressen (Produktion,
       Preview), eine deutsche Mailvorlage und zusätzlich einen 6-stelligen
