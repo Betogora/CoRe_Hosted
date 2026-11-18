@@ -796,6 +796,7 @@ Fassung | im Konto, mehrere je Stapel
 `Heute` ist die Startseite: Tagesstand, Lernstart und persönliche Werkzeuge an einem Ort.
 
 - Die Seite besteht aus frei wählbaren und anordenbaren Bausteinen: Tagesstand, Motivationsimpuls, Lerntimer, aktive Stapel, To-dos, Lern-Heatmap und Prüfungsaufgaben. Anordnung und eigene To-dos gelten je Konto nur in diesem Browser.
+- **Feste Formate:** Jeder Baustein hat genau ein Format mit fester Höhe; nur die aktiven Stapel nehmen die volle Breite ein, alle anderen eine Spalte. Längere Inhalte scrollen im Baustein, statt die Seite zu verschieben; frei bleibende Plätze sind erlaubt. Größen sind nicht wählbar.
 - **Erststart:** Ein neues Konto beginnt ohne erfundene Daten. Ohne Stapel führt die Seite zu Import, manueller Karte oder Demo. Demo-Stapel entstehen nur auf ausdrückliche Aktion, einmalig und ohne Lernhistorie.
 - **Tagesstand:** Er fasst alle Hauptstapel ohne Doppelzählung in `Gelernt`, `Neu`, `Offen` und `Fällig` zusammen ([Tagesrunde und Limits](#tagesrunde-und-limits)).
 - **Lernstart:** Er startet den ersten Hauptstapel in alphabetischer Reihenfolge, der verfügbare Karten hat. Warten nur noch nicht verfügbare Lernschritte, kündigt er späteres Weiterlernen an; ist alles gelernt, meldet er das erreichte Tagesziel und bietet zusätzliche neue Karten an.

@@ -170,7 +170,7 @@ function DailyLearningOverview({
 
   return (
     <>
-      <SoftPanel className="dashboard-learning min-w-0 p-6" data-testid="daily-learning-overview" data-status={plan.status}>
+      <SoftPanel className="dashboard-learning min-w-0 p-5" data-testid="daily-learning-overview" data-status={plan.status}>
         <div className="dashboard-learning-body">
           <div className="dashboard-learning-goal">
             <h2 className="dashboard-learning-goal-title">
@@ -289,7 +289,7 @@ export function DashboardScreen({ state, now, onNavigate, onStartDeck, onStartAd
         learning: <DailyLearningOverview plan={dailyLearningPlan} decks={state.decks} onStartDeck={onStartDeck} onStartAdditionalCards={onStartAdditionalCards} />,
         motivation: <DailyMotivationWidget now={now} timeZone={getLearningTimeZone(state.profile)} dayStartHour={globalSettings.dayStartHour} />,
         heatmap: <StudyHeatmap heatmap={studyHeatmap} formatDayLabel={heatmapDayLabel} />,
-        decks: <SoftPanel className="min-w-0 p-5 sm:p-6"><DeckTree
+        decks: <SoftPanel className="min-w-0 p-5"><DeckTree
           rows={library.rows}
           rootDeckIds={teaserRootIds}
           mode="dashboard"

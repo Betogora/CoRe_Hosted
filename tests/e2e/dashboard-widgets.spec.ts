@@ -66,14 +66,16 @@ async function beginDrag(page: Page) {
   await expect(page.locator('[data-dashboard-widget="learning"]')).toHaveAttribute("data-drop-target", "true");
 }
 
-test("Timer und Motivation stehen ab den Rasterbreiten 640 und 999 in einer Reihe", async ({ page }) => {
-  for (const width of [640, 999]) {
+test("Kacheln stehen ab 640 px nebeneinander: zwei Spalten bis 999, drei ab 1000", async ({ page }) => {
+  for (const [width, row] of [[640, ["learning", "motivation"]], [999, ["learning", "motivation"]], [1000, ["learning", "motivation", "timer"]]] as const) {
     await page.setViewportSize({ width, height: 900 });
     await openEditor(page);
     await page.getByRole("button", { name: "Fertig", exact: true }).click();
-    const timer = await page.locator('[data-dashboard-widget="timer"]').boundingBox();
-    const motivation = await page.locator('[data-dashboard-widget="motivation"]').boundingBox();
-    expect(Math.abs(timer!.y - motivation!.y), `${width} px`).toBeLessThan(2);
+    const boxes = await Promise.all(row.map((id) => page.locator(`[data-dashboard-widget="${id}"]`).boundingBox()));
+    for (const box of boxes) {
+      expect(Math.abs(box!.y - boxes[0]!.y), `${width} px`).toBeLessThan(2);
+      expect(Math.abs(box!.height - boxes[0]!.height), `${width} px`).toBeLessThan(2);
+    }
   }
 });
 
@@ -147,7 +149,7 @@ test("Touch-Drag übernimmt erst beim Loslassen; touchCancel verwirft die Vorsch
   await session.detach();
 });
 
-test("Widget-Höhen schließen Lücken und passen sich aufgeklappten Inhalten an", async ({ page }, info) => {
+test("Feste Formate: Kacheln gleich hoch, Stapel in voller Breite, To-dos scrollen statt zu wachsen", async ({ page }, info) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   await openEditor(page);
   await page.getByRole("button", { name: "Fertig", exact: true }).click();
@@ -155,10 +157,12 @@ test("Widget-Höhen schließen Lücken und passen sich aufgeklappten Inhalten an
     const rect = widget.getBoundingClientRect();
     return { id: widget.getAttribute("data-dashboard-widget"), top: rect.top, bottom: rect.bottom, left: rect.left, right: rect.right };
   }));
-  await expect.poll(async () => {
-    const rects = await bounds();
-    return rects.find((rect) => rect.id === "decks")!.top < rects.find((rect) => rect.id === "timer")!.bottom;
-  }).toBe(true);
+  const grid = (await page.locator(".dashboard-widget-grid").boundingBox())!;
+  const decks = (await page.locator('[data-dashboard-widget="decks"]').boundingBox())!;
+  expect(Math.abs(decks.width - grid.width)).toBeLessThan(2);
+  const todos = page.locator('[data-dashboard-widget="todos"]');
+  const todosHeight = (await todos.boundingBox())!.height;
+  expect(Math.abs(todosHeight - (await page.locator('[data-dashboard-widget="heatmap"]').boundingBox())!.height)).toBeLessThan(2);
   await page.getByRole("spinbutton", { name: "Minuten", exact: true }).fill("45");
   await expect(page.getByRole("spinbutton", { name: "Minuten", exact: true })).toHaveValue("45");
   await page.getByRole("button", { name: "Eigene Aufgabe hinzufügen", exact: true }).click();
@@ -170,8 +174,8 @@ test("Widget-Höhen schließen Lücken und passen sich aufgeklappten Inhalten an
     await page.getByRole("textbox", { name: "Eigene Aufgabe", exact: true }).fill(text);
     await page.getByRole("button", { name: "Aufgabe hinzufügen", exact: true }).click();
   }
-  await expect(page.getByRole("checkbox", { name: "Weitere Aufgabe vier", exact: true })).toHaveCount(0);
-  await page.getByRole("button", { name: /^\d+ weitere anzeigen$/ }).and(page.locator(".dashboard-todos > button")).click();
+  expect(Math.abs((await todos.boundingBox())!.height - todosHeight)).toBeLessThan(2);
+  expect(await page.locator(".dashboard-todos-list").evaluate((list) => list.scrollHeight > list.clientHeight)).toBe(true);
   await page.getByRole("checkbox", { name: "Weitere Aufgabe vier", exact: true }).click();
   await page.getByText("Erledigt (1)", { exact: true }).click();
   await expect(page.getByRole("checkbox", { name: "Weitere Aufgabe vier", exact: true })).toBeChecked();
@@ -184,7 +188,20 @@ test("Widget-Höhen schließen Lücken und passen sich aufgeklappten Inhalten an
   await page.screenshot({ path: info.outputPath("04-aufgeklappt.png") });
 });
 
-test("Widgetoptionen erhalten Größen, Pfeile und Entfernen; abgebrochener Drag bleibt ungespeichert", async ({ page }, info) => {
+test("Gespeicherte Reihenfolge ist sichtbare Reihenfolge: keine Kachel rückt vor die volle Breite", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await openEditor(page);
+  await page.getByRole("button", { name: "Lerntimer nach hinten", exact: true }).click();
+  await expect.poll(() => order(page)).toEqual(["learning", "motivation", "decks", "timer", "todos", "heatmap"]);
+  // Poll past the 180 ms FLIP transform, which bounding boxes include.
+  await expect.poll(async () => {
+    const decks = (await page.locator('[data-dashboard-widget="decks"]').boundingBox())!;
+    const timer = (await page.locator('[data-dashboard-widget="timer"]').boundingBox())!;
+    return timer.y > decks.y + decks.height;
+  }).toBe(true);
+});
+
+test("Widgetoptionen erhalten Pfeile und Entfernen ohne Größenwahl; abgebrochener Drag bleibt ungespeichert", async ({ page }, info) => {
   await page.setViewportSize({ width: 640, height: 844 });
   await openEditor(page);
   await beginDrag(page);
@@ -195,8 +212,7 @@ test("Widgetoptionen erhalten Größen, Pfeile und Entfernen; abgebrochener Drag
   await page.screenshot({ path: info.outputPath("05-widgetmenue.png") });
   await page.getByRole("button", { name: "Lerntimer nach vorne", exact: true }).click();
   await expect.poll(() => order(page)).toEqual(["learning", "timer", "motivation", "decks", "todos", "heatmap"]);
-  await page.getByRole("button", { name: "Lerntimer: Größe ändern (kompakt)", exact: true }).click();
-  await expect(page.locator('[data-dashboard-widget="timer"]')).toHaveAttribute("data-width", "wide");
+  await expect(page.getByRole("button", { name: /Größe ändern/ })).toHaveCount(0);
   await page.getByRole("button", { name: "Lerntimer entfernen", exact: true }).click();
   await expect(page.locator('[data-dashboard-widget="timer"]')).toHaveCount(0);
   // Collapsed, the bar shows only the complete first row; the expander reveals the rest.
@@ -291,21 +307,16 @@ for (const { width, height } of sizes) for (const theme of matrixThemes) test(`W
 });
 
 for (const { width, height } of matrixViewports()) for (const theme of matrixThemes) {
-  test(`Motivation ${width}×${height} ${theme}: Größen und dauerhafte Entfernung`, async ({ page }, info) => {
+  test(`Motivation ${width}×${height} ${theme}: Kachel und dauerhafte Entfernung`, async ({ page }, info) => {
     await page.setViewportSize({ width, height });
     await openEditor(page, theme === "dark");
     const widget = page.locator('[data-dashboard-widget="motivation"]');
-    // Below 640 px every widget spans the full width, so the size control is hidden there.
-    if (width < 640) await expect(widget.getByRole("button", { name: /Größe ändern/ })).toBeHidden();
-    for (const size of width < 640 ? ["small"] : ["small", "wide", "full"]) {
-      await expect(widget).toHaveAttribute("data-width", size);
-      await widget.scrollIntoViewIfNeeded();
-      await expect(widget.getByRole("heading", { name: "Dein Motivationsimpuls" })).toBeVisible();
-      await expect(widget.getByRole("button", { name: "Gehirn begrüßen" })).toBeVisible();
-      if (visualOutput) await page.screenshot({ path: info.outputPath(`motivation-${size}.png`) });
-      expect(await widget.evaluate((element) => element.scrollWidth > element.clientWidth + 1)).toBe(false);
-      if (width >= 640) await widget.getByRole("button", { name: /Größe ändern/ }).click();
-    }
+    await expect(widget).toHaveAttribute("data-width", "small");
+    await widget.scrollIntoViewIfNeeded();
+    await expect(widget.getByRole("heading", { name: "Dein Motivationsimpuls" })).toBeVisible();
+    await expect(widget.getByRole("button", { name: "Gehirn begrüßen" })).toBeVisible();
+    if (visualOutput) await page.screenshot({ path: info.outputPath("motivation.png") });
+    expect(await widget.evaluate((element) => element.scrollWidth > element.clientWidth + 1)).toBe(false);
     await widget.getByRole("button", { name: "Dein Motivationsimpuls entfernen", exact: true }).click();
     await page.reload();
     await expect(widget).toHaveCount(0);
@@ -432,12 +443,13 @@ test("Timer: Scrollen ohne Fokus, Ring, Pause und Reset auf die Startdauer", asy
   await expect(seconds).toHaveValue("31");
 });
 
-test("Aufgaben: gemischte Dreier-Vorschau, Inline-Plus und ausklappbare lange Texte", async ({ page }, info) => {
+test("Aufgaben: alle offenen Aufgaben in scrollender Liste, Inline-Plus und ausklappbare lange Texte", async ({ page }, info) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/docs/ui-elements.html?preview=dashboard");
   const box = page.locator(".dashboard-todos");
   const planned = box.locator('[data-exam-todo]').filter({ visible: true });
-  await expect(planned).toHaveCount(3);
+  await expect.poll(() => planned.count()).toBeGreaterThan(3);
+  const plannedCount = await planned.count();
   await expect(box.getByText("Keine eigenen Aufgaben offen.")).toHaveCount(0);
   const add = box.getByRole("button", { name: "Eigene Aufgabe hinzufügen", exact: true });
   const text = "Langer eigener Lernauftrag: " + "Anatomie, Physiologie und klinische Zusammenhänge gründlich wiederholen. ".repeat(5);
@@ -445,8 +457,9 @@ test("Aufgaben: gemischte Dreier-Vorschau, Inline-Plus und ausklappbare lange Te
     await add.click(); await box.getByRole("textbox", { name: "Eigene Aufgabe", exact: true }).fill(title);
     await box.getByRole("button", { name: "Aufgabe hinzufügen", exact: true }).click();
   }
-  await expect(box.locator('[data-own-todo]').filter({ visible: true })).toHaveCount(1);
-  await expect(planned).toHaveCount(2);
+  await expect(box.locator('[data-own-todo]').filter({ visible: true })).toHaveCount(4);
+  await expect(planned).toHaveCount(plannedCount);
+  expect(await box.locator(".dashboard-todos-list").evaluate((list) => list.scrollHeight > list.clientHeight)).toBe(true);
   const own = box.locator('[data-own-todo]').first();
   const disclosure = own.getByRole("button", { name: "Vollständigen Aufgabentext anzeigen" });
   await expect(disclosure).toBeVisible();
@@ -456,14 +469,10 @@ test("Aufgaben: gemischte Dreier-Vorschau, Inline-Plus und ausklappbare lange Te
   await expect(own.getByRole("checkbox")).not.toBeChecked();
   await own.getByRole("button", { name: "Aufgabentext einklappen" }).click();
   await page.screenshot({ path: info.outputPath("aufgaben-vorschau.png") });
-  await box.getByRole("button", { name: /^\d+ weitere anzeigen$/ }).click();
-  await expect(box.locator('[data-own-todo]').filter({ visible: true })).toHaveCount(4);
-  expect(await planned.count()).toBeGreaterThan(2);
-  await box.getByRole("button", { name: "Weniger anzeigen", exact: true }).click();
-  await expect(box.locator('[data-own-todo]').filter({ visible: true })).toHaveCount(1);
   await box.getByRole("checkbox", { name: text, exact: true }).click();
+  await expect(box.locator('[data-own-todo]').filter({ visible: true })).toHaveCount(3);
   await expect(box.getByRole("checkbox", { name: "Zweite eigene Aufgabe", exact: true })).toBeVisible();
-  await expect(planned).toHaveCount(2);
+  await expect(planned).toHaveCount(plannedCount);
 });
 
 
@@ -484,14 +493,12 @@ for (const { width, height } of sizes) for (const theme of matrixThemes) {
     await box.getByRole("textbox", { name: "Eigene Aufgabe", exact: true }).fill(text);
     await box.getByRole("button", { name: "Aufgabe hinzufügen", exact: true }).click();
     await expect(box.locator('[data-own-todo]').filter({ visible: true })).toHaveCount(1);
-    await expect(box.locator('[data-exam-todo]').filter({ visible: true })).toHaveCount(2);
+    expect(await box.locator('[data-exam-todo]').filter({ visible: true }).count()).toBeGreaterThan(2);
     await box.scrollIntoViewIfNeeded();
     if (visualOutput) await page.screenshot({ path: info.outputPath("todos-compact.png") });
     await box.locator('[data-own-todo]').getByRole("button", { name: "Vollständigen Aufgabentext anzeigen" }).click();
     if (visualOutput) await page.screenshot({ path: info.outputPath("todos-expanded.png") });
     await box.locator('[data-own-todo]').getByRole("button", { name: "Aufgabentext einklappen" }).click();
-    await box.getByRole("button", { name: /^\d+ weitere anzeigen$/ }).click();
-    if (visualOutput) await page.screenshot({ path: info.outputPath("todos-all.png") });
     expect(await page.locator(".catalog-product-preview").evaluate((element) => element.scrollWidth > element.clientWidth + 1)).toBe(false);
     for (const widget of [timer, box]) {
       expect(await widget.evaluate((element) => {
