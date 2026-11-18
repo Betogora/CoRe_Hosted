@@ -413,7 +413,7 @@ test("cards page lists every card of every deck as one flat sortable list withou
   assert.match(markup, /Was ist ATP\?/, "auch ohne Suche stehen alle Karten in der Liste");
   assert.doesNotMatch(markup, /<b>/);
   assert.match(markup, /<tr[^>]*class="cursor-pointer border-b border-core-border[^"]*"[^>]*data-card-row="true"/);
-  assert.match(markup, /<td class="min-w-0 py-1 pl-2 pr-4 align-middle/, "die kompakte Zeilenhöhe von vor der ToolBox-Gestaltung");
+  assert.match(markup, /<td class="min-w-0 px-2 py-1 align-middle/, "die kompakte Zeilenhöhe von vor der ToolBox-Gestaltung");
   assert.match(markup, />Biologie<\/span>/, "die Zeile nennt ihren Stapel");
   assert.doesNotMatch(markup, /Mit Varianten|Ohne Varianten|lucide-minus/);
   assert.match(markup, /<span class="grid size-\[1\.125rem\] place-items-center"><\/span><span class="min-w-4 text-right[^"]*"><\/span>/, "ohne Variante bleibt der Platz am Spaltenende leer, Flagge und Stern stehen davor");

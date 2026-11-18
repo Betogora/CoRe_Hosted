@@ -27,7 +27,7 @@ function SortHeader({ field, label, sort, onChange, leading, children }: {
   const active = sort.field === field;
   const first = field === "sortField";
   // Matches the padding of the column's cells, so header and values share their edge.
-  const headerPadding = field === "variants" ? "px-1 sm:pr-3" : first ? "pl-2 pr-4 sm:pl-3 md:pl-4" : "px-1";
+  const headerPadding = field === "variants" ? "px-1 sm:pr-3" : first ? "px-2 sm:pl-3 sm:pr-4 md:pl-4" : "px-1";
   const directionLabel = active && sort.direction === "desc" ? "absteigend" : "aufsteigend";
   const SortIcon = active && sort.direction === "desc" ? ArrowDown : ArrowUp;
 
@@ -113,7 +113,7 @@ const CardTableRowView = React.memo(function CardTableRowView({ virtualKey, deck
       data-suspended={suspended ? "true" : undefined}
       data-card-row="true"
     >
-      <td className="min-w-0 py-1 pl-2 pr-4 align-middle sm:pl-3 md:pl-4">
+      <td className="min-w-0 px-2 py-1 align-middle sm:pl-3 sm:pr-4 md:pl-4">
         <div className="flex min-w-0 items-start gap-2.5">
         {selecting ? (
           <CoreCheckbox
@@ -225,7 +225,8 @@ export function CardHitTable({ items, rowOf, virtual, loading, searching, select
     theadRef.current?.querySelector<HTMLInputElement>(".core-checkbox input")?.focus();
   }, [barShown]);
   // Platforms round glyph widths differently, so the date column takes the rendered width of a date: the first
-  // column's text, the date and the variants' slots then stand equally far apart. The class width is the fallback.
+  // column's deck path (from sm, where it shows), the date and the variants' slots then stand equally far apart; on
+  // phones the first column keeps its 8 px so „Auswählen“ and „Sortierfeld“ fit. The class width is the fallback.
   React.useLayoutEffect(() => {
     const sample = dueSampleRef.current;
     if (!sample) return undefined;

@@ -262,7 +262,7 @@ test("[Vertrag: Kartenverwaltung] Kartenzeilen bleiben auch in schmalen Viewport
           const contentRight = (element: HTMLElement | undefined) => element ? element.getBoundingClientRect().right - parseFloat(window.getComputedStyle(element).paddingRight) : Number.NaN;
           return headers.map((header, index) => Math.abs((header.querySelector<HTMLElement>(".core-table-header-control")?.getBoundingClientRect().right ?? Number.NaN) - contentRight(cells[index])));
         })(),
-        // The date column just fits a date: the first column's text, the date and the variants' slots stand equally far apart.
+        // The date column just fits a date: from sm the first column's text, the date and the variants' slots stand equally far apart.
         valueGaps: (() => {
           const firstCell = cardRows[0]?.querySelector<HTMLElement>("td");
           const date = dueCells[0]?.firstChild;
@@ -296,7 +296,7 @@ test("[Vertrag: Kartenverwaltung] Kartenzeilen bleiben auch in schmalen Viewport
     expect(geometry.headersFit).toBe(true);
     for (const offset of geometry.headerRightOffsets) expect(offset, "Sortierkopf schließt rechtsbündig mit seiner Spalte").toBeLessThanOrEqual(1);
     expect(geometry.dueLabels).toEqual(["23.08.2026", "Neu"]);
-    expect(Math.abs(geometry.valueGaps[0] - geometry.valueGaps[1]), "Text, Datum und Varianten stehen gleich weit auseinander").toBeLessThanOrEqual(1);
+    if (viewport.width >= 640) expect(Math.abs(geometry.valueGaps[0] - geometry.valueGaps[1]), "Text, Datum und Varianten stehen gleich weit auseinander").toBeLessThanOrEqual(1);
     expect(geometry.dueLabelsFit).toBe(true);
     expect(geometry.variantLabels).toEqual([null, "1 aktive Variante"]);
     expect(geometry.variantTagsFit).toBe(true);
