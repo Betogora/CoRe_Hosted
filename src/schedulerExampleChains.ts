@@ -11,11 +11,14 @@ const DAY_MS = 86_400_000;
 export const EXAMPLE_RETENTIONS = [0.9, 0.92, 0.94];
 export const EXAMPLE_VARIANT_THRESHOLDS = [7, 21, 60];
 
+/** The first chain also shows the effect of the target retention. */
 export const EXAMPLE_CHAINS: ReadonlyArray<{ name: string; ratings: ReviewRating[] }> = [
   { name: "Immer Gut", ratings: Array(6).fill("good") },
   { name: "Leicht, dann Gut", ratings: ["easy", "good", "good", "good"] },
+  { name: "Mit Schwer dazwischen", ratings: ["good", "good", "good", "hard", "good", "hard", "good", "good"] },
   { name: "Gut mit einem Fehler", ratings: ["good", "good", "good", "good", "again", "good", "good", "good", "good", "good"] },
   { name: "Nochmal am Anfang", ratings: ["again", ...Array(7).fill("good")] },
+  { name: "Wackeliger Start", ratings: ["again", "good", "again", "good", "good", "good", "good", "good", "good"] },
 ];
 
 /** Where a card stands before an answer; each situation is reached from a new card with the listed ratings. */

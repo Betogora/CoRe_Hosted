@@ -12,17 +12,9 @@ externen Release fällig. „Später“ ist geparkt.
 ## P1: Specs-Agenda umsetzen
 
 Entscheidungen vom 2026-11-14 zur Kommentierung der Specs bis Kapitel 5; die
-Zahlen in Klammern sind die Fragen der Agenda. Je Paket ein PR; Paket 2 nach
-Paket 1, die übrigen unabhängig.
+Zahlen in Klammern sind die Fragen der Agenda. Je Paket ein PR, unabhängig
+voneinander.
 
-- [ ] **1 Specs und ADRs:** „Hält das Lernen ruhig“ präzisieren (7.1); vier
-      Prinzipien: Anki-kompatibel, Karten eigenständig, Review first, Inhalt
-      durch Varianten merken (7.2); Bereichs-Schaubild: Zusammenfassung und
-      Mindmap entstehen aus dem Bestand (7.3); Kprim: mehrere Aussagen, eine
-      Karte (7.4); Kernjourneys auf Logik prüfen (7.5); Nichtziel Community
-      streichen, Lernmengen bleiben privat (6.4); Simulator ist kein Bereich
-      (6.1); ADR-011 lässt Bilder als Quelle für später offen (3.5);
-      Leseseite „Lernverlauf“: realistische Ketten, nur wenige Tabellen (1.16).
 - [ ] **2 Variantenkonzept** (ADR-039, Specs „Freigabe der Varianten“):
       Freigabe in der Wiederholung, wenn die letzte Antwort nicht „Nochmal“
       war, die Haltbarkeit die Stapelschwelle erreicht (7, 21 oder 60 Tage,
@@ -80,8 +72,8 @@ Markdown, CSV und TSV.
       Ergänzung; eine gemeinsame Ergänzung regelt beides und gibt die vierte
       Route frei (etwa `POST /api/ai/source-cards`, gleiches Modell, ZDR,
       Kostenlog). Festlegen: ob der Browser nur extrahierten Text oder die Datei
-      überträgt (ADR-011 schließt Bildübertragung aus, Scans und Diagramme
-      bleiben damit außen vor); Obergrenzen je Auftrag (Zeichen, Seiten,
+      überträgt (Bilder gehen nach ADR-011 vorerst nicht an den Anbieter,
+      Scans und Diagramme bleiben damit außen vor); Obergrenzen je Auftrag (Zeichen, Seiten,
       Karten) und wie große Quellen ohne Serverqueue in Portionen im
       geöffneten Tab laufen; Hinweis, dass die Quelle an den Anbieter geht.
 - [ ] **Formular (Agenda 3.1–3.6):** drei Schritte Zielstapel, Kartenformen,
@@ -253,6 +245,8 @@ Messung vom 2026-10-31 im [Verlauf](history.md).
   jeder Lauf sie erneut an, und 50 solche Karten blockieren ihn ganz.
 - DOCX und PPTX als Quellen für P2 (ZIP und XML, ohne neue Abhängigkeit über
   `zipReader.ts` prüfen; Beleg je Folie oder Abschnitt).
+- Bilder als Quelle für P2 (teurer, eigener Hillclimb); braucht eine Ergänzung
+  von ADR-011 (Agenda 3.3, 3.5).
 - KI-Kontingente je Nutzer im Zusammenspiel mit Bezahlstufen bzw.
   Abonnements (Umfang je Stufe, Credits, Abrechnung nach Kosten).
 
@@ -296,6 +290,8 @@ Messung vom 2026-10-31 im [Verlauf](history.md).
 - Native App nach ADR-036.
 - Serverseitiger APKG-Import, falls Import auf Mobilgeräten nötig wird.
 - AMBOSS-Tooltips nur über eine offizielle Kooperation oder API.
+- Community-Modus planen; Lernmengen und Lerndaten anderer bleiben unsichtbar
+  (Agenda 6.2, 6.4).
 
 ### Oberfläche
 

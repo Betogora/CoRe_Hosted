@@ -112,19 +112,23 @@ export function cardHistoryCards(): SpecsBlock[] {
     return `<h4 class="catalog-label">${chain.name}</h4><ol class="docs-chain" aria-label="Zeitleiste ${chain.name}">${steps}</ol>`;
   }).join("");
   const legend = `<ul class="docs-chain-legend">${Object.entries(PHASE_LABELS).map(([phase, label]) => `<li data-phase="${phase}">${label}</li>`).join("")}</ul>`;
-  const tables = EXAMPLE_RETENTIONS.map((retention) => `<h4 class="catalog-label">Zielerinnerung ${percent(retention)}</h4><table><thead><tr><th>Kette</th><th>Kontakt</th><th>Tag</th><th>Phase</th><th>Bewertung</th><th>Nächster Abstand</th><th>Haltbarkeit danach</th><th>Reife danach</th><th>Variante bei Schwelle</th></tr></thead><tbody>${EXAMPLE_CHAINS.map((chain) => runExampleChain(chain.ratings, retention).map((contact, index) => `<tr>${index ? "" : `<th scope="rowgroup" rowspan="${chain.ratings.length}">${chain.name}</th>`}<td>${index + 1}</td><td>${decimal(contact.day)}</td><td>${PHASE_LABELS[contact.phaseBefore]}</td><td>${RATING_LABELS[contact.rating]}</td><td>${gap(contact)}</td><td>${days(contact.durabilityDays)}</td><td>${BAND_LABELS[contact.band]}</td><td>${contact.variantThresholds.length ? contact.variantThresholds.map((threshold) => `${threshold} T.`).join(", ") : "–"}</td></tr>`).join("")).join("")}</tbody></table>`).join("");
-  const variants = `<table><thead><tr><th>Kette</th><th>Zielerinnerung</th>${EXAMPLE_VARIANT_THRESHOLDS.map((threshold) => `<th>Schwelle ${threshold} Tage</th>`).join("")}</tr></thead><tbody>${EXAMPLE_CHAINS.flatMap((chain) => EXAMPLE_RETENTIONS.map((retention) => {
-    const contacts = runExampleChain(chain.ratings, retention);
-    return `<tr><th scope="row">${chain.name}</th><td>${percent(retention)}</td>${EXAMPLE_VARIANT_THRESHOLDS.map((threshold) => {
+  const steady = EXAMPLE_CHAINS[0];
+  const retentions = `<table><thead><tr><th>Zielerinnerung</th><th>Kontakte am Tag</th><th>Reif ab Tag</th></tr></thead><tbody>${EXAMPLE_RETENTIONS.map((retention) => {
+    const contacts = runExampleChain(steady.ratings, retention);
+    return `<tr><th scope="row">${percent(retention)}</th><td>${contacts.map((contact) => decimal(contact.day)).join(" · ")}</td><td>${decimal(contacts[firstMature(contacts)].day)}</td></tr>`;
+  }).join("")}</tbody></table>`;
+  const variants = `<table><thead><tr><th>Kette</th>${EXAMPLE_VARIANT_THRESHOLDS.map((threshold) => `<th>Schwelle ${threshold} Tage</th>`).join("")}</tr></thead><tbody>${EXAMPLE_CHAINS.map((chain) => {
+    const contacts = runExampleChain(chain.ratings, DEFAULT_RETENTION);
+    return `<tr><th scope="row">${chain.name}</th>${EXAMPLE_VARIANT_THRESHOLDS.map((threshold) => {
       const index = firstVariant(contacts, threshold);
       return `<td>${index < 0 ? "nicht in der Kette" : `Kontakt ${index + 1} · Tag ${decimal(contacts[index].day)}`}</td>`;
     }).join("")}</tr>`;
-  })).join("")}</tbody></table>`;
+  }).join("")}</tbody></table>`;
   return [
     { id: "specs--lernverlauf-bewertungen", title: "Was jede Bewertung bewirkt", html: `<p>Bei Zielerinnerung ${percent(DEFAULT_RETENTION)} und den Standardlernschritten 1 und 10 Minuten; „In der Wiederholung“ ist die Karte nach dreimal „Gut“.</p>${effects}${source}` },
     { id: "specs--lernverlauf-zeitleisten", title: `Beispielketten als Zeitleiste (${percent(DEFAULT_RETENTION)})`, html: `<p>Jeder Punkt ist ein Kontakt: Tag, Bewertung und Phase davor, dann der Abstand bis zum nächsten Kontakt. Markiert sind der Kontakt, nach dem die Karte reif ist, und der erste Kontakt mit Variante bei der Standardschwelle von ${DEFAULT_VARIANT_THRESHOLD} Tagen und einer aktiven Variante.</p>${legend}${timelines}${source}` },
-    { id: "specs--lernverlauf-tabellen", title: "Beispielketten je Zielerinnerung", html: `<p>Die Haltbarkeit folgt dem Gedächtnis, nicht der Zielerinnerung; eine höhere Zielerinnerung verkürzt nur die Abstände und verschiebt damit die Tage.</p>${tables}${source}` },
-    { id: "specs--lernverlauf-varianten", title: "Wann Varianten erscheinen", html: `<p>Erster Kontakt, bei dem statt der Karte die Variante kommt, je Stapelschwelle. Mit einer aktiven Variante wechseln Karte und Variante sich ab; nach „Nochmal“ kommt bis zur nächsten erfolgreichen Antwort die Karte selbst.</p>${variants}${source}` },
+    { id: "specs--lernverlauf-zielerinnerung", title: "Einfluss der Zielerinnerung", html: `<p>Kette „${steady.name}“: Die Haltbarkeit folgt dem Gedächtnis, nicht der Zielerinnerung; eine höhere Zielerinnerung verkürzt nur die Abstände und verschiebt damit die Tage.</p>${retentions}${source}` },
+    { id: "specs--lernverlauf-varianten", title: `Wann Varianten erscheinen (${percent(DEFAULT_RETENTION)})`, html: `<p>Erster Kontakt, bei dem statt der Karte die Variante kommt, je Stapelschwelle. Mit einer aktiven Variante wechseln Karte und Variante sich ab; nach „Nochmal“ kommt bis zur nächsten erfolgreichen Antwort die Karte selbst.</p>${variants}${source}` },
   ];
 }
 
