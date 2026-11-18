@@ -49,10 +49,8 @@ const generatedCardSchema = v.strictObject({
   explanation: optionalText(SOURCE_CARD_LIMITS.explanation),
   sources: v.pipe(v.array(unitId), v.minLength(1), v.maxLength(SOURCE_CARD_LIMITS.sources)),
 });
-const generatedSchema = v.strictObject({
-  cards: v.pipe(v.array(v.unknown()), v.maxLength(MAX_SOURCE_CARDS_PER_PORTION)),
-  warnings: v.pipe(v.array(optionalText(SOURCE_CARD_LIMITS.warning)), v.maxLength(SOURCE_CARD_LIMITS.warnings)),
-});
+/** Only the shape is strict; cards beyond the limits and unusable warnings fall out one by one in the parser. */
+const generatedSchema = v.strictObject({ cards: v.array(v.unknown()), warnings: v.array(v.unknown()) });
 export type AiSourceCardsRequest = v.InferOutput<typeof requestSchema>;
 export type GeneratedSourceCard = v.InferOutput<typeof generatedCardSchema>;
 export interface GeneratedSourceCards {
@@ -81,13 +79,12 @@ export function parseAiSourceCardsRequest(value: unknown): AiSourceCardsRequest 
 
 const questionKey = (value: string) => value.replace(/\s+/g, " ").trim().toLocaleLowerCase("de-DE");
 
-const CLOZE_MARKER = /\{\{|\}\}/;
+const CLOZE_MARKER = /\{\{c\d+::/i;
 
 /** Exactly one gap `{{c1::Lösung}}` (optionally with a hint) and no other cloze markers. */
 function isValidCloze(front: string): boolean {
   const gaps = [...front.matchAll(/\{\{c(\d+)::(.*?)\}\}/g)];
-  return gaps.length === 1 && gaps[0][1] === "1" && gaps[0][2].split("::")[0].trim() !== ""
-    && !CLOZE_MARKER.test(front.replace(gaps[0][0], ""));
+  return gaps.length === 1 && gaps[0][1] === "1" && gaps[0][2].split("::")[0].trim() !== "" && !CLOZE_MARKER.test(front.replace(gaps[0][0], ""));
 }
 
 function hasValidForm(card: GeneratedSourceCard): boolean {
@@ -109,20 +106,23 @@ function hasValidForm(card: GeneratedSourceCard): boolean {
 export function parseGeneratedSourceCards(value: unknown, input: AiSourceCardsRequest): GeneratedSourceCards {
   const generated = v.safeParse(generatedSchema, value);
   if (!generated.success) throw new AiSourceCardsError("invalid_response", "Die KI hat keine gültigen Kartenvorschläge geliefert.");
+  const limit = Math.min(input.limit, MAX_SOURCE_CARDS_PER_PORTION);
   const unitIds = new Set(input.units.map((unit) => unit.id));
   const asked = new Set(input.avoid.map(questionKey));
   const cards: GeneratedSourceCard[] = [];
   for (const candidate of generated.output.cards) {
     const parsed = v.safeParse(generatedCardSchema, candidate);
     if (!parsed.success) continue;
-    const card = parsed.output;
+    // The short answer belongs to question–answer cards only; elsewhere the explanation carries the details.
+    const card = parsed.output.form === "basic" ? parsed.output : { ...parsed.output, back: "" };
     const key = questionKey(card.front);
-    if (cards.length === input.limit || !input.settings.cardForms.includes(card.form) || !hasValidForm(card) || asked.has(key)
+    if (cards.length === limit || !input.settings.cardForms.includes(card.form) || !hasValidForm(card) || asked.has(key)
       || card.sources.some((id) => !unitIds.has(id)) || new Set(card.sources).size !== card.sources.length) continue;
     asked.add(key);
     cards.push(card);
   }
-  return { cards, warnings: generated.output.warnings.filter(Boolean), discarded: generated.output.cards.length - cards.length };
+  const warnings = generated.output.warnings.flatMap((warning) => typeof warning === "string" && warning.trim() && warning.length <= SOURCE_CARD_LIMITS.warning ? [warning.trim()] : []);
+  return { cards, warnings: warnings.slice(0, SOURCE_CARD_LIMITS.warnings), discarded: generated.output.cards.length - cards.length };
 }
 
 /** The order's instructions plus the answer protocol of this route; the material travels as a separate message. */

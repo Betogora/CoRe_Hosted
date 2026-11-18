@@ -177,6 +177,18 @@ function usageValue(value: unknown): number | null {
   return typeof value === "number" && Number.isFinite(value) && value >= 0 ? value : null;
 }
 
+const billingSchema = v.looseObject({
+  model: v.optional(v.string()),
+  usage: v.optional(v.looseObject({ total_tokens: v.optional(v.unknown()), cost: v.optional(v.unknown()) })),
+});
+
+/** Model, tokens and costs of a provider answer, readable even when the answer itself is cut off or unusable. */
+export function readBilling(payload: unknown): Pick<AiRouteLogEntry, "model" | "totalTokens" | "costUsd"> {
+  const parsed = v.safeParse(billingSchema, payload);
+  const output = parsed.success ? parsed.output : {};
+  return { model: output.model || null, totalTokens: usageValue(output.usage?.total_tokens), costUsd: usageValue(output.usage?.cost) };
+}
+
 /** Reads the single forced tool call of a complete response; the caller validates its arguments. */
 export function readToolCall(payload: unknown, tool: string, texts: ProviderTexts) {
   const completion = v.safeParse(completionSchema, payload);

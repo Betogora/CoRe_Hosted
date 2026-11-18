@@ -45,19 +45,17 @@ test("Quellenkarten-Tool nutzt das feste Modell mit ZDR, trennt Auftrag und Mate
 });
 
 test("Alle vier Kartenformen kommen mit Beleg, Modell und Kosten zurück", () => {
-  let costUsd: number | null = null;
-  const result = extractGeneratedSourceCards(completion(), input, (billing) => { costUsd = billing.costUsd; });
+  const result = extractGeneratedSourceCards(completion(), input);
   assert.deepEqual(result.cards.map((card) => card.form), ["basic", "cloze", "single-choice", "multiple-choice"]);
   assert.equal(result.discarded, 0);
   assert.equal(result.privacyMode, "zdr");
   assert.equal(result.promptVersion, "source-cards-v1");
   assert.equal(result.usage?.totalTokens, 2_800);
-  assert.equal(costUsd, 0.002);
 });
 
 test("Ungültige, nicht erlaubte, unbelegte oder wiederholte Vorschläge werden verworfen und gezählt", () => {
   const rejected = [
-    { ...basic, back: "" },
+    { ...basic, front: "Wofür steht ATP?", back: "" },
     { ...basic, front: "Was ist ATP genau?", options: single.options },
     { ...cloze, front: "Die Atmungskette liegt in der Membran." },
     { ...cloze, front: "{{c1::ATP}} und {{c2::ADP}} sind Nukleotide." },
@@ -80,14 +78,27 @@ test("Ungültige, nicht erlaubte, unbelegte oder wiederholte Vorschläge werden 
   assert.equal(result.discarded, rejected.length);
   assert.deepEqual(result.warnings, ["Seite 2 ist knapp."]);
   assert.deepEqual(parseGeneratedSourceCards({ cards: [{ ...cloze, front: "Die {{c1::Atmungskette::Prozess}} liegt innen." }], warnings: [] }, input).discarded, 0);
+});
+
+test("Formeln mit geschweiften Klammern bleiben erhalten, eine Lösung außerhalb von Frage–Antwort fällt weg", () => {
+  const formula = { ...basic, front: "Wie lautet die Ableitung von e^{x^{2}}?", back: "2x·e^{x^{2}}" };
+  const choiceWithBack = { ...single, back: "Innere Mitochondrienmembran" };
+  const result = parseGeneratedSourceCards({ cards: [formula, choiceWithBack], warnings: [] }, input);
+  assert.deepEqual(result.cards, [formula, { ...choiceWithBack, back: "" }]);
   const basicOnly = parseAiSourceCardsRequest({ ...request, settings: { ...settings, cardForms: ["basic"] } });
   assert.deepEqual(parseGeneratedSourceCards(generated, basicOnly), { cards: [basic], warnings: [], discarded: 3 });
 });
 
-test("Mehr Vorschläge als der Auftrag noch erlaubt werden nach den ersten gültigen verworfen", () => {
+test("Vorschläge über dem Rest- oder Abschnittslimit und unbrauchbare Hinweise fallen einzeln heraus", () => {
   const result = parseGeneratedSourceCards({ cards: [{ ...basic, back: "" }, ...generated.cards], warnings: [] }, parseAiSourceCardsRequest({ ...request, limit: 2 }));
   assert.deepEqual(result.cards, [basic, cloze]);
   assert.equal(result.discarded, 3);
+  const many = Array.from({ length: 26 }, (_, index) => ({ ...basic, front: `Frage ${index + 1}?` }));
+  const warnings = [...Array.from({ length: 9 }, (_, index) => `Hinweis ${index + 1}`), "x".repeat(601), 7];
+  const capped = parseGeneratedSourceCards({ cards: many, warnings }, input);
+  assert.equal(capped.cards.length, 25);
+  assert.equal(capped.discarded, 1);
+  assert.deepEqual(capped.warnings, Array.from({ length: 8 }, (_, index) => `Hinweis ${index + 1}`));
 });
 
 test("Abgeschnittene oder falsch aufgebaute Antworten werden ganz verworfen", () => {
@@ -151,6 +162,7 @@ test("Providerfehler und ungültige Antworten bleiben sichtbar und werden nicht 
     [response({}, 429), 429, "rate_limited"],
     [response({}, 402), 503, "provider_budget_exhausted"],
     [response(completion({ cards: [basic] })), 502, "invalid_response"],
+    [response(completion(generated, "create_source_cards", "length")), 502, "invalid_provider_response"],
   ] as const) {
     let calls = 0;
     const logs: Array<Record<string, unknown>> = [];
@@ -158,6 +170,6 @@ test("Providerfehler und ungültige Antworten bleiben sichtbar und werden nicht 
     const result = res(); await handler(req(), result);
     assert.equal(result.statusCode, status); assert.equal(JSON.parse(result.body).error.code, code); assert.equal(calls, 1);
     assert.equal(logs[0].outcome, code);
-    assert.equal(logs[0].costUsd, code === "invalid_response" ? 0.002 : null);
+    assert.equal(logs[0].costUsd, code.startsWith("invalid_") ? 0.002 : null);
   }
 });

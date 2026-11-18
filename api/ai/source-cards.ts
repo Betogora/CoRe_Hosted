@@ -5,7 +5,7 @@ import {
 } from "../../src/aiSourceCardsContract.js";
 import { AI_SOURCE_CARD_FORMS } from "../../src/aiSourceCreation.js";
 import {
-  HttpError, OPENROUTER_MODEL, createAuthenticator, isAllowedOrigin, json, logAiRoute, parseBearerToken, readJsonBody,
+  HttpError, OPENROUTER_MODEL, createAuthenticator, isAllowedOrigin, json, logAiRoute, parseBearerToken, readBilling, readJsonBody,
   readToolCall, requestOpenRouter, type AiRouteLogEntry, type Environment, type ProviderTexts,
 } from "../../server/aiRoute.js";
 
@@ -63,12 +63,8 @@ export function buildSourceCardsToolPayload(input: AiSourceCardsRequest) {
   };
 }
 
-type Billing = Pick<AiRouteLogEntry, "model" | "totalTokens" | "costUsd">;
-
-/** `billed` receives model, tokens and costs as soon as the answer is read, so a rejected answer still logs its costs. */
-export function extractGeneratedSourceCards(payload: unknown, input: AiSourceCardsRequest, billed: (billing: Billing) => void = () => undefined): AiSourceCardsSuccess {
-  const { toolArguments, model, usage, costUsd } = readToolCall(payload, "create_source_cards", TEXTS);
-  billed({ model, totalTokens: usage?.totalTokens ?? null, costUsd });
+export function extractGeneratedSourceCards(payload: unknown, input: AiSourceCardsRequest): AiSourceCardsSuccess {
+  const { toolArguments, model, usage } = readToolCall(payload, "create_source_cards", TEXTS);
   return { ...parseGeneratedSourceCards(toolArguments, input), model, privacyMode: "zdr", promptVersion: AI_SOURCE_CARDS_PROMPT_VERSION, usage };
 }
 
@@ -81,15 +77,17 @@ export function createSourceCardsHandler({ env = process.env, fetchImpl = global
     if (!isAllowedOrigin(req)) { json(res, 403, { error: { code: "forbidden_origin", message: "Diese Anfrage ist nicht erlaubt." } }); return; }
     const startedAt = Date.now();
     let generating = false;
-    let billing: Billing = { model: null, totalTokens: null, costUsd: null };
+    let billing: ReturnType<typeof readBilling> = { model: null, totalTokens: null, costUsd: null };
     try {
       await authenticateRequest(parseBearerToken(req));
       const input = parseAiSourceCardsRequest(await readJsonBody(req, MAX_SOURCE_CARDS_REQUEST_BYTES));
       if (!env.OPENROUTER_API_KEY) throw new HttpError(503, "missing_openrouter_api_key", "Die KI-Route ist noch nicht konfiguriert.");
       generating = true;
       const payload = await requestOpenRouter(fetchImpl, env.OPENROUTER_API_KEY, buildSourceCardsToolPayload(input), AbortSignal.timeout(AI_SOURCE_CARDS_DEADLINE_MS), TEXTS);
-      const result = extractGeneratedSourceCards(payload, input, (billed) => { billing = billed; });
-      log({ event: "ai_source_cards", outcome: "ok", status: 200, latencyMs: Date.now() - startedAt, ...billing });
+      // Read before validating, so a cut-off or rejected answer still logs what it cost.
+      billing = readBilling(payload);
+      const result = extractGeneratedSourceCards(payload, input);
+      log({ event: "ai_source_cards", outcome: "ok", status: 200, latencyMs: Date.now() - startedAt, ...billing, model: result.model });
       json(res, 200, result, { "X-CoRe-Prompt-Version": AI_SOURCE_CARDS_PROMPT_VERSION });
     } catch (error) {
       const known = error instanceof HttpError || error instanceof AiSourceCardsError;
