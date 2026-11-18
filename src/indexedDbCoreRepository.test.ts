@@ -3,7 +3,7 @@ import { randomUUID } from "node:crypto";
 import test from "node:test";
 import { IDBKeyRange, indexedDB } from "fake-indexeddb";
 import type { ImportCommitGraph, ImportGraphChunk } from "./apkgImport.ts";
-import { createBasicNote, createCoreDeck, planNoteContentChange, planNoteDeletion, planNoteRestore } from "./coreModel.ts";
+import { addCardVariant, createBasicNote, createCoreDeck, planNoteContentChange, planNoteDeletion, planNoteRestore } from "./coreModel.ts";
 import type { Card, Deck, Note } from "./coreTypes.ts";
 import type { WorkspaceState } from "./coreWorkspace.ts";
 import { createIndexedDbCoreRepository } from "./indexedDbCoreRepository.ts";
@@ -553,7 +553,7 @@ test("Reimport behält lokale Bearbeitungen, erkennt Karten an der Anki-Karten-I
   const edited = importedNote("note-edited", "guid-edited", "Lokal bearbeitet", { reverse: true, contentRevision: 2 });
   edited.cards = edited.cards.map((card) => ({ ...card, id: `card-edited-${card.promptKey}`, ankiCardId: card.promptKey === "forward" ? "anki-a1" : "anki-a2" }));
   const plain = importedNote("note-plain", "guid-plain", "Alte Paketfrage");
-  plain.cards = plain.cards.map((card) => ({ ...card, id: "card-plain", ankiCardId: "anki-p1" }));
+  plain.cards = plain.cards.map((card) => addCardVariant({ ...card, id: "card-plain", ankiCardId: "anki-p1" }, { id: "variant-plain", front: "Umformuliert", back: "Antwort" }));
   const deck = createCoreDeck({ id: "deck-anki", name: "Anki", source: "anki-apkg", ankiDeckId: "anki-deck-1", cards: [...edited.cards, ...plain.cards] });
   const repository = await openRepository(state([deck], [edited.note, plain.note]));
   const cloud = importedNote("note-cloud", "guid-cloud", "Alte Cloudfrage");
@@ -583,6 +583,7 @@ test("Reimport behält lokale Bearbeitungen, erkennt Karten an der Anki-Karten-I
   assert.equal(result.missingInPackage, 1, "nur die nicht mehr enthaltene Rückrichtung des bearbeiteten Inhalts fehlt");
   assert.deepEqual(result.decks.map((entry) => entry.id), ["deck-anki"]);
   assert.deepEqual(result.scope.reviewEventIds, ["import-review"]);
+  assert.equal(result.scope.cardIds.includes("card-plain"), false, "eine behaltene Karte mit veralteter Variante gehört nicht zur Importprüfung");
 
   const keptGraph = await repository.loadNoteGraph("note-edited");
   assert.equal(keptGraph?.note.content.fields[0].html, "Lokal bearbeitet");
@@ -593,6 +594,8 @@ test("Reimport behält lokale Bearbeitungen, erkennt Karten an der Anki-Karten-I
   assert.equal(plainGraph?.note.content.fields[0].html, "Neue Paketfrage");
   assert.deepEqual([plainGraph?.note.contentRevision, plainGraph?.note.importedContentRevision, plainGraph?.note.revision], [2, 2, 2]);
   assert.deepEqual(plainGraph?.cards.map((card) => `${card.id}@${card.deckId}`).sort(), ["card-plain@deck-anki", "incoming-reverse@deck-anki"]);
+  const plainVariant = plainGraph?.cards.find((card) => card.id === "card-plain")?.variants[0];
+  assert.deepEqual([plainVariant?.isActive, plainVariant?.meta.outdated], [false, true], "die geänderte Paketfrage macht die Variante veraltet wie eine Bearbeitung");
 
   const [cloudNote] = await repository.loadNotes(["note-cloud"]);
   assert.equal(cloudNote.content.fields[0].html, "Neue Cloudfrage");

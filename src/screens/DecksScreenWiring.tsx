@@ -10,7 +10,7 @@ export function DecksScreenWiring() {
   const { navigation, settings, clock, studyStart, cardCommands, cardEditorServices, deckCommands, variantBatch, requestDeckCoreMode, hydration, cloud, mediaStore } = useAppServices();
   const workspaceStore = useWorkspaceStore();
   const state = useWorkspaceValue((snapshot) => snapshot.state);
-  const { focusedDeckId, selectedCardId, deckContent, deckContentTab, cardEditorTab, cardEditorReturnContext, navigateToRoute, navigateToView, navigateToViewNow } = navigation;
+  const { focusedDeckId, selectedCardId, deckContent, deckContentTab, cardEditorTab, cardEditorReturnContext, cardQuery, navigateToRoute, navigateToView, navigateToViewNow } = navigation;
   const deckPractice = useDeckPractice();
   if (!state) return null;
   return (
@@ -21,6 +21,7 @@ export function DecksScreenWiring() {
         onPracticeDeck={deckPractice.practiceDeck}
         contentDeckId={deckContent ? focusedDeckId : null}
         contentTab={deckContentTab}
+        cardQuery={cardQuery}
         onOpenDeckContent={(deckId, tab = "children") => navigateToViewNow("kartenstapel", { focusedDeckId: deckId, deckContent: true, deckContentTab: tab })}
         summaryAccountId={state.profile.userId}
         learningContentCloud={cloud}

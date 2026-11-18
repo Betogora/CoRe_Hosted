@@ -9,6 +9,8 @@ export const LEDGER_FILE = "fixtures/ai-eval/ledger.json";
 /** Ein Eintrag je KI-Prompt im Code; `target` ist der Zielwert des Hauptwerts, `critical` nennt die Kriterien, die nie schlechter werden dürfen. */
 export const REQUEST_TYPES = [
   { id: "card-variant-basic", label: "Variante Frage/Antwort", route: "/api/ai/card-variant", promptVersion: AI_CARD_VARIANT_PROMPT_VERSION, target: 0.95, critical: ["M2"] },
+  { id: "card-variant-cloze", label: "Variante Lückentext", route: "/api/ai/card-variant", promptVersion: AI_CARD_VARIANT_PROMPT_VERSION, target: 0.95, critical: ["M2"] },
+  { id: "card-variant-choice", label: "Variante Auswahl", route: "/api/ai/card-variant", promptVersion: AI_CARD_VARIANT_PROMPT_VERSION, target: 0.95, critical: ["M2"] },
   { id: "card-help", label: "Lernhilfe zur Karte", route: "/api/ai/card-help", promptVersion: AI_CARD_HELP_PROMPT_VERSION, target: 0.9, critical: ["H2", "H6"] },
   { id: "learning-summary", label: "Zusammenfassung", route: "/api/ai/summary", promptVersion: AI_LEARNING_SUMMARY_PROMPT_VERSION, target: null, critical: [] },
 ] as const;

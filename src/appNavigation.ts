@@ -66,6 +66,8 @@ export interface ViewRoute {
   cardEditorReturnContext?: ReviewResumeContext;
   settingsSection?: SettingsSection;
   deckSettings?: DeckSettingsOverlay;
+  /** Search the card management opens with, e.g. the cards still without a variant after a generation. */
+  cardQuery?: string;
 }
 
 export interface StudyRoute {
@@ -111,6 +113,7 @@ interface ViewRouteInput {
   cardEditorReturnContext?: ReviewResumeContextInput;
   settingsSection?: unknown;
   deckSettings?: DeckSettingsOverlayInput;
+  cardQuery?: unknown;
 }
 
 interface DeckSettingsOverlayInput {
@@ -171,6 +174,7 @@ function normalizeViewRoute(
   const cardEditorReturnContext = normalizeReviewResumeContext(route.cardEditorReturnContext);
   const deckSettings = normalizeDeckSettings(route.deckSettings);
   const settingsSection = !deckSettings && SETTINGS_SECTIONS.includes(route.settingsSection as SettingsSection) ? route.settingsSection as SettingsSection : null;
+  const cardQuery = typeof route.cardQuery === "string" ? route.cardQuery.trim().slice(0, 4000) : "";
   const cardEditorTab = cardEditorTabs.includes(route.cardEditorTab as CardEditorTab)
     ? route.cardEditorTab as CardEditorTab
     : cardEditorReturnContext ? "content" : "general";
@@ -192,6 +196,7 @@ function normalizeViewRoute(
       : {}),
     ...(settingsSection ? { settingsSection } : {}),
     ...(deckSettings ? { deckSettings } : {}),
+    ...(viewId === "kartenstapel" && !focusedDeckId && cardQuery ? { cardQuery } : {}),
   };
 }
 
@@ -363,6 +368,7 @@ export function parseAppRouteFromUrl(input: string | URL = "/", options: RouteOp
     viewId: pathSegments[0],
     focusedDeckId: url.searchParams.get("deck") ?? undefined,
     selectedCardId: url.searchParams.get("card") ?? undefined,
+    cardQuery: url.searchParams.get("q") ?? undefined,
     cardEditorTab: url.searchParams.get("cardTab") ?? undefined,
     deckContent: url.searchParams.get("content") === "1",
     deckContentTab: url.searchParams.get("tab") ?? undefined,
@@ -396,6 +402,7 @@ export function appRouteToUrl(route: unknown, options: RouteOptions = {}): strin
     params.set("deck", normalized.focusedDeckId);
   }
   if (normalized.viewId === "kartenstapel" && normalized.selectedCardId) params.set("card", normalized.selectedCardId);
+  if (normalized.viewId === "kartenstapel" && normalized.cardQuery) params.set("q", normalized.cardQuery);
   if (normalized.viewId === "kartenstapel" && normalized.selectedCardId && normalized.cardEditorTab) params.set("cardTab", normalized.cardEditorTab);
   if (normalized.deckContent) params.set("content", "1");
   if (normalized.deckContentTab) params.set("tab", normalized.deckContentTab);

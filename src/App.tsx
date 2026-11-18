@@ -39,7 +39,7 @@ import { CoreWordmark } from "./ui/CoreWordmark.tsx";
 import { useSuccessToast } from "./ui/feedbackUi.tsx";
 import { NoteLayoutContext, type NoteLayoutSource } from "./ui/noteLayoutContext.ts";
 import { useStableCallback } from "./ui/useStableCallback.ts";
-import { VariantGenerationBar } from "./ui/VariantGenerationBar.tsx";
+import { VariantGenerationBarWiring } from "./screens/VariantGenerationBarWiring.tsx";
 import { useCardVariantBatch } from "./useCardVariantBatch.ts";
 import { CARD_VARIANT_BATCH_LIMIT } from "./cardVariantBatch.ts";
 import { SettingsSaveBar } from "./ui/SettingsSaveBar.tsx";
@@ -225,7 +225,7 @@ function AppContent() {
   const importSession = useImportSession(importCommands, cloudUser?.id ?? null, authPhase === "ready" && Boolean(syncEngine) && Boolean(supabase));
   const flagNamesKey = state?.profile.uiPreferences.flagNames.join("\n") ?? "";
   const cardEditorServices = React.useMemo(() => cardCommands?.createCardEditorServices(flagNamesKey.split("\n"), openSettings) ?? null, [cardCommands, flagNamesKey, openSettings]);
-  const variantBatch = useCardVariantBatch({ cards: workspaceHydrationService, generate: (...args) => cardCommands!.generateDeckCardVariant(...args), onToast: setSuccessToast });
+  const variantBatch = useCardVariantBatch({ cards: workspaceHydrationService, store: workspaceStore, generate: (...args) => cardCommands!.generateDeckCardVariant(...args), onToast: setSuccessToast });
 
   // Preloading pauses while a sync runs; following the store directly spares the app a render per status.
   React.useEffect(() => {
@@ -411,17 +411,7 @@ function AppContent() {
           </React.Suspense>
         ) : null}
         {deckSettingsDialog}
-        {variantBatch.batch ? (
-          <VariantGenerationBar
-            deck={variantBatch.batch.deck}
-            title={variantBatch.batch.mode === "refresh" ? "Varianten neu generieren" : "Varianten generieren"}
-            done={variantBatch.batch.done}
-            total={variantBatch.batch.total}
-            outcome={variantBatch.batch.outcome}
-            onCancel={variantBatch.cancel}
-            onClose={variantBatch.dismiss}
-          />
-        ) : null}
+        <VariantGenerationBarWiring />
         <ActionDialog
           open={Boolean(coreEnableDeck)}
           title={`CoRe für „${coreEnableDeck?.name ?? ""}“ einschalten`}

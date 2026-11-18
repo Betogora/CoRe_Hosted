@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { renderToStaticMarkup } from "react-dom/server";
 import type { CardEditorServices } from "../../appScreenProps.ts";
-import { addCardVariant, createBasicNote, createCoreDeck, noteEditorValue, planNoteContentChange, validateNoteEditorValue } from "../../coreModel.ts";
+import { addCardVariant, createBasicNote, createCoreDeck, createManualNoteContent, createNote, noteEditorValue, planNoteContentChange, validateNoteEditorValue } from "../../coreModel.ts";
 import { editVariantText } from "../../coreVariantService.ts";
 import { cardEditorTitle, draftChangeSummary, variantStateMarks } from "./cardEditorModel.ts";
 import { draftBaseGraph } from "./CardEditorContentTab.tsx";
@@ -47,6 +47,15 @@ test("the variants tab shows the original, state marks and one row of actions pe
   assert.match(markup, /data-testid="variant-readiness"[^>]*>Haltbarkeit 0 von \d+ Tagen · /);
   assert.match(markup, /Stapeleinstellungen/);
   assert.match(markup, />Weitere Variante generieren</);
+});
+
+test("a typed card's variant row shows the card's own answer, which the review asks for, not an older rephrased one", () => {
+  const typed = createNote({ deckId: "deck", content: createManualNoteContent({ kind: "basic", front: "Symbol für Gold?", back: "Au", typeIn: true }) });
+  const card = addCardVariant(typed.cards[0], { front: "Welches Elementsymbol hat Gold?", back: "Gold hat das Symbol Au" });
+  const deck = createCoreDeck({ id: "deck", name: "Chemie", source: "manual", cards: [card] });
+  const markup = renderToStaticMarkup(<CardEditorVariantsTab deck={deck} note={typed.note} card={card} services={services} onGenerateVariant={async () => undefined} onUpdateVariant={async () => undefined} onOpenDeckSettings={() => undefined} />);
+  assert.match(markup, />Welches Elementsymbol hat Gold\?<\/p><p[^>]*>Au<\/p>/);
+  assert.doesNotMatch(markup, /Gold hat das Symbol Au/);
 });
 
 test("reported, switched-off and outdated variants carry their marks; edited ones say so", () => {

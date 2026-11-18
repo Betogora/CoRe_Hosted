@@ -26,7 +26,7 @@ test("card HTML sanitizer removes active content and external media requests", (
   );
 
   assert.doesNotMatch(sanitized, /script|iframe|onerror|onclick|javascript:|tracker\.example/i);
-  assert.equal(stripHtml(sanitized).replace(/\s+/g, " ").trim(), "Link Text");
+  assert.equal(stripHtml(sanitized).replace(/\s+/g, " ").trim(), "LinkText");
 });
 
 test("card HTML sanitizer preserves accessibility metadata without executable attributes", () => {
@@ -55,6 +55,11 @@ test("plain text separates line breaks and blocks in the browser like without a 
     if (previous) Object.defineProperty(globalThis, "document", previous);
     else Reflect.deleteProperty(globalThis, "document");
   }
+});
+
+test("plain text without a DOM decodes escaped characters once, like textContent", () => {
+  assert.equal(stripSanitizedHtml("<p>K &lt; 1 &amp;&nbsp;K &gt; 1</p>").trim(), "K < 1 & K > 1");
+  assert.equal(stripSanitizedHtml("a &amp;lt; b"), "a &lt; b");
 });
 
 test("note HTML keeps semantic formatting and classes and drops fonts and layout", () => {

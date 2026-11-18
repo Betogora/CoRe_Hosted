@@ -147,6 +147,30 @@ test("jede echte Anki-Karte bleibt eine eigene Karte desselben Inhalts", async (
   assert.equal(cards.length, 16);
 });
 
+test("der KI-Varianten-Stapel trägt je Kartenart drei Karten in einem eigenen Unterstapel", async () => {
+  const preview = await createApkgImportPreview(await fixtureFile("ai-variant-card-kinds.apkg"));
+  const chunks = await collectChunks(preview);
+  const [{ decks }] = chunksOf(chunks, "decks");
+  const notes = new Map(chunksOf(chunks, "notes").flatMap((chunk) => chunk.notes).map((note) => [note.id, note]));
+  const cardKinds: Record<string, string[]> = {};
+  for (const card of chunksOf(chunks, "notes").flatMap((chunk) => chunk.cards)) {
+    const deck = decks.find((candidate) => candidate.id === card.deckId)!.name;
+    const { interaction } = notes.get(card.noteId)!.content;
+    const kind = interaction.kind === "choice" ? interaction.mode
+      : interaction.kind === "reveal" && interaction.prompts[0].typeInFieldId ? "type-in" : interaction.kind;
+    (cardKinds[deck] ??= []).push(kind);
+  }
+
+  assert.deepEqual(cardKinds, {
+    "1 Frage–Antwort": ["reveal", "reveal", "reveal"],
+    "2 Eintippen": ["type-in", "type-in", "type-in"],
+    "3 Lückentext": ["cloze", "cloze", "cloze"],
+    "4 Single Choice": ["single", "single", "single"],
+    "5 Multiple Choice": ["multiple", "multiple", "multiple"],
+    "6 Kprim": ["kprim", "kprim", "kprim"],
+  });
+});
+
 test("Lernstände und Wiederholungen werden übernommen und als eigener Abschnitt gestreamt", async () => {
   const preview = await createApkgImportPreview(await fixtureFile("matrix/learning-latest.apkg"));
   const chunks = await collectChunks(preview);
