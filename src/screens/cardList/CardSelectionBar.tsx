@@ -1,10 +1,10 @@
 import React from "react";
 import * as Popover from "@radix-ui/react-popover";
-import { CalendarClock, CalendarRange, ChevronDown, Flag, GraduationCap, FlagOff, MoveRight, Pause, Play, Replace, RotateCcw, Sparkles, Star, StarOff, Tag, Tags, Trash2, type LucideIcon } from "lucide-react";
+import { CalendarClock, CalendarRange, ChevronDown, Flag, GraduationCap, FlagOff, MoveRight, Pause, Play, Replace, RotateCcw, Sparkles, Star, StarOff, Tag, Tags, Trash2, X, type LucideIcon } from "lucide-react";
 import type { CardBatchAction, TextReplaceSession } from "../../cardBatchActions.ts";
 import type { Deck } from "../../coreTypes.ts";
 import { addLearningDays, getLearningDayKey, getLearningDayStartForKey } from "../../learningDay.ts";
-import { ActionButton, CrossLinkButton } from "../../ui/actionUi.tsx";
+import { ActionButton, CrossLinkButton, IconButton } from "../../ui/actionUi.tsx";
 import { CoreDatePicker } from "../../ui/CoreDatePicker.tsx";
 import { DialogFrame } from "../../ui/DialogFrame.tsx";
 import { FlagPicker } from "../../ui/flagUi.tsx";
@@ -218,6 +218,8 @@ export function CardSelectionBar({ count, hitTotal, searching, allHits, disabled
           </Popover.Content>
         </Popover.Portal>
       </Popover.Root>
+      {/* Repeats the header checkbox as the bar's close button; it closes the last column like the sort headers. */}
+      <IconButton variant="ghost" className="core-card-selection-close" label="Auswahl aufheben" icon={X} onClick={onClear} data-testid="card-selection-close" />
       {dialog?.id === "replace" && onPrepareReplace ? (
         <TextReplaceDialog count={count} prepare={onPrepareReplace} onRun={onRun} onClose={() => setDialog(null)} />
       ) : dialog && effect ? (

@@ -387,12 +387,11 @@ test("cards page lists every card of every deck as one flat sortable list withou
   assert.match(markup, /Sortierfeld/);
   assert.match(markup, /Datum/);
   assert.match(markup, /aria-label="Datum aufsteigend sortieren"/);
-  assert.match(markup, /aria-label="Variante aufsteigend sortieren"/);
-  assert.doesNotMatch(markup, /aria-label="Varianten aufsteigend sortieren"/);
+  assert.match(markup, /aria-label="Varianten aufsteigend sortieren"/);
   assert.match(markup, /aria-sort="ascending"/);
   assert.doesNotMatch(markup, /aria-label="Lernstand für|aria-label="Gesamtfortschritt für|data-deck-count=|data-donut-/);
   assert.doesNotMatch(markup, /min-w-\[46rem\]|overflow-x-auto|sticky left-0 w-\[calc\(100dvw/);
-  assert.match(markup, /<col class="w-\[5\.5rem\] sm:w-\[5\.75rem\]"\/><col class="w-20"\/>/);
+  assert.match(markup, /<col class="w-\[5\.5rem\]"\/><col class="w-20 sm:w-\[5\.5rem\]"\/>/);
   assert.match(markup, /aria-label="Sortierfeld aufsteigend sortieren"/);
   assert.match(markup, /<tr class="core-card-table-header border-b border-core-border">/, "Kopfzeile und Auswahlleiste teilen eine Höhe");
   assert.match(markup, /<div class="min-w-0 max-w-full overflow-clip rounded-panel border border-core-border bg-core-surface" data-testid="card-library-sheet"><table/, "die Tabelle ist ein Blatt ohne zweiten Rahmen");
@@ -416,9 +415,8 @@ test("cards page lists every card of every deck as one flat sortable list withou
   assert.match(markup, /<tr[^>]*class="cursor-pointer border-b border-core-border[^"]*"[^>]*data-card-row="true"/);
   assert.match(markup, /<td class="min-w-0 px-2 py-1 align-middle/, "die kompakte Zeilenhöhe von vor der ToolBox-Gestaltung");
   assert.match(markup, />Biologie<\/span>/, "die Zeile nennt ihren Stapel");
-  assert.match(markup, /aria-label="Keine Variante"/);
-  assert.doesNotMatch(markup, /Mit Varianten|Ohne Varianten/);
-  assert.match(markup, /<span class="grid size-\[1\.125rem\] place-items-center"><\/span><svg[^>]*aria-label="Keine Variante"/, "die Variante schließt die Spalte rechtsbündig ab, Flagge und Stern stehen davor");
+  assert.doesNotMatch(markup, /Mit Varianten|Ohne Varianten|lucide-minus/);
+  assert.match(markup, /<span class="grid size-\[1\.125rem\] place-items-center"><\/span><span class="min-w-4 text-right[^"]*"><\/span>/, "ohne Variante bleibt der Platz am Spaltenende leer, Flagge und Stern stehen davor");
 });
 test("cards page keeps stale rows dimmed while the page for a new query loads", () => {
   const atp = basicGraph("deck-parent", "Was ist ATP?", "Ein Energieträger.");
@@ -524,7 +522,7 @@ test("cards page shows suspended rows and marked stars; the editor tints only a 
 
   assert.match(markup, /data-suspended="true"/);
   assert.match(markup, /sr-only[^>]*> · Ausgesetzt</);
-  assert.match(markup, /<span class="grid size-\[1\.125rem\] place-items-center"><svg[^>]*aria-label="Markiert"[\s\S]*?<\/span><svg[^>]*aria-label="Keine Variante"/);
+  assert.match(markup, /<span class="grid size-\[1\.125rem\] place-items-center"><svg[^>]*aria-label="Markiert"[\s\S]*?<\/span><span class="min-w-4 text-right[^"]*"><\/span>/);
   const dialog = markup.match(/<div[^>]*data-testid="card-detail-dialog"[^>]*>/)?.[0] ?? "";
   assert.match(dialog, /class="core-dialog-frame core-card-editor-frame is-marked"/);
   assert.match(markup, /data-selected="true"/, "die bearbeitete Zeile bleibt markiert");
@@ -551,7 +549,7 @@ test("the mark belongs to the content and is shown on every card of the selected
       cardPages: { [deck.id]: cardPage(deck.id, [marked], { selected: selectedOf(marked, forward.id) }) },
     });
     assert.match(markup, /aria-label="1 aktive Variante">1<\/span>/);
-    assert.match(markup, /width="16" height="16"[^>]*class="lucide lucide-minus[^>]*aria-label="Keine Variante"/);
+    assert.match(markup, /<span class="min-w-4 text-right[^"]*"><\/span>/);
     assert.equal([...markup.matchAll(/class="grid size-\[1\.125rem\] place-items-center"><svg[^>]*aria-label="Markiert"/g)].length, 2);
     assert.doesNotMatch(markup, /inline-block whitespace-nowrap rounded-round/);
     assert.match(markup, /aria-label="Markierung entfernen"/);
