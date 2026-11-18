@@ -1,8 +1,9 @@
 import * as v from "valibot";
+import { mapClozes } from "./clozeSyntax.js";
 import { stripHtml } from "./htmlSafety.js";
 
 export const AI_CARD_VARIANT_ENDPOINT = "/api/ai/card-variant";
-export const AI_CARD_VARIANT_PROMPT_VERSION = "card-variant-v4";
+export const AI_CARD_VARIANT_PROMPT_VERSION = "card-variant-v5";
 export const MAX_AI_CARD_VARIANT_FIELD_CHARS = 1_200;
 const MAX_AI_CARD_VARIANT_SOURCE_CHARS = 2_400;
 /** Existing rephrasings sent along so a new one differs from them; newest first, bounded to keep the request small. */
@@ -13,43 +14,147 @@ export const MAX_AI_CARD_VARIANT_OUTPUT_TOKENS = 1_024;
 /** Total time the route may spend on generation; the browser waits slightly longer. */
 export const AI_CARD_VARIANT_DEADLINE_MS = 25_000;
 
+const MAX_AI_CARD_VARIANT_OPTIONS = 10;
+const MAX_AI_CARD_VARIANT_OPTION_CHARS = 400;
+
 const textSchema = v.pipe(v.string(), v.trim(), v.minLength(1), v.maxLength(MAX_AI_CARD_VARIANT_FIELD_CHARS));
-const sourceSchema = v.strictObject({ front: textSchema, back: textSchema });
-const requestSchema = v.strictObject({
-  source: sourceSchema,
-  avoid: v.optional(v.pipe(v.array(textSchema), v.maxLength(MAX_AI_CARD_VARIANT_AVOID_ITEMS))),
+/** A choice card's `back` lists every option (`choiceAnswerText`), so it may outgrow one field; the request bounds its options. */
+const backSchema = v.pipe(v.string(), v.trim(), v.minLength(1), v.maxLength(MAX_AI_CARD_VARIANT_OPTIONS * (MAX_AI_CARD_VARIANT_OPTION_CHARS + 5)));
+const sourceSchema = v.strictObject({ front: textSchema, back: backSchema });
+const optionIdSchema = v.pipe(v.string(), v.minLength(1), v.maxLength(64));
+const optionTextSchema = v.pipe(v.string(), v.trim(), v.minLength(1), v.maxLength(MAX_AI_CARD_VARIANT_OPTION_CHARS));
+const uniqueIds = <Option extends { id: string }>(options: Option[]) => new Set(options.map((option) => option.id)).size === options.length;
+const choiceSchema = v.strictObject({
+  mode: v.picklist(["single", "multiple", "kprim"]),
+  options: v.pipe(v.array(v.strictObject({ id: optionIdSchema, text: optionTextSchema, correct: v.boolean() })), v.minLength(2), v.maxLength(MAX_AI_CARD_VARIANT_OPTIONS), v.check(uniqueIds)),
 });
+/**
+ * `type-in`: the learner types the answer; the variant only rephrases the question and keeps the card's own answer.
+ * `cloze`: `front` is the text with only the card's own gap group in Anki syntax, `back` its solutions (`clozeVariantGaps`).
+ * `choice`: `front` is the question stem and `back` the correct options; `choice` holds every option with its
+ * correctness, which a variant never changes.
+ */
+const kindSchema = v.picklist(["basic", "type-in", "cloze", "choice"]);
+const requestSchema = v.pipe(
+  v.strictObject({
+    kind: kindSchema,
+    source: sourceSchema,
+    choice: v.optional(choiceSchema),
+    avoid: v.optional(v.pipe(v.array(textSchema), v.maxLength(MAX_AI_CARD_VARIANT_AVOID_ITEMS))),
+  }),
+  v.check((request) => request.kind !== "cloze" || clozeVariantGaps(request.source.front) !== null),
+  v.check((request) => (request.kind === "choice") === (request.choice !== undefined)),
+  v.check((request) => request.kind === "choice" || request.source.back.length <= MAX_AI_CARD_VARIANT_FIELD_CHARS),
+);
 const usageSchema = v.nullable(v.strictObject({
   promptTokens: v.nullable(v.number()),
   completionTokens: v.nullable(v.number()),
   totalTokens: v.nullable(v.number()),
 }));
 const successSchema = v.strictObject({
-  variant: sourceSchema,
+  variant: v.strictObject({
+    front: textSchema,
+    back: backSchema,
+    /** Rephrased option texts of a choice variant by option id. */
+    options: v.optional(v.pipe(v.array(v.strictObject({ id: optionIdSchema, text: optionTextSchema })), v.minLength(2), v.maxLength(MAX_AI_CARD_VARIANT_OPTIONS), v.check(uniqueIds))),
+  }),
   model: v.pipe(v.string(), v.trim(), v.minLength(1)),
   privacyMode: v.literal("zdr"),
   usage: usageSchema,
 });
 
+export type AiCardVariantChoice = v.InferOutput<typeof choiceSchema>;
+export type AiCardVariantSource = { kind: v.InferOutput<typeof kindSchema>; front: string; back: string; choice?: AiCardVariantChoice };
 export type AiCardVariantRequest = v.InferOutput<typeof requestSchema>;
 export type AiCardVariantSuccess = v.InferOutput<typeof successSchema>;
 
+/** Plain text of a card source or model answer with its whitespace collapsed; it is never read as HTML. */
 export function normalizeAiCardText(value: unknown): string {
-  return stripHtml(value).replace(/\s+/g, " ").replace(/\s+([,.;:!?])/g, "$1").trim();
+  return String(value ?? "").replace(/\s+/g, " ").trim();
+}
+
+/** Plain text of a stored variant field, which holds HTML like a note field. */
+export function aiVariantFieldText(html: string): string {
+  return normalizeAiCardText(stripHtml(html));
+}
+
+/** Shown for the solutions of a gap group in `back`, e.g. "Insulin · Blutzucker". */
+export const answerListText = (answers: string[]) => answers.join(" · ");
+
+/** The `back` of a choice card or variant: every option marked correct (✓) or incorrect (✗), never empty. */
+export const choiceAnswerText = (options: { text: string; correct: boolean }[]) =>
+  answerListText(options.map((option) => `${option.correct ? "✓" : "✗"} ${option.text}`));
+
+/**
+ * The gaps of a cloze variant text: one gap group, possibly several times, without nested gaps; null otherwise.
+ * `outside` is the text around the gaps.
+ */
+export function clozeVariantGaps(text: string): { ordinal: number; answers: string[]; hints: string[]; outside: string } | null {
+  const ordinals = new Set<number>();
+  const answers: string[] = [];
+  const hints: string[] = [];
+  let nested = false;
+  const outside = mapClozes(text, (token, inner) => {
+    nested ||= inner !== token.text;
+    token.ordinals.forEach((ordinal) => ordinals.add(ordinal));
+    answers.push(token.text.trim());
+    hints.push(token.hint.trim());
+    return " ";
+  });
+  if (outside === null || nested || ordinals.size !== 1 || answers.some((answer) => !answer)) return null;
+  return { ordinal: [...ordinals][0], answers, hints, outside };
+}
+
+/** Whether `text` names `answer` as a whole word or phrase, ignoring case. */
+const mentions = (text: string, answer: string) =>
+  new RegExp(`(?<![\\p{L}\\p{N}])${answer.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(?![\\p{L}\\p{N}])`, "iu").test(text);
+
+/**
+ * Why a rephrased cloze text does not ask the source's gap: other gap groups or nesting (`invalid_gaps`), other
+ * solutions (`changed_answer`), or a solution named outside its gap or in a hint where the source did not (`revealed_answer`).
+ */
+export function checkClozeVariant(source: string, candidate: string): "invalid_gaps" | "changed_answer" | "revealed_answer" | null {
+  const original = clozeVariantGaps(source);
+  const variant = clozeVariantGaps(candidate);
+  if (!original || !variant || variant.ordinal !== original.ordinal) return "invalid_gaps";
+  const sorted = (answers: string[]) => answers.map((answer) => answer.replace(/\s+/g, " ")).sort().join("\u0000");
+  if (sorted(variant.answers) !== sorted(original.answers)) return "changed_answer";
+  const revealed = (gaps: NonNullable<typeof original>, answer: string) => mentions(gaps.outside, answer) || gaps.hints.some((hint) => mentions(hint, answer));
+  return variant.answers.some((answer) => revealed(variant, answer) && !revealed(original, answer)) ? "revealed_answer" : null;
+}
+
+const NEGATION = /(?<!\p{L})(?:nicht|kein\p{L}*|falsch\p{L}*|unzutreffend\p{L}*|unrichtig\p{L}*|außer|ausgenommen|ausnahme\p{L}*|not|none|false|incorrect|wrong|except)(?!\p{L})/iu;
+
+/**
+ * Why a rephrased choice card does not ask the source's options: other option ids (`changed_options`), or a question
+ * or option that gained or lost a negation and so may turn correct and incorrect around (`negated_question`,
+ * `negated_option`). The check is deliberately strict: a harmless rewrite such as „asymptomatisch“ to „ohne Symptome“
+ * is refused too.
+ */
+export function checkChoiceVariant(source: { front: string; choice: AiCardVariantChoice }, front: string, options: { id: string; text: string }[]): "changed_options" | "negated_question" | "negated_option" | null {
+  const ids = (list: { id: string }[]) => list.map((option) => option.id).sort().join("\u0000");
+  if (options.length !== source.choice.options.length || ids(options) !== ids(source.choice.options)) return "changed_options";
+  const negationChanged = (original: string, candidate: string) => NEGATION.test(original) !== NEGATION.test(candidate);
+  if (negationChanged(source.front, front)) return "negated_question";
+  return source.choice.options.some((option) => negationChanged(option.text, options.find((candidate) => candidate.id === option.id)!.text)) ? "negated_option" : null;
 }
 
 function withinRequestLimits(request: AiCardVariantRequest) {
-  return request.source.front.length + request.source.back.length <= MAX_AI_CARD_VARIANT_SOURCE_CHARS
+  const answerChars = request.choice ? request.choice.options.reduce((total, option) => total + option.text.length, 0) : request.source.back.length;
+  return request.source.front.length + answerChars <= MAX_AI_CARD_VARIANT_SOURCE_CHARS
     && (request.avoid ?? []).reduce((total, text) => total + text.length, 0) <= MAX_AI_CARD_VARIANT_AVOID_CHARS;
 }
 
 /**
- * Builds the request from the plain question and answer of a reveal card (`cardVariantSource`) and the
+ * Builds the request from the plain question and answer or cloze text of a card (`cardVariantSource`) and the
  * questions of its variants (`aiCardVariantAvoidTexts`); entries beyond the limits are left out.
  */
-export function createAiCardVariantRequest(source: { front: string; back: string } | null, avoid: string[] = []): AiCardVariantRequest {
+export function createAiCardVariantRequest(source: AiCardVariantSource | null, avoid: string[] = []): AiCardVariantRequest {
   if (!source) {
-    throw new AiCardVariantContractError("unsupported_card_type", "Varianten gibt es derzeit nur für Karten mit Frage und Antwort.");
+    throw new AiCardVariantContractError("unsupported_card_type", "Für diese Karte gibt es keine Varianten.");
+  }
+  if (source.choice && (source.choice.options.length < 2 || source.choice.options.length > MAX_AI_CARD_VARIANT_OPTIONS)) {
+    throw new AiCardVariantContractError("invalid_source", `Eine Variante braucht zwei bis ${MAX_AI_CARD_VARIANT_OPTIONS} Antwortoptionen.`);
   }
   const avoidTexts: string[] = [];
   let avoidChars = 0;
@@ -59,10 +164,12 @@ export function createAiCardVariantRequest(source: { front: string; back: string
     avoidChars += text.length;
   }
   const parsed = v.safeParse(requestSchema, {
+    kind: source.kind,
     source: {
       front: normalizeAiCardText(source.front),
       back: normalizeAiCardText(source.back),
     },
+    ...(source.choice ? { choice: { mode: source.choice.mode, options: source.choice.options.map((option) => ({ ...option, text: normalizeAiCardText(option.text) })) } } : {}),
     ...(avoidTexts.length ? { avoid: avoidTexts } : {}),
   });
   if (!parsed.success || !withinRequestLimits(parsed.output)) {
