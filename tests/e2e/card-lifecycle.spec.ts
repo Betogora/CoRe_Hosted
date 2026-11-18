@@ -557,7 +557,7 @@ test("[Vertrag: Suchen und Ersetzen mit Vorschau und Rückgängig] @beta-core er
   await expect.poll(frontOf).toBe("<p>Hauptstadt von Norwegen</p>");
 });
 
-test("[Vertrag: Treffer lernen zieht nicht fällige Karten vor, Nur üben schreibt nichts] @beta-core Treffer werden ohne Fälligkeit gelernt oder nur geübt", async ({ page }) => {
+test("[Vertrag: Treffer lernen zieht nicht fällige Karten vor, Nur üben schreibt nichts] @beta-core Treffer und ganze Stapel werden ohne Fälligkeit gelernt oder nur geübt", async ({ page }) => {
   const deckName = "Treffer lernen";
   await openManualCreation(page, deckName, "basic");
   await page.getByRole("textbox", { name: "Vorderseite" }).fill("Hauptstadt von Island");
@@ -590,7 +590,13 @@ test("[Vertrag: Treffer lernen zieht nicht fällige Karten vor, Nur üben schrei
   const studied = (await readActiveAccountState(page)).decks.find((candidate: { id: string }) => candidate.id === deck.id)!.cards[0].study;
   await openHits("Nur üben");
   const practice = page.getByRole("dialog", { name: "Nur üben" });
-  await practice.getByRole("button", { name: "Antwort anzeigen" }).click();
+  // The closing start dialog returns the focus one frame later; it stays with the practice, so Space reveals instead
+  // of reopening the dialog.
+  await expect(practice).toBeVisible();
+  await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+  await expect(practice).toBeFocused();
+  await page.keyboard.press("Space");
+  await expect(page.getByRole("dialog", { name: "Treffer lernen" })).toHaveCount(0);
   await practice.getByRole("button", { name: "Bewertung Nochmal" }).click();
   await practice.getByRole("button", { name: "Antwort anzeigen" }).click();
   await practice.getByRole("button", { name: "Bewertung Gut" }).click();
@@ -598,6 +604,28 @@ test("[Vertrag: Treffer lernen zieht nicht fällige Karten vor, Nur üben schrei
   await expect(practice).toContainText("1 Karte geübt · 1× Nochmal");
   await practice.getByRole("button", { name: "Fertig" }).click();
   await expect(practice).toHaveCount(0);
+
+  // The deck menu practises every card of the deck: only the order is asked, nothing is written either.
+  await page.goto("/lernen");
+  const deckOptions = page.getByRole("button", { name: `Stapeloptionen für ${deckName}`, exact: true });
+  const openDeckPractice = async () => {
+    await deckOptions.click();
+    await page.getByTestId(`deck-options-menu-${deck.id}`).getByRole("button", { name: "Alle Karten frei üben" }).click();
+  };
+  const deckPractice = page.getByRole("dialog", { name: "Alle Karten frei üben" });
+  await openDeckPractice();
+  await deckPractice.getByRole("button", { name: "Abbrechen" }).click();
+  await expect(deckOptions).toBeFocused();
+  await openDeckPractice();
+  await expect(deckPractice.getByTestId("hit-study-dialog")).toContainText(`1 Karte aus „${deckName}“ üben`);
+  await expect(deckPractice.getByRole("button", { name: "Vorziehen" })).toHaveCount(0);
+  await deckPractice.getByRole("button", { name: "Üben", exact: true }).click();
+  await practice.getByRole("button", { name: "Antwort anzeigen" }).click();
+  await practice.getByRole("button", { name: "Bewertung Gut" }).click();
+  await practice.getByRole("button", { name: "Fertig" }).click();
+  await expect(practice).toHaveCount(0);
+  await expect(deckOptions).toBeFocused();
+
   const after = await readActiveAccountState(page);
   expect(comparableStudy(after.decks.find((candidate: { id: string }) => candidate.id === deck.id)!.cards[0].study)).toEqual(comparableStudy(studied));
   expect(await reviewKinds()).toEqual(["hit_review", "hit_review"]);

@@ -4,7 +4,7 @@ import type { Card, Deck } from "./coreTypes.ts";
 /** Transient study root of `Treffer lernen` (KV5); like the exam unit it is never persisted. */
 export const HIT_SESSION_DECK_ID = "hit-session";
 
-/** `Wie die Liste` or `Gemischt`. */
+/** `Wie im Stapel` or `Gemischt`. */
 export type HitStudyOrder = "list" | "shuffled";
 
 /** `Vorziehen` writes reviews through the normal session; `Nur üben` writes nothing. */

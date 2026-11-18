@@ -811,6 +811,7 @@ function ReferenceSection() {
           <li>• Ausgewählte Karten änderst du gemeinsam: Stapel, Tags, Flagge, Markierung, Aussetzen, Fälligkeit oder Löschen. Jede Aktion fragt nach und lässt sich rückgängig machen.</li>
           <li>• Zur Pflege gibt es „Suchen und Ersetzen“, „Duplikate finden“ und „Tags verwalten“ für das ganze Konto.</li>
           <li>• „Treffer lernen“ lernt die Treffer einer Suche: „Vorziehen“ zählt wie eine Sitzung ohne Tageslimit, „Nur üben“ ändert keinen Lernstand.</li>
+          <li>• „Alle Karten frei üben“ im Menü eines Stapels übt alle seine Karten samt Unterstapeln, ohne den Lernstand zu ändern.</li>
           <li>• Tasten: <kbd>/</kbd> sucht, <kbd>↑</kbd> <kbd>↓</kbd> wechseln die Zeile, <kbd>X</kbd> wählt aus, Ziffern setzen die Flagge, <kbd>Strg</kbd>+<kbd>Z</kbd> nimmt die letzte Aktion zurück. Das Menü „Aktionen“ nennt alle Tasten.</li>
         </ul>
       </SoftPanel>

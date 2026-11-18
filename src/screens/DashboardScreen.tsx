@@ -208,7 +208,7 @@ function DailyLearningOverview({
   );
 }
 
-export function DashboardScreen({ state, now, onNavigate, onStartDeck, onStartAdditionalCards, onCreateDemo, onSetDeckCoreMode, onMoveDeck, onOpenDeckSettings, onSetDeckExpanded, onStartExamUnit, onLoadExamPlanningData, onSaveExamTasks, onLoadExamSummaryAvailability, onLoadExamLocalCardIds, pomodoroTimer = null, onStartPomodoro = () => undefined, onPausePomodoro = () => undefined, onResumePomodoro = () => undefined, onResetPomodoro = () => undefined }: DashboardScreenProps) {
+export function DashboardScreen({ state, now, onNavigate, onStartDeck, onPracticeDeck, onStartAdditionalCards, onCreateDemo, onSetDeckCoreMode, onMoveDeck, onOpenDeckSettings, onSetDeckExpanded, onStartExamUnit, onLoadExamPlanningData, onSaveExamTasks, onLoadExamSummaryAvailability, onLoadExamLocalCardIds, pomodoroTimer = null, onStartPomodoro = () => undefined, onPausePomodoro = () => undefined, onResumePomodoro = () => undefined, onResetPomodoro = () => undefined }: DashboardScreenProps) {
   const { deckSummaries, studyHeatmap: loadedHeatmap } = useWorkspaceValue(({ deckSummaries, studyHeatmap }) => ({ deckSummaries, studyHeatmap }));
   const globalSettings = getGlobalSchedulerPreferences(state.profile);
   const library = React.useMemo(
@@ -300,6 +300,7 @@ export function DashboardScreen({ state, now, onNavigate, onStartDeck, onStartAd
           onDeckExpansionChange={(deckId, expanded) => onSetDeckExpanded("dashboard", deckId, expanded)}
           onActivate={(row) => onNavigate("kartenstapel", { focusedDeckId: row.id, deckContent: true })}
           onStudy={(row) => onStartDeck(row.deck)}
+          onPractice={onPracticeDeck && ((row, returnFocus) => onPracticeDeck(row.deck, returnFocus))}
           onOpenSettings={onOpenDeckSettings}
           onSetDeckCoreMode={onSetDeckCoreMode}
           onMoveDeck={onMoveDeck}
