@@ -699,7 +699,7 @@ export function RichTextEditor({ value = "", onChange, onFocus, isActive = false
         if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setFocusWithin(false);
       } : undefined}
     >
-      <div className={`min-w-0 rounded-control ${active && !toolbarHost ? "shadow-selection" : "shadow-soft"}`}>
+      <div className={`min-w-0 rounded-control ${active && !toolbarHost ? "shadow-selection" : ""}`}>
       {!toolbarShown ? null : toolbarHost ? createPortal(toolbar, toolbarHost) : toolbar}
       <div
         ref={editorRef}

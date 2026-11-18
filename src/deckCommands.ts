@@ -261,7 +261,7 @@ export function createDeckCommands({ store, repository, refresh, requestSync, sy
     await saveExamPlanning(withExamDailyTasks(getGlobalSchedulerPreferences(latest.profile).examPlanning, dailyTasks));
   }
 
-  function saveDeckExpansion(surface: DeckExpansionSurface, deckId: string | readonly string[], expanded: boolean) {
+  function saveDeckExpansion(surface: DeckExpansionSurface, deckId: string, expanded: boolean) {
     const currentState = store.get().state;
     if (!currentState) return null;
     const profile = currentState.profile;

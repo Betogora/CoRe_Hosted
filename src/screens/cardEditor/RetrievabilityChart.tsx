@@ -99,7 +99,7 @@ export function RetrievabilityChart({ points, targetPercent, now }: { points: re
           <line x1="0" x2="100%" y1={y(target)} y2={y(target)} stroke="var(--core-text-muted)" strokeDasharray="4 4" />
           <line x1="0" x2="100%" y1="100%" y2="100%" stroke="var(--core-border)" />
           {activePoint ? <line x1={x(activePoint)} x2={x(activePoint)} y1="0" y2="100%" stroke="var(--core-border-interactive)" /> : null}
-          {points.map((point) => point.forgotten ? <circle key={point.at} cx={x(point)} cy={y(point.percent)} r={4} fill="var(--core-danger)" stroke="var(--core-surface)" strokeWidth={1.5} /> : null)}
+          {points.map((point) => point.forgotten ? <circle key={point.at} cx={x(point)} cy={y(point.percent)} r={4} fill="var(--core-rating-again-border)" stroke="var(--core-surface)" strokeWidth={1.5} /> : null)}
           {activePoint ? <circle cx={x(activePoint)} cy={y(activePoint.percent)} r={4} fill="var(--core-action-primary)" stroke="var(--core-surface)" strokeWidth={2} /> : null}
         </svg>
       </div>

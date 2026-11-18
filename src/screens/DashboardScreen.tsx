@@ -170,12 +170,12 @@ function DailyLearningOverview({
 
   return (
     <>
-      <SoftPanel className="dashboard-learning min-w-0 p-6" data-testid="daily-learning-overview" data-status={plan.status}>
+      <SoftPanel className="dashboard-learning min-w-0 p-5" data-testid="daily-learning-overview" data-status={plan.status}>
         <div className="dashboard-learning-body">
           <div className="dashboard-learning-goal">
             <h2 className="dashboard-learning-goal-title">
               <span className="dashboard-learning-goal-count">{goalCount}</span>{" "}
-              <span className={achieved ? "text-[var(--core-learning-goal-achieved)]" : "text-core-secondary"}>{goalLabel}</span>
+              <span className={achieved ? "text-[var(--core-success)]" : "text-core-secondary"}>{goalLabel}</span>
             </h2>
             <ActionButton variant="primary" icon={Play} disabled={primaryDisabled} onClick={activatePrimaryAction}>
               {primaryLabel}
@@ -208,7 +208,7 @@ function DailyLearningOverview({
   );
 }
 
-export function DashboardScreen({ state, now, onNavigate, onStartDeck, onStartAdditionalCards, onCreateDemo, onSetDeckCoreMode, onMoveDeck, onOpenDeckSettings, onSetDeckExpanded, onStartExamUnit, onLoadExamPlanningData, onSaveExamTasks, onLoadExamSummaryAvailability, onLoadExamLocalCardIds, pomodoroTimer = null, onStartPomodoro = () => undefined, onPausePomodoro = () => undefined, onResumePomodoro = () => undefined, onResetPomodoro = () => undefined }: DashboardScreenProps) {
+export function DashboardScreen({ state, now, onNavigate, onStartDeck, onPracticeDeck, onStartAdditionalCards, onCreateDemo, onSetDeckCoreMode, onMoveDeck, onOpenDeckSettings, onSetDeckExpanded, onStartExamUnit, onLoadExamPlanningData, onSaveExamTasks, onLoadExamSummaryAvailability, onLoadExamLocalCardIds, pomodoroTimer = null, onStartPomodoro = () => undefined, onPausePomodoro = () => undefined, onResumePomodoro = () => undefined, onResetPomodoro = () => undefined }: DashboardScreenProps) {
   const { deckSummaries, studyHeatmap: loadedHeatmap } = useWorkspaceValue(({ deckSummaries, studyHeatmap }) => ({ deckSummaries, studyHeatmap }));
   const globalSettings = getGlobalSchedulerPreferences(state.profile);
   const library = React.useMemo(
@@ -288,8 +288,8 @@ export function DashboardScreen({ state, now, onNavigate, onStartDeck, onStartAd
       {{
         learning: <DailyLearningOverview plan={dailyLearningPlan} decks={state.decks} onStartDeck={onStartDeck} onStartAdditionalCards={onStartAdditionalCards} />,
         motivation: <DailyMotivationWidget now={now} timeZone={getLearningTimeZone(state.profile)} dayStartHour={globalSettings.dayStartHour} />,
-        heatmap: <StudyHeatmap heatmap={studyHeatmap} formatDayLabel={heatmapDayLabel} className="p-5" />,
-        decks: <SoftPanel className="min-w-0 p-5 sm:p-6"><DeckTree
+        heatmap: <StudyHeatmap heatmap={studyHeatmap} formatDayLabel={heatmapDayLabel} />,
+        decks: <SoftPanel className="min-w-0 p-5"><DeckTree
           rows={library.rows}
           rootDeckIds={teaserRootIds}
           mode="dashboard"
@@ -300,6 +300,7 @@ export function DashboardScreen({ state, now, onNavigate, onStartDeck, onStartAd
           onDeckExpansionChange={(deckId, expanded) => onSetDeckExpanded("dashboard", deckId, expanded)}
           onActivate={(row) => onNavigate("kartenstapel", { focusedDeckId: row.id, deckContent: true })}
           onStudy={(row) => onStartDeck(row.deck)}
+          onPractice={onPracticeDeck && ((row, returnFocus) => onPracticeDeck(row.deck, returnFocus))}
           onOpenSettings={onOpenDeckSettings}
           onSetDeckCoreMode={onSetDeckCoreMode}
           onMoveDeck={onMoveDeck}

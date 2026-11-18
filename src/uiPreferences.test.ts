@@ -32,14 +32,6 @@ test("deck expansion is stored with the correct semantics for every surface", ()
   assert.deepEqual(setDeckExpanded(learn, "dashboard", "deck-a", true).dashboardCollapsedDeckIds, []);
 });
 
-test("bulk expansion changes only the requested decks and preserves other surfaces", () => {
-  const initial = normalizeUiPreferences({ learnCollapsedDeckIds: ["a", "b", "unrelated"], dashboardCollapsedDeckIds: ["a"] });
-  const expanded = setDeckExpanded(initial, "learn", ["a", "b"], true);
-  assert.deepEqual(expanded.learnCollapsedDeckIds, ["unrelated"]);
-  assert.deepEqual(expanded.dashboardCollapsedDeckIds, ["a"]);
-  assert.deepEqual(setDeckExpanded(expanded, "learn", ["a", "b", "a"], false).learnCollapsedDeckIds, ["unrelated", "a", "b"]);
-});
-
 test("Flaggennamen sind sieben gekürzte Texte, fehlende bleiben leer", () => {
   assert.deepEqual(normalizeUiPreferences({ flagNames: [" Wichtig ", 3, "x".repeat(50)] }).flagNames, ["Wichtig", "", "x".repeat(40), "", "", "", ""]);
 });

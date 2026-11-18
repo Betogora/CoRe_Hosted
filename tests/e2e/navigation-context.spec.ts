@@ -134,7 +134,7 @@ test("[Vertrag: Stapelinhalte] Flächeneinstieg, Vorschautabs und gemeinsamer Ed
   const tabs = page.getByRole("tablist", { name: "Stapelinhalte", exact: true });
   for (const width of [320, 390, 430, 640, 768, 1280, 1920]) {
     await page.setViewportSize({ width, height: 900 });
-    for (const label of ["Zusammenfassungen", "Quiz", "Mind Map", "Quelle", "Unterstapel", "Karten"]) {
+    for (const label of ["Zusammenfassungen", "Mind Map", "Unterstapel", "Karten"]) {
       const tab = tabs.getByRole("tab", { name: label, exact: true });
       await tab.click();
       await expect(tab).toHaveAttribute("aria-selected", "true");
@@ -144,11 +144,8 @@ test("[Vertrag: Stapelinhalte] Flächeneinstieg, Vorschautabs und gemeinsamer Ed
         await expect(page.getByTestId(`deck-header-${DECK_IDS.childB}`)).toHaveCount(0);
       } else if (label === "Unterstapel") {
         await expect(page.getByTestId("deck-content-substacks")).toBeVisible();
-      } else if (label === "Zusammenfassungen" || label === "Mind Map") {
-        await expect(page.getByTestId(label === "Mind Map" ? "deck-mindmaps-panel" : "deck-summaries-panel")).toBeVisible();
-        await expect(page.getByTestId(`deck-card-${CARD_IDS.b1}`)).toHaveCount(0);
       } else {
-        await expect(page.getByRole("region", { name: label, exact: true })).toContainText("Demnächst verfügbar");
+        await expect(page.getByTestId(label === "Mind Map" ? "deck-mindmaps-panel" : "deck-summaries-panel")).toBeVisible();
         await expect(page.getByTestId(`deck-card-${CARD_IDS.b1}`)).toHaveCount(0);
       }
     }
@@ -230,7 +227,7 @@ test("[Vertrag: Kartenverwaltung] Kartenzeilen bleiben auch in schmalen Viewport
       const tableHeader = table?.querySelector<HTMLElement>("thead tr");
       const headers = [...document.querySelectorAll<HTMLElement>('[data-testid="card-library-table"] thead th')];
       const headerRects = headers.map((header) => header.getBoundingClientRect());
-      const headerLabels = headers.map((header) => header.querySelector<HTMLElement>("span"));
+      const headerLabels = headers.map((header) => header.querySelector<HTMLElement>(".core-table-header-control span"));
       const cardRows = [...document.querySelectorAll<HTMLElement>('[data-card-row="true"]')];
       const dueCells = cardRows.map((row) => row.querySelectorAll<HTMLElement>("td")[1]);
       const variantCells = cardRows.map((row) => row.querySelectorAll<HTMLElement>("td")[2]);
@@ -258,7 +255,24 @@ test("[Vertrag: Kartenverwaltung] Kartenzeilen bleiben auch in schmalen Viewport
         headersDoNotOverlap: headerRects.every((rect, index) => index === 0 || rect.left >= headerRects[index - 1].right - 1),
         headerLabels: headerLabels.map((label) => label?.textContent?.trim()),
         headerAccessibleNames: headers.map((header) => header.querySelector(".core-table-header-control")?.getAttribute("aria-label")),
-        headersFit: headers.every((header) => header.scrollWidth <= header.clientWidth + 1),
+        headersFit: headerLabels.every((label) => Boolean(label) && label!.scrollWidth <= label!.clientWidth + 1),
+        // Every sort header closes its column at the content edge of the column's cells.
+        headerRightOffsets: (() => {
+          const cells = cardRow ? [...cardRow.querySelectorAll<HTMLElement>("td")] : [];
+          const contentRight = (element: HTMLElement | undefined) => element ? element.getBoundingClientRect().right - parseFloat(window.getComputedStyle(element).paddingRight) : Number.NaN;
+          return headers.map((header, index) => Math.abs((header.querySelector<HTMLElement>(".core-table-header-control")?.getBoundingClientRect().right ?? Number.NaN) - contentRight(cells[index])));
+        })(),
+        // The date column just fits a date: from sm the first column's text, the date and the variants' slots stand equally far apart.
+        valueGaps: (() => {
+          const firstCell = cardRows[0]?.querySelector<HTMLElement>("td");
+          const date = dueCells[0]?.firstChild;
+          if (!firstCell || !date || !variantLayouts[0]) return [Number.NaN, Number.NaN];
+          const range = document.createRange();
+          range.selectNodeContents(date);
+          const dateRect = range.getBoundingClientRect();
+          const textEnd = firstCell.getBoundingClientRect().right - parseFloat(window.getComputedStyle(firstCell).paddingRight);
+          return [dateRect.left - textEnd, variantLayouts[0].getBoundingClientRect().left - dateRect.right];
+        })(),
         dueLabels: dueCells.map((cell) => cell?.textContent?.trim()),
         dueLabelsFit: dueCells.every((cell) => fitsWithin(cell)),
         variantLabels: variantTags.map((tag) => tag?.getAttribute("aria-label")),
@@ -277,12 +291,14 @@ test("[Vertrag: Kartenverwaltung] Kartenzeilen bleiben auch in schmalen Viewport
     expect(geometry.documentFitsViewport).toBe(true);
     expect(geometry.sortFieldOverflow).toBe("ellipsis");
     expect(geometry.sortFieldWhiteSpace).toBe("nowrap");
-    expect(geometry.headerLabels).toEqual(["Sortierfeld", "Datum", "Variante"]);
-    expect(geometry.headerAccessibleNames).toEqual(["Sortierfeld aufsteigend sortieren", "Datum aufsteigend sortieren", "Variante aufsteigend sortieren"]);
+    expect(geometry.headerLabels).toEqual(["Sortierfeld", "Datum", "Varianten"]);
+    expect(geometry.headerAccessibleNames).toEqual(["Sortierfeld aufsteigend sortieren", "Datum aufsteigend sortieren", "Varianten aufsteigend sortieren"]);
     expect(geometry.headersFit).toBe(true);
+    for (const offset of geometry.headerRightOffsets) expect(offset, "Sortierkopf schließt rechtsbündig mit seiner Spalte").toBeLessThanOrEqual(1);
     expect(geometry.dueLabels).toEqual(["23.08.2026", "Neu"]);
+    if (viewport.width >= 640) expect(Math.abs(geometry.valueGaps[0] - geometry.valueGaps[1]), "Text, Datum und Varianten stehen gleich weit auseinander").toBeLessThanOrEqual(1);
     expect(geometry.dueLabelsFit).toBe(true);
-    expect(geometry.variantLabels).toEqual(["Keine Variante", "1 aktive Variante"]);
+    expect(geometry.variantLabels).toEqual([null, "1 aktive Variante"]);
     expect(geometry.variantTagsFit).toBe(true);
     expect(geometry.variantTagsAligned).toBe(true);
     expect(geometry.markSlotWidths).toEqual([18, 18]);

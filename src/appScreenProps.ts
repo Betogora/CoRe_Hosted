@@ -72,7 +72,16 @@ export interface CreationScreenProps {
   onOpenDashboard: () => void;
 }
 
-export interface DashboardScreenProps {
+/** Starts and menu actions of the screens that show the deck tree. */
+interface DeckTreeScreenProps {
+  onStartDeck: (deck: Deck) => void;
+  /** `Alle Karten frei üben` from a deck menu; missing while the card catalog is unavailable. */
+  onPracticeDeck?: (deck: Deck, returnFocus: HTMLElement | null) => void;
+  onSetDeckCoreMode: (deckId: string, coreMode: CoreMode) => unknown;
+  onOpenDeckSettings: (deckId: string) => unknown;
+}
+
+export interface DashboardScreenProps extends DeckTreeScreenProps {
   onPausePomodoro?: () => void;
   onResumePomodoro?: () => void;
   onResetPomodoro?: () => void;
@@ -81,13 +90,10 @@ export interface DashboardScreenProps {
   state: WorkspaceState;
   now: string;
   onNavigate: NavigateToView;
-  onStartDeck: (deck: Deck) => void;
   onStartAdditionalCards: (deckId: string, additionalCount: number) => { ok: boolean; message?: string };
   onCreateDemo: () => Promise<Deck[] | null>;
-  onSetDeckCoreMode: (deckId: string, coreMode: CoreMode) => unknown;
   onMoveDeck: (deckId: string, parentDeckId: string | null) => DeckMutationResult | null;
-  onOpenDeckSettings: (deckId: string) => unknown;
-  onSetDeckExpanded: (surface: DeckExpansionSurface, deckId: string | readonly string[], expanded: boolean) => unknown;
+  onSetDeckExpanded: (surface: DeckExpansionSurface, deckId: string, expanded: boolean) => unknown;
   /** Starts today's exam unit (ADR-042); the action leads the page while an exam is active. */
   onStartExamUnit?: (blockId: string | null) => Promise<void>;
   onLoadExamPlanningData?: ExamPlanningScreenProps["onLoadPlanningData"];
@@ -176,13 +182,12 @@ export interface CardEditorServices {
   openSyncConflicts: () => unknown;
 }
 
-export interface DecksScreenProps {
+export interface DecksScreenProps extends DeckTreeScreenProps {
   decks: Deck[];
   summaryAccountId?: string;
   /** Online storage for summaries and mind maps of the signed-in account. */
   learningContentCloud?: import("@supabase/supabase-js").SupabaseClient | null;
   onGenerateSummary?: (input: import("./aiLearningSummary.ts").SummaryGenerationInput, signal: AbortSignal) => Promise<import("./aiLearningSummary.ts").SummaryGenerationResult>;
-  onStartDeck: (deck: Deck) => void;
   contentDeckId?: string | null;
   contentTab?: DeckContentTab;
   cardQuery?: string;
@@ -192,7 +197,6 @@ export interface DecksScreenProps {
   learnAheadMinutes?: number;
   timeZone?: string;
   mediaStore: AccountMediaStore | null;
-  onSetDeckCoreMode: (deckId: string, coreMode: CoreMode) => unknown;
   /** Saves edited content; card removals were confirmed by the editor beforehand. */
   onSaveNote: (graph: NoteGraph, content: NoteContent) => Promise<NoteGraph | null>;
   onSetCardStudyState: (deckId: string, cardId: string, patch: CardStudyStatePatch) => Promise<NoteGraph | null>;
@@ -228,7 +232,6 @@ export interface DecksScreenProps {
   onOpenLearn: (deckId?: string | null) => unknown;
   onOpenCardSettings: () => unknown;
   onMoveDeck: (deckId: string, parentDeckId?: string | null) => DeckMutationResult | null;
-  onOpenDeckSettings: (deckId: string) => unknown;
   onDraftStateChange: (guard: CardDraftGuard | null) => void;
   /** Saved searches of the account (`uiPreferences.savedSearches`); the whole list is written at once. */
   savedSearches: readonly SavedCardSearch[];
@@ -267,13 +270,12 @@ export interface DecksCardPage {
   limitedToLocalCatalog?: boolean;
 }
 
-export interface LearnScreenProps {
+export interface LearnScreenProps extends DeckTreeScreenProps {
   decks: Deck[];
   now: string;
   dayStartHour?: number;
   learnAheadMinutes?: number;
   timeZone?: string;
-  onStartDeck: (deck: Deck) => void;
   onCreateDeck: (input: CreateDeckInput) => Deck | null;
   focusedDeckId: string | null;
   initialParentDeckId: string;
@@ -283,11 +285,9 @@ export interface LearnScreenProps {
   onOpenDecks: (deckId?: string | null) => unknown;
   onOpenDeckContent: (deckId: string) => unknown;
   onOpenCardSettings: () => unknown;
-  onOpenDeckSettings: (deckId: string) => unknown;
-  onSetDeckCoreMode: (deckId: string, coreMode: CoreMode) => unknown;
   onMoveDeck: (deckId: string, parentDeckId: string | null) => DeckMutationResult | null;
   collapsedDeckIds: string[];
-  onSetDeckExpanded: (surface: DeckExpansionSurface, deckId: string | readonly string[], expanded: boolean) => unknown;
+  onSetDeckExpanded: (surface: DeckExpansionSurface, deckId: string, expanded: boolean) => unknown;
 }
 
 export interface SettingsDialogProps {

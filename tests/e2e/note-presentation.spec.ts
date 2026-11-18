@@ -169,26 +169,27 @@ test("Bisheriger Kartenrahmen: Review, Inhaltsansicht und Vorschau bleiben bedie
   test.setTimeout(180_000);
   const output = path.resolve("test-results/note-presentation/existing-frames");
   await mkdir(output, { recursive: true });
-  await page.goto("/docs/ui-elements.html#inhalt");
-  await page.getByLabel("Katalog durchsuchen", { exact: true }).fill("Karteninhalte");
+  await page.goto("/docs/card-types.html#inhalt");
   for (const size of matrixViewports()) {
     await page.setViewportSize(size);
     for (const theme of matrixThemes) {
       await page.evaluate((value) => document.documentElement.dataset.coreTheme = value, theme);
       const section = page.locator("#inhalt");
+      const review = page.locator("#frage-antwort article").filter({ hasText: "Mit Bild im Text" });
       const front = section.frameLocator('iframe[title="Vorderseite"]').locator("body");
       await expect(front).toContainText("Welche Hauptstadt siehst du?");
       await expect(section.frameLocator('iframe[title="Vorderseite"]').locator('img[alt="Beispielansicht von Lissabon"]')).toHaveCount(1);
       await front.evaluate(async (body) => { await body.ownerDocument.fonts.ready; });
       if (visualOutput) await section.locator('iframe[title="Vorderseite"]').screenshot({ path: path.join(output, `${size.width}-${theme}-management-question.png`) });
       if (visualOutput) await section.screenshot({ path: path.join(output, `${size.width}-${theme}-content.png`), animations: "disabled" });
-      await section.getByRole("button", { name: "Antwort aufdecken", exact: true }).click();
-      await expect(section.frameLocator('iframe[title="Antwort"]').locator("body")).not.toBeEmpty();
-      if (visualOutput) await section.screenshot({ path: path.join(output, `${size.width}-${theme}-review-answer.png`), animations: "disabled" });
-      await section.getByRole("button", { name: "Zurücksetzen", exact: true }).click();
+      await review.getByRole("button", { name: "Antwort aufdecken", exact: true }).click();
+      await expect(review.frameLocator('iframe[title="Antwort"]').locator("body")).not.toBeEmpty();
+      if (visualOutput) await review.screenshot({ path: path.join(output, `${size.width}-${theme}-review-answer.png`), animations: "disabled" });
+      await review.getByRole("button", { name: "Zurücksetzen", exact: true }).click();
     }
   }
-  await page.getByLabel("Katalog durchsuchen", { exact: true }).fill("Dialog-Familie");
+  await page.goto("/docs/ui-elements.html#dialogs");
+  await page.getByLabel("Katalog durchsuchen", { exact: true }).fill("Kartenvorschau");
   await page.setViewportSize({ width: 390, height: 844 });
   await page.getByRole("button", { name: "Kartenvorschau öffnen", exact: true }).click();
   const dialog = page.getByRole("dialog", { name: "Kartenvorschau", exact: true });

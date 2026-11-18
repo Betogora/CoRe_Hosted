@@ -35,13 +35,19 @@ function renderSettings(section: GeneralSection = "konto", sync: { syncStatus: S
 }
 
 test("general settings render exactly the requested dialog area without a page shell", () => {
-  const headings = { konto: "Konto", daten: "Daten &amp; Synchronisierung", ueber: "Über uns" } as const;
+  const headings = { konto: "Konto", darstellung: "Darstellung", daten: "Daten &amp; Synchronisierung", ueber: "Über uns" } as const;
   for (const [section, heading] of Object.entries(headings) as Array<[GeneralSection, string]>) {
     const html = renderSettings(section);
     assert.equal(html.match(/<h2 /g)?.length, 1);
     assert.match(html, new RegExp(`<h2[^>]*tabindex="-1"[^>]*>${heading}</h2>`));
     assert.doesNotMatch(html, /Allgemeine Einstellungen|>Lerneinstellungen</);
   }
+});
+
+test("appearance settings pick the heatmap color with the shared color picker", () => {
+  const html = renderSettings("darstellung");
+  assert.match(html, />Heatmap-Farbe</);
+  assert.match(html, /aria-label="Heatmap-Farbe ändern"[^>]*><span[^>]*background-color:#b55b43/);
 });
 
 test("about settings contain help, legal placeholders, and the only visible version slot", () => {

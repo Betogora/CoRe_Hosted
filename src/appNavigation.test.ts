@@ -31,7 +31,7 @@ test("a card search link opens the card management with its query and survives U
 });
 
 test("content tabs roundtrip with the selected deck and review return context", () => {
-  for (const tab of ["children", "summary", "quiz", "mind-map", "cards", "source"] as const) {
+  for (const tab of ["children", "summary", "mind-map", "cards"] as const) {
     const route = createViewRoute("kartenstapel", { focusedDeckId: "child", deckContent: true, deckContentTab: tab });
     assert.deepEqual(parseAppRouteFromUrl(appRouteToUrl(route)), route);
     const review = createStudyRoute("child", { returnContext: createReviewReturnContext(route) });
@@ -81,7 +81,7 @@ test("the settings dialog is an area on top of the current view and replaces the
 test("settings areas resolve to their content and draft group", () => {
   assert.equal(settingsContentSection("start"), "konto");
   assert.equal(settingsContentSection("konflikte"), "daten");
-  for (const section of ["start", "konto", "daten", "konflikte", "ueber"] as const) assert.equal(settingsSectionGroup(section), "general");
+  for (const section of ["start", "konto", "darstellung", "daten", "konflikte", "ueber"] as const) assert.equal(settingsSectionGroup(section), "general");
   for (const section of ["lerntag", "tagesrunde", "scheduler", "flaggen", "fokus"] as const) assert.equal(settingsSectionGroup(section), "learning");
 });
 
@@ -249,14 +249,14 @@ test("stores app routes in browser history state without losing external state",
 });
 
 test("content tabs survive reload and study return while unsupported tabs are ignored", () => {
-  for (const deckContentTab of ["children", "summary", "mind-map", "cards", "quiz", "source"] as const) {
+  for (const deckContentTab of ["children", "summary", "mind-map", "cards"] as const) {
     const route = createViewRoute("kartenstapel", { focusedDeckId: "deck_a", deckContent: true, deckContentTab });
     assert.deepEqual(parseAppRouteFromUrl(appRouteToUrl(route)), route);
     const review = parseAppRouteFromUrl(appRouteToUrl(createStudyRoute("deck_a", { returnContext: createReviewReturnContext(route) })));
     assert.ok(review.mode === "study");
     assert.deepEqual(reviewReturnContextToViewRoute(review.returnContext), route);
   }
-  const invalid = parseAppRouteFromUrl("/kartenstapel?deck=deck_a&content=1&tab=invalid");
+  const invalid = parseAppRouteFromUrl("/kartenstapel?deck=deck_a&content=1&tab=quiz");
   assert.ok(invalid.mode === "view");
   assert.equal(invalid.deckContentTab, undefined);
   const selected = createViewRoute("kartenstapel", { focusedDeckId: "deck_a", deckContent: true, deckContentTab: "summary", selectedCardId: "card_a" });

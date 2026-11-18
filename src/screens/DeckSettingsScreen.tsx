@@ -39,7 +39,7 @@ function DeckIconPicker({ value, color, onChange }: { value: string; color: stri
   return (
     <Popover.Root>
       <Popover.Trigger asChild>
-        <button type="button" aria-label="Icon auswählen" className="grid size-control shrink-0 place-items-center rounded-control border border-core-border bg-core-surface shadow-soft transition-colors hover:border-core-action" style={{ color }}>
+        <button type="button" aria-label="Icon auswählen" className="grid size-control shrink-0 place-items-center rounded-control border border-core-border bg-core-surface transition-colors hover:border-core-action" style={{ color }}>
           <SelectedIcon size={20} aria-hidden="true" />
         </button>
       </Popover.Trigger>

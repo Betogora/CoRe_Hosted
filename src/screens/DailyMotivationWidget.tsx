@@ -26,7 +26,7 @@ export function DailyMotivationWidget({ now, timeZone, dayStartHour }: { now: st
     return () => { window.clearTimeout(timer); document.removeEventListener("visibilitychange", visible); window.removeEventListener("focus", update); };
   }, [now, timeZone, dayStartHour]);
   const motivation = getDailyMotivation(clock, { timeZone, dayStartHour });
-  return <SoftPanel className="motivation-widget p-5 sm:p-6" data-brain-zone="" data-motivation-day={motivation.day}>
+  return <SoftPanel className="motivation-widget p-5" data-brain-zone="" data-motivation-day={motivation.day}>
     <SectionHeader level={2} title="Dein Motivationsimpuls" />
     <div className="motivation-widget-layout">
       <div><p className="motivation-widget-quote core-body-large font-medium text-core-text">{motivation.text}</p></div>

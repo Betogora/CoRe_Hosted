@@ -505,6 +505,27 @@ test("study heatmap defaults to the rolling last seven calendar days", () => {
   assert.equal(window.canShowNext, true);
 });
 
+test("study heatmap counts active days among the past days since the first activity", () => {
+  const heatmap = createStudyHeatmapModelFromCounts({
+    todayKey: "2026-08-12",
+    countsByDay: new Map([["2026-08-09", 1], ["2026-08-11", 3], ["2026-08-12", 2]]),
+  });
+  const week = createStudyHeatmapWindow(heatmap);
+  assert.equal(week.trackedDayCount, 4);
+  assert.equal(week.activeDayCount, 3);
+
+  const month = createStudyHeatmapWindow(heatmap, { period: "month" });
+  assert.equal(month.trackedDayCount, 4);
+  assert.equal(month.activeDayCount, 3);
+
+  const future = createStudyHeatmapWindow(heatmap, { period: "month", anchorKey: "2026-09-01" });
+  assert.equal(future.trackedDayCount, 0);
+  assert.equal(future.activeDayCount, 0);
+
+  const empty = createStudyHeatmapWindow(createStudyHeatmapModelFromCounts({ todayKey: "2026-08-12", countsByDay: new Map() }));
+  assert.equal(empty.trackedDayCount, 0);
+});
+
 test("study heatmap projects complete calendar months and 53 or 54 week years", () => {
   const leapMonth = createStudyHeatmapWindow(createStudyHeatmapModelFromCounts({
     todayKey: "2028-02-15",

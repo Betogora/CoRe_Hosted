@@ -6,7 +6,7 @@ import { reconcileExamDailyTasks, setExamDailyTaskChecked } from "../examDailyTa
 import { examDayDistance } from "../examPlanning.ts";
 import { getLearningDayKey, getLearningTimeZone } from "../learningDay.ts";
 import { getGlobalSchedulerPreferences } from "../learningProfiles.ts";
-import { ActionButton, IconButton, ShowMoreButton } from "../ui/actionUi.tsx";
+import { ActionButton, Disclosure, IconButton, ShowMoreButton } from "../ui/actionUi.tsx";
 import { SoftPanel } from "../ui/coreUi.tsx";
 import { CoreCheckbox } from "../ui/formControls.tsx";
 import { StatusMessage } from "../ui/feedbackUi.tsx";
@@ -15,7 +15,6 @@ import { useExamForecast, type ExamForecastState } from "./useExamForecast.ts";
 import { DashboardTaskText } from "./DashboardTaskText.tsx";
 
 export interface ExamDashboardPreview {
-  taskLimit: number | null;
   onOpenTaskCountChange: (count: number) => void;
 }
 
@@ -102,7 +101,6 @@ export function ExamDashboardWidget({ state, now, onLoad, onStart, onSaveTasks, 
   }));
   const openTasks = groups.flatMap((group) => group.tasks.filter((task) => task.completed === null));
   const completedTasks = groups.flatMap((group) => group.tasks.filter((task) => task.completed !== null));
-  const visibleIds = new Set((preview?.taskLimit != null ? openTasks.slice(0, preview.taskLimit) : openTasks).map((task) => task.id));
   const reportCount = preview?.onOpenTaskCountChange;
   React.useEffect(() => { reportCount?.(openTasks.length); }, [reportCount, openTasks.length]);
 
@@ -137,7 +135,7 @@ export function ExamDashboardWidget({ state, now, onLoad, onStart, onSaveTasks, 
       const listId = `${taskListId}-${exam.id}`;
       const color = examColor(exams.indexOf(exam), exam);
       const openCount = own.filter((task) => !task.completed).length;
-      const shown = preview ? own.filter((task) => visibleIds.has(task.id)) : expanded ? own : own.slice(0, 3);
+      const shown = preview ? own.filter((task) => task.completed === null) : expanded ? own : own.slice(0, 3);
       if (preview && !shown.length) return null;
       return <section key={exam.id} className={preview ? "grid min-w-0 content-start gap-2" : "grid min-w-0 content-start gap-3 rounded-inset bg-core-subtle p-3 min-[360px]:p-4"} aria-label={exam.name}>
         <div><h3 className="flex min-w-0 items-center gap-2 core-heading-3 text-core-text"><span aria-hidden="true" className="size-2.5 shrink-0 rounded-round" style={{ backgroundColor: color }} /><span className="min-w-0 break-words">{exam.name}</span></h3><p className="mt-0.5 core-caption text-core-muted">Prüfung {formatExamDistance(examDayDistance(civilToday, exam.examDate))} · {ready ? formatExamCount(openCount, "offene Aufgabe", "offene Aufgaben") : "Aufgaben werden berechnet …"}</p></div>
@@ -146,6 +144,6 @@ export function ExamDashboardWidget({ state, now, onLoad, onStart, onSaveTasks, 
         {ready && !own.length ? <p className="core-body text-core-muted">Heute keine offenen Aufgaben für diese Prüfung.</p> : null}
       </section>;
     })}</div>
-    {preview && completedTasks.length ? <details className="dashboard-disclosure"><summary>Erledigt im Planer ({completedTasks.length})</summary><ul className="grid gap-2">{completedTasks.map((task) => renderTask(task, examColor(exams.findIndex((exam) => exam.id === task.examId), exams.find((exam) => exam.id === task.examId))))}</ul></details> : null}
+    {preview && completedTasks.length ? <Disclosure summary={`Erledigt im Planer (${completedTasks.length})`}><ul className="mt-2 grid gap-2">{completedTasks.map((task) => renderTask(task, examColor(exams.findIndex((exam) => exam.id === task.examId), exams.find((exam) => exam.id === task.examId))))}</ul></Disclosure> : null}
   </SoftPanel>;
 }

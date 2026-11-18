@@ -22,7 +22,8 @@ test("die Auswahlleiste nennt die Auswahl und bietet alle Treffer an, solange es
   const some = renderToStaticMarkup(<CardSelectionBar {...props} count={3} hitTotal={1200} />);
   assert.match(text(some), /3 Karten ausgewählt/);
   assert.match(text(some), /Alle 1\.200 Treffer auswählen/);
-  assert.match(some, /aria-label="Auswahl aufheben"/);
+  assert.match(some, /data-state="checked"><span class="core-checkbox-control"><input type="checkbox" aria-label="Auswahl aufheben" checked=""/, "das angehakte Kopfkästchen beendet die Auswahl");
+  assert.match(some, /data-testid="card-selection-actions"[\s\S]*<button[^>]*data-testid="card-selection-close"[^>]*aria-label="Auswahl aufheben"/, "das X hinter „Aktionen“ beendet sie ebenso");
   const all = text(renderToStaticMarkup(<CardSelectionBar {...props} count={1200} hitTotal={1200} allHits />));
   assert.match(all, /Alle 1\.200 Karten ausgewählt/);
   assert.doesNotMatch(all, /Treffer auswählen/);

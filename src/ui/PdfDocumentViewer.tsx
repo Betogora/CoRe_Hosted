@@ -258,7 +258,7 @@ export function PdfDocumentViewer({ document, src, onSelection }: PdfDocumentVie
   const pageCount = pages.length;
 
   return (
-    <div className="min-h-[40rem] overflow-hidden rounded-panel border border-core-border bg-core-subtle shadow-soft" data-testid="pdf-document-viewer">
+    <div className="min-h-[40rem] overflow-hidden rounded-panel border border-core-border bg-core-subtle" data-testid="pdf-document-viewer">
       <div className="flex min-h-14 flex-wrap items-center justify-between gap-3 border-b border-core-border bg-core-surface px-4 py-3">
         <div className="flex min-w-0 items-center gap-3">
           <span className="grid size-9 shrink-0 place-items-center rounded-control bg-core-subtle text-core-action">

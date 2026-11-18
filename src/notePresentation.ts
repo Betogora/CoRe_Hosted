@@ -10,7 +10,7 @@ import { colorContrast, ensureTextContrast, hexToHsv, resolveCssColor } from "./
 import { clozeAt, isClozeOpening } from "./clozeSyntax.ts";
 
 /** Semantic tokens copied into the card frame as `--core-<name>`. */
-export const NOTE_THEME_COLORS = ["surface", "surface-muted", "text", "text-muted", "border", "border-interactive", "success", "success-surface", "danger", "danger-surface", "learning-goal-achieved"] as const;
+export const NOTE_THEME_COLORS = ["surface", "surface-muted", "text", "text-muted", "border", "border-interactive", "success", "success-surface", "danger", "danger-surface"] as const;
 
 export interface NotePresentationTheme {
   mode: CoreTheme;
@@ -48,6 +48,9 @@ export function notePlainText(value: string): string {
       return code <= 0x10ffff ? String.fromCodePoint(code) : match;
     }).replace(/\s+/g, " ").trim();
 }
+/** Whether rendered HTML shows anything: text, an image, audio or video. */
+const showsContent = (html: string) => Boolean(notePlainText(html)) || /<(?:img|audio|video)\b|\[sound:/i.test(html);
+
 // Inline: \(…\) and [$]…[/$]; display: \[…\], [$$]…[/$$] and [latex]…[/latex].
 const MATH = /\\\(([\s\S]*?)\\\)|\[\$\]([\s\S]*?)\[\/\$\]|\\\[([\s\S]*?)\\\]|\[\$\$\]([\s\S]*?)\[\/\$\$\]|\[latex\]([\s\S]*?)\[\/latex\]/gi;
 const MATH_START = /\\[([]|\[latex\]|\[\$\$?\]/i;
@@ -203,7 +206,7 @@ const APP_PART_CSS = `
   .core-typed-comparison p{display:grid;gap:.125rem;margin:0}
   .core-typed-label{color:var(--core-text-muted);font-size:.75rem;font-weight:600}
   .core-typed-value{font-size:1.125rem;font-weight:600;letter-spacing:.02em}
-  .typed-correct{color:var(--core-learning-goal-achieved)}
+  .typed-correct{color:var(--core-success)}
   .typed-wrong{border-radius:.2em;background:color-mix(in srgb,var(--core-danger) 14%,transparent);color:var(--core-text);text-decoration:line-through 1.5px var(--core-danger)}
   .typed-missing{text-decoration:underline 2px var(--core-danger);text-underline-offset:.2em}
   .typed-empty{color:var(--core-text-muted);font-weight:400;font-style:italic}
@@ -358,7 +361,7 @@ async function renderOriginalLayout({ note, card, side, surface, theme, mathCss,
     typedAnswer,
   };
   const question = expandLayout(ast.front, context);
-  if (!notePlainText(question) && !/<(?:img|audio|video)\b|\[sound:/i.test(question)) return null;
+  if (!showsContent(question)) return null;
   const raw = side === "question" ? question : expandLayout(ast.back, { ...context, side: "answer", frontSide: question });
   const diagnostics: TemplateDiagnostic[] = [];
   const interactions = new Set<NotePresentationResult["interactions"][number]>();
@@ -448,8 +451,10 @@ export async function renderCard({ note, card, side, surface, theme, mathCss = "
   if (/<audio\b/i.test(question + answer)) interactions.add("audio");
   if (/<video\b/i.test(question + answer)) interactions.add("video");
   const replacesFront = interaction.kind === "cloze" || interaction.kind === "image-occlusion";
+  // The line separates only something below it: a choice without answer fields or supplements reveals none.
+  const below = side === "question" || replacesFront ? "" : answer + supplements();
   const body = side === "question" ? question : replacesFront ? question + supplements()
-    : `${surface === "review" ? "" : question}<hr class="core-card-answer-separator"/>${answer}${supplements()}`;
+    : `${surface === "review" ? "" : question}${showsContent(below) ? `<hr class="core-card-answer-separator"/>${below}` : ""}`;
   return {
     srcdoc: buildSrcdoc(body, `${themeVariables(theme)}${NOTE_CARD_CSS}${mathCss}`, theme.mode, surface === "review"),
     accessibleText: notePlainText(body),

@@ -9,13 +9,14 @@ interface DeckSubstacksPanelProps {
   current: DeckLibraryRow;
   onOpenDeck: (deckId: string) => unknown;
   onStudy: (deck: Deck) => unknown;
+  onPractice?: (deck: Deck, returnFocus: HTMLElement | null) => unknown;
   onOpenSettings: (deckId: string) => unknown;
   onSetCoreMode: (deckId: string, mode: CoreMode) => unknown;
   onMoveDeck: (deckId: string, parentDeckId: string | null) => DeckMutationResult | null;
 }
 
 /** Content tab "Unterstapel": the opened deck's branch as the list group of `Lernen`, initially showing its direct subdecks. */
-export function DeckSubstacksPanel({ rows, current, onOpenDeck, onStudy, onOpenSettings, onSetCoreMode, onMoveDeck }: DeckSubstacksPanelProps) {
+export function DeckSubstacksPanel({ rows, current, onOpenDeck, onStudy, onPractice, onOpenSettings, onSetCoreMode, onMoveDeck }: DeckSubstacksPanelProps) {
   const [collapsedDeckIds, setCollapsedDeckIds] = useState(() => rows.filter((row) => row.hasChildren && row.id !== current.id).map((row) => row.id));
   const rootDeckIds = useMemo(() => [current.id], [current.id]);
   return (
@@ -25,12 +26,10 @@ export function DeckSubstacksPanel({ rows, current, onOpenDeck, onStudy, onOpenS
         rootDeckIds={rootDeckIds}
         mode="content"
         collapsedDeckIds={collapsedDeckIds}
-        onDeckExpansionChange={(deckId, expanded) => setCollapsedDeckIds((previous) => {
-          const deckIds: readonly string[] = typeof deckId === "string" ? [deckId] : deckId;
-          return expanded ? previous.filter((id) => !deckIds.includes(id)) : [...new Set([...previous, ...deckIds])];
-        })}
+        onDeckExpansionChange={(deckId, expanded) => setCollapsedDeckIds((previous) => expanded ? previous.filter((id) => id !== deckId) : [...new Set([...previous, deckId])])}
         onActivate={(row) => onOpenDeck(row.id)}
         onStudy={(row) => onStudy(row.deck)}
+        onPractice={onPractice && ((row, returnFocus) => onPractice(row.deck, returnFocus))}
         onOpenSettings={onOpenSettings}
         onSetDeckCoreMode={onSetCoreMode}
         onMoveDeck={onMoveDeck}

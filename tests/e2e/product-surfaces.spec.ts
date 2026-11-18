@@ -53,7 +53,7 @@ test("app chrome switches exactly at the 1280 pixel top bar breakpoint", async (
   await expect(page).toHaveURL(/\?settings=start$/);
   await expect(settingsDialog(page)).toBeVisible();
   await expect(mobileSettingsButton).toHaveAttribute("aria-expanded", "true");
-  await expect(page.getByText("Darstellung", { exact: true })).toHaveCount(0);
+  await expect(settingsDialog(page).getByRole("button", { name: /Dark Mode/ })).toHaveCount(0);
 
   await page.setViewportSize({ width: 1280, height: 900 });
   await expect(topBar).toBeVisible();
@@ -375,7 +375,7 @@ test("settings dialog switches between side list and area list at 768 px", async
   const dialog = settingsDialog(page);
   const areas = dialog.getByRole("navigation", { name: "Bereiche der Einstellungen" });
   await expect(areas).toBeVisible();
-  await expect(areas.locator("[data-settings-section]")).toHaveCount(8);
+  await expect(areas.locator("[data-settings-section]")).toHaveCount(9);
   await expect(dialog.getByRole("heading", { name: "Konto", exact: true })).toBeVisible();
 
   await openSettingsArea(dialog, "ueber");

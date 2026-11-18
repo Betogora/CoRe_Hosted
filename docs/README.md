@@ -7,7 +7,7 @@
 | [Docs](index.html) | diesen Wegweiser | `README.md` |
 | [Specs](specs.html) | je Funktion Absicht, Regeln und Entscheidungen, mit Schaubildern | `specs.md` |
 | [Journeys](journeys.html) | die Kernjourneys mit Zweck, Schrittkette und verlinkter Akzeptanz | Kapitel „Kernjourneys“ von `specs.md` |
-| [UI-Elements](ui-elements.html) | jede UI-Komponente und jedes Format genau einmal, als echte Komponente | `scripts/uiCatalogDemos.tsx`, `scripts/uiCatalogPatterns.html` |
+| [UI-Elements](ui-elements.html) | jede UI-Komponente und jedes Format genau einmal, als echte Komponente | `scripts/uiCatalogDemos.tsx` |
 | [Kartenbausteine](card-types.html) | alle Renderer-Fälle mit Erstellungsweg | dieselben Demos und CoRe-Modellhelfer |
 | [KI-Eval](ai-eval.html) | den besten gemessenen Prompt je Anfragetyp und den Verlauf aller Läufe | `ai-eval.md`, `fixtures/ai-eval/ledger.json` |
 
@@ -21,7 +21,7 @@ Gerüst der Katalog-Browsertests.
 | Frage | Quelle | Gehört nicht hinein |
 | --- | --- | --- |
 | Was soll das Produkt tun und warum? | [`specs.md`](specs.md) | Oberflächendetails, Architektur, APIs, Messwerte, Runbooks, Roadmap ([Pflegeregel](specs.md#pflege-dieser-datei)) |
-| Wie ist es gebaut, wem gehört was? | [`architecture.md`](architecture.md) | Produktstatus, Nachweise |
+| Wie ist es gebaut, wem gehört was? | [`architecture.md`](architecture.md) | Umsetzungsdetails (stehen in Code, Kommentaren und Tests), Produktregeln, Nachweise ([Pflegeregel](architecture.md#pflege-dieser-datei)) |
 | Was ist heute da, was fehlt? | [`status.md`](status.md) | Verhalten (steht in den Specs), Planung |
 | Was ist warum entschieden? | [`decisions.md`](decisions.md) | offene Schritte, Layoutregeln |
 | Was ist als Nächstes zu tun? | [`todo.md`](todo.md) | Erledigtes |
@@ -44,7 +44,7 @@ Technische Einstiege außerhalb von `docs/`:
 
 1. Eine Änderung nur in der Quelle ihrer Rolle vornehmen; andere Dokumente verlinken.
 2. UI-Änderungen in den App-Quellen umsetzen und die betroffenen Demos in
-   `scripts/uiCatalogDemos.tsx` bzw. `scripts/uiCatalogPatterns.html` mitziehen.
+   `scripts/uiCatalogDemos.tsx` mitziehen.
 3. `npm run docs:build` erzeugt die Leseseiten, `npm run check:docs` prüft
    Quellenstand, Verweise, Journey-Regeln und die Zuordnung aller exportierten
    UI-Komponenten zu Demos. HTML-Dateien nie direkt bearbeiten.
@@ -56,6 +56,12 @@ Technische Einstiege außerhalb von `docs/`:
   `Folge:` (mit Pfeilen) oder `Gruppe:` (nebeneinander), dazwischen `Pfeil:` nach unten. Ein Kasten ist
   `Titel | Detail`, wahlweise mit Ton davor (`[primär]`, `[erfolg]`, `[warnung]`, `[gefahr]`, `[info]`);
   `-> Text` beschriftet den nächsten Pfeil einer Folge.
+- `architecture.md` ändert sich nur mit einem Eigentümer, einer Invariante
+  oder einer öffentlichen Schnittstelle.
+- `npm run check:docs` begrenzt die Größe von `architecture.md`, `specs.md`
+  und dem Root-`README.md` je ganze Datei auf eine feste Obergrenze
+  (`DOC_LIMITS` in `scripts/generateDocs.ts`). Platz entsteht durch
+  Verdichten, nicht durch Anheben.
 - Erledigtes verschwindet aus `todo.md`; Details stehen in Commit und Pull
   Request, Production- und Datenbankschritte als Betriebsnachweis in `history.md`.
 - Offene Gestaltungsvarianten werden per `visual-ab-review` als temporäre

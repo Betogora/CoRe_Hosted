@@ -6,7 +6,7 @@ import type { CoreMode, Deck } from "../coreTypes.ts";
 import { DECK_DEPTH_INDENT_PX, getVisibleDeckDepth } from "../deckHierarchy.ts";
 import type { DeckLibraryRow } from "../libraryModel.ts";
 import { DeckOptionsMenu } from "./DeckOptionsMenu.tsx";
-import { ActionButton, IconButton } from "./actionUi.tsx";
+import { IconButton } from "./actionUi.tsx";
 import { CoreIconSegmentedControl } from "./coreUi.tsx";
 import { CoreTooltip } from "./tooltipUi.tsx";
 import { DeckAppearanceIcon, getDeckAppearance } from "./deckAppearance.tsx";
@@ -187,11 +187,13 @@ export interface DeckTreeProps {
   contentAfterRows?: React.ReactNode;
   onActivate: (row: DeckLibraryRow) => void;
   onStudy: (row: DeckLibraryRow) => void;
+  /** `Alle Karten frei üben` in the deck menu; without it the menu offers no practice. */
+  onPractice?: (row: DeckLibraryRow, returnFocus: HTMLElement | null) => void;
   onOpenSettings: (deckId: string) => void;
   onSetDeckCoreMode: (deckId: string, coreMode: CoreMode) => unknown;
   onMoveDeck: (deckId: string, parentDeckId: string | null) => DeckMutationResult | null;
   collapsedDeckIds: string[];
-  onDeckExpansionChange: (deckId: string | readonly string[], expanded: boolean) => unknown;
+  onDeckExpansionChange: (deckId: string, expanded: boolean) => unknown;
 }
 
 interface DropIntent {
@@ -310,13 +312,14 @@ interface DeckTreeRowProps {
   onPointerDown: (event: React.PointerEvent<HTMLButtonElement>, row: DeckLibraryRow) => void;
   onKeyDown: () => void;
   onStudy: (row: DeckLibraryRow) => void;
+  onPractice: DeckTreeProps["onPractice"];
   onOpenSettings: DeckTreeProps["onOpenSettings"];
   onSetCoreMode: DeckTreeProps["onSetDeckCoreMode"];
   onMoveDeck: DeckTreeProps["onMoveDeck"];
 }
 
 /** One deck row; memoized so sync status, drag hover on other rows or parent renders do not repaint the whole tree. */
-const DeckTreeRow = React.memo(function DeckTreeRow({ row, mode, presentation, decks, isCollapsed, isSelected, isDragged, dropState, onToggle, onActivate, onPointerDown, onKeyDown, onStudy, onOpenSettings, onSetCoreMode, onMoveDeck }: DeckTreeRowProps) {
+const DeckTreeRow = React.memo(function DeckTreeRow({ row, mode, presentation, decks, isCollapsed, isSelected, isDragged, dropState, onToggle, onActivate, onPointerDown, onKeyDown, onStudy, onPractice, onOpenSettings, onSetCoreMode, onMoveDeck }: DeckTreeRowProps) {
   const tile = presentation !== "row";
   const activationLabel = tile ? row.hasChildren ? `Unterstapel von ${row.path} öffnen` : `Stapel ${row.path} öffnen` : `Inhalte von ${row.path} öffnen`;
   const collapseControl = row.hasChildren ? (
@@ -337,7 +340,9 @@ const DeckTreeRow = React.memo(function DeckTreeRow({ row, mode, presentation, d
       <IconButton label={`${row.path} lernen`} icon={Play} variant="ghost" className="core-deck-icon-action core-deck-study-action pointer-events-auto" data-deck-has-work={hasWork ? "true" : "false"} onClick={() => onStudy(row)} />
     </CoreTooltip>
   );
-  const optionsMenu = <DeckOptionsMenu row={row} decks={decks} onSetCoreMode={onSetCoreMode} onOpenSettings={onOpenSettings} onMoveDeck={onMoveDeck} />;
+  const study = React.useCallback(() => onStudy(row), [onStudy, row]);
+  const practice = React.useMemo(() => onPractice && ((returnFocus: HTMLElement | null) => onPractice(row, returnFocus)), [onPractice, row]);
+  const optionsMenu = <DeckOptionsMenu row={row} decks={decks} onStudy={study} onPractice={practice} onSetCoreMode={onSetCoreMode} onOpenSettings={onOpenSettings} onMoveDeck={onMoveDeck} />;
 
   return (
     <div
@@ -377,7 +382,7 @@ const DeckTreeRow = React.memo(function DeckTreeRow({ row, mode, presentation, d
   );
 });
 
-export function DeckTree({ rows, rootDeckIds, mode, view = "list", onViewChange, headerAction, contentAfterRows, onActivate, onStudy, onOpenSettings, onSetDeckCoreMode, onMoveDeck, collapsedDeckIds, onDeckExpansionChange }: DeckTreeProps) {
+export function DeckTree({ rows, rootDeckIds, mode, view = "list", onViewChange, headerAction, contentAfterRows, onActivate, onStudy, onPractice, onOpenSettings, onSetDeckCoreMode, onMoveDeck, collapsedDeckIds, onDeckExpansionChange }: DeckTreeProps) {
   const [draggedDeckId, setDraggedDeckId] = React.useState<string | null>(null);
   const [dropIntent, setDropIntent] = React.useState<DropIntent | null>(null);
   const [dragFocusLayout, setDragFocusLayout] = React.useState<DragFocusLayout | null>(null);
@@ -411,8 +416,6 @@ export function DeckTree({ rows, rootDeckIds, mode, view = "list", onViewChange,
     }
     return groups;
   }, [visibleRows]);
-  const parentDeckIds = React.useMemo(() => shownRows.filter((row) => row.hasChildren).map((row) => row.id), [shownRows]);
-  const anyCollapsed = parentDeckIds.some((deckId) => collapsedDeckIdSet.has(deckId));
 
   // Tile view: the opened folder and the column count that decides where its branch panel is inserted.
   const [folderDeckId, setFolderDeckId] = React.useState<string | null>(null);
@@ -469,11 +472,6 @@ export function DeckTree({ rows, rootDeckIds, mode, view = "list", onViewChange,
       return;
     }
     setDeckExpanded(deckId, collapsedDeckIdSet.has(deckId));
-  }
-
-  function setAllExpanded(expanded: boolean) {
-    setCollapsedDeckIdSet(expanded ? new Set() : new Set(parentDeckIds));
-    onDeckExpansionChange(parentDeckIds, expanded);
   }
 
   function closeFolder() {
@@ -650,6 +648,7 @@ export function DeckTree({ rows, rootDeckIds, mode, view = "list", onViewChange,
   const stablePointerDown = useStableCallback(startPointer);
   const stableKeyDown = useStableCallback(() => { suppressedClickDeckIdRef.current = null; });
   const stableStudy = useStableCallback(onStudy);
+  const stablePractice = useStableCallback((row: DeckLibraryRow, returnFocus: HTMLElement | null) => onPractice?.(row, returnFocus));
   const stableOpenSettings = useStableCallback(onOpenSettings);
   const stableSetCoreMode = useStableCallback(onSetDeckCoreMode);
   const stableMoveDeck = useStableCallback(onMoveDeck);
@@ -710,6 +709,7 @@ export function DeckTree({ rows, rootDeckIds, mode, view = "list", onViewChange,
         onPointerDown={stablePointerDown}
         onKeyDown={stableKeyDown}
         onStudy={stableStudy}
+        onPractice={onPractice ? stablePractice : undefined}
         onOpenSettings={stableOpenSettings}
         onSetCoreMode={stableSetCoreMode}
         onMoveDeck={stableMoveDeck}
@@ -740,8 +740,6 @@ export function DeckTree({ rows, rootDeckIds, mode, view = "list", onViewChange,
     </section>
   ) : null;
   const title = mode === "content" ? null : "Aktive Stapel";
-  // The dashboard teaser has no expand-all switch; the opened deck of the content view is always a parent, so there the switch only helps with deeper levels.
-  const showExpandAll = view === "list" && mode !== "dashboard" && parentDeckIds.length > (mode === "content" ? 1 : 0);
   const showViewControl = Boolean(onViewChange) && rows.length > 0;
 
   return (
@@ -756,17 +754,12 @@ export function DeckTree({ rows, rootDeckIds, mode, view = "list", onViewChange,
       >
         <span className="sr-only" role="status" aria-live="polite">{dragStatus}</span>
         <div className="core-deck-tree-layout grid">
-          {title || headerAction || showExpandAll || showViewControl ? <div className={`core-deck-tree-header grid min-h-control items-center gap-3${showViewControl ? " core-deck-tree-view-header" : ""}`} data-testid={`${mode}-deck-list-header`}>
+          {title || headerAction || showViewControl ? <div className={`core-deck-tree-header grid min-h-control items-center gap-3${showViewControl ? " core-deck-tree-view-header" : ""}`} data-testid={`${mode}-deck-list-header`}>
             <div className="core-deck-tree-heading min-w-0">
               {title ? <h3 className="core-deck-tree-title break-words core-heading-3 text-core-text">{title}</h3> : null}
             </div>
-            {headerAction || showExpandAll || showViewControl ? (
+            {headerAction || showViewControl ? (
               <div className="core-deck-tree-header-action flex flex-wrap items-center justify-end gap-2 justify-self-end">
-                {showExpandAll ? (
-                  <ActionButton variant="secondary" icon={ChevronDown} onClick={() => setAllExpanded(anyCollapsed)}>
-                    {anyCollapsed ? "Alle aufklappen" : "Alle einklappen"}
-                  </ActionButton>
-                ) : null}
                 {showViewControl && onViewChange ? (
                   <CoreIconSegmentedControl ariaLabel="Stapelansicht" options={DECK_TREE_VIEW_OPTIONS} value={view} onValueChange={onViewChange} />
                 ) : null}

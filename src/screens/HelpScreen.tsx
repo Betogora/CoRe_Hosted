@@ -63,25 +63,25 @@ const MEMORY_REVIEWS: readonly MemoryReview[] = [
 const RATING_PATHS: readonly RatingPath[] = [
   {
     id: "again",
-    color: "var(--core-danger)",
+    color: "var(--core-rating-again-text)",
     dueX: 350,
     curvePath: "M 220 92 C 258 112, 318 186, 350 248",
   },
   {
     id: "hard",
-    color: "var(--core-warning)",
+    color: "var(--core-rating-hard-text)",
     dueX: 500,
     curvePath: "M 220 92 C 292 102, 438 164, 500 248",
   },
   {
     id: "good",
-    color: "var(--core-success)",
+    color: "var(--core-rating-good-text)",
     dueX: 680,
     curvePath: "M 220 92 C 328 96, 586 146, 680 248",
   },
   {
     id: "easy",
-    color: "var(--core-info)",
+    color: "var(--core-rating-easy-text)",
     dueX: 855,
     curvePath: "M 220 92 C 364 94, 734 126, 855 248",
   },
@@ -346,7 +346,7 @@ function HelpExampleCardStack({
       {HELP_EXAMPLE_STACK_LAYERS.map((layer) => (
         <div
           key={layer.id}
-          className={`core-help-stack-card absolute inset-x-[8%] top-20 h-[30rem] rounded-overlay border border-core-border-strong shadow-soft sm:h-[21rem] ${layer.className}`}
+          className={`core-help-stack-card absolute inset-x-[8%] top-20 h-[30rem] rounded-overlay border border-core-border-strong sm:h-[21rem] ${layer.className}`}
           aria-hidden="true"
           data-testid={layerTestId}
           data-help-example-stack-layer={layer.id}
@@ -512,7 +512,7 @@ function ActiveRecallVariantCards() {
       {ACTIVE_RECALL_VARIANTS.map((variant) => (
         <div
           key={variant.id}
-          className={`core-help-stack-card core-help-variant-card absolute grid min-h-60 place-items-center rounded-overlay border border-core-border-strong p-6 pr-12 text-center shadow-raised sm:p-8 sm:pr-12 ${variant.className}`}
+          className={`core-help-stack-card absolute grid min-h-60 place-items-center rounded-overlay border border-core-border-strong p-6 pr-12 text-center shadow-raised sm:p-8 sm:pr-12 ${variant.className}`}
           data-testid="active-recall-variant-card"
           data-help-variant-tone={variant.tone}
         >
@@ -693,7 +693,7 @@ function MemoryCurveGraphic({ selection, onSelectionChange }: { selection: Explo
               <button
                 key={review.id}
                 type="button"
-                className="absolute z-20 grid size-control place-items-center rounded-round border bg-core-raised core-body font-semibold shadow-soft transition-[transform,opacity] motion-reduce:transition-none"
+                className="absolute z-20 grid size-control place-items-center rounded-round border bg-core-raised core-body font-semibold transition-[transform,opacity] motion-reduce:transition-none"
                 style={{
                   left: `${(review.reviewX / 960) * 100}%`,
                   top: `${(248 / 540) * 100}%`,
@@ -811,6 +811,7 @@ function ReferenceSection() {
           <li>• Ausgewählte Karten änderst du gemeinsam: Stapel, Tags, Flagge, Markierung, Aussetzen, Fälligkeit oder Löschen. Jede Aktion fragt nach und lässt sich rückgängig machen.</li>
           <li>• Zur Pflege gibt es „Suchen und Ersetzen“, „Duplikate finden“ und „Tags verwalten“ für das ganze Konto.</li>
           <li>• „Treffer lernen“ lernt die Treffer einer Suche: „Vorziehen“ zählt wie eine Sitzung ohne Tageslimit, „Nur üben“ ändert keinen Lernstand.</li>
+          <li>• „Alle Karten frei üben“ im Menü eines Stapels übt alle seine Karten samt Unterstapeln, ohne den Lernstand zu ändern.</li>
           <li>• Tasten: <kbd>/</kbd> sucht, <kbd>↑</kbd> <kbd>↓</kbd> wechseln die Zeile, <kbd>X</kbd> wählt aus, Ziffern setzen die Flagge, <kbd>Strg</kbd>+<kbd>Z</kbd> nimmt die letzte Aktion zurück. Das Menü „Aktionen“ nennt alle Tasten.</li>
         </ul>
       </SoftPanel>

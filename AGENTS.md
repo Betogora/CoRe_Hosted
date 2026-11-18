@@ -141,6 +141,9 @@ scope and gates.
   folder without agreement; read shelved work with `git show <commit>`.
 - The local Supabase stack is shared: before local E2E runs or measurements,
   check for migrations from other work and agree before `db reset`.
+- Repository skills have their only content source in `.agents/skills/`; the
+  same-named `.claude/skills/` entries only point there. A changed
+  `description` is updated in both.
 
 ## Architecture Guidance
 
@@ -173,8 +176,7 @@ Update documentation when the implemented contract changes:
 
 - All `docs/*.html` files are generated. Update their Markdown or catalog
   sources, run `npm run docs:build`, then `npm run check:docs`. UI work must
-  update the actual component demos in `scripts/uiCatalogDemos.tsx` and any
-  affected local screen examples in `scripts/uiCatalogPatterns.html`; inspect
+  update the actual component demos in `scripts/uiCatalogDemos.tsx`; inspect
   both the catalog and app. Never hand-edit the generated HTML. New exported
   shared UI components require a catalog group and visible demo.
 
@@ -187,6 +189,13 @@ Update documentation when the implemented contract changes:
   Architecture and public technical interfaces belong in
   `docs/architecture.md`; operations, decisions, status, and history remain in
   their own canonical files.
+- Change `docs/architecture.md` only when an owner, an invariant, or a public
+  interface changes (its section „Pflege dieser Datei“); implementation
+  details stay in code, comments, and tests.
+- `npm run check:docs` caps the whole-file size of `docs/architecture.md`,
+  `docs/specs.md`, and `README.md` with fixed caps (`DOC_LIMITS` in
+  `scripts/generateDocs.ts`). Make room by condensing or moving text to its
+  owner, not by raising a cap.
 - Update `docs/todo.md` only when open roadmap scope, priority, planning,
   acceptance gates, or required evidence changes. Completed work leaves the
   TODO; its details live in commits and pull requests, and only operational

@@ -57,7 +57,7 @@ test("calendar shows new cards in subject color without duration or repetitions"
   assert.match(html, /data-exam-subject="anatomy"[^]*?data-exam-task="study"><span class="sm:hidden">24<\/span><span class="hidden sm:inline">24 neue Karten<\/span><\/span>/);
   assert.match(html, /class="exam-month-entry [^"]*rounded-inset border-strong/);
   assert.match(html, /<div class="min-w-0" role="region" aria-label="Monatskalender">/);
-  assert.doesNotMatch(html, /gap-px|bg-core-border|shadow-inset/);
+  assert.doesNotMatch(html, /gap-px|bg-core-border/);
   assert.match(html, /data-exam-subject="physiology"[^]*?>9 neue Karten</);
   assert.match(html, /border-color:var\(--core-info\);background:color-mix/);
   assert.match(html, /Anatomie: 24 neue Karten\. Physiologie: 9 neue Karten/);

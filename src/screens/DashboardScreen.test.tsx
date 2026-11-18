@@ -27,7 +27,7 @@ const dashboardCallbacks = {
   onSetDeckExpanded: () => undefined,
 };
 
-test("exam checklist shows at most three tasks per exam, prioritizes open tasks and only offers expansion when needed", () => {
+test("exam checklist shows at most three tasks per exam, prioritizes open tasks and only offers expansion when needed; the dashboard preview lists all open tasks", () => {
   const base = createCoreRepository().getState();
   const date = "2026-10-18";
   const exam = { ...createExamPlan(date, Array.from({ length: 7 }, (_, index) => `topic-${index}`)), id: "exam", name: "Patho", examDate: "2026-11-20" };
@@ -44,12 +44,11 @@ test("exam checklist shows at most three tasks per exam, prioritizes open tasks 
     assert.equal((short.match(/data-exam-todo=/g) ?? []).length, count);
     assert.doesNotMatch(short, /aria-expanded|weitere anzeigen/);
   }
-  for (const taskLimit of [0, 1, 2, 3, null]) {
-    const compact = render(tasks, { taskLimit, onOpenTaskCountChange: () => undefined });
-    assert.equal((compact.split("<details")[0].match(/data-exam-todo=/g) ?? []).length, taskLimit ?? 3);
-    assert.match(compact, /Erledigt im Planer \(4\)/);
-    assert.doesNotMatch(compact, /weitere anzeigen/);
-  }
+  // The dashboard preview lists every open task; its widget scrolls instead of truncating.
+  const preview = render(tasks, { onOpenTaskCountChange: () => undefined });
+  assert.equal((preview.split("<details")[0].match(/data-exam-todo=/g) ?? []).length, 3);
+  assert.match(preview, /Erledigt im Planer \(4\)/);
+  assert.doesNotMatch(preview, /weitere anzeigen/);
 });
 
 test("empty dashboard offers only explicit first-learning paths without seeded statistics", () => {
@@ -94,7 +93,7 @@ test("populated dashboard shows the aggregated open daily learning overview", ()
 
   assert.match(markup, /<p aria-hidden="true"[^>]*>Willkommen zurück,<\/p>/);
   assert.match(markup, /<h2[^>]*data-screen-heading[^>]*><span class="sr-only">Willkommen zurück, <\/span><span class="core-dashboard-name">Noemi!<\/span><\/h2>/);
-  assert.doesNotMatch(markup, />Heute<\//);
+  assert.doesNotMatch(markup, /<h\d[^>]*>Heute<\//);
   assert.match(markup, /data-testid="daily-learning-overview" data-status="open"/);
   assert.match(markup, /<h2 class="dashboard-learning-goal-title"><span class="dashboard-learning-goal-count">1<\/span> <span[^>]*>Karte noch heute<\/span><\/h2>/);
   assert.match(markup, /data-testid="daily-learning-total">0 \/ 1 Karten/);
@@ -122,14 +121,14 @@ test("populated dashboard shows the aggregated open daily learning overview", ()
   assert.ok(dailyOverview);
   assert.doesNotMatch(markup, /data-donut-|Gesamtfortschritt/);
   assert.doesNotMatch(markup, /aktive Tage/i);
-  assert.match(markup, /0 Tage Streak/);
+  assert.match(markup, /0<\/span> <span class="core-heading-3">Tage Streak/);
   assert.match(markup, /aria-label="Heatmap-Zeitraum"/);
-  assert.match(markup, /Frühere sieben Tage anzeigen[\s\S]*data-testid="study-heatmap-grid"[\s\S]*data-testid="study-heatmap-legend"[\s\S]*Weniger/);
+  assert.match(markup, /Frühere sieben Tage anzeigen[\s\S]*data-testid="study-heatmap-grid"[\s\S]*data-testid="study-heatmap-legend"[\s\S]*Gelernt[\s\S]*Fällig/);
   assert.equal((markup.match(/data-heatmap-day=/g) ?? []).length, 7);
-  assert.match(markup, /aspect-square w-full max-w-\[4\.5rem\] rounded-control/);
-  assert.match(markup, /ring-\[3px\] ring-core-action/);
+  assert.match(markup, /class="[^"]*core-heatmap-week-track w-full max-w-\[4\.5rem\] rounded-control bg-core-subtle"/);
+  assert.match(markup, /ring-2 ring-core-action/);
   assert.doesNotMatch(markup, /ring-inset/);
-  for (let level = 0; level <= 4; level += 1) assert.match(markup, new RegExp(`core-heatmap-level-${level}`));
+  for (let level = 1; level <= 4; level += 1) assert.match(markup, new RegExp(`core-heatmap-level-${level}`));
 });
 
 test("dashboard renders the default widget layout and keeps planner tasks inside todos", () => {

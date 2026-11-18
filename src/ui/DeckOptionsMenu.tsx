@@ -1,6 +1,6 @@
 import * as Popover from "@radix-ui/react-popover";
 import React from "react";
-import { Layers, MoreHorizontal, MoveRight, Settings } from "lucide-react";
+import { Dumbbell, Layers, MoreHorizontal, MoveRight, Play, Settings } from "lucide-react";
 import { createDeckPlacementValidator, type DeckMutationResult } from "../coreWorkspace.ts";
 import type { CoreMode, Deck } from "../coreTypes.ts";
 import type { DeckLibraryRow } from "../libraryModel.ts";
@@ -17,16 +17,24 @@ type DeckOptionsRow = Pick<DeckLibraryRow, "id" | "deck" | "path" | "coreMode">;
 export interface DeckOptionsMenuProps {
   row: DeckOptionsRow;
   decks: Deck[];
+  /** `Lernen`: the same start as the deck's study arrow. */
+  onStudy: () => void;
+  /** `Alle Karten frei üben`; its dialog and practice return the focus to the menu button. */
+  onPractice?: (returnFocus: HTMLElement | null) => void;
   onSetCoreMode: (deckId: string, mode: CoreMode) => unknown;
   onOpenSettings: (deckId: string) => unknown;
   onMoveDeck: (deckId: string, parentDeckId: string | null) => DeckMutationResult | null;
 }
 
-export const DeckOptionsMenu = React.memo(function DeckOptionsMenu({ row, decks, onSetCoreMode, onOpenSettings, onMoveDeck }: DeckOptionsMenuProps) {
+export const DeckOptionsMenu = React.memo(function DeckOptionsMenu({ row, decks, onStudy, onPractice, onSetCoreMode, onOpenSettings, onMoveDeck }: DeckOptionsMenuProps) {
   const [moveDialogOpen, setMoveDialogOpen] = React.useState(false);
   const [moveTargetId, setMoveTargetId] = React.useState(row.deck.parentDeckId ?? "");
   const [moveError, setMoveError] = React.useState("");
   const setSuccessToast = useSuccessToast();
+  // The menu hands the focus back to its button only after a dialog it opens closes; returning it while the dialog
+  // opens would show the button's tooltip above the dialog.
+  const triggerRef = React.useRef<HTMLButtonElement>(null);
+  const openingDialog = React.useRef(false);
   const deckAppearance = getDeckAppearance(row.deck);
   const validMoveTargetDeckIds = React.useMemo(() => {
     if (!moveDialogOpen) return [];
@@ -39,6 +47,7 @@ export const DeckOptionsMenu = React.memo(function DeckOptionsMenu({ row, decks,
   }, [decks, moveDialogOpen, row.id]);
 
   function openMoveDialog() {
+    openingDialog.current = true;
     setMoveTargetId(row.deck.parentDeckId ?? "");
     setMoveError("");
     setMoveDialogOpen(true);
@@ -71,6 +80,7 @@ export const DeckOptionsMenu = React.memo(function DeckOptionsMenu({ row, decks,
         <CoreTooltip label={`Stapeloptionen für ${row.deck.name}`} deckAppearance={deckAppearance}>
           <Popover.Trigger asChild>
             <IconButton
+              ref={triggerRef}
               label={`Stapeloptionen für ${row.path}`}
               icon={MoreHorizontal}
               variant="ghost"
@@ -82,6 +92,11 @@ export const DeckOptionsMenu = React.memo(function DeckOptionsMenu({ row, decks,
         <Popover.Portal>
           <Popover.Content
             data-testid={`deck-options-menu-${row.id}`}
+            onCloseAutoFocus={(event) => {
+              if (!openingDialog.current) return;
+              openingDialog.current = false;
+              event.preventDefault();
+            }}
             align="end"
             sideOffset={8}
             collisionPadding={16}
@@ -96,6 +111,23 @@ export const DeckOptionsMenu = React.memo(function DeckOptionsMenu({ row, decks,
             <div className="flex items-center justify-between gap-3 px-2.5 pb-2.5 pt-2">
               <span className="core-caption font-medium text-core-muted">CoRe-Modus</span>
               <CoreModeControl value={row.coreMode} onChange={(mode) => onSetCoreMode(row.id, mode)} />
+            </div>
+            <div className="-mx-1.5 grid gap-0.5 border-t border-core-border px-1.5 py-1.5">
+              <Popover.Close asChild>
+                <button type="button" className="core-menu-row" onClick={onStudy}>
+                  <Play size={16} aria-hidden="true" />Lernen
+                </button>
+              </Popover.Close>
+              {onPractice ? (
+                <Popover.Close asChild>
+                  <button type="button" className="core-menu-row" data-testid={`deck-practice-button-${row.id}`} onClick={() => {
+                    openingDialog.current = true;
+                    onPractice(triggerRef.current);
+                  }}>
+                    <Dumbbell size={16} aria-hidden="true" />Alle Karten frei üben
+                  </button>
+                </Popover.Close>
+              ) : null}
             </div>
             <div className="-mx-1.5 grid gap-0.5 border-t border-core-border px-1.5 pt-1.5">
               <Popover.Close asChild>
@@ -118,6 +150,7 @@ export const DeckOptionsMenu = React.memo(function DeckOptionsMenu({ row, decks,
           open
           title="Stapel verschieben"
           size="s"
+          returnFocusRef={triggerRef}
           onClose={closeMoveDialog}
           footer={(
             <>

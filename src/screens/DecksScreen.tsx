@@ -1,5 +1,5 @@
 import React from "react";
-import { ChevronRight, CopyCheck, FileText, GraduationCap, Layers, Network, NotebookPen, PanelsTopLeft, Play, RotateCcw, CircleHelp, type LucideIcon } from "lucide-react";
+import { ChevronRight, CopyCheck, FileText, GraduationCap, Layers, Network, Play, RotateCcw, type LucideIcon } from "lucide-react";
 import type { CardDraftGuard, DecksScreenProps } from "../appScreenProps.ts";
 import { noteTextIndex } from "../coreModel.ts";
 import { collectDeckTreeIds } from "../coreWorkspace.ts";
@@ -26,11 +26,9 @@ import { useCardSelection } from "./cardList/useCardSelection.ts";
 import { DuplicatesDialog } from "./cardList/DuplicatesDialog.tsx";
 import { TagManagerDialog } from "./cardList/TagManagerDialog.tsx";
 import { renameDirectoryTag } from "../tagDirectory.ts";
-import { HitPractice } from "./cardList/HitPractice.tsx";
 import type { DuplicateKey } from "../duplicateContents.ts";
-import { HitStudyDialog } from "./cardList/HitStudyDialog.tsx";
-import type { Card, Note } from "../coreTypes.ts";
-import { hitStudyQuery, orderHits, type HitStudyMode, type HitStudyOrder } from "../hitStudySession.ts";
+import { HitStudyFlow } from "./cardList/HitStudyFlow.tsx";
+import { hitStudyQuery } from "../hitStudySession.ts";
 import type { CardBatchAction } from "../cardBatchActions.ts";
 import { CardEditorDialog, cardEditorFrameClass, type CardEditorHitNavigation } from "./cardEditor/CardEditorDialog.tsx";
 import { DeckSubstacksPanel } from "./DeckSubstacksPanel.tsx";
@@ -41,15 +39,13 @@ interface PendingDetailAction {
 }
 
 const deckContentTabs = [
-  { value: "children", label: "Unterstapel", icon: Layers },
-  { value: "summary", label: "Zusammenfassungen", icon: NotebookPen },
-  { value: "quiz", label: "Quiz", icon: CircleHelp },
-  { value: "mind-map", label: "Mind Map", icon: Network },
-  { value: "cards", label: "Karten", icon: PanelsTopLeft },
-  { value: "source", label: "Quelle", icon: FileText },
+  { value: "children", label: "Unterstapel" },
+  { value: "summary", label: "Zusammenfassungen" },
+  { value: "mind-map", label: "Mind Map" },
+  { value: "cards", label: "Karten" },
 ] as const;
 
-/** Centered state of a content tab without its own content, e.g. `Demnächst verfügbar` or `Keine Unterstapel`. */
+/** Centered state of a content tab without its own content, e.g. `Keine Unterstapel`. */
 function DeckContentPlaceholder({ label, icon: Icon, title, action, testId }: { label: string; icon: LucideIcon; title: string; action?: React.ReactNode; testId?: string }) {
   return (
     <SoftPanel aria-label={label} className="flex min-h-[214px] items-center justify-center p-6 sm:p-10" data-testid={testId}>
@@ -74,6 +70,7 @@ export function DecksScreen({
   learningContentCloud = null,
   onGenerateSummary,
   onStartDeck,
+  onPracticeDeck,
   contentDeckId = null,
   contentTab: requestedContentTab = "children", cardQuery = "",
   onOpenDeckContent,
@@ -149,7 +146,6 @@ export function DecksScreen({
   const hasStudyCards = React.useMemo(() => Boolean(contentDeckId) && libraryDecks.some((deck) => (
     !deck.deletedAt && ((deckSummaries?.get(deck.id)?.inventory.totalCards ?? 0) > 0 || deck.cards.some((card) => !card.deletedAt))
   )), [contentDeckId, deckSummaries, libraryDecks]);
-  const selectedContentTab = deckContentTabs.find((tab) => tab.value === contentTab)!;
   const [advancedSearchOpen, setAdvancedSearchOpen] = React.useState(false);
   const [tagDirectory, setTagDirectory] = React.useState<Awaited<ReturnType<typeof cardEditor.listTagDirectory>>>([]);
   const [tagManagerOpen, setTagManagerOpen] = React.useState(false);
@@ -328,13 +324,13 @@ export function DecksScreen({
     return onListHitCardIds({ deckIds: hitScope, query: deferredQuery, searchContext });
   }
 
-  const runSelectionAction = async (action: CardBatchAction, label: string) => {
-    await runCardBatchAction(selectedIds, action, label);
+  const runSelectionAction = async (action: CardBatchAction, done: (cards: string) => string) => {
+    await runCardBatchAction(selectedIds, action, done);
   };
 
 
-  /** Runs a mass action with its toast and `Rückgängig`; true once it ran. */
-  async function runCardBatchAction(loadIds: () => Promise<string[]>, action: CardBatchAction, label: string, onUndone?: () => void) {
+  /** Runs a mass action with its toast (`done` names the result) and `Rückgängig`; true once it ran. */
+  async function runCardBatchAction(loadIds: () => Promise<string[]>, action: CardBatchAction, done: (cards: string) => string, onUndone?: () => void) {
     if (!onRunCardBatch || runningBatch) return false;
     setRunningBatch(true);
     try {
@@ -348,12 +344,12 @@ export function DecksScreen({
           onUndone?.();
           setSuccessToast(skippedCount
             ? `Rückgängig gemacht: ${cardCount(restoredCount)}. ${cardCount(skippedCount)} wurden inzwischen geändert und bleiben so.`
-            : `Rückgängig gemacht: ${cardCount(restoredCount)}.`, { appearance: skippedCount ? "neutral" : "success" });
+            : `Rückgängig gemacht: ${cardCount(restoredCount)}`, { appearance: skippedCount ? "neutral" : "success" });
         }, () => setSuccessToast("Rückgängig ist fehlgeschlagen.", { appearance: "neutral" }));
       };
       // Ctrl+Z in the list takes the latest mass action back, like its toast (KV6).
       lastUndoRef.current = undo;
-      setSuccessToast(`${label}: ${cardCount(result.changedCount)}`, { action: { label: "Rückgängig", onAction: undo } });
+      setSuccessToast(done(cardCount(result.changedCount)), { action: { label: "Rückgängig", onAction: undo } });
       return true;
     } catch (error) {
       setDeckStatusType("alert");
@@ -374,13 +370,6 @@ export function DecksScreen({
   // `Treffer lernen` (KV5) studies the hits or the selection without suspended and buried cards.
   const [hitStudy, setHitStudy] = React.useState<"hits" | "selection" | null>(null);
   const canStudyHits = Boolean(onStudyHits && onLoadPracticeCards && onListHitCardIds);
-  const [practiceBodies, setPracticeBodies] = React.useState<Array<{ card: Card; note: Note }> | null>(null);
-  async function startHitStudy(cardIds: string[], order: HitStudyOrder, mode: HitStudyMode) {
-    if (mode === "advance") return onStudyHits!(cardIds, order);
-    const bodies = await onLoadPracticeCards!(cardIds);
-    if (!bodies.length) throw new Error("Diese Karten sind erst online verfügbar.");
-    setPracticeBodies(orderHits(bodies, order));
-  }
   const loadHitStudyIds = useStableCallback(async () => {
     const ids = await onListHitCardIds!({ deckIds: hitScope, query: hitStudyQuery(deferredQuery), searchContext, sort: cardSort });
     return hitStudy === "selection" && !allHits ? ids.filter((id) => checkedIds.has(id)) : ids;
@@ -582,7 +571,7 @@ export function DecksScreen({
   const content = contentDeckId && contentTab === "children" ? (
     contentRow && contentLibrary ? contentRow.hasChildren ? <DeckSubstacksPanel key={contentRow.id} rows={contentLibrary.rows} current={contentRow}
       onOpenDeck={(id) => onOpenDeckContent(id, "children")}
-      onStudy={onStartDeck} onOpenSettings={onOpenDeckSettings} onSetCoreMode={onSetDeckCoreMode} onMoveDeck={onMoveDeck} />
+      onStudy={onStartDeck} onPractice={onPracticeDeck} onOpenSettings={onOpenDeckSettings} onSetCoreMode={onSetDeckCoreMode} onMoveDeck={onMoveDeck} />
       : <DeckContentPlaceholder label="Unterstapel" icon={Layers} title="Keine Unterstapel" testId="deck-content-substacks"
         action={<ActionButton variant="secondary" icon={Play} disabled={!hasStudyCards} onClick={() => onStartDeck(contentRow.deck)}>Karten lernen</ActionButton>} />
       : <EmptyState icon={Layers} title="Stapel nicht gefunden oder nicht verfügbar." />
@@ -594,8 +583,6 @@ export function DecksScreen({
     contentDeck ? <React.Suspense fallback={CONTENT_TAB_LOADING}><DeckMindMapsPanel key={`${summaryAccountId ?? contentDeck.ownerId}:${contentDeck.id}`} deck={contentDeck}
       userId={summaryAccountId ?? contentDeck.ownerId} cloud={learningContentCloud} onGenerateSummary={onGenerateSummary} onDraftStateChange={handleEditorDraftStateChange} /></React.Suspense>
       : <EmptyState icon={Network} title="Stapel nicht gefunden oder nicht verfügbar." />
-  ) : contentDeckId && contentTab !== "cards" ? (
-    <DeckContentPlaceholder label={selectedContentTab.label} icon={selectedContentTab.icon} title="Demnächst verfügbar" />
   ) : <section className="grid min-w-0 gap-4" aria-label="Karten" data-testid="card-library-panel">
       <div className="grid gap-4">
         <CardSearchBar
@@ -610,7 +597,6 @@ export function DecksScreen({
           resultAction={canStudyHits && searchResultCount ? (
             <CrossLinkButton onSelect={() => setHitStudy("hits")}><GraduationCap size={16} aria-hidden="true" />Treffer lernen</CrossLinkButton>
           ) : undefined}
-          selecting={selecting} onSelectingChange={canSelect ? (next) => next ? setSelecting(true) : clearSelection() : undefined}
           placeholder={contentDeckId ? "Vorderseite, Rückseite, Felder oder Tags durchsuchen" : "Stapel, Vorderseite, Rückseite, Felder oder Tags durchsuchen"}
           hint={unsupportedTerms.length ? `Noch nicht unterstützt, wird als Text gesucht: ${unsupportedTerms.join(" ")}` : undefined}
         >
@@ -629,10 +615,12 @@ export function DecksScreen({
           ) : null}
         </CardSearchBar>
         {hitStudy ? (
-          <HitStudyDialog
+          <HitStudyFlow
             title={hitStudy === "selection" ? "Auswahl lernen" : "Treffer lernen"}
             loadCardIds={loadHitStudyIds}
-            onStart={startHitStudy}
+            onStudy={onStudyHits}
+            loadPracticeCards={onLoadPracticeCards!}
+            mediaStore={mediaStore}
             onClose={() => setHitStudy(null)}
           />
         ) : null}
@@ -645,7 +633,7 @@ export function DecksScreen({
               // The cloud directory follows only once the change is synchronized, so the list shows it locally;
               // reopening the manager loads it again. Undoing a plain rename renames back, anything else reloads.
               const merged = to !== null && tagDirectory.some((entry) => entry.tag.toLocaleLowerCase("und") === to.toLocaleLowerCase("und"));
-              const ran = await runCardBatchAction(() => onListHitCardIds!({ deckIds, query: `tag:${from}`, searchContext }), { kind: "tag-rename", from, to }, to === null ? "Tag löschen" : "Tag umbenennen", () => {
+              const ran = await runCardBatchAction(() => onListHitCardIds!({ deckIds, query: `tag:${from}`, searchContext }), { kind: "tag-rename", from, to }, (cards) => to === null ? `Tag bei ${cards} gelöscht` : `Tag bei ${cards} umbenannt`, () => {
                 if (to !== null && !merged) setTagDirectory((entries) => renameDirectoryTag(entries, to, from));
                 else setTagDirectoryVersion((version) => version + 1);
               });
@@ -664,12 +652,11 @@ export function DecksScreen({
               requestCardSelection(deckId, cardId);
             }}
             onTag={async (cardIds) => {
-              await runCardBatchAction(async () => cardIds, { kind: "tags", add: ["Duplikat"], remove: [] }, "Duplikate taggen");
+              await runCardBatchAction(async () => cardIds, { kind: "tags", add: ["Duplikat"], remove: [] }, (cards) => `${cards} als Duplikat getaggt`);
             }}
             onClose={() => setDuplicatesOpen(false)}
           />
         ) : null}
-        {practiceBodies ? <HitPractice bodies={practiceBodies} mediaStore={mediaStore} onClose={() => setPracticeBodies(null)} /> : null}
         {deckStatus ? <p className={"core-body font-semibold " + (deckStatusType === "alert" ? "core-status-error" : "core-status-info")} role={deckStatusType}>{deckStatus}</p> : null}
         {deletedCardUndo ? (
           <div className="flex flex-wrap items-center gap-3 rounded-panel border border-core-border bg-core-subtle px-4 py-3">
@@ -710,6 +697,7 @@ export function DecksScreen({
         ) : null}
         sort={cardSort}
         onSort={changeSort}
+        onStartSelecting={canSelect ? () => setSelecting(true) : undefined}
         selectedCardId={selectedCardId}
         selectedGraph={selectedGraph}
         flagNames={cardEditor.flagNames}

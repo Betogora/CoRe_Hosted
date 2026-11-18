@@ -1,4 +1,4 @@
-import { CalendarClock, CalendarRange, Database, Flag, Info, Sparkles, Timer, User } from "lucide-react";
+import { CalendarClock, CalendarRange, Database, Flag, Info, Palette, Sparkles, Timer, User } from "lucide-react";
 import { settingsContentSection, type GeneralSettingsSection, type LearningSettingsSection } from "../appNavigation.ts";
 import type { SettingsDialogProps } from "../appScreenProps.ts";
 import { SettingsDialogFrame } from "./SettingsDialogFrame.tsx";
@@ -8,6 +8,7 @@ const settingsGroups = [
     label: "Allgemein",
     items: [
       { section: "konto", label: "Konto", icon: User },
+      { section: "darstellung", label: "Darstellung", icon: Palette },
       { section: "daten", label: "Daten & Synchronisierung", icon: Database },
       { section: "ueber", label: "Über uns", icon: Info },
     ],

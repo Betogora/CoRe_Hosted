@@ -100,7 +100,11 @@ test("gemeinsame Dropdowns schließen durch erneutes Antippen und behalten Auswa
   try {
     const page = await touchContext.newPage();
     await resetToFreshLocalState(page);
-    const trigger = page.locator('button[aria-label="Heatmap-Zeitraum"]');
+    await page.goto("/?settings=tagesrunde");
+    const trigger = page.locator('button[aria-label="Kartenreihenfolge"]');
+    const rowTitle = page.locator(".core-settings-row-title", { hasText: /^Kartenreihenfolge$/ });
+    const firstOption = "Fällige Karten zuerst";
+    const otherOption = "Neue und fällige mischen";
     for (const touch of [true, false]) {
       await page.setViewportSize({ width: touch ? 390 : 1440, height: touch ? 844 : 900 });
       await trigger.scrollIntoViewIfNeeded();
@@ -121,25 +125,26 @@ test("gemeinsame Dropdowns schließen durch erneutes Antippen und behalten Auswa
         await expect(trigger).toBeFocused();
       }
       await activate();
-      if (touch) await page.getByRole("option", { name: "Monat", exact: true }).tap();
-      else await page.getByRole("option", { name: "Monat", exact: true }).click();
-      await expect(trigger).toHaveText("Monat");
+      if (touch) await page.getByRole("option", { name: otherOption, exact: true }).tap();
+      else await page.getByRole("option", { name: otherOption, exact: true }).click();
+      await expect(trigger).toHaveText(otherOption);
       await expect(trigger).toHaveAttribute("aria-expanded", "false");
       await activate();
-      await expect(page.getByRole("option", { name: "Monat", exact: true })).toBeFocused();
-      if (touch) await page.touchscreen.tap(1, 1);
-      else await page.mouse.click(1, 1);
+      await expect(page.getByRole("option", { name: otherOption, exact: true })).toBeFocused();
+      const outside = (await rowTitle.boundingBox())!;
+      if (touch) await page.touchscreen.tap(outside.x + 2, outside.y + outside.height / 2);
+      else await page.mouse.click(outside.x + 2, outside.y + outside.height / 2);
       await expect(trigger).toHaveAttribute("aria-expanded", "false");
       await trigger.press("Enter");
-      await expect(page.getByRole("option", { name: "Monat", exact: true })).toBeFocused();
+      await expect(page.getByRole("option", { name: otherOption, exact: true })).toBeFocused();
       await page.keyboard.press("Escape");
       await expect(trigger).toBeFocused();
       await trigger.press("ArrowDown");
-      await expect(page.getByRole("option", { name: "Monat", exact: true })).toBeFocused();
+      await expect(page.getByRole("option", { name: otherOption, exact: true })).toBeFocused();
       await page.keyboard.press("Home");
-      await expect(page.getByRole("option", { name: "Woche", exact: true })).toBeFocused();
+      await expect(page.getByRole("option", { name: firstOption, exact: true })).toBeFocused();
       await page.keyboard.press("Enter");
-      await expect(trigger).toHaveText("Woche");
+      await expect(trigger).toHaveText(firstOption);
       await expect(trigger).toHaveAttribute("aria-expanded", "false");
       await expect(trigger).toBeFocused();
     }
@@ -148,7 +153,7 @@ test("gemeinsame Dropdowns schließen durch erneutes Antippen und behalten Auswa
   }
 });
 
-test("dashboard heatmap changes its header layout only once across responsive widths", async ({ page }: any) => {
+test("dashboard heatmap keeps band, controls and period views inside every responsive width", async ({ page }: any) => {
   await resetToFreshLocalState(page);
 
   const viewports = [1440, 1280, 1279, 1152, 1024, 900, 768, 700, 640, 639, 390, 320];
@@ -157,8 +162,7 @@ test("dashboard heatmap changes its header layout only once across responsive wi
     { label: "Monat", value: "month" },
     { label: "Jahr", value: "year" },
   ]) {
-    await chooseCoreSelectOption(page, page.getByRole("combobox", { name: "Heatmap-Zeitraum" }), period.label);
-    let stackedHeaderSeen = false;
+    await page.getByRole("group", { name: "Heatmap-Zeitraum" }).getByRole("button", { name: period.label, exact: true }).click();
 
     for (const width of viewports) {
       await page.setViewportSize({ width, height: 900 });
@@ -167,57 +171,60 @@ test("dashboard heatmap changes its header layout only once across responsive wi
       await expect(grid).toHaveAttribute("data-heatmap-period", period.value);
       await expect.poll(() => grid.locator("span[aria-label]").count()).toBeGreaterThan(0);
 
-      const layout = await page.getByTestId("study-heatmap-header").evaluate((header: HTMLElement) => {
-        const centerY = (rect: DOMRect) => rect.top + rect.height / 2;
-        const title = header.firstElementChild as HTMLElement;
-        const controls = header.lastElementChild as HTMLElement;
-        const titleRect = title.getBoundingClientRect();
-        const controlsRect = controls.getBoundingClientRect();
-        const controlRects = [...controls.children].map((control) => control.getBoundingClientRect());
-        const panel = header.closest<HTMLElement>(".core-study-heatmap-container")!;
+      const layout = await page.locator(".core-study-heatmap-container").evaluate((panel: HTMLElement) => {
+        const inside = (rect: DOMRect, outer: DOMRect) => rect.left >= outer.left - 1 && rect.right <= outer.right + 1;
+        const panelRect = panel.getBoundingClientRect();
+        const band = panel.querySelector<HTMLElement>("[data-testid='study-heatmap-header']")!;
+        const title = band.querySelector<HTMLElement>("h3")!;
+        const controls = panel.querySelector<HTMLElement>("[data-testid='study-heatmap-controls']")!;
+        const periodSwitch = controls.querySelector<HTMLElement>("[aria-label='Heatmap-Zeitraum']")!;
         const yearScroller = panel.querySelector<HTMLElement>("[aria-label^='Horizontal scrollbare Lern-Heatmap']");
-
+        const bandRect = band.getBoundingClientRect();
         return {
-          sameRow: Math.abs(centerY(titleRect) - centerY(controlsRect)) <= 1,
-          controlsSingleRow: controlRects.every((rect) => Math.abs(centerY(rect) - centerY(controlRects[0])) <= 1),
-          controlsRightAligned: Math.abs(controlsRect.right - header.getBoundingClientRect().right) <= 1,
-          titleSingleLine: title.scrollHeight <= title.clientHeight + 1,
+          bandSpansPanel: Math.abs(bandRect.left - panelRect.left) <= 1 && Math.abs(bandRect.right - panelRect.right) <= 1,
+          titleSingleRow: [...title.children].every((part) => part.getBoundingClientRect().top < title.children[0].getBoundingClientRect().bottom),
+          controlsInside: [...controls.querySelectorAll<HTMLElement>("button")].every((button) => inside(button.getBoundingClientRect(), panelRect)),
+          periodSwitchInside: inside(periodSwitch.getBoundingClientRect(), controls.getBoundingClientRect()),
           pageFitsViewport: document.documentElement.scrollWidth <= window.innerWidth + 1,
           yearScrollIsLocal: !yearScroller || (getComputedStyle(yearScroller).overflowX === "auto" && yearScroller.scrollWidth >= yearScroller.clientWidth),
         };
       });
 
-      if (!layout.sameRow) stackedHeaderSeen = true;
-      else expect(stackedHeaderSeen).toBe(false);
-      expect(layout.controlsSingleRow).toBe(true);
-      expect(layout.controlsRightAligned).toBe(true);
-      expect(layout.titleSingleLine).toBe(true);
+      expect(layout.bandSpansPanel).toBe(true);
+      expect(layout.titleSingleRow).toBe(true);
+      expect(layout.controlsInside).toBe(true);
+      expect(layout.periodSwitchInside).toBe(true);
       expect(layout.pageFitsViewport).toBe(true);
       expect(layout.yearScrollIsLocal).toBe(true);
     }
   }
 });
 
-test("dashboard heatmap picks its history color with the shared color picker and persists it", async ({ page }: any) => {
+test("heatmap color is picked in the appearance settings and persists for the dashboard heatmap", async ({ page }: any) => {
   await resetToFreshLocalState(page);
   await page.evaluate(() => window.localStorage.setItem("core.studyHeatmap.historyColor.v2", "lila"));
   await page.reload();
 
   const heatmap = page.locator(".core-study-heatmap-container");
-  const trigger = page.getByRole("button", { name: "Heatmap-Farbe ändern" });
   await expect(heatmap).toHaveAttribute("data-heatmap-history-color", "#b55b43");
+  await expect(heatmap.getByRole("button", { name: "Heatmap-Farbe ändern" })).toHaveCount(0);
 
+  await page.goto("/?settings=darstellung");
+  const trigger = page.getByRole("button", { name: "Heatmap-Farbe ändern" });
   await trigger.click();
   const popover = page.getByTestId("color-wheel-popover");
   await expect(page.getByRole("slider", { name: /Farbkreis/ })).toBeVisible();
   await expect(popover.getByRole("radio")).toHaveCount(14);
   await popover.getByRole("radio", { name: "Farbe #3FA66B" }).click();
-  await expect(heatmap).toHaveAttribute("data-heatmap-history-color", "#3fa66b");
   await expect(popover.getByRole("radio", { name: "Farbe #3FA66B" })).toHaveAttribute("aria-checked", "true");
+  await expect(heatmap).toHaveAttribute("data-heatmap-history-color", "#3fa66b");
   await expect.poll(() => page.evaluate(() => window.localStorage.getItem("core.studyHeatmap.historyColor.v2"))).toBe("#3fa66b");
   await page.keyboard.press("Escape");
   await expect(popover).toBeHidden();
   await expect(trigger).toBeFocused();
+
+  await page.goto("/");
+  await expect(heatmap).toHaveAttribute("data-heatmap-history-color", "#3fa66b");
 });
 
 test("dashboard heatmap preserves its cells, today marker and label alignment", async ({ page }: any) => {
@@ -229,7 +236,7 @@ test("dashboard heatmap preserves its cells, today marker and label alignment", 
     { width: 390, height: 844 },
   ]) {
     await page.setViewportSize(viewport);
-    await chooseCoreSelectOption(page, page.getByRole("combobox", { name: "Heatmap-Zeitraum" }), "Jahr");
+    await page.getByRole("group", { name: "Heatmap-Zeitraum" }).getByRole("button", { name: "Jahr", exact: true }).click();
     const grid = page.getByTestId("study-heatmap-grid");
     await expect(grid).toBeVisible();
     await expect.poll(() => grid.locator("span[aria-label]").count()).toBeGreaterThan(0);
@@ -238,23 +245,15 @@ test("dashboard heatmap preserves its cells, today marker and label alignment", 
       const dayCells = [...element.querySelectorAll<HTMLElement>("span[aria-label]")];
       const firstDayStyle = window.getComputedStyle(dayCells[0]);
       const firstDayRect = dayCells[0].getBoundingClientRect();
-      const today = element.querySelector<HTMLElement>('[class*="ring-[3px]"]');
+      const today = element.querySelector<HTMLElement>('[class*="ring-2"]');
       const todayStyle = today ? window.getComputedStyle(today) : null;
-      const header = document.querySelector<HTMLElement>("[data-testid='study-heatmap-header']")!;
-      const controls = header.lastElementChild as HTMLElement;
-      const periodSelector = controls.querySelector<HTMLElement>('[aria-label="Heatmap-Zeitraum"]')!;
-      const navigation = controls.querySelector<HTMLElement>('[aria-label="Vorheriges Jahr anzeigen"]')!;
-      const headerRect = header.getBoundingClientRect();
-      const controlsRect = controls.getBoundingClientRect();
-      const periodSelectorRect = periodSelector.getBoundingClientRect();
-      const navigationRect = navigation.getBoundingClientRect();
+      const weekdayLabel = element.querySelector<HTMLElement>("span.sticky");
       return {
         cellWidth: firstDayRect.width,
         cellHeight: firstDayRect.height,
         cellRadius: firstDayStyle.borderRadius,
         todayShadow: todayStyle?.boxShadow ?? "none",
-        selectorBeforeNavigation: periodSelectorRect.right <= navigationRect.left,
-        controlsRightAligned: Math.abs(controlsRect.right - headerRect.right),
+        weekdayLabelsSticky: weekdayLabel ? window.getComputedStyle(weekdayLabel).position === "sticky" : false,
         pageFitsViewport: document.documentElement.scrollWidth <= window.innerWidth + 1,
       };
     });
@@ -263,8 +262,7 @@ test("dashboard heatmap preserves its cells, today marker and label alignment", 
     expect(layout.cellHeight).toBe(19);
     expect(layout.cellRadius).toBe("6px");
     expect(layout.todayShadow).not.toBe("none");
-    expect(layout.selectorBeforeNavigation).toBe(true);
-    expect(layout.controlsRightAligned).toBeLessThanOrEqual(1);
+    expect(layout.weekdayLabelsSticky).toBe(true);
     expect(layout.pageFitsViewport).toBe(true);
   }
 });

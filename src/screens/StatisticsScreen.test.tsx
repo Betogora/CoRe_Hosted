@@ -52,8 +52,7 @@ test("statistics screen exposes one global filter and the complete CoRe analysis
   assert.match(overviewMarkup, /<h3 id="statistics-overview-title" tabindex="-1" class="sr-only">Überblick<\/h3>/);
   assert.match(overviewMarkup, /class="core-metric-row core-statistics-overview"/);
   assert.equal((overviewMarkup.match(/<dt /g) ?? []).length, 7);
-  assert.doesNotMatch(overviewMarkup, /core-surface-raised|data-variant="boxed"/);
-  assert.doesNotMatch(markup, /data-variant="boxed"/);
+  assert.doesNotMatch(overviewMarkup, /core-surface-raised/);
   assert.match(overviewMarkup, /Reviews/);
   assert.doesNotMatch(overviewMarkup, /Wiederholungen/);
   assert.match(overviewMarkup, /Erfolgsrate/);
@@ -62,7 +61,7 @@ test("statistics screen exposes one global filter and the complete CoRe analysis
   assert.doesNotMatch(overviewMarkup, /Erinnerungsquote/);
   assert.match(overviewMarkup, /1 Tag/);
   assert.doesNotMatch(markup, /Schwierige Karten/);
-  assert.match(markup, /0 Tage Streak/);
+  assert.match(markup, /0<\/span> <span class="core-heading-3">Tage Streak/);
   assert.match(markup, /aria-label="Heatmap-Zeitraum"/);
   assert.match(markup, /data-testid="study-heatmap-grid"/);
   assert.doesNotMatch(markup, /Letzte 14 Tage/);

@@ -6,7 +6,7 @@ import { createNote } from "./coreModel.ts";
 import { colorContrast } from "./colorMath.ts";
 import { compareTypedAnswer, evaluateNoteChoice, notePlainText, renderCard, renderNoteChoiceOptions, renderNoteSpeech, type NotePresentationTheme } from "./notePresentation.ts";
 
-const theme: NotePresentationTheme = { mode: "light", colors: { surface: "#ffffff", "surface-muted": "#edf1f6", text: "#181d25", "text-muted": "#667492", border: "#d5dbe5", "border-interactive": "#6f7e9e", success: "#d6a3d2", "success-surface": "#f5e8f4", danger: "#e28b68", "danger-surface": "#f8e2d9", "learning-goal-achieved": "#2f7d68" } };
+const theme: NotePresentationTheme = { mode: "light", colors: { surface: "#ffffff", "surface-muted": "#edf1f6", text: "#181d25", "text-muted": "#667492", border: "#d5dbe5", "border-interactive": "#6f7e9e", success: "#d6a3d2", "success-surface": "#f5e8f4", danger: "#e28b68", "danger-surface": "#f8e2d9" } };
 const field = (id: string, role: NoteField["role"], html: string): NoteField => ({ id, name: id, role, html });
 function content(interaction: NoteContent["interaction"], fields = [field("front", "prompt", "Frage"), field("back", "answer", "Antwort")]): NoteContent {
   return { schemaVersion: 1, fields, interaction, tags: [], speech: [] };
@@ -220,6 +220,18 @@ test("Auswahloptionen erhalten denselben sicheren Formel- und Medienrenderer", a
   assert.match(options[0].html, /class="katex/);
   assert.match(options[1].html, /src="bild.png"/);
   assert.doesNotMatch(options[1].html, /onerror/);
+});
+
+test("Die Trennlinie steht nur über Antwort oder Zusatzinfos, nie allein unter einer Auswahlfrage", async () => {
+  const choice: NoteContent["interaction"] = { kind: "choice", mode: "single", options: [{ id: "a", html: "Pazifik", correct: true }, { id: "b", html: "Atlantik", correct: false }] };
+  for (const surface of ["review", "preview"] as const) {
+    const bare = await render(content(choice, [field("front", "prompt", "Welcher Ozean?")]), "answer", undefined, surface);
+    assert.doesNotMatch(bare.srcdoc, /<hr\b/, `${surface}: ohne Inhalt darunter keine Linie`);
+    if (surface === "review") assert.match(bare.srcdoc, /<body><\/body>/, "die leere Antwortseite lässt die Lernansicht ohne Antwortrahmen");
+    const extra = await render(content(choice, [field("front", "prompt", "Welcher Ozean?"), field("Extra 1", "extra", "Der größte Ozean.")]), "answer", undefined, surface);
+    assert.match(extra.srcdoc, /<hr class="core-card-answer-separator"\/><section class="core-note-supplement"><h3>Extra 1<\/h3>/, `${surface}: die Zusatzinfo steht unter der Linie`);
+  }
+  assert.doesNotMatch((await render(content(basic().interaction, [field("front", "prompt", "Frage"), field("back", "answer", "")]), "answer")).srcdoc, /<hr\b/, "eine leere Antwort trennt nichts ab");
 });
 
 test("Die Antwortseite ersetzt das Eingabefeld durch den Zeichenvergleich", async () => {
