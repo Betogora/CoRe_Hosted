@@ -19,6 +19,7 @@ test("general and global card drafts keep their settings domains separate", () =
     ...preferences,
     dayStartHour: 29,
     learnAheadMinutes: 999,
+    leechThreshold: 140,
     easyDays: { ...preferences.easyDays, monday: "minimum" },
   }, ["  Wichtig  ", "x".repeat(60)]);
 
@@ -27,6 +28,7 @@ test("general and global card drafts keep their settings domains separate", () =
   assert.equal(generalDraft.syncIntervalMinutes, profile.uiPreferences.syncIntervalMinutes);
   assert.equal(cardDraft.dayStartHour, 23);
   assert.equal(cardDraft.learnAheadMinutes, 720);
+  assert.equal(cardDraft.leechThreshold, 99, "the account-wide leech threshold is clamped like Anki's");
   assert.equal(cardDraft.easyDays.monday, "minimum");
   assert.equal(cardDraft.learning.newCardsPerDay, 20);
   assert.deepEqual(cardDraft.learning.learningProfileSource, { id: "builtin:standard", contentVersion: 1 });
@@ -56,15 +58,6 @@ test("deck draft compares and normalizes identity, appearance, learning, schedul
   assert.notEqual(normalized.appearance.iconKey, "invalid");
   assert.match(normalized.appearance.iconColor, /^#[0-9a-f]{6}$/);
   assert.equal(settingsDraftsEqual(baseline, baseline), true);
-});
-
-test("the deck draft carries leech threshold and action, clamped like the deck settings", () => {
-  const baseline = createDeckSettingsDraft(biologyDeck());
-  assert.deepEqual(baseline.leech, { leechThreshold: 8, leechAction: "tag" });
-  const changed = normalizeDeckSettingsDraft({ ...baseline, leech: { leechThreshold: 140, leechAction: "suspend" } });
-  assert.deepEqual(changed.leech, { leechThreshold: 99, leechAction: "suspend" });
-  const descendant = applyDeckSettingsDraftChanges(baseline, changed, { ...baseline, name: "Unterstapel", leech: { leechThreshold: 5, leechAction: "tag" } });
-  assert.deepEqual(descendant.leech, { leechThreshold: 99, leechAction: "suspend" }, "a deck-tree save passes the changed leech values on");
 });
 
 test("deck-tree save applies only changed settings and keeps descendant identity and individual values", () => {

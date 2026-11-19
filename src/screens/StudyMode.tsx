@@ -63,9 +63,11 @@ function createEasyDaysContext(
 // Cards rendered and media loaded ahead: enough to answer quickly without holding many images.
 const PREFETCH_CARD_COUNT = 3;
 
-export function StudyMode({ shortcutsSuspended = false, deck, decks, notes, answeredToday, deckId, mediaStore, getNow, learningDayKey, dayStartHour = 0, learnAheadMinutes = 20, easyDays = DEFAULT_EASY_DAYS, dueForecast = null, timeZone, simulationOffsetMinutes, pomodoroTimer, onStartPomodoro, onExit, onReturnToLearn, onEditCard, onEditDeck, flagNames, onSetCardStudyState, onSetDeckReviewOrder, onReview, onUndoReview, onAskCardHelp, sessionPlan, bufferSize = 50, hasMoreCards = false, onLoadMoreCards }: StudyModeProps) {
+export function StudyMode({ shortcutsSuspended = false, deck, decks, notes, answeredToday, deckId, mediaStore, getNow, learningDayKey, dayStartHour = 0, learnAheadMinutes = 20, leechThreshold, easyDays = DEFAULT_EASY_DAYS, dueForecast = null, timeZone, simulationOffsetMinutes, pomodoroTimer, onStartPomodoro, onExit, onReturnToLearn, onEditCard, onEditDeck, flagNames, onSetCardStudyState, onSetDeckReviewOrder, onReview, onUndoReview, onAskCardHelp, sessionPlan, bufferSize = 50, hasMoreCards = false, onLoadMoreCards }: StudyModeProps) {
   const [sessionDecks, setSessionDecks] = React.useState(decks);
   const [sessionNotes, setSessionNotes] = React.useState(() => new Map(notes.map((note) => [note.id, note])));
+  /** Counts settings saved during the session, so the queue is planned again for any deck of the tree. */
+  const [settingsRevision, setSettingsRevision] = React.useState(0);
   const sessionIndexRef = React.useRef<ReturnType<typeof createDailyReviewSessionIndex> | null>(null);
   sessionIndexRef.current ??= createDailyReviewSessionIndex(decks);
   const easyDaysAccountRef = React.useRef({ forecast: dueForecast, firstLoadedCards: new Map<string, Card>() });
@@ -97,6 +99,7 @@ export function StudyMode({ shortcutsSuspended = false, deck, decks, notes, answ
   const rootDeck = sessionDecks.find((candidate) => candidate.id === deckId) ?? deck ?? sessionDecks[0] ?? null;
   const queuePlanKey = JSON.stringify([
     rootDeck?.id ?? null,
+    settingsRevision,
     effectiveLearningDayKey,
     dayStartHour,
     learnAheadMinutes,
@@ -183,6 +186,16 @@ export function StudyMode({ shortcutsSuspended = false, deck, decks, notes, answ
     setShowOriginal(false);
     setShowSettings(false);
   }, [deckId, decks.length]);
+
+  // Saved deck settings apply at once, to the card on screen and the queue; the session keeps its cards and answers.
+  React.useEffect(() => {
+    const settingsById = new Map(decks.map((candidate) => [candidate.id, candidate.deckSettings]));
+    if (sessionDecks.every((candidate) => (settingsById.get(candidate.id) ?? candidate.deckSettings) === candidate.deckSettings)) return;
+    const next = sessionDecks.map((candidate) => ({ ...candidate, deckSettings: settingsById.get(candidate.id) ?? candidate.deckSettings }));
+    sessionIndexRef.current = createDailyReviewSessionIndex(next);
+    setSessionDecks(next);
+    setSettingsRevision((revision) => revision + 1);
+  }, [decks]);
 
   React.useEffect(() => {
     setMoreCardsAvailable(hasMoreCards);
@@ -316,6 +329,7 @@ export function StudyMode({ shortcutsSuspended = false, deck, decks, notes, answ
       dayStartHour,
       timeZone,
       easyDaysContext,
+      leechThreshold,
       responseTimeMs,
       flags: rootDeck?.hitSession ? { kind: HIT_REVIEW_KIND } : undefined,
     });

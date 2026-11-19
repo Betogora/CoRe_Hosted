@@ -15,15 +15,6 @@ Entscheidungen vom 2026-11-14 zur Kommentierung der Specs bis Kapitel 5; die
 Zahlen in Klammern sind die Fragen der Agenda. Je Paket ein PR, unabhängig
 voneinander.
 
-- [ ] **3 Lernen:** Neue Stapel starten mit 1 und 10 Minuten (1.12);
-      Wiederlernen gegen Anki prüfen, Wiederlernschritte in derselben Sitzung
-      (1.14); geänderte Lerneinstellungen gelten sofort für die offene Karte
-      (5.3); eingetippte Antworten selbst bewerten (5.18); Zurücknehmen
-      hinterlässt exakt den vorherigen Datensatz (2.8); Algorithmus auf der
-      Hilfeseite erklären (1.15). Lernbremse nur global, nie automatisch
-      aussetzen; Anki-Markierung übernehmen, eigene nur kennzeichnen (1.17,
-      1.18). Standard-Zielerinnerung neu festlegen, vermutlich 91–94 % (1.11);
-      FSRS-7 erst nach Feldwerten ändern (1.10).
 - [ ] **4 Sync und Import:** Beim Verlassen der Seite synchronisieren (2.1);
       Warnung beim Schließen mit offenen Änderungen (2.2); abgebrochenen
       Import testen und Verhalten festlegen (2.4); Lernstand beim Reimport
@@ -182,6 +173,14 @@ neuen Code.
       Editor-Vorschau und Importvorschau in Light und Dark bei 390 und 1440 px.
       Renderer, Sync und Katalog sind automatisiert und visuell belegt, die
       eingeloggte App nicht.
+- [ ] **FSRS-7 an Feldwerten prüfen (Agenda 1.10):** Erst ändern, wenn
+      echte Antworten es zeigen. Gemessen wird außerhalb der App (6.3): die
+      tatsächliche Erinnerung in der Wiederholung gegen die Zielerinnerung
+      (Toleranz ±3 Punkte) sowie Log-Loss und RMSE von FSRS-7-Standard gegen
+      FSRS-6-Standard und persönlich optimierte Parameter. Ab 1.000
+      Wiederholungsantworten mit mindestens einem Tag Abstand in einem Konto;
+      vorher dürfen die Anki-Historien des Korpus vormessen. Geändert wird nur
+      bei mehr als 3 Punkten Abweichung oder klar besserer Vorhersage.
 - [ ] **APKG-Korpus:** AnKing und ein echter Lernstand mit Lern-,
       Wiederlern-, ausgesetzten, begrabenen und geflaggten Karten. Ziel:
       mindestens 95 % voll übersetzt, 0 % nicht darstellbar. Prüfung:

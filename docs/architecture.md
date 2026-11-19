@@ -336,7 +336,7 @@ Befehlsmodule laufen ohne React und entstehen je Arbeitsbereich aus Store, lokal
 
 - `reviewService.ts` baut die Tagesqueue aus Lernständen, Ereignissen des Lerntags und Stapeloptionen und liefert die begrabenen Schlüssel; die Sitzung hält die gezeigte Karte, bis sie bewertet ist.
 - `scheduler.ts` kapselt `ts-fsrs`. Die Prüfungsplanung simuliert Laufbahnen über dieselbe FSRS-7-Planung samt Easy Days, nur ohne Buchführung zwischen den Antworten.
-- Eine Neuplanung ist genau ein manuelles `ReviewEvent`, das alten und neuen Termin festhält. Setzt ein Stapel bei Lernbremse `suspend`, wird die Aussetzung zusätzlich als Kartenänderung synchronisiert.
+- Eine Neuplanung ist genau ein manuelles `ReviewEvent`, das alten und neuen Termin festhält.
 - `newCardsTodayOverride` gilt für einen Stapel und Lerntag; eine Änderung des Neulimits hebt ihn auf.
 
 ### Prüfungsplanung

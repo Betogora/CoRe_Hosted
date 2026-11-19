@@ -82,7 +82,7 @@ export function codeFootprintMarkup() {
   return `${tiles}<div class="docs-code-chart"><div class="docs-table-scroll" tabindex="0" role="region" aria-label="Codeumfang je Produktbereich"><table><thead><tr><th>Bereich</th><th>Zeilen</th><th>Anteil</th></tr></thead><tbody>${rows}</tbody></table></div></div><p class="docs-source">Beim Erzeugen gemessen: nichtleere Zeilen in <code>src/</code> und <code>api/</code> (TS/TSX) sowie <code>src/styles.css</code>. Ohne Tests, Typdeklarationen, generierte Datenbanktypen, Dokumentation und Fremdcode. Bereichszuordnung nach Bildschirmdateien in <a href="../src/screens/README.md">der Screen-Landkarte</a>; übriger Code zählt gemeinsam. Enthält Kommentare und misst weder Laufzeit noch Komplexität.</p>`;
 }
 
-const DEFAULT_RETENTION = 0.92;
+const DEFAULT_RETENTION = 0.93;
 const DEFAULT_VARIANT_THRESHOLD = 21;
 const RATING_LABELS = { again: "Nochmal", hard: "Schwer", good: "Gut", easy: "Leicht" } as const;
 const PHASE_LABELS = { new: "Neu", learning: "Lernschritt", review: "Wiederholung", relearning: "Wiederlernen" } as const;

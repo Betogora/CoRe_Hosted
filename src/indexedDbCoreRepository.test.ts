@@ -704,21 +704,19 @@ test("der lokale Katalog führt den Lernverlauf fort und behält ihn bei Inhalts
   repository.close();
 });
 
-test("eine Lernbremse, die der Stapel aussetzt, synchronisiert die Aussetzung als Kartenänderung", async () => {
+test("eine Lernbremse kennzeichnet die Karte nur und reiht keine Kartenänderung ein", async () => {
   const graph = basicGraph("deck-leech", 0);
   const card: Card = { ...graph.cards[0], study: { ...graph.cards[0].study, state: "review", reps: 5, stability: 20, difficulty: 6, lastReviewedAt: "2026-08-01T00:00:00.000Z" } };
-  const deck = createCoreDeck({ id: "deck-leech", name: "Lernbremse", source: "manual", cards: [card], deckSettings: { leechThreshold: 1, leechAction: "suspend" } });
+  const deck = createCoreDeck({ id: "deck-leech", name: "Lernbremse", source: "manual", cards: [card] });
   const repository = await openRepository(state([deck], [graph.note]));
-  const result = answerVariant(deck, card.id, null, "again", { now: "2026-08-21T10:00:00.000Z" });
+  const result = answerVariant(deck, card.id, null, "again", { now: "2026-08-21T10:00:00.000Z", leechThreshold: 1 });
   assert.equal(result.leechTriggered, true);
   repository.recordReview(result);
   await repository.flush();
 
   const stored = (await repository.loadCardBody(card.id))!.card;
-  assert.deepEqual([stored.status, stored.study.leechedAt], ["suspended", "2026-08-21T10:00:00.000Z"]);
-  assert.deepEqual(pendingEntityMutations(repository).map((mutation) => [mutation.table, mutation.entityId, mutation.baseRevision, mutation.entity.status]), [
-    ["cards", card.id, card.revision, "suspended"],
-  ]);
+  assert.deepEqual([stored.status, stored.study.leechedAt], ["active", "2026-08-21T10:00:00.000Z"]);
+  assert.deepEqual(pendingEntityMutations(repository), []);
   repository.close();
 });
 

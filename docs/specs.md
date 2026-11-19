@@ -118,7 +118,7 @@ Karte
 - **Lückentext:** Jede Lückengruppe ist eine eigene Karte.
 - **Auswahl:** Single Choice (genau eine richtige von mindestens zwei Optionen), Multiple Choice (mindestens eine richtige und eine falsche) und Kprim (eine Karte mit beliebig vielen Aussagen, jede als richtig oder falsch zu markieren; nur aus Anki-Importen). Ein Inhalt ergibt genau eine Karte; nicht mit Lücken oder Rückrichtung kombinierbar.
 - **Bildverdeckung:** Jede Maskengruppe ist eine eigene Karte ([Bildverdeckung](#bildverdeckung)).
-- **Antwort eintippen:** Baustein für Frage–Antwort; die Eingabe wird zeichengenau wie in Anki verglichen.
+- **Antwort eintippen:** Baustein für Frage–Antwort; die Eingabe wird zeichengenau wie in Anki verglichen, bewertet wird trotzdem selbst.
 - **Zusätzliche Felder** tragen eine Rolle: `Zusatzfrage` (Teil der Frage, in Rückrichtung Teil der Antwort), `Hinweis` (vor der Antwort aufdeckbar), `Zusatz` und `Quelle` (erst nach der Antwort), `Notiz` (nur im Editor).
 - Felder sind formatierter Text, der vor Speicherung und Darstellung bereinigt wird.
 
@@ -143,8 +143,8 @@ Karte
 
 - Flaggen sind die sieben Anki-Farben je Karte; eigene Namen gelten kontoweit. Anki-Flaggen werden übernommen, Flaggennamen nicht, weil das Paket sie nicht enthält.
 - Die Markierung gehört zum Inhalt (Anki-Tag `marked`), die Lernbremse zur Karte (Anki-Tag `leech`); beide erscheinen danach nicht mehr als Tag.
-- Eine Karte erhält die Lernbremse, wenn ein `Nochmal` in der Wiederholung die Fehlerschwelle des Stapels erreicht (Standard 8), danach bei jeder weiteren halben Schwelle. Frühere Fehler lösen nicht rückwirkend aus.
-- Der Stapel legt fest, ob die Lernbremse nur kennzeichnet (Standard) oder die Karte aussetzt. Sie lässt sich zurücksetzen.
+- Eine Karte erhält die Lernbremse, wenn ein `Nochmal` in der Wiederholung die kontoweite Fehlerschwelle erreicht (Standard 8), danach bei jeder weiteren halben Schwelle. Frühere Fehler lösen nicht rückwirkend aus.
+- Die Lernbremse kennzeichnet nur und lässt sich zurücksetzen; ausgesetzt wird eine Karte nie dadurch. Eine in Anki ausgesetzte Karte bleibt nach dem Import ausgesetzt, unabhängig vom Tag `leech`.
 - Lokal gesetzte Flaggen, Markierung und Lernbremse überstehen einen Reimport.
 
 ### Stapel
@@ -411,7 +411,7 @@ Wiederholung, jung | zunächst kurze Abstände, bis die Haltbarkeit wieder wäch
 ```
 
 - Es gibt vier Bewertungen: `Nochmal`, `Schwer`, `Gut`, `Leicht`. Geplant wird mit FSRS-7 und den offiziellen Standardparametern ([ADR-044](decisions.md#adr-044--fsrs-7-scheduler-und-reife-aus-der-haltbarkeit)); eine persönliche Optimierung ist nicht aktiv.
-- Standard sind 92 % Zielerinnerung, Lernschritte nach 1 und 10 Minuten und ein Wiederlernschritt nach 10 Minuten; jeder Stapel kann abweichen.
+- Standard sind 93 % Zielerinnerung, Lernschritte nach 1 und 10 Minuten und ein Wiederlernschritt nach 10 Minuten; jeder Stapel kann abweichen.
 - `Gut` geht einen Lernschritt weiter und führt nach dem letzten in die Wiederholung. `Leicht` beendet die Lernphase sofort. `Schwer` bleibt mit kürzerem Abstand in der Phase. `Nochmal` beginnt die Lernschritte von vorn und führt aus der Wiederholung ins Wiederlernen.
 - Eingestellte Lernschritte haben Vorrang vor einem längeren Abstand aus dem Modell.
 - Jede Bewertung nennt vorab ihren Abstand; angezeigter und angewandter Wert sind derselbe.
@@ -433,7 +433,7 @@ Die Leseseite zeigt zu diesem Abschnitt typische Bewertungsketten als Zeitleiste
 - Ein Lerntag beginnt zum kontoweiten Tagesbeginn in der Zeitzone des Profils, ersatzweise des Browsers.
 - Wiederholungen werden tageweise freigegeben und sind am ganzen Fälligkeitstag verfügbar. Lernschritte haben minutengenaue Termine.
 - Das kontoweite Vorziehfenster (Standard 20 Minuten) erlaubt, einen Lernschritt früher zu zeigen, wenn er am selben Lerntag liegt und weniger als das Fenster entfernt ist. Wiederholungen werden nie vorgezogen, und nichts über die Tagesgrenze.
-- Eine Sitzung arbeitet zuerst ihre Karten ab und zeigt danach berechtigte Lernschritte. Warten nur noch nicht berechtigte Lernschritte, endet die Runde vorläufig; die Karten bleiben `Offen`.
+- Ein fälliger Lern- oder Wiederlernschritt kommt wie in Anki als nächste Karte; einer im Vorziehfenster wartet, bis die übrigen Karten der Sitzung abgearbeitet sind. Warten nur noch nicht berechtigte Lernschritte, endet die Runde vorläufig; die Karten bleiben `Offen`.
 - Eine von Hand auf einen künftigen Lerntag gesetzte Karte bleibt bis dahin in jeder Phase zurückgestellt.
 
 ### Tagesrunde und Limits
@@ -486,7 +486,7 @@ Fällig | ausgewählte Wiederholungen
 - Es gibt keinen eigenen Sitzungsstand: Nach Reload, Verlassen und Sync ergibt sich der Fortschritt aus gespeicherten Bewertungen und Lernständen.
 - Das Ende nennt die Zahl beantworteter Karten und führt zum Ausgangspunkt zurück. Ein Reload erhält Sitzung und Rückweg; fremde Rücksprungziele werden nicht angenommen.
 - Ist ein Stapel oder eine Karte nicht verfügbar, folgt eine verständliche nächste Aktion; nie öffnet sich stillschweigend eine andere Karte.
-- Aus der Sitzung heraus wirken sofort: Flagge, Markierung, Aussetzen, Kartenreihenfolge und Timer. Editor und Stapeleinstellungen öffnen sich über der Sitzung und führen an dieselbe Karte zurück.
+- Aus der Sitzung heraus wirken sofort: Flagge, Markierung, Aussetzen, Kartenreihenfolge und Timer. Editor und Stapeleinstellungen öffnen sich über der Sitzung und führen an dieselbe Karte zurück; gespeicherte Stapeleinstellungen gelten sofort, auch für die gezeigte Karte.
 - Aussetzen pausiert die Karte samt Varianten, ohne ihren Lernstand zu ändern; sie fehlt dann in Runde, Tageszahlen und Fortschritt. Nach dem Reaktivieren ist ein vergangener Termin sofort wieder relevant.
 - Löst eine Bewertung die Lernbremse aus, weist die Sitzung einmal darauf hin.
 - Die Bewertungen der laufenden Sitzung lassen sich der Reihe nach zurücknehmen, die jüngste zuerst. Die Karte erscheint erneut mit dem Lernstand von davor; das Ereignis verschwindet aus Verlauf, Statistik und Tageszahlen auf allen Geräten. Eine andere Änderung an der Sitzung, ein neuer Lerntag oder das Verlassen beendet diese Möglichkeit.
@@ -870,8 +870,8 @@ Jede Einstellung gilt für genau einen Bereich.
 
 | Gilt für | Einstellungen |
 | --- | --- |
-| Konto, auf allen Geräten | Tagesbeginn, Vorziehfenster, Easy Days, Lernprofile, Standard für neue Stapel, Flaggennamen, gespeicherte Suchen, Prüfungspläne |
-| Einen Stapel | Tageslimits, Reihenfolge und Sortierung, Begraben, Lernschritte, Zielerinnerung, maximales Intervall, CoRe-Modus, Variantenschwelle, aktive Varianten, Lernbremse, Name und Aussehen, Offline-Nutzung |
+| Konto, auf allen Geräten | Tagesbeginn, Vorziehfenster, Lernbremse, Easy Days, Lernprofile, Standard für neue Stapel, Flaggennamen, gespeicherte Suchen, Prüfungspläne |
+| Einen Stapel | Tageslimits, Reihenfolge und Sortierung, Begraben, Lernschritte, Zielerinnerung, maximales Intervall, CoRe-Modus, Variantenschwelle, aktive Varianten, Name und Aussehen, Offline-Nutzung |
 | Diesen Browser | heller oder dunkler Modus, Heatmap-Farbe, Anordnung von `Heute` und eigene To-dos, Pomodoro-Timer, Simulationsuhr |
 
 - Einstellungen werden als Entwurf geändert und ausdrücklich gespeichert oder verworfen; ein ungespeicherter Entwurf hält jedes Verlassen auf.

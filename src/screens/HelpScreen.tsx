@@ -4,12 +4,15 @@ import {
   CalendarCheck,
   Clock3,
   ExternalLink,
+  Gauge,
   Layers,
   RotateCcw,
   ShieldCheck,
   Sparkle,
   Sparkles,
 } from "lucide-react";
+import { createDefaultDeckSettings, createReviewState } from "../coreModel.ts";
+import { scheduleWithFsrs } from "../scheduler.ts";
 import { PageHeader, SoftPanel } from "../ui/coreUi.tsx";
 
 type ReviewId = "first" | "variant";
@@ -193,6 +196,26 @@ const SCHEDULING_STEPS = [
     text: "FSRS wählt den Zeitpunkt, an dem R voraussichtlich die gewünschte Zielerinnerung erreicht.",
   },
 ] as const;
+
+const RATING_GUIDE: ReadonlyArray<{ label: string; text: string }> = [
+  { label: "Nochmal", text: "Nicht gewusst oder falsch. Die Karte kommt nach wenigen Minuten in derselben Sitzung zurück; in der Wiederholung bricht ihre Haltbarkeit ein." },
+  { label: "Schwer", text: "Richtig, aber nur mit Mühe, nach Zögern oder lückenhaft. Der Abstand wächst deutlich langsamer. Im Zweifel ist das die ehrliche Wahl." },
+  { label: "Gut", text: "Richtig mit normalem Nachdenken. Das ist die übliche Antwort." },
+  { label: "Leicht", text: "Sofort und mühelos. Beendet die Lernphase und streckt den Abstand stark." },
+];
+
+/** The default deck answered with „Gut“ on every due date, computed with the real scheduler. */
+function defaultGoodChain() {
+  const deckSettings = createDefaultDeckSettings();
+  const minutes: number[] = [], days: number[] = [];
+  let state = createReviewState({});
+  while (days.length < 4) {
+    state = scheduleWithFsrs(state, "good", { now: state.dueAt, deckSettings });
+    if (state.intervalMinutes === null) days.push(Math.round(state.intervalDays));
+    else minutes.push(state.intervalMinutes);
+  }
+  return { retentionPercent: Math.round(deckSettings.schedulerProfile.desiredRetention * 100), minutes, days };
+}
 
 const MEMORY_TERMS: readonly MemoryTerm[] = [
   { term: "R · Abrufwahrscheinlichkeit", description: "Wie wahrscheinlich du den Inhalt jetzt korrekt erinnern kannst." },
@@ -750,6 +773,30 @@ function SpacedRepetitionStory() {
   );
 }
 
+function RatingGuidePanel() {
+  const chain = React.useMemo(defaultGoodChain, []);
+  const days = `${chain.days.slice(0, -1).join(", ")} und ${chain.days.at(-1)} Tagen`;
+  return (
+    <SoftPanel className="p-6" data-testid="help-rating-guide">
+      <div className="flex items-center gap-3">
+        <Gauge size={20} aria-hidden="true" className="shrink-0 text-core-secondary" />
+        <h3 className="core-heading-2 text-core-text">So bewertest du</h3>
+      </div>
+      <p className="mt-4 max-w-3xl core-body leading-6 text-core-secondary">
+        FSRS-7 traut einer sicheren Antwort große Abstände zu: Mit {chain.retentionPercent} % Zielerinnerung kommt eine neue Karte, immer mit „Gut“ bewertet, nach {chain.minutes.join(" und ")} Minuten und dann nach {days} wieder. Wähle „Gut“ deshalb nur, wenn der Abruf wirklich sicher war.
+      </p>
+      <dl className="mt-6 grid border-t border-core-border md:grid-cols-2 xl:grid-cols-4">
+        {RATING_GUIDE.map((entry) => (
+          <div key={entry.label} className="border-b border-core-border py-4 md:pr-6">
+            <dt className="core-body font-semibold text-core-text">{entry.label}</dt>
+            <dd className="mt-1 core-caption leading-5 text-core-secondary">{entry.text}</dd>
+          </div>
+        ))}
+      </dl>
+    </SoftPanel>
+  );
+}
+
 function ReferenceSection() {
   return (
     <section className="grid min-w-0 gap-8" aria-labelledby="reference-heading">
@@ -783,10 +830,12 @@ function ReferenceSection() {
             CoRe verwendet FSRS-7 mit den offiziellen Standardparametern. Es berücksichtigt alle Reviews einschließlich mehrerer Abrufe am selben Tag. Die persönliche Optimierung der Parameter aus deiner eigenen Reviewhistorie ist noch nicht aktiviert.
           </p>
           <p className="mt-3 core-body leading-6 text-core-secondary">
-            Neue Karten bleiben zunächst in der Lernphase. Standardmäßig bedeutet „Gut“ einen zweiten Kontakt nach 10 Minuten, „Leicht“ beendet die Lernphase sofort. Eine höhere Zielerinnerung bedeutet kürzere Intervalle und mehr Reviews pro Tag.
+            Neue Karten durchlaufen zuerst kurze Lernschritte, nach einem Fehler einen Wiederlernschritt; beide kommen in derselben Sitzung zurück. Eine höhere Zielerinnerung bedeutet kürzere Intervalle und mehr Reviews pro Tag.
           </p>
         </SoftPanel>
       </div>
+
+      <RatingGuidePanel />
 
       <SoftPanel className="p-6" data-testid="help-exam-session">
         <div className="flex items-center gap-3">

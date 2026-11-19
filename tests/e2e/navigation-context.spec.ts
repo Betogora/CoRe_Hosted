@@ -7,7 +7,7 @@ import type { Deck, Note } from "../../src/coreTypes.ts";
 import { readActiveAccountState, resetToFreshLocalState } from "./support/appState.ts";
 import { e2eAuthStatePath, loadE2EEnvironment } from "./support/e2eEnvironment.ts";
 import { seedAccountState } from "../support/seedAccountState.ts";
-import { deckSettingsDialog } from "./support/settingsDialog.ts";
+import { deckSettingsDialog, openSettingsArea } from "./support/settingsDialog.ts";
 
 const DECK_IDS = {
   rootA: "navigation-root-a",
@@ -560,6 +560,25 @@ test("[Vertrag: Review-Stapeleinstellungen] der Stapeldialog liegt reload-fähig
   await waitForApp(page);
   await deckSettingsDialog(page).getByRole("button", { name: "Stapeleinstellungen schließen" }).click();
   await expect(page).toHaveURL(`/lernen?deck=${DECK_IDS.rootA}`);
+});
+
+test("[Vertrag: Review-Stapeleinstellungen] gespeicherte Lernschritte gelten sofort für die offene Karte", async ({ page }) => {
+  await page.goto(`/lernen?deck=${DECK_IDS.rootA}`);
+  await waitForApp(page);
+  await page.getByRole("button", { name: "Bereich A lernen" }).click();
+  await page.getByRole("button", { name: "Antwort anzeigen" }).click();
+  await expect(page.getByRole("button", { name: "Bewertung Gut: 10 min" })).toBeVisible();
+
+  await page.getByRole("button", { name: "Lerneinstellungen" }).click();
+  await page.getByRole("dialog", { name: "Lerneinstellungen" }).getByRole("button", { name: "Stapel bearbeiten" }).click();
+  const dialog = deckSettingsDialog(page);
+  await openSettingsArea(dialog, "scheduler");
+  await dialog.getByRole("group", { name: "Lernschritte" }).getByRole("button", { name: "Länger", exact: true }).click();
+  await page.getByTestId("settings-save-bar").getByRole("button", { name: "Stapel und Unterstapel speichern" }).click();
+  await expect(page.getByRole("status").filter({ hasText: "Stapeleinstellungen wurden für den Stapel und alle Unterstapel gespeichert." })).toBeVisible();
+  await dialog.getByRole("button", { name: "Stapeleinstellungen schließen" }).click();
+
+  await expect(page.getByRole("button", { name: "Bewertung Gut: 15 min" })).toBeVisible();
 });
 
 test("[Vertrag: Browser-History und sichere Fallbacks] @beta-core Zurück, Vorwärts und ungültige IDs bleiben deterministisch", async ({ page }) => {

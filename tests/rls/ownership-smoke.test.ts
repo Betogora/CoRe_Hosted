@@ -817,7 +817,7 @@ test("lokales Supabase isoliert Nutzer A, Nutzer B und anon über alle accountge
         const undoParameters = {
           p_event_id: eventId,
           p_card_id: fixtureA.cards.id,
-          p_study: study({ state: "learning", reps: 0, due_at: olderAnsweredAt, last_rating: "again" }),
+          p_study: study({ state: "learning", reps: 0, due_at: olderAnsweredAt, last_rating: "again", leeched_at: null, study_extra: { stabilityFast: 1.5, variantStage: 1, desiredRetention: 0.92 } }),
           p_card_updated_at: answeredAt,
           p_variant_id: fixtureA.card_variants.id,
           p_variant_performance: { reviewCount: 0 },
@@ -826,7 +826,10 @@ test("lokales Supabase isoliert Nutzer A, Nutzer B und anon über alle accountge
         };
         const undone = assertNoError(await clientA.rpc("undo_review_atomic", undoParameters), "Bewertung zurücknehmen");
         assert.equal(undone.idempotent, false);
-        assert.equal(undone.card.reps, 0);
+        // Every study column holds exactly the state from before the answer; only the study revision moves on.
+        const { due_at: restoredDueAt, last_reviewed_at: restoredReviewedAt, ...restoredColumns } = undoParameters.p_study;
+        assert.deepEqual(Object.fromEntries(Object.keys(restoredColumns).map((column) => [column, undone.card[column]])), restoredColumns);
+        assert.deepEqual([Date.parse(undone.card.due_at), Date.parse(undone.card.last_reviewed_at)], [Date.parse(restoredDueAt), Date.parse(restoredReviewedAt)]);
         assert.equal(undone.card.study_revision, older.card.study_revision + 1);
         assert.equal(undone.variant.performance.reviewCount, 0);
         assert.equal(assertNoError(await clientA.from("review_events").select("id").eq("id", eventId), "zurückgenommene Bewertung lesen").length, 0);
