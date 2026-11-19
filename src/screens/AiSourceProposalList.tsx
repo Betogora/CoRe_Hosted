@@ -60,7 +60,7 @@ export function AiSourceProposalList({ result, notices, headingRef, onDiscard }:
           <ul className="mt-1 grid list-disc gap-1 pl-5">{result.warnings.map((warning) => <li key={warning}>{warning}</li>)}</ul>
         </StatusMessage>
       ) : null}
-      {count ? <ol className="grid min-w-0 overflow-hidden rounded-panel border border-core-border">{result.proposals.map((proposal) => <Proposal key={proposal.id} proposal={proposal} />)}</ol> : null}
+      <ol className="grid min-w-0 overflow-hidden rounded-panel border border-core-border">{result.proposals.map((proposal) => <Proposal key={proposal.id} proposal={proposal} />)}</ol>
       <div className="flex flex-wrap gap-3">
         <ActionButton type="button" variant="secondary" icon={Trash2} onClick={onDiscard}>Vorschläge verwerfen</ActionButton>
       </div>

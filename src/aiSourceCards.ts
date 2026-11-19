@@ -19,7 +19,7 @@ const STOPPING_ERROR_CODES = new Set([
 
 /** A findable place of the source and its text; the run numbers the units of each request. */
 export interface SourceUnit { label: string; text: string; }
-export interface ReadSource { units: SourceUnit[]; notices: string[]; }
+interface ReadSource { units: SourceUnit[]; notices: string[]; }
 export interface SourceCardProposal extends GeneratedSourceCard { id: string; sourceLabels: string[]; }
 export interface AiSourceCardsRunResult {
   proposals: SourceCardProposal[];
@@ -88,18 +88,20 @@ function textUnits(text: string): SourceUnit[] {
   return units;
 }
 
-/** CSV and TSV: rows packed up to the unit size, each unit and part repeats the header row. */
+/** CSV and TSV: rows packed up to the unit size, each unit and part repeats a short header row; a long one stands alone. */
 function tableUnits(text: string): SourceUnit[] {
   const units: SourceUnit[] = [];
   const [header = "", ...rows] = text.replace(/\r\n?/g, "\n").split("\n");
+  const prefix = header.length <= MAX_UNIT_CHARS / 4 ? header : "";
   let block: LineBlock | null = null;
   const flush = () => {
-    if (block) pushUnits(units, lineRange(block.first, block.last), block.lines.join("\n"), header);
+    if (block) pushUnits(units, lineRange(block.first, block.last), block.lines.join("\n"), prefix);
     block = null;
   };
+  if (!prefix && rows.some((row) => row.trim())) pushUnits(units, lineRange(1, 1), header);
   rows.forEach((row, index) => {
     if (!row.trim()) return;
-    if (block && header.length + block.size + row.length + 2 > MAX_UNIT_CHARS) flush();
+    if (block && prefix.length + block.size + row.length + 2 > MAX_UNIT_CHARS) flush();
     block ??= { first: index + 2, last: index + 2, lines: [], size: 0, content: true };
     block.lines.push(row);
     block.size += row.length + 1;

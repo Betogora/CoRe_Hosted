@@ -55,6 +55,11 @@ test("CSV und TSV wiederholen die Kopfzeile je Block und Teil und nennen die Zei
   assert.deepEqual(labels(wide), ["Zeile 2, Teil 1", "Zeile 2, Teil 2"]);
   assert.ok(wide.units.every((unit) => unit.text.startsWith("Begriff,Erklärung\n") && unit.text.length <= 4_000));
   assert.throws(() => splitAiSource(text("Begriff,Erklärung\n", "leer.csv")), /keinen lesbaren Text/);
+  // A survey export with long questions as column heads: the header stands alone instead of shrinking every part.
+  const longHeader = Array.from({ length: 40 }, (_, index) => `Wie bewerten Sie Aussage ${index + 1} zur Lehrveranstaltung?`).join(",");
+  const survey = splitAiSource(text(`${longHeader}\n${Array.from({ length: 40 }, () => "gut").join(",")}`, "umfrage.csv"));
+  assert.deepEqual(labels(survey), ["Zeile 1", "Zeile 2"]);
+  assert.ok(survey.units.every((unit) => unit.text.length <= 4_000));
 });
 
 test("Leere, unlesbare oder zu große Quellen werden mit Meldung abgewiesen", async () => {

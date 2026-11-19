@@ -135,7 +135,7 @@ export function AiSourceCreationPanel({ decks, initialTargetDeckId, onDraftState
           <div className="h-1.5 overflow-hidden rounded-round bg-core-subtle" role="progressbar" aria-label="Fortschritt der Kartenerstellung" {...run.total === null ? {} : { "aria-valuemin": 0, "aria-valuemax": run.total, "aria-valuenow": run.done }}>
             <div className="h-full rounded-round bg-core-action transition-[width] duration-300 ease-out" style={{ width: `${run.total ? run.done / run.total * 100 : 0}%` }} aria-hidden="true" />
           </div>
-          <div><ActionButton type="button" variant="secondary" icon={X} disabled={run.cancelling} onClick={() => { runRef.current?.abort(); setRun({ ...run, cancelling: true }); }}>Abbrechen</ActionButton></div>
+          <div><ActionButton type="button" variant="secondary" icon={X} disabled={run.cancelling} onClick={() => { runRef.current?.abort(); setRun((current) => current?.phase === "running" ? { ...current, cancelling: true } : current); }}>Abbrechen</ActionButton></div>
         </SoftPanel>
       ) : run?.phase === "done" ? (
         <AiSourceProposalList result={run.result} notices={run.notices} headingRef={(element) => { focusRef.current = element; }} onDiscard={() => setConfirmDiscard(true)} />
