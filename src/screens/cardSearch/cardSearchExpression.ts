@@ -115,6 +115,51 @@ export function cardSearchTerms(query: string): string[] {
   return queryItems(String(query ?? "")).filter((item) => item.kind === "term" || item.kind === "group").map((item) => item.source);
 }
 
+/** Fixed day for comparing `prop:due` ranges; only their order matters. */
+const DAY_ZERO = { todayStart: 0 };
+
+/** Learning phases a term allows, or null when it says nothing about them; new cards have no due date or interval. */
+function termPhases(term: CardSearchTerm): readonly string[] | null {
+  if (term.kind === "state") return [term.value];
+  if (term.kind === "maturity") return ["review"];
+  if (term.kind === "due" || (term.kind === "prop" && term.field !== "reps" && term.field !== "lapses")) return ["learn", "review"];
+  return null;
+}
+
+/** Whether no card can match both terms: phases, due days, a suspended due card, or two values of one property. */
+function termsExclude(left: string, right: string): boolean {
+  const a = parseTerm(left, DAY_ZERO);
+  const b = parseTerm(right, DAY_ZERO);
+  if (!a || !b || a.negated || b.negated) return false;
+  const [phasesA, phasesB] = [termPhases(a), termPhases(b)];
+  if (phasesA && phasesB && !phasesA.some((phase) => phasesB.includes(phase))) return true;
+  if (a.kind === "due" && b.kind === "due") return Boolean((a.to && b.from && a.to <= b.from) || (b.to && a.from && b.to <= a.from));
+  if (a.kind === "suspended" || b.kind === "suspended") return [a, b].some((term) => term.kind === "due" && term.reviewableOnly);
+  if (a.kind !== b.kind) return (a.kind === "tag-none" && b.kind === "tag") || (a.kind === "tag" && b.kind === "tag-none");
+  return (a.kind === "flag" || a.kind === "form" || a.kind === "card" || a.kind === "maturity") && a.value !== (b as typeof a).value;
+}
+
+/**
+ * Filters of the query that no card can meet together, each as the chips written in the query: two filters that
+ * exclude each other (`is:new prop:due<0`), or a filter whose every term is also excluded (`is:suspended
+ * -is:suspended`). Such a search stays allowed; the menu only says why it finds nothing. A query with a top-level
+ * `or` is not checked.
+ */
+export function cardSearchConflicts(query: string): string[][] {
+  const all = queryItems(String(query ?? ""));
+  if (all.some((item) => item.kind === "or")) return [];
+  const items = all.filter((item) => item.kind === "term" || item.members);
+  const required = items.filter((item) => !item.negated).map((item) => ({ source: item.source, terms: item.members ?? [item.source] }));
+  const excluded = items.filter((item) => item.negated).flatMap((item) => (item.members ?? [item.source.slice(1)]).map((term) => ({ source: item.source, term })));
+  return required.flatMap((filter, index) => {
+    const exclusive = required.slice(index + 1)
+      .filter((other) => filter.terms.every((term) => other.terms.every((otherTerm) => termsExclude(term, otherTerm))))
+      .map((other) => [filter.source, other.source]);
+    const negations = filter.terms.map((term) => excluded.find((entry) => sameTerm(entry.term, term))?.source);
+    return negations.every(Boolean) ? [...exclusive, [filter.source, ...new Set(negations as string[])]] : exclusive;
+  });
+}
+
 /** Members of a chip `(a or b …)` written as a menu group, else null. */
 export function cardSearchGroupMembers(source: string): { members: string[]; negated: boolean } | null {
   const [item] = queryItems(source);

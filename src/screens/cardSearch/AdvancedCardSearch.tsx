@@ -4,9 +4,9 @@ import { cardSearchTermState, cardSearchTerms, cardSearchTermsOfKind, cardSearch
 import { fieldSearchKey } from "../../coreModel.ts";
 import type { SavedCardSearch } from "../../coreTypes.ts";
 import { SAVED_SEARCH_LIMIT, SAVED_SEARCH_NAME_LENGTH } from "../../uiPreferences.ts";
-import { ActionButton, CrossLinkButton, IconButton } from "../../ui/actionUi.tsx";
+import { ActionButton, CrossLinkButton, Disclosure, IconButton } from "../../ui/actionUi.tsx";
 import { CoreTriStateControl } from "../../ui/coreUi.tsx";
-import { useSuccessToast } from "../../ui/feedbackUi.tsx";
+import { StatusMessage, useSuccessToast } from "../../ui/feedbackUi.tsx";
 import { FlagDot } from "../../ui/flagUi.tsx";
 import { CoreSelect } from "../../ui/selectUi.tsx";
 import { CoreTooltip } from "../../ui/tooltipUi.tsx";
@@ -14,6 +14,7 @@ import {
   CARD_SEARCH_OPERATORS,
   CARD_SEARCH_PROP_OPTIONS,
   CARD_SEARCH_SINCE_OPTIONS,
+  cardSearchConflictMessage,
   cardSearchTermLabel,
   type CardSearchMenuCategory,
   type CardSearchMenuItem,
@@ -60,7 +61,7 @@ function TermRow({ item, query, onQueryChange, siblings }: { item: CardSearchMen
         </span>
       </span>
       {item.hideTerm ? <span className="max-sm:hidden" /> : <code className="core-card-search-term-code hidden max-w-[14rem] truncate font-mono core-caption sm:block">{item.term}</code>}
-      <CoreTriStateControl label={item.label} value={state} onValueChange={(next) => onQueryChange(withCardSearchTermState(query, item.term, next, siblings))} />
+      <CoreTriStateControl label={item.label} description={item.description} value={state} onValueChange={(next) => onQueryChange(withCardSearchTermState(query, item.term, next, siblings))} />
     </li>
   );
 }
@@ -97,7 +98,7 @@ function TermForm({ terms, label, query, onQueryChange, term, children }: {
         <ul className="grid min-w-0">
           {terms.map((written) => {
             const bare = written.replace(/^-/, "");
-            return <TermRow key={bare} item={{ label: label(bare), term: bare }} query={query} onQueryChange={onQueryChange} />;
+            return <TermRow key={bare} item={{ label: label(bare), description: "passende Karten", term: bare }} query={query} onQueryChange={onQueryChange} />;
           })}
         </ul>
       ) : null}
@@ -111,7 +112,7 @@ function FieldTerms({ terms, query, onQueryChange }: { terms: string[]; query: s
   const name = fieldSearchKey(field);
   const value = text.trim().split(/\s+/)[0] ?? "";
   return (
-    <TermForm terms={terms} label={(bare) => bare.replace(":", ": ")} query={query} onQueryChange={(next) => { onQueryChange(next); setText(""); }} term={name && value ? `${name}:${value}` : null}>
+    <TermForm terms={terms} label={(bare) => bare.replace(/:(.*)$/, " enthält „$1“")} query={query} onQueryChange={(next) => { onQueryChange(next); setText(""); }} term={name && value ? `${name}:${value}` : null}>
       <label className="grid min-w-0 flex-1 basis-32 gap-1">
         <span className="core-field-label">Feld</span>
         <input className="core-field" value={field} onChange={(event) => setField(event.target.value)} placeholder="Rückseite" />
@@ -281,19 +282,21 @@ function SyntaxHelp() {
       <h3 className="core-body font-semibold text-core-text">Suchsyntax</h3>
       <p className="core-body text-core-secondary">
         Eine Karte erscheint nur, wenn alle Begriffe zutreffen.
-        Jede Zeile filtert mit, ohne oder egal; mehrere Zeilen einer Kategorie mit „Mit“ verlangen nur eine davon.
+        Plus zeigt nur passende Karten, Minus blendet sie aus, der Kreis filtert nicht; stehen mehrere Zeilen einer Kategorie auf Plus, genügt eine davon.
         Begriffe im Suchfeld wirken genauso und erscheinen als Filter.
       </p>
-      <table className="w-full table-fixed border-collapse core-body">
-        <tbody>
-          {SYNTAX.map(([term, meaning]) => (
-            <tr key={term} className="border-t border-core-border">
-              <td className="w-[45%] py-2 pr-3 align-top"><code className="break-words font-mono core-caption text-core-text">{term}</code></td>
-              <td className="py-2 align-top text-core-secondary">{meaning}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+      <Disclosure summary="Alle Schreibweisen">
+        <table className="mt-2 w-full table-fixed border-collapse core-body">
+          <tbody>
+            {SYNTAX.map(([term, meaning]) => (
+              <tr key={term} className="border-t border-core-border">
+                <td className="w-[45%] py-2 pr-3 align-top"><code className="break-words font-mono core-caption text-core-text">{term}</code></td>
+                <td className="py-2 align-top text-core-secondary">{meaning}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </Disclosure>
     </div>
   );
 }
@@ -325,6 +328,7 @@ export function AdvancedCardSearch({ id, query, onQueryChange, categories, resul
   const activeCount = (category: CardSearchMenuCategory) => category.items.filter((item) => cardSearchTermState(query, item.term)).length
     + writtenOf(category).length;
   const expression = query.trim();
+  const conflict = cardSearchConflictMessage(query, categories);
 
   return (
     <section
@@ -359,6 +363,7 @@ export function AdvancedCardSearch({ id, query, onQueryChange, categories, resul
         </div>
         <ActionButton type="button" variant="secondary" icon={RotateCcw} disabled={!expression} className="max-md:hidden" onClick={() => onQueryChange("")}>Zurücksetzen</ActionButton>
       </div>
+      {conflict ? <StatusMessage tone="warning" announce="polite" data-testid="card-search-conflict">{conflict}</StatusMessage> : null}
       <div className="grid min-w-0 items-start gap-5 md:grid-cols-[13rem_minmax(0,1fr)]">
         <nav aria-label="Filterkategorien" className={`min-w-0 ${mobileOpen ? "max-md:hidden" : ""}`}>
           <ul className="grid min-w-0 md:gap-0.5">

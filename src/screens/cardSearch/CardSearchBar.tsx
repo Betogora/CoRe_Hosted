@@ -3,8 +3,9 @@ import { Layers, ListFilter, Search, X } from "lucide-react";
 import { cardSearchGroupMembers, cardSearchTerms, cardSearchText, withCardSearchTermState, withCardSearchText, withoutCardSearchItem } from "./cardSearchExpression.ts";
 import type { Deck } from "../../coreTypes.ts";
 import { CrossLinkButton } from "../../ui/actionUi.tsx";
+import { StatusMessage } from "../../ui/feedbackUi.tsx";
 import { DeckSelect } from "../../ui/selectUi.tsx";
-import { cardSearchTermLabel, type CardSearchMenuCategory } from "./cardSearchMenu.ts";
+import { cardSearchConflictMessage, cardSearchTermLabel, type CardSearchMenuCategory } from "./cardSearchMenu.ts";
 
 const ALL_DECKS = "__all__";
 
@@ -41,6 +42,7 @@ export function CardSearchBar({ query, onQueryChange, decks, categories, advance
   const deckValue = deckTerm ? deckTerm.slice("did:".length) : ALL_DECKS;
   const deckTerms = terms.filter((term) => /^-?did:/i.test(term) || cardSearchGroupMembers(term)?.members.every((member) => /^did:/i.test(member)));
   const filterCount = terms.filter((term) => term !== deckTerm).length;
+  const conflict = cardSearchConflictMessage(query, categories);
 
   return (
     <div className="grid min-w-0 gap-3">
@@ -90,6 +92,8 @@ export function CardSearchBar({ query, onQueryChange, decks, categories, advance
       </div>
       {hint ? <p id="card-search-hint" className="core-field-hint" data-testid="card-search-unsupported">{hint}</p> : null}
       {children}
+      {/* The open menu names a contradiction itself, right below its search expression. */}
+      {conflict && !advancedOpen ? <StatusMessage tone="warning" announce="polite" data-testid="card-search-conflict">{conflict}</StatusMessage> : null}
       {/* A search always names its number of hits, also without filters (the flat hit list, KV3). */}
       {terms.length || resultCount !== null ? (
         <div className="flex min-w-0 flex-wrap items-center gap-x-1.5 gap-y-2" data-testid="card-search-chips">
