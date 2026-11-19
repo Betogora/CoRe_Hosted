@@ -115,6 +115,8 @@ test("roundtrips deck, card and creation context without validating navigational
   assert.equal(appRouteToUrl(learnRoute), "/lernen?deck=deck_deep&parent=deck_parent");
   assert.equal(appRouteToUrl(deckRoute), "/kartenstapel?deck=deck_a&card=card_b&cardTab=general");
   assert.equal(appRouteToUrl(creationRoute), "/neue-karten?method=manual&deck=deck_b&done=deck_new&doneCount=46&doneKind=import");
+  assert.equal(appRouteToUrl(parseAppRouteFromUrl("/neue-karten?method=ai-source&done=deck_new&doneCount=3&doneKind=ai-source")), "/neue-karten?method=ai-source&done=deck_new&doneCount=3&doneKind=ai-source");
+  assert.equal(appRouteToUrl(parseAppRouteFromUrl("/neue-karten?done=deck_new&doneCount=3&doneKind=other")), "/neue-karten?done=deck_new&doneCount=3");
 });
 
 test("the deck settings dialog lies over views and sessions instead of having its own route", () => {

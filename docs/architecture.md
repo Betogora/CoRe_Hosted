@@ -57,7 +57,7 @@ Medien | Cache und Upload-Queue
 Pfeil: gegen
 Gruppe: Cloud und KI-Routen
 Supabase | Postgres mit RLS und RPCs, Storage
-[info] /api/ai/* | card-variant, card-help, summary über OpenRouter
+[info] /api/ai/* | card-variant, card-help, summary, source-cards über OpenRouter
 ```
 
 ## Modulkarte
@@ -121,7 +121,7 @@ Befehlsmodule laufen ohne React und entstehen je Arbeitsbereich aus Store, lokal
 | `notePresentation.ts`, `presentationFrame.ts`, `originalLayout.ts`, `htmlSafety.ts` | Kartenrenderer, CSP-Rahmen, Regel des Originallayouts, Sanitizer |
 | `apkgImport.ts`, `apkgNoteTranslation.ts`, `importRetranslation.ts` | APKG-Vorschau und gestreamter Importgraph, Übersetzung, Neuübersetzung |
 | `learningSummaries.ts`, `learningMindMaps.ts` | Zusammenfassungen und Mindmaps: Format, Operationen, lokale Ablage und Abgleich |
-| `aiSourceCreation.ts` | Auftrag „Karten aus einer Quelle“: Validierung und Prompt, noch ohne Ausführung |
+| `aiSourceCreation.ts`, `aiSourceCardsContract.ts`, `aiSourceCards.ts` | Karten aus einer Quelle: Auftrag und Prompt, Vertrag der Route, Auslesen, Abschnittslauf, Abruf und Vorschlagsinhalt |
 | `dashboardWidgets.ts`, `dailyMotivation.ts`, `brainMascots.ts` | Dashboard-Layout und To-dos, Tagesimpuls, Maskottchen; nur lokal |
 | `fieldTimings.ts` | Feldwerte nur auf dem Gerät (ADR-050) |
 | `mainThreadBudget.ts` | teilt lange Hauptthread-Schleifen in begrenzte Scheiben |
@@ -295,9 +295,9 @@ Befehlsmodule laufen ohne React und entstehen je Arbeitsbereich aus Store, lokal
 
 ## API-Vertrag
 
-- `POST /api/ai/card-variant`, `POST /api/ai/card-help` und `POST /api/ai/summary` sind die einzigen CoRe-Serverendpunkte. Sie teilen `server/aiRoute.ts`, der Browser ruft sie über `aiRouteRequest.ts`; `npm run dev` stellt sie per Vite-Middleware bereit.
+- `POST /api/ai/card-variant`, `POST /api/ai/card-help`, `POST /api/ai/summary` und `POST /api/ai/source-cards` sind die einzigen CoRe-Serverendpunkte. Sie teilen `server/aiRoute.ts`, der Browser ruft sie über `aiRouteRequest.ts`; `npm run dev` stellt sie per Vite-Middleware bereit.
 - Jede Route verlangt Same Origin und einen Supabase-Bearer, den sie lokal gegen die gecachten JWKS prüft, begrenzt den Body, antwortet mit `no-store` und erzeugt genau einen erzwungenen Tool Call.
-- Eingaben, Grenzen und Antworten validieren `aiCardVariantContract.ts`, `aiCardHelpContract.ts` und `aiLearningSummaryContract.ts`; dort stehen auch die Fristen.
+- Eingaben, Grenzen und Antworten validieren `aiCardVariantContract.ts`, `aiCardHelpContract.ts`, `aiLearningSummaryContract.ts` und `aiSourceCardsContract.ts`; dort stehen auch die Fristen.
 - Modell ist `OPENROUTER_MODEL` in `server/aiRoute.ts`, derzeit `openai/gpt-6-luna` mit Reasoning `low`, ZDR verlangt und Training verboten (`data_collection: "deny"`); kein Modellkatalog, kein Fallback (ADR-011).
 - Der OpenRouter-Zugang steht nur in `process.env`; Secrets gehören weder in `VITE_*`, Browsercode, `localStorage`, Exporte noch Logs. Alle anderen Datenzugriffe laufen über die Supabase-Module. Betrieb: [Operations](operations.md).
 
@@ -307,12 +307,12 @@ Befehlsmodule laufen ohne React und entstehen je Arbeitsbereich aus Store, lokal
 
 - Der Worker erhält die Datei, liest sie mit `readAnkiPackage`, übersetzt einmal und hält den Importgraphen bis Commit oder Verwerfen. Der ZIP-Leser liest Einträge einzeln aus dem `Blob`, damit große Pakete nicht ganz im Speicher liegen.
 - Beim Commit streamt der Worker begrenzte Chunks in Fremdschlüsselreihenfolge und Medien einzeln mit SHA-1-Prüfung; der Main Thread schreibt jeden Chunk in IndexedDB, bevor er den nächsten anfordert.
-- Die flüchtige Importsitzung überlebt interne Navigation; nach einem Neuladen laufen nur Outbox und Medienqueue weiter. Eine begonnene Übernahme steht bis zu ihrem Ende als `interruptedImport` mit ihren Stapeln im Meta-Store des Geräts; dieselbe Datei setzt sie fort, mit dem letzten ihrer Stapel erlischt sie. Die Cloud-Bestätigung je Import läuft nach jedem gespeicherten Sync erneut und zieht in den nächsten Arbeitsbereich desselben Kontos mit.
+- Die flüchtige Importsitzung überlebt interne Navigation; nach einem Neuladen laufen nur Outbox und Medienqueue weiter. `interruptedImport` im Meta-Store vermerkt eine begonnene Übernahme mit ihren Stapeln bis zu ihrem Ende. Die Cloud-Bestätigung je Import läuft nach jedem gespeicherten Sync erneut und zieht in den nächsten Arbeitsbereich desselben Kontos mit.
 
 ### Reimport
 
 - Reimport ordnet Inhalte über die Anki-GUID und Karten über die Anki-Kartenidentität zu, lokal und über `load_reimport_targets`; persistierte IDs stehen vor dem Schreiben fest.
-- Lokale Inhaltsänderungen, Lernstand, Aussetzung, Flagge, Markierung und Stapelplatz bleiben. Bewertungen aus dem Paket erhalten wie in Anki nur neu angelegte Karten; das Fortsetzen einer unterbrochenen Übernahme ergänzt fehlende Bewertungen aller Karten des Pakets (Ereignis-IDs sind stabil). Tags werden dreiseitig gegen `importedTags` zusammengeführt; im Paket fehlende Karten werden nur gezählt.
+- Paketbewertungen gehen nur an neu angelegte Karten, mit `resume` an alle; Ereignis-IDs sind stabil. Tags werden dreiseitig gegen `importedTags` zusammengeführt.
 - Vorhandene Stapel behalten Name, Oberstapel und Einstellungen; Stapel ohne Anki-ID erkennt der Reimport an Oberstapel und Name. Neue Stapel entstehen unter dem Pfad ihres persistierten Oberstapels.
 
 ### Note-Übersetzung
@@ -336,7 +336,7 @@ Befehlsmodule laufen ohne React und entstehen je Arbeitsbereich aus Store, lokal
 
 - `reviewService.ts` baut die Tagesqueue aus Lernständen, Ereignissen des Lerntags und Stapeloptionen und liefert die begrabenen Schlüssel; die Sitzung hält die gezeigte Karte, bis sie bewertet ist.
 - `scheduler.ts` kapselt `ts-fsrs`. Die Prüfungsplanung simuliert Laufbahnen über dieselbe FSRS-7-Planung samt Easy Days, nur ohne Buchführung zwischen den Antworten.
-- Eine Neuplanung ist genau ein manuelles `ReviewEvent`, das alten und neuen Termin festhält. Setzt ein Stapel bei Lernbremse `suspend`, wird die Aussetzung zusätzlich als Kartenänderung synchronisiert.
+- Eine Neuplanung ist genau ein manuelles `ReviewEvent`, das alten und neuen Termin festhält.
 - `newCardsTodayOverride` gilt für einen Stapel und Lerntag; eine Änderung des Neulimits hebt ihn auf.
 
 ### Prüfungsplanung
@@ -361,7 +361,7 @@ Befehlsmodule laufen ohne React und entstehen je Arbeitsbereich aus Store, lokal
 
 ### Karten aus einer Quelle
 
-- `ai-source` ist vorbereitet: `aiSourceCreation.ts` validiert den Auftrag und baut nur Anweisungen. Parser, Upload, KI-Route und Persistenz fehlen; ein künftiger Serverpfad muss das Material selbst validieren.
+- `aiSourceCreation.ts` validiert den Auftrag und baut die Anweisungen. `aiSourceCardsContract.ts` prüft je Anfrage einen Abschnitt der Quelle als Einheiten mit ID und die Antwort: Strukturfehler verwerfen sie ganz; einzelne Vorschläge mit ungültigen Feldern oder ungültiger, nicht erlaubter Form, unbekanntem Beleg, wiederholter Frage oder über dem Restlimit des Auftrags fallen gezählt heraus. `aiSourceCards.ts` liest die Quelle im Browser, zerlegt sie in belegte Einheiten (PDF-Seite, Zeilenblöcke, Tabellenzeilen mit Kopfzeile) und schickt Abschnitte nacheinander über `requestAiSourceCards`, das die Antwort im Browser erneut prüft. Gespeichert wird erst bei der Übernahme, über `createManualNoteContent` und `saveManualNote`.
 
 ### Zusammenfassungen und Mindmaps
 

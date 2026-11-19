@@ -7,6 +7,7 @@ export {
   getGlobalSchedulerPreferences,
   markLearningSettingsCustom,
   normalizeLearnAheadMinutes,
+  normalizeLeechThreshold,
   normalizeLearningProfileSource,
   normalizeLearningSettings,
   renameLearningProfileTemplate,

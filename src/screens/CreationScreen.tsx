@@ -1,3 +1,5 @@
+import type { CreationCompletionKind } from "../appNavigation.ts";
+import type { AiSourceCardsRequester } from "../aiSourceCards.ts";
 import React from "react";
 import { CheckCircle2 } from "lucide-react";
 import type { CreationScreenProps } from "../appScreenProps.ts";
@@ -12,7 +14,10 @@ import { CreationHome, creationMethods } from "./CreationHome.tsx";
 import { ManualCreationPanel } from "./ManualCreationPanel.tsx";
 import { AiSourceCreationPanel } from "./AiSourceCreationPanel.tsx";
 
-export type CreationScreenViewProps = Partial<CreationScreenProps>;
+export type CreationScreenViewProps = Partial<CreationScreenProps> & {
+  /** Sends one portion of a source to the AI; without it, automatic creation stays unavailable. */
+  onRequestSourceCards?: AiSourceCardsRequester;
+};
 
 const NO_MEDIA: ImportCompletion["sampleMedia"] = [];
 
@@ -38,9 +43,10 @@ export function CreationScreen({
   onStartDeck = () => undefined,
   onReviewDeck = () => undefined,
   onOpenDashboard = () => undefined,
+  onRequestSourceCards,
 }: CreationScreenViewProps) {
   const completionHeadingRef = React.useRef<HTMLHeadingElement | null>(null);
-  const [sessionCompletion, setSessionCompletion] = React.useState<{ deckId: string; createdCount: number; kind: "import" | "manual"; importResult?: Pick<ImportCompletion, "reimport" | "samples" | "sampleMedia"> } | null>(null);
+  const [sessionCompletion, setSessionCompletion] = React.useState<{ deckId: string; createdCount: number; kind: CreationCompletionKind; importResult?: Pick<ImportCompletion, "reimport" | "samples" | "sampleMedia"> } | null>(null);
   const [localApkgImportSession, setLocalApkgImportSession] = React.useState(() => createEmptyApkgImportSession());
   const apkgImportSession = controlledApkgImportSession ?? localApkgImportSession;
   const apkgImportSessionRef = React.useRef(apkgImportSession);
@@ -75,7 +81,7 @@ export function CreationScreen({
     [importActions, mediaStore],
   );
 
-  function completeSession(deckId: string, createdCount: number, kind: "import" | "manual", importResult?: Pick<ImportCompletion, "reimport" | "samples" | "sampleMedia">) {
+  function completeSession(deckId: string, createdCount: number, kind: CreationCompletionKind, importResult?: Pick<ImportCompletion, "reimport" | "samples" | "sampleMedia">) {
     setSessionCompletion({ deckId, createdCount, kind, importResult });
     onSessionCompleted({ deckId, createdCount, kind });
   }
@@ -88,7 +94,7 @@ export function CreationScreen({
 
   function renderSelectedMethod() {
     if (selectedMethod === "ai-source") {
-      return <>{methodHeader()}<AiSourceCreationPanel key={initialTargetDeckId} decks={decks} initialTargetDeckId={initialTargetDeckId} onDraftStateChange={onDraftStateChange} /></>;
+      return <>{methodHeader()}<AiSourceCreationPanel key={initialTargetDeckId} decks={decks} initialTargetDeckId={initialTargetDeckId} onDraftStateChange={onDraftStateChange} onSaveManualNote={onSaveManualNote} onRequestSourceCards={onRequestSourceCards} onFinish={({ deckId, createdCount }) => completeSession(deckId, createdCount, "ai-source")} /></>;
     }
     if (selectedMethod === "import") {
       return (
@@ -130,7 +136,7 @@ export function CreationScreen({
     <div className="grid min-w-0 min-h-[calc(100vh-10rem)] content-start gap-6">
       {completedDeck ? (
         <>
-        <PageHeader title={creationMethods.find((method) => method.id === (resolvedCompletionKind === "import" ? "import" : "manual"))!.pageTitle} back={backToCreation} />
+        <PageHeader title={creationMethods.find((method) => method.id === (resolvedCompletionKind || "manual"))!.pageTitle} back={backToCreation} />
         <SoftPanel className="mx-auto w-full max-w-3xl p-6 text-center sm:p-10">
           <CheckCircle2 size={32} className="mx-auto text-core-success" aria-hidden="true" />
           <h2 ref={completionHeadingRef} tabIndex={-1} className="mt-4 core-heading-2 text-core-text outline-none">
@@ -150,7 +156,7 @@ export function CreationScreen({
                 <ActionButton type="button" variant="secondary" onClick={() => onReviewDeck(completedDeck.id)}>Karten prüfen</ActionButton>
                 <ActionButton type="button" variant="secondary" onClick={() => {
                   setSessionCompletion(null);
-                  onMethodChange("manual");
+                  onMethodChange(resolvedCompletionKind === "ai-source" ? "ai-source" : "manual");
                 }}>Weitere Karten erstellen</ActionButton>
               </>
             )}

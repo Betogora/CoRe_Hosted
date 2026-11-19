@@ -1,7 +1,7 @@
 import React from "react";
 import { Layers } from "lucide-react";
 import type { GlobalCardSettingsScreenProps, GlobalLearningSettingsSaveScope, SettingsSaveOutcome } from "../appScreenProps.ts";
-import { normalizeLearnAheadMinutes } from "../deckSettings.ts";
+import { normalizeLearnAheadMinutes, normalizeLeechThreshold } from "../deckSettings.ts";
 import { EASY_DAY_KEYS, normalizeEasyDays } from "../easyDays.ts";
 import type { EasyDayLevel, EasyDays } from "../coreTypes.ts";
 import { normalizeDayStartHour } from "../learningDay.ts";
@@ -65,6 +65,7 @@ export function GlobalCardSettingsScreen({ section, decks, onOpenDeckSettings, t
     const normalized: GlobalCardSettingsDraft = {
       dayStartHour: normalizeDayStartHour(draft.dayStartHour),
       learnAheadMinutes: normalizeLearnAheadMinutes(draft.learnAheadMinutes),
+      leechThreshold: normalizeLeechThreshold(draft.leechThreshold),
       easyDays: normalizeEasyDays(draft.easyDays),
       learning: createDeckLearningSettingsDraft(draft.learning),
       flagNames: normalizeFlagNames(draft.flagNames),
@@ -130,6 +131,12 @@ export function GlobalCardSettingsScreen({ section, decks, onOpenDeckSettings, t
               </div>
               <div className="core-settings-row-control">
                 <CoreNumberField id="card-settings-learn-ahead" value={draft.learnAheadMinutes} min={0} max={720} unit="Min." ariaDescribedBy="card-settings-learn-ahead-hint" className="w-32" onChange={(learnAheadMinutes) => setDraft((current) => ({ ...current, learnAheadMinutes }))} />
+              </div>
+            </div>
+            <div className="core-settings-row" data-testid="card-settings-leech">
+              <label htmlFor="card-settings-leech-threshold" className="core-settings-row-title">Lernbremse ab Fehlern</label>
+              <div className="core-settings-row-control">
+                <CoreNumberField id="card-settings-leech-threshold" value={draft.leechThreshold} min={1} max={99} unit="Fehler" className="w-32" onChange={(leechThreshold) => setDraft((current) => ({ ...current, leechThreshold }))} />
               </div>
             </div>
             <div className="core-settings-row" data-layout="inline">

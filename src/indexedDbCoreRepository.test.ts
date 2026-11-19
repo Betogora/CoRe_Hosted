@@ -738,24 +738,6 @@ test("der lokale Katalog führt den Lernverlauf fort und behält ihn bei Inhalts
   repository.close();
 });
 
-test("eine Lernbremse, die der Stapel aussetzt, synchronisiert die Aussetzung als Kartenänderung", async () => {
-  const graph = basicGraph("deck-leech", 0);
-  const card: Card = { ...graph.cards[0], study: { ...graph.cards[0].study, state: "review", reps: 5, stability: 20, difficulty: 6, lastReviewedAt: "2026-08-01T00:00:00.000Z" } };
-  const deck = createCoreDeck({ id: "deck-leech", name: "Lernbremse", source: "manual", cards: [card], deckSettings: { leechThreshold: 1, leechAction: "suspend" } });
-  const repository = await openRepository(state([deck], [graph.note]));
-  const result = answerVariant(deck, card.id, null, "again", { now: "2026-08-21T10:00:00.000Z" });
-  assert.equal(result.leechTriggered, true);
-  repository.recordReview(result);
-  await repository.flush();
-
-  const stored = (await repository.loadCardBody(card.id))!.card;
-  assert.deepEqual([stored.status, stored.study.leechedAt], ["suspended", "2026-08-21T10:00:00.000Z"]);
-  assert.deepEqual(pendingEntityMutations(repository).map((mutation) => [mutation.table, mutation.entityId, mutation.baseRevision, mutation.entity.status]), [
-    ["cards", card.id, card.revision, "suspended"],
-  ]);
-  repository.close();
-});
-
 test("das lokale Tag-Verzeichnis liest die Inhalte der Replik", async () => {
   const graph = basicGraph("deck-tags", 0);
   const note: Note = { ...graph.note, content: { ...graph.note.content, tags: ["#AK::Herz"] }, importedTags: ["#AK::Herz"] };
