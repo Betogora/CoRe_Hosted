@@ -65,7 +65,7 @@ export interface NoteTypeSource {
   kind: number;
   originalStockKind: number;
   css: string;
-  fields: Array<{ name: string; ordinal: number }>;
+  fields: Array<{ name: string; ordinal: number; tag?: number | null }>;
   templates: Array<{ name: string; ordinal: number; front: string; back: string; targetDeckId: string | null }>;
   config: unknown;
 }
@@ -144,18 +144,20 @@ interface AnkiModel {
   originalStockKind: number;
   css: string;
   fields: string[];
+  /** Anki's field tags; image occlusion finds its fields by tag, not by position. */
+  fieldTags: Array<number | null>;
   templates: Array<{ ordinal: number; name: string; front: string; back: string; targetDeckId: string | null }>;
   config: unknown;
 }
 
 const BASIC = { id: "anki-basic", version: 1 };
 const CLOZE = { id: "anki-cloze", version: 1 };
-const IMAGE_OCCLUSION = { id: "anki-image-occlusion", version: 2 };
+const IMAGE_OCCLUSION = { id: "anki-image-occlusion", version: 3 };
 const IMAGE_OCCLUSION_ENHANCED = { id: "image-occlusion-enhanced", version: 2 };
 const MULTIPLE_CHOICE = { id: "multiple-choice-for-anki", version: 1 };
-const ANKING = { id: "anking", version: 2 };
-const GENERIC = { id: "generic", version: 3 };
-const FIELD_LIST = { id: "field-list", version: 2 };
+const ANKING = { id: "anking", version: 3 };
+const GENERIC = { id: "generic", version: 4 };
+const FIELD_LIST = { id: "field-list", version: 3 };
 const DAY_MS = 86_400_000;
 
 // --- Small text helpers -------------------------------------------------------------------
@@ -212,6 +214,10 @@ function normalizeModel(raw: any): AnkiModel {
     originalStockKind: Number(config.originalStockKind ?? raw?.originalStockKind ?? 0),
     css: String(config.css ?? raw?.css ?? ""),
     fields: fields.map((field, index) => String(field.name ?? `Feld ${index + 1}`)),
+    fieldTags: fields.map((field) => {
+      const tag = field.config?.tag ?? field.tag;
+      return tag == null || !Number.isFinite(Number(tag)) ? null : Number(tag);
+    }),
     templates: templates.map((template, index) => ({
       ordinal: Number(template.ord ?? index),
       name: String(template.name ?? `Karte ${index + 1}`),
@@ -367,7 +373,9 @@ function genericPlan(model: AnkiModel, translator: TranslatorId, promptKey: (ord
     for (const ref of front.refs) if (ref.behindButton) assign(ref.ordinal, "hint");
     const asksWith = (ordinal: number) => roles[model.fields[ordinal]] === undefined || roles[model.fields[ordinal]] === "prompt" || roles[model.fields[ordinal]] === "answer";
     const displayed = front.refs.filter((ref) => isDisplayed(ref) && asksWith(ref.ordinal));
-    const question = [...new Set(displayed.map((ref) => ref.ordinal))];
+    // As in Anki, any filled field on the front makes a card: a front of only `tts:`, `hint:` or extra fields asks with them.
+    const question = [...new Set((displayed.length ? displayed : front.refs.filter((ref) => !ref.href && !isTypeIn(ref))).map((ref) => ref.ordinal))];
+    if (!displayed.length) for (const ordinal of question) roles[model.fields[ordinal]] = "prompt";
     const typeIn = front.refs.find(isTypeIn)?.ordinal ?? null;
     const answerRefs = back.refs.filter((ref) => !isHint(ref) && ttsLanguage(ref) === null && !ref.href
       && (back.hasAnswerMarker ? ref.answerSide : !frontOrdinals.has(ref.ordinal)));
@@ -586,7 +594,7 @@ function unescapeOcclusion(value: string) {
 /** Native Image Occlusion stores relative shapes as clozes: `{{c1::image-occlusion:rect:left=.1:…:oi=1}}`. */
 export function parseImageOcclusionField(html: string): OcclusionMask[] {
   const masks: OcclusionMask[] = [];
-  for (const match of decodeHtmlEntities(html).matchAll(/\{\{c(\d+)::image-occlusion:([\s\S]*?)\}\}/g)) {
+  for (const match of decodeHtmlEntities(html).matchAll(/\{\{c([\d,]+)::image-occlusion:([\s\S]*?)\}\}/g)) {
     const [kind, ...pairs] = match[2].split(/(?<!\\):/);
     const props = new Map(pairs.map((pair) => {
       const separator = pair.indexOf("=");
@@ -611,15 +619,21 @@ export function parseImageOcclusionField(html: string): OcclusionMask[] {
     } else if (kind === "text") {
       shape = { kind, left: number("left"), top: number("top"), text: props.get("text") ?? "", scale: number("scale", 1), fontSize: number("fs") || null, angle };
     } else continue;
-    masks.push({ id: `m${masks.length + 1}`, ordinal: Number(match[1]), shape, alwaysOccluded: props.get("oi") === "1" });
+    // Anki draws `c0` shapes (text labels) on every card without asking them; `{{c1,2::…}}` belongs to both cards.
+    for (const ordinal of new Set(match[1].split(",").filter(Boolean).map(Number))) {
+      masks.push({ id: `m${masks.length + 1}`, ordinal, shape, alwaysOccluded: props.get("oi") === "1" || ordinal === 0 });
+    }
   }
   return masks;
 }
 
 function imageOcclusionPlan(model: AnkiModel): NotetypePlan {
-  // Anki's stock fields by ordinal: Occlusion, Image, Header, Back Extra, Comments.
+  // Anki's stock fields by tag (by position without tags): Occlusion, Image, Header, Back Extra, Comments.
+  const tagged = model.fieldTags.some((tag) => tag !== null);
+  const tagOf = (ordinal: number) => tagged ? model.fieldTags[ordinal] ?? -1 : ordinal;
+  const ordinalOf = (tag: number) => model.fields.findIndex((_, ordinal) => tagOf(ordinal) === tag);
   const roles: Record<string, FieldRole> = {};
-  model.fields.forEach((name, ordinal) => { roles[name] = (["consumed", "consumed", "prompt", "extra"] as const)[ordinal] ?? "note"; });
+  model.fields.forEach((name, ordinal) => { roles[name] = (["consumed", "consumed", "prompt", "extra"] as const)[tagOf(ordinal)] ?? "note"; });
   return {
     translator: IMAGE_OCCLUSION,
     fieldRoles: roles,
@@ -627,7 +641,7 @@ function imageOcclusionPlan(model: AnkiModel): NotetypePlan {
     content: (values) => ({
       schemaVersion: 1,
       fields: contentFields(model, roles, values),
-      interaction: { kind: "image-occlusion", image: firstImageSource(values[1] ?? ""), mode: "hide-one-guess-one", masks: parseImageOcclusionField(values[0] ?? "") },
+      interaction: { kind: "image-occlusion", image: firstImageSource(values[ordinalOf(1)] ?? ""), mode: "hide-one-guess-one", masks: parseImageOcclusionField(values[ordinalOf(0)] ?? "") },
       speech: [],
     }),
   };
@@ -677,12 +691,14 @@ export const TRANSLATOR_VERSIONS: Readonly<Record<string, number>> = Object.from
  * cannot express them. The result is an unvalidated candidate like during the import.
  */
 export function retranslateNoteContent(source: NoteTypeSource, fields: string[], tags: string[]) {
+  const sourceFields = [...source.fields].sort((left, right) => left.ordinal - right.ordinal);
   const plan = planNotetype({
     name: source.name,
     kind: source.kind,
     originalStockKind: source.originalStockKind,
     css: source.css,
-    fields: [...source.fields].sort((left, right) => left.ordinal - right.ordinal).map((field) => field.name),
+    fields: sourceFields.map((field) => field.name),
+    fieldTags: sourceFields.map((field) => field.tag ?? null),
     templates: source.templates,
     config: source.config,
   });
@@ -718,10 +734,23 @@ function ankiPhase(type: number): ReviewSchedulerState {
 }
 
 /**
- * Phase, due date, counters and suspension come from the Anki card. Memory follows the
- * established priority: FSRS memory state, revlog replay, classic interval, new card.
+ * The answers that shape the card's memory, as in Anki's FSRS: without cram reviews, from the last reset on and from
+ * the last first contact; `complete` when that first contact is in the package.
  */
-function translateStudy(ankiCard: any, history: AnkiReviewHistoryEntry[], collectionCreatedAt: number | null, importedAt: string) {
+function memoryHistory(history: AnkiReviewHistoryEntry[], resetAt: string | undefined) {
+  const relevant = history.filter((entry) => !entry.cram && (!resetAt || entry.answeredAt > resetAt));
+  // The first contact starts the last run of learning answers (v1/v2 log its interval as the negative first step).
+  let firstContact = relevant.length - 1;
+  while (firstContact >= 0 && relevant[firstContact].reviewType !== 0) firstContact -= 1;
+  while (firstContact > 0 && relevant[firstContact - 1].reviewType === 0) firstContact -= 1;
+  return firstContact >= 0 ? { entries: relevant.slice(firstContact), complete: true } : { entries: relevant, complete: false };
+}
+
+/**
+ * Phase, due date, counters and suspension come from the Anki card. Memory follows the established priority: a
+ * complete history replayed with the CoRe scheduler, Anki's FSRS memory state, a partial history, the classic interval.
+ */
+function translateStudy(ankiCard: any, history: AnkiReviewHistoryEntry[], resetAt: string | undefined, collectionCreatedAt: number | null, importedAt: string) {
   const type = Number(ankiCard.type ?? 0);
   const queue = Number(ankiCard.queue ?? type);
   const phase = ankiPhase(type);
@@ -746,19 +775,23 @@ function translateStudy(ankiCard: any, history: AnkiReviewHistoryEntry[], collec
       : new Date(Date.parse(importedAt) + intervalDays * DAY_MS).toISOString();
   let migration: StudyMigration;
   let memoryState: { stability: number; stabilityFast?: number; difficulty: number; lastReviewedAt: string | null; desiredRetention?: number | null };
+  const replayable = memoryHistory(history, resetAt);
+  // Without Anki's `lrt` the last answer marks the last review, as in Anki; without history the due date minus the interval.
+  const lastReviewedAt = replayable.entries.at(-1)?.answeredAt
+    ?? (phase === "review" && intervalDays > 0 ? new Date(Date.parse(dueAt) - intervalDays * DAY_MS).toISOString() : null);
   // Anki stores an FSRS-6 memory state; a history from the first contact rebuilds both FSRS-7 traces and takes precedence.
-  if (history.length > 0 && (history[0].beforeState === "new" || !memory)) {
+  if (replayable.entries.length > 0 && (replayable.complete || !memory)) {
     migration = "revlog-replay";
-    let replay = createReviewState({ dueAt: history[0].answeredAt });
-    for (const entry of history) replay = scheduleWithFsrs(replay, entry.rating, { now: entry.answeredAt, isVariant: false, variantId: null, variantIsOriginal: true });
-    memoryState = { stability: replay.stability, stabilityFast: replay.stabilityFast, difficulty: replay.difficulty, lastReviewedAt: history.at(-1)!.answeredAt, desiredRetention: memory?.desiredRetention };
+    let replay = createReviewState({ dueAt: replayable.entries[0].answeredAt });
+    for (const entry of replayable.entries) replay = scheduleWithFsrs(replay, entry.rating, { now: entry.answeredAt, isVariant: false, variantId: null, variantIsOriginal: true });
+    memoryState = { stability: replay.stability, stabilityFast: replay.stabilityFast, difficulty: replay.difficulty, lastReviewedAt: replayable.entries.at(-1)!.answeredAt, desiredRetention: memory?.desiredRetention };
   } else if (memory) {
     migration = "fsrs-memory-state";
-    memoryState = memory;
+    memoryState = { ...memory, lastReviewedAt: memory.lastReviewedAt ?? lastReviewedAt };
   } else {
     migration = "classic-state";
     const ease = Number(ankiCard.factor) > 0 ? Number(ankiCard.factor) / 1000 : 2.5;
-    memoryState = { stability: Math.max(intervalDays, 0.1), difficulty: Math.min(10, Math.max(1, 11 - ease * 2)), lastReviewedAt: null };
+    memoryState = { stability: Math.max(intervalDays, 0.1), difficulty: Math.min(10, Math.max(1, 11 - ease * 2)), lastReviewedAt };
   }
   const state = createReviewState({
     state: phase,
@@ -908,7 +941,7 @@ export async function translateAnkiPackage(pkg: AnkiPackage, options: { imported
         kind: model.kind,
         originalStockKind: model.originalStockKind,
         css: model.css,
-        fields: model.fields.map((name, ordinal) => ({ name, ordinal })),
+        fields: model.fields.map((name, ordinal) => ({ name, ordinal, tag: model.fieldTags[ordinal] })),
         templates: model.templates,
         config: model.config,
       },
@@ -995,7 +1028,7 @@ export async function translateAnkiPackage(pkg: AnkiPackage, options: { imported
       }
       const ankiCardId = String(ankiCard.id);
       const history = historyByCard.get(ankiCardId) ?? [];
-      const study = translateStudy(ankiCard, history, pkg.collectionCreatedAt, importedAt);
+      const study = translateStudy(ankiCard, history, pkg.reviewHistory.resetsByCard?.[ankiCardId], pkg.collectionCreatedAt, importedAt);
       entry.report.study[study.migration] += 1;
       cards.push({ ...card, deckId: deckIdForAnkiDeck(homeDeck(ankiCard)), ankiCardId, status: study.status, ankiFlag: study.ankiFlag, study: study.study });
       for (const historyEntry of history) {

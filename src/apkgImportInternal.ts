@@ -37,15 +37,19 @@ export interface AnkiReviewHistoryEntry {
   afterIntervalDays: number;
   afterIntervalMinutes: number | null;
   ease: number;
+  /** A filtered-deck review without rescheduling (Anki's cram); it does not count for the memory state. */
+  cram: boolean;
 }
 
 interface AnkiReviewHistoryPayload {
   entries: AnkiReviewHistoryEntry[];
   totalRows: number;
   skippedRows: number;
+  /** Per Anki card the time of its last reset to new (manual revlog entry without ease factor). */
+  resetsByCard: Record<string, string>;
 }
 
-const EMPTY_ANKI_REVIEW_HISTORY: AnkiReviewHistoryPayload = { entries: [], totalRows: 0, skippedRows: 0 };
+const EMPTY_ANKI_REVIEW_HISTORY: AnkiReviewHistoryPayload = { entries: [], totalRows: 0, skippedRows: 0, resetsByCard: {} };
 const ANKI_RATING_BY_EASE: Record<number, ReviewRating> = { 1: "again", 2: "hard", 3: "good", 4: "easy" };
 
 function intervalFromAnki(value: unknown): { days: number; minutes: number | null } {
@@ -62,19 +66,27 @@ function reviewStateFromAnkiType(type: number, interval: { days: number; minutes
   return "review";
 }
 
-export function normalizeAnkiReviewHistory(rows: unknown): AnkiReviewHistoryPayload {
+/** `schedulerV1`: a collection still on Anki's v1 scheduler, whose learning rows count Good and Easy one button lower. */
+export function normalizeAnkiReviewHistory(rows: unknown, { schedulerV1 = false }: { schedulerV1?: boolean } = {}): AnkiReviewHistoryPayload {
   if (!Array.isArray(rows)) return EMPTY_ANKI_REVIEW_HISTORY;
   const entries: AnkiReviewHistoryEntry[] = [];
+  const resetsByCard: Record<string, string> = {};
   let skippedRows = 0;
 
   for (const candidate of rows) {
     const row = candidate != null && typeof candidate === "object" ? candidate as Record<string, unknown> : {};
     const reviewId = String(row.id ?? "").trim();
     const cardId = String(row.cid ?? row.cardId ?? "").trim();
-    const ease = Number(row.ease);
-    const rating = ANKI_RATING_BY_EASE[ease];
     const answeredAtMs = Number(reviewId);
     const reviewType = Number(row.type);
+    const rawEase = Number(row.ease);
+    // Anki's v2 upgrade moves Good and Easy of v1 learning rows up by one button (`v2_upgrade.sql`).
+    const ease = schedulerV1 && (reviewType === 0 || reviewType === 2) && (rawEase === 2 || rawEase === 3) ? rawEase + 1 : rawEase;
+    const rating = ANKI_RATING_BY_EASE[ease];
+    if (reviewType === 4 && Number(row.factor) === 0 && cardId && Number.isFinite(answeredAtMs) && answeredAtMs > 0) {
+      const resetAt = new Date(answeredAtMs).toISOString();
+      if (!resetsByCard[cardId] || resetsByCard[cardId] < resetAt) resetsByCard[cardId] = resetAt;
+    }
     if (!reviewId || !cardId || !rating || !Number.isFinite(answeredAtMs) || answeredAtMs <= 0 || !Number.isInteger(reviewType) || reviewType < 0 || reviewType > 3) {
       skippedRows += 1;
       continue;
@@ -96,11 +108,12 @@ export function normalizeAnkiReviewHistory(rows: unknown): AnkiReviewHistoryPayl
       afterIntervalDays: after.days,
       afterIntervalMinutes: after.minutes,
       ease: Number.isFinite(Number(row.factor)) && Number(row.factor) > 0 ? Number(row.factor) / 1000 : 2.5,
+      cram: reviewType === 3 && Number(row.factor) === 0,
     });
   }
 
   entries.sort((left, right) => left.answeredAt.localeCompare(right.answeredAt));
-  return { entries, totalRows: rows.length, skippedRows };
+  return { entries, totalRows: rows.length, skippedRows, resetsByCard };
 }
 
 function parseJson(value: unknown, fallback: unknown): unknown {
@@ -398,8 +411,9 @@ function parseAnkiCards(database: AnkiDatabase) {
   return database.readTable("cards");
 }
 
-function parseAnkiReviewHistory(database: { readTable(tableName: string): unknown }) {
-  return normalizeAnkiReviewHistory(database.readTable("revlog"));
+function parseAnkiReviewHistory(database: { readTable(tableName: string): unknown }, colConf: unknown) {
+  const conf = parseJson(colConf, {});
+  return normalizeAnkiReviewHistory(database.readTable("revlog"), { schedulerV1: Number((conf as { schedVer?: unknown } | null)?.schedVer) === 1 });
 }
 
 async function parsePackageMetadataBytes(bytes: Uint8Array) {
@@ -511,7 +525,7 @@ export async function readAnkiPackage(file: Blob & { name: string }, onStep: (st
     notes: parseAnkiNotes(database),
     cards: parseAnkiCards(database),
     models: await getModelsFromDatabase(database, colRows),
-    reviewHistory: parseAnkiReviewHistory(database),
+    reviewHistory: parseAnkiReviewHistory(database, colRows[0]?.conf),
     media: await readAnkiMediaIndex(archive),
   };
 }
