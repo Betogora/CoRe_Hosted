@@ -3828,7 +3828,6 @@ button.core-steps-step {
   background: var(--core-action-soft);
   box-shadow: inset 0 0 0 2px var(--core-action-primary);
 }
-.core-ai-source-radio + .core-ai-source-radio { border-top: var(--core-border-width) solid var(--core-border); }
 .core-ai-source-target {
   display: flex;
   align-items: center;

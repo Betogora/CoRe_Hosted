@@ -1,0 +1,82 @@
+%PDF-1.4
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [5 0 R 7 0 R 9 0 R] /Count 3 >>
+endobj
+3 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>
+endobj
+4 0 obj
+<< /Length 815 >>
+stream
+BT /F1 12 Tf 72 760 Td 16 TL
+(Das ohmsche Gesetz) Tj T*
+() Tj T*
+(Das ohmsche Gesetz beschreibt den Zusammenhang zwischen Spannung, Stromstärke) Tj T*
+(und Widerstand in einem elektrischen Leiter. Es lautet: U = R · I.) Tj T*
+(Dabei ist U die Spannung in Volt \(V\), I die Stromstärke in Ampere \(A\)) Tj T*
+(und R der elektrische Widerstand in der Einheit Ohm.) Tj T*
+() Tj T*
+(Das Gesetz gilt nur für ohmsche Leiter, deren Widerstand bei konstanter) Tj T*
+(Temperatur unabhängig von der Stromstärke ist, etwa für Metalldrähte.) Tj T*
+(Eine Glühlampe ist kein ohmscher Leiter, weil ihr Widerstand mit der) Tj T*
+(Temperatur des Glühfadens steigt.) Tj T*
+() Tj T*
+(Beispiel: Liegt an einem Widerstand von 100 Ohm eine Spannung von 12 V an,) Tj T*
+(fließt ein Strom von I = U / R = 12 V / 100 Ohm = 0,12 A.) Tj T*
+ET
+endstream
+endobj
+5 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R >> >> /Contents 4 0 R >>
+endobj
+6 0 obj
+<< /Length 26 >>
+stream
+0.85 g 72 400 451 300 re f
+endstream
+endobj
+7 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R >> >> /Contents 6 0 R >>
+endobj
+8 0 obj
+<< /Length 616 >>
+stream
+BT /F1 12 Tf 72 760 Td 16 TL
+(Reihen- und Parallelschaltung) Tj T*
+() Tj T*
+(In einer Reihenschaltung fließt durch alle Widerstände derselbe Strom.) Tj T*
+(Der Gesamtwiderstand ist die Summe der Einzelwiderstände: R = R1 + R2.) Tj T*
+(Die Gesamtspannung teilt sich auf die Widerstände auf.) Tj T*
+() Tj T*
+(In einer Parallelschaltung liegt an allen Widerständen dieselbe Spannung.) Tj T*
+(Die Kehrwerte addieren sich: 1/R = 1/R1 + 1/R2.) Tj T*
+(Der Gesamtwiderstand ist daher immer kleiner als der kleinste) Tj T*
+(Einzelwiderstand.) Tj T*
+() Tj T*
+(Elektrische Leistung: P = U · I, gemessen in Watt \(W\).) Tj T*
+ET
+endstream
+endobj
+9 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R >> >> /Contents 8 0 R >>
+endobj
+xref
+0 10
+0000000000 65535 f 
+0000000009 00000 n 
+0000000058 00000 n 
+0000000127 00000 n 
+0000000224 00000 n 
+0000001090 00000 n 
+0000001216 00000 n 
+0000001292 00000 n 
+0000001418 00000 n 
+0000002085 00000 n 
+trailer
+<< /Size 10 /Root 1 0 R >>
+startxref
+2211
+%%EOF

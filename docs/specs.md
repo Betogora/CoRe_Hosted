@@ -39,7 +39,7 @@ Titel: Wie die Bereiche zusammenspielen
 Gruppe: Karten kommen hinein (Erstellen)
 Anki-Import | Paket wird auf dem Gerät übersetzt
 Manuell | Felder, Auswahl, Lücken, Bildverdeckung
-[primär] Automatisch aus einer Quelle | vorbereitet, noch nicht aktiv
+[primär] Automatisch aus einer Quelle | KI-Vorschläge, vor dem Speichern geprüft
 Pfeil: werden zu
 Gruppe: Bestand
 Stapel | Hierarchie mit eigenen Lernoptionen
@@ -118,7 +118,7 @@ Karte
 - **Lückentext:** Jede Lückengruppe ist eine eigene Karte.
 - **Auswahl:** Single Choice (genau eine richtige von mindestens zwei Optionen), Multiple Choice (mindestens eine richtige und eine falsche) und Kprim (eine Karte mit beliebig vielen Aussagen, jede als richtig oder falsch zu markieren; nur aus Anki-Importen). Ein Inhalt ergibt genau eine Karte; nicht mit Lücken oder Rückrichtung kombinierbar.
 - **Bildverdeckung:** Jede Maskengruppe ist eine eigene Karte ([Bildverdeckung](#bildverdeckung)).
-- **Antwort eintippen:** Baustein für Frage–Antwort; die Eingabe wird zeichengenau wie in Anki verglichen, bewertet wird trotzdem selbst.
+- **Antwort eintippen:** Baustein für Frage–Antwort; die Eingabe wird zeichengenau wie in Anki verglichen und selbst bewertet.
 - **Zusätzliche Felder** tragen eine Rolle: `Zusatzfrage` (Teil der Frage, in Rückrichtung Teil der Antwort), `Hinweis` (vor der Antwort aufdeckbar), `Zusatz` und `Quelle` (erst nach der Antwort), `Notiz` (nur im Editor).
 - Felder sind formatierter Text, der vor Speicherung und Darstellung bereinigt wird.
 
@@ -143,8 +143,7 @@ Karte
 
 - Flaggen sind die sieben Anki-Farben je Karte; eigene Namen gelten kontoweit. Anki-Flaggen werden übernommen, Flaggennamen nicht, weil das Paket sie nicht enthält.
 - Die Markierung gehört zum Inhalt (Anki-Tag `marked`), die Lernbremse zur Karte (Anki-Tag `leech`); beide erscheinen danach nicht mehr als Tag.
-- Eine Karte erhält die Lernbremse, wenn ein `Nochmal` in der Wiederholung die kontoweite Fehlerschwelle erreicht (Standard 8), danach bei jeder weiteren halben Schwelle. Frühere Fehler lösen nicht rückwirkend aus.
-- Die Lernbremse kennzeichnet nur und lässt sich zurücksetzen; ausgesetzt wird eine Karte nie dadurch. Eine in Anki ausgesetzte Karte bleibt nach dem Import ausgesetzt, unabhängig vom Tag `leech`.
+- Die Lernbremse kennzeichnet eine Karte, wenn ein `Nochmal` in der Wiederholung die kontoweite Fehlerschwelle (Standard 8) erreicht, danach je halbe Schwelle, nie rückwirkend. Sie setzt nie aus und lässt sich zurücksetzen.
 - Lokal gesetzte Flaggen, Markierung und Lernbremse überstehen einen Reimport.
 
 ### Stapel
@@ -194,7 +193,7 @@ Akzeptanz:
 
 - Der Import folgt [Anki-Import](#anki-import), [Übersetzung von Anki-Paketen](#übersetzung-von-anki-paketen) und [Reimport und Neuübersetzung](#reimport-und-neuübersetzung).
 - Die manuelle Erstellung folgt [Manuell erstellen](#manuell-erstellen) und [Bildverdeckung](#bildverdeckung).
-- Der vorbereitete dritte Weg folgt [Automatisch aus einer Quelle](#automatisch-aus-einer-quelle).
+- Der dritte Weg folgt [Automatisch aus einer Quelle](#automatisch-aus-einer-quelle).
 
 ### Karten bearbeiten und eine Sitzung starten
 
@@ -305,7 +304,7 @@ Akzeptanz:
 
 ### Erstellungswege
 
-Karten entstehen manuell, durch Anki-Import oder, vorbereitet, automatisch aus einer Quelle. Manuelle Erstellung und Import speichern zuerst auf dem Gerät und synchronisieren danach.
+Karten entstehen manuell, durch Anki-Import oder automatisch aus einer Quelle. Manuelle Erstellung und Import speichern zuerst auf dem Gerät und synchronisieren danach.
 
 ### Manuell erstellen
 
@@ -379,13 +378,19 @@ Gruppe: Synchronisierung ins Konto
 
 ### Automatisch aus einer Quelle
 
-Vorbereitet: Der Auftrag lässt sich bis zur Prüfung zusammenstellen. Es werden noch keine Dateien ausgelesen oder übertragen und keine Karten angelegt.
+Aus einer eigenen Quelle schlägt die KI Karten vor; gespeichert wird erst, was die Lernenden geprüft und übernommen haben.
 
-- Ein Auftrag besteht aus Quelle (eine Datei oder eingefügter Text), genau einem Zielstapel (neu oder vorhanden), Lernwünschen und erlaubten Kartenformen.
-- Lernwünsche sind Stoffabdeckung, Antwortumfang, Sprache, Formulierung, Vorwissen und freie Wünsche. Abdeckung und Antwortumfang sind unabhängig: Mehr Abdeckung bedeutet mehr Karten, nicht längere Antworten.
+- Ein Auftrag besteht aus Quelle (eine Datei als PDF, Text, Markdown, CSV oder TSV oder eingefügter Text), genau einem Zielstapel (neu oder vorhanden), Lernwünschen und erlaubten Kartenformen.
+- Lernwünsche sind Kartenmenge, Antwortumfang, Sprache, Formulierung, Vorwissen und freie Wünsche. Kartenmenge und Antwortumfang sind unabhängig: Mehr Karten bedeuten nicht längere Antworten.
+- Die Kartenmenge (weniger, normal, mehr) bestimmt, wie viel des Stoffs abgefragt wird. Ein Auftrag ergibt höchstens 100 Vorschläge und nur so viele, wie die Quelle sinnvolle Informationsstücke trägt; Füllkarten entstehen nicht.
 - Kartenformen (Frage–Antwort, Lückentext, Single Choice, Multiple Choice) werden erlaubt, nicht erzwungen; passende Abruf-, Verständnis- und Anwendungsfragen werden ohne feste Quoten gemischt.
-- Standard ist „nur meine Quelle“. Erlaubte Ergänzungen müssen überall als außerhalb der Quelle gekennzeichnet sein; Belege werden nie erfunden.
-- **Bewusst nicht:** Kartenanzahl, Mischungsverhältnisse, Lernzielauswahl.
+- Karten stammen nur aus der Quelle. Jede Karte nennt ihre Stelle (PDF-Seite oder Zeilen der Datei); Belege werden nie erfunden.
+- Die Quelle wird nur im Browser gelesen. Leere, geschützte, gescannte oder zu große Quellen (20 MiB, 400.000 Zeichen) werden abgewiesen, nie still gekürzt; Seiten ohne Textlayer werden genannt.
+- Größere Quellen laufen abschnittweise im geöffneten Tab mit Fortschritt; jeder Abschnitt kennt die bisherigen Fragen. Abbrechen behält Erhaltenes, ein Fehler, der jeden Abschnitt träfe, stoppt den Lauf, ein einzeln gescheiterter Abschnitt wird genannt. Endet der Lauf vorzeitig oder an der Obergrenze, nennt das Ergebnis die erste nicht ausgewertete Stelle.
+- Das Ergebnis ist eine ungespeicherte Liste mit Stelle, Hinweisen der KI und Zahl verworfener Vorschläge. Jeder Vorschlag lässt sich wie im [Karteneditor](#karteneditor) bearbeiten oder verwerfen; alle zu verwerfen behält den Auftrag.
+- Erst die Übernahme speichert die Vorschläge als eigene Karten mit Antwort, Erklärung und Stelle in getrennten Feldern; ein neuer Zielstapel entsteht erst dabei. Scheitert sie, bleibt der Rest zum erneuten Übernehmen.
+- Ohne Verbindung ist die Erstellung gesperrt; der Entwurfsschutz gilt auch für Vorschläge.
+- **Bewusst nicht:** feste Kartenanzahl, Mischungsverhältnisse, Lernzielauswahl, Kprim, Eintippen, einzelne Vorschläge neu erzeugen, Abgleich mit dem Zielstapel.
 
 ## 5. Lernen
 
@@ -433,7 +438,7 @@ Die Leseseite zeigt zu diesem Abschnitt typische Bewertungsketten als Zeitleiste
 - Ein Lerntag beginnt zum kontoweiten Tagesbeginn in der Zeitzone des Profils, ersatzweise des Browsers.
 - Wiederholungen werden tageweise freigegeben und sind am ganzen Fälligkeitstag verfügbar. Lernschritte haben minutengenaue Termine.
 - Das kontoweite Vorziehfenster (Standard 20 Minuten) erlaubt, einen Lernschritt früher zu zeigen, wenn er am selben Lerntag liegt und weniger als das Fenster entfernt ist. Wiederholungen werden nie vorgezogen, und nichts über die Tagesgrenze.
-- Ein fälliger Lern- oder Wiederlernschritt kommt wie in Anki als nächste Karte; einer im Vorziehfenster wartet, bis die übrigen Karten der Sitzung abgearbeitet sind. Warten nur noch nicht berechtigte Lernschritte, endet die Runde vorläufig; die Karten bleiben `Offen`.
+- Ein fälliger Lernschritt kommt wie in Anki als nächste Karte, einer im Vorziehfenster erst nach den übrigen Karten. Warten nur noch nicht berechtigte Lernschritte, endet die Runde vorläufig; die Karten bleiben `Offen`.
 - Eine von Hand auf einen künftigen Lerntag gesetzte Karte bleibt bis dahin in jeder Phase zurückgestellt.
 
 ### Tagesrunde und Limits
@@ -486,7 +491,7 @@ Fällig | ausgewählte Wiederholungen
 - Es gibt keinen eigenen Sitzungsstand: Nach Reload, Verlassen und Sync ergibt sich der Fortschritt aus gespeicherten Bewertungen und Lernständen.
 - Das Ende nennt die Zahl beantworteter Karten und führt zum Ausgangspunkt zurück. Ein Reload erhält Sitzung und Rückweg; fremde Rücksprungziele werden nicht angenommen.
 - Ist ein Stapel oder eine Karte nicht verfügbar, folgt eine verständliche nächste Aktion; nie öffnet sich stillschweigend eine andere Karte.
-- Aus der Sitzung heraus wirken sofort: Flagge, Markierung, Aussetzen, Kartenreihenfolge und Timer. Editor und Stapeleinstellungen öffnen sich über der Sitzung und führen an dieselbe Karte zurück; gespeicherte Stapeleinstellungen gelten sofort, auch für die gezeigte Karte.
+- Aus der Sitzung heraus wirken sofort: Flagge, Markierung, Aussetzen, Kartenreihenfolge und Timer. Editor und Stapeleinstellungen öffnen sich über der Sitzung und führen an dieselbe Karte zurück; gespeicherte Einstellungen gelten sofort.
 - Aussetzen pausiert die Karte samt Varianten, ohne ihren Lernstand zu ändern; sie fehlt dann in Runde, Tageszahlen und Fortschritt. Nach dem Reaktivieren ist ein vergangener Termin sofort wieder relevant.
 - Löst eine Bewertung die Lernbremse aus, weist die Sitzung einmal darauf hin.
 - Die Bewertungen der laufenden Sitzung lassen sich der Reihe nach zurücknehmen, die jüngste zuerst. Die Karte erscheint erneut mit dem Lernstand von davor; das Ereignis verschwindet aus Verlauf, Statistik und Tageszahlen auf allen Geräten. Eine andere Änderung an der Sitzung, ein neuer Lerntag oder das Verlassen beendet diese Möglichkeit.
@@ -556,7 +561,7 @@ Originalkarte | wird selbst abgefragt; die Kette wartet
 
 ## 6. KI-Funktionen
 
-CoRe nutzt KI an drei Stellen: als Lernhilfe zur aufgedeckten Karte, zum Umformulieren von Karten und zum Zusammenfassen eines Stapels. Ein vierter Einsatz, Karten aus einer Quelle, ist [vorbereitet](#automatisch-aus-einer-quelle).
+CoRe nutzt KI an vier Stellen: als Lernhilfe zur aufgedeckten Karte, zum Umformulieren von Karten, zum Zusammenfassen eines Stapels und für [Karten aus einer Quelle](#automatisch-aus-einer-quelle).
 
 ### Anbindung und Datenschutz
 
@@ -590,6 +595,7 @@ Prüfung | Struktur und Grenzen werden validiert
 | [KI hilft](#ki-hilft) | Frage zur aufgedeckten Karte | Text der Karte wie abgefragt, Hinweis-, Zusatz- und Notizfelder, die Frage, bis zu sechs frühere Antworten | eine Antwort als reiner Text | flüchtiger Verlauf, der mit der Karte endet |
 | [Kartenvariante](#kartenvarianten-erzeugen) | Aktion an einer Karte oder für einen Stapel | Frage und Antwort, Lückentext oder Frage und Optionen der Karte, Fragen ihrer vorhandenen Varianten | eine Umformulierung oder die Meldung „nicht umformulierbar“ | Variante an der Karte, falls neu und Karte unverändert |
 | [Zusammenfassung](#ki-zusammenfassung) | Erstellen einer Fassung | lesbare Inhalte des Stapels, optional eine Quelle, die Wünsche als getrennter Auftrag | Abschnitte, Stichpunkte, Belege, Querbezüge | ungespeicherter Entwurf; den Text baut die App |
+| [Karten aus einer Quelle](#automatisch-aus-einer-quelle) | Erstellen mit einer Quelle | Auftrag als getrennte Daten, je Anfrage ein Abschnitt der Quelle mit Stellen, die bisherigen Fragen | belegte Kartenvorschläge und Hinweise | ungespeicherte Vorschläge; Karten erst nach Übernahme |
 
 ### KI hilft
 

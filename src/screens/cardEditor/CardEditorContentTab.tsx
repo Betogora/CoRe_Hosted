@@ -11,7 +11,7 @@ import { ActionDialog } from "../../ui/coreUi.tsx";
 import { useSuccessToast } from "../../ui/feedbackUi.tsx";
 import type { RichTextImageActions } from "../../ui/RichTextEditor.tsx";
 import { CoreTooltip } from "../../ui/tooltipUi.tsx";
-import { cardStateLabel, draftChangeSummary, outdatedVariantCount, removedCardsDescription, type NoteContentPlan } from "./cardEditorModel.ts";
+import { cardStateLabel, draftChangeSummary, outdatedVariantCount, removedCardsDescription, valueForStructure, type NoteContentPlan } from "./cardEditorModel.ts";
 import { CardEditorSection as Section } from "./CardEditorSection.tsx";
 import { NoteContentEditor, type PreviewCard } from "./NoteContentEditor.tsx";
 
@@ -264,8 +264,7 @@ export function CardEditorContentTab({ graph, card, mediaUrls, mediaStore, daySt
           }}
           onStructureChange={(next, addedFieldId) => {
             setStructure(next);
-            const ids = new Set(next.fields.map((field) => field.id));
-            setForm((current) => ({ ...current, fields: { ...Object.fromEntries(Object.entries(current.fields).filter(([id]) => ids.has(id))), ...(addedFieldId ? { [addedFieldId]: "" } : {}) } }));
+            setForm((current) => valueForStructure(current, next, addedFieldId));
             clearStatus();
           }}
           errors={fieldErrors}
