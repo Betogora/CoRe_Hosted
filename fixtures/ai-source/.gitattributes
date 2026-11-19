@@ -1,0 +1,2 @@
+# The PDF fixture holds byte offsets; line endings must never be converted.
+*.pdf binary
