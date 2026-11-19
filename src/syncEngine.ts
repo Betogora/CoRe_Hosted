@@ -682,11 +682,13 @@ export function createSyncEngine({
       const handleFocus = () => {
         if (syncIntervalMinutes > 0 && documentTarget?.visibilityState !== "hidden") flushForActiveLifecycle();
       };
-      const handleVisibility = () => {
-        if (documentTarget?.visibilityState === "visible") handleFocus();
-      };
+      // Leaving the page, or hiding it (tab switch, app switch on mobile, often the last reliable moment), sends what is pending.
       const handlePageHide = () => {
         if (syncIntervalMinutes > 0 && outbox.count() > 0) flushForActiveLifecycle();
+      };
+      const handleVisibility = () => {
+        if (documentTarget?.visibilityState === "visible") handleFocus();
+        else handlePageHide();
       };
 
       networkTarget?.addEventListener?.("offline", handleOffline);

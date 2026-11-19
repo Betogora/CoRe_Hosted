@@ -222,7 +222,7 @@ function AppContent() {
     store: workspaceStore, repository: workspaceRepository, hydration: latestHydration, cloud: supabase ?? null,
     syncEngine: () => syncEngineRef.current, refresh: latestRefresh,
   }) : null, [latestHydration, latestRefresh, supabase, syncEngineRef, workspaceRepository, workspaceStore]);
-  const importSession = useImportSession(importCommands, cloudUser?.id ?? null, authPhase === "ready" && Boolean(syncEngine) && Boolean(supabase));
+  const importSession = useImportSession(importCommands, cloudUser?.id ?? null, authPhase === "ready" && Boolean(syncEngine) && Boolean(supabase), useStableCallback(() => navigateToViewNow("neue-karten", { creationMethod: "import" })));
   const flagNamesKey = state?.profile.uiPreferences.flagNames.join("\n") ?? "";
   const cardEditorServices = React.useMemo(() => cardCommands?.createCardEditorServices(flagNamesKey.split("\n"), openSettings) ?? null, [cardCommands, flagNamesKey, openSettings]);
   const variantBatch = useCardVariantBatch({ cards: workspaceHydrationService, store: workspaceStore, generate: (...args) => cardCommands!.generateDeckCardVariant(...args), onToast: setSuccessToast });

@@ -137,19 +137,18 @@ Karte
 - Tags, die sich nur in Groß- und Kleinschreibung unterscheiden, sind ein Tag; die zuerst gespeicherte Schreibweise gilt.
 - Eine Tag-Änderung ist keine Inhaltsänderung: Sie wirkt sofort und hält spätere Import-Updates der Felder nicht auf.
 - Ein importierter Inhalt merkt sich die Tags seines letzten Imports getrennt von den eigenen.
-- Ein Reimport führt Tags zusammen: Lokal ergänzte bleiben, lokal entfernte bleiben entfernt, im Paket neue kommen dazu, im Paket entfallene gehen.
+- Ein Reimport führt Tags zusammen: Lokale Ergänzungen und Entfernungen bleiben, im Paket neue kommen dazu, entfallene gehen.
 
 ### Flaggen, Markierung und Lernbremse
 
 - Flaggen sind die sieben Anki-Farben je Karte; eigene Namen gelten kontoweit. Anki-Flaggen werden übernommen, Flaggennamen nicht, weil das Paket sie nicht enthält.
 - Die Markierung gehört zum Inhalt (Anki-Tag `marked`), die Lernbremse zur Karte (Anki-Tag `leech`); beide erscheinen danach nicht mehr als Tag.
 - Die Lernbremse kennzeichnet eine Karte, wenn ein `Nochmal` in der Wiederholung die kontoweite Fehlerschwelle (Standard 8) erreicht, danach je halbe Schwelle, nie rückwirkend. Sie setzt nie aus und lässt sich zurücksetzen.
-- Lokal gesetzte Flaggen, Markierung und Lernbremse überstehen einen Reimport.
 
 ### Stapel
 
 - Stapel bilden eine Hierarchie ohne Tiefenlimit ([ADR-041](decisions.md#adr-041--stapelhierarchie-und-stapelsammlung)); ein Elternstapel fasst alle Unterstapel zusammen. Sortiert wird je Ebene alphabetisch wie in Anki.
-- Jeder Stapel trägt eigene Lernoptionen. Ein neuer Stapel erhält den Standard als eigene Werte; ein Reimport lässt lokale Einstellungen unverändert.
+- Jeder Stapel trägt eigene Lernoptionen. Ein neuer Stapel erhält den Standard als eigene Werte.
 - Verschieben macht einen Stapel samt Unterbaum zum direkten Unterstapel des Ziels oder zum Hauptstapel. Ausgeschlossen sind nur der Stapel selbst und seine Nachfahren. Importherkunft und Tags bleiben.
 - Das Löschen eines Stapelbaums ist endgültig, nennt vorher Unterstapel und Kartenzahl und wird durch späteren Sync nicht rückgängig.
 - Je Stapel zeigen `Heute` und `Lernen` die Tageszahlen `Neu`, `Offen` und `Fällig` nach [Tagesrunde und Limits](#tagesrunde-und-limits); Elternstapel zählen ihren Teilbaum.
@@ -350,29 +349,28 @@ Gruppe: Synchronisierung ins Konto
 [info] Medien
 ```
 
-- Angenommen werden nur Anki-Pakete. Pakete bis 2 GiB verarbeitet der Browser selbst; größere werden abgewiesen.
-- Analyse und Übernahme sind getrennte Schritte: Die Analyse lässt sich abbrechen und ändert nichts, die Übernahme läuft durch.
-- Der Bericht nennt je Notiztyp, wie übersetzt wird, wie viele Inhalte und Karten entstehen, wie viel Lernstand übernommen wird, was nur generisch oder gar nicht übernommen wird, welche Medien fehlen und ob die Karten im Originallayout erscheinen. Beispielkarten erscheinen wie im Review. Technische Kennungen erscheinen nicht.
+- Anki-Pakete bis 2 GiB verarbeitet der Browser selbst; größere werden abgewiesen.
+- Die Analyse lässt sich abbrechen und ändert nichts; die Übernahme läuft durch.
+- Der Bericht nennt je Notiztyp Übersetzung, Inhalte und Karten, übernommenen Lernstand, nur generisch oder nicht Übernommenes, fehlende Medien und das Originallayout; Beispielkarten erscheinen wie im Review, technische Kennungen nicht.
 - Jede Anki-Notiz wird ein Inhalt, jede Anki-Karte eine CoRe-Karte; die Stapelhierarchie bleibt vollständig.
-- Die Übernahme ist fertig, sobald alles geprüft auf dem Gerät gespeichert und die Medien zum Upload eingereiht sind. Scheitert der Sync danach, bleiben die Karten lokal und lernbar.
+- Die Übernahme ist fertig, sobald alles geprüft auf dem Gerät liegt und die Medien eingereiht sind; dann meldet der Import Erfolg mit bis zu drei Beispielkarten. Sync und Medien-Upload laufen im Hintergrund; scheitern sie, bleiben die Karten lokal lernbar.
 - Medien werden erst bei der Übernahme gelesen und gegen ihre Prüfsumme geprüft.
 - Fehler beim Lesen des Pakets bleiben sichtbar und werden nicht durch einen stillen Ersatzweg verdeckt.
-- Ein laufender Import übersteht den Wechsel in andere App-Bereiche, nicht aber einen Reload.
+- Ein laufender Import übersteht Bereichswechsel, nicht aber einen Reload; Schließen fragt vorher nach. Eine abgebrochene Übernahme meldet CoRe beim nächsten Start mit der Zahl übernommener Karten, bis dieselbe Datei sie vervollständigt oder ihre Stapel gelöscht sind.
 - **Bewusst nicht:** Serverimport, Upload-Fallback, Text- und Tabellenimport.
 
 ### Übersetzung von Anki-Paketen
 
 - Registrierte Übersetzer bilden bekannte Notiztypen auf CoRe-Inhalte mit Feldrollen und Inhaltsform ab. Unbekannte Notiztypen werden generisch als Feldliste übernommen.
 - Importierte Inhalte behalten Feldnamen, Feldreihenfolge und Anki-Vorlage; nur die Werte sind bearbeitbar.
-- Template-JavaScript und Add-on-Filter werden nicht ausgeführt. Die Quellwerte bleiben unsichtbar erhalten, damit eine spätere Neuübersetzung möglich ist; Abweichungen erscheinen als Hinweis.
+- Template-JavaScript und Add-on-Filter laufen nicht; Abweichungen erscheinen als Hinweis. Die Quellwerte bleiben unsichtbar für eine spätere Neuübersetzung erhalten.
 - Der Bewertungsverlauf aus Anki wird als Analysehistorie übernommen, soweit Karten eindeutig zuordenbar sind.
 - Der erste Lernstand entsteht in dieser Reihenfolge: Nachrechnen der vollständigen Anki-Historie mit dem CoRe-Scheduler, sonst Ankis gespeicherter FSRS-Gedächtniszustand, sonst der klassische Kartenstatus, sonst neue Karte. Nach der ersten Antwort in CoRe gilt nur noch der CoRe-Scheduler.
 
 ### Reimport und Neuübersetzung
 
-- Ein Reimport erkennt Inhalte und Karten an ihren Anki-Kennungen, auch wenn sie nur im Konto und nicht auf dem Gerät liegen.
-- Unbearbeitete Inhalte übernehmen den Paketinhalt; lokal bearbeitete bleiben unverändert und werden gezählt.
-- Lernstand, Aussetzung, Markierung, Flaggen und Stapelzuordnung bleiben immer. Neue Abfragen werden neue Karten; im Paket fehlende Karten bleiben und werden gezählt.
+- Ein Reimport erkennt Inhalte und Karten an ihren Anki-Kennungen, auch nur im Konto liegende. Unbearbeitete Inhalte übernehmen den Paketinhalt, lokal bearbeitete bleiben und werden gezählt.
+- Lernstand, Lernbremse, Verlauf, Aussetzung, Markierung, Flaggen und Stapelzuordnung vorhandener Karten bleiben immer; wie in Anki bringen nur neue Karten Lernstand und Verlauf aus dem Paket mit, außer beim Fortsetzen einer abgebrochenen Übernahme. Neue Abfragen werden neue Karten; im Paket fehlende bleiben und werden gezählt.
 - Tags werden nach [Tags](#tags) zusammengeführt. Vorhandene Stapel behalten Name, Ort im Baum und Einstellungen; neue Stapel entstehen unter dem heutigen Ort ihres Oberstapels.
 - Verbessert sich ein Übersetzer, übersetzt CoRe unbearbeitete Importe einmal automatisch neu, ohne eine Karte mit Lernstand zu verlieren, und nennt die Zahl der verbesserten Inhalte.
 
@@ -425,7 +423,7 @@ Wiederholung, jung | zunächst kurze Abstände, bis die Haltbarkeit wieder wäch
 
 ### Lernverlauf einer Karte
 
-Die Leseseite zeigt zu diesem Abschnitt typische Bewertungsketten als Zeitleisten, dazu die Wirkung jeder Bewertung, den Einfluss der Zielerinnerung und die erste Variante je Stapelschwelle. Alles wird mit dem echten Scheduler aus getesteten Beispielketten berechnet, gilt unter festen Annahmen (Antwort am Fälligkeitstermin, Standardlernschritte, eine aktive Variante) und ist keine Zusage für einzelne Karten.
+Die Leseseite zeigt typische Bewertungsketten, die Wirkung jeder Bewertung, den Einfluss der Zielerinnerung und die erste Variante je Stapelschwelle, berechnet mit dem echten Scheduler unter festen Annahmen (Antwort am Fälligkeitstermin, Standardlernschritte, eine aktive Variante); keine Zusage für einzelne Karten.
 
 ### Reife und Haltbarkeit
 
@@ -494,7 +492,7 @@ Fällig | ausgewählte Wiederholungen
 - Aus der Sitzung heraus wirken sofort: Flagge, Markierung, Aussetzen, Kartenreihenfolge und Timer. Editor und Stapeleinstellungen öffnen sich über der Sitzung und führen an dieselbe Karte zurück; gespeicherte Einstellungen gelten sofort.
 - Aussetzen pausiert die Karte samt Varianten, ohne ihren Lernstand zu ändern; sie fehlt dann in Runde, Tageszahlen und Fortschritt. Nach dem Reaktivieren ist ein vergangener Termin sofort wieder relevant.
 - Löst eine Bewertung die Lernbremse aus, weist die Sitzung einmal darauf hin.
-- Die Bewertungen der laufenden Sitzung lassen sich der Reihe nach zurücknehmen, die jüngste zuerst. Die Karte erscheint erneut mit dem Lernstand von davor; das Ereignis verschwindet aus Verlauf, Statistik und Tageszahlen auf allen Geräten. Eine andere Änderung an der Sitzung, ein neuer Lerntag oder das Verlassen beendet diese Möglichkeit.
+- Bewertungen der laufenden Sitzung lassen sich rückwärts zurücknehmen: Die Karte erscheint mit dem Lernstand von davor, das Ereignis verschwindet auf allen Geräten aus Verlauf, Statistik und Tageszahlen. Andere Änderungen an der Sitzung, ein neuer Lerntag oder das Verlassen beenden das.
 - Inhalte mit Vorlese-Angabe aus Anki lassen sich über die Sprachausgabe des Geräts vorlesen.
 - Markierter Text lässt sich in AMBOSS nachschlagen. Erst der ausdrückliche Klick öffnet die Suche; übertragen wird nur der markierte Text.
 - Nach dem Aufdecken steht [KI hilft](#ki-hilft) bereit.
@@ -619,7 +617,7 @@ Eine Variante fragt denselben Inhalt mit anderer Formulierung ab.
 - **Auswahl:** dieselben Optionen, jede gleich richtig oder falsch, ohne gewonnene oder verlorene Verneinung; die Variante hat eine eigene feste Reihenfolge, bearbeitbar ist nur die Frage. Karten mit zu langem Text, weniger als zwei oder mehr als zehn Optionen erhalten keine Varianten.
 - Ergibt eine Karte keinen erkennbaren Sinn oder braucht sie privaten Kontext, meldet die KI sie als nicht umformulierbar, statt eine Deutung zu erfinden; es entsteht keine Variante.
 - Eine Karte erhält Varianten bis zur Höchstzahl aktiver Varianten ihres Stapels. Gespeichert wird nur, wenn sie während der Anfrage unverändert blieb und die Formulierung neu ist.
-- **Vorausschauend:** Erreicht eine Karte mit einer Antwort die Haltbarkeitsschwelle und fehlt der Kette die nächste Variante, entsteht sie im geöffneten Tab, bevor die Karte wieder fällig ist; das ist die einzige KI-Anfrage ohne eigene Aktion ([ADR-011](decisions.md#adr-011--schmale-ki-routen-über-openrouter)). Scheitert sie, etwa offline, kommt die am längsten nicht gesehene Variante, und die nächste Antwort versucht es erneut.
+- **Vorausschauend:** Erreicht eine Karte mit einer Antwort die Haltbarkeitsschwelle und fehlt der Kette die nächste Variante, entsteht sie im geöffneten Tab, bevor die Karte wieder fällig ist; das ist die einzige KI-Anfrage ohne eigene Aktion ([ADR-011](decisions.md#adr-011--schmale-ki-routen-über-openrouter)). Scheitert sie, etwa offline, kommt die am längsten nicht gesehene Variante; die nächste Antwort versucht es erneut.
 - **Für einen Stapel:** Eine Erzeugung bearbeitet nacheinander die ersten bis zu 50 Karten des Stapelbaums mit eingeschaltetem CoRe-Modus ohne aktive Variante, je Karte eine, und speichert jede sofort; ein weiterer Start nimmt die nächsten. Die Stapeleinstellungen nennen, wie viele Karten noch keine Variante haben.
 - Die Stapelerzeugung läuft im geöffneten Tab, höchstens eine zugleich, mit sichtbarem Fortschritt. Abbrechen behält Erzeugtes; ein Fehler, der jede Karte träfe, hält den Lauf mit kurzem Grund an. Nicht umformulierbare und übrige Karten ohne Variante werden getrennt gezählt und lassen sich in der Kartenverwaltung aufrufen.
 - Varianten aus einer älteren Fassung der Erzeugung lassen sich nach Rückfrage ersetzen; Karten und Lernstand bleiben.
@@ -935,13 +933,13 @@ Gruppe:
 [warnung] Konflikt | betrifft nur diese Karte oder diesen Stapel und wartet auf eine Entscheidung
 ```
 
-- Ausstehende Änderungen gelten nie als gespeichert im Konto und sind als ausstehend erkennbar.
+- Ausstehende Änderungen gelten nie als gespeichert im Konto und sind als ausstehend erkennbar; Schließen oder Neuladen mit ihnen fragt nach, auch offline.
 - Die App ist ohne Netz nutzbar, soweit die Daten auf dem Gerät liegen.
 
 ### Sync und Konflikte
 
 - Ein Sync sendet zuerst lokale Änderungen, lädt dann Neues aus dem Konto und aktualisiert zuletzt den Status. Manueller und automatischer Sync sind derselbe Ablauf.
-- Der automatische Sync läuft nach Änderungen, bei Netzrückkehr und in einem wählbaren Intervall; er lässt sich abschalten, dann wird von Hand synchronisiert.
+- Der automatische Sync läuft nach Änderungen, bei Netzrückkehr, beim Verlassen oder Ausblenden der Seite und in einem wählbaren Intervall; er lässt sich abschalten, dann wird von Hand synchronisiert.
 - Solange alles läuft, meldet die App nichts; sichtbar werden nur Offline, Fehler und Konflikte.
 - Lernstand und Inhalt sind getrennt: Eine Bewertung auf einem Gerät und eine Inhaltskorrektur auf einem anderen erzeugen keinen Konflikt.
 - Bewertungen gehen nie verloren: Die Ereignisse beider Geräte bleiben, das jüngste bestimmt den Lernstand. Bei Neuplanungen bestimmt die spätere Aktion den Termin.

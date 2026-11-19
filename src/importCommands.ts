@@ -1,7 +1,7 @@
 import type { ImportCommitGraph, ImportMediaFile } from "./apkgImport.ts";
 import type { ImportVerificationScope } from "./coreTypes.ts";
 import type { WorkspaceState } from "./coreWorkspace.ts";
-import type { ImportedDeckPersistence } from "./creationWorkflow.ts";
+import type { ImportedDeckPersistence, ImportSource } from "./creationWorkflow.ts";
 import { getGlobalSchedulerPreferences } from "./deckSettings.ts";
 import { createGlobalDefaultDeckSettings } from "./globalLearningDefaults.ts";
 import { createImportCloudSyncTask, type ImportCloudSyncTask } from "./importCloudSyncTask.ts";
@@ -80,15 +80,21 @@ export function createImportCommands(context: ImportCommandsContext) {
     return confirmation.task;
   }
 
-  /** Commits an import graph chunk by chunk, applies global defaults to new decks and starts the cloud confirmation. */
-  async function commitImport(graph: ImportCommitGraph, { onMedia }: { onMedia: (file: ImportMediaFile) => Promise<void> }): Promise<ImportedDeckPersistence> {
+  /**
+   * Commits an import graph chunk by chunk, applies global defaults to new decks and starts the cloud confirmation. The
+   * same package file after an interrupted takeover continues it.
+   */
+  async function commitImport(graph: ImportCommitGraph, { onMedia, source }: { onMedia: (file: ImportMediaFile) => Promise<void>; source?: ImportSource }): Promise<ImportedDeckPersistence> {
     const workspaceHydrationService = hydration();
     const profile = store.get().state?.profile;
     const reimportTargets = workspaceHydrationService ? await workspaceHydrationService.prepareReimport(graph.ankiGuids) : undefined;
+    const interrupted = source ? await repository.getInterruptedImport() : null;
     const result = await repository.commitImportGraph(graph, {
       deckSettings: createGlobalDefaultDeckSettings(getGlobalSchedulerPreferences(profile)),
       reimportTargets,
       onMedia,
+      source,
+      resume: Boolean(interrupted && source && interrupted.fileName === source.fileName && interrupted.fileSize === source.fileSize),
     });
     const nextState = refresh();
     const importedIds = new Set(result.decks.map((deck) => deck.id));
@@ -151,7 +157,10 @@ export function createImportCommands(context: ImportCommandsContext) {
     return count;
   }
 
-  const commands = { commitImport, importDemo, followSyncStatus, continuePendingFrom, retranslate };
+  const commands = {
+    commitImport, importDemo, followSyncStatus, continuePendingFrom, retranslate,
+    getInterruptedImport: () => repository.getInterruptedImport(),
+  };
   pendingByCommands.set(commands, pending);
   return commands;
 }

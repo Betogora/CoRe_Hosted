@@ -50,7 +50,7 @@ test("latest APKG preview shows the complete quality report without mutating acc
   await expect(examples.getByText("Originalkarte", { exact: true })).toHaveCount(3);
   await expect(sampleCards.first().frameLocator('iframe[title="Aufgedeckte Karte"]').locator("body")).toContainText("Umlaut");
   await expect(sampleCards.first().frameLocator('iframe[title="Aufgedeckte Karte"]').locator("img").first()).toHaveAttribute("src", /^blob:/);
-  await expect(page.getByTestId("apkg-file-progress")).toContainText("Vorschau bereit");
+  await expect(page.getByTestId("apkg-file-progress")).not.toHaveAttribute("role", "progressbar");
 
   const after = await readActiveAccountState(page);
   expect(after.decks?.length ?? 0).toBe(beforeDeckCount);

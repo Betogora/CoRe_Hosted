@@ -14,7 +14,7 @@ export function CreationScreenWiring() {
     <CreationScreen
       decks={decks}
       mediaStore={mediaStore}
-      commitImport={importCommands.commitImport}
+      importActions={importCommands}
       apkgImportSession={importSession.session}
       onApkgImportSessionChange={importSession.setSession}
       isApkgImportSessionCurrent={importSession.isCurrent}

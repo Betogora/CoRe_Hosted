@@ -60,9 +60,21 @@ export interface ImportedDeckPersistence {
   cloudTask: ImportCloudSyncTask;
 }
 
+/** The package file of an import, to recognize the continuation of an interrupted one. */
+export interface ImportSource { fileName: string; fileSize: number }
+
+/** An import whose takeover did not finish (reload, closed tab, error); kept on the device until one finishes. */
+export interface InterruptedImport extends ImportSource {
+  /** Decks the takeover created or matched; once none of them is left, there is nothing to complete. */
+  deckIds: string[];
+  cardCount: number;
+  /** Cards of the package already present after the last finished chunk. */
+  committedCards: number;
+}
+
 export type CommitImport = (
   graph: ImportCommitGraph,
-  options: { onMedia: (file: ImportMediaFile) => Promise<void> },
+  options: { onMedia: (file: ImportMediaFile) => Promise<void>; source?: ImportSource },
 ) => Promise<ImportedDeckPersistence>;
 
 function describeError(error: unknown, fallback: string): string {
@@ -286,6 +298,7 @@ export function createCreationWorkflow({
       if (!preview) throw new Error("Keine Anki-Vorschau zum Importieren vorhanden.");
       const mediaSha1s: string[] = [];
       const persistence = await commitImport(withCommitProgress(preview.commitGraph, reportProgress), {
+        source: { fileName: preview.fileName, fileSize: preview.fileSize },
         async onMedia(file) {
           const cached = await mediaStore.cacheMedia([{ sha1: file.sha1, name: file.name, size: file.size, mimeType: file.mimeType, bytes: file.bytes }]);
           if (cached.count !== 1) throw new Error(cached.errors[0] || `Die Mediendatei „${file.name}“ konnte nicht lokal gespeichert werden.`);

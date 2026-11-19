@@ -96,5 +96,18 @@ export function useWorkspaceSync({ authPhase, repository, syncEngine, hydration,
     });
   }, [authPhase, syncIntervalMinutes, syncEngine, repository]);
 
+  // Closing or reloading while changes are not yet in the account asks first, offline too; they stay on the device.
+  React.useEffect(() => {
+    if (!syncEngine) return undefined;
+    const warnBeforeUnload = (event: BeforeUnloadEvent) => {
+      if (syncEngine.pendingCount() === 0) return;
+      syncEngine.requestSync();
+      event.preventDefault();
+      event.returnValue = "";
+    };
+    window.addEventListener("beforeunload", warnBeforeUnload);
+    return () => window.removeEventListener("beforeunload", warnBeforeUnload);
+  }, [syncEngine]);
+
   return { setSyncStatus, setAppState, refresh, syncNow, listSyncConflicts, resolveSyncConflict };
 }

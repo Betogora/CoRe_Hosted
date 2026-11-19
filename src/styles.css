@@ -1794,20 +1794,6 @@ button.core-steps-step:disabled {
 .core-steps li[data-state="current"] { color: var(--core-action-primary); }
 .core-steps li[data-state="current"] .core-steps-step { font-weight: var(--core-weight-heading); }
 .core-steps li[data-state="current"] .core-steps-dot { border-color: var(--core-action-primary); background: var(--core-action-primary); box-shadow: 0 0 0 3px var(--core-focus-ring-soft); }
-.core-steps li[data-state="failed"] { color: var(--core-danger-text); }
-.core-steps li[data-state="failed"] .core-steps-dot { border-color: var(--core-danger); background: var(--core-danger); }
-
-.core-steps[data-animated] li[data-after-current] .core-steps-line {
-  background:
-    linear-gradient(90deg, transparent, var(--core-action-primary), transparent) 0 0 / 40% 100% no-repeat,
-    var(--core-border-interactive);
-  animation: core-steps-flow 1.6s ease-in-out infinite;
-}
-
-@keyframes core-steps-flow {
-  from { background-position: -60% 0, 0 0; }
-  to { background-position: 160% 0, 0 0; }
-}
 
 @container (max-width: 32.49rem) {
   .core-steps li:not([aria-current]) .core-steps-label {
@@ -2005,7 +1991,6 @@ button.core-steps-step:disabled {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .core-steps[data-animated] li[data-after-current] .core-steps-line { animation: none; background: var(--core-action-primary); opacity: 0.5; }
   .core-tabs-tab { transition: none; }
 }
 
@@ -3191,27 +3176,9 @@ button.core-steps-step {
   background: color-mix(in srgb, var(--core-action-primary) 16%, var(--core-surface-muted));
 }
 
-/* A partial import ends in amber: the cards are stored, cloud or media sync is still open. */
-.core-apkg-steps-partial li[aria-current] {
-  color: var(--core-text);
-}
-
-.core-apkg-steps-partial li[aria-current] .core-steps-dot {
-  border-color: var(--core-warning);
-  background: var(--core-warning);
-  box-shadow: none;
-}
-
 /* The panel actions of a creation way move below its title when both no longer fit one row. */
 .core-creation-way .core-page-header-with-action {
   flex-wrap: wrap;
-}
-
-/* Before a file is chosen the compact import line would show unlabeled points only; it appears with the file. */
-@media (max-width: 37.4375rem) {
-  .core-apkg-steps:not(:has([aria-current])) {
-    display: none;
-  }
 }
 
 /* Rating buttons: ToolBox soft buttons; the rating role (fill, border, label) comes from ratingButtons. */

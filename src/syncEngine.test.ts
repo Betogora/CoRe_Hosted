@@ -244,6 +244,31 @@ test("focus and visibility run a full sync only for active automatic lifecycle",
   assert.equal(pulls, 2);
 });
 
+test("hiding or leaving the page sends pending changes at once", async () => {
+  const networkTarget = createNetworkTarget();
+  const documentTarget = createDocumentTarget();
+  const timers = createFakeTimers();
+  let batches = 0;
+  const engine = createSyncEngine({
+    adapter: acknowledgingAdapter(() => { batches += 1; }), outbox: createTestOutbox(), device,
+    networkTarget, documentTarget, setTimer: timers.setTimer, clearTimer: timers.clearTimer,
+  });
+  const stop = engine.startSyncLifecycle({ intervalMinutes: 5, onStatus() {} });
+
+  documentTarget.setVisibility("hidden");
+  await waitForAsyncWork();
+  assert.equal(batches, 0, "nothing pending, nothing sent");
+  engine.enqueueMutation({ id: "hidden", type: SYNC_MUTATION_TYPES.entityMutation, payload: { table: "cards", entity: { id: "card-1" } } });
+  documentTarget.setVisibility("hidden");
+  await waitForAsyncWork();
+  assert.deepEqual([batches, engine.pendingCount()], [1, 0], "hidden before the debounce ran");
+  engine.enqueueMutation({ id: "pagehide", type: SYNC_MUTATION_TYPES.entityMutation, payload: { table: "cards", entity: { id: "card-2" } } });
+  networkTarget.dispatch("pagehide");
+  await waitForAsyncWork();
+  assert.deepEqual([batches, engine.pendingCount()], [2, 0]);
+  stop();
+});
+
 test("entity batches preserve foreign-key order", async () => {
   const order: string[] = [];
   const engine = createSyncEngine({

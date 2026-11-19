@@ -75,8 +75,6 @@ test("import creation exposes only APKG without a format selector", () => {
   assert.match(markup, /core-page-header-back[\s\S]*?>Erstellen<\/button>/);
   assert.match(markup, /data-screen-heading[^>]*>Anki-Dateien importieren<\/h2>/);
   assert.equal((markup.match(/<h2/g) ?? []).length, 1);
-  assert.match(markup, /<ol aria-label="Importstatus">/);
-  assert.doesNotMatch(markup, /aria-current="step"/);
   assert.match(markup, /accept="\.apkg,\.colpkg"/);
   assert.match(markup, /APKG- oder COLPKG-Datei hier ablegen \(Max\. 2 GiB\)/);
   assert.match(markup, /data-file-drop-field="true"/);

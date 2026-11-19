@@ -199,9 +199,9 @@ test("[Vertrag: APKG-Vorschau bis Review] @golden-e2e @beta-core @hosted-core lo
   await expect(page.getByRole("button", { name: "Import übernehmen" })).toBeEnabled({ timeout: 30_000 });
   await page.getByRole("button", { name: "Import übernehmen" }).click();
 
-  await expect(page.getByText("Die Karten sind lokal gespeichert; die Synchronisierung steht noch aus.")).toBeVisible();
-  releaseCloudBootstrap();
+  // Success follows the local takeover, while the account is still unreachable.
   await expect(page.getByRole("heading", { name: "Import erfolgreich" })).toBeVisible({ timeout: 30_000 });
+  releaseCloudBootstrap();
   await page.reload();
   await expect(page.getByRole("heading", { name: "Import erfolgreich" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Zur Übersicht" })).toBeVisible();

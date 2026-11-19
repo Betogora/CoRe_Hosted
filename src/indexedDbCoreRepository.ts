@@ -66,7 +66,7 @@ import { createStudyOverview } from "./indexedDbStudyOverview.ts";
 import { createReviewWrites } from "./indexedDbReviews.ts";
 import { writeCloudCatalogPages } from "./indexedDbCatalogSync.ts";
 import { createCardBodies, readCardBodies, readNotes } from "./indexedDbCardBodies.ts";
-import { commitImportGraph, type ImportCommitOptions } from "./indexedDbImportCommit.ts";
+import { commitImportGraph, readInterruptedImport, type ImportCommitOptions } from "./indexedDbImportCommit.ts";
 
 export type { NoteGraphChange, WorkspaceDeckSummary } from "./indexedDbStore.ts";
 export type { ReimportTargets } from "./indexedDbImportCommit.ts";
@@ -482,16 +482,9 @@ export async function createIndexedDbCoreRepository({ userId, initialState, inde
     ...reviewWrites,
     async commitImportGraph(graph: ImportCommitGraph, options: ImportCommitOptions) {
       await writeChain;
-      return commitImportGraph({
-        database,
-        userId,
-        shellDecks: () => shell!.decks,
-        replaceShellDecks,
-        queueMutations,
-        writeOutbox,
-        writeNoteGraphs,
-      }, graph, options);
+      return commitImportGraph({ database, userId, shellDecks: () => shell!.decks, replaceShellDecks, queueMutations, writeOutbox, writeNoteGraphs }, graph, options);
     },
+    getInterruptedImport: () => writeChain.then(() => readInterruptedImport(database)),
     /** Re-queues the inserts of a verified import graph; the cloud matches existing rows idempotently. */
     async requeueImportVerificationScope(scope: ImportVerificationScope, repairScope: ImportVerificationRepairScope | null = null) {
       await writeChain;

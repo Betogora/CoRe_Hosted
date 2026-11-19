@@ -3,6 +3,7 @@ import { mergeImportedTags, normalizeCoreDeck, outdateVariantsOfChangedSource } 
 import type { Card, Deck, DeckSettings, ImportVerificationScope, Note, ReviewEvent } from "./coreTypes.ts";
 import type { SyncOutboxMutation } from "./syncEngine.ts";
 import type { ImportCommitGraph, ImportMediaFile, NoteTypeSource } from "./apkgImport.ts";
+import type { ImportSource, InterruptedImport } from "./creationWorkflow.ts";
 import { insertEntityMutation, planEntityMutations } from "./syncMutationPlanner.ts";
 import {
   STORE,
@@ -33,10 +34,37 @@ interface ImportCommitResult {
   missingInPackage: number;
 }
 
+const INTERRUPTED_IMPORT_KEY = "interruptedImport";
+
+/** The import whose takeover was interrupted on this device, as long as one of its decks is left. */
+export async function readInterruptedImport(database: IDBDatabase): Promise<InterruptedImport | null> {
+  const transaction = database.transaction([STORE.meta, STORE.decks], "readonly");
+  const entry = await requestResult<{ value: InterruptedImport } | undefined>(transaction.objectStore(STORE.meta).get(INTERRUPTED_IMPORT_KEY));
+  const decks = await Promise.all((entry?.value.deckIds ?? []).map((id) => requestResult<WorkspaceDeckSummary | undefined>(transaction.objectStore(STORE.decks).get(id))));
+  await transactionDone(transaction);
+  if (!entry) return null;
+  if (decks.some((deck) => deck && !deck.deletedAt)) return entry.value;
+  await clearInterruptedImport(database);
+  return null;
+}
+
+async function clearInterruptedImport(database: IDBDatabase) {
+  const transaction = database.transaction(STORE.meta, "readwrite");
+  transaction.objectStore(STORE.meta).delete(INTERRUPTED_IMPORT_KEY);
+  await transactionDone(transaction);
+}
+
 export interface ImportCommitOptions {
   deckSettings: Partial<DeckSettings>;
   reimportTargets?: ReimportTargets;
   onMedia?: (file: ImportMediaFile) => Promise<void>;
+  /** The package file; its takeover is recorded until it finishes, so an interruption can be reported. */
+  source?: ImportSource;
+  /**
+   * Continues an interrupted import of the same package: cards it already took over still get their history. Otherwise,
+   * as in Anki, only cards new to CoRe take over the package's review history.
+   */
+  resume?: boolean;
 }
 
 export async function commitImportGraph(
@@ -50,7 +78,7 @@ export async function commitImportGraph(
     writeNoteGraphs: (changes: NoteGraphChange[]) => Promise<void>;
   },
   graph: ImportCommitGraph,
-  { deckSettings, reimportTargets = { notes: [], cards: [], noteTypeSources: [] }, onMedia = async () => {} }: ImportCommitOptions,
+  { deckSettings, reimportTargets = { notes: [], cards: [], noteTypeSources: [] }, onMedia = async () => {}, source, resume = false }: ImportCommitOptions,
 ): Promise<ImportCommitResult> {
   const now = new Date().toISOString();
   const scope: ImportVerificationScope = { deckIds: [], noteTypeSourceIds: [], noteIds: [], cardIds: [], reviewEventIds: [] };
@@ -65,6 +93,14 @@ export async function commitImportGraph(
   const targetCardsByNote = new Map<string, ReimportTargets["cards"]>();
   for (const card of reimportTargets.cards) targetCardsByNote.set(card.noteId, [...(targetCardsByNote.get(card.noteId) ?? []), card]);
   const targetSourceByAnkiId = new Map(reimportTargets.noteTypeSources.map((source) => [source.ankiNotetypeId, source.id]));
+
+  const record: InterruptedImport | null = source ? { ...source, deckIds: [], cardCount: graph.cardCount, committedCards: 0 } : null;
+  const writeRecord = (transaction: IDBTransaction) => { if (record) transaction.objectStore(STORE.meta).put({ key: INTERRUPTED_IMPORT_KEY, value: { ...record } }); };
+  if (record) {
+    const transaction = database.transaction(STORE.meta, "readwrite");
+    writeRecord(transaction);
+    await transactionDone(transaction);
+  }
 
   const queueAndWrite = async (stores: string[], inputs: any[], write: (transaction: IDBTransaction) => Promise<void> | void) => {
     const batch = queueMutations(inputs);
@@ -114,11 +150,13 @@ export async function commitImportGraph(
           inputs.push(...planEntityMutations({}, { decks: [{ ...deck, cards: [], reviewEvents: [] } as Deck] }));
         }
       }
-      await queueAndWrite([STORE.decks, STORE.deckStudySummaries], inputs, (transaction) => {
+      if (record) record.deckIds = [...new Set(scope.deckIds)];
+      await queueAndWrite([STORE.decks, STORE.deckStudySummaries, STORE.meta], inputs, (transaction) => {
         for (const deck of decks) {
           transaction.objectStore(STORE.decks).put(deck);
           transaction.objectStore(STORE.deckStudySummaries).put(emptyDeckStudySummary(deck.id));
         }
+        writeRecord(transaction);
       });
       replaceShellDecks(decks, now);
       return;
@@ -200,7 +238,7 @@ export async function commitImportGraph(
         for (const card of incomingCards) {
           const matched = (card.ankiCardId ? existingIds.get(`anki:${card.ankiCardId}`) : undefined) ?? existingIds.get(`key:${card.promptKey}`);
           if (matched) {
-            persistedCardIds.set(card.id, matched);
+            if (resume) persistedCardIds.set(card.id, matched);
             matchedIds.add(matched);
           } else if (!locallyEdited) {
             newCards.push({ ...card, noteId: existing.id });
@@ -231,10 +269,14 @@ export async function commitImportGraph(
         updatedAt: now,
       }));
       if (changes.length) await writeNoteGraphs(changes);
+      if (record) record.committedCards += chunk.cards.length;
       await queueAndWrite(
-        [STORE.noteSources],
+        [STORE.noteSources, STORE.meta],
         noteSources.map((source) => insertEntityMutation("note_sources", source, source.noteId)),
-        (transaction) => { for (const source of noteSources) transaction.objectStore(STORE.noteSources).put(source); },
+        (transaction) => {
+          for (const source of noteSources) transaction.objectStore(STORE.noteSources).put(source);
+          writeRecord(transaction);
+        },
       );
       for (const change of changes) {
         scope.noteIds.push(change.next.note.id);
@@ -276,6 +318,7 @@ export async function commitImportGraph(
     );
     scope.reviewEventIds.push(...newEvents.map((event) => event.id));
   });
+  if (record) await clearInterruptedImport(database);
 
   const finalScope = {
     deckIds: [...new Set(scope.deckIds)].sort(),

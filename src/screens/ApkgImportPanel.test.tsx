@@ -5,8 +5,6 @@ import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { createApkgImportPreview, type ApkgImportPreview } from "../apkgImport.ts";
 import { createEmptyApkgImportSession, type ApkgImportSession } from "../apkgImportSession.ts";
-import type { ImportCloudSyncTask } from "../creationWorkflow.ts";
-import type { MediaSyncTask } from "../mediaStore.ts";
 import { ApkgImportPanel } from "./ApkgImportPanel.tsx";
 
 async function fixturePreview(path: string): Promise<ApkgImportPreview> {
@@ -14,7 +12,7 @@ async function fixturePreview(path: string): Promise<ApkgImportPreview> {
   return createApkgImportPreview(new File([bytes], path.split("/").at(-1)!));
 }
 
-function renderPanel(session: ApkgImportSession) {
+function renderPanel(session: ApkgImportSession, props: Partial<React.ComponentProps<typeof ApkgImportPanel>> = {}) {
   return renderToStaticMarkup(
     <ApkgImportPanel
       workflow={{} as React.ComponentProps<typeof ApkgImportPanel>["workflow"]}
@@ -23,6 +21,7 @@ function renderPanel(session: ApkgImportSession) {
       isSessionCurrent={() => true}
       onResetSession={() => undefined}
       onCompleted={() => undefined}
+      {...props}
     />,
   );
 }
@@ -38,43 +37,18 @@ function previewSession(preview: ApkgImportPreview, overrides: Partial<ApkgImpor
   };
 }
 
-function pendingCloudTask(): ImportCloudSyncTask {
-  return {
-    status: "local-pending",
-    ready: new Promise<void>(() => undefined),
-    async retry() { return { status: "local-pending", message: "Lokal gespeichert." }; },
-    subscribe() { return () => undefined; },
-  };
-}
+test("die Übernahme zeigt einen Balken ohne interne Schritte", async () => {
+  const preview = await fixturePreview("matrix/standard-latest.apkg");
+  const markup = renderPanel(previewSession(preview, {
+    job: { fileName: preview.fileName, fileSize: preview.fileSize, status: "committing", warnings: [], errors: [] },
+    isParsing: true,
+    phaseProgress: { phase: "committing", percent: 40 },
+  }));
 
-test("cloud-pending APKG session never projects a finished import", () => {
-  const mediaTask: MediaSyncTask = {
-    progress: { completed: 0, total: 1, uploaded: 0, reused: 0, currentName: "", processedBytes: 0, totalBytes: 1 },
-    queued: Promise.resolve(),
-    result: new Promise(() => undefined),
-    async pause() {},
-    resume() {},
-    async cancel() {},
-    subscribe() { return () => undefined; },
-  };
-  const session: ApkgImportSession = {
-    ...createEmptyApkgImportSession(),
-    selectedFile: { name: "karten.apkg", size: 4_300_000 } as File,
-    job: { fileName: "karten.apkg", fileSize: 4_300_000, status: "syncing_cloud", warnings: [], errors: [] },
-    cloudTask: pendingCloudTask(),
-    mediaTask,
-    phaseProgress: { phase: "syncing_cloud", percent: 95 },
-  };
-  const markup = renderPanel(session);
-
-  assert.match(markup, /Cloud-Daten werden synchronisiert/);
-  assert.match(markup, /<li data-state="current"[^>]*aria-current="step">[\s\S]*?Cloud-Daten synchronisieren/);
-  assert.match(markup, /class="core-steps core-apkg-steps mt-5" data-stretch="true"(?! data-animated)/, "a paused sync does not animate");
-  assert.match(markup, /Die Karten sind lokal gespeichert; die Synchronisierung steht noch aus\./);
-  assert.match(markup, />Cloud-Sync erneut versuchen</);
-  assert.doesNotMatch(markup, /Import erfolgreich abgeschlossen/);
-  assert.doesNotMatch(markup, /Pausieren|Upload abbrechen/);
-  assert.match(markup, /aria-valuenow="95"/);
+  assert.match(markup, /role="progressbar" aria-label="Übernahme von standard-latest\.apkg" aria-valuemin="0" aria-valuemax="100" aria-valuenow="40"/);
+  assert.match(markup, />40 %</);
+  assert.match(markup, /<button[^>]*disabled=""[^>]*>[\s\S]*?Import übernehmen/);
+  assert.doesNotMatch(markup, /Importstatus|Cloud|Medien werden synchronisiert/);
 });
 
 test("die Vorschau zeigt Kennzahlen, den Notiztyp-Bericht und Kartenbeispiele", async () => {
@@ -127,21 +101,6 @@ test("Feldlisten-Rückfälle und übersprungene Inhalte werden je Notiztyp gemel
   assert.match(markup, /2 Medien fehlen im Paket\./);
 });
 
-test("die Reimport-Zusammenfassung nennt erhaltene lokale Bearbeitungen und fehlende Karten", async () => {
-  const preview = await fixturePreview("world-capitals.apkg");
-  const plural = renderPanel(previewSession(preview, { reimport: { keptLocalEdits: 2, missingInPackage: 3 } }));
-  const singular = renderPanel(previewSession(preview, { reimport: { keptLocalEdits: 1, missingInPackage: 1 } }));
-  const onlyMissing = renderPanel(previewSession(preview, { reimport: { keptLocalEdits: 0, missingInPackage: 1 } }));
-
-  assert.match(plural, /data-testid="apkg-reimport-summary"/);
-  assert.match(plural, /2 lokal bearbeitete Inhalte bleiben unverändert\./);
-  assert.match(plural, /3 Karten fehlen im Paket und bleiben erhalten\./);
-  assert.match(singular, /1 lokal bearbeitete\S* Inhalt bleibt unverändert\./);
-  assert.match(singular, /1 Karte fehlt im Paket und bleibt erhalten\./);
-  assert.doesNotMatch(onlyMissing, /lokal bearbeitete/);
-  assert.doesNotMatch(renderPanel(previewSession(preview)), /apkg-reimport-summary/);
-});
-
 test("ein Analysefehler wird als Alarm ohne Vorschau angezeigt", () => {
   const markup = renderPanel({
     ...createEmptyApkgImportSession(),
@@ -150,9 +109,7 @@ test("ein Analysefehler wird als Alarm ohne Vorschau angezeigt", () => {
   });
 
   assert.match(markup, /role="alert"[^>]*><p>Die Anki-Datei ist größer als 2 GiB\. Bitte wähle eine kleinere Datei aus\.<\/p>/);
-  assert.match(markup, /<li data-state="failed"[^>]*aria-current="step">[\s\S]*?Fehlgeschlagen/);
-  assert.doesNotMatch(markup, /data-state="done"/, "an analysis failure marks no later step as done");
-  assert.equal((markup.match(/>Fehlgeschlagen</g) ?? []).length, 2, "once in the step line, once in the file row");
+  assert.equal((markup.match(/>Fehlgeschlagen</g) ?? []).length, 1);
   assert.doesNotMatch(markup, /Import übernehmen/);
 });
 
@@ -167,8 +124,7 @@ test("eine laufende Analyse lässt sich abbrechen und endet ohne übernommene Ka
     phaseProgress: { phase: "analyzing", percent: 25 },
   });
   assert.match(analyzing, />Analyse abbrechen</);
-  assert.match(analyzing, /data-stretch="true" data-animated="true"/);
-  assert.match(analyzing, /<li data-state="current"[^>]*aria-current="step">[\s\S]*?Analysieren/);
+  assert.match(analyzing, /role="progressbar" aria-label="Analyse von gross\.apkg"[^>]*aria-valuenow="25"/);
 
   const cancelled = renderPanel({
     ...createEmptyApkgImportSession(),
@@ -176,33 +132,15 @@ test("eine laufende Analyse lässt sich abbrechen und endet ohne übernommene Ka
     job: { fileName: file.name, fileSize: file.size, status: "cancelled", warnings: [], errors: [] },
   });
   assert.match(cancelled, /Analyse abgebrochen\. Es wurden keine Karten übernommen/);
-  assert.match(cancelled, /<li data-state="failed"[^>]*aria-current="step">[\s\S]*?Abgebrochen/);
-  assert.doesNotMatch(cancelled, /data-state="done"/);
+  assert.match(cancelled, />Abgebrochen</);
   assert.doesNotMatch(cancelled, />Analyse abbrechen</);
 });
 
-test("die Schrittlinie hebt vor der Dateiauswahl nichts hervor und unterscheidet Erfolg und Teilabschluss", () => {
-  const empty = renderPanel(createEmptyApkgImportSession());
-  assert.match(empty, /<ol aria-label="Importstatus">/);
-  assert.doesNotMatch(empty, /aria-current="step"|data-state="(?:current|done|failed)"/);
+test("ein unterbrochener Import wird vor der Dateiauswahl gemeldet", () => {
+  const interruptedImport = { fileName: "Anki.apkg", fileSize: 1_234, deckIds: ["deck"], cardCount: 2_500, committedCards: 1_000 };
+  const markup = renderPanel(createEmptyApkgImportSession(), { interruptedImport });
+  assert.match(markup, /Der Import von „Anki\.apkg“ wurde unterbrochen: 1\.000 von 2\.500 Karten sind übernommen\. Wähle dieselbe Datei erneut, um ihn zu vervollständigen\./);
 
-  const file = { name: "karten.apkg", size: 1_000 } as File;
-  const progress = { completed: 1, total: 2, uploaded: 1, reused: 0, currentName: "", processedBytes: 1, totalBytes: 2 };
-  const partial = renderPanel({
-    ...createEmptyApkgImportSession(),
-    selectedFile: file,
-    job: { fileName: file.name, fileSize: file.size, status: "partial", warnings: [], errors: [] },
-    cloudProgress: { ...progress, status: "partial" },
-  });
-  assert.match(partial, /class="core-steps core-apkg-steps mt-5 core-apkg-steps-partial"/);
-  assert.match(partial, /<li data-state="current"[^>]*aria-current="step">[\s\S]*?Teilweise fertig/);
-  assert.equal((partial.match(/data-state="done"/g) ?? []).length, 5);
-
-  const succeeded = renderPanel({
-    ...createEmptyApkgImportSession(),
-    selectedFile: file,
-    job: { fileName: file.name, fileSize: file.size, status: "done", warnings: [], errors: [] },
-  });
-  assert.equal((succeeded.match(/data-state="done"/g) ?? []).length, 6);
-  assert.match(succeeded, />Erfolgreich</);
+  const running = renderPanel({ ...createEmptyApkgImportSession(), selectedFile: new File([], "Anki.apkg"), isParsing: true, job: { fileName: "Anki.apkg", fileSize: 0, status: "parsing", warnings: [], errors: [] } }, { interruptedImport });
+  assert.doesNotMatch(running, /wurde unterbrochen/);
 });

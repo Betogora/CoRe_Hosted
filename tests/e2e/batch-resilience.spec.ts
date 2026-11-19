@@ -373,6 +373,8 @@ test("[Vertrag: Offline-Kartenlöschung] lokal gelöschte Karten werden nach Rec
     await expect(page.getByTestId(`deck-card-${existingCardId}`)).toHaveCount(0);
     await expect(page.getByTestId("card-detail-dialog")).toHaveCount(0);
     await expect(page.getByText(/„Bestehende Karte“ gelöscht/)).toBeVisible();
+    // A change not yet in the account makes closing or reloading ask first.
+    expect(await page.evaluate(() => !window.dispatchEvent(new Event("beforeunload", { cancelable: true })))).toBe(true);
   } finally {
     await context.setOffline(false);
   }
@@ -405,18 +407,18 @@ test("[Vertrag: ausschließlicher APKG-Import und Terminalzustände] @beta-core 
     mimeType: "application/octet-stream",
     buffer: Buffer.from("kein gueltiges apkg"),
   });
-  await expect(page.getByLabel("Importstatus").getByText("Fehlgeschlagen", { exact: true })).toBeVisible();
+  await expect(page.getByTestId("apkg-file-progress").getByText("Fehlgeschlagen", { exact: true })).toBeVisible();
   await expect(page.getByRole("button", { name: "Andere Datei auswählen" })).toBeVisible();
 });
 
-test("[Vertrag: partieller Importabschluss] @beta-core Karten bleiben nach Medienfehler nutzbar", async ({ page }) => {
+test("[Vertrag: Importabschluss vor dem Sync] @beta-core Karten sind nach der lokalen Übernahme nutzbar, auch wenn der Medien-Upload scheitert", async ({ page }) => {
   await mainMenu(page).getByRole("button", { name: "Erstellen" }).click();
   await page.getByRole("button", { name: /^Import\b/ }).click();
   await page.locator('input[type="file"][accept=".apkg,.colpkg"]').setInputFiles(MEDIA_APKG_FIXTURE);
   await expect(page.getByRole("button", { name: "Import übernehmen" })).toBeVisible({ timeout: 30_000 });
   await page.route("**/storage/v1/object/core-media/**", (route) => route.abort("failed"));
   await page.getByRole("button", { name: "Import übernehmen" }).click();
-  await expect(page.getByText(/Import teilweise abgeschlossen/)).toBeVisible({ timeout: 30_000 });
-  await expect(page.getByText("Medien sind lokal gespeichert; die Cloud-Synchronisierung steht noch aus.")).toBeVisible();
-  await expect(page.getByRole("button", { name: "Karten jetzt verwenden" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Import erfolgreich" })).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByTestId("import-completion-samples")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Jetzt lernen" })).toBeVisible();
 });
