@@ -48,38 +48,28 @@ ist deaktiviert, nichts wird gelesen oder übertragen. Offen ist alles, was die
 Oberfläche danach verspricht. Erste Ausbaustufe: PDF, Text,
 Markdown, CSV und TSV.
 
-Route und Vertrag stehen (`POST /api/ai/source-cards`,
-`aiSourceCardsContract.ts`, ADR-011). Bewusst nicht: Ergänzungen
-außerhalb der Quelle, DOCX und PPTX, Scans und Bilder, Kprim und Eintippen,
-Neu-Generieren einzelner Vorschläge, Abgleich mit vorhandenen Karten des
-Zielstapels, Speichern von Quelle oder Vorschlägen, Serverqueue, automatische
-Varianten.
+Route, Vertrag, Auslesen, Abschnittslauf und Vorschlagsliste stehen
+(`POST /api/ai/source-cards`, `aiSourceCardsContract.ts`, `aiSourceCards.ts`,
+ADR-011); in der App fehlt der Abruf, nur der UI-Katalog zeigt den Lauf.
+Bewusst nicht: Ergänzungen außerhalb der Quelle, DOCX und PPTX, Scans und
+Bilder, Kprim und Eintippen, Neu-Generieren einzelner Vorschläge, Abgleich mit
+vorhandenen Karten des Zielstapels, Speichern von Quelle oder Vorschlägen,
+Serverqueue, automatische Varianten.
 
 - [ ] **Formular (Agenda 3.1–3.6):** drei Schritte Zielstapel, Kartenformen,
       Vorgaben mit dem gemeinsamen Schrittbaustein; nur Frage–Antwort
       vorausgewählt; Kartenmenge als Stufe mit Hochrechnung, vorher
       recherchieren, wie andere Apps das lösen, danach Mischung und
       Lernziele entscheiden; Größengrenze nach Seiten oder Zeichen.
-- [ ] **P2b – Quelle zu Vorschlägen:** Die Quelle wird im Browser ausgelesen
-      (`documentModel.ts`, Grenzen wie bei der Zusammenfassung); leere,
-      geschützte, gescannte oder zu große Quellen werden mit Meldung
-      abgewiesen, nie still gekürzt. PDF zerfällt in Seiten, Text, Markdown,
-      CSV und TSV in Abschnitte mit echtem Beleg. Portionen laufen
-      nacheinander im geöffneten Tab mit Fortschritt, Abbruch und den
-      Fehlerregeln des Variantenlaufs; jede Portion erhält die Fragen der
-      vorigen. Erreicht ein Auftrag 100 Vorschläge, endet der Lauf und das
-      Ergebnis nennt, ab welcher Stelle die Quelle nicht ausgewertet wurde.
-      Ergebnis ist eine flüchtige Vorschlagsliste mit Vorschau, Hinweisen und
-      der Zahl verworfener Vorschläge; nichts wird gespeichert. Nachweis:
-      Modultests für Zerlegung und Lauf.
 - [ ] **P2c – Prüfen, übernehmen, freischalten:** Bearbeiten und Verwerfen je
       Vorschlag; Bearbeiten und Vorschau nutzen den Reiter `Inhalt` des
       [Karteneditors](specs.md#karteneditor), kein zweiter Editor. Gespeichert
       wird erst nach Bestätigung und nur über `coreModel.ts` (kurze Antwort,
       Erklärung in `extra`, Beleg in `source`); ein neuer Zielstapel entsteht
       erst bei der Übernahme; der Entwurfsschutz gilt auch für ungespeicherte
-      Vorschläge. Danach „Karten erstellen“ freischalten, ohne Verbindung mit
-      Meldung gesperrt; Specs
+      Vorschläge. Danach den Abruf im Browser samt Antwortprüfung verdrahten
+      und „Karten erstellen“ freischalten, ohne Verbindung mit Meldung
+      gesperrt; Specs
       [Automatisch aus einer Quelle](specs.md#automatisch-aus-einer-quelle),
       `status.md` und `architecture.md` nachziehen. Nachweis: E2E mit
       gemockter Route (Erfolg, Hinweise, Abbruch, Fehler, nichts gespeichert

@@ -29,6 +29,7 @@ test("source selection accepts only readable nonempty files, including uppercase
     assert.match(aiSourceFileError({ name, size: 10 })!, /Wähle eine Datei/);
   }
   assert.match(aiSourceFileError({ name: "leer.pdf", size: 0 })!, /Datei ist leer/);
+  assert.match(aiSourceFileError({ name: "gross.pdf", size: 20 * 1_024 * 1_024 + 1 })!, /bis 20 MiB/);
   assert.equal(suggestSourceDeckName("Zellatmung_Teil-1.PPTX"), "Zellatmung Teil 1");
 });
 

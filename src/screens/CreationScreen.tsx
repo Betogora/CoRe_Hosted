@@ -1,3 +1,4 @@
+import type { AiSourceCardsRequester } from "../aiSourceCards.ts";
 import React from "react";
 import { CheckCircle2 } from "lucide-react";
 import type { CreationScreenProps } from "../appScreenProps.ts";
@@ -11,7 +12,10 @@ import { CreationHome, creationMethods } from "./CreationHome.tsx";
 import { ManualCreationPanel } from "./ManualCreationPanel.tsx";
 import { AiSourceCreationPanel } from "./AiSourceCreationPanel.tsx";
 
-export type CreationScreenViewProps = Partial<CreationScreenProps>;
+export type CreationScreenViewProps = Partial<CreationScreenProps> & {
+  /** Sends one portion of a source to the AI; without it, automatic creation stays unavailable. */
+  onRequestSourceCards?: AiSourceCardsRequester;
+};
 
 export function CreationScreen({
   decks = [],
@@ -35,6 +39,7 @@ export function CreationScreen({
   onStartDeck = () => undefined,
   onReviewDeck = () => undefined,
   onOpenDashboard = () => undefined,
+  onRequestSourceCards,
 }: CreationScreenViewProps) {
   const completionHeadingRef = React.useRef<HTMLHeadingElement | null>(null);
   const [sessionCompletion, setSessionCompletion] = React.useState<{ deckId: string; createdCount: number; kind: "import" | "manual"; importResult?: Pick<ImportCompletion, "partial" | "reimport"> } | null>(null);
@@ -77,7 +82,7 @@ export function CreationScreen({
 
   function renderSelectedMethod() {
     if (selectedMethod === "ai-source") {
-      return <>{methodHeader()}<AiSourceCreationPanel key={initialTargetDeckId} decks={decks} initialTargetDeckId={initialTargetDeckId} onDraftStateChange={onDraftStateChange} /></>;
+      return <>{methodHeader()}<AiSourceCreationPanel key={initialTargetDeckId} decks={decks} initialTargetDeckId={initialTargetDeckId} onDraftStateChange={onDraftStateChange} onRequestSourceCards={onRequestSourceCards} /></>;
     }
     if (selectedMethod === "import") {
       return (
