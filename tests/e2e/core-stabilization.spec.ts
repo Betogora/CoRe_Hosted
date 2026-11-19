@@ -750,6 +750,12 @@ test("review flow records a rating through accessible controls", async ({ page }
 
 test("deck settings save appearance, learning, scheduler and CoRe values together", async ({ page }: any) => {
   const runtimeErrors = collectBrowserErrors(page);
+  // The rating below makes a card ready for variants, so the app requests its next variant ahead (specs.md#kartenvarianten-erzeugen).
+  await page.route("**/api/ai/card-variant", (route: any) => route.fulfill({
+    status: 200,
+    contentType: "application/json",
+    body: JSON.stringify({ variant: { front: "Welche Stadt ist Hauptstadt?", back: "Antwort" }, model: "provider/model:free", privacyMode: "zdr", usage: null }),
+  }));
 
   await resetToFreshLocalState(page);
   const initialState = await readAppState(page);
