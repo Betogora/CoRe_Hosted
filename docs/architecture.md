@@ -96,7 +96,7 @@ Befehlsmodule laufen ohne React und entstehen je Arbeitsbereich aus Store, lokal
 
 | Eigentümer | Verantwortung |
 | --- | --- |
-| `cardCommands.ts` | Kartenseiten, Inhalte speichern, löschen, wiederherstellen, duplizieren, verschieben; Lernstand, Varianten, Medien, manuelle Erstellung |
+| `cardCommands.ts` | Kartenseiten, Inhalte speichern, löschen, wiederherstellen, duplizieren, verschieben; Lernstand, Varianten, Medien, manuelle Erstellung, Textimport |
 | `deckCommands.ts` | Stapel, Stapel- und globale Einstellungen, Lernprofile, Prüfungsaufgaben, gespeicherte Suchen |
 | `importCommands.ts` | Importgraph übernehmen, Cloud-Bestätigung je Import, einmalige Neuübersetzung |
 | `cardBatchActions.ts` | Massenaktionen der Kartenverwaltung als ein Schreibvorgang, Rückgängig als neue Änderung |
@@ -120,6 +120,7 @@ Befehlsmodule laufen ohne React und entstehen je Arbeitsbereich aus Store, lokal
 | `creationWorkflow.ts`, `creationBatch.ts` | manuelle Erstellung samt Bildverdeckung und lokaler Medienvorbereitung |
 | `notePresentation.ts`, `presentationFrame.ts`, `originalLayout.ts`, `htmlSafety.ts` | Kartenrenderer, CSP-Rahmen, Regel des Originallayouts, Sanitizer |
 | `apkgImport.ts`, `apkgNoteTranslation.ts`, `importRetranslation.ts` | APKG-Vorschau und gestreamter Importgraph, Übersetzung, Neuübersetzung |
+| `textImport.ts` | Text- und CSV-Import |
 | `learningSummaries.ts`, `learningMindMaps.ts` | Zusammenfassungen und Mindmaps: Format, Operationen, lokale Ablage und Abgleich |
 | `aiSourceCreation.ts`, `aiSourceCardsContract.ts`, `aiSourceCards.ts` | Karten aus einer Quelle: Auftrag und Prompt, Vertrag der Route, Auslesen, Abschnittslauf, Abruf und Vorschlagsinhalt |
 | `dashboardWidgets.ts`, `dailyMotivation.ts`, `brainMascots.ts` | Dashboard-Layout und To-dos, Tagesimpuls, Maskottchen; nur lokal |
@@ -307,7 +308,7 @@ Befehlsmodule laufen ohne React und entstehen je Arbeitsbereich aus Store, lokal
 
 - Der Worker erhält die Datei, liest sie mit `readAnkiPackage`, übersetzt einmal und hält den Importgraphen bis Commit oder Verwerfen. Der ZIP-Leser liest Einträge einzeln aus dem `Blob`, damit große Pakete nicht ganz im Speicher liegen.
 - Beim Commit streamt der Worker begrenzte Chunks in Fremdschlüsselreihenfolge und Medien einzeln mit SHA-1-Prüfung; der Main Thread schreibt jeden Chunk in IndexedDB, bevor er den nächsten anfordert.
-- Die flüchtige Importsitzung überlebt interne Navigation; nach einem Neuladen laufen nur Outbox und Medienqueue weiter. `interruptedImport` im Meta-Store vermerkt eine begonnene Übernahme mit ihren Stapeln bis zu ihrem Ende. Die Cloud-Bestätigung je Import läuft nach jedem gespeicherten Sync erneut und zieht in den nächsten Arbeitsbereich desselben Kontos mit.
+- Die flüchtige Importsitzung überlebt interne Navigation; nach einem Neuladen laufen nur Outbox und Medienqueue weiter. `interruptedImport` im Meta-Store vermerkt eine begonnene Übernahme bis zu ihrem Ende. Die Cloud-Bestätigung je Import läuft nach jedem gespeicherten Sync erneut und zieht in den nächsten Arbeitsbereich desselben Kontos mit.
 
 ### Reimport
 

@@ -15,8 +15,7 @@ Entscheidungen vom 2026-11-14 zur Kommentierung der Specs bis Kapitel 5; die
 Zahlen in Klammern sind die Fragen der Agenda. Je Paket ein PR, unabhängig
 voneinander.
 
-- [ ] **4 Sync und Import, Rest:** Text- und CSV-Import wie in Anki,
-      Konverter nur erwähnen (2.7, eigener PR). Offene Befunde der
+- [ ] **4 Sync und Import, Rest:** Offene Befunde der
       Anki-Prüfung vom 2026-11-19 (2.6): `furigana`/`kanji` wird in den
       Inhalt eingebrannt und zerstört `[sound:]`; `{{^Feld}}` um die
       Vorderseite erzeugt eine Zusatzkarte; der Reimport ignoriert Ankis

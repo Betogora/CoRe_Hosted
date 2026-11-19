@@ -36,6 +36,8 @@ export function CreationScreenWiring() {
         creationDeckId: deckId || null,
       })}
       onSaveManualNote={cardCommands.saveManualNote}
+      listDeckContents={cardCommands.listDeckContents}
+      onImportTextNotes={cardCommands.importTextNotes}
       onRequestSourceCards={(request, signal) => requestAiSourceCards(request, cloud, signal)}
       listTagDirectory={cardEditorServices.listTagDirectory}
       onDraftStateChange={navigation.handleCreationDraftStateChange}

@@ -8,14 +8,14 @@ import type { ApkgImportSession } from "./apkgImportSession.ts";
 import type { AiCardVariantSuccess } from "./aiCardVariantContract.ts";
 import type { AskCardHelp } from "./screens/StudyAiHelp.tsx";
 import type { DeckMutationResult, WorkspaceState } from "./coreWorkspace.ts";
-import type { CardStudySnapshot } from "./cloudRepositoryValidation.ts";
+import type { CardStudySnapshot, SimilarNote } from "./cloudRepositoryValidation.ts";
 import type { Card, CardStudyStatePatch, CoreMode, Deck, ExamDailyTask, ExamPlanningSettings, GlobalSchedulerPreferences, LearningProfileTemplate, Note, NoteContent, Profile, ReviewEvent, SavedCardSearch } from "./coreTypes.ts";
-import type { SimilarNote } from "./cloudRepositoryValidation.ts";
 import type { TagDirectoryEntry } from "./tagDirectory.ts";
 import type { CardTableSort } from "./libraryModel.ts";
 import type { AccountMediaStore } from "./mediaStore.ts";
 import type { ImportCommands } from "./importCommands.ts";
 import type { ManualNoteSaveInput } from "./screens/ManualCreationPanel.tsx";
+import type { ExistingTextImportNote, TextImportSaveInput } from "./textImport.ts";
 import type { PomodoroTimer } from "./pomodoroTimer.ts";
 import type { AnsweredTodayCard, DailyReviewProgressSummary, ReviewAnswerResult } from "./reviewService.ts";
 import type { CreationMethod } from "./useAppNavigation.ts";
@@ -30,10 +30,7 @@ type NavigateToView = (
 ) => AppRoute;
 type CreateDeckInput = { name?: string; parentDeckId?: string | null; description?: string; deckSettings?: Partial<Deck["deckSettings"]> };
 
-export interface CardDraftGuard {
-  focus: () => void;
-  save: () => Promise<boolean>;
-}
+export interface CardDraftGuard { focus: () => void; save: () => Promise<boolean> }
 
 /** `invalid` means the draft was rejected with feedback at the field; only `failed` is a failed save. */
 export type SettingsSaveOutcome = "saved" | "invalid" | "failed";
@@ -63,6 +60,9 @@ export interface CreationScreenProps {
   onMethodChange: (method: CreationMethod) => unknown;
   onTargetDeckChange: (deckId: string) => unknown;
   onSaveManualNote: (input: ManualNoteSaveInput) => Promise<{ deck: Deck; cardIds: string[] } | null>;
+  /** Contents of a deck, against which the text import finds duplicates. */
+  listDeckContents: (deckId: string) => Promise<ExistingTextImportNote[]>;
+  onImportTextNotes: (input: TextImportSaveInput) => Promise<{ deck: Deck; cardCount: number } | null>;
   /** Tags of the account for suggestions in the tag input. */
   listTagDirectory: () => Promise<TagDirectoryEntry[]>;
   onDraftStateChange: (dirty: boolean, focusDraft: (() => void) | null, saving: boolean) => void;

@@ -21,6 +21,7 @@ function renderPanel(session: ApkgImportSession, props: Partial<React.ComponentP
       isSessionCurrent={() => true}
       onResetSession={() => undefined}
       onCompleted={() => undefined}
+      onTextFile={() => undefined}
       {...props}
     />,
   );

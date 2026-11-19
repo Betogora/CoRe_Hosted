@@ -18,10 +18,10 @@ test("latest APKG preview shows the complete quality report without mutating acc
 
   await page.getByRole("navigation", { name: /Hauptmenü/ }).getByRole("button", { name: "Erstellen" }).click();
   await page.getByRole("button", { name: /^Import\b/ }).click();
-  await expect(page.getByRole("heading", { name: "Anki-Dateien importieren" })).toBeVisible();
-  await expect(page.getByText("APKG- oder COLPKG-Datei hier ablegen (Max. 2 GiB)")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Karten importieren" })).toBeVisible();
+  await expect(page.getByText("APKG-, COLPKG-, TXT-, CSV- oder TSV-Datei hier ablegen")).toBeVisible();
   await expect(page.getByText("Importbericht erscheint nach dem Upload")).toHaveCount(0);
-  await page.locator('input[type="file"][accept=".apkg,.colpkg"]').setInputFiles(MEDIA_APKG_FIXTURE);
+  await page.locator('input[type="file"][accept=".apkg,.colpkg,.txt,.csv,.tsv"]').setInputFiles(MEDIA_APKG_FIXTURE);
 
   await expect(page.getByRole("button", { name: "Import übernehmen" })).toBeVisible({ timeout: 30_000 });
   await expect(page.getByRole("heading", { name: "Matrix Medien" })).toBeVisible();
@@ -91,7 +91,7 @@ test("APKG commit exposes an accessible progressbar before completion", async ({
       resolve("nicht beobachtet");
     }, 5_000);
   }));
-  await page.locator('input[type="file"][accept=".apkg,.colpkg"]').setInputFiles(MEDIA_APKG_FIXTURE);
+  await page.locator('input[type="file"][accept=".apkg,.colpkg,.txt,.csv,.tsv"]').setInputFiles(MEDIA_APKG_FIXTURE);
   expect(Number.parseFloat(await reducedMotionObserved)).toBeLessThanOrEqual(0.00001);
   await expect(page.getByRole("button", { name: "Import übernehmen" })).toBeEnabled({ timeout: 30_000 });
 
@@ -120,7 +120,7 @@ test("defective APKG offers exactly one recommended recovery action", async ({ p
   await resetToFreshLocalState(page);
   await page.getByRole("navigation", { name: /Hauptmenü/ }).getByRole("button", { name: "Erstellen" }).click();
   await page.getByRole("button", { name: /^Import\b/ }).click();
-  await page.locator('input[type="file"][accept=".apkg,.colpkg"]').setInputFiles({
+  await page.locator('input[type="file"][accept=".apkg,.colpkg,.txt,.csv,.tsv"]').setInputFiles({
     name: "defekt.apkg",
     mimeType: "application/octet-stream",
     buffer: Buffer.from("keine gueltige APKG-Datei"),

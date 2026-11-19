@@ -1195,7 +1195,7 @@ test("[Vertrag: KI-Varianten je Kartenart, Zähler, Stapellauf und Anzeigen] Der
 
   await mainMenu(page).getByRole("button", { name: "Erstellen" }).click();
   await page.getByRole("button", { name: /^Import\b/ }).click();
-  await page.locator('input[type="file"][accept=".apkg,.colpkg"]').setInputFiles(AI_VARIANT_DEMO_APKG);
+  await page.locator('input[type="file"][accept=".apkg,.colpkg,.txt,.csv,.tsv"]').setInputFiles(AI_VARIANT_DEMO_APKG);
   await page.getByRole("button", { name: "Import übernehmen" }).click();
   await expect(page.getByRole("heading", { name: "Import erfolgreich" })).toBeVisible({ timeout: 30_000 });
 
