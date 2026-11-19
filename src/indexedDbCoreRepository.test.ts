@@ -582,7 +582,7 @@ test("Reimport behält lokale Bearbeitungen, erkennt Karten an der Anki-Karten-I
   assert.equal(result.keptLocalEdits, 1);
   assert.equal(result.missingInPackage, 1, "nur die nicht mehr enthaltene Rückrichtung des bearbeiteten Inhalts fehlt");
   assert.deepEqual(result.decks.map((entry) => entry.id), ["deck-anki"]);
-  assert.deepEqual(result.scope.reviewEventIds, ["import-review"]);
+  assert.deepEqual(result.scope.reviewEventIds, [], "wie in Anki bekommen vorhandene Karten keinen Verlauf aus dem Paket");
   assert.equal(result.scope.cardIds.includes("card-plain"), false, "eine behaltene Karte mit veralteter Variante gehört nicht zur Importprüfung");
 
   const keptGraph = await repository.loadNoteGraph("note-edited");
@@ -602,9 +602,43 @@ test("Reimport behält lokale Bearbeitungen, erkennt Karten an der Anki-Karten-I
   assert.equal(await repository.loadCardBody("incoming-c1"), null, "die Cloudkarte wurde über die Anki-Karten-ID erkannt und nicht neu angelegt");
   assert.equal(await repository.loadCardBody("incoming-a1"), null);
 
-  const reviewMutation = repository.outbox.listPending().find((mutation) => mutation.table === "review_events");
-  assert.equal((reviewMutation?.payload as any).entity.cardId, "card-edited-forward");
-  assert.equal((reviewMutation?.payload as any).entity.deckId, "deck-anki");
+  assert.equal(repository.outbox.listPending().some((mutation) => mutation.table === "review_events"), false);
+  repository.close();
+});
+
+test("ein unterbrochener Import bleibt vermerkt; dieselbe Datei setzt ihn fort und übernimmt auch den Verlauf schon übernommener Karten", async () => {
+  const repository = await openRepository(state([], []));
+  const first = importedNote("incoming-first", "guid-first", "Erste Frage");
+  const second = importedNote("incoming-second", "guid-second", "Zweite Frage");
+  const deckChunk: ImportGraphChunk = { kind: "decks", decks: [{ id: "import-deck", ankiDeckId: "anki-deck-1", name: "Anki", hierarchyPath: ["Anki"], parentDeckId: null }] };
+  const firstChunk: ImportGraphChunk = { kind: "notes", notes: [first.note], noteSources: [], cards: [{ ...first.cards[0], id: "card-first", deckId: "import-deck", ankiCardId: "anki-1" }] };
+  const secondChunk: ImportGraphChunk = { kind: "notes", notes: [second.note], noteSources: [], cards: [{ ...second.cards[0], id: "card-second", deckId: "import-deck", ankiCardId: "anki-2" }] };
+  const reviews: ImportGraphChunk = { kind: "reviews", values: [{ id: "review-first", cardId: "card-first", rating: "good", answeredAt: "2026-08-18T10:00:00.000Z", responseTimeMs: 1_000, schedulerBefore: {}, schedulerAfter: {}, flags: {} }] };
+  const source = { fileName: "Anki.apkg", fileSize: 1_234 };
+  const graph = (chunks: ImportGraphChunk[], interruptAfter = Infinity): ImportCommitGraph => ({
+    ...importGraph(chunks),
+    cardCount: 2,
+    async streamChunks(visit) {
+      for (const [index, chunk] of chunks.entries()) {
+        if (index === interruptAfter) throw new Error("Tab geschlossen");
+        await visit(chunk);
+      }
+    },
+  });
+
+  await assert.rejects(repository.commitImportGraph(graph([deckChunk, firstChunk, secondChunk, reviews], 2), { deckSettings: {}, source }));
+  assert.deepEqual(await repository.getInterruptedImport(), { ...source, deckIds: ["import-deck"], cardCount: 2, committedCards: 1 });
+
+  const resumed = await repository.commitImportGraph(graph([deckChunk, firstChunk, secondChunk, reviews]), { deckSettings: {}, source, resume: true });
+  assert.deepEqual(resumed.scope.cardIds, ["card-second"]);
+  assert.deepEqual(resumed.scope.reviewEventIds, ["review-first"], "die schon übernommene Karte erhält ihren Verlauf");
+  assert.equal(await repository.getInterruptedImport(), null);
+
+  // Deleting what an interrupted takeover left leaves nothing to complete.
+  await assert.rejects(repository.commitImportGraph(graph([{ ...deckChunk, decks: [{ ...deckChunk.decks[0], id: "other-deck", ankiDeckId: "anki-deck-2", name: "Andere" }] }, firstChunk], 1), { deckSettings: {}, source: { fileName: "Andere.apkg", fileSize: 99 } }));
+  assert.equal((await repository.getInterruptedImport())?.fileName, "Andere.apkg");
+  await repository.deleteDeckTree("other-deck");
+  assert.equal(await repository.getInterruptedImport(), null);
   repository.close();
 });
 

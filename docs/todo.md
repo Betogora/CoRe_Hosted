@@ -24,12 +24,20 @@ voneinander.
       aussetzen; Anki-Markierung übernehmen, eigene nur kennzeichnen (1.17,
       1.18). Standard-Zielerinnerung neu festlegen, vermutlich 91–94 % (1.11);
       FSRS-7 erst nach Feldwerten ändern (1.10).
-- [ ] **4 Sync und Import:** Beim Verlassen der Seite synchronisieren (2.1);
-      Warnung beim Schließen mit offenen Änderungen (2.2); abgebrochenen
-      Import testen und Verhalten festlegen (2.4); Lernstand beim Reimport
-      gegen Anki prüfen (2.5); Anki-Abbildung durch ein starkes Modell prüfen
-      lassen (2.6); Text- und CSV-Import wie in Anki, Konverter nur erwähnen
-      (2.7); Import mit Ladebalken und Vorschau statt interner Schritte (5.1).
+- [ ] **4 Sync und Import, Rest:** Text- und CSV-Import wie in Anki,
+      Konverter nur erwähnen (2.7, eigener PR). Befunde der Anki-Prüfung vom
+      2026-11-19 beheben (2.6). Schwer: Bildverdeckung mit Textbeschriftung
+      (`c0`) wird Feldliste; ohne `lrt` fehlt der Zeitpunkt der letzten
+      Wiederholung; Karten, deren Vorderseite nur `tts:`, `hint:`, `type:`
+      oder Extra-Felder zeigt, entfallen samt Lernstand. Mittel:
+      `furigana`/`kanji` wird in den Inhalt eingebrannt; `{{^Feld}}` um die
+      Vorderseite erzeugt eine Zusatzkarte; das Nachrechnen zählt Cram und
+      Verlauf vor einem Zurücksetzen mit; der Vorrang der vollständigen
+      Historie greift nie (Code oder Spec angleichen); der Reimport ignoriert
+      Ankis `mod` und Notiztypwechsel. Niedrig: Lücken-Parser (`{{C1::`,
+      Escape, Klammern), Randfälle des Originallayouts, Lücken nur aus
+      Fragefeldern, Revlog aus Scheduler v1, Randfälle der Bildverdeckung,
+      kein ZIP64.
 - [ ] **5 Oberfläche:** Aussetzen im Editor mit Rückgängig in der Meldung
       (5.2); Suchfilter als Symbole mit ausführlichen Tooltips, Hinweis bei
       sich ausschließenden Filtern, Suchschreibweise ausklappbar (5.4–5.6);

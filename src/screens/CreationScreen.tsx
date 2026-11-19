@@ -2,21 +2,24 @@ import React from "react";
 import { CheckCircle2 } from "lucide-react";
 import type { CreationScreenProps } from "../appScreenProps.ts";
 import { createEmptyApkgImportSession } from "../apkgImportSession.ts";
-import { createCreationWorkflow } from "../creationWorkflow.ts";
+import { createCreationWorkflow, type InterruptedImport } from "../creationWorkflow.ts";
 import type { Deck } from "../coreTypes.ts";
 import { ActionButton } from "../ui/actionUi.tsx";
 import { PageHeader, SoftPanel } from "../ui/coreUi.tsx";
-import { ApkgImportPanel, type ImportCompletion } from "./ApkgImportPanel.tsx";
+import type { ImportCompletion } from "../apkgImportSession.ts";
+import { ApkgCardSample, ApkgImportPanel, useSampleMediaUrls } from "./ApkgImportPanel.tsx";
 import { CreationHome, creationMethods } from "./CreationHome.tsx";
 import { ManualCreationPanel } from "./ManualCreationPanel.tsx";
 import { AiSourceCreationPanel } from "./AiSourceCreationPanel.tsx";
 
 export type CreationScreenViewProps = Partial<CreationScreenProps>;
 
+const NO_MEDIA: ImportCompletion["sampleMedia"] = [];
+
 export function CreationScreen({
   decks = [],
   mediaStore = null,
-  commitImport,
+  importActions,
   apkgImportSession: controlledApkgImportSession,
   onApkgImportSessionChange: controlledApkgImportSessionChange,
   isApkgImportSessionCurrent: controlledIsApkgImportSessionCurrent,
@@ -37,7 +40,7 @@ export function CreationScreen({
   onOpenDashboard = () => undefined,
 }: CreationScreenViewProps) {
   const completionHeadingRef = React.useRef<HTMLHeadingElement | null>(null);
-  const [sessionCompletion, setSessionCompletion] = React.useState<{ deckId: string; createdCount: number; kind: "import" | "manual"; importResult?: Pick<ImportCompletion, "partial" | "reimport"> } | null>(null);
+  const [sessionCompletion, setSessionCompletion] = React.useState<{ deckId: string; createdCount: number; kind: "import" | "manual"; importResult?: Pick<ImportCompletion, "reimport" | "samples" | "sampleMedia"> } | null>(null);
   const [localApkgImportSession, setLocalApkgImportSession] = React.useState(() => createEmptyApkgImportSession());
   const apkgImportSession = controlledApkgImportSession ?? localApkgImportSession;
   const apkgImportSessionRef = React.useRef(apkgImportSession);
@@ -56,15 +59,23 @@ export function CreationScreen({
   const resolvedCompletionKind = sessionCompletion?.kind ?? completionKind;
   const resolvedCompletedCount = sessionCompletion?.createdCount ?? completedCount;
   const importResult = sessionCompletion?.importResult;
+  const completionSampleUrls = useSampleMediaUrls(importResult?.sampleMedia ?? NO_MEDIA);
+  // Read again with every new import session, since a finished takeover clears it.
+  const [interruptedImport, setInterruptedImport] = React.useState<InterruptedImport | null>(null);
+  React.useEffect(() => {
+    let active = true;
+    void importActions?.getInterruptedImport().then((interrupted) => { if (active) setInterruptedImport(interrupted); }).catch(() => undefined);
+    return () => { active = false; };
+  }, [importActions, apkgImportSession.version]);
   const accountWorkflow = React.useMemo(
     () => createCreationWorkflow({
       mediaStore: mediaStore ?? undefined,
-      ...(commitImport ? { commitImport } : {}),
+      ...(importActions ? { commitImport: importActions.commitImport } : {}),
     }),
-    [commitImport, mediaStore],
+    [importActions, mediaStore],
   );
 
-  function completeSession(deckId: string, createdCount: number, kind: "import" | "manual", importResult?: Pick<ImportCompletion, "partial" | "reimport">) {
+  function completeSession(deckId: string, createdCount: number, kind: "import" | "manual", importResult?: Pick<ImportCompletion, "reimport" | "samples" | "sampleMedia">) {
     setSessionCompletion({ deckId, createdCount, kind, importResult });
     onSessionCompleted({ deckId, createdCount, kind });
   }
@@ -89,8 +100,9 @@ export function CreationScreen({
           onSessionChange={onApkgImportSessionChange}
           isSessionCurrent={isApkgImportSessionCurrent}
           onResetSession={onResetApkgImportSession}
+          interruptedImport={interruptedImport}
           onCompleted={(completion) => {
-            completeSession(completion.deck.id, completion.createdCount, "import", { partial: completion.partial, reimport: completion.reimport });
+            completeSession(completion.deck.id, completion.createdCount, "import", completion);
           }}
         />
         </>
@@ -122,12 +134,11 @@ export function CreationScreen({
         <SoftPanel className="mx-auto w-full max-w-3xl p-6 text-center sm:p-10">
           <CheckCircle2 size={32} className="mx-auto text-core-success" aria-hidden="true" />
           <h2 ref={completionHeadingRef} tabIndex={-1} className="mt-4 core-heading-2 text-core-text outline-none">
-            {resolvedCompletionKind !== "import" ? "Deine Karten sind bereit" : importResult?.partial ? "Import lokal abgeschlossen" : "Import erfolgreich"}
+            {resolvedCompletionKind !== "import" ? "Deine Karten sind bereit" : "Import erfolgreich"}
           </h2>
           <p className="mx-auto mt-3 max-w-xl core-body text-core-secondary">
-            {resolvedCompletedCount} {resolvedCompletedCount === 1 ? "Karte wurde" : "Karten wurden"} {resolvedCompletionKind === "import" ? "aus" : "in"} „{(completedDeck.hierarchyPath.length ? completedDeck.hierarchyPath : [completedDeck.name]).join(" / ")}“ {resolvedCompletionKind === "import" && !importResult?.partial ? "vollständig gespeichert." : "gespeichert."}
+            {resolvedCompletedCount} {resolvedCompletedCount === 1 ? "Karte wurde" : "Karten wurden"} {resolvedCompletionKind === "import" ? "aus" : "in"} „{(completedDeck.hierarchyPath.length ? completedDeck.hierarchyPath : [completedDeck.name]).join(" / ")}“ gespeichert.
           </p>
-          {importResult?.partial ? <p className="mx-auto mt-2 max-w-xl core-body text-core-muted">Die Karten sind nutzbar. Cloud- und Mediensynchronisierung laufen im Hintergrund weiter.</p> : null}
           {importResult?.reimport?.keptLocalEdits ? <p className="mx-auto mt-2 max-w-xl core-body text-core-muted">{importResult.reimport.keptLocalEdits} lokal {importResult.reimport.keptLocalEdits === 1 ? "bearbeiteter Inhalt blieb" : "bearbeitete Inhalte blieben"} unverändert.</p> : null}
           {importResult?.reimport?.missingInPackage ? <p className="mx-auto mt-2 max-w-xl core-body text-core-muted">{importResult.reimport.missingInPackage} {importResult.reimport.missingInPackage === 1 ? "Karte fehlt" : "Karten fehlen"} im Paket und {importResult.reimport.missingInPackage === 1 ? "bleibt" : "bleiben"} erhalten.</p> : null}
           <div className="mt-6 flex flex-wrap justify-center gap-3">
@@ -144,6 +155,11 @@ export function CreationScreen({
               </>
             )}
           </div>
+          {importResult?.samples.length ? (
+            <div className="mt-6 grid gap-4 text-left" data-testid="import-completion-samples">
+              {importResult.samples.map((sample) => <ApkgCardSample key={sample.card.id} {...sample} urlsBySha1={completionSampleUrls} />)}
+            </div>
+          ) : null}
         </SoftPanel>
         </>
       ) : selectedMethod ? (

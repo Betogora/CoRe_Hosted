@@ -22,7 +22,7 @@ const AREAS: [RegExp, string[]][] = [
   [/deck|Deck|libraryModel|cardSearch|LearningArea/, ["deck-ui-restoration", "dashboard-widgets", "world-capitals-hierarchy", "navigation-context"]],
   [/StudyMode|StudySession|LearnScreen|[Ss]cheduler|studyQueue|[Rr]eview|learningDay|siblingBury|easyDays|simulationClock/, ["first-learning", "card-lifecycle", "core-stabilization"]],
   [/auth|Auth/, ["auth-gate", "auth-lifecycle", "auth-resilience"]],
-  [/apkg|Apkg|media|Media|zipReader|sqliteReader|importRetranslation|importUiState/, ["apkg-quality-report", "first-learning", "zz-media-import", "batch-resilience", "world-capitals-hierarchy"]],
+  [/apkg|Apkg|media|Media|zipReader|sqliteReader|importRetranslation|[Ii]mportSession|InterruptedImport/, ["apkg-quality-report", "first-learning", "zz-media-import", "batch-resilience", "world-capitals-hierarchy"]],
   [/cloud|Cloud|sync|Sync|coreRepository|accountDatabase|accountStorage|offline/, ["batch-resilience", "card-lifecycle", "core-stabilization", "navigation-context", "exam-planning", "auth-resilience", "zz-media-import"]],
   [/appNavigation|AppNavigation|menuModel|appRoute/, ["navigation-context", "product-surfaces"]],
   [/Settings|settings|learningProfiles|LearningDefaults|SaveBar/, ["product-surfaces", "core-stabilization"]],

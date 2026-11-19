@@ -87,7 +87,7 @@ Pfade liegen unter `src/`, soweit kein anderer angegeben ist. Private Teilmodule
 | `studyPreparation.ts`, `useStudyStart.ts`, `useStudySession.ts` | Lernsitzung vorbereiten (ohne React), starten und führen |
 | `useLearningClock.ts`, `learningDay.ts`, `simulationClock.ts` | Lernzeit mit Simulationsversatz, Tagesbeginn, Zeitzone und Lerntagwechsel |
 | `usePomodoroTimer.ts`, `pomodoroTimer.ts` | einziger accountgebundener Fokustimer über Tabs |
-| `useImportSession.ts`, `apkgImportSession.ts`, `importUiState.ts` | flüchtige APKG-Importsitzung bis zum Kontowechsel und ihre sichtbaren Phasen |
+| `useImportSession.ts`, `apkgImportSession.ts` | flüchtige APKG-Importsitzung bis zum Kontowechsel, Warnung beim Schließen und Hinweis auf eine unterbrochene Übernahme |
 | `useCardVariantBatch.ts` | der eine app-weite Variantenlauf und seine Rückmeldung |
 
 ### Befehle
@@ -307,12 +307,12 @@ Befehlsmodule laufen ohne React und entstehen je Arbeitsbereich aus Store, lokal
 
 - Der Worker erhält die Datei, liest sie mit `readAnkiPackage`, übersetzt einmal und hält den Importgraphen bis Commit oder Verwerfen. Der ZIP-Leser liest Einträge einzeln aus dem `Blob`, damit große Pakete nicht ganz im Speicher liegen.
 - Beim Commit streamt der Worker begrenzte Chunks in Fremdschlüsselreihenfolge und Medien einzeln mit SHA-1-Prüfung; der Main Thread schreibt jeden Chunk in IndexedDB, bevor er den nächsten anfordert.
-- Die flüchtige Importsitzung überlebt interne Navigation; nach einem Neuladen laufen nur Outbox und Medienqueue weiter. Die Cloud-Bestätigung je Import läuft nach jedem gespeicherten Sync erneut und zieht in den nächsten Arbeitsbereich desselben Kontos mit.
+- Die flüchtige Importsitzung überlebt interne Navigation; nach einem Neuladen laufen nur Outbox und Medienqueue weiter. Eine begonnene Übernahme steht bis zu ihrem Ende als `interruptedImport` mit ihren Stapeln im Meta-Store des Geräts; dieselbe Datei setzt sie fort, mit dem letzten ihrer Stapel erlischt sie. Die Cloud-Bestätigung je Import läuft nach jedem gespeicherten Sync erneut und zieht in den nächsten Arbeitsbereich desselben Kontos mit.
 
 ### Reimport
 
 - Reimport ordnet Inhalte über die Anki-GUID und Karten über die Anki-Kartenidentität zu, lokal und über `load_reimport_targets`; persistierte IDs stehen vor dem Schreiben fest.
-- Lokale Inhaltsänderungen, Lernstand, Aussetzung, Flagge, Markierung und Stapelplatz bleiben. Tags werden dreiseitig gegen `importedTags` zusammengeführt; im Paket fehlende Karten werden nur gezählt.
+- Lokale Inhaltsänderungen, Lernstand, Aussetzung, Flagge, Markierung und Stapelplatz bleiben. Bewertungen aus dem Paket erhalten wie in Anki nur neu angelegte Karten; das Fortsetzen einer unterbrochenen Übernahme ergänzt fehlende Bewertungen aller Karten des Pakets (Ereignis-IDs sind stabil). Tags werden dreiseitig gegen `importedTags` zusammengeführt; im Paket fehlende Karten werden nur gezählt.
 - Vorhandene Stapel behalten Name, Oberstapel und Einstellungen; Stapel ohne Anki-ID erkennt der Reimport an Oberstapel und Name. Neue Stapel entstehen unter dem Pfad ihres persistierten Oberstapels.
 
 ### Note-Übersetzung

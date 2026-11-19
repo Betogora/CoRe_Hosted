@@ -9,7 +9,7 @@ import { useSuccessToast } from "./ui/feedbackUi.tsx";
  * account's next workspace, and once the workspace is ready unedited imports are re-translated after a translator
  * release.
  */
-export function useImportSession(commands: ImportCommands | null, accountId: string | null, retranslationReady: boolean) {
+export function useImportSession(commands: ImportCommands | null, accountId: string | null, retranslationReady: boolean, openImport: () => void) {
   const setSuccessToast = useSuccessToast();
   const [session, setSessionState] = React.useState<ApkgImportSession>(() => createEmptyApkgImportSession());
   const sessionRef = React.useRef(session);
@@ -49,6 +49,25 @@ export function useImportSession(commands: ImportCommands | null, accountId: str
     previousCommands.current = commands;
     return commands.followSyncStatus();
   }, [commands]);
+
+  // A takeover interrupted on this device (reload, closed tab) is reported once per workspace.
+  React.useEffect(() => {
+    if (!commands) return undefined;
+    let active = true;
+    void commands.getInterruptedImport().then((interrupted) => {
+      if (!active || !interrupted) return;
+      setSuccessToast(`Der Import von „${interrupted.fileName}“ wurde unterbrochen.`, { appearance: "neutral", action: { label: "Fortsetzen", onAction: openImport } });
+    }).catch(() => undefined);
+    return () => { active = false; };
+  }, [commands, openImport, setSuccessToast]);
+
+  // Closing the tab during analysis or takeover asks first, also when the screen was left meanwhile.
+  React.useEffect(() => {
+    if (!session.isParsing) return undefined;
+    const beforeUnload = (event: BeforeUnloadEvent) => { event.preventDefault(); event.returnValue = ""; };
+    window.addEventListener("beforeunload", beforeUnload);
+    return () => window.removeEventListener("beforeunload", beforeUnload);
+  }, [session.isParsing]);
 
   React.useEffect(() => {
     if (!retranslationReady || !commands) return undefined;

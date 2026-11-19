@@ -9,7 +9,7 @@ test("account session restores the APKG method after app navigation without pers
 
   const active = {
     ...empty,
-    job: { fileName: "karten.apkg", fileSize: 42, status: "syncing_cloud", warnings: [], errors: [] },
+    job: { fileName: "karten.apkg", fileSize: 42, status: "committing", warnings: [], errors: [] },
     selectedFile: { name: "karten.apkg", size: 42 } as File,
   };
   assert.equal(resolveApkgCreationMethod("", active), "import");

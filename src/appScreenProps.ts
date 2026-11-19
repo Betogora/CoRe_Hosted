@@ -14,7 +14,7 @@ import type { SimilarNote } from "./cloudRepositoryValidation.ts";
 import type { TagDirectoryEntry } from "./tagDirectory.ts";
 import type { CardTableSort } from "./libraryModel.ts";
 import type { AccountMediaStore } from "./mediaStore.ts";
-import type { CommitImport } from "./creationWorkflow.ts";
+import type { ImportCommands } from "./importCommands.ts";
 import type { ManualNoteSaveInput } from "./screens/ManualCreationPanel.tsx";
 import type { PomodoroTimer } from "./pomodoroTimer.ts";
 import type { AnsweredTodayCard, DailyReviewProgressSummary, ReviewAnswerResult } from "./reviewService.ts";
@@ -50,7 +50,7 @@ export type SettingsSaveScope = DeckSettingsSaveScope | GlobalLearningSettingsSa
 export interface CreationScreenProps {
   decks: Deck[];
   mediaStore: AccountMediaStore | null;
-  commitImport: CommitImport;
+  importActions: Pick<ImportCommands, "commitImport" | "getInterruptedImport">;
   apkgImportSession: ApkgImportSession;
   onApkgImportSessionChange: Dispatch<SetStateAction<ApkgImportSession>>;
   isApkgImportSessionCurrent: (version: number) => boolean;

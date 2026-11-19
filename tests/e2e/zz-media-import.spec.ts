@@ -49,10 +49,12 @@ test("@beta-core @hosted-core APKG-Medium wird nach dem Deck-Commit cloudbestät
   const login = await client.auth.signInWithPassword({ email: environment.email, password: environment.password });
   if (login.error || !login.data.user) throw login.error ?? new Error("E2E-Medienaccount fehlt.");
   try {
-    const { data, error } = await client.from("media_files").select("storage_path, sha1").eq("user_id", login.data.user.id).in("sha1", mediaSha1s);
-    if (error) throw error;
-    expect(data?.map((row) => row.sha1).sort()).toEqual([...mediaSha1s].sort());
-    expect(data?.every((row) => row.storage_path === `${login.data.user.id}/${row.sha1}`)).toBe(true);
+    // The import reports success once the cards are stored locally; the media upload follows in the background.
+    await expect.poll(async () => {
+      const { data, error } = await client.from("media_files").select("storage_path, sha1").eq("user_id", login.data.user!.id).in("sha1", mediaSha1s);
+      if (error) throw error;
+      return (data ?? []).filter((row) => row.storage_path === `${login.data.user!.id}/${row.sha1}`).map((row) => row.sha1).sort();
+    }, { timeout: 60_000 }).toEqual([...mediaSha1s].sort());
   } finally {
     await client.auth.signOut({ scope: "local" }).catch(() => undefined);
     client.auth.dispose?.();

@@ -1,7 +1,6 @@
 import type { ApkgCreationPreview } from "./creationWorkflow.ts";
-import type { ImportCloudSyncTask } from "./importCloudSyncTask.ts";
 import type { Deck } from "./coreTypes.ts";
-import type { MediaSyncProgress, MediaSyncResult, MediaSyncStatus, MediaSyncTask } from "./mediaStore.ts";
+import type { ImportMediaFile, ImportSample } from "./apkgImport.ts";
 
 export interface ApkgImportJob {
   fileName?: string;
@@ -11,25 +10,28 @@ export interface ApkgImportJob {
   errors: string[];
 }
 
-export type ApkgCloudProgress = MediaSyncProgress & { status: MediaSyncStatus };
-export type ApkgProgressPhase = "analyzing" | "committing" | "syncing_cloud" | "syncing_media";
+export type ApkgProgressPhase = "analyzing" | "committing";
+
+/** A finished takeover: the cards are stored on the device; cloud and media sync continue in the background. */
+export interface ImportCompletion {
+  deck: Deck;
+  createdCount: number;
+  /** Reimport result: kept local edits and Anki cards missing from the package (K5.7). */
+  reimport: { keptLocalEdits: number; missingInPackage: number } | null;
+  samples: ImportSample[];
+  sampleMedia: ImportMediaFile[];
+}
 
 export interface ApkgImportSession {
   version: number;
   selectedFile: File | null;
   job: ApkgImportJob | null;
   preview: ApkgCreationPreview | null;
-  mediaStatus: MediaSyncResult | null;
   isParsing: boolean;
   /** Stops the running package analysis; null outside the analysis. */
   analysisAbort: AbortController | null;
-  mediaTask: MediaSyncTask | null;
-  cloudTask: ImportCloudSyncTask | null;
-  cloudProgress: ApkgCloudProgress | null;
-  completedDeck: Deck | null;
-  completedCount: number;
-  /** Reimport result: kept local edits and Anki cards missing from the package (K5.7). */
-  reimport: { keptLocalEdits: number; missingInPackage: number } | null;
+  /** Delivered to the creation screen once it is shown, so a takeover finishing elsewhere does not navigate. */
+  completion: ImportCompletion | null;
   phaseProgress: { phase: ApkgProgressPhase; percent: number } | null;
 }
 
@@ -39,21 +41,15 @@ export function createEmptyApkgImportSession(version = 0): ApkgImportSession {
     selectedFile: null,
     job: null,
     preview: null,
-    mediaStatus: null,
     isParsing: false,
     analysisAbort: null,
-    mediaTask: null,
-    cloudTask: null,
-    cloudProgress: null,
-    completedDeck: null,
-    completedCount: 0,
-    reimport: null,
+    completion: null,
     phaseProgress: null,
   };
 }
 
 export function hasVisibleApkgImportSession(session: ApkgImportSession): boolean {
-  return Boolean(session.selectedFile || session.job || session.preview || session.completedDeck || session.isParsing);
+  return Boolean(session.selectedFile || session.job || session.preview || session.completion || session.isParsing);
 }
 
 export function resolveApkgCreationMethod<T extends string>(requestedMethod: T, session: ApkgImportSession): T | "import" {

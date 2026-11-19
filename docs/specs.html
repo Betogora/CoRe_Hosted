@@ -4524,20 +4524,6 @@ button.core-steps-step:disabled {
 .core-steps li[data-state="current"] { color: var(--core-action-primary); }
 .core-steps li[data-state="current"] .core-steps-step { font-weight: var(--core-weight-heading); }
 .core-steps li[data-state="current"] .core-steps-dot { border-color: var(--core-action-primary); background: var(--core-action-primary); box-shadow: 0 0 0 3px var(--core-focus-ring-soft); }
-.core-steps li[data-state="failed"] { color: var(--core-danger-text); }
-.core-steps li[data-state="failed"] .core-steps-dot { border-color: var(--core-danger); background: var(--core-danger); }
-
-.core-steps[data-animated] li[data-after-current] .core-steps-line {
-  background:
-    linear-gradient(90deg, transparent, var(--core-action-primary), transparent) 0 0 / 40% 100% no-repeat,
-    var(--core-border-interactive);
-  animation: core-steps-flow 1.6s ease-in-out infinite;
-}
-
-@keyframes core-steps-flow {
-  from { background-position: -60% 0, 0 0; }
-  to { background-position: 160% 0, 0 0; }
-}
 
 @container (max-width: 32.49rem) {
   .core-steps li:not([aria-current]) .core-steps-label {
@@ -4735,7 +4721,6 @@ button.core-steps-step:disabled {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .core-steps[data-animated] li[data-after-current] .core-steps-line { animation: none; background: var(--core-action-primary); opacity: 0.5; }
   .core-tabs-tab { transition: none; }
 }
 
@@ -5775,27 +5760,9 @@ button.core-steps-step {
   background: color-mix(in srgb, var(--core-action-primary) 16%, var(--core-surface-muted));
 }
 
-/* A partial import ends in amber: the cards are stored, cloud or media sync is still open. */
-.core-apkg-steps-partial li[aria-current] {
-  color: var(--core-text);
-}
-
-.core-apkg-steps-partial li[aria-current] .core-steps-dot {
-  border-color: var(--core-warning);
-  background: var(--core-warning);
-  box-shadow: none;
-}
-
 /* The panel actions of a creation way move below its title when both no longer fit one row. */
 .core-creation-way .core-page-header-with-action {
   flex-wrap: wrap;
-}
-
-/* Before a file is chosen the compact import line would show unlabeled points only; it appears with the file. */
-@media (max-width: 37.4375rem) {
-  .core-apkg-steps:not(:has([aria-current])) {
-    display: none;
-  }
 }
 
 /* Rating buttons: ToolBox soft buttons; the rating role (fill, border, label) comes from ratingButtons. */
@@ -8266,10 +8233,11 @@ html:has(.catalog-preview) { scroll-behavior: auto; }
 <li>Analyse und Übernahme sind getrennte Schritte: Die Analyse lässt sich abbrechen und ändert nichts, die Übernahme läuft durch.</li>
 <li>Der Bericht nennt je Notiztyp, wie übersetzt wird, wie viele Inhalte und Karten entstehen, wie viel Lernstand übernommen wird, was nur generisch oder gar nicht übernommen wird, welche Medien fehlen und ob die Karten im Originallayout erscheinen. Beispielkarten erscheinen wie im Review. Technische Kennungen erscheinen nicht.</li>
 <li>Jede Anki-Notiz wird ein Inhalt, jede Anki-Karte eine CoRe-Karte; die Stapelhierarchie bleibt vollständig.</li>
-<li>Die Übernahme ist fertig, sobald alles geprüft auf dem Gerät gespeichert und die Medien zum Upload eingereiht sind. Scheitert der Sync danach, bleiben die Karten lokal und lernbar.</li>
+<li>Die Übernahme ist fertig, sobald alles geprüft auf dem Gerät gespeichert und die Medien zum Upload eingereiht sind. Dann meldet der Import den Erfolg mit bis zu drei Beispielkarten; Sync und Medien-Upload laufen im Hintergrund. Scheitern sie, bleiben die Karten lokal und lernbar.</li>
 <li>Medien werden erst bei der Übernahme gelesen und gegen ihre Prüfsumme geprüft.</li>
 <li>Fehler beim Lesen des Pakets bleiben sichtbar und werden nicht durch einen stillen Ersatzweg verdeckt.</li>
-<li>Ein laufender Import übersteht den Wechsel in andere App-Bereiche, nicht aber einen Reload.</li>
+<li>Ein laufender Import übersteht den Wechsel in andere App-Bereiche, nicht aber einen Reload; Schließen und Neuladen während Analyse und Übernahme fragen nach.</li>
+<li>Bricht eine Übernahme trotzdem ab, meldet CoRe das beim nächsten Start mit der Zahl schon übernommener Karten, bis dieselbe Datei den Import vervollständigt oder seine Stapel gelöscht sind.</li>
 <li><strong>Bewusst nicht:</strong> Serverimport, Upload-Fallback, Text- und Tabellenimport.</li>
 </ul>
 <h3 id="specs--übersetzung-von-anki-paketen" class="core-heading-3" tabindex="-1">Übersetzung von Anki-Paketen <a class="docs-anchor" href="#specs--übersetzung-von-anki-paketen" aria-label="Link zu Übersetzung von Anki-Paketen">#</a></h3>
@@ -8285,6 +8253,7 @@ html:has(.catalog-preview) { scroll-behavior: auto; }
 <li>Ein Reimport erkennt Inhalte und Karten an ihren Anki-Kennungen, auch wenn sie nur im Konto und nicht auf dem Gerät liegen.</li>
 <li>Unbearbeitete Inhalte übernehmen den Paketinhalt; lokal bearbeitete bleiben unverändert und werden gezählt.</li>
 <li>Lernstand, Aussetzung, Markierung, Flaggen und Stapelzuordnung bleiben immer. Neue Abfragen werden neue Karten; im Paket fehlende Karten bleiben und werden gezählt.</li>
+<li>Wie in Anki bringen nur neu angelegte Karten Lernstand und Bewertungsverlauf aus dem Paket mit; vorhandene behalten ihren Verlauf unverändert. Nur das Fortsetzen einer unterbrochenen Übernahme ergänzt fehlende Bewertungen aller Karten des Pakets.</li>
 <li>Tags werden nach <a href="#specs--tags">Tags</a> zusammengeführt. Vorhandene Stapel behalten Name, Ort im Baum und Einstellungen; neue Stapel entstehen unter dem heutigen Ort ihres Oberstapels.</li>
 <li>Verbessert sich ein Übersetzer, übersetzt CoRe unbearbeitete Importe einmal automatisch neu, ohne eine Karte mit Lernstand zu verlieren, und nennt die Zahl der verbesserten Inhalte.</li>
 </ul>
@@ -8751,13 +8720,13 @@ html:has(.catalog-preview) { scroll-behavior: auto; }
 <p>Jede Änderung wird zuerst auf dem Gerät gespeichert und danach mit dem Konto synchronisiert (<a href="decisions.md#adr-034--persistenz-web-replica-und-sync">ADR-034</a>).</p>
 <figure class="docs-diagram"><figcaption>Weg einer Änderung</figcaption><div class="docs-diagram-row"><ol class="docs-diagram-boxes"><li class="docs-diagram-box"><strong>Änderung</strong><span>Bewertung, Bearbeitung, Import</span></li><li class="docs-diagram-link">sofort</li><li class="docs-diagram-box"><strong>Auf dem Gerät gespeichert</strong><span>übersteht Reload und Browserende</span></li><li class="docs-diagram-link">Sync</li><li class="docs-diagram-box" data-tone="info"><strong>Konto</strong><span>erst senden, dann laden, dann Status</span></li><li class="docs-diagram-link">nächster Sync dort</li><li class="docs-diagram-box"><strong>Andere Geräte</strong></li></ol></div><p class="docs-diagram-down">nur wenn zwei Geräte dieselbe Sache unterschiedlich geändert haben</p><div class="docs-diagram-row"><ol class="docs-diagram-boxes"><li class="docs-diagram-box" data-tone="warning"><strong>Konflikt</strong><span>betrifft nur diese Karte oder diesen Stapel und wartet auf eine Entscheidung</span></li></ol></div></figure>
 <ul>
-<li>Ausstehende Änderungen gelten nie als gespeichert im Konto und sind als ausstehend erkennbar.</li>
+<li>Ausstehende Änderungen gelten nie als gespeichert im Konto und sind als ausstehend erkennbar. Schließen oder Neuladen mit solchen Änderungen fragt nach, auch ohne Verbindung; die Änderungen bleiben auf dem Gerät.</li>
 <li>Die App ist ohne Netz nutzbar, soweit die Daten auf dem Gerät liegen.</li>
 </ul>
 <h3 id="specs--sync-und-konflikte" class="core-heading-3" tabindex="-1">Sync und Konflikte <a class="docs-anchor" href="#specs--sync-und-konflikte" aria-label="Link zu Sync und Konflikte">#</a></h3>
 <ul>
 <li>Ein Sync sendet zuerst lokale Änderungen, lädt dann Neues aus dem Konto und aktualisiert zuletzt den Status. Manueller und automatischer Sync sind derselbe Ablauf.</li>
-<li>Der automatische Sync läuft nach Änderungen, bei Netzrückkehr und in einem wählbaren Intervall; er lässt sich abschalten, dann wird von Hand synchronisiert.</li>
+<li>Der automatische Sync läuft nach Änderungen, bei Netzrückkehr, beim Verlassen oder Ausblenden der Seite und in einem wählbaren Intervall; er lässt sich abschalten, dann wird von Hand synchronisiert.</li>
 <li>Solange alles läuft, meldet die App nichts; sichtbar werden nur Offline, Fehler und Konflikte.</li>
 <li>Lernstand und Inhalt sind getrennt: Eine Bewertung auf einem Gerät und eine Inhaltskorrektur auf einem anderen erzeugen keinen Konflikt.</li>
 <li>Bewertungen gehen nie verloren: Die Ereignisse beider Geräte bleiben, das jüngste bestimmt den Lernstand. Bei Neuplanungen bestimmt die spätere Aktion den Termin.</li>
@@ -8862,7 +8831,7 @@ html:has(.catalog-preview) { scroll-behavior: auto; }
 <p>Probe: Ein Satz gehört hinein, wenn er nach einer vollständigen Neugestaltung der Oberfläche unverändert gälte und eine Abweichung davon ein fachlicher Fehler wäre.</p>
 <p>Form: Stichpunkte, ein Gedanke je Punkt. Eine neue Regel ersetzt die alte, statt sie zu ergänzen. Wo Funktionen logisch voneinander abhängen, steht ein Schaubild als <code>schaubild</code>-Block direkt beim Text und wird mit ihm geändert (Schreibweise in <a href="index.html#readme--pflege"><code>README.md</code></a>). In Schaubildern sind KI-Schritte blau, Ergebnisse grün markiert.</p>
 <h2 id="specs--codeumfang-der-produktbereiche" class="core-heading-2" tabindex="-1">Codeumfang der Produktbereiche <a class="docs-anchor" href="#specs--codeumfang-der-produktbereiche" aria-label="Link zu Codeumfang der Produktbereiche">#</a></h2>
-<p>CoRe ist eine App mit mehreren Bereichen. Die Tabelle zeigt deren Anteil am Bildschirmcode; gemeinsam genutzte Logik, UI und API stehen separat.</p><div class="docs-code-stats"><dl class="flex min-w-0 flex-col"><dt class="core-status-label text-core-muted">Bildschirmcode</dt><dd class="core-metric mt-0.5 text-core-text">6.971</dd></dl><dl class="flex min-w-0 flex-col"><dt class="core-status-label text-core-muted">Gemeinsamer Code &amp; API</dt><dd class="core-metric mt-0.5 text-core-text">48.308</dd></dl><dl class="flex min-w-0 flex-col"><dt class="core-status-label text-core-muted">Quelldateien</dt><dd class="core-metric mt-0.5 text-core-text">300</dd></dl></div><div class="docs-code-chart"><div class="docs-table-scroll" tabindex="0" role="region" aria-label="Codeumfang je Produktbereich"><table><thead><tr><th>Bereich</th><th>Zeilen</th><th>Anteil</th></tr></thead><tbody><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-status-learned)" aria-hidden="true"></span>Heute</th><td>295</td><td>4,2 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-status-new)" aria-hidden="true"></span>Lernen & Karten</th><td>2.240</td><td>32,1 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-status-in-progress)" aria-hidden="true"></span>Erstellen & Import</th><td>1.780</td><td>25,5 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-action-primary)" aria-hidden="true"></span>Prüfungen</th><td>427</td><td>6,1 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-status-due)" aria-hidden="true"></span>Statistik</th><td>638</td><td>9,2 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-progress-completed)" aria-hidden="true"></span>Konto & Sync</th><td>792</td><td>11,4 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-text-secondary)" aria-hidden="true"></span>Hilfe</th><td>799</td><td>11,5 %</td></tr></tbody></table></div></div><p class="docs-source">Beim Erzeugen gemessen: nichtleere Zeilen in <code>src/</code> und <code>api/</code> (TS/TSX) sowie <code>src/styles.css</code>. Ohne Tests, Typdeklarationen, generierte Datenbanktypen, Dokumentation und Fremdcode. Bereichszuordnung nach Bildschirmdateien in <a href="../src/screens/README.md">der Screen-Landkarte</a>; übriger Code zählt gemeinsam. Enthält Kommentare und misst weder Laufzeit noch Komplexität.</p></article></main></div><script>function initializeDocsViewer() {
+<p>CoRe ist eine App mit mehreren Bereichen. Die Tabelle zeigt deren Anteil am Bildschirmcode; gemeinsam genutzte Logik, UI und API stehen separat.</p><div class="docs-code-stats"><dl class="flex min-w-0 flex-col"><dt class="core-status-label text-core-muted">Bildschirmcode</dt><dd class="core-metric mt-0.5 text-core-text">6.836</dd></dl><dl class="flex min-w-0 flex-col"><dt class="core-status-label text-core-muted">Gemeinsamer Code &amp; API</dt><dd class="core-metric mt-0.5 text-core-text">48.304</dd></dl><dl class="flex min-w-0 flex-col"><dt class="core-status-label text-core-muted">Quelldateien</dt><dd class="core-metric mt-0.5 text-core-text">299</dd></dl></div><div class="docs-code-chart"><div class="docs-table-scroll" tabindex="0" role="region" aria-label="Codeumfang je Produktbereich"><table><thead><tr><th>Bereich</th><th>Zeilen</th><th>Anteil</th></tr></thead><tbody><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-status-learned)" aria-hidden="true"></span>Heute</th><td>295</td><td>4,3 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-status-new)" aria-hidden="true"></span>Lernen & Karten</th><td>2.240</td><td>32,8 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-status-in-progress)" aria-hidden="true"></span>Erstellen & Import</th><td>1.645</td><td>24,1 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-action-primary)" aria-hidden="true"></span>Prüfungen</th><td>427</td><td>6,2 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-status-due)" aria-hidden="true"></span>Statistik</th><td>638</td><td>9,3 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-progress-completed)" aria-hidden="true"></span>Konto & Sync</th><td>792</td><td>11,6 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-text-secondary)" aria-hidden="true"></span>Hilfe</th><td>799</td><td>11,7 %</td></tr></tbody></table></div></div><p class="docs-source">Beim Erzeugen gemessen: nichtleere Zeilen in <code>src/</code> und <code>api/</code> (TS/TSX) sowie <code>src/styles.css</code>. Ohne Tests, Typdeklarationen, generierte Datenbanktypen, Dokumentation und Fremdcode. Bereichszuordnung nach Bildschirmdateien in <a href="../src/screens/README.md">der Screen-Landkarte</a>; übriger Code zählt gemeinsam. Enthält Kommentare und misst weder Laufzeit noch Komplexität.</p></article></main></div><script>function initializeDocsViewer() {
     const theme = document.getElementById("docs-theme");
     theme.addEventListener("click", () => {
         const dark = document.documentElement.dataset.coreTheme !== "dark";

@@ -355,10 +355,11 @@ Gruppe: Synchronisierung ins Konto
 - Analyse und Übernahme sind getrennte Schritte: Die Analyse lässt sich abbrechen und ändert nichts, die Übernahme läuft durch.
 - Der Bericht nennt je Notiztyp, wie übersetzt wird, wie viele Inhalte und Karten entstehen, wie viel Lernstand übernommen wird, was nur generisch oder gar nicht übernommen wird, welche Medien fehlen und ob die Karten im Originallayout erscheinen. Beispielkarten erscheinen wie im Review. Technische Kennungen erscheinen nicht.
 - Jede Anki-Notiz wird ein Inhalt, jede Anki-Karte eine CoRe-Karte; die Stapelhierarchie bleibt vollständig.
-- Die Übernahme ist fertig, sobald alles geprüft auf dem Gerät gespeichert und die Medien zum Upload eingereiht sind. Scheitert der Sync danach, bleiben die Karten lokal und lernbar.
+- Die Übernahme ist fertig, sobald alles geprüft auf dem Gerät gespeichert und die Medien zum Upload eingereiht sind. Dann meldet der Import den Erfolg mit bis zu drei Beispielkarten; Sync und Medien-Upload laufen im Hintergrund. Scheitern sie, bleiben die Karten lokal und lernbar.
 - Medien werden erst bei der Übernahme gelesen und gegen ihre Prüfsumme geprüft.
 - Fehler beim Lesen des Pakets bleiben sichtbar und werden nicht durch einen stillen Ersatzweg verdeckt.
-- Ein laufender Import übersteht den Wechsel in andere App-Bereiche, nicht aber einen Reload.
+- Ein laufender Import übersteht den Wechsel in andere App-Bereiche, nicht aber einen Reload; Schließen und Neuladen während Analyse und Übernahme fragen nach.
+- Bricht eine Übernahme trotzdem ab, meldet CoRe das beim nächsten Start mit der Zahl schon übernommener Karten, bis dieselbe Datei den Import vervollständigt oder seine Stapel gelöscht sind.
 - **Bewusst nicht:** Serverimport, Upload-Fallback, Text- und Tabellenimport.
 
 ### Übersetzung von Anki-Paketen
@@ -374,6 +375,7 @@ Gruppe: Synchronisierung ins Konto
 - Ein Reimport erkennt Inhalte und Karten an ihren Anki-Kennungen, auch wenn sie nur im Konto und nicht auf dem Gerät liegen.
 - Unbearbeitete Inhalte übernehmen den Paketinhalt; lokal bearbeitete bleiben unverändert und werden gezählt.
 - Lernstand, Aussetzung, Markierung, Flaggen und Stapelzuordnung bleiben immer. Neue Abfragen werden neue Karten; im Paket fehlende Karten bleiben und werden gezählt.
+- Wie in Anki bringen nur neu angelegte Karten Lernstand und Bewertungsverlauf aus dem Paket mit; vorhandene behalten ihren Verlauf unverändert. Nur das Fortsetzen einer unterbrochenen Übernahme ergänzt fehlende Bewertungen aller Karten des Pakets.
 - Tags werden nach [Tags](#tags) zusammengeführt. Vorhandene Stapel behalten Name, Ort im Baum und Einstellungen; neue Stapel entstehen unter dem heutigen Ort ihres Oberstapels.
 - Verbessert sich ein Übersetzer, übersetzt CoRe unbearbeitete Importe einmal automatisch neu, ohne eine Karte mit Lernstand zu verlieren, und nennt die Zahl der verbesserten Inhalte.
 
@@ -929,13 +931,13 @@ Gruppe:
 [warnung] Konflikt | betrifft nur diese Karte oder diesen Stapel und wartet auf eine Entscheidung
 ```
 
-- Ausstehende Änderungen gelten nie als gespeichert im Konto und sind als ausstehend erkennbar.
+- Ausstehende Änderungen gelten nie als gespeichert im Konto und sind als ausstehend erkennbar. Schließen oder Neuladen mit solchen Änderungen fragt nach, auch ohne Verbindung; die Änderungen bleiben auf dem Gerät.
 - Die App ist ohne Netz nutzbar, soweit die Daten auf dem Gerät liegen.
 
 ### Sync und Konflikte
 
 - Ein Sync sendet zuerst lokale Änderungen, lädt dann Neues aus dem Konto und aktualisiert zuletzt den Status. Manueller und automatischer Sync sind derselbe Ablauf.
-- Der automatische Sync läuft nach Änderungen, bei Netzrückkehr und in einem wählbaren Intervall; er lässt sich abschalten, dann wird von Hand synchronisiert.
+- Der automatische Sync läuft nach Änderungen, bei Netzrückkehr, beim Verlassen oder Ausblenden der Seite und in einem wählbaren Intervall; er lässt sich abschalten, dann wird von Hand synchronisiert.
 - Solange alles läuft, meldet die App nichts; sichtbar werden nur Offline, Fehler und Konflikte.
 - Lernstand und Inhalt sind getrennt: Eine Bewertung auf einem Gerät und eine Inhaltskorrektur auf einem anderen erzeugen keinen Konflikt.
 - Bewertungen gehen nie verloren: Die Ereignisse beider Geräte bleiben, das jüngste bestimmt den Lernstand. Bei Neuplanungen bestimmt die spätere Aktion den Termin.

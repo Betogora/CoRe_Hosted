@@ -1,14 +1,5 @@
 import { RATING_SHORTCUT_KEYS } from "../reviewShortcuts.ts";
 
-export const importSteps = [
-  { id: "analyze", label: "Analysieren" },
-  { id: "preview", label: "Vorschau bereit" },
-  { id: "commit", label: "Übernehmen" },
-  { id: "cloud", label: "Cloud-Daten synchronisieren" },
-  { id: "media", label: "Medien werden synchronisiert" },
-  { id: "complete", label: "Fertig" },
-];
-
 export const ratingButtons = [
   { key: "again", shortcutKey: RATING_SHORTCUT_KEYS.again, label: "Nochmal", className: "core-rating-again" },
   { key: "hard", shortcutKey: RATING_SHORTCUT_KEYS.hard, label: "Schwer", className: "core-rating-hard" },

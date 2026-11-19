@@ -17,13 +17,10 @@ test("steps form an ordered list with done, current and upcoming states", () => 
   assert.doesNotMatch(markup, /<button/);
 });
 
-test("steps mark a failed step, stretch, animate the line after the current step and complete at the end", () => {
-  const failed = renderToStaticMarkup(<Steps ariaLabel="Import" items={[{ label: "Analysieren" }, { label: "Übernehmen", failed: true }, { label: "Fertig" }]} current={1} stretch animated />);
-  assert.match(failed, /^<div class="core-steps" data-stretch="true" data-animated="true">/);
-  assert.match(failed, /<li data-state="failed" aria-current="step">[\s\S]*Übernehmen<\/span><span class="sr-only">, fehlgeschlagen<\/span>/);
-  assert.match(failed, /<li data-state="upcoming" data-after-current="true">[\s\S]*Fertig/);
+test("steps stretch and complete at the end", () => {
+  assert.match(renderToStaticMarkup(<Steps ariaLabel="Reifeband" items={items} current={1} stretch />), /^<div class="core-steps" data-stretch="true">/);
 
-  const complete = renderToStaticMarkup(<Steps ariaLabel="Import" items={items} current={items.length} />);
+  const complete = renderToStaticMarkup(<Steps ariaLabel="Planung" items={items} current={items.length} />);
   assert.deepEqual([...complete.matchAll(/data-state="(\w+)"/g)].map((match) => match[1]), ["done", "done", "done", "done"]);
   assert.doesNotMatch(complete, /aria-current/);
 });
