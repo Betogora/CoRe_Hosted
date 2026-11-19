@@ -4,7 +4,7 @@ import { ArrowRight, Database, Layers, Sparkles } from "lucide-react";
 import { authPhases, createSyncPendingStatus, createSyncSavingStatus, shouldShowAppShell, shouldShowAuthGate } from "./accountSession.ts";
 import { settingsSectionGroup, type AppViewId } from "./appNavigation.ts";
 import { startAppMediaRetryLifecycle } from "./appMediaLifecycle.ts";
-import { CreationScreenWiring, DashboardScreenWiring, DeckSettingsScreenWiring, DecksScreenWiring, ExamPlanningScreenWiring, GlobalCardSettingsScreenWiring, HelpScreen, LearnScreenWiring, prefetchAppView, preloadAppView, preloadSettingsDialog, SettingsDialog, SettingsScreenWiring, SimulatorScreenWiring, StatisticsScreenWiring, StudyModeWiring } from "./appFeatureLoading.tsx";
+import { CreationScreenWiring, DashboardScreenWiring, DeckSettingsScreenWiring, DecksScreenWiring, ExamPlanningScreenWiring, GlobalCardSettingsScreenWiring, HelpScreenWiring, LearnScreenWiring, prefetchAppView, preloadAppView, preloadSettingsDialog, SettingsDialog, SettingsScreenWiring, SimulatorScreenWiring, StatisticsScreenWiring, StudyModeWiring } from "./appFeatureLoading.tsx";
 import { allowsBrowserSpeculativePreloading, startAdaptiveFeaturePreloading } from "./appFeaturePreload.ts";
 import { createCardCommands } from "./cardCommands.ts";
 import { createDeckCommands } from "./deckCommands.ts";
@@ -55,7 +55,7 @@ const viewScreens: Record<AppViewId, React.ComponentType> = {
   pruefungen: ExamPlanningScreenWiring,
   statistik: StatisticsScreenWiring,
   simulator: SimulatorScreenWiring,
-  hilfe: HelpScreen,
+  hilfe: HelpScreenWiring,
 };
 
 function LoadingScreen({ message = "CoRe wird geladen.", onRetry }: { message?: string; onRetry?: () => void }) {

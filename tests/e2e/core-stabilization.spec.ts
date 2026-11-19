@@ -651,7 +651,7 @@ test("browser back returns from settings to the previous screen", async ({ page 
 
   await page.getByRole("button", { name: "Info-Seite öffnen" }).click();
   await expect(page).toHaveURL(/\/hilfe$/);
-  await expect(page.getByRole("heading", { name: "Wie CoRe dein Lernen stärkt" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Hilfe", exact: true })).toBeVisible();
   await page.goBack();
   await expect(page).toHaveURL(/\/lernen\?settings=ueber$/);
   await expect(dialog).toBeVisible();

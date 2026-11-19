@@ -72,7 +72,7 @@ import { createCoreRepository } from "../src/coreRepository.ts";
 import { getGlobalSchedulerPreferences, withGlobalSchedulerPreferences } from "../src/learningProfiles.ts";
 import { withExamDailyTasks } from "../src/examDailyTasks.ts";
 import { createExamPlan, normalizeExamPlanningSettings, upsertExamPlan } from "../src/examPlanSettings.ts";
-import { createViewRoute, type DeckContentTab } from "../src/appNavigation.ts";
+import { createViewRoute, type DeckContentTab, type HelpTopic } from "../src/appNavigation.ts";
 import { DashboardScreen } from "../src/screens/DashboardScreen.tsx";
 import { ExamPlanningScreen } from "../src/screens/ExamPlanningScreen.tsx";
 import { ExamTopicOrder } from "../src/screens/ExamTopicOrder.tsx";
@@ -704,6 +704,7 @@ function ProductViewsDemo({ kind }: { kind: string }) {
   const [cardEditorTab, setCardEditorTab] = useState<CardEditorTab>("general");
   const [savedSearches, setSavedSearches] = useState<SavedCardSearch[]>([{ id: "demo-search", name: "Heute nicht gewusst", query: "rated:1:1" }]);
   const [contentTab, setContentTab] = useState<DeckContentTab>("children");
+  const [helpTopic, setHelpTopic] = useState<HelpTopic | null>(null);
   // Local stand-in for the catalog query of the app: every deck shows its sample cards as one page.
   const requestCardPage = React.useCallback((request: DecksCardPageRequest) => {
     // The flat hit list of a search reads the cards of every deck in scope that match the search.
@@ -743,7 +744,7 @@ function ProductViewsDemo({ kind }: { kind: string }) {
       return { cardId: card.id, deckId: card.deckId, noteId: card.noteId, status: card.status, study: completedDemoExamCards.current.has(card.id) ? { ...study, state: "review" as const, dueAt: "2026-11-01T08:00:00.000Z", lastReviewedAt: selection.now, reps: study.reps + 1 } : { ...study, dueAt: study.state === "new" ? selection.now : study.dueAt }, studyRevision: completedDemoExamCards.current.has(card.id) ? 1 : 0, activeVariantCount: card.variants.length, createdAt: card.createdAt, stabilityFast: extra.stabilityFast };
     }),
   }), [examDemoDecks, selection.now]);
-  const views = [["auth", "AuthGateScreen · Anmeldung, Registrierung und Reset", "Anmeldung"], ["conflict", "SyncConflictPanel · Feldvergleich und Zusammenführung", "Konfliktauflösung"], ["statistics", "StatisticsScreenContent · alle Diagramme und Tabellen", "Statistik"], ["simulator", "SimulatorScreen · Lernuhr und Datumauswahl", "Simulator"], ["help", "HelpScreen · Lernmethoden und FSRS-Illustrationen", "Lernmethoden"]];
+  const views = [["auth", "AuthGateScreen · Anmeldung, Registrierung und Reset", "Anmeldung"], ["conflict", "SyncConflictPanel · Feldvergleich und Zusammenführung", "Konfliktauflösung"], ["statistics", "StatisticsScreenContent · alle Diagramme und Tabellen", "Statistik"], ["simulator", "SimulatorScreen · Lernuhr und Datumauswahl", "Simulator"], ["help", "HelpScreen · kurzer Einstieg mit verlinkten Geschichten und Nachschlagethemen", "Hilfe"]];
   views.push(
     ["dashboard", "DashboardScreen · Tagesziel als Auftakt, nachrückende Widgets, Widget-Leiste und direkt einstellbarer Timer", "Tagesübersicht"],
     ["dashboard-empty", "DashboardScreen · Erststart ohne Daten", "Erststart"],
@@ -767,7 +768,7 @@ function ProductViewsDemo({ kind }: { kind: string }) {
     {view === "conflict" && <SyncConflictPanel onListConflicts={listConflicts} onResolveConflict={resolveConflict} />}
     {view === "statistics" && <StatisticsScreenContent dataset={{ decks: statisticsDecks, projection: projectStatistics(statisticsDecks, selection) }} now={selection.now} timeZone={selection.timeZone} onSelectionChange={(next) => setSelection((current) => ({ ...current, ...next }))} onNavigate={() => toast("Demostapel ausgewählt.")} />}
     {view === "simulator" && <SimulatorScreen systemNow={selection.now} offsetMinutes={offset} onOffsetChange={setOffset} />}
-    {view === "help" && <HelpScreen />}
+    {view === "help" && <HelpScreen topic={helpTopic} onSelectTopic={setHelpTopic} />}
     {view === "dashboard" && <DashboardScreen pomodoroTimer={dashboardTimer} onStartPomodoro={(minutes) => setDashboardTimer(createPomodoroTimerFromSeconds(Math.round(minutes * 60)))} onPausePomodoro={() => setDashboardTimer(pausePomodoroTimer)} onResumePomodoro={() => setDashboardTimer(resumePomodoroTimer)} onResetPomodoro={() => setDashboardTimer(null)} onLoadExamPlanningData={loadExamPlanningData} onLoadExamSummaryAvailability={async () => false} onSaveExamTasks={async (dailyTasks) => setDemoPlanning(withExamDailyTasks(getGlobalSchedulerPreferences(examWorkspace.profile).examPlanning, dailyTasks))} onStartExamUnit={async () => { examDemoDecks.flatMap((candidate) => candidate.cards).forEach((card) => completedDemoExamCards.current.add(card.id)); toast("Lernaufgabe in dieser lokalen Demo abgeschlossen."); }} state={examWorkspace} now={selection.now} onNavigate={navigate} onStartDeck={noop} onStartAdditionalCards={() => ({ ok: true })} onCreateDemo={async () => sampleDecks} onSetDeckCoreMode={noop} onMoveDeck={() => null} onOpenDeckSettings={noop} onSetDeckExpanded={noop} />}
     {view === "dashboard-empty" && <DashboardScreen state={{ ...examWorkspace, decks: [] }} now={selection.now} onNavigate={navigate} onStartDeck={noop} onStartAdditionalCards={() => ({ ok: true })} onCreateDemo={async () => sampleDecks} onSetDeckCoreMode={noop} onMoveDeck={() => null} onOpenDeckSettings={noop} onSetDeckExpanded={noop} />}
     {view === "exams" && <ExamPlanningScreen state={examWorkspace} now={selection.now} onLoadSummaryAvailability={async () => false} onLoadPlanningData={loadExamPlanningData} onSavePlanning={async (next) => { setDemoPlanning(next); const previous = getGlobalSchedulerPreferences(examWorkspace.profile).examPlanning; if (JSON.stringify([previous.exams, previous.capacity]) !== JSON.stringify([next.exams, next.capacity])) toast("Plan für diese lokale Vorschau übernommen."); }} onSaveTasks={async (dailyTasks) => setDemoPlanning(withExamDailyTasks(getGlobalSchedulerPreferences(examWorkspace.profile).examPlanning, dailyTasks))} onStartUnit={async () => toast("In der Vorschau startet keine Sitzung.")} />}
