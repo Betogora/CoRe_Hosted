@@ -361,7 +361,7 @@ test("Jeder Ast endet mit einer Textkarte; übergeordnete Karten behalten ihren 
   }
 });
 
-test("Neu erzeugen erkennt Bearbeitungen und ersetzt nur den erzeugten Baum an seiner Stelle", () => {
+test("Neu erstellen erkennt Bearbeitungen und ersetzt nur den erstellten Baum an seiner Stelle", () => {
   const summary = { ...createLearningSummary("deck", "Energie", createSummarySettings()), html: "<h2>Zellatmung</h2><p>ATP liefert Energie.</p>" };
   const manual = addMindMapRelativeNode(createLearningMindMap("deck", "Infinity Map"), null, "root", "keyword", { x: -900, y: 0 }).map;
   const generated = addMindMapFromSummary(manual, summary);

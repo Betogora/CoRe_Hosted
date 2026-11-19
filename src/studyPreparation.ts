@@ -172,7 +172,7 @@ export function createStudyPreparation({ store, repository, hydration, cloud, no
     const current = store.get().state;
     if (!current) return false;
     const { loadLearningSummaries } = await import("./learningSummaries.ts");
-    const result = await loadLearningSummaries({ userId: current.profile.userId, cloud }, deckId);
+    const result = await loadLearningSummaries({ userId: current.profile.userId, cloud }, [deckId]);
     return result.summaries.length > 0;
   }
 

@@ -2,17 +2,18 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 
 /**
  * In-memory learning document tables and image bucket with the database's revision stamping and unique ids;
- * `offline` makes every request fail like a lost connection.
+ * `offline` makes every request fail like a lost connection, `requests` counts table requests.
  */
 export function fakeLearningCloud() {
-  const tables = new Map<string, Map<string, Record<string, any>>>(), objects = new Map<string, Blob>(), state = { offline: false };
+  const tables = new Map<string, Map<string, Record<string, any>>>(), objects = new Map<string, Blob>(), state = { offline: false, requests: 0 };
   const table = (name: string) => tables.get(name) ?? tables.set(name, new Map()).get(name)!;
   const failed = () => ({ data: null, error: new Error("offline") });
   const client = {
     from: (name: string) => {
-      const rows = table(name), filters: Array<[string, unknown]> = [];
+      const rows = table(name), filters: Array<(row: Record<string, any>) => boolean> = [];
       let op = "select", payload: Record<string, unknown> = {};
       const run = () => {
+        state.requests += 1;
         if (state.offline) return failed();
         if (op === "insert") {
           if (rows.has(String(payload.id))) return { data: null, error: { code: "23505", message: "duplicate key" } };
@@ -20,12 +21,13 @@ export function fakeLearningCloud() {
           rows.set(String(row.id), row);
           return { data: [structuredClone(row)], error: null };
         }
-        const hits = [...rows.values()].filter((row) => filters.every(([column, value]) => row[column] === value));
+        const hits = [...rows.values()].filter((row) => filters.every((matches) => matches(row)));
         if (op === "update") for (const row of hits) Object.assign(row, structuredClone(payload), { revision: row.revision + 1 });
         return { data: structuredClone(hits), error: null };
       };
       const builder: any = {
-        select: () => builder, eq: (column: string, value: unknown) => { filters.push([column, value]); return builder; },
+        select: () => builder, eq: (column: string, value: unknown) => { filters.push((row) => row[column] === value); return builder; },
+        in: (column: string, values: readonly unknown[]) => { filters.push((row) => values.includes(row[column])); return builder; },
         insert: (row: Record<string, unknown>) => { op = "insert"; payload = row; return builder; },
         update: (values: Record<string, unknown>) => { op = "update"; payload = values; return builder; },
         then: (resolve: (value: unknown) => unknown) => Promise.resolve(run()).then(resolve),
