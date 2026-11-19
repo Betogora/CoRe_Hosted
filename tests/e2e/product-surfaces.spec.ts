@@ -462,7 +462,7 @@ test("long desktop views use one content scrollbar without moving the top bar", 
   await resetToFreshLocalState(page);
   await page.setViewportSize({ width: 1280, height: 720 });
   for (const view of [
-    { path: "/hilfe", heading: "Wie CoRe dein Lernen stärkt" },
+    { path: "/hilfe?topic=spaced-repetition", heading: "Spaced Repetition wird Content Repetition" },
     { path: "/statistik", heading: "Statistik" },
   ]) {
     await page.goto(view.path);
@@ -500,8 +500,8 @@ test("long desktop views use one content scrollbar without moving the top bar", 
 test("mobile bottom navigation stays viewport-fixed and keeps its width on short and long pages", async ({ page }) => {
   await resetToFreshLocalState(page);
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.goto("/hilfe");
-  await expect(page.getByRole("heading", { name: "Wie CoRe dein Lernen stärkt" })).toBeVisible();
+  await page.goto("/hilfe?topic=spaced-repetition");
+  await expect(page.getByRole("heading", { name: "Spaced Repetition wird Content Repetition" })).toBeVisible();
 
   const bottomNavigation = page.getByRole("navigation", { name: "Mobile Hauptnavigation" });
   await expect(bottomNavigation).toBeVisible();
@@ -525,15 +525,17 @@ test("mobile bottom navigation stays viewport-fixed and keeps its width on short
   expect(shortPage!.y + shortPage!.height).toBeLessThanOrEqual(844);
 });
 
-test("help explains Active Recall and FSRS with accessible scroll stories", async ({ page }) => {
+test("help opens with a short entry and links its stories and reference topics as pages", async ({ page }) => {
   await resetToFreshLocalState(page);
 
   const helpButton = page.getByRole("button", { name: "Hilfe öffnen" });
   await expect(helpButton).toBeVisible();
   await helpButton.click();
   await expect(page).toHaveURL("/hilfe");
-  await expect(page.getByRole("heading", { name: "Wie CoRe dein Lernen stärkt" })).toBeFocused();
-  await expect(page.getByRole("heading", { name: "Wir wollen Lernen verbessern." })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Hilfe", exact: true })).toBeFocused();
+  await expect(page.getByRole("heading", { name: "So lernst du mit CoRe" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "So bewertest du" })).toBeVisible();
+  await expect(page.getByRole("navigation", { name: "Nachschlagen" }).getByRole("link")).toHaveCount(4);
   await expect(page.getByText(/Welche Grundsätze nutzt CoRe, um das Lernen möglichst nachhaltig zu gestalten/)).toBeVisible();
   const readExampleStack = (stack: Locator) => stack.evaluate((stackElement) => {
     const front = stackElement.querySelector<HTMLElement>('[data-help-example-stack-front="true"]')!;
@@ -579,12 +581,9 @@ test("help explains Active Recall and FSRS with accessible scroll stories", asyn
     expect(layer.z).toBe(lightLayer.z);
   }
   await page.getByRole("button", { name: "Light Mode einschalten" }).click();
-  const activeRecallHeading = page.getByRole("heading", { name: "Active Recall", exact: true });
-  const spacedRepetitionHeading = page.getByRole("heading", { name: "Spaced Repetition findet den passenden Zeitpunkt" });
-  await expect(activeRecallHeading).toBeVisible();
-  await expect(spacedRepetitionHeading).toBeVisible();
 
-  const activeRecallMethodLink = page.locator('a[href="#active-recall-heading"]');
+  const activeRecallMethodLink = page.locator('a[data-help-topic-link="active-recall"]');
+  await expect(activeRecallMethodLink).toHaveAttribute("href", "/hilfe?topic=active-recall");
   await expect(activeRecallMethodLink).toHaveCSS("border-top-width", "2px");
   await activeRecallMethodLink.focus();
   await page.keyboard.press("Tab");
@@ -598,65 +597,10 @@ test("help explains Active Recall and FSRS with accessible scroll stories", asyn
   await page.mouse.move(0, 0);
   await expect(activeRecallMethodLink).toHaveCSS("border-top-width", "2px");
   await activeRecallMethodLink.click();
-  await expect(page).toHaveURL(/\/hilfe#active-recall-heading$/);
-  await expect(activeRecallHeading).toBeInViewport();
-
-  const spacedRepetitionMethodLink = page.locator('a[href="#spaced-repetition-heading"]');
-  await expect(spacedRepetitionMethodLink).toHaveAttribute("data-help-method-navigation", "animated");
-  await expect(spacedRepetitionMethodLink).not.toHaveAttribute("data-help-scroll-skip", /.+/);
-  await spacedRepetitionMethodLink.hover();
-  await expect(spacedRepetitionMethodLink).toHaveCSS("border-top-width", "4px");
-  await spacedRepetitionMethodLink.scrollIntoViewIfNeeded();
-  const spacedScrollProbe = await page.evaluate(() => {
-    const region = document.querySelector<HTMLElement>(".core-screen-region");
-    const firstStep = document.querySelector<HTMLElement>('[data-testid="active-recall-step-stack"]');
-    const lastStep = document.querySelector<HTMLElement>('[data-testid="active-recall-step-variants"]');
-    if (!region || !firstStep || !lastStep) throw new Error("Scrollbereich der Active-Recall-Geschichte fehlt.");
-
-    const samples: number[] = [region.scrollTop];
-    const probeWindow = window as typeof window & { __helpMethodScrollSamples?: number[] };
-    probeWindow.__helpMethodScrollSamples = samples;
-    const startedAt = performance.now();
-    const recordScroll = () => {
-      samples.push(region.scrollTop);
-      if (performance.now() - startedAt < 1_300) requestAnimationFrame(recordScroll);
-    };
-    requestAnimationFrame(recordScroll);
-
-    const regionTop = region.getBoundingClientRect().top;
-    const absoluteTop = (element: HTMLElement) => region.scrollTop + element.getBoundingClientRect().top - regionTop;
-    return {
-      startTop: region.scrollTop,
-      activeRecallStart: absoluteTop(firstStep),
-      activeRecallEnd: absoluteTop(lastStep) + lastStep.getBoundingClientRect().height,
-    };
-  });
-  await spacedRepetitionMethodLink.click();
-  await expect(page).toHaveURL(/\/hilfe#spaced-repetition-heading$/);
-  await page.waitForTimeout(1_200);
-  const spacedScrollSamples = await page.evaluate(() => (
-    (window as typeof window & { __helpMethodScrollSamples?: number[] }).__helpMethodScrollSamples ?? []
-  ));
-  const spacedScrollDeltas = spacedScrollSamples.slice(1).map((value, index) => value - spacedScrollSamples[index]);
-  expect(spacedScrollSamples.some((value) => value > spacedScrollProbe.startTop + 8 && value < spacedScrollProbe.activeRecallStart - 8)).toBe(true);
-  expect(spacedScrollSamples.some((value) => value > spacedScrollProbe.activeRecallStart && value < spacedScrollProbe.activeRecallEnd)).toBe(true);
-  expect(Math.min(...spacedScrollDeltas)).toBeGreaterThanOrEqual(0);
-  expect(Math.max(...spacedScrollDeltas)).toBeLessThan((spacedScrollProbe.activeRecallEnd - spacedScrollProbe.activeRecallStart) * 0.6);
-  const spacedRepetitionReachedDirectly = await spacedRepetitionHeading.evaluate((heading) => {
-    const rect = heading.getBoundingClientRect();
-    return rect.top >= 0 && rect.bottom <= window.innerHeight;
-  });
-  expect(spacedRepetitionReachedDirectly).toBe(true);
-  await expect(spacedRepetitionHeading).toBeInViewport();
-  await expect(page.getByText(/CoRe verwendet FSRS-7 mit den offiziellen Standardparametern/)).toBeVisible();
-  await expect(page.getByRole("heading", { name: "So arbeitet ein Spaced-Repetition-Scheduler" })).toBeVisible();
-  await expect(page.getByText(/höhere Zielerinnerung bedeutet kürzere Intervalle und mehr Reviews pro Tag/i)).toBeVisible();
-  await expect(page.getByText(/Varianten erscheinen nur in der Wiederholungsphase und erst ab der Haltbarkeit des Stapels/)).toBeVisible();
-  const spacedDiagramColumnBox = await page.getByTestId("spaced-repetition-diagram-column").boundingBox();
-  const spacedStepsColumnBox = await page.getByTestId("spaced-repetition-steps-column").boundingBox();
-  expect(spacedDiagramColumnBox).not.toBeNull();
-  expect(spacedStepsColumnBox).not.toBeNull();
-  expect(spacedDiagramColumnBox!.x).toBeGreaterThan(spacedStepsColumnBox!.x);
+  await expect(page).toHaveURL("/hilfe?topic=active-recall");
+  await expect(page.getByRole("heading", { name: "Active Recall wird Smarter Recall" })).toBeFocused();
+  await expect(page.getByRole("button", { name: "Hilfe", exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "So lernst du mit CoRe" })).toHaveCount(0);
 
   const activeRecallVisual = page.getByTestId("active-recall-visual");
   await page.getByTestId("active-recall-step-stack").evaluate((element) => element.scrollIntoView({ block: "center" }));
@@ -708,6 +652,26 @@ test("help explains Active Recall and FSRS with accessible scroll stories", asyn
   await expect(activeRecallVisual.locator(".lucide-sparkles")).toHaveCount(2);
   await expect(activeRecallVisual.locator(".lucide-sparkle")).toHaveCount(2);
 
+  // Browser Back returns to the entry, with focus on the link that opened the story.
+  await page.goBack();
+  await expect(page).toHaveURL("/hilfe");
+  await expect(activeRecallMethodLink).toBeFocused();
+
+  const spacedRepetitionMethodLink = page.locator('a[data-help-topic-link="spaced-repetition"]');
+  await spacedRepetitionMethodLink.hover();
+  await expect(spacedRepetitionMethodLink).toHaveCSS("border-top-width", "4px");
+  await spacedRepetitionMethodLink.click();
+  await expect(page).toHaveURL("/hilfe?topic=spaced-repetition");
+  const spacedRepetitionHeading = page.getByRole("heading", { name: "Spaced Repetition wird Content Repetition" });
+  await expect(spacedRepetitionHeading).toBeFocused();
+  await expect(spacedRepetitionHeading).toBeInViewport();
+  expect(await page.evaluate(() => document.querySelector<HTMLElement>(".core-screen-region")?.scrollTop)).toBe(0);
+  const spacedDiagramColumnBox = await page.getByTestId("spaced-repetition-diagram-column").boundingBox();
+  const spacedStepsColumnBox = await page.getByTestId("spaced-repetition-steps-column").boundingBox();
+  expect(spacedDiagramColumnBox).not.toBeNull();
+  expect(spacedStepsColumnBox).not.toBeNull();
+  expect(spacedDiagramColumnBox!.x).toBeGreaterThan(spacedStepsColumnBox!.x);
+
   await page.getByTestId("spaced-repetition-step-ratings").evaluate((element) => element.scrollIntoView({ block: "center" }));
   await expect(page.getByTestId("spaced-repetition-visual")).toHaveAttribute("data-active-selection", "ratings");
 
@@ -750,29 +714,46 @@ test("help explains Active Recall and FSRS with accessible scroll stories", asyn
   await variantReview.click();
   await expect(variantReview).toHaveAttribute("aria-pressed", "true");
   await expect(page.getByTestId("spaced-repetition-visual")).toHaveAttribute("data-active-selection", "review-variant");
-  await expect(page.getByText(/keine garantierte Produktionsschwelle/i)).toBeVisible();
-  await expect(page.getByText(/keine garantierte Reviewnummer/i).last()).toBeVisible();
+  await expect(page.getByText(/keine garantierte Reviewnummer/i)).toBeVisible();
 
+  // A topic URL survives a reload and can be shared.
   await page.reload();
-  await expect(page).toHaveURL("/hilfe#spaced-repetition-heading");
-  await expect(page.getByRole("heading", { name: "Wie CoRe dein Lernen stärkt" })).toBeVisible();
+  await expect(page).toHaveURL("/hilfe?topic=spaced-repetition");
+  await expect(spacedRepetitionHeading).toBeVisible();
+
+  // The page header's back link leads to the entry; the reference topics open as their own pages.
+  await page.getByRole("button", { name: "Hilfe", exact: true }).click();
+  await expect(page).toHaveURL("/hilfe");
+  const referenceTopics = page.getByRole("navigation", { name: "Nachschlagen" });
+  await referenceTopics.getByRole("link", { name: "So plant CoRe deine Wiederholungen" }).click();
+  await expect(page).toHaveURL("/hilfe?topic=planung");
+  await expect(page.getByRole("heading", { name: "So plant CoRe deine Wiederholungen" })).toBeFocused();
+  await expect(page.getByText(/CoRe verwendet FSRS-7 mit den offiziellen Standardparametern/)).toBeVisible();
+  await expect(page.getByRole("heading", { name: "So arbeitet ein Spaced-Repetition-Scheduler" })).toBeVisible();
+  await expect(page.getByText(/höhere Zielerinnerung bedeutet kürzere Intervalle und mehr Reviews pro Tag/i)).toBeVisible();
+  await page.goBack();
+  await referenceTopics.getByRole("link", { name: "Was bei Varianten geschützt bleibt" }).click();
+  await expect(page).toHaveURL("/hilfe?topic=varianten");
+  await expect(page.getByText(/Varianten erscheinen nur in der Wiederholungsphase und erst ab der Haltbarkeit des Stapels/)).toBeVisible();
+  await expect(page.getByText(/keine garantierte Produktionsschwelle/i)).toBeVisible();
 
   await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/hilfe?topic=spaced-repetition");
   await expect(page.getByTestId("memory-curve")).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)).toBe(true);
 
   await page.goto("/hilfe");
-  await page.locator('a[href="#spaced-repetition-heading"]').click();
-  await expect(page.getByRole("heading", { name: "Spaced Repetition findet den passenden Zeitpunkt" })).toBeInViewport();
-  const mobileScrollPosition = await page.evaluate(() => ({
-    documentTop: window.scrollY,
-    regionTop: document.querySelector<HTMLElement>(".core-screen-region")?.scrollTop ?? -1,
-  }));
-  expect(mobileScrollPosition.documentTop).toBeGreaterThan(0);
-  expect(mobileScrollPosition.regionTop).toBe(0);
+  await expect(page.getByTestId("help-intro-card-stack")).toBeHidden();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)).toBe(true);
+  await spacedRepetitionMethodLink.click();
+  await expect(spacedRepetitionHeading).toBeFocused();
+  await expect(spacedRepetitionHeading).toBeInViewport();
 
   await page.locator('[data-navigation-layout="mobile-header"]').getByRole("button", { name: "Dark Mode einschalten" }).click();
   await expect(page.locator("html")).toHaveAttribute("data-core-theme", "dark");
+  await page.goBack();
+  await expect(spacedRepetitionMethodLink).toBeFocused();
+  await expect(spacedRepetitionMethodLink).toBeInViewport();
 });
 
 test("@beta-core @hosted-core Beta-Artefakt enthält weder Labs noch Großdatei-APKG", async ({ page }) => {

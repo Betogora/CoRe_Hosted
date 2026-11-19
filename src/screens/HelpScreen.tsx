@@ -1,918 +1,143 @@
 import React from "react";
-import {
-  Brain,
-  CalendarCheck,
-  Clock3,
-  ExternalLink,
-  Gauge,
-  Layers,
-  RotateCcw,
-  ShieldCheck,
-  Sparkle,
-  Sparkles,
-} from "lucide-react";
-import { createDefaultDeckSettings } from "../coreModel.ts";
-import { EXAMPLE_CHAINS, runExampleChain } from "../schedulerExampleChains.ts";
-import { PageHeader, SoftPanel } from "../ui/coreUi.tsx";
+import type { LucideIcon } from "lucide-react";
+import { CalendarCheck, Clock3, Layers, RotateCcw } from "lucide-react";
+import { appRouteToUrl, createViewRoute, type HelpTopic } from "../appNavigation.ts";
+import { PageHeader } from "../ui/coreUi.tsx";
+import { CardManagementTopic, ExamSessionTopic, PlanningTopic, RatingGuidePanel, VariantsTopic } from "./help/helpReference.tsx";
+import { ActiveRecallStory, IntroCardStack, SpacedRepetitionStory } from "./help/helpStories.tsx";
 
-type ReviewId = "first" | "variant";
-type RatingId = "again" | "hard" | "good" | "easy";
-type ParameterId = "r" | "s" | "d";
-type HelpMethodId = "active-recall" | "spaced-repetition";
-type ExplorerSelectionId = "overview" | "ratings" | `review-${ReviewId}` | `rating-${RatingId}` | `parameter-${ParameterId}`;
-
-interface MemoryReview {
-  id: ReviewId;
-  title: string;
-  color: string;
-  reviewX: number;
+export interface HelpScreenProps {
+  /** Open topic; `null` shows the entry. */
+  topic: HelpTopic | null;
+  onSelectTopic: (topic: HelpTopic | null) => void;
 }
 
-interface RatingPath {
-  id: RatingId;
-  color: string;
-  dueX: number;
-  curvePath: string;
-}
-
-interface StoryStep<TSelection extends string> {
-  id: string;
-  title: string;
-  text: string;
-  selection: TSelection;
-  note?: string;
-}
-
-interface MemoryTerm {
-  term: string;
-  description: string;
-}
-
-const MEMORY_REVIEWS: readonly MemoryReview[] = [
-  {
-    id: "first",
-    title: "1 · Erste Wiederholung",
-    color: "var(--core-text)",
-    reviewX: 220,
-  },
-  {
-    id: "variant",
-    title: "x. Wiederholung · Variante",
-    color: "var(--core-info)",
-    reviewX: 855,
-  },
-];
-
-const RATING_PATHS: readonly RatingPath[] = [
-  {
-    id: "again",
-    color: "var(--core-rating-again-text)",
-    dueX: 350,
-    curvePath: "M 220 92 C 258 112, 318 186, 350 248",
-  },
-  {
-    id: "hard",
-    color: "var(--core-rating-hard-text)",
-    dueX: 500,
-    curvePath: "M 220 92 C 292 102, 438 164, 500 248",
-  },
-  {
-    id: "good",
-    color: "var(--core-rating-good-text)",
-    dueX: 680,
-    curvePath: "M 220 92 C 328 96, 586 146, 680 248",
-  },
-  {
-    id: "easy",
-    color: "var(--core-rating-easy-text)",
-    dueX: 855,
-    curvePath: "M 220 92 C 364 94, 734 126, 855 248",
-  },
-];
-
-const INITIAL_CURVE_PATH = "M 74 92 C 118 104, 176 168, 220 248";
-
-const ACTIVE_RECALL_STEPS: readonly StoryStep<"stack" | "blur" | "variants">[] = [
-  {
-    id: "active-stack",
-    title: "Wiederholen kann überraschend passiv werden",
-    text: "Karteikartenlernen wird schnell anstrengend, besonders wenn viele ähnliche Karten nacheinander kommen. Unser Gehirn versucht, möglichst energiesparend zu arbeiten.",
-    selection: "stack",
-  },
-  {
-    id: "active-blur",
-    title: "Irgendwann erkennst du eher die Karte als den Inhalt",
-    text: "Nach einiger Zeit bleiben leicht Position, Satzlänge oder einzelne Signalwörter hängen. Die Antwort fühlt sich bekannt an, obwohl die eigentliche Frage nicht mehr vollständig verstanden wird.",
-    selection: "blur",
-    note: "Je vertrauter die Kartenform wird, desto schwächer wird der aktive Abruf des Inhalts.",
-  },
-  {
-    id: "active-variants",
-    title: "CoRe verändert die Frage, nicht das Wissen",
-    text: "Wie ein Tutor formuliert CoRe dieselbe Wissenseinheit nach ausreichender Reife neu. Die Varianten fragen denselben Inhalt anders ab, ohne neue Fakten einzuführen.",
-    selection: "variants",
-    note: "So wird sichergestellt, dass du den Inhalt jedes Mal erneut aktiv abrufst – Smarter Recall.",
-  },
-];
-
-const HELP_EXAMPLE_STACK_LAYERS = [
-  { id: "back", className: "core-help-stack-layer-back z-0" },
-  { id: "middle", className: "core-help-stack-layer-middle z-10" },
-] as const;
-
-const ACTIVE_RECALL_VARIANTS = [
-  {
-    id: "resting-heart-rate",
-    question: "Wenn die Herzfrequenz des Körpers im Ruhezustand sinkt, welcher Teil des autonomen Nervensystems ist daran hauptsächlich beteiligt?",
-    className: "core-help-variant-card-middle left-[4%] right-[12%] top-4 z-10 -rotate-2",
-    tone: "middle",
-    showAnswer: false,
-  },
-  {
-    id: "autonomic-section",
-    question: "Die Senkung der Herzfrequenz unter Ruhebedingungen wird vor allem durch welchen Abschnitt des autonomen Nervensystems vermittelt?",
-    className: "core-help-stack-front left-[12%] right-[4%] top-44 z-20 rotate-2",
-    tone: "front",
-    showAnswer: true,
-  },
-] as const;
-
-const SPACED_REPETITION_STEPS: readonly StoryStep<ExplorerSelectionId>[] = [
-  {
-    id: "spaced-idea",
-    title: "Wiederholt wird, kurz bevor du vergisst",
-    text: "Ohne Wiederholung sinkt die Abrufwahrscheinlichkeit mit der Zeit. FSRS plant jede Karte so, dass du sie wiederholst, kurz bevor sie unter deine Zielerinnerung fällt. So wiederholst du nur, was du sonst vergessen würdest.",
-    selection: "overview",
-  },
-  {
-    id: "spaced-first-review",
-    title: "Die erste Wiederholung aktualisiert den Gedächtniszustand",
-    text: "Die Originalkarte erreicht im Beispiel 90 Prozent Abrufwahrscheinlichkeit. Nach deiner Antwort schätzt FSRS Stabilität S und Schwierigkeit D neu.",
-    selection: "review-first",
-  },
-  {
-    id: "spaced-ratings",
-    title: "Deine Antwort bestimmt das nächste Intervall",
-    text: "„Nochmal“, „Schwer“, „Gut“ und „Leicht“ führen gemeinsam betrachtet zu zunehmend längeren Intervallen. Je sicherer der Abruf, desto später wird die Karte erneut fällig.",
-    selection: "ratings",
-  },
-  {
-    id: "spaced-variant",
-    title: "Erst dann kommt eine Variante als neuer Punkt hinzu",
-    text: "Sobald die Haltbarkeit die Schwelle des Stapels erreicht, kann CoRe denselben Inhalt mit einer neuen Frageform prüfen. Der Variantenpunkt ist ein Beispiel und keine garantierte Reviewnummer.",
-    selection: "review-variant",
-  },
-  {
-    id: "spaced-d",
-    title: "D beschreibt die dauerhafte Schwierigkeit",
-    text: "Schwierige Inhalte bauen Stabilität langsamer auf. Die Rauten markieren D an den Wiederholungspunkten; D ist keine zweite Prozentkurve.",
-    selection: "parameter-d",
-  },
-  {
-    id: "spaced-r",
-    title: "R ist deine aktuelle Abrufwahrscheinlichkeit",
-    text: "Nach einem erfolgreichen Review liegt R wieder nahe 100 Prozent und fällt anschließend mit der Zeit. Die gestrichelte Linie zeigt eine Zielerinnerung von 90 Prozent.",
-    selection: "parameter-r",
-  },
-  {
-    id: "spaced-s",
-    title: "S beschreibt, wie lange die Erinnerung hält",
-    text: "CoRe zeigt S als Haltbarkeit: die Tage, bis R von 100 auf 90 Prozent fällt. Die vier Pfeile zeigen qualitativ, wie deine Antwort das nächste Intervall beeinflusst.",
-    selection: "parameter-s",
-  },
-];
-
-const SCHEDULING_STEPS = [
-  {
-    label: "Gedächtniszustand aktualisieren",
-    text: "Nach deiner Bewertung werden Stabilität S und Schwierigkeit D neu geschätzt.",
-  },
-  {
-    label: "Vergessen vorhersagen",
-    text: "Zwischen Reviews bleiben S und D unverändert, während R mit der Zeit fällt.",
-  },
-  {
-    label: "Nächsten Termin setzen",
-    text: "FSRS wählt den Zeitpunkt, an dem R voraussichtlich die gewünschte Zielerinnerung erreicht.",
-  },
-] as const;
-
-const RATING_GUIDE: ReadonlyArray<{ label: string; text: string }> = [
-  { label: "Nochmal", text: "Nicht gewusst oder falsch. Die Karte kommt nach wenigen Minuten in derselben Sitzung zurück; in der Wiederholung bricht ihre Haltbarkeit ein." },
-  { label: "Schwer", text: "Richtig, aber nur mit Mühe, nach Zögern oder lückenhaft. Der Abstand wächst deutlich langsamer. Im Zweifel ist das die ehrliche Wahl." },
-  { label: "Gut", text: "Richtig mit normalem Nachdenken. Das ist die übliche Antwort." },
-  { label: "Leicht", text: "Sofort und mühelos. Beendet die Lernphase und streckt den Abstand stark." },
-];
-
-/** The example chain „Immer Gut“ at the default target retention. */
-function defaultGoodChain() {
-  const retention = createDefaultDeckSettings().schedulerProfile.desiredRetention;
-  const contacts = runExampleChain(EXAMPLE_CHAINS[0].ratings, retention);
-  return {
-    retentionPercent: Math.round(retention * 100),
-    minutes: contacts.flatMap((contact) => contact.intervalMinutes === null ? [] : [contact.intervalMinutes]),
-    days: contacts.filter((contact) => contact.intervalMinutes === null).slice(0, 4).map((contact) => Math.round(contact.intervalDays)),
-  };
-}
-
-const MEMORY_TERMS: readonly MemoryTerm[] = [
-  { term: "R · Abrufwahrscheinlichkeit", description: "Wie wahrscheinlich du den Inhalt jetzt korrekt erinnern kannst." },
-  { term: "S · Stabilität", description: "Wie lange die Erinnerung hält. CoRe zeigt sie als Haltbarkeit: Tage, bis R auf 90 Prozent fällt." },
-  { term: "D · Schwierigkeit", description: "Wie schwer sich diese Erinnerung dauerhaft festigen lässt." },
-  { term: "Zielerinnerung", description: "Die gewünschte Abrufwahrscheinlichkeit am nächsten Termin." },
-  { term: "Intervall", description: "Der zeitliche Abstand bis zur nächsten Wiederholung." },
-  { term: "Original und Variante", description: "Verschiedene Fragen zur gleichen Wissenseinheit." },
-];
-
-const PARAMETER_POSITIONS: Record<ParameterId, { left: string; top: string }> = {
-  r: { left: "1.5rem", top: "36.7%" },
-  d: { left: "52%", top: "1%" },
-  s: { left: "52%", top: "80%" },
+const HELP_TOPIC_PAGES: Record<HelpTopic, { title: string; content: React.ComponentType }> = {
+  "active-recall": { title: "Active Recall wird Smarter Recall", content: ActiveRecallStory },
+  "spaced-repetition": { title: "Spaced Repetition wird Content Repetition", content: SpacedRepetitionStory },
+  planung: { title: "So plant CoRe deine Wiederholungen", content: PlanningTopic },
+  varianten: { title: "Was bei Varianten geschützt bleibt", content: VariantsTopic },
+  pruefungssitzung: { title: "So läuft eine Prüfungssitzung", content: ExamSessionTopic },
+  kartenverwaltung: { title: "So arbeitest du in der Kartenverwaltung", content: CardManagementTopic },
 };
 
-const HELP_METHOD_SCROLL_DURATION_MS = 1_100;
+const REFERENCE_TOPICS: ReadonlyArray<{ topic: HelpTopic; icon: LucideIcon }> = [
+  { topic: "planung", icon: Clock3 },
+  { topic: "varianten", icon: RotateCcw },
+  { topic: "pruefungssitzung", icon: CalendarCheck },
+  { topic: "kartenverwaltung", icon: Layers },
+];
 
-function reviewSelectionId(id: ReviewId): ExplorerSelectionId {
-  return `review-${id}`;
-}
+const LEARNING_STEPS = [
+  { label: "Aktiv abrufen", text: "Hol die Antwort aus dem Gedächtnis, bevor du sie aufdeckst." },
+  { label: "Ehrlich bewerten", text: "Deine Antwort bestimmt das nächste Intervall: Je sicherer der Abruf, desto später wird die Karte erneut fällig." },
+  { label: "Rechtzeitig wiederholen", text: "FSRS plant jede Karte so, dass du sie wiederholst, kurz bevor du sie vergessen würdest. Nach ausreichender Reife fragt CoRe denselben Inhalt mit neuen Varianten ab." },
+] as const;
 
-function ratingSelectionId(id: RatingId): ExplorerSelectionId {
-  return `rating-${id}`;
-}
-
-function parameterSelectionId(id: ParameterId): ExplorerSelectionId {
-  return `parameter-${id}`;
-}
-
-function getActiveReviewId(selection: ExplorerSelectionId): ReviewId | null {
-  return MEMORY_REVIEWS.find((review) => reviewSelectionId(review.id) === selection)?.id ?? null;
-}
-
-function getActiveRatingId(selection: ExplorerSelectionId): RatingId | null {
-  return RATING_PATHS.find((rating) => ratingSelectionId(rating.id) === selection)?.id ?? null;
-}
-
-function getActiveParameterId(selection: ExplorerSelectionId): ParameterId | null {
-  if (selection === "parameter-r") return "r";
-  if (selection === "parameter-s") return "s";
-  if (selection === "parameter-d") return "d";
-  return null;
-}
-
-function useScrollStory(stepCount: number) {
-  const containerRef = React.useRef<HTMLDivElement>(null);
-  const [activeIndex, setActiveIndex] = React.useState(0);
-
-  React.useEffect(() => {
-    const container = containerRef.current;
-    if (!container) return undefined;
-
-    let animationFrame = 0;
-    const desktop = window.matchMedia("(min-width: 1280px)").matches;
-    const scrollRegion = desktop ? container.closest<HTMLElement>(".core-screen-region") : null;
-    const scrollTarget: Window | HTMLElement = scrollRegion ?? window;
-    const steps = Array.from(container.querySelectorAll<HTMLElement>("[data-story-step]"));
-    const updateActiveStep = () => {
-      cancelAnimationFrame(animationFrame);
-      animationFrame = requestAnimationFrame(() => {
-        const viewportFocus = scrollRegion
-          ? scrollRegion.getBoundingClientRect().top + scrollRegion.clientHeight * 0.48
-          : window.innerHeight * 0.48;
-        let closestIndex = 0;
-        let closestDistance = Number.POSITIVE_INFINITY;
-
-        steps.forEach((step, index) => {
-          const rect = step.getBoundingClientRect();
-          const stepCenter = rect.top + rect.height / 2;
-          const distance = Math.abs(stepCenter - viewportFocus);
-          if (distance < closestDistance) {
-            closestDistance = distance;
-            closestIndex = index;
-          }
-        });
-
-        setActiveIndex((current) => current === closestIndex ? current : closestIndex);
-      });
-    };
-
-    updateActiveStep();
-    scrollTarget.addEventListener("scroll", updateActiveStep, { passive: true });
-    window.addEventListener("resize", updateActiveStep);
-    return () => {
-      cancelAnimationFrame(animationFrame);
-      scrollTarget.removeEventListener("scroll", updateActiveStep);
-      window.removeEventListener("resize", updateActiveStep);
-    };
-  }, [stepCount]);
-
-  return { activeIndex, containerRef, setActiveIndex };
-}
-
-function StoryStepCard<TSelection extends string>({
-  active,
-  elementId,
-  index,
-  onFocus,
-  step,
-  testId,
-}: {
-  active: boolean;
-  elementId?: string;
-  index: number;
-  onFocus: () => void;
-  step: StoryStep<TSelection>;
-  testId?: string;
-}) {
+/** A real link to the topic, so it can be shared or opened in a new tab; a plain click stays in the app. */
+function HelpTopicLink({ topic, onSelectTopic, className, children }: { topic: HelpTopic; onSelectTopic: HelpScreenProps["onSelectTopic"]; className: string; children: React.ReactNode }) {
   return (
-    <li id={elementId} className="flex min-w-0 min-h-[58svh] items-center py-8 xl:min-h-[68svh]" data-story-step={index} data-testid={testId}>
-      <article
-        className={`min-w-0 w-full rounded-panel px-6 py-5 transition-[background-color,opacity,transform] duration-300 motion-reduce:transition-none ${active ? "translate-x-0 bg-core-surface opacity-100" : "translate-x-2 opacity-70"}`}
-        tabIndex={0}
-        onFocus={onFocus}
-        aria-current={active ? "step" : undefined}
-      >
-        <h3 className="core-heading-2 text-core-text">{step.title}</h3>
-        <p className="mt-4 core-body-large leading-7 text-core-secondary">{step.text}</p>
-        {step.note ? <p className="mt-4 core-caption leading-5 text-core-secondary">{step.note}</p> : null}
-      </article>
-    </li>
-  );
-}
-
-function HelpExampleCardStack({
-  activeRecallCard,
-  ariaLabel,
-  children,
-  frontTestId,
-  layerTestId,
-  rootTestId,
-}: {
-  activeRecallCard?: "stack" | "blur";
-  ariaLabel?: string;
-  children: React.ReactNode;
-  frontTestId?: string;
-  layerTestId?: string;
-  rootTestId?: string;
-}) {
-  return (
-    <div
-      className="core-help-example-stack relative mx-auto h-[39rem] w-full max-w-xl sm:h-[30rem]"
-      role={ariaLabel ? "img" : undefined}
-      aria-label={ariaLabel}
-      data-testid={rootTestId}
-      data-help-example-stack="true"
-      data-help-example-stack-template="medium"
-      data-active-recall-card={activeRecallCard}
+    <a
+      href={appRouteToUrl(createViewRoute("hilfe", { helpTopic: topic }))}
+      className={className}
+      data-help-topic-link={topic}
+      onClick={(event) => {
+        if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+        event.preventDefault();
+        onSelectTopic(topic);
+      }}
     >
-      {HELP_EXAMPLE_STACK_LAYERS.map((layer) => (
-        <div
-          key={layer.id}
-          className={`core-help-stack-card absolute inset-x-[8%] top-20 h-[30rem] rounded-overlay border border-core-border-strong sm:h-[21rem] ${layer.className}`}
-          aria-hidden="true"
-          data-testid={layerTestId}
-          data-help-example-stack-layer={layer.id}
-        />
-      ))}
-      <div
-        className="core-help-stack-card core-help-stack-front absolute inset-x-[8%] top-20 z-20 grid h-[30rem] place-items-center rounded-overlay border border-core-border-strong p-6 shadow-raised sm:h-[21rem] sm:p-8"
-        data-testid={frontTestId}
-        data-help-example-stack-front="true"
-      >
-        {children}
-      </div>
-    </div>
+      {children}
+    </a>
   );
 }
 
-function HelpCardDivider({ compact = false, testId }: { compact?: boolean; testId?: string }) {
-  return (
-    <div
-      className={`mx-auto mt-4 h-px bg-core-border-strong ${compact ? "w-3/4 max-w-xs" : "w-4/5 max-w-sm"}`}
-      data-testid={testId}
-      aria-hidden="true"
-    />
-  );
+function methodLinkClass(borderClass: string) {
+  return `core-help-method-link group block border-t-2 ${borderClass} pt-4 transition-[border-width,color] duration-150 hover:border-t-4 motion-reduce:transition-none`;
 }
 
-function IntroCardStack() {
+function HelpHome({ onSelectTopic }: Pick<HelpScreenProps, "onSelectTopic">) {
+  const methods = [
+    { topic: "active-recall", name: "Active Recall", text: "Wissen aktiv aus dem Gedächtnis holen.", border: "border-core-success" },
+    { topic: "spaced-repetition", name: "Spaced Repetition", text: "Zum passenden Zeitpunkt wiederholen.", border: "border-core-info" },
+  ] as const;
   return (
-    <HelpExampleCardStack
-      ariaLabel="Karteikartenstapel mit der Frage, welche Grundsätze CoRe für nachhaltiges Lernen nutzt. Active Recall wird zu Smarter Recall und Spaced Repetition zu Content Repetition weiterentwickelt."
-      rootTestId="help-intro-card-stack"
-      frontTestId="help-intro-card-front"
-      layerTestId="help-intro-card-layer"
-    >
-      <div className="w-full max-w-md text-center">
-        <p className="core-help-card-question text-core-text">
-          Welche <mark className="core-help-keyword">Grundsätze</mark> <mark className="core-help-keyword">nutzt CoRe</mark>, um das <mark className="core-help-keyword">Lernen</mark> möglichst <mark className="core-help-keyword">nachhaltig zu gestalten</mark>, und wie wurden sie im Vergleich zu herkömmlichen Lernmechanismen verbessert?
-        </p>
-        <HelpCardDivider compact testId="help-intro-card-divider" />
-        <ol className="mx-auto mt-3 grid w-fit max-w-full gap-2 text-left core-help-card-options text-core-text">
-          <li className="grid grid-cols-[1.25rem_1fr] gap-2"><span className="text-core-secondary">1.</span><span>Active Recall <span className="text-core-warning">→</span> Smarter Recall</span></li>
-          <li className="grid grid-cols-[1.25rem_1fr] gap-2"><span className="text-core-secondary">2.</span><span>Spaced Repetition <span className="text-core-warning">→</span> Content Repetition</span></li>
-        </ol>
-      </div>
-    </HelpExampleCardStack>
-  );
-}
-
-function IntroSection() {
-  const scrollAnimationFrameRef = React.useRef(0);
-
-  React.useEffect(() => () => cancelAnimationFrame(scrollAnimationFrameRef.current), []);
-
-  function scrollToMethod(event: React.MouseEvent<HTMLAnchorElement>, method: HelpMethodId) {
-    event.preventDefault();
-    const targetId = `${method}-heading`;
-    const target = document.getElementById(targetId);
-    if (!target) return;
-
-    window.history.pushState(null, "", `#${targetId}`);
-    const scrollRegion = window.matchMedia("(min-width: 1280px)").matches
-      ? target.closest<HTMLElement>(".core-screen-region")
-      : null;
-    const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    const startTop = scrollRegion ? scrollRegion.scrollTop : window.scrollY;
-    const targetTop = scrollRegion
-      ? startTop + target.getBoundingClientRect().top - scrollRegion.getBoundingClientRect().top - 24
-      : startTop + target.getBoundingClientRect().top - 24;
-    const maxTop = scrollRegion
-      ? scrollRegion.scrollHeight - scrollRegion.clientHeight
-      : document.documentElement.scrollHeight - window.innerHeight;
-    const endTop = Math.max(0, Math.min(targetTop, maxTop));
-
-    if (reducedMotion) {
-      if (scrollRegion) scrollRegion.scrollTo({ top: endTop });
-      else window.scrollTo({ top: endTop });
-      return;
-    }
-
-    const startedAt = performance.now();
-    const animateScroll = (now: number) => {
-      const progress = Math.min((now - startedAt) / HELP_METHOD_SCROLL_DURATION_MS, 1);
-      const easedProgress = 0.5 - Math.cos(Math.PI * progress) / 2;
-      const nextTop = startTop + (endTop - startTop) * easedProgress;
-      if (scrollRegion) scrollRegion.scrollTo({ top: nextTop });
-      else window.scrollTo({ top: nextTop });
-      if (progress < 1) scrollAnimationFrameRef.current = requestAnimationFrame(animateScroll);
-    };
-    cancelAnimationFrame(scrollAnimationFrameRef.current);
-    scrollAnimationFrameRef.current = requestAnimationFrame(animateScroll);
-  }
-
-  function methodLinkClass(borderClass: string) {
-    return `core-help-method-link group block border-t-2 ${borderClass} pt-4 transition-[border-width,color] duration-150 hover:border-t-4 motion-reduce:transition-none`;
-  }
-
-  return (
-    <section className="grid min-w-0 items-start gap-12 lg:grid-cols-[0.9fr_1.1fr]" aria-labelledby="help-intro-heading">
-      <div className="max-w-2xl">
-        <h2 id="help-intro-heading" className="core-heading-1 text-core-text">Wir wollen Lernen verbessern.</h2>
-        <p className="mt-6 core-body-large leading-8 text-core-secondary">
-          CoRe hilft dir, Wissen nicht nur für den nächsten Test, sondern langfristig abrufbar zu machen. Dafür verbinden wir zwei etablierte Methoden und entwickeln sie weiter.
-        </p>
-        <div className="mt-8 grid gap-4 sm:grid-cols-2">
-          <a
-            href="#active-recall-heading"
-            data-help-method-navigation="animated"
-            className={methodLinkClass("border-core-success")}
-            onClick={(event) => scrollToMethod(event, "active-recall")}
-          >
-            <span className="core-caption font-semibold text-core-secondary transition-[font-weight,color] group-hover:font-bold group-hover:text-core-text group-focus-visible:font-bold group-focus-visible:text-core-text motion-reduce:transition-none">Active Recall</span>
-            <span className="mt-2 block core-body font-semibold text-core-text transition-[font-weight] group-hover:font-bold group-focus-visible:font-bold motion-reduce:transition-none">Wissen aktiv aus dem Gedächtnis holen.</span>
-          </a>
-          <a
-            href="#spaced-repetition-heading"
-            data-help-method-navigation="animated"
-            className={methodLinkClass("border-core-info")}
-            onClick={(event) => scrollToMethod(event, "spaced-repetition")}
-          >
-            <span className="core-caption font-semibold text-core-secondary transition-[font-weight,color] group-hover:font-bold group-hover:text-core-text group-focus-visible:font-bold group-focus-visible:text-core-text motion-reduce:transition-none">Spaced Repetition</span>
-            <span className="mt-2 block core-body font-semibold text-core-text transition-[font-weight] group-hover:font-bold group-focus-visible:font-bold motion-reduce:transition-none">Zum passenden Zeitpunkt wiederholen.</span>
-          </a>
-        </div>
-      </div>
-      <IntroCardStack />
-    </section>
-  );
-}
-
-function RecallQuestion({ obscured }: { obscured: boolean }) {
-  return (
-    <p className="core-help-card-question text-core-text" data-testid="active-recall-question">
-      <span className="text-core-warning">Welcher Teil des autonomen</span>{" "}
-      <span
-        className={obscured ? "core-obscured-recall-text" : undefined}
-        data-recall-question-body="true"
-        data-testid={obscured ? "active-recall-obscured-text" : undefined}
-      >
-        Nervensystems ist in erster Linie dafür verantwortlich, die Herzfrequenz in Ruhe zu
-      </span>{" "}
-      <span className="text-core-warning" data-testid="active-recall-question-suffix">senken?</span>
-    </p>
-  );
-}
-
-function ActiveRecallOriginalCard({ obscured }: { obscured: boolean }) {
-  return (
-    <HelpExampleCardStack
-      activeRecallCard={obscured ? "blur" : "stack"}
-    >
-      <div className="w-full max-w-xl text-center">
-        <RecallQuestion obscured={obscured} />
-        <HelpCardDivider testId="active-recall-divider" />
-        <p className="mt-4 core-help-card-question text-core-text" data-testid="active-recall-answer">Der Parasympathikus</p>
-      </div>
-    </HelpExampleCardStack>
-  );
-}
-
-function ActiveRecallVariantCards() {
-  return (
-    <div className="relative mx-auto h-[27rem] w-full max-w-xl" data-active-recall-card="variants">
-      {ACTIVE_RECALL_VARIANTS.map((variant) => (
-        <div
-          key={variant.id}
-          className={`core-help-stack-card absolute grid min-h-60 place-items-center rounded-overlay border border-core-border-strong p-6 pr-12 text-center shadow-raised sm:p-8 sm:pr-12 ${variant.className}`}
-          data-testid="active-recall-variant-card"
-          data-help-variant-tone={variant.tone}
-        >
-          <span className="absolute right-2 top-2 grid size-10 place-items-center text-core-warning" data-testid="active-recall-variant-stars" aria-hidden="true">
-            <Sparkles className="fill-[var(--core-warning)]" size={27} />
-            <Sparkle className="absolute bottom-0 left-0 fill-[var(--core-warning)]" size={13} />
-          </span>
-          <div className="w-full">
-            <p className="core-help-card-question text-core-text">{variant.question}</p>
-            {variant.showAnswer ? (
-              <>
-                <HelpCardDivider />
-                <p className="mt-4 w-full text-center core-help-card-question text-core-text">Der Parasympathikus</p>
-              </>
-            ) : null}
-          </div>
-        </div>
-      ))}
-    </div>
-  );
-}
-
-function ActiveRecallVisual({ activeIndex }: { activeIndex: number }) {
-  const showBlur = activeIndex === 1;
-  const showVariants = activeIndex === 2;
-
-  return (
-    <div className="relative min-h-[27rem]" data-testid="active-recall-visual" data-active-step={activeIndex} aria-hidden="true">
-      {showVariants ? <ActiveRecallVariantCards /> : <ActiveRecallOriginalCard obscured={showBlur} />}
-    </div>
-  );
-}
-
-function ActiveRecallStory() {
-  const { activeIndex, containerRef, setActiveIndex } = useScrollStory(ACTIVE_RECALL_STEPS.length);
-
-  return (
-    <section className="grid min-w-0 gap-8" aria-labelledby="active-recall-heading">
-      <h2 id="active-recall-heading" className="core-heading-1 max-w-3xl scroll-mt-6 text-core-text">Active Recall</h2>
-      <div ref={containerRef} className="grid min-w-0 gap-8 xl:grid-cols-[minmax(0,0.9fr)_minmax(20rem,1.1fr)] xl:gap-12">
-        <div className="min-w-0 self-start xl:sticky xl:top-6">
-          <ActiveRecallVisual activeIndex={activeIndex} />
-        </div>
-        <ol className="min-w-0">
-          {ACTIVE_RECALL_STEPS.map((step, index) => (
-            <StoryStepCard key={step.id} testId={`active-recall-step-${step.selection}`} step={step} index={index} active={activeIndex === index} onFocus={() => setActiveIndex(index)} />
-          ))}
-        </ol>
-      </div>
-    </section>
-  );
-}
-
-function MemoryCurveGraphic({ selection, onSelectionChange }: { selection: ExplorerSelectionId; onSelectionChange: (selection: ExplorerSelectionId) => void }) {
-  const [hoveredSelection, setHoveredSelection] = React.useState<ExplorerSelectionId | null>(null);
-  const [focusedSelection, setFocusedSelection] = React.useState<ExplorerSelectionId | null>(null);
-  const activeSelection = hoveredSelection ?? focusedSelection ?? selection;
-  const activeReviewId = getActiveReviewId(activeSelection);
-  const activeRatingId = getActiveRatingId(activeSelection);
-  const activeParameterId = getActiveParameterId(activeSelection);
-  const ratingsActive = activeSelection === "ratings";
-
-  function hoverProps(nextSelection: ExplorerSelectionId) {
-    return {
-      onPointerEnter: () => setHoveredSelection(nextSelection),
-      onPointerLeave: () => setHoveredSelection((current) => current === nextSelection ? null : current),
-    };
-  }
-
-  function buttonProps(nextSelection: ExplorerSelectionId) {
-    return {
-      ...hoverProps(nextSelection),
-      onFocus: () => {
-        setHoveredSelection(null);
-        setFocusedSelection(nextSelection);
-      },
-      onBlur: () => setFocusedSelection((current) => current === nextSelection ? null : current),
-      onClick: () => onSelectionChange(nextSelection),
-      "aria-pressed": selection === nextSelection,
-    };
-  }
-
-  return (
-    <div className="min-w-0 overflow-hidden" data-testid="spaced-repetition-visual" data-active-selection={selection}>
-      <p id="memory-axis-description" className="sr-only">Die Y-Achse zeigt nur den Ausschnitt von 90 bis 100 Prozent Abrufwahrscheinlichkeit. Zwei diagonale Striche kennzeichnen die ausgelassene Achsenspanne darunter.</p>
-      <div className="overflow-x-auto pb-2 focus:outline-none" tabIndex={0} aria-label="Lernkurve horizontal erkunden" aria-describedby="memory-axis-description">
-        <div className="relative aspect-[960/540] min-w-[42rem] xl:min-w-0" data-testid="memory-curve">
-          <svg className="absolute inset-0 size-full" viewBox="0 0 960 540" role="img" aria-labelledby="memory-curve-title memory-curve-description">
-            <title id="memory-curve-title">Vereinfachte FSRS-Gedächtniskurve mit vier Antwortpfaden</title>
-            <desc id="memory-curve-description">Nach der ersten Wiederholung führen Nochmal, Schwer, Gut und Leicht zu unterschiedlich langen Stabilitätsintervallen. Am Ende des längsten Beispielintervalls folgt eine Wiederholung mit einer nahen Kartenvariante.</desc>
-
-            <line x1="72" y1="420" x2="928" y2="420" stroke="var(--core-border-interactive)" strokeWidth="2" />
-            <line x1="72" y1="52" x2="72" y2="420" stroke="var(--core-border-interactive)" strokeWidth="2" />
-            <text x="64" y="98" textAnchor="end" fill="var(--core-text-muted)" fontSize="14">100 %</text>
-            <text x="64" y="253" textAnchor="end" fill="var(--core-text-muted)" fontSize="14">90 %</text>
-            <g data-testid="memory-y-axis-break" aria-hidden="true">
-              <path d="M 64 382 L 80 372" stroke="var(--core-text)" strokeWidth="2.5" strokeLinecap="round" />
-              <path d="M 64 395 L 80 385" stroke="var(--core-text)" strokeWidth="2.5" strokeLinecap="round" />
-            </g>
-
-            <g data-testid="memory-visual-r" data-active={activeParameterId === "r" ? "true" : "false"}>
-              <line x1="72" y1="248" x2="928" y2="248" stroke="var(--core-text-muted)" strokeDasharray="7 7" strokeWidth={activeParameterId === "r" ? 3 : 1.5} opacity={activeParameterId === "r" ? 1 : 0.72} />
-              <text x="220" y="318" textAnchor="middle" fill="var(--core-text-muted)" fontSize="14">Zielerinnerung R = 90 %</text>
-              <path d={INITIAL_CURVE_PATH} fill="none" stroke="var(--core-text)" strokeWidth={activeParameterId === "r" || activeReviewId === "first" ? 7 : 3.5} strokeLinecap="round" opacity={activeParameterId === "r" || activeReviewId === "first" ? 1 : 0.28} pointerEvents="none" className="transition-[stroke-width,opacity] duration-300 motion-reduce:transition-none" />
-              {RATING_PATHS.map((rating) => {
-                const emphasized = ratingsActive || activeParameterId === "r" || activeRatingId === rating.id || (activeReviewId === "variant" && rating.id === "easy");
-                return <path key={`curve-${rating.id}`} d={rating.curvePath} fill="none" stroke={rating.color} strokeWidth={emphasized ? 7 : 3.5} strokeLinecap="round" opacity={emphasized ? 1 : 0.22} pointerEvents="none" className="transition-[stroke-width,opacity] duration-300 motion-reduce:transition-none" />;
-              })}
-              <path d="M 855 92 C 888 98, 918 112, 946 138" fill="none" stroke="var(--core-info)" strokeWidth={activeParameterId === "r" || activeReviewId === "variant" ? 6 : 3.5} strokeLinecap="round" opacity={activeParameterId === "r" || activeReviewId === "variant" ? 1 : 0.35} />
-            </g>
-
-            <g data-testid="memory-visual-s" data-active={activeParameterId === "s" ? "true" : "false"}>
-              {RATING_PATHS.map((rating, index) => {
-                const emphasized = ratingsActive || activeParameterId === "s" || activeRatingId === rating.id;
-                const start = index === 0 ? 235 : RATING_PATHS[index - 1].dueX + 10;
-                const end = rating.dueX - 10;
-                const arrowY = 350;
-                return (
-                  <g
-                    key={`stability-${rating.id}`}
-                    opacity={emphasized ? 1 : activeReviewId === "first" ? 0.78 : 0.32}
-                    className="transition-opacity duration-300 motion-reduce:transition-none"
-                    data-testid={`memory-stability-arrow-${rating.id}`}
-                    data-arrowheads="right"
-                  >
-                    <line x1={start} y1={arrowY} x2={end} y2={arrowY} stroke={rating.color} strokeWidth={emphasized ? 4 : 2} />
-                    <path d={`M ${end - 9} ${arrowY - 6} L ${end} ${arrowY} L ${end - 9} ${arrowY + 6}`} fill="none" stroke={rating.color} strokeWidth={emphasized ? 3 : 2} strokeLinecap="round" strokeLinejoin="round" />
-                    <text x={(start + end) / 2} y={arrowY + 32} textAnchor="middle" fill={rating.color} fontSize="14" fontWeight="700">S{index + 1}</text>
-                  </g>
-                );
-              })}
-            </g>
-
-            <g data-testid="memory-visual-d" data-active={activeParameterId === "d" ? "true" : "false"}>
-              {MEMORY_REVIEWS.map((review) => {
-                const emphasized = activeParameterId === "d" || activeReviewId === review.id;
-                return (
-                  <g key={`difficulty-${review.id}`} opacity={emphasized ? 1 : 0.24} className="transition-opacity duration-300 motion-reduce:transition-none">
-                    <line x1={review.reviewX} y1="78" x2={review.reviewX} y2="248" stroke={review.color} strokeWidth={emphasized ? 3 : 2} strokeDasharray="6 7" />
-                    <path d={`M ${review.reviewX} 64 L ${review.reviewX + 7} 71 L ${review.reviewX} 78 L ${review.reviewX - 7} 71 Z`} fill="var(--core-surface-raised)" stroke={activeParameterId === "d" ? "var(--core-warning)" : review.color} strokeWidth={emphasized ? 3 : 2} />
-                  </g>
-                );
-              })}
-            </g>
-
-            <path d={INITIAL_CURVE_PATH} fill="none" stroke="transparent" strokeWidth="28" pointerEvents="stroke" {...hoverProps(reviewSelectionId("first"))} data-testid="memory-curve-initial" />
-            {RATING_PATHS.map((rating) => <path key={`hit-${rating.id}`} d={rating.curvePath} fill="none" stroke="transparent" strokeWidth="28" pointerEvents="stroke" {...hoverProps(ratingSelectionId(rating.id))} data-testid={`memory-rating-path-${rating.id}`} />)}
-            <text x="220" y="292" textAnchor="middle" fill="var(--core-text-secondary)" fontSize="13" fontWeight="700">1. Wiederholung</text>
-            <text x="855" y="292" textAnchor="middle" fill="var(--core-text-secondary)" fontSize="13" fontWeight="700">x. Wiederholung · Variante</text>
-          </svg>
-
-          <span
-            className="pointer-events-none absolute z-10 grid size-7 -translate-x-1/2 -translate-y-1/2 place-items-center text-core-info transition-opacity duration-300 motion-reduce:transition-none"
-            style={{
-              left: `${(MEMORY_REVIEWS[1].reviewX / 960) * 100}%`,
-              top: `${(40 / 540) * 100}%`,
-              opacity: activeReviewId === null || activeReviewId === "variant" || activeParameterId === "d" ? 1 : 0.35,
-            }}
-            aria-hidden="true"
-            data-testid="memory-variant-star"
-          >
-            <Sparkles size={19} />
-          </span>
-
-          {(["r", "s", "d"] as const).map((parameterId) => {
-            const nextSelection = parameterSelectionId(parameterId);
-            const active = activeSelection === nextSelection;
-            const label = parameterId === "r" ? "R · Abrufwahrscheinlichkeit" : parameterId === "s" ? "S · Stabilität" : "D · Schwierigkeit";
-            return (
-              <button key={parameterId} type="button" className={`absolute z-20 flex min-h-control -translate-x-1/2 items-center px-2 core-caption font-semibold underline-offset-4 transition-opacity hover:underline motion-reduce:transition-none ${parameterId === "r" ? "-translate-y-1/2 -rotate-90" : ""} ${active ? "text-core-text underline decoration-2 opacity-100" : "text-core-secondary opacity-60"}`} style={PARAMETER_POSITIONS[parameterId]} {...buttonProps(nextSelection)} data-testid={`memory-parameter-${parameterId}`}>{label}</button>
-            );
-          })}
-
-          {MEMORY_REVIEWS.map((review) => {
-            const nextSelection = reviewSelectionId(review.id);
-            const active = activeReviewId === review.id;
-            return (
-              <button
-                key={review.id}
-                type="button"
-                className="absolute z-20 grid size-control place-items-center rounded-round border bg-core-raised core-body font-semibold transition-[transform,opacity] motion-reduce:transition-none"
-                style={{
-                  left: `${(review.reviewX / 960) * 100}%`,
-                  top: `${(248 / 540) * 100}%`,
-                  borderColor: review.color,
-                  borderWidth: active || activeParameterId === "d" ? 3 : 2,
-                  color: review.color,
-                  transform: `translate(-50%, -50%) scale(${active ? 1.12 : 1})`,
-                  opacity: activeReviewId === null || active ? 1 : 0.48,
-                }}
-                {...buttonProps(nextSelection)}
-                aria-label={`${review.title} auswählen`}
-                data-testid={`memory-review-point-${review.id}`}
-              >
-                {review.id === "variant" ? <span aria-hidden="true">…</span> : "1"}
-              </button>
-            );
-          })}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function SpacedRepetitionStory() {
-  const { activeIndex, containerRef, setActiveIndex } = useScrollStory(SPACED_REPETITION_STEPS.length);
-  const activeStep = SPACED_REPETITION_STEPS[activeIndex];
-
-  function selectGraphPart(selection: ExplorerSelectionId) {
-    const nextIndex = SPACED_REPETITION_STEPS.findIndex((step) => step.selection === selection);
-    if (nextIndex < 0) return;
-    setActiveIndex(nextIndex);
-    const target = document.getElementById(SPACED_REPETITION_STEPS[nextIndex].id);
-    const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    target?.scrollIntoView({ behavior: reducedMotion ? "auto" : "smooth", block: "center" });
-  }
-
-  return (
-    <section className="grid min-w-0 gap-8" aria-labelledby="spaced-repetition-heading">
-      <div className="max-w-3xl">
-        <h2 id="spaced-repetition-heading" className="core-heading-1 scroll-mt-6 text-core-text">Spaced Repetition findet den passenden Zeitpunkt</h2>
-        <p className="mt-4 core-body-large leading-7 text-core-secondary">Bei Spaced Repetition werden Fragen in gezielt gewählten Abständen wiederholt, um dem Vergessen entgegenzuwirken. CoRe nutzt dafür den FSRS-Algorithmus, der anhand verschiedener Parameter berechnet, wie wahrscheinlich du dich noch an eine Karte erinnerst.</p>
-      </div>
-      <div ref={containerRef} className="grid min-w-0 gap-8 xl:grid-cols-[minmax(19rem,0.65fr)_minmax(38rem,1.35fr)] xl:gap-10">
-        <div className="min-w-0 self-start xl:order-2 xl:sticky xl:top-6" data-testid="spaced-repetition-diagram-column">
-          <MemoryCurveGraphic selection={activeStep.selection} onSelectionChange={selectGraphPart} />
-        </div>
-        <ol className="min-w-0 xl:order-1" data-testid="spaced-repetition-steps-column">
-          {SPACED_REPETITION_STEPS.map((step, index) => (
-            <StoryStepCard key={step.id} elementId={step.id} testId={`spaced-repetition-step-${step.selection}`} step={step} index={index} active={activeIndex === index} onFocus={() => setActiveIndex(index)} />
-          ))}
-        </ol>
-      </div>
-    </section>
-  );
-}
-
-function RatingGuidePanel() {
-  const chain = React.useMemo(defaultGoodChain, []);
-  const days = `${chain.days.slice(0, -1).join(", ")} und ${chain.days.at(-1)} Tagen`;
-  return (
-    <SoftPanel className="p-6" data-testid="help-rating-guide">
-      <div className="flex items-center gap-3">
-        <Gauge size={20} aria-hidden="true" className="shrink-0 text-core-secondary" />
-        <h3 className="core-heading-2 text-core-text">So bewertest du</h3>
-      </div>
-      <p className="mt-4 max-w-3xl core-body leading-6 text-core-secondary">
-        FSRS-7 traut einer sicheren Antwort große Abstände zu: Mit {chain.retentionPercent} % Zielerinnerung kommt eine neue Karte, immer mit „Gut“ bewertet, nach {chain.minutes.join(" und ")} Minuten und dann nach {days} wieder. Wähle „Gut“ deshalb nur, wenn der Abruf wirklich sicher war.
-      </p>
-      <dl className="mt-6 grid border-t border-core-border md:grid-cols-2 xl:grid-cols-4">
-        {RATING_GUIDE.map((entry) => (
-          <div key={entry.label} className="border-b border-core-border py-4 md:pr-6">
-            <dt className="core-body font-semibold text-core-text">{entry.label}</dt>
-            <dd className="mt-1 core-caption leading-5 text-core-secondary">{entry.text}</dd>
-          </div>
-        ))}
-      </dl>
-    </SoftPanel>
-  );
-}
-
-function ReferenceSection() {
-  return (
-    <section className="grid min-w-0 gap-8" aria-labelledby="reference-heading">
-      <h2 id="reference-heading" className="core-heading-1 text-core-text">Das Wichtigste auf einen Blick</h2>
-
-      <div className="grid gap-4 lg:grid-cols-2">
-        <SoftPanel className="p-6">
-          <div className="flex items-center gap-3">
-            <Clock3 size={20} aria-hidden="true" className="shrink-0 text-core-secondary" />
-            <h3 className="core-heading-2 text-core-text">So arbeitet ein Spaced-Repetition-Scheduler</h3>
-          </div>
+    <div className="grid min-w-0 gap-16">
+      <section className="grid min-w-0 items-start gap-12 lg:grid-cols-[0.9fr_1.1fr]" aria-labelledby="help-intro-heading">
+        <div className="max-w-2xl">
+          <h3 id="help-intro-heading" className="core-heading-2 text-core-text">So lernst du mit CoRe</h3>
+          <p className="mt-4 core-body-large leading-8 text-core-secondary">
+            CoRe hilft dir, Wissen nicht nur für den nächsten Test, sondern langfristig abrufbar zu machen. Dafür verbinden wir zwei etablierte Methoden und entwickeln sie weiter.
+          </p>
           <ol className="mt-6 border-t border-core-border">
-            {SCHEDULING_STEPS.map((step, index) => (
-              <li key={step.label} className="grid gap-2 border-b border-core-border py-4 sm:grid-cols-[2.5rem_1fr]">
-                <span className="core-caption font-semibold tabular-nums text-core-muted">0{index + 1}</span>
-                <div>
-                  <p className="core-body font-semibold text-core-text">{step.label}</p>
-                  <p className="mt-1 core-caption leading-5 text-core-secondary">{step.text}</p>
-                </div>
+            {LEARNING_STEPS.map((step, index) => (
+              <li key={step.label} className="grid gap-1 border-b border-core-border py-4 sm:grid-cols-[2.5rem_1fr] sm:gap-2">
+                <span className="core-caption font-semibold tabular-nums text-core-muted" aria-hidden="true">0{index + 1}</span>
+                <p className="core-body leading-6 text-core-secondary"><span className="font-semibold text-core-text">{step.label}.</span> {step.text}</p>
               </li>
             ))}
           </ol>
-        </SoftPanel>
-
-        <SoftPanel className="p-6">
-          <div className="flex items-center gap-3">
-            <ShieldCheck size={20} aria-hidden="true" className="shrink-0 text-core-secondary" />
-            <h3 className="core-heading-2 text-core-text">Transparenz zum aktuellen Scheduler</h3>
+          <div className="mt-8 grid gap-4 sm:grid-cols-2">
+            {methods.map((method) => (
+              <HelpTopicLink key={method.topic} topic={method.topic} onSelectTopic={onSelectTopic} className={methodLinkClass(method.border)}>
+                <span className="core-caption font-semibold text-core-secondary transition-[font-weight,color] group-hover:font-bold group-hover:text-core-text group-focus-visible:font-bold group-focus-visible:text-core-text motion-reduce:transition-none">{method.name}</span>
+                <span className="mt-2 block core-body font-semibold text-core-text transition-[font-weight] group-hover:font-bold group-focus-visible:font-bold motion-reduce:transition-none">{method.text}</span>
+              </HelpTopicLink>
+            ))}
           </div>
-          <p className="mt-6 core-body leading-6 text-core-secondary">
-            CoRe verwendet FSRS-7 mit den offiziellen Standardparametern. Es berücksichtigt alle Reviews einschließlich mehrerer Abrufe am selben Tag. Die persönliche Optimierung der Parameter aus deiner eigenen Reviewhistorie ist noch nicht aktiviert.
-          </p>
-          <p className="mt-3 core-body leading-6 text-core-secondary">
-            Neue Karten durchlaufen zuerst kurze Lernschritte, nach einem Fehler einen Wiederlernschritt; beide kommen in derselben Sitzung zurück. Eine höhere Zielerinnerung bedeutet kürzere Intervalle und mehr Reviews pro Tag.
-          </p>
-        </SoftPanel>
-      </div>
+        </div>
+        <div className="hidden min-w-0 lg:block">
+          <IntroCardStack />
+        </div>
+      </section>
 
       <RatingGuidePanel />
 
-      <SoftPanel className="p-6" data-testid="help-exam-session">
-        <div className="flex items-center gap-3">
-          <CalendarCheck size={20} aria-hidden="true" className="shrink-0 text-core-secondary" />
-          <h3 className="core-heading-2 text-core-text">So läuft eine Prüfungssitzung</h3>
-        </div>
-        <ul className="mt-4 grid gap-3 core-body leading-6 text-core-secondary lg:grid-cols-2 lg:gap-x-8">
-          <li>• „Heutige Einheit lernen“ enthält die geplanten neuen Karten deiner Prüfungsthemen, ihre Lernschritte und die heute fälligen Wiederholungen dieser Stapel. Eine einzelne Lernaufgabe startet nur ihr Thema.</li>
-          <li>• Themen kommen in der geplanten Reihenfolge. Es gilt das Abrufziel der Prüfung; normale Tageslimits greifen nicht, und deine Stapeleinstellungen bleiben unverändert.</li>
-          <li>• Eine Lernaufgabe wird automatisch abgehakt, sobald alle ihre Karten bewertet und erst nach heute wieder fällig sind. Selbst abhaken ändert keinen Lernstand.</li>
-          <li>• Die Zielkarten eines Tages bleiben fest. Nach deinen Antworten verteilt CoRe nur noch ungesehenen Stoff neu. Ohne Verbindung startet die Einheit mit den Karten auf diesem Gerät; neu geplant wird erst wieder online.</li>
+      <nav className="min-w-0" aria-labelledby="help-topics-heading">
+        <h3 id="help-topics-heading" className="core-heading-2 text-core-text">Nachschlagen</h3>
+        <ul className="mt-4 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          {REFERENCE_TOPICS.map(({ topic, icon: Icon }) => (
+            <li key={topic} className="grid">
+              <HelpTopicLink topic={topic} onSelectTopic={onSelectTopic} className="grid grid-cols-[auto_minmax(0,1fr)] content-start items-start gap-3.5 rounded-control border border-core-border bg-core-surface px-5 py-6 text-left transition-colors hover:border-core-border-strong hover:bg-core-subtle">
+                <Icon size={24} className="text-core-action" aria-hidden="true" />
+                <span className="break-words core-heading-3 text-core-text">{HELP_TOPIC_PAGES[topic].title}</span>
+              </HelpTopicLink>
+            </li>
+          ))}
         </ul>
-      </SoftPanel>
-
-      <SoftPanel className="p-6" data-testid="help-card-management">
-        <div className="flex items-center gap-3">
-          <Layers size={20} aria-hidden="true" className="shrink-0 text-core-secondary" />
-          <h3 className="core-heading-2 text-core-text">So arbeitest du in der Kartenverwaltung</h3>
-        </div>
-        <ul className="mt-4 grid gap-3 core-body leading-6 text-core-secondary lg:grid-cols-2 lg:gap-x-8">
-          <li>• Die Suche versteht Anki-Begriffe wie <code>tag:</code>, <code>is:due</code> oder <code>Feld:Text</code>. „Erweiterte Suche“ setzt sie per Klick und speichert Suchen.</li>
-          <li>• Ausgewählte Karten änderst du gemeinsam: Stapel, Tags, Flagge, Markierung, Aussetzen, Fälligkeit oder Löschen. Jede Aktion fragt nach und lässt sich rückgängig machen.</li>
-          <li>• Zur Pflege gibt es „Suchen und Ersetzen“, „Duplikate finden“ und „Tags verwalten“ für das ganze Konto.</li>
-          <li>• „Treffer lernen“ lernt die Treffer einer Suche: „Vorziehen“ zählt wie eine Sitzung ohne Tageslimit, „Nur üben“ ändert keinen Lernstand.</li>
-          <li>• „Alle Karten frei üben“ im Menü eines Stapels übt alle seine Karten samt Unterstapeln, ohne den Lernstand zu ändern.</li>
-          <li>• Tasten: <kbd>/</kbd> sucht, <kbd>↑</kbd> <kbd>↓</kbd> wechseln die Zeile, <kbd>X</kbd> wählt aus, Ziffern setzen die Flagge, <kbd>Strg</kbd>+<kbd>Z</kbd> nimmt die letzte Aktion zurück. Das Menü „Aktionen“ nennt alle Tasten.</li>
-        </ul>
-      </SoftPanel>
-
-      <dl className="grid border-t border-core-border md:grid-cols-2 xl:grid-cols-3">
-        {MEMORY_TERMS.map((memoryTerm) => (
-          <div key={memoryTerm.term} className="border-b border-core-border py-6 md:pr-8">
-            <dt className="core-body-large font-semibold text-core-text">{memoryTerm.term}</dt>
-            <dd className="mt-2 core-body leading-6 text-core-secondary">{memoryTerm.description}</dd>
-          </div>
-        ))}
-      </dl>
-
-      <div className="grid gap-6 lg:grid-cols-[1fr_0.8fr]" aria-label="Sichere Varianten und weiterführende Informationen">
-        <SoftPanel className="p-6">
-          <div className="flex items-center gap-3">
-            <RotateCcw size={20} aria-hidden="true" className="shrink-0 text-core-secondary" />
-            <h3 className="core-heading-2 text-core-text">Was bei Varianten geschützt bleibt</h3>
-          </div>
-          <ul className="mt-4 grid gap-3 core-body leading-6 text-core-secondary">
-            <li>• Die Variante prüft dieselbe Wissenseinheit und führt keine neuen Fakten ein.</li>
-            <li>• Genau eine Originalkarte bleibt als Vertrauensanker erhalten.</li>
-            <li>• Varianten erscheinen nur in der Wiederholungsphase und erst ab der Haltbarkeit des Stapels: so vielen Tagen, bis die Erinnerung voraussichtlich auf 90 % fällt. Richtige Antworten verlängern die Haltbarkeit, Fehler verkürzen sie.</li>
-            <li>• Frühestens drei Tage nach der letzten Antwort kommen nur noch Varianten, eine nach der anderen: Eine richtige Antwort führt zur nächsten, „Schwer“ wiederholt sie. Nach einem Fehler fragt CoRe die Originalkarte ab, bis die Haltbarkeit wieder reicht; dann geht es eine Variante zurück weiter.</li>
-            <li>• Der Variantenpunkt im Diagramm ist keine garantierte Produktionsschwelle und keine garantierte Reviewnummer.</li>
-          </ul>
-        </SoftPanel>
-
-        <div className="border-y border-core-border py-6">
-          <div className="flex items-center gap-3">
-            <Brain size={20} aria-hidden="true" className="shrink-0 text-core-secondary" />
-            <h3 className="core-heading-2 text-core-text">Mehr über FSRS</h3>
-          </div>
-          <p className="mt-4 core-body leading-6 text-core-secondary">Die offizielle Einführung erklärt das vollständige FSRS-Modell, seine Modellparameter und die Zielerinnerung.</p>
-          <a className="core-action-secondary mt-6 w-fit" href="https://github.com/open-spaced-repetition/awesome-fsrs/wiki/ABC-of-FSRS" target="_blank" rel="noreferrer noopener">
-            ABC of FSRS öffnen
-            <ExternalLink size={17} aria-hidden="true" />
-          </a>
-        </div>
-      </div>
-    </section>
+      </nav>
+    </div>
   );
 }
 
-export function HelpScreen() {
+/** Help: a short entry with what learners need right away, linking to the stories and reference topics as their own pages. */
+export function HelpScreen({ topic, onSelectTopic }: HelpScreenProps) {
+  const rootRef = React.useRef<HTMLDivElement>(null);
+  const shownTopicRef = React.useRef(topic);
+  const page = topic ? HELP_TOPIC_PAGES[topic] : null;
+  const Content = page?.content;
+
+  // A new page starts at its heading; back on the entry, focus returns to the link that opened the topic.
+  React.useEffect(() => {
+    const previousTopic = shownTopicRef.current;
+    shownTopicRef.current = topic;
+    const root = rootRef.current;
+    if (previousTopic === topic || !root) return;
+    const opener = previousTopic && !topic ? root.querySelector<HTMLElement>(`[data-help-topic-link="${previousTopic}"]`) : null;
+    if (opener) {
+      opener.focus({ preventScroll: true });
+      opener.scrollIntoView({ block: "center" });
+      return;
+    }
+    root.closest(".core-screen-region")?.scrollTo({ top: 0 });
+    window.scrollTo({ top: 0 });
+    root.querySelector<HTMLElement>("[data-screen-heading]")?.focus({ preventScroll: true });
+  }, [topic]);
+
   return (
-    <div className="grid min-w-0 gap-24 pb-16">
-      <div className="grid min-w-0 gap-16">
-        <PageHeader title="Wie CoRe dein Lernen stärkt" />
-        <IntroSection />
-      </div>
-      <ActiveRecallStory />
-      <SpacedRepetitionStory />
-      <ReferenceSection />
+    <div ref={rootRef} className="grid min-w-0 gap-8 pb-16" data-help-topic={topic ?? "start"}>
+      <PageHeader title={page?.title ?? "Hilfe"} back={topic ? { label: "Hilfe", onSelect: () => onSelectTopic(null) } : undefined} />
+      {Content ? <Content /> : <HelpHome onSelectTopic={onSelectTopic} />}
     </div>
   );
 }
