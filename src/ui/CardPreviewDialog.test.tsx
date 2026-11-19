@@ -4,9 +4,8 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { createBasicNote } from "../coreModel.ts";
 import { CardPreviewDialog } from "./CardPreviewDialog.tsx";
 
-function fixture() {
-  const { note, cards } = createBasicNote("deck", "Frage", "Antwort");
-  return { note, card: cards[0] };
+function fixture(reverse = false) {
+  return createBasicNote("deck", "Frage", "Antwort", { reverse });
 }
 
 test("CardPreviewDialog renders the content in an accessible larger dialog with a side switch", () => {
@@ -23,6 +22,27 @@ test("CardPreviewDialog renders the content in an accessible larger dialog with 
   assert.match(markup, />Rückseite<\/button>/);
   assert.match(markup, /sm:max-h-\[92dvh\].*sm:max-w-6xl/);
   assert.doesNotMatch(markup, /Antwort anzeigen|Bewertung Gut/);
+  assert.doesNotMatch(markup, /card-preview-navigation/, "eine einzelne Karte braucht keinen Kartenwechsel");
+});
+
+test("CardPreviewDialog switches between every card the draft creates", () => {
+  const markup = renderToStaticMarkup(
+    <CardPreviewDialog open {...fixture(true)} onOpenChange={() => undefined} />,
+  );
+
+  assert.match(markup, /aria-label="Karte in der Vorschau"/);
+  assert.match(markup, /Karte 1 von 2/);
+  assert.match(markup, />Vorwärts</);
+  assert.match(markup, /aria-label="Vorige Karte"/);
+  assert.match(markup, /aria-label="Nächste Karte"/);
+});
+
+test("CardPreviewDialog names missing required input instead of a card", () => {
+  const markup = renderToStaticMarkup(
+    <CardPreviewDialog open note={null} cards={[]} onOpenChange={() => undefined} />,
+  );
+  assert.match(markup, /Für die Vorschau fehlen noch Pflichtangaben/);
+  assert.doesNotMatch(markup, /card-preview-navigation/);
 });
 
 test("CardPreviewDialog stays unmounted while closed", () => {

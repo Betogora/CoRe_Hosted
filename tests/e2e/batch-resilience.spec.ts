@@ -213,21 +213,28 @@ test("[Vertrag: Batch, Pins, Deckpfade und Draftschutz] @beta-core fünf Karten 
   await expect(page.getByRole("textbox", { name: "Rückseite" })).toContainText("Angeheftete Antwort");
   await expect(page.getByRole("textbox", { name: "Vorderseite" })).toBeFocused();
 
+  // The tab keeps the draft: leaving for another area asks nothing, coming back and reloading restore it in its deck.
   await page.getByRole("textbox", { name: "Vorderseite" }).fill("Ungespeicherter Entwurf");
   await mainMenu(page).getByRole("button", { name: "Lernen" }).click();
-  const leaveDialog = page.getByRole("dialog", { name: "Ungespeicherten Entwurf verlassen?" });
-  await expect(leaveDialog).toBeVisible();
-  await leaveDialog.getByRole("button", { name: "Weiter bearbeiten" }).click();
-  await expect(page.getByRole("textbox", { name: "Vorderseite" })).toContainText("Ungespeicherter Entwurf");
-  await expect(page.getByRole("textbox", { name: "Vorderseite" })).toBeFocused();
-  await mainMenu(page).getByRole("button", { name: "Lernen" }).click();
-  await expect(leaveDialog).toBeVisible();
-  await page.keyboard.press("Escape");
-  await expect(page.getByRole("textbox", { name: "Vorderseite" })).toContainText("Ungespeicherter Entwurf");
-  await expect(page.getByRole("textbox", { name: "Vorderseite" })).toBeFocused();
-  await mainMenu(page).getByRole("button", { name: "Lernen" }).click();
-  await leaveDialog.getByRole("button", { name: "Verwerfen und verlassen" }).click();
   await expect(page.getByRole("heading", { name: "Lernen", exact: true })).toBeFocused();
+  await expect(page.getByRole("dialog", { name: "Ungespeicherten Entwurf verlassen?" })).toHaveCount(0);
+  await openManualCreation(page);
+  await expect(page.getByRole("textbox", { name: "Vorderseite" })).toContainText("Ungespeicherter Entwurf");
+  await expect(page.getByRole("textbox", { name: "Rückseite" })).toContainText("Angeheftete Antwort");
+  await expect(targetSelect).toContainText("Batch-Ziel");
+  page.once("dialog", (dialog) => void dialog.accept());
+  await page.reload();
+  await expect(page.getByRole("textbox", { name: "Vorderseite" })).toContainText("Ungespeicherter Entwurf");
+  await expect(targetSelect).toContainText("Batch-Ziel");
+
+  await page.getByRole("button", { name: "Entwurf verwerfen" }).click();
+  const discardDialog = page.getByRole("dialog", { name: "Entwurf verwerfen?" });
+  await discardDialog.getByRole("button", { name: "Verwerfen", exact: true }).click();
+  await expect(page.getByRole("textbox", { name: "Vorderseite" })).toHaveText("");
+  await expect(page.getByRole("textbox", { name: "Rückseite" })).toHaveText("");
+  await expect(page.getByRole("button", { name: "Entwurf verwerfen" })).toBeDisabled();
+  await page.reload();
+  await expect(page.getByRole("textbox", { name: "Vorderseite" })).toHaveText("");
 });
 
 test("[Vertrag: große manuelle Bilder] Speichern bleibt exklusiv und zeigt Byte-Fortschritt", async ({ page }) => {

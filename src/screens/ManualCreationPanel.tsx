@@ -13,7 +13,8 @@ import { createNote, type AddableFieldRole, type ManualNoteErrors, type Occlusio
 import type { CreationWorkflow, ManualCreationInput, ManualImageAttachment } from "../creationWorkflow.ts";
 import type { MediaSyncProgress } from "../mediaStore.ts";
 import type { Deck, NoteContent, OcclusionMask } from "../coreTypes.ts";
-import { isReadableSourceDocument, READABLE_SOURCE_DOCUMENT_ACCEPT, READABLE_SOURCE_DOCUMENT_LABEL, type TransientSourceDocument } from "../documentModel.ts";
+import { isManualSourceDocument, MANUAL_SOURCE_DOCUMENT_ACCEPT, MANUAL_SOURCE_DOCUMENT_LABEL, type TransientSourceDocument } from "../documentModel.ts";
+import { clearManualDraft, restoreManualDraft, storeManualDraft } from "../manualCreationDraft.ts";
 import { ActionButton, IconButton } from "../ui/actionUi.tsx";
 import { ActionDialog, CoreSegmentedControl, SoftPanel } from "../ui/coreUi.tsx";
 import { useSuccessToast } from "../ui/feedbackUi.tsx";
@@ -65,6 +66,8 @@ export interface ManualNoteSaveInput {
 }
 
 export interface ManualCreationPanelProps {
+  /** Scopes the draft this tab keeps; without an account the draft lives only while the panel is open. */
+  accountId?: string;
   decks: Deck[];
   workflow: ManualCreationWorkflow;
   initialTargetDeckId?: string;
@@ -126,6 +129,7 @@ function PinFieldButton({ isPinned, label, onToggle }: PinFieldButtonProps) {
 }
 
 export function ManualCreationPanel({
+  accountId = "",
   decks,
   workflow,
   onSaveManualNote,
@@ -139,17 +143,23 @@ export function ManualCreationPanel({
   const editorRootRef = React.useRef<HTMLDivElement | null>(null);
   const saveProgressRef = React.useRef<HTMLDivElement | null>(null);
   const saveInFlightRef = React.useRef(false);
-  const [useNewDeck, setUseNewDeck] = React.useState(decks.length === 0);
+  const [restored] = React.useState(() => restoreManualDraft(accountId));
+  const [useNewDeck, setUseNewDeck] = React.useState(decks.length === 0 || Boolean(restored?.snapshot.useNewDeck));
 
   const targetDeckMissing = Boolean(initialTargetDeckId && !decks.some((deck) => deck.id === initialTargetDeckId));
   const selectedDeckId = targetDeckMissing ? "" : initialTargetDeckId || decks[0]?.id || "";
-  const [deckName, setDeckName] = React.useState("Manueller Kartenstapel");
+  const [deckName, setDeckName] = React.useState(restored?.snapshot.deckName ?? "Manueller Kartenstapel");
   const [previewOpen, setPreviewOpen] = React.useState(false);
   const [finishConfirmOpen, setFinishConfirmOpen] = React.useState(false);
   const [imageChangeConfirmOpen, setImageChangeConfirmOpen] = React.useState(false);
+  const [discardConfirmOpen, setDiscardConfirmOpen] = React.useState(false);
   const previewButtonRef = React.useRef<HTMLButtonElement | null>(null);
-  const [batchState, dispatchBatch] = React.useReducer(reduceManualBatchSession, selectedDeckId, createManualBatchSession);
-  const cleanDraftRef = React.useRef(batchState.currentDraft);
+  const discardButtonRef = React.useRef<HTMLButtonElement | null>(null);
+  const [batchState, dispatchBatch] = React.useReducer(reduceManualBatchSession, restored?.snapshot.useNewDeck ? "" : selectedDeckId, (deckId) => {
+    const session = createManualBatchSession(deckId);
+    return restored ? { ...session, currentDraft: restored.snapshot.draft, pinnedFields: restored.snapshot.pinnedFields } : session;
+  });
+  const cleanDraftRef = React.useRef(createManualBatchSession().currentDraft);
   const { currentDraft, pinnedFields } = batchState;
   const { kind, front, back, answerOptions, correctOptionIndices, tags } = currentDraft;
   const [activeField, setActiveField] = React.useState<ActiveField>("front");
@@ -157,17 +167,18 @@ export function ManualCreationPanel({
   const [document, setDocument] = React.useState<TransientSourceDocument | null>(null);
   const [documentObjectUrl, setDocumentObjectUrl] = React.useState("");
   const [documentText, setDocumentText] = React.useState("");
-  const [status, setStatus] = React.useState("");
-  const [statusType, setStatusType] = React.useState<"status" | "warning" | "alert">("status");
+  const [status, setStatus] = React.useState(restored?.imagesLost ? "Bilder des Entwurfs gehen beim Neuladen verloren. Füge sie erneut ein." : "");
+  const [statusType, setStatusType] = React.useState<"status" | "warning" | "alert">(restored?.imagesLost ? "warning" : "status");
   const setSuccessToast = useSuccessToast();
   const [fieldErrors, setFieldErrors] = React.useState<ManualNoteErrors>({});
-  const imageDraftsRef = React.useRef(new Map<string, ManualImageDraft>());
+  const [restoredImages] = React.useState(() => new Map((restored?.images ?? []).map((attachment): [string, ManualImageDraft] => [attachment.sha1, { attachment, previewUrl: URL.createObjectURL(attachment.blob) }])));
+  const imageDraftsRef = React.useRef(restoredImages);
   const imagePreparationCountRef = React.useRef(0);
   const [imageRegistryVersion, setImageRegistryVersion] = React.useState(0);
   const [isPreparingImage, setIsPreparingImage] = React.useState(false);
-  const [additionalFields, setAdditionalFields] = React.useState<AdditionalField[]>([]);
-  const [typeIn, setTypeIn] = React.useState(false);
-  const [occlusion, setOcclusion] = React.useState<OcclusionDraft | null>(null);
+  const [additionalFields, setAdditionalFields] = React.useState<AdditionalField[]>(restored?.snapshot.additionalFields ?? []);
+  const [typeIn, setTypeIn] = React.useState(restored?.snapshot.typeIn ?? false);
+  const [occlusion, setOcclusion] = React.useState<OcclusionDraft | null>(restored?.snapshot.occlusion ?? null);
   const [invalidAdditionalFieldIds, setInvalidAdditionalFieldIds] = React.useState<string[]>([]);
   const [saveProgress, setSaveProgress] = React.useState<ManualSaveProgress | null>(null);
   const isSaving = Boolean(saveProgress && saveProgress.percent < 100);
@@ -175,6 +186,14 @@ export function ManualCreationPanel({
   React.useEffect(() => {
     if (decks.length === 0) setUseNewDeck(true);
   }, [decks.length]);
+
+  // A restored draft goes back into the deck it was written for, when that deck still exists.
+  React.useEffect(() => {
+    const deckId = restored?.snapshot.targetDeckId;
+    if (!deckId || deckId === selectedDeckId || !decks.some((deck) => deck.id === deckId)) return;
+    onTargetDeckChange(deckId);
+    dispatchBatch({ type: "target-deck", deckId });
+  }, []);
 
   React.useEffect(() => {
     const validIndices = correctOptionIndices.filter((index) => index >= 0 && index < answerOptions.length);
@@ -216,12 +235,35 @@ export function ManualCreationPanel({
 
   const textDraftDirty = React.useMemo(() => !manualDraftsEqual(currentDraft, cleanDraftRef.current), [currentDraft]);
   const draftDirty = textDraftDirty || additionalFields.length > 0 || Boolean(occlusion?.image || occlusion?.masks.length);
-  const finish = () => onFinish({ createdCount: batchState.createdCount, targetDeckId: batchState.targetDeckId });
+  const finish = () => {
+    clearManualDraft(accountId);
+    onFinish({ createdCount: batchState.createdCount, targetDeckId: batchState.targetDeckId });
+  };
 
+  // The tab keeps the draft, so leaving it for another area loses nothing; only a running save holds navigation.
   React.useEffect(() => {
-    onDraftStateChange(draftDirty, isSaving ? focusSaveProgress : () => focusField(), isSaving);
+    onDraftStateChange(false, isSaving ? focusSaveProgress : null, isSaving);
     return () => onDraftStateChange(false, null, false);
-  }, [draftDirty, focusField, focusSaveProgress, isSaving, onDraftStateChange]);
+  }, [focusSaveProgress, isSaving, onDraftStateChange]);
+
+  // A running save holds the stored draft back: once the card is saved, a reload must not bring the draft back.
+  React.useEffect(() => {
+    if (!draftDirty) {
+      clearManualDraft(accountId);
+      return;
+    }
+    if (isSaving) return;
+    storeManualDraft(accountId, {
+      targetDeckId: useNewDeck ? "" : selectedDeckId,
+      useNewDeck,
+      deckName,
+      draft: currentDraft,
+      pinnedFields,
+      additionalFields,
+      typeIn,
+      occlusion,
+    }, Array.from(imageDraftsRef.current.values(), (image) => image.attachment));
+  }, [accountId, additionalFields, currentDraft, deckName, draftDirty, imageRegistryVersion, isSaving, occlusion, pinnedFields, selectedDeckId, typeIn, useNewDeck]);
 
   React.useEffect(() => {
     if (!draftDirty && !isSaving) return undefined;
@@ -234,9 +276,9 @@ export function ManualCreationPanel({
   }, [draftDirty, isSaving]);
 
   async function handleDocument(file: File) {
-    if (!isReadableSourceDocument(file)) {
+    if (!isManualSourceDocument(file)) {
       setStatusType("alert");
-      setStatus(`„${file.name}“ kann nicht gelesen werden. Möglich sind ${READABLE_SOURCE_DOCUMENT_LABEL}.`);
+      setStatus(`„${file.name}“ ist als Quelle nicht möglich. Möglich sind ${MANUAL_SOURCE_DOCUMENT_LABEL}.`);
       return;
     }
     const nextDocument = await workflow.readSourceDocument(file as unknown as Parameters<ManualCreationWorkflow["readSourceDocument"]>[0]);
@@ -428,10 +470,11 @@ export function ManualCreationPanel({
     }));
   }
 
-  function recordSavedCard(deck: Deck, mediaStatus: { status: string; message: string }) {
-    const nextState = reduceManualBatchSession(batchState, { type: "saved", targetDeckId: deck.id });
+  /** Starts the next draft after saving or discarding; pinned fields survive only a save. */
+  function startNextDraft(action: { type: "saved"; targetDeckId: string } | { type: "discard" }) {
+    const nextState = reduceManualBatchSession(batchState, action);
     cleanDraftRef.current = nextState.currentDraft;
-    dispatchBatch({ type: "saved", targetDeckId: deck.id });
+    dispatchBatch(action);
     setAdditionalFields([]);
     setOcclusion((current) => current && { ...current, image: null, masks: [] });
     pruneInlineImages({ front: nextState.currentDraft.front, back: nextState.currentDraft.back, additionalFields: [] });
@@ -440,6 +483,18 @@ export function ManualCreationPanel({
     const nextFocus = nextManualFocusTarget(nextState);
     setActiveField(nextFocus === "back" ? "back" : "front");
     pendingFocusRef.current = nextFocus;
+  }
+
+  function discardDraft() {
+    setDiscardConfirmOpen(false);
+    startNextDraft({ type: "discard" });
+    clearManualDraft(accountId);
+    setStatus("");
+    setSuccessToast("");
+  }
+
+  function recordSavedCard(deck: Deck, mediaStatus: { status: string; message: string }) {
+    startNextDraft({ type: "saved", targetDeckId: deck.id });
     const pending = mediaStatus.status === "local-pending";
     const failed = !pending && mediaStatus.status !== "cloud-ready";
     setStatusType(failed ? "alert" : pending ? "warning" : "status");
@@ -510,6 +565,7 @@ export function ManualCreationPanel({
         media: validation.media,
       });
       if (!saved?.cardIds.length) throw new Error("Karte konnte nicht lokal gespeichert werden.");
+      clearManualDraft(accountId);
       if (creatingDeck) {
         setUseNewDeck(false);
         onTargetDeckChange(saved.deck.id);
@@ -541,13 +597,11 @@ export function ManualCreationPanel({
   const isReverse = kind === "basic-reversed";
   const nextClozeGroup = Math.max(0, ...Array.from(front.matchAll(/\{\{c(\d+)::/gi), (match) => Number(match[1]) || 0)) + 1;
 
-  const previewBundle = React.useMemo(() => {
+  const preview = React.useMemo(() => {
     if (!previewOpen) return null;
     const validation = workflow.validateManualCard(manualInput());
-    if (!validation.ok) return null;
-    const { note, cards } = createNote({ content: validation.content, deckId: "preview", media: validation.media });
-    return { note, card: cards[0] };
-  }, [additionalFields, answerOptions, back, kind, correctOptionIndices, front, imageRegistryVersion, previewOpen, tags, typeIn, workflow]);
+    return validation.ok ? createNote({ content: validation.content, deckId: "preview", media: validation.media }) : null;
+  }, [additionalFields, answerOptions, back, kind, correctOptionIndices, front, imageRegistryVersion, occlusion, previewOpen, tags, typeIn, workflow]);
   const frontFieldActive = activeField === "front";
   const backFieldActive = activeField === "back";
   const shouldShowPdfViewer = documentMode && isPdfDocument(document) && Boolean(documentObjectUrl);
@@ -803,6 +857,9 @@ export function ManualCreationPanel({
         <ActionButton data-testid="manual-save-button" type="button" variant="primary" icon={Database} loading={isSaving} disabled={isPreparingImage || isSaving} onClick={() => void saveManualCard()}>
           {isSaving ? "Karte wird gespeichert" : "Originalkarte speichern"}
         </ActionButton>
+        <ActionButton ref={discardButtonRef} type="button" variant="secondary" disabled={!draftDirty || isSaving || isPreparingImage} onClick={() => setDiscardConfirmOpen(true)}>
+          Entwurf verwerfen
+        </ActionButton>
         <ActionButton
           type="button"
           variant="secondary"
@@ -824,6 +881,17 @@ export function ManualCreationPanel({
         onConfirm={() => { setFinishConfirmOpen(false); finish(); }}
       />
       <ActionDialog
+        open={discardConfirmOpen}
+        title="Entwurf verwerfen?"
+        description="Die noch nicht gespeicherten Inhalte dieser Karte gehen verloren. Bereits gespeicherte Karten bleiben erhalten."
+        confirmLabel="Verwerfen"
+        cancelLabel="Weiter bearbeiten"
+        destructive
+        onCancel={() => setDiscardConfirmOpen(false)}
+        onConfirm={discardDraft}
+        restoreFocus={(reason) => reason === "confirm" ? focusField() : discardButtonRef.current?.focus()}
+      />
+      <ActionDialog
         open={imageChangeConfirmOpen}
         title="Vorhandene Masken verwerfen?"
         description="Die Masken gehören zum aktuellen Bild und passen nicht auf ein anderes. Mit einem neuen Bild beginnst du ohne Masken."
@@ -836,8 +904,8 @@ export function ManualCreationPanel({
       {status ? <p className={`core-body ${statusType === "alert" ? "core-status-error" : statusType === "warning" ? "core-status-warning" : "core-status-info"}`} role={statusType === "alert" ? "alert" : "status"} aria-live="polite">{status}</p> : null}
       <CardPreviewDialog
         open={previewOpen}
-        note={previewBundle?.note ?? null}
-        card={previewBundle?.card ?? null}
+        note={preview?.note ?? null}
+        cards={preview?.cards ?? []}
         mediaUrls={inlineMediaUrls}
         onOpenChange={setPreviewOpen}
         returnFocusRef={previewButtonRef}
@@ -859,7 +927,7 @@ export function ManualCreationPanel({
       {documentMode ? (
         <div className={`grid gap-4 ${document ? "xl:grid-cols-2" : ""}`}>
           <div className="grid content-start gap-4" inert={isSaving} aria-disabled={isSaving || undefined}>
-            <FileDropField accept={READABLE_SOURCE_DOCUMENT_ACCEPT} label={`Quelle (${READABLE_SOURCE_DOCUMENT_LABEL})`} ariaLabel="Quelldatei auswählen oder ablegen" prompt="PDF-, Text-, Markdown-, CSV- oder TSV-Datei hier ablegen" actionLabel={document ? "Andere Datei auswählen" : "Datei auswählen"} onFile={handleDocument} disabled={isSaving}>
+            <FileDropField accept={MANUAL_SOURCE_DOCUMENT_ACCEPT} label={`Quelle (${MANUAL_SOURCE_DOCUMENT_LABEL})`} ariaLabel="Quelldatei auswählen oder ablegen" prompt="PDF-, Text- oder Markdown-Datei hier ablegen" actionLabel={document ? "Andere Datei auswählen" : "Datei auswählen"} onFile={handleDocument} disabled={isSaving}>
               {document ? <p className="truncate core-caption text-core-muted">{document.fileName}</p> : null}
             </FileDropField>
             {document && !shouldShowPdfViewer ? (

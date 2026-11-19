@@ -8,10 +8,12 @@ import { CreationScreen } from "./CreationScreen.tsx";
 export function CreationScreenWiring() {
   const { navigation, studyStart, cardCommands, cardEditorServices, importCommands, importSession, mediaStore, cloud } = useAppServices();
   const decks = useWorkspaceValue((snapshot) => snapshot.state?.decks);
+  const accountId = useWorkspaceValue((snapshot) => snapshot.state?.profile.userId);
   const { creationMethod, creationDeckId, completedDeckId, completedCount, completionKind, navigateToView, navigateToViewNow } = navigation;
   if (!decks) return null;
   return (
     <CreationScreen
+      accountId={accountId}
       decks={decks}
       mediaStore={mediaStore}
       importActions={importCommands}

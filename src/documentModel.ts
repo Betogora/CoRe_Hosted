@@ -17,8 +17,11 @@ function createTransientSourceDocument(input: Omit<TransientSourceDocument, "id"
 const TEXT_EXTENSIONS = [".txt", ".md", ".markdown", ".csv", ".tsv"];
 const PDF_EXTENSIONS = [".pdf"];
 
-export const READABLE_SOURCE_DOCUMENT_ACCEPT = [...TEXT_EXTENSIONS, ...PDF_EXTENSIONS].join(",");
-export const READABLE_SOURCE_DOCUMENT_LABEL = "PDF, Text, Markdown, CSV oder TSV";
+/** The source beside a manual draft is read, not imported: tables (CSV, TSV) belong to the text import. */
+const MANUAL_SOURCE_EXTENSIONS = [".pdf", ".txt", ".md", ".markdown"];
+const MANUAL_SOURCE_MIME_TYPES = ["application/pdf", "text/plain", "text/markdown"];
+export const MANUAL_SOURCE_DOCUMENT_ACCEPT = MANUAL_SOURCE_EXTENSIONS.join(",");
+export const MANUAL_SOURCE_DOCUMENT_LABEL = "PDF, Text oder Markdown";
 
 function extensionOf(fileName: unknown = "") {
   const match = String(fileName).toLowerCase().match(/\.[^.]+$/);
@@ -39,9 +42,10 @@ function isPdfFile(file: Pick<File, "name" | "type">) {
   return type === "application/pdf" || PDF_EXTENSIONS.includes(extension);
 }
 
-/** Whether a chosen or dropped file is one of the readable source formats; other files are rejected before reading. */
-export function isReadableSourceDocument(file: Pick<File, "name" | "type">): boolean {
-  return isTextReadableFile(file) || isPdfFile(file);
+/** Whether a chosen or dropped file may be the source of a manual draft; the extension decides before the browser's type. */
+export function isManualSourceDocument(file: Pick<File, "name" | "type">): boolean {
+  const extension = extensionOf(file.name);
+  return extension ? MANUAL_SOURCE_EXTENSIONS.includes(extension) : MANUAL_SOURCE_MIME_TYPES.includes(file.type);
 }
 
 function createBaseMetadata(file: Pick<File, "size" | "lastModified">, overrides: Record<string, unknown> = {}) {

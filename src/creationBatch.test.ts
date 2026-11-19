@@ -56,3 +56,15 @@ test("a cleared cloze front starts a standard draft; a pinned cloze front stays 
   assert.equal(pinned.currentDraft.kind, "cloze");
   assert.equal(pinned.currentDraft.front, state.currentDraft.front);
 });
+
+test("discarding empties the whole draft, pinned fields included, and keeps count, deck and pins", () => {
+  let state = createManualBatchSession("deck-a");
+  state = reduceManualBatchSession(state, { type: "draft", patch: { kind: "single-choice", front: "Frage", back: "Antwort", answerOptions: ["A", "B", "C"], correctOptionIndices: [2], tags: ["bio"] } });
+  state = reduceManualBatchSession(state, { type: "toggle-pin", field: "back" });
+  const discarded = reduceManualBatchSession(state, { type: "discard" });
+
+  assert.deepEqual(discarded.currentDraft, { kind: "single-choice", front: "", back: "", answerOptions: ["", ""], correctOptionIndices: [0], tags: [] });
+  assert.equal(discarded.createdCount, 0);
+  assert.equal(discarded.targetDeckId, "deck-a");
+  assert.deepEqual(discarded.pinnedFields, { front: false, back: true });
+});

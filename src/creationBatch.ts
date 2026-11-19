@@ -23,7 +23,8 @@ type ManualBatchAction =
   | { type: "draft"; patch: Partial<ManualCreationDraft> }
   | { type: "target-deck"; deckId: string }
   | { type: "toggle-pin"; field: ManualPinnedField }
-  | { type: "saved"; targetDeckId: string };
+  | { type: "saved"; targetDeckId: string }
+  | { type: "discard" };
 
 function createManualDraft(kind: ManualContentKind = "basic"): ManualCreationDraft {
   return {
@@ -76,6 +77,10 @@ export function reduceManualBatchSession(
       ...state,
       pinnedFields: { ...state.pinnedFields, [action.field]: !state.pinnedFields[action.field] },
     };
+  }
+  // Discarding empties pinned fields too: the whole draft goes, only the question type stays.
+  if (action.type === "discard") {
+    return { ...state, currentDraft: resetManualDraft(state.currentDraft, { front: false, back: false }) };
   }
   return {
     ...state,

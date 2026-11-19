@@ -1,0 +1,132 @@
+import type { AddableFieldRole, ManualContentKind, OcclusionMode } from "./coreModel.ts";
+import type { OcclusionMask } from "./coreTypes.ts";
+import type { ManualImageAttachment } from "./creationWorkflow.ts";
+
+/**
+ * The unsaved manual draft of one browser tab: its text lives in `sessionStorage` (survives a reload, not closing the
+ * tab, never reaches the account), its images only in this page's memory. A draft of another account, an older
+ * schema or an unreadable value is discarded, never shown.
+ */
+export interface ManualDraftSnapshot {
+  targetDeckId: string;
+  useNewDeck: boolean;
+  deckName: string;
+  draft: { kind: ManualContentKind; front: string; back: string; answerOptions: string[]; correctOptionIndices: number[]; tags: string[] };
+  pinnedFields: { front: boolean; back: boolean };
+  additionalFields: Array<{ id: string; name: string; value: string; role: AddableFieldRole }>;
+  typeIn: boolean;
+  occlusion: { image: string | null; mode: OcclusionMode; masks: OcclusionMask[] } | null;
+}
+
+export interface RestoredManualDraft {
+  snapshot: ManualDraftSnapshot;
+  images: ManualImageAttachment[];
+  /** Images the draft referenced that did not survive a reload; they were removed from the draft. */
+  imagesLost: boolean;
+}
+
+type DraftStorage = Pick<Storage, "getItem" | "setItem" | "removeItem" | "key" | "length">;
+
+const SCHEMA_VERSION = 1;
+const KEY_PREFIX = "core:manual-draft:";
+const KINDS: readonly string[] = ["basic", "basic-reversed", "cloze", "single-choice", "multiple-choice"];
+const ROLES: readonly string[] = ["prompt", "hint", "extra", "source"];
+const MODES: readonly string[] = ["hide-all-guess-one", "hide-one-guess-one"];
+const IMAGE_PATTERN = /<img\b[^>]*\bsrc\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+))[^>]*>/gi;
+const SHA1_PATTERN = /^[a-f0-9]{40}$/;
+
+let heldImages: { accountId: string; images: ManualImageAttachment[] } | null = null;
+
+function sessionDraftStorage(): DraftStorage | null {
+  try {
+    return globalThis.sessionStorage ?? null;
+  } catch {
+    return null;
+  }
+}
+
+const isString = (value: unknown): value is string => typeof value === "string";
+const isStringList = (value: unknown): value is string[] => Array.isArray(value) && value.every(isString);
+const isRecord = (value: unknown): value is Record<string, unknown> => typeof value === "object" && value !== null && !Array.isArray(value);
+const isUnit = (value: unknown) => typeof value === "number" && Number.isFinite(value);
+
+function isMask(value: unknown): value is OcclusionMask {
+  if (!isRecord(value) || !isString(value.id) || !Number.isSafeInteger(value.ordinal) || Number(value.ordinal) < 0 || typeof value.alwaysOccluded !== "boolean") return false;
+  const shape = value.shape;
+  if (!isRecord(shape)) return false;
+  if (shape.kind === "rect" || shape.kind === "ellipse") return [shape.left, shape.top, shape.width, shape.height, shape.angle].every(isUnit);
+  if (shape.kind === "polygon") return Array.isArray(shape.points) && shape.points.every((point) => Array.isArray(point) && point.length === 2 && point.every(isUnit));
+  return shape.kind === "text" && isString(shape.text) && [shape.left, shape.top, shape.scale, shape.angle].every(isUnit) && (shape.fontSize === null || isUnit(shape.fontSize));
+}
+
+function isSnapshot(value: unknown): value is ManualDraftSnapshot {
+  if (!isRecord(value) || !isString(value.targetDeckId) || typeof value.useNewDeck !== "boolean" || !isString(value.deckName) || typeof value.typeIn !== "boolean") return false;
+  const { draft, pinnedFields, additionalFields, occlusion } = value;
+  return isRecord(draft) && KINDS.includes(String(draft.kind)) && isString(draft.front) && isString(draft.back)
+    && isStringList(draft.answerOptions) && draft.answerOptions.length >= 2 && isStringList(draft.tags)
+    && Array.isArray(draft.correctOptionIndices) && draft.correctOptionIndices.every((index) => Number.isSafeInteger(index) && index >= 0)
+    && isRecord(pinnedFields) && typeof pinnedFields.front === "boolean" && typeof pinnedFields.back === "boolean"
+    && Array.isArray(additionalFields) && additionalFields.every((field) => isRecord(field) && isString(field.id) && isString(field.name) && isString(field.value) && ROLES.includes(String(field.role)))
+    && (occlusion === null || (isRecord(occlusion) && (occlusion.image === null || isString(occlusion.image)) && MODES.includes(String(occlusion.mode)) && Array.isArray(occlusion.masks) && occlusion.masks.every(isMask)));
+}
+
+/** Removes the draft's own images (named by SHA-1) that are no longer in memory. */
+function withoutLostImages(html: string, available: ReadonlySet<string>) {
+  return html.replace(IMAGE_PATTERN, (tag, double, single, bare) => {
+    const reference = String(double ?? single ?? bare ?? "").trim().toLowerCase();
+    return SHA1_PATTERN.test(reference) && !available.has(reference) ? "" : tag;
+  });
+}
+
+/** Keeps the draft for this tab; images stay in memory only, since a reload cannot bring them back honestly. */
+export function storeManualDraft(accountId: string, snapshot: ManualDraftSnapshot, images: readonly ManualImageAttachment[], storage = sessionDraftStorage()) {
+  if (!accountId) return;
+  heldImages = { accountId, images: [...images] };
+  try {
+    storage?.setItem(`${KEY_PREFIX}${accountId}`, JSON.stringify({ version: SCHEMA_VERSION, accountId, snapshot }));
+  } catch {
+    // A full or blocked storage keeps the draft only on this page, like before.
+  }
+}
+
+/** After saving or discarding: the tab holds no draft of this account any more. */
+export function clearManualDraft(accountId: string, storage = sessionDraftStorage()) {
+  if (heldImages?.accountId === accountId) heldImages = null;
+  try {
+    storage?.removeItem(`${KEY_PREFIX}${accountId}`);
+  } catch {
+    // Nothing to clear without storage access.
+  }
+}
+
+/** The draft of this account in this tab, or null; drafts of other accounts and unreadable ones are removed. */
+export function restoreManualDraft(accountId: string, storage = sessionDraftStorage()): RestoredManualDraft | null {
+  if (heldImages && heldImages.accountId !== accountId) heldImages = null;
+  if (!storage || !accountId) return null;
+  try {
+    const keys = Array.from({ length: storage.length }, (_, index) => storage.key(index)).filter((key): key is string => Boolean(key?.startsWith(KEY_PREFIX)));
+    for (const key of keys) if (key !== `${KEY_PREFIX}${accountId}`) storage.removeItem(key);
+    const raw = storage.getItem(`${KEY_PREFIX}${accountId}`);
+    if (!raw) return null;
+    const stored: unknown = JSON.parse(raw);
+    if (!isRecord(stored) || stored.version !== SCHEMA_VERSION || stored.accountId !== accountId || !isSnapshot(stored.snapshot)) {
+      clearManualDraft(accountId, storage);
+      return null;
+    }
+    const snapshot = stored.snapshot;
+    const images = heldImages?.images ?? [];
+    const available = new Set(images.map((image) => image.sha1));
+    const clean = (html: string) => withoutLostImages(html, available);
+    const occlusionLost = Boolean(snapshot.occlusion?.image && !available.has(snapshot.occlusion.image));
+    const restored: ManualDraftSnapshot = {
+      ...snapshot,
+      draft: { ...snapshot.draft, front: clean(snapshot.draft.front), back: clean(snapshot.draft.back) },
+      additionalFields: snapshot.additionalFields.map((field) => ({ ...field, value: clean(field.value) })),
+      occlusion: snapshot.occlusion && occlusionLost ? { ...snapshot.occlusion, image: null, masks: [] } : snapshot.occlusion,
+    };
+    return { snapshot: restored, images, imagesLost: JSON.stringify(restored) !== JSON.stringify(snapshot) };
+  } catch {
+    clearManualDraft(accountId, storage);
+    return null;
+  }
+}
