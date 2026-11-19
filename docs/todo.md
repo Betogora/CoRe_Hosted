@@ -52,16 +52,6 @@ Serverqueue, automatische Varianten.
       vorausgewählt; Kartenmenge als Stufe mit Hochrechnung, vorher
       recherchieren, wie andere Apps das lösen, danach Mischung und
       Lernziele entscheiden; Größengrenze nach Seiten oder Zeichen.
-- [ ] **Befunde der Stichprobe (2026-11-19, [Verlauf](history.md)):**
-      Belege feiner schneiden: Kurze Texte ohne Überschriften und
-      Tabellendateien werden heute zu einer einzigen Stelle („Zeilen 1–15“),
-      weil die Zerlegung bis 3.000 Zeichen packt; Ziel ist eine Stelle je
-      Absatz oder Zeilengruppe. Prompt: Bei mehreren erlaubten Formen wählte das Modell
-      in 75 von 75 Vorschlägen Frage–Antwort, obwohl die anderen Formen
-      gültig entstehen, wenn sie allein erlaubt sind; etwa jede dritte Karte
-      fragt zwei Dinge; Fragen enthalten oft „laut Quelle“. Ob der Prompt
-      vor dem Release ohne Eval nachgeschärft wird oder erst in P5, ist
-      offen.
 
 ## P5: KI-Eval und Hillclimb
 
@@ -122,7 +112,9 @@ bewertet werden.
       mit Kernaussagen und Kartenbudget je Abschnitt, dann die Abschnitte mit
       dieser Gliederung. Kriterien: Verteilung der Karten über die Quelle,
       getroffene Kernaussagen, abschnittsübergreifende Fragen, Dopplungen,
-      Belegtreue, Kosten und Laufzeit.
+      Belegtreue, Kosten und Laufzeit. Dazu die Reste nach `source-cards-v2`
+      ([Verlauf](history.md)): Single Choice wird nie gewählt, und
+      Tabellenzeilen mit zwei Angaben ergeben weiter Doppelfragen.
 - [ ] **Zielwerte (Entwurf):** Varianten: Hauptwert ≥ 95 %, M2-Verletzungen
       ≤ 1 % und keine bei Richtung, Kosten höchstens 1,2-fach, Latenz p90
       ≤ 4 s. `card-help`: Hauptwert ≥ 90 %, H2 ≥ 98 %, H6 = 100 %; Streaming
