@@ -42,43 +42,11 @@ voneinander.
 
 ## P2: Karten aus einer Quelle per KI erstellen
 
-Formular und Auftragsprüfung unter `/neue-karten?method=ai-source` stehen
-(`src/aiSourceCreation.ts`, `AiSourceCreationPanel.tsx`); „Karten erstellen“
-ist deaktiviert, nichts wird gelesen oder übertragen. Offen ist alles, was die
-Oberfläche danach verspricht. Erste Ausbaustufe: PDF, Text,
-Markdown, CSV und TSV.
-
-Route, Vertrag, Auslesen, Abschnittslauf und Vorschlagsliste stehen
-(`POST /api/ai/source-cards`, `aiSourceCardsContract.ts`, `aiSourceCards.ts`,
-ADR-011); in der App fehlt der Abruf, nur der UI-Katalog zeigt den Lauf.
-Bewusst nicht: Ergänzungen außerhalb der Quelle, DOCX und PPTX, Scans und
-Bilder, Kprim und Eintippen, Neu-Generieren einzelner Vorschläge, Abgleich mit
-vorhandenen Karten des Zielstapels, Speichern von Quelle oder Vorschlägen,
-Serverqueue, automatische Varianten.
-
 - [ ] **Formular (Agenda 3.1–3.6):** drei Schritte Zielstapel, Kartenformen,
       Vorgaben mit dem gemeinsamen Schrittbaustein; nur Frage–Antwort
       vorausgewählt; Kartenmenge als Stufe mit Hochrechnung, vorher
       recherchieren, wie andere Apps das lösen, danach Mischung und
       Lernziele entscheiden; Größengrenze nach Seiten oder Zeichen.
-- [ ] **P2c – Prüfen, übernehmen, freischalten:** Bearbeiten und Verwerfen je
-      Vorschlag; Bearbeiten und Vorschau nutzen den Reiter `Inhalt` des
-      [Karteneditors](specs.md#karteneditor), kein zweiter Editor. Gespeichert
-      wird erst nach Bestätigung und nur über `coreModel.ts` (kurze Antwort,
-      Erklärung in `extra`, Beleg in `source`); ein neuer Zielstapel entsteht
-      erst bei der Übernahme; der Entwurfsschutz gilt auch für ungespeicherte
-      Vorschläge. Danach den Abruf im Browser samt Antwortprüfung verdrahten
-      und „Karten erstellen“ freischalten, ohne Verbindung mit Meldung
-      gesperrt; Specs
-      [Automatisch aus einer Quelle](specs.md#automatisch-aus-einer-quelle),
-      `status.md` und `architecture.md` nachziehen. Nachweis: E2E mit
-      gemockter Route (Erfolg, Hinweise, Abbruch, Fehler, nichts gespeichert
-      vor Übernahme), visuelle Pflichtmatrix für Fortschritt und
-      Vorschlagsliste, Stichprobe gegen die Preview mit 4–6 selbst
-      geschriebenen oder frei lizenzierten Prüfdokumenten unter `fixtures/`
-      (jedes Format, alle vier Kartenformen); die inhaltsfreie Auswertung
-      steht im PR und in `history.md`. Optimierung, Eval und Hillclimb folgen
-      in P5.
 
 ## P5: KI-Eval und Hillclimb
 
@@ -127,6 +95,21 @@ bewertet werden.
       Anfragetyp, erst dann Runden: je Runde eine Änderung aus
       Trainingsfehlern, gemessen am Testteil. Nachweis: Kalibrierung und
       Baseline je Anfragetyp im Ledger.
+- [ ] **Karten aus einer Quelle: Zerlegung der Quelle messen.** Heute geht
+      je Anfrage ein Abschnitt (≤ 15.000 Zeichen) an die KI. Das trennt
+      Zusammenhänge über Abschnitte, gewichtet „zentral“ nur je Abschnitt,
+      und die Obergrenze von 100 Vorschlägen wird von vorn verbraucht, sodass
+      hintere Kapitel langer Quellen leer ausgehen; Dopplungen verhindert nur
+      der Fragetext. Vergleichen auf den Prüfdokumenten in
+      `fixtures/ai-source/` und zusätzlich langen Quellen: (a) Abschnitte wie
+      heute, (b) die ganze Quelle als Kontext in jeder Anfrage, Karten nur für
+      den markierten Abschnitt, (c) erst eine Gliederung der ganzen Quelle
+      mit Kernaussagen und Kartenbudget je Abschnitt, dann die Abschnitte mit
+      dieser Gliederung. Kriterien: Verteilung der Karten über die Quelle,
+      getroffene Kernaussagen, abschnittsübergreifende Fragen, Dopplungen,
+      Belegtreue, Kosten und Laufzeit. Dazu die Reste nach `source-cards-v2`
+      ([Verlauf](history.md)): Single Choice wird nie gewählt, und
+      Tabellenzeilen mit zwei Angaben ergeben weiter Doppelfragen.
 - [ ] **Zielwerte (Entwurf):** Varianten: Hauptwert ≥ 95 %, M2-Verletzungen
       ≤ 1 % und keine bei Richtung, Kosten höchstens 1,2-fach, Latenz p90
       ≤ 4 s. `card-help`: Hauptwert ≥ 90 %, H2 ≥ 98 %, H6 = 100 %; Streaming

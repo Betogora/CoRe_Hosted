@@ -3,7 +3,7 @@ import type { CardBatchAction, CardBatchResult, TextReplaceSession } from "./car
 import type { DuplicateGroup, DuplicateKey } from "./duplicateContents.ts";
 import type { HitStudyOrder } from "./hitStudySession.ts";
 import type { Dispatch, ReactNode, SetStateAction } from "react";
-import type { AppRoute, AppViewId, CardEditorTab, DeckContentTab, DeckSettingsSection, GeneralSettingsSection, LearningSettingsSection, SettingsSection, createViewRoute } from "./appNavigation.ts";
+import type { AppRoute, AppViewId, CardEditorTab, CreationCompletionKind, DeckContentTab, DeckSettingsSection, GeneralSettingsSection, LearningSettingsSection, SettingsSection, createViewRoute } from "./appNavigation.ts";
 import type { ApkgImportSession } from "./apkgImportSession.ts";
 import type { AiCardVariantSuccess } from "./aiCardVariantContract.ts";
 import type { AskCardHelp } from "./screens/StudyAiHelp.tsx";
@@ -59,14 +59,14 @@ export interface CreationScreenProps {
   initialTargetDeckId: string;
   completedDeckId: string;
   completedCount: number;
-  completionKind: "import" | "manual" | "";
+  completionKind: CreationCompletionKind | "";
   onMethodChange: (method: CreationMethod) => unknown;
   onTargetDeckChange: (deckId: string) => unknown;
   onSaveManualNote: (input: ManualNoteSaveInput) => Promise<{ deck: Deck; cardIds: string[] } | null>;
   /** Tags of the account for suggestions in the tag input. */
   listTagDirectory: () => Promise<TagDirectoryEntry[]>;
   onDraftStateChange: (dirty: boolean, focusDraft: (() => void) | null, saving: boolean) => void;
-  onSessionCompleted: (completion: { deckId: string; createdCount: number; kind: "import" | "manual" }) => void;
+  onSessionCompleted: (completion: { deckId: string; createdCount: number; kind: CreationCompletionKind }) => void;
   onStartDeck: (deck: Deck) => void;
   onReviewDeck: (deckId?: string | null) => void;
   onOpenDashboard: () => void;

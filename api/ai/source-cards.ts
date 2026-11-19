@@ -1,7 +1,7 @@
 import {
   AI_SOURCE_CARDS_DEADLINE_MS, AI_SOURCE_CARDS_PROMPT_VERSION, AiSourceCardsError, MAX_SOURCE_CARDS_OUTPUT_TOKENS, MAX_SOURCE_CARDS_PER_PORTION,
   MAX_SOURCE_CARDS_REQUEST_BYTES, SOURCE_CARD_LIMITS, buildSourceCardsPrompt, parseAiSourceCardsRequest, parseGeneratedSourceCards,
-  type AiSourceCardsRequest, type GeneratedSourceCards,
+  type AiSourceCardsRequest, type AiSourceCardsSuccess,
 } from "../../src/aiSourceCardsContract.js";
 import { AI_SOURCE_CARD_FORMS } from "../../src/aiSourceCreation.js";
 import {
@@ -20,13 +20,6 @@ const TEXTS: ProviderTexts = {
   tool: "Die KI hat das Kartenwerkzeug nicht korrekt verwendet.",
   fields: "Die KI hat keine lesbaren Kartenfelder geliefert.",
 };
-
-interface AiSourceCardsSuccess extends GeneratedSourceCards {
-  model: string;
-  privacyMode: "zdr";
-  promptVersion: typeof AI_SOURCE_CARDS_PROMPT_VERSION;
-  usage: { promptTokens: number | null; completionTokens: number | null; totalTokens: number | null } | null;
-}
 
 export function buildSourceCardsToolPayload(input: AiSourceCardsRequest) {
   const string = (maxLength: number, minLength = 0) => ({ type: "string", minLength, maxLength });

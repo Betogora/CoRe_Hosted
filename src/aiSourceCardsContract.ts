@@ -4,7 +4,8 @@ import {
   MAX_AI_SOURCE_CARDS, MAX_AI_SOURCE_WISHES_CHARS, buildAiSourceCreationPrompt,
 } from "./aiSourceCreation.js";
 
-export const AI_SOURCE_CARDS_PROMPT_VERSION = "source-cards-v1";
+export const AI_SOURCE_CARDS_ENDPOINT = "/api/ai/source-cards";
+export const AI_SOURCE_CARDS_PROMPT_VERSION = "source-cards-v2";
 export const AI_SOURCE_CARDS_DEADLINE_MS = 120_000;
 /** One request carries one portion of the source; the browser sends larger sources portion by portion. */
 export const MAX_SOURCE_PORTION_CHARS = 15_000;
@@ -51,8 +52,20 @@ const generatedCardSchema = v.strictObject({
 });
 /** Only the shape is strict; cards beyond the limits and unusable warnings fall out one by one in the parser. */
 const generatedSchema = v.strictObject({ cards: v.array(v.unknown()), warnings: v.array(v.unknown()) });
+const tokenCount = v.nullable(v.pipe(v.number(), v.integer(), v.minValue(0)));
+/** The route's answer as the browser receives it; already filtered, so every card must be valid as it stands. */
+const successSchema = v.strictObject({
+  cards: v.pipe(v.array(generatedCardSchema), v.maxLength(MAX_SOURCE_CARDS_PER_PORTION)),
+  warnings: v.pipe(v.array(text(SOURCE_CARD_LIMITS.warning)), v.maxLength(SOURCE_CARD_LIMITS.warnings)),
+  discarded: v.pipe(v.number(), v.integer(), v.minValue(0)),
+  model: text(200),
+  privacyMode: v.literal("zdr"),
+  promptVersion: v.literal(AI_SOURCE_CARDS_PROMPT_VERSION),
+  usage: v.nullable(v.strictObject({ promptTokens: tokenCount, completionTokens: tokenCount, totalTokens: tokenCount })),
+});
 export type AiSourceCardsRequest = v.InferOutput<typeof requestSchema>;
 export type GeneratedSourceCard = v.InferOutput<typeof generatedCardSchema>;
+export type AiSourceCardsSuccess = v.InferOutput<typeof successSchema>;
 export interface GeneratedSourceCards {
   cards: GeneratedSourceCard[];
   warnings: string[];
@@ -123,6 +136,17 @@ export function parseGeneratedSourceCards(value: unknown, input: AiSourceCardsRe
   }
   const warnings = generated.output.warnings.flatMap((warning) => typeof warning === "string" && warning.trim() && warning.length <= SOURCE_CARD_LIMITS.warning ? [warning.trim()] : []);
   return { cards, warnings: warnings.slice(0, SOURCE_CARD_LIMITS.warnings), discarded: generated.output.cards.length - cards.length };
+}
+
+/** Checks the route's answer in the browser: known source units, allowed forms and the request's limit. */
+export function parseAiSourceCardsSuccess(value: unknown, request: AiSourceCardsRequest): GeneratedSourceCards {
+  const parsed = v.safeParse(successSchema, value);
+  const unitIds = new Set(request.units.map((unit) => unit.id));
+  if (!parsed.success || parsed.output.cards.length > request.limit
+    || parsed.output.cards.some((card) => !request.settings.cardForms.includes(card.form) || !hasValidForm(card) || card.sources.some((id) => !unitIds.has(id)))) {
+    throw new AiSourceCardsError("invalid_response", "Die KI hat keine gültigen Kartenvorschläge geliefert.");
+  }
+  return { cards: parsed.output.cards, warnings: parsed.output.warnings, discarded: parsed.output.discarded };
 }
 
 /** The order's instructions plus the answer protocol of this route; the material travels as a separate message. */

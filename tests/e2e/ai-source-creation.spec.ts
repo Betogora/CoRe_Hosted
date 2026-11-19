@@ -122,19 +122,102 @@ test("Karten aus einer Quelle: Lauf mit Fortschritt, belegte Vorschläge, Abbrec
   const proposals = page.getByTestId("ai-source-proposals");
   await expect(proposals.getByRole("heading", { name: "4 Vorschläge", exact: true })).toBeFocused();
   await expect(proposals.getByTestId("ai-source-proposal")).toHaveCount(4);
-  await expect(proposals.getByTestId("ai-source-proposal").first()).toContainText("Frage–Antwort · Zellatmung · Zeilen 1–2");
+  await expect(proposals.getByTestId("ai-source-proposal").first()).toContainText("Frage und Antwort · Eingefügter Text · Zellatmung · Zeilen 1–2");
   await expect(proposals.getByTestId("ai-source-proposal").nth(1)).not.toContainText("{{c1::");
   await expect(proposals.getByLabel("Richtig")).toHaveCount(3);
   await expect(proposals).toContainText("Hinweise der KI");
-  await proposals.getByRole("button", { name: "Vorschläge verwerfen", exact: true }).click();
+  await proposals.getByRole("button", { name: "Alle verwerfen", exact: true }).click();
   const dialog = page.getByRole("dialog", { name: "Vorschläge verwerfen?" });
   await dialog.getByRole("button", { name: "Behalten", exact: true }).click();
   await expect(proposals.getByTestId("ai-source-proposal")).toHaveCount(4);
-  await proposals.getByRole("button", { name: "Vorschläge verwerfen", exact: true }).click();
+  await proposals.getByRole("button", { name: "Alle verwerfen", exact: true }).click();
   await dialog.getByRole("button", { name: "Verwerfen", exact: true }).click();
   await expect(panel.getByRole("heading", { name: "Auftrag prüfen", exact: true })).toBeVisible();
   await expect(summary).toContainText("Zellatmung (neuer Stapel)");
+
+  await summary.getByRole("button", { name: "Karten erstellen", exact: true }).click();
+  await proposals.getByTestId("ai-source-proposal").first().getByRole("button", { name: "Vorschlag bearbeiten", exact: true }).click();
+  const editor = page.getByTestId("ai-source-proposal-editor");
+  const front = editor.getByRole("textbox").first();
+  await front.click();
+  await front.press("ControlOrMeta+a");
+  await front.pressSequentially("Wo liegt die Atmungskette?");
+  await editor.getByRole("button", { name: "Schließen", exact: true }).click();
+  const closeGuard = page.getByRole("dialog", { name: "Änderungen verwerfen?" });
+  await closeGuard.getByRole("button", { name: "Weiter bearbeiten", exact: true }).click();
+  await editor.getByRole("button", { name: "Änderungen übernehmen", exact: true }).click();
+  await expect(editor).toHaveCount(0);
+  await expect(proposals.getByTestId("ai-source-proposal").first()).toContainText("Wo liegt die Atmungskette?");
+  await proposals.getByTestId("ai-source-proposal").nth(1).getByRole("button", { name: "Vorschlag verwerfen", exact: true }).click();
+  await expect(proposals.getByRole("heading", { name: "3 Vorschläge", exact: true })).toBeVisible();
+  await proposals.getByRole("button", { name: "3 Vorschläge übernehmen", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "Deine Karten sind bereit", exact: true })).toBeVisible();
+  await expect(page.getByText(/3 Karten wurden in/)).toBeVisible();
   expect(remoteRequests).toEqual([]);
+});
+
+const sourceCardsResponse = (cards: unknown[], extra: Record<string, unknown> = {}) => ({ cards, warnings: [], discarded: 0, model: "openai/gpt-6-luna", privacyMode: "zdr", promptVersion: "source-cards-v2", usage: null, ...extra });
+const basicProposal = { form: "basic", front: "Wo liegt die Atmungskette?", back: "In der inneren Mitochondrienmembran.", options: [], explanation: "", sources: ["s1"] };
+const choiceProposal = { form: "single-choice", front: "Wo findet die Glykolyse statt?", back: "", options: [{ text: "Im Cytosol", correct: true }, { text: "Im Zellkern", correct: false }], explanation: "", sources: ["s2"] };
+
+async function openAppOrder(page: Page) {
+  await installEmptyAccount(page);
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto("/neue-karten?method=ai-source");
+  const panel = page.getByTestId("ai-source-creation");
+  await panel.getByRole("button", { name: "Text einfügen", exact: true }).click();
+  await panel.getByLabel("Dein Quelltext").fill(sourceText);
+  await panel.getByLabel("Stapelname").fill("Zellatmung aus Quelle");
+  await panel.getByRole("button", { name: "Auftrag prüfen", exact: true }).click();
+  return page.getByTestId("ai-source-summary");
+}
+
+test("echte App: Vorschläge der Route belegen ihre Stelle und werden erst bei der Übernahme gespeichert", async ({ page }) => {
+  let requested = 0;
+  await page.route("**/api/ai/source-cards", async (route) => {
+    requested += 1;
+    const body = route.request().postDataJSON();
+    expect(body.units.map((unit: { id: string; label: string }) => [unit.id, unit.label])).toEqual([["s1", "Zellatmung · Zeilen 1–2"], ["s2", "Glykolyse · Zeilen 4–5"]]);
+    await route.fulfill({ json: sourceCardsResponse([basicProposal, choiceProposal], { warnings: ["Die Quelle ist sehr kurz."], discarded: 1 }) });
+  });
+  const summary = await openAppOrder(page);
+  await expect(page.getByText("Die automatische Erstellung ist noch nicht verfügbar.")).toHaveCount(0);
+  await summary.getByRole("button", { name: "Karten erstellen", exact: true }).click();
+  const proposals = page.getByTestId("ai-source-proposals");
+  await expect(proposals.getByRole("heading", { name: "2 Vorschläge", exact: true })).toBeVisible();
+  await expect(proposals).toContainText("Die Quelle ist sehr kurz.");
+  await expect(proposals).toContainText("1 Vorschlag wurde verworfen");
+  await expect(proposals.getByTestId("ai-source-proposal").nth(1)).toContainText("Single Choice · Eingefügter Text · Glykolyse · Zeilen 4–5");
+
+  // Proposals that were shown but not adopted leave no deck behind.
+  await proposals.getByRole("button", { name: "Alle verwerfen", exact: true }).click();
+  await page.getByRole("dialog", { name: "Vorschläge verwerfen?" }).getByRole("button", { name: "Verwerfen", exact: true }).click();
+  await page.getByRole("button", { name: "Lernen", exact: true }).first().click();
+  await page.getByRole("dialog", { name: "Ungespeicherten Entwurf verlassen?" }).getByRole("button", { name: "Verwerfen und verlassen" }).click();
+  await expect(page.getByTestId("learn-deck-create-form")).toBeVisible();
+  await expect(page.getByText("Zellatmung aus Quelle")).toHaveCount(0);
+
+  const again = await openAppOrder(page);
+  await again.getByRole("button", { name: "Karten erstellen", exact: true }).click();
+  await proposals.getByTestId("ai-source-proposal").nth(1).getByRole("button", { name: "Vorschlag verwerfen", exact: true }).click();
+  await proposals.getByRole("button", { name: "1 Vorschlag übernehmen", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "Deine Karten sind bereit", exact: true })).toBeVisible();
+  await expect(page.getByText("1 Karte wurde in „Zellatmung aus Quelle“ gespeichert.")).toBeVisible();
+  await expect(page).toHaveURL(/doneKind=ai-source/);
+  expect(requested).toBe(2);
+});
+
+test("echte App: Fehler für alle Abschnitte führen mit Grund zum Auftrag zurück, ohne Verbindung bleibt die Erstellung gesperrt", async ({ page, context }) => {
+  await page.route("**/api/ai/source-cards", (route) => route.fulfill({ status: 429, json: { error: { code: "rate_limited", message: "Gerade wurden zu viele Karten angefordert." } } }));
+  const summary = await openAppOrder(page);
+  await summary.getByRole("button", { name: "Karten erstellen", exact: true }).click();
+  await expect(summary.getByRole("alert")).toContainText("Gestoppt: Gerade wurden zu viele Karten angefordert. Ab Zellatmung · Zeilen 1–2 wurde die Quelle nicht ausgewertet.");
+  await expect(page.getByTestId("ai-source-proposals")).toHaveCount(0);
+  await context.setOffline(true);
+  await expect(summary).toContainText("Ohne Verbindung kann die KI keine Karten erstellen.");
+  await expect(summary.getByRole("button", { name: "Karten erstellen", exact: true })).toBeDisabled();
+  await context.setOffline(false);
+  await expect(summary.getByRole("button", { name: "Karten erstellen", exact: true })).toBeEnabled();
 });
 
 test("ungültige Quellen ersetzen nichts; fehlende Kartenformen und Dateiauswahl blockieren die Prüfung", async ({ page }) => {
@@ -309,7 +392,6 @@ for (const theme of ["light", "dark"] as const) {
       if (await panel.getByRole("button", { name: "Weiter", exact: true }).isVisible()) await panel.getByRole("button", { name: "Weiter", exact: true }).click();
       await capture("form-cards");
       await panel.getByRole("button", { name: "Auftrag prüfen", exact: true }).click();
-      await expect(panel.getByRole("button", { name: "Karten erstellen", exact: true })).toBeDisabled();
       await capture("summary");
       await page.getByRole("button", { name: "Erstellen", exact: true }).last().click();
       await expect(page.getByRole("dialog", { name: "Ungespeicherten Entwurf verlassen?" })).toBeVisible();
@@ -336,6 +418,9 @@ for (const theme of ["light", "dark"] as const) {
       await capture("catalog-progress");
       await expect(page.getByTestId("ai-source-proposals")).toBeVisible();
       await capture("catalog-proposals");
+      await page.getByRole("button", { name: "Vorschlag bearbeiten", exact: true }).first().click();
+      await expect(page.getByTestId("ai-source-proposal-editor")).toBeVisible();
+      await capture("catalog-editor");
     });
   }
 }
