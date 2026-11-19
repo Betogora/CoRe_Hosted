@@ -212,8 +212,9 @@ export function StudyMode({ shortcutsSuspended = false, deck, decks, notes, answ
         return study ? moveDailyReviewProgress(next, classifyDailyReviewProgress(study, false, getNow(), { dayStartHour, timeZone }), null) : next;
       }, progress));
     }
+    // A replanned queue (e.g. after saved deck settings) keeps the card on screen until it is answered.
     setReviewSession((currentSession) => currentSession
-      ? reconcileDailyReviewSessionState(currentSession, queue.items)
+      ? reconcileDailyReviewSessionState(currentSession, queue.items, { preserveInitialKey: shownKeyRef.current ?? undefined })
       : createDailyReviewSessionState(queue.items));
   }, [queue.items]);
 

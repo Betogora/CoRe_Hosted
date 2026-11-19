@@ -11,8 +11,8 @@ import {
   Sparkle,
   Sparkles,
 } from "lucide-react";
-import { createDefaultDeckSettings, createReviewState } from "../coreModel.ts";
-import { scheduleWithFsrs } from "../scheduler.ts";
+import { createDefaultDeckSettings } from "../coreModel.ts";
+import { EXAMPLE_CHAINS, runExampleChain } from "../schedulerExampleChains.ts";
 import { PageHeader, SoftPanel } from "../ui/coreUi.tsx";
 
 type ReviewId = "first" | "variant";
@@ -204,17 +204,15 @@ const RATING_GUIDE: ReadonlyArray<{ label: string; text: string }> = [
   { label: "Leicht", text: "Sofort und mühelos. Beendet die Lernphase und streckt den Abstand stark." },
 ];
 
-/** The default deck answered with „Gut“ on every due date, computed with the real scheduler. */
+/** The example chain „Immer Gut“ at the default target retention. */
 function defaultGoodChain() {
-  const deckSettings = createDefaultDeckSettings();
-  const minutes: number[] = [], days: number[] = [];
-  let state = createReviewState({});
-  while (days.length < 4) {
-    state = scheduleWithFsrs(state, "good", { now: state.dueAt, deckSettings });
-    if (state.intervalMinutes === null) days.push(Math.round(state.intervalDays));
-    else minutes.push(state.intervalMinutes);
-  }
-  return { retentionPercent: Math.round(deckSettings.schedulerProfile.desiredRetention * 100), minutes, days };
+  const retention = createDefaultDeckSettings().schedulerProfile.desiredRetention;
+  const contacts = runExampleChain(EXAMPLE_CHAINS[0].ratings, retention);
+  return {
+    retentionPercent: Math.round(retention * 100),
+    minutes: contacts.flatMap((contact) => contact.intervalMinutes === null ? [] : [contact.intervalMinutes]),
+    days: contacts.filter((contact) => contact.intervalMinutes === null).slice(0, 4).map((contact) => Math.round(contact.intervalDays)),
+  };
 }
 
 const MEMORY_TERMS: readonly MemoryTerm[] = [
