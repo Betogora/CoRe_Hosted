@@ -12,13 +12,10 @@ externen Release fällig. „Später“ ist geparkt.
 
 ## P2: Karten aus einer Quelle per KI erstellen
 
-Gebaut und unter `/neue-karten?method=ai-source` freigeschaltet: Auftrag,
-Route und Vertrag (`POST /api/ai/source-cards`, ADR-011), Auslesen und
-Abschnittslauf, Vorschlagsliste mit Bearbeiten, Verwerfen und Übernahme
-(`aiSourceCards.ts`). Bewusst nicht: Ergänzungen außerhalb der Quelle, DOCX
-und PPTX, Scans und Bilder, Kprim und Eintippen, Neu-Generieren einzelner
-Vorschläge, Abgleich mit vorhandenen Karten des Zielstapels, Speichern von
-Quelle oder Vorschlägen, Serverqueue, automatische Varianten.
+Bewusst nicht: Ergänzungen außerhalb der Quelle, DOCX und PPTX, Scans und
+Bilder, Kprim und Eintippen, Neu-Generieren einzelner Vorschläge, Abgleich mit
+vorhandenen Karten des Zielstapels, Speichern von Quelle oder Vorschlägen,
+Serverqueue, automatische Varianten.
 
 - [ ] **Nachweis vor dem Release:** Stichprobe gegen die Preview mit den
       Prüfdokumenten in `fixtures/ai-source/` (jedes Format, alle vier
@@ -71,6 +68,19 @@ bewertet werden.
       Anfragetyp, erst dann Runden: je Runde eine Änderung aus
       Trainingsfehlern, gemessen am Testteil. Nachweis: Kalibrierung und
       Baseline je Anfragetyp im Ledger.
+- [ ] **Karten aus einer Quelle: Zerlegung der Quelle messen.** Heute geht
+      je Anfrage ein Abschnitt (≤ 15.000 Zeichen) an die KI. Das trennt
+      Zusammenhänge über Abschnitte, gewichtet „zentral“ nur je Abschnitt,
+      und die Obergrenze von 100 Vorschlägen wird von vorn verbraucht, sodass
+      hintere Kapitel langer Quellen leer ausgehen; Dopplungen verhindert nur
+      der Fragetext. Vergleichen auf den Prüfdokumenten in
+      `fixtures/ai-source/` und zusätzlich langen Quellen: (a) Abschnitte wie
+      heute, (b) die ganze Quelle als Kontext in jeder Anfrage, Karten nur für
+      den markierten Abschnitt, (c) erst eine Gliederung der ganzen Quelle
+      mit Kernaussagen und Kartenbudget je Abschnitt, dann die Abschnitte mit
+      dieser Gliederung. Kriterien: Verteilung der Karten über die Quelle,
+      getroffene Kernaussagen, abschnittsübergreifende Fragen, Dopplungen,
+      Belegtreue, Kosten und Laufzeit.
 - [ ] **Zielwerte (Entwurf):** Varianten: Hauptwert ≥ 95 %, M2-Verletzungen
       ≤ 1 % und keine bei Richtung, Kosten höchstens 1,2-fach, Latenz p90
       ≤ 4 s. `card-help`: Hauptwert ≥ 90 %, H2 ≥ 98 %, H6 = 100 %; Streaming

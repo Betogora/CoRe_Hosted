@@ -65,8 +65,15 @@ export function AiSourceProposalEditor({ content, onCancel, onApply }: {
           note={note}
           value={value}
           structure={structure}
-          onValueChange={(update) => setValue(update)}
-          onStructureChange={setStructure}
+          onValueChange={(update, changedKey) => {
+            setValue(update);
+            setErrors((current) => ({ ...current, [changedKey]: "", form: "" }));
+          }}
+          onStructureChange={(next, addedFieldId) => {
+            setStructure(next);
+            const ids = new Set(next.fields.map((field) => field.id));
+            setValue((current) => ({ ...current, fields: { ...Object.fromEntries(Object.entries(current.fields).filter(([id]) => ids.has(id))), ...(addedFieldId ? { [addedFieldId]: "" } : {}) } }));
+          }}
           errors={errors}
           changedFieldIds={NO_CHANGED_FIELDS}
           previewCards={previewCards}

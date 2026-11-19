@@ -12,15 +12,15 @@ PAGES = [
         "Das ohmsche Gesetz beschreibt den Zusammenhang zwischen Spannung, Stromstärke",
         "und Widerstand in einem elektrischen Leiter. Es lautet: U = R · I.",
         "Dabei ist U die Spannung in Volt (V), I die Stromstärke in Ampere (A)",
-        "und R der elektrische Widerstand in Ohm (Ω).",
+        "und R der elektrische Widerstand in der Einheit Ohm.",
         "",
         "Das Gesetz gilt nur für ohmsche Leiter, deren Widerstand bei konstanter",
         "Temperatur unabhängig von der Stromstärke ist, etwa für Metalldrähte.",
         "Eine Glühlampe ist kein ohmscher Leiter, weil ihr Widerstand mit der",
         "Temperatur des Glühfadens steigt.",
         "",
-        "Beispiel: Liegt an einem Widerstand von 100 Ω eine Spannung von 12 V an,",
-        "fließt ein Strom von I = U / R = 12 V / 100 Ω = 0,12 A.",
+        "Beispiel: Liegt an einem Widerstand von 100 Ohm eine Spannung von 12 V an,",
+        "fließt ein Strom von I = U / R = 12 V / 100 Ohm = 0,12 A.",
     ],
     None,  # a scanned page: no text layer
     [
@@ -39,13 +39,8 @@ PAGES = [
     ],
 ]
 
-# WinAnsi has no Ω; the fixture spells it out where the font cannot draw it.
-REPLACEMENTS = {"Ω": "Ohm"}
-
-
 def encode(line: str) -> bytes:
-    for source, target in REPLACEMENTS.items():
-        line = line.replace(source, target)
+    # WinAnsi has no Ω, so the texts spell the unit out as „Ohm“.
     escaped = line.replace("\\", "\\\\").replace("(", "\\(").replace(")", "\\)")
     return escaped.encode("cp1252")
 

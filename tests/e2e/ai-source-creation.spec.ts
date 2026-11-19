@@ -188,12 +188,23 @@ test("echte App: Vorschläge der Route belegen ihre Stelle und werden erst bei d
   await expect(proposals).toContainText("Die Quelle ist sehr kurz.");
   await expect(proposals).toContainText("1 Vorschlag wurde verworfen");
   await expect(proposals.getByTestId("ai-source-proposal").nth(1)).toContainText("Single Choice · Eingefügter Text · Glykolyse · Zeilen 4–5");
+
+  // Proposals that were shown but not adopted leave no deck behind.
+  await proposals.getByRole("button", { name: "Alle verwerfen", exact: true }).click();
+  await page.getByRole("dialog", { name: "Vorschläge verwerfen?" }).getByRole("button", { name: "Verwerfen", exact: true }).click();
+  await page.getByRole("button", { name: "Lernen", exact: true }).first().click();
+  await page.getByRole("dialog", { name: "Ungespeicherten Entwurf verlassen?" }).getByRole("button", { name: "Verwerfen und verlassen" }).click();
+  await expect(page.getByTestId("learn-deck-create-form")).toBeVisible();
+  await expect(page.getByText("Zellatmung aus Quelle")).toHaveCount(0);
+
+  const again = await openAppOrder(page);
+  await again.getByRole("button", { name: "Karten erstellen", exact: true }).click();
   await proposals.getByTestId("ai-source-proposal").nth(1).getByRole("button", { name: "Vorschlag verwerfen", exact: true }).click();
   await proposals.getByRole("button", { name: "1 Vorschlag übernehmen", exact: true }).click();
   await expect(page.getByRole("heading", { name: "Deine Karten sind bereit", exact: true })).toBeVisible();
   await expect(page.getByText("1 Karte wurde in „Zellatmung aus Quelle“ gespeichert.")).toBeVisible();
   await expect(page).toHaveURL(/doneKind=ai-source/);
-  expect(requested).toBe(1);
+  expect(requested).toBe(2);
 });
 
 test("echte App: Fehler für alle Abschnitte führen mit Grund zum Auftrag zurück, ohne Verbindung bleibt die Erstellung gesperrt", async ({ page, context }) => {

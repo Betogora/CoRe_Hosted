@@ -1,7 +1,7 @@
 import React from "react";
 import { ArrowLeft, ArrowRight, CircleDot, FileText, Layers3, ListChecks, MessageSquare, Pencil, Sparkles, TextCursorInput, X } from "lucide-react";
 import type { CreationScreenProps } from "../appScreenProps.ts";
-import { describeAiSourceCardsRun, proposalNoteContent, readAiSource, runAiSourceCards, saveProposals, type AiSourceCardsRequester, type AiSourceCardsRunResult, type ProposalDraft } from "../aiSourceCards.ts";
+import { adoptionDeckId, describeAiSourceCardsRun, proposalNoteContent, readAiSource, runAiSourceCards, saveProposals, type AiSourceCardsRequester, type AiSourceCardsRunResult, type ProposalDraft } from "../aiSourceCards.ts";
 import {
   AI_SOURCE_ACCEPT, AI_SOURCE_ANSWER_LENGTHS, AI_SOURCE_CARD_FORMS, AI_SOURCE_FORMAT_LABEL, AI_SOURCE_AMOUNTS, AI_SOURCE_LANGUAGES, AI_SOURCE_PRIOR_KNOWLEDGE, AI_SOURCE_REGISTERS, MAX_AI_SOURCE_WISHES_CHARS,
   aiSourceFileError, createAiSourceCreationDraft, describeAiSourceSettings, suggestSourceDeckName, validateAiSourceCreation,
@@ -111,6 +111,8 @@ export function AiSourceCreationPanel({ decks, initialTargetDeckId, onDraftState
     const controller = new AbortController();
     runRef.current = controller;
     setRunError("");
+    adoptedCardsRef.current = 0;
+    decksBeforeRef.current = null;
     setRun({ phase: "running", done: 0, total: null, cancelling: false });
     try {
       const source = await readAiSource(draft);
@@ -149,8 +151,7 @@ export function AiSourceCreationPanel({ decks, initialTargetDeckId, onDraftState
     const pending = run.proposals;
     decksBeforeRef.current ??= new Set(decks.map((deck) => deck.id));
     const deckName = (draft.targetMode === "new" ? draft.deckName : targetDeck?.name ?? draft.deckName).trim() || "Karten aus einer Quelle";
-    const createdDeck = decks.find((deck) => !decksBeforeRef.current!.has(deck.id) && deck.name === deckName);
-    const deckId = draft.targetMode === "existing" && targetDeck ? targetDeck.id : createdDeck?.id ?? null;
+    const deckId = adoptionDeckId(decks, draft.targetMode === "existing" ? draft.deckId : null, deckName, decksBeforeRef.current);
     const outcome = await saveProposals(pending, { deckId, deckName }, onSaveManualNote);
     adoptedCardsRef.current += outcome.createdCards;
     setSaving(false);
@@ -186,7 +187,7 @@ export function AiSourceCreationPanel({ decks, initialTargetDeckId, onDraftState
           result={run.result} notices={run.notices} proposals={run.proposals} saving={saving} saveError={saveError}
           headingRef={(element) => { focusRef.current = element; }}
           onEdit={setEditing}
-          onRemove={(id) => updateProposals((proposals) => proposals.filter((proposal) => proposal.id !== id))}
+          onRemove={(id) => { updateProposals((proposals) => proposals.filter((proposal) => proposal.id !== id)); requestAnimationFrame(focusDraft); }}
           onAdopt={() => void adoptProposals()}
           onDiscard={() => setConfirmDiscard(true)}
         />

@@ -323,8 +323,12 @@ export function createCardCommands({ store, repository, hydration, cloud, syncEn
     }
     if (!deck) return null;
     const graph = createNote({ content, deckId: deck.id, media });
-    await repository.saveNoteGraphs([{ previous: null, next: graph }]);
-    refresh();
+    // A deck created just before a failed note save stays and must be visible, so a retry finds it.
+    try {
+      await repository.saveNoteGraphs([{ previous: null, next: graph }]);
+    } finally {
+      refresh();
+    }
     requestSync();
     return { deck, cardIds: graph.cards.map((card) => card.id) };
   }

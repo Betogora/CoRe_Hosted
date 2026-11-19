@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { describeAiSourceCardsRun, proposalNoteContent, readAiSource, requestAiSourceCards, runAiSourceCards, saveProposals, splitAiSource, type AiSourceCardsRequester, type SourceUnit } from "./aiSourceCards.ts";
+import { adoptionDeckId, describeAiSourceCardsRun, proposalNoteContent, readAiSource, requestAiSourceCards, runAiSourceCards, saveProposals, splitAiSource, type AiSourceCardsRequester, type SourceUnit } from "./aiSourceCards.ts";
 import { createNote } from "./coreModel.ts";
 import { AiSourceCardsError, parseAiSourceCardsRequest, type GeneratedSourceCard } from "./aiSourceCardsContract.ts";
 import { createAiSourceCreationDraft } from "./aiSourceCreation.ts";
@@ -193,4 +193,19 @@ test("Übernahme speichert nacheinander, der erste Vorschlag legt den Stapel an,
   const thrown = await saveProposals(proposals, { deckId: "deck-alt", deckName: "Skript" }, async () => { throw new Error("Speicher voll."); });
   assert.deepEqual(thrown, { deckId: "deck-alt", saved: 0, createdCards: 0, error: "Speicher voll." });
   assert.deepEqual(await saveProposals(proposals, { deckId: "deck-alt", deckName: "Skript" }, async () => ({ deck: { id: "deck-alt" }, cardIds: ["a", "b"] })), { deckId: "deck-alt", saved: 3, createdCards: 6, error: null });
+});
+
+test("Eine Wiederholung der Übernahme bleibt im gewählten oder im zuvor angelegten Stapel", async () => {
+  const decks = [
+    { id: "alt", name: "Skript", parentDeckId: null, deletedAt: null },
+    { id: "neu", name: "Skript 2", parentDeckId: null, deletedAt: null },
+    { id: "unter", name: "Skript", parentDeckId: "alt", deletedAt: null },
+    { id: "weg", name: "Gelöscht", parentDeckId: null, deletedAt: "2026-11-19T00:00:00.000Z" },
+  ];
+  const before = new Set(["alt", "unter", "weg"]);
+  assert.equal(adoptionDeckId(decks, "alt", "Skript", before), "alt");
+  assert.equal(adoptionDeckId(decks, null, "Skript", before), "neu");
+  assert.equal(adoptionDeckId(decks, "weg", "Skript", before), "neu");
+  assert.equal(adoptionDeckId(decks, null, "Skript", new Set(decks.map((deck) => deck.id))), null);
+  assert.equal(adoptionDeckId(decks, "fehlt", "Anderes", before), null);
 });

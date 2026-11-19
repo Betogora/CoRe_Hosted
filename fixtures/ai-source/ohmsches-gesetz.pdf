@@ -9,7 +9,7 @@ endobj
 << /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>
 endobj
 4 0 obj
-<< /Length 811 >>
+<< /Length 815 >>
 stream
 BT /F1 12 Tf 72 760 Td 16 TL
 (Das ohmsche Gesetz) Tj T*
@@ -17,7 +17,7 @@ BT /F1 12 Tf 72 760 Td 16 TL
 (Das ohmsche Gesetz beschreibt den Zusammenhang zwischen Spannung, Stromstärke) Tj T*
 (und Widerstand in einem elektrischen Leiter. Es lautet: U = R · I.) Tj T*
 (Dabei ist U die Spannung in Volt \(V\), I die Stromstärke in Ampere \(A\)) Tj T*
-(und R der elektrische Widerstand in Ohm \(Ohm\).) Tj T*
+(und R der elektrische Widerstand in der Einheit Ohm.) Tj T*
 () Tj T*
 (Das Gesetz gilt nur für ohmsche Leiter, deren Widerstand bei konstanter) Tj T*
 (Temperatur unabhängig von der Stromstärke ist, etwa für Metalldrähte.) Tj T*
@@ -70,13 +70,13 @@ xref
 0000000058 00000 n 
 0000000127 00000 n 
 0000000224 00000 n 
-0000001086 00000 n 
-0000001212 00000 n 
-0000001288 00000 n 
-0000001414 00000 n 
-0000002081 00000 n 
+0000001090 00000 n 
+0000001216 00000 n 
+0000001292 00000 n 
+0000001418 00000 n 
+0000002085 00000 n 
 trailer
 << /Size 10 /Root 1 0 R >>
 startxref
-2207
+2211
 %%EOF

@@ -8,7 +8,7 @@ import {
 } from "./aiSourceCardsContract.ts";
 import { MAX_AI_SOURCE_CARDS, aiSourceFileError, type AiSourceCreationDraft } from "./aiSourceCreation.ts";
 import { createManualNoteContent, type ManualNoteInput } from "./coreModel.ts";
-import type { NoteContent } from "./coreTypes.ts";
+import type { Deck, NoteContent } from "./coreTypes.ts";
 import type { Database } from "./database.types.ts";
 import type { TransientSourceDocument } from "./documentModel.ts";
 import { escapeCardHtmlText } from "./richText.ts";
@@ -281,4 +281,16 @@ export async function saveProposals(proposals: ProposalDraft[], target: { deckId
   } catch (error) {
     return { deckId, saved, createdCards, error: error instanceof Error ? error.message : "Die Karte konnte nicht gespeichert werden." };
   }
+}
+
+/**
+ * The deck an adoption attempt stores into: the chosen deck while it exists, otherwise a top-level deck an earlier
+ * attempt of this order created (its name may carry a suffix against a sibling of the same name), otherwise none,
+ * so the save creates one.
+ */
+export function adoptionDeckId(decks: readonly Pick<Deck, "id" | "name" | "parentDeckId" | "deletedAt">[], chosenDeckId: string | null, deckName: string, decksBefore: ReadonlySet<string>): string | null {
+  const live = decks.filter((deck) => !deck.deletedAt);
+  if (chosenDeckId && live.some((deck) => deck.id === chosenDeckId)) return chosenDeckId;
+  const name = deckName.trim().toLocaleLowerCase("de-DE");
+  return live.find((deck) => !decksBefore.has(deck.id) && deck.parentDeckId === null && deck.name.trim().toLocaleLowerCase("de-DE").startsWith(name))?.id ?? null;
 }
