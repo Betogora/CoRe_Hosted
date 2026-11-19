@@ -97,3 +97,11 @@ test("text sources are required only in text mode and cannot bypass file validat
   draft.file = null;
   assert.match(validateAiSourceCreation(draft, []).source!, /Quelldatei/);
 });
+
+test("the prompt asks for one thing per card, mixes allowed forms by content and keeps the document out of the question", () => {
+  const prompt = buildAiSourceCreationPrompt(createAiSourceCreationDraft().settings);
+  assert.match(prompt, /Jede Karte fragt genau eine Sache ab\. Verbinde keine zwei Fragen mit „und“/);
+  assert.match(prompt, /Sind mehrere erlaubt, wähle für jede Aussage die Form, die sie am besten abfragt/);
+  assert.match(prompt, /keine Wendungen wie „laut Quelle“/);
+  assert.doesNotMatch(prompt, /eine erlaubte Form muss nicht vorkommen/);
+});

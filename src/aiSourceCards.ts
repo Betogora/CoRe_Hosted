@@ -17,6 +17,10 @@ const MAX_SOURCE_CHARS = 400_000;
 /** Size of one source unit; small enough that a proposal names a findable place, large enough to keep context. */
 const MAX_UNIT_CHARS = 4_000;
 const MAX_HEADING_CHARS = 80;
+/** A paragraph shorter than this joins the next one, so a proposal still names a findable, but not tiny place. */
+const MIN_PARAGRAPH_CHARS = 300;
+/** Rows of a table file that form one place. */
+const TABLE_ROWS_PER_UNIT = 10;
 
 /** Errors every further portion would hit the same way; the run stops instead of repeating them (as the variant batch does). */
 const STOPPING_ERROR_CODES = new Set([
@@ -69,7 +73,7 @@ const FENCE = /^\s*(```|~~~)/;
 
 interface LineBlock { first: number; last: number; lines: string[]; size: number; content: boolean; }
 
-/** Text and Markdown: paragraphs packed up to the unit size, never across a heading outside code blocks; the label names heading and lines. */
+/** Text and Markdown: each paragraph is a place (short ones join the next), never across a heading outside code blocks; the label names heading and lines. */
 function textUnits(text: string): SourceUnit[] {
   const units: SourceUnit[] = [];
   let heading = "";
@@ -85,7 +89,7 @@ function textUnits(text: string): SourceUnit[] {
     const headingMatch = fenced ? null : HEADING.exec(line);
     if (FENCE.test(line)) fenced = !fenced;
     if (headingMatch) flush();
-    else if (block && (blank ? block.size > MAX_UNIT_CHARS * 0.75 : block.size + line.length + 1 > MAX_UNIT_CHARS)) flush();
+    else if (block && (blank ? block.size >= MIN_PARAGRAPH_CHARS : block.size + line.length + 1 > MAX_UNIT_CHARS)) flush();
     if (headingMatch) heading = headingMatch[1].length > MAX_HEADING_CHARS ? `${headingMatch[1].slice(0, MAX_HEADING_CHARS - 1).trimEnd()}…` : headingMatch[1];
     if (blank && !block) return;
     block ??= { first: index + 1, last: index + 1, lines: [], size: 0, content: false };
@@ -98,7 +102,7 @@ function textUnits(text: string): SourceUnit[] {
   return units;
 }
 
-/** CSV and TSV: rows packed up to the unit size, each unit and part repeats a short header row; a long one stands alone. */
+/** CSV and TSV: ten rows form a place, each unit and part repeats a short header row; a long one stands alone. */
 function tableUnits(text: string): SourceUnit[] {
   const units: SourceUnit[] = [];
   const [header = "", ...rows] = text.replace(/\r\n?/g, "\n").split("\n");
@@ -111,7 +115,7 @@ function tableUnits(text: string): SourceUnit[] {
   if (!prefix && rows.some((row) => row.trim())) pushUnits(units, lineRange(1, 1), header);
   rows.forEach((row, index) => {
     if (!row.trim()) return;
-    if (block && prefix.length + block.size + row.length + 2 > MAX_UNIT_CHARS) flush();
+    if (block && (block.lines.length === TABLE_ROWS_PER_UNIT || prefix.length + block.size + row.length + 2 > MAX_UNIT_CHARS)) flush();
     block ??= { first: index + 2, last: index + 2, lines: [], size: 0, content: true };
     block.lines.push(row);
     block.size += row.length + 1;

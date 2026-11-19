@@ -31,8 +31,10 @@ test("Text und Markdown werden nach Überschriften und Absätzen mit echten Zeil
   const paragraphs = Array.from({ length: 12 }, (_, index) => `Absatz ${index + 1}: ${"x".repeat(390)}`).join("\n\n");
   const split = splitAiSource(text(paragraphs, "lang.txt"));
   assert.ok(split.units.length > 1 && split.units.every((unit) => unit.text.length <= 4_000));
-  assert.equal(split.units[0].label, "Zeilen 1–15");
-  assert.match(split.units[1].text, /^Absatz 9:/);
+  assert.deepEqual(labels(split).slice(0, 3), ["Zeile 1", "Zeile 3", "Zeile 5"]);
+  assert.equal(split.units.length, 12);
+  const short = splitAiSource(text(["Kurz eins.", "Kurz zwei.", "y".repeat(320), "Danach."].join("\n\n"), "kurz.txt"));
+  assert.deepEqual(labels(short), ["Zeilen 1–5", "Zeile 7"]);
 });
 
 test("Lange Überschriften kürzen nur sich selbst, Code-Kommentare sind keine Überschriften, reine Überschriften tragen nichts", () => {
@@ -48,7 +50,8 @@ test("Lange Überschriften kürzen nur sich selbst, Code-Kommentare sind keine �
 test("CSV und TSV wiederholen die Kopfzeile je Block und Teil und nennen die Zeilen", () => {
   const rows = Array.from({ length: 60 }, (_, index) => `Begriff ${index + 1}\t${"Erklärung ".repeat(10)}`);
   const table = splitAiSource(text(["Begriff\tErklärung", ...rows, ""].join("\n"), "glossar.TSV"));
-  assert.ok(table.units.length > 1);
+  assert.equal(table.units.length, 6);
+  assert.deepEqual(labels(table).slice(0, 2), ["Zeilen 2–11", "Zeilen 12–21"]);
   assert.ok(table.units.every((unit) => unit.text.startsWith("Begriff\tErklärung\n")));
   assert.equal(table.units[0].label.split("–")[0], "Zeilen 2");
   assert.equal(table.units.at(-1)!.label.split("–")[1], "61");
@@ -140,7 +143,7 @@ test("Abbruch behält Erhaltenes, Fehler einzelner Abschnitte werden genannt, Fe
   assert.deepEqual(describeAiSourceCardsRun(empty), ["1 Vorschlag wurde verworfen: ungültig, doppelt oder über der Obergrenze.", "Die Quelle ergab keine Kartenvorschläge."]);
 });
 
-const okResponse = (cards: GeneratedSourceCard[]) => ({ cards, warnings: [], discarded: 0, model: "openai/gpt-6-luna", privacyMode: "zdr", promptVersion: "source-cards-v1", usage: null });
+const okResponse = (cards: GeneratedSourceCard[]) => ({ cards, warnings: [], discarded: 0, model: "openai/gpt-6-luna", privacyMode: "zdr", promptVersion: "source-cards-v2", usage: null });
 
 test("Der Abruf sendet die Sitzung mit und prüft die Antwort gegen Anfrage und Vertrag", async () => {
   const supabase = { auth: { getSession: async () => ({ data: { session: { access_token: "session-test" } }, error: null }) } } as unknown as NonNullable<Parameters<typeof requestAiSourceCards>[1]>;

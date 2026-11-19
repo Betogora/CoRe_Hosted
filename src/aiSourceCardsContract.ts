@@ -5,7 +5,7 @@ import {
 } from "./aiSourceCreation.js";
 
 export const AI_SOURCE_CARDS_ENDPOINT = "/api/ai/source-cards";
-export const AI_SOURCE_CARDS_PROMPT_VERSION = "source-cards-v1";
+export const AI_SOURCE_CARDS_PROMPT_VERSION = "source-cards-v2";
 export const AI_SOURCE_CARDS_DEADLINE_MS = 120_000;
 /** One request carries one portion of the source; the browser sends larger sources portion by portion. */
 export const MAX_SOURCE_PORTION_CHARS = 15_000;

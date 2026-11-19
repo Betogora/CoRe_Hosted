@@ -49,7 +49,7 @@ test("Alle vier Kartenformen kommen mit Beleg, Modell und Kosten zurück", () =>
   assert.deepEqual(result.cards.map((card) => card.form), ["basic", "cloze", "single-choice", "multiple-choice"]);
   assert.equal(result.discarded, 0);
   assert.equal(result.privacyMode, "zdr");
-  assert.equal(result.promptVersion, "source-cards-v1");
+  assert.equal(result.promptVersion, "source-cards-v2");
   assert.equal(result.usage?.totalTokens, 2_800);
 });
 
@@ -130,7 +130,7 @@ test("Route prüft Anmeldung vor Providerzugriff und protokolliert Kosten ohne I
   const result = res(); await handler(req(), result);
   assert.equal(result.statusCode, 200);
   assert.equal(result.headers.get("cache-control"), "private, no-store");
-  assert.equal(result.headers.get("x-core-prompt-version"), "source-cards-v1");
+  assert.equal(result.headers.get("x-core-prompt-version"), "source-cards-v2");
   assert.equal(JSON.parse(result.body).cards.length, 4);
   assert.doesNotMatch(result.body, /server-only-secret|session-test/);
   assert.deepEqual(calls, [OPENROUTER_CHAT_ENDPOINT]);
