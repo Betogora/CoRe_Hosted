@@ -73,6 +73,7 @@ export const VARIANT_STATE_TONE = {
   reported: "bg-core-danger-soft",
   outdated: "bg-core-warning-soft",
   edited: "bg-core-info-soft",
+  next: "bg-core-accent-soft",
 } as const;
 
 export interface VariantStateMark {
@@ -81,19 +82,19 @@ export interface VariantStateMark {
 }
 
 /**
- * Marks of a variant: exactly one state (a report names its reason) plus `bearbeitet` for an own wording. Further
- * marks, such as P1's „nicht umformulierbar“, join this list (W17).
+ * Marks of a variant: exactly one state (a report names its reason), `als Nächstes` for the one the chain asks next
+ * and `bearbeitet` for an own wording. Further marks, such as P1's „nicht umformulierbar“, join this list (W17).
  */
-export function variantStateMarks(variant: CardVariant, edited: boolean): { marks: VariantStateMark[]; reactivatable: boolean } {
+export function variantStateMarks(variant: CardVariant, edited: boolean, next = false): { marks: VariantStateMark[]; reactivatable: boolean } {
   const state: VariantStateMark & { reactivatable: boolean } = variant.meta.outdated === true
     ? { label: "veraltet", tone: "outdated", reactivatable: false }
     : variant.qualityStatus === "flagged"
       ? { label: variant.feedback.at(-1)?.type === "unklar_formuliert" ? "gemeldet: unklar formuliert" : "gemeldet: inhaltlich falsch", tone: "reported", reactivatable: true }
       : variant.isActive && variant.qualityStatus === "active"
         ? { label: "aktiv", tone: "active", reactivatable: false }
-        : { label: "abgeschaltet", tone: "off", reactivatable: true };
+        : { label: "ausgeschlossen", tone: "off", reactivatable: true };
   return {
-    marks: [{ label: state.label, tone: state.tone }, ...(edited ? [{ label: "bearbeitet", tone: "edited" as const }] : [])],
+    marks: [{ label: state.label, tone: state.tone }, ...(next ? [{ label: "als Nächstes", tone: "next" as const }] : []), ...(edited ? [{ label: "bearbeitet", tone: "edited" as const }] : [])],
     reactivatable: state.reactivatable,
   };
 }

@@ -235,11 +235,11 @@ Akzeptanz:
 
 ### CoRe-Variante lernen und Ursprung prüfen
 
-Gefestigte Karten erscheinen ab der Stapelschwelle auch als KI-Umformulierung; die Herkunft bleibt bis zur Antwort verborgen.
+Gefestigte Karten kommen ab der Stapelschwelle nur noch als KI-Umformulierungen, eine nach der anderen; die Herkunft bleibt bis zur Antwort verborgen.
 
 Ablauf:
 
-1. CoRe-Modus des Stapels einschalten und Varianten erzeugen.
+1. CoRe-Modus des Stapels einschalten; Varianten entstehen vorausschauend.
 2. Fällige Karte als Original oder KI-Umformulierung sehen.
 3. Antwort aufdecken und bewerten.
 4. Ursprung prüfen und Varianten verwalten.
@@ -503,11 +503,11 @@ Fällig | ausgewählte Wiederholungen
 
 ### Freigabe der Varianten
 
-Bei eingeschaltetem CoRe-Modus wechseln sich gefestigte Karten im Review mit ihren Varianten ab ([ADR-039](decisions.md#adr-039--core-modus-anaus-und-wirksame-variantenregeln)).
+Bei eingeschaltetem CoRe-Modus kommen gefestigte Karten im Review nur noch als Varianten, eine nach der anderen ([ADR-039](decisions.md#adr-039--core-modus-anaus-und-variantenkette)). Die Freigabe entscheidet, ob eine Variante kommt, die Kette, welche.
 
 ```schaubild
 Titel: Wann statt der Karte eine Variante abgefragt wird
-Folge: Alle vier Bedingungen müssen gelten
+Folge: Alle fünf Bedingungen müssen gelten
 CoRe-Modus | im Stapel der Karte eingeschaltet
 -> und
 Phase | die Karte ist in der Wiederholung
@@ -515,17 +515,21 @@ Phase | die Karte ist in der Wiederholung
 Letzte Bewertung | war nicht „Nochmal“
 -> und
 Haltbarkeit | erreicht die Schwelle des Stapels
+-> und
+Abstand | seit der letzten Antwort mindestens drei Tage
 -> dann
-[primär] Wechsel | Karte und aktive Varianten reihum
+[primär] Kette | die nächste Variante nach der erreichten Stufe
 Pfeil: sonst
 Gruppe:
-Originalkarte | wird selbst abgefragt; nach einem Fehler so lange, bis sie wieder richtig beantwortet ist
+Originalkarte | wird selbst abgefragt; die Kette wartet
 ```
 
-- Die Schwelle `Varianten einsetzen ab Haltbarkeit` beträgt je Stapel 7, 21 (Standard) oder 60 Tage.
-- Die Originalkarte bleibt Teil des Wechsels. Abgefragt werden höchstens so viele Varianten, wie der Stapel als aktive Varianten pro Karte erlaubt (1 bis 3), die ältesten zuerst.
-- Eine Antwort auf eine Variante wirkt auf den Lernstand der Karte wie eine Antwort auf die Karte selbst.
-- Nach `Nochmal` bricht die Haltbarkeit ein; Varianten erscheinen erst wieder, wenn die Schwelle erneut erreicht ist.
+- Die Schwelle `Varianten einsetzen ab Haltbarkeit` beträgt je Stapel 7, 21 (Standard) oder 60 Tage. Der Mindestabstand schützt vor kurzen Abständen nach `Schwer`, beim Vorziehen und in Prüfungssitzungen.
+- Die Kette besteht aus den aktiven Varianten, die ältesten zuerst, höchstens so viele, wie der Stapel als aktive Varianten pro Karte erlaubt (1 bis 3). Der Lernstand merkt sich die erreichte Stufe; Stufe 0 ist die Karte selbst.
+- Nach einer Variante führen `Gut` und `Leicht` zur nächsten Stufe, `Schwer` wiederholt die Variante, `Nochmal` geht eine Stufe zurück. Antworten auf die Karte selbst ändern die Stufe nicht.
+- Nach der letzten Variante kommt die, deren Formulierung am längsten nicht gesehen wurde.
+- Eine Antwort auf eine Variante wirkt auf den Lernstand der Karte wie eine Antwort auf die Karte selbst. Nach `Nochmal` bricht die Haltbarkeit ein; Varianten kommen erst wieder, wenn die Freigabe erneut offen ist.
+- Die Stufe wird mit jeder Antwort gespeichert und synchronisiert; das Zurücknehmen einer Antwort stellt sie wieder her.
 
 ### Varianten im Review
 
@@ -537,15 +541,15 @@ Originalkarte | wird selbst abgefragt; nach einem Fehler so lange, bis sie wiede
 
 ### Varianten verwalten
 
-- Jede Variante ist `aktiv`, `abgeschaltet`, `gemeldet` (inhaltlich falsch oder unklar formuliert) oder `veraltet`.
+- Jede Variante ist `aktiv`, `ausgeschlossen`, `gemeldet` (inhaltlich falsch oder unklar formuliert) oder `veraltet`. Die Verwaltung markiert die Variante, die als Nächstes kommt.
 - Ändert sich Frage oder Antwort der Karte, werden ihre aktiven Varianten `veraltet` und nicht mehr abgefragt; das Speichern nennt ihre Zahl.
-- Varianten lassen sich bearbeiten, abschalten, reaktivieren, neu erzeugen und löschen. Eine bearbeitete Variante gilt als eigene und wird von einer Neuerzeugung für den Stapel nicht ersetzt.
-- Abgeschaltete und gemeldete Varianten lassen sich reaktivieren, solange die Höchstzahl aktiver Varianten nicht erreicht ist; veraltete nicht.
+- Varianten lassen sich bearbeiten, ausschließen, wieder aufnehmen, neu erzeugen und löschen. Eine bearbeitete Variante gilt als eigene und wird von einer Neuerzeugung für den Stapel nicht ersetzt.
+- Ausgeschlossene und gemeldete Varianten lassen sich wieder aufnehmen, solange die Höchstzahl aktiver Varianten nicht erreicht ist; veraltete nicht.
 - Löschen entfernt die Variante auf allen Geräten; Karte und Lernstand bleiben.
 
 ### CoRe-Modus
 
-- Der CoRe-Modus ist je Stapel `An` oder `Aus`. Varianten entstehen nie automatisch, nur auf ausdrückliche Aktion.
+- Der CoRe-Modus ist je Stapel `An` oder `Aus`. Varianten entstehen auf ausdrückliche Aktion oder vorausschauend vor dem Kontakt, der sie abfragt ([Kartenvarianten erzeugen](#kartenvarianten-erzeugen)).
 - Das Einschalten erklärt Wirkung, Schwelle und Datenschutz und bietet an, sofort Varianten für die ersten Karten des Stapels zu erzeugen ([Kartenvarianten erzeugen](#kartenvarianten-erzeugen)).
 - CoRe-Modus, Schwelle und Zahl aktiver Varianten gehören nicht zu Lernprofilen und bleiben bei einem Profilwechsel unverändert.
 - **Bewusst nicht:** ein eigener Lernmodus nur mit oder nur ohne Varianten.
@@ -609,6 +613,7 @@ Eine Variante fragt denselben Inhalt mit anderer Formulierung ab.
 - **Auswahl:** dieselben Optionen, jede gleich richtig oder falsch, ohne gewonnene oder verlorene Verneinung; die Variante hat eine eigene feste Reihenfolge, bearbeitbar ist nur die Frage. Karten mit zu langem Text, weniger als zwei oder mehr als zehn Optionen erhalten keine Varianten.
 - Ergibt eine Karte keinen erkennbaren Sinn oder braucht sie privaten Kontext, meldet die KI sie als nicht umformulierbar, statt eine Deutung zu erfinden; es entsteht keine Variante.
 - Eine Karte erhält Varianten bis zur Höchstzahl aktiver Varianten ihres Stapels. Gespeichert wird nur, wenn sie während der Anfrage unverändert blieb und die Formulierung neu ist.
+- **Vorausschauend:** Erreicht eine Karte mit einer Antwort die Haltbarkeitsschwelle und fehlt der Kette die nächste Variante, entsteht sie im geöffneten Tab, bevor die Karte wieder fällig ist; das ist die einzige KI-Anfrage ohne eigene Aktion ([ADR-011](decisions.md#adr-011--schmale-ki-routen-über-openrouter)). Scheitert sie, etwa offline, kommt die am längsten nicht gesehene Variante, und die nächste Antwort versucht es erneut.
 - **Für einen Stapel:** Eine Erzeugung bearbeitet nacheinander die ersten bis zu 50 Karten des Stapelbaums mit eingeschaltetem CoRe-Modus ohne aktive Variante, je Karte eine, und speichert jede sofort; ein weiterer Start nimmt die nächsten. Die Stapeleinstellungen nennen, wie viele Karten noch keine Variante haben.
 - Die Stapelerzeugung läuft im geöffneten Tab, höchstens eine zugleich, mit sichtbarem Fortschritt. Abbrechen behält Erzeugtes; ein Fehler, der jede Karte träfe, hält den Lauf mit kurzem Grund an. Nicht umformulierbare und übrige Karten ohne Variante werden getrennt gezählt und lassen sich in der Kartenverwaltung aufrufen.
 - Varianten aus einer älteren Fassung der Erzeugung lassen sich nach Rückfrage ersetzen; Karten und Lernstand bleiben.

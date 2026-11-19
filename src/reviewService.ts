@@ -1,5 +1,5 @@
 import { SCHEDULER_VERSION, calculateRetrievability, getReviewButtonOptions, simulateRatingOutcome } from "./scheduler.ts";
-import { selectReviewVariant } from "./coreVariantService.ts";
+import { nextVariantStage, selectReviewVariant } from "./coreVariantService.ts";
 import {
   cardStudyFromReviewState,
   createDefaultDeckSettings,
@@ -565,9 +565,11 @@ export function answerVariant(
   // A lapse that reaches the leech rule marks the card (once, the first time stays) and, if the deck says so, suspends it.
   const leechTriggered = outcome.nextReviewState.lapses > previousState.lapses
     && isLeechLapse(outcome.nextReviewState.lapses, deck.deckSettings.leechThreshold);
-  const nextState = leechTriggered
-    ? { ...outcome.nextReviewState, leechedAt: previousState.leechedAt ?? now }
-    : outcome.nextReviewState;
+  const nextState = {
+    ...outcome.nextReviewState,
+    ...(leechTriggered ? { leechedAt: previousState.leechedAt ?? now } : {}),
+    variantStage: nextVariantStage(card, variant, rating, deck.deckSettings),
+  };
   const suspendsLeech = leechTriggered && deck.deckSettings.leechAction === "suspend";
   const variants = variant
     ? card.variants.map((candidate) => candidate.id === variant.id ? {
@@ -609,7 +611,7 @@ function createReviewItemViewModel(deck: Deck, selectedCard: Card | null, option
   if (!selectedCard) return null;
 
   const now = options.now ?? new Date().toISOString();
-  const variant = selectReviewVariant(selectedCard, deck.deckSettings);
+  const variant = selectReviewVariant(selectedCard, deck.deckSettings, now);
   const ratingButtonOptions = getReviewButtonOptions(selectedCard, variant, {
     now,
     deckSettings: deck.deckSettings,
