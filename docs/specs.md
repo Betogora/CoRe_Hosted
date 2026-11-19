@@ -1,6 +1,6 @@
 # Specs
 
-**Stand:** 2026-11-14
+**Stand:** 2026-11-19
 
 **CoRe ist ein Lernwerkzeug für alle, die große Stoffmengen über Monate sicher im Kopf behalten müssen, zuerst für Studierende und Auszubildende auf dem Weg zur Prüfung.** Es wiederholt nicht Karten, sondern Inhalte: Gefestigtes Wissen kehrt in neuer Formulierung zurück, damit Verstehen geübt wird statt Wiedererkennen. Ziel ist Wissen, das in der Prüfung abrufbar ist, auch wenn die Frage anders gestellt wird.
 
@@ -10,7 +10,7 @@ Die Specs beschreiben, was CoRe tun soll und warum: je Funktion die Absicht, ihr
 
 ### Zielgruppen
 
-CoRe startet Anki-kompatibel, hält das Lernen ruhig und behandelt jede planbare Karte als eigene Lerneinheit.
+CoRe startet Anki-kompatibel und plant vorhersehbar: Jede planbare Karte ist eine eigene Lerneinheit, eine Sitzung behält ihren Plan, und jede Bewertung nennt vorab ihren Abstand.
 
 - Für Studierende und Auszubildende mit großen, langfristig gepflegten Kartenbeständen.
 - Für Anki-Nutzer, die vorhandene Stapel weiterverwenden wollen.
@@ -20,19 +20,17 @@ CoRe startet Anki-kompatibel, hält das Lernen ruhig und behandelt jede planbare
 1. **Anki-kompatibel starten:** Import und bekannte Kartenformen senken die Einstiegshürde.
 2. **Karten bleiben eigenständig:** Jede Karte besitzt genau einen Lernstand; ihre KI-Umformulierungen teilen ihn.
 3. **Review first:** Vor dem Aufdecken ist nicht erkennbar, ob eine Karte oder eine Umformulierung abgefragt wird.
-4. **Lernen bleibt privat:** Stapel und Lerndaten gehören zum Konto und werden nicht veröffentlicht.
-5. **Stapelweise steuerbar:** Content Repetition ist je Stapel an- oder ausgeschaltet.
-6. **Sparsam ausbauen:** Nicht jede Karte wird variiert; neue Produktflächen brauchen einen belegten Auftrag ([ADR-001](decisions.md#adr-001--produktumfang-nur-mit-auftrag)).
+4. **Inhalt durch Varianten merken:** Gefestigte Karten kehren in neuer Formulierung zurück, damit der Inhalt abgerufen wird und nicht die vertraute Formulierung.
 
 ### Umfang
 
 Was gebaut, vorbereitet oder abgeschaltet ist und welche Lücken bekannt sind, nennt [`status.md`](status.md).
 
-- **Nichtziele:** Community, Rankings und soziale Leistungsmetriken; generische Backend-, Auth- oder KI-Adapter; KI-Chat ohne Kartenbezug; Bildübertragung an die KI; Admin-Portal, Zahlungen, Abonnements; Push-Benachrichtigungen; vollständige Ausführung von Anki-Templates.
+- **Nichtziele:** Einblick in Lernmengen und Lerndaten anderer, Rankings und soziale Leistungsmetriken; generische Backend-, Auth- oder KI-Adapter; KI-Chat ohne Kartenbezug; KI-erzeugte Bilder; Admin-Portal, Zahlungen, Abonnements; Push-Benachrichtigungen; vollständige Ausführung von Anki-Templates.
 
 ### Bereiche und Gesamtbild
 
-- Hauptbereiche sind `Heute`, `Lernen`, `Erstellen`, `Karten` und `Prüfung`; Statistik, Hilfe, Einstellungen und Simulator ergänzen sie.
+- Hauptbereiche sind `Heute`, `Lernen`, `Erstellen`, `Karten` und `Prüfung`; Statistik, Hilfe und Einstellungen ergänzen sie.
 - `Lernen` führt vom Stapel in die Sitzung, `Karten` verwaltet alle Karten aller Stapel. Beide teilen den zuletzt gewählten Stapel.
 - Ansicht, Stapel, Karte und Sitzung sind Teil des Links: Reload, Direktlink und Browser-Zurück führen an dieselbe Stelle.
 
@@ -48,6 +46,7 @@ Stapel | Hierarchie mit eigenen Lernoptionen
 Inhalt | Felder, Tags und Medien, einmal gespeichert
 Karte | eine Abfrage mit eigenem Lernstand
 [primär] Variante | KI-Umformulierung, teilt den Lernstand der Karte
+[primär] Zusammenfassung und Mindmap | verdichten die Karten eines Stapels
 Pfeil: wird gelernt
 Folge: Lernen
 Tagesrunde | fällige und neue Karten innerhalb der Limits
@@ -55,11 +54,10 @@ Sitzung | Frage, Antwort, vier Bewertungen
 Scheduler | nächster Termin, Haltbarkeit, Reife
 [erfolg] Bewertungsverlauf | unveränderliche Ereignisse
 Pfeil: speist
-Gruppe: Überblick und Vertiefung
+Gruppe: Überblick und Planung
 Heute | Tagesstand und Lernstart
 Statistik | Aktivität, Planung, Gedächtnismodell
 Prüfung | verteilt den Stoff bis zum Termin
-[primär] Zusammenfassung und Mindmap | verdichten einen Stapel
 Pfeil: alles
 Gruppe:
 [info] Lokal zuerst | jede Änderung wird erst auf dem Gerät gespeichert und danach mit dem Konto synchronisiert
@@ -118,7 +116,7 @@ Karte
 
 - **Frage–Antwort:** optional mit Rückrichtung; dann entstehen zwei unabhängige Karten mit eigenem Lernstand.
 - **Lückentext:** Jede Lückengruppe ist eine eigene Karte.
-- **Auswahl:** Single Choice (genau eine richtige von mindestens zwei Optionen), Multiple Choice (mindestens eine richtige und eine falsche) und Kprim (je Aussage richtig oder falsch; nur aus Anki-Importen). Ein Inhalt ergibt genau eine Karte; nicht mit Lücken oder Rückrichtung kombinierbar.
+- **Auswahl:** Single Choice (genau eine richtige von mindestens zwei Optionen), Multiple Choice (mindestens eine richtige und eine falsche) und Kprim (eine Karte mit beliebig vielen Aussagen, jede als richtig oder falsch zu markieren; nur aus Anki-Importen). Ein Inhalt ergibt genau eine Karte; nicht mit Lücken oder Rückrichtung kombinierbar.
 - **Bildverdeckung:** Jede Maskengruppe ist eine eigene Karte ([Bildverdeckung](#bildverdeckung)).
 - **Antwort eintippen:** Baustein für Frage–Antwort; die Eingabe wird zeichengenau wie in Anki verglichen.
 - **Zusätzliche Felder** tragen eine Rolle: `Zusatzfrage` (Teil der Frage, in Rückrichtung Teil der Antwort), `Hinweis` (vor der Antwort aufdeckbar), `Zusatz` und `Quelle` (erst nach der Antwort), `Notiz` (nur im Editor).
@@ -237,13 +235,13 @@ Akzeptanz:
 
 ### CoRe-Variante lernen und Ursprung prüfen
 
-Reife Karten erscheinen im Wechsel mit ihren KI-Umformulierungen; die Herkunft bleibt bis zur Antwort verborgen.
+Gefestigte Karten erscheinen ab der Stapelschwelle auch als KI-Umformulierung; die Herkunft bleibt bis zur Antwort verborgen.
 
 Ablauf:
 
-1. Geeignete Karte lernen.
-2. Original oder KI-Umformulierung sehen.
-3. Antwort aufdecken.
+1. CoRe-Modus des Stapels einschalten und Varianten erzeugen.
+2. Fällige Karte als Original oder KI-Umformulierung sehen.
+3. Antwort aufdecken und bewerten.
 4. Ursprung prüfen und Varianten verwalten.
 
 Akzeptanz:
@@ -302,22 +300,6 @@ Akzeptanz:
 
 - Inhalt und Wirkung folgen [Hilfe](#hilfe).
 - Erklärte Regeln stimmen mit [Lernphasen und Bewertungen](#lernphasen-und-bewertungen), [Reife und Haltbarkeit](#reife-und-haltbarkeit) und [Freigabe der Varianten](#freigabe-der-varianten) überein.
-
-### Lernfortschritt über simulierte Tage prüfen
-
-Der Simulator zeigt, wie sich vorhandene Karten über Minuten und Tage entwickeln, ohne Karten durch bloßes Umstellen zu verändern.
-
-Ablauf:
-
-1. Simulator öffnen.
-2. Lernzeit verschieben.
-3. Verfügbare Karten und Planung prüfen.
-4. Bei Bedarf bewerten oder Zeit zurücksetzen.
-
-Akzeptanz:
-
-- Bedienung und Wirkung folgen [Simulator](#simulator).
-- Bewertungen im Zukunftsmodus folgen [Lernphasen und Bewertungen](#lernphasen-und-bewertungen) und [Sync und Konflikte](#sync-und-konflikte).
 
 ## 4. Karten erstellen und importieren
 
@@ -438,7 +420,7 @@ Wiederholung, jung | zunächst kurze Abstände, bis die Haltbarkeit wieder wäch
 
 ### Lernverlauf einer Karte
 
-Die Tabellen und Zeitleisten der Leseseite zu diesem Abschnitt werden mit dem echten Scheduler aus getesteten Beispielketten berechnet. Sie gelten unter festen Annahmen (Antwort am Fälligkeitstermin, Standardlernschritte, eine aktive Variante) und sind keine Zusage für einzelne Karten.
+Die Leseseite zeigt zu diesem Abschnitt typische Bewertungsketten als Zeitleisten, dazu die Wirkung jeder Bewertung, den Einfluss der Zielerinnerung und die erste Variante je Stapelschwelle. Alles wird mit dem echten Scheduler aus getesteten Beispielketten berechnet, gilt unter festen Annahmen (Antwort am Fälligkeitstermin, Standardlernschritte, eine aktive Variante) und ist keine Zusage für einzelne Karten.
 
 ### Reife und Haltbarkeit
 
@@ -1026,7 +1008,7 @@ Gruppe:
 
 Der Beta-Kern gilt als erfüllt, wenn:
 
-1. alle neun [Kernjourneys](#3-kernjourneys) automatisiert und manuell bestehen;
+1. alle acht [Kernjourneys](#3-kernjourneys) automatisiert und manuell bestehen;
 2. ein neuer Account, kleiner Import, manuelle Erstellung, Review und Reload ohne Entwicklerwissen bedienbar sind;
 3. eine Variante vor dem Aufdecken nicht erkennbar ist;
 4. keine Labs-Navigation, Labs-Route oder ausgemusterte API ausgeliefert wird;

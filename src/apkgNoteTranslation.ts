@@ -155,7 +155,7 @@ const IMAGE_OCCLUSION_ENHANCED = { id: "image-occlusion-enhanced", version: 2 };
 const MULTIPLE_CHOICE = { id: "multiple-choice-for-anki", version: 1 };
 const ANKING = { id: "anking", version: 2 };
 const GENERIC = { id: "generic", version: 3 };
-const FIELD_LIST = { id: "field-list", version: 1 };
+const FIELD_LIST = { id: "field-list", version: 2 };
 const DAY_MS = 86_400_000;
 
 // --- Small text helpers -------------------------------------------------------------------
