@@ -68,14 +68,14 @@ test("Stapeleinstellungen gelten je nach Geltungsbereich für den Stapel allein 
   const { commands, deck, studyDecks } = await setup();
   const defaultLimit = deck("deck-child")!.deckSettings.newCardsPerDay;
   const childBaseline = createDeckSettingsDraft(deck("deck-child")!);
-  commands.saveDeckSettings("deck-child", { ...childBaseline, leech: { ...childBaseline.leech, leechThreshold: 4 } }, "deck", childBaseline);
+  commands.saveDeckSettings("deck-child", { ...childBaseline, learning: { ...childBaseline.learning, variantThresholdDays: 60 } }, "deck", childBaseline);
 
   const treeBaseline = createDeckSettingsDraft(deck("deck-parent")!);
   const tree = commands.saveDeckSettings("deck-parent", withNewCardsPerDay(treeBaseline, 9), "deck-tree", treeBaseline);
   assert.deepEqual(tree?.changedDeckIds.sort(), ["deck-child", "deck-parent"]);
   assert.equal(deck("deck-parent")?.deckSettings.newCardsPerDay, 9);
   assert.equal(deck("deck-child")?.deckSettings.newCardsPerDay, 9, "der Teilbaum übernimmt die Änderung");
-  assert.equal(deck("deck-child")?.deckSettings.leechThreshold, 4, "nicht geänderte eigene Werte des Unterstapels bleiben");
+  assert.equal(deck("deck-child")?.deckSettings.variantThresholdDays, 60, "nicht geänderte eigene Werte des Unterstapels bleiben");
   assert.equal(deck("deck-other")?.deckSettings.newCardsPerDay, defaultLimit);
 
   const baseline = createDeckSettingsDraft(deck("deck-parent")!);

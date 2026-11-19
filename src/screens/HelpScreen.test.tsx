@@ -18,10 +18,12 @@ test("help sections carry labelled headings and the method links jump to them", 
   for (const target of ["active-recall-heading", "spaced-repetition-heading"]) {
     assert.match(markup, new RegExp(`<a(?=[^>]*href="#${target}")(?=[^>]*data-help-method-navigation="animated")`));
   }
-  for (const heading of ["So arbeitet ein Spaced-Repetition-Scheduler", "Transparenz zum aktuellen Scheduler", "So läuft eine Prüfungssitzung", "So arbeitest du in der Kartenverwaltung", "Was bei Varianten geschützt bleibt", "Mehr über FSRS"]) {
+  for (const heading of ["So arbeitet ein Spaced-Repetition-Scheduler", "Transparenz zum aktuellen Scheduler", "So bewertest du", "So läuft eine Prüfungssitzung", "So arbeitest du in der Kartenverwaltung", "Was bei Varianten geschützt bleibt", "Mehr über FSRS"]) {
     assert.match(markup, new RegExp(`<h3[^>]*>${heading}</h3>`));
   }
   assert.match(markup, /href="https:\/\/github\.com\/open-spaced-repetition\/awesome-fsrs\/wiki\/ABC-of-FSRS"/);
+  // The rating guide takes its example from the real scheduler at the default deck settings.
+  assert.match(markup, /Mit 93 % Zielerinnerung kommt eine neue Karte, immer mit „Gut“ bewertet, nach 10 Minuten und dann nach 4, 16, 44 und 112 Tagen wieder\./);
 });
 
 test("help opens right below its title without eyebrows or icon tiles", () => {

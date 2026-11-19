@@ -12,7 +12,7 @@ const now = "2026-10-20T08:00:00.000Z", today = "2026-10-20";
 const decks = [createCoreDeck({ id: "root", name: "Root" }), ...["a", "b"].map((id) => createCoreDeck({ id, name: id.toUpperCase(), parentDeckId: "root" }))];
 const options = { now, preferences: getGlobalSchedulerPreferences({}), timeZone: "UTC", capacity: createStudyTimeCapacity() };
 
-// The planning scenario follows the cards' last answers. At the default goal of 92 % about 8 % of reviews fail, so 10/10/75/5 % is
+// The planning scenario follows the cards' last answers. At the default goal of 93 % about 7 % of reviews fail, so 10/10/75/5 % is
 // a slightly strict everyday mix; the stress case answers each button equally often, so every fourth answer is a lapse.
 const usual = (index: number): ReviewRating => (index % 20 < 2 ? "again" : index % 20 < 4 ? "hard" : index % 20 < 19 ? "good" : "easy");
 const uniform = (index: number): ReviewRating => (["again", "hard", "good", "easy"] as const)[index % 4];

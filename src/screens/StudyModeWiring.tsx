@@ -59,6 +59,7 @@ export function StudyModeWiring() {
       learningDayKey={learningDayKey}
       dayStartHour={globalSchedulerPreferences.dayStartHour}
       learnAheadMinutes={globalSchedulerPreferences.learnAheadMinutes}
+      leechThreshold={globalSchedulerPreferences.leechThreshold}
       easyDays={globalSchedulerPreferences.easyDays}
       dueForecast={study.dueForecast}
       timeZone={learningTimeZone}

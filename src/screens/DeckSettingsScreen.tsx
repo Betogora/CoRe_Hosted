@@ -11,9 +11,8 @@ import { ActionButton, CrossLinkButton } from "../ui/actionUi.tsx";
 import { ColorPicker } from "../ui/ColorPicker.tsx";
 import { DeckAppearanceIcon, deckIconOptions, getDeckIcon } from "../ui/deckAppearance.tsx";
 import { useSuccessToast } from "../ui/feedbackUi.tsx";
-import { CoreNumberField } from "../ui/CoreNumberField.tsx";
 import { LearningSettingsPanel } from "../ui/LearningSettingsPanel.tsx";
-import { ActionDialog, CoreModeControl, CoreSegmentedControl, EmptyState } from "../ui/coreUi.tsx";
+import { ActionDialog, CoreModeControl, EmptyState } from "../ui/coreUi.tsx";
 import { SettingsDialogFrame } from "./SettingsDialogFrame.tsx";
 import { DeckSelect } from "../ui/selectUi.tsx";
 import { createDeckLearningSettingsDraft, createDeckSettingsDraft, normalizeDeckSettingsDraft, settingsDraftsEqual, type DeckLearningSettingsDraft, type DeckSettingsDraft } from "../settingsDraft.ts";
@@ -64,11 +63,6 @@ function DeckIconPicker({ value, color, onChange }: { value: string; color: stri
   );
 }
 
-
-const LEECH_ACTION_OPTIONS = [
-  { value: "tag", label: "Nur kennzeichnen" },
-  { value: "suspend", label: "Aussetzen" },
-] as const;
 
 export function DeckSettingsScreen({ section, onSelectSection, deck, decks, learningProfiles, onSaveSettings, onApplyLearningProfile, onSaveLearningProfiles, onDraftStateChange, onRequestContextAction, onCreateSubdeck, onDeleteDeck, onSelectDeck, onOpenGlobalSettings, offlineDeck = null, bodyCache = null, onDownloadDeck, onRemoveDeckDownload, variantGeneration, onClose, footer }: DeckSettingsScreenProps) {
   const { running: variantGenerationRunning = false, cardsWithoutVariant = null } = variantGeneration ?? {};
@@ -310,20 +304,6 @@ export function DeckSettingsScreen({ section, onSelectSection, deck, decks, lear
                 </div>
               </div>
             ) : null}
-            <div className="core-settings-row" data-testid="deck-settings-leech">
-              <label htmlFor="deck-settings-leech-threshold" className="core-settings-row-title">Lernbremse ab Fehlern</label>
-              <div className="core-settings-row-control">
-                <CoreNumberField id="deck-settings-leech-threshold" value={activeDraft.leech.leechThreshold} min={1} max={99} unit="Fehler" className="w-32"
-                  onChange={(leechThreshold) => setDraft((current) => current ? { ...current, leech: { ...current.leech, leechThreshold } } : current)} />
-                <CoreSegmentedControl
-                  ariaLabel="Aktion der Lernbremse"
-                  className="core-segmented-touch"
-                  options={LEECH_ACTION_OPTIONS}
-                  value={activeDraft.leech.leechAction}
-                  onValueChange={(leechAction) => setDraft((current) => current ? { ...current, leech: { ...current.leech, leechAction } } : current)}
-                />
-              </div>
-            </div>
             {onDownloadDeck && onRemoveDeckDownload ? (
               <div className="core-settings-row">
                 <div className="core-settings-row-text">

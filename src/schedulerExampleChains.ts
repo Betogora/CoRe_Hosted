@@ -8,7 +8,7 @@ import { getDurabilityDays, scheduleWithFsrs } from "./scheduler.ts";
 const START = "2026-08-21T10:00:00.000Z";
 const DAY_MS = 86_400_000;
 
-export const EXAMPLE_RETENTIONS = [0.9, 0.92, 0.94];
+export const EXAMPLE_RETENTIONS = [0.9, 0.93, 0.95];
 export const EXAMPLE_VARIANT_THRESHOLDS = [7, 21, 60];
 /** Active variants of the example card, the most a deck allows. */
 export const EXAMPLE_VARIANT_COUNT = 3;

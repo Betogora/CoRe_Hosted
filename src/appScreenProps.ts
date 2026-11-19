@@ -338,7 +338,7 @@ export interface SimulatorScreenProps {
   onOffsetChange: (offsetMinutes: number) => void;
 }
 
-export interface StudyModeProps {
+export interface StudyModeProps extends Partial<Pick<GlobalSchedulerPreferences, "dayStartHour" | "learnAheadMinutes" | "leechThreshold" | "easyDays">> {
   /** A settings dialog lies over the session; review shortcuts pause meanwhile. */
   shortcutsSuspended?: boolean;
   deck: Deck;
@@ -350,9 +350,6 @@ export interface StudyModeProps {
   mediaStore: AccountMediaStore | null;
   getNow: () => string;
   learningDayKey?: string;
-  dayStartHour?: number;
-  learnAheadMinutes?: number;
-  easyDays?: GlobalSchedulerPreferences["easyDays"];
   /** Account-wide due counts per future day at session start; without them Easy Days only sees the session cards. */
   dueForecast?: ReadonlyMap<string, number> | null;
   timeZone?: string;
