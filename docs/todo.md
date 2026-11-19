@@ -246,6 +246,8 @@ Messung vom 2026-10-31 im [Verlauf](history.md).
   „Umformulierungen“ (Agenda 1.7).
 - Simulator für das ganze Konto entfernen; stattdessen eine selbst klickbare
   Simulationskette je Karte für alle, Vorbild Flashka recherchieren (6.1).
+- Tageszahlen der Lernsitzung nach einem mitten in der Sitzung geänderten
+  Tageslimit neu aus den lokalen Stapelzählungen laden (heute Stand beim Start).
 - Semantische Themenzuordnung in ungegliederten Stapeln, ohne Lernstände zu
   ändern; ein Lösungsweg über Tags ist `Treffer lernen` der Kartenverwaltung.
 
