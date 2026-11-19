@@ -8297,9 +8297,9 @@ html:has(.catalog-preview) { scroll-behavior: auto; }
 <li>Karten stammen nur aus der Quelle. Jede Karte nennt ihre Stelle (PDF-Seite oder Zeilen einer Text-, Markdown- oder Tabellendatei); Belege werden nie erfunden.</li>
 <li>Die Quelle wird nur im Browser gelesen. Leere, geschützte, gescannte oder zu große Quellen (20 MiB, 400.000 Zeichen) werden abgewiesen, nie still gekürzt; Seiten ohne Textlayer werden genannt.</li>
 <li>Größere Quellen laufen abschnittweise nacheinander im geöffneten Tab mit sichtbarem Fortschritt; jeder Abschnitt kennt die bisherigen Fragen. Abbrechen behält Erhaltenes, ein Fehler, der jeden Abschnitt träfe, stoppt den Lauf, ein einzeln gescheiterter Abschnitt wird genannt. Endet der Lauf vorzeitig oder an der Obergrenze, nennt das Ergebnis die erste nicht ausgewertete Stelle.</li>
-<li>Das Ergebnis ist eine ungespeicherte Liste der Vorschläge mit Stelle, Hinweisen der KI und der Zahl verworfener Vorschläge. Jeder Vorschlag lässt sich wie im <a href="#specs--karteneditor">Karteneditor</a> mit Vorschau bearbeiten oder verwerfen; alle zu verwerfen behält den Auftrag.</li>
-<li>Erst die Übernahme speichert die verbliebenen Vorschläge als gewöhnliche eigene Karten im Zielstapel; ein neuer Stapel entsteht erst dabei. Antwort, Erklärung und Stelle stehen in getrennten Feldern. Scheitert das Speichern mittendrin, bleiben die übrigen Vorschläge zum erneuten Übernehmen erhalten.</li>
-<li>Ohne Verbindung ist die Erstellung gesperrt; ungespeicherte Vorschläge schützt der Entwurfsschutz.</li>
+<li>Das Ergebnis ist eine ungespeicherte Liste mit Stelle, Hinweisen der KI und Zahl verworfener Vorschläge. Jeder Vorschlag lässt sich wie im <a href="#specs--karteneditor">Karteneditor</a> bearbeiten oder verwerfen; alle zu verwerfen behält den Auftrag.</li>
+<li>Erst die Übernahme speichert die Vorschläge als eigene Karten mit Antwort, Erklärung und Stelle in getrennten Feldern; ein neuer Zielstapel entsteht erst dabei. Scheitert sie, bleibt der Rest zum erneuten Übernehmen.</li>
+<li>Ohne Verbindung ist die Erstellung gesperrt; der Entwurfsschutz gilt auch für Vorschläge.</li>
 <li><strong>Bewusst nicht:</strong> feste Kartenanzahl, Mischungsverhältnisse, Lernzielauswahl, Wissen außerhalb der Quelle.</li>
 </ul>
 <h2 id="specs--5-lernen" class="core-heading-2" tabindex="-1">5. Lernen <a class="docs-anchor" href="#specs--5-lernen" aria-label="Link zu 5. Lernen">#</a></h2>
