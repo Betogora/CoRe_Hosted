@@ -52,11 +52,16 @@ Serverqueue, automatische Varianten.
       vorausgewählt; Kartenmenge als Stufe mit Hochrechnung, vorher
       recherchieren, wie andere Apps das lösen, danach Mischung und
       Lernziele entscheiden; Größengrenze nach Seiten oder Zeichen.
-- [ ] **Nachweis vor dem Release:** Stichprobe gegen die Preview mit den
-      Prüfdokumenten in `fixtures/ai-source/` (jedes Format, alle vier
-      Kartenformen): Belege, Formen, Dopplungen, Kosten und Laufzeit; die
-      inhaltsfreie Auswertung steht im PR und in `history.md`. Optimierung,
-      Eval und Hillclimb folgen in P5.
+- [ ] **Befunde der Stichprobe (2026-11-19, [Verlauf](history.md)):**
+      Belege feiner schneiden: Kurze Texte ohne Überschriften und
+      Tabellendateien werden heute zu einer einzigen Stelle („Zeilen 1–15“),
+      weil die Zerlegung bis 3.000 Zeichen packt; Ziel ist eine Stelle je
+      Absatz oder Zeilengruppe. Prompt: Bei mehreren erlaubten Formen wählte das Modell
+      in 75 von 75 Vorschlägen Frage–Antwort, obwohl die anderen Formen
+      gültig entstehen, wenn sie allein erlaubt sind; etwa jede dritte Karte
+      fragt zwei Dinge; Fragen enthalten oft „laut Quelle“. Ob der Prompt
+      vor dem Release ohne Eval nachgeschärft wird oder erst in P5, ist
+      offen.
 
 ## P5: KI-Eval und Hillclimb
 
