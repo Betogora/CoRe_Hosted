@@ -121,7 +121,7 @@ Befehlsmodule laufen ohne React und entstehen je Arbeitsbereich aus Store, lokal
 | `notePresentation.ts`, `presentationFrame.ts`, `originalLayout.ts`, `htmlSafety.ts` | Kartenrenderer, CSP-Rahmen, Regel des Originallayouts, Sanitizer |
 | `apkgImport.ts`, `apkgNoteTranslation.ts`, `importRetranslation.ts` | APKG-Vorschau und gestreamter Importgraph, Übersetzung, Neuübersetzung |
 | `learningSummaries.ts`, `learningMindMaps.ts` | Zusammenfassungen und Mindmaps: Format, Operationen, lokale Ablage und Abgleich |
-| `aiSourceCreation.ts`, `aiSourceCardsContract.ts`, `aiSourceCards.ts` | Auftrag „Karten aus einer Quelle“: Validierung und Prompt, Vertrag der Route, Auslesen und Abschnittslauf; in der App noch nicht verdrahtet |
+| `aiSourceCreation.ts`, `aiSourceCardsContract.ts`, `aiSourceCards.ts` | Karten aus einer Quelle: Auftrag und Prompt, Vertrag der Route, Auslesen, Abschnittslauf, Abruf und Vorschlagsinhalt |
 | `dashboardWidgets.ts`, `dailyMotivation.ts`, `brainMascots.ts` | Dashboard-Layout und To-dos, Tagesimpuls, Maskottchen; nur lokal |
 | `fieldTimings.ts` | Feldwerte nur auf dem Gerät (ADR-050) |
 | `mainThreadBudget.ts` | teilt lange Hauptthread-Schleifen in begrenzte Scheiben |
@@ -361,7 +361,7 @@ Befehlsmodule laufen ohne React und entstehen je Arbeitsbereich aus Store, lokal
 
 ### Karten aus einer Quelle
 
-- `ai-source` ist vorbereitet: `aiSourceCreation.ts` validiert den Auftrag und baut die Anweisungen. `aiSourceCardsContract.ts` prüft je Anfrage einen Abschnitt der Quelle als Einheiten mit ID und die Antwort: Strukturfehler verwerfen sie ganz; einzelne Vorschläge mit ungültigen Feldern oder ungültiger, nicht erlaubter Form, unbekanntem Beleg, wiederholter Frage oder über dem Restlimit des Auftrags fallen gezählt heraus. `aiSourceCards.ts` liest die Quelle im Browser, zerlegt sie in belegte Einheiten (PDF-Seite, Zeilenblöcke, Tabellenzeilen mit Kopfzeile) und schickt Abschnitte nacheinander; den Abruf erhält es als Parameter, die App reicht ihn noch nicht durch. Übernahme fehlt.
+- `aiSourceCreation.ts` validiert den Auftrag und baut die Anweisungen. `aiSourceCardsContract.ts` prüft je Anfrage einen Abschnitt der Quelle als Einheiten mit ID und die Antwort: Strukturfehler verwerfen sie ganz; einzelne Vorschläge mit ungültigen Feldern oder ungültiger, nicht erlaubter Form, unbekanntem Beleg, wiederholter Frage oder über dem Restlimit des Auftrags fallen gezählt heraus. `aiSourceCards.ts` liest die Quelle im Browser, zerlegt sie in belegte Einheiten (PDF-Seite, Zeilenblöcke, Tabellenzeilen mit Kopfzeile) und schickt Abschnitte nacheinander über `requestAiSourceCards`, das die Antwort im Browser erneut prüft. Gespeichert wird erst bei der Übernahme, über `createManualNoteContent` und `saveManualNote`.
 
 ### Zusammenfassungen und Mindmaps
 

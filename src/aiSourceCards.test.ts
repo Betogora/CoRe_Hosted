@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { describeAiSourceCardsRun, readAiSource, runAiSourceCards, splitAiSource, type AiSourceCardsRequester, type SourceUnit } from "./aiSourceCards.ts";
+import { describeAiSourceCardsRun, proposalNoteContent, readAiSource, requestAiSourceCards, runAiSourceCards, saveProposals, splitAiSource, type AiSourceCardsRequester, type SourceUnit } from "./aiSourceCards.ts";
+import { createNote } from "./coreModel.ts";
 import { AiSourceCardsError, parseAiSourceCardsRequest, type GeneratedSourceCard } from "./aiSourceCardsContract.ts";
 import { createAiSourceCreationDraft } from "./aiSourceCreation.ts";
 
@@ -137,4 +138,59 @@ test("Abbruch behält Erhaltenes, Fehler einzelner Abschnitte werden genannt, Fe
   ]);
   const empty = await runAiSourceCards({ units: [unit(1)], settings, signal: new AbortController().signal, request: async () => ({ cards: [], warnings: [], discarded: 1 }) });
   assert.deepEqual(describeAiSourceCardsRun(empty), ["1 Vorschlag wurde verworfen: ungültig, doppelt oder über der Obergrenze.", "Die Quelle ergab keine Kartenvorschläge."]);
+});
+
+const okResponse = (cards: GeneratedSourceCard[]) => ({ cards, warnings: [], discarded: 0, model: "openai/gpt-6-luna", privacyMode: "zdr", promptVersion: "source-cards-v1", usage: null });
+
+test("Der Abruf sendet die Sitzung mit und prüft die Antwort gegen Anfrage und Vertrag", async () => {
+  const supabase = { auth: { getSession: async () => ({ data: { session: { access_token: "session-test" } }, error: null }) } } as unknown as NonNullable<Parameters<typeof requestAiSourceCards>[1]>;
+  const request = { settings, units: [{ id: "s1", label: "Seite 1", text: "ATP ist ein Energieträger." }], avoid: [], limit: 2 };
+  const signal = new AbortController().signal;
+  const result = await requestAiSourceCards(request, supabase, signal, async (url, init) => {
+    assert.equal(url, "/api/ai/source-cards");
+    assert.equal((init?.headers as Record<string, string>).Authorization, "Bearer session-test");
+    assert.deepEqual(JSON.parse(String(init?.body)), request);
+    return new Response(JSON.stringify(okResponse([card("Was ist ATP?")])));
+  });
+  assert.deepEqual(result, { cards: [card("Was ist ATP?")], warnings: [], discarded: 0 });
+  await assert.rejects(requestAiSourceCards(request, null, signal), (error: Error & { code?: string }) => error.code === "auth_unavailable");
+  const twoCorrect = { ...card("Welche?"), form: "single-choice" as const, back: "", options: [{ text: "A", correct: true }, { text: "B", correct: true }] };
+  for (const cards of [[card("Unbekannt?", ["s9"])], [card("A?"), card("B?"), card("C?")], [{ ...card("Form?"), form: "cloze" as const, front: "{{c1::x}}", back: "" }], [twoCorrect]]) {
+    const restricted = { ...request, settings: { ...settings, cardForms: cards[0] === twoCorrect ? ["single-choice" as const] : ["basic" as const] } };
+    await assert.rejects(requestAiSourceCards(restricted, supabase, signal, async () => new Response(JSON.stringify(okResponse(cards)))), /keine gültigen Kartenvorschläge/);
+  }
+  await assert.rejects(requestAiSourceCards(request, supabase, signal, async () => new Response(JSON.stringify({ error: { code: "rate_limited", message: "Später erneut versuchen." } }), { status: 429 })), (error: Error & { code?: string }) => error.code === "rate_limited");
+});
+
+test("Vorschläge werden zu gültigen Inhalten: Antwort, Erklärung und Stelle in getrennten Feldern, Text bleibt Text", () => {
+  const place = (proposal: GeneratedSourceCard) => ({ ...proposal, id: "p1", sourceLabels: ["Seite 2", "Seite 3"] });
+  const basic = proposalNoteContent(place({ ...card("Was ist <ATP>?"), explanation: "Trägt Energie.\nIn jeder Zelle." }), "skript.pdf");
+  assert.deepEqual(basic.fields.map(({ name, role, html }) => [name, role, html]), [
+    ["Vorderseite", "prompt", "Was ist &lt;ATP&gt;?"],
+    ["Rückseite", "answer", "Antwort"],
+    ["Erklärung", "extra", "Trägt Energie.<br>In jeder Zelle."],
+    ["Quelle", "source", "skript.pdf · Seite 2; Seite 3"],
+  ]);
+  const cloze = proposalNoteContent(place({ form: "cloze", front: "ATP liegt in der {{c1::Zelle}}.", back: "", options: [], explanation: "", sources: ["s1"] }), "Eingefügter Text");
+  assert.equal(cloze.interaction.kind, "cloze");
+  assert.deepEqual(cloze.fields.map(({ role, html }) => [role, html]), [["prompt", "ATP liegt in der {{c1::Zelle}}."], ["extra", ""], ["source", "Eingefügter Text · Seite 2; Seite 3"]]);
+  const choice = proposalNoteContent(place({ form: "multiple-choice", front: "Was gilt?", back: "", options: [{ text: "A & B", correct: true }, { text: "C", correct: false }], explanation: "Weil.", sources: ["s1"] }), "x.md");
+  assert.deepEqual(choice.interaction.kind === "choice" && choice.interaction.options.map(({ html, correct }) => [html, correct]), [["A &amp; B", true], ["C", false]]);
+  for (const content of [basic, cloze, choice]) assert.equal(createNote({ content, deckId: "deck" }).cards.length, 1);
+});
+
+test("Übernahme speichert nacheinander, der erste Vorschlag legt den Stapel an, ein Fehler hält an und nennt den Stand", async () => {
+  const content = proposalNoteContent({ ...card("Was ist ATP?"), id: "p1", sourceLabels: ["Seite 1"] }, "skript.pdf");
+  const proposals = ["p1", "p2", "p3"].map((id) => ({ id, content }));
+  const calls: Array<string | null> = [];
+  const save = async ({ deckId }: { deckId: string | null }) => {
+    calls.push(deckId);
+    if (calls.length === 3) return null;
+    return { deck: { id: "deck-neu" }, cardIds: ["card"] };
+  };
+  assert.deepEqual(await saveProposals(proposals, { deckId: null, deckName: "Skript" }, save), { deckId: "deck-neu", saved: 2, createdCards: 2, error: "Die Karte konnte nicht gespeichert werden." });
+  assert.deepEqual(calls, [null, "deck-neu", "deck-neu"]);
+  const thrown = await saveProposals(proposals, { deckId: "deck-alt", deckName: "Skript" }, async () => { throw new Error("Speicher voll."); });
+  assert.deepEqual(thrown, { deckId: "deck-alt", saved: 0, createdCards: 0, error: "Speicher voll." });
+  assert.deepEqual(await saveProposals(proposals, { deckId: "deck-alt", deckName: "Skript" }, async () => ({ deck: { id: "deck-alt" }, cardIds: ["a", "b"] })), { deckId: "deck-alt", saved: 3, createdCards: 6, error: null });
 });

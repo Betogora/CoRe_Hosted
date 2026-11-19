@@ -41,7 +41,7 @@ Titel: Wie die Bereiche zusammenspielen
 Gruppe: Karten kommen hinein (Erstellen)
 Anki-Import | Paket wird auf dem Gerät übersetzt
 Manuell | Felder, Auswahl, Lücken, Bildverdeckung
-[primär] Automatisch aus einer Quelle | vorbereitet, noch nicht aktiv
+[primär] Automatisch aus einer Quelle | KI-Vorschläge, vor dem Speichern geprüft
 Pfeil: werden zu
 Gruppe: Bestand
 Stapel | Hierarchie mit eigenen Lernoptionen
@@ -196,7 +196,7 @@ Akzeptanz:
 
 - Der Import folgt [Anki-Import](#anki-import), [Übersetzung von Anki-Paketen](#übersetzung-von-anki-paketen) und [Reimport und Neuübersetzung](#reimport-und-neuübersetzung).
 - Die manuelle Erstellung folgt [Manuell erstellen](#manuell-erstellen) und [Bildverdeckung](#bildverdeckung).
-- Der vorbereitete dritte Weg folgt [Automatisch aus einer Quelle](#automatisch-aus-einer-quelle).
+- Der dritte Weg folgt [Automatisch aus einer Quelle](#automatisch-aus-einer-quelle).
 
 ### Karten bearbeiten und eine Sitzung starten
 
@@ -323,7 +323,7 @@ Akzeptanz:
 
 ### Erstellungswege
 
-Karten entstehen manuell, durch Anki-Import oder, vorbereitet, automatisch aus einer Quelle. Manuelle Erstellung und Import speichern zuerst auf dem Gerät und synchronisieren danach.
+Karten entstehen manuell, durch Anki-Import oder automatisch aus einer Quelle. Manuelle Erstellung und Import speichern zuerst auf dem Gerät und synchronisieren danach.
 
 ### Manuell erstellen
 
@@ -397,7 +397,7 @@ Gruppe: Synchronisierung ins Konto
 
 ### Automatisch aus einer Quelle
 
-Vorbereitet: Der Auftrag lässt sich bis zur Prüfung zusammenstellen; die Erstellung ist noch nicht freigeschaltet, es werden keine Dateien übertragen und keine Karten angelegt.
+Aus einer eigenen Quelle schlägt die KI Karten vor; gespeichert wird erst, was die Lernenden geprüft und übernommen haben.
 
 - Ein Auftrag besteht aus Quelle (eine Datei als PDF, Text, Markdown, CSV oder TSV oder eingefügter Text), genau einem Zielstapel (neu oder vorhanden), Lernwünschen und erlaubten Kartenformen.
 - Lernwünsche sind Kartenmenge, Antwortumfang, Sprache, Formulierung, Vorwissen und freie Wünsche. Kartenmenge und Antwortumfang sind unabhängig: Mehr Karten bedeuten nicht längere Antworten.
@@ -406,7 +406,9 @@ Vorbereitet: Der Auftrag lässt sich bis zur Prüfung zusammenstellen; die Erste
 - Karten stammen nur aus der Quelle. Jede Karte nennt ihre Stelle (PDF-Seite oder Zeilen einer Text-, Markdown- oder Tabellendatei); Belege werden nie erfunden.
 - Die Quelle wird nur im Browser gelesen. Leere, geschützte, gescannte oder zu große Quellen (20 MiB, 400.000 Zeichen) werden abgewiesen, nie still gekürzt; Seiten ohne Textlayer werden genannt.
 - Größere Quellen laufen abschnittweise nacheinander im geöffneten Tab mit sichtbarem Fortschritt; jeder Abschnitt kennt die bisherigen Fragen. Abbrechen behält Erhaltenes, ein Fehler, der jeden Abschnitt träfe, stoppt den Lauf, ein einzeln gescheiterter Abschnitt wird genannt. Endet der Lauf vorzeitig oder an der Obergrenze, nennt das Ergebnis die erste nicht ausgewertete Stelle.
-- Das Ergebnis ist eine ungespeicherte Liste der Vorschläge mit Stelle, Hinweisen der KI und der Zahl verworfener Vorschläge. Verwerfen behält den Auftrag.
+- Das Ergebnis ist eine ungespeicherte Liste der Vorschläge mit Stelle, Hinweisen der KI und der Zahl verworfener Vorschläge. Jeder Vorschlag lässt sich wie im [Karteneditor](#karteneditor) mit Vorschau bearbeiten oder verwerfen; alle zu verwerfen behält den Auftrag.
+- Erst die Übernahme speichert die verbliebenen Vorschläge als gewöhnliche eigene Karten im Zielstapel; ein neuer Stapel entsteht erst dabei. Antwort, Erklärung und Stelle stehen in getrennten Feldern. Scheitert das Speichern mittendrin, bleiben die übrigen Vorschläge zum erneuten Übernehmen erhalten.
+- Ohne Verbindung ist die Erstellung gesperrt; ungespeicherte Vorschläge schützt der Entwurfsschutz.
 - **Bewusst nicht:** feste Kartenanzahl, Mischungsverhältnisse, Lernzielauswahl, Wissen außerhalb der Quelle.
 
 ## 5. Lernen
@@ -574,7 +576,7 @@ Originalkarte | wird selbst abgefragt; nach einem Fehler so lange, bis sie wiede
 
 ## 6. KI-Funktionen
 
-CoRe nutzt KI an drei Stellen: als Lernhilfe zur aufgedeckten Karte, zum Umformulieren von Karten und zum Zusammenfassen eines Stapels. Ein vierter Einsatz, Karten aus einer Quelle, ist [vorbereitet](#automatisch-aus-einer-quelle).
+CoRe nutzt KI an vier Stellen: als Lernhilfe zur aufgedeckten Karte, zum Umformulieren von Karten, zum Zusammenfassen eines Stapels und für [Karten aus einer Quelle](#automatisch-aus-einer-quelle).
 
 ### Anbindung und Datenschutz
 
@@ -608,6 +610,7 @@ Prüfung | Struktur und Grenzen werden validiert
 | [KI hilft](#ki-hilft) | Frage zur aufgedeckten Karte | Text der Karte wie abgefragt, Hinweis-, Zusatz- und Notizfelder, die Frage, bis zu sechs frühere Antworten | eine Antwort als reiner Text | flüchtiger Verlauf, der mit der Karte endet |
 | [Kartenvariante](#kartenvarianten-erzeugen) | Aktion an einer Karte oder für einen Stapel | Frage und Antwort, Lückentext oder Frage und Optionen der Karte, Fragen ihrer vorhandenen Varianten | eine Umformulierung oder die Meldung „nicht umformulierbar“ | Variante an der Karte, falls neu und Karte unverändert |
 | [Zusammenfassung](#ki-zusammenfassung) | Erstellen einer Fassung | lesbare Inhalte des Stapels, optional eine Quelle, die Wünsche als getrennter Auftrag | Abschnitte, Stichpunkte, Belege, Querbezüge | ungespeicherter Entwurf; den Text baut die App |
+| [Karten aus einer Quelle](#automatisch-aus-einer-quelle) | Erstellen mit einer Quelle | Auftrag als getrennte Daten, je Anfrage ein Abschnitt der Quelle mit Stellen, die bisherigen Fragen | belegte Kartenvorschläge und Hinweise | ungespeicherte Vorschläge; Karten erst nach Übernahme |
 
 ### KI hilft
 

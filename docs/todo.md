@@ -12,38 +12,19 @@ externen Release fällig. „Später“ ist geparkt.
 
 ## P2: Karten aus einer Quelle per KI erstellen
 
-Formular und Auftragsprüfung unter `/neue-karten?method=ai-source` stehen
-(`src/aiSourceCreation.ts`, `AiSourceCreationPanel.tsx`); „Karten erstellen“
-ist deaktiviert, nichts wird gelesen oder übertragen. Offen ist alles, was die
-Oberfläche danach verspricht. Erste Ausbaustufe: PDF, Text,
-Markdown, CSV und TSV.
+Gebaut und unter `/neue-karten?method=ai-source` freigeschaltet: Auftrag,
+Route und Vertrag (`POST /api/ai/source-cards`, ADR-011), Auslesen und
+Abschnittslauf, Vorschlagsliste mit Bearbeiten, Verwerfen und Übernahme
+(`aiSourceCards.ts`). Bewusst nicht: Ergänzungen außerhalb der Quelle, DOCX
+und PPTX, Scans und Bilder, Kprim und Eintippen, Neu-Generieren einzelner
+Vorschläge, Abgleich mit vorhandenen Karten des Zielstapels, Speichern von
+Quelle oder Vorschlägen, Serverqueue, automatische Varianten.
 
-Route, Vertrag, Auslesen, Abschnittslauf und Vorschlagsliste stehen
-(`POST /api/ai/source-cards`, `aiSourceCardsContract.ts`, `aiSourceCards.ts`,
-ADR-011); in der App fehlt der Abruf, nur der UI-Katalog zeigt den Lauf.
-Bewusst nicht: Ergänzungen außerhalb der Quelle, DOCX und PPTX, Scans und Bilder, Kprim und Eintippen,
-Neu-Generieren einzelner Vorschläge, Abgleich mit vorhandenen Karten des
-Zielstapels, Speichern von Quelle oder Vorschlägen, Serverqueue, automatische
-Varianten.
-
-- [ ] **P2c – Prüfen, übernehmen, freischalten:** Bearbeiten und Verwerfen je
-      Vorschlag; Bearbeiten und Vorschau nutzen den Reiter `Inhalt` des
-      [Karteneditors](specs.md#karteneditor), kein zweiter Editor. Gespeichert
-      wird erst nach Bestätigung und nur über `coreModel.ts` (kurze Antwort,
-      Erklärung in `extra`, Beleg in `source`); ein neuer Zielstapel entsteht
-      erst bei der Übernahme; der Entwurfsschutz gilt auch für ungespeicherte
-      Vorschläge. Danach den Abruf im Browser samt Antwortprüfung verdrahten
-      und „Karten erstellen“ freischalten, ohne Verbindung mit Meldung
-      gesperrt; Specs
-      [Automatisch aus einer Quelle](specs.md#automatisch-aus-einer-quelle),
-      `status.md` und `architecture.md` nachziehen. Nachweis: E2E mit
-      gemockter Route (Erfolg, Hinweise, Abbruch, Fehler, nichts gespeichert
-      vor Übernahme), visuelle Pflichtmatrix für Fortschritt und
-      Vorschlagsliste, Stichprobe gegen die Preview mit 4–6 selbst
-      geschriebenen oder frei lizenzierten Prüfdokumenten unter `fixtures/`
-      (jedes Format, alle vier Kartenformen); die inhaltsfreie Auswertung
-      steht im PR und in `history.md`. Optimierung, Eval und Hillclimb folgen
-      in P5.
+- [ ] **Nachweis vor dem Release:** Stichprobe gegen die Preview mit den
+      Prüfdokumenten in `fixtures/ai-source/` (jedes Format, alle vier
+      Kartenformen): Belege, Formen, Dopplungen, Kosten und Laufzeit; die
+      inhaltsfreie Auswertung steht im PR und in `history.md`. Optimierung,
+      Eval und Hillclimb folgen in P5.
 
 ## P5: KI-Eval und Hillclimb
 

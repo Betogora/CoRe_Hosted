@@ -1,7 +1,7 @@
 import React from "react";
 import type { AuthPhase } from "./accountSession.ts";
 import { shouldShowAppShell } from "./accountSession.ts";
-import type { AppRoute, AppViewId, CardEditorTab, DeckContentTab, DeckSettingsOverlay, ReviewResumeContext, SettingsSection, StudyRoute, ViewRoute } from "./appNavigation.ts";
+import type { AppRoute, AppViewId, CardEditorTab, CreationCompletionKind, DeckContentTab, DeckSettingsOverlay, ReviewResumeContext, SettingsSection, StudyRoute, ViewRoute } from "./appNavigation.ts";
 import {
   appRouteToUrl,
   areAppRoutesEqual,
@@ -26,7 +26,7 @@ interface AppNavigationProjection {
   creationDeckId: string;
   completedDeckId: string;
   completedCount: number;
-  completionKind: "import" | "manual" | "";
+  completionKind: CreationCompletionKind | "";
   cardEditorReturnContext: ReviewResumeContext | null;
   settingsSection: SettingsSection | null;
   deckSettings: DeckSettingsOverlay | null;

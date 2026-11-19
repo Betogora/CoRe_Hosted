@@ -1,7 +1,7 @@
 import React from "react";
 import { ArrowLeft, ArrowRight, CircleDot, FileText, Layers3, ListChecks, MessageSquare, Pencil, Sparkles, TextCursorInput, X } from "lucide-react";
 import type { CreationScreenProps } from "../appScreenProps.ts";
-import { describeAiSourceCardsRun, readAiSource, runAiSourceCards, type AiSourceCardsRequester, type AiSourceCardsRunResult } from "../aiSourceCards.ts";
+import { describeAiSourceCardsRun, proposalNoteContent, readAiSource, runAiSourceCards, saveProposals, type AiSourceCardsRequester, type AiSourceCardsRunResult, type ProposalDraft } from "../aiSourceCards.ts";
 import {
   AI_SOURCE_ACCEPT, AI_SOURCE_ANSWER_LENGTHS, AI_SOURCE_CARD_FORMS, AI_SOURCE_FORMAT_LABEL, AI_SOURCE_AMOUNTS, AI_SOURCE_LANGUAGES, AI_SOURCE_PRIOR_KNOWLEDGE, AI_SOURCE_REGISTERS, MAX_AI_SOURCE_WISHES_CHARS,
   aiSourceFileError, createAiSourceCreationDraft, describeAiSourceSettings, suggestSourceDeckName, validateAiSourceCreation,
@@ -15,11 +15,16 @@ import { FileDropField } from "../ui/FileDropField.tsx";
 import { SectionHeader } from "../ui/SectionHeader.tsx";
 import { CoreSelect, DeckSelect } from "../ui/selectUi.tsx";
 import { Steps } from "../ui/Steps.tsx";
+import { AiSourceProposalEditor } from "./AiSourceProposalEditor.tsx";
 import { AiSourceProposalList } from "./AiSourceProposalList.tsx";
+import { useOnline } from "./cardEditor/useOnline.ts";
 import { formatBytes } from "./screenConstants.ts";
 
-type AiSourceCreationPanelProps = Pick<CreationScreenProps, "decks" | "initialTargetDeckId" | "onDraftStateChange"> & { onRequestSourceCards?: AiSourceCardsRequester };
-type SourceCardsRun = { phase: "running"; done: number; total: number | null; cancelling: boolean } | { phase: "done"; result: AiSourceCardsRunResult; notices: string[] };
+type AiSourceCreationPanelProps = Pick<CreationScreenProps, "decks" | "initialTargetDeckId" | "onDraftStateChange" | "onSaveManualNote"> & {
+  onRequestSourceCards?: AiSourceCardsRequester;
+  onFinish: (completion: { deckId: string; createdCount: number }) => void;
+};
+type SourceCardsRun = { phase: "running"; done: number; total: number | null; cancelling: boolean } | { phase: "done"; result: AiSourceCardsRunResult; notices: string[]; proposals: ProposalDraft[] };
 
 const learningQuestions = [
   { key: "amount", label: "Kartenmenge", options: AI_SOURCE_AMOUNTS },
@@ -32,7 +37,7 @@ const steps = ["Quelle und Stapel", "Vorgaben", "Karten"];
 const STEP_ITEMS = steps.map((label) => ({ label }));
 const cardFormIcons = { basic: MessageSquare, cloze: TextCursorInput, "single-choice": CircleDot, "multiple-choice": ListChecks };
 
-export function AiSourceCreationPanel({ decks, initialTargetDeckId, onDraftStateChange, onRequestSourceCards }: AiSourceCreationPanelProps) {
+export function AiSourceCreationPanel({ decks, initialTargetDeckId, onDraftStateChange, onSaveManualNote, onRequestSourceCards, onFinish }: AiSourceCreationPanelProps) {
   const [draft, setDraft] = React.useState(() => createAiSourceCreationDraft(initialTargetDeckId));
   const initialDraft = React.useRef(draft);
   const nameEdited = React.useRef(false);
@@ -47,6 +52,13 @@ export function AiSourceCreationPanel({ decks, initialTargetDeckId, onDraftState
   const [runError, setRunError] = React.useState("");
   const [confirmDiscard, setConfirmDiscard] = React.useState(false);
   const runRef = React.useRef<AbortController | null>(null);
+  const [editing, setEditing] = React.useState<string | null>(null);
+  const [saving, setSaving] = React.useState(false);
+  const [saveError, setSaveError] = React.useState("");
+  const online = useOnline();
+  // Cards stored by earlier attempts of this order, and the decks that existed before its first attempt.
+  const adoptedCardsRef = React.useRef(0);
+  const decksBeforeRef = React.useRef<Set<string> | null>(null);
   const { settings } = draft;
   const errors = validateAiSourceCreation(draft, decks);
   const valid = !Object.values(errors).some(Boolean);
@@ -62,9 +74,9 @@ export function AiSourceCreationPanel({ decks, initialTargetDeckId, onDraftState
   }, []);
 
   React.useEffect(() => {
-    onDraftStateChange(dirty, focusDraft, false);
+    onDraftStateChange(dirty, focusDraft, saving);
     return () => onDraftStateChange(false, null, false);
-  }, [dirty, focusDraft, onDraftStateChange]);
+  }, [dirty, focusDraft, onDraftStateChange, saving]);
 
   React.useEffect(() => { focusDraft(); }, [review, step, run?.phase, focusDraft]);
   React.useEffect(() => () => runRef.current?.abort(), []);
@@ -107,7 +119,9 @@ export function AiSourceCreationPanel({ decks, initialTargetDeckId, onDraftState
         units: source.units, settings: draft.settings, request: onRequestSourceCards, signal: controller.signal,
         onProgress: ({ done, total }) => { if (!controller.signal.aborted) setRun({ phase: "running", done, total, cancelling: false }); },
       });
-      if (result.proposals.length) { setRun({ phase: "done", result, notices: source.notices }); return; }
+      const sourceName = draft.sourceMode === "text" ? "Eingefügter Text" : draft.file?.name ?? "";
+      const proposals = result.proposals.map((proposal) => ({ id: proposal.id, content: proposalNoteContent(proposal, sourceName) }));
+      if (proposals.length) { setSaveError(""); setRun({ phase: "done", result, notices: source.notices, proposals }); return; }
       // Without a single proposal there is no list to look at: back to the order, with the reason unless cancelled.
       setRun(null);
       if (result.stopped?.reason !== "cancelled") setRunError(describeAiSourceCardsRun(result).join(" "));
@@ -118,6 +132,36 @@ export function AiSourceCreationPanel({ decks, initialTargetDeckId, onDraftState
       runRef.current = null;
     }
   }
+
+  function updateProposals(update: (proposals: ProposalDraft[]) => ProposalDraft[]) {
+    setRun((current) => current?.phase === "done" ? { ...current, proposals: update(current.proposals) } : current);
+  }
+
+  /**
+   * Stores the proposals; after a failure the stored ones leave the list and a retry goes on in the same deck,
+   * also when the new deck was created although its first card failed. A target deck deleted meanwhile is
+   * replaced by a new one with the order's name.
+   */
+  async function adoptProposals() {
+    if (run?.phase !== "done" || saving) return;
+    setSaving(true);
+    setSaveError("");
+    const pending = run.proposals;
+    decksBeforeRef.current ??= new Set(decks.map((deck) => deck.id));
+    const deckName = (draft.targetMode === "new" ? draft.deckName : targetDeck?.name ?? draft.deckName).trim() || "Karten aus einer Quelle";
+    const createdDeck = decks.find((deck) => !decksBeforeRef.current!.has(deck.id) && deck.name === deckName);
+    const deckId = draft.targetMode === "existing" && targetDeck ? targetDeck.id : createdDeck?.id ?? null;
+    const outcome = await saveProposals(pending, { deckId, deckName }, onSaveManualNote);
+    adoptedCardsRef.current += outcome.createdCards;
+    setSaving(false);
+    if (!outcome.error && outcome.deckId) { onFinish({ deckId: outcome.deckId, createdCount: adoptedCardsRef.current }); return; }
+    const keptDeckId = outcome.deckId;
+    if (keptDeckId) setDraft((current) => ({ ...current, targetMode: "existing", deckId: keptDeckId }));
+    updateProposals((proposals) => proposals.slice(outcome.saved));
+    setSaveError(`${outcome.saved.toLocaleString("de-DE")} von ${pending.length.toLocaleString("de-DE")} Vorschlägen wurden gespeichert. ${outcome.error ?? ""} Die übrigen bleiben hier; versuche es erneut.`);
+  }
+
+  const editedProposal = run?.phase === "done" ? run.proposals.find((proposal) => proposal.id === editing) ?? null : null;
 
   const settingsRows = [
     ...learningQuestions.map(({ key, label, options }) => [label, options.find(({ value }) => value === settings[key])!.label]),
@@ -138,7 +182,14 @@ export function AiSourceCreationPanel({ decks, initialTargetDeckId, onDraftState
           <div><ActionButton type="button" variant="secondary" icon={X} disabled={run.cancelling} onClick={() => { runRef.current?.abort(); setRun((current) => current?.phase === "running" ? { ...current, cancelling: true } : current); }}>Abbrechen</ActionButton></div>
         </SoftPanel>
       ) : run?.phase === "done" ? (
-        <AiSourceProposalList result={run.result} notices={run.notices} headingRef={(element) => { focusRef.current = element; }} onDiscard={() => setConfirmDiscard(true)} />
+        <AiSourceProposalList
+          result={run.result} notices={run.notices} proposals={run.proposals} saving={saving} saveError={saveError}
+          headingRef={(element) => { focusRef.current = element; }}
+          onEdit={setEditing}
+          onRemove={(id) => updateProposals((proposals) => proposals.filter((proposal) => proposal.id !== id))}
+          onAdopt={() => void adoptProposals()}
+          onDiscard={() => setConfirmDiscard(true)}
+        />
       ) : review ? (
         <SoftPanel className="grid min-w-0 gap-6 p-4 sm:p-6" data-testid="ai-source-summary">
           <h3 ref={(element) => { focusRef.current = element; }} tabIndex={-1} className="min-w-0 scroll-mt-24 core-heading-3 text-core-text outline-none">Auftrag prüfen</h3>
@@ -158,9 +209,10 @@ export function AiSourceCreationPanel({ decks, initialTargetDeckId, onDraftState
           {draft.sourceMode === "text" ? <Disclosure summary="Quelltext ansehen"><p className="mt-2 whitespace-pre-wrap [overflow-wrap:anywhere] core-body text-core-text">{draft.sourceText.trim()}</p></Disclosure> : null}
           {!valid ? <StatusMessage tone="warning">{Object.values(errors).filter(Boolean).join(" ")}</StatusMessage> : null}
           {runError ? <StatusMessage tone="error" announce="assertive">{runError}</StatusMessage> : null}
+          {onRequestSourceCards && !online ? <StatusMessage tone="warning">Ohne Verbindung kann die KI keine Karten erstellen.</StatusMessage> : null}
           <div className="flex flex-wrap gap-3">
             <ActionButton type="button" variant="secondary" icon={ArrowLeft} onClick={() => { setReview(false); setRunError(""); }}>Einstellungen bearbeiten</ActionButton>
-            <ActionButton type="button" variant="primary" icon={Sparkles} disabled={!onRequestSourceCards || !valid} onClick={() => void createCards()}>Karten erstellen</ActionButton>
+            <ActionButton type="button" variant="primary" icon={Sparkles} disabled={!onRequestSourceCards || !valid || !online} onClick={() => void createCards()}>Karten erstellen</ActionButton>
           </div>
         </SoftPanel>
       ) : (
@@ -260,6 +312,14 @@ export function AiSourceCreationPanel({ decks, initialTargetDeckId, onDraftState
           </div>
         </form>
       )}
+      {editedProposal ? (
+        <AiSourceProposalEditor
+          key={editedProposal.id}
+          content={editedProposal.content}
+          onCancel={() => setEditing(null)}
+          onApply={(content) => { updateProposals((proposals) => proposals.map((proposal) => proposal.id === editedProposal.id ? { ...proposal, content } : proposal)); setEditing(null); }}
+        />
+      ) : null}
       <ActionDialog
         open={confirmDiscard}
         destructive
