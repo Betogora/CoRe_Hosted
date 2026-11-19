@@ -34,7 +34,6 @@ const learningQuestions = [
   { key: "priorKnowledge", label: "Vorwissen", options: AI_SOURCE_PRIOR_KNOWLEDGE },
 ] as const;
 const steps = ["Quelle und Stapel", "Vorgaben", "Karten"];
-const STEP_ITEMS = steps.map((label) => ({ label }));
 const cardFormIcons = { basic: MessageSquare, cloze: TextCursorInput, "single-choice": CircleDot, "multiple-choice": ListChecks };
 
 export function AiSourceCreationPanel({ decks, initialTargetDeckId, onDraftStateChange, onSaveManualNote, onRequestSourceCards, onFinish }: AiSourceCreationPanelProps) {
@@ -223,7 +222,7 @@ export function AiSourceCreationPanel({ decks, initialTargetDeckId, onDraftState
           if (valid) setReview(true);
           else setStep(errors.source || errors.target ? 0 : 2);
         }}>
-          <Steps ariaLabel="Schritte der automatischen Erstellung" items={STEP_ITEMS} current={step} className="xl:hidden" />
+          <Steps ariaLabel="Schritte der automatischen Erstellung" current={step} onSelect={setStep} items={steps.map((label, index) => ({ label, disabled: index > step && Boolean(errors.source || errors.target) }))} className="xl:hidden" />
           <div className="grid min-w-0 gap-4 xl:grid-cols-3 xl:items-start" data-testid="ai-source-steps">
             <section ref={step === 0 ? focusRef : undefined} tabIndex={-1} aria-labelledby="ai-source-step-1" className={`core-ai-source-column min-w-0 scroll-mt-24 content-start outline-none ${step === 0 ? "grid" : "hidden xl:grid"}`}>
               <SectionHeader level={3} id="ai-source-step-1" title={steps[0]} />

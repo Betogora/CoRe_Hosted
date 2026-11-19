@@ -202,7 +202,7 @@ function FoundationsDemo({ section }: { section: string }) {
   </>;
 }
 
-const STEP_DEMO_ITEMS = [{ label: "Neu" }, { label: "Lernen" }, { label: "Jung" }, { label: "Reif" }];
+const STEP_DEMO_ITEMS = [{ label: "Quelle und Stapel" }, { label: "Vorgaben" }, { label: "Karten" }];
 const TAB_DEMO_ITEMS = [{ value: "substacks", label: "Unterstapel" }, { value: "summaries", label: "Zusammenfassungen" }, { value: "mindmap", label: "Mind Map" }, { value: "cards", label: "Karten" }] as const;
 
 function StructureDemo({ section }: { section: string }) {
@@ -218,9 +218,10 @@ function StructureDemo({ section }: { section: string }) {
       <SoftPanel className="p-5"><SectionHeader level={3} title="Aktive Stapel" count={8} action={<CoreIconSegmentedControl ariaLabel="Stapelansicht" value={view} options={[{ value: "tiles", label: "Als Kacheln anzeigen", icon: Grid2x2 }, { value: "list", label: "Als Liste anzeigen", icon: List }]} onValueChange={setView} />} /></SoftPanel>
       <SoftPanel className="p-5"><SectionHeader level={3} title="Lernaktivität" action={<IconButton variant="ghost" label="Statistik öffnen" icon={ArrowUpRight} />} /><p className="core-body text-core-secondary">Gleiche Höhe und Grundlinie wie der Kopf daneben.</p></SoftPanel>
     </div></Demo>}
-    {section === "struktur" && <Demo title="Steps · auswählbar und gestreckt" wide><div className="grid gap-6">
+    {section === "struktur" && <Demo title="Steps · auswählbar, nur anzeigend und auf 18 rem Breite" wide><div className="grid gap-6">
       <Steps ariaLabel="Schritte der Prüfungsplanung" items={[{ label: "Prüfung" }, { label: "Lernstoff" }, { label: "Lernzeit", disabled: planStep < 1 }, { label: "Lernplan", disabled: planStep < 2 }]} current={planStep} onSelect={setPlanStep} />
-      <Steps ariaLabel="Reifeband" items={STEP_DEMO_ITEMS} current={2} stretch />
+      <Steps ariaLabel="Schritte der automatischen Erstellung" items={STEP_DEMO_ITEMS} current={1} />
+      <div className="max-w-[18rem]"><Steps ariaLabel="Schritte der automatischen Erstellung, schmal" items={STEP_DEMO_ITEMS} current={1} /></div>
     </div></Demo>}
     {section === "struktur" && <Demo title="CoreTabs und CoreTabPanel" wide><CoreTabs ariaLabel="Stapelinhalte" tabs={TAB_DEMO_ITEMS} value={tab} onValueChange={setTab} panelId="catalog-deck-content" /><CoreTabPanel panelId="catalog-deck-content" value={tab} className="pt-4 core-body text-core-secondary">Inhalt des Reiters {TAB_DEMO_ITEMS.find((item) => item.value === tab)?.label}.</CoreTabPanel></Demo>}
     {section === "struktur" && <Demo title="Kopf der Stapelinhalte · Brotkrumen, Titel und Karten lernen auf einer Linie, Unterstreichungs-Reiter" wide>
@@ -232,7 +233,7 @@ function StructureDemo({ section }: { section: string }) {
       </div>
       <CoreTabPanel panelId="catalog-deck-head" value={headTab} className="core-body text-core-secondary">Inhalt des Reiters {TAB_DEMO_ITEMS.find((item) => item.value === headTab)?.label}.</CoreTabPanel>
     </Demo>}
-    {section === "struktur" && <Demo title="Karteneditor · Abschnitte auf einer Fläche, Lernstand als Schrittlinie und Zeilenliste" wide>
+    {section === "struktur" && <Demo title="Karteneditor · Abschnitte auf einer Fläche, Lernstand als Reifeband und Zeilenliste" wide>
       <div className="core-card-editor-frame overflow-hidden rounded-panel border border-core-border"><CardEditorStudyTab card={variantStudyCard} now={`${today}T09:00:00Z`} services={catalogCardEditorServices} /></div>
     </Demo>}
     {section === "dialogs" && <Demo title="DialogFrame · s, m mit Reitern, l"><div className="catalog-row">{(["s", "m", "l"] as const).map((size) => <ActionButton key={size} variant="secondary" onClick={() => setDialog(size)}>{`Dialog ${size.toUpperCase()} öffnen`}</ActionButton>)}</div>
@@ -839,7 +840,7 @@ export const DEMO_GROUPS = [
   { id: "tags-flags", section: "primitive", title: "Tags und Flaggen", description: "Tag-Eingabe, Flaggenwähler und Flaggenpunkt.", components: ["TagInput", "FlagPicker", "FlagDot"], render: TagsAndFlagsDemo },
   { id: "colors", section: "primitive", title: "Farbwahl", description: "Farbfeld oder Werkzeug, Farbkreis und Schnellwahl.", components: ["ColorPicker"], render: () => <ContentDemo section="colors" /> },
   { id: "flaechen", section: "shared", title: "Flächen und leere Zustände", description: "Inhaltsflächen und leere Zustände.", components: ["SoftPanel", "EmptyState"], render: () => <FoundationsDemo section="surfaces" /> },
-  { id: "struktur", section: "shared", title: "Abschnittskopf, Schritte und Reiter", description: "Kopf jeder Fläche, Schrittlinie und Unterstreichungs-Reiter, im Stapelkopf und im Karteneditor.", components: ["SectionHeader", "Steps", "CoreTabs", "CoreTabPanel"], wide: true, render: () => <StructureDemo section="struktur" /> },
+  { id: "struktur", section: "shared", title: "Abschnittskopf, Schritte und Reiter", description: "Kopf jeder Fläche, nummerierte Schritte und Unterstreichungs-Reiter, im Stapelkopf und im Karteneditor.", components: ["SectionHeader", "Steps", "CoreTabs", "CoreTabPanel"], wide: true, render: () => <StructureDemo section="struktur" /> },
   { id: "headings", section: "shared", title: "Seitenköpfe", description: "Seitentitel sowie Köpfe von Lernen und Kartenverwaltung.", components: ["PageHeader", "LearningAreaHeader"], render: () => <><FoundationsDemo section="headings" /><NavigationDemo section="headings" /></> },
   { id: "navigation", section: "shared", title: "Navigation und Einstellungsdialog", description: "Responsive Hauptnavigation, CoRe-Wortmarke und der gemeinsame Rahmen der Einstellungsdialoge.", components: ["AppNavigation", "CoreWordmark", "SettingsDialog"], render: () => <><NavigationDemo section="navigation" /><ProductViewsDemo kind="settings" /></> },
   { id: "stapel", section: "shared", title: "Stapelbaum, Menü, Identität und Kartentabelle", description: "Stapelbaum mit seinen Zeilen, Unterstapel, Optionsmenü, Icon und Farbe eines Stapels sowie die Kartentabelle der Kartenverwaltung.", components: ["DeckOptionsMenu", "DeckTree", "DeckAppearanceIcon"], wide: true, render: () => <><DecksDemo section="stapel" /><FoundationsDemo section="symbols" /><ProductViewsDemo kind="decks" /></> },

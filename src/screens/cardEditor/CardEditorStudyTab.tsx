@@ -8,7 +8,6 @@ import { calculateRetrievability, getDurabilityDays, getMaturityBand } from "../
 import { ActionButton } from "../../ui/actionUi.tsx";
 import { ActionDialog } from "../../ui/coreUi.tsx";
 import { useSuccessToast } from "../../ui/feedbackUi.tsx";
-import { Steps } from "../../ui/Steps.tsx";
 import { CardEditorSection as Section } from "./CardEditorSection.tsx";
 import { RetrievabilityChart } from "./RetrievabilityChart.tsx";
 import { createRetrievabilityCurve } from "./retrievabilityCurve.ts";
@@ -94,7 +93,7 @@ export function CardEditorStudyTab({ card, now, dayStartHour, timeZone, services
   const { events, cloudState } = useReviewEvents(card.id, services, online, card.studyRevision);
   const { study } = card;
   const memory = { state: study.state, stability: study.stability, stabilityFast: study.extra.stabilityFast, difficulty: study.difficulty };
-  const band = getMaturityBand(memory);
+  const bandIndex = BANDS.findIndex((entry) => entry.value === getMaturityBand(memory));
   const retrievability = calculateRetrievability(reviewStateFromCardStudy(study), now);
   const dueKey = study.dueAt ? getLearningDayKey(study.dueAt, { dayStartHour, timeZone }) : null;
   const reviewed = study.reps > 0;
@@ -129,8 +128,15 @@ export function CardEditorStudyTab({ card, now, dayStartHour, timeZone, services
     <div className="core-card-editor-sections" data-testid="card-study-tab">
       <div className="core-card-editor-column">
         <Section title="Lernstand" testId="card-study-state">
-          <div data-testid="card-maturity-band">
-            <Steps ariaLabel="Reifeband" items={BANDS} current={BANDS.findIndex((entry) => entry.value === band)} stretch className="core-card-editor-maturity" />
+          <div className="core-card-editor-maturity" data-testid="card-maturity-band">
+            <ol aria-label="Reifeband">
+              {BANDS.map((entry, index) => (
+                <li key={entry.value} data-state={index < bandIndex ? "done" : index === bandIndex ? "current" : "upcoming"} aria-current={index === bandIndex || undefined}>
+                  {index > 0 ? <span aria-hidden="true" className="core-card-editor-maturity-line" /> : null}
+                  <span className="core-card-editor-maturity-step"><span aria-hidden="true" className="core-card-editor-maturity-dot" />{entry.label}</span>
+                </li>
+              ))}
+            </ol>
           </div>
           <dl className="core-card-editor-rows" data-testid="card-study-figures">
             {figures.map((figure) => (

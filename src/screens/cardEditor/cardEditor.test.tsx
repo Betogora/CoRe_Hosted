@@ -86,9 +86,10 @@ test("the study tab names the nine figures, the maturity band and the leech with
   for (const label of ["Fällig", "Haltbarkeit", "Abrufwahrscheinlichkeit", "Schwierigkeit", "Wiederholungen", "Fehler"]) assert.match(figures, new RegExp(`>${label}<`));
   assert.match(figures, />6,4 von 10</);
   const band = markup.match(/data-testid="card-maturity-band"[\s\S]*?<\/ol>/)?.[0] ?? "";
-  assert.match(band, /class="core-steps core-card-editor-maturity" data-stretch="true"><ol aria-label="Reifeband">/, "eine Schrittlinie statt einer Schalterform");
-  assert.deepEqual([...band.matchAll(/core-steps-label">([^<]+)/g)].map((match) => match[1]), ["Neu", "Lernen", "Jung", "Reif"]);
-  assert.match(band, /aria-current="step"><span aria-hidden="true" class="core-steps-line"><\/span><span class="core-steps-step"><span aria-hidden="true" class="core-steps-dot"><\/span><span class="core-steps-label">(Jung|Reif)</);
+  assert.match(markup, /class="core-card-editor-maturity" data-testid="card-maturity-band"><ol aria-label="Reifeband">/, "eine Punktlinie statt einer Schalterform");
+  assert.deepEqual([...band.matchAll(/core-card-editor-maturity-dot"><\/span>([^<]+)/g)].map((match) => match[1]), ["Neu", "Lernen", "Jung", "Reif"]);
+  assert.match(band, /data-state="current" aria-current="true"><span aria-hidden="true" class="core-card-editor-maturity-line"><\/span><span class="core-card-editor-maturity-step"><span aria-hidden="true" class="core-card-editor-maturity-dot"><\/span>(Jung|Reif)</);
+  assert.doesNotMatch(band, /core-steps|erledigt/, "ein Zustand, keine Schrittfolge");
   assert.match(markup, /Lernbremse seit 20\.07\.2026/);
   assert.match(markup, />Lernstand zurücksetzen …</);
   assert.doesNotMatch(markup, /XP/);

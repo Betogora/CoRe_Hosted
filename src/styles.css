@@ -1723,7 +1723,7 @@ svg.lucide {
   .core-metric-row > dl { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
-/* Steps: point and word on one hairline; below 520 px row width only the current word stays visible. */
+/* Steps: numbered markers on one hairline spread over the row; below 520 px row width only the current word stays visible. */
 .core-steps {
   container-type: inline-size;
   min-width: 0;
@@ -1735,7 +1735,7 @@ svg.lucide {
   gap: var(--core-space-sm);
   min-width: 0;
   margin: 0;
-  padding: 0.375rem 0;
+  padding: 0.25rem 0;
   list-style: none;
 }
 
@@ -1746,25 +1746,21 @@ svg.lucide {
   color: var(--core-text-muted);
 }
 
-.core-steps[data-stretch] li + li {
+.core-steps li + li {
   flex: 1 1 0;
 }
 
 .core-steps-line {
-  flex: 0 0 1.5rem;
-  height: var(--core-border-width);
-  background: var(--core-border-interactive);
-}
-
-.core-steps[data-stretch] .core-steps-line {
   flex: 1 1 0.75rem;
   min-width: 0.5rem;
+  height: var(--core-border-width);
+  background: var(--core-border-interactive);
 }
 
 .core-steps-step {
   display: inline-flex;
   align-items: center;
-  gap: 0.375rem;
+  gap: var(--core-space-sm);
   min-width: 0;
   color: inherit;
   font: var(--core-weight-control) 0.8125rem/1.25rem var(--core-font-sans);
@@ -1776,24 +1772,33 @@ button.core-steps-step:not(:disabled):hover .core-steps-label {
   text-underline-offset: 3px;
 }
 
+button.core-steps-step:not(:disabled):hover .core-steps-marker {
+  border-color: var(--core-action-primary);
+}
+
 button.core-steps-step:disabled {
   cursor: not-allowed;
 }
 
-.core-steps-dot {
+.core-steps-marker {
+  display: inline-grid;
   flex-shrink: 0;
-  width: 0.625rem;
-  height: 0.625rem;
+  place-items: center;
+  width: 1.5rem;
+  height: 1.5rem;
   border: 1.5px solid var(--core-border-interactive);
   border-radius: var(--core-radius-round);
   background: var(--core-surface);
+  font: var(--core-weight-emphasis) 0.75rem/1 var(--core-font-sans);
+  font-variant-numeric: tabular-nums;
 }
 
+.core-steps li:is([data-state="done"], [data-state="current"]) .core-steps-line { background: var(--core-action-primary); }
 .core-steps li[data-state="done"] { color: var(--core-text); }
-.core-steps li[data-state="done"] .core-steps-dot { border-color: var(--core-text); background: var(--core-text); }
+.core-steps li[data-state="done"] .core-steps-marker { border-color: var(--core-action-soft); background: var(--core-action-soft); color: var(--core-action-primary); }
 .core-steps li[data-state="current"] { color: var(--core-action-primary); }
 .core-steps li[data-state="current"] .core-steps-step { font-weight: var(--core-weight-heading); }
-.core-steps li[data-state="current"] .core-steps-dot { border-color: var(--core-action-primary); background: var(--core-action-primary); box-shadow: 0 0 0 3px var(--core-focus-ring-soft); }
+.core-steps li[data-state="current"] .core-steps-marker { border-color: var(--core-action-primary); background: var(--core-action-primary); color: var(--core-text-on-accent); box-shadow: 0 0 0 3px var(--core-focus-ring-soft); }
 
 @container (max-width: 32.49rem) {
   .core-steps li:not([aria-current]) .core-steps-label {
@@ -2889,13 +2894,20 @@ button.core-steps-step {
   overflow-wrap: anywhere;
 }
 
-/* The four maturity words are short, so all of them stay visible at every width. */
-.core-card-editor-maturity.core-steps li:not([aria-current]) .core-steps-label {
-  position: static;
-  width: auto;
-  height: auto;
-  overflow: visible;
-  clip: auto;
+/* Maturity band: a state, not a process, as point and word on one hairline; the four short words stay visible at every width. */
+.core-card-editor-maturity { container-type: inline-size; min-width: 0; }
+.core-card-editor-maturity > ol { display: flex; align-items: center; gap: var(--core-space-sm); min-width: 0; margin: 0; padding: 0.375rem 0; list-style: none; }
+.core-card-editor-maturity li { display: flex; align-items: center; gap: var(--core-space-sm); color: var(--core-text-muted); font: var(--core-weight-control) 0.8125rem/1.25rem var(--core-font-sans); white-space: nowrap; }
+.core-card-editor-maturity li + li { flex: 1 1 0; }
+.core-card-editor-maturity-line { flex: 1 1 0.75rem; min-width: 0.5rem; height: var(--core-border-width); background: var(--core-border-interactive); }
+.core-card-editor-maturity-step { display: inline-flex; align-items: center; gap: 0.375rem; }
+.core-card-editor-maturity-dot { flex-shrink: 0; width: 0.625rem; height: 0.625rem; border: 1.5px solid var(--core-border-interactive); border-radius: var(--core-radius-round); background: var(--core-surface); }
+.core-card-editor-maturity li[data-state="done"] { color: var(--core-text); }
+.core-card-editor-maturity li[data-state="done"] .core-card-editor-maturity-dot { border-color: var(--core-text); background: var(--core-text); }
+.core-card-editor-maturity li[data-state="current"] { color: var(--core-action-primary); font-weight: var(--core-weight-heading); }
+.core-card-editor-maturity li[data-state="current"] .core-card-editor-maturity-dot { border-color: var(--core-action-primary); background: var(--core-action-primary); box-shadow: 0 0 0 3px var(--core-focus-ring-soft); }
+@container (max-width: 32.49rem) {
+  .core-card-editor-maturity > ol, .core-card-editor-maturity li { gap: var(--core-space-xs); }
 }
 
 .core-card-editor-content {

@@ -92,7 +92,7 @@ export function ExamPlanEditor({ embedded = false, onDirtyChange, decks, deckSum
   return <div className="grid w-full min-w-0 gap-6" data-testid="exam-plan-editor" data-embedded={embedded || undefined}>
     {!embedded ? <>
     <PageHeader title={initialPlan ? "Prüfung bearbeiten" : "Prüfung planen"} action={<ActionButton variant="secondary" icon={ArrowLeft} disabled={saving} onClick={cancel}>Zurück</ActionButton>} />
-    <Steps ariaLabel="Schritte der Prüfungsplanung" stretch current={step} onSelect={go} items={STEPS.map((label, index) => ({ label, disabled: saving || index > step + 1 || (index === step + 1 && !canAdvance) }))} />
+    <Steps ariaLabel="Schritte der Prüfungsplanung" current={step} onSelect={go} items={STEPS.map((label, index) => ({ label, disabled: saving || index > step + 1 || (index === step + 1 && !canAdvance) }))} />
     </> : null}
     <div className={!embedded && step !== 3 ? "grid min-w-0 items-start gap-6 xl:grid-cols-[minmax(0,1fr)_17rem]" : "min-w-0"}>
     <div className="grid min-w-0 gap-6">

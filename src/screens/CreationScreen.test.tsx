@@ -60,6 +60,7 @@ test("source creation offers readable files and settings without a generation ac
   assert.match(markup, /role="switch"[\s\S]*?Neuen Stapel anlegen/);
   assert.doesNotMatch(markup, /Schritt 0|Schritt 1 von 3|\?</);
   assert.match(markup, /<ol aria-label="Schritte der automatischen Erstellung"/);
+  assert.equal((markup.match(/<button type="button" class="core-steps-step" disabled="">/g) ?? []).length, 2, "Vorgaben und Karten erst mit Quelle und Stapel");
   assert.equal((markup.match(/class="core-ai-source-format"/g) ?? []).length, 4);
   assert.match(markup, /Auftrag prüfen/);
   assert.equal((markup.match(/type="checkbox"(?! role="switch")[^>]*checked=""/g) ?? []).length, 1);

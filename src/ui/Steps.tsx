@@ -1,3 +1,5 @@
+import { Check } from "lucide-react";
+
 export interface StepItem {
   label: string;
   /** Only with `onSelect`: the step cannot be chosen yet. */
@@ -11,8 +13,6 @@ export interface StepsProps {
   current: number;
   /** Makes every step a button; the caller decides which steps are reachable via `disabled`. */
   onSelect?: (index: number) => void;
-  /** Spreads the steps evenly over the available width. */
-  stretch?: boolean;
   className?: string;
 }
 
@@ -23,18 +23,18 @@ function stepState(index: number, current: number): StepState {
 }
 
 /**
- * Steps of a process as one line of point and word: done in text color, current in action blue, upcoming muted. Below 520 px row width only the current word stays visible; the others remain readable
- * for assistive technology.
+ * Numbered steps of a process spread over the row: done with a check, current in action blue, upcoming muted.
+ * Below 520 px row width only the current word stays visible; the others remain readable for assistive technology.
  */
-export function Steps({ ariaLabel, items, current, onSelect, stretch = false, className = "" }: StepsProps) {
+export function Steps({ ariaLabel, items, current, onSelect, className = "" }: StepsProps) {
   return (
-    <div className={`core-steps ${className}`.trim()} data-stretch={stretch || undefined}>
+    <div className={`core-steps ${className}`.trim()}>
       <ol aria-label={ariaLabel}>
         {items.map((item, index) => {
           const state = stepState(index, current);
           const content = (
             <>
-              <span aria-hidden="true" className="core-steps-dot" />
+              <span aria-hidden="true" className="core-steps-marker">{state === "done" ? <Check size={14} strokeWidth={2.5} /> : index + 1}</span>
               <span className="core-steps-label">{item.label}</span>
               {state === "done" ? <span className="sr-only">, erledigt</span> : null}
             </>

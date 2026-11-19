@@ -140,11 +140,11 @@ test("Heute zeigt Checklisten mit Prüfungsfarbpunkt ohne Zeitplanstatus und ohn
   assert.doesNotMatch(html, /Quiz/);
 });
 
-test("die geführte Planung zeigt eine Schrittlinie, sachliche Titel und einheitliche Optionskarten", () => {
+test("die geführte Planung zeigt nummerierte Schritte, sachliche Titel und einheitliche Optionskarten", () => {
   const state = createCoreRepository().getState();
   const deck = createCoreDeck({ id: "deck", name: "Anatomie" });
   const html = renderToStaticMarkup(<ExamPlanEditor decks={[deck]} exams={[]} capacity={createStudyTimeCapacity()} initialPlan={null} preferences={getGlobalSchedulerPreferences(state.profile)} timeZone="Europe/Berlin" now="2026-10-18T12:00:00Z" onLoadPlanningData={() => new Promise(() => undefined)} onSave={async () => undefined} onCancel={() => undefined} saving={false} saveError="" />);
-  assert.match(html, /<div class="core-steps" data-stretch="true"><ol aria-label="Schritte der Prüfungsplanung">/);
+  assert.match(html, /<div class="core-steps"><ol aria-label="Schritte der Prüfungsplanung">/);
   assert.deepEqual([...html.matchAll(/class="core-steps-label">([^<]+)</g)].map((match) => match[1]), ["Prüfung", "Lernstoff", "Lernzeit", "Lernplan"]);
   assert.match(html, /<li data-state="current" aria-current="step">/);
   assert.match(html, /<h2 tabindex="-1" class="[^"]*core-heading-2[^"]*">Prüfung<\/h2>/);
