@@ -1,6 +1,6 @@
 import { createCardVariant, createDefaultDeckSettings, getActiveVariants } from "./coreModel.ts";
 import { stripSanitizedHtml } from "./htmlSafety.ts";
-import { isCardReadyForVariants } from "./coreVariantService/variantSelection.ts";
+import { chainVariants, isCardReadyForVariants, nextChainVariant, reachedVariantStage } from "./coreVariantService/variantSelection.ts";
 import { getDurabilityDays } from "./scheduler.ts";
 import { answerListText, checkClozeVariant, choiceAnswerText, clozeVariantGaps, createAiCardVariantRequest, type AiCardVariantSource } from "./aiCardVariantContract.ts";
 import { mapClozes } from "./clozeSyntax.ts";
@@ -8,7 +8,7 @@ import type { Card, CardVariant, Note, NoteContent, NoteField } from "./coreType
 
 type DeckSettingsInput = Parameters<typeof createDefaultDeckSettings>[0];
 
-export { selectReviewVariant } from "./coreVariantService/variantSelection.ts";
+export { nextVariantStage, selectReviewVariant } from "./coreVariantService/variantSelection.ts";
 
 function plainText(html: string): string {
   return stripSanitizedHtml(html).replace(/&nbsp;/gi, " ").replace(/\s+/g, " ").trim();
@@ -142,6 +142,17 @@ export function classifyCardEligibility(note: Pick<Note, "content">, card: Card,
   return { eligible: reasons.length === 0, reasons };
 }
 
+/**
+ * Whether to generate the card's next variant now, ahead of its next contact: its durability opens the release, the
+ * chain has no variant after the reached stage, and the card may get one (`classifyCardEligibility`).
+ */
+export function needsNextVariant(note: Pick<Note, "content">, card: Card, deckSettings: DeckSettingsInput = {}): boolean {
+  const settings = createDefaultDeckSettings(deckSettings);
+  return isCardReadyForVariants(card, settings)
+    && chainVariants(card, settings).length <= reachedVariantStage(card)
+    && classifyCardEligibility(note, card, settings).eligible;
+}
+
 /** Durability of a card compared with the deck's threshold for asking rephrasings. */
 export function describeVariantReadiness(card: Card, deckSettings: DeckSettingsInput = {}) {
   const settings = createDefaultDeckSettings(deckSettings);
@@ -149,7 +160,7 @@ export function describeVariantReadiness(card: Card, deckSettings: DeckSettingsI
   const reason = settings.coreMode === "off"
     ? "Content Repetition ist für diesen Stapel ausgeschaltet."
     : ready
-      ? "Im Review wechseln sich die Karte und ihre Varianten ab."
+      ? "Ab drei Tagen nach der letzten Antwort kommen nur noch Varianten."
       : card.study.state !== "review" || card.study.lastRating === "again"
         ? "Bis zur nächsten richtigen Wiederholung wird die Karte selbst abgefragt."
         : "Bis zur Haltbarkeit des Stapels wird die Karte selbst abgefragt.";
@@ -160,6 +171,8 @@ export function describeVariantReadiness(card: Card, deckSettings: DeckSettingsI
     reason,
     activeCount: getActiveVariants(card).length,
     maxActive: settings.maxActiveVariantsPerCard,
+    /** The variant the chain asks next once the release is open. */
+    nextVariantId: nextChainVariant(card, settings)?.id ?? null,
   };
 }
 
@@ -195,7 +208,7 @@ export function isEditedVariant(variant: CardVariant): boolean {
   return typeof variant.meta.editedAt === "string";
 }
 
-/** Takes a disabled or reported variant back into rotation; outdated or deleted ones stay out. Feedback history stays. */
+/** Takes an excluded or reported variant back into the chain; outdated or deleted ones stay out. Feedback history stays. */
 export function reactivateVariant(card: Card, variantId: string, updatedAt = new Date().toISOString()): Card {
   return {
     ...card,

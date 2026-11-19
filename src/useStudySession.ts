@@ -1,6 +1,7 @@
 import React from "react";
 import type { CardCommands } from "./cardCommands.ts";
 import { applyCardStudyStatePatch } from "./coreModel.ts";
+import { needsNextVariant } from "./coreVariantService.ts";
 import type { Card, CardStudyStatePatch, Deck, NewReviewOrder, Note } from "./coreTypes.ts";
 import { markLearningSettingsCustom } from "./deckSettings.ts";
 import type { IndexedDbCoreRepository } from "./indexedDbCoreRepository.ts";
@@ -38,6 +39,11 @@ export function useStudySession({ preparation, repository, cardCommands, refresh
   const preparedKeyRef = React.useRef("");
   /** Key of a start in progress, so a double click starts once. */
   const preparingKeyRef = React.useRef("");
+  /**
+   * Card and chain stage of each requested next variant. The session's card copies never learn of the new variant, so
+   * an undone and repeated answer must not request a second one; a failed request may be repeated.
+   */
+  const requestedVariantsRef = React.useRef(new Set<string>());
 
   /** Takes over a prepared window; with a key the session counts as prepared. */
   const adopt = React.useCallback((prepared: StudyPreparation, preparedKey: string | null) => {
@@ -86,6 +92,15 @@ export function useStudySession({ preparation, repository, cardCommands, refresh
     preparation?.forgetExamPlanningData();
     repository.recordReview(result);
     requestSync();
+    // The next variant is generated ahead of the contact that asks it (specs.md#kartenvarianten-erzeugen). It is a
+    // background step: a failure leaves the chain with the longest unseen variant, and the next answer tries again.
+    const { deck, updatedCard } = result;
+    const note = notes.find((candidate) => candidate.id === updatedCard.noteId);
+    const requested = requestedVariantsRef.current;
+    const key = `${updatedCard.id}:${updatedCard.study.extra.variantStage}`;
+    if (!cardCommands || !note || requested.has(key) || !needsNextVariant(note, updatedCard, deck.deckSettings)) return;
+    requested.add(key);
+    void cardCommands.generateDeckCardVariant(deck.id, updatedCard.id).catch(() => requested.delete(key));
   });
 
   const undoReview = useStableCallback((result: ReviewAnswerResult, previous: Card) => {

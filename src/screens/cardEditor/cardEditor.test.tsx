@@ -41,8 +41,8 @@ test("the variants tab shows the original, state marks and one row of actions pe
   const card = addCardVariant(createBasicNote("deck", "Was ist ATP?", "Ein Energieträger.").cards[0], { front: "Wofür steht ATP?", back: "Energie", qualityStatus: "active", isActive: true });
   const markup = renderVariants(card);
   assert.match(markup, />Original<\/h3><\/div><div[^>]*><p[^>]*>Was ist ATP\?</);
-  assert.match(markup, />aktiv</);
-  for (const label of ["bearbeiten", "neu generieren", "abschalten", "löschen"]) assert.match(markup, new RegExp(`aria-label="Variante 1 ${label}"`));
+  assert.match(markup, />aktiv<\/span><span[^>]*>als Nächstes</);
+  for (const label of ["bearbeiten", "neu generieren", "ausschließen", "löschen"]) assert.match(markup, new RegExp(`aria-label="Variante 1 ${label}"`));
   assert.doesNotMatch(markup, /reaktivieren/);
   assert.match(markup, /data-testid="variant-readiness"[^>]*>Haltbarkeit 0 von \d+ Tagen · /);
   assert.match(markup, /Stapeleinstellungen/);
@@ -58,13 +58,13 @@ test("a typed card's variant row shows the card's own answer, which the review a
   assert.doesNotMatch(markup, /Gold hat das Symbol Au/);
 });
 
-test("reported, switched-off and outdated variants carry their marks; edited ones say so", () => {
+test("reported, excluded and outdated variants carry their marks; edited ones and the next one say so", () => {
   const base = addCardVariant(createBasicNote("deck", "Was ist ATP?", "Ein Energieträger.").cards[0], { front: "Wofür steht ATP?", back: "Energie", qualityStatus: "active", isActive: true });
   const reported = { ...base, variants: base.variants.map((variant) => ({ ...variant, isActive: false, qualityStatus: "flagged" as const, feedback: [{ id: "f", type: "unklar_formuliert" as const, note: "", createdAt: NOW }] })) };
   const reportedMarkup = renderVariants(reported);
   assert.match(reportedMarkup, />gemeldet: unklar formuliert</);
   assert.match(reportedMarkup, /data-testid="variant-active-count"[^>]*>0 von \d+ aktiv</);
-  assert.match(reportedMarkup, /aria-label="Variante 1 reaktivieren"/);
+  assert.match(reportedMarkup, /aria-label="Variante 1 wieder aufnehmen"/);
 
   const outdated = { ...base, variants: base.variants.map((variant) => ({ ...variant, isActive: false, meta: { ...variant.meta, outdated: true } })) };
   const outdatedMarkup = renderVariants(outdated);
@@ -73,6 +73,7 @@ test("reported, switched-off and outdated variants carry their marks; edited one
 
   const edited = editVariantText(base, base.variants[0].id, { front: "Eigene Frage", back: "Eigene Antwort" }, NOW);
   assert.deepEqual(variantStateMarks(edited.variants[0], true).marks.map((mark) => mark.label), ["aktiv", "bearbeitet"]);
+  assert.deepEqual(variantStateMarks(edited.variants[0], true, true).marks.map((mark) => mark.label), ["aktiv", "als Nächstes", "bearbeitet"]);
 });
 
 test("the study tab names the nine figures, the maturity band and the leech with its time", () => {

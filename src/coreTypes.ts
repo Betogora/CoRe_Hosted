@@ -319,6 +319,8 @@ export interface CardStudyExtra {
   graduatedAt: string | null;
   isGraduated: boolean;
   learningDayKey: string | null;
+  /** Variant chain stage the card reached (0 = the card itself); the next released contact asks the variant after it. */
+  variantStage: number;
   sourceSchedulerData: unknown;
 }
 

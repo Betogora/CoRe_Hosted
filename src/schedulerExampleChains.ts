@@ -1,6 +1,6 @@
 import { addCardVariant, cardStudyFromReviewState, createBasicNote, createDefaultDeckSettings, createReviewState } from "./coreModel.ts";
-import type { MaturityBand, ReviewRating, ReviewSchedulerState, ReviewState } from "./coreTypes.ts";
-import { selectReviewVariant } from "./coreVariantService.ts";
+import type { Card, MaturityBand, ReviewRating, ReviewSchedulerState, ReviewState } from "./coreTypes.ts";
+import { nextVariantStage, selectReviewVariant } from "./coreVariantService.ts";
 import { getDurabilityDays, scheduleWithFsrs } from "./scheduler.ts";
 
 // Example chains of the card-history spec (specs.md#lernverlauf-einer-karte); the golden test pins their values.
@@ -10,6 +10,8 @@ const DAY_MS = 86_400_000;
 
 export const EXAMPLE_RETENTIONS = [0.9, 0.92, 0.94];
 export const EXAMPLE_VARIANT_THRESHOLDS = [7, 21, 60];
+/** Active variants of the example card, the most a deck allows. */
+export const EXAMPLE_VARIANT_COUNT = 3;
 
 /** The first chain also shows the effect of the target retention. */
 export const EXAMPLE_CHAINS: ReadonlyArray<{ name: string; ratings: ReviewRating[] }> = [
@@ -43,24 +45,37 @@ export interface ExampleContact extends ExampleOutcome {
   day: number;
   phaseBefore: ReviewSchedulerState;
   rating: ReviewRating;
-  /** Deck thresholds at which this contact asks the variant instead of the card. */
-  variantThresholds: number[];
+  /** Per deck threshold of `EXAMPLE_VARIANT_THRESHOLDS`, the number of the variant this contact asks; 0 asks the card. */
+  variants: number[];
 }
 
 function outcome(state: ReviewState): ExampleOutcome {
   return { phase: state.state, intervalMinutes: state.intervalMinutes, intervalDays: state.intervalDays, durabilityDays: getDurabilityDays(state), band: state.maturityBand };
 }
 
-/** Answers a new card with one variant on each due date. */
+/** Answers a new card with three variants on each due date; each deck threshold runs its own variant chain. */
 export function runExampleChain(ratings: ReviewRating[], desiredRetention: number): ExampleContact[] {
   const deckSettings = createDefaultDeckSettings({ schedulerProfile: { desiredRetention } });
-  let card = addCardVariant(createBasicNote("deck", "Q", "A").cards[0], { front: "Q2", back: "A2" });
+  const created = createBasicNote("deck", "Q", "A").cards[0];
+  const withVariants = Array.from({ length: EXAMPLE_VARIANT_COUNT }, (_, index) => index + 1)
+    .reduce((card, number) => addCardVariant(card, { front: `Q${number}`, back: "A" }, new Date(Date.parse(START) + number * 1000).toISOString()), created);
+  const chains = EXAMPLE_VARIANT_THRESHOLDS.map((variantThresholdDays) => ({ settings: { coreMode: "on" as const, variantThresholdDays, maxActiveVariantsPerCard: EXAMPLE_VARIANT_COUNT }, card: withVariants }));
   let state = createReviewState({ dueAt: START });
   return ratings.map((rating) => {
-    card = { ...card, study: cardStudyFromReviewState(state) };
-    const variantThresholds = EXAMPLE_VARIANT_THRESHOLDS.filter((variantThresholdDays) => selectReviewVariant(card, { coreMode: "on", variantThresholdDays, maxActiveVariantsPerCard: 1 }));
-    const contact = { day: (Date.parse(state.dueAt) - Date.parse(START)) / DAY_MS, phaseBefore: state.state, rating, variantThresholds };
-    state = scheduleWithFsrs(state, rating, { now: state.dueAt, deckSettings });
+    const now = state.dueAt;
+    const next = scheduleWithFsrs(state, rating, { now, deckSettings });
+    const variants = chains.map((chain) => {
+      const card: Card = { ...chain.card, study: cardStudyFromReviewState({ ...state, variantStage: chain.card.study.extra.variantStage }) };
+      const variant = selectReviewVariant(card, chain.settings, now);
+      chain.card = {
+        ...card,
+        study: cardStudyFromReviewState({ ...next, variantStage: nextVariantStage(card, variant, rating, chain.settings) }),
+        variants: card.variants.map((candidate) => candidate === variant ? { ...candidate, performance: { ...candidate.performance, lastReviewedAt: now } } : candidate),
+      };
+      return variant ? card.variants.indexOf(variant) + 1 : 0;
+    });
+    const contact = { day: (Date.parse(now) - Date.parse(START)) / DAY_MS, phaseBefore: state.state, rating, variants };
+    state = next;
     return { ...contact, ...outcome(state) };
   });
 }

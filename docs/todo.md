@@ -15,21 +15,6 @@ Entscheidungen vom 2026-11-14 zur Kommentierung der Specs bis Kapitel 5; die
 Zahlen in Klammern sind die Fragen der Agenda. Je Paket ein PR, unabhängig
 voneinander.
 
-- [ ] **2 Variantenkonzept** (ADR-039, Specs „Freigabe der Varianten“):
-      Freigabe in der Wiederholung, wenn die letzte Antwort nicht „Nochmal“
-      war, die Haltbarkeit die Stapelschwelle erreicht (7, 21 oder 60 Tage,
-      Standard 21) und seit der letzten Antwort mindestens 3 Tage vergangen
-      sind. Danach nur noch Varianten in einer Kette: Position je Karte im
-      Lernstand; Gut und Leicht führen zur nächsten Variante, Schwer bleibt,
-      Nochmal geht eine Stufe zurück (Stufe 0 ist das Original); bei
-      geschlossener Freigabe kommt das Original, die Position bleibt (1.1–1.3,
-      1.8). Die nächste Variante entsteht vorausschauend vor dem nächsten
-      Termin, als Ausnahme von „KI nur auf Aktion“ in Specs und ADR-011, mit
-      Obergrenze je Karte, danach kommt die am längsten nicht gesehene (1.6;
-      Ausarbeitung in Commit `4dd2af7`).
-      Der Editor zeigt die nächste Variante (1.4); der Schalter heißt
-      „Ausschließen“ (1.5). Nachweis: Tests mit Beispielwegen (dreimal Gut:
-      Original bis Tag 6, erste Variante Tag 29, zweite Tag 96).
 - [ ] **3 Lernen:** Neue Stapel starten mit 1 und 10 Minuten (1.12);
       Wiederlernen gegen Anki prüfen, Wiederlernschritte in derselben Sitzung
       (1.14); geänderte Lerneinstellungen gelten sofort für die offene Karte
@@ -241,8 +226,9 @@ Messung vom 2026-10-31 im [Verlauf](history.md).
 ### KI
 
 - Nicht umformulierbare und dauerhaft scheiternde Karten als eigener Zustand
-  im Reiter `Varianten`; sie fallen aus späteren Stapelläufen. Heute fragt
-  jeder Lauf sie erneut an, und 50 solche Karten blockieren ihn ganz.
+  im Reiter `Varianten`; sie fallen aus späteren Stapelläufen. Heute fragen
+  jeder Lauf und die vorausschauende Erzeugung sie erneut an, und 50 solche
+  Karten blockieren einen Lauf ganz.
 - DOCX und PPTX als Quellen für P2 (ZIP und XML, ohne neue Abhängigkeit über
   `zipReader.ts` prüfen; Beleg je Folie oder Abschnitt).
 - Bilder als Quelle für P2 (teurer, eigener Hillclimb); braucht eine Ergänzung
