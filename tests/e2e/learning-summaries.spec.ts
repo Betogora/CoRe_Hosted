@@ -77,7 +77,26 @@ test("KI-Fehler erhalten Formular und vorhandene Fassungen", async ({ page }) =>
   await expect(popup.getByRole("textbox", { name: "Titel", exact: true })).toHaveValue("Erhaltene Auswahl");
   await popup.getByRole("button", { name: "Abbrechen", exact: true }).click();
   await page.getByRole("dialog", { name: "Änderungen übernehmen?", exact: true }).getByRole("button", { name: "Verwerfen", exact: true }).click();
-  await expect(panel.getByTestId("summary-list").getByRole("button", { name: /öffnen$/ })).toHaveCount(2);
+  await expect(panel.getByTestId("summary-list").getByRole("button", { name: /öffnen$/ })).toHaveCount(3);
+});
+
+test("Ein Oberstapel zeigt die Fassungen seiner Unterstapel gruppiert und öffnet sie wie eigene", async ({ page }) => {
+  const panel = await openSummaries(page), list = panel.getByTestId("summary-list");
+  const subdeck = "Europa – ein sehr langer Name für schmale Ansichten";
+  const group = list.locator("section").filter({ has: page.getByRole("heading", { name: `Unterstapel ${subdeck}`, exact: true }) });
+  const own = list.locator("section").first();
+  await expect(own.getByRole("heading", { name: "Welt-Hauptstädte", exact: true })).toBeVisible();
+  await expect(own.getByRole("button", { name: /öffnen$/ })).toHaveCount(2);
+  await expect(group.getByRole("button", { name: /öffnen$/ })).toHaveCount(1);
+  await panel.getByRole("textbox", { name: "Zusammenfassungen durchsuchen", exact: true }).fill("Paris");
+  await expect(list.getByRole("button", { name: /öffnen$/ })).toHaveCount(1);
+  await group.getByRole("button", { name: "Zusammenfassung „Westeuropa“ öffnen", exact: true }).click();
+  await expect(panel).toContainText(`Grundlage: Unterstapel „${subdeck}“`);
+  await panel.getByRole("textbox", { name: "Zusammenfassung bearbeiten", exact: true }).fill("Paris liegt an der Seine.");
+  await saveOnLeave(page, panel);
+  await page.reload();
+  await page.getByRole("button", { name: "Zusammenfassungen öffnen", exact: true }).click();
+  await expect(group).toContainText("Paris liegt an der Seine.");
 });
 
 test("Modulladefehler nach einem Update erhalten Titel und Einstellungen ohne Reload", async ({ page }) => {

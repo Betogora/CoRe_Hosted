@@ -1,12 +1,12 @@
 import React from "react";
 import * as Popover from "@radix-ui/react-popover";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { ArrowLeft, ChevronRight, PenLine, Search, SlidersHorizontal, Sparkles, Trash2 } from "lucide-react";
+import { ArrowLeft, ChevronRight, Layers, PenLine, Search, SlidersHorizontal, Sparkles, Trash2 } from "lucide-react";
 import type { SummaryGenerationInput, SummaryGenerationResult } from "../aiLearningSummary.ts";
 import type { TransientSourceDocument } from "../documentModel.ts";
 import type { CardDraftGuard } from "../appScreenProps.ts";
 import type { Deck } from "../coreTypes.ts";
-import { createLearningSummary, createSummarySettings, deleteLearningSummary, loadLearningSummaries, saveLearningSummary, summaryChoices, summaryDescription, summaryPlainText, type LearningSummary, type SavedLearningSummary, type SummarySettings } from "../learningSummaries.ts";
+import { createLearningSummary, createSummarySettings, deleteLearningSummary, groupSummariesByDeckTree, loadLearningSummaries, saveLearningSummary, summaryChoices, summaryDescription, summaryPlainText, type LearningSummary, type SavedLearningSummary, type SummarySettings } from "../learningSummaries.ts";
 import { ActionButton, IconButton } from "../ui/actionUi.tsx";
 import { ActionDialog, CoreSegmentedControl } from "../ui/coreUi.tsx";
 import { StatusMessage, useSuccessToast } from "../ui/feedbackUi.tsx";
@@ -16,6 +16,8 @@ import { CoreSelect } from "../ui/selectUi.tsx";
 
 interface DeckSummariesPanelProps {
   deck: Deck;
+  /** The opened deck and its subdecks; their summaries are listed below its own. */
+  treeDecks: readonly Deck[];
   userId: string;
   /** Online storage of the signed-in account; without it summaries stay in this browser. */
   cloud?: SupabaseClient | null;
@@ -23,7 +25,7 @@ interface DeckSummariesPanelProps {
   onDraftStateChange: (guard: CardDraftGuard | null) => void;
 }
 
-export function DeckSummariesPanel({ deck, userId, cloud = null, onGenerateSummary, onDraftStateChange }: DeckSummariesPanelProps) {
+export function DeckSummariesPanel({ deck, treeDecks, userId, cloud = null, onGenerateSummary, onDraftStateChange }: DeckSummariesPanelProps) {
   const account = React.useMemo(() => ({ userId, cloud }), [userId, cloud]);
   const [unsynced, setUnsynced] = React.useState<ReadonlySet<string>>(new Set()), [notice, setNotice] = React.useState("");
   const [summaries, setSummaries] = React.useState<LearningSummary[]>([]);
@@ -53,16 +55,18 @@ export function DeckSummariesPanel({ deck, userId, cloud = null, onGenerateSumma
   const dirty = view === "editor" ? JSON.stringify(draft) !== JSON.stringify(saved)
     : view === "create" && (newTitle !== (deck.name.trim().slice(0, 120) || "Zusammenfassung") || Boolean(source) || JSON.stringify(settings) !== JSON.stringify(createSummarySettings()));
 
+  const treeKey = treeDecks.map((item) => item.id).join("\n");
+
   React.useEffect(() => () => generationRef.current?.abort(), []);
 
   React.useEffect(() => {
     let active = true;
     setLoading(true); setLoadError("");
-    void loadLearningSummaries(account, deck.id).then((loaded) => {
+    void loadLearningSummaries(account, treeKey.split("\n")).then((loaded) => {
       if (active) { setSummaries(loaded.summaries); setUnsynced(loaded.unsynced); setLoading(false); }
     }).catch((cause: unknown) => { if (active) { setLoadError(cause instanceof Error ? cause.message : "Die Zusammenfassungen konnten nicht geladen werden."); setLoading(false); } });
     return () => { active = false; };
-  }, [account, deck.id, retry]);
+  }, [account, treeKey, retry]);
 
   React.useEffect(() => {
     if (view === "create") { aiTriggerRef.current?.scrollIntoView({ block: "start" }); titleRef.current?.focus({ preventScroll: true }); }
@@ -167,7 +171,14 @@ export function DeckSummariesPanel({ deck, userId, cloud = null, onGenerateSumma
     } finally { operationRef.current = false; setBusy(false); }
   }
   function changeSetting<K extends keyof SummarySettings>(key: K, value: SummarySettings[K]) { setSettings((current) => ({ ...current, [key]: value })); }
-  const filtered = summaries.filter((item) => `${item.title} ${summaryPlainText(item.html)}`.toLocaleLowerCase("de").includes(query.trim().toLocaleLowerCase("de")));
+  const groups = groupSummariesByDeckTree(summaries, treeDecks, deck.id), grouped = groups.some((group) => group.path.length);
+  const matches = (item: LearningSummary) => `${item.title} ${summaryPlainText(item.html)}`.toLocaleLowerCase("de").includes(query.trim().toLocaleLowerCase("de"));
+  const shown = groups.map((group) => ({ ...group, summaries: group.summaries.filter(matches) })).filter((group) => group.summaries.length);
+  const draftPath = groups.find((group) => group.deckId === draft?.deckId)?.path ?? [];
+  const summaryRow = (summary: LearningSummary) => <div key={summary.id} className="core-summary-row"><button type="button" disabled={busy} className="core-summary-preview core-surface-raised rounded-panel border border-core-border p-6 text-left" onClick={() => request(() => open(summary))} aria-label={`Zusammenfassung „${summary.title}“ öffnen`}>
+    <div className="core-summary-preview-copy min-w-0"><h4 className="break-words core-heading-3">{summary.title}</h4><p className="mt-1 core-caption text-core-muted">{summaryDescription(summary)}</p><div className="core-summary-excerpt mt-4 core-body text-core-secondary" aria-hidden="true">{summaryPlainText(summary.html)}</div></div>
+    <span className="core-summary-preview-action inline-flex min-h-button items-center gap-2 core-body font-semibold text-core-action">Vollständig öffnen<ChevronRight size={17} aria-hidden="true"/></span>
+  </button><IconButton variant="destructive-quiet" icon={Trash2} label={`Zusammenfassung „${summary.title}“ löschen`} disabled={busy} onClick={() => { setError(""); setDeleting(summary); }}/></div>;
 
   return <section className="core-summary-panel grid min-w-0 gap-6" data-testid="deck-summaries-panel" aria-label="Zusammenfassungen" aria-busy={busy || loading} tabIndex={-1} ref={panelRef}>
     {view !== "editor" ? <>
@@ -175,11 +186,11 @@ export function DeckSummariesPanel({ deck, userId, cloud = null, onGenerateSumma
       {loading ? <StatusMessage tone="info" announce="polite">Zusammenfassungen werden geladen …</StatusMessage>
         : loadError ? <><StatusMessage tone="error" announce="assertive">{loadError}</StatusMessage><ActionButton variant="secondary" onClick={() => setRetry((value) => value + 1)}>Erneut laden</ActionButton></>
         : summaries.length ? <>
-          <div className="grid min-w-0 gap-4" data-testid="summary-list">{filtered.map((summary) => <div key={summary.id} className="core-summary-row"><button type="button" disabled={busy} className="core-summary-preview core-surface-raised rounded-panel border border-core-border p-6 text-left" onClick={() => request(() => open(summary))} aria-label={`Zusammenfassung „${summary.title}“ öffnen`}>
-            <div className="core-summary-preview-copy min-w-0"><h4 className="break-words core-heading-3">{summary.title}</h4><p className="mt-1 core-caption text-core-muted">{summaryDescription(summary)}</p><div className="core-summary-excerpt mt-4 core-body text-core-secondary" aria-hidden="true">{summaryPlainText(summary.html)}</div></div>
-            <span className="core-summary-preview-action inline-flex min-h-button items-center gap-2 core-body font-semibold text-core-action">Vollständig öffnen<ChevronRight size={17} aria-hidden="true"/></span>
-          </button><IconButton variant="destructive-quiet" icon={Trash2} label={`Zusammenfassung „${summary.title}“ löschen`} disabled={busy} onClick={() => { setError(""); setDeleting(summary); }}/></div>)}</div>
-          {!filtered.length ? <StatusMessage tone="info">Keine passende Zusammenfassung gefunden.</StatusMessage> : null}
+          <div className={`grid min-w-0 ${grouped ? "gap-8" : "gap-4"}`} data-testid="summary-list">{shown.map((group) => grouped ? <section key={group.deckId} className="grid min-w-0 gap-4">
+            <h3 className="flex min-w-0 items-start gap-2 break-words core-body font-semibold text-core-secondary">{group.path.length ? <><Layers className="mt-0.5 shrink-0 text-core-muted" size={16} aria-hidden="true"/><span className="sr-only">Unterstapel </span><span className="min-w-0">{group.path.join(" / ")}</span></> : deck.name}</h3>
+            {group.summaries.map(summaryRow)}
+          </section> : group.summaries.map(summaryRow))}</div>
+          {!shown.length ? <StatusMessage tone="info">Keine passende Zusammenfassung gefunden.</StatusMessage> : null}
         </> : null}
       <div className="core-summary-create-actions grid min-w-0 gap-3" data-open={view === "create"}>
         <Popover.Root open={view === "create"} onOpenChange={(next) => next ? startCreate() : request(backToList)}>
@@ -221,7 +232,7 @@ export function DeckSummariesPanel({ deck, userId, cloud = null, onGenerateSumma
         <SummaryDocumentEditor key={draft.id} value={draft} onChange={setDraft} busy={busy}/>
         <div className="grid gap-3">
           {draft.generation && <p className="core-caption text-core-muted">Mit KI erstellt · {draft.generation.materialUnits} {draft.generation.materialUnits === 1 ? "Materialeinheit" : "Materialeinheiten"} · {draft.generation.privacyMode === "zdr" ? "Ohne Datenspeicherung beim Anbieter" : "Anbieter ohne ZDR-Zusage"}. Prüfe die Aussagen anhand deiner Grundlage.</p>}
-          <p className="core-caption text-core-muted">Grundlage: {draft.settings.scope === "tree" ? "Stapel und Unterstapel" : "Dieser Stapel"} · {{ cards: "Nur Karten", "cards-and-source": "Karten und Quelle", source: "Nur Quelle" }[draft.settings.material]}</p>
+          <p className="core-caption text-core-muted">Grundlage: {draftPath.length ? `Unterstapel „${draftPath.join(" / ")}“${draft.settings.scope === "tree" ? " und seine Unterstapel" : ""}` : draft.settings.scope === "tree" ? "Stapel und Unterstapel" : "Dieser Stapel"} · {{ cards: "Nur Karten", "cards-and-source": "Karten und Quelle", source: "Nur Quelle" }[draft.settings.material]}</p>
         </div>
     </> : null}
     {view !== "create" && progress && <StatusMessage tone="info" announce="polite">{progress}</StatusMessage>}

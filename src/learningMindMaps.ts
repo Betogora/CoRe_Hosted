@@ -638,7 +638,7 @@ export async function loadInfinityMindMap(account: LearningContentAccount, deckI
   const { userId, cloud } = account;
   await releaseUnusedMindMapImages(account, now).catch(() => undefined);
   let record = await readMap(userId, deckId);
-  const remote = cloud ? await listLearningDocuments(cloud, TABLE, deckId).catch(() => null) : null;
+  const remote = cloud ? await listLearningDocuments(cloud, TABLE, [deckId]).catch(() => null) : null;
   if (remote && !record?.pending) {
     const row = remote.find((item) => !item.deleted);
     record = row && { deckId, map: readLearningMindMap(row.document), revision: row.revision, pending: false };

@@ -591,19 +591,20 @@ function SummaryContentDemo() {
     setBusy(true); setError("");
     try {
       const account = { userId: "catalog-summaries", cloud: null };
-      if (!(await loadLearningSummaries(account, deck.id)).summaries.length) {
-        for (const [title, text] of [
-          ["Europa im Überblick", "<h2>Portugal</h2><p>Lissabon ist die Hauptstadt von Portugal.</p><h2>Spanien</h2><p>Madrid ist die Hauptstadt von Spanien.</p><p>Diese Zusammenfassung ist ein lokales Beispiel für die Listenvorschau.</p>"],
-          ["Vor der nächsten Wiederholung", "<p>Rufe die Hauptstadt zu jedem Land zunächst selbst ab. Vergleiche deine Antwort anschließend mit der Karte.</p>"],
+      if (!(await loadLearningSummaries(account, [deck.id, child.id])).summaries.length) {
+        for (const [deckId, title, text] of [
+          [deck.id, "Europa im Überblick", "<h2>Portugal</h2><p>Lissabon ist die Hauptstadt von Portugal.</p><h2>Spanien</h2><p>Madrid ist die Hauptstadt von Spanien.</p><p>Diese Zusammenfassung ist ein lokales Beispiel für die Listenvorschau.</p>"],
+          [deck.id, "Vor der nächsten Wiederholung", "<p>Rufe die Hauptstadt zu jedem Land zunächst selbst ab. Vergleiche deine Antwort anschließend mit der Karte.</p>"],
+          [child.id, "Westeuropa", "<p>Paris ist die Hauptstadt von Frankreich.</p>"],
         ]) {
-          await saveLearningSummary(account, { ...createLearningSummary(deck.id, title, createSummarySettings()), html: text });
+          await saveLearningSummary(account, { ...createLearningSummary(deckId, title, createSummarySettings()), html: text });
         }
       }
       setOpen(true);
     } catch { setError("Die lokale Zusammenfassungs-Demo konnte nicht geladen werden."); }
     finally { setBusy(false); }
   }
-  return <Demo title="Zusammenfassungen" wide><ActionButton variant="secondary" loading={busy} onClick={() => void show()}>Zusammenfassungen öffnen</ActionButton>{error && <StatusMessage tone="error">{error}</StatusMessage>}{open && <div className="mt-6"><label className="core-field-group mb-4"><span className="core-field-label">KI-Demoantwort</span><CoreSelect ariaLabel="KI-Demoantwort" value={simulation} options={[{ value: "success", label: "Erfolgreich" }, { value: "error", label: "Fehler" }, { value: "module-error", label: "Ladefehler nach Update" }, { value: "slow", label: "Langsam mit Abbruch" }]} onValueChange={setSimulation}/></label><DeckSummariesPanel deck={deck} userId="catalog-summaries" onGenerateSummary={(input, signal) => generateSummaryDemo(input, signal, simulation)} onDraftStateChange={() => undefined}/></div>}</Demo>;
+  return <Demo title="Zusammenfassungen" wide><ActionButton variant="secondary" loading={busy} onClick={() => void show()}>Zusammenfassungen öffnen</ActionButton>{error && <StatusMessage tone="error">{error}</StatusMessage>}{open && <div className="mt-6"><label className="core-field-group mb-4"><span className="core-field-label">KI-Demoantwort</span><CoreSelect ariaLabel="KI-Demoantwort" value={simulation} options={[{ value: "success", label: "Erfolgreich" }, { value: "error", label: "Fehler" }, { value: "module-error", label: "Ladefehler nach Update" }, { value: "slow", label: "Langsam mit Abbruch" }]} onValueChange={setSimulation}/></label><DeckSummariesPanel deck={deck} treeDecks={[deck, child]} userId="catalog-summaries" onGenerateSummary={(input, signal) => generateSummaryDemo(input, signal, simulation)} onDraftStateChange={() => undefined}/></div>}</Demo>;
 }
 
 function MindMapContentDemo() {
@@ -611,7 +612,7 @@ function MindMapContentDemo() {
   async function show(empty = false) {
     try {
       const account = { userId: "catalog-mindmaps", cloud: null };
-      if (!empty && !(await loadLearningSummaries(account, deck.id)).summaries.length) {
+      if (!empty && !(await loadLearningSummaries(account, [deck.id])).summaries.length) {
         await saveLearningSummary(account, { ...createLearningSummary(deck.id, "Europa und ihre Hauptstädte", createSummarySettings()), html: "<h2>Portugal</h2><p>Portugal liegt auf der Iberischen Halbinsel im Südwesten Europas und grenzt an Spanien sowie den Atlantik.</p><p>Lissabon ist die Hauptstadt von Portugal.</p><h2>Spanien</h2><p>Madrid ist die Hauptstadt von Spanien.</p><h3>Merksatz</h3><p>Vergleiche Länder und Hauptstädte miteinander.</p>" });
       }
       setWithoutSummary(empty); setOpen(true);

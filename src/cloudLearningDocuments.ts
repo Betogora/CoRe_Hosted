@@ -12,10 +12,16 @@ async function rows(request: PromiseLike<{ data: unknown; error: unknown }>): Pr
   return validateLearningDocumentRows(data);
 }
 
-/** Documents of a deck, or of the whole account without `deckId`; deleted ones included so other devices can drop their copies. */
-export function listLearningDocuments(client: SupabaseClient, table: LearningDocumentTable, deckId?: string) {
-  const query = client.from(table).select(COLUMNS);
-  return rows(deckId === undefined ? query : query.eq("deck_id", deckId));
+/**
+ * Documents of the given decks, one request per 100 decks, or of the whole account without `deckIds`;
+ * deleted ones included so other devices can drop their copies.
+ */
+export async function listLearningDocuments(client: SupabaseClient, table: LearningDocumentTable, deckIds?: readonly string[]) {
+  const query = () => client.from(table).select(COLUMNS);
+  if (!deckIds) return rows(query());
+  const batches = [];
+  for (let offset = 0; offset < deckIds.length; offset += 100) batches.push(rows(query().in("deck_id", deckIds.slice(offset, offset + 100))));
+  return (await Promise.all(batches)).flat();
 }
 
 /**
