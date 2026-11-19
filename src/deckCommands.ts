@@ -177,14 +177,7 @@ export function createDeckCommands({ store, repository, refresh, requestSync, sy
           ? draft
           : applyDeckSettingsDraftChanges(baseline, draft, createDeckSettingsDraft(candidate));
         const learningDeck = withDeckLearningSettings(candidate, candidateDraft.learning);
-        return {
-          ...learningDeck,
-          deckSettings: createDefaultDeckSettings({
-            ...learningDeck.deckSettings,
-            ...candidateDraft.leech,
-            appearance: candidateDraft.appearance,
-          }),
-        };
+        return { ...learningDeck, deckSettings: createDefaultDeckSettings({ ...learningDeck.deckSettings, appearance: candidateDraft.appearance }) };
       });
     const savedDecks = runRepositoryMutation((current) => current.saveDeckMetadata(updatedDecks), { preserveCardPages: true });
     synchronizeStudyDeckMetadata(savedDecks);
@@ -231,6 +224,7 @@ export function createDeckCommands({ store, repository, refresh, requestSync, sy
     }, {
       dayStartHour: draft.dayStartHour,
       learnAheadMinutes: draft.learnAheadMinutes,
+      leechThreshold: draft.leechThreshold,
       easyDays: draft.easyDays,
       defaultLearningSettings: draft.learning,
     });

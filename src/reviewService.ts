@@ -20,7 +20,7 @@ import type {
   ReviewState,
 } from "./coreTypes.ts";
 import { getLearningDayKey, getLearningDayRange } from "./learningDay.ts";
-import { normalizeLearnAheadMinutes } from "./learningProfiles.ts";
+import { normalizeLearnAheadMinutes, normalizeLeechThreshold } from "./learningProfiles.ts";
 import type { EasyDaysSchedulingContext } from "./easyDays.ts";
 import { countsTowardDailyLimits } from "./reviewEventKinds.ts";
 import { createSiblingBurying, manuallyBuriedCardIds } from "./siblingBurying.ts";
@@ -33,6 +33,8 @@ interface ReviewServiceOptions {
   now?: DateInput;
   dayStartHour?: number;
   learnAheadMinutes?: number;
+  /** Account-wide lapses that make a card a leech. */
+  leechThreshold?: number;
   timeZone?: string;
   updatedAt?: string;
   dateKey?: string;
@@ -562,15 +564,14 @@ export function answerVariant(
     easyDaysContext: options.easyDaysContext,
     isVariant: Boolean(variant),
   });
-  // A lapse that reaches the leech rule marks the card (once, the first time stays) and, if the deck says so, suspends it.
+  // A lapse that reaches the leech rule marks the card; the first time stays, and the card is never suspended for it.
   const leechTriggered = outcome.nextReviewState.lapses > previousState.lapses
-    && isLeechLapse(outcome.nextReviewState.lapses, deck.deckSettings.leechThreshold);
+    && isLeechLapse(outcome.nextReviewState.lapses, normalizeLeechThreshold(options.leechThreshold));
   const nextState = {
     ...outcome.nextReviewState,
     ...(leechTriggered ? { leechedAt: previousState.leechedAt ?? now } : {}),
     variantStage: nextVariantStage(card, variant, rating, deck.deckSettings),
   };
-  const suspendsLeech = leechTriggered && deck.deckSettings.leechAction === "suspend";
   const variants = variant
     ? card.variants.map((candidate) => candidate.id === variant.id ? {
         ...candidate,
@@ -589,7 +590,6 @@ export function answerVariant(
     study: cardStudyFromReviewState(nextState),
     studyRevision: card.studyRevision + 1,
     updatedAt: now,
-    ...(suspendsLeech ? { status: "suspended" as const, revision: card.revision + 1 } : {}),
   };
   const event = createReviewEvent({ deck, card, variant, rating, responseTimeMs, now, previousState, nextState, flags: options.flags });
 
@@ -725,12 +725,16 @@ export function getNextDailyReviewSessionItem(
   const learnAheadMinutes = normalizeLearnAheadMinutes(options.learnAheadMinutes);
   const shownKey = options.shownKey && entriesByKey.has(options.shownKey)
     && (session.remainingInitialKeys.includes(options.shownKey) || session.repeatKeys.includes(options.shownKey)) ? options.shownKey : null;
-  const initialKey = shownKey ?? session.remainingInitialKeys.find((candidate) => entriesByKey.has(candidate)) ?? null;
-  const repeatKey = initialKey ? null : session.repeatKeys.find((candidate) => {
+  const learningStepAvailable = (aheadMinutes: number) => (candidate: string) => {
     const candidateEntry = entriesByKey.get(candidate);
-    return candidateEntry ? isLearningAvailable(candidateEntry.card, now, learnAheadMinutes, options) : false;
-  }) ?? null;
-  const key = initialKey ?? repeatKey;
+    return candidateEntry ? isLearningAvailable(candidateEntry.card, now, aheadMinutes, options) : false;
+  };
+  // As in Anki, a due learning step comes next; one within the learn-ahead window waits until the other cards are done.
+  const key = shownKey
+    ?? session.repeatKeys.find(learningStepAvailable(0))
+    ?? session.remainingInitialKeys.find((candidate) => entriesByKey.has(candidate))
+    ?? session.repeatKeys.find(learningStepAvailable(learnAheadMinutes))
+    ?? null;
   if (!key) return null;
   const entry = entriesByKey.get(key);
   if (!entry) return null;

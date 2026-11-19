@@ -125,7 +125,7 @@ test("Lernverlauf: erzeugte Blöcke folgen dem Abschnitt „Lernverlauf einer Ka
   const contacts = EXAMPLE_CHAINS.reduce((sum, chain) => sum + chain.ratings.length, 0);
   assert.equal([...html.matchAll(/class="docs-chain-step"/g)].length, contacts);
   assert.equal([...html.matchAll(/<tr><th scope="row">/g)].length, EXAMPLE_SITUATIONS.length + EXAMPLE_RETENTIONS.length + EXAMPLE_CHAINS.length);
-  assert.equal([...html.matchAll(/data-mark="mature"/g)].length, EXAMPLE_CHAINS.filter((chain) => runExampleChain(chain.ratings, 0.92).some((contact) => contact.band === "mature")).length);
+  assert.equal([...html.matchAll(/data-mark="mature"/g)].length, EXAMPLE_CHAINS.filter((chain) => runExampleChain(chain.ratings, 0.93).some((contact) => contact.band === "mature")).length);
 });
 
 test("Codeumfang ordnet Bildschirmdateien einmal zu und überträgt die Werte in die Tabelle", () => {

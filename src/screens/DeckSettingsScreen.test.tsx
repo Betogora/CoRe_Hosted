@@ -213,9 +213,3 @@ test("variant generation is offered only for decks with CoRe switched on, names 
   assert.doesNotMatch(complete, />Varianten generieren</);
 });
 
-test("the Stack section sets the leech threshold and action (default: only mark)", () => {
-  const markup = renderScreen();
-  const leech = markup.slice(markup.indexOf('data-testid="deck-settings-leech"'));
-  assert.match(leech, /<label for="deck-settings-leech-threshold"[^>]*>Lernbremse ab Fehlern<\/label><div class="core-settings-row-control"><span[^>]*><input id="deck-settings-leech-threshold" type="number"[^>]*min="1" max="99"[^>]*value="8"/);
-  assert.match(leech, /aria-label="Aktion der Lernbremse"[\s\S]*?aria-pressed="true"[^>]*>Nur kennzeichnen[\s\S]*?Aussetzen/);
-});

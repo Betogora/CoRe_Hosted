@@ -237,9 +237,9 @@ function reviewCardWithLapses(id: string, lapses: number, leechedAt: string | nu
 
 test("Lernbremse: an der Schwelle und bei jeder halben Schwelle, nie rückwirkend, nur bei einem Lapse", () => {
   const now = "2026-08-21T08:00:00.000Z";
-  const answer = (lapses: number, rating: "again" | "good" = "again", leechedAt: string | null = null, deckSettings = {}) => {
-    const deck = createCoreDeck({ id: "deck", cards: [reviewCardWithLapses("card", lapses, leechedAt)], deckSettings });
-    return answerVariant(deck, "card", null, rating, { now });
+  const answer = (lapses: number, rating: "again" | "good" = "again", leechedAt: string | null = null, leechThreshold?: number) => {
+    const deck = createCoreDeck({ id: "deck", cards: [reviewCardWithLapses("card", lapses, leechedAt)] });
+    return answerVariant(deck, "card", null, rating, { now, leechThreshold });
   };
   assert.equal(answer(6).leechTriggered, false);
   const atThreshold = answer(7);
@@ -250,9 +250,8 @@ test("Lernbremse: an der Schwelle und bei jeder halben Schwelle, nie rückwirken
   assert.equal(answer(20, "good").leechTriggered, false, "ohne Lapse keine Auslösung, auch über der Schwelle");
   assert.equal(answer(20, "good", "2026-08-01T00:00:00.000Z").updatedCard.study.leechedAt, "2026-08-01T00:00:00.000Z", "eine gute Bewertung hebt die Lernbremse nicht auf");
 
-  const suspending = answer(3, "again", null, { leechThreshold: 4, leechAction: "suspend" });
-  assert.deepEqual([suspending.leechTriggered, suspending.updatedCard.status, suspending.updatedCard.revision], [true, "suspended", 2]);
-  assert.equal(createDailyReviewQueue(suspending.deck, { now, timeZone: "UTC" }).items.length, 0);
+  const ownThreshold = answer(3, "again", null, 4);
+  assert.deepEqual([ownThreshold.leechTriggered, ownThreshold.updatedCard.status], [true, "active"], "die kontoweite Schwelle gilt, ausgesetzt wird nie");
 });
 
 test("zurückgestellte Karten warten bis zum nächsten Lerntag; das letzte manuelle Ereignis entscheidet", () => {
@@ -296,4 +295,19 @@ test("die gezeigte Karte bleibt aktuell, wenn nachgeladene Karten die Reihenfolg
   // Once answered, the next card follows the queue again, even if the answer sends it into a learning step.
   const answered = advanceDailyReviewSession(reloaded, { key: "deck:b", rating: "again", nextReviewState: { state: "relearning" } });
   assert.equal(getNextDailyReviewSessionItem(deck, answered, { ...options, shownKey: null })?.cardId, "a");
+});
+
+test("ein fälliger Lernschritt kommt wie in Anki vor den übrigen Karten, einer im Vorziehfenster erst nach ihnen", () => {
+  const deck = createCoreDeck({ id: "deck", cards: [
+    cardInPhase("step", "relearning", "2026-08-21T08:10:00.000Z"),
+    cardInPhase("a", "review", "2026-08-21T07:00:00.000Z"),
+    cardInPhase("b", "review", "2026-08-21T07:00:00.000Z"),
+  ] });
+  const session = { ...createDailyReviewSessionState([{ deckId: "deck", cardId: "a" }, { deckId: "deck", cardId: "b" }]), repeatKeys: ["deck:step"] };
+  const next = (now: string, shownKey: string | null = null, state = session) => getNextDailyReviewSessionItem(deck, state, { now, timeZone: "UTC", learnAheadMinutes: 20, shownKey })?.cardId;
+  assert.equal(next("2026-08-21T08:05:00.000Z"), "a", "im Vorziehfenster wartet der Schritt");
+  assert.equal(next("2026-08-21T08:10:00.000Z"), "step", "fällig kommt er zuerst");
+  assert.equal(next("2026-08-21T08:10:00.000Z", "deck:a"), "a", "die gezeigte Karte bleibt");
+  const onlyStepLeft = { ...session, remainingInitialKeys: [] };
+  assert.equal(next("2026-08-21T08:05:00.000Z", null, onlyStepLeft), "step", "am Ende zieht das Fenster den Schritt vor");
 });

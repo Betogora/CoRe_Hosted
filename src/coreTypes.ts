@@ -9,8 +9,6 @@ export type VariantQualityStatus = "draft" | "active" | "rejected" | "flagged" |
 export type MaturityBand = "new" | "learning" | "young" | "mature";
 export type ReviewSchedulerState = "new" | "learning" | "review" | "relearning";
 export type CardStatus = "active" | "suspended";
-/** What a deck does when a card becomes a leech: only mark it, or also suspend it. */
-export type LeechAction = "tag" | "suspend";
 export type NewReviewOrder = "reviews-first" | "new-first" | "mixed";
 export type NewCardSortOrder = "oldest-first" | "random";
 export type ReviewCardSortOrder = "most-overdue" | "lowest-retrievability";
@@ -130,6 +128,8 @@ export interface GlobalSchedulerPreferences {
   settingsVersion: 3;
   dayStartHour: number;
   learnAheadMinutes: number;
+  /** Lapses that make a card a leech, account-wide; it is detected again every half threshold (Anki) and only marked. */
+  leechThreshold: number;
   easyDays: EasyDays;
   learningProfiles: LearningProfileTemplate[];
   defaultLearningSettings: GlobalLearningDefaults;
@@ -206,9 +206,6 @@ export interface DeckSettings {
   } | null;
   variantThresholdDays: number;
   maxActiveVariantsPerCard: number;
-  /** Lapses that make a card a leech; it is detected again every half threshold (Anki). */
-  leechThreshold: number;
-  leechAction: LeechAction;
   schedulerProfile: SchedulerProfile;
 }
 

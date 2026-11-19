@@ -149,7 +149,7 @@ function getSchedulerProfile(deckSettings: LearningSettingsInput = {}) {
 function getDesiredRetention(deckSettings: LearningSettingsInput | null | undefined, state: ReviewStateInput): number {
   const configuredRetention = deckSettings?.schedulerProfile?.desiredRetention;
   return configuredRetention == null
-    ? clamp(state?.desiredRetention ?? 0.92, 0.7, 0.99)
+    ? clamp(state?.desiredRetention ?? 0.93, 0.7, 0.99)
     : getSchedulerProfile(deckSettings ?? {}).desiredRetention;
 }
 

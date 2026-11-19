@@ -40,6 +40,7 @@ export interface LearningSettingsInput {
 export interface GlobalSchedulerPreferencesInput {
   dayStartHour?: unknown;
   learnAheadMinutes?: unknown;
+  leechThreshold?: unknown;
   easyDays?: unknown;
   learningProfiles?: unknown;
   defaultLearningSettings?: unknown;
@@ -106,7 +107,7 @@ const presetDefinitions = {
       schedulerProfile: {
         settingsVersion: 2,
         presetId: "standard",
-        desiredRetention: 0.92,
+        desiredRetention: 0.93,
         learningStepsMinutes: [1, 10],
         relearningStepMinutes: 10,
         maximumIntervalDays: 1000,
@@ -172,6 +173,10 @@ export function normalizeLearnAheadMinutes(value: unknown): number {
   return wholeNumber(value, 20, 0, 720);
 }
 
+export function normalizeLeechThreshold(value: unknown): number {
+  return wholeNumber(value, 8, 1, 99);
+}
+
 export function normalizeLearningSettings(settings: LearningSettingsInput = {}): LearningSettings {
   const profile = settings?.schedulerProfile ?? {};
   const hasExplicitSettings = settings.newCardsPerDay !== undefined
@@ -213,7 +218,7 @@ export function normalizeLearningSettings(settings: LearningSettingsInput = {}):
       relearningStepMinutes: preset?.settings.schedulerProfile.relearningStepMinutes
         ?? wholeNumber(profile.relearningStepMinutes, 10, 1, 720),
       desiredRetention: preset?.settings.schedulerProfile.desiredRetention
-        ?? decimal(profile.desiredRetention, 0.92, 0.7, 0.99),
+        ?? decimal(profile.desiredRetention, 0.93, 0.7, 0.99),
       maximumIntervalDays: preset?.settings.schedulerProfile.maximumIntervalDays
         ?? wholeNumber(profile.maximumIntervalDays, 1000, 30, 36500),
     },
@@ -394,6 +399,7 @@ export function getGlobalSchedulerPreferences(profile: ProfileWithSchedulerPrefe
     settingsVersion: 3,
     dayStartHour: normalizeDayStartHour(preferences.dayStartHour),
     learnAheadMinutes: normalizeLearnAheadMinutes(preferences.learnAheadMinutes),
+    leechThreshold: normalizeLeechThreshold(preferences.leechThreshold),
     easyDays: normalizeEasyDays(preferences.easyDays),
     learningProfiles,
     defaultLearningSettings: normalizeGlobalLearningDefaults(preferences.defaultLearningSettings, learningProfiles),
@@ -415,6 +421,7 @@ export function withGlobalSchedulerPreferences<T extends ProfileWithSchedulerPre
       settingsVersion: 3,
       dayStartHour: normalizeDayStartHour(Object.hasOwn(patch, "dayStartHour") ? patch.dayStartHour : current.dayStartHour),
       learnAheadMinutes: normalizeLearnAheadMinutes(Object.hasOwn(patch, "learnAheadMinutes") ? patch.learnAheadMinutes : current.learnAheadMinutes),
+      leechThreshold: normalizeLeechThreshold(Object.hasOwn(patch, "leechThreshold") ? patch.leechThreshold : current.leechThreshold),
       easyDays: normalizeEasyDays(Object.hasOwn(patch, "easyDays") ? patch.easyDays : current.easyDays),
       learningProfiles,
       defaultLearningSettings: normalizeGlobalLearningDefaults(

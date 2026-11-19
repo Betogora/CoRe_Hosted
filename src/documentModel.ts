@@ -144,7 +144,8 @@ async function readPdfText(file: Pick<File, "arrayBuffer">) {
       pages.push({
         pageNumber,
         text,
-        textItemCount: textContent.items?.length ?? 0,
+        // Whitespace-only items carry no text; a page of them has no text layer.
+        textItemCount: (textContent.items ?? []).filter((item: PdfTextItem) => String(item?.str ?? "").trim()).length,
       });
     }
   } finally {

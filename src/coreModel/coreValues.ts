@@ -6,8 +6,6 @@ interface DeckSettingsInput extends LearningSettingsInput {
   newCardsTodayOverride?: { date?: unknown; limit?: unknown } | null;
   variantThresholdDays?: number;
   maxActiveVariantsPerCard?: number;
-  leechThreshold?: number;
-  leechAction?: string;
 }
 export const CORE_DECK_SOURCES = ["anki-apkg", "manual"] as const satisfies readonly DeckSource[];
 
@@ -111,7 +109,5 @@ export function createDefaultDeckSettings(settings: DeckSettingsInput = {}): Dec
     newCardsTodayOverride,
     variantThresholdDays: typeof settings.variantThresholdDays === "number" && Number.isFinite(settings.variantThresholdDays) ? settings.variantThresholdDays : 21,
     maxActiveVariantsPerCard: typeof settings.maxActiveVariantsPerCard === "number" && Number.isFinite(settings.maxActiveVariantsPerCard) ? settings.maxActiveVariantsPerCard : 2,
-    leechThreshold: typeof settings.leechThreshold === "number" && Number.isFinite(settings.leechThreshold) ? Math.min(99, Math.max(1, Math.round(settings.leechThreshold))) : 8,
-    leechAction: settings.leechAction === "suspend" ? "suspend" : "tag",
   };
 }

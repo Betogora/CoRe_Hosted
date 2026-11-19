@@ -15,15 +15,6 @@ Entscheidungen vom 2026-11-14 zur Kommentierung der Specs bis Kapitel 5; die
 Zahlen in Klammern sind die Fragen der Agenda. Je Paket ein PR, unabhängig
 voneinander.
 
-- [ ] **3 Lernen:** Neue Stapel starten mit 1 und 10 Minuten (1.12);
-      Wiederlernen gegen Anki prüfen, Wiederlernschritte in derselben Sitzung
-      (1.14); geänderte Lerneinstellungen gelten sofort für die offene Karte
-      (5.3); eingetippte Antworten selbst bewerten (5.18); Zurücknehmen
-      hinterlässt exakt den vorherigen Datensatz (2.8); Algorithmus auf der
-      Hilfeseite erklären (1.15). Lernbremse nur global, nie automatisch
-      aussetzen; Anki-Markierung übernehmen, eigene nur kennzeichnen (1.17,
-      1.18). Standard-Zielerinnerung neu festlegen, vermutlich 91–94 % (1.11);
-      FSRS-7 erst nach Feldwerten ändern (1.10).
 - [ ] **4 Sync und Import, Rest:** Text- und CSV-Import wie in Anki,
       Konverter nur erwähnen (2.7, eigener PR). Befunde der Anki-Prüfung vom
       2026-11-19 beheben (2.6). Schwer: Bildverdeckung mit Textbeschriftung
@@ -50,64 +41,10 @@ voneinander.
 
 ## P2: Karten aus einer Quelle per KI erstellen
 
-Formular und Auftragsprüfung unter `/neue-karten?method=ai-source` stehen
-(`src/aiSourceCreation.ts`, `AiSourceCreationPanel.tsx`); „Karten erstellen“
-ist deaktiviert, nichts wird gelesen oder übertragen. Offen ist alles, was die
-Oberfläche danach verspricht. Erste Ausbaustufe: PDF, Text,
-Markdown, CSV und TSV.
-
-- [ ] **KI-Kontingent pro Nutzer:** Alle Nutzer teilen das Ausgabenlimit des
-      OpenRouter-Schlüssels; ein Tageslimit je Account (atomare Zählung in
-      Supabase) verhindert, dass ein Nutzer es allein aufbraucht. Auch
-      Voraussetzung für das erste externe Release.
-- [ ] **Entscheidungen vor dem Code (Ergänzung zu ADR-011):** ADR-011 erlaubt
-      genau drei KI-Routen und verlangt für ein Kontingent je Nutzer eine
-      Ergänzung; eine gemeinsame Ergänzung regelt beides und gibt die vierte
-      Route frei (etwa `POST /api/ai/source-cards`, gleiches Modell, ZDR,
-      Kostenlog). Festlegen: ob der Browser nur extrahierten Text oder die Datei
-      überträgt (Bilder gehen nach ADR-011 vorerst nicht an den Anbieter,
-      Scans und Diagramme bleiben damit außen vor); Obergrenzen je Auftrag (Zeichen, Seiten,
-      Karten) und wie große Quellen ohne Serverqueue in Portionen im
-      geöffneten Tab laufen; Hinweis, dass die Quelle an den Anbieter geht.
 - [ ] **Formular (Agenda 3.1–3.6):** drei Schritte Zielstapel, Kartenformen,
-      Vorgaben mit dem gemeinsamen Schrittbaustein; nur Frage–Antwort
-      vorausgewählt; Kartenmenge als Stufe mit Hochrechnung, vorher
-      recherchieren, wie andere Apps das lösen, danach Mischung und
-      Lernziele entscheiden; Größengrenze nach Seiten oder Zeichen.
-- [ ] **Quelle auslesen:** `documentModel.ts` liest PDF, Text, Markdown, CSV
-      und TSV bereits; DOCX und PPTX kommen aus der Dateiauswahl des
-      Formulars und aus den Specs heraus (Lesen steht unter „Später“). Jede
-      Textstelle trägt einen echten Beleg (Seite oder Abschnitt), weil der
-      Prompt einen Quellenverweis je Karte verlangt. Leere, geschützte, nur
-      gescannte oder zu große Dokumente werden mit Meldung abgelehnt, nichts
-      wird still abgeschnitten.
-- [ ] **Generierung und Vertrag:** Anfrage- und Antwortschema in einem eigenen
-      Vertragsmodul wie `aiCardVariantContract.ts`; die Route nutzt
-      `buildAiSourceCreationPrompt` und hält Quellmaterial von Anweisungen
-      getrennt. Je Karte getrennt: Frage oder Lückentext, kurze Lösung,
-      Auswahloptionen mit Richtigkeit, quellenbasierte Erklärung, externe
-      Ergänzung, Quellenverweis. Hinweise des Modells (Material trägt das
-      Lernziel nicht, widersprüchliche oder unlesbare Stellen) kommen als
-      eigene Meldungen zurück. Fortschritt, Abbruch und Fehler folgen den
-      Regeln der Variantengenerierung.
-- [ ] **Ergebnis prüfen und übernehmen:** Vor dem Speichern eine Liste der
-      vorgeschlagenen Karten mit Vorschau, Bearbeiten und Verwerfen je Karte;
-      Bearbeiten und Vorschau nutzen den Reiter `Inhalt` des Karteneditors
-      (ADR-045), kein zweiter Editor; gespeichert wird erst nach Bestätigung
-      und nur über `coreModel.ts` (Frage–Antwort, Lückentext, Single und
-      Multiple Choice gibt es dort schon). Feldzuordnung festlegen: kurze
-      Antwort, quellenbasierte Erklärung in `extra`, Quellenverweis in
-      `source`; die externe Ergänzung braucht eine sichtbar getrennte
-      Kennzeichnung „Ergänzende Erklärung – außerhalb der Quelle“ (eigene
-      Feldrolle oder benanntes Feld). Neuer Zielstapel entsteht erst bei der
-      Übernahme. Der Entwurfsschutz gilt auch für ungespeicherte Ergebnisse.
-- [ ] **Freigabe:** „Karten erstellen“ und den Hinweis „noch nicht verfügbar“
-      erst danach umstellen; ohne Verbindung bleibt die Aktion mit Meldung
-      gesperrt. Specs [Automatisch aus einer Quelle](specs.md#automatisch-aus-einer-quelle), `status.md` und `architecture.md` nachziehen.
-      Nachweis: Routen- und Vertragstests, E2E mit gemockter Route (Erfolg,
-      Hinweise, Abbruch, Fehler, nichts gespeichert vor Übernahme), echte
-      Quellen je Format mit allen vier Kartenformen, visuelle Pflichtmatrix
-      für Fortschritt und Ergebnisliste.
+      Vorgaben, sobald der gemeinsame Schrittbaustein aus P1 (5.10) steht;
+      Kartenmenge als Stufe mit Hochrechnung, vorher recherchieren, wie
+      andere Apps das lösen, danach Mischung und Lernziele entscheiden.
 
 ## P5: KI-Eval und Hillclimb
 
@@ -156,6 +93,21 @@ bewertet werden.
       Anfragetyp, erst dann Runden: je Runde eine Änderung aus
       Trainingsfehlern, gemessen am Testteil. Nachweis: Kalibrierung und
       Baseline je Anfragetyp im Ledger.
+- [ ] **Karten aus einer Quelle: Zerlegung der Quelle messen.** Heute geht
+      je Anfrage ein Abschnitt (≤ 15.000 Zeichen) an die KI. Das trennt
+      Zusammenhänge über Abschnitte, gewichtet „zentral“ nur je Abschnitt,
+      und die Obergrenze von 100 Vorschlägen wird von vorn verbraucht, sodass
+      hintere Kapitel langer Quellen leer ausgehen; Dopplungen verhindert nur
+      der Fragetext. Vergleichen auf den Prüfdokumenten in
+      `fixtures/ai-source/` und zusätzlich langen Quellen: (a) Abschnitte wie
+      heute, (b) die ganze Quelle als Kontext in jeder Anfrage, Karten nur für
+      den markierten Abschnitt, (c) erst eine Gliederung der ganzen Quelle
+      mit Kernaussagen und Kartenbudget je Abschnitt, dann die Abschnitte mit
+      dieser Gliederung. Kriterien: Verteilung der Karten über die Quelle,
+      getroffene Kernaussagen, abschnittsübergreifende Fragen, Dopplungen,
+      Belegtreue, Kosten und Laufzeit. Dazu die Reste nach `source-cards-v2`
+      ([Verlauf](history.md)): Single Choice wird nie gewählt, und
+      Tabellenzeilen mit zwei Angaben ergeben weiter Doppelfragen.
 - [ ] **Zielwerte (Entwurf):** Varianten: Hauptwert ≥ 95 %, M2-Verletzungen
       ≤ 1 % und keine bei Richtung, Kosten höchstens 1,2-fach, Latenz p90
       ≤ 4 s. `card-help`: Hauptwert ≥ 90 %, H2 ≥ 98 %, H6 = 100 %; Streaming
@@ -190,6 +142,14 @@ neuen Code.
       Editor-Vorschau und Importvorschau in Light und Dark bei 390 und 1440 px.
       Renderer, Sync und Katalog sind automatisiert und visuell belegt, die
       eingeloggte App nicht.
+- [ ] **FSRS-7 an Feldwerten prüfen (Agenda 1.10):** Erst ändern, wenn
+      echte Antworten es zeigen. Gemessen wird außerhalb der App (6.3): die
+      tatsächliche Erinnerung in der Wiederholung gegen die Zielerinnerung
+      (Toleranz ±3 Punkte) sowie Log-Loss und RMSE von FSRS-7-Standard gegen
+      FSRS-6-Standard und persönlich optimierte Parameter. Ab 1.000
+      Wiederholungsantworten mit mindestens einem Tag Abstand in einem Konto;
+      vorher dürfen die Anki-Historien des Korpus vormessen. Geändert wird nur
+      bei mehr als 3 Punkten Abweichung oder klar besserer Vorhersage.
 - [ ] **APKG-Korpus:** AnKing und ein echter Lernstand mit Lern-,
       Wiederlern-, ausgesetzten, begrabenen und geflaggten Karten. Ziel:
       mindestens 95 % voll übersetzt, 0 % nicht darstellbar. Prüfung:
@@ -197,8 +157,10 @@ neuen Code.
 
 ## Vor dem ersten externen Release
 
-Dazu das KI-Kontingent pro Nutzer aus P2.
-
+- [ ] **KI-Kontingent pro Nutzer:** Alle Nutzer teilen das Ausgabenlimit des
+      OpenRouter-Schlüssels; ein Tageslimit je Account (atomare Zählung in
+      Supabase) verhindert, dass ein Nutzer es allein aufbraucht. Braucht eine
+      Ergänzung zu ADR-011.
 - [ ] **Magic Link:** Gebaut, aber per Flag aus. Braucht einen eigenen
       SMTP-Server in Supabase, freigegebene Redirect-Adressen (Produktion,
       Preview), eine deutsche Mailvorlage und zusätzlich einen 6-stelligen
@@ -255,6 +217,8 @@ Messung vom 2026-10-31 im [Verlauf](history.md).
   „Umformulierungen“ (Agenda 1.7).
 - Simulator für das ganze Konto entfernen; stattdessen eine selbst klickbare
   Simulationskette je Karte für alle, Vorbild Flashka recherchieren (6.1).
+- Tageszahlen der Lernsitzung nach einem mitten in der Sitzung geänderten
+  Tageslimit neu aus den lokalen Stapelzählungen laden (heute Stand beim Start).
 - Semantische Themenzuordnung in ungegliederten Stapeln, ohne Lernstände zu
   ändern; ein Lösungsweg über Tags ist `Treffer lernen` der Kartenverwaltung.
 
