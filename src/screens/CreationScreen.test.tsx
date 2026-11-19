@@ -50,13 +50,13 @@ test("creation entry presents all three creation methods", () => {
   assert.doesNotMatch(markup, /Core ·|Karten manuell erstellen|Front\/Back-Listen/);
 });
 
-test("source creation offers office files and settings without a generation action", () => {
+test("source creation offers readable files and settings without a generation action", () => {
   const markup = renderToStaticMarkup(<CreationScreen decks={[]} initialMethod="ai-source" {...callbacks} />);
   assert.match(markup, /Die automatische Erstellung ist noch nicht verfügbar/);
-  assert.match(markup, /accept="\.pdf,\.txt,\.md,\.markdown,\.csv,\.tsv,\.docx,\.pptx"/);
+  assert.match(markup, /accept="\.pdf,\.txt,\.md,\.markdown,\.csv,\.tsv"/);
   assert.match(markup, /data-screen-heading[^>]*>Karten automatisch erstellen lassen<\/h2>/);
   for (const title of ["Quelle und Stapel", "Vorgaben", "Karten"]) assert.match(markup, new RegExp(`<h3[^>]*>${title}</h3>`), title);
-  for (const label of ["Quelle", "Stapelname", "Abdeckung", "Antwortlänge", "Sprache", "Formulierung", "Vorwissen", "Weitere Hinweise", "Kartenformate", "Ergänzungen über die Quelle hinaus", "Zielstapel"]) assert.match(markup, new RegExp(`>${label}(?: <|</)`), label);
+  for (const label of ["Quelle", "Stapelname", "Kartenmenge", "Antwortlänge", "Sprache", "Formulierung", "Vorwissen", "Weitere Hinweise", "Kartenformate", "Zielstapel"]) assert.match(markup, new RegExp(`>${label}(?: <|</)`), label);
   assert.match(markup, /role="switch"[\s\S]*?Neuen Stapel anlegen/);
   assert.doesNotMatch(markup, /Schritt 0|Schritt 1 von 3|\?</);
   assert.match(markup, /<ol aria-label="Schritte der automatischen Erstellung"/);

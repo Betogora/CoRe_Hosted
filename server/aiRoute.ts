@@ -20,7 +20,7 @@ export interface ProviderTexts {
 }
 
 export type AiRouteLogEntry = {
-  event: "ai_card_variant" | "ai_card_help" | "ai_learning_summary";
+  event: "ai_card_variant" | "ai_card_help" | "ai_learning_summary" | "ai_source_cards";
   outcome: string;
   status: number;
   latencyMs: number;
@@ -175,6 +175,18 @@ export async function requestOpenRouter(fetchImpl: typeof fetch, apiKey: string,
 
 function usageValue(value: unknown): number | null {
   return typeof value === "number" && Number.isFinite(value) && value >= 0 ? value : null;
+}
+
+const billingSchema = v.looseObject({
+  model: v.optional(v.string()),
+  usage: v.optional(v.looseObject({ total_tokens: v.optional(v.unknown()), cost: v.optional(v.unknown()) })),
+});
+
+/** Model, tokens and costs of a provider answer, readable even when the answer itself is cut off or unusable. */
+export function readBilling(payload: unknown): Pick<AiRouteLogEntry, "model" | "totalTokens" | "costUsd"> {
+  const parsed = v.safeParse(billingSchema, payload);
+  const output = parsed.success ? parsed.output : {};
+  return { model: output.model || null, totalTokens: usageValue(output.usage?.total_tokens), costUsd: usageValue(output.usage?.cost) };
 }
 
 /** Reads the single forced tool call of a complete response; the caller validates its arguments. */

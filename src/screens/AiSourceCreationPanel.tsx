@@ -2,14 +2,14 @@ import React from "react";
 import { ArrowLeft, ArrowRight, CircleDot, FileText, Layers3, ListChecks, MessageSquare, Pencil, Sparkles, TextCursorInput, X } from "lucide-react";
 import type { CreationScreenProps } from "../appScreenProps.ts";
 import {
-  AI_SOURCE_ACCEPT, AI_SOURCE_ANSWER_LENGTHS, AI_SOURCE_CARD_FORMS, AI_SOURCE_FORMAT_LABEL, AI_SOURCE_COVERAGE, AI_SOURCE_LANGUAGES, AI_SOURCE_PRIOR_KNOWLEDGE, AI_SOURCE_REGISTERS,
+  AI_SOURCE_ACCEPT, AI_SOURCE_ANSWER_LENGTHS, AI_SOURCE_CARD_FORMS, AI_SOURCE_FORMAT_LABEL, AI_SOURCE_AMOUNTS, AI_SOURCE_LANGUAGES, AI_SOURCE_PRIOR_KNOWLEDGE, AI_SOURCE_REGISTERS, MAX_AI_SOURCE_WISHES_CHARS,
   aiSourceFileError, createAiSourceCreationDraft, describeAiSourceSettings, suggestSourceDeckName, validateAiSourceCreation,
   type AiSourceSettings,
 } from "../aiSourceCreation.ts";
 import { ActionButton, Disclosure, IconButton } from "../ui/actionUi.tsx";
 import { CoreSegmentedControl, SoftPanel } from "../ui/coreUi.tsx";
 import { StatusMessage } from "../ui/feedbackUi.tsx";
-import { CoreCheckbox, CoreRadio, CoreSwitch } from "../ui/formControls.tsx";
+import { CoreCheckbox, CoreSwitch } from "../ui/formControls.tsx";
 import { FileDropField } from "../ui/FileDropField.tsx";
 import { SectionHeader } from "../ui/SectionHeader.tsx";
 import { CoreSelect, DeckSelect } from "../ui/selectUi.tsx";
@@ -19,7 +19,7 @@ import { formatBytes } from "./screenConstants.ts";
 type AiSourceCreationPanelProps = Pick<CreationScreenProps, "decks" | "initialTargetDeckId" | "onDraftStateChange">;
 
 const learningQuestions = [
-  { key: "coverage", label: "Abdeckung", options: AI_SOURCE_COVERAGE },
+  { key: "amount", label: "Kartenmenge", options: AI_SOURCE_AMOUNTS },
   { key: "answerLength", label: "Antwortlänge", options: AI_SOURCE_ANSWER_LENGTHS },
   { key: "language", label: "Sprache", options: AI_SOURCE_LANGUAGES },
   { key: "register", label: "Formulierung", options: AI_SOURCE_REGISTERS },
@@ -28,7 +28,6 @@ const learningQuestions = [
 const steps = ["Quelle und Stapel", "Vorgaben", "Karten"];
 const STEP_ITEMS = steps.map((label) => ({ label }));
 const cardFormIcons = { basic: MessageSquare, cloze: TextCursorInput, "single-choice": CircleDot, "multiple-choice": ListChecks };
-const extraInformationLabel = "Ergänzungen über die Quelle hinaus";
 
 export function AiSourceCreationPanel({ decks, initialTargetDeckId, onDraftStateChange }: AiSourceCreationPanelProps) {
   const [draft, setDraft] = React.useState(() => createAiSourceCreationDraft(initialTargetDeckId));
@@ -91,7 +90,6 @@ export function AiSourceCreationPanel({ decks, initialTargetDeckId, onDraftState
     ...learningQuestions.map(({ key, label, options }) => [label, options.find(({ value }) => value === settings[key])!.label]),
     ["Kartenformate", AI_SOURCE_CARD_FORMS.filter(({ value }) => settings.cardForms.includes(value)).map(({ label }) => label).join(", ")],
     ["Weitere Hinweise", settings.wishes.trim() || "Keine besonderen Wünsche"],
-    [extraInformationLabel, settings.allowExtraInformation ? "Ergänzungen erlauben und kennzeichnen" : "Nur meine Quelle verwenden"],
   ];
 
   return (
@@ -182,7 +180,7 @@ export function AiSourceCreationPanel({ decks, initialTargetDeckId, onDraftState
               </div>)}
               <label className="core-field-group min-w-0">
                 <span className="core-field-label">Weitere Hinweise <span className="font-normal text-core-muted">(optional)</span></span>
-                <textarea className="core-field min-h-20 w-full resize-y" rows={2} value={settings.wishes} onChange={(event) => changeSetting("wishes", event.target.value)} placeholder="Zum Beispiel: Zellatmung vertiefen, Abkürzungen erklären …" />
+                <textarea className="core-field min-h-20 w-full resize-y" rows={2} maxLength={MAX_AI_SOURCE_WISHES_CHARS} value={settings.wishes} onChange={(event) => changeSetting("wishes", event.target.value)} placeholder="Zum Beispiel: Zellatmung vertiefen, Abkürzungen erklären …" />
               </label>
             </section>
             <section ref={step === 2 ? focusRef : undefined} tabIndex={-1} aria-labelledby="ai-source-step-3" className={`core-ai-source-column min-w-0 scroll-mt-24 content-start outline-none ${step === 2 ? "grid" : "hidden xl:grid"}`}>
@@ -203,14 +201,6 @@ export function AiSourceCreationPanel({ decks, initialTargetDeckId, onDraftState
                   })}
                 </div>
                 {errors.cardForms ? <p className="core-field-error" role="alert">{errors.cardForms}</p> : null}
-              </fieldset>
-              <fieldset className="grid min-w-0 gap-2">
-                <legend className="mb-3 core-field-label">{extraInformationLabel}</legend>
-                {[
-                  { value: false, label: "Nur meine Quelle verwenden" },
-                  { value: true, label: "Ergänzungen erlauben und kennzeichnen" },
-                ].map(({ value, label }) => <CoreRadio key={String(value)} className="core-ai-source-radio flex py-1" name="ai-source-extra-information" label={label} checked={settings.allowExtraInformation === value} onCheckedChange={() => changeSetting("allowExtraInformation", value)} />)}
-                <p className="core-field-hint">Ergänzungen schließen fachliche Lücken und werden deutlich gekennzeichnet.</p>
               </fieldset>
               <div className="grid min-w-0 gap-3">
                 <p className="core-field-label">Zielstapel</p>
