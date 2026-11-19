@@ -1,3 +1,4 @@
+import { requestAiSourceCards } from "../aiSourceCards.ts";
 import { resolveApkgCreationMethod } from "../apkgImportSession.ts";
 import { useAppServices } from "../useAppServices.ts";
 import { useWorkspaceValue } from "../useWorkspaceStore.ts";
@@ -5,7 +6,7 @@ import { CreationScreen } from "./CreationScreen.tsx";
 
 /** `Erstellen` with manual creation, the APKG import session that outlives the screen, and the import commit. */
 export function CreationScreenWiring() {
-  const { navigation, studyStart, cardCommands, cardEditorServices, importCommands, importSession, mediaStore } = useAppServices();
+  const { navigation, studyStart, cardCommands, cardEditorServices, importCommands, importSession, mediaStore, cloud } = useAppServices();
   const decks = useWorkspaceValue((snapshot) => snapshot.state?.decks);
   const { creationMethod, creationDeckId, completedDeckId, completedCount, completionKind, navigateToView, navigateToViewNow } = navigation;
   if (!decks) return null;
@@ -37,6 +38,7 @@ export function CreationScreenWiring() {
       onSaveManualNote={cardCommands.saveManualNote}
       listDeckContents={cardCommands.listDeckContents}
       onImportTextNotes={cardCommands.importTextNotes}
+      onRequestSourceCards={(request, signal) => requestAiSourceCards(request, cloud, signal)}
       listTagDirectory={cardEditorServices.listTagDirectory}
       onDraftStateChange={navigation.handleCreationDraftStateChange}
       onSessionCompleted={(completion) => navigateToViewNow("neue-karten", {

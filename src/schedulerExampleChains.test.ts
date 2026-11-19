@@ -9,53 +9,53 @@ function chainLines(ratings: Parameters<typeof runExampleChain>[0], retention: n
   return runExampleChain(ratings, retention).map((contact) => `Tag ${contact.day.toFixed(2)} ${contact.rating} V:${contact.variants.join("/")} → ${interval(contact)} H ${contact.durabilityDays} ${contact.band}`);
 }
 
-/** Per chain at the default target retention 0.92. */
+/** Per chain at the default target retention 0.93. */
 const EXPECTED_CHAINS: Record<string, string[]> = {
   "Immer Gut": [
     "Tag 0.00 good V:0/0/0 → 10 min H 4.78 learning",
-    "Tag 0.01 good V:0/0/0 → 5.91 d H 10.07 young",
-    "Tag 5.92 good V:1/0/0 → 22.74 d H 35.7 mature",
-    "Tag 28.66 good V:2/1/0 → 67.3 d H 103.14 mature",
-    "Tag 95.96 good V:3/2/1 → 183.51 d H 277.92 mature",
-    "Tag 279.46 good V:1/3/2 → 480.55 d H 722.9 mature",
+    "Tag 0.01 good V:0/0/0 → 4.27 d H 10.07 young",
+    "Tag 4.27 good V:1/0/0 → 15.83 d H 32.34 mature",
+    "Tag 20.10 good V:2/1/0 → 43.94 d H 85.97 mature",
+    "Tag 64.05 good V:3/2/1 → 111.83 d H 214.12 mature",
+    "Tag 175.88 good V:1/3/2 → 272.66 d H 515.52 mature",
   ],
   "Leicht, dann Gut": [
-    "Tag 0.00 easy V:0/0/0 → 33.92 d H 53.87 mature",
-    "Tag 33.92 good V:1/1/0 → 128.02 d H 195.26 mature",
-    "Tag 161.95 good V:2/2/1 → 410.36 d H 618.42 mature",
-    "Tag 572.31 good V:3/3/2 → 1000 d H 1873.83 mature",
+    "Tag 0.00 easy V:0/0/0 → 25.96 d H 53.87 mature",
+    "Tag 25.96 good V:1/1/0 → 91.37 d H 176.79 mature",
+    "Tag 117.33 good V:2/2/1 → 269.99 d H 511.46 mature",
+    "Tag 387.32 good V:3/3/2 → 756.74 d H 1418.96 mature",
   ],
   "Mit Schwer dazwischen": [
     "Tag 0.00 good V:0/0/0 → 10 min H 4.78 learning",
-    "Tag 0.01 good V:0/0/0 → 5.91 d H 10.07 young",
-    "Tag 5.92 good V:1/0/0 → 22.74 d H 35.7 mature",
-    "Tag 28.66 hard V:2/1/0 → 24.82 d H 38.62 mature",
-    "Tag 53.47 good V:2/1/0 → 55.16 d H 84.62 mature",
-    "Tag 108.63 hard V:3/2/1 → 63.04 d H 96.4 mature",
-    "Tag 171.67 good V:3/2/1 → 112.46 d H 170.88 mature",
-    "Tag 284.12 good V:1/3/2 → 199.53 d H 301.69 mature",
+    "Tag 0.01 good V:0/0/0 → 4.27 d H 10.07 young",
+    "Tag 4.27 good V:1/0/0 → 15.83 d H 32.34 mature",
+    "Tag 20.10 hard V:2/1/0 → 16.11 d H 32.46 mature",
+    "Tag 36.22 good V:2/1/0 → 33.92 d H 66.58 mature",
+    "Tag 70.14 hard V:3/2/1 → 36.78 d H 71.83 mature",
+    "Tag 106.92 good V:3/2/1 → 62.7 d H 121.01 mature",
+    "Tag 169.62 good V:1/3/2 → 106.2 d H 203.07 mature",
   ],
   "Gut mit einem Fehler": [
     "Tag 0.00 good V:0/0/0 → 10 min H 4.78 learning",
-    "Tag 0.01 good V:0/0/0 → 5.91 d H 10.07 young",
-    "Tag 5.92 good V:1/0/0 → 22.74 d H 35.7 mature",
-    "Tag 28.66 good V:2/1/0 → 67.3 d H 103.14 mature",
-    "Tag 95.96 again V:3/2/1 → 10 min H 0.7 learning",
-    "Tag 95.97 good V:0/0/0 → 1 d H 1.79 young",
-    "Tag 96.97 good V:0/0/0 → 2.53 d H 4.3 young",
-    "Tag 99.50 good V:0/0/0 → 4.89 d H 8.13 young",
-    "Tag 104.38 good V:2/0/0 → 8.87 d H 14.29 young",
-    "Tag 113.25 good V:3/0/0 → 15.42 d H 24.35 mature",
+    "Tag 0.01 good V:0/0/0 → 4.27 d H 10.07 young",
+    "Tag 4.27 good V:1/0/0 → 15.83 d H 32.34 mature",
+    "Tag 20.10 good V:2/1/0 → 43.94 d H 85.97 mature",
+    "Tag 64.05 again V:3/2/1 → 10 min H 0.49 learning",
+    "Tag 64.05 good V:0/0/0 → 1 d H 1.43 young",
+    "Tag 65.05 good V:0/0/0 → 2 d H 3.68 young",
+    "Tag 67.05 good V:0/0/0 → 3.02 d H 6.91 young",
+    "Tag 70.08 good V:0/0/0 → 5.32 d H 11.5 young",
+    "Tag 75.39 good V:2/0/0 → 8.94 d H 18.63 young",
   ],
   "Nochmal am Anfang": [
     "Tag 0.00 again V:0/0/0 → 1 min H 0 learning",
     "Tag 0.00 good V:0/0/0 → 10 min H 0.02 learning",
     "Tag 0.01 good V:0/0/0 → 1 d H 0.1 young",
     "Tag 1.01 good V:0/0/0 → 2 d H 1.57 young",
-    "Tag 3.01 good V:0/0/0 → 3.58 d H 5.89 young",
-    "Tag 6.59 good V:0/0/0 → 9.33 d H 14.84 young",
-    "Tag 15.92 good V:1/0/0 → 22.43 d H 34.91 mature",
-    "Tag 38.35 good V:2/1/0 → 51.21 d H 78.57 mature",
+    "Tag 3.01 good V:0/0/0 → 2.67 d H 5.89 young",
+    "Tag 5.68 good V:0/0/0 → 6.53 d H 13.62 young",
+    "Tag 12.20 good V:1/0/0 → 14.79 d H 29.75 mature",
+    "Tag 26.99 good V:2/1/0 → 31.87 d H 62.52 mature",
   ],
   "Wackeliger Start": [
     "Tag 0.00 again V:0/0/0 → 1 min H 0 learning",
@@ -66,7 +66,7 @@ const EXPECTED_CHAINS: Record<string, string[]> = {
     "Tag 1.02 good V:0/0/0 → 2 d H 0.15 young",
     "Tag 3.02 good V:0/0/0 → 2 d H 0.69 young",
     "Tag 5.02 good V:0/0/0 → 2 d H 1.83 young",
-    "Tag 7.02 good V:0/0/0 → 2.5 d H 3.64 young",
+    "Tag 7.02 good V:0/0/0 → 2.09 d H 3.64 young",
   ],
 };
 
@@ -80,56 +80,56 @@ const EXPECTED_RETENTIONS: Record<string, string[]> = {
     "Tag 195.77 good V:3/2/1 → 444.38 d H 444.38 mature",
     "Tag 640.15 good V:1/3/2 → 1000 d H 1330.04 mature",
   ],
-  "0.94": [
+  "0.95": [
     "Tag 0.00 good V:0/0/0 → 10 min H 4.78 learning",
-    "Tag 0.01 good V:0/0/0 → 2.87 d H 10.07 young",
-    "Tag 2.88 good V:0/0/0 → 10.47 d H 29.04 mature",
-    "Tag 13.35 good V:1/1/0 → 27.3 d H 70.56 mature",
-    "Tag 40.65 good V:2/2/1 → 64.73 d H 161.41 mature",
-    "Tag 105.38 good V:3/3/2 → 146.52 d H 357.59 mature",
+    "Tag 0.01 good V:0/0/0 → 1.71 d H 10.07 young",
+    "Tag 1.72 good V:0/0/0 → 6.38 d H 25.79 mature",
+    "Tag 8.10 good V:1/1/0 → 15.75 d H 56.83 mature",
+    "Tag 23.85 good V:2/2/0 → 34.81 d H 118.49 mature",
+    "Tag 58.66 good V:3/3/1 → 72.99 d H 239.86 mature",
   ],
 };
 
 for (const chain of EXAMPLE_CHAINS) {
-  test(`Beispielkette „${chain.name}“ bei Zielerinnerung 0,92: Abstände, Haltbarkeit, Reifeband und erste Variante`, () => {
-    assert.deepEqual(chainLines(chain.ratings, 0.92), EXPECTED_CHAINS[chain.name]);
+  test(`Beispielkette „${chain.name}“ bei Zielerinnerung 0,93: Abstände, Haltbarkeit, Reifeband und erste Variante`, () => {
+    assert.deepEqual(chainLines(chain.ratings, 0.93), EXPECTED_CHAINS[chain.name]);
   });
 }
 
 test(`Beispielkette „${EXAMPLE_CHAINS[0].name}“ bei den übrigen Zielerinnerungen`, () => {
-  assert.deepEqual(Object.keys(EXPECTED_RETENTIONS), EXAMPLE_RETENTIONS.filter((retention) => retention !== 0.92).map(String));
+  assert.deepEqual(Object.keys(EXPECTED_RETENTIONS), EXAMPLE_RETENTIONS.filter((retention) => retention !== 0.93).map(String));
   for (const [retention, expected] of Object.entries(EXPECTED_RETENTIONS)) {
     assert.deepEqual(chainLines(EXAMPLE_CHAINS[0].ratings, Number(retention)), expected, `Zielerinnerung ${retention}`);
   }
 });
 
-test("jede Bewertung je Lage der Karte bei Zielerinnerung 0,92: nächste Phase, Abstand, Haltbarkeit und Reifeband", () => {
-  const effects = Object.fromEntries(EXAMPLE_SITUATIONS.map((situation) => [situation.name, Object.fromEntries(Object.entries(exampleRatingEffects(situation.ratings, 0.92))
+test("jede Bewertung je Lage der Karte bei Zielerinnerung 0,93: nächste Phase, Abstand, Haltbarkeit und Reifeband", () => {
+  const effects = Object.fromEntries(EXAMPLE_SITUATIONS.map((situation) => [situation.name, Object.fromEntries(Object.entries(exampleRatingEffects(situation.ratings, 0.93))
     .map(([rating, outcome]) => [rating, `${outcome.phase} ${interval(outcome)} H ${outcome.durabilityDays} ${outcome.band}`]))]));
   assert.deepEqual(effects, {
     "Neue Karte": {
       again: "learning 1 min H 0 learning",
       hard: "learning 6 min H 0.6 learning",
       good: "learning 10 min H 4.78 learning",
-      easy: "review 33.92 d H 53.87 mature",
+      easy: "review 25.96 d H 53.87 mature",
     },
     "Im zweiten Lernschritt": {
       again: "learning 1 min H 0 learning",
       hard: "learning 6 min H 3.25 learning",
-      good: "review 5.91 d H 10.07 young",
-      easy: "review 13.56 d H 22.12 mature",
+      good: "review 4.27 d H 10.07 young",
+      easy: "review 10.15 d H 22.12 mature",
     },
     "In der Wiederholung": {
-      again: "relearning 10 min H 0.09 learning",
-      hard: "review 24.82 d H 38.62 mature",
-      good: "review 67.3 d H 103.14 mature",
-      easy: "review 126.66 d H 192.81 mature",
+      again: "relearning 10 min H 0.06 learning",
+      hard: "review 16.11 d H 32.46 mature",
+      good: "review 43.94 d H 85.97 mature",
+      easy: "review 83.63 d H 161.51 mature",
     },
     "Im Wiederlernen": {
       again: "relearning 10 min H 0 learning",
-      hard: "relearning 15 min H 0.34 learning",
-      good: "review 1 d H 0.63 young",
-      easy: "review 2 d H 0.8 young",
+      hard: "relearning 15 min H 0.28 learning",
+      good: "review 1 d H 0.53 young",
+      easy: "review 2 d H 0.68 young",
     },
   });
 });

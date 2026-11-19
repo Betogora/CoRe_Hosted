@@ -130,6 +130,19 @@ test("schnelle Sofortänderungen am Lernstand bauen in ihrer Reihenfolge aufeina
   assert.equal(forward?.status, "active");
 });
 
+test("ein neuer Stapel bleibt sichtbar, wenn das Speichern seiner ersten Karte scheitert", async () => {
+  const { repository, store, commands } = await setup();
+  const content = createBasicNote("deck-a", "Frage", "Antwort").note.content;
+  const saveNoteGraphs = repository.saveNoteGraphs;
+  repository.saveNoteGraphs = async () => { throw new Error("Speicher voll."); };
+  try {
+    await assert.rejects(commands.saveManualNote({ deckId: null, deckName: "Aus Quelle", content, media: {} }), /Speicher voll/);
+  } finally {
+    repository.saveNoteGraphs = saveNoteGraphs;
+  }
+  assert.deepEqual(store.get().state?.decks.filter((deck) => deck.name === "Aus Quelle").length, 1);
+});
+
 test("Textimport: Duplikate aktualisieren Felder und behalten Karten samt Lernstand; ein Fehler lässt keinen neuen Stapel zurück", async () => {
   const { repository, store, commands } = await setup();
   const before = await repository.loadNoteGraph("note-1");

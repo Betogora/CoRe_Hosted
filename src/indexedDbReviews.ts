@@ -5,19 +5,16 @@ import {
   STORE,
   cardRecord,
   catalogRecordFor,
-  hydrateCard,
   requestResult,
   residencyRecord,
   storedCatalogRecord,
   transactionDone,
   variantRecord,
-  type StoredCard,
   type StoredCardCatalog,
 } from "./indexedDbStore.ts";
 import type { createStudyOverview } from "./indexedDbStudyOverview.ts";
 import type { ReviewAnswerResult } from "./reviewService.ts";
 import type { SyncOutboxMutation } from "./syncEngine.ts";
-import { planEntityMutations } from "./syncMutationPlanner.ts";
 import { catalogEntryFromCard, catalogReviewHistory, withStudyEvents, type CatalogReviewHistory } from "./workspaceReplica.ts";
 
 const REVIEW_STORES = [STORE.cards, STORE.variants, STORE.notes, STORE.cardCatalog, STORE.bodyResidency, STORE.deckStudySummaries, STORE.reviewEvents, STORE.outbox, STORE.meta, STORE.syncMetadata];
@@ -26,7 +23,7 @@ export function createReviewWrites({ userId, database, enqueueWrite, outbox, stu
   userId: string;
   database: IDBDatabase;
   enqueueWrite: <T>(write: () => Promise<T>) => Promise<T>;
-  outbox: Pick<ReturnType<typeof createReplicaOutbox>, "rememberPending" | "queueMutations" | "writeOutbox">;
+  outbox: Pick<ReturnType<typeof createReplicaOutbox>, "rememberPending">;
   studyOverview: ReturnType<typeof createStudyOverview>;
   markCatalogChanged: (cardId: string) => void;
 }) {
@@ -74,11 +71,6 @@ export function createReviewWrites({ userId, database, enqueueWrite, outbox, stu
       }
       // Counted against the other answers of the day: before an answer is stored, after a take-back removed it.
       await studyOverview.countReviewInOverview(transaction, event, deck.id, takenBack ? -1 : 1);
-      // A leech the deck suspends (or its take-back) also changes the card itself; that edit syncs like any card change.
-      const stored = await requestResult<StoredCard | undefined>(transaction.objectStore(STORE.cards).get(card.id));
-      if (stored && stored.status !== card.status) {
-        outbox.writeOutbox(transaction, outbox.queueMutations(planEntityMutations({ cards: [hydrateCard(stored)] }, { cards: [{ ...card, variants: [] }] })));
-      }
       transaction.objectStore(STORE.cards).put(cardRecord(card));
       if (variant) transaction.objectStore(STORE.variants).put(variantRecord(variant, card.deckId));
       if (!takenBack) transaction.objectStore(STORE.reviewEvents).put(event);

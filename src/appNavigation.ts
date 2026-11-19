@@ -21,6 +21,10 @@ export type SettingsSection = typeof SETTINGS_SECTIONS[number];
 export type GeneralSettingsSection = "konto" | "darstellung" | "daten" | "ueber";
 export type DeckSettingsSection = typeof DECK_SETTINGS_SECTIONS[number];
 
+/** How the cards of a finished creation came about; the completion screen names its way. */
+const CREATION_COMPLETION_KINDS = ["import", "manual", "ai-source"] as const;
+export type CreationCompletionKind = typeof CREATION_COMPLETION_KINDS[number];
+
 /** The deck settings dialog lying over a view or a study session. */
 export interface DeckSettingsOverlay {
   deckId: string;
@@ -62,7 +66,7 @@ export interface ViewRoute {
   creationDeckId?: string;
   completedDeckId?: string;
   completedCount?: number;
-  completionKind?: "import" | "manual";
+  completionKind?: CreationCompletionKind;
   cardEditorReturnContext?: ReviewResumeContext;
   settingsSection?: SettingsSection;
   deckSettings?: DeckSettingsOverlay;
@@ -170,7 +174,7 @@ function normalizeViewRoute(
   const creationDeckId = cleanIdentifier(route.creationDeckId);
   const completedDeckId = cleanIdentifier(route.completedDeckId);
   const completedCount = cleanCompletedCount(route.completedCount);
-  const completionKind = route.completionKind === "import" || route.completionKind === "manual" ? route.completionKind : null;
+  const completionKind = CREATION_COMPLETION_KINDS.find((kind) => kind === route.completionKind) ?? null;
   const cardEditorReturnContext = normalizeReviewResumeContext(route.cardEditorReturnContext);
   const deckSettings = normalizeDeckSettings(route.deckSettings);
   const settingsSection = !deckSettings && SETTINGS_SECTIONS.includes(route.settingsSection as SettingsSection) ? route.settingsSection as SettingsSection : null;

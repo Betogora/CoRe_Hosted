@@ -153,7 +153,7 @@ export async function createIndexedDbCoreRepository({ userId, initialState, inde
     },
   });
   const { applyReplicaCatalogChanges, applyReplicaCatalogChange } = studyOverview;
-  const reviewWrites = createReviewWrites({ userId, database, enqueueWrite, outbox: { rememberPending, queueMutations, writeOutbox }, studyOverview, markCatalogChanged });
+  const reviewWrites = createReviewWrites({ userId, database, enqueueWrite, outbox: { rememberPending }, studyOverview, markCatalogChanged });
   const cardBodies = createCardBodies(database, {
     flushWrites,
     pendingEntityMutation,

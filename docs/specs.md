@@ -39,7 +39,7 @@ Titel: Wie die Bereiche zusammenspielen
 Gruppe: Karten kommen hinein (Erstellen)
 Import | Anki-Paket, Text oder CSV
 Manuell | Felder, Auswahl, Lücken, Bildverdeckung
-[primär] Automatisch aus einer Quelle | vorbereitet, noch nicht aktiv
+[primär] Automatisch aus einer Quelle | KI-Vorschläge, vor dem Speichern geprüft
 Pfeil: werden zu
 Gruppe: Bestand
 Stapel | Hierarchie mit eigenen Lernoptionen
@@ -118,7 +118,7 @@ Karte
 - **Lückentext:** Jede Lückengruppe ist eine eigene Karte.
 - **Auswahl:** Single Choice (genau eine richtige von mindestens zwei Optionen), Multiple Choice (mindestens eine richtige und eine falsche) und Kprim (eine Karte mit beliebig vielen Aussagen, jede als richtig oder falsch zu markieren; nur aus Anki-Importen). Ein Inhalt ergibt genau eine Karte; nicht mit Lücken oder Rückrichtung kombinierbar.
 - **Bildverdeckung:** Jede Maskengruppe ist eine eigene Karte ([Bildverdeckung](#bildverdeckung)).
-- **Antwort eintippen:** Baustein für Frage–Antwort; die Eingabe wird zeichengenau wie in Anki verglichen.
+- **Antwort eintippen:** Baustein für Frage–Antwort; die Eingabe wird zeichengenau wie in Anki verglichen und selbst bewertet.
 - **Zusätzliche Felder** tragen eine Rolle: `Zusatzfrage` (Teil der Frage, in Rückrichtung Teil der Antwort), `Hinweis` (vor der Antwort aufdeckbar), `Zusatz` und `Quelle` (erst nach der Antwort), `Notiz` (nur im Editor).
 - Felder sind formatierter Text, der vor Speicherung und Darstellung bereinigt wird.
 
@@ -127,7 +127,7 @@ Karte
 - Review, Vorschau, Editor und Importvorschau zeigen dieselbe Karte gleich, im CoRe-Design.
 - Beim Aufdecken bleibt die Frage stehen; die Antwort folgt und wiederholt die Frage nicht.
 - Single Choice deckt mit der Auswahl auf, Multiple Choice und Kprim erst nach ausdrücklicher Prüfung.
-- **Ausnahme Originallayout** ([ADR-047](decisions.md#adr-047--originallayout-importierter-karten)): Importierte Karten, deren Notiztyp eigenes CSS ohne Script mitbringt und generisch übersetzt wurde, erscheinen im Layout ihres Autors. Es gibt dafür keinen Schalter; die Bedienung um die Karte bleibt CoRe. Bleibt die Vorderseite leer, erscheint die Karte im CoRe-Design mit Hinweis.
+- **Ausnahme Originallayout** ([ADR-047](decisions.md#adr-047--originallayout-importierter-karten)): Generisch übersetzte Importe, deren Notiztyp eigenes CSS ohne Script mitbringt, erscheinen ohne Schalter im Layout ihres Autors; die Bedienung bleibt CoRe. Bleibt die Vorderseite leer, gilt das CoRe-Design mit Hinweis.
 - Formeln werden gesetzt; bei Fehlern bleibt der Quelltext sichtbar.
 - Skripte aus Karten werden nie ausgeführt.
 
@@ -137,20 +137,18 @@ Karte
 - Tags, die sich nur in Groß- und Kleinschreibung unterscheiden, sind ein Tag; die zuerst gespeicherte Schreibweise gilt.
 - Eine Tag-Änderung ist keine Inhaltsänderung: Sie wirkt sofort und hält spätere Import-Updates der Felder nicht auf.
 - Ein importierter Inhalt merkt sich die Tags seines letzten Imports getrennt von den eigenen.
-- Ein Reimport führt Tags zusammen: Lokal ergänzte bleiben, lokal entfernte bleiben entfernt, im Paket neue kommen dazu, im Paket entfallene gehen.
+- Ein Reimport führt Tags zusammen: Lokale Ergänzungen und Entfernungen bleiben, im Paket neue kommen dazu, entfallene gehen.
 
 ### Flaggen, Markierung und Lernbremse
 
 - Flaggen sind die sieben Anki-Farben je Karte; eigene Namen gelten kontoweit. Anki-Flaggen werden übernommen, Flaggennamen nicht, weil das Paket sie nicht enthält.
 - Die Markierung gehört zum Inhalt (Anki-Tag `marked`), die Lernbremse zur Karte (Anki-Tag `leech`); beide erscheinen danach nicht mehr als Tag.
-- Eine Karte erhält die Lernbremse, wenn ein `Nochmal` in der Wiederholung die Fehlerschwelle des Stapels erreicht (Standard 8), danach bei jeder weiteren halben Schwelle. Frühere Fehler lösen nicht rückwirkend aus.
-- Der Stapel legt fest, ob die Lernbremse nur kennzeichnet (Standard) oder die Karte aussetzt. Sie lässt sich zurücksetzen.
-- Lokal gesetzte Flaggen, Markierung und Lernbremse überstehen einen Reimport.
+- Die Lernbremse kennzeichnet eine Karte, wenn ein `Nochmal` in der Wiederholung die kontoweite Fehlerschwelle (Standard 8) erreicht, danach je halbe Schwelle, nie rückwirkend. Sie setzt nie aus und lässt sich zurücksetzen.
 
 ### Stapel
 
 - Stapel bilden eine Hierarchie ohne Tiefenlimit ([ADR-041](decisions.md#adr-041--stapelhierarchie-und-stapelsammlung)); ein Elternstapel fasst alle Unterstapel zusammen. Sortiert wird je Ebene alphabetisch wie in Anki.
-- Jeder Stapel trägt eigene Lernoptionen. Ein neuer Stapel erhält den Standard als eigene Werte; ein Reimport lässt lokale Einstellungen unverändert.
+- Jeder Stapel trägt eigene Lernoptionen. Ein neuer Stapel erhält den Standard als eigene Werte.
 - Verschieben macht einen Stapel samt Unterbaum zum direkten Unterstapel des Ziels oder zum Hauptstapel. Ausgeschlossen sind nur der Stapel selbst und seine Nachfahren. Importherkunft und Tags bleiben.
 - Das Löschen eines Stapelbaums ist endgültig, nennt vorher Unterstapel und Kartenzahl und wird durch späteren Sync nicht rückgängig.
 - Je Stapel zeigen `Heute` und `Lernen` die Tageszahlen `Neu`, `Offen` und `Fällig` nach [Tagesrunde und Limits](#tagesrunde-und-limits); Elternstapel zählen ihren Teilbaum.
@@ -194,7 +192,7 @@ Akzeptanz:
 
 - Der Import folgt [Anki-Import](#anki-import), [Text- und Tabellenimport](#text--und-tabellenimport), [Übersetzung von Anki-Paketen](#übersetzung-von-anki-paketen) und [Reimport und Neuübersetzung](#reimport-und-neuübersetzung).
 - Die manuelle Erstellung folgt [Manuell erstellen](#manuell-erstellen) und [Bildverdeckung](#bildverdeckung).
-- Der vorbereitete dritte Weg folgt [Automatisch aus einer Quelle](#automatisch-aus-einer-quelle).
+- Der dritte Weg folgt [Automatisch aus einer Quelle](#automatisch-aus-einer-quelle).
 
 ### Karten bearbeiten und eine Sitzung starten
 
@@ -305,7 +303,7 @@ Akzeptanz:
 
 ### Erstellungswege
 
-Karten entstehen manuell, durch Import oder, vorbereitet, automatisch aus einer Quelle. Manuelle Erstellung und Import speichern zuerst auf dem Gerät und synchronisieren danach.
+Karten entstehen manuell, durch Import oder automatisch aus einer Quelle. Manuelle Erstellung und Import speichern zuerst auf dem Gerät und synchronisieren danach.
 
 ### Manuell erstellen
 
@@ -351,51 +349,53 @@ Gruppe: Synchronisierung ins Konto
 [info] Medien
 ```
 
-- Pakete bis 2 GiB verarbeitet der Browser selbst; größere werden abgewiesen.
-- Analyse und Übernahme sind getrennte Schritte: Die Analyse lässt sich abbrechen und ändert nichts, die Übernahme läuft durch.
-- Der Bericht nennt je Notiztyp, wie übersetzt wird, wie viele Inhalte und Karten entstehen, wie viel Lernstand übernommen wird, was nur generisch oder gar nicht übernommen wird, welche Medien fehlen und ob die Karten im Originallayout erscheinen. Beispielkarten erscheinen wie im Review. Technische Kennungen erscheinen nicht.
+- Anki-Pakete bis 2 GiB verarbeitet der Browser selbst; größere werden abgewiesen.
+- Die Analyse lässt sich abbrechen und ändert nichts; die Übernahme läuft durch.
+- Der Bericht nennt je Notiztyp Übersetzung, Inhalte und Karten, übernommenen Lernstand, nur generisch oder nicht Übernommenes, fehlende Medien und das Originallayout; Beispielkarten erscheinen wie im Review, technische Kennungen nicht.
 - Jede Anki-Notiz wird ein Inhalt, jede Anki-Karte eine CoRe-Karte; die Stapelhierarchie bleibt vollständig.
-- Die Übernahme ist fertig, sobald alles geprüft auf dem Gerät gespeichert und die Medien zum Upload eingereiht sind. Dann meldet der Import den Erfolg mit bis zu drei Beispielkarten; Sync und Medien-Upload laufen im Hintergrund. Scheitern sie, bleiben die Karten lokal und lernbar.
+- Die Übernahme ist fertig, sobald alles geprüft auf dem Gerät liegt und die Medien eingereiht sind; dann meldet der Import Erfolg mit bis zu drei Beispielkarten. Sync und Medien-Upload laufen im Hintergrund; scheitern sie, bleiben die Karten lokal lernbar.
 - Medien werden erst bei der Übernahme gelesen und gegen ihre Prüfsumme geprüft.
 - Fehler beim Lesen des Pakets bleiben sichtbar und werden nicht durch einen stillen Ersatzweg verdeckt.
-- Ein laufender Import übersteht den Wechsel in andere App-Bereiche, nicht aber einen Reload; Schließen und Neuladen während Analyse und Übernahme fragen nach.
-- Bricht eine Übernahme trotzdem ab, meldet CoRe das beim nächsten Start mit der Zahl schon übernommener Karten, bis dieselbe Datei den Import vervollständigt oder seine Stapel gelöscht sind.
+- Ein laufender Import übersteht Bereichswechsel, keinen Reload; Schließen fragt nach. Eine abgebrochene Übernahme meldet CoRe beim nächsten Start mit der Zahl übernommener Karten, bis dieselbe Datei sie vervollständigt oder ihre Stapel gelöscht sind.
 - **Bewusst nicht:** Serverimport, Upload-Fallback.
 
 ### Text- und Tabellenimport
 
-- Text- und CSV-Dateien bis 20 MB und 50.000 Zeilen werden wie in Anki zu Inhalten; die Dateiendung bestimmt das Format.
-- Ankis Kopfzeilen gelten, unbekannte werden gemeldet. Ohne Trennzeichen-Kopfzeile gilt das erste mit gleichbleibender Spaltenzahl.
-- Jede gültige Zeile wird ein Inhalt der gewählten Form (Frage–Antwort, auch mit Rückrichtung, Lückentext); ungültige werden mit Zeile und Grund übersprungen.
-- Duplikate (gleiche Form und gleicher Klartext im ersten Feld im Zielstapel) werden wie in Anki aktualisiert, wobei Karten und Lernstand bleiben und Tags hinzukommen, oder wahlweise übersprungen oder neu angelegt.
+- Text- und CSV-Dateien bis 20 MB und 50.000 Zeilen werden wie in Anki zu Inhalten: Ankis Kopfzeilen gelten, sonst das erste Trennzeichen, das jede Zeile teilt; `#`-Zeilen sind Kommentare.
+- Jede gültige Zeile wird ein Inhalt der gewählten Form, ungültige werden mit Grund übersprungen; geschrieben wird alles oder nichts.
+- Duplikate (gleiche Form, gleiches erstes Feld im Zielstapel) werden wie in Anki aktualisiert (Karten und Lernstand bleiben, Tags kommen dazu), übersprungen oder neu angelegt.
 - **Bewusst nicht:** Excel- und Numbers-Dateien, Medien.
 
 ### Übersetzung von Anki-Paketen
 
-- Registrierte Übersetzer bilden bekannte Notiztypen auf CoRe-Inhalte mit Feldrollen und Inhaltsform ab. Unbekannte Notiztypen werden generisch als Feldliste übernommen.
+- Registrierte Übersetzer bilden bekannte Notiztypen auf CoRe-Inhalte mit Feldrollen und Inhaltsform ab, unbekannte generisch als Feldliste.
 - Importierte Inhalte behalten Feldnamen, Feldreihenfolge und Anki-Vorlage; nur die Werte sind bearbeitbar.
-- Template-JavaScript und Add-on-Filter werden nicht ausgeführt. Die Quellwerte bleiben unsichtbar erhalten, damit eine spätere Neuübersetzung möglich ist; Abweichungen erscheinen als Hinweis.
-- Der Bewertungsverlauf aus Anki wird als Analysehistorie übernommen, soweit Karten eindeutig zuordenbar sind.
-- Der erste Lernstand entsteht in dieser Reihenfolge: Nachrechnen der vollständigen Anki-Historie mit dem CoRe-Scheduler, sonst Ankis gespeicherter FSRS-Gedächtniszustand, sonst der klassische Kartenstatus, sonst neue Karte. Wie in Anki zählen Cram-Wiederholungen und Antworten vor dem letzten Zurücksetzen nicht; fehlt der Zeitpunkt der letzten Wiederholung, gilt die letzte Antwort. Nach der ersten Antwort in CoRe gilt nur noch der CoRe-Scheduler.
+- Template-JavaScript und Add-on-Filter laufen nicht; Abweichungen erscheinen als Hinweis. Die Quellwerte bleiben unsichtbar für eine spätere Neuübersetzung erhalten.
+- Ankis Bewertungsverlauf wird übernommen, soweit Karten eindeutig zuordenbar sind.
+- Der erste Lernstand kommt aus der vollständigen Anki-Historie, nachgerechnet mit dem CoRe-Scheduler, sonst aus Ankis FSRS-Zustand, dem klassischen Kartenstatus oder als neue Karte. Wie in Anki zählen Cram und Antworten vor dem letzten Zurücksetzen nicht; ohne Zeitpunkt der letzten Wiederholung gilt die letzte Antwort. Danach gilt nur der CoRe-Scheduler.
 
 ### Reimport und Neuübersetzung
 
-- Ein Reimport erkennt Inhalte und Karten an ihren Anki-Kennungen, auch wenn sie nur im Konto und nicht auf dem Gerät liegen.
-- Unbearbeitete Inhalte übernehmen den Paketinhalt; lokal bearbeitete bleiben unverändert und werden gezählt.
-- Lernstand, Aussetzung, Markierung, Flaggen und Stapelzuordnung bleiben immer. Neue Abfragen werden neue Karten; im Paket fehlende Karten bleiben und werden gezählt.
-- Wie in Anki bringen nur neu angelegte Karten Lernstand und Bewertungsverlauf aus dem Paket mit; vorhandene behalten ihren Verlauf unverändert. Nur das Fortsetzen einer unterbrochenen Übernahme ergänzt fehlende Bewertungen aller Karten des Pakets.
+- Ein Reimport erkennt Inhalte und Karten an ihren Anki-Kennungen, auch nur im Konto liegende. Unbearbeitete Inhalte übernehmen den Paketinhalt, lokal bearbeitete bleiben und werden gezählt.
+- Lernstand, Lernbremse, Verlauf, Aussetzung, Markierung, Flaggen und Stapelzuordnung vorhandener Karten bleiben immer; wie in Anki bringen nur neue Karten Lernstand und Verlauf aus dem Paket mit, außer beim Fortsetzen einer abgebrochenen Übernahme. Neue Abfragen werden neue Karten; im Paket fehlende bleiben und werden gezählt.
 - Tags werden nach [Tags](#tags) zusammengeführt. Vorhandene Stapel behalten Name, Ort im Baum und Einstellungen; neue Stapel entstehen unter dem heutigen Ort ihres Oberstapels.
-- Verbessert sich ein Übersetzer, übersetzt CoRe unbearbeitete Importe einmal automatisch neu, ohne eine Karte mit Lernstand zu verlieren, und nennt die Zahl der verbesserten Inhalte.
+- Ein verbesserter Übersetzer übersetzt unbearbeitete Importe einmal automatisch neu, ohne Karten mit Lernstand zu verlieren, und nennt die Zahl der verbesserten Inhalte.
 
 ### Automatisch aus einer Quelle
 
-Vorbereitet: Der Auftrag lässt sich bis zur Prüfung zusammenstellen. Es werden noch keine Dateien ausgelesen oder übertragen und keine Karten angelegt.
+Aus einer eigenen Quelle schlägt die KI Karten vor; gespeichert wird erst, was die Lernenden geprüft und übernommen haben.
 
-- Ein Auftrag besteht aus Quelle (eine Datei oder eingefügter Text), genau einem Zielstapel (neu oder vorhanden), Lernwünschen und erlaubten Kartenformen.
-- Lernwünsche sind Stoffabdeckung, Antwortumfang, Sprache, Formulierung, Vorwissen und freie Wünsche. Abdeckung und Antwortumfang sind unabhängig: Mehr Abdeckung bedeutet mehr Karten, nicht längere Antworten.
+- Ein Auftrag besteht aus Quelle (eine Datei als PDF, Text, Markdown, CSV oder TSV oder eingefügter Text), genau einem Zielstapel (neu oder vorhanden), Lernwünschen und erlaubten Kartenformen.
+- Lernwünsche sind Kartenmenge, Antwortumfang, Sprache, Formulierung, Vorwissen und freie Wünsche. Kartenmenge und Antwortumfang sind unabhängig: Mehr Karten bedeuten nicht längere Antworten.
+- Die Kartenmenge (weniger, normal, mehr) bestimmt, wie viel des Stoffs abgefragt wird. Ein Auftrag ergibt höchstens 100 Vorschläge und nur so viele, wie die Quelle sinnvolle Informationsstücke trägt; Füllkarten entstehen nicht.
 - Kartenformen (Frage–Antwort, Lückentext, Single Choice, Multiple Choice) werden erlaubt, nicht erzwungen; passende Abruf-, Verständnis- und Anwendungsfragen werden ohne feste Quoten gemischt.
-- Standard ist „nur meine Quelle“. Erlaubte Ergänzungen müssen überall als außerhalb der Quelle gekennzeichnet sein; Belege werden nie erfunden.
-- **Bewusst nicht:** Kartenanzahl, Mischungsverhältnisse, Lernzielauswahl.
+- Karten stammen nur aus der Quelle. Jede Karte nennt ihre Stelle (PDF-Seite oder Zeilen der Datei); Belege werden nie erfunden.
+- Die Quelle wird nur im Browser gelesen. Leere, geschützte, gescannte oder zu große Quellen (20 MiB, 400.000 Zeichen) werden abgewiesen, nie still gekürzt; Seiten ohne Textlayer werden genannt.
+- Größere Quellen laufen abschnittweise im geöffneten Tab mit Fortschritt; jeder Abschnitt kennt die bisherigen Fragen. Abbrechen behält Erhaltenes, ein Fehler, der jeden Abschnitt träfe, stoppt den Lauf, ein einzeln gescheiterter Abschnitt wird genannt. Endet der Lauf vorzeitig oder an der Obergrenze, nennt das Ergebnis die erste nicht ausgewertete Stelle.
+- Das Ergebnis ist eine ungespeicherte Liste mit Stelle, Hinweisen der KI und Zahl verworfener Vorschläge. Jeder Vorschlag lässt sich wie im [Karteneditor](#karteneditor) bearbeiten oder verwerfen; alle zu verwerfen behält den Auftrag.
+- Erst die Übernahme speichert die Vorschläge als eigene Karten mit Antwort, Erklärung und Stelle in getrennten Feldern; ein neuer Zielstapel entsteht erst dabei. Scheitert sie, bleibt der Rest zum erneuten Übernehmen.
+- Ohne Verbindung ist die Erstellung gesperrt; der Entwurfsschutz gilt auch für Vorschläge.
+- **Bewusst nicht:** feste Kartenanzahl, Mischungsverhältnisse, Lernzielauswahl, Kprim, Eintippen, einzelne Vorschläge neu erzeugen, Abgleich mit dem Zielstapel.
 
 ## 5. Lernen
 
@@ -421,7 +421,7 @@ Wiederholung, jung | zunächst kurze Abstände, bis die Haltbarkeit wieder wäch
 ```
 
 - Es gibt vier Bewertungen: `Nochmal`, `Schwer`, `Gut`, `Leicht`. Geplant wird mit FSRS-7 und den offiziellen Standardparametern ([ADR-044](decisions.md#adr-044--fsrs-7-scheduler-und-reife-aus-der-haltbarkeit)); eine persönliche Optimierung ist nicht aktiv.
-- Standard sind 92 % Zielerinnerung, Lernschritte nach 1 und 10 Minuten und ein Wiederlernschritt nach 10 Minuten; jeder Stapel kann abweichen.
+- Standard sind 93 % Zielerinnerung, Lernschritte nach 1 und 10 Minuten und ein Wiederlernschritt nach 10 Minuten; jeder Stapel kann abweichen.
 - `Gut` geht einen Lernschritt weiter und führt nach dem letzten in die Wiederholung. `Leicht` beendet die Lernphase sofort. `Schwer` bleibt mit kürzerem Abstand in der Phase. `Nochmal` beginnt die Lernschritte von vorn und führt aus der Wiederholung ins Wiederlernen.
 - Eingestellte Lernschritte haben Vorrang vor einem längeren Abstand aus dem Modell.
 - Jede Bewertung nennt vorab ihren Abstand; angezeigter und angewandter Wert sind derselbe.
@@ -430,7 +430,7 @@ Wiederholung, jung | zunächst kurze Abstände, bis die Haltbarkeit wieder wäch
 
 ### Lernverlauf einer Karte
 
-Die Leseseite zeigt zu diesem Abschnitt typische Bewertungsketten als Zeitleisten, dazu die Wirkung jeder Bewertung, den Einfluss der Zielerinnerung und die erste Variante je Stapelschwelle. Alles wird mit dem echten Scheduler aus getesteten Beispielketten berechnet, gilt unter festen Annahmen (Antwort am Fälligkeitstermin, Standardlernschritte, eine aktive Variante) und ist keine Zusage für einzelne Karten.
+Die Leseseite zeigt typische Bewertungsketten, die Wirkung jeder Bewertung, den Einfluss der Zielerinnerung und die erste Variante je Stapelschwelle, berechnet mit dem echten Scheduler unter festen Annahmen (Antwort am Fälligkeitstermin, Standardlernschritte, eine aktive Variante); keine Zusage für einzelne Karten.
 
 ### Reife und Haltbarkeit
 
@@ -443,7 +443,7 @@ Die Leseseite zeigt zu diesem Abschnitt typische Bewertungsketten als Zeitleiste
 - Ein Lerntag beginnt zum kontoweiten Tagesbeginn in der Zeitzone des Profils, ersatzweise des Browsers.
 - Wiederholungen werden tageweise freigegeben und sind am ganzen Fälligkeitstag verfügbar. Lernschritte haben minutengenaue Termine.
 - Das kontoweite Vorziehfenster (Standard 20 Minuten) erlaubt, einen Lernschritt früher zu zeigen, wenn er am selben Lerntag liegt und weniger als das Fenster entfernt ist. Wiederholungen werden nie vorgezogen, und nichts über die Tagesgrenze.
-- Eine Sitzung arbeitet zuerst ihre Karten ab und zeigt danach berechtigte Lernschritte. Warten nur noch nicht berechtigte Lernschritte, endet die Runde vorläufig; die Karten bleiben `Offen`.
+- Ein fälliger Lernschritt kommt wie in Anki als nächste Karte, einer im Vorziehfenster erst nach den übrigen Karten. Warten nur noch nicht berechtigte Lernschritte, endet die Runde vorläufig; die Karten bleiben `Offen`.
 - Eine von Hand auf einen künftigen Lerntag gesetzte Karte bleibt bis dahin in jeder Phase zurückgestellt.
 
 ### Tagesrunde und Limits
@@ -496,10 +496,10 @@ Fällig | ausgewählte Wiederholungen
 - Es gibt keinen eigenen Sitzungsstand: Nach Reload, Verlassen und Sync ergibt sich der Fortschritt aus gespeicherten Bewertungen und Lernständen.
 - Das Ende nennt die Zahl beantworteter Karten und führt zum Ausgangspunkt zurück. Ein Reload erhält Sitzung und Rückweg; fremde Rücksprungziele werden nicht angenommen.
 - Ist ein Stapel oder eine Karte nicht verfügbar, folgt eine verständliche nächste Aktion; nie öffnet sich stillschweigend eine andere Karte.
-- Aus der Sitzung heraus wirken sofort: Flagge, Markierung, Aussetzen, Kartenreihenfolge und Timer. Editor und Stapeleinstellungen öffnen sich über der Sitzung und führen an dieselbe Karte zurück.
+- Aus der Sitzung heraus wirken sofort: Flagge, Markierung, Aussetzen, Kartenreihenfolge und Timer. Editor und Stapeleinstellungen öffnen sich über der Sitzung und führen an dieselbe Karte zurück; gespeicherte Einstellungen gelten sofort.
 - Aussetzen pausiert die Karte samt Varianten, ohne ihren Lernstand zu ändern; sie fehlt dann in Runde, Tageszahlen und Fortschritt. Nach dem Reaktivieren ist ein vergangener Termin sofort wieder relevant.
 - Löst eine Bewertung die Lernbremse aus, weist die Sitzung einmal darauf hin.
-- Die Bewertungen der laufenden Sitzung lassen sich der Reihe nach zurücknehmen, die jüngste zuerst. Die Karte erscheint erneut mit dem Lernstand von davor; das Ereignis verschwindet aus Verlauf, Statistik und Tageszahlen auf allen Geräten. Eine andere Änderung an der Sitzung, ein neuer Lerntag oder das Verlassen beendet diese Möglichkeit.
+- Bewertungen der laufenden Sitzung lassen sich rückwärts zurücknehmen: Die Karte erscheint mit dem Lernstand von davor, das Ereignis verschwindet auf allen Geräten aus Verlauf, Statistik und Tageszahlen. Andere Änderungen an der Sitzung, ein neuer Lerntag oder das Verlassen beenden das.
 - Inhalte mit Vorlese-Angabe aus Anki lassen sich über die Sprachausgabe des Geräts vorlesen.
 - Markierter Text lässt sich in AMBOSS nachschlagen. Erst der ausdrückliche Klick öffnet die Suche; übertragen wird nur der markierte Text.
 - Nach dem Aufdecken steht [KI hilft](#ki-hilft) bereit.
@@ -566,7 +566,7 @@ Originalkarte | wird selbst abgefragt; die Kette wartet
 
 ## 6. KI-Funktionen
 
-CoRe nutzt KI an drei Stellen: als Lernhilfe zur aufgedeckten Karte, zum Umformulieren von Karten und zum Zusammenfassen eines Stapels. Ein vierter Einsatz, Karten aus einer Quelle, ist [vorbereitet](#automatisch-aus-einer-quelle).
+CoRe nutzt KI an vier Stellen: als Lernhilfe zur aufgedeckten Karte, zum Umformulieren von Karten, zum Zusammenfassen eines Stapels und für [Karten aus einer Quelle](#automatisch-aus-einer-quelle).
 
 ### Anbindung und Datenschutz
 
@@ -600,6 +600,7 @@ Prüfung | Struktur und Grenzen werden validiert
 | [KI hilft](#ki-hilft) | Frage zur aufgedeckten Karte | Text der Karte wie abgefragt, Hinweis-, Zusatz- und Notizfelder, die Frage, bis zu sechs frühere Antworten | eine Antwort als reiner Text | flüchtiger Verlauf, der mit der Karte endet |
 | [Kartenvariante](#kartenvarianten-erzeugen) | Aktion an einer Karte oder für einen Stapel | Frage und Antwort, Lückentext oder Frage und Optionen der Karte, Fragen ihrer vorhandenen Varianten | eine Umformulierung oder die Meldung „nicht umformulierbar“ | Variante an der Karte, falls neu und Karte unverändert |
 | [Zusammenfassung](#ki-zusammenfassung) | Erstellen einer Fassung | lesbare Inhalte des Stapels, optional eine Quelle, die Wünsche als getrennter Auftrag | Abschnitte, Stichpunkte, Belege, Querbezüge | ungespeicherter Entwurf; den Text baut die App |
+| [Karten aus einer Quelle](#automatisch-aus-einer-quelle) | Erstellen mit einer Quelle | Auftrag als getrennte Daten, je Anfrage ein Abschnitt der Quelle mit Stellen, die bisherigen Fragen | belegte Kartenvorschläge und Hinweise | ungespeicherte Vorschläge; Karten erst nach Übernahme |
 
 ### KI hilft
 
@@ -623,9 +624,9 @@ Eine Variante fragt denselben Inhalt mit anderer Formulierung ab.
 - **Auswahl:** dieselben Optionen, jede gleich richtig oder falsch, ohne gewonnene oder verlorene Verneinung; die Variante hat eine eigene feste Reihenfolge, bearbeitbar ist nur die Frage. Karten mit zu langem Text, weniger als zwei oder mehr als zehn Optionen erhalten keine Varianten.
 - Ergibt eine Karte keinen erkennbaren Sinn oder braucht sie privaten Kontext, meldet die KI sie als nicht umformulierbar, statt eine Deutung zu erfinden; es entsteht keine Variante.
 - Eine Karte erhält Varianten bis zur Höchstzahl aktiver Varianten ihres Stapels. Gespeichert wird nur, wenn sie während der Anfrage unverändert blieb und die Formulierung neu ist.
-- **Vorausschauend:** Erreicht eine Karte mit einer Antwort die Haltbarkeitsschwelle und fehlt der Kette die nächste Variante, entsteht sie im geöffneten Tab, bevor die Karte wieder fällig ist; das ist die einzige KI-Anfrage ohne eigene Aktion ([ADR-011](decisions.md#adr-011--schmale-ki-routen-über-openrouter)). Scheitert sie, etwa offline, kommt die am längsten nicht gesehene Variante, und die nächste Antwort versucht es erneut.
-- **Für einen Stapel:** Eine Erzeugung bearbeitet nacheinander die ersten bis zu 50 Karten des Stapelbaums mit eingeschaltetem CoRe-Modus ohne aktive Variante, je Karte eine, und speichert jede sofort; ein weiterer Start nimmt die nächsten. Die Stapeleinstellungen nennen, wie viele Karten noch keine Variante haben.
-- Die Stapelerzeugung läuft im geöffneten Tab, höchstens eine zugleich, mit sichtbarem Fortschritt. Abbrechen behält Erzeugtes; ein Fehler, der jede Karte träfe, hält den Lauf mit kurzem Grund an. Nicht umformulierbare und übrige Karten ohne Variante werden getrennt gezählt und lassen sich in der Kartenverwaltung aufrufen.
+- **Vorausschauend:** Erreicht eine Karte mit einer Antwort die Haltbarkeitsschwelle und fehlt der Kette die nächste Variante, entsteht sie im geöffneten Tab, bevor die Karte wieder fällig ist; das ist die einzige KI-Anfrage ohne eigene Aktion ([ADR-011](decisions.md#adr-011--schmale-ki-routen-über-openrouter)). Scheitert sie, etwa offline, kommt die am längsten nicht gesehene Variante; die nächste Antwort versucht es erneut.
+- **Für einen Stapel:** Eine Erzeugung gibt nacheinander bis zu 50 Karten des Stapelbaums mit CoRe-Modus und ohne aktive Variante je eine und speichert jede sofort; ein weiterer Start nimmt die nächsten. Die Stapeleinstellungen nennen, wie viele Karten noch keine haben.
+- Die Stapelerzeugung läuft im geöffneten Tab, höchstens eine zugleich, mit Fortschritt. Abbrechen behält Erzeugtes; ein Fehler, der jede Karte träfe, hält den Lauf mit Grund an. Nicht umformulierbare und übrige Karten ohne Variante werden getrennt gezählt und sind in der Kartenverwaltung abrufbar.
 - Varianten aus einer älteren Fassung der Erzeugung lassen sich nach Rückfrage ersetzen; Karten und Lernstand bleiben.
 
 ### KI-Zusammenfassung
@@ -793,7 +794,7 @@ Fassung | im Konto, mehrere je Stapel
 `Heute` ist die Startseite: Tagesstand, Lernstart und persönliche Werkzeuge an einem Ort.
 
 - Die Seite besteht aus frei wählbaren und anordenbaren Bausteinen: Tagesstand, Motivationsimpuls, Lerntimer, aktive Stapel, To-dos, Lern-Heatmap und Prüfungsaufgaben. Anordnung und eigene To-dos gelten je Konto nur in diesem Browser.
-- **Feste Formate:** Jeder Baustein hat genau ein Format mit fester Höhe; nur die aktiven Stapel nehmen die volle Breite ein, alle anderen eine Spalte. Längere Inhalte scrollen im Baustein, statt die Seite zu verschieben; frei bleibende Plätze sind erlaubt. Größen sind nicht wählbar.
+- **Feste Formate:** Bausteine haben feste, nicht wählbare Größen; längere Inhalte scrollen im Baustein, statt die Seite zu verschieben.
 - **Erststart:** Ein neues Konto beginnt ohne erfundene Daten. Ohne Stapel führt die Seite zu Import, manueller Karte oder Demo. Demo-Stapel entstehen nur auf ausdrückliche Aktion, einmalig und ohne Lernhistorie.
 - **Tagesstand:** Er fasst alle Hauptstapel ohne Doppelzählung in `Gelernt`, `Neu`, `Offen` und `Fällig` zusammen ([Tagesrunde und Limits](#tagesrunde-und-limits)).
 - **Lernstart:** Er startet den ersten Hauptstapel in alphabetischer Reihenfolge, der verfügbare Karten hat. Warten nur noch nicht verfügbare Lernschritte, kündigt er späteres Weiterlernen an; ist alles gelernt, meldet er das erreichte Tagesziel und bietet zusätzliche neue Karten an.
@@ -823,18 +824,18 @@ Fassung | im Konto, mehrere je Stapel
 ### Massenaktionen und Pflege
 
 - Ausgewählt werden einzelne Karten, Bereiche oder alle Treffer einer Suche.
-- Gemeinsame Aktionen: Stapel ändern, Tags hinzufügen und entfernen, Flagge, Markierung, Aussetzen und Reaktivieren, Zurückstellen, Fälligkeit setzen (ein Datum oder ein Zeitraum, in dem jede Karte einen zufälligen Tag bekommt), Lernstand zurücksetzen, Varianten erzeugen, Löschen.
+- Gemeinsame Aktionen: Stapel ändern, Tags hinzufügen und entfernen, Flagge, Markierung, Aussetzen und Reaktivieren, Zurückstellen, Fälligkeit setzen (Datum oder Zeitraum mit zufälligem Tag je Karte), Lernstand zurücksetzen, Varianten erzeugen, Löschen.
 - Jede Aktion fragt nach, nennt danach die Zahl der Karten und lässt sich [zurücknehmen](#rückgängig-und-manuelle-ereignisse).
 - Flagge, Aussetzung und Stapel gelten je Karte, Markierung und Tags für den Inhalt.
 - Offline wirken Massenaktionen nur, wenn die betroffenen Karten auf dem Gerät liegen; sonst ändern sie nichts und sagen das.
-- **Suchen und Ersetzen** ersetzt wörtlichen Text in Feldern oder Tags der Auswahl, nie Formatierung oder Links, mit Vorschau. Ein Inhalt, dessen Karten sich dadurch ändern würden (etwa eine andere Lückennummer), bleibt unverändert und wird gezählt. Das Ersetzen gilt als lokale Bearbeitung: Ein Reimport überschreibt den Inhalt nicht mehr, betroffene Varianten veralten, der Lernstand bleibt.
+- **Suchen und Ersetzen** ersetzt wörtlichen Text in Feldern oder Tags der Auswahl, nie Formatierung oder Links, mit Vorschau. Inhalte, deren Karten sich dadurch ändern würden, bleiben und werden gezählt. Ersetzen ist eine lokale Bearbeitung: Ein Reimport überschreibt den Inhalt nicht mehr, Varianten veralten, der Lernstand bleibt.
 - **Duplikate finden** vergleicht Inhalte nach Vorderseite oder einem gewählten Feld, ohne Groß- und Kleinschreibung und mehrfache Leerzeichen, und kann die Gruppen mit einem Tag versehen.
 - **Tags verwalten** benennt Tags kontoweit um (samt Untertags; ein vorhandener Name führt zusammen) und löscht sie. Tags existieren nur an Inhalten; ungenutzte gibt es nicht.
 
 ### Gezielt lernen und üben
 
 - Treffer einer Suche oder eine Auswahl lassen sich unabhängig von Fälligkeit und Tageslimits lernen, ohne ausgesetzte und heute zurückgestellte Karten.
-- **Vorziehen** (Standard) ist eine normale Sitzung mit gespeicherten Bewertungen. Noch nicht fällige Karten zählen als vorgezogene Wiederholung; der Scheduler rechnet mit den tatsächlich vergangenen Tagen. Jede Karte folgt den Optionen ihres Stapels, Geschwister werden nicht zurückgestellt, und Tageslimits werden nicht verbraucht.
+- **Vorziehen** (Standard) ist eine normale Sitzung mit gespeicherten Bewertungen; nicht fällige Karten zählen als vorgezogene Wiederholung mit den tatsächlich vergangenen Tagen. Jede Karte folgt den Optionen ihres Stapels; Geschwister werden nicht zurückgestellt, Tageslimits nicht verbraucht.
 - **Nur üben** ändert nichts: kein Lernstand, kein Termin, kein Bewertungsereignis. `Nochmal` und `Schwer` holen die Karte in derselben Übung zurück, `Gut` und `Leicht` beenden sie.
 - Ein Stapel lässt sich samt Unterstapeln direkt aus der Stapelliste frei üben: alle seine Karten nach denselben Regeln wie `Nur üben`, in der Reihenfolge des Stapels oder gemischt.
 
@@ -845,7 +846,7 @@ Derselbe Editor öffnet sich aus Kartenverwaltung, Stapelinhalten und Sitzung un
 - **Sofortaktionen** wirken ohne Speichern und sind rückgängig: Flagge, Markierung, Aussetzen, Zurückstellen, Neu planen, Verschieben in einen anderen Stapel, Tags. Dazu nennt der Editor alle Karten desselben Inhalts und ähnliche Inhalte.
 - `Neu planen` setzt nur die Fälligkeit auf den Beginn des gewählten Lerntags; Gedächtniswerte und Aussetzung bleiben.
 - **Inhaltsänderungen** sind ein Entwurf, der ausdrücklich gespeichert wird, mit Vorschau wie beim Lernen. Öffnen und Schließen ohne Eingabe ändert nichts, auch nicht an importiertem Text.
-- Vor dem Speichern nennt der Editor die Wirkung: neue Karten (etwa eine Rückrichtung), entfallende Karten (etwa eine gelöschte Lücke) und veraltende Varianten. Der Lernstand entfallender Karten wird erst nach Bestätigung gelöscht; neue Abfragen werden neue Karten im Stapel des Inhalts.
+- Vor dem Speichern nennt der Editor neue Karten, entfallende Karten und veraltende Varianten. Der Lernstand entfallender Karten wird erst nach Bestätigung gelöscht; neue Abfragen werden neue Karten im Stapel des Inhalts.
 - Eine gespeicherte Inhaltsänderung macht den Inhalt lokal bearbeitet; ein Reimport überschreibt ihn dann nicht mehr.
 - Importierte Inhalte behalten ihr Feldschema und ihre Abfragen; nur eigene Inhalte lassen sich in Lernrichtung, Bausteinen und Masken umbauen.
 - **Variantenverwaltung:** Original und Varianten mit Zustand, Aktionen und der Auskunft, ob die Karte die Schwelle erreicht hat ([Varianten verwalten](#varianten-verwalten)).
@@ -869,7 +870,7 @@ Die Statistik zeigt Lernaktivität, Planung und Gedächtnismodell für gewählte
 - Ausgewertet wird im Konto; noch nicht synchronisierte Bewertungen fließen sofort ein.
 - Die wahre Erinnerungsquote zählt je Karte und Lerntag nur die erste Wiederholung nach mindestens einem Tag Abstand.
 - Historische Kategorien folgen Anki und dem Zustand vor der Antwort; der Kartenstatus zählt die Reife.
-- Die Lern-Heatmap zeigt Aktivität je Lerntag und den Streak der gewählten Stapel; ein Lerntag zählt ab einer gültigen Bewertung. Für die Zukunft zeigt sie je aktiver Karte genau deren nächste Fälligkeit, ohne Folgetermine zu simulieren. Gelernte und erwartete Tage bleiben unterscheidbar.
+- Die Lern-Heatmap zeigt Aktivität je Lerntag und den Streak der gewählten Stapel; ein Lerntag zählt ab einer gültigen Bewertung. Künftig zeigt sie je aktiver Karte nur die nächste Fälligkeit; gelernte und erwartete Tage bleiben unterscheidbar.
 - Neben dem Streak nennt sie die Lerntage des gezeigten Zeitraums, gezählt ab der ersten Aktivität, und die morgen fälligen Karten.
 - Fehlen Historie, Zeitmessung oder Stichprobe, wird das erklärt; es werden keine Nullwerte erfunden.
 - **Bewusst nicht:** Ankis klassische Leichtigkeit.
@@ -880,8 +881,8 @@ Jede Einstellung gilt für genau einen Bereich.
 
 | Gilt für | Einstellungen |
 | --- | --- |
-| Konto, auf allen Geräten | Tagesbeginn, Vorziehfenster, Easy Days, Lernprofile, Standard für neue Stapel, Flaggennamen, gespeicherte Suchen, Prüfungspläne |
-| Einen Stapel | Tageslimits, Reihenfolge und Sortierung, Begraben, Lernschritte, Zielerinnerung, maximales Intervall, CoRe-Modus, Variantenschwelle, aktive Varianten, Lernbremse, Name und Aussehen, Offline-Nutzung |
+| Konto, auf allen Geräten | Tagesbeginn, Vorziehfenster, Lernbremse, Easy Days, Lernprofile, Standard für neue Stapel, Flaggennamen, gespeicherte Suchen, Prüfungspläne |
+| Einen Stapel | Tageslimits, Reihenfolge und Sortierung, Begraben, Lernschritte, Zielerinnerung, maximales Intervall, CoRe-Modus, Variantenschwelle, aktive Varianten, Name und Aussehen, Offline-Nutzung |
 | Diesen Browser | heller oder dunkler Modus, Heatmap-Farbe, Anordnung von `Heute` und eigene To-dos, Pomodoro-Timer, Simulationsuhr |
 
 - Einstellungen werden als Entwurf geändert und ausdrücklich gespeichert oder verworfen; ein ungespeicherter Entwurf hält jedes Verlassen auf.
@@ -939,7 +940,7 @@ Gruppe:
 [warnung] Konflikt | betrifft nur diese Karte oder diesen Stapel und wartet auf eine Entscheidung
 ```
 
-- Ausstehende Änderungen gelten nie als gespeichert im Konto und sind als ausstehend erkennbar. Schließen oder Neuladen mit solchen Änderungen fragt nach, auch ohne Verbindung; die Änderungen bleiben auf dem Gerät.
+- Ausstehende Änderungen gelten nie als gespeichert im Konto und sind als ausstehend erkennbar; Schließen oder Neuladen mit ihnen fragt nach, auch offline.
 - Die App ist ohne Netz nutzbar, soweit die Daten auf dem Gerät liegen.
 
 ### Sync und Konflikte

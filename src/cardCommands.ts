@@ -34,7 +34,6 @@ export interface CardCommandsContext {
 
 export type CardCommands = ReturnType<typeof createCardCommands>;
 
-
 /**
  * Card management commands of the open workspace: content, study state, variants, media, mass actions and the card
  * pages of the lists. Each local write refreshes the store, updates the card pages that show the content and asks
@@ -333,8 +332,12 @@ export function createCardCommands({ store, repository, hydration, cloud, syncEn
     const deck = creationDeck(deckId, deckName);
     if (!deck) return null;
     const graph = createNote({ content, deckId: deck.id, media });
-    await repository.saveNoteGraphs([{ previous: null, next: graph }]);
-    refresh();
+    // A deck created just before a failed note save stays and must be visible, so a retry finds it.
+    try {
+      await repository.saveNoteGraphs([{ previous: null, next: graph }]);
+    } finally {
+      refresh();
+    }
     requestSync();
     return { deck, cardIds: graph.cards.map((card) => card.id) };
   }
