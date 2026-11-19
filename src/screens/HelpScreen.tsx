@@ -835,7 +835,7 @@ function ReferenceSection() {
             <li>• Die Variante prüft dieselbe Wissenseinheit und führt keine neuen Fakten ein.</li>
             <li>• Genau eine Originalkarte bleibt als Vertrauensanker erhalten.</li>
             <li>• Varianten erscheinen nur in der Wiederholungsphase und erst ab der Haltbarkeit des Stapels: so vielen Tagen, bis die Erinnerung voraussichtlich auf 90 % fällt. Richtige Antworten verlängern die Haltbarkeit, Fehler verkürzen sie.</li>
-            <li>• Nach einem Fehler fragt CoRe wieder die Originalkarte ab, bis du sie richtig beantwortest. Auch danach wechseln sich Original und Varianten ab.</li>
+            <li>• Frühestens drei Tage nach der letzten Antwort kommen nur noch Varianten, eine nach der anderen: Eine richtige Antwort führt zur nächsten, „Schwer“ wiederholt sie. Nach einem Fehler fragt CoRe die Originalkarte ab, bis die Haltbarkeit wieder reicht; dann geht es eine Variante zurück weiter.</li>
             <li>• Der Variantenpunkt im Diagramm ist keine garantierte Produktionsschwelle und keine garantierte Reviewnummer.</li>
           </ul>
         </SoftPanel>

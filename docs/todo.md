@@ -1,14 +1,44 @@
 # CoRe TODO
 
-Stand: 2026-11-13
+Stand: 2026-11-19
 
 Nur offene Arbeit. Ist-Stand in [`status.md`](status.md), Entscheidungen in
 [`decisions.md`](decisions.md), erledigte Arbeit in [`history.md`](history.md).
 
-Reihenfolge = Priorität. P2 ist als
-Nächstes dran; P5 wartet, bis alle KI-Prompts stehen. Offene Nachweise brauchen keinen Code und
+Reihenfolge = Priorität. P1 läuft, P2 folgt; P5 wartet, bis alle KI-Prompts stehen. Offene Nachweise brauchen keinen Code und
 laufen unabhängig davon; die Release-Voraussetzungen sind vor dem ersten
 externen Release fällig. „Später“ ist geparkt.
+
+## P1: Specs-Agenda umsetzen
+
+Entscheidungen vom 2026-11-14 zur Kommentierung der Specs bis Kapitel 5; die
+Zahlen in Klammern sind die Fragen der Agenda. Je Paket ein PR, unabhängig
+voneinander.
+
+- [ ] **3 Lernen:** Neue Stapel starten mit 1 und 10 Minuten (1.12);
+      Wiederlernen gegen Anki prüfen, Wiederlernschritte in derselben Sitzung
+      (1.14); geänderte Lerneinstellungen gelten sofort für die offene Karte
+      (5.3); eingetippte Antworten selbst bewerten (5.18); Zurücknehmen
+      hinterlässt exakt den vorherigen Datensatz (2.8); Algorithmus auf der
+      Hilfeseite erklären (1.15). Lernbremse nur global, nie automatisch
+      aussetzen; Anki-Markierung übernehmen, eigene nur kennzeichnen (1.17,
+      1.18). Standard-Zielerinnerung neu festlegen, vermutlich 91–94 % (1.11);
+      FSRS-7 erst nach Feldwerten ändern (1.10).
+- [ ] **4 Sync und Import:** Beim Verlassen der Seite synchronisieren (2.1);
+      Warnung beim Schließen mit offenen Änderungen (2.2); abgebrochenen
+      Import testen und Verhalten festlegen (2.4); Lernstand beim Reimport
+      gegen Anki prüfen (2.5); Anki-Abbildung durch ein starkes Modell prüfen
+      lassen (2.6); Text- und CSV-Import wie in Anki, Konverter nur erwähnen
+      (2.7); Import mit Ladebalken und Vorschau statt interner Schritte (5.1).
+- [ ] **5 Oberfläche:** Aussetzen im Editor mit Rückgängig in der Meldung
+      (5.2); Suchfilter als Symbole mit ausführlichen Tooltips, Hinweis bei
+      sich ausschließenden Filtern, Suchschreibweise ausklappbar (5.4–5.6);
+      Oberstapel zeigt die Zusammenfassungen seiner Unterstapel (5.8);
+      gemeinsamer Schrittbaustein (5.10); Hilfe mit einfachem Einstieg und
+      verlinkter Tiefe (5.12); Entwurf überlebt den Tabwechsel (5.15); Quelle
+      neben dem Entwurf nur PDF, Text und Markdown (5.16); Sammelauftrag:
+      doppelte Frage im Originallayout, Beschriftung des Mindmap-Knopfs,
+      Vorschau der Erstellung (5.19).
 
 ## P2: Karten aus einer Quelle per KI erstellen
 
@@ -17,6 +47,11 @@ Bilder, Kprim und Eintippen, Neu-Generieren einzelner Vorschläge, Abgleich mit
 vorhandenen Karten des Zielstapels, Speichern von Quelle oder Vorschlägen,
 Serverqueue, automatische Varianten.
 
+- [ ] **Formular (Agenda 3.1–3.6):** drei Schritte Zielstapel, Kartenformen,
+      Vorgaben mit dem gemeinsamen Schrittbaustein; nur Frage–Antwort
+      vorausgewählt; Kartenmenge als Stufe mit Hochrechnung, vorher
+      recherchieren, wie andere Apps das lösen, danach Mischung und
+      Lernziele entscheiden; Größengrenze nach Seiten oder Zeichen.
 - [ ] **Nachweis vor dem Release:** Stichprobe gegen die Preview mit den
       Prüfdokumenten in `fixtures/ai-source/` (jedes Format, alle vier
       Kartenformen): Belege, Formen, Dopplungen, Kosten und Laufzeit; die
@@ -37,6 +72,8 @@ vorgeschlagenen
 Fallzahlen und Zielwerte sind ein Entwurf vom 2026-11-10 und dürfen neu
 bewertet werden.
 
+- [ ] **Erste Runde Varianten (Agenda 4.1):** Anweisung „Frage anders
+      beginnen“ bleibt, dazu Satzbau umstellen als bevorzugtes Mittel.
 - [ ] **Eval-Schlüssel und Kostenziele:** `OPENROUTER_EVAL_API_KEY` mit
       eigenem Limit als Benutzer-Umgebungsvariable anlegen
       ([operations.md](operations.md#openrouter-schlüssel)). Kosten sind in jedem Lauf eine
@@ -160,13 +197,14 @@ Messung vom 2026-10-31 im [Verlauf](history.md).
 
 ### KI
 
-- Varianten vorausschauend nur für Karten erzeugen, die in den nächsten Tagen
-  die Haltbarkeitsschwelle erreichen (Ausarbeitung in Commit `4dd2af7`).
 - Nicht umformulierbare und dauerhaft scheiternde Karten als eigener Zustand
-  im Reiter `Varianten`; sie fallen aus späteren Stapelläufen. Heute fragt
-  jeder Lauf sie erneut an, und 50 solche Karten blockieren ihn ganz.
+  im Reiter `Varianten`; sie fallen aus späteren Stapelläufen. Heute fragen
+  jeder Lauf und die vorausschauende Erzeugung sie erneut an, und 50 solche
+  Karten blockieren einen Lauf ganz.
 - DOCX und PPTX als Quellen für P2 (ZIP und XML, ohne neue Abhängigkeit über
   `zipReader.ts` prüfen; Beleg je Folie oder Abschnitt).
+- Bilder als Quelle für P2 (teurer, eigener Hillclimb); braucht eine Ergänzung
+  von ADR-011 (Agenda 3.3, 3.5).
 - KI-Kontingente je Nutzer im Zusammenspiel mit Bezahlstufen bzw.
   Abonnements (Umfang je Stufe, Credits, Abrechnung nach Kosten).
 
@@ -177,11 +215,17 @@ Messung vom 2026-10-31 im [Verlauf](history.md).
   `4dd2af7`).
 - Quiz als eigenes Feature (ADR-042), danach Quizplanung im Prüfungsplaner;
   Entwurf in Commit `71a7892` (`codex/klausurplaner-design`).
+- Name des Schalters „CoRe-Modus“ nach dem Variantenkonzept; Vorschlag
+  „Umformulierungen“ (Agenda 1.7).
+- Simulator für das ganze Konto entfernen; stattdessen eine selbst klickbare
+  Simulationskette je Karte für alle, Vorbild Flashka recherchieren (6.1).
 - Semantische Themenzuordnung in ungegliederten Stapeln, ohne Lernstände zu
   ändern; ein Lösungsweg über Tags ist `Treffer lernen` der Kartenverwaltung.
 
 ### Kartenverwaltung
 
+- Gliederung nach Tags als aufklappbarer Tag-Baum in einer Seitenleiste, wie
+  in Anki (Agenda 5.7).
 - Massenaktionen schneller: 1.000 Karten lokal in höchstens 1 s statt 2 bis 4 s.
   Weniger Katalogindizes reichen nicht (auch ohne Index über 1 s); Hebel sind
   weniger Stores je Aktion und Katalogzeilen nur bei geänderten Feldern schreiben.
@@ -204,6 +248,8 @@ Messung vom 2026-10-31 im [Verlauf](history.md).
 - Native App nach ADR-036.
 - Serverseitiger APKG-Import, falls Import auf Mobilgeräten nötig wird.
 - AMBOSS-Tooltips nur über eine offizielle Kooperation oder API.
+- Community-Modus planen; Lernmengen und Lerndaten anderer bleiben unsichtbar
+  (Agenda 6.2, 6.4).
 
 ### Oberfläche
 

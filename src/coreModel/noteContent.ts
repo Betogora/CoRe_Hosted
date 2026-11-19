@@ -126,7 +126,7 @@ function parseChoice(input: Record<string, unknown>, errors: string[]): NoteInte
   });
   const correct = options.filter((option) => option.correct).length;
   if (new Set(options.map((option) => option.id)).size !== options.length) errors.push("Antwortoptionen brauchen eindeutige IDs.");
-  if (mode === "kprim" && options.length !== 4) errors.push("Kprim braucht genau vier Aussagen.");
+  if (mode === "kprim" && options.length === 0) errors.push("Kprim braucht mindestens eine Aussage.");
   if (mode !== "kprim" && options.length < 2) errors.push("Eine Auswahlfrage braucht mindestens zwei Antwortoptionen.");
   if (mode === "single" && correct !== 1) errors.push("Single Choice braucht genau eine richtige Antwort.");
   if (mode === "multiple" && (correct === 0 || correct === options.length)) {

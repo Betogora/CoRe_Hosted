@@ -1,6 +1,6 @@
 # Specs
 
-**Stand:** 2026-11-14
+**Stand:** 2026-11-19
 
 **CoRe ist ein Lernwerkzeug für alle, die große Stoffmengen über Monate sicher im Kopf behalten müssen, zuerst für Studierende und Auszubildende auf dem Weg zur Prüfung.** Es wiederholt nicht Karten, sondern Inhalte: Gefestigtes Wissen kehrt in neuer Formulierung zurück, damit Verstehen geübt wird statt Wiedererkennen. Ziel ist Wissen, das in der Prüfung abrufbar ist, auch wenn die Frage anders gestellt wird.
 
@@ -10,7 +10,7 @@ Die Specs beschreiben, was CoRe tun soll und warum: je Funktion die Absicht, ihr
 
 ### Zielgruppen
 
-CoRe startet Anki-kompatibel, hält das Lernen ruhig und behandelt jede planbare Karte als eigene Lerneinheit.
+CoRe startet Anki-kompatibel und plant vorhersehbar: Jede planbare Karte ist eine eigene Lerneinheit, eine Sitzung behält ihren Plan, und jede Bewertung nennt vorab ihren Abstand.
 
 - Für Studierende und Auszubildende mit großen, langfristig gepflegten Kartenbeständen.
 - Für Anki-Nutzer, die vorhandene Stapel weiterverwenden wollen.
@@ -20,19 +20,17 @@ CoRe startet Anki-kompatibel, hält das Lernen ruhig und behandelt jede planbare
 1. **Anki-kompatibel starten:** Import und bekannte Kartenformen senken die Einstiegshürde.
 2. **Karten bleiben eigenständig:** Jede Karte besitzt genau einen Lernstand; ihre KI-Umformulierungen teilen ihn.
 3. **Review first:** Vor dem Aufdecken ist nicht erkennbar, ob eine Karte oder eine Umformulierung abgefragt wird.
-4. **Lernen bleibt privat:** Stapel und Lerndaten gehören zum Konto und werden nicht veröffentlicht.
-5. **Stapelweise steuerbar:** Content Repetition ist je Stapel an- oder ausgeschaltet.
-6. **Sparsam ausbauen:** Nicht jede Karte wird variiert; neue Produktflächen brauchen einen belegten Auftrag ([ADR-001](decisions.md#adr-001--produktumfang-nur-mit-auftrag)).
+4. **Inhalt durch Varianten merken:** Gefestigte Karten kehren in neuer Formulierung zurück, damit der Inhalt abgerufen wird und nicht die vertraute Formulierung.
 
 ### Umfang
 
 Was gebaut, vorbereitet oder abgeschaltet ist und welche Lücken bekannt sind, nennt [`status.md`](status.md).
 
-- **Nichtziele:** Community, Rankings und soziale Leistungsmetriken; generische Backend-, Auth- oder KI-Adapter; KI-Chat ohne Kartenbezug; Bildübertragung an die KI; Admin-Portal, Zahlungen, Abonnements; Push-Benachrichtigungen; vollständige Ausführung von Anki-Templates.
+- **Nichtziele:** Einblick in Lernmengen und Lerndaten anderer, Rankings und soziale Leistungsmetriken; generische Backend-, Auth- oder KI-Adapter; KI-Chat ohne Kartenbezug; KI-erzeugte Bilder; Admin-Portal, Zahlungen, Abonnements; Push-Benachrichtigungen; vollständige Ausführung von Anki-Templates.
 
 ### Bereiche und Gesamtbild
 
-- Hauptbereiche sind `Heute`, `Lernen`, `Erstellen`, `Karten` und `Prüfung`; Statistik, Hilfe, Einstellungen und Simulator ergänzen sie.
+- Hauptbereiche sind `Heute`, `Lernen`, `Erstellen`, `Karten` und `Prüfung`; Statistik, Hilfe und Einstellungen ergänzen sie.
 - `Lernen` führt vom Stapel in die Sitzung, `Karten` verwaltet alle Karten aller Stapel. Beide teilen den zuletzt gewählten Stapel.
 - Ansicht, Stapel, Karte und Sitzung sind Teil des Links: Reload, Direktlink und Browser-Zurück führen an dieselbe Stelle.
 
@@ -48,6 +46,7 @@ Stapel | Hierarchie mit eigenen Lernoptionen
 Inhalt | Felder, Tags und Medien, einmal gespeichert
 Karte | eine Abfrage mit eigenem Lernstand
 [primär] Variante | KI-Umformulierung, teilt den Lernstand der Karte
+[primär] Zusammenfassung und Mindmap | verdichten die Karten eines Stapels
 Pfeil: wird gelernt
 Folge: Lernen
 Tagesrunde | fällige und neue Karten innerhalb der Limits
@@ -55,11 +54,10 @@ Sitzung | Frage, Antwort, vier Bewertungen
 Scheduler | nächster Termin, Haltbarkeit, Reife
 [erfolg] Bewertungsverlauf | unveränderliche Ereignisse
 Pfeil: speist
-Gruppe: Überblick und Vertiefung
+Gruppe: Überblick und Planung
 Heute | Tagesstand und Lernstart
 Statistik | Aktivität, Planung, Gedächtnismodell
 Prüfung | verteilt den Stoff bis zum Termin
-[primär] Zusammenfassung und Mindmap | verdichten einen Stapel
 Pfeil: alles
 Gruppe:
 [info] Lokal zuerst | jede Änderung wird erst auf dem Gerät gespeichert und danach mit dem Konto synchronisiert
@@ -118,7 +116,7 @@ Karte
 
 - **Frage–Antwort:** optional mit Rückrichtung; dann entstehen zwei unabhängige Karten mit eigenem Lernstand.
 - **Lückentext:** Jede Lückengruppe ist eine eigene Karte.
-- **Auswahl:** Single Choice (genau eine richtige von mindestens zwei Optionen), Multiple Choice (mindestens eine richtige und eine falsche) und Kprim (je Aussage richtig oder falsch; nur aus Anki-Importen). Ein Inhalt ergibt genau eine Karte; nicht mit Lücken oder Rückrichtung kombinierbar.
+- **Auswahl:** Single Choice (genau eine richtige von mindestens zwei Optionen), Multiple Choice (mindestens eine richtige und eine falsche) und Kprim (eine Karte mit beliebig vielen Aussagen, jede als richtig oder falsch zu markieren; nur aus Anki-Importen). Ein Inhalt ergibt genau eine Karte; nicht mit Lücken oder Rückrichtung kombinierbar.
 - **Bildverdeckung:** Jede Maskengruppe ist eine eigene Karte ([Bildverdeckung](#bildverdeckung)).
 - **Antwort eintippen:** Baustein für Frage–Antwort; die Eingabe wird zeichengenau wie in Anki verglichen.
 - **Zusätzliche Felder** tragen eine Rolle: `Zusatzfrage` (Teil der Frage, in Rückrichtung Teil der Antwort), `Hinweis` (vor der Antwort aufdeckbar), `Zusatz` und `Quelle` (erst nach der Antwort), `Notiz` (nur im Editor).
@@ -237,13 +235,13 @@ Akzeptanz:
 
 ### CoRe-Variante lernen und Ursprung prüfen
 
-Reife Karten erscheinen im Wechsel mit ihren KI-Umformulierungen; die Herkunft bleibt bis zur Antwort verborgen.
+Gefestigte Karten kommen ab der Stapelschwelle nur noch als KI-Umformulierungen, eine nach der anderen; die Herkunft bleibt bis zur Antwort verborgen.
 
 Ablauf:
 
-1. Geeignete Karte lernen.
-2. Original oder KI-Umformulierung sehen.
-3. Antwort aufdecken.
+1. CoRe-Modus des Stapels einschalten; Varianten entstehen vorausschauend.
+2. Fällige Karte als Original oder KI-Umformulierung sehen.
+3. Antwort aufdecken und bewerten.
 4. Ursprung prüfen und Varianten verwalten.
 
 Akzeptanz:
@@ -302,22 +300,6 @@ Akzeptanz:
 
 - Inhalt und Wirkung folgen [Hilfe](#hilfe).
 - Erklärte Regeln stimmen mit [Lernphasen und Bewertungen](#lernphasen-und-bewertungen), [Reife und Haltbarkeit](#reife-und-haltbarkeit) und [Freigabe der Varianten](#freigabe-der-varianten) überein.
-
-### Lernfortschritt über simulierte Tage prüfen
-
-Der Simulator zeigt, wie sich vorhandene Karten über Minuten und Tage entwickeln, ohne Karten durch bloßes Umstellen zu verändern.
-
-Ablauf:
-
-1. Simulator öffnen.
-2. Lernzeit verschieben.
-3. Verfügbare Karten und Planung prüfen.
-4. Bei Bedarf bewerten oder Zeit zurücksetzen.
-
-Akzeptanz:
-
-- Bedienung und Wirkung folgen [Simulator](#simulator).
-- Bewertungen im Zukunftsmodus folgen [Lernphasen und Bewertungen](#lernphasen-und-bewertungen) und [Sync und Konflikte](#sync-und-konflikte).
 
 ## 4. Karten erstellen und importieren
 
@@ -444,7 +426,7 @@ Wiederholung, jung | zunächst kurze Abstände, bis die Haltbarkeit wieder wäch
 
 ### Lernverlauf einer Karte
 
-Die Tabellen und Zeitleisten der Leseseite zu diesem Abschnitt werden mit dem echten Scheduler aus getesteten Beispielketten berechnet. Sie gelten unter festen Annahmen (Antwort am Fälligkeitstermin, Standardlernschritte, eine aktive Variante) und sind keine Zusage für einzelne Karten.
+Die Leseseite zeigt zu diesem Abschnitt typische Bewertungsketten als Zeitleisten, dazu die Wirkung jeder Bewertung, den Einfluss der Zielerinnerung und die erste Variante je Stapelschwelle. Alles wird mit dem echten Scheduler aus getesteten Beispielketten berechnet, gilt unter festen Annahmen (Antwort am Fälligkeitstermin, Standardlernschritte, eine aktive Variante) und ist keine Zusage für einzelne Karten.
 
 ### Reife und Haltbarkeit
 
@@ -527,11 +509,11 @@ Fällig | ausgewählte Wiederholungen
 
 ### Freigabe der Varianten
 
-Bei eingeschaltetem CoRe-Modus wechseln sich gefestigte Karten im Review mit ihren Varianten ab ([ADR-039](decisions.md#adr-039--core-modus-anaus-und-wirksame-variantenregeln)).
+Bei eingeschaltetem CoRe-Modus kommen gefestigte Karten im Review nur noch als Varianten, eine nach der anderen ([ADR-039](decisions.md#adr-039--core-modus-anaus-und-variantenkette)). Die Freigabe entscheidet, ob eine Variante kommt, die Kette, welche.
 
 ```schaubild
 Titel: Wann statt der Karte eine Variante abgefragt wird
-Folge: Alle vier Bedingungen müssen gelten
+Folge: Alle fünf Bedingungen müssen gelten
 CoRe-Modus | im Stapel der Karte eingeschaltet
 -> und
 Phase | die Karte ist in der Wiederholung
@@ -539,17 +521,21 @@ Phase | die Karte ist in der Wiederholung
 Letzte Bewertung | war nicht „Nochmal“
 -> und
 Haltbarkeit | erreicht die Schwelle des Stapels
+-> und
+Abstand | seit der letzten Antwort mindestens drei Tage
 -> dann
-[primär] Wechsel | Karte und aktive Varianten reihum
+[primär] Kette | die nächste Variante nach der erreichten Stufe
 Pfeil: sonst
 Gruppe:
-Originalkarte | wird selbst abgefragt; nach einem Fehler so lange, bis sie wieder richtig beantwortet ist
+Originalkarte | wird selbst abgefragt; die Kette wartet
 ```
 
-- Die Schwelle `Varianten einsetzen ab Haltbarkeit` beträgt je Stapel 7, 21 (Standard) oder 60 Tage.
-- Die Originalkarte bleibt Teil des Wechsels. Abgefragt werden höchstens so viele Varianten, wie der Stapel als aktive Varianten pro Karte erlaubt (1 bis 3), die ältesten zuerst.
-- Eine Antwort auf eine Variante wirkt auf den Lernstand der Karte wie eine Antwort auf die Karte selbst.
-- Nach `Nochmal` bricht die Haltbarkeit ein; Varianten erscheinen erst wieder, wenn die Schwelle erneut erreicht ist.
+- Die Schwelle `Varianten einsetzen ab Haltbarkeit` beträgt je Stapel 7, 21 (Standard) oder 60 Tage. Der Mindestabstand schützt vor kurzen Abständen nach `Schwer`, beim Vorziehen und in Prüfungssitzungen.
+- Die Kette besteht aus den aktiven Varianten, die ältesten zuerst, höchstens so viele, wie der Stapel als aktive Varianten pro Karte erlaubt (1 bis 3). Der Lernstand merkt sich die erreichte Stufe; Stufe 0 ist die Karte selbst.
+- Nach einer Variante führen `Gut` und `Leicht` zur nächsten Stufe, `Schwer` wiederholt die Variante, `Nochmal` geht eine Stufe zurück. Antworten auf die Karte selbst ändern die Stufe nicht.
+- Nach der letzten Variante kommt die, deren Formulierung am längsten nicht gesehen wurde.
+- Eine Antwort auf eine Variante wirkt auf den Lernstand der Karte wie eine Antwort auf die Karte selbst. Nach `Nochmal` bricht die Haltbarkeit ein; Varianten kommen erst wieder, wenn die Freigabe erneut offen ist.
+- Die Stufe wird mit jeder Antwort gespeichert und synchronisiert; das Zurücknehmen einer Antwort stellt sie wieder her.
 
 ### Varianten im Review
 
@@ -561,15 +547,15 @@ Originalkarte | wird selbst abgefragt; nach einem Fehler so lange, bis sie wiede
 
 ### Varianten verwalten
 
-- Jede Variante ist `aktiv`, `abgeschaltet`, `gemeldet` (inhaltlich falsch oder unklar formuliert) oder `veraltet`.
+- Jede Variante ist `aktiv`, `ausgeschlossen`, `gemeldet` (inhaltlich falsch oder unklar formuliert) oder `veraltet`. Die Verwaltung markiert die Variante, die als Nächstes kommt.
 - Ändert sich Frage oder Antwort der Karte, werden ihre aktiven Varianten `veraltet` und nicht mehr abgefragt; das Speichern nennt ihre Zahl.
-- Varianten lassen sich bearbeiten, abschalten, reaktivieren, neu erzeugen und löschen. Eine bearbeitete Variante gilt als eigene und wird von einer Neuerzeugung für den Stapel nicht ersetzt.
-- Abgeschaltete und gemeldete Varianten lassen sich reaktivieren, solange die Höchstzahl aktiver Varianten nicht erreicht ist; veraltete nicht.
+- Varianten lassen sich bearbeiten, ausschließen, wieder aufnehmen, neu erzeugen und löschen. Eine bearbeitete Variante gilt als eigene und wird von einer Neuerzeugung für den Stapel nicht ersetzt.
+- Ausgeschlossene und gemeldete Varianten lassen sich wieder aufnehmen, solange die Höchstzahl aktiver Varianten nicht erreicht ist; veraltete nicht.
 - Löschen entfernt die Variante auf allen Geräten; Karte und Lernstand bleiben.
 
 ### CoRe-Modus
 
-- Der CoRe-Modus ist je Stapel `An` oder `Aus`. Varianten entstehen nie automatisch, nur auf ausdrückliche Aktion.
+- Der CoRe-Modus ist je Stapel `An` oder `Aus`. Varianten entstehen auf ausdrückliche Aktion oder vorausschauend vor dem Kontakt, der sie abfragt ([Kartenvarianten erzeugen](#kartenvarianten-erzeugen)).
 - Das Einschalten erklärt Wirkung, Schwelle und Datenschutz und bietet an, sofort Varianten für die ersten Karten des Stapels zu erzeugen ([Kartenvarianten erzeugen](#kartenvarianten-erzeugen)).
 - CoRe-Modus, Schwelle und Zahl aktiver Varianten gehören nicht zu Lernprofilen und bleiben bei einem Profilwechsel unverändert.
 - **Bewusst nicht:** ein eigener Lernmodus nur mit oder nur ohne Varianten.
@@ -634,6 +620,7 @@ Eine Variante fragt denselben Inhalt mit anderer Formulierung ab.
 - **Auswahl:** dieselben Optionen, jede gleich richtig oder falsch, ohne gewonnene oder verlorene Verneinung; die Variante hat eine eigene feste Reihenfolge, bearbeitbar ist nur die Frage. Karten mit zu langem Text, weniger als zwei oder mehr als zehn Optionen erhalten keine Varianten.
 - Ergibt eine Karte keinen erkennbaren Sinn oder braucht sie privaten Kontext, meldet die KI sie als nicht umformulierbar, statt eine Deutung zu erfinden; es entsteht keine Variante.
 - Eine Karte erhält Varianten bis zur Höchstzahl aktiver Varianten ihres Stapels. Gespeichert wird nur, wenn sie während der Anfrage unverändert blieb und die Formulierung neu ist.
+- **Vorausschauend:** Erreicht eine Karte mit einer Antwort die Haltbarkeitsschwelle und fehlt der Kette die nächste Variante, entsteht sie im geöffneten Tab, bevor die Karte wieder fällig ist; das ist die einzige KI-Anfrage ohne eigene Aktion ([ADR-011](decisions.md#adr-011--schmale-ki-routen-über-openrouter)). Scheitert sie, etwa offline, kommt die am längsten nicht gesehene Variante, und die nächste Antwort versucht es erneut.
 - **Für einen Stapel:** Eine Erzeugung bearbeitet nacheinander die ersten bis zu 50 Karten des Stapelbaums mit eingeschaltetem CoRe-Modus ohne aktive Variante, je Karte eine, und speichert jede sofort; ein weiterer Start nimmt die nächsten. Die Stapeleinstellungen nennen, wie viele Karten noch keine Variante haben.
 - Die Stapelerzeugung läuft im geöffneten Tab, höchstens eine zugleich, mit sichtbarem Fortschritt. Abbrechen behält Erzeugtes; ein Fehler, der jede Karte träfe, hält den Lauf mit kurzem Grund an. Nicht umformulierbare und übrige Karten ohne Variante werden getrennt gezählt und lassen sich in der Kartenverwaltung aufrufen.
 - Varianten aus einer älteren Fassung der Erzeugung lassen sich nach Rückfrage ersetzen; Karten und Lernstand bleiben.
@@ -1033,7 +1020,7 @@ Gruppe:
 
 Der Beta-Kern gilt als erfüllt, wenn:
 
-1. alle neun [Kernjourneys](#3-kernjourneys) automatisiert und manuell bestehen;
+1. alle acht [Kernjourneys](#3-kernjourneys) automatisiert und manuell bestehen;
 2. ein neuer Account, kleiner Import, manuelle Erstellung, Review und Reload ohne Entwicklerwissen bedienbar sind;
 3. eine Variante vor dem Aufdecken nicht erkennbar ist;
 4. keine Labs-Navigation, Labs-Route oder ausgemusterte API ausgeliefert wird;
