@@ -19,6 +19,8 @@ const MAX_UNIT_CHARS = 4_000;
 const MAX_HEADING_CHARS = 80;
 /** A paragraph shorter than this joins the next one, so a proposal still names a findable, but not tiny place. */
 const MIN_PARAGRAPH_CHARS = 300;
+/** Text without blank lines (pasted from word processors) still ends a place at a line break after this size. */
+const MAX_LINE_BLOCK_CHARS = 1_200;
 /** Rows of a table file that form one place. */
 const TABLE_ROWS_PER_UNIT = 10;
 
@@ -89,7 +91,8 @@ function textUnits(text: string): SourceUnit[] {
     const headingMatch = fenced ? null : HEADING.exec(line);
     if (FENCE.test(line)) fenced = !fenced;
     if (headingMatch) flush();
-    else if (block && (blank ? block.size >= MIN_PARAGRAPH_CHARS : block.size + line.length + 1 > MAX_UNIT_CHARS)) flush();
+    else if (block && !fenced && (blank ? block.size >= MIN_PARAGRAPH_CHARS : block.size >= MAX_LINE_BLOCK_CHARS)) flush();
+    else if (block && !blank && block.size + line.length + 1 > MAX_UNIT_CHARS) flush();
     if (headingMatch) heading = headingMatch[1].length > MAX_HEADING_CHARS ? `${headingMatch[1].slice(0, MAX_HEADING_CHARS - 1).trimEnd()}…` : headingMatch[1];
     if (blank && !block) return;
     block ??= { first: index + 1, last: index + 1, lines: [], size: 0, content: false };
@@ -102,24 +105,28 @@ function textUnits(text: string): SourceUnit[] {
   return units;
 }
 
-/** CSV and TSV: ten rows form a place, each unit and part repeats a short header row; a long one stands alone. */
+/** CSV and TSV: ten records form a place, each unit and part repeats a short header row; a long one stands alone. A quoted cell may span lines. */
 function tableUnits(text: string): SourceUnit[] {
   const units: SourceUnit[] = [];
-  const [header = "", ...rows] = text.replace(/\r\n?/g, "\n").split("\n");
+  const [header = "", ...lines] = text.replace(/\r\n?/g, "\n").split("\n");
   const prefix = header.length <= MAX_UNIT_CHARS / 4 ? header : "";
-  let block: LineBlock | null = null;
+  let block: (LineBlock & { records: number }) | null = null;
+  let open = false;
   const flush = () => {
     if (block) pushUnits(units, lineRange(block.first, block.last), block.lines.join("\n"), prefix);
     block = null;
   };
-  if (!prefix && rows.some((row) => row.trim())) pushUnits(units, lineRange(1, 1), header);
-  rows.forEach((row, index) => {
-    if (!row.trim()) return;
-    if (block && (block.lines.length === TABLE_ROWS_PER_UNIT || prefix.length + block.size + row.length + 2 > MAX_UNIT_CHARS)) flush();
-    block ??= { first: index + 2, last: index + 2, lines: [], size: 0, content: true };
-    block.lines.push(row);
-    block.size += row.length + 1;
+  if (!prefix && lines.some((line) => line.trim())) pushUnits(units, lineRange(1, 1), header);
+  lines.forEach((line, index) => {
+    if (!open && !line.trim()) return;
+    if (!open && block && (block.records === TABLE_ROWS_PER_UNIT || prefix.length + block.size + line.length + 2 > MAX_UNIT_CHARS)) flush();
+    block ??= { first: index + 2, last: index + 2, lines: [], size: 0, content: true, records: 0 };
+    block.lines.push(line);
+    block.size += line.length + 1;
     block.last = index + 2;
+    if (!open) block.records += 1;
+    // An odd number of quotes opens or closes a quoted cell that continues on the next line.
+    if ((line.match(/"/g)?.length ?? 0) % 2) open = !open;
   });
   flush();
   return units;
@@ -295,6 +302,6 @@ export async function saveProposals(proposals: ProposalDraft[], target: { deckId
 export function adoptionDeckId(decks: readonly Pick<Deck, "id" | "name" | "parentDeckId" | "deletedAt">[], chosenDeckId: string | null, deckName: string, decksBefore: ReadonlySet<string>): string | null {
   const live = decks.filter((deck) => !deck.deletedAt);
   if (chosenDeckId && live.some((deck) => deck.id === chosenDeckId)) return chosenDeckId;
-  const name = deckName.trim().toLocaleLowerCase("de-DE");
-  return live.find((deck) => !decksBefore.has(deck.id) && deck.parentDeckId === null && deck.name.trim().toLocaleLowerCase("de-DE").startsWith(name))?.id ?? null;
+  const key = (value: string) => value.replace(/\s+/g, " ").trim().toLocaleLowerCase("de-DE");
+  return live.find((deck) => !decksBefore.has(deck.id) && deck.parentDeckId === null && key(deck.name).startsWith(key(deckName)))?.id ?? null;
 }

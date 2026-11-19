@@ -211,4 +211,19 @@ test("Eine Wiederholung der Übernahme bleibt im gewählten oder im zuvor angele
   assert.equal(adoptionDeckId(decks, "weg", "Skript", before), "neu");
   assert.equal(adoptionDeckId(decks, null, "Skript", new Set(decks.map((deck) => deck.id))), null);
   assert.equal(adoptionDeckId(decks, "fehlt", "Anderes", before), null);
+  const renamed = [{ id: "plus", name: "Zellbiologie Kapitel 3+", parentDeckId: null, deletedAt: null }];
+  assert.equal(adoptionDeckId(renamed, null, "Zellbiologie   Kapitel 3", new Set()), "plus");
+});
+
+test("Stellen folgen auch Absätzen ohne Leerzeile, Code-Blöcke bleiben ganz, Tabellenzellen über mehrere Zeilen zählen als ein Datensatz", () => {
+  const lines = Array.from({ length: 12 }, (_, index) => `Absatz ${index + 1}: ${"w ".repeat(170)}`).join("\n");
+  const pasted = splitAiSource(text(lines, "kopiert.txt"));
+  assert.equal(pasted.units.length, 3);
+  assert.ok(pasted.units.every((unit) => unit.text.length <= 1_600));
+  const code = splitAiSource(text(["# Beispiel", "So geht es:", "```python", "a = 1", "", "b = 2", "```", "Fertig."].join("\n")));
+  assert.deepEqual(labels(code), ["Beispiel · Zeilen 1–8"]);
+  const records = ["Begriff,Erklärung", ...Array.from({ length: 9 }, (_, index) => `B${index + 1},kurz`), "B10,\"zwei", "Zeilen\"", "B11,kurz"].join("\n");
+  const table = splitAiSource(text(records, "liste.csv"));
+  assert.deepEqual(labels(table), ["Zeilen 2–12", "Zeile 13"]);
+  assert.match(table.units[0].text, /B10,"zwei\nZeilen"$/);
 });

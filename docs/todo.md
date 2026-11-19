@@ -42,11 +42,6 @@ voneinander.
 
 ## P2: Karten aus einer Quelle per KI erstellen
 
-Bewusst nicht: Ergänzungen außerhalb der Quelle, DOCX und PPTX, Scans und
-Bilder, Kprim und Eintippen, Neu-Generieren einzelner Vorschläge, Abgleich mit
-vorhandenen Karten des Zielstapels, Speichern von Quelle oder Vorschlägen,
-Serverqueue, automatische Varianten.
-
 - [ ] **Formular (Agenda 3.1–3.6):** drei Schritte Zielstapel, Kartenformen,
       Vorgaben mit dem gemeinsamen Schrittbaustein; nur Frage–Antwort
       vorausgewählt; Kartenmenge als Stufe mit Hochrechnung, vorher

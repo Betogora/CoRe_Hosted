@@ -5,6 +5,7 @@ import { ActionButton } from "../ui/actionUi.tsx";
 import { ActionDialog } from "../ui/coreUi.tsx";
 import { DialogFrame } from "../ui/DialogFrame.tsx";
 import { StatusMessage } from "../ui/feedbackUi.tsx";
+import { valueForStructure } from "./cardEditor/cardEditorModel.ts";
 import { NoteContentEditor } from "./cardEditor/NoteContentEditor.tsx";
 
 const NO_CHANGED_FIELDS = new Set<string>();
@@ -71,8 +72,7 @@ export function AiSourceProposalEditor({ content, onCancel, onApply }: {
           }}
           onStructureChange={(next, addedFieldId) => {
             setStructure(next);
-            const ids = new Set(next.fields.map((field) => field.id));
-            setValue((current) => ({ ...current, fields: { ...Object.fromEntries(Object.entries(current.fields).filter(([id]) => ids.has(id))), ...(addedFieldId ? { [addedFieldId]: "" } : {}) } }));
+            setValue((current) => valueForStructure(current, next, addedFieldId));
           }}
           errors={errors}
           changedFieldIds={NO_CHANGED_FIELDS}

@@ -112,7 +112,6 @@ export function AiSourceCreationPanel({ decks, initialTargetDeckId, onDraftState
     runRef.current = controller;
     setRunError("");
     adoptedCardsRef.current = 0;
-    decksBeforeRef.current = null;
     setRun({ phase: "running", done: 0, total: null, cancelling: false });
     try {
       const source = await readAiSource(draft);
@@ -187,7 +186,7 @@ export function AiSourceCreationPanel({ decks, initialTargetDeckId, onDraftState
           result={run.result} notices={run.notices} proposals={run.proposals} saving={saving} saveError={saveError}
           headingRef={(element) => { focusRef.current = element; }}
           onEdit={setEditing}
-          onRemove={(id) => { updateProposals((proposals) => proposals.filter((proposal) => proposal.id !== id)); requestAnimationFrame(focusDraft); }}
+          onRemove={(id) => { updateProposals((proposals) => proposals.filter((proposal) => proposal.id !== id)); requestAnimationFrame(() => focusRef.current?.focus({ preventScroll: true })); }}
           onAdopt={() => void adoptProposals()}
           onDiscard={() => setConfirmDiscard(true)}
         />
@@ -247,8 +246,8 @@ export function AiSourceCreationPanel({ decks, initialTargetDeckId, onDraftState
                       </div>
                     ) : null}
                   </FileDropField>
-                  <p className="core-field-hint">Deine Datei bleibt vorerst nur in diesem Browser.</p>
                 </> : <label className="core-field-group min-w-0"><span className="core-field-label">Dein Quelltext</span><textarea className="core-field min-h-40 w-full resize-y" rows={7} value={draft.sourceText} aria-invalid={showErrors && Boolean(errors.source)} onChange={(event) => setDraft((current) => ({ ...current, sourceText: event.target.value }))} placeholder="Füge hier den Text ein, aus dem deine Karten entstehen sollen." /></label>}
+                <p className="core-field-hint">Zum Erstellen geht der Text der Quelle an die KI; gespeichert wird er nicht.</p>
                 {fileError || (showErrors && errors.source) ? <p className="core-field-error" role="alert">{fileError || errors.source}</p> : null}
               </fieldset>
               <div ref={targetRef} className="grid min-w-0 scroll-mt-24 gap-3">

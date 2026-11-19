@@ -1,4 +1,4 @@
-import { notePromptLabel, planNoteContentChange } from "../../coreModel.ts";
+import { notePromptLabel, planNoteContentChange, type NoteEditorValue } from "../../coreModel.ts";
 import type { Card, CardVariant, Note, NoteContent } from "../../coreTypes.ts";
 import { stripHtml } from "../../htmlSafety.ts";
 import { createCardTableRow } from "../../libraryModel.ts";
@@ -14,6 +14,12 @@ export const CARD_EDITOR_TAB_LABELS: Record<CardEditorTab, string> = {
 
 export type CardLabelOptions = { dayStartHour?: number; timeZone?: string };
 export type NoteContentPlan = ReturnType<typeof planNoteContentChange>;
+
+/** Editor values follow a structure change: removed fields drop their value, an added field starts empty. */
+export function valueForStructure(value: NoteEditorValue, structure: NoteContent, addedFieldId?: string): NoteEditorValue {
+  const ids = new Set(structure.fields.map((field) => field.id));
+  return { ...value, fields: { ...Object.fromEntries(Object.entries(value.fields).filter(([id]) => ids.has(id))), ...(addedFieldId ? { [addedFieldId]: "" } : {}) } };
+}
 
 export function noteKindLabel(note: Pick<Note, "content">) {
   const interaction = note.content.interaction;
