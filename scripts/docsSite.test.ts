@@ -4,7 +4,7 @@ import { readFileSync } from "node:fs";
 import { htmlPage, inlineScript, markdownAnchor, renderMarkdown } from "./docsSite.ts";
 import { runInNewContext } from "node:vm";
 import { cardHistoryCards, docLimitFailures, codeFootprint, codeFootprintMarkup, createCatalogData, journeyProjection, journeySpecsLinks, specsDocument } from "./generateDocs.ts";
-import { EXAMPLE_CHAINS, EXAMPLE_RETENTIONS } from "../src/schedulerExampleChains.ts";
+import { EXAMPLE_CHAINS, EXAMPLE_RETENTIONS, EXAMPLE_SITUATIONS, runExampleChain } from "../src/schedulerExampleChains.ts";
 import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { DEMO_GROUPS } from "./uiCatalogDemos.tsx";
@@ -116,16 +116,16 @@ test("Specs-Leseansicht enthält jede Überschrift und nur gültige Anker", () =
   for (const [, anchor] of journeyProjection(specs).matchAll(/href="specs\.html#([^"]+)"/g)) assert.ok(ids.has(decodeURIComponent(anchor)), `Journey-Anker ${anchor} fehlt`);
 });
 
-test("Lernverlauf: erzeugte Blöcke folgen dem Abschnitt „Lernverlauf einer Karte“ und zeigen jede Beispielkette als Zeitleiste und Tabelle", () => {
+test("Lernverlauf: erzeugte Blöcke folgen dem Abschnitt „Lernverlauf einer Karte“ und zeigen jede Beispielkette als Zeitleiste", () => {
   const specs = readFileSync("docs/specs.md", "utf8").replace(/\r\n/g, "\n");
   const html = specsDocument(specs, undefined, { "specs--lernverlauf-einer-karte": cardHistoryCards() });
   const order = [...html.matchAll(/<h[1-6] id="([^"]+)"/g)].map((match) => match[1]);
   const at = order.indexOf("specs--lernverlauf-einer-karte");
-  assert.deepEqual(order.slice(at, at + 5), ["specs--lernverlauf-einer-karte", "specs--lernverlauf-bewertungen", "specs--lernverlauf-zeitleisten", "specs--lernverlauf-tabellen", "specs--lernverlauf-varianten"]);
+  assert.deepEqual(order.slice(at, at + 5), ["specs--lernverlauf-einer-karte", "specs--lernverlauf-bewertungen", "specs--lernverlauf-zeitleisten", "specs--lernverlauf-zielerinnerung", "specs--lernverlauf-varianten"]);
   const contacts = EXAMPLE_CHAINS.reduce((sum, chain) => sum + chain.ratings.length, 0);
   assert.equal([...html.matchAll(/class="docs-chain-step"/g)].length, contacts);
-  assert.equal([...html.matchAll(/<tr><th scope="rowgroup"/g)].length, EXAMPLE_CHAINS.length * EXAMPLE_RETENTIONS.length);
-  assert.equal([...html.matchAll(/data-mark="mature"/g)].length, EXAMPLE_CHAINS.length);
+  assert.equal([...html.matchAll(/<tr><th scope="row">/g)].length, EXAMPLE_SITUATIONS.length + EXAMPLE_RETENTIONS.length + EXAMPLE_CHAINS.length);
+  assert.equal([...html.matchAll(/data-mark="mature"/g)].length, EXAMPLE_CHAINS.filter((chain) => runExampleChain(chain.ratings, 0.92).some((contact) => contact.band === "mature")).length);
 });
 
 test("Codeumfang ordnet Bildschirmdateien einmal zu und überträgt die Werte in die Tabelle", () => {

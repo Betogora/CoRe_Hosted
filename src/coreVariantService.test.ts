@@ -10,6 +10,8 @@ import {
   describeVariantReadiness,
   editVariantText,
   isEditedVariant,
+  needsNextVariant,
+  nextVariantStage,
   reactivateVariant,
   selectReviewVariant,
   variantPresentation,
@@ -18,11 +20,17 @@ import type { Card, NoteContent } from "./coreTypes.ts";
 
 const ON = { coreMode: "on", variantThresholdDays: 21, maxActiveVariantsPerCard: 2 } as const;
 
-/** A review card at the given learning level with two rephrasings created one after another. */
-/** Stability 20 holds about 33 days until recall falls to 90 %, stability 10 about 13 days. */
-function matureCard(stability = 20, reps = 0): Card {
+const LAST_ANSWER = "2026-10-10T08:00:00.000Z";
+/** Three days after the last answer: the earliest time a variant may replace the card. */
+const RELEASED = "2026-10-13T08:00:00.000Z";
+
+/**
+ * A review card answered at `LAST_ANSWER` with two rephrasings created one after another, at the given chain stage.
+ * Stability 20 holds about 33 days until recall falls to 90 %, stability 10 about 13 days.
+ */
+function matureCard(stability = 20, variantStage = 0): Card {
   const { cards } = createBasicNote("deck", "Frage", "Antwort");
-  const base: Card = { ...cards[0], study: { ...cards[0].study, state: "review", reps, stability, difficulty: 5, lastRating: "good", extra: { ...cards[0].study.extra, stabilityFast: stability } } };
+  const base: Card = { ...cards[0], study: { ...cards[0].study, state: "review", reps: 3, stability, difficulty: 5, lastRating: "good", lastReviewedAt: LAST_ANSWER, extra: { ...cards[0].study.extra, stabilityFast: stability, variantStage } } };
   const first = addCardVariant(base, { id: "v1", front: "F1", back: "A" }, "2026-10-01T08:00:00.000Z");
   return addCardVariant(first, { id: "v2", front: "F2", back: "A" }, "2026-10-02T08:00:00.000Z");
 }
@@ -214,27 +222,63 @@ test("Eintippen-Variante fragt neu und vergleicht mit dem Antwortfeld der Karte;
   assert.deepEqual(variantPresentation(flipped.note, flippedCard, flippedCard.variants[0]).note.content.speech.map((entry) => entry.fieldId), ["tipp"]);
 });
 
-test("Review wechselt reife Karten reihum zwischen Karte und Varianten ab", () => {
-  assert.deepEqual([0, 1, 2, 3].map((reps) => selectReviewVariant(matureCard(20, reps), ON)?.id ?? null), [null, "v1", "v2", null]);
+test("Freigabe: Varianten erst ab der Schwelle des Stapels und drei Tage nach der letzten Antwort", () => {
+  const card = matureCard(20);
+  assert.equal(selectReviewVariant(card, ON, RELEASED)?.id, "v1");
+  assert.equal(selectReviewVariant(card, ON, "2026-10-13T07:59:00.000Z"), null);
+  assert.equal(selectReviewVariant(card, { ...ON, coreMode: "off" }, RELEASED), null);
+  assert.equal(selectReviewVariant(card, { ...ON, variantThresholdDays: 60 }, RELEASED), null);
+  assert.equal(selectReviewVariant({ ...card, study: { ...card.study, state: "relearning" } }, ON, RELEASED), null);
+  assert.equal(selectReviewVariant({ ...card, study: { ...card.study, lastRating: "again" } }, ON, RELEASED), null);
+  assert.equal(selectReviewVariant(matureCard(10), { ...ON, variantThresholdDays: 7 }, RELEASED)?.id, "v1");
 });
 
-test("Review zeigt die Karte selbst bei ausgeschaltetem CoRe, unter der Lernstufe, in Lernphasen und nach einem Fehler", () => {
+test("Kette: die Variante nach der erreichten Stufe, danach die am längsten nicht gesehene, nie mehr als der Stapel erlaubt", () => {
+  assert.deepEqual([0, 1].map((stage) => selectReviewVariant(matureCard(20, stage), ON, RELEASED)?.id), ["v1", "v2"]);
+  const seen = matureCard(20, 2);
+  const lastSeen = { v1: "2026-10-09T08:00:00.000Z", v2: "2026-09-20T08:00:00.000Z" } as Record<string, string>;
+  const withHistory = { ...seen, variants: seen.variants.map((variant) => ({ ...variant, performance: { ...variant.performance, lastReviewedAt: lastSeen[variant.id] } })) };
+  assert.equal(selectReviewVariant(withHistory, ON, RELEASED)?.id, "v2");
+  assert.deepEqual([0, 1, 2].map((stage) => selectReviewVariant(matureCard(20, stage), { ...ON, maxActiveVariantsPerCard: 1 }, RELEASED)?.id), ["v1", "v1", "v1"]);
+});
+
+test("Stufe: Gut und Leicht erreichen die gezeigte Variante, Schwer bleibt, Nochmal geht eine zurück, die Karte selbst lässt sie", () => {
   const card = matureCard(20, 1);
-  assert.equal(selectReviewVariant(card, { ...ON, coreMode: "off" }), null);
-  assert.equal(selectReviewVariant(card, { ...ON, variantThresholdDays: 60 }), null);
-  assert.equal(selectReviewVariant({ ...card, study: { ...card.study, state: "relearning" } }, ON), null);
-  assert.equal(selectReviewVariant({ ...card, study: { ...card.study, lastRating: "again" } }, ON), null);
-  assert.equal(selectReviewVariant(card, { ...ON, variantThresholdDays: 7 })?.id, "v1");
+  const [v1, v2] = card.variants;
+  assert.equal(nextVariantStage(card, v2, "good", ON), 2);
+  assert.equal(nextVariantStage(card, v2, "easy", ON), 2);
+  assert.equal(nextVariantStage(card, v2, "hard", ON), 1);
+  assert.equal(nextVariantStage(card, v2, "again", ON), 0);
+  assert.equal(nextVariantStage(matureCard(20, 0), v1, "again", ON), 0);
+  assert.equal(nextVariantStage(card, null, "good", ON), 1);
+  // Past the chain's end the longest unseen variant comes back without moving the stage back.
+  assert.equal(nextVariantStage(matureCard(20, 2), v1, "good", ON), 2);
 });
 
-test("Review fragt höchstens so viele Varianten ab, wie der Stapel erlaubt", () => {
-  assert.deepEqual([0, 1, 2].map((reps) => selectReviewVariant(matureCard(20, reps), { ...ON, maxActiveVariantsPerCard: 1 })?.id ?? null), [null, "v1", null]);
+test("Karten aus der Zeit vor der Kette haben keine Stufe und beginnen bei Stufe 0", () => {
+  const card = matureCard(20);
+  const { variantStage: _stage, ...extra } = card.study.extra;
+  const stored = { ...card, study: { ...card.study, extra: extra as typeof card.study.extra } };
+  assert.equal(selectReviewVariant(stored, ON, RELEASED)?.id, "v1");
+  assert.equal(nextVariantStage(stored, stored.variants[0], "good", ON), 1);
+  assert.equal(nextVariantStage(stored, stored.variants[0], "again", ON), 0);
+});
+
+test("Vorausschau: die nächste Variante entsteht, sobald die Haltbarkeit die Freigabe öffnet und die Kette keine weitere hat", () => {
+  const { note, cards } = createBasicNote("deck", "Frage", "Antwort");
+  const ready = { ...matureCard(20, 0), noteId: cards[0].noteId, variants: [] };
+  assert.equal(needsNextVariant(note, ready, ON), true);
+  assert.equal(needsNextVariant(note, matureCard(20, 0), ON), false, "die nächste Variante ist schon da");
+  assert.equal(needsNextVariant(note, matureCard(20, 2), ON), false, "der Stapel erlaubt keine weitere");
+  assert.equal(needsNextVariant(note, matureCard(20, 2), { ...ON, maxActiveVariantsPerCard: 3 }), true);
+  assert.equal(needsNextVariant(note, ready, { ...ON, variantThresholdDays: 60 }), false, "die Haltbarkeit reicht noch nicht");
+  assert.equal(needsNextVariant(note, ready, { ...ON, coreMode: "off" }), false);
 });
 
 test("Bereitschaft nennt Lernstufe, Schwelle und Variantenzahl des Stapels", () => {
   assert.deepEqual(
     { ...describeVariantReadiness(matureCard(10), { variantThresholdDays: 21 }), reason: "" },
-    { durabilityDays: 13, thresholdDays: 21, ready: false, reason: "", activeCount: 2, maxActive: 2 },
+    { durabilityDays: 13, thresholdDays: 21, ready: false, reason: "", activeCount: 2, maxActive: 2, nextVariantId: "v1" },
   );
   assert.equal(describeVariantReadiness(matureCard(20)).ready, true);
   assert.match(describeVariantReadiness(matureCard(20), { coreMode: "off" }).reason, /ausgeschaltet/);
@@ -259,7 +303,7 @@ test("reactivating a reported variant returns it to rotation with its feedback; 
   assert.equal(deleted.isActive, false);
 });
 
-test("Variantentext bearbeiten: eigene Formulierung, nicht leer, nicht doppelt; Abschalten nimmt sie aus der Rotation", () => {
+test("Variantentext bearbeiten: eigene Formulierung, nicht leer, nicht doppelt; Ausschließen nimmt sie aus der Kette", () => {
   const { cards } = createBasicNote("deck", "Frage", "Antwort");
   const withVariants = addCardVariant(addCardVariant(cards[0], { front: "Variante A", back: "Antwort" }), { front: "Variante B", back: "Antwort" });
   const [first, second] = withVariants.variants;

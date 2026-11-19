@@ -2948,6 +2948,9 @@ video {
 .bg-\[var\(--core-selection-track\)\] {
   background-color: var(--core-selection-track);
 }
+.bg-core-accent-soft {
+  background-color: var(--core-accent-surface);
+}
 .bg-core-action {
   background-color: var(--core-action-primary);
 }
@@ -7989,8 +7992,8 @@ html:has(.catalog-preview) { scroll-behavior: auto; }
 </ul>
 <p class="docs-source">Quelle: <a href="specs.html#specs--karte-bewerten-neu-laden-und-fortfahren">Produktvertrag: Karte bewerten, neu laden und fortfahren</a></p></article>
 <article id="journey-5" class="docs-document docs-journey"><h2 id="journey-5--core-variante-lernen-und-ursprung-prüfen" class="core-heading-2" tabindex="-1">CoRe-Variante lernen und Ursprung prüfen <a class="docs-anchor" href="#journey-5--core-variante-lernen-und-ursprung-prüfen" aria-label="Link zu CoRe-Variante lernen und Ursprung prüfen">#</a></h2>
-<p>Reife Karten erscheinen im Wechsel mit ihren KI-Umformulierungen; die Herkunft bleibt bis zur Antwort verborgen.</p>
-<h3 id="journey-5--ablauf" class="core-heading-3" tabindex="-1">Ablauf</h3><ol class="docs-flow"><li class="docs-flow-step"><span class="docs-flow-number" aria-hidden="true">1</span><span>Geeignete Karte lernen.</span></li><li class="docs-flow-step"><span class="docs-flow-number" aria-hidden="true">2</span><span>Original oder KI-Umformulierung sehen.</span></li><li class="docs-flow-step"><span class="docs-flow-number" aria-hidden="true">3</span><span>Antwort aufdecken.</span></li><li class="docs-flow-step"><span class="docs-flow-number" aria-hidden="true">4</span><span>Ursprung prüfen und Varianten verwalten.</span></li></ol><h3 id="journey-5-rules--akzeptanz" class="core-heading-3" tabindex="-1">Akzeptanz <a class="docs-anchor" href="#journey-5-rules--akzeptanz" aria-label="Link zu Akzeptanz">#</a></h3>
+<p>Gefestigte Karten kommen ab der Stapelschwelle nur noch als KI-Umformulierungen, eine nach der anderen; die Herkunft bleibt bis zur Antwort verborgen.</p>
+<h3 id="journey-5--ablauf" class="core-heading-3" tabindex="-1">Ablauf</h3><ol class="docs-flow"><li class="docs-flow-step"><span class="docs-flow-number" aria-hidden="true">1</span><span>CoRe-Modus des Stapels einschalten; Varianten entstehen vorausschauend.</span></li><li class="docs-flow-step"><span class="docs-flow-number" aria-hidden="true">2</span><span>Fällige Karte als Original oder KI-Umformulierung sehen.</span></li><li class="docs-flow-step"><span class="docs-flow-number" aria-hidden="true">3</span><span>Antwort aufdecken und bewerten.</span></li><li class="docs-flow-step"><span class="docs-flow-number" aria-hidden="true">4</span><span>Ursprung prüfen und Varianten verwalten.</span></li></ol><h3 id="journey-5-rules--akzeptanz" class="core-heading-3" tabindex="-1">Akzeptanz <a class="docs-anchor" href="#journey-5-rules--akzeptanz" aria-label="Link zu Akzeptanz">#</a></h3>
 <ul>
 <li>Wann Varianten erscheinen, regelt <a href="specs.html#specs--freigabe-der-varianten">Freigabe der Varianten</a>; Beispiele zeigt <a href="specs.html#specs--lernverlauf-einer-karte">Lernverlauf einer Karte</a>.</li>
 <li>Darstellung und Verwaltung folgen <a href="specs.html#specs--varianten-im-review">Varianten im Review</a>, <a href="specs.html#specs--varianten-verwalten">Varianten verwalten</a> und <a href="specs.html#specs--core-modus">CoRe-Modus</a>.</li>
@@ -8021,15 +8024,7 @@ html:has(.catalog-preview) { scroll-behavior: auto; }
 <li>Inhalt und Wirkung folgen <a href="specs.html#specs--hilfe">Hilfe</a>.</li>
 <li>Erklärte Regeln stimmen mit <a href="specs.html#specs--lernphasen-und-bewertungen">Lernphasen und Bewertungen</a>, <a href="specs.html#specs--reife-und-haltbarkeit">Reife und Haltbarkeit</a> und <a href="specs.html#specs--freigabe-der-varianten">Freigabe der Varianten</a> überein.</li>
 </ul>
-<p class="docs-source">Quelle: <a href="specs.html#specs--lernlogik-verstehen">Produktvertrag: Lernlogik verstehen</a></p></article>
-<article id="journey-9" class="docs-document docs-journey"><h2 id="journey-9--lernfortschritt-über-simulierte-tage-prüfen" class="core-heading-2" tabindex="-1">Lernfortschritt über simulierte Tage prüfen <a class="docs-anchor" href="#journey-9--lernfortschritt-über-simulierte-tage-prüfen" aria-label="Link zu Lernfortschritt über simulierte Tage prüfen">#</a></h2>
-<p>Der Simulator zeigt, wie sich vorhandene Karten über Minuten und Tage entwickeln, ohne Karten durch bloßes Umstellen zu verändern.</p>
-<h3 id="journey-9--ablauf" class="core-heading-3" tabindex="-1">Ablauf</h3><ol class="docs-flow"><li class="docs-flow-step"><span class="docs-flow-number" aria-hidden="true">1</span><span>Simulator öffnen.</span></li><li class="docs-flow-step"><span class="docs-flow-number" aria-hidden="true">2</span><span>Lernzeit verschieben.</span></li><li class="docs-flow-step"><span class="docs-flow-number" aria-hidden="true">3</span><span>Verfügbare Karten und Planung prüfen.</span></li><li class="docs-flow-step"><span class="docs-flow-number" aria-hidden="true">4</span><span>Bei Bedarf bewerten oder Zeit zurücksetzen.</span></li></ol><h3 id="journey-9-rules--akzeptanz" class="core-heading-3" tabindex="-1">Akzeptanz <a class="docs-anchor" href="#journey-9-rules--akzeptanz" aria-label="Link zu Akzeptanz">#</a></h3>
-<ul>
-<li>Bedienung und Wirkung folgen <a href="specs.html#specs--simulator">Simulator</a>.</li>
-<li>Bewertungen im Zukunftsmodus folgen <a href="specs.html#specs--lernphasen-und-bewertungen">Lernphasen und Bewertungen</a> und <a href="specs.html#specs--sync-und-konflikte">Sync und Konflikte</a>.</li>
-</ul>
-<p class="docs-source">Quelle: <a href="specs.html#specs--lernfortschritt-über-simulierte-tage-prüfen">Produktvertrag: Lernfortschritt über simulierte Tage prüfen</a></p></article></main></div><script>function initializeDocsViewer() {
+<p class="docs-source">Quelle: <a href="specs.html#specs--lernlogik-verstehen">Produktvertrag: Lernlogik verstehen</a></p></article></main></div><script>function initializeDocsViewer() {
     const theme = document.getElementById("docs-theme");
     theme.addEventListener("click", () => {
         const dark = document.documentElement.dataset.coreTheme !== "dark";

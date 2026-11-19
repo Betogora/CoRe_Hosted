@@ -33,6 +33,7 @@ export function createReviewState(input: unknown = {}): ReviewState {
     graduatedAt = null,
     isGraduated = false,
     learningDayKey = null,
+    variantStage = 0,
     sourceSchedulerData = null,
   } = objectRecord(input) as ReviewStateInput;
   const normalizedReps = Math.max(0, Math.round(Number(reps ?? 0) || 0));
@@ -60,6 +61,7 @@ export function createReviewState(input: unknown = {}): ReviewState {
     graduatedAt,
     isGraduated: Boolean(isGraduated || graduatedAt),
     learningDayKey,
+    variantStage: Math.max(0, Math.round(Number(variantStage) || 0)),
     sourceSchedulerData,
   };
 }
@@ -91,6 +93,7 @@ export function cardStudyFromReviewState(state: ReviewState): CardStudyState {
       graduatedAt: state.graduatedAt,
       isGraduated: state.isGraduated,
       learningDayKey: state.learningDayKey,
+      variantStage: state.variantStage,
       sourceSchedulerData: state.sourceSchedulerData,
     },
   };

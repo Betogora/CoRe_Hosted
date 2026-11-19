@@ -18,8 +18,10 @@ function readinessLabel(coreMode: Deck["deckSettings"]["coreMode"], ready: boole
 }
 
 /** One variant, edited in its row and saved at once, independent of the content draft (W12). */
-function VariantRow({ variant, kind, cardAnswer, index, busy, reactivationBlocked, canGenerate, onEdit, onRegenerate, onUpdate, onDelete }: {
+function VariantRow({ variant, next, kind, cardAnswer, index, busy, reactivationBlocked, canGenerate, onEdit, onRegenerate, onUpdate, onDelete }: {
   variant: CardVariant;
+  /** The variant the chain asks next (specs.md#freigabe-der-varianten). */
+  next: boolean;
   /** Only a basic variant's answer is its own text to edit; typed, cloze and choice variants rephrase the question or text. */
   kind: AiCardVariantSource["kind"] | null;
   /** The card's own answer of a typed or cloze card, which the review asks instead of the variant's (`variantPresentation`). */
@@ -34,7 +36,7 @@ function VariantRow({ variant, kind, cardAnswer, index, busy, reactivationBlocke
   onDelete: () => void;
 }) {
   const [editing, setEditing] = React.useState<{ front: string; back: string } | null>(null);
-  const { marks, reactivatable } = variantStateMarks(variant, isEditedVariant(variant));
+  const { marks, reactivatable } = variantStateMarks(variant, isEditedVariant(variant), next);
   const active = variant.isActive && variant.qualityStatus === "active" && variant.meta.outdated !== true;
   const number = index + 1;
   return (
@@ -61,12 +63,12 @@ function VariantRow({ variant, kind, cardAnswer, index, busy, reactivationBlocke
               <IconButton icon={RefreshCw} variant="ghost" label={`Variante ${number} neu generieren`} disabled={busy || !canGenerate} onClick={onRegenerate} />
             </CoreTooltip>
             {active ? (
-              <CoreTooltip label="Abschalten">
-                <IconButton icon={PowerOff} variant="ghost" label={`Variante ${number} abschalten`} disabled={busy} onClick={() => onUpdate("deactivate")} />
+              <CoreTooltip label="Ausschließen">
+                <IconButton icon={PowerOff} variant="ghost" label={`Variante ${number} ausschließen`} disabled={busy} onClick={() => onUpdate("deactivate")} />
               </CoreTooltip>
             ) : reactivatable ? (
-              <CoreTooltip label={reactivationBlocked ? "Höchstzahl aktiver Varianten erreicht" : "Reaktivieren"}>
-                <IconButton icon={RotateCcw} variant="ghost" label={`Variante ${number} reaktivieren`} disabled={busy || reactivationBlocked} onClick={() => onUpdate("reactivate")} />
+              <CoreTooltip label={reactivationBlocked ? "Höchstzahl aktiver Varianten erreicht" : "Wieder aufnehmen"}>
+                <IconButton icon={RotateCcw} variant="ghost" label={`Variante ${number} wieder aufnehmen`} disabled={busy || reactivationBlocked} onClick={() => onUpdate("reactivate")} />
               </CoreTooltip>
             ) : null}
             <CoreTooltip label="Löschen">
@@ -146,6 +148,7 @@ export function CardEditorVariantsTab({ deck, note, card, services, onGenerateVa
               <VariantRow
                 key={variant.id}
                 variant={variant}
+                next={variant.id === readiness.nextVariantId && deck.deckSettings.coreMode === "on"}
                 kind={original?.kind ?? null}
                 cardAnswer={original?.kind === "type-in" || original?.kind === "cloze" ? original.back : null}
                 index={index}

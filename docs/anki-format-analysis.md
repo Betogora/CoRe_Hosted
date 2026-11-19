@@ -57,7 +57,7 @@ ist – typischerweise beim Erweitern eines Übersetzers oder der APKG-Matrix.
 
 ## Add-on- und Korpus-Notiztypen
 
-- „Multiple Choice for Anki“ (`zjosua/anki-mc`, AGPLv3): Notiztyp `AllInOne (kprim, mc, sc)` mit `Question`, `Title`, `QType (0=kprim,1=mc,2=sc)`, `Q_1` bis `Q_5`, `Answers`, `Sources`, `Extra 1`. `QType` 0 = Kprim, 1 = Multiple Choice, 2 = Single Choice; `Answers` ist eine durch Leerzeichen getrennte 0/1-Maske.
+- „Multiple Choice for Anki“ (`zjosua/anki-mc`, AGPLv3): Notiztyp `AllInOne (kprim, mc, sc)` mit `Question`, `Title`, `QType (0=kprim,1=mc,2=sc)`, `Q_1` bis `Q_5`, `Answers`, `Sources`, `Extra 1`. `QType` 0 = Kprim, 1 = Multiple Choice, 2 = Single Choice; `Answers` ist eine durch Leerzeichen getrennte 0/1-Maske. Leere `Q_`-Felder entfallen; auch Kprim wertet so viele Aussagen aus, wie gefüllt sind, ohne feste Vierzahl, und zeigt den Anteil richtig markierter.
 - Ankizin, Ankiphil und Dellas (Korpus, 2026-10-07) zeigen Quelle und Note-ID in einer Kopfzeile auf beiden Seiten, legen Zusatzfelder hinter Buttons oder `display:none` auf die Rückseite, führen Links als `href="{{Feld}}"` bzw. `{{text:Feld}}` und nutzen den Filter `edit:` des Add-ons „Edit Field During Review“.
 
 ## Quellen

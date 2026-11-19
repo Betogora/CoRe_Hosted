@@ -296,7 +296,7 @@ export function LearningSettingsPanel({ draft, profiles, defaultProfileName, con
             <div className="core-settings-list">
               <PresetRow
                 title="Varianten einsetzen ab Haltbarkeit"
-                hint="Ab dieser Haltbarkeit wechseln sich Karte und Variante ab."
+                hint="Ab dieser Haltbarkeit kommen statt der Karte ihre Varianten."
                 value={String(draft.variantThresholdDays)}
                 options={variantThresholdOptions}
                 valueText={(isPreset) => `${isPreset ? "" : "Eigene · "}${draft.variantThresholdDays} Tage`}
