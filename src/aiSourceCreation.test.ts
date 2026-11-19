@@ -12,10 +12,10 @@ test("new source drafts default to a new deck and independent settings", () => {
   assert.equal(draft.file, null);
   assert.deepEqual(draft.settings, {
     amount: "normal", answerLength: "explained", priorKnowledge: "basic", language: "de", register: "explained",
-    cardForms: ["basic", "cloze", "single-choice", "multiple-choice"], wishes: "",
+    cardForms: ["basic"], wishes: "",
   });
-  draft.settings.cardForms.pop();
-  assert.equal(createAiSourceCreationDraft().settings.cardForms.length, 4);
+  draft.settings.cardForms.push("cloze");
+  assert.deepEqual(createAiSourceCreationDraft().settings.cardForms, ["basic"]);
   const targeted = createAiSourceCreationDraft("biology");
   assert.equal(targeted.targetMode, "existing");
   assert.equal(targeted.deckId, "biology");
