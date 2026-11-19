@@ -34,6 +34,7 @@ export interface CardCommandsContext {
 
 export type CardCommands = ReturnType<typeof createCardCommands>;
 
+
 /**
  * Card management commands of the open workspace: content, study state, variants, media, mass actions and the card
  * pages of the lists. Each local write refreshes the store, updates the card pages that show the content and asks
@@ -180,13 +181,19 @@ export function createCardCommands({ store, repository, hydration, cloud, syncEn
     return graph;
   }
 
-  async function saveDeckNote(graph: NoteGraph, content: NoteContent) {
+  /** The write that changes a content; null when nothing changes. */
+  function noteContentChange(graph: NoteGraph, content: NoteContent) {
     const plan = planNoteContentChange(graph, content);
-    if (!plan.changed && !plan.newCards.length && !plan.removedCards.length) return graph;
-    const updatedAt = new Date().toISOString();
-    const removed = planNoteDeletion(plan.note, plan.removedCards, updatedAt).cards;
-    await repository.saveNoteGraphs([{ previous: graph, next: { note: plan.note, cards: [...plan.keptCards, ...plan.newCards, ...removed] } }]);
-    return reloadNoteGraph(graph.note.id, plan.newCards.length > 0 || plan.removedCards.length > 0);
+    if (!plan.changed && !plan.newCards.length && !plan.removedCards.length) return null;
+    const removed = planNoteDeletion(plan.note, plan.removedCards, new Date().toISOString()).cards;
+    return { previous: graph, next: { note: plan.note, cards: [...plan.keptCards, ...plan.newCards, ...removed] }, cardsChanged: plan.newCards.length > 0 || plan.removedCards.length > 0 };
+  }
+
+  async function saveDeckNote(graph: NoteGraph, content: NoteContent) {
+    const change = noteContentChange(graph, content);
+    if (!change) return graph;
+    await repository.saveNoteGraphs([change]);
+    return reloadNoteGraph(graph.note.id, change.cardsChanged);
   }
 
   async function deleteDeckNote(graph: NoteGraph) {
@@ -309,24 +316,64 @@ export function createCardCommands({ store, repository, hydration, cloud, syncEn
     requestSync();
   }
 
-  /** Creates a manual content with its cards, in a new deck when no deck id is given. */
-  async function saveManualNote({ deckId, deckName, content, media }: Parameters<CreationScreenProps["onSaveManualNote"]>[0]) {
+  /** The deck of a creation: the given one, or a new deck of that name when no deck id is given. */
+  function creationDeck(deckId: string | null, deckName: string) {
     const currentState = store.get().state;
     if (!currentState) return null;
-    let deck = deckId ? currentState.decks.find((candidate) => candidate.id === deckId) ?? null : null;
-    if (!deckId) {
-      const created = createWorkspaceDeck(currentState.decks, {
-        name: deckName,
-        deckSettings: createGlobalDefaultDeckSettings(getGlobalSchedulerPreferences(currentState.profile)),
-      });
-      deck = created ? repository.saveDeckMetadata([created])[0] ?? null : null;
-    }
+    if (deckId) return currentState.decks.find((candidate) => candidate.id === deckId) ?? null;
+    const created = createWorkspaceDeck(currentState.decks, {
+      name: deckName,
+      deckSettings: createGlobalDefaultDeckSettings(getGlobalSchedulerPreferences(currentState.profile)),
+    });
+    return created ? repository.saveDeckMetadata([created])[0] ?? null : null;
+  }
+
+  /** Creates a manual content with its cards, in a new deck when no deck id is given. */
+  async function saveManualNote({ deckId, deckName, content, media }: Parameters<CreationScreenProps["onSaveManualNote"]>[0]) {
+    const deck = creationDeck(deckId, deckName);
     if (!deck) return null;
     const graph = createNote({ content, deckId: deck.id, media });
     await repository.saveNoteGraphs([{ previous: null, next: graph }]);
     refresh();
     requestSync();
     return { deck, cardIds: graph.cards.map((card) => card.id) };
+  }
+
+  /** Contents of a deck for the duplicate check of the text import; card bodies missing here are loaded first. */
+  async function listDeckContents(deckId: string) {
+    const service = hydration();
+    const cardIds = service ? await service.listCardIds({ deckIds: [deckId] }) : await repository.listCardIds([deckId]);
+    const bodies = service ? await service.openCards(cardIds) : await repository.loadCardBodies(cardIds);
+    return [...new Map(bodies.flatMap((body) => body ? [[body.note.id, body.note] as const] : [])).values()];
+  }
+
+  /**
+   * Text import into one deck: new contents and updated duplicates in one write, so a failure leaves nothing behind (a
+   * deck created for it is removed again); cards and study state of updates stay. Duplicates load like in the editor.
+   */
+  async function importTextNotes({ deckId, deckName, creates, updates }: Parameters<CreationScreenProps["onImportTextNotes"]>[0]) {
+    const service = hydration();
+    const graphs = await Promise.all(updates.map((update) => service ? service.loadNoteGraph(update.noteId).catch(() => null) : repository.loadNoteGraph(update.noteId)));
+    if (graphs.some((graph) => !graph)) throw new Error("Vorhandene Inhalte des Stapels konnten nicht geladen werden. Bitte mit Verbindung erneut versuchen.");
+    const deck = creationDeck(deckId, deckName);
+    if (!deck) return null;
+    const changes = [
+      ...creates.map((content) => ({ previous: null, next: createNote({ content, deckId: deck.id }) })),
+      ...updates.flatMap((update, index) => {
+        const change = noteContentChange(graphs[index]!, update.content);
+        return change ? [{ previous: change.previous, next: change.next }] : [];
+      }),
+    ];
+    try {
+      await repository.saveNoteGraphs(changes);
+    } catch (error) {
+      if (!deckId) await repository.deleteDeckTree(deck.id).catch(() => undefined);
+      throw error;
+    } finally {
+      refresh();
+      requestSync();
+    }
+    return { deck, cardCount: changes.reduce((total, change) => total + change.next.cards.filter((card) => !card.deletedAt).length, 0) };
   }
 
   /** Instant actions and reads of the card editor; the services stay while the account's flag names stay. */
@@ -390,6 +437,8 @@ export function createCardCommands({ store, repository, hydration, cloud, syncEn
     generateDeckCardVariant,
     updateDeckCardVariant,
     saveManualNote,
+    listDeckContents,
+    importTextNotes,
     createCardEditorServices,
   };
 }

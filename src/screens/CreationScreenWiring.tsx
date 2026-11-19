@@ -35,6 +35,8 @@ export function CreationScreenWiring() {
         creationDeckId: deckId || null,
       })}
       onSaveManualNote={cardCommands.saveManualNote}
+      listDeckContents={cardCommands.listDeckContents}
+      onImportTextNotes={cardCommands.importTextNotes}
       listTagDirectory={cardEditorServices.listTagDirectory}
       onDraftStateChange={navigation.handleCreationDraftStateChange}
       onSessionCompleted={(completion) => navigateToViewNow("neue-karten", {

@@ -129,3 +129,28 @@ test("schnelle Sofortänderungen am Lernstand bauen in ihrer Reihenfolge aufeina
   assert.equal(reverse?.status, "suspended");
   assert.equal(forward?.status, "active");
 });
+
+test("Textimport: Duplikate aktualisieren Felder und behalten Karten samt Lernstand; ein Fehler lässt keinen neuen Stapel zurück", async () => {
+  const { repository, store, commands } = await setup();
+  const before = await repository.loadNoteGraph("note-1");
+  assert.ok(before);
+  const studied = { ...before.cards[0], study: { ...before.cards[0].study, reps: 4, state: "review" as const } };
+  await repository.saveNoteGraphs([{ previous: before, next: { ...before, cards: [studied] } }]);
+  const content = { ...before.note.content, fields: before.note.content.fields.map((field) => field.role === "answer" ? { ...field, html: "Neue Antwort" } : field) };
+
+  const result = await commands.importTextNotes({ deckId: "deck-a", deckName: "", creates: [], updates: [{ noteId: "note-1", content }] });
+  assert.equal(result?.deck.id, "deck-a");
+  const after = await repository.loadNoteGraph("note-1");
+  assert.equal(after?.note.content.fields.find((field) => field.role === "answer")?.html, "Neue Antwort");
+  assert.deepEqual(after?.cards.map((card) => [card.id, card.study.reps]), [[studied.id, 4]]);
+
+  const decksBefore = store.get().state!.decks.length;
+  const save = repository.saveNoteGraphs;
+  repository.saveNoteGraphs = async () => { throw new Error("Speicher voll"); };
+  try {
+    await assert.rejects(commands.importTextNotes({ deckId: null, deckName: "Neu", creates: [content], updates: [] }), /Speicher voll/);
+  } finally {
+    repository.saveNoteGraphs = save;
+  }
+  assert.equal(store.get().state!.decks.filter((deck) => !deck.deletedAt).length, decksBefore, "der für den Import angelegte Stapel ist wieder weg");
+});

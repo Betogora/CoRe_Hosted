@@ -96,7 +96,7 @@ Befehlsmodule laufen ohne React und entstehen je Arbeitsbereich aus Store, lokal
 
 | Eigentümer | Verantwortung |
 | --- | --- |
-| `cardCommands.ts` | Kartenseiten, Inhalte speichern, löschen, wiederherstellen, duplizieren, verschieben; Lernstand, Varianten, Medien, manuelle Erstellung |
+| `cardCommands.ts` | Kartenseiten, Inhalte speichern, löschen, wiederherstellen, duplizieren, verschieben; Lernstand, Varianten, Medien, manuelle Erstellung, Textimport |
 | `deckCommands.ts` | Stapel, Stapel- und globale Einstellungen, Lernprofile, Prüfungsaufgaben, gespeicherte Suchen |
 | `importCommands.ts` | Importgraph übernehmen, Cloud-Bestätigung je Import, einmalige Neuübersetzung |
 | `cardBatchActions.ts` | Massenaktionen der Kartenverwaltung als ein Schreibvorgang, Rückgängig als neue Änderung |
@@ -120,6 +120,7 @@ Befehlsmodule laufen ohne React und entstehen je Arbeitsbereich aus Store, lokal
 | `creationWorkflow.ts`, `creationBatch.ts` | manuelle Erstellung samt Bildverdeckung und lokaler Medienvorbereitung |
 | `notePresentation.ts`, `presentationFrame.ts`, `originalLayout.ts`, `htmlSafety.ts` | Kartenrenderer, CSP-Rahmen, Regel des Originallayouts, Sanitizer |
 | `apkgImport.ts`, `apkgNoteTranslation.ts`, `importRetranslation.ts` | APKG-Vorschau und gestreamter Importgraph, Übersetzung, Neuübersetzung |
+| `textImport.ts` | Text- und CSV-Import: Kopfzeilen, Trennzeichen, Zeilenplan mit Duplikaten |
 | `learningSummaries.ts`, `learningMindMaps.ts` | Zusammenfassungen und Mindmaps: Format, Operationen, lokale Ablage und Abgleich |
 | `aiSourceCreation.ts` | Auftrag „Karten aus einer Quelle“: Validierung und Prompt, noch ohne Ausführung |
 | `dashboardWidgets.ts`, `dailyMotivation.ts`, `brainMascots.ts` | Dashboard-Layout und To-dos, Tagesimpuls, Maskottchen; nur lokal |

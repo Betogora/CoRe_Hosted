@@ -9,6 +9,7 @@ import { NoteLayoutContext, type NoteLayoutSource } from "../ui/noteLayoutContex
 import { CoreTag, SoftPanel, StatTile } from "../ui/coreUi.tsx";
 import { FileDropField } from "../ui/FileDropField.tsx";
 import { useSuccessToast } from "../ui/feedbackUi.tsx";
+import { isTextImportFile } from "../textImport.ts";
 import { formatBytes } from "./screenConstants.ts";
 
 type ApkgWorkflow = Pick<CreationWorkflow, "commitApkgPreview" | "parseApkgFile">;
@@ -20,6 +21,8 @@ export interface ApkgImportPanelProps {
   isSessionCurrent: (version: number) => boolean;
   onResetSession: (disposeWorker?: boolean) => void;
   onCompleted: (completion: ImportCompletion) => unknown;
+  /** A text or table file goes to the text import instead. */
+  onTextFile: (file: File) => unknown;
   /** An earlier takeover on this device that did not finish. */
   interruptedImport?: InterruptedImport | null;
 }
@@ -35,6 +38,7 @@ const ANALYSIS_PROGRESS_BY_STEP: Record<string, number> = {
 };
 
 const APKG_SAMPLE_CARD_LIMIT = 3;
+const IMPORT_FILE_ACCEPT = ".apkg,.colpkg,.txt,.csv,.tsv";
 
 const TRANSLATOR_LABELS: Record<string, string> = {
   "anki-basic": "Frage und Antwort",
@@ -119,7 +123,7 @@ function NotetypeReport({ report }: { report: ApkgTranslationReport }) {
   );
 }
 
-export function ApkgImportPanel({ workflow, session, onSessionChange, isSessionCurrent, onResetSession, onCompleted, interruptedImport = null }: ApkgImportPanelProps) {
+export function ApkgImportPanel({ workflow, session, onSessionChange, isSessionCurrent, onResetSession, onCompleted, onTextFile, interruptedImport = null }: ApkgImportPanelProps) {
   const [prefersReducedMotion, setPrefersReducedMotion] = React.useState(false);
   const setSuccessToast = useSuccessToast();
   const { selectedFile, job, preview, isParsing, completion, phaseProgress } = session;
@@ -290,14 +294,19 @@ export function ApkgImportPanel({ workflow, session, onSessionChange, isSessionC
           </div>
         ) : null}
         <FileDropField
-          accept=".apkg,.colpkg"
-          ariaLabel="Anki-Datei (APKG oder COLPKG) auswählen oder ablegen"
-          prompt="APKG- oder COLPKG-Datei hier ablegen (Max. 2 GiB)"
-          actionLabel={selectedFile ? "Andere Datei auswählen" : "APKG-Datei auswählen"}
-          onFile={parseFile}
+          accept={IMPORT_FILE_ACCEPT}
+          ariaLabel="Anki-Paket, Text- oder CSV-Datei auswählen oder ablegen"
+          prompt="APKG-, COLPKG-, TXT-, CSV- oder TSV-Datei hier ablegen"
+          actionLabel={selectedFile ? "Andere Datei auswählen" : "Datei auswählen"}
+          onFile={(file) => {
+            if (!isTextImportFile(file.name)) return parseFile(file);
+            onResetSession();
+            onTextFile(file);
+          }}
           disabled={activeProgressPhase !== null}
           busy={activeProgressPhase !== null}
         />
+        <p className="mt-3 core-body text-core-muted">Tabellen aus Excel, Numbers oder Quizlet vorher als CSV oder Text speichern.</p>
 
         {selectedFile ? (
           <div

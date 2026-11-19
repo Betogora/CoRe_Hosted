@@ -11,6 +11,7 @@ import { ApkgCardSample, ApkgImportPanel, useSampleMediaUrls } from "./ApkgImpor
 import { CreationHome, creationMethods } from "./CreationHome.tsx";
 import { ManualCreationPanel } from "./ManualCreationPanel.tsx";
 import { AiSourceCreationPanel } from "./AiSourceCreationPanel.tsx";
+import { TextImportPanel } from "./TextImportPanel.tsx";
 
 export type CreationScreenViewProps = Partial<CreationScreenProps>;
 
@@ -32,6 +33,8 @@ export function CreationScreen({
   onMethodChange = () => undefined,
   onTargetDeckChange = () => undefined,
   onSaveManualNote = async () => null,
+  listDeckContents = async () => [],
+  onImportTextNotes = async () => null,
   listTagDirectory,
   onDraftStateChange = () => undefined,
   onSessionCompleted = () => undefined,
@@ -41,6 +44,7 @@ export function CreationScreen({
 }: CreationScreenViewProps) {
   const completionHeadingRef = React.useRef<HTMLHeadingElement | null>(null);
   const [sessionCompletion, setSessionCompletion] = React.useState<{ deckId: string; createdCount: number; kind: "import" | "manual"; importResult?: Pick<ImportCompletion, "reimport" | "samples" | "sampleMedia"> } | null>(null);
+  const [textImportFile, setTextImportFile] = React.useState<File | null>(null);
   const [localApkgImportSession, setLocalApkgImportSession] = React.useState(() => createEmptyApkgImportSession());
   const apkgImportSession = controlledApkgImportSession ?? localApkgImportSession;
   const apkgImportSessionRef = React.useRef(apkgImportSession);
@@ -52,6 +56,7 @@ export function CreationScreen({
   const selectedMethodMeta = creationMethods.find((method) => method.id === selectedMethod);
   const backToCreation = { label: "Erstellen", onSelect: () => {
     setSessionCompletion(null);
+    setTextImportFile(null);
     onMethodChange("");
   } };
   const methodHeader = (action?: React.ReactNode) => <PageHeader title={selectedMethodMeta?.pageTitle ?? "Neue Karte"} back={backToCreation} action={action} />;
@@ -94,17 +99,33 @@ export function CreationScreen({
       return (
         <>
         {methodHeader()}
-        <ApkgImportPanel
-          workflow={accountWorkflow}
-          session={apkgImportSession}
-          onSessionChange={onApkgImportSessionChange}
-          isSessionCurrent={isApkgImportSessionCurrent}
-          onResetSession={onResetApkgImportSession}
-          interruptedImport={interruptedImport}
-          onCompleted={(completion) => {
-            completeSession(completion.deck.id, completion.createdCount, "import", completion);
-          }}
-        />
+        {textImportFile ? (
+          <TextImportPanel
+            file={textImportFile}
+            decks={decks}
+            listDeckContents={listDeckContents}
+            onImport={onImportTextNotes}
+            onChooseOtherFile={() => setTextImportFile(null)}
+            onDraftStateChange={onDraftStateChange}
+            onCompleted={({ deck, cardCount, samples }) => {
+              setTextImportFile(null);
+              completeSession(deck.id, cardCount, "import", { reimport: null, samples, sampleMedia: NO_MEDIA });
+            }}
+          />
+        ) : (
+          <ApkgImportPanel
+            workflow={accountWorkflow}
+            session={apkgImportSession}
+            onSessionChange={onApkgImportSessionChange}
+            isSessionCurrent={isApkgImportSessionCurrent}
+            onResetSession={onResetApkgImportSession}
+            interruptedImport={interruptedImport}
+            onTextFile={setTextImportFile}
+            onCompleted={(completion) => {
+              completeSession(completion.deck.id, completion.createdCount, "import", completion);
+            }}
+          />
+        )}
         </>
       );
     }

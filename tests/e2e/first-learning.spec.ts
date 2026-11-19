@@ -195,7 +195,7 @@ test("[Vertrag: APKG-Vorschau bis Review] @golden-e2e @beta-core @hosted-core lo
   await expect(page.getByRole("button", { name: /Anki-Stapel importieren/ })).toBeVisible();
   await page.getByRole("button", { name: /Anki-Stapel importieren/ }).click();
   await expect(page).toHaveURL(/\/neue-karten\?method=import$/);
-  await page.locator('input[type="file"][accept=".apkg,.colpkg"]').setInputFiles(SMALL_APKG_FIXTURE);
+  await page.locator('input[type="file"][accept=".apkg,.colpkg,.txt,.csv,.tsv"]').setInputFiles(SMALL_APKG_FIXTURE);
   await expect(page.getByRole("button", { name: "Import übernehmen" })).toBeEnabled({ timeout: 30_000 });
   await page.getByRole("button", { name: "Import übernehmen" }).click();
 

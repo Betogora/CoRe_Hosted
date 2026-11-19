@@ -27,7 +27,7 @@ export const creationMethods: CreationMethodDefinition[] = [
   {
     id: "import",
     title: "Import",
-    pageTitle: "Anki-Dateien importieren",
+    pageTitle: "Karten importieren",
     icon: FileSpreadsheet,
   },
   {

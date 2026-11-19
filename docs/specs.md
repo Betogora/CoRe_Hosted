@@ -37,7 +37,7 @@ Was gebaut, vorbereitet oder abgeschaltet ist und welche Lücken bekannt sind, n
 ```schaubild
 Titel: Wie die Bereiche zusammenspielen
 Gruppe: Karten kommen hinein (Erstellen)
-Anki-Import | Paket wird auf dem Gerät übersetzt
+Import | Anki-Paket, Text oder CSV
 Manuell | Felder, Auswahl, Lücken, Bildverdeckung
 [primär] Automatisch aus einer Quelle | vorbereitet, noch nicht aktiv
 Pfeil: werden zu
@@ -192,7 +192,7 @@ Ablauf:
 
 Akzeptanz:
 
-- Der Import folgt [Anki-Import](#anki-import), [Übersetzung von Anki-Paketen](#übersetzung-von-anki-paketen) und [Reimport und Neuübersetzung](#reimport-und-neuübersetzung).
+- Der Import folgt [Anki-Import](#anki-import), [Text- und Tabellenimport](#text--und-tabellenimport), [Übersetzung von Anki-Paketen](#übersetzung-von-anki-paketen) und [Reimport und Neuübersetzung](#reimport-und-neuübersetzung).
 - Die manuelle Erstellung folgt [Manuell erstellen](#manuell-erstellen) und [Bildverdeckung](#bildverdeckung).
 - Der vorbereitete dritte Weg folgt [Automatisch aus einer Quelle](#automatisch-aus-einer-quelle).
 
@@ -305,7 +305,7 @@ Akzeptanz:
 
 ### Erstellungswege
 
-Karten entstehen manuell, durch Anki-Import oder, vorbereitet, automatisch aus einer Quelle. Manuelle Erstellung und Import speichern zuerst auf dem Gerät und synchronisieren danach.
+Karten entstehen manuell, durch Import oder, vorbereitet, automatisch aus einer Quelle. Manuelle Erstellung und Import speichern zuerst auf dem Gerät und synchronisieren danach.
 
 ### Manuell erstellen
 
@@ -351,7 +351,7 @@ Gruppe: Synchronisierung ins Konto
 [info] Medien
 ```
 
-- Angenommen werden nur Anki-Pakete. Pakete bis 2 GiB verarbeitet der Browser selbst; größere werden abgewiesen.
+- Pakete bis 2 GiB verarbeitet der Browser selbst; größere werden abgewiesen.
 - Analyse und Übernahme sind getrennte Schritte: Die Analyse lässt sich abbrechen und ändert nichts, die Übernahme läuft durch.
 - Der Bericht nennt je Notiztyp, wie übersetzt wird, wie viele Inhalte und Karten entstehen, wie viel Lernstand übernommen wird, was nur generisch oder gar nicht übernommen wird, welche Medien fehlen und ob die Karten im Originallayout erscheinen. Beispielkarten erscheinen wie im Review. Technische Kennungen erscheinen nicht.
 - Jede Anki-Notiz wird ein Inhalt, jede Anki-Karte eine CoRe-Karte; die Stapelhierarchie bleibt vollständig.
@@ -360,7 +360,15 @@ Gruppe: Synchronisierung ins Konto
 - Fehler beim Lesen des Pakets bleiben sichtbar und werden nicht durch einen stillen Ersatzweg verdeckt.
 - Ein laufender Import übersteht den Wechsel in andere App-Bereiche, nicht aber einen Reload; Schließen und Neuladen während Analyse und Übernahme fragen nach.
 - Bricht eine Übernahme trotzdem ab, meldet CoRe das beim nächsten Start mit der Zahl schon übernommener Karten, bis dieselbe Datei den Import vervollständigt oder seine Stapel gelöscht sind.
-- **Bewusst nicht:** Serverimport, Upload-Fallback, Text- und Tabellenimport.
+- **Bewusst nicht:** Serverimport, Upload-Fallback.
+
+### Text- und Tabellenimport
+
+- Text- und CSV-Dateien bis 20 MB und 50.000 Zeilen werden wie in Anki zu Inhalten; die Dateiendung bestimmt das Format.
+- Ankis Kopfzeilen gelten, unbekannte werden gemeldet. Ohne Trennzeichen-Kopfzeile gilt das erste mit gleichbleibender Spaltenzahl.
+- Jede gültige Zeile wird ein Inhalt der gewählten Form (Frage–Antwort, auch mit Rückrichtung, Lückentext); ungültige werden mit Zeile und Grund übersprungen.
+- Duplikate (gleiche Form und gleicher Klartext im ersten Feld im Zielstapel) werden wie in Anki aktualisiert, wobei Karten und Lernstand bleiben und Tags hinzukommen, oder wahlweise übersprungen oder neu angelegt.
+- **Bewusst nicht:** Excel- und Numbers-Dateien, Medien.
 
 ### Übersetzung von Anki-Paketen
 

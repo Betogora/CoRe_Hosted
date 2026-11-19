@@ -6952,6 +6952,10 @@ button.core-steps-step {
     grid-row-start: 1;
   }
 
+  .sm\:mr-0 {
+    margin-right: 0px;
+  }
+
   .sm\:line-clamp-1 {
     overflow: hidden;
     display: -webkit-box;
@@ -7049,6 +7053,14 @@ button.core-steps-step {
     max-width: 20rem;
   }
 
+  .sm\:flex-1 {
+    flex: 1 1 0%;
+  }
+
+  .sm\:basis-0 {
+    flex-basis: 0px;
+  }
+
   .sm\:basis-auto {
     flex-basis: auto;
   }
@@ -7087,6 +7099,10 @@ button.core-steps-step {
 
   .sm\:grid-cols-\[max-content_minmax\(0\2c 1fr\)\] {
     grid-template-columns: max-content minmax(0,1fr);
+  }
+
+  .sm\:grid-cols-\[minmax\(0\2c 1fr\)_16rem\] {
+    grid-template-columns: minmax(0,1fr) 16rem;
   }
 
   .sm\:grid-cols-\[minmax\(0\2c 1fr\)_auto\] {
@@ -7935,7 +7951,7 @@ html:has(.catalog-preview) { scroll-behavior: auto; }
 <p>Vorhandene Anki-Stapel und neue Karten gelangen ohne Datenverlust in CoRe.</p>
 <h3 id="journey-2--ablauf" class="core-heading-3" tabindex="-1">Ablauf</h3><ol class="docs-flow"><li class="docs-flow-step"><span class="docs-flow-number" aria-hidden="true">1</span><span><code>Erstellen</code> öffnen und einen Weg wählen.</span></li><li class="docs-flow-step"><span class="docs-flow-number" aria-hidden="true">2</span><span>Paket analysieren oder Karte eingeben.</span></li><li class="docs-flow-step"><span class="docs-flow-number" aria-hidden="true">3</span><span>Vorschau und Inhalt prüfen.</span></li><li class="docs-flow-step"><span class="docs-flow-number" aria-hidden="true">4</span><span>Lokal speichern.</span></li><li class="docs-flow-step"><span class="docs-flow-number" aria-hidden="true">5</span><span>Synchronisierung oder Teilabschluss sehen.</span></li></ol><h3 id="journey-2-rules--akzeptanz" class="core-heading-3" tabindex="-1">Akzeptanz <a class="docs-anchor" href="#journey-2-rules--akzeptanz" aria-label="Link zu Akzeptanz">#</a></h3>
 <ul>
-<li>Der Import folgt <a href="specs.html#specs--anki-import">Anki-Import</a>, <a href="specs.html#specs--%C3%BCbersetzung-von-anki-paketen">Übersetzung von Anki-Paketen</a> und <a href="specs.html#specs--reimport-und-neu%C3%BCbersetzung">Reimport und Neuübersetzung</a>.</li>
+<li>Der Import folgt <a href="specs.html#specs--anki-import">Anki-Import</a>, <a href="specs.html#specs--text--und-tabellenimport">Text- und Tabellenimport</a>, <a href="specs.html#specs--%C3%BCbersetzung-von-anki-paketen">Übersetzung von Anki-Paketen</a> und <a href="specs.html#specs--reimport-und-neu%C3%BCbersetzung">Reimport und Neuübersetzung</a>.</li>
 <li>Die manuelle Erstellung folgt <a href="specs.html#specs--manuell-erstellen">Manuell erstellen</a> und <a href="specs.html#specs--bildverdeckung">Bildverdeckung</a>.</li>
 <li>Der vorbereitete dritte Weg folgt <a href="specs.html#specs--automatisch-aus-einer-quelle">Automatisch aus einer Quelle</a>.</li>
 </ul>

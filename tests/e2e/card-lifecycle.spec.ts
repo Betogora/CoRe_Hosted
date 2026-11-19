@@ -878,7 +878,7 @@ test("[Vertrag: APKG-Reimport nach lokaler Bearbeitung] @beta-core Reimport übe
   await resetToFreshLocalState(page);
   await mainMenu(page).getByRole("button", { name: "Erstellen" }).click();
   await page.getByRole("button", { name: /^Import\b/ }).click();
-  await page.locator('input[type="file"][accept=".apkg,.colpkg"]').setInputFiles(REIMPORT_FIXTURE);
+  await page.locator('input[type="file"][accept=".apkg,.colpkg,.txt,.csv,.tsv"]').setInputFiles(REIMPORT_FIXTURE);
   await expect(page.getByRole("button", { name: "Import übernehmen" })).toBeEnabled({ timeout: 30_000 });
   await page.getByRole("button", { name: "Import übernehmen" }).click();
   await finishApkgImport(page);
@@ -908,7 +908,7 @@ test("[Vertrag: APKG-Reimport nach lokaler Bearbeitung] @beta-core Reimport übe
   await page.getByRole("button", { name: "Detailansicht schließen" }).click();
   await mainMenu(page).getByRole("button", { name: "Erstellen" }).click();
   await page.getByRole("button", { name: /^Import\b/ }).click();
-  await page.locator('input[type="file"][accept=".apkg,.colpkg"]').setInputFiles(REIMPORT_FIXTURE);
+  await page.locator('input[type="file"][accept=".apkg,.colpkg,.txt,.csv,.tsv"]').setInputFiles(REIMPORT_FIXTURE);
   await expect(page.getByRole("button", { name: "Import übernehmen" })).toBeEnabled({ timeout: 30_000 });
   await page.getByRole("button", { name: "Import übernehmen" }).click();
   await finishApkgImport(page);

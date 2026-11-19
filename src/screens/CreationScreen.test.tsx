@@ -31,7 +31,7 @@ test("completed import shows the verified count and only study or dashboard acti
     <CreationScreen decks={[deck]} completedDeckId={deck.id} completedCount={46} completionKind="import" {...callbacks} />,
   );
 
-  assert.match(markup, /data-screen-heading[^>]*>Anki-Dateien importieren<\/h2>/);
+  assert.match(markup, /data-screen-heading[^>]*>Karten importieren<\/h2>/);
   assert.match(markup, /Import erfolgreich/);
   assert.match(markup, /46 Karten wurden/);
   assert.match(markup, /Jetzt lernen/);
@@ -68,16 +68,18 @@ test("source creation offers office files and settings without a generation acti
   assert.doesNotMatch(markup, /type="range"|type="number"|>Karten erstellen<\/span>/);
 });
 
-test("import creation exposes only APKG without a format selector", () => {
+test("import creation takes Anki packages and text or table files in one field without a format selector", () => {
   const markup = renderToStaticMarkup(<CreationScreen decks={[]} initialMethod="import" {...callbacks} />);
 
   assert.match(markup, /core-page-header-back[\s\S]*?>Erstellen<\/button>/);
-  assert.match(markup, /data-screen-heading[^>]*>Anki-Dateien importieren<\/h2>/);
+  assert.match(markup, /data-screen-heading[^>]*>Karten importieren<\/h2>/);
   assert.equal((markup.match(/<h2/g) ?? []).length, 1);
-  assert.match(markup, /accept="\.apkg,\.colpkg"/);
-  assert.match(markup, /APKG- oder COLPKG-Datei hier ablegen \(Max\. 2 GiB\)/);
-  assert.match(markup, /data-file-drop-field="true"/);
-  assert.match(markup, />APKG-Datei auswählen<\/span>/);
+  assert.match(markup, /accept="\.apkg,\.colpkg,\.txt,\.csv,\.tsv"/);
+  assert.match(markup, /APKG-, COLPKG-, TXT-, CSV- oder TSV-Datei hier ablegen/);
+  assert.match(markup, /Tabellen aus Excel, Numbers oder Quizlet vorher als CSV oder Text speichern\./);
+  assert.doesNotMatch(markup, /<a /);
+  assert.equal((markup.match(/data-file-drop-field="true"/g) ?? []).length, 1);
+  assert.match(markup, />Datei auswählen<\/span>/);
   assert.doesNotMatch(markup, /Importformat|>APKG<|>Text<|>CSV<|>Excel\/Tabelle</);
 });
 

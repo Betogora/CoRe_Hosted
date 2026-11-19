@@ -394,15 +394,15 @@ test("[Vertrag: Offline-Kartenlöschung] lokal gelöschte Karten werden nach Rec
   await expect(page.getByTestId(`deck-card-${existingCardId}`)).toHaveCount(0);
 });
 
-test("[Vertrag: ausschließlicher APKG-Import und Terminalzustände] @beta-core nur APKG bleibt verfügbar", async ({ page }) => {
+test("[Vertrag: ein Dateifeld ohne Formatauswahl und Terminalzustände] @beta-core die Dateiendung wählt den Import", async ({ page }) => {
   await mainMenu(page).getByRole("button", { name: "Erstellen" }).click();
   await page.getByRole("button", { name: /^Import\b/ }).click();
   const importCreation = page.getByRole("region", { name: "Import" });
-  await expect(importCreation.getByRole("heading", { name: "Anki-Dateien importieren" })).toBeVisible();
+  await expect(importCreation.getByRole("heading", { name: "Karten importieren" })).toBeVisible();
   await expect(importCreation.getByRole("button", { name: "Erstellen", exact: true })).toBeVisible();
   await expect(importCreation.getByRole("button", { name: /^(APKG|Text|CSV|Excel\/Tabelle)$/ })).toHaveCount(0);
   await expect(importCreation.getByRole("textbox", { name: "Importinhalt" })).toHaveCount(0);
-  await page.locator('input[type="file"][accept=".apkg,.colpkg"]').setInputFiles({
+  await page.locator('input[type="file"][accept=".apkg,.colpkg,.txt,.csv,.tsv"]').setInputFiles({
     name: "kaputt.apkg",
     mimeType: "application/octet-stream",
     buffer: Buffer.from("kein gueltiges apkg"),
@@ -411,10 +411,28 @@ test("[Vertrag: ausschließlicher APKG-Import und Terminalzustände] @beta-core 
   await expect(page.getByRole("button", { name: "Andere Datei auswählen" })).toBeVisible();
 });
 
+test("[Vertrag: Text- und CSV-Import wie in Anki] @beta-core eine CSV-Datei mit Semikolon wird zu Karten", async ({ page }) => {
+  await mainMenu(page).getByRole("button", { name: "Erstellen" }).click();
+  await page.getByRole("button", { name: /^Import\b/ }).click();
+  await page.locator('input[type="file"][accept=".apkg,.colpkg,.txt,.csv,.tsv"]').setInputFiles({
+    name: "Vokabeln.csv",
+    mimeType: "text/csv",
+    buffer: Buffer.from("Haus;house\n\"Baum; groß\";tree\nohne Rückseite;\n", "utf8"),
+  });
+  await expect(page.getByTestId("text-import-file")).toContainText("Vokabeln.csv");
+  await expect(page.getByText("1 Zeile wird übersprungen")).toBeVisible();
+  await page.getByRole("button", { name: "2 Karten importieren" }).click();
+  await expect(page.getByRole("heading", { name: "Import erfolgreich" })).toBeVisible();
+  await expect(page.getByText("2 Karten wurden aus „Vokabeln“ gespeichert.")).toBeVisible();
+  const state = await readActiveAccountState(page);
+  const deck = state.decks.find((candidate: Deck) => candidate.name === "Vokabeln");
+  expect(deck.cards.map((card: { note: Note }) => card.note.content.fields.map((field) => field.html)).sort()).toEqual([["Baum; groß", "tree"], ["Haus", "house"]]);
+});
+
 test("[Vertrag: Importabschluss vor dem Sync] @beta-core Karten sind nach der lokalen Übernahme nutzbar, auch wenn der Medien-Upload scheitert", async ({ page }) => {
   await mainMenu(page).getByRole("button", { name: "Erstellen" }).click();
   await page.getByRole("button", { name: /^Import\b/ }).click();
-  await page.locator('input[type="file"][accept=".apkg,.colpkg"]').setInputFiles(MEDIA_APKG_FIXTURE);
+  await page.locator('input[type="file"][accept=".apkg,.colpkg,.txt,.csv,.tsv"]').setInputFiles(MEDIA_APKG_FIXTURE);
   await expect(page.getByRole("button", { name: "Import übernehmen" })).toBeVisible({ timeout: 30_000 });
   await page.route("**/storage/v1/object/core-media/**", (route) => route.abort("failed"));
   await page.getByRole("button", { name: "Import übernehmen" }).click();
