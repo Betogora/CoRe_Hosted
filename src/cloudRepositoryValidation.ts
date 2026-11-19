@@ -450,7 +450,7 @@ const noteTypeDefinitionSchema = v.object({
   kind: v.number(),
   originalStockKind: v.number(),
   css: v.string(),
-  fields: v.array(v.object({ name: v.string(), ordinal: nonNegativeIntegerSchema })),
+  fields: v.array(v.object({ name: v.string(), ordinal: nonNegativeIntegerSchema, tag: v.optional(v.nullable(v.number())) })),
   templates: v.array(v.object({ name: v.string(), ordinal: nonNegativeIntegerSchema, front: v.string(), back: v.string(), targetDeckId: v.nullable(v.string()) })),
   config: v.unknown(),
 });

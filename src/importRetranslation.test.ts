@@ -37,7 +37,7 @@ async function importNote(notetype: ReturnType<typeof model>, fields: string[], 
     notes: [{ id: "100", guid: "guid-100", mid: "1", flds: fields.join("\u001f"), tags }],
     cards: ords.map((ord) => ankiCard(String(200 + ord), ord)),
     models: { 1: notetype },
-    reviewHistory: { entries: [], totalRows: 0, skippedRows: 0 },
+    reviewHistory: { entries: [], totalRows: 0, skippedRows: 0, resetsByCard: {} },
     media: { format: "media-entries", files: [], missing: [] },
   };
   const graph = await translateAnkiPackage(pkg, { importedAt: IMPORTED_AT });
@@ -127,7 +127,7 @@ test("eine entfallende Karte ohne Lernstand wird weich gelöscht", async () => {
 // previous content's prompt keys (anki-N) and therefore finds no card; the plan ends as "kept" instead of "updated".
 test("generische anki-N-Schlüssel erhalten den Abfrageschlüssel des besseren Übersetzers", async () => {
   const generic = await importNote(CHANGED_BASIC, ["Hauptstadt von Frankreich?", "Paris"], [0]);
-  assert.deepEqual(generic.note.translator, { id: "generic", version: 3 });
+  assert.deepEqual(generic.note.translator, { id: "generic", version: 4 });
   assert.deepEqual(generic.cards.map((card) => card.promptKey), ["anki-0"]);
   const stock = await importNote(BASIC, ["Hauptstadt von Frankreich?", "Paris"], [0]);
   const card = studied(generic.cards[0]);

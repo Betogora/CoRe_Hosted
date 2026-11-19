@@ -582,7 +582,8 @@ def build_learning(col: Any) -> list[dict[str, Any]]:
         card.memory_state = FSRSMemoryState(stability=12.5, difficulty=5.2)
         card.flags = 2
         return {"state": "review", "suspended": False, "fsrs": {"stability": 12.5, "difficulty": 5.2}, "flag": 2}
-    add_with_state(basic("matrix-state-review-fsrs", "Review mit FSRS", ["marked"]), review, [(3, -600, 0, 0), (3, 1, -600, 0), (3, 4, 1, 1), (3, 12, 4, 1)])
+    # Without its first contact the history is incomplete, so Anki's stored FSRS state stays (a complete one is replayed).
+    add_with_state(basic("matrix-state-review-fsrs", "Review mit FSRS", ["marked"]), review, [(3, 4, 1, 1), (3, 12, 4, 1)])
 
     def history_only(card: Any) -> dict[str, Any]:
         card.type, card.queue, card.due, card.ivl, card.factor, card.reps = 2, 2, now + 3, 8, 2300, 3

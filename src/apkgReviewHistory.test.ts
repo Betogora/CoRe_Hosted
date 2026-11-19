@@ -17,3 +17,16 @@ test("Anki revlog rows map ratings, response time and negative learning interval
   assert.equal(payload.entries[0].afterIntervalMinutes, 10);
   assert.equal(payload.entries[0].responseTimeMs, 60_000);
 });
+
+test("Cram-Wiederholungen und Zurücksetzen werden erkannt; Lernzeilen aus Scheduler v1 rücken eine Taste auf", () => {
+  const rows = [
+    { id: 1_700_000_000_000, cid: 20, ease: 2, type: 0, lastIvl: 0, ivl: -600, factor: 0, time: 1 },
+    { id: 1_700_000_001_000, cid: 20, ease: 3, type: 3, lastIvl: 1, ivl: 1, factor: 0, time: 1 },
+    { id: 1_700_000_002_000, cid: 20, ease: 3, type: 3, lastIvl: 1, ivl: 4, factor: 2500, time: 1 },
+    { id: 1_700_000_003_000, cid: 20, ease: 0, type: 4, lastIvl: 4, ivl: 0, factor: 0, time: 0 },
+  ];
+  const payload = normalizeAnkiReviewHistory(rows);
+  assert.deepEqual(payload.entries.map((entry) => [entry.rating, entry.cram]), [["hard", false], ["good", true], ["good", false]]);
+  assert.deepEqual(payload.resetsByCard, { 20: new Date(1_700_000_003_000).toISOString() });
+  assert.equal(normalizeAnkiReviewHistory(rows, { schedulerV1: true }).entries[0].rating, "good", "v1-Lernzeile „Gut“ (2) wird zu 3");
+});

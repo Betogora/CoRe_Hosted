@@ -180,8 +180,8 @@ test("Lernstände und Wiederholungen werden übernommen und als eigener Abschnit
 
   assert.deepEqual(chunks.map((chunk) => chunk.kind), ["decks", "note-type-sources", "notes", "reviews"]);
   assert.deepEqual(preview.report.notetypes[0].study, { "fsrs-memory-state": 1, "revlog-replay": 5, "classic-state": 0, new: 2 });
-  assert.equal(preview.commitGraph.reviewEventCount, 12);
-  assert.equal(reviews.length, 12);
+  assert.equal(preview.commitGraph.reviewEventCount, 10);
+  assert.equal(reviews.length, 10);
   assert.ok(reviews.every((review) => cardIds.has(review.cardId)));
   assert.equal(cards.filter((card) => card.study.state !== "new").length, 6);
 });

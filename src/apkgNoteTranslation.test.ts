@@ -29,7 +29,7 @@ function ankiPackage(input: Partial<AnkiPackage> & Pick<AnkiPackage, "models" | 
     packageFormat: "latest",
     collectionCreatedAt: CREATED_SECONDS,
     decks: [{ id: "10", name: "Stapel", filtered: false }],
-    reviewHistory: { entries: [], totalRows: 0, skippedRows: 0 },
+    reviewHistory: { entries: [], totalRows: 0, skippedRows: 0, resetsByCard: {} },
     media: { format: "media-entries", files: [], missing: [] },
     ...input,
   };
@@ -65,7 +65,7 @@ test("Ungültige Übersetzungen fallen auf eine Feldliste zurück, ohne die Anki
     cards: [card("200", "100")],
   }), { importedAt: IMPORTED_AT });
 
-  assert.deepEqual(graph.notes[0].translator, { id: "field-list", version: 2 });
+  assert.deepEqual(graph.notes[0].translator, { id: "field-list", version: 3 });
   assert.equal(graph.notes[0].content.interaction.kind, "reveal");
   assert.deepEqual(graph.cards.map((item) => [item.promptKey, item.ankiCardId]), [["anki-0", "200"]]);
   assert.equal(graph.report.notetypes[0].translator.id, "multiple-choice-for-anki");
@@ -172,6 +172,30 @@ test("Native Bildverdeckung liest Radien, maskierte Doppelpunkte, Drehung, Schri
   ]);
 });
 
+test("Bildverdeckung wie in Anki: c0-Beschriftungen bleiben ohne eigene Karte stehen, c1,2 gehört zu beiden Karten", () => {
+  const masks = parseImageOcclusionField(
+    "{{c1,2::image-occlusion:rect:left=.1:top=.2:width=.3:height=.4}}"
+    + "<br>{{c0::image-occlusion:text:left=.5:top=.5:text=Label:scale=1:fs=.05}}",
+  );
+  assert.deepEqual(masks.map((mask) => [mask.ordinal, mask.alwaysOccluded, mask.shape.kind]), [[1, false, "rect"], [2, false, "rect"], [0, true, "text"]]);
+});
+
+test("Native Bildverdeckung findet Bild und Masken über die Feld-Tags, auch umsortiert", async () => {
+  const occlusion = {
+    ...model("7", ["Image", "Occlusion", "Header"], [["{{cloze:Occlusion}}", "{{cloze:Occlusion}}"]], { kind: 1, stock: 6 }),
+    flds: [{ name: "Image", ord: 0, tag: 1 }, { name: "Occlusion", ord: 1, tag: 0 }, { name: "Header", ord: 2, tag: 2 }],
+  };
+  const graph = await translateAnkiPackage(ankiPackage({
+    models: { 7: occlusion },
+    notes: [note("100", "7", ['<img src="bild.png">', "{{c1::image-occlusion:rect:left=.1:top=.2:width=.3:height=.4}}", "Kopf"])],
+    cards: [card("200", "100", 0)],
+    media: { format: "media-entries", missing: [], files: [media("bild.png", "aaa")] },
+  }), { importedAt: IMPORTED_AT });
+  const interaction = graph.notes[0].content.interaction;
+  assert.equal(interaction.kind, "image-occlusion");
+  assert.deepEqual(interaction.kind === "image-occlusion" ? [interaction.image, interaction.masks.length] : null, ["bild.png", 1]);
+});
+
 test("Image Occlusion Enhanced wird zu CoRe-Masken: aktive Form, übrige dauerhaft verdeckt, Pixel auf 0–1", () => {
   const svg = (inner: string) => `<svg xmlns="http://www.w3.org/2000/svg" width="200" height="100"><g><title>Labels</title></g><g><title>Masks</title>${inner}</g></svg>`;
   const allHidden = parseEnhancedMaskSvg(svg(
@@ -199,12 +223,12 @@ test("Image Occlusion Enhanced wird zu CoRe-Masken: aktive Form, übrige dauerha
 });
 
 test("Lernstand: klassischer Zustand ohne FSRS und Revlog, Fälligkeit aus dem Sammlungsdatum, zurückgesetzte Karten neu", async () => {
-  const entry = { reviewId: "1767225600000", cardId: "201", rating: "good" as const, answeredAt: "2026-01-01T00:00:00.000Z", responseTimeMs: 4000, reviewType: 1, beforeState: "review" as const, afterState: "review" as const, beforeIntervalDays: 1, beforeIntervalMinutes: null, afterIntervalDays: 3, afterIntervalMinutes: null, ease: 2.5 };
+  const entry = { reviewId: "1767225600000", cardId: "201", rating: "good" as const, answeredAt: "2026-01-01T00:00:00.000Z", responseTimeMs: 4000, reviewType: 1, beforeState: "review" as const, afterState: "review" as const, beforeIntervalDays: 1, beforeIntervalMinutes: null, afterIntervalDays: 3, afterIntervalMinutes: null, ease: 2.5, cram: false };
   const graph = await translateAnkiPackage(ankiPackage({
     models: { 1: basic },
     notes: [note("100", "1", ["Klassisch", "A"], " marked Leech "), note("101", "1", ["Zurückgesetzt", "A"])],
     cards: [card("200", "100", 0, { type: 2, queue: 2, due: 100, ivl: 10, factor: 2500, reps: 3, lapses: 1, flags: 9 }), card("201", "101")],
-    reviewHistory: { entries: [entry], totalRows: 1, skippedRows: 0 },
+    reviewHistory: { entries: [entry], totalRows: 1, skippedRows: 0, resetsByCard: {} },
   }), { importedAt: IMPORTED_AT });
 
   const [classic, reset] = graph.cards;
@@ -214,11 +238,40 @@ test("Lernstand: klassischer Zustand ohne FSRS und Revlog, Fälligkeit aus dem S
   assert.equal(classic.ankiFlag, 1);
   assert.equal(graph.notes[0].marked, true);
   assert.deepEqual(graph.notes[0].content.tags, []);
-  assert.equal(classic.study.leechedAt, IMPORTED_AT);
+  // Without a stored review time the due date minus the interval marks the last review, as in Anki.
+  assert.equal(classic.study.lastReviewedAt, new Date((CREATED_SECONDS + 90 * 86_400) * 1000).toISOString());
+  assert.equal(classic.study.leechedAt, classic.study.lastReviewedAt);
   assert.equal(reset.study.leechedAt, null);
   assert.equal(reset.study.state, "new");
   assert.deepEqual(graph.reviewEvents.map((event) => event.cardId), [reset.id]);
   assert.deepEqual(graph.report.notetypes[0].study, { "fsrs-memory-state": 0, "revlog-replay": 0, "classic-state": 1, new: 1 });
+});
+
+test("Lernstand: eine vollständige Historie wird nachgerechnet, ohne Cram und vor dem letzten Zurücksetzen; ohne lrt zählt die letzte Antwort", async () => {
+  const day = (offset: number) => new Date(Date.parse("2026-03-01T08:00:00.000Z") + offset * 86_400_000).toISOString();
+  const entry = (offset: number, reviewType: number, rating: "again" | "good", extra: Record<string, unknown> = {}) => ({
+    reviewId: String(Date.parse(day(offset))), cardId: "200", rating, answeredAt: day(offset), responseTimeMs: 1000, reviewType,
+    beforeState: "review" as const, afterState: "review" as const, beforeIntervalDays: 1, beforeIntervalMinutes: null, afterIntervalDays: 3, afterIntervalMinutes: null, ease: 2.5, cram: false, ...extra,
+  });
+  const fsrs = JSON.stringify({ s: 25.5, d: 5.2, dr: 0.9 });
+  const study = async (entries: ReturnType<typeof entry>[], resetsByCard: Record<string, string> = {}) => (await translateAnkiPackage(ankiPackage({
+    models: { 1: basic },
+    notes: [note("100", "1", ["Frage", "Antwort"])],
+    cards: [card("200", "100", 0, { type: 2, queue: 2, due: 100, ivl: 30, factor: 2500, reps: entries.length, data: fsrs })],
+    reviewHistory: { entries, totalRows: entries.length, skippedRows: 0, resetsByCard },
+  }), { importedAt: IMPORTED_AT })).cards[0].study;
+
+  const firstContact = entry(0, 0, "good", { beforeIntervalDays: 0, beforeState: "learning" });
+  const complete = await study([firstContact, entry(1, 1, "good"), entry(4, 1, "good")]);
+  assert.equal((complete.extra.sourceSchedulerData as { migrationMethod: string }).migrationMethod, "revlog-replay", "eine vollständige Historie geht dem FSRS-Zustand vor");
+  const withCram = await study([firstContact, entry(1, 1, "good"), entry(2, 3, "again", { cram: true }), entry(4, 1, "good")]);
+  assert.deepEqual([withCram.stability, withCram.lastReviewedAt], [complete.stability, complete.lastReviewedAt], "Cram zählt nicht");
+  const reset = await study([entry(-20, 1, "again"), firstContact, entry(1, 1, "good"), entry(4, 1, "good")], { 200: day(-1) });
+  assert.equal(reset.stability, complete.stability, "vor dem Zurücksetzen zählt nichts");
+
+  const partial = await study([entry(1, 1, "good"), entry(4, 1, "good")]);
+  assert.equal((partial.extra.sourceSchedulerData as { migrationMethod: string }).migrationMethod, "fsrs-memory-state");
+  assert.deepEqual([partial.stability, partial.lastReviewedAt], [25.5, day(4)], "ohne lrt gilt die letzte Antwort");
 });
 
 test("Fehlende Karten werden aus dem Inhalt abgeleitet, überzählige Anki-Karten berichtet", async () => {
@@ -232,6 +285,20 @@ test("Fehlende Karten werden aus dem Inhalt abgeleitet, überzählige Anki-Karte
   assert.deepEqual(graph.cards.map((item) => [item.promptKey, item.ankiCardId]), [["cloze:1", "200"], ["cloze:2", null]]);
   assert.deepEqual([graph.report.addedCards, graph.report.droppedCards], [1, 1]);
   assert.equal(graph.report.notetypes[0].translator.id, "anki-cloze");
+});
+
+test("Wie in Anki entsteht eine Karte aus jeder Vorderseite mit gefülltem Feld, auch nur mit tts:", async () => {
+  const listening = model("8", ["Word", "Meaning"], [["{{Word}}", "{{FrontSide}}<hr id=answer>{{Meaning}}"], ["{{tts ja_JP:Word}}", "{{FrontSide}}<hr id=answer>{{Word}}<br>{{Meaning}}"]]);
+  const cloze = model("5", ["Text", "Back Extra"], [["{{cloze:Text}}", "{{cloze:Text}}<br>{{Back Extra}}"]], { kind: 1, stock: 5 });
+  const graph = await translateAnkiPackage(ankiPackage({
+    models: { 8: listening, 5: cloze },
+    notes: [note("100", "8", ["日本", "Japan"]), note("101", "5", ["{{c1::A}}", "Extra"])],
+    cards: [card("200", "100", 0), card("201", "100", 1, { type: 2, queue: 2, due: 100, ivl: 30, reps: 5 }), card("210", "101", 0)],
+  }), { importedAt: IMPORTED_AT });
+
+  assert.deepEqual(graph.cards.map((item) => [item.promptKey, item.ankiCardId]), [["anki-0", "200"], ["anki-1", "201"], ["cloze:1", "210"]]);
+  assert.equal(graph.cards[1].study.state, "review", "die Hörkarte behält ihren Lernstand");
+  assert.deepEqual([graph.report.addedCards, graph.report.droppedCards], [0, 0]);
 });
 
 test("Moderne Pakete ordnen Medien per Position ihrem ZIP-Eintrag zu", async () => {

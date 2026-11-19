@@ -368,7 +368,7 @@ Gruppe: Synchronisierung ins Konto
 - Importierte Inhalte behalten Feldnamen, Feldreihenfolge und Anki-Vorlage; nur die Werte sind bearbeitbar.
 - Template-JavaScript und Add-on-Filter werden nicht ausgeführt. Die Quellwerte bleiben unsichtbar erhalten, damit eine spätere Neuübersetzung möglich ist; Abweichungen erscheinen als Hinweis.
 - Der Bewertungsverlauf aus Anki wird als Analysehistorie übernommen, soweit Karten eindeutig zuordenbar sind.
-- Der erste Lernstand entsteht in dieser Reihenfolge: Nachrechnen der vollständigen Anki-Historie mit dem CoRe-Scheduler, sonst Ankis gespeicherter FSRS-Gedächtniszustand, sonst der klassische Kartenstatus, sonst neue Karte. Nach der ersten Antwort in CoRe gilt nur noch der CoRe-Scheduler.
+- Der erste Lernstand entsteht in dieser Reihenfolge: Nachrechnen der vollständigen Anki-Historie mit dem CoRe-Scheduler, sonst Ankis gespeicherter FSRS-Gedächtniszustand, sonst der klassische Kartenstatus, sonst neue Karte. Wie in Anki zählen Cram-Wiederholungen und Antworten vor dem letzten Zurücksetzen nicht; fehlt der Zeitpunkt der letzten Wiederholung, gilt die letzte Antwort. Nach der ersten Antwort in CoRe gilt nur noch der CoRe-Scheduler.
 
 ### Reimport und Neuübersetzung
 
