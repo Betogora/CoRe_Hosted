@@ -413,7 +413,7 @@ export function cardFixture(kind: CatalogCardKind = "basic", index = 0) {
     correctOptionIndices: kind === "multiple-choice" ? [0, 2] : [0],
   });
   const { note, cards } = createNote({ content, deckId: "catalog-card-types", media: kind === "basic-with-images" ? { [imageReference]: imageReference } : {} });
-  return { note, card: cards[index] ?? cards[0], mediaUrls: sampleMedia };
+  return { note, card: cards[index] ?? cards[0], cards, mediaUrls: sampleMedia };
 }
 
 export function StudyDemo({ kind = "basic", index = 0 }: { kind?: CatalogCardKind; index?: number }) {
@@ -458,10 +458,10 @@ function ContentDemo({ section }: { section: string }) {
     setMediaUrls((current) => ({ ...current, [reference]: previewUrl }));
     return { reference, previewUrl, alt: file.name };
   }
-  const fixture = cardFixture();
+  const fixture = cardFixture("basic-reversed");
   return <>
     {section === "inhalt" && <Demo title="CardPresentationSurface" wide><SurfaceDemo /></Demo>}
-    {section === "dialogs" && <Demo title="CardPreviewDialog"><ActionButton variant="secondary" onClick={() => setPreview(true)}>Kartenvorschau öffnen</ActionButton><CardPreviewDialog note={fixture.note} card={fixture.card} mediaUrls={fixture.mediaUrls} open={preview} onOpenChange={setPreview} /></Demo>}
+    {section === "dialogs" && <Demo title="CardPreviewDialog"><ActionButton variant="secondary" onClick={() => setPreview(true)}>Kartenvorschau öffnen</ActionButton><CardPreviewDialog note={fixture.note} cards={fixture.cards} mediaUrls={fixture.mediaUrls} open={preview} onOpenChange={setPreview} /></Demo>}
     {section === "editor" && <Demo title="RichTextEditor" wide><RichTextEditor value={text} onChange={setText} ariaLabel="Beispiel-Karteninhalt" isActive showAllTools clozeActions={{ groupId: 1 }} imageActions={{ mediaUrls, prepare: prepareImage }} /></Demo>}
     {section === "editor" && <Demo title="RichTextEditor · Dokumentwerkzeuge" wide><RichTextEditor value={text} onChange={setText} ariaLabel="Beispiel-Dokument mit Dokumentwerkzeugen" isActive documentTools /></Demo>}
     {section === "colors" && <Demo title="ColorPicker · Farbfeld und Werkzeug"><div className="catalog-row"><ColorPicker ariaLabel="Farbe wählen" value={color} onValueCommit={setColor} /><ColorPicker variant="tool" icon={Highlighter} ariaLabel="Markerfarbe" value={color} onValueCommit={setColor} /></div></Demo>}

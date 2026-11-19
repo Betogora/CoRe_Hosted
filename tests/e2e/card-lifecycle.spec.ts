@@ -313,6 +313,24 @@ test("[Vertrag: modale Kartenvorschau] @beta-core Erstellung und Editor zeigen d
   await page.getByTestId("card-preview-backdrop").click({ position: { x: 4, y: 4 } });
   await expect(dialog).toHaveCount(0);
 
+  // Every card the draft creates is in the preview, each starting on its front.
+  const learningDirection = page.getByRole("group", { name: "Lernrichtung" });
+  await learningDirection.getByRole("button", { name: "Beide Richtungen" }).click();
+  await creationPreviewButton.click();
+  const previewPosition = dialog.getByTestId("card-preview-position");
+  await expect(previewPosition).toContainText("Karte 1 von 2");
+  await expect(previewPosition).toContainText("Vorwärts");
+  await dialog.getByRole("button", { name: "Rückseite" }).click();
+  await page.keyboard.press("ArrowRight");
+  await expect(previewPosition).toContainText("Karte 2 von 2");
+  await expect(previewPosition).toContainText("Rückwärts");
+  await expect(dialog.getByRole("button", { name: "Vorderseite" })).toHaveAttribute("aria-pressed", "true");
+  await expect(dialog.frameLocator('iframe[title="Frage"]').locator("body")).toContainText("Ungespeicherte Erstellungsantwort");
+  await dialog.getByRole("button", { name: "Nächste Karte" }).click();
+  await expect(previewPosition).toContainText("Karte 1 von 2");
+  await page.keyboard.press("Escape");
+  await learningDirection.getByRole("button", { name: "Standard" }).click();
+
   await page.getByRole("button", { name: "Vorderseite: Nach Speichern leeren. Zum Behalten anheften" }).click();
   const deck = await finishManualCreation(page, deckName, 1, async () => {
     await expect(page.getByRole("textbox", { name: "Vorderseite" }).locator('img[alt="vorderseite.png"]')).toHaveAttribute("src", /^blob:/);

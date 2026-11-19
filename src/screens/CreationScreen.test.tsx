@@ -95,10 +95,43 @@ test("manual source entry stays compact until the document field is requested", 
   assert.equal((markup.match(/PDF\/Text anfügen/g) ?? []).length, 1);
   assert.equal((markup.match(/data-file-drop-field="true"/g) ?? []).length, 0);
   assert.doesNotMatch(markup, /Quelldatei auswählen oder ablegen/);
-  assert.doesNotMatch(markup, /accept="\.txt,\.md,\.markdown,\.csv,\.tsv,\.pdf"/);
+  assert.doesNotMatch(markup, /accept="\.pdf,\.txt,\.md,\.markdown"/);
   assert.doesNotMatch(markup, /Live-Vorschau/);
   assert.doesNotMatch(markup, /Manuelle Erstellung|Karten manuell erstellen/);
   assert.doesNotMatch(markup, /\.docx/i);
+});
+
+test("manual creation restores this tab's draft of the account and says which images did not survive", () => {
+  const deck = createCoreDeck({ id: "deck-anatomy", name: "Anatomie", source: "manual", cards: [] });
+  const values = new Map<string, string>();
+  const original = Object.getOwnPropertyDescriptor(globalThis, "sessionStorage");
+  Object.defineProperty(globalThis, "sessionStorage", { configurable: true, value: {
+    get length() { return values.size; },
+    key: (index: number) => Array.from(values.keys())[index] ?? null,
+    getItem: (key: string) => values.get(key) ?? null,
+    setItem: (key: string, value: string) => { values.set(key, value); },
+    removeItem: (key: string) => { values.delete(key); },
+  } });
+  try {
+    values.set("core:manual-draft:konto-a", JSON.stringify({ version: 1, accountId: "konto-a", snapshot: {
+      targetDeckId: deck.id, useNewDeck: false, deckName: "Manueller Kartenstapel", typeIn: false, occlusion: null, additionalFields: [],
+      draft: { kind: "basic", front: `<p>Gerettete Frage<img src="${"b".repeat(40)}" alt="bild.png"></p>`, back: "<p>Gerettete Antwort</p>", answerOptions: ["", ""], correctOptionIndices: [0], tags: [] },
+      pinnedFields: { front: false, back: false },
+    } }));
+    const markup = renderToStaticMarkup(<CreationScreen accountId="konto-a" decks={[deck]} initialMethod="manual" initialTargetDeckId={deck.id} {...callbacks} />);
+
+    // The editors take their HTML after mounting; the restored draft shows in the image notice and the discard action.
+    assert.match(markup, /Bilder des Entwurfs gehen beim Neuladen verloren\. Füge sie erneut ein\./);
+    assert.match(markup, /<button type="button" class="core-action-secondary ">(?:<span>)?Entwurf verwerfen/);
+
+    const otherAccount = renderToStaticMarkup(<CreationScreen accountId="konto-b" decks={[deck]} initialMethod="manual" initialTargetDeckId={deck.id} {...callbacks} />);
+    assert.doesNotMatch(otherAccount, /Bilder des Entwurfs/);
+    assert.match(otherAccount, /<button type="button" disabled="" class="core-action-secondary ">(?:<span>)?Entwurf verwerfen/);
+    assert.equal(values.size, 0, "der Entwurf eines anderen Kontos verlässt den Tab");
+  } finally {
+    if (original) Object.defineProperty(globalThis, "sessionStorage", original);
+    else delete (globalThis as { sessionStorage?: Storage }).sessionStorage;
+  }
 });
 
 test("manual target selection shows complete deck paths", () => {

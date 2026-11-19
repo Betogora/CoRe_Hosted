@@ -18,6 +18,8 @@ import { TextImportPanel } from "./TextImportPanel.tsx";
 export type CreationScreenViewProps = Partial<CreationScreenProps> & {
   /** Sends one portion of a source to the AI; without it, automatic creation stays unavailable. */
   onRequestSourceCards?: AiSourceCardsRequester;
+  /** The signed-in account; the manual draft this tab keeps belongs to it. */
+  accountId?: string;
 };
 
 const NO_MEDIA: ImportCompletion["sampleMedia"] = [];
@@ -47,6 +49,7 @@ export function CreationScreen({
   onReviewDeck = () => undefined,
   onOpenDashboard = () => undefined,
   onRequestSourceCards,
+  accountId,
 }: CreationScreenViewProps) {
   const completionHeadingRef = React.useRef<HTMLHeadingElement | null>(null);
   const [sessionCompletion, setSessionCompletion] = React.useState<{ deckId: string; createdCount: number; kind: CreationCompletionKind; importResult?: Pick<ImportCompletion, "reimport" | "samples" | "sampleMedia"> } | null>(null);
@@ -138,6 +141,7 @@ export function CreationScreen({
     if (selectedMethod === "manual") {
       return (
         <ManualCreationPanel
+          accountId={accountId}
           decks={decks}
           workflow={accountWorkflow}
           initialTargetDeckId={initialTargetDeckId}

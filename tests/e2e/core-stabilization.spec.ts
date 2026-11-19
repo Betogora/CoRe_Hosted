@@ -1079,7 +1079,11 @@ test("[Vertrag: manuell mit PDF bis Bearbeiten und Review] @golden-e2e @beta-cor
   await page.getByRole("button", { name: "Neuen Stapel erstellen" }).click();
   await page.getByRole("textbox", { name: "Neuer Kartenstapel" }).fill("PDF-Quellenauswahl-Smoke");
   await page.getByRole("button", { name: "PDF/Text anfügen" }).click();
-  await page.locator('input[type="file"][accept*=".pdf"]').setInputFiles(PDF_SELECTION_FIXTURE);
+  const sourceInput = page.locator('input[type="file"][accept*=".pdf"]');
+  await expect(sourceInput).toHaveAttribute("accept", ".pdf,.txt,.md,.markdown");
+  await sourceInput.setInputFiles({ name: "liste.csv", mimeType: "text/csv", buffer: Buffer.from("Frage;Antwort") });
+  await expect(page.getByText("„liste.csv“ ist als Quelle nicht möglich. Möglich sind PDF, Text oder Markdown.")).toBeVisible();
+  await sourceInput.setInputFiles(PDF_SELECTION_FIXTURE);
 
   const viewer = page.getByTestId("pdf-document-viewer");
   await expect(viewer).toBeVisible();
