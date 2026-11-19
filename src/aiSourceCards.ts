@@ -6,14 +6,13 @@ import {
   parseAiSourceCardsRequest, parseAiSourceCardsSuccess,
   type AiSourceCardsRequest, type GeneratedSourceCard, type GeneratedSourceCards,
 } from "./aiSourceCardsContract.ts";
-import { MAX_AI_SOURCE_CARDS, aiSourceFileError, type AiSourceCreationDraft } from "./aiSourceCreation.ts";
+import { MAX_AI_SOURCE_CARDS, MAX_AI_SOURCE_CHARS, aiSourceFileError, type AiSourceCreationDraft } from "./aiSourceCreation.ts";
 import { createManualNoteContent, type ManualNoteInput } from "./coreModel.ts";
 import type { Deck, NoteContent } from "./coreTypes.ts";
 import type { Database } from "./database.types.ts";
 import type { TransientSourceDocument } from "./documentModel.ts";
 import { escapeCardHtmlText } from "./richText.ts";
 
-const MAX_SOURCE_CHARS = 400_000;
 /** Size of one source unit; small enough that a proposal names a findable place, large enough to keep context. */
 const MAX_UNIT_CHARS = 4_000;
 const MAX_HEADING_CHARS = 80;
@@ -151,7 +150,7 @@ export async function readAiSource(draft: Pick<AiSourceCreationDraft, "sourceMod
 /** A PDF becomes its pages, a table file blocks of rows, any other text blocks of lines; each unit names its place. */
 export function splitAiSource(document: Pick<TransientSourceDocument, "fileName" | "text" | "textExtractionStatus" | "metadata">): ReadSource {
   if (document.textExtractionStatus === "error") throw new AiSourceCardsError("unreadable_source", "Die Datei konnte nicht gelesen werden. Geschützte oder beschädigte Dateien werden nicht unterstützt.");
-  if (document.text.length > MAX_SOURCE_CHARS) throw new AiSourceCardsError("source_too_large", `Die Quelle ist zu umfangreich (höchstens ${MAX_SOURCE_CHARS.toLocaleString("de-DE")} Zeichen). Wähle einen kürzeren Ausschnitt.`);
+  if (document.text.length > MAX_AI_SOURCE_CHARS) throw new AiSourceCardsError("source_too_large", `Die Quelle ist zu umfangreich (höchstens ${MAX_AI_SOURCE_CHARS.toLocaleString("de-DE")} Zeichen). Wähle einen kürzeren Ausschnitt.`);
   const notices: string[] = [];
   let units: SourceUnit[] = [];
   const pages = v.safeParse(pdfPagesSchema, document.metadata.pages);

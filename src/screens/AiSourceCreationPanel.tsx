@@ -3,7 +3,7 @@ import { ArrowLeft, ArrowRight, CircleDot, FileText, Layers3, ListChecks, Messag
 import type { CreationScreenProps } from "../appScreenProps.ts";
 import { adoptionDeckId, describeAiSourceCardsRun, proposalNoteContent, readAiSource, runAiSourceCards, saveProposals, type AiSourceCardsRequester, type AiSourceCardsRunResult, type ProposalDraft } from "../aiSourceCards.ts";
 import {
-  AI_SOURCE_ACCEPT, AI_SOURCE_ANSWER_LENGTHS, AI_SOURCE_CARD_FORMS, AI_SOURCE_FORMAT_LABEL, AI_SOURCE_AMOUNTS, AI_SOURCE_LANGUAGES, AI_SOURCE_PRIOR_KNOWLEDGE, AI_SOURCE_REGISTERS, MAX_AI_SOURCE_WISHES_CHARS,
+  AI_SOURCE_ACCEPT, AI_SOURCE_ANSWER_LENGTHS, AI_SOURCE_CARD_FORMS, AI_SOURCE_FORMAT_LABEL, AI_SOURCE_AMOUNTS, AI_SOURCE_LANGUAGES, AI_SOURCE_LIMIT_HINT, AI_SOURCE_PRIOR_KNOWLEDGE, AI_SOURCE_REGISTERS, MAX_AI_SOURCE_WISHES_CHARS,
   aiSourceFileError, createAiSourceCreationDraft, describeAiSourceSettings, suggestSourceDeckName, validateAiSourceCreation,
   type AiSourceSettings,
 } from "../aiSourceCreation.ts";
@@ -247,7 +247,7 @@ export function AiSourceCreationPanel({ decks, initialTargetDeckId, onDraftState
                     ) : null}
                   </FileDropField>
                 </> : <label className="core-field-group min-w-0"><span className="core-field-label">Dein Quelltext</span><textarea className="core-field min-h-40 w-full resize-y" rows={7} value={draft.sourceText} aria-invalid={showErrors && Boolean(errors.source)} onChange={(event) => setDraft((current) => ({ ...current, sourceText: event.target.value }))} placeholder="Füge hier den Text ein, aus dem deine Karten entstehen sollen." /></label>}
-                <p className="core-field-hint">Zum Erstellen geht der Text der Quelle an die KI; gespeichert wird er nicht.</p>
+                <p className="core-field-hint">{AI_SOURCE_LIMIT_HINT} Zum Erstellen geht der Text an die KI; gespeichert wird er nicht.</p>
                 {fileError || (showErrors && errors.source) ? <p className="core-field-error" role="alert">{fileError || errors.source}</p> : null}
               </fieldset>
               <div ref={targetRef} className="grid min-w-0 scroll-mt-24 gap-3">

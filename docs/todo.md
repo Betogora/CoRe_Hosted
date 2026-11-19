@@ -43,10 +43,9 @@ voneinander.
 ## P2: Karten aus einer Quelle per KI erstellen
 
 - [ ] **Formular (Agenda 3.1–3.6):** drei Schritte Zielstapel, Kartenformen,
-      Vorgaben mit dem gemeinsamen Schrittbaustein; nur Frage–Antwort
-      vorausgewählt; Kartenmenge als Stufe mit Hochrechnung, vorher
-      recherchieren, wie andere Apps das lösen, danach Mischung und
-      Lernziele entscheiden; Größengrenze nach Seiten oder Zeichen.
+      Vorgaben, sobald der gemeinsame Schrittbaustein aus P1 (5.10) steht;
+      Kartenmenge als Stufe mit Hochrechnung, vorher recherchieren, wie
+      andere Apps das lösen, danach Mischung und Lernziele entscheiden.
 
 ## P5: KI-Eval und Hillclimb
 

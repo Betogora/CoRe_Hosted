@@ -109,6 +109,7 @@ test("Karten aus einer Quelle: Lauf mit Fortschritt, belegte Vorschläge, Abbrec
   await panel.getByRole("button", { name: "Text einfügen", exact: true }).click();
   await panel.getByLabel("Dein Quelltext").fill(sourceText);
   await panel.getByLabel("Stapelname").fill("Zellatmung");
+  for (const name of ["Lückentext", "Single Choice", "Multiple Choice"]) await panel.getByRole("checkbox", { name, exact: true }).check();
   await panel.getByRole("button", { name: "Auftrag prüfen", exact: true }).click();
   const summary = page.getByTestId("ai-source-summary");
   await summary.getByRole("button", { name: "Karten erstellen", exact: true }).click();
@@ -168,6 +169,7 @@ async function openAppOrder(page: Page) {
   await panel.getByRole("button", { name: "Text einfügen", exact: true }).click();
   await panel.getByLabel("Dein Quelltext").fill(sourceText);
   await panel.getByLabel("Stapelname").fill("Zellatmung aus Quelle");
+  await panel.getByRole("checkbox", { name: "Single Choice", exact: true }).check();
   await panel.getByRole("button", { name: "Auftrag prüfen", exact: true }).click();
   return page.getByTestId("ai-source-summary");
 }

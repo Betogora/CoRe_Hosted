@@ -6,6 +6,10 @@ export const AI_SOURCE_FORMAT_LABEL = "PDF, Text, Markdown, CSV oder TSV";
 export const MAX_AI_SOURCE_CARDS = 100;
 export const MAX_AI_SOURCE_WISHES_CHARS = 2_000;
 const MAX_AI_SOURCE_FILE_BYTES = 20 * 1_024 * 1_024;
+/** Text a source may carry; the browser rejects more instead of cutting it. */
+export const MAX_AI_SOURCE_CHARS = 400_000;
+/** About 2,700 characters per page of running text. */
+export const AI_SOURCE_LIMIT_HINT = `Bis 20 MiB und ${MAX_AI_SOURCE_CHARS.toLocaleString("de-DE")} Zeichen, etwa 150 Seiten Text.`;
 
 export const AI_SOURCE_AMOUNTS = [
   { value: "less", label: "Weniger", instruction: "Erstelle Karten nur für die zentralen Kernaussagen." },
@@ -69,7 +73,7 @@ export function createAiSourceCreationDraft(targetDeckId = ""): AiSourceCreation
     deckName: "",
     settings: {
       amount: "normal", answerLength: "explained", priorKnowledge: "basic", language: "de", register: "explained",
-      cardForms: AI_SOURCE_CARD_FORMS.map(({ value }) => value), wishes: "",
+      cardForms: ["basic"], wishes: "",
     },
   };
 }

@@ -62,7 +62,8 @@ test("source creation offers readable files and settings without a generation ac
   assert.match(markup, /<ol aria-label="Schritte der automatischen Erstellung"/);
   assert.equal((markup.match(/class="core-ai-source-format"/g) ?? []).length, 4);
   assert.match(markup, /Auftrag prüfen/);
-  assert.equal((markup.match(/type="checkbox"(?! role="switch")[^>]*checked=""/g) ?? []).length, 4);
+  assert.equal((markup.match(/type="checkbox"(?! role="switch")[^>]*checked=""/g) ?? []).length, 1);
+  assert.match(markup, /Bis 20 MiB und 400\.000 Zeichen, etwa 150 Seiten Text\./);
   assert.match(markup, /type="checkbox" role="switch"[^>]*checked=""/);
   assert.match(markup, /xl:grid-cols-3/);
   assert.doesNotMatch(markup, /type="range"|type="number"|>Karten erstellen<\/span>/);

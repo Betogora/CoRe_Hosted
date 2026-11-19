@@ -3,10 +3,10 @@ import test from "node:test";
 import { buildSourceCardsToolPayload, createSourceCardsHandler, extractGeneratedSourceCards } from "../api/ai/source-cards.ts";
 import { OPENROUTER_CHAT_ENDPOINT, OPENROUTER_MODEL } from "../server/aiRoute.ts";
 import { MAX_SOURCE_CARDS_REQUEST_BYTES, parseAiSourceCardsRequest, parseGeneratedSourceCards } from "./aiSourceCardsContract.ts";
-import { createAiSourceCreationDraft } from "./aiSourceCreation.ts";
+import { createAiSourceCreationDraft, type AiSourceSettings } from "./aiSourceCreation.ts";
 
 const { wishes: _wishes, ...defaults } = createAiSourceCreationDraft().settings;
-const settings = { ...defaults, wishes: "Schwerpunkt Atmungskette" };
+const settings = { ...defaults, cardForms: ["basic", "cloze", "single-choice", "multiple-choice"] as AiSourceSettings["cardForms"], wishes: "Schwerpunkt Atmungskette" };
 const request = {
   settings,
   units: [{ id: "s1", label: "Seite 1", text: "ATP ist der wichtigste Energieträger der Zelle." }, { id: "s2", label: "Seite 2", text: "Die Atmungskette liegt in der inneren Mitochondrienmembran." }],
