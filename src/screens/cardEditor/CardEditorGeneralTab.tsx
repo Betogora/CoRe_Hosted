@@ -18,7 +18,7 @@ import { DeckSelect } from "../../ui/selectUi.tsx";
 import { TagInput } from "../../ui/TagInput.tsx";
 import { CoreTooltip } from "../../ui/tooltipUi.tsx";
 import { useOnline } from "./useOnline.ts";
-import { cardStateLabel } from "./cardEditorModel.ts";
+import { cardStateLabel, changeSuspension } from "./cardEditorModel.ts";
 import { CardEditorSection as Section } from "./CardEditorSection.tsx";
 import type { PendingCard } from "./CardEditorContentTab.tsx";
 
@@ -97,7 +97,7 @@ export interface CardEditorGeneralTabProps {
 
 /**
  * `Allgemein` works at once and never takes over unsaved content changes. Actions whose result leaves the view or
- * overwrites something offer `Rückgängig` (W7, W20); flag, mark, suspension and added tags undo at their control.
+ * overwrites something offer `Rückgängig` (W7, W20), as does suspension; flag, mark and added tags undo at their control.
  */
 export function CardEditorGeneralTab({ decks, graph, card, now, dayStartHour, timeZone, services, pendingCards, onSetFlag, onSetMarked, onSetStudyState, onRescheduleCards, onSelectCard, onCardMoved, deckName }: CardEditorGeneralTabProps) {
   const { note } = graph;
@@ -203,6 +203,11 @@ export function CardEditorGeneralTab({ decks, graph, card, now, dayStartHour, ti
     });
   }
 
+  async function suspend(next: boolean) {
+    const change = await run("suspend", () => changeSuspension(onSetStudyState, card.id, next), next ? "Die Karte konnte nicht ausgesetzt werden." : "Die Karte konnte nicht reaktiviert werden.");
+    if (change) offerUndo(change.message, change.unchanged, change.undo);
+  }
+
   async function changeTags(tags: string[], change: { added: string[]; removed: string[] }) {
     const previous = note.content.tags;
     const saved = await run("tags", () => onSetStudyState(card.id, { tags }), "Die Tags konnten nicht gespeichert werden.");
@@ -247,7 +252,7 @@ export function CardEditorGeneralTab({ decks, graph, card, now, dayStartHour, ti
             {canReschedule ? <ActionButton variant="primary" loading={busy === "reschedule"} onClick={() => void reschedule()}>Neu planen</ActionButton> : null}
           </div>
           <div className="flex flex-wrap gap-2 border-t border-core-border pt-3">
-            <CoreSwitch label="Aussetzen" checked={suspended} onCheckedChange={(next) => void onSetStudyState(card.id, { suspended: next })} />
+            <CoreSwitch label="Aussetzen" checked={suspended} onCheckedChange={(next) => void suspend(next)} />
             {buried ? (
               <ActionButton variant="secondary" icon={CalendarClock} loading={busy === "bury"} onClick={() => void bury(false)}>Zurückstellen aufheben</ActionButton>
             ) : (

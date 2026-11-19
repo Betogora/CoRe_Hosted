@@ -130,8 +130,9 @@ export function StudyMode({ shortcutsSuspended = false, deck, decks, notes, answ
   }
   const { queue, easyDaysContext } = queuePlanRef.current;
   const [sessionDailyProgress, setSessionDailyProgress] = React.useState(() => sessionPlan?.progress ?? queue.dailyProgress);
-  /** Answers Strg+Z/U can take back, newest last, each with the session as it was before it. */
-  const undoStackRef = React.useRef<Array<{ result: ReviewAnswerResult; previous: Card; key: string; session: DailyReviewSessionState; progress: typeof sessionDailyProgress }>>([]);
+  /** Answers and suspensions Strg+Z/U can take back, newest last, each with the session as it was before it. */
+  const undoStackRef = React.useRef<Array<{ key: string; session: DailyReviewSessionState; progress: typeof sessionDailyProgress }
+    & ({ review: { result: ReviewAnswerResult; previous: Card } } | { suspended: { deckId: string; cardId: string } })>>([]);
   const effectiveReviewSession = reviewSession ?? createDailyReviewSessionState(queue.items);
   // The card on screen until it is answered or leaves the session; loaded cards must not replace it mid-card.
   const shownKeyRef = React.useRef<string | null>(null);
@@ -336,7 +337,7 @@ export function StudyMode({ shortcutsSuspended = false, deck, decks, notes, answ
     });
     onReview(result);
     const reviewedKey = current.sessionInfo?.key ?? `${current.deckId}:${current.cardId}`;
-    undoStackRef.current.push({ result, previous: current.card, key: reviewedKey, session: effectiveReviewSession, progress: sessionDailyProgress });
+    undoStackRef.current.push({ review: { result, previous: current.card }, key: reviewedKey, session: effectiveReviewSession, progress: sessionDailyProgress });
     if (result.leechTriggered) {
       // Once per trigger: the learner may fix the content right away (W22).
       const { deckId: leechDeckId, cardId: leechCardId } = current;
@@ -348,44 +349,58 @@ export function StudyMode({ shortcutsSuspended = false, deck, decks, notes, answ
     finishOrNext(result.deck, result.updatedCard, rating, current.card.study, result.updatedCard.study, reviewedKey);
   }
 
-  /** Takes back the last answer: the card gets its earlier study state and shows again, the session steps back. */
-  function undoLastReview() {
+  /**
+   * Takes back the last answer or suspension: the card gets its earlier study state or becomes active again and shows
+   * again, the session and its counts step back.
+   */
+  function undoLastStep(announce = true) {
     const last = undoStackRef.current.pop();
     if (!last) return;
-    const restored = onUndoReview(last.result, last.previous);
-    if (!restored) return;
-    const sessionDeck = sessionDecks.find((candidate) => candidate.id === last.result.deck.id);
-    if (sessionDeck) {
-      const restoredDeck = {
-        ...sessionDeck,
-        cards: sessionDeck.cards.map((card) => card.id === restored.id ? restored : card),
-        reviewEvents: sessionDeck.reviewEvents.filter((event) => event.id !== last.result.event.id),
-      };
-      updateDailyReviewSessionIndex(sessionIndexRef.current!, restoredDeck, restored);
-      setSessionDecks((currentDecks) => replaceSessionDeck(restoredDeck, currentDecks));
-    }
+    if ("review" in last) {
+      const { result, previous } = last.review;
+      const restored = onUndoReview(result, previous);
+      if (!restored) return;
+      const sessionDeck = sessionDecks.find((candidate) => candidate.id === result.deck.id);
+      if (sessionDeck) {
+        const restoredDeck = {
+          ...sessionDeck,
+          cards: sessionDeck.cards.map((card) => card.id === restored.id ? restored : card),
+          reviewEvents: sessionDeck.reviewEvents.filter((event) => event.id !== result.event.id),
+        };
+        updateDailyReviewSessionIndex(sessionIndexRef.current!, restoredDeck, restored);
+        setSessionDecks((currentDecks) => replaceSessionDeck(restoredDeck, currentDecks));
+      }
+    } else if (!applyStudyState(last.suspended.deckId, last.suspended.cardId, { suspended: false })) return;
     setReviewSession(last.session);
     setSessionDailyProgress(last.progress);
     shownKeyRef.current = last.key;
     setShowAnswer(false);
     setShowOriginal(false);
-    setSuccessToast("Bewertung zurückgenommen.", { appearance: "neutral" });
+    if (announce) setSuccessToast("review" in last ? "Bewertung zurückgenommen." : "Aussetzen zurückgenommen.", { appearance: "neutral" });
+  }
+
+  /** Writes a flag, mark or suspension and takes the changed card and content into the session. */
+  function applyStudyState(deckId: string, cardId: string, patch: CardStudyStatePatch) {
+    const updated = onSetCardStudyState(deckId, cardId, patch);
+    if (!updated) return false;
+    const { deck: updatedDeck, note: updatedNote } = updated;
+    setSessionNotes((currentNotes) => new Map(currentNotes).set(updatedNote.id, updatedNote));
+    const updatedCard = updatedDeck.cards.find((card) => card.id === cardId);
+    if (updatedCard) updateDailyReviewSessionIndex(sessionIndexRef.current!, updatedDeck, updatedCard);
+    setSessionDecks((currentDecks) => replaceSessionDeck(updatedDeck, currentDecks));
+    return true;
   }
 
   function updateCurrentStudyState(patch: CardStudyStatePatch) {
     if (!current) return;
-    undoStackRef.current = [];
-    const updated = onSetCardStudyState(current.deckId, current.cardId, patch);
-    if (!updated) return;
-    const { deck: updatedDeck, note: updatedNote } = updated;
-    setSessionNotes((currentNotes) => new Map(currentNotes).set(updatedNote.id, updatedNote));
-    const nextDecks = replaceSessionDeck(updatedDeck);
-    const updatedCard = (updatedDeck.cards ?? []).find((card) => card.id === current.cardId);
-    if (updatedCard) updateDailyReviewSessionIndex(sessionIndexRef.current!, updatedDeck, updatedCard);
-    setSessionDecks(nextDecks);
-
-    if (patch.suspended !== true) return;
+    if (!applyStudyState(current.deckId, current.cardId, patch)) return;
     const currentKey = current.sessionInfo?.key ?? `${current.deckId}:${current.cardId}`;
+    // Taking back an earlier answer of this card would write the card as it was then, so the undo stops before it.
+    const steps = undoStackRef.current;
+    undoStackRef.current = steps.slice(steps.map((step) => step.key).lastIndexOf(currentKey) + 1);
+    if (patch.suspended !== true) return;
+    const step = { key: currentKey, session: effectiveReviewSession, progress: sessionDailyProgress, suspended: { deckId: current.deckId, cardId: current.cardId } };
+    undoStackRef.current.push(step);
     setSessionDailyProgress((progress) => moveDailyReviewProgress(
       progress,
       classifyDailyReviewProgress(current.card.study, Boolean(current.sessionInfo?.isRepeat), getNow(), { dayStartHour, timeZone }),
@@ -396,7 +411,15 @@ export function StudyMode({ shortcutsSuspended = false, deck, decks, notes, answ
     setReviewSession((session) => removeDailyReviewSessionItem(session ?? effectiveReviewSession, currentKey));
     setShowAnswer(false);
     setShowOriginal(false);
-    setSuccessToast("Karte ausgesetzt. Der Lernstand bleibt erhalten. Reaktivieren unter Karte bearbeiten.");
+    setSuccessToast("Karte ausgesetzt.", {
+      action: {
+        label: "Rückgängig",
+        // Only the last step can be taken back; after further answers Strg+Z goes back through them first.
+        onAction: () => undoStackRef.current.at(-1) === step
+          ? undoLastStep(false)
+          : setSuccessToast("Rückgängig ist nicht mehr möglich: Die Sitzung ist inzwischen weitergegangen.", { appearance: "neutral" }),
+      },
+    });
   }
 
   function updateReviewOrder(newReviewOrder: Deck["deckSettings"]["newReviewOrder"]) {
@@ -463,7 +486,7 @@ export function StudyMode({ shortcutsSuspended = false, deck, decks, notes, answ
       } else if (action.type === "rate") {
         if (action.rating) grade(action.rating as ReviewRating);
       } else if (action.type === "undo") {
-        undoLastReview();
+        undoLastStep();
       } else if (action.type === "edit" && current?.deckId && current.cardId) {
         onEditCard(current.deckId, current.cardId);
       }

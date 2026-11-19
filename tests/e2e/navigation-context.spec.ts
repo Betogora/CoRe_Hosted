@@ -430,6 +430,13 @@ test("[Vertrag: Kartenverwaltung] Aussetzen aktualisiert die Kartenzeile ohne Ed
     return removed;
   });
   expect(detailWasRemoved).toBe(false);
+
+  // The toast waits below the editor; once it closes, Rückgängig suspends the card again.
+  const toast = page.locator('[data-success-toast-region="true"]');
+  await expect(toast).toContainText("Karte reaktiviert.");
+  await detail.getByRole("button", { name: "Detailansicht schließen" }).click();
+  await toast.getByRole("button", { name: "Rückgängig" }).click();
+  await expect(cardRow).toHaveAttribute("data-suspended", "true");
 });
 
 test("[Vertrag: URL-Kontext] @beta-core Reload, Direktlink und Review-Rückweg erhalten Stapel und Karte", async ({ page, context }) => {

@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { addCardVariant, cardStudyFromReviewState, createBasicNote, createCoreDeck, createReviewState, setCardSuspended } from "./coreModel.ts";
 import { getSimulatedNow } from "./simulationClock.ts";
-import { advanceDailyReviewSession, answerVariant, classifyDailyReviewProgress, createDailyReviewQueue, createDailyReviewSessionState, getNextDailyReviewSessionItem, moveDailyReviewProgress, reconcileDailyReviewSessionState } from "./reviewService.ts";
+import { advanceDailyReviewSession, answerVariant, classifyDailyReviewProgress, createDailyReviewQueue, createDailyReviewSessionState, getNextDailyReviewSessionItem, moveDailyReviewProgress, reconcileDailyReviewSessionState, removeDailyReviewSessionItem } from "./reviewService.ts";
 import type { Card, Deck, ReviewSchedulerState } from "./coreTypes.ts";
 
 function basicCard(front = "Q", back = "A"): Card {
@@ -295,6 +295,27 @@ test("die gezeigte Karte bleibt aktuell, wenn nachgeladene Karten die Reihenfolg
   // Once answered, the next card follows the queue again, even if the answer sends it into a learning step.
   const answered = advanceDailyReviewSession(reloaded, { key: "deck:b", rating: "again", nextReviewState: { state: "relearning" } });
   assert.equal(getNextDailyReviewSessionItem(deck, answered, { ...options, shownKey: null })?.cardId, "a");
+});
+
+test("Rückgängig nach dem Aussetzen in der Sitzung zeigt die Karte wieder an ihrer Stelle (5.2)", () => {
+  const options = { now: "2026-08-21T08:00:00.000Z", timeZone: "UTC" };
+  const deck = createCoreDeck({ id: "deck", cards: ["a", "b", "c"].map((id, index) => cardInPhase(id, "review", `2026-08-21T07:0${index}:00.000Z`)) });
+  const withB = (suspended: boolean) => ({ ...deck, cards: deck.cards.map((card) => card.id === "b" ? setCardSuspended(card, suspended, options.now) : card) });
+  const queue = createDailyReviewQueue(deck, options);
+  const before = advanceDailyReviewSession(createDailyReviewSessionState(queue.items), { key: "deck:a", rating: "good", nextReviewState: { state: "review" } });
+  assert.equal(getNextDailyReviewSessionItem(deck, before, options)?.cardId, "b");
+
+  // Suspending takes the card out of the session; the queue is planned again without it.
+  const suspended = withB(true);
+  const without = reconcileDailyReviewSessionState(removeDailyReviewSessionItem(before, "deck:b"), createDailyReviewQueue(suspended, options).items);
+  assert.equal(getNextDailyReviewSessionItem(suspended, without, options)?.cardId, "c");
+
+  // Undo makes the card active again and restores the session from before; the replanned queue keeps it on screen.
+  const active = withB(false);
+  const restored = reconcileDailyReviewSessionState(before, createDailyReviewQueue(active, options).items, { preserveInitialKey: "deck:b" });
+  assert.deepEqual(restored.remainingInitialKeys, ["deck:b", "deck:c"]);
+  assert.deepEqual(restored.completedInitialKeys, ["deck:a"]);
+  assert.equal(getNextDailyReviewSessionItem(active, restored, { ...options, shownKey: "deck:b" })?.cardId, "b");
 });
 
 test("ein fälliger Lernschritt kommt wie in Anki vor den übrigen Karten, einer im Vorziehfenster erst nach ihnen", () => {
