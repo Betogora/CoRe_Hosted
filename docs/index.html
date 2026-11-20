@@ -2640,9 +2640,6 @@ video {
 .grid-cols-\[minmax\(0\2c 1fr\)_auto_minmax\(0\2c 1fr\)\] {
   grid-template-columns: minmax(0,1fr) auto minmax(0,1fr);
 }
-.grid-cols-\[repeat\(auto-fill\2c minmax\(9\.5rem\2c 1fr\)\)\] {
-  grid-template-columns: repeat(auto-fill,minmax(9.5rem,1fr));
-}
 .grid-rows-\[auto_minmax\(0\2c 1fr\)\] {
   grid-template-rows: auto minmax(0,1fr);
 }
@@ -3974,6 +3971,25 @@ svg.lucide {
 
 .core-deck-summary-count-value[data-count-empty="true"] {
   color: var(--core-text-muted);
+}
+
+/* Building blocks: equal buttons and gaps in one, two (phones, editor pane) or four columns, never 3 + 1. */
+.core-note-blocks {
+  container: core-note-blocks / inline-size;
+}
+
+.core-note-blocks-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--core-space-sm);
+}
+
+@container core-note-blocks (min-width: 18rem) {
+  .core-note-blocks-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@container core-note-blocks (min-width: 36rem) {
+  .core-note-blocks-grid { grid-template-columns: repeat(4, minmax(0, 10rem)); }
 }
 
 @container core-deck-summary (32rem < width < 48rem) {
@@ -5572,12 +5588,8 @@ button.core-steps-step {
   }
 }
 
-/* The four editor tabs stay complete on the narrowest phones; the hit position leaves room for the actions. */
+/* The four editor tabs stay complete on the narrowest phones. */
 @media (max-width: 359px) {
-  .core-card-editor-position {
-    display: none;
-  }
-
   .core-card-editor-frame .core-tabs-list {
     gap: var(--core-space-lg);
   }
@@ -5594,13 +5606,6 @@ button.core-steps-step {
   .core-card-editor-sections > .core-card-editor-section + .core-card-editor-section {
     padding-top: 0;
     border-top: 0;
-  }
-}
-
-/* Wide, the flag dots start on the content edge like every other control. */
-@media (min-width: 640px) {
-  .core-card-editor-section [data-flag-picker] {
-    margin-left: -0.75rem;
   }
 }
 
@@ -6224,6 +6229,11 @@ button.core-steps-step {
 .core-mindmap-node.is-link-source { border-color: var(--core-info); box-shadow: var(--core-shadow-selection); }
 .core-mindmap-node-label { font-weight: 700; overflow: hidden; overflow-wrap: anywhere; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
 .core-mindmap-source-action { margin-left: auto; }
+/* Narrow panels wrap the source action onto its own row; it then starts at the left edge like the rows above. */
+@container core-mindmap (max-width: 43rem) { .core-mindmap-source-action { margin-left: 0; } }
+/* Pressed tools carry the action colour (IconButton sets the text colour inline); unusable tools stay clearly faint. */
+.core-mindmap-tool[aria-pressed="true"] svg { color: var(--core-action-primary); }
+.core-mindmap-tool:disabled { opacity: 0.35; }
 .core-mindmap-source-action[aria-expanded="true"] { border-color: var(--core-action-primary); background: var(--core-action-soft); color: var(--core-action-primary); }
 .core-mindmap-node.is-keyword:not(.is-expanded) { justify-content: center; }
 .core-mindmap-node.is-keyword .core-mindmap-node-label, .core-mindmap-node.is-keyword .core-mindmap-inline-title { text-align: center; }
@@ -7017,6 +7027,10 @@ button.core-steps-step {
     margin-right: 1.5rem;
   }
 
+  .sm\:-ml-3 {
+    margin-left: -0.75rem;
+  }
+
   .sm\:mr-0 {
     margin-right: 0px;
   }
@@ -7256,11 +7270,6 @@ button.core-steps-step {
 
   .sm\:p-9 {
     padding: 2.25rem;
-  }
-
-  .sm\:px-0 {
-    padding-left: 0px;
-    padding-right: 0px;
   }
 
   .sm\:px-4 {
@@ -7646,10 +7655,6 @@ button.core-steps-step {
 
   .xl\:grid-cols-3 {
     grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-
-  .xl\:grid-cols-4 {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 
   .xl\:grid-cols-\[minmax\(0\2c 0\.9fr\)_minmax\(20rem\2c 1\.1fr\)\] {
