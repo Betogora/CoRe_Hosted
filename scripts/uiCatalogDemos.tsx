@@ -10,7 +10,7 @@ import { BrainMascot } from "../src/ui/BrainMascot.tsx";
 import { DailyMotivationWidget } from "../src/screens/DailyMotivationWidget.tsx";
 import React, { useRef, useState } from "react";
 import { ArrowUpRight, Ban, BookOpen, ChevronRight, Copy, Eye, FileSpreadsheet, FileText, Grid2x2, Highlighter, Info, Layers, List, MoreHorizontal, Pencil, PenLine, Play, Plus, RefreshCw, Save, Settings, Sparkles, Star, Trash2, X, type LucideIcon } from "lucide-react";
-import { addCardVariant, addNoteField, applyCardStudyStatePatch, cardStudyFromReviewState, type OcclusionMode, createBasicNote, createCoreDeck, createManualNoteContent, createNote, createReviewState, noteBlocks, setNoteTypeIn, type ManualContentKind } from "../src/coreModel.ts";
+import { addCardVariant, addNoteField, applyCardStudyStatePatch, cardStudyFromReviewState, type OcclusionMode, createBasicNote, createCoreDeck, createManualNoteContent, createNote, createReviewState, noteBlocks, type ManualContentKind } from "../src/coreModel.ts";
 import type { CardStudyStatePatch, Deck, ExamPlanningSettings, CoreMode, NewReviewOrder, NoteContent, NoteField, OcclusionMask, SavedCardSearch, SyncStatus } from "../src/coreTypes.ts";
 import type { CardEditorServices, DecksCardPageRequest } from "../src/appScreenProps.ts";
 import type { CardEditorTab } from "../src/appNavigation.ts";
@@ -502,9 +502,7 @@ function NoteBlocksDemo() {
   return (
     <Demo title="NoteBlockControls" wide>
       <NoteBlockControls
-        typeIn={blocks.typeIn}
         fieldRoles={blocks.fieldRoles}
-        onTypeInChange={(enabled) => setContent((current) => setNoteTypeIn(current, enabled))}
         onAddField={(role) => setContent((current) => addNoteField(current, role).content)}
       />
     </Demo>

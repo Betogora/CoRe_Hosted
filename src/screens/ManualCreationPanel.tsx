@@ -1,7 +1,7 @@
 import React from "react";
 import type { TagDirectoryEntry } from "../tagDirectory.ts";
 import { TagInput } from "../ui/TagInput.tsx";
-import { ArrowDown, ArrowUp, CircleAlert, Database, Eye, FileText, ImagePlus, Plus, Save, X } from "lucide-react";
+import { ArrowDown, ArrowUp, CircleAlert, Eye, FileText, FolderPlus, ImagePlus, Layers, Plus, Save, X } from "lucide-react";
 import {
   createManualBatchSession,
   manualDraftsEqual,
@@ -629,8 +629,7 @@ export function ManualCreationPanel({
               dispatchBatch({ type: "target-deck", deckId: nextDeckId });
               return next;
             })} className="core-action-secondary min-w-0 max-w-full basis-full sm:basis-auto">
-              <Database size={16} aria-hidden="true" />
-              {useNewDeck && decks.length > 0 ? "Stapel auswählen" : "Neuen Stapel erstellen"}
+              {useNewDeck && decks.length > 0 ? <><Layers size={16} aria-hidden="true" />Stapel auswählen</> : <><FolderPlus size={16} aria-hidden="true" />Neuen Stapel erstellen</>}
             </button>
           </div>
           {targetDeckMissing && !useNewDeck ? (
@@ -640,8 +639,8 @@ export function ManualCreationPanel({
           ) : null}
         </div>
 
-        <div className="grid min-w-0 gap-4 md:flex md:flex-wrap md:items-center md:gap-x-6" data-testid="manual-card-options">
-          <div className={`grid min-w-0 gap-2 sm:grid-cols-[max-content_max-content] sm:items-center sm:gap-3 ${document ? "xl:grid-cols-1" : ""}`}>
+        <div className="grid min-w-0 gap-4 md:flex md:flex-wrap md:items-end md:gap-x-6" data-testid="manual-card-options">
+          <div className="grid min-w-0 gap-2">
             <span className="core-field-label">Fragentyp</span>
             <CoreSegmentedControl
               ariaLabel="Fragentyp"
@@ -657,7 +656,7 @@ export function ManualCreationPanel({
               }))}
             />
           </div>
-          <div className="grid min-w-0 gap-2 sm:grid-cols-[max-content_max-content] sm:items-center sm:gap-3">
+          <div className="grid min-w-0 gap-2">
             <span className="core-field-label">Lernrichtung</span>
             <CoreSegmentedControl
               ariaLabel="Lernrichtung"
@@ -668,6 +667,13 @@ export function ManualCreationPanel({
               onValueChange={(value) => dispatchBatch({ type: "draft", patch: { kind: value === "both" ? "basic-reversed" : "basic" } })}
             />
           </div>
+          {!isOcclusion && (kind === "basic" || kind === "basic-reversed") ? (
+            <div className="flex md:min-h-[var(--core-selection-height)] md:items-center">
+              <CoreTooltip label="Die Antwort wird eingetippt und Zeichen für Zeichen verglichen.">
+                <CoreSwitch checked={typeIn} onCheckedChange={setTypeIn} label="Antwort eintippen" />
+              </CoreTooltip>
+            </div>
+          ) : null}
         </div>
       </div>
 
@@ -801,9 +807,7 @@ export function ManualCreationPanel({
             </div>
           ))}
           <NoteBlockControls
-            typeIn={!isOcclusion && (kind === "basic" || kind === "basic-reversed") ? typeIn : null}
             fieldRoles={FIELD_ROLE_OPTIONS.map((option) => option.value).filter((role) => !isOcclusion || role !== "prompt")}
-            onTypeInChange={setTypeIn}
             onAddField={addAdditionalField}
           />
       </div>
@@ -844,11 +848,11 @@ export function ManualCreationPanel({
           {isSaving ? "Karte wird gespeichert" : "Karte speichern"}
         </ActionButton>
         {batchState.createdCount > 0 ? (
-          <ActionButton type="button" variant="secondary" className="flex-1 sm:flex-none" disabled={isSaving} onClick={() => draftDirty ? setFinishConfirmOpen(true) : finish()}>
+          <ActionButton type="button" variant="secondary" disabled={isSaving} onClick={() => draftDirty ? setFinishConfirmOpen(true) : finish()}>
             Fertig
           </ActionButton>
         ) : null}
-        <ActionButton ref={discardButtonRef} type="button" variant="destructive-secondary" className="flex-1 sm:ml-auto sm:flex-none" disabled={!draftDirty || isSaving || isPreparingImage} onClick={() => setDiscardConfirmOpen(true)}>
+        <ActionButton ref={discardButtonRef} type="button" variant="destructive-secondary" className="ml-auto" disabled={!draftDirty || isSaving || isPreparingImage} onClick={() => setDiscardConfirmOpen(true)}>
           Entwurf verwerfen
         </ActionButton>
       </div>
