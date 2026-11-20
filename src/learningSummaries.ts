@@ -151,7 +151,7 @@ async function pushSummary(account: LearningContentAccount & { cloud: SupabaseCl
   return { saved: draft, unsynced: !pushed, replaced: { id: record.id, summary: remote } };
 }
 
-/** Summaries of the given decks: the cloud state merged with changes this browser has not uploaded yet, which are retried here. Offline the last local copy is shown. */
+/** Retries changes this browser has not uploaded yet as a side effect; offline it returns the last local copy. */
 export async function loadLearningSummaries(account: LearningContentAccount, deckIds: readonly string[]): Promise<{ summaries: LearningSummary[]; unsynced: Set<string> }> {
   const { userId, cloud } = account;
   const remote = cloud ? await listLearningDocuments(cloud, TABLE, deckIds).catch(() => null) : null;
@@ -170,7 +170,7 @@ export async function loadLearningSummaries(account: LearningContentAccount, dec
 }
 
 export interface SummaryDeckGroup { deckId: string; path: string[]; summaries: LearningSummary[] }
-/** Groups summaries by the opened deck (first, empty path) and its subdecks in tree order with their names below it; deleted decks and decks without summaries are left out. */
+/** The opened deck's group comes first, with an empty path. */
 export function groupSummariesByDeckTree(summaries: readonly LearningSummary[], decks: readonly Deck[], rootDeckId: string): SummaryDeckGroup[] {
   const children = buildSortedDeckChildren(decks.filter((deck) => !deck.deletedAt)), groups: SummaryDeckGroup[] = [], byDeck = new Map<string, LearningSummary[]>();
   for (const summary of summaries) byDeck.set(summary.deckId, [...byDeck.get(summary.deckId) ?? [], summary]);
@@ -184,7 +184,6 @@ export function groupSummariesByDeckTree(summaries: readonly LearningSummary[], 
   return groups;
 }
 
-/** Saves locally first and then to the cloud; without a connection the summary stays marked as not yet synchronised. */
 export async function saveLearningSummary(account: LearningContentAccount, value: unknown): Promise<SavedLearningSummary> {
   const summary = readLearningSummary(value), { userId, cloud } = account, existing = await getStored(userId, summary.id);
   const record: StoredSummary = { id: summary.id, deckId: summary.deckId, summary, revision: existing?.revision ?? null, pending: Boolean(cloud) };

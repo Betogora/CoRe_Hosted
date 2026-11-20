@@ -35,7 +35,6 @@ const MEMORY_TERMS: ReadonlyArray<{ term: string; description: string }> = [
   { term: "Original und Variante", description: "Verschiedene Fragen zur gleichen Wissenseinheit." },
 ];
 
-/** The example chain „Immer Gut“ at the default target retention. */
 function defaultGoodChain() {
   const retention = createDefaultDeckSettings().schedulerProfile.desiredRetention;
   const contacts = runExampleChain(EXAMPLE_CHAINS[0].ratings, retention);

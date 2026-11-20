@@ -7,7 +7,7 @@ import { createDeckLibraryModel } from "../../libraryModel.ts";
 
 export interface CardSearchMenuItem {
   label: string;
-  /** The cards the term finds as a plural phrase (`überfällige Karten`); the switch's tooltips name it. */
+  /** Plural phrase of the cards the term finds, e.g. `überfällige Karten`. */
   description: string;
   term: string;
   depth?: number;
@@ -135,9 +135,8 @@ export function createCardSearchMenu({ decks, tags, flagNames, noteTypes = [] }:
   ];
 }
 
-/** Hint for a search no card can meet, naming the filters that contradict each other; null for any other search. */
+/** null unless filters of the query contradict each other. */
 export function cardSearchConflictMessage(query: string, categories: readonly CardSearchMenuCategory[]): string | null {
-  // Each filter names its category, once at the end when all share one: „Neu“ und „Reif“ (Kartenstatus).
   const conflicts = cardSearchConflicts(query).map((sources) => {
     const labels = sources.map((source) => cardSearchTermLabel(source, categories));
     const shared = labels.every((entry) => entry.category === labels[0].category) ? labels[0].category : undefined;
@@ -147,7 +146,6 @@ export function cardSearchConflictMessage(query: string, categories: readonly Ca
   return conflicts.length ? `So passt keine Karte: ${conflicts.join(" ")}` : null;
 }
 
-/** Readable chip label of a term; the menu's own label where it has one, otherwise the term as written. */
 export function cardSearchTermLabel(term: string, categories: readonly CardSearchMenuCategory[]): { label: string; category: string | null; negated: boolean } {
   const group = cardSearchGroupMembers(term);
   if (group) {

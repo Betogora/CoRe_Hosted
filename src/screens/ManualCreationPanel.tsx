@@ -66,7 +66,7 @@ export interface ManualNoteSaveInput {
 }
 
 export interface ManualCreationPanelProps {
-  /** Scopes the draft this tab keeps; without an account the draft lives only while the panel is open. */
+  /** Without an account the draft lives only while the panel is open. */
   accountId?: string;
   decks: Deck[];
   workflow: ManualCreationWorkflow;
@@ -102,7 +102,6 @@ function isPdfDocument(document: TransientSourceDocument | null): boolean {
   return document?.mimeType === "application/pdf";
 }
 
-/** Keeps a field's content after saving, so the next card starts from it. */
 function KeepFieldSwitch({ isPinned, label, onToggle }: KeepFieldSwitchProps) {
   return (
     <CoreTooltip label="Bleibt nach dem Speichern für die nächste Karte stehen">
@@ -170,7 +169,6 @@ export function ManualCreationPanel({
     if (decks.length === 0) setUseNewDeck(true);
   }, [decks.length]);
 
-  // A restored draft goes back into the deck it was written for, when that deck still exists.
   React.useEffect(() => {
     const deckId = restored?.snapshot.targetDeckId;
     if (!deckId || deckId === selectedDeckId || !decks.some((deck) => deck.id === deckId)) return;
@@ -223,7 +221,7 @@ export function ManualCreationPanel({
     onFinish({ createdCount: batchState.createdCount, targetDeckId: batchState.targetDeckId });
   };
 
-  // The tab keeps the draft, so leaving it for another area loses nothing; only a running save holds navigation.
+  // The tab keeps the draft, so only a running save holds navigation.
   React.useEffect(() => {
     onDraftStateChange(false, isSaving ? focusSaveProgress : null, isSaving);
     return () => onDraftStateChange(false, null, false);
@@ -452,7 +450,6 @@ export function ManualCreationPanel({
     }));
   }
 
-  /** Starts the next draft after saving or discarding; pinned fields survive only a save. */
   function startNextDraft(action: { type: "saved"; targetDeckId: string } | { type: "discard" }) {
     const nextState = reduceManualBatchSession(batchState, action);
     cleanDraftRef.current = nextState.currentDraft;
@@ -844,7 +841,6 @@ export function ManualCreationPanel({
           </div>
         </div>
       ) : null}
-      {/* Saving leads, finishing follows once a card exists, and discarding stands apart at the end. */}
       <div className="flex flex-wrap items-center gap-2" data-testid="manual-actions">
         <ActionButton data-testid="manual-save-button" type="button" variant="primary" icon={Save} className="basis-full sm:basis-auto" loading={isSaving} disabled={isPreparingImage || isSaving} onClick={() => void saveManualCard()}>
           {isSaving ? "Karte wird gespeichert" : "Karte speichern"}

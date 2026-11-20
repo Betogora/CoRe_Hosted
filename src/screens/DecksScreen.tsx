@@ -211,7 +211,7 @@ export function DecksScreen({
   }, [onDraftStateChange]);
 
   React.useEffect(() => {
-    // Closing the editor keeps its message: the undo of an immediate action lies below the dialog until then (W7).
+    // Closing the editor keeps its message: the undo of an immediate action lies below the dialog until then.
     if (preserveToastForSelectionChange.current) preserveToastForSelectionChange.current = false;
     else if (selectedCardId) setSuccessToast("");
   }, [selectedCardId, setSuccessToast]);

@@ -175,10 +175,7 @@ const PARAMETER_LABELS: Record<ParameterId, string> = {
 /** Design space of the curves: the x axis runs from 72 to 928, R falls from 100 % at y 92 to 90 % at y 248. */
 const DESIGN_AXIS = { left: 72, right: 928, full: 92, target: 248 } as const;
 
-/**
- * Lays the chart out in real pixels for the measured width: curves stretch with the plot, while text, markers and
- * review points keep their size. Narrow charts move the review labels inside the plot instead of centring them.
- */
+/** Real pixels for the measured width: curves stretch with the plot, text, markers and review points keep their size. */
 export function memoryChartLayout(width: number) {
   const compact = width < 560;
   const axisX = 48;
@@ -448,7 +445,7 @@ function ActiveRecallVisual({ activeIndex }: { activeIndex: number }) {
   );
 }
 
-/** The guided story Active Recall → Smarter Recall; its page header carries the heading. */
+/** Without its own heading; the page header carries it. */
 export function ActiveRecallStory() {
   const { activeIndex, containerRef, setActiveIndex } = useScrollStory(ACTIVE_RECALL_STEPS.length);
 
@@ -647,7 +644,7 @@ function MemoryCurveGraphic({ selection, onSelectionChange }: { selection: Explo
   );
 }
 
-/** The guided story Spaced Repetition → Content Repetition; its page header carries the heading. */
+/** Without its own heading; the page header carries it. */
 export function SpacedRepetitionStory() {
   const { activeIndex, containerRef, setActiveIndex } = useScrollStory(SPACED_REPETITION_STEPS.length);
   const activeStep = SPACED_REPETITION_STEPS[activeIndex];

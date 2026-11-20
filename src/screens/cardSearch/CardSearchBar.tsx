@@ -85,9 +85,8 @@ export function CardSearchBar({ query, onQueryChange, decks, categories, advance
       </div>
       {hint ? <p id="card-search-hint" className="core-field-hint" data-testid="card-search-unsupported">{hint}</p> : null}
       {children}
-      {/* The open menu names a contradiction itself, right below its search expression. */}
+      {/* The open menu shows the contradiction itself. */}
       {conflict && !advancedOpen ? <StatusMessage tone="warning" announce="polite" data-testid="card-search-conflict">{conflict}</StatusMessage> : null}
-      {/* A search always names its number of hits, also without filters (the flat hit list, KV3). */}
       {terms.length || resultCount !== null ? (
         <div className="flex min-w-0 flex-wrap items-center gap-x-1.5 gap-y-2" data-testid="card-search-chips">
           {resultCount !== null ? <p className="mr-1.5 shrink-0 whitespace-nowrap core-body font-semibold text-core-text">{resultCount === 1 ? "1 Karte" : `${resultCount} Karten`}</p> : null}

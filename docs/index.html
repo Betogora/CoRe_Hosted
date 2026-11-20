@@ -776,7 +776,6 @@ video {
     transition: transform 180ms cubic-bezier(0.22, 1, 0.36, 1), background-color 260ms cubic-bezier(0.4, 0, 0.2, 1) 20ms, opacity 200ms ease;
   }
 
-  /* The neutral position is the quietest: only its ring darkens; the indicator shows for a filter or a verdict alone. */
   .core-tri-state-control[data-tri-value="any"] .core-tri-state-indicator,
   .core-verdict-control[data-tri-value="none"] .core-tri-state-indicator { opacity: 0; }
   .core-tri-state-control[data-tri-value="any"] .core-tri-state-option[aria-checked="true"] { color: var(--core-text); }
@@ -3927,7 +3926,6 @@ svg.lucide {
   color: var(--core-text-muted);
 }
 
-/* Building blocks: equal buttons and gaps in one, two (phones, editor pane) or four columns, never 3 + 1. */
 .core-note-blocks {
   container: core-note-blocks / inline-size;
 }
@@ -4417,7 +4415,6 @@ svg.lucide {
   .core-metric-row > dl { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
-/* Steps: numbered markers on one hairline spread over the row; below 520 px row width only the current word stays visible. */
 .core-steps {
   container-type: inline-size;
   min-width: 0;
@@ -5278,8 +5275,7 @@ button[aria-label] {
 .core-exam-filter[aria-pressed="false"]:hover .core-tag { --core-tag-text: var(--core-text-secondary); }
 .core-exam-filter[aria-pressed="false"] .core-tag-dot { background: transparent !important; box-shadow: inset 0 0 0 1.5px var(--core-exam-tint); }
 
-/* Back and next of a step flow: one row from 640 px; below, full width with the next step on top. The forward arrow
-   follows its label. In the components layer so `xl:hidden` wins. */
+/* The forward arrow follows its label. In the components layer so `xl:hidden` wins. */
 
 /* Kept after .core-auth-panel button for the cascade. */
 button.core-steps-step {
@@ -5380,7 +5376,6 @@ button.core-steps-step {
   border-top: var(--core-border-width) solid var(--core-border);
 }
 
-/* Quick dates: four in a row where they fit, otherwise two by two, never three and one. */
 .core-card-editor-quick-dates {
   container-type: inline-size;
 }
@@ -5398,7 +5393,6 @@ button.core-steps-step {
   }
 }
 
-/* Label left, value right, 36 px, hairline between; labels never shrink, values wrap or cut. */
 .core-card-editor-rows {
   display: grid;
   min-width: 0;
@@ -5432,7 +5426,6 @@ button.core-steps-step {
   overflow-wrap: anywhere;
 }
 
-/* Maturity band: a state, not a process, as point and word on one hairline; the four short words stay visible at every width. */
 .core-card-editor-maturity { container-type: inline-size; min-width: 0; }
 .core-card-editor-maturity > ol { display: flex; align-items: center; gap: var(--core-space-sm); min-width: 0; margin: 0; padding: 0.375rem 0; list-style: none; }
 .core-card-editor-maturity li { display: flex; align-items: center; gap: var(--core-space-sm); color: var(--core-text-muted); font: var(--core-weight-control) 0.8125rem/1.25rem var(--core-font-sans); white-space: nowrap; }
@@ -5616,7 +5609,6 @@ button.core-steps-step {
   }
 }
 
-/* Advanced card search (D6): term rows 40 px, the three-way switch 36 px with 28 px segments with a fine pointer. */
 @media (pointer: fine) {
   .core-card-search-term .core-tri-state-control {
     --core-tri-size: calc(2.25rem - 8px);
@@ -6089,7 +6081,7 @@ button.core-steps-step {
 .core-summary-excerpt { max-height: 4lh; overflow: hidden; overflow-wrap: anywhere; white-space: pre-line; }
 .core-summary-excerpt[data-clipped] { -webkit-mask-image: linear-gradient(#000 calc(100% - 1lh), rgb(0 0 0 / 0.15)); mask-image: linear-gradient(#000 calc(100% - 1lh), rgb(0 0 0 / 0.15)); }
 .core-summary-preview-action { flex-shrink: 0; align-self: end; }
-/* Delete sits on the card's top corner; it stays a sibling because the card itself is a button. */
+/* A sibling of the card, because the card itself is a button. */
 .core-summary-delete { position: absolute; top: calc(1.5rem + (var(--core-leading-heading-3) - var(--core-button-height)) / 2); right: var(--core-space-md); }
 .core-summary-editor .rich-text-field { font-family: var(--summary-font); font-size: var(--summary-size); overflow-wrap: anywhere; }
 .core-summary-editor .rich-text-field :is(h1, h2, h3, h4) { font-weight: var(--core-weight-heading); margin-block: var(--core-space-lg) var(--core-space-sm); }
@@ -6126,9 +6118,8 @@ button.core-steps-step {
 .core-mindmap-node.is-link-source { border-color: var(--core-info); box-shadow: var(--core-shadow-selection); }
 .core-mindmap-node-label { font-weight: 700; overflow: hidden; overflow-wrap: anywhere; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
 .core-mindmap-source-action { margin-left: auto; }
-/* Narrow panels wrap the source action onto its own row; it then starts at the left edge like the rows above. */
 @container core-mindmap (max-width: 43rem) { .core-mindmap-source-action { margin-left: 0; } }
-/* Pressed tools carry the action colour (IconButton sets the text colour inline); unusable tools stay clearly faint. */
+/* IconButton sets the text colour inline, so the pressed colour goes on the icon. */
 .core-mindmap-tool[aria-pressed="true"] svg { color: var(--core-action-primary); }
 .core-mindmap-tool:disabled { opacity: 0.35; }
 .core-mindmap-source-action[aria-expanded="true"] { border-color: var(--core-action-primary); background: var(--core-action-soft); color: var(--core-action-primary); }

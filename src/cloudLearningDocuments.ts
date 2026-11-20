@@ -12,10 +12,7 @@ async function rows(request: PromiseLike<{ data: unknown; error: unknown }>): Pr
   return validateLearningDocumentRows(data);
 }
 
-/**
- * Documents of the given decks, one request per 100 decks, or of the whole account without `deckIds`;
- * deleted ones included so other devices can drop their copies.
- */
+/** The whole account without `deckIds`; includes deleted documents so other devices can drop their copies. */
 export async function listLearningDocuments(client: SupabaseClient, table: LearningDocumentTable, deckIds?: readonly string[]) {
   const query = () => client.from(table).select(COLUMNS);
   if (!deckIds) return rows(query());

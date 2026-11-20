@@ -119,7 +119,6 @@ function termPhases(term: CardSearchTerm): readonly string[] | null {
   return null;
 }
 
-/** Whether no card can match both terms: phases, due days, a suspended due card, or two values of one property. */
 function termsExclude(left: string, right: string): boolean {
   const a = parseTerm(left, DAY_ZERO);
   const b = parseTerm(right, DAY_ZERO);
@@ -132,12 +131,7 @@ function termsExclude(left: string, right: string): boolean {
   return (a.kind === "flag" || a.kind === "form" || a.kind === "card" || a.kind === "maturity") && a.value !== (b as typeof a).value;
 }
 
-/**
- * Filters of the query that no card can meet together, each as the chips written in the query: two filters that
- * exclude each other (`is:new prop:due<0`), or a filter whose every term is also excluded (`is:suspended
- * -is:suspended`). Such a search stays allowed; the menu only says why it finds nothing. A query with a top-level
- * `or` is not checked.
- */
+/** Groups of chips, as written in the query, that no card can meet together; a top-level `or` is not checked. */
 export function cardSearchConflicts(query: string): string[][] {
   const all = queryItems(String(query ?? ""));
   if (all.some((item) => item.kind === "or")) return [];

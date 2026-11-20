@@ -121,7 +121,7 @@ test("manual creation restores this tab's draft of the account and says which im
     } }));
     const markup = renderToStaticMarkup(<CreationScreen accountId="konto-a" decks={[deck]} initialMethod="manual" initialTargetDeckId={deck.id} {...callbacks} />);
 
-    // The editors take their HTML after mounting; the restored draft shows in the image notice and the discard action.
+    // The editors take their HTML only after mounting, so static markup cannot show the restored text.
     assert.match(markup, /Bilder des Entwurfs gehen beim Neuladen verloren\. Füge sie erneut ein\./);
     assert.match(markup, /<button type="button" class="core-action-secondary core-action-destructive-secondary [^"]*">(?:<span>)?Entwurf verwerfen/);
 

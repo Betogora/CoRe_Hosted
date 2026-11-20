@@ -27,13 +27,12 @@ export interface FlagPickerProps {
   onValueChange: (flag: number) => void;
   names?: readonly string[];
   onEditNames?: () => void;
-  /** Offers „Keine“; off where removing has its own action, such as the mass action „Flagge setzen“. */
+  /** `false` where removing has its own action, such as the mass action „Flagge setzen“. */
   withNone?: boolean;
   disabled?: boolean;
   className?: string;
 }
 
-/** Seven flag dots and the „Keine“ symbol on wide screens, starting on the content edge; a 4×2 grid with names on narrow ones; Strg+1–7 in the tooltips. */
 export function FlagPicker({ value, onValueChange, names, onEditNames, withNone = true, disabled = false, className = "" }: FlagPickerProps) {
   return (
     <div className={`grid min-w-0 gap-2 ${className}`}>

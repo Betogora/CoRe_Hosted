@@ -16,7 +16,7 @@ import { CoreSelect } from "../ui/selectUi.tsx";
 
 interface DeckSummariesPanelProps {
   deck: Deck;
-  /** The opened deck and its subdecks; their summaries are listed below its own. */
+  /** The opened deck and its subdecks. */
   treeDecks: readonly Deck[];
   userId: string;
   /** Online storage of the signed-in account; without it summaries stay in this browser. */
@@ -25,7 +25,6 @@ interface DeckSummariesPanelProps {
   onDraftStateChange: (guard: CardDraftGuard | null) => void;
 }
 
-/** Shows at most four whole lines; only a text that is actually cut fades out on its last line. */
 function SummaryExcerpt({ text }: { text: string }) {
   const ref = React.useRef<HTMLDivElement>(null), [clipped, setClipped] = React.useState(false);
   React.useLayoutEffect(() => {

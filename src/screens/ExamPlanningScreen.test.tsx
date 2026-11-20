@@ -149,7 +149,6 @@ test("die geführte Planung zeigt nummerierte Schritte, einheitliche Optionskart
   assert.match(html, /<li data-state="current" aria-current="step">/);
   assert.match(html, /<div class="core-page-header-back"><button[^>]*>[\s\S]*?Prüfungen<\/button>/);
   assert.match(html, /<h2 tabindex="-1" class="sr-only[^"]*">Prüfung<\/h2>/);
-  // Without a name the next step stays reachable; it marks the missing name instead of being disabled.
   assert.doesNotMatch(html, /<button class="core-action-primary "[^>]*disabled/);
   assert.equal(html.match(/class="core-steps-step" disabled=""/g)?.length, 2);
   assert.deepEqual([...html.matchAll(/<dt class="[^"]*">([^<]+)<\/dt>/g)].map((match) => match[1]), ["Prüfungsdatum", "Lernstart", "Lernstoff"]);

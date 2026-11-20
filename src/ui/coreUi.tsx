@@ -331,15 +331,9 @@ export function CoreIconSegmentedControl<T extends string>(props: Omit<CoreSegme
 
 export type CoreTriState = "in" | "" | "out";
 
-/**
- * Filter switch with three positions: `Mit` (plus, blue), `Egal` (circle, neutral, the start, no indicator) and `Ohne` (minus, red).
- * Same rail as the segmented control with square segments; the indicator slides and fades its colour. Each position
- * is named in full, as name and tooltip: `Überfällig: nur überfällige Karten zeigen`.
- */
 export function CoreTriStateControl({ label, description, value, onValueChange, disabled = false }: {
-  /** What the switch filters, e.g. `Überfällig`; the group's name and the start of each position's name. */
   label: string;
-  /** What the filter finds as a plural phrase, e.g. `überfällige Karten`. */
+  /** Plural phrase, e.g. `überfällige Karten`. */
   description: string;
   value: CoreTriState;
   onValueChange: (value: CoreTriState) => void;
@@ -347,7 +341,7 @@ export function CoreTriStateControl({ label, description, value, onValueChange, 
 }) {
   const options: ReadonlyArray<{ value: CoreTriState; label: string; icon: LucideIcon; iconSize?: number }> = [
     { value: "in", label: `${label}: nur ${description} zeigen`, icon: Plus },
-    // A small ring, as wide as plus and minus, so the neutral position stays the quietest.
+    // A ring as wide as plus and minus.
     { value: "", label: `${label}: nicht filtern`, icon: Circle, iconSize: 11 },
     { value: "out", label: `${label}: ${description} ausblenden`, icon: Minus },
   ];
@@ -371,7 +365,7 @@ export function CoreVerdictControl({ label, value, onValueChange, disabled = fal
 
 function StateRail<T>({ label, options, value, railValue, className = "", onValueChange, disabled }: {
   label: string;
-  /** `label` names the position; `tooltip`, if it differs, shows on hover and focus. */
+  /** Without `tooltip`, the label shows on hover and focus. */
   options: ReadonlyArray<{ value: T; label: string; tooltip?: string; icon: LucideIcon; iconSize?: number }>;
   value: T | null;
   railValue: string;

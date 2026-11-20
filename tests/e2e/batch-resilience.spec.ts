@@ -213,7 +213,6 @@ test("[Vertrag: Batch, Pins, Deckpfade und Draftschutz] @beta-core fünf Karten 
   await expect(page.getByRole("textbox", { name: "Rückseite" })).toContainText("Angeheftete Antwort");
   await expect(page.getByRole("textbox", { name: "Vorderseite" })).toBeFocused();
 
-  // The tab keeps the draft: leaving for another area asks nothing, coming back and reloading restore it in its deck.
   await page.getByRole("textbox", { name: "Vorderseite" }).fill("Ungespeicherter Entwurf");
   await mainMenu(page).getByRole("button", { name: "Lernen" }).click();
   await expect(page.getByRole("heading", { name: "Lernen", exact: true })).toBeFocused();

@@ -21,10 +21,6 @@ function stepState(index: number, current: number): StepState {
   return index < current ? "done" : index === current ? "current" : "upcoming";
 }
 
-/**
- * Numbered steps of a process spread over the row: done with a check, current in action blue, upcoming muted.
- * Below 520 px row width only the current word stays visible; the others remain readable for assistive technology.
- */
 export function Steps({ ariaLabel, items, current, onSelect, className = "" }: StepsProps) {
   return (
     <div className={`core-steps ${className}`.trim()}>

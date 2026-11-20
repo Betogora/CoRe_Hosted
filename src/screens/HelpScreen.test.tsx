@@ -21,10 +21,8 @@ test("the help entry shows the essentials and links every topic as its own page"
   for (const topic of HELP_TOPICS) {
     assert.match(markup, new RegExp(`<a href="/hilfe\\?topic=${topic}"[^>]*data-help-topic-link="${topic}"`));
   }
-  // The two stories hang off the learning steps they deepen.
   assert.match(markup, /Aktiv abrufen\.[\s\S]*?data-help-topic-link="active-recall"[^>]*>Active\u00a0Recall wird <span[^>]*>Smarter\u00a0Recall<svg[\s\S]*?Ehrlich bewerten\./);
   assert.match(markup, /Rechtzeitig wiederholen\.[\s\S]*?data-help-topic-link="spaced-repetition"[^>]*>Spaced\u00a0Repetition wird <span[^>]*>Content\u00a0Repetition<svg[\s\S]*?help-rating-heading/);
-  // Depth stays on the topic pages.
   assert.doesNotMatch(markup, /data-testid="active-recall-visual"|data-testid="spaced-repetition-visual"|help-card-management|help-exam-session|ABC of FSRS/);
 });
 
@@ -44,7 +42,6 @@ test("a topic page carries its title, a way back to the entry and the full depth
     assert.match(markup, new RegExp(`<h2[^>]*data-screen-heading[^>]*>${title}</h2>`));
     assert.match(markup, content);
     assert.doesNotMatch(markup, /So lernst du mit CoRe|data-help-topic-link/);
-    // Below the page title the levels continue at three, so the outline stays intact.
     assert.doesNotMatch(markup, /<h2(?![^>]*data-screen-heading)/);
   }
 });

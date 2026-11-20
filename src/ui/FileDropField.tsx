@@ -6,7 +6,6 @@ export interface FileDropFieldProps {
   accept: string;
   ariaLabel: string;
   prompt: string;
-  /** Lighter second line under the prompt, e.g. the accepted formats. */
   detail?: string;
   actionLabel: string;
   onFile: (file: File) => void | Promise<void>;

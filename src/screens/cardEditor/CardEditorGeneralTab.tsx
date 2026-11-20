@@ -95,10 +95,6 @@ export interface CardEditorGeneralTabProps {
   deckName: (deckId: string) => string;
 }
 
-/**
- * `Allgemein` works at once and never takes over unsaved content changes. Actions whose result leaves the view or
- * overwrites something offer `Rückgängig` (W7, W20), as does suspension; flag, mark and added tags undo at their control.
- */
 export function CardEditorGeneralTab({ decks, graph, card, now, dayStartHour, timeZone, services, pendingCards, onSetFlag, onSetMarked, onSetStudyState, onRescheduleCards, onSelectCard, onCardMoved, deckName }: CardEditorGeneralTabProps) {
   const { note } = graph;
   const online = useOnline();
@@ -253,7 +249,6 @@ export function CardEditorGeneralTab({ decks, graph, card, now, dayStartHour, ti
             </label>
             {canReschedule ? <ActionButton variant="primary" loading={busy === "reschedule"} onClick={() => void reschedule()}>Neu planen</ActionButton> : null}
           </div>
-          {/* The state as a row like „Markiert“; the one-day action below it. */}
           <div className="flex min-h-control items-center border-t border-core-border pt-3">
             <CoreSwitch label="Aussetzen" labelPlacement="start" className="w-full [&>.core-switch-content]:w-full [&>.core-switch-content]:!justify-between" checked={suspended} onCheckedChange={(next) => void suspend(next)} />
           </div>

@@ -121,7 +121,6 @@ const CardTableRowView = React.memo(function CardTableRowView({ virtualKey, deck
             }}
           />
         ) : null}
-        {/* The pause symbol of the card editor; from 640 px with its word, below that the word is only spoken. */}
         {suspended ? (
           <span data-testid="card-row-suspended" className="mt-0.5 flex shrink-0 items-center gap-1.5 core-caption font-semibold text-core-text">
             <Pause size={16} aria-hidden="true" />

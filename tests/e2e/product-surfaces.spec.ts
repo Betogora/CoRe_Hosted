@@ -645,7 +645,6 @@ test("help opens with a short entry and links its stories and reference topics a
   await expect(activeRecallVisual.locator(".lucide-sparkles")).toHaveCount(2);
   await expect(activeRecallVisual.locator(".lucide-sparkle")).toHaveCount(2);
 
-  // Browser Back returns to the entry, with focus on the link that opened the story.
   await page.goBack();
   await expect(page).toHaveURL("/hilfe");
   await expect(activeRecallMethodLink).toBeFocused();
@@ -704,12 +703,10 @@ test("help opens with a short entry and links its stories and reference topics a
   await expect(page.getByTestId("spaced-repetition-visual")).toHaveAttribute("data-active-selection", "review-variant");
   await expect(page.getByText(/keine garantierte Reviewnummer/i)).toBeVisible();
 
-  // A topic URL survives a reload and can be shared.
   await page.reload();
   await expect(page).toHaveURL("/hilfe?topic=spaced-repetition");
   await expect(spacedRepetitionHeading).toBeVisible();
 
-  // The page header's back link leads to the entry; the reference topics open as their own pages.
   await page.getByRole("button", { name: "Hilfe", exact: true }).click();
   await expect(page).toHaveURL("/hilfe");
   const referenceTopics = page.getByRole("navigation", { name: "Nachschlagen" });

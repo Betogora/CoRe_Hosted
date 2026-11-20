@@ -16,7 +16,6 @@ const FIELD_DESCRIPTIONS: Record<AddableFieldRole, string> = {
   source: "Quellenangabe oder Link unter der Antwort.",
 };
 
-/** Building blocks shared by manual creation and the card editor: fields with a role to add. */
 export function NoteBlockControls({ fieldRoles, onAddField }: NoteBlockControlsProps) {
   return (
     <div className="core-note-blocks grid min-w-0 gap-2" data-testid="note-blocks">

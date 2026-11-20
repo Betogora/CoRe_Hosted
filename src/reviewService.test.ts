@@ -303,12 +303,10 @@ test("Rückgängig nach dem Aussetzen in der Sitzung zeigt die Karte wieder an i
   const before = advanceDailyReviewSession(createDailyReviewSessionState(queue.items), { key: "deck:a", rating: "good", nextReviewState: { state: "review" } });
   assert.equal(getNextDailyReviewSessionItem(deck, before, options)?.cardId, "b");
 
-  // Suspending takes the card out of the session; the queue is planned again without it.
   const suspended = withB(true);
   const without = reconcileDailyReviewSessionState(removeDailyReviewSessionItem(before, "deck:b"), createDailyReviewQueue(suspended, options).items);
   assert.equal(getNextDailyReviewSessionItem(suspended, without, options)?.cardId, "c");
 
-  // Undo makes the card active again and restores the session from before; the replanned queue keeps it on screen.
   const active = withB(false);
   const restored = reconcileDailyReviewSessionState(before, createDailyReviewQueue(active, options).items, { preserveInitialKey: "deck:b" });
   assert.deepEqual(restored.remainingInitialKeys, ["deck:b", "deck:c"]);

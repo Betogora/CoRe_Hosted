@@ -312,7 +312,6 @@ test("[Vertrag: modale Kartenvorschau] @beta-core Erstellung und Editor zeigen d
   await page.getByTestId("card-preview-backdrop").click({ position: { x: 4, y: 4 } });
   await expect(dialog).toHaveCount(0);
 
-  // Every card the draft creates is in the preview, each starting on its front.
   const learningDirection = page.getByRole("group", { name: "Lernrichtung" });
   await learningDirection.getByRole("button", { name: "Beide Richtungen" }).click();
   await creationPreviewButton.click();

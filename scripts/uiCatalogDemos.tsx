@@ -119,7 +119,6 @@ const childName = "Europa – ein sehr langer Name für schmale Ansichten";
 const child = createCoreDeck({ id: "catalog-europe", name: childName, source: "manual", parentDeckId: deck.id, hierarchyPath: [deck.name, childName], cards: sampleGraphs[2].cards });
 const sampleDecks = [deck, child, ...["Biologie", "Medizin", "Sprachen", "Geschichte"].map((name, index) => ({ ...deck, id: `catalog-${index}`, parentDeckId: null, name, hierarchyPath: [name], cards: [] }))];
 const substackDemoDecks = [...sampleDecks];
-/** Flag, mark and suspension on the sample data, so the preview shows the real messages with undo. */
 function patchCatalogCard(decks: Deck[], cardId: string, patch: CardStudyStatePatch) {
   const owner = decks.find((candidate) => candidate.cards.some((card) => card.id === cardId));
   const card = owner?.cards.find((candidate) => candidate.id === cardId);
@@ -708,8 +707,7 @@ function ProductViewsDemo({ kind }: { kind: string }) {
   const [savedSearches, setSavedSearches] = useState<SavedCardSearch[]>([{ id: "demo-search", name: "Heute nicht gewusst", query: "rated:1:1" }]);
   const [contentTab, setContentTab] = useState<DeckContentTab>("children");
   const [helpTopic, setHelpTopic] = useState<HelpTopic | null>(null);
-  // Local stand-in for the catalog query of the app: every deck shows its sample cards as one page.
-  // Pages read the current sample cards, so a flag, mark or suspension stays in the list after a reload.
+  // Pages read the sample cards through the ref, so a flag, mark or suspension survives a reload.
   const catalogCardDecksRef = React.useRef(catalogCardDecks);
   catalogCardDecksRef.current = catalogCardDecks;
   const requestCardPage = React.useCallback((request: DecksCardPageRequest) => {
@@ -723,7 +721,6 @@ function ProductViewsDemo({ kind }: { kind: string }) {
     const items = deckCards.map((card) => catalogEntryFromCard(card, sampleNotesById.get(card.noteId) ?? null)).filter((entry) => !request.deckIds || matchesCardSearch(entry, search));
     catalogStore.set((current) => ({ cardPages: { ...current.cardPages, [request.deckId]: { deckId: request.deckId, deckIds: request.deckIds, pages: { 0: items }, pageSize: 50, totalCount: items.length, query: request.query, sort: request.sort, selected: selectedCard && note ? { note, cards: deckCards.filter((card) => card.noteId === note.id), cardId: selectedCard.id } : null, requestedCardId: request.selectedCardId } } }));
   }, [catalogStore]);
-  // Like the app after a study-state change: the shown rows and the open card take over the patched content.
   const setCatalogCardStudyState = React.useCallback(async (_deckId: string, cardId: string, patch: CardStudyStatePatch) => {
     const patched = patchCatalogCard(catalogCardDecksRef.current, cardId, patch);
     if (!patched) return null;

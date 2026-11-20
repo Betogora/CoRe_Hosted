@@ -604,7 +604,6 @@ test("Lerneinstellungen speichern Markierung, Aussetzung und Kartenreihenfolge s
   await expect.poll(suspendedCount).toBe(1);
   await expect(cardContent).not.toHaveText(question);
 
-  // Rückgängig makes the card active again and shows it at its place in the session.
   await toast.getByRole("button", { name: "Rückgängig" }).click();
   await expect.poll(suspendedCount).toBe(0);
   await expect(cardContent).toHaveText(question);

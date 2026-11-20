@@ -428,7 +428,7 @@ test("[Vertrag: Kartenverwaltung] Aussetzen aktualisiert die Kartenzeile ohne Ed
   });
   expect(detailWasRemoved).toBe(false);
 
-  // The toast waits below the editor; once it closes, Rückgängig suspends the card again.
+  // The toast lies below the editor, so the editor closes first.
   const toast = page.locator('[data-success-toast-region="true"]');
   await expect(toast).toContainText("Karte reaktiviert.");
   await detail.getByRole("button", { name: "Detailansicht schließen" }).click();

@@ -78,7 +78,6 @@ export function reduceManualBatchSession(
       pinnedFields: { ...state.pinnedFields, [action.field]: !state.pinnedFields[action.field] },
     };
   }
-  // Discarding empties pinned fields too: the whole draft goes, only the question type stays.
   if (action.type === "discard") {
     return { ...state, currentDraft: resetManualDraft(state.currentDraft, { front: false, back: false }) };
   }

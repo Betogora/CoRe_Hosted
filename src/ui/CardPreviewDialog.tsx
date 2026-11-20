@@ -16,13 +16,12 @@ const PREVIEW_SIDE_OPTIONS = [
   { value: "question", label: "Vorderseite" },
   { value: "answer", label: "Rückseite" },
 ] as const;
-/** At either end the arrow fades to a bare glyph, so it never reads like the active direction. */
 const NAVIGATION_END = "disabled:bg-transparent disabled:opacity-40";
 
 export interface CardPreviewDialogProps {
   open: boolean;
   note: Note | null;
-  /** Every card the draft would create, in order; empty while required input is missing. */
+  /** Empty while required input is missing. */
   cards: readonly Card[];
   mediaUrls?: Record<string, string>;
   onOpenChange: (open: boolean) => void;
@@ -64,7 +63,6 @@ export function CardPreviewDialog({
     setCardIndex(0);
   }, [open]);
 
-  /** Steps to a neighbouring card and stops at both ends; every card starts on its front. */
   function showCard(step: -1 | 1) {
     const next = shownIndex + step;
     if (next < 0 || next >= cards.length) return;
@@ -76,7 +74,7 @@ export function CardPreviewDialog({
     setRound((current) => current + 1);
   }
 
-  // The card takes the initial focus: arrow keys turn its pages, and no control looks selected before it is used.
+  // The card takes the initial focus so arrow keys turn its pages.
   React.useEffect(() => {
     if (open) stageRef.current?.focus();
   }, [open]);

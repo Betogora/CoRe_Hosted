@@ -8,7 +8,6 @@ const studyFallbackViewId: AppViewId = "lernen";
 const reviewReturnViews = ["today", "learn", "decks", "exams"] as const;
 export const SETTINGS_SECTIONS = ["start", "konto", "darstellung", "daten", "konflikte", "ueber", "lerntag", "tagesrunde", "scheduler", "flaggen", "fokus"] as const;
 export const DECK_SETTINGS_SECTIONS = ["start", "stapel", "tagesrunde", "neue-karten", "scheduler"] as const;
-/** Topics the help links to from its entry: the two guided stories and the reference topics. */
 export const HELP_TOPICS = ["active-recall", "spaced-repetition", "planung", "varianten", "pruefungssitzung", "kartenverwaltung"] as const;
 const deckContentTabs = ["children", "summary", "mind-map", "cards"] as const;
 const cardEditorTabs = ["general", "content", "variants", "study"] as const;
@@ -67,7 +66,7 @@ export interface ViewRoute {
   settingsSection?: SettingsSection;
   deckSettings?: DeckSettingsOverlay;
   cardQuery?: string;
-  /** Help topic open below the help entry. */
+  /** Absent on the help entry. */
   helpTopic?: HelpTopic;
 }
 

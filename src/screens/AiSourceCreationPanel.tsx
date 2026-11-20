@@ -34,7 +34,6 @@ const learningQuestions = [
   { key: "priorKnowledge", label: "Vorwissen", options: AI_SOURCE_PRIOR_KNOWLEDGE },
 ] as const;
 const steps = ["Quelle und Stapel", "Vorgaben", "Karten"];
-// Hints in a guided step carry content, so they read at body size.
 const HINT = "core-body text-core-muted";
 const cardFormIcons = { basic: MessageSquare, cloze: TextCursorInput, "single-choice": CircleDot, "multiple-choice": ListChecks };
 
@@ -101,7 +100,7 @@ export function AiSourceCreationPanel({ decks, initialTargetDeckId, onDraftState
     setDraft((current) => ({ ...current, file, deckName: nameEdited.current ? current.deckName : suggestSourceDeckName(file.name) }));
   }
 
-  /** Marks what is missing and takes the focus to the first missing field once its step is shown. */
+  /** Focuses after a frame, once the step holding the missing field has rendered. */
   function showMissing() {
     setShowErrors(true);
     setStep(errors.source || errors.target ? 0 : 2);
@@ -166,7 +165,6 @@ export function AiSourceCreationPanel({ decks, initialTargetDeckId, onDraftState
 
   const editedProposal = run?.phase === "done" ? run.proposals.find((proposal) => proposal.id === editing) ?? null : null;
 
-  // Below 1280 px only the current step is shown; its actions close its card like in the exam planner.
   const stepActions = <div className="core-step-actions xl:hidden">
     {step > 0 ? <ActionButton type="button" variant="secondary" icon={ArrowLeft} onClick={() => setStep((current) => current - 1)}>Vorheriger Schritt</ActionButton> : <span aria-hidden="true" />}
     {step < 2 ? <ActionButton type="button" variant="primary" icon={ArrowRight} onClick={() => advance()}>{step === 0 ? "Weiter zu den Vorgaben" : "Weiter zu den Karten"}</ActionButton> : <ActionButton type="submit" variant="primary" icon={ArrowRight}>Auftrag prüfen</ActionButton>}

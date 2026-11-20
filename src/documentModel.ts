@@ -17,7 +17,6 @@ function createTransientSourceDocument(input: Omit<TransientSourceDocument, "id"
 const TEXT_EXTENSIONS = [".txt", ".md", ".markdown", ".csv", ".tsv"];
 const PDF_EXTENSIONS = [".pdf"];
 
-/** The source beside a manual draft is read, not imported: tables (CSV, TSV) belong to the text import. */
 const MANUAL_SOURCE_EXTENSIONS = [".pdf", ".txt", ".md", ".markdown"];
 const MANUAL_SOURCE_MIME_TYPES = ["application/pdf", "text/plain", "text/markdown"];
 export const MANUAL_SOURCE_DOCUMENT_ACCEPT = MANUAL_SOURCE_EXTENSIONS.join(",");
@@ -42,7 +41,6 @@ function isPdfFile(file: Pick<File, "name" | "type">) {
   return type === "application/pdf" || PDF_EXTENSIONS.includes(extension);
 }
 
-/** Whether a chosen or dropped file may be the source of a manual draft; the extension decides before the browser's type. */
 export function isManualSourceDocument(file: Pick<File, "name" | "type">): boolean {
   const extension = extensionOf(file.name);
   return extension ? MANUAL_SOURCE_EXTENSIONS.includes(extension) : MANUAL_SOURCE_MIME_TYPES.includes(file.type);

@@ -281,7 +281,6 @@ function SyntaxHelp() {
         Begriffe im Suchfeld wirken genauso und erscheinen als Filter.
       </p>
       <Disclosure summary="Alle Schreibweisen">
-        {/* Below 640 px term and meaning stack, so no term breaks inside a token. */}
         <dl className="mt-2 grid min-w-0 core-body">
           {SYNTAX.map(([term, meaning]) => (
             <div key={term} className="grid min-w-0 gap-1 border-t border-core-border py-2 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] sm:gap-4">

@@ -26,7 +26,6 @@ const EXAM_GOALS = EXAM_RETENTION_LEVELS.map((retention, index) => ({ retention,
 const WEEKDAYS = ["Montag", "Dienstag", "Mittwoch", "Donnerstag", "Freitag", "Samstag", "Sonntag"];
 
 const FIELD_GROUP = "core-field-group min-w-0";
-// Hints in a guided step carry content, so they read at body size.
 const HINT = "core-body text-core-muted";
 const TERM = "core-caption text-core-muted";
 
@@ -88,7 +87,6 @@ export function ExamPlanEditor({ embedded = false, onDirtyChange, decks, deckSum
   function patchCapacity(fields: Partial<StudyTimeCapacity>) { setCapacity((value) => ({ ...value, ...fields })); }
   function go(next: number) {
     if (next > step && !canAdvance) {
-      // Weiter stays usable: it marks what is missing and takes the focus there.
       setShowErrors(true);
       requestAnimationFrame(() => inspector.current?.querySelector<HTMLElement>(step === 1 ? '[data-testid="exam-deck-selection"] input[type="checkbox"]' : plan.name.trim() ? '[role="spinbutton"]' : "input")?.focus());
       return;

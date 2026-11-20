@@ -115,14 +115,12 @@ function HelpHome({ onSelectTopic }: Pick<HelpScreenProps, "onSelectTopic">) {
   );
 }
 
-/** Help: a short entry with what learners need right away, linking to the stories and reference topics as their own pages. */
 export function HelpScreen({ topic, onSelectTopic }: HelpScreenProps) {
   const rootRef = React.useRef<HTMLDivElement>(null);
   const shownTopicRef = React.useRef(topic);
   const page = topic ? HELP_TOPIC_PAGES[topic] : null;
   const Content = page?.content;
 
-  // A new page starts at its heading; back on the entry, focus returns to the link that opened the topic.
   React.useEffect(() => {
     const previousTopic = shownTopicRef.current;
     shownTopicRef.current = topic;

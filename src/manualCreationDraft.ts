@@ -2,11 +2,7 @@ import type { AddableFieldRole, ManualContentKind, OcclusionMode } from "./coreM
 import type { OcclusionMask } from "./coreTypes.ts";
 import type { ManualImageAttachment } from "./creationWorkflow.ts";
 
-/**
- * The unsaved manual draft of one browser tab: its text lives in `sessionStorage` (survives a reload, not closing the
- * tab, never reaches the account), its images only in this page's memory. A draft of another account, an older
- * schema or an unreadable value is discarded, never shown.
- */
+/** Text lives in `sessionStorage` (survives a reload, not closing the tab), images only in this page's memory. */
 export interface ManualDraftSnapshot {
   targetDeckId: string;
   useNewDeck: boolean;
@@ -21,7 +17,7 @@ export interface ManualDraftSnapshot {
 export interface RestoredManualDraft {
   snapshot: ManualDraftSnapshot;
   images: ManualImageAttachment[];
-  /** Images the draft referenced that did not survive a reload; they were removed from the draft. */
+  /** `true` when referenced images did not survive a reload and were removed from the draft. */
   imagesLost: boolean;
 }
 
@@ -70,7 +66,7 @@ function isSnapshot(value: unknown): value is ManualDraftSnapshot {
     && (occlusion === null || (isRecord(occlusion) && (occlusion.image === null || isString(occlusion.image)) && MODES.includes(String(occlusion.mode)) && Array.isArray(occlusion.masks) && occlusion.masks.every(isMask)));
 }
 
-/** Removes the draft's own images (named by SHA-1) that are no longer in memory. */
+/** Only SHA-1-named images are the draft's own; other sources stay. */
 function withoutLostImages(html: string, available: ReadonlySet<string>) {
   return html.replace(IMAGE_PATTERN, (tag, double, single, bare) => {
     const reference = String(double ?? single ?? bare ?? "").trim().toLowerCase();
@@ -78,18 +74,16 @@ function withoutLostImages(html: string, available: ReadonlySet<string>) {
   });
 }
 
-/** Keeps the draft for this tab; images stay in memory only, since a reload cannot bring them back honestly. */
 export function storeManualDraft(accountId: string, snapshot: ManualDraftSnapshot, images: readonly ManualImageAttachment[], storage = sessionDraftStorage()) {
   if (!accountId) return;
   heldImages = { accountId, images: [...images] };
   try {
     storage?.setItem(`${KEY_PREFIX}${accountId}`, JSON.stringify({ version: SCHEMA_VERSION, accountId, snapshot }));
   } catch {
-    // A full or blocked storage keeps the draft only on this page, like before.
+    // Full or blocked storage: the draft stays only on this page.
   }
 }
 
-/** After saving or discarding: the tab holds no draft of this account any more. */
 export function clearManualDraft(accountId: string, storage = sessionDraftStorage()) {
   if (heldImages?.accountId === accountId) heldImages = null;
   try {
@@ -99,7 +93,7 @@ export function clearManualDraft(accountId: string, storage = sessionDraftStorag
   }
 }
 
-/** The draft of this account in this tab, or null; drafts of other accounts and unreadable ones are removed. */
+/** Also removes drafts of other accounts and unreadable ones. */
 export function restoreManualDraft(accountId: string, storage = sessionDraftStorage()): RestoredManualDraft | null {
   if (heldImages && heldImages.accountId !== accountId) heldImages = null;
   if (!storage || !accountId) return null;

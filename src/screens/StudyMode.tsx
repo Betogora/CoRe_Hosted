@@ -130,7 +130,7 @@ export function StudyMode({ shortcutsSuspended = false, deck, decks, notes, answ
   }
   const { queue, easyDaysContext } = queuePlanRef.current;
   const [sessionDailyProgress, setSessionDailyProgress] = React.useState(() => sessionPlan?.progress ?? queue.dailyProgress);
-  /** Answers and suspensions Strg+Z/U can take back, newest last, each with the session as it was before it. */
+  /** Answers and suspensions that can be taken back, newest last, each with the session as it was before it. */
   const undoStackRef = React.useRef<Array<{ key: string; session: DailyReviewSessionState; progress: typeof sessionDailyProgress }
     & ({ review: { result: ReviewAnswerResult; previous: Card } } | { suspended: { deckId: string; cardId: string } })>>([]);
   const effectiveReviewSession = reviewSession ?? createDailyReviewSessionState(queue.items);
@@ -345,10 +345,6 @@ export function StudyMode({ shortcutsSuspended = false, deck, decks, notes, answ
     finishOrNext(result.deck, result.updatedCard, rating, current.card.study, result.updatedCard.study, reviewedKey);
   }
 
-  /**
-   * Takes back the last answer or suspension: the card gets its earlier study state or becomes active again and shows
-   * again, the session and its counts step back.
-   */
   function undoLastStep(announce = true) {
     const last = undoStackRef.current.pop();
     if (!last) return;
@@ -375,7 +371,6 @@ export function StudyMode({ shortcutsSuspended = false, deck, decks, notes, answ
     if (announce) setSuccessToast("review" in last ? "Bewertung zurückgenommen." : "Aussetzen zurückgenommen.", { appearance: "neutral" });
   }
 
-  /** Writes a flag, mark or suspension and takes the changed card and content into the session. */
   function applyStudyState(deckId: string, cardId: string, patch: CardStudyStatePatch) {
     const updated = onSetCardStudyState(deckId, cardId, patch);
     if (!updated) return false;
@@ -410,7 +405,6 @@ export function StudyMode({ shortcutsSuspended = false, deck, decks, notes, answ
     setSuccessToast("Karte ausgesetzt.", {
       action: {
         label: "Rückgängig",
-        // Only the last step can be taken back; after further answers Strg+Z goes back through them first.
         onAction: () => undoStackRef.current.at(-1) === step
           ? undoLastStep(false)
           : setSuccessToast("Rückgängig ist nicht mehr möglich: Die Sitzung ist inzwischen weitergegangen.", { appearance: "neutral" }),
@@ -493,12 +487,10 @@ export function StudyMode({ shortcutsSuspended = false, deck, decks, notes, answ
 
   return (
     <main className={`flex min-h-screen flex-col bg-core-canvas p-4 text-core-text sm:p-8 ${current ? (showAnswer ? "pb-40 sm:pb-40" : "pb-28 sm:pb-28") : ""}`}>
-      {/* Fills the screen above the bottom padding that the fixed action bar reserves, so the card centres between head and bar. */}
       <div className="mx-auto flex w-full max-w-7xl flex-1 flex-col">
         <header className="core-study-header" data-testid="study-header">
           <div className="flex items-center justify-between gap-3">
             <IconButton type="button" onClick={onExit} label="Lernmodus verlassen" icon={X} />
-            {/* Below 640 px count and flag take the line under the deck name, so the name keeps its width. */}
             <div className="flex min-w-0 flex-col items-center sm:flex-row sm:gap-2">
               <p className="min-w-0 max-w-full truncate core-heading-3 text-core-text">{rootDeck?.name ?? deck?.name}</p>
               <span className="flex shrink-0 items-center gap-2">

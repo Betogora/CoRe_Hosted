@@ -35,7 +35,6 @@ export function cardStateLabel(card: Card, note: Note, options: CardLabelOptions
   return `${card.study.reps === 1 ? "1 Wiederholung" : `${card.study.reps} Wiederholungen`} · fällig ${nextStudyLabel}`;
 }
 
-/** Suspends or reactivates at once; its undo writes the other state again unless the card changed meanwhile (W7). */
 export async function changeSuspension(setStudyState: (cardId: string, patch: CardStudyStatePatch) => Promise<NoteGraph | null>, cardId: string, suspended: boolean) {
   const saved = (await setStudyState(cardId, { suspended }))?.cards.find((candidate) => candidate.id === cardId);
   return saved ? {
@@ -45,7 +44,6 @@ export async function changeSuspension(setStudyState: (cardId: string, patch: Ca
   } : null;
 }
 
-/** Kind of the content and, with siblings, the card's position, e.g. „Lückentext · Lücke 2 von 3“. */
 export function cardHeaderLabel(note: Note, card: Card, count: number) {
   if (count < 2) return noteKindLabel(note);
   const label = notePromptLabel(note.content, card.promptKey);
