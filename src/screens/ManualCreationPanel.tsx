@@ -73,7 +73,7 @@ export interface ManualCreationPanelProps {
   initialTargetDeckId?: string;
   onSaveManualNote: (input: ManualNoteSaveInput) => Promise<{ deck: Deck; cardIds: string[] } | null>;
   listTagDirectory?: () => Promise<TagDirectoryEntry[]>;
-  onTargetDeckChange?: (deckId: string) => unknown;
+  onTargetDeckChange?: (deckId: string, options?: { replace?: boolean }) => unknown;
   onFinish?: (result: { createdCount: number; targetDeckId: string }) => void;
   onDraftStateChange?: (dirty: boolean, focusDraft: (() => void) | null, saving: boolean) => void;
   renderHeader: (actions: React.ReactNode) => React.ReactNode;
@@ -172,7 +172,7 @@ export function ManualCreationPanel({
   React.useEffect(() => {
     const deckId = restored?.snapshot.targetDeckId;
     if (!deckId || deckId === selectedDeckId || !decks.some((deck) => deck.id === deckId)) return;
-    onTargetDeckChange(deckId);
+    onTargetDeckChange(deckId, { replace: true });
     dispatchBatch({ type: "target-deck", deckId });
   }, []);
 

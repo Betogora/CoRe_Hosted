@@ -80,7 +80,8 @@ export function storeManualDraft(accountId: string, snapshot: ManualDraftSnapsho
   try {
     storage?.setItem(`${KEY_PREFIX}${accountId}`, JSON.stringify({ version: SCHEMA_VERSION, accountId, snapshot }));
   } catch {
-    // Full or blocked storage: the draft stays only on this page.
+    // Full storage would otherwise restore an older draft; without access there is nothing to remove.
+    try { storage?.removeItem(`${KEY_PREFIX}${accountId}`); } catch { /* blocked storage */ }
   }
 }
 

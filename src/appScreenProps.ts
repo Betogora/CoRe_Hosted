@@ -58,7 +58,7 @@ export interface CreationScreenProps {
   completedCount: number;
   completionKind: CreationCompletionKind | "";
   onMethodChange: (method: CreationMethod) => unknown;
-  onTargetDeckChange: (deckId: string) => unknown;
+  onTargetDeckChange: (deckId: string, options?: { replace?: boolean }) => unknown;
   onSaveManualNote: (input: ManualNoteSaveInput) => Promise<{ deck: Deck; cardIds: string[] } | null>;
   listDeckContents: (deckId: string) => Promise<ExistingTextImportNote[]>;
   onImportTextNotes: (input: TextImportSaveInput) => Promise<{ deck: Deck; cardCount: number } | null>;

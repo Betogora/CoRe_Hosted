@@ -32,10 +32,10 @@ export function CreationScreenWiring() {
           creationDeckId: method === "manual" ? creationDeckId || decks[0]?.id : method === "ai-source" ? creationDeckId || null : null,
         } : {});
       }}
-      onTargetDeckChange={(deckId) => navigateToViewNow("neue-karten", {
+      onTargetDeckChange={(deckId, options) => navigateToViewNow("neue-karten", {
         creationMethod: "manual",
         creationDeckId: deckId || null,
-      })}
+      }, options)}
       onSaveManualNote={cardCommands.saveManualNote}
       listDeckContents={cardCommands.listDeckContents}
       onImportTextNotes={cardCommands.importTextNotes}

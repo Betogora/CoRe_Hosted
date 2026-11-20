@@ -65,7 +65,7 @@ export function DeckSummariesPanel({ deck, treeDecks, userId, cloud = null, onGe
   const dirty = view === "editor" ? JSON.stringify(draft) !== JSON.stringify(saved)
     : view === "create" && (newTitle !== (deck.name.trim().slice(0, 120) || "Zusammenfassung") || Boolean(source) || JSON.stringify(settings) !== JSON.stringify(createSummarySettings()));
 
-  const treeKey = treeDecks.map((item) => item.id).join("\n");
+  const treeKey = treeDecks.filter((item) => !item.deletedAt).map((item) => item.id).join("\n");
 
   React.useEffect(() => () => generationRef.current?.abort(), []);
 

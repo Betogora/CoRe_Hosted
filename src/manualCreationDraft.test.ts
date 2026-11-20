@@ -81,3 +81,12 @@ test("ohne zugänglichen Speicher bleibt der Entwurf nur auf der Seite", () => {
   assert.equal(restoreManualDraft("konto-a", null), null);
   clearManualDraft("konto-a", null);
 });
+
+test("ein voller Speicher stellt keinen älteren Entwurf wieder her", () => {
+  const storage = new MemoryStorage();
+  storeManualDraft("konto-a", snapshot(), [], storage);
+  const full = Object.assign(storage, { setItem: () => { throw new Error("QuotaExceededError"); } });
+  storeManualDraft("konto-a", snapshot({ deckName: "Neuer Stand" }), [], full);
+  assert.equal(restoreManualDraft("konto-a", storage), null);
+  clearManualDraft("konto-a", storage);
+});

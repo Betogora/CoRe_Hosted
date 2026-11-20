@@ -48,10 +48,10 @@ export function FlagPicker({ value, onValueChange, names, onEditNames, withNone 
                 aria-label={`Flagge ${name}`}
                 disabled={disabled}
                 onClick={() => onValueChange(pressed ? 0 : flag)}
-                className={`core-flag-option flex min-h-14 min-w-0 flex-col items-center justify-center gap-1 rounded-control border core-caption font-semibold text-core-text transition hover:bg-core-subtle disabled:cursor-not-allowed disabled:opacity-60 sm:size-control sm:min-h-0 ${pressed ? "border-core-action bg-core-subtle shadow-selection" : "border-transparent"}`}
+                className={`core-flag-option flex min-h-14 min-w-0 flex-col items-center justify-start gap-1 rounded-control pt-2.5 sm:justify-center sm:pt-0 border core-caption font-semibold text-core-text transition hover:bg-core-subtle disabled:cursor-not-allowed disabled:opacity-60 sm:size-control sm:min-h-0 ${pressed ? "border-core-action bg-core-subtle shadow-selection" : "border-transparent"}`}
               >
                 <span aria-hidden="true" className="size-4 shrink-0 rounded-round" style={{ background: `var(--core-flag-${flag})` }} />
-                <span className="max-w-full truncate sm:sr-only">{name}</span>
+                <span className="max-w-full text-center leading-tight hyphens-auto break-words sm:sr-only">{name}</span>
               </button>
             </CoreTooltip>
           );
@@ -64,7 +64,7 @@ export function FlagPicker({ value, onValueChange, names, onEditNames, withNone 
               aria-label="Keine Flagge"
               disabled={disabled}
               onClick={() => onValueChange(0)}
-              className={`flex min-h-14 min-w-0 flex-col items-center justify-center gap-1 rounded-control border core-caption font-semibold text-core-text transition hover:bg-core-subtle disabled:cursor-not-allowed disabled:opacity-60 sm:size-control sm:min-h-0 ${value === 0 ? "border-core-action bg-core-subtle shadow-selection" : "border-transparent"}`}
+              className={`flex min-h-14 min-w-0 flex-col items-center justify-start gap-1 rounded-control pt-2.5 sm:justify-center sm:pt-0 border core-caption font-semibold text-core-text transition hover:bg-core-subtle disabled:cursor-not-allowed disabled:opacity-60 sm:size-control sm:min-h-0 ${value === 0 ? "border-core-action bg-core-subtle shadow-selection" : "border-transparent"}`}
             >
               <Ban size={16} aria-hidden="true" className="shrink-0 text-core-muted" />
               <span className="max-w-full truncate sm:sr-only">Keine</span>
