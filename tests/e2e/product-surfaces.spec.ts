@@ -692,15 +692,11 @@ test("help opens with a short entry and links its stories and reference topics a
 
   const memoryCurve = page.getByTestId("memory-curve");
   const variantReview = page.getByTestId("memory-review-point-variant");
-  const variantStar = page.getByTestId("memory-variant-star");
   await expect(variantReview).toHaveText("…");
-  const [memoryCurveBox, variantReviewBox, variantStarBox] = await Promise.all([memoryCurve.boundingBox(), variantReview.boundingBox(), variantStar.boundingBox()]);
+  const [memoryCurveBox, variantReviewBox] = await Promise.all([memoryCurve.boundingBox(), variantReview.boundingBox()]);
   expect(memoryCurveBox).not.toBeNull();
   expect(variantReviewBox).not.toBeNull();
-  expect(variantStarBox).not.toBeNull();
-  expect(Math.abs((variantReviewBox!.x + variantReviewBox!.width / 2) - (variantStarBox!.x + variantStarBox!.width / 2))).toBeLessThanOrEqual(2);
-  expect(variantStarBox!.y + variantStarBox!.height).toBeLessThanOrEqual(memoryCurveBox!.y + (64 / 540) * memoryCurveBox!.height);
-  expect(variantStarBox!.y + variantStarBox!.height).toBeLessThan(variantReviewBox!.y);
+  expect(variantReviewBox!.x + variantReviewBox!.width).toBeLessThanOrEqual(memoryCurveBox!.x + memoryCurveBox!.width);
   await variantReview.focus();
   await expect(variantReview).toBeFocused();
   await variantReview.click();

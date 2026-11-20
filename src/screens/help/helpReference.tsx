@@ -52,14 +52,15 @@ export function RatingGuidePanel() {
   return (
     <section className="min-w-0" aria-labelledby="help-rating-heading" data-testid="help-rating-guide">
       <h3 id="help-rating-heading" className="core-heading-2 text-core-text">So bewertest du</h3>
-      <p className="mt-4 max-w-2xl core-body leading-6 text-core-secondary">
-        FSRS-7 traut einer sicheren Antwort große Abstände zu: Mit {chain.retentionPercent} % Zielerinnerung kommt eine neue Karte, immer mit „Gut“ bewertet, nach {chain.minutes.join(" und ")} Minuten und dann nach {days} wieder. Wähle „Gut“ deshalb nur, wenn der Abruf wirklich sicher war.
+      {/* Same measure as the introduction's text column above. */}
+      <p className="mt-4 max-w-2xl text-pretty core-body leading-6 text-core-secondary lg:w-[calc(50%-1.5rem)]">
+        FSRS-7 traut einer sicheren Antwort große Abstände zu: Mit {chain.retentionPercent}{"\u00a0"}% Zielerinnerung kommt eine neue Karte, immer mit „Gut“ bewertet, nach {chain.minutes.join(" und ")} Minuten und dann nach {days} wieder. Wähle „Gut“ deshalb nur, wenn der Abruf wirklich sicher war.
       </p>
       <dl className="mt-6 grid border-t border-core-border md:grid-cols-2 xl:grid-cols-4">
         {RATING_GUIDE.map((entry) => (
           <div key={entry.label} className="border-b border-core-border py-4 md:pr-6">
             <dt className="core-body font-semibold text-core-text">{entry.label}</dt>
-            <dd className="mt-1 core-caption leading-5 text-core-secondary">{entry.text}</dd>
+            <dd className="mt-1 text-pretty core-body leading-6 text-core-secondary">{entry.text}</dd>
           </div>
         ))}
       </dl>
@@ -90,7 +91,7 @@ export function PlanningTopic() {
                 <span className="core-caption font-semibold leading-6 tabular-nums text-core-muted" aria-hidden="true">0{index + 1}</span>
                 <div>
                   <p className="core-body font-semibold text-core-text">{step.label}</p>
-                  <p className="mt-1 core-caption leading-5 text-core-secondary">{step.text}</p>
+                  <p className="mt-1 text-pretty core-body leading-6 text-core-secondary">{step.text}</p>
                 </div>
               </li>
             ))}
@@ -143,7 +144,7 @@ export function VariantsTopic() {
     <ReferenceList testId="help-variants" items={[
       "Die Variante prüft dieselbe Wissenseinheit und führt keine neuen Fakten ein.",
       "Genau eine Originalkarte bleibt als Vertrauensanker erhalten.",
-      "Varianten erscheinen nur in der Wiederholungsphase und erst ab der Haltbarkeit des Stapels: so vielen Tagen, bis die Erinnerung voraussichtlich auf 90 % fällt. Richtige Antworten verlängern die Haltbarkeit, Fehler verkürzen sie.",
+      "Varianten erscheinen nur in der Wiederholungsphase und erst ab der Haltbarkeit des Stapels: so vielen Tagen, bis die Erinnerung voraussichtlich auf 90\u00a0% fällt. Richtige Antworten verlängern die Haltbarkeit, Fehler verkürzen sie.",
       "Frühestens drei Tage nach der letzten Antwort kommen nur noch Varianten, eine nach der anderen: Eine richtige Antwort führt zur nächsten, „Schwer“ wiederholt sie. Nach einem Fehler fragt CoRe die Originalkarte ab, bis die Haltbarkeit wieder reicht; dann geht es eine Variante zurück weiter.",
       "Der Variantenpunkt im Diagramm ist keine garantierte Produktionsschwelle und keine garantierte Reviewnummer.",
     ]} />

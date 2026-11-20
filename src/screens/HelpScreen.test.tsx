@@ -16,22 +16,22 @@ test("the help entry shows the essentials and links every topic as its own page"
   assert.match(markup, /<section[^>]*aria-labelledby="help-intro-heading"[\s\S]*?<h3 id="help-intro-heading"[^>]*>So lernst du mit CoRe<\/h3>/);
   assert.match(markup, /<h3 id="help-rating-heading"[^>]*>So bewertest du<\/h3>/);
   // The rating guide takes its example from the real scheduler at the default deck settings.
-  assert.match(markup, /Mit 93 % Zielerinnerung kommt eine neue Karte, immer mit „Gut“ bewertet, nach 10 Minuten und dann nach 4, 16, 44 und 112 Tagen wieder\./);
+  assert.match(markup, /Mit 93\u00a0% Zielerinnerung kommt eine neue Karte, immer mit „Gut“ bewertet, nach 10 Minuten und dann nach 4, 16, 44 und 112 Tagen wieder\./);
   assert.match(markup, /<nav[^>]*aria-labelledby="help-topics-heading"/);
   for (const topic of HELP_TOPICS) {
     assert.match(markup, new RegExp(`<a href="/hilfe\\?topic=${topic}"[^>]*data-help-topic-link="${topic}"`));
   }
   // The two stories hang off the learning steps they deepen.
-  assert.match(markup, /Aktiv abrufen\.[\s\S]*?data-help-topic-link="active-recall"[^>]*>Active Recall wird Smarter Recall[\s\S]*?Ehrlich bewerten\./);
-  assert.match(markup, /Rechtzeitig wiederholen\.[\s\S]*?data-help-topic-link="spaced-repetition"[^>]*>Spaced Repetition wird Content Repetition[\s\S]*?help-rating-heading/);
+  assert.match(markup, /Aktiv abrufen\.[\s\S]*?data-help-topic-link="active-recall"[^>]*>Active\u00a0Recall wird <span[^>]*>Smarter\u00a0Recall<svg[\s\S]*?Ehrlich bewerten\./);
+  assert.match(markup, /Rechtzeitig wiederholen\.[\s\S]*?data-help-topic-link="spaced-repetition"[^>]*>Spaced\u00a0Repetition wird <span[^>]*>Content\u00a0Repetition<svg[\s\S]*?help-rating-heading/);
   // Depth stays on the topic pages.
   assert.doesNotMatch(markup, /data-testid="active-recall-visual"|data-testid="spaced-repetition-visual"|help-card-management|help-exam-session|ABC of FSRS/);
 });
 
 test("a topic page carries its title, a way back to the entry and the full depth", () => {
   const pages: ReadonlyArray<[HelpTopic, string, RegExp]> = [
-    ["active-recall", "Active Recall wird Smarter Recall", /data-testid="active-recall-visual"[\s\S]*CoRe verändert die Frage, nicht das Wissen/],
-    ["spaced-repetition", "Spaced Repetition wird Content Repetition", /CoRe nutzt dafür den FSRS-Algorithmus[\s\S]*data-testid="spaced-repetition-visual"/],
+    ["active-recall", "Active\u00a0Recall wird Smarter\u00a0Recall", /data-testid="active-recall-visual"[\s\S]*CoRe verändert die Frage, nicht das Wissen/],
+    ["spaced-repetition", "Spaced\u00a0Repetition wird Content\u00a0Repetition", /CoRe nutzt dafür den FSRS-Algorithmus[\s\S]*data-testid="spaced-repetition-visual"/],
     ["planung", "So plant CoRe deine Wiederholungen", /So arbeitet ein Spaced-Repetition-Scheduler[\s\S]*Transparenz zum aktuellen Scheduler[\s\S]*R · Abrufwahrscheinlichkeit[\s\S]*href="https:\/\/github\.com\/open-spaced-repetition\/awesome-fsrs\/wiki\/ABC-of-FSRS"/],
     ["varianten", "Was bei Varianten geschützt bleibt", /Genau eine Originalkarte bleibt als Vertrauensanker erhalten\./],
     ["pruefungssitzung", "So läuft eine Prüfungssitzung", /Die Zielkarten eines Tages bleiben fest\./],

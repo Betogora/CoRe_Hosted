@@ -182,8 +182,8 @@ const DESIGN_AXIS = { left: 72, right: 928, full: 92, target: 248 } as const;
 export function memoryChartLayout(width: number) {
   const compact = width < 560;
   const axisX = 48;
-  const plotRight = width - 8;
-  const fullY = 68;
+  const plotRight = width - 16;
+  const fullY = 40;
   const targetY = fullY + Math.round(Math.min(220, Math.max(110, width * 0.25)));
   const axisBottom = targetY + 132;
   const x = (designX: number) => axisX + ((designX - DESIGN_AXIS.left) / (DESIGN_AXIS.right - DESIGN_AXIS.left)) * (plotRight - axisX);
@@ -294,7 +294,7 @@ function StoryStepCard<TSelection extends string>({
         aria-current={active ? "step" : undefined}
       >
         <h3 className="core-heading-2 text-core-text">{step.title}</h3>
-        <p className="mt-4 core-body-large leading-7 text-core-secondary">{step.text}</p>
+        <p className="mt-4 text-pretty core-body-large leading-7 text-core-secondary">{step.text}</p>
         {step.note ? <p className="mt-4 core-caption leading-5 text-core-secondary">{step.note}</p> : null}
       </article>
     </li>
@@ -318,7 +318,7 @@ function HelpExampleCardStack({
 }) {
   return (
     <div
-      className="core-help-example-stack relative mx-auto h-[39rem] w-full max-w-xl sm:h-[30rem]"
+      className="core-help-example-stack relative mx-auto h-[34rem] w-full max-w-xl sm:h-[25rem]"
       role={ariaLabel ? "img" : undefined}
       aria-label={ariaLabel}
       data-testid={rootTestId}
@@ -329,14 +329,14 @@ function HelpExampleCardStack({
       {HELP_EXAMPLE_STACK_LAYERS.map((layer) => (
         <div
           key={layer.id}
-          className={`core-help-stack-card absolute inset-x-[8%] top-20 h-[30rem] rounded-overlay border border-core-border-strong sm:h-[21rem] ${layer.className}`}
+          className={`core-help-stack-card absolute inset-x-[8%] top-10 h-[30rem] rounded-overlay border border-core-border-strong sm:h-[21rem] ${layer.className}`}
           aria-hidden="true"
           data-testid={layerTestId}
           data-help-example-stack-layer={layer.id}
         />
       ))}
       <div
-        className="core-help-stack-card core-help-stack-front absolute inset-x-[8%] top-20 z-20 grid h-[30rem] place-items-center rounded-overlay border border-core-border-strong p-6 shadow-raised sm:h-[21rem] sm:p-8"
+        className="core-help-stack-card core-help-stack-front absolute inset-x-[8%] top-10 z-20 grid h-[30rem] place-items-center rounded-overlay border border-core-border-strong p-6 shadow-raised sm:h-[21rem] sm:p-8"
         data-testid={frontTestId}
         data-help-example-stack-front="true"
       >
@@ -580,15 +580,11 @@ function MemoryCurveGraphic({ selection, onSelectionChange }: { selection: Explo
               const start = (index === 0 ? firstX : x(RATING_PATHS[index - 1].dueX)) + arrowGap;
               const end = x(rating.dueX) - arrowGap;
               return (
-                <g
-                  key={`stability-${rating.id}`}
-                  opacity={emphasized ? 1 : activeReviewId === "first" ? 0.78 : 0.32}
-                  className="transition-opacity duration-300 motion-reduce:transition-none"
-                  data-testid={`memory-stability-arrow-${rating.id}`}
-                  data-arrowheads="right"
-                >
-                  <line x1={start} y1={arrowY} x2={end} y2={arrowY} stroke={rating.color} strokeWidth={emphasized ? 4 : 2} />
-                  <path d={`M ${end - 9} ${arrowY - 6} L ${end} ${arrowY} L ${end - 9} ${arrowY + 6}`} fill="none" stroke={rating.color} strokeWidth={emphasized ? 3 : 2} strokeLinecap="round" strokeLinejoin="round" />
+                <g key={`stability-${rating.id}`} data-testid={`memory-stability-arrow-${rating.id}`} data-arrowheads="right">
+                  <g opacity={emphasized ? 1 : activeReviewId === "first" ? 0.78 : 0.5} className="transition-opacity duration-300 motion-reduce:transition-none">
+                    <line x1={start} y1={arrowY} x2={end} y2={arrowY} stroke={rating.color} strokeWidth={emphasized ? 4 : 2} />
+                    <path d={`M ${end - 9} ${arrowY - 6} L ${end} ${arrowY} L ${end - 9} ${arrowY + 6}`} fill="none" stroke={rating.color} strokeWidth={emphasized ? 3 : 2} strokeLinecap="round" strokeLinejoin="round" />
+                  </g>
                   <text x={(start + end) / 2} y={arrowY + 26} textAnchor="middle" fill={rating.color} fontSize={labelSize} fontWeight="700">S{index + 1}</text>
                 </g>
               );
@@ -612,23 +608,14 @@ function MemoryCurveGraphic({ selection, onSelectionChange }: { selection: Explo
           {RATING_PATHS.map((rating) => <path key={`hit-${rating.id}`} d={path(rating.curve)} fill="none" stroke="transparent" strokeWidth="28" pointerEvents="stroke" {...hoverProps(ratingSelectionId(rating.id))} data-testid={`memory-rating-path-${rating.id}`} />)}
           <text x={firstLabel.x} y={labelY} textAnchor={firstLabel.anchor} fill="var(--core-text-secondary)" fontSize={labelSize} fontWeight="700">1. Wiederholung</text>
           {compact ? (
-            <text y={labelY} textAnchor="end" fill="var(--core-text-secondary)" fontSize={labelSize} fontWeight="700">
-              <tspan x={plotRight}>x. Wiederholung</tspan>
-              <tspan x={plotRight} dy="20">Variante</tspan>
-            </text>
+            <g textAnchor="end" fill="var(--core-text-secondary)" fontSize={labelSize} fontWeight="700">
+              <text x={plotRight} y={labelY}>x. Wiederholung</text>
+              <text x={plotRight} y={labelY + 20}>Variante</text>
+            </g>
           ) : (
             <text x={Math.min(variantX, width - 96)} y={labelY} textAnchor="middle" fill="var(--core-text-secondary)" fontSize={labelSize} fontWeight="700">x. Wiederholung · Variante</text>
           )}
         </svg>
-
-        <span
-          className="pointer-events-none absolute z-10 grid size-7 -translate-x-1/2 -translate-y-1/2 place-items-center text-core-info transition-opacity duration-300 motion-reduce:transition-none"
-          style={{ left: variantX, top: fullY - 52, opacity: activeReviewId === null || activeReviewId === "variant" || activeParameterId === "d" ? 1 : 0.35 }}
-          aria-hidden="true"
-          data-testid="memory-variant-star"
-        >
-          <Sparkles size={19} />
-        </span>
 
         {MEMORY_REVIEWS.map((review) => {
           const nextSelection = reviewSelectionId(review.id);
@@ -679,7 +666,7 @@ export function SpacedRepetitionStory() {
 
   return (
     <div className="grid min-w-0 gap-8">
-      <p className="max-w-3xl core-body-large leading-7 text-core-secondary">Bei Spaced Repetition werden Fragen in gezielt gewählten Abständen wiederholt, um dem Vergessen entgegenzuwirken. CoRe nutzt dafür den FSRS-Algorithmus, der anhand verschiedener Parameter berechnet, wie wahrscheinlich du dich noch an eine Karte erinnerst.</p>
+      <p className="max-w-3xl text-pretty core-body-large leading-7 text-core-secondary">Bei Spaced Repetition werden Fragen in gezielt gewählten Abständen wiederholt, um dem Vergessen entgegenzuwirken. CoRe nutzt dafür den FSRS-Algorithmus, der anhand verschiedener Parameter berechnet, wie wahrscheinlich du dich noch an eine Karte erinnerst.</p>
       <div ref={containerRef} className="grid min-w-0 gap-8 xl:grid-cols-[minmax(19rem,0.65fr)_minmax(38rem,1.35fr)] xl:gap-10">
         <div className="min-w-0 self-start xl:order-2 xl:sticky xl:top-6" data-testid="spaced-repetition-diagram-column">
           <MemoryCurveGraphic selection={activeStep.selection} onSelectionChange={selectGraphPart} />

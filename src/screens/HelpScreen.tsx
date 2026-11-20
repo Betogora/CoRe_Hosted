@@ -13,8 +13,8 @@ export interface HelpScreenProps {
 }
 
 const HELP_TOPIC_PAGES: Record<HelpTopic, { title: string; content: React.ComponentType }> = {
-  "active-recall": { title: "Active Recall wird Smarter Recall", content: ActiveRecallStory },
-  "spaced-repetition": { title: "Spaced Repetition wird Content Repetition", content: SpacedRepetitionStory },
+  "active-recall": { title: "Active\u00a0Recall wird Smarter\u00a0Recall", content: ActiveRecallStory },
+  "spaced-repetition": { title: "Spaced\u00a0Repetition wird Content\u00a0Repetition", content: SpacedRepetitionStory },
   planung: { title: "So plant CoRe deine Wiederholungen", content: PlanningTopic },
   varianten: { title: "Was bei Varianten geschützt bleibt", content: VariantsTopic },
   pruefungssitzung: { title: "So läuft eine Prüfungssitzung", content: ExamSessionTopic },
@@ -52,13 +52,24 @@ function HelpTopicLink({ topic, onSelectTopic, className, children }: { topic: H
   );
 }
 
+/** Keeps the chevron on the line of the title's last word, so a wrapped link still ends in its arrow. */
+function TopicLinkLabel({ title }: { title: string }) {
+  const lastSpace = title.lastIndexOf(" ");
+  return (
+    <>
+      {title.slice(0, lastSpace + 1)}
+      <span className="whitespace-nowrap">{title.slice(lastSpace + 1)}<ChevronRight size={15} className="ml-1 inline-block align-[-0.15em]" aria-hidden="true" /></span>
+    </>
+  );
+}
+
 function HelpHome({ onSelectTopic }: Pick<HelpScreenProps, "onSelectTopic">) {
   return (
-    <div className="grid min-w-0 gap-16">
-      <section className="grid min-w-0 items-start gap-12 lg:grid-cols-[0.9fr_1.1fr]" aria-labelledby="help-intro-heading">
+    <div className="grid min-w-0 gap-12">
+      <section className="grid min-w-0 items-start gap-12 lg:grid-cols-2" aria-labelledby="help-intro-heading">
         <div className="max-w-2xl">
           <h3 id="help-intro-heading" className="core-heading-2 text-core-text">So lernst du mit CoRe</h3>
-          <p className="mt-4 core-body-large leading-relaxed text-core-secondary">
+          <p className="mt-4 text-pretty core-body-large leading-relaxed text-core-secondary">
             CoRe hilft dir, Wissen nicht nur für den nächsten Test, sondern langfristig abrufbar zu machen. Dafür verbinden wir zwei etablierte Methoden und entwickeln sie weiter.
           </p>
           <ol className="mt-6 border-t border-core-border">
@@ -66,12 +77,13 @@ function HelpHome({ onSelectTopic }: Pick<HelpScreenProps, "onSelectTopic">) {
               <li key={step.label} className="grid grid-cols-[2rem_minmax(0,1fr)] gap-2 border-b border-core-border py-4">
                 <span className="core-caption font-semibold leading-6 tabular-nums text-core-muted" aria-hidden="true">0{index + 1}</span>
                 <div className="min-w-0">
-                  <p className="core-body leading-6 text-core-secondary"><span className="font-semibold text-core-text">{step.label}.</span> {step.text}</p>
+                  <p className="text-pretty core-body leading-6 text-core-secondary"><span className="font-semibold text-core-text">{step.label}.</span> {step.text}</p>
                   {step.topic ? (
-                    <HelpTopicLink topic={step.topic} onSelectTopic={onSelectTopic} className="-ml-1 mt-1 inline-flex min-h-button items-center gap-1 rounded-control px-1 core-control-label font-semibold text-core-action underline-offset-4 hover:underline">
-                      {HELP_TOPIC_PAGES[step.topic].title}
-                      <ChevronRight size={15} className="shrink-0" aria-hidden="true" />
-                    </HelpTopicLink>
+                    <p className="mt-2">
+                      <HelpTopicLink topic={step.topic} onSelectTopic={onSelectTopic} className="rounded-control py-1.5 core-control-label font-semibold text-core-action underline-offset-4 hover:underline">
+                        <TopicLinkLabel title={HELP_TOPIC_PAGES[step.topic].title} />
+                      </HelpTopicLink>
+                    </p>
                   ) : null}
                 </div>
               </li>
@@ -90,9 +102,10 @@ function HelpHome({ onSelectTopic }: Pick<HelpScreenProps, "onSelectTopic">) {
         <ul className="mt-4 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
           {REFERENCE_TOPICS.map(({ topic, icon: Icon }) => (
             <li key={topic} className="grid">
-              <HelpTopicLink topic={topic} onSelectTopic={onSelectTopic} className="grid grid-cols-[auto_minmax(0,1fr)] content-start items-start gap-3.5 rounded-control border border-core-border bg-core-surface px-5 py-6 text-left transition-colors hover:border-core-border-strong hover:bg-core-subtle">
+              <HelpTopicLink topic={topic} onSelectTopic={onSelectTopic} className="group grid grid-cols-[auto_minmax(0,1fr)_auto] items-start gap-3.5 rounded-control border border-core-border bg-core-surface px-5 py-6 text-left transition-colors hover:border-core-border-strong hover:bg-core-subtle">
                 <Icon size={24} className="text-core-action" aria-hidden="true" />
                 <span className="break-words core-heading-3 text-core-text">{HELP_TOPIC_PAGES[topic].title}</span>
+                <ChevronRight size={20} className="self-center text-core-muted transition-[color,transform] group-hover:translate-x-0.5 group-hover:text-core-action group-focus-visible:text-core-action motion-reduce:transition-none" aria-hidden="true" />
               </HelpTopicLink>
             </li>
           ))}
