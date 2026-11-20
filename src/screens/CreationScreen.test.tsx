@@ -122,11 +122,11 @@ test("manual creation restores this tab's draft of the account and says which im
 
     // The editors take their HTML after mounting; the restored draft shows in the image notice and the discard action.
     assert.match(markup, /Bilder des Entwurfs gehen beim Neuladen verloren\. Füge sie erneut ein\./);
-    assert.match(markup, /<button type="button" class="core-action-secondary ">(?:<span>)?Entwurf verwerfen/);
+    assert.match(markup, /<button type="button" class="core-action-secondary core-action-destructive-secondary [^"]*">(?:<span>)?Entwurf verwerfen/);
 
     const otherAccount = renderToStaticMarkup(<CreationScreen accountId="konto-b" decks={[deck]} initialMethod="manual" initialTargetDeckId={deck.id} {...callbacks} />);
     assert.doesNotMatch(otherAccount, /Bilder des Entwurfs/);
-    assert.match(otherAccount, /<button type="button" disabled="" class="core-action-secondary ">(?:<span>)?Entwurf verwerfen/);
+    assert.match(otherAccount, /<button type="button" disabled="" class="core-action-secondary core-action-destructive-secondary [^"]*">(?:<span>)?Entwurf verwerfen/);
     assert.equal(values.size, 0, "der Entwurf eines anderen Kontos verlässt den Tab");
   } finally {
     if (original) Object.defineProperty(globalThis, "sessionStorage", original);
@@ -144,7 +144,8 @@ test("manual target selection shows complete deck paths", () => {
   assert.match(markup, /Biologie \/ Zelle/);
   assert.match(markup, /data-deck-select-trigger="true"/);
   assert.match(markup, /data-deck-icon="true"/);
-  assert.match(markup, /Fertig/);
+  assert.doesNotMatch(markup, />Fertig</, "Fertig erscheint erst mit der ersten gespeicherten Karte");
+  assert.match(markup, /data-testid="manual-actions"[\s\S]*?Originalkarte speichern[\s\S]*?Entwurf verwerfen/);
 });
 
 test("manual options share one desktop row and keep labeled segmented choices", () => {
@@ -159,7 +160,7 @@ test("manual options share one desktop row and keep labeled segmented choices", 
   assert.match(markup, />Lernrichtung</);
   assert.match(markup, /aria-label="Lernrichtung"[^>]*core-segmented-control/);
   assert.match(markup, />Beide Richtungen</);
-  assert.doesNotMatch(markup, /Weitere Optionen|role="switch"|Antwortoptionen statt freier Antwort verwenden|Vorder- und Rückseite zusätzlich umgekehrt abfragen/);
+  assert.doesNotMatch(markup, /Weitere Optionen|Antwortoptionen statt freier Antwort verwenden|Vorder- und Rückseite zusätzlich umgekehrt abfragen/);
 });
 
 test("manual images are editor actions without separate drop fields", () => {
@@ -169,7 +170,7 @@ test("manual images are editor actions without separate drop fields", () => {
   assert.equal((markup.match(/accept="image\/\*"/g) ?? []).length, 2);
   assert.doesNotMatch(markup, /Bild zur (?:Vorder|Rück)seite einfügen|kind="image"/);
   const blocks = markup.slice(markup.indexOf('data-testid="note-blocks"'));
-  assert.match(blocks, /aria-pressed="false"[^>]*>.*?Antwort eintippen/);
+  assert.match(blocks, /role="switch"[^>]*>.*?Antwort eintippen/);
   for (const label of ["Zusatzfrage", "Hinweis", "Zusatz", "Quelle"]) assert.match(blocks, new RegExp(`${label}</button>`));
   assert.doesNotMatch(markup, /<details|<summary|Weitere Felder/);
 });

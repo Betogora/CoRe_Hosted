@@ -1,5 +1,7 @@
-import { BookOpen, Check, Keyboard, Lightbulb, MessageSquarePlus, Plus, StickyNote, type LucideIcon } from "lucide-react";
+import { BookOpen, Lightbulb, MessageSquarePlus, Plus, StickyNote, type LucideIcon } from "lucide-react";
 import type { AddableFieldRole } from "../coreModel.ts";
+import { CoreSwitch } from "./formControls.tsx";
+import { CoreTooltip } from "./tooltipUi.tsx";
 
 export interface NoteBlockControlsProps {
   /** Null where the content cannot type its answer (cloze, choice, imported structures). */
@@ -18,34 +20,29 @@ const FIELD_BLOCKS: Record<AddableFieldRole, { icon: LucideIcon; description: st
   source: { icon: BookOpen, description: "Quellenangabe oder Link unter der Antwort." },
 };
 
-const TYPE_IN = { label: "Antwort eintippen", icon: Keyboard, description: "Die Antwort wird eingetippt und Zeichen für Zeichen verglichen." };
+const TYPE_IN_DESCRIPTION = "Die Antwort wird eingetippt und Zeichen für Zeichen verglichen.";
 
-/** Building blocks shared by manual creation and the card editor: answer typing and fields with a role. */
+/** Building blocks shared by manual creation and the card editor: answer typing as a switch, fields with a role to add. */
 export function NoteBlockControls({ typeIn, fieldRoles, onTypeInChange, onAddField }: NoteBlockControlsProps) {
   return (
     <div className="grid min-w-0 gap-2 sm:grid-cols-[max-content_minmax(0,1fr)] sm:items-start sm:gap-3" data-testid="note-blocks">
       <span className="core-field-label sm:flex sm:min-h-button sm:items-center">Bausteine</span>
       <div className="flex min-w-0 flex-wrap items-center gap-2" role="group" aria-label="Bausteine">
         {typeIn !== null ? (
-          <button
-            type="button"
-            aria-pressed={typeIn}
-            title={TYPE_IN.description}
-            onClick={() => onTypeInChange(!typeIn)}
-            className="core-action-secondary aria-pressed:border-core-action aria-pressed:bg-[var(--core-action-soft)] aria-pressed:text-core-action"
-          >
-            {typeIn ? <Check size={16} aria-hidden="true" /> : <TYPE_IN.icon size={16} aria-hidden="true" />}
-            {TYPE_IN.label}
-          </button>
+          <CoreTooltip label={TYPE_IN_DESCRIPTION}>
+            <CoreSwitch checked={typeIn} onCheckedChange={onTypeInChange} label="Antwort eintippen" className="mr-4" />
+          </CoreTooltip>
         ) : null}
         {fieldRoles.map((role) => {
           const { icon: Icon, description } = FIELD_BLOCKS[role];
           return (
-            <button key={role} type="button" title={description} onClick={() => onAddField(role)} className="core-action-ghost">
-              <Plus size={16} aria-hidden="true" />
-              <Icon size={16} aria-hidden="true" />
-              {NOTE_FIELD_ROLE_LABELS[role]}
-            </button>
+            <CoreTooltip key={role} label={description}>
+              <button type="button" onClick={() => onAddField(role)} className="core-action-ghost">
+                <Plus size={16} aria-hidden="true" />
+                <Icon size={16} aria-hidden="true" />
+                {NOTE_FIELD_ROLE_LABELS[role]}
+              </button>
+            </CoreTooltip>
           );
         })}
       </div>

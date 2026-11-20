@@ -2514,6 +2514,11 @@ body:has([aria-modal="true"]) .core-success-toast {
       min-height: calc(var(--core-control-height) - 0.5rem);
       padding-inline: 0.25rem;
     }
+
+    /* Both directions share the row by their label widths, so „Beide Richtungen“ keeps its inner spacing at 320 px. */
+    .core-learning-direction-control {
+      grid-auto-columns: auto;
+    }
   }
 
   .core-table-header-control {
