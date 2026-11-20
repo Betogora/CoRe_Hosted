@@ -497,14 +497,15 @@ export function StudyMode({ shortcutsSuspended = false, deck, decks, notes, answ
   }, [current, showAnswer, showSettings, showAiHelp, shortcutsSuspended, sessionDecks, reviewSession]);
 
   return (
-    <main className={`min-h-screen bg-core-canvas p-4 text-core-text sm:p-8 ${current ? (showAnswer ? "pb-40 sm:pb-40" : "pb-28 sm:pb-28") : ""}`}>
-      <div className="mx-auto flex min-h-[calc(100vh-2rem)] w-full max-w-7xl flex-col sm:min-h-[calc(100vh-4rem)]">
+    <main className={`flex min-h-screen flex-col bg-core-canvas p-4 text-core-text sm:p-8 ${current ? (showAnswer ? "pb-40 sm:pb-40" : "pb-28 sm:pb-28") : ""}`}>
+      {/* Fills the screen above the bottom padding that the fixed action bar reserves, so the card centres between head and bar. */}
+      <div className="mx-auto flex w-full max-w-7xl flex-1 flex-col">
         <header className="core-study-header" data-testid="study-header">
           <div className="flex items-center justify-between gap-3">
             <IconButton type="button" onClick={onExit} label="Lernmodus verlassen" icon={X} />
             <div className="flex min-w-0 items-center justify-center gap-2">
               <p className="min-w-0 truncate core-heading-3 text-core-text">{rootDeck?.name ?? deck?.name}</p>
-              <span className="shrink-0 core-body font-medium tabular-nums text-core-muted">{sessionDailyProgress.completedTodayCount} / {sessionDailyProgress.total} Karten</span>
+              <span className="shrink-0 core-body font-medium tabular-nums text-core-muted">{sessionDailyProgress.completedTodayCount} / {sessionDailyProgress.total}<span className="max-sm:sr-only"> Karten</span></span>
               {current?.card.ankiFlag ? <FlagDot flag={current.card.ankiFlag} names={flagNames} /> : null}
             </div>
             <IconButton ref={settingsButtonRef} type="button" onClick={() => setShowSettings((value) => !value)} label="Lerneinstellungen" icon={SlidersHorizontal} aria-haspopup="dialog" aria-expanded={showSettings} aria-controls="study-settings-overlay" />
