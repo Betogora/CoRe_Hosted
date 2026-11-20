@@ -1,5 +1,5 @@
 import React from "react";
-import { ArrowDown, ArrowUp, Layers, Search, Star } from "lucide-react";
+import { ArrowDown, ArrowUp, Layers, Pause, Search, Star } from "lucide-react";
 import type { CardTableSort, CardTableSortField } from "../../libraryModel.ts";
 import type { CardCatalogEntry, NoteGraph } from "../../workspaceReplica.ts";
 import { FlagDot } from "../../ui/flagUi.tsx";
@@ -127,6 +127,8 @@ const CardTableRowView = React.memo(function CardTableRowView({ virtualKey, deck
             }}
           />
         ) : null}
+        {/* The same pause symbol as in the card editor; the date cell names the state for screen readers. */}
+        {suspended ? <Pause size={16} className="mt-0.5 shrink-0 text-core-text" aria-hidden="true" data-testid="card-row-suspended" /> : null}
         <button
           type="button"
           data-testid={"deck-card-" + card.id}
