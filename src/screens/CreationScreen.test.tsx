@@ -145,7 +145,7 @@ test("manual target selection shows complete deck paths", () => {
   assert.match(markup, /data-deck-select-trigger="true"/);
   assert.match(markup, /data-deck-icon="true"/);
   assert.doesNotMatch(markup, />Fertig</, "Fertig erscheint erst mit der ersten gespeicherten Karte");
-  assert.match(markup, /data-testid="manual-actions"[\s\S]*?Originalkarte speichern[\s\S]*?Entwurf verwerfen/);
+  assert.match(markup, /data-testid="manual-actions"[\s\S]*?Karte speichern[\s\S]*?Entwurf verwerfen/);
 });
 
 test("manual options share one desktop row and keep labeled segmented choices", () => {

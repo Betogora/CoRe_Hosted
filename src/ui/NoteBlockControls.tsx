@@ -27,17 +27,18 @@ export function NoteBlockControls({ typeIn, fieldRoles, onTypeInChange, onAddFie
   return (
     <div className="grid min-w-0 gap-2 sm:grid-cols-[max-content_minmax(0,1fr)] sm:items-start sm:gap-3" data-testid="note-blocks">
       <span className="core-field-label sm:flex sm:min-h-button sm:items-center">Bausteine</span>
-      <div className="flex min-w-0 flex-wrap items-center gap-2" role="group" aria-label="Bausteine">
+      {/* Phones set the blocks in columns below the switch; wider rows let them flow side by side. */}
+      <div className="grid min-w-0 grid-cols-[repeat(auto-fill,minmax(9.5rem,1fr))] items-center gap-x-4 gap-y-1 sm:flex sm:flex-wrap sm:gap-2" role="group" aria-label="Bausteine">
         {typeIn !== null ? (
           <CoreTooltip label={TYPE_IN_DESCRIPTION}>
-            <CoreSwitch checked={typeIn} onCheckedChange={onTypeInChange} label="Antwort eintippen" className="mr-4" />
+            <CoreSwitch checked={typeIn} onCheckedChange={onTypeInChange} label="Antwort eintippen" className="col-span-full sm:mr-4" />
           </CoreTooltip>
         ) : null}
         {fieldRoles.map((role) => {
           const { icon: Icon, description } = FIELD_BLOCKS[role];
           return (
             <CoreTooltip key={role} label={description}>
-              <button type="button" onClick={() => onAddField(role)} className="core-action-ghost">
+              <button type="button" onClick={() => onAddField(role)} className="core-action-ghost -mx-2 justify-start px-2 sm:mx-0 sm:justify-center sm:px-4">
                 <Plus size={16} aria-hidden="true" />
                 <Icon size={16} aria-hidden="true" />
                 {NOTE_FIELD_ROLE_LABELS[role]}

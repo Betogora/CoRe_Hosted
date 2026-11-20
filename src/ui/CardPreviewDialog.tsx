@@ -16,6 +16,8 @@ const PREVIEW_SIDE_OPTIONS = [
   { value: "question", label: "Vorderseite" },
   { value: "answer", label: "Rückseite" },
 ] as const;
+/** At either end the arrow fades to a bare glyph, so it never reads like the active direction. */
+const NAVIGATION_END = "disabled:bg-transparent disabled:opacity-40";
 
 export interface CardPreviewDialogProps {
   open: boolean;
@@ -106,7 +108,7 @@ export function CardPreviewDialog({
           event.preventDefault();
           showCard(event.key === "ArrowLeft" ? -1 : 1);
         }}
-        className="core-card-preview-dialog core-overlay flex h-[100dvh] w-full flex-col overflow-hidden border-0 sm:h-auto sm:max-h-[92dvh] sm:max-w-6xl sm:rounded-overlay sm:border"
+        className="core-card-preview-dialog core-overlay flex h-[100dvh] w-full flex-col overflow-hidden border-0 sm:h-auto sm:max-h-[92dvh] sm:max-w-3xl sm:rounded-overlay sm:border"
       >
         <header className="flex min-h-16 items-center gap-4 border-b border-core-border px-4 sm:px-6">
           <h2 id={titleId} className="min-w-0 flex-1 core-heading-2 text-core-text">Kartenvorschau</h2>
@@ -114,7 +116,7 @@ export function CardPreviewDialog({
         </header>
 
         <div className="grid min-h-0 flex-1 overflow-y-auto overscroll-contain bg-core-surface px-4 sm:px-8">
-          <div ref={stageRef} tabIndex={-1} className="core-study-card flex min-h-[min(50vh,28rem)] w-full min-w-0 flex-col justify-center py-6 outline-none sm:py-10" data-testid="card-preview-stage">
+          <div ref={stageRef} tabIndex={-1} className="core-study-card flex min-h-[min(40vh,20rem)] w-full min-w-0 flex-col justify-center py-6 outline-none sm:py-10" data-testid="card-preview-stage">
             {note && card ? (
               <NoteCardContent key={round} note={note} card={card} surface="preview" mediaUrls={mediaUrls} revealed={side === "answer"} onReveal={() => setSide("answer")} />
             ) : (
@@ -127,14 +129,14 @@ export function CardPreviewDialog({
           {note && card && cards.length > 1 ? (
             <div role="group" aria-label="Karte in der Vorschau" className="flex min-w-0 items-center gap-2" data-testid="card-preview-navigation">
               <CoreTooltip label="Vorige Karte · ←">
-                <IconButton ref={previousButtonRef} icon={ChevronLeft} label="Vorige Karte" disabled={shownIndex === 0} onClick={() => showCard(-1)} />
+                <IconButton ref={previousButtonRef} icon={ChevronLeft} label="Vorige Karte" className={NAVIGATION_END} disabled={shownIndex === 0} onClick={() => showCard(-1)} />
               </CoreTooltip>
               <p className="grid min-w-0 flex-1 text-center sm:w-44 sm:flex-none" aria-live="polite" data-testid="card-preview-position">
                 <span className="core-body font-semibold tabular-nums text-core-text">Karte {shownIndex + 1} von {cards.length}</span>
                 <span className="truncate core-caption text-core-muted">{notePromptLabel(note.content, card.promptKey)}</span>
               </p>
               <CoreTooltip label="Nächste Karte · →">
-                <IconButton ref={nextButtonRef} icon={ChevronRight} label="Nächste Karte" disabled={shownIndex === cards.length - 1} onClick={() => showCard(1)} />
+                <IconButton ref={nextButtonRef} icon={ChevronRight} label="Nächste Karte" className={NAVIGATION_END} disabled={shownIndex === cards.length - 1} onClick={() => showCard(1)} />
               </CoreTooltip>
             </div>
           ) : null}

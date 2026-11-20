@@ -20,7 +20,7 @@ test("CardPreviewDialog renders the content in an accessible larger dialog with 
   assert.match(markup, /aria-label="Kartenseite anzeigen"/);
   assert.match(markup, />Vorderseite<\/button>/);
   assert.match(markup, />Rückseite<\/button>/);
-  assert.match(markup, /sm:max-h-\[92dvh\].*sm:max-w-6xl/);
+  assert.match(markup, /sm:max-h-\[92dvh\].*sm:max-w-3xl/);
   assert.doesNotMatch(markup, /Antwort anzeigen|Bewertung Gut/);
   assert.doesNotMatch(markup, /card-preview-navigation/, "eine einzelne Karte braucht keinen Kartenwechsel");
 });
