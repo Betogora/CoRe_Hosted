@@ -25,8 +25,8 @@ const SYNTAX: ReadonlyArray<[string, string]> = [
   ["-kopf", "Schließt den Begriff aus"],
   ["\"vena cava\"  deck:\"Anatomie 1\"", "Genau diese Wortfolge; Anführungszeichen auch für Begriffe mit Leerzeichen"],
   ["flag:1 or flag:2", "Einer der beiden genügt; `or` bindet schwächer als das Nebeneinander"],
-  ["(herz or lunge)  -(tag:a or tag:b)", "Klammern fassen zusammen; ein Minus `-` davor schließt die ganze Gruppe aus"],
-  ["ursprung:scaleni", "Nur im Feld „Ursprung“, Leerzeichen im Feldnamen als Unterstrich `_`"],
+  ["(herz or lunge)  -(tag:a or tag:b)", "Klammern fassen zusammen; ein Minuszeichen\u00a0`-` davor schließt die ganze Gruppe aus"],
+  ["ursprung:scaleni", "Nur im Feld „Ursprung“, Leerzeichen im Feldnamen als Unterstrich\u00a0`_`"],
   ["did:<Stapel-ID>", "Stapel samt Unterstapeln über seine ID; setzt der Stapelfilter"],
   ["tag:anatomie", "Tag samt Untertags; `tag:none` ohne Tags"],
   ["flag:1", "Flagge 1 bis 7; `flag:0` ohne Flagge"],
@@ -34,13 +34,13 @@ const SYNTAX: ReadonlyArray<[string, string]> = [
   ["is:due  is:suspended", "Heute fällig, ausgesetzt"],
   ["prop:due<0  prop:due=1", "Überfällig, morgen fällig (Tage ab heute)"],
   ["tag:leech  tag:marked  has:variant", "Lernbremse, markiert, mit Variante"],
-  ["deck:Biologie  deck:*zell*", "Stapel nach Pfad (`A::B`) samt Unterstapeln; `*` beliebig, Unterstrich `_` ein Zeichen"],
+  ["deck:Biologie  deck:*zell*", "Stapel nach Pfad (`A::B`) samt Unterstapeln; `*` beliebig, Unterstrich\u00a0`_` ein Zeichen"],
   ["rated:7  rated:7:1", "In den letzten 7 Tagen gelernt, davon mit Nochmal (2 Schwer, 3 Gut, 4 Leicht)"],
   ["added:1  edited:1  introduced:1  resched:1", "Heute hinzugefügt, bearbeitet, erstmals gelernt, neu geplant"],
   ["prop:ivl>=21  prop:d>7  prop:reps=0  prop:lapses>3", "Intervall in Tagen, Schwierigkeit 1 bis 10, Wiederholungen, Fehler; auch `<`, `<=`, `=`, `!=`"],
   ["prop:s>=90", "Haltbarkeit in Tagen; zählt ab der nächsten Antwort einer Karte"],
   ["is:reveal  is:choice  is:cloze  is:occlusion", "Frage–Antwort, Auswahl, Lückentext, Bildverdeckung"],
-  ["note:Basic  has:outdated", "Anki-Notiztyp (wie `deck:` mit `*` und Unterstrich `_`), Karten mit veralteter Variante"],
+  ["note:Basic  has:outdated", "Anki-Notiztyp (wie `deck:` mit `*` und Unterstrich\u00a0`_`), Karten mit veralteter Variante"],
   ["card:2  is:buried", "Zweite Abfrage (Vorlage, Lücke oder Maske), heute manuell zurückgestellt"],
 ];
 
@@ -291,7 +291,7 @@ function SyntaxHelp() {
           {SYNTAX.map(([term, meaning]) => (
             <div key={term} className="grid min-w-0 gap-1 border-t border-core-border py-2 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] sm:gap-4">
               <dt><code className="font-mono text-core-text">{term.split("  ").map((part, index) => <React.Fragment key={part}>{index ? " " : null}<span className="whitespace-nowrap">{part}</span></React.Fragment>)}</code></dt>
-              <dd className="text-core-secondary">{meaning.split("`").map((part, index) => index % 2 ? <code key={index} className="rounded-inset bg-core-subtle px-1 font-mono text-core-text">{part}</code> : part)}</dd>
+              <dd className="text-core-secondary">{meaning.split("`").map((part, index) => index % 2 ? <code key={index} className={`rounded-inset bg-core-subtle font-mono font-semibold text-core-text ${part.length === 1 ? "px-1.5" : "px-1"}`}>{part}</code> : part)}</dd>
             </div>
           ))}
         </dl>
