@@ -4,6 +4,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { appRouteToUrl, createViewRoute, HELP_TOPICS, parseAppRouteFromUrl, type HelpTopic } from "../appNavigation.ts";
 import { projectAppRoute } from "../useAppNavigation.ts";
 import { HelpScreen } from "./HelpScreen.tsx";
+import { memoryChartLayout } from "./help/helpStories.tsx";
 
 const render = (topic: HelpTopic | null) => renderToStaticMarkup(<HelpScreen topic={topic} onSelectTopic={() => undefined} />);
 
@@ -20,6 +21,9 @@ test("the help entry shows the essentials and links every topic as its own page"
   for (const topic of HELP_TOPICS) {
     assert.match(markup, new RegExp(`<a href="/hilfe\\?topic=${topic}"[^>]*data-help-topic-link="${topic}"`));
   }
+  // The two stories hang off the learning steps they deepen.
+  assert.match(markup, /Aktiv abrufen\.[\s\S]*?data-help-topic-link="active-recall"[^>]*>Active Recall wird Smarter Recall[\s\S]*?Ehrlich bewerten\./);
+  assert.match(markup, /Rechtzeitig wiederholen\.[\s\S]*?data-help-topic-link="spaced-repetition"[^>]*>Spaced Repetition wird Content Repetition[\s\S]*?help-rating-heading/);
   // Depth stays on the topic pages.
   assert.doesNotMatch(markup, /data-testid="active-recall-visual"|data-testid="spaced-repetition-visual"|help-card-management|help-exam-session|ABC of FSRS/);
 });
@@ -57,4 +61,18 @@ test("entry, topic and back are browser history entries with shareable URLs", ()
   assert.equal(appRouteToUrl(createViewRoute("hilfe")), "/hilfe");
   assert.equal(projectAppRoute(parseAppRouteFromUrl("/hilfe?topic=unbekannt")).helpTopic, null);
   assert.equal(projectAppRoute(parseAppRouteFromUrl("/lernen?topic=planung")).helpTopic, null);
+});
+
+test("the memory chart fits its width: curves end at the plot edge and narrow charts keep their labels inside", () => {
+  for (const width of [288, 358, 559, 560, 880, 1100]) {
+    const layout = memoryChartLayout(width);
+    assert.equal(layout.compact, width < 560, `${width}: Kompaktlage`);
+    assert.equal(layout.x(72), layout.axisX, `${width}: Achsbeginn`);
+    assert.equal(layout.x(928), layout.plotRight, `${width}: Kurven enden am Plotrand`);
+    assert.ok(layout.plotRight < width, `${width}: Plot ragt über die Breite`);
+    assert.ok(layout.targetY - layout.fullY >= 110, `${width}: Kurvenbereich zu flach`);
+  }
+  // From the wide layout on, the labels centred under the first review stay clear of the y axis.
+  const wide = memoryChartLayout(560);
+  assert.ok(wide.x(220) - 80 > wide.axisX);
 });

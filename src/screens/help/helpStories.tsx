@@ -13,11 +13,14 @@ interface MemoryReview {
   reviewX: number;
 }
 
+/** A cubic curve in the design space of the chart: start, two control points and end as x/y pairs. */
+type DesignCurve = readonly [number, number, number, number, number, number, number, number];
+
 interface RatingPath {
   id: RatingId;
   color: string;
   dueX: number;
-  curvePath: string;
+  curve: DesignCurve;
 }
 
 interface StoryStep<TSelection extends string> {
@@ -48,29 +51,30 @@ const RATING_PATHS: readonly RatingPath[] = [
     id: "again",
     color: "var(--core-rating-again-text)",
     dueX: 350,
-    curvePath: "M 220 92 C 258 112, 318 186, 350 248",
+    curve: [220, 92, 258, 112, 318, 186, 350, 248],
   },
   {
     id: "hard",
     color: "var(--core-rating-hard-text)",
     dueX: 500,
-    curvePath: "M 220 92 C 292 102, 438 164, 500 248",
+    curve: [220, 92, 292, 102, 438, 164, 500, 248],
   },
   {
     id: "good",
     color: "var(--core-rating-good-text)",
     dueX: 680,
-    curvePath: "M 220 92 C 328 96, 586 146, 680 248",
+    curve: [220, 92, 328, 96, 586, 146, 680, 248],
   },
   {
     id: "easy",
     color: "var(--core-rating-easy-text)",
     dueX: 855,
-    curvePath: "M 220 92 C 364 94, 734 126, 855 248",
+    curve: [220, 92, 364, 94, 734, 126, 855, 248],
   },
 ];
 
-const INITIAL_CURVE_PATH = "M 74 92 C 118 104, 176 168, 220 248";
+const INITIAL_CURVE: DesignCurve = [74, 92, 118, 104, 176, 168, 220, 248];
+const VARIANT_CURVE: DesignCurve = [855, 92, 878, 96, 906, 106, 928, 122];
 
 const ACTIVE_RECALL_STEPS: readonly StoryStep<"stack" | "blur" | "variants">[] = [
   {
@@ -162,11 +166,33 @@ const SPACED_REPETITION_STEPS: readonly StoryStep<ExplorerSelectionId>[] = [
   },
 ];
 
-const PARAMETER_POSITIONS: Record<ParameterId, { left: string; top: string }> = {
-  r: { left: "1.5rem", top: "36.7%" },
-  d: { left: "52%", top: "1%" },
-  s: { left: "52%", top: "80%" },
+const PARAMETER_LABELS: Record<ParameterId, string> = {
+  r: "R · Abrufwahrscheinlichkeit",
+  s: "S · Stabilität",
+  d: "D · Schwierigkeit",
 };
+
+/** Design space of the curves: the x axis runs from 72 to 928, R falls from 100 % at y 92 to 90 % at y 248. */
+const DESIGN_AXIS = { left: 72, right: 928, full: 92, target: 248 } as const;
+
+/**
+ * Lays the chart out in real pixels for the measured width: curves stretch with the plot, while text, markers and
+ * review points keep their size. Narrow charts move the review labels inside the plot instead of centring them.
+ */
+export function memoryChartLayout(width: number) {
+  const compact = width < 560;
+  const axisX = 48;
+  const plotRight = width - 8;
+  const fullY = 68;
+  const targetY = fullY + Math.round(Math.min(220, Math.max(110, width * 0.25)));
+  const axisBottom = targetY + 132;
+  const x = (designX: number) => axisX + ((designX - DESIGN_AXIS.left) / (DESIGN_AXIS.right - DESIGN_AXIS.left)) * (plotRight - axisX);
+  const y = (designY: number) => fullY + ((designY - DESIGN_AXIS.full) / (DESIGN_AXIS.target - DESIGN_AXIS.full)) * (targetY - fullY);
+  const path = (curve: DesignCurve) => `M ${x(curve[0])} ${y(curve[1])} C ${x(curve[2])} ${y(curve[3])}, ${x(curve[4])} ${y(curve[5])}, ${x(curve[6])} ${y(curve[7])}`;
+  return { compact, width, height: axisBottom + 2, axisX, plotRight, fullY, targetY, axisBottom, x, path };
+}
+
+const DEFAULT_CHART_WIDTH = 880;
 
 function reviewSelectionId(id: ReviewId): ExplorerSelectionId {
   return `review-${id}`;
@@ -260,7 +286,7 @@ function StoryStepCard<TSelection extends string>({
   testId?: string;
 }) {
   return (
-    <li id={elementId} className="flex min-w-0 min-h-[58svh] items-center py-8 xl:min-h-[68svh]" data-story-step={index} data-testid={testId}>
+    <li id={elementId} className="flex min-w-0 min-h-[58svh] items-center py-8 first:items-start first:pt-0 xl:min-h-[68svh]" data-story-step={index} data-testid={testId}>
       <article
         className={`min-w-0 w-full rounded-panel px-6 py-5 transition-[background-color,opacity,transform] duration-300 motion-reduce:transition-none ${active ? "translate-x-0 bg-core-surface opacity-100" : "translate-x-2 opacity-70"}`}
         tabIndex={0}
@@ -440,7 +466,17 @@ export function ActiveRecallStory() {
   );
 }
 
+function DifficultyMarker({ active }: { active: boolean }) {
+  return (
+    <svg width="14" height="14" viewBox="0 0 14 14" className="shrink-0" aria-hidden="true">
+      <path d="M 7 1 L 13 7 L 7 13 L 1 7 Z" fill="var(--core-surface-raised)" stroke={active ? "var(--core-warning)" : "currentColor"} strokeWidth="2" />
+    </svg>
+  );
+}
+
 function MemoryCurveGraphic({ selection, onSelectionChange }: { selection: ExplorerSelectionId; onSelectionChange: (selection: ExplorerSelectionId) => void }) {
+  const frameRef = React.useRef<HTMLDivElement>(null);
+  const [width, setWidth] = React.useState(DEFAULT_CHART_WIDTH);
   const [hoveredSelection, setHoveredSelection] = React.useState<ExplorerSelectionId | null>(null);
   const [focusedSelection, setFocusedSelection] = React.useState<ExplorerSelectionId | null>(null);
   const activeSelection = hoveredSelection ?? focusedSelection ?? selection;
@@ -448,6 +484,25 @@ function MemoryCurveGraphic({ selection, onSelectionChange }: { selection: Explo
   const activeRatingId = getActiveRatingId(activeSelection);
   const activeParameterId = getActiveParameterId(activeSelection);
   const ratingsActive = activeSelection === "ratings";
+
+  React.useLayoutEffect(() => {
+    const frame = frameRef.current;
+    if (!frame) return undefined;
+    const measure = () => setWidth(Math.round(frame.clientWidth) || DEFAULT_CHART_WIDTH);
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(frame);
+    return () => observer.disconnect();
+  }, []);
+
+  const { compact, height, axisX, plotRight, fullY, targetY, axisBottom, x, path } = memoryChartLayout(width);
+  const firstX = x(MEMORY_REVIEWS[0].reviewX);
+  const variantX = x(MEMORY_REVIEWS[1].reviewX);
+  const labelY = targetY + 42;
+  const arrowY = targetY + 88;
+  const arrowGap = compact ? 4 : 10;
+  const labelSize = compact ? 12 : 13;
+  const firstLabel = compact ? { x: axisX + 10, anchor: "start" as const } : { x: firstX, anchor: "middle" as const };
 
   function hoverProps(nextSelection: ExplorerSelectionId) {
     return {
@@ -469,123 +524,140 @@ function MemoryCurveGraphic({ selection, onSelectionChange }: { selection: Explo
     };
   }
 
+  function parameterButton(parameterId: ParameterId) {
+    const nextSelection = parameterSelectionId(parameterId);
+    const active = activeSelection === nextSelection;
+    return (
+      <button type="button" className={`flex min-h-control items-center gap-2 rounded-control core-caption font-semibold underline-offset-4 transition-opacity hover:underline motion-reduce:transition-none ${active ? "text-core-text underline decoration-2 opacity-100" : "text-core-secondary opacity-60"}`} {...buttonProps(nextSelection)} data-testid={`memory-parameter-${parameterId}`}>
+        {parameterId === "d" ? <DifficultyMarker active={active} /> : null}
+        {PARAMETER_LABELS[parameterId]}
+      </button>
+    );
+  }
+
   return (
-    <div className="min-w-0 overflow-hidden" data-testid="spaced-repetition-visual" data-active-selection={selection}>
+    <div className="min-w-0" data-testid="spaced-repetition-visual" data-active-selection={selection}>
       <p id="memory-axis-description" className="sr-only">Die Y-Achse zeigt nur den Ausschnitt von 90 bis 100 Prozent Abrufwahrscheinlichkeit. Zwei diagonale Striche kennzeichnen die ausgelassene Achsenspanne darunter.</p>
-      <div className="overflow-x-auto pb-2 focus:outline-none" tabIndex={0} aria-label="Lernkurve horizontal erkunden" aria-describedby="memory-axis-description">
-        <div className="relative aspect-[960/540] min-w-[42rem] xl:min-w-0" data-testid="memory-curve">
-          <svg className="absolute inset-0 size-full" viewBox="0 0 960 540" role="img" aria-labelledby="memory-curve-title memory-curve-description">
-            <title id="memory-curve-title">Vereinfachte FSRS-Gedächtniskurve mit vier Antwortpfaden</title>
-            <desc id="memory-curve-description">Nach der ersten Wiederholung führen Nochmal, Schwer, Gut und Leicht zu unterschiedlich langen Stabilitätsintervallen. Am Ende des längsten Beispielintervalls folgt eine Wiederholung mit einer nahen Kartenvariante.</desc>
+      <div className="flex flex-wrap items-center justify-between gap-x-6">
+        {parameterButton("r")}
+        {parameterButton("d")}
+      </div>
+      <div ref={frameRef} className="relative" style={{ height }} data-testid="memory-curve">
+        <svg className="absolute inset-0 size-full" viewBox={`0 0 ${width} ${height}`} role="img" aria-labelledby="memory-curve-title memory-curve-description" aria-describedby="memory-axis-description">
+          <title id="memory-curve-title">Vereinfachte FSRS-Gedächtniskurve mit vier Antwortpfaden</title>
+          <desc id="memory-curve-description">Nach der ersten Wiederholung führen Nochmal, Schwer, Gut und Leicht zu unterschiedlich langen Stabilitätsintervallen. Am Ende des längsten Beispielintervalls folgt eine Wiederholung mit einer nahen Kartenvariante.</desc>
+          <defs>
+            <clipPath id="memory-curve-plot">
+              <rect x={axisX} y="0" width={plotRight - axisX} height={targetY + 8} />
+            </clipPath>
+          </defs>
 
-            <line x1="72" y1="420" x2="928" y2="420" stroke="var(--core-border-interactive)" strokeWidth="2" />
-            <line x1="72" y1="52" x2="72" y2="420" stroke="var(--core-border-interactive)" strokeWidth="2" />
-            <text x="64" y="98" textAnchor="end" fill="var(--core-text-muted)" fontSize="14">100 %</text>
-            <text x="64" y="253" textAnchor="end" fill="var(--core-text-muted)" fontSize="14">90 %</text>
-            <g data-testid="memory-y-axis-break" aria-hidden="true">
-              <path d="M 64 382 L 80 372" stroke="var(--core-text)" strokeWidth="2.5" strokeLinecap="round" />
-              <path d="M 64 395 L 80 385" stroke="var(--core-text)" strokeWidth="2.5" strokeLinecap="round" />
-            </g>
+          <line x1={axisX} y1={axisBottom} x2={plotRight} y2={axisBottom} stroke="var(--core-border-interactive)" strokeWidth="2" />
+          <line x1={axisX} y1={fullY - 24} x2={axisX} y2={axisBottom} stroke="var(--core-border-interactive)" strokeWidth="2" />
+          <text x={axisX - 8} y={fullY + 5} textAnchor="end" fill="var(--core-text-muted)" fontSize={labelSize}>100 %</text>
+          <text x={axisX - 8} y={targetY + 5} textAnchor="end" fill="var(--core-text-muted)" fontSize={labelSize}>90 %</text>
+          <g data-testid="memory-y-axis-break" aria-hidden="true">
+            <path d={`M ${axisX - 8} ${axisBottom - 38} L ${axisX + 8} ${axisBottom - 48}`} stroke="var(--core-text)" strokeWidth="2.5" strokeLinecap="round" />
+            <path d={`M ${axisX - 8} ${axisBottom - 25} L ${axisX + 8} ${axisBottom - 35}`} stroke="var(--core-text)" strokeWidth="2.5" strokeLinecap="round" />
+          </g>
 
-            <g data-testid="memory-visual-r" data-active={activeParameterId === "r" ? "true" : "false"}>
-              <line x1="72" y1="248" x2="928" y2="248" stroke="var(--core-text-muted)" strokeDasharray="7 7" strokeWidth={activeParameterId === "r" ? 3 : 1.5} opacity={activeParameterId === "r" ? 1 : 0.72} />
-              <text x="220" y="318" textAnchor="middle" fill="var(--core-text-muted)" fontSize="14">Zielerinnerung R = 90 %</text>
-              <path d={INITIAL_CURVE_PATH} fill="none" stroke="var(--core-text)" strokeWidth={activeParameterId === "r" || activeReviewId === "first" ? 7 : 3.5} strokeLinecap="round" opacity={activeParameterId === "r" || activeReviewId === "first" ? 1 : 0.28} pointerEvents="none" className="transition-[stroke-width,opacity] duration-300 motion-reduce:transition-none" />
+          <g data-testid="memory-visual-r" data-active={activeParameterId === "r" ? "true" : "false"}>
+            <line x1={axisX} y1={targetY} x2={plotRight} y2={targetY} stroke="var(--core-text-muted)" strokeDasharray="7 7" strokeWidth={activeParameterId === "r" ? 3 : 1.5} opacity={activeParameterId === "r" ? 1 : 0.72} />
+            <text x={firstLabel.x} y={labelY + 22} textAnchor={firstLabel.anchor} fill="var(--core-text-muted)" fontSize={labelSize}>Zielerinnerung R = 90 %</text>
+            <g clipPath="url(#memory-curve-plot)">
+              <path d={path(INITIAL_CURVE)} fill="none" stroke="var(--core-text)" strokeWidth={activeParameterId === "r" || activeReviewId === "first" ? 7 : 3.5} strokeLinecap="round" opacity={activeParameterId === "r" || activeReviewId === "first" ? 1 : 0.28} pointerEvents="none" className="transition-[stroke-width,opacity] duration-300 motion-reduce:transition-none" />
               {RATING_PATHS.map((rating) => {
                 const emphasized = ratingsActive || activeParameterId === "r" || activeRatingId === rating.id || (activeReviewId === "variant" && rating.id === "easy");
-                return <path key={`curve-${rating.id}`} d={rating.curvePath} fill="none" stroke={rating.color} strokeWidth={emphasized ? 7 : 3.5} strokeLinecap="round" opacity={emphasized ? 1 : 0.22} pointerEvents="none" className="transition-[stroke-width,opacity] duration-300 motion-reduce:transition-none" />;
+                return <path key={`curve-${rating.id}`} d={path(rating.curve)} fill="none" stroke={rating.color} strokeWidth={emphasized ? 7 : 3.5} strokeLinecap="round" opacity={emphasized ? 1 : 0.22} pointerEvents="none" className="transition-[stroke-width,opacity] duration-300 motion-reduce:transition-none" />;
               })}
-              <path d="M 855 92 C 888 98, 918 112, 946 138" fill="none" stroke="var(--core-info)" strokeWidth={activeParameterId === "r" || activeReviewId === "variant" ? 6 : 3.5} strokeLinecap="round" opacity={activeParameterId === "r" || activeReviewId === "variant" ? 1 : 0.35} />
+              <path d={path(VARIANT_CURVE)} fill="none" stroke="var(--core-info)" strokeWidth={activeParameterId === "r" || activeReviewId === "variant" ? 6 : 3.5} strokeLinecap="round" opacity={activeParameterId === "r" || activeReviewId === "variant" ? 1 : 0.35} />
             </g>
+          </g>
 
-            <g data-testid="memory-visual-s" data-active={activeParameterId === "s" ? "true" : "false"}>
-              {RATING_PATHS.map((rating, index) => {
-                const emphasized = ratingsActive || activeParameterId === "s" || activeRatingId === rating.id;
-                const start = index === 0 ? 235 : RATING_PATHS[index - 1].dueX + 10;
-                const end = rating.dueX - 10;
-                const arrowY = 350;
-                return (
-                  <g
-                    key={`stability-${rating.id}`}
-                    opacity={emphasized ? 1 : activeReviewId === "first" ? 0.78 : 0.32}
-                    className="transition-opacity duration-300 motion-reduce:transition-none"
-                    data-testid={`memory-stability-arrow-${rating.id}`}
-                    data-arrowheads="right"
-                  >
-                    <line x1={start} y1={arrowY} x2={end} y2={arrowY} stroke={rating.color} strokeWidth={emphasized ? 4 : 2} />
-                    <path d={`M ${end - 9} ${arrowY - 6} L ${end} ${arrowY} L ${end - 9} ${arrowY + 6}`} fill="none" stroke={rating.color} strokeWidth={emphasized ? 3 : 2} strokeLinecap="round" strokeLinejoin="round" />
-                    <text x={(start + end) / 2} y={arrowY + 32} textAnchor="middle" fill={rating.color} fontSize="14" fontWeight="700">S{index + 1}</text>
-                  </g>
-                );
-              })}
-            </g>
+          <g data-testid="memory-visual-s" data-active={activeParameterId === "s" ? "true" : "false"}>
+            {RATING_PATHS.map((rating, index) => {
+              const emphasized = ratingsActive || activeParameterId === "s" || activeRatingId === rating.id;
+              const start = (index === 0 ? firstX : x(RATING_PATHS[index - 1].dueX)) + arrowGap;
+              const end = x(rating.dueX) - arrowGap;
+              return (
+                <g
+                  key={`stability-${rating.id}`}
+                  opacity={emphasized ? 1 : activeReviewId === "first" ? 0.78 : 0.32}
+                  className="transition-opacity duration-300 motion-reduce:transition-none"
+                  data-testid={`memory-stability-arrow-${rating.id}`}
+                  data-arrowheads="right"
+                >
+                  <line x1={start} y1={arrowY} x2={end} y2={arrowY} stroke={rating.color} strokeWidth={emphasized ? 4 : 2} />
+                  <path d={`M ${end - 9} ${arrowY - 6} L ${end} ${arrowY} L ${end - 9} ${arrowY + 6}`} fill="none" stroke={rating.color} strokeWidth={emphasized ? 3 : 2} strokeLinecap="round" strokeLinejoin="round" />
+                  <text x={(start + end) / 2} y={arrowY + 26} textAnchor="middle" fill={rating.color} fontSize={labelSize} fontWeight="700">S{index + 1}</text>
+                </g>
+              );
+            })}
+          </g>
 
-            <g data-testid="memory-visual-d" data-active={activeParameterId === "d" ? "true" : "false"}>
-              {MEMORY_REVIEWS.map((review) => {
-                const emphasized = activeParameterId === "d" || activeReviewId === review.id;
-                return (
-                  <g key={`difficulty-${review.id}`} opacity={emphasized ? 1 : 0.24} className="transition-opacity duration-300 motion-reduce:transition-none">
-                    <line x1={review.reviewX} y1="78" x2={review.reviewX} y2="248" stroke={review.color} strokeWidth={emphasized ? 3 : 2} strokeDasharray="6 7" />
-                    <path d={`M ${review.reviewX} 64 L ${review.reviewX + 7} 71 L ${review.reviewX} 78 L ${review.reviewX - 7} 71 Z`} fill="var(--core-surface-raised)" stroke={activeParameterId === "d" ? "var(--core-warning)" : review.color} strokeWidth={emphasized ? 3 : 2} />
-                  </g>
-                );
-              })}
-            </g>
+          <g data-testid="memory-visual-d" data-active={activeParameterId === "d" ? "true" : "false"}>
+            {MEMORY_REVIEWS.map((review) => {
+              const emphasized = activeParameterId === "d" || activeReviewId === review.id;
+              const reviewX = x(review.reviewX);
+              return (
+                <g key={`difficulty-${review.id}`} opacity={emphasized ? 1 : 0.24} className="transition-opacity duration-300 motion-reduce:transition-none">
+                  <line x1={reviewX} y1={fullY - 14} x2={reviewX} y2={targetY} stroke={review.color} strokeWidth={emphasized ? 3 : 2} strokeDasharray="6 7" />
+                  <path d={`M ${reviewX} ${fullY - 28} L ${reviewX + 7} ${fullY - 21} L ${reviewX} ${fullY - 14} L ${reviewX - 7} ${fullY - 21} Z`} fill="var(--core-surface-raised)" stroke={activeParameterId === "d" ? "var(--core-warning)" : review.color} strokeWidth={emphasized ? 3 : 2} />
+                </g>
+              );
+            })}
+          </g>
 
-            <path d={INITIAL_CURVE_PATH} fill="none" stroke="transparent" strokeWidth="28" pointerEvents="stroke" {...hoverProps(reviewSelectionId("first"))} data-testid="memory-curve-initial" />
-            {RATING_PATHS.map((rating) => <path key={`hit-${rating.id}`} d={rating.curvePath} fill="none" stroke="transparent" strokeWidth="28" pointerEvents="stroke" {...hoverProps(ratingSelectionId(rating.id))} data-testid={`memory-rating-path-${rating.id}`} />)}
-            <text x="220" y="292" textAnchor="middle" fill="var(--core-text-secondary)" fontSize="13" fontWeight="700">1. Wiederholung</text>
-            <text x="855" y="292" textAnchor="middle" fill="var(--core-text-secondary)" fontSize="13" fontWeight="700">x. Wiederholung · Variante</text>
-          </svg>
+          <path d={path(INITIAL_CURVE)} fill="none" stroke="transparent" strokeWidth="28" pointerEvents="stroke" {...hoverProps(reviewSelectionId("first"))} data-testid="memory-curve-initial" />
+          {RATING_PATHS.map((rating) => <path key={`hit-${rating.id}`} d={path(rating.curve)} fill="none" stroke="transparent" strokeWidth="28" pointerEvents="stroke" {...hoverProps(ratingSelectionId(rating.id))} data-testid={`memory-rating-path-${rating.id}`} />)}
+          <text x={firstLabel.x} y={labelY} textAnchor={firstLabel.anchor} fill="var(--core-text-secondary)" fontSize={labelSize} fontWeight="700">1. Wiederholung</text>
+          {compact ? (
+            <text y={labelY} textAnchor="end" fill="var(--core-text-secondary)" fontSize={labelSize} fontWeight="700">
+              <tspan x={plotRight}>x. Wiederholung</tspan>
+              <tspan x={plotRight} dy="20">Variante</tspan>
+            </text>
+          ) : (
+            <text x={Math.min(variantX, width - 96)} y={labelY} textAnchor="middle" fill="var(--core-text-secondary)" fontSize={labelSize} fontWeight="700">x. Wiederholung · Variante</text>
+          )}
+        </svg>
 
-          <span
-            className="pointer-events-none absolute z-10 grid size-7 -translate-x-1/2 -translate-y-1/2 place-items-center text-core-info transition-opacity duration-300 motion-reduce:transition-none"
-            style={{
-              left: `${(MEMORY_REVIEWS[1].reviewX / 960) * 100}%`,
-              top: `${(40 / 540) * 100}%`,
-              opacity: activeReviewId === null || activeReviewId === "variant" || activeParameterId === "d" ? 1 : 0.35,
-            }}
-            aria-hidden="true"
-            data-testid="memory-variant-star"
-          >
-            <Sparkles size={19} />
-          </span>
+        <span
+          className="pointer-events-none absolute z-10 grid size-7 -translate-x-1/2 -translate-y-1/2 place-items-center text-core-info transition-opacity duration-300 motion-reduce:transition-none"
+          style={{ left: variantX, top: fullY - 52, opacity: activeReviewId === null || activeReviewId === "variant" || activeParameterId === "d" ? 1 : 0.35 }}
+          aria-hidden="true"
+          data-testid="memory-variant-star"
+        >
+          <Sparkles size={19} />
+        </span>
 
-          {(["r", "s", "d"] as const).map((parameterId) => {
-            const nextSelection = parameterSelectionId(parameterId);
-            const active = activeSelection === nextSelection;
-            const label = parameterId === "r" ? "R · Abrufwahrscheinlichkeit" : parameterId === "s" ? "S · Stabilität" : "D · Schwierigkeit";
-            return (
-              <button key={parameterId} type="button" className={`absolute z-20 flex min-h-control -translate-x-1/2 items-center px-2 core-caption font-semibold underline-offset-4 transition-opacity hover:underline motion-reduce:transition-none ${parameterId === "r" ? "-translate-y-1/2 -rotate-90" : ""} ${active ? "text-core-text underline decoration-2 opacity-100" : "text-core-secondary opacity-60"}`} style={PARAMETER_POSITIONS[parameterId]} {...buttonProps(nextSelection)} data-testid={`memory-parameter-${parameterId}`}>{label}</button>
-            );
-          })}
-
-          {MEMORY_REVIEWS.map((review) => {
-            const nextSelection = reviewSelectionId(review.id);
-            const active = activeReviewId === review.id;
-            return (
-              <button
-                key={review.id}
-                type="button"
-                className="absolute z-20 grid size-control place-items-center rounded-round border bg-core-raised core-body font-semibold transition-[transform,opacity] motion-reduce:transition-none"
-                style={{
-                  left: `${(review.reviewX / 960) * 100}%`,
-                  top: `${(248 / 540) * 100}%`,
-                  borderColor: review.color,
-                  borderWidth: active || activeParameterId === "d" ? 3 : 2,
-                  color: review.color,
-                  transform: `translate(-50%, -50%) scale(${active ? 1.12 : 1})`,
-                  opacity: activeReviewId === null || active ? 1 : 0.48,
-                }}
-                {...buttonProps(nextSelection)}
-                aria-label={`${review.title} auswählen`}
-                data-testid={`memory-review-point-${review.id}`}
-              >
-                {review.id === "variant" ? <span aria-hidden="true">…</span> : "1"}
-              </button>
-            );
-          })}
-        </div>
+        {MEMORY_REVIEWS.map((review) => {
+          const nextSelection = reviewSelectionId(review.id);
+          const active = activeReviewId === review.id;
+          return (
+            <button
+              key={review.id}
+              type="button"
+              className="absolute z-20 grid size-control place-items-center rounded-round border bg-core-raised core-body font-semibold transition-[transform,opacity] motion-reduce:transition-none"
+              style={{
+                left: x(review.reviewX),
+                top: targetY,
+                borderColor: review.color,
+                borderWidth: active || activeParameterId === "d" ? 3 : 2,
+                color: review.color,
+                transform: `translate(-50%, -50%) scale(${active ? 1.12 : 1})`,
+                opacity: activeReviewId === null || active ? 1 : 0.48,
+              }}
+              {...buttonProps(nextSelection)}
+              aria-label={`${review.title} auswählen`}
+              data-testid={`memory-review-point-${review.id}`}
+            >
+              {review.id === "variant" ? <span aria-hidden="true">…</span> : "1"}
+            </button>
+          );
+        })}
+      </div>
+      <div className="flex justify-end">
+        {parameterButton("s")}
       </div>
     </div>
   );

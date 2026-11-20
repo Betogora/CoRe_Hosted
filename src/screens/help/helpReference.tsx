@@ -1,5 +1,5 @@
 import React from "react";
-import { Brain, Clock3, ExternalLink, Gauge, ShieldCheck } from "lucide-react";
+import { Brain, Clock3, ExternalLink, ShieldCheck } from "lucide-react";
 import { createDefaultDeckSettings } from "../../coreModel.ts";
 import { EXAMPLE_CHAINS, runExampleChain } from "../../schedulerExampleChains.ts";
 import { SoftPanel } from "../../ui/coreUi.tsx";
@@ -50,12 +50,9 @@ export function RatingGuidePanel() {
   const chain = React.useMemo(defaultGoodChain, []);
   const days = `${chain.days.slice(0, -1).join(", ")} und ${chain.days.at(-1)} Tagen`;
   return (
-    <SoftPanel className="p-6" aria-labelledby="help-rating-heading" data-testid="help-rating-guide">
-      <div className="flex items-center gap-3">
-        <Gauge size={20} aria-hidden="true" className="shrink-0 text-core-secondary" />
-        <h3 id="help-rating-heading" className="core-heading-2 text-core-text">So bewertest du</h3>
-      </div>
-      <p className="mt-4 max-w-3xl core-body leading-6 text-core-secondary">
+    <section className="min-w-0" aria-labelledby="help-rating-heading" data-testid="help-rating-guide">
+      <h3 id="help-rating-heading" className="core-heading-2 text-core-text">So bewertest du</h3>
+      <p className="mt-4 max-w-2xl core-body leading-6 text-core-secondary">
         FSRS-7 traut einer sicheren Antwort große Abstände zu: Mit {chain.retentionPercent} % Zielerinnerung kommt eine neue Karte, immer mit „Gut“ bewertet, nach {chain.minutes.join(" und ")} Minuten und dann nach {days} wieder. Wähle „Gut“ deshalb nur, wenn der Abruf wirklich sicher war.
       </p>
       <dl className="mt-6 grid border-t border-core-border md:grid-cols-2 xl:grid-cols-4">
@@ -66,7 +63,7 @@ export function RatingGuidePanel() {
           </div>
         ))}
       </dl>
-    </SoftPanel>
+    </section>
   );
 }
 
@@ -89,8 +86,8 @@ export function PlanningTopic() {
           </div>
           <ol className="mt-6 border-t border-core-border">
             {SCHEDULING_STEPS.map((step, index) => (
-              <li key={step.label} className="grid gap-2 border-b border-core-border py-4 sm:grid-cols-[2.5rem_1fr]">
-                <span className="core-caption font-semibold tabular-nums text-core-muted">0{index + 1}</span>
+              <li key={step.label} className="grid grid-cols-[2rem_minmax(0,1fr)] gap-2 border-b border-core-border py-4">
+                <span className="core-caption font-semibold leading-6 tabular-nums text-core-muted" aria-hidden="true">0{index + 1}</span>
                 <div>
                   <p className="core-body font-semibold text-core-text">{step.label}</p>
                   <p className="mt-1 core-caption leading-5 text-core-secondary">{step.text}</p>
