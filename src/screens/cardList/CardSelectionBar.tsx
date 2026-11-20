@@ -175,7 +175,7 @@ export function CardSelectionBar({ count, hitTotal, searching, allHits, disabled
   const fields = dialog ? (
     dialog.id === "deck" ? <DeckSelect ariaLabel="Zielstapel" className="w-full" value={dialog.deckId} decks={decks} onValueChange={(deckId) => patch({ deckId })} />
       : dialog.id === "tags-add" || dialog.id === "tags-remove" ? <div className="min-h-[12rem]"><TagInput tags={dialog.tags} loadDirectory={loadTagDirectory} label="Tags" labelHidden onChange={(tags) => patch({ tags })} /></div>
-        : dialog.id === "flag" ? <FlagPicker value={dialog.flag} names={flagNames} onValueChange={(flag) => patch({ flag: flag || dialog.flag })} />
+        : dialog.id === "flag" ? <FlagPicker value={dialog.flag} names={flagNames} withNone={false} onValueChange={(flag) => patch({ flag: flag || dialog.flag })} />
           : dialog.id === "due" ? (
             <div className="grid gap-3 sm:grid-cols-2">
               <label className="core-field-group min-w-0"><span className="core-field-label">Frühestens</span>
