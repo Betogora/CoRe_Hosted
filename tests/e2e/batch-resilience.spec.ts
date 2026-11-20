@@ -172,7 +172,7 @@ test("[Vertrag: Batch, Pins, Deckpfade und Draftschutz] @beta-core fünf Karten 
     await page.getByRole("textbox", { name: "Rückseite" }).click();
     await expect(page.getByRole("textbox", { name: "Rückseite" })).toBeFocused();
     await page.keyboard.type(`Batch-Antwort ${index}`);
-    await page.getByRole("button", { name: "Originalkarte speichern" }).click();
+    await page.getByRole("button", { name: "Karte speichern" }).click();
     await expect(page.getByRole("status")).toContainText("Karte wurde erfolgreich gespeichert.");
     await expect(page.getByRole("heading", { name: "Karte selbst erstellen" })).toBeVisible();
     await expect(page.getByText(`${index} ${index === 1 ? "Karte" : "Karten"} in dieser Sitzung erstellt.`)).toBeVisible();
@@ -194,20 +194,20 @@ test("[Vertrag: Batch, Pins, Deckpfade und Draftschutz] @beta-core fünf Karten 
   await resetToFreshLocalState(page, { resetCloud: false });
   await openManualCreation(page);
   await chooseCoreSelectOption(page, targetSelect, "Batch-Ziel");
-  await page.getByRole("button", { name: /Vorderseite: Nach Speichern leeren/ }).click();
+  await page.getByRole("switch", { name: "Vorderseite nach dem Speichern behalten" }).check();
   await page.getByRole("textbox", { name: "Vorderseite" }).fill("Angeheftete Frage");
   await page.getByRole("textbox", { name: "Rückseite" }).fill("Einmalige Antwort");
-  await page.getByRole("button", { name: "Originalkarte speichern" }).click();
+  await page.getByRole("button", { name: "Karte speichern" }).click();
   await expect(page.getByRole("status")).toContainText("Karte wurde erfolgreich gespeichert.");
   await expect(page.getByRole("textbox", { name: "Vorderseite" })).toContainText("Angeheftete Frage");
   await expect(page.getByRole("textbox", { name: "Rückseite" })).toHaveText("");
-  await expect(page.getByRole("button", { name: /Vorderseite: Nach Speichern behalten/ })).toBeVisible();
+  await expect(page.getByRole("switch", { name: "Vorderseite nach dem Speichern behalten" })).toBeChecked();
 
-  await page.getByRole("button", { name: /Vorderseite: Nach Speichern behalten/ }).click();
-  await page.getByRole("button", { name: /Rückseite: Nach Speichern leeren/ }).click();
+  await page.getByRole("switch", { name: "Vorderseite nach dem Speichern behalten" }).uncheck();
+  await page.getByRole("switch", { name: "Rückseite nach dem Speichern behalten" }).check();
   await page.getByRole("textbox", { name: "Vorderseite" }).fill("Einmalige Frage");
   await page.getByRole("textbox", { name: "Rückseite" }).fill("Angeheftete Antwort");
-  await page.getByRole("button", { name: "Originalkarte speichern" }).click();
+  await page.getByRole("button", { name: "Karte speichern" }).click();
   await expect(page.getByRole("status")).toContainText("Karte wurde erfolgreich gespeichert.");
   await expect(page.getByRole("textbox", { name: "Vorderseite" })).toHaveText("");
   await expect(page.getByRole("textbox", { name: "Rückseite" })).toContainText("Angeheftete Antwort");

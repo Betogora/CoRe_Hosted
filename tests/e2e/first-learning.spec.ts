@@ -56,7 +56,7 @@ test("Strg+Z nimmt die letzte Bewertung zurück, die Leertaste bewertet danach m
   await page.getByRole("button", { name: /Erste Karte erstellen/ }).click();
   await page.getByRole("textbox", { name: "Vorderseite" }).fill("Hauptstadt von Portugal?");
   await page.getByRole("textbox", { name: "Rückseite" }).fill("Lissabon");
-  await page.getByRole("button", { name: "Originalkarte speichern" }).click();
+  await page.getByRole("button", { name: "Karte speichern" }).click();
   await page.getByRole("button", { name: "Fertig" }).click();
   await page.getByRole("button", { name: "Jetzt lernen" }).click();
 
@@ -82,7 +82,7 @@ test("leerer Account erstellt die erste manuelle Karte und erreicht den Review",
   await expect(page).toHaveURL(/\/neue-karten\?method=manual$/);
   await page.getByRole("textbox", { name: "Vorderseite" }).fill("Welche Farbe hat der Himmel bei klarem Wetter?");
   await page.getByRole("textbox", { name: "Rückseite" }).fill("Blau");
-  await page.getByRole("button", { name: "Originalkarte speichern" }).click();
+  await page.getByRole("button", { name: "Karte speichern" }).click();
   await page.getByRole("button", { name: "Fertig" }).click();
 
   await expect(page.getByRole("heading", { name: "Deine Karten sind bereit" })).toBeVisible();
@@ -109,7 +109,7 @@ test("KI hilft beantwortet Fragen zur aufgedeckten Karte, zeigt Fehler und brich
   for (const [front, back] of [["Was ist ATP?", "Ein Energieträger"], ["Was bildet ATP?", "Mitochondrien"]]) {
     await page.getByRole("textbox", { name: "Vorderseite" }).fill(front);
     await page.getByRole("textbox", { name: "Rückseite" }).fill(back);
-    await page.getByRole("button", { name: "Originalkarte speichern" }).click();
+    await page.getByRole("button", { name: "Karte speichern" }).click();
   }
   await page.getByRole("button", { name: "Fertig" }).click();
   await page.getByRole("button", { name: "Jetzt lernen" }).click();
@@ -161,7 +161,7 @@ test("ungenutzte neue Karten verlinken gezielt zum fokussierten Tageslimit", asy
   await page.getByRole("button", { name: /Erste Karte erstellen/ }).click();
   await page.getByRole("textbox", { name: "Vorderseite" }).fill("Welche Farbe hat Schnee?");
   await page.getByRole("textbox", { name: "Rückseite" }).fill("Weiß");
-  await page.getByRole("button", { name: "Originalkarte speichern" }).click();
+  await page.getByRole("button", { name: "Karte speichern" }).click();
   await page.getByRole("button", { name: "Fertig" }).click();
 
   const state = await readActiveAccountState(page);

@@ -1,7 +1,7 @@
 import React from "react";
 import type { TagDirectoryEntry } from "../tagDirectory.ts";
 import { TagInput } from "../ui/TagInput.tsx";
-import { ArrowDown, ArrowUp, CircleAlert, Database, Eye, FileText, ImagePlus, Pin, Plus, X } from "lucide-react";
+import { ArrowDown, ArrowUp, CircleAlert, Database, Eye, FileText, ImagePlus, Plus, Save, X } from "lucide-react";
 import {
   createManualBatchSession,
   manualDraftsEqual,
@@ -19,7 +19,7 @@ import { ActionButton, IconButton } from "../ui/actionUi.tsx";
 import { ActionDialog, CoreSegmentedControl, SoftPanel } from "../ui/coreUi.tsx";
 import { useSuccessToast } from "../ui/feedbackUi.tsx";
 import { FileDropField } from "../ui/FileDropField.tsx";
-import { CoreCheckbox, CoreRadio } from "../ui/formControls.tsx";
+import { CoreCheckbox, CoreRadio, CoreSwitch } from "../ui/formControls.tsx";
 import { PdfDocumentViewer } from "../ui/PdfDocumentViewer.tsx";
 import { RichTextEditor, type RichTextImageActions } from "../ui/RichTextEditor.tsx";
 import { CardPreviewDialog } from "../ui/CardPreviewDialog.tsx";
@@ -80,7 +80,7 @@ export interface ManualCreationPanelProps {
   renderHeader: (actions: React.ReactNode) => React.ReactNode;
 }
 
-interface PinFieldButtonProps {
+interface KeepFieldSwitchProps {
   isPinned: boolean;
   label: string;
   onToggle: () => void;
@@ -103,26 +103,11 @@ function isPdfDocument(document: TransientSourceDocument | null): boolean {
   return document?.mimeType === "application/pdf";
 }
 
-function PinFieldButton({ isPinned, label, onToggle }: PinFieldButtonProps) {
-  const title = isPinned
-    ? `${label}: Nach Speichern behalten`
-    : `${label}: Nach Speichern leeren. Zum Behalten anheften`;
-
+/** Keeps a field's content after saving, so the next card starts from it. */
+function KeepFieldSwitch({ isPinned, label, onToggle }: KeepFieldSwitchProps) {
   return (
-    <CoreTooltip label={title}>
-      <button
-        type="button"
-        aria-label={title}
-        aria-pressed={isPinned}
-        onClick={onToggle}
-        className={`grid size-button shrink-0 place-items-center rounded-control transition ${
-          isPinned
-            ? "bg-[var(--core-action-soft)] text-core-action"
-            : "text-core-muted hover:bg-core-subtle hover:text-core-text"
-        }`}
-      >
-        <Pin size={16} fill={isPinned ? "currentColor" : "none"} aria-hidden="true" />
-      </button>
+    <CoreTooltip label="Bleibt nach dem Speichern für die nächste Karte stehen">
+      <CoreSwitch size="sm" labelPlacement="start" checked={isPinned} onCheckedChange={onToggle} label="Behalten" aria-label={`${label} nach dem Speichern behalten`} />
     </CoreTooltip>
   );
 }
@@ -217,7 +202,7 @@ export function ManualCreationPanel({
     const field = editorRootRef.current?.querySelector<HTMLElement>(`[data-manual-focus="${target}"]`);
     const focusable = field?.matches('input, [contenteditable="true"]')
       ? field
-      : field?.querySelector<HTMLElement>('input:not([type="file"]), [contenteditable="true"]');
+      : field?.querySelector<HTMLElement>('input:not([type="file"]):not([role="switch"]), [contenteditable="true"]');
     focusable?.focus();
   }, [activeField]);
 
@@ -643,7 +628,7 @@ export function ManualCreationPanel({
               if (!next && nextDeckId !== initialTargetDeckId) onTargetDeckChange(nextDeckId);
               dispatchBatch({ type: "target-deck", deckId: nextDeckId });
               return next;
-            })} className="core-action-secondary min-w-0 max-w-full">
+            })} className="core-action-secondary min-w-0 max-w-full basis-full sm:basis-auto">
               <Database size={16} aria-hidden="true" />
               {useNewDeck && decks.length > 0 ? "Stapel auswählen" : "Neuen Stapel erstellen"}
             </button>
@@ -690,7 +675,7 @@ export function ManualCreationPanel({
         <div data-manual-focus="front" className="grid min-w-0 gap-2 core-field-label">
           <div className="flex min-h-button items-center justify-between gap-2">
             <span>{frontLabel}</span>
-            <PinFieldButton isPinned={pinnedFields.front} label={frontLabel} onToggle={() => togglePinnedField("front")} />
+            <KeepFieldSwitch isPinned={pinnedFields.front} label={frontLabel} onToggle={() => togglePinnedField("front")} />
           </div>
           <RichTextEditor value={front} onFocus={() => setActiveField("front")} onChange={(value) => {
             const hasClozeMarkup = /\{\{c\d+::/i.test(value);
@@ -758,7 +743,7 @@ export function ManualCreationPanel({
         <div data-manual-focus="back" className="grid min-w-0 gap-2 core-field-label">
           <div className="flex min-h-button items-center justify-between gap-2">
             <span>{answerLabel}</span>
-            <PinFieldButton isPinned={pinnedFields.back} label={answerLabel} onToggle={() => togglePinnedField("back")} />
+            <KeepFieldSwitch isPinned={pinnedFields.back} label={answerLabel} onToggle={() => togglePinnedField("back")} />
           </div>
           <RichTextEditor value={back} onFocus={() => setActiveField("back")} onChange={(value) => {
             dispatchBatch({ type: "draft", patch: { back: value } });
@@ -855,8 +840,8 @@ export function ManualCreationPanel({
       ) : null}
       {/* Saving leads, finishing follows once a card exists, and discarding stands apart at the end. */}
       <div className="flex flex-wrap items-center gap-2" data-testid="manual-actions">
-        <ActionButton data-testid="manual-save-button" type="button" variant="primary" icon={Database} className="basis-full sm:basis-auto" loading={isSaving} disabled={isPreparingImage || isSaving} onClick={() => void saveManualCard()}>
-          {isSaving ? "Karte wird gespeichert" : "Originalkarte speichern"}
+        <ActionButton data-testid="manual-save-button" type="button" variant="primary" icon={Save} className="basis-full sm:basis-auto" loading={isSaving} disabled={isPreparingImage || isSaving} onClick={() => void saveManualCard()}>
+          {isSaving ? "Karte wird gespeichert" : "Karte speichern"}
         </ActionButton>
         {batchState.createdCount > 0 ? (
           <ActionButton type="button" variant="secondary" className="flex-1 sm:flex-none" disabled={isSaving} onClick={() => draftDirty ? setFinishConfirmOpen(true) : finish()}>
@@ -914,11 +899,11 @@ export function ManualCreationPanel({
   return (
     <>
       {renderHeader(
-        <div className="flex flex-wrap gap-2">
+        <div className="flex gap-2">
           {documentMode
-            ? <ActionButton type="button" variant="secondary" icon={X} disabled={isSaving} onClick={closeDocument}>Quelle schließen</ActionButton>
-            : <ActionButton type="button" variant="secondary" icon={FileText} onClick={() => setDocumentMode(true)}>PDF/Text anfügen</ActionButton>}
-          <ActionButton ref={previewButtonRef} type="button" variant="secondary" icon={Eye} disabled={isSaving} onClick={() => setPreviewOpen(true)}>Vorschau</ActionButton>
+            ? <ActionButton type="button" variant="secondary" icon={X} className="max-[359px]:px-3" disabled={isSaving} onClick={closeDocument}>Quelle schließen</ActionButton>
+            : <ActionButton type="button" variant="secondary" icon={FileText} className="max-[359px]:px-3" onClick={() => setDocumentMode(true)}>PDF/Text anfügen</ActionButton>}
+          <ActionButton ref={previewButtonRef} type="button" variant="secondary" icon={Eye} className="max-[359px]:px-3" disabled={isSaving} onClick={() => setPreviewOpen(true)}>Vorschau</ActionButton>
         </div>,
       )}
       <SoftPanel className="core-responsive-panel-padding min-h-[calc(100vh-15rem)] p-6">
