@@ -1089,13 +1089,14 @@ summary {
   .core-date-field { display: flex; align-items: center; gap: var(--core-space-xs); padding-block: 0; padding-inline-end: var(--core-space-sm); }
   .core-date-field:has(.core-date-segment:focus) { border-color: var(--core-action-primary); box-shadow: var(--core-shadow-selection); }
   .core-date-field[data-invalid] { border-color: var(--core-danger); box-shadow: 0 0 0 3px color-mix(in srgb, var(--core-danger) 12%, transparent); }
-  .core-date-field-segments { display: flex; flex: 1 1 auto; align-items: center; gap: 0; min-width: 0; font-variant-numeric: tabular-nums; }
+  /* Proportional digits and literals tucked under the segment padding read as one date, not as three boxes. */
+  .core-date-field-segments { display: flex; flex: 1 1 auto; align-items: center; gap: 0; min-width: 0; }
   .core-date-segment { padding-inline: 1px; border-radius: var(--core-radius-marker); color: var(--core-text); cursor: text; outline: none !important; user-select: none; }
   .core-date-segment[data-placeholder] { color: var(--core-text-muted); }
   .core-date-segment:focus { background: var(--core-action-soft); color: var(--core-action-primary); }
   .core-date-field[data-invalid] .core-date-segment { color: var(--core-danger); }
   .core-date-field[data-invalid] .core-date-segment:focus { background: var(--core-danger-surface); }
-  .core-date-segment-literal { color: var(--core-text-muted); }
+  .core-date-segment-literal { margin-inline: -1px; color: var(--core-text-muted); }
   .core-date-field-trigger { position: relative; display: grid; width: 1.5rem; height: 1.5rem; flex-shrink: 0; place-items: center; border-radius: var(--core-radius-round); color: var(--core-text-muted); transition: background-color 150ms ease, color 150ms ease; }
   .core-date-field-trigger:hover, .core-date-field-trigger[data-state="open"] { background: var(--core-surface-hover); color: var(--core-text); }
   .core-date-calendar { --core-calendar-cell: 2.25rem; width: calc(7 * var(--core-calendar-cell) + 1.5rem); max-width: calc(100vw - 1.5rem); padding: var(--core-space-md); border-radius: var(--core-radius-overlay); transform-origin: var(--radix-popover-content-transform-origin); animation: core-date-calendar-enter 150ms ease; }
@@ -2761,6 +2762,15 @@ button[aria-label] {
 .core-exam-filter[aria-pressed="false"] .core-tag { --core-tag-text: var(--core-text-muted); }
 .core-exam-filter[aria-pressed="false"]:hover .core-tag { --core-tag-text: var(--core-text-secondary); }
 .core-exam-filter[aria-pressed="false"] .core-tag-dot { background: transparent !important; box-shadow: inset 0 0 0 1.5px var(--core-exam-tint); }
+
+/* Back and next of a step flow: one row from 640 px; below, full width with the next step on top. In the components layer so `xl:hidden` wins. */
+@layer components {
+  .core-step-actions { display: flex; flex-wrap: wrap-reverse; justify-content: space-between; gap: var(--core-space-md); }
+  @media (max-width: 639.98px) {
+    .core-step-actions > * { flex: 1 1 auto; }
+    .core-step-actions > span { display: none; }
+  }
+}
 
 /* Kept after .core-auth-panel button for the cascade. */
 button.core-steps-step {
