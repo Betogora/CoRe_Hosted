@@ -3580,10 +3580,10 @@ button.core-steps-step {
 .core-summary-row { position: relative; display: grid; min-width: 0; }
 .core-summary-preview { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: var(--core-space-xl); }
 .core-summary-preview:hover { border-color: var(--core-border-interactive); background-color: var(--core-surface-hover); }
-.core-summary-excerpt { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 4; overflow: hidden; overflow-wrap: anywhere; white-space: pre-line; }
+.core-summary-excerpt { max-height: 4lh; overflow: hidden; overflow-wrap: anywhere; white-space: pre-line; }
 .core-summary-preview-action { flex-shrink: 0; align-self: end; }
 /* Delete sits on the card's top corner; it stays a sibling because the card itself is a button. */
-.core-summary-delete { position: absolute; top: var(--core-space-md); right: var(--core-space-md); }
+.core-summary-delete { position: absolute; top: calc(1.5rem + (var(--core-leading-heading-3) - var(--core-button-height)) / 2); right: var(--core-space-md); }
 .core-summary-editor .rich-text-field { font-family: var(--summary-font); font-size: var(--summary-size); overflow-wrap: anywhere; }
 .core-summary-editor .rich-text-field :is(h1, h2, h3, h4) { font-weight: var(--core-weight-heading); margin-block: var(--core-space-lg) var(--core-space-sm); }
 .core-summary-editor .rich-text-field h1 { font-size: var(--core-type-heading-1); }
@@ -3603,9 +3603,8 @@ button.core-steps-step {
 .core-mindmap-panel { container: core-mindmap / inline-size; }
 .core-mindmap-heading { min-width: 0; }
 .core-mindmap-primary-tools { display: flex; align-items: center; flex-wrap: wrap; gap: var(--core-space-sm); min-width: 0; }
-.core-mindmap-mode-tools { display: flex; align-items: center; gap: var(--core-space-sm); min-width: 0; }
-.core-mindmap-mode-tools > [role="group"] { min-width: 0; width: fit-content; max-width: 100%; flex: 0 1 auto; height: auto; overflow-x: auto; scrollbar-width: none; }
-.core-mindmap-mode-tools > [role="group"]::-webkit-scrollbar { display: none; }
+.core-mindmap-primary-tools > [role="group"] { min-width: 0; width: fit-content; max-width: 100%; flex: 0 1 auto; height: auto; overflow-x: auto; scrollbar-width: none; }
+.core-mindmap-primary-tools > [role="group"]::-webkit-scrollbar { display: none; }
 .core-mindmap-primary-tools .core-segmented-control-option { min-height: var(--core-control-height); flex-basis: var(--core-control-height); }
 .core-mindmap-primary-tools .core-segmented-control-option[aria-pressed="true"] { flex: 1 0 auto; }
 .core-mindmap-tools { display: flex; align-items: center; flex-wrap: wrap; gap: var(--core-space-sm); padding: var(--core-space-sm); min-width: 0; }
@@ -3626,6 +3625,7 @@ button.core-steps-step {
 .core-mindmap-node.is-link-source { border-color: var(--core-info); box-shadow: var(--core-shadow-selection); }
 .core-mindmap-node-label { font-weight: 700; overflow: hidden; overflow-wrap: anywhere; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
 .core-mindmap-source-action { margin-left: auto; }
+.core-mindmap-source-action[aria-expanded="true"] { border-color: var(--core-action-primary); background: var(--core-action-soft); color: var(--core-action-primary); }
 .core-mindmap-node.is-keyword:not(.is-expanded) { justify-content: center; }
 .core-mindmap-node.is-keyword .core-mindmap-node-label, .core-mindmap-node.is-keyword .core-mindmap-inline-title { text-align: center; }
 .core-mindmap-node.is-keyword .core-mindmap-node-icons { justify-content: center; }
@@ -3693,11 +3693,6 @@ button.core-steps-step {
 @container core-mindmap (max-width: 30rem) {
   .core-mindmap-heading > label { flex-basis: 100%; }
   .core-mindmap-heading > .core-action-primary { width: 100%; }
-  /* Tools and history share one row that scrolls sideways; the padding keeps focus rings inside it. */
-  .core-mindmap-mode-tools { flex: 1 1 100%; overflow-x: auto; overscroll-behavior-x: contain; scrollbar-width: none; margin: calc(-1 * var(--core-space-sm)) 0 calc(-1 * var(--core-space-sm)) calc(-1 * var(--core-space-sm)); padding: var(--core-space-sm); }
-  .core-mindmap-mode-tools::-webkit-scrollbar { display: none; }
-  .core-mindmap-mode-tools > * { flex: none; }
-  .core-mindmap-mode-tools > [role="group"] { flex: none; max-width: none; }
   .core-mindmap-canvas { height: 520px; }
   .core-mindmap-tools .core-mindmap-color-picker { flex-basis: 100%; }
 }
@@ -3748,8 +3743,8 @@ button.core-steps-step {
 @container core-summary (max-width: 36rem) {
   .core-summary-editor-heading { flex-direction: column; align-items: stretch; }
   .core-summary-preview { grid-template-columns: minmax(0, 1fr); gap: var(--core-space-md); padding: var(--core-space-lg); }
-  .core-summary-preview h4 { padding-inline-end: 2.5rem; }
-  .core-summary-delete { top: var(--core-space-sm); right: var(--core-space-sm); }
+  .core-summary-preview h4 { padding-inline-end: var(--core-button-height); }
+  .core-summary-delete { top: calc(var(--core-space-lg) + (var(--core-leading-heading-3) - var(--core-button-height)) / 2); right: var(--core-space-sm); }
   .core-summary-preview-action { justify-content: space-between; }
   .core-summary-actions { flex-direction: column-reverse; }
   .core-summary-actions > button { width: 100%; }

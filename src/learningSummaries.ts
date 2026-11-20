@@ -91,7 +91,7 @@ export function summaryDescription(summary: LearningSummary): string {
   const length = summaryChoices.length.find((choice) => choice.value === summary.settings.length)!.label;
   const detail = summaryChoices.detail.find((choice) => choice.value === summary.settings.detail)!.label;
   const minutes = getSummaryReadingMinutes(summary.html);
-  return `${length} · ${detail} · ${minutes ? `${minutes} Min. Lesezeit` : "Leerer Entwurf"}`;
+  return `Länge:\u00a0${length} · Detailgrad:\u00a0${detail} · ${minutes ? `${minutes}\u00a0Min.\u00a0Lesezeit` : "Leerer Entwurf"}`;
 }
 
 /** Whose summaries are read and written; without `cloud` they stay in this browser (catalog, tests, app without Supabase). */
