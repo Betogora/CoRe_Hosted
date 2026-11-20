@@ -9,7 +9,7 @@ const MAX_AI_SOURCE_FILE_BYTES = 20 * 1_024 * 1_024;
 /** Text a source may carry; the browser rejects more instead of cutting it. */
 export const MAX_AI_SOURCE_CHARS = 400_000;
 /** About 2,700 characters per page of running text. */
-export const AI_SOURCE_LIMIT_HINT = `Bis 20 MiB und ${MAX_AI_SOURCE_CHARS.toLocaleString("de-DE")} Zeichen, etwa 150 Seiten Text.`;
+export const AI_SOURCE_LIMIT_HINT = `Bis 20 MB und ${MAX_AI_SOURCE_CHARS.toLocaleString("de-DE")} Zeichen, etwa 150 Seiten Text.`;
 
 export const AI_SOURCE_AMOUNTS = [
   { value: "less", label: "Weniger", instruction: "Erstelle Karten nur für die zentralen Kernaussagen." },
@@ -82,7 +82,7 @@ export function aiSourceFileError(file: Pick<File, "name" | "size">): string | n
   const extension = file.name.toLowerCase().match(/\.[^.]+$/)?.[0];
   if (!extension || !AI_SOURCE_ACCEPT.split(",").includes(extension)) return `Wähle eine Datei im Format ${AI_SOURCE_FORMAT_LABEL}.`;
   if (file.size === 0) return "Die Datei ist leer. Wähle eine Datei mit Inhalt.";
-  if (file.size > MAX_AI_SOURCE_FILE_BYTES) return "Die Datei ist zu groß. Wähle eine Datei bis 20 MiB.";
+  if (file.size > MAX_AI_SOURCE_FILE_BYTES) return "Die Datei ist zu groß. Wähle eine Datei bis 20 MB.";
   return null;
 }
 

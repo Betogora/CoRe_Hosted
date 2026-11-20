@@ -904,6 +904,7 @@ summary {
   .core-heading-1 {
     font: var(--core-weight-heading) var(--core-type-heading-1)/var(--core-leading-heading-1) var(--core-font-sans);
     letter-spacing: -0.02em;
+    text-wrap: balance;
   }
 
   .core-heading-2 {

@@ -17,10 +17,12 @@ test("mobile Schritte erhalten Text, Lernwünsche und ein einziges Stapelziel bi
   await expect(panel.getByRole("heading", { name: "Vorgaben", exact: true })).toBeHidden();
   await panel.getByRole("button", { name: "Weiter", exact: true }).click();
   await expect(panel.getByRole("alert").filter({ hasText: "Wähle eine Quelldatei" })).toBeVisible();
+  await expect(panel.getByRole("button", { name: "Datei auswählen", exact: true })).toBeFocused();
   await panel.getByRole("button", { name: "Text einfügen", exact: true }).click();
   await panel.getByLabel("Dein Quelltext").fill("   ");
   await panel.getByRole("button", { name: "Weiter", exact: true }).click();
   await expect(panel.getByRole("alert").filter({ hasText: "Füge einen Text" })).toBeVisible();
+  await expect(panel.getByLabel("Dein Quelltext")).toBeFocused();
   const text = "ATP ist ein Energieträger. <script>window.untrustedSource = true</script>";
   await panel.getByLabel("Dein Quelltext").fill(text);
   await panel.getByLabel("Stapelname").fill("Textstapel");
