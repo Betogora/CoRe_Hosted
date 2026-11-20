@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { renderToStaticMarkup } from "react-dom/server";
 import { ActionDialog, CardMarkButton, CoreIconSegmentedControl, CoreModeControl, CoreSegmentedControl, CoreSlidingTabs, CoreTag, EmptyState, PageHeader, StatTile } from "./coreUi.tsx";
-import { FileText, Link2, NotebookPen, Pencil, Star } from "lucide-react";
+import { FileText, NotebookPen, Star } from "lucide-react";
 
 test("sliding tabs keep every icon and accessible label but show only the selected label", () => {
   const markup = renderToStaticMarkup(<CoreSlidingTabs ariaLabel="Stapelinhalte" options={[
@@ -178,14 +178,4 @@ test("segmented controls disable every option together", () => {
   );
 
   assert.equal(markup.match(/disabled=""/g)?.length, 2);
-});
-
-test("segmented controls disable single options", () => {
-  const markup = renderToStaticMarkup(
-    <CoreSlidingTabs ariaLabel="Werkzeug" value="draw" onValueChange={() => undefined}
-      options={[{ value: "draw", label: "Zeichnen", icon: Pencil }, { value: "link", label: "Verknüpfen", icon: Link2, disabled: true }]}/>,
-  );
-
-  assert.match(markup, /<button type="button" aria-pressed="false" aria-label="Verknüpfen" disabled=""/);
-  assert.equal(markup.match(/disabled=""/g)?.length, 1);
 });

@@ -25,6 +25,17 @@ interface DeckSummariesPanelProps {
   onDraftStateChange: (guard: CardDraftGuard | null) => void;
 }
 
+/** Shows at most four whole lines; only a text that is actually cut fades out on its last line. */
+function SummaryExcerpt({ text }: { text: string }) {
+  const ref = React.useRef<HTMLDivElement>(null), [clipped, setClipped] = React.useState(false);
+  React.useLayoutEffect(() => {
+    const element = ref.current; if (!element) return;
+    const measure = () => setClipped(element.scrollHeight > element.clientHeight + 1);
+    measure(); const observer = new ResizeObserver(measure); observer.observe(element); return () => observer.disconnect();
+  }, [text]);
+  return <div ref={ref} data-clipped={clipped || undefined} className="core-summary-excerpt mt-4 core-body text-core-secondary" aria-hidden="true">{text}</div>;
+}
+
 export function DeckSummariesPanel({ deck, treeDecks, userId, cloud = null, onGenerateSummary, onDraftStateChange }: DeckSummariesPanelProps) {
   const account = React.useMemo(() => ({ userId, cloud }), [userId, cloud]);
   const [unsynced, setUnsynced] = React.useState<ReadonlySet<string>>(new Set()), [notice, setNotice] = React.useState("");
@@ -176,8 +187,8 @@ export function DeckSummariesPanel({ deck, treeDecks, userId, cloud = null, onGe
   const shown = groups.map((group) => ({ ...group, summaries: group.summaries.filter(matches) })).filter((group) => group.summaries.length);
   const draftPath = groups.find((group) => group.deckId === draft?.deckId)?.path ?? [];
   const summaryRow = (summary: LearningSummary) => <div key={summary.id} className="core-summary-row"><button type="button" disabled={busy} className="core-summary-preview core-surface-raised rounded-panel border border-core-border p-6 text-left" onClick={() => request(() => open(summary))} aria-label={`Zusammenfassung „${summary.title}“ öffnen`}>
-    <div className="core-summary-preview-copy min-w-0"><h4 className="break-words core-heading-3">{summary.title}</h4><p className="mt-1 core-caption text-core-muted">{summaryDescription(summary)}</p><div className="core-summary-excerpt mt-4 core-body text-core-secondary" aria-hidden="true">{summaryPlainText(summary.html)}</div></div>
-    <span className="core-summary-preview-action inline-flex min-h-button items-center gap-2 core-body font-semibold text-core-action">Vollständig öffnen<ChevronRight size={17} aria-hidden="true"/></span>
+    <div className="core-summary-preview-copy min-w-0"><h4 className="break-words core-heading-3">{summary.title}</h4><p className="mt-1 core-caption text-core-muted">{summaryDescription(summary)}</p><SummaryExcerpt text={summaryPlainText(summary.html)}/></div>
+    <span className="core-summary-preview-action inline-flex items-center gap-2 core-body font-semibold text-core-action">Vollständig öffnen<ChevronRight size={17} aria-hidden="true"/></span>
   </button><IconButton className="core-summary-delete" variant="destructive-quiet" icon={Trash2} label={`Zusammenfassung „${summary.title}“ löschen`} disabled={busy} onClick={() => { setError(""); setDeleting(summary); }}/></div>;
 
   return <section className="core-summary-panel grid min-w-0 gap-6" data-testid="deck-summaries-panel" aria-label="Zusammenfassungen" aria-busy={busy || loading} tabIndex={-1} ref={panelRef}>

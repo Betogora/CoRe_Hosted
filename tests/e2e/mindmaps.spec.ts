@@ -406,7 +406,7 @@ test("Erzeugte Mindmaps zeigen Blatttexte direkt und speichern Änderungen im no
 test("Ohne Zusammenfassung bleibt nur die gemeinsame Erstellung mit kompakter Unterstapelwahl", async ({ page }) => {
   await page.goto("./docs/ui-elements.html?preview=screens");
   await page.getByRole("button", { name: "Mindmaps ohne Zusammenfassung öffnen", exact: true }).click();
-  const panel = page.getByTestId("deck-mindmaps-panel"), generate = panel.getByRole("button", { name: "Zusammenfassung und Mindmap mit KI erstellen", exact: true });
+  const panel = page.getByTestId("deck-mindmaps-panel"), generate = panel.getByRole("button", { name: "Zusammenfassung und Mindmap erstellen", exact: true });
   await expect(panel.getByTestId("mindmap-canvas")).toBeVisible();
   await expect(panel.getByRole("button", { name: "Aus Zusammenfassung", exact: true })).toHaveCount(0);
   const toggle = panel.getByRole("button", { name: "Mit KI erstellen", exact: true });
@@ -457,6 +457,6 @@ test("Mindmap-Werkzeuge und Erstellungsoptionen: visuelle Pflichtmatrix", async 
   await product.evaluate((element) => { (element as HTMLElement).style.zoom = "2"; element.scrollTo({ top: 0 }); });
   if (visualOutput) await page.screenshot({ path: testInfo.outputPath("app-200-percent.png"), animations: "disabled" });
   await product.getByRole("checkbox", { name: "Unterstapel einbeziehen" }).uncheck();
-  await product.getByRole("button", { name: "Zusammenfassung und Mindmap mit KI erstellen", exact: true }).click();
+  await product.getByRole("button", { name: "Zusammenfassung und Mindmap erstellen", exact: true }).click();
   await expect(product.getByTestId("mindmap-node").first()).toBeVisible();
 });
