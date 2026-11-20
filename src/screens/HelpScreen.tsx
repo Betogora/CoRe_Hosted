@@ -1,6 +1,6 @@
 import React from "react";
 import type { LucideIcon } from "lucide-react";
-import { CalendarCheck, ChevronRight, Clock3, Layers, RotateCcw } from "lucide-react";
+import { CalendarCheck, ChevronRight, Clock3, Layers, Sparkles } from "lucide-react";
 import { appRouteToUrl, createViewRoute, type HelpTopic } from "../appNavigation.ts";
 import { PageHeader } from "../ui/coreUi.tsx";
 import { CardManagementTopic, ExamSessionTopic, PlanningTopic, RatingGuidePanel, VariantsTopic } from "./help/helpReference.tsx";
@@ -23,7 +23,7 @@ const HELP_TOPIC_PAGES: Record<HelpTopic, { title: string; content: React.Compon
 
 const REFERENCE_TOPICS: ReadonlyArray<{ topic: HelpTopic; icon: LucideIcon }> = [
   { topic: "planung", icon: Clock3 },
-  { topic: "varianten", icon: RotateCcw },
+  { topic: "varianten", icon: Sparkles },
   { topic: "pruefungssitzung", icon: CalendarCheck },
   { topic: "kartenverwaltung", icon: Layers },
 ];
@@ -75,9 +75,9 @@ function HelpHome({ onSelectTopic }: Pick<HelpScreenProps, "onSelectTopic">) {
           <ol className="mt-6 border-t border-core-border">
             {LEARNING_STEPS.map((step, index) => (
               <li key={step.label} className="grid grid-cols-[2rem_minmax(0,1fr)] gap-2 border-b border-core-border py-4">
-                <span className="core-caption font-semibold leading-6 tabular-nums text-core-muted" aria-hidden="true">0{index + 1}</span>
+                <span className="core-caption font-semibold leading-[1.625rem] tabular-nums text-core-muted" aria-hidden="true">0{index + 1}</span>
                 <div className="min-w-0">
-                  <p className="text-pretty core-body leading-6 text-core-secondary"><span className="font-semibold text-core-text">{step.label}.</span> {step.text}</p>
+                  <p className="text-pretty core-body-large leading-relaxed text-core-secondary"><span className="font-semibold text-core-text">{step.label}.</span> {step.text}</p>
                   {step.topic ? (
                     <p className="mt-2">
                       <HelpTopicLink topic={step.topic} onSelectTopic={onSelectTopic} className="rounded-control py-1.5 core-control-label font-semibold text-core-action underline-offset-4 hover:underline">
@@ -102,7 +102,7 @@ function HelpHome({ onSelectTopic }: Pick<HelpScreenProps, "onSelectTopic">) {
         <ul className="mt-4 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
           {REFERENCE_TOPICS.map(({ topic, icon: Icon }) => (
             <li key={topic} className="grid">
-              <HelpTopicLink topic={topic} onSelectTopic={onSelectTopic} className="group grid grid-cols-[auto_minmax(0,1fr)_auto] items-start gap-3.5 rounded-control border border-core-border bg-core-surface px-5 py-6 text-left transition-colors hover:border-core-border-strong hover:bg-core-subtle">
+              <HelpTopicLink topic={topic} onSelectTopic={onSelectTopic} className="group grid grid-cols-[auto_minmax(0,1fr)_auto] items-start gap-3.5 rounded-control border border-core-border bg-core-surface px-5 py-4 text-left transition-colors hover:border-core-border-strong hover:bg-core-subtle">
                 <Icon size={24} className="text-core-action" aria-hidden="true" />
                 <span className="break-words core-heading-3 text-core-text">{HELP_TOPIC_PAGES[topic].title}</span>
                 <ChevronRight size={20} className="self-center text-core-muted transition-[color,transform] group-hover:translate-x-0.5 group-hover:text-core-action group-focus-visible:text-core-action motion-reduce:transition-none" aria-hidden="true" />
