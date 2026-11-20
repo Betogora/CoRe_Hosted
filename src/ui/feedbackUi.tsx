@@ -75,7 +75,7 @@ export function SuccessToast({
       data-success-toast-region="true"
       data-appearance={appearance}
       onAnimationEnd={handleAnimationEnd}
-      className={`core-success-toast pointer-events-auto fixed right-4 top-4 z-[65] !w-fit max-w-[calc(100vw-2rem)] max-sm:left-4 max-sm:!w-auto !items-center rounded-panel py-2 pl-4 pr-2 shadow-raised [&>svg]:!mt-0 max-sm:!items-start max-sm:[&>svg]:!mt-3 sm:right-8 sm:top-8 sm:max-w-[calc(100vw-4rem)] ${className}`}
+      className={`core-success-toast pointer-events-auto fixed right-4 top-2 z-[65] !w-fit max-w-[calc(100vw-2rem)] max-sm:left-4 max-sm:!w-auto !items-center rounded-panel py-2 pl-4 pr-2 shadow-raised [&>svg]:!mt-0 max-sm:!items-start max-sm:[&>svg]:!mt-3 sm:right-8 sm:max-w-[calc(100vw-4rem)] ${className}`}
     >
       {/* On a phone the action takes its own line below the message, so the message never breaks inside a word. */}
       <div className="flex min-w-0 items-center gap-3 max-sm:flex-wrap max-sm:gap-y-1">

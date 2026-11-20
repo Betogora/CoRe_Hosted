@@ -1,5 +1,5 @@
 import React from "react";
-import { CheckCircle2, ChevronDown, CircleAlert, RotateCcw, Shuffle, SlidersHorizontal, X } from "lucide-react";
+import { CheckCircle2, ChevronDown, CircleAlert, Eye, Shuffle, SlidersHorizontal, X } from "lucide-react";
 import type { StudyModeProps } from "../appScreenProps.ts";
 import { HIT_REVIEW_KIND } from "../reviewEventKinds.ts";
 import { DEFAULT_EASY_DAYS, createEasyDaysDueCounts, shiftEasyDaysDueCounts } from "../easyDays.ts";
@@ -664,7 +664,7 @@ export function StudyMode({ shortcutsSuspended = false, deck, decks, notes, answ
               </div>
             ) : (
               <button type="button" onClick={revealAnswer} className="core-action-primary min-h-11 w-full">
-                <RotateCcw size={16} aria-hidden="true" />
+                <Eye size={16} aria-hidden="true" />
                 {revealLabel(presented?.note)}
               </button>
             )}
