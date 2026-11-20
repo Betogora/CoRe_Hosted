@@ -1,6 +1,6 @@
 import React from "react";
 import type { LucideIcon } from "lucide-react";
-import { CalendarCheck, Clock3, Layers, RotateCcw } from "lucide-react";
+import { CalendarCheck, ChevronRight, Clock3, Layers, RotateCcw } from "lucide-react";
 import { appRouteToUrl, createViewRoute, type HelpTopic } from "../appNavigation.ts";
 import { PageHeader } from "../ui/coreUi.tsx";
 import { CardManagementTopic, ExamSessionTopic, PlanningTopic, RatingGuidePanel, VariantsTopic } from "./help/helpReference.tsx";
@@ -28,11 +28,11 @@ const REFERENCE_TOPICS: ReadonlyArray<{ topic: HelpTopic; icon: LucideIcon }> = 
   { topic: "kartenverwaltung", icon: Layers },
 ];
 
-const LEARNING_STEPS = [
-  { label: "Aktiv abrufen", text: "Hol die Antwort aus dem Gedächtnis, bevor du sie aufdeckst." },
+const LEARNING_STEPS: ReadonlyArray<{ label: string; text: string; topic?: HelpTopic }> = [
+  { label: "Aktiv abrufen", text: "Hol die Antwort aus dem Gedächtnis, bevor du sie aufdeckst.", topic: "active-recall" },
   { label: "Ehrlich bewerten", text: "Deine Antwort bestimmt das nächste Intervall: Je sicherer der Abruf, desto später wird die Karte erneut fällig." },
-  { label: "Rechtzeitig wiederholen", text: "FSRS plant jede Karte so, dass du sie wiederholst, kurz bevor du sie vergessen würdest. Nach ausreichender Reife fragt CoRe denselben Inhalt mit neuen Varianten ab." },
-] as const;
+  { label: "Rechtzeitig wiederholen", text: "FSRS plant jede Karte so, dass du sie wiederholst, kurz bevor du sie vergessen würdest. Nach ausreichender Reife fragt CoRe denselben Inhalt mit neuen Varianten ab.", topic: "spaced-repetition" },
+];
 
 /** A real link to the topic, so it can be shared or opened in a new tab; a plain click stays in the app. */
 function HelpTopicLink({ topic, onSelectTopic, className, children }: { topic: HelpTopic; onSelectTopic: HelpScreenProps["onSelectTopic"]; className: string; children: React.ReactNode }) {
@@ -52,39 +52,31 @@ function HelpTopicLink({ topic, onSelectTopic, className, children }: { topic: H
   );
 }
 
-function methodLinkClass(borderClass: string) {
-  return `core-help-method-link group block border-t-2 ${borderClass} pt-4 transition-[border-width,color] duration-150 hover:border-t-4 motion-reduce:transition-none`;
-}
-
 function HelpHome({ onSelectTopic }: Pick<HelpScreenProps, "onSelectTopic">) {
-  const methods = [
-    { topic: "active-recall", name: "Active Recall", text: "Wissen aktiv aus dem Gedächtnis holen.", border: "border-core-success" },
-    { topic: "spaced-repetition", name: "Spaced Repetition", text: "Zum passenden Zeitpunkt wiederholen.", border: "border-core-info" },
-  ] as const;
   return (
     <div className="grid min-w-0 gap-16">
       <section className="grid min-w-0 items-start gap-12 lg:grid-cols-[0.9fr_1.1fr]" aria-labelledby="help-intro-heading">
         <div className="max-w-2xl">
           <h3 id="help-intro-heading" className="core-heading-2 text-core-text">So lernst du mit CoRe</h3>
-          <p className="mt-4 core-body-large leading-8 text-core-secondary">
+          <p className="mt-4 core-body-large leading-relaxed text-core-secondary">
             CoRe hilft dir, Wissen nicht nur für den nächsten Test, sondern langfristig abrufbar zu machen. Dafür verbinden wir zwei etablierte Methoden und entwickeln sie weiter.
           </p>
           <ol className="mt-6 border-t border-core-border">
             {LEARNING_STEPS.map((step, index) => (
-              <li key={step.label} className="grid gap-1 border-b border-core-border py-4 sm:grid-cols-[2.5rem_1fr] sm:gap-2">
-                <span className="core-caption font-semibold tabular-nums text-core-muted" aria-hidden="true">0{index + 1}</span>
-                <p className="core-body leading-6 text-core-secondary"><span className="font-semibold text-core-text">{step.label}.</span> {step.text}</p>
+              <li key={step.label} className="grid grid-cols-[2rem_minmax(0,1fr)] gap-2 border-b border-core-border py-4">
+                <span className="core-caption font-semibold leading-6 tabular-nums text-core-muted" aria-hidden="true">0{index + 1}</span>
+                <div className="min-w-0">
+                  <p className="core-body leading-6 text-core-secondary"><span className="font-semibold text-core-text">{step.label}.</span> {step.text}</p>
+                  {step.topic ? (
+                    <HelpTopicLink topic={step.topic} onSelectTopic={onSelectTopic} className="-ml-1 mt-1 inline-flex min-h-button items-center gap-1 rounded-control px-1 core-control-label font-semibold text-core-action underline-offset-4 hover:underline">
+                      {HELP_TOPIC_PAGES[step.topic].title}
+                      <ChevronRight size={15} className="shrink-0" aria-hidden="true" />
+                    </HelpTopicLink>
+                  ) : null}
+                </div>
               </li>
             ))}
           </ol>
-          <div className="mt-8 grid gap-4 sm:grid-cols-2">
-            {methods.map((method) => (
-              <HelpTopicLink key={method.topic} topic={method.topic} onSelectTopic={onSelectTopic} className={methodLinkClass(method.border)}>
-                <span className="core-caption font-semibold text-core-secondary transition-[font-weight,color] group-hover:font-bold group-hover:text-core-text group-focus-visible:font-bold group-focus-visible:text-core-text motion-reduce:transition-none">{method.name}</span>
-                <span className="mt-2 block core-body font-semibold text-core-text transition-[font-weight] group-hover:font-bold group-focus-visible:font-bold motion-reduce:transition-none">{method.text}</span>
-              </HelpTopicLink>
-            ))}
-          </div>
         </div>
         <div className="hidden min-w-0 lg:block">
           <IntroCardStack />

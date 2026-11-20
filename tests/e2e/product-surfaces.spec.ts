@@ -584,18 +584,11 @@ test("help opens with a short entry and links its stories and reference topics a
 
   const activeRecallMethodLink = page.locator('a[data-help-topic-link="active-recall"]');
   await expect(activeRecallMethodLink).toHaveAttribute("href", "/hilfe?topic=active-recall");
-  await expect(activeRecallMethodLink).toHaveCSS("border-top-width", "2px");
+  await expect(activeRecallMethodLink).toHaveText("Active Recall wird Smarter Recall");
   await activeRecallMethodLink.focus();
   await page.keyboard.press("Tab");
   await page.keyboard.press("Shift+Tab");
   await expect(activeRecallMethodLink).toBeFocused();
-  await expect(activeRecallMethodLink).toHaveCSS("border-top-width", "4px");
-  await activeRecallMethodLink.evaluate((element: HTMLAnchorElement) => element.blur());
-  await expect(activeRecallMethodLink).toHaveCSS("border-top-width", "2px");
-  await activeRecallMethodLink.hover();
-  await expect(activeRecallMethodLink).toHaveCSS("border-top-width", "2px");
-  await page.mouse.move(0, 0);
-  await expect(activeRecallMethodLink).toHaveCSS("border-top-width", "2px");
   await activeRecallMethodLink.click();
   await expect(page).toHaveURL("/hilfe?topic=active-recall");
   await expect(page.getByRole("heading", { name: "Active Recall wird Smarter Recall" })).toBeFocused();
@@ -658,8 +651,7 @@ test("help opens with a short entry and links its stories and reference topics a
   await expect(activeRecallMethodLink).toBeFocused();
 
   const spacedRepetitionMethodLink = page.locator('a[data-help-topic-link="spaced-repetition"]');
-  await spacedRepetitionMethodLink.hover();
-  await expect(spacedRepetitionMethodLink).toHaveCSS("border-top-width", "4px");
+  await expect(spacedRepetitionMethodLink).toHaveText("Spaced Repetition wird Content Repetition");
   await spacedRepetitionMethodLink.click();
   await expect(page).toHaveURL("/hilfe?topic=spaced-repetition");
   const spacedRepetitionHeading = page.getByRole("heading", { name: "Spaced Repetition wird Content Repetition" });

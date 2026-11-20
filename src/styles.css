@@ -3357,6 +3357,12 @@ button.core-steps-step {
   background: var(--core-help-stack-back);
   transform: translate(28px, -20px) rotate(3deg);
 }
+
+/* Narrow stacks keep their fanned layers inside the content width. */
+@media (max-width: 639px) {
+  .core-help-stack-layer-middle { transform: translate(-8px, -8px) rotate(-2deg); }
+  .core-help-stack-layer-back { transform: translate(8px, -18px) rotate(2deg); }
+}
 .core-help-card-question {
   font: var(--core-weight-control) var(--core-type-heading-3)/var(--core-leading-heading-3) var(--core-font-sans);
   letter-spacing: -0.005em;
@@ -3365,10 +3371,6 @@ button.core-steps-step {
 
 .core-help-card-options {
   font: var(--core-weight-control) var(--core-type-body-large)/var(--core-leading-body-large) var(--core-font-sans);
-}
-
-.core-help-method-link:focus-visible {
-  border-top-width: 4px;
 }
 
 .core-obscured-recall-text {
