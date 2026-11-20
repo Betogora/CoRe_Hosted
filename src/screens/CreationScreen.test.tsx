@@ -161,7 +161,7 @@ test("manual options share one desktop row and keep labeled segmented choices", 
   assert.match(markup, />Lernrichtung</);
   assert.match(markup, /aria-label="Lernrichtung"[^>]*core-segmented-control/);
   assert.match(markup, />Beide Richtungen</);
-  assert.match(markup, /data-testid="manual-card-options"[\s\S]*?role="switch"[^>]*>.*?Antwort eintippen/, "Antwort eintippen steht bei der Lernrichtung, nicht bei den Bausteinen");
+  assert.match(markup, /data-testid="manual-card-options"[\s\S]*?role="switch"[^>]*aria-label="Antwort eintippen"/, "Antwort eintippen steht bei der Lernrichtung, nicht bei den Bausteinen");
   assert.doesNotMatch(markup, /Weitere Optionen|Antwortoptionen statt freier Antwort verwenden|Vorder- und Rückseite zusätzlich umgekehrt abfragen/);
 });
 

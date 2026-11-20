@@ -1,7 +1,7 @@
 import React from "react";
 import type { TagDirectoryEntry } from "../tagDirectory.ts";
 import { TagInput } from "../ui/TagInput.tsx";
-import { ArrowDown, ArrowUp, CircleAlert, Eye, FileText, FolderPlus, ImagePlus, Layers, Plus, Save, X } from "lucide-react";
+import { ArrowDown, ArrowUp, CircleAlert, Eye, FileText, ImagePlus, Layers, Plus, Save, X } from "lucide-react";
 import {
   createManualBatchSession,
   manualDraftsEqual,
@@ -629,7 +629,8 @@ export function ManualCreationPanel({
               dispatchBatch({ type: "target-deck", deckId: nextDeckId });
               return next;
             })} className="core-action-secondary min-w-0 max-w-full basis-full sm:basis-auto">
-              {useNewDeck && decks.length > 0 ? <><Layers size={16} aria-hidden="true" />Stapel auswählen</> : <><FolderPlus size={16} aria-hidden="true" />Neuen Stapel erstellen</>}
+              <Layers size={16} aria-hidden="true" />
+              {useNewDeck && decks.length > 0 ? "Stapel auswählen" : "Neuen Stapel erstellen"}
             </button>
           </div>
           {targetDeckMissing && !useNewDeck ? (
@@ -668,10 +669,13 @@ export function ManualCreationPanel({
             />
           </div>
           {!isOcclusion && (kind === "basic" || kind === "basic-reversed") ? (
-            <div className="flex md:min-h-[var(--core-selection-height)] md:items-center">
-              <CoreTooltip label="Die Antwort wird eingetippt und Zeichen für Zeichen verglichen.">
-                <CoreSwitch checked={typeIn} onCheckedChange={setTypeIn} label="Antwort eintippen" />
-              </CoreTooltip>
+            <div className="grid min-w-0 gap-2">
+              <span className="core-field-label" aria-hidden="true">Antwort</span>
+              <div className="flex md:min-h-[var(--core-selection-height)] md:items-center">
+                <CoreTooltip label="Die Antwort wird eingetippt und Zeichen für Zeichen verglichen.">
+                  <CoreSwitch checked={typeIn} onCheckedChange={setTypeIn} label="Eintippen" aria-label="Antwort eintippen" />
+                </CoreTooltip>
+              </div>
             </div>
           ) : null}
         </div>
