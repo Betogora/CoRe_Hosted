@@ -141,12 +141,12 @@ export function createCardSearchMenu({ decks, tags, flagNames, noteTypes = [] }:
 
 /** Hint for a search no card can meet, naming the filters that contradict each other; null for any other search. */
 export function cardSearchConflictMessage(query: string, categories: readonly CardSearchMenuCategory[]): string | null {
+  // Each filter names its category, once at the end when all share one: „Neu“ und „Reif“ (Kartenstatus).
   const conflicts = cardSearchConflicts(query).map((sources) => {
-    const names = sources.map((source) => {
-      const { label, negated } = cardSearchTermLabel(source, categories);
-      return `„${negated ? `ohne ${label}` : label}“`;
-    });
-    return `${names.slice(0, -1).join(", ")} und ${names.at(-1)} schließen sich aus.`;
+    const labels = sources.map((source) => cardSearchTermLabel(source, categories));
+    const shared = labels.every((entry) => entry.category === labels[0].category) ? labels[0].category : undefined;
+    const names = labels.map(({ label, category, negated }) => `„${negated ? `ohne ${label}` : label}“${category && shared === undefined ? ` (${category})` : ""}`);
+    return `${names.slice(0, -1).join(", ")} und ${names.at(-1)}${shared ? ` (${shared})` : ""} schließen sich aus.`;
   });
   return conflicts.length ? `So passt keine Karte: ${conflicts.join(" ")}` : null;
 }

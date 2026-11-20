@@ -77,6 +77,8 @@ test("eine neue gespeicherte Suche heißt wie ihre Filter und ihr Text", () => {
   assert.equal(suggestedSearchName("x".repeat(80), menu).length, 60);
   const markup = renderToStaticMarkup(<AdvancedCardSearch id="menu" query="" onQueryChange={() => undefined} categories={menu} resultCount={null} onClose={() => undefined} savedSearches={[]} onSavedSearchesChange={() => undefined} />);
   assert.match(markup, /disabled=""[^>]*aria-label="Suche speichern"/, "ein leerer Ausdruck lässt sich nicht speichern");
+  assert.match(markup, />Keine Filter</);
+  assert.match(markup, /Alle Karten anzeigen/, "ohne Suchausdruck zeigt der Knopf alle Karten");
 });
 
 test("eine reine Textsuche nennt ihre Trefferzahl ohne Filterchips", () => {
@@ -129,12 +131,12 @@ test("Filter, die sich ausschließen, bleiben erlaubt und werden benannt (5.5)",
   ]) assert.deepEqual(cardSearchConflicts(query), [], query);
 });
 
-test("der Hinweis nennt die widersprüchlichen Filter im Menü und unter der Suchzeile (5.5)", () => {
-  assert.equal(cardSearchConflictMessage("is:new prop:due<0", menu), "So passt keine Karte: „Neu“ und „Überfällig“ schließen sich aus.");
-  assert.equal(cardSearchConflictMessage("is:suspended -is:suspended is:due prop:due=1", menu), "So passt keine Karte: „Ausgesetzt“ und „Fällig“ schließen sich aus. „Ausgesetzt“ und „ohne Ausgesetzt“ schließen sich aus. „Fällig“ und „Morgen fällig“ schließen sich aus.");
+test("der Hinweis nennt die widersprüchlichen Filter samt Kategorie im Menü und unter der Suchzeile (5.5)", () => {
+  assert.equal(cardSearchConflictMessage("is:new prop:due<0", menu), "So passt keine Karte: „Neu“ (Kartenstatus) und „Überfällig“ (Heute) schließen sich aus.");
+  assert.equal(cardSearchConflictMessage("is:suspended -is:suspended is:due prop:due=1", menu), "So passt keine Karte: „Ausgesetzt“ (Kartenstatus) und „Fällig“ (Heute) schließen sich aus. „Ausgesetzt“ und „ohne Ausgesetzt“ (Kartenstatus) schließen sich aus. „Fällig“ und „Morgen fällig“ (Heute) schließen sich aus.");
   assert.equal(cardSearchConflictMessage("is:new herz", menu), null);
   const advanced = renderToStaticMarkup(<AdvancedCardSearch id="menu" query="is:new prop:due&lt;0" onQueryChange={() => undefined} categories={menu} resultCount={0} onClose={() => undefined} savedSearches={[]} onSavedSearchesChange={() => undefined} />);
-  assert.match(advanced, /data-testid="card-search-conflict" role="status"[\s\S]*?„Neu“ und „Überfällig“ schließen sich aus\./);
+  assert.match(advanced, /data-testid="card-search-conflict" role="status"[\s\S]*?„Neu“ \(Kartenstatus\) und „Überfällig“ \(Heute\) schließen sich aus\./);
   const bar = (advancedOpen: boolean) => renderToStaticMarkup(<CardSearchBar query="is:new prop:due&lt;0" onQueryChange={() => undefined} decks={[parent]} categories={menu} advancedOpen={advancedOpen} onAdvancedOpenChange={() => undefined} advancedId="menu" resultCount={0} placeholder="Suchen" />);
   assert.match(bar(false), /data-testid="card-search-conflict"/);
   assert.doesNotMatch(bar(true), /card-search-conflict/, "das offene Menü zeigt den Hinweis selbst");

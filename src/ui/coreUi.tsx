@@ -341,7 +341,7 @@ export function CoreIconSegmentedControl<T extends string>(props: Omit<CoreSegme
 export type CoreTriState = "in" | "" | "out";
 
 /**
- * Filter switch with three positions: `Mit` (plus, blue), `Egal` (circle, neutral, the start) and `Ohne` (minus, red).
+ * Filter switch with three positions: `Mit` (plus, blue), `Egal` (circle, neutral, the start, no indicator) and `Ohne` (minus, red).
  * Same rail as the segmented control with square segments; the indicator slides and fades its colour. Each position
  * is named in full, as name and tooltip: `Überfällig: nur überfällige Karten zeigen`.
  */
