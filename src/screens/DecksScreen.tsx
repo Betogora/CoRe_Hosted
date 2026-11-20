@@ -215,11 +215,9 @@ export function DecksScreen({
   }, [onDraftStateChange]);
 
   React.useEffect(() => {
-    if (preserveToastForSelectionChange.current) {
-      preserveToastForSelectionChange.current = false;
-      return;
-    }
-    if (selectedCardId) setSuccessToast(""); // Closing keeps the editor's message: its undo lay below the dialog (W7).
+    // Closing the editor keeps its message: the undo of an immediate action lies below the dialog until then (W7).
+    if (preserveToastForSelectionChange.current) preserveToastForSelectionChange.current = false;
+    else if (selectedCardId) setSuccessToast("");
   }, [selectedCardId, setSuccessToast]);
 
   React.useEffect(() => {
