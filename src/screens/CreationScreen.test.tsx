@@ -151,7 +151,7 @@ test("manual target selection shows complete deck paths", () => {
 test("manual options share one desktop row and keep labeled segmented choices", () => {
   const markup = renderToStaticMarkup(<CreationScreen decks={[]} initialMethod="manual" {...callbacks} />);
 
-  assert.match(markup, /class="grid min-w-0 gap-4 md:flex md:flex-wrap md:items-center md:gap-x-6" data-testid="manual-card-options"/);
+  assert.match(markup, /class="grid min-w-0 gap-4 md:flex md:flex-wrap md:items-end md:gap-x-6" data-testid="manual-card-options"/);
   assert.match(markup, />Fragentyp</);
   assert.match(markup, /aria-label="Fragentyp"[^>]*core-segmented-control/);
   assert.match(markup, />Single Choice</);
@@ -160,6 +160,7 @@ test("manual options share one desktop row and keep labeled segmented choices", 
   assert.match(markup, />Lernrichtung</);
   assert.match(markup, /aria-label="Lernrichtung"[^>]*core-segmented-control/);
   assert.match(markup, />Beide Richtungen</);
+  assert.match(markup, /data-testid="manual-card-options"[\s\S]*?role="switch"[^>]*>.*?Antwort eintippen/, "Antwort eintippen steht bei der Lernrichtung, nicht bei den Bausteinen");
   assert.doesNotMatch(markup, /Weitere Optionen|Antwortoptionen statt freier Antwort verwenden|Vorder- und Rückseite zusätzlich umgekehrt abfragen/);
 });
 
@@ -170,7 +171,7 @@ test("manual images are editor actions without separate drop fields", () => {
   assert.equal((markup.match(/accept="image\/\*"/g) ?? []).length, 2);
   assert.doesNotMatch(markup, /Bild zur (?:Vorder|Rück)seite einfügen|kind="image"/);
   const blocks = markup.slice(markup.indexOf('data-testid="note-blocks"'));
-  assert.match(blocks, /role="switch"[^>]*>.*?Antwort eintippen/);
+  assert.doesNotMatch(blocks, /Antwort eintippen/);
   for (const label of ["Zusatzfrage", "Hinweis", "Zusatz", "Quelle"]) assert.match(blocks, new RegExp(`${label}</button>`));
   assert.doesNotMatch(markup, /<details|<summary|Weitere Felder/);
 });

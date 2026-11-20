@@ -203,7 +203,7 @@ export function NoteContentEditor({ note, value, structure, onValueChange, onStr
           <FieldError errors={errors} field="options" />
         </fieldset>
       ) : null}
-      {structureEditable ? <NoteBlockControls typeIn={null} fieldRoles={blocks.fieldRoles} onTypeInChange={() => undefined} onAddField={addField} /> : null}
+      {structureEditable ? <NoteBlockControls fieldRoles={blocks.fieldRoles} onAddField={addField} /> : null}
     </div>
   );
 

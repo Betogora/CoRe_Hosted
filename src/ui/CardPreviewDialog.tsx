@@ -115,12 +115,12 @@ export function CardPreviewDialog({
           <IconButton label="Kartenvorschau schließen" icon={X} variant="ghost" onClick={closeDialog} />
         </header>
 
-        <div className="grid min-h-0 flex-1 overflow-y-auto overscroll-contain bg-core-surface px-4 sm:px-8">
-          <div ref={stageRef} tabIndex={-1} className="core-study-card flex min-h-[min(40vh,20rem)] w-full min-w-0 flex-col justify-center py-6 outline-none sm:py-10" data-testid="card-preview-stage">
+        <div className="grid min-h-0 flex-1 overflow-y-auto overscroll-contain bg-core-surface">
+          <div ref={stageRef} tabIndex={-1} className="core-study-card flex min-h-[min(36vh,16rem)] w-full min-w-0 flex-col justify-center py-6 outline-none sm:py-10" data-testid="card-preview-stage">
             {note && card ? (
               <NoteCardContent key={round} note={note} card={card} surface="preview" mediaUrls={mediaUrls} revealed={side === "answer"} onReveal={() => setSide("answer")} />
             ) : (
-              <StatusMessage tone="info">Für die Vorschau fehlen noch Pflichtangaben.</StatusMessage>
+              <StatusMessage tone="info" className="mx-4 sm:mx-6">Für die Vorschau fehlen noch Pflichtangaben.</StatusMessage>
             )}
           </div>
         </div>
