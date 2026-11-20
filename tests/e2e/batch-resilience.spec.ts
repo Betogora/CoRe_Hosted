@@ -261,7 +261,7 @@ test("[Vertrag: große manuelle Bilder] Speichern bleibt exklusiv und zeigt Byte
     await expect(saveButton).toBeDisabled();
     await expect(saveButton).toHaveAttribute("aria-busy", "true");
     await expect(page.getByTestId("manual-draft-controls")).toHaveAttribute("inert", "");
-    await expect(page.getByRole("button", { name: "Fertig" })).toBeDisabled();
+    await expect(page.getByRole("button", { name: "Fertig" })).toHaveCount(0);
     await expect.poll(() => heldUploadResponse).toBe(true);
     await expect(progress).toContainText(/großes-bild\.png wird hochgeladen/);
     await expect(progress).toContainText(/von .*MB/);

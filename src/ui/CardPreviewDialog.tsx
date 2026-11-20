@@ -41,13 +41,15 @@ export function CardPreviewDialog({
   const [round, setRound] = React.useState(0);
   const shownIndex = Math.min(cardIndex, cards.length - 1);
   const card = cards[shownIndex] ?? null;
-  const answerContentRef = React.useRef<HTMLDivElement>(null);
+  const stageRef = React.useRef<HTMLDivElement>(null);
+  const previousButtonRef = React.useRef<HTMLButtonElement>(null);
+  const nextButtonRef = React.useRef<HTMLButtonElement>(null);
   const titleId = React.useId();
   const closeDialog = React.useCallback(() => {
     setSide("question");
     onOpenChange(false);
   }, [onOpenChange]);
-  const { dialogRef, initialFocusRef: closeButtonRef } = useModalDialog({
+  const { dialogRef } = useModalDialog({
     open,
     onClose: closeDialog,
     returnFocusRef,
@@ -60,15 +62,25 @@ export function CardPreviewDialog({
     setCardIndex(0);
   }, [open]);
 
-  /** Steps through the cards in a circle; every card starts on its front. */
-  function showCard(step: number) {
-    setCardIndex((shownIndex + step + cards.length) % cards.length);
+  /** Steps to a neighbouring card and stops at both ends; every card starts on its front. */
+  function showCard(step: -1 | 1) {
+    const next = shownIndex + step;
+    if (next < 0 || next >= cards.length) return;
+    // The button that reaches an end turns disabled, so its focus moves to the other direction.
+    const [pressed, other] = step < 0 ? [previousButtonRef, nextButtonRef] : [nextButtonRef, previousButtonRef];
+    if ((next === 0 || next === cards.length - 1) && document.activeElement === pressed.current) other.current?.focus();
+    setCardIndex(next);
     setSide("question");
     setRound((current) => current + 1);
   }
 
+  // The card takes the initial focus: arrow keys turn its pages, and no control looks selected before it is used.
   React.useEffect(() => {
-    if (open && side === "answer") answerContentRef.current?.focus();
+    if (open) stageRef.current?.focus();
+  }, [open]);
+
+  React.useEffect(() => {
+    if (open && side === "answer") stageRef.current?.focus();
   }, [open, side]);
 
   if (!open) return null;
@@ -98,35 +110,31 @@ export function CardPreviewDialog({
       >
         <header className="flex min-h-16 items-center gap-4 border-b border-core-border px-4 sm:px-6">
           <h2 id={titleId} className="min-w-0 flex-1 core-heading-2 text-core-text">Kartenvorschau</h2>
-          <IconButton ref={closeButtonRef} label="Kartenvorschau schließen" icon={X} variant="ghost" onClick={closeDialog} />
+          <IconButton label="Kartenvorschau schließen" icon={X} variant="ghost" onClick={closeDialog} />
         </header>
 
-        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain bg-core-canvas p-3 sm:p-6">
-          <div className="mx-auto grid min-h-full w-full max-w-5xl place-items-center">
-            <div className="core-card-preview-stage core-study-card flex min-h-[56vh] w-full flex-col justify-center rounded-panel border border-core-border bg-core-surface px-4 py-6 sm:px-8 sm:py-10">
-              {note && card ? (
-                <div ref={answerContentRef} tabIndex={-1} className="min-w-0 outline-none">
-                  <NoteCardContent key={round} note={note} card={card} surface="preview" mediaUrls={mediaUrls} revealed={side === "answer"} onReveal={() => setSide("answer")} />
-                </div>
-              ) : (
-                <StatusMessage tone="info">Für die Vorschau fehlen noch Pflichtangaben.</StatusMessage>
-              )}
-            </div>
+        <div className="grid min-h-0 flex-1 overflow-y-auto overscroll-contain bg-core-surface px-4 sm:px-8">
+          <div ref={stageRef} tabIndex={-1} className="core-study-card flex min-h-[min(50vh,28rem)] w-full min-w-0 flex-col justify-center py-6 outline-none sm:py-10" data-testid="card-preview-stage">
+            {note && card ? (
+              <NoteCardContent key={round} note={note} card={card} surface="preview" mediaUrls={mediaUrls} revealed={side === "answer"} onReveal={() => setSide("answer")} />
+            ) : (
+              <StatusMessage tone="info">Für die Vorschau fehlen noch Pflichtangaben.</StatusMessage>
+            )}
           </div>
         </div>
 
-        <footer className={`flex shrink-0 flex-col items-stretch gap-3 border-t border-core-border bg-core-surface px-4 py-3 pb-[max(.75rem,env(safe-area-inset-bottom))] sm:flex-row sm:items-center sm:px-6 sm:py-4 ${cards.length > 1 ? "sm:justify-between" : "sm:justify-center"}`}>
+        <footer className="flex shrink-0 flex-col items-stretch gap-3 border-t border-core-border bg-core-surface px-4 py-3 pb-[max(.75rem,env(safe-area-inset-bottom))] sm:flex-row sm:items-center sm:justify-center sm:gap-8 sm:px-6 sm:py-4">
           {note && card && cards.length > 1 ? (
             <div role="group" aria-label="Karte in der Vorschau" className="flex min-w-0 items-center gap-2" data-testid="card-preview-navigation">
               <CoreTooltip label="Vorige Karte · ←">
-                <IconButton icon={ChevronLeft} label="Vorige Karte" onClick={() => showCard(-1)} />
+                <IconButton ref={previousButtonRef} icon={ChevronLeft} label="Vorige Karte" disabled={shownIndex === 0} onClick={() => showCard(-1)} />
               </CoreTooltip>
               <p className="grid min-w-0 flex-1 text-center sm:w-44 sm:flex-none" aria-live="polite" data-testid="card-preview-position">
                 <span className="core-body font-semibold tabular-nums text-core-text">Karte {shownIndex + 1} von {cards.length}</span>
                 <span className="truncate core-caption text-core-muted">{notePromptLabel(note.content, card.promptKey)}</span>
               </p>
               <CoreTooltip label="Nächste Karte · →">
-                <IconButton icon={ChevronRight} label="Nächste Karte" onClick={() => showCard(1)} />
+                <IconButton ref={nextButtonRef} icon={ChevronRight} label="Nächste Karte" disabled={shownIndex === cards.length - 1} onClick={() => showCard(1)} />
               </CoreTooltip>
             </div>
           ) : null}
@@ -138,7 +146,7 @@ export function CardPreviewDialog({
               if (next === "question") setRound((current) => current + 1);
               setSide(next);
             }}
-            className="w-full sm:max-w-sm"
+            className="w-full sm:w-80"
           />
         </footer>
       </div>

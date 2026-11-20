@@ -326,8 +326,10 @@ test("[Vertrag: modale Kartenvorschau] @beta-core Erstellung und Editor zeigen d
   await expect(previewPosition).toContainText("Rückwärts");
   await expect(dialog.getByRole("button", { name: "Vorderseite" })).toHaveAttribute("aria-pressed", "true");
   await expect(dialog.frameLocator('iframe[title="Frage"]').locator("body")).toContainText("Ungespeicherte Erstellungsantwort");
-  await dialog.getByRole("button", { name: "Nächste Karte" }).click();
+  await expect(dialog.getByRole("button", { name: "Nächste Karte" })).toBeDisabled();
+  await dialog.getByRole("button", { name: "Vorige Karte" }).click();
   await expect(previewPosition).toContainText("Karte 1 von 2");
+  await expect(dialog.getByRole("button", { name: "Vorige Karte" })).toBeDisabled();
   await page.keyboard.press("Escape");
   await learningDirection.getByRole("button", { name: "Standard" }).click();
 

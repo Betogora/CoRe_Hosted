@@ -33,8 +33,8 @@ test("CardPreviewDialog switches between every card the draft creates", () => {
   assert.match(markup, /aria-label="Karte in der Vorschau"/);
   assert.match(markup, /Karte 1 von 2/);
   assert.match(markup, />Vorwärts</);
-  assert.match(markup, /aria-label="Vorige Karte"/);
-  assert.match(markup, /aria-label="Nächste Karte"/);
+  assert.match(markup, /<button[^>]*disabled=""[^>]*aria-label="Vorige Karte"/, "die erste Karte hat keine vorige");
+  assert.doesNotMatch(markup, /<button[^>]*disabled=""[^>]*aria-label="Nächste Karte"/);
 });
 
 test("CardPreviewDialog names missing required input instead of a card", () => {

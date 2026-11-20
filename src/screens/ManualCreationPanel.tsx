@@ -1,7 +1,7 @@
 import React from "react";
 import type { TagDirectoryEntry } from "../tagDirectory.ts";
 import { TagInput } from "../ui/TagInput.tsx";
-import { ArrowDown, ArrowUp, CircleAlert, Database, Eye, FileText, ImagePlus, Pin, PinOff, Plus, X } from "lucide-react";
+import { ArrowDown, ArrowUp, CircleAlert, Database, Eye, FileText, ImagePlus, Pin, Plus, X } from "lucide-react";
 import {
   createManualBatchSession,
   manualDraftsEqual,
@@ -104,7 +104,6 @@ function isPdfDocument(document: TransientSourceDocument | null): boolean {
 }
 
 function PinFieldButton({ isPinned, label, onToggle }: PinFieldButtonProps) {
-  const Icon = isPinned ? Pin : PinOff;
   const title = isPinned
     ? `${label}: Nach Speichern behalten`
     : `${label}: Nach Speichern leeren. Zum Behalten anheften`;
@@ -118,11 +117,11 @@ function PinFieldButton({ isPinned, label, onToggle }: PinFieldButtonProps) {
         onClick={onToggle}
         className={`grid size-button shrink-0 place-items-center rounded-control transition ${
           isPinned
-            ? "bg-core-subtle text-core-action"
+            ? "bg-[var(--core-action-soft)] text-core-action"
             : "text-core-muted hover:bg-core-subtle hover:text-core-text"
         }`}
       >
-        <Icon size={16} aria-hidden="true" />
+        <Pin size={16} fill={isPinned ? "currentColor" : "none"} aria-hidden="true" />
       </button>
     </CoreTooltip>
   );
@@ -677,6 +676,7 @@ export function ManualCreationPanel({
             <span className="core-field-label">Lernrichtung</span>
             <CoreSegmentedControl
               ariaLabel="Lernrichtung"
+              className="core-learning-direction-control"
               options={LEARNING_DIRECTION_OPTIONS}
               value={isReverse ? "both" : "standard"}
               disabled={isChoice || isCloze || isOcclusion}
@@ -853,20 +853,18 @@ export function ManualCreationPanel({
           </div>
         </div>
       ) : null}
-      <div className="flex flex-wrap items-end gap-2">
-        <ActionButton data-testid="manual-save-button" type="button" variant="primary" icon={Database} loading={isSaving} disabled={isPreparingImage || isSaving} onClick={() => void saveManualCard()}>
+      {/* Saving leads, finishing follows once a card exists, and discarding stands apart at the end. */}
+      <div className="flex flex-wrap items-center gap-2" data-testid="manual-actions">
+        <ActionButton data-testid="manual-save-button" type="button" variant="primary" icon={Database} className="basis-full sm:basis-auto" loading={isSaving} disabled={isPreparingImage || isSaving} onClick={() => void saveManualCard()}>
           {isSaving ? "Karte wird gespeichert" : "Originalkarte speichern"}
         </ActionButton>
-        <ActionButton ref={discardButtonRef} type="button" variant="secondary" disabled={!draftDirty || isSaving || isPreparingImage} onClick={() => setDiscardConfirmOpen(true)}>
+        {batchState.createdCount > 0 ? (
+          <ActionButton type="button" variant="secondary" className="flex-1 sm:flex-none" disabled={isSaving} onClick={() => draftDirty ? setFinishConfirmOpen(true) : finish()}>
+            Fertig
+          </ActionButton>
+        ) : null}
+        <ActionButton ref={discardButtonRef} type="button" variant="destructive-secondary" className="flex-1 sm:ml-auto sm:flex-none" disabled={!draftDirty || isSaving || isPreparingImage} onClick={() => setDiscardConfirmOpen(true)}>
           Entwurf verwerfen
-        </ActionButton>
-        <ActionButton
-          type="button"
-          variant="secondary"
-          disabled={batchState.createdCount === 0 || isSaving}
-          onClick={() => draftDirty ? setFinishConfirmOpen(true) : finish()}
-        >
-          Fertig
         </ActionButton>
       </div>
       <p className="core-body text-core-muted">{batchState.createdCount} {batchState.createdCount === 1 ? "Karte" : "Karten"} in dieser Sitzung erstellt.</p>
