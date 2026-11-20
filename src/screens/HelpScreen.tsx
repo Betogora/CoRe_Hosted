@@ -1,6 +1,6 @@
 import React from "react";
 import type { LucideIcon } from "lucide-react";
-import { CalendarCheck, ChevronRight, Clock3, Layers, Sparkles } from "lucide-react";
+import { CalendarCheck, ChevronRight, Clock3, Layers, Shapes } from "lucide-react";
 import { appRouteToUrl, createViewRoute, type HelpTopic } from "../appNavigation.ts";
 import { PageHeader } from "../ui/coreUi.tsx";
 import { CardManagementTopic, ExamSessionTopic, PlanningTopic, RatingGuidePanel, VariantsTopic } from "./help/helpReference.tsx";
@@ -23,7 +23,7 @@ const HELP_TOPIC_PAGES: Record<HelpTopic, { title: string; content: React.Compon
 
 const REFERENCE_TOPICS: ReadonlyArray<{ topic: HelpTopic; icon: LucideIcon }> = [
   { topic: "planung", icon: Clock3 },
-  { topic: "varianten", icon: Sparkles },
+  { topic: "varianten", icon: Shapes },
   { topic: "pruefungssitzung", icon: CalendarCheck },
   { topic: "kartenverwaltung", icon: Layers },
 ];
@@ -31,7 +31,7 @@ const REFERENCE_TOPICS: ReadonlyArray<{ topic: HelpTopic; icon: LucideIcon }> = 
 const LEARNING_STEPS: ReadonlyArray<{ label: string; text: string; topic?: HelpTopic }> = [
   { label: "Aktiv abrufen", text: "Hol die Antwort aus dem Gedächtnis, bevor du sie aufdeckst.", topic: "active-recall" },
   { label: "Ehrlich bewerten", text: "Deine Antwort bestimmt das nächste Intervall: Je sicherer der Abruf, desto später wird die Karte erneut fällig." },
-  { label: "Rechtzeitig wiederholen", text: "FSRS plant jede Karte so, dass du sie wiederholst, kurz bevor du sie vergessen würdest. Nach ausreichender Reife fragt CoRe denselben Inhalt mit neuen Varianten ab.", topic: "spaced-repetition" },
+  { label: "Rechtzeitig wiederholen", text: "FSRS plant jede Karte so, dass du sie wiederholst, kurz bevor du sie vergessen würdest. Nach ausreichender Reife fragt CoRe denselben Inhalt mit neuen Varianten\u00a0ab.", topic: "spaced-repetition" },
 ];
 
 /** A real link to the topic, so it can be shared or opened in a new tab; a plain click stays in the app. */
@@ -77,7 +77,7 @@ function HelpHome({ onSelectTopic }: Pick<HelpScreenProps, "onSelectTopic">) {
               <li key={step.label} className="grid grid-cols-[2rem_minmax(0,1fr)] gap-2 border-b border-core-border py-4">
                 <span className="core-caption font-semibold leading-[1.625rem] tabular-nums text-core-muted" aria-hidden="true">0{index + 1}</span>
                 <div className="min-w-0">
-                  <p className="text-pretty core-body-large leading-relaxed text-core-secondary"><span className="font-semibold text-core-text">{step.label}.</span> {step.text}</p>
+                  <p className="core-body-large leading-relaxed text-core-secondary"><span className="font-semibold text-core-text">{step.label}.</span> {step.text}</p>
                   {step.topic ? (
                     <p className="mt-2">
                       <HelpTopicLink topic={step.topic} onSelectTopic={onSelectTopic} className="rounded-control py-1.5 core-control-label font-semibold text-core-action underline-offset-4 hover:underline">
@@ -97,9 +97,9 @@ function HelpHome({ onSelectTopic }: Pick<HelpScreenProps, "onSelectTopic">) {
 
       <RatingGuidePanel />
 
-      <nav className="min-w-0" aria-labelledby="help-topics-heading">
+      <nav className="min-w-0 max-w-2xl lg:w-[calc(50%-1.5rem)]" aria-labelledby="help-topics-heading">
         <h3 id="help-topics-heading" className="core-heading-2 text-core-text">Nachschlagen</h3>
-        <ul className="mt-4 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <ul className="mt-4 grid gap-4 sm:grid-cols-2">
           {REFERENCE_TOPICS.map(({ topic, icon: Icon }) => (
             <li key={topic} className="grid">
               <HelpTopicLink topic={topic} onSelectTopic={onSelectTopic} className="group grid grid-cols-[auto_minmax(0,1fr)_auto] items-start gap-3.5 rounded-control border border-core-border bg-core-surface px-5 py-4 text-left transition-colors hover:border-core-border-strong hover:bg-core-subtle">
