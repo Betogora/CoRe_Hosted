@@ -5,6 +5,7 @@ import type { CardCatalogEntry, NoteGraph } from "../../workspaceReplica.ts";
 import { FlagDot } from "../../ui/flagUi.tsx";
 import { CoreTag, EmptyState } from "../../ui/coreUi.tsx";
 import { CoreCheckbox } from "../../ui/formControls.tsx";
+import { CoreTooltip } from "../../ui/tooltipUi.tsx";
 import type { createHitListModel } from "./cardListModel.ts";
 import type { useVirtualRows } from "./virtualRows.ts";
 
@@ -127,8 +128,12 @@ const CardTableRowView = React.memo(function CardTableRowView({ virtualKey, deck
             }}
           />
         ) : null}
-        {/* The same pause symbol as in the card editor; the date cell names the state for screen readers. */}
-        {suspended ? <Pause size={16} className="mt-0.5 shrink-0 text-core-text" aria-hidden="true" data-testid="card-row-suspended" /> : null}
+        {/* Named like the pause symbol in the card editor. */}
+        {suspended ? (
+          <CoreTooltip label="Ausgesetzt">
+            <span role="img" aria-label="Ausgesetzt" data-testid="card-row-suspended" className="mt-0.5 grid shrink-0 place-items-center"><Pause size={16} className="text-core-text" aria-hidden="true" /></span>
+          </CoreTooltip>
+        ) : null}
         <button
           type="button"
           data-testid={"deck-card-" + card.id}
@@ -149,7 +154,6 @@ const CardTableRowView = React.memo(function CardTableRowView({ virtualKey, deck
       </td>
       <td className="min-w-0 whitespace-nowrap px-1 py-1 text-right align-middle core-body tabular-nums text-core-secondary">
         {nextStudyLabel}
-        {suspended ? <span className="sr-only"> · Ausgesetzt</span> : null}
       </td>
       <td className="min-w-0 px-1 py-1 text-right align-middle sm:pr-3">
         {/* Flag and mark keep their slots left of the count, so the count closes the column under its right-aligned header. */}

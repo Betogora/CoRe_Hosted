@@ -521,8 +521,7 @@ test("cards page shows suspended rows and marked stars; the editor tints only a 
   });
 
   assert.match(markup, /data-suspended="true"/);
-  assert.match(markup, /sr-only[^>]*> · Ausgesetzt</);
-  assert.equal(markup.match(/data-testid="card-row-suspended"/g)?.length, 1, "die ausgesetzte Zeile zeigt das Pausensymbol");
+  assert.equal(markup.match(/role="img" aria-label="Ausgesetzt" data-testid="card-row-suspended"/g)?.length, 1, "die ausgesetzte Zeile nennt ihr Pausensymbol");
   assert.match(markup, /<span class="grid size-\[1\.125rem\] place-items-center"><svg[^>]*aria-label="Markiert"[\s\S]*?<\/span><span class="min-w-4 text-right[^"]*"><\/span>/);
   const dialog = markup.match(/<div[^>]*data-testid="card-detail-dialog"[^>]*>/)?.[0] ?? "";
   assert.match(dialog, /class="core-dialog-frame core-card-editor-frame is-marked"/);
