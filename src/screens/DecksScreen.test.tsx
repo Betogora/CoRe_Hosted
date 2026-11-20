@@ -682,7 +682,7 @@ test("sync conflicts are named in the row and in the editor", () => {
 test("the editor offers direction and building blocks where the content structure allows them", () => {
   const basic = renderEditorFor(basicGraph("deck-editor", "Was ist ATP?", "Energieträger"));
   assert.match(basic, /data-testid="note-direction"[\s\S]*?aria-label="Lernrichtung"/);
-  assert.match(basic, /data-testid="note-direction"[\s\S]*?aria-pressed="false"[^>]*>.*?Antwort eintippen/);
+  assert.match(basic, /data-testid="note-direction"[\s\S]*?role="switch"[^>]*>.*?Antwort eintippen/);
   const basicBlocks = basic.slice(basic.indexOf('data-testid="note-blocks"'));
   for (const label of ["Zusatzfrage", "Hinweis", "Zusatz", "Quelle"]) assert.match(basicBlocks, new RegExp(`${label}</button>`));
 
