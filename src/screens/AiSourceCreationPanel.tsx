@@ -34,6 +34,8 @@ const learningQuestions = [
   { key: "priorKnowledge", label: "Vorwissen", options: AI_SOURCE_PRIOR_KNOWLEDGE },
 ] as const;
 const steps = ["Quelle und Stapel", "Vorgaben", "Karten"];
+// Hints in a guided step carry content, so they read at body size.
+const HINT = "core-body text-core-muted";
 const cardFormIcons = { basic: MessageSquare, cloze: TextCursorInput, "single-choice": CircleDot, "multiple-choice": ListChecks };
 
 export function AiSourceCreationPanel({ decks, initialTargetDeckId, onDraftStateChange, onSaveManualNote, onRequestSourceCards, onFinish }: AiSourceCreationPanelProps) {
@@ -244,7 +246,7 @@ export function AiSourceCreationPanel({ decks, initialTargetDeckId, onDraftState
                 <legend className="mb-3 core-field-label">Quelle</legend>
                 <CoreSegmentedControl ariaLabel="Art der Quelle" className="w-full" value={draft.sourceMode} options={[{ value: "file", label: "Datei" }, { value: "text", label: "Text einfügen" }]} onValueChange={(value) => { setFileError(null); setDraft((current) => ({ ...current, sourceMode: value as "file" | "text" })); }} />
                 <div ref={sourceRef} className="grid min-w-0">{draft.sourceMode === "file" ? <>
-                  <FileDropField accept={AI_SOURCE_ACCEPT} ariaLabel="Quelle für automatische Karten auswählen oder ablegen" prompt={`Quelldatei hier ablegen (${AI_SOURCE_FORMAT_LABEL})`} actionLabel={draft.file ? "Ersetzen" : "Datei auswählen"} onFile={selectFile}>
+                  <FileDropField accept={AI_SOURCE_ACCEPT} ariaLabel="Quelle für automatische Karten auswählen oder ablegen" prompt="Quelldatei hier ablegen" detail={AI_SOURCE_FORMAT_LABEL} actionLabel={draft.file ? "Ersetzen" : "Datei auswählen"} onFile={selectFile}>
                     {draft.file ? (
                       <div className="flex min-w-0 items-center gap-3">
                         <FileText size={22} className="shrink-0 text-core-action" aria-hidden="true" />
@@ -260,7 +262,7 @@ export function AiSourceCreationPanel({ decks, initialTargetDeckId, onDraftState
                     ) : null}
                   </FileDropField>
                 </> : <label className="core-field-group min-w-0"><span className="core-field-label">Dein Quelltext</span><textarea className="core-field min-h-40 w-full resize-y" rows={7} value={draft.sourceText} aria-invalid={showErrors && Boolean(errors.source)} onChange={(event) => setDraft((current) => ({ ...current, sourceText: event.target.value }))} placeholder="Füge hier den Text ein, aus dem deine Karten entstehen sollen." /></label>}</div>
-                <p className="core-field-hint">{AI_SOURCE_LIMIT_HINT} Die KI erhält ihn nur zum Erstellen; gespeichert wird er nicht.</p>
+                <p className={HINT}>{AI_SOURCE_LIMIT_HINT} Die Quelle wird nur zum Erstellen genutzt und nicht gespeichert.</p>
                 {fileError || (showErrors && errors.source) ? <p className="core-field-error" role="alert">{fileError || errors.source}</p> : null}
               </fieldset>
               <div ref={targetRef} className="grid min-w-0 scroll-mt-24 gap-3">
@@ -278,7 +280,7 @@ export function AiSourceCreationPanel({ decks, initialTargetDeckId, onDraftState
                     <label className="core-field-label" htmlFor="ai-source-deck">Stapel</label>
                     <DeckSelect id="ai-source-deck" ariaLabel="Stapel" value={draft.deckId} decks={decks} specialOption={{ value: "", label: "Stapel auswählen", icon: FileText }} onValueChange={(deckId) => setDraft((current) => ({ ...current, deckId }))} />
                   </div>
-                ) : <p className="core-field-hint">Du hast noch keine Stapel. Lege einen neuen an.</p>}
+                ) : <p className={HINT}>Du hast noch keine Stapel. Lege einen neuen an.</p>}
                 {(showErrors || draft.targetMode === "existing") && errors.target ? <p className="core-field-error" role="alert">{errors.target}</p> : null}
               </div>
               {step === 0 ? stepActions : null}
@@ -319,7 +321,7 @@ export function AiSourceCreationPanel({ decks, initialTargetDeckId, onDraftState
                 <div className="core-ai-source-target"><Layers3 size={19} className="shrink-0 text-core-action" aria-hidden="true" /><p className="min-w-0 flex-1 [overflow-wrap:anywhere] core-body text-core-text" data-testid="ai-source-target">{targetLabel}</p><IconButton type="button" label="Stapel ändern" variant="ghost" icon={Pencil} onClick={() => { setStep(0); requestAnimationFrame(() => { targetRef.current?.querySelector("input")?.focus(); targetRef.current?.scrollIntoView({ block: "nearest" }); }); }} /></div>
               </div>
               {step === 2 ? stepActions : null}
-              <div className="hidden justify-end xl:flex"><ActionButton type="submit" variant="primary" icon={ArrowRight}>Auftrag prüfen</ActionButton></div>
+              <div className="core-step-actions hidden justify-end xl:flex"><ActionButton type="submit" variant="primary" icon={ArrowRight}>Auftrag prüfen</ActionButton></div>
             </section>
           </div>
         </form>

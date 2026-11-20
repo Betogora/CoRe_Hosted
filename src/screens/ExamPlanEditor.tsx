@@ -26,6 +26,9 @@ const EXAM_GOALS = EXAM_RETENTION_LEVELS.map((retention, index) => ({ retention,
 const WEEKDAYS = ["Montag", "Dienstag", "Mittwoch", "Donnerstag", "Freitag", "Samstag", "Sonntag"];
 
 const FIELD_GROUP = "core-field-group min-w-0";
+// Hints in a guided step carry content, so they read at body size.
+const HINT = "core-body text-core-muted";
+const TERM = "core-caption text-core-muted";
 
 function Summary({ children }: { children: React.ReactNode }) {
   return <summary className="flex min-h-control cursor-pointer list-none items-center justify-between gap-3 rounded-inset py-2 core-control-label font-semibold text-core-text [&::-webkit-details-marker]:hidden"><ChevronDown size={16} aria-hidden="true" className="order-last shrink-0 text-core-muted transition-transform group-open:rotate-180 motion-reduce:transition-none" />{children}</summary>;
@@ -119,7 +122,7 @@ export function ExamPlanEditor({ embedded = false, onDirtyChange, decks, deckSum
           <div className="grid min-w-0 gap-2 sm:grid-cols-2">{EXAM_GOALS.map(({ retention, label }) => <label key={retention} className={`flex min-h-12 min-w-0 cursor-pointer items-center justify-between gap-3 rounded-control border px-4 py-2 core-body text-core-text ${plan.desiredRetention === retention ? "border-core-action bg-core-info-soft" : "border-core-border bg-core-surface"}`}>
             <span className="min-w-0 break-words">{label}</span><CoreRadio name={`${plan.id}-goal`} value={retention} checked={plan.desiredRetention === retention} onCheckedChange={() => patch({ desiredRetention: retention })} />
           </label>)}</div>
-          <p id={`${plan.id}-goal-hint`} className="core-field-hint">Ein höheres Ziel plant häufigere Wiederholungen ein.</p>
+          <p id={`${plan.id}-goal-hint`} className={HINT}>Ein höheres Ziel plant häufigere Wiederholungen ein.</p>
         </fieldset>
         <label className={FIELD_GROUP}><span className="core-field-label">Farbe</span><ColorPicker value={plan.color ?? "#6f7e9e"} ariaLabel="Prüfungsfarbe auswählen" className="justify-self-start" onValueCommit={(color) => patch({ color, colorIndex: undefined })} /></label>
       </div> : null}
@@ -128,7 +131,7 @@ export function ExamPlanEditor({ embedded = false, onDirtyChange, decks, deckSum
         <fieldset className="grid min-w-0 gap-3"><legend className="mb-3 core-field-label">{formatExamCount(selected.size, "Stapel", "Stapel")} · {formatExamCount(selectedCards, "Karte", "Karten")}</legend><ExamDeckSelection rows={rows} selected={selected} onToggle={toggleDeck} /></fieldset>
         {showErrors && !selected.size ? <p role="alert" className="core-field-error">Wähle mindestens einen Stapel.</p> : null}
         {selectionError ? <StatusMessage tone="error">{selectionError}</StatusMessage> : null}
-        <div className="grid min-w-0 gap-2"><label htmlFor={`${plan.id}-buffer`} className="core-field-label">Puffer vor der Prüfung · Tage</label><div className="flex min-w-0 items-center gap-3"><div className="w-20 shrink-0 sm:w-24"><input id={`${plan.id}-buffer`} type="number" inputMode="numeric" className="core-field" min={1} max={365} value={plan.bufferDays} onChange={(event) => patch({ bufferDays: Math.min(365, Math.max(1, Math.round(Number(event.target.value) || 1))) })} /></div><p className="min-w-0 core-caption text-core-secondary">Letzte neue Karten am <span className="whitespace-nowrap">{formatExamDate(getExamLastNewDate(plan))}</span></p></div></div>
+        <div className="grid min-w-0 gap-2"><label htmlFor={`${plan.id}-buffer`} className="core-field-label">Puffer vor der Prüfung · Tage</label><div className="flex min-w-0 items-center gap-3"><div className="w-20 shrink-0 sm:w-24"><input id={`${plan.id}-buffer`} type="number" inputMode="numeric" className="core-field" min={1} max={365} value={plan.bufferDays} onChange={(event) => patch({ bufferDays: Math.min(365, Math.max(1, Math.round(Number(event.target.value) || 1))) })} /></div><p className={`min-w-0 ${HINT}`}>Letzte neue Karten am <span className="whitespace-nowrap">{formatExamDate(getExamLastNewDate(plan))}</span></p></div></div>
         <ExamTopicOrder topics={topicOrder.map((id) => ({ id, name: decks.find((deck) => deck.id === id)!.name }))} disabled={saving} onChange={(topicOrder) => patch({ topicOrder })} />
       </div></details> : null}
       {embedded ? <details className="group min-w-0"><Summary>Lernzeit und weitere Einstellungen</Summary><div className="mt-4 grid gap-6">{renderPlanningOptions()}</div></details> : null}
@@ -180,15 +183,15 @@ export function ExamPlanEditor({ embedded = false, onDirtyChange, decks, deckSum
       </div>
     </div>
     <CoreSwitch label="Vor neuen Themen Zusammenfassung lesen" checked={plan.readSummaryBeforeTopics ?? false} onCheckedChange={(readSummaryBeforeTopics) => patch({ readSummaryBeforeTopics })} />
-    <p className="core-field-hint">Konkrete Lernzeiten kannst du später im Kalender der Planerübersicht festlegen.</p>
+    <p className={HINT}>Konkrete Lernzeiten kannst du später im Kalender der Planerübersicht festlegen.</p>
     <details className="group min-w-0"><Summary>Weitere Lerneinstellungen</Summary><div className="mt-3 grid gap-4">
       <CoreSwitch label="Varianten einbeziehen" checked={plan.variants} onCheckedChange={(variants) => patch({ variants })} />
     </div></details>
   </>; }
   function renderContext() { return <aside className="core-surface-raised grid min-w-0 gap-4 rounded-panel p-5" aria-label="Deine Prüfung" data-testid="exam-setup-context">
-    <div className="grid gap-1"><h3 className="flex min-w-0 items-center gap-2 core-heading-3 text-core-text"><span aria-hidden="true" className="size-2.5 shrink-0 rounded-round" style={{ backgroundColor: plan.color }} /><span className="min-w-0 break-words">{plan.name.trim() || "Neue Prüfung"}</span></h3><p className="core-body text-core-secondary">{formatExamDate(plan.examDate)}</p></div>
-    <dl className="grid gap-4 core-body"><div className="grid gap-1"><dt className="core-caption text-core-muted">Lernstart</dt><dd className="text-core-text">{formatExamDate(studyStartDate)}</dd></div><div className="grid gap-1"><dt className="core-caption text-core-muted">Lernstoff</dt><dd className="text-core-text">{selected.size ? `${formatExamCount(selected.size, "Stapel", "Stapel")} · ${formatExamCount(selectedCards, "Karte", "Karten")}` : "Noch auswählen"}</dd></div>{step > 0 ? <div className="grid gap-1"><dt className="core-caption text-core-muted">Letzte neue Karten</dt><dd className="text-core-text">{formatExamDate(getExamLastNewDate(plan))}</dd></div> : null}
-    {step >= 2 ? <div className="grid gap-2"><dt className="core-caption text-core-muted">Deine Woche</dt><dd className="grid gap-2">{WEEKDAYS.map((day, index) => <div key={day} className="flex justify-between gap-2"><span className="text-core-muted">{day}</span><span className="text-core-text">{time.weekdays[index] ? formatExamMinutes(time.weeklyMinutes?.[index] ?? time.dailyMinutes) : "Frei"}</span></div>)}</dd></div> : null}</dl>
+    <h3 className="flex min-w-0 items-center gap-2 core-heading-3 text-core-text"><span aria-hidden="true" className="size-2.5 shrink-0 rounded-round" style={{ backgroundColor: plan.color }} /><span className="min-w-0 break-words">{plan.name.trim() || "Neue Prüfung"}</span></h3>
+    <dl className="grid gap-4 core-body"><div className="grid gap-1"><dt className={TERM}>Prüfungsdatum</dt><dd className="text-core-text">{formatExamDate(plan.examDate)}</dd></div><div className="grid gap-1"><dt className={TERM}>Lernstart</dt><dd className="text-core-text">{formatExamDate(studyStartDate)}</dd></div><div className="grid gap-1"><dt className={TERM}>Lernstoff</dt><dd className="text-core-text">{selected.size ? `${formatExamCount(selected.size, "Stapel", "Stapel")} · ${formatExamCount(selectedCards, "Karte", "Karten")}` : "Noch auswählen"}</dd></div>{step > 0 ? <div className="grid gap-1"><dt className={TERM}>Letzte neue Karten</dt><dd className="text-core-text">{formatExamDate(getExamLastNewDate(plan))}</dd></div> : null}
+    {step >= 2 ? <div className="grid gap-2"><dt className={TERM}>Deine Woche</dt><dd className="grid gap-2">{WEEKDAYS.map((day, index) => <div key={day} className="flex justify-between gap-2"><span className="text-core-muted">{day}</span><span className="text-core-text">{time.weekdays[index] ? formatExamMinutes(time.weeklyMinutes?.[index] ?? time.dailyMinutes) : "Frei"}</span></div>)}</dd></div> : null}</dl>
   </aside>; }
   function renderPreview() { return <div className="grid gap-4" data-testid="exam-plan-preview" aria-busy={busy}>
     {error ? <StatusMessage tone="error">{error}</StatusMessage> : null}
