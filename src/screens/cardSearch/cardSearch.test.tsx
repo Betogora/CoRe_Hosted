@@ -140,4 +140,6 @@ test("der Hinweis nennt die widersprüchlichen Filter samt Kategorie im Menü un
   const bar = (advancedOpen: boolean) => renderToStaticMarkup(<CardSearchBar query="is:new prop:due&lt;0" onQueryChange={() => undefined} decks={[parent]} categories={menu} advancedOpen={advancedOpen} onAdvancedOpenChange={() => undefined} advancedId="menu" resultCount={0} placeholder="Suchen" />);
   assert.match(bar(false), /data-testid="card-search-conflict"/);
   assert.doesNotMatch(bar(true), /card-search-conflict/, "das offene Menü zeigt den Hinweis selbst");
+  assert.match(bar(false), /Alle zurücksetzen/);
+  assert.doesNotMatch(bar(true), /Alle zurücksetzen/, "das offene Menü setzt mit seiner eigenen Aktion zurück");
 });

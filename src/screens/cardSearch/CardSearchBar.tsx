@@ -118,7 +118,8 @@ export function CardSearchBar({ query, onQueryChange, decks, categories, advance
               })}
             </ul>
           ) : null}
-          {terms.length ? <CrossLinkButton className="ml-1" onSelect={() => onQueryChange(cardSearchText(query))}>Alle zurücksetzen</CrossLinkButton> : null}
+          {/* The open menu resets with its own action. */}
+          {terms.length && !advancedOpen ? <CrossLinkButton className="ml-1" onSelect={() => onQueryChange(cardSearchText(query))}>Alle zurücksetzen</CrossLinkButton> : null}
           {resultAction ? <div className="ml-auto shrink-0">{resultAction}</div> : null}
         </div>
       ) : null}

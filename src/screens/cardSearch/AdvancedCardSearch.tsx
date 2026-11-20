@@ -24,23 +24,23 @@ const SYNTAX: ReadonlyArray<[string, string]> = [
   ["nacken hals", "Text in allen Feldern, Antwortoptionen und Tags; jedes Wort muss vorkommen"],
   ["-kopf", "Schließt den Begriff aus"],
   ["\"vena cava\"  deck:\"Anatomie 1\"", "Genau diese Wortfolge; Anführungszeichen auch für Begriffe mit Leerzeichen"],
-  ["flag:1 or flag:2", "Einer der beiden genügt; or bindet schwächer als das Nebeneinander"],
-  ["(herz or lunge) -(tag:a or tag:b)", "Klammern fassen zusammen; - davor schließt die ganze Gruppe aus"],
-  ["ursprung:scaleni", "Nur im Feld „Ursprung“, Leerzeichen im Feldnamen als _"],
+  ["flag:1 or flag:2", "Einer der beiden genügt; `or` bindet schwächer als das Nebeneinander"],
+  ["(herz or lunge) -(tag:a or tag:b)", "Klammern fassen zusammen; `-` davor schließt die ganze Gruppe aus"],
+  ["ursprung:scaleni", "Nur im Feld „Ursprung“, Leerzeichen im Feldnamen als `_`"],
   ["did:3f2a9c1e-…", "Stapel samt Unterstapeln über seine ID; setzt der Stapelfilter"],
-  ["tag:anatomie", "Tag samt Untertags; tag:none ohne Tags"],
-  ["flag:1", "Flagge 1 bis 7; flag:0 ohne Flagge"],
+  ["tag:anatomie", "Tag samt Untertags; `tag:none` ohne Tags"],
+  ["flag:1", "Flagge 1 bis 7; `flag:0` ohne Flagge"],
   ["is:new  is:learn  is:young  is:mature", "Lernstand"],
   ["is:due  is:suspended", "Heute fällig, ausgesetzt"],
   ["prop:due<0  prop:due=1", "Überfällig, morgen fällig (Tage ab heute)"],
   ["tag:leech  tag:marked  has:variant", "Lernbremse, markiert, mit Variante"],
-  ["deck:Biologie  deck:*zell*", "Stapel nach Pfad (A::B) samt Unterstapeln; * beliebig, _ ein Zeichen"],
+  ["deck:Biologie  deck:*zell*", "Stapel nach Pfad (`A::B`) samt Unterstapeln; `*` beliebig, `_` ein Zeichen"],
   ["rated:7  rated:7:1", "In den letzten 7 Tagen gelernt, davon mit Nochmal (2 Schwer, 3 Gut, 4 Leicht)"],
   ["added:1  edited:1  introduced:1  resched:1", "Heute hinzugefügt, bearbeitet, erstmals gelernt, neu geplant"],
-  ["prop:ivl>=21  prop:d>7  prop:reps=0  prop:lapses>3", "Intervall in Tagen, Schwierigkeit 1 bis 10, Wiederholungen, Fehler; auch <, <=, =, !="],
+  ["prop:ivl>=21  prop:d>7  prop:reps=0  prop:lapses>3", "Intervall in Tagen, Schwierigkeit 1 bis 10, Wiederholungen, Fehler; auch `<`, `<=`, `=`, `!=`"],
   ["prop:s>=90", "Haltbarkeit in Tagen; zählt ab der nächsten Antwort einer Karte"],
   ["is:reveal  is:choice  is:cloze  is:occlusion", "Frage–Antwort, Auswahl, Lückentext, Bildverdeckung"],
-  ["note:Basic  has:outdated", "Anki-Notiztyp (wie deck: mit * und _), Karten mit veralteter Variante"],
+  ["note:Basic  has:outdated", "Anki-Notiztyp (wie `deck:` mit `*` und `_`), Karten mit veralteter Variante"],
   ["card:2  is:buried", "Zweite Abfrage (Vorlage, Lücke oder Maske), heute manuell zurückgestellt"],
 ];
 
@@ -52,7 +52,7 @@ type WrittenCategory = keyof typeof WRITTEN_KINDS;
 function TermRow({ item, query, onQueryChange, siblings }: { item: CardSearchMenuItem; query: string; onQueryChange: (query: string) => void; siblings?: readonly string[] }) {
   const state = cardSearchTermState(query, item.term);
   return (
-    <li className="core-card-search-term grid min-h-10 min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-3 border-b border-core-border py-0.5 last:border-b-0 sm:grid-cols-[minmax(0,1fr)_auto_auto]" style={item.depth ? { paddingLeft: item.depth * 20 } : undefined}>
+    <li className={`core-card-search-term grid min-h-10 min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-3 border-b border-core-border px-2 py-0.5 last:border-b-0 sm:grid-cols-[minmax(0,1fr)_auto_auto] ${state ? "bg-core-subtle" : ""}`} style={item.depth ? { paddingLeft: 8 + item.depth * 20 } : undefined}>
       <span className={`flex min-w-0 items-center gap-2 core-body ${state === "in" ? "font-semibold text-core-text" : state === "out" ? "text-core-danger-text" : "text-core-text"}`}>
         {item.flag ? <FlagDot flag={item.flag} size={10} /> : null}
         <span className="grid min-w-0">
@@ -95,7 +95,7 @@ function TermForm({ terms, label, query, onQueryChange, term, children }: {
         <ActionButton type="submit" variant="secondary" icon={Plus} disabled={!term}>Hinzufügen</ActionButton>
       </form>
       {terms.length ? (
-        <ul className="grid min-w-0">
+        <ul className="-mx-2 grid min-w-0">
           {terms.map((written) => {
             const bare = written.replace(/^-/, "");
             return <TermRow key={bare} item={{ label: label(bare), description: "passende Karten", term: bare }} query={query} onQueryChange={onQueryChange} />;
@@ -249,7 +249,7 @@ function SavedSearches({ query, onQueryChange, searches, onSearchesChange, draft
                     onClick={() => onQueryChange(search.query)}
                   >
                     <span className="truncate core-body font-semibold">{search.name}</span>
-                    <code className="truncate font-mono core-caption text-core-muted">{search.query}</code>
+                    <code className="truncate font-mono core-body text-core-muted">{search.query}</code>
                   </button>
                   <IconButton type="button" label={`„${search.name}“ umbenennen`} icon={Pencil} variant="ghost" onClick={() => setRenamingId(search.id)} />
                   <IconButton type="button" label={`„${search.name}“ löschen`} icon={Trash2} variant="destructive-quiet" onClick={() => {
@@ -280,22 +280,21 @@ function SyntaxHelp() {
   return (
     <div className="grid min-w-0 gap-3">
       <h3 className="core-body font-semibold text-core-text">Suchsyntax</h3>
-      <p className="core-body text-core-secondary">
+      <p className="core-body text-pretty text-core-secondary">
         Eine Karte erscheint nur, wenn alle Begriffe zutreffen.
         Plus zeigt nur passende Karten, Minus blendet sie aus, der Kreis filtert nicht; stehen mehrere Zeilen einer Kategorie auf Plus, genügt eine davon.
         Begriffe im Suchfeld wirken genauso und erscheinen als Filter.
       </p>
       <Disclosure summary="Alle Schreibweisen">
-        <table className="mt-2 w-full table-fixed border-collapse core-body">
-          <tbody>
-            {SYNTAX.map(([term, meaning]) => (
-              <tr key={term} className="border-t border-core-border">
-                <td className="w-[45%] py-2 pr-4 align-top lg:w-80"><code className="break-words font-mono core-body text-core-text">{term}</code></td>
-                <td className="py-2 align-top text-core-secondary">{meaning}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        {/* Below 640 px term and meaning stack, so no term breaks inside a token. */}
+        <dl className="mt-2 grid min-w-0 core-body">
+          {SYNTAX.map(([term, meaning]) => (
+            <div key={term} className="grid min-w-0 gap-1 border-t border-core-border py-2 sm:grid-cols-[minmax(0,2fr)_minmax(0,3fr)] sm:gap-4">
+              <dt><code className="break-words font-mono text-core-text">{term}</code></dt>
+              <dd className="text-core-secondary">{meaning.split("`").map((part, index) => index % 2 ? <code key={index} className="rounded-inset bg-core-subtle px-1 font-mono text-core-text">{part}</code> : part)}</dd>
+            </div>
+          ))}
+        </dl>
       </Disclosure>
     </div>
   );
@@ -394,7 +393,7 @@ export function AdvancedCardSearch({ id, query, onQueryChange, categories, resul
             <CrossLinkButton className="mb-1" onSelect={onManageTags}>Tags verwalten</CrossLinkButton>
           ) : null}
           {active.id === "syntax" ? (
-            <div className="grid min-w-0 gap-6">
+            <div className="grid min-w-0 max-w-prose gap-6">
               <SavedSearches query={query} onQueryChange={onQueryChange} searches={savedSearches} onSearchesChange={onSavedSearchesChange} draftName={draftName} onDraftDone={() => setDraftName(null)} />
               <SyntaxHelp />
             </div>
@@ -403,7 +402,7 @@ export function AdvancedCardSearch({ id, query, onQueryChange, categories, resul
             : active.id === "zeitraum" ? <SinceTerms terms={writtenOf(active)} query={query} onQueryChange={onQueryChange} categories={categories} />
             : active.id === "werte" ? <PropTerms terms={writtenOf(active)} query={query} onQueryChange={onQueryChange} categories={categories} />
               : active.items.length ? (
-                <ul className={`grid min-w-0 ${active.id === "stapel" || active.id === "tags" || active.id === "inhalt" ? "max-h-[28rem] overflow-y-auto pr-1" : ""}`}>
+                <ul className={`-mx-2 grid min-w-0 ${active.id === "stapel" || active.id === "tags" || active.id === "inhalt" ? "max-h-[28rem] overflow-y-auto pr-1" : ""}`}>
                   {active.items.map((item) => <TermRow key={item.term} item={item} query={query} onQueryChange={onQueryChange} siblings={activeTerms} />)}
                 </ul>
               ) : <p className="core-body text-core-muted">Keine Einträge</p>}
