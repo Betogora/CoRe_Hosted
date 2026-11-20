@@ -3364,7 +3364,7 @@ button.core-steps-step {
 
 .core-help-stack-layer-middle {
   background: var(--core-action-soft);
-  transform: translate(-20px, -8px) rotate(-2.5deg);
+  transform: translate(-20px, 10px) rotate(-2.5deg);
 }
 
 .core-help-stack-layer-back {
@@ -3374,7 +3374,7 @@ button.core-steps-step {
 
 /* Narrow stacks keep their fanned layers inside the content width. */
 @media (max-width: 639px) {
-  .core-help-stack-layer-middle { transform: translate(-8px, -8px) rotate(-2deg); }
+  .core-help-stack-layer-middle { transform: translate(-8px, 6px) rotate(-2deg); }
   .core-help-stack-layer-back { transform: translate(8px, -18px) rotate(2deg); }
 }
 .core-help-card-question {

@@ -286,7 +286,7 @@ function StoryStepCard<TSelection extends string>({
   testId?: string;
 }) {
   return (
-    <li id={elementId} className="flex min-w-0 min-h-[58svh] items-center py-8 first:items-start first:pt-0 xl:min-h-[68svh]" data-story-step={index} data-testid={testId}>
+    <li id={elementId} className="flex min-w-0 min-h-[58svh] items-center py-8 first:items-start first:pt-0 xl:min-h-[68svh] xl:first:min-h-[28.5rem] xl:first:items-center" data-story-step={index} data-testid={testId}>
       <article
         className={`min-w-0 w-full rounded-panel px-6 py-5 transition-[background-color,opacity,transform] duration-300 motion-reduce:transition-none ${active ? "translate-x-0 bg-core-surface opacity-100" : "translate-x-2 opacity-70"}`}
         tabIndex={0}
@@ -565,12 +565,12 @@ function MemoryCurveGraphic({ selection, onSelectionChange }: { selection: Explo
             <line x1={axisX} y1={targetY} x2={plotRight} y2={targetY} stroke="var(--core-text-muted)" strokeDasharray="7 7" strokeWidth={activeParameterId === "r" ? 3 : 1.5} opacity={activeParameterId === "r" ? 1 : 0.72} />
             <text x={firstLabel.x} y={labelY + 22} textAnchor={firstLabel.anchor} fill="var(--core-text-muted)" fontSize={labelSize}>Zielerinnerung R = 90 %</text>
             <g clipPath="url(#memory-curve-plot)">
-              <path d={path(INITIAL_CURVE)} fill="none" stroke="var(--core-text)" strokeWidth={activeParameterId === "r" || activeReviewId === "first" ? 7 : 3.5} strokeLinecap="round" opacity={activeParameterId === "r" || activeReviewId === "first" ? 1 : 0.28} pointerEvents="none" className="transition-[stroke-width,opacity] duration-300 motion-reduce:transition-none" />
+              <path d={path(INITIAL_CURVE)} fill="none" stroke="var(--core-text)" strokeWidth={activeParameterId === "r" || activeReviewId === "first" ? 7 : 3.5} strokeLinecap="round" opacity={activeParameterId === "r" || activeReviewId === "first" ? 1 : 0.6} pointerEvents="none" className="transition-[stroke-width,opacity] duration-300 motion-reduce:transition-none" />
               {RATING_PATHS.map((rating) => {
                 const emphasized = ratingsActive || activeParameterId === "r" || activeRatingId === rating.id || (activeReviewId === "variant" && rating.id === "easy");
-                return <path key={`curve-${rating.id}`} d={path(rating.curve)} fill="none" stroke={rating.color} strokeWidth={emphasized ? 7 : 3.5} strokeLinecap="round" opacity={emphasized ? 1 : 0.22} pointerEvents="none" className="transition-[stroke-width,opacity] duration-300 motion-reduce:transition-none" />;
+                return <path key={`curve-${rating.id}`} d={path(rating.curve)} fill="none" stroke={rating.color} strokeWidth={emphasized ? 7 : 3.5} strokeLinecap="round" opacity={emphasized ? 1 : 0.6} pointerEvents="none" className="transition-[stroke-width,opacity] duration-300 motion-reduce:transition-none" />;
               })}
-              <path d={path(VARIANT_CURVE)} fill="none" stroke="var(--core-info)" strokeWidth={activeParameterId === "r" || activeReviewId === "variant" ? 6 : 3.5} strokeLinecap="round" opacity={activeParameterId === "r" || activeReviewId === "variant" ? 1 : 0.35} />
+              <path d={path(VARIANT_CURVE)} fill="none" stroke="var(--core-info)" strokeWidth={activeParameterId === "r" || activeReviewId === "variant" ? 6 : 3.5} strokeLinecap="round" opacity={activeParameterId === "r" || activeReviewId === "variant" ? 1 : 0.6} />
             </g>
           </g>
 
@@ -581,7 +581,7 @@ function MemoryCurveGraphic({ selection, onSelectionChange }: { selection: Explo
               const end = x(rating.dueX) - arrowGap;
               return (
                 <g key={`stability-${rating.id}`} data-testid={`memory-stability-arrow-${rating.id}`} data-arrowheads="right">
-                  <g opacity={emphasized ? 1 : activeReviewId === "first" ? 0.78 : 0.5} className="transition-opacity duration-300 motion-reduce:transition-none">
+                  <g opacity={emphasized ? 1 : activeReviewId === "first" ? 0.78 : 0.6} className="transition-opacity duration-300 motion-reduce:transition-none">
                     <line x1={start} y1={arrowY} x2={end} y2={arrowY} stroke={rating.color} strokeWidth={emphasized ? 4 : 2} />
                     <path d={`M ${end - 9} ${arrowY - 6} L ${end} ${arrowY} L ${end - 9} ${arrowY + 6}`} fill="none" stroke={rating.color} strokeWidth={emphasized ? 3 : 2} strokeLinecap="round" strokeLinejoin="round" />
                   </g>
@@ -596,9 +596,10 @@ function MemoryCurveGraphic({ selection, onSelectionChange }: { selection: Explo
               const emphasized = activeParameterId === "d" || activeReviewId === review.id;
               const reviewX = x(review.reviewX);
               return (
-                <g key={`difficulty-${review.id}`} opacity={emphasized ? 1 : 0.24} className="transition-opacity duration-300 motion-reduce:transition-none">
+                <g key={`difficulty-${review.id}`} opacity={emphasized ? 1 : 0.5} className="transition-opacity duration-300 motion-reduce:transition-none">
                   <line x1={reviewX} y1={fullY - 14} x2={reviewX} y2={targetY} stroke={review.color} strokeWidth={emphasized ? 3 : 2} strokeDasharray="6 7" />
                   <path d={`M ${reviewX} ${fullY - 28} L ${reviewX + 7} ${fullY - 21} L ${reviewX} ${fullY - 14} L ${reviewX - 7} ${fullY - 21} Z`} fill="var(--core-surface-raised)" stroke={activeParameterId === "d" ? "var(--core-warning)" : review.color} strokeWidth={emphasized ? 3 : 2} />
+                  <text x={reviewX + 12} y={fullY - 16} fill={activeParameterId === "d" ? "var(--core-warning)" : review.color} fontSize={labelSize} fontWeight="700">D</text>
                 </g>
               );
             })}

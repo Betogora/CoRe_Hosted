@@ -50,17 +50,17 @@ export function RatingGuidePanel() {
   const chain = React.useMemo(defaultGoodChain, []);
   const days = `${chain.days.slice(0, -1).join(", ")} und ${chain.days.at(-1)} Tagen`;
   return (
-    <section className="min-w-0" aria-labelledby="help-rating-heading" data-testid="help-rating-guide">
+    // Same measure as the introduction's text column above.
+    <section className="min-w-0 max-w-2xl lg:w-[calc(50%-1.5rem)]" aria-labelledby="help-rating-heading" data-testid="help-rating-guide">
       <h3 id="help-rating-heading" className="core-heading-2 text-core-text">So bewertest du</h3>
-      {/* Same measure as the introduction's text column above. */}
-      <p className="mt-4 max-w-2xl text-pretty core-body leading-6 text-core-secondary lg:w-[calc(50%-1.5rem)]">
+      <p className="mt-4 text-pretty core-body-large leading-relaxed text-core-secondary">
         FSRS-7 traut einer sicheren Antwort große Abstände zu: Mit {chain.retentionPercent}{"\u00a0"}% Zielerinnerung kommt eine neue Karte, immer mit „Gut“ bewertet, nach {chain.minutes.join(" und ")} Minuten und dann nach {days} wieder. Wähle „Gut“ deshalb nur, wenn der Abruf wirklich sicher war.
       </p>
-      <dl className="mt-6 grid border-t border-core-border md:grid-cols-2 xl:grid-cols-4">
+      <dl className="mt-6 grid border-t border-core-border sm:grid-cols-2 sm:gap-x-6">
         {RATING_GUIDE.map((entry) => (
-          <div key={entry.label} className="border-b border-core-border py-4 md:pr-6">
-            <dt className="core-body font-semibold text-core-text">{entry.label}</dt>
-            <dd className="mt-1 text-pretty core-body leading-6 text-core-secondary">{entry.text}</dd>
+          <div key={entry.label} className="border-b border-core-border py-4">
+            <dt className="core-body-large font-semibold text-core-text">{entry.label}</dt>
+            <dd className="mt-1 text-pretty core-body-large leading-relaxed text-core-secondary">{entry.text}</dd>
           </div>
         ))}
       </dl>
