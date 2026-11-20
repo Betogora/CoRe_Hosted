@@ -74,11 +74,6 @@ export function CardPreviewDialog({
     setRound((current) => current + 1);
   }
 
-  // The card takes the initial focus so arrow keys turn its pages.
-  React.useEffect(() => {
-    if (open) stageRef.current?.focus();
-  }, [open]);
-
   React.useEffect(() => {
     if (open && side === "answer") stageRef.current?.focus();
   }, [open, side]);
