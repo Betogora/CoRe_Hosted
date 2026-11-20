@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { fakeLearningCloud, freshDevice as resetDevice } from "../tests/support/fakeLearningCloud.ts";
 import { createCoreDeck } from "./coreModel.ts";
-import { createLearningSummary, createSummarySettings, deleteLearningSummary, duplicateLearningSummary, getSummaryReadingMinutes, groupSummariesByDeckTree, loadLearningSummaries, readLearningSummary, saveLearningSummary, summaryPlainText } from "./learningSummaries.ts";
+import { createLearningSummary, createSummarySettings, deleteLearningSummary, duplicateLearningSummary, getSummaryReadingMinutes, groupSummariesByDeckTree, loadLearningSummaries, readLearningSummary, saveLearningSummary, summaryDescription, summaryPlainText } from "./learningSummaries.ts";
 
 const local = (userId = `summary-test-${crypto.randomUUID()}`) => ({ userId, cloud: null });
 
@@ -127,6 +127,8 @@ test("Lesezeit stammt aus dem tatsächlichen Inhalt statt der gewählten Ziellä
   assert.equal(getSummaryReadingMinutes("<p><br></p>"), 0);
   assert.equal(getSummaryReadingMinutes("<p>Ein kurzer Text.</p>"), 1);
   assert.equal(getSummaryReadingMinutes(`<p>${"Wort ".repeat(201)}</p>`), 2);
+
+  assert.equal(summaryDescription({ ...createLearningSummary("deck", "T", createSummarySettings()), html: "<p>Ein kurzer Text.</p>" }), "Länge:\u00a0Mittel · Detailgrad:\u00a0Ausgewogen · 1\u00a0Min.\u00a0Lesezeit");
 });
 
 test("Seiten und Zeichnungen bleiben gespeichert; Textprojektion und alte Fassungen bleiben lesbar", async () => {
