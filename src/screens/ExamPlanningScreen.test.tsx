@@ -140,14 +140,18 @@ test("Heute zeigt Checklisten mit Prüfungsfarbpunkt ohne Zeitplanstatus und ohn
   assert.doesNotMatch(html, /Quiz/);
 });
 
-test("die geführte Planung zeigt nummerierte Schritte, sachliche Titel und einheitliche Optionskarten", () => {
+test("die geführte Planung zeigt nummerierte Schritte, einheitliche Optionskarten und ein aktives Weiter", () => {
   const state = createCoreRepository().getState();
   const deck = createCoreDeck({ id: "deck", name: "Anatomie" });
   const html = renderToStaticMarkup(<ExamPlanEditor decks={[deck]} exams={[]} capacity={createStudyTimeCapacity()} initialPlan={null} preferences={getGlobalSchedulerPreferences(state.profile)} timeZone="Europe/Berlin" now="2026-10-18T12:00:00Z" onLoadPlanningData={() => new Promise(() => undefined)} onSave={async () => undefined} onCancel={() => undefined} saving={false} saveError="" />);
-  assert.match(html, /<div class="core-steps"><ol aria-label="Schritte der Prüfungsplanung">/);
+  assert.match(html, /<div class="core-steps max-w-5xl"><ol aria-label="Schritte der Prüfungsplanung">/);
   assert.deepEqual([...html.matchAll(/class="core-steps-label">([^<]+)</g)].map((match) => match[1]), ["Prüfung", "Lernstoff", "Lernzeit", "Lernplan"]);
   assert.match(html, /<li data-state="current" aria-current="step">/);
-  assert.match(html, /<h2 tabindex="-1" class="[^"]*core-heading-2[^"]*">Prüfung<\/h2>/);
+  assert.match(html, /<h2 tabindex="-1" class="sr-only[^"]*">Prüfung<\/h2>/);
+  // Without a name the next step stays reachable; it marks the missing name instead of being disabled.
+  assert.doesNotMatch(html, /<button class="core-action-primary "[^>]*disabled/);
+  assert.equal(html.match(/class="core-steps-step" disabled=""/g)?.length, 2);
+  assert.match(html, /<dt class="text-core-muted">Lernstart<\/dt><dd class="text-core-text">18\. Oktober 2026<\/dd>/);
   assert.match(html, /<legend class="mb-3 core-field-label">Ziel<\/legend>/);
   assert.doesNotMatch(html, /Welche Prüfung steht an|Was ist dein Ziel/);
   assert.equal(html.match(/class="flex min-h-12 [^"]*rounded-control border px-4 py-2/g)?.length, 4);

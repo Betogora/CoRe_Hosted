@@ -42,7 +42,9 @@ export function AiSourceCreationPanel({ decks, initialTargetDeckId, onDraftState
   const nameEdited = React.useRef(false);
   // The review heading, or the section of the current step, takes the focus after each change of view.
   const focusRef = React.useRef<HTMLElement | null>(null);
+  const sourceRef = React.useRef<HTMLDivElement | null>(null);
   const targetRef = React.useRef<HTMLDivElement | null>(null);
+  const formatsRef = React.useRef<HTMLDivElement | null>(null);
   const [review, setReview] = React.useState(false);
   const [step, setStep] = React.useState(0);
   const [fileError, setFileError] = React.useState<string | null>(null);
@@ -98,10 +100,17 @@ export function AiSourceCreationPanel({ decks, initialTargetDeckId, onDraftState
     setDraft((current) => ({ ...current, file, deckName: nameEdited.current ? current.deckName : suggestSourceDeckName(file.name) }));
   }
 
-  function advance() {
+  /** Marks what is missing and takes the focus to the first missing field once its step is shown. */
+  function showMissing() {
     setShowErrors(true);
-    if (step === 0 && (errors.source || errors.target)) return;
-    setStep((current) => Math.min(current + 1, 2));
+    setStep(errors.source || errors.target ? 0 : 2);
+    const field = errors.source ? sourceRef : errors.target ? targetRef : formatsRef;
+    requestAnimationFrame(() => field.current?.querySelector<HTMLElement>("textarea, input:not([type=file]):not([role=switch]), button")?.focus());
+  }
+
+  function advance(next = step + 1) {
+    if (step === 0 && (errors.source || errors.target)) { showMissing(); return; }
+    setStep(Math.min(next, 2));
     setShowErrors(false);
   }
 
@@ -218,18 +227,17 @@ export function AiSourceCreationPanel({ decks, initialTargetDeckId, onDraftState
         <form className="grid min-w-0 gap-6" noValidate onSubmit={(event) => {
           event.preventDefault();
           if (!window.matchMedia("(min-width: 1280px)").matches && step < 2) { advance(); return; }
-          setShowErrors(true);
           if (valid) setReview(true);
-          else setStep(errors.source || errors.target ? 0 : 2);
+          else showMissing();
         }}>
-          <Steps ariaLabel="Schritte der automatischen Erstellung" current={step} onSelect={setStep} items={steps.map((label, index) => ({ label, disabled: index > step && Boolean(errors.source || errors.target) }))} className="xl:hidden" />
+          <Steps ariaLabel="Schritte der automatischen Erstellung" current={step} onSelect={(index) => index > step ? advance(index) : setStep(index)} items={steps.map((label) => ({ label }))} className="xl:hidden" />
           <div className="grid min-w-0 gap-4 xl:grid-cols-3 xl:items-start" data-testid="ai-source-steps">
             <section ref={step === 0 ? focusRef : undefined} tabIndex={-1} aria-labelledby="ai-source-step-1" className={`core-ai-source-column min-w-0 scroll-mt-24 content-start outline-none ${step === 0 ? "grid" : "hidden xl:grid"}`}>
-              <SectionHeader level={3} id="ai-source-step-1" title={steps[0]} />
+              <SectionHeader level={3} id="ai-source-step-1" title={steps[0]} className="max-xl:sr-only" />
               <fieldset className="grid min-w-0 gap-3">
                 <legend className="mb-3 core-field-label">Quelle</legend>
                 <CoreSegmentedControl ariaLabel="Art der Quelle" className="w-full" value={draft.sourceMode} options={[{ value: "file", label: "Datei" }, { value: "text", label: "Text einfügen" }]} onValueChange={(value) => { setFileError(null); setDraft((current) => ({ ...current, sourceMode: value as "file" | "text" })); }} />
-                {draft.sourceMode === "file" ? <>
+                <div ref={sourceRef} className="grid min-w-0">{draft.sourceMode === "file" ? <>
                   <FileDropField accept={AI_SOURCE_ACCEPT} ariaLabel="Quelle für automatische Karten auswählen oder ablegen" prompt={`Quelldatei hier ablegen (${AI_SOURCE_FORMAT_LABEL})`} actionLabel={draft.file ? "Ersetzen" : "Datei auswählen"} onFile={selectFile}>
                     {draft.file ? (
                       <div className="flex min-w-0 items-center gap-3">
@@ -245,7 +253,7 @@ export function AiSourceCreationPanel({ decks, initialTargetDeckId, onDraftState
                       </div>
                     ) : null}
                   </FileDropField>
-                </> : <label className="core-field-group min-w-0"><span className="core-field-label">Dein Quelltext</span><textarea className="core-field min-h-40 w-full resize-y" rows={7} value={draft.sourceText} aria-invalid={showErrors && Boolean(errors.source)} onChange={(event) => setDraft((current) => ({ ...current, sourceText: event.target.value }))} placeholder="Füge hier den Text ein, aus dem deine Karten entstehen sollen." /></label>}
+                </> : <label className="core-field-group min-w-0"><span className="core-field-label">Dein Quelltext</span><textarea className="core-field min-h-40 w-full resize-y" rows={7} value={draft.sourceText} aria-invalid={showErrors && Boolean(errors.source)} onChange={(event) => setDraft((current) => ({ ...current, sourceText: event.target.value }))} placeholder="Füge hier den Text ein, aus dem deine Karten entstehen sollen." /></label>}</div>
                 <p className="core-field-hint">{AI_SOURCE_LIMIT_HINT} Zum Erstellen geht der Text an die KI; gespeichert wird er nicht.</p>
                 {fileError || (showErrors && errors.source) ? <p className="core-field-error" role="alert">{fileError || errors.source}</p> : null}
               </fieldset>
@@ -269,7 +277,7 @@ export function AiSourceCreationPanel({ decks, initialTargetDeckId, onDraftState
               </div>
             </section>
             <section ref={step === 1 ? focusRef : undefined} tabIndex={-1} aria-labelledby="ai-source-step-2" className={`core-ai-source-column min-w-0 scroll-mt-24 content-start outline-none ${step === 1 ? "grid" : "hidden xl:grid"}`}>
-              <SectionHeader level={3} id="ai-source-step-2" title={steps[1]} />
+              <SectionHeader level={3} id="ai-source-step-2" title={steps[1]} className="max-xl:sr-only" />
               {learningQuestions.map(({ key, label, options }) => <div key={key} className="core-field-group min-w-0">
                 <label className="core-field-label" htmlFor={`ai-source-${key}`}>{label}</label>
                 <CoreSelect id={`ai-source-${key}`} ariaLabel={label} value={settings[key]} options={options} onValueChange={(value) => changeSetting(key, value as AiSourceSettings[typeof key])} />
@@ -280,10 +288,10 @@ export function AiSourceCreationPanel({ decks, initialTargetDeckId, onDraftState
               </label>
             </section>
             <section ref={step === 2 ? focusRef : undefined} tabIndex={-1} aria-labelledby="ai-source-step-3" className={`core-ai-source-column min-w-0 scroll-mt-24 content-start outline-none ${step === 2 ? "grid" : "hidden xl:grid"}`}>
-              <SectionHeader level={3} id="ai-source-step-3" title={steps[2]} />
+              <SectionHeader level={3} id="ai-source-step-3" title={steps[2]} className="max-xl:sr-only" />
               <fieldset className="grid min-w-0 gap-2">
                 <legend className="mb-3 core-field-label">Kartenformate</legend>
-                <div className="core-ai-source-formats">
+                <div ref={formatsRef} className="core-ai-source-formats">
                   {AI_SOURCE_CARD_FORMS.map(({ value, label }) => {
                     const Icon = cardFormIcons[value];
                     return <label key={value} className="core-ai-source-format">
@@ -306,7 +314,7 @@ export function AiSourceCreationPanel({ decks, initialTargetDeckId, onDraftState
           </div>
           <div className="flex flex-wrap justify-end gap-3">
             {step > 0 ? <ActionButton type="button" variant="secondary" icon={ArrowLeft} className="xl:hidden" onClick={() => setStep((current) => current - 1)}>Zurück</ActionButton> : null}
-            {step < 2 ? <ActionButton type="button" variant="primary" icon={ArrowRight} className="xl:hidden" onClick={advance}>Weiter</ActionButton> : null}
+            {step < 2 ? <ActionButton type="button" variant="primary" icon={ArrowRight} className="xl:hidden" onClick={() => advance()}>Weiter</ActionButton> : null}
             <ActionButton className={`w-full sm:w-fit ${step === 2 ? "" : "hidden xl:inline-flex"}`} type="submit" variant="primary" icon={ArrowRight}>Auftrag prüfen</ActionButton>
           </div>
         </form>

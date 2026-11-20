@@ -72,7 +72,7 @@ test("Leere, unlesbare oder zu große Quellen werden mit Meldung abgewiesen", as
   assert.throws(() => splitAiSource(text("x".repeat(400_001))), /höchstens 400\.000 Zeichen/);
   const big = new File(["x"], "gross.pdf");
   Object.defineProperty(big, "size", { value: 20 * 1_024 * 1_024 + 1 });
-  await assert.rejects(readAiSource({ sourceMode: "file", sourceText: "", file: big }), /bis 20 MiB/);
+  await assert.rejects(readAiSource({ sourceMode: "file", sourceText: "", file: big }), /bis 20 MB/);
   const read = await readAiSource({ sourceMode: "file", sourceText: "", file: new File(["Begriff,Erklärung\nATP,Energieträger"], "liste.csv") });
   assert.deepEqual(read.units, [{ label: "Zeile 2", text: "Begriff,Erklärung\nATP,Energieträger" }]);
   assert.deepEqual((await readAiSource({ sourceMode: "text", sourceText: "Eingefügt.", file: null })).units, [{ label: "Zeile 1", text: "Eingefügt." }]);
