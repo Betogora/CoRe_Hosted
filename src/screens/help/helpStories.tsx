@@ -294,7 +294,7 @@ function StoryStepCard<TSelection extends string>({
         aria-current={active ? "step" : undefined}
       >
         <h3 className="core-heading-2 text-core-text">{step.title}</h3>
-        <p className="mt-4 text-pretty core-body-large leading-7 text-core-secondary">{step.text}</p>
+        <p className="mt-4 core-body-large leading-7 text-core-secondary">{step.text}</p>
         {step.note ? <p className="mt-4 core-caption leading-5 text-core-secondary">{step.note}</p> : null}
       </article>
     </li>
@@ -466,14 +466,6 @@ export function ActiveRecallStory() {
   );
 }
 
-function DifficultyMarker({ active }: { active: boolean }) {
-  return (
-    <svg width="14" height="14" viewBox="0 0 14 14" className="shrink-0" aria-hidden="true">
-      <path d="M 7 1 L 13 7 L 7 13 L 1 7 Z" fill="var(--core-surface-raised)" stroke={active ? "var(--core-warning)" : "currentColor"} strokeWidth="2" />
-    </svg>
-  );
-}
-
 function MemoryCurveGraphic({ selection, onSelectionChange }: { selection: ExplorerSelectionId; onSelectionChange: (selection: ExplorerSelectionId) => void }) {
   const frameRef = React.useRef<HTMLDivElement>(null);
   const [width, setWidth] = React.useState(DEFAULT_CHART_WIDTH);
@@ -524,12 +516,11 @@ function MemoryCurveGraphic({ selection, onSelectionChange }: { selection: Explo
     };
   }
 
-  function parameterButton(parameterId: ParameterId) {
+  function parameterButton(parameterId: ParameterId, placement?: { className: string; style: React.CSSProperties }) {
     const nextSelection = parameterSelectionId(parameterId);
     const active = activeSelection === nextSelection;
     return (
-      <button type="button" className={`flex min-h-control items-center gap-2 rounded-control core-caption font-semibold underline-offset-4 transition-opacity hover:underline motion-reduce:transition-none ${active ? "text-core-text underline decoration-2 opacity-100" : "text-core-secondary opacity-60"}`} {...buttonProps(nextSelection)} data-testid={`memory-parameter-${parameterId}`}>
-        {parameterId === "d" ? <DifficultyMarker active={active} /> : null}
+      <button type="button" className={`flex min-h-control items-center rounded-control core-caption font-semibold underline-offset-4 transition-opacity hover:underline motion-reduce:transition-none ${placement?.className ?? ""} ${active ? "text-core-text underline decoration-2 opacity-100" : "text-core-secondary opacity-60"}`} style={placement?.style} {...buttonProps(nextSelection)} data-testid={`memory-parameter-${parameterId}`}>
         {PARAMETER_LABELS[parameterId]}
       </button>
     );
@@ -538,9 +529,8 @@ function MemoryCurveGraphic({ selection, onSelectionChange }: { selection: Explo
   return (
     <div className="min-w-0" data-testid="spaced-repetition-visual" data-active-selection={selection}>
       <p id="memory-axis-description" className="sr-only">Die Y-Achse zeigt nur den Ausschnitt von 90 bis 100 Prozent Abrufwahrscheinlichkeit. Zwei diagonale Striche kennzeichnen die ausgelassene Achsenspanne darunter.</p>
-      <div className="flex flex-wrap items-center justify-between gap-x-6">
+      <div className="flex">
         {parameterButton("r")}
-        {parameterButton("d")}
       </div>
       <div ref={frameRef} className="relative" style={{ height }} data-testid="memory-curve">
         <svg className="absolute inset-0 size-full" viewBox={`0 0 ${width} ${height}`} role="img" aria-labelledby="memory-curve-title memory-curve-description" aria-describedby="memory-axis-description">
@@ -550,6 +540,10 @@ function MemoryCurveGraphic({ selection, onSelectionChange }: { selection: Explo
             <clipPath id="memory-curve-plot">
               <rect x={axisX} y="0" width={plotRight - axisX} height={targetY + 8} />
             </clipPath>
+            <linearGradient id="memory-variant-fade" gradientUnits="userSpaceOnUse" x1={variantX} y1="0" x2={plotRight} y2="0">
+              <stop offset="0.4" stopColor="var(--core-info)" />
+              <stop offset="1" stopColor="var(--core-info)" stopOpacity="0" />
+            </linearGradient>
           </defs>
 
           <line x1={axisX} y1={axisBottom} x2={plotRight} y2={axisBottom} stroke="var(--core-border-interactive)" strokeWidth="2" />
@@ -570,7 +564,7 @@ function MemoryCurveGraphic({ selection, onSelectionChange }: { selection: Explo
                 const emphasized = ratingsActive || activeParameterId === "r" || activeRatingId === rating.id || (activeReviewId === "variant" && rating.id === "easy");
                 return <path key={`curve-${rating.id}`} d={path(rating.curve)} fill="none" stroke={rating.color} strokeWidth={emphasized ? 7 : 3.5} strokeLinecap="round" opacity={emphasized ? 1 : 0.6} pointerEvents="none" className="transition-[stroke-width,opacity] duration-300 motion-reduce:transition-none" />;
               })}
-              <path d={path(VARIANT_CURVE)} fill="none" stroke="var(--core-info)" strokeWidth={activeParameterId === "r" || activeReviewId === "variant" ? 6 : 3.5} strokeLinecap="round" opacity={activeParameterId === "r" || activeReviewId === "variant" ? 1 : 0.6} />
+              <path d={path(VARIANT_CURVE)} fill="none" stroke="url(#memory-variant-fade)" strokeWidth={activeParameterId === "r" || activeReviewId === "variant" ? 6 : 3.5} strokeLinecap="round" opacity={activeParameterId === "r" || activeReviewId === "variant" ? 1 : 0.6} />
             </g>
           </g>
 
@@ -599,7 +593,7 @@ function MemoryCurveGraphic({ selection, onSelectionChange }: { selection: Explo
                 <g key={`difficulty-${review.id}`} opacity={emphasized ? 1 : 0.5} className="transition-opacity duration-300 motion-reduce:transition-none">
                   <line x1={reviewX} y1={fullY - 14} x2={reviewX} y2={targetY} stroke={review.color} strokeWidth={emphasized ? 3 : 2} strokeDasharray="6 7" />
                   <path d={`M ${reviewX} ${fullY - 28} L ${reviewX + 7} ${fullY - 21} L ${reviewX} ${fullY - 14} L ${reviewX - 7} ${fullY - 21} Z`} fill="var(--core-surface-raised)" stroke={activeParameterId === "d" ? "var(--core-warning)" : review.color} strokeWidth={emphasized ? 3 : 2} />
-                  <text x={reviewX + 12} y={fullY - 16} fill={activeParameterId === "d" ? "var(--core-warning)" : review.color} fontSize={labelSize} fontWeight="700">D</text>
+                  {review.id === "variant" ? <text x={reviewX + 12} y={fullY - 16} fill={activeParameterId === "d" ? "var(--core-warning)" : review.color} fontSize={labelSize} fontWeight="700">D</text> : null}
                 </g>
               );
             })}
@@ -617,6 +611,8 @@ function MemoryCurveGraphic({ selection, onSelectionChange }: { selection: Explo
             <text x={Math.min(variantX, width - 96)} y={labelY} textAnchor="middle" fill="var(--core-text-secondary)" fontSize={labelSize} fontWeight="700">x. Wiederholung · Variante</text>
           )}
         </svg>
+
+        {parameterButton("d", { className: "absolute z-20 -translate-y-1/2", style: { left: firstX + 12, top: fullY - 21 } })}
 
         {MEMORY_REVIEWS.map((review) => {
           const nextSelection = reviewSelectionId(review.id);

@@ -60,7 +60,7 @@ export function RatingGuidePanel() {
         {RATING_GUIDE.map((entry) => (
           <div key={entry.label} className="border-b border-core-border py-4">
             <dt className="core-body-large font-semibold text-core-text">{entry.label}</dt>
-            <dd className="mt-1 text-pretty core-body-large leading-relaxed text-core-secondary">{entry.text}</dd>
+            <dd className="mt-1 core-body-large leading-relaxed text-core-secondary">{entry.text}</dd>
           </div>
         ))}
       </dl>
@@ -91,7 +91,7 @@ export function PlanningTopic() {
                 <span className="core-caption font-semibold leading-6 tabular-nums text-core-muted" aria-hidden="true">0{index + 1}</span>
                 <div>
                   <p className="core-body font-semibold text-core-text">{step.label}</p>
-                  <p className="mt-1 text-pretty core-body leading-6 text-core-secondary">{step.text}</p>
+                  <p className="mt-1 core-body leading-6 text-core-secondary">{step.text}</p>
                 </div>
               </li>
             ))}
