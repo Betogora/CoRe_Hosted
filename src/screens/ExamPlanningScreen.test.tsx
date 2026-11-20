@@ -152,7 +152,8 @@ test("die geführte Planung zeigt nummerierte Schritte, einheitliche Optionskart
   // Without a name the next step stays reachable; it marks the missing name instead of being disabled.
   assert.doesNotMatch(html, /<button class="core-action-primary "[^>]*disabled/);
   assert.equal(html.match(/class="core-steps-step" disabled=""/g)?.length, 2);
-  assert.match(html, /<dt class="core-caption text-core-muted">Lernstart<\/dt><dd class="text-core-text">18\. Oktober 2026<\/dd>/);
+  assert.deepEqual([...html.matchAll(/<dt class="[^"]*">([^<]+)<\/dt>/g)].map((match) => match[1]), ["Prüfungsdatum", "Lernstart", "Lernstoff"]);
+  assert.match(html, />Lernstart<\/dt><dd class="text-core-text">18\. Oktober 2026<\/dd>/);
   assert.match(html, /<legend class="mb-3 core-field-label">Ziel<\/legend>/);
   assert.doesNotMatch(html, /Welche Prüfung steht an|Was ist dein Ziel/);
   assert.equal(html.match(/class="flex min-h-12 [^"]*rounded-control border px-4 py-2/g)?.length, 4);

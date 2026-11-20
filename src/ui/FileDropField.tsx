@@ -6,6 +6,8 @@ export interface FileDropFieldProps {
   accept: string;
   ariaLabel: string;
   prompt: string;
+  /** Lighter second line under the prompt, e.g. the accepted formats. */
+  detail?: string;
   actionLabel: string;
   onFile: (file: File) => void | Promise<void>;
   label?: string;
@@ -17,7 +19,7 @@ export interface FileDropFieldProps {
   children?: React.ReactNode;
 }
 
-export function FileDropField({ accept, ariaLabel, prompt, actionLabel, onFile, label, pasteImages = false, disabled, busy, children }: FileDropFieldProps) {
+export function FileDropField({ accept, ariaLabel, prompt, detail, actionLabel, onFile, label, pasteImages = false, disabled, busy, children }: FileDropFieldProps) {
   const inputRef = React.useRef<HTMLInputElement | null>(null);
   const [dragging, setDragging] = React.useState(false);
   const inactive = Boolean(disabled || busy);
@@ -54,7 +56,10 @@ export function FileDropField({ accept, ariaLabel, prompt, actionLabel, onFile, 
         className="core-file-drop grid min-h-32 content-center justify-items-center gap-4 rounded-panel border border-dashed border-core-border-strong bg-core-subtle p-5 text-center outline-none transition"
       >
         <input ref={inputRef} className="sr-only" type="file" accept={accept} disabled={inactive} tabIndex={-1} onChange={(event) => { take(event.currentTarget.files); event.currentTarget.value = ""; }} />
-        {children ? <div className="w-full min-w-0 text-left">{children}</div> : <p className="core-body font-semibold text-core-text">{prompt}</p>}
+        {children ? <div className="w-full min-w-0 text-left">{children}</div> : <div className="grid gap-1">
+          <p className="core-body font-semibold text-core-text">{prompt}</p>
+          {detail ? <p className="core-body text-core-secondary">{detail}</p> : null}
+        </div>}
         <ActionButton type="button" variant="secondary" icon={Upload} disabled={inactive} onClick={() => inputRef.current?.click()}>
           {actionLabel}
         </ActionButton>

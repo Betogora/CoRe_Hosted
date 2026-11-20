@@ -2763,9 +2763,11 @@ button[aria-label] {
 .core-exam-filter[aria-pressed="false"]:hover .core-tag { --core-tag-text: var(--core-text-secondary); }
 .core-exam-filter[aria-pressed="false"] .core-tag-dot { background: transparent !important; box-shadow: inset 0 0 0 1.5px var(--core-exam-tint); }
 
-/* Back and next of a step flow: one row from 640 px; below, full width with the next step on top. In the components layer so `xl:hidden` wins. */
+/* Back and next of a step flow: one row from 640 px; below, full width with the next step on top. The forward arrow
+   follows its label. In the components layer so `xl:hidden` wins. */
 @layer components {
   .core-step-actions { display: flex; flex-wrap: wrap-reverse; justify-content: space-between; gap: var(--core-space-md); }
+  .core-step-actions .lucide-arrow-right { order: 1; }
   @media (max-width: 639.98px) {
     .core-step-actions > * { flex: 1 1 auto; }
     .core-step-actions > span { display: none; }

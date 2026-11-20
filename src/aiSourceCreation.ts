@@ -9,7 +9,7 @@ const MAX_AI_SOURCE_FILE_BYTES = 20 * 1_024 * 1_024;
 /** Text a source may carry; the browser rejects more instead of cutting it. */
 export const MAX_AI_SOURCE_CHARS = 400_000;
 /** About 2,700 characters per page of running text. */
-export const AI_SOURCE_LIMIT_HINT = "Bis 20 MB, etwa 150 Seiten Text.";
+export const AI_SOURCE_LIMIT_HINT = "Bis 20 MB (etwa 150 Seiten).";
 
 export const AI_SOURCE_AMOUNTS = [
   { value: "less", label: "Weniger", instruction: "Erstelle Karten nur für die zentralen Kernaussagen." },
