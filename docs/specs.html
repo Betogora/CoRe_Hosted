@@ -1527,6 +1527,7 @@ video {
   /* Kept after .core-tri-state-option svg for the cascade. */
   .core-date-calendar-heading > svg { color: var(--core-action-primary); transition: transform 150ms cubic-bezier(0, 0, 0.2, 1); }
   .core-step-actions { display: flex; flex-wrap: wrap-reverse; justify-content: space-between; gap: var(--core-space-md); }
+  .core-step-actions .lucide-arrow-right { order: 1; }
   @media (max-width: 639.98px) {
     .core-step-actions > * { flex: 1 1 auto; }
     .core-step-actions > span { display: none; }
@@ -1789,6 +1790,10 @@ video {
   margin-left: 0.25rem;
   margin-right: 0.25rem;
 }
+.mx-4 {
+  margin-left: 1rem;
+  margin-right: 1rem;
+}
 .mx-auto {
   margin-left: auto;
   margin-right: auto;
@@ -1808,6 +1813,9 @@ video {
 }
 .-ml-1\.5 {
   margin-left: -0.375rem;
+}
+.-ml-2 {
+  margin-left: -0.5rem;
 }
 .-mt-2 {
   margin-top: -0.5rem;
@@ -2194,11 +2202,8 @@ video {
 .min-h-\[calc\(100vh-15rem\)\] {
   min-height: calc(100vh - 15rem);
 }
-.min-h-\[calc\(100vh-2rem\)\] {
-  min-height: calc(100vh - 2rem);
-}
-.min-h-\[min\(40vh\2c 20rem\)\] {
-  min-height: min(40vh, 20rem);
+.min-h-\[min\(36vh\2c 16rem\)\] {
+  min-height: min(36vh, 16rem);
 }
 .min-h-button {
   min-height: var(--core-button-height);
@@ -3183,6 +3188,9 @@ video {
 .pl-1 {
   padding-left: 0.25rem;
 }
+.pl-2 {
+  padding-left: 0.5rem;
+}
 .pl-2\.5 {
   padding-left: 0.625rem;
 }
@@ -3305,6 +3313,9 @@ video {
 }
 .leading-7 {
   line-height: 1.75rem;
+}
+.leading-\[1\.625rem\] {
+  line-height: 1.625rem;
 }
 .leading-relaxed {
   line-height: 1.625;
@@ -5158,7 +5169,7 @@ body:has([aria-modal="true"]) .core-success-toast {
   width: 1rem;
   height: 1rem;
 }
-.core-rich-text-tool[aria-pressed="true"] { background: var(--core-action-soft); color: var(--core-action-primary); }
+.core-rich-text-tool[aria-pressed="true"], .core-mindmap-tool[aria-pressed="true"] { background: var(--core-action-soft); color: var(--core-action-primary); }
 
 /* ── Features: classes of single views in src/screens ── */
 
@@ -5330,7 +5341,8 @@ button[aria-label] {
 .core-exam-filter[aria-pressed="false"]:hover .core-tag { --core-tag-text: var(--core-text-secondary); }
 .core-exam-filter[aria-pressed="false"] .core-tag-dot { background: transparent !important; box-shadow: inset 0 0 0 1.5px var(--core-exam-tint); }
 
-/* Back and next of a step flow: one row from 640 px; below, full width with the next step on top. In the components layer so `xl:hidden` wins. */
+/* Back and next of a step flow: one row from 640 px; below, full width with the next step on top. The forward arrow
+   follows its label. In the components layer so `xl:hidden` wins. */
 
 /* Kept after .core-auth-panel button for the cascade. */
 button.core-steps-step {
@@ -5438,6 +5450,24 @@ button.core-steps-step {
   border-top: var(--core-border-width) solid var(--core-border);
 }
 
+/* Quick dates: four in a row where they fit, otherwise two by two, never three and one. */
+.core-card-editor-quick-dates {
+  container-type: inline-size;
+}
+
+.core-card-editor-quick-dates > [role="group"] {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.5rem;
+}
+
+@container (min-width: 27rem) {
+  .core-card-editor-quick-dates > [role="group"] {
+    display: flex;
+    flex-wrap: wrap;
+  }
+}
+
 /* Label left, value right, 36 px, hairline between; labels never shrink, values wrap or cut. */
 .core-card-editor-rows {
   display: grid;
@@ -5540,14 +5570,14 @@ button.core-steps-step {
   .core-card-editor-actions {
     margin-left: auto;
   }
+}
 
+/* The four editor tabs stay complete on the narrowest phones; the hit position leaves room for the actions. */
+@media (max-width: 359px) {
   .core-card-editor-position {
     display: none;
   }
-}
 
-/* The four editor tabs stay complete on the narrowest phones. */
-@media (max-width: 359px) {
   .core-card-editor-frame .core-tabs-list {
     gap: var(--core-space-lg);
   }
@@ -5926,7 +5956,7 @@ button.core-steps-step {
 
 .core-help-stack-layer-middle {
   background: var(--core-action-soft);
-  transform: translate(-20px, -8px) rotate(-2.5deg);
+  transform: translate(-20px, 10px) rotate(-2.5deg);
 }
 
 .core-help-stack-layer-back {
@@ -5936,7 +5966,7 @@ button.core-steps-step {
 
 /* Narrow stacks keep their fanned layers inside the content width. */
 @media (max-width: 639px) {
-  .core-help-stack-layer-middle { transform: translate(-8px, -8px) rotate(-2deg); }
+  .core-help-stack-layer-middle { transform: translate(-8px, 6px) rotate(-2deg); }
   .core-help-stack-layer-back { transform: translate(8px, -18px) rotate(2deg); }
 }
 .core-help-card-question {
@@ -6153,6 +6183,7 @@ button.core-steps-step {
 .core-summary-preview { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: var(--core-space-xl); }
 .core-summary-preview:hover { border-color: var(--core-border-interactive); background-color: var(--core-surface-hover); }
 .core-summary-excerpt { max-height: 4lh; overflow: hidden; overflow-wrap: anywhere; white-space: pre-line; }
+.core-summary-excerpt[data-clipped] { -webkit-mask-image: linear-gradient(#000 calc(100% - 1lh), rgb(0 0 0 / 0.15)); mask-image: linear-gradient(#000 calc(100% - 1lh), rgb(0 0 0 / 0.15)); }
 .core-summary-preview-action { flex-shrink: 0; align-self: end; }
 /* Delete sits on the card's top corner; it stays a sibling because the card itself is a button. */
 .core-summary-delete { position: absolute; top: calc(1.5rem + (var(--core-leading-heading-3) - var(--core-button-height)) / 2); right: var(--core-space-md); }
@@ -6175,10 +6206,6 @@ button.core-steps-step {
 .core-mindmap-panel { container: core-mindmap / inline-size; }
 .core-mindmap-heading { min-width: 0; }
 .core-mindmap-primary-tools { display: flex; align-items: center; flex-wrap: wrap; gap: var(--core-space-sm); min-width: 0; }
-.core-mindmap-primary-tools > [role="group"] { min-width: 0; width: -moz-fit-content; width: fit-content; max-width: 100%; flex: 0 1 auto; height: auto; overflow-x: auto; scrollbar-width: none; }
-.core-mindmap-primary-tools > [role="group"]::-webkit-scrollbar { display: none; }
-.core-mindmap-primary-tools .core-segmented-control-option { min-height: var(--core-control-height); flex-basis: var(--core-control-height); }
-.core-mindmap-primary-tools .core-segmented-control-option[aria-pressed="true"] { flex: 1 0 auto; }
 .core-mindmap-tools { display: flex; align-items: center; flex-wrap: wrap; gap: var(--core-space-sm); padding: var(--core-space-sm); min-width: 0; }
 .core-mindmap-compact-field { width: 160px; max-width: 100%; }
 .core-mindmap-text-toolbar:empty { display: none; }
@@ -6985,21 +7012,13 @@ button.core-steps-step {
     grid-row-start: 1;
   }
 
-  .sm\:mx-0 {
-    margin-left: 0px;
-    margin-right: 0px;
-  }
-
-  .sm\:ml-auto {
-    margin-left: auto;
+  .sm\:mx-6 {
+    margin-left: 1.5rem;
+    margin-right: 1.5rem;
   }
 
   .sm\:mr-0 {
     margin-right: 0px;
-  }
-
-  .sm\:mr-4 {
-    margin-right: 1rem;
   }
 
   .sm\:line-clamp-1 {
@@ -7048,14 +7067,6 @@ button.core-steps-step {
 
   .sm\:min-h-0 {
     min-height: 0px;
-  }
-
-  .sm\:min-h-\[calc\(100vh-4rem\)\] {
-    min-height: calc(100vh - 4rem);
-  }
-
-  .sm\:min-h-button {
-    min-height: var(--core-button-height);
   }
 
   .sm\:w-24 {
@@ -7142,14 +7153,6 @@ button.core-steps-step {
     grid-template-columns: 8rem minmax(12rem,1fr) auto;
   }
 
-  .sm\:grid-cols-\[max-content_max-content\] {
-    grid-template-columns: max-content max-content;
-  }
-
-  .sm\:grid-cols-\[max-content_minmax\(0\2c 1fr\)\] {
-    grid-template-columns: max-content minmax(0,1fr);
-  }
-
   .sm\:grid-cols-\[minmax\(0\2c 1fr\)_16rem\] {
     grid-template-columns: minmax(0,1fr) 16rem;
   }
@@ -7162,12 +7165,12 @@ button.core-steps-step {
     grid-template-columns: minmax(0,1fr) auto auto;
   }
 
-  .sm\:grid-cols-\[minmax\(0\2c 1fr\)_minmax\(12rem\2c 16rem\)\] {
-    grid-template-columns: minmax(0,1fr) minmax(12rem,16rem);
+  .sm\:grid-cols-\[minmax\(0\2c 1fr\)_minmax\(0\2c 1fr\)\] {
+    grid-template-columns: minmax(0,1fr) minmax(0,1fr);
   }
 
-  .sm\:grid-cols-\[minmax\(0\2c 2fr\)_minmax\(0\2c 3fr\)\] {
-    grid-template-columns: minmax(0,2fr) minmax(0,3fr);
+  .sm\:grid-cols-\[minmax\(0\2c 1fr\)_minmax\(12rem\2c 16rem\)\] {
+    grid-template-columns: minmax(0,1fr) minmax(12rem,16rem);
   }
 
   .sm\:flex-row {
@@ -7176,10 +7179,6 @@ button.core-steps-step {
 
   .sm\:flex-wrap {
     flex-wrap: wrap;
-  }
-
-  .sm\:items-start {
-    align-items: flex-start;
   }
 
   .sm\:items-center {
@@ -7212,6 +7211,11 @@ button.core-steps-step {
 
   .sm\:gap-8 {
     gap: 2rem;
+  }
+
+  .sm\:gap-x-6 {
+    -moz-column-gap: 1.5rem;
+         column-gap: 1.5rem;
   }
 
   .sm\:rounded-overlay {
@@ -7360,6 +7364,10 @@ button.core-steps-step {
     min-height: 2rem;
   }
 
+  .md\:min-h-\[var\(--core-selection-height\)\] {
+    min-height: var(--core-selection-height);
+  }
+
   .md\:min-h-button {
     min-height: var(--core-button-height);
   }
@@ -7422,6 +7430,10 @@ button.core-steps-step {
 
   .md\:flex-wrap {
     flex-wrap: wrap;
+  }
+
+  .md\:items-end {
+    align-items: flex-end;
   }
 
   .md\:items-center {
@@ -7488,10 +7500,6 @@ button.core-steps-step {
 
   .md\:pl-4 {
     padding-left: 1rem;
-  }
-
-  .md\:pr-6 {
-    padding-right: 1.5rem;
   }
 
   .md\:pr-8 {
@@ -7632,10 +7640,6 @@ button.core-steps-step {
     max-width: 45.5rem;
   }
 
-  .xl\:grid-cols-1 {
-    grid-template-columns: repeat(1, minmax(0, 1fr));
-  }
-
   .xl\:grid-cols-2 {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -7692,9 +7696,23 @@ button.core-steps-step {
     padding-top: 2.5rem;
     padding-bottom: 2.5rem;
   }
+
+  .xl\:first\:min-h-\[28\.5rem\]:first-child {
+    min-height: 28.5rem;
+  }
+
+  .xl\:first\:items-center:first-child {
+    align-items: center;
+  }
 }
 .\[\&\:\:-webkit-details-marker\]\:hidden::-webkit-details-marker {
   display: none;
+}
+.\[\&\>\.core-switch-content\]\:w-full>.core-switch-content {
+  width: 100%;
+}
+.\[\&\>\.core-switch-content\]\:\!justify-between>.core-switch-content {
+  justify-content: space-between !important;
 }
 .\[\&\>header\]\:flex-wrap>header {
   flex-wrap: wrap;
@@ -8933,7 +8951,7 @@ html:has(.catalog-preview) { scroll-behavior: auto; }
 <p>Probe: Ein Satz gehört hinein, wenn er nach einer vollständigen Neugestaltung der Oberfläche unverändert gälte und eine Abweichung davon ein fachlicher Fehler wäre.</p>
 <p>Form: Stichpunkte, ein Gedanke je Punkt. Eine neue Regel ersetzt die alte, statt sie zu ergänzen. Wo Funktionen logisch voneinander abhängen, steht ein Schaubild als <code>schaubild</code>-Block direkt beim Text und wird mit ihm geändert (Schreibweise in <a href="index.html#readme--pflege"><code>README.md</code></a>). In Schaubildern sind KI-Schritte blau, Ergebnisse grün markiert.</p>
 <h2 id="specs--codeumfang-der-produktbereiche" class="core-heading-2" tabindex="-1">Codeumfang der Produktbereiche <a class="docs-anchor" href="#specs--codeumfang-der-produktbereiche" aria-label="Link zu Codeumfang der Produktbereiche">#</a></h2>
-<p>CoRe ist eine App mit mehreren Bereichen. Die Tabelle zeigt deren Anteil am Bildschirmcode; gemeinsam genutzte Logik, UI und API stehen separat.</p><div class="docs-code-stats"><dl class="flex min-w-0 flex-col"><dt class="core-status-label text-core-muted">Bildschirmcode</dt><dd class="core-metric mt-0.5 text-core-text">7.437</dd></dl><dl class="flex min-w-0 flex-col"><dt class="core-status-label text-core-muted">Gemeinsamer Code &amp; API</dt><dd class="core-metric mt-0.5 text-core-text">49.721</dd></dl><dl class="flex min-w-0 flex-col"><dt class="core-status-label text-core-muted">Quelldateien</dt><dd class="core-metric mt-0.5 text-core-text">310</dd></dl></div><div class="docs-code-chart"><div class="docs-table-scroll" tabindex="0" role="region" aria-label="Codeumfang je Produktbereich"><table><thead><tr><th>Bereich</th><th>Zeilen</th><th>Anteil</th></tr></thead><tbody><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-status-learned)" aria-hidden="true"></span>Heute</th><td>295</td><td>4 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-status-new)" aria-hidden="true"></span>Lernen & Karten</th><td>2.263</td><td>30,4 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-status-in-progress)" aria-hidden="true"></span>Erstellen & Import</th><td>2.090</td><td>28,1 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-action-primary)" aria-hidden="true"></span>Prüfungen</th><td>435</td><td>5,8 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-status-due)" aria-hidden="true"></span>Statistik</th><td>638</td><td>8,6 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-progress-completed)" aria-hidden="true"></span>Konto & Sync</th><td>792</td><td>10,6 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-text-secondary)" aria-hidden="true"></span>Hilfe</th><td>924</td><td>12,4 %</td></tr></tbody></table></div></div><p class="docs-source">Beim Erzeugen gemessen: nichtleere Zeilen in <code>src/</code> und <code>api/</code> (TS/TSX) sowie <code>src/styles.css</code>. Ohne Tests, Typdeklarationen, generierte Datenbanktypen, Dokumentation und Fremdcode. Bereichszuordnung nach Bildschirmdateien in <a href="../src/screens/README.md">der Screen-Landkarte</a>; übriger Code zählt gemeinsam. Enthält Kommentare und misst weder Laufzeit noch Komplexität.</p></article></main></div><script>function initializeDocsViewer() {
+<p>CoRe ist eine App mit mehreren Bereichen. Die Tabelle zeigt deren Anteil am Bildschirmcode; gemeinsam genutzte Logik, UI und API stehen separat.</p><div class="docs-code-stats"><dl class="flex min-w-0 flex-col"><dt class="core-status-label text-core-muted">Bildschirmcode</dt><dd class="core-metric mt-0.5 text-core-text">7.448</dd></dl><dl class="flex min-w-0 flex-col"><dt class="core-status-label text-core-muted">Gemeinsamer Code &amp; API</dt><dd class="core-metric mt-0.5 text-core-text">49.738</dd></dl><dl class="flex min-w-0 flex-col"><dt class="core-status-label text-core-muted">Quelldateien</dt><dd class="core-metric mt-0.5 text-core-text">310</dd></dl></div><div class="docs-code-chart"><div class="docs-table-scroll" tabindex="0" role="region" aria-label="Codeumfang je Produktbereich"><table><thead><tr><th>Bereich</th><th>Zeilen</th><th>Anteil</th></tr></thead><tbody><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-status-learned)" aria-hidden="true"></span>Heute</th><td>295</td><td>4 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-status-new)" aria-hidden="true"></span>Lernen & Karten</th><td>2.264</td><td>30,4 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-status-in-progress)" aria-hidden="true"></span>Erstellen & Import</th><td>2.096</td><td>28,1 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-action-primary)" aria-hidden="true"></span>Prüfungen</th><td>438</td><td>5,9 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-status-due)" aria-hidden="true"></span>Statistik</th><td>638</td><td>8,6 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-progress-completed)" aria-hidden="true"></span>Konto & Sync</th><td>792</td><td>10,6 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-text-secondary)" aria-hidden="true"></span>Hilfe</th><td>925</td><td>12,4 %</td></tr></tbody></table></div></div><p class="docs-source">Beim Erzeugen gemessen: nichtleere Zeilen in <code>src/</code> und <code>api/</code> (TS/TSX) sowie <code>src/styles.css</code>. Ohne Tests, Typdeklarationen, generierte Datenbanktypen, Dokumentation und Fremdcode. Bereichszuordnung nach Bildschirmdateien in <a href="../src/screens/README.md">der Screen-Landkarte</a>; übriger Code zählt gemeinsam. Enthält Kommentare und misst weder Laufzeit noch Komplexität.</p></article></main></div><script>function initializeDocsViewer() {
     const theme = document.getElementById("docs-theme");
     theme.addEventListener("click", () => {
         const dark = document.documentElement.dataset.coreTheme !== "dark";
