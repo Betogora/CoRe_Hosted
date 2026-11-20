@@ -28,7 +28,7 @@ export interface RestoredManualDraft {
 type DraftStorage = Pick<Storage, "getItem" | "setItem" | "removeItem" | "key" | "length">;
 
 const SCHEMA_VERSION = 1;
-const KEY_PREFIX = "core:manual-draft:";
+const KEY_PREFIX = "core.manualDraft.v1.";
 const KINDS: readonly string[] = ["basic", "basic-reversed", "cloze", "single-choice", "multiple-choice"];
 const ROLES: readonly string[] = ["prompt", "hint", "extra", "source"];
 const MODES: readonly string[] = ["hide-all-guess-one", "hide-one-guess-one"];

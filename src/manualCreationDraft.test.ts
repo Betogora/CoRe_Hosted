@@ -58,19 +58,19 @@ test("Entwürfe anderer Konten, alter Schemata und unlesbare Werte werden verwor
   const storage = new MemoryStorage();
   storeManualDraft("konto-b", snapshot(), [image], storage);
   assert.equal(restoreManualDraft("konto-a", storage), null);
-  assert.equal(storage.getItem("core:manual-draft:konto-b"), null, "der Entwurf eines anderen Kontos verlässt den Tab");
+  assert.equal(storage.getItem("core.manualDraft.v1.konto-b"), null, "der Entwurf eines anderen Kontos verlässt den Tab");
 
-  storage.setItem("core:manual-draft:konto-a", JSON.stringify({ version: 0, accountId: "konto-a", snapshot: snapshot() }));
+  storage.setItem("core.manualDraft.v1.konto-a", JSON.stringify({ version: 0, accountId: "konto-a", snapshot: snapshot() }));
   assert.equal(restoreManualDraft("konto-a", storage), null);
   assert.equal(storage.length, 0);
 
-  storage.setItem("core:manual-draft:konto-a", JSON.stringify({ version: 1, accountId: "konto-b", snapshot: snapshot() }));
+  storage.setItem("core.manualDraft.v1.konto-a", JSON.stringify({ version: 1, accountId: "konto-b", snapshot: snapshot() }));
   assert.equal(restoreManualDraft("konto-a", storage), null);
 
-  storage.setItem("core:manual-draft:konto-a", JSON.stringify({ version: 1, accountId: "konto-a", snapshot: { ...snapshot(), draft: { ...snapshot().draft, kind: "kprim" } } }));
+  storage.setItem("core.manualDraft.v1.konto-a", JSON.stringify({ version: 1, accountId: "konto-a", snapshot: { ...snapshot(), draft: { ...snapshot().draft, kind: "kprim" } } }));
   assert.equal(restoreManualDraft("konto-a", storage), null);
 
-  storage.setItem("core:manual-draft:konto-a", "{kaputt");
+  storage.setItem("core.manualDraft.v1.konto-a", "{kaputt");
   assert.equal(restoreManualDraft("konto-a", storage), null);
   assert.equal(storage.length, 0);
 });

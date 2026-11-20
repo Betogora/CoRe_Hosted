@@ -113,7 +113,7 @@ test("manual creation restores this tab's draft of the account and says which im
     removeItem: (key: string) => { values.delete(key); },
   } });
   try {
-    values.set("core:manual-draft:konto-a", JSON.stringify({ version: 1, accountId: "konto-a", snapshot: {
+    values.set("core.manualDraft.v1.konto-a", JSON.stringify({ version: 1, accountId: "konto-a", snapshot: {
       targetDeckId: deck.id, useNewDeck: false, deckName: "Manueller Kartenstapel", typeIn: false, occlusion: null, additionalFields: [],
       draft: { kind: "basic", front: `<p>Gerettete Frage<img src="${"b".repeat(40)}" alt="bild.png"></p>`, back: "<p>Gerettete Antwort</p>", answerOptions: ["", ""], correctOptionIndices: [0], tags: [] },
       pinnedFields: { front: false, back: false },

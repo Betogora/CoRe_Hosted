@@ -219,7 +219,8 @@ export function DecksScreen({
       preserveToastForSelectionChange.current = false;
       return;
     }
-    setSuccessToast("");
+    // Closing the editor keeps its message: the undo of an immediate action lies below the dialog until then (W7).
+    if (selectedCardId) setSuccessToast("");
   }, [selectedCardId, setSuccessToast]);
 
   React.useEffect(() => {
