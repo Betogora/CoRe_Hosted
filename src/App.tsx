@@ -46,7 +46,6 @@ import { SettingsSaveBar } from "./ui/SettingsSaveBar.tsx";
 const menu = createMenuModel();
 const magicLinkEnabled = import.meta.env.VITE_ENABLE_MAGIC_LINK === "true";
 
-/** Each view's wiring, which assembles its screen's props and loads with the screen. */
 const viewScreens: Record<AppViewId, React.ComponentType> = {
   uebersicht: DashboardScreenWiring,
   kartenstapel: DecksScreenWiring,
@@ -264,7 +263,6 @@ function AppContent() {
     });
   }, [authPhase, mediaStore, syncEngine, workspaceRepository]);
 
-  /** Switching CoRe on from a deck menu first explains it and offers generating variants right away. */
   function requestDeckCoreMode(deckId: string, coreMode: CoreMode) {
     const deck = workspaceStore.get().state?.decks.find((candidate) => candidate.id === deckId);
     if (coreMode !== "on" || !deck || createDefaultDeckSettings(deck.deckSettings).coreMode === "on") return deckCommands?.setDeckCoreMode(deckId, coreMode);

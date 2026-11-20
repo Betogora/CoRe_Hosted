@@ -58,7 +58,7 @@ function CopyableId({ label, value }: { label: string; value: string }) {
   );
 }
 
-/** Loads after the browser is idle, so the editor opens first (B3). */
+/** Loads after the browser is idle, so the editor opens first. */
 function useIdleLoad<T>(load: ((signal: AbortSignal) => Promise<T>) | null, key: string): T | null {
   const [value, setValue] = React.useState<T | null>(null);
   React.useEffect(() => {
@@ -95,10 +95,6 @@ export interface CardEditorGeneralTabProps {
   deckName: (deckId: string) => string;
 }
 
-/**
- * `Allgemein` works at once and never takes over unsaved content changes. Actions whose result leaves the view or
- * overwrites something offer `Rückgängig` (W7, W20); flag, mark, suspension and added tags undo at their control.
- */
 export function CardEditorGeneralTab({ decks, graph, card, now, dayStartHour, timeZone, services, pendingCards, onSetFlag, onSetMarked, onSetStudyState, onRescheduleCards, onSelectCard, onCardMoved, deckName }: CardEditorGeneralTabProps) {
   const { note } = graph;
   const online = useOnline();
@@ -126,7 +122,7 @@ export function CardEditorGeneralTab({ decks, graph, card, now, dayStartHour, ti
   const similar = useIdleLoad<SimilarNote[]>(online && services.cloud ? (signal) => services.cloud!.listSimilarNotes(note.id, signal) : null, `${note.id}:${online}`);
   const exams = useIdleLoad(() => services.listExamsForDeck(card.deckId), card.deckId);
 
-  /** Undo is a new, synced change and drops out with a note if the card changed meanwhile (W7). */
+  /** Undo is a new, synced change and drops out with a note if the card changed meanwhile. */
   function offerUndo(message: string, unchanged: (current: { card: Card; note: NoteGraph["note"] }) => boolean, undo: () => Promise<unknown>) {
     setSuccessToast(message, {
       action: {

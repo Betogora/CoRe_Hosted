@@ -80,9 +80,8 @@ function segmentRange(type: SegmentType, draft: Draft) {
 }
 
 /**
- * One key on a date segment: arrows step with wrap-around (the year without), digits fill the segment and move on once it
- * is full or no further digit fits, Backspace removes the last digit. `typed` holds the digits of an entry in progress;
- * an empty segment steps from `anchor`. Returns null for keys the segment leaves alone.
+ * `typed` holds the digits of an entry in progress; an empty segment steps from `anchor`. Returns null for keys the
+ * segment leaves alone.
  */
 export function editDateSegment(draft: Draft, type: SegmentType, key: string, typed: string | null, anchor: Draft): { draft: Draft; typed: string | null; advance: boolean } | null {
   const { length } = SEGMENTS.find((segment) => segment.type === type)!;
@@ -125,11 +124,7 @@ export function createCoreDatePickerMonth(monthKey: string, options: { value: st
   });
 }
 
-/**
- * Single calendar day after HeroUI v3 „Date Picker“: a field with keyboard-editable day, month and year segments and a
- * calendar trigger whose popover pages months, opens a year grid from its heading and moves by arrow keys. Only complete
- * dates inside `min`/`max` reach `onValueChange`; an incomplete or invalid entry is marked and reverts on leaving.
- */
+/** Only complete dates inside `min`/`max` reach `onValueChange`; an incomplete or invalid entry reverts on leaving. */
 export function CoreDatePicker({ value, min, max, today, ariaLabel, ariaDescribedBy, id, className = "", onValueChange }: CoreDatePickerProps) {
   const [open, setOpen] = React.useState(false);
   const [yearsOpen, setYearsOpen] = React.useState(false);

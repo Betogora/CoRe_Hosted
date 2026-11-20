@@ -1,5 +1,3 @@
-// In die Projektwurzel als visual-review.config.mjs kopieren.
-// Pfade, Szenen und Ansichten anhand des geklärten Auftrags anpassen.
 export default {
   defaultView: "mobile",
   views: {

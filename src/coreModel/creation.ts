@@ -4,7 +4,7 @@ import { escapeCardHtmlText, hasCardRichTextContent } from "../richText.ts";
 import { normalizeTags } from "./tags.ts";
 import { clozeOrdinals } from "./noteContent.ts";
 
-/** What the manual editor offers today; it only shapes the universal content, it is no persisted type. */
+/** Only shapes the universal content; it is no persisted type. */
 export type ManualContentKind = "basic" | "basic-reversed" | "cloze" | "single-choice" | "multiple-choice";
 
 export interface ManualNoteInput {
@@ -13,7 +13,7 @@ export interface ManualNoteInput {
   back: string;
   answerOptions?: string[];
   correctOptionIndices?: number[];
-  /** Fields with a role; a question field joins the forward question and the reverse answer. */
+  /** A question field joins the forward question and the reverse answer. */
   additionalFields?: Array<{ id?: string; name?: string; value?: string; role?: AddableFieldRole }>;
   /** The forward card of a question/answer content asks to type the back. */
   typeIn?: boolean;
@@ -43,7 +43,6 @@ function additionalFieldId(id: string | undefined, index: number, used: Set<stri
   return candidate;
 }
 
-/** Validation with the editor's German field messages; the content parser still guards the stored form. */
 export function validateManualNoteInput(input: ManualNoteInput): ManualNoteErrors {
   const errors: ManualNoteErrors = {};
   if (input.kind === "cloze") {
@@ -70,11 +69,7 @@ export function validateManualNoteInput(input: ManualNoteInput): ManualNoteError
   return errors;
 }
 
-/**
- * Shapes the manual editor input into universal content (still unvalidated). Front and back become question
- * and answer; for cloze and choice the back is an extra shown after reveal. Additional fields on the front
- * join the question, fields on the back become extras.
- */
+/** The result is still unvalidated. */
 export function createManualNoteContent(input: ManualNoteInput): NoteContent {
   const [frontName, backName] = FIELD_NAMES[input.kind];
   const used = new Set(["front", "back"]);

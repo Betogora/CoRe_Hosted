@@ -29,7 +29,6 @@ import { createAccountSyncEngine } from "./syncEngine.ts";
 
 Object.assign(globalThis, { IDBKeyRange });
 
-/** A fake implements only what the tested function calls. */
 function fakeCloudClient(fake: object) {
   return fake as CloudClient;
 }

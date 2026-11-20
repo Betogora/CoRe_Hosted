@@ -6,10 +6,8 @@ import { translateAnkiPackage, type ApkgImportGraph } from "./apkgNoteTranslatio
 import type { Card } from "./coreTypes.ts";
 import { notePlainText, renderCard, renderNoteChoiceOptions, type NotePresentationTheme } from "./notePresentation.ts";
 
-// ADR-035: every APKG fixture states the target behaviour of the universal content model.
-// The observation runs the note translation (K5.0) and the prepared renderer. KNOWN_GAPS lists
-// what the pipeline does not deliver yet. The test fails both for unlisted failures and for
-// listed gaps that already pass, so the list cannot go stale.
+// KNOWN_GAPS lists what the pipeline does not deliver yet. The test fails both for unlisted failures and for listed
+// gaps that already pass, so the list cannot go stale.
 
 interface ExpectedCard {
   ankiCardId: string;
@@ -81,7 +79,6 @@ function ancestors(path: string): string[] {
   return parts.map((_, index) => parts.slice(0, index + 1).join("::"));
 }
 
-/** Text a learner sees: collapsed hints stay hidden until opened. */
 function visibleText(srcdoc: string): string {
   const open = srcdoc.match(/<body[^>]*>/)!;
   const body = srcdoc.slice(open.index! + open[0].length, srcdoc.lastIndexOf("</body>"));
@@ -203,7 +200,6 @@ async function runFixture(name: string, expected: ExpectedFixture) {
       const card = noteCards[index];
       if (!card) continue;
       const subject = `${expectedNote.guid}#${expectedCard.ord}`;
-      // Like the app, the card renders with its imported template, so the original layout is part of the contract.
       const noteTypeSource = graph.noteTypeSources.find((source) => source.id === note.noteTypeSourceId) ?? null;
       const question = await renderCard({ note, card, side: "question", surface: "review", theme: THEME, noteTypeSource });
       const answer = await renderCard({ note, card, side: "answer", surface: "review", theme: THEME, noteTypeSource });

@@ -70,7 +70,6 @@ function initializeDocsViewer() {
   updateLocation();
   filter();
 }
-/** Hält den aktiven Eintrag sichtbar: waagerecht in der schmalen Leiste, sonst in der scrollenden Inhaltsbox. */
 function revealTocLink(link: HTMLElement, toc: HTMLElement) {
   const box = toc.scrollWidth > toc.clientWidth ? toc : toc.parentElement!;
   const bounds = box.getBoundingClientRect();

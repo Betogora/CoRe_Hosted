@@ -17,9 +17,7 @@ type DeckOptionsRow = Pick<DeckLibraryRow, "id" | "deck" | "path" | "coreMode">;
 export interface DeckOptionsMenuProps {
   row: DeckOptionsRow;
   decks: Deck[];
-  /** `Lernen`: the same start as the deck's study arrow. */
   onStudy: () => void;
-  /** `Alle Karten frei üben`; its dialog and practice return the focus to the menu button. */
   onPractice?: (returnFocus: HTMLElement | null) => void;
   onSetCoreMode: (deckId: string, mode: CoreMode) => unknown;
   onOpenSettings: (deckId: string) => unknown;

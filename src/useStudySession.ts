@@ -11,22 +11,17 @@ import { useStableCallback } from "./ui/useStableCallback.ts";
 import type { StudyWindowCursor } from "./workspaceHydrationService.ts";
 
 interface StudySessionContext {
-  /** Loads the next windows; null while no workspace is open. */
+  /** Null while no workspace is open. */
   preparation: StudyPreparationCommands | null;
   repository: IndexedDbCoreRepository | null;
   cardCommands: CardCommands | null;
-  /** Applies the repository's shell state to the store. */
   refresh: (options?: { preserveCardPages?: boolean }) => unknown;
   requestSync: () => void;
   /** The learning time the shown counts were computed for. */
   now: string;
 }
 
-/**
- * The running study session: the loaded decks, contents and today's answers with window paging, and the writes made
- * from it (answers, quick study-state changes, the new-card order). Its callbacks keep their identity, so the
- * memoized study screen does not render for an unchanged session.
- */
+/** Its callbacks keep their identity, so the memoized study screen does not render for an unchanged session. */
 export function useStudySession({ preparation, repository, cardCommands, refresh, requestSync, now }: StudySessionContext) {
   const [decks, setDecks] = React.useState<Deck[] | null>(null);
   const [notes, setNotes] = React.useState<Note[]>([]);
@@ -45,7 +40,6 @@ export function useStudySession({ preparation, repository, cardCommands, refresh
    */
   const requestedVariantsRef = React.useRef(new Set<string>());
 
-  /** Takes over a prepared window; with a key the session counts as prepared. */
   const adopt = React.useCallback((prepared: StudyPreparation, preparedKey: string | null) => {
     if (preparedKey !== null) preparedKeyRef.current = preparedKey;
     cursorRef.current = prepared.cursorByDeck;
@@ -66,7 +60,6 @@ export function useStudySession({ preparation, repository, cardCommands, refresh
     preparedKeyRef.current = "";
   }, []);
 
-  /** Loads the next window and merges it into the running session. */
   const loadMore = React.useCallback(async (deckId: string) => {
     const prepared = await preparation?.prepareWindow(deckId, now, cursorRef.current) ?? null;
     if (!prepared) return { decks: [], notes: [], hasMoreCards: false, bufferSize };
@@ -92,8 +85,8 @@ export function useStudySession({ preparation, repository, cardCommands, refresh
     preparation?.forgetExamPlanningData();
     repository.recordReview(result);
     requestSync();
-    // The next variant is generated ahead of the contact that asks it (specs.md#kartenvarianten-erzeugen). It is a
-    // background step: a failure leaves the chain with the longest unseen variant, and the next answer tries again.
+    // The next variant is requested in the background; a failure leaves the chain as it is and the next answer tries
+    // again.
     const { deck, updatedCard } = result;
     const note = notes.find((candidate) => candidate.id === updatedCard.noteId);
     const requested = requestedVariantsRef.current;

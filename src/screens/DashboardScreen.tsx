@@ -152,7 +152,6 @@ function DailyLearningOverview({
   const additionalSessions = plan.sessions.filter((session) => session.additionalNewCount > 0);
   const { progress } = plan;
   const remaining = progress.newCount + progress.inProgressCount + progress.dueCount;
-  // The goal line leads the tile: the cards still open today, or today's learned cards once the goal is reached.
   const goalCount = achieved ? progress.completedTodayCount : remaining;
   const goalLabel = achieved
     ? `${goalCount === 1 ? "Karte" : "Karten"} gelernt · Tagesziel erreicht`

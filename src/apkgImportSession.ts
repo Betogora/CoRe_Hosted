@@ -12,11 +12,10 @@ export interface ApkgImportJob {
 
 export type ApkgProgressPhase = "analyzing" | "committing";
 
-/** A finished takeover: the cards are stored on the device; cloud and media sync continue in the background. */
+/** The cards are stored on the device; cloud and media sync may still be running. */
 export interface ImportCompletion {
   deck: Deck;
   createdCount: number;
-  /** Reimport result: kept local edits and Anki cards missing from the package (K5.7). */
   reimport: { keptLocalEdits: number; missingInPackage: number } | null;
   samples: ImportSample[];
   sampleMedia: ImportMediaFile[];
@@ -28,7 +27,7 @@ export interface ApkgImportSession {
   job: ApkgImportJob | null;
   preview: ApkgCreationPreview | null;
   isParsing: boolean;
-  /** Stops the running package analysis; null outside the analysis. */
+  /** Null outside the package analysis. */
   analysisAbort: AbortController | null;
   /** Delivered to the creation screen once it is shown, so a takeover finishing elsewhere does not navigate. */
   completion: ImportCompletion | null;

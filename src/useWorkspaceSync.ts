@@ -15,16 +15,11 @@ interface WorkspaceSyncContext {
   authPhase: AuthPhase;
   repository: IndexedDbCoreRepository | null;
   syncEngine: AccountSyncEngine | null;
-  /** Its prepared card graphs are forgotten with every applied state. */
   hydration: WorkspaceHydrationService | null;
   /** Card page requests started before a write would show the older state. */
   abortCardPageRequests: () => void;
 }
 
-/**
- * Applying the repository's state to the workspace store and operating the sync: the sync lifecycle with its interval,
- * syncing now, and listing and resolving conflicts. Every local write and every sync ends in `setAppState`.
- */
 export function useWorkspaceSync({ authPhase, repository, syncEngine, hydration, abortCardPageRequests }: WorkspaceSyncContext) {
   const workspaceStore = useWorkspaceStore();
   const syncIntervalMinutes = useWorkspaceValue((snapshot) => snapshot.state?.profile.uiPreferences.syncIntervalMinutes ?? 5);
@@ -96,7 +91,6 @@ export function useWorkspaceSync({ authPhase, repository, syncEngine, hydration,
     });
   }, [authPhase, syncIntervalMinutes, syncEngine, repository]);
 
-  // Closing or reloading while changes are not yet in the account asks first, offline too; they stay on the device.
   React.useEffect(() => {
     if (!syncEngine) return undefined;
     const warnBeforeUnload = (event: BeforeUnloadEvent) => {

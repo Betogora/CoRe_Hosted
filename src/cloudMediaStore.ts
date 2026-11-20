@@ -165,10 +165,6 @@ async function selectMediaFiles(client: any, userId: string, hashes: string[]): 
   return rows;
 }
 
-/**
- * Uploads each file once per account and SHA-1, verifies the stored size and then records it in `media_files`.
- * Contents reference files by SHA-1 (`notes.media`); the link rows follow from the contents on the server.
- */
 export async function uploadMediaFiles({ client, supabaseUrl, userId, files, control, uploadFile, onProgress }: UploadOptions) {
   const unique = [...new Map(files.map((file) => [requireSha1(file.sha1), file])).values()];
   const total = unique.length;
@@ -238,7 +234,6 @@ export async function uploadMediaFiles({ client, supabaseUrl, userId, files, con
   return { syncedSha1s, completed, total, uploaded, reused, processedBytes: completedBytes, totalBytes };
 }
 
-/** Signed URLs by SHA-1; the storage path follows from account and SHA-1. */
 export async function signMediaUrls(client: any, userId: string, sha1s: string[], expiresIn = 3_600) {
   const urls: Record<string, string> = {};
   const missing: string[] = [];
@@ -258,7 +253,6 @@ export async function signMediaUrls(client: any, userId: string, sha1s: string[]
   return { urls, missing, expiresAt };
 }
 
-/** Releases files no content references any more (K4.7): storage object first, then the `media_files` row. */
 export async function releaseUnreferencedMedia(client: any, userId: string) {
   const { listReleasableMedia } = await import("./cloudRepository.ts");
   const releasable = await listReleasableMedia(client);

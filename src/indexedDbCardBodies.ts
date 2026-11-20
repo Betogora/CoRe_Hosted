@@ -1,4 +1,3 @@
-// Private to indexedDbCoreRepository.ts: card body residency, loading and hydration, offline decks and quota eviction.
 import type { Card, Note } from "./coreTypes.ts";
 import type { SyncOutboxMutation } from "./syncEngine.ts";
 import type { NoteTypeSource } from "./apkgImport.ts";
@@ -118,10 +117,8 @@ export function createCardBodies(database: IDBDatabase, {
     return [...notes.values()];
   };
 
-  /** A content with all its cards when every sibling the catalog knows is resident; otherwise null. */
   // The renderer prepares each template object once, so an unchanged template is returned as the same object.
   const loadedNoteTypeSources = new Map<string, NoteTypeSource & { updatedAt: string }>();
-  /** The Anki template of an imported content, for its original layout (ADR-047); kept on every device. */
   const loadNoteTypeSource = async (id: string): Promise<NoteTypeSource | null> => {
     await flushWrites();
     const transaction = database.transaction(STORE.noteTypeSources, "readonly");
@@ -155,7 +152,7 @@ export function createCardBodies(database: IDBDatabase, {
 
   const loadNoteGraph = async (noteId: string) => (await loadNoteGraphs([noteId]))[0];
 
-  /** Writes card bodies and contents loaded from the cloud; local changes still waiting for sync win. */
+  /** Local changes still waiting for sync win. */
   const applyHydratedBodies = async ({ cards, notes }: { cards: Card[]; notes: Note[] }, state: Exclude<BodyResidency, "catalog-only"> = "cached") => {
     await flushWrites();
     const notesById = new Map(notes.map((note) => [note.id, note]));
@@ -258,7 +255,6 @@ export function createCardBodies(database: IDBDatabase, {
       });
       await transactionDone(transaction);
     },
-    /** Frees unpinned card bodies; a content goes once no resident card of it remains. */
     async evictCachedCardBodies(bytesToFree: number, protectedCardIds: string[] = []) {
       await flushWrites();
       const protectedIds = new Set([...protectedCardIds, ...pendingEntityIdsForTable("cards")]);

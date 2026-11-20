@@ -11,6 +11,8 @@ Setze nur klar belegbare Verbesserungen mit kleinem Diff um. Features, beobachtb
 
 Prüfe auch neue oder geänderte Tests: Sichern sie ein benanntes Risiko gegen echten Produktionscode ab? Tests, die Logik nachbauen, nur Texte oder entfernte Features prüfen oder vorhandene Fälle duplizieren, werden vereinfacht oder entfernt; projektspezifische Testregeln haben Vorrang.
 
+Prüfe neue und geänderte Kommentare: Es bleiben nur Werkzeuganweisungen, Gründe für nicht offensichtlichen Code und Bedeutungen, die der Typ nicht ausdrückt; alles andere und falsch Gewordenes wird entfernt. Projektspezifische Kommentarregeln haben Vorrang.
+
 Begründe Performance-Änderungen durch Messwerte oder einen nachvollziehbaren Kostenpfad. Bei unklarem Nutzen bleibt der bestehende Code bestehen. Prüfe die betroffenen Verträge mit fokussierten Tests und den dafür geltenden Projektchecks.
 
 Berichte knapp die Änderungen, ihren Nutzen, betroffene Dateien und Prüfungen; melde auch ausdrücklich, wenn keine sinnvolle Vereinfachung gefunden wurde.

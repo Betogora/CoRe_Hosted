@@ -45,7 +45,6 @@ test("statistics screen exposes one global filter and the complete CoRe analysis
     assert.match(markup, new RegExp(`role="tab"[^>]*>${label}</button>`));
   }
   assert.match(markup, /aria-selected="true"[^>]*>Lernaktivität<\/button>/);
-  // Only the selected area renders its charts.
   assert.doesNotMatch(markup, /Zeitplanung|FSRS-Schwierigkeit|Wahre Erinnerungsquote|Stapelinhalte öffnen/);
   const overviewMarkup = markup.match(/<section class="min-w-0 pb-2" aria-labelledby="statistics-overview-title"[\s\S]*?<\/section>/)?.[0];
   assert.ok(overviewMarkup);

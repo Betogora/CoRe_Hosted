@@ -24,7 +24,6 @@ export interface StudyPreparation {
   dueForecast: ReadonlyMap<string, number> | null;
 }
 
-/** A start that found nothing for today, for the dialog that offers more new cards. */
 export interface EmptyStudyStart {
   deckId: string;
   deckName: string;
@@ -51,7 +50,6 @@ interface StudyPreparationContext {
   /** Without it the study windows come from the local repository alone. */
   hydration: WorkspaceHydrationService | null;
   cloud: ReturnType<typeof createSupabaseBrowserClient> | null;
-  /** The learning time, which follows the simulated clock. */
   now: () => string;
 }
 
@@ -75,7 +73,6 @@ function createEmptyStudyStart(deckId: string, queue: StudyPreparation["queue"])
   };
 }
 
-/** The studied deck with all its subdecks. */
 function scopeDeckIds(decks: WorkspaceState["decks"], deckId: string): string[] {
   const scopeIds = new Set<string>([deckId]);
   let changed = true;
@@ -101,18 +98,13 @@ function groupByDeck<T extends { deckId: string }>(items: readonly T[]): Map<str
   return groups;
 }
 
-/**
- * Preparation of study sessions in the open workspace: study windows of a deck with its subdecks, today's exam unit
- * and `Treffer lernen`, each with the cards loaded before the session starts, plus the exam planning data that
- * Heute and Prüfungen share. A start reports an empty deck and a failed load with what their dialogs show.
- */
 export function createStudyPreparation({ store, repository, hydration, cloud, now: learningNow }: StudyPreparationContext) {
-  /** Study states for the exam forecast (ADR-042); Heute and Prüfungen share them for a minute or until the next own answer. */
+  /** Study states for the exam forecast, cached for a minute or until the next own answer. */
   let examPlanningDataCache: { deckIds: ReadonlySet<string>; loadedAt: number; cards: ExamPlanningData["cards"] } | null = null;
 
   /**
-   * Loads study windows until the queue has a card or nothing is left, so the session never starts on an empty page.
-   * `now` is the learning time the shown counts were computed for. Returns null while no workspace is loaded.
+   * Loads study windows until the queue has a card or nothing is left. `now` is the learning time the shown counts were
+   * computed for. Null while no workspace is loaded.
    */
   async function prepareWindow(deckId: string, now: string, cursorByDeck: Record<string, StudyWindowCursor> = {}): Promise<StudyPreparation | null> {
     const shellState = store.get().state;
@@ -176,7 +168,6 @@ export function createStudyPreparation({ store, repository, hydration, cloud, no
     return result.summaries.length > 0;
   }
 
-  /** Today's exam unit, or one of its blocks, as a study session over exactly the planned cards. */
   async function prepareExamUnit(blockId: string | null): Promise<StudyPreparation> {
     const currentState = store.get().state;
     if (!hydration || !currentState) throw new Error("Die Kartenablage ist noch nicht bereit.");
@@ -198,7 +189,7 @@ export function createStudyPreparation({ store, repository, hydration, cloud, no
       ids = getExamSessionTargetIds(tasks, forecast.days[0], todayKey, blockId);
     }
     if (!ids.length) throw new Error("Für heute ist in der Prüfungsplanung nichts mehr offen.");
-    // Offline the unit runs on the target cards already on this device (E12).
+    // Offline the unit runs on the target cards already on this device.
     if (typeof navigator !== "undefined" && navigator.onLine === false) {
       ids = await hydration.listLocalCardIds(ids);
       if (!ids.length) throw new Error("Die Karten der heutigen Einheit sind erst online verfügbar.");
@@ -213,7 +204,6 @@ export function createStudyPreparation({ store, repository, hydration, cloud, no
     return { decks, notes, answeredToday: [], queue, cursorByDeck: {}, hasMoreCards: false, bufferSize: 50, dueForecast: null };
   }
 
-  /** `Treffer lernen` with `Vorziehen` (KV5): a study session over exactly these cards, due or not, without daily limits. */
   async function prepareHitSession(cardIds: string[], order: HitStudyOrder): Promise<StudyPreparation> {
     const currentState = store.get().state;
     if (!hydration || !currentState) throw new Error("Die Kartenverwaltung ist noch nicht bereit.");
@@ -231,8 +221,8 @@ export function createStudyPreparation({ store, repository, hydration, cloud, no
   }
 
   /**
-   * Prepares the session a study route names: a deck with its subdecks or, after a reload, today's exam unit. A list
-   * of hits lives only in the screen that started it and is gone after a reload. Null while no workspace is loaded.
+   * A list of hits lives only in the screen that started it and is gone after a reload. Null while no workspace is
+   * loaded.
    */
   async function prepareStart(deckId: string, now: string): Promise<StudyStartOutcome | null> {
     let preparation: StudyPreparation | null;
@@ -255,7 +245,6 @@ export function createStudyPreparation({ store, repository, hydration, cloud, no
     prepareHitSession,
     loadExamPlanningData,
     loadExamSummaryAvailability,
-    /** Answers change the study states, so the next exam forecast loads them again. */
     forgetExamPlanningData: () => { examPlanningDataCache = null; },
   };
 }

@@ -4,11 +4,7 @@ import type { useLearningClock } from "./useLearningClock.ts";
 import { useWorkspaceValue } from "./useWorkspaceStore.ts";
 import type { WorkspaceStore } from "./workspaceStore.ts";
 
-/**
- * When the deck counts load: after every workspace change while a view shows them. A study session keeps the counts
- * it started with, so no rating reloads them, and loads them once when a new learning day begins, so its plan counts
- * for that day. `null` means nothing to load.
- */
+/** `null` means nothing to load. */
 export function deckSummariesLoadKey({ countsShown, workspaceRevision, learningNow, learningDayKey, loadedDayKey }: {
   countsShown: boolean;
   workspaceRevision: number;
@@ -20,7 +16,6 @@ export function deckSummariesLoadKey({ countsShown, workspaceRevision, learningN
   return learningDayKey === loadedDayKey ? null : learningDayKey;
 }
 
-/** Loads the open account's deck counts into the store. */
 export function useDeckSummaries({ repository, store, countsShown, clock }: {
   repository: IndexedDbCoreRepository | null;
   store: WorkspaceStore;

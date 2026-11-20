@@ -1,6 +1,5 @@
 import type { SummaryPage, SummaryPageFormat, SummaryStroke } from "./learningSummaries.ts";
 
-/** Keeps stored page groups intact while projecting their ink onto one continuous sheet. */
 export function summaryDrawingLayout(pages: SummaryPage[], format: SummaryPageFormat = "portrait") {
   const width = 794;
   let offset = 0, bottom = 0;

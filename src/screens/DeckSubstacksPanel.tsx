@@ -15,7 +15,6 @@ interface DeckSubstacksPanelProps {
   onMoveDeck: (deckId: string, parentDeckId: string | null) => DeckMutationResult | null;
 }
 
-/** Content tab "Unterstapel": the opened deck's branch as the list group of `Lernen`, initially showing its direct subdecks. */
 export function DeckSubstacksPanel({ rows, current, onOpenDeck, onStudy, onPractice, onOpenSettings, onSetCoreMode, onMoveDeck }: DeckSubstacksPanelProps) {
   const [collapsedDeckIds, setCollapsedDeckIds] = useState(() => rows.filter((row) => row.hasChildren && row.id !== current.id).map((row) => row.id));
   const rootDeckIds = useMemo(() => [current.id], [current.id]);

@@ -5,7 +5,6 @@ import { useWorkspaceStore, useWorkspaceValue } from "../useWorkspaceStore.ts";
 import { DecksScreen } from "./DecksScreen.tsx";
 import { useDeckPractice } from "./useDeckPractice.tsx";
 
-/** The card management and a deck's content view with the card and deck commands, card editor and hit sessions. */
 export function DecksScreenWiring() {
   const { navigation, settings, clock, studyStart, cardCommands, cardEditorServices, deckCommands, variantBatch, requestDeckCoreMode, hydration, cloud, mediaStore } = useAppServices();
   const workspaceStore = useWorkspaceStore();

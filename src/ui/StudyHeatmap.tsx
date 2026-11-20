@@ -137,7 +137,6 @@ function HeatmapDayCell({
   day: StudyHeatmapDay;
   label: string;
   className: string;
-  /** Renders the cell as a track holding a bar of this height in the day's tone; no bar for zero. */
   barHeight?: string | null;
   children?: React.ReactNode;
 }) {

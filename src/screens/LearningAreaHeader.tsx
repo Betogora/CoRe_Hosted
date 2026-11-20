@@ -11,7 +11,6 @@ const learnAreaTitles = {
 export function LearningAreaHeader({ area, onOpenCardSettings, action }: {
   area: keyof typeof learnAreaTitles;
   onOpenCardSettings: () => unknown;
-  /** A further action of the area before `Lerneinstellungen`. */
   action?: React.ReactNode;
 }) {
   return (

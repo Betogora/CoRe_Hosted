@@ -4,10 +4,9 @@ import { classifyCardEligibility, isEditedVariant } from "./coreVariantService.t
 import type { Card, Deck, DeckSettings, Note } from "./coreTypes.ts";
 import type { CardCatalogEntry } from "./workspaceReplica.ts";
 
-/** At most this many generation requests per action; a further action continues with the next cards. */
 export const CARD_VARIANT_BATCH_LIMIT = 50;
 
-/** Errors that would fail every further card the same way, with the short reason the bar names; the batch stops at them. */
+/** Errors that would fail every further card the same way; the batch stops at them. */
 const STOP_REASONS: Readonly<Record<string, string>> = {
   unauthorized: "Nicht angemeldet",
   auth_unavailable: "Nicht angemeldet",
@@ -26,7 +25,6 @@ const STOP_REASONS: Readonly<Record<string, string>> = {
  */
 export type CardVariantBatchMode = "missing" | "refresh";
 
-/** Card search (`cardSearchQuery.ts`) for the candidates of a mode; image occlusions never get variants. */
 export const CARD_VARIANT_CANDIDATE_QUERY: Readonly<Record<CardVariantBatchMode, string>> = {
   missing: "-has:variant -is:occlusion",
   refresh: "has:variant",
@@ -69,9 +67,8 @@ function needsVariant(card: Card, mode: CardVariantBatchMode) {
 }
 
 export interface CardVariantBatchSource {
-  /** Catalog page of the deck in deck order. */
   listPage(page: number): Promise<{ items: CardCatalogEntry[]; hasMore: boolean }>;
-  /** Loads the card bodies (hydrating them when needed) in the given order. */
+  /** In the given order. */
   openCards(cardIds: string[]): Promise<Array<{ card: Card; note: Note } | null>>;
 }
 
@@ -83,18 +80,12 @@ export interface CardVariantBatchResult {
   created: number;
   /** Cards whose generation failed on its own; candidates that cannot get a variant (e.g. cloze) are skipped silently. */
   failed: number;
-  /** Cards the model reported as not sensibly rephrasable (`not_rephrasable`). */
   notRephrasable: number;
-  /** The action stopped before its end: cancelled by the user or after an error every card would hit. */
   stopped: { reason: "cancelled" } | { reason: "error"; message: string } | null;
-  /** More candidate cards remain after this action. */
   hasMore: boolean;
 }
 
-/**
- * Creates one AI variant for each of the first candidate cards of a deck, one request after another.
- * Each variant is saved by `generate` right away, so a cancelled or interrupted action keeps its results.
- */
+/** Each variant is saved by `generate` right away, so a cancelled or interrupted action keeps its results. */
 export async function runCardVariantBatch({
   source,
   settingsFor,
@@ -164,10 +155,6 @@ function variantCount(count: number) {
   return `${count.toLocaleString("de-DE")} ${count === 1 ? "Variante" : "Varianten"}`;
 }
 
-/**
- * User-facing summary of a finished action: a full success becomes a toast,
- * anything the user should look at stays in the progress bar until it is closed.
- */
 export function summarizeCardVariantBatch(result: CardVariantBatchResult, mode: CardVariantBatchMode = "missing"): { kind: "toast" | "bar"; message: string } {
   if (result.stopped?.reason === "error") {
     return { kind: "bar", message: `Gestoppt nach ${variantCount(result.created)}: ${result.stopped.message}` };

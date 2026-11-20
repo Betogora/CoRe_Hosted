@@ -2,11 +2,9 @@ import type { Deck } from "./coreTypes.ts";
 
 export const AI_SOURCE_ACCEPT = ".pdf,.txt,.md,.markdown,.csv,.tsv";
 export const AI_SOURCE_FORMAT_LABEL = "PDF, Text, Markdown, CSV oder TSV";
-/** Upper bound of suggestions per order; the amount setting decides how much of it meaningful material uses. */
 export const MAX_AI_SOURCE_CARDS = 100;
 export const MAX_AI_SOURCE_WISHES_CHARS = 2_000;
 const MAX_AI_SOURCE_FILE_BYTES = 20 * 1_024 * 1_024;
-/** Text a source may carry; the browser rejects more instead of cutting it. */
 export const MAX_AI_SOURCE_CHARS = 400_000;
 /** About 2,700 characters per page of running text. */
 export const AI_SOURCE_LIMIT_HINT = `Bis 20 MiB und ${MAX_AI_SOURCE_CHARS.toLocaleString("de-DE")} Zeichen, etwa 150 Seiten Text.`;
@@ -108,7 +106,7 @@ export function describeAiSourceSettings(settings: AiSourceSettings): string {
   return `${amount} mit ${length}.`;
 }
 
-/** Instructions only; the source cards route sends the material units separately. */
+/** The material units travel separately. */
 export function buildAiSourceCreationPrompt(settings: AiSourceSettings): string {
   if (!settings.cardForms.length) throw new Error("Wähle mindestens eine Kartenform aus.");
   return [

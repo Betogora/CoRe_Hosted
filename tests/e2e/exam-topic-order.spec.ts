@@ -1,7 +1,6 @@
 import { expect, test, type Locator, type Page } from "@playwright/test";
 import { matrixThemes, visualOutput } from "./support/visualMatrix.ts";
 
-// Ordinary runs keep phone, desktop and the short 720 × 450 layout; visual runs add every matrix and breakpoint size.
 const viewports = visualOutput
   ? [[320, 720], [360, 800], [390, 844], [430, 932], [639, 900], [640, 900], [1280, 720], [1440, 900], [720, 450]]
   : [[390, 844], [1440, 900], [720, 450]];

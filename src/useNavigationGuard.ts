@@ -10,10 +10,6 @@ interface NavigationGuardOptions extends Omit<Parameters<typeof useAppNavigation
   settingsBlocksNavigation: (route: AppRoute) => boolean | undefined;
 }
 
-/**
- * App navigation guarded by the open drafts: an unsaved creation, exam planning or card draft asks before it is left,
- * and the asked navigation runs only after saving or discarding. `navigateToViewNow` skips the question.
- */
 export function useNavigationGuard({ settingsBlocksNavigation, ...options }: NavigationGuardOptions) {
   const creationDraftDirtyRef = React.useRef(false);
   const examDraftDirtyRef = React.useRef(false);
@@ -61,7 +57,6 @@ export function useNavigationGuard({ settingsBlocksNavigation, ...options }: Nav
     return navigateToViewNow(...args);
   }, [activeView, navigateToViewNow]);
 
-  /** Runs `leave` at once, or after the open card draft was saved or discarded. */
   const leaveCardDraft = React.useCallback((leave: () => void) => {
     if (cardDraftGuardRef.current) setPendingNavigation({ source: "card", run: leave });
     else leave();
@@ -104,7 +99,6 @@ export function useNavigationGuard({ settingsBlocksNavigation, ...options }: Nav
     }
   }
 
-  /** Back to the draft that asked, when its question was cancelled. */
   function focusPendingDraft() {
     if (pendingCardNavigation) cardDraftGuardRef.current?.focus();
     else creationDraftFocusRef.current?.();

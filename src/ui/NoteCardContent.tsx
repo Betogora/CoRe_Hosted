@@ -68,7 +68,6 @@ function cardBundle(note: Note, card: Card, surface: NonNullable<NoteCardContent
   return entry;
 }
 
-/** Renders upcoming review cards ahead, so each appears without a loading state once it is due. */
 export function useNoteCardPrefetch(items: ReadonlyArray<{ note: Note; card: Card }>) {
   const layout = React.useContext(NoteLayoutContext);
   React.useEffect(() => {
@@ -106,7 +105,6 @@ export function preparedAnswerFrame(ahead: AnswerAhead, revealed: boolean, oneFr
   return ahead === "ready" || !oneFrame ? "shown" : null;
 }
 
-/** Runs once the frame just loaded is drawn and the browser is idle; returns the cancel. */
 function whenDrawnAndIdle(run: () => void) {
   let idle: number | undefined;
   const frame = requestAnimationFrame(() => {
@@ -118,7 +116,6 @@ function whenDrawnAndIdle(run: () => void) {
   };
 }
 
-/** Label of the host's reveal action: choices with several answers are checked, everything else is shown. */
 export function revealLabel(note: Note | undefined) {
   const interaction = note?.content.interaction;
   return interaction?.kind === "choice" && interaction.mode !== "single" ? "Antwort prüfen" : "Antwort anzeigen";

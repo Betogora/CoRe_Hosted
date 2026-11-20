@@ -6,7 +6,7 @@ import { AI_LEARNING_SUMMARY_PROMPT_VERSION } from "../../src/aiLearningSummaryC
 
 export const LEDGER_FILE = "fixtures/ai-eval/ledger.json";
 
-/** Ein Eintrag je KI-Prompt im Code; `target` ist der Zielwert des Hauptwerts, `critical` nennt die Kriterien, die nie schlechter werden dürfen. */
+/** `target` ist der Zielwert des Hauptwerts; `critical` nennt die Kriterien, die nie schlechter werden dürfen. */
 export const REQUEST_TYPES = [
   { id: "card-variant-basic", label: "Variante Frage/Antwort", route: "/api/ai/card-variant", promptVersion: AI_CARD_VARIANT_PROMPT_VERSION, target: 0.95, critical: ["M2"] },
   { id: "card-variant-cloze", label: "Variante Lückentext", route: "/api/ai/card-variant", promptVersion: AI_CARD_VARIANT_PROMPT_VERSION, target: 0.95, critical: ["M2"] },
@@ -56,10 +56,12 @@ const ledgerSchema = v.strictObject({ runs: v.array(runSchema), calibrations: v.
 export type EvalRun = v.InferOutput<typeof runSchema>;
 export type EvalCalibration = v.InferOutput<typeof calibrationSchema>;
 export type EvalLedger = v.InferOutput<typeof ledgerSchema>;
-/** Ein Lauf mit seiner Nummer im Anfragetyp und dem Bestand, gegen den er gemessen wurde. */
+/**
+ * `number` zählt innerhalb des Anfragetyps; `reference` ist der zuletzt gültige Bestand davor, gegen den der Lauf
+ * gemessen wurde.
+ */
 export type EvalSeriesEntry = { number: number; run: EvalRun; reference: EvalRun | null };
 
-/** Prüft einen unbekannten Wert gegen ein Schema; die Meldung nennt Quelle und Pfad des ersten Fehlers. */
 export function parseStrict<const Schema extends v.GenericSchema>(schema: Schema, value: unknown, source: string): v.InferOutput<Schema> {
   const parsed = v.safeParse(schema, value);
   if (parsed.success) return parsed.output;
@@ -67,7 +69,6 @@ export function parseStrict<const Schema extends v.GenericSchema>(schema: Schema
   throw new Error(`${source}: ${issue.path?.map((item) => item.key).join(".") ?? "Wurzel"}: ${issue.message}`);
 }
 
-/** Prüft Form und Reihenfolge: Jede Reihe beginnt mit einer Baseline, nur Runden tragen einen Vergleich. */
 export function parseLedger(value: unknown): EvalLedger {
   const ledger = parseStrict(ledgerSchema, value, LEDGER_FILE);
   for (const type of REQUEST_TYPES) {
@@ -87,7 +88,6 @@ export function readLedger(file = LEDGER_FILE) {
   return parseLedger(JSON.parse(readFileSync(file, "utf8")));
 }
 
-/** Läufe eines Anfragetyps in Ledger-Reihenfolge; `reference` ist der zuletzt gültige Bestand davor. */
 export function seriesFor(ledger: EvalLedger, id: RequestType["id"]): EvalSeriesEntry[] {
   let best: EvalRun | null = null;
   return ledger.runs.filter((run) => run.requestType === id).map((run, index) => {
@@ -97,7 +97,6 @@ export function seriesFor(ledger: EvalLedger, id: RequestType["id"]): EvalSeries
   });
 }
 
-/** Der gültige Bestand: die letzte Baseline oder übernommene Runde. */
 export function bestRun(ledger: EvalLedger, id: RequestType["id"]) {
   return seriesFor(ledger, id).filter(({ run }) => run.decision !== "rejected").at(-1)?.run ?? null;
 }

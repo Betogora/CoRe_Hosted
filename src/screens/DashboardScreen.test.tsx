@@ -44,7 +44,6 @@ test("exam checklist shows at most three tasks per exam, prioritizes open tasks 
     assert.equal((short.match(/data-exam-todo=/g) ?? []).length, count);
     assert.doesNotMatch(short, /aria-expanded|weitere anzeigen/);
   }
-  // The dashboard preview lists every open task; its widget scrolls instead of truncating.
   const preview = render(tasks, { onOpenTaskCountChange: () => undefined });
   assert.equal((preview.split("<details")[0].match(/data-exam-todo=/g) ?? []).length, 3);
   assert.match(preview, /Erledigt im Planer \(4\)/);

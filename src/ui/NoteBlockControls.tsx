@@ -20,7 +20,6 @@ const FIELD_BLOCKS: Record<AddableFieldRole, { icon: LucideIcon; description: st
 
 const TYPE_IN = { label: "Antwort eintippen", icon: Keyboard, description: "Die Antwort wird eingetippt und Zeichen für Zeichen verglichen." };
 
-/** Building blocks shared by manual creation and the card editor: answer typing and fields with a role. */
 export function NoteBlockControls({ typeIn, fieldRoles, onTypeInChange, onAddField }: NoteBlockControlsProps) {
   return (
     <div className="grid min-w-0 gap-2 sm:grid-cols-[max-content_minmax(0,1fr)] sm:items-start sm:gap-3" data-testid="note-blocks">

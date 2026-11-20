@@ -56,7 +56,6 @@ export interface CardPresentationSurfaceProps {
   title: string;
   loadingLabel?: string;
   className?: string;
-  /** Element of the card scrolled into view once loaded, like Anki's `#answer` after revealing. */
   scrollTargetId?: string;
   /** Loaded ahead and absent for people and assistive technology until shown; showing it ends the field timing. */
   concealed?: boolean;

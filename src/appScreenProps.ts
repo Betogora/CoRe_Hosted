@@ -60,10 +60,8 @@ export interface CreationScreenProps {
   onMethodChange: (method: CreationMethod) => unknown;
   onTargetDeckChange: (deckId: string) => unknown;
   onSaveManualNote: (input: ManualNoteSaveInput) => Promise<{ deck: Deck; cardIds: string[] } | null>;
-  /** Contents of a deck, against which the text import finds duplicates. */
   listDeckContents: (deckId: string) => Promise<ExistingTextImportNote[]>;
   onImportTextNotes: (input: TextImportSaveInput) => Promise<{ deck: Deck; cardCount: number } | null>;
-  /** Tags of the account for suggestions in the tag input. */
   listTagDirectory: () => Promise<TagDirectoryEntry[]>;
   onDraftStateChange: (dirty: boolean, focusDraft: (() => void) | null, saving: boolean) => void;
   onSessionCompleted: (completion: { deckId: string; createdCount: number; kind: CreationCompletionKind }) => void;
@@ -72,10 +70,9 @@ export interface CreationScreenProps {
   onOpenDashboard: () => void;
 }
 
-/** Starts and menu actions of the screens that show the deck tree. */
 interface DeckTreeScreenProps {
   onStartDeck: (deck: Deck) => void;
-  /** `Alle Karten frei üben` from a deck menu; missing while the card catalog is unavailable. */
+  /** Absent while the card catalog is unavailable. */
   onPracticeDeck?: (deck: Deck, returnFocus: HTMLElement | null) => void;
   onSetDeckCoreMode: (deckId: string, coreMode: CoreMode) => unknown;
   onOpenDeckSettings: (deckId: string) => unknown;
@@ -94,7 +91,6 @@ export interface DashboardScreenProps extends DeckTreeScreenProps {
   onCreateDemo: () => Promise<Deck[] | null>;
   onMoveDeck: (deckId: string, parentDeckId: string | null) => DeckMutationResult | null;
   onSetDeckExpanded: (surface: DeckExpansionSurface, deckId: string, expanded: boolean) => unknown;
-  /** Starts today's exam unit (ADR-042); the action leads the page while an exam is active. */
   onStartExamUnit?: (blockId: string | null) => Promise<void>;
   onLoadExamPlanningData?: ExamPlanningScreenProps["onLoadPlanningData"];
   onSaveExamTasks?: (tasks: ExamDailyTask[]) => Promise<void>;
@@ -102,7 +98,6 @@ export interface DashboardScreenProps extends DeckTreeScreenProps {
   onLoadExamLocalCardIds?: ExamPlanningScreenProps["onLoadLocalCardIds"];
 }
 
-/** Study states the exam forecast runs on, including answers still waiting for sync. */
 export interface ExamPlanningData {
   cards: CardStudySnapshot[];
 }
@@ -117,9 +112,7 @@ export interface ExamPlanningScreenProps {
   onSaveTasks: (tasks: ExamDailyTask[]) => Promise<void>;
   onStartUnit: (blockId: string | null) => Promise<void>;
   onLoadSummaryAvailability?: (deckId: string) => Promise<boolean>;
-  /** Offline the stored targets stay startable with the cards already on this device. */
   onLoadLocalCardIds?: (cardIds: string[]) => Promise<string[]>;
-  /** Unsaved plan edits or calendar drafts; the app confirms before navigating away. */
   onDraftStateChange?: (dirty: boolean) => void;
 }
 
@@ -142,23 +135,19 @@ export interface DeckSettingsScreenProps {
   bodyCache?: { total: number; cached: number; downloaded: number } | null;
   onDownloadDeck?: (deckId: string) => Promise<unknown>;
   onRemoveDeckDownload?: (deckId: string) => Promise<unknown>;
-  /** AI variants of the deck tree: the cards without one (null while unknown; at 0 only refreshing is offered) and the action; absent while unavailable. */
+  /** `cardsWithoutVariant` is null while unknown; absent while generation is unavailable. */
   variantGeneration?: { start: (deck: Deck, mode: "missing" | "refresh") => unknown; running: boolean; cardsWithoutVariant: number | null };
-  /** Closes the dialog towards the view it was opened from. */
   onClose: () => unknown;
-  /** The save bar of the open draft. */
   footer?: ReactNode;
 }
 
-/** Reads only the cloud offers; null without a signed-in client. Callers check online state themselves (W19). */
+/** Null without a signed-in client; callers check online state themselves. */
 interface CardEditorCloudReads {
   listCardReviewEvents: (cardId: string, signal: AbortSignal) => Promise<ReviewEvent[]>;
   listSimilarNotes: (noteId: string, signal: AbortSignal) => Promise<SimilarNote[]>;
 }
 
-/** Instant card actions and reads of the card editor beyond the content draft. */
 export interface CardEditorServices {
-  /** Own flag names of the account (`uiPreferences.flagNames`). */
   flagNames: readonly string[];
   moveCard: (cardId: string, deckId: string) => Promise<NoteGraph | null>;
   resetCards: (cardIds: string[]) => Promise<Card[]>;
@@ -167,15 +156,11 @@ export interface CardEditorServices {
   restoreCardStudies: (studies: ReadonlyMap<string, Card["study"]>) => Promise<Card[]>;
   editVariant: (cardId: string, variantId: string, text: { front: string; back: string }) => Promise<void>;
   removeNoteMedia: (graph: NoteGraph, names: string[]) => Promise<NoteGraph | null>;
-  /** The stored card and content, e.g. to check before an undo that nothing changed meanwhile. */
   loadCard: (cardId: string) => Promise<{ card: Card; note: Note } | null>;
   listReviewEvents: (cardId: string) => Promise<ReviewEvent[]>;
-  /** Tags of the whole account online, of the local replica offline. */
   listTagDirectory: () => Promise<TagDirectoryEntry[]>;
-  /** Anki note types of the account for `note:` (replicated completely). */
   listNoteTypes: () => Promise<{ id: string; name: string }[]>;
   listExamsForDeck: (deckId: string) => Promise<string[]>;
-  /** Loads a neighbouring card ahead so prev/next opens without waiting. */
   prefetchCard: (cardId: string) => void;
   cloud: CardEditorCloudReads | null;
   openFlagNames: () => unknown;
@@ -185,7 +170,6 @@ export interface CardEditorServices {
 export interface DecksScreenProps extends DeckTreeScreenProps {
   decks: Deck[];
   summaryAccountId?: string;
-  /** Online storage for summaries and mind maps of the signed-in account. */
   learningContentCloud?: import("@supabase/supabase-js").SupabaseClient | null;
   onGenerateSummary?: (input: import("./aiLearningSummary.ts").SummaryGenerationInput, signal: AbortSignal) => Promise<import("./aiLearningSummary.ts").SummaryGenerationResult>;
   contentDeckId?: string | null;
@@ -197,7 +181,6 @@ export interface DecksScreenProps extends DeckTreeScreenProps {
   learnAheadMinutes?: number;
   timeZone?: string;
   mediaStore: AccountMediaStore | null;
-  /** Saves edited content; card removals were confirmed by the editor beforehand. */
   onSaveNote: (graph: NoteGraph, content: NoteContent) => Promise<NoteGraph | null>;
   onSetCardStudyState: (deckId: string, cardId: string, patch: CardStudyStatePatch) => Promise<NoteGraph | null>;
   onDuplicateNote: (graph: NoteGraph) => Promise<NoteGraph | null>;
@@ -205,19 +188,14 @@ export interface DecksScreenProps extends DeckTreeScreenProps {
   onUndoDeleteNote: (undo: NoteGraph, deleted: NoteGraph) => Promise<NoteGraph | null>;
   onRescheduleCards: (cardIds: string[], dueAt: string, occurredAt: string) => Promise<Card[]>;
   onGenerateVariant: (deckId: string, cardId: string) => Promise<AiCardVariantSuccess>;
-  /** Starts variants for the selected cards without one (KV4), with the settings of `deckId`; absent while generation is unavailable. */
+  /** Uses the settings of `deckId`; absent while generation is unavailable. */
   onGenerateCardVariants?: (deckId: string, cardIds: string[]) => unknown;
-  /** Runs a mass action on the selected cards as one local change (KV4); its result can be undone. */
   onRunCardBatch?: (cardIds: string[], action: CardBatchAction) => Promise<CardBatchResult>;
-  /** Loads the selected contents for `Suchen und Ersetzen` (KV5). */
   onPrepareTextReplace?: (cardIds: string[]) => Promise<TextReplaceSession>;
-  /** `Treffer lernen` (KV5): studies these cards ahead of time; they are already free of suspended and buried cards. */
+  /** The ids are already free of suspended and buried cards. */
   onStudyHits?: (cardIds: string[], order: HitStudyOrder) => Promise<void>;
-  /** `Nur üben` (KV5): the bodies of these cards; offline only those on this device. */
   onLoadPracticeCards?: (cardIds: string[]) => Promise<Array<{ card: Card; note: Note }>>;
-  /** `Duplikate finden` (KV5) over the searched cards of these decks. */
   onFindDuplicates?: (request: { deckIds: string[]; key: DuplicateKey; query: string; searchContext: CardSearchContext }) => Promise<{ fieldNames: string[]; groups: DuplicateGroup[] }>;
-  /** Ids of every hit of the flat hit list, for `Alle N Treffer auswählen` (KV4). */
   onListHitCardIds?: (request: { deckIds: string[]; query: string; searchContext: CardSearchContext; sort?: CardTableSort }) => Promise<string[]>;
   variantGenerationRunning?: boolean;
   onUpdateVariant: (cardId: string, variantId: string, action: "reactivate" | "deactivate" | "delete") => Promise<void>;
@@ -227,21 +205,20 @@ export interface DecksScreenProps extends DeckTreeScreenProps {
   onCardEditorTabChange: (tab: CardEditorTab) => unknown;
   cardEditor: CardEditorServices;
   onSelectDeck: (deckId: string | null, cardId?: string | null, tab?: CardEditorTab) => unknown;
-  /** Present when the editor was opened from a session: closing returns there and there is no hit list (W6). */
+  /** Present only when the editor was opened from a session. */
   onCloseSelectedCard?: () => unknown;
   onOpenLearn: (deckId?: string | null) => unknown;
   onOpenCardSettings: () => unknown;
   onMoveDeck: (deckId: string, parentDeckId?: string | null) => DeckMutationResult | null;
   onDraftStateChange: (guard: CardDraftGuard | null) => void;
-  /** Saved searches of the account (`uiPreferences.savedSearches`); the whole list is written at once. */
   savedSearches: readonly SavedCardSearch[];
   onSavedSearchesChange: (searches: SavedCardSearch[]) => unknown;
-  /** Loads a page of a card list into the account's store; resolves false when the answer was dropped (replaced or aborted), so the list asks again. */
+  /** Resolves false when the answer was dropped (replaced or aborted), so the list asks again. */
   onRequestCardPage?: (request: DecksCardPageRequest) => Promise<boolean | undefined> | void;
 }
 
 export interface DecksCardPageRequest {
-  /** The list: a deck id, or `HIT_LIST_KEY` for the flat hit list over `deckIds` (KV3). */
+  /** A deck id, or `HIT_LIST_KEY` for the flat hit list over `deckIds`. */
   deckId: string;
   deckIds?: string[];
   page: number;
@@ -249,11 +226,9 @@ export interface DecksCardPageRequest {
   query: string;
   sort: CardTableSort;
   selectedCardId: string | null;
-  /** Today's learning day and the subtrees of `did:` terms, so the search resolves them like the screen. */
   searchContext: CardSearchContext;
 }
 
-/** Loaded windows of one card list (a deck or the flat hit list); scrolling adds pages of `pageSize` rows (KV3). */
 export interface DecksCardPage {
   deckId: string;
   pages: Readonly<Record<number, CardCatalogEntry[]>>;
@@ -261,10 +236,11 @@ export interface DecksCardPage {
   totalCount: number;
   query: string;
   sort: CardTableSort;
-  /** Scope of the flat hit list; a changed scope is a new list. */
   deckIds?: string[];
   selected?: (NoteGraph & { cardId: string }) | null;
-  /** The card the last answered request asked for; until it matches the selection, the editor shows its loading bar. */
+  /**
+   * The card the last answered request asked for; while it differs from the selection, the selection is still loading.
+   */
   requestedCardId?: string | null;
   loadError?: string | null;
   limitedToLocalCatalog?: boolean;
@@ -294,14 +270,12 @@ export interface SettingsDialogProps {
   section: SettingsSection;
   onSelectSection: (section: SettingsSection) => unknown;
   onClose: () => unknown;
-  /** The save bar of the open draft. */
   footer?: ReactNode;
   children: ReactNode;
 }
 
 export interface SettingsScreenProps {
   section: GeneralSettingsSection;
-  /** Moves focus to the sync conflicts inside the data area. */
   focusConflicts?: boolean;
   profile: Profile;
   onSaveSettings: (draft: GeneralSettingsDraft) => Profile | null | Promise<Profile | null>;
@@ -315,7 +289,6 @@ export interface SettingsScreenProps {
 
 export interface GlobalCardSettingsScreenProps {
   section: LearningSettingsSection;
-  /** Decks for the switch to the deck settings dialog. */
   decks: Deck[];
   onOpenDeckSettings: (deckId: string) => unknown;
   timeZone: string;
@@ -339,12 +312,10 @@ export interface SimulatorScreenProps {
 }
 
 export interface StudyModeProps extends Partial<Pick<GlobalSchedulerPreferences, "dayStartHour" | "learnAheadMinutes" | "leechThreshold" | "easyDays">> {
-  /** A settings dialog lies over the session; review shortcuts pause meanwhile. */
   shortcutsSuspended?: boolean;
   deck: Deck;
   decks: Deck[];
   notes: Note[];
-  /** Cards answered earlier today, for sibling burying. */
   answeredToday?: readonly AnsweredTodayCard[];
   deckId: string;
   mediaStore: AccountMediaStore | null;
@@ -360,12 +331,10 @@ export interface StudyModeProps extends Partial<Pick<GlobalSchedulerPreferences,
   onReturnToLearn: () => void;
   onEditCard: (deckId: string, cardId: string, tab?: CardEditorTab) => unknown;
   onEditDeck: (deckId: string) => unknown;
-  /** Own flag names of the account (`uiPreferences.flagNames`). */
   flagNames: readonly string[];
   onSetCardStudyState: (deckId: string, cardId: string, patch: CardStudyStatePatch) => { deck: Deck; note: Note } | null;
   onSetDeckReviewOrder: (deckId: string, order: import("./coreTypes.ts").NewReviewOrder) => Deck | null;
   onReview: (result: ReviewAnswerResult) => unknown;
-  /** Takes back a review of this session; `previous` is the card as it was answered. */
   onUndoReview: (result: ReviewAnswerResult, previous: Card) => Card | null;
   onAskCardHelp: AskCardHelp;
   sessionPlan?: { progress: DailyReviewProgressSummary; initialCardCount: number };

@@ -8,16 +8,11 @@ import { createHitListModel, createPagedCardTableModel } from "./cardListModel.t
 import { useVirtualRows } from "./virtualRows.ts";
 
 const CARD_SEARCH_DEBOUNCE_MS = 250;
-/** List key of the flat hit list of a search (KV3); its pages span every deck in scope. */
+/** List key of the flat hit list of a search; its pages span every deck in scope. */
 export const HIT_LIST_KEY = "__hits__";
 /** Heights until a row is measured (desktop): card row (the deck path stands beside the text) and notice row. */
 const ROW_ESTIMATE = { card: 28.72, notice: 29 } as const;
 
-/**
- * The search of the card management and its flat hit list (KV3): the typed query with its debounced, applied form and
- * the search timing, the sort, the list model and its virtual rows, and the page requests for the rows near the visible area
- * and for the open card.
- */
 export function useCardSearch({ decks, libraryDecks, cardPages, deckSummaries, noteTypes, now, dayStartHour, learnAheadMinutes, timeZone, onRequestCardPage, paused, selectedCardId, pendingHit, linkedQuery = "" }: Pick<LibraryOptions, "dayStartHour" | "learnAheadMinutes" | "timeZone" | "deckSummaries"> & {
   decks: Deck[];
   /** Decks in scope: every deck, or the tree of the open deck content. */
@@ -29,7 +24,6 @@ export function useCardSearch({ decks, libraryDecks, cardPages, deckSummaries, n
   /** True while another content tab hides the list, so it asks for nothing. */
   paused: boolean;
   selectedCardId: string | null;
-  /** Prev/next to a row whose page is not loaded yet. */
   pendingHit: { listKey: string; index: number } | null;
   /** A search opened from a link; each new one replaces the typed search right away. */
   linkedQuery?: string;
@@ -67,7 +61,6 @@ export function useCardSearch({ decks, libraryDecks, cardPages, deckSummaries, n
       now, dayStartHour, learnAheadMinutes, timeZone, deckSummaries,
     });
   }, [cardPages, cardSort, dayStartHour, deckSummaries, libraryDecks, deferredQuery, learnAheadMinutes, now, onRequestCardPage, timeZone, usesCardPages]);
-  // One flat list over all decks in scope, with or without a search (KV3b); each row names its deck.
   const hitScope = React.useMemo(() => libraryDecks.map((deck) => deck.id), [libraryDecks]);
   const hitList = React.useMemo(() => "hits" in tableModel
     ? tableModel.hits
@@ -89,7 +82,6 @@ export function useCardSearch({ decks, libraryDecks, cardPages, deckSummaries, n
   }, [hitList.totalCardCount, limitedHits]);
   const rowOf = (item: Extract<CardListItem, { kind: "card" }> | undefined) => item ? hitList.rowsByIndex.get(item.index) : undefined;
   const cardItems = React.useMemo(() => items.filter((item): item is Extract<CardListItem, { kind: "card" }> => item.kind === "card"), [items]);
-  // Each list's rows are consecutive, so a row's position follows from where its list starts.
   const listStarts = React.useMemo(() => {
     const starts = new Map<string, { card: number; item: number }>();
     let card = 0;

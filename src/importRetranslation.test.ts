@@ -27,7 +27,6 @@ function ankiCard(id: string, ord: number) {
   return { id, nid: "100", did: "10", ord, type: 0, queue: 0, due: 1, ivl: 0, factor: 0, reps: 0, lapses: 0, odid: 0, odue: 0, flags: 0, data: "" };
 }
 
-/** Translates one Anki note and returns the imported content, its cards and the stored sources. */
 async function importNote(notetype: ReturnType<typeof model>, fields: string[], ords: number[], tags = "") {
   const pkg: AnkiPackage = {
     file: { name: "test.apkg", size: 1 },

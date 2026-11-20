@@ -4,7 +4,6 @@ import { escapeCardHtmlText, hasCardRichTextContent } from "../richText.ts";
 import { normalizeTags } from "./tags.ts";
 import { parseNoteContent } from "./noteContent.ts";
 
-/** Editable parts of a content: field HTML, choice options and tags; structure and prompts stay as they are. */
 export interface NoteEditorValue {
   fields: Record<string, string>;
   options: Array<{ id: string; text: string; correct: boolean }> | null;
@@ -32,7 +31,7 @@ export function noteEditorValue(note: Pick<Note, "content">): NoteEditorValue {
   };
 }
 
-/** Applies editor values to the content; option HTML is only replaced when its text changed. */
+/** Option HTML is only replaced when its text changed. */
 export function applyNoteEditorValue(content: NoteContent, value: NoteEditorValue): NoteContent {
   const interaction = content.interaction.kind === "choice" && value.options
     ? {
@@ -56,12 +55,8 @@ export function applyNoteEditorValue(content: NoteContent, value: NoteEditorValu
   };
 }
 
-// --- Building blocks (K6.1) ----------------------------------------------------------------
-
-/** Field roles the editor can add; a question field only where a prompt asks it. */
 export type AddableFieldRole = Extract<NoteFieldRole, "prompt" | "hint" | "extra" | "source">;
 
-/** Forward and optional reverse prompt of a plain question/answer content; null for any other structure. */
 function plainRevealPrompts(content: NoteContent): { forward: RevealPrompt; reverse: RevealPrompt | null } | null {
   if (content.interaction.kind !== "reveal") return null;
   const { prompts } = content.interaction;
@@ -74,7 +69,6 @@ function reversePrompt(forward: RevealPrompt): RevealPrompt {
   return { key: "reverse", name: "Rückwärts", instruction: "", questionFieldIds: forward.answerFieldIds, answerFieldIds: forward.questionFieldIds, requires: null, typeInFieldId: null };
 }
 
-/** Switchable building blocks of a content; null where its structure does not offer them. */
 export function noteBlocks(content: NoteContent): { reverse: boolean | null; typeIn: boolean | null; fieldRoles: AddableFieldRole[] } {
   const plain = plainRevealPrompts(content);
   const asksPromptFields = Boolean(plain) || content.interaction.kind === "cloze" || content.interaction.kind === "choice";
@@ -85,14 +79,12 @@ export function noteBlocks(content: NoteContent): { reverse: boolean | null; typ
   };
 }
 
-/** Adds or removes the reverse direction; the change planner turns it into a new or removed card. */
 export function setNoteReverse(content: NoteContent, enabled: boolean): NoteContent {
   const plain = plainRevealPrompts(content);
   if (!plain || (plain.reverse !== null) === enabled) return content;
   return { ...content, interaction: { kind: "reveal", prompts: enabled ? [plain.forward, reversePrompt(plain.forward)] : [plain.forward] } };
 }
 
-/** The forward card asks to type its first answer field. */
 export function setNoteTypeIn(content: NoteContent, enabled: boolean): NoteContent {
   const plain = plainRevealPrompts(content);
   if (!plain) return content;
@@ -103,7 +95,6 @@ export function setNoteTypeIn(content: NoteContent, enabled: boolean): NoteConte
 
 const NEW_FIELD_NAMES: Record<AddableFieldRole, string> = { prompt: "Zusatzfrage", hint: "Hinweis", extra: "Zusatz", source: "Quelle" };
 
-/** Adds an empty field; a question field joins the forward question and the reverse answer. */
 export function addNoteField(content: NoteContent, role: AddableFieldRole): { content: NoteContent; fieldId: string } {
   if (!noteBlocks(content).fieldRoles.includes(role)) throw new Error("Dieser Inhalt kann kein solches Feld aufnehmen.");
   const ids = new Set(content.fields.map((field) => field.id));
@@ -122,7 +113,6 @@ export function addNoteField(content: NoteContent, role: AddableFieldRole): { co
   return { content: { ...content, fields: [...content.fields, field], interaction }, fieldId: field.id };
 }
 
-/** A field may go when no prompt loses its last question or answer and a cloze or choice keeps a question. */
 export function canRemoveNoteField(content: NoteContent, fieldId: string): boolean {
   const field = content.fields.find((candidate) => candidate.id === fieldId);
   if (!field) return false;
@@ -154,12 +144,10 @@ export function removeNoteField(content: NoteContent, fieldId: string): NoteCont
   return { ...content, fields: content.fields.filter((field) => field.id !== fieldId), interaction };
 }
 
-/** Fields beyond the fixed front and back whose role and position the editor may change. */
 export function isMovableNoteField(field: NoteField): boolean {
   return field.id !== "front" && field.id !== "back" && (["prompt", "hint", "extra", "source"] as NoteFieldRole[]).includes(field.role);
 }
 
-/** Changes an added field's role; a question field joins or leaves the forward question and the reverse answer. */
 export function setNoteFieldRole(content: NoteContent, fieldId: string, role: AddableFieldRole): NoteContent {
   const field = content.fields.find((candidate) => candidate.id === fieldId);
   if (!field || field.role === role) return content;
@@ -175,7 +163,6 @@ export function setNoteFieldRole(content: NoteContent, fieldId: string, role: Ad
   return { ...content, fields, interaction: { kind: "reveal", prompts: plain.reverse ? [forward, { ...plain.reverse, answerFieldIds: questionFieldIds }] : [forward] } };
 }
 
-/** Swaps an added field with its added neighbour; question and answer lists follow the new field order. */
 export function moveNoteField(content: NoteContent, fieldId: string, direction: -1 | 1): NoteContent {
   const movable = content.fields.filter(isMovableNoteField);
   const index = movable.findIndex((field) => field.id === fieldId);
@@ -194,10 +181,7 @@ export function renameNoteField(content: NoteContent, fieldId: string, name: str
   return { ...content, fields: content.fields.map((field) => field.id === fieldId ? { ...field, name } : field) };
 }
 
-/**
- * Validates edited content. Manual question/answer notes keep the editor's required front and back; all
- * notes must still produce a card. Errors are keyed by field id, `options` or `form`.
- */
+/** Errors are keyed by field id, `options` or `form`. */
 export function validateNoteEditorValue(note: Pick<Note, "content" | "source">, value: NoteEditorValue): NoteEditorValidation {
   const errors: NoteEditorErrors = {};
   const candidate = applyNoteEditorValue(note.content, value);

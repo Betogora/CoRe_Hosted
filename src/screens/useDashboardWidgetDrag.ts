@@ -37,7 +37,6 @@ function findScrollParent(element: HTMLElement) {
   return null;
 }
 
-/** The gesture stays transient; only releasing over this board commits the order. */
 export function useDashboardWidgetDrag(onDrop: (from: DashboardWidgetId, to: DashboardWidgetId | null, adding: boolean) => void) {
   const grid = React.useRef<HTMLDivElement>(null);
   const ghost = React.useRef<HTMLDivElement>(null);

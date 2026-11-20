@@ -15,7 +15,6 @@ const members = v.pipe(v.array(id), v.minLength(1), v.maxLength(2000));
 const bracketSchema = v.strictObject({ id, nodeIds: members, nodeId: id, side: v.picklist(["left", "right"]) });
 const boundarySchema = v.strictObject({ id, nodeIds: members, label: v.pipe(v.string(), v.maxLength(120)), shape: v.picklist(["rectangle", "rounded", "ellipse"]), ...appearance });
 const sourceSchema = v.strictObject({ summaryId: id, title: v.string(), text: v.pipe(v.string(), v.maxLength(100_000)), updatedAt: v.string(), signature: v.optional(v.string()) });
-/** Cards reference images by the SHA-1 of their stored bytes; the bytes live in the `images` store. */
 const imageSchema = v.strictObject({ id: v.pipe(v.string(), v.regex(/^[a-f0-9]{40}$/)), name: v.pipe(v.string(), v.minLength(1), v.maxLength(240)) });
 const nodeSchema = v.strictObject({
   id, kind: v.picklist(["keyword", "text", "freeText"]), label: v.pipe(v.string(), v.maxLength(120)),
@@ -53,12 +52,10 @@ export const mindMapColors: ReadonlyArray<{ value: MindMapColor; label: string }
 export const MIND_MAP_LIMITS = { nodes: 2_000, edges: 10_000, strokes: 2_000, summaries: 500, boundaries: 500, images: 10 } as const;
 const LIMIT_LABELS: Record<keyof typeof MIND_MAP_LIMITS, string> = { nodes: "Karten und freie Texte", edges: "Querverbindungen", strokes: "Linien", summaries: "Zusammenfassungsklammern", boundaries: "Umrandungen", images: "Bilder" };
 
-/** Distinct images of a map; a copied card shares its images with the original. */
 export function mindMapImageIds(map: Pick<LearningMindMap, "nodes">): Set<string> {
   return new Set(map.nodes.flatMap((node) => node.images?.map((image) => image.id) ?? []));
 }
 
-/** Names the first exceeded size limit with the current count, or null when the map fits. */
 export function mindMapLimitError(value: unknown): string | null {
   if (typeof value !== "object" || value === null) return null;
   const nodes = (value as { nodes?: unknown }).nodes;
@@ -109,7 +106,6 @@ export function toggleMindMapEdge(map: LearningMindMap, from: string, to: string
   return { ...map, edges: map.edges.some(matches) ? map.edges.filter((edge) => !matches(edge)) : [...map.edges, { from, to }] };
 }
 
-/** Loose cards become ordinary branches; already attached cards keep cross-links. */
 export function connectMindMapElements(map: LearningMindMap, from: string, to: string): LearningMindMap {
   const a = map.nodes.find((node) => node.id === from), b = map.nodes.find((node) => node.id === to);
   if (!a || !b || a.id === b.id || a.kind === "freeText" || b.kind === "freeText") return toggleMindMapEdge(map, from, to);
@@ -145,7 +141,6 @@ export function mindMapNodeSource(map: LearningMindMap, node: MindMapNode) {
   return map.sources && Object.hasOwn(map.sources, node.sourceId) ? map.sources[node.sourceId] : undefined;
 }
 
-/** Shrinks, hashes and stores picked images before a card references them, and uploads them when online; unreferenced ones are released later. */
 export async function storeMindMapImages(account: LearningContentAccount, files: File[]): Promise<MindMapImage[]> {
   if (files.length > 4) throw new Error("Pro Kasten sind bis zu vier Bilder möglich.");
   const images = await Promise.all(files.map(async (file) => {
@@ -161,7 +156,6 @@ export async function storeMindMapImages(account: LearningContentAccount, files:
   return images.map((image) => ({ id: image.id, name: image.name }));
 }
 
-/** Image bytes by id from this browser, otherwise from the cloud; ids without bytes are missing from the result. */
 export async function loadMindMapImages(account: LearningContentAccount, ids: string[]): Promise<Map<string, Blob>> {
   const { userId, cloud } = account, result = new Map((await readImages(userId, ids)).map((image) => [image.id, image.blob]));
   const missing = ids.filter((key) => !result.has(key));
@@ -174,7 +168,6 @@ export async function loadMindMapImages(account: LearningContentAccount, ids: st
   return result;
 }
 
-/** Place another graph beside existing content; nodes reference one snapshot per source. */
 /** `at` places the incoming graph with its top-left corner there instead of right of all content. */
 export function appendMindMap(map: LearningMindMap, addition: LearningMindMap, at?: MindMapPoint): LearningMindMap {
   if (map.deckId !== addition.deckId) throw new Error("Die Mindmap gehört zu einem anderen Stapel.");
@@ -350,7 +343,6 @@ export function resizeMindMapSummary(map: LearningMindMap, id: string, end: "sta
   return { ...map, summaries: map.summaries.map((item) => item.id === id ? { ...item, nodeIds } : item) };
 }
 
-/** Keyboard alternative to the bracket handles: grows (1) or shrinks (−1) the range by one sibling at its lower end. */
 export function stepMindMapSummary(map: LearningMindMap, id: string, step: 1 | -1): LearningMindMap {
   const summary = map.summaries.find((item) => item.id === id), first = summary && map.nodes.find((node) => node.id === summary.nodeIds[0]);
   if (!summary || !first) return map;
@@ -382,7 +374,6 @@ export function removeMindMapElement(map: LearningMindMap, kind: MindMapElementK
 const CARD_TITLE_CHARS = 60;
 type SummaryTreeItem = { label: string; sourceText?: string; paragraphs: string[]; children: SummaryTreeItem[] };
 
-/** Keyboard navigation: ←/→ move towards the parent or the nearest child on that side, ↑/↓ step through the siblings by position. */
 export function mindMapNeighbor(map: LearningMindMap, nodeId: string, key: "ArrowLeft" | "ArrowRight" | "ArrowUp" | "ArrowDown"): string | undefined {
   const node = map.nodes.find((item) => item.id === nodeId);
   if (!node) return undefined;
@@ -398,7 +389,6 @@ export function mindMapNeighbor(map: LearningMindMap, nodeId: string, key: "Arro
 
 export interface MindMapClipboard { nodes: MindMapNode[]; edges: LearningMindMap["edges"]; boundaries: MindMapBoundary[]; summaries: MindMapSummary[] }
 
-/** Copies the cards with their subtrees plus links, frames and brackets that lie completely inside. */
 export function copyMindMapNodes(map: LearningMindMap, nodeIds: string[]): MindMapClipboard {
   const ids = new Set(descendantIds(map, nodeIds));
   return {
@@ -409,13 +399,11 @@ export function copyMindMapNodes(map: LearningMindMap, nodeIds: string[]): MindM
   };
 }
 
-/** An empty surface with the same title and settings; generated-source snapshots go with their cards. */
 export function clearMindMap(map: LearningMindMap): LearningMindMap {
   const { source: _source, sources: _sources, ...rest } = map;
   return { ...rest, nodes: [], edges: [], strokes: [], summaries: [], boundaries: [] };
 }
 
-/** Inserts a copy with fresh ids, offset by `offset`; copied top cards keep their parent if it still exists. Returns the top cards. */
 export function pasteMindMapNodes(map: LearningMindMap, clipboard: MindMapClipboard, offset: MindMapPoint = { x: 40, y: 40 }): { map: LearningMindMap; ids: string[] } {
   const ids = new Map(clipboard.nodes.map((node) => [node.id, `node_${crypto.randomUUID()}`]));
   const existing = new Set(map.nodes.map((node) => node.id));
@@ -434,11 +422,6 @@ export function pasteMindMapNodes(map: LearningMindMap, clipboard: MindMapClipbo
   return { map: next, ids: clipboard.nodes.filter((node) => !node.parentId || !ids.has(node.parentId)).map((node) => ids.get(node.id)!) };
 }
 
-/**
- * No provider call. Headings become branches, bold lead words and short blocks become cards, longer paragraphs
- * stay verbatim as text of their section; the notes section and evidence lines create no cards.
- * Cards are placed like manually added ones; relations of the generation become cross links.
- */
 export function mindMapFromSummary(summary: LearningSummary): LearningMindMap {
   const text = summaryPlainText(summary.html);
   if (!text) throw new Error("Diese Zusammenfassung enthält noch keinen Text.");
@@ -508,7 +491,6 @@ function generatedTreeIds(map: LearningMindMap, sourceId: string): Set<string> {
   return ids;
 }
 
-/** Fingerprint of a generated tree including manual children, positions and attached links; any edit changes it. */
 function generatedTreeSignature(map: LearningMindMap, sourceId: string): string {
   const ids = generatedTreeIds(map, sourceId);
   const value = JSON.stringify([
@@ -521,14 +503,12 @@ function generatedTreeSignature(map: LearningMindMap, sourceId: string): string 
   return (hash >>> 0).toString(36);
 }
 
-/** The latest tree generated from this summary, its size and whether it changed since generation. */
 export function mindMapSummaryTree(map: LearningMindMap, summaryId: string): { sourceId: string; cards: number; edited: boolean } | null {
   const sourceId = Object.entries(map.sources ?? {}).filter(([key, source]) => source.summaryId === summaryId && map.nodes.some((node) => node.sourceId === key)).at(-1)?.[0];
   if (!sourceId) return null;
   return { sourceId, cards: generatedTreeIds(map, sourceId).size, edited: map.sources![sourceId].signature !== generatedTreeSignature(map, sourceId) };
 }
 
-/** Adds the summary as a new tree, beside existing content or with its root at `rootAt`, and remembers its signature. */
 export function addMindMapFromSummary(map: LearningMindMap, summary: LearningSummary, rootAt?: MindMapPoint): LearningMindMap {
   const known = new Set(Object.keys(map.sources ?? {})), addition = mindMapFromSummary(summary), root = addition.nodes[0];
   const at = rootAt && { x: rootAt.x - root.x + Math.min(...addition.nodes.map((node) => node.x)), y: rootAt.y - root.y + Math.min(...addition.nodes.map((node) => node.y)) };
@@ -537,7 +517,6 @@ export function addMindMapFromSummary(map: LearningMindMap, summary: LearningSum
   return { ...next, sources: { ...next.sources, [sourceId]: { ...next.sources![sourceId], signature: generatedTreeSignature(next, sourceId) } } };
 }
 
-/** Replaces one generated tree, including manual children and links attached to it, at the same place. */
 export function replaceMindMapFromSummary(map: LearningMindMap, sourceId: string, summary: LearningSummary): LearningMindMap {
   const ids = generatedTreeIds(map, sourceId), root = map.nodes.find((node) => node.sourceId === sourceId && !(node.parentId && ids.has(node.parentId)));
   const { [sourceId]: _replaced, ...sources } = map.sources ?? {};
@@ -552,7 +531,6 @@ export function replaceMindMapFromSummary(map: LearningMindMap, sourceId: string
 
 /** Local copy of a deck's map: `revision` is the cloud revision it builds on, `pending` marks a change not yet in the cloud. */
 interface StoredMindMap { deckId: string; map: LearningMindMap; revision: number | null; pending: boolean }
-/** Local image bytes; `uploaded` once the cloud holds them. */
 interface StoredImage { id: string; blob: Blob; createdAt: number; uploaded: boolean }
 type MindMapStores = { maps: IDBObjectStore; images: IDBObjectStore };
 const TABLE = "learning_mind_maps";
@@ -565,7 +543,7 @@ async function withMindMapStores<T>(userId: string, mode: IDBTransactionMode, ru
     request.onupgradeneeded = () => {
       request.result.createObjectStore("maps", { keyPath: "deckId" });
       request.result.createObjectStore("images", { keyPath: "id" });
-      indexedDB.deleteDatabase(`core.learningMindMaps.v1.${encodeURIComponent(userId)}`); // Nur lokal gespeicherte Altstände entfallen (ADR-043, I2).
+      indexedDB.deleteDatabase(`core.learningMindMaps.v1.${encodeURIComponent(userId)}`); // Nur lokal gespeicherte Altstände entfallen.
     };
     request.onsuccess = () => resolve(request.result);
     request.onerror = () => reject(new Error("Der Mindmap-Speicher konnte nicht geöffnet werden."));
@@ -603,7 +581,7 @@ async function uploadImages(account: LearningContentAccount & { cloud: SupabaseC
   if (pending.length) await writeMindMapStores(account.userId, { images: pending.map((image) => ({ ...image, uploaded: true })) }, "Die Bilder konnten nicht gespeichert werden.");
 }
 
-/** Uploads the map after its images. A save from another device in between is replaced: the latest save wins (ADR-043, I3). */
+/** Uploads the map after its images. A save from another device in between is replaced. */
 async function pushMindMap(account: LearningContentAccount & { cloud: SupabaseClient }, record: StoredMindMap): Promise<{ overwritten: boolean }> {
   const { userId, cloud } = account;
   await uploadImages(account, await readImages(userId, [...mindMapImageIds(record.map)]));
@@ -633,7 +611,7 @@ async function releaseUnusedMindMapImages(account: LearningContentAccount, now: 
   await removeMindMapImages(cloud, userId, uploaded.filter((key) => !online.has(key)));
 }
 
-/** The deck's single surface: the cloud state unless this browser holds an unsent change, which is uploaded here. Offline the last local copy is shown. */
+/** Uploads an unsent local change of this browser as a side effect; offline it returns the last local copy. */
 export async function loadInfinityMindMap(account: LearningContentAccount, deckId: string, now = Date.now()): Promise<{ map: LearningMindMap; unsynced: boolean; overwritten: boolean }> {
   const { userId, cloud } = account;
   await releaseUnusedMindMapImages(account, now).catch(() => undefined);
@@ -649,7 +627,6 @@ export async function loadInfinityMindMap(account: LearningContentAccount, deckI
   return { map: record ? readLearningMindMap(record.map) : { ...createLearningMindMap(deckId, "Infinity Map"), infinity: true }, unsynced: Boolean(record?.pending), overwritten: Boolean(pushed?.overwritten) };
 }
 
-/** Saves locally first and then to the cloud; offline the map stays marked as not yet synchronised. `overwritten` reports a replaced save from another device. */
 export async function saveLearningMindMap(account: LearningContentAccount, value: unknown): Promise<{ map: LearningMindMap; unsynced: boolean; overwritten: boolean }> {
   const map = readLearningMindMap(value), { userId, cloud } = account, existing = await readMap(userId, map.deckId);
   const record: StoredMindMap = { deckId: map.deckId, map, revision: existing?.revision ?? null, pending: Boolean(cloud) };

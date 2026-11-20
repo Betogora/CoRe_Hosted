@@ -2,7 +2,6 @@ import { useAppServices } from "../useAppServices.ts";
 import { useWorkspaceValue } from "../useWorkspaceStore.ts";
 import { ExamPlanningScreen } from "./ExamPlanningScreen.tsx";
 
-/** `Prüfungen` with the shared exam planning data, its saves and the start of today's unit. */
 export function ExamPlanningScreenWiring() {
   const { navigation, clock, studyStart, studyPreparation, deckCommands, hydration } = useAppServices();
   const state = useWorkspaceValue((snapshot) => snapshot.state);

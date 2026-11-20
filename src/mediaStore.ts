@@ -3,7 +3,7 @@ import { sha1DigestHex } from "./sha1.ts";
 import { classifyMediaError, mapWithConcurrency, releaseUnreferencedMedia, signMediaUrls, uploadMediaFiles, type CloudMediaControl, type MediaFailureKind } from "./cloudMediaStore.ts";
 import type { OfflineMediaManifestEntry } from "./workspaceReplica.ts";
 
-// K4.7: one cached file per account and SHA-1; contents map their media names to SHA-1 (`Note.media`).
+// One cached file per account and SHA-1.
 const DB_NAME = "core-media-store.v3";
 const DB_VERSION = 1;
 const ASSET_STORE = "assets";
@@ -127,7 +127,6 @@ export function createAccountMediaStore({ client, supabaseUrl, userId, indexedDB
     return v.safeParse(assetRecordSchema, candidate).success ? candidate as AssetRecord : null;
   }
 
-  /** Caches files locally and, unless they only serve a preview, queues their upload persistently. */
   async function cacheMedia(files: unknown[], { queueUpload = true, pinDeckId = null }: { queueUpload?: boolean; pinDeckId?: string | null } = {}) {
     const valid = files.map(normalizeFile).filter((file): file is NonNullable<ReturnType<typeof normalizeFile>> => Boolean(file));
     const errors = valid.length === files.length ? [] : ["Medien enthielten ungültige Metadaten oder Dateidaten."];
@@ -182,7 +181,6 @@ export function createAccountMediaStore({ client, supabaseUrl, userId, indexedDB
     db.close();
   }
 
-  /** Uploads queued files (all or the given SHA-1s); the queue survives reloads until the cloud confirms a file. */
   function syncQueuedMedia({ sha1s, waitUntilReady, onProgress }: { sha1s?: readonly string[]; waitUntilReady?: Promise<unknown>; onProgress?(progress: MediaSyncProgress): void } = {}): MediaSyncTask {
     let status: MediaSyncStatus = "local-pending";
     let progress: MediaSyncProgress = { completed: 0, total: 0, uploaded: 0, reused: 0, currentName: "", processedBytes: 0, totalBytes: 0 };
@@ -247,7 +245,6 @@ export function createAccountMediaStore({ client, supabaseUrl, userId, indexedDB
     };
   }
 
-  /** Blob URLs for the media names of a content: local file first, otherwise downloaded from a signed URL. */
   async function resolveMedia(media: Record<string, string>): Promise<ResolvedMedia> {
     const objectUrls: string[] = [];
     const urls: Record<string, string> = {};
@@ -291,7 +288,6 @@ export function createAccountMediaStore({ client, supabaseUrl, userId, indexedDB
     return { urls, missing, expiresAt, revoke() { objectUrls.forEach((url) => URL.revokeObjectURL(url)); } };
   }
 
-  /** Offline download: verifies and pins each file of a deck's manifest. */
   async function cacheCloudManifestMedia(
     deckId: string,
     manifest: OfflineMediaManifestEntry[],
@@ -332,7 +328,6 @@ export function createAccountMediaStore({ client, supabaseUrl, userId, indexedDB
     return { completed, total: unique.length, downloadedBytes };
   }
 
-  /** Marks local files as just used, so the quota eviction removes the longest unused ones first. */
   async function touchAssets(sha1s: string[]) {
     if (!sha1s.length) return;
     const accessedAt = new Date().toISOString();
@@ -353,8 +348,8 @@ export function createAccountMediaStore({ client, supabaseUrl, userId, indexedDB
   }
 
   /**
-   * Frees at least `targetBytes` by deleting unpinned files, longest unused first.
-   * Files of offline decks (pinned) and files whose upload is still pending are never deleted; the cloud copy reloads on demand.
+   * Frees at least `targetBytes`, longest unused first. Files of offline decks (pinned) and files whose upload is still
+   * pending are never deleted; the cloud copy reloads on demand.
    */
   async function evictUnpinnedMedia(targetBytes: number) {
     const pending = new Set((await queuedRecords()).map((record) => record.sha1));
@@ -380,7 +375,7 @@ export function createAccountMediaStore({ client, supabaseUrl, userId, indexedDB
     return { evictedCount: evicted.length, freedBytes };
   }
 
-  /** Unpins a deck's offline files; a file stays while another deck pins it or its upload is pending. */
+  /** A file stays while another deck pins it or its upload is pending. */
   async function removeCachedDeckMedia(deckId: string) {
     const pending = new Set((await queuedRecords()).map((record) => record.sha1));
     let removed = 0;

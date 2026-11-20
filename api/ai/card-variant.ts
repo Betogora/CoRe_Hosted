@@ -90,7 +90,6 @@ function systemPrompt(kind: AiCardVariantRequest["kind"]) {
   return kind === "choice" ? CHOICE_SYSTEM_PROMPT : kind === "cloze" ? CLOZE_SYSTEM_PROMPT : kind === "type-in" ? `${SYSTEM_PROMPT} ${TYPE_IN_RULE}` : SYSTEM_PROMPT;
 }
 
-/** The variant a model returns: front and back as text, a choice variant its options by id instead of a back. */
 function toolParameters(kind: AiCardVariantRequest["kind"]) {
   const text = { type: "string", maxLength: MAX_AI_CARD_VARIANT_FIELD_CHARS };
   const options = { type: "array", items: { type: "object", properties: { id: { type: "string" }, text: { type: "string" } }, required: ["id", "text"], additionalProperties: false } };
@@ -132,7 +131,6 @@ export function buildOpenRouterPayload(input: AiCardVariantRequest) {
   };
 }
 
-/** The options of a choice variant as `{ id, text }` with normalized text; anything else is an invalid tool call. */
 function readOptions(value: unknown): { id: string; text: string }[] {
   const valid = Array.isArray(value) && value.every((option) => option !== null && typeof option === "object"
     && Object.keys(option).sort().join(",") === "id,text" && typeof option.id === "string" && typeof option.text === "string");
@@ -150,12 +148,10 @@ export function extractGeneratedVariant(payload: unknown, input: AiCardVariantRe
   if (!rawArguments.rephrasable) throw new HttpError(422, "not_rephrasable", "Diese Karte lässt sich nicht sinnvoll umformulieren.");
   const front = normalizeAiCardText(rawArguments.front);
   const options = input.choice ? readOptions(rawArguments.options) : undefined;
-  // A choice variant keeps every option's correctness and the source's option order.
   const choice = input.choice && options ? {
     mode: input.choice.mode,
     options: input.choice.options.map((option) => ({ ...option, text: options.find((candidate) => candidate.id === option.id)?.text ?? "" })),
   } : undefined;
-  // A cloze variant asks the same solutions, so its answer stays the source's.
   const back = input.kind === "cloze" ? input.source.back : choice ? choiceAnswerText(choice.options) : normalizeAiCardText(rawArguments.back);
   const clozeProblem = input.kind === "cloze" ? checkClozeVariant(input.source.front, front) : null;
   if (clozeProblem) throw new HttpError(502, clozeProblem, CLOZE_PROBLEMS[clozeProblem]);

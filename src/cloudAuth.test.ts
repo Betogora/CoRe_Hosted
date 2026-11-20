@@ -188,7 +188,7 @@ test("cloud auth distinguishes a missing session from an expired session", async
   };
 
   assert.equal(await getCloudUser(missingClient), null);
-// @ts-expect-error -- Die Fixture pr?ft bewusst eine unvollst?ndige, ung?ltige oder konfliktbehaftete Laufzeitform.
+// @ts-expect-error
   await assert.rejects(() => getCloudUser(expiredClient), (error) => error?.code === "session_expired");
 });
 
@@ -240,7 +240,7 @@ test("cloud auth passes the app URL into confirmation and reset email redirects"
   assert.equal(pending.account.status, "pending-email-confirmation");
   assert.equal(signUpCalls[0].options.emailRedirectTo, redirectTo);
   assert.equal(signUpCalls[0].options.data.display_name, "Noemi");
-// @ts-expect-error -- Die Fixture pr?ft bewusst eine unvollst?ndige, ung?ltige oder konfliktbehaftete Laufzeitform.
+// @ts-expect-error
   assert.equal(resetCalls[0].email, "noemi@example.test");
   assert.equal(resetCalls[0].options.redirectTo, redirectTo);
 });

@@ -20,7 +20,6 @@ interface CardPageRequest {
   sort?: CardTableSort;
   selectedCardId?: string | null;
   searchContext?: CardSearchContext;
-  /** Aborts a stale search request before its cloud page is applied. */
   signal?: AbortSignal;
 }
 
@@ -118,7 +117,6 @@ export function createWorkspaceHydrationService({
     request.searchContext ?? null,
   ]);
 
-  /** With `allowMissing`, cards the cloud no longer has load as null instead of failing the batch. */
   const hydrateCards = async (cardIds: string[], residency: "cached" | "downloaded" = "cached", { allowMissing = false } = {}) => {
     const ids = [...new Set(cardIds.filter(Boolean))];
     if (!ids.length) return [];
@@ -252,7 +250,6 @@ export function createWorkspaceHydrationService({
     while (preparedGraphs.size > PREPARED_GRAPH_LIMIT) preparedGraphs.delete(preparedGraphs.keys().next().value!);
   };
   const forgetPreparedGraphs = () => preparedGraphs.clear();
-  /** The selected card with all its siblings when it belongs to the deck (or one of the decks), else null. */
   const querySelectedCard = async (scope: string | readonly string[], cardId: string): Promise<(NoteGraph & { cardId: string }) | null> => {
     const prepared = preparedGraphs.get(cardId);
     preparedGraphs.delete(cardId);
@@ -279,7 +276,6 @@ export function createWorkspaceHydrationService({
     }
     return { cardIds, noteIds, createdCardIds };
   };
-  /** Cards created here that match the request locally and are not among the cloud's ones. */
   const pendingCreatedIds = async (scope: readonly string[], request: Pick<CardPageRequest, "query" | "searchContext">, created: ReadonlySet<string>, known: ReadonlySet<string>) =>
     (await repository.listCardIds(scope, { query: request.query, searchContext: request.searchContext })).filter((id) => created.has(id) && !known.has(id));
 
@@ -299,7 +295,6 @@ export function createWorkspaceHydrationService({
       const row = local.get(entry.id);
       return row ? [{ ...row, syncChangeId: entry.syncChangeId }] : [];
     });
-    // Cards deleted here leave the count as well as the page.
     const totalCount = page.totalCount - (items.length - shown.length);
     const created = createdCardIds.size ? await pendingCreatedIds(request.deckIds ?? [request.deckId], request, createdCardIds, new Set(items.map((entry) => entry.id))) : [];
     if (!created.length) return { ...page, items: shown, totalCount };
@@ -318,7 +313,7 @@ export function createWorkspaceHydrationService({
 
   const queryCardPage = async (request: CardPageRequest) => {
     const status = repository.getReplicaStatus();
-    // A complete local catalog with search texts serves every page itself (ADR-048); otherwise searches ask the cloud.
+    // A complete local catalog with search texts serves every page itself; otherwise searches ask the cloud.
     const searchesLocally = status.catalogCompleteness === "complete" && status.searchTextsReady === true;
     const query = request.query?.trim() ?? "";
     if (status.catalogCompleteness === "complete" && (searchesLocally || !query)) {
@@ -362,12 +357,7 @@ export function createWorkspaceHydrationService({
     return body;
   };
 
-  /** Several card bodies in one hydration, in the given order; a missing body stays null. */
   const openCards = (cardIds: string[]) => hydrateCards(cardIds);
-  /**
-   * Ids of every hit of a search over several decks (`Alle N Treffer auswählen`, KV4): from the local index when it can
-   * answer the search, otherwise page by page from the cloud with the local changes still waiting for upload, as on a page.
-   */
   const listCardIds = async (request: Pick<CardPageRequest, "deckIds" | "query" | "searchContext" | "sort" | "signal"> & { deckIds: readonly string[] }) => {
     const status = repository.getReplicaStatus();
     if (status.catalogCompleteness === "complete" && (status.searchTextsReady === true || !request.query?.trim())) {
@@ -384,14 +374,13 @@ export function createWorkspaceHydrationService({
     }
     const { cardIds, createdCardIds } = pendingOutboxIds(askedWhilePending);
     if (!cardIds.size) return ids;
-    // Like a page: a card deleted here leaves the list, a card created here joins it.
     const pendingKnown = ids.filter((id) => cardIds.has(id));
     const stillLocal = pendingKnown.length ? await repository.loadCatalogEntries(pendingKnown) : new Map<string, CardCatalogEntry>();
     return [...ids.filter((id) => !cardIds.has(id) || stillLocal.has(id)), ...await pendingCreatedIds(request.deckIds, request, createdCardIds, new Set(ids))];
   };
   /**
-   * `Duplikate finden` needs every card of the account on this device, and for a field or a search their search texts
-   * too; the cloud has no such search.
+   * Needs every card of the account on this device, and for a field or a search their search texts too; the cloud has
+   * no such search.
    */
   const findDuplicates = async (request: { deckIds: readonly string[]; key: DuplicateKey; query?: string; searchContext?: CardSearchContext }) => {
     const status = repository.getReplicaStatus();
@@ -399,7 +388,6 @@ export function createWorkspaceHydrationService({
     if (status.catalogCompleteness !== "complete" || (needsSearchTexts && status.searchTextsReady !== true)) throw new Error("Duplikate lassen sich finden, sobald alle Karten auf diesem Gerät durchsuchbar sind.");
     return repository.findDuplicates(request.deckIds, request);
   };
-  /** Card ids whose bodies are on this device; offline exam units run on these only (E12). */
   const listLocalCardIds = async (cardIds: string[]) => {
     const missing = new Set(await repository.missingCardBodyIds(cardIds));
     return cardIds.filter((id) => !missing.has(id));
@@ -621,7 +609,7 @@ export function createWorkspaceHydrationService({
     return snapshot;
   };
 
-  /** Exam planning reads study states only, never response times; answers still waiting for sync replace the server's values. */
+  /** Answers still waiting for sync replace the server's values. */
   const loadExamPlanningData = async (deckIds: string[], signal?: AbortSignal) => {
     if (!isOnline()) throw new Error("Die Prüfungsplanung braucht eine Verbindung.");
     if (!deckIds.length) return { cards: [] };
@@ -644,14 +632,13 @@ export function createWorkspaceHydrationService({
     await repository.applyDueForecast(await loadAccountDueForecast(client));
   };
 
-  /** Existing imported contents for a reimport (K5.7); offline only local records can be matched. */
   const prepareReimport = async (ankiGuids: string[]): Promise<ReimportTargets> => {
     if (!isOnline() || !ankiGuids.length) return { notes: [], cards: [], noteTypeSources: [] };
     const { loadReimportTargets } = await import("./cloudRepository.ts");
     return loadReimportTargets(client, ankiGuids);
   };
 
-  /** Loads every card of the given decks page by page; `budget` sees the running note count and may throw to stop early. */
+  /** `budget` sees the running note count and may throw to stop early. */
   const prepareContentDecks = async (deckIds: string[], { signal, budget }: { signal?: AbortSignal; budget?: (noteCount: number) => void } = {}): Promise<{ decks: Deck[]; notes: Note[] }> => {
     const shell = repository.getShellState();
     const decks: Deck[] = [];

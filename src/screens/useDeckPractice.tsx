@@ -8,10 +8,7 @@ import { useAppServices } from "../useAppServices.ts";
 import { useWorkspaceStore } from "../useWorkspaceStore.ts";
 import { HitStudyFlow } from "./cardList/HitStudyFlow.tsx";
 
-/**
- * `Alle Karten frei üben` from a deck menu: every card of the deck with its subdecks, without suspended and buried ones,
- * practised without changing its study state. `practiceDeck` is missing while the card catalog is unavailable.
- */
+/** `practiceDeck` is missing while the card catalog is unavailable. */
 export function useDeckPractice() {
   const { clock, hydration, mediaStore } = useAppServices();
   const workspaceStore = useWorkspaceStore();

@@ -31,17 +31,14 @@ export interface ExamForecastOptions {
 }
 export function shiftExamDay(key: string, days: number) { const date = new Date(`${key}T12:00:00Z`); date.setUTCDate(date.getUTCDate() + days); return date.toISOString().slice(0, 10); }
 export function examDayDistance(from: string, to: string) { return Math.round((Date.parse(`${to}T12:00:00Z`) - Date.parse(`${from}T12:00:00Z`)) / 86_400_000); }
-/** More than two new cards per planned minute leaves under 30 seconds per card including its learning steps. */
 export const EXAM_NEW_CARDS_PER_MINUTE_LIMIT = 2;
 export function isExamDayOverloaded(newCards: number, minutes: number) { return newCards > Math.max(minutes, 1) * EXAM_NEW_CARDS_PER_MINUTE_LIMIT; }
-/** From the day after its date an exam counts as completed, whether or not it was closed by hand. */
 export function getExamStatus(exam: Pick<ExamPlan, "status" | "examDate">, civilToday: string): ExamPlan["status"] {
   return exam.status === "active" && exam.examDate < civilToday ? "completed" : exam.status;
 }
 export function getExamLastNewDate(exam: ExamPlan) { return shiftExamDay(exam.examDate, -exam.bufferDays); }
 /** Scopes are cached per deck list and exam object; both are immutable application state. */
 const deckScopes = new WeakMap<readonly Deck[], WeakMap<object, ReadonlySet<string>>>();
-/** Decks of an exam: the nearest selected or excluded ancestor (or the deck itself) decides, so new subdecks join their selected parent. */
 export function getExamDeckIds(decks: readonly Deck[], exam: Pick<ExamPlan, "deckIds" | "excludedDeckIds">): ReadonlySet<string> {
   const cache = deckScopes.get(decks) ?? new WeakMap<object, ReadonlySet<string>>(), cached = cache.get(exam);
   if (cached) return cached;
@@ -57,7 +54,6 @@ export function getExamDeckIds(decks: readonly Deck[], exam: Pick<ExamPlan, "dec
   cache.set(exam, result);
   return result;
 }
-/** Selecting or deselecting a deck keeps the selection minimal: one mark per subtree, exclusions only below a selected deck. */
 export function toggleExamDeckSelection(decks: readonly Deck[], exam: Pick<ExamPlan, "deckIds" | "excludedDeckIds">, deckId: string, selected: boolean): Pick<ExamPlan, "deckIds" | "excludedDeckIds"> {
   const subtree = new Set([deckId]);
   for (let grew = true; grew;) { grew = false; for (const deck of decks) if (deck.parentDeckId && subtree.has(deck.parentDeckId) && !subtree.has(deck.id)) { subtree.add(deck.id); grew = true; } }
@@ -85,7 +81,6 @@ function baseMinutes(key: string, exam: ExamPlan) {
   const weekday = (new Date(`${key}T12:00:00Z`).getUTCDay() + 6) % 7, time = exam.studyTime;
   return time.dateOverrides.find((day) => day.date === key)?.minutes ?? (time.weekdays[weekday] ? time.weeklyMinutes?.[weekday] ?? time.dailyMinutes : 0);
 }
-/** The exam's own blocks replace its time for that date; blocks without an exam are calendar notes only. */
 export function getExamStudyMinutes(key: string, exam: ExamPlan, exams: readonly ExamPlan[], capacity: StudyTimeCapacity): number {
   if ((exam.studyStartDate && key < exam.studyStartDate) || key >= exam.examDate || exams.some((entry) => entry.status === "active" && entry.examDate === key)) return 0;
   const own = (capacity.timeBlocks ?? []).filter((block) => block.date === key && block.examId === exam.id);
@@ -101,7 +96,6 @@ function methodFor(card: CardStudySnapshot, settings: DeckSettings): ExamStudyMe
   return card.study.state === "learning" || card.study.state === "relearning" ? "relearning" : "review";
 }
 
-/** Whole-horizon contact planning, including for today's start. Study states remain hypothetical. */
 export async function createExamPortfolioForecast(decks: readonly Deck[], cards: readonly CardStudySnapshot[], exams: readonly ExamPlan[], options: ExamForecastOptions): Promise<ExamPortfolioForecast> {
   const { now, preferences, timeZone, signal, capacity } = options, context = { dayStartHour: preferences.dayStartHour, timeZone };
   const pause = createMainThreadBudget(), nowMs = Date.parse(now), today = getLearningDayKey(now, context)!, civilToday = getLearningDayKey(now, { timeZone })!;
@@ -229,7 +223,6 @@ export async function createExamPortfolioForecast(decks: readonly Deck[], cards:
         }
       }
     }
-    // A reading task waits on the topic's first day and stays on today once the topic has begun, until checked or fully introduced; shared topics get it once.
     for (const id of exam.readSummaryBeforeTopics ? order : []) {
       const topic = own.filter((card) => card.deckId === id);
       if (readingTopics.has(id) || exam.completedSummaryDeckIds?.includes(id) || !topic.some((card) => isNew(card.study))) continue;

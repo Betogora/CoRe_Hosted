@@ -7,7 +7,6 @@ import type { StudyHeatmapModel } from "./studyHeatmapModel.ts";
 import type { OfflineDeckRecord } from "./workspaceReplica.ts";
 import type { WorkspaceStorageStatus } from "./workspaceStorage.ts";
 
-/** Everything the open account shows; one immutable snapshot per change. */
 export interface WorkspaceSnapshot {
   state: WorkspaceState | null;
   /** Counts every applied shell state (each local write and sync), also when its content stays the same. */
@@ -16,7 +15,6 @@ export interface WorkspaceSnapshot {
   deckSummaries: ReadonlyMap<string, DeckLibrarySummary> | undefined;
   studyHeatmap: StudyHeatmapModel | undefined;
   syncStatus: SyncStatus;
-  /** The last successful sync; it stays while later changes are pending or offline. */
   lastSyncedAt: string | null;
   syncConflictCardIds: ReadonlySet<string>;
   cardPages: Readonly<Record<string, DecksCardPage | undefined>>;
@@ -31,7 +29,6 @@ export interface WorkspaceStore {
   /** Merges the changed parts; a new shell state counts up the revision, a saved sync status sets `lastSyncedAt`. */
   set: (update: WorkspaceUpdate | ((current: WorkspaceSnapshot) => WorkspaceUpdate)) => void;
   subscribe: (listener: () => void) => () => void;
-  /** Empties the store when the account's workspace is discarded, so nothing of it shows in the next one. */
   clear: () => void;
 }
 
@@ -86,7 +83,6 @@ function isPlainObject(value: unknown): value is Record<string, unknown> {
   return prototype === Object.prototype || prototype === null;
 }
 
-/** Structural equality of plain objects, arrays, maps and sets; anything else compares by identity. */
 function isSameContent(a: unknown, b: unknown): boolean {
   if (Object.is(a, b)) return true;
   if (Array.isArray(a) && Array.isArray(b)) return a.length === b.length && a.every((item, index) => isSameContent(item, b[index]));

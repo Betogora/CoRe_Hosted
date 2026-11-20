@@ -30,7 +30,6 @@ interface AppNavigationProjection {
   cardEditorReturnContext: ReviewResumeContext | null;
   settingsSection: SettingsSection | null;
   deckSettings: DeckSettingsOverlay | null;
-  /** Search the card management opens with (`ViewRoute.cardQuery`). */
   cardQuery: string;
 }
 

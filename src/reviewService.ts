@@ -33,7 +33,6 @@ interface ReviewServiceOptions {
   now?: DateInput;
   dayStartHour?: number;
   learnAheadMinutes?: number;
-  /** Account-wide lapses that make a card a leech. */
   leechThreshold?: number;
   timeZone?: string;
   updatedAt?: string;
@@ -386,7 +385,6 @@ function createDeckPaths(scopeDecks: Deck[], rootDeckId: string | null): Map<str
   return paths;
 }
 
-/** Cards beyond a limit are neither selected nor seen; a buried card uses no limit. */
 function takeWithinDeckLimits(
   entries: QueueEntry[],
   paths: Map<string, string[]>,
@@ -493,7 +491,7 @@ function resolveResponseArgs(responseTimeMsOrOptions: number | ReviewServiceOpti
   return { responseTimeMs: responseTimeMsOrOptions ?? maybeOptions?.responseTimeMs ?? null, options: maybeOptions ?? {} };
 }
 
-/** Compact study snapshot of a review event; statistics read `card.state` and `card.intervalDays`. */
+/** Statistics read `card.state` and `card.intervalDays`. */
 function studySnapshot(state: ReviewState) {
   return {
     card: {
@@ -564,7 +562,6 @@ export function answerVariant(
     easyDaysContext: options.easyDaysContext,
     isVariant: Boolean(variant),
   });
-  // A lapse that reaches the leech rule marks the card; the first time stays, and the card is never suspended for it.
   const leechTriggered = outcome.nextReviewState.lapses > previousState.lapses
     && isLeechLapse(outcome.nextReviewState.lapses, normalizeLeechThreshold(options.leechThreshold));
   const nextState = {
@@ -864,7 +861,6 @@ export function createDailyReviewQueue(decksOrDeck: Deck | Deck[], options: Revi
   // interday learning and reviews, then new cards. The deck options of the siblings seen before decide whether a card waits.
   const noteIdByCardId = new Map((options.answeredToday ?? []).map((answered) => [answered.cardId, answered.noteId]));
   for (const deck of scopeDecks) for (const card of deck.cards ?? []) noteIdByCardId.set(card.id, card.noteId);
-  // A sibling answered in a deck outside the studied scope follows the options of the studied deck.
   const burying = createSiblingBurying((deckId) => settingsByDeckId.get(deckId) ?? rootSettings);
   const buriedKeys = new Set<string>(manuallyBuriedKeys);
   for (const { deck, cardId } of dailyConsumption.answeredToday) {

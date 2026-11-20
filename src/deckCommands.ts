@@ -19,12 +19,10 @@ type CreateDeckInput = Parameters<typeof createWorkspaceDeck>[1];
 export interface DeckCommandsContext {
   store: WorkspaceStore;
   repository: IndexedDbCoreRepository;
-  /** Applies the repository's shell state to the store; without `preserveCardPages` it empties the card pages. */
+  /** Without `preserveCardPages` it empties the card pages. */
   refresh: (options?: RefreshOptions) => unknown;
   requestSync: () => void;
-  /** Syncs at once, for a changed sync interval. */
   syncNow: () => Promise<unknown>;
-  /** Changes the decks of a running study session, which keep their cards while their settings follow a save. */
   updateStudyDecks: (update: (decks: Deck[] | null) => Deck[] | null) => void;
 }
 
@@ -53,11 +51,6 @@ function withDeckLearningSettings(deck: Deck, settings: LearningSettingsInput): 
   };
 }
 
-/**
- * Deck and settings commands of the open workspace: decks with their placement and settings in the scopes `deck`,
- * `deck-tree`, `all-decks` and `new-decks`, more new cards for today, learning profiles, general settings, exam
- * planning, expanded decks and saved searches. Each write is local first, then refreshes the store and asks for a sync.
- */
 export function createDeckCommands({ store, repository, refresh, requestSync, syncNow, updateStudyDecks }: DeckCommandsContext) {
   function runRepositoryMutation<T>(mutation: (current: IndexedDbCoreRepository) => T, refreshOptions?: RefreshOptions): T {
     const result = mutation(repository);
@@ -90,10 +83,7 @@ export function createDeckCommands({ store, repository, refresh, requestSync, sy
     return saved;
   }
 
-  /**
-   * More new cards for today once today's plan is achieved: raises only today's new-card limit of the deck, by at most
-   * the new cards it still has. `now` is the learning time.
-   */
+  /** `now` is the learning time. */
   function addAdditionalNewCards(deckId: string, requestedCount: number, now: string): { ok: true; deck: Deck } | { ok: false; message: string } {
     const currentState = store.get().state!;
     const currentPreferences = getGlobalSchedulerPreferences(currentState.profile);

@@ -19,24 +19,15 @@ interface SignUpInput extends SignInInput { displayName: string }
 interface EmailInput { email: string }
 interface PasswordUpdateInput { password: string; passwordRepeat: string }
 
-/** What the app does with the account's workspace; the hook owns session, start and cloud bootstrap. */
 interface AccountWorkspaceEvents {
-  /** The local workspace is open, before the cloud has answered. */
   opened: (boot: AuthenticatedWorkspaceBootResult) => void;
-  /** The cloud bootstrap or the first sync brought a newer shell state. */
   cloudState: (state: WorkspaceState, status: SyncStatus) => void;
   syncStatus: (status: SyncStatus) => void;
-  /** The workspace was discarded: sign-out, rejected session or password recovery. */
   discarded: () => void;
-  /** The account signed out on this device; what outlives a workspace ends as well. */
   signedOut: () => void;
 }
 
-/**
- * Supabase client and session, the sign-in, registration, password and sign-out actions, account-bound workspace
- * start and cloud bootstrap (ADR-034, ADR-038). Every start gets a run id; a discarded or newer start makes the
- * results of older ones void.
- */
+/** Every start gets a run id; a discarded or newer start makes the results of older ones void. */
 export function useAccountWorkspace(events: AccountWorkspaceEvents) {
   const [supabase, setSupabase] = React.useState<SupabaseBrowserClient | undefined>(undefined);
   const [supabaseUrl, setSupabaseUrl] = React.useState("");
@@ -62,7 +53,7 @@ export function useAccountWorkspace(events: AccountWorkspaceEvents) {
     retryCloudBootstrapRef.current = null;
   };
 
-  /** Ends the current workspace; results of a start still running are dropped. */
+  /** Also voids the results of a start still running. */
   function discardWorkspace(user: User | null = null) {
     bootRunRef.current += 1;
     stopCloudBootstrapRetry();
@@ -290,7 +281,6 @@ export function useAccountWorkspace(events: AccountWorkspaceEvents) {
     }
   }
 
-  /** Signs the profile's account out of the cloud and discards the workspace on this device. */
   async function signOut(profile: Profile | undefined) {
     if (supabase && profile) {
       await signOutCloudAccount(supabase, profile);

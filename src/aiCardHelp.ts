@@ -21,10 +21,7 @@ function joined(htmls: string[]) {
   return clip(htmls.map(plain).filter(Boolean).join("\n"));
 }
 
-/**
- * The plain text of the card the learner sees, as question, answer and supplements; the source field stays local.
- * Cloze cards hide only their own gap. Image occlusions and cards without readable text have no learning help.
- */
+/** Null for image occlusions and cards without readable text. */
 export function aiCardHelpCard(note: Pick<Note, "content">, card: Pick<Card, "promptKey">): AiCardHelpRequest["card"] | null {
   const { fields, interaction } = note.content;
   const htmlOf = (roles: NoteFieldRole[]) => fields.filter((field) => roles.includes(field.role)).map((field) => field.html);
@@ -56,7 +53,6 @@ export function aiCardHelpCard(note: Pick<Note, "content">, card: Pick<Card, "pr
   return extra ? { prompt, answer, extra } : { prompt, answer };
 }
 
-/** Asks the learning help about one card and returns its plain-text answer; errors carry a German message. */
 export async function requestAiCardHelp(request: AiCardHelpRequest, supabase: SupabaseClient<Database> | null, { signal, fetchImpl = globalThis.fetch }: { signal?: AbortSignal; fetchImpl?: typeof fetch } = {}): Promise<string> {
   const body = await postAiRoute(AI_CARD_HELP_ENDPOINT, request, supabase, {
     fetchImpl,

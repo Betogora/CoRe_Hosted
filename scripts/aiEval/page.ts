@@ -18,7 +18,6 @@ function standing(type: RequestType, best: EvalRun | null) {
   return best.promptVersion === type.promptVersion && best.model === OPENROUTER_MODEL ? "Gemessen" : "Prompt im Code nicht gemessen";
 }
 
-/** Bestand: genau eine Zeile je Anfragetyp, unabhängig von der Zahl der Läufe. */
 export function bestTable(ledger: EvalLedger) {
   const rows = REQUEST_TYPES.map((type) => {
     const best = bestRun(ledger, type.id);
@@ -31,7 +30,6 @@ export function bestTable(ledger: EvalLedger) {
   return `<div class="docs-eval">${table("Bestand je Anfragetyp", head, rows)}</div><p class="docs-source">Modell im Code: ${code(OPENROUTER_MODEL)}. „Im Code“ liest die Versionskonstante des Vertragsmoduls beim Erzeugen.</p>`;
 }
 
-/** Verlauf des Hauptwerts: gefüllte Punkte bilden den Bestand, hohle wurden verworfen; die Linie hält den Bestand bis zur nächsten Übernahme. */
 export function progressPlot(type: RequestType, series: EvalSeriesEntry[]) {
   const left = 48, right = 84, top = 28, bottom = 40, height = 260;
   const plotWidth = Math.max(640 - left - right, series.length * 44);
@@ -82,7 +80,6 @@ export function progressSections(ledger: EvalLedger) {
   return sections.join("") || "<p>Noch kein Lauf im Ledger.</p>";
 }
 
-/** Leseseite aus docs/ai-eval.md; Bestand und Verlauf entstehen aus dem Ledger. */
 export function aiEvalDocument(markdown: string, ledger: EvalLedger) {
   const withBest = appendToSection(renderMarkdown(markdown, "ai-eval.md"), "ai-eval--bestand", bestTable(ledger), "ai-eval.md");
   const html = appendToSection(withBest, "ai-eval--verlauf", progressSections(ledger), "ai-eval.md");

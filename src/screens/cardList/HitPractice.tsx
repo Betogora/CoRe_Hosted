@@ -12,16 +12,11 @@ import { ratingButtons } from "../screenConstants.ts";
 import { cardCount } from "./cardListModel.ts";
 
 export interface HitPracticeProps {
-  /** The cards to practise, in order, with their contents. */
   bodies: ReadonlyArray<{ card: Card; note: Note }>;
   mediaStore: AccountMediaStore | null;
   onClose: () => void;
 }
 
-/**
- * `Nur üben` (KV5): question, reveal and rating like a session, but study state, due dates and FSRS values stay as they
- * are and no review is written. Ends when every card was known once, with `Nochmal üben` for the difficult ones.
- */
 export function HitPractice({ bodies, mediaStore, onClose }: HitPracticeProps) {
   const byId = React.useMemo(() => new Map(bodies.map((body) => [body.card.id, body])), [bodies]);
   const [practice, setPractice] = React.useState(() => createPractice(bodies.map((body) => body.card.id)));
@@ -43,7 +38,6 @@ export function HitPractice({ bodies, mediaStore, onClose }: HitPracticeProps) {
     setRevealed(false);
   }
 
-  // The start dialog that opened the practice is gone, so the practice takes the focus.
   React.useEffect(() => rootRef.current?.focus(), []);
   React.useEffect(() => {
     if (!current) headingRef.current?.focus();

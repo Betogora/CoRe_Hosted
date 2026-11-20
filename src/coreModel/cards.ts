@@ -64,13 +64,11 @@ export function createCardVariant({
   };
 }
 
-/** Adds a generated rephrasing to its card; it shares the card's study state and due date. */
 export function addCardVariant(card: Card, input: CardVariantInput, updatedAt = new Date().toISOString()): Card {
   const variant = createCardVariant({ ...input, cardId: card.id, createdAt: input.createdAt ?? updatedAt, updatedAt: input.updatedAt ?? updatedAt });
   return { ...card, variants: [...card.variants, variant], updatedAt };
 }
 
-/** A new rephrasing replaces the card's outdated ones (K6.4); they are deleted like any removed variant. */
 export function replaceOutdatedVariants(card: Card, input: CardVariantInput, updatedAt = new Date().toISOString()): Card {
   const variants = card.variants.map((variant) => variant.meta.outdated === true && !variant.deletedAt
     ? { ...variant, deletedAt: updatedAt, updatedAt, revision: variant.revision + 1 }
@@ -86,50 +84,44 @@ export function isCardReviewBlocked(card: Pick<Card, "status" | "deletedAt"> | n
   return !card || card.status !== "active" || card.deletedAt !== null;
 }
 
-/** Suspension keeps study state and due date unchanged and only bumps the entity revision. */
 export function setCardSuspended(card: Card, suspended: boolean, updatedAt = new Date().toISOString()): Card {
   const status = suspended ? "suspended" : "active";
   if (card.status === status) return card;
   return { ...card, status, updatedAt, revision: card.revision + 1 };
 }
 
-/** Anki flag 0–7 (0 removes it); a card edit that bumps the revision, like suspension. */
+/** Anki flag 0–7; 0 removes it. */
 export function setCardFlag(card: Card, flag: number, updatedAt = new Date().toISOString()): Card {
   if (!Number.isInteger(flag) || flag < 0 || flag > 7) throw new Error("Die Flagge ist ungültig.");
   if (card.ankiFlag === flag) return card;
   return { ...card, ankiFlag: flag, updatedAt, revision: card.revision + 1 };
 }
 
-/** Moves a card to another deck; study state and siblings stay. */
 export function moveCardToDeck(card: Card, deckId: string, updatedAt = new Date().toISOString()): Card {
   if (!deckId.trim()) throw new Error("Der Zielstapel fehlt.");
   if (card.deckId === deckId) return card;
   return { ...card, deckId, updatedAt, revision: card.revision + 1 };
 }
 
-/**
- * "Lernstand zurücksetzen": the card starts over as a new card with zero repetitions and lapses and without leech; its review
- * history stays. New cards keep their creation order, so it returns to its original place among them.
- */
+/** New cards keep their creation order, so the card returns to its original place among them. */
 export function resetCardStudy(card: Card, occurredAt = new Date().toISOString()): Card {
   const { study } = card;
   if (study.state === "new" && study.reps === 0 && study.lapses === 0 && study.leechedAt === null) return card;
   return { ...card, study: createCardStudy(occurredAt), studyRevision: card.studyRevision + 1, updatedAt: occurredAt };
 }
 
-/** Sets or lifts the leech state; part of the study state, so it travels like a review. */
+/** null lifts the leech state; it is part of the study state, so it travels like a review. */
 export function setCardLeech(card: Card, leechedAt: string | null, occurredAt = new Date().toISOString()): Card {
   if (card.study.leechedAt === leechedAt) return card;
   return { ...card, study: { ...card.study, leechedAt }, studyRevision: card.studyRevision + 1, updatedAt: occurredAt };
 }
 
-/** Puts back an earlier study state, e.g. to undo a manual change; the revision still counts forward. */
+/** The revision still counts forward. */
 export function restoreCardStudy(card: Card, study: Card["study"], occurredAt = new Date().toISOString()): Card {
   if (JSON.stringify(card.study) === JSON.stringify(study)) return card;
   return { ...card, study, studyRevision: card.studyRevision + 1, updatedAt: occurredAt };
 }
 
-/** Manual reschedule changes only the due date; phase and memory stay, suspension stays. */
 export function rescheduleCard(card: Card, dueAt: string, occurredAt = new Date().toISOString()): Card {
   const dueTimestamp = Date.parse(dueAt);
   const occurredTimestamp = Date.parse(occurredAt);

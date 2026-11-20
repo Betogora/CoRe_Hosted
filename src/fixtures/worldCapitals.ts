@@ -41,7 +41,6 @@ function createWorldCapitalsFixture(source: typeof worldCapitalsSource) {
 
 const WORLD_CAPITALS_FIXTURE = createWorldCapitalsFixture(worldCapitalsSource);
 
-/** One color of the deck color palette per continent, so the subdecks stay apart in the deck tree. */
 const CONTINENT_COLORS: Record<string, string> = {
   afrika: "#f28c28",
   antarktis: "#0d8e90",
@@ -282,7 +281,6 @@ function createCapitalNote(deckId: string, item: WorldCapitalItem) {
   return { note, card };
 }
 
-/** World capitals tree with notes and cards; the E2E seed adds a three-month study history, the demo starts fresh. */
 export function createWorldCapitalsSeed({ withStudyHistory: includeHistory = true }: { withStudyHistory?: boolean } = {}): { decks: Deck[]; notes: Note[] } {
   const rootDeck = createCoreDeck({
     id: WORLD_CAPITALS_FIXTURE.rootDeck.id,

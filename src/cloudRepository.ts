@@ -111,8 +111,8 @@ export async function loadAccountCloudBootstrap(
   };
 }
 
-// Anki templates travel with the catalog so the original layout (ADR-047) works on every device, also offline.
-// note_search comes last in each page; its search texts reach the catalog rows of the same page before they are written.
+// note_search comes last in each page; its search texts reach the catalog rows of the same page before they are
+// written.
 const CATALOG_TABLES = ["decks", "card_catalog", "deck_study_summaries", "note_type_sources", "note_search"] as const;
 type CatalogCloudTable = typeof CATALOG_TABLES[number];
 
@@ -140,7 +140,7 @@ function validateCatalogDeltaResponse(value: unknown) {
   return { changes, nextCursor, hasMore: candidate.hasMore };
 }
 
-/** Applies every delta page with all its tables in one call; the next page loads while the previous one is applied. */
+/** The next page loads while the previous one is applied. */
 export async function streamAccountCatalogChanges(
   client: CloudClient,
   cursor: number,
@@ -222,7 +222,7 @@ export async function listAccountCardCatalog(client: CloudClient, request: Catal
   return parseCatalogPage(data, request.knownTotalCount);
 }
 
-/** First search page of every requested deck in one request; decks without hits are absent from the result. */
+/** Decks without hits are absent from the result. */
 export async function searchAccountCardCatalog(
   client: CloudClient,
   request: { deckIds: string[]; query: string; searchContext?: CatalogPageRequest["searchContext"]; sort?: CatalogPageRequest["sort"]; limit?: number },
@@ -244,7 +244,6 @@ export async function searchAccountCardCatalog(
 
 const CARD_STUDY_STATE_PAGE_SIZE = 2000;
 
-/** Study state of every card in the given decks without card bodies (ADR-034), paged by card id. */
 export async function listAccountCardStudyStates(client: CloudClient, deckIds: string[], signal?: AbortSignal): Promise<CardStudySnapshot[]> {
   const ids = [...new Set(deckIds.filter(Boolean))];
   if (ids.length > 5000) throw new Error("Höchstens 5000 Stapel können gleichzeitig geladen werden.");
@@ -262,7 +261,7 @@ export async function listAccountCardStudyStates(client: CloudClient, deckIds: s
   return snapshots;
 }
 
-/** Card bodies with their contents and variants; note ids additionally load all sibling cards. */
+/** `noteIds` additionally load all sibling cards. */
 export async function hydrateAccountCards(client: CloudClient, cardIds: string[], noteIds: string[] = []) {
   const ids = [...new Set(cardIds.filter(Boolean))];
   const noteIdList = [...new Set(noteIds.filter(Boolean))];
@@ -324,14 +323,12 @@ export async function loadAccountStatistics(
   return validateAccountStatistics(data);
 }
 
-/** 365-day forecast of next due dates; loaded after the first dashboard render. */
 export async function loadAccountDueForecast(client: CloudClient) {
   const { data, error } = await client.rpc("get_account_due_forecast");
   if (error) throw error;
   return validateDueForecast(data);
 }
 
-/** Unedited imports whose translator is older than `currentVersions` (K5.4), with sources and cards. */
 export async function listRetranslationCandidates(client: CloudClient, currentVersions: Record<string, number>, cursor = "") {
   const { data, error } = await client.rpc("list_retranslation_candidates", {
     p_current_versions: currentVersions,
@@ -361,7 +358,6 @@ export async function listReleasableMedia(client: CloudClient, limit = 100): Pro
   return data;
 }
 
-/** All answers of one card, oldest first, including manual events (`review_events_user_card_answered_idx`). */
 export async function listCardReviewEvents(client: CloudClient, cardId: string, signal?: AbortSignal): Promise<ReviewEvent[]> {
   const call = cloudTable(client, "review_events").select("*").eq("card_id", cardId).order("answered_at").order("id").limit(2000);
   const { data, error } = await (signal ? call.abortSignal(signal) : call);
@@ -369,7 +365,6 @@ export async function listCardReviewEvents(client: CloudClient, cardId: string, 
   return validateAccountRows("review_events", data ?? []).map(reviewEventFromRow);
 }
 
-/** Up to three contents with similar text, each with a card to open. */
 export async function listSimilarNotes(client: CloudClient, noteId: string, signal?: AbortSignal) {
   const call = client.rpc("list_similar_notes", { p_note_id: noteId, p_limit: 3 });
   const { data, error } = await (signal ? call.abortSignal(signal) : call);
@@ -377,7 +372,6 @@ export async function listSimilarNotes(client: CloudClient, noteId: string, sign
   return validateSimilarNoteRows(data ?? []);
 }
 
-/** Account-wide tags with the number of contents and how many of them carry the tag from an import. */
 export async function listAccountTags(client: CloudClient, signal?: AbortSignal) {
   const call = client.rpc("list_account_tags");
   const { data, error } = await (signal ? call.abortSignal(signal) : call);
@@ -385,7 +379,6 @@ export async function listAccountTags(client: CloudClient, signal?: AbortSignal)
   return validateAccountTagRows(data ?? []);
 }
 
-/** Existing imported contents per Anki GUID (K5.7), with the identity of their cards and templates. */
 export async function loadReimportTargets(client: CloudClient, ankiGuids: string[]) {
   const notes: Note[] = [];
   const cards: Array<{ id: string; noteId: string; deckId: string; promptKey: string; ankiCardId: string | null }> = [];

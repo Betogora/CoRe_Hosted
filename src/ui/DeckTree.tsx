@@ -82,7 +82,6 @@ function DeckSummaryHeader() {
   );
 }
 
-/** One deck row of the tree; `folder` and `subfolder` project the same row as a tile of the tile view. */
 function DeckSummaryRow({ row, leadingControl, actions, studyAction, presentation }: {
   row: Pick<DeckLibraryRow, "deck" | "name" | "path" | "depth" | "summary">;
   leadingControl: ReactNode;
@@ -92,7 +91,6 @@ function DeckSummaryRow({ row, leadingControl, actions, studyAction, presentatio
 }) {
   const folder = presentation !== "row";
   const subfolder = presentation === "subfolder";
-  // Hierarchy reads from weight alone: a main deck (or folder tile) in 600, every subdeck in 500.
   const mainDeck = folder ? !subfolder : row.depth === 0;
   const gridClass = folder
     ? `core-deck-folder-summary${subfolder ? " core-deck-subfolder-summary" : ""}`
@@ -158,7 +156,6 @@ function readStoredDeckTreeView(): DeckTreeView {
   }
 }
 
-/** Browser-local view choice shared by the dashboard and learning deck trees. */
 export function useStoredDeckTreeView() {
   const [view, setView] = React.useState(readStoredDeckTreeView);
   const changeView = React.useCallback((next: DeckTreeView) => {
@@ -176,18 +173,14 @@ export interface DeckTreeProps {
   rows: DeckLibraryRow[];
   /** Shows only these decks with their subtrees, in this order, each as its own group; menus and placement still see every row. */
   rootDeckIds?: readonly string[];
-  /** `content` shows one deck's subtree in its content view, without the `Aktive Stapel` heading. */
   mode: "dashboard" | "learn" | "content";
-  /** `list` groups every main deck in its own card; `tiles` shows main decks as tiles with an inline branch panel. */
   view?: DeckTreeView;
-  /** Shows the icon-only tiles/list control in the header when set. */
   onViewChange?: (view: DeckTreeView) => void;
   headerAction?: React.ReactNode;
-  /** Caller-owned area below the collection, e.g. the quick-create form in Lernen. */
   contentAfterRows?: React.ReactNode;
   onActivate: (row: DeckLibraryRow) => void;
   onStudy: (row: DeckLibraryRow) => void;
-  /** `Alle Karten frei üben` in the deck menu; without it the menu offers no practice. */
+  /** Without it the deck menu offers no practice. */
   onPractice?: (row: DeckLibraryRow, returnFocus: HTMLElement | null) => void;
   onOpenSettings: (deckId: string) => void;
   onSetDeckCoreMode: (deckId: string, coreMode: CoreMode) => unknown;
@@ -318,7 +311,7 @@ interface DeckTreeRowProps {
   onMoveDeck: DeckTreeProps["onMoveDeck"];
 }
 
-/** One deck row; memoized so sync status, drag hover on other rows or parent renders do not repaint the whole tree. */
+/** Memoized so sync status, drag hover on other rows or parent renders do not repaint the whole tree. */
 const DeckTreeRow = React.memo(function DeckTreeRow({ row, mode, presentation, decks, isCollapsed, isSelected, isDragged, dropState, onToggle, onActivate, onPointerDown, onKeyDown, onStudy, onPractice, onOpenSettings, onSetCoreMode, onMoveDeck }: DeckTreeRowProps) {
   const tile = presentation !== "row";
   const activationLabel = tile ? row.hasChildren ? `Unterstapel von ${row.path} öffnen` : `Stapel ${row.path} öffnen` : `Inhalte von ${row.path} öffnen`;
@@ -333,7 +326,6 @@ const DeckTreeRow = React.memo(function DeckTreeRow({ row, mode, presentation, d
       {isCollapsed ? <ChevronRight size={16} aria-hidden="true" /> : <ChevronDown size={16} aria-hidden="true" />}
     </button>
   ) : <span className="-me-2 size-control shrink-0" aria-hidden="true" />;
-  // The study arrow carries the action color only while the deck has work today; otherwise it steps back.
   const hasWork = row.summary.newCards + row.summary.inProgressCards + row.summary.dueCards > 0;
   const studyAction = (
     <CoreTooltip label={`${row.name} lernen`} deckAppearance={getDeckAppearance(row.deck)}>
@@ -417,7 +409,6 @@ export function DeckTree({ rows, rootDeckIds, mode, view = "list", onViewChange,
     return groups;
   }, [visibleRows]);
 
-  // Tile view: the opened folder and the column count that decides where its branch panel is inserted.
   const [folderDeckId, setFolderDeckId] = React.useState<string | null>(null);
   const folderGridRef = React.useRef<HTMLDivElement | null>(null);
   const folderPanelRef = React.useRef<HTMLElement | null>(null);

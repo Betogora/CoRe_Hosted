@@ -3,7 +3,6 @@ import { performance } from "node:perf_hooks";
 import { basename, resolve } from "node:path";
 import { Worker } from "node:worker_threads";
 
-// Measures the app's note translation in a worker; `--large` checks the K5.8 limits for packages up to 2 GiB.
 const large = process.argv.includes("--large");
 const fixturePath = resolve(process.argv.slice(2).find((argument) => !argument.startsWith("--")) ?? "test-results/apkg/core-local-benchmark.apkg");
 const pipelines = ["notes"] as const;

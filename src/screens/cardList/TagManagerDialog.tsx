@@ -13,7 +13,6 @@ export interface TagManagerDialogProps {
 
 const key = (tag: string) => tag.trim().toLocaleLowerCase("und");
 
-/** Tag management of the account (KV5): rename with subtags, merge, delete, and where the tags come from. */
 export function TagManagerDialog({ tags, onRename, onClose }: TagManagerDialogProps) {
   const [filter, setFilter] = React.useState("");
   const [editing, setEditing] = React.useState<{ tag: string; name: string } | null>(null);

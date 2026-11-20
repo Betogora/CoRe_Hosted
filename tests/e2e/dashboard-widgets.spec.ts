@@ -4,7 +4,6 @@ import { pathToFileURL } from "node:url";
 import path from "node:path";
 import { matrixThemes, matrixViewports, visualOutput } from "./support/visualMatrix.ts";
 
-// Visual runs add the grid breakpoints (639/640 and 999/1000) to the mandatory matrix.
 const sizes = matrixViewports([[320, 720], [360, 800], [390, 844], [430, 932], [639, 900], [640, 900], [999, 900], [1000, 900], [1280, 720], [1440, 900]].map(([width, height]) => ({ width, height })));
 const defaults = ["learning", "motivation", "timer", "decks", "todos", "heatmap"];
 
@@ -215,7 +214,6 @@ test("Widgetoptionen erhalten Pfeile und Entfernen ohne Größenwahl; abgebroche
   await expect(page.getByRole("button", { name: /Größe ändern/ })).toHaveCount(0);
   await page.getByRole("button", { name: "Lerntimer entfernen", exact: true }).click();
   await expect(page.locator('[data-dashboard-widget="timer"]')).toHaveCount(0);
-  // Collapsed, the bar shows only the complete first row; the expander reveals the rest.
   await expect(page.locator(".dashboard-widget-miniature")).not.toHaveCount(6);
   await page.getByRole("button", { name: "Weitere Widgets", exact: true }).click();
   await expect(page.locator(".dashboard-widget-miniature")).toHaveCount(6);

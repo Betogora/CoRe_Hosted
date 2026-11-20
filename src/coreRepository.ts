@@ -47,7 +47,6 @@ export function normalizeWorkspaceState(rawState: any): WorkspaceState {
   };
 }
 
-/** An empty account workspace; tests that need content add the world capitals seed themselves. */
 export function createCoreRepository(): { getState(): WorkspaceState } {
   return { getState: () => createDefaultState() };
 }

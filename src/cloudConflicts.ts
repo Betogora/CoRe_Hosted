@@ -1,4 +1,3 @@
-// Private to cloudRepository.ts: row comparison, marking and listing of sync conflicts with their projection.
 import { validateSyncConflictRows, type AccountTable, type SyncConflictRow } from "./cloudRepositoryValidation.ts";
 import {
   type CloudRow,

@@ -19,7 +19,6 @@ import type { useStudyStart } from "./useStudyStart.ts";
 import type { useWorkspaceSync } from "./useWorkspaceSync.ts";
 import type { WorkspaceHydrationService } from "./workspaceHydrationService.ts";
 
-/** What the screen wirings take from the open workspace besides the store: its owners, commands and services. */
 export interface AppServices {
   navigation: ReturnType<typeof useNavigationGuard>;
   settings: ReturnType<typeof useSettingsOverlay>;
@@ -35,7 +34,6 @@ export interface AppServices {
   importCommands: ImportCommands;
   importSession: ReturnType<typeof useImportSession>;
   variantBatch: ReturnType<typeof useCardVariantBatch>;
-  /** Switching CoRe on first explains it in a dialog that offers generating variants right away. */
   requestDeckCoreMode: (deckId: string, coreMode: CoreMode) => unknown;
   signOut: () => Promise<void>;
   repository: IndexedDbCoreRepository;
@@ -44,7 +42,6 @@ export interface AppServices {
   mediaStore: AccountMediaStore | null;
 }
 
-/** Provided by `App` while a workspace is open; the screen wirings render only inside it. */
 export const AppServicesContext = React.createContext<AppServices | null>(null);
 
 export function useAppServices(): AppServices {

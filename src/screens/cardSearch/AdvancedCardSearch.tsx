@@ -43,11 +43,10 @@ const SYNTAX: ReadonlyArray<[string, string]> = [
   ["card:2  is:buried", "zweite Abfrage (Vorlage, Lücke oder Maske), heute manuell zurückgestellt"],
 ];
 
-/** Categories whose terms are written with a small form instead of fixed rows. */
 const WRITTEN_KINDS = { felder: "field", zeitraum: "since", werte: "prop" } as const;
 type WrittenCategory = keyof typeof WRITTEN_KINDS;
 
-/** One menu row; `siblings` are the terms of its group: several of them set to `Mit` need only one to match (KV2d). */
+/** `siblings` are the terms of its group: several included ones need only one to match. */
 function TermRow({ item, query, onQueryChange, siblings }: { item: CardSearchMenuItem; query: string; onQueryChange: (query: string) => void; siblings?: readonly string[] }) {
   const state = cardSearchTermState(query, item.term);
   return (
@@ -65,13 +64,11 @@ function TermRow({ item, query, onQueryChange, siblings }: { item: CardSearchMen
   );
 }
 
-/** Terms of a form category as written in the query, without those that already have a fixed row elsewhere. */
 function writtenTerms(query: string, category: WrittenCategory, categories: readonly CardSearchMenuCategory[]): string[] {
   const fixed = new Set(categories.flatMap((entry) => entry.items.map((item) => item.term.toLocaleLowerCase("und"))));
   return cardSearchTermsOfKind(query, WRITTEN_KINDS[category]).filter((term) => !fixed.has(term.replace(/^-/, "").toLocaleLowerCase("und")));
 }
 
-/** A form that adds one term, and below it the written terms of its category with their switches. */
 function TermForm({ terms, label, query, onQueryChange, term, children }: {
   terms: string[];
   label: (bare: string) => string;
@@ -166,7 +163,6 @@ function PropTerms({ terms, query, onQueryChange, categories }: { terms: string[
   );
 }
 
-/** Name a new saved search starts with: its readable filters and its free text. */
 export function suggestedSearchName(query: string, categories: readonly CardSearchMenuCategory[]): string {
   const filters = cardSearchTerms(query).map((term) => {
     const { label, negated } = cardSearchTermLabel(term, categories);
@@ -205,7 +201,6 @@ function NameForm({ initialName, label, submitLabel, onSubmit, onCancel }: {
   );
 }
 
-/** Saved searches (KV2c): a click applies one, the current one is marked; renaming in place, deleting with undo. */
 function SavedSearches({ query, onQueryChange, searches, onSearchesChange, draftName, onDraftDone }: {
   query: string;
   onQueryChange: (query: string) => void;
@@ -298,11 +293,6 @@ function SyntaxHelp() {
   );
 }
 
-/**
- * The advanced search (KV2): categories on the left, the rows of the chosen category with their term and a
- * three-position switch on the right, above them the whole search expression. Below 768 px a full screen sheet
- * that shows the category list first.
- */
 export function AdvancedCardSearch({ id, query, onQueryChange, categories, resultCount, onClose, savedSearches, onSavedSearchesChange, onManageTags }: {
   id: string;
   query: string;
@@ -312,7 +302,6 @@ export function AdvancedCardSearch({ id, query, onQueryChange, categories, resul
   onClose: () => void;
   savedSearches: readonly SavedCardSearch[];
   onSavedSearchesChange: (searches: SavedCardSearch[]) => void;
-  /** `Tags verwalten` above the tags (KV5); absent where tags cannot be changed. */
   onManageTags?: () => void;
 }) {
   const [activeId, setActiveId] = React.useState<CardSearchMenuCategory["id"]>("heute");

@@ -31,7 +31,6 @@ import type {
 
 type DateInput = string | number | Date;
 type ReviewStateInput = Partial<ReviewState>;
-/** The fields `ts-fsrs` reads from a review state; review chains keep their times as dates. */
 type FsrsCardSource = Pick<ReviewState, "state" | "reps" | "stability" | "stabilityFast" | "difficulty" | "lapses" | "intervalDays" | "learningStepIndex"> & {
   dueAt: DateInput;
   lastReviewedAt: DateInput | null;
@@ -288,7 +287,6 @@ function retrievabilityAt(state: FsrsCardSource, now: Date, scheduler: FsrsSched
 
 type MemoryStateInput = Pick<ReviewStateInput, "state" | "stability" | "stabilityFast" | "difficulty">;
 
-/** Durability from which a card counts as mature. */
 const MATURE_DURABILITY_DAYS = 21;
 
 /** Days until the card's recall probability falls to 90 %; 0 while it has no memory state yet. */
@@ -300,7 +298,6 @@ export function getDurabilityDays(study: MemoryStateInput): number {
   return round(scheduler.model.nextInterval({ stability, stabilityFast, difficulty: clamp(study.difficulty ?? 5, 1, 10) }, 0.9), 2);
 }
 
-/** Maturity derived from the memory state; never counted separately. */
 export function getMaturityBand(study: MemoryStateInput): MaturityBand {
   if (!study.state || study.state === "new") return "new";
   if (study.state !== "review") return "learning";
@@ -523,7 +520,7 @@ export function createReviewChain(initial: ReviewStateInput, context: SchedulerC
   let state: FsrsCardSource = initialState, results = memo?.get(schedulerMeta.key);
   if (memo && !results) memo.set(schedulerMeta.key, results = new Map());
   return {
-    /** Answers at `now` and returns the next due time in milliseconds. */
+    /** Answers at `now` and returns the next due time in epoch milliseconds. */
     review(rating: ReviewRating, now: Date): number {
       const input = toFsrsCard(state, now);
       // Everything `ts-fsrs` reads: memory state, phase, step, elapsed time and rating; it only counts reps and lapses up and adds the interval to `now`.

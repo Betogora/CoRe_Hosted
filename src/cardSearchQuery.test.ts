@@ -142,7 +142,6 @@ test("Zeitraum, Werte und Inhaltsform werten Verlauf und Katalogwerte aus", () =
   assert.equal(matchesCardSearch(entry({ difficulty: 7.5 }), search("prop:d>7")), true);
   assert.equal(matchesCardSearch(entry({ scheduleState: "new", intervalDays: 0 }), search("prop:ivl<1")), false, "neue Karten haben kein Intervall");
   assert.equal(matchesCardSearch(entry({ lapses: 0 }), search("prop:lapses!=0")), false);
-  // KV2e: durability counts once a card was answered by a client that stores it; new cards and older rows never match.
   assert.equal(matchesCardSearch(entry({ durabilityDays: 120 }), search("prop:s>=90")), true);
   assert.equal(matchesCardSearch(entry({ durabilityDays: 30 }), search("prop:s>=90")), false);
   assert.equal(matchesCardSearch(entry({ durabilityDays: null }), search("prop:s<90")), false, "noch ohne Haltbarkeit");

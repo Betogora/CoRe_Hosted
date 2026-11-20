@@ -21,13 +21,11 @@ function normalizeSyncInterval(value: unknown): SyncIntervalMinutes {
   return SYNC_INTERVALS.has(interval) ? interval : DEFAULT_UI_PREFERENCES.syncIntervalMinutes;
 }
 
-/** Seven trimmed names of at most 40 characters; missing entries stay empty. */
 export function normalizeFlagNames(value: unknown): string[] {
   const names = Array.isArray(value) ? value : [];
   return Array.from({ length: 7 }, (_, index) => typeof names[index] === "string" ? names[index].trim().slice(0, 40) : "");
 }
 
-/** Saved searches with an id, a name and a query; duplicates by id and anything beyond the limit are dropped. */
 function normalizeSavedSearches(value: unknown): SavedCardSearch[] {
   if (!Array.isArray(value)) return [];
   const ids = new Set<string>();

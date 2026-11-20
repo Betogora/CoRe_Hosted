@@ -1,5 +1,4 @@
-// Öffentlich erreichbare Demos ohne Account oder Supabase-Einrichtung.
-// Betroffene App-Zustände bei Produktänderungen als weitere Szenen ergänzen.
+// Nur öffentlich erreichbare Demos ohne Account oder Supabase-Einrichtung.
 const sizes = {
   narrow: { width: 320, height: 720 },
   small: { width: 360, height: 800 },

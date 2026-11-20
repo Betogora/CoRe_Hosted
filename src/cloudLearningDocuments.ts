@@ -1,7 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { validateLearningDocumentRows, type LearningDocumentRow } from "./cloudRepositoryValidation.ts";
 
-/** Account-bound tables of versioned learning documents; the database stamps revision and time on every write. */
+/** The database stamps revision and time on every write. */
 export type LearningDocumentTable = "learning_summaries" | "learning_mind_maps";
 const COLUMNS = "id, deck_id, document, revision, deleted_at";
 const IMAGE_BUCKET = "learning-mind-map-images";
@@ -12,7 +12,7 @@ async function rows(request: PromiseLike<{ data: unknown; error: unknown }>): Pr
   return validateLearningDocumentRows(data);
 }
 
-/** Documents of a deck, or of the whole account without `deckId`; deleted ones included so other devices can drop their copies. */
+/** Includes deleted documents so other devices can drop their copies. */
 export function listLearningDocuments(client: SupabaseClient, table: LearningDocumentTable, deckId?: string) {
   const query = client.from(table).select(COLUMNS);
   return rows(deckId === undefined ? query : query.eq("deck_id", deckId));
@@ -36,14 +36,14 @@ export async function writeLearningDocument(client: SupabaseClient, table: Learn
   return { conflict: remote ?? null };
 }
 
-/** Marks a document deleted for every device; a deletion wins over concurrent edits. */
+/** No revision check: a deletion wins over concurrent edits. */
 export async function deleteLearningDocument(client: SupabaseClient, table: LearningDocumentTable, id: string) {
   await rows(client.from(table).update({ deleted_at: new Date().toISOString() }).eq("id", id).select(COLUMNS));
 }
 
 const imagePath = (userId: string, sha1: string) => `${userId}/${sha1}`;
 
-/** Uploads a mind map image under its SHA-1; an existing object with the same name already holds the same bytes. */
+/** An existing object with the same name already holds the same bytes. */
 export async function uploadMindMapImage(client: SupabaseClient, userId: string, sha1: string, blob: Blob) {
   const { error } = await client.storage.from(IMAGE_BUCKET).upload(imagePath(userId, sha1), blob, { contentType: blob.type || "application/octet-stream" });
   if (error && !/exists|duplicate/i.test(error.message)) throw error;

@@ -40,7 +40,6 @@ interface TextImportPreviewProps {
 export interface TextImportPanelProps extends Omit<TextImportPreviewProps, "parsed" | "fileName" | "onImportingChange"> {
   file: File;
   onChooseOtherFile: () => unknown;
-  /** A chosen file counts as a draft; while it is written, leaving is blocked. */
   onDraftStateChange: CreationScreenProps["onDraftStateChange"];
 }
 
@@ -71,7 +70,6 @@ function roleOptions(kind: TextImportKind): Array<{ value: TextImportColumnRole;
   ];
 }
 
-/** Preview of a read text file: target deck, form, columns and duplicate handling decide the plan the import writes. */
 export function TextImportPreview({ parsed, fileName, decks, listDeckContents, onImport, onCompleted, onImportingChange }: TextImportPreviewProps) {
   const [options, setOptions] = React.useState<TextImportOptions>(() => defaultTextImportOptions(parsed));
   const [deckId, setDeckId] = React.useState(() => decks.find((deck) => deckPath(deck).join("::") === parsed.deckName)?.id ?? "");
@@ -104,7 +102,6 @@ export function TextImportPreview({ parsed, fileName, decks, listDeckContents, o
   function setColumnRole(index: number, role: TextImportColumnRole) {
     setOptions((currentOptions) => ({
       ...currentOptions,
-      // Front and back come from one column each; the column that held the role so far is ignored.
       columns: currentOptions.columns.map((previous, column) => column === index ? role : (role === "front" || role === "back") && previous === role ? "ignore" : previous),
     }));
   }
@@ -224,7 +221,6 @@ export function TextImportPreview({ parsed, fileName, decks, listDeckContents, o
   );
 }
 
-/** Text and table import: reads the file on the device, then shows the preview until the contents are saved. */
 export function TextImportPanel({ file, onChooseOtherFile, onDraftStateChange, ...previewProps }: TextImportPanelProps) {
   const [read, setRead] = React.useState<{ parsed: ParsedTextImport } | { error: string } | null>(null);
   const [importing, setImporting] = React.useState(false);

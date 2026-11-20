@@ -29,7 +29,7 @@ function manifestGraph(manifest: ViteManifest, entryKey: string, collected = new
   return collected;
 }
 
-/** Files `index.html` preloads with `<link rel="modulepreload">`; the browser fetches them at start like the entry graph. */
+/** The browser fetches modulepreload files at start like the entry graph. */
 export function readModulePreloads(html: string): string[] {
   return [...html.matchAll(/<link\b[^>]*rel="modulepreload"[^>]*href="\/?([^"]+)"/g)].map((match) => match[1]);
 }

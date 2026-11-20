@@ -35,7 +35,6 @@ function sourceFiles(directory: string): string[] {
 
 type DocLimit = { file: string; maxBytes: number };
 
-/** Feste Obergrenze je ganze Datei; Platz entsteht durch Verdichten, nicht durch Anheben. */
 export const DOC_LIMITS: readonly DocLimit[] = [
   { file: "docs/architecture.md", maxBytes: 35_000 },
   { file: "docs/specs.md", maxBytes: 81_000 },
@@ -92,10 +91,9 @@ const percent = (retention: number) => `${Math.round(retention * 100)} %`;
 const days = (value: number) => `${decimal(value)} ${decimal(value) === "1" ? "Tag" : "Tage"}`;
 const gap = (outcome: ExampleOutcome) => outcome.intervalMinutes != null ? `${outcome.intervalMinutes} Min.` : days(outcome.intervalDays);
 const firstMature = (contacts: ExampleContact[]) => contacts.findIndex((contact) => contact.band === "mature");
-/** The variant number each contact asks at a deck threshold; 0 asks the card. */
+/** 0 asks the card instead of a variant. */
 const variantAt = (contact: ExampleContact, threshold: number) => contact.variants[EXAMPLE_VARIANT_THRESHOLDS.indexOf(threshold)];
 
-/** Lernverlauf einer Karte (specs.md#lernverlauf-einer-karte): Tabellen und Zeitleisten aus den Beispielketten des Golden-Tests. */
 export function cardHistoryCards(): SpecsBlock[] {
   const source = '<p class="docs-source">Beim Erzeugen mit dem Produktions-Scheduler berechnet; dieselben Werte prüft <code>src/schedulerExampleChains.test.ts</code>. Jede Antwort fällt auf den Fälligkeitstermin; Haltbarkeit = Tage, bis die Erinnerung auf 90 % fällt.</p>';
   const effects = `<table><thead><tr><th>Lage der Karte</th>${Object.values(RATING_LABELS).map((label) => `<th>${label}</th>`).join("")}</tr></thead><tbody>${EXAMPLE_SITUATIONS.map((situation) => {
@@ -135,7 +133,6 @@ export function cardHistoryCards(): SpecsBlock[] {
 
 type SpecsBlock = { id: string; title: string; html: string };
 
-/** Projiziert docs/specs.md als Leseseite wie die Journeys: Kapitel und Abschnitte als Überschriften, Rasterzeilen (`Zweck:` …) als Labels, erzeugte Blöcke hinter ihrem Abschnitt. */
 export function specsDocument(markdown: string, appendix?: { title: string; html: string }, generated: Record<string, SpecsBlock[]> = {}) {
   let html = renderMarkdown(markdown, "specs.md").replace(/<hr>\n?/g, "").replace(/<p>(\p{L}[\p{L}\s/-]{0,40}):<\/p>/gu, '<p class="docs-label">$1</p>');
   for (const [id, blocks] of Object.entries(generated)) {
@@ -209,10 +206,8 @@ export function createCatalogData(): Omit<CatalogData, "sourceHash"> {
   };
 }
 
-/** Verweise einer Journey auf Specs-Abschnitte (`#anker`) führen auf der Journey-Seite in die Specs. */
 export const journeySpecsLinks = (markdown: string) => markdown.replace(/\]\(#/g, "](specs.md#");
 
-/** Projiziert das Kapitel „Kernjourneys“: je Journey Zweck, die Schrittkette aus `Ablauf:` und die verlinkte `Akzeptanz:`. */
 export function journeyProjection(specs: string) {
   const section = specs.match(/^## \d+\. Kernjourneys\n([\s\S]*?)(?=^## )/m)?.[1];
   if (!section) throw new Error("Kernjourneys fehlen in docs/specs.md.");
@@ -241,7 +236,6 @@ function inputFiles(directory: string): string[] {
   });
 }
 
-/** Hashes every catalog input: product sources, files they import from outside src, catalog entry, generator, assets, lockfile and build config. */
 function catalogInputHash() {
   const sources = inputFiles("src");
   const imported = sources.filter((file) => /\.tsx?$/.test(file)).flatMap((file) => [...text(file).matchAll(/(?:from|import\()\s*"(\.{1,2}\/[^"?]+)/g)]
@@ -254,7 +248,6 @@ function catalogInputHash() {
   return hash.digest("hex");
 }
 
-/** Reuses the escaped runtime of the current catalog page when it was built from the same inputs and is unchanged since. */
 function currentRuntime(inputs: string) {
   const page = existsSync(path.join(docs, "ui-elements.html")) ? text("docs/ui-elements.html") : "";
   const start = page.indexOf(`/*catalog-runtime ${inputs} `);

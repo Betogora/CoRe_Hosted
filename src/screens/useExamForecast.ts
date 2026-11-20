@@ -22,10 +22,7 @@ interface ExamForecastInput {
 
 export type ExamForecastState = ReturnType<typeof useExamForecast>;
 
-/**
- * Forecast of all active exams. Study states load once per deck selection; changes to dates, goals or time only
- * recalculate locally.
- */
+/** Study states load once per deck selection; changes to dates, goals or time only recalculate locally. */
 export function useExamForecast({ decks, exams, capacity, preferences, timeZone, now, onLoadPlanningData, delayMs = 0, includeInactive = false, enabled = true }: ExamForecastInput) {
   const [result, setResult] = React.useState<{ key: string; forecast: ExamPortfolioForecast; data: ExamPlanningData } | null>(null);
   const [busy, setBusy] = React.useState(false);
@@ -55,7 +52,7 @@ export function useExamForecast({ decks, exams, capacity, preferences, timeZone,
       setResult({ key, forecast, data });
     } catch (failure) {
       if (signal.aborted) return;
-      // Without a connection nothing is planned anew; the stored targets of today remain (E12).
+      // Without a connection nothing is planned anew; the stored targets of today remain.
       if (typeof navigator !== "undefined" && navigator.onLine === false) setOffline(true);
       else setError(failure instanceof Error ? failure.message : "Die Prüfungsplanung konnte nicht berechnet werden.");
     } finally {
@@ -92,7 +89,6 @@ export function useExamForecast({ decks, exams, capacity, preferences, timeZone,
     busy,
     error,
     offline,
-    /** Loads the study states again, e.g. after studying elsewhere. */
     reload: () => setRevision((value) => value + 1),
   };
 }

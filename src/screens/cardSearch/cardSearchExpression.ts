@@ -1,8 +1,5 @@
 import { ANKI_SEARCH_KEYS, parseTerm, tokenize, type CardSearchTerm } from "../../cardSearchQuery.ts";
 
-// Editing the written query for the search field, its chips and the menu. Matching stays in `cardSearchQuery.ts`.
-
-/** A top-level part of the query as written: a word or phrase, a term, a group in parentheses or `or`. */
 interface QueryItem {
   source: string;
   kind: "word" | "term" | "group" | "or";
@@ -95,27 +92,22 @@ export function withCardSearchTermState(query: string, term: string, state: "" |
   return items.filter((item): item is QueryItem => Boolean(item)).map((item) => item.source).join(" ");
 }
 
-/** The query without one of its chips (a term or a group, as written). */
 export function withoutCardSearchItem(query: string, source: string): string {
   return queryItems(String(query ?? "")).filter((item) => item.source !== source).map((item) => item.source).join(" ");
 }
 
-/** Free text of the query, without its terms and groups; what the search field shows. */
 export function cardSearchText(query: string): string {
   return queryItems(String(query ?? "")).filter((item) => item.kind === "word" || item.kind === "or").map((item) => item.source).join(" ");
 }
 
-/** Terms of the given kinds as written (`Feld:Text` is `field`, `rated:7` is `since`), negated ones included. */
 export function cardSearchTermsOfKind(query: string, kind: CardSearchTerm["kind"]): string[] {
   return queryItems(String(query ?? "")).filter((item) => item.kind === "term" && parseTerm(item.source)?.kind === kind).map((item) => item.source);
 }
 
-/** Terms and groups of the query in their written order, as the filter chips show them. */
 export function cardSearchTerms(query: string): string[] {
   return queryItems(String(query ?? "")).filter((item) => item.kind === "term" || item.kind === "group").map((item) => item.source);
 }
 
-/** Members of a chip `(a or b …)` written as a menu group, else null. */
 export function cardSearchGroupMembers(source: string): { members: string[]; negated: boolean } | null {
   const [item] = queryItems(source);
   return item?.kind === "group" && item.members ? { members: item.members, negated: item.negated } : null;

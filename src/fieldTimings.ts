@@ -2,7 +2,6 @@ import { createAccountStorage } from "./accountStorage.ts";
 import { appPerformanceMeasures } from "./appPerformance.ts";
 import { APP_RUNTIME_INFO } from "./appRuntime.ts";
 
-/** Interactions timed on the device, each with the point where its result is drawn. */
 const interactionEnds = {
   "core:answer_shown": "card-frame",
   "core:rating_to_next_card": "card-frame",
@@ -14,7 +13,6 @@ type FieldTimingEnd = (typeof interactionEnds)[InteractionMetric];
 type StartupMetric = (typeof appPerformanceMeasures)[keyof typeof appPerformanceMeasures];
 export type FieldTimingMetric = InteractionMetric | StartupMetric;
 
-/** The interactions, then the start phases that `appPerformance.ts` measures. */
 export const FIELD_TIMING_METRICS: readonly FieldTimingMetric[] = [
   ...(Object.keys(interactionEnds) as InteractionMetric[]),
   ...Object.values(appPerformanceMeasures),
@@ -25,7 +23,6 @@ const startupMetrics = new Set<string>(Object.values(appPerformanceMeasures));
 export type FieldTimingSample = readonly [durationMs: number, day: number];
 export type FieldTimingSamples = Partial<Record<FieldTimingMetric, FieldTimingSample[]>>;
 
-/** Values kept per metric; older ones drop out. */
 export const FIELD_TIMING_LIMIT = 200;
 const MAX_DURATION_MS = 600_000;
 /** Unsaved values that make a write worthwhile while the browser is idle. */
@@ -43,9 +40,7 @@ interface FieldTimingsOptions {
   version?: string;
   now?: () => number;
   today?: () => number;
-  /** Runs when the drawn result of an interaction is on screen: in the next frame. */
   afterFrame?: (run: () => void) => void;
-  /** Runs the storage write while the browser is idle. */
   whenIdle?: (run: () => void) => void;
   /** Passes on the start phases measured so far and those still to come; called with the first account. */
   observeStartup?: (record: (name: string, durationMs: number) => void) => void;
@@ -71,11 +66,7 @@ function parseStoredTimings(raw: string | null, version: string): FieldTimingSam
   return samples;
 }
 
-/**
- * Durations of the start phases and of three interactions, kept per account in the browser and never sent anywhere
- * (ADR-050). Recording is constant work; values reach the storage in batches while the browser is idle or the page is
- * hidden.
- */
+/** Recording is constant work; values reach the storage in batches while the browser is idle or the page is hidden. */
 export function createFieldTimings({
   storage,
   version = APP_RUNTIME_INFO.version,
@@ -138,7 +129,7 @@ export function createFieldTimings({
     start(metric: InteractionMetric) {
       started.set(interactionEnds[metric], { metric, at: now() });
     },
-    /** Ends the interaction waiting for this point; the value includes the frame that draws it. */
+    /** The value includes the frame that draws it. */
     finish(end: FieldTimingEnd) {
       const interaction = started.get(end);
       if (!interaction) return;

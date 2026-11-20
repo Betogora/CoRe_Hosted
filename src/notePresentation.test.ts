@@ -263,8 +263,6 @@ test("Auswertung unterstützt Single, Multiple und vollständige Kprim-Antworten
   assert.deepEqual(evaluateNoteChoice({ kind: "choice", mode: "kprim", options }, { 0: true, 2: true }).map((option) => option.selected), [true, null, true, null]);
 });
 
-// --- Originallayout importierter Karten (ADR-047) ---
-
 const POKEMON_FIELDS: Array<[string, NoteField["role"]]> = [["Name", "answer"], ["Nummer", "prompt"], ["Generation", "prompt"], ["Bild", "prompt"], ["Hinweis", "hint"]];
 const POKEMON_NAMES = POKEMON_FIELDS.map(([name]) => name);
 const POKEMON_FRONT = '<div class="meta"><span class="dex" data-generation="{{Generation}}">{{Nummer}}</span> · Generation {{Generation}}</div><div class="art">{{Bild}}</div>';

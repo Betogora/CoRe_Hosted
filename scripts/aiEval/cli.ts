@@ -92,7 +92,6 @@ async function main(argv: string[]) {
     const cases = loadCases(definition).filter((entry) => meta.split === "all" || entry.split === meta.split);
     const judged = verdictsIn(directory);
     if (!judged && !meta.dry) throw new Error(`${directory}/judge-verdicts.json fehlt. Zuerst „table“ ausführen und den Richter bewerten lassen.`);
-    // Trockenlauf ohne Richter: Jedes Richterkriterium gilt als bestanden.
     const verdicts: Verdicts = judged ?? new Map(cases.flatMap((entry) => Array.from({ length: meta.repetitions }, (_, repetition) => [answerRef(entry.id, repetition), Object.fromEntries(definition.judged(entry.request).map((criterion) => [criterion.id, true]))] as const)));
     const results = evaluateAnswers(definition, cases, meta.repetitions, readAnswers(directory), verdicts);
     writeJson(path.join(directory, "results.json"), results);

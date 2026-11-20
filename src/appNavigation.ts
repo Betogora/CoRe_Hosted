@@ -6,9 +6,7 @@ const menu = createMenuModel();
 const defaultViewId = menu.defaultViewId;
 const studyFallbackViewId: AppViewId = "lernen";
 const reviewReturnViews = ["today", "learn", "decks", "exams"] as const;
-/** Areas of the settings dialog that lies over any view; `start` is the area list on narrow screens and `Konto` beside it on wide ones, `konflikte` is `daten` focused on the sync conflicts. */
 export const SETTINGS_SECTIONS = ["start", "konto", "darstellung", "daten", "konflikte", "ueber", "lerntag", "tagesrunde", "scheduler", "flaggen", "fokus"] as const;
-/** Areas of the deck settings dialog; `start` is the area list on narrow screens and `stapel` beside it on wide ones, `neue-karten` is `tagesrunde` focused on the new-card limit. */
 export const DECK_SETTINGS_SECTIONS = ["start", "stapel", "tagesrunde", "neue-karten", "scheduler"] as const;
 const deckContentTabs = ["children", "summary", "mind-map", "cards"] as const;
 const cardEditorTabs = ["general", "content", "variants", "study"] as const;
@@ -21,23 +19,19 @@ export type SettingsSection = typeof SETTINGS_SECTIONS[number];
 export type GeneralSettingsSection = "konto" | "darstellung" | "daten" | "ueber";
 export type DeckSettingsSection = typeof DECK_SETTINGS_SECTIONS[number];
 
-/** How the cards of a finished creation came about; the completion screen names its way. */
 const CREATION_COMPLETION_KINDS = ["import", "manual", "ai-source"] as const;
 export type CreationCompletionKind = typeof CREATION_COMPLETION_KINDS[number];
 
-/** The deck settings dialog lying over a view or a study session. */
 export interface DeckSettingsOverlay {
   deckId: string;
   section: DeckSettingsSection;
 }
 export type LearningSettingsSection = "lerntag" | "tagesrunde" | "scheduler" | "flaggen" | "fokus";
 
-/** The area a settings section shows: `start` shows Konto, `konflikte` the data area. */
 export function settingsContentSection(section: SettingsSection): GeneralSettingsSection | LearningSettingsSection {
   return section === "start" ? "konto" : section === "konflikte" ? "daten" : section;
 }
 
-/** General and learning settings keep separate drafts, so each group is one screen. */
 export function settingsSectionGroup(section: SettingsSection): "general" | "learning" {
   return ["konto", "darstellung", "daten", "ueber"].includes(settingsContentSection(section)) ? "general" : "learning";
 }
@@ -57,7 +51,6 @@ export interface ViewRoute {
   viewId: AppViewId;
   focusedDeckId?: string;
   selectedCardId?: string;
-  /** Tab of the opened card editor; from the table it opens `general`, from a session `content` (W6). */
   cardEditorTab?: CardEditorTab;
   deckContent?: boolean;
   deckContentTab?: DeckContentTab;
@@ -70,7 +63,6 @@ export interface ViewRoute {
   cardEditorReturnContext?: ReviewResumeContext;
   settingsSection?: SettingsSection;
   deckSettings?: DeckSettingsOverlay;
-  /** Search the card management opens with, e.g. the cards still without a variant after a generation. */
   cardQuery?: string;
 }
 

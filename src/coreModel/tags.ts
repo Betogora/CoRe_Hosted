@@ -1,4 +1,3 @@
-/** Anki's system tags; CoRe maps them to the mark and the leech state instead of keeping them as tags. */
 const MARKED_TAG = "marked";
 const LEECH_TAG = "leech";
 
@@ -35,10 +34,6 @@ export function normalizeTags(tags: unknown): string[] {
   return result;
 }
 
-/**
- * Renames a tag with its subtags (`A` and `A::x` become `B` and `B::x`); a name that exists merges into it. Without a
- * new name the tag and its subtags go. The same tags come back when nothing matches.
- */
 export function renameTag(tags: readonly string[], from: string, to: string | null): readonly string[] {
   const fromKey = tagKey(normalizeTag(from));
   const matches = (tag: string) => tagKey(tag) === fromKey || tagKey(tag).startsWith(`${fromKey}::`);
@@ -58,7 +53,6 @@ export function tagSearchKeys(tags: readonly string[]): string[] {
   return [...keys].sort();
 }
 
-/** Splits Anki tags into CoRe tags and the system tags `marked` and `leech`. */
 export function splitAnkiSystemTags(tags: readonly string[]): { tags: string[]; marked: boolean; leech: boolean } {
   const keys = tags.map(tagKey);
   return {

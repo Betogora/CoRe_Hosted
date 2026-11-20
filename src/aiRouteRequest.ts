@@ -5,8 +5,8 @@ import type { Database } from "./database.types.ts";
 const errorSchema = v.looseObject({ error: v.looseObject({ code: v.string(), message: v.string() }) });
 
 /**
- * Posts to a CoRe AI route with the session token and returns the unvalidated JSON of a successful response.
- * `fail` builds the caller's error type; the caller validates the body against its own contract.
+ * Returns the unvalidated JSON of a successful response; the caller validates it against its own contract. `fail`
+ * builds the caller's error type.
  */
 export async function postAiRoute(endpoint: string, body: unknown, supabase: SupabaseClient<Database> | null, { fetchImpl = globalThis.fetch, timeoutMs, signal, fail, messages }: {
   fetchImpl?: typeof fetch;

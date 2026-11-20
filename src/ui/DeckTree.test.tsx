@@ -38,7 +38,6 @@ test("deck tree keeps one visual header and all three accessibly labelled metric
   assert.equal((markup.match(/data-testid="deck-summary-header"/g) ?? []).length, 1);
   assert.match(markup, /data-testid="deck-summary-header"[^>]*aria-hidden="true"[\s\S]*>Stapel<[\s\S]*>Neu<[\s\S]*>Offen<[\s\S]*>Fällig</);
   assert.equal((markup.match(/data-deck-summary-row-content="responsive"/g) ?? []).length, 2);
-  // Rows show the local name only, the main deck in 600 and its subdeck in 500, with a transparent icon ground.
   assert.match(markup, /class="core-deck-summary-name min-w-0 flex-1 font-semibold text-core-text core-body" data-deck-name-wrap="false">Bereich<\/span>/);
   assert.match(markup, /class="core-deck-summary-name min-w-0 flex-1 font-medium text-core-text core-body" data-deck-name-wrap="false">Grundlagen<\/span>/);
   assert.match(markup, /--core-deck-depth:1;--core-deck-icon-background:transparent/);

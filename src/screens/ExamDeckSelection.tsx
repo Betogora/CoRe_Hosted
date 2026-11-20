@@ -4,7 +4,6 @@ import type { createDeckLibraryModel } from "../libraryModel.ts";
 import { IconButton } from "../ui/actionUi.tsx";
 import { CoreCheckbox } from "../ui/formControls.tsx";
 
-/** Expansion and search only change the view; selecting a branch remains an exam-model operation. */
 export function ExamDeckSelection({ rows, selected, onToggle }: {
   rows: ReturnType<typeof createDeckLibraryModel>["rows"]; selected: ReadonlySet<string>;
   onToggle: (id: string, checked: boolean) => void;

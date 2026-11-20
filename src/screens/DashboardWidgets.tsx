@@ -71,12 +71,11 @@ export function DashboardWidgets({ userId, header, children, planner, onOpenPlan
     refocusToggle.current = true;
     setEditing(!editing);
   }
-  // Pencil and "Fertig" are different buttons; keep keyboard focus on whichever replaces the other.
+  // The edit toggle and its done button are different elements; keep keyboard focus on whichever replaces the other.
   React.useEffect(() => {
     if (refocusToggle.current) toggle.current?.focus({ preventScroll: true });
     refocusToggle.current = false;
   }, [editing]);
-  // Collapsed, the library shows only the complete tiles of its first grid row; the expander reveals the rest.
   React.useLayoutEffect(() => {
     const element = library.current;
     if (!element) return;
@@ -88,7 +87,6 @@ export function DashboardWidgets({ userId, header, children, planner, onOpenPlan
   }, [editing]);
   const libraryOverflows = DASHBOARD_WIDGETS.length > libraryColumns;
 
-  // Desktop shows the toggle in the header, narrow screens directly below the preview row.
   const libraryToggle = (placement: "header" | "below") => libraryOverflows || libraryExpanded ? <button type="button" className="dashboard-widget-library-more" data-placement={placement} aria-expanded={libraryExpanded} aria-controls={libraryId} onClick={() => setLibraryExpanded(!libraryExpanded)}>{libraryExpanded ? <ChevronUp size={16} aria-hidden="true" /> : <ChevronDown size={16} aria-hidden="true" />}<span>{libraryExpanded ? "Weniger Widgets" : "Weitere Widgets"}</span></button> : null;
   const contents = { ...children, timer: <DashboardTimer timer={timer} onStart={onStartTimer} onPause={onPauseTimer} onResume={onResumeTimer} onReset={onResetTimer} />, todos: <DashboardTodos todos={preferences.todos} onChange={(todos) => update({ ...preferences, todos })} planner={planner} onOpenPlanner={onOpenPlanner} /> };
   return <div className="grid min-w-0 gap-4 dashboard-modules" onPointerMove={drag.move} onPointerUp={drag.finish} onPointerCancel={drag.cancel} onLostPointerCapture={drag.cancel} onKeyDownCapture={drag.keyDown}>
@@ -145,7 +143,6 @@ function DashboardTodos({ todos, onChange, planner, onOpenPlanner }: { todos: Da
     const id = `${listId}-${todo.id}`;
     return <li key={todo.id} className="flex min-h-control min-w-0 items-center gap-2" data-own-todo={todo.id}><DashboardTaskText checkbox={<CoreCheckbox id={id} checked={todo.done} onCheckedChange={() => onChange(todos.map((entry) => entry.id === todo.id ? { ...entry, done: !entry.done } : entry))}/>}><span className={`core-body ${todo.done ? "text-core-muted line-through" : "text-core-text"}`}>{todo.text}</span></DashboardTaskText><IconButton icon={Trash2} variant="destructive-quiet" label={`Aufgabe löschen: ${todo.text}`} onClick={() => onChange(todos.filter((entry) => entry.id !== todo.id))} /></li>;
   }
-  // The widget keeps its fixed height; every task stays in one list that scrolls inside it.
   return <SoftPanel className="dashboard-todos min-w-0 p-5">
     <SectionHeader level={2} title="To-dos" count={count ? `${count} offen` : undefined} action={<span className="flex items-center"><IconButton ref={addButton} icon={Plus} variant="ghost" label="Eigene Aufgabe hinzufügen" aria-expanded={adding} onClick={() => setAdding(!adding)} /><IconButton icon={ArrowUpRight} variant="ghost" label="Planer öffnen" onClick={onOpenPlanner} /></span>} />
     <div className="dashboard-todos-list">

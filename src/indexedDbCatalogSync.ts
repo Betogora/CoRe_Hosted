@@ -1,4 +1,3 @@
-// Private to indexedDbCoreRepository.ts: applies catalog delta pages from the cloud while pending local edits keep their rows.
 import type { Deck } from "./coreTypes.ts";
 import type { CloudCatalogPage } from "./cloudRepository.ts";
 import type { ReplicatedNoteTypeSource } from "./cloudRepositoryValidation.ts";

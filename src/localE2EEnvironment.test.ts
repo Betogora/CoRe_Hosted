@@ -68,15 +68,15 @@ test("createLocalE2ERuntimeEnvironment builds isolated non-secret local credenti
   assert.equal(environment.VITE_SUPABASE_PUBLISHABLE_KEY, "local-anon-key");
   assert.equal(environment.CORE_E2E_ALLOW_ACCOUNT_RESET, "true");
   assert.equal(environment.MAILPIT_URL, "http://127.0.0.1:54324");
-// @ts-expect-error -- Die Fixture pr?ft bewusst eine unvollst?ndige, ung?ltige oder konfliktbehaftete Laufzeitform.
+// @ts-expect-error
   assert.match(environment.CORE_E2E_EMAIL, /@example\.com$/);
   assert.ok(environment);
-// @ts-expect-error -- Die Fixture pr?ft bewusst eine unvollst?ndige, ung?ltige oder konfliktbehaftete Laufzeitform.
+// @ts-expect-error
   assert.ok(environment.CORE_E2E_PASSWORD.length >= 12);
-// @ts-expect-error -- Die Fixture pr?ft bewusst eine unvollst?ndige, ung?ltige oder konfliktbehaftete Laufzeitform.
+// @ts-expect-error
   assert.match(environment.CORE_RLS_USER_B_EMAIL, /@example\.com$/);
   assert.ok(environment);
-// @ts-expect-error -- Die Fixture pr?ft bewusst eine unvollst?ndige, ung?ltige oder konfliktbehaftete Laufzeitform.
+// @ts-expect-error
   assert.ok(environment.CORE_RLS_USER_B_PASSWORD.length >= 12);
   assert.equal(environment.PATH, "test-path");
   assert.equal("SERVICE_ROLE_KEY" in environment, false);
@@ -163,7 +163,7 @@ test("ensureLocalE2EAccount never creates accounts on hosted projects", async ()
       email: "test@example.com",
       password: "password",
     },
-// @ts-expect-error -- Die Fixture pr?ft bewusst eine unvollst?ndige, ung?ltige oder konfliktbehaftete Laufzeitform.
+// @ts-expect-error
     () => {
       factoryCalls += 1;
       return {};
@@ -205,7 +205,7 @@ test("ensureLocalE2EAccount creates and verifies a missing loopback account", as
       email: "core-e2e-local@example.com",
       password: "local-password",
     },
-// @ts-expect-error -- Die Fixture pr?ft bewusst eine unvollst?ndige, ung?ltige oder konfliktbehaftete Laufzeitform.
+// @ts-expect-error
     () => client,
   );
 

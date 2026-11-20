@@ -232,7 +232,6 @@ test("[Vertrag: Kartenverwaltung] Kartenzeilen bleiben auch in schmalen Viewport
       const dueCells = cardRows.map((row) => row.querySelectorAll<HTMLElement>("td")[1]);
       const variantCells = cardRows.map((row) => row.querySelectorAll<HTMLElement>("td")[2]);
       const variantLayouts = variantCells.map((cell) => cell?.firstElementChild as HTMLElement | null);
-      // Flag and mark keep their slots left of the count, which closes the column.
       const variantTags = variantLayouts.map((layout) => layout?.lastElementChild as HTMLElement | null);
       const markSlots = variantLayouts.map((layout) => layout?.children[1] as HTMLElement | null);
       const variantTagRightEdges = variantTags.map((tag) => tag?.getBoundingClientRect().right ?? Number.NaN);
@@ -256,13 +255,11 @@ test("[Vertrag: Kartenverwaltung] Kartenzeilen bleiben auch in schmalen Viewport
         headerLabels: headerLabels.map((label) => label?.textContent?.trim()),
         headerAccessibleNames: headers.map((header) => header.querySelector(".core-table-header-control")?.getAttribute("aria-label")),
         headersFit: headerLabels.every((label) => Boolean(label) && label!.scrollWidth <= label!.clientWidth + 1),
-        // Every sort header closes its column at the content edge of the column's cells.
         headerRightOffsets: (() => {
           const cells = cardRow ? [...cardRow.querySelectorAll<HTMLElement>("td")] : [];
           const contentRight = (element: HTMLElement | undefined) => element ? element.getBoundingClientRect().right - parseFloat(window.getComputedStyle(element).paddingRight) : Number.NaN;
           return headers.map((header, index) => Math.abs((header.querySelector<HTMLElement>(".core-table-header-control")?.getBoundingClientRect().right ?? Number.NaN) - contentRight(cells[index])));
         })(),
-        // The date column just fits a date: from sm the first column's text, the date and the variants' slots stand equally far apart.
         valueGaps: (() => {
           const firstCell = cardRows[0]?.querySelector<HTMLElement>("td");
           const date = dueCells[0]?.firstChild;
@@ -483,7 +480,6 @@ test("[Vertrag: URL-Kontext] @beta-core Reload, Direktlink und Review-Rückweg e
   await page.reload();
   await completeReview(page);
   await page.getByRole("button", { name: "Zurück zum Ausgangspunkt" }).click();
-  // The return context keeps deck and card; the editor opens in the table's entry tab (W6).
   await expect(page).toHaveURL(cardUrl.replace("cardTab=content", "cardTab=general"));
   await expect(page.getByTestId("card-detail-dialog").getByRole("heading", { level: 2 })).toContainText("Karte B2");
 

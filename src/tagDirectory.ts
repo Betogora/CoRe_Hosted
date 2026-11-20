@@ -1,6 +1,5 @@
 import type { Note } from "./coreTypes.ts";
 
-/** One tag of the account, case-insensitive like Anki, with the spelling that is stored first. */
 export interface TagDirectoryEntry {
   tag: string;
   noteCount: number;
@@ -10,7 +9,6 @@ export interface TagDirectoryEntry {
 
 const key = (tag: string) => tag.toLocaleLowerCase("und");
 
-/** Local tag directory from the contents in the replica; the cloud offers the same via `list_account_tags`. */
 export function createTagDirectoryBuilder() {
   const entries = new Map<string, TagDirectoryEntry>();
   return {
@@ -29,8 +27,8 @@ export function createTagDirectoryBuilder() {
 }
 
 /**
- * The directory right after a tag management change, until the reloaded one arrives: the tag and its subtags take the
- * new name (merged counts add up, an upper bound) or go.
+ * Optimistic directory until the reloaded one arrives: the tag and its subtags take the new name or go (`to` null);
+ * merged counts add up and are only an upper bound.
  */
 export function renameDirectoryTag(directory: readonly TagDirectoryEntry[], from: string, to: string | null): TagDirectoryEntry[] {
   const fromKey = key(from);
@@ -48,15 +46,10 @@ export function renameDirectoryTag(directory: readonly TagDirectoryEntry[], from
   return [...entries.values()].sort((left, right) => left.tag.localeCompare(right.tag, "de"));
 }
 
-/** The spelling a tag already has in the account wins, like in Anki. */
 export function canonicalTagSpelling(directory: readonly TagDirectoryEntry[], tag: string): string {
   return directory.find((entry) => key(entry.tag) === key(tag))?.tag ?? tag;
 }
 
-/**
- * Suggestions for typed text, hierarchy-aware: whole paths starting with the text first, then paths with a `::` part
- * starting with it, then paths containing it; frequent tags first. Already chosen tags are left out.
- */
 export function suggestTags(directory: readonly TagDirectoryEntry[], input: string, chosen: readonly string[] = [], limit = 8): TagDirectoryEntry[] {
   const query = key(input.trim());
   if (!query) return [];

@@ -30,10 +30,6 @@ function clozeVariantSource(content: NoteContent, ordinal: number): AiCardVarian
 
 const promptText = (content: NoteContent) => content.fields.filter((field) => field.role === "prompt").map((field) => plainText(field.html)).filter(Boolean).join(" ");
 
-/**
- * Plain question and answer of a reveal card, the cloze text of a cloze card, or the question and options of a choice
- * card; the only source of AI rephrasings.
- */
 export function cardVariantSource(note: Pick<Note, "content">, card: Pick<Card, "promptKey">): AiCardVariantSource | null {
   const { content } = note;
   if (content.interaction.kind === "cloze") return clozeVariantSource(content, Number(card.promptKey.replace(/^cloze:/, "")));
@@ -56,7 +52,6 @@ export function cardVariantSource(note: Pick<Note, "content">, card: Pick<Card, 
   return front && back ? { kind: prompt.typeInFieldId ? "type-in" : "basic", front, back } : null;
 }
 
-/** Rephrased option texts of a choice variant by option id (`meta.options`); options it lacks keep the card's text. */
 function variantOptionHtml(variant: CardVariant): Map<string, string> {
   const options = Array.isArray(variant.meta.options) ? variant.meta.options : [];
   return new Map(options.flatMap((option: unknown) => {
@@ -77,11 +72,10 @@ function variantOptionOrder<Option extends { id: string }>(variantId: string, op
 }
 
 /**
- * A rephrased variant shown as a transient content of its card in the CoRe design, since it has none of the fields an
- * imported layout names; hint, extra and source fields stay.
- * A cloze variant is a cloze text asked with the card's own gap group. A typed answer keeps the card's own answer
- * fields, so the learner types exactly what the card itself expects. Speech stays only for fields taken over
- * unchanged: a rephrasing may be in another language than the voice.
+ * A transient content of its card in the CoRe design, since a rephrasing has none of the fields an imported layout
+ * names; hint, extra and source fields stay. A typed answer keeps the card's own answer fields, so the learner types
+ * exactly what the card itself expects. Speech stays only for fields taken over unchanged: a rephrasing may be in
+ * another language than the voice.
  */
 export function variantPresentation(note: Note, card: Card, variant: CardVariant): { note: Note; card: Card } {
   const { interaction } = note.content;
@@ -121,7 +115,6 @@ export function variantPresentation(note: Note, card: Card, variant: CardVariant
   };
 }
 
-/** Whether a new rephrasing may be generated for the card; the reasons explain a disabled action. */
 export function classifyCardEligibility(note: Pick<Note, "content">, card: Card, deckSettings: DeckSettingsInput = {}) {
   const settings = createDefaultDeckSettings(deckSettings);
   const reasons: string[] = [];
@@ -142,10 +135,6 @@ export function classifyCardEligibility(note: Pick<Note, "content">, card: Card,
   return { eligible: reasons.length === 0, reasons };
 }
 
-/**
- * Whether to generate the card's next variant now, ahead of its next contact: its durability opens the release, the
- * chain has no variant after the reached stage, and the card may get one (`classifyCardEligibility`).
- */
 export function needsNextVariant(note: Pick<Note, "content">, card: Card, deckSettings: DeckSettingsInput = {}): boolean {
   const settings = createDefaultDeckSettings(deckSettings);
   return isCardReadyForVariants(card, settings)
@@ -153,7 +142,6 @@ export function needsNextVariant(note: Pick<Note, "content">, card: Card, deckSe
     && classifyCardEligibility(note, card, settings).eligible;
 }
 
-/** Durability of a card compared with the deck's threshold for asking rephrasings. */
 export function describeVariantReadiness(card: Card, deckSettings: DeckSettingsInput = {}) {
   const settings = createDefaultDeckSettings(deckSettings);
   const ready = isCardReadyForVariants(card, settings);
@@ -171,7 +159,6 @@ export function describeVariantReadiness(card: Card, deckSettings: DeckSettingsI
     reason,
     activeCount: getActiveVariants(card).length,
     maxActive: settings.maxActiveVariantsPerCard,
-    /** The variant the chain asks next once the release is open. */
     nextVariantId: nextChainVariant(card, settings)?.id ?? null,
   };
 }
@@ -181,11 +168,7 @@ export function deactivateVariant(card: Card, variantId: string, _reason = "Nutz
   return { ...card, variants: card.variants.map((variant) => variant.id === variantId ? { ...variant, isActive: false, qualityStatus: "disabled", updatedAt, revision: variant.revision + 1 } : variant), updatedAt };
 }
 
-/**
- * Replaces a variant's wording. An edited variant counts as the learner's own: regenerating the deck's variants keeps
- * it, a content change still makes it outdated. A cloze variant must keep the card's gap group with the same solutions
- * (`source` from `cardVariantSource`); its answer stays theirs.
- */
+/** A cloze variant must keep the card's gap group with the same solutions (`source` from `cardVariantSource`). */
 export function editVariantText(card: Card, variantId: string, text: { front: string; back: string }, updatedAt = new Date().toISOString(), source: AiCardVariantSource | null = null): Card {
   const variant = card.variants.find((candidate) => candidate.id === variantId && !candidate.deletedAt);
   if (!variant) throw new Error("Die Variante wurde nicht gefunden.");
@@ -203,12 +186,10 @@ export function editVariantText(card: Card, variantId: string, text: { front: st
   return { ...card, variants: card.variants.map((candidate) => candidate.id === variantId ? edited : candidate), updatedAt };
 }
 
-/** Whether the learner edited the variant's wording (`editVariantText`). */
 export function isEditedVariant(variant: CardVariant): boolean {
   return typeof variant.meta.editedAt === "string";
 }
 
-/** Takes an excluded or reported variant back into the chain; outdated or deleted ones stay out. Feedback history stays. */
 export function reactivateVariant(card: Card, variantId: string, updatedAt = new Date().toISOString()): Card {
   return {
     ...card,
@@ -219,7 +200,7 @@ export function reactivateVariant(card: Card, variantId: string, updatedAt = new
   };
 }
 
-/** Removes a variant; like replaced outdated variants it stays as a tombstone so sync deletes it everywhere. */
+/** Stays as a tombstone so sync deletes it everywhere. */
 export function deleteVariant(card: Card, variantId: string, updatedAt = new Date().toISOString()): Card {
   return {
     ...card,

@@ -55,7 +55,6 @@ function chunksOf(feature: AppFeatureId): FeatureChunks | undefined {
 
 const chunkUrls = (files: readonly string[]) => files.map((file) => `${import.meta.env.BASE_URL}${file}`);
 
-/** Once a feature runs, its sub-areas (summaries, mind maps, editor tabs) download while the browser is idle. */
 function prefetchFeatureParts(feature: AppFeatureId) {
   const parts = chunksOf(feature)?.parts ?? [];
   if (parts.length === 0 || !allowsBrowserAutomaticPreloading()) return;

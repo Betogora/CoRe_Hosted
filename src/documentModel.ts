@@ -39,7 +39,6 @@ function isPdfFile(file: Pick<File, "name" | "type">) {
   return type === "application/pdf" || PDF_EXTENSIONS.includes(extension);
 }
 
-/** Whether a chosen or dropped file is one of the readable source formats; other files are rejected before reading. */
 export function isReadableSourceDocument(file: Pick<File, "name" | "type">): boolean {
   return isTextReadableFile(file) || isPdfFile(file);
 }

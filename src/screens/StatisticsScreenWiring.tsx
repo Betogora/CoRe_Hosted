@@ -5,7 +5,6 @@ import { useAppServices } from "../useAppServices.ts";
 import { useWorkspaceValue } from "../useWorkspaceStore.ts";
 import { StatisticsScreen } from "./StatisticsScreen.tsx";
 
-/** `Statistik` over the local projection, completed with the cloud snapshot and the answers still waiting to sync. */
 export function StatisticsScreenWiring() {
   const { navigation, clock, repository: workspaceRepository, hydration: workspaceHydrationService } = useAppServices();
   const decks = useWorkspaceValue((snapshot) => snapshot.state?.decks);

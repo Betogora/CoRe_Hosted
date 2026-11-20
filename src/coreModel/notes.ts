@@ -19,9 +19,8 @@ interface CreateNoteInput {
   ankiGuid?: string | null;
   noteTypeSourceId?: string | null;
   translator?: Note["translator"];
-  /** Media names mapped to SHA-1; names that already are a SHA-1 (manual images) map to themselves. */
   media?: Record<string, string>;
-  /** Template media of the imported note type, kept although no field names them (ADR-047). */
+  /** Template media of the imported note type, kept although no field names them. */
   layoutMedia?: Record<string, string>;
   createdAt?: string;
 }
@@ -30,7 +29,7 @@ interface CreateNoteInput {
 const isLayoutMedia = (name: string) => name.startsWith("_");
 const layoutMediaOf = (media: Record<string, string>) => Object.fromEntries(Object.entries(media).filter(([name]) => isLayoutMedia(name)));
 
-/** Keeps the media mapping for names the content references; manual images are named by their SHA-1. */
+/** Manual images are named by their SHA-1, so an unmapped SHA-1 name maps to itself. */
 function noteMediaFor(content: NoteContent, media: Record<string, string> = {}): Record<string, string> {
   const result: Record<string, string> = {};
   for (const name of noteContentMediaRefs(content)) {
@@ -40,7 +39,6 @@ function noteMediaFor(content: NoteContent, media: Record<string, string> = {}):
   return result;
 }
 
-/** Drops media entries the content no longer references; referenced ones and template media stay. No content change. */
 export function removeUnusedNoteMedia(note: Note, names: readonly string[], updatedAt = new Date().toISOString()): Note {
   const used = new Set(noteContentMediaRefs(note.content));
   const removed = names.filter((name) => name in note.media && !used.has(name) && !isLayoutMedia(name));
@@ -69,7 +67,6 @@ function createCard(note: Note, deckId: string, promptKey: string, createdAt: st
   };
 }
 
-/** Creates one validated content record and a fresh card for each derived prompt key. */
 export function createNote(input: CreateNoteInput): { note: Note; cards: Card[] } {
   const parsed = parseOrThrow(input.content);
   const createdAt = input.createdAt ?? new Date().toISOString();
@@ -107,14 +104,6 @@ function parseOrThrow(content: unknown) {
   return parsed;
 }
 
-/**
- * Removed cards are only proposed; the caller must obtain confirmation before deleting them.
- * Content that is unchanged after sanitizing keeps the previous note and its revisions.
- */
-/**
- * Question and answer HTML a reveal card is asked with, the cloze text of a cloze card (other gaps appear in it as
- * text) or the question and options of a choice card; AI rephrasings are made from exactly these fields.
- */
 function promptSourceHtml(content: NoteContent, promptKey: string): string | null {
   const promptHtml = () => content.fields.filter((field) => field.role === "prompt").map((field) => field.html).join("\u001f");
   if (content.interaction.kind === "cloze") return promptHtml();
@@ -126,15 +115,11 @@ function promptSourceHtml(content: NoteContent, promptKey: string): string | nul
   return `${html(prompt.questionFieldIds)}\u001e${html(prompt.answerFieldIds)}`;
 }
 
-/**
- * The card with its active rephrasings outdated when the content its prompt is asked from changed between the two
- * contents, e.g. on a reimport that replaces an unedited content; otherwise the card itself.
- */
 export function outdateVariantsOfChangedSource(previous: NoteContent, next: NoteContent, card: Card, updatedAt: string): Card {
   return promptSourceHtml(previous, card.promptKey) === promptSourceHtml(next, card.promptKey) ? card : markVariantsOutdated(card, updatedAt);
 }
 
-/** Active rephrasings of a card whose question or answer changed are outdated: no longer asked, but kept for regeneration. */
+/** Outdated rephrasings are no longer asked but kept for regeneration. */
 function markVariantsOutdated(card: Card, updatedAt: string): Card {
   if (!card.variants.some((variant) => variant.isActive && !variant.deletedAt)) return card;
   return {
@@ -193,7 +178,6 @@ export function planNoteContentChange(
   };
 }
 
-/** Plans soft deletion across decks and retains the complete prior records for undo. */
 export function planNoteDeletion(note: Note, cards: readonly Card[], deletedAt = new Date().toISOString()) {
   assertNoteCards(note, cards);
   return {
@@ -203,7 +187,6 @@ export function planNoteDeletion(note: Note, cards: readonly Card[], deletedAt =
   };
 }
 
-/** Restores a deleted content and its cards from the undo records; revisions continue after the deletion. */
 export function planNoteRestore(undo: { note: Note; cards: readonly Card[] }, deleted: { note: Note; cards: readonly Card[] }, restoredAt = new Date().toISOString()) {
   const deletedCards = new Map(deleted.cards.map((card) => [card.id, card]));
   return {
@@ -212,20 +195,18 @@ export function planNoteRestore(undo: { note: Note; cards: readonly Card[] }, de
   };
 }
 
-/** The mark belongs to the content like in Anki; it is no content change and keeps `contentRevision`. */
 export function setNoteMarked(note: Note, marked: boolean, updatedAt = new Date().toISOString()): Note {
   if (note.marked === marked) return note;
   return { ...note, marked, updatedAt, revision: note.revision + 1 };
 }
 
-/** Sets the content's tags; like the mark this is no content change and keeps `contentRevision`. */
 export function setNoteTags(note: Note, tags: readonly string[], updatedAt = new Date().toISOString()): Note {
   const normalized = normalizeTags(tags);
   if (JSON.stringify(normalized) === JSON.stringify(note.content.tags)) return note;
   return { ...note, content: { ...note.content, tags: normalized }, updatedAt, revision: note.revision + 1 };
 }
 
-/** Applies instant actions; unchanged parts keep their identity so callers can skip saving them. */
+/** Unchanged parts keep their identity so callers can skip saving them. */
 export function applyCardStudyStatePatch(note: Note, card: Card, patch: CardStudyStatePatch, updatedAt = new Date().toISOString()): { note: Note; card: Card } {
   let nextNote = patch.marked === undefined ? note : setNoteMarked(note, patch.marked, updatedAt);
   if (patch.tags !== undefined) nextNote = setNoteTags(nextNote, patch.tags, updatedAt);
@@ -234,7 +215,6 @@ export function applyCardStudyStatePatch(note: Note, card: Card, patch: CardStud
   return { note: nextNote, card: nextCard };
 }
 
-/** Copies a content as a new manual note with fresh cards in the decks of the original prompts. */
 export function duplicateNote(note: Note, cards: readonly Card[], createdAt = new Date().toISOString()): { note: Note; cards: Card[] } {
   assertNoteCards(note, cards);
   const markerFieldId = (note.content.fields.find((field) => field.role === "prompt") ?? note.content.fields[0])?.id;
@@ -264,15 +244,10 @@ function plainText(html: string): string {
   return stripSanitizedHtml(clozePlainText(html)).replace(/&nbsp;/gi, " ").replace(/\s+/g, " ").trim();
 }
 
-/** Key of a field name in `Feld:Text` searches: lower case, spaces as underscores. */
 export function fieldSearchKey(name: string): string {
   return name.trim().toLocaleLowerCase("de").replace(/\s+/g, "_");
 }
 
-/**
- * Derived search and sort text of a content: all fields, choice options and tags; sorted by the first question.
- * `searchFields` holds each named field's text for `Feld:Text` searches.
- */
 export function noteTextIndex(content: NoteContent): { searchText: string; sortText: string; searchFields: Array<{ name: string; text: string }> } {
   const sortField = content.fields.find((field) => field.role === "prompt") ?? content.fields[0];
   const fieldTexts = content.fields.map((field) => ({ name: fieldSearchKey(field.name), text: plainText(field.html) }));
@@ -290,7 +265,6 @@ export function noteTextIndex(content: NoteContent): { searchText: string; sortT
   };
 }
 
-/** A plain question/answer note; used for the demo deck and as a compact test fixture. */
 export function createBasicNote(
   deckId: string,
   front: string,

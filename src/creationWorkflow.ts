@@ -50,7 +50,6 @@ export type ApkgCreationPreview = ApkgImportPreview;
 export type CreationWorkflow = ReturnType<typeof createCreationWorkflow>;
 type AccountMediaStore = ReturnType<typeof createAccountMediaStore>;
 
-/** Local result of an import commit; the cloud task confirms the synchronized graph afterwards. */
 export interface ImportedDeckPersistence {
   decks: Deck[];
   rootDeck: Deck | null;
@@ -60,10 +59,8 @@ export interface ImportedDeckPersistence {
   cloudTask: ImportCloudSyncTask;
 }
 
-/** The package file of an import, to recognize the continuation of an interrupted one. */
 export interface ImportSource { fileName: string; fileSize: number }
 
-/** An import whose takeover did not finish (reload, closed tab, error); kept on the device until one finishes. */
 export interface InterruptedImport extends ImportSource {
   /** Decks the takeover created or matched; once none of them is left, there is nothing to complete. */
   deckIds: string[];
@@ -196,7 +193,6 @@ function manualNoteInput(input: ManualCreationInput): ManualNoteInput {
   };
 }
 
-/** Validates the editor input and shapes it into content; manual images are named by their SHA-1. */
 function validateManualCard(input: ManualCreationInput = {}): ManualValidation {
   if (input.occlusion) {
     const errors = validateOcclusionInput(input.occlusion);
@@ -244,7 +240,6 @@ export function createCreationWorkflow({
 
     validateManualCard,
 
-    /** Stores the images locally and queues their upload before the content is saved. */
     async prepareManualMedia(attachments: Array<ManualImageAttachment | null | undefined>) {
       const unique = new Map<string, ManualImageAttachment>();
       for (const value of attachments) {
@@ -291,7 +286,6 @@ export function createCreationWorkflow({
       }
     },
 
-    /** Persists the previewed graph in chunks, caches every media file locally and queues its upload. */
     async commitApkgPreview(preview: ApkgCreationPreview | null, { onProgress }: { onProgress?: (percent: number) => void } = {}) {
       const reportProgress = createProgressReporter(onProgress);
       reportProgress(0);

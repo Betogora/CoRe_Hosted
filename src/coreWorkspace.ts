@@ -5,7 +5,7 @@ export interface WorkspaceState {
   version?: number;
   profile: Profile;
   decks: Deck[];
-  /** Contents of the loaded cards; siblings may belong to other decks. */
+  /** Siblings may belong to other decks. */
   notes: Note[];
   updatedAt: string;
   [key: string]: unknown;
