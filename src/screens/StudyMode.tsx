@@ -503,10 +503,13 @@ export function StudyMode({ shortcutsSuspended = false, deck, decks, notes, answ
         <header className="core-study-header" data-testid="study-header">
           <div className="flex items-center justify-between gap-3">
             <IconButton type="button" onClick={onExit} label="Lernmodus verlassen" icon={X} />
-            <div className="flex min-w-0 items-center justify-center gap-2">
-              <p className="min-w-0 truncate core-heading-3 text-core-text">{rootDeck?.name ?? deck?.name}</p>
-              <span className="shrink-0 core-body font-medium tabular-nums text-core-muted">{sessionDailyProgress.completedTodayCount} / {sessionDailyProgress.total}<span className="max-sm:sr-only"> Karten</span></span>
-              {current?.card.ankiFlag ? <FlagDot flag={current.card.ankiFlag} names={flagNames} /> : null}
+            {/* Below 640 px count and flag take the line under the deck name, so the name keeps its width. */}
+            <div className="flex min-w-0 flex-col items-center sm:flex-row sm:gap-2">
+              <p className="min-w-0 max-w-full truncate core-heading-3 text-core-text">{rootDeck?.name ?? deck?.name}</p>
+              <span className="flex shrink-0 items-center gap-2">
+                <span className="core-body font-medium tabular-nums text-core-muted">{sessionDailyProgress.completedTodayCount} / {sessionDailyProgress.total} Karten</span>
+                {current?.card.ankiFlag ? <FlagDot flag={current.card.ankiFlag} names={flagNames} /> : null}
+              </span>
             </div>
             <IconButton ref={settingsButtonRef} type="button" onClick={() => setShowSettings((value) => !value)} label="Lerneinstellungen" icon={SlidersHorizontal} aria-haspopup="dialog" aria-expanded={showSettings} aria-controls="study-settings-overlay" />
           </div>

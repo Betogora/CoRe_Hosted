@@ -3002,12 +3002,8 @@ button.core-steps-step {
   }
 }
 
-/* The four editor tabs stay complete on the narrowest phones; the hit position leaves room for the actions. */
+/* The four editor tabs stay complete on the narrowest phones. */
 @media (max-width: 359px) {
-  .core-card-editor-position {
-    display: none;
-  }
-
   .core-card-editor-frame .core-tabs-list {
     gap: var(--core-space-lg);
   }
@@ -3024,13 +3020,6 @@ button.core-steps-step {
   .core-card-editor-sections > .core-card-editor-section + .core-card-editor-section {
     padding-top: 0;
     border-top: 0;
-  }
-}
-
-/* Wide, the flag dots start on the content edge like every other control. */
-@media (min-width: 640px) {
-  .core-card-editor-section [data-flag-picker] {
-    margin-left: -0.75rem;
   }
 }
 
