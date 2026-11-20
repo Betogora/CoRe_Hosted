@@ -316,7 +316,7 @@ Karten entstehen ohne Dokumentquelle; mehrere Karten nacheinander sind der Norma
 - Neben dem Entwurf lässt sich eine Quelle (PDF, Text, Markdown) öffnen, um Text zu übernehmen; sie wird nicht gespeichert.
 - Speichern ist ein einzelner, exklusiver Versuch: erst Bilder auf dem Gerät, dann die Karte auf dem Gerät, dann der Upload. Mehrfaches Auslösen erzeugt höchstens eine Karte.
 - Scheitert etwas vor der lokalen Kartenspeicherung, bleibt der Entwurf. Danach gilt die Karte als gespeichert, und Upload und Sync werden nachgeholt.
-- Der Entwurf überdauert im Browser-Tab Bereichswechsel und Neuladen, nie im Konto; Bilder kein Neuladen (mit Hinweis). Verworfen wird er nur nach Rückfrage.
+- Der Entwurf überdauert im Browser-Tab Bereichswechsel und Neuladen, nie im Konto; Bilder kein Neuladen (mit Hinweis). Aus einem Stapel geöffnet, gilt dieser. Verworfen wird er nur nach Rückfrage.
 - **Bewusst nicht:** automatisches Speichern von Entwürfen im Konto.
 
 ### Bildverdeckung
@@ -387,7 +387,7 @@ Aus einer eigenen Quelle schlägt die KI Karten vor; gespeichert wird erst, was 
 
 - Ein Auftrag besteht aus Quelle (eine Datei als PDF, Text, Markdown, CSV oder TSV oder eingefügter Text), genau einem Zielstapel (neu oder vorhanden), Lernwünschen und erlaubten Kartenformen.
 - Lernwünsche sind Kartenmenge, Antwortumfang, Sprache, Formulierung, Vorwissen und freie Wünsche. Kartenmenge und Antwortumfang sind unabhängig: Mehr Karten bedeuten nicht längere Antworten.
-- Die Kartenmenge (weniger, normal, mehr) bestimmt, wie viel des Stoffs abgefragt wird. Ein Auftrag ergibt höchstens 100 Vorschläge und nur so viele, wie die Quelle trägt; Füllkarten entstehen nicht.
+- Die Kartenmenge (weniger, normal, mehr) bestimmt, wie viel Stoff abgefragt wird. Ein Auftrag ergibt höchstens 100 Vorschläge und nur so viele, wie die Quelle trägt; Füllkarten entstehen nicht.
 - Kartenformen (Frage–Antwort, Lückentext, Single Choice, Multiple Choice) werden erlaubt, nicht erzwungen; passende Abruf-, Verständnis- und Anwendungsfragen werden ohne feste Quoten gemischt.
 - Karten stammen nur aus der Quelle. Jede Karte nennt ihre Stelle (PDF-Seite oder Zeilen der Datei); Belege werden nie erfunden.
 - Die Quelle wird nur im Browser gelesen. Leere, geschützte, gescannte oder zu große Quellen (20 MiB, 400.000 Zeichen) werden abgewiesen, nie still gekürzt; Seiten ohne Textlayer werden genannt.
@@ -473,7 +473,7 @@ Fällig | ausgewählte Wiederholungen
 - Der Sitzungsstart bildet einen stabilen Plan. Nachgeladene Karten gehören dazu; ein Nachladefehler verkleinert den Tagesumfang nicht und täuscht keinen Abschluss vor.
 - Eine Karte zählt genau einmal, auch wenn sie als Variante oder mehrfach erscheint. Sie ist `Gelernt`, sobald heute kein weiterer Schritt ansteht.
 - Halten nur die Limits Karten zurück, sagt CoRe das und nennt, wie viele fällige und neue Karten warten.
-- Ist das Tagesziel erreicht, lassen sich für einen Stapel zusätzliche neue Karten nur für den aktuellen Lerntag freigeben. Wiederholungen werden dadurch nicht vorgezogen; eine Änderung des Limits hebt die Freigabe auf.
+- Ist das Tagesziel erreicht, lassen sich für einen Stapel zusätzliche neue Karten nur für den aktuellen Lerntag freigeben. Wiederholungen rücken dadurch nicht vor; ein geändertes Limit hebt die Freigabe auf.
 
 ### Begraben und Zurückstellen
 
@@ -626,7 +626,7 @@ Eine Variante fragt denselben Inhalt mit anderer Formulierung ab.
 - Eine Karte erhält Varianten bis zur Höchstzahl aktiver Varianten ihres Stapels. Gespeichert wird nur, wenn sie während der Anfrage unverändert blieb und die Formulierung neu ist.
 - **Vorausschauend:** Erreicht eine Karte die Haltbarkeitsschwelle und fehlt der Kette die nächste Variante, entsteht sie im geöffneten Tab vor der nächsten Fälligkeit, als einzige KI-Anfrage ohne eigene Aktion ([ADR-011](decisions.md#adr-011--schmale-ki-routen-über-openrouter)). Scheitert sie, etwa offline, kommt die am längsten nicht gesehene Variante; die nächste Antwort versucht es erneut.
 - **Für einen Stapel:** Eine Erzeugung gibt nacheinander bis zu 50 Karten des Stapelbaums mit CoRe-Modus und ohne aktive Variante je eine und speichert jede sofort; ein weiterer Start nimmt die nächsten. Die Stapeleinstellungen nennen, wie viele Karten noch keine haben.
-- Die Stapelerzeugung läuft im geöffneten Tab, höchstens eine zugleich, mit Fortschritt. Abbrechen behält Erzeugtes; ein Fehler, der jede Karte träfe, hält den Lauf mit Grund an. Nicht umformulierbare und übrige Karten ohne Variante werden getrennt gezählt und sind in der Kartenverwaltung abrufbar.
+- Die Stapelerzeugung läuft im offenen Tab, höchstens eine zugleich, mit Fortschritt. Abbrechen behält Erzeugtes; ein Fehler, der jede Karte träfe, hält den Lauf mit Grund an. Nicht umformulierbare und übrige Karten ohne Variante werden getrennt gezählt und sind in der Kartenverwaltung abrufbar.
 - Varianten aus einer älteren Fassung der Erzeugung lassen sich nach Rückfrage ersetzen; Karten und Lernstand bleiben.
 
 ### KI-Zusammenfassung
@@ -817,7 +817,7 @@ Fassung | im Konto, mehrere je Stapel
 
 - Die Suche umfasst alle Felder, Antwortoptionen und Tags; Stapel, deren Pfad passt, werden zusätzlich als Filter angeboten.
 - Sie versteht Ankis Suchschreibweise: Status, Reife, Fälligkeit, Flagge, Tag, Stapel, Inhaltsform, Notiztyp, Zeiträume, Lernwerte und einzelne Felder, mit Verneinung, `or` und Klammern. Dieselben Filter lassen sich ohne Schreibweise zusammenstellen; jede Stellung nennt ihre Wirkung.
-- Sich logisch ausschließende Filter bleiben erlaubt; die Suche nennt den Widerspruch.
+- Sich ausschließende Filter bleiben erlaubt; die Suche nennt den Widerspruch.
 - Noch nicht unterstützte Anki-Begriffe werden benannt und als Text gesucht. Die vollständige Schreibweise erklärt die App selbst.
 - Online- und Offline-Suche liefern dieselben Treffer ([ADR-048](decisions.md#adr-048--kartensuche-lokal-über-den-vollständigen-katalog)).
 - Gespeicherte Suchen gehören zum Konto; relative Begriffe wie „heute“ gelten für den Tag der Anwendung.
@@ -1021,7 +1021,7 @@ Gruppe:
 
 - Der lokale Stand erscheint vor dem Netz; Sync blockiert nie den Start.
 - Eine Bewertung ist gespeichert, bevor die nächste Karte erscheint.
-- CoRe misst die Dauer von Start, Aufdecken, Bewertung und Kartensuche nur auf dem Gerät, ohne Inhalte, und überträgt nichts; Lernende können die Zusammenfassung selbst kopieren und weitergeben ([ADR-050](decisions.md#adr-050--leistungsdaten-nur-lokal)).
+- CoRe misst die Dauer von Start, Aufdecken, Bewertung und Kartensuche nur auf dem Gerät, ohne Inhalte, und überträgt nichts; Lernende können die Zusammenfassung selbst weitergeben ([ADR-050](decisions.md#adr-050--leistungsdaten-nur-lokal)).
 - Zielwerte und Messung stehen unter [Performance-Gates](test-portfolio.md#performance-gates).
 
 ### Beta-Abnahme

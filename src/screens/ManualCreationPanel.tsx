@@ -14,7 +14,7 @@ import type { CreationWorkflow, ManualCreationInput, ManualImageAttachment } fro
 import type { MediaSyncProgress } from "../mediaStore.ts";
 import type { Deck, NoteContent, OcclusionMask } from "../coreTypes.ts";
 import { isManualSourceDocument, MANUAL_SOURCE_DOCUMENT_ACCEPT, MANUAL_SOURCE_DOCUMENT_LABEL, type TransientSourceDocument } from "../documentModel.ts";
-import { clearManualDraft, restoreManualDraft, storeManualDraft } from "../manualCreationDraft.ts";
+import { clearManualDraft, restoredDraftDeck, restoreManualDraft, storeManualDraft } from "../manualCreationDraft.ts";
 import { ActionButton, IconButton } from "../ui/actionUi.tsx";
 import { ActionDialog, CoreSegmentedControl, SoftPanel } from "../ui/coreUi.tsx";
 import { useSuccessToast } from "../ui/feedbackUi.tsx";
@@ -170,8 +170,8 @@ export function ManualCreationPanel({
   }, [decks.length]);
 
   React.useEffect(() => {
-    const deckId = restored?.snapshot.targetDeckId;
-    if (!deckId || deckId === selectedDeckId || !decks.some((deck) => deck.id === deckId)) return;
+    const deckId = restored ? restoredDraftDeck(restored.snapshot.targetDeckId, initialTargetDeckId, decks.map((deck) => deck.id)) : null;
+    if (!deckId || deckId === selectedDeckId) return;
     onTargetDeckChange(deckId, { replace: true });
     dispatchBatch({ type: "target-deck", deckId });
   }, []);

@@ -89,6 +89,11 @@ export function storeManualDraft(accountId: string, snapshot: ManualDraftSnapsho
   }
 }
 
+/** The draft's own deck to return to, or null when the creation was opened from a deck or the draft's deck is gone. */
+export function restoredDraftDeck(draftDeckId: string, openedDeckId: string, deckIds: readonly string[]): string | null {
+  return draftDeckId && !openedDeckId && deckIds.includes(draftDeckId) ? draftDeckId : null;
+}
+
 export function clearManualDraft(accountId: string, storage = sessionDraftStorage()) {
   if (heldImages?.accountId === accountId) heldImages = null;
   try {

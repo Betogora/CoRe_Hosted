@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import type { ManualImageAttachment } from "./creationWorkflow.ts";
-import { clearManualDraft, restoreManualDraft, storeManualDraft, type ManualDraftSnapshot } from "./manualCreationDraft.ts";
+import { clearManualDraft, restoredDraftDeck, restoreManualDraft, storeManualDraft, type ManualDraftSnapshot } from "./manualCreationDraft.ts";
 
 class MemoryStorage {
   private readonly values = new Map<string, string>();
@@ -89,4 +89,11 @@ test("ein voller Speicher stellt keinen älteren Entwurf wieder her", () => {
   assert.equal(storeManualDraft("konto-a", snapshot({ deckName: "Neuer Stand" }), [], full), false);
   assert.equal(restoreManualDraft("konto-a", storage), null);
   clearManualDraft("konto-a", storage);
+});
+
+test("aus einem Stapel geöffnet gewinnt dieser Stapel, sonst kehrt der Entwurf in seinen zurück", () => {
+  assert.equal(restoredDraftDeck("deck-y", "deck-x", ["deck-x", "deck-y"]), null);
+  assert.equal(restoredDraftDeck("deck-y", "", ["deck-x", "deck-y"]), "deck-y");
+  assert.equal(restoredDraftDeck("deck-y", "", ["deck-x"]), null, "ein gelöschter Stapel wird nicht gewählt");
+  assert.equal(restoredDraftDeck("", "", ["deck-x"]), null, "ein Entwurf für einen neuen Stapel bleibt bei der Standardwahl");
 });

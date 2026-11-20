@@ -29,7 +29,7 @@ export function CreationScreenWiring() {
         if (!method && importSession.hasVisibleSession()) importSession.reset();
         navigateToView("neue-karten", method ? {
           creationMethod: method,
-          creationDeckId: method === "manual" ? creationDeckId || decks[0]?.id : method === "ai-source" ? creationDeckId || null : null,
+          creationDeckId: method === "manual" || method === "ai-source" ? creationDeckId || null : null,
         } : {});
       }}
       onTargetDeckChange={(deckId, options) => navigateToViewNow("neue-karten", {
