@@ -412,7 +412,7 @@ test("Ohne Zusammenfassung bleibt nur die gemeinsame Erstellung mit kompakter Un
   await expect(generate).toHaveCount(1);
   const scope = panel.getByRole("checkbox", { name: "Unterstapel einbeziehen", exact: true });
   await expect(scope).toBeChecked(); await scope.uncheck();
-  await panel.getByRole("button", { name: "Abbrechen", exact: true }).click();
+  await panel.getByRole("button", { name: "Schließen", exact: true }).click();
   await expect(scope).toHaveCount(0); await expect(generate).toHaveCount(1); await generate.click();
   await expect(scope).not.toBeChecked(); await generate.click();
   await expect(panel.getByTestId("mindmap-node").first()).toBeVisible();

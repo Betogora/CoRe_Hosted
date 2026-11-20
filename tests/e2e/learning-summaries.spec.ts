@@ -83,7 +83,7 @@ test("KI-Fehler erhalten Formular und vorhandene Fassungen", async ({ page }) =>
 test("Ein Oberstapel zeigt die Fassungen seiner Unterstapel gruppiert und öffnet sie wie eigene", async ({ page }) => {
   const panel = await openSummaries(page), list = panel.getByTestId("summary-list");
   const subdeck = "Europa – ein sehr langer Name für schmale Ansichten";
-  const group = list.locator("section").filter({ has: page.getByRole("heading", { name: `Unterstapel ${subdeck}`, exact: true }) });
+  const group = list.locator("section").filter({ has: page.getByRole("heading", { name: `Unterstapel Welt-Hauptstädte / ${subdeck}`, exact: true }) });
   const own = list.locator("section").first();
   await expect(own.getByRole("heading", { name: "Welt-Hauptstädte", exact: true })).toBeVisible();
   await expect(own.getByRole("button", { name: /öffnen$/ })).toHaveCount(2);
