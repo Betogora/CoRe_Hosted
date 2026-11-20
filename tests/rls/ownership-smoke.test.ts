@@ -23,7 +23,6 @@ const TABLES = [
   "learning_mind_maps",
 ];
 
-/** Row key of a table; media files are identified per account by their SHA-1. */
 const keyOf = (table: string) => table === "media_files" ? "sha1" : "id";
 
 function requireEnvironment(name: string) {
@@ -273,10 +272,10 @@ test("lokales Supabase isoliert Nutzer A, Nutzer B und anon über alle accountge
         const ownRead = await clientA.from(table).select("*").eq(keyOf(table), fixtureA[table][keyOf(table)]);
         assertNoError(ownRead, `${table}: eigene Row lesen`);
         assert.ok(ownRead);
-// @ts-expect-error -- Die Fixture pr?ft bewusst eine unvollst?ndige, ung?ltige oder konfliktbehaftete Laufzeitform.
+// @ts-expect-error
         assert.equal(ownRead.data.length, 1, `${table}: eigene Row fehlt`);
 
-// @ts-expect-error -- Die Fixture pr?ft bewusst eine unvollst?ndige, ung?ltige oder konfliktbehaftete Laufzeitform.
+// @ts-expect-error
         const updateCase = UPDATE_CASES[table];
         const ownUpdate = await clientA
           .from(table)
@@ -285,7 +284,7 @@ test("lokales Supabase isoliert Nutzer A, Nutzer B und anon über alle accountge
           .select("*");
         assertNoError(ownUpdate, `${table}: eigene Row aktualisieren`);
         assert.ok(ownUpdate);
-// @ts-expect-error -- Die Fixture pr?ft bewusst eine unvollst?ndige, ung?ltige oder konfliktbehaftete Laufzeitform.
+// @ts-expect-error
         assert.equal(ownUpdate.data.length, 1, `${table}: eigenes UPDATE wurde nicht bestätigt`);
       }
     });
@@ -296,7 +295,7 @@ test("lokales Supabase isoliert Nutzer A, Nutzer B und anon über alle accountge
         assertNoError(foreignRead, `${table}: fremde Row lesen`);
         assert.deepEqual(foreignRead.data, [], `${table}: Nutzer B sieht Nutzer-A-Daten`);
 
-// @ts-expect-error -- Die Fixture pr?ft bewusst eine unvollst?ndige, ung?ltige oder konfliktbehaftete Laufzeitform.
+// @ts-expect-error
         const updateCase = UPDATE_CASES[table];
         const foreignUpdate = await clientB
           .from(table)
@@ -366,7 +365,6 @@ test("lokales Supabase isoliert Nutzer A, Nutzer B und anon über alle accountge
       assert.equal(bootstrapA.decks.find((entry: any) => entry.deck.id === fixtureA.decks.id)?.summary.activeVariantCount, 3);
       assert.equal(bootstrapA.studyOverview.introducedTodayByDeck[fixtureA.decks.id], 1, "Tagesfortschritt zählt eindeutige Karten statt Ereignisse");
 
-      // K7.4: a new sibling of the card answered today leaves the day counts once its deck buries new siblings.
       const siblingId = `${prefix}_sibling_reverse`;
       assertNoError(await clientA.from("cards").insert({ ...fixtureA.cards, id: siblingId, prompt_key: "reverse" }), "neues Geschwister anlegen");
       const newCount = async () => assertNoError(await clientA.rpc("get_account_bootstrap", { p_cursor: "", p_limit: 50, p_max_bytes: 204800 }), "Bootstrap mit Geschwister").studyOverview.availableNewByDeck[fixtureA.decks.id] ?? 0;
@@ -382,7 +380,6 @@ test("lokales Supabase isoliert Nutzer A, Nutzer B und anon über alle accountge
       assertNoError(await clientA.from("decks").update({ deck_settings: {} }).eq("id", fixtureA.decks.id), "Begraben wieder ausschalten");
       assertNoError(await clientA.from("cards").update({ deleted_at: new Date().toISOString() }).eq("id", siblingId), "Geschwister entfernen");
 
-      // KV5: reviews of `Treffer lernen` change the study state but use up no daily limit.
       const hitCardId = `${prefix}_hit_card`;
       assertNoError(await clientA.from("cards").insert({ ...fixtureA.cards, id: hitCardId, prompt_key: "hit" }), "Karte für Treffer lernen anlegen");
       assertNoError(await clientA.from("review_events").insert({ ...fixtureA.review_events, id: `${prefix}_hit_review`, card_id: hitCardId, flags: { kind: "hit_review" } }), "Bewertung aus Treffer lernen anlegen");
@@ -407,12 +404,10 @@ test("lokales Supabase isoliert Nutzer A, Nutzer B und anon über alle accountge
       assert.ok(deltaA.changes.length > 0);
       assert.ok(deltaA.changes.every((entry: any) => entry.row.user_id === userA.id));
       assert.ok(deltaA.changes.some((entry: any) => entry.table === "note_type_sources" && entry.row.id === fixtureA.note_type_sources.id), "Anki-Vorlagen laufen durch den Katalog-Delta-Sync");
-      // A reimport replaces the template; the new cursor position brings it to other devices.
       assertNoError(await clientA.from("note_type_sources").update({ definition: { kind: 0, verified: true, css: ".neu{}" } }).eq("id", fixtureA.note_type_sources.id), "Vorlage per Reimport ersetzen");
       const sourceDelta = await pullDelta(deltaA.nextCursor, "Katalog-Delta nach geänderter Vorlage");
       assert.deepEqual(sourceDelta.changes.filter((entry: any) => entry.table === "note_type_sources").map((entry: any) => entry.row.definition.css), [".neu{}"]);
       assert.ok(deltaA.changes.some((entry: any) => entry.table === "note_search" && entry.row.note_id === fixtureA.notes.id), "Suchtexte laufen durch den Katalog-Delta-Sync");
-      // Only a changed text brings a new search row; other note changes such as the mark do not.
       assertNoError(await clientA.from("notes").update({ marked: true }).eq("id", fixtureA.notes.id), "Inhalt markieren");
       const markDelta = await pullDelta(sourceDelta.nextCursor, "Katalog-Delta nach Markierung");
       assert.equal(markDelta.changes.filter((entry: any) => entry.table === "note_search").length, 0);
@@ -429,7 +424,6 @@ test("lokales Supabase isoliert Nutzer A, Nutzer B und anon über alle accountge
       const searchA = assertNoError(await clientA.rpc("list_account_card_catalog", { ...catalogRequest, p_query: "antwort a" }), "Volltextsuche für Nutzer A");
       assert.ok(searchA.items.some((entry: any) => entry.id === fixtureA.cards.id), "Die Suche findet auch Text der Antwort");
       assert.deepEqual(assertNoError(await clientB.rpc("list_account_card_catalog", catalogRequest), "fremden Kartenkatalog für Nutzer B").items, []);
-      // The flat hit list (KV3) reads across decks: no p_deck_id, the scope comes as a deck term.
       const flatRequest = (ids: string[]) => ({ ...catalogRequest, p_deck_id: null, p_include_total: true, p_terms: [{ kind: "deck", ids, negated: false }] });
       const flatA = assertNoError(await clientA.rpc("list_account_card_catalog", flatRequest([fixtureA.decks.id, fixtureB.decks.id])), "flache Trefferliste für Nutzer A");
       assert.ok(flatA.items.some((entry: any) => entry.id === fixtureA.cards.id));
@@ -439,7 +433,6 @@ test("lokales Supabase isoliert Nutzer A, Nutzer B und anon über alle accountge
       assert.deepEqual(assertNoError(await clientA.rpc("list_account_card_catalog", flatRequest(["kein-stapel"])), "flache Liste ohne Stapel").items, []);
       assert.deepEqual(assertNoError(await clientB.rpc("list_account_card_catalog", flatRequest([fixtureA.decks.id])), "fremde flache Liste für Nutzer B").items, []);
       const searchRequest = { p_deck_ids: [fixtureA.decks.id], p_query: "antwort a", p_sort_field: "sortField", p_sort_direction: "asc", p_limit: 50 };
-      // `Feld:Text` reads the field texts of note_search, the same data the local search uses.
       assertNoError(await clientA.from("notes").update({ search_fields: [{ n: "rückseite", t: "antwort a" }] }).eq("id", fixtureA.notes.id), "Feldtexte setzen");
       const fieldTerm = (name: string) => ({ ...catalogRequest, p_terms: [{ kind: "field", name, value: "antwort", negated: false }] });
       const fieldHits = assertNoError(await clientA.rpc("list_account_card_catalog", fieldTerm("rückseite")), "Feldsuche für Nutzer A");
@@ -447,7 +440,7 @@ test("lokales Supabase isoliert Nutzer A, Nutzer B und anon über alle accountge
       assert.deepEqual(assertNoError(await clientA.rpc("list_account_card_catalog", fieldTerm("vorderseite")), "Feldsuche im anderen Feld").items, []);
       const groupedFieldHits = assertNoError(await clientA.rpc("search_account_card_catalog", { p_deck_ids: [fixtureA.decks.id], p_query: "", p_terms: [{ kind: "field", name: "rückseite", value: "antwort", negated: false }] }), "stapelübergreifende Feldsuche");
       assert.ok(groupedFieldHits.groups[fixtureA.decks.id]?.items.some((entry: any) => entry.id === fixtureA.cards.id));
-      // Learning state, variants, decks and due bounds arrive resolved from parseCardSearchQuery (KV2a).
+      // Learning state, variants, decks and due bounds arrive resolved from parseCardSearchQuery.
       const hitsWith = async (terms: unknown[]) => assertNoError(await clientA.rpc("list_account_card_catalog", { ...catalogRequest, p_terms: terms }), "Lernstandsbegriffe")
         .items.some((entry: any) => entry.id === fixtureA.cards.id);
       assert.equal(await hitsWith([{ kind: "state", value: "new", negated: false }]), true);
@@ -458,7 +451,6 @@ test("lokales Supabase isoliert Nutzer A, Nutzer B und anon über alle accountge
       assert.equal(await hitsWith([{ kind: "deck", ids: [fixtureA.decks.id], negated: false }]), true);
       assert.equal(await hitsWith([{ kind: "deck", ids: ["fremder-stapel"], negated: false }]), false);
       assert.equal(await hitsWith([{ kind: "due", from: null, to: "2099-01-01T00:00:00.000Z", reviewableOnly: false, negated: false }]), false, "neue Karten sind nie fällig");
-      // Learning history, values and content form (KV2b); a missing value never matches, its negation always does.
       const catalogRow = assertNoError(await clientA.from("card_catalog").select("created_at, content_kind").eq("id", fixtureA.cards.id).single(), "Katalogzeile lesen");
       assert.equal(catalogRow.content_kind, "reveal");
       const since = (field: string, from: string, rating: string | null = null, negated = false) => hitsWith([{ kind: "since", field, rating, from, negated }]);
@@ -472,7 +464,7 @@ test("lokales Supabase isoliert Nutzer A, Nutzer B und anon über alle accountge
       assert.equal(await prop("d", "<=", 10), false, "und keine Schwierigkeit");
       assert.equal(await prop("lapses", "=", 0), true);
       assert.equal(await prop("reps", "!=", 0), false);
-      // KV2e: durability comes from study_extra.durabilityDays, written by the client with each answer.
+      // Durability comes from study_extra.durabilityDays, written by the client with each answer.
       assert.equal(await prop("s", ">=", 0), false, "ohne Antwort keine Haltbarkeit");
       const [studyBefore] = assertNoError(await clientA.from("cards").select("state, study_extra").eq("id", fixtureA.cards.id), "Lernstand lesen");
       assertNoError(await clientA.from("cards").update({ state: "review", study_extra: { ...studyBefore.study_extra as object, durabilityDays: 120.5 } }).eq("id", fixtureA.cards.id), "Haltbarkeit setzen");
@@ -483,7 +475,7 @@ test("lokales Supabase isoliert Nutzer A, Nutzer B und anon über alle accountge
       assertNoError(await clientA.from("cards").update({ state: studyBefore.state, study_extra: studyBefore.study_extra }).eq("id", fixtureA.cards.id), "Lernstand zurücksetzen");
       assert.equal(await hitsWith([{ kind: "form", value: "reveal", negated: false }]), true);
       assert.equal(await hitsWith([{ kind: "form", value: "cloze", negated: false }]), false);
-      // Note type and outdated variants (KV2b-Rest): the fixture's own content has no Anki note type.
+      // The fixture's own content has no Anki note type.
       assert.equal(await hitsWith([{ kind: "notetype", ids: ["irgendein-typ"], negated: false }]), false);
       assert.equal(await hitsWith([{ kind: "notetype", ids: ["irgendein-typ"], negated: true }]), true, "ohne Notiztyp trifft die Verneinung");
       assert.equal(await hitsWith([{ kind: "outdated", negated: false }]), false);
@@ -492,7 +484,6 @@ test("lokales Supabase isoliert Nutzer A, Nutzer B und anon über alle accountge
       assert.equal(await hitsWith([{ kind: "card", value: 2, negated: false }]), false);
       assert.equal(await hitsWith([{ kind: "buried", from: "2000-01-01T00:00:00.000Z", negated: false }]), false);
       assert.equal(await hitsWith([{ kind: "buried", from: "2000-01-01T00:00:00.000Z", negated: true }]), true);
-      // KV2d: an `any` clause needs one of its terms, an empty one matches nothing; every word is a `text` term.
       const flag = (value: number, negated = false) => ({ kind: "flag", value, negated });
       const text = (value: string, negated = false) => ({ kind: "text", value, negated });
       const any = (...terms: unknown[]) => ({ kind: "any", terms, negated: false });
@@ -813,7 +804,6 @@ test("lokales Supabase isoliert Nutzer A, Nutzer B und anon über alle accountge
         assert.equal(dailyStatistics.retention_young_remembered, 0, "Der frühere Again-Review bestimmt die Tages-Retention.");
         assert.deepEqual(dailyStatistics.rating_counts, { "young:again": 1, "young:good": 1 });
 
-        // Taking back the newest review removes it from history and statistics and restores the earlier study state.
         const undoParameters = {
           p_event_id: eventId,
           p_card_id: fixtureA.cards.id,
@@ -826,7 +816,6 @@ test("lokales Supabase isoliert Nutzer A, Nutzer B und anon über alle accountge
         };
         const undone = assertNoError(await clientA.rpc("undo_review_atomic", undoParameters), "Bewertung zurücknehmen");
         assert.equal(undone.idempotent, false);
-        // Every study column holds exactly the state from before the answer; only the study revision moves on.
         const { due_at: restoredDueAt, last_reviewed_at: restoredReviewedAt, ...restoredColumns } = undoParameters.p_study;
         assert.deepEqual(Object.fromEntries(Object.keys(restoredColumns).map((column) => [column, undone.card[column]])), restoredColumns);
         assert.deepEqual([Date.parse(undone.card.due_at), Date.parse(undone.card.last_reviewed_at)], [Date.parse(restoredDueAt), Date.parse(restoredReviewedAt)]);

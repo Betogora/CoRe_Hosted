@@ -90,7 +90,6 @@ function measureDatabase() {
   };
   const statisticsRpcMs = parseRuns("CORE_STATISTICS_RPC_MS");
   const catalogSearchMs = parseRuns("CORE_CATALOG_SEARCH_MS");
-  // K4.2: further write and read paths plus projection versus direct-index comparison.
   const additional = Object.fromEntries([
     ["bootstrapRpc", "CORE_BOOTSTRAP_RPC_MS"],
     ["atomicReview", "CORE_ATOMIC_REVIEW_MS"],

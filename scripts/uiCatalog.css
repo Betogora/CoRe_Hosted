@@ -1,4 +1,3 @@
-/* UI-Elemente-Katalog: Kopf, Suchfeld, Kapitel und Karten wie im gemeinsamen Katalogaufbau. */
 .catalog { font-family: var(--core-font-sans); color: var(--core-text); }
 .catalog code { font-family: ui-monospace, SFMono-Regular, Consolas, monospace; font-size: .84em; }
 
@@ -10,7 +9,6 @@
 .catalog-title { margin: 0 0 var(--core-space-xl); }
 .catalog-empty { padding: 2rem; border: var(--core-border-width) dashed var(--core-border); border-radius: .75rem; color: var(--core-text-muted); background: var(--core-surface); text-align: center; }
 
-/* Wie die Specs: Kapitel und Einträge sind Überschriften auf dem Tisch, ohne Kasten; die Einträge stehen im Raster nebeneinander. */
 .catalog-section { scroll-margin-top: 1.5rem; margin: 0 0 3rem; min-width: 0; }
 .catalog-section-heading { margin: 0 0 1.25rem; padding: 0 .1rem .85rem; border-bottom: var(--core-border-width-strong) solid var(--core-border); }
 .catalog-section-heading h2 { margin: 0; font-size: 1.5rem; line-height: 1.5rem; font-weight: var(--core-weight-heading); }
@@ -22,7 +20,6 @@
 .catalog-card-header { display: grid; padding: 0 0 var(--core-space-sm); }
 .catalog-card h3 { margin: 0; font: var(--core-weight-heading) var(--core-type-heading-3)/var(--core-leading-heading-3) var(--core-font-sans); }
 .catalog-preview { min-width: 0; padding: .375rem; }
-/* In den Kartenbausteinen ist die Vorschau die Karte selbst und behält deshalb ihre Fläche. */
 [data-catalog="cards"] .catalog-preview { padding: var(--core-space-lg); border: var(--core-border-width) solid var(--core-border); border-radius: var(--core-radius-panel); background: var(--core-surface); }
 
 .catalog-demo-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; }
@@ -69,7 +66,6 @@
 .catalog-footer { padding: 2rem 1rem 4rem; color: var(--core-text-muted); font-size: .76rem; text-align: center; }
 .catalog-preview > .core-disclosure[open] > summary { margin-bottom: 1rem; }
 
-/* Bestehende Demo-Hilfen und Inventare. */
 .catalog .core-deck-summary-name-measure { position: fixed; left: -10000px; }
 body:has(.catalog-shell-preview) > .core-mobile-bottom-navigation { z-index: 71; }
 body:has(.catalog-shell-preview, .catalog-product-preview) > .core-tooltip { z-index: 80; }

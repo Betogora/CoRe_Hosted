@@ -23,7 +23,6 @@ export interface LibraryOptions {
   learnAheadMinutes?: number;
   cardSort?: CardTableSort;
   deckSummaries?: ReadonlyMap<string, DeckLibrarySummary>;
-  /** Contents of locally loaded cards; without one, a card row shows its catalog preview. */
   notesById?: ReadonlyMap<string, Note>;
 }
 export interface DeckLibrarySummary {
@@ -122,10 +121,6 @@ function createDeckRow(
 
 export type DeckLibraryRow = ReturnType<typeof createDeckRow>;
 
-/**
- * Resolves the query's terms relative to today's learning day, its `did:` and `deck:` terms to decks with subdecks
- * and its `note:` terms to the matching note types.
- */
 export function createCardSearchContext(
   query: string,
   decks: Deck[],
@@ -176,7 +171,6 @@ type CardTableGroup = DeckLibraryRow & {
   rowsByIndex: ReadonlyMap<number, CardTableRow>;
   totalCardCount: number;
   deckMatches: boolean;
-  /** The list for the current query and sort is still requested. */
   loading: boolean;
 };
 
@@ -423,7 +417,6 @@ export function createCardTableModel(decks: Deck[] = [], options: LibraryOptions
   const deckById = new Map(decks.map((deck) => [deck.id, deck]));
   const hitEntries: CardCatalogEntry[] = [];
   const allGroups: CardTableGroup[] = rows.map((row) => {
-    // A deck whose path contains the search text lists all its cards that match the remaining terms.
     const deckMatches = pathMatchesCardSearch(row.path, search);
     const entries = listReviewableCards(deckById.get(row.id) ?? row.deck)
       .map((card) => catalogEntryFromCard(card, options.notesById?.get(card.noteId) ?? null));
@@ -442,7 +435,6 @@ export function createCardTableModel(decks: Deck[] = [], options: LibraryOptions
     };
   });
   const groups = allGroups.filter((group) => !searching || group.deckMatches || group.totalCardCount > 0);
-  // The flat hit list of a search (KV3): all matching cards in one order.
   const hitRows = sortEntries(hitEntries, cardSort, options).map((entry) => createCardTableRow(entry, options));
 
   return {

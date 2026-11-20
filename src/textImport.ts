@@ -14,18 +14,14 @@ const TEXT_IMPORT_MAX_BYTES = 20 * 1024 * 1024;
 const TEXT_IMPORT_MAX_ROWS = 50_000;
 const TEXT_IMPORT_EXTENSIONS = [".txt", ".csv", ".tsv"];
 
-/** Content forms a text row can take; `#notetype` names the Anki standard types. */
 export type TextImportKind = "basic" | "basic-reversed" | "cloze";
 export type TextImportColumnRole = "front" | "back" | "tags" | "ignore";
-/** As in Anki: an existing content with the same first field and form is updated, skipped or kept beside a new one. */
 export type TextImportDuplicateMode = "update" | "skip" | "create";
 
 export interface ParsedTextImport {
   separator: string;
   html: boolean;
-  /** `#tags`, given to every row. */
   tags: string[];
-  /** `#columns`; otherwise null. */
   columnNames: string[] | null;
   columnCount: number;
   deckName: string | null;
@@ -50,11 +46,10 @@ export interface TextImportPlan {
   /** Duplicates left out, and updates that change nothing. */
   skippedCount: number;
   errors: Array<{ line: number; message: string }>;
-  /** Cards of the new and updated contents. */
   cardCount: number;
 }
 
-/** A planned import; without a deck id the contents go into a new deck of that name. */
+/** Without a deck id the contents go into a new deck of that name. */
 export interface TextImportSaveInput extends Pick<TextImportPlan, "creates" | "updates"> {
   deckId: string | null;
   deckName: string;
@@ -77,7 +72,7 @@ export function isTextImportFile(name: string): boolean {
   return TEXT_IMPORT_EXTENSIONS.some((extension) => lower.endsWith(extension));
 }
 
-/** Reads a text or table file within the import limits: UTF-8, else Windows-1252 as German Excel saves CSV. */
+/** UTF-8, else Windows-1252 as German Excel saves CSV. */
 export async function readTextImportFile(file: Blob & { name: string }): Promise<ParsedTextImport> {
   if (file.size > TEXT_IMPORT_MAX_BYTES) throw new Error("Die Datei ist größer als 20 MB. Bitte teile sie in kleinere Dateien auf.");
   const bytes = new Uint8Array(await file.arrayBuffer());
@@ -155,7 +150,6 @@ function detectSeparator(body: string, firstLine: number, fileName: string): str
   return splitting ?? (fileName.toLowerCase().endsWith(".csv") ? "," : "\t");
 }
 
-/** Reads Anki's `#key:value` header lines at the start, then the rows; throws a German message for files beyond the limits. */
 export function parseTextImport(source: string, fileName: string): ParsedTextImport {
   const lines = source.replace(/^﻿/, "").replace(/\r\n?/g, "\n").split("\n");
   const warnings: string[] = [];
@@ -204,7 +198,6 @@ export function parseTextImport(source: string, fileName: string): ParsedTextImp
   };
 }
 
-/** Column 1 front, column 2 back, the tag column (`#tags column` or a column named „Tags“) as tags, the rest ignored. */
 export function defaultTextImportOptions(parsed: ParsedTextImport): TextImportOptions {
   const tagsColumn = parsed.tagsColumn ?? parsed.columnNames?.findIndex((name) => name.toLowerCase() === "tags") ?? -1;
   const contentColumns = Array.from({ length: parsed.columnCount }, (_, index) => index).filter((index) => index !== tagsColumn);
@@ -226,7 +219,6 @@ function contentKind(content: NoteContent): TextImportKind | null {
   return content.interaction.prompts.length === 1 ? "basic" : content.interaction.prompts.length === 2 ? "basic-reversed" : null;
 }
 
-/** The existing content with the row's first and second field and its tags added; null when that is no valid content. */
 function updatedContent(existing: ExistingTextImportNote, front: string, back: string, tags: string[]): NoteContent | null {
   const value = noteEditorValue(existing);
   const first = existing.content.fields.find((field) => field.role === "prompt") ?? existing.content.fields[0];
@@ -250,10 +242,6 @@ const cardCountOf = (content: NoteContent) => {
   return parsed.ok ? parsed.promptKeys.length : 0;
 };
 
-/**
- * Turns every row into a content of the chosen form; invalid rows are listed with their line and skipped. A row whose
- * first field's plain text and form match a content of the target deck (or an earlier row) follows the duplicate mode.
- */
 export function planTextImport(parsed: ParsedTextImport, options: TextImportOptions, existing: readonly ExistingTextImportNote[]): TextImportPlan {
   const columnOf = (role: TextImportColumnRole) => options.columns.indexOf(role);
   const tagColumns = options.columns.flatMap((role, index) => role === "tags" ? [index] : []);

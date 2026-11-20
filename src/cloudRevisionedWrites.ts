@@ -1,4 +1,3 @@
-// Private to cloudRepository.ts: revisioned and batched entity writes, atomic reviews, device and profile writes, and the resolution of sync conflicts.
 import { saveCloudProfile } from "./cloudAuth.ts";
 import type { Card, CardVariant, ReviewEvent } from "./coreTypes.ts";
 import {
@@ -298,7 +297,6 @@ async function softDeleteEntityForUser(client: CloudClient, user: CloudUser, inp
   });
 }
 
-/** The inserted rows as the cloud answers, for the caller's validator. */
 async function insertRowsReturning(client: CloudClient, table: string, rows: object[]) {
   const inserted: unknown[] = [];
   for (const chunk of chunkRows(rows)) {
@@ -322,7 +320,6 @@ function projectCloudEntities(table: AccountTable, rows: CloudRow[]) {
   return rows.map(variantFromRow);
 }
 
-/** Entity mutation as the outbox stores it; `entity` has the domain shape of `table` (a deck, note, card, ...). */
 export interface EntityMutationPayload {
   table?: unknown;
   tombstone?: boolean;
@@ -463,7 +460,6 @@ function throwReviewRpcError(error: { code?: unknown; message?: unknown } | null
   throw error;
 }
 
-/** Review as the outbox stores it for `record_review_atomic`. */
 export interface AtomicReviewPayload {
   card?: Pick<Card, "id" | "study" | "updatedAt">;
   variant?: Pick<CardVariant, "id" | "performance" | "updatedAt"> | null;
@@ -660,7 +656,6 @@ export async function resolveAccountSyncConflict(
   };
 }
 
-/** Takes back a review (`undo_review_atomic`): the payload carries the event and the study state from before it. */
 export async function undoAtomicReview(client: CloudClient, input: AtomicReviewPayload, { deviceId, mutationId }: { deviceId?: string; mutationId?: string } = {}) {
   const card = input?.card;
   const variant = input?.variant;

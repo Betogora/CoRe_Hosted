@@ -361,10 +361,6 @@ export function applyLearningProfileTemplateToDeckSettings<T extends Record<stri
   };
 }
 
-/**
- * The global default is a copy like a deck's settings: stored values win, a later profile update does not change them.
- * Only a fresh account (or a source without stored values) takes its values from the referenced template once.
- */
 function normalizeGlobalLearningDefaults(value: unknown, profiles: LearningProfileTemplate[]): GlobalLearningDefaults {
   const input = objectRecord(value);
   const hasStoredDefaults = value !== null && typeof value === "object" && !Array.isArray(value);

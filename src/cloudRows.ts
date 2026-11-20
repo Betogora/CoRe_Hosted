@@ -1,4 +1,3 @@
-// Private to cloudRepository.ts: domain entities as cloud rows for writes and the first upload.
 import { noteTextIndex } from "./coreModel.ts";
 import type { Card, CardVariant, Deck, Note, ReviewEvent } from "./coreTypes.ts";
 import { nowIso, toArray, toJson, toObject, normalizeRevision, uniqueRowsById } from "./cloudQueries.ts";
@@ -172,7 +171,6 @@ export function noteSourceToCloudRow(source: NoteSourceEntity, userId: string) {
   };
 }
 
-/** Full cloud rows of a state, used for seeding and the content footprint measurement. */
 export function createCloudStateRows(
   state: { decks?: Deck[]; notes?: Note[]; noteTypeSources?: unknown[]; noteSources?: NoteSourceEntity[] },
   userId: string,

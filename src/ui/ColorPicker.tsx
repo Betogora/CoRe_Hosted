@@ -4,7 +4,6 @@ import type { LucideIcon } from "lucide-react";
 import { clampNumber, hexToHsv, hsvToHex, normalizeColor } from "../colorMath.ts";
 import { CoreTooltip } from "./tooltipUi.tsx";
 
-/** Quick picks as a two-row rainbow: each column is one hue, strong above and lightened below. */
 export const COLOR_PICKER_PRESETS = [
   "#e5484d", "#f28c28", "#edb72a", "#3fa66b", "#0d8e90", "#3b7dd8", "#8b5cf6",
   "#f5a3a6", "#f9c48f", "#f6dd8e", "#9ed5b3", "#8acfd0", "#a4c2ee", "#c9b4fa",
@@ -49,7 +48,7 @@ interface ColorPickerProps {
   value: string;
   ariaLabel: string;
   onValueCommit: (color: string) => void;
-  /** `compact` shows the color as a square swatch; `tool` shows a toolbar icon with a color bar and keeps a text selection alive. */
+  /** `tool` keeps a text selection alive in its editor. */
   variant?: "compact" | "tool";
   icon?: LucideIcon;
   presets?: readonly string[];

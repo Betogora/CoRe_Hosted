@@ -18,7 +18,6 @@ import { TextReplaceDialog } from "./TextReplaceDialog.tsx";
 export type CardSelectionActionId = "study" | "deck" | "replace" | "tags-add" | "tags-remove" | "flag" | "flag-remove" | "mark" | "unmark" | "suspend" | "unsuspend" | "bury" | "due" | "reset" | "variants" | "delete";
 type MenuActionId = CardSelectionActionId;
 
-/** Keys of the card list (KV6) as the menu names them; `aria-keyshortcuts` uses the key values. */
 const MENU: ReadonlyArray<{ id: MenuActionId; label: string; icon: LucideIcon; shortcut?: { label: string; keys: string } }> = [
   { id: "study", label: "Auswahl lernen", icon: GraduationCap },
   { id: "deck", label: "Stapel ändern", icon: MoveRight, shortcut: { label: "S", keys: "S" } },
@@ -40,11 +39,6 @@ const MENU: ReadonlyArray<{ id: MenuActionId; label: string; icon: LucideIcon; s
 
 type DialogActionId = Exclude<MenuActionId, "study" | "replace">;
 
-/**
- * One sentence per action dialog: the cards (bold count) and what happens to them; `done` names the result in the toast
- * (variant generation reports its own progress).
- * `danger` actions confirm with the destructive button.
- */
 const EFFECT: Record<DialogActionId, { lead: (cards: React.ReactNode, one: boolean) => React.ReactNode; done?: (cards: string) => string; danger?: true }> = {
   deck: { lead: (cards, one) => <>{cards} {one ? "wechselt" : "wechseln"} in diesen Stapel.</>, done: (cards) => `${cards} verschoben` },
   "tags-add": { lead: (cards) => <>Diese Tags kommen zu den Inhalten von {cards} hinzu.</>, done: (cards) => `Tags zu ${cards} hinzugefügt` },
@@ -62,7 +56,6 @@ const EFFECT: Record<DialogActionId, { lead: (cards: React.ReactNode, one: boole
   delete: { lead: (cards) => <>Die Inhalte von {cards} werden gelöscht, samt ihrer weiteren Karten.</>, done: (cards) => `${cards} gelöscht`, danger: true },
 };
 
-/** First entries of the menu groups: study · content and tags · flag and mark · planning · variants · delete. */
 const GROUP_STARTS = new Set<MenuActionId>(["deck", "flag", "suspend", "variants", "delete"]);
 
 interface DialogState {
@@ -79,10 +72,8 @@ export interface CardSelectionBarProps {
   count: number;
   /** Cards of the flat list that can all be selected at once; null while unknown. */
   hitTotal: number | null;
-  /** With a search the list holds hits, otherwise all cards. */
   searching: boolean;
   allHits: boolean;
-  /** No action while one runs or nothing is selected. */
   disabled: boolean;
   onSelectAllHits: () => void;
   onClear: () => void;
@@ -92,19 +83,13 @@ export interface CardSelectionBarProps {
   now: string;
   dayStartHour?: number;
   timeZone?: string;
-  /** Absent while variant generation is unavailable or running. */
   onGenerateVariants?: () => void;
-  /** `Auswahl lernen` (KV5); absent where studying is unavailable. */
   onStudy?: () => void;
-  /** Absent where contents cannot be loaded for `Suchen und Ersetzen`. */
   onPrepareReplace?: () => Promise<TextReplaceSession>;
-  /** Runs the action; `done` names its result for the toast. */
   onRun: (action: CardBatchAction, done: (cards: string) => string) => Promise<void>;
-  /** A key of the card list asks for an action (KV6); it opens like the menu entry, a flag preselected. */
   request?: { id: CardSelectionActionId; flag?: number; nonce: number } | null;
 }
 
-/** Bar of the card table while cards are selected (KV4): the checked header checkbox that ends selecting, count, `Alle N Treffer auswählen` and actions. */
 export function CardSelectionBar({ count, hitTotal, searching, allHits, disabled, onSelectAllHits, onClear, decks, flagNames, loadTagDirectory, now, dayStartHour, timeZone, onGenerateVariants, onStudy, onPrepareReplace, onRun, request }: CardSelectionBarProps) {
   const [dialog, setDialog] = React.useState<DialogState | null>(null);
   const [running, setRunning] = React.useState(false);

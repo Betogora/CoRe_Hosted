@@ -15,7 +15,6 @@ Object.assign(globalThis, { IDBKeyRange });
 const CREATED_AT = "2026-11-01T00:00:00.000Z";
 const NOW = "2026-11-12T10:00:00.000Z";
 
-/** `note-0` with its forward card in deck A and its reverse sibling in deck B, plus `note-1` in deck A. */
 async function setup() {
   const graphs = [0, 1].map((index) => {
     const created = createBasicNote("deck-a", `Frage ${index}`, `Antwort ${index}`, { reverse: index === 0, createdAt: CREATED_AT });

@@ -69,7 +69,6 @@ const STATISTICS_TABS: ReadonlyArray<CoreTab<StatisticsTab>> = [
   { value: "responses", label: "Antwortverhalten" },
 ];
 const STATISTICS_TABS_WITH_COMPARISON: ReadonlyArray<CoreTab<StatisticsTab>> = [...STATISTICS_TABS, { value: "comparison", label: "Stapelvergleich" }];
-// Review categories follow the learning-status roles; young intervals are a lighter tint of learned.
 const CATEGORY_COLORS = {
   learning: "var(--core-learning-status-in-progress)",
   relearning: "var(--core-learning-status-new)",
@@ -113,7 +112,6 @@ function formatAxisValue(value: number, unit?: string) {
   return unit ? `${formatNumber(value, 1)} ${unit}` : formatNumber(value, 1);
 }
 
-// The duration axes pick the largest unit that still shows their maximum as at least two units.
 function durationUnit(maxMilliseconds: number) {
   if (maxMilliseconds < 120_000) return { divisor: 1_000, label: "Sek." };
   if (maxMilliseconds < 7_200_000) return { divisor: 60_000, label: "Min." };
@@ -223,8 +221,6 @@ function RechartsLegend({ host, order }: { host: HTMLElement | null; order?: rea
   return <Legend portal={host} iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 12 }} {...(order ? { itemSorter: (item: { dataKey?: unknown }) => order.indexOf(String(item.dataKey)) } : {})} formatter={(value) => <span className="text-core-secondary">{value}</span>} />;
 }
 
-// Every chart gets the same plot height and its legend below the plot, so neighbouring charts share
-// axis heights, grid lines and the legend's top edge however long their legends wrap.
 function StatisticsChartFrame({ ariaLabel, className, chart }: { ariaLabel: string; className?: string; chart: (legendHost: HTMLElement | null) => React.ReactElement }) {
   const [legendHost, setLegendHost] = React.useState<HTMLDivElement | null>(null);
   return (
@@ -239,7 +235,6 @@ function StatisticsChartFrame({ ariaLabel, className, chart }: { ariaLabel: stri
 
 const DATE_KEY = /^\d{4}-\d{2}-\d{2}$/;
 
-// A date series over more than a year shows years on its x axis, ticked and divided where each year starts.
 function yearStartKeys(data: object[]) {
   const keys = data.map((point) => (point as { key?: unknown }).key);
   if (keys.length < 2 || !keys.every((key): key is string => typeof key === "string" && DATE_KEY.test(key))) return null;
@@ -293,7 +288,6 @@ function CartesianStatisticsChart({
 type CategoryKey = keyof typeof CATEGORY_COLORS;
 const CATEGORY_KEYS = Object.keys(CATEGORY_COLORS) as CategoryKey[];
 
-// Only the topmost non-empty segment of each stacked bar gets rounded corners.
 function stackedCategoryBars(data: Array<Record<CategoryKey, number>>, stackId: string, names: Record<CategoryKey, string>) {
   const topKeys = data.map((point) => [...CATEGORY_KEYS].reverse().find((key) => point[key] > 0));
   return CATEGORY_KEYS.map((key) => (
@@ -428,7 +422,6 @@ function HourlyChart({ points }: { points: StatisticsProjection["hourly"] }) {
   );
 }
 
-// The buttons keep the colours of the study view, so a share reads like the button that was pressed.
 const RATING_COLORS = {
   again: "var(--core-rating-again-border)",
   hard: "var(--core-rating-hard-border)",
@@ -438,14 +431,12 @@ const RATING_COLORS = {
 const RATING_BAR_SIZE = 22;
 const RATING_CATEGORY_LABELS: Record<CategoryKey, string> = { learning: "Lernen", relearning: "Wiederlernen", young: "< 21 Tage", mature: "≥ 21 Tage" };
 
-// The hovered row is outlined around its whole stacked bar instead of crossed by the axis cursor line.
 function RatingBarOutline({ points, payload }: { points?: Array<{ x: number; y: number }>; payload?: TooltipPayload }) {
   if (!points || !payload?.[0]?.payload?.total) return null;
   const [start, end] = points;
   return <rect x={start.x - 3} y={start.y - RATING_BAR_SIZE / 2 - 3} width={end.x - start.x + 6} height={RATING_BAR_SIZE + 6} rx={6} fill="none" stroke="var(--core-text-muted)" strokeWidth={1.5} pointerEvents="none" />;
 }
 
-/** One bar per review category, split into the share of each button; the tooltip adds the counts. */
 function RatingChart({ points }: { points: StatisticsProjection["ratings"] }) {
   if (!points.some((point) => point.total > 0)) return <NoChartData>Im gewählten Zeitraum wurden keine Antwortknöpfe verwendet.</NoChartData>;
   const rows = points.map((point) => ({

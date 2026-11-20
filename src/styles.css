@@ -2,8 +2,6 @@
 @tailwind components;
 @tailwind utilities;
 
-/* ── Foundations: font, light and dark tokens, element defaults ── */
-
 @font-face {
   font-family: "Manrope Variable";
   src: url("/fonts/manrope/manrope-variable.woff2") format("woff2");
@@ -15,7 +13,6 @@
 :root {
   color-scheme: light;
 
-  /* Shared geometry and typography scales. */
   --core-radius-marker: 0.375rem;
   --core-radius-inset: 0.5rem;
   --core-radius-control: 0.625rem;
@@ -52,8 +49,6 @@
   --core-weight-heading: 650;
   --core-font-sans: "Manrope Variable", Manrope, ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
 
-  /* Primitive ToolBox brand palette. Product UI consumes the semantic roles below. */
-  /* Stable, distinct exam identities in both themes; white labels retain AA contrast. */
   --core-exam-color-1: #1d4ed8;
   --core-exam-color-2: #be185d;
   --core-exam-color-3: #047857;
@@ -82,11 +77,9 @@
   --core-brand-fog: #dce3e7;
   --core-brand-ink: #1b2d3b;
 
-  /* Stable illustration colors for reusable example card stacks. */
   --core-help-stack-back: var(--core-brand-secondary);
   --core-help-stack-border: #7c9fb9;
 
-  /* Semantic light theme. */
   --core-canvas: #f6f7f8;
   --core-surface: #ffffff;
   --core-surface-raised: #ffffff;
@@ -123,7 +116,6 @@
   --core-warning-surface: #fffaeb;
   --core-danger-surface: #fef3f2;
   --core-backdrop: rgba(17, 24, 39, 0.32);
-  /* Static surfaces, buttons and fields are flat (ADR-051); only floating layers cast shadows. */
   --core-shadow-raised: 0 16px 40px -12px rgba(16, 24, 40, 0.18), 0 0 0 1px rgba(16, 24, 40, 0.05);
   --core-action-soft: #ebf3f9;
   --core-selection-track: #e9eef1;
@@ -136,7 +128,6 @@
   --core-learning-status-in-progress: var(--core-warning);
   --core-learning-status-due: var(--core-success);
   --core-learning-progress-completed: #9ca3af;
-  /* Anki flags 1–7 (red to purple); graphic marks with at least 3:1 against surfaces, always named as well (W14). */
   --core-flag-1: #d63b3b;
   --core-flag-2: #c76a08;
   --core-flag-3: #2c8a3e;
@@ -145,10 +136,8 @@
   --core-flag-6: #0b7f91;
   --core-flag-7: #7448e0;
   --core-danger-text: #a83c22;
-  /* A marked card tints header, tabs and background; muted text there stays at 4.5:1. */
   --core-marked-surface: #fdf6df;
   --core-marked-text-muted: var(--core-text-secondary);
-  /* Review ratings Nochmal to Leicht: muted terracotta, ochre, sage, petrol; labels keep 4.5:1 on their fill. Dark mode keeps the brighter orange to blue-green scale. */
   --core-rating-again-surface: #f9e3dc;
   --core-rating-again-border: #e8a48f;
   --core-rating-again-text: #a8452a;
@@ -164,7 +153,6 @@
 
 }
 
-/* The one size split: touch (coarse pointer) keeps 44 × 44 px targets at every width; a mouse keeps the compact ToolBox sizes at every width. */
 @media (pointer: coarse) {
   :root {
     --core-control-height: 2.75rem;
@@ -301,7 +289,6 @@ summary {
   --tw-ring-shadow: 0 0 #0000 !important;
 }
 
-/* Keyboard focus stays visible (WCAG 2.4.7); pointer and programmatic focus after a click show no frame. Fields keep their own focus surface. */
 :where(a, button, summary, [tabindex]:not([tabindex="-1"])):focus-visible {
   outline: 2px solid var(--core-focus) !important;
   outline-offset: 3px;
@@ -317,8 +304,6 @@ summary {
     transition-duration: 0.01ms !important;
   }
 }
-
-/* ── Building blocks: classes of the shared components in src/ui ── */
 
 @layer components {
   .core-heatmap-level-0,
@@ -484,7 +469,6 @@ summary {
     grid-auto-columns: var(--core-control-height);
   }
 
-  /* CoreTriStateControl: rail of the segmented control with square segments (KV2, accepted 2026-11-04). */
   .core-tri-state-control {
     --core-tri-size: calc(var(--core-selection-height) - 8px);
     grid-auto-columns: var(--core-tri-size);
@@ -770,7 +754,6 @@ summary {
   .core-field-group select {
     min-height: var(--core-control-height);
     padding: 0.5rem 0.75rem;
-    /* A placeholder or value wider than a narrow field ends in an ellipsis instead of a cut word. */
     text-overflow: ellipsis;
   }
 
@@ -890,7 +873,6 @@ summary {
   }
 
   @media (min-width: 768px) {
-    /* The text keeps a readable column; wide controls wrap instead of squeezing it. */
     .core-settings-row {
       grid-template-columns: minmax(14rem, 1fr) auto;
     }
@@ -958,7 +940,6 @@ summary {
     font: var(--core-weight-control) var(--core-type-caption)/var(--core-leading-caption) var(--core-font-sans);
   }
 
-  /* One menu row for every menu (ADR-051): 44 px, muted 16 px icon, 14/20 · 500 label, neutral hover. */
   .core-menu-row {
     display: flex;
     width: 100%;
@@ -987,13 +968,6 @@ summary {
   .core-menu-row[data-tone="danger"] > svg {
     color: var(--core-danger-text);
   }
-  /*
-   * Form elements after HeroUI v3 (measured 2026-11-12 on heroui.com), in CoRe colours: 1-px border instead of the field
-   * shadow, accent = action blue, keyboard focus after the global rule (2 px, 3 px offset), disabled at 50 %.
-   * Unselected boxes and circles use muted text at 80 % for a 3:1 contour (HeroUI relies on a soft shadow).
-   * Shared rows: label 14/20 weight 500 next to the control at 12 px, description 12/16 muted and indented by control + gap,
-   * group options 16 px apart (here: rows in button height without gap).
-   */
   .core-checkbox, .core-radio, .core-switch { display: inline-flex; flex-direction: column; gap: var(--core-space-xs); min-width: 0; -webkit-tap-highlight-color: transparent; }
   .core-checkbox-content, .core-radio-content, .core-switch-content { display: inline-flex; align-items: center; gap: var(--core-space-md); min-width: 0; min-height: var(--core-button-height); cursor: pointer; color: var(--core-text); font: 500 var(--core-type-body)/var(--core-leading-body) var(--core-font-sans); user-select: none; }
   .core-checkbox-label, .core-radio-label, .core-switch-label { min-width: 0; overflow-wrap: anywhere; }
@@ -1009,9 +983,6 @@ summary {
   }
   :is(.core-checkbox-control, .core-radio-control, .core-switch-control):has(> input:focus-visible) { outline: 2px solid var(--core-focus); outline-offset: 3px; }
 
-  /* Checkbox: box 16 px, radius 6 px; fill scales 70 → 100 % (100 ms linear) and fades in (200 ms linear); check 10 px,
-     stroke 2.5, dash 22 drawn from offset 66 to 44 in 150 ms linear after 15 ms; indeterminate bar 12 px, stroke 3;
-     pressed 95 % (100 ms ease-out); invalid: danger contour, checked invalid fills danger. */
   .core-checkbox { --core-check-fill: var(--core-check-accent, var(--core-action-primary)); }
   .core-checkbox-control { width: 1rem; height: 1rem; border: var(--core-border-width) solid color-mix(in srgb, var(--core-text-muted) 80%, var(--core-surface)); border-radius: var(--core-radius-marker); background: var(--core-surface); color: var(--core-check-on-accent, var(--core-text-on-accent)); transition: border-color 200ms cubic-bezier(0, 0, 0.2, 1), transform 100ms cubic-bezier(0, 0, 0.2, 1); }
   .core-checkbox-control::before { content: ""; position: absolute; inset: calc(-1 * var(--core-border-width)); border-radius: inherit; background: var(--core-check-fill); opacity: 0; scale: 0.7; transition: scale 100ms linear, opacity 200ms linear, background-color 200ms cubic-bezier(0, 0, 0.2, 1); pointer-events: none; }
@@ -1027,8 +998,6 @@ summary {
   .core-checkbox[data-invalid][data-state="unchecked"] .core-checkbox-control { border-color: var(--core-danger); }
   .core-checkbox[data-invalid] { --core-check-fill: var(--core-danger); --core-check-on-accent: var(--core-text-on-danger); }
 
-  /* Radio: circle 16 px; selected fills the accent (200 ms ease-out) while the inner disc shrinks to a 6.86-px dot (42.86 %
-     of 16 px, here 49 % of the 14-px inner disc), 9.14 px while pressed; control pressed 95 %. */
   .core-radio-control { width: 1rem; height: 1rem; border: var(--core-border-width) solid color-mix(in srgb, var(--core-text-muted) 80%, var(--core-surface)); border-radius: var(--core-radius-round); background: var(--core-surface); transition: background-color 200ms cubic-bezier(0, 0, 0.2, 1), border-color 200ms cubic-bezier(0, 0, 0.2, 1), transform 100ms cubic-bezier(0, 0, 0.2, 1); }
   .core-radio-dot { position: absolute; inset: 0; border-radius: inherit; background: var(--core-surface); scale: 1; transition: scale 200ms cubic-bezier(0, 0, 0.2, 1), background-color 200ms cubic-bezier(0, 0, 0.2, 1); pointer-events: none; }
   .core-radio:hover .core-radio-control { border-color: var(--core-text-muted); }
@@ -1040,9 +1009,6 @@ summary {
   .core-radio[data-invalid] .core-radio-control { border-color: var(--core-danger); }
   .core-radio[data-invalid][data-state="checked"] .core-radio-control { background: var(--core-danger); }
 
-  /* Switch md: track 40 × 20, thumb 22 × 16 (radius 8 px) 2 px from the edge; sm 32 × 16 / 16.5 × 12; lg 48 × 24 /
-     27.5 × 20. Thumb travels in 300 ms cubic-bezier(.32, .72, 0, 1), track colour 250 ms ease; hover and pressed lighten
-     the track by 20 %. Description indented by track + 12 px. */
   .core-switch { --core-switch-width: 2.5rem; --core-switch-height: 1.25rem; --core-switch-thumb-width: 1.375rem; --core-switch-thumb-height: 1rem; }
   .core-switch[data-size="sm"] { --core-switch-width: 2rem; --core-switch-height: 1rem; --core-switch-thumb-width: 1.03125rem; --core-switch-thumb-height: 0.75rem; }
   .core-switch[data-size="lg"] { --core-switch-width: 3rem; --core-switch-height: 1.5rem; --core-switch-thumb-width: 1.71875rem; --core-switch-thumb-height: 1.25rem; }
@@ -1058,10 +1024,9 @@ summary {
   [data-core-theme="dark"] .core-switch-thumb { background: var(--core-text-secondary); }
   [data-core-theme="dark"] .core-switch[data-state="checked"] .core-switch-thumb { background: var(--core-text-on-accent); }
 
-  /* Slider: label and value 14/20 above the track at 4 px; track 20 px pill with 12-px inline end caps; fill ends at the
-     thumb centre; thumb 28 × 20 accent pill around a 24 × 16 disc (radius 8 px) that shrinks to 90 % while dragged;
-     thumb colour 250 ms ease, transform 250 ms ease-out. The native range sits on the track with a 24-px thumb so both
-     travel the same 12-px-inset path. */
+  /*
+   * The native range sits on the track with a 24-px thumb so it and the drawn thumb travel the same 12-px-inset path.
+   */
   .core-slider { --core-slider-cap: 0.75rem; display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "label output" "track track"; gap: var(--core-space-xs) var(--core-space-md); min-width: 0; }
   .core-slider-label { grid-area: label; min-width: 0; color: var(--core-text); font: 550 0.8125rem/1.125rem var(--core-font-sans); }
   .core-slider-output { grid-area: output; color: var(--core-text); font: 500 var(--core-type-body)/var(--core-leading-body) var(--core-font-sans); font-variant-numeric: tabular-nums; text-align: end; }
@@ -1079,13 +1044,6 @@ summary {
   .core-slider[data-disabled] { opacity: 0.5; }
   .core-slider[data-disabled] input { cursor: not-allowed; }
 
-  /* Date picker: field with segments 14/20 (padding 0 1 px, radius 6 px, focused segment on the soft accent, placeholder
-     and dots muted, set flush with 1 px padding) and a 24-px calendar trigger with a 16-px icon, 12 px in from the start. Popover:
-     12-px padding, enters from 95 % in 150 ms; header with heading 14/20 weight 500 and 24-px round month buttons,
-     16 px above the grid; weekdays 12/16 weight 500 muted, 8 px above the days; day cells square and round (252 / 7 =
-     36 px; 44 px for touch), 14/20 weight 500; today on the soft accent, selection filled, hover neutral, pressed 95 %
-     (250 ms ease-out), other months muted at 50 %, unavailable days 50 % and struck through. Year grid from the heading:
-     three columns 4 px apart, 32-px round cells, fading in over the days (200 ms after 50 ms). */
   .core-date-field { display: flex; align-items: center; gap: var(--core-space-xs); padding-block: 0; padding-inline-end: var(--core-space-sm); }
   .core-date-field:has(.core-date-segment:focus) { border-color: var(--core-action-primary); box-shadow: var(--core-shadow-selection); }
   .core-date-field[data-invalid] { border-color: var(--core-danger); box-shadow: 0 0 0 3px color-mix(in srgb, var(--core-danger) 12%, transparent); }
@@ -1134,7 +1092,6 @@ summary {
   }
 }
 
-/* Sync status or Pomodoro next to the four utilities leave no room for the wordmark; the logo keeps the brand. */
 @media (max-width: 26.8125rem) {
   .core-mobile-header > div:has([data-navigation-utility="sync"], [data-pomodoro-progress]) [data-navigation-brand] > span {
     position: absolute;
@@ -1158,7 +1115,6 @@ svg.lucide {
   container: core-study-heatmap / inline-size;
 }
 
-/* Seven dates no longer fit side by side; the range label above already names them. */
 @container core-study-heatmap (max-width: 20rem) {
   .core-heatmap-week-date {
     display: none;
@@ -1236,7 +1192,6 @@ svg.lucide {
 /* The column header reserves the width of the study and options icon buttons. */
 .core-deck-summary-actions-spacer { width: calc(2 * var(--core-button-height) + 0.25rem); }
 
-/* Learning-status counts as plain status-colored numbers at deck-name size; zero stays neutral. */
 .core-deck-summary-count-value {
   color: var(--core-deck-count-color);
   font-size: var(--core-type-body);
@@ -1367,7 +1322,6 @@ svg.lucide {
 
 }
 
-/* Stapelsammlung nach fitzbert (ADR-041): Liste, Ordner und Stapelinhalte. */
 .core-deck-folder-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(min(100%, 19rem), 1fr));
@@ -1466,8 +1420,6 @@ svg.lucide {
 
 .core-deck-tree-container .core-deck-tree-layout { gap: var(--core-space-sm); }
 
-/* Stapelliste (ADR-051): no frame and no own surface; the list lies on the table or in its panel and only hairlines
-   structure it. Every level is a 48-px comfort row; weight (600 main deck, 500 subdeck) and indent carry the hierarchy. */
 .core-deck-tree-groups {
   display: grid;
   border-top: var(--core-border-width) solid var(--core-border-interactive);
@@ -1502,7 +1454,6 @@ svg.lucide {
 .core-deck-tree-group .core-deck-summary-count { text-align: center; }
 .core-deck-tree-group .core-deck-summary-icon > svg { width: 1rem; height: 1rem; }
 
-/* Rows and header start at the edge of the surface title; the count columns are 44 px wide. */
 .core-deck-tree-container[data-deck-view="list"] .core-deck-summary-responsive {
   column-gap: 0;
   padding-inline: 0;
@@ -1521,11 +1472,9 @@ svg.lucide {
   gap: var(--core-space-sm);
 }
 
-/* The study arrow is action blue only while the deck has new, open or due cards today. */
 .core-deck-study-action[data-deck-has-work="true"] > svg { color: var(--core-action-primary); }
 .core-deck-study-action[data-deck-has-work="false"] > svg { color: var(--core-text-muted); }
 
-/* Quick-create form as the last row of the list: borderless fields, `Anlegen` as a text action. */
 .core-deck-tree-create {
   padding-block: var(--core-space-xs);
   border-bottom: var(--core-border-width) solid var(--core-border);
@@ -1543,8 +1492,6 @@ svg.lucide {
   .core-deck-tree-rows > .core-deck-summary-container { display: none; }
 }
 
-/* Narrow list (phone, narrow tile): one row per deck with the counts as a subline („107 Neu · 5 Offen · 0 Fällig“),
-   about 60 px, actions centred on the right. The subline starts at the text edge of the deck name. */
 @container core-deck-summary (max-width: 28rem) {
   .core-deck-tree-group [data-deck-study-row="true"] {
     grid-template-columns: minmax(0, 1fr) auto;
@@ -1620,13 +1567,11 @@ svg.lucide {
   }
 }
 
-/* Smallest phones: the subline runs below the actions so it stays on one line; the actions sit beside the name. */
 @container core-deck-summary (max-width: 22rem) {
   .core-deck-tree-group [data-deck-study-row="true"] .core-deck-summary-counts { grid-column: 1 / -1; }
   .core-deck-tree-group [data-deck-study-row="true"] .core-deck-summary-actions { grid-row: 1; }
 }
 
-/* Shared tag: one shape, the tone only swaps the two color roles. */
 .core-tag {
   display: inline-flex;
   width: fit-content;
@@ -1674,7 +1619,6 @@ svg.lucide {
   border-radius: var(--core-radius-round);
 }
 
-/* SectionHeader: one head per surface; the minimum height keeps neighbouring heads on one baseline (ADR-051). */
 .core-section-header {
   display: flex;
   flex-wrap: wrap;
@@ -1707,7 +1651,7 @@ svg.lucide {
   margin-left: auto;
 }
 
-/* MetricRow: number above word, hairlines between; the negative start margin hides the hairline of every row's first item. */
+/* The negative start margin hides the hairline of every row's first item. */
 .core-metric-row {
   container-type: inline-size;
   min-width: 0;
@@ -1833,7 +1777,6 @@ button.core-steps-step:disabled {
     white-space: nowrap;
   }
 
-  /* Six steps still fit 240 px: tighter gaps, and a long current word wraps instead of leaving the row. */
   .core-steps > ol,
   .core-steps li {
     gap: var(--core-space-xs);
@@ -1844,7 +1787,6 @@ button.core-steps-step:disabled {
   }
 }
 
-/* CoreTabs: words on one continuous hairline; the active tab carries a 2 px action-blue line over it. */
 .core-tabs {
   position: relative;
   min-width: 0;
@@ -1867,7 +1809,6 @@ button.core-steps-step:disabled {
 .core-tabs[data-overflow-start] .core-tabs-list { mask-image: linear-gradient(to left, #000 calc(100% - 3rem), transparent); }
 .core-tabs[data-overflow-start][data-overflow-end] .core-tabs-list { mask-image: linear-gradient(to right, transparent, #000 3rem, #000 calc(100% - 3rem), transparent); }
 
-/* The label sits low above the line: a third of the centred gap below it is taken away, the click area keeps the control height. */
 .core-tabs-tab {
   display: inline-grid;
   flex-shrink: 0;
@@ -1899,7 +1840,6 @@ button.core-steps-step:disabled {
   box-shadow: inset 0 calc(-1 * var(--core-border-width-strong)) 0 var(--core-action-primary);
 }
 
-/* DialogFrame: full screen below 768 px (the small one stays a card), centred card in three widths above. */
 .core-dialog-frame-backdrop {
   position: fixed;
   inset: 0;
@@ -1965,7 +1905,6 @@ button.core-steps-step:disabled {
   border-top: var(--core-border-width) solid var(--core-border);
 }
 
-/* The small frame stays a centred card below 768 px as well. */
 .core-dialog-frame-backdrop:has(> .core-dialog-frame[data-size="s"]) {
   align-items: center;
   padding: var(--core-space-lg);
@@ -1977,7 +1916,6 @@ button.core-steps-step:disabled {
   border-radius: var(--core-radius-overlay);
 }
 
-/* On a phone its actions stack at full width, the confirmation on top. */
 @media (max-width: 39.9375rem) {
   .core-dialog-frame[data-size="s"] .core-dialog-frame-footer {
     flex-direction: column-reverse;
@@ -2001,7 +1939,6 @@ button.core-steps-step:disabled {
   .core-dialog-frame[data-size="l"] { max-width: 60rem; }
 }
 
-/* DialogFrame: an optional line below the title, e.g. a type and state marks. */
 .core-dialog-frame-heading {
   display: grid;
   flex: 1 1 auto;
@@ -2038,8 +1975,6 @@ button.core-steps-step:disabled {
   animation: core-success-toast-dismiss 200ms ease-out 10s forwards;
 }
 
-/* A toast waits while it is pointed at or focused, so its action stays reachable (W7). It lies below modal
-   dialogs and waits until the last one closes, so it never covers their controls. */
 .core-success-toast:hover,
 .core-success-toast:focus-within,
 body:has([aria-modal="true"]) .core-success-toast {
@@ -2072,7 +2007,7 @@ body:has([aria-modal="true"]) .core-success-toast {
   opacity: 0.7;
 }
 
-/* ShowMoreButton: the layout takes only its text line; an invisible margin keeps the touch height around it. */
+/* The layout takes only the text line; an invisible margin keeps the touch height around it. */
 .core-show-more { position: relative; min-height: 0; }
 .core-show-more::before { content: ""; position: absolute; inset-inline: 0; inset-block: min(0px, calc((100% - var(--core-button-height)) / 2)); }
 .core-disclosure[open] > summary > svg { rotate: 180deg; }
@@ -2092,12 +2027,6 @@ body:has([aria-modal="true"]) .core-success-toast {
   from { opacity: 0; }
 }
 
-/*
- * Answer options after HeroUI Pro „Checkbox Button Group“, one row: hairline card (radius 16 → CoRe panel 14 px,
- * padding 16 × 20 → 12 × 16 for the one-row form), selected = 2-px inset accent ring with a light tint, indicator on the
- * right (box for multiple choice, dot for single choice, 16 px). After revealing, the same form carries the success and
- * danger roles; a correct option that was not chosen gets the ring dashed, without the tint.
- */
 .core-mcq-option, .core-kprim-option { border: var(--core-border-width) solid var(--core-border); border-radius: var(--core-radius-panel); background: var(--core-surface); color: var(--core-text); transition: box-shadow 150ms cubic-bezier(0, 0, 0.2, 1), border-color 150ms cubic-bezier(0, 0, 0.2, 1), background-color 150ms cubic-bezier(0, 0, 0.2, 1), color 150ms ease; }
 .core-mcq-option { display: flex; width: 100%; min-height: 3rem; align-items: center; gap: var(--core-space-md); padding: var(--core-space-md) var(--core-space-lg); text-align: start; }
 .core-kprim-option { padding: var(--core-space-md) var(--core-space-lg); }
@@ -2116,7 +2045,6 @@ body:has([aria-modal="true"]) .core-success-toast {
 .core-mcq-option[data-tone="selected"] .core-mcq-indicator[data-shape="dot"]::after { scale: 1; }
 .core-mcq-option[data-tone="selected"] .core-mcq-indicator > svg { stroke-dashoffset: 44; transition: stroke-dashoffset 150ms linear 15ms; }
 .core-mcq-state-icon { flex-shrink: 0; color: var(--core-mcq-role); }
-/* Option letter: bold letter without a frame; blue when chosen, the row's role colour after revealing. */
 .core-mcq-letter { width: 1.25rem; flex-shrink: 0; text-align: center; font-size: 1rem; font-weight: var(--core-weight-heading); line-height: 1.75rem; color: var(--core-text-muted); transition: color 150ms ease; }
 [data-tone="selected"] .core-mcq-letter { color: var(--core-action-primary); }
 :is([data-tone="correct"], [data-tone="missed"], [data-tone="wrong"]) .core-mcq-letter { color: var(--core-mcq-role); }
@@ -2367,7 +2295,6 @@ body:has([aria-modal="true"]) .core-success-toast {
   display: flex;
 }
 
-/* ToolBox muted footer surface with ghost icon tools. */
 .core-rich-text-toolbar {
   background: color-mix(in srgb, var(--core-surface-muted) 50%, var(--core-surface));
 }
@@ -2451,8 +2378,6 @@ body:has([aria-modal="true"]) .core-success-toast {
 }
 .core-rich-text-tool[aria-pressed="true"], .core-mindmap-tool[aria-pressed="true"] { background: var(--core-action-soft); color: var(--core-action-primary); }
 
-/* ── Features: classes of single views in src/screens ── */
-
 @layer components {
   .core-statistics-load-track {
     height: 3px;
@@ -2524,7 +2449,6 @@ body:has([aria-modal="true"]) .core-success-toast {
     }
   }
 
-  /* Four question types need two rows on phones and tablets; every label stays whole on one line. */
   @media (max-width: 47.9375rem) {
     .core-question-type-control {
       width: 100%;
@@ -2614,7 +2538,6 @@ body:has([aria-modal="true"]) .core-success-toast {
   .core-date-calendar-heading > svg { color: var(--core-action-primary); transition: transform 150ms cubic-bezier(0, 0, 0.2, 1); }
 }
 
-/* Login: the form stands on the canvas without a panel below a large brand; fields and action are 44 px high. */
 .core-auth-mascot {
   height: 9.5rem;
 }
@@ -2773,8 +2696,6 @@ button[aria-label] {
   color: var(--core-status-tone);
 }
 
-/* Exam filter in the calendar head: a CoreTag with the exam colour as dot; hidden exams fade to an outline with a hollow dot.
-   The button keeps the control height as touch target around the 24-px tag. */
 .core-exam-filter { display: inline-flex; min-width: 0; max-width: 100%; min-height: var(--core-button-height); align-items: center; border-radius: var(--core-radius-control); }
 .core-exam-filter .core-tag { max-width: 100%; overflow-wrap: anywhere; transition: background-color 120ms ease, color 120ms ease; }
 .core-exam-filter[aria-pressed="true"]:hover .core-tag { --core-tag-surface: var(--core-surface-hover); }
@@ -2801,10 +2722,6 @@ button.core-steps-step {
   margin-inline: calc(-1 * var(--core-space-xs));
 }
 
-/*
- * Card editor (D6): DialogFrame `l` with a fixed height from 1024 px and full screen below, so paging and tab
- * changes never resize it. A marked card tints the whole dialog. Sections lie on its one surface.
- */
 .core-card-editor-frame {
   --core-card-editor-surface: var(--core-surface-raised);
   background: var(--core-card-editor-surface);
@@ -2820,7 +2737,6 @@ button.core-steps-step {
   padding-block: var(--core-space-sm);
 }
 
-/* A long title shrinks beside paging and actions instead of wrapping onto its own row; narrow it takes one (below). */
 .core-card-editor-frame .core-dialog-frame-heading {
   flex-basis: 0;
 }
@@ -2846,7 +2762,6 @@ button.core-steps-step {
   gap: var(--core-space-xs);
 }
 
-/* The first arrow's icon starts on the content edge. */
 .core-card-editor-paging {
   margin-left: calc((1rem - var(--core-button-height)) / 2);
 }
@@ -2890,7 +2805,6 @@ button.core-steps-step {
   min-width: 0;
 }
 
-/* Stacked sections are separated by a hairline; side by side they are not. */
 .core-card-editor-section + .core-card-editor-section,
 .core-card-editor-column + .core-card-editor-column > .core-card-editor-section:first-child,
 .core-card-editor-column + .core-card-editor-section,
@@ -2984,7 +2898,6 @@ button.core-steps-step {
   min-width: 0;
 }
 
-/* Both pane heads share the height of their switches, so the columns start on one line. */
 .core-card-editor-pane-head {
   min-height: var(--core-selection-height);
 }
@@ -3021,7 +2934,6 @@ button.core-steps-step {
   }
 }
 
-/* The four editor tabs stay complete on the narrowest phones. */
 @media (max-width: 359px) {
   .core-card-editor-frame .core-tabs-list {
     gap: var(--core-space-lg);
@@ -3071,11 +2983,7 @@ button.core-steps-step {
   }
 }
 
-/*
- * Card table (D6): one sheet below the search row. Header row and selection bar share one compact height (touch:
- * the button height), so the rows do not move when selecting starts; the bar's clear button sits on the checkbox
- * axis, its count where the questions start.
- */
+/* Header row and selection bar share one height so the rows do not move when selecting starts. */
 .core-card-table-header {
   --core-card-table-header-height: 1.75rem;
   /* The row also holds half of its collapsed bottom border. */
@@ -3118,7 +3026,6 @@ button.core-steps-step {
 }
 
 .core-card-selection-bar > .core-card-selection-actions {
-  /* Inset from the table edge and the header line, centred in the header. */
   height: calc(var(--core-card-table-header-height) - 0.375rem);
   min-height: 0;
   padding-block: 0;
@@ -3149,7 +3056,6 @@ button.core-steps-step {
   }
 }
 
-/* Head of the deck contents (D6): path, deck tile with title and `Karten lernen` on one line, underline tabs. */
 .core-deck-content-head {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
@@ -3230,12 +3136,10 @@ button.core-steps-step {
   background: color-mix(in srgb, var(--core-action-primary) 16%, var(--core-surface-muted));
 }
 
-/* The panel actions of a creation way move below its title when both no longer fit one row. */
 .core-creation-way .core-page-header-with-action {
   flex-wrap: wrap;
 }
 
-/* Rating buttons: ToolBox soft buttons; the rating role (fill, border, label) comes from ratingButtons. */
 .core-rating-again { border-color: var(--core-rating-again-border); background: var(--core-rating-again-surface); color: var(--core-rating-again-text); }
 .core-rating-hard { border-color: var(--core-rating-hard-border); background: var(--core-rating-hard-surface); color: var(--core-rating-hard-text); }
 .core-rating-good { border-color: var(--core-rating-good-border); background: var(--core-rating-good-surface); color: var(--core-rating-good-text); }
@@ -3269,7 +3173,6 @@ button.core-steps-step {
   opacity: 0.5;
 }
 
-/* Label and interval share one baseline; the button centres them as a group. */
 .core-rating-text {
   display: inline-flex;
   min-width: 0;
@@ -3286,7 +3189,6 @@ button.core-steps-step {
   border-radius: var(--core-radius-round);
 }
 
-/* Study header: one flat row on the canvas with a 4 px progress line; it stays on top and covers the scrolling card. */
 .core-study-header {
   position: sticky;
   top: 0;
@@ -3304,7 +3206,6 @@ button.core-steps-step {
   .core-study-header { margin-inline: 0; padding-inline: 0; }
 }
 
-/* The study action bar takes the place and shape of the mobile bottom navigation, which the study mode hides. */
 .core-study-action-bar {
   position: fixed;
   bottom: max(0.75rem, env(safe-area-inset-bottom));
@@ -3349,7 +3250,6 @@ button.core-steps-step {
   .core-study-action-bar { width: calc(100dvw - 0.5rem); }
 }
 
-/* "KI hilft" floats at the right just above the study action bar. */
 .core-study-ai-entry {
   position: fixed;
   right: 1rem;
@@ -3472,7 +3372,6 @@ button.core-steps-step {
   overflow-wrap: anywhere;
 }
 
-/* Statistics overview: the key figures head the content without a panel, larger than other metric rows (K08). */
 .core-statistics-overview .core-metric {
   font-size: 1.75rem;
   line-height: 2.25rem;
@@ -3630,7 +3529,6 @@ button.core-steps-step {
 .core-summary-editor .rich-text-field h3 { font-size: var(--core-type-heading-3); }
 .core-summary-editor .rich-text-field p { margin-block-end: var(--core-space-lg); }
 .core-summary-editor .rich-text-field details { margin-block: calc(-1 * var(--core-space-sm)) var(--core-space-lg); color: var(--core-text-muted); font: var(--core-type-caption)/var(--core-leading-caption) var(--core-font-sans); }
-/* Belege in gespeichertem Zusammenfassungs-HTML sehen aus wie Disclosure: Handlungsblau hinter einem Chevron. */
 .core-summary-editor .rich-text-field summary { display: flex; align-items: center; gap: var(--core-space-xs); width: fit-content; min-height: 0; padding-block: var(--core-space-xs); list-style: none; cursor: pointer; color: var(--core-action-primary); font: var(--core-weight-emphasis) var(--core-type-body)/var(--core-leading-body) var(--core-font-sans); }
 .core-summary-editor .rich-text-field summary::-webkit-details-marker { display: none; }
 .core-summary-editor .rich-text-field summary::before { content: ""; flex: none; width: 0.875rem; height: 0.875rem; background: currentColor; mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E") center / contain no-repeat; }
@@ -3638,7 +3536,6 @@ button.core-steps-step {
 .core-summary-editor .rich-text-field details small { font-size: inherit; }
 .core-summary-editor .rich-text-field details p { margin-block: var(--core-space-xs) 0; padding-inline-start: var(--core-space-md); border-inline-start: var(--core-border-width) solid var(--core-border); }
 
-/* The mindmap world remains independent of its viewport and editing toolbar. */
 .core-mindmap-panel { container: core-mindmap / inline-size; }
 .core-mindmap-heading { min-width: 0; }
 .core-mindmap-primary-tools { display: flex; align-items: center; flex-wrap: wrap; gap: var(--core-space-sm); min-width: 0; }
@@ -3769,7 +3666,6 @@ button.core-steps-step {
 .core-summary-drawing-layer[data-tool="eraser"] path { pointer-events: stroke; }
 .core-summary-drawing-layer[data-tool="eraser"] path:hover { stroke-opacity: 0.45; }
 .core-summary-expanded { position: fixed; inset: 0; z-index: 70; overflow-y: auto; overscroll-behavior: contain; background: var(--core-canvas); padding: var(--core-space-sm); }
-/* Below one-row width the context tools move to their own swipeable row, as in mobile note apps. */
 @container summary-document (width < 68rem) {
   .core-summary-tool-context, .core-rich-text-document-toolbar { flex-wrap: nowrap; }
   .core-summary-tool-context { order: 1; flex-basis: 100%; overflow-x: auto; overscroll-behavior-x: contain; scrollbar-width: none; padding-top: var(--core-space-sm); padding-inline-end: var(--core-space-xl); border-top: var(--core-border-width) solid var(--core-border); mask-image: linear-gradient(to right, #000 calc(100% - var(--core-space-xl)), transparent); }
@@ -3822,7 +3718,6 @@ button.core-steps-step {
   .exam-month-entry { gap: 2px; padding-inline: 0.25rem 0; font-size: clamp(10px, 3vw, var(--core-type-caption)); }
 }
 
-/* Automatische Kartenerstellung */
 .core-ai-source-column {
   gap: 1.25rem;
   padding: var(--core-space-xl);
@@ -3830,7 +3725,6 @@ button.core-steps-step {
   border-radius: var(--core-radius-panel);
   background: var(--core-surface);
 }
-/* Card formats as one-row option cards in the selection language of the answer options (.core-mcq-option). */
 .core-ai-source-formats {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(min(100%, 11rem), 1fr));
@@ -3870,9 +3764,7 @@ button.core-steps-step {
   .core-ai-source-column { padding: var(--core-space-lg); }
 }
 
-/* Modulare Heute-Seite */
-/* Fixed formats: a tile spans one column, "full" the whole row; every widget keeps its format height and scrolls inside.
-   Without dense packing the saved order is the visual and tab order; a gap before a full-width widget stays free. */
+/* No dense packing: the saved order must stay the visual and tab order. */
 .dashboard-modules { --dashboard-gap: 1rem; --dashboard-tile-height: 29rem; --dashboard-list-height: 24.5rem; }
 .dashboard-widget-grid { display: grid; min-height: 120px; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--dashboard-gap); align-items: start; }
 .dashboard-widget { --dashboard-widget-height: var(--dashboard-tile-height); min-width: 0; grid-column: span 1; border-radius: var(--core-radius-panel); }
@@ -3885,7 +3777,6 @@ button.core-steps-step {
 .dashboard-todos { display: flex; flex-direction: column; }
 /* The inset keeps focus rings (2 px plus 3 px offset) inside the scroll area. */
 .dashboard-todos-list { flex: 1 1 auto; min-height: 0; overflow-y: auto; margin: 0 -0.625rem 0 -0.375rem; padding: 0 0.625rem 0.375rem 0.375rem; }
-/* The heatmap fills its tile: week bars and month rows share the height left after band, controls and legend. */
 .dashboard-widget .core-study-heatmap-container { display: flex; flex-direction: column; }
 .dashboard-widget .core-study-heatmap-band { padding-inline: 1.25rem; }
 .dashboard-widget .core-study-heatmap-body { display: flex; flex: 1 1 auto; flex-direction: column; min-height: 0; padding: 1.25rem; }
@@ -3898,7 +3789,6 @@ button.core-steps-step {
 .dashboard-widget [data-heatmap-period="month"] > div { width: 100%; }
 .dashboard-widget .core-heatmap-month-grid { flex: 1 1 auto; grid-auto-rows: minmax(1rem, 1fr); }
 .dashboard-widget .core-heatmap-month-cell { aspect-ratio: auto; }
-/* Tighter vertical rhythm so a six-row month fits even the narrowest tile. */
 .dashboard-widget .core-study-heatmap-view { margin-block-start: 0.5rem; }
 .dashboard-widget [data-heatmap-period="month"] > div:first-child { margin-block-end: 0.25rem; }
 .dashboard-widget .core-heatmap-month-grid { row-gap: 0.25rem; }
@@ -3937,8 +3827,6 @@ button.core-steps-step {
 .dashboard-mini-bar i:nth-child(4) { background: var(--core-learning-status-due); }
 .dashboard-mini-cells { display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px; width: 100%; }
 .dashboard-mini-cells i { height: 8px; border-radius: var(--core-radius-marker); background: var(--core-learning-status-new); }
-/* Lernkachel: the remaining count and the labelled start lead the page, below the bar and the four counts as one calm row
-   (number and word after an 8-px dot in the colour of the bar segment) with the card counter on the right. */
 .dashboard-learning { container: dashboard-learning / inline-size; }
 .dashboard-learning-body { display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "goal goal" "bar bar" "metrics total"; align-items: center; }
 .dashboard-learning-goal { grid-area: goal; display: flex; flex-wrap: wrap; align-items: center; gap: var(--core-space-md) var(--core-space-xl); }
@@ -3950,7 +3838,6 @@ button.core-steps-step {
 .dashboard-learning-dot { align-self: center; width: 0.5rem; height: 0.5rem; margin-inline-end: 0.125rem; border-radius: var(--core-radius-round); }
 .dashboard-learning-metric-value { color: var(--core-text); font: var(--core-weight-emphasis) var(--core-type-body-large)/var(--core-leading-body-large) var(--core-font-sans); }
 .dashboard-learning-total { grid-area: total; align-self: end; margin-top: var(--core-space-md); padding-inline-start: var(--core-space-lg); line-height: var(--core-leading-body-large); }
-/* Narrow tile and phone: the start spans the width under the count, the counter moves above the bar, two count columns. */
 @container dashboard-learning (max-width: 32rem) {
   .dashboard-learning-body { grid-template-columns: minmax(0, 1fr); grid-template-areas: "goal" "total" "bar" "metrics"; }
   .dashboard-learning-goal > .core-action-primary { flex: 1 0 100%; }
@@ -3959,14 +3846,12 @@ button.core-steps-step {
   .dashboard-learning-metrics { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
-/* Erststart: the mascot stands left of the question and the three action cards, above them on narrow screens. */
 .dashboard-first-start { display: grid; gap: var(--core-space-xl) 2.5rem; align-items: center; }
 .dashboard-first-start-mascot { width: 9rem; height: auto; }
 @media (min-width: 768px) {
   .dashboard-first-start { grid-template-columns: 10rem minmax(0, 1fr); }
   .dashboard-first-start-mascot { width: 100%; }
 }
-/* The three cards stand side by side, titles on one line, once each keeps its one-line description. */
 .dashboard-first-start-content { container: dashboard-first-start / inline-size; }
 @container dashboard-first-start (min-width: 60rem) {
   .dashboard-first-start-actions { grid-template-columns: repeat(3, minmax(0, 1fr)); }
@@ -3991,9 +3876,7 @@ button.core-steps-step {
   .dashboard-widget-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 @media (max-width: 639px) {
-  /* The edit pencil stays beside a long name; the name wraps instead. */
   .dashboard-modules .core-page-header-with-action { flex-wrap: nowrap; align-items: flex-end; }
-  /* One column has no neighbours to align with: shorter widgets shrink, longer ones still scroll at the format height. */
   .dashboard-widget-grid { grid-template-columns: minmax(0, 1fr); }
   .dashboard-widget-content { height: auto; }
   .dashboard-widget-content > * { height: auto; max-height: var(--dashboard-widget-height); }

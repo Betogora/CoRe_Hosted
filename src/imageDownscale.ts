@@ -47,13 +47,12 @@ function canvasBlob(canvas: HTMLCanvasElement, type: string, quality: number): P
   });
 }
 
-/** Shrinks JPEG, PNG and WebP images to Full HD in their own format; other types and small images stay unchanged. */
 export async function downscaleImageToFullHd(file: Blob): Promise<Blob> {
   const canvas = await drawImage(file, fullHdImageSize);
   return canvas ? await canvasBlob(canvas, file.type, 0.9) : file;
 }
 
-/** Redraws JPEG, PNG and WebP images with at most `maxSide` px as WebP (quality 0.85), in their own type where the browser cannot encode WebP; an unscaled original stays when it is smaller. */
+/** Falls back to the own type where the browser cannot encode WebP; an unscaled original stays when it is smaller. */
 export async function compressImage(file: Blob, maxSide: number): Promise<Blob> {
   let resized = false;
   const canvas = await drawImage(file, (width, height) => {

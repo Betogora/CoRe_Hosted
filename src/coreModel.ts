@@ -1,4 +1,3 @@
-// Public core-model seam. Callers outside this directory must import from here.
 export {
   DECK_ICON_KEYS,
   REVIEW_RATINGS,

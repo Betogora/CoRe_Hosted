@@ -24,7 +24,6 @@ function newCards(deckId: string, count: number): { note: Note; cards: Card[] }[
   });
 }
 
-/** `Offen` with two new cards, `Gedeckelt` with two new cards and no new-card limit left today, and the empty `Leer`. */
 async function setup() {
   const graphs = [...newCards("deck-open", 2), ...newCards("deck-capped", 2)];
   const cardsOf = (deckId: string) => graphs.flatMap((graph) => graph.cards).filter((card) => card.deckId === deckId);

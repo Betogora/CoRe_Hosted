@@ -42,7 +42,6 @@ export interface StudyHeatmapWindow {
   weekdayLabels: string[];
   maxCount: number;
   maxForecastCount: number;
-  /** Past days of the window since the first activity, and how many of them have activity. */
   trackedDayCount: number;
   activeDayCount: number;
   canShowPrevious: boolean;

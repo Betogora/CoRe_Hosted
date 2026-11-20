@@ -2,15 +2,14 @@ import { planCardBatchEdit, planCardBatchUndo, planNoteDeletion, planNoteRestore
 import type { Card, Note } from "./coreTypes.ts";
 import type { NoteGraph } from "./workspaceReplica.ts";
 
-/** A mass action on selected cards (KV4): an edit of cards or contents, a study change, or deletion of the contents. */
 export type CardBatchAction =
   | CardBatchEdit
   | { kind: "bury" }
   | { kind: "reset" }
-  /** Each card gets one of these learning-day starts at random (Anki's `Fälligkeit setzen` with a range). */
+  /** Each card gets one of these learning-day starts at random. */
   | { kind: "due"; dueAts: readonly string[] }
   | { kind: "delete" }
-  /** Literal find and replace in the contents of the selected cards (KV5). */
+  /** Literal find and replace. */
   | ({ kind: "replace" } & TextReplace);
 
 export interface CardBatchRepository {
@@ -32,7 +31,6 @@ export interface CardBatchDependencies {
 }
 
 export interface CardBatchResult {
-  /** Selected cards the action changed. */
   changedCount: number;
   /** Takes the action back as a new change; cards changed since keep their later state and count as skipped. */
   undo(): Promise<{ restoredCount: number; skippedCount: number }>;
@@ -51,12 +49,10 @@ async function openGraphs(dependencies: CardBatchDependencies, cardIds: readonly
 }
 
 export interface TextReplaceSession {
-  /** Field names of the selected contents, in the order they first appear. */
   fieldNames: string[];
   preview(edit: TextReplace): { changedCount: number; skippedCount: number; examples: TextReplacePreview[] };
 }
 
-/** Loads the selected contents once, so the replace dialog offers their fields and previews each input without saving. */
 export async function prepareTextReplace(dependencies: CardBatchDependencies, cardIds: readonly string[]): Promise<TextReplaceSession> {
   const { selected, graphs } = await openGraphs(dependencies, cardIds);
   const fieldNames = [...new Set(graphs.flatMap((graph) => graph.note.content.fields.map((field) => field.name)))];
@@ -69,10 +65,7 @@ export async function prepareTextReplace(dependencies: CardBatchDependencies, ca
   };
 }
 
-/**
- * Runs one mass action as one local write; the outbox carries it to the cloud in batches. Cards are hydrated first, so
- * offline the action needs every selected card on this device.
- */
+/** Cards are hydrated first, so offline every selected card must be on this device. */
 export async function runCardBatch(dependencies: CardBatchDependencies, cardIds: readonly string[], action: CardBatchAction): Promise<CardBatchResult> {
   const { repository } = dependencies;
   const ids = [...new Set(cardIds)];

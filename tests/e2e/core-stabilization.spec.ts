@@ -110,7 +110,6 @@ test("gemeinsame Dropdowns schließen durch erneutes Antippen und behalten Auswa
       await trigger.scrollIntoViewIfNeeded();
       const box = await trigger.boundingBox();
       expect(box).not.toBeNull();
-      // A touch screen keeps 44-px targets at every width.
       expect(box!.height).toBeGreaterThanOrEqual(44);
       const activate = () => touch
         ? page.touchscreen.tap(box!.x + box!.width / 2, box!.y + box!.height / 2)
@@ -404,7 +403,6 @@ test("[Vertrag: Tastaturfokus bei Navigation und Overlays] Fokus folgt Seiten- u
 
   const learnNavigation = mainMenu(page).getByRole("button", { name: "Lernen" });
   await learnNavigation.focus();
-  // Reaching the control by keyboard shows the focus frame (src/ui/README.md); headings and card content stay frameless.
   await page.keyboard.press("Shift+Tab");
   await page.keyboard.press("Tab");
   await expect(learnNavigation).toBeFocused();
@@ -490,7 +488,6 @@ test("Lerneinstellungen wechseln bei 768 px zwischen Bottom Sheet und zentrierte
     const style = window.getComputedStyle(element);
     return { top: style.borderTopWidth, bottom: style.borderBottomWidth };
   }));
-  // No boxed rows; one hairline separates the groups „Karte“ and „Sitzung“.
   expect(contentBorders.filter((border: { top: string; bottom: string }) => border.top !== "0px" || border.bottom !== "0px")).toEqual([{ top: "1px", bottom: "0px" }]);
 
   await page.setViewportSize({ width: 768, height: 640 });
@@ -758,7 +755,7 @@ test("review flow records a rating through accessible controls", async ({ page }
 
 test("deck settings save appearance, learning, scheduler and CoRe values together", async ({ page }: any) => {
   const runtimeErrors = collectBrowserErrors(page);
-  // The rating below makes a card ready for variants, so the app requests its next variant ahead (specs.md#kartenvarianten-erzeugen).
+  // The rating below makes a card ready for variants, so the app requests its next variant ahead.
   await page.route("**/api/ai/card-variant", (route: any) => route.fulfill({
     status: 200,
     contentType: "application/json",
@@ -1031,7 +1028,6 @@ test("a card moved out of the opened deck, moved back and duplicated stays reach
   await page.getByRole("option", { name: /Asien$/ }).click();
   await moveDialog.getByRole("button", { name: "Verschieben", exact: true }).click();
 
-  // The card left the opened deck: the editor closes, the source table drops its row and the undo toast stays.
   await expect(editor).toHaveCount(0);
   await expect(row).toHaveCount(0);
   const toast = page.locator('[data-success-toast-region="true"]');
@@ -1097,9 +1093,9 @@ test("[Vertrag: manuell mit PDF bis Bearbeiten und Review] @golden-e2e @beta-cor
     const range = document.createRange();
     range.selectNodeContents(textSpan);
     const selection = window.getSelection();
-// @ts-expect-error -- Das bestehende dynamische View-/Fixture-Modell wird an dieser lokalen Grenze bewusst eingeengt.
+// @ts-expect-error
     selection.removeAllRanges();
-// @ts-expect-error -- Das bestehende dynamische View-/Fixture-Modell wird an dieser lokalen Grenze bewusst eingeengt.
+// @ts-expect-error
     selection.addRange(range);
     layer.closest("[aria-label='PDF-Dokument']").dispatchEvent(new PointerEvent("pointerup", { bubbles: true }));
   });
@@ -1240,10 +1236,8 @@ test("[Vertrag: KI-Varianten je Kartenart, Zähler, Stapellauf und Anzeigen] Der
   await page.getByRole("button", { name: "Stapeloptionen für CoRe KI-Varianten", exact: true }).click();
   await page.locator('[data-testid^="deck-options-menu-"]').getByRole("button", { name: "Einstellungen" }).click();
   const dialog = deckSettingsDialog(page);
-  // Imported decks have CoRe switched on by default.
   await expect(dialog.getByRole("switch", { name: "CoRe-Modus" })).toBeChecked();
 
-  // The parent deck counts and generates over all its subdecks.
   await expect(dialog.getByTestId("deck-settings-variant-count")).toHaveText("18 Karten ohne Variante");
   await dialog.getByRole("button", { name: "Varianten generieren" }).click();
   const bar = page.getByTestId("variant-generation-bar");

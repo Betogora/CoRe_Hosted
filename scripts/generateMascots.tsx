@@ -9,7 +9,6 @@ import { BRAIN_MASCOTS } from "../src/brainMascots.ts";
 import { BrainMascot } from "../src/ui/BrainMascot.tsx";
 import { escapeHtml } from "./docsSite.ts";
 
-/** The app logo shares its colours with the mascot drawings; `npm run docs:build` writes it to public/core-brain.svg. */
 function BrainLogo() {
   return <svg xmlns="http://www.w3.org/2000/svg" viewBox="80 80 840 840" role="img" aria-labelledby="title desc">
     <title id="title">Gehirn beim Lernen</title><desc id="desc">Ein korallfarbenes Gehirn mit Augen liest eine Karteikarte neben einem bunten Bücherstapel.</desc>

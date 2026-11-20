@@ -4,7 +4,6 @@ import { getExamDeckIds, getExamLastNewDate, getExamSessionCardIds, getExamTopic
 import { EXAM_PLANNING_LIMITS, getExamPlanningKey } from "./examPlanSettings.ts";
 import { getLearningDayKey } from "./learningDay.ts";
 
-/** Freeze today's targets. Only real answers and finished learning steps can automatically check them. */
 export function reconcileExamDailyTasks(settings: ExamPlanningSettings, decks: readonly Deck[], forecast: ExamPortfolioForecast, cards: readonly CardStudySnapshot[], now: string, timeZone: string, dayStartHour: number): ExamDailyTask[] {
   const context = { timeZone, dayStartHour };
   const date = getLearningDayKey(now, context)!;
@@ -56,13 +55,11 @@ export function reconcileExamDailyTasks(settings: ExamPlanningSettings, decks: r
   });
 }
 
-/** The deck whose summaries a reading task opens, or null for other tasks. */
 export function getExamSummaryTaskDeckId(taskId: string): string | null {
   const [kind, , deckId] = taskId.split(":");
   return kind === "summary" && deckId ? decodeURIComponent(deckId) : null;
 }
 
-/** Cards of today's unit: one task's targets, all targets, or a calendar block of today's plan. */
 export function getExamSessionTargetIds(tasks: readonly ExamDailyTask[], day: ExamPlanDay | undefined, todayKey: string, blockId: string | null): string[] {
   const task = blockId ? tasks.find((entry) => entry.id === blockId && entry.kind === "study") : null;
   if (task) return task.cardIds;

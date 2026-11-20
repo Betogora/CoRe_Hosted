@@ -4,7 +4,7 @@ import type { AnswerRow, RunMeta } from "./generate.ts";
 import { answerRef, labelRef, type Label, type Verdicts } from "./judge.ts";
 import type { EvalRun, RequestType } from "./ledger.ts";
 
-/** Eine Antwort mit ihren Kriterien; ein Kriterium fehlt, wenn es für die Anfrage nicht gilt oder die Antwort den Vertrag nicht besteht. */
+/** Ein Kriterium fehlt in `criteria`, wenn es für die Anfrage nicht gilt oder die Antwort den Vertrag nicht besteht. */
 export type AnswerResult = { caseId: string; repetition: number; category: string; criteria: Record<string, boolean>; main: boolean; costUsd: number | null; latencyMs: number; totalTokens: number | null; model: string | null };
 
 const RESAMPLES = 2000;
@@ -12,7 +12,6 @@ const mean = (values: readonly number[]) => values.length ? values.reduce((sum, 
 const quantile = (values: readonly number[], share: number) => [...values].sort((a, b) => a - b)[Math.min(values.length - 1, Math.max(0, Math.ceil(values.length * share) - 1))] ?? 0;
 const round = (value: number) => Math.round(value * 10000) / 10000;
 
-/** Bewertet jede Antwort: Vertrag, automatische Kriterien und Richterurteile; fehlt eine Antwort oder ein Urteil, bricht die Auswertung ab. */
 export function evaluateAnswers(definition: EvalDefinition, cases: readonly EvalCase[], repetitions: number, rows: readonly AnswerRow[], verdicts: Verdicts): AnswerResult[] {
   const byKey = new Map(rows.map((row) => [answerRef(row.caseId, row.repetition), row]));
   return cases.flatMap((entry) => Array.from({ length: repetitions }, (_, repetition) => {
@@ -38,7 +37,7 @@ function caseScores(results: readonly AnswerResult[]) {
   return new Map([...scores].map(([caseId, values]) => [caseId, mean(values)]));
 }
 
-/** 95 %-Intervall eines Mittelwerts per Bootstrap über Fälle; Wiederholungen eines Falls bleiben zusammen. */
+/** Bootstrap über Fälle: Wiederholungen eines Falls bleiben zusammen. */
 function bootstrap(values: readonly number[], random: () => number) {
   const means = Array.from({ length: RESAMPLES }, () => mean(Array.from({ length: values.length }, () => values[Math.floor(random() * values.length)])));
   return { low: quantile(means, 0.025), high: quantile(means, 0.975) };
@@ -76,7 +75,7 @@ export function summarize(results: readonly AnswerResult[], random: () => number
   };
 }
 
-/** Gepaarter Vergleich auf gemeinsamen Fällen: Abstand, Rauschen als halbe Breite seines 95 %-Intervalls und Fallwechsel. */
+/** Gepaart auf gemeinsamen Fällen; Rauschen ist die halbe Breite des 95 %-Intervalls des Abstands. */
 export function compare(candidate: readonly AnswerResult[], reference: readonly AnswerResult[], random: () => number) {
   const before = caseScores(reference);
   const differences = [...caseScores(candidate)].flatMap(([caseId, score]) => before.has(caseId) ? [score - before.get(caseId)!] : []);
@@ -85,13 +84,11 @@ export function compare(candidate: readonly AnswerResult[], reference: readonly 
   return { cases: differences.length, delta: round(mean(differences)), noise: round((high - low) / 2), gained: differences.filter((value) => value > 0).length, lost: differences.filter((value) => value < 0).length };
 }
 
-/** ADR-049: übernommen nur, wenn der Testwert über das Rauschen steigt und kein kritisches Kriterium schlechter wird. */
 export function decide(type: RequestType, candidate: Summary, reference: Summary, comparison: ReturnType<typeof compare>): "accepted" | "rejected" {
   const criticalHolds = type.critical.every((id) => (candidate.criteria[id] ?? 0) >= (reference.criteria[id] ?? 0));
   return comparison.delta > comparison.noise && criticalHolds ? "accepted" : "rejected";
 }
 
-/** Vergleicht Richter und Handurteil auf den bewerteten Einträgen. */
 export function agreement(type: RequestType, labels: readonly Label[], verdicts: Verdicts) {
   const pairs = labels.flatMap((label) => {
     const judged = verdicts.get(labelRef(label.id));
@@ -126,7 +123,6 @@ export function ledgerRun(type: RequestType, run: string, meta: RunMeta, summary
 
 const percent = (share: number) => `${(share * 100).toLocaleString("de-DE", { minimumFractionDigits: 1, maximumFractionDigits: 1 })} %`;
 
-/** Bericht eines Laufs als Markdown: Hauptwert, Kriterien je Kategorie, Kosten, Vergleich und Kontrolleinträge. */
 export function renderReport({ type, run, meta, summary, comparison, decision, controls }: { type: RequestType; run: string; meta: RunMeta; summary: Summary; comparison: ReturnType<typeof compare> | null; decision: EvalRun["decision"]; controls: ReturnType<typeof agreement> | null }) {
   const ids = Object.keys(summary.criteria);
   const lines = [

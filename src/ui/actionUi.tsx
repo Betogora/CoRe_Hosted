@@ -65,7 +65,6 @@ export const IconButton = React.forwardRef<HTMLButtonElement, IconButtonProps>(f
 interface CrossLinkBaseProps {
   children: React.ReactNode;
   className?: string;
-  /** `back` leads with an arrow to the parent surface instead of the trailing chevron. */
   direction?: "forward" | "back";
 }
 
@@ -76,10 +75,6 @@ export type CrossLinkButtonProps = CrossLinkBaseProps & (
 
 const CROSS_LINK_CLASS = "inline-flex min-h-button items-center gap-1 whitespace-nowrap rounded-control px-1 core-control-label font-semibold text-core-action underline-offset-4 hover:underline";
 
-/**
- * Opens the rest of a shortened list in place (`N weitere anzeigen`) or folds it again (`Weniger anzeigen`). `context`
- * names the list for screen readers when several of them stand side by side.
- */
 export function ShowMoreButton({ expanded, hiddenCount, onToggle, controls, context, className = "" }: {
   expanded: boolean;
   hiddenCount: number;
@@ -100,7 +95,6 @@ export function ShowMoreButton({ expanded, hiddenCount, onToggle, controls, cont
 
 const EXPANDER_CLASS = "core-show-more -ml-1.5 inline-flex items-start gap-1 rounded-inset px-1.5 py-1 text-left font-semibold text-core-action transition-colors hover:bg-core-subtle";
 
-/** Native disclosure whose summary looks like `ShowMoreButton`: action-blue text after a chevron that turns up while open. */
 export function Disclosure({ summary, children, className = "", ...props }: Omit<React.DetailsHTMLAttributes<HTMLDetailsElement>, "children"> & { summary: React.ReactNode; children: React.ReactNode }) {
   return (
     <details className={`core-disclosure min-w-0 ${className}`.trim()} {...props}>

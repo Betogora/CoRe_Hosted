@@ -100,7 +100,6 @@ test("duplicates of the same form in the target deck are updated, skipped or cre
   assert.equal(updated.updates[0].noteId, graph.note.id);
   assert.equal(updated.updates[0].content.fields[1].html, "neu");
   assert.deepEqual(updated.updates[0].content.tags, ["eigen", "kreislauf"]);
-  // A different form is no duplicate; a repeated row updates the same content once.
   assert.deepEqual(updated.creates.map((content) => content.fields[0].html), ["Lunge", "Niere"]);
   assert.equal(updated.cardCount, 3);
 

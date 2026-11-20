@@ -45,7 +45,6 @@ const deckContentTabs = [
   { value: "cards", label: "Karten" },
 ] as const;
 
-/** Centered state of a content tab without its own content, e.g. `Keine Unterstapel`. */
 function DeckContentPlaceholder({ label, icon: Icon, title, action, testId }: { label: string; icon: LucideIcon; title: string; action?: React.ReactNode; testId?: string }) {
   return (
     <SoftPanel aria-label={label} className="flex min-h-[214px] items-center justify-center p-6 sm:p-10" data-testid={testId}>
@@ -149,7 +148,6 @@ export function DecksScreen({
   const [advancedSearchOpen, setAdvancedSearchOpen] = React.useState(false);
   const [tagDirectory, setTagDirectory] = React.useState<Awaited<ReturnType<typeof cardEditor.listTagDirectory>>>([]);
   const [tagManagerOpen, setTagManagerOpen] = React.useState(false);
-  // A tag change reloads the directory of the menu and the manager.
   const [tagDirectoryVersion, setTagDirectoryVersion] = React.useState(0);
   const [noteTypes, setNoteTypes] = React.useState<Awaited<ReturnType<typeof cardEditor.listNoteTypes>>>([]);
   React.useEffect(() => {
@@ -182,7 +180,6 @@ export function DecksScreen({
     decks, libraryDecks, cardPages, deckSummaries, noteTypes, now, dayStartHour, learnAheadMinutes, timeZone,
     onRequestCardPage, paused: Boolean(contentDeckId && contentTab !== "cards"), selectedCardId, pendingHit, linkedQuery: cardQuery,
   });
-  // Every filter is a search term in the query (Anki notation), so search, chips and menu stay one state.
   const unsupportedTerms = React.useMemo(() => unsupportedCardSearchTerms(deferredQuery), [deferredQuery]);
   const searchResultCount = deferredQuery.trim() && !cardsLoading ? hitList.totalCardCount : null;
   const groupById = React.useMemo(() => new Map(tableModel.allGroups.map((group) => [group.id, group])), [tableModel.allGroups]);
@@ -195,7 +192,6 @@ export function DecksScreen({
   const selectedDeckId = selectedContentDeckId ?? focusedDeckId;
   const selectedGroup = selectedDeckId ? groupById.get(selectedDeckId) ?? null : null;
   const selectedDeck = selectedGroup?.deck ?? null;
-  // The open card comes with the hit list's pages.
   const selectedListKey = HIT_LIST_KEY;
   const selectedPage = selectedListKey ? cardPages?.[selectedListKey] : undefined;
 
@@ -205,7 +201,7 @@ export function DecksScreen({
   const selectedGraph = selectedPage?.selected?.cardId === selectedCardId ? selectedPage?.selected ?? null : null;
   const selectedDeckMissing = Boolean(selectedDeckId && !selectedDeck);
   const selectedCardMissing = Boolean(selectedDeck && selectedCardId && !selectedGraph);
-  // Until the page answers for the selected card the editor shows the loading bar, never "Karte nicht gefunden".
+  // Until the page answers for the selected card, the card counts as loading, not missing.
   const selectedCardLoading = selectedCardMissing && Boolean(onRequestCardPage) && !selectedPage?.loadError && selectedPage?.requestedCardId !== selectedCardId;
   const detailOpen = Boolean(selectedGraph || selectedDeckMissing || selectedCardMissing);
   const { urls: selectedNoteMediaUrls } = useNoteMediaUrls(selectedGraph?.note.media, mediaStore);
@@ -230,7 +226,6 @@ export function DecksScreen({
   React.useEffect(() => {
     if (!detailOpen) return;
 
-    // A click beside the delete question cancels it and also closes the editor (specs.md#karten-löschen-und-duplizieren).
     function handleOutsidePointer(event: PointerEvent) {
       const target = event.target;
       if (!pendingCardDelete || !(target instanceof Element) || !target.matches('[data-testid="action-dialog-backdrop"]')) return;
@@ -278,7 +273,6 @@ export function DecksScreen({
   }
   const stableRequestCardSelection = useStableCallback(requestCardSelection);
 
-  // Prev/next walks every row of the list in table order (KV3); a row whose page is not loaded yet opens once it is.
   const selectedPosition = selectedLocation && !onCloseSelectedCard ? selectedLocation.card : -1;
   const previousHit = selectedPosition >= 0 ? cardItems[selectedPosition - 1] : undefined;
   const nextHit = selectedPosition >= 0 ? cardItems[selectedPosition + 1] : undefined;
@@ -327,7 +321,7 @@ export function DecksScreen({
   };
 
 
-  /** Runs a mass action with its toast (`done` names the result) and `Rückgängig`; true once it ran. */
+  /** Returns true once the action ran. */
   async function runCardBatchAction(loadIds: () => Promise<string[]>, action: CardBatchAction, done: (cards: string) => string, onUndone?: () => void) {
     if (!onRunCardBatch || runningBatch) return false;
     setRunningBatch(true);
@@ -345,7 +339,6 @@ export function DecksScreen({
             : `Rückgängig gemacht: ${cardCount(restoredCount)}`, { appearance: skippedCount ? "neutral" : "success" });
         }, () => setSuccessToast("Rückgängig ist fehlgeschlagen.", { appearance: "neutral" }));
       };
-      // Ctrl+Z in the list takes the latest mass action back, like its toast (KV6).
       lastUndoRef.current = undo;
       setSuccessToast(done(cardCount(result.changedCount)), { action: { label: "Rückgängig", onAction: undo } });
       return true;
@@ -362,10 +355,8 @@ export function DecksScreen({
   }
 
   const prepareSelectionReplace = useStableCallback(async () => onPrepareTextReplace!(await selectedIds()));
-  // `Duplikate finden` (KV5) compares the contents of the list, optionally only its hits.
   const [duplicatesOpen, setDuplicatesOpen] = React.useState(false);
   const findDuplicates = useStableCallback((key: DuplicateKey, withinHits: boolean) => onFindDuplicates!({ deckIds: hitScope, key, query: withinHits ? deferredQuery : "", searchContext }));
-  // `Treffer lernen` (KV5) studies the hits or the selection without suspended and buried cards.
   const [hitStudy, setHitStudy] = React.useState<"hits" | "selection" | null>(null);
   const canStudyHits = Boolean(onStudyHits && onLoadPracticeCards && onListHitCardIds);
   const loadHitStudyIds = useStableCallback(async () => {
@@ -474,10 +465,9 @@ export function DecksScreen({
     requestDetailAction(() => onSelectDeck(deckId, cardId, cardEditorTab));
   }
 
-  /** A moved card stays open unless it left the opened deck tree; then the editor closes. */
   function handleCardMoved(deckId: string, cardId: string) {
     if (contentDeckId && !libraryDecks.some((deck) => deck.id === deckId)) {
-      // The move's toast with `Rückgängig` outlives the closed editor; undo reopens the card in its former deck.
+      // The move's undo toast must outlive the closed editor; undo reopens the card in its former deck.
       preserveToastForSelectionChange.current = true;
       closeDetail();
       return;

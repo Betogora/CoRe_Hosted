@@ -338,12 +338,10 @@ test("[Vertrag: Karten- und Stapellöschung] @beta-core Bestätigung, Undo und A
   await page.getByRole("button", { name: "Rückgängig" }).click();
   await expect(page.getByTestId("card-detail-dialog").getByRole("heading", { level: 2 })).toHaveText("Bestehende Karte");
   await expect.poll(async () => (await readActiveAccountState(page)).decks.some((deck: Deck) => deck.cards.some((card) => card.id === existingCardId))).toBe(true);
-  // The restored card is in the URL, so the editor opens again after the reload.
   await page.reload();
   await expect(page.getByTestId("card-detail-dialog").getByRole("heading", { level: 2 })).toHaveText("Bestehende Karte");
   await page.getByRole("button", { name: "Detailansicht schließen" }).click();
 
-  // Deck actions live in Lernen; the card management lists cards only (KV3b).
   await mainMenu(page).getByRole("button", { name: "Lernen", exact: true }).click();
   await page.getByTestId(`deck-options-${DECK_IDS.rootA}`).click();
   await page.getByTestId(`deck-options-menu-${DECK_IDS.rootA}`).getByRole("button", { name: "Einstellungen", exact: true }).click();
@@ -380,7 +378,6 @@ test("[Vertrag: Offline-Kartenlöschung] lokal gelöschte Karten werden nach Rec
     await expect(page.getByTestId(`deck-card-${existingCardId}`)).toHaveCount(0);
     await expect(page.getByTestId("card-detail-dialog")).toHaveCount(0);
     await expect(page.getByText(/„Bestehende Karte“ gelöscht/)).toBeVisible();
-    // A change not yet in the account makes closing or reloading ask first.
     expect(await page.evaluate(() => !window.dispatchEvent(new Event("beforeunload", { cancelable: true })))).toBe(true);
   } finally {
     await context.setOffline(false);

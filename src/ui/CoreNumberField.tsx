@@ -13,14 +13,12 @@ export interface CoreNumberFieldProps {
   className?: string;
 }
 
-/** The value a typed text resolves to on blur: rounded and clamped, or the current value for empty or non-numeric text. */
 export function commitNumberInput(text: string, current: number, min: number, max: number) {
   const parsed = Number(text);
   if (!text.trim() || !Number.isFinite(parsed)) return current;
   return Math.min(max, Math.max(min, Math.round(parsed)));
 }
 
-/** Integer field: valid in-range input applies immediately, anything else is clamped or restored on blur. */
 export function CoreNumberField({ id, value, min, max, onChange, unit, testId = id, ariaLabel, ariaDescribedBy, className = "" }: CoreNumberFieldProps) {
   const [inputValue, setInputValue] = React.useState(String(value));
 

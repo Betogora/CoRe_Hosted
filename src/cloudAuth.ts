@@ -23,14 +23,12 @@ interface CloudAuthHistory {
 
 type ProfileRow = Tables<"profiles">;
 
-/** A Supabase user as far as this module reads it; callers get back their own user type. */
 interface CloudAuthUser {
   id: string;
   email?: string | null;
   created_at?: string;
 }
 
-/** Profile fields the auth calls read; other fields of the caller's profile are ignored. */
 interface ProfileFields {
   userId?: string;
   email?: string | null;
@@ -47,7 +45,7 @@ interface AuthAnswer<Data> {
   error: unknown;
 }
 
-/** The Supabase client as far as these calls use it; `from` stays `unknown` as in `CloudClient` (cloudRepository.ts). */
+/** `from` stays `unknown` for the same reason as in `CloudClient` (cloudQueries.ts). */
 interface UserClient<User extends CloudAuthUser> {
   auth: {
     getUser(): PromiseLike<AuthAnswer<{ user: User | null }>>;
@@ -63,7 +61,6 @@ interface AuthClient<Auth> {
 
 type RedirectOptions = { emailRedirectTo?: string };
 
-/** The `profiles` calls of the query builder; the answer stays `unknown` until `validateProfileRow`. */
 interface ProfilesTable {
   upsert(row: object, options: { onConflict: string; ignoreDuplicates?: boolean }): PromiseLike<{ error: unknown }> & {
     select(columns: string): { single(): PromiseLike<{ data: unknown; error: unknown }> };

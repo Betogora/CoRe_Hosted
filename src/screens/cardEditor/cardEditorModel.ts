@@ -15,7 +15,6 @@ export const CARD_EDITOR_TAB_LABELS: Record<CardEditorTab, string> = {
 export type CardLabelOptions = { dayStartHour?: number; timeZone?: string };
 export type NoteContentPlan = ReturnType<typeof planNoteContentChange>;
 
-/** Editor values follow a structure change: removed fields drop their value, an added field starts empty. */
 export function valueForStructure(value: NoteEditorValue, structure: NoteContent, addedFieldId?: string): NoteEditorValue {
   const ids = new Set(structure.fields.map((field) => field.id));
   return { ...value, fields: { ...Object.fromEntries(Object.entries(value.fields).filter(([id]) => ids.has(id))), ...(addedFieldId ? { [addedFieldId]: "" } : {}) } };
@@ -29,7 +28,6 @@ export function noteKindLabel(note: Pick<Note, "content">) {
   return interaction.prompts.length > 1 ? "Frage und Antwort mit Rückrichtung" : "Frage und Antwort";
 }
 
-/** Learning state of a card in the words of the card list: new, suspended or reviewed with its next due date. */
 export function cardStateLabel(card: Card, note: Note, options: CardLabelOptions) {
   if (card.status === "suspended") return "ausgesetzt";
   if (card.study.reps === 0) return "neu, ohne Lernstand";
@@ -55,7 +53,6 @@ export function cardHeaderLabel(note: Note, card: Card, count: number) {
   return `${noteKindLabel(note)} · ${position}`;
 }
 
-/** Title of the editor: the plain question of the opened card's content. */
 export function cardEditorTitle(note: Note) {
   const front = note.content.fields.find((field) => field.role === "prompt") ?? note.content.fields[0];
   return stripHtml(front?.html ?? "").replace(/\{\{c\d+::(.*?)(::.*?)?\}\}/g, "$1").replace(/\s+/g, " ").trim() || "Karte ohne Fragetext";
@@ -72,7 +69,7 @@ export function outdatedVariantCount(graph: NoteGraph, plan: NoteContentPlan) {
   return plan.keptCards.flatMap((card) => card.variants).filter((variant) => variant.meta.outdated === true && activeBefore.has(variant.id)).length;
 }
 
-/** The effect of saving the draft, first in the footer (`Beim Speichern: …`), or null while only text changes. */
+/** The effect of saving the draft, or null while only text changes. */
 export function draftChangeSummary(graph: NoteGraph, plan: NoteContentPlan) {
   const parts: string[] = [];
   const labels = (cards: Card[], content: NoteContent) => cards.map((card) => notePromptLabel(content, card.promptKey)).join(", ");
@@ -97,10 +94,6 @@ export interface VariantStateMark {
   tone: keyof typeof VARIANT_STATE_TONE;
 }
 
-/**
- * Marks of a variant: exactly one state (a report names its reason), `als Nächstes` for the one the chain asks next
- * and `bearbeitet` for an own wording. Further marks, such as P1's „nicht umformulierbar“, join this list (W17).
- */
 export function variantStateMarks(variant: CardVariant, edited: boolean, next = false): { marks: VariantStateMark[]; reactivatable: boolean } {
   const state: VariantStateMark & { reactivatable: boolean } = variant.meta.outdated === true
     ? { label: "veraltet", tone: "outdated", reactivatable: false }

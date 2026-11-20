@@ -18,16 +18,13 @@ export interface CardVariantBatchView {
   done: number;
   /** Unknown while the cards are still being checked. */
   total: number | null;
-  /** Set once the action ended with something the user should read; the bar then offers closing instead of cancelling. */
   outcome: string | null;
   /** The card search for the action's candidates in the deck tree; null when it ran over selected cards. */
   cardQuery: string | null;
 }
 
-/** One app-wide AI variant action at a time, running in the open tab; a full success ends with a toast. */
 export function useCardVariantBatch({ cards, store, generate, onToast }: {
   cards: BatchCardSource | null;
-  /** The workspace now; an action covers its deck with every subdeck. */
   store: Pick<WorkspaceStore, "get">;
   generate: (deckId: string, cardId: string, mode: CardVariantBatchMode) => Promise<unknown>;
   onToast: (message: string, options?: { appearance?: "success" | "neutral" }) => void;
@@ -36,8 +33,8 @@ export function useCardVariantBatch({ cards, store, generate, onToast }: {
   const controllerRef = React.useRef<AbortController | null>(null);
   const countRef = React.useRef(0);
   /**
-   * The candidates of a mode in the deck and its subdecks with CoRe on (the deck itself always: switching CoRe on
-   * starts an action before the store has the new setting), as a catalog list of its own so the card lists keep their pages.
+   * The deck itself always counts: switching CoRe on starts an action before the store has the new setting. A catalog
+   * list of its own, so the card lists keep their pages.
    */
   const candidateDecks = React.useCallback((deck: Deck) => {
     const decks = store.get().state?.decks ?? [];
@@ -48,7 +45,6 @@ export function useCardVariantBatch({ cards, store, generate, onToast }: {
     { deckId: listId, deckIds: candidateDecks(deck).deckIds, query: CARD_VARIANT_CANDIDATE_QUERY[mode] }
   ), [candidateDecks]);
 
-  /** Runs over the deck's cards, or over `cardIds` (the selected cards of the card management, KV4) in their order. */
   const start = React.useCallback((deck: Deck, { mode = "missing", deckSettings = deck.deckSettings, cardIds }: { mode?: CardVariantBatchMode; deckSettings?: Partial<DeckSettings>; cardIds?: readonly string[] } = {}) => {
     if (!cards || controllerRef.current) return;
     const controller = new AbortController();
@@ -89,8 +85,8 @@ export function useCardVariantBatch({ cards, store, generate, onToast }: {
   }, [cards, candidateDecks, candidateList, generate, onToast, store]);
 
   /**
-   * Cards of the deck and its subdecks with CoRe on that have no active variant, as the deck settings show them; null
-   * without a catalog or when only a partial local catalog answered. Each count is a list of its own, so no total is reused.
+   * Null without a catalog or when only a partial local catalog answered. Each count is a list of its own, so no total
+   * is reused.
    */
   const countWithoutVariant = React.useCallback(async (deck: Deck) => {
     if (!cards) return null;

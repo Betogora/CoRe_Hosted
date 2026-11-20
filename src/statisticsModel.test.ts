@@ -147,7 +147,6 @@ test("memory distributions use fixed buckets and leave out new cards", () => {
   const deck = createCoreDeck({ id: "deck_buckets", name: "Töpfe", source: "manual", cards: [reviewed, fresh] });
   const result = projectStatistics([deck], { period: "30d", deckIds: "all", now: "2026-07-07T12:00:00.000Z", timeZone: "Europe/Berlin" });
   assert.deepEqual(result.intervals.points.map((point) => point.label), ["<2 T", "2–3 T", "4–6 T", "1–2 W", "2–3 W", "3 W–2 M", "2–6 M", "6–12 M", "1–2 J", "2+ J"]);
-  // A 400-day interval stays visible although the selected period is only 30 days.
   assert.equal(result.intervals.points[8].count, 1);
   assert.equal(result.fsrs.difficulty.reduce((sum, point) => sum + point.count, 0), 1);
   assert.equal(result.fsrs.difficulty[5].count, 1);

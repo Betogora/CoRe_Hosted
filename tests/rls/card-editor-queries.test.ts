@@ -25,7 +25,6 @@ async function signedInClient(url: string, key: string, email: string, password:
   return { client, userId: result.data.user.id };
 }
 
-/** One deck whose contents carry the given tags; the first card of each content gets the given flag. */
 async function seedNotes(client: SupabaseClient, deviceId: string, contents: Array<{ front: string; tags: string[]; flag?: number; importedTags?: string[] }>) {
   const deck = createCoreDeck({ name: "Editor-Abfragen", source: "manual" });
   const graphs = contents.map(({ front, tags, flag = 0, importedTags }, index) => {

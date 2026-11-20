@@ -2,18 +2,15 @@ import { Ban } from "lucide-react";
 import { CrossLinkButton } from "./actionUi.tsx";
 import { CoreTooltip } from "./tooltipUi.tsx";
 
-/** Anki's flag colors 1–7 in German; an own name from the profile replaces the color name. */
 const FLAG_COLOR_NAMES = ["Rot", "Orange", "Grün", "Blau", "Rosa", "Türkis", "Lila"] as const;
 
 const FLAGS = [1, 2, 3, 4, 5, 6, 7] as const;
 
-/** Visible name of a flag: the account's own name or the color name; empty for no flag. */
 export function flagName(flag: number, names: readonly string[] = []): string {
   if (flag < 1 || flag > 7) return "";
   return names[flag - 1]?.trim() || FLAG_COLOR_NAMES[flag - 1];
 }
 
-/** A set flag as a color dot that is never recognizable by color alone (W14). */
 export function FlagDot({ flag, names, size = 12 }: { flag: number; names?: readonly string[]; size?: number }) {
   if (flag < 1 || flag > 7) return null;
   const label = `Flagge ${flagName(flag, names)}`;
@@ -29,7 +26,6 @@ export interface FlagPickerProps {
   /** 0 removes the flag; choosing the set flag again removes it as well. */
   onValueChange: (flag: number) => void;
   names?: readonly string[];
-  /** Opens the account's flag names in the settings dialog (area `flaggen`). */
   onEditNames?: () => void;
   /** Offers „Keine“; off where removing has its own action, such as the mass action „Flagge setzen“. */
   withNone?: boolean;

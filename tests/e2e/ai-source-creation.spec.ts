@@ -193,7 +193,6 @@ test("echte App: Vorschläge der Route belegen ihre Stelle und werden erst bei d
   await expect(proposals).toContainText("1 Vorschlag wurde verworfen");
   await expect(proposals.getByTestId("ai-source-proposal").nth(1)).toContainText("Single Choice · Eingefügter Text · Glykolyse · Zeilen 4–5");
 
-  // Proposals that were shown but not adopted leave no deck behind.
   await proposals.getByRole("button", { name: "Alle verwerfen", exact: true }).click();
   await page.getByRole("dialog", { name: "Vorschläge verwerfen?" }).getByRole("button", { name: "Verwerfen", exact: true }).click();
   await page.getByRole("button", { name: "Lernen", exact: true }).first().click();
@@ -244,7 +243,6 @@ test("ungültige Quellen ersetzen nichts; fehlende Kartenformen und Dateiauswahl
   await expect(panel.getByLabel("Stapelname")).toHaveValue("");
 });
 
-/** An isolated fake account exercises the real shell without accessing a user's cloud data. */
 async function installEmptyAccount(page: Page) {
   const environment = loadEnv(process.env.CORE_UI_TEST_MODE ?? "e2e", process.cwd(), "");
   const supabaseUrl = environment.VITE_SUPABASE_URL;

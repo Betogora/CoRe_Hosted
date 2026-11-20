@@ -11,7 +11,6 @@ export interface StepsProps {
   items: ReadonlyArray<StepItem>;
   /** Index of the current step; `items.length` marks every step as done. */
   current: number;
-  /** Makes every step a button; the caller decides which steps are reachable via `disabled`. */
   onSelect?: (index: number) => void;
   className?: string;
 }

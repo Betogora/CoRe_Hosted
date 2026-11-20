@@ -288,11 +288,9 @@ test("die gezeigte Karte bleibt aktuell, wenn nachgeladene Karten die Reihenfolg
   const options = { now: "2026-08-21T08:00:00.000Z", timeZone: "UTC" };
   const first = createDailyReviewSessionState([{ deckId: "deck", cardId: "b" }, { deckId: "deck", cardId: "c" }]);
   assert.equal(getNextDailyReviewSessionItem(deck, first, options)?.cardId, "b");
-  // Loading more cards puts "a" first; the card on screen must not change under the learner.
   const reloaded = reconcileDailyReviewSessionState(first, [{ deckId: "deck", cardId: "a" }, { deckId: "deck", cardId: "b" }, { deckId: "deck", cardId: "c" }]);
   assert.equal(getNextDailyReviewSessionItem(deck, reloaded, { ...options, shownKey: "deck:b" })?.cardId, "b");
   assert.equal(getNextDailyReviewSessionItem(deck, reloaded, options)?.cardId, "a");
-  // Once answered, the next card follows the queue again, even if the answer sends it into a learning step.
   const answered = advanceDailyReviewSession(reloaded, { key: "deck:b", rating: "again", nextReviewState: { state: "relearning" } });
   assert.equal(getNextDailyReviewSessionItem(deck, answered, { ...options, shownKey: null })?.cardId, "a");
 });

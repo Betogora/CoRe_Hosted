@@ -42,7 +42,6 @@ export function AiSourceCreationPanel({ decks, initialTargetDeckId, onDraftState
   const [draft, setDraft] = React.useState(() => createAiSourceCreationDraft(initialTargetDeckId));
   const initialDraft = React.useRef(draft);
   const nameEdited = React.useRef(false);
-  // The review heading, or the section of the current step, takes the focus after each change of view.
   const focusRef = React.useRef<HTMLElement | null>(null);
   const sourceRef = React.useRef<HTMLDivElement | null>(null);
   const targetRef = React.useRef<HTMLDivElement | null>(null);
@@ -133,7 +132,6 @@ export function AiSourceCreationPanel({ decks, initialTargetDeckId, onDraftState
       const sourceName = draft.sourceMode === "text" ? "Eingefügter Text" : draft.file?.name ?? "";
       const proposals = result.proposals.map((proposal) => ({ id: proposal.id, content: proposalNoteContent(proposal, sourceName) }));
       if (proposals.length) { setSaveError(""); setRun({ phase: "done", result, notices: source.notices, proposals }); return; }
-      // Without a single proposal there is no list to look at: back to the order, with the reason unless cancelled.
       setRun(null);
       if (result.stopped?.reason !== "cancelled") setRunError(describeAiSourceCardsRun(result).join(" "));
     } catch (error) {
@@ -148,11 +146,6 @@ export function AiSourceCreationPanel({ decks, initialTargetDeckId, onDraftState
     setRun((current) => current?.phase === "done" ? { ...current, proposals: update(current.proposals) } : current);
   }
 
-  /**
-   * Stores the proposals; after a failure the stored ones leave the list and a retry goes on in the same deck,
-   * also when the new deck was created although its first card failed. A target deck deleted meanwhile is
-   * replaced by a new one with the order's name.
-   */
   async function adoptProposals() {
     if (run?.phase !== "done" || saving) return;
     setSaving(true);

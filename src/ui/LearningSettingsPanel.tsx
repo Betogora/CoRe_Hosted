@@ -59,7 +59,6 @@ interface LearningSettingsPanelProps {
   profiles: LearningProfileTemplate[];
   defaultProfileName: string;
   context?: "deck" | "global";
-  /** The settings dialogs show one area at a time. */
   section: "daily" | "scheduler";
   onProfilesChange: (profiles: LearningProfileTemplate[]) => unknown;
   onDraftChange: (draft: DeckLearningSettingsDraft) => void;
@@ -86,7 +85,6 @@ function SelectRow({ title, value, options, testId, onChange }: { title: string;
   );
 }
 
-/** Preset segments plus the stored value as text; a stored value outside the presets selects no segment and reads `Eigene · …`. */
 function PresetRow({ title, hint, value, options, valueText, testId, onChange }: { title: string; hint?: React.ReactNode; value: string; options: ReadonlyArray<{ value: string; label: string }>; valueText: (isPreset: boolean) => string | null; testId: string; onChange: (value: string) => void }) {
   const isPreset = options.some((option) => option.value === value);
   const text = valueText(isPreset);

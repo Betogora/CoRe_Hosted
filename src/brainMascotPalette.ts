@@ -1,4 +1,3 @@
-/** Illustration colours shared by the mascot drawings and the generated logo, derived from the ToolBox brand colours (ADR-046). */
 export const brainPalette = {
   ink: "#1b2d3b",
   inkSoft: "#2c4558",

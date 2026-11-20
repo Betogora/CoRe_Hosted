@@ -112,7 +112,6 @@ test("Ankizin-artige Vorlagen: Kopfzeilen-Metadaten, Rückseiten-Buttons, Link-Z
   assert.deepEqual(graph.report.notetypes[0].fieldRoles, { Titel: "prompt", Muskel: "prompt", Ursprung: "answer", Klinik: "extra", "AMBOSS-Link": "source", Source: "source", "Note ID": "note" });
   const content = graph.notes[0].content;
   assert.equal(content.interaction.kind === "reveal" && content.interaction.prompts[0].instruction, "Wo liegt der Ursprung des …?");
-  // Link targets stay raw; the CoRe design turns them into a source link (ADR-047).
   assert.equal(content.fields.find((field) => field.name === "AMBOSS-Link")?.html, "https://next.amboss.com/de/article/x");
   assert.equal(content.fields.find((field) => field.name === "Note ID")?.html, "1565424901299");
 });
@@ -208,14 +207,12 @@ test("Image Occlusion Enhanced wird zu CoRe-Masken: aktive Form, übrige dauerha
     [1, false, { kind: "rect", left: 0.1, top: 0.1, width: 0.2, height: 0.2, angle: 0 }],
     [0, true, { kind: "ellipse", left: 0.625, top: 0.4, width: 0.25, height: 0.2, angle: 0 }],
     [1, false, { kind: "polygon", points: [[0, 0], [0.5, 0], [0.25, 1]] }],
-    // Shapes reaching past the image are cut at its edge.
     [0, true, { kind: "rect", left: 0.95, top: 0.9, width: 0.05, height: 0.1, angle: 0 }],
   ]);
   assert.equal(parseEnhancedMaskSvg(svg('<rect x="0" y="0" width="10" height="10"/>')), null, "ohne abgefragte Form");
   assert.equal(parseEnhancedMaskSvg(svg('<rect class="qshape" x="0" y="0" width="10" height="10" transform="rotate(5)"/>')), null);
   assert.equal(parseEnhancedMaskSvg(svg('<path class="qshape" d="M0 0L10 10"/>')), null);
   assert.equal(parseEnhancedMaskSvg(svg('<rect class="qshape" x="0" y="0" width="10" height="10"/>').replace("<title>Labels</title>", "<title>Labels</title><text>A</text>")), null);
-  // The masks live in package media, so a re-translation without them leaves the stored content untouched.
   const fields = ["ID (hidden)", "Header", "Image", "Question Mask", "Footer", "Remarks", "Sources", "Extra 1", "Extra 2", "Answer Mask", "Original Mask"];
   const source: NoteTypeSource = { id: "s", ankiNotetypeId: "1", name: "Image Occlusion Enhanced", translator: { id: "image-occlusion-enhanced", version: 1 }, kind: 0, originalStockKind: 0, css: "",
     fields: fields.map((name, ordinal) => ({ name, ordinal })), templates: [{ name: "IO Card", ordinal: 0, front: "{{Question Mask}}", back: "{{Answer Mask}}", targetDeckId: null }], config: {} };

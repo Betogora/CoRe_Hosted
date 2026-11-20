@@ -157,7 +157,6 @@ export function StudyMode({ shortcutsSuspended = false, deck, decks, notes, answ
   const helpCard = React.useMemo(() => presented ? aiCardHelpCard(presented.note, presented.card) : null, [presented]);
   const isCurrentVariant = Boolean(current?.variant);
   const { urls: studyMediaUrls, missing: studyMissingMedia } = useNoteMediaUrls(currentNote?.media, mediaStore);
-  // The next cards of the session render and load their media while the learner looks at this one.
   const upcomingCards = React.useMemo(() => {
     const items: Array<{ note: Note; card: Card }> = [];
     for (const key of effectiveReviewSession.remainingInitialKeys) {
@@ -188,7 +187,6 @@ export function StudyMode({ shortcutsSuspended = false, deck, decks, notes, answ
     setShowSettings(false);
   }, [deckId, decks.length]);
 
-  // Saved deck settings apply at once, to the card on screen and the queue; the session keeps its cards and answers.
   React.useEffect(() => {
     const settingsById = new Map(decks.map((candidate) => [candidate.id, candidate.deckSettings]));
     if (sessionDecks.every((candidate) => (settingsById.get(candidate.id) ?? candidate.deckSettings) === candidate.deckSettings)) return;
@@ -204,7 +202,6 @@ export function StudyMode({ shortcutsSuspended = false, deck, decks, notes, answ
   }, [bufferSize, hasMoreCards]);
 
   React.useEffect(() => {
-    // A sibling buried by the last answer leaves the session and its counts.
     const buried = new Set(queue.buriedKeys);
     const newlyBuried = (reviewSession?.remainingInitialKeys ?? []).filter((key) => buried.has(key));
     if (newlyBuried.length > 0) {
@@ -339,7 +336,6 @@ export function StudyMode({ shortcutsSuspended = false, deck, decks, notes, answ
     const reviewedKey = current.sessionInfo?.key ?? `${current.deckId}:${current.cardId}`;
     undoStackRef.current.push({ review: { result, previous: current.card }, key: reviewedKey, session: effectiveReviewSession, progress: sessionDailyProgress });
     if (result.leechTriggered) {
-      // Once per trigger: the learner may fix the content right away (W22).
       const { deckId: leechDeckId, cardId: leechCardId } = current;
       setSuccessToast(`Lernbremse: ${result.updatedCard.study.lapses}-mal vergessen`, {
         appearance: "neutral",
@@ -468,7 +464,6 @@ export function StudyMode({ shortcutsSuspended = false, deck, decks, notes, answ
   React.useEffect(() => {
     function handleKeyDown(event: KeyboardEvent) {
       if (showSettings || showAiHelp || shortcutsSuspended) return;
-      // Strg+1–7 switches the flag like in Anki; the dot in the header shows it, without a toast (W20).
       if ((event.ctrlKey || event.metaKey) && !event.altKey && !event.shiftKey && /^[1-7]$/.test(event.key) && current) {
         event.preventDefault();
         const flag = Number(event.key);

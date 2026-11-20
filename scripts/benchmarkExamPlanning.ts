@@ -6,7 +6,6 @@ import { createExamPortfolioForecast, shiftExamDay } from "../src/examPlanning.t
 import { createExamPlan, createStudyTimeCapacity } from "../src/examPlanSettings.ts";
 import { getGlobalSchedulerPreferences } from "../src/learningProfiles.ts";
 
-// Fixed exam-planning scenarios: total duration and the longest uninterrupted main-thread slice.
 const RUNS = 5;
 const now = "2026-10-20T08:00:00.000Z", today = "2026-10-20";
 const decks = [createCoreDeck({ id: "root", name: "Root" }), ...["a", "b"].map((id) => createCoreDeck({ id, name: id.toUpperCase(), parentDeckId: "root" }))];

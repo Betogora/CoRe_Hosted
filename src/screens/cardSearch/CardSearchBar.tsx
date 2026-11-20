@@ -9,10 +9,6 @@ import { cardSearchConflictMessage, cardSearchTermLabel, type CardSearchMenuCate
 
 const ALL_DECKS = "__all__";
 
-/**
- * Search row of the card management (KV2): free text, the deck filter (a `did:` term) and the switch for the
- * advanced search; below it the active terms as removable chips with the hit count.
- */
 export function CardSearchBar({ query, onQueryChange, decks, categories, advancedOpen, onAdvancedOpenChange, advancedId, resultCount, resultAction, placeholder, hint, children }: {
   query: string;
   onQueryChange: (query: string) => void;
@@ -22,9 +18,7 @@ export function CardSearchBar({ query, onQueryChange, decks, categories, advance
   onAdvancedOpenChange: (open: boolean) => void;
   advancedId: string;
   resultCount: number | null;
-  /** Action for the hits at the end of their row, such as `Treffer lernen`. */
   resultAction?: React.ReactNode;
-  /** The open advanced menu sits above the chips, so a new chip never shifts it under the pointer. */
   children?: React.ReactNode;
   placeholder: string;
   hint?: React.ReactNode;
@@ -37,7 +31,6 @@ export function CardSearchBar({ query, onQueryChange, decks, categories, advance
     // Only a changed query moves the field; `input` is the one rendered with it.
   }, [query]);
   const terms = cardSearchTerms(query);
-  // The deck filter shows a single `did:` term; it replaces every deck term, also a group of several decks.
   const deckTerm = terms.find((term) => /^did:/i.test(term));
   const deckValue = deckTerm ? deckTerm.slice("did:".length) : ALL_DECKS;
   const deckTerms = terms.filter((term) => /^-?did:/i.test(term) || cardSearchGroupMembers(term)?.members.every((member) => /^did:/i.test(member)));

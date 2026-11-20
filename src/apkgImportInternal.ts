@@ -12,7 +12,6 @@ const textDecoder = new TextDecoder("utf-8");
 let protobufDecoders: Promise<typeof import("./apkgImportProtobuf.ts")> | null = null;
 
 type SqliteRow = Record<string, unknown>;
-/** The SQLite tables of an Anki collection; cells stay `unknown` until read. */
 interface AnkiDatabase {
   readTable(tableName: string): SqliteRow[];
 }
@@ -241,7 +240,7 @@ function inferMimeType(name: unknown, bytes: Uint8Array = new Uint8Array()) {
 
 function getDecksFromCollection(colRows: SqliteRow[]) {
   const first: SqliteRow = colRows[0] ?? {};
-  // The collection's JSON column holds an object of decks; nothing here checks it, as before.
+  // The collection's JSON column holds an object of decks; it is deliberately not validated here.
   const deckMap = parseJson(first.decks, {}) as Record<string, SqliteRow>;
 
   return Object.values(deckMap).map((deck) => ({
@@ -455,7 +454,7 @@ export interface AnkiPackageMediaFile {
   readBytes(): Promise<Uint8Array>;
 }
 
-/** Raw package contents for the note translation (K5.0); media bytes stay in the archive until read. */
+/** Media bytes stay in the archive until read. */
 export interface AnkiPackage {
   file: { name: string; size: number };
   packageFormat: string;

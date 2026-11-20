@@ -20,10 +20,6 @@ function isEditableShortcutTarget(target: EventTarget | null = null) {
   return EDITABLE_TARGETS.includes(tagName) || element?.isContentEditable === true;
 }
 
-/**
- * Review keys as in Anki: Space/Enter reveals and, once revealed, rates `Gut`; 1–4 rate; `E` edits the card; `U` and
- * Ctrl/Cmd+Z take back the last rating; Escape leaves.
- */
 export function resolveReviewShortcut(event: { key: any; target?: any; ctrlKey?: boolean; metaKey?: boolean; altKey?: boolean; shiftKey?: boolean }, { hasCurrent = false, showAnswer = false }: any = {}) {
   if (isEditableShortcutTarget(event?.target)) return null;
   const key = String(event?.key ?? "").toLowerCase();

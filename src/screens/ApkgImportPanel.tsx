@@ -21,9 +21,7 @@ export interface ApkgImportPanelProps {
   isSessionCurrent: (version: number) => boolean;
   onResetSession: (disposeWorker?: boolean) => void;
   onCompleted: (completion: ImportCompletion) => unknown;
-  /** A text or table file goes to the text import instead. */
   onTextFile: (file: File) => unknown;
-  /** An earlier takeover on this device that did not finish. */
   interruptedImport?: InterruptedImport | null;
 }
 
@@ -61,7 +59,6 @@ function ApkgPreviewBadge({ children }: { children: React.ReactNode }) {
   return <CoreTag tone="info">{children}</CoreTag>;
 }
 
-/** Object URLs for the sample media of the preview; they are revoked with the preview. */
 export function useSampleMediaUrls(files: ImportMediaFile[]) {
   const [urlsBySha1, setUrlsBySha1] = React.useState<Record<string, string>>({});
   React.useEffect(() => {
@@ -152,7 +149,6 @@ export function ApkgImportPanel({ workflow, session, onSessionChange, isSessionC
     return () => mediaQuery.removeEventListener?.("change", updatePreference);
   }, []);
 
-  // A takeover that finished while the screen was left is shown on return; it never navigates on its own.
   React.useEffect(() => {
     if (!completion || !isSessionCurrent(sessionVersion)) return;
     onCompleted(completion);

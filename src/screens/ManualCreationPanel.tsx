@@ -50,7 +50,7 @@ const QUESTION_TYPE_OPTIONS = [
   { value: "multiple-choice", label: "Multiple Choice" },
   { value: "image-occlusion", label: "Bildverdeckung" },
 ] as const;
-/** Image occlusion draft; the image is a prepared manual image named by its SHA-1. */
+/** `image` is the SHA-1 name of a prepared manual image. */
 type OcclusionDraft = { image: string | null; mode: OcclusionMode; masks: OcclusionMask[] };
 const LEARNING_DIRECTION_OPTIONS = [
   { value: "standard", label: "Standard" },
@@ -76,7 +76,6 @@ export interface ManualCreationPanelProps {
   onTargetDeckChange?: (deckId: string) => unknown;
   onFinish?: (result: { createdCount: number; targetDeckId: string }) => void;
   onDraftStateChange?: (dirty: boolean, focusDraft: (() => void) | null, saving: boolean) => void;
-  /** The page head with the panel's actions on the right; the screen owns title and back link. */
   renderHeader: (actions: React.ReactNode) => React.ReactNode;
 }
 
@@ -372,7 +371,6 @@ export function ManualCreationPanel({
     }
   }
 
-  /** Masks are positioned on the chosen image, so a new image starts without them. */
   function clearOcclusionImage() {
     setOcclusion((current) => current && { ...current, image: null, masks: [] });
   }

@@ -15,10 +15,8 @@ import { cardStateLabel, draftChangeSummary, outdatedVariantCount, removedCardsD
 import { CardEditorSection as Section } from "./CardEditorSection.tsx";
 import { NoteContentEditor, type PreviewCard } from "./NoteContentEditor.tsx";
 
-/** Image preparation and local storage of the creation workflow, loaded only when an image is inserted or saved. */
 const loadImageWorkflow = async (mediaStore: AccountMediaStore) => (await import("../../creationWorkflow.ts")).createCreationWorkflow({ mediaStore });
 
-/** A prompt that saving the draft would add, shown as „Neu beim Speichern“ in `Allgemein`. */
 export interface PendingCard {
   promptKey: string;
   label: string;
@@ -31,7 +29,7 @@ function draftKey(value: NoteEditorValue, structure: NoteContent) {
 
 /**
  * While the draft is unchanged it follows the stored content; once edited it keeps the graph it started from, so a
- * newer version arriving by sync meets the existing conflict handling on save instead of being overwritten (W19).
+ * newer version arriving by sync meets the existing conflict handling on save instead of being overwritten.
  */
 export function draftBaseGraph(current: NoteGraph, base: NoteGraph, dirty: boolean): NoteGraph {
   return dirty && base.note.id === current.note.id ? base : current;
@@ -41,7 +39,6 @@ function formatBytes(bytes: number) {
   return bytes < 1024 * 1024 ? `${Math.max(1, Math.round(bytes / 1024))} KB` : `${(bytes / 1024 / 1024).toLocaleString("de-DE", { maximumFractionDigits: 1 })} MB`;
 }
 
-/** Files of the content (`Note.media`); sizes only where the local copy is known, unused files can go. */
 function NoteMediaList({ graph, mediaUrls, services }: { graph: NoteGraph; mediaUrls: Record<string, string>; services: CardEditorServices }) {
   const [sizes, setSizes] = React.useState<Record<string, number>>({});
   const [removing, setRemoving] = React.useState("");
@@ -98,7 +95,6 @@ export interface CardEditorContentTabProps {
   onDraftStateChange: (guard: CardDraftGuard | null) => void;
 }
 
-/** `Inhalt` is the draft: fields and live preview, the footer names the effect before `Verwerfen` and `Speichern`. */
 export function CardEditorContentTab({ graph, card, mediaUrls, mediaStore, dayStartHour, timeZone, active, services, onSaveNote, onPendingCardsChange, deckName, onDraftStateChange }: CardEditorContentTabProps) {
   const { note } = graph;
   const [form, setForm] = React.useState<NoteEditorValue>(() => noteEditorValue(note));
@@ -117,7 +113,6 @@ export function CardEditorContentTab({ graph, card, mediaUrls, mediaStore, daySt
   const containerRef = React.useRef<HTMLDivElement>(null);
   const labelOptions = { dayStartHour, timeZone };
 
-  // An unchanged draft follows the stored content (also synced versions); an edited one keeps its base.
   React.useLayoutEffect(() => {
     if (dirty && base.note.id === graph.note.id) return;
     setBase(graph);

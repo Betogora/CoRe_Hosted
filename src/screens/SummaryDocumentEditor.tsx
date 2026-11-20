@@ -24,7 +24,6 @@ const markerModeOptions = [{ value: "line", label: "Gerade auf Textzeile", icon:
 type TextRow = { top: number; bottom: number; left: number; right: number };
 type MarkerLine = { startX: number; minX: number; maxX: number; y: number; row: TextRow; startClientX: number };
 
-/** Visual text row under a viewport y position, as the union of the line boxes of all text on it. */
 function textRowAt(root: Element, clientY: number): TextRow | null {
   const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT), range = document.createRange();
   let row: TextRow | null = null;
@@ -164,7 +163,6 @@ export function SummaryDocumentEditor({ value, onChange, busy }: {
     const start = point(event);
     const stroke: SummaryStroke = { id: crypto.randomUUID(), tool, space: "portrait", color: ink.color, width: ink.width, points: [start] };
     if (tool === "marker" && markerMode === "line") {
-      // A straight marker covers exactly the text row under the pointer and stays within its text.
       const bounds = event.currentTarget.getBoundingClientRect(), field = sheetRef.current?.querySelector(".rich-text-field");
       const row = field ? textRowAt(field, event.clientY) : null;
       if (!row) return;

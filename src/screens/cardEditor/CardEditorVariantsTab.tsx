@@ -17,12 +17,9 @@ function readinessLabel(coreMode: Deck["deckSettings"]["coreMode"], ready: boole
   return ready ? "Varianten werden abgefragt" : "Varianten noch nicht im Review";
 }
 
-/** One variant, edited in its row and saved at once, independent of the content draft (W12). */
 function VariantRow({ variant, next, kind, cardAnswer, index, busy, reactivationBlocked, canGenerate, onEdit, onRegenerate, onUpdate, onDelete }: {
   variant: CardVariant;
-  /** The variant the chain asks next (specs.md#freigabe-der-varianten). */
   next: boolean;
-  /** Only a basic variant's answer is its own text to edit; typed, cloze and choice variants rephrase the question or text. */
   kind: AiCardVariantSource["kind"] | null;
   /** The card's own answer of a typed or cloze card, which the review asks instead of the variant's (`variantPresentation`). */
   cardAnswer: string | null;
@@ -101,7 +98,6 @@ export interface CardEditorVariantsTabProps {
   onOpenDeckSettings: () => void;
 }
 
-/** The original for comparison, then each variant with its state marks and actions (specs.md#karteneditor). */
 export function CardEditorVariantsTab({ deck, note, card, services, onGenerateVariant, onUpdateVariant, onOpenDeckSettings }: CardEditorVariantsTabProps) {
   const setSuccessToast = useSuccessToast();
   const [busyId, setBusyId] = React.useState<string | null>(null);

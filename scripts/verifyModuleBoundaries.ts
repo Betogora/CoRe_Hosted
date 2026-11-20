@@ -68,14 +68,14 @@ const IMPORT_EXCEPTIONS: readonly ImportException[] = [];
 
 /** Obergrenzen, die nur sinken dürfen: Istwert darüber oder darunter bricht ab. */
 const MODULE_LIMITS: readonly ModuleLimit[] = [
-  { file: "src/App.tsx", measure: "Zeilen", max: 505 },
-  { file: "src/appScreenProps.ts", measure: "Zeilen", max: 380 },
-  { file: "src/screens/DecksScreen.tsx", measure: "Zeilen", max: 772 },
-  { file: "src/cloudRepository.ts", measure: "Zeilen", max: 412 },
+  { file: "src/App.tsx", measure: "Zeilen", max: 503 },
+  { file: "src/appScreenProps.ts", measure: "Zeilen", max: 349 },
+  { file: "src/screens/DecksScreen.tsx", measure: "Zeilen", max: 762 },
+  { file: "src/cloudRepository.ts", measure: "Zeilen", max: 405 },
   { file: "src/cloudRepository.ts", measure: "any-Typen", max: 0 },
   { file: "src/cloudRevisionedWrites.ts", measure: "any-Typen", max: 2 },
   { file: "src/syncEngine.ts", measure: "any-Typen", max: 3 },
-  { file: "src/indexedDbCoreRepository.ts", measure: "Zeilen", max: 863 },
+  { file: "src/indexedDbCoreRepository.ts", measure: "Zeilen", max: 853 },
   { file: "src/apkgImportInternal.ts", measure: "any-Typen", max: 3 },
   { file: "src/cloudAuth.ts", measure: "any-Typen", max: 3 },
   { file: "src/documentModel.ts", measure: "any-Typen", max: 0 },
@@ -99,13 +99,12 @@ function parseSource(file: string, text: string) {
   return ts.createSourceFile(file, text, ts.ScriptTarget.Latest, false, kind);
 }
 
-/** Relative Importe als Pfad ab Repository-Wurzel; `.js`-Endungen meinen die gleichnamige TypeScript-Datei. */
+/** `.js`-Endungen meinen die gleichnamige TypeScript-Datei. */
 function resolveTarget(file: string, specifier: string) {
   if (!specifier.startsWith(".")) return specifier;
   return path.posix.join(path.posix.dirname(file), specifier).replace(/\.js$/, ".ts");
 }
 
-/** Liest statische, re-exportierende und dynamische Importe samt Typimporten (`import("x").T`). */
 export function collectImports(file: string, text: string): ImportReference[] {
   const references: ImportReference[] = [];
   const add = (specifier: ts.Node | undefined, typeOnly: boolean) => {

@@ -2,7 +2,6 @@ import React from "react";
 import { ChevronDown, ChevronUp } from "lucide-react";
 import { IconButton } from "../ui/actionUi.tsx";
 
-/** Only dashboard previews collapse text; labels retain their complete accessible name. */
 export function DashboardTaskText({ children, checkbox }: { children: React.ReactNode; checkbox: React.ReactNode }) {
   const [expanded, setExpanded] = React.useState(false);
   const [overflow, setOverflow] = React.useState(false);

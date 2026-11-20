@@ -234,11 +234,11 @@ export async function createIndexedDbCoreRepository({ userId, initialState, inde
     });
   };
 
-  /**
-   * Central local write of contents with their cards: stores, catalog, deck summaries and outbox in one
-   * transaction. Deleted contents and cards leave the replica; their soft-delete travels through the outbox.
-   */
   const keepsVariants = (previous: Card | undefined, card: Card) => !card.deletedAt && previous?.variants === card.variants && previous.deckId === card.deckId;
+  /**
+   * Stores, catalog, deck summaries and outbox change in one transaction. Deleted contents and cards leave the replica;
+   * their soft-delete travels through the outbox.
+   */
   const writeNoteGraphs = (changes: NoteGraphChange[]) => enqueueWrite(async () => {
     if (!changes.length) return;
     const updatedAt = new Date().toISOString();
@@ -254,7 +254,7 @@ export async function createIndexedDbCoreRepository({ userId, initialState, inde
     const catalogStore = transaction.objectStore(STORE.cardCatalog);
     const variantStore = transaction.objectStore(STORE.variants);
     // A card handed back unchanged (same object, same content) is not written again; a changed content rewrites the
-    // catalog rows of all its cards. All reads go out at once, so a mass action (KV4) waits for one round trip.
+    // catalog rows of all its cards. All reads go out at once, so a mass action waits for one round trip.
     const entries = changes.flatMap(({ previous, next }) => {
       const noteChanged = previous?.note !== next.note;
       const unchanged = new Set(noteChanged ? [] : previous?.cards ?? []);
@@ -434,7 +434,6 @@ export async function createIndexedDbCoreRepository({ userId, initialState, inde
       return summaries;
     },
     getDeckBodyResidencySummary: cardBodies.getDeckBodyResidencySummary,
-    /** All local answers of one card, oldest first, including manual events. */
     async listCardReviewEvents(cardId: string) {
       await writeChain;
       const transaction = database.transaction(STORE.reviewEvents, "readonly");
@@ -442,7 +441,6 @@ export async function createIndexedDbCoreRepository({ userId, initialState, inde
       await transactionDone(transaction);
       return events;
     },
-    /** Tags of the contents in the replica; offline counterpart of `list_account_tags`. */
     async listTagDirectory() {
       await writeChain;
       const builder = createTagDirectoryBuilder();
@@ -451,7 +449,6 @@ export async function createIndexedDbCoreRepository({ userId, initialState, inde
       await transactionDone(transaction);
       return builder.entries();
     },
-    /** Anki note types of the replica (`note:` search); the catalog delta keeps them complete on every device. */
     async listNoteTypes() {
       await writeChain;
       const transaction = database.transaction(STORE.noteTypeSources, "readonly");
@@ -459,23 +456,19 @@ export async function createIndexedDbCoreRepository({ userId, initialState, inde
       await transactionDone(transaction);
       return sources.map(({ id, name }) => ({ id, name })).sort((left, right) => left.name.localeCompare(right.name, "de"));
     },
-    /** Manual reschedule: only the due date changes; suspension stays. A map gives each card its own date (KV4). */
     rescheduleCards(cardIds: string[], dueAt: string | ReadonlyMap<string, string>, occurredAt = new Date().toISOString()) {
       return applyManualStudyChanges(cardIds, MANUAL_RESCHEDULE_KIND, (card) => rescheduleCard(card, typeof dueAt === "string" ? dueAt : dueAt.get(card.id)!, occurredAt), occurredAt);
     },
-    /** "Lernstand zurücksetzen": the cards start over as new cards; their review history stays. */
     resetCards(cardIds: string[], occurredAt = new Date().toISOString()) {
       return applyManualStudyChanges(cardIds, "manual_reset", (card) => resetCardStudy(card, occurredAt), occurredAt);
     },
-    /** Lifts the leech state (`null`) or puts it back, e.g. to undo the reset. */
+    /** `null` lifts the leech state; a date puts it back. */
     setCardsLeech(cardIds: string[], leechedAt: string | null, occurredAt = new Date().toISOString()) {
       return applyManualStudyChanges(cardIds, "manual_leech", (card) => setCardLeech(card, leechedAt, occurredAt), occurredAt);
     },
-    /** Puts back earlier study states, to undo a manual study change. */
     restoreCardStudies(studies: ReadonlyMap<string, Card["study"]>, occurredAt = new Date().toISOString()) {
       return applyManualStudyChanges([...studies.keys()], "manual_restore", (card) => restoreCardStudy(card, studies.get(card.id)!, occurredAt), occurredAt);
     },
-    /** Buries the cards until the next learning day (or lifts that), the way answered siblings bury theirs. */
     buryCards(cardIds: string[], buried: boolean, occurredAt = new Date().toISOString()) {
       return applyManualStudyChanges(cardIds, buried ? MANUAL_BURY_KIND : MANUAL_UNBURY_KIND, (card) => ({ ...card, studyRevision: card.studyRevision + 1, updatedAt: occurredAt }), occurredAt);
     },
@@ -485,7 +478,7 @@ export async function createIndexedDbCoreRepository({ userId, initialState, inde
       return commitImportGraph({ database, userId, shellDecks: () => shell!.decks, replaceShellDecks, queueMutations, writeOutbox, writeNoteGraphs }, graph, options);
     },
     getInterruptedImport: () => writeChain.then(() => readInterruptedImport(database)),
-    /** Re-queues the inserts of a verified import graph; the cloud matches existing rows idempotently. */
+    /** Safe to re-queue: the cloud matches existing rows idempotently. */
     async requeueImportVerificationScope(scope: ImportVerificationScope, repairScope: ImportVerificationRepairScope | null = null) {
       await writeChain;
       const target = (key: keyof ImportVerificationScope) => repairScope ? repairScope[key] ?? [] : scope[key];
@@ -560,7 +553,6 @@ export async function createIndexedDbCoreRepository({ userId, initialState, inde
       await transactionDone(transaction);
       shell = await loadShell(database);
     },
-    /** Applies resolved conflict rows: decks to the shell, contents and cards as bodies. */
     async applyCloudPage(page: CloudEntityPage) {
       await writeChain;
       if (page.table === "decks") {
@@ -668,15 +660,13 @@ export async function createIndexedDbCoreRepository({ userId, initialState, inde
       return completeProfile;
     },
     listDeckSummaries: studyOverview.listDeckSummaries,
-    /** Loads the search index ahead of the first search, in short batches. */
     prepareCardSearch: () => ensureSearchIndex(),
     loadCatalogEntries: catalogSearch.loadCatalogEntries,
     findDuplicates: catalogSearch.findDuplicates,
     listCardIds: catalogSearch.listCardIds,
     /**
-     * Catalog page by page number of one deck, or of several decks as one list (the flat hit list), plus the opened
-     * content with its siblings. The search index answers any page at once (KV3); a single deck without a search
-     * walks its keyset pages only until the index is loaded.
+     * The search index answers any page at once; a single deck without a search walks its keyset pages only until the
+     * index is loaded.
      */
     async listCardPage(scope: string | readonly string[], { page = 0, pageSize = CATALOG_PAGE_LIMIT, query = "", sort = { field: "sortField", direction: "asc" } as CardTableSort, selectedCardId = null, searchContext }: {
       page?: number;

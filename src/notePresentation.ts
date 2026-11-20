@@ -9,7 +9,6 @@ import { buildSrcdoc } from "./presentationFrame.ts";
 import { colorContrast, ensureTextContrast, hexToHsv, resolveCssColor } from "./colorMath.ts";
 import { clozeAt, isClozeOpening } from "./clozeSyntax.ts";
 
-/** Semantic tokens copied into the card frame as `--core-<name>`. */
 export const NOTE_THEME_COLORS = ["surface", "surface-muted", "text", "text-muted", "border", "border-interactive", "success", "success-surface", "danger", "danger-surface"] as const;
 
 export interface NotePresentationTheme {
@@ -23,7 +22,6 @@ export interface NotePresentationResult {
   mediaReferences: string[];
   interactions: Array<"hint" | "typed-answer" | "tts" | "audio" | "video" | "choice">;
   diagnostics: TemplateDiagnostic[];
-  /** `original`: the imported template's own layout (ADR-047), shown in one frame like in Anki. */
   layout: "core" | "original";
 }
 
@@ -48,7 +46,6 @@ export function notePlainText(value: string): string {
       return code <= 0x10ffff ? String.fromCodePoint(code) : match;
     }).replace(/\s+/g, " ").trim();
 }
-/** Whether rendered HTML shows anything: text, an image, audio or video. */
 const showsContent = (html: string) => Boolean(notePlainText(html)) || /<(?:img|audio|video)\b|\[sound:/i.test(html);
 
 // Inline: \(…\) and [$]…[/$]; display: \[…\], [$$]…[/$$] and [latex]…[/latex].
@@ -73,11 +70,6 @@ function renderClozes(value: string, ordinal: number, side: "question" | "answer
   return output;
 }
 
-/**
- * Field colors follow the theme: coloured markers change brightness until the card text reads on them,
- * grey page backgrounds from pasted web text are dropped, and text colours reach 4,5 : 1 against
- * their marker or the card surface.
- */
 function adjustedColors(html: string, colors: NotePresentationTheme["colors"]): string {
   const adjust = (value: string, backdrop: string) => { const hex = resolveCssColor(value, backdrop); return hex ? ensureTextContrast(hex, backdrop) : value; };
   // Unreadable black, white or grey text (pasted from dark or light web pages) takes the card's text colour.
@@ -133,7 +125,6 @@ function occlusionHtml(interaction: Extract<NoteInteraction, { kind: "image-occl
   return `<div class="core-occlusion"><img src="${escapeHtml(interaction.image)}" alt="${escapeHtml(alt)}"/><div class="mask-layer"><svg aria-hidden="true" viewBox="0 0 1 1" preserveAspectRatio="none">${polygons}</svg>${layer}</div></div>`;
 }
 
-/** `layout`: the expanded template of an original layout, which keeps its colours and has its clozes rendered already. */
 async function createHtmlRenderer(note: Note, card: Pick<Card, "promptKey">, side: "question" | "answer", theme: NotePresentationTheme, diagnostics: TemplateDiagnostic[], interactions: Set<NotePresentationResult["interactions"][number]>, layout = false) {
   const interaction = note.content.interaction;
   const clozes = interaction.kind === "cloze" && !layout;
@@ -199,7 +190,6 @@ function typedComparisonHtml(expected: string, typed: string): string {
 
 const LINK_ICON = '<svg aria-hidden="true" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></svg>';
 
-// Parts the app inserts into a card, in the CoRe design and the original layout alike.
 const APP_PART_CSS = `
   .core-typed-comparison{display:grid;gap:.625rem;padding:.75rem 1rem;border-radius:.875rem;background:var(--core-danger-surface);box-shadow:inset 0 0 0 2px var(--core-danger)}
   .core-typed-comparison[data-correct="true"]{background:var(--core-success-surface);box-shadow:inset 0 0 0 2px var(--core-success)}
@@ -261,8 +251,6 @@ const NOTE_CARD_CSS = `
 
 const themeVariables = (theme: NotePresentationTheme) => `:root{${Object.entries(theme.colors).map(([name, value]) => `--core-${name}:${value}`).join(";")}}`;
 
-// --- Original layout of imported cards (ADR-047) -------------------------------------------
-
 type LayoutTemplate = NoteTypeSource["templates"][number];
 type LayoutSide = "question" | "answer";
 interface LayoutContext { fields: Map<string, NoteField>; special: Record<string, string>; side: LayoutSide; ordinal: number; frontSide: string; typedAnswer: string | undefined }
@@ -288,7 +276,6 @@ function layoutCss(source: NoteTypeSource) {
   return prepared;
 }
 
-/** The template whose own layout this card shows: generic translation, own CSS and nothing that needs a script. */
 function originalLayoutTemplate(note: Note, card: Card, source: NoteTypeSource | null | undefined): LayoutTemplate | null {
   if (!source || source.id !== note.noteTypeSourceId || note.translator?.id !== "generic" || !layoutCss(source).ownDesign) return null;
   const template = source.kind === 1 ? source.templates[0] : source.templates.find((item) => `anki-${item.ordinal}` === card.promptKey);
@@ -314,7 +301,6 @@ function layoutFilter(value: string, filter: string, name: string, context: Layo
   if (filter === "text") return escapeHtml(notePlainText(value));
   if (filter === "cloze") return renderClozes(value, context.ordinal, context.side, false, "", true);
   if (filter === "hint") return emptyField(value) ? "" : `<details><summary>${escapeHtml(name)}</summary>${value}</details>`;
-  // The app shows the input; the answer side gets the comparison where the template asks for it.
   if (filter === "type") return context.side === "answer" && context.typedAnswer !== undefined ? typedComparisonHtml(notePlainText(value), context.typedAnswer) : "";
   if (filter === "furigana" || filter === "kana" || filter === "kanji") return rubyText(value, filter);
   // Speech runs through the app's read-aloud buttons; Anki leaves unknown add-on filters' text unchanged.
@@ -387,11 +373,8 @@ async function renderOriginalLayout({ note, card, side, surface, theme, mathCss,
 
 export async function renderCard({ note, card, side, surface, theme, mathCss = "", typedAnswer, noteTypeSource, deckName = "" }: {
   note: Note; card: Card; side: "question" | "answer"; surface: "review" | "preview" | "management"; theme: NotePresentationTheme; mathCss?: string;
-  /** Typed input; on the answer side it replaces the type-in field with the character comparison. */
   typedAnswer?: string;
-  /** Imported template of the content; its own layout replaces the CoRe design where ADR-047 applies. */
   noteTypeSource?: NoteTypeSource | null;
-  /** Full `::` path of the card's deck for the template fields `{{Deck}}` and `{{Subdeck}}`. */
   deckName?: string;
 }): Promise<NotePresentationResult> {
   if (card.noteId !== note.id) throw new Error("Die Karte gehört zu einem anderen Inhalt.");
@@ -410,7 +393,6 @@ export async function renderCard({ note, card, side, surface, theme, mathCss = "
   const fieldsHtml = (fields: NoteField[]) => fields.filter((field) => field.role === "prompt" || field.role === "answer").map((field) => `<div class="core-note-field">${html(field.html)}</div>`).join("");
   const supplements = () => {
     const filled = (role: NoteField["role"]) => content.fields.filter((field) => field.role === role && field.html.trim()).map((field) => ({ field, value: html(field.html) }));
-    // A source field holding only a web address, such as a template's `href="{{Link}}"`, becomes a link named after the field.
     const sources = filled("source").map(({ field, value }) => {
       const url = notePlainText(value);
       return /<a\b/.test(value) || !/^https?:\/\/\S+$/.test(url) ? { field, value }
@@ -451,7 +433,6 @@ export async function renderCard({ note, card, side, surface, theme, mathCss = "
   if (/<audio\b/i.test(question + answer)) interactions.add("audio");
   if (/<video\b/i.test(question + answer)) interactions.add("video");
   const replacesFront = interaction.kind === "cloze" || interaction.kind === "image-occlusion";
-  // The line separates only something below it: a choice without answer fields or supplements reveals none.
   const below = side === "question" || replacesFront ? "" : answer + supplements();
   const body = side === "question" ? question : replacesFront ? question + supplements()
     : `${surface === "review" ? "" : question}${showsContent(below) ? `<hr class="core-card-answer-separator"/>${below}` : ""}`;

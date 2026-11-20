@@ -1,12 +1,10 @@
 import React from "react";
 import type { RetrievabilityPoint } from "./retrievabilityCurve.ts";
 
-// The statistics charts' look: muted 11 px axis labels, dashed horizontal grid, lightly filled area, overlay tooltip.
 const monthYear = new Intl.DateTimeFormat("de-DE", { month: "long", year: "numeric" });
 const dayTime = new Intl.DateTimeFormat("de-DE", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" });
 const percent = new Intl.NumberFormat("de-DE", { maximumFractionDigits: 0 });
 
-// Plot area inside the 224 px high chart: y-axis labels on the left, x-axis labels below.
 const PLOT = { left: 68, right: 12, top: 8, bottom: 34 };
 const PLOT_HEIGHT = 224 - PLOT.top - PLOT.bottom;
 const TOOLTIP_OFFSET = 10;
@@ -14,11 +12,9 @@ const axisText = { fill: "var(--core-text-muted)", fontSize: 11 };
 
 interface Active { index: number; x: number; y: number }
 
-/** Retrievability over time with the target line, like the editor draft of round 3 (specs.md#karteneditor). */
 export function RetrievabilityChart({ points, targetPercent, now }: { points: readonly RetrievabilityPoint[]; targetPercent: number; now: number }) {
   const first = points[0].at;
   const target = Math.round(targetPercent);
-  // The axis starts just below the curve and the target, so the decay fills the plot.
   const floor = Math.floor(Math.min(target - 5, ...points.map((point) => point.percent)) / 10) * 10;
   const current = points.at(-1)!.percent;
   const forgotten = points.filter((point) => point.forgotten).length;
@@ -28,7 +24,6 @@ export function RetrievabilityChart({ points, targetPercent, now }: { points: re
   const plotRef = React.useRef<HTMLDivElement>(null);
   const tooltipRef = React.useRef<HTMLDivElement>(null);
 
-  // Like the statistics charts, the tooltip sits beside the pointer and flips inside the plot area when it would overflow.
   React.useLayoutEffect(() => {
     const tooltip = tooltipRef.current, plot = plotRef.current;
     if (!active || !tooltip || !plot) return;

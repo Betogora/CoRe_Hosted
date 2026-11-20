@@ -12,7 +12,7 @@ import { StudyMode } from "./StudyMode.tsx";
 // Memoized: a shell render without changed session data leaves the running session alone.
 const MemoizedStudyMode = React.memo(StudyMode);
 
-/** The running study session; its callbacks keep their identity across shell renders. */
+/** Its callbacks keep their identity across shell renders. */
 export function StudyModeWiring() {
   const { navigation, settings, clock, pomodoro, sync, study, cardEditorServices, cloud, mediaStore } = useAppServices();
   const { studyRequest, deckSettings, navigateToRoute, navigateToViewNow } = navigation;

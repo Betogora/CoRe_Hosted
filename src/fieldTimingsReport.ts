@@ -1,7 +1,6 @@
 import { APP_RUNTIME_INFO } from "./appRuntime.ts";
 import { FIELD_TIMING_METRICS, type FieldTimingMetric, type FieldTimingSamples } from "./fieldTimings.ts";
 
-/** German names in the copied text; the stored keys stay technical. */
 const FIELD_TIMING_LABELS: Readonly<Record<FieldTimingMetric, string>> = {
   "core:answer_shown": "Antwort anzeigen",
   "core:rating_to_next_card": "Bewertung bis nächste Karte",
@@ -18,7 +17,6 @@ const FIELD_TIMING_LABELS: Readonly<Record<FieldTimingMetric, string>> = {
   "core:bootstrap_apply": "Cloud-Stand übernehmen",
 };
 
-/** Coarse device and catalog facts copied below the values; nothing that names a person, a card or a moment. */
 export interface FieldTimingContext {
   version: string;
   cores?: number;
@@ -42,7 +40,6 @@ const bucket = (value: number | undefined, steps: ReadonlyArray<readonly [number
 
 const isoDay = (day: number) => new Date(day * 86_400_000).toISOString().slice(0, 10);
 
-/** The text the learner pastes into a message: one line per measured metric, then the context. */
 export function formatFieldTimingsReport(samples: FieldTimingSamples, context: FieldTimingContext): string {
   const lines = ["CoRe-Leistungsdaten"];
   const days: number[] = [];
@@ -67,7 +64,6 @@ export function formatFieldTimingsReport(samples: FieldTimingSamples, context: F
   return lines.join("\n");
 }
 
-/** Reads the device facts in the browser; the card count comes from the account's deck summaries. */
 export function readFieldTimingContext(deckSummaries: ReadonlyMap<string, { inventory: { totalCards: number } }> | undefined): FieldTimingContext {
   const media = (query: string) => typeof matchMedia === "function" && matchMedia(query).matches;
   const device = typeof navigator === "undefined" ? undefined : navigator as Navigator & { deviceMemory?: number };

@@ -42,7 +42,7 @@ function releaseMedia(mediaStore: AccountMediaStore, signature: string) {
   }, RELEASE_DELAY_MS);
 }
 
-/** Local blob URLs for the media a content references by name; prefetched media are available on the first render. */
+/** Prefetched media are available on the first render. */
 export function useNoteMediaUrls(media: Record<string, string> | null | undefined, mediaStore?: AccountMediaStore | null): NoteMediaState {
   const signature = mediaSignature(media);
   const [resolved, setResolved] = React.useState<{ signature: string; state: NoteMediaState } | null>(null);
@@ -60,7 +60,6 @@ export function useNoteMediaUrls(media: Record<string, string> | null | undefine
   return mediaCache.get(mediaStore)?.get(signature)?.value ?? EMPTY_MEDIA;
 }
 
-/** Resolves the media of upcoming cards ahead, so they are not downloaded while the card appears. */
 export function useNoteMediaPrefetch(mediaSets: ReadonlyArray<Record<string, string> | null | undefined>, mediaStore?: AccountMediaStore | null) {
   const signatures = [...new Set(mediaSets.map(mediaSignature).filter(Boolean))].sort().join("\n");
   React.useEffect(() => {

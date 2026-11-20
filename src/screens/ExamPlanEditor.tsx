@@ -42,7 +42,6 @@ interface ExamPlanEditorProps {
   onSave: (plan: ExamPlan, capacity: StudyTimeCapacity) => Promise<void>; onCancel: () => void; saving: boolean; saveError: string;
 }
 
-/** Guided setup: the calendar follows the exam, scope, goal and weekly time. */
 export function ExamPlanEditor({ embedded = false, onDirtyChange, decks, deckSummaries, exams, capacity: savedCapacity, initialPlan, preferences, timeZone, now, onLoadPlanningData, onSave, onCancel, saving, saveError }: ExamPlanEditorProps) {
   const today = getLearningDayKey(now, { timeZone }) ?? now.slice(0, 10);
   const [originalPlan] = React.useState(() => {
@@ -145,7 +144,6 @@ export function ExamPlanEditor({ embedded = false, onDirtyChange, decks, deckSum
         <div ref={previewCalendar} className="min-w-0">{renderCalendar()}</div>
         <ExamTopicPreview calendarRef={previewCalendar} actionsRef={previewActions} examDate={plan.examDate} color={plan.color} topics={topicOrder.map((id) => {
           const deck = summary?.decks.find((deck) => deck.deckId === id);
-          // Shared decks are introduced once by the exam with the earliest cutoff; name it instead of claiming the start.
           const first = current ? forecast?.days.flatMap((day) => day.blocks.filter((block) => block.deckId === id && block.method === "new").map((block) => ({ key: day.key, own: block.examIds.includes(plan.id), examIds: block.examIds }))).sort((a, b) => Number(b.own) - Number(a.own))[0] : undefined;
           const owner = first && !first.own ? plannedExams.find((exam) => first.examIds.includes(exam.id))?.name : undefined;
           return { id, name: decks.find((deck) => deck.id === id)!.name, detail: first ? `${owner ? `Mit ${owner} ab` : "Ab"} ${formatExamDate(first.key, "short")}` : !current ? "Wird berechnet …" : deck && deck.known >= deck.total ? "Bereits eingeführt" : "Noch nicht eingeplant" };

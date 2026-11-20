@@ -42,7 +42,6 @@ function createDevice(client: SupabaseClient, userId: string, id: string, isOnli
   });
 }
 
-/** One deck with one basic content; seeded through the cloud rows like a synchronized account. */
 async function seedDeckWithNote(client: SupabaseClient, deviceId: string, name: string, front: string, back: string) {
   const { note, cards } = createBasicNote("pending", front, back);
   const deck = createCoreDeck({ name, source: "manual" });
@@ -220,7 +219,6 @@ test("Review auf Gerät A und Inhaltskorrektur auf Gerät B laufen ohne Konflikt
   });
   assert.equal(corrected.changed, true);
 
-  // Gerät A lernt die Karte mit dem alten Text, Gerät B korrigiert gleichzeitig den Inhalt.
   engineA.enqueueMutation(reviewMutation(userId, deck, card, "2026-07-15T08:00:00.000Z", `review_parallel_${card.id}`));
   engineB.enqueueMutation({
     id: `content-b-${note.id}`,
@@ -242,7 +240,6 @@ test("Review auf Gerät A und Inhaltskorrektur auf Gerät B laufen ohne Konflikt
   assert.equal(cardRow.study_revision, card.studyRevision + 1);
   assert.equal(cardRow.revision, card.revision, "Ein Review darf die Kartenrevision für Inhaltsänderungen nicht verbrauchen.");
 
-  // Eine zweite, veraltete Korrektur von Gerät A bleibt dagegen ein sichtbarer Konflikt.
   engineA.enqueueMutation({
     id: `stale-content-a-${note.id}`,
     type: SYNC_MUTATION_TYPES.entityMutation,

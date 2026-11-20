@@ -13,7 +13,6 @@ function memoryStorage() {
   };
 }
 
-/** A clock the test advances, so each answer takes exactly the given milliseconds. */
 function timings(storage = memoryStorage(), idle: Array<() => void> = []) {
   let clock = 0;
   const instance = createFieldTimings({ storage, version: "1.2.3", now: () => clock, today: () => 20_404, whenIdle: (run) => idle.push(run) });

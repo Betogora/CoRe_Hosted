@@ -2,10 +2,6 @@ import React from "react";
 import { clearPomodoroTimer, createPomodoroTimerFromSeconds, getPomodoroTimerStorageKey, pausePomodoroTimer, readPomodoroTimer, resumePomodoroTimer, writePomodoroTimer, type PomodoroTimer } from "./pomodoroTimer.ts";
 import { useSuccessToast } from "./ui/feedbackUi.tsx";
 
-/**
- * The account's focus timer: stored per account, followed across tabs, and announced with a toast when it runs out,
- * also when it ran out while the app was closed.
- */
 export function usePomodoroTimer(userId: string | undefined) {
   const setSuccessToast = useSuccessToast();
   const [pomodoroTimer, setPomodoroTimer] = React.useState<PomodoroTimer | null>(null);

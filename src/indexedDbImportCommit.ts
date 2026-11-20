@@ -1,4 +1,3 @@
-// Private to indexedDbCoreRepository.ts: takes over an APKG import graph chunk by chunk, including reimports (K5.7).
 import { mergeImportedTags, normalizeCoreDeck, outdateVariantsOfChangedSource } from "./coreModel.ts";
 import type { Card, Deck, DeckSettings, ImportVerificationScope, Note, ReviewEvent } from "./coreTypes.ts";
 import type { SyncOutboxMutation } from "./syncEngine.ts";
@@ -18,7 +17,6 @@ import {
   emptyDeckStudySummary,
 } from "./indexedDbStore.ts";
 
-/** Existing imported contents found per Anki GUID before a commit (K5.7). */
 export interface ReimportTargets {
   notes: Note[];
   cards: Array<{ id: string; noteId: string; deckId: string; promptKey: string; ankiCardId: string | null }>;
@@ -28,15 +26,12 @@ export interface ReimportTargets {
 interface ImportCommitResult {
   decks: WorkspaceDeckSummary[];
   scope: ImportVerificationScope;
-  /** Reimported contents whose local edits were kept. */
   keptLocalEdits: number;
-  /** Cards present in CoRe but no longer in the package; they are only reported. */
   missingInPackage: number;
 }
 
 const INTERRUPTED_IMPORT_KEY = "interruptedImport";
 
-/** The import whose takeover was interrupted on this device, as long as one of its decks is left. */
 export async function readInterruptedImport(database: IDBDatabase): Promise<InterruptedImport | null> {
   const transaction = database.transaction([STORE.meta, STORE.decks], "readonly");
   const entry = await requestResult<{ value: InterruptedImport } | undefined>(transaction.objectStore(STORE.meta).get(INTERRUPTED_IMPORT_KEY));
@@ -58,7 +53,6 @@ export interface ImportCommitOptions {
   deckSettings: Partial<DeckSettings>;
   reimportTargets?: ReimportTargets;
   onMedia?: (file: ImportMediaFile) => Promise<void>;
-  /** The package file; its takeover is recorded until it finishes, so an interruption can be reported. */
   source?: ImportSource;
   /**
    * Continues an interrupted import of the same package: cards it already took over still get their history. Otherwise,
@@ -197,8 +191,7 @@ export async function commitImportGraph(
           for (const card of incomingCards) persistedCardIds.set(card.id, card.id);
           continue;
         }
-        // K5.7: local edits, study state, suspension, flag, leech, mark and deck placement stay; new prompts become new
-        // cards. Tags are no content: they merge three-way against the tags of the last import, even after local edits.
+        // Tags are no content: they merge three-way against the tags of the last import, even after local edits.
         persistedNoteIds.set(incoming.id, existing.id);
         const locallyEdited = existing.importedContentRevision === null || existing.contentRevision > existing.importedContentRevision;
         if (locallyEdited) keptLocalEdits += 1;

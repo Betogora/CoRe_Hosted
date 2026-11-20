@@ -27,7 +27,6 @@ interface ExamCalendarProps {
   onChange: (exams: ExamPlan[], capacity: StudyTimeCapacity) => void;
 }
 
-/** Shared calendar for draft and saved plans. Dates move introductions, never scheduled repetitions. */
 export function ExamCalendar({ exams, capacity, forecast, decks, today, busy, initialExamId, onChange }: ExamCalendarProps) {
   const [view, setView] = React.useState<"month" | "week">("month");
   const [date, setDate] = React.useState(today);
@@ -57,7 +56,6 @@ export function ExamCalendar({ exams, capacity, forecast, decks, today, busy, in
   const selectedExam = shown.length === 1 ? shown[0] : null;
   const topicSummary = forecast?.exams.find((exam) => exam.examId === selectedExam?.id);
   const topics = selectedExam && (!initialExamId || selectedExam.id === initialExamId) ? getExamTopicOrder(decks, selectedExam).filter((id) => topicSummary?.decks.some((deck) => deck.deckId === id && deck.total > deck.known)) : [];
-  // The planned start is shown even when an earlier wish cannot apply because previous topics come first.
   const plannedStarts = new Map<string, string>();
   for (const day of forecast?.days ?? []) for (const block of day.blocks) if (block.method === "new" && !plannedStarts.has(block.deckId)) plannedStarts.set(block.deckId, day.key);
   const topicDate = (id: string) => plannedStarts.get(id) ?? selectedExam?.topicDates?.find((topic) => topic.deckId === id)?.date;

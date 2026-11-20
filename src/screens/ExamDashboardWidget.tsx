@@ -26,12 +26,11 @@ interface ExamDashboardWidgetProps {
   onOpen?: () => void;
   onLoadSummaryAvailability?: (deckId: string) => Promise<boolean>;
   onLoadLocalCardIds?: (cardIds: string[]) => Promise<string[]>;
-  /** The page's plan; without it the widget computes its own (Heute). */
+  /** The page's plan; without it the widget computes its own. */
   planning?: ExamForecastState;
   preview?: ExamDashboardPreview;
 }
 
-/** A persisted daily checklist; checking a task never changes the scheduler or answers cards. */
 export function ExamDashboardWidget({ state, now, onLoad, onStart, onSaveTasks, onOpen, onLoadSummaryAvailability, onLoadLocalCardIds, planning, preview }: ExamDashboardWidgetProps) {
   const preferences = getGlobalSchedulerPreferences(state.profile);
   const settings = preferences.examPlanning;
@@ -41,7 +40,7 @@ export function ExamDashboardWidget({ state, now, onLoad, onStart, onSaveTasks, 
   const today = getLearningDayKey(now, { timeZone, dayStartHour: preferences.dayStartHour }) ?? civilToday;
   const ownPlanning = useExamForecast({ decks: state.decks, exams, capacity, preferences, now, timeZone, onLoadPlanningData: onLoad, enabled: !planning });
   const { forecast, cards, current, busy, error, offline, reload } = planning ?? ownPlanning;
-  // Offline the stored targets of today stay usable without a new plan (E12).
+  // Offline, today's stored targets stay usable without a new plan.
   const ready = current || offline;
   const [summaryAvailability, setSummaryAvailability] = React.useState<Record<string, boolean | null>>({});
   const [starting, setStarting] = React.useState(false);
@@ -74,7 +73,6 @@ export function ExamDashboardWidget({ state, now, onLoad, onStart, onSaveTasks, 
   const storedKey = JSON.stringify(settings.dailyTasks ?? []);
   const taskKey = JSON.stringify(tasks);
   const deckName = (id: string) => state.decks.find((deck) => deck.id === id)?.name ?? "Stapel";
-  // The checklist shows the change at once; a failed save brings back the stored state.
   const [pending, setPending] = React.useState<ExamDailyTask[] | null>(null);
   async function persist(next: ExamDailyTask[]) {
     setSaving(true); setSaveError(""); setPending(next);

@@ -3,12 +3,6 @@ import { createEmptyApkgImportSession, disposeApkgImportPreview, hasVisibleApkgI
 import type { ImportCommands } from "./importCommands.ts";
 import { useSuccessToast } from "./ui/feedbackUi.tsx";
 
-/**
- * The APKG import session, which keeps parsing and its preview while the creation screen is left and ends with the
- * account, plus the import upkeep of the open workspace: cloud confirmations follow the sync status and move on to the
- * account's next workspace, and once the workspace is ready unedited imports are re-translated after a translator
- * release.
- */
 export function useImportSession(commands: ImportCommands | null, accountId: string | null, retranslationReady: boolean, openImport: () => void) {
   const setSuccessToast = useSuccessToast();
   const [session, setSessionState] = React.useState<ApkgImportSession>(() => createEmptyApkgImportSession());
@@ -50,7 +44,6 @@ export function useImportSession(commands: ImportCommands | null, accountId: str
     return commands.followSyncStatus();
   }, [commands]);
 
-  // A takeover interrupted on this device (reload, closed tab) is reported once per workspace.
   React.useEffect(() => {
     if (!commands) return undefined;
     let active = true;
@@ -61,7 +54,6 @@ export function useImportSession(commands: ImportCommands | null, accountId: str
     return () => { active = false; };
   }, [commands, openImport, setSuccessToast]);
 
-  // Closing the tab during analysis or takeover asks first, also when the screen was left meanwhile.
   React.useEffect(() => {
     if (!session.isParsing) return undefined;
     const beforeUnload = (event: BeforeUnloadEvent) => { event.preventDefault(); event.returnValue = ""; };
@@ -87,7 +79,6 @@ export function useImportSession(commands: ImportCommands | null, accountId: str
     reset,
     isCurrent,
     hasVisibleSession: () => hasVisibleApkgImportSession(sessionRef.current),
-    /** Ends the session with its preview, at once on sign-out. */
     discard() {
       disposeApkgImportPreview(sessionRef.current);
       reset(false);

@@ -43,7 +43,6 @@ export function fakeLearningCloud() {
   return { table, objects, state, account: (userId: string) => ({ userId, cloud: client as unknown as SupabaseClient }) };
 }
 
-/** A new browser of the same account: its local copies start empty. */
 export function freshDevice(databaseName: string) {
   return new Promise((resolve) => { indexedDB.deleteDatabase(databaseName).onsuccess = resolve; });
 }

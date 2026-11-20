@@ -71,8 +71,8 @@ const CARD_EDITOR_SERVICES: CardEditorServices = {
 };
 
 /**
- * The card management reads one flat hit list over its scope (KV3b); tests describe cards per deck, so their pages
- * become that list in scope order.
+ * The card management reads one flat hit list over its scope; tests describe cards per deck, so their pages become that
+ * list in scope order.
  */
 function hitPages(decks: Deck[], cardPages: WorkspaceSnapshot["cardPages"], contentDeckId: string | null | undefined): WorkspaceSnapshot["cardPages"] {
   if ("__hits__" in cardPages) return cardPages;
@@ -95,7 +95,6 @@ function hitPages(decks: Deck[], cardPages: WorkspaceSnapshot["cardPages"], cont
   };
 }
 
-/** Card pages, deck counts and conflicts come from the account store, as in the app; pages need a page loader. */
 function renderScreen(decks: Deck[], { syncConflictCardIds, deckSummaries, cardPages, ...overrides }: Partial<DecksScreenProps> & Partial<Pick<WorkspaceSnapshot, "syncConflictCardIds" | "deckSummaries" | "cardPages">> = {}) {
   const props: DecksScreenProps = {
     decks,

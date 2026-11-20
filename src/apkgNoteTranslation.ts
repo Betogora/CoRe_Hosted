@@ -29,9 +29,6 @@ import { compileSafeTemplate, type SafeTemplateAstNode } from "./safeTemplate.ts
 import { scheduleWithFsrs } from "./scheduler.ts";
 import { sha1DigestHex } from "./sha1.ts";
 
-// ADR-032: versioned translators turn Anki note types into the universal CoRe content.
-// The pipeline is pure apart from reading media for nothing but its index; it is wired into the app in the cutover (K4.9).
-
 interface TranslatorId { id: string; version: number }
 type FieldRole = NoteFieldRole | "consumed";
 
@@ -41,7 +38,7 @@ export interface ImportDeck {
   name: string;
   hierarchyPath: string[];
   parentDeckId: string | null;
-  /** Anki packages carry no deck appearance; CoRe's own library decks set one. */
+  /** Absent for Anki imports, which carry no deck appearance. */
   appearance?: DeckAppearance;
 }
 
@@ -56,7 +53,7 @@ export interface ImportReviewEvent {
   flags: Record<string, unknown>;
 }
 
-/** Invisible Anki template per note type, kept so improved translators can re-translate imports (K5.4). */
+/** Invisible Anki template per note type, kept so improved translators can re-translate imports. */
 export interface NoteTypeSource {
   id: string;
   ankiNotetypeId: string;
@@ -94,7 +91,6 @@ export interface ApkgNotetypeReport {
   unmappedFields: string[];
   missingMedia: string[];
   study: Record<StudyMigration, number>;
-  /** Whether its cards show the template's own layout (ADR-047) or the CoRe design. */
   layout: "original" | "core";
 }
 
@@ -160,8 +156,6 @@ const GENERIC = { id: "generic", version: 4 };
 const FIELD_LIST = { id: "field-list", version: 3 };
 const DAY_MS = 86_400_000;
 
-// --- Small text helpers -------------------------------------------------------------------
-
 function plainText(html: string): string {
   return html.replace(/<(script|style)\b[\s\S]*?<\/\1>/gi, "").replace(/<[^>]*>/g, " ")
     .replace(/&nbsp;/gi, " ").replace(/&lt;/gi, "<").replace(/&gt;/gi, ">").replace(/&quot;/gi, '"').replace(/&#39;/g, "'").replace(/&amp;/gi, "&")
@@ -202,8 +196,6 @@ function furigana(html: string, mode: "furigana" | "kana" | "kanji"): string {
     mode === "kana" ? reading : mode === "kanji" ? base : `<ruby>${base}<rt>${reading}</rt></ruby>`);
 }
 
-// --- Note type model ----------------------------------------------------------------------
-
 function normalizeModel(raw: any): AnkiModel {
   const config = raw?.config ?? {};
   const fields = [...(Array.isArray(raw?.flds) ? raw.flds : [])].sort((left, right) => Number(left.ord ?? 0) - Number(right.ord ?? 0));
@@ -243,8 +235,6 @@ function contentFields(model: AnkiModel, roles: Record<string, FieldRole>, value
     return role === "consumed" ? [] : [{ id: fieldId(ordinal), name, role, html: transform(ordinal, values[ordinal] ?? "") }];
   });
 }
-
-// --- Template analysis for the generic translator (K5.3) ------------------------------------
 
 interface TemplateRef {
   ordinal: number;
@@ -380,7 +370,6 @@ function genericPlan(model: AnkiModel, translator: TranslatorId, promptKey: (ord
     const answerRefs = back.refs.filter((ref) => !isHint(ref) && ttsLanguage(ref) === null && !ref.href
       && (back.hasAnswerMarker ? ref.answerSide : !frontOrdinals.has(ref.ordinal)));
     for (const ordinal of question) assign(ordinal, "prompt");
-    // Back fields shown directly answer; fields revealed on demand are supplements.
     for (const ref of answerRefs) assign(ref.ordinal, cloze || ref.behindButton || ref.hidden ? "extra" : "answer");
     const answer = [...new Set(answerRefs.map((ref) => ref.ordinal))].filter((ordinal) => !question.includes(ordinal));
     if (cloze || question.length === 0) continue;
@@ -441,8 +430,6 @@ function fieldListContent(model: AnkiModel, values: string[], ordinals: number[]
     speech: [],
   };
 }
-
-// --- Specialized translators (K5.2) -------------------------------------------------------
 
 function fieldByName(model: AnkiModel, pattern: RegExp): number {
   return model.fields.findIndex((name) => pattern.test(name.trim()));
@@ -531,7 +518,7 @@ function svgNumber(attributes: string, name: string): number {
   return match ? Number(match[1]) : Number.NaN;
 }
 
-/** Clamps a pixel range divided by the image size to 0–1 and returns its start and length; null when empty. */
+/** Start and length as fractions of the image size, clamped to 0–1; null when empty. */
 function unitRange(start: number, end: number): [number, number] | null {
   const [from, to] = [Math.min(1, Math.max(0, start)), Math.min(1, Math.max(0, end))];
   return Number.isFinite(from) && Number.isFinite(to) && to > from ? [Number(from.toFixed(6)), Number((to - from).toFixed(6))] : null;
@@ -681,7 +668,7 @@ function planNotetype(model: AnkiModel): NotetypePlan {
   return genericPlan(model, GENERIC, (ordinal) => `anki-${ordinal}`);
 }
 
-/** Current translator versions; a higher version re-translates unedited imports automatically (K5.4). */
+/** A higher version re-translates unedited imports automatically. */
 export const TRANSLATOR_VERSIONS: Readonly<Record<string, number>> = Object.fromEntries(
   [BASIC, CLOZE, IMAGE_OCCLUSION, IMAGE_OCCLUSION_ENHANCED, MULTIPLE_CHOICE, ANKING, GENERIC, FIELD_LIST].map(({ id, version }) => [id, version]),
 );
@@ -705,8 +692,6 @@ export function retranslateNoteContent(source: NoteTypeSource, fields: string[],
   const content = plan.content(fields);
   return content ? { content: { ...content, tags }, translator: plan.translator, promptKey: plan.promptKey } : null;
 }
-
-// --- Learning state (K5.5) ----------------------------------------------------------------
 
 function readFsrsMemory(data: unknown) {
   if (typeof data !== "string" || !data.trim()) return null;
@@ -830,8 +815,6 @@ function reviewEvent(entry: AnkiReviewHistoryEntry, cardId: string): ImportRevie
   };
 }
 
-// --- Media (K5.6) -------------------------------------------------------------------------
-
 function mediaResolver(files: AnkiPackageMediaFile[]) {
   const canonicalBySha1 = new Map<string, AnkiPackageMediaFile>();
   const byName = new Map<string, AnkiPackageMediaFile>();
@@ -858,8 +841,6 @@ function mediaResolver(files: AnkiPackageMediaFile[]) {
   return { rewrite, byName, canonical: new Set(canonicalBySha1.values()) };
 }
 
-// --- Decks (K5.1) -------------------------------------------------------------------------
-
 function deckGraph(pkg: AnkiPackage, homeDeckIds: Set<string>) {
   const fallbackName = pkg.file.name.replace(/\.(?:apkg|colpkg)$/i, "") || "Anki-Import";
   const ankiDecks = new Map(pkg.decks.filter((deck) => !deck.filtered).map((deck) => [deck.id, deck]));
@@ -885,11 +866,8 @@ function deckGraph(pkg: AnkiPackage, homeDeckIds: Set<string>) {
   return { decks: [...byPath.values()].sort((left, right) => left.hierarchyPath.join("::").localeCompare(right.hierarchyPath.join("::"))), deckIdForAnkiDeck };
 }
 
-// --- Pipeline (K5.0) ----------------------------------------------------------------------
-
 const MAX_MASK_SVG_BYTES = 1024 * 1024;
 
-/** Translates a read package into the import graph of decks, notes, cards, media, review events and report. */
 export async function translateAnkiPackage(pkg: AnkiPackage, options: { importedAt?: string } = {}): Promise<ApkgImportGraph> {
   const importedAt = options.importedAt ?? new Date().toISOString();
   const ankiDeckIds = new Set(pkg.decks.map((deck) => deck.id));
@@ -923,7 +901,7 @@ export async function translateAnkiPackage(pkg: AnkiPackage, options: { imported
     if (known) return known;
     const model = normalizeModel(pkg.models[notetypeId]);
     const plan = planNotetype(model);
-    // Only note types that show their original layout (ADR-047) bring their template media along.
+    // Only note types that keep their original layout bring their template media along.
     const layout = plan.translator.id === GENERIC.id && hasOwnDesign(model.css) && model.templates.some((template) => !needsScript(template)) ? "original" as const : "core" as const;
     const layoutNames = layout === "original" ? layoutMediaNames(model) : [];
     const entry = {
@@ -1095,15 +1073,11 @@ export async function translateAnkiPackage(pkg: AnkiPackage, options: { imported
   };
 }
 
-// --- Commit stream (K5.8) -----------------------------------------------------------------
-
 const NOTE_CHUNK_SIZE = 250;
 const REVIEW_CHUNK_SIZE = 500;
 
-/** A preview card with its template, so the preview shows the original layout like the review. */
 export interface ImportSample { note: Note; card: Card; notetypeName: string; noteTypeSource: NoteTypeSource | null }
 
-/** Preview of a translated package: report, five sample cards and the counts the commit will stream. */
 export function describeImportGraph(graph: ApkgImportGraph) {
   const notesById = new Map(graph.notes.map((note) => [note.id, note]));
   const sourcesById = new Map(graph.noteTypeSources.map((source) => [source.id, source]));
@@ -1131,7 +1105,7 @@ export function describeImportGraph(graph: ApkgImportGraph) {
 
 const SAMPLE_MEDIA_MAX_BYTES = 20 * 1024 * 1024;
 
-/** Media of the preview samples, checked like the commit and capped so the preview stays light. */
+/** Checked like the commit and capped so the preview stays light. */
 export async function readSampleMedia(graph: ApkgImportGraph, samples: ReadonlyArray<{ note: Note }>) {
   const filesBySha1 = new Map(graph.mediaFiles.map((file) => [file.sha1, file]));
   const result: Array<{ name: string; sha1: string; size: number; mimeType: string; bytes: Uint8Array }> = [];

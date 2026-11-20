@@ -1,4 +1,3 @@
-// Private to indexedDbCoreRepository.ts: schema, stores and stored record forms of the web replica.
 import type { Card, CardVariant, Deck, Note, ReviewEvent } from "./coreTypes.ts";
 import type { WorkspaceState } from "./coreWorkspace.ts";
 import {
@@ -13,7 +12,7 @@ import {
   type ReplicaStatus,
 } from "./workspaceReplica.ts";
 
-// ADR-034: a fresh database without upgrade path.
+// No upgrade path: a new version starts a fresh database.
 const DATABASE_VERSION = 3;
 
 const DATABASE_PREFIX = "core.workspace.entities.v5.";
@@ -108,9 +107,9 @@ export function openDatabase(indexedDb: IDBFactory, userId: string): Promise<IDB
     request.onupgradeneeded = (event) => {
       const database = request.result;
       if (event.oldVersion >= 1) {
-        // Full search texts per content (version 2, KV1) and learning history in the catalog (version 3, KV2b). An
-        // existing replica pulls its whole catalog again from cursor 0: an older client may already have taken the
-        // rows the migration changed and dropped their new columns. Until then searches stay in the cloud.
+        // Full search texts per content (version 2) and learning history in the catalog (version 3). An existing
+        // replica pulls its whole catalog again from cursor 0: an older client may already have taken the rows the
+        // migration changed and dropped their new columns. Until then searches stay in the cloud.
         if (event.oldVersion < 2) database.createObjectStore(STORE.noteSearch, { keyPath: "noteId" });
         const metadata = request.transaction!.objectStore(STORE.syncMetadata);
         const read = metadata.get("replicaStatus");

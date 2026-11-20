@@ -25,7 +25,6 @@ function graph(tags: string[] = []) {
   return createNote({ content, deckId: "deck-a", createdAt: AT });
 }
 
-/** The graphs after a plan was saved: changed ones replaced, the rest as they were. */
 function saved(graphs: ReturnType<typeof graph>[], plan: ReturnType<typeof planCardBatchEdit>) {
   const next = new Map(plan.changes.map((change) => [change.next.note.id, change.next]));
   return graphs.map((candidate) => next.get(candidate.note.id) ?? candidate);

@@ -11,11 +11,9 @@ export interface FileDropFieldProps {
   actionLabel: string;
   onFile: (file: File) => void | Promise<void>;
   label?: string;
-  /** Also takes an image pasted with Ctrl+V while the field is focused. */
   pasteImages?: boolean;
   disabled?: boolean;
   busy?: boolean;
-  /** Replaces the prompt, e.g. with the selected file. */
   children?: React.ReactNode;
 }
 

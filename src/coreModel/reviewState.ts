@@ -7,7 +7,7 @@ type ReviewStateInput = Partial<Omit<ReviewState, "state" | "reps">> & { state?:
 interface VariantPerformanceInput extends Partial<Omit<VariantPerformance, "id" | "attempts">> { id?: string | null; attempts?: number | null; }
 function objectRecord(value: unknown): StringMap { return value !== null && typeof value === "object" ? value as StringMap : {}; }
 
-/** Normalizes a flat scheduler state; unknown keys of older snapshots are ignored. */
+/** Unknown keys of older snapshots are ignored. */
 export function createReviewState(input: unknown = {}): ReviewState {
   const {
     schedulerVersion = "fsrs_7_v1",
@@ -66,7 +66,6 @@ export function createReviewState(input: unknown = {}): ReviewState {
   };
 }
 
-/** Maps a scheduler state to the card's study columns. */
 export function cardStudyFromReviewState(state: ReviewState): CardStudyState {
   return {
     state: state.state,
@@ -99,7 +98,6 @@ export function cardStudyFromReviewState(state: ReviewState): CardStudyState {
   };
 }
 
-/** Flat scheduler view of the card's study columns (K2.5). */
 export function reviewStateFromCardStudy(study: CardStudyState): ReviewState {
   const { extra, ...queue } = study;
   return createReviewState({ ...extra, ...queue });
@@ -137,7 +135,6 @@ export function createVariantPerformance({
   };
 }
 
-/** Counts one answer of a variant; its study state stays on the card. */
 export function updateVariantPerformance(
   performance: VariantPerformanceInput = {},
   rating: ReviewRating,

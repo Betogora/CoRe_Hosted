@@ -6,7 +6,6 @@ import { useAppServices } from "../useAppServices.ts";
 import { useWorkspaceStore, useWorkspaceValue } from "../useWorkspaceStore.ts";
 import { DeckSettingsScreen } from "./DeckSettingsScreen.tsx";
 
-/** The deck settings dialog over a view or session, with the deck's offline download and the deck commands. */
 export function DeckSettingsScreenWiring() {
   const { navigation, settings, clock, deckCommands, variantBatch, repository: workspaceRepository, hydration: workspaceHydrationService } = useAppServices();
   const workspaceStore = useWorkspaceStore();
@@ -25,7 +24,6 @@ export function DeckSettingsScreenWiring() {
   }, [deckId, offlineDeck, workspaceRepository]);
   const [cardsWithoutVariant, setCardsWithoutVariant] = React.useState<number | null>(null);
   const { countWithoutVariant, running: variantsRunning } = variantBatch;
-  // Counted again when a generation ends, so the count and the one variant action follow it.
   React.useEffect(() => {
     setCardsWithoutVariant(null);
     const deck = workspaceStore.get().state?.decks.find((candidate) => candidate.id === deckId);

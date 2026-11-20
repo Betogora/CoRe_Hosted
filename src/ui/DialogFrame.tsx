@@ -7,36 +7,23 @@ import { useModalDialog } from "./useModalDialog.ts";
 export interface DialogFrameProps {
   open: boolean;
   title: ReactNode;
-  /** Line below the title, e.g. a type and state marks; not part of the dialog's name. */
+  /** Not part of the dialog's accessible name. */
   subtitle?: ReactNode;
-  /** Controls before the title, e.g. paging through a list. */
   leading?: ReactNode;
-  /** Actions between the title and the close button. */
   actions?: ReactNode;
   onClose: () => void;
-  /** Width from 768 px: `s` 28 rem, `m` 40 rem (default), `l` 60 rem. Below 768 px `m` and `l` fill the screen, `s` stays a card. */
   size?: "s" | "m" | "l";
-  /** Row below the title, typically `CoreTabs`. */
   tabs?: ReactNode;
-  /** Fixed row below the scrolling content, typically the dialog actions. */
   footer?: ReactNode;
-  /** Accessible name of the close button; it receives the initial focus. */
   closeLabel?: string;
   /** Element that receives focus after closing; otherwise the element focused before opening. */
   returnFocusRef?: React.RefObject<HTMLElement | null>;
   testId?: string;
-  /** Extra class on the dialog surface for a caller's own width, height or tone. */
   className?: string;
-  /** Keys pressed anywhere in the dialog, e.g. shortcuts of its content. */
   onKeyDown?: React.KeyboardEventHandler<HTMLDivElement>;
   children: ReactNode;
 }
 
-/**
- * Shared modal frame on `useModalDialog`: 56 px title row with the title left and a borderless close button right,
- * optional tab row, scrolling content and optional fixed footer. Escape, the backdrop and the close button call
- * `onClose`; focus trap, scroll lock and focus return belong to the hook.
- */
 export function DialogFrame({ open, title, subtitle, leading, actions, onClose, size = "m", tabs, footer, closeLabel = "Schließen", returnFocusRef, testId, className, onKeyDown, children }: DialogFrameProps) {
   const titleId = React.useId();
   const { dialogRef, initialFocusRef } = useModalDialog({ open, onClose, returnFocusRef, stopEscapePropagation: true });

@@ -157,7 +157,6 @@ test("dashboard shows the full grouped tree without progress ring and direct dra
   const restingFill = await rootActivation.evaluate((element) => getComputedStyle(element).backgroundColor);
   await rootActivation.hover();
   await expect.poll(() => rootActivation.evaluate((element) => getComputedStyle(element).backgroundColor)).not.toBe(restingFill);
-  // The list has no frame; a hairline closes every row, the main deck included.
   await expect(rootRow).toHaveCSS("border-bottom-width", "1px");
 
   await rootRow.getByRole("button", { name: "Stapeloptionen für Welt-Hauptstädte" }).click();
@@ -392,7 +391,6 @@ test("active deck header and rows fit every target width and toggle reliably on 
     }, { rootDeckId: DECK_IDS.root, rootLeafName });
 
     expect(layout.fits).toBe(true);
-    // Narrow lists keep one row per deck with labelled counts as a subline instead of the table header (ADR-051).
     const stacked = layout.headerHeight === 0;
     if (stacked) {
       expect(layout.rowLabelsHidden).toBe(false);
@@ -406,7 +404,6 @@ test("active deck header and rows fit every target width and toggle reliably on 
       // Stacked rows set their counts as one inline line, so even column spacing only applies to the table layout.
       expect(layout.statusGapSpread).toBeLessThanOrEqual(1);
       if (layout.headerLabels.length > 1) expect(layout.headerRowAlignment).toBeLessThanOrEqual(1);
-      // The list keeps fixed 44-px metric columns at every width.
       expect(layout.metricWidth).toBeCloseTo(44, 0);
     }
     expect(layout.collapseControlSize).toEqual([40, 40]);
@@ -722,7 +719,6 @@ test("unlimited logical hierarchy keeps deep drag, subtree moves, dialogs and vi
   await expect.poll(() => storedParentDeckId(page, DEEP_DECK_IDS.subtree)).toBe(null);
   await expect.poll(() => storedHierarchyPath(page, DEEP_DECK_IDS.subtreeChild)).toEqual(["Tiefer Teilbaum", "Teilbaum-Kind"]);
 
-  // Touch moves through the confirmed dialog of the deck menu in Lernen; the card management has no deck rows (KV3b).
   await page.setViewportSize({ width: 390, height: 844 });
   await page.getByTestId(`deck-options-${DEEP_DECK_IDS.leaf}`).click();
   await page.getByTestId(`deck-options-menu-${DEEP_DECK_IDS.leaf}`).getByRole("button", { name: "Verschieben" }).click();

@@ -5,7 +5,6 @@ import type { Deck } from "../../coreTypes.ts";
 import type { TagDirectoryEntry } from "../../tagDirectory.ts";
 import { createDeckLibraryModel } from "../../libraryModel.ts";
 
-/** One row of the advanced search: a label and the search term it switches between `Mit`, `Egal` and `Ohne`. */
 export interface CardSearchMenuItem {
   label: string;
   /** The cards the term finds as a plural phrase (`überfällige Karten`); the switch's tooltips name it. */
@@ -13,7 +12,6 @@ export interface CardSearchMenuItem {
   term: string;
   depth?: number;
   flag?: number;
-  /** Deck ids say nothing to learners; the row shows the name only. */
   hideTerm?: boolean;
 }
 
@@ -31,7 +29,7 @@ const CONTENT_FORMS = [
   { label: "Bildverdeckung", description: "Bildverdeckungskarten", term: "is:occlusion" },
 ] as const;
 
-/** What `Zeitraum` filters by; `term(n)` covers today and the n - 1 days before. */
+/** `term(n)` covers today and the n - 1 days before. */
 export const CARD_SEARCH_SINCE_OPTIONS = [
   { value: "rated", label: "Gelernt", term: (days: number) => `rated:${days}` },
   { value: "again", label: "Nochmal", term: (days: number) => `rated:${days}:1` },
@@ -44,7 +42,7 @@ export const CARD_SEARCH_SINCE_OPTIONS = [
   { value: "resched", label: "Neu geplant", term: (days: number) => `resched:${days}` },
 ] as const;
 
-/** What `Werte` compares; interval and difficulty only exist for cards that are not new. */
+/** Interval and difficulty only exist for cards that are not new. */
 export const CARD_SEARCH_PROP_OPTIONS = [
   { value: "ivl", label: "Intervall", unit: "Tage" },
   { value: "s", label: "Haltbarkeit", unit: "Tage" },
@@ -62,7 +60,6 @@ export const CARD_SEARCH_OPERATORS = [
   { value: ">", label: ">" },
 ] as const;
 
-/** Readable label of a written `Zeitraum` or `Werte` term, or null for any other term. */
 function writtenTermLabel(bare: string): { label: string; category: string } | null {
   const since = /^(rated|introduced|added|edited|resched):(\d+)(?::([1-4]))?$/.exec(bare);
   if (since) {
@@ -81,7 +78,6 @@ function writtenTermLabel(bare: string): { label: string; category: string } | n
   return null;
 }
 
-/** Categories of the advanced search (ADR-048, KV2): Anki's browser sidebar as filters with three positions. */
 export function createCardSearchMenu({ decks, tags, flagNames, noteTypes = [] }: {
   decks: Deck[];
   tags: readonly TagDirectoryEntry[];
@@ -153,7 +149,6 @@ export function cardSearchConflictMessage(query: string, categories: readonly Ca
 
 /** Readable chip label of a term; the menu's own label where it has one, otherwise the term as written. */
 export function cardSearchTermLabel(term: string, categories: readonly CardSearchMenuCategory[]): { label: string; category: string | null; negated: boolean } {
-  // A menu group reads as its members joined with „oder“, under the category of its first member.
   const group = cardSearchGroupMembers(term);
   if (group) {
     const members = group.members.map((member) => cardSearchTermLabel(member, categories));

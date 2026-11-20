@@ -10,7 +10,6 @@ import { NoteContentEditor } from "./cardEditor/NoteContentEditor.tsx";
 
 const NO_CHANGED_FIELDS = new Set<string>();
 
-/** Edits one unsaved proposal with the card editor's `Inhalt` editor and preview; nothing is stored here. */
 export function AiSourceProposalEditor({ content, onCancel, onApply }: {
   content: NoteContent;
   onCancel: () => void;
@@ -25,7 +24,6 @@ export function AiSourceProposalEditor({ content, onCancel, onApply }: {
   const [confirmClose, setConfirmClose] = React.useState(false);
   const note = React.useMemo(() => ({ ...graph.note, content: structure }), [graph.note, structure]);
   const dirty = JSON.stringify([value, structure]) !== initial;
-  // Like the card editor, the preview adds the cards an edit would create (a reverse direction, another gap).
   const previewCards = React.useMemo(() => {
     const validation = validateNoteEditorValue(note, value);
     let added: ReturnType<typeof planNoteContentChange>["newCards"] = [];

@@ -5,14 +5,9 @@ import { performance } from "node:perf_hooks";
 import { readAnkiPackage } from "../src/apkgImportInternal.ts";
 import { translateAnkiPackage, type ApkgNotetypeReport } from "../src/apkgNoteTranslation.ts";
 
-// ADR-035: translates real decks (Ankizin, AnKing, …) from a local, unversioned folder and
-// reports per note type which translator was used and how much of it is fully translated.
-// Decks never leave the machine.
-
 const corpusDir = resolve(process.argv[2] ?? "fixtures/apkg/corpus");
 const reportPath = resolve("test-results/apkg-corpus/report.json");
 
-/** Share of notes per outcome: own translator, generic translator, field list, not displayable. */
 function quotas(notetype: ApkgNotetypeReport) {
   const total = notetype.notes + notetype.untranslatableNotes;
   const translated = notetype.notes - notetype.fallbackNotes;

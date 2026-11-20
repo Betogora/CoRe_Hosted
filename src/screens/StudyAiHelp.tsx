@@ -16,10 +16,7 @@ interface Exchange { question: string; answer?: string; error?: string }
 
 export type AskCardHelp = (request: AiCardHelpRequest, signal: AbortSignal) => Promise<string>;
 
-/**
- * Learning help for the revealed card: a floating entry and a modal chat. The history survives closing and ends
- * with the card; unmounting on card change aborts a running request.
- */
+/** The chat history survives closing and ends with the card; unmounting on card change aborts a running request. */
 export function StudyAiHelp({ card, onAsk, open, onOpenChange }: {
   card: AiCardHelpRequest["card"];
   onAsk: AskCardHelp;

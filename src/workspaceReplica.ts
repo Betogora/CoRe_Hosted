@@ -24,7 +24,6 @@ export interface NoteSearchField {
   text: string;
 }
 
-/** Full search text of one content, replicated so a complete local catalog can be searched offline. */
 export interface NoteSearchEntry {
   noteId: string;
   searchText: string;
@@ -45,11 +44,9 @@ export interface CardCatalogEntry {
   scheduleState: string;
   maturityBand: string;
   reviewable: boolean;
-  /** The mark of the card's content; all siblings show it. */
   marked: boolean;
   ankiFlag: number;
   leeched: boolean;
-  /** Lower-case tags of the content with all `::` parents, for `tag:` search (`tagSearchKeys`). */
   tagKeys: string[];
   hasActiveVariants: boolean;
   activeVariantCount: number;
@@ -65,7 +62,7 @@ export interface CardCatalogEntry {
   difficulty?: number;
   reps?: number;
   lapses?: number;
-  /** Durability in days for `prop:s` (KV2e); null until the card is answered again, absent in older entries. */
+  /** Durability in days for `prop:s`; null until the card is answered again, absent in older entries. */
   durabilityDays?: number | null;
   /** Times of the first answer, the last answer per rating and the last manual reschedule; other manual events do not count. */
   firstReviewedAt?: string | null;
@@ -74,7 +71,6 @@ export interface CardCatalogEntry {
   lastGoodAt?: string | null;
   lastEasyAt?: string | null;
   lastRescheduledAt?: string | null;
-  /** Anki note type (`note:`) of the content and whether a variant of the card is outdated (`has:outdated`). */
   noteTypeId?: string | null;
   hasOutdatedVariants?: boolean;
   /** Number of the prompt as in Anki's `card:N` (template, cloze or mask); null for an unknown prompt key. */
@@ -164,22 +160,20 @@ export interface ReplicaStatus {
   catalogCursor: number;
   catalogServerCursor: number;
   /**
-   * The local catalog carries full search texts, so a complete catalog may answer searches itself (ADR-048).
-   * False after a reconciliation without any replicated text, e.g. against a server without `note_search`.
+   * The local catalog carries full search texts, so a complete catalog may answer searches itself. False after a
+   * reconciliation without any replicated text, e.g. against a server without `note_search`.
    */
   searchTextsReady?: boolean;
 }
 
 export interface CatalogPageRequest {
-  /** One deck, or null for the decks of `deckIds` as one list (the flat hit list, KV3). */
+  /** One deck, or null for the decks of `deckIds` as one list. */
   deckId: string | null;
   deckIds?: readonly string[];
   query?: string;
-  /** Resolves terms relative to today or to the deck tree (`CardSearchContext`). */
   searchContext?: CardSearchContext;
   sort?: CardTableSort;
   cursor?: { sortValue: string; id: string } | null;
-  /** Rows to skip when there is no cursor: a page far down the list opens directly (KV3). */
   offset?: number;
   limit?: number;
   knownTotalCount?: number;
@@ -274,7 +268,6 @@ export function promptOrdinal(promptKey: string): number | null {
   return numbered ? Number(numbered[1]) : null;
 }
 
-/** Kind of the manual event that sets a new due date (`resched:`). */
 export const MANUAL_RESCHEDULE_KIND = "manual_reschedule";
 
 const LAST_RATED_FIELD: Record<ReviewRating, keyof CatalogReviewHistory> = {
@@ -317,7 +310,6 @@ export function withStudyEvents(history: CatalogReviewHistory | null | undefined
   return next;
 }
 
-/** Catalog entry of a card; the answer history comes from the previous entry or the known answers. */
 export function catalogEntryFromCard(card: Card, note: Note | null, history?: CatalogReviewHistory | null): CardCatalogEntry {
   const activeVariants = getActiveVariants(card)
     .sort((left, right) => right.updatedAt.localeCompare(left.updatedAt) || left.id.localeCompare(right.id));

@@ -13,7 +13,6 @@ async function mode(panel: Locator, name: string) { await panel.getByRole("group
 async function finish(panel: Locator) { const center = () => panel.getByTestId("mindmap-canvas").evaluate((el) => el.scrollIntoView({ block: "center", behavior: "instant" })); await center(); await panel.getByRole("button", { name: "Bearbeitung abschließen", exact: true }).click(); await center(); }
 async function topic(panel: Locator, title: string) { await panel.getByRole("textbox", { name: "Kartentitel bearbeiten", exact: true }).fill(title); await finish(panel); }
 function node(panel: Locator, label: string) { return panel.getByRole("group", { name: new RegExp(`^(Stichwort|Textkarte) „${label}“$`) }); }
-/** The card's own select button: focus, keyboard and pressed state live here. */
 function pick(card: Locator) { return card.locator(":scope > .core-mindmap-node-select"); }
 async function fit(panel: Locator) {
   await panel.getByRole("button", { name: "Alles anzeigen", exact: true }).click();

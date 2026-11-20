@@ -1,4 +1,3 @@
-// Private to indexedDbCoreRepository.ts: the in-memory mirror of the waiting outbox and its writes.
 import type { SyncOutboxMutation } from "./syncEngine.ts";
 import { STORE, mutationId, transactionDone } from "./indexedDbStore.ts";
 

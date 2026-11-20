@@ -1,7 +1,5 @@
-// Private to cloudRepository.ts: the Supabase client shape, account-scoped selects, chunked writes and input checks the cloud modules share.
 import { validateAccountRows, type AccountTable } from "./cloudRepositoryValidation.ts";
 
-/** A row the cloud modules read without a validator from `cloudRepositoryValidation.ts`. */
 export type CloudRow = Record<string, unknown>;
 export interface CloudUser { id: string }
 interface CloudError { code?: string; message?: string }
@@ -27,9 +25,8 @@ interface CloudTable {
 }
 
 /**
- * The part of the Supabase client this module and the sync engine use; every answer stays `unknown` until validated.
- * `from` is `unknown` because PostgREST's builder types exceed the compiler's depth in a structural comparison (TS2589);
- * `cloudTable` reads it as `CloudTable`.
+ * `from` is `unknown` because PostgREST's builder types exceed the compiler's depth in a structural comparison
+ * (TS2589); `cloudTable` reads it as `CloudTable`.
  */
 export interface CloudClient {
   auth: { getUser(): PromiseLike<{ data: { user: CloudUser | null } | null; error: unknown }> };
@@ -41,7 +38,6 @@ export function cloudTable(client: CloudClient, table: string) {
   return client.from(table) as CloudTable;
 }
 
-/** Full rows of a revisioned entity table, checked by the table's validator. */
 export const entityRows = (table: string) => (rows: unknown) => validateAccountRows(table as AccountTable, rows);
 
 export const ACCOUNT_UPSERT_CONFLICT = "user_id,id";

@@ -34,11 +34,6 @@ export interface CardCommandsContext {
 
 export type CardCommands = ReturnType<typeof createCardCommands>;
 
-/**
- * Card management commands of the open workspace: content, study state, variants, media, mass actions and the card
- * pages of the lists. Each local write refreshes the store, updates the card pages that show the content and asks
- * for a sync; quick study-state changes run one after another.
- */
 export function createCardCommands({ store, repository, hydration, cloud, syncEngine, refresh, now, bootRun }: CardCommandsContext) {
   const cardPageRequests = new Map<string, { controller: AbortController; listKey: string; view: string }>();
   let studyStatePatchChain: Promise<unknown> = Promise.resolve();
@@ -124,10 +119,7 @@ export function createCardCommands({ store, repository, hydration, cloud, syncEn
     return true;
   }
 
-  /**
-   * Mark and tags belong to the content (all siblings show them); suspension and flag belong to the card. Patches run
-   * one after another, so quick changes (Strg+3, then Strg+K) each build on the stored result of the previous one.
-   */
+  /** Patches run one after another, so quick successive changes each build on the stored result of the previous one. */
   function applyCardStudyState(cardId: string, patch: CardStudyStatePatch) {
     const run = studyStatePatchChain.then(() => writeCardStudyState(cardId, patch));
     studyStatePatchChain = run.catch(() => undefined);
@@ -154,13 +146,11 @@ export function createCardCommands({ store, repository, hydration, cloud, syncEn
     return reloadNoteGraph(result.note.id);
   }
 
-  /** Loads a content with all its cards (also in other decks) and refreshes every visible card page that shows it. */
   // Follows a local write: the replica already holds the new graph, while the cloud may not have it yet.
   async function reloadNoteGraph(noteId: string, refreshPages = false): Promise<NoteGraph | null> {
     const graph = await repository.loadNoteGraph(noteId);
     refresh({ preserveCardPages: true });
     abortCardPageRequests();
-    // Visible rows of the content's cards take over the changed preview, mark and suspension at once.
     const entries = new Map((graph?.cards ?? []).map((card) => [card.id, catalogEntryFromCard(card, graph!.note)]));
     setCardPages((current) => Object.fromEntries(Object.entries(current).map(([listKey, list]) => {
       if (!list) return [listKey, list];
@@ -222,7 +212,6 @@ export function createCardCommands({ store, repository, hydration, cloud, syncEn
     return copy;
   }
 
-  /** Manual study changes (reschedule, reset, leech, bury, undo) refresh the open editor and the table. */
   async function applyManualStudyChanges(change: (repository: IndexedDbCoreRepository) => Promise<Card[]>) {
     const cards = await change(repository);
     refresh({ preserveCardPages: true });
@@ -235,7 +224,6 @@ export function createCardCommands({ store, repository, hydration, cloud, syncEn
     return cards;
   }
 
-  /** Mass action of the card management (KV4): one local write, then the lists reload and the outbox syncs. */
   async function runDeckCardBatch(cardIds: string[], action: CardBatchAction) {
     const workspaceHydrationService = hydration();
     if (!workspaceHydrationService) throw new Error("Die Kartenverwaltung ist noch nicht bereit.");
@@ -264,7 +252,6 @@ export function createCardCommands({ store, repository, hydration, cloud, syncEn
     return applyManualStudyChanges((current) => current.rescheduleCards(cardIds, dueAt, occurredAt));
   }
 
-  /** Moves one card of a content to another deck; its siblings, study state and variants stay. */
   async function moveDeckCard(cardId: string, deckId: string) {
     const body = await repository.loadCardBody(cardId);
     const graph = body ? await repository.loadNoteGraph(body.note.id) : null;
@@ -289,7 +276,6 @@ export function createCardCommands({ store, repository, hydration, cloud, syncEn
     return reloadNoteGraph(graph.note.id);
   }
 
-  /** `refresh` replaces the card's earlier variants except edited ones with the new one; otherwise it adds one and replaces outdated ones. */
   async function generateDeckCardVariant(_deckId: string, cardId: string, mode: CardVariantBatchMode = "missing") {
     const body = await repository.loadCardBody(cardId);
     const source = body ? cardVariantSource(body.note, body.card) : null;
@@ -327,7 +313,6 @@ export function createCardCommands({ store, repository, hydration, cloud, syncEn
     return created ? repository.saveDeckMetadata([created])[0] ?? null : null;
   }
 
-  /** Creates a manual content with its cards, in a new deck when no deck id is given. */
   async function saveManualNote({ deckId, deckName, content, media }: Parameters<CreationScreenProps["onSaveManualNote"]>[0]) {
     const deck = creationDeck(deckId, deckName);
     if (!deck) return null;
@@ -342,7 +327,6 @@ export function createCardCommands({ store, repository, hydration, cloud, syncEn
     return { deck, cardIds: graph.cards.map((card) => card.id) };
   }
 
-  /** Contents of a deck for the duplicate check of the text import; card bodies missing here are loaded first. */
   async function listDeckContents(deckId: string) {
     const service = hydration();
     const cardIds = service ? await service.listCardIds({ deckIds: [deckId] }) : await repository.listCardIds([deckId]);
@@ -351,8 +335,8 @@ export function createCardCommands({ store, repository, hydration, cloud, syncEn
   }
 
   /**
-   * Text import into one deck: new contents and updated duplicates in one write, so a failure leaves nothing behind (a
-   * deck created for it is removed again); cards and study state of updates stay. Duplicates load like in the editor.
+   * New contents and updated duplicates go into one write, so a failure leaves nothing behind (a deck created for it is
+   * removed again).
    */
   async function importTextNotes({ deckId, deckName, creates, updates }: Parameters<CreationScreenProps["onImportTextNotes"]>[0]) {
     const service = hydration();
@@ -379,7 +363,7 @@ export function createCardCommands({ store, repository, hydration, cloud, syncEn
     return { deck, cardCount: changes.reduce((total, change) => total + change.next.cards.filter((card) => !card.deletedAt).length, 0) };
   }
 
-  /** Instant actions and reads of the card editor; the services stay while the account's flag names stay. */
+  /** The services stay stable as long as the account's flag names stay the same. */
   function createCardEditorServices(flagNames: string[], openSettings: (section: SettingsSection) => unknown): CardEditorServices {
     return {
       flagNames,
@@ -396,7 +380,7 @@ export function createCardCommands({ store, repository, hydration, cloud, syncEn
       listTagDirectory: async () => {
         const local = () => repository.listTagDirectory();
         if (!cloud || (typeof navigator !== "undefined" && navigator.onLine === false)) return local();
-        // Tag changes still waiting here reach the cloud first, so its directory already shows them (KV5).
+        // Tag changes still waiting here reach the cloud first, so its directory already shows them.
         const pendingSync = syncEngine();
         if (pendingSync?.pendingCount()) await pendingSync.flush().catch(() => undefined);
         return (await import("./cloudRepository.ts")).listAccountTags(cloud).catch(local);

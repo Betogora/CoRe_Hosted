@@ -4,7 +4,6 @@ import { useAppServices } from "../useAppServices.ts";
 import { useWorkspaceValue } from "../useWorkspaceStore.ts";
 import { GlobalCardSettingsScreen } from "./GlobalCardSettingsScreen.tsx";
 
-/** The learning settings areas with the account-wide defaults, learning profiles, the learning clock and the focus timer. */
 export function GlobalCardSettingsScreenWiring() {
   const { navigation, settings, clock, pomodoro, deckCommands } = useAppServices();
   const state = useWorkspaceValue((snapshot) => snapshot.state);

@@ -47,7 +47,6 @@ function eventLabel(event: ReviewEvent) {
   return MANUAL_KINDS[String(event.flags?.kind ?? "")] ?? "Manuell";
 }
 
-/** Local answers appear at once; online the cloud adds the rest (W19). */
 function useReviewEvents(cardId: string, services: CardEditorServices, online: boolean, version: number) {
   const [events, setEvents] = React.useState<ReviewEvent[] | null>(null);
   const [cloudState, setCloudState] = React.useState<"idle" | "loading" | "done" | "failed">("idle");
@@ -83,7 +82,6 @@ export interface CardEditorStudyTabProps {
   services: CardEditorServices;
 }
 
-/** Study state and FSRS-7 figures of the card, its review history and `Lernstand zurücksetzen …` (W18, W21). */
 export function CardEditorStudyTab({ card, now, dayStartHour, timeZone, services }: CardEditorStudyTabProps) {
   const online = useOnline();
   const setSuccessToast = useSuccessToast();

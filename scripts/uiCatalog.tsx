@@ -16,7 +16,6 @@ export interface CatalogData {
 }
 
 const data = JSON.parse(document.getElementById("catalog-data")!.textContent!) as CatalogData;
-/** Building blocks of the card reference; each demo is either a manual form or a renderer case. */
 type BlockDemo = { manual: CatalogCardKind; index?: number; title: string } | { case: string };
 const CARD_BLOCKS: { id: string; label: string; description: string; creation: string; demos: BlockDemo[] }[] = [
   { id: "frage-antwort", label: "Frage und Antwort", description: "Eine Frage, eine Antwort, eine Karte. Bilder sind Teil des Rich-Text-Inhalts.", creation: "Erstellen: Fragentyp Standard, Lernrichtung Standard.", demos: [{ manual: "basic", title: "Frage und Antwort" }, { manual: "basic-with-images", title: "Mit Bild im Text" }] },
@@ -30,7 +29,6 @@ const CARD_BLOCKS: { id: string; label: string; description: string; creation: s
   { id: "formeln-medien", label: "Formeln, Medien und Vorlesen", description: "Formeln, Tabellen, Audio, Video, System-Vorlesen und die AMBOSS-Textauswahl funktionieren in jedem Baustein.", creation: "Formeln über Auswahl als Formel setzen; Medien über die Toolbar oder Einfügen.", demos: [{ case: "math" }, { case: "rich-media" }, { case: "speech" }] },
 ];
 
-/** Catalog chapters; the navigation labels follow the shared catalog structure. */
 export const CATALOG_SECTIONS: { id: CatalogSectionId; nav: string; title: string }[] = [
   { id: "grundlagen", nav: "Grundlagen", title: "Grundlagen" },
   { id: "primitive", nav: "Grundbausteine", title: "Grundbausteine" },
@@ -45,14 +43,12 @@ interface CatalogCard { id: string; section: CatalogSectionId; title: string; se
 const NEUTRAL_ROLES = [["canvas", "--core-canvas"], ["surface", "--core-surface"], ["muted", "--core-surface-muted"], ["hover", "--core-surface-hover"], ["border", "--core-border"], ["border-strong", "--core-border-interactive"], ["muted-fg", "--core-text-muted"], ["secondary-fg", "--core-text-secondary"], ["foreground", "--core-text"]];
 const ACCENT_ROLES = [["primary", "--core-action-primary", "--core-action-soft"], ["info", "--core-info", "--core-info-surface"], ["success", "--core-success", "--core-success-surface"], ["warning", "--core-warning", "--core-warning-surface"], ["danger", "--core-danger", "--core-danger-surface"], ["selection", "--core-selection", "--core-selection-track"]];
 const PALETTE = data.tokens.filter((token) => token.name.startsWith("--core-brand-"));
-/** Demo groups shown on the card reference instead of the UI catalog. */
 const CARD_GROUPS = DEMO_GROUPS.filter((group) => group.section === "karten");
 
 function Usage({ count, files }: { count: number; files: string[] }) {
   return <Disclosure summary={`${count} Verwendung${count === 1 ? "" : "en"} · ${files.length} Datei${files.length === 1 ? "" : "en"}`}><ul>{files.map((file) => <li key={file}><code>{file}</code></li>)}</ul></Disclosure>;
 }
 
-/** Actual size, line height and weight of a type role in the active theme. */
 function TypeSpecimen({ name }: { name: string }) {
   const sample = useRef<HTMLSpanElement>(null);
   const [metrics, setMetrics] = useState("");
@@ -86,7 +82,6 @@ function Spacing() {
   return <ul className="catalog-spacing">{data.tokens.filter((token) => token.name.startsWith("--core-space-")).sort((a, b) => parseFloat(a.light) - parseFloat(b.light)).map((token) => <li key={token.name}><span className="catalog-meta">{token.name.replace("--core-space-", "")} · {token.light}</span><i style={{ width: `var(${token.name})` }} /></li>)}</ul>;
 }
 
-/** Control heights for mouse and touch (`pointer: coarse`); the pointer is their only split. */
 function ControlHeights() {
   return <ul className="catalog-heights"><li className="catalog-meta"><span /><span>Maus</span><span>Touch</span></li>{data.tokens.filter((token) => token.touch).map((token) => <li key={token.name}><span className="catalog-meta"><span>{token.name.replace("--core-", "")}</span><span>{token.light} | {token.touch}</span></span><i style={{ height: token.light }} /><i style={{ height: token.touch }} /></li>)}</ul>;
 }
@@ -136,7 +131,6 @@ const CARDS: CatalogCard[] = [
   { id: "lucide", section: "inventar", title: "Lucide-Icons", search: `Icons Lucide ${data.icons.map((icon) => icon.name).join(" ")}`, wide: true, render: LucideInventory },
 ];
 
-/** Marks the chapter whose heading was scrolled past last. */
 function useActiveSection(ids: string[]) {
   const [active, setActive] = useState(ids[0]);
   useEffect(() => {
@@ -155,7 +149,6 @@ function useActiveSection(ids: string[]) {
   return active;
 }
 
-/** Normalized query of the search field in the shared docs sidebar. */
 function useDocsSearch() {
   const [query, setQuery] = useState("");
   useEffect(() => {

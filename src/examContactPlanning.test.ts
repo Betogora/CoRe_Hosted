@@ -20,13 +20,12 @@ test("die Verteilung führt jede Karte genau einmal ein, ganzzahlig je Einführu
 });
 
 test("zuerst sinkt die Spitzenlast, dann die Schwankung", async () => {
-  // Day 0 already carries ten contacts of another exam: new cards avoid it and are spread over days 1 and 2 as evenly as the variation allows.
+  // Day 0 already carries ten contacts of another exam.
   const counts = await balanceExamContacts(firstContactOnly(3), Float64Array.from([10, 0, 0]), [60, 60, 60], [0, 1, 2], 9, pause);
   assert.deepEqual(counts, [0, 5, 4]);
 });
 
 test("bei gleicher Last entscheidet die erwartete Erinnerung", async () => {
-  // Both introduction days cause the same contacts later on; only the expected recall differs.
   const columns = [{ contacts: Float64Array.from([0, 0, 1]), recall: 0.5 }, { contacts: Float64Array.from([0, 0, 1]), recall: 0.9 }];
   assert.deepEqual(await balanceExamContacts(columns, new Float64Array(3), [60, 60, 60], [0, 1], 4, pause), [0, 4]);
 });

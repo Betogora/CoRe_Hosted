@@ -55,7 +55,7 @@ export function moduleTestsFor(categories: readonly TestCategory[]) {
   return files.filter((filePath) => requested.has(categoryFor(filePath)));
 }
 
-/** Verteilt die Dateien reihum auf Shards; jeder Shard lädt tsx nur einmal statt einmal je Datei. */
+/** Jeder Shard lädt tsx nur einmal statt einmal je Datei. */
 function shardTests(files: readonly string[], shardCount: number) {
   const shards = Array.from({ length: Math.min(shardCount, files.length) }, () => [] as string[]);
   files.forEach((file, index) => shards[index % shards.length].push(file));

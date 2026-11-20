@@ -22,7 +22,6 @@ const LAST_SLOT = 1440 - EXAM_SLOT_MINUTES;
 const gridOffset = (minute: number) => (Math.max(minute, EXAM_DAY_START) - EXAM_DAY_START) / 60 * HOUR_HEIGHT;
 const gridPercent = (minute: number) => gridOffset(minute) / GRID_HEIGHT * 100 + "%";
 const FIELD = "core-field w-full min-w-0";
-/** To-dos a day shows before `N weitere anzeigen`; each keeps its full height, the list never scrolls. */
 const VISIBLE_TODOS = 3;
 
 export function ExamWeekCalendar({ exams, shown, onToggleExam, capacity, forecast, decks, today, date, busy, color, onSelect, onChange }: {
@@ -151,7 +150,6 @@ export function ExamWeekCalendar({ exams, shown, onToggleExam, capacity, forecas
     drag.current = null; setDragging(null);
   }
 
-  /** A day's to-dos: the first three, then `N weitere anzeigen`, which opens the rest in place so they stay draggable. */
   const visibleTodos = (key: string, entries: React.ReactNode[]) => {
     const hidden = entries.length - VISIBLE_TODOS;
     if (hidden <= 0) return entries;

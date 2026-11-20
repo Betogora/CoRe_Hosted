@@ -131,7 +131,6 @@ async function openCreatedCardEditor(page: Page, deck: Deck) {
   await openEditorTab(page, "Inhalt");
 }
 
-/** The table opens `Allgemein` (W6); content edits happen in `Inhalt`. */
 async function openEditorTab(page: Page, name: "Allgemein" | "Inhalt" | "Varianten" | "Lernen") {
   await page.getByTestId("card-detail-dialog").getByRole("tab", { name, exact: true }).click();
   await expect(page.getByTestId("card-detail-dialog").getByRole("tab", { name, exact: true })).toHaveAttribute("aria-selected", "true");
@@ -342,7 +341,6 @@ test("[Vertrag: modale Kartenvorschau] @beta-core Erstellung und Editor zeigen d
   await page.getByRole("textbox", { name: "Feld Vorderseite", exact: true }).fill("Ungespeicherte Editorfrage");
   await page.getByRole("textbox", { name: "Feld Rückseite", exact: true }).fill("Ungespeicherte Editorantwort");
 
-  // The editor has no preview dialog: the live preview beside the fields follows the draft (W9).
   const livePreview = page.getByTestId("card-live-preview");
   await expect(page.getByTestId("card-detail-dialog").getByRole("button", { name: "Vorschau", exact: true })).toHaveCount(0);
   const editorFrontBody = livePreview.frameLocator('iframe[title="Frage"]').locator("body");
@@ -356,7 +354,6 @@ test("[Vertrag: modale Kartenvorschau] @beta-core Erstellung und Editor zeigen d
   expect((await editorRevealedBody.innerText()).match(/Ungespeicherte Editorfrage/g)).toHaveLength(1);
   expect((await editorRevealedBody.innerText()).match(/Ungespeicherte Editorantwort/g)).toHaveLength(1);
 
-  // The editor is a centred dialog from 1024 px and full screen below; crossing the width keeps the unsaved draft.
   const editorDialog = page.getByTestId("card-detail-dialog");
   const wideBox = await editorDialog.boundingBox();
   expect(wideBox).not.toBeNull();
@@ -524,7 +521,6 @@ test("[Vertrag: Massenaktion mit Rückgängig] @beta-core ausgewählte Karten we
   await expect(rows).toHaveCount(2);
   await page.getByTestId("card-selection-start").click();
   await page.getByTestId(`select-card-${deck.cards[0].id}`).click();
-  // The X at the end of the bar ends selecting like the header checkbox.
   await page.getByTestId("card-selection-close").press("Enter");
   await expect(page.getByTestId("card-selection-bar")).toHaveCount(0);
   await expect(page.getByTestId("card-selection-start"), "der Fokus bleibt im Kopf").toBeFocused();
@@ -569,7 +565,6 @@ test("[Vertrag: Suchen und Ersetzen mit Vorschau und Rückgängig] @beta-core er
   await expect(dialog.getByTestId("text-replace-preview")).toContainText("Hauptstadt von Schweden");
   await dialog.getByRole("button", { name: "Ersetzen", exact: true }).click();
   await expect(page.getByText("Text in 1 Karte ersetzt")).toBeVisible();
-  // Both cards of the content show its sort field.
   await expect(rows.filter({ hasText: "Hauptstadt von Schweden" })).toHaveCount(2);
   await expect.poll(frontOf).toBe("<p>Hauptstadt von Schweden</p>");
 
@@ -626,7 +621,6 @@ test("[Vertrag: Treffer lernen zieht nicht fällige Karten vor, Nur üben schrei
   await practice.getByRole("button", { name: "Fertig" }).click();
   await expect(practice).toHaveCount(0);
 
-  // The deck menu practises every card of the deck: only the order is asked, nothing is written either.
   await page.goto("/lernen");
   const deckOptions = page.getByRole("button", { name: `Stapeloptionen für ${deckName}`, exact: true });
   const openDeckPractice = async () => {
@@ -671,7 +665,6 @@ test("[Vertrag: Duplikate finden, öffnen und taggen; Tags verwalten] @beta-core
 
   await page.goto("/kartenstapel");
   const dialog = page.getByRole("dialog", { name: "Duplikate finden" });
-  // A complete replica stays searchable while a reload or sync pulls catalog deltas.
   const openDuplicates = async () => {
     await page.getByRole("button", { name: "Duplikate finden" }).click();
     await expect(dialog.getByTestId("duplicates-dialog")).toContainText("1 Gruppe · 2 Inhalte");
@@ -682,7 +675,6 @@ test("[Vertrag: Duplikate finden, öffnen und taggen; Tags verwalten] @beta-core
   await expect(page.getByText("2 Karten als Duplikat getaggt")).toBeVisible();
   await expect.poll(tagsOf).toEqual(["Duplikat", "Duplikat"]);
 
-  // KV5: the tag management renames with undo and deletes across the account.
   const openTagManager = async () => {
     const advanced = page.getByRole("button", { name: "Erweiterte Suche" });
     if (await advanced.getAttribute("aria-pressed") !== "true") await advanced.click();

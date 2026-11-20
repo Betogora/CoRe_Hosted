@@ -9,7 +9,6 @@ export const DASHBOARD_WIDGETS = [
   { id: "heatmap", title: "Lernaktivität", description: "Deine Heatmap mit Rückblick und Ausblick.", width: "small" },
 ] as const;
 export type DashboardWidgetId = typeof DASHBOARD_WIDGETS[number]["id"];
-/** Every widget has one fixed format: one grid column ("small") or the full width ("full"). */
 export interface DashboardWidget { id: DashboardWidgetId }
 interface DashboardTodo { id: string; text: string; done: boolean }
 export interface DashboardPreferences { widgets: DashboardWidget[]; todos: DashboardTodo[] }

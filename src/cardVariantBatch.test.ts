@@ -22,7 +22,6 @@ function entry(body: Body, overrides: Partial<CardCatalogEntry> = {}): CardCatal
   return { id: body.card.id, frontPreview: `Vorschau ${body.card.id}`, hasActiveVariants: false, deletedAt: null, ...overrides } as CardCatalogEntry;
 }
 
-/** A deck split into catalog pages of the given size; the bodies are served by id. */
 function deck(bodies: Body[], pageSize = 3, overrides: Record<string, Partial<CardCatalogEntry>> = {}) {
   const opened: string[][] = [];
   const byId = new Map(bodies.map((body) => [body.card.id, body]));

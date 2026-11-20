@@ -1,4 +1,3 @@
-// Private to indexedDbCoreRepository.ts: daily counters, overview buckets and the today-answered data sibling burying needs.
 import {
   catalogSummaryContribution,
   emptyDeckStudySummary,
@@ -40,7 +39,7 @@ export function overviewScheduleBucket(card: StoredCardCatalog | null, overview:
   return dayKey ? { kind: "forecast" as const, key: dayKey } : null;
 }
 
-/** Deck counters after catalog changes; each deck summary is read and written once, however many cards changed. */
+/** Each deck summary is read and written once, however many cards changed. */
 export async function applyCatalogSummaryChanges(transaction: IDBTransaction, changes: ReadonlyArray<{ deckId: string; before: StoredCardCatalog | null; after: StoredCardCatalog | null }>) {
   const store = transaction.objectStore(STORE.deckStudySummaries);
   const byDeck = new Map<string, Array<(typeof changes)[number]>>();
@@ -73,11 +72,6 @@ export interface BuriedSiblingCounts {
   dueCards: number;
 }
 
-/**
- * Cards buried today per deck, for the counters: siblings of a content with another card answered today, when the
- * deck of the answered card buries their kind, and cards the learner buried. Same rules as the queue; a sibling that
- * is itself answered today stays countable.
- */
 export async function buriedSiblingsByDeck(
   database: IDBDatabase,
   decks: readonly WorkspaceDeckSummary[],
@@ -124,10 +118,6 @@ export async function buriedSiblingsByDeck(
   return result;
 }
 
-/**
- * Cards answered today with their content: those of the studied decks and siblings of the loaded cards in other decks,
- * so sibling burying holds for the whole learning day and across decks.
- */
 export async function loadAnsweredTodayFrom(
   database: IDBDatabase,
   reviewEvents: ReviewEvent[],

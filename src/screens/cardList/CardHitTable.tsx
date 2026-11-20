@@ -8,7 +8,6 @@ import { CoreCheckbox } from "../../ui/formControls.tsx";
 import type { createHitListModel } from "./cardListModel.ts";
 import type { useVirtualRows } from "./virtualRows.ts";
 
-/** Rows of the virtual table (KV3): an offline notice when the list is limited, then one row per hit. */
 export type CardListItem =
   | { kind: "notice"; key: string }
   | { kind: "card"; key: string; listKey: string; index: number };
@@ -19,14 +18,11 @@ function SortHeader({ field, label, sort, onChange, leading, children }: {
   label: string;
   sort: CardTableSort;
   onChange: (field: CardTableSortField) => void;
-  /** Precedes the label at the start of the column, such as the checkbox that starts selecting. */
   leading?: React.ReactNode;
-  /** Follows the label, such as the invisible sample date that sizes the date column. */
   children?: React.ReactNode;
 }) {
   const active = sort.field === field;
   const first = field === "sortField";
-  // Matches the padding of the column's cells, so header and values share their edge.
   const headerPadding = field === "variants" ? "px-1 sm:pr-3" : first ? "px-2 sm:pl-3 sm:pr-4 md:pl-4" : "px-1";
   const directionLabel = active && sort.direction === "desc" ? "absteigend" : "aufsteigend";
   const SortIcon = active && sort.direction === "desc" ? ArrowDown : ArrowUp;
@@ -64,7 +60,6 @@ interface CardTableRowViewProps {
   /** Deck path of the card; absent when the list covers a single deck. */
   deckPath?: string;
   onSelect: (deckId: string, cardId: string) => void;
-  /** Selection for mass actions (KV4): checked, the table in selection mode, and toggling (with Shift a range). */
   checked: boolean;
   selecting: boolean;
   onToggleCheck: (cardId: string, range: boolean) => void;
@@ -72,7 +67,7 @@ interface CardTableRowViewProps {
 
 const LONG_PRESS_MS = 500;
 
-/** One card row of the table; memoized so a page of up to 50 rows does not repaint on unrelated state changes. */
+/** Memoized so a page of up to 50 rows does not repaint on unrelated state changes. */
 const CardTableRowView = React.memo(function CardTableRowView({ virtualKey, deckId, card, frontPreview, nextStudyLabel, selected, marked, flag, flagNames, syncConflict, deckPath, onSelect, checked, selecting, onToggleCheck }: CardTableRowViewProps) {
   const suspended = !card.reviewable;
   const pressTimer = React.useRef<number | null>(null);
@@ -81,7 +76,6 @@ const CardTableRowView = React.memo(function CardTableRowView({ virtualKey, deck
     if (pressTimer.current !== null) window.clearTimeout(pressTimer.current);
     pressTimer.current = null;
   };
-  // A click opens the card; while selecting, or with Ctrl/Cmd or Shift, it selects. A long touch starts selecting.
   const activate = (event: React.MouseEvent) => {
     event.stopPropagation();
     if (pressed.current) {
@@ -172,7 +166,6 @@ const CardTableRowView = React.memo(function CardTableRowView({ virtualKey, deck
   );
 });
 
-/** Decks whose path matches the search text, above the flat hit list: a click lists the deck's cards. */
 export function MatchingDecks({ groups, onOpen }: { groups: ReadonlyArray<{ id: string; path: string }>; onOpen: (deckId: string) => void }) {
   if (!groups.length) return null;
   return (
@@ -190,21 +183,15 @@ export function MatchingDecks({ groups, onOpen }: { groups: ReadonlyArray<{ id: 
 
 
 
-/**
- * The flat hit list of the card management (KV3) as a virtual table: sortable header or the selection bar, a loading
- * bar while the list's pages load, and one memoized row per loaded hit; without rows the empty state.
- */
 export function CardHitTable({ items, rowOf, virtual, loading, searching, selectionBar, sort, onSort, onStartSelecting, selectedCardId, selectedGraph, flagNames, syncConflictCardIds, deckPathOf, onSelect, isChecked, selecting, onToggleCheck }: {
   items: CardListItem[];
   rowOf: (item: Extract<CardListItem, { kind: "card" }>) => CardHitRow | undefined;
   virtual: ReturnType<typeof useVirtualRows>;
   loading: boolean;
   searching: boolean;
-  /** Replaces the sort header while cards are selected for a mass action. */
   selectionBar: React.ReactNode;
   sort: CardTableSort;
   onSort: (field: CardTableSortField) => void;
-  /** The header's checkbox starts selecting; absent where cards cannot be selected. */
   onStartSelecting?: () => void;
   selectedCardId: string | null;
   /** The open card's content; its mark and flags win over the catalog row until the list reloads. */
@@ -217,8 +204,6 @@ export function CardHitTable({ items, rowOf, virtual, loading, searching, select
   selecting: boolean;
   onToggleCheck: (cardId: string, range: boolean) => void;
 }) {
-  // Below xl the page scrolls under the sticky mobile header, so the table header sticks right beneath it.
-  // The header's checkbox (or the bar's X) swaps the sort header and the selection bar; the checkbox in its place takes the focus.
   const theadRef = React.useRef<HTMLTableSectionElement>(null);
   const dueColumnRef = React.useRef<HTMLTableColElement>(null);
   const dueSampleRef = React.useRef<HTMLSpanElement>(null);
@@ -230,9 +215,8 @@ export function CardHitTable({ items, rowOf, virtual, loading, searching, select
     toggledInHeader.current = false;
     theadRef.current?.querySelector<HTMLInputElement>(".core-checkbox input")?.focus();
   }, [barShown]);
-  // Platforms round glyph widths differently, so the date column takes the rendered width of a date: the first
-  // column's deck path (from sm, where it shows), the date and the variants' slots then stand equally far apart; on
-  // phones the first column keeps its 8 px so „Auswählen“ and „Sortierfeld“ fit. The class width is the fallback.
+  // Platforms round glyph widths differently, so the date column takes the rendered width of a date; the class width is
+  // the fallback.
   React.useLayoutEffect(() => {
     const sample = dueSampleRef.current;
     if (!sample) return undefined;

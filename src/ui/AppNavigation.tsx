@@ -28,11 +28,9 @@ export interface AppNavigationProps {
   onNavigate: (viewId: MenuViewId) => unknown;
   onPreloadView?: (viewId: MenuViewId) => unknown;
   onResetSimulation: () => unknown;
-  /** Without automatic sync the header keeps a direct sync action. */
   manualSync: boolean;
   onSyncNow: () => unknown;
   onOpenSyncSettings: (target: "sync" | "sync-conflicts") => unknown;
-  /** The settings dialog is open over the current view. */
   settingsOpen: boolean;
   onOpenSettings: () => unknown;
   onPreloadSettings?: () => unknown;

@@ -16,7 +16,7 @@ import { AiSourceCreationPanel } from "./AiSourceCreationPanel.tsx";
 import { TextImportPanel } from "./TextImportPanel.tsx";
 
 export type CreationScreenViewProps = Partial<CreationScreenProps> & {
-  /** Sends one portion of a source to the AI; without it, automatic creation stays unavailable. */
+  /** Sends one portion of a source to the AI; absent, automatic creation stays unavailable. */
   onRequestSourceCards?: AiSourceCardsRequester;
   /** The signed-in account; the manual draft this tab keeps belongs to it. */
   accountId?: string;
