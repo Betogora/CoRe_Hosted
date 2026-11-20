@@ -178,7 +178,7 @@ export function DeckSummariesPanel({ deck, treeDecks, userId, cloud = null, onGe
   const summaryRow = (summary: LearningSummary) => <div key={summary.id} className="core-summary-row"><button type="button" disabled={busy} className="core-summary-preview core-surface-raised rounded-panel border border-core-border p-6 text-left" onClick={() => request(() => open(summary))} aria-label={`Zusammenfassung „${summary.title}“ öffnen`}>
     <div className="core-summary-preview-copy min-w-0"><h4 className="break-words core-heading-3">{summary.title}</h4><p className="mt-1 core-caption text-core-muted">{summaryDescription(summary)}</p><div className="core-summary-excerpt mt-4 core-body text-core-secondary" aria-hidden="true">{summaryPlainText(summary.html)}</div></div>
     <span className="core-summary-preview-action inline-flex min-h-button items-center gap-2 core-body font-semibold text-core-action">Vollständig öffnen<ChevronRight size={17} aria-hidden="true"/></span>
-  </button><IconButton variant="destructive-quiet" icon={Trash2} label={`Zusammenfassung „${summary.title}“ löschen`} disabled={busy} onClick={() => { setError(""); setDeleting(summary); }}/></div>;
+  </button><IconButton className="core-summary-delete" variant="destructive-quiet" icon={Trash2} label={`Zusammenfassung „${summary.title}“ löschen`} disabled={busy} onClick={() => { setError(""); setDeleting(summary); }}/></div>;
 
   return <section className="core-summary-panel grid min-w-0 gap-6" data-testid="deck-summaries-panel" aria-label="Zusammenfassungen" aria-busy={busy || loading} tabIndex={-1} ref={panelRef}>
     {view !== "editor" ? <>
@@ -187,7 +187,7 @@ export function DeckSummariesPanel({ deck, treeDecks, userId, cloud = null, onGe
         : loadError ? <><StatusMessage tone="error" announce="assertive">{loadError}</StatusMessage><ActionButton variant="secondary" onClick={() => setRetry((value) => value + 1)}>Erneut laden</ActionButton></>
         : summaries.length ? <>
           <div className={`grid min-w-0 ${grouped ? "gap-8" : "gap-4"}`} data-testid="summary-list">{shown.map((group) => grouped ? <section key={group.deckId} className="grid min-w-0 gap-4">
-            <h3 className="flex min-w-0 items-start gap-2 break-words core-body font-semibold text-core-secondary">{group.path.length ? <><Layers className="mt-0.5 shrink-0 text-core-muted" size={16} aria-hidden="true"/><span className="sr-only">Unterstapel </span><span className="min-w-0">{group.path.join(" / ")}</span></> : deck.name}</h3>
+            <h3 className="flex min-w-0 items-start gap-2 break-words core-body font-semibold text-core-secondary"><Layers className="mt-0.5 shrink-0 text-core-muted" size={16} aria-hidden="true"/>{group.path.length ? <span className="min-w-0"><span className="sr-only">Unterstapel </span><span className="font-normal text-core-muted">{[deck.name, ...group.path.slice(0, -1)].join(" / ")} / </span>{group.path.at(-1)}</span> : <span className="min-w-0">{deck.name}</span>}</h3>
             {group.summaries.map(summaryRow)}
           </section> : group.summaries.map(summaryRow))}</div>
           {!shown.length ? <StatusMessage tone="info">Keine passende Zusammenfassung gefunden.</StatusMessage> : null}

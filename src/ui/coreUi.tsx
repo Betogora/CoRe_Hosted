@@ -253,6 +253,7 @@ export interface CoreSegmentedControlOption<T extends string> {
   value: T;
   label: string;
   icon?: LucideIcon;
+  disabled?: boolean;
 }
 
 export interface CoreSegmentedControlProps<T extends string> {
@@ -312,7 +313,7 @@ export function CoreSegmentedControl<T extends string>({
             type="button"
             aria-pressed={value === option.value}
             aria-label={labels === "visible" ? undefined : option.label}
-            disabled={disabled}
+            disabled={disabled || option.disabled}
             onClick={() => onValueChange(option.value)}
             className="core-segmented-control-option"
           >
