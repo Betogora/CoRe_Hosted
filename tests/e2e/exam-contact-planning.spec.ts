@@ -211,7 +211,7 @@ test("Lernzeit-Eingabewege übernehmen Defaults, aktivieren Tage direkt und erha
 });
 
 
-test("die Schrittleiste erlaubt genau einen gültigen Schritt vorwärts und beliebig zurück", async ({ page }) => {
+test("Weiter und die Schrittleiste markieren fehlende Angaben, führen genau einen Schritt vorwärts und beliebig zurück", async ({ page }) => {
   await page.goto("/docs/ui-elements.html?preview=screens");
   await page.getByRole("searchbox", { name: "Katalog durchsuchen", exact: true }).fill("Produktansichten");
   await page.getByRole("button", { name: "Prüfungen öffnen", exact: true }).click();
@@ -219,26 +219,33 @@ test("die Schrittleiste erlaubt genau einen gültigen Schritt vorwärts und beli
   const editor = page.getByTestId("exam-plan-editor"), steps = editor.getByRole("list", { name: "Schritte der Prüfungsplanung", exact: true });
   const step = (name: string) => steps.getByRole("button", { name: new RegExp(`^${name}( ?, erledigt)?$`) });
   const current = steps.locator('[aria-current="step"]');
-  await expect(step("Lernstoff")).toBeDisabled();
-  await expect(step("Lernzeit")).toBeDisabled();
-  await editor.getByRole("textbox", { name: "Name", exact: true }).fill("Navigationstest");
+  const name = editor.getByRole("textbox", { name: "Name", exact: true });
   await expect(step("Lernstoff")).toBeEnabled();
   await expect(step("Lernzeit")).toBeDisabled();
+  await editor.getByRole("button", { name: "Weiter zum Lernstoff", exact: true }).click();
+  await expect(current).toHaveText(/^\d+Prüfung$/);
+  await expect(editor.getByRole("alert").filter({ hasText: "Bitte gib der Prüfung einen Namen." })).toBeVisible();
+  await expect(name).toBeFocused();
+  await expect(name).toHaveAttribute("aria-invalid", "true");
+  await name.fill("Navigationstest");
+  await expect(editor.getByRole("alert")).toHaveCount(0);
   await step("Lernstoff").click();
-  await expect(current).toHaveText("Lernstoff");
-  await expect(step("Lernzeit")).toBeDisabled();
+  await expect(current).toHaveText(/^\d+Lernstoff$/);
+  await step("Lernzeit").click();
+  await expect(current).toHaveText(/^\d+Lernstoff$/);
+  await expect(editor.getByRole("alert").filter({ hasText: "Wähle mindestens einen Stapel." })).toBeVisible();
+  await expect(editor.getByTestId("exam-deck-selection").getByRole("checkbox").first()).toBeFocused();
   await editor.getByRole("checkbox").first().check();
-  await expect(step("Lernzeit")).toBeEnabled();
   await expect(step("Lernplan")).toBeDisabled();
   await step("Lernzeit").focus();
   await page.keyboard.press("Enter");
-  await expect(current).toHaveText("Lernzeit");
+  await expect(current).toHaveText(/^\d+Lernzeit$/);
   await step("Lernplan").click();
-  await expect(current).toHaveText("Lernplan");
-  await expect(editor.getByRole("heading", { name: "Lernplan", exact: true })).toBeVisible();
+  await expect(current).toHaveText(/^\d+Lernplan$/);
+  await expect(editor.getByRole("heading", { name: "Lernplan", exact: true })).toBeFocused();
   await step("Prüfung").click();
-  await expect(editor.getByRole("heading", { name: "Prüfung", exact: true })).toBeVisible();
-  await expect(editor.getByRole("textbox", { name: "Name", exact: true })).toHaveValue("Navigationstest");
+  await expect(editor.getByRole("heading", { name: "Prüfung", exact: true })).toBeFocused();
+  await expect(name).toHaveValue("Navigationstest");
   await expect(step("Lernstoff")).toBeEnabled();
   await expect(step("Lernzeit")).toBeDisabled();
   await expect(step("Lernplan")).toBeDisabled();
@@ -261,7 +268,7 @@ test("Lernstart ist heute vorbelegt und bleibt beim Speichern und Bearbeiten erh
   await expect(picker.locator('[data-date-key="2026-10-13"]')).toBeDisabled();
   await picker.locator('[data-date-key="2026-10-19"]').click();
   await expect(start).toHaveText("19.10.2026");
-  await expect(editor.getByTestId("exam-setup-context")).toContainText("Mo., 19.10.");
+  await expect(editor.getByTestId("exam-setup-context")).toContainText("19. Oktober 2026");
   const steps = editor.getByRole("list", { name: "Schritte der Prüfungsplanung", exact: true });
   await steps.getByRole("button", { name: "Lernstoff", exact: true }).click();
   await editor.getByRole("checkbox").first().check();

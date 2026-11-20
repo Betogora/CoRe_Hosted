@@ -15,28 +15,30 @@ test("mobile Schritte erhalten Text, Lernwünsche und ein einziges Stapelziel bi
   const panel = await openCatalogFlow(page);
   await expect(panel.getByRole("heading", { name: "Quelle und Stapel", exact: true })).toBeVisible();
   await expect(panel.getByRole("heading", { name: "Vorgaben", exact: true })).toBeHidden();
-  await panel.getByRole("button", { name: "Weiter", exact: true }).click();
+  await panel.getByRole("button", { name: /^Weiter zu den / }).click();
   await expect(panel.getByRole("alert").filter({ hasText: "Wähle eine Quelldatei" })).toBeVisible();
+  await expect(panel.getByRole("button", { name: "Datei auswählen", exact: true })).toBeFocused();
   await panel.getByRole("button", { name: "Text einfügen", exact: true }).click();
   await panel.getByLabel("Dein Quelltext").fill("   ");
-  await panel.getByRole("button", { name: "Weiter", exact: true }).click();
+  await panel.getByRole("button", { name: /^Weiter zu den / }).click();
   await expect(panel.getByRole("alert").filter({ hasText: "Füge einen Text" })).toBeVisible();
+  await expect(panel.getByLabel("Dein Quelltext")).toBeFocused();
   const text = "ATP ist ein Energieträger. <script>window.untrustedSource = true</script>";
   await panel.getByLabel("Dein Quelltext").fill(text);
   await panel.getByLabel("Stapelname").fill("Textstapel");
-  await panel.getByRole("button", { name: "Weiter", exact: true }).click();
+  await panel.getByRole("button", { name: /^Weiter zu den / }).click();
   await panel.getByRole("combobox", { name: "Formulierung", exact: true }).click();
   await page.getByRole("option", { name: "Einfach verständlich", exact: true }).click();
   await panel.getByRole("textbox", { name: /Weitere Hinweise/ }).fill("Bitte Abkürzungen erklären.");
-  await panel.getByRole("button", { name: "Zurück", exact: true }).click();
+  await panel.getByRole("button", { name: "Vorheriger Schritt", exact: true }).click();
   await expect(panel.getByLabel("Dein Quelltext")).toHaveValue(text);
   await panel.getByRole("button", { name: "Datei", exact: true }).click();
   await panel.locator('input[type="file"]').setInputFiles(sourceFile);
   await panel.getByRole("button", { name: "Text einfügen", exact: true }).click();
   await expect(panel.getByLabel("Dein Quelltext")).toHaveValue(text);
-  await panel.getByRole("button", { name: "Weiter", exact: true }).click();
+  await panel.getByRole("button", { name: /^Weiter zu den / }).click();
   await expect(panel.getByRole("combobox", { name: "Formulierung", exact: true })).toContainText("Einfach verständlich");
-  await panel.getByRole("button", { name: "Weiter", exact: true }).click();
+  await panel.getByRole("button", { name: /^Weiter zu den / }).click();
   await expect(panel.getByTestId("ai-source-target")).toHaveText("Textstapel (neuer Stapel)");
   await panel.getByRole("button", { name: "Stapel ändern", exact: true }).click();
   await expect(panel.getByRole("switch", { name: "Neuen Stapel anlegen", exact: true })).toBeFocused();
@@ -332,9 +334,9 @@ for (const theme of ["light", "dark"] as const) {
       await expect(panel.getByLabel("Stapelname")).toHaveValue("Biologie – Zellatmung");
       if (width < 1280) {
         await expect(panel.getByRole("heading", { name: "Vorgaben", exact: true })).toBeHidden();
-        await panel.getByRole("button", { name: "Weiter", exact: true }).click();
+        await panel.getByRole("button", { name: /^Weiter zu den / }).click();
         await expect(panel.getByRole("heading", { name: "Vorgaben", exact: true })).toBeVisible();
-        await panel.getByRole("button", { name: "Weiter", exact: true }).click();
+        await panel.getByRole("button", { name: /^Weiter zu den / }).click();
       } else {
         await expect(panel.getByRole("heading", { name: "Vorgaben", exact: true })).toBeVisible();
       }
@@ -379,17 +381,17 @@ for (const theme of ["light", "dark"] as const) {
       await page.getByRole("button", { name: "Karten automatisch erstellen lassen", exact: true }).click();
       const panel = page.getByTestId("ai-source-creation");
       await capture("form-empty");
-      await panel.getByRole("button", { name: width < 1280 ? "Weiter" : "Auftrag prüfen", exact: true }).click();
+      await panel.getByRole("button", { name: width < 1280 ? "Weiter zu den Vorgaben" : "Auftrag prüfen", exact: true }).click();
       await capture("form-errors");
       await panel.locator('input[type="file"]').setInputFiles({ ...sourceFile, name: "Lange_Quelldatei_Zellatmung_Bedingungen_und_Ausnahmen_des_Energiestoffwechsels.PDF" });
-      if (await panel.getByRole("button", { name: "Weiter", exact: true }).isVisible()) await panel.getByRole("button", { name: "Weiter", exact: true }).click();
+      if (await panel.getByRole("button", { name: /^Weiter zu den / }).isVisible()) await panel.getByRole("button", { name: /^Weiter zu den / }).click();
       await panel.getByRole("textbox", { name: /Weitere Hinweise/ }).fill("Biologie-Abitur; Schwerpunkt Zellatmung; historische Entdeckungen weglassen.");
       await capture("form-wishes");
       await panel.getByRole("combobox", { name: "Formulierung", exact: true }).click();
       await expect(page.getByRole("option", { name: "Fachsprache verwenden", exact: true })).toBeVisible();
       await capture("select-open");
       await page.getByRole("option", { name: "Fachsprache verwenden", exact: true }).click();
-      if (await panel.getByRole("button", { name: "Weiter", exact: true }).isVisible()) await panel.getByRole("button", { name: "Weiter", exact: true }).click();
+      if (await panel.getByRole("button", { name: /^Weiter zu den / }).isVisible()) await panel.getByRole("button", { name: /^Weiter zu den / }).click();
       await capture("form-cards");
       await panel.getByRole("button", { name: "Auftrag prüfen", exact: true }).click();
       await capture("summary");
@@ -410,7 +412,7 @@ for (const theme of ["light", "dark"] as const) {
       await page.locator("#screens").getByRole("button", { name: "Automatische Erstellung öffnen", exact: true }).click();
       await capture("catalog-form");
       await page.getByTestId("ai-source-creation").locator('input[type="file"]').setInputFiles({ name: "Zellatmung.md", mimeType: "text/markdown", buffer: Buffer.from(sourceText) });
-      for (let next = 0; next < 2 && await page.getByRole("button", { name: "Weiter", exact: true }).isVisible(); next++) await page.getByRole("button", { name: "Weiter", exact: true }).click();
+      for (let next = 0; next < 2 && await page.getByRole("button", { name: /^Weiter zu den / }).isVisible(); next++) await page.getByRole("button", { name: /^Weiter zu den / }).click();
       await page.getByRole("button", { name: "Auftrag prüfen", exact: true }).click();
       await capture("catalog-summary");
       await page.getByRole("button", { name: "Karten erstellen", exact: true }).click();

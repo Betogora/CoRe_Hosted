@@ -140,19 +140,24 @@ test("Heute zeigt Checklisten mit Prüfungsfarbpunkt ohne Zeitplanstatus und ohn
   assert.doesNotMatch(html, /Quiz/);
 });
 
-test("die geführte Planung zeigt eine Schrittlinie, sachliche Titel und einheitliche Optionskarten", () => {
+test("die geführte Planung zeigt nummerierte Schritte, einheitliche Optionskarten und ein aktives Weiter", () => {
   const state = createCoreRepository().getState();
   const deck = createCoreDeck({ id: "deck", name: "Anatomie" });
   const html = renderToStaticMarkup(<ExamPlanEditor decks={[deck]} exams={[]} capacity={createStudyTimeCapacity()} initialPlan={null} preferences={getGlobalSchedulerPreferences(state.profile)} timeZone="Europe/Berlin" now="2026-10-18T12:00:00Z" onLoadPlanningData={() => new Promise(() => undefined)} onSave={async () => undefined} onCancel={() => undefined} saving={false} saveError="" />);
-  assert.match(html, /<div class="core-steps" data-stretch="true"><ol aria-label="Schritte der Prüfungsplanung">/);
+  assert.match(html, /<div class="core-steps max-w-5xl xl:max-w-\[45\.5rem\]"><ol aria-label="Schritte der Prüfungsplanung">/);
   assert.deepEqual([...html.matchAll(/class="core-steps-label">([^<]+)</g)].map((match) => match[1]), ["Prüfung", "Lernstoff", "Lernzeit", "Lernplan"]);
   assert.match(html, /<li data-state="current" aria-current="step">/);
-  assert.match(html, /<h2 tabindex="-1" class="[^"]*core-heading-2[^"]*">Prüfung<\/h2>/);
+  assert.match(html, /<div class="core-page-header-back"><button[^>]*>[\s\S]*?Prüfungen<\/button>/);
+  assert.match(html, /<h2 tabindex="-1" class="sr-only[^"]*">Prüfung<\/h2>/);
+  assert.doesNotMatch(html, /<button class="core-action-primary "[^>]*disabled/);
+  assert.equal(html.match(/class="core-steps-step" disabled=""/g)?.length, 2);
+  assert.deepEqual([...html.matchAll(/<dt class="[^"]*">([^<]+)<\/dt>/g)].map((match) => match[1]), ["Prüfungsdatum", "Lernstart", "Lernstoff"]);
+  assert.match(html, />Lernstart<\/dt><dd class="text-core-text">18\. Oktober 2026<\/dd>/);
   assert.match(html, /<legend class="mb-3 core-field-label">Ziel<\/legend>/);
   assert.doesNotMatch(html, /Welche Prüfung steht an|Was ist dein Ziel/);
   assert.equal(html.match(/class="flex min-h-12 [^"]*rounded-control border px-4 py-2/g)?.length, 4);
   assert.match(html, /class="flex min-h-12 [^"]*border-core-action bg-core-info-soft"/);
-  assert.match(html, /<div class="max-w-2xl"><div class="flex flex-wrap justify-between gap-3">/);
+  assert.match(html, /<div class="max-w-2xl"><div class="core-step-actions">/);
 });
 
 test("Bearbeiten lässt gültige Angaben ohne fertige Planung speichern", () => {

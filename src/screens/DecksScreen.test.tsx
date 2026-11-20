@@ -520,7 +520,7 @@ test("cards page shows suspended rows and marked stars; the editor tints only a 
   });
 
   assert.match(markup, /data-suspended="true"/);
-  assert.match(markup, /sr-only[^>]*> · Ausgesetzt</);
+  assert.equal(markup.match(/data-testid="card-row-suspended"[^>]*><svg[^>]*>[\s\S]*?<\/svg><span class="max-sm:sr-only">Ausgesetzt<\/span>/g)?.length, 1, "die ausgesetzte Zeile nennt ihren Zustand");
   assert.match(markup, /<span class="grid size-\[1\.125rem\] place-items-center"><svg[^>]*aria-label="Markiert"[\s\S]*?<\/span><span class="min-w-4 text-right[^"]*"><\/span>/);
   const dialog = markup.match(/<div[^>]*data-testid="card-detail-dialog"[^>]*>/)?.[0] ?? "";
   assert.match(dialog, /class="core-dialog-frame core-card-editor-frame is-marked"/);
@@ -680,7 +680,7 @@ test("sync conflicts are named in the row and in the editor", () => {
 test("the editor offers direction and building blocks where the content structure allows them", () => {
   const basic = renderEditorFor(basicGraph("deck-editor", "Was ist ATP?", "Energieträger"));
   assert.match(basic, /data-testid="note-direction"[\s\S]*?aria-label="Lernrichtung"/);
-  assert.match(basic, /data-testid="note-direction"[\s\S]*?aria-pressed="false"[^>]*>.*?Antwort eintippen/);
+  assert.match(basic, /data-testid="note-direction"[\s\S]*?role="switch"[^>]*>.*?Antwort eintippen/);
   const basicBlocks = basic.slice(basic.indexOf('data-testid="note-blocks"'));
   for (const label of ["Zusatzfrage", "Hinweis", "Zusatz", "Quelle"]) assert.match(basicBlocks, new RegExp(`${label}</button>`));
 

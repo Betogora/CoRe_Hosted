@@ -1,3 +1,5 @@
+import { Check } from "lucide-react";
+
 export interface StepItem {
   label: string;
   /** Only with `onSelect`: the step cannot be chosen yet. */
@@ -10,7 +12,6 @@ export interface StepsProps {
   /** Index of the current step; `items.length` marks every step as done. */
   current: number;
   onSelect?: (index: number) => void;
-  stretch?: boolean;
   className?: string;
 }
 
@@ -20,15 +21,15 @@ function stepState(index: number, current: number): StepState {
   return index < current ? "done" : index === current ? "current" : "upcoming";
 }
 
-export function Steps({ ariaLabel, items, current, onSelect, stretch = false, className = "" }: StepsProps) {
+export function Steps({ ariaLabel, items, current, onSelect, className = "" }: StepsProps) {
   return (
-    <div className={`core-steps ${className}`.trim()} data-stretch={stretch || undefined}>
+    <div className={`core-steps ${className}`.trim()}>
       <ol aria-label={ariaLabel}>
         {items.map((item, index) => {
           const state = stepState(index, current);
           const content = (
             <>
-              <span aria-hidden="true" className="core-steps-dot" />
+              <span aria-hidden="true" className="core-steps-marker">{state === "done" ? <Check size={14} strokeWidth={2.5} /> : index + 1}</span>
               <span className="core-steps-label">{item.label}</span>
               {state === "done" ? <span className="sr-only">, erledigt</span> : null}
             </>

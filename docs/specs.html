@@ -776,13 +776,14 @@ video {
     transition: transform 180ms cubic-bezier(0.22, 1, 0.36, 1), background-color 260ms cubic-bezier(0.4, 0, 0.2, 1) 20ms, opacity 200ms ease;
   }
 
+  .core-tri-state-control[data-tri-value="any"] .core-tri-state-indicator,
+  .core-verdict-control[data-tri-value="none"] .core-tri-state-indicator { opacity: 0; }
   .core-tri-state-control[data-tri-value="any"] .core-tri-state-option[aria-checked="true"] { color: var(--core-text); }
   .core-tri-state-control[data-tri-value="in"] .core-tri-state-indicator { background: var(--core-action-primary); }
   .core-tri-state-control[data-tri-value="in"] .core-tri-state-option[aria-checked="true"] { color: var(--core-text-on-accent); }
   .core-tri-state-control[data-tri-value="out"] .core-tri-state-indicator { background: var(--core-danger); }
   .core-tri-state-control[data-tri-value="out"] .core-tri-state-option[aria-checked="true"] { color: var(--core-text-on-danger); }
   .core-verdict-control[data-tri-value="in"] .core-tri-state-indicator { background: var(--core-success); }
-  .core-verdict-control[data-tri-value="none"] .core-tri-state-indicator { opacity: 0; }
 
   .core-icon-segmented-control .core-segmented-control-option {
     padding-inline: 0;
@@ -1135,6 +1136,7 @@ video {
   .core-heading-1 {
     font: var(--core-weight-heading) var(--core-type-heading-1)/var(--core-leading-heading-1) var(--core-font-sans);
     letter-spacing: -0.02em;
+    text-wrap: balance;
   }
 
   .core-heading-2 {
@@ -1295,13 +1297,14 @@ video {
   .core-date-field { display: flex; align-items: center; gap: var(--core-space-xs); padding-block: 0; padding-inline-end: var(--core-space-sm); }
   .core-date-field:has(.core-date-segment:focus) { border-color: var(--core-action-primary); box-shadow: var(--core-shadow-selection); }
   .core-date-field[data-invalid] { border-color: var(--core-danger); box-shadow: 0 0 0 3px color-mix(in srgb, var(--core-danger) 12%, transparent); }
-  .core-date-field-segments { display: flex; flex: 1 1 auto; align-items: center; gap: 0; min-width: 0; font-variant-numeric: tabular-nums; }
+  /* Proportional digits and literals tucked under the segment padding read as one date, not as three boxes. */
+  .core-date-field-segments { display: flex; flex: 1 1 auto; align-items: center; gap: 0; min-width: 0; }
   .core-date-segment { padding-inline: 1px; border-radius: var(--core-radius-marker); color: var(--core-text); cursor: text; outline: none !important; -webkit-user-select: none; -moz-user-select: none; user-select: none; }
   .core-date-segment[data-placeholder] { color: var(--core-text-muted); }
   .core-date-segment:focus { background: var(--core-action-soft); color: var(--core-action-primary); }
   .core-date-field[data-invalid] .core-date-segment { color: var(--core-danger); }
   .core-date-field[data-invalid] .core-date-segment:focus { background: var(--core-danger-surface); }
-  .core-date-segment-literal { color: var(--core-text-muted); }
+  .core-date-segment-literal { margin-inline: -1px; color: var(--core-text-muted); }
   .core-date-field-trigger { position: relative; display: grid; width: 1.5rem; height: 1.5rem; flex-shrink: 0; place-items: center; border-radius: var(--core-radius-round); color: var(--core-text-muted); transition: background-color 150ms ease, color 150ms ease; }
   .core-date-field-trigger:hover, .core-date-field-trigger[data-state="open"] { background: var(--core-surface-hover); color: var(--core-text); }
   .core-date-calendar { --core-calendar-cell: 2.25rem; width: calc(7 * var(--core-calendar-cell) + 1.5rem); max-width: calc(100vw - 1.5rem); padding: var(--core-space-md); border-radius: var(--core-radius-overlay); transform-origin: var(--radix-popover-content-transform-origin); animation: core-date-calendar-enter 150ms ease; }
@@ -1419,6 +1422,11 @@ video {
       min-height: calc(var(--core-control-height) - 0.5rem);
       padding-inline: 0.25rem;
     }
+
+    /* Both directions share the row by their label widths, so „Beide Richtungen“ keeps its inner spacing at 320 px. */
+    .core-learning-direction-control {
+      grid-auto-columns: auto;
+    }
   }
 
   .core-table-header-control {
@@ -1489,6 +1497,12 @@ video {
   }
   /* Kept after .core-tri-state-option svg for the cascade. */
   .core-date-calendar-heading > svg { color: var(--core-action-primary); transition: transform 150ms cubic-bezier(0, 0, 0.2, 1); }
+  .core-step-actions { display: flex; flex-wrap: wrap-reverse; justify-content: space-between; gap: var(--core-space-md); }
+  .core-step-actions .lucide-arrow-right { order: 1; }
+  @media (max-width: 639.98px) {
+    .core-step-actions > * { flex: 1 1 auto; }
+    .core-step-actions > span { display: none; }
+  }
 .sr-only {
   position: absolute;
   width: 1px;
@@ -1634,11 +1648,11 @@ video {
 .top-1\/2 {
   top: 50%;
 }
+.top-10 {
+  top: 2.5rem;
+}
 .top-2 {
   top: 0.5rem;
-}
-.top-20 {
-  top: 5rem;
 }
 .top-4 {
   top: 1rem;
@@ -1747,6 +1761,10 @@ video {
   margin-left: 0.25rem;
   margin-right: 0.25rem;
 }
+.mx-4 {
+  margin-left: 1rem;
+  margin-right: 1rem;
+}
 .mx-auto {
   margin-left: auto;
   margin-right: auto;
@@ -1761,8 +1779,14 @@ video {
 .-me-2 {
   margin-inline-end: -0.5rem;
 }
+.-ml-1 {
+  margin-left: -0.25rem;
+}
 .-ml-1\.5 {
   margin-left: -0.375rem;
+}
+.-ml-2 {
+  margin-left: -0.5rem;
 }
 .-mt-2 {
   margin-top: -0.5rem;
@@ -1890,9 +1914,6 @@ video {
 .hidden {
   display: none;
 }
-.aspect-\[960\/540\] {
-  aspect-ratio: 960/540;
-}
 .aspect-square {
   aspect-ratio: 1 / 1;
 }
@@ -2014,8 +2035,8 @@ video {
 .h-\[30rem\] {
   height: 30rem;
 }
-.h-\[39rem\] {
-  height: 39rem;
+.h-\[34rem\] {
+  height: 34rem;
 }
 .h-\[min\(80dvh\2c 40rem\)\] {
   height: min(80dvh, 40rem);
@@ -2143,9 +2164,6 @@ video {
 .min-h-\[40rem\] {
   min-height: 40rem;
 }
-.min-h-\[56vh\] {
-  min-height: 56vh;
-}
 .min-h-\[58svh\] {
   min-height: 58svh;
 }
@@ -2155,8 +2173,8 @@ video {
 .min-h-\[calc\(100vh-15rem\)\] {
   min-height: calc(100vh - 15rem);
 }
-.min-h-\[calc\(100vh-2rem\)\] {
-  min-height: calc(100vh - 2rem);
+.min-h-\[min\(36vh\2c 16rem\)\] {
+  min-height: min(36vh, 16rem);
 }
 .min-h-button {
   min-height: var(--core-button-height);
@@ -2221,9 +2239,6 @@ video {
 }
 .w-8 {
   width: 2rem;
-}
-.w-\[45\%\] {
-  width: 45%;
 }
 .w-\[5\.5rem\] {
   width: 5.5rem;
@@ -2302,9 +2317,6 @@ video {
 .min-w-\[38rem\] {
   min-width: 38rem;
 }
-.min-w-\[42rem\] {
-  min-width: 42rem;
-}
 .min-w-\[56rem\] {
   min-width: 56rem;
 }
@@ -2334,6 +2346,9 @@ video {
 }
 .max-w-\[14rem\] {
   max-width: 14rem;
+}
+.max-w-\[18rem\] {
+  max-width: 18rem;
 }
 .max-w-\[28rem\] {
   max-width: 28rem;
@@ -2367,6 +2382,9 @@ video {
 }
 .max-w-md {
   max-width: 28rem;
+}
+.max-w-prose {
+  max-width: 65ch;
 }
 .max-w-sm {
   max-width: 24rem;
@@ -2449,10 +2467,6 @@ video {
 }
 .-rotate-2 {
   --tw-rotate: -2deg;
-  transform: translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y));
-}
-.-rotate-90 {
-  --tw-rotate: -90deg;
   transform: translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y));
 }
 .rotate-180 {
@@ -2540,9 +2554,6 @@ video {
 .scroll-mt-40 {
   scroll-margin-top: 10rem;
 }
-.scroll-mt-6 {
-  scroll-margin-top: 1.5rem;
-}
 .list-disc {
   list-style-type: disc;
 }
@@ -2573,6 +2584,9 @@ video {
 .grid-cols-\[1\.25rem_1fr\] {
   grid-template-columns: 1.25rem 1fr;
 }
+.grid-cols-\[2rem_minmax\(0\2c 1fr\)\] {
+  grid-template-columns: 2rem minmax(0,1fr);
+}
 .grid-cols-\[3\.5rem_repeat\(7\2c minmax\(0\2c 1fr\)\)\] {
   grid-template-columns: 3.5rem repeat(7,minmax(0,1fr));
 }
@@ -2581,6 +2595,9 @@ video {
 }
 .grid-cols-\[auto_minmax\(0\2c 1fr\)\] {
   grid-template-columns: auto minmax(0,1fr);
+}
+.grid-cols-\[auto_minmax\(0\2c 1fr\)_auto\] {
+  grid-template-columns: auto minmax(0,1fr) auto;
 }
 .grid-cols-\[minmax\(0\2c 1fr\)\] {
   grid-template-columns: minmax(0,1fr);
@@ -2669,17 +2686,11 @@ video {
 .gap-12 {
   gap: 3rem;
 }
-.gap-16 {
-  gap: 4rem;
-}
 .gap-2 {
   gap: 0.5rem;
 }
 .gap-2\.5 {
   gap: 0.625rem;
-}
-.gap-24 {
-  gap: 6rem;
 }
 .gap-3 {
   gap: 0.75rem;
@@ -2761,6 +2772,9 @@ video {
 .self-end {
   align-self: flex-end;
 }
+.self-center {
+  align-self: center;
+}
 .justify-self-start {
   justify-self: start;
 }
@@ -2810,6 +2824,9 @@ video {
 }
 .whitespace-pre-wrap {
   white-space: pre-wrap;
+}
+.text-pretty {
+  text-wrap: pretty;
 }
 .break-words {
   overflow-wrap: break-word;
@@ -2892,12 +2909,6 @@ video {
 }
 .border-core-danger {
   border-color: var(--core-danger);
-}
-.border-core-info {
-  border-color: var(--core-info);
-}
-.border-core-success {
-  border-color: var(--core-success);
 }
 .border-core-warning {
   border-color: var(--core-warning);
@@ -3145,6 +3156,9 @@ video {
 .pl-1 {
   padding-left: 0.25rem;
 }
+.pl-2 {
+  padding-left: 0.5rem;
+}
 .pl-2\.5 {
   padding-left: 0.625rem;
 }
@@ -3178,9 +3192,6 @@ video {
 .pr-2 {
   padding-right: 0.5rem;
 }
-.pr-3 {
-  padding-right: 0.75rem;
-}
 .pr-4 {
   padding-right: 1rem;
 }
@@ -3195,6 +3206,9 @@ video {
 }
 .pt-2 {
   padding-top: 0.5rem;
+}
+.pt-2\.5 {
+  padding-top: 0.625rem;
 }
 .pt-3 {
   padding-top: 0.75rem;
@@ -3217,11 +3231,11 @@ video {
 .text-right {
   text-align: right;
 }
-.align-top {
-  vertical-align: top;
-}
 .align-middle {
   vertical-align: middle;
+}
+.align-\[-0\.15em\] {
+  vertical-align: -0.15em;
 }
 .align-\[-3px\] {
   vertical-align: -3px;
@@ -3271,8 +3285,14 @@ video {
 .leading-7 {
   line-height: 1.75rem;
 }
-.leading-8 {
-  line-height: 2rem;
+.leading-\[1\.625rem\] {
+  line-height: 1.625rem;
+}
+.leading-relaxed {
+  line-height: 1.625;
+}
+.leading-tight {
+  line-height: 1.25;
 }
 .\!text-core-action {
   color: var(--core-action-primary) !important;
@@ -3288,9 +3308,6 @@ video {
 }
 .text-core-danger-text {
   color: var(--core-danger-text);
-}
-.text-core-info {
-  color: var(--core-info);
 }
 .text-core-muted {
   color: var(--core-text-muted);
@@ -3411,18 +3428,8 @@ video {
   transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
   transition-duration: 150ms;
 }
-.transition-\[border-width\2c color\] {
-  transition-property: border-width,color;
-  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
-  transition-duration: 150ms;
-}
-.transition-\[font-weight\2c color\] {
-  transition-property: font-weight,color;
-  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
-  transition-duration: 150ms;
-}
-.transition-\[font-weight\] {
-  transition-property: font-weight;
+.transition-\[color\2c transform\] {
+  transition-property: color,transform;
   transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
   transition-duration: 150ms;
 }
@@ -3459,9 +3466,6 @@ video {
 .duration-1000 {
   transition-duration: 1000ms;
 }
-.duration-150 {
-  transition-duration: 150ms;
-}
 .duration-300 {
   transition-duration: 300ms;
 }
@@ -3488,6 +3492,9 @@ video {
 }
 .\[sound\:\2026\] {
   sound: …;
+}
+.\[text-wrap\:balance\] {
+  text-wrap: balance;
 }
 
 @font-face {
@@ -3923,6 +3930,24 @@ svg.lucide {
 
 .core-deck-summary-count-value[data-count-empty="true"] {
   color: var(--core-text-muted);
+}
+
+.core-note-blocks {
+  container: core-note-blocks / inline-size;
+}
+
+.core-note-blocks-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--core-space-sm);
+}
+
+@container core-note-blocks (min-width: 18rem) {
+  .core-note-blocks-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@container core-note-blocks (min-width: 36rem) {
+  .core-note-blocks-grid { grid-template-columns: repeat(4, minmax(0, 10rem)); }
 }
 
 @container core-deck-summary (32rem < width < 48rem) {
@@ -4407,7 +4432,7 @@ svg.lucide {
   gap: var(--core-space-sm);
   min-width: 0;
   margin: 0;
-  padding: 0.375rem 0;
+  padding: 0.25rem 0;
   list-style: none;
 }
 
@@ -4418,25 +4443,21 @@ svg.lucide {
   color: var(--core-text-muted);
 }
 
-.core-steps[data-stretch] li + li {
+.core-steps li + li {
   flex: 1 1 0;
 }
 
 .core-steps-line {
-  flex: 0 0 1.5rem;
-  height: var(--core-border-width);
-  background: var(--core-border-interactive);
-}
-
-.core-steps[data-stretch] .core-steps-line {
   flex: 1 1 0.75rem;
   min-width: 0.5rem;
+  height: var(--core-border-width);
+  background: var(--core-border-interactive);
 }
 
 .core-steps-step {
   display: inline-flex;
   align-items: center;
-  gap: 0.375rem;
+  gap: var(--core-space-sm);
   min-width: 0;
   color: inherit;
   font: var(--core-weight-control) 0.8125rem/1.25rem var(--core-font-sans);
@@ -4448,24 +4469,33 @@ button.core-steps-step:not(:disabled):hover .core-steps-label {
   text-underline-offset: 3px;
 }
 
+button.core-steps-step:not(:disabled):hover .core-steps-marker {
+  border-color: var(--core-action-primary);
+}
+
 button.core-steps-step:disabled {
   cursor: not-allowed;
 }
 
-.core-steps-dot {
+.core-steps-marker {
+  display: inline-grid;
   flex-shrink: 0;
-  width: 0.625rem;
-  height: 0.625rem;
+  place-items: center;
+  width: 1.5rem;
+  height: 1.5rem;
   border: 1.5px solid var(--core-border-interactive);
   border-radius: var(--core-radius-round);
   background: var(--core-surface);
+  font: var(--core-weight-emphasis) 0.75rem/1 var(--core-font-sans);
+  font-variant-numeric: tabular-nums;
 }
 
+.core-steps li:is([data-state="done"], [data-state="current"]) .core-steps-line { background: var(--core-action-primary); }
 .core-steps li[data-state="done"] { color: var(--core-text); }
-.core-steps li[data-state="done"] .core-steps-dot { border-color: var(--core-text); background: var(--core-text); }
+.core-steps li[data-state="done"] .core-steps-marker { border-color: var(--core-action-soft); background: var(--core-action-soft); color: var(--core-action-primary); }
 .core-steps li[data-state="current"] { color: var(--core-action-primary); }
 .core-steps li[data-state="current"] .core-steps-step { font-weight: var(--core-weight-heading); }
-.core-steps li[data-state="current"] .core-steps-dot { border-color: var(--core-action-primary); background: var(--core-action-primary); box-shadow: 0 0 0 3px var(--core-focus-ring-soft); }
+.core-steps li[data-state="current"] .core-steps-marker { border-color: var(--core-action-primary); background: var(--core-action-primary); color: var(--core-text-on-accent); box-shadow: 0 0 0 3px var(--core-focus-ring-soft); }
 
 @container (max-width: 32.49rem) {
   .core-steps li:not([aria-current]) .core-steps-label {
@@ -5084,7 +5114,7 @@ body:has([aria-modal="true"]) .core-success-toast {
   width: 1rem;
   height: 1rem;
 }
-.core-rich-text-tool[aria-pressed="true"] { background: var(--core-action-soft); color: var(--core-action-primary); }
+.core-rich-text-tool[aria-pressed="true"], .core-mindmap-tool[aria-pressed="true"] { background: var(--core-action-soft); color: var(--core-action-primary); }
 
 .core-auth-mascot {
   height: 9.5rem;
@@ -5251,6 +5281,8 @@ button[aria-label] {
 .core-exam-filter[aria-pressed="false"]:hover .core-tag { --core-tag-text: var(--core-text-secondary); }
 .core-exam-filter[aria-pressed="false"] .core-tag-dot { background: transparent !important; box-shadow: inset 0 0 0 1.5px var(--core-exam-tint); }
 
+/* The forward arrow follows its label. In the components layer so `xl:hidden` wins. */
+
 /* Kept after .core-auth-panel button for the cascade. */
 button.core-steps-step {
   min-height: var(--core-button-height);
@@ -5350,6 +5382,23 @@ button.core-steps-step {
   border-top: var(--core-border-width) solid var(--core-border);
 }
 
+.core-card-editor-quick-dates {
+  container-type: inline-size;
+}
+
+.core-card-editor-quick-dates > [role="group"] {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.5rem;
+}
+
+@container (min-width: 27rem) {
+  .core-card-editor-quick-dates > [role="group"] {
+    display: flex;
+    flex-wrap: wrap;
+  }
+}
+
 .core-card-editor-rows {
   display: grid;
   min-width: 0;
@@ -5383,12 +5432,19 @@ button.core-steps-step {
   overflow-wrap: anywhere;
 }
 
-.core-card-editor-maturity.core-steps li:not([aria-current]) .core-steps-label {
-  position: static;
-  width: auto;
-  height: auto;
-  overflow: visible;
-  clip: auto;
+.core-card-editor-maturity { container-type: inline-size; min-width: 0; }
+.core-card-editor-maturity > ol { display: flex; align-items: center; gap: var(--core-space-sm); min-width: 0; margin: 0; padding: 0.375rem 0; list-style: none; }
+.core-card-editor-maturity li { display: flex; align-items: center; gap: var(--core-space-sm); color: var(--core-text-muted); font: var(--core-weight-control) 0.8125rem/1.25rem var(--core-font-sans); white-space: nowrap; }
+.core-card-editor-maturity li + li { flex: 1 1 0; }
+.core-card-editor-maturity-line { flex: 1 1 0.75rem; min-width: 0.5rem; height: var(--core-border-width); background: var(--core-border-interactive); }
+.core-card-editor-maturity-step { display: inline-flex; align-items: center; gap: 0.375rem; }
+.core-card-editor-maturity-dot { flex-shrink: 0; width: 0.625rem; height: 0.625rem; border: 1.5px solid var(--core-border-interactive); border-radius: var(--core-radius-round); background: var(--core-surface); }
+.core-card-editor-maturity li[data-state="done"] { color: var(--core-text); }
+.core-card-editor-maturity li[data-state="done"] .core-card-editor-maturity-dot { border-color: var(--core-text); background: var(--core-text); }
+.core-card-editor-maturity li[data-state="current"] { color: var(--core-action-primary); font-weight: var(--core-weight-heading); }
+.core-card-editor-maturity li[data-state="current"] .core-card-editor-maturity-dot { border-color: var(--core-action-primary); background: var(--core-action-primary); box-shadow: 0 0 0 3px var(--core-focus-ring-soft); }
+@container (max-width: 32.49rem) {
+  .core-card-editor-maturity > ol, .core-card-editor-maturity li { gap: var(--core-space-xs); }
 }
 
 .core-card-editor-content {
@@ -5442,10 +5498,6 @@ button.core-steps-step {
   .core-card-editor-actions {
     margin-left: auto;
   }
-
-  .core-card-editor-position {
-    display: none;
-  }
 }
 
 @media (max-width: 359px) {
@@ -5465,12 +5517,6 @@ button.core-steps-step {
   .core-card-editor-sections > .core-card-editor-section + .core-card-editor-section {
     padding-top: 0;
     border-top: 0;
-  }
-}
-
-@media (min-width: 640px) {
-  .core-card-editor-section [data-flag-picker] {
-    margin-left: -0.75rem;
   }
 }
 
@@ -5569,14 +5615,10 @@ button.core-steps-step {
   }
 }
 
-.core-card-search-term-code {
-  color: color-mix(in srgb, var(--core-text-muted) 72%, transparent);
-}
-
 @media (pointer: fine) {
   .core-card-search-term .core-tri-state-control {
-    --core-tri-size: calc(2rem - 8px);
-    height: 2rem;
+    --core-tri-size: calc(2.25rem - 8px);
+    height: 2.25rem;
   }
 }
 
@@ -5817,12 +5859,18 @@ button.core-steps-step {
 
 .core-help-stack-layer-middle {
   background: var(--core-action-soft);
-  transform: translate(-20px, -8px) rotate(-2.5deg);
+  transform: translate(-20px, 10px) rotate(-2.5deg);
 }
 
 .core-help-stack-layer-back {
   background: var(--core-help-stack-back);
   transform: translate(28px, -20px) rotate(3deg);
+}
+
+/* Narrow stacks keep their fanned layers inside the content width. */
+@media (max-width: 639px) {
+  .core-help-stack-layer-middle { transform: translate(-8px, 6px) rotate(-2deg); }
+  .core-help-stack-layer-back { transform: translate(8px, -18px) rotate(2deg); }
 }
 .core-help-card-question {
   font: var(--core-weight-control) var(--core-type-heading-3)/var(--core-leading-heading-3) var(--core-font-sans);
@@ -5832,10 +5880,6 @@ button.core-steps-step {
 
 .core-help-card-options {
   font: var(--core-weight-control) var(--core-type-body-large)/var(--core-leading-body-large) var(--core-font-sans);
-}
-
-.core-help-method-link:focus-visible {
-  border-top-width: 4px;
 }
 
 .core-obscured-recall-text {
@@ -6037,11 +6081,14 @@ button.core-steps-step {
 .core-summary-create-popover .core-summary-actions > button { flex: 1; }
 .core-summary-create-popover .core-segmented-control { width: 100%; }
 .core-summary-create-popover .core-segmented-control-option { white-space: normal; flex: 1; }
-.core-summary-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: var(--core-space-xs); align-items: start; }
-.core-summary-preview { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: var(--core-space-xl); align-items: center; }
+.core-summary-row { position: relative; display: grid; min-width: 0; }
+.core-summary-preview { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: var(--core-space-xl); }
 .core-summary-preview:hover { border-color: var(--core-border-interactive); background-color: var(--core-surface-hover); }
-.core-summary-excerpt { max-height: 6rem; overflow: hidden; overflow-wrap: anywhere; white-space: pre-line; -webkit-mask-image: linear-gradient(#000 45%, transparent); mask-image: linear-gradient(#000 45%, transparent); }
-.core-summary-preview-action { flex-shrink: 0; }
+.core-summary-excerpt { max-height: 4lh; overflow: hidden; overflow-wrap: anywhere; white-space: pre-line; }
+.core-summary-excerpt[data-clipped] { -webkit-mask-image: linear-gradient(#000 calc(100% - 1lh), rgb(0 0 0 / 0.15)); mask-image: linear-gradient(#000 calc(100% - 1lh), rgb(0 0 0 / 0.15)); }
+.core-summary-preview-action { flex-shrink: 0; align-self: end; }
+/* A sibling of the card, because the card itself is a button. */
+.core-summary-delete { position: absolute; top: calc(1.5rem + (var(--core-leading-heading-3) - var(--core-button-height)) / 2); right: var(--core-space-md); }
 .core-summary-editor .rich-text-field { font-family: var(--summary-font); font-size: var(--summary-size); overflow-wrap: anywhere; }
 .core-summary-editor .rich-text-field :is(h1, h2, h3, h4) { font-weight: var(--core-weight-heading); margin-block: var(--core-space-lg) var(--core-space-sm); }
 .core-summary-editor .rich-text-field h1 { font-size: var(--core-type-heading-1); }
@@ -6059,10 +6106,6 @@ button.core-steps-step {
 .core-mindmap-panel { container: core-mindmap / inline-size; }
 .core-mindmap-heading { min-width: 0; }
 .core-mindmap-primary-tools { display: flex; align-items: center; flex-wrap: wrap; gap: var(--core-space-sm); min-width: 0; }
-.core-mindmap-primary-tools > [role="group"] { min-width: 0; width: -moz-fit-content; width: fit-content; max-width: 100%; flex: 0 1 auto; height: auto; overflow-x: auto; scrollbar-width: none; }
-.core-mindmap-primary-tools > [role="group"]::-webkit-scrollbar { display: none; }
-.core-mindmap-primary-tools .core-segmented-control-option { min-height: var(--core-control-height); flex-basis: var(--core-control-height); }
-.core-mindmap-primary-tools .core-segmented-control-option[aria-pressed="true"] { flex: 1 0 auto; }
 .core-mindmap-tools { display: flex; align-items: center; flex-wrap: wrap; gap: var(--core-space-sm); padding: var(--core-space-sm); min-width: 0; }
 .core-mindmap-compact-field { width: 160px; max-width: 100%; }
 .core-mindmap-text-toolbar:empty { display: none; }
@@ -6081,6 +6124,11 @@ button.core-steps-step {
 .core-mindmap-node.is-link-source { border-color: var(--core-info); box-shadow: var(--core-shadow-selection); }
 .core-mindmap-node-label { font-weight: 700; overflow: hidden; overflow-wrap: anywhere; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
 .core-mindmap-source-action { margin-left: auto; }
+@container core-mindmap (max-width: 43rem) { .core-mindmap-source-action { margin-left: 0; } }
+/* IconButton sets the text colour inline, so the pressed colour goes on the icon. */
+.core-mindmap-tool[aria-pressed="true"] svg { color: var(--core-action-primary); }
+.core-mindmap-tool:disabled { opacity: 0.35; }
+.core-mindmap-source-action[aria-expanded="true"] { border-color: var(--core-action-primary); background: var(--core-action-soft); color: var(--core-action-primary); }
 .core-mindmap-node.is-keyword:not(.is-expanded) { justify-content: center; }
 .core-mindmap-node.is-keyword .core-mindmap-node-label, .core-mindmap-node.is-keyword .core-mindmap-inline-title { text-align: center; }
 .core-mindmap-node.is-keyword .core-mindmap-node-icons { justify-content: center; }
@@ -6148,7 +6196,6 @@ button.core-steps-step {
 @container core-mindmap (max-width: 30rem) {
   .core-mindmap-heading > label { flex-basis: 100%; }
   .core-mindmap-heading > .core-action-primary { width: 100%; }
-  .core-mindmap-primary-tools > [role="group"] { flex-basis: 100%; }
   .core-mindmap-canvas { height: 520px; }
   .core-mindmap-tools .core-mindmap-color-picker { flex-basis: 100%; }
 }
@@ -6198,6 +6245,8 @@ button.core-steps-step {
 @container core-summary (max-width: 36rem) {
   .core-summary-editor-heading { flex-direction: column; align-items: stretch; }
   .core-summary-preview { grid-template-columns: minmax(0, 1fr); gap: var(--core-space-md); padding: var(--core-space-lg); }
+  .core-summary-preview h4 { padding-inline-end: var(--core-button-height); }
+  .core-summary-delete { top: calc(var(--core-space-lg) + (var(--core-leading-heading-3) - var(--core-button-height)) / 2); right: var(--core-space-sm); }
   .core-summary-preview-action { justify-content: space-between; }
   .core-summary-actions { flex-direction: column-reverse; }
   .core-summary-actions > button { width: 100%; }
@@ -6399,6 +6448,12 @@ button.core-steps-step {
   .dashboard-widget-content > * { height: auto; max-height: var(--dashboard-widget-height); }
   .dashboard-widget [data-heatmap-period="week"] { min-height: 12rem; }
 }
+.marker\:text-core-muted *::marker {
+  color: var(--core-text-muted);
+}
+.marker\:text-core-muted::marker {
+  color: var(--core-text-muted);
+}
 .placeholder\:text-core-muted::-moz-placeholder {
   color: var(--core-text-muted);
 }
@@ -6437,6 +6492,12 @@ button.core-steps-step {
   --tw-content: '';
   content: var(--tw-content);
 }
+.first\:items-start:first-child {
+  align-items: flex-start;
+}
+.first\:pt-0:first-child {
+  padding-top: 0px;
+}
 .last\:border-0:last-child {
   border-width: 0px;
 }
@@ -6452,9 +6513,6 @@ button.core-steps-step {
   --tw-scale-x: 1.1;
   --tw-scale-y: 1.1;
   transform: translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y));
-}
-.hover\:border-t-4:hover {
-  border-top-width: 4px;
 }
 .hover\:border-core-action:hover {
   border-color: var(--core-action-primary);
@@ -6559,17 +6617,15 @@ button.core-steps-step {
   --tw-rotate: 180deg;
   transform: translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y));
 }
-.group:hover .group-hover\:font-bold {
-  font-weight: var(--core-weight-heading);
+.group:hover .group-hover\:translate-x-0\.5 {
+  --tw-translate-x: 0.125rem;
+  transform: translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y));
 }
-.group:hover .group-hover\:text-core-text {
-  color: var(--core-text);
+.group:hover .group-hover\:text-core-action {
+  color: var(--core-action-primary);
 }
-.group:focus-visible .group-focus-visible\:font-bold {
-  font-weight: var(--core-weight-heading);
-}
-.group:focus-visible .group-focus-visible\:text-core-text {
-  color: var(--core-text);
+.group:focus-visible .group-focus-visible\:text-core-action {
+  color: var(--core-action-primary);
 }
 .group:disabled .group-disabled\:text-core-muted {
   color: var(--core-text-muted);
@@ -6621,6 +6677,20 @@ button.core-steps-step {
 
   .motion-reduce\:transition-none {
     transition-property: none;
+  }
+}
+@media not all and (min-width: 1280px) {
+
+  .max-xl\:sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border-width: 0;
   }
 }
 @media not all and (min-width: 1024px) {
@@ -6765,6 +6835,13 @@ button.core-steps-step {
     display: none;
   }
 }
+@media (max-width: 359px) {
+
+  .max-\[359px\]\:px-3 {
+    padding-left: 0.75rem;
+    padding-right: 0.75rem;
+  }
+}
 @media (min-width: 360px) {
 
   .min-\[360px\]\:grid-cols-2 {
@@ -6829,6 +6906,15 @@ button.core-steps-step {
     grid-row-start: 1;
   }
 
+  .sm\:mx-6 {
+    margin-left: 1.5rem;
+    margin-right: 1.5rem;
+  }
+
+  .sm\:-ml-3 {
+    margin-left: -0.75rem;
+  }
+
   .sm\:mr-0 {
     margin-right: 0px;
   }
@@ -6865,8 +6951,8 @@ button.core-steps-step {
     height: 21rem;
   }
 
-  .sm\:h-\[30rem\] {
-    height: 30rem;
+  .sm\:h-\[25rem\] {
+    height: 25rem;
   }
 
   .sm\:h-auto {
@@ -6881,16 +6967,16 @@ button.core-steps-step {
     min-height: 0px;
   }
 
-  .sm\:min-h-\[calc\(100vh-4rem\)\] {
-    min-height: calc(100vh - 4rem);
-  }
-
-  .sm\:min-h-button {
-    min-height: var(--core-button-height);
-  }
-
   .sm\:w-24 {
     width: 6rem;
+  }
+
+  .sm\:w-44 {
+    width: 11rem;
+  }
+
+  .sm\:w-80 {
+    width: 20rem;
   }
 
   .sm\:w-\[5\.5rem\] {
@@ -6905,17 +6991,12 @@ button.core-steps-step {
     width: auto;
   }
 
-  .sm\:w-fit {
-    width: -moz-fit-content;
-    width: fit-content;
-  }
-
   .sm\:min-w-36 {
     min-width: 9rem;
   }
 
-  .sm\:max-w-6xl {
-    max-width: 72rem;
+  .sm\:max-w-3xl {
+    max-width: 48rem;
   }
 
   .sm\:max-w-72 {
@@ -6932,6 +7013,10 @@ button.core-steps-step {
 
   .sm\:flex-1 {
     flex: 1 1 0%;
+  }
+
+  .sm\:flex-none {
+    flex: none;
   }
 
   .sm\:basis-0 {
@@ -6962,20 +7047,8 @@ button.core-steps-step {
     grid-template-columns: 11rem minmax(0,1fr);
   }
 
-  .sm\:grid-cols-\[2\.5rem_1fr\] {
-    grid-template-columns: 2.5rem 1fr;
-  }
-
   .sm\:grid-cols-\[8rem_minmax\(12rem\2c 1fr\)_auto\] {
     grid-template-columns: 8rem minmax(12rem,1fr) auto;
-  }
-
-  .sm\:grid-cols-\[max-content_max-content\] {
-    grid-template-columns: max-content max-content;
-  }
-
-  .sm\:grid-cols-\[max-content_minmax\(0\2c 1fr\)\] {
-    grid-template-columns: max-content minmax(0,1fr);
   }
 
   .sm\:grid-cols-\[minmax\(0\2c 1fr\)_16rem\] {
@@ -6990,6 +7063,10 @@ button.core-steps-step {
     grid-template-columns: minmax(0,1fr) auto auto;
   }
 
+  .sm\:grid-cols-\[minmax\(0\2c 1fr\)_minmax\(0\2c 1fr\)\] {
+    grid-template-columns: minmax(0,1fr) minmax(0,1fr);
+  }
+
   .sm\:grid-cols-\[minmax\(0\2c 1fr\)_minmax\(12rem\2c 16rem\)\] {
     grid-template-columns: minmax(0,1fr) minmax(12rem,16rem);
   }
@@ -7002,16 +7079,16 @@ button.core-steps-step {
     flex-wrap: wrap;
   }
 
-  .sm\:items-start {
-    align-items: flex-start;
-  }
-
   .sm\:items-center {
     align-items: center;
   }
 
   .sm\:justify-end {
     justify-content: flex-end;
+  }
+
+  .sm\:justify-center {
+    justify-content: center;
   }
 
   .sm\:justify-items-end {
@@ -7028,6 +7105,15 @@ button.core-steps-step {
 
   .sm\:gap-4 {
     gap: 1rem;
+  }
+
+  .sm\:gap-8 {
+    gap: 2rem;
+  }
+
+  .sm\:gap-x-6 {
+    -moz-column-gap: 1.5rem;
+         column-gap: 1.5rem;
   }
 
   .sm\:rounded-overlay {
@@ -7068,11 +7154,6 @@ button.core-steps-step {
 
   .sm\:p-9 {
     padding: 2.25rem;
-  }
-
-  .sm\:px-0 {
-    padding-left: 0px;
-    padding-right: 0px;
   }
 
   .sm\:px-4 {
@@ -7136,6 +7217,10 @@ button.core-steps-step {
   .sm\:pr-4 {
     padding-right: 1rem;
   }
+
+  .sm\:pt-0 {
+    padding-top: 0px;
+  }
 }
 @media (min-width: 768px) {
 
@@ -7174,6 +7259,10 @@ button.core-steps-step {
 
   .md\:min-h-8 {
     min-height: 2rem;
+  }
+
+  .md\:min-h-\[var\(--core-selection-height\)\] {
+    min-height: var(--core-selection-height);
   }
 
   .md\:min-h-button {
@@ -7238,6 +7327,10 @@ button.core-steps-step {
 
   .md\:flex-wrap {
     flex-wrap: wrap;
+  }
+
+  .md\:items-end {
+    align-items: flex-end;
   }
 
   .md\:items-center {
@@ -7306,10 +7399,6 @@ button.core-steps-step {
     padding-left: 1rem;
   }
 
-  .md\:pr-6 {
-    padding-right: 1.5rem;
-  }
-
   .md\:pr-8 {
     padding-right: 2rem;
   }
@@ -7328,8 +7417,16 @@ button.core-steps-step {
 }
 @media (min-width: 1024px) {
 
+  .lg\:block {
+    display: block;
+  }
+
   .lg\:w-72 {
     width: 18rem;
+  }
+
+  .lg\:w-\[calc\(50\%-1\.5rem\)\] {
+    width: calc(50% - 1.5rem);
   }
 
   .lg\:w-full {
@@ -7342,14 +7439,6 @@ button.core-steps-step {
 
   .lg\:grid-cols-4 {
     grid-template-columns: repeat(4, minmax(0, 1fr));
-  }
-
-  .lg\:grid-cols-\[0\.9fr_1\.1fr\] {
-    grid-template-columns: 0.9fr 1.1fr;
-  }
-
-  .lg\:grid-cols-\[1fr_0\.8fr\] {
-    grid-template-columns: 1fr 0.8fr;
   }
 
   .lg\:grid-cols-\[minmax\(0\2c 1fr\)_15rem\] {
@@ -7366,11 +7455,6 @@ button.core-steps-step {
 
   .lg\:justify-start {
     justify-content: flex-start;
-  }
-
-  .lg\:gap-x-8 {
-    -moz-column-gap: 2rem;
-         column-gap: 2rem;
   }
 
   .lg\:px-6 {
@@ -7420,8 +7504,8 @@ button.core-steps-step {
     display: block;
   }
 
-  .xl\:inline-flex {
-    display: inline-flex;
+  .xl\:flex {
+    display: flex;
   }
 
   .xl\:grid {
@@ -7449,12 +7533,8 @@ button.core-steps-step {
     min-height: 68svh;
   }
 
-  .xl\:min-w-0 {
-    min-width: 0px;
-  }
-
-  .xl\:grid-cols-1 {
-    grid-template-columns: repeat(1, minmax(0, 1fr));
+  .xl\:max-w-\[45\.5rem\] {
+    max-width: 45.5rem;
   }
 
   .xl\:grid-cols-2 {
@@ -7463,10 +7543,6 @@ button.core-steps-step {
 
   .xl\:grid-cols-3 {
     grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-
-  .xl\:grid-cols-4 {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 
   .xl\:grid-cols-\[minmax\(0\2c 0\.9fr\)_minmax\(20rem\2c 1\.1fr\)\] {
@@ -7513,12 +7589,29 @@ button.core-steps-step {
     padding-top: 2.5rem;
     padding-bottom: 2.5rem;
   }
+
+  .xl\:first\:min-h-\[28\.5rem\]:first-child {
+    min-height: 28.5rem;
+  }
+
+  .xl\:first\:items-center:first-child {
+    align-items: center;
+  }
 }
 .\[\&\:\:-webkit-details-marker\]\:hidden::-webkit-details-marker {
   display: none;
 }
+.\[\&\>\.core-switch-content\]\:w-full>.core-switch-content {
+  width: 100%;
+}
+.\[\&\>\.core-switch-content\]\:\!justify-between>.core-switch-content {
+  justify-content: space-between !important;
+}
 .\[\&\>header\]\:flex-wrap>header {
   flex-wrap: wrap;
+}
+.\[\&\>span\]\:text-left>span {
+  text-align: left;
 }
 .\[\&\>svg\]\:relative>svg {
   position: relative;
@@ -7921,7 +8014,7 @@ html:has(.catalog-preview) { scroll-behavior: auto; }
 <ul>
 <li><strong>Frage–Antwort:</strong> optional mit Rückrichtung; dann entstehen zwei unabhängige Karten mit eigenem Lernstand.</li>
 <li><strong>Lückentext:</strong> Jede Lückengruppe ist eine eigene Karte.</li>
-<li><strong>Auswahl:</strong> Single Choice (genau eine richtige von mindestens zwei Optionen), Multiple Choice (mindestens eine richtige und eine falsche) und Kprim (eine Karte mit beliebig vielen Aussagen, jede als richtig oder falsch zu markieren; nur aus Anki-Importen). Ein Inhalt ergibt genau eine Karte; nicht mit Lücken oder Rückrichtung kombinierbar.</li>
+<li><strong>Auswahl:</strong> Single Choice (genau eine richtige von mindestens zwei Optionen), Multiple Choice (mindestens eine richtige und eine falsche) und Kprim (beliebig viele Aussagen, jede richtig oder falsch; nur aus Anki-Importen). Ein Inhalt ergibt genau eine Karte, nicht mit Lücken oder Rückrichtung kombinierbar.</li>
 <li><strong>Bildverdeckung:</strong> Jede Maskengruppe ist eine eigene Karte (<a href="#specs--bildverdeckung">Bildverdeckung</a>).</li>
 <li><strong>Antwort eintippen:</strong> Baustein für Frage–Antwort; die Eingabe wird zeichengenau wie in Anki verglichen und selbst bewertet.</li>
 <li><strong>Zusätzliche Felder</strong> tragen eine Rolle: <code>Zusatzfrage</code> (Teil der Frage, in Rückrichtung Teil der Antwort), <code>Hinweis</code> (vor der Antwort aufdeckbar), <code>Zusatz</code> und <code>Quelle</code> (erst nach der Antwort), <code>Notiz</code> (nur im Editor).</li>
@@ -7932,7 +8025,7 @@ html:has(.catalog-preview) { scroll-behavior: auto; }
 <li>Review, Vorschau, Editor und Importvorschau zeigen dieselbe Karte gleich, im CoRe-Design.</li>
 <li>Beim Aufdecken bleibt die Frage stehen; die Antwort folgt und wiederholt die Frage nicht.</li>
 <li>Single Choice deckt mit der Auswahl auf, Multiple Choice und Kprim erst nach ausdrücklicher Prüfung.</li>
-<li><strong>Ausnahme Originallayout</strong> (<a href="decisions.md#adr-047--originallayout-importierter-karten">ADR-047</a>): Generisch übersetzte Importe, deren Notiztyp eigenes CSS ohne Script mitbringt, erscheinen ohne Schalter im Layout ihres Autors; die Bedienung bleibt CoRe. Bleibt die Vorderseite leer, gilt das CoRe-Design mit Hinweis.</li>
+<li><strong>Ausnahme Originallayout</strong> (<a href="decisions.md#adr-047--originallayout-importierter-karten">ADR-047</a>): Generisch übersetzte Importe, deren Notiztyp eigenes CSS ohne Script mitbringt, erscheinen ohne Schalter im Layout ihres Autors, mit CoRe-Bedienung. Bei leerer Vorderseite gilt das CoRe-Design mit Hinweis.</li>
 <li>Formeln werden gesetzt; bei Fehlern bleibt der Quelltext sichtbar.</li>
 <li>Skripte aus Karten werden nie ausgeführt.</li>
 </ul>
@@ -8095,11 +8188,11 @@ html:has(.catalog-preview) { scroll-behavior: auto; }
 <li>Die Erstellung beginnt mit Vorder- und Rückseite; Auswahlfragen, Bildverdeckung, Lücken, Formeln und Bausteine folgen den <a href="#specs--inhaltsformen">Inhaltsformen</a>.</li>
 <li>Nach dem Speichern bleibt der Entwurf offen: Der Zielstapel bleibt gewählt, bewusst festgehaltene Felder bleiben gefüllt.</li>
 <li>Bilder stehen direkt in den Feldern. Große JPEG-, PNG- und WebP-Bilder werden vor dem Speichern auf Full HD verkleinert; alle anderen bleiben unverändert.</li>
-<li>Die Vorschau zeigt den Entwurf so, wie die Karte später gelernt wird.</li>
-<li>Neben dem Entwurf lässt sich eine Quelle (PDF, Text, Markdown, CSV, TSV) öffnen, um Text zu übernehmen; sie wird nicht gespeichert.</li>
+<li>Die Vorschau zeigt jede Karte des Entwurfs so, wie sie später gelernt wird.</li>
+<li>Neben dem Entwurf lässt sich eine Quelle (PDF, Text, Markdown) öffnen, um Text zu übernehmen; sie wird nicht gespeichert.</li>
 <li>Speichern ist ein einzelner, exklusiver Versuch: erst Bilder auf dem Gerät, dann die Karte auf dem Gerät, dann der Upload. Mehrfaches Auslösen erzeugt höchstens eine Karte.</li>
 <li>Scheitert etwas vor der lokalen Kartenspeicherung, bleibt der Entwurf. Danach gilt die Karte als gespeichert, und Upload und Sync werden nachgeholt.</li>
-<li>Ein nichtleerer Entwurf wird nur nach Rückfrage verworfen; bereits gespeicherte Karten bleiben.</li>
+<li>Der Entwurf überdauert im Browser-Tab Bereichswechsel und Neuladen, nie im Konto; Bilder kein Neuladen (mit Hinweis). Aus einem Stapel geöffnet, gilt dieser. Verworfen wird er nur nach Rückfrage.</li>
 <li><strong>Bewusst nicht:</strong> automatisches Speichern von Entwürfen im Konto.</li>
 </ul>
 <h3 id="specs--bildverdeckung" class="core-heading-3" tabindex="-1">Bildverdeckung <a class="docs-anchor" href="#specs--bildverdeckung" aria-label="Link zu Bildverdeckung">#</a></h3>
@@ -8118,12 +8211,12 @@ html:has(.catalog-preview) { scroll-behavior: auto; }
 <ul>
 <li>Anki-Pakete bis 2 GiB verarbeitet der Browser selbst; größere werden abgewiesen.</li>
 <li>Die Analyse lässt sich abbrechen und ändert nichts; die Übernahme läuft durch.</li>
-<li>Der Bericht nennt je Notiztyp Übersetzung, Inhalte und Karten, übernommenen Lernstand, nur generisch oder nicht Übernommenes, fehlende Medien und das Originallayout; Beispielkarten erscheinen wie im Review, technische Kennungen nicht.</li>
+<li>Der Bericht nennt je Notiztyp Übersetzung, Inhalte und Karten, übernommenen Lernstand, nur generisch oder nicht Übernommenes, fehlende Medien und Originallayout; Beispielkarten erscheinen wie im Review, ohne technische Kennungen.</li>
 <li>Jede Anki-Notiz wird ein Inhalt, jede Anki-Karte eine CoRe-Karte; die Stapelhierarchie bleibt vollständig.</li>
-<li>Die Übernahme ist fertig, sobald alles geprüft auf dem Gerät liegt und die Medien eingereiht sind; dann meldet der Import Erfolg mit bis zu drei Beispielkarten. Sync und Medien-Upload laufen im Hintergrund; scheitern sie, bleiben die Karten lokal lernbar.</li>
+<li>Die Übernahme ist fertig, sobald alles geprüft auf dem Gerät liegt und die Medien eingereiht sind; der Erfolg nennt bis zu drei Beispielkarten. Sync und Medien-Upload laufen im Hintergrund; scheitern sie, bleiben die Karten lokal lernbar.</li>
 <li>Medien werden erst bei der Übernahme gelesen und gegen ihre Prüfsumme geprüft.</li>
 <li>Fehler beim Lesen des Pakets bleiben sichtbar und werden nicht durch einen stillen Ersatzweg verdeckt.</li>
-<li>Ein laufender Import übersteht Bereichswechsel, keinen Reload; Schließen fragt nach. Eine abgebrochene Übernahme meldet CoRe beim nächsten Start mit der Zahl übernommener Karten, bis dieselbe Datei sie vervollständigt oder ihre Stapel gelöscht sind.</li>
+<li>Ein laufender Import übersteht Bereichswechsel, keinen Reload; Schließen fragt nach. Eine abgebrochene Übernahme meldet CoRe beim nächsten Start mit Kartenzahl, bis dieselbe Datei sie vervollständigt oder ihre Stapel gelöscht sind.</li>
 <li><strong>Bewusst nicht:</strong> Serverimport, Upload-Fallback.</li>
 </ul>
 <h3 id="specs--text--und-tabellenimport" class="core-heading-3" tabindex="-1">Text- und Tabellenimport <a class="docs-anchor" href="#specs--text--und-tabellenimport" aria-label="Link zu Text- und Tabellenimport">#</a></h3>
@@ -8144,7 +8237,7 @@ html:has(.catalog-preview) { scroll-behavior: auto; }
 <h3 id="specs--reimport-und-neuübersetzung" class="core-heading-3" tabindex="-1">Reimport und Neuübersetzung <a class="docs-anchor" href="#specs--reimport-und-neuübersetzung" aria-label="Link zu Reimport und Neuübersetzung">#</a></h3>
 <ul>
 <li>Ein Reimport erkennt Inhalte und Karten an ihren Anki-Kennungen, auch nur im Konto liegende. Unbearbeitete Inhalte übernehmen den Paketinhalt, lokal bearbeitete bleiben und werden gezählt.</li>
-<li>Lernstand, Lernbremse, Verlauf, Aussetzung, Markierung, Flaggen und Stapelzuordnung vorhandener Karten bleiben immer; wie in Anki bringen nur neue Karten Lernstand und Verlauf aus dem Paket mit, außer beim Fortsetzen einer abgebrochenen Übernahme. Neue Abfragen werden neue Karten; im Paket fehlende bleiben und werden gezählt.</li>
+<li>Lernstand, Lernbremse, Verlauf, Aussetzung, Markierung, Flaggen und Stapel vorhandener Karten bleiben; wie in Anki bringen nur neue Karten Lernstand und Verlauf mit, außer beim Fortsetzen einer abgebrochenen Übernahme. Neue Abfragen werden neue Karten; im Paket fehlende bleiben und werden gezählt.</li>
 <li>Tags werden nach <a href="#specs--tags">Tags</a> zusammengeführt. Vorhandene Stapel behalten Name, Ort im Baum und Einstellungen; neue Stapel entstehen unter dem heutigen Ort ihres Oberstapels.</li>
 <li>Ein verbesserter Übersetzer übersetzt unbearbeitete Importe einmal automatisch neu, ohne Karten mit Lernstand zu verlieren, und nennt die Zahl der verbesserten Inhalte.</li>
 </ul>
@@ -8153,13 +8246,13 @@ html:has(.catalog-preview) { scroll-behavior: auto; }
 <ul>
 <li>Ein Auftrag besteht aus Quelle (eine Datei als PDF, Text, Markdown, CSV oder TSV oder eingefügter Text), genau einem Zielstapel (neu oder vorhanden), Lernwünschen und erlaubten Kartenformen.</li>
 <li>Lernwünsche sind Kartenmenge, Antwortumfang, Sprache, Formulierung, Vorwissen und freie Wünsche. Kartenmenge und Antwortumfang sind unabhängig: Mehr Karten bedeuten nicht längere Antworten.</li>
-<li>Die Kartenmenge (weniger, normal, mehr) bestimmt, wie viel des Stoffs abgefragt wird. Ein Auftrag ergibt höchstens 100 Vorschläge und nur so viele, wie die Quelle sinnvolle Informationsstücke trägt; Füllkarten entstehen nicht.</li>
+<li>Die Kartenmenge (weniger, normal, mehr) bestimmt, wie viel Stoff abgefragt wird. Ein Auftrag ergibt höchstens 100 Vorschläge und nur so viele, wie die Quelle trägt; Füllkarten entstehen nicht.</li>
 <li>Kartenformen (Frage–Antwort, Lückentext, Single Choice, Multiple Choice) werden erlaubt, nicht erzwungen; passende Abruf-, Verständnis- und Anwendungsfragen werden ohne feste Quoten gemischt.</li>
 <li>Karten stammen nur aus der Quelle. Jede Karte nennt ihre Stelle (PDF-Seite oder Zeilen der Datei); Belege werden nie erfunden.</li>
 <li>Die Quelle wird nur im Browser gelesen. Leere, geschützte, gescannte oder zu große Quellen (20 MiB, 400.000 Zeichen) werden abgewiesen, nie still gekürzt; Seiten ohne Textlayer werden genannt.</li>
-<li>Größere Quellen laufen abschnittweise im geöffneten Tab mit Fortschritt; jeder Abschnitt kennt die bisherigen Fragen. Abbrechen behält Erhaltenes, ein Fehler, der jeden Abschnitt träfe, stoppt den Lauf, ein einzeln gescheiterter Abschnitt wird genannt. Endet der Lauf vorzeitig oder an der Obergrenze, nennt das Ergebnis die erste nicht ausgewertete Stelle.</li>
+<li>Größere Quellen laufen abschnittweise im geöffneten Tab mit Fortschritt; jeder Abschnitt kennt die bisherigen Fragen. Abbrechen behält Erhaltenes, ein Fehler für jeden Abschnitt stoppt den Lauf, ein einzeln gescheiterter wird genannt. Ein vorzeitiges Ende oder die Obergrenze nennt die erste nicht ausgewertete Stelle.</li>
 <li>Das Ergebnis ist eine ungespeicherte Liste mit Stelle, Hinweisen der KI und Zahl verworfener Vorschläge. Jeder Vorschlag lässt sich wie im <a href="#specs--karteneditor">Karteneditor</a> bearbeiten oder verwerfen; alle zu verwerfen behält den Auftrag.</li>
-<li>Erst die Übernahme speichert die Vorschläge als eigene Karten mit Antwort, Erklärung und Stelle in getrennten Feldern; ein neuer Zielstapel entsteht erst dabei. Scheitert sie, bleibt der Rest zum erneuten Übernehmen.</li>
+<li>Erst die Übernahme speichert die Vorschläge als Karten mit Antwort, Erklärung und Stelle in getrennten Feldern; ein neuer Zielstapel entsteht erst dabei. Scheitert sie, bleibt der Rest zum erneuten Übernehmen.</li>
 <li>Ohne Verbindung ist die Erstellung gesperrt; der Entwurfsschutz gilt auch für Vorschläge.</li>
 <li><strong>Bewusst nicht:</strong> feste Kartenanzahl, Mischungsverhältnisse, Lernzielauswahl, Kprim, Eintippen, einzelne Vorschläge neu erzeugen, Abgleich mit dem Zielstapel.</li>
 </ul>
@@ -8168,7 +8261,7 @@ html:has(.catalog-preview) { scroll-behavior: auto; }
 <h3 id="specs--lernphasen-und-bewertungen" class="core-heading-3" tabindex="-1">Lernphasen und Bewertungen <a class="docs-anchor" href="#specs--lernphasen-und-bewertungen" aria-label="Link zu Lernphasen und Bewertungen">#</a></h3>
 <figure class="docs-diagram"><figcaption>Phasen einer Karte</figcaption><div class="docs-diagram-row"><p class="docs-diagram-lane">Normaler Weg</p><ol class="docs-diagram-boxes"><li class="docs-diagram-box"><strong>Neu</strong><span>noch nie beantwortet</span></li><li class="docs-diagram-link">erste Antwort</li><li class="docs-diagram-box"><strong>Lernen</strong><span>Lernschritte nach 1 und 10 Minuten</span></li><li class="docs-diagram-link">letzter Schritt „Gut“ oder jederzeit „Leicht“</li><li class="docs-diagram-box"><strong>Wiederholung, jung</strong><span>Abstände in Tagen nach dem Gedächtnismodell</span></li><li class="docs-diagram-link">Haltbarkeit ab 21 Tagen</li><li class="docs-diagram-box" data-tone="success"><strong>Wiederholung, reif</strong><span>ab der Stapelschwelle können Varianten erscheinen</span></li></ol></div><p class="docs-diagram-down">„Nochmal“ in der Wiederholung zählt als Fehler</p><div class="docs-diagram-row"><p class="docs-diagram-lane">Nach einem Fehler</p><ol class="docs-diagram-boxes"><li class="docs-diagram-box" data-tone="danger"><strong>Wiederlernen</strong><span>Schritt nach 10 Minuten, die Haltbarkeit bricht ein</span></li><li class="docs-diagram-link">„Gut“ oder „Leicht“</li><li class="docs-diagram-box"><strong>Wiederholung, jung</strong><span>zunächst kurze Abstände, bis die Haltbarkeit wieder wächst</span></li></ol></div></figure>
 <ul>
-<li>Es gibt vier Bewertungen: <code>Nochmal</code>, <code>Schwer</code>, <code>Gut</code>, <code>Leicht</code>. Geplant wird mit FSRS-7 und den offiziellen Standardparametern (<a href="decisions.md#adr-044--fsrs-7-scheduler-und-reife-aus-der-haltbarkeit">ADR-044</a>); eine persönliche Optimierung ist nicht aktiv.</li>
+<li>Es gibt vier Bewertungen: <code>Nochmal</code>, <code>Schwer</code>, <code>Gut</code>, <code>Leicht</code>. Geplant wird mit FSRS-7 und den offiziellen Standardparametern (<a href="decisions.md#adr-044--fsrs-7-scheduler-und-reife-aus-der-haltbarkeit">ADR-044</a>); keine persönliche Optimierung.</li>
 <li>Standard sind 93 % Zielerinnerung, Lernschritte nach 1 und 10 Minuten und ein Wiederlernschritt nach 10 Minuten; jeder Stapel kann abweichen.</li>
 <li><code>Gut</code> geht einen Lernschritt weiter und führt nach dem letzten in die Wiederholung. <code>Leicht</code> beendet die Lernphase sofort. <code>Schwer</code> bleibt mit kürzerem Abstand in der Phase. <code>Nochmal</code> beginnt die Lernschritte von vorn und führt aus der Wiederholung ins Wiederlernen.</li>
 <li>Eingestellte Lernschritte haben Vorrang vor einem längeren Abstand aus dem Modell.</li>
@@ -8177,7 +8270,7 @@ html:has(.catalog-preview) { scroll-behavior: auto; }
 <li><strong>Bewusst nicht:</strong> KI-Erzeugung beim Antworten; interne Schedulerzustände in der Oberfläche.</li>
 </ul>
 <h3 id="specs--lernverlauf-einer-karte" class="core-heading-3" tabindex="-1">Lernverlauf einer Karte <a class="docs-anchor" href="#specs--lernverlauf-einer-karte" aria-label="Link zu Lernverlauf einer Karte">#</a></h3>
-<p>Die Leseseite zeigt typische Bewertungsketten, die Wirkung jeder Bewertung, den Einfluss der Zielerinnerung und die erste Variante je Stapelschwelle, berechnet mit dem echten Scheduler unter festen Annahmen (Antwort am Fälligkeitstermin, Standardlernschritte, eine aktive Variante); keine Zusage für einzelne Karten.</p>
+<p>Die Leseseite zeigt typische Bewertungsketten, die Wirkung jeder Bewertung, den Einfluss der Zielerinnerung und die erste Variante je Stapelschwelle, berechnet mit dem echten Scheduler unter festen Annahmen (Antwort zum Termin, Standardlernschritte, eine aktive Variante); keine Zusage für einzelne Karten.</p>
 <h4 id="specs--lernverlauf-bewertungen" class="core-control-label" tabindex="-1">Was jede Bewertung bewirkt</h4><p>Bei Zielerinnerung 93 % und den Standardlernschritten 1 und 10 Minuten; „In der Wiederholung“ ist die Karte nach dreimal „Gut“.</p><table><thead><tr><th>Lage der Karte</th><th>Nochmal</th><th>Schwer</th><th>Gut</th><th>Leicht</th></tr></thead><tbody><tr><th scope="row">Neue Karte</th><td>Lernschritt in 1 Min.<br><span class="core-caption">Haltbarkeit 0 Tage · Lernen</span></td><td>Lernschritt in 6 Min.<br><span class="core-caption">Haltbarkeit 0,6 Tage · Lernen</span></td><td>Lernschritt in 10 Min.<br><span class="core-caption">Haltbarkeit 4,8 Tage · Lernen</span></td><td>Wiederholung in 26 Tage<br><span class="core-caption">Haltbarkeit 53,9 Tage · Reif</span></td></tr><tr><th scope="row">Im zweiten Lernschritt</th><td>Lernschritt in 1 Min.<br><span class="core-caption">Haltbarkeit 0 Tage · Lernen</span></td><td>Lernschritt in 6 Min.<br><span class="core-caption">Haltbarkeit 3,3 Tage · Lernen</span></td><td>Wiederholung in 4,3 Tage<br><span class="core-caption">Haltbarkeit 10,1 Tage · Jung</span></td><td>Wiederholung in 10,2 Tage<br><span class="core-caption">Haltbarkeit 22,1 Tage · Reif</span></td></tr><tr><th scope="row">In der Wiederholung</th><td>Wiederlernen in 10 Min.<br><span class="core-caption">Haltbarkeit 0,1 Tage · Lernen</span></td><td>Wiederholung in 16,1 Tage<br><span class="core-caption">Haltbarkeit 32,5 Tage · Reif</span></td><td>Wiederholung in 43,9 Tage<br><span class="core-caption">Haltbarkeit 86 Tage · Reif</span></td><td>Wiederholung in 83,6 Tage<br><span class="core-caption">Haltbarkeit 161,5 Tage · Reif</span></td></tr><tr><th scope="row">Im Wiederlernen</th><td>Wiederlernen in 10 Min.<br><span class="core-caption">Haltbarkeit 0 Tage · Lernen</span></td><td>Wiederlernen in 15 Min.<br><span class="core-caption">Haltbarkeit 0,3 Tage · Lernen</span></td><td>Wiederholung in 1 Tag<br><span class="core-caption">Haltbarkeit 0,5 Tage · Jung</span></td><td>Wiederholung in 2 Tage<br><span class="core-caption">Haltbarkeit 0,7 Tage · Jung</span></td></tr></tbody></table><p class="docs-source">Beim Erzeugen mit dem Produktions-Scheduler berechnet; dieselben Werte prüft <code>src/schedulerExampleChains.test.ts</code>. Jede Antwort fällt auf den Fälligkeitstermin; Haltbarkeit = Tage, bis die Erinnerung auf 90 % fällt.</p><h4 id="specs--lernverlauf-zeitleisten" class="core-control-label" tabindex="-1">Beispielketten als Zeitleiste (93 %)</h4><p>Jeder Punkt ist ein Kontakt: Tag, Bewertung und Phase davor, dann der Abstand bis zum nächsten Kontakt. Markiert sind der Kontakt, nach dem die Karte reif ist, und jeder Kontakt, der bei der Standardschwelle von 21 Tagen und 3 aktiven Varianten eine Variante abfragt.</p><ul class="docs-chain-legend"><li data-phase="new">Neu</li><li data-phase="learning">Lernschritt</li><li data-phase="review">Wiederholung</li><li data-phase="relearning">Wiederlernen</li></ul><h4 class="catalog-label">Immer Gut</h4><ol class="docs-chain" aria-label="Zeitleiste Immer Gut"><li class="docs-chain-step" data-phase="new"><span class="core-caption">Tag 0</span><strong>Gut</strong><span class="core-caption">Neu</span><span class="docs-chain-gap">→ 10 Min.</span></li><li class="docs-chain-step" data-phase="learning"><span class="core-caption">Tag 0</span><strong>Gut</strong><span class="core-caption">Lernschritt</span><span class="docs-chain-gap">→ 4,3 Tage</span></li><li class="docs-chain-step" data-phase="review"><span class="core-caption">Tag 4,3</span><strong>Gut</strong><span class="core-caption">Wiederholung</span><span class="docs-chain-gap">→ 15,8 Tage</span><span class="docs-chain-mark" data-mark="mature">wird reif</span></li><li class="docs-chain-step" data-phase="review"><span class="core-caption">Tag 20,1</span><strong>Gut</strong><span class="core-caption">Wiederholung</span><span class="docs-chain-gap">→ 43,9 Tage</span><span class="docs-chain-mark" data-mark="variant">Variante 1</span></li><li class="docs-chain-step" data-phase="review"><span class="core-caption">Tag 64</span><strong>Gut</strong><span class="core-caption">Wiederholung</span><span class="docs-chain-gap">→ 111,8 Tage</span><span class="docs-chain-mark" data-mark="variant">Variante 2</span></li><li class="docs-chain-step" data-phase="review"><span class="core-caption">Tag 175,9</span><strong>Gut</strong><span class="core-caption">Wiederholung</span><span class="docs-chain-gap">→ 272,7 Tage</span><span class="docs-chain-mark" data-mark="variant">Variante 3</span></li></ol><h4 class="catalog-label">Leicht, dann Gut</h4><ol class="docs-chain" aria-label="Zeitleiste Leicht, dann Gut"><li class="docs-chain-step" data-phase="new"><span class="core-caption">Tag 0</span><strong>Leicht</strong><span class="core-caption">Neu</span><span class="docs-chain-gap">→ 26 Tage</span><span class="docs-chain-mark" data-mark="mature">wird reif</span></li><li class="docs-chain-step" data-phase="review"><span class="core-caption">Tag 26</span><strong>Gut</strong><span class="core-caption">Wiederholung</span><span class="docs-chain-gap">→ 91,4 Tage</span><span class="docs-chain-mark" data-mark="variant">Variante 1</span></li><li class="docs-chain-step" data-phase="review"><span class="core-caption">Tag 117,3</span><strong>Gut</strong><span class="core-caption">Wiederholung</span><span class="docs-chain-gap">→ 270 Tage</span><span class="docs-chain-mark" data-mark="variant">Variante 2</span></li><li class="docs-chain-step" data-phase="review"><span class="core-caption">Tag 387,3</span><strong>Gut</strong><span class="core-caption">Wiederholung</span><span class="docs-chain-gap">→ 756,7 Tage</span><span class="docs-chain-mark" data-mark="variant">Variante 3</span></li></ol><h4 class="catalog-label">Mit Schwer dazwischen</h4><ol class="docs-chain" aria-label="Zeitleiste Mit Schwer dazwischen"><li class="docs-chain-step" data-phase="new"><span class="core-caption">Tag 0</span><strong>Gut</strong><span class="core-caption">Neu</span><span class="docs-chain-gap">→ 10 Min.</span></li><li class="docs-chain-step" data-phase="learning"><span class="core-caption">Tag 0</span><strong>Gut</strong><span class="core-caption">Lernschritt</span><span class="docs-chain-gap">→ 4,3 Tage</span></li><li class="docs-chain-step" data-phase="review"><span class="core-caption">Tag 4,3</span><strong>Gut</strong><span class="core-caption">Wiederholung</span><span class="docs-chain-gap">→ 15,8 Tage</span><span class="docs-chain-mark" data-mark="mature">wird reif</span></li><li class="docs-chain-step" data-phase="review"><span class="core-caption">Tag 20,1</span><strong>Schwer</strong><span class="core-caption">Wiederholung</span><span class="docs-chain-gap">→ 16,1 Tage</span><span class="docs-chain-mark" data-mark="variant">Variante 1</span></li><li class="docs-chain-step" data-phase="review"><span class="core-caption">Tag 36,2</span><strong>Gut</strong><span class="core-caption">Wiederholung</span><span class="docs-chain-gap">→ 33,9 Tage</span><span class="docs-chain-mark" data-mark="variant">Variante 1</span></li><li class="docs-chain-step" data-phase="review"><span class="core-caption">Tag 70,1</span><strong>Schwer</strong><span class="core-caption">Wiederholung</span><span class="docs-chain-gap">→ 36,8 Tage</span><span class="docs-chain-mark" data-mark="variant">Variante 2</span></li><li class="docs-chain-step" data-phase="review"><span class="core-caption">Tag 106,9</span><strong>Gut</strong><span class="core-caption">Wiederholung</span><span class="docs-chain-gap">→ 62,7 Tage</span><span class="docs-chain-mark" data-mark="variant">Variante 2</span></li><li class="docs-chain-step" data-phase="review"><span class="core-caption">Tag 169,6</span><strong>Gut</strong><span class="core-caption">Wiederholung</span><span class="docs-chain-gap">→ 106,2 Tage</span><span class="docs-chain-mark" data-mark="variant">Variante 3</span></li></ol><h4 class="catalog-label">Gut mit einem Fehler</h4><ol class="docs-chain" aria-label="Zeitleiste Gut mit einem Fehler"><li class="docs-chain-step" data-phase="new"><span class="core-caption">Tag 0</span><strong>Gut</strong><span class="core-caption">Neu</span><span class="docs-chain-gap">→ 10 Min.</span></li><li class="docs-chain-step" data-phase="learning"><span class="core-caption">Tag 0</span><strong>Gut</strong><span class="core-caption">Lernschritt</span><span class="docs-chain-gap">→ 4,3 Tage</span></li><li class="docs-chain-step" data-phase="review"><span class="core-caption">Tag 4,3</span><strong>Gut</strong><span class="core-caption">Wiederholung</span><span class="docs-chain-gap">→ 15,8 Tage</span><span class="docs-chain-mark" data-mark="mature">wird reif</span></li><li class="docs-chain-step" data-phase="review"><span class="core-caption">Tag 20,1</span><strong>Gut</strong><span class="core-caption">Wiederholung</span><span class="docs-chain-gap">→ 43,9 Tage</span><span class="docs-chain-mark" data-mark="variant">Variante 1</span></li><li class="docs-chain-step" data-phase="review"><span class="core-caption">Tag 64</span><strong>Nochmal</strong><span class="core-caption">Wiederholung</span><span class="docs-chain-gap">→ 10 Min.</span><span class="docs-chain-mark" data-mark="variant">Variante 2</span></li><li class="docs-chain-step" data-phase="relearning"><span class="core-caption">Tag 64,1</span><strong>Gut</strong><span class="core-caption">Wiederlernen</span><span class="docs-chain-gap">→ 1 Tag</span></li><li class="docs-chain-step" data-phase="review"><span class="core-caption">Tag 65,1</span><strong>Gut</strong><span class="core-caption">Wiederholung</span><span class="docs-chain-gap">→ 2 Tage</span></li><li class="docs-chain-step" data-phase="review"><span class="core-caption">Tag 67,1</span><strong>Gut</strong><span class="core-caption">Wiederholung</span><span class="docs-chain-gap">→ 3 Tage</span></li><li class="docs-chain-step" data-phase="review"><span class="core-caption">Tag 70,1</span><strong>Gut</strong><span class="core-caption">Wiederholung</span><span class="docs-chain-gap">→ 5,3 Tage</span></li><li class="docs-chain-step" data-phase="review"><span class="core-caption">Tag 75,4</span><strong>Gut</strong><span class="core-caption">Wiederholung</span><span class="docs-chain-gap">→ 8,9 Tage</span></li></ol><h4 class="catalog-label">Nochmal am Anfang</h4><ol class="docs-chain" aria-label="Zeitleiste Nochmal am Anfang"><li class="docs-chain-step" data-phase="new"><span class="core-caption">Tag 0</span><strong>Nochmal</strong><span class="core-caption">Neu</span><span class="docs-chain-gap">→ 1 Min.</span></li><li class="docs-chain-step" data-phase="learning"><span class="core-caption">Tag 0</span><strong>Gut</strong><span class="core-caption">Lernschritt</span><span class="docs-chain-gap">→ 10 Min.</span></li><li class="docs-chain-step" data-phase="learning"><span class="core-caption">Tag 0</span><strong>Gut</strong><span class="core-caption">Lernschritt</span><span class="docs-chain-gap">→ 1 Tag</span></li><li class="docs-chain-step" data-phase="review"><span class="core-caption">Tag 1</span><strong>Gut</strong><span class="core-caption">Wiederholung</span><span class="docs-chain-gap">→ 2 Tage</span></li><li class="docs-chain-step" data-phase="review"><span class="core-caption">Tag 3</span><strong>Gut</strong><span class="core-caption">Wiederholung</span><span class="docs-chain-gap">→ 2,7 Tage</span></li><li class="docs-chain-step" data-phase="review"><span class="core-caption">Tag 5,7</span><strong>Gut</strong><span class="core-caption">Wiederholung</span><span class="docs-chain-gap">→ 6,5 Tage</span></li><li class="docs-chain-step" data-phase="review"><span class="core-caption">Tag 12,2</span><strong>Gut</strong><span class="core-caption">Wiederholung</span><span class="docs-chain-gap">→ 14,8 Tage</span><span class="docs-chain-mark" data-mark="mature">wird reif</span></li><li class="docs-chain-step" data-phase="review"><span class="core-caption">Tag 27</span><strong>Gut</strong><span class="core-caption">Wiederholung</span><span class="docs-chain-gap">→ 31,9 Tage</span><span class="docs-chain-mark" data-mark="variant">Variante 1</span></li></ol><h4 class="catalog-label">Wackeliger Start</h4><ol class="docs-chain" aria-label="Zeitleiste Wackeliger Start"><li class="docs-chain-step" data-phase="new"><span class="core-caption">Tag 0</span><strong>Nochmal</strong><span class="core-caption">Neu</span><span class="docs-chain-gap">→ 1 Min.</span></li><li class="docs-chain-step" data-phase="learning"><span class="core-caption">Tag 0</span><strong>Gut</strong><span class="core-caption">Lernschritt</span><span class="docs-chain-gap">→ 10 Min.</span></li><li class="docs-chain-step" data-phase="learning"><span class="core-caption">Tag 0</span><strong>Nochmal</strong><span class="core-caption">Lernschritt</span><span class="docs-chain-gap">→ 1 Min.</span></li><li class="docs-chain-step" data-phase="learning"><span class="core-caption">Tag 0</span><strong>Gut</strong><span class="core-caption">Lernschritt</span><span class="docs-chain-gap">→ 10 Min.</span></li><li class="docs-chain-step" data-phase="learning"><span class="core-caption">Tag 0</span><strong>Gut</strong><span class="core-caption">Lernschritt</span><span class="docs-chain-gap">→ 1 Tag</span></li><li class="docs-chain-step" data-phase="review"><span class="core-caption">Tag 1</span><strong>Gut</strong><span class="core-caption">Wiederholung</span><span class="docs-chain-gap">→ 2 Tage</span></li><li class="docs-chain-step" data-phase="review"><span class="core-caption">Tag 3</span><strong>Gut</strong><span class="core-caption">Wiederholung</span><span class="docs-chain-gap">→ 2 Tage</span></li><li class="docs-chain-step" data-phase="review"><span class="core-caption">Tag 5</span><strong>Gut</strong><span class="core-caption">Wiederholung</span><span class="docs-chain-gap">→ 2 Tage</span></li><li class="docs-chain-step" data-phase="review"><span class="core-caption">Tag 7</span><strong>Gut</strong><span class="core-caption">Wiederholung</span><span class="docs-chain-gap">→ 2,1 Tage</span></li></ol><p class="docs-source">Beim Erzeugen mit dem Produktions-Scheduler berechnet; dieselben Werte prüft <code>src/schedulerExampleChains.test.ts</code>. Jede Antwort fällt auf den Fälligkeitstermin; Haltbarkeit = Tage, bis die Erinnerung auf 90 % fällt.</p><h4 id="specs--lernverlauf-zielerinnerung" class="core-control-label" tabindex="-1">Einfluss der Zielerinnerung</h4><p>Kette „Immer Gut“: Die Haltbarkeit folgt dem Gedächtnis, nicht der Zielerinnerung; eine höhere Zielerinnerung verkürzt nur die Abstände und verschiebt damit die Tage.</p><table><thead><tr><th>Zielerinnerung</th><th>Kontakte am Tag</th><th>Reif ab Tag</th></tr></thead><tbody><tr><th scope="row">90 %</th><td>0 · 0 · 10,1 · 52,7 · 195,8 · 640,2</td><td>10,1</td></tr><tr><th scope="row">93 %</th><td>0 · 0 · 4,3 · 20,1 · 64 · 175,9</td><td>4,3</td></tr><tr><th scope="row">95 %</th><td>0 · 0 · 1,7 · 8,1 · 23,8 · 58,7</td><td>1,7</td></tr></tbody></table><p class="docs-source">Beim Erzeugen mit dem Produktions-Scheduler berechnet; dieselben Werte prüft <code>src/schedulerExampleChains.test.ts</code>. Jede Antwort fällt auf den Fälligkeitstermin; Haltbarkeit = Tage, bis die Erinnerung auf 90 % fällt.</p><h4 id="specs--lernverlauf-varianten" class="core-control-label" tabindex="-1">Wann Varianten erscheinen (93 %)</h4><p>Welche Variante welcher Kontakt abfragt, je Stapelschwelle und mit 3 aktiven Varianten. Nach der Freigabe kommen nur noch Varianten: „Gut“ und „Leicht“ führen zur nächsten, „Schwer“ wiederholt sie, „Nochmal“ geht eine zurück. Bis die Freigabe wieder offen ist, kommt die Karte selbst; nach der letzten Variante die am längsten nicht gesehene.</p><table><thead><tr><th>Kette</th><th>Schwelle 7 Tage</th><th>Schwelle 21 Tage</th><th>Schwelle 60 Tage</th></tr></thead><tbody><tr><th scope="row">Immer Gut</th><td>V1 · Tag 4,3<br>V2 · Tag 20,1<br>V3 · Tag 64<br>V1 · Tag 175,9</td><td>V1 · Tag 20,1<br>V2 · Tag 64<br>V3 · Tag 175,9</td><td>V1 · Tag 64<br>V2 · Tag 175,9</td></tr><tr><th scope="row">Leicht, dann Gut</th><td>V1 · Tag 26<br>V2 · Tag 117,3<br>V3 · Tag 387,3</td><td>V1 · Tag 26<br>V2 · Tag 117,3<br>V3 · Tag 387,3</td><td>V1 · Tag 117,3<br>V2 · Tag 387,3</td></tr><tr><th scope="row">Mit Schwer dazwischen</th><td>V1 · Tag 4,3<br>V2 · Tag 20,1<br>V2 · Tag 36,2<br>V3 · Tag 70,1<br>V3 · Tag 106,9<br>V1 · Tag 169,6</td><td>V1 · Tag 20,1<br>V1 · Tag 36,2<br>V2 · Tag 70,1<br>V2 · Tag 106,9<br>V3 · Tag 169,6</td><td>V1 · Tag 70,1<br>V1 · Tag 106,9<br>V2 · Tag 169,6</td></tr><tr><th scope="row">Gut mit einem Fehler</th><td>V1 · Tag 4,3<br>V2 · Tag 20,1<br>V3 · Tag 64<br>V2 · Tag 75,4</td><td>V1 · Tag 20,1<br>V2 · Tag 64</td><td>V1 · Tag 64</td></tr><tr><th scope="row">Nochmal am Anfang</th><td>V1 · Tag 12,2<br>V2 · Tag 27</td><td>V1 · Tag 27</td><td>nur die Karte</td></tr><tr><th scope="row">Wackeliger Start</th><td>nur die Karte</td><td>nur die Karte</td><td>nur die Karte</td></tr></tbody></table><p class="docs-source">Beim Erzeugen mit dem Produktions-Scheduler berechnet; dieselben Werte prüft <code>src/schedulerExampleChains.test.ts</code>. Jede Antwort fällt auf den Fälligkeitstermin; Haltbarkeit = Tage, bis die Erinnerung auf 90 % fällt.</p><h3 id="specs--reife-und-haltbarkeit" class="core-heading-3" tabindex="-1">Reife und Haltbarkeit <a class="docs-anchor" href="#specs--reife-und-haltbarkeit" aria-label="Link zu Reife und Haltbarkeit">#</a></h3>
 <ul>
 <li>Haltbarkeit sind die Tage, bis die Erinnerung auf 90 % fällt. Sie folgt dem Gedächtnis; eine höhere Zielerinnerung verkürzt nur die Abstände.</li>
@@ -8188,8 +8281,8 @@ html:has(.catalog-preview) { scroll-behavior: auto; }
 <ul>
 <li>Ein Lerntag beginnt zum kontoweiten Tagesbeginn in der Zeitzone des Profils, ersatzweise des Browsers.</li>
 <li>Wiederholungen werden tageweise freigegeben und sind am ganzen Fälligkeitstag verfügbar. Lernschritte haben minutengenaue Termine.</li>
-<li>Das kontoweite Vorziehfenster (Standard 20 Minuten) erlaubt, einen Lernschritt früher zu zeigen, wenn er am selben Lerntag liegt und weniger als das Fenster entfernt ist. Wiederholungen werden nie vorgezogen, und nichts über die Tagesgrenze.</li>
-<li>Ein fälliger Lernschritt kommt wie in Anki als nächste Karte, einer im Vorziehfenster erst nach den übrigen Karten. Warten nur noch nicht berechtigte Lernschritte, endet die Runde vorläufig; die Karten bleiben <code>Offen</code>.</li>
+<li>Das kontoweite Vorziehfenster (Standard 20 Minuten) zeigt einen Lernschritt früher, wenn er am selben Lerntag weniger als das Fenster entfernt liegt. Wiederholungen werden nie vorgezogen, nichts über die Tagesgrenze.</li>
+<li>Ein fälliger Lernschritt kommt wie in Anki als nächste Karte, einer im Vorziehfenster erst nach den übrigen Karten. Warten nur noch spätere Lernschritte, endet die Runde vorläufig; die Karten bleiben <code>Offen</code>.</li>
 <li>Eine von Hand auf einen künftigen Lerntag gesetzte Karte bleibt bis dahin in jeder Phase zurückgestellt.</li>
 </ul>
 <h3 id="specs--tagesrunde-und-limits" class="core-heading-3" tabindex="-1">Tagesrunde und Limits <a class="docs-anchor" href="#specs--tagesrunde-und-limits" aria-label="Link zu Tagesrunde und Limits">#</a></h3>
@@ -8202,7 +8295,7 @@ html:has(.catalog-preview) { scroll-behavior: auto; }
 <li>Der Sitzungsstart bildet einen stabilen Plan. Nachgeladene Karten gehören dazu; ein Nachladefehler verkleinert den Tagesumfang nicht und täuscht keinen Abschluss vor.</li>
 <li>Eine Karte zählt genau einmal, auch wenn sie als Variante oder mehrfach erscheint. Sie ist <code>Gelernt</code>, sobald heute kein weiterer Schritt ansteht.</li>
 <li>Halten nur die Limits Karten zurück, sagt CoRe das und nennt, wie viele fällige und neue Karten warten.</li>
-<li>Ist das Tagesziel erreicht, lassen sich für einen Stapel zusätzliche neue Karten nur für den aktuellen Lerntag freigeben. Wiederholungen werden dadurch nicht vorgezogen; eine Änderung des Limits hebt die Freigabe auf.</li>
+<li>Ist das Tagesziel erreicht, lassen sich für einen Stapel zusätzliche neue Karten nur für den aktuellen Lerntag freigeben. Wiederholungen rücken dadurch nicht vor; ein geändertes Limit hebt die Freigabe auf.</li>
 </ul>
 <h3 id="specs--begraben-und-zurückstellen" class="core-heading-3" tabindex="-1">Begraben und Zurückstellen <a class="docs-anchor" href="#specs--begraben-und-zurückstellen" aria-label="Link zu Begraben und Zurückstellen">#</a></h3>
 <ul>
@@ -8228,7 +8321,7 @@ html:has(.catalog-preview) { scroll-behavior: auto; }
 <li>Aus der Sitzung heraus wirken sofort: Flagge, Markierung, Aussetzen, Kartenreihenfolge und Timer. Editor und Stapeleinstellungen öffnen sich über der Sitzung und führen an dieselbe Karte zurück; gespeicherte Einstellungen gelten sofort.</li>
 <li>Aussetzen pausiert die Karte samt Varianten, ohne ihren Lernstand zu ändern; sie fehlt dann in Runde, Tageszahlen und Fortschritt. Nach dem Reaktivieren ist ein vergangener Termin sofort wieder relevant.</li>
 <li>Löst eine Bewertung die Lernbremse aus, weist die Sitzung einmal darauf hin.</li>
-<li>Bewertungen der laufenden Sitzung lassen sich rückwärts zurücknehmen: Die Karte erscheint mit dem Lernstand von davor, das Ereignis verschwindet auf allen Geräten aus Verlauf, Statistik und Tageszahlen. Andere Änderungen an der Sitzung, ein neuer Lerntag oder das Verlassen beenden das.</li>
+<li>Bewertungen und Aussetzen der laufenden Sitzung lassen sich rückwärts zurücknehmen, mit dem Lernstand von davor; eine Bewertung verschwindet auf allen Geräten aus Verlauf, Statistik und Tageszahlen. Flagge, Markierung oder Aussetzung sperren das für frühere Bewertungen derselben Karte; Kartenreihenfolge, neuer Lerntag oder Verlassen beenden es.</li>
 <li>Inhalte mit Vorlese-Angabe aus Anki lassen sich über die Sprachausgabe des Geräts vorlesen.</li>
 <li>Markierter Text lässt sich in AMBOSS nachschlagen. Erst der ausdrückliche Klick öffnet die Suche; übertragen wird nur der markierte Text.</li>
 <li>Nach dem Aufdecken steht <a href="#specs--ki-hilft">KI hilft</a> bereit.</li>
@@ -8245,7 +8338,7 @@ html:has(.catalog-preview) { scroll-behavior: auto; }
 <figure class="docs-diagram"><figcaption>Wann statt der Karte eine Variante abgefragt wird</figcaption><div class="docs-diagram-row"><p class="docs-diagram-lane">Alle fünf Bedingungen müssen gelten</p><ol class="docs-diagram-boxes"><li class="docs-diagram-box"><strong>CoRe-Modus</strong><span>im Stapel der Karte eingeschaltet</span></li><li class="docs-diagram-link">und</li><li class="docs-diagram-box"><strong>Phase</strong><span>die Karte ist in der Wiederholung</span></li><li class="docs-diagram-link">und</li><li class="docs-diagram-box"><strong>Letzte Bewertung</strong><span>war nicht „Nochmal“</span></li><li class="docs-diagram-link">und</li><li class="docs-diagram-box"><strong>Haltbarkeit</strong><span>erreicht die Schwelle des Stapels</span></li><li class="docs-diagram-link">und</li><li class="docs-diagram-box"><strong>Abstand</strong><span>seit der letzten Antwort mindestens drei Tage</span></li><li class="docs-diagram-link">dann</li><li class="docs-diagram-box" data-tone="primary"><strong>Kette</strong><span>die nächste Variante nach der erreichten Stufe</span></li></ol></div><p class="docs-diagram-down">sonst</p><div class="docs-diagram-row"><ol class="docs-diagram-boxes"><li class="docs-diagram-box"><strong>Originalkarte</strong><span>wird selbst abgefragt; die Kette wartet</span></li></ol></div></figure>
 <ul>
 <li>Die Schwelle <code>Varianten einsetzen ab Haltbarkeit</code> beträgt je Stapel 7, 21 (Standard) oder 60 Tage. Der Mindestabstand schützt vor kurzen Abständen nach <code>Schwer</code>, beim Vorziehen und in Prüfungssitzungen.</li>
-<li>Die Kette besteht aus den aktiven Varianten, die ältesten zuerst, höchstens so viele, wie der Stapel als aktive Varianten pro Karte erlaubt (1 bis 3). Der Lernstand merkt sich die erreichte Stufe; Stufe 0 ist die Karte selbst.</li>
+<li>Die Kette besteht aus den aktiven Varianten, die ältesten zuerst, höchstens so viele, wie der Stapel je Karte erlaubt (1 bis 3). Der Lernstand merkt sich die erreichte Stufe; Stufe 0 ist die Karte selbst.</li>
 <li>Nach einer Variante führen <code>Gut</code> und <code>Leicht</code> zur nächsten Stufe, <code>Schwer</code> wiederholt die Variante, <code>Nochmal</code> geht eine Stufe zurück. Antworten auf die Karte selbst ändern die Stufe nicht.</li>
 <li>Nach der letzten Variante kommt die, deren Formulierung am längsten nicht gesehen wurde.</li>
 <li>Eine Antwort auf eine Variante wirkt auf den Lernstand der Karte wie eine Antwort auf die Karte selbst. Nach <code>Nochmal</code> bricht die Haltbarkeit ein; Varianten kommen erst wieder, wenn die Freigabe erneut offen ist.</li>
@@ -8348,9 +8441,9 @@ html:has(.catalog-preview) { scroll-behavior: auto; }
 <li><strong>Auswahl:</strong> dieselben Optionen, jede gleich richtig oder falsch, ohne gewonnene oder verlorene Verneinung; die Variante hat eine eigene feste Reihenfolge, bearbeitbar ist nur die Frage. Karten mit zu langem Text, weniger als zwei oder mehr als zehn Optionen erhalten keine Varianten.</li>
 <li>Ergibt eine Karte keinen erkennbaren Sinn oder braucht sie privaten Kontext, meldet die KI sie als nicht umformulierbar, statt eine Deutung zu erfinden; es entsteht keine Variante.</li>
 <li>Eine Karte erhält Varianten bis zur Höchstzahl aktiver Varianten ihres Stapels. Gespeichert wird nur, wenn sie während der Anfrage unverändert blieb und die Formulierung neu ist.</li>
-<li><strong>Vorausschauend:</strong> Erreicht eine Karte mit einer Antwort die Haltbarkeitsschwelle und fehlt der Kette die nächste Variante, entsteht sie im geöffneten Tab, bevor die Karte wieder fällig ist; das ist die einzige KI-Anfrage ohne eigene Aktion (<a href="decisions.md#adr-011--schmale-ki-routen-%C3%BCber-openrouter">ADR-011</a>). Scheitert sie, etwa offline, kommt die am längsten nicht gesehene Variante; die nächste Antwort versucht es erneut.</li>
+<li><strong>Vorausschauend:</strong> Erreicht eine Karte die Haltbarkeitsschwelle und fehlt der Kette die nächste Variante, entsteht sie im geöffneten Tab vor der nächsten Fälligkeit, als einzige KI-Anfrage ohne eigene Aktion (<a href="decisions.md#adr-011--schmale-ki-routen-%C3%BCber-openrouter">ADR-011</a>). Scheitert sie, etwa offline, kommt die am längsten nicht gesehene Variante; die nächste Antwort versucht es erneut.</li>
 <li><strong>Für einen Stapel:</strong> Eine Erzeugung gibt nacheinander bis zu 50 Karten des Stapelbaums mit CoRe-Modus und ohne aktive Variante je eine und speichert jede sofort; ein weiterer Start nimmt die nächsten. Die Stapeleinstellungen nennen, wie viele Karten noch keine haben.</li>
-<li>Die Stapelerzeugung läuft im geöffneten Tab, höchstens eine zugleich, mit Fortschritt. Abbrechen behält Erzeugtes; ein Fehler, der jede Karte träfe, hält den Lauf mit Grund an. Nicht umformulierbare und übrige Karten ohne Variante werden getrennt gezählt und sind in der Kartenverwaltung abrufbar.</li>
+<li>Die Stapelerzeugung läuft im offenen Tab, höchstens eine zugleich, mit Fortschritt. Abbrechen behält Erzeugtes; ein Fehler, der jede Karte träfe, hält den Lauf mit Grund an. Nicht umformulierbare und übrige Karten ohne Variante werden getrennt gezählt und sind in der Kartenverwaltung abrufbar.</li>
 <li>Varianten aus einer älteren Fassung der Erzeugung lassen sich nach Rückfrage ersetzen; Karten und Lernstand bleiben.</li>
 </ul>
 <h3 id="specs--ki-zusammenfassung" class="core-heading-3" tabindex="-1">KI-Zusammenfassung <a class="docs-anchor" href="#specs--ki-zusammenfassung" aria-label="Link zu KI-Zusammenfassung">#</a></h3>
@@ -8359,10 +8452,10 @@ html:has(.catalog-preview) { scroll-behavior: auto; }
 <li><strong>Material:</strong> die Karten des Stapels, auf Wunsch samt Unterstapeln, und optional eine angehängte Quelle (PDF, Text, Markdown, CSV, TSV). Die Quelle kann die Karten ergänzen oder ersetzen und wird nicht gespeichert.</li>
 <li>Jeder Inhalt geht genau einmal ein, unabhängig von der Zahl seiner Karten; Varianten zählen nicht. Bei Auswahlkarten sind richtige und falsche Optionen unterschieden.</li>
 <li>Das Material wird vor der Anfrage vollständig geladen. Ist es größer als die Obergrenze (3.000 Inhalte oder 400.000 Zeichen), wird die Erstellung sichtbar abgewiesen und nie still gekürzt.</li>
-<li><strong>Wünsche:</strong> Länge, Detailgrad, Darstellung, Lernziel, Fokus, Sprachniveau, Beispiele, sichtbare Verweise. Länge und Detailgrad sind unabhängig; die Länge ist ein Richtwert von etwa 1–2, 3–5 oder 6–10 Minuten Lesezeit. Die Wünsche bilden einen eigenen Auftrag; Fokus und Material können die Anweisungen nicht überschreiben.</li>
-<li><strong>Materialtreue:</strong> Die KI darf nur wiedergeben, was im Material steht. Definitionen, Zahlen, Einheiten, Formeln, Verneinungen, Bedingungen und Ausnahmen bleiben erhalten; Widersprüche werden mit beiden Fundstellen genannt, fehlendes Material als Hinweis. Bei knapper Länge haben Fokus und zentrale Konzepte Vorrang. Wenig Material wird nicht aufgefüllt.</li>
+<li><strong>Wünsche:</strong> Länge, Detailgrad, Darstellung, Lernziel, Fokus, Sprachniveau, Beispiele, sichtbare Verweise. Länge (etwa 1–2, 3–5 oder 6–10 Minuten Lesezeit) und Detailgrad sind unabhängig. Die Wünsche sind ein eigener Auftrag; Fokus und Material überschreiben die Anweisungen nicht.</li>
+<li><strong>Materialtreue:</strong> Die KI darf nur wiedergeben, was im Material steht. Definitionen, Zahlen, Einheiten, Formeln, Verneinungen, Bedingungen und Ausnahmen bleiben; Widersprüche nennt sie mit beiden Fundstellen, Lücken als Hinweis. Bei knapper Länge gehen Fokus und zentrale Konzepte vor; wenig Material wird nicht aufgefüllt.</li>
 <li><strong>Antwort:</strong> Hauptabschnitte mit höchstens einer Ebene Unterabschnitten, darin Absätze und Stichpunkte aus Stichwort und Aussage, je Abschnitt Verweise auf das Material und optional belegte Querbezüge zwischen Stichworten.</li>
-<li>Den Text der Fassung baut die App aus dieser Struktur. Verweise auf Karten führen zu vorhandenen Karten, Verweise auf die Quelle nennen Datei und Seite. Unbekannte Verweise, leere Abschnitte und abgeschnittene Antworten werden abgewiesen.</li>
+<li>Den Text baut die App aus dieser Struktur. Kartenverweise führen zu vorhandenen Karten, Quellverweise nennen Datei und Seite; unbekannte Verweise, leere Abschnitte und abgeschnittene Antworten werden abgewiesen.</li>
 <li>Das Ergebnis öffnet als ungespeicherter Entwurf; erst das Speichern übernimmt ihn. Modell, Promptfassung und Erstellungszeit bleiben an der Fassung.</li>
 <li>Abbrechen beendet die Anfrage; eine verspätete Antwort wird nicht übernommen. Ein Fehler erhält den Auftrag.</li>
 <li>Bilder, Ton und gescannte Seiten ohne Text werden nicht ausgewertet; was ausgelassen wurde, steht im Ergebnis.</li>
@@ -8416,7 +8509,7 @@ html:has(.catalog-preview) { scroll-behavior: auto; }
 <li>Je Thema gibt es eine Aufgabe mit eindeutiger Kartenmenge. Sie startet die Vereinigung ihrer neuen Karten und Wiederholungen; die ganze heutige Einheit lässt sich gemeinsam starten.</li>
 <li>Vorschau, Aufgabenliste und Sitzung nutzen dieselben Zielkarten.</li>
 <li>Prüfungssitzungen sind normale Lernsitzungen mit der Zielerinnerung der Prüfung. Sie gelten ohne die Tageslimits der Stapel und halten die Themenreihenfolge ein.</li>
-<li>Eine Aufgabe gilt automatisch als erledigt, wenn alle ihre Zielkarten seit dem Einplanen bewertet wurden, in der Wiederholung sind und erst nach diesem Lerntag wieder fällig werden. Wird eine Bewertung zurückgenommen, öffnet sie sich wieder.</li>
+<li>Eine Aufgabe ist automatisch erledigt, wenn alle Zielkarten seit dem Einplanen bewertet, in der Wiederholung und erst nach diesem Lerntag wieder fällig sind. Eine zurückgenommene Bewertung öffnet sie wieder.</li>
 <li>Von Hand als erledigt markierte Aufgaben lassen sich wieder öffnen und ändern keinen Lernstand.</li>
 <li>Die Zielkarten gelten für den aktuellen Lerntag; der nächste Lerntag beginnt eine neue Liste.</li>
 <li><code>Heute</code> zeigt die Aufgaben aller aktiven Prüfungen.</li>
@@ -8449,6 +8542,7 @@ html:has(.catalog-preview) { scroll-behavior: auto; }
 <li>Jede Fassung nennt Titel, Umfang, Detailgrad und die aus dem tatsächlichen Text berechnete Lesezeit.</li>
 <li>Fassungen liegen im Konto und erscheinen auf jedem Gerät (<a href="decisions.md#adr-043--zusammenfassungen-und-mindmaps-als-versionierte-online-dokumente">ADR-043</a>).</li>
 <li>Löschen entfernt eine Fassung auf allen Geräten; daraus erzeugte Mindmap-Karten bleiben.</li>
+<li>Unter den eigenen Fassungen zeigt ein Stapel die seiner Unterstapel, gruppiert, bearbeitbar und löschbar; sie bleiben ihrem Stapel. Neue entstehen nur im geöffneten Stapel.</li>
 </ul>
 <h3 id="specs--zusammenfassung-bearbeiten-und-speichern" class="core-heading-3" tabindex="-1">Zusammenfassung bearbeiten und speichern <a class="docs-anchor" href="#specs--zusammenfassung-bearbeiten-und-speichern" aria-label="Link zu Zusammenfassung bearbeiten und speichern">#</a></h3>
 <ul>
@@ -8462,7 +8556,7 @@ html:has(.catalog-preview) { scroll-behavior: auto; }
 <h3 id="specs--mindmap-erzeugen" class="core-heading-3" tabindex="-1">Mindmap erzeugen <a class="docs-anchor" href="#specs--mindmap-erzeugen" aria-label="Link zu Mindmap erzeugen">#</a></h3>
 <ul>
 <li>Jeder Stapel hat genau eine unbegrenzte Fläche; darauf können mehrere Bäume stehen.</li>
-<li>Aus einer gespeicherten Fassung desselben Stapels entsteht ein Baum auf dem Gerät, ohne KI: Überschriften werden Äste, Stichworte, kurze Absätze und Listenpunkte werden Karten, längere Absätze bleiben Text ihrer Abschnittskarte. Materialhinweise und Belege erzeugen keine Karten.</li>
+<li>Aus einer gespeicherten Fassung desselben Stapels entsteht ein Baum auf dem Gerät, ohne KI: Überschriften werden Äste; Stichworte, kurze Absätze und Listenpunkte Karten; längere Absätze Text ihrer Abschnittskarte. Materialhinweise und Belege ergeben keine Karten.</li>
 <li>Belegte Querbezüge aus der Zusammenfassung werden Querverbindungen.</li>
 <li>Jede erzeugte Karte behält ihre Textstelle als unveränderliche Quelle; spätere Änderungen der Zusammenfassung überschreiben sie nicht.</li>
 <li>Erneutes Erzeugen ersetzt den Baum dieser Fassung an seiner Stelle. Wurde er bearbeitet, fragt CoRe: überschreiben, daneben anlegen oder abbrechen. Andere Karten der Fläche bleiben.</li>
@@ -8488,7 +8582,7 @@ html:has(.catalog-preview) { scroll-behavior: auto; }
 <li><strong>Feste Formate:</strong> Bausteine haben feste, nicht wählbare Größen; längere Inhalte scrollen im Baustein, statt die Seite zu verschieben.</li>
 <li><strong>Erststart:</strong> Ein neues Konto beginnt ohne erfundene Daten. Ohne Stapel führt die Seite zu Import, manueller Karte oder Demo. Demo-Stapel entstehen nur auf ausdrückliche Aktion, einmalig und ohne Lernhistorie.</li>
 <li><strong>Tagesstand:</strong> Er fasst alle Hauptstapel ohne Doppelzählung in <code>Gelernt</code>, <code>Neu</code>, <code>Offen</code> und <code>Fällig</code> zusammen (<a href="#specs--tagesrunde-und-limits">Tagesrunde und Limits</a>).</li>
-<li><strong>Lernstart:</strong> Er startet den ersten Hauptstapel in alphabetischer Reihenfolge, der verfügbare Karten hat. Warten nur noch nicht verfügbare Lernschritte, kündigt er späteres Weiterlernen an; ist alles gelernt, meldet er das erreichte Tagesziel und bietet zusätzliche neue Karten an.</li>
+<li><strong>Lernstart:</strong> Er startet den alphabetisch ersten Hauptstapel mit verfügbaren Karten. Warten nur noch Lernschritte, kündigt er späteres Weiterlernen an; ist alles gelernt, meldet er das Tagesziel und bietet zusätzliche neue Karten an.</li>
 <li><strong>Motivationsimpuls:</strong> einer von 60 eigenen Lernimpulsen, je Lerntag stabil, auch offline.</li>
 <li><strong>To-dos:</strong> eigene Aufgaben und Aufgaben aus dem Prüfungsplaner; Planeraufgaben lassen sich direkt lernen. Wird der Baustein entfernt, bleiben die Aufgaben.</li>
 <li><strong>Aktive Stapel:</strong> höchstens drei Hauptstapel, vorrangig die mit jetzt startbaren Karten.</li>
@@ -8505,7 +8599,8 @@ html:has(.catalog-preview) { scroll-behavior: auto; }
 <h3 id="specs--kartensuche" class="core-heading-3" tabindex="-1">Kartensuche <a class="docs-anchor" href="#specs--kartensuche" aria-label="Link zu Kartensuche">#</a></h3>
 <ul>
 <li>Die Suche umfasst alle Felder, Antwortoptionen und Tags; Stapel, deren Pfad passt, werden zusätzlich als Filter angeboten.</li>
-<li>Sie versteht Ankis Suchschreibweise: Status, Reife, Fälligkeit, Flagge, Tag, Stapel, Inhaltsform, Notiztyp, Zeiträume, Lernwerte und einzelne Felder, mit Verneinung, <code>or</code> und Klammern. Dieselben Filter lassen sich ohne Schreibweise zusammenstellen.</li>
+<li>Sie versteht Ankis Suchschreibweise: Status, Reife, Fälligkeit, Flagge, Tag, Stapel, Inhaltsform, Notiztyp, Zeiträume, Lernwerte und einzelne Felder, mit Verneinung, <code>or</code> und Klammern. Dieselben Filter lassen sich ohne Schreibweise zusammenstellen; jede Stellung nennt ihre Wirkung.</li>
+<li>Sich ausschließende Filter bleiben erlaubt; die Suche nennt den Widerspruch.</li>
 <li>Noch nicht unterstützte Anki-Begriffe werden benannt und als Text gesucht. Die vollständige Schreibweise erklärt die App selbst.</li>
 <li>Online- und Offline-Suche liefern dieselben Treffer (<a href="decisions.md#adr-048--kartensuche-lokal-%C3%BCber-den-vollst%C3%A4ndigen-katalog">ADR-048</a>).</li>
 <li>Gespeicherte Suchen gehören zum Konto; relative Begriffe wie „heute“ gelten für den Tag der Anwendung.</li>
@@ -8514,18 +8609,18 @@ html:has(.catalog-preview) { scroll-behavior: auto; }
 <h3 id="specs--massenaktionen-und-pflege" class="core-heading-3" tabindex="-1">Massenaktionen und Pflege <a class="docs-anchor" href="#specs--massenaktionen-und-pflege" aria-label="Link zu Massenaktionen und Pflege">#</a></h3>
 <ul>
 <li>Ausgewählt werden einzelne Karten, Bereiche oder alle Treffer einer Suche.</li>
-<li>Gemeinsame Aktionen: Stapel ändern, Tags hinzufügen und entfernen, Flagge, Markierung, Aussetzen und Reaktivieren, Zurückstellen, Fälligkeit setzen (Datum oder Zeitraum mit zufälligem Tag je Karte), Lernstand zurücksetzen, Varianten erzeugen, Löschen.</li>
+<li>Gemeinsame Aktionen: Stapel ändern, Tags hinzufügen und entfernen, Flagge, Markierung, Aussetzen und Reaktivieren, Zurückstellen, Fälligkeit setzen (Datum oder Zeitraum, zufälliger Tag je Karte), Lernstand zurücksetzen, Varianten erzeugen, Löschen.</li>
 <li>Jede Aktion fragt nach, nennt danach die Zahl der Karten und lässt sich <a href="#specs--r%C3%BCckg%C3%A4ngig-und-manuelle-ereignisse">zurücknehmen</a>.</li>
 <li>Flagge, Aussetzung und Stapel gelten je Karte, Markierung und Tags für den Inhalt.</li>
 <li>Offline wirken Massenaktionen nur, wenn die betroffenen Karten auf dem Gerät liegen; sonst ändern sie nichts und sagen das.</li>
-<li><strong>Suchen und Ersetzen</strong> ersetzt wörtlichen Text in Feldern oder Tags der Auswahl, nie Formatierung oder Links, mit Vorschau. Inhalte, deren Karten sich dadurch ändern würden, bleiben und werden gezählt. Ersetzen ist eine lokale Bearbeitung: Ein Reimport überschreibt den Inhalt nicht mehr, Varianten veralten, der Lernstand bleibt.</li>
+<li><strong>Suchen und Ersetzen</strong> ersetzt wörtlichen Text in Feldern oder Tags der Auswahl, nie Formatierung oder Links, mit Vorschau. Inhalte, deren Karten sich dadurch ändern würden, bleiben und werden gezählt. Ersetzen ist eine lokale Bearbeitung: Kein Reimport überschreibt sie, Varianten veralten, der Lernstand bleibt.</li>
 <li><strong>Duplikate finden</strong> vergleicht Inhalte nach Vorderseite oder einem gewählten Feld, ohne Groß- und Kleinschreibung und mehrfache Leerzeichen, und kann die Gruppen mit einem Tag versehen.</li>
 <li><strong>Tags verwalten</strong> benennt Tags kontoweit um (samt Untertags; ein vorhandener Name führt zusammen) und löscht sie. Tags existieren nur an Inhalten; ungenutzte gibt es nicht.</li>
 </ul>
 <h3 id="specs--gezielt-lernen-und-üben" class="core-heading-3" tabindex="-1">Gezielt lernen und üben <a class="docs-anchor" href="#specs--gezielt-lernen-und-üben" aria-label="Link zu Gezielt lernen und üben">#</a></h3>
 <ul>
 <li>Treffer einer Suche oder eine Auswahl lassen sich unabhängig von Fälligkeit und Tageslimits lernen, ohne ausgesetzte und heute zurückgestellte Karten.</li>
-<li><strong>Vorziehen</strong> (Standard) ist eine normale Sitzung mit gespeicherten Bewertungen; nicht fällige Karten zählen als vorgezogene Wiederholung mit den tatsächlich vergangenen Tagen. Jede Karte folgt den Optionen ihres Stapels; Geschwister werden nicht zurückgestellt, Tageslimits nicht verbraucht.</li>
+<li><strong>Vorziehen</strong> (Standard) ist eine normale Sitzung mit gespeicherten Bewertungen; nicht fällige Karten zählen als vorgezogen mit den tatsächlich vergangenen Tagen. Jede Karte folgt ihrem Stapel; Geschwister werden nicht zurückgestellt, Tageslimits nicht verbraucht.</li>
 <li><strong>Nur üben</strong> ändert nichts: kein Lernstand, kein Termin, kein Bewertungsereignis. <code>Nochmal</code> und <code>Schwer</code> holen die Karte in derselben Übung zurück, <code>Gut</code> und <code>Leicht</code> beenden sie.</li>
 <li>Ein Stapel lässt sich samt Unterstapeln direkt aus der Stapelliste frei üben: alle seine Karten nach denselben Regeln wie <code>Nur üben</code>, in der Reihenfolge des Stapels oder gemischt.</li>
 </ul>
@@ -8553,12 +8648,12 @@ html:has(.catalog-preview) { scroll-behavior: auto; }
 <ul>
 <li>Ein gemeinsamer Filter aus Zeitraum und Umfang (ganze Sammlung oder Stapel, Unterstapel ohne Doppelzählung) steuert alle Bereiche außer der Heatmap.</li>
 <li>Die Bereiche sind Überblick, Lernaktivität, Planung und Kartenbestand, Gedächtnismodell, Antwortverhalten und Stapelvergleich.</li>
-<li>Drei Arten von Werten bleiben unterscheidbar: Historie (was gelernt wurde), Momentaufnahme (heutiger Stand von Reife, Schwierigkeit, Haltbarkeit, Abrufwahrscheinlichkeit) und Ausblick (Rückstand und künftige Fälligkeiten).</li>
-<li>Verteilungen des Kartenbestands (Intervalle, Stabilität, Schwierigkeit, Abrufwahrscheinlichkeit) haben feste Töpfe, die immer vollständig erscheinen; Schwierigkeit, Stabilität und Abrufwahrscheinlichkeit zählen nur bereits gelernte Karten.</li>
+<li>Drei Arten von Werten bleiben unterscheidbar: Historie (Gelerntes), Momentaufnahme (heutige Reife, Schwierigkeit, Haltbarkeit, Abrufwahrscheinlichkeit) und Ausblick (Rückstand, künftige Fälligkeiten).</li>
+<li>Bestandsverteilungen (Intervalle, Stabilität, Schwierigkeit, Abrufwahrscheinlichkeit) haben feste, stets vollständige Töpfe; Schwierigkeit, Stabilität und Abrufwahrscheinlichkeit zählen nur gelernte Karten.</li>
 <li>Ausgewertet wird im Konto; noch nicht synchronisierte Bewertungen fließen sofort ein.</li>
 <li>Die wahre Erinnerungsquote zählt je Karte und Lerntag nur die erste Wiederholung nach mindestens einem Tag Abstand.</li>
 <li>Historische Kategorien folgen Anki und dem Zustand vor der Antwort; der Kartenstatus zählt die Reife.</li>
-<li>Die Lern-Heatmap zeigt Aktivität je Lerntag und den Streak der gewählten Stapel; ein Lerntag zählt ab einer gültigen Bewertung. Künftig zeigt sie je aktiver Karte nur die nächste Fälligkeit; gelernte und erwartete Tage bleiben unterscheidbar.</li>
+<li>Die Lern-Heatmap zeigt Aktivität je Lerntag und den Streak der gewählten Stapel; ein Lerntag zählt ab einer gültigen Bewertung. Künftig zeigt sie je aktiver Karte die nächste Fälligkeit; gelernte und erwartete Tage bleiben unterscheidbar.</li>
 <li>Neben dem Streak nennt sie die Lerntage des gezeigten Zeitraums, gezählt ab der ersten Aktivität, und die morgen fälligen Karten.</li>
 <li>Fehlen Historie, Zeitmessung oder Stichprobe, wird das erklärt; es werden keine Nullwerte erfunden.</li>
 <li><strong>Bewusst nicht:</strong> Ankis klassische Leichtigkeit.</li>
@@ -8595,7 +8690,7 @@ html:has(.catalog-preview) { scroll-behavior: auto; }
 <ul>
 <li>Ein Lernprofil ist eine kontoweite Vorlage für Tageslimits, maximales Intervall, Reihenfolge, Sortierung und Begraben (<a href="decisions.md#adr-018--lernprofile-als-copy-on-apply-vorlagen">ADR-018</a>).</li>
 <li>Feste Vorlagen sind <code>Standard</code> (20 neue Karten, 200 Wiederholungen, höchstens 1.000 Tage Abstand), <code>Intensiv</code> (30, 300, 365) und <code>Entspannt</code> (10, 100, 2.000); eigene Profile kommen dazu.</li>
-<li>Anwenden kopiert die Werte in genau einen Stapel oder in den Standard für neue Stapel. Es gibt keine Vererbung: Ein später geändertes, umbenanntes oder gelöschtes Profil ändert keinen Stapel; eine neuere Fassung lässt sich bewusst erneut anwenden.</li>
+<li>Anwenden kopiert die Werte in genau einen Stapel oder den Standard für neue Stapel, ohne Vererbung: Ändern, Umbenennen oder Löschen des Profils ändert keinen Stapel; eine neuere Fassung lässt sich erneut anwenden.</li>
 <li>Der Standard lässt sich für alle neuen Stapel speichern oder zusätzlich in alle vorhandenen kopieren; Name, Hierarchie, CoRe-Modus, Karten und Verlauf bleiben dabei.</li>
 </ul>
 <h3 id="specs--konto-und-anmeldung" class="core-heading-3" tabindex="-1">Konto und Anmeldung <a class="docs-anchor" href="#specs--konto-und-anmeldung" aria-label="Link zu Konto und Anmeldung">#</a></h3>
@@ -8606,9 +8701,10 @@ html:has(.catalog-preview) { scroll-behavior: auto; }
 </ul>
 <h3 id="specs--hilfe" class="core-heading-3" tabindex="-1">Hilfe <a class="docs-anchor" href="#specs--hilfe" aria-label="Link zu Hilfe">#</a></h3>
 <ul>
-<li>Die Hilfe erklärt in zwei geführten Geschichten, warum CoRe Abrufreize wechselt (Active Recall wird Smarter Recall) und wie der Scheduler plant (Spaced Repetition wird Content Repetition).</li>
+<li>Ein kurzer Einstieg zeigt, wie man mit CoRe lernt und ehrlich bewertet; die Tiefe sind verlinkte Unterseiten mit teilbarer Adresse.</li>
+<li>Zwei geführte Geschichten erklären, warum CoRe Abrufreize wechselt (Active Recall wird Smarter Recall) und wie der Scheduler plant (Spaced Repetition wird Content Repetition).</li>
 <li>Sie erklärt Abrufwahrscheinlichkeit, Haltbarkeit und Schwierigkeit qualitativ, ohne scheinbar exakte Werte, und verspricht keine feste Wiederholungsnummer für Varianten.</li>
-<li>Ein Nachschlageteil erklärt Prüfungssitzung und Kartenverwaltung samt Suchschreibweise.</li>
+<li>Nachschlagethemen erklären Planung, Varianten, Prüfungssitzung und Kartenverwaltung samt Suchschreibweise.</li>
 <li>Die Hilfe verändert weder Karten noch Lernstand; ihre Aussagen stimmen mit Kapitel <a href="#specs--5-lernen">Lernen</a> überein.</li>
 </ul>
 <h3 id="specs--simulator" class="core-heading-3" tabindex="-1">Simulator <a class="docs-anchor" href="#specs--simulator" aria-label="Link zu Simulator">#</a></h3>
@@ -8659,14 +8755,14 @@ html:has(.catalog-preview) { scroll-behavior: auto; }
 </ul>
 <h3 id="specs--speicherplatz" class="core-heading-3" tabindex="-1">Speicherplatz <a class="docs-anchor" href="#specs--speicherplatz" aria-label="Link zu Speicherplatz">#</a></h3>
 <ul>
-<li>Wird der Speicher knapp, entfernt CoRe nur Inhalte und Medien, die im Konto bestätigt und nicht ausdrücklich offline verfügbar gemacht sind. Ausstehende Änderungen, Konflikte, Downloads und gerade gelernte Karten bleiben.</li>
+<li>Wird der Speicher knapp, entfernt CoRe nur im Konto bestätigte Inhalte und Medien, die nicht ausdrücklich offline verfügbar sind. Ausstehende Änderungen, Konflikte, Downloads und gerade gelernte Karten bleiben.</li>
 <li>Die Einstellungen zeigen, ob der Speicher dauerhaft ist und wie viel belegt und frei ist. Ohne dauerhafte Speicherfreigabe kann der Browser Daten entfernen.</li>
 <li>Programmteile werden erst bei absehbarer Nutzung vorgeladen, nie pauschal bei sparsamer oder langsamer Verbindung.</li>
 </ul>
 <h3 id="specs--rückgängig-und-manuelle-ereignisse" class="core-heading-3" tabindex="-1">Rückgängig und manuelle Ereignisse <a class="docs-anchor" href="#specs--rückgängig-und-manuelle-ereignisse" aria-label="Link zu Rückgängig und manuelle Ereignisse">#</a></h3>
 <ul>
-<li>Sofort- und Massenaktionen an Karten lassen sich direkt zurücknehmen. Rückgängig ist eine neue, synchronisierte Änderung: Eine Karte, die sich inzwischen geändert hat, behält ihren neuen Stand, und CoRe nennt das.</li>
-<li>Neu planen, Lernstand zurücksetzen, Lernbremse setzen oder zurücksetzen, Zurückstellen und ihr Rückgängig sind je genau ein manuelles Ereignis im Verlauf. Es zählt nicht als Lernen und kollidiert nie mit Bewertungen oder Inhaltsänderungen anderer Geräte.</li>
+<li>Sofort- und Massenaktionen an Karten lassen sich direkt zurücknehmen. Rückgängig ist eine neue, synchronisierte Änderung: Eine inzwischen geänderte Karte behält ihren neuen Stand, mit Hinweis.</li>
+<li>Neu planen, Lernstand zurücksetzen, Lernbremse setzen oder zurücksetzen, Zurückstellen und ihr Rückgängig sind je ein manuelles Ereignis im Verlauf; es zählt nicht als Lernen und kollidiert nie mit Bewertungen oder Inhaltsänderungen anderer Geräte.</li>
 <li><strong>Bewusst nicht:</strong> ein wiederherstellbarer Versionsverlauf von Karteninhalten.</li>
 </ul>
 <h2 id="specs--11-qualität-und-abnahme" class="core-heading-2" tabindex="-1">11. Qualität und Abnahme <a class="docs-anchor" href="#specs--11-qualität-und-abnahme" aria-label="Link zu 11. Qualität und Abnahme">#</a></h2>
@@ -8690,8 +8786,9 @@ html:has(.catalog-preview) { scroll-behavior: auto; }
 <h3 id="specs--rückmeldungen-und-zuverlässigkeit" class="core-heading-3" tabindex="-1">Rückmeldungen und Zuverlässigkeit <a class="docs-anchor" href="#specs--rückmeldungen-und-zuverlässigkeit" aria-label="Link zu Rückmeldungen und Zuverlässigkeit">#</a></h3>
 <ul>
 <li>Jeder Ablauf, der warten muss, hat einen Lade-, Fehler-, Wiederholen- und Erfolgszustand.</li>
+<li>Fehlt in einem Ablauf mit Schritten eine Pflichtangabe, nennt er sie und führt dorthin, statt stumm zu sperren.</li>
 <li>Fehler, laufende Vorgänge und Ergebnisse mit Folgeaktion bleiben an ihrer Stelle sichtbar; kurze Erfolge erscheinen vorübergehend.</li>
-<li>Ein ungespeicherter Entwurf geht nie stillschweigend verloren: Verlassen, Schließen und Reload fragen nach.</li>
+<li>Ein ungespeicherter Entwurf geht nie stillschweigend verloren: Verlassen, Schließen und Reload fragen nach, soweit er nicht ohnehin erhalten bleibt.</li>
 <li>Ausstehende Änderungen und Konflikte überleben Reload und Browserende.</li>
 <li>Fehler werden nicht durch stille Ersatzwege verdeckt.</li>
 <li>Ein Release braucht die Betriebsfreigabe aus <a href="operations.md"><code>operations.md</code></a>.</li>
@@ -8700,7 +8797,7 @@ html:has(.catalog-preview) { scroll-behavior: auto; }
 <ul>
 <li>Der lokale Stand erscheint vor dem Netz; Sync blockiert nie den Start.</li>
 <li>Eine Bewertung ist gespeichert, bevor die nächste Karte erscheint.</li>
-<li>CoRe zeichnet die Dauer von Start, Aufdecken, Bewertung und Kartensuche nur auf dem Gerät auf, ohne Inhalte. Übertragen wird nichts; Lernende kopieren die Zusammenfassung selbst und geben sie weiter, wenn sie wollen (<a href="decisions.md#adr-050--leistungsdaten-nur-lokal">ADR-050</a>).</li>
+<li>CoRe misst die Dauer von Start, Aufdecken, Bewertung und Kartensuche nur auf dem Gerät, ohne Inhalte, und überträgt nichts; Lernende können die Zusammenfassung selbst weitergeben (<a href="decisions.md#adr-050--leistungsdaten-nur-lokal">ADR-050</a>).</li>
 <li>Zielwerte und Messung stehen unter <a href="test-portfolio.md#performance-gates">Performance-Gates</a>.</li>
 </ul>
 <h3 id="specs--beta-abnahme" class="core-heading-3" tabindex="-1">Beta-Abnahme <a class="docs-anchor" href="#specs--beta-abnahme" aria-label="Link zu Beta-Abnahme">#</a></h3>
@@ -8735,7 +8832,7 @@ html:has(.catalog-preview) { scroll-behavior: auto; }
 <p>Probe: Ein Satz gehört hinein, wenn er nach einer vollständigen Neugestaltung der Oberfläche unverändert gälte und eine Abweichung davon ein fachlicher Fehler wäre.</p>
 <p>Form: Stichpunkte, ein Gedanke je Punkt. Eine neue Regel ersetzt die alte, statt sie zu ergänzen. Wo Funktionen logisch voneinander abhängen, steht ein Schaubild als <code>schaubild</code>-Block direkt beim Text und wird mit ihm geändert (Schreibweise in <a href="index.html#readme--pflege"><code>README.md</code></a>). In Schaubildern sind KI-Schritte blau, Ergebnisse grün markiert.</p>
 <h2 id="specs--codeumfang-der-produktbereiche" class="core-heading-2" tabindex="-1">Codeumfang der Produktbereiche <a class="docs-anchor" href="#specs--codeumfang-der-produktbereiche" aria-label="Link zu Codeumfang der Produktbereiche">#</a></h2>
-<p>CoRe ist eine App mit mehreren Bereichen. Die Tabelle zeigt deren Anteil am Bildschirmcode; gemeinsam genutzte Logik, UI und API stehen separat.</p><div class="docs-code-stats"><dl class="flex min-w-0 flex-col"><dt class="core-status-label text-core-muted">Bildschirmcode</dt><dd class="core-metric mt-0.5 text-core-text">7.209</dd></dl><dl class="flex min-w-0 flex-col"><dt class="core-status-label text-core-muted">Gemeinsamer Code &amp; API</dt><dd class="core-metric mt-0.5 text-core-text">48.188</dd></dl><dl class="flex min-w-0 flex-col"><dt class="core-status-label text-core-muted">Quelldateien</dt><dd class="core-metric mt-0.5 text-core-text">306</dd></dl></div><div class="docs-code-chart"><div class="docs-table-scroll" tabindex="0" role="region" aria-label="Codeumfang je Produktbereich"><table><thead><tr><th>Bereich</th><th>Zeilen</th><th>Anteil</th></tr></thead><tbody><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-status-learned)" aria-hidden="true"></span>Heute</th><td>294</td><td>4,1 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-status-new)" aria-hidden="true"></span>Lernen & Karten</th><td>2.224</td><td>30,9 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-status-in-progress)" aria-hidden="true"></span>Erstellen & Import</th><td>2.010</td><td>27,9 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-action-primary)" aria-hidden="true"></span>Prüfungen</th><td>424</td><td>5,9 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-status-due)" aria-hidden="true"></span>Statistik</th><td>629</td><td>8,7 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-progress-completed)" aria-hidden="true"></span>Konto & Sync</th><td>787</td><td>10,9 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-text-secondary)" aria-hidden="true"></span>Hilfe</th><td>841</td><td>11,7 %</td></tr></tbody></table></div></div><p class="docs-source">Beim Erzeugen gemessen: nichtleere Zeilen in <code>src/</code> und <code>api/</code> (TS/TSX) sowie <code>src/styles.css</code>. Ohne Tests, Typdeklarationen, generierte Datenbanktypen, Dokumentation und Fremdcode. Bereichszuordnung nach Bildschirmdateien in <a href="../src/screens/README.md">der Screen-Landkarte</a>; übriger Code zählt gemeinsam. Enthält Kommentare und misst weder Laufzeit noch Komplexität.</p></article></main></div><script>function initializeDocsViewer() {
+<p>CoRe ist eine App mit mehreren Bereichen. Die Tabelle zeigt deren Anteil am Bildschirmcode; gemeinsam genutzte Logik, UI und API stehen separat.</p><div class="docs-code-stats"><dl class="flex min-w-0 flex-col"><dt class="core-status-label text-core-muted">Bildschirmcode</dt><dd class="core-metric mt-0.5 text-core-text">7.375</dd></dl><dl class="flex min-w-0 flex-col"><dt class="core-status-label text-core-muted">Gemeinsamer Code &amp; API</dt><dd class="core-metric mt-0.5 text-core-text">48.551</dd></dl><dl class="flex min-w-0 flex-col"><dt class="core-status-label text-core-muted">Quelldateien</dt><dd class="core-metric mt-0.5 text-core-text">310</dd></dl></div><div class="docs-code-chart"><div class="docs-table-scroll" tabindex="0" role="region" aria-label="Codeumfang je Produktbereich"><table><thead><tr><th>Bereich</th><th>Zeilen</th><th>Anteil</th></tr></thead><tbody><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-status-learned)" aria-hidden="true"></span>Heute</th><td>294</td><td>4 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-status-new)" aria-hidden="true"></span>Lernen & Karten</th><td>2.244</td><td>30,4 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-status-in-progress)" aria-hidden="true"></span>Erstellen & Import</th><td>2.077</td><td>28,2 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-action-primary)" aria-hidden="true"></span>Prüfungen</th><td>433</td><td>5,9 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-status-due)" aria-hidden="true"></span>Statistik</th><td>629</td><td>8,5 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-progress-completed)" aria-hidden="true"></span>Konto & Sync</th><td>787</td><td>10,7 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-text-secondary)" aria-hidden="true"></span>Hilfe</th><td>911</td><td>12,4 %</td></tr></tbody></table></div></div><p class="docs-source">Beim Erzeugen gemessen: nichtleere Zeilen in <code>src/</code> und <code>api/</code> (TS/TSX) sowie <code>src/styles.css</code>. Ohne Tests, Typdeklarationen, generierte Datenbanktypen, Dokumentation und Fremdcode. Bereichszuordnung nach Bildschirmdateien in <a href="../src/screens/README.md">der Screen-Landkarte</a>; übriger Code zählt gemeinsam. Enthält Kommentare und misst weder Laufzeit noch Komplexität.</p></article></main></div><script>function initializeDocsViewer() {
     const theme = document.getElementById("docs-theme");
     theme.addEventListener("click", () => {
         const dark = document.documentElement.dataset.coreTheme !== "dark";

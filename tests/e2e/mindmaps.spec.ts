@@ -200,7 +200,7 @@ test("Zusammenfassungsquellen und Entwurfsschutz bleiben im neuen Editor erhalte
   await expect(node(panel, "Mein Entwurf")).toBeVisible();
   await page.getByRole("button", { name: "Produktansicht schließen", exact: true }).click();
   await page.getByRole("button", { name: "Mindmaps öffnen", exact: true }).click();
-  await mode(panel, "Hinzufügen"); await panel.getByRole("button", { name: "Aus Zusammenfassung", exact: true }).click(); await panel.getByRole("button", { name: "Mindmap erzeugen", exact: true }).click(); await fit(panel);
+  await panel.getByRole("button", { name: "Aus Zusammenfassung", exact: true }).click(); await panel.getByRole("button", { name: "Mindmap erstellen", exact: true }).click(); await fit(panel);
   await expect(panel.locator(".core-mindmap-hierarchy path")).toHaveCount(6);
   await expect(node(panel, "Lissabon ist die Hauptstadt von Portugal.").locator(".core-mindmap-note-text")).toHaveText("Lissabon ist die Hauptstadt von Portugal.");
 });
@@ -381,7 +381,7 @@ test.describe("Touch-Gesten", () => {
 test("Erzeugte Mindmaps zeigen Blatttexte direkt und speichern Änderungen im normalen Textfeld", async ({ page }) => {
   const panel = await openMindMaps(page);
   await panel.getByRole("button", { name: "Aus Zusammenfassung", exact: true }).click();
-  await panel.getByRole("button", { name: "Mindmap erzeugen", exact: true }).click(); await fit(panel);
+  await panel.getByRole("button", { name: "Mindmap erstellen", exact: true }).click(); await fit(panel);
   const lisbon = node(panel, "Lissabon ist die Hauptstadt von Portugal.");
   await expect(lisbon).toHaveClass(/is-text/);
   await expect(lisbon.locator(".core-mindmap-note-text")).toHaveText("Lissabon ist die Hauptstadt von Portugal.");
@@ -405,18 +405,19 @@ test("Erzeugte Mindmaps zeigen Blatttexte direkt und speichern Änderungen im no
 test("Ohne Zusammenfassung bleibt nur die gemeinsame Erstellung mit kompakter Unterstapelwahl", async ({ page }) => {
   await page.goto("./docs/ui-elements.html?preview=screens");
   await page.getByRole("button", { name: "Mindmaps ohne Zusammenfassung öffnen", exact: true }).click();
-  const panel = page.getByTestId("deck-mindmaps-panel"), generate = panel.getByRole("button", { name: "Zusammenfassung und Mindmap erzeugen", exact: true });
+  const panel = page.getByTestId("deck-mindmaps-panel"), generate = panel.getByRole("button", { name: "Zusammenfassung und Mindmap erstellen", exact: true });
   await expect(panel.getByTestId("mindmap-canvas")).toBeVisible();
   await expect(panel.getByRole("button", { name: "Aus Zusammenfassung", exact: true })).toHaveCount(0);
-  await expect(generate).toHaveCount(1);
+  const toggle = panel.getByRole("button", { name: "Mit KI erstellen", exact: true });
+  await expect(generate).toHaveCount(1); await expect(toggle).toHaveAttribute("aria-expanded", "true");
   const scope = panel.getByRole("checkbox", { name: "Unterstapel einbeziehen", exact: true });
   await expect(scope).toBeChecked(); await scope.uncheck();
-  await panel.getByRole("button", { name: "Abbrechen", exact: true }).click();
-  await expect(scope).toHaveCount(0); await expect(generate).toHaveCount(1); await generate.click();
+  await toggle.click();
+  await expect(scope).toHaveCount(0); await expect(generate).toHaveCount(0); await toggle.click();
   await expect(scope).not.toBeChecked(); await generate.click();
   await expect(panel.getByTestId("mindmap-node").first()).toBeVisible();
   await expect(panel.getByRole("button", { name: "Aus Zusammenfassung", exact: true })).toBeVisible();
-  await expect(generate).toHaveCount(0); await save(panel);
+  await expect(toggle).toHaveCount(0); await save(panel);
   await page.reload(); await page.getByRole("button", { name: "Mindmaps ohne Zusammenfassung öffnen", exact: true }).click();
   await expect(panel.getByRole("button", { name: "Aus Zusammenfassung", exact: true })).toBeVisible();
 });
@@ -455,6 +456,6 @@ test("Mindmap-Werkzeuge und Erstellungsoptionen: visuelle Pflichtmatrix", async 
   await product.evaluate((element) => { (element as HTMLElement).style.zoom = "2"; element.scrollTo({ top: 0 }); });
   if (visualOutput) await page.screenshot({ path: testInfo.outputPath("app-200-percent.png"), animations: "disabled" });
   await product.getByRole("checkbox", { name: "Unterstapel einbeziehen" }).uncheck();
-  await product.getByRole("button", { name: "Zusammenfassung und Mindmap erzeugen", exact: true }).click();
+  await product.getByRole("button", { name: "Zusammenfassung und Mindmap erstellen", exact: true }).click();
   await expect(product.getByTestId("mindmap-node").first()).toBeVisible();
 });

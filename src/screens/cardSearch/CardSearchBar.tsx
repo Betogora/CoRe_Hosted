@@ -3,8 +3,9 @@ import { Layers, ListFilter, Search, X } from "lucide-react";
 import { cardSearchGroupMembers, cardSearchTerms, cardSearchText, withCardSearchTermState, withCardSearchText, withoutCardSearchItem } from "./cardSearchExpression.ts";
 import type { Deck } from "../../coreTypes.ts";
 import { CrossLinkButton } from "../../ui/actionUi.tsx";
+import { StatusMessage } from "../../ui/feedbackUi.tsx";
 import { DeckSelect } from "../../ui/selectUi.tsx";
-import { cardSearchTermLabel, type CardSearchMenuCategory } from "./cardSearchMenu.ts";
+import { cardSearchConflictMessage, cardSearchTermLabel, type CardSearchMenuCategory } from "./cardSearchMenu.ts";
 
 const ALL_DECKS = "__all__";
 
@@ -34,6 +35,7 @@ export function CardSearchBar({ query, onQueryChange, decks, categories, advance
   const deckValue = deckTerm ? deckTerm.slice("did:".length) : ALL_DECKS;
   const deckTerms = terms.filter((term) => /^-?did:/i.test(term) || cardSearchGroupMembers(term)?.members.every((member) => /^did:/i.test(member)));
   const filterCount = terms.filter((term) => term !== deckTerm).length;
+  const conflict = cardSearchConflictMessage(query, categories);
 
   return (
     <div className="grid min-w-0 gap-3">
@@ -83,6 +85,8 @@ export function CardSearchBar({ query, onQueryChange, decks, categories, advance
       </div>
       {hint ? <p id="card-search-hint" className="core-field-hint" data-testid="card-search-unsupported">{hint}</p> : null}
       {children}
+      {/* The open menu shows the contradiction itself. */}
+      {conflict && !advancedOpen ? <StatusMessage tone="warning" announce="polite" data-testid="card-search-conflict">{conflict}</StatusMessage> : null}
       {terms.length || resultCount !== null ? (
         <div className="flex min-w-0 flex-wrap items-center gap-x-1.5 gap-y-2" data-testid="card-search-chips">
           {resultCount !== null ? <p className="mr-1.5 shrink-0 whitespace-nowrap core-body font-semibold text-core-text">{resultCount === 1 ? "1 Karte" : `${resultCount} Karten`}</p> : null}
@@ -106,7 +110,8 @@ export function CardSearchBar({ query, onQueryChange, decks, categories, advance
               })}
             </ul>
           ) : null}
-          {terms.length ? <CrossLinkButton className="ml-1" onSelect={() => onQueryChange(cardSearchText(query))}>Alle zurücksetzen</CrossLinkButton> : null}
+          {/* The open menu resets with its own action. */}
+          {terms.length && !advancedOpen ? <CrossLinkButton className="ml-1" onSelect={() => onQueryChange(cardSearchText(query))}>Alle zurücksetzen</CrossLinkButton> : null}
           {resultAction ? <div className="ml-auto shrink-0">{resultAction}</div> : null}
         </div>
       ) : null}

@@ -1,5 +1,5 @@
 import React from "react";
-import { ArrowDown, ArrowUp, Layers, Search, Star } from "lucide-react";
+import { ArrowDown, ArrowUp, Layers, Pause, Search, Star } from "lucide-react";
 import type { CardTableSort, CardTableSortField } from "../../libraryModel.ts";
 import type { CardCatalogEntry, NoteGraph } from "../../workspaceReplica.ts";
 import { FlagDot } from "../../ui/flagUi.tsx";
@@ -121,6 +121,12 @@ const CardTableRowView = React.memo(function CardTableRowView({ virtualKey, deck
             }}
           />
         ) : null}
+        {suspended ? (
+          <span data-testid="card-row-suspended" className="mt-0.5 flex shrink-0 items-center gap-1.5 core-caption font-semibold text-core-text">
+            <Pause size={16} aria-hidden="true" />
+            <span className="max-sm:sr-only">Ausgesetzt</span>
+          </span>
+        ) : null}
         <button
           type="button"
           data-testid={"deck-card-" + card.id}
@@ -141,7 +147,6 @@ const CardTableRowView = React.memo(function CardTableRowView({ virtualKey, deck
       </td>
       <td className="min-w-0 whitespace-nowrap px-1 py-1 text-right align-middle core-body tabular-nums text-core-secondary">
         {nextStudyLabel}
-        {suspended ? <span className="sr-only"> · Ausgesetzt</span> : null}
       </td>
       <td className="min-w-0 px-1 py-1 text-right align-middle sm:pr-3">
         {/* Flag and mark keep their slots left of the count, so the count closes the column under its right-aligned header. */}

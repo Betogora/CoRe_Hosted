@@ -12,10 +12,13 @@ async function rows(request: PromiseLike<{ data: unknown; error: unknown }>): Pr
   return validateLearningDocumentRows(data);
 }
 
-/** Includes deleted documents so other devices can drop their copies. */
-export function listLearningDocuments(client: SupabaseClient, table: LearningDocumentTable, deckId?: string) {
-  const query = client.from(table).select(COLUMNS);
-  return rows(deckId === undefined ? query : query.eq("deck_id", deckId));
+/** The whole account without `deckIds`; includes deleted documents so other devices can drop their copies. */
+export async function listLearningDocuments(client: SupabaseClient, table: LearningDocumentTable, deckIds?: readonly string[]) {
+  const query = () => client.from(table).select(COLUMNS);
+  if (!deckIds) return rows(query());
+  const batches = [];
+  for (let offset = 0; offset < deckIds.length; offset += 100) batches.push(rows(query().in("deck_id", deckIds.slice(offset, offset + 100))));
+  return (await Promise.all(batches)).flat();
 }
 
 /**

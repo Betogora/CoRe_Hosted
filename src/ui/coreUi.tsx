@@ -1,6 +1,6 @@
 import React, { type HTMLAttributes, type ReactNode } from "react";
 import { createPortal } from "react-dom";
-import { Ban, Check, Minus, Star, X } from "lucide-react";
+import { Check, Circle, Minus, Plus, Star, X } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import type { CoreMode } from "../coreTypes.ts";
 import { ActionButton, CrossLinkButton } from "./actionUi.tsx";
@@ -331,19 +331,20 @@ export function CoreIconSegmentedControl<T extends string>(props: Omit<CoreSegme
 
 export type CoreTriState = "in" | "" | "out";
 
-const TRI_STATE_OPTIONS: ReadonlyArray<{ value: CoreTriState; label: string; icon: LucideIcon }> = [
-  { value: "in", label: "Mit", icon: Check },
-  { value: "", label: "Egal", icon: Minus },
-  { value: "out", label: "Ohne", icon: Ban },
-];
-
-export function CoreTriStateControl({ label, value, onValueChange, disabled = false }: {
+export function CoreTriStateControl({ label, description, value, onValueChange, disabled = false }: {
   label: string;
+  /** Plural phrase, e.g. `überfällige Karten`. */
+  description: string;
   value: CoreTriState;
   onValueChange: (value: CoreTriState) => void;
   disabled?: boolean;
 }) {
-  return <StateRail label={label} options={TRI_STATE_OPTIONS} value={value} railValue={value || "any"} onValueChange={onValueChange} disabled={disabled} />;
+  const options: ReadonlyArray<{ value: CoreTriState; label: string; icon: LucideIcon; iconSize?: number }> = [
+    { value: "in", label: `${label}: nur ${description} zeigen`, icon: Plus },
+    { value: "", label: `${label}: nicht filtern`, icon: Circle, iconSize: 11 },
+    { value: "out", label: `${label}: ${description} ausblenden`, icon: Minus },
+  ];
+  return <StateRail label={label} options={options} value={value} railValue={value || "any"} onValueChange={onValueChange} disabled={disabled} />;
 }
 
 const VERDICT_OPTIONS: ReadonlyArray<{ value: boolean; label: string; icon: LucideIcon }> = [
@@ -357,12 +358,14 @@ export function CoreVerdictControl({ label, value, onValueChange, disabled = fal
   onValueChange: (value: boolean) => void;
   disabled?: boolean;
 }) {
-  return <StateRail label={label} options={VERDICT_OPTIONS} value={value} railValue={value === null ? "none" : value ? "in" : "out"} className="core-verdict-control" onValueChange={onValueChange} disabled={disabled} />;
+  const options = VERDICT_OPTIONS.map((option) => ({ ...option, tooltip: `${option.label}: ${label}` }));
+  return <StateRail label={label} options={options} value={value} railValue={value === null ? "none" : value ? "in" : "out"} className="core-verdict-control" onValueChange={onValueChange} disabled={disabled} />;
 }
 
 function StateRail<T>({ label, options, value, railValue, className = "", onValueChange, disabled }: {
   label: string;
-  options: ReadonlyArray<{ value: T; label: string; icon: LucideIcon }>;
+  /** Without `tooltip`, the label shows on hover and focus. */
+  options: ReadonlyArray<{ value: T; label: string; tooltip?: string; icon: LucideIcon; iconSize?: number }>;
   value: T | null;
   railValue: string;
   className?: string;
@@ -374,9 +377,9 @@ function StateRail<T>({ label, options, value, railValue, className = "", onValu
     <div role="radiogroup" aria-label={label} className={`core-segmented-control core-tri-state-control ${className}`.trim()} data-tri-value={railValue} style={{ "--core-tri-index": Math.max(index, 0) } as React.CSSProperties}>
       <span aria-hidden="true" className="core-tri-state-indicator" />
       {options.map((option) => (
-        <CoreTooltip key={option.label} label={`${option.label}: ${label}`}>
+        <CoreTooltip key={option.label} label={option.tooltip ?? option.label}>
           <button type="button" role="radio" aria-checked={value === option.value} aria-label={option.label} disabled={disabled} className="core-tri-state-option" onClick={() => onValueChange(option.value)}>
-            <option.icon size={16} strokeWidth={2.25} aria-hidden="true" />
+            <option.icon size={option.iconSize ?? 16} strokeWidth={1.5} absoluteStrokeWidth aria-hidden="true" />
           </button>
         </CoreTooltip>
       ))}
