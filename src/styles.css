@@ -2430,7 +2430,7 @@ body:has([aria-modal="true"]) .core-success-toast {
   width: 1rem;
   height: 1rem;
 }
-.core-rich-text-tool[aria-pressed="true"] { background: var(--core-action-soft); color: var(--core-action-primary); }
+.core-rich-text-tool[aria-pressed="true"], .core-mindmap-tool[aria-pressed="true"] { background: var(--core-action-soft); color: var(--core-action-primary); }
 
 /* ── Features: classes of single views in src/screens ── */
 
@@ -3591,6 +3591,7 @@ button.core-steps-step {
 .core-summary-preview { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: var(--core-space-xl); }
 .core-summary-preview:hover { border-color: var(--core-border-interactive); background-color: var(--core-surface-hover); }
 .core-summary-excerpt { max-height: 4lh; overflow: hidden; overflow-wrap: anywhere; white-space: pre-line; }
+.core-summary-excerpt[data-clipped] { mask-image: linear-gradient(#000 calc(100% - 1lh), rgb(0 0 0 / 0.15)); }
 .core-summary-preview-action { flex-shrink: 0; align-self: end; }
 /* Delete sits on the card's top corner; it stays a sibling because the card itself is a button. */
 .core-summary-delete { position: absolute; top: calc(1.5rem + (var(--core-leading-heading-3) - var(--core-button-height)) / 2); right: var(--core-space-md); }
@@ -3613,10 +3614,6 @@ button.core-steps-step {
 .core-mindmap-panel { container: core-mindmap / inline-size; }
 .core-mindmap-heading { min-width: 0; }
 .core-mindmap-primary-tools { display: flex; align-items: center; flex-wrap: wrap; gap: var(--core-space-sm); min-width: 0; }
-.core-mindmap-primary-tools > [role="group"] { min-width: 0; width: fit-content; max-width: 100%; flex: 0 1 auto; height: auto; overflow-x: auto; scrollbar-width: none; }
-.core-mindmap-primary-tools > [role="group"]::-webkit-scrollbar { display: none; }
-.core-mindmap-primary-tools .core-segmented-control-option { min-height: var(--core-control-height); flex-basis: var(--core-control-height); }
-.core-mindmap-primary-tools .core-segmented-control-option[aria-pressed="true"] { flex: 1 0 auto; }
 .core-mindmap-tools { display: flex; align-items: center; flex-wrap: wrap; gap: var(--core-space-sm); padding: var(--core-space-sm); min-width: 0; }
 .core-mindmap-compact-field { width: 160px; max-width: 100%; }
 .core-mindmap-text-toolbar:empty { display: none; }

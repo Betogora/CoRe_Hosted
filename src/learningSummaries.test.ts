@@ -128,7 +128,7 @@ test("Lesezeit stammt aus dem tatsächlichen Inhalt statt der gewählten Ziellä
   assert.equal(getSummaryReadingMinutes("<p>Ein kurzer Text.</p>"), 1);
   assert.equal(getSummaryReadingMinutes(`<p>${"Wort ".repeat(201)}</p>`), 2);
 
-  assert.equal(summaryDescription({ ...createLearningSummary("deck", "T", createSummarySettings()), html: "<p>Ein kurzer Text.</p>" }), "Länge:\u00a0Mittel · Detailgrad:\u00a0Ausgewogen · 1\u00a0Min.\u00a0Lesezeit");
+  assert.equal(summaryDescription({ ...createLearningSummary("deck", "T", createSummarySettings()), html: "<p>Ein kurzer Text.</p>" }), "Länge:\u00a0Mittel ·\u00a0Detailgrad:\u00a0Ausgewogen ·\u00a01\u00a0Min.\u00a0Lesezeit");
 });
 
 test("Seiten und Zeichnungen bleiben gespeichert; Textprojektion und alte Fassungen bleiben lesbar", async () => {
