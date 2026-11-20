@@ -52,7 +52,6 @@ function HelpTopicLink({ topic, onSelectTopic, className, children }: { topic: H
   );
 }
 
-/** Keeps the chevron on the line of the title's last word, so a wrapped link still ends in its arrow. */
 function TopicLinkLabel({ title }: { title: string }) {
   const lastSpace = title.lastIndexOf(" ");
   return (

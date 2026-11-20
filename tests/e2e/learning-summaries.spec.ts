@@ -56,7 +56,7 @@ test("KI-Einstellungen und Quellen liefern einen Entwurf; erst Verlassen speiche
   const editor = panel.getByRole("textbox", { name: "Zusammenfassung bearbeiten", exact: true });
   await expect(editor).toContainText("ATP ist ein Energieträger");
   await expect(panel).toContainText("Ungespeicherte Änderungen");
-  await expect(panel).toContainText("Kurz · Detailliert");
+  await expect(panel).toContainText("Länge: Kurz · Detailgrad: Detailliert");
   await editor.fill("Mein bearbeitetes KI-Ergebnis.");
   await saveOnLeave(page, panel);
   await page.reload();

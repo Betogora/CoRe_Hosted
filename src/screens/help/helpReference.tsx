@@ -49,7 +49,6 @@ export function RatingGuidePanel() {
   const chain = React.useMemo(defaultGoodChain, []);
   const days = `${chain.days.slice(0, -1).join(", ")} und ${chain.days.at(-1)} Tagen`;
   return (
-    // Same measure as the introduction's text column above.
     <section className="min-w-0 max-w-2xl lg:w-[calc(50%-1.5rem)]" aria-labelledby="help-rating-heading" data-testid="help-rating-guide">
       <h3 id="help-rating-heading" className="core-heading-2 text-core-text">So bewertest du</h3>
       <p className="mt-4 text-pretty core-body-large leading-relaxed text-core-secondary">

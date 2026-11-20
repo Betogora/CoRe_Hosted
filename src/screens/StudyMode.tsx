@@ -133,6 +133,8 @@ export function StudyMode({ shortcutsSuspended = false, deck, decks, notes, answ
   /** Answers and suspensions that can be taken back, newest last, each with the session as it was before it. */
   const undoStackRef = React.useRef<Array<{ key: string; session: DailyReviewSessionState; progress: typeof sessionDailyProgress }
     & ({ review: { result: ReviewAnswerResult; previous: Card } } | { suspended: { deckId: string; cardId: string } })>>([]);
+  // The undo toast outlives the session; leaving ends what it may take back.
+  React.useEffect(() => () => { undoStackRef.current = []; }, []);
   const effectiveReviewSession = reviewSession ?? createDailyReviewSessionState(queue.items);
   // The card on screen until it is answered or leaves the session; loaded cards must not replace it mid-card.
   const shownKeyRef = React.useRef<string | null>(null);

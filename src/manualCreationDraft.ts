@@ -25,9 +25,10 @@ type DraftStorage = Pick<Storage, "getItem" | "setItem" | "removeItem" | "key" |
 
 const SCHEMA_VERSION = 1;
 const KEY_PREFIX = "core.manualDraft.v1.";
-const KINDS: readonly string[] = ["basic", "basic-reversed", "cloze", "single-choice", "multiple-choice"];
-const ROLES: readonly string[] = ["prompt", "hint", "extra", "source"];
-const MODES: readonly string[] = ["hide-all-guess-one", "hide-one-guess-one"];
+// Exhaustive per type, so a new kind, role or mode cannot silently discard stored drafts.
+const KINDS: readonly string[] = Object.keys({ basic: 1, "basic-reversed": 1, cloze: 1, "single-choice": 1, "multiple-choice": 1 } satisfies Record<ManualContentKind, 1>);
+const ROLES: readonly string[] = Object.keys({ prompt: 1, hint: 1, extra: 1, source: 1 } satisfies Record<AddableFieldRole, 1>);
+const MODES: readonly string[] = Object.keys({ "hide-all-guess-one": 1, "hide-one-guess-one": 1 } satisfies Record<OcclusionMode, 1>);
 const IMAGE_PATTERN = /<img\b[^>]*\bsrc\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+))[^>]*>/gi;
 const SHA1_PATTERN = /^[a-f0-9]{40}$/;
 
@@ -74,14 +75,17 @@ function withoutLostImages(html: string, available: ReadonlySet<string>) {
   });
 }
 
-export function storeManualDraft(accountId: string, snapshot: ManualDraftSnapshot, images: readonly ManualImageAttachment[], storage = sessionDraftStorage()) {
-  if (!accountId) return;
+/** `false` when the tab could not keep the draft, so leaving would lose it. */
+export function storeManualDraft(accountId: string, snapshot: ManualDraftSnapshot, images: readonly ManualImageAttachment[], storage = sessionDraftStorage()): boolean {
+  if (!accountId || !storage) return false;
   heldImages = { accountId, images: [...images] };
   try {
-    storage?.setItem(`${KEY_PREFIX}${accountId}`, JSON.stringify({ version: SCHEMA_VERSION, accountId, snapshot }));
+    storage.setItem(`${KEY_PREFIX}${accountId}`, JSON.stringify({ version: SCHEMA_VERSION, accountId, snapshot }));
+    return true;
   } catch {
     // Full storage would otherwise restore an older draft; without access there is nothing to remove.
-    try { storage?.removeItem(`${KEY_PREFIX}${accountId}`); } catch { /* blocked storage */ }
+    try { storage.removeItem(`${KEY_PREFIX}${accountId}`); } catch { /* blocked storage */ }
+    return false;
   }
 }
 

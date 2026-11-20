@@ -77,16 +77,16 @@ test("Entwürfe anderer Konten, alter Schemata und unlesbare Werte werden verwor
 
 test("ohne zugänglichen Speicher bleibt der Entwurf nur auf der Seite", () => {
   const blocked = { length: 0, key: () => null, getItem: () => null, removeItem: () => undefined, setItem: () => { throw new Error("QuotaExceededError"); } };
-  assert.doesNotThrow(() => storeManualDraft("konto-a", snapshot(), [], blocked));
+  assert.equal(storeManualDraft("konto-a", snapshot(), [], blocked), false, "der Bereichswechsel muss dann nachfragen");
   assert.equal(restoreManualDraft("konto-a", null), null);
   clearManualDraft("konto-a", null);
 });
 
 test("ein voller Speicher stellt keinen älteren Entwurf wieder her", () => {
   const storage = new MemoryStorage();
-  storeManualDraft("konto-a", snapshot(), [], storage);
+  assert.equal(storeManualDraft("konto-a", snapshot(), [], storage), true);
   const full = Object.assign(storage, { setItem: () => { throw new Error("QuotaExceededError"); } });
-  storeManualDraft("konto-a", snapshot({ deckName: "Neuer Stand" }), [], full);
+  assert.equal(storeManualDraft("konto-a", snapshot({ deckName: "Neuer Stand" }), [], full), false);
   assert.equal(restoreManualDraft("konto-a", storage), null);
   clearManualDraft("konto-a", storage);
 });

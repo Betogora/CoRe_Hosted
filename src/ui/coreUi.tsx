@@ -341,7 +341,6 @@ export function CoreTriStateControl({ label, description, value, onValueChange, 
 }) {
   const options: ReadonlyArray<{ value: CoreTriState; label: string; icon: LucideIcon; iconSize?: number }> = [
     { value: "in", label: `${label}: nur ${description} zeigen`, icon: Plus },
-    // A ring as wide as plus and minus.
     { value: "", label: `${label}: nicht filtern`, icon: Circle, iconSize: 11 },
     { value: "out", label: `${label}: ${description} ausblenden`, icon: Minus },
   ];

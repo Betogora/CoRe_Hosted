@@ -221,20 +221,22 @@ export function ManualCreationPanel({
     onFinish({ createdCount: batchState.createdCount, targetDeckId: batchState.targetDeckId });
   };
 
-  // The tab keeps the draft, so only a running save holds navigation.
+  const [draftKept, setDraftKept] = React.useState(true);
+  // The tab keeps the draft, so only a running save or a draft the tab could not keep holds navigation.
   React.useEffect(() => {
-    onDraftStateChange(false, isSaving ? focusSaveProgress : null, isSaving);
+    onDraftStateChange(draftDirty && !draftKept, isSaving ? focusSaveProgress : null, isSaving);
     return () => onDraftStateChange(false, null, false);
-  }, [focusSaveProgress, isSaving, onDraftStateChange]);
+  }, [draftDirty, draftKept, focusSaveProgress, isSaving, onDraftStateChange]);
 
   // A running save holds the stored draft back: once the card is saved, a reload must not bring the draft back.
   React.useEffect(() => {
     if (!draftDirty) {
       clearManualDraft(accountId);
+      setDraftKept(true);
       return;
     }
     if (isSaving) return;
-    storeManualDraft(accountId, {
+    setDraftKept(storeManualDraft(accountId, {
       targetDeckId: useNewDeck ? "" : selectedDeckId,
       useNewDeck,
       deckName,
@@ -243,7 +245,7 @@ export function ManualCreationPanel({
       additionalFields,
       typeIn,
       occlusion,
-    }, Array.from(imageDraftsRef.current.values(), (image) => image.attachment));
+    }, Array.from(imageDraftsRef.current.values(), (image) => image.attachment)));
   }, [accountId, additionalFields, currentDraft, deckName, draftDirty, imageRegistryVersion, isSaving, occlusion, pinnedFields, selectedDeckId, typeIn, useNewDeck]);
 
   React.useEffect(() => {

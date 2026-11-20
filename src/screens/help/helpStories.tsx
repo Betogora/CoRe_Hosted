@@ -445,7 +445,6 @@ function ActiveRecallVisual({ activeIndex }: { activeIndex: number }) {
   );
 }
 
-/** Without its own heading; the page header carries it. */
 export function ActiveRecallStory() {
   const { activeIndex, containerRef, setActiveIndex } = useScrollStory(ACTIVE_RECALL_STEPS.length);
 
@@ -644,7 +643,6 @@ function MemoryCurveGraphic({ selection, onSelectionChange }: { selection: Explo
   );
 }
 
-/** Without its own heading; the page header carries it. */
 export function SpacedRepetitionStory() {
   const { activeIndex, containerRef, setActiveIndex } = useScrollStory(SPACED_REPETITION_STEPS.length);
   const activeStep = SPACED_REPETITION_STEPS[activeIndex];
