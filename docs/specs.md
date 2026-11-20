@@ -316,7 +316,7 @@ Karten entstehen ohne Dokumentquelle; mehrere Karten nacheinander sind der Norma
 - Neben dem Entwurf lässt sich eine Quelle (PDF, Text, Markdown) öffnen, um Text zu übernehmen; sie wird nicht gespeichert.
 - Speichern ist ein einzelner, exklusiver Versuch: erst Bilder auf dem Gerät, dann die Karte auf dem Gerät, dann der Upload. Mehrfaches Auslösen erzeugt höchstens eine Karte.
 - Scheitert etwas vor der lokalen Kartenspeicherung, bleibt der Entwurf. Danach gilt die Karte als gespeichert, und Upload und Sync werden nachgeholt.
-- Der Entwurf überdauert im Browser-Tab Bereichswechsel und Neuladen, nie im Konto; Bilder überstehen kein Neuladen (mit Hinweis). Verworfen wird er nur ausdrücklich nach Rückfrage.
+- Der Entwurf überdauert im Browser-Tab Bereichswechsel und Neuladen, nie im Konto; Bilder kein Neuladen (mit Hinweis). Verworfen wird er nur nach Rückfrage.
 - **Bewusst nicht:** automatisches Speichern von Entwürfen im Konto.
 
 ### Bildverdeckung
@@ -756,7 +756,7 @@ Fassung | im Konto, mehrere je Stapel
 - Jede Fassung nennt Titel, Umfang, Detailgrad und die aus dem tatsächlichen Text berechnete Lesezeit.
 - Fassungen liegen im Konto und erscheinen auf jedem Gerät ([ADR-043](decisions.md#adr-043--zusammenfassungen-und-mindmaps-als-versionierte-online-dokumente)).
 - Löschen entfernt eine Fassung auf allen Geräten; daraus erzeugte Mindmap-Karten bleiben.
-- Unter den eigenen Fassungen zeigt ein Stapel die seiner Unterstapel, gruppiert; sie lassen sich dort bearbeiten und löschen und bleiben ihrem Stapel. Neue Fassungen entstehen nur für den geöffneten Stapel.
+- Unter den eigenen Fassungen zeigt ein Stapel die seiner Unterstapel, gruppiert, bearbeitbar und löschbar; sie bleiben ihrem Stapel. Neue entstehen nur im geöffneten Stapel.
 
 ### Zusammenfassung bearbeiten und speichern
 
@@ -816,8 +816,8 @@ Fassung | im Konto, mehrere je Stapel
 ### Kartensuche
 
 - Die Suche umfasst alle Felder, Antwortoptionen und Tags; Stapel, deren Pfad passt, werden zusätzlich als Filter angeboten.
-- Sie versteht Ankis Suchschreibweise: Status, Reife, Fälligkeit, Flagge, Tag, Stapel, Inhaltsform, Notiztyp, Zeiträume, Lernwerte und einzelne Felder, mit Verneinung, `or` und Klammern. Dieselben Filter lassen sich ohne Schreibweise zusammenstellen; jede Stellung nennt, was sie mit den Karten macht.
-- Filter, die sich logisch ausschließen, bleiben erlaubt; die Suche nennt dann die widersprüchlichen Filter.
+- Sie versteht Ankis Suchschreibweise: Status, Reife, Fälligkeit, Flagge, Tag, Stapel, Inhaltsform, Notiztyp, Zeiträume, Lernwerte und einzelne Felder, mit Verneinung, `or` und Klammern. Dieselben Filter lassen sich ohne Schreibweise zusammenstellen; jede Stellung nennt ihre Wirkung.
+- Sich logisch ausschließende Filter bleiben erlaubt; die Suche nennt den Widerspruch.
 - Noch nicht unterstützte Anki-Begriffe werden benannt und als Text gesucht. Die vollständige Schreibweise erklärt die App selbst.
 - Online- und Offline-Suche liefern dieselben Treffer ([ADR-048](decisions.md#adr-048--kartensuche-lokal-über-den-vollständigen-katalog)).
 - Gespeicherte Suchen gehören zum Konto; relative Begriffe wie „heute“ gelten für den Tag der Anwendung.
@@ -907,7 +907,7 @@ Jede Einstellung gilt für genau einen Bereich.
 
 ### Hilfe
 
-- Ein kurzer Einstieg zeigt, wie man mit CoRe lernt und ehrlich bewertet, und verlinkt die Tiefe als Unterseiten mit eigener, teilbarer Adresse.
+- Ein kurzer Einstieg zeigt, wie man mit CoRe lernt und ehrlich bewertet; die Tiefe sind verlinkte Unterseiten mit teilbarer Adresse.
 - Zwei geführte Geschichten erklären, warum CoRe Abrufreize wechselt (Active Recall wird Smarter Recall) und wie der Scheduler plant (Spaced Repetition wird Content Repetition).
 - Sie erklärt Abrufwahrscheinlichkeit, Haltbarkeit und Schwierigkeit qualitativ, ohne scheinbar exakte Werte, und verspricht keine feste Wiederholungsnummer für Varianten.
 - Nachschlagethemen erklären Planung, Varianten, Prüfungssitzung und Kartenverwaltung samt Suchschreibweise.
@@ -1010,6 +1010,7 @@ Gruppe:
 ### Rückmeldungen und Zuverlässigkeit
 
 - Jeder Ablauf, der warten muss, hat einen Lade-, Fehler-, Wiederholen- und Erfolgszustand.
+- Fehlt in einem Ablauf mit Schritten eine Pflichtangabe, nennt er sie und führt dorthin, statt stumm zu sperren.
 - Fehler, laufende Vorgänge und Ergebnisse mit Folgeaktion bleiben an ihrer Stelle sichtbar; kurze Erfolge erscheinen vorübergehend.
 - Ein ungespeicherter Entwurf geht nie stillschweigend verloren: Verlassen, Schließen und Reload fragen nach, soweit er nicht ohnehin erhalten bleibt.
 - Ausstehende Änderungen und Konflikte überleben Reload und Browserende.
