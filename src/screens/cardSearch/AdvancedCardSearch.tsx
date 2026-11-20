@@ -25,22 +25,22 @@ const SYNTAX: ReadonlyArray<[string, string]> = [
   ["-kopf", "Schließt den Begriff aus"],
   ["\"vena cava\"  deck:\"Anatomie 1\"", "Genau diese Wortfolge; Anführungszeichen auch für Begriffe mit Leerzeichen"],
   ["flag:1 or flag:2", "Einer der beiden genügt; `or` bindet schwächer als das Nebeneinander"],
-  ["(herz or lunge) -(tag:a or tag:b)", "Klammern fassen zusammen; `-` davor schließt die ganze Gruppe aus"],
-  ["ursprung:scaleni", "Nur im Feld „Ursprung“, Leerzeichen im Feldnamen als `_`"],
-  ["did:3f2a9c1e-…", "Stapel samt Unterstapeln über seine ID; setzt der Stapelfilter"],
+  ["(herz or lunge)  -(tag:a or tag:b)", "Klammern fassen zusammen; ein Minus `-` davor schließt die ganze Gruppe aus"],
+  ["ursprung:scaleni", "Nur im Feld „Ursprung“, Leerzeichen im Feldnamen als Unterstrich `_`"],
+  ["did:<Stapel-ID>", "Stapel samt Unterstapeln über seine ID; setzt der Stapelfilter"],
   ["tag:anatomie", "Tag samt Untertags; `tag:none` ohne Tags"],
   ["flag:1", "Flagge 1 bis 7; `flag:0` ohne Flagge"],
   ["is:new  is:learn  is:young  is:mature", "Lernstand"],
   ["is:due  is:suspended", "Heute fällig, ausgesetzt"],
   ["prop:due<0  prop:due=1", "Überfällig, morgen fällig (Tage ab heute)"],
   ["tag:leech  tag:marked  has:variant", "Lernbremse, markiert, mit Variante"],
-  ["deck:Biologie  deck:*zell*", "Stapel nach Pfad (`A::B`) samt Unterstapeln; `*` beliebig, `_` ein Zeichen"],
+  ["deck:Biologie  deck:*zell*", "Stapel nach Pfad (`A::B`) samt Unterstapeln; `*` beliebig, Unterstrich `_` ein Zeichen"],
   ["rated:7  rated:7:1", "In den letzten 7 Tagen gelernt, davon mit Nochmal (2 Schwer, 3 Gut, 4 Leicht)"],
   ["added:1  edited:1  introduced:1  resched:1", "Heute hinzugefügt, bearbeitet, erstmals gelernt, neu geplant"],
   ["prop:ivl>=21  prop:d>7  prop:reps=0  prop:lapses>3", "Intervall in Tagen, Schwierigkeit 1 bis 10, Wiederholungen, Fehler; auch `<`, `<=`, `=`, `!=`"],
   ["prop:s>=90", "Haltbarkeit in Tagen; zählt ab der nächsten Antwort einer Karte"],
   ["is:reveal  is:choice  is:cloze  is:occlusion", "Frage–Antwort, Auswahl, Lückentext, Bildverdeckung"],
-  ["note:Basic  has:outdated", "Anki-Notiztyp (wie `deck:` mit `*` und `_`), Karten mit veralteter Variante"],
+  ["note:Basic  has:outdated", "Anki-Notiztyp (wie `deck:` mit `*` und Unterstrich `_`), Karten mit veralteter Variante"],
   ["card:2  is:buried", "Zweite Abfrage (Vorlage, Lücke oder Maske), heute manuell zurückgestellt"],
 ];
 
@@ -52,7 +52,7 @@ type WrittenCategory = keyof typeof WRITTEN_KINDS;
 function TermRow({ item, query, onQueryChange, siblings }: { item: CardSearchMenuItem; query: string; onQueryChange: (query: string) => void; siblings?: readonly string[] }) {
   const state = cardSearchTermState(query, item.term);
   return (
-    <li className={`core-card-search-term grid min-h-10 min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-3 border-b border-core-border px-2 py-0.5 last:border-b-0 sm:grid-cols-[minmax(0,1fr)_auto_auto] ${state ? "bg-core-subtle" : ""}`} style={item.depth ? { paddingLeft: 8 + item.depth * 20 } : undefined}>
+    <li className={`core-card-search-term grid min-h-10 min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-3 border-b border-core-border py-0.5 pl-2 last:border-b-0 sm:grid-cols-[minmax(0,1fr)_auto_auto] ${state ? "bg-core-subtle" : ""}`} style={item.depth ? { paddingLeft: 8 + item.depth * 20 } : undefined}>
       <span className={`flex min-w-0 items-center gap-2 core-body ${state === "in" ? "font-semibold text-core-text" : state === "out" ? "text-core-danger-text" : "text-core-text"}`}>
         {item.flag ? <FlagDot flag={item.flag} size={10} /> : null}
         <span className="grid min-w-0">
@@ -95,7 +95,7 @@ function TermForm({ terms, label, query, onQueryChange, term, children }: {
         <ActionButton type="submit" variant="secondary" icon={Plus} disabled={!term}>Hinzufügen</ActionButton>
       </form>
       {terms.length ? (
-        <ul className="-mx-2 grid min-w-0">
+        <ul className="-ml-2 grid min-w-0">
           {terms.map((written) => {
             const bare = written.replace(/^-/, "");
             return <TermRow key={bare} item={{ label: label(bare), description: "passende Karten", term: bare }} query={query} onQueryChange={onQueryChange} />;
@@ -289,8 +289,8 @@ function SyntaxHelp() {
         {/* Below 640 px term and meaning stack, so no term breaks inside a token. */}
         <dl className="mt-2 grid min-w-0 core-body">
           {SYNTAX.map(([term, meaning]) => (
-            <div key={term} className="grid min-w-0 gap-1 border-t border-core-border py-2 sm:grid-cols-[minmax(0,2fr)_minmax(0,3fr)] sm:gap-4">
-              <dt><code className="break-words font-mono text-core-text">{term}</code></dt>
+            <div key={term} className="grid min-w-0 gap-1 border-t border-core-border py-2 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] sm:gap-4">
+              <dt><code className="font-mono text-core-text">{term.split("  ").map((part, index) => <React.Fragment key={part}>{index ? " " : null}<span className="whitespace-nowrap">{part}</span></React.Fragment>)}</code></dt>
               <dd className="text-core-secondary">{meaning.split("`").map((part, index) => index % 2 ? <code key={index} className="rounded-inset bg-core-subtle px-1 font-mono text-core-text">{part}</code> : part)}</dd>
             </div>
           ))}
@@ -360,7 +360,7 @@ export function AdvancedCardSearch({ id, query, onQueryChange, categories, resul
             }} />
           </CoreTooltip>
         </div>
-        <ActionButton type="button" variant="secondary" icon={RotateCcw} disabled={!expression} className="max-md:hidden" onClick={() => onQueryChange("")}>Zurücksetzen</ActionButton>
+        {expression ? <ActionButton type="button" variant="secondary" icon={RotateCcw} className="max-md:hidden" onClick={() => onQueryChange("")}>Zurücksetzen</ActionButton> : null}
       </div>
       {conflict ? <StatusMessage tone="warning" announce="polite" data-testid="card-search-conflict">{conflict}</StatusMessage> : null}
       <div className="grid min-w-0 items-start gap-5 md:grid-cols-[13rem_minmax(0,1fr)]">
@@ -402,15 +402,15 @@ export function AdvancedCardSearch({ id, query, onQueryChange, categories, resul
             : active.id === "zeitraum" ? <SinceTerms terms={writtenOf(active)} query={query} onQueryChange={onQueryChange} categories={categories} />
             : active.id === "werte" ? <PropTerms terms={writtenOf(active)} query={query} onQueryChange={onQueryChange} categories={categories} />
               : active.items.length ? (
-                <ul className={`-mx-2 grid min-w-0 ${active.id === "stapel" || active.id === "tags" || active.id === "inhalt" ? "max-h-[28rem] overflow-y-auto pr-1" : ""}`}>
+                <ul className={`-ml-2 grid min-w-0 ${active.id === "stapel" || active.id === "tags" || active.id === "inhalt" ? "max-h-[28rem] overflow-y-auto pr-1" : ""}`}>
                   {active.items.map((item) => <TermRow key={item.term} item={item} query={query} onQueryChange={onQueryChange} siblings={activeTerms} />)}
                 </ul>
               ) : <p className="core-body text-core-muted">Keine Einträge</p>}
         </div>
       </div>
       <div className="fixed inset-x-0 bottom-0 flex gap-3 border-t border-core-border bg-core-surface px-4 py-3 md:hidden">
-        <IconButton type="button" label="Zurücksetzen" icon={RotateCcw} disabled={!expression} onClick={() => onQueryChange("")} />
-        <ActionButton type="button" variant="primary" className="min-w-0 flex-1" onClick={onClose}>
+        {expression ? <IconButton type="button" label="Zurücksetzen" icon={RotateCcw} onClick={() => onQueryChange("")} /> : null}
+        <ActionButton type="button" variant={resultCount === 0 ? "secondary" : "primary"} className="min-w-0 flex-1" onClick={onClose}>
           {resultCount === null ? (expression ? "Karten anzeigen" : "Alle Karten anzeigen") : resultCount === 1 ? "1 Karte anzeigen" : `${resultCount} Karten anzeigen`}
         </ActionButton>
       </div>

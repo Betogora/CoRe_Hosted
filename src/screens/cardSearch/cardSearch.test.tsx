@@ -79,6 +79,7 @@ test("eine neue gespeicherte Suche heißt wie ihre Filter und ihr Text", () => {
   assert.match(markup, /disabled=""[^>]*aria-label="Suche speichern"/, "ein leerer Ausdruck lässt sich nicht speichern");
   assert.match(markup, />Keine Filter</);
   assert.match(markup, /Alle Karten anzeigen/, "ohne Suchausdruck zeigt der Knopf alle Karten");
+  assert.doesNotMatch(markup, />Zurücksetzen<|aria-label="Zurücksetzen"/, "ohne Suchausdruck gibt es nichts zurückzusetzen");
 });
 
 test("eine reine Textsuche nennt ihre Trefferzahl ohne Filterchips", () => {
