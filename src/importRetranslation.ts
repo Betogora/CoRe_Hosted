@@ -11,10 +11,6 @@ type RetranslationPlan =
 
 const hasStudy = (card: Card) => card.study.reps > 0 || card.study.state !== "new";
 
-/**
- * K5.4: re-translates one unedited import with the current translator. Cards keep their study state; a new prompt
- * becomes a new card. If a card with study state would drop, the content stays unchanged and is reported as kept.
- */
 export function planRetranslation(note: Note, cards: Card[], source: NoteTypeSource, noteSource: NoteSource, updatedAt = new Date().toISOString()): RetranslationPlan {
   const translated = retranslateNoteContent(source, noteSource.fields, note.content.tags);
   if (!translated) return { status: "kept" };
@@ -53,11 +49,6 @@ export function planRetranslation(note: Note, cards: Card[], source: NoteTypeSou
 
 const MARKER_KEY = "retranslatedTranslatorVersions";
 
-/**
- * Runs once per translator release and device in the background: pages through the unedited imports of older
- * translator versions and writes only changed contents, which then sync like any edit. Returns the number of
- * updated contents.
- */
 export async function runAccountRetranslation(client: CloudClient, repository: Pick<IndexedDbCoreRepository, "readSyncMetadata" | "writeSyncMetadata" | "saveNoteGraphs" | "loadNotes">): Promise<number> {
   const marker = JSON.stringify(TRANSLATOR_VERSIONS);
   if (await repository.readSyncMetadata(MARKER_KEY) === marker) return 0;

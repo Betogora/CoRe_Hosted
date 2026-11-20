@@ -31,10 +31,6 @@ export function documentId(file: string) { return file.replace(/\.md$/, "").toLo
 
 const DIAGRAM_TONES: Record<string, string> = { primär: "primary", erfolg: "success", warnung: "warning", gefahr: "danger", info: "info" };
 
-/**
- * Rendert einen `schaubild`-Codeblock. Zeilen: `Titel: …`, `Folge: …` (Kästen mit Pfeilen) oder `Gruppe: …` (Kästen nebeneinander),
- * `Pfeil: …` (nach unten zur nächsten Zeile), `-> …` (Beschriftung des nächsten Pfeils einer Folge), sonst ein Kasten `[Ton] Titel | Detail | …`.
- */
 export function diagramMarkup(source: string) {
   let caption = "";
   let label = "";
@@ -93,7 +89,6 @@ export function renderMarkdown(source: string, file: string, prefix = documentId
   });
 }
 
-/** Hängt erzeugtes HTML an das Ende des Abschnitts mit dieser Überschrift, vor die nächste Überschrift bis Ebene 3. */
 export function appendToSection(html: string, id: string, addition: string, file: string) {
   const start = html.search(new RegExp(`<h[1-6] id="${id}"`));
   if (start < 0) throw new Error(`Abschnitt ${id} fehlt in docs/${file}.`);
@@ -102,10 +97,8 @@ export function appendToSection(html: string, id: string, addition: string, file
   return html.slice(0, end) + addition + html.slice(end);
 }
 
-/** Seitenleiste jeder Leseseite: Seitenwechsel, Suche und Inhaltsnavigation untereinander, ohne Kopfleiste. */
 export function siteSidebar(currentFile: string) {
   const page = DOC_PAGES.find((candidate) => candidate.file === currentFile)!;
-  // Theme-Schalter wie in der App-Navigation; die Sonne zeigt Light, der Mond Dark.
   const moon = renderToStaticMarkup(React.createElement(Moon, { size: 16, "aria-hidden": true }));
   const theme = renderToStaticMarkup(React.createElement(IconButton, { type: "button", variant: "ghost", id: "docs-theme", label: "Dark Mode einschalten", icon: Sun, className: "size-button shrink-0 rounded-control" })).replace("</svg>", `</svg>${moon}`);
   const search = renderToStaticMarkup(React.createElement(Search, { "aria-hidden": true }));
@@ -113,7 +106,7 @@ export function siteSidebar(currentFile: string) {
   return `<aside class="docs-sidebar"><nav class="docs-panel docs-pages" aria-label="Doku-Seiten"><div class="docs-panel-head"><a class="docs-brand" href="index.html">CoRe <span>Docs</span></a>${theme}</div><div class="docs-panel-links">${pages}</div></nav><div class="docs-panel docs-search-panel" role="search"><label class="catalog-search"><span class="catalog-search-label">${page.search}</span>${search}<input id="docs-search" type="search" placeholder="${page.placeholder}" autocomplete="off"></label><p id="docs-search-count" class="docs-count" role="status"></p></div><nav class="docs-panel docs-toc" aria-label="Inhalt"><strong>Inhalt</strong><div id="docs-toc" class="docs-panel-links"></div></nav></aside>`;
 }
 
-/** Escapes a script for inline embedding; applying it twice changes nothing. */
+/** Applying it twice changes nothing. */
 export function inlineScript(script: string) {
   return script.replace(/<\/script/gi, "<\\/script").replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f\ufdd0-\ufdef\ufffe\uffff]/g, (character) => `\\u${character.charCodeAt(0).toString(16).padStart(4, "0")}`);
 }

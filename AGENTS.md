@@ -160,6 +160,13 @@ scope and gates.
 - Before database changes, inspect the existing schema anchors, migrations,
   policies, and verification SQL.
 
+## Code Comments
+
+- Comment only tool directives, why non-obvious code must stay (external
+  formats, platform quirks, races, performance), and what a type cannot say
+  (`null`, `false`, absence, units). Everything else goes: restated names, UI
+  descriptions, rules from specs or ADRs, work-package IDs.
+
 ## UI Copy
 
 - Write user-facing UI copy, status messages, error messages, and AI prompts in

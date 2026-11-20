@@ -3,7 +3,6 @@ import { useAppServices } from "../useAppServices.ts";
 import { useWorkspaceValue } from "../useWorkspaceStore.ts";
 import { SettingsScreen } from "./SettingsScreen.tsx";
 
-/** The general settings areas with the sync operation and sign-out. */
 export function SettingsScreenWiring() {
   const { navigation, settings, sync, deckCommands, signOut } = useAppServices();
   const profile = useWorkspaceValue((snapshot) => snapshot.state?.profile);

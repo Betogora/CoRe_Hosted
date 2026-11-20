@@ -15,7 +15,6 @@ export function examTextColor(exam: { color?: string }) {
 export function formatExamDate(key: string, format: "long" | "short" = "long") {
   return (format === "long" ? LONG_DATE : SHORT_DATE).format(new Date(`${key}T12:00:00Z`));
 }
-/** Whole hours and minutes, never decimal hours. */
 export function formatExamMinutes(minutes: number) {
   const total = Math.ceil(minutes), hours = Math.floor(total / 60), rest = total % 60;
   return hours ? `${hours} Std.${rest ? ` ${rest} Min.` : ""}` : `${rest} Min.`;

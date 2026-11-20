@@ -2,7 +2,7 @@ import type { Card, Note, NoteContent } from "../coreTypes.ts";
 import { fieldSearchKey, planNoteContentChange } from "./notes.ts";
 import { normalizeTags } from "./tags.ts";
 
-/** Literal find and replace (KV5): in all fields, in the fields of one name, or in the tags. No regular expressions. */
+/** Literal find and replace; no regular expressions. */
 export interface TextReplace {
   find: string;
   replace: string;
@@ -66,7 +66,6 @@ function snippets(before: string, after: string, find: RegExp, span: number) {
   return { before: cut(before), after: cut(after) };
 }
 
-/** The content after the replacement and its first change; the same content and no snippet when nothing matched. */
 export function replaceInNoteContent(content: NoteContent, edit: TextReplace): { content: NoteContent; snippet: Omit<TextReplacePreview, "noteId"> | null } {
   if (!edit.find) return { content, snippet: null };
   const find = pattern(edit);
@@ -88,11 +87,6 @@ export function replaceInNoteContent(content: NoteContent, edit: TextReplace): {
   return snippet ? { content: { ...content, fields }, snippet } : { content, snippet };
 }
 
-/**
- * Plans the replacement in the contents of the selected cards. A content changes as a local edit through
- * `planNoteContentChange`, so its `contentRevision` rises and the variants of changed prompts become outdated. Contents
- * whose cards would change (a new or lost cloze, an invalid content) stay untouched and count as skipped.
- */
 export function planTextReplace(graphs: readonly Graph[], cardIds: ReadonlySet<string>, edit: TextReplace, updatedAt = new Date().toISOString()) {
   const changes: Array<{ previous: Graph; next: Graph }> = [];
   const changedCardIds: string[] = [];
@@ -103,7 +97,6 @@ export function planTextReplace(graphs: readonly Graph[], cardIds: ReadonlySet<s
     if (!selected.length || graph.note.deletedAt) continue;
     const replaced = replaceInNoteContent(graph.note.content, edit);
     if (!replaced.snippet) continue;
-    // An invalid content after the replacement counts as skipped.
     const plan = (() => {
       try {
         return planNoteContentChange(graph, replaced.content, updatedAt);
@@ -123,10 +116,6 @@ export function planTextReplace(graphs: readonly Graph[], cardIds: ReadonlySet<s
   return { changes, changedCardIds, skippedCardIds, previews };
 }
 
-/**
- * Takes a replacement back: a content gets its earlier text while it still holds the text the replacement saved; one
- * edited since keeps the later text and counts as skipped.
- */
 export function planTextReplaceUndo(current: readonly Graph[], replaced: ReadonlyArray<{ previous: Graph; next: Graph }>, cardIds: ReadonlySet<string>, updatedAt = new Date().toISOString()) {
   const byNote = new Map(replaced.map((change) => [change.next.note.id, change]));
   const changes: Array<{ previous: Graph; next: Graph }> = [];

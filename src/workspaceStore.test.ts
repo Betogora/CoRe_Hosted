@@ -124,13 +124,11 @@ test("deck counts loaded after a study session belong to its last answer, althou
   const counts = watch(store, (snapshot) => snapshot.deckSummaries);
   const sessionStart = store.get().revision;
 
-  // Every answer syncs and applies an unchanged shell; nothing that shows deck counts renders meanwhile.
   for (let answered = 1; answered <= 3; answered += 1) store.set({ state: shellState("account-a") });
   assert.equal(state.renders, 0);
   assert.equal(counts.renders, 0);
   assert.equal(store.get().revision, sessionStart + 3, "jede Antwort rückt die Revision weiter, auf die das Laden der Stapelzahlen wartet");
 
-  // Leaving the session loads the counts once for the newest revision.
   store.set({ deckSummaries: new Map([["deck", summary(3, 2)]]) });
   assert.equal(counts.renders, 1);
   assert.equal(counts.value()?.get("deck")?.dailyProgress.completedTodayCount, 3);

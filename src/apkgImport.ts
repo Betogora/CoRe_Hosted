@@ -6,7 +6,7 @@ import { parseApkgWorkerResponse } from "./apkgImportWorkerProtocol.ts";
 export { ANKI_PACKAGE_MAX_BYTES } from "./apkgImportInternal.ts";
 export type { ApkgTranslationReport, ImportSample, NoteTypeSource } from "./apkgNoteTranslation.ts";
 
-/** A media file of the package; its bytes were read from the archive and checked against the SHA-1. */
+/** Its bytes are already checked against the SHA-1. */
 export interface ImportMediaFile {
   name: string;
   sha1: string;
@@ -168,7 +168,7 @@ function translateInWorker(file: File, onStep: (step: string) => void, signal?: 
   });
 }
 
-/** Reads and translates a package once; its graph stays in the worker until it is committed or disposed. */
+/** The graph stays in the worker until it is committed or disposed. */
 export async function createApkgImportPreview(
   file: Blob & { name: string; size: number },
   { onStep = () => {}, signal }: { onStep?: (step: string) => void; signal?: AbortSignal } = {},

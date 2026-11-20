@@ -16,7 +16,6 @@ import type {
 export type AccountTable = "decks" | "note_type_sources" | "notes" | "note_sources" | "cards" | "card_variants" | "review_events";
 type AccountRow = Record<string, unknown>;
 
-/** Anki template of an imported note type as stored in `note_type_sources.definition`. */
 interface StoredNoteTypeSource {
   id: string;
   ankiNotetypeId: string;
@@ -38,7 +37,6 @@ interface StoredNoteSource {
 
 const jsonObjectSchema = v.pipe(v.unknown(), v.check((value) => value !== null && typeof value === "object" && !Array.isArray(value)), v.record(v.string(), v.unknown()));
 const nonNegativeIntegerSchema = v.pipe(v.number(), v.safeInteger(), v.minValue(0));
-/** Typed study columns of `cards`, shared by full card rows and body-less study-state rows. */
 const cardStudyColumnsSchema = {
   status: v.picklist(["active", "suspended"]),
   state: v.picklist(["new", "learning", "review", "relearning"]),
@@ -174,7 +172,7 @@ const cardCatalogRowSchema = v.looseObject({
   sync_change_id: positiveIntegerSchema,
   deleted_at: v.nullable(v.string()),
   updated_at: v.string(),
-  // Learning history and values (KV2b); a server before that migration has none of them.
+  // Optional: a server before the learning-history migration has none of them.
   created_at: v.optional(v.string()),
   edited_at: v.optional(v.nullable(v.string())),
   content_kind: v.optional(v.string()),
@@ -205,7 +203,6 @@ const cardStudyStateRowSchema = v.object({
   stability_fast: v.pipe(v.number(), v.minValue(0)),
 });
 
-/** Study state of one card without its body; planning reads it for whole decks (ADR-034). */
 export interface CardStudySnapshot {
   cardId: string;
   deckId: string;
@@ -289,7 +286,6 @@ function parseRows<T>(schema: v.GenericSchema<unknown, T>, input: unknown, messa
   return parseValue(v.array(schema), input, message);
 }
 
-/** RPC responses are JSON objects; arrays and primitives are rejected with the caller's message. */
 export function requireJsonRecord(value: unknown, message: string): Record<string, unknown> {
   if (!value || typeof value !== "object" || Array.isArray(value)) throw new Error(message);
   return value as Record<string, unknown>;
@@ -324,7 +320,6 @@ export function deckFromRow(row: AccountRow): Deck {
   });
 }
 
-/** Note content is untrusted JSONB until the content parser validates and sanitizes it. */
 export function noteFromRow(row: AccountRow): Note {
   const parsed = parseNoteContent(row.content);
   if (!parsed.ok) throw new Error(`Inhalt ${String(row.id)} aus der Cloud ist ungültig: ${parsed.errors[0]}`);
@@ -455,7 +450,7 @@ const noteTypeDefinitionSchema = v.object({
   config: v.unknown(),
 });
 
-/** The stored Anki template as translator input; null when the cloud definition does not have the expected shape. */
+/** Null when the cloud definition does not have the expected shape. */
 export function noteTypeSourceForTranslation(source: StoredNoteTypeSource): NoteTypeSource | null {
   const parsed = v.safeParse(noteTypeDefinitionSchema, source.definition);
   return parsed.success ? { id: source.id, ankiNotetypeId: source.ankiNotetypeId, name: source.name, ...parsed.output } : null;
@@ -463,7 +458,6 @@ export function noteTypeSourceForTranslation(source: StoredNoteTypeSource): Note
 
 export type ReplicatedNoteTypeSource = NoteTypeSource & { revision: number; updatedAt: string; deletedAt: string | null };
 
-/** A template from the catalog delta, kept on every device for the original layout (ADR-047); null when malformed. */
 export function replicatedNoteTypeSourceFromRow(row: AccountRow): ReplicatedNoteTypeSource | null {
   const stored = noteTypeSourceFromRow(row);
   const source = noteTypeSourceForTranslation(stored);
@@ -554,7 +548,6 @@ const learningDocumentRowSchema = v.looseObject({
 });
 export interface LearningDocumentRow { id: string; deckId: string; document: Record<string, unknown>; revision: number; deleted: boolean }
 
-/** Rows of `learning_summaries`; the document itself is validated by its owning module. */
 export function validateLearningDocumentRows(input: unknown): LearningDocumentRow[] {
   return parseRows(learningDocumentRowSchema, input, "Cloud-Lerndokumente hatten ein ungültiges Format.")
     .map((row) => ({ id: row.id, deckId: row.deck_id, document: row.document, revision: row.revision, deleted: row.deleted_at !== null }));

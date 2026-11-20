@@ -181,8 +181,8 @@ const noteHtmlFilter = new FilterXSS({
 });
 
 /**
- * Field HTML of the universal note content (ADR-032): semantic markup without layout, fonts or remote media. Classes
- * and `data-*` stay for the original layout of imported cards (ADR-047); the CoRe design ignores them.
+ * Semantic markup without layout, fonts or remote media. Classes and `data-*` stay for the original layout of imported
+ * cards; the CoRe design ignores them.
  */
 export function sanitizeNoteHtml(html: unknown) {
   return noteHtmlFilter.process(String(html ?? ""))
@@ -199,7 +199,7 @@ const layoutHtmlFilter = new FilterXSS({
   },
 });
 
-/** Expanded template of an imported card's original layout (ADR-047): classes, ids, `data-*` and inline layout stay. */
+/** Expanded template of an imported card's original layout: classes, ids, `data-*` and inline layout stay. */
 export function sanitizeLayoutHtml(html: string) {
   return layoutHtmlFilter.process(html)
     .replace(VOID_TAG_PATTERN, (_match, tag: string, attributes: string) => `<${tag}${attributes.replace(/\s*\/$/, "")} />`)

@@ -9,10 +9,6 @@ import { createCoreDeck, createManualNoteContent, createNote } from "../src/core
 import type { Deck, Note } from "../src/coreTypes.ts";
 import { localSupabaseDatabaseContainer } from "./localE2EEnvironment.ts";
 
-// Measures how many bytes 1,000 contents occupy in Postgres, on the sync wire and
-// in the browser replica. The APKG comes from scripts/create_footprint_apkg.py and
-// runs through the app's note translation; the manual scenarios reuse the same text.
-
 const NOTES_PER_KIND = 1_000;
 const USER_ID = "00000000-0000-0000-0000-00000000f00d";
 const apkgPath = resolve(process.argv[2] ?? "test-results/baseline/footprint.apkg");
@@ -54,7 +50,6 @@ function manualScenario(kind: Kind): Scenario {
   return { key: `manual-${kind}`, origin: "manual", kind, decks: [deck], notes, noteTypeSources: [], noteSources: [] };
 }
 
-/** The footprint APKG through the app's translation; each scenario keeps only its deck's notes and sources. */
 async function importedScenarios(): Promise<Scenario[]> {
   const file = Object.assign(await openAsBlob(apkgPath), { name: basename(apkgPath) });
   const graph = await translateAnkiPackage(await readAnkiPackage(file));
@@ -108,7 +103,7 @@ const DECK_EXPRESSION: Record<typeof MEASURED_TABLES[number], string> = {
   note_type_sources: "(select min(c.deck_id) from public.notes n join public.cards c on c.user_id = n.user_id and c.note_id = n.id where n.user_id = t.user_id and n.note_type_source_id = t.id)",
 };
 
-/** Writes every scenario in one rolled-back transaction and reads row sizes per scenario deck. */
+/** One rolled-back transaction, so the measurement leaves the database unchanged. */
 function measureDatabase(scenarios: Scenario[]) {
   const rows = createCloudStateRows({
     decks: scenarios.flatMap((scenario) => scenario.decks),
@@ -153,7 +148,6 @@ const results = scenarios.map((scenario) => {
   const table = (name: typeof MEASURED_TABLES[number]) => database[name][deckId] ?? { rows: 0, storedBytes: 0, wireBytes: 0 };
   const stored = Object.fromEntries(MEASURED_TABLES.map((name) => [name, Number(table(name).storedBytes)])) as Record<typeof MEASURED_TABLES[number], number>;
   const syncWireBytes = (["notes", "cards", "note_sources", "note_type_sources"] as const).reduce((sum, name) => sum + Number(table(name).wireBytes), 0);
-  // Browser replica: content once per note plus a card body per card (study state and variants).
   const replicaBytes = scenario.notes.reduce((sum, note) => sum + utf8Bytes(note), 0) + cards.reduce((sum, card) => sum + utf8Bytes(card), 0);
   return {
     scenario: scenario.key,

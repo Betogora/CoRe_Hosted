@@ -6,12 +6,10 @@ export const AI_CARD_VARIANT_ENDPOINT = "/api/ai/card-variant";
 export const AI_CARD_VARIANT_PROMPT_VERSION = "card-variant-v5";
 export const MAX_AI_CARD_VARIANT_FIELD_CHARS = 1_200;
 const MAX_AI_CARD_VARIANT_SOURCE_CHARS = 2_400;
-/** Existing rephrasings sent along so a new one differs from them; newest first, bounded to keep the request small. */
 const MAX_AI_CARD_VARIANT_AVOID_ITEMS = 5;
 const MAX_AI_CARD_VARIANT_AVOID_CHARS = 3_000;
 export const MAX_AI_CARD_VARIANT_REQUEST_BYTES = 8 * 1_024;
 export const MAX_AI_CARD_VARIANT_OUTPUT_TOKENS = 1_024;
-/** Total time the route may spend on generation; the browser waits slightly longer. */
 export const AI_CARD_VARIANT_DEADLINE_MS = 25_000;
 
 const MAX_AI_CARD_VARIANT_OPTIONS = 10;
@@ -55,7 +53,6 @@ const successSchema = v.strictObject({
   variant: v.strictObject({
     front: textSchema,
     back: backSchema,
-    /** Rephrased option texts of a choice variant by option id. */
     options: v.optional(v.pipe(v.array(v.strictObject({ id: optionIdSchema, text: optionTextSchema })), v.minLength(2), v.maxLength(MAX_AI_CARD_VARIANT_OPTIONS), v.check(uniqueIds))),
   }),
   model: v.pipe(v.string(), v.trim(), v.minLength(1)),
@@ -68,20 +65,17 @@ export type AiCardVariantSource = { kind: v.InferOutput<typeof kindSchema>; fron
 export type AiCardVariantRequest = v.InferOutput<typeof requestSchema>;
 export type AiCardVariantSuccess = v.InferOutput<typeof successSchema>;
 
-/** Plain text of a card source or model answer with its whitespace collapsed; it is never read as HTML. */
+/** The result is plain text and is never read as HTML. */
 export function normalizeAiCardText(value: unknown): string {
   return String(value ?? "").replace(/\s+/g, " ").trim();
 }
 
-/** Plain text of a stored variant field, which holds HTML like a note field. */
 export function aiVariantFieldText(html: string): string {
   return normalizeAiCardText(stripHtml(html));
 }
 
-/** Shown for the solutions of a gap group in `back`, e.g. "Insulin · Blutzucker". */
 export const answerListText = (answers: string[]) => answers.join(" · ");
 
-/** The `back` of a choice card or variant: every option marked correct (✓) or incorrect (✗), never empty. */
 export const choiceAnswerText = (options: { text: string; correct: boolean }[]) =>
   answerListText(options.map((option) => `${option.correct ? "✓" : "✗"} ${option.text}`));
 
@@ -105,7 +99,6 @@ export function clozeVariantGaps(text: string): { ordinal: number; answers: stri
   return { ordinal: [...ordinals][0], answers, hints, outside };
 }
 
-/** Whether `text` names `answer` as a whole word or phrase, ignoring case. */
 const mentions = (text: string, answer: string) =>
   new RegExp(`(?<![\\p{L}\\p{N}])${answer.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(?![\\p{L}\\p{N}])`, "iu").test(text);
 
@@ -145,10 +138,7 @@ function withinRequestLimits(request: AiCardVariantRequest) {
     && (request.avoid ?? []).reduce((total, text) => total + text.length, 0) <= MAX_AI_CARD_VARIANT_AVOID_CHARS;
 }
 
-/**
- * Builds the request from the plain question and answer or cloze text of a card (`cardVariantSource`) and the
- * questions of its variants (`aiCardVariantAvoidTexts`); entries beyond the limits are left out.
- */
+/** `avoid` texts beyond the limits are left out, not rejected. */
 export function createAiCardVariantRequest(source: AiCardVariantSource | null, avoid: string[] = []): AiCardVariantRequest {
   if (!source) {
     throw new AiCardVariantContractError("unsupported_card_type", "Für diese Karte gibt es keine Varianten.");

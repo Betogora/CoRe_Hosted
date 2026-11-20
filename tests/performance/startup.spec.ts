@@ -301,7 +301,6 @@ test("misst normale, isolierte, Service-Worker-freie und offline Starts", async 
     offlineColdStartP75Ms: persistedOffline.p75Ms,
     offlineColdStartP95Ms: persistedOffline.p95Ms,
     newDeviceDashboardP75Ms: freshIsolated.p75Ms,
-    // K4.2: where the new-device start spends its time (p75 per phase over the fresh runs).
     newDevicePhaseP75Ms: {
       networkAndSession: round(percentile(freshRuns.map((run) => run.sessionCheckedMs), 0.75)),
       bootstrapRpc: round(percentile(freshRuns.map((run) => run.bootstrapRpcMs), 0.75)),

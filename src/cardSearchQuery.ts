@@ -7,13 +7,15 @@ const DAY_MS = 86_400_000;
  * Search terms in Anki notation: `flag:1`, `tag:herz` (also finds `herz::*`), `tag:none`, `tag:leech`,
  * `tag:marked`, `is:suspended|new|learn|review|young|mature|due`, `prop:due<n` (days from today, also `<=`, `=`,
  * `>=`, `>`), `has:variant`, `did:<deck id>` and `deck:Name` (the deck with its subdecks; `*` and `_` as wildcards),
- * `added:n`, `edited:n`, `introduced:n`, `resched:n`, `rated:n` and `rated:n:1` to `4` (today and the n - 1 days before),
+ * `added:n`, `edited:n`, `introduced:n`, `resched:n`, `rated:n` and `rated:n:1` to `4` (today and the n - 1 days
+ * before),
  * `prop:ivl|d|reps|lapses` with `<`, `<=`, `=`, `!=`, `>=`, `>`, the content form `is:reveal|choice|cloze|occlusion`,
  * `note:Name` (Anki note type, wildcards like `deck:`) and `mid:<note type id>`, `has:outdated` (an outdated variant),
- * `card:N` (number of the prompt as in Anki), `is:buried` (buried by hand today; buried siblings only exist in a session)
+ * `card:N` (number of the prompt as in Anki), `is:buried` (buried by hand today; buried siblings only exist in a
+ * session)
  * and `Feld:Text` for text in one named field; a leading `-` negates a term, a phrase or a group.
  *
- * Combination (KV2d): words and terms side by side must all match, `or` between them needs one, parentheses group,
+ * Combination: words and terms side by side must all match, `or` between them needs one, parentheses group,
  * `"…"` quotes a phrase or a term with spaces (`"deck:Anatomie 1"`, `deck:"Anatomie 1"`). Every query becomes a list
  * of clauses that must all match; a clause is one term, or `{ kind: "any" }` with terms of which one must match.
  *
@@ -39,10 +41,9 @@ export type CardSearchTerm =
   /** Buried by hand from `from` (the start of today) on and not unburied since. */
   | { kind: "buried"; from: string; negated: boolean }
   | { kind: "tag-none" | "leech" | "marked" | "suspended" | "variant" | "outdated"; negated: boolean }
-  /** A word or a phrase of the content text, lower case (KV2d). */
+  /** A word or a phrase of the content text, lower case. */
   | { kind: "text"; value: string; negated: boolean };
 
-/** One clause of a query: a single term, or terms of which one must match. */
 export type CardSearchClause = CardSearchTerm | { kind: "any"; terms: CardSearchTerm[]; negated: false };
 
 type SinceField = "added" | "edited" | "introduced" | "rescheduled" | "rated";
@@ -143,7 +144,6 @@ export function parseTerm(token: string, context?: CardSearchContext): CardSearc
   return { kind: "tag", value, negated };
 }
 
-/** A word, phrase or term (`atom`), a parenthesis or the `or` keyword, with its place in the query. */
 interface Token {
   type: "atom" | "open" | "close" | "or";
   negated: boolean;
@@ -207,7 +207,7 @@ function parseNodes(tokens: Token[]): SearchNode {
   const nodes: SearchNode[] = [];
   while (position < tokens.length) {
     nodes.push(parseOr());
-    if (position < tokens.length) position += 1; // An unmatched `)` or `or` is skipped.
+    if (position < tokens.length) position += 1;
   }
   return { type: "and", nodes, negated: false };
 }
@@ -236,7 +236,6 @@ function clausesOf(node: SearchNode, negate: boolean, context?: CardSearchContex
   }, [[]]);
 }
 
-/** Text and terms of a query; terms relative to today or to the deck tree are resolved against `context`. */
 export function parseCardSearchQuery(query: unknown, context?: CardSearchContext): CardSearchQuery {
   let clauses: CardSearchTerm[][];
   try {
@@ -257,12 +256,10 @@ export function parseCardSearchQuery(query: unknown, context?: CardSearchContext
   return { text, terms };
 }
 
-/** Every word, phrase and term of the query (inside groups too), without quotes and leading `-`. */
 function atomValues(query: unknown): string[] {
   return tokenize(String(query ?? "")).filter((token) => token.type === "atom").map((token) => token.value);
 }
 
-/** Values of the `did:`, `deck:` and `note:` terms (patterns in lower case); the caller resolves them for the context. */
 export function cardSearchContextTerms(query: unknown): { deckIds: string[]; deckNames: string[]; noteTypeNames: string[] } {
   const found = { did: new Set<string>(), deck: new Set<string>(), note: new Set<string>() };
   for (const value of atomValues(query)) {
@@ -283,7 +280,6 @@ export function deckPatternMatches(pattern: string, path: string): boolean {
   return new RegExp(`^${wildcardSource(pattern)}(?:::.*)?$`, "iu").test(path);
 }
 
-/** Whether a note type name matches a `note:` pattern with the same wildcards. */
 export function namePatternMatches(pattern: string, name: string): boolean {
   return new RegExp(`^${wildcardSource(pattern)}$`, "iu").test(name);
 }
@@ -302,7 +298,7 @@ function propValue(entry: SearchableEntry, field: PropField): number | undefined
   if (field === "reps") return entry.reps;
   if (field === "lapses") return entry.lapses;
   if (entry.scheduleState === "new") return undefined;
-  // Durability (`s`) is known once the card was answered by a client that stores it (KV2e).
+  // Durability (`s`) is known only once the card was answered by a client that stores it.
   return field === "ivl" ? entry.intervalDays : field === "s" ? entry.durabilityDays ?? undefined : entry.difficulty;
 }
 
@@ -370,7 +366,6 @@ export function withoutCardSearchWords(search: CardSearchQuery): CardSearchQuery
   return { text: "", terms: search.terms.filter((clause) => clause.kind !== "text" || clause.negated) };
 }
 
-/** A deck path that contains every word of the search (`medizin anatomie`, also `medizin / anatomie`). */
 export function pathMatchesCardSearch(path: string, search: CardSearchQuery): boolean {
   const words = cardSearchWords(search);
   const normalizedPath = path.trim().toLowerCase();

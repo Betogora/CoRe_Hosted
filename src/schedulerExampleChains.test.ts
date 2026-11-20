@@ -9,7 +9,6 @@ function chainLines(ratings: Parameters<typeof runExampleChain>[0], retention: n
   return runExampleChain(ratings, retention).map((contact) => `Tag ${contact.day.toFixed(2)} ${contact.rating} V:${contact.variants.join("/")} → ${interval(contact)} H ${contact.durabilityDays} ${contact.band}`);
 }
 
-/** Per chain at the default target retention 0.93. */
 const EXPECTED_CHAINS: Record<string, string[]> = {
   "Immer Gut": [
     "Tag 0.00 good V:0/0/0 → 10 min H 4.78 learning",
@@ -70,7 +69,6 @@ const EXPECTED_CHAINS: Record<string, string[]> = {
   ],
 };
 
-/** The first chain at the other target retentions of the comparison table. */
 const EXPECTED_RETENTIONS: Record<string, string[]> = {
   "0.9": [
     "Tag 0.00 good V:0/0/0 → 10 min H 4.78 learning",

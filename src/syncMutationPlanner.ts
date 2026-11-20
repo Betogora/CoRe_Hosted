@@ -1,6 +1,6 @@
 import type { Card, Deck, Note } from "./coreTypes.ts";
 
-/** Outbox mutation kinds; kept here so the local repository does not pull the cloud sync engine into the start bundle. */
+/** Kept here so the local repository does not pull the cloud sync engine into the start bundle. */
 export const SYNC_MUTATION_TYPES = Object.freeze({
   profilePatch: "profile-patch",
   entityMutation: "entity-mutation",
@@ -16,7 +16,6 @@ interface RevisionedEntity {
   deletedAt?: string | null;
 }
 
-/** Flat entity lists; a deck contributes only its metadata, cards carry their variants. */
 interface EntityMutationGraph {
   decks?: Deck[];
   notes?: Note[];
@@ -41,7 +40,7 @@ function entityMutation(table: string, entity: RevisionedEntity, previous?: Revi
   };
 }
 
-/** First write of an entity the cloud does not know yet; import sources are keyed by their note. */
+/** Import sources are keyed by their note. */
 export function insertEntityMutation(table: string, entity: object, entityId = (entity as RevisionedEntity).id) {
   return {
     type: SYNC_MUTATION_TYPES.entityMutation,
@@ -77,7 +76,6 @@ function byId<T extends { id: string }>(items: T[] = []) {
   return new Map(items.map((item) => [item.id, item]));
 }
 
-/** Revision-checked mutations for every changed, added or removed entity; removals become tombstones. */
 export function planEntityMutations(previous: EntityMutationGraph = {}, next: EntityMutationGraph = {}) {
   const mutations: any[] = [];
   const plan = <T extends RevisionedEntity>(table: string, before: T[], after: T[], project: (item: T) => RevisionedEntity = (item) => item) => {

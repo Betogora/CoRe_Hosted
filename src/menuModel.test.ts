@@ -42,11 +42,11 @@ test("keeps statistics, help, settings and simulator routable outside the primar
   const menu = createMenuModel();
 
   assert.ok(menu);
-// @ts-expect-error -- Die Fixture pr?ft bewusst eine unvollst?ndige, ung?ltige oder konfliktbehaftete Laufzeitform.
+// @ts-expect-error
   assert.equal(menu.getView("kartenstapel").title, "Kartenverwaltung");
   assert.equal(menu.getView("statistik")?.navigation, "hidden");
   assert.ok(menu);
-// @ts-expect-error -- Die Fixture prüft bewusst eine unvollständige, ungültige oder konfliktbehaftete Laufzeitform.
+// @ts-expect-error
   assert.equal(menu.getView("hilfe").title, "Wie CoRe und FSRS funktionieren");
   assert.equal(menu.getView("simulator")?.title, "Simulator");
   assert.equal(menu.listRoutableViewIds().includes("einstellungen" as never), false);
@@ -66,7 +66,7 @@ test("keeps stats as label and value pairs", () => {
   const menu = createMenuModel();
 
   assert.ok(menu);
-// @ts-expect-error -- Die Fixture pr?ft bewusst eine unvollst?ndige, ung?ltige oder konfliktbehaftete Laufzeitform.
+// @ts-expect-error
   assert.deepStrictEqual(menu.getView("uebersicht").stats, [
     { label: "Fällig", value: "0" },
     { label: "CoRe-ready", value: "0" },

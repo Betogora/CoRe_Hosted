@@ -2,7 +2,7 @@ import * as v from "valibot";
 import { stableContentHash } from "./coreModel.ts";
 import type { ExamDailyTask, ExamPlan, ExamPlanningSettings, StudyTimeCapacity } from "./coreTypes.ts";
 
-/** Upper bounds keep the profile small enough to load with every start (ADR-042). */
+/** Upper bounds keep the profile small enough to load with every start. */
 export const EXAM_PLANNING_LIMITS = { exams: 20, decksPerExam: 200, dateOverrides: 365, timeBlocks: 500, dailyTasks: 4000, dailyCardRefs: 5000 } as const;
 export const EXAM_RETENTION_LEVELS = [0.85, 0.9, 0.95, 0.97] as const;
 /** Root of an exam session; it only scopes the queue and lifts its limits, answers stay with each card's own deck. */
@@ -56,7 +56,6 @@ const dailyTaskSchema = v.pipe(v.strictObject({
   capturedAt: v.pipe(v.string(), v.isoTimestamp()), completed: v.nullable(v.picklist(["manual", "automatic"])),
   planningKey: v.optional(identifier),
 }), v.check((task) => new Set(task.cardIds).size === task.cardIds.length && (task.kind === "summary" ? !task.cardIds.length && task.completed !== "automatic" : task.cardIds.length > 0)));
-/** One learning day's checklist with at most `dailyCardRefs` card references in total, so the synced profile stays small. */
 const dailyTasksSchema = v.pipe(v.array(dailyTaskSchema), v.maxLength(EXAM_PLANNING_LIMITS.dailyTasks),
   v.check((tasks) => new Set(tasks.map((task) => task.id)).size === tasks.length && tasks.reduce((sum, task) => sum + task.cardIds.length, 0) <= EXAM_PLANNING_LIMITS.dailyCardRefs
     && new Set(tasks.map((task) => task.date)).size <= 1));
@@ -89,7 +88,6 @@ function parsePlan(value: unknown): ExamPlan | null {
   return result.success ? { ...result.output, deckIds: [...new Set(result.output.deckIds)] } : null;
 }
 
-/** Stored planner state; an invalid exam is dropped alone so the other plans survive. */
 export function normalizeExamPlanningSettings(value: unknown): ExamPlanningSettings {
   const input = value && typeof value === "object" && !Array.isArray(value) ? value as Record<string, unknown> : {};
   const exams: ExamPlan[] = [];
@@ -120,14 +118,12 @@ export function normalizeExamPlanningSettings(value: unknown): ExamPlanningSetti
   return settings;
 }
 
-/** Validates a complete planner state before it is written to the profile. */
 export function validateExamPlanningSettings(value: unknown): ExamPlanningSettings {
   const result = v.safeParse(settingsSchema, value);
   if (!result.success) throw new Error("Die Angaben zur Prüfungsplanung sind ungültig.");
   return normalizeExamPlanningSettings(result.output);
 }
 
-/** Whether calendar edits keep blocks free of overlaps and before their exams. */
 export function isValidExamCalendar(exams: ExamPlan[], capacity: StudyTimeCapacity) {
   return v.safeParse(settingsSchema, { version: 3, exams, capacity }).success;
 }

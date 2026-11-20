@@ -1,4 +1,3 @@
-// Private to indexedDbCoreRepository.ts: the account study overview, review counters and the deck summaries built from them.
 import { createDefaultDeckSettings } from "./coreModel.ts";
 import type { ReviewEvent } from "./coreTypes.ts";
 import type { DeckLibrarySummary } from "./libraryModel.ts";
@@ -45,10 +44,7 @@ export function createStudyOverview({ database, flushWrites, decks, isCatalogCom
     else counts[key] = next;
   };
 
-  /**
-   * Deck counters and the study overview after catalog changes. A mass change passes all its rows at once, so each
-   * deck summary and the overview are written once (KV4).
-   */
+  /** A mass change passes all its rows at once, so each deck summary and the overview are written once. */
   const applyReplicaCatalogChanges = async (
     transaction: IDBTransaction,
     changes: ReadonlyArray<{ deckId: string; before: StoredCardCatalog | null; after: StoredCardCatalog | null }>,
@@ -94,7 +90,7 @@ export function createStudyOverview({ database, flushWrites, decks, isCatalogCom
   return {
     applyReplicaCatalogChanges,
     applyReplicaCatalogChange,
-    /** Counts an answer into the hour and day counters before its write is queued; a taken-back answer counts -1. */
+    /** Called before the answer's write is queued; a take-back passes -1. */
     countReview(answeredAt: string, delta: 1 | -1 = 1) {
       const add = (count = 0) => Math.max(0, count + delta);
       const hourKey = reviewHourKey(answeredAt);
@@ -135,7 +131,7 @@ export function createStudyOverview({ database, flushWrites, decks, isCatalogCom
       studyOverview = overview;
       await putSyncMetadata("accountStudyOverview", overview);
     },
-    /** Account-wide due counts per future learning day, or null while no overview for this learning day exists. */
+    /** Null while no overview for this learning day exists. */
     async loadDueForecast({ now = new Date().toISOString(), dayStartHour = 0, timeZone }: { now?: string; dayStartHour?: number; timeZone?: string } = {}) {
       await flushWrites();
       const todayKey = getStudyHeatmapDayKey(now, timeZone, dayStartHour);

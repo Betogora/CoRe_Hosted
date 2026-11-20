@@ -9,7 +9,6 @@ const subscribe = (onChange: () => void) => {
   };
 };
 
-/** Whether the browser is online; cloud-only parts of the editor disappear offline (W19). */
 export function useOnline(): boolean {
   return React.useSyncExternalStore(subscribe, () => navigator.onLine, () => true);
 }

@@ -1,4 +1,3 @@
-// Private to cloudRepository.ts: confirms that a committed import graph arrived completely in the cloud.
 import type { ImportVerificationRepairScope, ImportVerificationScope } from "./coreTypes.ts";
 import { type CloudRow, type CloudClient, getAuthenticatedUser, selectRowsByField } from "./cloudQueries.ts";
 

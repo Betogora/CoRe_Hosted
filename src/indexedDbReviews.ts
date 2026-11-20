@@ -1,4 +1,3 @@
-// Private to indexedDbCoreRepository.ts: an answer and its take-back, each one local write with its outbox mutation.
 import type { Card, CardVariant, Note } from "./coreTypes.ts";
 import type { createReplicaOutbox } from "./indexedDbOutbox.ts";
 import {
@@ -30,10 +29,6 @@ export function createReviewWrites({ userId, database, enqueueWrite, outbox, stu
   /** Catalog history of a card before each answer of this app session, so taking the answer back restores it. */
   const historyBeforeAnswer = new Map<string, CatalogReviewHistory>();
 
-  /**
-   * Stores the answered or restored card with its variant, catalog entry, counters and mutation. An answer stores its
-   * event and counts +1; a take-back removes the event and counts -1.
-   */
   const write = (result: ReviewAnswerResult, card: Card, variant: CardVariant | null, type: "review-atomic" | "review-undo", at: string, catalogFor: (stored: StoredCardCatalog | null, note: Note | null) => StoredCardCatalog | null) => {
     const { deck, event } = result;
     const takenBack = type === "review-undo";
@@ -93,9 +88,8 @@ export function createReviewWrites({ userId, database, enqueueWrite, outbox, stu
       return result;
     },
     /**
-     * Takes back an answer of this app session (Strg+Z/U while learning): the event leaves history and counters, the card
-     * and its variant get their state from before (`previous`, the card as it was answered), and `undo_review_atomic`
-     * removes the event in the account.
+     * Takes back an answer of this app session; `previous` is the card as it was before the answer, and
+     * `undo_review_atomic` removes the event in the account.
      */
     undoReview(result: ReviewAnswerResult, previous: Card) {
       // Never before the answer (a simulated clock runs ahead), so the take-back follows it in the outbox.

@@ -9,7 +9,7 @@ export const runDirectory = (id: string, run: string) => `${OUTPUT_ROOT}/${id}/$
 
 export type RunMeta = { requestType: string; promptVersion: string; model: string; reasoning: string; repetitions: number; split: "train" | "test" | "all"; dry: boolean; date: string };
 
-/** Eine Antwort des Modells auf einen Fall; `ok` ist falsch, wenn die Antwortprüfung der Route sie ablehnt. */
+/** `ok` ist falsch, wenn die Antwortprüfung der Route die Antwort ablehnt. */
 export type AnswerRow = {
   caseId: string;
   repetition: number;
@@ -23,7 +23,6 @@ export type AnswerRow = {
   transcript: { request: unknown; response: unknown };
 };
 
-/** Ablehnungen durch die Antwortprüfung zählen als Antwort des Modells; alles andere ist Infrastruktur und wird wiederholt. */
 const CONTRACT_FAILURES = new Set(["invalid_provider_response", "invalid_tool_call", "invalid_variant", "unchanged_front"]);
 const FATAL = new Set(["provider_budget_exhausted", "openrouter_auth_failed", "no_provider_endpoint", "provider_request_rejected"]);
 const TEXTS: ProviderTexts = { rateLimited: "Ratenlimit erreicht.", unavailable: "Schlüssel oder Limit des Eval-Schlüssels prüfen.", rejected: "OpenRouter hat die Anfrage abgelehnt.", failed: "Anbieterfehler.", invalid: "Ungültige Antwort.", tool: "Werkzeug falsch verwendet.", fields: "Ungültige Felder." };
@@ -39,15 +38,11 @@ export function readMeta(directory: string): RunMeta {
   return readJson(file) as RunMeta;
 }
 
-/** Antwort im Format von OpenRouter mit genau einem Werkzeugaufruf; für Trockenlauf und Tests. */
 export function mockCompletion(tool: string, toolArguments: unknown) {
   return { model: "mock", choices: [{ finish_reason: "tool_calls", message: { tool_calls: [{ function: { name: tool, arguments: JSON.stringify(toolArguments) } }] } }], usage: { prompt_tokens: 100, completion_tokens: 20, total_tokens: 120, cost: 0 } };
 }
 
-/**
- * Erzeugt je Fall und Wiederholung eine Antwort über Payload-Builder und Antwortprüfung der Route.
- * Vorhandene Zeilen bleiben; ein abgebrochener Lauf setzt dort fort. Gibt die Zahl der offenen Antworten zurück.
- */
+/** Vorhandene Zeilen bleiben; ein abgebrochener Lauf setzt dort fort. Gibt die Zahl der offenen Antworten zurück. */
 export async function generate({ definition, cases, repetitions, split, directory, apiKey, fetchImpl = globalThis.fetch, dry = false, concurrency = 4, log = console.log }: {
   definition: EvalDefinition;
   cases: readonly EvalCase[];

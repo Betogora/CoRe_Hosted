@@ -5,14 +5,9 @@ import type { useCardSearch } from "./useCardSearch.ts";
 
 type CardSearch = ReturnType<typeof useCardSearch>;
 
-/**
- * Selection of the card list for mass actions (KV4) and the keys of the list (KV6): checked cards or every hit, cleared
- * by a new search or scope; the row a key action started from takes the focus back once the action ran.
- */
 export function useCardSelection({ canSelect, hitList, items, cardItems, rowOf, locateCard, deferredQuery, hitScope }: Pick<CardSearch, "hitList" | "items" | "cardItems" | "rowOf" | "locateCard" | "deferredQuery" | "hitScope"> & {
   canSelect: boolean;
 }) {
-  // Selection for mass actions (KV4): card ids, or every hit of the flat list; a new search or scope clears it.
   const [selecting, setSelecting] = React.useState(false);
   const [checkedIds, setCheckedIds] = React.useState<ReadonlySet<string>>(() => new Set());
   const [allHits, setAllHits] = React.useState(false);
@@ -41,7 +36,6 @@ export function useCardSelection({ canSelect, hitList, items, cardItems, rowOf, 
     setCheckedIds((current) => {
       const next = new Set(current);
       if (range && anchor !== null && position !== null) {
-        // A range takes the loaded rows between the last toggled row and this one.
         for (let index = Math.min(anchor, position); index <= Math.max(anchor, position); index += 1) {
           const row = rowOf(cardItems[index]);
           if (row) next.add(row.id);
@@ -55,7 +49,6 @@ export function useCardSelection({ canSelect, hitList, items, cardItems, rowOf, 
   const stableToggleCheck = useStableCallback(toggleCheck);
   const selectionCount = allHits ? hitList?.totalCardCount ?? 0 : checkedIds.size;
   const lastUndoRef = React.useRef<(() => void) | null>(null);
-  // The row a key action started from takes the focus back once the action ran, so the keyboard flow goes on.
   const keyActionRowRef = React.useRef<string | null>(null);
   const [focusRowAfterAction, setFocusRowAfterAction] = React.useState<string | null>(null);
   React.useEffect(() => {
@@ -65,9 +58,6 @@ export function useCardSelection({ canSelect, hitList, items, cardItems, rowOf, 
     row.focus({ preventScroll: true });
     setFocusRowAfterAction(null);
   }, [focusRowAfterAction, items]);
-  // Keys of the card list (KV6): `/` searches; on a focused row ↑/↓ move, Enter opens, X selects, Escape clears the
-  // selection, and the action keys open the confirmation of the selection or of the focused card. Dialogs, menus, the
-  // editor and text fields keep their own keys; browser shortcuts stay untouched.
   const handleListKey = useStableCallback((event: KeyboardEvent) => {
     if (event.defaultPrevented || event.altKey) return;
     const target = event.target instanceof HTMLElement ? event.target : null;
@@ -119,7 +109,6 @@ export function useCardSelection({ canSelect, hitList, items, cardItems, rowOf, 
                 : event.key === "Delete" ? { id: "delete" } : null;
     if (!request) return;
     event.preventDefault();
-    // Without a selection the action takes the focused card.
     if (!selecting || (!allHits && !checkedIds.size)) {
       setSelecting(true);
       setAllHits(false);

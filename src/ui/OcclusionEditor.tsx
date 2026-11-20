@@ -52,17 +52,13 @@ function maskLabel(mask: OcclusionMask, index: number) {
   return `Maske ${index + 1}, ${SHAPE_NAMES[mask.shape.kind]}, ${mask.ordinal === 0 ? "bleibt verdeckt" : `Karte ${mask.ordinal}`}`;
 }
 
-/** Anchor of a mask for its group badge, in image fractions. */
+/** In image fractions. */
 function maskAnchor(shape: OcclusionMask["shape"]): Point {
   if (shape.kind === "polygon") return [Math.min(...shape.points.map(([x]) => x)), Math.min(...shape.points.map(([, y]) => y))];
   if (shape.kind === "overlay") return [0, 0];
   return [shape.left, shape.top];
 }
 
-/**
- * Draws, selects, groups and removes occlusion masks on one image. Mouse, pen and touch share pointer events;
- * every mask is a focusable button so selection, moving and removing also work by keyboard.
- */
 export function OcclusionEditor({ imageUrl, imageAlt, masks, mode, onMasksChange, onModeChange, disabled = false }: OcclusionEditorProps) {
   const [size, setSize] = React.useState<{ width: number; height: number } | null>(null);
   const [tool, setTool] = React.useState<Tool>("rect");

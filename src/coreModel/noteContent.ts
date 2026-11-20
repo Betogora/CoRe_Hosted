@@ -38,12 +38,11 @@ function unitNumber(value: unknown): number | null {
   return typeof value === "number" && Number.isFinite(value) && value >= 0 && value <= 1 ? value : null;
 }
 
-/** A field counts as filled when it has visible text or embedded media, like Anki's card generation. */
 function noteFieldHasContent(html: string): boolean {
   return stripSanitizedHtml(html).replace(/&nbsp;/gi, " ").trim().length > 0 || /<(?:img|audio|video)\b|\[sound:/i.test(html);
 }
 
-/** Cloze ordinals in Anki syntax, including `{{c1,2::…}}` and nested deletions. Returns null when a deletion is not closed. */
+/** Cloze ordinals in Anki syntax, including `{{c1,2::…}}` and nested deletions; null when a deletion is not closed. */
 export function clozeOrdinals(html: string): number[] | null {
   const ordinals = new Set<number>();
   let depth = 0;
@@ -232,12 +231,6 @@ function requirementMet(requirement: NoteFieldRequirement | null, filled: Set<st
     : requirement.fieldIds.some((id) => filled.has(id));
 }
 
-/**
- * Card keys a note produces, in stable order: one per satisfied reveal prompt
- * (`<prompt key>`), `choice`, one per cloze ordinal (`cloze:N`) or one per
- * occlusion group (`io:N`). A reveal prompt also needs a filled question field.
- */
-/** Short German name of a card's prompt within its content, such as „Lücke 2“, „Rückwärts“ or „Maske 1“. */
 export function notePromptLabel(content: NoteContent, promptKey: string): string {
   const [kind, number] = promptKey.split(":");
   if (kind === "cloze" && number) return `Lücke ${number}`;
@@ -267,7 +260,6 @@ function decodeAttribute(value: string): string {
   return value.replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&amp;/g, "&");
 }
 
-/** Media file names referenced by the note, used for storage links and offline downloads. */
 export function noteContentMediaRefs(content: NoteContent): string[] {
   const refs = new Set<string>();
   const htmlParts = [
@@ -289,7 +281,6 @@ export function noteContentMediaRefs(content: NoteContent): string[] {
   return [...refs].sort();
 }
 
-/** Validates untrusted note content and returns it with sanitized HTML and normalized tags. */
 export function parseNoteContent(input: unknown): NoteContentParseResult {
   const errors: string[] = [];
   const source = record(input);

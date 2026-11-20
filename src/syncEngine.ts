@@ -31,7 +31,6 @@ function getDefaultNetworkTarget() {
   return typeof window !== "undefined" ? window : null;
 }
 
-/** Fields of a thrown value that the retry and conflict rules read; anything can be thrown. */
 type ThrownValue = { code?: unknown; status?: unknown; statusCode?: unknown; name?: unknown; message?: unknown; cause?: unknown; conflict?: unknown } | null | undefined;
 
 function collectErrorValues(error: unknown) {
@@ -137,7 +136,6 @@ export interface SyncOutboxMutation {
   lastError?: string | null;
 }
 
-/** Payload fields the engine and its default adapter read; which ones are set depends on the mutation type. */
 interface SyncMutationPayload extends EntityMutationPayload, AtomicReviewPayload {
   table?: string;
   profile?: unknown;
@@ -145,7 +143,6 @@ interface SyncMutationPayload extends EntityMutationPayload, AtomicReviewPayload
   deletedAt?: string;
 }
 
-/** Outbox entry as the engine reads it; the outbox stores the payloads that `enqueueMutation` received. */
 type QueuedMutation = Omit<SyncOutboxMutation, "payload"> & { payload: SyncMutationPayload };
 
 interface SyncFlushResult {

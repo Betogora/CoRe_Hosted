@@ -130,7 +130,7 @@ export function StudyMode({ shortcutsSuspended = false, deck, decks, notes, answ
   }
   const { queue, easyDaysContext } = queuePlanRef.current;
   const [sessionDailyProgress, setSessionDailyProgress] = React.useState(() => sessionPlan?.progress ?? queue.dailyProgress);
-  /** Answers Strg+Z/U can take back, newest last, each with the session as it was before it. */
+  /** Answers that can be taken back, newest last, each with the session as it was before it. */
   const undoStackRef = React.useRef<Array<{ result: ReviewAnswerResult; previous: Card; key: string; session: DailyReviewSessionState; progress: typeof sessionDailyProgress }>>([]);
   const effectiveReviewSession = reviewSession ?? createDailyReviewSessionState(queue.items);
   // The card on screen until it is answered or leaves the session; loaded cards must not replace it mid-card.
@@ -156,7 +156,6 @@ export function StudyMode({ shortcutsSuspended = false, deck, decks, notes, answ
   const helpCard = React.useMemo(() => presented ? aiCardHelpCard(presented.note, presented.card) : null, [presented]);
   const isCurrentVariant = Boolean(current?.variant);
   const { urls: studyMediaUrls, missing: studyMissingMedia } = useNoteMediaUrls(currentNote?.media, mediaStore);
-  // The next cards of the session render and load their media while the learner looks at this one.
   const upcomingCards = React.useMemo(() => {
     const items: Array<{ note: Note; card: Card }> = [];
     for (const key of effectiveReviewSession.remainingInitialKeys) {
@@ -187,7 +186,6 @@ export function StudyMode({ shortcutsSuspended = false, deck, decks, notes, answ
     setShowSettings(false);
   }, [deckId, decks.length]);
 
-  // Saved deck settings apply at once, to the card on screen and the queue; the session keeps its cards and answers.
   React.useEffect(() => {
     const settingsById = new Map(decks.map((candidate) => [candidate.id, candidate.deckSettings]));
     if (sessionDecks.every((candidate) => (settingsById.get(candidate.id) ?? candidate.deckSettings) === candidate.deckSettings)) return;
@@ -203,7 +201,6 @@ export function StudyMode({ shortcutsSuspended = false, deck, decks, notes, answ
   }, [bufferSize, hasMoreCards]);
 
   React.useEffect(() => {
-    // A sibling buried by the last answer leaves the session and its counts.
     const buried = new Set(queue.buriedKeys);
     const newlyBuried = (reviewSession?.remainingInitialKeys ?? []).filter((key) => buried.has(key));
     if (newlyBuried.length > 0) {
@@ -338,7 +335,6 @@ export function StudyMode({ shortcutsSuspended = false, deck, decks, notes, answ
     const reviewedKey = current.sessionInfo?.key ?? `${current.deckId}:${current.cardId}`;
     undoStackRef.current.push({ result, previous: current.card, key: reviewedKey, session: effectiveReviewSession, progress: sessionDailyProgress });
     if (result.leechTriggered) {
-      // Once per trigger: the learner may fix the content right away (W22).
       const { deckId: leechDeckId, cardId: leechCardId } = current;
       setSuccessToast(`Lernbremse: ${result.updatedCard.study.lapses}-mal vergessen`, {
         appearance: "neutral",
@@ -348,7 +344,6 @@ export function StudyMode({ shortcutsSuspended = false, deck, decks, notes, answ
     finishOrNext(result.deck, result.updatedCard, rating, current.card.study, result.updatedCard.study, reviewedKey);
   }
 
-  /** Takes back the last answer: the card gets its earlier study state and shows again, the session steps back. */
   function undoLastReview() {
     const last = undoStackRef.current.pop();
     if (!last) return;
@@ -445,7 +440,6 @@ export function StudyMode({ shortcutsSuspended = false, deck, decks, notes, answ
   React.useEffect(() => {
     function handleKeyDown(event: KeyboardEvent) {
       if (showSettings || showAiHelp || shortcutsSuspended) return;
-      // Strg+1–7 switches the flag like in Anki; the dot in the header shows it, without a toast (W20).
       if ((event.ctrlKey || event.metaKey) && !event.altKey && !event.shiftKey && /^[1-7]$/.test(event.key) && current) {
         event.preventDefault();
         const flag = Number(event.key);

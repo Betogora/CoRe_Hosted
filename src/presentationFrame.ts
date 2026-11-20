@@ -1,6 +1,6 @@
 /**
- * Wraps rendered card HTML in the script-free frame. `cardClass` marks the original layout of an imported card
- * (ADR-047): body and root carry Anki's `card`/`nightMode` classes and the template's CSS brings its own typography.
+ * `cardClass` marks the original layout of an imported card: body and root carry Anki's `card`/`nightMode` classes and
+ * the template's CSS brings its own typography.
  */
 export function buildSrcdoc(html: string, css: string, theme: "light" | "dark", reviewSurface = false, cardClass = ""): string {
   const background = reviewSurface ? "transparent" : theme === "dark" ? "#17151f" : "#ffffff";

@@ -6,9 +6,7 @@ import { DialogFrame } from "../../ui/DialogFrame.tsx";
 import { cardCount } from "./cardListModel.ts";
 
 export interface HitStudyDialogProps {
-  /** `Treffer lernen`, `Auswahl lernen` or `Alle Karten frei üben`. */
   title: string;
-  /** Deck whose cards are only practised: the dialog names it and offers no `Vorziehen`. */
   practiceDeckName?: string;
   /** Ids of the cards to study, without suspended and buried ones. */
   loadCardIds: () => Promise<string[]>;
@@ -18,7 +16,6 @@ export interface HitStudyDialogProps {
   returnFocusRef?: React.RefObject<HTMLElement | null>;
 }
 
-/** Start dialog of `Treffer lernen` (KV5): names the cards, `Vorziehen` or `Nur üben` and the order. */
 export function HitStudyDialog({ title, practiceDeckName, loadCardIds, onStart, onClose, returnFocusRef }: HitStudyDialogProps) {
   const practiceOnly = practiceDeckName !== undefined;
   const [cardIds, setCardIds] = React.useState<string[] | null>(null);

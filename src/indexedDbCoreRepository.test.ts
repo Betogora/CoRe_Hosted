@@ -47,7 +47,6 @@ function workspaceState(cardCount = 3) {
   );
 }
 
-/** One content with its forward card in deck A and its reverse sibling in deck B, plus a second content in deck A. */
 function twoDeckState() {
   const shared = basicGraph("deck-a", 0, { reverseDeckId: "deck-b" });
   const other = basicGraph("deck-a", 1);
@@ -251,7 +250,6 @@ test("das Zurücknehmen einer Bewertung entfernt das Ereignis und stellt Lernsta
   assert.deepEqual((pending[1].payload as any).card.study, previous.study);
   assert.equal((pending[1].payload as any).event.id, result.event.id);
 
-  // The answer's confirmation arriving after the take-back leaves the restored card until the take-back is confirmed.
   await repository.persistMutationAcknowledgements([{ table: "cards", row: { id: "card-0", updated_at: result.updatedCard.updatedAt, deleted_at: null }, entity: result.updatedCard }]);
   assert.deepEqual((await repository.loadCardBody("card-0"))?.card.study, previous.study);
   repository.close();
@@ -634,7 +632,6 @@ test("ein unterbrochener Import bleibt vermerkt; dieselbe Datei setzt ihn fort u
   assert.deepEqual(resumed.scope.reviewEventIds, ["review-first"], "die schon übernommene Karte erhält ihren Verlauf");
   assert.equal(await repository.getInterruptedImport(), null);
 
-  // Deleting what an interrupted takeover left leaves nothing to complete.
   await assert.rejects(repository.commitImportGraph(graph([{ ...deckChunk, decks: [{ ...deckChunk.decks[0], id: "other-deck", ankiDeckId: "anki-deck-2", name: "Andere" }] }, firstChunk], 1), { deckSettings: {}, source: { fileName: "Andere.apkg", fileSize: 99 } }));
   assert.equal((await repository.getInterruptedImport())?.fileName, "Andere.apkg");
   await repository.deleteDeckTree("other-deck");
@@ -888,7 +885,6 @@ test("wartende lokale Änderungen bleiben bei Delta-Seiten und beim Zurücksetze
       fields: graph.note.content.fields.map((field) => field.id === "front" ? { ...field, html: "Lokale Frage" } : field),
     });
     await repository.saveNoteGraphs([{ previous: graph, next: { note: plan.note, cards: plan.keptCards } }]);
-    // The reset keeps rows of cards with their own pending change; a pending content edit alone only blocks cloud rows.
     await repository.buryCards(["card-0"], true, "2026-08-21T10:00:00.000Z");
     const [local] = (await repository.listCatalogPage("deck-idb", { query: "lokale frage" })).items;
     await repository.applyCloudCatalogPages([

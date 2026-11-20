@@ -7,10 +7,9 @@ import {
 export const AI_SOURCE_CARDS_ENDPOINT = "/api/ai/source-cards";
 export const AI_SOURCE_CARDS_PROMPT_VERSION = "source-cards-v2";
 export const AI_SOURCE_CARDS_DEADLINE_MS = 120_000;
-/** One request carries one portion of the source; the browser sends larger sources portion by portion. */
 export const MAX_SOURCE_PORTION_CHARS = 15_000;
 export const MAX_SOURCE_PORTION_UNITS = 200;
-/** With the explanation bound, 25 cards stay well below the output budget; the order limit of 100 spans several portions. */
+/** With the explanation bound, 25 cards stay well below the output budget. */
 export const MAX_SOURCE_CARDS_PER_PORTION = 25;
 export const MAX_SOURCE_CARDS_REQUEST_BYTES = 512 * 1_024;
 export const MAX_SOURCE_CARDS_OUTPUT_TOKENS = 16_384;
@@ -37,7 +36,6 @@ const unitSchema = v.strictObject({ id: unitId, label: text(120), text: text(MAX
 const requestSchema = v.strictObject({
   settings: settingsSchema,
   units: v.pipe(v.array(unitSchema), v.minLength(1), v.maxLength(MAX_SOURCE_PORTION_UNITS)),
-  /** Questions of earlier portions of the same order, so a later portion does not ask them again. */
   avoid: v.pipe(v.array(text(SOURCE_CARD_LIMITS.text)), v.maxLength(MAX_AI_SOURCE_CARDS - 1)),
   /** Suggestions this order may still receive. */
   limit: v.pipe(v.number(), v.integer(), v.minValue(1), v.maxValue(MAX_AI_SOURCE_CARDS)),
@@ -69,7 +67,6 @@ export type AiSourceCardsSuccess = v.InferOutput<typeof successSchema>;
 export interface GeneratedSourceCards {
   cards: GeneratedSourceCard[];
   warnings: string[];
-  /** Suggestions dropped for invalid fields or form, a form the order does not allow, unknown or repeated sources, a repeated question or the order limit. */
   discarded: number;
 }
 
@@ -94,7 +91,6 @@ const questionKey = (value: string) => value.replace(/\s+/g, " ").trim().toLocal
 
 const CLOZE_MARKER = /\{\{c\d+::/i;
 
-/** Exactly one gap `{{c1::Lösung}}` (optionally with a hint) and no other cloze markers. */
 function isValidCloze(front: string): boolean {
   const gaps = [...front.matchAll(/\{\{c(\d+)::(.*?)\}\}/g)];
   return gaps.length === 1 && gaps[0][1] === "1" && gaps[0][2].split("::")[0].trim() !== "" && !CLOZE_MARKER.test(front.replace(gaps[0][0], ""));
@@ -111,11 +107,7 @@ function hasValidForm(card: GeneratedSourceCard): boolean {
     && (card.form === "single-choice" ? correct === 1 : correct >= 1 && correct < card.options.length);
 }
 
-/**
- * Validates the tool arguments. A broken structure rejects the answer; single suggestions with invalid fields or
- * form, a form the order does not allow, unknown or repeated sources, a repeated question or beyond the order limit
- * are dropped and counted.
- */
+/** A broken structure rejects the whole answer; single invalid suggestions are dropped and counted in `discarded`. */
 export function parseGeneratedSourceCards(value: unknown, input: AiSourceCardsRequest): GeneratedSourceCards {
   const generated = v.safeParse(generatedSchema, value);
   if (!generated.success) throw new AiSourceCardsError("invalid_response", "Die KI hat keine gültigen Kartenvorschläge geliefert.");
@@ -126,7 +118,6 @@ export function parseGeneratedSourceCards(value: unknown, input: AiSourceCardsRe
   for (const candidate of generated.output.cards) {
     const parsed = v.safeParse(generatedCardSchema, candidate);
     if (!parsed.success) continue;
-    // The short answer belongs to question–answer cards only; elsewhere the explanation carries the details.
     const card = parsed.output.form === "basic" ? parsed.output : { ...parsed.output, back: "" };
     const key = questionKey(card.front);
     if (cards.length === limit || !input.settings.cardForms.includes(card.form) || !hasValidForm(card) || asked.has(key)
@@ -138,7 +129,6 @@ export function parseGeneratedSourceCards(value: unknown, input: AiSourceCardsRe
   return { cards, warnings: warnings.slice(0, SOURCE_CARD_LIMITS.warnings), discarded: generated.output.cards.length - cards.length };
 }
 
-/** Checks the route's answer in the browser: known source units, allowed forms and the request's limit. */
 export function parseAiSourceCardsSuccess(value: unknown, request: AiSourceCardsRequest): GeneratedSourceCards {
   const parsed = v.safeParse(successSchema, value);
   const unitIds = new Set(request.units.map((unit) => unit.id));
@@ -149,7 +139,7 @@ export function parseAiSourceCardsSuccess(value: unknown, request: AiSourceCards
   return { cards: parsed.output.cards, warnings: parsed.output.warnings, discarded: parsed.output.discarded };
 }
 
-/** The order's instructions plus the answer protocol of this route; the material travels as a separate message. */
+/** The material travels as a separate message. */
 export function buildSourceCardsPrompt(input: AiSourceCardsRequest): string {
   return [
     buildAiSourceCreationPrompt(input.settings),

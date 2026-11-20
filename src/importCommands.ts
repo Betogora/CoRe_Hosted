@@ -18,13 +18,11 @@ interface ImportCommandsContext {
   hydration: () => WorkspaceHydrationService | null;
   cloud: ReturnType<typeof createSupabaseBrowserClient> | null;
   syncEngine: () => AccountSyncEngine | null;
-  /** Applies the repository's shell state to the store and returns it. */
   refresh: (options?: { preserveCardPages?: boolean }) => WorkspaceState | null;
 }
 
 export type ImportCommands = ReturnType<typeof createImportCommands>;
 
-/** A cloud confirmation and the workspace it runs in; it moves along when the account opens a new workspace. */
 interface PendingConfirmation {
   task: ImportCloudSyncTask;
   workspace: Pick<ImportCommandsContext, "repository" | "cloud" | "syncEngine">;
@@ -34,12 +32,6 @@ const pendingByCommands = new WeakMap<ImportCommands, Set<PendingConfirmation>>(
 const isWaiting = ({ task }: PendingConfirmation) => task.status !== "cloud-ready" && task.status !== "blocked";
 const accountOf = (workspace: PendingConfirmation["workspace"]) => workspace.repository.getShellState()?.profile.userId;
 
-/**
- * Imports into the open workspace: an import graph committed chunk by chunk with the global defaults for new decks,
- * the demo collection, and the cloud confirmation that follows each import and retries after every saved sync while
- * it waits locally, also in the account's next workspace; plus the one-time re-translation of unedited imports after a
- * translator release.
- */
 export function createImportCommands(context: ImportCommandsContext) {
   const { store, repository, hydration, cloud, syncEngine, refresh } = context;
   const pending = new Set<PendingConfirmation>();
@@ -80,10 +72,7 @@ export function createImportCommands(context: ImportCommandsContext) {
     return confirmation.task;
   }
 
-  /**
-   * Commits an import graph chunk by chunk, applies global defaults to new decks and starts the cloud confirmation. The
-   * same package file after an interrupted takeover continues it.
-   */
+  /** The same package file after an interrupted takeover continues it. */
   async function commitImport(graph: ImportCommitGraph, { onMedia, source }: { onMedia: (file: ImportMediaFile) => Promise<void>; source?: ImportSource }): Promise<ImportedDeckPersistence> {
     const workspaceHydrationService = hydration();
     const profile = store.get().state?.profile;
@@ -109,13 +98,11 @@ export function createImportCommands(context: ImportCommandsContext) {
     };
   }
 
-  /** The world capitals as a first collection. */
   async function importDemo() {
     const { createWorldCapitalsImportGraph } = await import("./fixtures/worldCapitals.ts");
     return (await commitImport(createWorldCapitalsImportGraph(), { onMedia: async () => {} })).decks;
   }
 
-  /** A saved sync lets the confirmations still pending locally try again; returns the unsubscribe. */
   function followSyncStatus() {
     let syncStatus = store.get().syncStatus;
     return store.subscribe(() => {
@@ -145,7 +132,6 @@ export function createImportCommands(context: ImportCommandsContext) {
     previousPending.clear();
   }
 
-  /** K5.4: after a translator release, unedited imports are re-translated once; returns how many contents changed. */
   async function retranslate() {
     if (!cloud) return 0;
     const { runAccountRetranslation } = await import("./importRetranslation.ts");

@@ -9,17 +9,14 @@ const SORT_FIELD = "sortField";
 const FIELD_PREFIX = "field:";
 
 export interface DuplicatesDialogProps {
-  /** With a search the comparison can stay within its hits. */
   searching: boolean;
   find: (key: DuplicateKey, withinHits: boolean) => Promise<{ fieldNames: string[]; groups: DuplicateGroup[] }>;
   deckName: (deckId: string) => string;
   onOpen: (deckId: string, cardId: string) => void;
-  /** Tags every content of the groups with `Duplikat`, as a mass action with `Rückgängig`. */
   onTag: (cardIds: string[]) => Promise<void>;
   onClose: () => void;
 }
 
-/** `Duplikate finden` (KV5): contents with the same field or sort field text, to open, tag or delete. */
 export function DuplicatesDialog({ searching, find, deckName, onOpen, onTag, onClose }: DuplicatesDialogProps) {
   const [target, setTarget] = React.useState(SORT_FIELD);
   const [withinHits, setWithinHits] = React.useState(searching);

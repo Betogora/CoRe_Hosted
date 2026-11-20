@@ -75,7 +75,6 @@ export function LearnScreen({ decks, now, dayStartHour, learnAheadMinutes, timeZ
     window.requestAnimationFrame(() => deckNameRef.current?.focus());
   }
 
-  // Last row of the deck list: borderless fields with accessible names instead of visible labels.
   const deckCreateForm = (
     <form
       onSubmit={createDeckFromDraft}

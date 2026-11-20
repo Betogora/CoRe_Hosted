@@ -2,7 +2,6 @@ import { CATALOG_SPECS } from "../tests/e2e/support/catalogSpecs.ts";
 
 export type AffectedE2ESpecs = { full: true } | { full: false; catalog: string[]; supabase: string[] };
 
-// Changes here can break every flow; the affected gate falls back to the full release suite.
 const FULL_RUN = [
   /^tests\/e2e\/support\//, /^tests\/e2e\/auth\.setup\.ts$/, /^playwright(?:\.[a-z]+)?\.config\.ts$/,
   /^scripts\/(?:runLocalE2E|localE2EEnvironment|affectedE2ESpecs)\.ts$/, /^package(?:-lock)?\.json$/,
@@ -32,7 +31,6 @@ const AREAS: [RegExp, string[]][] = [
   [/pomodoro|Pomodoro/, ["product-surfaces", "core-stabilization"]],
 ];
 
-/** Maps changed repository paths to the browser specs that exercise them; unknown product sources fall back to the full suite. */
 export function affectedE2ESpecs(changedFiles: readonly string[]): AffectedE2ESpecs {
   const specs = new Set<string>();
   for (const file of changedFiles.map((path) => path.replaceAll("\\", "/"))) {

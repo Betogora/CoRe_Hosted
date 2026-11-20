@@ -8,10 +8,6 @@ import { cardSearchTermLabel, type CardSearchMenuCategory } from "./cardSearchMe
 
 const ALL_DECKS = "__all__";
 
-/**
- * Search row of the card management (KV2): free text, the deck filter (a `did:` term) and the switch for the
- * advanced search; below it the active terms as removable chips with the hit count.
- */
 export function CardSearchBar({ query, onQueryChange, decks, categories, advancedOpen, onAdvancedOpenChange, advancedId, resultCount, resultAction, placeholder, hint, children }: {
   query: string;
   onQueryChange: (query: string) => void;
@@ -21,9 +17,7 @@ export function CardSearchBar({ query, onQueryChange, decks, categories, advance
   onAdvancedOpenChange: (open: boolean) => void;
   advancedId: string;
   resultCount: number | null;
-  /** Action for the hits at the end of their row, such as `Treffer lernen`. */
   resultAction?: React.ReactNode;
-  /** The open advanced menu sits above the chips, so a new chip never shifts it under the pointer. */
   children?: React.ReactNode;
   placeholder: string;
   hint?: React.ReactNode;
@@ -36,7 +30,6 @@ export function CardSearchBar({ query, onQueryChange, decks, categories, advance
     // Only a changed query moves the field; `input` is the one rendered with it.
   }, [query]);
   const terms = cardSearchTerms(query);
-  // The deck filter shows a single `did:` term; it replaces every deck term, also a group of several decks.
   const deckTerm = terms.find((term) => /^did:/i.test(term));
   const deckValue = deckTerm ? deckTerm.slice("did:".length) : ALL_DECKS;
   const deckTerms = terms.filter((term) => /^-?did:/i.test(term) || cardSearchGroupMembers(term)?.members.every((member) => /^did:/i.test(member)));
@@ -90,7 +83,6 @@ export function CardSearchBar({ query, onQueryChange, decks, categories, advance
       </div>
       {hint ? <p id="card-search-hint" className="core-field-hint" data-testid="card-search-unsupported">{hint}</p> : null}
       {children}
-      {/* A search always names its number of hits, also without filters (the flat hit list, KV3). */}
       {terms.length || resultCount !== null ? (
         <div className="flex min-w-0 flex-wrap items-center gap-x-1.5 gap-y-2" data-testid="card-search-chips">
           {resultCount !== null ? <p className="mr-1.5 shrink-0 whitespace-nowrap core-body font-semibold text-core-text">{resultCount === 1 ? "1 Karte" : `${resultCount} Karten`}</p> : null}

@@ -6,7 +6,6 @@ import type { useNavigationGuard } from "./useNavigationGuard.ts";
 type SettingsOverlay = { settingsSection?: SettingsSection; deckSettings?: DeckSettingsOverlay };
 type SettingsNavigation = Pick<ReturnType<typeof useNavigationGuard>, "settingsSection" | "deckSettings" | "navigateToRoute" | "getCurrentRoute" | "leaveCardDraft">;
 
-/** Identifies the open settings dialog and its draft: the general or learning group, or one deck. */
 function settingsOverlayKey(route: SettingsOverlay): string | null {
   if (route.deckSettings) return `deck:${route.deckSettings.deckId}`;
   return route.settingsSection ? `settings:${settingsSectionGroup(route.settingsSection)}` : null;
@@ -14,7 +13,6 @@ function settingsOverlayKey(route: SettingsOverlay): string | null {
 
 function withSettingsOverlay(route: AppRoute, overlay: SettingsOverlay): AppRoute {
   if (route.mode === "study") return createStudyRoute(route.deckId, { returnContext: route.returnContext, deckSettings: overlay.deckSettings });
-  // The deck whose settings are open becomes the focus of the deck lists underneath and stays it after closing.
   const focusedDeckId = !route.deckContent && (route.viewId === "lernen" || route.viewId === "kartenstapel") ? overlay.deckSettings?.deckId : undefined;
   return createViewRoute(route.viewId, {
     ...route,
@@ -24,10 +22,6 @@ function withSettingsOverlay(route: AppRoute, overlay: SettingsOverlay): AppRout
   });
 }
 
-/**
- * The general, learning and deck settings dialogs over the current view or session, with their history entries and the
- * guard of an open settings draft: it holds back every navigation outside its dialog until saved or discarded.
- */
 export function useSettingsOverlay({ settingsSection, deckSettings, navigateToRoute, getCurrentRoute, leaveCardDraft }: SettingsNavigation) {
   const settingsDraftGuardRef = React.useRef<SettingsDraftGuard | null>(null);
   const settingsOverlayKeyRef = React.useRef<string | null>(null);
@@ -55,7 +49,6 @@ export function useSettingsOverlay({ settingsSection, deckSettings, navigateToRo
     return true;
   }, []);
 
-  /** Settings dialogs lie over the current view or session; from the card editor they first leave the card. Switching between them replaces the entry. */
   const openSettingsOverlay = React.useCallback((overlay: SettingsOverlay) => {
     const current = getCurrentRoute();
     const replace = Boolean(settingsOverlayKey(current));
@@ -99,7 +92,6 @@ export function useSettingsOverlay({ settingsSection, deckSettings, navigateToRo
     }
   }, []);
 
-  /** Runs an action that leaves the dialog only while no settings draft is open. */
   const requestSettingsContextAction = React.useCallback(<T>(action: () => T): T | undefined => {
     if (settingsDraftGuardRef.current) {
       setSettingsNavigationBlocked(true);
@@ -156,7 +148,6 @@ export function useSettingsOverlay({ settingsSection, deckSettings, navigateToRo
     handleSettingsDraftStateChange,
     requestSettingsContextAction,
     settingsDraftOpen,
-    /** State and actions of the save bar shown while a settings draft is open. */
     saveBar: {
       savingScope: savingSettingsDraft,
       navigationBlocked: settingsNavigationBlocked,

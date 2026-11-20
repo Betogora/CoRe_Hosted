@@ -8,7 +8,6 @@ type SelectableCreationMethod = Exclude<CreationMethod, "">;
 export interface CreationMethodDefinition {
   id: SelectableCreationMethod;
   title: string;
-  /** Page title while this way is open; it names the way instead of a second panel title. */
   pageTitle: string;
   icon: LucideIcon;
 }

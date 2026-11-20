@@ -5,20 +5,16 @@ import type { Deck } from "../coreTypes.ts";
 
 interface VariantGenerationBarProps {
   deck: Deck;
-  /** Action name before the count, e.g. "Varianten neu generieren". */
   title?: string;
   done: number;
-  /** Unknown while the cards are still being checked. */
+  /** Null while the cards are still being checked. */
   total: number | null;
-  /** Final message of an action that needs attention; replaces the count and offers closing. */
   outcome?: string | null;
   onCancel: () => void;
   onClose: () => void;
-  /** Opens the cards still without a variant; offered with the final message of an action that left some. */
   onShow?: () => void;
 }
 
-/** App-wide two-line progress of an AI variant action: deck, count and action, then the bar. */
 export function VariantGenerationBar({ deck, title = "Varianten generieren", done, total, outcome = null, onCancel, onClose, onShow }: VariantGenerationBarProps) {
   const progress = outcome ? 1 : total ? done / total : 0;
   const label = outcome ?? (total === null ? `${title} …` : `${title} ${done.toLocaleString("de-DE")} von ${total.toLocaleString("de-DE")}`);

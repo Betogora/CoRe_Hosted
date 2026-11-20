@@ -92,7 +92,6 @@ function ExamCard({ exam, color, summary, progress, civilToday, busy, editor, on
   );
 }
 
-/** Global exam planner (ADR-042), with relative study time for each exam. */
 export function ExamPlanningScreen({ state, now, onLoadPlanningData, onSavePlanning, onSaveTasks, onStartUnit, onLoadSummaryAvailability, onLoadLocalCardIds, onDraftStateChange }: ExamPlanningScreenProps) {
   const preferences = getGlobalSchedulerPreferences(state.profile);
   const deckSummaries = useWorkspaceValue((snapshot) => snapshot.deckSummaries);

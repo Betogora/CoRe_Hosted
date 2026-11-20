@@ -26,7 +26,6 @@ const casesSchema = v.strictObject({
 export type DraftCase = v.InferOutput<typeof casesSchema>["cases"][number];
 export type EvalCase = DraftCase & { split: "train" | "test" };
 
-/** Fester Zufall: derselbe Startwert liefert dieselbe Folge (mulberry32). */
 export function seededRandom(seed: number) {
   let state = seed >>> 0;
   return () => {
@@ -56,7 +55,6 @@ export function writeJson(file: string, value: unknown) {
   writeFileSync(file, `${JSON.stringify(value, null, 2)}\n`, "utf8");
 }
 
-/** Liest eine Falldatei und prüft jede Anfrage mit dem Vertrag der Route. */
 export function readCases(definition: EvalDefinition, file: string): DraftCase[] {
   if (!existsSync(file)) return [];
   return parseStrict(casesSchema, readJson(file), file).cases.map((entry) => {
@@ -66,7 +64,6 @@ export function readCases(definition: EvalDefinition, file: string): DraftCase[]
   });
 }
 
-/** Teilt Fälle ohne Aufteilung je Kategorie hälftig zu; bestehende Zuordnungen bleiben unverändert. */
 export function assignSplits(cases: readonly DraftCase[], random: () => number): EvalCase[] {
   const assigned = new Map<string, "train" | "test">();
   for (const category of [...new Set(cases.map((entry) => entry.category))].sort()) {
@@ -82,7 +79,6 @@ export function assignSplits(cases: readonly DraftCase[], random: () => number):
   return cases.map((entry) => ({ ...entry, split: entry.split ?? assigned.get(entry.id)! }));
 }
 
-/** Alle Fälle eines Anfragetyps: versionierte Prüfkarten und lokale Korpusfälle, jede Kennung einmal und mit Aufteilung. */
 export function loadCases(definition: EvalDefinition): EvalCase[] {
   const cases = [handCasesFile(definition.id), corpusCasesFile(definition.id)].flatMap((file) => readCases(definition, file));
   const duplicate = cases.find((entry, index) => cases.findIndex((other) => other.id === entry.id) !== index);
@@ -92,7 +88,6 @@ export function loadCases(definition: EvalDefinition): EvalCase[] {
   return cases as EvalCase[];
 }
 
-/** Zieht Karten mit Frage und Antwort aus dem lokalen APKG-Korpus; derselbe Startwert liefert dieselbe Auswahl. */
 export async function sampleCorpus(definition: EvalDefinition, count: number, seed: number, directory = "fixtures/apkg/corpus"): Promise<DraftCase[]> {
   const files = existsSync(directory) ? readdirSync(directory).filter((name) => /\.(?:apkg|colpkg)$/i.test(name)).sort() : [];
   if (!files.length) throw new Error(`Kein Korpus in ${directory}.`);

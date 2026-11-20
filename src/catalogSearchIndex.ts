@@ -19,7 +19,6 @@ function compareEntries(field: CardTableSort["field"]) {
   };
 }
 
-/** The order of a card list, as the search index sorts it. */
 export function compareCatalogEntries(sort: CardTableSort) {
   const compare = compareEntries(sort.field);
   return sort.direction === "desc" ? (left: CardCatalogEntry, right: CardCatalogEntry) => compare(right, left) : compare;
@@ -38,9 +37,8 @@ function position(sorted: readonly CardCatalogEntry[], entry: CardCatalogEntry, 
 }
 
 /**
- * In-memory search over the whole local catalog. Each sort order is computed once and filtered in that order,
- * so a search is one pass; a changed or removed entry moves only itself within the computed orders.
- * Results stay cached per query and sort until the catalog changes.
+ * Each sort order is computed once and filtered in that order, so a search is one pass; a changed or removed entry
+ * moves only itself within the computed orders. Results stay cached per query and sort until the catalog changes.
  */
 export function createCatalogSearchIndex() {
   const entries = new Map<string, CardCatalogEntry>();
@@ -86,14 +84,10 @@ export function createCatalogSearchIndex() {
       const previous = entries.get(id);
       if (previous && entries.delete(id)) move(previous, undefined);
     },
-    /** Matching entries per deck in the requested order. */
     search(query: string, sort: CardTableSort, context?: CardSearchContext): ReadonlyMap<string, readonly CardCatalogEntry[]> {
       return matching(query, sort, context).byDeck;
     },
-    /**
-     * One window of the matching entries of the given decks (one deck, several decks as one list, or `null` for all),
-     * in the requested order; any window is a slice of the cached result, so scrolling far needs no walk.
-     */
+    /** `deckIds` null means all decks. Any window is a slice of the cached result, so scrolling far needs no walk. */
     slice(query: string, sort: CardTableSort, context: CardSearchContext | undefined, deckIds: readonly string[] | null, offset: number, limit: number) {
       const result = matching(query, sort, context);
       let list: readonly CardCatalogEntry[];

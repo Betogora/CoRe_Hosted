@@ -20,9 +20,9 @@ const verdictsSchema = v.strictObject({
   verdicts: v.array(v.strictObject({ entry: v.string(), results: v.record(v.string(), v.boolean()), note: v.optional(v.string()) })),
 });
 
-/** Ein von Hand bewerteter Eintrag; `control` mischt ihn als Kontrolleintrag in jede Richtertabelle. */
+/** `control` mischt den Eintrag als Kontrolleintrag in jede Richtertabelle. */
 export type Label = v.InferOutput<typeof labelsSchema>["entries"][number];
-/** Ein zu bewertendes Paar aus Anfrage und Antwort; `ref` führt zurück zur Antwort oder zum Handurteil. */
+/** `ref` führt zurück zur Antwort oder zum Handurteil. */
 export type JudgeItem = { ref: string; request: unknown; output: unknown };
 export type JudgeTable = { requestType: string; criteria: JudgedCriterion[]; entries: { entry: string; criteria: string[]; eingabe: Record<string, string>; ausgabe: Record<string, string> }[] };
 export type Verdicts = Map<string, Record<string, boolean>>;
@@ -30,7 +30,6 @@ export type Verdicts = Map<string, Record<string, boolean>>;
 export const answerRef = (caseId: string, repetition: number) => `answer:${caseId}#${repetition}`;
 export const labelRef = (id: string) => `label:${id}`;
 
-/** Handurteile eines Anfragetyps; jedes deckt genau die Kriterien ab, die der Richter für diesen Eintrag bewertet. */
 export function readLabels(definition: EvalDefinition): Label[] {
   const file = labelsFile(definition.id);
   if (!existsSync(file)) return [];
@@ -43,7 +42,7 @@ export function readLabels(definition: EvalDefinition): Label[] {
   });
 }
 
-/** Eine Tabelle für den Richter: ohne Dubletten, gemischt und ohne Hinweis auf Fall, Wiederholung oder Kontrolleintrag. */
+/** Die Tabelle verrät weder Fall noch Wiederholung noch Kontrolleintrag. */
 export function buildJudgeTable(definition: EvalDefinition, items: readonly JudgeItem[], random: () => number) {
   const groups = new Map<string, JudgeItem[]>();
   for (const item of items) {
@@ -63,7 +62,6 @@ export function buildJudgeTable(definition: EvalDefinition, items: readonly Judg
   return { table, key };
 }
 
-/** Liest die Urteile des Richters, prüft sie auf Vollständigkeit und ordnet sie über den Schlüssel den Antworten zu. */
 export function readVerdicts(value: unknown, table: JudgeTable, key: Record<string, string[]>): Verdicts {
   const results = new Map(parseStrict(verdictsSchema, value, "Richterurteile").verdicts.map((verdict) => [verdict.entry, verdict.results]));
   const verdicts: Verdicts = new Map();

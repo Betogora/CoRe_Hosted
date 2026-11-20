@@ -4,16 +4,11 @@ import { AI_CARD_HELP_DEADLINE_MS, parseAiCardHelpRequest, type AiCardHelpReques
 import { AI_CARD_VARIANT_DEADLINE_MS, clozeVariantGaps, normalizeAiCardText, parseAiCardVariantRequest, type AiCardVariantRequest, type AiCardVariantSource, type AiCardVariantSuccess } from "../../src/aiCardVariantContract.ts";
 import type { RequestType } from "./ledger.ts";
 
-/** Ein Kriterium des Bewertungsbogens, das der Richter je Eintrag mit bestanden oder nicht bestanden bewertet. */
 export interface JudgedCriterion { id: string; title: string; pass: string; fail: string }
 
 type Generated<Output> = { output: Output; model: string; totalTokens: number | null; costUsd: number | null };
 type Rendered = { eingabe: Record<string, string>; ausgabe: Record<string, string> };
 
-/**
- * Alles, was der Runner über einen Anfragetyp wissen muss. Erzeugt wird über Payload-Builder und Antwortprüfung der
- * Route; ein Kriterium besteht, wenn seine automatische Prüfung und sein Richterurteil bestehen.
- */
 export interface EvalDefinition<Request = unknown, Output = unknown> {
   id: RequestType["id"];
   deadlineMs: number;
@@ -24,18 +19,15 @@ export interface EvalDefinition<Request = unknown, Output = unknown> {
   parseRequest(value: unknown): Request | null;
   buildPayload(request: Request): { model: string; reasoning: { effort: string } };
   extract(payload: unknown, request: Request): Generated<Output>;
-  /** Nachgebildete Werkzeugargumente für den Trockenlauf. */
   mock(request: Request): { tool: string; arguments: unknown };
   automatic: Record<string, (request: Request, output: Output) => boolean>;
   judged(request: Request): JudgedCriterion[];
   render(request: Request, output: Output): Rendered;
-  /** Anfragen aus einer Korpuskarte mit ihrer Kategorie nach einfacher Regel. */
   fromCorpus(card: AiCardVariantSource): { suffix: string; category: string; request: Request }[];
 }
 
 const words = (text: string) => normalizeAiCardText(text).toLocaleLowerCase("de-DE").split(/[^\p{L}\p{N}]+/u).filter(Boolean);
 
-/** Wortweise Editierdistanz zweier Texte. */
 export function wordDistance(left: string, right: string) {
   const a = words(left), b = words(right);
   let row = Array.from({ length: b.length + 1 }, (_, index) => index);
@@ -47,20 +39,17 @@ export function wordDistance(left: string, right: string) {
   return row[b.length];
 }
 
-/** Erkennbar umformuliert: mindestens zwei geänderte Wörter und ein Viertel des längeren Textes. */
 export function rephrased(original: string, candidate: string) {
   const longer = Math.max(words(original).length, words(candidate).length);
   return wordDistance(original, candidate) >= Math.max(2, Math.ceil(longer / 4));
 }
 
-/** Zahlen und Formeln: jede Zeichenfolge mit Ziffer, ohne Satzzeichen am Rand. */
 export function numberTokens(text: string) {
   return [...normalizeAiCardText(text).matchAll(/\S*\d\S*/g)].map(([token]) => token.replace(/^[("„“‚‘']+|[)".,;:!?“”‘’']+$/g, "")).filter(Boolean);
 }
 
 const keepsNumbers = (original: string, candidate: string) => numberTokens(original).every((token) => normalizeAiCardText(candidate).includes(token));
 
-/** Kategorie einer Korpuskarte nach einfacher Regel; die erste zutreffende gilt. */
 export function corpusCategory({ front, back }: { front: string; back: string }) {
   if (front.length + back.length > 400) return "lange-karten";
   if (/\d/.test(back)) return "zahlen-formeln";
@@ -104,7 +93,6 @@ const cardVariantBasic: EvalDefinition<AiCardVariantRequest, AiCardVariantReques
   fromCorpus: (card) => card.kind === "cloze" || card.kind === "choice" ? [] : [{ suffix: "", category: corpusCategory(card), request: { kind: "basic", source: { front: card.front, back: card.back } } }],
 };
 
-/** Kategorie einer Lückentext-Korpuskarte nach einfacher Regel; die erste zutreffende gilt. */
 export function clozeCorpusCategory({ front, back }: { front: string; back: string }) {
   const gaps = clozeVariantGaps(front);
   if (front.length > 400) return "lange-texte";
@@ -114,7 +102,6 @@ export function clozeCorpusCategory({ front, back }: { front: string; back: stri
   return "sonstige";
 }
 
-/** Der Text um die Lücken, für Umformulierung und Zahlen außerhalb der Lösung. */
 const clozeOutside = (text: string) => clozeVariantGaps(text)?.outside ?? text;
 
 const cardVariantCloze: EvalDefinition<AiCardVariantRequest, AiCardVariantRequest["source"]> = {

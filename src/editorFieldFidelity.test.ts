@@ -7,8 +7,6 @@ import { translateAnkiPackage } from "./apkgNoteTranslation.ts";
 import { noteEditorValue, planNoteContentChange, validateNoteEditorValue } from "./coreModel.ts";
 import type { Card, Note } from "./coreTypes.ts";
 
-// W15 on real decks (AnKing-based Ankizin, Ankiphil, …): opening and closing the editor changes nothing, and editing
-// one field leaves every other field byte for byte. Decks stay local (ADR-035); without them the test is skipped.
 const corpusDir = resolve(process.env.CORE_APKG_CORPUS ?? "fixtures/apkg/corpus");
 const files = existsSync(corpusDir) ? readdirSync(corpusDir).filter((name) => /\.apkg$/i.test(name)).sort() : [];
 const NOTES_PER_DECK = 400;

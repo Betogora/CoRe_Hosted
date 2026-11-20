@@ -6,29 +6,22 @@ import { CoreTooltip } from "./tooltipUi.tsx";
 
 const tagKey = (tag: string) => tag.toLocaleLowerCase("und");
 
-/** Last `::` part of a tag, as the chip shows it; the full path stays in the tooltip. */
 export function tagLeaf(tag: string): string {
   return tag.split("::").at(-1) || tag;
 }
 
 export interface TagInputProps {
   tags: readonly string[];
-  /** Tags of the last import; those still present form the collapsed imported group (V4). */
   importedTags?: readonly string[];
-  /** Tags of the account for suggestions and spelling; read on the first focus, not for every opened view. */
+  /** Read on the first focus, not for every opened view. */
   loadDirectory?: () => Promise<TagDirectoryEntry[]>;
   onChange: (tags: string[], change: { added: string[]; removed: string[] }) => void;
   label?: string;
-  /** The label stays for assistive technology while a surrounding heading names the field. */
   labelHidden?: boolean;
   placeholder?: string;
   disabled?: boolean;
 }
 
-/**
- * Tag chips with suggestions from the account's directory. Space, Enter and Tab finish a tag, pasting splits only at
- * whitespace; `#`, `,` and `;` stay part of a tag (W10). A chip's text goes back into the field for editing.
- */
 export function TagInput({ tags, importedTags = [], loadDirectory, onChange, label = "Tags", labelHidden = false, placeholder = "Tag hinzufügen", disabled = false }: TagInputProps) {
   const [text, setText] = React.useState("");
   const [directory, setDirectory] = React.useState<readonly TagDirectoryEntry[]>([]);

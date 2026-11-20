@@ -7,7 +7,6 @@ interface SettingsSaveBarProps {
   open: boolean;
   savingScope?: SettingsSaveScope | "global" | null;
   navigationBlocked?: boolean;
-  /** The last save attempt failed; the bar says so where the user clicked. */
   failed?: boolean;
   mode?: "global" | "learning-global" | "deck" | "deck-tree";
   onSave: (scope?: SettingsSaveScope) => void;

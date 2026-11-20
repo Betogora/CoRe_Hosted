@@ -50,7 +50,7 @@ const summarySchema = v.strictObject({
   createdAt: v.pipe(v.string(), v.isoTimestamp()), updatedAt: v.pipe(v.string(), v.isoTimestamp()),
 });
 export type LearningSummary = v.InferOutput<typeof summarySchema>;
-/** Heading of the generated notes section; the mind map translator skips it. */
+/** The mind map translator skips this heading. */
 export const SUMMARY_NOTES_HEADING = "Hinweise zum Material";
 
 export function readLearningSummary(value: unknown): LearningSummary {
@@ -71,7 +71,6 @@ export function createLearningSummary(deckId: string, title: string, settings: S
   return readLearningSummary({ version: 1, id: `summary_${crypto.randomUUID()}`, deckId, title: title.trim(), html: "", settings, font: "sans", fontSize: 16, createdAt: now, updatedAt: now });
 }
 
-/** A copy with its own id; content, settings and generation details stay, the title starts with `prefix`. */
 export function duplicateLearningSummary(summary: LearningSummary, now = new Date().toISOString(), prefix = "Kopie von"): LearningSummary {
   return readLearningSummary({ ...summary, id: `summary_${crypto.randomUUID()}`, title: `${prefix} ${summary.title}`.slice(0, 120), createdAt: now, updatedAt: now });
 }
@@ -92,7 +91,6 @@ export function summaryDescription(summary: LearningSummary): string {
   return `${length} · ${detail} · ${minutes ? `${minutes} Min. Lesezeit` : "Leerer Entwurf"}`;
 }
 
-/** Whose summaries are read and written; without `cloud` they stay in this browser (catalog, tests, app without Supabase). */
 export interface LearningContentAccount { userId: string; cloud: SupabaseClient | null }
 /** Local copy: `revision` is the cloud revision it builds on, `pending` marks changes not yet in the cloud, a null summary a pending deletion. */
 interface StoredSummary { id: string; deckId: string; summary: LearningSummary | null; revision: number | null; pending: boolean }
@@ -108,7 +106,7 @@ async function withSummaryStore<T>(userId: string, mode: IDBTransactionMode, run
     const request = indexedDB.open(`core.learningSummaries.v2.${encodeURIComponent(userId)}`, 1);
     request.onupgradeneeded = () => {
       request.result.createObjectStore("summaries", { keyPath: "id" }).createIndex("deckId", "deckId");
-      indexedDB.deleteDatabase(`core.learningSummaries.v1.${encodeURIComponent(userId)}`); // Nur lokal gespeicherte Altfassungen entfallen (Entscheidung I2).
+      indexedDB.deleteDatabase(`core.learningSummaries.v1.${encodeURIComponent(userId)}`); // Nur lokal gespeicherte Altfassungen entfallen.
     };
     request.onsuccess = () => resolve(request.result);
     request.onerror = () => reject(new Error("Der lokale Speicher für Zusammenfassungen konnte nicht geöffnet werden."));
@@ -129,7 +127,6 @@ const writeStored = (userId: string, records: StoredSummary[], removed: string[]
   for (const id of removed) store.delete(id);
 }, SAVE_FAILED);
 
-/** Pushes one pending record. After a conflict (decision I3) the draft continues as „Konfliktfassung von …“ and the original takes the cloud state. */
 async function pushSummary(account: LearningContentAccount & { cloud: SupabaseClient }, record: StoredSummary): Promise<SavedLearningSummary | null> {
   const { userId, cloud } = account;
   if (!record.summary) {
@@ -149,7 +146,7 @@ async function pushSummary(account: LearningContentAccount & { cloud: SupabaseCl
   return { saved: draft, unsynced: !pushed, replaced: { id: record.id, summary: remote } };
 }
 
-/** Summaries of a deck: the cloud state merged with changes this browser has not uploaded yet, which are retried here. Offline the last local copy is shown. */
+/** Retries changes this browser has not uploaded yet as a side effect; offline it returns the last local copy. */
 export async function loadLearningSummaries(account: LearningContentAccount, deckId: string): Promise<{ summaries: LearningSummary[]; unsynced: Set<string> }> {
   const { userId, cloud } = account;
   const remote = cloud ? await listLearningDocuments(cloud, TABLE, deckId).catch(() => null) : null;
@@ -167,7 +164,6 @@ export async function loadLearningSummaries(account: LearningContentAccount, dec
   };
 }
 
-/** Saves locally first and then to the cloud; without a connection the summary stays marked as not yet synchronised. */
 export async function saveLearningSummary(account: LearningContentAccount, value: unknown): Promise<SavedLearningSummary> {
   const summary = readLearningSummary(value), { userId, cloud } = account, existing = await getStored(userId, summary.id);
   const record: StoredSummary = { id: summary.id, deckId: summary.deckId, summary, revision: existing?.revision ?? null, pending: Boolean(cloud) };
@@ -176,7 +172,6 @@ export async function saveLearningSummary(account: LearningContentAccount, value
   return await pushSummary({ ...account, cloud }, record).catch(() => null) ?? { saved: summary, unsynced: true, replaced: null };
 }
 
-/** Deletes on every device; offline the deletion waits as a local mark. */
 export async function deleteLearningSummary(account: LearningContentAccount, id: string): Promise<void> {
   const { userId, cloud } = account, existing = await getStored(userId, id);
   if (!existing) return;

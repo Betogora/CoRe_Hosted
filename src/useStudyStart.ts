@@ -20,11 +20,6 @@ interface StudyStartContext {
   clock: Pick<ReturnType<typeof useLearningClock>, "learningNow" | "getLearningNow">;
 }
 
-/**
- * Starts of study sessions from the screens and from a study route: a deck, more new cards for today, today's exam
- * unit and `Treffer lernen`. A deck without cards for today and a failed preparation are kept for their dialogs; a
- * study route that cannot start returns to where it came from.
- */
 export function useStudyStart({ preparation, session, navigation, deckCommands, clock }: StudyStartContext) {
   const [emptyStudyStart, setEmptyStudyStart] = React.useState<EmptyStudyStart | null>(null);
   const [studyPreparationFailure, setStudyPreparationFailure] = React.useState<StudyPreparationFailure | null>(null);

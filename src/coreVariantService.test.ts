@@ -24,10 +24,7 @@ const LAST_ANSWER = "2026-10-10T08:00:00.000Z";
 /** Three days after the last answer: the earliest time a variant may replace the card. */
 const RELEASED = "2026-10-13T08:00:00.000Z";
 
-/**
- * A review card answered at `LAST_ANSWER` with two rephrasings created one after another, at the given chain stage.
- * Stability 20 holds about 33 days until recall falls to 90 %, stability 10 about 13 days.
- */
+/** Stability 20 holds about 33 days until recall falls to 90 %, stability 10 about 13 days. */
 function matureCard(stability = 20, variantStage = 0): Card {
   const { cards } = createBasicNote("deck", "Frage", "Antwort");
   const base: Card = { ...cards[0], study: { ...cards[0].study, state: "review", reps: 3, stability, difficulty: 5, lastRating: "good", lastReviewedAt: LAST_ANSWER, extra: { ...cards[0].study.extra, stabilityFast: stability, variantStage } } };
@@ -73,7 +70,6 @@ test("Auswahl-Quelle nennt Frage, Art und jede Option mit Richtigkeit; ohne Opti
   assert.equal(cardVariantSource(imageOption, cards[0]), null);
   assert.deepEqual(classifyCardEligibility(imageOption, cards[0]).reasons, ["Die Frage oder eine Antwortoption hat keinen Text."]);
 
-  // Cards the request contract refuses would fail on every batch; they are not eligible.
   const oneOption = { ...note, content: { ...note.content, interaction: { kind: "choice" as const, mode: "single" as const, options: [{ id: "a", html: "A", correct: true }] } } };
   assert.deepEqual(classifyCardEligibility(oneOption, cards[0]).reasons, ["Eine Variante braucht zwei bis 10 Antwortoptionen."]);
   const tooLong = createBasicNote("deck", "x".repeat(1_300), "Antwort");
@@ -251,7 +247,6 @@ test("Stufe: Gut und Leicht erreichen die gezeigte Variante, Schwer bleibt, Noch
   assert.equal(nextVariantStage(card, v2, "again", ON), 0);
   assert.equal(nextVariantStage(matureCard(20, 0), v1, "again", ON), 0);
   assert.equal(nextVariantStage(card, null, "good", ON), 1);
-  // Past the chain's end the longest unseen variant comes back without moving the stage back.
   assert.equal(nextVariantStage(matureCard(20, 2), v1, "good", ON), 2);
 });
 

@@ -3,7 +3,6 @@ import { useWorkspaceValue } from "../useWorkspaceStore.ts";
 import { DashboardScreen } from "./DashboardScreen.tsx";
 import { useDeckPractice } from "./useDeckPractice.tsx";
 
-/** `Heute` with its starts, deck commands, today's exam tasks and the focus timer. */
 export function DashboardScreenWiring() {
   const { navigation, settings, clock, pomodoro, studyStart, studyPreparation, deckCommands, importCommands, requestDeckCoreMode, hydration } = useAppServices();
   const state = useWorkspaceValue((snapshot) => snapshot.state);

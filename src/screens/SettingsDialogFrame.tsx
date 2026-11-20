@@ -16,20 +16,16 @@ export interface SettingsDialogFrameProps<S extends string> {
   navigationLabel: string;
   testId: string;
   groups: ReadonlyArray<{ label?: string; items: ReadonlyArray<SettingsDialogArea<S>> }>;
-  /** The area shown on the right; on narrow screens `showAreaList` shows the area list instead. */
   activeSection: S;
   showAreaList: boolean;
   onSelectSection: (section: S) => unknown;
-  /** Back to the area list on narrow screens; without it there is no back button. */
   onShowAreaList?: () => unknown;
   onClose: () => unknown;
-  /** Shown above the areas, for example a deck switch. */
   navigationHeader?: React.ReactNode;
   footer?: React.ReactNode;
   children: React.ReactNode;
 }
 
-/** Modal settings window: areas on the left, exactly one area as a list on the right; below 768 px first the area list, then the area. */
 export function SettingsDialogFrame<S extends string>({ title, closeLabel, navigationLabel, testId, groups, activeSection, showAreaList, onSelectSection, onShowAreaList, onClose, navigationHeader, footer, children }: SettingsDialogFrameProps<S>) {
   const titleId = React.useId();
   // Escape belongs to the dialog; otherwise a study session underneath would also read it as "exit".

@@ -204,7 +204,6 @@ const RATING_GUIDE: ReadonlyArray<{ label: string; text: string }> = [
   { label: "Leicht", text: "Sofort und mühelos. Beendet die Lernphase und streckt den Abstand stark." },
 ];
 
-/** The example chain „Immer Gut“ at the default target retention. */
 function defaultGoodChain() {
   const retention = createDefaultDeckSettings().schedulerProfile.desiredRetention;
   const contacts = runExampleChain(EXAMPLE_CHAINS[0].ratings, retention);

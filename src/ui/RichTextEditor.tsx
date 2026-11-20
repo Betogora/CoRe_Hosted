@@ -63,7 +63,6 @@ function canonicalizeRichTextMedia(html: string, stripUnmanagedImages: boolean):
   return sanitizeCardHtml(root.innerHTML);
 }
 
-/** Shows stored media (SHA-1 or imported file names) through their local preview URLs. */
 function hydrateRichTextMedia(html: string, mediaUrls: Record<string, string>): string {
   const normalized = normalizeRichTextForEditor(html);
   if (typeof document === "undefined" || !/<img\b/i.test(normalized) || Object.keys(mediaUrls).length === 0) return normalized;
@@ -160,11 +159,8 @@ interface RichTextEditorProps {
     groupId: number;
   };
   imageActions?: RichTextImageActions;
-  /** Shows the toolbar only while focus is in the field or its toolbar, e.g. for a column of several fields. */
   toolbarOnFocus?: boolean;
-  /** Long-form documents: grouped toolbar with history, strikethrough and active format states instead of the card tool set. */
   documentTools?: boolean;
-  /** Document-wide controls of the caller (e.g. font and size), shown after the history group of `documentTools`. */
   documentSettings?: React.ReactNode;
 }
 
@@ -173,7 +169,7 @@ export function RichTextEditor({ value = "", onChange, onFocus, isActive = false
   const imageInputRef = React.useRef<HTMLInputElement>(null);
   const selectionRef = React.useRef<Range | null>(null);
   const isFocusedRef = React.useRef(false);
-  // Only input changes a field: focusing and leaving it keeps stored (also imported) HTML untouched (W15).
+  // Only input changes a field: focusing and leaving it keeps stored (also imported) HTML untouched.
   const editedSinceFocusRef = React.useRef(false);
   const [focusWithin, setFocusWithin] = React.useState(false);
   const lastEmittedNormalizedHtmlRef = React.useRef("");
@@ -466,7 +462,6 @@ export function RichTextEditor({ value = "", onChange, onFocus, isActive = false
     setClozeStatus(`Lücke c${groupId} erstellt.`);
   }
 
-  /** Wraps the selection in KaTeX inline delimiters; without a selection the cursor lands between them. */
   function addFormula() {
     const editor = editorRef.current;
     const range = getRestoredEditorRange();
@@ -606,7 +601,6 @@ export function RichTextEditor({ value = "", onChange, onFocus, isActive = false
 
   const toolbarShown = !toolbarOnFocus || focusWithin || colorMenuOpen;
   const active = isActive || (toolbarOnFocus && focusWithin);
-  // Only a toolbar rendered here shares the frame; a hosted one leaves the field its own top edge.
   const toolbarAttached = toolbarShown && !toolbarHost;
   const toolbarFrame = `rounded-t-control border p-1 ${active ? "border-core-action" : "border-core-border"}`;
   const fieldClass = `${minHeightClass} rich-text-field min-w-0 ${toolbarAttached ? "rounded-b-control border-t-0" : "rounded-control"} border bg-core-surface p-4 core-body-large font-normal leading-7 text-core-text outline-none transition ${

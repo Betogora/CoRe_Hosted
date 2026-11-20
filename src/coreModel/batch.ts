@@ -8,23 +8,17 @@ interface Graph {
   cards: Card[];
 }
 
-/**
- * One edit of the selected cards (KV4). Deck, flag and suspension belong to each selected card; mark and tags to the
- * contents of the selected cards, as in the editor.
- */
 export type CardBatchEdit =
   | { kind: "deck"; deckId: string }
   | { kind: "flag"; flag: number }
   | { kind: "suspended"; suspended: boolean }
   | { kind: "marked"; marked: boolean }
   | { kind: "tags"; add: readonly string[]; remove: readonly string[] }
-  /** Tag management (KV5): renames, merges or (without `to`) deletes a tag with its subtags. */
+  /** Renames, merges or (with `to` null) deletes a tag with its subtags. */
   | { kind: "tag-rename"; from: string; to: string | null };
 
 export interface CardBatchPlan {
-  /** Changed contents with all their cards, ready for one `saveNoteGraphs` call. */
   changes: Array<{ previous: Graph; next: Graph }>;
-  /** Selected cards whose card or content changed. */
   changedCardIds: string[];
 }
 
@@ -68,7 +62,7 @@ function collect(graphs: readonly Graph[], cardIds: ReadonlySet<string>, change:
   return { changes, changedCardIds };
 }
 
-/** Applies one edit to the selected cards of the given contents; untouched contents and cards keep their identity. */
+/** Untouched notes and cards keep their object identity. */
 export function planCardBatchEdit(graphs: readonly Graph[], cardIds: ReadonlySet<string>, edit: CardBatchEdit, updatedAt = new Date().toISOString()): CardBatchPlan {
   return collect(graphs, cardIds, (graph) => {
     if (!graph.cards.some((card) => cardIds.has(card.id))) return null;
@@ -78,11 +72,6 @@ export function planCardBatchEdit(graphs: readonly Graph[], cardIds: ReadonlySet
   });
 }
 
-/**
- * Takes an edit back as a new change: each card and content gets its earlier value as long as it still has the value
- * the edit set. One changed again since keeps the later value and counts as skipped. Added tags are removed and removed
- * tags come back unless that already happened.
- */
 export function planCardBatchUndo(current: readonly Graph[], before: readonly Graph[], cardIds: ReadonlySet<string>, edit: CardBatchEdit, updatedAt = new Date().toISOString()): CardBatchUndoPlan {
   const earlier = new Map(before.map((graph) => [graph.note.id, graph]));
   const skippedCardIds: string[] = [];
@@ -99,7 +88,6 @@ export function planCardBatchUndo(current: readonly Graph[], before: readonly Gr
       return { note: setNoteMarked(graph.note, previous.note.marked, updatedAt), cards: graph.cards };
     }
     if (edit.kind === "tag-rename") {
-      // A content edited since keeps its later tags.
       const renamed = renameTag(previous.note.content.tags, edit.from, edit.to);
       if (JSON.stringify(graph.note.content.tags) !== JSON.stringify(renamed)) {
         if (renamed !== previous.note.content.tags) skippedCardIds.push(...selected.map((card) => card.id));

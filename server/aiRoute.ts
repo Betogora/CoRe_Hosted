@@ -3,12 +3,10 @@ import * as v from "valibot";
 import type { Database } from "../src/database.types.js";
 
 export const OPENROUTER_CHAT_ENDPOINT = "https://openrouter.ai/api/v1/chat/completions";
-/** Chosen in the 2026-10 playtest; low reasoning guards the meaning when the sentence structure changes (ADR-011). */
 export const OPENROUTER_MODEL = "openai/gpt-6-luna";
 
 export type Environment = Record<string, string | undefined>;
 
-/** Route-specific wording for provider failures; codes and statuses stay shared. */
 export interface ProviderTexts {
   rateLimited: string;
   unavailable: string;
@@ -119,7 +117,7 @@ export function parseBearerToken(req: any): string {
   return match[1];
 }
 
-/** Verifies the session JWT locally against the cached JWKS; the client lives as long as the function instance. */
+/** The client and its cached JWKS live as long as the function instance; the JWT is verified locally. */
 export function createAuthenticator(env: Environment) {
   const url = env.SUPABASE_URL ?? env.VITE_SUPABASE_URL;
   const publishableKey = env.SUPABASE_PUBLISHABLE_KEY ?? env.VITE_SUPABASE_PUBLISHABLE_KEY;
@@ -137,7 +135,6 @@ export function createAuthenticator(env: Environment) {
   };
 }
 
-/** Maps an OpenRouter failure to a stable code; budget and key problems stay neutral for users. */
 export function classifyProviderError(status: number, payload: unknown, texts: ProviderTexts): HttpError {
   const parsed = v.safeParse(providerErrorSchema, payload);
   const metadata = parsed.success ? parsed.output.error.metadata : undefined;
@@ -149,7 +146,6 @@ export function classifyProviderError(status: number, payload: unknown, texts: P
   return new HttpError(502, "provider_error", texts.failed);
 }
 
-/** Sends one chat completion and returns its unvalidated JSON; transport and provider failures become HttpErrors. */
 export async function requestOpenRouter(fetchImpl: typeof fetch, apiKey: string, body: unknown, deadline: AbortSignal, texts: ProviderTexts): Promise<unknown> {
   let response: Response;
   try {
@@ -182,14 +178,14 @@ const billingSchema = v.looseObject({
   usage: v.optional(v.looseObject({ total_tokens: v.optional(v.unknown()), cost: v.optional(v.unknown()) })),
 });
 
-/** Model, tokens and costs of a provider answer, readable even when the answer itself is cut off or unusable. */
+/** Readable even when the answer itself is cut off or unusable. */
 export function readBilling(payload: unknown): Pick<AiRouteLogEntry, "model" | "totalTokens" | "costUsd"> {
   const parsed = v.safeParse(billingSchema, payload);
   const output = parsed.success ? parsed.output : {};
   return { model: output.model || null, totalTokens: usageValue(output.usage?.total_tokens), costUsd: usageValue(output.usage?.cost) };
 }
 
-/** Reads the single forced tool call of a complete response; the caller validates its arguments. */
+/** The caller validates the arguments. */
 export function readToolCall(payload: unknown, tool: string, texts: ProviderTexts) {
   const completion = v.safeParse(completionSchema, payload);
   if (!completion.success || completion.output.choices.length !== 1 || completion.output.choices[0].finish_reason === "length") {

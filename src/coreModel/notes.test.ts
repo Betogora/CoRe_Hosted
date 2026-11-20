@@ -228,7 +228,6 @@ test("Eine geänderte Frage oder Antwort macht die KI-Umformulierungen genau die
     assert.equal(getActiveVariants(card).length, 0);
   }
 
-  // Tags alone are no question or answer and keep the rephrasings asked.
   const tagsOnly = structuredClone(withVariants.note.content);
   tagsOnly.tags = ["Bio"];
   assert.deepEqual(planNoteContentChange(withVariants, tagsOnly).keptCards, withVariants.cards);

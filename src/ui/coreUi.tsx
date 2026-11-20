@@ -178,10 +178,6 @@ export function ActionDialog({
 
 type CoreTagTone = "neutral" | "info" | "warning" | "success" | "outline";
 
-/**
- * Short state label in the shared tag shape. The tone swaps the color roles in `.core-tag-*`; `dot` puts a domain
- * color (any CSS color value, e.g. an exam color) as a point before the label instead of a saturated fill.
- */
 export function CoreTag({ tone, dot, className = "", children, ...props }: { tone: CoreTagTone; dot?: string } & HTMLAttributes<HTMLSpanElement>) {
   return (
     <span {...props} className={`core-tag core-tag-${tone} ${className}`.trim()}>
@@ -197,7 +193,6 @@ type StatTileProps = Omit<HTMLAttributes<HTMLDListElement>, "children"> & {
   hint?: ReactNode;
 };
 
-/** One key figure standing free as word above number (ADR-051), without frame, surface or icon. */
 export function StatTile({ label, value, hint, className = "", ...props }: StatTileProps) {
   return (
     <dl {...props} className={`flex min-w-0 flex-col ${className}`.trim()}>
@@ -208,11 +203,7 @@ export function StatTile({ label, value, hint, className = "", ...props }: StatT
   );
 }
 
-/**
- * Page title (heading 1) with an optional area-wide action on the right. `greeting` is reserved for the welcome
- * line of `Heute`: it stands above the title and is read as the start of the heading. `tag` marks a state of the
- * whole page (a `CoreTag`) beside the title without becoming part of the heading's name.
- */
+/** `greeting` is read as the start of the heading; `tag` stays outside the heading's accessible name. */
 export function PageHeader({ title, action, greeting, tag, back }: { title: ReactNode; action?: ReactNode; greeting?: string; tag?: ReactNode; back?: { label: string; onSelect: () => void } }) {
   const heading = (
     <h2 className="core-heading-1 text-core-text outline-none" data-screen-heading tabIndex={-1}>
@@ -346,12 +337,7 @@ const TRI_STATE_OPTIONS: ReadonlyArray<{ value: CoreTriState; label: string; ico
   { value: "out", label: "Ohne", icon: Ban },
 ];
 
-/**
- * Filter switch with three positions: `Mit` (blue), `Egal` (neutral, the start) and `Ohne` (red). Same rail as the
- * segmented control with square segments; the indicator slides and fades its colour.
- */
 export function CoreTriStateControl({ label, value, onValueChange, disabled = false }: {
-  /** What the switch filters, e.g. `Fällig`; part of the accessible name and the tooltips. */
   label: string;
   value: CoreTriState;
   onValueChange: (value: CoreTriState) => void;
@@ -365,9 +351,7 @@ const VERDICT_OPTIONS: ReadonlyArray<{ value: boolean; label: string; icon: Luci
   { value: false, label: "Falsch", icon: X },
 ];
 
-/** Judgement with two positions on the rail of `CoreTriStateControl`: `Richtig` (green) and `Falsch` (red); none at the start. */
 export function CoreVerdictControl({ label, value, onValueChange, disabled = false }: {
-  /** What is judged, e.g. `Aussage A`; the accessible name and part of the tooltips. */
   label: string;
   value: boolean | null;
   onValueChange: (value: boolean) => void;

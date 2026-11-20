@@ -3,17 +3,15 @@ import type { Card, MaturityBand, ReviewRating, ReviewSchedulerState, ReviewStat
 import { nextVariantStage, selectReviewVariant } from "./coreVariantService.ts";
 import { getDurabilityDays, scheduleWithFsrs } from "./scheduler.ts";
 
-// Example chains of the card-history spec (specs.md#lernverlauf-einer-karte); the golden test pins their values.
+// Example chains of the card-history spec; the golden test pins their values.
 
 const START = "2026-08-21T10:00:00.000Z";
 const DAY_MS = 86_400_000;
 
 export const EXAMPLE_RETENTIONS = [0.9, 0.93, 0.95];
 export const EXAMPLE_VARIANT_THRESHOLDS = [7, 21, 60];
-/** Active variants of the example card, the most a deck allows. */
 export const EXAMPLE_VARIANT_COUNT = 3;
 
-/** The first chain also shows the effect of the target retention. */
 export const EXAMPLE_CHAINS: ReadonlyArray<{ name: string; ratings: ReviewRating[] }> = [
   { name: "Immer Gut", ratings: Array(6).fill("good") },
   { name: "Leicht, dann Gut", ratings: ["easy", "good", "good", "good"] },
@@ -23,7 +21,6 @@ export const EXAMPLE_CHAINS: ReadonlyArray<{ name: string; ratings: ReviewRating
   { name: "Wackeliger Start", ratings: ["again", "good", "again", "good", "good", "good", "good", "good", "good"] },
 ];
 
-/** Where a card stands before an answer; each situation is reached from a new card with the listed ratings. */
 export const EXAMPLE_SITUATIONS: ReadonlyArray<{ name: string; ratings: ReviewRating[] }> = [
   { name: "Neue Karte", ratings: [] },
   { name: "Im zweiten Lernschritt", ratings: ["good"] },
@@ -53,7 +50,6 @@ function outcome(state: ReviewState): ExampleOutcome {
   return { phase: state.state, intervalMinutes: state.intervalMinutes, intervalDays: state.intervalDays, durabilityDays: getDurabilityDays(state), band: state.maturityBand };
 }
 
-/** Answers a new card with three variants on each due date; each deck threshold runs its own variant chain. */
 export function runExampleChain(ratings: ReviewRating[], desiredRetention: number): ExampleContact[] {
   const deckSettings = createDefaultDeckSettings({ schedulerProfile: { desiredRetention } });
   const created = createBasicNote("deck", "Q", "A").cards[0];
@@ -80,7 +76,6 @@ export function runExampleChain(ratings: ReviewRating[], desiredRetention: numbe
   });
 }
 
-/** What each rating does from a situation, answered when the card is due. */
 export function exampleRatingEffects(ratingsBefore: ReviewRating[], desiredRetention: number): Record<ReviewRating, ExampleOutcome> {
   const deckSettings = createDefaultDeckSettings({ schedulerProfile: { desiredRetention } });
   let state = createReviewState({ dueAt: START });

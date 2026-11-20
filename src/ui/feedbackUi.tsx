@@ -39,7 +39,6 @@ export function StatusMessage({
   );
 }
 
-/** An optional undo-like action; the toast then stays while pointer or focus rest on it (W7). */
 export interface SuccessToastAction {
   label: string;
   onAction: () => void;

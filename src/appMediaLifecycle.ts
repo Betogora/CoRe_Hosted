@@ -5,7 +5,6 @@ interface MediaRetryLifecycleOptions {
   ensureCloudParents: () => Promise<unknown>;
 }
 
-/** Retries queued uploads and, once they are in the cloud, releases files no content references any more. */
 export function startAppMediaRetryLifecycle({ mediaStore, ensureCloudParents }: MediaRetryLifecycleOptions): () => void {
   let active = true;
   const lifecycle = mediaStore.startRetryLifecycle({

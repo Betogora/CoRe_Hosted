@@ -3,23 +3,19 @@ import { normalizeTags } from "./tags.ts";
 
 type OcclusionInteraction = Extract<NoteInteraction, { kind: "image-occlusion" }>;
 export type OcclusionMode = OcclusionInteraction["mode"];
-/** Shapes the editor draws; overlay masks only come from imports. */
+/** Overlay masks only come from imports. */
 export type DrawnOcclusionShape = Exclude<OcclusionShape, { kind: "overlay" }>;
 
 export interface OcclusionNoteInput {
   image: MediaRef;
   mode: OcclusionMode;
   masks: OcclusionMask[];
-  /** Optional heading above the image. */
   header?: string;
-  /** Shown after reveal below the image. */
   extra?: string;
-  /** Further fields with a role, e.g. a hint or a source. */
   additionalFields?: Array<{ name?: string; role?: NoteFieldRole; value?: string }>;
   tags?: unknown;
 }
 
-/** Image occlusion content with a heading and an extra field; the content parser still guards the stored form. */
 export function createOcclusionNoteContent(input: OcclusionNoteInput): NoteContent {
   return {
     schemaVersion: 1,
@@ -34,7 +30,6 @@ export function createOcclusionNoteContent(input: OcclusionNoteInput): NoteConte
   };
 }
 
-/** German messages for the editor; an image and one queried mask are required. */
 export function validateOcclusionInput(input: Pick<OcclusionNoteInput, "image" | "masks">): { image?: string; masks?: string } {
   return {
     ...(input.image ? {} : { image: "Bitte ein Bild wählen." }),
@@ -55,7 +50,6 @@ function nextId(masks: OcclusionMask[]): string {
 
 const clamp = (value: number) => Math.min(1, Math.max(0, value));
 
-/** Keeps a drawn shape inside the image; rectangles, ellipses and labels keep at least a minimal size. */
 function clampOcclusionShape(shape: DrawnOcclusionShape): DrawnOcclusionShape {
   if (shape.kind === "polygon") return { kind: "polygon", points: shape.points.map(([x, y]) => [clamp(x), clamp(y)]) };
   if (shape.kind === "text") return { ...shape, left: clamp(shape.left), top: clamp(shape.top) };
@@ -64,7 +58,6 @@ function clampOcclusionShape(shape: DrawnOcclusionShape): DrawnOcclusionShape {
   return { ...shape, width, height, left: Math.min(1 - width, clamp(shape.left)), top: Math.min(1 - height, clamp(shape.top)) };
 }
 
-/** A new mask becomes its own card group. */
 export function addOcclusionMask(masks: OcclusionMask[], shape: DrawnOcclusionShape): { masks: OcclusionMask[]; id: string } {
   const id = nextId(masks);
   return { masks: [...masks, { id, ordinal: nextOrdinal(masks), shape: clampOcclusionShape(shape), alwaysOccluded: false }], id };
@@ -74,7 +67,7 @@ export function updateOcclusionMaskShape(masks: OcclusionMask[], id: string, sha
   return masks.map((mask) => mask.id === id ? { ...mask, shape: clampOcclusionShape(shape) } : mask);
 }
 
-/** Moves masks by a fraction of the image size; overlay masks stay where they are. */
+/** `dx` and `dy` are fractions of the image size; overlay masks do not move. */
 export function moveOcclusionMasks(masks: OcclusionMask[], ids: readonly string[], dx: number, dy: number): OcclusionMask[] {
   const selected = new Set(ids);
   return masks.map((mask) => {
@@ -88,15 +81,14 @@ export function moveOcclusionMasks(masks: OcclusionMask[], ids: readonly string[
 }
 
 /**
- * Removes masks. Group numbers stay as they are, so the cards of the remaining groups keep their study state;
- * a group without masks becomes a removed card when the content is saved.
+ * Group numbers stay as they are, so the cards of the remaining groups keep their study state; a group without masks
+ * becomes a removed card when the content is saved.
  */
 export function removeOcclusionMasks(masks: OcclusionMask[], ids: readonly string[]): OcclusionMask[] {
   const selected = new Set(ids);
   return masks.filter((mask) => !selected.has(mask.id));
 }
 
-/** The selected masks are asked together on one card: the lowest group number among them. */
 export function groupOcclusionMasks(masks: OcclusionMask[], ids: readonly string[]): OcclusionMask[] {
   const selected = new Set(ids);
   const ordinals = masks.filter((mask) => selected.has(mask.id) && mask.ordinal > 0).map((mask) => mask.ordinal);
@@ -104,7 +96,6 @@ export function groupOcclusionMasks(masks: OcclusionMask[], ids: readonly string
   return masks.map((mask) => selected.has(mask.id) ? { ...mask, ordinal, alwaysOccluded: false } : mask);
 }
 
-/** Every selected mask after the first in its group gets a card of its own. */
 export function ungroupOcclusionMasks(masks: OcclusionMask[], ids: readonly string[]): OcclusionMask[] {
   const selected = new Set(ids);
   const kept = new Set<number>();
@@ -119,7 +110,6 @@ export function ungroupOcclusionMasks(masks: OcclusionMask[], ids: readonly stri
   });
 }
 
-/** An always occluded mask stays hidden on every card and asks nothing itself. */
 export function setOcclusionMasksAlwaysOccluded(masks: OcclusionMask[], ids: readonly string[], always: boolean): OcclusionMask[] {
   const selected = new Set(ids);
   let next = nextOrdinal(masks);
@@ -130,7 +120,6 @@ export function setOcclusionMasksAlwaysOccluded(masks: OcclusionMask[], ids: rea
   });
 }
 
-/** Queried groups in ascending order with their masks, as the cards they become. */
 export function occlusionGroups(masks: OcclusionMask[]): Array<{ ordinal: number; masks: OcclusionMask[] }> {
   const ordinals = [...new Set(masks.map((mask) => mask.ordinal).filter((ordinal) => ordinal > 0))].sort((left, right) => left - right);
   return ordinals.map((ordinal) => ({ ordinal, masks: masks.filter((mask) => mask.ordinal === ordinal) }));

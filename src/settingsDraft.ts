@@ -16,7 +16,7 @@ export interface GlobalCardSettingsDraft {
   leechThreshold: number;
   easyDays: EasyDays;
   learning: DeckLearningSettingsDraft;
-  /** Own names of the flags 1–7 (`uiPreferences.flagNames`); empty stands for the color name (W23). */
+  /** Own names of the flags 1–7 (`uiPreferences.flagNames`); empty stands for the color name. */
   flagNames: string[];
 }
 

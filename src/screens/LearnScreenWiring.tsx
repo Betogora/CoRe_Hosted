@@ -4,7 +4,6 @@ import { useWorkspaceValue } from "../useWorkspaceStore.ts";
 import { LearnScreen } from "./LearnScreen.tsx";
 import { useDeckPractice } from "./useDeckPractice.tsx";
 
-/** `Lernen` with the deck tree, deck creation and the starts of its decks. */
 export function LearnScreenWiring() {
   const { navigation, settings, clock, studyStart, deckCommands, requestDeckCoreMode } = useAppServices();
   const state = useWorkspaceValue((snapshot) => snapshot.state);

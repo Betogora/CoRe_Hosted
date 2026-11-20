@@ -13,42 +13,35 @@ import type { Database } from "./database.types.ts";
 import type { TransientSourceDocument } from "./documentModel.ts";
 import { escapeCardHtmlText } from "./richText.ts";
 
-/** Size of one source unit; small enough that a proposal names a findable place, large enough to keep context. */
 const MAX_UNIT_CHARS = 4_000;
 const MAX_HEADING_CHARS = 80;
-/** A paragraph shorter than this joins the next one, so a proposal still names a findable, but not tiny place. */
+/** A paragraph shorter than this joins the next one. */
 const MIN_PARAGRAPH_CHARS = 300;
 /** Text without blank lines (pasted from word processors) still ends a place at a line break after this size. */
 const MAX_LINE_BLOCK_CHARS = 1_200;
-/** Rows of a table file that form one place. */
 const TABLE_ROWS_PER_UNIT = 10;
 
-/** Errors every further portion would hit the same way; the run stops instead of repeating them (as the variant batch does). */
+/** Errors every further portion would hit the same way; the run stops instead of repeating them. */
 const STOPPING_ERROR_CODES = new Set([
   "unauthorized", "auth_unavailable", "network_error", "missing_openrouter_api_key", "openrouter_auth_failed",
   "provider_budget_exhausted", "rate_limited", "no_provider_endpoint",
 ]);
 
-/** A findable place of the source and its text; the run numbers the units of each request. */
 export interface SourceUnit { label: string; text: string; }
 interface ReadSource { units: SourceUnit[]; notices: string[]; }
 export interface SourceCardProposal extends GeneratedSourceCard { id: string; sourceLabels: string[]; }
-/** An unsaved proposal as it would be stored; editing replaces its content. */
 export interface ProposalDraft { id: string; content: NoteContent; }
 type SaveProposal = (input: { deckId: string | null; deckName: string; content: NoteContent; media: Record<string, string> }) => Promise<{ deck: { id: string }; cardIds: string[] } | null>;
 export interface AiSourceCardsRunResult {
   proposals: SourceCardProposal[];
   warnings: string[];
   discarded: number;
-  /** Portions whose request failed on its own; the run went on with the next one. */
   failed: Array<{ range: string; message: string }>;
   /** The run ended early; `from` names the first place of the source that was not evaluated. */
   stopped: { reason: "cancelled" | "limit"; from: string } | { reason: "error"; message: string; from: string } | null;
 }
-/** Sends one portion to the source cards route and returns its validated answer. */
 export type AiSourceCardsRequester = (request: AiSourceCardsRequest, signal: AbortSignal) => Promise<GeneratedSourceCards>;
 
-/** Splits an overlong text at whitespace into parts of at most `max` characters. */
 function chunk(text: string, max: number): string[] {
   const parts: string[] = [];
   let rest = text.trim();
@@ -62,7 +55,7 @@ function chunk(text: string, max: number): string[] {
   return parts;
 }
 
-/** Adds the text as one unit, or as numbered parts when it is too long; `prefix` (a table header) heads every part. */
+/** `prefix` (a table header) heads every part. */
 function pushUnits(units: SourceUnit[], label: string, text: string, prefix = "") {
   const parts = chunk(text, MAX_UNIT_CHARS - (prefix ? prefix.length + 1 : 0));
   parts.forEach((part, index) => units.push({ label: parts.length > 1 ? `${label}, Teil ${index + 1}` : label, text: prefix ? `${prefix}\n${part}` : part }));
@@ -74,14 +67,12 @@ const FENCE = /^\s*(```|~~~)/;
 
 interface LineBlock { first: number; last: number; lines: string[]; size: number; content: boolean; }
 
-/** Text and Markdown: each paragraph is a place (short ones join the next), never across a heading outside code blocks; the label names heading and lines. */
 function textUnits(text: string): SourceUnit[] {
   const units: SourceUnit[] = [];
   let heading = "";
   let fenced = false;
   let block: LineBlock | null = null;
   const flush = () => {
-    // A block of headings alone carries nothing to ask about.
     if (block?.content) pushUnits(units, heading ? `${heading} · ${lineRange(block.first, block.last)}` : lineRange(block.first, block.last), block.lines.join("\n"));
     block = null;
   };
@@ -104,7 +95,6 @@ function textUnits(text: string): SourceUnit[] {
   return units;
 }
 
-/** CSV and TSV: ten records form a place, each unit and part repeats a short header row; a long one stands alone. A quoted cell may span lines. */
 function tableUnits(text: string): SourceUnit[] {
   const units: SourceUnit[] = [];
   const [header = "", ...lines] = text.replace(/\r\n?/g, "\n").split("\n");
@@ -133,10 +123,6 @@ function tableUnits(text: string): SourceUnit[] {
 
 const pdfPagesSchema = v.array(v.looseObject({ pageNumber: v.number(), text: v.string(), textItemCount: v.number() }));
 
-/**
- * Reads the source of an order in the browser and splits it into units with a real place.
- * Empty, protected, scanned and oversized sources are rejected, never cut silently.
- */
 export async function readAiSource(draft: Pick<AiSourceCreationDraft, "sourceMode" | "sourceText" | "file">): Promise<ReadSource> {
   if (draft.sourceMode === "text") return splitAiSource({ fileName: "", text: draft.sourceText, textExtractionStatus: "success", metadata: {} });
   const file = draft.file;
@@ -147,7 +133,6 @@ export async function readAiSource(draft: Pick<AiSourceCreationDraft, "sourceMod
   return splitAiSource(await createDocumentFromFile(file));
 }
 
-/** A PDF becomes its pages, a table file blocks of rows, any other text blocks of lines; each unit names its place. */
 export function splitAiSource(document: Pick<TransientSourceDocument, "fileName" | "text" | "textExtractionStatus" | "metadata">): ReadSource {
   if (document.textExtractionStatus === "error") throw new AiSourceCardsError("unreadable_source", "Die Datei konnte nicht gelesen werden. Geschützte oder beschädigte Dateien werden nicht unterstützt.");
   if (document.text.length > MAX_AI_SOURCE_CHARS) throw new AiSourceCardsError("source_too_large", `Die Quelle ist zu umfangreich (höchstens ${MAX_AI_SOURCE_CHARS.toLocaleString("de-DE")} Zeichen). Wähle einen kürzeren Ausschnitt.`);
@@ -166,7 +151,6 @@ export function splitAiSource(document: Pick<TransientSourceDocument, "fileName"
   return { units, notices };
 }
 
-/** Consecutive units packed into portions that each fit one request. */
 function sourcePortions(units: SourceUnit[]): SourceUnit[][] {
   const portions: SourceUnit[][] = [];
   let current: SourceUnit[] = [];
@@ -186,10 +170,6 @@ function sourcePortions(units: SourceUnit[]): SourceUnit[][] {
 
 const portionRange = (portion: SourceUnit[]) => portion.length === 1 ? portion[0].label : `${portion[0].label} bis ${portion[portion.length - 1].label}`;
 
-/**
- * Sends the portions one after another and collects the proposals. Each portion receives the questions so far,
- * the run ends at the order limit, and a cancelled or stopped run keeps what it already received.
- */
 export async function runAiSourceCards({ units, settings, request, signal, onProgress = () => undefined }: {
   units: SourceUnit[];
   settings: AiSourceCardsRequest["settings"];
@@ -226,7 +206,6 @@ export async function runAiSourceCards({ units, settings, request, signal, onPro
   return result;
 }
 
-/** Messages of a finished run that the learner must see next to the proposals. */
 export function describeAiSourceCardsRun(result: AiSourceCardsRunResult): string[] {
   const messages: string[] = [];
   const stopped = result.stopped;
@@ -239,7 +218,6 @@ export function describeAiSourceCardsRun(result: AiSourceCardsRunResult): string
   return messages;
 }
 
-/** Sends one portion to the route and checks its answer; the browser waits a little longer than the route's own deadline. */
 export async function requestAiSourceCards(request: AiSourceCardsRequest, supabase: SupabaseClient<Database> | null, signal: AbortSignal, fetchImpl: typeof fetch = globalThis.fetch): Promise<GeneratedSourceCards> {
   const body = await postAiRoute(AI_SOURCE_CARDS_ENDPOINT, parseAiSourceCardsRequest(request), supabase, {
     fetchImpl, signal, timeoutMs: AI_SOURCE_CARDS_DEADLINE_MS + 5_000,
@@ -255,10 +233,6 @@ export async function requestAiSourceCards(request: AiSourceCardsRequest, supaba
 
 const html = (value: string) => escapeCardHtmlText(value).replace(/\n/g, "<br>");
 
-/**
- * The content a proposal becomes: the short answer on the back of question–answer cards, the explanation as extra
- * (on the back field of cloze and choice cards), and its places in the source field.
- */
 export function proposalNoteContent(proposal: SourceCardProposal, sourceName: string): NoteContent {
   const source = { name: "Quelle", role: "source" as const, value: html(`${sourceName} · ${proposal.sourceLabels.join("; ")}`) };
   const explanation = proposal.explanation ? html(proposal.explanation) : "";
@@ -271,10 +245,7 @@ export function proposalNoteContent(proposal: SourceCardProposal, sourceName: st
   return createManualNoteContent(input);
 }
 
-/**
- * Stores the proposals one after another through the manual creation path; without a deck id the first one creates
- * the deck. It stops at the first failure and reports how far it came, so the rest can be stored later.
- */
+/** Without a deck id the first proposal creates the deck. Stops at the first failure and reports how far it came. */
 export async function saveProposals(proposals: ProposalDraft[], target: { deckId: string | null; deckName: string }, save: SaveProposal) {
   let deckId = target.deckId;
   let saved = 0;

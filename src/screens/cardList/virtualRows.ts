@@ -11,7 +11,6 @@ export function rowOffsets(count: number, heightAt: (index: number) => number): 
 export function visibleRange(offsets: Float64Array, top: number, bottom: number): { start: number; end: number } {
   const count = offsets.length - 1;
   if (count <= 0) return { start: 0, end: -1 };
-  // The first row whose end lies below `top`, then the last row whose start lies above `bottom`.
   let low = 0;
   let high = count - 1;
   while (low < high) {
@@ -43,9 +42,8 @@ const INITIAL_VIEWPORT = { top: 0, height: 900 };
 const MEASURE_TOLERANCE_PX = 0.75;
 
 /**
- * Window of a long list in the page or in the scrolling screen region (KV3): only rows near the visible area render,
- * spacers keep the full height. Rendered rows carry `data-virtual-key` and are measured after each render; rows not
- * measured yet count with `estimate`.
+ * Rendered rows carry `data-virtual-key` and are measured after each render; rows not measured yet count with
+ * `estimate`.
  */
 export function useVirtualRows({ count, keyAt, estimate, overscan = 800 }: {
   count: number;
@@ -92,8 +90,6 @@ export function useVirtualRows({ count, keyAt, estimate, overscan = 800 }: {
   const renderedStart = React.useRef(start);
   renderedStart.current = start;
 
-  // Measures the rendered rows (in list order from `start`); only a height that differs from the assumed one moves
-  // the offsets of the rows below it.
   React.useLayoutEffect(() => {
     const list = listRef.current;
     if (!list) return;

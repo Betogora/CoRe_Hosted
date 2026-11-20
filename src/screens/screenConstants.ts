@@ -7,7 +7,6 @@ export const ratingButtons = [
   { key: "easy", shortcutKey: RATING_SHORTCUT_KEYS.easy, label: "Leicht", className: "core-rating-easy" },
 ];
 
-/** Cards that only the daily limits hold back, as one German sentence. */
 export function formatLimitSummary(hiddenDueCount: number, hiddenNewCount: number) {
   const parts = [
     hiddenDueCount > 0 ? `${hiddenDueCount} ${hiddenDueCount === 1 ? "fällige Karte" : "fällige Karten"}` : "",

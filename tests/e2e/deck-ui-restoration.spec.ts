@@ -100,7 +100,6 @@ test("Stapelinhalte behalten aktuelle Reiter und Lernaktion ohne zusätzliche K�
   await expect(product.getByTestId("deck-mindmaps-panel")).toBeVisible();
   await expect(product.getByTestId("deck-content-study")).toBeVisible();
   await page.getByRole("button", { name: "Produktansicht schließen", exact: true }).click();
-  // The card management lists cards only (KV3b); deck icons live in Lernen.
   await page.getByRole("button", { name: "Lernen öffnen", exact: true }).click();
   const icons = product.locator("[data-deck-icon]");
   await expect(icons.first()).toBeVisible();

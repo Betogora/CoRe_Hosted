@@ -11,15 +11,12 @@ const LABEL = "Suchen und Ersetzen";
 const FIELD_PREFIX = "field:";
 
 export interface TextReplaceDialogProps {
-  /** Selected cards. */
   count: number;
-  /** Loads the selected contents for their fields and the preview. */
   prepare: () => Promise<TextReplaceSession>;
   onRun: (action: CardBatchAction, done: (cards: string) => string) => Promise<void>;
   onClose: () => void;
 }
 
-/** `Suchen und Ersetzen` of the card management (KV5): literal text, in all fields, one field or the tags, with a preview. */
 export function TextReplaceDialog({ count, prepare, onRun, onClose }: TextReplaceDialogProps) {
   const [session, setSession] = React.useState<TextReplaceSession | null>(null);
   const [loadError, setLoadError] = React.useState("");

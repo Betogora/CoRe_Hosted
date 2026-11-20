@@ -8,7 +8,7 @@ interface Topic { id: string; name: string }
 interface Drag {
   id: string; order: string[]; startX: number; startY: number; x: number; y: number;
   offsetX: number; offsetY: number; width: number; moved: boolean; handle: HTMLButtonElement;
-  /** The page region that scrolls, e.g. the content region from 1280 px; `null` means the window. */
+  /** The page region that scrolls; `null` means the window. */
   scroller: HTMLElement | null;
 }
 interface Preview { id: string; order: string[]; x: number; y: number; width: number }
@@ -20,7 +20,6 @@ function scrollParent(element: HTMLElement) {
   return null;
 }
 
-/** Topic sorting is a local draft; dragging commits only when released inside the list. */
 export function ExamTopicOrder({ topics, disabled = false, onChange }: {
   topics: Topic[]; disabled?: boolean; onChange: (ids: string[]) => void;
 }) {

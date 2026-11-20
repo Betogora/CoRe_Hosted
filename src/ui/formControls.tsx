@@ -6,7 +6,6 @@ type NativeInputProps = Omit<InputHTMLAttributes<HTMLInputElement>, "type" | "ch
 interface CheckableProps extends NativeInputProps {
   checked: boolean;
   onCheckedChange?: (checked: boolean) => void;
-  /** Visible label; without it the caller names the input through `aria-label` or a surrounding `<label>`. */
   label?: ReactNode;
   description?: ReactNode;
   invalid?: boolean;
@@ -14,9 +13,8 @@ interface CheckableProps extends NativeInputProps {
 }
 
 export interface CoreCheckboxProps extends CheckableProps {
-  /** Mixed state of a parent selection; the native input reports it as `indeterminate`. */
   indeterminate?: boolean;
-  /** Subject colour instead of the action blue, e.g. an exam colour; `on` colours the check. */
+  /** `fill` replaces the action blue; `on` colours the check. */
   accent?: { fill: string; on: string };
 }
 
@@ -26,7 +24,6 @@ export interface CoreRadioProps extends CheckableProps {
 
 export interface CoreSwitchProps extends Omit<CheckableProps, "invalid"> {
   size?: "sm" | "md" | "lg";
-  /** Side of the label next to the track. */
   labelPlacement?: "start" | "end";
 }
 
@@ -74,10 +71,7 @@ function Checkable({ kind, checked, onCheckedChange, label, description, invalid
   );
 }
 
-/**
- * Checkbox after HeroUI v3 „Checkbox“ in CoRe colours: 16-px box with a drawn check, optional label and description,
- * invalid, disabled and indeterminate states. The native checkbox stays the focusable, labelled element.
- */
+/** The native checkbox stays the focusable, labelled element. */
 export function CoreCheckbox({ indeterminate = false, accent, ...props }: CoreCheckboxProps) {
   const inputRef = React.useRef<HTMLInputElement>(null);
   React.useEffect(() => {
@@ -99,12 +93,10 @@ export function CoreCheckbox({ indeterminate = false, accent, ...props }: CoreCh
   );
 }
 
-/** Radio in the checkbox's form: 16-px circle whose dot shrinks out of the accent fill. Grouped by `name`. */
 export function CoreRadio(props: CoreRadioProps) {
   return <Checkable {...props} kind="radio" rootProps={{ "data-state": props.checked ? "checked" : "unchecked" }} indicator={<span className="core-radio-dot" aria-hidden="true" />} />;
 }
 
-/** On/off state after HeroUI v3 „Switch“: native checkbox with `role="switch"`, label before or after the track. */
 export function CoreSwitch({ size = "md", labelPlacement = "end", ...props }: CoreSwitchProps) {
   return (
     <Checkable
@@ -122,17 +114,12 @@ export interface CoreSliderProps extends Omit<NativeInputProps, "value" | "min" 
   max: number;
   step?: number;
   onValueChange: (value: number) => void;
-  /** Visible label above the track; without it `aria-label` or a `<label htmlFor>` names the slider. */
   label?: ReactNode;
-  /** Visible and spoken value text; `null` hides the output. */
+  /** `null` hides the output. */
   formatValue?: ((value: number) => string) | null;
   className?: string;
 }
 
-/**
- * Slider after HeroUI v3 „Slider“: pill track with accent fill and thumb, value output, and a native range input for
- * pointer, keyboard (arrows, Page, Home/End) and assistive technology.
- */
 export function CoreSlider({ value, min, max, step = 1, onValueChange, label, formatValue = String, className = "", id, disabled = false, ...input }: CoreSliderProps) {
   const fallbackId = React.useId();
   const inputId = id ?? fallbackId;

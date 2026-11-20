@@ -21,7 +21,6 @@ function cardIn(deckId: string, index: number): { note: Note; cards: Card[] } {
   return { note, cards: created.cards.map((card) => ({ ...card, id: `card-${index}`, noteId: note.id, deckId })) };
 }
 
-/** Deck `Eltern` with the subdeck `Eltern::Kind`, next to the deck `Daneben`; each holds one card. */
 async function setup() {
   const graphs = [cardIn("deck-parent", 0), cardIn("deck-child", 1), cardIn("deck-other", 2)];
   const cardsOf = (deckId: string) => graphs.flatMap((graph) => graph.cards).filter((card) => card.deckId === deckId);
@@ -49,7 +48,6 @@ async function setup() {
   const store = createWorkspaceStore();
   const refresh = ({ preserveCardPages = false } = {}) => store.set({ state: repository.getShellState(), ...(preserveCardPages ? {} : { cardPages: {} }) });
   refresh();
-  // A running study session over the parent deck, with the cards it loaded.
   let studyDecks: Deck[] | null = [{ ...initialState.decks[0] }];
   const commands = createDeckCommands({
     store, repository, refresh, requestSync: () => undefined, syncNow: async () => undefined,
@@ -59,7 +57,6 @@ async function setup() {
   return { repository, store, commands, deck, studyDecks: () => studyDecks };
 }
 
-/** A changed limit makes the learning settings custom, as the settings form does. */
 function withNewCardsPerDay<T extends { learning: DeckSettingsDraft["learning"] }>(draft: T, newCardsPerDay: number): T {
   return { ...draft, learning: { ...draft.learning, ...markLearningSettingsCustom({ ...draft.learning, newCardsPerDay }) } };
 }

@@ -1,11 +1,9 @@
-/** Content Repetition per deck: "on" shows mature cards' AI rephrasings in review, "off" never does. */
 export type CoreMode = "on" | "off";
 export type ReviewRating = "again" | "hard" | "good" | "easy";
 export type DeckSource = "manual" | "anki-apkg";
 export type CardVariantType = "basic";
 export type TransformType = "rephrase";
 export type VariantQualityStatus = "draft" | "active" | "rejected" | "flagged" | "disabled";
-/** Derived from the FSRS memory state: mature from 21 days of durability (days until recall falls to 90 %). */
 export type MaturityBand = "new" | "learning" | "young" | "mature";
 export type ReviewSchedulerState = "new" | "learning" | "review" | "relearning";
 export type CardStatus = "active" | "suspended";
@@ -26,7 +24,6 @@ export type SchedulerPreset = "standard" | "intensive" | "relaxed" | "custom";
 export type RichTextContent = string;
 export type MediaRef = string;
 
-/** One private media file per account and SHA-1 (`media_files`). */
 export interface MediaFileReference {
   sha1: string;
   size: number;
@@ -50,9 +47,8 @@ export interface UiPreferences {
   dashboardCollapsedDeckIds: string[];
   learnCollapsedDeckIds: string[];
   syncIntervalMinutes: SyncIntervalMinutes;
-  /** Own names of the flags 1–7; an empty name stands for the color name. */
+  /** Names of the flags 1–7; an empty name stands for the color name. */
   flagNames: string[];
-  /** Saved searches of the card management, in the learner's order (KV2c). */
   savedSearches: SavedCardSearch[];
 }
 
@@ -98,7 +94,6 @@ export interface LearningSettings {
   newReviewOrder: NewReviewOrder;
   newCardSortOrder: NewCardSortOrder;
   reviewCardSortOrder: ReviewCardSortOrder;
-  /** Anki's sibling burying: after a sibling was shown or answered, cards of this kind wait until the next learning day. */
   buryNewSiblings: boolean;
   buryReviewSiblings: boolean;
   buryInterdayLearningSiblings: boolean;
@@ -128,7 +123,6 @@ export interface GlobalSchedulerPreferences {
   settingsVersion: 3;
   dayStartHour: number;
   learnAheadMinutes: number;
-  /** Lapses that make a card a leech, account-wide; it is detected again every half threshold (Anki) and only marked. */
   leechThreshold: number;
   easyDays: EasyDays;
   learningProfiles: LearningProfileTemplate[];
@@ -136,7 +130,6 @@ export interface GlobalSchedulerPreferences {
   examPlanning: ExamPlanningSettings;
 }
 
-/** One exam, with its own relative study-time weights (ADR-042). */
 export interface ExamPlan {
   id: string;
   name: string;
@@ -157,18 +150,16 @@ export interface ExamPlan {
   topicOrder?: string[];
   readSummaryBeforeTopics?: boolean;
   completedSummaryDeckIds?: string[];
-  /** Earliest introduction of a topic; repetitions continue to follow the scheduler. */
   topicDates?: Array<{ deckId: string; date: string }>;
   createdAt: string;
   updatedAt: string;
 }
 
-/** Calendar blocks: a block with an exam sets that exam's study time for the day; one without is only a note. */
+/** A block with an `examId` sets that exam's study time for the day; with null it is only a calendar note. */
 export interface StudyTimeCapacity {
   timeBlocks?: Array<{ id: string; date: string; start: number; end: number; examId: string | null }>;
 }
 
-/** A single learning day's checklist; target cards survive forecast recalculation. */
 export interface ExamDailyTask {
   id: string;
   date: string;
@@ -307,7 +298,10 @@ export interface CardStudyExtra {
   stabilityFast: number;
   desiredRetention: number;
   maturityBand: MaturityBand;
-  /** Durability in days (`getDurabilityDays`) after the last answer, for `prop:s`; null until a card is answered by a client that writes it (KV2e). */
+  /**
+   * Durability in days (`getDurabilityDays`) after the last answer, for `prop:s`; null until a client that writes it
+   * answers the card.
+   */
   durabilityDays: number | null;
   intervalMinutes: number | null;
   learningSuccessCount: number;
@@ -337,7 +331,6 @@ export interface CardStudyState {
   extra: CardStudyExtra;
 }
 
-/** Flat scheduler view of a card's study state; `reviewStateFromCardStudy` and `cardStudyFromReviewState` convert. */
 export type ReviewState = Omit<CardStudyState, "extra"> & CardStudyExtra;
 
 export interface Card {
@@ -359,7 +352,7 @@ export interface Card {
   updatedByDeviceId: string | null;
 }
 
-/** Instant card actions: mark and tags belong to the content (all siblings), suspension and flag to the card. */
+/** Mark and tags belong to the content (all siblings), suspension and flag to the card. */
 export interface CardStudyStatePatch {
   marked?: boolean;
   suspended?: boolean;
@@ -420,7 +413,6 @@ export type SyncStatus =
   | { status: "error"; message: string }
   | { status: "conflict"; message: string; conflictCount: number };
 
-/** A deck with its loaded cards; contents (`Note`) are loaded separately because siblings may live in other decks. */
 export interface Deck {
   id: string;
   ownerId: string;
@@ -442,8 +434,8 @@ export interface Deck {
   /** Transient study root only, never persisted: its cards are learned in the given order without daily limits. */
   plannedOrder?: true;
   /**
-   * With `plannedOrder`: `Treffer lernen` (KV5) learns every card of the session, due or not, without sibling burying,
-   * in the order of `cardIds` across its decks.
+   * With `plannedOrder`: learns every card of the session, due or not, without sibling burying, in the order of
+   * `cardIds` across its decks.
    */
   hitSession?: { cardIds: readonly string[] };
 }

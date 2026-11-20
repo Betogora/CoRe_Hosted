@@ -6,11 +6,9 @@ interface BrainMascotDefinition {
   collection: "adventure" | "pastel";
   scene: MascotScene;
   description: string;
-  /** Drawn on a rounded square background like an icon tile. */
   tile?: true;
 }
 
-/** Source order follows each supplied sheet, left to right and top to bottom. */
 export const BRAIN_MASCOTS = [
   { id: "abenteuer-lernen", title: "Karteikarten lernen", collection: "adventure", scene: "cards", description: "Liest eine Karte neben einem Bücherstapel." },
   { id: "abenteuer-knobeln", title: "An einer Frage knobeln", collection: "adventure", scene: "question", description: "Schaut nachdenklich auf eine Karte mit einem Fragezeichen darüber." },

@@ -1,7 +1,6 @@
 import type { ExamPlan } from "./coreTypes.ts";
 import { examDayDistance, shiftExamDay, type ExamPlanDay } from "./examPlanning.ts";
 
-/** The month's Monday–Sunday grid; with `today` in it, start at today's week and show at least four weeks. */
 export function createExamMonthDays(month: string, today?: string): string[] {
   const first = `${month.slice(0, 7)}-01`;
   const next = new Date(`${first}T12:00:00Z`);
@@ -40,7 +39,6 @@ export function examSelectionRange(first: number, last: number) {
   return { start, end: Math.min(1440, Math.max(start + EXAM_SLOT_MINUTES, first, last)) };
 }
 
-/** Moving keeps the duration inside the visible day; resizing keeps the start and at least one slot. */
 export function examBlockRangeAt(block: { start: number; end: number }, move: boolean, minute: number) {
   const duration = block.end - block.start;
   if (!move) return { start: block.start, end: Math.max(block.start + EXAM_SLOT_MINUTES, Math.min(1440, minute)) };
@@ -58,7 +56,6 @@ export function getExamCalendarWork(day: ExamPlanDay | undefined, examIds: Reado
   };
 }
 
-/** One editing horizon for day details and week: from today for a year, exam days stay free. */
 export function isExamCalendarDayLocked(key: string, today: string, exams: readonly ExamPlan[]) {
   return key < today || key > shiftExamDay(today, 365) || exams.some((exam) => exam.status === "active" && exam.examDate === key);
 }

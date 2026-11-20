@@ -15,13 +15,12 @@ import { CARD_EDITOR_TAB_LABELS, cardEditorTitle, cardHeaderLabel } from "./card
 import { CardEditorContentTab, type PendingCard } from "./CardEditorContentTab.tsx";
 import { CardEditorGeneralTab } from "./CardEditorGeneralTab.tsx";
 
-// Variants and study data are needed only once their tab opens.
 const CardEditorVariantsTab = React.lazy(() => import("./CardEditorVariantsTab.tsx").then((module) => ({ default: module.CardEditorVariantsTab })));
 const CardEditorStudyTab = React.lazy(() => import("./CardEditorStudyTab.tsx").then((module) => ({ default: module.CardEditorStudyTab })));
 
 const TABS = (Object.keys(CARD_EDITOR_TAB_LABELS) as CardEditorTab[]).map((value) => ({ value, label: CARD_EDITOR_TAB_LABELS[value] }));
 
-/** Prev/next through the loaded hits of the table; absent without a hit list, e.g. from a session (W6). */
+/** Absent without a hit list, e.g. from a session. */
 export interface CardEditorHitNavigation {
   position: number;
   total: number;
@@ -29,7 +28,6 @@ export interface CardEditorHitNavigation {
   onNext: (() => void) | null;
 }
 
-/** Class of the editor's `DialogFrame`: fixed height from 1024 px, full screen below; a marked card tints it. */
 export const cardEditorFrameClass = (marked = false) => marked ? "core-card-editor-frame is-marked" : "core-card-editor-frame";
 
 function StatusIcon({ label, children }: { label: string; children: React.ReactElement }) {
@@ -40,7 +38,6 @@ function StatusIcon({ label, children }: { label: string; children: React.ReactE
   );
 }
 
-/** Star, flag, pause and leech of the opened card, each named (W14). */
 function CardStatusIcons({ card, marked, flagNames }: { card: Card; marked: boolean; flagNames: readonly string[] }) {
   return (
     <span className="inline-flex items-center gap-1" data-testid="card-status-icons">
@@ -82,14 +79,13 @@ export interface CardEditorDialogProps {
   onDraftStateChange: (guard: CardDraftGuard | null) => void;
 }
 
-/** Card editor dialog with the tabs `Allgemein`, `Inhalt`, `Varianten` and `Lernen` (specs.md#karteneditor). */
 export function CardEditorDialog(props: CardEditorDialogProps) {
   const { graph, cardId, tab, onTabChange, hits, services, onSetStudyState, onDraftStateChange } = props;
   const { note } = graph;
   const card = graph.cards.find((candidate) => candidate.id === cardId) ?? null;
   const panelId = `${React.useId().replace(/:/g, "")}-panel`;
   const setSuccessToast = useSuccessToast();
-  // The content tab stays mounted once opened, so its draft survives tab changes (W5).
+  // The content tab stays mounted once opened, so its draft survives tab changes.
   const [contentMounted, setContentMounted] = React.useState(tab === "content");
   const [pendingCards, setPendingCards] = React.useState<PendingCard[]>([]);
   const [isDuplicating, setIsDuplicating] = React.useState(false);

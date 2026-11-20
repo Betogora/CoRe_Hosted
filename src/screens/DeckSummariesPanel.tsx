@@ -98,7 +98,6 @@ export function DeckSummariesPanel({ deck, userId, cloud = null, onGenerateSumma
     finally { operationRef.current = false; setBusy(false); setProgress(""); }
   }
 
-  /** Generates an unsaved draft; failures keep the current view. */
   async function runGeneration(base: LearningSummary, generationSource: TransientSourceDocument | null) {
     if (operationRef.current || !onGenerateSummary) return;
     operationRef.current = true;
@@ -146,7 +145,6 @@ export function DeckSummariesPanel({ deck, userId, cloud = null, onGenerateSumma
   }
   function backToList() { setView("list"); setError(""); setDraft(null); setSaved(null); }
   function open(summary: LearningSummary) { setDraft(summary); setSaved(summary); setError(""); setNotice(""); setView("editor"); }
-  /** Opens what a save stored; after a conflict the draft continues in its „Konfliktfassung“ and the list shows the cloud state of the original. */
   function applySaved({ saved: stored, unsynced: pending, replaced }: SavedLearningSummary) {
     setSummaries((items) => [stored, ...(replaced?.summary ? [replaced.summary] : []), ...items.filter((item) => item.id !== stored.id && item.id !== replaced?.id)]);
     setUnsynced((ids) => new Set([...ids].filter((id) => id !== stored.id && id !== replaced?.id).concat(pending ? [stored.id] : [])));

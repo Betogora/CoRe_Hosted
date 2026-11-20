@@ -1,30 +1,23 @@
 import { fieldSearchKey } from "./coreModel.ts";
 import type { CardCatalogEntry } from "./workspaceReplica.ts";
 
-/** `Duplikate finden` (KV5) compares one field, by name as `Feld:` searches do, or the sort field. */
+/** One field, matched by name as `Feld:` searches do, or the sort field. */
 export type DuplicateKey = { field: string } | "sortField";
 
 export interface DuplicateContent {
   noteId: string;
-  /** Cards of the content among the searched ones, the first opens it. */
   cardIds: string[];
   deckId: string;
-  /** The front as the list shows it. */
   preview: string;
 }
 
 export interface DuplicateGroup {
-  /** The compared text of the first content; for the sort field its front as the list shows it. */
   text: string;
   contents: DuplicateContent[];
 }
 
 const comparable = (text: string) => text.replace(/\s+/g, " ").trim().toLocaleLowerCase("de");
 
-/**
- * Contents whose field (or sort field) holds the same text, ignoring case and spacing; a content counts once however
- * many cards it has. Largest groups first.
- */
 export function findDuplicateGroups(entries: Iterable<CardCatalogEntry>, key: DuplicateKey): DuplicateGroup[] {
   const fieldKey = key === "sortField" ? null : fieldSearchKey(key.field);
   const contents = new Map<string, DuplicateContent & { text: string }>();
@@ -51,8 +44,8 @@ export function findDuplicateGroups(entries: Iterable<CardCatalogEntry>, key: Du
 }
 
 /**
- * Field names of the searched contents, for the field choice. Replicated search texts name fields by their search key
- * (`rückseite`), so the choice shows them readable; `fieldSearchKey` turns either form back into the same key.
+ * Replicated search texts name fields by their search key (`rückseite`); `fieldSearchKey` turns either form back into
+ * the same key.
  */
 export function duplicateFieldNames(entries: Iterable<CardCatalogEntry>): string[] {
   const names = new Map<string, string>();

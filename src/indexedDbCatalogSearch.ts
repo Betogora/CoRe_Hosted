@@ -1,4 +1,3 @@
-// Private to indexedDbCoreRepository.ts: catalog reads, the in-memory search index with its change marks, keyset pages.
 import type { CardTableSort } from "./libraryModel.ts";
 import { duplicateFieldNames, findDuplicateGroups, type DuplicateKey } from "./duplicateContents.ts";
 import { isEmptyCardSearch, parseCardSearchQuery, type CardSearchContext } from "./cardSearchQuery.ts";
@@ -23,8 +22,8 @@ export interface CatalogCursor {
 const SEARCH_INDEX_BATCH_SIZE = 1_000;
 
 export function createCatalogSearch(database: IDBDatabase, flushWrites: () => Promise<void>) {
-  // Searches run over an in-memory copy of the catalog (KV1). Writes only mark rows; the copy catches up before the
-  // next search, and a cleared catalog reloads it in batches that do not block the page.
+  // Searches run over an in-memory copy of the catalog. Writes only mark rows; the copy catches up before the next
+  // search, and a cleared catalog reloads it in batches that do not block the page.
   const searchIndex = createCatalogSearchIndex();
   let searchIndexGeneration = 0;
   let searchIndexReady = false;
@@ -83,7 +82,6 @@ export function createCatalogSearch(database: IDBDatabase, flushWrites: () => Pr
     }
   };
 
-  /** Keyset page of a deck's local catalog; a query is answered from the in-memory search index. */
   const listCatalogPage = async (deckId: string, {
     cursor = null,
     limit = CATALOG_PAGE_LIMIT,
@@ -176,7 +174,6 @@ export function createCatalogSearch(database: IDBDatabase, flushWrites: () => Pr
     markCatalogReset,
     ensureSearchIndex,
     listCatalogPage,
-    /** Local catalog rows of the given cards; missing ones (e.g. deleted here) are absent. */
     async loadCatalogEntries(cardIds: readonly string[]) {
       await flushWrites();
       const transaction = database.transaction(STORE.cardCatalog, "readonly");
@@ -184,8 +181,6 @@ export function createCatalogSearch(database: IDBDatabase, flushWrites: () => Pr
       const rows = await Promise.all(cardIds.map((id) => requestResult<StoredCardCatalog | undefined>(store.get(id))));
       return new Map(rows.filter((row): row is StoredCardCatalog => Boolean(row)).map((row) => [row.id, catalogEntry(row)]));
     },
-    /** Ids of every card in scope that matches the search, in index order: `Alle N Treffer auswählen` (KV4). */
-    /** `Duplikate finden` (KV5) over the searched cards of the scope, with the field names to choose from. */
     async findDuplicates(scope: readonly string[], { key, query = "", searchContext }: { key: DuplicateKey; query?: string; searchContext?: CardSearchContext }) {
       await flushWrites();
       await ensureSearchIndex();

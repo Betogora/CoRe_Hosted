@@ -10,18 +10,12 @@ export interface CoreTabsProps<T extends string> {
   tabs: ReadonlyArray<CoreTab<T>>;
   value: T;
   onValueChange: (value: T) => void;
-  /** Id of the `CoreTabPanel` these tabs control. */
   panelId: string;
   className?: string;
 }
 
 const tabId = (panelId: string, value: string) => `${panelId}-tab-${value}`;
 
-/**
- * Underline tabs: words on one continuous hairline, the active one at 650 with a 2 px action-blue line, no icons.
- * Arrow keys, Home and End move and select; on narrow views the row scrolls sideways and fades at the edge that
- * has more tabs.
- */
 export function CoreTabs<T extends string>({ ariaLabel, tabs, value, onValueChange, panelId, className = "" }: CoreTabsProps<T>) {
   const listRef = React.useRef<HTMLDivElement | null>(null);
   const [overflow, setOverflow] = React.useState({ start: false, end: false });
@@ -95,7 +89,6 @@ export function CoreTabs<T extends string>({ ariaLabel, tabs, value, onValueChan
   );
 }
 
-/** The region controlled by `CoreTabs`; pass the same `panelId` and the selected `value`. */
 export function CoreTabPanel({ panelId, value, className, children }: { panelId: string; value: string; className?: string; children: ReactNode }) {
   return (
     <div id={panelId} role="tabpanel" aria-labelledby={tabId(panelId, value)} tabIndex={0} className={className}>

@@ -1,6 +1,4 @@
-/* Gemeinsamer Dokumentationsrahmen mit den produktiven CoRe-Tokens. */
 body { margin: 0; color: var(--core-text); background: var(--core-canvas); font: var(--core-weight-body) var(--core-type-body-large)/var(--core-leading-body-large) var(--core-font-sans); }
-/* Seitenleiste statt Kopfleiste: Seitenwechsel, Suche und Inhaltsnavigation als gleich breite Boxen. */
 .docs-frame { box-sizing: border-box; display: grid; grid-template-columns: 15rem minmax(0, 1fr); gap: var(--core-space-xl); width: min(1440px, 100%); margin: 0 auto; padding: var(--core-space-lg); }
 .docs-sidebar { position: sticky; top: var(--core-space-lg); z-index: 20; align-self: start; display: flex; flex-direction: column; gap: var(--core-space-md); min-width: 0; max-height: calc(100dvh - 2 * var(--core-space-lg)); }
 .docs-panel { flex: none; padding: var(--core-space-md); border: var(--core-border-width) solid var(--core-border); border-radius: var(--core-radius-panel); background: color-mix(in srgb, var(--core-surface) 94%, transparent); backdrop-filter: blur(12px); }
@@ -44,7 +42,6 @@ body { margin: 0; color: var(--core-text); background: var(--core-canvas); font:
 .docs-source { color: var(--core-text-muted); font-size: var(--core-type-caption); line-height: var(--core-leading-caption); margin-bottom: var(--core-space-lg); }
 [id] { scroll-margin-top: var(--core-space-xl); }
 .docs-journey { border-top: var(--core-border-width) solid var(--core-border); margin-bottom: var(--core-space-xl); }
-/* Journey-Ablauf als Schrittkette: nummerierte Karten mit Pfeilen, schmal untereinander. */
 .docs-flow { --docs-flow-gap: 2rem; display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: var(--docs-flow-gap); margin: var(--core-space-md) 0 var(--core-space-xl); padding: 0; list-style: none; }
 .docs-flow-step { position: relative; display: flex; align-items: center; gap: var(--core-space-sm); min-width: 0; padding: var(--core-space-md); border: var(--core-border-width) solid var(--core-border); border-radius: var(--core-radius-panel); background: var(--core-surface); font-size: var(--core-type-body); line-height: var(--core-leading-body); font-weight: var(--core-weight-control); }
 .docs-flow-step:not(:last-child)::after { content: ""; position: absolute; top: 50%; left: calc(100% + var(--docs-flow-gap) / 2); width: 1.125rem; height: 1.125rem; translate: -50% -50%; background: var(--core-text-muted); mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12h14'/%3E%3Cpath d='m12 5 7 7-7 7'/%3E%3C/svg%3E") center / contain no-repeat; }
@@ -55,7 +52,6 @@ body { margin: 0; color: var(--core-text); background: var(--core-canvas); font:
 .docs-code-chart tbody th { font-weight: var(--core-weight-control); }
 .docs-code-chart thead th { white-space: nowrap; }
 .docs-code-chart td { white-space: nowrap; font-variant-numeric: tabular-nums; }
-/* Lernverlauf einer Karte: Zeitleisten der Beispielketten, Phase als Farbe der Kontaktkante. */
 .docs-chain, .docs-chain-legend { display: flex; flex-wrap: wrap; gap: var(--core-space-sm); margin: var(--core-space-sm) 0 var(--core-space-lg); padding: 0; list-style: none; }
 .docs-chain-step { display: grid; gap: var(--core-space-xs); min-width: 7.5rem; padding: var(--core-space-sm) var(--core-space-md); border: var(--core-border-width) solid var(--core-border); border-left: var(--core-border-width-strong) solid var(--docs-phase); border-radius: var(--core-radius-control); background: var(--core-surface); }
 .docs-chain-step strong { color: var(--core-text); }
@@ -69,7 +65,6 @@ body { margin: 0; color: var(--core-text); background: var(--core-canvas); font:
 [data-phase="learning"] { --docs-phase: var(--core-action-primary); }
 [data-phase="review"] { --docs-phase: var(--core-success); }
 [data-phase="relearning"] { --docs-phase: var(--core-danger); }
-/* Schaubilder aus `schaubild`-Blöcken: Zeilen aus Kästen, als Folge mit Pfeilen; in schmalen Spalten untereinander. */
 .docs-diagram { container-type: inline-size; display: grid; gap: var(--core-space-md); margin: var(--core-space-lg) 0 var(--core-space-xl); padding: var(--core-space-lg); border: var(--core-border-width) solid var(--core-border); border-radius: var(--core-radius-panel); background: var(--core-surface-muted); }
 .docs-diagram figcaption { color: var(--core-text); font: var(--core-weight-emphasis) var(--core-type-body)/var(--core-leading-body) var(--core-font-sans); }
 .docs-document .docs-diagram-lane { margin: 0 0 var(--core-space-sm); color: var(--core-text-muted); font: var(--core-weight-control) var(--core-type-caption)/var(--core-leading-caption) var(--core-font-sans); }
@@ -94,7 +89,6 @@ body { margin: 0; color: var(--core-text); background: var(--core-canvas); font:
   .docs-diagram-link { flex-direction: row; max-width: none; }
   .docs-diagram-link::after { rotate: 90deg; }
 }
-/* KI-Eval: Verlauf des Hauptwerts je Anfragetyp; gefüllte Punkte bilden den Bestand, hohle wurden verworfen. */
 .docs-eval { margin: var(--core-space-md) 0 var(--core-space-xl); }
 .docs-eval th, .docs-eval td { white-space: nowrap; font-variant-numeric: tabular-nums; }
 .docs-eval tbody th { font-weight: var(--core-weight-control); }
@@ -110,13 +104,11 @@ body { margin: 0; color: var(--core-text); background: var(--core-canvas); font:
 .docs-eval svg [data-decision="rejected"] circle { fill: var(--core-canvas); stroke: var(--core-text-muted); }
 .docs-document .docs-eval-legend { display: flex; flex-wrap: wrap; gap: var(--core-space-sm) var(--core-space-lg); margin: var(--core-space-sm) 0 var(--core-space-lg); padding: 0; list-style: none; color: var(--core-text-secondary); font-size: var(--core-type-caption); line-height: var(--core-leading-caption); }
 .docs-document .docs-eval-legend li { display: inline-flex; align-items: center; gap: var(--core-space-xs); margin: 0; }
-/* Specs-Leseansicht im Aufbau des UI-Elemente-Katalogs. */
 .catalog-section-heading p + p { margin-top: var(--core-space-sm); }
 @media (max-width: 1279px) {
   .docs-flow { --docs-flow-gap: 1.75rem; grid-auto-flow: row; }
   .docs-flow-step:not(:last-child)::after { top: calc(100% + var(--docs-flow-gap) / 2); left: 50%; rotate: 90deg; }
 }
-/* Schmal steht die Seitenleiste oben im Fluss; Seiten und Inhalt laufen als waagerechte Leisten. */
 @media (max-width: 1050px) {
   .docs-frame { grid-template-columns: 1fr; padding: var(--core-space-md); }
   .docs-sidebar { position: static; max-height: none; }

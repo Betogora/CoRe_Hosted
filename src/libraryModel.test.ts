@@ -14,7 +14,6 @@ import { createStudyHeatmapModelFromCounts, createStudyHeatmapWindow } from "./s
 
 const notesById = new Map<string, Note>();
 
-/** A basic card with its note registered in `notesById`; `study` is the flat scheduler input. */
 function libraryCard(id: string, {
   front = id,
   back = "Antwort",
@@ -434,19 +433,19 @@ test("study heatmap counts only rated reviews by profile day and derives the cur
     source: "manual",
     cards: [],
     reviewEvents: [
-// @ts-expect-error -- Die Fixture prüft bewusst nur die von der Heatmap benötigte Laufzeitform.
+// @ts-expect-error
       { id: "review_1", rating: "good", answeredAt: "2026-07-07T08:00:00.000Z", cardId: "card_1" },
-// @ts-expect-error -- Die Fixture prüft bewusst nur die von der Heatmap benötigte Laufzeitform.
+// @ts-expect-error
       { id: "review_2", rating: "again", answeredAt: "2026-07-07T09:00:00.000Z", cardId: "card_2" },
-// @ts-expect-error -- Die Fixture prüft bewusst nur die von der Heatmap benötigte Laufzeitform.
+// @ts-expect-error
       { id: "review_3", rating: "hard", createdAt: "2026-07-06T10:00:00.000Z", cardId: "card_3" },
-// @ts-expect-error -- Die Fixture prüft bewusst nur die von der Heatmap benötigte Laufzeitform.
+// @ts-expect-error
       { id: "review_4", rating: "easy", answeredAt: "2026-07-05T10:00:00.000Z", cardId: "card_4" },
-// @ts-expect-error -- Eine manuelle Neuplanung darf nicht als Lernfortschritt zählen.
+// @ts-expect-error
       { id: "review_manual", rating: "manual", answeredAt: "2026-07-07T10:00:00.000Z", cardId: "card_4" },
-// @ts-expect-error -- Eine fehlende Bewertung darf nicht als Lernfortschritt zählen.
+// @ts-expect-error
       { id: "review_unrated", answeredAt: "2026-07-04T10:00:00.000Z", cardId: "card_unrated" },
-// @ts-expect-error -- Ein zukünftiges Review bleibt relativ zur simulierten Uhr unsichtbar.
+// @ts-expect-error
       { id: "review_future", rating: "good", answeredAt: "2026-07-08T10:00:00.000Z", cardId: "card_future" },
     ],
   });

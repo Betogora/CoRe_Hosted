@@ -25,7 +25,6 @@ const settingsGroups = [
   },
 ] as const;
 
-/** General and learning settings in the shared settings frame; `start` shows the area list on narrow screens and Konto beside it on wide ones. */
 export function SettingsDialog({ section, onSelectSection, onClose, footer, children }: SettingsDialogProps) {
   return (
     <SettingsDialogFrame<GeneralSettingsSection | LearningSettingsSection>

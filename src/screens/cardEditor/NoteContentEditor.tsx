@@ -11,7 +11,6 @@ import { RichTextEditor, type RichTextImageActions } from "../../ui/RichTextEdit
 import { CoreSelect } from "../../ui/selectUi.tsx";
 import { noteKindLabel } from "./cardEditorModel.ts";
 
-// Only own image occlusions need the mask editor; it stays out of the editor bundle until then.
 const OcclusionEditor = React.lazy(() => import("../../ui/OcclusionEditor.tsx").then((module) => ({ default: module.OcclusionEditor })));
 
 const PREVIEW_DELAY_MS = 150;
@@ -19,14 +18,13 @@ const FIELD_ROLE_NAMES: Record<Note["content"]["fields"][number]["role"], string
 const SIDE_OPTIONS = [{ value: "question", label: "Vorderseite" }, { value: "answer", label: "Rückseite" }] as const;
 const MOBILE_OPTIONS = [{ value: "edit", label: "Bearbeiten" }, { value: "preview", label: "Vorschau" }] as const;
 
-/** A card the live preview can show: an existing sibling or one that saving would create. */
 export interface PreviewCard {
   card: Card;
   label: string;
 }
 
 export interface NoteContentEditorProps {
-  /** Base content for structure, media and preview; it need not be saved yet (W16). */
+  /** Base content for structure, media and preview; it need not be saved yet. */
   note: Note;
   value: NoteEditorValue;
   structure: NoteContent;
@@ -38,7 +36,6 @@ export interface NoteContentEditorProps {
   initialPreviewCardId: string;
   mediaUrls: Record<string, string>;
   imageActions?: RichTextImageActions;
-  /** Own contents change their structure; imported ones keep Anki's field schema and prompts. */
   structureEditable: boolean;
   disabled?: boolean;
 }
@@ -48,7 +45,6 @@ function FieldError({ errors, field }: { errors: NoteEditorErrors; field: string
   return message ? <p className="core-body font-medium text-core-text" role="alert">{message}</p> : null;
 }
 
-/** The fields of a content with a live preview beside them; mobile switches between `Bearbeiten | Vorschau`. */
 export function NoteContentEditor({ note, value, structure, onValueChange, onStructureChange, errors, changedFieldIds, previewCards, initialPreviewCardId, mediaUrls, imageActions, structureEditable, disabled = false }: NoteContentEditorProps) {
   const [mobileView, setMobileView] = React.useState<"edit" | "preview">("edit");
   const [previewCardId, setPreviewCardId] = React.useState(initialPreviewCardId);

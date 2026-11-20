@@ -137,7 +137,7 @@ const imageVariantGraph = createNote({ deckId: "catalog-variant-image", createdA
 } });
 const imageVariantDeck = createCoreDeck({ id: "catalog-variant-image", name: "Bildvariante", source: "manual", cards: [addCardVariant({ ...imageVariantGraph.cards[0], study: variantStudyCard.study }, { front: "Welche Stadt ist die Hauptstadt Portugals?", back: "Lissabon" }, `${today}T07:00:00Z`)] });
 
-/** A real, cloud-free account media store holding the sample image, so the session resolves it like in the app. */
+/** A real account media store without cloud, so the session resolves the sample image like in the app. */
 function useCatalogMediaStore(enabled: boolean) {
   const [store, setStore] = useState<AccountMediaStore | null>(null);
   React.useEffect(() => {
@@ -399,7 +399,6 @@ function DecksDemo({ section }: { section: string }) {
   </>;
 }
 
-/** Manual content forms of the card reference; "basic-with-images" is a basic note with an inline image. */
 export type CatalogCardKind = ManualContentKind | "basic-with-images";
 
 export function cardFixture(kind: CatalogCardKind = "basic", index = 0) {
@@ -468,7 +467,6 @@ function ContentDemo({ section }: { section: string }) {
   </>;
 }
 
-/** Tags save at once in the editor; here they change only the demo state. */
 function TagsAndFlagsDemo() {
   const [tags, setTags] = useState(["Biologie::Zelle", "#AK_Step1::Herz", "AK::Kreislauf", "eigen"]);
   const [flag, setFlag] = useState(3);
@@ -484,7 +482,6 @@ function TagsAndFlagsDemo() {
   </>;
 }
 
-/** Building blocks change a real content; the list shows the fields and cards that result. */
 function NoteBlocksDemo() {
   const [content, setContent] = useState(() => createBasicNote("catalog", "Was speichert ATP?", "Chemische Energie").note.content);
   const blocks = noteBlocks(content);
@@ -538,7 +535,6 @@ function LearningDemo({ section }: { section: string }) {
   </>;
 }
 
-/** Local stand-in for the source cards route: a few proposals per portion, built from its first unit, without AI. */
 async function requestSourceCardsDemo(request: AiSourceCardsRequest, signal: AbortSignal): Promise<GeneratedSourceCards> {
   await new Promise<void>((resolve, reject) => {
     const timer = window.setTimeout(() => { signal.removeEventListener("abort", abort); resolve(); }, 1_500);
@@ -625,7 +621,6 @@ function ExamTopicOrderDemo() {
   return <Demo title="Prüfungen · Themenreihenfolge" wide><ExamTopicOrder topics={topics} onChange={(ids) => setTopics((current) => ids.map((id) => current.find((topic) => topic.id === id)!))} /></Demo>;
 }
 
-/** The import view shows the notice of a takeover interrupted on this device; a chosen package ends in the completion. */
 const DEMO_IMPORT_ACTIONS = {
   commitImport: async (graph: { cardCount: number }) => ({
     decks: [deck], rootDeck: deck, createdCount: graph.cardCount, keptLocalEdits: 0, missingInPackage: 0,
@@ -634,7 +629,6 @@ const DEMO_IMPORT_ACTIONS = {
   getInterruptedImport: async () => ({ fileName: "Anatomie.apkg", fileSize: 48_000_000, deckIds: [deck.id], cardCount: 2_480, committedCards: 1_000 }),
 };
 
-/** The text import stays in the preview: it finds duplicates among the sample contents and completes into a sample deck. */
 const DEMO_TEXT_IMPORT = {
   listDeckContents: async (deckId: string) => sampleGraphs.filter(({ cards }) => cards.some((card) => card.deckId === deckId)).map(({ note }) => note),
   onImportTextNotes: async ({ deckId, creates, updates }: { deckId: string | null; creates: NoteContent[]; updates: Array<{ content: NoteContent }> }) => ({
@@ -646,8 +640,8 @@ const DEMO_TEXT_IMPORT = {
 const PRODUCT_VIEWS = ["auth", "conflict", "statistics", "simulator", "help", "dashboard", "dashboard-empty", "learn", "exams", "creation", "ai-source", "manual", "import", "decks", "deck-content", "deck-settings", "study", "study-variant", "study-variant-image"];
 
 /**
- * Browser-test harness outside the catalog: `?preview=cards` shows every renderer case, any other value lists the
- * real screens with local sample data and opens the named one directly.
+ * Browser-test harness outside the catalog: `?preview=cards` shows every renderer case; any other value lists the real
+ * screens with local sample data and opens the named one.
  */
 export function CatalogPreview({ kind }: { kind: string }) {
   if (kind === "cards") return <div id="note-content" className="catalog-preview catalog-demo-grid">{noteDemoGraphs.map((item) => <NoteDemo key={item.id} item={item} />)}</div>;
@@ -702,9 +696,7 @@ function ProductViewsDemo({ kind }: { kind: string }) {
   const [cardEditorTab, setCardEditorTab] = useState<CardEditorTab>("general");
   const [savedSearches, setSavedSearches] = useState<SavedCardSearch[]>([{ id: "demo-search", name: "Heute nicht gewusst", query: "rated:1:1" }]);
   const [contentTab, setContentTab] = useState<DeckContentTab>("children");
-  // Local stand-in for the catalog query of the app: every deck shows its sample cards as one page.
   const requestCardPage = React.useCallback((request: DecksCardPageRequest) => {
-    // The flat hit list of a search reads the cards of every deck in scope that match the search.
     const search = parseCardSearchQuery(request.query);
     const deckCards = request.deckIds
       ? sampleDecks.filter((candidate) => request.deckIds!.includes(candidate.id)).flatMap((candidate) => candidate.cards)
@@ -715,7 +707,6 @@ function ProductViewsDemo({ kind }: { kind: string }) {
     catalogStore.set((current) => ({ cardPages: { ...current.cardPages, [request.deckId]: { deckId: request.deckId, deckIds: request.deckIds, pages: { 0: items }, pageSize: 50, totalCount: items.length, query: request.query, sort: request.sort, selected: selectedCard && note ? { note, cards: deckCards.filter((card) => card.noteId === note.id), cardId: selectedCard.id } : null, requestedCardId: request.selectedCardId } } }));
   }, [catalogStore]);
   const noop = React.useCallback(() => undefined, []);
-  // Stand-in for the learning help route: a short pause, then a fixed plain-text answer.
   const askCatalogCardHelp = React.useCallback((_request: unknown, signal: AbortSignal) => new Promise<string>((resolve, reject) => {
     const timer = setTimeout(() => resolve("Die Karte fragt nach dem Kern des Begriffs.\n\n- Merke dir die Antwort als Ursache, nicht als Definition.\n- Verknüpfe sie mit einem Beispiel aus deinem Alltag."), 800);
     signal.addEventListener("abort", () => { clearTimeout(timer); reject(new Error("abgebrochen")); });
@@ -784,7 +775,6 @@ function ProductViewsDemo({ kind }: { kind: string }) {
   </div>}</>;
 }
 
-/** The editor's reads and instant actions stay inside the preview; nothing reaches a repository or the cloud. */
 const catalogCardEditorServices: CardEditorServices = {
   flagNames: ["", "", "Wiederholen", "", "", "", ""],
   moveCard: async () => null,
@@ -811,7 +801,6 @@ function IconRolesDemo() {
   return <Demo title="Aktionen und ihre Icons"><ul className="catalog-icon-roles">{ICON_ROLES.map(([Icon, label]) => <li key={label}><span className="grid size-control place-items-center rounded-control bg-core-surface-muted text-core-action"><Icon size={18} aria-hidden="true" /></span>{label}</li>)}</ul></Demo>;
 }
 
-/** Masks on the sample heart: two single cards, one group of two and a mask that stays hidden. */
 function OcclusionEditorDemo() {
   const [masks, setMasks] = useState<OcclusionMask[]>([
     { id: "mask-1", ordinal: 1, shape: { kind: "rect", left: 0.2, top: 0.22, width: 0.22, height: 0.28, angle: 0 }, alwaysOccluded: false },
@@ -823,7 +812,6 @@ function OcclusionEditorDemo() {
   return <Demo title="OcclusionEditor · zeichnen, gruppieren und Modus wählen" wide><OcclusionEditor imageUrl={noteDemoImage} imageAlt="Schematisches Herz" masks={masks} mode={mode} onMasksChange={setMasks} onModeChange={setMode} /></Demo>;
 }
 
-/** Catalog chapters in the order of the shared UI catalog structure. */
 export type CatalogSectionId = "grundlagen" | "primitive" | "shared" | "fachmuster" | "icons" | "inventar" | "karten";
 
 export const DEMO_GROUPS = [
@@ -878,7 +866,6 @@ const noteDemoMasks: Extract<NoteContent["interaction"], { kind: "image-occlusio
   { id: "polygon", ordinal: 2, shape: { kind: "polygon", points: [[.1, .1], [.18, .1], [.14, .2]] }, alwaysOccluded: true },
   { id: "label", ordinal: 1, shape: { kind: "text", left: .18, top: .15, text: "Ziel", scale: 1, fontSize: null, angle: 0 }, alwaysOccluded: false },
 ];
-// An imported note type with its own design (ADR-047): the card shows the author's template and CSS.
 const noteDemoLayout: NoteTypeSource = {
   id: "catalog-layout", ankiNotetypeId: "catalog", name: "Pokémon · Bilderkennung", translator: { id: "generic", version: 3 }, kind: 0, originalStockKind: 0,
   css: '.card{font-family:Georgia,serif;text-align:center;background:#f4f0e8;color:#252525}.nightMode .card{background:#202124;color:#f1f0ed}'
@@ -893,7 +880,6 @@ const noteDemoLayout: NoteTypeSource = {
   }],
   config: {},
 };
-// Only the original-layout case reads it; the other cases come from no generic translation.
 const noteDemoLayoutSource: NoteLayoutSource = { loadNoteTypeSource: async () => noteDemoLayout, deckName: () => "Pokémon" };
 const noteDemoCases = [
   { id: "roles", title: "Feldrollen · Frage und Antwort mit Trennlinie, Hinweise, Zusatz und Quellen", value: noteDemoContent([noteDemoField("Frage", "prompt", "Welches Hormon senkt den Blutzucker?"), noteDemoField("Antwort", "answer", "Insulin"), noteDemoField("Hinweis", "hint", "Es wird in den Betazellen gebildet."), noteDemoField("Zusatz", "extra", "Insulin fördert die Aufnahme von Glukose."), noteDemoField("Quelle", "source", '<a href="https://www.amboss.com/de">AMBOSS</a>'), noteDemoField("Intern", "note", "Dieses Feld erscheint nur im Editor.")], noteDemoReveal()) },
@@ -939,7 +925,6 @@ function NoteDemo({ item, titled = true }: { item: typeof noteDemoGraphs[number]
   </article>;
 }
 
-/** One renderer case by id, without its own heading; the card reference shows it inside its card. */
 export function NoteCaseDemo({ id }: { id: string }) {
   return <NoteDemo item={noteDemoGraphs.find((item) => item.id === id)!} titled={false} />;
 }

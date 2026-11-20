@@ -3,7 +3,6 @@ import { createCatalogSearchIndex } from "../src/catalogSearchIndex.ts";
 import type { CardTableSort } from "../src/libraryModel.ts";
 import type { CardCatalogEntry } from "../src/workspaceReplica.ts";
 
-// KV1-Budget der Kartenverwaltung (ADR-048): 50.000 Karten, 25.000 Inhalte mit rund 400 Zeichen.
 const cardCount = 50_000;
 const noteCount = 25_000;
 const deckCount = 60;

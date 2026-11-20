@@ -7,7 +7,7 @@ export function cardCount(count: number) {
   return `${count.toLocaleString("de-DE")} ${count === 1 ? "Karte" : "Karten"}`;
 }
 
-// Card lists of the card management (KV3). Kept apart from libraryModel.ts so they load with the card management only.
+// Kept apart from libraryModel.ts so these card lists load with the card management only.
 
 type CardTableRow = ReturnType<typeof createCardTableRow>;
 
@@ -65,10 +65,6 @@ function createCardTableListRows(
   return { rowsByIndex, cardRows, totalCardCount, loading };
 }
 
-/**
- * Card table over catalog lists: each group keeps its locally loaded deck and its rows come from that deck's list;
- * groups whose list is still requested stay visible during a search.
- */
 export function createPagedCardTableModel(
   decks: Deck[],
   cardPages: Readonly<Record<string, CardTableList | undefined>> | undefined,
@@ -100,7 +96,6 @@ export function createPagedCardTableModel(
   return { allGroups, groups, cardSort };
 }
 
-/** The flat hit list of a search over all decks in scope (KV3), from its own card list. */
 export function createHitListModel(
   list: CardTableList | undefined,
   options: Pick<LibraryOptions, "dayStartHour" | "timeZone"> & { query: string; cardSort: CardTableSort; awaitingPages: boolean },

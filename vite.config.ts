@@ -64,10 +64,7 @@ interface FeatureChunk {
 /** Largest single file a feature's sub-areas prefetch; heavier ones (PDF, charts, formulas) load only when used. */
 export const FEATURE_PART_MAX_BYTES = 80_000;
 
-/**
- * For each chunk the start graph imports dynamically (the app's screens), its own files beyond the start graph and
- * the files of the sub-areas it imports dynamically. The client downloads them ahead without running them.
- */
+/** The client downloads these files ahead without running them. */
 export function featureChunkMap(bundle: Record<string, FeatureChunk>) {
   const chunks = new Map(Object.values(bundle).filter((chunk) => chunk.type === "chunk").map((chunk) => [chunk.fileName, chunk]));
   const closure = (files: Iterable<string>, collected = new Set<string>()) => {

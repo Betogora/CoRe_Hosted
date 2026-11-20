@@ -119,7 +119,6 @@ function specPaths(names: readonly string[]) {
   return names.map((name) => `tests/e2e/${name}.spec.ts`);
 }
 
-/** Paths changed against the merge base with origin/main, including uncommitted and untracked files. */
 async function changedFiles() {
   const git = (args: string[]) => runCommand("git", args, { capture: true }).then(({ stdout }) => stdout.split(/\r?\n/).filter(Boolean));
   const [base] = await git(["merge-base", "origin/main", "HEAD"]);

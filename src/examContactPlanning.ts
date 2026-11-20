@@ -1,4 +1,3 @@
-/** Internal cohort projection, never a duration estimate. */
 export interface ContactColumn { contacts: Float64Array; recall: number }
 
 function integerCounts(values: readonly number[], total: number): number[] {

@@ -8,10 +8,8 @@ import { StatusMessage } from "../ui/feedbackUi.tsx";
 
 import { noteKindLabel } from "./cardEditor/cardEditorModel.ts";
 
-/** Plain text that keeps the line breaks of the field. */
 const plainLines = (html: string) => html.split(/<br\s*\/?>/i).map(notePlainText).join("\n").trim();
 
-/** The cloze text with its gap shown as the highlighted solution. */
 function ClozeText({ text }: { text: string }) {
   const parts = text.split(/\{\{c\d+::(.*?)(?:::.*?)?\}\}/);
   return <>{parts.map((part, index) => index % 2 ? <span key={index} className="rounded-marker bg-core-accent-soft px-1 text-core-text">{part}</span> : part)}</>;
@@ -50,10 +48,8 @@ function Proposal({ proposal, disabled, onEdit, onRemove }: { proposal: Proposal
   );
 }
 
-/** Unsaved proposals of a finished run with everything the learner must know about what was left out. */
 export function AiSourceProposalList({ result, notices, proposals, saving, saveError, headingRef, onEdit, onRemove, onAdopt, onDiscard }: {
   result: AiSourceCardsRunResult;
-  /** Remarks from reading the source, e.g. pages without a text layer. */
   notices: string[];
   proposals: ProposalDraft[];
   saving: boolean;

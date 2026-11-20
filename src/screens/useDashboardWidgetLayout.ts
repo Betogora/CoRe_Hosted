@@ -10,7 +10,6 @@ function boardPositions(board: HTMLElement) {
   return positions;
 }
 
-/** Animates widgets from their previous slot whenever the order changes; the CSS grid places them in fixed formats. */
 export function useDashboardWidgetLayout(grid: React.RefObject<HTMLDivElement | null>, order: string) {
   const previous = React.useRef(new Map<string, { x: number; y: number }>());
 

@@ -17,7 +17,6 @@ import { cardVariantSource } from "./coreVariantService.ts";
 import type { Card, Note } from "./coreTypes.ts";
 import type { Database } from "./database.types.ts";
 
-/** `avoid` carries the questions of the card's variants so the new one differs from them. */
 export async function requestAiCardVariant(
   source: AiCardVariantSource | null,
   supabase: SupabaseClient<Database> | null,
@@ -41,8 +40,8 @@ export async function requestAiCardVariant(
 }
 
 /**
- * Questions the new variant must differ from: existing variants first, then deleted ones, each newest first.
- * Deleted phrasings count as duplicates in `createAiGeneratedVariantDraft`, so the model has to know them too.
+ * Existing variants first, then deleted ones, each newest first, because the request keeps only the first few. Deleted
+ * phrasings count as duplicates in `createAiGeneratedVariantDraft`, so the model has to know them too.
  */
 export function aiCardVariantAvoidTexts(card: Pick<Card, "variants">): string[] {
   return [...card.variants]
@@ -52,7 +51,6 @@ export function aiCardVariantAvoidTexts(card: Pick<Card, "variants">): string[] 
 
 const asHtml = (text: string) => text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 
-/** Rejects the response when question or answer changed meanwhile or the rephrasing already exists, deleted ones included. */
 export function createAiGeneratedVariantDraft(
   source: AiCardVariantSource,
   current: { note: Note; card: Card } | null | undefined,
@@ -93,7 +91,6 @@ export function createAiGeneratedVariantDraft(
       model: generated.model,
       privacyMode: generated.privacyMode,
       promptVersion: AI_CARD_VARIANT_PROMPT_VERSION,
-      // Rephrased option texts of a choice variant; ids and correctness stay the card's (`variantPresentation`).
       ...(generated.variant.options ? { options: generated.variant.options.map((option) => ({ id: option.id, html: asHtml(normalizeAiCardText(option.text)) })) } : {}),
     },
   };

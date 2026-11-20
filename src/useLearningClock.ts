@@ -6,9 +6,8 @@ import { getSimulatedNow, normalizeSimulationOffsetMinutes } from "./simulationC
 import { useWorkspaceValue } from "./useWorkspaceStore.ts";
 
 /**
- * The app-wide learning time: the transient simulation offset, the account's day start and time zone, and the
- * learning day, which turns over on its own at the day boundary. `learningNow` is the time the shown counts use; it
- * moves with every applied workspace state, a view change and a new learning day.
+ * `learningNow` is the time the shown counts use; it moves with every applied workspace state, a view change and a new
+ * learning day.
  */
 export function useLearningClock(activeView: AppViewId) {
   // Each answer changes the shell's `updatedAt`; the profile keeps its identity while its content stays.
