@@ -235,15 +235,17 @@ export function CardEditorGeneralTab({ decks, graph, card, now, dayStartHour, ti
           </div>
         </Section>
         <Section title="Planung" testId="card-planning">
-          <p className="core-body-large font-semibold text-core-text" data-testid="card-plan-state">{planState}</p>
-          <div className="flex flex-wrap gap-2" role="group" aria-label="Schnellwahl">
+          <dl className="core-card-editor-rows">
+            <DetailRow label="Status"><dd data-testid="card-plan-state">{planState}</dd></DetailRow>
+          </dl>
+          <div className="core-card-editor-quick-dates"><div role="group" aria-label="Schnellwahl">
             {QUICK_DATES.map((entry) => {
               const key = getLearningDayKey(addLearningDays(now, entry.days, dayOptions) ?? "", dayOptions) ?? "";
               return (
                 <button key={entry.days} type="button" aria-pressed={date === key} className="core-action-secondary aria-pressed:border-core-action aria-pressed:text-core-action" onClick={() => setDate(key)}>{entry.label}</button>
               );
             })}
-          </div>
+          </div></div>
           <div className="flex min-w-0 flex-wrap items-end gap-3">
             <label className="core-field-group min-w-0 flex-1 basis-48">
               <span className="core-field-label inline-flex items-center gap-2"><CalendarDays size={17} aria-hidden="true" />Nächste Fälligkeit</span>
@@ -251,8 +253,11 @@ export function CardEditorGeneralTab({ decks, graph, card, now, dayStartHour, ti
             </label>
             {canReschedule ? <ActionButton variant="primary" loading={busy === "reschedule"} onClick={() => void reschedule()}>Neu planen</ActionButton> : null}
           </div>
-          <div className="flex flex-wrap gap-2 border-t border-core-border pt-3">
-            <CoreSwitch label="Aussetzen" checked={suspended} onCheckedChange={(next) => void suspend(next)} />
+          {/* The state as a row like „Markiert“; the one-day action below it. */}
+          <div className="flex min-h-control items-center border-t border-core-border pt-3">
+            <CoreSwitch label="Aussetzen" labelPlacement="start" className="w-full [&>.core-switch-content]:w-full [&>.core-switch-content]:!justify-between" checked={suspended} onCheckedChange={(next) => void suspend(next)} />
+          </div>
+          <div>
             {buried ? (
               <ActionButton variant="secondary" icon={CalendarClock} loading={busy === "bury"} onClick={() => void bury(false)}>Zurückstellen aufheben</ActionButton>
             ) : (

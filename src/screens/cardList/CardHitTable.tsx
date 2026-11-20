@@ -5,7 +5,6 @@ import type { CardCatalogEntry, NoteGraph } from "../../workspaceReplica.ts";
 import { FlagDot } from "../../ui/flagUi.tsx";
 import { CoreTag, EmptyState } from "../../ui/coreUi.tsx";
 import { CoreCheckbox } from "../../ui/formControls.tsx";
-import { CoreTooltip } from "../../ui/tooltipUi.tsx";
 import type { createHitListModel } from "./cardListModel.ts";
 import type { useVirtualRows } from "./virtualRows.ts";
 
@@ -128,11 +127,12 @@ const CardTableRowView = React.memo(function CardTableRowView({ virtualKey, deck
             }}
           />
         ) : null}
-        {/* Named like the pause symbol in the card editor. */}
+        {/* The pause symbol of the card editor; from 640 px with its word, below that the word is only spoken. */}
         {suspended ? (
-          <CoreTooltip label="Ausgesetzt">
-            <span role="img" aria-label="Ausgesetzt" data-testid="card-row-suspended" className="mt-0.5 grid shrink-0 place-items-center"><Pause size={16} className="text-core-text" aria-hidden="true" /></span>
-          </CoreTooltip>
+          <span data-testid="card-row-suspended" className="mt-0.5 flex shrink-0 items-center gap-1.5 core-caption font-semibold text-core-text">
+            <Pause size={16} aria-hidden="true" />
+            <span className="max-sm:sr-only">Ausgesetzt</span>
+          </span>
         ) : null}
         <button
           type="button"

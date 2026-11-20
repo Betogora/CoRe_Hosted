@@ -176,7 +176,7 @@ test("StudyMode exposes labeled learning without an idle Pomodoro progress", () 
 
   assert.match(markup, /aria-label="Lernfortschritt"/);
   assert.doesNotMatch(markup, />Lernfortschritt</);
-  assert.match(markup, /<header class="core-study-header"[^>]*>.*>Fortschritt<\/p><span[^>]*>0 \/ 1 Karten<\/span>/);
+  assert.match(markup, /<header class="core-study-header"[^>]*>.*>Fortschritt<\/p><span[^>]*>0 \/ 1<span class="max-sm:sr-only"> Karten<\/span><\/span>/);
   assert.match(markup, /aria-valuetext="Gelernt: 0 Karten, Neu: 1 Karte, Offen: 0 Karten, Fällig: 0 Karten"/);
   assert.doesNotMatch(markup, /Pomodoro-Timer|Nicht gestartet|study-pomodoro-progress/);
   assert.doesNotMatch(markup, /Neue Karten heute|heute eingeführt|\+10/);
@@ -225,7 +225,7 @@ test("StudyMode counts learned, new, open and due cards of the day into its prog
     />,
   );
 
-  assert.match(markup, />1 \/ 10 Karten</);
+  assert.match(markup, />1 \/ 10<span class="max-sm:sr-only"> Karten</);
   assert.match(markup, /aria-valuetext="Gelernt: 1 Karte, Neu: 3 Karten, Offen: 1 Karte, Fällig: 5 Karten"/);
 });
 
@@ -261,7 +261,7 @@ test("StudyMode uses the complete catalog projection before every card body is b
     />,
   );
 
-  assert.match(markup, />0 \/ 7 Karten</);
+  assert.match(markup, />0 \/ 7<span class="max-sm:sr-only"> Karten</);
   assert.match(markup, /aria-valuemax="7"/);
   assert.match(markup, /aria-valuetext="Gelernt: 0 Karten, Neu: 1 Karte, Offen: 5 Karten, Fällig: 1 Karte"/);
 });

@@ -2878,6 +2878,24 @@ button.core-steps-step {
   border-top: var(--core-border-width) solid var(--core-border);
 }
 
+/* Quick dates: four in a row where they fit, otherwise two by two, never three and one. */
+.core-card-editor-quick-dates {
+  container-type: inline-size;
+}
+
+.core-card-editor-quick-dates > [role="group"] {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.5rem;
+}
+
+@container (min-width: 27rem) {
+  .core-card-editor-quick-dates > [role="group"] {
+    display: flex;
+    flex-wrap: wrap;
+  }
+}
+
 /* Label left, value right, 36 px, hairline between; labels never shrink, values wrap or cut. */
 .core-card-editor-rows {
   display: grid;
@@ -2980,14 +2998,14 @@ button.core-steps-step {
   .core-card-editor-actions {
     margin-left: auto;
   }
+}
 
+/* The four editor tabs stay complete on the narrowest phones; the hit position leaves room for the actions. */
+@media (max-width: 359px) {
   .core-card-editor-position {
     display: none;
   }
-}
 
-/* The four editor tabs stay complete on the narrowest phones. */
-@media (max-width: 359px) {
   .core-card-editor-frame .core-tabs-list {
     gap: var(--core-space-lg);
   }
