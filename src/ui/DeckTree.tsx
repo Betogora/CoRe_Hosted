@@ -223,12 +223,12 @@ type TopLevelPlacement = "top-bar" | "bottom-bar";
 
 const POINTER_DRAG_THRESHOLD = 6;
 
-function viewportRect(element: Element | null, inset = 0): ViewportRect | null {
+function viewportRect(element: Element | null, inset = 0, insetY = inset): ViewportRect | null {
   if (!element) return null;
   const rect = element.getBoundingClientRect();
   const width = rect.width - inset * 2;
-  const height = rect.height - inset * 2;
-  return width > 0 && height > 0 ? { x: rect.left + inset, y: rect.top + inset, width, height } : null;
+  const height = rect.height - insetY * 2;
+  return width > 0 && height > 0 ? { x: rect.left + inset, y: rect.top + insetY, width, height } : null;
 }
 
 function sameRect(left: ViewportRect | null, right: ViewportRect | null) {
@@ -496,7 +496,8 @@ export function DeckTree({ rows, rootDeckIds, mode, view = "list", onViewChange,
 
     const sourceRect = viewportRect(drag.captureElement.closest("[data-deck-row='true']"));
     const targetRect = viewportRect(drag.targetElement);
-    const topBarRect = viewportRect(document.querySelector("[data-navigation-layout='top-bar'] > div"), 8);
+    // The card is a pseudo-element; the bar sits inside it with 8 px above and below.
+    const topBarRect = viewportRect(document.querySelector("[data-navigation-layout='top-bar'] [data-shell-bar]"), 8, 0);
     const bottomBarRect = topBarRect ? null : viewportRect(document.querySelector("[data-navigation-layout='bottom-bar']"));
     const topLevelTarget = topBarRect
       ? { placement: "top-bar" as const, rect: topBarRect }

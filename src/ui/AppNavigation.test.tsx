@@ -7,10 +7,11 @@ import type { SyncStatus } from "../coreTypes.ts";
 import { WorkspaceStoreContext } from "../useWorkspaceStore.ts";
 import { createWorkspaceStore } from "../workspaceStore.ts";
 import { AppNavigation } from "./AppNavigation.tsx";
+import type { ShellBack } from "./shellBack.ts";
 
 const navigationItems = createMenuModel().listNavigationItems();
 
-function renderNavigation(activeView = "uebersicht", simulationOffsetMinutes = 0, pomodoroTimer: PomodoroTimer | null = null, syncStatus: SyncStatus = { status: "idle" }, manualSync = false, settingsOpen = false) {
+function renderNavigation(activeView = "uebersicht", simulationOffsetMinutes = 0, pomodoroTimer: PomodoroTimer | null = null, syncStatus: SyncStatus = { status: "idle" }, manualSync = false, settingsOpen = false, back: ShellBack | null = null) {
   const store = createWorkspaceStore();
   store.set({ syncStatus });
   return renderToStaticMarkup(
@@ -27,9 +28,26 @@ function renderNavigation(activeView = "uebersicht", simulationOffsetMinutes = 0
       onOpenSettings={() => undefined}
       onNavigate={() => undefined}
       onResetSimulation={() => undefined}
+      back={back}
     /></WorkspaceStoreContext.Provider>,
   );
 }
+
+test("subpages turn the floating card into the docked bar with back and title, keeping both groups mounted", () => {
+  const hub = renderNavigation();
+  assert.equal((hub.match(/data-shell-mode="hub"/g) ?? []).length, 2);
+  for (const group of hub.match(/<div class="core-shell-(brand|back)[^"]*"[^>]*>/g) ?? []) {
+    assert.equal(group.includes("inert"), group.includes("core-shell-back"));
+  }
+
+  const app = renderNavigation("erstellen", 0, null, { status: "idle" }, false, false, { title: "Karte selbst erstellen", label: "Erstellen", onSelect: () => undefined });
+  assert.equal((app.match(/data-shell-mode="app"/g) ?? []).length, 2);
+  const groups = app.match(/<div class="core-shell-(brand|back)[^"]*"[^>]*>/g) ?? [];
+  assert.equal(groups.length, 4);
+  for (const group of groups) assert.equal(group.includes("inert"), group.includes("core-shell-brand"));
+  assert.equal((app.match(/<button[^>]*aria-label="Zurück zu Erstellen"[^>]*>[\s\S]*?Karte selbst erstellen<\/span><\/button>/g) ?? []).length, 2);
+  assert.equal((app.match(/<h1 class="core-shell-lead/g) ?? []).length, 2);
+});
 
 test("automatic sync stays out of the header until something needs attention", () => {
   for (const syncStatus of [

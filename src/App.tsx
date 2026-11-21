@@ -38,6 +38,7 @@ import { CoreCheckbox } from "./ui/formControls.tsx";
 import { CoreWordmark } from "./ui/CoreWordmark.tsx";
 import { useSuccessToast } from "./ui/feedbackUi.tsx";
 import { NoteLayoutContext, type NoteLayoutSource } from "./ui/noteLayoutContext.ts";
+import { ShellBackContext, type ShellBack } from "./ui/shellBack.ts";
 import { useStableCallback } from "./ui/useStableCallback.ts";
 import { VariantGenerationBarWiring } from "./screens/VariantGenerationBarWiring.tsx";
 import { useCardVariantBatch } from "./useCardVariantBatch.ts";
@@ -123,6 +124,7 @@ function AppContent() {
   const [mediaStore, setMediaStore] = React.useState<AccountMediaStore | null>(null);
   const featurePreloadingAllowed = () => !["saving", "pending"].includes(workspaceStore.get().syncStatus.status);
   const screenRegionRef = React.useRef<HTMLElement | null>(null);
+  const [shellBack, setShellBack] = React.useState<ShellBack | null>(null);
   const navigation = useNavigationGuard({ authPhase, defaultViewId: menu.defaultViewId, settingsBlocksNavigation: (route) => settings.blocksNavigation(route) });
   const { activeView, studyRequest, focusedDeckId, deckContent, creationMethod, settingsSection, deckSettings, navigateToView, navigateToViewNow, resetBrowserRouteToDefault, pendingNavigation } = navigation;
   const settings = useSettingsOverlay(navigation);
@@ -354,19 +356,17 @@ function AppContent() {
             onOpenSyncSettings={(target) => openSettings(target === "sync" ? "daten" : "konflikte")}
             settingsOpen={Boolean(settingsSection)}
             onOpenSettings={() => openSettings("start")}
-            onPreloadSettings={() => {
-              if (featurePreloadingAllowed() && allowsBrowserSpeculativePreloading()) void preloadSettingsDialog();
-            }}
+            onPreloadSettings={() => { if (featurePreloadingAllowed() && allowsBrowserSpeculativePreloading()) void preloadSettingsDialog(); }}
             onPreloadView={(viewId) => {
               if (featurePreloadingAllowed() && allowsBrowserSpeculativePreloading()) void preloadAppView(viewId);
             }}
             onNavigate={(viewId) => navigateToView(viewId, { focusedDeckId })}
-            onResetSimulation={() => clock.changeSimulationOffset(0)}
+            onResetSimulation={() => clock.changeSimulationOffset(0)} back={shellBack}
           />
 
           <section ref={screenRegionRef} className="core-screen-region min-w-0 overflow-x-clip px-4 pb-32 pt-8 outline-none sm:px-6 xl:relative xl:overflow-x-hidden xl:overflow-y-auto xl:py-10" tabIndex={-1} aria-label="Seiteninhalt">
             <div className="mx-auto w-full min-w-0 max-w-7xl">
-              <NoteLayoutContext.Provider value={noteLayout}><React.Suspense fallback={<ScreenLoadingFallback />}>
+              <ShellBackContext.Provider value={setShellBack}><NoteLayoutContext.Provider value={noteLayout}><React.Suspense fallback={<ScreenLoadingFallback />}>
                 {studyRequest && !state.decks.some((deck) => deck.id === studyRequest.deckId) ? (
                   <EmptyState
                     icon={Layers}
@@ -384,7 +384,7 @@ function AppContent() {
                     }
                   />
                 ) : <ActiveScreen key={activeView === "kartenstapel" ? (deckContent ? `content-${focusedDeckId}` : "library") : undefined} />}
-              </React.Suspense></NoteLayoutContext.Provider>
+              </React.Suspense></NoteLayoutContext.Provider></ShellBackContext.Provider>
             </div>
           </section>
         </div>

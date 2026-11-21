@@ -33,6 +33,7 @@ import type { CardBatchAction } from "../cardBatchActions.ts";
 import { CardEditorDialog, cardEditorFrameClass, type CardEditorHitNavigation } from "./cardEditor/CardEditorDialog.tsx";
 import { DeckSubstacksPanel } from "./DeckSubstacksPanel.tsx";
 import { LearningAreaHeader } from "./LearningAreaHeader.tsx";
+import { useShellBack } from "../ui/shellBack.ts";
 
 interface PendingDetailAction {
   run: () => void;
@@ -142,6 +143,7 @@ export function DecksScreen({
     return decks.filter((deck) => treeIds.has(deck.id));
   }, [contentDeckId, decks]);
   const contentDeck = contentDeckId ? libraryDecks.find((deck) => deck.id === contentDeckId) : null;
+  useShellBack(contentDeckId ? { title: contentDeck?.name ?? "Stapelinhalte", label: "Lernen", onSelect: () => requestDetailAction(() => onOpenLearn(null)) } : undefined);
   const hasStudyCards = React.useMemo(() => Boolean(contentDeckId) && libraryDecks.some((deck) => (
     !deck.deletedAt && ((deckSummaries?.get(deck.id)?.inventory.totalCards ?? 0) > 0 || deck.cards.some((card) => !card.deletedAt))
   )), [contentDeckId, deckSummaries, libraryDecks]);
@@ -735,9 +737,7 @@ export function DecksScreen({
         cancelLabel="Weiter bearbeiten"
         discardLabel="Verwerfen"
         confirmLoading={savingPendingDraft}
-        restoreFocus={(reason) => {
-          if (reason === "cancel") cardDraftGuardRef.current?.focus();
-        }}
+        restoreFocus={(reason) => { if (reason === "cancel") cardDraftGuardRef.current?.focus(); }}
         onCancel={() => setPendingDetailAction(null)}
         onDiscard={discardPendingDetailDraft}
         onConfirm={() => void savePendingDetailDraft()}

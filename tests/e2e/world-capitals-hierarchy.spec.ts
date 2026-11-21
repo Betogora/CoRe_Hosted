@@ -192,16 +192,16 @@ test("deck drag focus uses square row holes with desktop top bar and mobile bott
   await expect(sourceHole).toHaveCount(1);
   expect(await sourceHole.getAttribute("rx")).toBeNull();
   await expect(page.getByTestId("dashboard-deck-list-header")).not.toContainText("Auf die Hauptebene verschieben");
-  const topBarPanel = page.locator('[data-navigation-layout="top-bar"] > div');
+  const topBarPanel = page.locator('[data-navigation-layout="top-bar"] [data-shell-bar]');
   const topBarTarget = page.getByTestId("dashboard-top-drop-zone");
   await expect(topBarTarget).toHaveAttribute("data-deck-top-drop-placement", "top-bar");
   const [topBarBox, topBarTargetBox] = await Promise.all([topBarPanel.boundingBox(), topBarTarget.boundingBox()]);
   expect(topBarBox).not.toBeNull();
   expect(topBarTargetBox).not.toBeNull();
   expect(topBarTargetBox!.x).toBeCloseTo(topBarBox!.x + 8, 0);
-  expect(topBarTargetBox!.y).toBeCloseTo(topBarBox!.y + 8, 0);
+  expect(topBarTargetBox!.y).toBeCloseTo(topBarBox!.y, 0);
   expect(topBarTargetBox!.width).toBeCloseTo(topBarBox!.width - 16, 0);
-  expect(topBarTargetBox!.height).toBeCloseTo(topBarBox!.height - 16, 0);
+  expect(topBarTargetBox!.height).toBeCloseTo(topBarBox!.height, 0);
   await cancelDeckDrag(page);
 
   await page.setViewportSize({ width: 390, height: 844 });
