@@ -4,6 +4,8 @@ import * as v from "valibot";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { deleteLearningDocument, listLearningDocuments, writeLearningDocument } from "./cloudLearningDocuments.ts";
 import { sanitizeCardHtml, stripHtml } from "./htmlSafety.ts";
+import type { Deck } from "./coreTypes.ts";
+import { buildSortedDeckChildren } from "./deckOrdering.ts";
 
 const identifier = v.pipe(v.string(), v.minLength(1), v.maxLength(200));
 const generationSchema = v.strictObject({
@@ -88,7 +90,7 @@ export function summaryDescription(summary: LearningSummary): string {
   const length = summaryChoices.length.find((choice) => choice.value === summary.settings.length)!.label;
   const detail = summaryChoices.detail.find((choice) => choice.value === summary.settings.detail)!.label;
   const minutes = getSummaryReadingMinutes(summary.html);
-  return `${length} · ${detail} · ${minutes ? `${minutes} Min. Lesezeit` : "Leerer Entwurf"}`;
+  return `Länge:\u00a0${length} ·\u00a0Detailgrad:\u00a0${detail} ·\u00a0${minutes ? `${minutes}\u00a0Min.\u00a0Lesezeit` : "Leerer Entwurf"}`;
 }
 
 export interface LearningContentAccount { userId: string; cloud: SupabaseClient | null }
@@ -99,7 +101,7 @@ export interface SavedLearningSummary { saved: LearningSummary; unsynced: boolea
 const TABLE = "learning_summaries";
 const SAVE_FAILED = "Die Zusammenfassung konnte nicht lokal gespeichert werden. Dein Entwurf bleibt geöffnet.";
 
-async function withSummaryStore<T>(userId: string, mode: IDBTransactionMode, run: (store: IDBObjectStore) => IDBRequest | void, failure: string): Promise<T> {
+async function withSummaryStore<T>(userId: string, mode: IDBTransactionMode, run: (store: IDBObjectStore) => (() => T) | void, failure: string): Promise<T> {
   if (!v.safeParse(identifier, userId).success) throw new Error("Zum Speichern ist ein aktives Konto erforderlich.");
   if (typeof indexedDB === "undefined") throw new Error("Der lokale Speicher für Zusammenfassungen ist nicht verfügbar.");
   const db = await new Promise<IDBDatabase>((resolve, reject) => {
@@ -114,14 +116,17 @@ async function withSummaryStore<T>(userId: string, mode: IDBTransactionMode, run
   });
   try {
     return await new Promise<T>((resolve, reject) => {
-      const transaction = db.transaction("summaries", mode), request = run(transaction.objectStore("summaries"));
-      transaction.oncomplete = () => resolve(request?.result as T);
+      const transaction = db.transaction("summaries", mode), read = run(transaction.objectStore("summaries"));
+      transaction.oncomplete = () => resolve(read?.() as T);
       transaction.onabort = transaction.onerror = () => reject(new Error(failure));
     });
   } finally { db.close(); }
 }
-const readStored = (userId: string, deckId: string) => withSummaryStore<StoredSummary[]>(userId, "readonly", (store) => store.index("deckId").getAll(deckId), "Die Zusammenfassungen konnten nicht geladen werden.");
-const getStored = (userId: string, id: string) => withSummaryStore<StoredSummary | undefined>(userId, "readonly", (store) => store.get(id), "Die Zusammenfassung konnte nicht geladen werden.");
+const readStored = (userId: string, deckIds: readonly string[]) => withSummaryStore<StoredSummary[]>(userId, "readonly", (store) => {
+  const requests = deckIds.map((deckId) => store.index("deckId").getAll(deckId));
+  return () => requests.flatMap((request) => request.result as StoredSummary[]);
+}, "Die Zusammenfassungen konnten nicht geladen werden.");
+const getStored = (userId: string, id: string) => withSummaryStore<StoredSummary | undefined>(userId, "readonly", (store) => { const request = store.get(id); return () => request.result; }, "Die Zusammenfassung konnte nicht geladen werden.");
 const writeStored = (userId: string, records: StoredSummary[], removed: string[] = []) => withSummaryStore<void>(userId, "readwrite", (store) => {
   for (const record of records) store.put(record);
   for (const id of removed) store.delete(id);
@@ -147,21 +152,36 @@ async function pushSummary(account: LearningContentAccount & { cloud: SupabaseCl
 }
 
 /** Retries changes this browser has not uploaded yet as a side effect; offline it returns the last local copy. */
-export async function loadLearningSummaries(account: LearningContentAccount, deckId: string): Promise<{ summaries: LearningSummary[]; unsynced: Set<string> }> {
+export async function loadLearningSummaries(account: LearningContentAccount, deckIds: readonly string[]): Promise<{ summaries: LearningSummary[]; unsynced: Set<string> }> {
   const { userId, cloud } = account;
-  const remote = cloud ? await listLearningDocuments(cloud, TABLE, deckId).catch(() => null) : null;
+  const remote = cloud ? await listLearningDocuments(cloud, TABLE, deckIds).catch(() => null) : null;
   if (cloud && remote) {
-    const local = await readStored(userId, deckId), pending = new Set(local.filter((record) => record.pending).map((record) => record.id)), known = new Set(remote.map((row) => row.id));
+    const local = await readStored(userId, deckIds), pending = new Set(local.filter((record) => record.pending).map((record) => record.id)), known = new Set(remote.map((row) => row.id));
     await writeStored(userId,
-      remote.filter((row) => !row.deleted && !pending.has(row.id)).map((row) => ({ id: row.id, deckId, summary: readLearningSummary(row.document), revision: row.revision, pending: false })),
+      remote.filter((row) => !row.deleted && !pending.has(row.id)).map((row) => ({ id: row.id, deckId: row.deckId, summary: readLearningSummary(row.document), revision: row.revision, pending: false })),
       [...remote.filter((row) => row.deleted && !pending.has(row.id)).map((row) => row.id), ...local.filter((record) => !record.pending && !known.has(record.id)).map((record) => record.id)]);
     for (const record of local.filter((item) => item.pending)) await pushSummary({ ...account, cloud }, record).catch(() => null);
   }
-  const records = await readStored(userId, deckId);
+  const records = await readStored(userId, deckIds);
   return {
     summaries: records.flatMap((record) => record.summary ? [readLearningSummary(record.summary)] : []).sort((a, b) => b.updatedAt.localeCompare(a.updatedAt) || a.id.localeCompare(b.id)),
     unsynced: new Set(records.filter((record) => record.pending).map((record) => record.id)),
   };
+}
+
+export interface SummaryDeckGroup { deckId: string; path: string[]; summaries: LearningSummary[] }
+/** The opened deck's group comes first, with an empty path. */
+export function groupSummariesByDeckTree(summaries: readonly LearningSummary[], decks: readonly Deck[], rootDeckId: string): SummaryDeckGroup[] {
+  const children = buildSortedDeckChildren(decks.filter((deck) => !deck.deletedAt)), groups: SummaryDeckGroup[] = [], byDeck = new Map<string, LearningSummary[]>();
+  for (const summary of summaries) byDeck.set(summary.deckId, [...byDeck.get(summary.deckId) ?? [], summary]);
+  const visit = (deck: Deck, path: string[]) => {
+    const own = byDeck.get(deck.id);
+    if (own) groups.push({ deckId: deck.id, path, summaries: own });
+    for (const child of children.get(deck.id) ?? []) visit(child, [...path, child.name]);
+  };
+  const root = decks.find((deck) => deck.id === rootDeckId);
+  if (root) visit(root, []);
+  return groups;
 }
 
 export async function saveLearningSummary(account: LearningContentAccount, value: unknown): Promise<SavedLearningSummary> {

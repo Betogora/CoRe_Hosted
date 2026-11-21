@@ -117,7 +117,7 @@ Befehlsmodule laufen ohne React und entstehen je Arbeitsbereich aus Store, lokal
 | `hitStudySession.ts` | `Treffer lernen` und Üben ohne Schreibpfad |
 | `examPlanning.ts`, `examPlanSettings.ts`, `examDailyTasks.ts`, `examCalendarModel.ts` | Prüfungsplanung, Planablage im Profil, Tagesaufgaben, Kalenderprojektion (ADR-042) |
 | `statisticsModel.ts`, `studyHeatmapModel.ts` | Statistikreihen, Tageszähler, Streak, Kalender |
-| `creationWorkflow.ts`, `creationBatch.ts` | manuelle Erstellung samt Bildverdeckung und lokaler Medienvorbereitung |
+| `creationWorkflow.ts`, `creationBatch.ts`, `manualCreationDraft.ts` | manuelle Erstellung mit Bildverdeckung, Medienvorbereitung und Entwurf im Tab |
 | `notePresentation.ts`, `presentationFrame.ts`, `originalLayout.ts`, `htmlSafety.ts` | Kartenrenderer, CSP-Rahmen, Regel des Originallayouts, Sanitizer |
 | `apkgImport.ts`, `apkgNoteTranslation.ts`, `importRetranslation.ts` | APKG-Vorschau und gestreamter Importgraph, Übersetzung, Neuübersetzung |
 | `textImport.ts` | Text- und CSV-Import |
@@ -181,7 +181,7 @@ Befehlsmodule laufen ohne React und entstehen je Arbeitsbereich aus Store, lokal
 - Inhaltsänderungen planen nur über `coreModel.ts`; unveränderter bereinigter Inhalt schreibt nichts. Tags und Markierung erhöhen nur `revision`, nicht `contentRevision`. Löschen betrifft immer den Inhalt mit allen Geschwistern.
 - Importierte Inhalte tragen beim Import `importedContentRevision` = `contentRevision`, manuelle `null`; lokal bearbeitet ist ein Inhalt mit `contentRevision` > `importedContentRevision`.
 - Varianten in `card.variants[]` haben keinen eigenen Lernstand oder Termin und zählen nicht für Queue oder Bestand. Ihre Wahl folgt aus Stapeleinstellungen, Lernstand und Uhrzeit; die erreichte Kettenstufe (`study.extra.variantStage`) wird mit der Bewertung geschrieben.
-- Der Lernstand hat mit `studyRevision` eine eigene Konfliktgrenze. Bewertungen und manuelle Lernstandsänderungen laufen als `ReviewEvent` über `record_review_atomic`, Inhalts- und Kartenänderungen über die Entitätsrevision; Review und Inhaltskorrektur auf zwei Geräten kollidieren nicht.
+- Der Lernstand hat mit `studyRevision` eine eigene Konfliktgrenze. Bewertungen und manuelle Lernstandsänderungen laufen als `ReviewEvent` über `record_review_atomic`, Inhalts- und Kartenänderungen über die Entitätsrevision; Review und Korrektur auf zwei Geräten kollidieren nicht.
 - Review Events sind accountgebunden und unveränderlich; manuelle tragen `rating: "manual"` und ihre Art in `flags.kind`. Nur das Zurücknehmen einer Bewertung entfernt ein Ereignis (`undo_review_atomic`).
 - Das Reifeband (`study.extra.maturityBand`) wird bei jeder Bewertung aus dem FSRS-7-Zustand abgeleitet und mitgeschrieben. Katalog, Stapelzahlen und Statistik lesen das Band, Prüfungsplanung und Variantenwahl rechnen mit derselben Funktion.
 - Begraben und Zurückstellen sind nicht persistiert: `siblingBurying.ts` leitet sie aus den Ereignissen des Lerntags ab. `get_account_bootstrap` bildet die Regel in SQL nach; ein RLS-Test prüft beide gegen dieselben Fälle.
@@ -216,7 +216,7 @@ Befehlsmodule laufen ohne React und entstehen je Arbeitsbereich aus Store, lokal
 - `presentationFrame.ts` besitzt das gemeinsame CSP-Gerüst und die Auflösung zu `blob:`/`data:`-URLs. `CardPresentationSurface` zeigt das Ergebnis im Sandbox-Iframe; Schriften und Formeln werden eingebettet, weil der Rahmen nichts nachlädt.
 - `ui/NoteCardContent.tsx` ist der einzige Host für Review, Vorschau, Kartenverwaltung, Erstellung und Importvorschau und besitzt nur transienten Eingabe-, Auswahl- und Darstellungszustand. Medien löst er über `note.media` auf.
 - Feld-HTML durchläuft `sanitizeNoteHtml`, Vorlagen-HTML `sanitizeLayoutHtml` (`htmlSafety.ts`). Eingabevergleich und Auswahlauswertung bleiben reine Helfer des Renderers.
-- Originallayout (ADR-047): Die Regel steht einmal in `originalLayout.ts`, das auch der Importbericht nutzt. Der Host liest Vorlage und Stapelpfad über `NoteLayoutContext`, den die App an die replizierten `noteTypeSources` und die Importvorschau an ihre Vorlage bindet. Ist die Vorderseite leer, rendert die Karte im CoRe-Design mit Diagnose.
+- Originallayout (ADR-047): Die Regel steht einmal in `originalLayout.ts`, das auch der Importbericht nutzt. Der Host liest Vorlage und Stapelpfad über `NoteLayoutContext`, den die App an die replizierten `noteTypeSources` und die Importvorschau an ihre Vorlage bindet; bei leerer Vorderseite gilt das CoRe-Design mit Diagnose.
 - Vorgerenderte Ergebnisse und aufgelöste Medien werden je Inhaltsobjekt beziehungsweise Medienmenge geteilt; Varianten sind eigene Objekte und teilen nichts mit ihrem Original.
 
 ## Persistenz, Sync und Medien
@@ -231,6 +231,7 @@ Befehlsmodule laufen ohne React und entstehen je Arbeitsbereich aus Store, lokal
 | `core.accountState.v2`, `core.syncDevice.v2` | `accountStorage` | Accountzustand und Gerät; darin `core.fieldTimings.v1` |
 | `core.pomodoroTimer.v1`, `core.dashboard.widgets.v1` | Accountnamespace | Fokustimer, Widgetlayout und eigene To-dos |
 | `core.theme.v1` | Browser | Theme-Präferenz |
+| `core.manualDraft.v1.<userId>` | `sessionStorage` | manueller Entwurf ohne Bilder |
 
 ### Sync
 
@@ -238,7 +239,7 @@ Befehlsmodule laufen ohne React und entstehen je Arbeitsbereich aus Store, lokal
 - Ein Sync-Zyklus sendet die Outbox (`entity-mutation`, `deck-command`, `profile-patch`, `review-atomic`, `review-undo`), lädt alle Deltas seit den `sync_change_id`-Cursorn und aktualisiert zuletzt Konflikte und Status. Gleichzeitige Anforderungen teilen einen Lauf.
 - Die Outbox hält je Entität höchstens eine Mutation. Ein ersetzter unbestätigter Insert bleibt Insert; eine Zeile, die zuletzt dasselbe Gerät schrieb, gilt als verlorene Antwort und wird Update. Löschungen laufen zuletzt in umgekehrter Fremdschlüsselreihenfolge.
 - `review-undo` folgt seiner `review-atomic`-Mutation und wird nicht gesendet, solange diese scheitert. Ausstehende Bewertungen und Rücknahmen schützen Karte und Ereignis vor dem Überschreiben durch Abrufe.
-- Geräte-, Zeit-, Zähler-, Eigentümer- und Schedulerprojektionen erzeugen allein keinen Inhaltskonflikt. Kartenwrites erhalten den Cloud-Lernstand. Konfliktmetadaten bleiben lokal; betroffene Karten (bei Inhaltskonflikt alle Geschwister) fehlen im Review und bleiben in der Verwaltung sichtbar.
+- Geräte-, Zeit-, Zähler-, Eigentümer- und Schedulerprojektionen erzeugen allein keinen Inhaltskonflikt. Kartenwrites erhalten den Cloud-Lernstand. Konfliktmetadaten bleiben lokal; betroffene Karten (bei Inhaltskonflikt alle Geschwister) fehlen im Review, nicht in der Verwaltung.
 - Profilpatches enthalten das vollständige Profil. Nur ein erfolgreicher Cloud-Bootstrap darf unvollständige alte Profilpatches ersetzen.
 - Start (ADR-038): Die gespeicherte Sitzung startet sofort, `getUser()` bestätigt parallel; eine Ablehnung verwirft den Lauf.
 
@@ -308,7 +309,7 @@ Befehlsmodule laufen ohne React und entstehen je Arbeitsbereich aus Store, lokal
 
 - Der Worker erhält die Datei, liest sie mit `readAnkiPackage`, übersetzt einmal und hält den Importgraphen bis Commit oder Verwerfen. Der ZIP-Leser liest Einträge einzeln aus dem `Blob`, damit große Pakete nicht ganz im Speicher liegen.
 - Beim Commit streamt der Worker begrenzte Chunks in Fremdschlüsselreihenfolge und Medien einzeln mit SHA-1-Prüfung; der Main Thread schreibt jeden Chunk in IndexedDB, bevor er den nächsten anfordert.
-- Die flüchtige Importsitzung überlebt interne Navigation; nach einem Neuladen laufen nur Outbox und Medienqueue weiter. `interruptedImport` im Meta-Store vermerkt eine begonnene Übernahme bis zu ihrem Ende. Die Cloud-Bestätigung je Import läuft nach jedem gespeicherten Sync erneut und zieht in den nächsten Arbeitsbereich desselben Kontos mit.
+- Die flüchtige Importsitzung überlebt interne Navigation; nach einem Neuladen laufen nur Outbox und Medienqueue weiter. `interruptedImport` im Meta-Store vermerkt eine begonnene Übernahme bis zu ihrem Ende. Die Cloud-Bestätigung je Import läuft nach jedem gespeicherten Sync erneut und zieht in den nächsten Arbeitsbereich des Kontos mit.
 
 ### Reimport
 
@@ -355,14 +356,14 @@ Befehlsmodule laufen ohne React und entstehen je Arbeitsbereich aus Store, lokal
 ### Varianten und Lernhilfe
 
 - Varianten entstehen nur aus der bereinigten Quelle einer Karte (`cardVariantSource`); die Anfrage nennt ihre Art (`basic`, `type-in`, `cloze`, `choice`). Anzahl, Schema, Änderung, Duplikate und Größen werden vor der Mutation geprüft; ein inzwischen geänderter Inhalt verhindert sie.
-- Antwort, Eintippvergleich, Lückenlösung, Options-IDs und Richtigkeit kommen bei der Darstellung immer von der Karte. Eine Auswahl-Variante speichert Stamm und Optionen in `front`/`back` und die umformulierten Optionstexte in `meta.options`. `clozeSyntax.ts` zerlegt Anki-Lücken für Renderer und Vertrag.
+- Antwort, Eintippvergleich, Lückenlösung, Options-IDs und Richtigkeit kommen beim Darstellen stets von der Karte. Eine Auswahl-Variante speichert Stamm und Optionen in `front`/`back` und die umformulierten Optionstexte in `meta.options`. `clozeSyntax.ts` zerlegt Anki-Lücken für Renderer und Vertrag.
 - Meldet das Werkzeug `rephrasable: false`, antwortet die Route mit `not_rephrasable` (422), und es entsteht keine Variante.
 - Ändert sich der Text einer behaltenen Karte oder bringt ein Reimport geänderten Paketinhalt, markiert die Planung ihre aktiven Varianten als veraltet (`meta.outdated`); eine Neuerzeugung ersetzt sie.
 - `aiCardHelp.ts` bildet den Kartentext der Lernhilfe: Quellenfelder bleiben lokal, eine Lücke verdeckt nur sich selbst, Bildverdeckungen erhalten keine Hilfe.
 
 ### Karten aus einer Quelle
 
-- `aiSourceCreation.ts` validiert den Auftrag und baut die Anweisungen. `aiSourceCardsContract.ts` prüft je Anfrage einen Abschnitt der Quelle als Einheiten mit ID und die Antwort: Strukturfehler verwerfen sie ganz; einzelne Vorschläge mit ungültigen Feldern oder ungültiger, nicht erlaubter Form, unbekanntem Beleg, wiederholter Frage oder über dem Restlimit des Auftrags fallen gezählt heraus. `aiSourceCards.ts` liest die Quelle im Browser, zerlegt sie in belegte Einheiten (PDF-Seite, Zeilenblöcke, Tabellenzeilen mit Kopfzeile) und schickt Abschnitte nacheinander über `requestAiSourceCards`, das die Antwort im Browser erneut prüft. Gespeichert wird erst bei der Übernahme, über `createManualNoteContent` und `saveManualNote`.
+- `aiSourceCreation.ts` validiert den Auftrag und baut die Anweisungen. `aiSourceCardsContract.ts` prüft je Anfrage einen Abschnitt der Quelle als Einheiten mit ID und die Antwort: Strukturfehler verwerfen sie ganz; Vorschläge mit ungültigen Feldern oder Formen, unbekanntem Beleg, wiederholter Frage oder über dem Restlimit fallen gezählt heraus. `aiSourceCards.ts` liest die Quelle im Browser, zerlegt sie in belegte Einheiten (PDF-Seite, Zeilenblöcke, Tabellenzeilen mit Kopfzeile) und schickt Abschnitte nacheinander über `requestAiSourceCards`, das die Antwort erneut prüft. Gespeichert wird erst bei der Übernahme, über `createManualNoteContent` und `saveManualNote`.
 
 ### Zusammenfassungen und Mindmaps
 

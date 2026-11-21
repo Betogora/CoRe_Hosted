@@ -56,7 +56,7 @@ export function codeFootprint() {
     { label: "Prüfungen", files: ["ExamPlanningScreen", "ExamPlanEditor"], color: "var(--core-action-primary)" },
     { label: "Statistik", files: ["StatisticsScreen"], color: "var(--core-learning-status-due)" },
     { label: "Konto & Sync", files: ["AuthGateScreen", "SettingsDialog", "SettingsDialogFrame", "SettingsScreen", "SyncConflictPanel"], color: "var(--core-learning-progress-completed)" },
-    { label: "Hilfe", files: ["HelpScreen"], color: "var(--core-text-secondary)" },
+    { label: "Hilfe", files: ["HelpScreen", "help/helpStories", "help/helpReference"], color: "var(--core-text-secondary)" },
   ];
   const files = [...sourceFiles("src"), ...sourceFiles("api"), "src/styles.css"].filter((file) => !file.endsWith(".d.ts") && file !== "src/database.types.ts");
   const counts = files.map((file) => ({ file, lines: text(file).split("\n").filter((line) => line.trim()).length }));

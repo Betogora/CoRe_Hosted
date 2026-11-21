@@ -1,7 +1,7 @@
 import React from "react";
 import type { TagDirectoryEntry } from "../tagDirectory.ts";
 import { TagInput } from "../ui/TagInput.tsx";
-import { ArrowDown, ArrowUp, CircleAlert, Database, Eye, FileText, ImagePlus, Pin, PinOff, Plus, X } from "lucide-react";
+import { ArrowDown, ArrowUp, CircleAlert, Eye, FileText, ImagePlus, Layers, Plus, Save, X } from "lucide-react";
 import {
   createManualBatchSession,
   manualDraftsEqual,
@@ -13,12 +13,13 @@ import { createNote, type AddableFieldRole, type ManualNoteErrors, type Occlusio
 import type { CreationWorkflow, ManualCreationInput, ManualImageAttachment } from "../creationWorkflow.ts";
 import type { MediaSyncProgress } from "../mediaStore.ts";
 import type { Deck, NoteContent, OcclusionMask } from "../coreTypes.ts";
-import { isReadableSourceDocument, READABLE_SOURCE_DOCUMENT_ACCEPT, READABLE_SOURCE_DOCUMENT_LABEL, type TransientSourceDocument } from "../documentModel.ts";
+import { isManualSourceDocument, MANUAL_SOURCE_DOCUMENT_ACCEPT, MANUAL_SOURCE_DOCUMENT_LABEL, type TransientSourceDocument } from "../documentModel.ts";
+import { clearManualDraft, restoredDraftDeck, restoreManualDraft, storeManualDraft } from "../manualCreationDraft.ts";
 import { ActionButton, IconButton } from "../ui/actionUi.tsx";
 import { ActionDialog, CoreSegmentedControl, SoftPanel } from "../ui/coreUi.tsx";
 import { useSuccessToast } from "../ui/feedbackUi.tsx";
 import { FileDropField } from "../ui/FileDropField.tsx";
-import { CoreCheckbox, CoreRadio } from "../ui/formControls.tsx";
+import { CoreCheckbox, CoreRadio, CoreSwitch } from "../ui/formControls.tsx";
 import { PdfDocumentViewer } from "../ui/PdfDocumentViewer.tsx";
 import { RichTextEditor, type RichTextImageActions } from "../ui/RichTextEditor.tsx";
 import { CardPreviewDialog } from "../ui/CardPreviewDialog.tsx";
@@ -65,18 +66,20 @@ export interface ManualNoteSaveInput {
 }
 
 export interface ManualCreationPanelProps {
+  /** Without an account the draft lives only while the panel is open. */
+  accountId?: string;
   decks: Deck[];
   workflow: ManualCreationWorkflow;
   initialTargetDeckId?: string;
   onSaveManualNote: (input: ManualNoteSaveInput) => Promise<{ deck: Deck; cardIds: string[] } | null>;
   listTagDirectory?: () => Promise<TagDirectoryEntry[]>;
-  onTargetDeckChange?: (deckId: string) => unknown;
+  onTargetDeckChange?: (deckId: string, options?: { replace?: boolean }) => unknown;
   onFinish?: (result: { createdCount: number; targetDeckId: string }) => void;
   onDraftStateChange?: (dirty: boolean, focusDraft: (() => void) | null, saving: boolean) => void;
   renderHeader: (actions: React.ReactNode) => React.ReactNode;
 }
 
-interface PinFieldButtonProps {
+interface KeepFieldSwitchProps {
   isPinned: boolean;
   label: string;
   onToggle: () => void;
@@ -99,32 +102,16 @@ function isPdfDocument(document: TransientSourceDocument | null): boolean {
   return document?.mimeType === "application/pdf";
 }
 
-function PinFieldButton({ isPinned, label, onToggle }: PinFieldButtonProps) {
-  const Icon = isPinned ? Pin : PinOff;
-  const title = isPinned
-    ? `${label}: Nach Speichern behalten`
-    : `${label}: Nach Speichern leeren. Zum Behalten anheften`;
-
+function KeepFieldSwitch({ isPinned, label, onToggle }: KeepFieldSwitchProps) {
   return (
-    <CoreTooltip label={title}>
-      <button
-        type="button"
-        aria-label={title}
-        aria-pressed={isPinned}
-        onClick={onToggle}
-        className={`grid size-button shrink-0 place-items-center rounded-control transition ${
-          isPinned
-            ? "bg-core-subtle text-core-action"
-            : "text-core-muted hover:bg-core-subtle hover:text-core-text"
-        }`}
-      >
-        <Icon size={16} aria-hidden="true" />
-      </button>
+    <CoreTooltip label="Bleibt nach dem Speichern für die nächste Karte stehen">
+      <CoreSwitch size="sm" labelPlacement="start" checked={isPinned} onCheckedChange={onToggle} label="Behalten" aria-label={`${label} nach dem Speichern behalten`} />
     </CoreTooltip>
   );
 }
 
 export function ManualCreationPanel({
+  accountId = "",
   decks,
   workflow,
   onSaveManualNote,
@@ -138,17 +125,23 @@ export function ManualCreationPanel({
   const editorRootRef = React.useRef<HTMLDivElement | null>(null);
   const saveProgressRef = React.useRef<HTMLDivElement | null>(null);
   const saveInFlightRef = React.useRef(false);
-  const [useNewDeck, setUseNewDeck] = React.useState(decks.length === 0);
+  const [restored] = React.useState(() => restoreManualDraft(accountId));
+  const [useNewDeck, setUseNewDeck] = React.useState(decks.length === 0 || Boolean(restored?.snapshot.useNewDeck));
 
   const targetDeckMissing = Boolean(initialTargetDeckId && !decks.some((deck) => deck.id === initialTargetDeckId));
   const selectedDeckId = targetDeckMissing ? "" : initialTargetDeckId || decks[0]?.id || "";
-  const [deckName, setDeckName] = React.useState("Manueller Kartenstapel");
+  const [deckName, setDeckName] = React.useState(restored?.snapshot.deckName ?? "Manueller Kartenstapel");
   const [previewOpen, setPreviewOpen] = React.useState(false);
   const [finishConfirmOpen, setFinishConfirmOpen] = React.useState(false);
   const [imageChangeConfirmOpen, setImageChangeConfirmOpen] = React.useState(false);
+  const [discardConfirmOpen, setDiscardConfirmOpen] = React.useState(false);
   const previewButtonRef = React.useRef<HTMLButtonElement | null>(null);
-  const [batchState, dispatchBatch] = React.useReducer(reduceManualBatchSession, selectedDeckId, createManualBatchSession);
-  const cleanDraftRef = React.useRef(batchState.currentDraft);
+  const discardButtonRef = React.useRef<HTMLButtonElement | null>(null);
+  const [batchState, dispatchBatch] = React.useReducer(reduceManualBatchSession, restored?.snapshot.useNewDeck ? "" : selectedDeckId, (deckId) => {
+    const session = createManualBatchSession(deckId);
+    return restored ? { ...session, currentDraft: restored.snapshot.draft, pinnedFields: restored.snapshot.pinnedFields } : session;
+  });
+  const cleanDraftRef = React.useRef(createManualBatchSession().currentDraft);
   const { currentDraft, pinnedFields } = batchState;
   const { kind, front, back, answerOptions, correctOptionIndices, tags } = currentDraft;
   const [activeField, setActiveField] = React.useState<ActiveField>("front");
@@ -156,17 +149,18 @@ export function ManualCreationPanel({
   const [document, setDocument] = React.useState<TransientSourceDocument | null>(null);
   const [documentObjectUrl, setDocumentObjectUrl] = React.useState("");
   const [documentText, setDocumentText] = React.useState("");
-  const [status, setStatus] = React.useState("");
-  const [statusType, setStatusType] = React.useState<"status" | "warning" | "alert">("status");
+  const [status, setStatus] = React.useState(restored?.imagesLost ? "Bilder des Entwurfs gehen beim Neuladen verloren. Füge sie erneut ein." : "");
+  const [statusType, setStatusType] = React.useState<"status" | "warning" | "alert">(restored?.imagesLost ? "warning" : "status");
   const setSuccessToast = useSuccessToast();
   const [fieldErrors, setFieldErrors] = React.useState<ManualNoteErrors>({});
-  const imageDraftsRef = React.useRef(new Map<string, ManualImageDraft>());
+  const [restoredImages] = React.useState(() => new Map((restored?.images ?? []).map((attachment): [string, ManualImageDraft] => [attachment.sha1, { attachment, previewUrl: URL.createObjectURL(attachment.blob) }])));
+  const imageDraftsRef = React.useRef(restoredImages);
   const imagePreparationCountRef = React.useRef(0);
   const [imageRegistryVersion, setImageRegistryVersion] = React.useState(0);
   const [isPreparingImage, setIsPreparingImage] = React.useState(false);
-  const [additionalFields, setAdditionalFields] = React.useState<AdditionalField[]>([]);
-  const [typeIn, setTypeIn] = React.useState(false);
-  const [occlusion, setOcclusion] = React.useState<OcclusionDraft | null>(null);
+  const [additionalFields, setAdditionalFields] = React.useState<AdditionalField[]>(restored?.snapshot.additionalFields ?? []);
+  const [typeIn, setTypeIn] = React.useState(restored?.snapshot.typeIn ?? false);
+  const [occlusion, setOcclusion] = React.useState<OcclusionDraft | null>(restored?.snapshot.occlusion ?? null);
   const [invalidAdditionalFieldIds, setInvalidAdditionalFieldIds] = React.useState<string[]>([]);
   const [saveProgress, setSaveProgress] = React.useState<ManualSaveProgress | null>(null);
   const isSaving = Boolean(saveProgress && saveProgress.percent < 100);
@@ -174,6 +168,13 @@ export function ManualCreationPanel({
   React.useEffect(() => {
     if (decks.length === 0) setUseNewDeck(true);
   }, [decks.length]);
+
+  React.useEffect(() => {
+    const deckId = restored ? restoredDraftDeck(restored.snapshot.targetDeckId, initialTargetDeckId, decks.map((deck) => deck.id)) : null;
+    if (!deckId || deckId === selectedDeckId) return;
+    onTargetDeckChange(deckId, { replace: true });
+    dispatchBatch({ type: "target-deck", deckId });
+  }, []);
 
   React.useEffect(() => {
     const validIndices = correctOptionIndices.filter((index) => index >= 0 && index < answerOptions.length);
@@ -198,7 +199,7 @@ export function ManualCreationPanel({
     const field = editorRootRef.current?.querySelector<HTMLElement>(`[data-manual-focus="${target}"]`);
     const focusable = field?.matches('input, [contenteditable="true"]')
       ? field
-      : field?.querySelector<HTMLElement>('input:not([type="file"]), [contenteditable="true"]');
+      : field?.querySelector<HTMLElement>('input:not([type="file"]):not([role="switch"]), [contenteditable="true"]');
     focusable?.focus();
   }, [activeField]);
 
@@ -215,12 +216,37 @@ export function ManualCreationPanel({
 
   const textDraftDirty = React.useMemo(() => !manualDraftsEqual(currentDraft, cleanDraftRef.current), [currentDraft]);
   const draftDirty = textDraftDirty || additionalFields.length > 0 || Boolean(occlusion?.image || occlusion?.masks.length);
-  const finish = () => onFinish({ createdCount: batchState.createdCount, targetDeckId: batchState.targetDeckId });
+  const finish = () => {
+    clearManualDraft(accountId);
+    onFinish({ createdCount: batchState.createdCount, targetDeckId: batchState.targetDeckId });
+  };
 
+  const [draftKept, setDraftKept] = React.useState(true);
+  // The tab keeps the draft, so only a running save or a draft the tab could not keep holds navigation.
   React.useEffect(() => {
-    onDraftStateChange(draftDirty, isSaving ? focusSaveProgress : () => focusField(), isSaving);
+    onDraftStateChange(draftDirty && !draftKept, isSaving ? focusSaveProgress : null, isSaving);
     return () => onDraftStateChange(false, null, false);
-  }, [draftDirty, focusField, focusSaveProgress, isSaving, onDraftStateChange]);
+  }, [draftDirty, draftKept, focusSaveProgress, isSaving, onDraftStateChange]);
+
+  // A running save holds the stored draft back: once the card is saved, a reload must not bring the draft back.
+  React.useEffect(() => {
+    if (!draftDirty) {
+      clearManualDraft(accountId);
+      setDraftKept(true);
+      return;
+    }
+    if (isSaving) return;
+    setDraftKept(storeManualDraft(accountId, {
+      targetDeckId: useNewDeck ? "" : selectedDeckId,
+      useNewDeck,
+      deckName,
+      draft: currentDraft,
+      pinnedFields,
+      additionalFields,
+      typeIn,
+      occlusion,
+    }, Array.from(imageDraftsRef.current.values(), (image) => image.attachment)));
+  }, [accountId, additionalFields, currentDraft, deckName, draftDirty, imageRegistryVersion, isSaving, occlusion, pinnedFields, selectedDeckId, typeIn, useNewDeck]);
 
   React.useEffect(() => {
     if (!draftDirty && !isSaving) return undefined;
@@ -233,9 +259,9 @@ export function ManualCreationPanel({
   }, [draftDirty, isSaving]);
 
   async function handleDocument(file: File) {
-    if (!isReadableSourceDocument(file)) {
+    if (!isManualSourceDocument(file)) {
       setStatusType("alert");
-      setStatus(`„${file.name}“ kann nicht gelesen werden. Möglich sind ${READABLE_SOURCE_DOCUMENT_LABEL}.`);
+      setStatus(`„${file.name}“ ist als Quelle nicht möglich. Möglich sind ${MANUAL_SOURCE_DOCUMENT_LABEL}.`);
       return;
     }
     const nextDocument = await workflow.readSourceDocument(file as unknown as Parameters<ManualCreationWorkflow["readSourceDocument"]>[0]);
@@ -426,10 +452,10 @@ export function ManualCreationPanel({
     }));
   }
 
-  function recordSavedCard(deck: Deck, mediaStatus: { status: string; message: string }) {
-    const nextState = reduceManualBatchSession(batchState, { type: "saved", targetDeckId: deck.id });
+  function startNextDraft(action: { type: "saved"; targetDeckId: string } | { type: "discard" }) {
+    const nextState = reduceManualBatchSession(batchState, action);
     cleanDraftRef.current = nextState.currentDraft;
-    dispatchBatch({ type: "saved", targetDeckId: deck.id });
+    dispatchBatch(action);
     setAdditionalFields([]);
     setOcclusion((current) => current && { ...current, image: null, masks: [] });
     pruneInlineImages({ front: nextState.currentDraft.front, back: nextState.currentDraft.back, additionalFields: [] });
@@ -438,6 +464,18 @@ export function ManualCreationPanel({
     const nextFocus = nextManualFocusTarget(nextState);
     setActiveField(nextFocus === "back" ? "back" : "front");
     pendingFocusRef.current = nextFocus;
+  }
+
+  function discardDraft() {
+    setDiscardConfirmOpen(false);
+    startNextDraft({ type: "discard" });
+    clearManualDraft(accountId);
+    setStatus("");
+    setSuccessToast("");
+  }
+
+  function recordSavedCard(deck: Deck, mediaStatus: { status: string; message: string }) {
+    startNextDraft({ type: "saved", targetDeckId: deck.id });
     const pending = mediaStatus.status === "local-pending";
     const failed = !pending && mediaStatus.status !== "cloud-ready";
     setStatusType(failed ? "alert" : pending ? "warning" : "status");
@@ -508,6 +546,7 @@ export function ManualCreationPanel({
         media: validation.media,
       });
       if (!saved?.cardIds.length) throw new Error("Karte konnte nicht lokal gespeichert werden.");
+      clearManualDraft(accountId);
       if (creatingDeck) {
         setUseNewDeck(false);
         onTargetDeckChange(saved.deck.id);
@@ -539,13 +578,11 @@ export function ManualCreationPanel({
   const isReverse = kind === "basic-reversed";
   const nextClozeGroup = Math.max(0, ...Array.from(front.matchAll(/\{\{c(\d+)::/gi), (match) => Number(match[1]) || 0)) + 1;
 
-  const previewBundle = React.useMemo(() => {
+  const preview = React.useMemo(() => {
     if (!previewOpen) return null;
     const validation = workflow.validateManualCard(manualInput());
-    if (!validation.ok) return null;
-    const { note, cards } = createNote({ content: validation.content, deckId: "preview", media: validation.media });
-    return { note, card: cards[0] };
-  }, [additionalFields, answerOptions, back, kind, correctOptionIndices, front, imageRegistryVersion, previewOpen, tags, typeIn, workflow]);
+    return validation.ok ? createNote({ content: validation.content, deckId: "preview", media: validation.media }) : null;
+  }, [additionalFields, answerOptions, back, kind, correctOptionIndices, front, imageRegistryVersion, occlusion, previewOpen, tags, typeIn, workflow]);
   const frontFieldActive = activeField === "front";
   const backFieldActive = activeField === "back";
   const shouldShowPdfViewer = documentMode && isPdfDocument(document) && Boolean(documentObjectUrl);
@@ -588,8 +625,8 @@ export function ManualCreationPanel({
               if (!next && nextDeckId !== initialTargetDeckId) onTargetDeckChange(nextDeckId);
               dispatchBatch({ type: "target-deck", deckId: nextDeckId });
               return next;
-            })} className="core-action-secondary min-w-0 max-w-full">
-              <Database size={16} aria-hidden="true" />
+            })} className="core-action-secondary min-w-0 max-w-full basis-full sm:basis-auto">
+              <Layers size={16} aria-hidden="true" />
               {useNewDeck && decks.length > 0 ? "Stapel auswählen" : "Neuen Stapel erstellen"}
             </button>
           </div>
@@ -600,8 +637,8 @@ export function ManualCreationPanel({
           ) : null}
         </div>
 
-        <div className="grid min-w-0 gap-4 md:flex md:flex-wrap md:items-center md:gap-x-6" data-testid="manual-card-options">
-          <div className={`grid min-w-0 gap-2 sm:grid-cols-[max-content_max-content] sm:items-center sm:gap-3 ${document ? "xl:grid-cols-1" : ""}`}>
+        <div className="grid min-w-0 gap-4 md:flex md:flex-wrap md:items-end md:gap-x-6" data-testid="manual-card-options">
+          <div className="grid min-w-0 gap-2">
             <span className="core-field-label">Fragentyp</span>
             <CoreSegmentedControl
               ariaLabel="Fragentyp"
@@ -617,16 +654,27 @@ export function ManualCreationPanel({
               }))}
             />
           </div>
-          <div className="grid min-w-0 gap-2 sm:grid-cols-[max-content_max-content] sm:items-center sm:gap-3">
+          <div className="grid min-w-0 gap-2">
             <span className="core-field-label">Lernrichtung</span>
             <CoreSegmentedControl
               ariaLabel="Lernrichtung"
+              className="core-learning-direction-control"
               options={LEARNING_DIRECTION_OPTIONS}
               value={isReverse ? "both" : "standard"}
               disabled={isChoice || isCloze || isOcclusion}
               onValueChange={(value) => dispatchBatch({ type: "draft", patch: { kind: value === "both" ? "basic-reversed" : "basic" } })}
             />
           </div>
+          {!isOcclusion && (kind === "basic" || kind === "basic-reversed") ? (
+            <div className="grid min-w-0 gap-2">
+              <span className="core-field-label" aria-hidden="true">Antwort</span>
+              <div className="flex md:min-h-[var(--core-selection-height)] md:items-center">
+                <CoreTooltip label="Die Antwort wird eingetippt und Zeichen für Zeichen verglichen.">
+                  <CoreSwitch checked={typeIn} onCheckedChange={setTypeIn} label="Eintippen" aria-label="Antwort eintippen" />
+                </CoreTooltip>
+              </div>
+            </div>
+          ) : null}
         </div>
       </div>
 
@@ -634,7 +682,7 @@ export function ManualCreationPanel({
         <div data-manual-focus="front" className="grid min-w-0 gap-2 core-field-label">
           <div className="flex min-h-button items-center justify-between gap-2">
             <span>{frontLabel}</span>
-            <PinFieldButton isPinned={pinnedFields.front} label={frontLabel} onToggle={() => togglePinnedField("front")} />
+            <KeepFieldSwitch isPinned={pinnedFields.front} label={frontLabel} onToggle={() => togglePinnedField("front")} />
           </div>
           <RichTextEditor value={front} onFocus={() => setActiveField("front")} onChange={(value) => {
             const hasClozeMarkup = /\{\{c\d+::/i.test(value);
@@ -702,7 +750,7 @@ export function ManualCreationPanel({
         <div data-manual-focus="back" className="grid min-w-0 gap-2 core-field-label">
           <div className="flex min-h-button items-center justify-between gap-2">
             <span>{answerLabel}</span>
-            <PinFieldButton isPinned={pinnedFields.back} label={answerLabel} onToggle={() => togglePinnedField("back")} />
+            <KeepFieldSwitch isPinned={pinnedFields.back} label={answerLabel} onToggle={() => togglePinnedField("back")} />
           </div>
           <RichTextEditor value={back} onFocus={() => setActiveField("back")} onChange={(value) => {
             dispatchBatch({ type: "draft", patch: { back: value } });
@@ -760,9 +808,7 @@ export function ManualCreationPanel({
             </div>
           ))}
           <NoteBlockControls
-            typeIn={!isOcclusion && (kind === "basic" || kind === "basic-reversed") ? typeIn : null}
             fieldRoles={FIELD_ROLE_OPTIONS.map((option) => option.value).filter((role) => !isOcclusion || role !== "prompt")}
-            onTypeInChange={setTypeIn}
             onAddField={addAdditionalField}
           />
       </div>
@@ -797,17 +843,17 @@ export function ManualCreationPanel({
           </div>
         </div>
       ) : null}
-      <div className="flex flex-wrap items-end gap-2">
-        <ActionButton data-testid="manual-save-button" type="button" variant="primary" icon={Database} loading={isSaving} disabled={isPreparingImage || isSaving} onClick={() => void saveManualCard()}>
-          {isSaving ? "Karte wird gespeichert" : "Originalkarte speichern"}
+      <div className="flex flex-wrap items-center gap-2" data-testid="manual-actions">
+        <ActionButton data-testid="manual-save-button" type="button" variant="primary" icon={Save} className="basis-full sm:basis-auto" loading={isSaving} disabled={isPreparingImage || isSaving} onClick={() => void saveManualCard()}>
+          {isSaving ? "Karte wird gespeichert" : "Karte speichern"}
         </ActionButton>
-        <ActionButton
-          type="button"
-          variant="secondary"
-          disabled={batchState.createdCount === 0 || isSaving}
-          onClick={() => draftDirty ? setFinishConfirmOpen(true) : finish()}
-        >
-          Fertig
+        {batchState.createdCount > 0 ? (
+          <ActionButton type="button" variant="secondary" disabled={isSaving} onClick={() => draftDirty ? setFinishConfirmOpen(true) : finish()}>
+            Fertig
+          </ActionButton>
+        ) : null}
+        <ActionButton ref={discardButtonRef} type="button" variant="destructive-secondary" className="ml-auto" disabled={!draftDirty || isSaving || isPreparingImage} onClick={() => setDiscardConfirmOpen(true)}>
+          Entwurf verwerfen
         </ActionButton>
       </div>
       <p className="core-body text-core-muted">{batchState.createdCount} {batchState.createdCount === 1 ? "Karte" : "Karten"} in dieser Sitzung erstellt.</p>
@@ -822,6 +868,17 @@ export function ManualCreationPanel({
         onConfirm={() => { setFinishConfirmOpen(false); finish(); }}
       />
       <ActionDialog
+        open={discardConfirmOpen}
+        title="Entwurf verwerfen?"
+        description="Die noch nicht gespeicherten Inhalte dieser Karte gehen verloren. Bereits gespeicherte Karten bleiben erhalten."
+        confirmLabel="Verwerfen"
+        cancelLabel="Weiter bearbeiten"
+        destructive
+        onCancel={() => setDiscardConfirmOpen(false)}
+        onConfirm={discardDraft}
+        restoreFocus={(reason) => reason === "confirm" ? focusField() : discardButtonRef.current?.focus()}
+      />
+      <ActionDialog
         open={imageChangeConfirmOpen}
         title="Vorhandene Masken verwerfen?"
         description="Die Masken gehören zum aktuellen Bild und passen nicht auf ein anderes. Mit einem neuen Bild beginnst du ohne Masken."
@@ -834,8 +891,8 @@ export function ManualCreationPanel({
       {status ? <p className={`core-body ${statusType === "alert" ? "core-status-error" : statusType === "warning" ? "core-status-warning" : "core-status-info"}`} role={statusType === "alert" ? "alert" : "status"} aria-live="polite">{status}</p> : null}
       <CardPreviewDialog
         open={previewOpen}
-        note={previewBundle?.note ?? null}
-        card={previewBundle?.card ?? null}
+        note={preview?.note ?? null}
+        cards={preview?.cards ?? []}
         mediaUrls={inlineMediaUrls}
         onOpenChange={setPreviewOpen}
         returnFocusRef={previewButtonRef}
@@ -846,18 +903,18 @@ export function ManualCreationPanel({
   return (
     <>
       {renderHeader(
-        <div className="flex flex-wrap gap-2">
+        <div className="flex gap-2">
           {documentMode
-            ? <ActionButton type="button" variant="secondary" icon={X} disabled={isSaving} onClick={closeDocument}>Quelle schließen</ActionButton>
-            : <ActionButton type="button" variant="secondary" icon={FileText} onClick={() => setDocumentMode(true)}>PDF/Text anfügen</ActionButton>}
-          <ActionButton ref={previewButtonRef} type="button" variant="secondary" icon={Eye} disabled={isSaving} onClick={() => setPreviewOpen(true)}>Vorschau</ActionButton>
+            ? <ActionButton type="button" variant="secondary" icon={X} className="max-[359px]:px-3" disabled={isSaving} onClick={closeDocument}>Quelle schließen</ActionButton>
+            : <ActionButton type="button" variant="secondary" icon={FileText} className="max-[359px]:px-3" onClick={() => setDocumentMode(true)}>PDF/Text anfügen</ActionButton>}
+          <ActionButton ref={previewButtonRef} type="button" variant="secondary" icon={Eye} className="max-[359px]:px-3" disabled={isSaving} onClick={() => setPreviewOpen(true)}>Vorschau</ActionButton>
         </div>,
       )}
       <SoftPanel className="core-responsive-panel-padding min-h-[calc(100vh-15rem)] p-6">
       {documentMode ? (
         <div className={`grid gap-4 ${document ? "xl:grid-cols-2" : ""}`}>
           <div className="grid content-start gap-4" inert={isSaving} aria-disabled={isSaving || undefined}>
-            <FileDropField accept={READABLE_SOURCE_DOCUMENT_ACCEPT} label={`Quelle (${READABLE_SOURCE_DOCUMENT_LABEL})`} ariaLabel="Quelldatei auswählen oder ablegen" prompt="PDF-, Text-, Markdown-, CSV- oder TSV-Datei hier ablegen" actionLabel={document ? "Andere Datei auswählen" : "Datei auswählen"} onFile={handleDocument} disabled={isSaving}>
+            <FileDropField accept={MANUAL_SOURCE_DOCUMENT_ACCEPT} label={`Quelle (${MANUAL_SOURCE_DOCUMENT_LABEL})`} ariaLabel="Quelldatei auswählen oder ablegen" prompt="PDF-, Text- oder Markdown-Datei hier ablegen" actionLabel={document ? "Andere Datei auswählen" : "Datei auswählen"} onFile={handleDocument} disabled={isSaving}>
               {document ? <p className="truncate core-caption text-core-muted">{document.fileName}</p> : null}
             </FileDropField>
             {document && !shouldShowPdfViewer ? (

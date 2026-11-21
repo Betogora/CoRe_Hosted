@@ -27,14 +27,16 @@ export interface FlagPickerProps {
   onValueChange: (flag: number) => void;
   names?: readonly string[];
   onEditNames?: () => void;
+  /** `false` where removing has its own action, such as the mass action „Flagge setzen“. */
+  withNone?: boolean;
   disabled?: boolean;
   className?: string;
 }
 
-export function FlagPicker({ value, onValueChange, names, onEditNames, disabled = false, className = "" }: FlagPickerProps) {
+export function FlagPicker({ value, onValueChange, names, onEditNames, withNone = true, disabled = false, className = "" }: FlagPickerProps) {
   return (
     <div className={`grid min-w-0 gap-2 ${className}`}>
-      <div role="group" aria-label="Flagge" className="grid grid-cols-4 gap-1 sm:flex sm:flex-wrap sm:items-center" data-flag-picker="true">
+      <div role="group" aria-label="Flagge" className="grid grid-cols-4 gap-1 sm:-ml-3 sm:flex sm:flex-wrap sm:items-center" data-flag-picker="true">
         {FLAGS.map((flag) => {
           const name = flagName(flag, names);
           const pressed = value === flag;
@@ -46,24 +48,29 @@ export function FlagPicker({ value, onValueChange, names, onEditNames, disabled 
                 aria-label={`Flagge ${name}`}
                 disabled={disabled}
                 onClick={() => onValueChange(pressed ? 0 : flag)}
-                className={`core-flag-option flex min-h-14 min-w-0 flex-col items-center justify-center gap-1 rounded-control border px-1 core-caption font-semibold text-core-text transition hover:bg-core-subtle disabled:cursor-not-allowed disabled:opacity-60 sm:size-control sm:min-h-0 sm:px-0 ${pressed ? "border-core-action bg-core-subtle shadow-selection" : "border-transparent"}`}
+                className={`core-flag-option flex min-h-14 min-w-0 flex-col items-center justify-start gap-1 rounded-control pt-2.5 sm:justify-center sm:pt-0 border core-caption font-semibold text-core-text transition hover:bg-core-subtle disabled:cursor-not-allowed disabled:opacity-60 sm:size-control sm:min-h-0 ${pressed ? "border-core-action bg-core-subtle shadow-selection" : "border-transparent"}`}
               >
                 <span aria-hidden="true" className="size-4 shrink-0 rounded-round" style={{ background: `var(--core-flag-${flag})` }} />
-                <span className="max-w-full truncate sm:sr-only">{name}</span>
+                <span className="max-w-full text-center leading-tight hyphens-auto break-words sm:sr-only">{name}</span>
               </button>
             </CoreTooltip>
           );
         })}
-        <button
-          type="button"
-          aria-pressed={value === 0}
-          disabled={disabled}
-          onClick={() => onValueChange(0)}
-          className={`flex min-h-14 min-w-0 flex-col items-center justify-center gap-1 rounded-control border px-1 core-caption font-semibold text-core-text transition hover:bg-core-subtle disabled:opacity-60 sm:hidden ${value === 0 ? "border-core-action bg-core-subtle shadow-selection" : "border-transparent"}`}
-        >
-          <Ban size={16} aria-hidden="true" className="shrink-0 text-core-muted" />
-          <span className="max-w-full truncate">Keine</span>
-        </button>
+        {withNone ? (
+          <CoreTooltip label="Keine Flagge">
+            <button
+              type="button"
+              aria-pressed={value === 0}
+              aria-label="Keine Flagge"
+              disabled={disabled}
+              onClick={() => onValueChange(0)}
+              className={`flex min-h-14 min-w-0 flex-col items-center justify-start gap-1 rounded-control pt-2.5 sm:justify-center sm:pt-0 border core-caption font-semibold text-core-text transition hover:bg-core-subtle disabled:cursor-not-allowed disabled:opacity-60 sm:size-control sm:min-h-0 ${value === 0 ? "border-core-action bg-core-subtle shadow-selection" : "border-transparent"}`}
+            >
+              <Ban size={16} aria-hidden="true" className="shrink-0 text-core-muted" />
+              <span className="max-w-full truncate sm:sr-only">Keine</span>
+            </button>
+          </CoreTooltip>
+        ) : null}
       </div>
       {onEditNames ? <CrossLinkButton className="w-fit" onSelect={onEditNames}>Namen bearbeiten</CrossLinkButton> : null}
     </div>

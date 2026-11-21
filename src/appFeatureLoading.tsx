@@ -15,7 +15,7 @@ const featureLoaders = {
   "deck-settings": { chunk: "DeckSettingsScreenWiring", load: () => import("./screens/DeckSettingsScreenWiring.tsx").then(({ DeckSettingsScreenWiring }) => ({ default: DeckSettingsScreenWiring })) },
   decks: { chunk: "DecksScreenWiring", load: () => import("./screens/DecksScreenWiring.tsx").then(({ DecksScreenWiring }) => ({ default: DecksScreenWiring })) },
   exams: { chunk: "ExamPlanningScreenWiring", load: () => import("./screens/ExamPlanningScreenWiring.tsx").then(({ ExamPlanningScreenWiring }) => ({ default: ExamPlanningScreenWiring })) },
-  help: { chunk: "HelpScreen", load: () => import("./screens/HelpScreen.tsx").then(({ HelpScreen }) => ({ default: HelpScreen })) },
+  help: { chunk: "HelpScreenWiring", load: () => import("./screens/HelpScreenWiring.tsx").then(({ HelpScreenWiring }) => ({ default: HelpScreenWiring })) },
   learn: { chunk: "LearnScreenWiring", load: () => import("./screens/LearnScreenWiring.tsx").then(({ LearnScreenWiring }) => ({ default: LearnScreenWiring })) },
   settings: { chunk: "SettingsScreenWiring", load: () => import("./screens/SettingsScreenWiring.tsx").then(({ SettingsScreenWiring }) => ({ default: SettingsScreenWiring })) },
   "settings-dialog": { chunk: "SettingsDialog", load: () => import("./screens/SettingsDialog.tsx").then(({ SettingsDialog }) => ({ default: SettingsDialog })) },
@@ -101,7 +101,7 @@ export const DashboardScreenWiring = React.lazy(() => loadAppFeature("dashboard"
 export const DeckSettingsScreenWiring = React.lazy(() => loadAppFeature("deck-settings"));
 export const DecksScreenWiring = React.lazy(() => loadAppFeature("decks"));
 export const ExamPlanningScreenWiring = React.lazy(() => loadAppFeature("exams"));
-export const HelpScreen = React.lazy(() => loadAppFeature("help"));
+export const HelpScreenWiring = React.lazy(() => loadAppFeature("help"));
 export const LearnScreenWiring = React.lazy(() => loadAppFeature("learn"));
 export const GlobalCardSettingsScreenWiring = React.lazy(() => loadAppFeature("card-settings"));
 export const SimulatorScreenWiring = React.lazy(() => loadAppFeature("simulator"));

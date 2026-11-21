@@ -558,7 +558,7 @@ async function withMindMapStores<T>(userId: string, mode: IDBTransactionMode, ru
     });
   } finally { db.close(); }
 }
-const readMap = (userId: string, deckId: string) => withMindMapStores<StoredMindMap | undefined>(userId, "readonly", ({ maps }) => maps.get(deckId), "Die Infinity Map konnte nicht geladen werden.");
+const readMap = (userId: string, deckId: string) => withMindMapStores<StoredMindMap | undefined>(userId, "readonly", ({ maps }) => maps.get(deckId), "Die Mindmap konnte nicht geladen werden.");
 function readImages(userId: string, ids: string[]) {
   return withMindMapStores<StoredImage[]>(userId, "readonly", ({ images }) => {
     const found: StoredImage[] = [];
@@ -616,15 +616,15 @@ export async function loadInfinityMindMap(account: LearningContentAccount, deckI
   const { userId, cloud } = account;
   await releaseUnusedMindMapImages(account, now).catch(() => undefined);
   let record = await readMap(userId, deckId);
-  const remote = cloud ? await listLearningDocuments(cloud, TABLE, deckId).catch(() => null) : null;
+  const remote = cloud ? await listLearningDocuments(cloud, TABLE, [deckId]).catch(() => null) : null;
   if (remote && !record?.pending) {
     const row = remote.find((item) => !item.deleted);
     record = row && { deckId, map: readLearningMindMap(row.document), revision: row.revision, pending: false };
-    await writeMindMapStores(userId, record ? { maps: [record] } : { removedMaps: [deckId] }, "Die Infinity Map konnte nicht geladen werden.");
+    await writeMindMapStores(userId, record ? { maps: [record] } : { removedMaps: [deckId] }, "Die Mindmap konnte nicht geladen werden.");
   }
   const pushed = cloud && remote && record?.pending ? await pushMindMap({ ...account, cloud }, record).catch(() => null) : null;
   if (record && pushed) record = { ...record, pending: false };
-  return { map: record ? readLearningMindMap(record.map) : { ...createLearningMindMap(deckId, "Infinity Map"), infinity: true }, unsynced: Boolean(record?.pending), overwritten: Boolean(pushed?.overwritten) };
+  return { map: record ? readLearningMindMap(record.map) : { ...createLearningMindMap(deckId, "Mindmap"), infinity: true }, unsynced: Boolean(record?.pending), overwritten: Boolean(pushed?.overwritten) };
 }
 
 export async function saveLearningMindMap(account: LearningContentAccount, value: unknown): Promise<{ map: LearningMindMap; unsynced: boolean; overwritten: boolean }> {

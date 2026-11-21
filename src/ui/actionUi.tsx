@@ -54,7 +54,7 @@ export const IconButton = React.forwardRef<HTMLButtonElement, IconButtonProps>(f
       {...props}
       ref={ref}
       aria-label={label}
-      style={variant.startsWith("destructive") ? style : { ...style, color: "var(--core-text)" }}
+      style={variant.startsWith("destructive") || props.disabled ? style : { ...style, color: "var(--core-text)" }}
       className={`${ACTION_VARIANT_CLASS[variant]} min-w-button p-2 ${className}`}
     >
       <Icon size={16} aria-hidden="true" />

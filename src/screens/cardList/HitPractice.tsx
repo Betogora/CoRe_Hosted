@@ -1,5 +1,5 @@
 import React from "react";
-import { CheckCircle2, RotateCcw, X } from "lucide-react";
+import { CheckCircle2, Eye, X } from "lucide-react";
 import type { Card, Note, ReviewRating } from "../../coreTypes.ts";
 import { answerPractice, createPractice } from "../../hitStudySession.ts";
 import type { AccountMediaStore } from "../../mediaStore.ts";
@@ -87,7 +87,7 @@ export function HitPractice({ bodies, mediaStore, onClose }: HitPracticeProps) {
                 </div>
                 {revealed ? null : (
                   <button type="button" onClick={() => setRevealed(true)} className="mx-auto mt-12 core-action-primary">
-                    <RotateCcw size={16} aria-hidden="true" />
+                    <Eye size={16} aria-hidden="true" />
                     {revealLabel(current.note)}
                   </button>
                 )}

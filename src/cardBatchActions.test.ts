@@ -88,7 +88,8 @@ test("Lernstandsaktionen laufen als manuelle Ereignisse; Rückgängig übersprin
   assert.equal(buried.changedCount, 1);
   assert.equal((await buried.undo()).restoredCount, 1);
   const events = await repository.listCardReviewEvents(forward[0]);
-  assert.deepEqual(events.slice(-2).map((event) => (event.flags as { kind: string }).kind), ["manual_bury", "manual_unbury"]);
+  // Both events can share one millisecond, so only their kinds are compared.
+  assert.deepEqual(events.slice(-2).map((event) => (event.flags as { kind: string }).kind).sort(), ["manual_bury", "manual_unbury"]);
 });
 
 test("offline ohne lokale Kartenkörper schreibt eine Massenaktion nichts (KV4)", async () => {

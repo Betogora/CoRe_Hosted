@@ -8,6 +8,7 @@ const studyFallbackViewId: AppViewId = "lernen";
 const reviewReturnViews = ["today", "learn", "decks", "exams"] as const;
 export const SETTINGS_SECTIONS = ["start", "konto", "darstellung", "daten", "konflikte", "ueber", "lerntag", "tagesrunde", "scheduler", "flaggen", "fokus"] as const;
 export const DECK_SETTINGS_SECTIONS = ["start", "stapel", "tagesrunde", "neue-karten", "scheduler"] as const;
+export const HELP_TOPICS = ["active-recall", "spaced-repetition", "planung", "varianten", "pruefungssitzung", "kartenverwaltung"] as const;
 const deckContentTabs = ["children", "summary", "mind-map", "cards"] as const;
 const cardEditorTabs = ["general", "content", "variants", "study"] as const;
 
@@ -18,6 +19,7 @@ export type CardEditorTab = typeof cardEditorTabs[number];
 export type SettingsSection = typeof SETTINGS_SECTIONS[number];
 export type GeneralSettingsSection = "konto" | "darstellung" | "daten" | "ueber";
 export type DeckSettingsSection = typeof DECK_SETTINGS_SECTIONS[number];
+export type HelpTopic = typeof HELP_TOPICS[number];
 
 const CREATION_COMPLETION_KINDS = ["import", "manual", "ai-source"] as const;
 export type CreationCompletionKind = typeof CREATION_COMPLETION_KINDS[number];
@@ -64,6 +66,8 @@ export interface ViewRoute {
   settingsSection?: SettingsSection;
   deckSettings?: DeckSettingsOverlay;
   cardQuery?: string;
+  /** Absent on the help entry. */
+  helpTopic?: HelpTopic;
 }
 
 export interface StudyRoute {
@@ -110,6 +114,7 @@ interface ViewRouteInput {
   settingsSection?: unknown;
   deckSettings?: DeckSettingsOverlayInput;
   cardQuery?: unknown;
+  helpTopic?: unknown;
 }
 
 interface DeckSettingsOverlayInput {
@@ -171,6 +176,7 @@ function normalizeViewRoute(
   const deckSettings = normalizeDeckSettings(route.deckSettings);
   const settingsSection = !deckSettings && SETTINGS_SECTIONS.includes(route.settingsSection as SettingsSection) ? route.settingsSection as SettingsSection : null;
   const cardQuery = typeof route.cardQuery === "string" ? route.cardQuery.trim().slice(0, 4000) : "";
+  const helpTopic = HELP_TOPICS.find((topic) => topic === route.helpTopic);
   const cardEditorTab = cardEditorTabs.includes(route.cardEditorTab as CardEditorTab)
     ? route.cardEditorTab as CardEditorTab
     : cardEditorReturnContext ? "content" : "general";
@@ -193,6 +199,7 @@ function normalizeViewRoute(
     ...(settingsSection ? { settingsSection } : {}),
     ...(deckSettings ? { deckSettings } : {}),
     ...(viewId === "kartenstapel" && !focusedDeckId && cardQuery ? { cardQuery } : {}),
+    ...(viewId === "hilfe" && helpTopic ? { helpTopic } : {}),
   };
 }
 
@@ -377,6 +384,7 @@ export function parseAppRouteFromUrl(input: string | URL = "/", options: RouteOp
     cardEditorReturnContext,
     settingsSection: url.searchParams.get("settings") ?? undefined,
     deckSettings: parseDeckSettings(url),
+    helpTopic: url.searchParams.get("topic") ?? undefined,
   }, options);
 }
 
@@ -399,6 +407,7 @@ export function appRouteToUrl(route: unknown, options: RouteOptions = {}): strin
   }
   if (normalized.viewId === "kartenstapel" && normalized.selectedCardId) params.set("card", normalized.selectedCardId);
   if (normalized.viewId === "kartenstapel" && normalized.cardQuery) params.set("q", normalized.cardQuery);
+  if (normalized.helpTopic) params.set("topic", normalized.helpTopic);
   if (normalized.viewId === "kartenstapel" && normalized.selectedCardId && normalized.cardEditorTab) params.set("cardTab", normalized.cardEditorTab);
   if (normalized.deckContent) params.set("content", "1");
   if (normalized.deckContentTab) params.set("tab", normalized.deckContentTab);

@@ -112,7 +112,7 @@ async function openManualCreation(page: Page, deckName: string, cardType: string
 }
 
 async function finishManualCreation(page: Page, deckName: string, expectedCardCount = 1, beforeFinish?: () => Promise<void>): Promise<Deck> {
-  await page.getByRole("button", { name: "Originalkarte speichern" }).click();
+  await page.getByRole("button", { name: "Karte speichern" }).click();
   await expect(page.getByTestId("manual-save-progress")).toHaveAttribute("aria-valuenow", "100");
   await beforeFinish?.();
   await page.getByRole("button", { name: "Fertig" }).click();
@@ -312,7 +312,26 @@ test("[Vertrag: modale Kartenvorschau] @beta-core Erstellung und Editor zeigen d
   await page.getByTestId("card-preview-backdrop").click({ position: { x: 4, y: 4 } });
   await expect(dialog).toHaveCount(0);
 
-  await page.getByRole("button", { name: "Vorderseite: Nach Speichern leeren. Zum Behalten anheften" }).click();
+  const learningDirection = page.getByRole("group", { name: "Lernrichtung" });
+  await learningDirection.getByRole("button", { name: "Beide Richtungen" }).click();
+  await creationPreviewButton.click();
+  const previewPosition = dialog.getByTestId("card-preview-position");
+  await expect(previewPosition).toContainText("Karte 1 von 2");
+  await expect(previewPosition).toContainText("Vorwärts");
+  await dialog.getByRole("button", { name: "Rückseite" }).click();
+  await page.keyboard.press("ArrowRight");
+  await expect(previewPosition).toContainText("Karte 2 von 2");
+  await expect(previewPosition).toContainText("Rückwärts");
+  await expect(dialog.getByRole("button", { name: "Vorderseite" })).toHaveAttribute("aria-pressed", "true");
+  await expect(dialog.frameLocator('iframe[title="Frage"]').locator("body")).toContainText("Ungespeicherte Erstellungsantwort");
+  await expect(dialog.getByRole("button", { name: "Nächste Karte" })).toBeDisabled();
+  await dialog.getByRole("button", { name: "Vorige Karte" }).click();
+  await expect(previewPosition).toContainText("Karte 1 von 2");
+  await expect(dialog.getByRole("button", { name: "Vorige Karte" })).toBeDisabled();
+  await page.keyboard.press("Escape");
+  await learningDirection.getByRole("button", { name: "Standard" }).click();
+
+  await page.getByRole("switch", { name: "Vorderseite nach dem Speichern behalten" }).check();
   const deck = await finishManualCreation(page, deckName, 1, async () => {
     await expect(page.getByRole("textbox", { name: "Vorderseite" }).locator('img[alt="vorderseite.png"]')).toHaveAttribute("src", /^blob:/);
   });
@@ -401,6 +420,8 @@ test("[Vertrag: KI-Basic-Variante] @golden-e2e @beta-core @hosted-core abgefange
     return card?.variants.find((variant: { meta?: { generationSource?: string } }) => variant.meta?.generationSource === "ai_generated")?.front;
   }).toBe("Wofür nutzt die Zelle ATP?");
   await page.getByRole("button", { name: "Detailansicht schließen" }).click();
+  // The editor's message outlives the dialog and lies over the navigation until it is dismissed.
+  await page.getByRole("button", { name: "Erfolgsmeldung schließen" }).click();
   await page.getByRole("button", { name: "Einstellungen öffnen" }).click();
   await openSettingsArea(settingsDialog(page), "daten");
   await page.getByRole("button", { name: "Jetzt synchronisieren" }).click();
@@ -636,7 +657,7 @@ test("[Vertrag: Duplikate finden, öffnen und taggen; Tags verwalten] @beta-core
   const deck = await finishManualCreation(page, deckName, 2, async () => {
     await page.getByRole("textbox", { name: "Vorderseite" }).fill("hauptstadt von  Island");
     await page.getByRole("textbox", { name: "Rückseite" }).fill("Reykjavik");
-    await page.getByRole("button", { name: "Originalkarte speichern" }).click();
+    await page.getByRole("button", { name: "Karte speichern" }).click();
     await expect(page.getByTestId("manual-save-progress")).toHaveAttribute("aria-valuenow", "100");
   });
   const tagsOf = async () => (await readActiveAccountState(page)).notes
@@ -804,7 +825,7 @@ test("[Vertrag: Bildverdeckung erstellen und bearbeiten] @beta-core gezeichnete 
 test("[Vertrag: typgerechter Multiple-Choice-Lebenszyklus] @beta-core Optionen, Lösung und Erklärung bleiben synchron", async ({ page }) => {
   const deckName = "Lebenszyklus Multiple Choice";
   await openManualCreation(page, deckName, "multiple-choice");
-  await page.getByRole("button", { name: "Originalkarte speichern" }).click();
+  await page.getByRole("button", { name: "Karte speichern" }).click();
   await expect(page.getByText("Bitte eine Frage eingeben.", { exact: true })).toBeVisible();
   await expect(page.getByRole("textbox", { name: "Multiple-Choice-Frage" })).toHaveAttribute("aria-invalid", "true");
   await expect(page.getByRole("textbox", { name: "Antwortoption 1", exact: true })).toHaveAttribute("aria-invalid", "true");

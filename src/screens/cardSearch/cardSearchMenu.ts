@@ -1,4 +1,4 @@
-import { cardSearchGroupMembers } from "./cardSearchExpression.ts";
+import { cardSearchConflicts, cardSearchGroupMembers } from "./cardSearchExpression.ts";
 import { Activity, CalendarClock, CalendarRange, Flag, Gauge, Layers, Sparkles, Tag, TextCursorInput, CircleHelp, type LucideIcon } from "lucide-react";
 import { flagName } from "../../ui/flagUi.tsx";
 import type { Deck } from "../../coreTypes.ts";
@@ -7,6 +7,8 @@ import { createDeckLibraryModel } from "../../libraryModel.ts";
 
 export interface CardSearchMenuItem {
   label: string;
+  /** Plural phrase of the cards the term finds, e.g. `überfällige Karten`. */
+  description: string;
   term: string;
   depth?: number;
   flag?: number;
@@ -21,10 +23,10 @@ export interface CardSearchMenuCategory {
 }
 
 const CONTENT_FORMS = [
-  { label: "Frage–Antwort", term: "is:reveal" },
-  { label: "Auswahl", term: "is:choice" },
-  { label: "Lückentext", term: "is:cloze" },
-  { label: "Bildverdeckung", term: "is:occlusion" },
+  { label: "Frage–Antwort", description: "Frage–Antwort-Karten", term: "is:reveal" },
+  { label: "Auswahl", description: "Auswahlkarten", term: "is:choice" },
+  { label: "Lückentext", description: "Lückentextkarten", term: "is:cloze" },
+  { label: "Bildverdeckung", description: "Bildverdeckungskarten", term: "is:occlusion" },
 ] as const;
 
 /** `term(n)` covers today and the n - 1 days before. */
@@ -86,51 +88,62 @@ export function createCardSearchMenu({ decks, tags, flagNames, noteTypes = [] }:
   const deckRows = createDeckLibraryModel(decks).rows;
   return [
     { id: "heute", label: "Heute", icon: CalendarClock, items: [
-      { label: "Fällig", term: "is:due" },
-      { label: "Überfällig", term: "prop:due<0" },
-      { label: "Morgen fällig", term: "prop:due=1" },
-      { label: "Gelernt", term: "rated:1" },
-      { label: "Nochmal", term: "rated:1:1" },
-      { label: "Erstmals gelernt", term: "introduced:1" },
-      { label: "Hinzugefügt", term: "added:1" },
-      { label: "Bearbeitet", term: "edited:1" },
-      { label: "Neu geplant", term: "resched:1" },
+      { label: "Fällig", description: "heute fällige Karten", term: "is:due" },
+      { label: "Überfällig", description: "überfällige Karten", term: "prop:due<0" },
+      { label: "Morgen fällig", description: "morgen fällige Karten", term: "prop:due=1" },
+      { label: "Gelernt", description: "heute gelernte Karten", term: "rated:1" },
+      { label: "Nochmal", description: "heute mit Nochmal beantwortete Karten", term: "rated:1:1" },
+      { label: "Erstmals gelernt", description: "heute erstmals gelernte Karten", term: "introduced:1" },
+      { label: "Hinzugefügt", description: "heute hinzugefügte Karten", term: "added:1" },
+      { label: "Bearbeitet", description: "heute bearbeitete Karten", term: "edited:1" },
+      { label: "Neu geplant", description: "heute neu geplante Karten", term: "resched:1" },
     ] },
     { id: "status", label: "Kartenstatus", icon: Activity, items: [
-      { label: "Neu", term: "is:new" },
-      { label: "Lernen", term: "is:learn" },
-      { label: "Jung", term: "is:young" },
-      { label: "Reif", term: "is:mature" },
-      { label: "Ausgesetzt", term: "is:suspended" },
-      { label: "Manuell zurückgestellt", term: "is:buried" },
-      { label: "Lernbremse", term: "tag:leech" },
-      { label: "Markiert", term: "tag:marked" },
+      { label: "Neu", description: "noch nie gelernte Karten", term: "is:new" },
+      { label: "Lernen", description: "Karten in der Lern- oder Wiederlernphase", term: "is:learn" },
+      { label: "Jung", description: "junge Karten mit weniger als 21 Tagen Haltbarkeit", term: "is:young" },
+      { label: "Reif", description: "reife Karten mit mindestens 21 Tagen Haltbarkeit", term: "is:mature" },
+      { label: "Ausgesetzt", description: "ausgesetzte Karten", term: "is:suspended" },
+      { label: "Manuell zurückgestellt", description: "heute manuell zurückgestellte Karten", term: "is:buried" },
+      { label: "Lernbremse", description: "Karten mit Lernbremse", term: "tag:leech" },
+      { label: "Markiert", description: "markierte Karten", term: "tag:marked" },
     ] },
     { id: "flaggen", label: "Flaggen", icon: Flag, items: [
-      ...[1, 2, 3, 4, 5, 6, 7].map((flag) => ({ label: flagName(flag, flagNames), term: `flag:${flag}`, flag })),
-      { label: "Ohne Flagge", term: "flag:0" },
+      ...[1, 2, 3, 4, 5, 6, 7].map((flag) => ({ label: flagName(flag, flagNames), description: `Karten mit der Flagge „${flagName(flag, flagNames)}“`, term: `flag:${flag}`, flag })),
+      { label: "Ohne Flagge", description: "Karten ohne Flagge", term: "flag:0" },
     ] },
-    { id: "stapel", label: "Stapel", icon: Layers, items: deckRows.map((row) => ({ label: row.deck.name, term: `did:${row.id}`, depth: row.depth, hideTerm: true })) },
+    { id: "stapel", label: "Stapel", icon: Layers, items: deckRows.map((row) => ({ label: row.deck.name, description: `Karten im Stapel „${row.deck.name}“ samt Unterstapeln`, term: `did:${row.id}`, depth: row.depth, hideTerm: true })) },
     { id: "tags", label: "Tags", icon: Tag, items: [
       ...[...tags].sort((left, right) => left.tag.localeCompare(right.tag, "de")).map((entry) => {
         const parts = entry.tag.split("::");
-        return { label: parts.at(-1) ?? entry.tag, term: `tag:${entry.tag}`, depth: parts.length - 1 };
+        return { label: parts.at(-1) ?? entry.tag, description: `Karten mit dem Tag „${entry.tag}“ samt Untertags`, term: `tag:${entry.tag}`, depth: parts.length - 1 };
       }),
-      { label: "Ohne Tags", term: "tag:none" },
+      { label: "Ohne Tags", description: "Karten ohne Tags", term: "tag:none" },
     ] },
     { id: "inhalt", label: "Inhalt", icon: Sparkles, items: [
-      { label: "Variante", term: "has:variant" },
-      { label: "Veraltete Variante", term: "has:outdated" },
+      { label: "Variante", description: "Karten mit Variante", term: "has:variant" },
+      { label: "Veraltete Variante", description: "Karten mit veralteter Variante", term: "has:outdated" },
       ...CONTENT_FORMS,
-      { label: "Abfrage 1 (vorwärts)", term: "card:1" },
-      { label: "Abfrage 2 (rückwärts)", term: "card:2" },
-      ...[...new Set(noteTypes.map((noteType) => noteType.name))].map((name) => ({ label: `Notiztyp ${name}`, term: `note:${name.replace(/\s+/g, "_")}` })),
+      { label: "Abfrage 1 (vorwärts)", description: "Karten der ersten Abfrage ihrer Notiz", term: "card:1" },
+      { label: "Abfrage 2 (rückwärts)", description: "Karten der zweiten Abfrage ihrer Notiz", term: "card:2" },
+      ...[...new Set(noteTypes.map((noteType) => noteType.name))].map((name) => ({ label: `Notiztyp ${name}`, description: `Karten des Notiztyps „${name}“`, term:`note:${name.replace(/\s+/g, "_")}` })),
     ] },
     { id: "zeitraum", label: "Zeitraum", icon: CalendarRange, items: [] },
     { id: "werte", label: "Werte", icon: Gauge, items: [] },
     { id: "felder", label: "Felder", icon: TextCursorInput, items: [] },
     { id: "syntax", label: "Gespeichert & Syntax", icon: CircleHelp, items: [] },
   ];
+}
+
+/** null unless filters of the query contradict each other. */
+export function cardSearchConflictMessage(query: string, categories: readonly CardSearchMenuCategory[]): string | null {
+  const conflicts = cardSearchConflicts(query).map((sources) => {
+    const labels = sources.map((source) => cardSearchTermLabel(source, categories));
+    const shared = labels.every((entry) => entry.category === labels[0].category) ? labels[0].category : undefined;
+    const names = labels.map(({ label, category, negated }) => `„${negated ? `ohne ${label}` : label}“${category && shared === undefined ? ` (${category})` : ""}`);
+    return `${names.slice(0, -1).join(", ")} und ${names.at(-1)}${shared ? ` (${shared})` : ""} schließen sich aus.`;
+  });
+  return conflicts.length ? `So passt keine Karte: ${conflicts.join(" ")}` : null;
 }
 
 export function cardSearchTermLabel(term: string, categories: readonly CardSearchMenuCategory[]): { label: string; category: string | null; negated: boolean } {

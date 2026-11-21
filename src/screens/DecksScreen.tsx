@@ -211,11 +211,9 @@ export function DecksScreen({
   }, [onDraftStateChange]);
 
   React.useEffect(() => {
-    if (preserveToastForSelectionChange.current) {
-      preserveToastForSelectionChange.current = false;
-      return;
-    }
-    setSuccessToast("");
+    // Closing the editor keeps its message: the undo of an immediate action lies below the dialog until then.
+    if (preserveToastForSelectionChange.current) preserveToastForSelectionChange.current = false;
+    else if (selectedCardId) setSuccessToast("");
   }, [selectedCardId, setSuccessToast]);
 
   React.useEffect(() => {
@@ -566,7 +564,7 @@ export function DecksScreen({
         action={<ActionButton variant="secondary" icon={Play} disabled={!hasStudyCards} onClick={() => onStartDeck(contentRow.deck)}>Karten lernen</ActionButton>} />
       : <EmptyState icon={Layers} title="Stapel nicht gefunden oder nicht verfügbar." />
   ) : contentDeckId && contentTab === "summary" ? (
-    contentDeck ? <React.Suspense fallback={CONTENT_TAB_LOADING}><DeckSummariesPanel key={`${summaryAccountId ?? contentDeck.ownerId}:${contentDeck.id}`} deck={contentDeck}
+    contentDeck ? <React.Suspense fallback={CONTENT_TAB_LOADING}><DeckSummariesPanel key={`${summaryAccountId ?? contentDeck.ownerId}:${contentDeck.id}`} deck={contentDeck} treeDecks={libraryDecks}
       userId={summaryAccountId ?? contentDeck.ownerId} cloud={learningContentCloud} onGenerateSummary={onGenerateSummary} onDraftStateChange={handleEditorDraftStateChange} /></React.Suspense>
       : <EmptyState icon={FileText} title="Stapel nicht gefunden oder nicht verfügbar." />
   ) : contentDeckId && contentTab === "mind-map" ? (

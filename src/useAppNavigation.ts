@@ -1,7 +1,7 @@
 import React from "react";
 import type { AuthPhase } from "./accountSession.ts";
 import { shouldShowAppShell } from "./accountSession.ts";
-import type { AppRoute, AppViewId, CardEditorTab, CreationCompletionKind, DeckContentTab, DeckSettingsOverlay, ReviewResumeContext, SettingsSection, StudyRoute, ViewRoute } from "./appNavigation.ts";
+import type { AppRoute, AppViewId, CardEditorTab, CreationCompletionKind, DeckContentTab, DeckSettingsOverlay, HelpTopic, ReviewResumeContext, SettingsSection, StudyRoute, ViewRoute } from "./appNavigation.ts";
 import {
   appRouteToUrl,
   areAppRoutesEqual,
@@ -31,6 +31,7 @@ interface AppNavigationProjection {
   settingsSection: SettingsSection | null;
   deckSettings: DeckSettingsOverlay | null;
   cardQuery: string;
+  helpTopic: HelpTopic | null;
 }
 
 interface BrowserHistoryTarget {
@@ -84,6 +85,7 @@ export function projectAppRoute(route: AppRoute): AppNavigationProjection {
     settingsSection: route.mode === "view" ? (route.settingsSection ?? null) : null,
     deckSettings: route.deckSettings ?? null,
     cardQuery: viewRoute.viewId === "kartenstapel" ? (viewRoute.cardQuery ?? "") : "",
+    helpTopic: viewRoute.helpTopic ?? null,
   };
 }
 

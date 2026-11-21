@@ -591,15 +591,22 @@ test("Lerneinstellungen speichern Markierung, Aussetzung und Kartenreihenfolge s
   await page.getByRole("button", { name: "Lerneinstellungen" }).click();
   dialog = page.getByRole("dialog", { name: "Lerneinstellungen" });
   await expect(dialog.getByRole("button", { name: "Markierung entfernen" })).toBeVisible();
+  const cardContent = page.getByTestId("study-card-content").frameLocator('iframe[title="Frage"]').locator("body");
+  await expect(cardContent).not.toBeEmpty();
+  const question = await cardContent.innerText();
   await dialog.getByRole("switch", { name: "Aussetzen", exact: true }).click();
   await expect(dialog).toHaveCount(0);
-  await expect(page.getByText("Karte ausgesetzt. Der Lernstand bleibt erhalten. Reaktivieren unter Karte bearbeiten.", { exact: true })).toBeVisible();
-  await expect.poll(async () => {
-    const state = await readAppState(page);
-    return state.decks
-      .find((deck: { id: string }) => deck.id === DECK_IDS.europe)
-      .cards.filter((card: { status?: string }) => card.status === "suspended").length;
-  }).toBe(1);
+  const toast = page.locator('[data-success-toast-region="true"]');
+  await expect(toast).toContainText("Karte ausgesetzt.");
+  const suspendedCount = async () => (await readAppState(page)).decks
+    .find((deck: { id: string }) => deck.id === DECK_IDS.europe)
+    .cards.filter((card: { status?: string }) => card.status === "suspended").length;
+  await expect.poll(suspendedCount).toBe(1);
+  await expect(cardContent).not.toHaveText(question);
+
+  await toast.getByRole("button", { name: "Rückgängig" }).click();
+  await expect.poll(suspendedCount).toBe(0);
+  await expect(cardContent).toHaveText(question);
 });
 
 test("core actions stay usable in a 200 percent effective viewport", async ({ page }: any) => {
@@ -640,7 +647,7 @@ test("browser back returns from settings to the previous screen", async ({ page 
 
   await page.getByRole("button", { name: "Info-Seite öffnen" }).click();
   await expect(page).toHaveURL(/\/hilfe$/);
-  await expect(page.getByRole("heading", { name: "Wie CoRe dein Lernen stärkt" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Hilfe", exact: true })).toBeVisible();
   await page.goBack();
   await expect(page).toHaveURL(/\/lernen\?settings=ueber$/);
   await expect(dialog).toBeVisible();
@@ -964,6 +971,7 @@ test("card rescheduling preserves scheduler state and keeps version history out 
   // Der Schalter ist kontrolliert und folgt dem gespeicherten Zustand erst nach der Mutation.
   await page.getByRole("switch", { name: "Aussetzen", exact: true }).click();
   await expect(page.getByRole("switch", { name: "Aussetzen", exact: true })).toBeChecked();
+  await expect(page.locator('[data-success-toast-region="true"]')).toContainText("Karte ausgesetzt.");
   await expect.poll(async () => (await storedCard(page, DECK_IDS.africa, "card_world_capitals_civ"))?.status).toBe("suspended");
   const before = await storedCard(page, DECK_IDS.africa, "card_world_capitals_civ");
   const reviewEventsBefore = (await readAppState(page)).decks
@@ -1066,7 +1074,11 @@ test("[Vertrag: manuell mit PDF bis Bearbeiten und Review] @golden-e2e @beta-cor
   await page.getByRole("button", { name: "Neuen Stapel erstellen" }).click();
   await page.getByRole("textbox", { name: "Neuer Kartenstapel" }).fill("PDF-Quellenauswahl-Smoke");
   await page.getByRole("button", { name: "PDF/Text anfügen" }).click();
-  await page.locator('input[type="file"][accept*=".pdf"]').setInputFiles(PDF_SELECTION_FIXTURE);
+  const sourceInput = page.locator('input[type="file"][accept*=".pdf"]');
+  await expect(sourceInput).toHaveAttribute("accept", ".pdf,.txt,.md,.markdown");
+  await sourceInput.setInputFiles({ name: "liste.csv", mimeType: "text/csv", buffer: Buffer.from("Frage;Antwort") });
+  await expect(page.getByText("„liste.csv“ ist als Quelle nicht möglich. Möglich sind PDF, Text oder Markdown.")).toBeVisible();
+  await sourceInput.setInputFiles(PDF_SELECTION_FIXTURE);
 
   const viewer = page.getByTestId("pdf-document-viewer");
   await expect(viewer).toBeVisible();
@@ -1090,7 +1102,7 @@ test("[Vertrag: manuell mit PDF bis Bearbeiten und Review] @golden-e2e @beta-cor
   await expect(page.getByRole("status").filter({ hasText: "Vorderseite ergänzt." })).toBeVisible();
   await expect(page.getByRole("textbox", { name: "Vorderseite" })).toContainText("Mitochondrien erzeugen ATP durch Zellatmung.");
   await page.getByRole("textbox", { name: "Rückseite" }).fill("Zellatmung erzeugt ATP.");
-  await page.getByRole("button", { name: "Originalkarte speichern" }).click();
+  await page.getByRole("button", { name: "Karte speichern" }).click();
   await page.getByRole("button", { name: "Fertig" }).click();
 
   await expect.poll(async () => Boolean(await findPdfCreatedCard(page))).toBe(true);

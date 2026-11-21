@@ -2,7 +2,8 @@ import "fake-indexeddb/auto";
 import assert from "node:assert/strict";
 import test from "node:test";
 import { fakeLearningCloud, freshDevice as resetDevice } from "../tests/support/fakeLearningCloud.ts";
-import { createLearningSummary, createSummarySettings, deleteLearningSummary, duplicateLearningSummary, getSummaryReadingMinutes, loadLearningSummaries, readLearningSummary, saveLearningSummary, summaryPlainText } from "./learningSummaries.ts";
+import { createCoreDeck } from "./coreModel.ts";
+import { createLearningSummary, createSummarySettings, deleteLearningSummary, duplicateLearningSummary, getSummaryReadingMinutes, groupSummariesByDeckTree, loadLearningSummaries, readLearningSummary, saveLearningSummary, summaryDescription, summaryPlainText } from "./learningSummaries.ts";
 
 const local = (userId = `summary-test-${crypto.randomUUID()}`) => ({ userId, cloud: null });
 
@@ -16,10 +17,10 @@ test("Zusammenfassungen bleiben nach erneutem Öffnen je Konto und Stapel getren
   await saveLearningSummary(account, one);
   await saveLearningSummary(account, two);
   await saveLearningSummary(account, createLearningSummary("deck-b", "Anderer Stapel", createSummarySettings()));
-  assert.equal((await loadLearningSummaries(account, "deck-a")).summaries.length, 2);
-  assert.deepEqual((await loadLearningSummaries(local(`${account.userId}-other`), "deck-a")).summaries, []);
+  assert.equal((await loadLearningSummaries(account, ["deck-a"])).summaries.length, 2);
+  assert.deepEqual((await loadLearningSummaries(local(`${account.userId}-other`), ["deck-a"])).summaries, []);
   const { saved: changed } = await saveLearningSummary(account, { ...one, title: "Überarbeitet", html: "<p>Neuer Text</p>", font: "serif", fontSize: 22 });
-  const { summaries: reread, unsynced } = await loadLearningSummaries(account, "deck-a");
+  const { summaries: reread, unsynced } = await loadLearningSummaries(account, ["deck-a"]);
   assert.deepEqual(reread.find((item) => item.id === one.id), changed);
   assert.deepEqual([reread.length, reread.find((item) => item.id === two.id)?.settings.detail, unsynced.size], [2, "detailed", 0]);
 });
@@ -32,9 +33,9 @@ test("Duplizieren legt eine eigenständige Kopie an; Löschen entfernt nur diese
   assert.equal(copy.title, `Kopie von ${"x".repeat(110)}`);
   assert.deepEqual({ ...copy, id: original.id, title: original.title, createdAt: original.createdAt, updatedAt: original.updatedAt }, original);
   await deleteLearningSummary(local(`${account.userId}-other`), original.id);
-  assert.equal((await loadLearningSummaries(account, "deck")).summaries.length, 2);
+  assert.equal((await loadLearningSummaries(account, ["deck"])).summaries.length, 2);
   await deleteLearningSummary(account, original.id);
-  assert.deepEqual((await loadLearningSummaries(account, "deck")).summaries, [copy]);
+  assert.deepEqual((await loadLearningSummaries(account, ["deck"])).summaries, [copy]);
 });
 
 test("Online gespeicherte Fassungen erscheinen auf einem neuen Gerät; Löschen gilt überall", async () => {
@@ -43,13 +44,34 @@ test("Online gespeicherte Fassungen erscheinen auf einem neuen Gerät; Löschen 
   await saveLearningSummary(account, createLearningSummary("deck", "Zwei", createSummarySettings()));
   assert.deepEqual([unsynced, cloud.rows.get(one.id)?.revision, cloud.rows.get(one.id)?.deck_id], [false, 1, "deck"]);
   await freshDevice(account.userId); cloud.state.offline = true;
-  assert.deepEqual((await loadLearningSummaries(account, "deck")).summaries, []);
+  assert.deepEqual((await loadLearningSummaries(account, ["deck"])).summaries, []);
   cloud.state.offline = false;
-  assert.deepEqual((await loadLearningSummaries(account, "deck")).summaries.map((item) => item.title).sort(), ["Eins", "Zwei"]);
+  assert.deepEqual((await loadLearningSummaries(account, ["deck"])).summaries.map((item) => item.title).sort(), ["Eins", "Zwei"]);
   await deleteLearningSummary(account, one.id);
   assert.ok(cloud.rows.get(one.id)?.deleted_at);
   await freshDevice(account.userId);
-  assert.deepEqual((await loadLearningSummaries(account, "deck")).summaries.map((item) => item.title), ["Zwei"]);
+  assert.deepEqual((await loadLearningSummaries(account, ["deck"])).summaries.map((item) => item.title), ["Zwei"]);
+});
+
+test("Ein Oberstapel lädt die Fassungen seines Teilbaums in einer Abfrage und gruppiert sie nach Unterstapel", async () => {
+  const cloud = fakeCloud(), account = cloud.account(`summary-tree-${crypto.randomUUID()}`);
+  const decks = [["root", "Biologie", null], ["cell", "Zelle", "root"], ["membrane", "Membran", "cell"], ["anatomy", "Anatomie", "root"], ["empty", "Atmung", "root"], ["gone", "Alt", "root"]]
+    .map(([id, name, parentDeckId]) => ({ ...createCoreDeck({ id: id!, name: name!, source: "manual", parentDeckId }), deletedAt: id === "gone" ? "2030-01-01T00:00:00.000Z" : null }));
+  const tree = decks.map((deck) => deck.id);
+  for (const [deckId, title] of [["root", "Überblick"], ["membrane", "Transport"], ["cell", "Aufbau"], ["anatomy", "Knochen"], ["gone", "Gelöscht"], ["other", "Chemie"]]) {
+    await saveLearningSummary(account, createLearningSummary(deckId, title, createSummarySettings()));
+  }
+  await freshDevice(account.userId); cloud.state.requests = 0;
+  const { summaries } = await loadLearningSummaries(account, tree);
+  assert.equal(cloud.state.requests, 1);
+  assert.deepEqual(groupSummariesByDeckTree(summaries, decks, "root").map((group) => [group.deckId, group.path, group.summaries.map((item) => item.title)]), [
+    ["root", [], ["Überblick"]], ["anatomy", ["Anatomie"], ["Knochen"]], ["cell", ["Zelle"], ["Aufbau"]], ["membrane", ["Zelle", "Membran"], ["Transport"]],
+  ]);
+  assert.deepEqual(groupSummariesByDeckTree(summaries, decks, "cell").map((group) => group.path), [[], ["Membran"]]);
+  cloud.state.offline = true;
+  const { saved } = await saveLearningSummary(account, createLearningSummary("membrane", "Offline", createSummarySettings()));
+  const offline = await loadLearningSummaries(account, tree);
+  assert.deepEqual([offline.summaries.length, [...offline.unsynced]], [6, [saved.id]]);
 });
 
 test("Offline gespeicherte Änderungen und Löschungen werden beim nächsten Öffnen hochgeladen", async () => {
@@ -58,10 +80,10 @@ test("Offline gespeicherte Änderungen und Löschungen werden beim nächsten Öf
   cloud.state.offline = true;
   const { saved, unsynced } = await saveLearningSummary(account, createLearningSummary("deck", "Offline", createSummarySettings()));
   await deleteLearningSummary(account, kept.id);
-  const offline = await loadLearningSummaries(account, "deck");
+  const offline = await loadLearningSummaries(account, ["deck"]);
   assert.deepEqual([unsynced, offline.summaries.map((item) => item.id), [...offline.unsynced].sort()], [true, [saved.id], [kept.id, saved.id].sort()]);
   cloud.state.offline = false;
-  const online = await loadLearningSummaries(account, "deck");
+  const online = await loadLearningSummaries(account, ["deck"]);
   assert.deepEqual([online.summaries.map((item) => item.id), online.unsynced.size, cloud.rows.get(saved.id)?.revision, Boolean(cloud.rows.get(kept.id)?.deleted_at)], [[saved.id], 0, 1, true]);
 });
 
@@ -72,7 +94,7 @@ test("Ein Konflikt erhält beide Stände: eigene Änderungen werden zur Konflikt
   const result = await saveLearningSummary(account, { ...original, html: "<p>Dieses Gerät</p>" });
   assert.deepEqual([result.saved.title, result.saved.html, result.replaced?.summary?.html, result.unsynced], ["Konfliktfassung von Gemeinsam", "<p>Dieses Gerät</p>", "<p>Anderes Gerät</p>", false]);
   assert.equal(cloud.rows.size, 2);
-  const { summaries } = await loadLearningSummaries(account, "deck");
+  const { summaries } = await loadLearningSummaries(account, ["deck"]);
   assert.deepEqual(summaries.map((item) => item.html).sort(), ["<p>Anderes Gerät</p>", "<p>Dieses Gerät</p>"]);
   Object.assign(cloud.rows.get(original.id)!, { deleted_at: new Date().toISOString(), revision: 3 });
   const removed = await saveLearningSummary(account, { ...summaries.find((item) => item.id === original.id)!, html: "<p>Nochmals</p>" });
@@ -96,7 +118,7 @@ test("ungültige Writes erhalten vorhandene Fassungen; ohne Konto wird nicht ges
   const account = local();
   const { saved: summary } = await saveLearningSummary(account, createLearningSummary("deck", "Vorhanden", createSummarySettings()));
   await assert.rejects(saveLearningSummary(account, { ...summary, title: "" }));
-  assert.deepEqual((await loadLearningSummaries(account, "deck")).summaries, [summary]);
+  assert.deepEqual((await loadLearningSummaries(account, ["deck"])).summaries, [summary]);
   await assert.rejects(saveLearningSummary(local(""), summary), /Konto/);
 });
 
@@ -105,6 +127,8 @@ test("Lesezeit stammt aus dem tatsächlichen Inhalt statt der gewählten Ziellä
   assert.equal(getSummaryReadingMinutes("<p><br></p>"), 0);
   assert.equal(getSummaryReadingMinutes("<p>Ein kurzer Text.</p>"), 1);
   assert.equal(getSummaryReadingMinutes(`<p>${"Wort ".repeat(201)}</p>`), 2);
+
+  assert.equal(summaryDescription({ ...createLearningSummary("deck", "T", createSummarySettings()), html: "<p>Ein kurzer Text.</p>" }), "Länge:\u00a0Mittel ·\u00a0Detailgrad:\u00a0Ausgewogen ·\u00a01\u00a0Min.\u00a0Lesezeit");
 });
 
 test("Seiten und Zeichnungen bleiben gespeichert; Textprojektion und alte Fassungen bleiben lesbar", async () => {
@@ -119,7 +143,7 @@ test("Seiten und Zeichnungen bleiben gespeichert; Textprojektion und alte Fassun
   assert.equal(stored.html, stored.pages?.map((page) => page.html).join("\n"));
   assert.match(stored.html, /Erste Seite/);
   assert.doesNotMatch(stored.html, /script|Veraltete/);
-  assert.deepEqual((await loadLearningSummaries(account, "deck")).summaries, [stored]);
+  assert.deepEqual((await loadLearningSummaries(account, ["deck"])).summaries, [stored]);
   for (const invalid of [
     { ...pages[0], strokes: [{ ...pages[0].strokes[0], points: [[NaN, 10]] }] },
     { ...pages[0], strokes: [{ ...pages[0].strokes[0], color: "url(javascript:evil)" }] },
@@ -137,7 +161,7 @@ test("Seitenformate und Infinity-Koordinaten bleiben erhalten und werden validie
     const { saved: stored } = await saveLearningSummary(account, { ...original, pageFormat, pages });
     assert.equal(stored.pageFormat, pageFormat);
     assert.deepEqual(stored.pages, pages);
-    assert.deepEqual((await loadLearningSummaries(account, "deck")).summaries, [stored]);
+    assert.deepEqual((await loadLearningSummaries(account, ["deck"])).summaries, [stored]);
   }
   assert.throws(() => readLearningSummary({ ...original, pageFormat: "other" }));
   for (const point of [[Infinity, 0], [0, -1_000_001]]) {
@@ -150,7 +174,7 @@ test("Seiten und Striche überstehen Cloud-Roundtrip, Kopie und Konfliktfassung"
   const pages = [{ id: "page", html: "<p>Meine Notiz</p>", strokes: [{ id: "stroke", tool: "pen", space: "infinity", color: "#657494", width: 3, points: [[-50, 2000]] }] }];
   const { saved: original } = await saveLearningSummary(account, { ...createLearningSummary("deck", "Seiten", createSummarySettings()), pages, pageFormat: "landscape" });
   await freshDevice(account.userId);
-  const reopened = (await loadLearningSummaries(account, "deck")).summaries[0];
+  const reopened = (await loadLearningSummaries(account, ["deck"])).summaries[0];
   assert.deepEqual(reopened, original);
   const { saved: copy } = await saveLearningSummary(account, duplicateLearningSummary(reopened));
   assert.deepEqual([copy.pageFormat, copy.pages], ["landscape", pages]);

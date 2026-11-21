@@ -1,10 +1,10 @@
 import React from "react";
-import { ArrowDown, ArrowUp, Keyboard, PlusSquare, X } from "lucide-react";
+import { ArrowDown, ArrowUp, PlusSquare, X } from "lucide-react";
 import { addNoteField, canRemoveNoteField, isMovableNoteField, moveNoteField, noteBlocks, removeNoteField, renameNoteField, setNoteFieldRole, setNoteReverse, setNoteTypeIn, validateNoteEditorValue, type AddableFieldRole, type NoteEditorErrors, type NoteEditorValue } from "../../coreModel.ts";
 import type { Card, Note, NoteContent } from "../../coreTypes.ts";
 import { IconButton } from "../../ui/actionUi.tsx";
 import { CoreSegmentedControl } from "../../ui/coreUi.tsx";
-import { CoreCheckbox, CoreRadio } from "../../ui/formControls.tsx";
+import { CoreCheckbox, CoreRadio, CoreSwitch } from "../../ui/formControls.tsx";
 import { NOTE_FIELD_ROLE_LABELS, NoteBlockControls } from "../../ui/NoteBlockControls.tsx";
 import { NoteCardContent } from "../../ui/NoteCardContent.tsx";
 import { RichTextEditor, type RichTextImageActions } from "../../ui/RichTextEditor.tsx";
@@ -129,10 +129,7 @@ export function NoteContentEditor({ note, value, structure, onValueChange, onStr
           />
         ) : null}
         {structureEditable && blocks.typeIn !== null ? (
-          <button type="button" aria-pressed={blocks.typeIn} onClick={() => onStructureChange(setNoteTypeIn(structure, !blocks.typeIn))} className="core-action-secondary aria-pressed:border-core-action aria-pressed:bg-[var(--core-action-soft)] aria-pressed:text-core-action">
-            <Keyboard size={16} aria-hidden="true" />
-            Antwort eintippen
-          </button>
+          <CoreSwitch checked={blocks.typeIn} onCheckedChange={(next) => onStructureChange(setNoteTypeIn(structure, next))} label="Antwort eintippen" />
         ) : null}
       </div>
       {structure.fields.map((field) => {
@@ -202,7 +199,7 @@ export function NoteContentEditor({ note, value, structure, onValueChange, onStr
           <FieldError errors={errors} field="options" />
         </fieldset>
       ) : null}
-      {structureEditable ? <NoteBlockControls typeIn={null} fieldRoles={blocks.fieldRoles} onTypeInChange={() => undefined} onAddField={addField} /> : null}
+      {structureEditable ? <NoteBlockControls fieldRoles={blocks.fieldRoles} onAddField={addField} /> : null}
     </div>
   );
 

@@ -25,20 +25,11 @@ voneinander.
       ergeben in Anki eigene Karten, CoRe zeigt dafür noch keine aktive Lücke;
       `{{C1::` gilt in CoRe anders als in Anki als Lücke (gespeicherte
       Inhalte hängen daran).
-- [ ] **5 Oberfläche:** Aussetzen im Editor mit Rückgängig in der Meldung
-      (5.2); Suchfilter als Symbole mit ausführlichen Tooltips, Hinweis bei
-      sich ausschließenden Filtern, Suchschreibweise ausklappbar (5.4–5.6);
-      Oberstapel zeigt die Zusammenfassungen seiner Unterstapel (5.8);
-      gemeinsamer Schrittbaustein (5.10); Hilfe mit einfachem Einstieg und
-      verlinkter Tiefe (5.12); Entwurf überlebt den Tabwechsel (5.15); Quelle
-      neben dem Entwurf nur PDF, Text und Markdown (5.16); Sammelauftrag:
-      doppelte Frage im Originallayout, Beschriftung des Mindmap-Knopfs,
-      Vorschau der Erstellung (5.19).
 
 ## P2: Karten aus einer Quelle per KI erstellen
 
 - [ ] **Formular (Agenda 3.1–3.6):** drei Schritte Zielstapel, Kartenformen,
-      Vorgaben, sobald der gemeinsame Schrittbaustein aus P1 (5.10) steht;
+      Vorgaben im gemeinsamen Schrittbaustein (`Steps`);
       Kartenmenge als Stufe mit Hochrechnung, vorher recherchieren, wie
       andere Apps das lösen, danach Mischung und Lernziele entscheiden.
 
