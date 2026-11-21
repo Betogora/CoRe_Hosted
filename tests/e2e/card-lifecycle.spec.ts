@@ -420,6 +420,8 @@ test("[Vertrag: KI-Basic-Variante] @golden-e2e @beta-core @hosted-core abgefange
     return card?.variants.find((variant: { meta?: { generationSource?: string } }) => variant.meta?.generationSource === "ai_generated")?.front;
   }).toBe("Wofür nutzt die Zelle ATP?");
   await page.getByRole("button", { name: "Detailansicht schließen" }).click();
+  // The editor's message outlives the dialog and lies over the navigation until it is dismissed.
+  await page.getByRole("button", { name: "Erfolgsmeldung schließen" }).click();
   await page.getByRole("button", { name: "Einstellungen öffnen" }).click();
   await openSettingsArea(settingsDialog(page), "daten");
   await page.getByRole("button", { name: "Jetzt synchronisieren" }).click();

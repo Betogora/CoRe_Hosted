@@ -50,7 +50,7 @@ export function CardPreviewDialog({
     setSide("question");
     onOpenChange(false);
   }, [onOpenChange]);
-  const { dialogRef } = useModalDialog({
+  const { dialogRef, initialFocusRef: closeButtonRef } = useModalDialog({
     open,
     onClose: closeDialog,
     returnFocusRef,
@@ -105,7 +105,7 @@ export function CardPreviewDialog({
       >
         <header className="flex min-h-16 items-center gap-4 border-b border-core-border px-4 sm:px-6">
           <h2 id={titleId} className="min-w-0 flex-1 core-heading-2 text-core-text">Kartenvorschau</h2>
-          <IconButton label="Kartenvorschau schließen" icon={X} variant="ghost" onClick={closeDialog} />
+          <IconButton ref={closeButtonRef} label="Kartenvorschau schließen" icon={X} variant="ghost" onClick={closeDialog} />
         </header>
 
         <div className="grid min-h-0 flex-1 overflow-y-auto overscroll-contain bg-core-surface">
