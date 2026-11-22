@@ -260,11 +260,12 @@ function NavigationUtilityButtons({ activeView, onNavigate, onPreloadView, setti
   const syncStatus = useWorkspaceValue((snapshot) => snapshot.syncStatus);
   const menuTargetActive = settingsOpen || activeView === "statistik" || activeView === "hilfe";
   const menuButtonRef = React.useRef<HTMLButtonElement>(null);
+  const navigatedFromMenu = React.useRef(false);
   const pageRow = (viewId: "statistik" | "hilfe", utility: string, label: string, Icon: LucideIcon) => {
     const preload = () => onPreloadView?.(viewId);
     return (
       <Popover.Close asChild>
-        <button type="button" className="core-menu-row" data-navigation-utility={utility} aria-current={activeView === viewId ? "page" : undefined} onClick={() => onNavigate(viewId)} onPointerEnter={preload} onFocus={preload}>
+        <button type="button" className="core-menu-row" data-navigation-utility={utility} aria-current={activeView === viewId ? "page" : undefined} onClick={() => { navigatedFromMenu.current = true; onNavigate(viewId); }} onPointerEnter={preload} onFocus={preload}>
           <Icon size={16} aria-hidden="true" />{label}
         </button>
       </Popover.Close>
@@ -291,7 +292,15 @@ function NavigationUtilityButtons({ activeView, onNavigate, onPreloadView, setti
           />
         </Popover.Trigger>
         <Popover.Portal>
-          <Popover.Content align="end" sideOffset={8} collisionPadding={16} className="core-overlay z-[60] grid w-56 gap-0.5 rounded-panel p-1.5" data-navigation-menu="true">
+          <Popover.Content
+            align="end"
+            sideOffset={8}
+            collisionPadding={16}
+            className="core-overlay z-[60] grid w-56 gap-0.5 rounded-panel p-1.5"
+            data-navigation-menu="true"
+            // After navigating, the new page's heading takes the focus (App), not the menu button.
+            onCloseAutoFocus={(event) => { if (navigatedFromMenu.current) event.preventDefault(); navigatedFromMenu.current = false; }}
+          >
             <Popover.Close asChild>
               <button type="button" className="core-menu-row" data-navigation-utility="settings" onClick={() => {
                 // The dialog remembers the focused element as return target when it mounts, before the popover refocuses its trigger.
