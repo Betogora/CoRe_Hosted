@@ -41,6 +41,7 @@ const SYNTAX: ReadonlyArray<[string, string]> = [
   ["prop:s>=90", "Haltbarkeit in Tagen; zählt ab der nächsten Antwort einer Karte"],
   ["is:reveal  is:choice  is:cloze  is:occlusion", "Frage–Antwort, Auswahl, Lückentext, Bildverdeckung"],
   ["note:Basic  has:outdated", "Anki-Notiztyp (wie `deck:` mit `*` und Unterstrich\u00a0`_`), Karten mit veralteter Variante"],
+  ["is:unrephrasable", "Karten, für die keine Variante entsteht"],
   ["card:2  is:buried", "Zweite Abfrage (Vorlage, Lücke oder Maske), heute manuell zurückgestellt"],
   ["is:duplicate", "Inhalte mit gleicher Vorderseite im ganzen Konto, nebeneinander; Groß- und Kleinschreibung und Abstände zählen nicht"],
 ];

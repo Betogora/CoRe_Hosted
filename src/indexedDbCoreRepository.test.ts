@@ -915,3 +915,21 @@ test("eine fehlgeschlagene Delta-Seite lässt den Cursor stehen, ihre Wiederholu
   assert.deepEqual(await summaryTotals(repository), { "deck-idb": 2 });
   repository.close();
 });
+
+test("eine Bewertung schreibt nur den Lernstand und behält eine inzwischen vermerkte Variantensperre", async () => {
+  const initialState = workspaceState(1);
+  const repository = await openRepository(initialState);
+  const result = answerVariant(initialState.decks[0], "card-0", null, "good", { now: "2026-08-20T08:00:00.000Z" });
+  const variantRefusal = { state: "not_rephrasable" as const, failures: 0, promptVersion: "card-variant-v5", contentRevision: 1, updatedAt: "2026-08-20T07:59:00.000Z" };
+  await repository.updateCard("card-0", (card) => ({ ...card, variantRefusal, revision: card.revision + 1 }));
+
+  repository.recordReview(result);
+  await repository.flush();
+
+  const body = await repository.loadCardBody("card-0");
+  assert.deepEqual(body?.card.variantRefusal, variantRefusal);
+  assert.deepEqual([body?.card.revision, body?.card.studyRevision, body?.card.study.reps], [2, 1, 1]);
+  const [catalog] = (await repository.listCatalogPage("deck-idb")).items;
+  assert.deepEqual([catalog.variantRefused, catalog.bodyRevision], [true, 2]);
+  repository.close();
+});

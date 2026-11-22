@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
+  activeVariantRefusal,
   addCardVariant,
   addNoteField,
   applyNoteEditorValue,
@@ -26,6 +27,7 @@ import {
   planNoteContentChange,
   planNoteDeletion,
   planNoteRestore,
+  recordVariantOutcome,
   rescheduleCard,
   setCardSuspended,
   setNoteMarked,
@@ -381,4 +383,35 @@ test("Auswahlfragen prüfen Optionen und richtige Antworten mit deutschen Meldun
   });
   assert.deepEqual(validateManualNoteInput({ kind: "cloze", front: "", back: "" }), { front: "Bitte einen Cloze-Text eingeben." });
   assert.deepEqual(validateManualNoteInput({ kind: "cloze", front: "{{c1:: }}", back: "" }), { front: "Bitte gültige Lücken wie {{c1::Begriff}} verwenden." });
+});
+
+test("die Variantenerzeugung sperrt eine Karte sofort bei „nicht umformulierbar“ und nach drei abgewiesenen Ergebnissen", () => {
+  const card = createBasicNote("deck", "Frage", "Antwort").cards[0];
+  const at = "2026-11-21T10:00:00.000Z";
+  const v5 = { promptVersion: "v5", contentRevision: 1 };
+
+  const refused = recordVariantOutcome(card, "not_rephrasable", v5, at);
+  assert.deepEqual(refused.variantRefusal, { state: "not_rephrasable", failures: 0, ...v5, updatedAt: at });
+  assert.equal(refused.revision, card.revision + 1);
+
+  const twice = recordVariantOutcome(recordVariantOutcome(card, "rejected", v5, at), "rejected", v5, at);
+  assert.deepEqual([twice.variantRefusal?.state, twice.variantRefusal?.failures], [null, 2]);
+  assert.equal(recordVariantOutcome(twice, "rejected", v5, at).variantRefusal?.state, "failing");
+  assert.equal(recordVariantOutcome(twice, "rejected", { ...v5, promptVersion: "v6" }, at).variantRefusal?.failures, 1, "eine neue Promptfassung zählt neu");
+  assert.equal(recordVariantOutcome(twice, "rejected", { ...v5, contentRevision: 2 }, at).variantRefusal?.failures, 1, "ein geänderter Inhalt zählt neu");
+
+  const created = recordVariantOutcome(twice, "created", v5, at);
+  assert.equal(Object.hasOwn(created, "variantRefusal"), false);
+  assert.equal(recordVariantOutcome(card, "created", v5, at), card, "ohne Vermerk bleibt die Karte unverändert");
+});
+
+test("die Sperre gilt nur, solange der Inhalt seine Revision behält; Tags ändern sie nicht", () => {
+  const { note, cards } = createBasicNote("deck", "Frage", "Antwort");
+  const refused = recordVariantOutcome(cards[0], "not_rephrasable", { promptVersion: "v5", contentRevision: note.contentRevision });
+  assert.equal(activeVariantRefusal(note, refused), "not_rephrasable");
+  const previous = { note, cards: [refused] };
+  const edited = planNoteContentChange(previous, { ...note.content, fields: note.content.fields.map((field) => field.role === "prompt" ? { ...field, html: "Neue Frage" } : field) });
+  assert.equal(activeVariantRefusal(edited.note, edited.keptCards[0]), null);
+  const tagged = planNoteContentChange(previous, { ...note.content, tags: ["neu"] });
+  assert.equal(activeVariantRefusal(tagged.note, tagged.keptCards[0]), "not_rephrasable");
 });

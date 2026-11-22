@@ -174,6 +174,8 @@ test("note:, mid: und has:outdated prüfen Notiztyp und veraltete Varianten", ()
   assert.equal(matchesCardSearch(entry({ noteTypeId: "nt-2" }), parseCardSearchQuery("mid:nt-2", context)), true);
   assert.equal(matchesCardSearch(entry({ hasOutdatedVariants: true }), parseCardSearchQuery("has:outdated", context)), true);
   assert.equal(matchesCardSearch(entry(), parseCardSearchQuery("has:outdated", context)), false, "ein alter Katalogeintrag ohne Feld trifft nicht");
+  assert.equal(matchesCardSearch(entry({ variantRefused: true }), parseCardSearchQuery("is:unrephrasable", context)), true);
+  assert.equal(matchesCardSearch(entry(), parseCardSearchQuery("-is:unrephrasable", context)), true);
   assert.equal(namePatternMatches("basic", "Basic (and reversed)"), false, "ohne Platzhalter nur der ganze Name");
   assert.equal(namePatternMatches("basic_(and_reversed)", "Basic (and reversed)"), true);
 });

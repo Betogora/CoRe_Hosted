@@ -51,6 +51,7 @@ begin
     ('cards', 'study_extra'),
     ('cards', 'study_revision'),
     ('cards', 'leeched_at'),
+    ('cards', 'variant_refusal'),
     ('card_variants', 'performance'),
     ('review_events', 'card_id'),
     ('review_events', 'statistics_day'),
@@ -65,6 +66,7 @@ begin
     ('card_catalog', 'study_revision'),
     ('card_catalog', 'dependency_revision'),
     ('card_catalog', 'sync_change_id'),
+    ('card_catalog', 'variant_refused'),
     ('deck_study_summaries', 'sync_change_id')
   ) as expected(table_name, column_name)
   left join information_schema.columns columns

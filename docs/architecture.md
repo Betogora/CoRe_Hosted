@@ -355,11 +355,11 @@ Befehlsmodule laufen ohne React und entstehen je Arbeitsbereich aus Store, lokal
 
 ### Varianten und Lernhilfe
 
-- Varianten entstehen nur aus der bereinigten Quelle einer Karte (`cardVariantSource`); die Anfrage nennt ihre Art (`basic`, `type-in`, `cloze`, `choice`). Anzahl, Schema, Änderung, Duplikate und Größen werden vor der Mutation geprüft; ein inzwischen geänderter Inhalt verhindert sie.
-- Antwort, Eintippvergleich, Lückenlösung, Options-IDs und Richtigkeit kommen beim Darstellen stets von der Karte. Eine Auswahl-Variante speichert Stamm und Optionen in `front`/`back` und die umformulierten Optionstexte in `meta.options`. `clozeSyntax.ts` zerlegt Anki-Lücken für Renderer und Vertrag.
-- Meldet das Werkzeug `rephrasable: false`, antwortet die Route mit `not_rephrasable` (422), und es entsteht keine Variante.
-- Ändert sich der Text einer behaltenen Karte oder bringt ein Reimport geänderten Paketinhalt, markiert die Planung ihre aktiven Varianten als veraltet (`meta.outdated`); eine Neuerzeugung ersetzt sie.
-- `aiCardHelp.ts` bildet den Kartentext der Lernhilfe: Quellenfelder bleiben lokal, eine Lücke verdeckt nur sich selbst, Bildverdeckungen erhalten keine Hilfe.
+- Varianten entstehen nur aus der bereinigten Quelle einer Karte (`cardVariantSource`; Art `basic`, `type-in`, `cloze`, `choice`). Vor der Mutation prüft der Vertrag Anzahl, Schema, Änderung, Duplikate, Größen und den aktuellen Inhalt.
+- Antwort, Eintippvergleich, Lückenlösung, Options-IDs und Richtigkeit kommen beim Darstellen stets von der Karte. Eine Auswahl-Variante speichert Stamm und Optionen in `front`/`back`, umformulierte Optionstexte in `meta.options`. `clozeSyntax.ts` zerlegt Anki-Lücken für Renderer und Vertrag.
+- `not_rephrasable` (422) oder drei Abweisungen in Folge (`AI_CARD_VARIANT_REJECTIONS`) vermerkt die Karte in `variantRefusal`, gültig bei gleicher `contentRevision`; `activeVariantRefusal`, `catalogEntryFromCard` und `refresh_card_catalog` werten gleich aus.
+- Geänderter Text einer behaltenen Karte, auch per Reimport, macht ihre aktiven Varianten veraltet (`meta.outdated`); eine Neuerzeugung ersetzt sie.
+- `aiCardHelp.ts` bildet den Kartentext der Lernhilfe: ohne Quellenfelder und Bildverdeckungen, eine Lücke verdeckt nur sich selbst.
 
 ### Karten aus einer Quelle
 
