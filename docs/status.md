@@ -42,4 +42,5 @@ Die verbindliche Reifeentscheidung steht in [ADR-001](decisions.md#adr-001--prod
 - **Bewusst anders als Anki:** Lücken, die nur in einem Feld außerhalb der Frage stehen, ergeben keine Karte (Anki erzeugt eine mit leerer Vorderseite). `{{C1::…}}` mit großem C gilt als Lücke, in Anki nicht; gespeicherte Inhalte hängen an dieser Lesart.
 - **Begraben:** Stapelzähler zählen zwei noch unbeantwortete Geschwister bis zur ersten Antwort beide (Anki zeigt eines). Ein Gerät mit unvollständigem lokalen Katalog übernimmt Antworten erst mit dem nächsten Bootstrap in die Zähler.
 - **Speicher:** Ein vollständiger 10-GB-Medienbestand ist im Browser nicht garantiert; Browser-Eviction bleibt Plattformgrenze. Die native App mit lokaler Vollreplik (ADR-036) ist nicht begonnen.
+- **Karten aus einer Quelle:** Die Kartenmenge (weniger, normal, mehr) ändert die Zahl der Vorschläge bisher nicht (Messung im [Verlauf](history.md)); die Schätzung nennt daher je Stufe dieselbe Spanne. Ziel in [`todo.md`](todo.md) unter P5.
 - **Gerätelokal:** Dashboard-Layout und eigene To-dos liegen pro Konto nur im Browser und synchronisieren nicht.

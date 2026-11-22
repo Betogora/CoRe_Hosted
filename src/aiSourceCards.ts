@@ -28,7 +28,7 @@ const STOPPING_ERROR_CODES = new Set([
 ]);
 
 export interface SourceUnit { label: string; text: string; }
-interface ReadSource { units: SourceUnit[]; notices: string[]; }
+export interface ReadSource { units: SourceUnit[]; notices: string[]; }
 export interface SourceCardProposal extends GeneratedSourceCard { id: string; sourceLabels: string[]; }
 export interface ProposalDraft { id: string; content: NoteContent; }
 type SaveProposal = (input: { deckId: string | null; deckName: string; content: NoteContent; media: Record<string, string> }) => Promise<{ deck: { id: string }; cardIds: string[] } | null>;

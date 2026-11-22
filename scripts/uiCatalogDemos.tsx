@@ -773,7 +773,7 @@ function ProductViewsDemo({ kind }: { kind: string }) {
     ["learn", "LearnScreen · Stapel und Schnellformular", "Lernen"],
     ["exams", "ExamPlanningScreen · lokaler Plus-Einstieg bei leerer Prüfungsliste und durchgehendes Plus-Feld Weitere Prüfung planen unter bestehenden Prüfungen · einzeln umschaltbare Prüfungsfarben im Kalenderkopf statt globalem Dropdown, ausgefüllt oder hell umrandet · gemeinsame Monatskachel je Fach für Karten und Lesen, auch ohne neue Karten · Kalender ab aktueller Woche mit Rücknavigation · vier Schritte mit Rücksprüngen und genau einem Schritt vorwärts über die Leiste, Lernstart mit Vorgabe heute und sichtbarem Prüfungsziel auf der ersten Seite · durchsuchbare Stapelzweige mit Plusauswahl ohne Teilmarkierung · alternative Zeitangaben mit Durchschnitt oder direkt editierbaren Wochentagszeiten, freie Tage mit 0 Minuten · Vorschau mit Lerntagen, auf Kalenderhöhe begrenzter ausklappbarer Themenfolge, dauerhaftem Prüfungstermin und erreichbarer Planbestätigung · nichtmodale Tagesdetails", "Prüfungen"],
     ["creation", "CreationScreen · Drei Erstellungswege", "Erstellen"],
-    ["ai-source", "AiSourceCreationPanel · Drei Abschnitte: Quelle und Stapel, Vorgaben, Karten", "Automatische Erstellung"],
+    ["ai-source", "AiSourceCreationPanel · Drei Schritte: Quelle und Stapel, Kartenformen, Vorgaben", "Automatische Erstellung"],
     ["manual", "ManualCreationPanel · Formular und Bausteine", "Manuelle Erstellung"],
     ["import", "ApkgImportPanel und TextImportPanel · ein Dateifeld für Anki-Pakete, Text und CSV", "Import"],
     ["decks", "DecksScreen · Tabelle als ein Blatt, Karteneditor als Dialog", "Kartenverwaltung"],

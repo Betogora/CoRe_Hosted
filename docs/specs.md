@@ -385,15 +385,15 @@ Gruppe: Synchronisierung ins Konto
 
 Aus einer eigenen Quelle schlägt die KI Karten vor; gespeichert wird erst, was die Lernenden geprüft und übernommen haben.
 
-- Ein Auftrag besteht aus Quelle (eine Datei als PDF, Text, Markdown, CSV oder TSV oder eingefügter Text), genau einem Zielstapel (neu oder vorhanden), Lernwünschen und erlaubten Kartenformen.
-- Lernwünsche sind Kartenmenge, Antwortumfang, Sprache, Formulierung, Vorwissen und freie Wünsche. Kartenmenge und Antwortumfang sind unabhängig: Mehr Karten bedeuten nicht längere Antworten.
-- Die Kartenmenge (weniger, normal, mehr) bestimmt, wie viel Stoff abgefragt wird. Ein Auftrag ergibt höchstens 100 Vorschläge und nur so viele, wie die Quelle trägt; Füllkarten entstehen nicht.
-- Kartenformen (Frage–Antwort, Lückentext, Single Choice, Multiple Choice) werden erlaubt, nicht erzwungen; passende Abruf-, Verständnis- und Anwendungsfragen werden ohne feste Quoten gemischt.
-- Karten stammen nur aus der Quelle. Jede Karte nennt ihre Stelle (PDF-Seite oder Zeilen der Datei); Belege werden nie erfunden.
-- Die Quelle wird nur im Browser gelesen. Leere, geschützte, gescannte oder zu große Quellen (20 MiB, 400.000 Zeichen) werden abgewiesen, nie still gekürzt; Seiten ohne Textlayer werden genannt.
-- Größere Quellen laufen abschnittweise im geöffneten Tab mit Fortschritt; jeder Abschnitt kennt die bisherigen Fragen. Abbrechen behält Erhaltenes, ein Fehler für jeden Abschnitt stoppt den Lauf, ein einzeln gescheiterter wird genannt. Ein vorzeitiges Ende oder die Obergrenze nennt die erste nicht ausgewertete Stelle.
-- Das Ergebnis ist eine ungespeicherte Liste mit Stelle, Hinweisen der KI und Zahl verworfener Vorschläge. Jeder Vorschlag lässt sich wie im [Karteneditor](#karteneditor) bearbeiten oder verwerfen; alle zu verwerfen behält den Auftrag.
-- Erst die Übernahme speichert die Vorschläge als Karten mit Antwort, Erklärung und Stelle in getrennten Feldern; ein neuer Zielstapel entsteht erst dabei. Scheitert sie, bleibt der Rest zum erneuten Übernehmen.
+- Ein Auftrag besteht in dieser Reihenfolge aus Quelle (Datei als PDF, Text, Markdown, CSV oder TSV oder eingefügter Text) mit genau einem Zielstapel (neu oder vorhanden), erlaubten Kartenformen und Lernwünschen.
+- Lernwünsche sind Kartenmenge, Antwortumfang, Sprache, Formulierung, Vorwissen und freie Wünsche; Kartenmenge und Antwortumfang sind unabhängig.
+- Die Kartenmenge (weniger, normal, mehr) bestimmt, wie viel Stoff abgefragt wird; jede Stufe nennt eine aus der Quellenlänge geschätzte Spanne. Ein Auftrag ergibt höchstens 100 Vorschläge und nur so viele, wie die Quelle trägt; Füllkarten entstehen nicht.
+- Kartenformen (Frage–Antwort, Lückentext, Single Choice, Multiple Choice) werden erlaubt, nicht erzwungen; Abruf-, Verständnis- und Anwendungsfragen mischen sich quotenfrei.
+- Karten stammen nur aus der Quelle und nennen ihre Stelle (PDF-Seite oder Dateizeilen); Belege werden nie erfunden.
+- Die Quelle wird nur im Browser und vor den Kartenformen gelesen. Leere, geschützte, gescannte oder zu große Quellen (20 MiB, 400.000 Zeichen) werden abgewiesen, nie still gekürzt; Seiten ohne Textlayer werden genannt.
+- Größere Quellen laufen abschnittweise im offenen Tab mit Fortschritt; jeder Abschnitt kennt die bisherigen Fragen. Abbrechen behält Erhaltenes, ein Fehler für jeden Abschnitt stoppt den Lauf, ein einzeln gescheiterter wird genannt. Vorzeitiges Ende oder Obergrenze nennen die erste nicht ausgewertete Stelle.
+- Das Ergebnis ist eine ungespeicherte Liste mit Stellen, KI-Hinweisen und Zahl verworfener Vorschläge. Jeder Vorschlag lässt sich wie im [Karteneditor](#karteneditor) bearbeiten oder verwerfen; alle zu verwerfen behält den Auftrag.
+- Erst die Übernahme speichert die Vorschläge als Karten mit Antwort, Erklärung und Stelle in getrennten Feldern; ein neuer Zielstapel entsteht erst dabei, ein gescheiterter Rest bleibt zum erneuten Übernehmen.
 - Ohne Verbindung ist die Erstellung gesperrt; der Entwurfsschutz gilt auch für Vorschläge.
 - **Bewusst nicht:** feste Kartenanzahl, Mischungsverhältnisse, Lernzielauswahl, Kprim, Eintippen, einzelne Vorschläge neu erzeugen, Abgleich mit dem Zielstapel.
 
