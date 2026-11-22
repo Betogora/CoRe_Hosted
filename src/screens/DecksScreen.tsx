@@ -141,7 +141,8 @@ export function DecksScreen({
     return decks.filter((deck) => treeIds.has(deck.id));
   }, [contentDeckId, decks]);
   const contentDeck = contentDeckId ? libraryDecks.find((deck) => deck.id === contentDeckId) : null;
-  useShellBack(contentDeckId ? { title: contentDeck?.name ?? "Stapelinhalte", label: "Lernen", onSelect: () => requestDetailAction(() => onOpenLearn(null)) } : undefined);
+  const contentIcon = React.useMemo(() => contentDeck ? <DeckAppearanceIcon deck={contentDeck} className="size-6" iconSize={14} /> : null, [contentDeck]);
+  const titleInShell = useShellBack(contentDeckId ? { title: contentDeck?.name ?? "Stapelinhalte", label: "Lernen", icon: contentIcon, onSelect: () => requestDetailAction(() => onOpenLearn(null)) } : undefined);
   const hasStudyCards = React.useMemo(() => Boolean(contentDeckId) && libraryDecks.some((deck) => (
     !deck.deletedAt && ((deckSummaries?.get(deck.id)?.inventory.totalCards ?? 0) > 0 || deck.cards.some((card) => !card.deletedAt))
   )), [contentDeckId, deckSummaries, libraryDecks]);
@@ -701,7 +702,7 @@ export function DecksScreen({
   return (
     <div className="relative grid min-w-0 gap-6">
       {contentDeckId ? (
-        <div className="core-deck-content-head" data-deck-content-navigation="true" ref={contentNavigationRef}>
+        <div className="core-deck-content-head" data-deck-content-navigation="true" data-title-in-shell={titleInShell || undefined} ref={contentNavigationRef}>
           <nav className="core-deck-folder-breadcrumb" aria-label="Stapelpfad" data-testid="deck-content-path">
             <button type="button" onClick={() => requestDetailAction(() => onOpenLearn(null))}>Alle Stapel</button>
             {contentTrail.map((row) => <React.Fragment key={row.id}>
@@ -709,8 +710,8 @@ export function DecksScreen({
               {row.id === contentDeckId ? <span aria-current="page">{row.name}</span> : <button type="button" onClick={() => requestDetailAction(() => onOpenDeckContent(row.id, "children"))}>{row.name}</button>}
             </React.Fragment>)}
           </nav>
-          <div className="core-deck-content-heading" data-testid="deck-content-heading">
-            {contentDeck ? <DeckAppearanceIcon deck={contentDeck} className="size-7" iconSize={16} /> : null}
+          <div className={titleInShell ? "sr-only" : "core-deck-content-heading"} data-testid="deck-content-heading">
+            {contentDeck && !titleInShell ? <DeckAppearanceIcon deck={contentDeck} className="size-7" iconSize={16} /> : null}
             <h2 className="core-deck-content-title outline-none" data-screen-heading tabIndex={-1}>{contentDeck?.name ?? "Stapelinhalte"}</h2>
           </div>
           <div className="core-deck-content-tabs" data-testid="deck-content-actions">
@@ -750,9 +751,7 @@ export function DecksScreen({
         cancelLabel="Abbrechen"
         destructive
         confirmLoading={deletingCard}
-        onCancel={() => {
-          if (!deletingCard) setPendingCardDelete(null);
-        }}
+        onCancel={() => { if (!deletingCard) setPendingCardDelete(null); }}
         onConfirm={() => void confirmCardDelete()}
       />
     </div>

@@ -3087,10 +3087,25 @@ button.core-steps-step {
   margin-top: var(--core-space-lg);
 }
 
+/* In the app the navigation bar carries title and icon: the path shares its row with the study action, and the head
+   moves closer to the bar. */
+.core-deck-content-head[data-title-in-shell] {
+  grid-template-areas: "path study" "tabs tabs";
+  margin-top: calc(-1 * var(--core-space-lg));
+}
+
+.core-deck-content-head[data-title-in-shell] .core-deck-content-tabs {
+  margin-top: var(--core-space-sm);
+}
+
 @media (max-width: 639px) {
   .core-deck-content-head {
     grid-template-columns: minmax(0, 1fr);
     grid-template-areas: "path" "title" "tabs" "study";
+  }
+
+  .core-deck-content-head[data-title-in-shell] {
+    grid-template-areas: "path" "tabs" "study";
   }
 
   .core-deck-content-title {

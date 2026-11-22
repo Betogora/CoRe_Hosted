@@ -47,6 +47,9 @@ test("subpages turn the floating card into the docked bar with back and title, k
   for (const group of groups) assert.equal(group.includes("inert"), group.includes("core-shell-brand"));
   assert.equal((app.match(/<button[^>]*aria-label="Zurück zu Erstellen"[^>]*>[\s\S]*?Karte selbst erstellen<\/span><\/button>/g) ?? []).length, 2);
   assert.equal((app.match(/<h1 class="core-shell-lead/g) ?? []).length, 2);
+
+  const withIcon = renderNavigation("kartenstapel", 0, null, { status: "idle" }, false, false, { title: "Kapitel", label: "Lernen", icon: <span data-deck-icon="true" />, onSelect: () => undefined });
+  assert.equal((withIcon.match(/<button[^>]*aria-label="Zurück zu Lernen"[^>]*>[\s\S]*?data-deck-icon="true"[\s\S]*?Kapitel<\/span><\/button>/g) ?? []).length, 2);
 });
 
 test("automatic sync stays out of the header until something needs attention", () => {

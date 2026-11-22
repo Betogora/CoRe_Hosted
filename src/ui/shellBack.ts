@@ -1,10 +1,12 @@
-import React from "react";
+import React, { type ReactNode } from "react";
 import { useStableCallback } from "./useStableCallback.ts";
 
 export interface ShellBack {
   title: string;
   label: string;
   onSelect: () => void;
+  /** Keep it memoized: a new element registers the page again. */
+  icon?: ReactNode;
 }
 
 export const ShellBackContext = React.createContext<React.Dispatch<React.SetStateAction<ShellBack | null>> | null>(null);
@@ -22,12 +24,13 @@ export function useShellBack(back: ShellBack | undefined) {
   const onSelect = useStableCallback(() => back?.onSelect());
   const title = back?.title;
   const label = back?.label;
+  const icon = back?.icon;
   React.useLayoutEffect(() => {
     if (!setShellBack || title === undefined || label === undefined) return undefined;
-    const entry = { title, label, onSelect };
+    const entry = { title, label, icon, onSelect };
     setShellBack(entry);
     // Unregisters by identity, so a replaced page never removes the next page's entry.
     return () => setShellBack((current) => current === entry ? null : current);
-  }, [setShellBack, title, label, onSelect]);
+  }, [setShellBack, title, label, icon, onSelect]);
   return Boolean(setShellBack && back);
 }

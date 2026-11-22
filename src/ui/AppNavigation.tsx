@@ -188,6 +188,7 @@ function ShellLead({ back, brandClassName, onNavigate }: { back: ShellBack | nul
           className="-ml-2 flex h-button min-w-0 items-center gap-1.5 rounded-control pl-1.5 pr-3 text-core-text transition-colors hover:bg-core-hover [&>svg]:text-core-muted hover:[&>svg]:text-core-action"
         >
           <ArrowLeft className="shrink-0" size={20} aria-hidden="true" />
+          {shownBack?.icon ? <span className="flex shrink-0" aria-hidden="true">{shownBack.icon}</span> : null}
           <span className="min-w-0 truncate core-heading-3">{shownBack?.title}</span>
         </button>
       </div>
