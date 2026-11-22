@@ -820,7 +820,7 @@ Fassung | im Konto, mehrere je Stapel
 - Sich ausschließende Filter bleiben erlaubt; die Suche nennt den Widerspruch.
 - Noch nicht unterstützte Anki-Begriffe werden benannt und als Text gesucht. Die vollständige Schreibweise erklärt die App selbst.
 - Online- und Offline-Suche liefern dieselben Treffer ([ADR-048](decisions.md#adr-048--kartensuche-lokal-über-den-vollständigen-katalog)).
-- Gespeicherte Suchen gehören zum Konto; relative Begriffe wie „heute“ gelten für den Tag der Anwendung.
+- Gespeicherte Suchen gehören zum Konto; relative Begriffe wie „heute“ gelten am Tag der Anwendung.
 - **Bewusst nicht:** reguläre Ausdrücke.
 
 ### Massenaktionen und Pflege
@@ -831,7 +831,7 @@ Fassung | im Konto, mehrere je Stapel
 - Flagge, Aussetzung und Stapel gelten je Karte, Markierung und Tags für den Inhalt.
 - Offline wirken Massenaktionen nur, wenn die betroffenen Karten auf dem Gerät liegen; sonst ändern sie nichts und sagen das.
 - **Suchen und Ersetzen** ersetzt wörtlichen Text in Feldern oder Tags der Auswahl, nie Formatierung oder Links, mit Vorschau. Inhalte, deren Karten sich dadurch ändern würden, bleiben und werden gezählt. Ersetzen ist eine lokale Bearbeitung: Kein Reimport überschreibt sie, Varianten veralten, der Lernstand bleibt.
-- **Duplikate finden** vergleicht Inhalte nach Vorderseite oder einem gewählten Feld, ohne Groß- und Kleinschreibung und mehrfache Leerzeichen, und kann die Gruppen mit einem Tag versehen.
+- **Duplikate** filtert Inhalte gleicher Vorderseite (Schreibung, Abstände egal), gruppiert; überzählig sind je Gruppe alle außer dem meistgelernten, sonst ältesten. Braucht alle Karten lokal.
 - **Tags verwalten** benennt Tags kontoweit um (samt Untertags; ein vorhandener Name führt zusammen) und löscht sie. Tags existieren nur an Inhalten; ungenutzte gibt es nicht.
 
 ### Gezielt lernen und üben

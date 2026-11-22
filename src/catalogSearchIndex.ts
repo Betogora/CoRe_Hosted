@@ -1,4 +1,5 @@
-import { matchesCardSearch, parseCardSearchQuery, type CardSearchContext } from "./cardSearchQuery.ts";
+import { matchesCardSearch, parseCardSearchQuery, searchesDuplicates, type CardSearchContext } from "./cardSearchQuery.ts";
+import { duplicateContents, groupDuplicates } from "./duplicateContents.ts";
 import { NO_DUE_DATE } from "./indexedDbStore.ts";
 import type { CardTableSort } from "./libraryModel.ts";
 import type { CardCatalogEntry } from "./workspaceReplica.ts";
@@ -39,11 +40,14 @@ function position(sorted: readonly CardCatalogEntry[], entry: CardCatalogEntry, 
 /**
  * Each sort order is computed once and filtered in that order, so a search is one pass; a changed or removed entry
  * moves only itself within the computed orders. Results stay cached per query and sort until the catalog changes.
+ * The duplicate contents of `is:duplicate` stay cached until a front changes or a card comes or goes; its hits keep
+ * each group of equal fronts together.
  */
 export function createCatalogSearchIndex() {
   const entries = new Map<string, CardCatalogEntry>();
   const orders = new Map<CardTableSort["field"], CardCatalogEntry[]>();
   let cached: { key: string; all: CardCatalogEntry[]; byDeck: Map<string, CardCatalogEntry[]>; scoped: Map<string, CardCatalogEntry[]> } | null = null;
+  let duplicates: Map<string, string> | null = null;
   const move = (previous: CardCatalogEntry | undefined, next: CardCatalogEntry | undefined) => {
     for (const [field, sorted] of orders) {
       const compare = compareEntries(field);
@@ -73,16 +77,21 @@ export function createCatalogSearchIndex() {
       for (const row of rows) if (!row.deletedAt) entries.set(row.id, row);
       orders.clear();
       cached = null;
+      duplicates = null;
     },
     put(row: CardCatalogEntry) {
       const previous = entries.get(row.id);
       if (row.deletedAt) entries.delete(row.id);
       else entries.set(row.id, row);
+      if (!previous || row.deletedAt || previous.noteId !== row.noteId || previous.frontPreview !== row.frontPreview || previous.sortText !== row.sortText) duplicates = null;
       move(previous, row.deletedAt ? undefined : row);
     },
     remove(id: string) {
       const previous = entries.get(id);
-      if (previous && entries.delete(id)) move(previous, undefined);
+      if (previous && entries.delete(id)) {
+        duplicates = null;
+        move(previous, undefined);
+      }
     },
     search(query: string, sort: CardTableSort, context?: CardSearchContext): ReadonlyMap<string, readonly CardCatalogEntry[]> {
       return matching(query, sort, context).byDeck;
@@ -110,17 +119,25 @@ export function createCatalogSearchIndex() {
     const key = JSON.stringify([query, sort.field, sort.direction, context ?? null]);
     if (cached?.key === key) return cached;
     const search = parseCardSearchQuery(query, context);
-    const all: CardCatalogEntry[] = [];
+    const duplicateGroups = searchesDuplicates(search) ? duplicates ??= duplicateContents(entries.values()) : undefined;
+    let all: CardCatalogEntry[] = [];
     const byDeck = new Map<string, CardCatalogEntry[]>();
+    const addToDeck = (entry: CardCatalogEntry) => {
+      const list = byDeck.get(entry.deckId);
+      if (list) list.push(entry);
+      else byDeck.set(entry.deckId, [entry]);
+    };
     const sorted = order(sort.field);
     const descending = sort.direction === "desc";
     for (let index = 0; index < sorted.length; index += 1) {
       const entry = sorted[descending ? sorted.length - 1 - index : index];
-      if (!matchesCardSearch(entry, search)) continue;
+      if (!matchesCardSearch(entry, search, duplicateGroups)) continue;
       all.push(entry);
-      const list = byDeck.get(entry.deckId);
-      if (list) list.push(entry);
-      else byDeck.set(entry.deckId, [entry]);
+      if (!duplicateGroups) addToDeck(entry);
+    }
+    if (duplicateGroups) {
+      all = groupDuplicates(all, duplicateGroups);
+      all.forEach(addToDeck);
     }
     cached = { key, all, byDeck, scoped: new Map() };
     return cached;
