@@ -97,6 +97,12 @@ test("ZIP64: Endverzeichnis und Zusatzfelder je Eintrag liefern dieselben EintrÃ
   assert.deepEqual(await contents(storedZip(FILES, { zip64End: true, zip64Entries: true })), FILES);
 });
 
+test("Genau 65.535 EintrÃ¤ge ohne ZIP64-Endverzeichnis, wie Pythons zipfile sie schreibt, bleiben lesbar", async () => {
+  const files = Object.fromEntries(Array.from({ length: 0xffff }, (_, index) => [String(index), ""]));
+  const archive = await readZipArchive(storedZip(files));
+  assert.equal(archive.listEntries().length, 0xffff);
+});
+
 test("ZIP64: ein markiertes Endverzeichnis ohne ZIP64-Verweis bleibt ein sichtbarer Fehler", async () => {
   const valid = new Uint8Array(await storedZip(FILES, { zip64End: true }).arrayBuffer());
   const withoutLocator = new Uint8Array([...valid.subarray(0, valid.length - 42), ...valid.subarray(valid.length - 22)]);

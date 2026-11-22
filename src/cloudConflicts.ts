@@ -19,7 +19,7 @@ import {
 } from "./cloudQueries.ts";
 
 const ROW_IDENTITY_FIELDS = new Set(["id", "user_id", "created_at", "updated_at", "sync_change_id", "revision", "updated_by_device_id"]);
-const COMPARABLE_TIMESTAMP_FIELDS = new Set(["answered_at", "deleted_at", "due_at", "last_reviewed_at"]);
+const COMPARABLE_TIMESTAMP_FIELDS = new Set(["answered_at", "deleted_at", "due_at", "last_reviewed_at", "imported_anki_modified_at"]);
 export const CARD_STUDY_FIELDS = [
   "state", "due_at", "stability", "difficulty", "reps", "lapses", "interval_days", "learning_step_index",
   "last_reviewed_at", "last_rating", "leeched_at", "study_extra", "source_scheduler", "study_revision",
@@ -46,6 +46,7 @@ export const CONFLICT_PROTECTED_FIELDS = new Set([
   "content_revision",
   "imported_content_revision",
   "imported_tags",
+  "imported_anki_modified_at",
   "parent_deck_id",
   "model_run_id",
   "hierarchy_path",

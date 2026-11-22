@@ -32,13 +32,18 @@ const ZIP64_MARK_32 = 0xffffffff;
 const ZIP64_LOCATOR_BYTES = 20;
 const ZIP64_END_BYTES = 56;
 
-/** ZIP64 end record behind its locator, which sits directly before the classic end record. */
-async function readZip64End(blob: Blob, eocdOffset: number) {
+/**
+ * ZIP64 end record behind its locator, which sits directly before the classic end record; null without a locator,
+ * which `required` forbids.
+ */
+async function readZip64End(blob: Blob, eocdOffset: number, required: boolean) {
   const locatorOffset = eocdOffset - ZIP64_LOCATOR_BYTES;
-  if (locatorOffset < 0) throw new Error("Das ZIP64-Endverzeichnis fehlt.");
-  const locator = await readRange(blob, locatorOffset, ZIP64_LOCATOR_BYTES, "ZIP64-Verweis");
-  const locatorView = new DataView(locator.buffer, locator.byteOffset, locator.byteLength);
-  if (readUint32(locatorView, 0) !== 0x07064b50) throw new Error("Das ZIP64-Endverzeichnis fehlt.");
+  const locator = locatorOffset < 0 ? null : await readRange(blob, locatorOffset, ZIP64_LOCATOR_BYTES, "ZIP64-Verweis");
+  const locatorView = locator && new DataView(locator.buffer, locator.byteOffset, locator.byteLength);
+  if (!locatorView || readUint32(locatorView, 0) !== 0x07064b50) {
+    if (required) throw new Error("Das ZIP64-Endverzeichnis fehlt.");
+    return null;
+  }
   const endOffset = readUint64(locatorView, 8);
   const end = await readRange(blob, endOffset, ZIP64_END_BYTES, "ZIP64-Endverzeichnis");
   const endView = new DataView(end.buffer, end.byteOffset, end.byteLength);
@@ -156,10 +161,10 @@ export async function readZipArchive(file: ZipSource) {
     centralDirectorySize: readUint32(tailView, eocdInTail + 12),
     centralDirectoryOffset: readUint32(tailView, eocdInTail + 16),
   };
-  // Anki writes a ZIP64 end record once a package has 65,535 entries or more.
-  const zip64 = classic.entryCount === ZIP64_MARK_16 || classic.centralDirectorySize === ZIP64_MARK_32 || classic.centralDirectoryOffset === ZIP64_MARK_32
-    ? await readZip64End(blob, eocdOffset)
-    : null;
+  // Anki writes a ZIP64 end record once a package has 65,535 entries or more; Python's zipfile only above that, so
+  // exactly 65,535 entries carry the mark without one.
+  const sizesMarked = classic.centralDirectorySize === ZIP64_MARK_32 || classic.centralDirectoryOffset === ZIP64_MARK_32;
+  const zip64 = classic.entryCount === ZIP64_MARK_16 || sizesMarked ? await readZip64End(blob, eocdOffset, sizesMarked) : null;
   const { entryCount, centralDirectorySize, centralDirectoryOffset } = zip64 ?? classic;
   assertRange(blob.size, centralDirectoryOffset, centralDirectorySize, "Zentrales ZIP-Verzeichnis");
   if (centralDirectoryOffset + centralDirectorySize > (zip64?.endOffset ?? eocdOffset)) throw new Error("Das ZIP-Verzeichnis überlappt sein Endverzeichnis.");
