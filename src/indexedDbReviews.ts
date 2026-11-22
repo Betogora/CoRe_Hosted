@@ -88,7 +88,7 @@ export function createReviewWrites({ userId, database, enqueueWrite, outbox, stu
       write(result, updatedCard, variant, "review-atomic", event.answeredAt, (previous, note, answered) => {
         historyBeforeAnswer.set(event.id, catalogReviewHistory(previous));
         const history = withStudyEvents(previous, [event]);
-        return note ? catalogRecordFor(answered, note, history) : storedCatalogRecord({ ...catalogEntryFromCard(answered, null, history), ...(previous ? { frontPreview: previous.frontPreview, sortText: previous.sortText, normalizedSearchText: previous.normalizedSearchText, marked: previous.marked, tagKeys: previous.tagKeys, editedAt: previous.editedAt, contentKind: previous.contentKind, noteTypeId: previous.noteTypeId } : {}) });
+        return note ? catalogRecordFor(answered, note, history) : storedCatalogRecord({ ...catalogEntryFromCard(answered, null, history), ...(previous ? { frontPreview: previous.frontPreview, sortText: previous.sortText, normalizedSearchText: previous.normalizedSearchText, marked: previous.marked, tagKeys: previous.tagKeys, editedAt: previous.editedAt, contentKind: previous.contentKind, noteTypeId: previous.noteTypeId, variantRefused: previous.variantRefused } : {}) });
       });
       return result;
     },
