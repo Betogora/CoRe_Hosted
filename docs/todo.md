@@ -1,30 +1,13 @@
 # CoRe TODO
 
-Stand: 2026-11-19
+Stand: 2026-11-22
 
 Nur offene Arbeit. Ist-Stand in [`status.md`](status.md), Entscheidungen in
 [`decisions.md`](decisions.md), erledigte Arbeit in [`history.md`](history.md).
 
-Reihenfolge = Priorität. P1 läuft, P2 folgt; P5 wartet, bis alle KI-Prompts stehen. Offene Nachweise brauchen keinen Code und
+Reihenfolge = Priorität. P2 läuft; P5 wartet, bis alle KI-Prompts stehen. Offene Nachweise brauchen keinen Code und
 laufen unabhängig davon; die Release-Voraussetzungen sind vor dem ersten
 externen Release fällig. „Später“ ist geparkt.
-
-## P1: Specs-Agenda umsetzen
-
-Entscheidungen vom 2026-11-14 zur Kommentierung der Specs bis Kapitel 5; die
-Zahlen in Klammern sind die Fragen der Agenda. Je Paket ein PR, unabhängig
-voneinander.
-
-- [ ] **4 Sync und Import, Rest:** Offene Befunde der
-      Anki-Prüfung vom 2026-11-19 (2.6): `furigana`/`kanji` wird in den
-      Inhalt eingebrannt und zerstört `[sound:]`; `{{^Feld}}` um die
-      Vorderseite erzeugt eine Zusatzkarte; der Reimport ignoriert Ankis
-      `mod` und Notiztypwechsel; kein ZIP64; Randfälle des Originallayouts
-      (`{{cloze:Extra}}`, `{{#c2}}`, `&nbsp;`); der Footer von Image
-      Occlusion Enhanced fehlt im Review; Lücken nur in Rückseitenfeldern
-      ergeben in Anki eigene Karten, CoRe zeigt dafür noch keine aktive Lücke;
-      `{{C1::` gilt in CoRe anders als in Anki als Lücke (gespeicherte
-      Inhalte hängen daran).
 
 ## P2: Karten aus einer Quelle per KI erstellen
 
@@ -225,6 +208,10 @@ Messung vom 2026-10-31 im [Verlauf](history.md).
   übernehmen; der Import selbst steht.
 - AnkiHub-Schutz-Tags (`AnkiHub_Protect::Feld`) als Feldschutz beim Reimport
   auswerten.
+- `furigana`/`kana`/`kanji` erst bei der Darstellung anwenden statt beim
+  Import in den Inhalt zu schreiben; heute geht die Lesehilfe im Inhalt auf.
+- Eine Vorderseite nur aus `{{type:Feld}}` ergibt heute keine Karte; Anki
+  fragt dann nur nach der Eingabe.
 - Inhaltsform importierter Inhalte wechseln, als Umwandlung in einen eigenen
   Inhalt.
 - Feldeigenschaften aus Notiztypen: Schreibrichtung rechts nach links,

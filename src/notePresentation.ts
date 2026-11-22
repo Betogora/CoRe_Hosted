@@ -7,7 +7,7 @@ import { sanitizeLayoutHtml, sanitizeNoteHtml } from "./htmlSafety.ts";
 import { noteContentMediaRefs } from "./coreModel.ts";
 import { buildSrcdoc } from "./presentationFrame.ts";
 import { colorContrast, ensureTextContrast, hexToHsv, resolveCssColor } from "./colorMath.ts";
-import { clozeAt, isClozeOpening } from "./clozeSyntax.ts";
+import { clozeAt, isClozeOpening, mapClozes } from "./clozeSyntax.ts";
 
 export const NOTE_THEME_COLORS = ["surface", "surface-muted", "text", "text-muted", "border", "border-interactive", "success", "success-surface", "danger", "danger-surface"] as const;
 
@@ -292,14 +292,25 @@ function layoutAst(source: NoteTypeSource, template: LayoutTemplate) {
   return ast;
 }
 
-// Like Anki, a field with only whitespace, line breaks or empty divs counts as empty in `{{#Field}}`.
-const emptyField = (html: string) => /^(?:\s|&nbsp;|<\/?(?:br|div)\b[^>]*>)*$/i.test(html);
-const rubyText = (html: string, mode: string) => html.replace(/ ?([^ >[\]]+?)\[([^\]]+?)\]/g, (_match, base: string, reading: string) =>
-  mode === "kana" ? reading : mode === "kanji" ? base : `<ruby>${base}<rt>${reading}</rt></ruby>`);
+// Like Anki, a field with only ASCII whitespace, line breaks or empty divs counts as empty in `{{#Field}}`; `&nbsp;` does not.
+const emptyField = (html: string) => /^(?:[ \t\n\v\f\r]|<\/?(?:br|div)\b[^>]*>)*$/i.test(html);
+// Anki leaves `[sound:…]` alone, which the reading pattern would otherwise take for furigana.
+const rubyText = (html: string, mode: string) => html.replace(/ ?([^ >[\]]+?)\[([^\]]+?)\]/g, (match, base: string, reading: string) =>
+  reading.startsWith("sound:") ? match : mode === "kana" ? reading : mode === "kanji" ? base : `<ruby>${base}<rt>${reading}</rt></ruby>`);
+
+function hasCloze(value: string, ordinal: number) {
+  let found = false;
+  mapClozes(value, (token, inner) => {
+    if (token.ordinals.includes(ordinal)) found = true;
+    return inner;
+  });
+  return found;
+}
 
 function layoutFilter(value: string, filter: string, name: string, context: LayoutContext) {
   if (filter === "text") return escapeHtml(notePlainText(value));
-  if (filter === "cloze") return renderClozes(value, context.ordinal, context.side, false, "", true);
+  // Anki shows nothing for a field without a deletion of this card, e.g. `{{cloze:Extra}}` on another card.
+  if (filter === "cloze") return hasCloze(value, context.ordinal) ? renderClozes(value, context.ordinal, context.side, false, "", true) : "";
   if (filter === "hint") return emptyField(value) ? "" : `<details><summary>${escapeHtml(name)}</summary>${value}</details>`;
   if (filter === "type") return context.side === "answer" && context.typedAnswer !== undefined ? typedComparisonHtml(notePlainText(value), context.typedAnswer) : "";
   if (filter === "furigana" || filter === "kana" || filter === "kanji") return rubyText(value, filter);
@@ -334,12 +345,15 @@ async function renderOriginalLayout({ note, card, side, surface, theme, mathCss,
   typedAnswer: string | undefined; deckName: string; source: NoteTypeSource; template: LayoutTemplate;
 }): Promise<NotePresentationResult | null> {
   const ast = layoutAst(source, template);
-  const ordinal = Number(card.promptKey.split(":")[1]);
+  // Anki's card number: the deletion number of a cloze card, otherwise the template's; `{{cloze:}}` and `{{#c2}}` use it.
+  const deletion = Number(card.promptKey.split(":")[1]);
+  const ordinal = Number.isFinite(deletion) ? deletion : template.ordinal + 1;
   const context: LayoutContext = {
     fields: new Map(note.content.fields.map((field) => [field.id, field])),
     special: {
       Tags: note.content.tags.join(" "), Type: source.name, Card: template.name, CardFlag: card.ankiFlag ? `flag${card.ankiFlag}` : "",
       Deck: deckName, Subdeck: deckName.split("::").at(-1)!,
+      [`c${ordinal}`]: "1",
     },
     side: "question",
     ordinal,
@@ -362,7 +376,7 @@ async function renderOriginalLayout({ note, card, side, surface, theme, mathCss,
   // Without night rules of its own, the layout gets Anki's dark card colours so its text stays readable.
   const night = theme.mode === "dark" && !nightRules ? ".card{background-color:#2c2c2c;color:#fcfcfc}" : "";
   return {
-    srcdoc: buildSrcdoc(body, `${themeVariables(theme)}${APP_PART_CSS}${css}${night}${mathCss}`, theme.mode, surface === "review", `card card${source.kind === 1 ? ordinal : template.ordinal + 1}`),
+    srcdoc: buildSrcdoc(body, `${themeVariables(theme)}${APP_PART_CSS}${css}${night}${mathCss}`, theme.mode, surface === "review", `card card${ordinal}`),
     accessibleText: notePlainText(body),
     mediaReferences: [...new Set([...noteContentMediaRefs(note.content), ...media])],
     interactions: [...interactions],
