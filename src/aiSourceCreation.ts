@@ -9,11 +9,11 @@ export const MAX_AI_SOURCE_CHARS = 400_000;
 /** About 2,700 characters per page of running text. */
 export const AI_SOURCE_LIMIT_HINT = "Bis 20 MB (etwa 150 Seiten).";
 
-/** `density`: proposals per 1,000 read characters (low, high). */
+/** `density`: proposals per 1,000 read characters (low, high), measured on `fixtures/ai-source/`. */
 export const AI_SOURCE_AMOUNTS = [
-  { value: "less", label: "Weniger", density: [1.5, 3], instruction: "Erstelle Karten nur für die zentralen Kernaussagen." },
-  { value: "normal", label: "Normal", density: [3, 6], instruction: "Erstelle Karten für die Kernaussagen und wichtigen Zusammenhänge." },
-  { value: "more", label: "Mehr", density: [5, 9], instruction: "Erstelle Karten für Kernaussagen und Zusammenhänge sowie für relevante Details, Bedingungen und Ausnahmen." },
+  { value: "less", label: "Weniger", density: [6, 10], instruction: "Erstelle Karten nur für die zentralen Kernaussagen." },
+  { value: "normal", label: "Normal", density: [6, 10], instruction: "Erstelle Karten für die Kernaussagen und wichtigen Zusammenhänge." },
+  { value: "more", label: "Mehr", density: [6, 10], instruction: "Erstelle Karten für Kernaussagen und Zusammenhänge sowie für relevante Details, Bedingungen und Ausnahmen." },
 ] as const;
 
 export function estimateAiSourceCards(sourceChars: number, amount: AiSourceSettings["amount"]): string {

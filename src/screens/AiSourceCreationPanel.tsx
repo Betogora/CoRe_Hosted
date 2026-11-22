@@ -66,8 +66,8 @@ export function AiSourceCreationPanel({ decks, initialTargetDeckId, onDraftState
   const valid = !Object.values(errors).some(Boolean);
   const dirty = Boolean(draft.file) || JSON.stringify(draft) !== JSON.stringify(initialDraft.current);
   const sourceKey = draft.sourceMode === "text" ? draft.sourceText : draft.file;
-  const currentSourceKey = React.useRef(sourceKey);
-  currentSourceKey.current = sourceKey;
+  const latest = React.useRef({ sourceKey, targetError: errors.target });
+  latest.current = { sourceKey, targetError: errors.target };
   const readSource = source?.of === sourceKey ? source : null;
   const readError = sourceError?.of === sourceKey ? sourceError.message : "";
   const targetDeck = decks.find(({ id }) => id === draft.deckId);
@@ -131,13 +131,13 @@ export function AiSourceCreationPanel({ decks, initialTargetDeckId, onDraftState
   }
 
   async function advance(next = step + 1) {
-    if (reading) return;
     if (step === 0) {
       if (errors.source || errors.target) { showMissing(); return; }
       const of = sourceKey;
       if (!await loadSource()) { showMissing(sourceRef); return; }
-      // The source may have been replaced or removed while it was being read.
-      if (currentSourceKey.current !== of) return;
+      // Source and target stay editable while the source is being read.
+      if (latest.current.sourceKey !== of) return;
+      if (latest.current.targetError) { showMissing(targetRef); return; }
     }
     if (next > 1 && errors.cardForms) { showMissing(formatsRef); return; }
     setStep(Math.min(next, 2));

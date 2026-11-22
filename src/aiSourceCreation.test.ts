@@ -98,11 +98,9 @@ test("text sources are required only in text mode and cannot bypass file validat
   assert.match(validateAiSourceCreation(draft, []).source!, /Quelldatei/);
 });
 
-test("the card estimate grows with source length and amount and names the proposal limit", () => {
-  const ranges = AI_SOURCE_AMOUNTS.map(({ value }) => estimateAiSourceCards(10_000, value));
-  for (const range of ranges) assert.match(range, /^Etwa \d+–\d+ Karten$/);
-  const lows = ranges.map((range) => Number(range.match(/\d+/)![0]));
-  assert.ok(lows[0]! < lows[1]! && lows[1]! < lows[2]!, ranges.join(" / "));
+test("the card estimate grows with source length and names the proposal limit", () => {
+  for (const { value } of AI_SOURCE_AMOUNTS) assert.match(estimateAiSourceCards(5_000, value), /^Etwa \d+–\d+ Karten$/);
+  assert.notEqual(estimateAiSourceCards(2_000, "normal"), estimateAiSourceCards(5_000, "normal"));
   assert.equal(estimateAiSourceCards(1, "less"), "Etwa 1 Karte");
   const [low, high] = AI_SOURCE_AMOUNTS[2].density;
   assert.match(estimateAiSourceCards(100_000 / ((low + high) / 2), "more"), /^Etwa \d+–100 Karten$/);

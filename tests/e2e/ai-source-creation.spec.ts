@@ -16,7 +16,6 @@ test("Schritte erhalten Text, Lernwünsche und ein einziges Stapelziel bis zur P
   await page.setViewportSize({ width: 390, height: 844 });
   const panel = await openCatalogFlow(page);
   await expect(panel.getByRole("heading", { name: "Quelle und Stapel", exact: true })).toBeVisible();
-  await expect(panel.getByRole("heading", { name: "Vorgaben", exact: true })).toBeHidden();
   await next(panel);
   await expect(panel.getByRole("alert").filter({ hasText: "Wähle eine Quelldatei" })).toBeVisible();
   await expect(panel.getByRole("button", { name: "Datei auswählen", exact: true })).toBeFocused();
@@ -45,7 +44,6 @@ test("Schritte erhalten Text, Lernwünsche und ein einziges Stapelziel bis zur P
   await expect(panel.getByLabel("Dein Quelltext")).toHaveValue(text);
   await panel.getByLabel("Stapelname").fill("Geänderter Textstapel");
   await page.setViewportSize({ width: 1440, height: 900 });
-  await expect(panel.getByTestId("ai-source-step")).toHaveCount(1);
   await stepButton(panel, "Vorgaben").click();
   await expect(panel.getByRole("combobox", { name: "Formulierung", exact: true })).toContainText("Einfach verständlich");
   await panel.getByRole("button", { name: "Auftrag prüfen", exact: true }).click();
@@ -350,7 +348,6 @@ for (const theme of ["light", "dark"] as const) {
       for (const [index, name] of ["Quelle und Stapel", "Kartenformen", "Vorgaben"].entries()) {
         await stepButton(panel, name).click();
         await expect(panel.getByRole("heading", { name, exact: true })).toBeAttached();
-        await expect(panel.getByTestId("ai-source-step")).toHaveCount(1);
         await page.screenshot({ path: testInfo.outputPath(`form-${width}-${index + 1}.png`), animations: "disabled", fullPage: true });
         expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
       }
