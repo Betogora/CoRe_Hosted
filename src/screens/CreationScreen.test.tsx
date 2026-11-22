@@ -55,19 +55,18 @@ test("source creation offers readable files and settings without a generation ac
   assert.match(markup, /Die automatische Erstellung ist noch nicht verfügbar/);
   assert.match(markup, /accept="\.pdf,\.txt,\.md,\.markdown,\.csv,\.tsv"/);
   assert.match(markup, /data-screen-heading[^>]*>Karten automatisch erstellen lassen<\/h2>/);
-  for (const title of ["Quelle und Stapel", "Vorgaben", "Karten"]) assert.match(markup, new RegExp(`<h3[^>]*>${title}</h3>`), title);
-  for (const label of ["Quelle", "Stapelname", "Kartenmenge", "Antwortlänge", "Sprache", "Formulierung", "Vorwissen", "Weitere Hinweise", "Kartenformate", "Zielstapel"]) assert.match(markup, new RegExp(`>${label}(?: <|</)`), label);
+  assert.match(markup, /<h3[^>]*>Quelle und Stapel<\/h3>/);
+  for (const label of ["Quelle und Stapel", "Kartenformen", "Vorgaben"]) assert.match(markup, new RegExp(`class="core-steps-label">${label}<`), label);
+  for (const label of ["Quelle", "Stapelname"]) assert.match(markup, new RegExp(`>${label}(?: <|</)`), label);
+  assert.doesNotMatch(markup, /Kartenmenge|Antwortlänge|core-ai-source-format"/, "Kartenformen und Vorgaben folgen in eigenen Schritten");
   assert.match(markup, /role="switch"[\s\S]*?Neuen Stapel anlegen/);
   assert.doesNotMatch(markup, /Schritt 0|Schritt 1 von 3|\?</);
   assert.match(markup, /<ol aria-label="Schritte der automatischen Erstellung"/);
   assert.doesNotMatch(markup, /class="core-steps-step" disabled/, "Weiter und Schritte bleiben aktiv und markieren fehlende Angaben");
-  assert.equal((markup.match(/class="core-ai-source-format"/g) ?? []).length, 4);
-  assert.match(markup, /Auftrag prüfen/);
-  assert.equal((markup.match(/type="checkbox"(?! role="switch")[^>]*checked=""/g) ?? []).length, 1);
+  assert.match(markup, /Weiter zu den Kartenformen/);
   assert.match(markup, /Bis 20 MB \(etwa 150 Seiten\)\. Die Quelle wird nur zum Erstellen genutzt und nicht gespeichert\./);
   assert.match(markup, />Quelldatei hier ablegen<\/p><p class="core-body text-core-secondary">PDF, Text, Markdown, CSV oder TSV<\/p>/);
   assert.match(markup, /type="checkbox" role="switch"[^>]*checked=""/);
-  assert.match(markup, /xl:grid-cols-3/);
   assert.doesNotMatch(markup, /type="range"|type="number"|>Karten erstellen<\/span>/);
 });
 

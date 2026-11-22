@@ -5,16 +5,9 @@ Stand: 2026-11-22
 Nur offene Arbeit. Ist-Stand in [`status.md`](status.md), Entscheidungen in
 [`decisions.md`](decisions.md), erledigte Arbeit in [`history.md`](history.md).
 
-Reihenfolge = Priorität. P2 läuft; P5 wartet, bis alle KI-Prompts stehen. Offene Nachweise brauchen keinen Code und
+Reihenfolge = Priorität. P5 wartet, bis alle KI-Prompts stehen. Offene Nachweise brauchen keinen Code und
 laufen unabhängig davon; die Release-Voraussetzungen sind vor dem ersten
 externen Release fällig. „Später“ ist geparkt.
-
-## P2: Karten aus einer Quelle per KI erstellen
-
-- [ ] **Formular (Agenda 3.1–3.6):** drei Schritte Zielstapel, Kartenformen,
-      Vorgaben im gemeinsamen Schrittbaustein (`Steps`);
-      Kartenmenge als Stufe mit Hochrechnung, vorher recherchieren, wie
-      andere Apps das lösen, danach Mischung und Lernziele entscheiden.
 
 ## P5: KI-Eval und Hillclimb
 
@@ -22,7 +15,7 @@ Zurückgestellt, bis alle geplanten KI-Prompts stehen. Als Bauvorleistung
 steht der Runner mit Definitionen für Varianten (Frage/Antwort, Lückentext,
 Auswahl) und `card-help`; Ablauf, Ablage und Stand stehen unter
 [KI-Eval](ai-eval.md). Gemessen ist noch nichts: kein echter Lauf, keine
-Kalibrierung, kein Ledger-Eintrag. Karten aus einer Quelle (P2) und
+Kalibrierung, kein Ledger-Eintrag. Karten aus einer Quelle und
 gegebenenfalls Quiz bekommen eine eigene Definition im selben Schema, sobald
 ihre Prompts stehen; für die Zusammenfassung fehlt ein Eval-Entwurf. Grundsätze im
 vorgeschlagenen
@@ -78,6 +71,14 @@ bewertet werden.
       Belegtreue, Kosten und Laufzeit. Dazu die Reste nach `source-cards-v2`
       ([Verlauf](history.md)): Single Choice wird nie gewählt, und
       Tabellenzeilen mit zwei Angaben ergeben weiter Doppelfragen.
+- [ ] **Karten aus einer Quelle: Kartenmenge wirksam machen.** Weniger,
+      Normal und Mehr ergeben heute gleich viele Vorschläge (Messung vom
+      2026-11-22 im [Verlauf](history.md): 77, 76 und 77 auf den fünf
+      Prüfdokumenten, 6–10 je 1.000 Zeichen); die Schätzung im Formular nennt
+      deshalb für jede Stufe dieselbe Spanne. Ziel über dieselben
+      Prüfdokumente: Weniger höchstens 60 % und Mehr mindestens 140 % der
+      Vorschläge von Normal, ohne Füllkarten und bei gleicher Belegtreue.
+      Danach die Dichten je Stufe in `AI_SOURCE_AMOUNTS` neu messen.
 - [ ] **Zielwerte (Entwurf):** Varianten: Hauptwert ≥ 95 %, M2-Verletzungen
       ≤ 1 % und keine bei Richtung, Kosten höchstens 1,2-fach, Latenz p90
       ≤ 4 s. `card-help`: Hauptwert ≥ 90 %, H2 ≥ 98 %, H6 = 100 %; Streaming
@@ -147,9 +148,9 @@ neuen Code.
 
 ### KI
 
-- DOCX und PPTX als Quellen für P2 (ZIP und XML, ohne neue Abhängigkeit über
+- DOCX und PPTX als Quellen für Karten aus einer Quelle (ZIP und XML, ohne neue Abhängigkeit über
   `zipReader.ts` prüfen; Beleg je Folie oder Abschnitt).
-- Bilder als Quelle für P2 (teurer, eigener Hillclimb); braucht eine Ergänzung
+- Bilder als Quelle für Karten aus einer Quelle (teurer, eigener Hillclimb); braucht eine Ergänzung
   von ADR-011 (Agenda 3.3, 3.5).
 - KI-Kontingente je Nutzer im Zusammenspiel mit Bezahlstufen bzw.
   Abonnements (Umfang je Stufe, Credits, Abrechnung nach Kosten).
