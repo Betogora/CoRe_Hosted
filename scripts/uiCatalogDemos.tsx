@@ -632,7 +632,7 @@ function ExamTopicOrderDemo() {
 
 const DEMO_IMPORT_ACTIONS = {
   commitImport: async (graph: { cardCount: number }) => ({
-    decks: [deck], rootDeck: deck, createdCount: graph.cardCount, keptLocalEdits: 0, missingInPackage: 0,
+    decks: [deck], rootDeck: deck, createdCount: graph.cardCount, keptLocalEdits: 0, olderInPackage: 0, missingInPackage: 0,
     cloudTask: { status: "cloud-ready" as const, ready: Promise.resolve(), retry: async () => ({ status: "cloud-ready" as const, message: "" }), subscribe: () => () => undefined },
   }),
   getInterruptedImport: async () => ({ fileName: "Anatomie.apkg", fileSize: 48_000_000, deckIds: [deck.id], cardCount: 2_480, committedCards: 1_000 }),

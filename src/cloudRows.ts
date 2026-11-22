@@ -46,6 +46,7 @@ export function noteToCloudRow(note: Note, userId: string) {
     content_revision: normalizeRevision(note.contentRevision),
     imported_content_revision: note.importedContentRevision,
     imported_tags: note.importedTags,
+    imported_anki_modified_at: note.importedAnkiModifiedAt ?? null,
     created_at: note.createdAt,
     updated_at: note.updatedAt,
     ...syncFields(note),

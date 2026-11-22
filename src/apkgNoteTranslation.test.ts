@@ -3,6 +3,7 @@ import { createHash } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
 import { ANKI_PACKAGE_MAX_BYTES, readAnkiPackage, type AnkiPackage, type AnkiPackageMediaFile } from "./apkgImportInternal.ts";
+import { createNote } from "./coreModel.ts";
 import { parseEnhancedMaskSvg, parseImageOcclusionField, retranslateNoteContent, translateAnkiPackage, type NoteTypeSource } from "./apkgNoteTranslation.ts";
 
 const IMPORTED_AT = "2026-10-07T12:00:00.000Z";
@@ -296,6 +297,23 @@ test("Wie in Anki entsteht eine Karte aus jeder Vorderseite mit gefülltem Feld,
   assert.deepEqual(graph.cards.map((item) => [item.promptKey, item.ankiCardId]), [["anki-0", "200"], ["anki-1", "201"], ["cloze:1", "210"]]);
   assert.equal(graph.cards[1].study.state, "review", "die Hörkarte behält ihren Lernstand");
   assert.deepEqual([graph.report.addedCards, graph.report.droppedCards], [0, 0]);
+});
+
+test("Wie in Anki entsteht eine Vorderseite in {{^Feld}} nur, solange das Feld leer ist, auch nach dem Bearbeiten", async () => {
+  const optional = model("9", ["Front", "Back", "Bild"], [
+    ["{{Front}}", "{{FrontSide}}<hr id=answer>{{Back}}"],
+    ["{{^Bild}}{{Back}}{{/Bild}}", "{{FrontSide}}<hr id=answer>{{Front}}"],
+  ]);
+  const graph = await translateAnkiPackage(ankiPackage({
+    models: { 9: optional },
+    notes: [note("100", "9", ["Hund", "dog", ""]), note("101", "9", ["Katze", "cat", '<img src="katze.png">'])],
+    cards: [card("200", "100", 0), card("201", "100", 1), card("210", "101", 0)],
+  }), { importedAt: IMPORTED_AT });
+
+  assert.deepEqual(graph.cards.map((item) => [item.noteId === graph.notes[0].id ? "Hund" : "Katze", item.promptKey, item.ankiCardId]), [["Hund", "anki-0", "200"], ["Hund", "anki-1", "201"], ["Katze", "anki-0", "210"]]);
+  assert.deepEqual([graph.report.addedCards, graph.report.droppedCards], [0, 0]);
+  const withImage = { ...graph.notes[0].content, fields: graph.notes[0].content.fields.map((field) => field.name === "Bild" ? { ...field, html: '<img src="hund.png">' } : field) };
+  assert.deepEqual(createNote({ deckId: "deck", content: withImage }).cards.map((item) => item.promptKey), ["anki-0"]);
 });
 
 test("Moderne Pakete ordnen Medien per Position ihrem ZIP-Eintrag zu", async () => {

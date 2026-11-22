@@ -210,7 +210,8 @@ export interface NoteField {
 }
 
 export interface NoteFieldRequirement {
-  mode: "all" | "any";
+  /** `none`: the card exists only while all listed fields are empty (Anki's `{{^Field}}`). */
+  mode: "all" | "any" | "none";
   fieldIds: string[];
 }
 
@@ -285,6 +286,8 @@ export interface Note {
   importedContentRevision: number | null;
   /** Tags of the last APKG import, the base of the three-way tag merge on reimport. Null for manual notes. */
   importedTags: string[] | null;
+  /** Anki's modification time of the note in the last import; an older package leaves the content. Null for manual notes and imports before it was kept. */
+  importedAnkiModifiedAt: string | null;
   createdAt: string;
   updatedAt: string;
   revision: number;
