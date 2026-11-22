@@ -430,7 +430,7 @@ test("learning rows activate directly while expand and settings remain independe
 
   const rootRow = page.getByTestId(`learn-deck-row-${DECK_IDS.root}`);
   const europeRow = page.getByTestId(`learn-deck-row-${DECK_IDS.europe}`);
-  await expect(page.getByTestId("learn-deck-list-header")).toContainText("Aktive Stapel");
+  await expect(page.getByTestId("learn-deck-list-header")).toHaveCount(0);
   await expect(page.getByRole("button", { name: "Lernen öffnen" })).toHaveCount(0);
   await expect(page.getByTestId("deck-summary-header")).toHaveText("StapelNeuOffenFällig");
   await expect(metric(rootRow, "new").locator("dt")).toHaveClass(/sr-only/);

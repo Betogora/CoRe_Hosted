@@ -23,6 +23,23 @@ export function useCardSelection({ canSelect, hitList, items, cardItems, rowOf, 
   }, []);
   // The scope compares by its decks: a sync renews the deck list without changing it.
   const hitScopeKey = hitScope.join("\n");
+  const shownHitsRef = React.useRef("");
+  shownHitsRef.current = `${deferredQuery}\n${hitScopeKey}`;
+  /**
+   * Selects the loaded cards and returns their number; null when a new search or scope came first, which selects
+   * nothing. No card ends the selection.
+   */
+  const selectLoadedCards = React.useCallback(async (load: () => Promise<readonly string[]>) => {
+    const hits = shownHitsRef.current;
+    const ids = await load();
+    if (hits !== shownHitsRef.current) return null;
+    setSelectionRequest(null);
+    setAllHits(false);
+    setCheckedIds(new Set(ids));
+    setSelecting(ids.length > 0);
+    selectionAnchorRef.current = null;
+    return ids.length;
+  }, []);
   React.useEffect(() => {
     if (selecting || allHits || checkedIds.size) clearSelection();
     // Only a new search or scope clears; without a selection nothing changes, so no extra render follows.
@@ -121,5 +138,5 @@ export function useCardSelection({ canSelect, hitList, items, cardItems, rowOf, 
     window.addEventListener("keydown", handleListKey);
     return () => window.removeEventListener("keydown", handleListKey);
   }, [handleListKey]);
-  return { selecting, setSelecting, checkedIds, allHits, setAllHits, clearSelection, toggleCheck: stableToggleCheck, selectionCount, selectionRequest, lastUndoRef, keyActionRowRef, setFocusRowAfterAction };
+  return { selecting, setSelecting, checkedIds, allHits, setAllHits, clearSelection, selectLoadedCards, toggleCheck: stableToggleCheck, selectionCount, selectionRequest, lastUndoRef, keyActionRowRef, setFocusRowAfterAction };
 }

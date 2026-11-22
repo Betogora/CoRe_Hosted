@@ -170,6 +170,7 @@ export function CreationScreen({
             {resolvedCompletedCount} {resolvedCompletedCount === 1 ? "Karte wurde" : "Karten wurden"} {resolvedCompletionKind === "import" ? "aus" : "in"} „{(completedDeck.hierarchyPath.length ? completedDeck.hierarchyPath : [completedDeck.name]).join(" / ")}“ gespeichert.
           </p>
           {importResult?.reimport?.keptLocalEdits ? <p className="mx-auto mt-2 max-w-xl core-body text-core-muted">{importResult.reimport.keptLocalEdits} lokal {importResult.reimport.keptLocalEdits === 1 ? "bearbeiteter Inhalt blieb" : "bearbeitete Inhalte blieben"} unverändert.</p> : null}
+          {importResult?.reimport?.olderInPackage ? <p className="mx-auto mt-2 max-w-xl core-body text-core-muted">{importResult.reimport.olderInPackage} {importResult.reimport.olderInPackage === 1 ? "Inhalt ist" : "Inhalte sind"} im Paket älter als in CoRe und {importResult.reimport.olderInPackage === 1 ? "blieb" : "blieben"} unverändert.</p> : null}
           {importResult?.reimport?.missingInPackage ? <p className="mx-auto mt-2 max-w-xl core-body text-core-muted">{importResult.reimport.missingInPackage} {importResult.reimport.missingInPackage === 1 ? "Karte fehlt" : "Karten fehlen"} im Paket und {importResult.reimport.missingInPackage === 1 ? "bleibt" : "bleiben"} erhalten.</p> : null}
           <div className="mt-6 flex flex-wrap justify-center gap-3">
             <ActionButton type="button" variant="primary" onClick={() => onStartDeck(completedDeck)}>Jetzt lernen</ActionButton>

@@ -1836,6 +1836,9 @@ video {
 .mr-2 {
   margin-right: 0.5rem;
 }
+.mr-3 {
+  margin-right: 0.75rem;
+}
 .mr-auto {
   margin-right: auto;
 }
@@ -2301,9 +2304,6 @@ video {
 }
 .min-w-4 {
   min-width: 1rem;
-}
-.min-w-40 {
-  min-width: 10rem;
 }
 .min-w-44 {
   min-width: 11rem;
@@ -4212,12 +4212,10 @@ svg.lucide {
   border-bottom: var(--core-border-width) solid var(--core-border);
   --core-deck-icon-background: transparent;
 }
-.core-deck-tree-header + .core-deck-tree-create { border-top: var(--core-border-width) solid var(--core-border-interactive); }
+.core-deck-tree-create:first-child { border-top: var(--core-border-width) solid var(--core-border-interactive); }
 
 @container core-deck-tree (max-width: 32rem) {
   .core-deck-tree-group { --core-deck-depth-indent: 10px; }
-  .core-deck-tree-container .core-deck-tree-header { grid-template-columns: minmax(0, 1fr); align-items: start; gap: var(--core-space-sm); }
-  .core-deck-tree-container .core-deck-tree-header-action { grid-column: 1; grid-row: 2; justify-self: start; gap: var(--core-space-xs); }
 }
 
 @container core-deck-tree (max-width: 28rem) {
@@ -6342,6 +6340,7 @@ button.core-steps-step {
 .dashboard-widget-content { height: var(--dashboard-widget-height); }
 .dashboard-widget-content > * { height: 100%; overflow: hidden; }
 .dashboard-widget[data-dashboard-widget="decks"] .dashboard-widget-content > * { overflow-y: auto; }
+.dashboard-widget[data-dashboard-widget="decks"] .dashboard-widget-content > [data-fitting] { overflow-y: hidden; }
 .dashboard-learning-body { height: 100%; align-content: center; }
 .dashboard-todos { display: flex; flex-direction: column; }
 /* The inset keeps focus rings (2 px plus 3 px offset) inside the scroll area. */
@@ -6811,6 +6810,10 @@ button.core-steps-step {
     width: auto !important;
   }
 
+  .max-sm\:min-w-button {
+    min-width: var(--core-button-height);
+  }
+
   .max-sm\:basis-\[calc\(100\%-3\.5rem\)\] {
     flex-basis: calc(100% - 3.5rem);
   }
@@ -6823,8 +6826,17 @@ button.core-steps-step {
     align-items: flex-start !important;
   }
 
+  .max-sm\:gap-0 {
+    gap: 0px;
+  }
+
   .max-sm\:gap-y-1 {
     row-gap: 0.25rem;
+  }
+
+  .max-sm\:px-0 {
+    padding-left: 0px;
+    padding-right: 0px;
   }
 
   .max-sm\:px-2\.5 {
@@ -7611,6 +7623,20 @@ button.core-steps-step {
 }
 .\[\&\>span\]\:text-left>span {
   text-align: left;
+}
+@media not all and (min-width: 640px) {
+
+  .max-sm\:\[\&\>span\]\:sr-only>span {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border-width: 0;
+  }
 }
 .\[\&\>svg\]\:relative>svg {
   position: relative;

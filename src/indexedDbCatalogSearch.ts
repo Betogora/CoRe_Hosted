@@ -1,5 +1,5 @@
 import type { CardTableSort } from "./libraryModel.ts";
-import { duplicateFieldNames, findDuplicateGroups, type DuplicateKey } from "./duplicateContents.ts";
+import { surplusDuplicateCardIds } from "./duplicateContents.ts";
 import { isEmptyCardSearch, parseCardSearchQuery, type CardSearchContext } from "./cardSearchQuery.ts";
 import { catalogSortValue, createCatalogSearchIndex } from "./catalogSearchIndex.ts";
 import type { CardCatalogEntry } from "./workspaceReplica.ts";
@@ -181,11 +181,10 @@ export function createCatalogSearch(database: IDBDatabase, flushWrites: () => Pr
       const rows = await Promise.all(cardIds.map((id) => requestResult<StoredCardCatalog | undefined>(store.get(id))));
       return new Map(rows.filter((row): row is StoredCardCatalog => Boolean(row)).map((row) => [row.id, catalogEntry(row)]));
     },
-    async findDuplicates(scope: readonly string[], { key, query = "", searchContext }: { key: DuplicateKey; query?: string; searchContext?: CardSearchContext }) {
+    async listSurplusDuplicateIds(scope: readonly string[], { query, searchContext }: { query: string; searchContext?: CardSearchContext }) {
       await flushWrites();
       await ensureSearchIndex();
-      const entries = searchIndex.slice(query, { field: "sortField", direction: "asc" }, searchContext, scope, 0, Number.MAX_SAFE_INTEGER).items;
-      return { fieldNames: duplicateFieldNames(entries), groups: findDuplicateGroups(entries, key) };
+      return surplusDuplicateCardIds(searchIndex.slice(query, { field: "sortField", direction: "asc" }, searchContext, scope, 0, Number.MAX_SAFE_INTEGER).items);
     },
     async listCardIds(scope: readonly string[], { query = "", searchContext, sort = { field: "sortField", direction: "asc" } }: { query?: string; searchContext?: CardSearchContext; sort?: CardTableSort } = {}) {
       await flushWrites();

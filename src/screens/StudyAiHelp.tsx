@@ -16,20 +16,23 @@ interface Exchange { question: string; answer?: string; error?: string }
 
 export type AskCardHelp = (request: AiCardHelpRequest, signal: AbortSignal) => Promise<string>;
 
-/** The chat history survives closing and ends with the card; unmounting on card change aborts a running request. */
-export function StudyAiHelp({ card, onAsk, open, onOpenChange }: {
+/**
+ * The chat history survives closing and ends with the card; unmounting on card change aborts a running request.
+ * Closing puts the focus on `returnFocusRef`, or where it was on opening while that is empty.
+ */
+export function StudyAiHelp({ card, onAsk, open, onOpenChange, returnFocusRef }: {
   card: AiCardHelpRequest["card"];
   onAsk: AskCardHelp;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  returnFocusRef?: React.RefObject<HTMLElement | null>;
 }) {
   const [exchanges, setExchanges] = React.useState<Exchange[]>([]);
   const [draft, setDraft] = React.useState("");
-  const entryRef = React.useRef<HTMLButtonElement>(null);
   const listRef = React.useRef<HTMLDivElement>(null);
   const controllerRef = React.useRef<AbortController | null>(null);
   const close = () => onOpenChange(false);
-  const { dialogRef, initialFocusRef } = useModalDialog({ open, onClose: close, returnFocusRef: entryRef, stopEscapePropagation: true });
+  const { dialogRef, initialFocusRef } = useModalDialog({ open, onClose: close, returnFocusRef, stopEscapePropagation: true });
   const pending = exchanges.some((exchange) => exchange.answer === undefined && exchange.error === undefined);
 
   React.useEffect(() => () => controllerRef.current?.abort(), []);
@@ -115,7 +118,7 @@ export function StudyAiHelp({ card, onAsk, open, onOpenChange }: {
 
   return (
     <>
-      <button ref={entryRef} type="button" className="core-study-ai-entry core-action-secondary rounded-round py-1 pl-1 pr-4 shadow-raised" aria-haspopup="dialog" aria-expanded={open} onClick={() => onOpenChange(true)}>
+      <button type="button" className="core-study-ai-entry core-action-secondary rounded-round py-1 pl-1 pr-4 shadow-raised" aria-haspopup="dialog" aria-expanded={open} onClick={() => onOpenChange(true)}>
         <span className="w-8 shrink-0" aria-hidden="true"><BrainMascot id="pastell-app" /></span>
         KI hilft
       </button>

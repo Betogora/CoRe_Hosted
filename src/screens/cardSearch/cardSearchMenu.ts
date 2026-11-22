@@ -124,6 +124,7 @@ export function createCardSearchMenu({ decks, tags, flagNames, noteTypes = [] }:
       { label: "Variante", description: "Karten mit Variante", term: "has:variant" },
       { label: "Veraltete Variante", description: "Karten mit veralteter Variante", term: "has:outdated" },
       { label: "Variante gesperrt", description: "Karten, für die keine Variante entsteht", term: "is:unrephrasable" },
+      { label: "Duplikate", description: "Karten mit doppelter Vorderseite", term: "is:duplicate" },
       ...CONTENT_FORMS,
       { label: "Abfrage 1 (vorwärts)", description: "Karten der ersten Abfrage ihrer Notiz", term: "card:1" },
       { label: "Abfrage 2 (rückwärts)", description: "Karten der zweiten Abfrage ihrer Notiz", term: "card:2" },

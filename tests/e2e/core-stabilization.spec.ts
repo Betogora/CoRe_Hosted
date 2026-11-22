@@ -73,9 +73,7 @@ async function findOriginLeakBeforeReveal(page: Page) {
 test("dashboard deck rows start learning from their play action and keep the learning overview separate", async ({ page }: any) => {
   await resetToFreshLocalState(page, { waitForCloud: false });
 
-  const openLearn = page.getByRole("button", { name: "Alle Stapel öffnen", exact: true });
-  await expect(openLearn).toHaveAccessibleName("Alle Stapel öffnen");
-  await openLearn.click();
+  await mainMenu(page).getByRole("button", { name: "Lernen" }).click();
   await expect(page).toHaveURL(/\/lernen$/);
   await expect(page.getByRole("heading", { name: "Lernen", exact: true })).toBeVisible();
 
@@ -440,9 +438,8 @@ test("[Vertrag: Tastaturfokus bei Navigation und Overlays] Fokus folgt Seiten- u
   await page.keyboard.press("Tab");
   await expect(settingsDialog.getByRole("button", { name: "Lerneinstellungen schließen" })).toBeFocused();
   await page.keyboard.press("Escape");
-  await expect(settings).toBeFocused();
+  await expect(questionContent).toBeFocused();
 
-  await questionContent.focus();
   await page.keyboard.press("Space");
   const answerContent = page.getByRole("group", { name: "Antwort" });
   await expect(answerContent).toBeFocused();

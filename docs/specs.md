@@ -355,7 +355,7 @@ Gruppe: Synchronisierung ins Konto
 - Jede Anki-Notiz wird ein Inhalt, jede Anki-Karte eine CoRe-Karte; die Stapelhierarchie bleibt vollständig.
 - Die Übernahme ist fertig, sobald alles geprüft auf dem Gerät liegt und die Medien eingereiht sind; der Erfolg nennt bis zu drei Beispielkarten. Sync und Medien-Upload laufen im Hintergrund; scheitern sie, bleiben die Karten lokal lernbar.
 - Medien werden erst bei der Übernahme gelesen und gegen ihre Prüfsumme geprüft.
-- Fehler beim Lesen des Pakets bleiben sichtbar und werden nicht durch einen stillen Ersatzweg verdeckt.
+- Fehler beim Lesen des Pakets bleiben sichtbar, ohne stillen Ersatzweg.
 - Ein laufender Import übersteht Bereichswechsel, keinen Reload; Schließen fragt nach. Eine abgebrochene Übernahme meldet CoRe beim nächsten Start mit Kartenzahl, bis dieselbe Datei sie vervollständigt oder ihre Stapel gelöscht sind.
 - **Bewusst nicht:** Serverimport, Upload-Fallback.
 
@@ -376,10 +376,10 @@ Gruppe: Synchronisierung ins Konto
 
 ### Reimport und Neuübersetzung
 
-- Ein Reimport erkennt Inhalte und Karten an ihren Anki-Kennungen, auch nur im Konto liegende. Unbearbeitete Inhalte übernehmen den Paketinhalt, lokal bearbeitete bleiben und werden gezählt.
-- Lernstand, Lernbremse, Verlauf, Aussetzung, Markierung, Flaggen und Stapel vorhandener Karten bleiben; wie in Anki bringen nur neue Karten Lernstand und Verlauf mit, außer beim Fortsetzen einer abgebrochenen Übernahme. Neue Abfragen werden neue Karten; im Paket fehlende bleiben und werden gezählt.
-- Tags werden nach [Tags](#tags) zusammengeführt. Vorhandene Stapel behalten Name, Ort im Baum und Einstellungen; neue Stapel entstehen unter dem heutigen Ort ihres Oberstapels.
-- Ein verbesserter Übersetzer übersetzt unbearbeitete Importe einmal automatisch neu, ohne Karten mit Lernstand zu verlieren, und nennt die Zahl der verbesserten Inhalte.
+- Ein Reimport erkennt Inhalte und Karten an ihren Anki-Kennungen, auch nur im Konto liegende. Unbearbeitete Inhalte übernehmen den Paketinhalt, auch bei neuem Notiztyp; lokal bearbeitete und im Paket ältere (wie in Anki) bleiben und werden gezählt.
+- Lernstand, Lernbremse, Verlauf, Aussetzung, Markierung, Flaggen und Stapel vorhandener Karten bleiben; wie in Anki bringen nur neue Karten Lernstand und Verlauf mit, außer beim Fortsetzen einer Übernahme. Neue Abfragen werden neue Karten; im Paket fehlende bleiben und werden gezählt.
+- Tags werden nach [Tags](#tags) zusammengeführt. Vorhandene Stapel behalten Name, Ort im Baum und Einstellungen; neue entstehen unter dem heutigen Ort ihres Oberstapels.
+- Ein verbesserter Übersetzer übersetzt unbearbeitete Importe einmal automatisch neu, ohne Karten mit Lernstand zu verlieren, und nennt ihre Zahl.
 
 ### Automatisch aus einer Quelle
 
@@ -795,13 +795,13 @@ Fassung | im Konto, mehrere je Stapel
 `Heute` ist die Startseite: Tagesstand, Lernstart und persönliche Werkzeuge an einem Ort.
 
 - Die Seite besteht aus frei wählbaren und anordenbaren Bausteinen: Tagesstand, Motivationsimpuls, Lerntimer, aktive Stapel, To-dos, Lern-Heatmap und Prüfungsaufgaben. Anordnung und eigene To-dos gelten je Konto nur in diesem Browser.
-- **Feste Formate:** Bausteine haben feste, nicht wählbare Größen; längere Inhalte scrollen im Baustein, statt die Seite zu verschieben.
+- **Feste Formate:** Bausteine haben feste, nicht wählbare Größen; längere Inhalte scrollen im Baustein statt in der Seite.
 - **Erststart:** Ein neues Konto beginnt ohne erfundene Daten. Ohne Stapel führt die Seite zu Import, manueller Karte oder Demo. Demo-Stapel entstehen nur auf ausdrückliche Aktion, einmalig und ohne Lernhistorie.
 - **Tagesstand:** Er fasst alle Hauptstapel ohne Doppelzählung in `Gelernt`, `Neu`, `Offen` und `Fällig` zusammen ([Tagesrunde und Limits](#tagesrunde-und-limits)).
 - **Lernstart:** Er startet den alphabetisch ersten Hauptstapel mit verfügbaren Karten. Warten nur noch Lernschritte, kündigt er späteres Weiterlernen an; ist alles gelernt, meldet er das Tagesziel und bietet zusätzliche neue Karten an.
 - **Motivationsimpuls:** einer von 60 eigenen Lernimpulsen, je Lerntag stabil, auch offline.
 - **To-dos:** eigene Aufgaben und Aufgaben aus dem Prüfungsplaner; Planeraufgaben lassen sich direkt lernen. Wird der Baustein entfernt, bleiben die Aufgaben.
-- **Aktive Stapel:** höchstens drei Hauptstapel, vorrangig die mit jetzt startbaren Karten.
+- **Aktive Stapel:** so viele Hauptstapel, wie der Baustein fasst, startbare zuerst, und der Weg zu allen.
 - **Bewusst nicht:** Zeitprognosen.
 
 ### Kartenverwaltung
@@ -820,7 +820,7 @@ Fassung | im Konto, mehrere je Stapel
 - Sich ausschließende Filter bleiben erlaubt; die Suche nennt den Widerspruch.
 - Noch nicht unterstützte Anki-Begriffe werden benannt und als Text gesucht. Die vollständige Schreibweise erklärt die App selbst.
 - Online- und Offline-Suche liefern dieselben Treffer ([ADR-048](decisions.md#adr-048--kartensuche-lokal-über-den-vollständigen-katalog)).
-- Gespeicherte Suchen gehören zum Konto; relative Begriffe wie „heute“ gelten für den Tag der Anwendung.
+- Gespeicherte Suchen gehören zum Konto; relative Begriffe wie „heute“ gelten am Tag der Anwendung.
 - **Bewusst nicht:** reguläre Ausdrücke.
 
 ### Massenaktionen und Pflege
@@ -831,7 +831,7 @@ Fassung | im Konto, mehrere je Stapel
 - Flagge, Aussetzung und Stapel gelten je Karte, Markierung und Tags für den Inhalt.
 - Offline wirken Massenaktionen nur, wenn die betroffenen Karten auf dem Gerät liegen; sonst ändern sie nichts und sagen das.
 - **Suchen und Ersetzen** ersetzt wörtlichen Text in Feldern oder Tags der Auswahl, nie Formatierung oder Links, mit Vorschau. Inhalte, deren Karten sich dadurch ändern würden, bleiben und werden gezählt. Ersetzen ist eine lokale Bearbeitung: Kein Reimport überschreibt sie, Varianten veralten, der Lernstand bleibt.
-- **Duplikate finden** vergleicht Inhalte nach Vorderseite oder einem gewählten Feld, ohne Groß- und Kleinschreibung und mehrfache Leerzeichen, und kann die Gruppen mit einem Tag versehen.
+- **Duplikate** filtert Inhalte gleicher Vorderseite (Schreibung, Abstände egal), gruppiert; überzählig sind je Gruppe alle außer dem meistgelernten, sonst ältesten. Braucht alle Karten lokal.
 - **Tags verwalten** benennt Tags kontoweit um (samt Untertags; ein vorhandener Name führt zusammen) und löscht sie. Tags existieren nur an Inhalten; ungenutzte gibt es nicht.
 
 ### Gezielt lernen und üben

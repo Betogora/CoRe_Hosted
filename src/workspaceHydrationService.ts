@@ -1,6 +1,5 @@
-import type { CardSearchContext } from "./cardSearchQuery.ts";
+import { parseCardSearchQuery, searchesDuplicates, type CardSearchContext } from "./cardSearchQuery.ts";
 import { compareCatalogEntries } from "./catalogSearchIndex.ts";
-import type { DuplicateKey } from "./duplicateContents.ts";
 import type { Card, CardStudyState, Deck, Note } from "./coreTypes.ts";
 import type { IndexedDbCoreRepository, ReimportTargets } from "./indexedDbCoreRepository.ts";
 import type { CardTableSort } from "./libraryModel.ts";
@@ -311,10 +310,23 @@ export function createWorkspaceHydrationService({
     return { ...page, items: merged, totalCount: totalCount + created.length };
   };
 
+  /**
+   * `is:duplicate` compares every card of the account, so only the complete local catalog answers it (the cloud has no
+   * such search); words and fields beside it also need the search texts.
+   */
+  const searchesDuplicatesLocally = (query: string | undefined) => {
+    const search = parseCardSearchQuery(query);
+    if (!searchesDuplicates(search)) return false;
+    const status = repository.getReplicaStatus();
+    const usesTexts = Boolean(search.text) || search.terms.some((clause) => (clause.kind === "any" ? clause.terms : [clause]).some((term) => term.kind === "text" || term.kind === "field"));
+    if (status.catalogCompleteness !== "complete" || (usesTexts && status.searchTextsReady !== true)) throw new Error("Duplikate lassen sich finden, sobald alle Karten auf diesem Gerät durchsuchbar sind.");
+    return true;
+  };
+
   const queryCardPage = async (request: CardPageRequest) => {
     const status = repository.getReplicaStatus();
     // A complete local catalog with search texts serves every page itself; otherwise searches ask the cloud.
-    const searchesLocally = status.catalogCompleteness === "complete" && status.searchTextsReady === true;
+    const searchesLocally = (status.catalogCompleteness === "complete" && status.searchTextsReady === true) || searchesDuplicatesLocally(request.query);
     const query = request.query?.trim() ?? "";
     if (status.catalogCompleteness === "complete" && (searchesLocally || !query)) {
       pageCursors.clear();
@@ -360,7 +372,7 @@ export function createWorkspaceHydrationService({
   const openCards = (cardIds: string[]) => hydrateCards(cardIds);
   const listCardIds = async (request: Pick<CardPageRequest, "deckIds" | "query" | "searchContext" | "sort" | "signal"> & { deckIds: readonly string[] }) => {
     const status = repository.getReplicaStatus();
-    if (status.catalogCompleteness === "complete" && (status.searchTextsReady === true || !request.query?.trim())) {
+    if (searchesDuplicatesLocally(request.query) || (status.catalogCompleteness === "complete" && (status.searchTextsReady === true || !request.query?.trim()))) {
       return repository.listCardIds(request.deckIds, { query: request.query, searchContext: request.searchContext, sort: request.sort });
     }
     const ids: string[] = [];
@@ -378,15 +390,9 @@ export function createWorkspaceHydrationService({
     const stillLocal = pendingKnown.length ? await repository.loadCatalogEntries(pendingKnown) : new Map<string, CardCatalogEntry>();
     return [...ids.filter((id) => !cardIds.has(id) || stillLocal.has(id)), ...await pendingCreatedIds(request.deckIds, request, createdCardIds, new Set(ids))];
   };
-  /**
-   * Needs every card of the account on this device, and for a field or a search their search texts too; the cloud has
-   * no such search.
-   */
-  const findDuplicates = async (request: { deckIds: readonly string[]; key: DuplicateKey; query?: string; searchContext?: CardSearchContext }) => {
-    const status = repository.getReplicaStatus();
-    const needsSearchTexts = request.key !== "sortField" || Boolean(request.query?.trim());
-    if (status.catalogCompleteness !== "complete" || (needsSearchTexts && status.searchTextsReady !== true)) throw new Error("Duplikate lassen sich finden, sobald alle Karten auf diesem Gerät durchsuchbar sind.");
-    return repository.findDuplicates(request.deckIds, request);
+  const listSurplusDuplicateIds = async (request: { deckIds: readonly string[]; query: string; searchContext?: CardSearchContext }) => {
+    if (!searchesDuplicatesLocally(request.query)) return [];
+    return repository.listSurplusDuplicateIds(request.deckIds, request);
   };
   const listLocalCardIds = async (cardIds: string[]) => {
     const missing = new Set(await repository.missingCardBodyIds(cardIds));
@@ -673,7 +679,7 @@ export function createWorkspaceHydrationService({
     openCard,
     openCards,
     listCardIds,
-    findDuplicates,
+    listSurplusDuplicateIds,
     listLocalCardIds,
     loadNoteGraph,
     prepareStudyWindow,

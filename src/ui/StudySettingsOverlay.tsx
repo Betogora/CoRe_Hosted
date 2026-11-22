@@ -87,7 +87,7 @@ export function StudySettingsOverlay({
   const closeDialog = React.useCallback(() => {
     onOpenChange(false);
   }, [onOpenChange]);
-  const { dialogRef, initialFocusRef: closeButtonRef } = useModalDialog({ open, onClose: closeDialog, returnFocusRef });
+  const { dialogRef, initialFocusRef: closeButtonRef } = useModalDialog({ open, onClose: closeDialog, returnFocusRef, stopEscapePropagation: true });
 
   if (!open) return null;
 

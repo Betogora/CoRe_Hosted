@@ -361,6 +361,24 @@ test("Lücken im Originallayout tragen Ankis Klasse cloze", async () => {
   assert.match(answer.srcdoc, /<body class="card card2">/);
 });
 
+test("Originallayout wie in Anki: {{cloze:Extra}} nur mit eigener Lücke, {{#cN}} je Karte, &nbsp; nicht leer, [sound:] ohne Furigana", async () => {
+  const fields: Array<[string, NoteField["role"]]> = [["Text", "prompt"], ["Extra", "extra"], ["Notiz", "extra"]];
+  const front = '<div class="c">{{cloze:Text}}</div><div class="x">{{cloze:Extra}}</div>{{#c2}}<p>zweite Karte</p>{{/c2}}{{#Notiz}}<p class="n">Notiz</p>{{/Notiz}}<div class="f">{{furigana:Extra}}</div>';
+  const source = layoutSource(["Text", "Extra", "Notiz"], front, "{{FrontSide}}", { kind: 1 });
+  const values = ["{{c1::Paris}} und {{c2::Rom}}", "{{c2::Tiber}} 川[かわ][sound:fluss.mp3]", "&nbsp;"];
+  const first = await renderLayout(source, values, "question", { fields, interaction: { kind: "cloze" }, promptKey: "cloze:1" });
+  assert.match(first.srcdoc, /<div class="x"><\/div>/);
+  assert.doesNotMatch(first.srcdoc, /zweite Karte/);
+  assert.match(first.srcdoc, /<p class="n">Notiz<\/p>/);
+  assert.match(first.srcdoc, /<ruby>川<rt>かわ<\/rt><\/ruby><audio controls preload="none" src="fluss\.mp3"><\/audio>/);
+  const second = await renderLayout(source, values, "question", { fields, interaction: { kind: "cloze" }, promptKey: "cloze:2" });
+  assert.match(second.srcdoc, /<div class="x"><span class="cloze">\[…\]<\/span>/);
+  assert.match(second.srcdoc, /<p>zweite Karte<\/p>/);
+  const basic: NoteContent["interaction"] = { kind: "reveal", prompts: [{ key: "anki-0", name: "Karte 1", instruction: "", questionFieldIds: ["f0"], answerFieldIds: ["f1"], requires: null, typeInFieldId: null }] };
+  const basicCloze = await renderLayout(layoutSource(["Text", "Ort"], '<div class="c">{{cloze:Text}}</div>', "{{FrontSide}}<hr id=answer>{{Ort}}"), ["{{c1::Paris}} liegt an der Seine.", "Frankreich"], "question", { fields: [["Text", "prompt"], ["Ort", "answer"]], interaction: basic, promptKey: "anki-0" });
+  assert.match(basicCloze.srcdoc, /<div class="c"><span class="cloze">\[…\]<\/span> liegt an der Seine\.<\/div>/, "ein normaler Notiztyp nutzt die Vorlagennummer");
+});
+
 test("Im Dark Mode trägt das Originallayout Ankis Nachtklassen und ohne eigene Nachtregeln Ankis dunkle Kartenfarben", async () => {
   const plain = await renderLayout(layoutSource(POKEMON_NAMES, POKEMON_FRONT, POKEMON_FRONT), pokemon, "question", { mode: "dark" });
   assert.match(plain.srcdoc, /<html class="nightMode night_mode">/);
