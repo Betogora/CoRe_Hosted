@@ -50,6 +50,8 @@ ist – typischerweise beim Erweitern eines Übersetzers oder der APKG-Matrix.
 
 ## Bildverdeckung
 
+- Der Filter `{{cloze:Feld}}` gibt nichts aus, wenn das Feld keine Lücke der Kartennummer enthält; Lückenkarten entstehen aus den Nummern aller Felder, auch solcher, die die Vorderseite nicht zeigt. `{{#cN}}` gilt nur auf Karte N. Lücken beginnen nur mit kleinem `{{c`.
+- Ein Feld gilt in Bedingungen als leer, wenn es nur ASCII-Leerraum, `<br>` und `<div>` enthält; `&nbsp;` ist nicht leer. `{{furigana:…}}` lässt `[sound:…]` unverändert.
 - Native Image Occlusion speichert Masken als Lückentext im Feld `Occlusion`, etwa `{{c1::image-occlusion:rect:left=.1:top=.2:width=.3:height=.4:oi=1}}`. Formen: `rect`, `ellipse`, `polygon:points=x,y …`, `text:text=…`. `oi=1` (occludeInactive) hält eine Form auch auf Karten anderer Gruppen verdeckt.
 - Aktuelle Versionen speichern Ellipsen mit `rx`/`ry` statt `width`/`height`; Text maskiert `:` als `\:`.
 - Editor und Reviewer (26.9) normieren x-Werte (`left`, `width`, `rx`, Polygon-x) auf die Bildbreite, y-Werte auf die Bildhöhe; `fs` ist die Schriftgröße relativ zur Bildhöhe, `scale` vergrößert Text zusätzlich.
