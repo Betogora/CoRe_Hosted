@@ -6,6 +6,7 @@ import {
   namePatternMatches,
   matchesCardSearch,
   parseCardSearchQuery,
+  searchesDuplicates,
   type CardSearchContext,
 } from "./cardSearchQuery.ts";
 import {
@@ -21,6 +22,7 @@ import {
 
 type Entry = Parameters<typeof matchesCardSearch>[0];
 const entry = (overrides: Partial<Entry> = {}): Entry => ({
+  noteId: "note-a",
   normalizedSearchText: "die mitochondrien liefern energie",
   ankiFlag: 0,
   tagKeys: [] as string[],
@@ -186,6 +188,17 @@ test("card:N prüft die Abfragenummer, is:buried das heutige manuelle Zurückste
   assert.equal(matchesCardSearch(entry({ lastBuriedAt: "2026-11-05T09:00:00.000Z", lastUnburiedAt: "2026-11-05T10:00:00.000Z" }), search("is:buried")), false, "wieder hervorgeholt");
   assert.equal(matchesCardSearch(entry({ lastBuriedAt: "2026-11-05T09:00:00.000Z", lastUnburiedAt: "2026-11-04T10:00:00.000Z" }), search("is:buried")), true);
   assert.equal(matchesCardSearch(entry({ lastBuriedAt: "2026-11-05T03:00:00.000Z" }), search("is:buried")), false, "gestern zurückgestellt gilt heute nicht mehr");
+});
+
+test("is:duplicate prüft die Duplikat-Inhalte des Kontos und gilt ohne sie für keine Karte", () => {
+  const duplicates = new Set(["note-a"]);
+  assert.deepEqual(parseCardSearchQuery("-is:Duplicate").terms, [{ kind: "duplicate", negated: true }]);
+  assert.equal(searchesDuplicates(parseCardSearchQuery("tag:a or is:duplicate")), true);
+  assert.equal(searchesDuplicates(parseCardSearchQuery("is:due")), false);
+  assert.equal(matchesCardSearch(entry(), parseCardSearchQuery("is:duplicate"), duplicates), true);
+  assert.equal(matchesCardSearch(entry({ noteId: "note-b" }), parseCardSearchQuery("is:duplicate"), duplicates), false);
+  assert.equal(matchesCardSearch(entry({ noteId: "note-b" }), parseCardSearchQuery("-is:duplicate"), duplicates), true);
+  assert.equal(matchesCardSearch(entry(), parseCardSearchQuery("is:duplicate")), false, "die Cloud kennt keine Duplikate");
 });
 
 test("or, Klammern, Verneinung und Phrasen werden zu Klauseln, von denen alle zutreffen müssen (KV2d)", () => {

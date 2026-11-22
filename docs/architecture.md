@@ -113,7 +113,7 @@ Befehlsmodule laufen ohne React und entstehen je Arbeitsbereich aus Store, lokal
 | `scheduler.ts`, `easyDays.ts` | FSRS-7 über `ts-fsrs`, Haltbarkeit, Reifeband, Easy-Days-Entlastung (ADR-044, ADR-019) |
 | `coreVariantService.ts` | Eignung, Bereitschaft und Wahl von Varianten im Review |
 | `cardSearchQuery.ts`, `tagDirectory.ts` | Suchsprache in Anki-Schreibweise und ihre lokale Auswertung; Tag-Verzeichnis (ADR-045) |
-| `catalogSearchIndex.ts`, `duplicateContents.ts` | In-Memory-Suche über den vollständigen Katalog (ADR-048); Duplikatgruppen |
+| `catalogSearchIndex.ts`, `duplicateContents.ts` | In-Memory-Suche über den vollständigen Katalog (ADR-048); Duplikate (`is:duplicate`) |
 | `hitStudySession.ts` | `Treffer lernen` und Üben ohne Schreibpfad |
 | `examPlanning.ts`, `examPlanSettings.ts`, `examDailyTasks.ts`, `examCalendarModel.ts` | Prüfungsplanung, Planablage im Profil, Tagesaufgaben, Kalenderprojektion (ADR-042) |
 | `statisticsModel.ts`, `studyHeatmapModel.ts` | Statistikreihen, Tageszähler, Streak, Kalender |
@@ -288,7 +288,7 @@ Befehlsmodule laufen ohne React und entstehen je Arbeitsbereich aus Store, lokal
 - Seitenabfragen der Kartenliste warten auf das Nachlesen geänderter Zeilen in den Suchindex, damit keine Seite einen veralteten Stand zeigt.
 - Massenaktionen planen über `coreModel.ts` und schreiben mit einem Repository-Aufruf; Lernstandsänderungen laufen als manuelle Ereignisse. Rückgängig stellt nur Werte zurück, die noch dem Ergebnis entsprechen, Lernstände nur bei unveränderter `studyRevision`.
 - Suchen und Ersetzen ändert nur Text zwischen HTML-Tags und plant jeden Inhalt über `coreModel.ts`; Inhalte, deren Kartenmenge sich ändern würde, bleiben unverändert.
-- Duplikate brauchen den vollständigen Katalog und laufen ohne Worker, weil die Gruppierung auch bei 100.000 Zeilen kurz bleibt. Vor dem Laden des Cloud-Tag-Verzeichnisses wird die Outbox gesendet.
+- `is:duplicate` kennt nur der vollständige lokale Katalog, nicht die Cloud. Vor dem Laden des Cloud-Tag-Verzeichnisses wird die Outbox gesendet.
 
 ### App-Shell und Vorladen
 
