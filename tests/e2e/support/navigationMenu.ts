@@ -4,9 +4,13 @@ import { openSettingsArea, settingsDialog } from "./settingsDialog.ts";
 
 export const shellBackButton = (page: Page) => page.locator("header[data-navigation-layout]:visible [data-navigation-back]");
 
-export async function openNavigationMenuItem(page: Page, item: "Einstellungen" | "Statistik" | "Hilfe") {
-  // Clicking further down the page may have scrolled the head away.
+/** Clicking further down the page may have scrolled the navigation head away. */
+export async function revealNavigation(page: Page) {
   await page.evaluate((event) => window.dispatchEvent(new Event(event)), SHELL_REVEAL_EVENT);
+}
+
+export async function openNavigationMenuItem(page: Page, item: "Einstellungen" | "Statistik" | "Hilfe") {
+  await revealNavigation(page);
   await page.locator("header[data-navigation-layout]:visible").getByRole("button", { name: "Menü", exact: true }).click();
   await page.locator("[data-navigation-menu]").getByRole("button", { name: item, exact: true }).click();
 }

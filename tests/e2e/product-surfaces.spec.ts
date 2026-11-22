@@ -664,7 +664,7 @@ test("help opens with a short entry and links its stories and reference topics a
   await expect(page).toHaveURL("/hilfe?topic=spaced-repetition");
   const spacedRepetitionHeading = page.getByRole("heading", { name: "Spaced Repetition wird Content Repetition" });
   await expect(spacedRepetitionHeading).toBeFocused();
-  await expect(spacedRepetitionHeading).toBeInViewport();
+  await expect.poll(() => spacedRepetitionHeading.evaluate((heading) => { const { top } = heading.getBoundingClientRect(); return top >= 0 && top < 200; })).toBe(true);
   expect(await page.evaluate(() => document.querySelector<HTMLElement>(".core-screen-region")?.scrollTop)).toBe(0);
   const spacedDiagramColumnBox = await page.getByTestId("spaced-repetition-diagram-column").boundingBox();
   const spacedStepsColumnBox = await page.getByTestId("spaced-repetition-steps-column").boundingBox();
@@ -741,7 +741,7 @@ test("help opens with a short entry and links its stories and reference topics a
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)).toBe(true);
   await spacedRepetitionMethodLink.click();
   await expect(spacedRepetitionHeading).toBeFocused();
-  await expect(spacedRepetitionHeading).toBeInViewport();
+  await expect.poll(() => spacedRepetitionHeading.evaluate((heading) => { const { top } = heading.getBoundingClientRect(); return top >= 0 && top < 200; })).toBe(true);
 
   await switchColorScheme(page, "dark");
   await page.goBack();

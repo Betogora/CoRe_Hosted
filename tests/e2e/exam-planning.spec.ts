@@ -1,6 +1,7 @@
 import { expect, test, type Page } from "@playwright/test";
 import { readActiveAccountState, resetToFreshLocalState } from "./support/appState.ts";
 import { e2eAuthStatePath } from "./support/e2eEnvironment.ts";
+import { revealNavigation } from "./support/navigationMenu.ts";
 
 const EUROPE_DECK_ID = "deck_world_capitals_europa";
 
@@ -200,12 +201,14 @@ test("Zwei Geräte teilen Plan und Häkchen; offline startet die Einheit aus lok
   await card.getByRole("button", { name: "Geografie: Details öffnen" }).click();
   await card.getByRole("button", { name: "Bearbeiten", exact: true }).click();
   await card.getByRole("textbox", { name: "Name", exact: true }).fill("Europa");
+  await revealNavigation(page);
   await mainMenu(page).getByRole("button", { name: "Heute" }).click();
   const leave = page.getByRole("dialog", { name: "Änderungen verwerfen?" });
   await expect(leave).toBeVisible();
   await leave.getByRole("button", { name: "Weiter bearbeiten" }).click();
   await expect(page).toHaveURL(/\/pruefungen$/);
   await expect(card.getByRole("textbox", { name: "Name", exact: true })).toHaveValue("Europa");
+  await revealNavigation(page);
   await mainMenu(page).getByRole("button", { name: "Heute" }).click();
   await leave.getByRole("button", { name: "Verwerfen und verlassen" }).click();
   await expect(page).toHaveURL(/\/$|\/heute$/);
