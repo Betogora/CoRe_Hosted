@@ -2,6 +2,8 @@ import { expect, type Page } from "@playwright/test";
 import { SHELL_REVEAL_EVENT } from "../../../src/ui/shellBack.ts";
 import { openSettingsArea, settingsDialog } from "./settingsDialog.ts";
 
+export const shellBackButton = (page: Page) => page.locator("header[data-navigation-layout]:visible [data-navigation-back]");
+
 export async function openNavigationMenuItem(page: Page, item: "Einstellungen" | "Statistik" | "Hilfe") {
   // Clicking further down the page may have scrolled the head away.
   await page.evaluate((event) => window.dispatchEvent(new Event(event)), SHELL_REVEAL_EVENT);

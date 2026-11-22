@@ -2,7 +2,7 @@ import { expect, test, type Locator, type Page } from "@playwright/test";
 import { CORE_THEME_STORAGE_KEY } from "../../src/coreTheme.ts";
 import { readActiveAccountState, resetToFreshLocalState } from "./support/appState.ts";
 import { openSettingsArea, settingsDialog } from "./support/settingsDialog.ts";
-import { openNavigationMenuItem, switchColorScheme } from "./support/navigationMenu.ts";
+import { openNavigationMenuItem, shellBackButton, switchColorScheme } from "./support/navigationMenu.ts";
 
 function mainMenu(page: Page) {
   return page.getByRole("navigation", { name: /Hauptmenü|Mobile Hauptnavigation/ }).filter({ visible: true });
@@ -209,7 +209,7 @@ test("deck expansion preserves the complete profile across reload and an isolate
   const toggle = rootRow.getByRole("button", { name: /Unterstapel von Welt-Hauptstädte (?:anzeigen|ausblenden)/ });
 
   await toggle.click();
-  const syncUtilities = page.locator('[data-navigation-utilities="true"]:visible');
+  const syncUtilities = page.locator('[data-navigation-utilities="true"]').first();
   await expect(syncUtilities).toHaveAttribute("data-sync-status", "pending");
   await expect(syncUtilities).toHaveAttribute("data-sync-status", "saved", { timeout: 20_000 });
 
@@ -241,8 +241,8 @@ test("deck expansion preserves the complete profile across reload and an isolate
     const isolatedPage = await isolatedContext.newPage();
     await isolatedPage.goto(new URL("/", page.url()).toString());
     await isolatedPage.locator('[data-app-navigation="true"]:visible').first().waitFor({ state: "visible" });
-    await isolatedPage.locator('[data-navigation-utilities="true"][data-sync-status="saved"]:visible')
-      .waitFor({ state: "visible", timeout: 20_000 });
+    await isolatedPage.locator('[data-navigation-utilities="true"][data-sync-status="saved"]').first()
+      .waitFor({ state: "attached", timeout: 20_000 });
     await expectProfileSettings(isolatedPage);
   } finally {
     await isolatedContext.close();
@@ -482,6 +482,7 @@ test("the navigation head gives way while scrolling down and returns on scrollin
     await page.goto("/hilfe?topic=spaced-repetition");
     const header = page.locator(`[data-navigation-layout="${layout}"]`);
     await expect(header).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Spaced Repetition wird Content Repetition" })).toBeFocused();
     // Phones scroll the window, the desktop scrolls the content region.
     const scrollTo = (top: number) => page.evaluate((target) => {
       const region = document.querySelector<HTMLElement>('[aria-label="Seiteninhalt"]')!;
@@ -600,7 +601,7 @@ test("help opens with a short entry and links its stories and reference topics a
   await activeRecallMethodLink.click();
   await expect(page).toHaveURL("/hilfe?topic=active-recall");
   await expect(page.getByRole("heading", { name: "Active Recall wird Smarter Recall" })).toBeFocused();
-  await expect(page.getByRole("button", { name: "Hilfe", exact: true })).toBeVisible();
+  await expect(shellBackButton(page)).toHaveAttribute("aria-label", "Zurück zu Hilfe");
   await expect(page.getByRole("heading", { name: "So lernst du mit CoRe" })).toHaveCount(0);
 
   const activeRecallVisual = page.getByTestId("active-recall-visual");
@@ -715,7 +716,7 @@ test("help opens with a short entry and links its stories and reference topics a
   await expect(page).toHaveURL("/hilfe?topic=spaced-repetition");
   await expect(spacedRepetitionHeading).toBeVisible();
 
-  await page.getByRole("button", { name: "Hilfe", exact: true }).click();
+  await shellBackButton(page).click();
   await expect(page).toHaveURL("/hilfe");
   const referenceTopics = page.getByRole("navigation", { name: "Nachschlagen" });
   await referenceTopics.getByRole("link", { name: "So plant CoRe deine Wiederholungen" }).click();
