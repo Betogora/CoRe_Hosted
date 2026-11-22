@@ -113,7 +113,7 @@ Befehlsmodule laufen ohne React und entstehen je Arbeitsbereich aus Store, lokal
 | `scheduler.ts`, `easyDays.ts` | FSRS-7 über `ts-fsrs`, Haltbarkeit, Reifeband, Easy-Days-Entlastung (ADR-044, ADR-019) |
 | `coreVariantService.ts` | Eignung, Bereitschaft und Wahl von Varianten im Review |
 | `cardSearchQuery.ts`, `tagDirectory.ts` | Suchsprache in Anki-Schreibweise und ihre lokale Auswertung; Tag-Verzeichnis (ADR-045) |
-| `catalogSearchIndex.ts`, `duplicateContents.ts` | In-Memory-Suche über den vollständigen Katalog (ADR-048); Duplikatgruppen |
+| `catalogSearchIndex.ts`, `duplicateContents.ts` | In-Memory-Suche über den vollständigen Katalog (ADR-048); Duplikate (`is:duplicate`) |
 | `hitStudySession.ts` | `Treffer lernen` und Üben ohne Schreibpfad |
 | `examPlanning.ts`, `examPlanSettings.ts`, `examDailyTasks.ts`, `examCalendarModel.ts` | Prüfungsplanung, Planablage im Profil, Tagesaufgaben, Kalenderprojektion (ADR-042) |
 | `statisticsModel.ts`, `studyHeatmapModel.ts` | Statistikreihen, Tageszähler, Streak, Kalender |
@@ -288,7 +288,7 @@ Befehlsmodule laufen ohne React und entstehen je Arbeitsbereich aus Store, lokal
 - Seitenabfragen der Kartenliste warten auf das Nachlesen geänderter Zeilen in den Suchindex, damit keine Seite einen veralteten Stand zeigt.
 - Massenaktionen planen über `coreModel.ts` und schreiben mit einem Repository-Aufruf; Lernstandsänderungen laufen als manuelle Ereignisse. Rückgängig stellt nur Werte zurück, die noch dem Ergebnis entsprechen, Lernstände nur bei unveränderter `studyRevision`.
 - Suchen und Ersetzen ändert nur Text zwischen HTML-Tags und plant jeden Inhalt über `coreModel.ts`; Inhalte, deren Kartenmenge sich ändern würde, bleiben unverändert.
-- Duplikate brauchen den vollständigen Katalog und laufen ohne Worker, weil die Gruppierung auch bei 100.000 Zeilen kurz bleibt. Vor dem Laden des Cloud-Tag-Verzeichnisses wird die Outbox gesendet.
+- `is:duplicate` kennt nur der vollständige lokale Katalog, nicht die Cloud. Vor dem Laden des Cloud-Tag-Verzeichnisses wird die Outbox gesendet.
 
 ### App-Shell und Vorladen
 
@@ -355,11 +355,11 @@ Befehlsmodule laufen ohne React und entstehen je Arbeitsbereich aus Store, lokal
 
 ### Varianten und Lernhilfe
 
-- Varianten entstehen nur aus der bereinigten Quelle einer Karte (`cardVariantSource`); die Anfrage nennt ihre Art (`basic`, `type-in`, `cloze`, `choice`). Anzahl, Schema, Änderung, Duplikate und Größen werden vor der Mutation geprüft; ein inzwischen geänderter Inhalt verhindert sie.
-- Antwort, Eintippvergleich, Lückenlösung, Options-IDs und Richtigkeit kommen beim Darstellen stets von der Karte. Eine Auswahl-Variante speichert Stamm und Optionen in `front`/`back` und die umformulierten Optionstexte in `meta.options`. `clozeSyntax.ts` zerlegt Anki-Lücken für Renderer und Vertrag.
-- Meldet das Werkzeug `rephrasable: false`, antwortet die Route mit `not_rephrasable` (422), und es entsteht keine Variante.
-- Ändert sich der Text einer behaltenen Karte oder bringt ein Reimport geänderten Paketinhalt, markiert die Planung ihre aktiven Varianten als veraltet (`meta.outdated`); eine Neuerzeugung ersetzt sie.
-- `aiCardHelp.ts` bildet den Kartentext der Lernhilfe: Quellenfelder bleiben lokal, eine Lücke verdeckt nur sich selbst, Bildverdeckungen erhalten keine Hilfe.
+- Varianten entstehen nur aus der bereinigten Quelle einer Karte (`cardVariantSource`; Art `basic`, `type-in`, `cloze`, `choice`). Vor der Mutation prüft der Vertrag Anzahl, Schema, Änderung, Duplikate, Größen und den aktuellen Inhalt.
+- Antwort, Eintippvergleich, Lückenlösung, Options-IDs und Richtigkeit kommen beim Darstellen stets von der Karte. Eine Auswahl-Variante speichert Stamm und Optionen in `front`/`back`, umformulierte Optionstexte in `meta.options`. `clozeSyntax.ts` zerlegt Anki-Lücken für Renderer und Vertrag.
+- `not_rephrasable` (422) oder drei Abweisungen in Folge (`AI_CARD_VARIANT_REJECTIONS`) vermerkt die Karte in `variantRefusal`, gültig bei gleicher `contentRevision`; `activeVariantRefusal`, `catalogEntryFromCard` und `refresh_card_catalog` werten gleich aus.
+- Geänderter Text einer behaltenen Karte, auch per Reimport, macht ihre aktiven Varianten veraltet (`meta.outdated`); eine Neuerzeugung ersetzt sie.
+- `aiCardHelp.ts` bildet den Kartentext der Lernhilfe: ohne Quellenfelder und Bildverdeckungen, eine Lücke verdeckt nur sich selbst.
 
 ### Karten aus einer Quelle
 

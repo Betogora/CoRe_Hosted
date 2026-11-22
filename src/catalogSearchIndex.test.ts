@@ -51,7 +51,32 @@ test("einzelne Änderungen ergeben dieselben Reihenfolgen wie ein Neuaufbau", ()
     const rebuilt = createCatalogSearchIndex();
     rebuilt.replaceAll(live.values());
     for (const sort of sorts) {
-      for (const query of ["", "alpha"]) assert.deepEqual(all(index, query, sort), all(rebuilt, query, sort), `Schritt ${step}, ${sort.field} ${sort.direction}, „${query}“`);
+      for (const query of ["", "alpha", "is:duplicate", "-is:duplicate"]) assert.deepEqual(all(index, query, sort), all(rebuilt, query, sort), `Schritt ${step}, ${sort.field} ${sort.direction}, „${query}“`);
     }
   }
+});
+
+test("is:duplicate zeigt Inhalte mit gleicher Vorderseite, jede Gruppe beisammen, und folgt geänderten Vorderseiten", () => {
+  const row = (id: string, noteId: string, front: string, dueAt: string): CardCatalogEntry => ({
+    id, deckId: "deck-a", noteId, frontPreview: front, normalizedSearchText: front.toLowerCase(), sortText: front.toLowerCase(), dueAt,
+    scheduleState: "review", maturityBand: "young", reviewable: true, marked: false, ankiFlag: 0, leeched: false, tagKeys: [],
+    hasActiveVariants: false, activeVariantCount: 0, activeVariantId: null, bodyRevision: 1, studyRevision: 1, dependencyRevision: 1,
+    syncChangeId: 1, deletedAt: null, updatedAt: "2026-11-04T00:00:00.000Z",
+  });
+  const index = createCatalogSearchIndex();
+  index.replaceAll([
+    row("herz-1", "herz-a", "Herz", "2026-11-01T00:00:00.000Z"),
+    row("leber", "leber", "Leber", "2026-11-02T00:00:00.000Z"),
+    row("lunge-1", "lunge-a", "Lunge", "2026-11-03T00:00:00.000Z"),
+    row("herz-2", "herz-b", " herz ", "2026-11-04T00:00:00.000Z"),
+    row("lunge-2", "lunge-b", "LUNGE", "2026-11-05T00:00:00.000Z"),
+    row("herz-3", "herz-a", "Herz", "2026-11-06T00:00:00.000Z"),
+  ]);
+  const ids = (query: string) => index.slice(query, { field: "nextStudyDate", direction: "asc" }, undefined, null, 0, 50).items.map((entry) => entry.id);
+  assert.deepEqual(ids("is:duplicate"), ["herz-1", "herz-2", "herz-3", "lunge-1", "lunge-2"], "Gruppen in der Reihenfolge ihrer ersten Karte, Groß- und Kleinschreibung und Abstände zählen nicht");
+  assert.deepEqual(ids("-is:duplicate"), ["leber"]);
+  index.put(row("herz-2", "herz-b", "Niere", "2026-11-04T00:00:00.000Z"));
+  assert.deepEqual(ids("is:duplicate"), ["lunge-1", "lunge-2"], "zwei Karten eines Inhalts sind kein Duplikat");
+  index.remove("lunge-2");
+  assert.deepEqual(ids("is:duplicate"), []);
 });

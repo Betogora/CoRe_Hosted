@@ -1,6 +1,5 @@
 import type { CardSearchContext } from "./cardSearchQuery.ts";
 import type { CardBatchAction, CardBatchResult, TextReplaceSession } from "./cardBatchActions.ts";
-import type { DuplicateGroup, DuplicateKey } from "./duplicateContents.ts";
 import type { HitStudyOrder } from "./hitStudySession.ts";
 import type { Dispatch, ReactNode, SetStateAction } from "react";
 import type { AppRoute, AppViewId, CardEditorTab, CreationCompletionKind, DeckContentTab, DeckSettingsSection, GeneralSettingsSection, LearningSettingsSection, SettingsSection, createViewRoute } from "./appNavigation.ts";
@@ -195,7 +194,8 @@ export interface DecksScreenProps extends DeckTreeScreenProps {
   /** The ids are already free of suspended and buried cards. */
   onStudyHits?: (cardIds: string[], order: HitStudyOrder) => Promise<void>;
   onLoadPracticeCards?: (cardIds: string[]) => Promise<Array<{ card: Card; note: Note }>>;
-  onFindDuplicates?: (request: { deckIds: string[]; key: DuplicateKey; query: string; searchContext: CardSearchContext }) => Promise<{ fieldNames: string[]; groups: DuplicateGroup[] }>;
+  /** Cards of the surplus duplicates among the hits of an `is:duplicate` search. */
+  onListSurplusDuplicateIds?: (request: { deckIds: string[]; query: string; searchContext: CardSearchContext }) => Promise<string[]>;
   onListHitCardIds?: (request: { deckIds: string[]; query: string; searchContext: CardSearchContext; sort?: CardTableSort }) => Promise<string[]>;
   variantGenerationRunning?: boolean;
   onUpdateVariant: (cardId: string, variantId: string, action: "reactivate" | "deactivate" | "delete") => Promise<void>;

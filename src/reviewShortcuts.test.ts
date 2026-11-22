@@ -26,10 +26,22 @@ test("E edits the card, U and Ctrl/Cmd+Z take back the last rating even after th
   assert.equal(resolveReviewShortcut({ key: "1", ctrlKey: true }, answer), null);
 });
 
-test("keys typed into fields and buttons stay theirs", () => {
-  for (const tagName of ["INPUT", "TEXTAREA", "BUTTON"]) {
+test("keys typed into fields stay theirs", () => {
+  for (const tagName of ["INPUT", "TEXTAREA", "SELECT"]) {
     assert.equal(resolveReviewShortcut({ key: "z", ctrlKey: true, target: { tagName } }, answer), null, tagName);
     assert.equal(resolveReviewShortcut({ key: "e", target: { tagName } }, answer), null, tagName);
+    assert.equal(resolveReviewShortcut({ key: "3", target: { tagName } }, answer), null, tagName);
   }
   assert.equal(resolveReviewShortcut({ key: "u", target: { isContentEditable: true } }, answer), null);
+});
+
+test("a focused control keeps only Space and Enter", () => {
+  for (const tagName of ["BUTTON", "A", "SUMMARY"]) {
+    const target = { tagName };
+    for (const key of [" ", "Enter"]) assert.equal(resolveReviewShortcut({ key, target }, answer), null, `${tagName} ${key}`);
+    assert.deepEqual(resolveReviewShortcut({ key: "1", target }, answer), { type: "rate", rating: "again" });
+    assert.deepEqual(resolveReviewShortcut({ key: "u", target }, answer), { type: "undo" });
+    assert.deepEqual(resolveReviewShortcut({ key: "Escape", target }, answer), { type: "exit" });
+  }
+  assert.deepEqual(resolveReviewShortcut({ key: " ", target: { tagName: "IFRAME" } }, question), { type: "reveal" });
 });

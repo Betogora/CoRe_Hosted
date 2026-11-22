@@ -15,7 +15,7 @@ Object.assign(globalThis, { IDBKeyRange });
 const CREATED_AT = "2026-11-01T00:00:00.000Z";
 const NOW = "2026-11-12T10:00:00.000Z";
 
-async function setup() {
+async function setup({ cloud = null }: { cloud?: unknown } = {}) {
   const graphs = [0, 1].map((index) => {
     const created = createBasicNote("deck-a", `Frage ${index}`, `Antwort ${index}`, { reverse: index === 0, createdAt: CREATED_AT });
     const note: Note = { ...created.note, id: `note-${index}` };
@@ -38,7 +38,7 @@ async function setup() {
   const refresh = ({ preserveCardPages = false } = {}) => store.set({ state: repository.getShellState(), ...(preserveCardPages ? {} : { cardPages: {} }) });
   refresh();
   const commands = createCardCommands({
-    store, repository, hydration: () => null, cloud: null, syncEngine: () => null, refresh, now: () => NOW, bootRun: { current: 1 },
+    store, repository, hydration: () => null, cloud: cloud as Parameters<typeof createCardCommands>[0]["cloud"], syncEngine: () => null, refresh, now: () => NOW, bootRun: { current: 1 },
   });
   const showList = (deckId: string, selectedCardId: string | null = null) => commands.requestCardPage({
     deckId, page: 0, pageSize: 50, query: "", sort: DEFAULT_CARD_TABLE_SORT, selectedCardId, searchContext: { todayStart: Date.parse(NOW) },
@@ -165,4 +165,33 @@ test("Textimport: Duplikate aktualisieren Felder und behalten Karten samt Lernst
     repository.saveNoteGraphs = save;
   }
   assert.equal(store.get().state!.decks.filter((deck) => !deck.deletedAt).length, decksBefore, "der für den Import angelegte Stapel ist wieder weg");
+});
+
+test("die Variantenerzeugung merkt sich „nicht umformulierbar“ und abgewiesene Ergebnisse, Netzfehler nicht; eine Variante hebt die Sperre auf", async () => {
+  const cloud = { auth: { getSession: async () => ({ data: { session: { access_token: "token" } }, error: null }) } };
+  const { repository, commands } = await setup({ cloud });
+  const refusalOf = async (cardId: string) => (await repository.loadCardBody(cardId))?.card.variantRefusal;
+  const answer = (body: unknown, status = 200) => { globalThis.fetch = async () => Response.json(body, { status }); };
+  const originalFetch = globalThis.fetch;
+  try {
+    answer({ error: { code: "not_rephrasable", message: "Diese Karte lässt sich nicht sinnvoll umformulieren." } }, 422);
+    await assert.rejects(commands.generateDeckCardVariant("deck-a", "card-1-forward"), { code: "not_rephrasable" });
+    assert.equal((await refusalOf("card-1-forward"))?.state, "not_rephrasable");
+
+    globalThis.fetch = async () => { throw new TypeError("offline"); };
+    await assert.rejects(commands.generateDeckCardVariant("deck-a", "card-0-forward"), { code: "network_error" });
+    assert.equal(await refusalOf("card-0-forward"), undefined);
+
+    answer({ error: { code: "unchanged_front", message: "Das Modell hat die Kartenfrage nicht erkennbar umformuliert." } }, 502);
+    await assert.rejects(commands.generateDeckCardVariant("deck-a", "card-0-forward"), { code: "unchanged_front" });
+    assert.deepEqual([(await refusalOf("card-0-forward"))?.state, (await refusalOf("card-0-forward"))?.failures], [null, 1]);
+
+    answer({ variant: { front: "Neu gefragt", back: "Antwort 1" }, model: "provider/model", privacyMode: "zdr", usage: null });
+    await commands.generateDeckCardVariant("deck-a", "card-1-forward");
+    const body = await repository.loadCardBody("card-1-forward");
+    assert.equal(body?.card.variantRefusal, undefined);
+    assert.equal(body?.card.variants.length, 1);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
 });

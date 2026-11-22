@@ -151,6 +151,14 @@ export function CardPresentationSurface({
             resizeReviewFrame();
             selectionCleanupRef.current?.();
             const frameDocument = frameRef.current?.contentDocument;
+            // Keys pressed after a click into the card stay in the frame's document; the host's shortcuts get them from
+            // the frame element. A control of the card's own HTML keeps its keys.
+            frameDocument?.addEventListener("keydown", (event) => {
+              if (event.target !== frameDocument.body) return;
+              const { key, code, repeat, ctrlKey, metaKey, altKey, shiftKey, isComposing } = event;
+              const forwarded = new KeyboardEvent("keydown", { key, code, repeat, ctrlKey, metaKey, altKey, shiftKey, isComposing, bubbles: true, cancelable: true });
+              if (!frameRef.current?.dispatchEvent(forwarded)) event.preventDefault();
+            });
             if (scrollTargetId && !concealed) frameDocument?.getElementById(scrollTargetId)?.scrollIntoView({ block: "nearest" });
             if (onTextSelectionChange && frameDocument) {
               const update = () => onTextSelectionChange(frameDocument.getSelection()?.toString().trim() ?? "");

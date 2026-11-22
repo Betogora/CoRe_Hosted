@@ -208,7 +208,7 @@ test("variant generation is offered only for decks with CoRe switched on, names 
   assert.match(missing, /data-testid="deck-settings-variant-count"[^>]*>12 Karten ohne Variante</);
   assert.match(missing, />Varianten generieren</);
   const complete = render(coreOn, false, 0);
-  assert.match(complete, />Alle Karten haben eine Variante\.</);
+  assert.match(complete, />Keine Karte wartet auf eine Variante\.</);
   assert.match(complete, />Varianten neu generieren</);
   assert.doesNotMatch(complete, />Varianten generieren</);
 });
