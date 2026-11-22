@@ -223,7 +223,7 @@ export function ApkgImportPanel({ workflow, session, onSessionChange, isSessionC
         onProgress: (percent) => reportProgress("committing", percent),
       });
       if (!result.rootDeck) throw new Error("Der Import hat keinen Stapel angelegt.");
-      const { rootDeck, createdCount, keptLocalEdits, missingInPackage, cloudTask, mediaTask } = result;
+      const { rootDeck, createdCount, keptLocalEdits, olderInPackage, missingInPackage, cloudTask, mediaTask } = result;
       // The cards are learnable now; cloud confirmation and media upload continue in the background, and a failure
       // there still reaches the learner after the screen moved on.
       cloudTask.subscribe((cloudResult) => { if (cloudResult.status === "blocked") setSuccessToast(cloudResult.message, { appearance: "neutral" }); });
@@ -238,7 +238,7 @@ export function ApkgImportPanel({ workflow, session, onSessionChange, isSessionC
         completion: {
           deck: rootDeck,
           createdCount,
-          reimport: keptLocalEdits > 0 || missingInPackage > 0 ? { keptLocalEdits, missingInPackage } : null,
+          reimport: keptLocalEdits > 0 || olderInPackage > 0 || missingInPackage > 0 ? { keptLocalEdits, olderInPackage, missingInPackage } : null,
           samples: preview.samples.slice(0, APKG_SAMPLE_CARD_LIMIT),
           sampleMedia: preview.sampleMedia,
         },

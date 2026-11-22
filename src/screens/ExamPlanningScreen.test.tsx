@@ -53,7 +53,7 @@ test("calendar shows new cards in subject color without duration or repetitions"
   const second = { ...first, id: "physiology", name: "Physiologie", examDate: "2026-10-30" };
   const block = (examId: string, count: number, method: StudyPlanBlock["method"]): StudyPlanBlock => ({ id: `${examId}-${method}`, date: today, examIds: [examId], deckId: "deck", method, expectedItems: count, cardIds: Array.from({ length: count }, (_, i) => `${examId}-${method}-${i}`) });
   const forecast: ExamPortfolioForecast = { days: [{ key: today, budgetMinutes: 120, newCardIds: [], reviewCardIds: [], summaries: [], blocks: [block(first.id, 24, "new"), block(second.id, 9, "new"), block(first.id, 8, "review")] }], exams: [] };
-  const html = renderToStaticMarkup(<ExamMonthCalendar onToggleExam={() => undefined} exams={[first, second]} shown={[first, second]} forecast={forecast} today={today} date={today} color={() => "var(--core-info)"} onSelect={() => undefined} />);
+  const html = renderToStaticMarkup(<ExamMonthCalendar onToggleExam={() => undefined} exams={[first, second]} shown={[first, second]} forecast={forecast} today={today} date={today} color={() => "var(--core-info)"} onSelect={() => undefined} viewControl={null} />);
   assert.match(html, /data-exam-subject="anatomy"[^]*?data-exam-task="study"><span class="sm:hidden">24<\/span><span class="hidden sm:inline">24 neue Karten<\/span><\/span>/);
   assert.match(html, /class="exam-month-entry [^"]*rounded-inset border-strong/);
   assert.match(html, /<div class="min-w-0" role="region" aria-label="Monatskalender">/);
@@ -62,7 +62,7 @@ test("calendar shows new cards in subject color without duration or repetitions"
   assert.match(html, /border-color:var\(--core-info\);background:color-mix/);
   assert.match(html, /Anatomie: 24 neue Karten\. Physiologie: 9 neue Karten/);
   assert.doesNotMatch(html, /Min\.|Std\.|Wiederholungen|08:00/);
-  const week = renderToStaticMarkup(<ExamWeekCalendar onToggleExam={() => undefined} exams={[first, second]} shown={[first, second]} decks={[]} capacity={createStudyTimeCapacity()} forecast={forecast} today={today} date={today} busy={false} color={() => "var(--core-info)"} onSelect={() => undefined} onChange={() => true} />);
+  const week = renderToStaticMarkup(<ExamWeekCalendar onToggleExam={() => undefined} exams={[first, second]} shown={[first, second]} decks={[]} capacity={createStudyTimeCapacity()} forecast={forecast} today={today} date={today} busy={false} color={() => "var(--core-info)"} onSelect={() => undefined} onChange={() => true} viewControl={null} />);
   assert.match(week, /data-week-task="anatomy" aria-label="Anatomie: 24 neue Karten\. Aufgabe auswählen/);
   assert.ok(html.indexOf('aria-label="Prüfungen im Kalender"') > html.indexOf('data-testid="exam-month-calendar"'));
   assert.ok(html.indexOf('aria-label="Prüfungen im Kalender"') < html.indexOf('>Heute<'));
@@ -73,7 +73,7 @@ test("calendar shows new cards in subject color without duration or repetitions"
 test("exam dates stay visible without a forecast and distinguish same-day exams", () => {
   const exam = { ...createExamPlan("2026-10-18", ["deck"]), id: "anatomy", name: "Anatomie", createdAt: "2026-10-17T08:00:00.000Z", examDate: "2026-10-27" };
   const other = { ...exam, id: "physiology", name: "Physiologie" };
-  const markup = renderToStaticMarkup(<ExamMonthCalendar onToggleExam={() => undefined} exams={[exam, other]} shown={[exam, other]} forecast={null} today="2026-10-18" date="2026-10-18" color={(entry) => entry.id === exam.id ? "var(--core-info)" : "var(--core-success)"} onSelect={() => undefined} />);
+  const markup = renderToStaticMarkup(<ExamMonthCalendar onToggleExam={() => undefined} exams={[exam, other]} shown={[exam, other]} forecast={null} today="2026-10-18" date="2026-10-18" color={(entry) => entry.id === exam.id ? "var(--core-info)" : "var(--core-success)"} onSelect={() => undefined} viewControl={null} />);
   assert.match(markup, /data-exam-appointment="anatomy"/);
   assert.match(markup, /data-exam-appointment="physiology"/);
   assert.match(markup, /Klausur: Anatomie. Klausur: Physiologie/);
@@ -86,7 +86,7 @@ test("die Monatsansicht beginnt mit der aktuellen Woche und erhält die Aufgaben
   const exam = { ...createExamPlan(today, ["deck"]), id: "exam", name: "Anatomie", createdAt: "2026-07-31T08:00:00.000Z", examDate: "2026-08-28" };
   const day = { key: today, budgetMinutes: 60, newCardIds: ["card"], reviewCardIds: [], summaries: [], blocks: [{ id: "new", date: today, examIds: [exam.id], deckId: "deck", method: "new" as const, expectedItems: 1, cardIds: ["card"] }] };
   const forecast: ExamPortfolioForecast = { days: [day], exams: [] };
-  const render = () => renderToStaticMarkup(<ExamMonthCalendar onToggleExam={() => undefined} exams={[exam]} shown={[exam]} forecast={forecast} today={today} date={today} color={() => "var(--core-info)"} onSelect={() => undefined} />);
+  const render = () => renderToStaticMarkup(<ExamMonthCalendar onToggleExam={() => undefined} exams={[exam]} shown={[exam]} forecast={forecast} today={today} date={today} color={() => "var(--core-info)"} onSelect={() => undefined} viewControl={null} />);
   const cell = (html: string) => html.split(`data-date="${today}"`)[1].split("</button>")[0];
   assert.doesNotMatch(render(), /data-date="2026-07-27"/);
   assert.match(render(), /data-date="2026-08-03"/);
@@ -100,7 +100,7 @@ test("die Monatsansicht beginnt mit der aktuellen Woche und erhält die Aufgaben
 test("compact month prioritizes exams and announces tasks beyond the visible entries", () => {
   const today = "2026-10-18";
   const exams = ["Anatomie", "Physiologie", "Biochemie"].map((name) => ({ ...createExamPlan(today, ["deck"]), id: name, name, examDate: "2026-10-27" }));
-  const html = renderToStaticMarkup(<ExamMonthCalendar onToggleExam={() => undefined} exams={exams} shown={exams} forecast={null} today={today} date={today} color={() => "var(--core-exam-color-1)"} onSelect={() => undefined} />);
+  const html = renderToStaticMarkup(<ExamMonthCalendar onToggleExam={() => undefined} exams={exams} shown={exams} forecast={null} today={today} date={today} color={() => "var(--core-exam-color-1)"} onSelect={() => undefined} viewControl={null} />);
   assert.match(html, /Klausur: Anatomie\. Klausur: Physiologie\. Klausur: Biochemie/);
   assert.match(html, /title="1 weiterer Eintrag in den Tagesdetails">\+1/);
   assert.match(html, /data-exam-appointment="Anatomie"/);
@@ -112,7 +112,7 @@ test("Wochenansicht zeigt To-dos über 7–24 Uhr und erhält neutrale Lernzeitb
   const today = "2026-10-20";
   const exam = { ...createExamPlan(today, ["deck"]), id: "anatomy", name: "Anatomie", createdAt: "2026-10-17T08:00:00.000Z", examDate: "2026-10-27" };
   const capacity = { ...createStudyTimeCapacity(), timeBlocks: [{ id: "open", date: today, start: 780, end: 900, examId: null }] };
-  const html = renderToStaticMarkup(<ExamWeekCalendar onToggleExam={() => undefined} exams={[exam]} shown={[exam]} decks={[]} capacity={capacity} forecast={null} today={today} date={today} busy={false} color={() => "var(--core-exam-color-1)"} onSelect={() => undefined} onChange={() => true} />);
+  const html = renderToStaticMarkup(<ExamWeekCalendar onToggleExam={() => undefined} exams={[exam]} shown={[exam]} decks={[]} capacity={capacity} forecast={null} today={today} date={today} busy={false} color={() => "var(--core-exam-color-1)"} onSelect={() => undefined} onChange={() => true} viewControl={null} />);
   assert.ok(html.indexOf("To-dos") < html.indexOf('data-week-day="2026-10-20"'));
   assert.match(html, />07:00</);
   assert.doesNotMatch(html, />06:00</);
@@ -184,12 +184,12 @@ test("ausgeblendete Prüfungen behalten ihren Umschaltknopf und freie Wochenblö
     { id: "open", date: today, start: 780, end: 840, examId: null },
   ] };
   const original = structuredClone(capacity);
-  const week = renderToStaticMarkup(<ExamWeekCalendar exams={[first, second]} shown={[second]} onToggleExam={() => undefined} decks={[]} capacity={capacity} forecast={null} today={today} date={today} busy={false} color={() => "#1749e5"} onSelect={() => undefined} onChange={() => { assert.fail("Filtern darf keine Planung ändern"); }} />);
+  const week = renderToStaticMarkup(<ExamWeekCalendar exams={[first, second]} shown={[second]} onToggleExam={() => undefined} decks={[]} capacity={capacity} forecast={null} today={today} date={today} busy={false} color={() => "#1749e5"} onSelect={() => undefined} onChange={() => { assert.fail("Filtern darf keine Planung ändern"); }} viewControl={null} />);
   assert.match(week, /aria-pressed="false"[^>]*><span class="core-tag core-tag-outline">[\s\S]*?Anatomie<\/span><\/button>/);
   assert.match(week, /aria-pressed="true"[^>]*><span class="core-tag core-tag-neutral">[\s\S]*?Physiologie<\/span><\/button>/);
   assert.doesNotMatch(week, /data-week-block="assigned"/);
   assert.match(week, /data-week-block="open"/);
-  const month = renderToStaticMarkup(<ExamMonthCalendar exams={[first, second]} shown={[]} onToggleExam={() => undefined} forecast={null} today={today} date={today} color={() => "#1749e5"} onSelect={() => undefined} />);
+  const month = renderToStaticMarkup(<ExamMonthCalendar exams={[first, second]} shown={[]} onToggleExam={() => undefined} forecast={null} today={today} date={today} color={() => "#1749e5"} onSelect={() => undefined} viewControl={null} />);
   assert.match(month, /aria-pressed="false"[^>]*><span class="core-tag core-tag-outline">[\s\S]*?Anatomie<\/span><\/button>/);
   assert.match(month, /aria-pressed="false"[^>]*><span class="core-tag core-tag-outline">[\s\S]*?Physiologie<\/span><\/button>/);
   assert.doesNotMatch(month, /data-exam-appointment=/);
@@ -217,7 +217,7 @@ test("Monatsansicht bündelt alle Aufgaben je Fach und zählt nur weitere Fachka
   const second = { ...first, id: "physiology", name: "Physiologie" };
   const third = { ...first, id: "biochem", name: "Biochemie" };
   const forecast: ExamPortfolioForecast = { days: [{ key: date, budgetMinutes: 120, newCardIds: ["c"], reviewCardIds: [], blocks: [{ id: "new", date, examIds: [first.id], deckId: "a", method: "new", expectedItems: 1, cardIds: ["c"] }], summaries: [{ examId: first.id, deckId: "a" }, { examId: second.id, deckId: "b" }, { examId: third.id, deckId: "c" }] }], exams: [] };
-  const render = (shown = [first, second, third]) => renderToStaticMarkup(<ExamMonthCalendar exams={[first, second, third]} shown={shown} onToggleExam={() => undefined} forecast={forecast} today={date} date={date} color={() => "#1749e5"} onSelect={() => undefined} />).split(`data-date="${date}"`)[1].split("</button>")[0];
+  const render = (shown = [first, second, third]) => renderToStaticMarkup(<ExamMonthCalendar exams={[first, second, third]} shown={shown} onToggleExam={() => undefined} forecast={forecast} today={date} date={date} color={() => "#1749e5"} onSelect={() => undefined} viewControl={null} />).split(`data-date="${date}"`)[1].split("</button>")[0];
   const html = render();
   assert.equal((html.match(/data-exam-subject="anatomy"/g) ?? []).length, 1);
   assert.equal((html.match(/data-exam-subject="physiology"/g) ?? []).length, 1);

@@ -165,7 +165,8 @@ export function CardManagementTopic() {
     <ReferenceList testId="help-card-management" items={[
       <>Die Suche versteht Anki-Begriffe wie <code>tag:</code>, <code>is:due</code> oder <code>Feld:Text</code>. „Erweiterte Suche“ setzt sie per Klick und speichert Suchen.</>,
       "Ausgewählte Karten änderst du gemeinsam: Stapel, Tags, Flagge, Markierung, Aussetzen, Fälligkeit oder Löschen. Jede Aktion fragt nach und lässt sich rückgängig machen.",
-      "Zur Pflege gibt es „Suchen und Ersetzen“, „Duplikate finden“ und „Tags verwalten“ für das ganze Konto.",
+      "Zur Pflege gibt es „Suchen und Ersetzen“ und „Tags verwalten“ für das ganze Konto.",
+      <>Der Filter „Duplikate“ (<code>is:duplicate</code>) zeigt Inhalte mit gleicher Vorderseite nebeneinander; „Überzählige auswählen“ lässt je Gruppe den mit dem meisten Lernstand stehen.</>,
       "„Treffer lernen“ lernt die Treffer einer Suche: „Vorziehen“ zählt wie eine Sitzung ohne Tageslimit, „Nur üben“ ändert keinen Lernstand.",
       "„Alle Karten frei üben“ im Menü eines Stapels übt alle seine Karten samt Unterstapeln, ohne den Lernstand zu ändern.",
       <>Tasten: <kbd>/</kbd> sucht, <kbd>↑</kbd> <kbd>↓</kbd> wechseln die Zeile, <kbd>X</kbd> wählt aus, Ziffern setzen die Flagge, <kbd>Strg</kbd>+<kbd>Z</kbd> nimmt die letzte Aktion zurück. Das Menü „Aktionen“ nennt alle Tasten.</>,

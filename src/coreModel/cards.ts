@@ -1,5 +1,5 @@
 import { sanitizeNoteHtml, stripSanitizedHtml } from "../htmlSafety.ts";
-import type { Card, CardVariant, VariantPerformance } from "../coreTypes.ts";
+import type { Card, CardVariant, CardVariantRefusal, Note, VariantPerformance } from "../coreTypes.ts";
 import { VARIANT_STATUSES, makeId, stableContentHash } from "./coreValues.ts";
 import { createCardStudy, createVariantPerformance } from "./reviewState.ts";
 
@@ -74,6 +74,31 @@ export function replaceOutdatedVariants(card: Card, input: CardVariantInput, upd
     ? { ...variant, deletedAt: updatedAt, updatedAt, revision: variant.revision + 1 }
     : variant);
   return addCardVariant({ ...card, variants }, input, updatedAt);
+}
+
+export const VARIANT_FAILURE_LIMIT = 3;
+
+/** Failures of another prompt version or note content do not count towards the limit. */
+export function recordVariantOutcome(
+  card: Card,
+  outcome: "created" | "not_rephrasable" | "rejected",
+  { promptVersion, contentRevision }: Pick<CardVariantRefusal, "promptVersion" | "contentRevision">,
+  updatedAt = new Date().toISOString(),
+): Card {
+  if (outcome === "created") {
+    if (!card.variantRefusal) return card;
+    const { variantRefusal: _refusal, ...rest } = card;
+    return { ...rest, updatedAt, revision: card.revision + 1 };
+  }
+  const previous = card.variantRefusal?.promptVersion === promptVersion && card.variantRefusal.contentRevision === contentRevision ? card.variantRefusal : null;
+  const failures = (previous?.failures ?? 0) + (outcome === "rejected" ? 1 : 0);
+  const state = outcome === "not_rephrasable" ? "not_rephrasable" : failures >= VARIANT_FAILURE_LIMIT ? "failing" : previous?.state ?? null;
+  return { ...card, variantRefusal: { state, failures, promptVersion, contentRevision, updatedAt }, updatedAt, revision: card.revision + 1 };
+}
+
+/** Null once the note's content changed since the refusal. */
+export function activeVariantRefusal(note: Pick<Note, "contentRevision">, card: Pick<Card, "variantRefusal">): CardVariantRefusal["state"] {
+  return card.variantRefusal?.contentRevision === note.contentRevision ? card.variantRefusal.state : null;
 }
 
 export function getActiveVariants(card: Pick<Card, "variants"> | null | undefined): CardVariant[] {

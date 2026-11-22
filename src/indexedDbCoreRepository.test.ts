@@ -604,6 +604,44 @@ test("Reimport behält lokale Bearbeitungen, erkennt Karten an der Anki-Karten-I
   repository.close();
 });
 
+test("Reimport wie in Anki: eine ältere Notiz im Paket ändert nichts, ein neuer Notiztyp ersetzt den unbearbeiteten Inhalt", async () => {
+  const stored = importedNote("note-newer", "guid-newer", "Neuere Fassung");
+  stored.note = { ...stored.note, importedAnkiModifiedAt: "2026-11-01T10:00:00.000Z", importedTags: ["Neu"], content: { ...stored.note.content, tags: ["Neu"] } };
+  stored.cards = stored.cards.map((card) => ({ ...card, id: "card-newer", ankiCardId: "anki-n1" }));
+  const typed = importedNote("note-type", "guid-type", "Gleiche Frage");
+  typed.note = { ...typed.note, noteTypeSourceId: "type-old" };
+  typed.cards = typed.cards.map((card) => ({ ...card, id: "card-type", ankiCardId: "anki-t1" }));
+  const deck = createCoreDeck({ id: "deck-anki", name: "Anki", source: "anki-apkg", ankiDeckId: "anki-deck-1", cards: [...stored.cards, ...typed.cards] });
+  const repository = await openRepository(state([deck], [stored.note, typed.note]));
+
+  const older = importedNote("incoming-older", "guid-newer", "Ältere Fassung", { reverse: true });
+  older.note = { ...older.note, importedAnkiModifiedAt: "2026-10-01T10:00:00.000Z", importedTags: ["Alt"], content: { ...older.note.content, tags: ["Alt"] } };
+  const retyped = importedNote("incoming-type", "guid-type", "Gleiche Frage");
+  retyped.note = { ...retyped.note, noteTypeSourceId: "type-new", importedAnkiModifiedAt: "2026-11-02T10:00:00.000Z" };
+  const result = await repository.commitImportGraph(importGraph([
+    { kind: "decks", decks: [{ id: "import-deck", ankiDeckId: "anki-deck-1", name: "Anki", hierarchyPath: ["Anki"], parentDeckId: null }] },
+    {
+      kind: "notes",
+      notes: [older.note, retyped.note],
+      noteSources: [{ noteId: "incoming-older", noteTypeSourceId: "type-old", fields: ["Ältere Fassung", "Antwort"] }, { noteId: "incoming-type", noteTypeSourceId: "type-new", fields: ["Gleiche Frage", "Antwort"] }],
+      cards: [
+        ...older.cards.map((card) => ({ ...card, id: `incoming-older-${card.promptKey}`, deckId: "import-deck", ankiCardId: card.promptKey === "forward" ? "anki-n1" : "anki-n2" })),
+        { ...retyped.cards[0], id: "incoming-type-forward", deckId: "import-deck", ankiCardId: "anki-t1" },
+      ],
+    },
+  ]), { deckSettings: {} });
+
+  assert.equal(result.olderInPackage, 1);
+  const kept = await repository.loadNoteGraph("note-newer");
+  assert.deepEqual([kept?.note.content.fields[0].html, kept?.note.content.tags, kept?.note.revision], ["Neuere Fassung", ["Neu"], stored.note.revision]);
+  assert.deepEqual(kept?.cards.map((card) => card.id), ["card-newer"], "die Rückrichtung der älteren Notiz entsteht nicht");
+  const replaced = await repository.loadNoteGraph("note-type");
+  assert.deepEqual([replaced?.note.noteTypeSourceId, replaced?.note.importedAnkiModifiedAt, replaced?.note.contentRevision], ["type-new", "2026-11-02T10:00:00.000Z", 2]);
+  assert.deepEqual(replaced?.cards.map((card) => card.id), ["card-type"], "die Karte behält ihre ID und damit ihren Lernstand");
+  assert.deepEqual(pendingEntityMutations(repository).filter((mutation) => mutation.table === "note_sources").map((mutation) => mutation.entityId), ["note-type"], "die ältere Notiz überschreibt ihre Rohfelder nicht");
+  repository.close();
+});
+
 test("ein unterbrochener Import bleibt vermerkt; dieselbe Datei setzt ihn fort und übernimmt auch den Verlauf schon übernommener Karten", async () => {
   const repository = await openRepository(state([], []));
   const first = importedNote("incoming-first", "guid-first", "Erste Frage");
@@ -913,5 +951,23 @@ test("eine fehlgeschlagene Delta-Seite lässt den Cursor stehen, ihre Wiederholu
   assert.equal(repository.getReplicaStatus().catalogCursor, 4);
   assert.equal((await repository.listCatalogPage("deck-idb")).items.find((item) => item.id === entry.id)?.studyRevision, changed.studyRevision);
   assert.deepEqual(await summaryTotals(repository), { "deck-idb": 2 });
+  repository.close();
+});
+
+test("eine Bewertung schreibt nur den Lernstand und behält eine inzwischen vermerkte Variantensperre", async () => {
+  const initialState = workspaceState(1);
+  const repository = await openRepository(initialState);
+  const result = answerVariant(initialState.decks[0], "card-0", null, "good", { now: "2026-08-20T08:00:00.000Z" });
+  const variantRefusal = { state: "not_rephrasable" as const, failures: 0, promptVersion: "card-variant-v5", contentRevision: 1, updatedAt: "2026-08-20T07:59:00.000Z" };
+  await repository.updateCard("card-0", (card) => ({ ...card, variantRefusal, revision: card.revision + 1 }));
+
+  repository.recordReview(result);
+  await repository.flush();
+
+  const body = await repository.loadCardBody("card-0");
+  assert.deepEqual(body?.card.variantRefusal, variantRefusal);
+  assert.deepEqual([body?.card.revision, body?.card.studyRevision, body?.card.study.reps], [2, 1, 1]);
+  const [catalog] = (await repository.listCatalogPage("deck-idb")).items;
+  assert.deepEqual([catalog.variantRefused, catalog.bodyRevision], [true, 2]);
   repository.close();
 });

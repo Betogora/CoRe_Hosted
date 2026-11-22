@@ -53,7 +53,7 @@ function readyCloudTask() {
 }
 
 function persistence(overrides: Partial<ImportedDeckPersistence> = {}): ImportedDeckPersistence {
-  return { decks: [], rootDeck: null, createdCount: 0, keptLocalEdits: 0, missingInPackage: 0, cloudTask: readyCloudTask(), ...overrides };
+  return { decks: [], rootDeck: null, createdCount: 0, keptLocalEdits: 0, olderInPackage: 0, missingInPackage: 0, cloudTask: readyCloudTask(), ...overrides };
 }
 
 function fakeCommitGraph(chunks: ImportGraphChunk[], cardCount: number): ImportCommitGraph {

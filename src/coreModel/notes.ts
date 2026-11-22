@@ -17,6 +17,7 @@ interface CreateNoteInput {
   userId?: string;
   source?: Note["source"];
   ankiGuid?: string | null;
+  importedAnkiModifiedAt?: string | null;
   noteTypeSourceId?: string | null;
   translator?: Note["translator"];
   media?: Record<string, string>;
@@ -83,6 +84,7 @@ export function createNote(input: CreateNoteInput): { note: Note; cards: Card[] 
     contentRevision: 1,
     importedContentRevision: input.source === "anki-apkg" ? 1 : null,
     importedTags: input.source === "anki-apkg" ? parsed.value.tags : null,
+    importedAnkiModifiedAt: input.importedAnkiModifiedAt ?? null,
     createdAt,
     updatedAt: createdAt,
     revision: 1,

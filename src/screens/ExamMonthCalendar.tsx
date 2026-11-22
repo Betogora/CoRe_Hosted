@@ -10,9 +10,9 @@ import { examTextColor, formatExamCount, formatExamDate } from "./examPlanningUi
 
 const MONTH_LABEL = new Intl.DateTimeFormat("de-DE", { month: "short", timeZone: "UTC" });
 
-export function ExamMonthCalendar({ exams, shown, onToggleExam, forecast, today, date, color, onSelect }: {
+export function ExamMonthCalendar({ exams, shown, onToggleExam, forecast, today, date, color, onSelect, viewControl }: {
   exams: ExamPlan[]; shown: ExamPlan[]; onToggleExam: (id: string) => void; forecast: ExamPortfolioForecast | null;
-  today: string; date: string; color: (exam: ExamPlan) => string; onSelect: (date: string, openDetails?: boolean) => void;
+  today: string; date: string; color: (exam: ExamPlan) => string; onSelect: (date: string, openDetails?: boolean) => void; viewControl: React.ReactNode;
 }) {
   const [browsedMonth, setBrowsedMonth] = React.useState<string | null>(null);
   const month = browsedMonth ?? today.slice(0, 7);
@@ -24,7 +24,8 @@ export function ExamMonthCalendar({ exams, shown, onToggleExam, forecast, today,
 
   return <SoftPanel className="grid min-w-0 gap-4 p-3 sm:p-5" data-testid="exam-month-calendar">
     <div className="flex min-w-0 flex-wrap items-center gap-2">
-      <h4 className="mr-auto core-heading-3 text-core-text" aria-live="polite">{new Intl.DateTimeFormat("de-DE", { month: "long", year: "numeric", timeZone: "UTC" }).format(new Date(`${month}-01T12:00:00Z`))}</h4>
+      <h3 className="mr-3 core-heading-3 text-core-text" aria-live="polite">{new Intl.DateTimeFormat("de-DE", { month: "long", year: "numeric", timeZone: "UTC" }).format(new Date(`${month}-01T12:00:00Z`))}</h3>
+      <div className="mr-auto">{viewControl}</div>
       <ExamCalendarFilters exams={exams} shown={shown} color={color} onToggle={onToggleExam} />
       <div className="flex shrink-0 gap-2">
         <ActionButton variant="secondary" onClick={() => { setBrowsedMonth(null); onSelect(today, false); }}>Heute</ActionButton>

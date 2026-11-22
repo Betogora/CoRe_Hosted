@@ -11,7 +11,8 @@ Laufzeiten bei jedem Lauf selbst.
 | Auslöser | Workflow / Ort | Befehl | Blockiert |
 | --- | --- | --- | --- |
 | Pull Request, Push auf `main`, manuell | GitHub `ci.yml`, Job `quality` | `npm run gate:push` | ja, Pflicht-Check für `main` |
-| wie oben | GitHub `ci.yml`, Job `catalog-e2e` | `npm run test:e2e:catalog` | nein, kein Pflicht-Check |
+| wie oben | GitHub `ci.yml`, Job `catalog-e2e` | `npm run test:e2e:catalog` | ja, Pflicht-Check für `main` |
+| Pull Request | GitHub `ci.yml`, Job `affected-e2e` | `npm run test:e2e:affected:local` | ja, Pflicht-Check für `main` |
 | jedes Vercel-Deployment | Build-Befehl in `vercel.json` | `npm run gate:push` | ja, ohne Erfolg kein Deployment |
 | täglich 02:17 UTC, veröffentlichtes Release, manuell | GitHub `nightly-core.yml` | `npm run gate:nightly` | ja |
 | montags 04:17 UTC, manuell | GitHub `weekly-performance.yml` | `npm run performance:measure:local` | ja |
@@ -20,7 +21,9 @@ Commits und Pushes führen lokal nichts automatisch aus, weil ein gemischter
 Worktree Änderungen außerhalb des Commits enthalten kann. Ein neuer Push in einen
 Pull Request bricht dessen überholten Lauf ab; Läufe auf `main` brechen nie ab.
 Die zeitgesteuerten Workflows haben je genau einen blockierenden Job ohne
-Abhängigkeiten oder `continue-on-error`.
+Abhängigkeiten oder `continue-on-error`. Jobs mit Supabase ziehen die Images
+über `SUPABASE_INTERNAL_IMAGE_REGISTRY=ghcr.io`, weil `public.ecr.aws`
+GitHub-Runnern wiederholt „Data limit exceeded“ meldete.
 
 ## Lokale Befehle
 
@@ -38,14 +41,17 @@ Abhängigkeiten oder `continue-on-error`.
   vollständig abgefangene App-Flows, ohne Docker und Supabase, eigener Vite-Server
   auf Port 5195.
 - `npm run test:e2e:affected:local`: wählt die Specs aus den Änderungen gegenüber
-  der Merge-Basis mit `origin/main`, auch uncommittet (`scripts/affectedE2ESpecs.ts`).
+  der Merge-Basis mit `origin/main`, auch uncommittet (`scripts/affectedE2ESpecs.ts`),
+  und läuft als PR-Job `affected-e2e`; lokal dient er der Fehlersuche.
   Geänderte Specs laufen immer; Produktquellen wählen über ihren Bereich, Doku und
-  Modultests keine. Gemeinsame E2E-Infrastruktur, Playwright- und
-  Build-Konfiguration, Abhängigkeiten, Migrationen, App-Shell und nicht
-  zugeordnete Produktquellen führen zur vollständigen Suite. Die vollständige
-  Suite für einen Release-Commit liefert ein grüner `gate:nightly`-Lauf auf
-  genau diesem Commit (sonst Workflow manuell starten); die visuelle
-  Pflichtmatrix gilt je visueller UI-Änderung, nicht zusätzlich je Release.
+  Modultests keine, geänderte RLS-Tests die vollständige RLS-Suite. Gemeinsame
+  E2E-Infrastruktur, Playwright- und Build-Konfiguration, Abhängigkeiten,
+  Migrationen, App-Shell und nicht zugeordnete Produktquellen führen zur
+  vollständigen Browser- und RLS-Suite. Die vollständige Suite für einen
+  Release-Commit liefert ein grüner `gate:nightly`-Lauf auf genau diesem Commit
+  (sonst Workflow manuell starten); für Branches ersetzt `affected-e2e` den
+  manuellen Nightly-Lauf. Die visuelle Pflichtmatrix gilt je visueller
+  UI-Änderung, nicht zusätzlich je Release.
 - `npm run test:e2e:local`: vollständige lokale Browser-Suite mit Supabase,
   einschließlich Katalogflows und Datenbanktyp-Drift.
 - `npm run test:pr:local`: Kern-RLS plus die sechs `@golden-e2e`-Flows.
@@ -71,20 +77,23 @@ Datei danach zurückzusetzen; die Testskripte lesen URLs aus `supabase status`.
 
 ## Visuelle Pflichtmatrix
 
-Jede visuelle UI-Änderung wird in den folgenden Viewports gerendert und anhand
+Jede visuelle UI-Änderung wird in den Viewports ihrer Stufe gerendert und anhand
 von Screenshots geprüft. Die Matrix gilt für alle betroffenen Ansichten und
 Zustände; Änderungen an gemeinsamen Komponenten oder der App-Shell beziehen alle
 konsumierenden Screens ein. Vor einer Produktfreigabe werden sämtliche sichtbaren
 Menüs und Kernjourneys geprüft.
 
-| Ziel | Viewport in CSS-Pixeln |
-| --- | --- |
-| Sehr schmales Smartphone | 320 × 720 |
-| Schmales Smartphone | 360 × 800 |
-| Standard-Smartphone | 390 × 844 |
-| Breites Smartphone | 430 × 932 |
-| Desktop-Mindestziel | 1280 × 720 |
-| Primärer Desktop | 1440 × 900 |
+| Ziel | Viewport in CSS-Pixeln | Stufe |
+| --- | --- | --- |
+| Sehr schmales Smartphone | 320 × 720 | immer |
+| Schmales Smartphone | 360 × 800 | voll |
+| Standard-Smartphone | 390 × 844 | immer |
+| Breites Smartphone | 430 × 932 | voll |
+| Desktop-Mindestziel | 1280 × 720 | immer |
+| Primärer Desktop | 1440 × 900 | immer |
+
+Die volle Stufe gilt für Navigation, App-Shell, Breakpoints, gemeinsame
+Komponenten aus `src/ui/` und Produktfreigaben.
 
 - Bei Änderungen an Navigation, Shell oder Breakpoints zusätzlich 1279 × 900 und
   1280 × 900; weitere betroffene Breakpoints jeweils unmittelbar darunter und darauf.
@@ -157,13 +166,13 @@ Geprüft werden sie so:
   test-results/performance.json` prüft es gegen die festen Grenzen (u. a. keine
   automatischen 3G-Preloads, höchstens 50 ms je 4G-Preload-Task, Statistik-RPC p95
   ≤ 1.000 ms, 100k-Kartensuche ≤ 2.000 ms, Clientprojektion ≤ 50 ms).
-- Zusätzlich lokal auszuführen bei Änderungen an Bootstrap, Preload, Sync, Katalog,
-  Statistik, Service Worker, Abhängigkeiten oder Chunking. Gleichwertig ist ein
-  Lauf von `weekly-performance.yml` auf dem gepushten Branch vor dem Merge
-  (`gh workflow run weekly-performance.yml --ref <branch>`, etwa 8 Minuten,
-  Artefakt `performance.json`). Unter Windows mit Docker Desktop streut die
-  lokale Messung stark (2026-11-11: Preload-Task lokal 96 ms, im Workflow 52 ms;
-  neues Gerät 3,6 statt 2,6 s) und taugt dort nur zur Aufschlüsselung der Zeitanteile.
+- Bei Änderungen an Bootstrap, Preload, Sync, Katalog, Statistik, Service Worker,
+  Abhängigkeiten oder Chunking läuft `weekly-performance.yml` vor dem Merge auf
+  dem gepushten Branch (`gh workflow run weekly-performance.yml --ref <branch>`,
+  etwa 8 Minuten, Artefakt `performance.json`). Unter Windows mit Docker Desktop
+  streut die lokale Messung stark (2026-11-11: Preload-Task lokal 96 ms, im
+  Workflow 52 ms; neues Gerät 3,6 statt 2,6 s) und taugt dort nur zur
+  Aufschlüsselung der Zeitanteile.
 - Ein rotes Gate bleibt rot; ein fehlendes oder nur technisch erzeugtes Artefakt
   ist kein Freigabenachweis. Feld-p75/p95 und die vollständige 100k-Browserjourney
   misst der Lauf nicht.
@@ -232,7 +241,7 @@ getrennt mit realer SMTP-Zustellung abgenommen.
 - Ein Test wird nur entfernt, wenn sein Vertrag anderswo nachweisbar bleibt oder aus dem Produkt entfernt wurde.
 - Ein Export, den außer Tests niemand nutzt, ist toter Code; Funktion und Test entfallen gemeinsam. Ausnahmen tragen `/** @internal */` (bewusst nur für Tests angebotene Seam-Hilfe) oder `/** @public */` (fertige Schnittstelle mit ausstehendem Aufrufer).
 - Abwesenheitsprüfungen gehören zur Entfernung selbst. Ausgenommen sind die Browserprüfungen für [Beta-Abnahme Punkt 4](specs.md#beta-abnahme), auch hosted.
-- Browserflows setzen das Cloud-Konto nur zurück, wenn sie Cloudzustand prüfen oder voraussetzen.
+- Jeder Supabase-Browserflow beginnt mit einem Konto-Reset (`resetToFreshLocalState` oder der Seeder seiner Spec), weil alle Flows ein Konto teilen; kein Flow räumt nach sich auf. Feste Wartezeiten stehen nur dort, wo die Dauer selbst geprüft wird.
 - Eine neue Spec steht in `tests/e2e/support/catalogSpecs.ts` (ohne Supabase) oder in einem Projekt von `playwright.config.ts` und ist in `AREAS` von `scripts/affectedE2ESpecs.ts` zugeordnet; `src/affectedE2ESpecs.test.ts` meldet Lücken.
 - Golden- und RLS-Testnamen beginnen mit `[Vertrag: …]`.
 - Neue schwere Browser-, Storage-, Großdatei- oder Restore-Pfade werden `heavy-release`; ins PR-Gate darf nur ein enges Golden- oder Security-Smoke.

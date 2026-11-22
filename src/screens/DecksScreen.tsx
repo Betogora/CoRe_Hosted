@@ -1,5 +1,5 @@
 import React from "react";
-import { ChevronRight, CopyCheck, FileText, GraduationCap, Layers, Network, Play, RotateCcw, type LucideIcon } from "lucide-react";
+import { ChevronRight, FileText, GraduationCap, Layers, ListChecks, Network, Play, RotateCcw, type LucideIcon } from "lucide-react";
 import type { CardDraftGuard, DecksScreenProps } from "../appScreenProps.ts";
 import { noteTextIndex } from "../coreModel.ts";
 import { collectDeckTreeIds } from "../coreWorkspace.ts";
@@ -23,10 +23,9 @@ import { HIT_LIST_KEY, useCardSearch } from "./cardList/useCardSearch.ts";
 import { CardHitTable, MatchingDecks } from "./cardList/CardHitTable.tsx";
 import { CardSelectionBar } from "./cardList/CardSelectionBar.tsx";
 import { useCardSelection } from "./cardList/useCardSelection.ts";
-import { DuplicatesDialog } from "./cardList/DuplicatesDialog.tsx";
 import { TagManagerDialog } from "./cardList/TagManagerDialog.tsx";
 import { renameDirectoryTag } from "../tagDirectory.ts";
-import type { DuplicateKey } from "../duplicateContents.ts";
+import { parseCardSearchQuery } from "../cardSearchQuery.ts";
 import { HitStudyFlow } from "./cardList/HitStudyFlow.tsx";
 import { hitStudyQuery } from "../hitStudySession.ts";
 import type { CardBatchAction } from "../cardBatchActions.ts";
@@ -99,7 +98,7 @@ export function DecksScreen({
   onPrepareTextReplace,
   onStudyHits,
   onLoadPracticeCards,
-  onFindDuplicates,
+  onListSurplusDuplicateIds,
   onListHitCardIds,
   variantGenerationRunning = false,
   onUpdateVariant,
@@ -306,7 +305,7 @@ export function DecksScreen({
   }, [selectedCardId, selectedItemIndex >= 0]);
 
   const canSelect = Boolean(onRunCardBatch) && !onCloseSelectedCard;
-  const { selecting, setSelecting, checkedIds, allHits, setAllHits, clearSelection, toggleCheck: stableToggleCheck, selectionCount, selectionRequest, lastUndoRef, keyActionRowRef, setFocusRowAfterAction } = useCardSelection({
+  const { selecting, setSelecting, checkedIds, allHits, setAllHits, clearSelection, selectLoadedCards, toggleCheck: stableToggleCheck, selectionCount, selectionRequest, lastUndoRef, keyActionRowRef, setFocusRowAfterAction } = useCardSelection({
     canSelect, hitList, items, cardItems, rowOf, locateCard, deferredQuery, hitScope,
   });
   const [runningBatch, setRunningBatch] = React.useState(false);
@@ -356,8 +355,17 @@ export function DecksScreen({
   }
 
   const prepareSelectionReplace = useStableCallback(async () => onPrepareTextReplace!(await selectedIds()));
-  const [duplicatesOpen, setDuplicatesOpen] = React.useState(false);
-  const findDuplicates = useStableCallback((key: DuplicateKey, withinHits: boolean) => onFindDuplicates!({ deckIds: hitScope, key, query: withinHits ? deferredQuery : "", searchContext }));
+  const searchingDuplicates = React.useMemo(() => parseCardSearchQuery(deferredQuery).terms.some((term) => term.kind === "duplicate" && !term.negated), [deferredQuery]);
+  async function selectSurplusDuplicates() {
+    try {
+      const count = await selectLoadedCards(() => onListSurplusDuplicateIds!({ deckIds: hitScope, query: deferredQuery, searchContext }));
+      setDeckStatusType("status");
+      setDeckStatus(count === 0 ? "Keine überzähligen Duplikate" : "");
+    } catch (error) {
+      setDeckStatusType("alert");
+      setDeckStatus(error instanceof Error ? error.message : "Duplikate konnten nicht ausgewählt werden.");
+    }
+  }
   const [hitStudy, setHitStudy] = React.useState<"hits" | "selection" | null>(null);
   const canStudyHits = Boolean(onStudyHits && onLoadPracticeCards && onListHitCardIds);
   const loadHitStudyIds = useStableCallback(async () => {
@@ -583,8 +591,13 @@ export function DecksScreen({
           onAdvancedOpenChange={setAdvancedSearchOpen}
           advancedId="advanced-card-search"
           resultCount={searchResultCount}
-          resultAction={canStudyHits && searchResultCount ? (
-            <CrossLinkButton onSelect={() => setHitStudy("hits")}><GraduationCap size={16} aria-hidden="true" />Treffer lernen</CrossLinkButton>
+          resultAction={searchResultCount && (canStudyHits || (canSelect && searchingDuplicates && onListSurplusDuplicateIds)) ? (
+            <div className="flex flex-wrap justify-end gap-x-4 gap-y-1">
+              {canSelect && searchingDuplicates && onListSurplusDuplicateIds ? (
+                <CrossLinkButton onSelect={() => void selectSurplusDuplicates()}><ListChecks size={16} aria-hidden="true" />Überzählige auswählen</CrossLinkButton>
+              ) : null}
+              {canStudyHits ? <CrossLinkButton onSelect={() => setHitStudy("hits")}><GraduationCap size={16} aria-hidden="true" />Treffer lernen</CrossLinkButton> : null}
+            </div>
           ) : undefined}
           placeholder={contentDeckId ? "Vorderseite, Rückseite, Felder oder Tags durchsuchen" : "Stapel, Vorderseite, Rückseite, Felder oder Tags durchsuchen"}
           hint={unsupportedTerms.length ? `Noch nicht unterstützt, wird als Text gesucht: ${unsupportedTerms.join(" ")}` : undefined}
@@ -631,21 +644,7 @@ export function DecksScreen({
             onClose={() => setTagManagerOpen(false)}
           />
         ) : null}
-        {duplicatesOpen ? (
-          <DuplicatesDialog
-            searching={Boolean(deferredQuery.trim())}
-            find={findDuplicates}
-            deckName={(deckId) => deckNameById.get(deckId) ?? "Unbekannter Stapel"}
-            onOpen={(deckId, cardId) => {
-              setDuplicatesOpen(false);
-              requestCardSelection(deckId, cardId);
-            }}
-            onTag={async (cardIds) => {
-              await runCardBatchAction(async () => cardIds, { kind: "tags", add: ["Duplikat"], remove: [] }, (cards) => `${cards} als Duplikat getaggt`);
-            }}
-            onClose={() => setDuplicatesOpen(false)}
-          />
-        ) : null}
+        {selectedPage?.loadError ? <p className="core-body font-semibold core-status-error" role="alert">{selectedPage.loadError}</p> : null}
         {deckStatus ? <p className={"core-body font-semibold " + (deckStatusType === "alert" ? "core-status-error" : "core-status-info")} role={deckStatusType}>{deckStatus}</p> : null}
         {deletedCardUndo ? (
           <div className="flex flex-wrap items-center gap-3 rounded-panel border border-core-border bg-core-subtle px-4 py-3">
@@ -721,9 +720,7 @@ export function DecksScreen({
           {contentDeck ? <ActionButton variant="primary" icon={Play} disabled={!hasStudyCards} className="core-deck-content-study"
             onClick={() => requestDetailAction(() => onStartDeck(contentDeck))} data-testid="deck-content-study">Karten lernen</ActionButton> : null}
         </div>
-      ) : <LearningAreaHeader area="cards" onOpenCardSettings={onOpenCardSettings} action={onFindDuplicates && onRunCardBatch ? (
-        <ActionButton type="button" variant="secondary" icon={CopyCheck} onClick={() => setDuplicatesOpen(true)}>Duplikate finden</ActionButton>
-      ) : undefined} />}
+      ) : <LearningAreaHeader area="cards" onOpenCardSettings={onOpenCardSettings} />}
 
       {contentDeckId ? <CoreTabPanel panelId={contentPanelId} value={contentTab} className="grid min-w-0 gap-6 outline-none">{content}</CoreTabPanel> : content}
       {detailOpen ? renderDetailLayer() : null}

@@ -137,23 +137,23 @@ export async function runLocalE2E(playwrightArguments: string[] = []) {
   if (!GATES.includes(gate)) throw new Error(`Unbekanntes lokales Testgate: ${gate}.`);
   const forwardedPlaywrightArguments = playwrightArguments.filter((argument) => argument !== "--rls-only" && !argument.startsWith("--gate="));
   const runCoreRls = gate === "pr" || gate === "beta" || gate === "core-rls";
-  const runFullRls = gate === "rls" || gate === "release";
   const runGoldenE2E = gate === "pr" || gate === "golden";
   const runBetaE2E = gate === "beta";
   const runPerformance = gate === "performance";
   const affected = gate === "affected" ? affectedE2ESpecs(await changedFiles()) : null;
   const runFullE2E = gate === "release" || affected?.full === true;
+  const runFullRls = gate === "rls" || gate === "release" || Boolean(affected && (affected.full || affected.rls));
   const affectedSupabaseSpecs = affected && !affected.full ? affected.supabase : [];
   if (affected) {
     console.log(affected.full
-      ? "Gemeinsame Infrastruktur oder nicht zugeordneter Produktcode geändert: vollständige Browsersuite ausführen …"
-      : `Betroffene Browserflows: ${[...affected.catalog, ...affected.supabase].join(", ") || "keine"}`);
+      ? "Gemeinsame Infrastruktur oder nicht zugeordneter Produktcode geändert: vollständige Browser- und RLS-Suite ausführen …"
+      : `Betroffene Browserflows: ${[...affected.catalog, ...affected.supabase].join(", ") || "keine"}${affected.rls ? "; vollständige RLS-Suite" : ""}`);
   }
-  const needsSupabase = !affected || affected.full || affectedSupabaseSpecs.length > 0;
+  const needsSupabase = !affected || runFullRls || affectedSupabaseSpecs.length > 0;
 
   if (needsSupabase) {
     try {
-      await runCommand("docker", ["info", "--format", "{{.ServerVersion}}"], { capture: true, timeoutMs: 5_000 });
+      await runCommand("docker", ["info", "--format", "{{.ServerVersion}}"], { capture: true, timeoutMs: 30_000 });
     } catch {
       throw new Error("Docker Desktop läuft nicht. Starte Docker Desktop und führe den Befehl danach erneut aus.");
     }

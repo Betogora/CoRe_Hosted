@@ -34,7 +34,7 @@ const entries: CardCatalogEntry[] = Array.from({ length: cardCount }, (_, index)
   };
 });
 
-const queries = ["muskel", "trapezius scaleni", "xyz", "flag:1 nerv", "-tag:anatomie herz", "rückseite:plexus", "is:suspended", "a"];
+const queries = ["muskel", "trapezius scaleni", "xyz", "flag:1 nerv", "-tag:anatomie herz", "rückseite:plexus", "is:suspended", "a", "is:duplicate"];
 const sorts: CardTableSort[] = [{ field: "sortField", direction: "asc" }, { field: "nextStudyDate", direction: "desc" }];
 const index = createCatalogSearchIndex();
 index.replaceAll(entries);

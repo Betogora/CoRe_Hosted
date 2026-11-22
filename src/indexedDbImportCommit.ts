@@ -27,6 +27,8 @@ interface ImportCommitResult {
   decks: WorkspaceDeckSummary[];
   scope: ImportVerificationScope;
   keptLocalEdits: number;
+  /** Contents whose note in the package is older than the stored one; they stay as they are. */
+  olderInPackage: number;
   missingInPackage: number;
 }
 
@@ -80,6 +82,7 @@ export async function commitImportGraph(
   const persistedNoteTypeSourceIds = new Map<string, string>();
   const persistedCardIds = new Map<string, string>();
   let keptLocalEdits = 0;
+  let olderInPackage = 0;
   let missingInPackage = 0;
 
   // Existing imports: local records first, cloud targets (loaded before the commit) for everything else.
@@ -177,6 +180,7 @@ export async function commitImportGraph(
       const read = database.transaction([STORE.notes, STORE.cards, STORE.variants], "readonly");
       const changes: NoteGraphChange[] = [];
       const persistedNoteIds = new Map<string, string>();
+      const olderNoteIds = new Set<string>();
       const incomingCardsByNote = new Map<string, Card[]>();
       for (const card of chunk.cards) incomingCardsByNote.set(card.noteId, [...(incomingCardsByNote.get(card.noteId) ?? []), card]);
       for (const incoming of chunk.notes) {
@@ -191,16 +195,26 @@ export async function commitImportGraph(
           for (const card of incomingCards) persistedCardIds.set(card.id, card.id);
           continue;
         }
-        // Tags are no content: they merge three-way against the tags of the last import, even after local edits.
         persistedNoteIds.set(incoming.id, existing.id);
+        // As in Anki, an older note in the package changes nothing: not the content, its tags, cards or raw fields.
+        if (existing.importedAnkiModifiedAt && incoming.importedAnkiModifiedAt
+          && Date.parse(incoming.importedAnkiModifiedAt) < Date.parse(existing.importedAnkiModifiedAt)) {
+          olderInPackage += 1;
+          olderNoteIds.add(incoming.id);
+          continue;
+        }
+        // Tags are no content: they merge three-way against the tags of the last import, even after local edits.
         const locallyEdited = existing.importedContentRevision === null || existing.contentRevision > existing.importedContentRevision;
         if (locallyEdited) keptLocalEdits += 1;
         const importedTags = incoming.importedTags ?? incoming.content.tags;
         const tags = mergeImportedTags(existing.content.tags, existing.importedTags, importedTags);
+        // A changed note type in Anki replaces the content as well, translated with the new type.
         const contentChanged = !locallyEdited
-          && JSON.stringify({ ...existing.content, tags: [] }) !== JSON.stringify({ ...incoming.content, tags: [] });
+          && (existing.noteTypeSourceId !== noteTypeSourceId || JSON.stringify({ ...existing.content, tags: [] }) !== JSON.stringify({ ...incoming.content, tags: [] }));
+        const importedAnkiModifiedAt = incoming.importedAnkiModifiedAt ?? existing.importedAnkiModifiedAt;
         const tagsChanged = JSON.stringify(tags) !== JSON.stringify(existing.content.tags)
-          || JSON.stringify(importedTags) !== JSON.stringify(existing.importedTags);
+          || JSON.stringify(importedTags) !== JSON.stringify(existing.importedTags)
+          || importedAnkiModifiedAt !== existing.importedAnkiModifiedAt;
         const note: Note = contentChanged
           ? {
             ...existing,
@@ -211,11 +225,12 @@ export async function commitImportGraph(
             contentRevision: existing.contentRevision + 1,
             importedContentRevision: existing.contentRevision + 1,
             importedTags,
+            importedAnkiModifiedAt,
             revision: existing.revision + 1,
             updatedAt: now,
           }
           : tagsChanged
-            ? { ...existing, content: { ...existing.content, tags }, importedTags, revision: existing.revision + 1, updatedAt: now }
+            ? { ...existing, content: { ...existing.content, tags }, importedTags, importedAnkiModifiedAt, revision: existing.revision + 1, updatedAt: now }
             : existing;
         const localCards = (await Promise.all((await requestResult<IDBValidKey[]>(read.objectStore(STORE.cards).index("noteId").getAllKeys(existing.id)))
           .map((id) => requestResult<StoredCard | undefined>(read.objectStore(STORE.cards).get(id)))))
@@ -253,7 +268,7 @@ export async function commitImportGraph(
       }
       await transactionDone(read);
       // Raw field values are kept for every imported content; re-translation only touches unedited ones.
-      const noteSources = chunk.noteSources.map((source) => ({
+      const noteSources = chunk.noteSources.filter((source) => !olderNoteIds.has(source.noteId)).map((source) => ({
         noteId: persistedNoteIds.get(source.noteId) ?? source.noteId,
         noteTypeSourceId: persistedNoteTypeSourceIds.get(source.noteTypeSourceId) ?? source.noteTypeSourceId,
         fields: source.fields,
@@ -324,6 +339,7 @@ export async function commitImportGraph(
     decks: finalScope.deckIds.map((id) => shellDecks().find((deck) => deck.id === id)).filter((deck): deck is WorkspaceDeckSummary => Boolean(deck)),
     scope: finalScope,
     keptLocalEdits,
+    olderInPackage,
     missingInPackage,
   };
 }

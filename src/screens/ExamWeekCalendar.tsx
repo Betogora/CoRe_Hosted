@@ -24,10 +24,10 @@ const gridPercent = (minute: number) => gridOffset(minute) / GRID_HEIGHT * 100 +
 const FIELD = "core-field w-full min-w-0";
 const VISIBLE_TODOS = 3;
 
-export function ExamWeekCalendar({ exams, shown, onToggleExam, capacity, forecast, decks, today, date, busy, color, onSelect, onChange }: {
+export function ExamWeekCalendar({ exams, shown, onToggleExam, capacity, forecast, decks, today, date, busy, color, onSelect, onChange, viewControl }: {
   exams: ExamPlan[]; shown: ExamPlan[]; onToggleExam: (id: string) => void; capacity: StudyTimeCapacity; forecast: ExamPortfolioForecast | null; decks: Deck[];
   today: string; date: string; busy: boolean; color: (exam: ExamPlan) => string;
-  onSelect: (date: string, openDetails?: boolean) => void; onChange: (capacity: StudyTimeCapacity) => boolean;
+  onSelect: (date: string, openDetails?: boolean) => void; onChange: (capacity: StudyTimeCapacity) => boolean; viewControl: React.ReactNode;
 }) {
   const [week, setWeek] = React.useState(() => createExamWeekDays(date)[0]);
   const [selection, setSelection] = React.useState<Selection | null>(null);
@@ -160,7 +160,8 @@ export function ExamWeekCalendar({ exams, shown, onToggleExam, capacity, forecas
 
   return <SoftPanel className="grid min-w-0 gap-4 p-3 sm:p-5" data-testid="exam-week-calendar">
     <div className="flex min-w-0 flex-wrap items-center gap-2">
-      <h4 className="mr-auto core-heading-3 text-core-text">{formatExamDate(days[0], "short")} – {formatExamDate(days[6], "short")}</h4>
+      <h3 className="mr-3 core-heading-3 text-core-text">{formatExamDate(days[0], "short")} – {formatExamDate(days[6], "short")}</h3>
+      <div className="mr-auto">{viewControl}</div>
       <ExamCalendarFilters exams={exams} shown={shown} color={color} onToggle={onToggleExam} />
       <div className="flex shrink-0 gap-2"><ActionButton variant="secondary" onClick={() => { setWeek(createExamWeekDays(today)[0]); setSelectedId(""); onSelect(today, false); }}>Heute</ActionButton><IconButton label="Vorherige Woche" icon={ChevronLeft} onClick={() => { setWeek(shiftExamDay(week, -7)); setSelection(null); setSelectedId(""); }} /><IconButton label="Nächste Woche" icon={ChevronRight} onClick={() => { setWeek(shiftExamDay(week, 7)); setSelection(null); setSelectedId(""); }} /></div>
     </div>

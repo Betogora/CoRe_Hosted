@@ -4,8 +4,8 @@ import type { LearnScreenProps } from "../appScreenProps.ts";
 import { createDeckLibraryModel } from "../libraryModel.ts";
 import { useWorkspaceValue } from "../useWorkspaceStore.ts";
 import { ActionButton } from "../ui/actionUi.tsx";
-import { EmptyState } from "../ui/coreUi.tsx";
-import { DeckTree, useStoredDeckTreeView } from "../ui/DeckTree.tsx";
+import { CoreIconSegmentedControl, EmptyState } from "../ui/coreUi.tsx";
+import { DECK_TREE_VIEW_OPTIONS, DeckTree, useStoredDeckTreeView } from "../ui/DeckTree.tsx";
 import { useSuccessToast } from "../ui/feedbackUi.tsx";
 import { DeckSelect } from "../ui/selectUi.tsx";
 import { LearningAreaHeader } from "./LearningAreaHeader.tsx";
@@ -114,13 +114,12 @@ export function LearnScreen({ decks, now, dayStartHour, learnAheadMinutes, timeZ
 
   return (
     <div className="grid min-w-0 gap-6">
-      <LearningAreaHeader area="overview" onOpenCardSettings={onOpenCardSettings} />
+      <LearningAreaHeader area="overview" onOpenCardSettings={onOpenCardSettings} viewControl={focusedDeckMissing || !library.rows.length ? undefined : <CoreIconSegmentedControl ariaLabel="Stapelansicht" options={DECK_TREE_VIEW_OPTIONS} value={deckView} onValueChange={setDeckView} />} />
 
       <DeckTree
         rows={focusedDeckMissing ? [] : library.rows}
         mode="learn"
         view={deckView}
-        onViewChange={setDeckView}
         contentAfterRows={deckCreateForm}
         collapsedDeckIds={collapsedDeckIds}
         onDeckExpansionChange={(deckId, expanded) => onSetDeckExpanded("learn", deckId, expanded)}

@@ -64,6 +64,7 @@ export function useCardVariantBatch({ cards, store, generate, onToast }: {
       },
       settingsFor: (card) => card.deckId === deck.id ? deckSettings : decksById.get(card.deckId)?.deckSettings ?? deckSettings,
       mode,
+      retryRefused: Boolean(cardIds),
       generate: (cardId) => generate(deck.id, cardId, mode),
       signal: controller.signal,
       onProgress: (progress) => {
@@ -91,7 +92,9 @@ export function useCardVariantBatch({ cards, store, generate, onToast }: {
   const countWithoutVariant = React.useCallback(async (deck: Deck) => {
     if (!cards) return null;
     countRef.current += 1;
-    const page = await cards.queryCardPage({ ...candidateList(deck, "missing", `variants:count:${deck.id}:${countRef.current}`), page: 0, pageSize: 1, sort: DEFAULT_CARD_TABLE_SORT });
+    // The action itself also lists refused cards: those of an older prompt version are retried.
+    const list = candidateList(deck, "missing", `variants:count:${deck.id}:${countRef.current}`);
+    const page = await cards.queryCardPage({ ...list, query: `${list.query} -is:unrephrasable`, page: 0, pageSize: 1, sort: DEFAULT_CARD_TABLE_SORT });
     return page.limitedToLocalCatalog ? null : page.totalCount ?? null;
   }, [cards, candidateList]);
 

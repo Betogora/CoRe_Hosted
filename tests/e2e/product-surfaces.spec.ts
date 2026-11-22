@@ -3,6 +3,7 @@ import { CORE_THEME_STORAGE_KEY } from "../../src/coreTheme.ts";
 import { readActiveAccountState, resetToFreshLocalState } from "./support/appState.ts";
 import { openSettingsArea, settingsDialog } from "./support/settingsDialog.ts";
 import { openNavigationMenuItem, shellBackButton, switchColorScheme } from "./support/navigationMenu.ts";
+import { matrixThemes, matrixViewports } from "./support/visualMatrix.ts";
 
 function mainMenu(page: Page) {
   return page.getByRole("navigation", { name: /Hauptmenü|Mobile Hauptnavigation/ }).filter({ visible: true });
@@ -154,19 +155,15 @@ test("general and learning settings each save their sections together through on
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)).toBe(true);
 });
 
-test("settings save bar keeps its depth and responsive position in both themes", async ({ page }) => {
+test("settings save bar keeps its depth and responsive position", async ({ page }) => {
   await resetToFreshLocalState(page);
   await openNavigationMenuItem(page, "Einstellungen");
   await page.getByLabel("Anzeigename").fill("Responsive Save-Bar");
   const saveBar = page.getByTestId("settings-save-bar");
 
-  for (const theme of ["light", "dark"] as const) {
+  for (const theme of matrixThemes) {
     await page.evaluate((value) => { document.documentElement.dataset.coreTheme = value; }, theme);
-    for (const viewport of [
-      { width: 1440, height: 900 },
-      { width: 768, height: 900 },
-      { width: 390, height: 844 },
-    ]) {
+    for (const viewport of [...matrixViewports(), { width: 768, height: 900 }]) {
       await page.setViewportSize(viewport);
       await expect(saveBar).toBeVisible();
       await expect(saveBar.getByRole("button", { name: "Speichern" })).toHaveCount(1);
@@ -273,7 +270,7 @@ test("deck expansion responds immediately on dashboard and learning", async ({ p
   }
 });
 
-test("settings drafts block closing and group switches until saving", async ({ page }) => {
+test("settings drafts block closing, group switches and browser history until saving", async ({ page }) => {
   await resetToFreshLocalState(page);
   await mainMenu(page).getByRole("button", { name: "Lernen" }).click();
   await openNavigationMenuItem(page, "Einstellungen");
@@ -294,51 +291,29 @@ test("settings drafts block closing and group switches until saving", async ({ p
   await expect(dialog).toBeVisible();
   await page.keyboard.press("Escape");
   await expect(dialog).toBeVisible();
+
+  await page.goBack();
+  await expect(page).toHaveURL(/\/lernen\?settings=ueber$/);
+  await expect(saveBar.getByRole("status")).toHaveText("Zum Verlassen zuerst speichern.");
   await saveBar.getByRole("button", { name: "Speichern" }).click();
   await expect(saveBar).toHaveCount(0);
   expect((await readActiveAccountState(page)).profile.displayName).toBe("Schließen blockiert");
-
-  await dialog.getByRole("button", { name: "Einstellungen schließen" }).click();
+  await page.goBack();
+  await expect(page).toHaveURL(/\/lernen$/);
   await expect(dialog).toHaveCount(0);
-  await expect(page).toHaveURL(/\/lernen$/);
-});
 
-test("browser back is cancelled until saving and must be repeated", async ({ page }) => {
-  await resetToFreshLocalState(page);
-  await mainMenu(page).getByRole("button", { name: "Lernen" }).click();
-  await openNavigationMenuItem(page, "Einstellungen");
-  await page.getByLabel("Anzeigename").fill("Browser-Zurück Entwurf");
-
-  await page.goBack();
-  await expect(page).toHaveURL(/\/lernen\?settings=start$/);
-  const saveBar = page.getByTestId("settings-save-bar");
-  await expect(saveBar.getByRole("status")).toHaveText("Zum Verlassen zuerst speichern.");
-  await saveBar.getByRole("button", { name: "Speichern" }).click();
-  await expect(page).toHaveURL(/\/lernen\?settings=start$/);
-
-  await page.goBack();
-  await expect(page).toHaveURL(/\/lernen$/);
-  await expect(settingsDialog(page)).toHaveCount(0);
-});
-
-test("browser forward is cancelled until saving and must be repeated", async ({ page }) => {
-  await resetToFreshLocalState(page);
   await page.goto("/lernen?settings=fokus");
-  const dialog = settingsDialog(page);
   await dialog.getByRole("button", { name: "Simulator öffnen" }).click();
   await expect(page).toHaveURL(/\/simulator$/);
   await page.goBack();
   await expect(page).toHaveURL(/\/lernen\?settings=fokus$/);
   await openSettingsArea(dialog, "konto");
   await page.getByLabel("Anzeigename").fill("Browser-Vorwärts Entwurf");
-
   await page.goForward();
   await expect(page).toHaveURL(/\/lernen\?settings=konto$/);
-  const saveBar = page.getByTestId("settings-save-bar");
   await expect(saveBar.getByRole("status")).toHaveText("Zum Verlassen zuerst speichern.");
   await saveBar.getByRole("button", { name: "Speichern" }).click();
   await expect(page).toHaveURL(/\/lernen\?settings=konto$/);
-
   await page.goForward();
   await expect(page).toHaveURL(/\/simulator$/);
   await expect(dialog).toHaveCount(0);
@@ -374,7 +349,7 @@ test("settings dialog switches between side list and area list at 768 px", async
   await expect(dialog).toHaveCount(0);
 });
 
-test("Pomodoro timer starts globally, persists and stays synchronized between tabs", async ({ page, context }) => {
+test("Pomodoro timer starts globally, persists, stays synchronized between tabs and expires with the canonical toast", async ({ page, context }) => {
   await resetToFreshLocalState(page);
   await page.setViewportSize({ width: 1280, height: 720 });
   await openNavigationMenuItem(page, "Einstellungen");
@@ -402,15 +377,8 @@ test("Pomodoro timer starts globally, persists and stays synchronized between ta
   await page.setViewportSize({ width: 390, height: 844 });
   await expect(page.locator('[data-navigation-layout="mobile-header"] [data-pomodoro-progress="header"]')).toContainText("Noch 25 Min.");
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)).toBe(true);
-  await secondPage.close();
-});
 
-test("Pomodoro timer expiration clears the global indicator and shows the canonical toast", async ({ page, context }) => {
-  await resetToFreshLocalState(page);
-  const secondPage = await context.newPage();
-  await secondPage.goto("/");
-  await secondPage.getByRole("navigation", { name: /Hauptmen/ }).waitFor({ state: "visible" });
-
+  await page.setViewportSize({ width: 1280, height: 720 });
   const timerKey = await page.evaluate(async () => {
     const database = (await indexedDB.databases()).find(({ name }) => name?.startsWith("core.workspace.entities.v5."));
     const userId = database?.name?.slice("core.workspace.entities.v5.".length);
@@ -427,7 +395,6 @@ test("Pomodoro timer expiration clears the global indicator and shows the canoni
     }));
   }, timerKey);
 
-  await expect(page.locator('[data-navigation-layout="top-bar"] [data-pomodoro-progress="header"]')).toBeVisible();
   await expect(page.getByText("Timer abgelaufen.", { exact: true })).toBeVisible();
   await expect(page.locator('[data-pomodoro-progress]')).toHaveCount(0);
   await expect.poll(() => page.evaluate((key) => localStorage.getItem(key), timerKey)).toBeNull();

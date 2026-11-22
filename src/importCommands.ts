@@ -93,6 +93,7 @@ export function createImportCommands(context: ImportCommandsContext) {
       rootDeck: decks.find((deck) => !deck.parentDeckId || !importedIds.has(deck.parentDeckId)) ?? decks[0] ?? null,
       createdCount: result.scope.cardIds.length,
       keptLocalEdits: result.keptLocalEdits,
+      olderInPackage: result.olderInPackage,
       missingInPackage: result.missingInPackage,
       cloudTask: createTrackedImportCloudTask(result.scope),
     };

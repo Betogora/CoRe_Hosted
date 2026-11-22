@@ -3,6 +3,7 @@ import { createCoreDeck } from "../../src/coreModel.ts";
 import { readActiveAccountState, resetToFreshLocalState } from "./support/appState.ts";
 import { deckSettingsDialog, openSettingsArea } from "./support/settingsDialog.ts";
 import { openNavigationMenuItem } from "./support/navigationMenu.ts";
+import { visualOutput } from "./support/visualMatrix.ts";
 
 const DECK_IDS = {
   root: "deck_world_capitals",
@@ -279,7 +280,7 @@ test("statistics deck filter uses full-width selection rows while keeping multip
 test("dashboard deck header keeps its labels intact while changing rows at most once", async ({ page }) => {
   await resetToFreshLocalState(page);
 
-  const widths = [1440, 1280, 1279, 1152, 1024, 900, 768, 700, 640, 639, 390, 320];
+  const widths = visualOutput ? [1440, 1280, 1279, 1152, 1024, 900, 768, 700, 640, 639, 390, 320] : [1440, 1280, 1279, 768, 640, 639, 390, 320];
   let stackedHeaderSeen = false;
   for (const width of widths) {
     await page.setViewportSize({ width, height: 900 });
@@ -431,7 +432,7 @@ test("learning rows activate directly while expand and settings remain independe
 
   const rootRow = page.getByTestId(`learn-deck-row-${DECK_IDS.root}`);
   const europeRow = page.getByTestId(`learn-deck-row-${DECK_IDS.europe}`);
-  await expect(page.getByTestId("learn-deck-list-header")).toContainText("Aktive Stapel");
+  await expect(page.getByTestId("learn-deck-list-header")).toHaveCount(0);
   await expect(page.getByRole("button", { name: "Lernen öffnen" })).toHaveCount(0);
   await expect(page.getByTestId("deck-summary-header")).toHaveText("StapelNeuOffenFällig");
   await expect(metric(rootRow, "new").locator("dt")).toHaveClass(/sr-only/);

@@ -1,6 +1,6 @@
 import * as v from "valibot";
 import { cardStudyFromReviewState, createCardVariant, createCoreDeck, createReviewState, normalizeTags, parseNoteContent } from "./coreModel.ts";
-import type { Card, CardStudyState, CardVariant, Deck, MediaFileReference, Note, ReviewEvent } from "./coreTypes.ts";
+import type { Card, CardStudyState, CardVariant, CardVariantRefusal, Deck, MediaFileReference, Note, ReviewEvent } from "./coreTypes.ts";
 import type { NoteSource, NoteTypeSource } from "./apkgNoteTranslation.ts";
 import type { TagDirectoryEntry } from "./tagDirectory.ts";
 import type {
@@ -52,6 +52,13 @@ const cardStudyColumnsSchema = {
   study_revision: nonNegativeIntegerSchema,
 };
 const positiveIntegerSchema = v.pipe(v.number(), v.safeInteger(), v.minValue(1));
+const cardVariantRefusalSchema = v.object({
+  state: v.nullable(v.picklist(["not_rephrasable", "failing"])),
+  failures: nonNegativeIntegerSchema,
+  promptVersion: v.string(),
+  contentRevision: positiveIntegerSchema,
+  updatedAt: v.string(),
+});
 const sha1Schema = v.pipe(v.string(), v.regex(/^[a-f0-9]{40}$/));
 const syncRowSchema = {
   id: v.string(),
@@ -94,6 +101,7 @@ const accountRowSchemas = {
     content_revision: positiveIntegerSchema,
     imported_content_revision: v.nullable(positiveIntegerSchema),
     imported_tags: v.nullable(v.array(v.string())),
+    imported_anki_modified_at: v.optional(v.nullable(v.string())),
   }),
   note_sources: v.looseObject({
     ...syncRowSchema,
@@ -111,6 +119,7 @@ const accountRowSchemas = {
     leeched_at: v.nullable(v.string()),
     study_extra: jsonObjectSchema,
     source_scheduler: v.optional(v.unknown()),
+    variant_refusal: v.optional(v.nullable(cardVariantRefusalSchema)),
   }),
   card_variants: v.looseObject({
     ...syncRowSchema,
@@ -192,6 +201,7 @@ const cardCatalogRowSchema = v.looseObject({
   prompt_ordinal: v.optional(v.nullable(v.number())),
   last_buried_at: v.optional(v.nullable(v.string())),
   last_unburied_at: v.optional(v.nullable(v.string())),
+  variant_refused: v.optional(v.boolean()),
 });
 const cardStudyStateRowSchema = v.object({
   card_id: v.string(),
@@ -336,6 +346,7 @@ export function noteFromRow(row: AccountRow): Note {
     contentRevision: Number(row.content_revision),
     importedContentRevision: row.imported_content_revision == null ? null : Number(row.imported_content_revision),
     importedTags: Array.isArray(row.imported_tags) ? normalizeTags(row.imported_tags) : null,
+    importedAnkiModifiedAt: typeof row.imported_anki_modified_at === "string" && !Number.isNaN(Date.parse(row.imported_anki_modified_at)) ? new Date(row.imported_anki_modified_at).toISOString() : null,
     ...syncMetadata(row),
   };
 }
@@ -367,6 +378,7 @@ export function cardFromRow(row: AccountRow, variants: CardVariant[] = []): Card
     study,
     studyRevision: Number(row.study_revision),
     variants,
+    ...(row.variant_refusal ? { variantRefusal: row.variant_refusal as CardVariantRefusal } : {}),
     ...syncMetadata(row),
   };
 }
@@ -592,6 +604,7 @@ export function validateCardCatalogRows(input: unknown): CardCatalogEntry[] {
     promptOrdinal: row.prompt_ordinal,
     lastBuriedAt: row.last_buried_at,
     lastUnburiedAt: row.last_unburied_at,
+    variantRefused: row.variant_refused,
     bodyRevision: row.body_revision,
     studyRevision: row.study_revision,
     dependencyRevision: row.dependency_revision,

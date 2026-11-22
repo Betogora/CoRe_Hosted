@@ -47,7 +47,8 @@ async function beginDrag(page: Page) {
   if (target.y < 90) {
     // With six modules the timer can start below the viewport containing the target.
     await page.mouse.move(target.x, 20, { steps: 8 });
-    await expect.poll(async () => (await page.locator('[data-dashboard-widget="learning"]').boundingBox())!.y).toBeGreaterThanOrEqual(90);
+    // At the top of the board the target cannot move further down; its drop point then lies below the 64 px edge zone anyway.
+    await expect.poll(async () => (await page.locator('[data-dashboard-widget="learning"]').boundingBox())!.y >= 90 || await page.locator(".catalog-product-preview").evaluate((element) => element.scrollTop === 0)).toBe(true);
     const rect = await page.locator('[data-dashboard-widget="learning"]').boundingBox();
     target = { x: rect!.x + rect!.width / 2, y: rect!.y + 70 };
   }

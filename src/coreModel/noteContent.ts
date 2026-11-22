@@ -81,7 +81,7 @@ function fieldIdList(value: unknown, fieldIds: Set<string>, label: string, error
 function parseRequirement(value: unknown, fieldIds: Set<string>, label: string, errors: string[]): NoteFieldRequirement | null {
   if (value === null || value === undefined) return null;
   const requirement = record(value);
-  if (requirement.mode !== "all" && requirement.mode !== "any") errors.push(`${label} hat keine gültige Bedingung.`);
+  if (requirement.mode !== "all" && requirement.mode !== "any" && requirement.mode !== "none") errors.push(`${label} hat keine gültige Bedingung.`);
   const ids = fieldIdList(requirement.fieldIds, fieldIds, label, errors);
   if (ids.length === 0) errors.push(`${label} hat eine Bedingung ohne Felder.`);
   return { mode: requirement.mode as NoteFieldRequirement["mode"], fieldIds: ids };
@@ -226,9 +226,9 @@ function parseSpeech(value: unknown, fieldIds: Set<string>, errors: string[]): N
 
 function requirementMet(requirement: NoteFieldRequirement | null, filled: Set<string>): boolean {
   if (!requirement) return true;
-  return requirement.mode === "all"
-    ? requirement.fieldIds.every((id) => filled.has(id))
-    : requirement.fieldIds.some((id) => filled.has(id));
+  if (requirement.mode === "all") return requirement.fieldIds.every((id) => filled.has(id));
+  if (requirement.mode === "none") return requirement.fieldIds.every((id) => !filled.has(id));
+  return requirement.fieldIds.some((id) => filled.has(id));
 }
 
 export function notePromptLabel(content: NoteContent, promptKey: string): string {

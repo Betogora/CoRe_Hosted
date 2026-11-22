@@ -10,6 +10,7 @@ import { useShellBack } from "./shellBack.ts";
 
 interface SoftPanelProps extends HTMLAttributes<HTMLElement> {
   children?: ReactNode;
+  ref?: React.Ref<HTMLElement>;
 }
 interface ActionDialogProps {
   open: boolean;

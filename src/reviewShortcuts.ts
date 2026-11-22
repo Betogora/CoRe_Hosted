@@ -12,17 +12,20 @@ const RATING_KEY_MAP: Record<string, "again" | "hard" | "good" | "easy"> = {
   [RATING_SHORTCUT_KEYS.easy]: "easy",
 };
 
-const EDITABLE_TARGETS = ["input", "textarea", "select", "button", "a", "summary"];
+const TEXT_TARGETS = ["input", "textarea", "select"];
+const ACTIVATABLE_TARGETS = ["button", "a", "summary"];
 
-function isEditableShortcutTarget(target: EventTarget | null = null) {
+// A focused control activates itself with Space and Enter; the other review keys still apply.
+function keepsKey(target: EventTarget | null = null, key: string) {
   const element = target && typeof target === "object" ? target as { tagName?: unknown; isContentEditable?: boolean } : null;
   const tagName = String(element?.tagName ?? "").toLowerCase();
-  return EDITABLE_TARGETS.includes(tagName) || element?.isContentEditable === true;
+  if (TEXT_TARGETS.includes(tagName) || element?.isContentEditable === true) return true;
+  return ACTIVATABLE_TARGETS.includes(tagName) && (key === " " || key === "enter");
 }
 
 export function resolveReviewShortcut(event: { key: any; target?: any; ctrlKey?: boolean; metaKey?: boolean; altKey?: boolean; shiftKey?: boolean }, { hasCurrent = false, showAnswer = false }: any = {}) {
-  if (isEditableShortcutTarget(event?.target)) return null;
   const key = String(event?.key ?? "").toLowerCase();
+  if (keepsKey(event?.target, key)) return null;
   const command = Boolean(event.ctrlKey || event.metaKey);
   if (event.altKey || event.shiftKey) return null;
   if (key === "u" && !command || key === "z" && command) return { type: "undo" };

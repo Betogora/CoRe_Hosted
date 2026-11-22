@@ -43,8 +43,8 @@ test("learning rows expose shared counts, direct activation, settings and drag-a
   assert.doesNotMatch(markup, /Bereich in Lernen|>Stapelübersicht<|>Kartenverwaltung<\/button>/);
   assert.match(markup, /lucide-settings2/);
   assert.match(markup, />Lerneinstellungen<\/span><\/button>/);
-  assert.match(markup, /data-testid="learn-deck-list-header"/);
-  assert.match(markup, />Aktive Stapel<\/h3>/);
+  assert.doesNotMatch(markup, /data-testid="learn-deck-list-header"|Aktive Stapel/);
+  assert.ok(markup.indexOf('aria-label="Stapelansicht"') < markup.indexOf(">Lerneinstellungen<"));
   assert.match(markup, /data-testid="learn-deck-create-form"/);
   assert.ok(markup.indexOf('data-testid="deck-summary-header"') < markup.indexOf('data-testid="learn-deck-create-form"'));
   assert.match(markup, /<span class="sr-only">Stapelname<\/span>/);
@@ -117,7 +117,7 @@ test("quick deck creation remains visible without existing decks", () => {
     />,
   );
 
-  assert.match(markup, />Aktive Stapel<\/h3>/);
+  assert.doesNotMatch(markup, /Aktive Stapel/);
   assert.match(markup, /data-testid="learn-deck-create-form"/);
   assert.match(markup, /Keine Karten/);
   assert.doesNotMatch(markup, /data-testid="deck-summary-header"/);
