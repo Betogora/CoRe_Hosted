@@ -12,7 +12,7 @@ import { useStableCallback } from "../ui/useStableCallback.ts";
 import { useWorkspaceValue } from "../useWorkspaceStore.ts";
 import { ActionDialog, EmptyState, SoftPanel } from "../ui/coreUi.tsx";
 import { CoreTabPanel, CoreTabs } from "../ui/CoreTabs.tsx";
-import { DeckAppearanceIcon } from "../ui/deckAppearance.tsx";
+import { DeckAppearanceIcon, getDeckAppearance } from "../ui/deckAppearance.tsx";
 import { DialogFrame } from "../ui/DialogFrame.tsx";
 import { useSuccessToast } from "../ui/feedbackUi.tsx";
 import { cardSearchTerms, unsupportedCardSearchTerms, withCardSearchTermState } from "./cardSearch/cardSearchExpression.ts";
@@ -140,7 +140,7 @@ export function DecksScreen({
     return decks.filter((deck) => treeIds.has(deck.id));
   }, [contentDeckId, decks]);
   const contentDeck = contentDeckId ? libraryDecks.find((deck) => deck.id === contentDeckId) : null;
-  const contentIcon = React.useMemo(() => contentDeck ? <DeckAppearanceIcon deck={contentDeck} className="size-6" iconSize={14} /> : null, [contentDeck]);
+  const contentIcon = React.useMemo(() => contentDeck ? <DeckAppearanceIcon deck={contentDeck} className="size-6" iconSize={14} /> : null, [contentDeck && JSON.stringify(getDeckAppearance(contentDeck))]);
   const titleInShell = useShellBack(contentDeckId ? { title: contentDeck?.name ?? "Stapelinhalte", label: "Lernen", icon: contentIcon, onSelect: () => requestDetailAction(() => onOpenLearn(null)) } : undefined);
   const hasStudyCards = React.useMemo(() => Boolean(contentDeckId) && libraryDecks.some((deck) => (
     !deck.deletedAt && ((deckSummaries?.get(deck.id)?.inventory.totalCards ?? 0) > 0 || deck.cards.some((card) => !card.deletedAt))

@@ -265,7 +265,13 @@ function NavigationUtilityButtons({ activeView, onNavigate, onPreloadView, setti
     const preload = () => onPreloadView?.(viewId);
     return (
       <Popover.Close asChild>
-        <button type="button" className="core-menu-row" data-navigation-utility={utility} aria-current={activeView === viewId ? "page" : undefined} onClick={() => { navigatedFromMenu.current = true; onNavigate(viewId); }} onPointerEnter={preload} onFocus={preload}>
+        <button type="button" className="core-menu-row" data-navigation-utility={utility} aria-current={activeView === viewId ? "page" : undefined} onClick={() => {
+            // A blocked navigation (unsaved draft) opens a dialog that returns focus to the menu button; a real page change
+            // gives the new heading the focus (App), so the popover must not pull it back to the button.
+            menuButtonRef.current?.focus();
+            navigatedFromMenu.current = activeView !== viewId;
+            onNavigate(viewId);
+          }} onPointerEnter={preload} onFocus={preload}>
           <Icon size={16} aria-hidden="true" />{label}
         </button>
       </Popover.Close>
@@ -298,7 +304,6 @@ function NavigationUtilityButtons({ activeView, onNavigate, onPreloadView, setti
             collisionPadding={16}
             className="core-overlay z-[60] grid w-56 gap-0.5 rounded-panel p-1.5"
             data-navigation-menu="true"
-            // After navigating, the new page's heading takes the focus (App), not the menu button.
             onCloseAutoFocus={(event) => { if (navigatedFromMenu.current) event.preventDefault(); navigatedFromMenu.current = false; }}
           >
             <Popover.Close asChild>
