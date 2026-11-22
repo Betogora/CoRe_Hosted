@@ -185,6 +185,8 @@ function AppContent() {
       observer = new MutationObserver(() => {
         const loadedHeading = region.querySelector<HTMLElement>("[data-screen-heading]");
         if (!loadedHeading || loadedHeading === heading) return;
+        // A lazy screen finishes after the user may have moved on, e.g. into the navigation menu; that focus stays.
+        if (!region.contains(document.activeElement) && document.activeElement !== document.body) return void observer?.disconnect();
         loadedHeading.focus();
         observer?.disconnect();
         observer = null;
@@ -357,9 +359,7 @@ function AppContent() {
             settingsOpen={Boolean(settingsSection)}
             onOpenSettings={() => openSettings("start")}
             onPreloadSettings={() => { if (featurePreloadingAllowed() && allowsBrowserSpeculativePreloading()) void preloadSettingsDialog(); }}
-            onPreloadView={(viewId) => {
-              if (featurePreloadingAllowed() && allowsBrowserSpeculativePreloading()) void preloadAppView(viewId);
-            }}
+            onPreloadView={(viewId) => { if (featurePreloadingAllowed() && allowsBrowserSpeculativePreloading()) void preloadAppView(viewId); }}
             onNavigate={(viewId) => navigateToView(viewId, { focusedDeckId })}
             onResetSimulation={() => clock.changeSimulationOffset(0)} back={shellBack} scrollRegionRef={screenRegionRef}
           />
