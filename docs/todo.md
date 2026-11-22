@@ -143,24 +143,6 @@ neuen Code.
       und den Zielwert festlegen (Vorschlag: höchstens 2 Minuten). Nachweis:
       Messung mit 50.000 Karten vom Login bis zum vollständigen Katalog.
 
-## Pflege: Testsuite verschlanken
-
-Läuft unabhängig von den Paketen, je Paket ein eigener PR. Regeln im
-Pflegevertrag von [`test-portfolio.md`](test-portfolio.md#pflegevertrag);
-Messung vom 2026-10-31 im [Verlauf](history.md).
-
-- [ ] **D – Browserflows, Rest:** Etwa 80 Flows setzen das Cloud-Konto
-      zurück, auch reine Layoutprüfungen; `card-lifecycle` doppelt vor und
-      nach jedem Test. Überschneidungen zusammenlegen (Speicherschutz der
-      Einstellungen dreifach, Pomodoro, Heatmap-Geometrie, Bewertung),
-      wirkungslose feste Wartezeiten entfernen und die übrigen Breitenschleifen
-      der Supabase-Specs (`product-surfaces`, `core-stabilization`,
-      `world-capitals-hierarchy`) über `matrixViewports()` und `matrixThemes`
-      aus `tests/e2e/support/visualMatrix.ts` kürzen. Katalogkonfiguration,
-      `--gate=affected` und die eingedampften Katalogflows sind erledigt
-      (siehe [Verlauf](history.md)). Nachweis: Laufzeit von
-      `npm run test:e2e:local` vorher und nachher, mit lokalem Supabase.
-
 ## Später
 
 ### KI
