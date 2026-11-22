@@ -23,30 +23,40 @@ import { useWorkspaceValue } from "../useWorkspaceStore.ts";
 
 const DASHBOARD_DECK_LIMIT = 8;
 
-/**
- * Fills the widget's fixed height with main decks: renders `max` whenever `layoutKey` or the width changes and drops one per layout pass while the panel overflows.
- * Expanded subdecks and an open tile folder do not count, so opening a deck scrolls instead of pushing it out of the widget.
- */
+/** Height the main decks need: subdecks of an expanded main deck and an open tile folder scroll instead of pushing main decks out of the widget. */
+function neededDeckHeight(panel: HTMLElement) {
+  const groups = panel.querySelectorAll<HTMLElement>("[data-deck-group]");
+  const last = groups[groups.length - 1];
+  if (last) {
+    const top = panel.getBoundingClientRect().top + panel.clientTop - panel.scrollTop;
+    const rowBottom = (last.firstElementChild as HTMLElement).getBoundingClientRect().bottom - top;
+    return rowBottom + panel.scrollHeight - (last.getBoundingClientRect().bottom - top);
+  }
+  const folder = panel.querySelector<HTMLElement>('[data-testid="dashboard-deck-folder-panel"]');
+  return panel.scrollHeight - (folder ? folder.offsetHeight + parseFloat(getComputedStyle(folder.parentElement!).rowGap) : 0);
+}
+
 function FittingPanel({ max, layoutKey, children }: { max: number; layoutKey: string; children: (count: number) => React.ReactNode }) {
   const ref = React.useRef<HTMLElement>(null);
   const [width, setWidth] = React.useState(0);
   const key = `${layoutKey}|${width}`;
-  const [fit, setFit] = React.useState({ key, count: max });
-  const count = fit.key === key ? fit.count : max;
+  const [fit, setFit] = React.useState({ key, count: max, done: false });
+  const { count, done } = fit.key === key ? fit : { count: max, done: false };
   React.useLayoutEffect(() => {
     const element = ref.current!;
-    const observer = new ResizeObserver(() => setWidth(element.clientWidth));
+    // offsetWidth includes the scrollbar, so one appearing after the fit does not start it again.
+    const observer = new ResizeObserver(() => setWidth(element.offsetWidth));
     observer.observe(element);
     return () => observer.disconnect();
   }, []);
   React.useLayoutEffect(() => {
+    if (done) return;
     const element = ref.current!;
-    const folder = element.querySelector<HTMLElement>('[data-testid="dashboard-deck-folder-panel"]');
-    const expandedHeight = [...element.querySelectorAll<HTMLElement>("[data-deck-group]")].reduce((sum, group) => sum + group.offsetHeight - (group.firstElementChild as HTMLElement).offsetHeight, 0)
-      + (folder ? folder.offsetHeight + parseFloat(getComputedStyle(folder.parentElement!).rowGap) : 0);
-    if (count > 1 && element.scrollHeight - expandedHeight > element.clientHeight) setFit({ key, count: count - 1 });
+    const fits = count === 1 || neededDeckHeight(element) <= element.clientHeight;
+    setFit({ key, count: fits ? count : count - 1, done: fits });
   });
-  return <SoftPanel ref={ref} className="min-w-0 p-5 pb-3">{children(count)}</SoftPanel>;
+  // While fitting, the panel hides its scrollbar so a narrower layout does not skew the measurement.
+  return <SoftPanel ref={ref} className="min-w-0 p-5 pb-3" data-fitting={done ? undefined : "true"}>{children(count)}</SoftPanel>;
 }
 
 function formatHeatmapDate(key: string) {

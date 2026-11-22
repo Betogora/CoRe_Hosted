@@ -707,6 +707,8 @@ export function DeckTree({ rows, rootDeckIds, mode, view = "list", onViewChange,
     );
   }
 
+  // Lernen has no list title, so the folder heading moves up one level there.
+  const FolderHeading = mode === "learn" ? "h3" : "h4";
   const folderPanel = folderRow ? (
     <section ref={folderPanelRef} className="core-deck-folder-expansion core-surface-raised rounded-panel grid min-w-0 gap-6 border border-core-border p-4 sm:p-6" aria-label={`Unterstapel von ${folderRow.path}`} data-testid={`${mode}-deck-folder-panel`}>
       <nav aria-label="Stapelpfad" className="core-deck-folder-breadcrumb">
@@ -717,7 +719,7 @@ export function DeckTree({ rows, rootDeckIds, mode, view = "list", onViewChange,
         </React.Fragment>)}
       </nav>
       <div className="flex min-w-0 flex-wrap items-start justify-between gap-3">
-        <h4 className="min-w-0 flex-1 basis-44 break-words core-heading-3 text-core-text">{folderRow.name}</h4>
+        <FolderHeading className="min-w-0 flex-1 basis-44 break-words core-heading-3 text-core-text">{folderRow.name}</FolderHeading>
         <div className="flex shrink-0 gap-2">
           <CoreTooltip label="Stapel öffnen">
             <IconButton label={`Inhalte von ${folderRow.path} öffnen`} icon={PanelsTopLeft} onClick={() => onActivate(folderRow)} />

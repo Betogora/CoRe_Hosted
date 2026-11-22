@@ -12,7 +12,6 @@ export function LearningAreaHeader({ area, onOpenCardSettings, action, viewContr
   area: keyof typeof learnAreaTitles;
   onOpenCardSettings: () => unknown;
   action?: React.ReactNode;
-  /** Sits before the settings action, which then shrinks to its icon on phones so the header stays one line. */
   viewControl?: React.ReactNode;
 }) {
   return (
