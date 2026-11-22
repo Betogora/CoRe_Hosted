@@ -45,9 +45,13 @@ export function useModalDialog({
     onCloseRef.current = onClose;
   }, [onClose]);
 
+  // Before any passive effect: content that focuses its own heading on mount would otherwise become the return target.
+  React.useLayoutEffect(() => {
+    if (open) fallbackReturnFocusRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+  }, [open]);
+
   React.useEffect(() => {
     if (!open) return undefined;
-    fallbackReturnFocusRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     if (scrollLocks++ === 0) {
       unlockedOverflow = document.body.style.overflow;
       document.body.style.overflow = "hidden";
