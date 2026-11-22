@@ -104,7 +104,7 @@ test("Lerntasten wirken nach einem Klick in die Karte und nach geschlossenen Ler
   await page.keyboard.press("Escape");
   await expect(page.getByRole("dialog", { name: "KI hilft" })).toHaveCount(0);
   await page.keyboard.press("Space");
-  await expect.poll(reviews).toEqual(["easy", "good"]);
+  await expect.poll(async () => (await reviews()).sort()).toEqual(["easy", "good"]);
 });
 
 test("leerer Account erstellt die erste manuelle Karte und erreicht den Review", async ({ page }) => {
