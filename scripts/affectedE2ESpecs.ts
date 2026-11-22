@@ -1,6 +1,6 @@
 import { CATALOG_SPECS } from "../tests/e2e/support/catalogSpecs.ts";
 
-export type AffectedE2ESpecs = { full: true } | { full: false; catalog: string[]; supabase: string[] };
+export type AffectedE2ESpecs = { full: true } | { full: false; catalog: string[]; supabase: string[]; rls: boolean };
 
 const FULL_RUN = [
   /^tests\/e2e\/support\//, /^tests\/e2e\/auth\.setup\.ts$/, /^playwright(?:\.[a-z]+)?\.config\.ts$/,
@@ -8,7 +8,7 @@ const FULL_RUN = [
   /^(?:vite|tailwind)\.config\.ts$/, /^index\.html$/, /^supabase\//, /^src\/(?:App|main)\.tsx$/,
   /^src\/(?:styles\.css|coreTypes\.ts|database\.types\.ts)$/,
 ];
-const IGNORED = [/\.test\.tsx?$/, /\.md$/, /^tests\/rls\//, /^\.github\//, /^docs\/(?!ui-elements\.html$|card-types\.html$)/, /^fixtures\/apkg\/corpus\//];
+const IGNORED = [/\.test\.tsx?$/, /\.md$/, /^\.github\//, /^docs\/(?!ui-elements\.html$|card-types\.html$)/, /^fixtures\/apkg\/corpus\//];
 // The catalog pages and their generator only feed the Supabase-free catalog flows.
 const CATALOG_SOURCES = /^(?:docs\/(?:ui-elements|card-types)\.html|scripts\/(?:uiCatalog\w*|generateDocs|docsSite)\.\w+)$/;
 const AREAS: [RegExp, string[]][] = [
@@ -33,7 +33,9 @@ const AREAS: [RegExp, string[]][] = [
 
 export function affectedE2ESpecs(changedFiles: readonly string[]): AffectedE2ESpecs {
   const specs = new Set<string>();
+  let rls = false;
   for (const file of changedFiles.map((path) => path.replaceAll("\\", "/"))) {
+    if (file.startsWith("tests/rls/")) { rls = true; continue; }
     const spec = file.match(/^tests\/e2e\/([\w-]+)\.spec\.ts$/)?.[1];
     if (spec) { specs.add(spec); continue; }
     if (FULL_RUN.some((pattern) => pattern.test(file))) return { full: true };
@@ -45,5 +47,5 @@ export function affectedE2ESpecs(changedFiles: readonly string[]): AffectedE2ESp
     else if (/^(?:src|api|server|public)\//.test(file)) return { full: true };
   }
   const sorted = [...specs].sort();
-  return { full: false, catalog: sorted.filter((name) => CATALOG_SPECS.includes(name)), supabase: sorted.filter((name) => !CATALOG_SPECS.includes(name)) };
+  return { full: false, catalog: sorted.filter((name) => CATALOG_SPECS.includes(name)), supabase: sorted.filter((name) => !CATALOG_SPECS.includes(name)), rls };
 }

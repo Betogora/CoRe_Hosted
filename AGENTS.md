@@ -219,72 +219,38 @@ Update documentation when the implemented contract changes:
 
 ## Testing And Validation
 
-Choose checks proportionate to the affected area.
+Choose checks proportionate to the affected area. `docs/test-portfolio.md` owns
+categories, commands, CI jobs, and the visual matrix.
 
-### Focused Validation
+| Change | Before opening or updating the PR | Automatic on the PR |
+| --- | --- | --- |
+| Any code change | focused tests for the changed behavior; `npm run typecheck` | `quality` runs `npm run gate:push` |
+| Browser-visible behavior, schema, RLS | — | `affected-e2e` runs the affected specs and, for `supabase/` or `tests/rls/`, the full RLS suite; shared infrastructure, migrations, app shell, or dependencies escalate to the full suite |
+| Visual UI change | [visual matrix](docs/test-portfolio.md#visuelle-pflichtmatrix) with screenshots | — |
+| Bootstrap, preload, sync, catalog, statistics, service worker, dependencies, chunking | `gh workflow run weekly-performance.yml --ref <branch>` before merge | — |
+| Schema or generated database types | `npm run db:types:generate` with local Supabase | `affected-e2e` checks type drift; add no further drift checks |
+| Release commit | — | green `nightly-core` on that commit (daily on `main`, on published releases, or dispatched) |
 
-- Run the relevant focused tests, and add or update them for requested behavior
-  or credible regression risks.
-- This applies especially to scheduler/review behavior, variants and
-  normalization, APKG/templates/media, AI jobs and chat contracts,
-  graph/community behavior, cloud repository behavior, and note/card
-  creation.
-- Tests live beside the affected modules in `src/**/*.test.{ts,tsx}` unless the
-  existing structure already establishes another location such as `api/` or
-  `tests/rls/`.
-- Module tests share processes without isolation (`docs/test-portfolio.md`):
-  restore any global state a test sets and never rely on file order.
-- Run only the E2E specs a change affects (`npm run test:e2e:affected:local`);
-  it escalates to the full suite itself for shared infrastructure, migrations,
-  app shell, or dependencies. Full-suite coverage of a release commit comes
-  from a green `gate:nightly` run on that commit.
-
-### Standard Gate
-
-For every visual UI change, run the mandatory viewport matrix and visual
-acceptance checks in [`docs/test-portfolio.md#visuelle-pflichtmatrix`](docs/test-portfolio.md#visuelle-pflichtmatrix)
-for the affected screens and states. Shared UI or app-shell changes require
-checking every screen that consumes the changed component. Record screenshots,
-results, and any unverified cases; type checking and geometry assertions do not
-replace visual inspection.
-
-For ordinary implementation changes:
-
-1. run focused tests for the affected behavior;
-2. run `npm run typecheck`;
-3. run `npm run build` when production compilation or bundling could be
-   affected.
-
-`npm run gate:push` is the canonical manual quality gate and runs type
-checking, the generated-docs check, all unit/contract/integration tests with
-compact output, and the production build with bundle budgets in parallel. Git pushes do not run it automatically because a mixed worktree may
-contain changes outside the commit being pushed.
-
-Changes to bootstrap, preload, sync, catalog, statistics, service workers,
-dependencies, or chunking additionally require
-`npm run performance:measure:local` before push. Where the local run is
-unreliable (Windows with Docker Desktop), a `weekly-performance` run on the
-pushed branch (`gh workflow run weekly-performance.yml --ref <branch>`) before
-merge is equivalent evidence.
-
-Run the complete `npm test` suite when a change is cross-cutting, affects shared
-domain behavior or several feature areas, or lacks sufficient coverage from
-focused tests.
-
-### Database Validation
-
-When Supabase schema, generated database types, RLS behavior, or schema-adjacent
-tooling changes:
-
-- run `npm run db:types:generate` with local Supabase when generated types must
-  be updated;
-- run `npm run db:types:check` as a read-only drift check;
-- run `npm run test:rls:local`;
-- run `npm run test:e2e:local` when browser and database integration are
-  affected.
-
-`npm run test:e2e:local` already includes the database-type drift gate. Do not
-add redundant custom drift checks without a demonstrated need.
+- `quality`, `catalog-e2e`, and `affected-e2e` are required checks; auto-merge
+  waits for them.
+- Add or update focused tests for requested behavior and credible regression
+  risks, especially scheduler/review behavior, variants and normalization,
+  APKG/templates/media, AI jobs and chat contracts, cloud repository behavior,
+  and note/card creation. Tests live beside the affected modules in
+  `src/**/*.test.{ts,tsx}` unless the existing structure already establishes
+  another location such as `api/` or `tests/rls/`.
+- Module tests share processes without isolation: restore any global state a
+  test sets and never rely on file order.
+- Debug a red `affected-e2e` from its artifacts first; reproduce it locally
+  with `npm run test:e2e:affected:local` (same selection) only when they do not
+  explain it. Do not dispatch `nightly-core` for a branch: `affected-e2e`
+  already runs the full suite when the change requires it.
+- Visual checks follow the matrix for the affected screens and states; shared
+  UI or app-shell changes include every consuming screen. Record screenshots,
+  results, and unverified cases; type checking and geometry assertions do not
+  replace visual inspection.
+- A direct push to `main` skips the PR jobs: run `npm run gate:push` and, for
+  browser-visible changes, `npm run test:e2e:affected:local` first.
 
 ## Completion Check
 

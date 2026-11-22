@@ -9,12 +9,17 @@ test("affected browser gate runs changed specs and the specs mapped to changed s
     full: false,
     catalog: ["learning-summaries", "mindmaps"],
     supabase: ["navigation-context"],
+    rls: false,
   });
 });
 
 test("affected browser gate skips docs and unit tests but sends catalog sources to every catalog spec", () => {
-  assert.deepEqual(affectedE2ESpecs(["docs/todo.md", "src/coreModel.test.ts"]), { full: false, catalog: [], supabase: [] });
-  assert.deepEqual(affectedE2ESpecs(["scripts/uiCatalogDemos.tsx"]), { full: false, catalog: CATALOG_SPECS, supabase: [] });
+  assert.deepEqual(affectedE2ESpecs(["docs/todo.md", "src/coreModel.test.ts"]), { full: false, catalog: [], supabase: [], rls: false });
+  assert.deepEqual(affectedE2ESpecs(["scripts/uiCatalogDemos.tsx"]), { full: false, catalog: CATALOG_SPECS, supabase: [], rls: false });
+});
+
+test("affected browser gate runs the full RLS suite for changed RLS tests", () => {
+  assert.deepEqual(affectedE2ESpecs(["tests/rls/ownership-smoke.test.ts"]), { full: false, catalog: [], supabase: [], rls: true });
 });
 
 test("affected browser gate falls back to the full suite for shared infrastructure and unmapped product code", () => {

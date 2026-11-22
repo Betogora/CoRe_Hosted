@@ -501,7 +501,7 @@ test("Lerneinstellungen wechseln bei 768 px zwischen Bottom Sheet und zentrierte
 
   await page.mouse.click(2, 2);
   await expect(dialog).toHaveCount(0);
-  await expect(settings).toBeFocused();
+  await expect(page.getByTestId("study-card-content")).toBeFocused();
   expect(browserErrors).toEqual([]);
 });
 
