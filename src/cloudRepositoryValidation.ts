@@ -101,6 +101,7 @@ const accountRowSchemas = {
     content_revision: positiveIntegerSchema,
     imported_content_revision: v.nullable(positiveIntegerSchema),
     imported_tags: v.nullable(v.array(v.string())),
+    imported_anki_modified_at: v.optional(v.nullable(v.string())),
   }),
   note_sources: v.looseObject({
     ...syncRowSchema,
@@ -345,6 +346,7 @@ export function noteFromRow(row: AccountRow): Note {
     contentRevision: Number(row.content_revision),
     importedContentRevision: row.imported_content_revision == null ? null : Number(row.imported_content_revision),
     importedTags: Array.isArray(row.imported_tags) ? normalizeTags(row.imported_tags) : null,
+    importedAnkiModifiedAt: typeof row.imported_anki_modified_at === "string" && !Number.isNaN(Date.parse(row.imported_anki_modified_at)) ? new Date(row.imported_anki_modified_at).toISOString() : null,
     ...syncMetadata(row),
   };
 }

@@ -307,23 +307,23 @@ Befehlsmodule laufen ohne React und entstehen je Arbeitsbereich aus Store, lokal
 
 ### Ablauf
 
-- Der Worker erhält die Datei, liest sie mit `readAnkiPackage`, übersetzt einmal und hält den Importgraphen bis Commit oder Verwerfen. Der ZIP-Leser liest Einträge einzeln aus dem `Blob`, damit große Pakete nicht ganz im Speicher liegen.
+- Der Worker erhält die Datei, liest sie mit `readAnkiPackage`, übersetzt einmal und hält den Importgraphen bis Commit oder Verwerfen. Der ZIP-Leser (auch ZIP64) liest Einträge einzeln aus dem `Blob`, statt das Paket ganz zu laden.
 - Beim Commit streamt der Worker begrenzte Chunks in Fremdschlüsselreihenfolge und Medien einzeln mit SHA-1-Prüfung; der Main Thread schreibt jeden Chunk in IndexedDB, bevor er den nächsten anfordert.
 - Die flüchtige Importsitzung überlebt interne Navigation; nach einem Neuladen laufen nur Outbox und Medienqueue weiter. `interruptedImport` im Meta-Store vermerkt eine begonnene Übernahme bis zu ihrem Ende. Die Cloud-Bestätigung je Import läuft nach jedem gespeicherten Sync erneut und zieht in den nächsten Arbeitsbereich des Kontos mit.
 
 ### Reimport
 
-- Reimport ordnet Inhalte über die Anki-GUID und Karten über die Anki-Kartenidentität zu, lokal und über `load_reimport_targets`; persistierte IDs stehen vor dem Schreiben fest.
-- Paketbewertungen gehen nur an neu angelegte Karten, mit `resume` an alle; Ereignis-IDs sind stabil. Tags werden dreiseitig gegen `importedTags` zusammengeführt.
-- Vorhandene Stapel behalten Name, Oberstapel und Einstellungen; Stapel ohne Anki-ID erkennt der Reimport an Oberstapel und Name. Neue Stapel entstehen unter dem Pfad ihres persistierten Oberstapels.
+- Reimport ordnet Inhalte per Anki-GUID und Karten per Anki-Karten-ID zu, lokal und über `load_reimport_targets`; persistierte IDs stehen vor dem Schreiben fest.
+- Paketbewertungen gehen nur an neue Karten, mit `resume` an alle; Ereignis-IDs sind stabil. Tags werden dreiseitig gegen `importedTags` zusammengeführt; eine Notiz, deren `mod` älter als `importedAnkiModifiedAt` ist, schreibt nichts.
+- Vorhandene Stapel behalten Name, Oberstapel und Einstellungen; ohne Anki-ID erkennt sie der Reimport an Oberstapel und Name. Neue entstehen unter dem Pfad ihres persistierten Oberstapels.
 
 ### Note-Übersetzung
 
 - Die Übersetzer-Registry erkennt in fester Reihenfolge: native Bildverdeckung, „Multiple Choice for Anki“, Image Occlusion Enhanced, AnKing-/Ankizin-Familie, Anki-Standardtypen, generischer Übersetzer. Jeder Inhalt trägt `translator: { id, version }`.
 - Standardtypen zählen nur mit unveränderten Standardvorlagen, weil Anki `originalStockKind` auch an geklonte Notiztypen vergibt.
-- Der generische Übersetzer leitet Feldrollen aus der Position im Template ab, das `compileSafeTemplate` ohne Scripts auswertet. Ein Inhalt, der zu keinem Übersetzer passt, wird Feldliste (Übersetzer `field-list`) statt verloren zu gehen.
-- Der Lernstand folgt einem FSRS-7-Replay der vollständigen Historie, sonst Ankis FSRS-Gedächtnis, klassischem Intervall oder bleibt neu. Reviewereignisse tragen deterministische IDs je Revlog-Zeile.
-- Medien zählen nur aus `src`, `poster` und `[sound:…]`; je SHA-1 bleibt eine Datei, übernommen werden nur referenzierte.
+- Der generische Übersetzer leitet Feldrollen aus der Position im Template ab, das `compileSafeTemplate` ohne Scripts auswertet. Ein Inhalt, der zu keinem Übersetzer passt, wird Feldliste (`field-list`), statt verloren zu gehen.
+- Der Lernstand folgt einem FSRS-7-Replay der vollständigen Historie, sonst Ankis FSRS-Gedächtnis, klassischem Intervall oder bleibt neu. Ereignisse tragen feste IDs je Revlog-Zeile.
+- Medien zählen nur aus `src`, `poster` und `[sound:…]`; je SHA-1 bleibt eine Datei, nur referenzierte kommen mit.
 - `noteTypeSources` (Vorlage je Notiztyp) und `noteSources` (rohe Feldwerte je Inhalt) sind die Eingabe jeder Neuübersetzung. Ankis Format- und Templatedetails stehen in der [Anki-Referenz](anki-format-analysis.md).
 
 ### Neuübersetzung

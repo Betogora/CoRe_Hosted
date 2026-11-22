@@ -29,7 +29,9 @@ ist – typischerweise beim Erweitern eines Übersetzers oder der APKG-Matrix.
 
 ## Templates und Standardtypen
 
-- Templates sind HTML, Styling ist CSS; Bedingungen (`{{#Feld}}`) steuern Anzeige und Kartengenerierung.
+- Templates sind HTML, Styling ist CSS; Bedingungen (`{{#Feld}}`, verneint `{{^Feld}}`) steuern Anzeige und Kartengenerierung: Eine Vorderseite in `{{^Feld}}` ergibt nur eine Karte, solange das Feld leer ist.
+- Beim Import aktualisiert Anki eine vorhandene Notiz standardmäßig nur, wenn die Notiz im Paket neuer ist (`mod`); eine Notiz mit anderem Notiztyp meldet es ohne Zusammenführen als Konflikt.
+- Anki schreibt ab 65.535 Einträgen ein ZIP64-Endverzeichnis.
 - Standardtypen: Basic, Basic and Reversed, Basic optional reversed, Basic typing, Cloze, Image Occlusion. Sie tragen `originalStockKind` 1 bis 6.
 - `originalStockKind` ist kein verlässliches Typmerkmal: Anki setzt 1 auch für Notiztypen aus `models.new()`, einschließlich Lückentypen, und Klone behalten den Wert. Erst unveränderte Standardvorlagen weisen einen Standardtyp nach.
 

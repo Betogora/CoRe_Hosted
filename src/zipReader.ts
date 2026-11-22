@@ -20,6 +20,58 @@ function readUint32(view: DataView, offset: number) {
   return view.getUint32(offset, true);
 }
 
+function readUint64(view: DataView, offset: number) {
+  assertRange(view.byteLength, offset, 8, "ZIP-Feld");
+  const value = view.getBigUint64(offset, true);
+  if (value > BigInt(Number.MAX_SAFE_INTEGER)) throw new Error("Ein ZIP64-Wert ist zu groß.");
+  return Number(value);
+}
+
+const ZIP64_MARK_16 = 0xffff;
+const ZIP64_MARK_32 = 0xffffffff;
+const ZIP64_LOCATOR_BYTES = 20;
+const ZIP64_END_BYTES = 56;
+
+/**
+ * ZIP64 end record behind its locator, which sits directly before the classic end record; null without a locator,
+ * which `required` forbids.
+ */
+async function readZip64End(blob: Blob, eocdOffset: number, required: boolean) {
+  const locatorOffset = eocdOffset - ZIP64_LOCATOR_BYTES;
+  const locator = locatorOffset < 0 ? null : await readRange(blob, locatorOffset, ZIP64_LOCATOR_BYTES, "ZIP64-Verweis");
+  const locatorView = locator && new DataView(locator.buffer, locator.byteOffset, locator.byteLength);
+  if (!locatorView || readUint32(locatorView, 0) !== 0x07064b50) {
+    if (required) throw new Error("Das ZIP64-Endverzeichnis fehlt.");
+    return null;
+  }
+  const endOffset = readUint64(locatorView, 8);
+  const end = await readRange(blob, endOffset, ZIP64_END_BYTES, "ZIP64-Endverzeichnis");
+  const endView = new DataView(end.buffer, end.byteOffset, end.byteLength);
+  if (readUint32(endView, 0) !== 0x06064b50) throw new Error("Das ZIP64-Endverzeichnis ist beschädigt.");
+  return { endOffset, entryCount: readUint64(endView, 32), centralDirectorySize: readUint64(endView, 40), centralDirectoryOffset: readUint64(endView, 48) };
+}
+
+/**
+ * Replaces the 32-bit fields marked 0xffffffff with the values of the ZIP64 extra field (id 0x0001), which lists only
+ * the marked ones, in this order.
+ */
+function applyZip64Extra(view: DataView, extraStart: number, extraLength: number, sizes: { uncompressedSize: number; compressedSize: number; localHeaderOffset: number }) {
+  const marked = (["uncompressedSize", "compressedSize", "localHeaderOffset"] as const).filter((key) => sizes[key] === ZIP64_MARK_32);
+  if (!marked.length) return sizes;
+  for (let offset = extraStart; offset + 4 <= extraStart + extraLength;) {
+    const id = readUint16(view, offset);
+    const size = readUint16(view, offset + 2);
+    if (id === 0x0001) {
+      if (size < marked.length * 8) break;
+      const resolved = { ...sizes };
+      marked.forEach((key, index) => { resolved[key] = readUint64(view, offset + 4 + index * 8); });
+      return resolved;
+    }
+    offset += 4 + size;
+  }
+  throw new Error("Ein ZIP64-Eintrag hat kein gültiges Zusatzfeld.");
+}
+
 async function readRange(blob: Blob, offset: number, size: number, label: string) {
   assertRange(blob.size, offset, size, label);
   return new Uint8Array(await blob.slice(offset, offset + size).arrayBuffer());
@@ -70,7 +122,8 @@ async function readEntry(blob: Blob, entry: ZipEntryDescriptor) {
   const extraLength = readUint16(view, 28);
   const localName = getName(await readRange(blob, localOffset + LOCAL_HEADER_BYTES, fileNameLength, `Lokaler Name von "${entry.name}"`), 0, fileNameLength);
   if (localName !== entry.name) throw new Error(`ZIP-Eintrag "${entry.name}" widerspricht dem lokalen Dateinamen.`);
-  if ((flags & 0x0008) === 0) {
+  // A ZIP64 entry marks its local sizes and keeps the real ones in the local extra field; the central values count.
+  if ((flags & 0x0008) === 0 && readUint32(view, 18) !== ZIP64_MARK_32) {
     if (readUint32(view, 18) !== entry.compressedSize || readUint32(view, 22) !== entry.uncompressedSize) {
       throw new Error(`ZIP-Eintrag "${entry.name}" enthält widersprüchliche Größenangaben.`);
     }
@@ -103,11 +156,18 @@ export async function readZipArchive(file: ZipSource) {
   const tailView = new DataView(tail.buffer, tail.byteOffset, tail.byteLength);
   const eocdInTail = findEndOfCentralDirectory(tail);
   const eocdOffset = tailOffset + eocdInTail;
-  const entryCount = readUint16(tailView, eocdInTail + 10);
-  const centralDirectorySize = readUint32(tailView, eocdInTail + 12);
-  const centralDirectoryOffset = readUint32(tailView, eocdInTail + 16);
+  const classic = {
+    entryCount: readUint16(tailView, eocdInTail + 10),
+    centralDirectorySize: readUint32(tailView, eocdInTail + 12),
+    centralDirectoryOffset: readUint32(tailView, eocdInTail + 16),
+  };
+  // Anki writes a ZIP64 end record once a package has 65,535 entries or more; Python's zipfile only above that, so
+  // exactly 65,535 entries carry the mark without one.
+  const sizesMarked = classic.centralDirectorySize === ZIP64_MARK_32 || classic.centralDirectoryOffset === ZIP64_MARK_32;
+  const zip64 = classic.entryCount === ZIP64_MARK_16 || sizesMarked ? await readZip64End(blob, eocdOffset, sizesMarked) : null;
+  const { entryCount, centralDirectorySize, centralDirectoryOffset } = zip64 ?? classic;
   assertRange(blob.size, centralDirectoryOffset, centralDirectorySize, "Zentrales ZIP-Verzeichnis");
-  if (centralDirectoryOffset + centralDirectorySize > eocdOffset) throw new Error("Das ZIP-Verzeichnis überlappt sein Endverzeichnis.");
+  if (centralDirectoryOffset + centralDirectorySize > (zip64?.endOffset ?? eocdOffset)) throw new Error("Das ZIP-Verzeichnis überlappt sein Endverzeichnis.");
   const directory = await readRange(blob, centralDirectoryOffset, centralDirectorySize, "Zentrales ZIP-Verzeichnis");
   const view = new DataView(directory.buffer, directory.byteOffset, directory.byteLength);
   const entries = new Map<string, ZipEntryDescriptor & { readBytes(): Promise<Uint8Array> }>();
@@ -121,17 +181,16 @@ export async function readZipArchive(file: ZipSource) {
 
     const compressionMethod = readUint16(view, offset + 10);
     const flags = readUint16(view, offset + 8);
-    const compressedSize = readUint32(view, offset + 20);
-    const uncompressedSize = readUint32(view, offset + 24);
     const fileNameLength = readUint16(view, offset + 28);
     const extraLength = readUint16(view, offset + 30);
     const commentLength = readUint16(view, offset + 32);
-    const localHeaderOffset = readUint32(view, offset + 42);
     const entryLength = 46 + fileNameLength + extraLength + commentLength;
     assertRange(directory.length, offset, entryLength, "ZIP-Verzeichniseintrag");
-    if ([compressedSize, uncompressedSize, localHeaderOffset].includes(0xffffffff)) {
-      throw new Error("ZIP64-APKG-Dateien werden nicht unterstützt.");
-    }
+    const { compressedSize, uncompressedSize, localHeaderOffset } = applyZip64Extra(view, offset + 46 + fileNameLength, extraLength, {
+      uncompressedSize: readUint32(view, offset + 24),
+      compressedSize: readUint32(view, offset + 20),
+      localHeaderOffset: readUint32(view, offset + 42),
+    });
     if ((flags & 0x0001) !== 0) throw new Error("Verschlüsselte ZIP-Einträge werden nicht unterstützt.");
     if (compressionMethod !== 0 && compressionMethod !== 8) throw new Error(`ZIP-Kompression ${compressionMethod} wird im MVP noch nicht unterstützt.`);
     const name = getName(directory, offset + 46, fileNameLength);

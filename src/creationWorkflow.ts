@@ -55,6 +55,7 @@ export interface ImportedDeckPersistence {
   rootDeck: Deck | null;
   createdCount: number;
   keptLocalEdits: number;
+  olderInPackage: number;
   missingInPackage: number;
   cloudTask: ImportCloudSyncTask;
 }
@@ -212,7 +213,7 @@ function validateManualCard(input: ManualCreationInput = {}): ManualValidation {
 
 export function createCreationWorkflow({
   mediaStore = createAccountMediaStore({ client: null, supabaseUrl: "http://127.0.0.1", userId: "local-user" }),
-  commitImport = async () => ({ decks: [], rootDeck: null, createdCount: 0, keptLocalEdits: 0, missingInPackage: 0, cloudTask: createReadyCloudTask() }),
+  commitImport = async () => ({ decks: [], rootDeck: null, createdCount: 0, keptLocalEdits: 0, olderInPackage: 0, missingInPackage: 0, cloudTask: createReadyCloudTask() }),
 }: { mediaStore?: AccountMediaStore; commitImport?: CommitImport } = {}) {
   return {
     async prepareManualImage(file: Blob & { name?: string }): Promise<ManualImageAttachment> {

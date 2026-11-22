@@ -152,7 +152,7 @@ const IMAGE_OCCLUSION = { id: "anki-image-occlusion", version: 3 };
 const IMAGE_OCCLUSION_ENHANCED = { id: "image-occlusion-enhanced", version: 2 };
 const MULTIPLE_CHOICE = { id: "multiple-choice-for-anki", version: 1 };
 const ANKING = { id: "anking", version: 3 };
-const GENERIC = { id: "generic", version: 4 };
+const GENERIC = { id: "generic", version: 5 };
 const FIELD_LIST = { id: "field-list", version: 3 };
 const DAY_MS = 86_400_000;
 
@@ -240,6 +240,8 @@ interface TemplateRef {
   ordinal: number;
   filters: string[];
   conditions: number[];
+  /** Fields of the enclosing `{{^Field}}` sections, which must be empty. */
+  negations: number[];
   answerSide: boolean;
   /** Inside a `{{#Field}}` section with a button, i.e. only shown on demand. */
   behindButton: boolean;
@@ -290,7 +292,7 @@ function analyzeTemplate(source: string, model: AnkiModel) {
   scan(ast.nodes);
   const refs: TemplateRef[] = [];
   let answerSide = false;
-  const visit = (nodes: SafeTemplateAstNode[], conditions: number[], behindButton: boolean) => {
+  const visit = (nodes: SafeTemplateAstNode[], conditions: number[], negations: number[], behindButton: boolean) => {
     nodes.forEach((node, index) => {
       if (node.kind === "text") {
         if (/<hr\b[^>]*\bid\s*=\s*["']?answer\b/i.test(node.value)) answerSide = true;
@@ -299,7 +301,7 @@ function analyzeTemplate(source: string, model: AnkiModel) {
       } else if (node.kind === "conditional") {
         const ordinal = model.fields.indexOf(node.sourceName);
         const button = node.children.some((child) => child.kind === "text" && /<button\b|\sonclick\s*=/i.test(child.value));
-        visit(node.children, node.inverted || ordinal < 0 ? conditions : [...conditions, ordinal], behindButton || button);
+        visit(node.children, node.inverted || ordinal < 0 ? conditions : [...conditions, ordinal], node.inverted && ordinal >= 0 ? [...negations, ordinal] : negations, behindButton || button);
       } else {
         const ordinal = model.fields.indexOf(node.sourceName);
         if (ordinal < 0) return;
@@ -313,6 +315,7 @@ function analyzeTemplate(source: string, model: AnkiModel) {
           ordinal,
           filters: node.filters,
           conditions,
+          negations,
           answerSide,
           behindButton,
           hidden: /<[a-z][^>]*display\s*:\s*none/i.test(previous.slice(previous.lastIndexOf("</") + 1)),
@@ -326,7 +329,7 @@ function analyzeTemplate(source: string, model: AnkiModel) {
       }
     });
   };
-  visit(ast.nodes, [], false);
+  visit(ast.nodes, [], [], false);
   return { refs, hasAnswerMarker: answerSide };
 }
 
@@ -373,9 +376,13 @@ function genericPlan(model: AnkiModel, translator: TranslatorId, promptKey: (ord
     for (const ref of answerRefs) assign(ref.ordinal, cloze || ref.behindButton || ref.hidden ? "extra" : "answer");
     const answer = [...new Set(answerRefs.map((ref) => ref.ordinal))].filter((ordinal) => !question.includes(ordinal));
     if (cloze || question.length === 0) continue;
-    // A front that is entirely wrapped in `{{#Field}}` only exists when that field is filled.
-    const required = [...new Set(displayed[0]?.conditions ?? [])]
-      .filter((ordinal) => !question.includes(ordinal) && displayed.every((ref) => ref.conditions.includes(ordinal)));
+    // A front that is entirely wrapped in `{{#Field}}` only exists when that field is filled, one wrapped in
+    // `{{^Field}}` only when it is empty; a prompt holds one of the two, and the filled condition wins.
+    const enclosing = (of: (ref: TemplateRef) => number[]) => displayed.length
+      ? [...new Set(of(displayed[0]))].filter((ordinal) => !question.includes(ordinal) && displayed.every((ref) => of(ref).includes(ordinal)))
+      : [];
+    const required = enclosing((ref) => ref.conditions);
+    const forbidden = enclosing((ref) => ref.negations);
     // Static text on the line of a question field becomes the instruction, with `…` for the field;
     // otherwise a question line directly above the first field, such as "Blickdiagnose?".
     const line = displayed.find((ref) => ref.line.before)?.line;
@@ -386,7 +393,7 @@ function genericPlan(model: AnkiModel, translator: TranslatorId, promptKey: (ord
       instruction: line ? `${line.before} …${line.after}`.replace(/\s+/g, " ").trim() : heading,
       questionFieldIds: question.map(fieldId),
       answerFieldIds: answer.filter((ordinal) => roles[model.fields[ordinal]] === "answer" || roles[model.fields[ordinal]] === "prompt").map(fieldId),
-      requires: required.length ? { mode: "all", fieldIds: required.map(fieldId) } : null,
+      requires: required.length ? { mode: "all", fieldIds: required.map(fieldId) } : forbidden.length ? { mode: "none", fieldIds: forbidden.map(fieldId) } : null,
       typeInFieldId: typeIn === null ? null : fieldId(typeIn),
     });
     if (typeIn !== null) assign(typeIn, "answer");
@@ -973,6 +980,7 @@ export async function translateAnkiPackage(pkg: AnkiPackage, options: { imported
       media: mediaSha1ByName,
       source: "anki-apkg" as const,
       ankiGuid: String(ankiNote.guid ?? "") || null,
+      importedAnkiModifiedAt: Number(ankiNote.mod) > 0 ? new Date(Number(ankiNote.mod) * 1000).toISOString() : null,
       noteTypeSourceId: entry.source.id,
       createdAt: createdMs > 1_000_000_000_000 && createdMs < Date.parse(importedAt) ? new Date(createdMs).toISOString() : importedAt,
     };

@@ -16,7 +16,7 @@ export type ApkgProgressPhase = "analyzing" | "committing";
 export interface ImportCompletion {
   deck: Deck;
   createdCount: number;
-  reimport: { keptLocalEdits: number; missingInPackage: number } | null;
+  reimport: { keptLocalEdits: number; olderInPackage: number; missingInPackage: number } | null;
   samples: ImportSample[];
   sampleMedia: ImportMediaFile[];
 }
