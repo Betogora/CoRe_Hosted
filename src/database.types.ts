@@ -707,6 +707,7 @@ export type Database = {
           created_at: string
           deleted_at: string | null
           id: string
+          imported_anki_modified_at: string | null
           imported_content_revision: number | null
           imported_tags: string[] | null
           marked: boolean
@@ -730,6 +731,7 @@ export type Database = {
           created_at?: string
           deleted_at?: string | null
           id: string
+          imported_anki_modified_at?: string | null
           imported_content_revision?: number | null
           imported_tags?: string[] | null
           marked?: boolean
@@ -753,6 +755,7 @@ export type Database = {
           created_at?: string
           deleted_at?: string | null
           id?: string
+          imported_anki_modified_at?: string | null
           imported_content_revision?: number | null
           imported_tags?: string[] | null
           marked?: boolean
