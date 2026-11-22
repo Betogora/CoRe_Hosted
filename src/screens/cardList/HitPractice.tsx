@@ -62,7 +62,8 @@ export function HitPractice({ bodies, mediaStore, onClose }: HitPracticeProps) {
   }, [current, onClose, revealed]);
 
   return (
-    <div ref={rootRef} tabIndex={-1} role="dialog" aria-modal="true" aria-label="Nur üben" className="fixed inset-0 z-50 overflow-y-auto bg-core-canvas p-4 text-core-text outline-none sm:p-8" data-testid="hit-practice">
+    // A clicked control would keep Space and Enter for itself; a keyboard-activated one (`detail` 0) keeps its focus.
+    <div onClick={(event) => { if (event.detail > 0 && event.target instanceof Element && event.target.closest("button")) rootRef.current?.focus({ preventScroll: true }); }} ref={rootRef} tabIndex={-1} role="dialog" aria-modal="true" aria-label="Nur üben" className="fixed inset-0 z-50 overflow-y-auto bg-core-canvas p-4 text-core-text outline-none sm:p-8" data-testid="hit-practice">
       <div className="mx-auto flex min-h-full max-w-4xl flex-col gap-6">
         <header className="grid gap-2">
           <div className="flex items-center justify-between gap-3">

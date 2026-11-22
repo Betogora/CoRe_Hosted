@@ -486,7 +486,9 @@ export function StudyMode({ shortcutsSuspended = false, deck, decks, notes, answ
   }, [current, showAnswer, showSettings, showAiHelp, shortcutsSuspended, sessionDecks, reviewSession]);
 
   return (
-    <main className={`flex min-h-screen flex-col bg-core-canvas p-4 text-core-text sm:p-8 ${current ? (showAnswer ? "pb-40 sm:pb-40" : "pb-28 sm:pb-28") : ""}`}>
+    // A clicked control would keep Space and Enter for itself; a keyboard-activated one (`detail` 0) keeps its focus.
+    // Portalled dialogs are outside `main` in the DOM and keep theirs.
+    <main onClick={(event) => { if (event.detail > 0 && event.target instanceof Element && event.currentTarget.contains(event.target.closest("button"))) cardContentRef.current?.focus({ preventScroll: true }); }} className={`flex min-h-screen flex-col bg-core-canvas p-4 text-core-text sm:p-8 ${current ? (showAnswer ? "pb-40 sm:pb-40" : "pb-28 sm:pb-28") : ""}`}>
       <div className="mx-auto flex w-full max-w-7xl flex-1 flex-col">
         <header className="core-study-header" data-testid="study-header">
           <div className="flex items-center justify-between gap-3">
