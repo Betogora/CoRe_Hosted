@@ -1,5 +1,5 @@
 import type { Page } from "@playwright/test";
-import { createClient } from "@supabase/supabase-js";
+import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { createCoreRepository } from "../../../src/coreRepository.ts";
 import { createWorldCapitalsSeed } from "../../../src/fixtures/worldCapitals.ts";
 import type { Deck, Note } from "../../../src/coreTypes.ts";
@@ -24,42 +24,49 @@ function createE2ESeedState(email: string) {
   };
 }
 
-export async function resetTestAccount(environment = loadE2EEnvironment(), additional: { decks?: Deck[]; notes?: Note[] } = {}) {
-  const client = createClient(environment.supabaseUrl, environment.publishableKey, {
-    auth: { autoRefreshToken: false, persistSession: false, detectSessionInUrl: false },
-  });
-  const { data, error } = await client.auth.signInWithPassword({ email: environment.email, password: environment.password });
-  if (error || !data.user) throw new Error(`Der dedizierte E2E-Testaccount konnte nicht angemeldet werden: ${error?.message ?? "kein Nutzer"}`);
+const signedInClients = new Map<string, Promise<{ client: SupabaseClient; userId: string; expiresAt: number }>>();
 
-  try {
-    const { data: mediaRows, error: mediaReadError } = await client.from("media_files").select("storage_path").eq("user_id", data.user.id);
-    if (mediaReadError) throw new Error(`E2E-Medienreferenzen konnten nicht gelesen werden: ${mediaReadError.message}`);
-    const { error: mediaDeleteError } = await client.from("media_files").delete().eq("user_id", data.user.id);
-    if (mediaDeleteError) throw new Error(`E2E-Medienreferenzen konnten nicht zurückgesetzt werden: ${mediaDeleteError.message}`);
-    const mediaPaths = (mediaRows ?? []).map((row) => row.storage_path);
-    if (mediaPaths.length) {
-      const { error: mediaObjectError } = await client.storage.from("core-media").remove(mediaPaths);
-      if (mediaObjectError) throw new Error(`E2E-Medienobjekte konnten nicht zurückgesetzt werden: ${mediaObjectError.message}`);
-    }
-    const { error: conflictCleanupError } = await client.from("sync_conflicts").delete().eq("user_id", data.user.id);
-    if (conflictCleanupError) throw new Error(`E2E-Synchronisierungskonflikte konnten nicht zurückgesetzt werden: ${conflictCleanupError.message}`);
-    const { error: deviceCleanupError } = await client.from("sync_devices").delete().eq("user_id", data.user.id);
-    if (deviceCleanupError) throw new Error(`Registrierte E2E-Geräte konnten nicht zurückgesetzt werden: ${deviceCleanupError.message}`);
-    const seedState = createE2ESeedState(environment.email);
-    await seedAccountState(client, {
-      ...seedState,
-      decks: [...seedState.decks, ...(additional.decks ?? [])],
-      notes: [...seedState.notes, ...(additional.notes ?? [])],
-    }, "e2e-test-reset");
-  } finally {
-    await client.auth.signOut({ scope: "local" }).catch(() => undefined);
-    client.auth.dispose?.();
+// One sign-in per worker and account: a password sign-in costs more than the reset queries behind it.
+export async function signedInTestClient(account: { supabaseUrl: string; publishableKey: string; email: string; password: string } = loadE2EEnvironment()) {
+  const key = `${account.supabaseUrl}|${account.email}`;
+  const cached = await signedInClients.get(key)?.catch(() => null);
+  if (cached && cached.expiresAt - 60 > Date.now() / 1000) return cached;
+  const pending = (async () => {
+    const client = createClient(account.supabaseUrl, account.publishableKey, {
+      auth: { autoRefreshToken: false, persistSession: false, detectSessionInUrl: false },
+    });
+    const { data, error } = await client.auth.signInWithPassword({ email: account.email, password: account.password });
+    if (error || !data.user || !data.session) throw new Error(`Der dedizierte E2E-Testaccount konnte nicht angemeldet werden: ${error?.message ?? "kein Nutzer"}`);
+    return { client, userId: data.user.id, expiresAt: data.session.expires_at ?? 0 };
+  })();
+  signedInClients.set(key, pending);
+  return pending;
+}
+
+export async function resetTestAccount(environment = loadE2EEnvironment(), additional: { decks?: Deck[]; notes?: Note[] } = {}) {
+  const { client, userId } = await signedInTestClient(environment);
+  const { data: mediaRows, error: mediaReadError } = await client.from("media_files").select("storage_path").eq("user_id", userId);
+  if (mediaReadError) throw new Error(`E2E-Medienreferenzen konnten nicht gelesen werden: ${mediaReadError.message}`);
+  const { error: mediaDeleteError } = await client.from("media_files").delete().eq("user_id", userId);
+  if (mediaDeleteError) throw new Error(`E2E-Medienreferenzen konnten nicht zurückgesetzt werden: ${mediaDeleteError.message}`);
+  const mediaPaths = (mediaRows ?? []).map((row) => row.storage_path);
+  if (mediaPaths.length) {
+    const { error: mediaObjectError } = await client.storage.from("core-media").remove(mediaPaths);
+    if (mediaObjectError) throw new Error(`E2E-Medienobjekte konnten nicht zurückgesetzt werden: ${mediaObjectError.message}`);
   }
+  const { error: conflictCleanupError } = await client.from("sync_conflicts").delete().eq("user_id", userId);
+  if (conflictCleanupError) throw new Error(`E2E-Synchronisierungskonflikte konnten nicht zurückgesetzt werden: ${conflictCleanupError.message}`);
+  const { error: deviceCleanupError } = await client.from("sync_devices").delete().eq("user_id", userId);
+  if (deviceCleanupError) throw new Error(`Registrierte E2E-Geräte konnten nicht zurückgesetzt werden: ${deviceCleanupError.message}`);
+  const seedState = createE2ESeedState(environment.email);
+  await seedAccountState(client, {
+    ...seedState,
+    decks: [...seedState.decks, ...(additional.decks ?? [])],
+    notes: [...seedState.notes, ...(additional.notes ?? [])],
+  }, "e2e-test-reset");
 }
 
 export async function resetToFreshLocalState(page: Page, options: { resetCloud?: boolean; waitForCloud?: boolean; additionalDecks?: Deck[]; additionalNotes?: Note[] } = {}) {
-  await page.goto("/");
-  await page.waitForFunction((key: string) => Boolean(localStorage.getItem(key)), SYNC_DEVICE_STORAGE_KEY);
   await page.goto("/favicon.svg");
   if (options.resetCloud !== false) await resetTestAccount(loadE2EEnvironment(), { decks: options.additionalDecks, notes: options.additionalNotes });
 
@@ -69,7 +76,6 @@ export async function resetToFreshLocalState(page: Page, options: { resetCloud?:
   if (!authKeyBefore) throw new Error("Die authentifizierte Playwright-Session fehlt vor dem App-State-Reset.");
 
   const syncDeviceIdBefore = await page.evaluate((key: string) => localStorage.getItem(key), SYNC_DEVICE_STORAGE_KEY);
-  if (!syncDeviceIdBefore) throw new Error("Die stabile Geräte-ID fehlt vor dem App-State-Reset.");
 
   await page.evaluate(({ prefix, syncDeviceKey }: any) => {
     for (const key of Object.keys(localStorage)) {
@@ -81,7 +87,7 @@ export async function resetToFreshLocalState(page: Page, options: { resetCloud?:
     keys: Object.keys(localStorage).filter((key) => key.startsWith(prefix)).sort(),
     syncDeviceId: localStorage.getItem(syncDeviceKey),
   }), { prefix: CORE_STORAGE_PREFIX, syncDeviceKey: SYNC_DEVICE_STORAGE_KEY });
-  if (preservedCoreStorage.keys.length !== 1 || preservedCoreStorage.keys[0] !== SYNC_DEVICE_STORAGE_KEY) {
+  if (preservedCoreStorage.keys.some((key: string) => key !== SYNC_DEVICE_STORAGE_KEY)) {
     throw new Error(`Der App-State-Reset hat unerwartete CoRe-Schlüssel bewahrt: ${preservedCoreStorage.keys.join(", ")}.`);
   }
   if (preservedCoreStorage.syncDeviceId !== syncDeviceIdBefore) {
@@ -122,8 +128,10 @@ export async function resetToFreshLocalState(page: Page, options: { resetCloud?:
     await page.locator('[data-navigation-utilities="true"][data-sync-status="saved"]:visible')
       .waitFor({ state: "visible", timeout: 20_000 });
   }
+  const syncDeviceId = await page.evaluate((key: string) => localStorage.getItem(key), SYNC_DEVICE_STORAGE_KEY);
+  if (syncDeviceIdBefore && syncDeviceId !== syncDeviceIdBefore) throw new Error("Der App-State-Reset hat die stabile Geräte-ID verändert.");
 
-  return { authStorageKey: authKeyAfter, syncDeviceId: syncDeviceIdBefore };
+  return { authStorageKey: authKeyAfter, syncDeviceId };
 }
 
 export async function readSyncDeviceId(page: Page) {

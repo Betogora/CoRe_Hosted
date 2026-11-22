@@ -6,6 +6,7 @@ import { collectBrowserErrors } from "./support/browserErrors.ts";
 import { chooseCoreSelectOption } from "./support/coreSelect.ts";
 import { loadE2EEnvironment } from "./support/e2eEnvironment.ts";
 import { deckSettingsDialog, openSettingsArea, settingsDialog } from "./support/settingsDialog.ts";
+import { matrixViewports, visualOutput } from "./support/visualMatrix.ts";
 
 const PDF_SELECTION_FIXTURE = fileURLToPath(new URL("../fixtures/pdf-selection.pdf", import.meta.url));
 
@@ -45,6 +46,10 @@ async function findPdfCreatedCard(page: Page) {
 
 function mainMenu(page: Page) {
   return page.getByRole("navigation", { name: /Hauptmenü|Mobile Hauptnavigation/ }).filter({ visible: true });
+}
+
+async function animationsFinished(locator: Locator) {
+  await locator.evaluate((element: HTMLElement) => Promise.all(element.getAnimations({ subtree: true }).map((animation) => animation.finished)));
 }
 
 async function hasVisibleOutline(locator: Locator) {
@@ -150,10 +155,29 @@ test("gemeinsame Dropdowns schließen durch erneutes Antippen und behalten Auswa
   }
 });
 
-test("dashboard heatmap keeps band, controls and period views inside every responsive width", async ({ page }: any) => {
+async function expectYearCells(grid: Locator) {
+  const layout = await grid.evaluate((element: HTMLElement) => {
+    const dayCells = [...element.querySelectorAll<HTMLElement>("span[aria-label]")];
+    const firstDayStyle = window.getComputedStyle(dayCells[0]);
+    const firstDayRect = dayCells[0].getBoundingClientRect();
+    const today = element.querySelector<HTMLElement>('[class*="ring-2"]');
+    const weekdayLabel = element.querySelector<HTMLElement>("span.sticky");
+    return {
+      cellWidth: firstDayRect.width,
+      cellHeight: firstDayRect.height,
+      cellRadius: firstDayStyle.borderRadius,
+      todayShadow: today ? window.getComputedStyle(today).boxShadow : "none",
+      weekdayLabelsSticky: weekdayLabel ? window.getComputedStyle(weekdayLabel).position === "sticky" : false,
+    };
+  });
+  expect(layout).toMatchObject({ cellWidth: 19, cellHeight: 19, cellRadius: "6px", weekdayLabelsSticky: true });
+  expect(layout.todayShadow).not.toBe("none");
+}
+
+test("dashboard heatmap keeps band, controls, period views and year cells inside every responsive width", async ({ page }: any) => {
   await resetToFreshLocalState(page);
 
-  const viewports = [1440, 1280, 1279, 1152, 1024, 900, 768, 700, 640, 639, 390, 320];
+  const viewports = visualOutput ? [1440, 1280, 1279, 1152, 1024, 900, 768, 700, 640, 639, 390, 320] : [1440, 1280, 1279, 768, 640, 639, 390, 320];
   for (const period of [
     { label: "Woche", value: "week" },
     { label: "Monat", value: "month" },
@@ -193,6 +217,7 @@ test("dashboard heatmap keeps band, controls and period views inside every respo
       expect(layout.periodSwitchInside).toBe(true);
       expect(layout.pageFitsViewport).toBe(true);
       expect(layout.yearScrollIsLocal).toBe(true);
+      if (period.value === "year" && [1440, 768, 390].includes(width)) await expectYearCells(grid);
     }
   }
 });
@@ -222,46 +247,6 @@ test("heatmap color is picked in the appearance settings and persists for the da
 
   await page.goto("/");
   await expect(heatmap).toHaveAttribute("data-heatmap-history-color", "#3fa66b");
-});
-
-test("dashboard heatmap preserves its cells, today marker and label alignment", async ({ page }: any) => {
-  await resetToFreshLocalState(page);
-
-  for (const viewport of [
-    { width: 1440, height: 900 },
-    { width: 768, height: 900 },
-    { width: 390, height: 844 },
-  ]) {
-    await page.setViewportSize(viewport);
-    await page.getByRole("group", { name: "Heatmap-Zeitraum" }).getByRole("button", { name: "Jahr", exact: true }).click();
-    const grid = page.getByTestId("study-heatmap-grid");
-    await expect(grid).toBeVisible();
-    await expect.poll(() => grid.locator("span[aria-label]").count()).toBeGreaterThan(0);
-
-    const layout = await grid.evaluate((element: HTMLElement) => {
-      const dayCells = [...element.querySelectorAll<HTMLElement>("span[aria-label]")];
-      const firstDayStyle = window.getComputedStyle(dayCells[0]);
-      const firstDayRect = dayCells[0].getBoundingClientRect();
-      const today = element.querySelector<HTMLElement>('[class*="ring-2"]');
-      const todayStyle = today ? window.getComputedStyle(today) : null;
-      const weekdayLabel = element.querySelector<HTMLElement>("span.sticky");
-      return {
-        cellWidth: firstDayRect.width,
-        cellHeight: firstDayRect.height,
-        cellRadius: firstDayStyle.borderRadius,
-        todayShadow: todayStyle?.boxShadow ?? "none",
-        weekdayLabelsSticky: weekdayLabel ? window.getComputedStyle(weekdayLabel).position === "sticky" : false,
-        pageFitsViewport: document.documentElement.scrollWidth <= window.innerWidth + 1,
-      };
-    });
-
-    expect(layout.cellWidth).toBe(19);
-    expect(layout.cellHeight).toBe(19);
-    expect(layout.cellRadius).toBe("6px");
-    expect(layout.todayShadow).not.toBe("none");
-    expect(layout.weekdayLabelsSticky).toBe(true);
-    expect(layout.pageFitsViewport).toBe(true);
-  }
 });
 
 test("statistics uses the shared filtered heatmap without clipped shadows or retired subtitles", async ({ page }: any) => {
@@ -296,11 +281,7 @@ test("statistics uses the shared filtered heatmap without clipped shadows or ret
   }
   await page.evaluate(() => { document.documentElement.dataset.coreTheme = "light"; });
 
-  for (const viewport of [
-    { width: 1440, height: 900 },
-    { width: 768, height: 900 },
-    { width: 390, height: 844 },
-  ]) {
+  for (const viewport of matrixViewports()) {
     await page.setViewportSize(viewport);
     const grid = page.getByTestId("study-heatmap-grid");
     await expect(grid).toBeVisible();
@@ -460,7 +441,7 @@ test("Lerneinstellungen wechseln bei 768 px zwischen Bottom Sheet und zentrierte
   await settings.click();
   const dialog = page.getByRole("dialog", { name: "Lerneinstellungen" });
   await expect(dialog).toBeVisible();
-  await page.waitForTimeout(250);
+  await animationsFinished(dialog);
   await expect(dialog.getByText("Karte", { exact: true })).toBeVisible();
   await expect(dialog.getByText("Sitzung", { exact: true })).toBeVisible();
   await expect(dialog.getByRole("button", { name: "Stapel bearbeiten" })).toBeVisible();
@@ -488,7 +469,7 @@ test("Lerneinstellungen wechseln bei 768 px zwischen Bottom Sheet und zentrierte
   expect(contentBorders.filter((border: { top: string; bottom: string }) => border.top !== "0px" || border.bottom !== "0px")).toEqual([{ top: "1px", bottom: "0px" }]);
 
   await page.setViewportSize({ width: 768, height: 640 });
-  await page.waitForTimeout(250);
+  await animationsFinished(dialog);
   const desktopGeometry = await dialog.evaluate((element: HTMLElement) => {
     const rect = element.getBoundingClientRect();
     return { left: rect.left, right: rect.right, top: rect.top, bottom: rect.bottom, viewportWidth: window.innerWidth, viewportHeight: window.innerHeight };
@@ -681,7 +662,6 @@ test("offline changes stay pending and flush when the browser reconnects", async
     await openSettingsArea(dialog, "konto");
     await displayName.fill(originalDisplayName);
     await page.getByTestId("settings-save-bar").getByRole("button", { name: "Speichern" }).click();
-    await page.waitForTimeout(800);
     await openSettingsArea(dialog, "daten");
     await expect(dataArea.getByText(/Zuletzt synchronisiert:/)).toBeVisible();
   } finally {
@@ -702,7 +682,11 @@ test("[Vertrag: Review über Offline, Reconnect und Reload] @golden-e2e @beta-co
     const before = await deckReviewEventCount(page, DECK_IDS.europe);
     await mainMenu(page).getByRole("button", { name: "Lernen" }).click();
     await page.getByTestId(`learn-deck-row-${DECK_IDS.europe}`).getByRole("button", { name: /lernen/ }).click();
+    await expect(page.getByRole("button", { name: "Antwort anzeigen" })).toBeVisible();
+    expect(await findOriginLeakBeforeReveal(page)).toBeNull();
     await page.getByRole("button", { name: "Antwort anzeigen" }).click();
+    await expect(page.getByTestId("review-variant-badge")).toHaveCount(0);
+    await expect(page.getByTestId("base-card-reference")).toHaveCount(0);
 
     await context.setOffline(true);
     await page.getByRole("button", { name: /Bewertung Gut/ }).click();
@@ -732,23 +716,6 @@ test("[Vertrag: Review über Offline, Reconnect und Reload] @golden-e2e @beta-co
   }
 });
 
-test("review flow records a rating through accessible controls", async ({ page }: any) => {
-  await resetToFreshLocalState(page);
-  const before = await deckReviewEventCount(page, DECK_IDS.europe);
-
-  await mainMenu(page).getByRole("button", { name: "Lernen" }).click();
-  await page.getByTestId(`learn-deck-row-${DECK_IDS.europe}`).getByRole("button", { name: /lernen/ }).click();
-  await expect(page.getByRole("button", { name: "Antwort anzeigen" })).toBeVisible();
-  expect(await findOriginLeakBeforeReveal(page)).toBeNull();
-  await page.getByRole("button", { name: "Antwort anzeigen" }).click();
-  await expect(page.getByTestId("review-variant-badge")).toHaveCount(0);
-  await expect(page.getByTestId("base-card-reference")).toHaveCount(0);
-  await page.getByRole("button", { name: /Bewertung Gut/ }).click();
-
-  await expect.poll(() => deckReviewEventCount(page, DECK_IDS.europe)).toBeGreaterThan(before);
-  await page.getByRole("button", { name: "Lernmodus verlassen" }).click();
-});
-
 test("deck settings save appearance, learning, scheduler and CoRe values together", async ({ page }: any) => {
   const runtimeErrors = collectBrowserErrors(page);
   // The rating below makes a card ready for variants, so the app requests its next variant ahead.
@@ -774,12 +741,7 @@ test("deck settings save appearance, learning, scheduler and CoRe values togethe
   await page.getByRole("button", { name: "Stapeloptionen für Welt-Hauptstädte / Afrika" }).click();
   await page.getByTestId(`deck-options-menu-${DECK_IDS.africa}`).getByRole("button", { name: "Einstellungen" }).click();
 
-  for (const viewport of [
-    { width: 1440, height: 900 },
-    { width: 1280, height: 720 },
-    { width: 768, height: 900 },
-    { width: 390, height: 844 },
-  ]) {
+  for (const viewport of [...matrixViewports(), { width: 768, height: 900 }]) {
     await page.setViewportSize(viewport);
     await openSettingsArea(deckSettingsDialog(page), "stapel");
     await expect(deckSettingsDialog(page).locator("[data-settings-section]")).toHaveCount(3);

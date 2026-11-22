@@ -1,10 +1,9 @@
 import { expect, test, type Page } from "@playwright/test";
-import { createClient } from "@supabase/supabase-js";
 import { AI_LEARNING_SUMMARY_PROMPT_VERSION } from "../../src/aiLearningSummaryContract.ts";
 import { addCardVariant, cardStudyFromReviewState, createBasicNote, createCoreDeck, createReviewState, setNoteMarked } from "../../src/coreModel.ts";
 import { createCoreRepository } from "../../src/coreRepository.ts";
 import type { Deck, Note } from "../../src/coreTypes.ts";
-import { readActiveAccountState, resetToFreshLocalState } from "./support/appState.ts";
+import { readActiveAccountState, resetToFreshLocalState, signedInTestClient } from "./support/appState.ts";
 import { e2eAuthStatePath, loadE2EEnvironment } from "./support/e2eEnvironment.ts";
 import { seedAccountState } from "../support/seedAccountState.ts";
 import { deckSettingsDialog, openSettingsArea } from "./support/settingsDialog.ts";
@@ -70,24 +69,15 @@ function seedDecks(): Deck[] {
 
 async function seedAccount(decks: Deck[] = seedDecks(), account?: { email: string; password: string }) {
   const environment = { ...loadE2EEnvironment(), ...account };
-  const client = createClient(environment.supabaseUrl, environment.publishableKey, {
-    auth: { autoRefreshToken: false, persistSession: false, detectSessionInUrl: false },
-  });
-  const { data, error } = await client.auth.signInWithPassword({ email: environment.email, password: environment.password });
-  if (error || !data.user) throw error ?? new Error("Der Navigations-E2E-Account fehlt.");
-  try {
-    const state = createCoreRepository().getState();
-    const noteIds = new Set(decks.flatMap((deck) => deck.cards.map((seededCard) => seededCard.noteId)));
-    await seedAccountState(client, {
-      ...state,
-      decks,
-      notes: [...SEEDED_NOTES.values()].filter((note) => noteIds.has(note.id)),
-      profile: { ...state.profile, email: environment.email, displayName: "CoRe E2E", onboardingComplete: true },
-    }, "e2e-navigation-context-reset");
-  } finally {
-    await client.auth.signOut({ scope: "local" }).catch(() => undefined);
-    client.auth.dispose?.();
-  }
+  const { client } = await signedInTestClient(environment);
+  const state = createCoreRepository().getState();
+  const noteIds = new Set(decks.flatMap((deck) => deck.cards.map((seededCard) => seededCard.noteId)));
+  await seedAccountState(client, {
+    ...state,
+    decks,
+    notes: [...SEEDED_NOTES.values()].filter((note) => noteIds.has(note.id)),
+    profile: { ...state.profile, email: environment.email, displayName: "CoRe E2E", onboardingComplete: true },
+  }, "e2e-navigation-context-reset");
 }
 
 function mainMenu(page: Page) {
