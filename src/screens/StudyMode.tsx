@@ -88,10 +88,8 @@ export function StudyMode({ shortcutsSuspended = false, deck, decks, notes, answ
   const [loadMoreError, setLoadMoreError] = React.useState("");
   /** Loading stopped because the device is offline; it resumes by itself when the connection returns. */
   const [pausedOffline, setPausedOffline] = React.useState(false);
-  const answerContentRef = React.useRef<HTMLDivElement>(null);
-  const questionContentRef = React.useRef<HTMLDivElement>(null);
+  const cardContentRef = React.useRef<HTMLDivElement>(null);
   const completionHeadingRef = React.useRef<HTMLHeadingElement>(null);
-  const settingsButtonRef = React.useRef<HTMLButtonElement>(null);
   const effectiveLearningDayKey = learningDayKey || getLearningDayKey(getNow(), { dayStartHour, timeZone }) || "";
   const previousLearningDayKeyRef = React.useRef(effectiveLearningDayKey);
   const setSuccessToast = useSuccessToast();
@@ -441,7 +439,7 @@ export function StudyMode({ shortcutsSuspended = false, deck, decks, notes, answ
   }
 
   React.useEffect(() => {
-    if (showAnswer) answerContentRef.current?.focus();
+    if (showAnswer) cardContentRef.current?.focus();
   }, [showAnswer]);
 
   // While a card is shown, loading further cards in the background must not take the focus away.
@@ -451,7 +449,7 @@ export function StudyMode({ shortcutsSuspended = false, deck, decks, notes, answ
   React.useEffect(() => {
     const frame = window.requestAnimationFrame(() => {
       window.scrollTo({ top: 0, left: 0, behavior: "auto" });
-      if (current) questionContentRef.current?.focus({ preventScroll: true });
+      if (current) cardContentRef.current?.focus({ preventScroll: true });
       else if (answeredCount > 0 || hasWaitingLearningCards || limitReachedAtStart || loadMoreError || loadingMoreCards || moreCardsAvailable) completionHeadingRef.current?.focus({ preventScroll: true });
     });
     return () => window.cancelAnimationFrame(frame);
@@ -488,7 +486,9 @@ export function StudyMode({ shortcutsSuspended = false, deck, decks, notes, answ
   }, [current, showAnswer, showSettings, showAiHelp, shortcutsSuspended, sessionDecks, reviewSession]);
 
   return (
-    <main className={`flex min-h-screen flex-col bg-core-canvas p-4 text-core-text sm:p-8 ${current ? (showAnswer ? "pb-40 sm:pb-40" : "pb-28 sm:pb-28") : ""}`}>
+    // A clicked control that keeps the focus would keep Space and Enter for itself; a keyboard-activated one (`detail` 0)
+    // keeps it. Portalled dialogs are outside `main` in the DOM and keep theirs.
+    <main onClick={(event) => { if (event.detail > 0 && document.activeElement instanceof HTMLButtonElement && event.currentTarget.contains(document.activeElement)) cardContentRef.current?.focus({ preventScroll: true }); }} className={`flex min-h-screen flex-col bg-core-canvas p-4 text-core-text sm:p-8 ${current ? (showAnswer ? "pb-40 sm:pb-40" : "pb-28 sm:pb-28") : ""}`}>
       <div className="mx-auto flex w-full max-w-7xl flex-1 flex-col">
         <header className="core-study-header" data-testid="study-header">
           <div className="flex items-center justify-between gap-3">
@@ -500,7 +500,7 @@ export function StudyMode({ shortcutsSuspended = false, deck, decks, notes, answ
                 {current?.card.ankiFlag ? <FlagDot flag={current.card.ankiFlag} names={flagNames} /> : null}
               </span>
             </div>
-            <IconButton ref={settingsButtonRef} type="button" onClick={() => setShowSettings((value) => !value)} label="Lerneinstellungen" icon={SlidersHorizontal} aria-haspopup="dialog" aria-expanded={showSettings} aria-controls="study-settings-overlay" />
+            <IconButton type="button" onClick={() => setShowSettings((value) => !value)} label="Lerneinstellungen" icon={SlidersHorizontal} aria-haspopup="dialog" aria-expanded={showSettings} aria-controls="study-settings-overlay" />
           </div>
           <DailyReviewProgress progress={sessionDailyProgress} />
           {simulationOffsetMinutes > 0 ? (
@@ -521,7 +521,7 @@ export function StudyMode({ shortcutsSuspended = false, deck, decks, notes, answ
           flagNames={flagNames}
           reviewOrder={rootDeck?.deckSettings.newReviewOrder ?? "reviews-first"}
           pomodoroTimer={pomodoroTimer}
-          returnFocusRef={settingsButtonRef}
+          returnFocusRef={cardContentRef}
           onOpenChange={setShowSettings}
           onEditCard={() => {
             if (current?.deckId && current.cardId) onEditCard(current.deckId, current.cardId);
@@ -549,7 +549,7 @@ export function StudyMode({ shortcutsSuspended = false, deck, decks, notes, answ
                   {showAnswer && isCurrentVariant ? (
                     <CoreTag tone="info" className="mb-4" data-testid="review-variant-badge">Variante</CoreTag>
                   ) : null}
-                  <div ref={showAnswer ? answerContentRef : questionContentRef} tabIndex={-1} role="group" aria-label={showAnswer ? "Antwort" : "Frage"} className="min-w-0 scroll-mb-28 scroll-mt-40 outline-none" data-testid="study-card-content">
+                  <div ref={cardContentRef} tabIndex={-1} role="group" aria-label={showAnswer ? "Antwort" : "Frage"} className="min-w-0 scroll-mb-28 scroll-mt-40 outline-none" data-testid="study-card-content">
                     {presented ? (
                       <NoteCardContent note={presented.note} card={presented.card} mediaUrls={studyMediaUrls} revealed={showAnswer} onReveal={revealAnswer} />
                     ) : (
@@ -663,7 +663,7 @@ export function StudyMode({ shortcutsSuspended = false, deck, decks, notes, answ
             )}
           </footer>
         ) : null}
-        {showAnswer && helpCard ? <StudyAiHelp card={helpCard} onAsk={onAskCardHelp} open={showAiHelp} onOpenChange={setShowAiHelp} /> : null}
+        {showAnswer && helpCard ? <StudyAiHelp card={helpCard} onAsk={onAskCardHelp} open={showAiHelp} onOpenChange={setShowAiHelp} returnFocusRef={cardContentRef} /> : null}
       </div>
     </main>
   );

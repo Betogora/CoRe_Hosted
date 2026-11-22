@@ -1,6 +1,7 @@
 import React from "react";
 import { Pencil, PowerOff, RefreshCw, RotateCcw, Settings, Sparkles, Trash2 } from "lucide-react";
 import type { CardEditorServices, DecksScreenProps } from "../../appScreenProps.ts";
+import { activeVariantRefusal, VARIANT_FAILURE_LIMIT } from "../../coreModel.ts";
 import { cardVariantSource, classifyCardEligibility, describeVariantReadiness, isEditedVariant } from "../../coreVariantService.ts";
 import type { Card, CardVariant, Deck, Note } from "../../coreTypes.ts";
 import { aiVariantFieldText, type AiCardVariantSource } from "../../aiCardVariantContract.ts";
@@ -105,6 +106,7 @@ export function CardEditorVariantsTab({ deck, note, card, services, onGenerateVa
   const [pendingDeletion, setPendingDeletion] = React.useState<CardVariant | null>(null);
   const readiness = describeVariantReadiness(card, deck.deckSettings);
   const eligibility = classifyCardEligibility(note, card, deck.deckSettings);
+  const refusal = eligibility.eligible ? activeVariantRefusal(note, card) : null;
   const original = cardVariantSource(note, card);
   const variants = card.variants.filter((variant) => !variant.deletedAt);
   const hasOutdated = variants.some((variant) => variant.meta.outdated === true);
@@ -163,11 +165,16 @@ export function CardEditorVariantsTab({ deck, note, card, services, onGenerateVa
           </ul>
         ) : null}
         {eligibility.eligible ? null : <p className="core-body text-core-muted">{eligibility.reasons[0] ?? "Varianten sind für diese Karte nicht verfügbar."}</p>}
+        {refusal ? (
+          <p className="core-body text-core-muted" data-testid="variant-refusal">
+            {refusal === "not_rephrasable" ? "Die KI hält diese Karte für nicht umformulierbar." : `Die Generierung ist ${VARIANT_FAILURE_LIMIT}-mal nacheinander gescheitert.`}
+          </p>
+        ) : null}
         {status ? <p className="core-body text-core-warning" role="status" aria-live="polite">{status}</p> : null}
         <div className="flex flex-wrap items-center justify-between gap-3">
           <ActionButton variant="secondary" icon={Sparkles} loading={generating} disabled={!eligibility.eligible || busyId !== null}
             onClick={() => void act("generate", () => onGenerateVariant(card.id), hasOutdated ? "Veraltete Variante wurde ersetzt." : "Variante wurde generiert.", "Die Variante konnte nicht generiert werden.")}>
-            {hasOutdated ? "Variante neu generieren" : variants.length ? "Weitere Variante generieren" : "Variante generieren"}
+            {refusal ? "Erneut versuchen" : hasOutdated ? "Variante neu generieren" : variants.length ? "Weitere Variante generieren" : "Variante generieren"}
           </ActionButton>
           <CrossLinkButton onSelect={onOpenDeckSettings}><Settings size={15} aria-hidden="true" />Stapeleinstellungen</CrossLinkButton>
         </div>

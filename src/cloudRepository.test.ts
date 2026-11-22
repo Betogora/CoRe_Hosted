@@ -18,6 +18,7 @@ import type { CloudClient } from "./cloudRepository.ts";
 import type { ReviewEvent } from "./coreTypes.ts";
 import type { WorkspaceState } from "./coreWorkspace.ts";
 import {
+  cardFromRow,
   noteFromRow,
   validateAccountRows,
   validateOfflineManifestRows,
@@ -152,6 +153,19 @@ test("Cloudzeilen weisen ungültige Revisionen und JSONB-Strukturen vor der Übe
     { content_revision: 0 }, { imported_content_revision: 1.5 }, { content: [] }, { media: { "bild.png": "kein-hash" } }, { marked: "ja" },
   ]) assert.throws(() => validateAccountRows("notes", [{ ...note, ...change }]), /ungültiges Format/, JSON.stringify(change));
   assert.throws(() => noteFromRow({ ...note, content: { schemaVersion: 1, fields: [] } }), /ungültig/);
+});
+
+test("die Variantensperre einer Karte geht als JSONB-Spalte hin und zurück; fremde Formen werden abgewiesen", () => {
+  const { note, card } = fixture();
+  const variantRefusal = { state: "failing" as const, failures: 3, promptVersion: "card-variant-v5", contentRevision: 1, updatedAt: now };
+  const deck = createCoreDeck({ id: "deck", ownerId: "user", cards: [{ ...card, variantRefusal }], createdAt: now, updatedAt: now });
+  const [row] = createCloudStateRows({ decks: [deck], notes: [note] }, "user").cards;
+  assert.deepEqual(row.variant_refusal, variantRefusal);
+  assert.deepEqual(cardFromRow(validateAccountRows("cards", [row])[0]).variantRefusal, variantRefusal);
+  assert.equal(Object.hasOwn(cardFromRow(validateAccountRows("cards", [{ ...row, variant_refusal: null }])[0]), "variantRefusal"), false);
+  for (const variant_refusal of [{ ...variantRefusal, state: "später" }, { ...variantRefusal, failures: -1 }, { ...variantRefusal, contentRevision: 0 }, { state: null }]) {
+    assert.throws(() => validateAccountRows("cards", [{ ...row, variant_refusal }]), /ungültiges Format/, JSON.stringify(variant_refusal));
+  }
 });
 
 test("Konfliktzeilen werden geprüft; erlaubte null-Werte bleiben gültig, fremde JSON-Werte zählen als leere Zeile", () => {
@@ -431,7 +445,7 @@ test("Katalogzeilen bringen Lernverlauf und Werte mit, ein Server ohne sie bleib
     interval_days: 12, difficulty: 6.5, reps: 4, lapses: 1, first_reviewed_at: "2026-11-01T09:00:00+00:00",
     last_again_at: "2026-11-03T09:00:00+00:00", last_hard_at: null, last_good_at: "2026-11-04T09:00:00+00:00",
     last_easy_at: null, last_rescheduled_at: null, note_type_id: "nt-1", has_outdated_variants: true,
-    prompt_ordinal: 2, last_buried_at: "2026-11-05T07:00:00+00:00", last_unburied_at: null,
+    prompt_ordinal: 2, last_buried_at: "2026-11-05T07:00:00+00:00", last_unburied_at: null, variant_refused: true,
   };
   const delta = fakeCloudClient({ async rpc() { return { data: { changes: [{ table: "card_catalog", row: { ...row, ...history } }, { table: "card_catalog", row: { ...row, id: "card-2" } }], nextCursor: 4, hasMore: false }, error: null }; } });
   const pages: Array<{ table: string; entities: any[] }> = [];
@@ -443,4 +457,5 @@ test("Katalogzeilen bringen Lernverlauf und Werte mit, ein Server ohne sie bleib
     ["cloze", 12, 6.5, 4, 1, "2026-11-03T09:00:00+00:00", null, "nt-1", true, 2, "2026-11-05T07:00:00+00:00"],
   );
   assert.equal(withoutHistory.firstReviewedAt, undefined, "ohne Migration fehlt der Verlauf, die Zeile bleibt gültig");
+  assert.deepEqual([withHistory.variantRefused, withoutHistory.variantRefused], [true, undefined]);
 });

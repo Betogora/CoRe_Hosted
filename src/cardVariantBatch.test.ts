@@ -121,6 +121,26 @@ test("a card whose loaded body already has a variant is skipped even when the ca
   assert.equal(result.created, 1);
 });
 
+test("refused cards neither fill the limit nor block the next cards; a refusal of an older prompt version is retried", async () => {
+  const refusal = (promptVersion: string) => ({ state: "not_rephrasable" as const, failures: 0, promptVersion, contentRevision: 1, updatedAt: "2026-11-21T10:00:00.000Z" });
+  const bodies = [1, 2, 3, 4, 5].map(basic);
+  bodies[0].card = { ...bodies[0].card, variantRefusal: refusal(AI_CARD_VARIANT_PROMPT_VERSION) };
+  bodies[1].card = { ...bodies[1].card, variantRefusal: { ...refusal(AI_CARD_VARIANT_PROMPT_VERSION), state: "failing", failures: 3 } };
+  bodies[2].card = { ...bodies[2].card, variantRefusal: refusal("card-variant-v0") };
+  const run = (options: { mode?: "missing" | "refresh"; retryRefused?: boolean; limit?: number }) => {
+    const generated: string[] = [];
+    const refused = { variantRefused: true };
+    const source = deck(bodies, 2, { "card-1": refused, "card-2": refused, "card-3": refused }).source;
+    return runCardVariantBatch({ source, settingsFor: () => coreOn, generate: async (id) => { generated.push(id); }, ...options }).then((result) => ({ generated, result }));
+  };
+
+  const missing = await run({ limit: 2 });
+  assert.deepEqual(missing.generated, ["card-3", "card-4"]);
+  assert.equal(missing.result.hasMore, true);
+  assert.deepEqual((await run({ mode: "refresh" })).generated, ["card-3"], "die Neuerzeugung versucht nur Sperren einer älteren Fassung erneut");
+  assert.deepEqual((await run({ retryRefused: true })).generated, ["card-1", "card-2", "card-3", "card-4", "card-5"], "eine eigene Auswahl versucht auch gesperrte Karten");
+});
+
 test("a deck with CoRe switched off creates nothing", async () => {
   let calls = 0;
   const result = await runCardVariantBatch({ source: deck([1, 2].map(basic)).source, settingsFor: () => ({ coreMode: "off" }), generate: async () => { calls += 1; } });

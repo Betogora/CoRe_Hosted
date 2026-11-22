@@ -184,6 +184,15 @@ export function aiCardVariantSourceKey(source: AiCardVariantRequest["source"]): 
   return `${normalizeAiCardText(source.front).toLocaleLowerCase("de-DE")}\u0000${normalizeAiCardText(source.back).toLocaleLowerCase("de-DE")}`;
 }
 
+/**
+ * Results refused because they would ask something other than the card; errors of transport, provider, account or
+ * a changed card say nothing about whether the card can be rephrased.
+ */
+export const AI_CARD_VARIANT_REJECTIONS: ReadonlySet<string> = new Set([
+  "invalid_gaps", "changed_answer", "revealed_answer", "changed_options", "negated_question", "negated_option",
+  "invalid_variant", "unchanged_front", "duplicate_variant",
+]);
+
 export class AiCardVariantContractError extends Error {
   readonly code: string;
 

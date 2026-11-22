@@ -559,7 +559,7 @@ Originalkarte | wird selbst abgefragt; die Kette wartet
 
 ### CoRe-Modus
 
-- Der CoRe-Modus ist je Stapel `An` oder `Aus`. Varianten entstehen auf ausdrückliche Aktion oder vorausschauend vor dem Kontakt, der sie abfragt ([Kartenvarianten erzeugen](#kartenvarianten-erzeugen)).
+- Der CoRe-Modus ist je Stapel `An` oder `Aus`.
 - Das Einschalten erklärt Wirkung, Schwelle und Datenschutz und bietet an, sofort Varianten für die ersten Karten des Stapels zu erzeugen ([Kartenvarianten erzeugen](#kartenvarianten-erzeugen)).
 - CoRe-Modus, Schwelle und Zahl aktiver Varianten gehören nicht zu Lernprofilen und bleiben bei einem Profilwechsel unverändert.
 - **Bewusst nicht:** ein eigener Lernmodus nur mit oder nur ohne Varianten.
@@ -622,12 +622,12 @@ Eine Variante fragt denselben Inhalt mit anderer Formulierung ab.
 - **Lückentext:** dieselbe Lückengruppe mit derselben Lösung; andere Lücken stehen als Text, die Lösung nie im übrigen Text.
 - **Eingetippte Antwort:** Die Antwort bleibt zeichengleich, und auch die Variante wird eingetippt.
 - **Auswahl:** dieselben Optionen, jede gleich richtig oder falsch, ohne gewonnene oder verlorene Verneinung; die Variante hat eine eigene feste Reihenfolge, bearbeitbar ist nur die Frage. Karten mit zu langem Text, weniger als zwei oder mehr als zehn Optionen erhalten keine Varianten.
-- Ergibt eine Karte keinen erkennbaren Sinn oder braucht sie privaten Kontext, meldet die KI sie als nicht umformulierbar, statt eine Deutung zu erfinden; es entsteht keine Variante.
+- Ergibt eine Karte keinen erkennbaren Sinn oder braucht sie privaten Kontext, meldet die KI sie als nicht umformulierbar, statt eine Deutung zu erfinden. Das oder drei abgewiesene Ergebnisse in Folge sperren die Karte für Stapelläufe und Vorausschau, bis ihr Inhalt sich ändert oder ein eigener Versuch gelingt.
 - Eine Karte erhält Varianten bis zur Höchstzahl aktiver Varianten ihres Stapels. Gespeichert wird nur, wenn sie während der Anfrage unverändert blieb und die Formulierung neu ist.
 - **Vorausschauend:** Erreicht eine Karte die Haltbarkeitsschwelle und fehlt der Kette die nächste Variante, entsteht sie im geöffneten Tab vor der nächsten Fälligkeit, als einzige KI-Anfrage ohne eigene Aktion ([ADR-011](decisions.md#adr-011--schmale-ki-routen-über-openrouter)). Scheitert sie, etwa offline, kommt die am längsten nicht gesehene Variante; die nächste Antwort versucht es erneut.
-- **Für einen Stapel:** Eine Erzeugung gibt nacheinander bis zu 50 Karten des Stapelbaums mit CoRe-Modus und ohne aktive Variante je eine und speichert jede sofort; ein weiterer Start nimmt die nächsten. Die Stapeleinstellungen nennen, wie viele Karten noch keine haben.
-- Die Stapelerzeugung läuft im offenen Tab, höchstens eine zugleich, mit Fortschritt. Abbrechen behält Erzeugtes; ein Fehler, der jede Karte träfe, hält den Lauf mit Grund an. Nicht umformulierbare und übrige Karten ohne Variante werden getrennt gezählt und sind in der Kartenverwaltung abrufbar.
-- Varianten aus einer älteren Fassung der Erzeugung lassen sich nach Rückfrage ersetzen; Karten und Lernstand bleiben.
+- **Für einen Stapel:** Eine Erzeugung gibt nacheinander bis zu 50 Karten des Stapelbaums mit CoRe-Modus und ohne aktive Variante je eine und speichert jede sofort; ein weiterer Start nimmt die nächsten. Die Stapeleinstellungen nennen, wie viele noch auf eine warten.
+- Die Stapelerzeugung läuft im offenen Tab, höchstens eine zugleich, mit Fortschritt. Abbrechen behält Erzeugtes; ein Fehler, der jede Karte träfe, hält den Lauf mit Grund an. Nicht umformulierbare und gescheiterte Karten zählt das Ergebnis getrennt; gesperrte zeigt die Kartenverwaltung.
+- Varianten aus einer älteren Fassung der Erzeugung lassen sich nach Rückfrage ersetzen und ihre Sperren erneut versuchen; Karten und Lernstand bleiben.
 
 ### KI-Zusammenfassung
 
@@ -820,7 +820,7 @@ Fassung | im Konto, mehrere je Stapel
 - Sich ausschließende Filter bleiben erlaubt; die Suche nennt den Widerspruch.
 - Noch nicht unterstützte Anki-Begriffe werden benannt und als Text gesucht. Die vollständige Schreibweise erklärt die App selbst.
 - Online- und Offline-Suche liefern dieselben Treffer ([ADR-048](decisions.md#adr-048--kartensuche-lokal-über-den-vollständigen-katalog)).
-- Gespeicherte Suchen gehören zum Konto; relative Begriffe wie „heute“ gelten für den Tag der Anwendung.
+- Gespeicherte Suchen gehören zum Konto; relative Begriffe wie „heute“ gelten am Tag der Anwendung.
 - **Bewusst nicht:** reguläre Ausdrücke.
 
 ### Massenaktionen und Pflege
@@ -831,7 +831,7 @@ Fassung | im Konto, mehrere je Stapel
 - Flagge, Aussetzung und Stapel gelten je Karte, Markierung und Tags für den Inhalt.
 - Offline wirken Massenaktionen nur, wenn die betroffenen Karten auf dem Gerät liegen; sonst ändern sie nichts und sagen das.
 - **Suchen und Ersetzen** ersetzt wörtlichen Text in Feldern oder Tags der Auswahl, nie Formatierung oder Links, mit Vorschau. Inhalte, deren Karten sich dadurch ändern würden, bleiben und werden gezählt. Ersetzen ist eine lokale Bearbeitung: Kein Reimport überschreibt sie, Varianten veralten, der Lernstand bleibt.
-- **Duplikate finden** vergleicht Inhalte nach Vorderseite oder einem gewählten Feld, ohne Groß- und Kleinschreibung und mehrfache Leerzeichen, und kann die Gruppen mit einem Tag versehen.
+- **Duplikate** filtert Inhalte gleicher Vorderseite (Schreibung, Abstände egal), gruppiert; überzählig sind je Gruppe alle außer dem meistgelernten, sonst ältesten. Braucht alle Karten lokal.
 - **Tags verwalten** benennt Tags kontoweit um (samt Untertags; ein vorhandener Name führt zusammen) und löscht sie. Tags existieren nur an Inhalten; ungenutzte gibt es nicht.
 
 ### Gezielt lernen und üben

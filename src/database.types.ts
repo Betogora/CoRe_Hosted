@@ -53,6 +53,7 @@ export type Database = {
           tag_keys: string[]
           updated_at: string
           user_id: string
+          variant_refused: boolean
         }
         Insert: {
           active_variant_count?: number
@@ -97,6 +98,7 @@ export type Database = {
           tag_keys?: string[]
           updated_at?: string
           user_id: string
+          variant_refused?: boolean
         }
         Update: {
           active_variant_count?: number
@@ -141,6 +143,7 @@ export type Database = {
           tag_keys?: string[]
           updated_at?: string
           user_id?: string
+          variant_refused?: boolean
         }
         Relationships: [
           {
@@ -256,6 +259,7 @@ export type Database = {
           updated_at: string
           updated_by_device_id: string | null
           user_id: string
+          variant_refusal: Json | null
         }
         Insert: {
           anki_card_id?: string | null
@@ -285,6 +289,7 @@ export type Database = {
           updated_at?: string
           updated_by_device_id?: string | null
           user_id: string
+          variant_refusal?: Json | null
         }
         Update: {
           anki_card_id?: string | null
@@ -314,6 +319,7 @@ export type Database = {
           updated_at?: string
           updated_by_device_id?: string | null
           user_id?: string
+          variant_refusal?: Json | null
         }
         Relationships: [
           {

@@ -336,6 +336,18 @@ export interface CardStudyState {
 
 export type ReviewState = Omit<CardStudyState, "extra"> & CardStudyExtra;
 
+/**
+ * Valid only while the note keeps `contentRevision`; `state` is null while rejected results in a row (`failures`)
+ * stay below the limit.
+ */
+export interface CardVariantRefusal {
+  state: "not_rephrasable" | "failing" | null;
+  failures: number;
+  promptVersion: string;
+  contentRevision: number;
+  updatedAt: string;
+}
+
 export interface Card {
   id: string;
   noteId: string;
@@ -348,6 +360,8 @@ export interface Card {
   /** Counts applied study changes; separate from `revision` so reviews and card edits are no conflict for each other. */
   studyRevision: number;
   variants: CardVariant[];
+  /** Absent until a generation for the card was refused or rejected. */
+  variantRefusal?: CardVariantRefusal;
   createdAt: string;
   updatedAt: string;
   revision: number;

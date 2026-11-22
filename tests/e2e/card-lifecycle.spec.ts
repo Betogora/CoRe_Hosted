@@ -647,7 +647,7 @@ test("[Vertrag: Treffer lernen zieht nicht fällige Karten vor, Nur üben schrei
   expect(await reviewKinds()).toEqual(["hit_review", "hit_review"]);
 });
 
-test("[Vertrag: Duplikate finden, öffnen und taggen; Tags verwalten] @beta-core gleiche Vorderseiten bilden eine Gruppe, ihr Tag lässt sich umbenennen und löschen", async ({ page }) => {
+test("[Vertrag: Duplikate als Suchfilter, Überzählige auswählen; Tags verwalten] @beta-core gleiche Vorderseiten stehen beisammen, die überzählige wird getaggt, ihr Tag umbenannt und gelöscht, sie selbst gelöscht", async ({ page }) => {
   // Five dialogs with mass actions and two synchronizations need more than the default under parallel load.
   test.setTimeout(90_000);
   const deckName = "Duplikate";
@@ -660,26 +660,40 @@ test("[Vertrag: Duplikate finden, öffnen und taggen; Tags verwalten] @beta-core
     await page.getByRole("button", { name: "Karte speichern" }).click();
     await expect(page.getByTestId("manual-save-progress")).toHaveAttribute("aria-valuenow", "100");
   });
+  const [original, surplus] = [...deck.cards].sort((left: { createdAt: string }, right: { createdAt: string }) => left.createdAt.localeCompare(right.createdAt));
   const tagsOf = async () => (await readActiveAccountState(page)).notes
-    .filter((note: { id: string }) => deck.cards.some((card) => card.noteId === note.id))
+    .filter((note: { id: string }) => note.id === surplus.noteId)
     .map((note: { content: { tags: string[] } }) => note.content.tags.join(","));
 
-  await page.goto("/kartenstapel");
-  const dialog = page.getByRole("dialog", { name: "Duplikate finden" });
-  const openDuplicates = async () => {
-    await page.getByRole("button", { name: "Duplikate finden" }).click();
-    await expect(dialog.getByTestId("duplicates-dialog")).toContainText("1 Gruppe · 2 Inhalte");
+  await page.goto(`/kartenstapel?deck=${encodeURIComponent(deck.id)}&content=1&tab=cards`);
+  const rows = page.locator("[data-card-row]");
+  await expect(rows).toHaveCount(2);
+  const advanced = page.getByRole("button", { name: "Erweiterte Suche" });
+  const openCategory = async (name: RegExp) => {
+    if (await advanced.getAttribute("aria-pressed") !== "true") await advanced.click();
+    await page.getByRole("navigation", { name: "Filterkategorien" }).getByRole("button", { name }).click();
   };
-  await openDuplicates();
-  await expect(dialog.getByTestId("duplicate-groups").getByRole("button")).toHaveCount(2);
-  await dialog.getByRole("button", { name: "Duplikate taggen" }).click();
-  await expect(page.getByText("2 Karten als Duplikat getaggt")).toBeVisible();
-  await expect.poll(tagsOf).toEqual(["Duplikat", "Duplikat"]);
+  await openCategory(/^Inhalt/);
+  await page.getByRole("radio", { name: "Duplikate: nur Karten mit doppelter Vorderseite zeigen" }).click();
+  await expect(rows).toHaveCount(2);
+  const selectSurplus = async () => {
+    await page.getByRole("button", { name: "Überzählige auswählen" }).click();
+    await expect(page.getByTestId("card-selection-bar")).toContainText("1 Karte ausgewählt");
+  };
+  await selectSurplus();
+  await expect(page.getByTestId(`select-card-${surplus.id}`), "die ältere bleibt stehen").toBeChecked();
+  await expect(page.getByTestId(`select-card-${original.id}`)).not.toBeChecked();
+  await page.getByTestId("card-selection-actions").click();
+  await page.getByRole("button", { name: "Tags hinzufügen" }).click();
+  const tagDialog = page.getByRole("dialog", { name: "Tags hinzufügen" });
+  await tagDialog.locator("input").first().fill("Duplikat");
+  await tagDialog.locator("input").first().press("Enter");
+  await tagDialog.getByRole("button", { name: "Tags hinzufügen" }).click();
+  await expect(page.getByText("Tags zu 1 Karte hinzugefügt")).toBeVisible();
+  await expect.poll(tagsOf).toEqual(["Duplikat"]);
 
   const openTagManager = async () => {
-    const advanced = page.getByRole("button", { name: "Erweiterte Suche" });
-    if (await advanced.getAttribute("aria-pressed") !== "true") await advanced.click();
-    await page.getByRole("navigation", { name: "Filterkategorien" }).getByRole("button", { name: /^Tags/ }).click();
+    await openCategory(/^Tags/);
     await page.getByRole("button", { name: "Tags verwalten" }).click();
     return page.getByRole("dialog", { name: "Tags verwalten" });
   };
@@ -692,29 +706,32 @@ test("[Vertrag: Duplikate finden, öffnen und taggen; Tags verwalten] @beta-core
       await manager.getByRole("button", { name: "Schließen" }).click();
       throw new Error("Tag noch nicht synchronisiert");
     }
-    await expect(row).toContainText("2 Inhalte");
+    await expect(row).toContainText("1 Inhalt");
   }).toPass({ timeout: 20_000 });
   await manager.getByRole("button", { name: "Duplikat umbenennen" }).click();
   await manager.getByRole("textbox", { name: "Neuer Name für Duplikat" }).fill("Geo::Doppelt");
   await manager.getByRole("button", { name: "Umbenennen", exact: true }).click();
-  await expect(page.getByText("Tag bei 2 Karten umbenannt")).toBeVisible();
+  await expect(page.getByText("Tag bei 1 Karte umbenannt")).toBeVisible();
   await expect(manager.locator('li[data-tag="Geo::Doppelt"]')).toBeVisible();
-  await expect.poll(tagsOf).toEqual(["Geo::Doppelt", "Geo::Doppelt"]);
+  await expect.poll(tagsOf).toEqual(["Geo::Doppelt"]);
   await manager.getByRole("button", { name: "Schließen" }).click();
   await page.getByRole("button", { name: "Rückgängig" }).click();
-  await expect.poll(tagsOf).toEqual(["Duplikat", "Duplikat"]);
+  await expect.poll(tagsOf).toEqual(["Duplikat"]);
 
   manager = await openTagManager();
   await manager.getByRole("button", { name: "Duplikat löschen" }).click();
   await manager.getByRole("button", { name: "Löschen bestätigen" }).click();
-  await expect(page.getByText("Tag bei 2 Karten gelöscht")).toBeVisible();
-  await expect.poll(tagsOf).toEqual(["", ""]);
+  await expect(page.getByText("Tag bei 1 Karte gelöscht")).toBeVisible();
+  await expect.poll(tagsOf).toEqual([""]);
   await manager.getByRole("button", { name: "Schließen" }).click();
 
-  await openDuplicates();
-  await dialog.getByTestId("duplicate-groups").getByRole("button").first().click();
-  await expect(dialog).toHaveCount(0);
-  await expect(page.getByRole("dialog", { name: /^hauptstadt von +Island$/i })).toBeVisible();
+  await selectSurplus();
+  await page.getByTestId("card-selection-actions").click();
+  await page.getByRole("button", { name: "Löschen" }).click();
+  await page.getByRole("dialog").getByRole("button", { name: "Löschen", exact: true }).click();
+  await expect(page.getByText("1 Karte gelöscht")).toBeVisible();
+  await expect(rows, "ohne Partner ist der Rest kein Duplikat mehr").toHaveCount(0);
+  await expect.poll(async () => (await readActiveAccountState(page)).decks.find((candidate: { id: string }) => candidate.id === deck.id)?.cards.map((card: { id: string }) => card.id)).toEqual([original.id]);
 });
 
 test("[Vertrag: Tastenkürzel der Kartenliste] @beta-core Pfeile, Aktionstaste, Strg+Z und Suche ohne Maus", async ({ page }) => {

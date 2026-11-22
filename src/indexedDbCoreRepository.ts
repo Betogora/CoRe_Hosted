@@ -662,7 +662,7 @@ export async function createIndexedDbCoreRepository({ userId, initialState, inde
     listDeckSummaries: studyOverview.listDeckSummaries,
     prepareCardSearch: () => ensureSearchIndex(),
     loadCatalogEntries: catalogSearch.loadCatalogEntries,
-    findDuplicates: catalogSearch.findDuplicates,
+    listSurplusDuplicateIds: catalogSearch.listSurplusDuplicateIds,
     listCardIds: catalogSearch.listCardIds,
     /**
      * The search index answers any page at once; a single deck without a search walks its keyset pages only until the
