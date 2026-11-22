@@ -5,7 +5,7 @@ import { createBasicNote, createCoreDeck } from "../../src/coreModel.ts";
 import { createCoreRepository } from "../../src/coreRepository.ts";
 import type { Deck, Note } from "../../src/coreTypes.ts";
 import { DECK_DEPTH_INDENT_PX } from "../../src/deckHierarchy.ts";
-import { readActiveAccountState, resetToFreshLocalState } from "./support/appState.ts";
+import { readActiveAccountState, resetToFreshLocalState, signedInTestClient } from "./support/appState.ts";
 import { chooseCoreSelectOption } from "./support/coreSelect.ts";
 import { loadE2EEnvironment } from "./support/e2eEnvironment.ts";
 import { seedAccountState } from "../support/seedAccountState.ts";
@@ -65,26 +65,17 @@ function seedContent(): { decks: Deck[]; notes: Note[] } {
 
 async function seedAccount() {
   const environment = loadE2EEnvironment();
-  const client = createClient(environment.supabaseUrl, environment.publishableKey, {
-    auth: { autoRefreshToken: false, persistSession: false, detectSessionInUrl: false },
-  });
-  const { data, error } = await client.auth.signInWithPassword({ email: environment.email, password: environment.password });
-  if (error || !data.user) throw error ?? new Error("Der Batch-E2E-Account fehlt.");
-  try {
-    const { error: conflictCleanupError } = await client.from("sync_conflicts").delete().eq("user_id", data.user.id);
-    if (conflictCleanupError) throw conflictCleanupError;
-    const state = createCoreRepository().getState();
-    const content = seedContent();
-    await seedAccountState(client, {
-      ...state,
-      decks: content.decks,
-      notes: content.notes,
-      profile: { ...state.profile, email: environment.email, displayName: "CoRe E2E", onboardingComplete: true },
-    }, "e2e-batch-resilience-reset");
-  } finally {
-    await client.auth.signOut({ scope: "local" }).catch(() => undefined);
-    client.auth.dispose?.();
-  }
+  const { client, userId } = await signedInTestClient(environment);
+  const { error: conflictCleanupError } = await client.from("sync_conflicts").delete().eq("user_id", userId);
+  if (conflictCleanupError) throw conflictCleanupError;
+  const state = createCoreRepository().getState();
+  const content = seedContent();
+  await seedAccountState(client, {
+    ...state,
+    decks: content.decks,
+    notes: content.notes,
+    profile: { ...state.profile, email: environment.email, displayName: "CoRe E2E", onboardingComplete: true },
+  }, "e2e-batch-resilience-reset");
 }
 
 function mainMenu(page: Page) {

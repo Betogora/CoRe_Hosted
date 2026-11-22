@@ -1,58 +1,14 @@
 import { expect, test, type Page } from "@playwright/test";
 import { createClient } from "@supabase/supabase-js";
 import { fileURLToPath } from "node:url";
-import { createCoreRepository } from "../../src/coreRepository.ts";
-import { createWorldCapitalsSeed } from "../../src/fixtures/worldCapitals.ts";
 import type { Deck } from "../../src/coreTypes.ts";
 import { readActiveAccountState, resetToFreshLocalState } from "./support/appState.ts";
 import { loadE2EEnvironment } from "./support/e2eEnvironment.ts";
-import { seedAccountState } from "../support/seedAccountState.ts";
 import { openSettingsArea, settingsDialog } from "./support/settingsDialog.ts";
 
 const REIMPORT_FIXTURE = fileURLToPath(new URL("../../fixtures/apkg/matrix/standard-legacy2.apkg", import.meta.url));
 
 test.setTimeout(120_000);
-
-async function resetLifecycleAccount() {
-  const environment = loadE2EEnvironment();
-  const client = createClient(environment.supabaseUrl, environment.publishableKey, {
-    auth: { autoRefreshToken: false, persistSession: false, detectSessionInUrl: false },
-  });
-  const { data, error } = await client.auth.signInWithPassword({ email: environment.email, password: environment.password });
-  if (error || !data.user) throw error ?? new Error("Der E2E-Lebenszyklusaccount fehlt.");
-
-  try {
-    const { data: mediaRows, error: mediaReadError } = await client.from("media_files").select("storage_path").eq("user_id", data.user.id);
-    if (mediaReadError) throw mediaReadError;
-    const { error: mediaDeleteError } = await client.from("media_files").delete().eq("user_id", data.user.id);
-    if (mediaDeleteError) throw mediaDeleteError;
-    const mediaPaths = (mediaRows ?? []).map((row) => row.storage_path);
-    if (mediaPaths.length) {
-      const { error: objectDeleteError } = await client.storage.from("core-media").remove(mediaPaths);
-      if (objectDeleteError) throw objectDeleteError;
-    }
-    const { error: conflictError } = await client.from("sync_conflicts").delete().eq("user_id", data.user.id);
-    if (conflictError) throw conflictError;
-    const seedState = { ...createCoreRepository().getState(), ...createWorldCapitalsSeed() };
-    await seedAccountState(client, {
-      ...seedState,
-      decks: seedState.decks.map((deck: Deck) => ({ ...deck, reviewEvents: [] })),
-      profile: { ...seedState.profile, email: environment.email, displayName: "CoRe E2E", onboardingComplete: true },
-    }, "e2e-card-lifecycle-reset");
-  } finally {
-    await client.auth.signOut({ scope: "local" }).catch(() => undefined);
-    client.auth.dispose?.();
-  }
-}
-
-test.beforeEach(async () => {
-  await resetLifecycleAccount();
-});
-
-test.afterEach(async ({ page }) => {
-  await page.close();
-  await resetLifecycleAccount();
-});
 
 /** Cloud rows return `timestamptz` as `+00:00`; the study state is compared by instant. */
 function comparableStudy(study: any) {
