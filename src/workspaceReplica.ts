@@ -1,6 +1,6 @@
 import type { CardSearchContext } from "./cardSearchQuery.ts";
 import type { Card, Note, ReviewEvent, ReviewRating } from "./coreTypes.ts";
-import { getActiveVariants, isCardReviewBlocked, noteTextIndex, tagSearchKeys } from "./coreModel.ts";
+import { activeVariantRefusal, getActiveVariants, isCardReviewBlocked, noteTextIndex, tagSearchKeys } from "./coreModel.ts";
 import { MANUAL_BURY_KIND, MANUAL_UNBURY_KIND } from "./siblingBurying.ts";
 import type { CardTableSort } from "./libraryModel.ts";
 
@@ -78,6 +78,8 @@ export interface CardCatalogEntry {
   /** Last manual bury and unbury (`is:buried`: buried today when the bury is the later one). */
   lastBuriedAt?: string | null;
   lastUnburiedAt?: string | null;
+  /** A refusal of any prompt version (`is:unrephrasable`); false without the note. */
+  variantRefused?: boolean;
   bodyRevision: number;
   studyRevision: number;
   dependencyRevision: number;
@@ -338,6 +340,7 @@ export function catalogEntryFromCard(card: Card, note: Note | null, history?: Ca
     ...(note ? { editedAt: note.updatedAt, contentKind: note.content.interaction.kind, noteTypeId: note.noteTypeSourceId } : {}),
     hasOutdatedVariants: card.variants.some((variant) => !variant.deletedAt && variant.meta.outdated === true),
     promptOrdinal: promptOrdinal(card.promptKey),
+    variantRefused: Boolean(note && activeVariantRefusal(note, card)),
     intervalDays: card.study.intervalDays,
     difficulty: card.study.difficulty,
     reps: card.study.reps,

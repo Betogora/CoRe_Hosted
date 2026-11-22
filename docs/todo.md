@@ -182,10 +182,6 @@ Messung vom 2026-10-31 im [Verlauf](history.md).
 
 ### KI
 
-- Nicht umformulierbare und dauerhaft scheiternde Karten als eigener Zustand
-  im Reiter `Varianten`; sie fallen aus späteren Stapelläufen. Heute fragen
-  jeder Lauf und die vorausschauende Erzeugung sie erneut an, und 50 solche
-  Karten blockieren einen Lauf ganz.
 - DOCX und PPTX als Quellen für P2 (ZIP und XML, ohne neue Abhängigkeit über
   `zipReader.ts` prüfen; Beleg je Folie oder Abschnitt).
 - Bilder als Quelle für P2 (teurer, eigener Hillclimb); braucht eine Ergänzung

@@ -687,6 +687,11 @@ test("deck: und note: lösen sich über Pfad und Namen auf; der Katalog kennt No
   const entry = catalogEntryFromCard(outdated, { ...notesById.get(card.noteId)!, noteTypeSourceId: "nt-1" });
   assert.deepEqual([entry.noteTypeId, entry.hasOutdatedVariants], ["nt-1", true]);
   assert.equal(catalogEntryFromCard(card, notesById.get(card.noteId)!).hasOutdatedVariants, false);
+  const note = notesById.get(card.noteId)!;
+  const refusal = { failures: 1, promptVersion: "v5", contentRevision: note.contentRevision, updatedAt: "2026-11-21T10:00:00.000Z" };
+  assert.equal(catalogEntryFromCard({ ...card, variantRefusal: { ...refusal, state: "failing" } }, note).variantRefused, true);
+  assert.equal(catalogEntryFromCard({ ...card, variantRefusal: { ...refusal, state: "failing" } }, { ...note, contentRevision: note.contentRevision + 1 }).variantRefused, false, "ein geänderter Inhalt hebt die Sperre auf");
+  assert.equal(catalogEntryFromCard({ ...card, variantRefusal: { ...refusal, state: null } }, note).variantRefused, false, "Fehlversuche unter der Grenze sperren nicht");
 });
 
 test("Abfrageschlüssel werden zur Abfragenummer wie in Ankis card:N", () => {

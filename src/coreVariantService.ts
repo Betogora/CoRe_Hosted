@@ -1,8 +1,8 @@
-import { createCardVariant, createDefaultDeckSettings, getActiveVariants } from "./coreModel.ts";
+import { activeVariantRefusal, createCardVariant, createDefaultDeckSettings, getActiveVariants } from "./coreModel.ts";
 import { stripSanitizedHtml } from "./htmlSafety.ts";
 import { chainVariants, isCardReadyForVariants, nextChainVariant, reachedVariantStage } from "./coreVariantService/variantSelection.ts";
 import { getDurabilityDays } from "./scheduler.ts";
-import { answerListText, checkClozeVariant, choiceAnswerText, clozeVariantGaps, createAiCardVariantRequest, type AiCardVariantSource } from "./aiCardVariantContract.ts";
+import { AI_CARD_VARIANT_PROMPT_VERSION, answerListText, checkClozeVariant, choiceAnswerText, clozeVariantGaps, createAiCardVariantRequest, type AiCardVariantSource } from "./aiCardVariantContract.ts";
 import { mapClozes } from "./clozeSyntax.ts";
 import type { Card, CardVariant, Note, NoteContent, NoteField } from "./coreTypes.ts";
 
@@ -135,9 +135,15 @@ export function classifyCardEligibility(note: Pick<Note, "content">, card: Card,
   return { eligible: reasons.length === 0, reasons };
 }
 
-export function needsNextVariant(note: Pick<Note, "content">, card: Card, deckSettings: DeckSettingsInput = {}): boolean {
+/** An active refusal of an older prompt version, which a regeneration with the current one tries again. */
+export function hasOlderVariantRefusal(note: Pick<Note, "contentRevision">, card: Pick<Card, "variantRefusal">): boolean {
+  return Boolean(activeVariantRefusal(note, card)) && card.variantRefusal!.promptVersion !== AI_CARD_VARIANT_PROMPT_VERSION;
+}
+
+export function needsNextVariant(note: Pick<Note, "content" | "contentRevision">, card: Card, deckSettings: DeckSettingsInput = {}): boolean {
   const settings = createDefaultDeckSettings(deckSettings);
-  return isCardReadyForVariants(card, settings)
+  return !activeVariantRefusal(note, card)
+    && isCardReadyForVariants(card, settings)
     && chainVariants(card, settings).length <= reachedVariantStage(card)
     && classifyCardEligibility(note, card, settings).eligible;
 }

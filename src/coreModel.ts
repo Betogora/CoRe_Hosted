@@ -14,16 +14,19 @@ export {
   updateVariantPerformance,
 } from "./coreModel/reviewState.ts";
 export {
+  activeVariantRefusal,
   addCardVariant,
   createCardVariant,
   getActiveVariants,
   isCardReviewBlocked,
   moveCardToDeck,
+  recordVariantOutcome,
   replaceOutdatedVariants,
   rescheduleCard,
   resetCardStudy,
   restoreCardStudy,
   setCardLeech,
+  VARIANT_FAILURE_LIMIT,
   /** @internal */ setCardSuspended,
 } from "./coreModel/cards.ts";
 export {

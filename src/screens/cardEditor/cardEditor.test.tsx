@@ -3,6 +3,7 @@ import test from "node:test";
 import { renderToStaticMarkup } from "react-dom/server";
 import type { CardEditorServices } from "../../appScreenProps.ts";
 import { addCardVariant, createBasicNote, createCoreDeck, createManualNoteContent, createNote, noteEditorValue, planNoteContentChange, validateNoteEditorValue } from "../../coreModel.ts";
+import { AI_CARD_VARIANT_PROMPT_VERSION } from "../../aiCardVariantContract.ts";
 import { editVariantText } from "../../coreVariantService.ts";
 import type { CardStudyStatePatch } from "../../coreTypes.ts";
 import { cardEditorTitle, changeSuspension, draftChangeSummary, variantStateMarks } from "./cardEditorModel.ts";
@@ -156,4 +157,16 @@ test("the footer names the effect of saving and the title is the plain question"
   assert.equal(cardEditorTitle(graph.note), "Was ist ATP?");
   const reverse = { ...graph.note.content, interaction: graph.note.content.interaction.kind === "reveal" ? { ...graph.note.content.interaction, prompts: [...graph.note.content.interaction.prompts, { ...graph.note.content.interaction.prompts[0], key: "reverse", name: "Rückwärts", questionFieldIds: ["back"], answerFieldIds: ["front"] }] } : graph.note.content.interaction };
   assert.equal(draftChangeSummary(graph, planNoteContentChange(graph, reverse)), "Beim Speichern: 1 neue Karte (Rückwärts).");
+});
+
+test("a refused card names why and offers to try again; a refusal of older content does not show", () => {
+  const card = createBasicNote("deck", "Was ist ATP?", "Ein Energieträger.").cards[0];
+  const refusal = { state: "not_rephrasable" as const, failures: 0, promptVersion: AI_CARD_VARIANT_PROMPT_VERSION, contentRevision: 1, updatedAt: NOW };
+  const refused = renderVariants({ ...card, variantRefusal: refusal });
+  assert.match(refused, /data-testid="variant-refusal"[^>]*>Die KI hält diese Karte für nicht umformulierbar.</);
+  assert.match(refused, />Erneut versuchen</);
+  assert.match(renderVariants({ ...card, variantRefusal: { ...refusal, state: "failing", failures: 3 } }), />Die Generierung ist 3-mal nacheinander gescheitert.</);
+  const older = renderVariants({ ...card, variantRefusal: { ...refusal, contentRevision: 0 } });
+  assert.doesNotMatch(older, /variant-refusal/);
+  assert.match(older, />Variante generieren</);
 });

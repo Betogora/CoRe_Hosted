@@ -11,8 +11,8 @@ const DAY_MS = 86_400_000;
  * before),
  * `prop:ivl|d|reps|lapses` with `<`, `<=`, `=`, `!=`, `>=`, `>`, the content form `is:reveal|choice|cloze|occlusion`,
  * `note:Name` (Anki note type, wildcards like `deck:`) and `mid:<note type id>`, `has:outdated` (an outdated variant),
- * `card:N` (number of the prompt as in Anki), `is:buried` (buried by hand today; buried siblings only exist in a
- * session)
+ * `is:unrephrasable` (no variant comes), `card:N` (number of the prompt as in Anki), `is:buried` (buried by hand
+ * today; buried siblings only exist in a session)
  * and `Feld:Text` for text in one named field; a leading `-` negates a term, a phrase or a group.
  *
  * Combination: words and terms side by side must all match, `or` between them needs one, parentheses group,
@@ -40,7 +40,7 @@ export type CardSearchTerm =
   | { kind: "card"; value: number; negated: boolean }
   /** Buried by hand from `from` (the start of today) on and not unburied since. */
   | { kind: "buried"; from: string; negated: boolean }
-  | { kind: "tag-none" | "leech" | "marked" | "suspended" | "variant" | "outdated"; negated: boolean }
+  | { kind: "tag-none" | "leech" | "marked" | "suspended" | "variant" | "outdated" | "unrephrasable"; negated: boolean }
   /** A word or a phrase of the content text, lower case. */
   | { kind: "text"; value: string; negated: boolean };
 
@@ -73,7 +73,7 @@ export interface CardSearchQuery {
 
 type SearchableEntry = Pick<CardCatalogEntry, "normalizedSearchText" | "searchFields" | "ankiFlag" | "tagKeys" | "leeched" | "marked" | "reviewable" | "scheduleState" | "maturityBand" | "dueAt" | "hasActiveVariants" | "deckId"
   | "createdAt" | "editedAt" | "contentKind" | "intervalDays" | "difficulty" | "reps" | "lapses"
-  | "firstReviewedAt" | "lastAgainAt" | "lastHardAt" | "lastGoodAt" | "lastEasyAt" | "lastRescheduledAt" | "noteTypeId" | "hasOutdatedVariants" | "promptOrdinal" | "lastBuriedAt" | "lastUnburiedAt" | "durabilityDays">;
+  | "firstReviewedAt" | "lastAgainAt" | "lastHardAt" | "lastGoodAt" | "lastEasyAt" | "lastRescheduledAt" | "noteTypeId" | "hasOutdatedVariants" | "variantRefused" | "promptOrdinal" | "lastBuriedAt" | "lastUnburiedAt" | "durabilityDays">;
 
 const RATINGS: readonly ReviewRating[] = ["again", "hard", "good", "easy"];
 const CONTENT_FORMS: Readonly<Record<string, NoteInteraction["kind"]>> = { reveal: "reveal", choice: "choice", cloze: "cloze", occlusion: "image-occlusion" };
@@ -131,6 +131,7 @@ export function parseTerm(token: string, context?: CardSearchContext): CardSearc
   if (key === "has") return value === "variant" ? { kind: "variant", negated } : value === "outdated" ? { kind: "outdated", negated } : null;
   if (key === "is") {
     if (value === "suspended") return { kind: "suspended", negated };
+    if (value === "unrephrasable") return { kind: "unrephrasable", negated };
     if (value === "buried") return { kind: "buried", from: dayBound(context, 0), negated };
     if (value === "new" || value === "learn" || value === "review") return { kind: "state", value, negated };
     if (value === "young" || value === "mature") return { kind: "maturity", value, negated };
@@ -337,6 +338,7 @@ function termMatches(entry: SearchableEntry, term: CardSearchTerm): boolean {
     case "form": return entry.contentKind === term.value;
     case "notetype": return Boolean(entry.noteTypeId) && term.ids.includes(entry.noteTypeId!);
     case "outdated": return entry.hasOutdatedVariants === true;
+    case "unrephrasable": return entry.variantRefused === true;
     case "card": return entry.promptOrdinal === term.value;
     case "text": return entry.normalizedSearchText.includes(term.value);
     case "buried":
