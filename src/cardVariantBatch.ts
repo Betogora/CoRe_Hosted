@@ -1,6 +1,6 @@
 import { AI_CARD_VARIANT_PROMPT_VERSION, AiCardVariantContractError } from "./aiCardVariantContract.ts";
-import { getActiveVariants } from "./coreModel.ts";
-import { classifyCardEligibility, isEditedVariant } from "./coreVariantService.ts";
+import { activeVariantRefusal, getActiveVariants } from "./coreModel.ts";
+import { classifyCardEligibility, hasOlderVariantRefusal, isEditedVariant } from "./coreVariantService.ts";
 import type { Card, Deck, DeckSettings, Note } from "./coreTypes.ts";
 import type { CardCatalogEntry } from "./workspaceReplica.ts";
 
@@ -20,14 +20,15 @@ const STOP_REASONS: Readonly<Record<string, string>> = {
 
 /**
  * `missing` gives cards without an active variant their first one; `refresh` replaces the variants of cards
- * whose active variants come from an older prompt version, so a further action continues instead of re-rolling.
- * Variants the learner edited are their own and never count as older.
+ * whose active variants come from an older prompt version, so a further action continues instead of re-rolling, and
+ * tries cards refused by an older prompt version again. Variants the learner edited are their own and never count as
+ * older.
  */
 export type CardVariantBatchMode = "missing" | "refresh";
 
 export const CARD_VARIANT_CANDIDATE_QUERY: Readonly<Record<CardVariantBatchMode, string>> = {
   missing: "-has:variant -is:occlusion",
-  refresh: "has:variant",
+  refresh: "(has:variant or is:unrephrasable)",
 };
 
 /**
@@ -61,9 +62,13 @@ export function deckTreeQuery(decks: readonly Deck[], rootId: string, included: 
   return groups.length === 1 ? groups[0].join(" ") : `(${groups.map((group) => `(${group.join(" ")})`).join(" or ")})`;
 }
 
-function needsVariant(card: Card, mode: CardVariantBatchMode) {
+function needsVariant({ card, note }: { card: Card; note: Note }, mode: CardVariantBatchMode, retryRefused: boolean) {
+  const olderRefusal = hasOlderVariantRefusal(note, card);
+  if (activeVariantRefusal(note, card) && !olderRefusal && !retryRefused) return false;
   const active = getActiveVariants(card);
-  return mode === "missing" ? active.length === 0 : active.some((variant) => !isEditedVariant(variant) && variant.meta.promptVersion !== AI_CARD_VARIANT_PROMPT_VERSION);
+  return mode === "missing"
+    ? active.length === 0
+    : olderRefusal || active.some((variant) => !isEditedVariant(variant) && variant.meta.promptVersion !== AI_CARD_VARIANT_PROMPT_VERSION);
 }
 
 export interface CardVariantBatchSource {
@@ -94,6 +99,7 @@ export async function runCardVariantBatch({
   signal,
   onProgress = () => {},
   limit = CARD_VARIANT_BATCH_LIMIT,
+  retryRefused = false,
 }: {
   source: CardVariantBatchSource;
   /** Settings of the deck a card is in; a deck tree may mix decks with CoRe on and off. */
@@ -103,18 +109,20 @@ export async function runCardVariantBatch({
   signal?: AbortSignal;
   onProgress?: (progress: CardVariantBatchProgress) => void;
   limit?: number;
+  /** For cards chosen one by one: a refusal of the current prompt version does not keep them out. */
+  retryRefused?: boolean;
 }): Promise<CardVariantBatchResult> {
   onProgress({ phase: "selecting" });
   const selected: string[] = [];
   let hasMore = false;
   for (let page = 0; ; page += 1) {
     const { items, hasMore: morePages } = await source.listPage(page);
-    const candidates = items.filter((entry) => !entry.deletedAt && entry.hasActiveVariants === (mode === "refresh"));
+    const candidates = items.filter((entry) => !entry.deletedAt && (mode === "refresh" ? entry.hasActiveVariants || entry.variantRefused === true : !entry.hasActiveVariants));
     const bodies = candidates.length ? await source.openCards(candidates.map((entry) => entry.id)) : [];
     candidates.forEach((entry, index) => {
       const body = bodies[index];
       // The catalog can lag behind the body, e.g. a cloud page before the last sync.
-      if (body && !needsVariant(body.card, mode)) return;
+      if (body && !needsVariant(body, mode, retryRefused)) return;
       // Refreshing replaces the existing variants, so the deck's maximum does not block it.
       if (!body || !classifyCardEligibility(body.note, mode === "refresh" ? { ...body.card, variants: [] } : body.card, settingsFor(body.card)).eligible) return;
       if (selected.length < limit) selected.push(entry.id);

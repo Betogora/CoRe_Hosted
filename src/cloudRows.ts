@@ -83,6 +83,7 @@ export function cardToCloudRow(card: Card, userId: string) {
     ...studyToCloudColumns(card.study),
     source_scheduler: card.study.extra.sourceSchedulerData ?? null,
     study_revision: card.studyRevision,
+    variant_refusal: card.variantRefusal ?? null,
     created_at: card.createdAt,
     updated_at: card.updatedAt,
     ...syncFields(card),

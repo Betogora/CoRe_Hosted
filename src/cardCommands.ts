@@ -1,10 +1,10 @@
-import { aiCardVariantAvoidTexts, createAiGeneratedVariantDraft, requestAiCardVariant } from "./aiCardVariant.ts";
-import { AiCardVariantContractError } from "./aiCardVariantContract.ts";
+import { aiCardVariantAvoidTexts, asksVariantSource, createAiGeneratedVariantDraft, requestAiCardVariant } from "./aiCardVariant.ts";
+import { AI_CARD_VARIANT_PROMPT_VERSION, AI_CARD_VARIANT_REJECTIONS, AiCardVariantContractError } from "./aiCardVariantContract.ts";
 import type { SettingsSection } from "./appNavigation.ts";
 import type { CardEditorServices, CreationScreenProps, DecksCardPage, DecksCardPageRequest } from "./appScreenProps.ts";
 import type { CardBatchAction } from "./cardBatchActions.ts";
 import type { CardVariantBatchMode } from "./cardVariantBatch.ts";
-import { addCardVariant, applyCardStudyStatePatch, createNote, duplicateNote, moveCardToDeck, planNoteContentChange, planNoteDeletion, planNoteRestore, removeUnusedNoteMedia, replaceOutdatedVariants } from "./coreModel.ts";
+import { addCardVariant, applyCardStudyStatePatch, createNote, duplicateNote, moveCardToDeck, planNoteContentChange, planNoteDeletion, planNoteRestore, recordVariantOutcome, removeUnusedNoteMedia, replaceOutdatedVariants } from "./coreModel.ts";
 import type { Card, CardStudyStatePatch, NoteContent } from "./coreTypes.ts";
 import { cardVariantSource, deactivateVariant, deleteVariant, editVariantText, isEditedVariant, reactivateVariant } from "./coreVariantService.ts";
 import { createWorkspaceDeck } from "./coreWorkspace.ts";
@@ -280,17 +280,31 @@ export function createCardCommands({ store, repository, hydration, cloud, syncEn
     const body = await repository.loadCardBody(cardId);
     const source = body ? cardVariantSource(body.note, body.card) : null;
     if (!source || !body) throw new AiCardVariantContractError("card_not_found", "Die Ausgangskarte ist nicht mehr verfügbar.");
-    const generated = await requestAiCardVariant(source, cloud, { avoid: aiCardVariantAvoidTexts(body.card) });
-
-    const current = await repository.loadCardBody(cardId);
-    const draft = createAiGeneratedVariantDraft(source, current, generated);
-    const input = { ...draft, meta: { ...draft.meta, reason: "KI-Umformulierung" } };
-    const saved = await repository.updateCard(cardId, (card) => mode === "refresh"
-      ? addCardVariant(card.variants.filter((variant) => !variant.deletedAt && !isEditedVariant(variant)).reduce((next, variant) => deleteVariant(next, variant.id), card), input)
-      : replaceOutdatedVariants(card, input));
-    if (!saved) throw new AiCardVariantContractError("save_failed", "Die Variante konnte nicht gespeichert werden.");
-    await reloadNoteGraph(saved.note.id);
-    return generated;
+    try {
+      const generated = await requestAiCardVariant(source, cloud, { avoid: aiCardVariantAvoidTexts(body.card) });
+      const current = await repository.loadCardBody(cardId);
+      const draft = createAiGeneratedVariantDraft(source, current, generated);
+      const input = { ...draft, meta: { ...draft.meta, reason: "KI-Umformulierung" } };
+      const saved = await repository.updateCard(cardId, (card, note) => recordVariantOutcome(mode === "refresh"
+        ? addCardVariant(card.variants.filter((variant) => !variant.deletedAt && !isEditedVariant(variant)).reduce((next, variant) => deleteVariant(next, variant.id), card), input)
+        : replaceOutdatedVariants(card, input), "created", { promptVersion: AI_CARD_VARIANT_PROMPT_VERSION, contentRevision: note.contentRevision }));
+      if (!saved) throw new AiCardVariantContractError("save_failed", "Die Variante konnte nicht gespeichert werden.");
+      await reloadNoteGraph(saved.note.id);
+      return generated;
+    } catch (error) {
+      const outcome = error instanceof AiCardVariantContractError
+        ? error.code === "not_rephrasable" ? "not_rephrasable" : AI_CARD_VARIANT_REJECTIONS.has(error.code) ? "rejected" : null
+        : null;
+      if (outcome) {
+        // The model's answer is the error that counts; a refusal that cannot be stored is asked for again next time.
+        await repository.updateCard(cardId, (card, note) => asksVariantSource(source, { note, card })
+          ? recordVariantOutcome(card, outcome, { promptVersion: AI_CARD_VARIANT_PROMPT_VERSION, contentRevision: note.contentRevision })
+          : card)
+          .then((saved) => saved && reloadNoteGraph(saved.note.id))
+          .catch(() => undefined);
+      }
+      throw error;
+    }
   }
 
   async function updateDeckCardVariant(cardId: string, variantId: string, action: "reactivate" | "deactivate" | "delete") {

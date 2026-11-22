@@ -1,4 +1,5 @@
 import React from "react";
+import { AI_CARD_VARIANT_REJECTIONS, AiCardVariantContractError } from "./aiCardVariantContract.ts";
 import type { CardCommands } from "./cardCommands.ts";
 import { applyCardStudyStatePatch } from "./coreModel.ts";
 import { needsNextVariant } from "./coreVariantService.ts";
@@ -93,7 +94,11 @@ export function useStudySession({ preparation, repository, cardCommands, refresh
     const key = `${updatedCard.id}:${updatedCard.study.extra.variantStage}`;
     if (!cardCommands || !note || requested.has(key) || !needsNextVariant(note, updatedCard, deck.deckSettings)) return;
     requested.add(key);
-    void cardCommands.generateDeckCardVariant(deck.id, updatedCard.id).catch(() => requested.delete(key));
+    // A refusal is stored on the card, which this session's copy never sees; only other failures are tried again.
+    void cardCommands.generateDeckCardVariant(deck.id, updatedCard.id).catch((error: unknown) => {
+      const refused = error instanceof AiCardVariantContractError && (error.code === "not_rephrasable" || AI_CARD_VARIANT_REJECTIONS.has(error.code));
+      if (!refused) requested.delete(key);
+    });
   });
 
   const undoReview = useStableCallback((result: ReviewAnswerResult, previous: Card) => {
