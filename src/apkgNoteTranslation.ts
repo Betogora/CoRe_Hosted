@@ -149,10 +149,10 @@ interface AnkiModel {
 const BASIC = { id: "anki-basic", version: 1 };
 const CLOZE = { id: "anki-cloze", version: 1 };
 const IMAGE_OCCLUSION = { id: "anki-image-occlusion", version: 3 };
-const IMAGE_OCCLUSION_ENHANCED = { id: "image-occlusion-enhanced", version: 2 };
+const IMAGE_OCCLUSION_ENHANCED = { id: "image-occlusion-enhanced", version: 3 };
 const MULTIPLE_CHOICE = { id: "multiple-choice-for-anki", version: 1 };
-const ANKING = { id: "anking", version: 3 };
-const GENERIC = { id: "generic", version: 5 };
+const ANKING = { id: "anking", version: 4 };
+const GENERIC = { id: "generic", version: 6 };
 const FIELD_LIST = { id: "field-list", version: 3 };
 const DAY_MS = 86_400_000;
 
@@ -190,10 +190,10 @@ function layoutMediaNames(model: AnkiModel): string[] {
   return [...new Set([...css, ...html].map((name) => name.trim()).filter((name) => name.startsWith("_")))];
 }
 
-/** Anki's `{{furigana:…}}`: `漢字[かんじ]` becomes ruby text. */
+/** Anki's `{{furigana:…}}`: `漢字[かんじ]` becomes ruby text; `[sound:…]` stays, as in Anki. */
 function furigana(html: string, mode: "furigana" | "kana" | "kanji"): string {
-  return html.replace(/ ?([^ >[\]]+?)\[([^\]]+?)\]/g, (_match, base: string, reading: string) =>
-    mode === "kana" ? reading : mode === "kanji" ? base : `<ruby>${base}<rt>${reading}</rt></ruby>`);
+  return html.replace(/ ?([^ >[\]]+?)\[([^\]]+?)\]/g, (match, base: string, reading: string) =>
+    reading.startsWith("sound:") ? match : mode === "kana" ? reading : mode === "kanji" ? base : `<ruby>${base}<rt>${reading}</rt></ruby>`);
 }
 
 function normalizeModel(raw: any): AnkiModel {
@@ -495,7 +495,7 @@ function imageOcclusionEnhancedPlan(model: AnkiModel): NotetypePlan | null {
     const key = name.trim().toLowerCase();
     roles[name] = /^(image|question mask|answer mask|original mask)$/.test(key) ? "consumed"
       : key === "header" ? "prompt"
-        : key === "remarks" || key.startsWith("extra") ? "extra"
+        : key === "remarks" || key === "footer" || key.startsWith("extra") ? "extra"
           : /^sources?$/.test(key) ? "source" : "note";
   }
   return {

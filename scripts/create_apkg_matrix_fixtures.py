@@ -491,7 +491,7 @@ def build_image_occlusion_enhanced(col: Any) -> list[dict[str, Any]]:
                         {"ID (hidden)": f"ioe-{index}", "Header": "Niere", "Image": f'<img src="{image}">',
                          "Question Mask": f'<img src="{names["Q"]}">', "Answer Mask": f'<img src="{names["A"]}">',
                          "Original Mask": f'<img src="{names["O"]}">', "Remarks": f"Struktur {index}"},
-                        {"ID (hidden)": "note", "Header": "prompt", "Image": "consumed", "Question Mask": "consumed", "Footer": "note",
+                        {"ID (hidden)": "note", "Header": "prompt", "Image": "consumed", "Question Mask": "consumed", "Footer": "extra",
                          "Remarks": "extra", "Sources": "source", "Extra 1": "extra", "Extra 2": "extra", "Answer Mask": "consumed", "Original Mask": "consumed"},
                         "image-occlusion",
                         {0: CardSpec("io:1", ["Niere"], [f"Struktur {index}"], [f"Struktur {index}"])},

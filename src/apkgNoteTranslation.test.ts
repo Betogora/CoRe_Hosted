@@ -220,6 +220,18 @@ test("Image Occlusion Enhanced wird zu CoRe-Masken: aktive Form, übrige dauerha
   assert.equal(retranslateNoteContent(source, ["x-ao-1", "Niere", '<img src="bild.png">', '<img src="q.svg">', "", "", "", "", "", '<img src="a.svg">', '<img src="o.svg">'], []), null);
 });
 
+test("Image Occlusion Enhanced zeigt Footer wie Remarks und Extra nach der Antwort", async () => {
+  const fields = ["ID (hidden)", "Header", "Image", "Question Mask", "Footer", "Remarks", "Sources", "Extra 1", "Answer Mask", "Original Mask"];
+  const graph = await translateAnkiPackage(ankiPackage({
+    models: { 3: model("3", fields, [["{{#Image}}{{Image}}{{Question Mask}}{{/Image}}", "{{Image}}{{Answer Mask}}{{Footer}}"]]) },
+    notes: [note("100", "3", ["x-ao-1", "Niere", "", "", "Merke", "", "", "", "", ""])],
+    cards: [card("200", "100")],
+  }), { importedAt: IMPORTED_AT });
+
+  assert.equal(graph.report.notetypes[0].translator.id, "image-occlusion-enhanced");
+  assert.deepEqual([graph.report.notetypes[0].fieldRoles.Footer, graph.report.notetypes[0].fieldRoles.Remarks], ["extra", "extra"]);
+});
+
 test("Lernstand: klassischer Zustand ohne FSRS und Revlog, Fälligkeit aus dem Sammlungsdatum, zurückgesetzte Karten neu", async () => {
   const entry = { reviewId: "1767225600000", cardId: "201", rating: "good" as const, answeredAt: "2026-01-01T00:00:00.000Z", responseTimeMs: 4000, reviewType: 1, beforeState: "review" as const, afterState: "review" as const, beforeIntervalDays: 1, beforeIntervalMinutes: null, afterIntervalDays: 3, afterIntervalMinutes: null, ease: 2.5, cram: false };
   const graph = await translateAnkiPackage(ankiPackage({
