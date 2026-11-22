@@ -73,9 +73,7 @@ async function findOriginLeakBeforeReveal(page: Page) {
 test("dashboard deck rows start learning from their play action and keep the learning overview separate", async ({ page }: any) => {
   await resetToFreshLocalState(page, { waitForCloud: false });
 
-  const openLearn = page.getByRole("button", { name: "Alle Stapel öffnen", exact: true });
-  await expect(openLearn).toHaveAccessibleName("Alle Stapel öffnen");
-  await openLearn.click();
+  await mainMenu(page).getByRole("button", { name: "Lernen" }).click();
   await expect(page).toHaveURL(/\/lernen$/);
   await expect(page.getByRole("heading", { name: "Lernen", exact: true })).toBeVisible();
 

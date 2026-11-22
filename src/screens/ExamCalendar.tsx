@@ -6,7 +6,6 @@ import { EXAM_NEW_CARDS_PER_MINUTE_LIMIT, getExamLastNewDate, getExamStudyMinute
 import { ActionButton, IconButton } from "../ui/actionUi.tsx";
 import { CoreDatePicker } from "../ui/CoreDatePicker.tsx";
 import { SoftPanel, CoreSegmentedControl } from "../ui/coreUi.tsx";
-import { SectionHeader } from "../ui/SectionHeader.tsx";
 import { StatusMessage } from "../ui/feedbackUi.tsx";
 import { CoreSelect } from "../ui/selectUi.tsx";
 import { examColor, formatExamClock as clock, formatExamCount, formatExamDate, formatExamMinutes } from "./examPlanningUi.ts";
@@ -29,6 +28,14 @@ interface ExamCalendarProps {
 
 export function ExamCalendar({ exams, capacity, forecast, decks, today, busy, initialExamId, onChange }: ExamCalendarProps) {
   const [view, setView] = React.useState<"month" | "week">("month");
+  const calendarRef = React.useRef<HTMLElement>(null);
+  const refocusViewControl = React.useRef(false);
+  // The switch sits in the month and week headers and remounts with them; keep keyboard focus on it.
+  React.useLayoutEffect(() => {
+    if (!refocusViewControl.current) return;
+    refocusViewControl.current = false;
+    calendarRef.current?.querySelector<HTMLElement>('[aria-label="Kalenderansicht"] [aria-pressed="true"]')?.focus();
+  }, [view]);
   const [date, setDate] = React.useState(today);
   const [detailsOpen, setDetailsOpen] = React.useState(false);
   const [hiddenExamIds, setHiddenExamIds] = React.useState(() => new Set(initialExamId ? exams.filter((exam) => exam.id !== initialExamId).map((exam) => exam.id) : []));
@@ -97,11 +104,11 @@ export function ExamCalendar({ exams, capacity, forecast, decks, today, busy, in
     setSwap("");
   }
 
-  return <section className="exam-calendar-layout grid min-w-0 gap-4" aria-label="Lernkalender" data-testid="exam-calendar" aria-busy={busy}>
-    <SectionHeader level={3} title="Dein Lernkalender" action={<CoreSegmentedControl ariaLabel="Kalenderansicht" value={view} options={[{ value: "month", label: "Monat" }, { value: "week", label: "Woche" }]} onValueChange={setView} />} />
+  const viewControl = <CoreSegmentedControl ariaLabel="Kalenderansicht" value={view} options={[{ value: "month", label: "Monat" }, { value: "week", label: "Woche" }]} onValueChange={(next) => { refocusViewControl.current = true; setView(next); }} />;
+  return <section ref={calendarRef} className="exam-calendar-layout grid min-w-0 gap-4" aria-label="Lernkalender" data-testid="exam-calendar" aria-busy={busy}>
     <div className="exam-calendar-body grid min-w-0 items-start gap-4" data-show-day={view === "month" && detailsOpen}>
     <div className="grid min-w-0 gap-4">
-    {view === "month" ? <ExamMonthCalendar exams={exams} shown={shown} onToggleExam={toggleExam} forecast={forecast} today={today} date={date} color={(exam) => examColor(exams.indexOf(exam), exam)} onSelect={(key, open = true) => { setDate(key); setDetailsOpen(open); }} /> : <ExamWeekCalendar exams={exams} shown={shown} onToggleExam={toggleExam} capacity={capacity} forecast={forecast} decks={decks} today={today} date={date} busy={busy} color={(exam) => examColor(exams.indexOf(exam), exam)} onSelect={(key, open = false) => { setDate(key); setDetailsOpen(open); }} onChange={(next) => change(exams, next)} />}
+    {view === "month" ? <ExamMonthCalendar exams={exams} shown={shown} onToggleExam={toggleExam} forecast={forecast} today={today} date={date} color={(exam) => examColor(exams.indexOf(exam), exam)} onSelect={(key, open = true) => { setDate(key); setDetailsOpen(open); }} viewControl={viewControl} /> : <ExamWeekCalendar exams={exams} shown={shown} onToggleExam={toggleExam} capacity={capacity} forecast={forecast} decks={decks} today={today} date={date} busy={busy} color={(exam) => examColor(exams.indexOf(exam), exam)} onSelect={(key, open = false) => { setDate(key); setDetailsOpen(open); }} onChange={(next) => change(exams, next)} viewControl={viewControl} />}
     {error ? <StatusMessage tone="error" announce="assertive">{error}</StatusMessage> : null}
     </div>
     {detailsOpen ? <div className="grid min-w-0 gap-4">
