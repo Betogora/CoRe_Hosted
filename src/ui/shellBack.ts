@@ -9,7 +9,14 @@ export interface ShellBack {
 
 export const ShellBackContext = React.createContext<React.Dispatch<React.SetStateAction<ShellBack | null>> | null>(null);
 
-/** Registers before the first paint, so a subpage never shows a frame of the floating card; returns whether the shell shows the back link. */
+export const SHELL_REVEAL_EVENT = "core-shell-reveal";
+
+/** Brings back a navigation head hidden by scrolling, e.g. because a deck drag needs it as drop zone. */
+export function revealShellHeader() {
+  window.dispatchEvent(new Event(SHELL_REVEAL_EVENT));
+}
+
+/** Registers before paint, so the bar switches together with the subpage; returns whether the shell shows the back link. */
 export function useShellBack(back: ShellBack | undefined) {
   const setShellBack = React.useContext(ShellBackContext);
   const onSelect = useStableCallback(() => back?.onSelect());

@@ -1,5 +1,6 @@
 import { expect, test } from "@playwright/test";
 import { matrixThemes, matrixViewports, VISUAL_MATRIX_VIEWPORTS, visualOutput } from "./support/visualMatrix.ts";
+import { switchColorScheme } from "./support/navigationMenu.ts";
 
 test("Unterstapel zeigen den Zweig wie die Lernen-Liste und öffnen jeden Stapel direkt", async ({ page }) => {
   await page.goto("/docs/ui-elements.html?preview=screens");
@@ -126,7 +127,7 @@ for (const theme of matrixThemes) {
       await page.setViewportSize(viewport);
       await page.goto("/docs/ui-elements.html?preview=screens");
       await page.getByRole("searchbox", { name: "Katalog durchsuchen", exact: true }).fill("Produktansichten");
-      if (theme === "dark") await page.getByRole("button", { name: "Dark Mode einschalten", exact: true }).click();
+      if (theme === "dark") await switchColorScheme(page, "dark");
       const product = page.locator(".catalog-product-preview");
       const close = page.getByRole("button", { name: "Produktansicht schließen", exact: true });
       const capture = async (name: string) => {
@@ -173,7 +174,7 @@ test("Sammlungsende, Schnellanlage und 200 Prozent Vergrößerung bleiben erreic
   const product = page.locator(".catalog-product-preview");
   const close = page.getByRole("button", { name: "Produktansicht schließen", exact: true });
   for (const theme of matrixThemes) {
-    if (theme === "dark") await page.getByRole("button", { name: "Dark Mode einschalten", exact: true }).click();
+    if (theme === "dark") await switchColorScheme(page, "dark");
     for (const viewport of matrixViewports()) {
       await page.setViewportSize(viewport);
       await page.getByRole("button", { name: "Tagesübersicht öffnen", exact: true }).click();

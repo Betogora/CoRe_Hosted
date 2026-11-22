@@ -361,10 +361,10 @@ function AppContent() {
               if (featurePreloadingAllowed() && allowsBrowserSpeculativePreloading()) void preloadAppView(viewId);
             }}
             onNavigate={(viewId) => navigateToView(viewId, { focusedDeckId })}
-            onResetSimulation={() => clock.changeSimulationOffset(0)} back={shellBack}
+            onResetSimulation={() => clock.changeSimulationOffset(0)} back={shellBack} scrollRegionRef={screenRegionRef}
           />
 
-          <section ref={screenRegionRef} className="core-screen-region min-w-0 overflow-x-clip px-4 pb-32 pt-8 outline-none sm:px-6 xl:relative xl:overflow-x-hidden xl:overflow-y-auto xl:py-10" tabIndex={-1} aria-label="Seiteninhalt">
+          <section ref={screenRegionRef} className="core-screen-region min-w-0 overflow-x-clip px-4 pb-32 pt-8 outline-none sm:px-6 xl:relative xl:col-start-1 xl:row-span-2 xl:row-start-1 xl:overflow-x-hidden xl:overflow-y-auto xl:pb-10 xl:pt-[calc(var(--shell-height,5rem)+2.5rem)] xl:scroll-pt-[var(--shell-height,5rem)]" tabIndex={-1} aria-label="Seiteninhalt">
             <div className="mx-auto w-full min-w-0 max-w-7xl">
               <ShellBackContext.Provider value={setShellBack}><NoteLayoutContext.Provider value={noteLayout}><React.Suspense fallback={<ScreenLoadingFallback />}>
                 {studyRequest && !state.decks.some((deck) => deck.id === studyRequest.deckId) ? (

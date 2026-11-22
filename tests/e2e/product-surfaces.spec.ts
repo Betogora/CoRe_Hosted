@@ -2,6 +2,7 @@ import { expect, test, type Locator, type Page } from "@playwright/test";
 import { CORE_THEME_STORAGE_KEY } from "../../src/coreTheme.ts";
 import { readActiveAccountState, resetToFreshLocalState } from "./support/appState.ts";
 import { openSettingsArea, settingsDialog } from "./support/settingsDialog.ts";
+import { openNavigationMenuItem, switchColorScheme } from "./support/navigationMenu.ts";
 
 function mainMenu(page: Page) {
   return page.getByRole("navigation", { name: /Hauptmenü|Mobile Hauptnavigation/ }).filter({ visible: true });
@@ -18,7 +19,7 @@ test("core navigation exposes only the reliable product areas", async ({ page })
   await expect(page.getByRole("button", { name: /^Import\b/ })).toBeVisible();
   await expect(page.getByRole("button", { name: /Karten automatisch erstellen lassen/ })).toBeVisible();
   await expect(page.getByRole("region", { name: "Erstellungsart" }).getByRole("button")).toHaveCount(3);
-  await expect(page.getByRole("button", { name: "Einstellungen öffnen" })).toBeVisible();
+  await expect(page.locator("header[data-navigation-layout]:visible").getByRole("button", { name: "Menü", exact: true })).toBeVisible();
 });
 
 test("app chrome switches exactly at the 1280 pixel top bar breakpoint", async ({ page }) => {
@@ -32,54 +33,37 @@ test("app chrome switches exactly at the 1280 pixel top bar breakpoint", async (
   await expect(topBar).toBeHidden();
   await expect(mobileHeader).toBeVisible();
   await expect(bottomNavigation).toBeVisible();
-  const mobileUtilities = mobileHeader.locator('[data-navigation-utilities="true"]');
-  const mobileSettingsButton = mobileUtilities.locator('[data-navigation-utility="settings"]');
-  const mobileHelpButton = mobileUtilities.locator('[data-navigation-utility="help"]');
-  const mobileThemeButton = mobileUtilities.locator('[data-navigation-utility="theme"]');
-  await expect(mobileSettingsButton).toBeVisible();
-  await expect(mobileHelpButton).toBeVisible();
-  await expect(mobileThemeButton).toBeVisible();
-  const mobileSettingsBox = await mobileSettingsButton.boundingBox();
-  const mobileHelpBox = await mobileHelpButton.boundingBox();
-  const mobileThemeBox = await mobileThemeButton.boundingBox();
-  expect(mobileSettingsBox).not.toBeNull();
-  expect(mobileHelpBox).not.toBeNull();
-  expect(mobileThemeBox).not.toBeNull();
-  expect(mobileHelpBox!.x).toBeGreaterThan(mobileThemeBox!.x);
-  expect(mobileSettingsBox!.x).toBeGreaterThan(mobileHelpBox!.x);
+  const mobileMenuButton = mobileHeader.locator('[data-navigation-utilities="true"] [data-navigation-utility="menu"]');
+  await expect(mobileMenuButton).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)).toBe(true);
 
-  await mobileSettingsButton.click();
+  await openNavigationMenuItem(page, "Einstellungen");
   await expect(page).toHaveURL(/\?settings=start$/);
   await expect(settingsDialog(page)).toBeVisible();
-  await expect(mobileSettingsButton).toHaveAttribute("aria-expanded", "true");
-  await expect(settingsDialog(page).getByRole("button", { name: /Dark Mode/ })).toHaveCount(0);
+  await expect(mobileMenuButton).toHaveClass(/!text-core-action/);
 
   await page.setViewportSize({ width: 1280, height: 900 });
   await expect(topBar).toBeVisible();
   await expect(mobileHeader).toBeHidden();
   await expect(bottomNavigation).toBeHidden();
   const desktopUtilities = topBar.locator('[data-navigation-utilities="true"]');
-  const desktopSyncButton = desktopUtilities.locator('[data-navigation-utility="sync"]');
-  const desktopSettingsButton = desktopUtilities.locator('[data-navigation-utility="settings"]');
-  const desktopHelpButton = desktopUtilities.locator('[data-navigation-utility="help"]');
-  const desktopThemeButton = desktopUtilities.locator('[data-navigation-utility="theme"]');
-  await expect(desktopSyncButton).toHaveCount(0);
-  await expect(desktopSettingsButton).toBeVisible();
-  await expect(desktopHelpButton).toBeVisible();
-  await expect(desktopThemeButton).toBeVisible();
-  await expect(desktopSettingsButton).toHaveAttribute("aria-expanded", "true");
-  await expect(desktopThemeButton).toHaveClass(/core-action-ghost/);
+  const desktopMenuButton = desktopUtilities.locator('[data-navigation-utility="menu"]');
+  await expect(desktopUtilities.locator('[data-navigation-utility="sync"]')).toHaveCount(0);
+  await expect(desktopMenuButton).toBeVisible();
+  await expect(desktopMenuButton).toHaveClass(/core-action-ghost/);
+  await expect(desktopMenuButton).toHaveClass(/!text-core-action/);
   await expect(page.locator('[aria-label="Seiteninhalt"]')).toHaveCSS("padding-left", "24px");
   await expect(page.locator('[aria-label="Seiteninhalt"]')).toHaveCSS("padding-right", "24px");
   const desktopLayout = await topBar.evaluate((element) => {
-    const panel = element.firstElementChild as HTMLElement;
+    const panel = element.querySelector<HTMLElement>("[data-shell-bar]")!;
+    const region = document.querySelector<HTMLElement>('[aria-label="Seiteninhalt"]')!;
     const panelRect = panel.getBoundingClientRect();
     const navigationRect = element.querySelector<HTMLElement>("nav")!.getBoundingClientRect();
     const menuLabels = Array.from(element.querySelectorAll<HTMLElement>("nav button > span"));
     const targets = Array.from(element.querySelectorAll<HTMLElement>("nav button, [data-navigation-utility]"));
     const utilities = Array.from(element.querySelectorAll<HTMLElement>("[data-navigation-utility]")).map((target) => target.getBoundingClientRect());
     return {
+      scrollbar: region.offsetWidth - region.clientWidth,
       panel: { x: panelRect.x, y: panelRect.y, width: panelRect.width, height: panelRect.height },
       navigationCenterOffset: Math.abs(navigationRect.x + navigationRect.width / 2 - (panelRect.x + panelRect.width / 2)),
       utilitiesRightOfNavigation: utilities.every((rect) => rect.x >= navigationRect.right),
@@ -91,7 +75,7 @@ test("app chrome switches exactly at the 1280 pixel top bar breakpoint", async (
       }),
     };
   });
-  expect(desktopLayout.panel).toEqual({ x: 16, y: 8, width: 1248, height: 64 });
+  expect(desktopLayout.panel).toEqual({ x: 16, y: 16, width: 1248 - desktopLayout.scrollbar, height: 48 });
   expect(desktopLayout.navigationCenterOffset).toBeLessThan(1);
   expect(desktopLayout.utilitiesRightOfNavigation).toBe(true);
   expect(desktopLayout.utilitiesInOneRow).toBe(true);
@@ -100,42 +84,34 @@ test("app chrome switches exactly at the 1280 pixel top bar breakpoint", async (
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)).toBe(true);
 });
 
-test("dark mode can be toggled from both responsive navigation layouts and persists across reloads", async ({ page }) => {
+test("dark mode is switched in the appearance settings and persists across reloads", async ({ page }) => {
   await resetToFreshLocalState(page);
   await page.setViewportSize({ width: 1280, height: 900 });
-
-  const topBar = page.locator('[data-navigation-layout="top-bar"]');
-  const desktopThemeButton = topBar.getByRole("button", { name: "Dark Mode einschalten" });
-  await expect(desktopThemeButton).toBeVisible();
-  await expect(desktopThemeButton).toHaveClass(/core-action-ghost/);
-  await expect(desktopThemeButton.locator("svg")).toHaveClass(/lucide-sun/);
-  await desktopThemeButton.click();
-
-  await expect(page.locator("html")).toHaveAttribute("data-core-theme", "dark");
-  await expect(topBar.getByRole("button", { name: "Light Mode einschalten" }).locator("svg")).toHaveClass(/lucide-moon/);
+  await switchColorScheme(page, "dark");
   expect(await page.evaluate((key) => localStorage.getItem(key), CORE_THEME_STORAGE_KEY)).toBe("dark");
 
   await page.reload();
   await expect(page.locator("html")).toHaveAttribute("data-core-theme", "dark");
-  await expect(topBar.getByRole("button", { name: "Light Mode einschalten" })).toBeVisible();
 
   await page.setViewportSize({ width: 390, height: 844 });
-  const mobileHeader = page.locator('[data-navigation-layout="mobile-header"]');
-  const mobileThemeButton = mobileHeader.getByRole("button", { name: "Light Mode einschalten" });
-  await expect(mobileThemeButton).toBeVisible();
-  await expect(mobileThemeButton).toHaveClass(/core-action-ghost/);
-  await expect(mobileThemeButton.locator("svg")).toHaveClass(/lucide-moon/);
+  await openNavigationMenuItem(page, "Einstellungen");
+  const dialog = settingsDialog(page);
+  await openSettingsArea(dialog, "darstellung");
+  const darkSwitch = dialog.getByRole("switch", { name: "Dark Mode" });
+  await expect(darkSwitch).toBeChecked();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)).toBe(true);
-
-  await mobileThemeButton.click();
+  await darkSwitch.uncheck();
   await expect(page.locator("html")).toHaveAttribute("data-core-theme", "light");
-  await expect(mobileHeader.getByRole("button", { name: "Dark Mode einschalten" }).locator("svg")).toHaveClass(/lucide-sun/);
+  expect(await page.evaluate((key) => localStorage.getItem(key), CORE_THEME_STORAGE_KEY)).toBe("light");
+  await page.keyboard.press("Escape");
+  await expect(dialog).toBeHidden();
+  await expect(page.locator('[data-navigation-layout="mobile-header"] [data-navigation-utility="menu"]')).toBeFocused();
 });
 
 test("general and learning settings each save their sections together through one save bar", async ({ page }) => {
   await resetToFreshLocalState(page);
   await page.setViewportSize({ width: 1280, height: 900 });
-  await page.getByRole("button", { name: "Einstellungen öffnen" }).click();
+  await openNavigationMenuItem(page, "Einstellungen");
   const dialog = settingsDialog(page);
 
   await expect(dialog.getByRole("heading", { name: "Konto", exact: true })).toBeVisible();
@@ -180,7 +156,7 @@ test("general and learning settings each save their sections together through on
 
 test("settings save bar keeps its depth and responsive position in both themes", async ({ page }) => {
   await resetToFreshLocalState(page);
-  await page.getByRole("button", { name: "Einstellungen öffnen" }).click();
+  await openNavigationMenuItem(page, "Einstellungen");
   await page.getByLabel("Anzeigename").fill("Responsive Save-Bar");
   const saveBar = page.getByTestId("settings-save-bar");
 
@@ -245,7 +221,7 @@ test("deck expansion preserves the complete profile across reload and an isolate
     learnAheadMinutes: String(before.schedulerPreferences.learnAheadMinutes),
   };
   const expectProfileSettings = async (target: Page) => {
-    if (!(await settingsDialog(target).isVisible())) await target.getByRole("button", { name: "Einstellungen öffnen" }).click();
+    if (!(await settingsDialog(target).isVisible())) await openNavigationMenuItem(target, "Einstellungen");
     await openSettingsArea(settingsDialog(target), "konto");
     await expect(target.getByLabel("Anzeigename")).toHaveValue(expected.displayName);
     await expect(target.getByLabel("Login-E-Mail")).toHaveValue(expected.email);
@@ -300,7 +276,7 @@ test("deck expansion responds immediately on dashboard and learning", async ({ p
 test("settings drafts block closing and group switches until saving", async ({ page }) => {
   await resetToFreshLocalState(page);
   await mainMenu(page).getByRole("button", { name: "Lernen" }).click();
-  await page.getByRole("button", { name: "Einstellungen öffnen" }).click();
+  await openNavigationMenuItem(page, "Einstellungen");
   const dialog = settingsDialog(page);
   await page.getByLabel("Anzeigename").fill("Schließen blockiert");
   const saveBar = page.getByTestId("settings-save-bar");
@@ -330,7 +306,7 @@ test("settings drafts block closing and group switches until saving", async ({ p
 test("browser back is cancelled until saving and must be repeated", async ({ page }) => {
   await resetToFreshLocalState(page);
   await mainMenu(page).getByRole("button", { name: "Lernen" }).click();
-  await page.getByRole("button", { name: "Einstellungen öffnen" }).click();
+  await openNavigationMenuItem(page, "Einstellungen");
   await page.getByLabel("Anzeigename").fill("Browser-Zurück Entwurf");
 
   await page.goBack();
@@ -371,7 +347,7 @@ test("browser forward is cancelled until saving and must be repeated", async ({ 
 test("settings dialog switches between side list and area list at 768 px", async ({ page }) => {
   await resetToFreshLocalState(page);
   await page.setViewportSize({ width: 1440, height: 900 });
-  await page.getByRole("button", { name: "Einstellungen öffnen" }).click();
+  await openNavigationMenuItem(page, "Einstellungen");
   const dialog = settingsDialog(page);
   const areas = dialog.getByRole("navigation", { name: "Bereiche der Einstellungen" });
   await expect(areas).toBeVisible();
@@ -401,7 +377,7 @@ test("settings dialog switches between side list and area list at 768 px", async
 test("Pomodoro timer starts globally, persists and stays synchronized between tabs", async ({ page, context }) => {
   await resetToFreshLocalState(page);
   await page.setViewportSize({ width: 1280, height: 720 });
-  await page.getByRole("button", { name: "Einstellungen öffnen" }).click();
+  await openNavigationMenuItem(page, "Einstellungen");
   await openSettingsArea(settingsDialog(page), "fokus");
 
   const control = page.locator('[data-pomodoro-control="settings"]');
@@ -458,7 +434,7 @@ test("Pomodoro timer expiration clears the global indicator and shows the canoni
   await secondPage.close();
 });
 
-test("long desktop views use one content scrollbar without moving the top bar", async ({ page }) => {
+test("long desktop views use one content scrollbar that starts below the overlaid top bar", async ({ page }) => {
   await resetToFreshLocalState(page);
   await page.setViewportSize({ width: 1280, height: 720 });
   for (const view of [
@@ -483,6 +459,7 @@ test("long desktop views use one content scrollbar without moving the top bar", 
         topBarTop: topBar?.getBoundingClientRect().top ?? Number.POSITIVE_INFINITY,
         topBarBottom: topBar?.getBoundingClientRect().bottom ?? Number.POSITIVE_INFINITY,
         contentTop: screen.getBoundingClientRect().top,
+        contentPaddingTop: parseFloat(getComputedStyle(screen).paddingTop),
       };
     });
 
@@ -493,7 +470,40 @@ test("long desktop views use one content scrollbar without moving the top bar", 
     expect(layout.shellHeight).toBe(720);
     expect(layout.shellOverflow).toBe("hidden");
     expect(layout.topBarTop).toBe(0);
-    expect(layout.topBarBottom).toBeLessThanOrEqual(layout.contentTop);
+    expect(layout.contentTop).toBe(0);
+    expect(layout.contentPaddingTop).toBeGreaterThanOrEqual(layout.topBarBottom);
+  }
+});
+
+test("the navigation head gives way while scrolling down and returns on scrolling up or Shift+Tab", async ({ page }) => {
+  await resetToFreshLocalState(page);
+  for (const [layout, viewport] of [["mobile-header", { width: 390, height: 640 }], ["top-bar", { width: 1280, height: 720 }]] as const) {
+    await page.setViewportSize(viewport);
+    await page.goto("/hilfe?topic=spaced-repetition");
+    const header = page.locator(`[data-navigation-layout="${layout}"]`);
+    await expect(header).toBeVisible();
+    // Phones scroll the window, the desktop scrolls the content region.
+    const scrollTo = (top: number) => page.evaluate((target) => {
+      const region = document.querySelector<HTMLElement>('[aria-label="Seiteninhalt"]')!;
+      (getComputedStyle(region).overflowY === "auto" ? region : document.scrollingElement!).scrollTo({ top: target });
+    }, top);
+    await scrollTo(400);
+    await expect(header).toBeHidden();
+    await expect.poll(() => page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue("--shell-offset"))).toBe("0px");
+    await scrollTo(340);
+    await expect(header).toBeVisible();
+
+    await scrollTo(900);
+    await expect(header).toBeHidden();
+    await page.evaluate(() => {
+      const target = [...document.querySelectorAll<HTMLElement>('[aria-label="Seiteninhalt"] a, [aria-label="Seiteninhalt"] button')].find((element) => {
+        const rect = element.getBoundingClientRect();
+        return rect.top > window.innerHeight / 2 && rect.bottom < window.innerHeight;
+      });
+      target?.focus({ preventScroll: true });
+    });
+    await page.keyboard.press("Shift+Tab");
+    await expect(header).toBeVisible();
   }
 });
 
@@ -528,9 +538,7 @@ test("mobile bottom navigation stays viewport-fixed and keeps its width on short
 test("help opens with a short entry and links its stories and reference topics as pages", async ({ page }) => {
   await resetToFreshLocalState(page);
 
-  const helpButton = page.getByRole("button", { name: "Hilfe öffnen" });
-  await expect(helpButton).toBeVisible();
-  await helpButton.click();
+  await openNavigationMenuItem(page, "Hilfe");
   await expect(page).toHaveURL("/hilfe");
   await expect(page.getByRole("heading", { name: "Hilfe", exact: true })).toBeFocused();
   await expect(page.getByRole("heading", { name: "So lernst du mit CoRe" })).toBeVisible();
@@ -569,7 +577,7 @@ test("help opens with a short entry and links its stories and reference topics a
   expect(backLayer.z).toBeLessThan(middleLayer.z);
   expect(middleLayer.z).toBeLessThan(introStackLayout.front.z);
   expect(new Set([introStackLayout.front.background, ...introStackLayout.layers.map((layer) => layer.background)]).size).toBe(3);
-  await page.getByRole("button", { name: "Dark Mode einschalten" }).click();
+  await switchColorScheme(page, "dark");
   const darkStack = await readExampleStack(page.getByTestId("help-intro-card-stack"));
   expect(darkStack.front.background).not.toBe(introStackLayout.front.background);
   expect(darkStack.front.border).not.toBe(introStackLayout.front.border);
@@ -580,7 +588,7 @@ test("help opens with a short entry and links its stories and reference topics a
     expect(layer.rotation).toBe(lightLayer.rotation);
     expect(layer.z).toBe(lightLayer.z);
   }
-  await page.getByRole("button", { name: "Light Mode einschalten" }).click();
+  await switchColorScheme(page, "light");
 
   const activeRecallMethodLink = page.locator('a[data-help-topic-link="active-recall"]');
   await expect(activeRecallMethodLink).toHaveAttribute("href", "/hilfe?topic=active-recall");
@@ -734,8 +742,7 @@ test("help opens with a short entry and links its stories and reference topics a
   await expect(spacedRepetitionHeading).toBeFocused();
   await expect(spacedRepetitionHeading).toBeInViewport();
 
-  await page.locator('[data-navigation-layout="mobile-header"]').getByRole("button", { name: "Dark Mode einschalten" }).click();
-  await expect(page.locator("html")).toHaveAttribute("data-core-theme", "dark");
+  await switchColorScheme(page, "dark");
   await page.goBack();
   await expect(spacedRepetitionMethodLink).toBeFocused();
   await expect(spacedRepetitionMethodLink).toBeInViewport();

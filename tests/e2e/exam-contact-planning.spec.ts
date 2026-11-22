@@ -1,5 +1,6 @@
 import { expect, test } from "@playwright/test";
 import { matrixThemes, visualOutput } from "./support/visualMatrix.ts";
+import { switchColorScheme } from "./support/navigationMenu.ts";
 
 // Ordinary runs keep phone, desktop and the 200 % layout; visual runs add every matrix and breakpoint size.
 const viewports = visualOutput
@@ -13,7 +14,7 @@ for (const [width, height, scale] of viewports) test.describe(`${width}×${heigh
     await page.setViewportSize({ width, height });
     await page.goto("/docs/ui-elements.html?preview=screens");
     await page.getByRole("searchbox", { name: "Katalog durchsuchen", exact: true }).fill("Produktansichten");
-    if (theme === "dark") await page.getByRole("button", { name: "Dark Mode einschalten", exact: true }).click();
+    if (theme === "dark") await switchColorScheme(page, "dark");
     await page.getByRole("button", { name: "Prüfungen öffnen", exact: true }).click();
     const product = page.locator(".catalog-product-preview");
     await expect(product.getByTestId("exam-month-calendar")).toBeVisible();

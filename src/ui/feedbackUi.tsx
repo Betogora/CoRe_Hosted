@@ -74,8 +74,8 @@ export function SuccessToast({
       data-success-toast-region="true"
       data-appearance={appearance}
       onAnimationEnd={handleAnimationEnd}
-      // Below the 72 px header bar and flush with its edges (mobile header and centred desktop top bar), so its navigation stays reachable.
-      className={`core-success-toast pointer-events-auto fixed right-2 top-[5.5rem] z-[65] !w-fit max-w-[calc(100vw-1rem)] max-sm:left-2 max-sm:!w-auto !items-center rounded-panel py-2 pl-4 pr-2 shadow-raised [&>svg]:!mt-0 max-sm:!items-start max-sm:[&>svg]:!mt-3 sm:max-w-[calc(100vw-4rem)] xl:right-[max(1rem,calc((100%-80rem)/2))] ${className}`}
+      // Below the navigation head (--shell-offset is 0 while it is hidden by scrolling) and flush with its edges, so its navigation stays reachable.
+      className={`core-success-toast pointer-events-auto fixed right-2 top-[calc(var(--shell-offset,4.5rem)+0.5rem)] z-[65] !w-fit max-w-[calc(100vw-1rem)] max-sm:left-2 max-sm:!w-auto !items-center rounded-panel py-2 pl-4 pr-2 shadow-raised [&>svg]:!mt-0 max-sm:!items-start max-sm:[&>svg]:!mt-3 sm:max-w-[calc(100vw-4rem)] xl:right-[max(1rem,calc((100%-80rem)/2))] ${className}`}
     >
       {/* On a phone the action takes its own line below the message, so the message never breaks inside a word. */}
       <div className="flex min-w-0 items-center gap-3 max-sm:flex-wrap max-sm:gap-y-1">

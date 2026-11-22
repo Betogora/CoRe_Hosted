@@ -12,6 +12,7 @@ import { CoreTooltip } from "./tooltipUi.tsx";
 import { DeckAppearanceIcon, getDeckAppearance } from "./deckAppearance.tsx";
 import { LEARNING_STATUS_UI } from "./learningStatusUi.ts";
 import { useStableCallback } from "./useStableCallback.ts";
+import { revealShellHeader } from "./shellBack.ts";
 
 export type DeckTreeView = "list" | "tiles";
 
@@ -262,6 +263,7 @@ function DeckDragFocusOverlay({ maskId, holes }: { maskId: string; holes: Viewpo
       className="pointer-events-none fixed inset-0 size-full"
       style={{ zIndex: 70 }}
       aria-hidden="true"
+      data-deck-drag-overlay="true"
       data-testid="deck-drag-focus-overlay"
     >
       <defs>
@@ -519,10 +521,14 @@ export function DeckTree({ rows, rootDeckIds, mode, view = "list", onViewChange,
       });
     };
     document.addEventListener("scroll", scheduleMeasurement, true);
+    // A head hidden by scrolling slides back in at the drag start; its end position is the drop zone.
+    document.addEventListener("transitionend", scheduleMeasurement, true);
     window.addEventListener("resize", scheduleMeasurement);
+    revealShellHeader();
     scheduleMeasurement();
     return () => {
       document.removeEventListener("scroll", scheduleMeasurement, true);
+      document.removeEventListener("transitionend", scheduleMeasurement, true);
       window.removeEventListener("resize", scheduleMeasurement);
       if (frame) window.cancelAnimationFrame(frame);
     };

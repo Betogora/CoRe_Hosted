@@ -1,8 +1,8 @@
 import React from "react";
 import type { LucideIcon } from "lucide-react";
-import { AlertTriangle, ArrowLeft, BarChart3, BookOpen, CalendarCheck, CalendarClock, CircleHelp, CloudAlert, CloudOff, Home, Layers, Moon, PlusSquare, RefreshCw, Settings, Sun } from "lucide-react";
+import { AlertTriangle, ArrowLeft, BarChart3, BookOpen, CalendarCheck, CalendarClock, CircleHelp, CloudAlert, CloudOff, Home, Layers, Menu, PlusSquare, RefreshCw, Settings } from "lucide-react";
+import * as Popover from "@radix-ui/react-popover";
 import { createPortal } from "react-dom";
-import { readCoreTheme, toggleCoreTheme, type CoreTheme } from "../coreTheme.ts";
 import type { MenuViewId } from "../menuModel.ts";
 import type { PomodoroTimer } from "../pomodoroTimer.ts";
 import type { SyncStatus } from "../coreTypes.ts";
@@ -12,7 +12,7 @@ import { IconButton } from "./actionUi.tsx";
 import { useSlidingSelection } from "./coreUi.tsx";
 import { CoreWordmark } from "./CoreWordmark.tsx";
 import { PomodoroProgress } from "./pomodoroTimerUi.tsx";
-import type { ShellBack } from "./shellBack.ts";
+import { SHELL_REVEAL_EVENT, type ShellBack } from "./shellBack.ts";
 
 interface AppNavigationItem {
   id: MenuViewId;
@@ -36,6 +36,8 @@ export interface AppNavigationProps {
   onOpenSettings: () => unknown;
   onPreloadSettings?: () => unknown;
   back: ShellBack | null;
+  /** Scrolls the content on wide screens; narrower layouts scroll the window. */
+  scrollRegionRef?: React.RefObject<HTMLElement | null>;
 }
 
 const iconByKey: Record<string, LucideIcon> = {
@@ -51,8 +53,92 @@ function getIcon(iconKey: string) {
 }
 
 interface ResponsiveNavigationProps extends AppNavigationProps {
-  theme: CoreTheme;
-  onToggleTheme: () => void;
+  hidden: boolean;
+  instant: boolean;
+  headerRef: React.RefObject<HTMLElement | null>;
+}
+
+const SCROLL_STEP = 8;
+const HIDE_BELOW = 96;
+
+function clampScroll(value: number, max: number) {
+  return Math.min(Math.max(value, 0), Math.max(max, 0));
+}
+
+function useHiddenOnScrollDown(page: string, headerRefs: React.RefObject<HTMLElement | null>[], scrollRegionRef?: React.RefObject<HTMLElement | null>) {
+  const [hiddenOn, setHiddenOn] = React.useState<string | null>(null);
+  React.useEffect(() => {
+    const region = scrollRegionRef?.current ?? null;
+    const root = document.documentElement;
+    // Only one of both scrolls per layout. Clamped to the real range, so an overscroll bounce (iOS) is no scroll up.
+    const scrollY = () => clampScroll(window.scrollY, root.scrollHeight - window.innerHeight) + (region ? clampScroll(region.scrollTop, region.scrollHeight - region.clientHeight) : 0);
+    let lastY = scrollY();
+    const onScroll = () => {
+      const y = scrollY();
+      if (Math.abs(y - lastY) < SCROLL_STEP) return;
+      // Keyboard focus in the bar, its open menu and a deck drag (drop zone) keep it in place.
+      const keepShown = headerRefs.some((ref) => ref.current?.matches(":has(:focus-visible)")) || Boolean(document.querySelector("[data-navigation-menu], [data-deck-drag-overlay]"));
+      setHiddenOn(y > lastY && y > HIDE_BELOW && !keepShown ? page : null);
+      lastY = y;
+    };
+    // Shift+Tab brings the bar back so backward tabbing reaches it without scrolling up; plain Tab leaves it hidden so it
+    // never slides over the next target.
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Tab" && event.shiftKey) setHiddenOn(null);
+    };
+    const reveal = () => setHiddenOn(null);
+    window.addEventListener("scroll", onScroll, { passive: true });
+    region?.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("keydown", onKeyDown);
+    window.addEventListener(SHELL_REVEAL_EVENT, reveal);
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      region?.removeEventListener("scroll", onScroll);
+      window.removeEventListener("keydown", onKeyDown);
+      window.removeEventListener(SHELL_REVEAL_EVENT, reveal);
+    };
+  }, [page, headerRefs, scrollRegionRef]);
+  return hiddenOn === page;
+}
+
+const SHELL_PROPERTIES = ["--shell-height", "--shell-offset", "--shell-scrollbar"];
+
+// Sticky page elements, scroll padding and the toast follow the bar through these properties (see styles.css).
+function useShellOffsets(hidden: boolean, headerRefs: React.RefObject<HTMLElement | null>[], scrollRegionRef?: React.RefObject<HTMLElement | null>) {
+  React.useEffect(() => {
+    const root = document.documentElement;
+    const region = scrollRegionRef?.current ?? null;
+    const update = () => {
+      const height = Math.max(0, ...headerRefs.map((ref) => ref.current?.offsetHeight ?? 0));
+      root.style.setProperty("--shell-height", `${height}px`);
+      root.style.setProperty("--shell-offset", hidden ? "0px" : `${height}px`);
+      // The desktop head lies over the content region and leaves its scrollbar uncovered.
+      root.style.setProperty("--shell-scrollbar", `${region ? region.offsetWidth - region.clientWidth : 0}px`);
+    };
+    const observer = new ResizeObserver(update);
+    for (const element of [...headerRefs.map((ref) => ref.current), region]) if (element) observer.observe(element);
+    update();
+    return () => observer.disconnect();
+  }, [hidden, headerRefs, scrollRegionRef]);
+  React.useEffect(() => () => {
+    for (const property of SHELL_PROPERTIES) document.documentElement.style.removeProperty(property);
+  }, []);
+}
+
+// Until the first input the page is still loading: a lazy subpage registering then switches without the morph.
+function useFirstInput() {
+  const [hadInput, setHadInput] = React.useState(false);
+  React.useEffect(() => {
+    if (hadInput) return undefined;
+    const done = () => setHadInput(true);
+    window.addEventListener("pointerdown", done, true);
+    window.addEventListener("keydown", done, true);
+    return () => {
+      window.removeEventListener("pointerdown", done, true);
+      window.removeEventListener("keydown", done, true);
+    };
+  }, [hadInput]);
+  return hadInput;
 }
 
 function NavigationBrand({ onNavigate }: Pick<AppNavigationProps, "onNavigate">) {
@@ -164,64 +250,58 @@ function SyncUtilityButton({ syncStatus, manualSync, onSyncNow, onOpenSyncSettin
   );
 }
 
-type UtilityProps = Pick<ResponsiveNavigationProps, "activeView" | "theme" | "onNavigate" | "onPreloadView" | "onToggleTheme" | "manualSync" | "onSyncNow" | "onOpenSyncSettings" | "settingsOpen" | "onOpenSettings" | "onPreloadSettings">;
+type UtilityProps = Pick<AppNavigationProps, "activeView" | "onNavigate" | "onPreloadView" | "manualSync" | "onSyncNow" | "onOpenSyncSettings" | "settingsOpen" | "onOpenSettings" | "onPreloadSettings">;
 
-function NavigationUtilityButtons({ activeView, theme, onNavigate, onPreloadView, onToggleTheme, settingsOpen, onOpenSettings, ...syncProps }: UtilityProps) {
+function NavigationUtilityButtons({ activeView, onNavigate, onPreloadView, settingsOpen, onOpenSettings, ...syncProps }: UtilityProps) {
   const syncStatus = useWorkspaceValue((snapshot) => snapshot.syncStatus);
-  const darkModeActive = theme === "dark";
-  const ThemeIcon = darkModeActive ? Moon : Sun;
-  const pageButton = (viewId: "statistik" | "hilfe", utility: string, label: string, icon: LucideIcon) => {
-    const active = activeView === viewId;
+  const menuTargetActive = settingsOpen || activeView === "statistik" || activeView === "hilfe";
+  const menuButtonRef = React.useRef<HTMLButtonElement>(null);
+  const pageRow = (viewId: "statistik" | "hilfe", utility: string, label: string, Icon: LucideIcon) => {
     const preload = () => onPreloadView?.(viewId);
     return (
-      <IconButton
-        type="button"
-        variant="ghost"
-        data-app-navigation="true"
-        data-navigation-utility={utility}
-        label={label}
-        icon={icon}
-        onClick={() => onNavigate(viewId)}
-        onPointerEnter={preload}
-        onFocus={preload}
-        onTouchStart={preload}
-        className={`size-button shrink-0 rounded-control ${active ? "!bg-core-subtle !text-core-action" : ""}`}
-        aria-current={active ? "page" : undefined}
-      />
+      <Popover.Close asChild>
+        <button type="button" className="core-menu-row" data-navigation-utility={utility} aria-current={activeView === viewId ? "page" : undefined} onClick={() => onNavigate(viewId)} onPointerEnter={preload} onFocus={preload}>
+          <Icon size={16} aria-hidden="true" />{label}
+        </button>
+      </Popover.Close>
     );
   };
-  const themeButton = (
-    <IconButton
-      type="button"
-      variant="ghost"
-      data-navigation-utility="theme"
-      label={darkModeActive ? "Light Mode einschalten" : "Dark Mode einschalten"}
-      icon={ThemeIcon}
-      onClick={onToggleTheme}
-      className="size-button shrink-0 rounded-control"
-    />
-  );
 
   return (
     <div className="flex shrink-0 items-center gap-0 min-[360px]:gap-1.5" data-navigation-utilities="true" data-sync-status={syncStatus.status}>
       <SyncUtilityButton syncStatus={syncStatus} {...syncProps} />
-      {pageButton("statistik", "statistics", "Statistik öffnen", BarChart3)}
-      {themeButton}
-      {pageButton("hilfe", "help", "Hilfe öffnen", CircleHelp)}
-      <IconButton
-        type="button"
-        variant="ghost"
-        data-app-navigation="true"
-        data-navigation-utility="settings"
-        label="Einstellungen öffnen"
-        icon={Settings}
-        onClick={onOpenSettings}
-        onPointerEnter={syncProps.onPreloadSettings}
-        onFocus={syncProps.onPreloadSettings}
-        onTouchStart={syncProps.onPreloadSettings}
-        className={`size-button shrink-0 rounded-control ${settingsOpen ? "!bg-core-subtle !text-core-action" : ""}`}
-        aria-expanded={settingsOpen}
-      />
+      <Popover.Root>
+        <Popover.Trigger asChild>
+          <IconButton
+            ref={menuButtonRef}
+            type="button"
+            variant="ghost"
+            data-app-navigation="true"
+            data-navigation-utility="menu"
+            label="Menü"
+            icon={Menu}
+            onPointerEnter={syncProps.onPreloadSettings}
+            onFocus={syncProps.onPreloadSettings}
+            onTouchStart={syncProps.onPreloadSettings}
+            className={`size-button shrink-0 rounded-control ${menuTargetActive ? "!bg-core-subtle !text-core-action" : ""}`}
+          />
+        </Popover.Trigger>
+        <Popover.Portal>
+          <Popover.Content align="end" sideOffset={8} collisionPadding={16} className="core-overlay z-[60] grid w-56 gap-0.5 rounded-panel p-1.5" data-navigation-menu="true">
+            <Popover.Close asChild>
+              <button type="button" className="core-menu-row" data-navigation-utility="settings" onClick={() => {
+                // The dialog remembers the focused element as return target when it mounts, before the popover refocuses its trigger.
+                menuButtonRef.current?.focus();
+                onOpenSettings();
+              }}>
+                <Settings size={16} aria-hidden="true" />Einstellungen
+              </button>
+            </Popover.Close>
+            {pageRow("statistik", "statistics", "Statistik", BarChart3)}
+            {pageRow("hilfe", "help", "Hilfe", CircleHelp)}
+          </Popover.Content>
+        </Popover.Portal>
+      </Popover.Root>
     </div>
   );
 }
@@ -236,9 +316,10 @@ function SimulationStatus({ simulationDateLabel, simulationOffsetMinutes, onRese
   );
 }
 
-function DesktopTopBar({ back, navigationItems, activeView, simulationOffsetMinutes, simulationDateLabel, pomodoroTimer, onNavigate, onPreloadView, onResetSimulation, theme, onToggleTheme, manualSync, onSyncNow, onOpenSyncSettings, settingsOpen, onOpenSettings, onPreloadSettings }: ResponsiveNavigationProps) {
+function DesktopTopBar({ back, hidden, instant, headerRef, navigationItems, activeView, simulationOffsetMinutes, simulationDateLabel, pomodoroTimer, onNavigate, onPreloadView, onResetSimulation, manualSync, onSyncNow, onOpenSyncSettings, settingsOpen, onOpenSettings, onPreloadSettings }: ResponsiveNavigationProps) {
   return (
-    <header className="core-shell-header hidden min-w-0 xl:block" data-navigation-layout="top-bar" data-shell-mode={back ? "app" : "hub"}>
+    // Placed over the scrolling content region (App), so hiding it frees the space instead of leaving an empty row.
+    <header ref={headerRef} className="core-shell-header hidden min-w-0 xl:relative xl:z-30 xl:col-start-1 xl:row-start-1 xl:mr-[var(--shell-scrollbar,0px)] xl:block" data-navigation-layout="top-bar" data-shell-mode={back ? "app" : "hub"} data-shell-hidden={hidden || undefined} data-shell-instant={instant || undefined}>
       <div className="core-shell-frame">
         <div className="core-shell-bar mx-auto grid max-w-7xl grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-4 px-6" data-shell-bar="true">
           <ShellLead back={back} brandClassName="core-brand" onNavigate={onNavigate} />
@@ -270,7 +351,7 @@ function DesktopTopBar({ back, navigationItems, activeView, simulationOffsetMinu
 
           <div className="flex min-w-0 items-center justify-end gap-3">
             <PomodoroProgress timer={pomodoroTimer} variant="header" />
-            <NavigationUtilityButtons activeView={activeView} theme={theme} onNavigate={onNavigate} onPreloadView={onPreloadView} onToggleTheme={onToggleTheme} manualSync={manualSync} onSyncNow={onSyncNow} onOpenSyncSettings={onOpenSyncSettings} settingsOpen={settingsOpen} onOpenSettings={onOpenSettings} onPreloadSettings={onPreloadSettings} />
+            <NavigationUtilityButtons activeView={activeView} onNavigate={onNavigate} onPreloadView={onPreloadView} manualSync={manualSync} onSyncNow={onSyncNow} onOpenSyncSettings={onOpenSyncSettings} settingsOpen={settingsOpen} onOpenSettings={onOpenSettings} onPreloadSettings={onPreloadSettings} />
           </div>
         </div>
       </div>
@@ -279,14 +360,14 @@ function DesktopTopBar({ back, navigationItems, activeView, simulationOffsetMinu
   );
 }
 
-function MobileHeader({ back, activeView, simulationOffsetMinutes, simulationDateLabel, pomodoroTimer, onNavigate, onPreloadView, onResetSimulation, theme, onToggleTheme, manualSync, onSyncNow, onOpenSyncSettings, settingsOpen, onOpenSettings, onPreloadSettings }: ResponsiveNavigationProps) {
+function MobileHeader({ back, hidden, instant, headerRef, activeView, simulationOffsetMinutes, simulationDateLabel, pomodoroTimer, onNavigate, onPreloadView, onResetSimulation, manualSync, onSyncNow, onOpenSyncSettings, settingsOpen, onOpenSettings, onPreloadSettings }: ResponsiveNavigationProps) {
   return (
-    <header className="core-mobile-header core-shell-header sticky top-0 z-30 min-w-0 xl:hidden" data-navigation-layout="mobile-header" data-shell-mode={back ? "app" : "hub"}>
+    <header ref={headerRef} className="core-mobile-header core-shell-header sticky top-0 z-30 min-w-0 xl:hidden" data-navigation-layout="mobile-header" data-shell-mode={back ? "app" : "hub"} data-shell-hidden={hidden || undefined} data-shell-instant={instant || undefined}>
       <div className="core-shell-frame">
         <div className="core-shell-bar flex min-w-0 items-center justify-between gap-3 px-3" data-shell-bar="true">
           <ShellLead back={back} brandClassName="core-mobile-brand core-brand" onNavigate={onNavigate} />
           <PomodoroProgress timer={pomodoroTimer} variant="header" />
-          <NavigationUtilityButtons activeView={activeView} theme={theme} onNavigate={onNavigate} onPreloadView={onPreloadView} onToggleTheme={onToggleTheme} manualSync={manualSync} onSyncNow={onSyncNow} onOpenSyncSettings={onOpenSyncSettings} settingsOpen={settingsOpen} onOpenSettings={onOpenSettings} onPreloadSettings={onPreloadSettings} />
+          <NavigationUtilityButtons activeView={activeView} onNavigate={onNavigate} onPreloadView={onPreloadView} manualSync={manualSync} onSyncNow={onSyncNow} onOpenSyncSettings={onOpenSyncSettings} settingsOpen={settingsOpen} onOpenSettings={onOpenSettings} onPreloadSettings={onPreloadSettings} />
         </div>
       </div>
       {simulationOffsetMinutes > 0 ? <div className="core-shell-status px-2"><SimulationStatus simulationDateLabel={simulationDateLabel} simulationOffsetMinutes={simulationOffsetMinutes} onResetSimulation={onResetSimulation} /></div> : null}
@@ -332,20 +413,20 @@ function MobileBottomNavigation({ navigationItems, activeView, onNavigate, onPre
 }
 
 export function AppNavigation(props: AppNavigationProps) {
-  const [theme, setTheme] = React.useState(readCoreTheme);
   const navigationActiveView = props.activeView === "simulator" ? "lernen" : props.activeView;
   const mobileBottomNavigation = <MobileBottomNavigation {...props} activeView={navigationActiveView} />;
-  const responsiveProps = {
-    ...props,
-    activeView: navigationActiveView,
-    theme,
-    onToggleTheme: () => setTheme(toggleCoreTheme),
-  };
+  const desktopRef = React.useRef<HTMLElement>(null);
+  const mobileRef = React.useRef<HTMLElement>(null);
+  const headerRefs = React.useMemo(() => [desktopRef, mobileRef], []);
+  const hidden = useHiddenOnScrollDown(`${props.activeView}:${props.back?.title ?? ""}`, headerRefs, props.scrollRegionRef);
+  useShellOffsets(hidden, headerRefs, props.scrollRegionRef);
+  const instant = !useFirstInput();
+  const responsiveProps = { ...props, activeView: navigationActiveView, hidden, instant };
 
   return (
     <>
-      <DesktopTopBar {...responsiveProps} />
-      <MobileHeader {...responsiveProps} />
+      <DesktopTopBar {...responsiveProps} headerRef={desktopRef} />
+      <MobileHeader {...responsiveProps} headerRef={mobileRef} />
       {typeof document === "undefined" ? mobileBottomNavigation : createPortal(mobileBottomNavigation, document.body)}
     </>
   );

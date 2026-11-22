@@ -1,6 +1,7 @@
 import { expect, test, type Page } from "@playwright/test";
 import { clearAuthMailbox, extractAuthConfirmationUrl, waitForAuthEmail } from "./support/authMailbox.ts";
 import { loadLocalAuthLifecycleEnvironment } from "./support/e2eEnvironment.ts";
+import { openNavigationMenuItem } from "./support/navigationMenu.ts";
 
 const environment = loadLocalAuthLifecycleEnvironment();
 
@@ -100,7 +101,7 @@ async function expectAuthenticated(page: Page) {
 }
 
 async function signOut(page: Page) {
-  await page.getByRole("button", { name: "Einstellungen öffnen" }).click();
+  await openNavigationMenuItem(page, "Einstellungen");
   await page.getByRole("button", { name: "Abmelden" }).click();
   await expect(page.getByRole("heading", { name: "Login" })).toBeVisible();
 }

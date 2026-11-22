@@ -1,5 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 import { loadEnv } from "vite";
+import { switchColorScheme } from "./support/navigationMenu.ts";
 
 async function openCatalogFlow(page: Page) {
   await page.goto("/docs/ui-elements.html?preview=screens");
@@ -322,7 +323,7 @@ for (const theme of ["light", "dark"] as const) {
     await page.setViewportSize({ width: 1440, height: 900 });
     await installEmptyAccount(page);
     await page.goto("/neue-karten?method=ai-source");
-    if (theme === "dark") await page.getByRole("button", { name: "Dark Mode einschalten", exact: true }).click();
+    if (theme === "dark") await switchColorScheme(page, "dark");
     const panel = page.getByTestId("ai-source-creation");
     await panel.locator('input[type="file"]').setInputFiles(sourceFile);
     await panel.getByLabel("Stapelname").fill("Biologie – Zellatmung");
@@ -354,7 +355,7 @@ for (const theme of ["light", "dark"] as const) {
     test.skip(!process.env.CORE_VISUAL_OUTPUT, "Die vollständige Sichtmatrix wird gezielt ausgeführt.");
     await installEmptyAccount(page);
     await page.goto("/neue-karten");
-    if (theme === "dark") await page.getByRole("button", { name: "Dark Mode einschalten", exact: true }).click();
+    if (theme === "dark") await switchColorScheme(page, "dark");
     for (const width of [767, 768, 1279, 1280]) {
       await page.setViewportSize({ width, height: 900 });
       await expect(page.getByRole("button", { name: "Karten automatisch erstellen lassen", exact: true })).toBeVisible();
@@ -370,7 +371,7 @@ for (const theme of ["light", "dark"] as const) {
       await installEmptyAccount(page);
       await page.goto("/neue-karten");
       await expect(page.getByRole("button", { name: "Karten automatisch erstellen lassen", exact: true })).toBeVisible();
-      if (theme === "dark") await page.getByRole("button", { name: "Dark Mode einschalten", exact: true }).click();
+      if (theme === "dark") await switchColorScheme(page, "dark");
       async function capture(state: string) {
         await page.screenshot({ path: testInfo.outputPath(`${state}.png`), animations: "disabled", fullPage: state !== "select-open" && state !== "draft-dialog" && !state.startsWith("catalog-") });
         expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth ? [] : [...document.querySelectorAll("main *")]

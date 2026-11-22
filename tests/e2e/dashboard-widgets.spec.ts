@@ -3,6 +3,7 @@ import { execFileSync } from "node:child_process";
 import { pathToFileURL } from "node:url";
 import path from "node:path";
 import { matrixThemes, matrixViewports, visualOutput } from "./support/visualMatrix.ts";
+import { switchColorScheme } from "./support/navigationMenu.ts";
 
 const sizes = matrixViewports([[320, 720], [360, 800], [390, 844], [430, 932], [639, 900], [640, 900], [999, 900], [1000, 900], [1280, 720], [1440, 900]].map(([width, height]) => ({ width, height })));
 const defaults = ["learning", "motivation", "timer", "decks", "todos", "heatmap"];
@@ -19,7 +20,7 @@ async function openEditor(page: Page, dark = false) {
   await page.goto("/docs/ui-elements.html?preview=dashboard");
   if (dark) {
     await page.getByRole("button", { name: "Produktansicht schließen", exact: true }).click();
-    await page.getByRole("button", { name: "Dark Mode einschalten", exact: true }).click();
+    await switchColorScheme(page, "dark");
     await page.getByRole("button", { name: "Tagesübersicht öffnen", exact: true }).click();
   }
   await page.getByRole("button", { name: "Seite bearbeiten", exact: true }).click();
@@ -517,7 +518,7 @@ for (const { width, height } of sizes) for (const theme of matrixThemes) {
     await page.goto("/docs/ui-elements.html?preview=exams");
     if (theme === "dark") {
       await page.getByRole("button", { name: "Produktansicht schließen", exact: true }).click();
-      await page.getByRole("button", { name: "Dark Mode einschalten", exact: true }).click();
+      await switchColorScheme(page, "dark");
       await page.getByRole("button", { name: "Prüfungen öffnen", exact: true }).click();
     }
     const checklist = page.getByTestId("dashboard-exam-unit");

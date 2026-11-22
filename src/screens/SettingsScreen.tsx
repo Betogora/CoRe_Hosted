@@ -9,6 +9,8 @@ import { formatFieldTimingsReport, readFieldTimingContext } from "../fieldTiming
 import { ActionButton, CrossLinkButton } from "../ui/actionUi.tsx";
 import { CoreSegmentedControl } from "../ui/coreUi.tsx";
 import { ColorPicker } from "../ui/ColorPicker.tsx";
+import { CoreSwitch } from "../ui/formControls.tsx";
+import { readCoreTheme, toggleCoreTheme } from "../coreTheme.ts";
 import { useHeatmapHistoryColor } from "../ui/StudyHeatmap.tsx";
 import { useSuccessToast } from "../ui/feedbackUi.tsx";
 import { createGeneralSettingsDraft, settingsDraftsEqual, type GeneralSettingsDraft } from "../settingsDraft.ts";
@@ -49,6 +51,7 @@ export function SettingsScreen({ section, focusConflicts = false, profile, onSav
   const [accountBusy, setAccountBusy] = React.useState(false);
   const setSuccessToast = useSuccessToast();
   const [heatmapColor, setHeatmapColor] = useHeatmapHistoryColor();
+  const [theme, setTheme] = React.useState(readCoreTheme);
   const workspaceStore = useWorkspaceStore();
   const fieldTimingsAvailable = React.useMemo(() => section === "ueber" && Object.keys(readFieldTimings()).length > 0, [section]);
   React.useEffect(() => {
@@ -171,6 +174,12 @@ export function SettingsScreen({ section, focusConflicts = false, profile, onSav
         <section id={sectionIds.appearance} className="core-settings-section" aria-labelledby="settings-appearance-heading">
           <h2 id="settings-appearance-heading" tabIndex={-1} className="core-heading-2 text-core-text outline-none">Darstellung</h2>
           <div className="core-settings-list">
+            <div className="core-settings-row" data-layout="inline">
+              <span className="core-settings-row-title">Dark Mode</span>
+              <div className="core-settings-row-control">
+                <CoreSwitch aria-label="Dark Mode" checked={theme === "dark"} onCheckedChange={() => setTheme(toggleCoreTheme)} />
+              </div>
+            </div>
             <div className="core-settings-row" data-layout="inline">
               <span className="core-settings-row-title">Heatmap-Farbe</span>
               <div className="core-settings-row-control">

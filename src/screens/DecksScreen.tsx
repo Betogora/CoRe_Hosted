@@ -130,8 +130,6 @@ export function DecksScreen({
     const frame = window.requestAnimationFrame(() => {
       const navigation = contentNavigationRef.current;
       if (!navigation) return;
-      const headerHeight = document.querySelector('[data-navigation-layout="mobile-header"]')?.getBoundingClientRect().height ?? 0;
-      navigation.style.scrollMarginTop = `${headerHeight}px`;
       navigation.scrollIntoView({ block: "start" });
       navigation.querySelector<HTMLElement>("[data-screen-heading]")?.focus({ preventScroll: true });
     });

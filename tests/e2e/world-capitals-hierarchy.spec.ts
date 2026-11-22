@@ -2,6 +2,7 @@ import { expect, test, type Locator, type Page } from "@playwright/test";
 import { createCoreDeck } from "../../src/coreModel.ts";
 import { readActiveAccountState, resetToFreshLocalState } from "./support/appState.ts";
 import { deckSettingsDialog, openSettingsArea } from "./support/settingsDialog.ts";
+import { openNavigationMenuItem } from "./support/navigationMenu.ts";
 
 const DECK_IDS = {
   root: "deck_world_capitals",
@@ -223,7 +224,7 @@ test("deck drag focus uses square row holes with desktop top bar and mobile bott
 
 test("statistics deck filter uses full-width selection rows while keeping multiple selection", async ({ page }) => {
   await resetToFreshLocalState(page);
-  await page.getByRole("button", { name: "Statistik öffnen" }).click();
+  await openNavigationMenuItem(page, "Statistik");
 
   const trigger = page.getByRole("combobox", { name: /Stapel filtern/ });
   await trigger.click();

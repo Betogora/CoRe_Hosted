@@ -8,6 +8,7 @@ import { readActiveAccountState, resetToFreshLocalState } from "./support/appSta
 import { loadE2EEnvironment } from "./support/e2eEnvironment.ts";
 import { seedAccountState } from "../support/seedAccountState.ts";
 import { openSettingsArea, settingsDialog } from "./support/settingsDialog.ts";
+import { openNavigationMenuItem } from "./support/navigationMenu.ts";
 
 const REIMPORT_FIXTURE = fileURLToPath(new URL("../../fixtures/apkg/matrix/standard-legacy2.apkg", import.meta.url));
 
@@ -422,7 +423,7 @@ test("[Vertrag: KI-Basic-Variante] @golden-e2e @beta-core @hosted-core abgefange
   await page.getByRole("button", { name: "Detailansicht schließen" }).click();
   // The editor's message outlives the dialog and lies over the navigation until it is dismissed.
   await page.getByRole("button", { name: "Erfolgsmeldung schließen" }).click();
-  await page.getByRole("button", { name: "Einstellungen öffnen" }).click();
+  await openNavigationMenuItem(page, "Einstellungen");
   await openSettingsArea(settingsDialog(page), "daten");
   await page.getByRole("button", { name: "Jetzt synchronisieren" }).click();
   await waitForCloudCard(deck.cards[0].id, (card) => card.variants.some((variant: { meta?: { generationSource?: string } }) => variant.meta?.generationSource === "ai_generated"));
