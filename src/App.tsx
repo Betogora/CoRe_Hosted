@@ -185,8 +185,9 @@ function AppContent() {
       observer = new MutationObserver(() => {
         const loadedHeading = region.querySelector<HTMLElement>("[data-screen-heading]");
         if (!loadedHeading || loadedHeading === heading) return;
-        // A lazy screen finishes after the user may have moved on, e.g. into the navigation menu; that focus stays.
-        if (!region.contains(document.activeElement) && document.activeElement !== document.body) return void observer?.disconnect();
+        // Focus the user moved on to meanwhile (e.g. the menu) stays; a removed element may still be reported as focused.
+        const active = document.activeElement;
+        if (active?.isConnected && active !== document.body && !region.contains(active)) return void observer?.disconnect();
         loadedHeading.focus();
         observer?.disconnect();
         observer = null;
@@ -283,9 +284,7 @@ function AppContent() {
     if (generateOnCoreEnable) variantBatch.start(deck, { deckSettings: { ...deck.deckSettings, coreMode: "on" } });
   }
 
-  if (authPhase === "checking-session") {
-    return <LoadingScreen message="Sitzung wird geprüft." />;
-  }
+  if (authPhase === "checking-session") return <LoadingScreen message="Sitzung wird geprüft." />;
 
   if (authPhase === "loading-cloud") {
     return (
