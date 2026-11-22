@@ -295,7 +295,7 @@ export function DeckSettingsScreen({ section, onSelectSection, deck, decks, lear
                   <span className="core-settings-row-title">Kartenvarianten</span>
                   <p className="core-settings-row-hint" data-testid="deck-settings-variant-count">{variantGenerationRunning ? "Es läuft bereits eine Generierung."
                     : cardsWithoutVariant === null ? `Je eine Variante für bis zu ${CARD_VARIANT_BATCH_LIMIT} Karten, nacheinander im Hintergrund.`
-                      : cardsWithoutVariant === 0 ? "Alle Karten haben eine Variante."
+                      : cardsWithoutVariant === 0 ? "Keine Karte wartet auf eine Variante."
                         : `${cardsWithoutVariant.toLocaleString("de-DE")} ${cardsWithoutVariant === 1 ? "Karte" : "Karten"} ohne Variante`}</p>
                 </div>
                 <div className="core-settings-row-control">
@@ -346,7 +346,7 @@ export function DeckSettingsScreen({ section, onSelectSection, deck, decks, lear
       <ActionDialog
         open={refreshDialogOpen}
         title="Varianten neu generieren?"
-        description={`Karten, deren Varianten aus einer älteren Version der Generierung stammen, erhalten je eine neue Variante – bis zu ${CARD_VARIANT_BATCH_LIMIT} pro Durchgang. Ihre bisherigen Varianten werden dabei gelöscht, auch abgeschaltete und gemeldete. Lernstand und Karten bleiben unverändert.`}
+        description={`Karten, deren Varianten aus einer älteren Version der Generierung stammen, erhalten je eine neue Variante – bis zu ${CARD_VARIANT_BATCH_LIMIT} pro Durchgang. Ihre bisherigen Varianten werden dabei gelöscht, auch abgeschaltete und gemeldete. Karten, die eine ältere Version nicht umformulieren konnte, werden erneut versucht. Lernstand und Karten bleiben unverändert.`}
         confirmLabel="Neu generieren"
         cancelLabel="Abbrechen"
         actionIcons={{ confirm: RefreshCw }}

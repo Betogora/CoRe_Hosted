@@ -9,6 +9,7 @@ import {
   storedCatalogRecord,
   transactionDone,
   variantRecord,
+  type StoredCard,
   type StoredCardCatalog,
 } from "./indexedDbStore.ts";
 import type { createStudyOverview } from "./indexedDbStudyOverview.ts";
@@ -29,7 +30,7 @@ export function createReviewWrites({ userId, database, enqueueWrite, outbox, stu
   /** Catalog history of a card before each answer of this app session, so taking the answer back restores it. */
   const historyBeforeAnswer = new Map<string, CatalogReviewHistory>();
 
-  const write = (result: ReviewAnswerResult, card: Card, variant: CardVariant | null, type: "review-atomic" | "review-undo", at: string, catalogFor: (stored: StoredCardCatalog | null, note: Note | null) => StoredCardCatalog | null) => {
+  const write = (result: ReviewAnswerResult, card: Card, variant: CardVariant | null, type: "review-atomic" | "review-undo", at: string, catalogFor: (stored: StoredCardCatalog | null, note: Note | null, card: Card) => StoredCardCatalog | null) => {
     const { deck, event } = result;
     const takenBack = type === "review-undo";
     const mutation: SyncOutboxMutation = {
@@ -54,10 +55,14 @@ export function createReviewWrites({ userId, database, enqueueWrite, outbox, stu
     studyOverview.countReview(event.answeredAt, takenBack ? -1 : 1);
     void enqueueWrite(async () => {
       const transaction = database.transaction(REVIEW_STORES, "readwrite");
+      const cards = transaction.objectStore(STORE.cards);
       const catalogStore = transaction.objectStore(STORE.cardCatalog);
+      // An answer owns only the study state: the session's copy can predate a write such as a variant refusal.
+      const storedCard = await requestResult<StoredCard | undefined>(cards.get(card.id));
+      const answered: Card = storedCard ? { ...storedCard, study: card.study, studyRevision: card.studyRevision, updatedAt: card.updatedAt, variants: card.variants } : card;
       const storedCatalog = await requestResult<StoredCardCatalog | undefined>(catalogStore.get(card.id)) ?? null;
       const note = await requestResult<Note | undefined>(transaction.objectStore(STORE.notes).get(card.noteId)) ?? null;
-      const catalog = catalogFor(storedCatalog, note);
+      const catalog = catalogFor(storedCatalog, note, answered);
       if (takenBack) transaction.objectStore(STORE.reviewEvents).delete(event.id);
       if (catalog) {
         await studyOverview.applyReplicaCatalogChange(transaction, deck.id, storedCatalog, catalog, at);
@@ -66,7 +71,7 @@ export function createReviewWrites({ userId, database, enqueueWrite, outbox, stu
       }
       // Counted against the other answers of the day: before an answer is stored, after a take-back removed it.
       await studyOverview.countReviewInOverview(transaction, event, deck.id, takenBack ? -1 : 1);
-      transaction.objectStore(STORE.cards).put(cardRecord(card));
+      cards.put(cardRecord(answered));
       if (variant) transaction.objectStore(STORE.variants).put(variantRecord(variant, card.deckId));
       if (!takenBack) transaction.objectStore(STORE.reviewEvents).put(event);
       transaction.objectStore(STORE.outbox).put(mutation);
@@ -80,10 +85,10 @@ export function createReviewWrites({ userId, database, enqueueWrite, outbox, stu
   return {
     recordReview(result: ReviewAnswerResult) {
       const { event, updatedCard, variant } = result;
-      write(result, updatedCard, variant, "review-atomic", event.answeredAt, (previous, note) => {
+      write(result, updatedCard, variant, "review-atomic", event.answeredAt, (previous, note, answered) => {
         historyBeforeAnswer.set(event.id, catalogReviewHistory(previous));
         const history = withStudyEvents(previous, [event]);
-        return note ? catalogRecordFor(updatedCard, note, history) : storedCatalogRecord({ ...catalogEntryFromCard(updatedCard, null, history), ...(previous ? { frontPreview: previous.frontPreview, sortText: previous.sortText, normalizedSearchText: previous.normalizedSearchText, marked: previous.marked, tagKeys: previous.tagKeys, editedAt: previous.editedAt, contentKind: previous.contentKind, noteTypeId: previous.noteTypeId } : {}) });
+        return note ? catalogRecordFor(answered, note, history) : storedCatalogRecord({ ...catalogEntryFromCard(answered, null, history), ...(previous ? { frontPreview: previous.frontPreview, sortText: previous.sortText, normalizedSearchText: previous.normalizedSearchText, marked: previous.marked, tagKeys: previous.tagKeys, editedAt: previous.editedAt, contentKind: previous.contentKind, noteTypeId: previous.noteTypeId, variantRefused: previous.variantRefused } : {}) });
       });
       return result;
     },
@@ -96,7 +101,7 @@ export function createReviewWrites({ userId, database, enqueueWrite, outbox, stu
       const at = new Date(Math.max(Date.now(), Date.parse(result.event.answeredAt))).toISOString();
       const card: Card = { ...previous, studyRevision: result.updatedCard.studyRevision + 1, updatedAt: at };
       const variant = result.variant ? previous.variants.find((candidate) => candidate.id === result.variant!.id) ?? null : null;
-      write(result, card, variant && { ...variant, updatedAt: at }, "review-undo", at, (_, note) => note ? catalogRecordFor(card, note, historyBeforeAnswer.get(result.event.id)) : null);
+      write(result, card, variant && { ...variant, updatedAt: at }, "review-undo", at, (_, note, answered) => note ? catalogRecordFor(answered, note, historyBeforeAnswer.get(result.event.id)) : null);
       return card;
     },
   };

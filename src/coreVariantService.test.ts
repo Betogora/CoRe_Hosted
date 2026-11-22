@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { addCardVariant, createBasicNote, createManualNoteContent, createNote } from "./coreModel.ts";
-import { createAiCardVariantRequest } from "./aiCardVariantContract.ts";
+import { AI_CARD_VARIANT_PROMPT_VERSION, createAiCardVariantRequest } from "./aiCardVariantContract.ts";
 import {
   cardVariantSource,
   classifyCardEligibility,
@@ -9,6 +9,7 @@ import {
   deleteVariant,
   describeVariantReadiness,
   editVariantText,
+  hasOlderVariantRefusal,
   isEditedVariant,
   needsNextVariant,
   nextVariantStage,
@@ -268,6 +269,17 @@ test("Vorausschau: die nächste Variante entsteht, sobald die Haltbarkeit die Fr
   assert.equal(needsNextVariant(note, matureCard(20, 2), { ...ON, maxActiveVariantsPerCard: 3 }), true);
   assert.equal(needsNextVariant(note, ready, { ...ON, variantThresholdDays: 60 }), false, "die Haltbarkeit reicht noch nicht");
   assert.equal(needsNextVariant(note, ready, { ...ON, coreMode: "off" }), false);
+});
+
+test("eine gültige Sperre hält die Vorausschau fern; nach einer Inhaltsänderung oder unter der Grenze nicht", () => {
+  const { note, cards } = createBasicNote("deck", "Frage", "Antwort");
+  const ready = { ...matureCard(20, 0), noteId: cards[0].noteId, variants: [] };
+  const refusal = { state: "not_rephrasable" as const, failures: 0, promptVersion: AI_CARD_VARIANT_PROMPT_VERSION, contentRevision: note.contentRevision, updatedAt: RELEASED };
+  assert.equal(needsNextVariant(note, { ...ready, variantRefusal: refusal }, ON), false);
+  assert.equal(needsNextVariant(note, { ...ready, variantRefusal: { ...refusal, state: null, failures: 2 } }, ON), true, "Fehlversuche unter der Grenze sperren nicht");
+  assert.equal(needsNextVariant({ ...note, contentRevision: note.contentRevision + 1 }, { ...ready, variantRefusal: refusal }, ON), true);
+  assert.equal(hasOlderVariantRefusal(note, { variantRefusal: refusal }), false);
+  assert.equal(hasOlderVariantRefusal(note, { variantRefusal: { ...refusal, promptVersion: "card-variant-v0" } }), true);
 });
 
 test("Bereitschaft nennt Lernstufe, Schwelle und Variantenzahl des Stapels", () => {
