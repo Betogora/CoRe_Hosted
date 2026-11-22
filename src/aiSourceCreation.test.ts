@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   AI_SOURCE_AMOUNTS, AI_SOURCE_ANSWER_LENGTHS, AI_SOURCE_CARD_FORMS, AI_SOURCE_LANGUAGES, AI_SOURCE_PRIOR_KNOWLEDGE, AI_SOURCE_REGISTERS,
-  aiSourceFileError, buildAiSourceCreationPrompt, createAiSourceCreationDraft, describeAiSourceSettings,
+  aiSourceFileError, buildAiSourceCreationPrompt, createAiSourceCreationDraft, describeAiSourceSettings, estimateAiSourceCards,
   suggestSourceDeckName, validateAiSourceCreation,
 } from "./aiSourceCreation.ts";
 
@@ -96,4 +96,16 @@ test("text sources are required only in text mode and cannot bypass file validat
   draft.sourceMode = "file";
   draft.file = null;
   assert.match(validateAiSourceCreation(draft, []).source!, /Quelldatei/);
+});
+
+test("the card estimate grows with source length and amount and names the proposal limit", () => {
+  const ranges = AI_SOURCE_AMOUNTS.map(({ value }) => estimateAiSourceCards(10_000, value));
+  for (const range of ranges) assert.match(range, /^Etwa \d+–\d+ Karten$/);
+  const lows = ranges.map((range) => Number(range.match(/\d+/)![0]));
+  assert.ok(lows[0]! < lows[1]! && lows[1]! < lows[2]!, ranges.join(" / "));
+  assert.equal(estimateAiSourceCards(1, "less"), "Etwa 1 Karte");
+  const [low, high] = AI_SOURCE_AMOUNTS[2].density;
+  assert.match(estimateAiSourceCards(100_000 / ((low + high) / 2), "more"), /^Etwa \d+–100 Karten$/);
+  assert.equal(estimateAiSourceCards(100_000 / AI_SOURCE_AMOUNTS[0].density[0], "less"), "Etwa 100 Karten");
+  assert.equal(estimateAiSourceCards(400_000, "less"), "Mehr als 100 Karten möglich, erstellt werden höchstens 100");
 });

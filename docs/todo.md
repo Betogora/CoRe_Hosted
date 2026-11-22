@@ -11,10 +11,11 @@ externen Release fällig. „Später“ ist geparkt.
 
 ## P2: Karten aus einer Quelle per KI erstellen
 
-- [ ] **Formular (Agenda 3.1–3.6):** drei Schritte Zielstapel, Kartenformen,
-      Vorgaben im gemeinsamen Schrittbaustein (`Steps`);
-      Kartenmenge als Stufe mit Hochrechnung, vorher recherchieren, wie
-      andere Apps das lösen, danach Mischung und Lernziele entscheiden.
+- [ ] **Dichte der Kartenmenge messen:** Die Spannen je Stufe beruhen auf
+      vorläufigen Dichten (`AI_SOURCE_AMOUNTS` in `aiSourceCreation.ts`).
+      Nachweis: je Stufe ein Lauf über die fünf Prüfdokumente in
+      `fixtures/ai-source/`, Vorschläge je 1.000 gelesene Zeichen, Ergebnis
+      im [Verlauf](history.md).
 
 ## P5: KI-Eval und Hillclimb
 

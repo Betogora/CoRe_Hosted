@@ -9,11 +9,19 @@ export const MAX_AI_SOURCE_CHARS = 400_000;
 /** About 2,700 characters per page of running text. */
 export const AI_SOURCE_LIMIT_HINT = "Bis 20 MB (etwa 150 Seiten).";
 
+/** `density`: proposals per 1,000 read characters (low, high). */
 export const AI_SOURCE_AMOUNTS = [
-  { value: "less", label: "Weniger", instruction: "Erstelle Karten nur für die zentralen Kernaussagen." },
-  { value: "normal", label: "Normal", instruction: "Erstelle Karten für die Kernaussagen und wichtigen Zusammenhänge." },
-  { value: "more", label: "Mehr", instruction: "Erstelle Karten für Kernaussagen und Zusammenhänge sowie für relevante Details, Bedingungen und Ausnahmen." },
+  { value: "less", label: "Weniger", density: [1.5, 3], instruction: "Erstelle Karten nur für die zentralen Kernaussagen." },
+  { value: "normal", label: "Normal", density: [3, 6], instruction: "Erstelle Karten für die Kernaussagen und wichtigen Zusammenhänge." },
+  { value: "more", label: "Mehr", density: [5, 9], instruction: "Erstelle Karten für Kernaussagen und Zusammenhänge sowie für relevante Details, Bedingungen und Ausnahmen." },
 ] as const;
+
+export function estimateAiSourceCards(sourceChars: number, amount: AiSourceSettings["amount"]): string {
+  const [low, high] = AI_SOURCE_AMOUNTS.find(({ value }) => value === amount)!.density.map((density) => Math.max(1, Math.round(sourceChars / 1_000 * density)));
+  if (low > MAX_AI_SOURCE_CARDS) return `Mehr als ${MAX_AI_SOURCE_CARDS} Karten möglich, erstellt werden höchstens ${MAX_AI_SOURCE_CARDS}`;
+  const upper = Math.min(high, MAX_AI_SOURCE_CARDS);
+  return low === upper ? `Etwa ${low} ${low === 1 ? "Karte" : "Karten"}` : `Etwa ${low}–${upper} Karten`;
+}
 export const AI_SOURCE_ANSWER_LENGTHS = [
   { value: "brief", label: "Knapp", instruction: "Gib die kurze erwartete Antwort ohne weiterführende Erklärung aus." },
   { value: "explained", label: "Mit kurzer Erklärung", instruction: "Ergänze die kurze erwartete Antwort um eine kurze, getrennte Erklärung, wenn sie das Verständnis verbessert." },

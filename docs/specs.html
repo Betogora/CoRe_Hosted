@@ -6318,15 +6318,6 @@ button.core-steps-step {
   background: var(--core-action-soft);
   box-shadow: inset 0 0 0 2px var(--core-action-primary);
 }
-.core-ai-source-target {
-  display: flex;
-  align-items: center;
-  gap: var(--core-space-md);
-  border: var(--core-border-width) solid var(--core-border);
-  border-radius: var(--core-radius-control);
-  padding: var(--core-space-xs) var(--core-space-xs) var(--core-space-xs) var(--core-space-md);
-  background: var(--core-surface);
-}
 @media (max-width: 639px) {
   .core-ai-source-column { padding: var(--core-space-lg); }
 }
@@ -6679,20 +6670,6 @@ button.core-steps-step {
 
   .motion-reduce\:transition-none {
     transition-property: none;
-  }
-}
-@media not all and (min-width: 1280px) {
-
-  .max-xl\:sr-only {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    padding: 0;
-    margin: -1px;
-    overflow: hidden;
-    clip: rect(0, 0, 0, 0);
-    white-space: nowrap;
-    border-width: 0;
   }
 }
 @media not all and (min-width: 1024px) {
@@ -7515,14 +7492,6 @@ button.core-steps-step {
     display: block;
   }
 
-  .xl\:flex {
-    display: flex;
-  }
-
-  .xl\:grid {
-    display: grid;
-  }
-
   .xl\:hidden {
     display: none;
   }
@@ -7566,10 +7535,6 @@ button.core-steps-step {
 
   .xl\:grid-cols-\[minmax\(19rem\2c 0\.65fr\)_minmax\(38rem\2c 1\.35fr\)\] {
     grid-template-columns: minmax(19rem,0.65fr) minmax(38rem,1.35fr);
-  }
-
-  .xl\:items-start {
-    align-items: flex-start;
   }
 
   .xl\:gap-10 {
@@ -8269,15 +8234,15 @@ html:has(.catalog-preview) { scroll-behavior: auto; }
 <h3 id="specs--automatisch-aus-einer-quelle" class="core-heading-3" tabindex="-1">Automatisch aus einer Quelle <a class="docs-anchor" href="#specs--automatisch-aus-einer-quelle" aria-label="Link zu Automatisch aus einer Quelle">#</a></h3>
 <p>Aus einer eigenen Quelle schlägt die KI Karten vor; gespeichert wird erst, was die Lernenden geprüft und übernommen haben.</p>
 <ul>
-<li>Ein Auftrag besteht aus Quelle (eine Datei als PDF, Text, Markdown, CSV oder TSV oder eingefügter Text), genau einem Zielstapel (neu oder vorhanden), Lernwünschen und erlaubten Kartenformen.</li>
-<li>Lernwünsche sind Kartenmenge, Antwortumfang, Sprache, Formulierung, Vorwissen und freie Wünsche. Kartenmenge und Antwortumfang sind unabhängig: Mehr Karten bedeuten nicht längere Antworten.</li>
-<li>Die Kartenmenge (weniger, normal, mehr) bestimmt, wie viel Stoff abgefragt wird. Ein Auftrag ergibt höchstens 100 Vorschläge und nur so viele, wie die Quelle trägt; Füllkarten entstehen nicht.</li>
-<li>Kartenformen (Frage–Antwort, Lückentext, Single Choice, Multiple Choice) werden erlaubt, nicht erzwungen; passende Abruf-, Verständnis- und Anwendungsfragen werden ohne feste Quoten gemischt.</li>
-<li>Karten stammen nur aus der Quelle. Jede Karte nennt ihre Stelle (PDF-Seite oder Zeilen der Datei); Belege werden nie erfunden.</li>
-<li>Die Quelle wird nur im Browser gelesen. Leere, geschützte, gescannte oder zu große Quellen (20 MiB, 400.000 Zeichen) werden abgewiesen, nie still gekürzt; Seiten ohne Textlayer werden genannt.</li>
-<li>Größere Quellen laufen abschnittweise im geöffneten Tab mit Fortschritt; jeder Abschnitt kennt die bisherigen Fragen. Abbrechen behält Erhaltenes, ein Fehler für jeden Abschnitt stoppt den Lauf, ein einzeln gescheiterter wird genannt. Ein vorzeitiges Ende oder die Obergrenze nennt die erste nicht ausgewertete Stelle.</li>
-<li>Das Ergebnis ist eine ungespeicherte Liste mit Stelle, Hinweisen der KI und Zahl verworfener Vorschläge. Jeder Vorschlag lässt sich wie im <a href="#specs--karteneditor">Karteneditor</a> bearbeiten oder verwerfen; alle zu verwerfen behält den Auftrag.</li>
-<li>Erst die Übernahme speichert die Vorschläge als Karten mit Antwort, Erklärung und Stelle in getrennten Feldern; ein neuer Zielstapel entsteht erst dabei. Scheitert sie, bleibt der Rest zum erneuten Übernehmen.</li>
+<li>Ein Auftrag besteht in dieser Reihenfolge aus Quelle (Datei als PDF, Text, Markdown, CSV oder TSV oder eingefügter Text) mit genau einem Zielstapel (neu oder vorhanden), erlaubten Kartenformen und Lernwünschen.</li>
+<li>Lernwünsche sind Kartenmenge, Antwortumfang, Sprache, Formulierung, Vorwissen und freie Wünsche; Kartenmenge und Antwortumfang sind unabhängig.</li>
+<li>Die Kartenmenge (weniger, normal, mehr) bestimmt, wie viel Stoff abgefragt wird; jede Stufe nennt eine aus der Quellenlänge geschätzte Spanne. Ein Auftrag ergibt höchstens 100 Vorschläge und nur so viele, wie die Quelle trägt; Füllkarten entstehen nicht.</li>
+<li>Kartenformen (Frage–Antwort, Lückentext, Single Choice, Multiple Choice) werden erlaubt, nicht erzwungen; Abruf-, Verständnis- und Anwendungsfragen mischen sich quotenfrei.</li>
+<li>Karten stammen nur aus der Quelle und nennen ihre Stelle (PDF-Seite oder Dateizeilen); Belege werden nie erfunden.</li>
+<li>Die Quelle wird nur im Browser und vor den Kartenformen gelesen. Leere, geschützte, gescannte oder zu große Quellen (20 MiB, 400.000 Zeichen) werden abgewiesen, nie still gekürzt; Seiten ohne Textlayer werden genannt.</li>
+<li>Größere Quellen laufen abschnittweise im offenen Tab mit Fortschritt; jeder Abschnitt kennt die bisherigen Fragen. Abbrechen behält Erhaltenes, ein Fehler für jeden Abschnitt stoppt den Lauf, ein einzeln gescheiterter wird genannt. Vorzeitiges Ende oder Obergrenze nennen die erste nicht ausgewertete Stelle.</li>
+<li>Das Ergebnis ist eine ungespeicherte Liste mit Stellen, KI-Hinweisen und Zahl verworfener Vorschläge. Jeder Vorschlag lässt sich wie im <a href="#specs--karteneditor">Karteneditor</a> bearbeiten oder verwerfen; alle zu verwerfen behält den Auftrag.</li>
+<li>Erst die Übernahme speichert die Vorschläge als Karten mit Antwort, Erklärung und Stelle in getrennten Feldern; ein neuer Zielstapel entsteht erst dabei, ein gescheiterter Rest bleibt zum erneuten Übernehmen.</li>
 <li>Ohne Verbindung ist die Erstellung gesperrt; der Entwurfsschutz gilt auch für Vorschläge.</li>
 <li><strong>Bewusst nicht:</strong> feste Kartenanzahl, Mischungsverhältnisse, Lernzielauswahl, Kprim, Eintippen, einzelne Vorschläge neu erzeugen, Abgleich mit dem Zielstapel.</li>
 </ul>
@@ -8857,7 +8822,7 @@ html:has(.catalog-preview) { scroll-behavior: auto; }
 <p>Probe: Ein Satz gehört hinein, wenn er nach einer vollständigen Neugestaltung der Oberfläche unverändert gälte und eine Abweichung davon ein fachlicher Fehler wäre.</p>
 <p>Form: Stichpunkte, ein Gedanke je Punkt. Eine neue Regel ersetzt die alte, statt sie zu ergänzen. Wo Funktionen logisch voneinander abhängen, steht ein Schaubild als <code>schaubild</code>-Block direkt beim Text und wird mit ihm geändert (Schreibweise in <a href="index.html#readme--pflege"><code>README.md</code></a>). In Schaubildern sind KI-Schritte blau, Ergebnisse grün markiert.</p>
 <h2 id="specs--codeumfang-der-produktbereiche" class="core-heading-2" tabindex="-1">Codeumfang der Produktbereiche <a class="docs-anchor" href="#specs--codeumfang-der-produktbereiche" aria-label="Link zu Codeumfang der Produktbereiche">#</a></h2>
-<p>CoRe ist eine App mit mehreren Bereichen. Die Tabelle zeigt deren Anteil am Bildschirmcode; gemeinsam genutzte Logik, UI und API stehen separat.</p><div class="docs-code-stats"><dl class="flex min-w-0 flex-col"><dt class="core-status-label text-core-muted">Bildschirmcode</dt><dd class="core-metric mt-0.5 text-core-text">7.407</dd></dl><dl class="flex min-w-0 flex-col"><dt class="core-status-label text-core-muted">Gemeinsamer Code &amp; API</dt><dd class="core-metric mt-0.5 text-core-text">48.766</dd></dl><dl class="flex min-w-0 flex-col"><dt class="core-status-label text-core-muted">Quelldateien</dt><dd class="core-metric mt-0.5 text-core-text">309</dd></dl></div><div class="docs-code-chart"><div class="docs-table-scroll" tabindex="0" role="region" aria-label="Codeumfang je Produktbereich"><table><thead><tr><th>Bereich</th><th>Zeilen</th><th>Anteil</th></tr></thead><tbody><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-status-learned)" aria-hidden="true"></span>Heute</th><td>328</td><td>4,4 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-status-new)" aria-hidden="true"></span>Lernen & Karten</th><td>2.240</td><td>30,2 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-status-in-progress)" aria-hidden="true"></span>Erstellen & Import</th><td>2.078</td><td>28,1 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-action-primary)" aria-hidden="true"></span>Prüfungen</th><td>433</td><td>5,8 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-status-due)" aria-hidden="true"></span>Statistik</th><td>629</td><td>8,5 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-progress-completed)" aria-hidden="true"></span>Konto & Sync</th><td>787</td><td>10,6 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-text-secondary)" aria-hidden="true"></span>Hilfe</th><td>912</td><td>12,3 %</td></tr></tbody></table></div></div><p class="docs-source">Beim Erzeugen gemessen: nichtleere Zeilen in <code>src/</code> und <code>api/</code> (TS/TSX) sowie <code>src/styles.css</code>. Ohne Tests, Typdeklarationen, generierte Datenbanktypen, Dokumentation und Fremdcode. Bereichszuordnung nach Bildschirmdateien in <a href="../src/screens/README.md">der Screen-Landkarte</a>; übriger Code zählt gemeinsam. Enthält Kommentare und misst weder Laufzeit noch Komplexität.</p></article></main></div><script>function initializeDocsViewer() {
+<p>CoRe ist eine App mit mehreren Bereichen. Die Tabelle zeigt deren Anteil am Bildschirmcode; gemeinsam genutzte Logik, UI und API stehen separat.</p><div class="docs-code-stats"><dl class="flex min-w-0 flex-col"><dt class="core-status-label text-core-muted">Bildschirmcode</dt><dd class="core-metric mt-0.5 text-core-text">7.438</dd></dl><dl class="flex min-w-0 flex-col"><dt class="core-status-label text-core-muted">Gemeinsamer Code &amp; API</dt><dd class="core-metric mt-0.5 text-core-text">48.764</dd></dl><dl class="flex min-w-0 flex-col"><dt class="core-status-label text-core-muted">Quelldateien</dt><dd class="core-metric mt-0.5 text-core-text">309</dd></dl></div><div class="docs-code-chart"><div class="docs-table-scroll" tabindex="0" role="region" aria-label="Codeumfang je Produktbereich"><table><thead><tr><th>Bereich</th><th>Zeilen</th><th>Anteil</th></tr></thead><tbody><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-status-learned)" aria-hidden="true"></span>Heute</th><td>328</td><td>4,4 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-status-new)" aria-hidden="true"></span>Lernen & Karten</th><td>2.240</td><td>30,1 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-status-in-progress)" aria-hidden="true"></span>Erstellen & Import</th><td>2.109</td><td>28,4 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-action-primary)" aria-hidden="true"></span>Prüfungen</th><td>433</td><td>5,8 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-status-due)" aria-hidden="true"></span>Statistik</th><td>629</td><td>8,5 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-progress-completed)" aria-hidden="true"></span>Konto & Sync</th><td>787</td><td>10,6 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-text-secondary)" aria-hidden="true"></span>Hilfe</th><td>912</td><td>12,3 %</td></tr></tbody></table></div></div><p class="docs-source">Beim Erzeugen gemessen: nichtleere Zeilen in <code>src/</code> und <code>api/</code> (TS/TSX) sowie <code>src/styles.css</code>. Ohne Tests, Typdeklarationen, generierte Datenbanktypen, Dokumentation und Fremdcode. Bereichszuordnung nach Bildschirmdateien in <a href="../src/screens/README.md">der Screen-Landkarte</a>; übriger Code zählt gemeinsam. Enthält Kommentare und misst weder Laufzeit noch Komplexität.</p></article></main></div><script>function initializeDocsViewer() {
     const theme = document.getElementById("docs-theme");
     theme.addEventListener("click", () => {
         const dark = document.documentElement.dataset.coreTheme !== "dark";
