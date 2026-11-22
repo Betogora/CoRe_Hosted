@@ -3,14 +3,14 @@ import { DashboardWidgets } from "./DashboardWidgets.tsx";
 import { DailyMotivationWidget } from "./DailyMotivationWidget.tsx";
 import { ExamDashboardWidget } from "./ExamDashboardWidget.tsx";
 import { CreationActionCard } from "../ui/CreationActionCard.tsx";
-import { ArrowUpRight, FileArchive, PenLine, Play, Sparkles } from "lucide-react";
+import { FileArchive, PenLine, Play, Sparkles } from "lucide-react";
 import { createDeckLibraryModel, createStudyHeatmapModel, type DailyLearningPlan, type DailyLearningSession } from "../libraryModel.ts";
 import { getGlobalSchedulerPreferences } from "../deckSettings.ts";
 import type { DashboardScreenProps } from "../appScreenProps.ts";
 import type { Deck } from "../coreTypes.ts";
 import { getLearningDayKey, getLearningTimeZone } from "../learningDay.ts";
 import type { StudyHeatmapDay } from "../studyHeatmapModel.ts";
-import { ActionButton, CrossLinkButton, IconButton } from "../ui/actionUi.tsx";
+import { ActionButton, CrossLinkButton } from "../ui/actionUi.tsx";
 import { CoreSegmentedControl, PageHeader, SoftPanel } from "../ui/coreUi.tsx";
 import { DialogFrame } from "../ui/DialogFrame.tsx";
 import { DailyReviewProgress, DAILY_REVIEW_PROGRESS_SEGMENTS } from "../ui/DailyReviewProgress.tsx";
@@ -20,6 +20,34 @@ import { formatLearningCardCount } from "../ui/learningStatusUi.ts";
 import { DeckSelect } from "../ui/selectUi.tsx";
 import { StudyHeatmap } from "../ui/StudyHeatmap.tsx";
 import { useWorkspaceValue } from "../useWorkspaceStore.ts";
+
+const DASHBOARD_DECK_LIMIT = 8;
+
+/**
+ * Fills the widget's fixed height with main decks: renders `max` whenever `layoutKey` or the width changes and drops one per layout pass while the panel overflows.
+ * Expanded subdecks and an open tile folder do not count, so opening a deck scrolls instead of pushing it out of the widget.
+ */
+function FittingPanel({ max, layoutKey, children }: { max: number; layoutKey: string; children: (count: number) => React.ReactNode }) {
+  const ref = React.useRef<HTMLElement>(null);
+  const [width, setWidth] = React.useState(0);
+  const key = `${layoutKey}|${width}`;
+  const [fit, setFit] = React.useState({ key, count: max });
+  const count = fit.key === key ? fit.count : max;
+  React.useLayoutEffect(() => {
+    const element = ref.current!;
+    const observer = new ResizeObserver(() => setWidth(element.clientWidth));
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, []);
+  React.useLayoutEffect(() => {
+    const element = ref.current!;
+    const folder = element.querySelector<HTMLElement>('[data-testid="dashboard-deck-folder-panel"]');
+    const expandedHeight = [...element.querySelectorAll<HTMLElement>("[data-deck-group]")].reduce((sum, group) => sum + group.offsetHeight - (group.firstElementChild as HTMLElement).offsetHeight, 0)
+      + (folder ? folder.offsetHeight + parseFloat(getComputedStyle(folder.parentElement!).rowGap) : 0);
+    if (count > 1 && element.scrollHeight - expandedHeight > element.clientHeight) setFit({ key, count: count - 1 });
+  });
+  return <SoftPanel ref={ref} className="min-w-0 p-5 pb-3">{children(count)}</SoftPanel>;
+}
 
 function formatHeatmapDate(key: string) {
   const [year, month, date] = key.split("-");
@@ -217,7 +245,7 @@ export function DashboardScreen({ state, now, onNavigate, onStartDeck, onPractic
   const { dailyLearningPlan } = library;
   const [deckView, setDeckView] = useStoredDeckTreeView();
   const deckRoots = React.useMemo(() => library.rows.filter((row) => row.depth === 0), [library.rows]);
-  const teaserRootIds = React.useMemo(() => [...deckRoots].sort((a, b) => b.dailyLearningSession.startableCount - a.dailyLearningSession.startableCount).slice(0, 3).map((row) => row.id), [deckRoots]);
+  const rankedRootIds = React.useMemo(() => [...deckRoots].sort((a, b) => b.dailyLearningSession.startableCount - a.dailyLearningSession.startableCount).map((row) => row.id), [deckRoots]);
   const timeZone = state.profile.timezone || undefined;
   const civilToday = getLearningDayKey(now, { timeZone }) ?? now.slice(0, 10);
   const nextExam = globalSettings.examPlanning.exams
@@ -288,13 +316,12 @@ export function DashboardScreen({ state, now, onNavigate, onStartDeck, onPractic
         learning: <DailyLearningOverview plan={dailyLearningPlan} decks={state.decks} onStartDeck={onStartDeck} onStartAdditionalCards={onStartAdditionalCards} />,
         motivation: <DailyMotivationWidget now={now} timeZone={getLearningTimeZone(state.profile)} dayStartHour={globalSettings.dayStartHour} />,
         heatmap: <StudyHeatmap heatmap={studyHeatmap} formatDayLabel={heatmapDayLabel} />,
-        decks: <SoftPanel className="min-w-0 p-5"><DeckTree
+        decks: <FittingPanel max={DASHBOARD_DECK_LIMIT} layoutKey={[deckView, library.rows.length, ...rankedRootIds].join(",")}>{(count) => <><DeckTree
           rows={library.rows}
-          rootDeckIds={teaserRootIds}
+          rootDeckIds={rankedRootIds.slice(0, count)}
           mode="dashboard"
           view={deckView}
           onViewChange={setDeckView}
-          headerAction={<IconButton icon={ArrowUpRight} variant="ghost" label="Alle Stapel öffnen" onClick={() => onNavigate("lernen")} />}
           collapsedDeckIds={state.profile.uiPreferences.dashboardCollapsedDeckIds}
           onDeckExpansionChange={(deckId, expanded) => onSetDeckExpanded("dashboard", deckId, expanded)}
           onActivate={(row) => onNavigate("kartenstapel", { focusedDeckId: row.id, deckContent: true })}
@@ -303,7 +330,7 @@ export function DashboardScreen({ state, now, onNavigate, onStartDeck, onPractic
           onOpenSettings={onOpenDeckSettings}
           onSetDeckCoreMode={onSetDeckCoreMode}
           onMoveDeck={onMoveDeck}
-        />{deckRoots.length > 3 ? <CrossLinkButton className="mt-3" onSelect={() => onNavigate("lernen")}>Alle {deckRoots.length} Hauptstapel ansehen</CrossLinkButton> : null}</SoftPanel>,
+        />{rankedRootIds.length > count ? <CrossLinkButton onSelect={() => onNavigate("lernen")}>Alle Stapel ansehen</CrossLinkButton> : null}</>}</FittingPanel>,
       }}
     </DashboardWidgets>
   );

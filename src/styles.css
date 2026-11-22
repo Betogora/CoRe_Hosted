@@ -1478,12 +1478,10 @@ svg.lucide {
   border-bottom: var(--core-border-width) solid var(--core-border);
   --core-deck-icon-background: transparent;
 }
-.core-deck-tree-header + .core-deck-tree-create { border-top: var(--core-border-width) solid var(--core-border-interactive); }
+.core-deck-tree-create:first-child { border-top: var(--core-border-width) solid var(--core-border-interactive); }
 
 @container core-deck-tree (max-width: 32rem) {
   .core-deck-tree-group { --core-deck-depth-indent: 10px; }
-  .core-deck-tree-container .core-deck-tree-header { grid-template-columns: minmax(0, 1fr); align-items: start; gap: var(--core-space-sm); }
-  .core-deck-tree-container .core-deck-tree-header-action { grid-column: 1; grid-row: 2; justify-self: start; gap: var(--core-space-xs); }
 }
 
 @container core-deck-tree (max-width: 28rem) {

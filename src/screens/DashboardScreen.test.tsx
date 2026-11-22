@@ -109,7 +109,7 @@ test("populated dashboard shows the aggregated open daily learning overview", ()
   assert.doesNotMatch(markup, /Originalkarten/);
   assert.match(markup, /data-testid="dashboard-deck-list-header"/);
   assert.match(markup, /data-deck-view="list"/);
-  assert.match(markup, /aria-label="Alle Stapel öffnen"/);
+  assert.doesNotMatch(markup, /Alle Stapel öffnen|Alle Stapel ansehen/);
   assert.match(markup, /<button[^>]*aria-label="Biologie lernen"/);
   assert.doesNotMatch(markup, />Lernen <svg/);
   assert.match(markup, /data-deck-count="new"/);
@@ -241,13 +241,13 @@ test("dashboard keeps later same-day learning steps in a disabled waiting state"
   assert.doesNotMatch(markup, /Tagesziel erreicht/);
 });
 
-test("dashboard limits the shared deck tree to three roots and has no duplicate completed legend", () => {
+test("dashboard starts the deck widget at eight roots, links to all decks and has no duplicate completed legend", () => {
   const baseState = createCoreRepository().getState();
-  const decks = Array.from({ length: 7 }, (_, index) => createCoreDeck({ id: `preview-${index}`, name: `Stapel ${index}`, source: "manual", cards: [] }));
+  const decks = Array.from({ length: 10 }, (_, index) => createCoreDeck({ id: `preview-${index}`, name: `Stapel ${index}`, source: "manual", cards: [] }));
   const markup = renderToStaticMarkup(<DashboardScreen state={{ ...baseState, decks }} now="2026-08-06T10:00:00.000Z" {...dashboardCallbacks} />);
-  assert.equal((markup.match(/data-testid="dashboard-deck-row-/g) ?? []).length, 3);
-  assert.match(markup, /Alle 7 Hauptstapel ansehen/);
-  assert.match(markup, /Alle Stapel öffnen/);
+  assert.equal((markup.match(/data-testid="dashboard-deck-row-/g) ?? []).length, 8);
+  assert.match(markup, />Alle Stapel ansehen</);
+  assert.doesNotMatch(markup, /Hauptstapel ansehen|Alle Stapel öffnen/);
   assert.doesNotMatch(markup, /Geschafft|Grauer Balken: für heute abgeschlossen/);
   assert.equal((markup.match(/data-daily-learning-metric=/g) ?? []).length, 4);
   assert.match(markup, /Timer zurücksetzen/);

@@ -1836,6 +1836,9 @@ video {
 .mr-2 {
   margin-right: 0.5rem;
 }
+.mr-3 {
+  margin-right: 0.75rem;
+}
 .mr-auto {
   margin-right: auto;
 }
@@ -4212,12 +4215,10 @@ svg.lucide {
   border-bottom: var(--core-border-width) solid var(--core-border);
   --core-deck-icon-background: transparent;
 }
-.core-deck-tree-header + .core-deck-tree-create { border-top: var(--core-border-width) solid var(--core-border-interactive); }
+.core-deck-tree-create:first-child { border-top: var(--core-border-width) solid var(--core-border-interactive); }
 
 @container core-deck-tree (max-width: 32rem) {
   .core-deck-tree-group { --core-deck-depth-indent: 10px; }
-  .core-deck-tree-container .core-deck-tree-header { grid-template-columns: minmax(0, 1fr); align-items: start; gap: var(--core-space-sm); }
-  .core-deck-tree-container .core-deck-tree-header-action { grid-column: 1; grid-row: 2; justify-self: start; gap: var(--core-space-xs); }
 }
 
 @container core-deck-tree (max-width: 28rem) {
@@ -6811,6 +6812,10 @@ button.core-steps-step {
     width: auto !important;
   }
 
+  .max-sm\:min-w-button {
+    min-width: var(--core-button-height);
+  }
+
   .max-sm\:basis-\[calc\(100\%-3\.5rem\)\] {
     flex-basis: calc(100% - 3.5rem);
   }
@@ -6823,8 +6828,17 @@ button.core-steps-step {
     align-items: flex-start !important;
   }
 
+  .max-sm\:gap-0 {
+    gap: 0px;
+  }
+
   .max-sm\:gap-y-1 {
     row-gap: 0.25rem;
+  }
+
+  .max-sm\:px-0 {
+    padding-left: 0px;
+    padding-right: 0px;
   }
 
   .max-sm\:px-2\.5 {
@@ -7611,6 +7625,20 @@ button.core-steps-step {
 }
 .\[\&\>span\]\:text-left>span {
   text-align: left;
+}
+@media not all and (min-width: 640px) {
+
+  .max-sm\:\[\&\>span\]\:sr-only>span {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border-width: 0;
+  }
 }
 .\[\&\>svg\]\:relative>svg {
   position: relative;
@@ -8578,13 +8606,13 @@ html:has(.catalog-preview) { scroll-behavior: auto; }
 <p><code>Heute</code> ist die Startseite: Tagesstand, Lernstart und persönliche Werkzeuge an einem Ort.</p>
 <ul>
 <li>Die Seite besteht aus frei wählbaren und anordenbaren Bausteinen: Tagesstand, Motivationsimpuls, Lerntimer, aktive Stapel, To-dos, Lern-Heatmap und Prüfungsaufgaben. Anordnung und eigene To-dos gelten je Konto nur in diesem Browser.</li>
-<li><strong>Feste Formate:</strong> Bausteine haben feste, nicht wählbare Größen; längere Inhalte scrollen im Baustein, statt die Seite zu verschieben.</li>
+<li><strong>Feste Formate:</strong> Bausteine haben feste, nicht wählbare Größen; längere Inhalte scrollen im Baustein statt in der Seite.</li>
 <li><strong>Erststart:</strong> Ein neues Konto beginnt ohne erfundene Daten. Ohne Stapel führt die Seite zu Import, manueller Karte oder Demo. Demo-Stapel entstehen nur auf ausdrückliche Aktion, einmalig und ohne Lernhistorie.</li>
 <li><strong>Tagesstand:</strong> Er fasst alle Hauptstapel ohne Doppelzählung in <code>Gelernt</code>, <code>Neu</code>, <code>Offen</code> und <code>Fällig</code> zusammen (<a href="#specs--tagesrunde-und-limits">Tagesrunde und Limits</a>).</li>
 <li><strong>Lernstart:</strong> Er startet den alphabetisch ersten Hauptstapel mit verfügbaren Karten. Warten nur noch Lernschritte, kündigt er späteres Weiterlernen an; ist alles gelernt, meldet er das Tagesziel und bietet zusätzliche neue Karten an.</li>
 <li><strong>Motivationsimpuls:</strong> einer von 60 eigenen Lernimpulsen, je Lerntag stabil, auch offline.</li>
 <li><strong>To-dos:</strong> eigene Aufgaben und Aufgaben aus dem Prüfungsplaner; Planeraufgaben lassen sich direkt lernen. Wird der Baustein entfernt, bleiben die Aufgaben.</li>
-<li><strong>Aktive Stapel:</strong> höchstens drei Hauptstapel, vorrangig die mit jetzt startbaren Karten.</li>
+<li><strong>Aktive Stapel:</strong> so viele Hauptstapel, wie der Baustein fasst, startbare zuerst, und der Weg zu allen.</li>
 <li><strong>Bewusst nicht:</strong> Zeitprognosen.</li>
 </ul>
 <h3 id="specs--kartenverwaltung" class="core-heading-3" tabindex="-1">Kartenverwaltung <a class="docs-anchor" href="#specs--kartenverwaltung" aria-label="Link zu Kartenverwaltung">#</a></h3>
@@ -8831,7 +8859,7 @@ html:has(.catalog-preview) { scroll-behavior: auto; }
 <p>Probe: Ein Satz gehört hinein, wenn er nach einer vollständigen Neugestaltung der Oberfläche unverändert gälte und eine Abweichung davon ein fachlicher Fehler wäre.</p>
 <p>Form: Stichpunkte, ein Gedanke je Punkt. Eine neue Regel ersetzt die alte, statt sie zu ergänzen. Wo Funktionen logisch voneinander abhängen, steht ein Schaubild als <code>schaubild</code>-Block direkt beim Text und wird mit ihm geändert (Schreibweise in <a href="index.html#readme--pflege"><code>README.md</code></a>). In Schaubildern sind KI-Schritte blau, Ergebnisse grün markiert.</p>
 <h2 id="specs--codeumfang-der-produktbereiche" class="core-heading-2" tabindex="-1">Codeumfang der Produktbereiche <a class="docs-anchor" href="#specs--codeumfang-der-produktbereiche" aria-label="Link zu Codeumfang der Produktbereiche">#</a></h2>
-<p>CoRe ist eine App mit mehreren Bereichen. Die Tabelle zeigt deren Anteil am Bildschirmcode; gemeinsam genutzte Logik, UI und API stehen separat.</p><div class="docs-code-stats"><dl class="flex min-w-0 flex-col"><dt class="core-status-label text-core-muted">Bildschirmcode</dt><dd class="core-metric mt-0.5 text-core-text">7.375</dd></dl><dl class="flex min-w-0 flex-col"><dt class="core-status-label text-core-muted">Gemeinsamer Code &amp; API</dt><dd class="core-metric mt-0.5 text-core-text">48.552</dd></dl><dl class="flex min-w-0 flex-col"><dt class="core-status-label text-core-muted">Quelldateien</dt><dd class="core-metric mt-0.5 text-core-text">310</dd></dl></div><div class="docs-code-chart"><div class="docs-table-scroll" tabindex="0" role="region" aria-label="Codeumfang je Produktbereich"><table><thead><tr><th>Bereich</th><th>Zeilen</th><th>Anteil</th></tr></thead><tbody><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-status-learned)" aria-hidden="true"></span>Heute</th><td>294</td><td>4 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-status-new)" aria-hidden="true"></span>Lernen & Karten</th><td>2.244</td><td>30,4 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-status-in-progress)" aria-hidden="true"></span>Erstellen & Import</th><td>2.077</td><td>28,2 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-action-primary)" aria-hidden="true"></span>Prüfungen</th><td>433</td><td>5,9 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-status-due)" aria-hidden="true"></span>Statistik</th><td>629</td><td>8,5 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-progress-completed)" aria-hidden="true"></span>Konto & Sync</th><td>787</td><td>10,7 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-text-secondary)" aria-hidden="true"></span>Hilfe</th><td>911</td><td>12,4 %</td></tr></tbody></table></div></div><p class="docs-source">Beim Erzeugen gemessen: nichtleere Zeilen in <code>src/</code> und <code>api/</code> (TS/TSX) sowie <code>src/styles.css</code>. Ohne Tests, Typdeklarationen, generierte Datenbanktypen, Dokumentation und Fremdcode. Bereichszuordnung nach Bildschirmdateien in <a href="../src/screens/README.md">der Screen-Landkarte</a>; übriger Code zählt gemeinsam. Enthält Kommentare und misst weder Laufzeit noch Komplexität.</p></article></main></div><script>function initializeDocsViewer() {
+<p>CoRe ist eine App mit mehreren Bereichen. Die Tabelle zeigt deren Anteil am Bildschirmcode; gemeinsam genutzte Logik, UI und API stehen separat.</p><div class="docs-code-stats"><dl class="flex min-w-0 flex-col"><dt class="core-status-label text-core-muted">Bildschirmcode</dt><dd class="core-metric mt-0.5 text-core-text">7.402</dd></dl><dl class="flex min-w-0 flex-col"><dt class="core-status-label text-core-muted">Gemeinsamer Code &amp; API</dt><dd class="core-metric mt-0.5 text-core-text">48.550</dd></dl><dl class="flex min-w-0 flex-col"><dt class="core-status-label text-core-muted">Quelldateien</dt><dd class="core-metric mt-0.5 text-core-text">310</dd></dl></div><div class="docs-code-chart"><div class="docs-table-scroll" tabindex="0" role="region" aria-label="Codeumfang je Produktbereich"><table><thead><tr><th>Bereich</th><th>Zeilen</th><th>Anteil</th></tr></thead><tbody><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-status-learned)" aria-hidden="true"></span>Heute</th><td>319</td><td>4,3 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-status-new)" aria-hidden="true"></span>Lernen & Karten</th><td>2.246</td><td>30,3 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-status-in-progress)" aria-hidden="true"></span>Erstellen & Import</th><td>2.077</td><td>28,1 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-action-primary)" aria-hidden="true"></span>Prüfungen</th><td>433</td><td>5,8 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-status-due)" aria-hidden="true"></span>Statistik</th><td>629</td><td>8,5 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-progress-completed)" aria-hidden="true"></span>Konto & Sync</th><td>787</td><td>10,6 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-text-secondary)" aria-hidden="true"></span>Hilfe</th><td>911</td><td>12,3 %</td></tr></tbody></table></div></div><p class="docs-source">Beim Erzeugen gemessen: nichtleere Zeilen in <code>src/</code> und <code>api/</code> (TS/TSX) sowie <code>src/styles.css</code>. Ohne Tests, Typdeklarationen, generierte Datenbanktypen, Dokumentation und Fremdcode. Bereichszuordnung nach Bildschirmdateien in <a href="../src/screens/README.md">der Screen-Landkarte</a>; übriger Code zählt gemeinsam. Enthält Kommentare und misst weder Laufzeit noch Komplexität.</p></article></main></div><script>function initializeDocsViewer() {
     const theme = document.getElementById("docs-theme");
     theme.addEventListener("click", () => {
         const dark = document.documentElement.dataset.coreTheme !== "dark";

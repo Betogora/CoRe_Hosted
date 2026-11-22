@@ -50,7 +50,7 @@ test("deck tree keeps one visual header and all three accessibly labelled metric
   assert.match(markup, /var\(--core-learning-status-in-progress\)/);
   assert.match(markup, /var\(--core-learning-status-due\)/);
   assert.match(markup, /data-testid="learn-deck-list"/);
-  assert.match(markup, /data-testid="learn-deck-list-header"/);
+  assert.doesNotMatch(markup, /data-testid="learn-deck-list-header"|Aktive Stapel/);
   assert.ok(markup.indexOf("Unterstapel von Bereich ausblenden") < markup.indexOf('data-deck-icon="true"'));
   assert.match(markup, /<button[^>]*aria-label="Unterstapel von Bereich ausblenden" aria-expanded="true"/);
   assert.doesNotMatch(markup, /Unterstapel von Bereich \/ Grundlagen/);

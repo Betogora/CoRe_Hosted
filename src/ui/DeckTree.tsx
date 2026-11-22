@@ -140,7 +140,7 @@ function DeckSummaryRow({ row, leadingControl, actions, studyAction, presentatio
   );
 }
 
-const DECK_TREE_VIEW_OPTIONS = [
+export const DECK_TREE_VIEW_OPTIONS = [
   { value: "tiles", label: "Als Kacheln anzeigen", icon: Grid2x2 },
   { value: "list", label: "Als Liste anzeigen", icon: List },
 ] as const;
@@ -176,7 +176,6 @@ export interface DeckTreeProps {
   mode: "dashboard" | "learn" | "content";
   view?: DeckTreeView;
   onViewChange?: (view: DeckTreeView) => void;
-  headerAction?: React.ReactNode;
   contentAfterRows?: React.ReactNode;
   onActivate: (row: DeckLibraryRow) => void;
   onStudy: (row: DeckLibraryRow) => void;
@@ -374,7 +373,7 @@ const DeckTreeRow = React.memo(function DeckTreeRow({ row, mode, presentation, d
   );
 });
 
-export function DeckTree({ rows, rootDeckIds, mode, view = "list", onViewChange, headerAction, contentAfterRows, onActivate, onStudy, onPractice, onOpenSettings, onSetDeckCoreMode, onMoveDeck, collapsedDeckIds, onDeckExpansionChange }: DeckTreeProps) {
+export function DeckTree({ rows, rootDeckIds, mode, view = "list", onViewChange, contentAfterRows, onActivate, onStudy, onPractice, onOpenSettings, onSetDeckCoreMode, onMoveDeck, collapsedDeckIds, onDeckExpansionChange }: DeckTreeProps) {
   const [draggedDeckId, setDraggedDeckId] = React.useState<string | null>(null);
   const [dropIntent, setDropIntent] = React.useState<DropIntent | null>(null);
   const [dragFocusLayout, setDragFocusLayout] = React.useState<DragFocusLayout | null>(null);
@@ -730,7 +729,7 @@ export function DeckTree({ rows, rootDeckIds, mode, view = "list", onViewChange,
       {folderRows.length ? <div className="core-deck-subfolder-grid">{folderRows.map((child) => renderRow(child, "subfolder"))}</div> : <p className="core-body text-core-muted">Keine Unterstapel.</p>}
     </section>
   ) : null;
-  const title = mode === "content" ? null : "Aktive Stapel";
+  const title = mode === "dashboard" ? "Aktive Stapel" : null;
   const showViewControl = Boolean(onViewChange) && rows.length > 0;
 
   return (
@@ -745,16 +744,15 @@ export function DeckTree({ rows, rootDeckIds, mode, view = "list", onViewChange,
       >
         <span className="sr-only" role="status" aria-live="polite">{dragStatus}</span>
         <div className="core-deck-tree-layout grid">
-          {title || headerAction || showViewControl ? <div className={`core-deck-tree-header grid min-h-control items-center gap-3${showViewControl ? " core-deck-tree-view-header" : ""}`} data-testid={`${mode}-deck-list-header`}>
+          {title || showViewControl ? <div className={`core-deck-tree-header grid min-h-control items-center gap-3${showViewControl ? " core-deck-tree-view-header" : ""}`} data-testid={`${mode}-deck-list-header`}>
             <div className="core-deck-tree-heading min-w-0">
               {title ? <h3 className="core-deck-tree-title break-words core-heading-3 text-core-text">{title}</h3> : null}
             </div>
-            {headerAction || showViewControl ? (
+            {showViewControl ? (
               <div className="core-deck-tree-header-action flex flex-wrap items-center justify-end gap-2 justify-self-end">
                 {showViewControl && onViewChange ? (
                   <CoreIconSegmentedControl ariaLabel="Stapelansicht" options={DECK_TREE_VIEW_OPTIONS} value={view} onValueChange={onViewChange} />
                 ) : null}
-                {headerAction}
               </div>
             ) : null}
           </div> : null}

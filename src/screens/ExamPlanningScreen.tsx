@@ -160,7 +160,7 @@ export function ExamPlanningScreen({ state, now, onLoadPlanningData, onSavePlann
     <div className="grid min-w-0 gap-6" data-testid="exam-planning-screen">
       <PageHeader
         title="Prüfungen"
-        action={<ActionButton variant="primary" icon={Plus} disabled={addDisabled} onClick={() => requestEditing("new")}>Prüfung hinzufügen</ActionButton>}
+        action={<ActionButton variant="primary" icon={Plus} className="max-sm:min-w-button max-sm:gap-0 max-sm:px-0 max-sm:[&>span]:sr-only" disabled={addDisabled} onClick={() => requestEditing("new")}>Prüfung hinzufügen</ActionButton>}
       />
       {actionError ? <StatusMessage tone="error" announce="assertive">{actionError}</StatusMessage> : null}
       {error ? (

@@ -9,6 +9,7 @@ import { CoreTooltip } from "./tooltipUi.tsx";
 
 interface SoftPanelProps extends HTMLAttributes<HTMLElement> {
   children?: ReactNode;
+  ref?: React.Ref<HTMLElement>;
 }
 interface ActionDialogProps {
   open: boolean;
