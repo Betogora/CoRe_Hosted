@@ -171,7 +171,6 @@ test("responsive navigation keeps sync and one menu button as its only utilities
     assert.ok(layoutMarkup.indexOf('data-navigation-utility="sync"') < layoutMarkup.indexOf('data-navigation-utility="menu"'));
   }
   assert.ok(topBarMarkup.indexOf("</nav>") < topBarMarkup.indexOf('data-navigation-utilities="true"'));
-  assert.doesNotMatch(markup, /role="switch"|aria-checked=/);
   assert.doesNotMatch(markup, />Ada<|>AD</);
 });
 

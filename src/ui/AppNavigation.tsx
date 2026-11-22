@@ -66,7 +66,7 @@ function clampScroll(value: number, max: number) {
 }
 
 function useHiddenOnScrollDown(page: string, headerRefs: React.RefObject<HTMLElement | null>[], scrollRegionRef?: React.RefObject<HTMLElement | null>) {
-  const [hiddenOn, setHiddenOn] = React.useState<string | null>(null);
+  const [hidden, setHidden] = React.useState(false);
   React.useEffect(() => {
     const region = scrollRegionRef?.current ?? null;
     const root = document.documentElement;
@@ -78,15 +78,15 @@ function useHiddenOnScrollDown(page: string, headerRefs: React.RefObject<HTMLEle
       if (Math.abs(y - lastY) < SCROLL_STEP) return;
       // Keyboard focus in the bar, its open menu and a deck drag (drop zone) keep it in place.
       const keepShown = headerRefs.some((ref) => ref.current?.matches(":has(:focus-visible)")) || Boolean(document.querySelector("[data-navigation-menu], [data-deck-drag-overlay]"));
-      setHiddenOn(y > lastY && y > HIDE_BELOW && !keepShown ? page : null);
+      setHidden(y > lastY && y > HIDE_BELOW && !keepShown);
       lastY = y;
     };
     // Shift+Tab brings the bar back so backward tabbing reaches it without scrolling up; plain Tab leaves it hidden so it
     // never slides over the next target.
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Tab" && event.shiftKey) setHiddenOn(null);
+      if (event.key === "Tab" && event.shiftKey) setHidden(false);
     };
-    const reveal = () => setHiddenOn(null);
+    const reveal = () => setHidden(false);
     window.addEventListener("scroll", onScroll, { passive: true });
     region?.addEventListener("scroll", onScroll, { passive: true });
     window.addEventListener("keydown", onKeyDown);
@@ -96,9 +96,11 @@ function useHiddenOnScrollDown(page: string, headerRefs: React.RefObject<HTMLEle
       region?.removeEventListener("scroll", onScroll);
       window.removeEventListener("keydown", onKeyDown);
       window.removeEventListener(SHELL_REVEAL_EVENT, reveal);
+      // A new page starts with the head shown.
+      setHidden(false);
     };
   }, [page, headerRefs, scrollRegionRef]);
-  return hiddenOn === page;
+  return hidden;
 }
 
 const SHELL_PROPERTIES = ["--shell-height", "--shell-offset", "--shell-scrollbar"];
@@ -116,7 +118,8 @@ function useShellOffsets(hidden: boolean, headerRefs: React.RefObject<HTMLElemen
       root.style.setProperty("--shell-scrollbar", `${region ? region.offsetWidth - region.clientWidth : 0}px`);
     };
     const observer = new ResizeObserver(update);
-    for (const element of [...headerRefs.map((ref) => ref.current), region]) if (element) observer.observe(element);
+    // The region's own box also changes with its head-dependent padding; its content wrapper only follows the scrollbar.
+    for (const element of [...headerRefs.map((ref) => ref.current), region?.firstElementChild]) if (element) observer.observe(element);
     update();
     return () => observer.disconnect();
   }, [hidden, headerRefs, scrollRegionRef]);
