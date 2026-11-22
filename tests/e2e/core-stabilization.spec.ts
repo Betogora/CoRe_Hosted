@@ -440,9 +440,8 @@ test("[Vertrag: Tastaturfokus bei Navigation und Overlays] Fokus folgt Seiten- u
   await page.keyboard.press("Tab");
   await expect(settingsDialog.getByRole("button", { name: "Lerneinstellungen schließen" })).toBeFocused();
   await page.keyboard.press("Escape");
-  await expect(settings).toBeFocused();
+  await expect(questionContent).toBeFocused();
 
-  await questionContent.focus();
   await page.keyboard.press("Space");
   const answerContent = page.getByRole("group", { name: "Antwort" });
   await expect(answerContent).toBeFocused();

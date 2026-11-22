@@ -77,6 +77,36 @@ test("Strg+Z nimmt die letzte Bewertung zurück, die Leertaste bewertet danach m
   await expect.poll(reviews).toEqual(["good"]);
 });
 
+test("Lerntasten wirken nach einem Klick in die Karte und nach geschlossenen Lerneinstellungen und KI hilft", async ({ page }) => {
+  const reviews = async () => (await readActiveAccountState(page)).decks.flatMap((deck: any) => deck.reviewEvents ?? []).map((event: any) => event.rating);
+  await page.getByRole("button", { name: /Erste Karte erstellen/ }).click();
+  for (const [front, back] of [["Hauptstadt von Spanien?", "Madrid"], ["Hauptstadt von Italien?", "Rom"]]) {
+    await page.getByRole("textbox", { name: "Vorderseite" }).fill(front);
+    await page.getByRole("textbox", { name: "Rückseite" }).fill(back);
+    await page.getByRole("button", { name: "Karte speichern" }).click();
+  }
+  await page.getByRole("button", { name: "Fertig" }).click();
+  await page.getByRole("button", { name: "Jetzt lernen" }).click();
+
+  await page.frameLocator('iframe[title="Frage"]').locator("body").click();
+  await page.keyboard.press("Space");
+  await expect(page.getByRole("button", { name: "Antwort anzeigen" })).toHaveCount(0);
+  await page.frameLocator('iframe[title="Antwort"]').locator("body").click();
+  await page.keyboard.press("4");
+  await expect.poll(reviews).toEqual(["easy"]);
+
+  await page.getByRole("button", { name: "Lerneinstellungen" }).click();
+  await page.keyboard.press("Escape");
+  await expect(page.getByRole("dialog", { name: "Lerneinstellungen" })).toHaveCount(0);
+  await page.keyboard.press("Space");
+  await expect(page.getByRole("button", { name: "KI hilft" })).toBeVisible();
+  await page.getByRole("button", { name: "KI hilft" }).click();
+  await page.keyboard.press("Escape");
+  await expect(page.getByRole("dialog", { name: "KI hilft" })).toHaveCount(0);
+  await page.keyboard.press("Space");
+  await expect.poll(async () => (await reviews()).sort()).toEqual(["easy", "good"]);
+});
+
 test("leerer Account erstellt die erste manuelle Karte und erreicht den Review", async ({ page }) => {
   await page.getByRole("button", { name: /Erste Karte erstellen/ }).click();
   await expect(page).toHaveURL(/\/neue-karten\?method=manual$/);
