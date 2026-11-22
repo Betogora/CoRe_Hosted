@@ -182,12 +182,13 @@ function AppContent() {
         region.focus();
       }
 
+      const focusedBeforeLoad = document.activeElement;
       observer = new MutationObserver(() => {
         const loadedHeading = region.querySelector<HTMLElement>("[data-screen-heading]");
         if (!loadedHeading || loadedHeading === heading) return;
-        // Focus the user moved on to meanwhile (e.g. the menu) stays; a removed element may still be reported as focused.
+        // Focus the user moved elsewhere meanwhile (e.g. into the menu) stays; a removed element may still be reported as focused.
         const active = document.activeElement;
-        if (active?.isConnected && active !== document.body && !region.contains(active)) return void observer?.disconnect();
+        if (active !== focusedBeforeLoad && active?.isConnected && active !== document.body && !region.contains(active)) return void observer?.disconnect();
         loadedHeading.focus();
         observer?.disconnect();
         observer = null;
