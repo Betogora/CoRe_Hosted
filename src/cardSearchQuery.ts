@@ -12,7 +12,8 @@ const DAY_MS = 86_400_000;
  * `prop:ivl|d|reps|lapses` with `<`, `<=`, `=`, `!=`, `>=`, `>`, the content form `is:reveal|choice|cloze|occlusion`,
  * `note:Name` (Anki note type, wildcards like `deck:`) and `mid:<note type id>`, `has:outdated` (an outdated variant),
  * `card:N` (number of the prompt as in Anki), `is:buried` (buried by hand today; buried siblings only exist in a
- * session)
+ * session), `is:duplicate` (a content whose front another content of the account repeats; only the complete local
+ * catalog knows them)
  * and `Feld:Text` for text in one named field; a leading `-` negates a term, a phrase or a group.
  *
  * Combination: words and terms side by side must all match, `or` between them needs one, parentheses group,
@@ -40,7 +41,7 @@ export type CardSearchTerm =
   | { kind: "card"; value: number; negated: boolean }
   /** Buried by hand from `from` (the start of today) on and not unburied since. */
   | { kind: "buried"; from: string; negated: boolean }
-  | { kind: "tag-none" | "leech" | "marked" | "suspended" | "variant" | "outdated"; negated: boolean }
+  | { kind: "tag-none" | "leech" | "marked" | "suspended" | "variant" | "outdated" | "duplicate"; negated: boolean }
   /** A word or a phrase of the content text, lower case. */
   | { kind: "text"; value: string; negated: boolean };
 
@@ -71,7 +72,7 @@ export interface CardSearchQuery {
   terms: CardSearchClause[];
 }
 
-type SearchableEntry = Pick<CardCatalogEntry, "normalizedSearchText" | "searchFields" | "ankiFlag" | "tagKeys" | "leeched" | "marked" | "reviewable" | "scheduleState" | "maturityBand" | "dueAt" | "hasActiveVariants" | "deckId"
+type SearchableEntry = Pick<CardCatalogEntry, "noteId" | "normalizedSearchText" | "searchFields" | "ankiFlag" | "tagKeys" | "leeched" | "marked" | "reviewable" | "scheduleState" | "maturityBand" | "dueAt" | "hasActiveVariants" | "deckId"
   | "createdAt" | "editedAt" | "contentKind" | "intervalDays" | "difficulty" | "reps" | "lapses"
   | "firstReviewedAt" | "lastAgainAt" | "lastHardAt" | "lastGoodAt" | "lastEasyAt" | "lastRescheduledAt" | "noteTypeId" | "hasOutdatedVariants" | "promptOrdinal" | "lastBuriedAt" | "lastUnburiedAt" | "durabilityDays">;
 
@@ -132,6 +133,7 @@ export function parseTerm(token: string, context?: CardSearchContext): CardSearc
   if (key === "is") {
     if (value === "suspended") return { kind: "suspended", negated };
     if (value === "buried") return { kind: "buried", from: dayBound(context, 0), negated };
+    if (value === "duplicate") return { kind: "duplicate", negated };
     if (value === "new" || value === "learn" || value === "review") return { kind: "state", value, negated };
     if (value === "young" || value === "mature") return { kind: "maturity", value, negated };
     if (value === "due") return { kind: "due", from: null, to: dayBound(context, 1), reviewableOnly: true, negated };
@@ -311,7 +313,7 @@ function compares(value: number, operator: PropOperator, target: number): boolea
   return value > target;
 }
 
-function termMatches(entry: SearchableEntry, term: CardSearchTerm): boolean {
+function termMatches(entry: SearchableEntry, term: CardSearchTerm, duplicateNoteIds?: Pick<ReadonlySet<string>, "has">): boolean {
   switch (term.kind) {
     case "flag": return entry.ankiFlag === term.value;
     case "tag": return entry.tagKeys.includes(term.value);
@@ -346,12 +348,21 @@ function termMatches(entry: SearchableEntry, term: CardSearchTerm): boolean {
     case "leech": return entry.leeched;
     case "marked": return entry.marked;
     case "suspended": return !entry.reviewable;
+    case "duplicate": return duplicateNoteIds?.has(entry.noteId) ?? false;
   }
 }
 
-/** Offline counterpart of the catalog search in `list_account_card_catalog` and `search_account_card_catalog`. */
-export function matchesCardSearch(entry: SearchableEntry, search: CardSearchQuery): boolean {
-  const matches = (term: CardSearchTerm) => termMatches(entry, term) !== term.negated;
+/** Whether the search names `is:duplicate`, which needs the duplicate contents of the whole account. */
+export function searchesDuplicates(search: CardSearchQuery): boolean {
+  return search.terms.some((clause) => clause.kind === "any" ? clause.terms.some((term) => term.kind === "duplicate") : clause.kind === "duplicate");
+}
+
+/**
+ * Offline counterpart of the catalog search in `list_account_card_catalog` and `search_account_card_catalog`;
+ * `is:duplicate` matches the contents in `duplicateNoteIds` (the cloud has no such search).
+ */
+export function matchesCardSearch(entry: SearchableEntry, search: CardSearchQuery, duplicateNoteIds?: Pick<ReadonlySet<string>, "has">): boolean {
+  const matches = (term: CardSearchTerm) => termMatches(entry, term, duplicateNoteIds) !== term.negated;
   return (!search.text || entry.normalizedSearchText.includes(search.text))
     && search.terms.every((clause) => clause.kind === "any" ? clause.terms.some(matches) : matches(clause));
 }
