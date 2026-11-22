@@ -1,8 +1,8 @@
 import React from "react";
 import type { LucideIcon } from "lucide-react";
-import { AlertTriangle, BarChart3, BookOpen, CalendarCheck, CalendarClock, CircleHelp, CloudAlert, CloudOff, Home, Layers, Moon, PlusSquare, RefreshCw, Settings, Sun } from "lucide-react";
+import { AlertTriangle, ArrowLeft, BarChart3, BookOpen, CalendarCheck, CalendarClock, CircleHelp, CloudAlert, CloudOff, Home, Layers, Menu, PlusSquare, RefreshCw, Settings } from "lucide-react";
+import * as Popover from "@radix-ui/react-popover";
 import { createPortal } from "react-dom";
-import { readCoreTheme, toggleCoreTheme, type CoreTheme } from "../coreTheme.ts";
 import type { MenuViewId } from "../menuModel.ts";
 import type { PomodoroTimer } from "../pomodoroTimer.ts";
 import type { SyncStatus } from "../coreTypes.ts";
@@ -12,6 +12,7 @@ import { IconButton } from "./actionUi.tsx";
 import { useSlidingSelection } from "./coreUi.tsx";
 import { CoreWordmark } from "./CoreWordmark.tsx";
 import { PomodoroProgress } from "./pomodoroTimerUi.tsx";
+import { SHELL_REVEAL_EVENT, type ShellBack } from "./shellBack.ts";
 
 interface AppNavigationItem {
   id: MenuViewId;
@@ -34,6 +35,9 @@ export interface AppNavigationProps {
   settingsOpen: boolean;
   onOpenSettings: () => unknown;
   onPreloadSettings?: () => unknown;
+  back: ShellBack | null;
+  /** Scrolls the content on wide screens; narrower layouts scroll the window. */
+  scrollRegionRef?: React.RefObject<HTMLElement | null>;
 }
 
 const iconByKey: Record<string, LucideIcon> = {
@@ -49,8 +53,95 @@ function getIcon(iconKey: string) {
 }
 
 interface ResponsiveNavigationProps extends AppNavigationProps {
-  theme: CoreTheme;
-  onToggleTheme: () => void;
+  hidden: boolean;
+  instant: boolean;
+  headerRef: React.RefObject<HTMLElement | null>;
+}
+
+const SCROLL_STEP = 8;
+const HIDE_BELOW = 96;
+
+function clampScroll(value: number, max: number) {
+  return Math.min(Math.max(value, 0), Math.max(max, 0));
+}
+
+function useHiddenOnScrollDown(page: string, headerRefs: React.RefObject<HTMLElement | null>[], scrollRegionRef?: React.RefObject<HTMLElement | null>) {
+  const [hidden, setHidden] = React.useState(false);
+  React.useEffect(() => {
+    const region = scrollRegionRef?.current ?? null;
+    const root = document.documentElement;
+    // Only one of both scrolls per layout. Clamped to the real range, so an overscroll bounce (iOS) is no scroll up.
+    const scrollY = () => clampScroll(window.scrollY, root.scrollHeight - window.innerHeight) + (region ? clampScroll(region.scrollTop, region.scrollHeight - region.clientHeight) : 0);
+    let lastY = scrollY();
+    const onScroll = () => {
+      const y = scrollY();
+      if (Math.abs(y - lastY) < SCROLL_STEP) return;
+      // Keyboard focus in the bar, its open menu and a deck drag (drop zone) keep it in place.
+      const keepShown = headerRefs.some((ref) => ref.current?.matches(":has(:focus-visible)")) || Boolean(document.querySelector("[data-navigation-menu], [data-deck-drag-overlay]"));
+      setHidden(y > lastY && y > HIDE_BELOW && !keepShown);
+      lastY = y;
+    };
+    // Shift+Tab brings the bar back so backward tabbing reaches it without scrolling up; plain Tab leaves it hidden so it
+    // never slides over the next target.
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Tab" && event.shiftKey) setHidden(false);
+    };
+    const reveal = () => setHidden(false);
+    window.addEventListener("scroll", onScroll, { passive: true });
+    region?.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("keydown", onKeyDown);
+    window.addEventListener(SHELL_REVEAL_EVENT, reveal);
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      region?.removeEventListener("scroll", onScroll);
+      window.removeEventListener("keydown", onKeyDown);
+      window.removeEventListener(SHELL_REVEAL_EVENT, reveal);
+      // A new page starts with the head shown.
+      setHidden(false);
+    };
+  }, [page, headerRefs, scrollRegionRef]);
+  return hidden;
+}
+
+const SHELL_PROPERTIES = ["--shell-height", "--shell-offset", "--shell-scrollbar"];
+
+// Sticky page elements, scroll padding and the toast follow the bar through these properties (see styles.css).
+function useShellOffsets(hidden: boolean, headerRefs: React.RefObject<HTMLElement | null>[], scrollRegionRef?: React.RefObject<HTMLElement | null>) {
+  React.useEffect(() => {
+    const root = document.documentElement;
+    const region = scrollRegionRef?.current ?? null;
+    const update = () => {
+      const height = Math.max(0, ...headerRefs.map((ref) => ref.current?.offsetHeight ?? 0));
+      root.style.setProperty("--shell-height", `${height}px`);
+      root.style.setProperty("--shell-offset", hidden ? "0px" : `${height}px`);
+      // The desktop head lies over the content region and leaves its scrollbar uncovered.
+      root.style.setProperty("--shell-scrollbar", `${region ? region.offsetWidth - region.clientWidth : 0}px`);
+    };
+    const observer = new ResizeObserver(update);
+    // The region's own box also changes with its head-dependent padding; its content wrapper only follows the scrollbar.
+    for (const element of [...headerRefs.map((ref) => ref.current), region?.firstElementChild]) if (element) observer.observe(element);
+    update();
+    return () => observer.disconnect();
+  }, [hidden, headerRefs, scrollRegionRef]);
+  React.useEffect(() => () => {
+    for (const property of SHELL_PROPERTIES) document.documentElement.style.removeProperty(property);
+  }, []);
+}
+
+// Until the first input the page is still loading: a lazy subpage registering then switches without the morph.
+function useFirstInput() {
+  const [hadInput, setHadInput] = React.useState(false);
+  React.useEffect(() => {
+    if (hadInput) return undefined;
+    const done = () => setHadInput(true);
+    window.addEventListener("pointerdown", done, true);
+    window.addEventListener("keydown", done, true);
+    return () => {
+      window.removeEventListener("pointerdown", done, true);
+      window.removeEventListener("keydown", done, true);
+    };
+  }, [hadInput]);
+  return hadInput;
 }
 
 function NavigationBrand({ onNavigate }: Pick<AppNavigationProps, "onNavigate">) {
@@ -64,6 +155,44 @@ function NavigationBrand({ onNavigate }: Pick<AppNavigationProps, "onNavigate">)
       <img src="/core-brain.svg" alt="" className="size-9 shrink-0 xl:size-10" draggable={false} />
       <CoreWordmark />
     </button>
+  );
+}
+
+// Brand and back group stay mounted on top of each other so they can cross-fade.
+function ShellLead({ back, brandClassName, onNavigate }: { back: ShellBack | null; brandClassName: string } & Pick<AppNavigationProps, "onNavigate">) {
+  // On the way back the left subpage's title fades out with its group instead of vanishing at once.
+  const [lastBack, setLastBack] = React.useState(back);
+  if (back && back !== lastBack) setLastBack(back);
+  const shownBack = back ?? lastBack;
+  const backLabel = shownBack ? `Zurück zu ${shownBack.label}` : undefined;
+  const brandRef = React.useRef<HTMLDivElement>(null);
+  const backRef = React.useRef<HTMLDivElement>(null);
+  const hasLeftSubpage = !back && Boolean(lastBack);
+  React.useEffect(() => {
+    // The back group turns inert under the focus (the browser drops it only at the next frame); the brand takes its place.
+    const focused = document.activeElement;
+    if (hasLeftSubpage && (focused === document.body || backRef.current?.contains(focused))) brandRef.current?.querySelector("button")?.focus();
+  }, [hasLeftSubpage, lastBack]);
+  return (
+    <h1 className="core-shell-lead min-w-0">
+      <div ref={brandRef} className={`core-shell-brand ${brandClassName} justify-self-start text-core-text`} inert={Boolean(back)}>
+        <NavigationBrand onNavigate={onNavigate} />
+      </div>
+      <div ref={backRef} className="core-shell-back flex min-w-0" inert={!back}>
+        <button
+          type="button"
+          data-navigation-back="true"
+          aria-label={backLabel}
+          title={backLabel}
+          onClick={() => back?.onSelect()}
+          className="-ml-2 flex h-button min-w-0 items-center gap-1.5 rounded-control pl-1.5 pr-3 text-core-text transition-colors hover:bg-core-hover [&>svg]:text-core-muted hover:[&>svg]:text-core-action"
+        >
+          <ArrowLeft className="shrink-0" size={20} aria-hidden="true" />
+          {shownBack?.icon ? <span className="flex shrink-0" aria-hidden="true">{shownBack.icon}</span> : null}
+          <span className="min-w-0 truncate core-heading-3">{shownBack?.title}</span>
+        </button>
+      </div>
+    </h1>
   );
 }
 
@@ -125,71 +254,79 @@ function SyncUtilityButton({ syncStatus, manualSync, onSyncNow, onOpenSyncSettin
   );
 }
 
-type UtilityProps = Pick<ResponsiveNavigationProps, "activeView" | "theme" | "onNavigate" | "onPreloadView" | "onToggleTheme" | "manualSync" | "onSyncNow" | "onOpenSyncSettings" | "settingsOpen" | "onOpenSettings" | "onPreloadSettings">;
+type UtilityProps = Pick<AppNavigationProps, "activeView" | "onNavigate" | "onPreloadView" | "manualSync" | "onSyncNow" | "onOpenSyncSettings" | "settingsOpen" | "onOpenSettings" | "onPreloadSettings">;
 
-function NavigationUtilityButtons({ activeView, theme, onNavigate, onPreloadView, onToggleTheme, settingsOpen, onOpenSettings, ...syncProps }: UtilityProps) {
+function NavigationUtilityButtons({ activeView, onNavigate, onPreloadView, settingsOpen, onOpenSettings, ...syncProps }: UtilityProps) {
   const syncStatus = useWorkspaceValue((snapshot) => snapshot.syncStatus);
-  const darkModeActive = theme === "dark";
-  const ThemeIcon = darkModeActive ? Moon : Sun;
-  const pageButton = (viewId: "statistik" | "hilfe", utility: string, label: string, icon: LucideIcon) => {
-    const active = activeView === viewId;
+  const menuTargetActive = settingsOpen || activeView === "statistik" || activeView === "hilfe";
+  const menuButtonRef = React.useRef<HTMLButtonElement>(null);
+  const navigatedFromMenu = React.useRef(false);
+  const pageRow = (viewId: "statistik" | "hilfe", utility: string, label: string, Icon: LucideIcon) => {
     const preload = () => onPreloadView?.(viewId);
     return (
-      <IconButton
-        type="button"
-        variant="ghost"
-        data-app-navigation="true"
-        data-navigation-utility={utility}
-        label={label}
-        icon={icon}
-        onClick={() => onNavigate(viewId)}
-        onPointerEnter={preload}
-        onFocus={preload}
-        onTouchStart={preload}
-        className={`size-button shrink-0 rounded-control ${active ? "!bg-core-subtle !text-core-action" : ""}`}
-        aria-current={active ? "page" : undefined}
-      />
+      <Popover.Close asChild>
+        <button type="button" className="core-menu-row" data-navigation-utility={utility} aria-current={activeView === viewId ? "page" : undefined} onClick={() => {
+            // A blocked navigation (unsaved draft) opens a dialog that returns focus to the menu button; a real page change
+            // gives the new heading the focus (App), so the popover must not pull it back to the button.
+            menuButtonRef.current?.focus();
+            navigatedFromMenu.current = activeView !== viewId;
+            onNavigate(viewId);
+          }} onPointerEnter={preload} onFocus={preload}>
+          <Icon size={16} aria-hidden="true" />{label}
+        </button>
+      </Popover.Close>
     );
   };
-  const themeButton = (
-    <IconButton
-      type="button"
-      variant="ghost"
-      data-navigation-utility="theme"
-      label={darkModeActive ? "Light Mode einschalten" : "Dark Mode einschalten"}
-      icon={ThemeIcon}
-      onClick={onToggleTheme}
-      className="size-button shrink-0 rounded-control"
-    />
-  );
 
   return (
     <div className="flex shrink-0 items-center gap-0 min-[360px]:gap-1.5" data-navigation-utilities="true" data-sync-status={syncStatus.status}>
       <SyncUtilityButton syncStatus={syncStatus} {...syncProps} />
-      {pageButton("statistik", "statistics", "Statistik öffnen", BarChart3)}
-      {themeButton}
-      {pageButton("hilfe", "help", "Hilfe öffnen", CircleHelp)}
-      <IconButton
-        type="button"
-        variant="ghost"
-        data-app-navigation="true"
-        data-navigation-utility="settings"
-        label="Einstellungen öffnen"
-        icon={Settings}
-        onClick={onOpenSettings}
-        onPointerEnter={syncProps.onPreloadSettings}
-        onFocus={syncProps.onPreloadSettings}
-        onTouchStart={syncProps.onPreloadSettings}
-        className={`size-button shrink-0 rounded-control ${settingsOpen ? "!bg-core-subtle !text-core-action" : ""}`}
-        aria-expanded={settingsOpen}
-      />
+      <Popover.Root>
+        <Popover.Trigger asChild>
+          <IconButton
+            ref={menuButtonRef}
+            type="button"
+            variant="ghost"
+            data-app-navigation="true"
+            data-navigation-utility="menu"
+            label="Menü"
+            icon={Menu}
+            onPointerEnter={syncProps.onPreloadSettings}
+            onFocus={syncProps.onPreloadSettings}
+            onTouchStart={syncProps.onPreloadSettings}
+            className={`size-button shrink-0 rounded-control ${menuTargetActive ? "!bg-core-subtle !text-core-action" : ""}`}
+          />
+        </Popover.Trigger>
+        <Popover.Portal>
+          <Popover.Content
+            align="end"
+            sideOffset={8}
+            collisionPadding={16}
+            className="core-overlay z-[60] grid w-56 gap-0.5 rounded-panel p-1.5"
+            data-navigation-menu="true"
+            onCloseAutoFocus={(event) => { if (navigatedFromMenu.current) event.preventDefault(); navigatedFromMenu.current = false; }}
+          >
+            <Popover.Close asChild>
+              <button type="button" className="core-menu-row" data-navigation-utility="settings" onClick={() => {
+                // The dialog remembers the focused element as return target when it mounts, before the popover refocuses its trigger.
+                menuButtonRef.current?.focus();
+                onOpenSettings();
+              }}>
+                <Settings size={16} aria-hidden="true" />Einstellungen
+              </button>
+            </Popover.Close>
+            {pageRow("statistik", "statistics", "Statistik", BarChart3)}
+            {pageRow("hilfe", "help", "Hilfe", CircleHelp)}
+          </Popover.Content>
+        </Popover.Portal>
+      </Popover.Root>
     </div>
   );
 }
 
 function SimulationStatus({ simulationDateLabel, simulationOffsetMinutes, onResetSimulation }: Pick<AppNavigationProps, "simulationDateLabel" | "simulationOffsetMinutes" | "onResetSimulation">) {
   return (
-    <div className="mt-2 flex min-h-control items-center gap-3 rounded-control border border-core-warning bg-core-warning-soft px-3 text-core-text" role="status">
+    <div className="flex min-h-control items-center gap-3 rounded-control border border-core-warning bg-core-warning-soft px-3 text-core-text" role="status">
       <CalendarClock className="shrink-0" size={17} aria-hidden="true" />
       <span className="min-w-0 flex-1 truncate core-caption font-semibold">Simulation · {simulationDateLabel} · +{formatSimulationDuration(simulationOffsetMinutes)}</span>
       <button type="button" data-reset-simulation="true" className="min-h-control shrink-0 px-2 core-body font-semibold text-core-action" onClick={onResetSimulation}>Heute</button>
@@ -197,60 +334,61 @@ function SimulationStatus({ simulationDateLabel, simulationOffsetMinutes, onRese
   );
 }
 
-function DesktopTopBar({ navigationItems, activeView, simulationOffsetMinutes, simulationDateLabel, pomodoroTimer, onNavigate, onPreloadView, onResetSimulation, theme, onToggleTheme, manualSync, onSyncNow, onOpenSyncSettings, settingsOpen, onOpenSettings, onPreloadSettings }: ResponsiveNavigationProps) {
+function DesktopTopBar({ back, hidden, instant, headerRef, navigationItems, activeView, simulationOffsetMinutes, simulationDateLabel, pomodoroTimer, onNavigate, onPreloadView, onResetSimulation, manualSync, onSyncNow, onOpenSyncSettings, settingsOpen, onOpenSettings, onPreloadSettings }: ResponsiveNavigationProps) {
   return (
-    <header className="hidden min-w-0 px-4 pt-2 xl:block" data-navigation-layout="top-bar">
-      <div className="mx-auto grid h-16 max-w-7xl grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-4 rounded-panel border border-core-border bg-core-surface px-6 shadow-floating">
-        <h1 className="core-brand text-core-text">
-          <NavigationBrand onNavigate={onNavigate} />
-        </h1>
+    // Placed over the scrolling content region (App), so hiding it frees the space instead of leaving an empty row.
+    <header ref={headerRef} className="core-shell-header hidden min-w-0 xl:relative xl:z-30 xl:col-start-1 xl:row-start-1 xl:mr-[var(--shell-scrollbar,0px)] xl:block" data-navigation-layout="top-bar" data-shell-mode={back ? "app" : "hub"} data-shell-hidden={hidden || undefined} data-shell-instant={instant || undefined}>
+      <div className="core-shell-frame">
+        <div className="core-shell-bar mx-auto grid max-w-7xl grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-4 px-6" data-shell-bar="true">
+          <ShellLead back={back} brandClassName="core-brand" onNavigate={onNavigate} />
 
-        <nav aria-label="Hauptmenü" data-app-navigation="true" className="flex items-center gap-1">
-          {navigationItems.map((view) => {
-            const NavIcon = getIcon(view.iconKey);
-            const isActive = view.id === activeView;
+          <nav aria-label="Hauptmenü" data-app-navigation="true" className="flex items-center gap-1">
+            {navigationItems.map((view) => {
+              const NavIcon = getIcon(view.iconKey);
+              const isActive = view.id === activeView;
 
-            return (
-              <button
-                key={view.id}
-                type="button"
-                onClick={() => onNavigate(view.id)}
-                onPointerEnter={() => onPreloadView?.(view.id)}
-                onFocus={() => onPreloadView?.(view.id)}
-                onTouchStart={() => onPreloadView?.(view.id)}
-                className={`core-body flex h-11 items-center gap-2 whitespace-nowrap rounded-control px-4 font-semibold transition-colors ${
-                  isActive ? "bg-core-subtle text-core-action" : "text-core-text hover:bg-core-subtle hover:text-core-action"
-                }`}
-                aria-current={isActive ? "page" : undefined}
-              >
-                <NavIcon className="shrink-0" size={16} aria-hidden="true" />
-                <span>{view.label}</span>
-              </button>
-            );
-          })}
-        </nav>
+              return (
+                <button
+                  key={view.id}
+                  type="button"
+                  onClick={() => onNavigate(view.id)}
+                  onPointerEnter={() => onPreloadView?.(view.id)}
+                  onFocus={() => onPreloadView?.(view.id)}
+                  onTouchStart={() => onPreloadView?.(view.id)}
+                  className={`core-body flex h-11 items-center gap-2 whitespace-nowrap rounded-control px-4 font-semibold transition-colors ${
+                    isActive ? "bg-core-subtle text-core-action" : "text-core-text hover:bg-core-subtle hover:text-core-action"
+                  }`}
+                  aria-current={isActive ? "page" : undefined}
+                >
+                  <NavIcon className="shrink-0" size={16} aria-hidden="true" />
+                  <span>{view.label}</span>
+                </button>
+              );
+            })}
+          </nav>
 
-        <div className="flex min-w-0 items-center justify-end gap-3">
-          <PomodoroProgress timer={pomodoroTimer} variant="header" />
-          <NavigationUtilityButtons activeView={activeView} theme={theme} onNavigate={onNavigate} onPreloadView={onPreloadView} onToggleTheme={onToggleTheme} manualSync={manualSync} onSyncNow={onSyncNow} onOpenSyncSettings={onOpenSyncSettings} settingsOpen={settingsOpen} onOpenSettings={onOpenSettings} onPreloadSettings={onPreloadSettings} />
+          <div className="flex min-w-0 items-center justify-end gap-3">
+            <PomodoroProgress timer={pomodoroTimer} variant="header" />
+            <NavigationUtilityButtons activeView={activeView} onNavigate={onNavigate} onPreloadView={onPreloadView} manualSync={manualSync} onSyncNow={onSyncNow} onOpenSyncSettings={onOpenSyncSettings} settingsOpen={settingsOpen} onOpenSettings={onOpenSettings} onPreloadSettings={onPreloadSettings} />
+          </div>
         </div>
       </div>
-      {simulationOffsetMinutes > 0 ? <SimulationStatus simulationDateLabel={simulationDateLabel} simulationOffsetMinutes={simulationOffsetMinutes} onResetSimulation={onResetSimulation} /> : null}
+      {simulationOffsetMinutes > 0 ? <div className="core-shell-status px-4"><SimulationStatus simulationDateLabel={simulationDateLabel} simulationOffsetMinutes={simulationOffsetMinutes} onResetSimulation={onResetSimulation} /></div> : null}
     </header>
   );
 }
 
-function MobileHeader({ activeView, simulationOffsetMinutes, simulationDateLabel, pomodoroTimer, onNavigate, onPreloadView, onResetSimulation, theme, onToggleTheme, manualSync, onSyncNow, onOpenSyncSettings, settingsOpen, onOpenSettings, onPreloadSettings }: ResponsiveNavigationProps) {
+function MobileHeader({ back, hidden, instant, headerRef, activeView, simulationOffsetMinutes, simulationDateLabel, pomodoroTimer, onNavigate, onPreloadView, onResetSimulation, manualSync, onSyncNow, onOpenSyncSettings, settingsOpen, onOpenSettings, onPreloadSettings }: ResponsiveNavigationProps) {
   return (
-    <header className="core-mobile-header sticky top-0 z-30 min-w-0 px-2 py-2 xl:hidden" data-navigation-layout="mobile-header">
-      <div className="flex h-16 min-w-0 items-center justify-between gap-3 rounded-panel border border-core-border bg-core-surface px-3 shadow-floating">
-        <h1 className="core-mobile-brand core-brand shrink-0 text-core-text">
-          <NavigationBrand onNavigate={onNavigate} />
-        </h1>
-        <PomodoroProgress timer={pomodoroTimer} variant="header" />
-        <NavigationUtilityButtons activeView={activeView} theme={theme} onNavigate={onNavigate} onPreloadView={onPreloadView} onToggleTheme={onToggleTheme} manualSync={manualSync} onSyncNow={onSyncNow} onOpenSyncSettings={onOpenSyncSettings} settingsOpen={settingsOpen} onOpenSettings={onOpenSettings} onPreloadSettings={onPreloadSettings} />
+    <header ref={headerRef} className="core-mobile-header core-shell-header sticky top-0 z-30 min-w-0 xl:hidden" data-navigation-layout="mobile-header" data-shell-mode={back ? "app" : "hub"} data-shell-hidden={hidden || undefined} data-shell-instant={instant || undefined}>
+      <div className="core-shell-frame">
+        <div className="core-shell-bar flex min-w-0 items-center justify-between gap-3 px-3" data-shell-bar="true">
+          <ShellLead back={back} brandClassName="core-mobile-brand core-brand" onNavigate={onNavigate} />
+          <PomodoroProgress timer={pomodoroTimer} variant="header" />
+          <NavigationUtilityButtons activeView={activeView} onNavigate={onNavigate} onPreloadView={onPreloadView} manualSync={manualSync} onSyncNow={onSyncNow} onOpenSyncSettings={onOpenSyncSettings} settingsOpen={settingsOpen} onOpenSettings={onOpenSettings} onPreloadSettings={onPreloadSettings} />
+        </div>
       </div>
-      {simulationOffsetMinutes > 0 ? <SimulationStatus simulationDateLabel={simulationDateLabel} simulationOffsetMinutes={simulationOffsetMinutes} onResetSimulation={onResetSimulation} /> : null}
+      {simulationOffsetMinutes > 0 ? <div className="core-shell-status px-2"><SimulationStatus simulationDateLabel={simulationDateLabel} simulationOffsetMinutes={simulationOffsetMinutes} onResetSimulation={onResetSimulation} /></div> : null}
     </header>
   );
 }
@@ -293,20 +431,20 @@ function MobileBottomNavigation({ navigationItems, activeView, onNavigate, onPre
 }
 
 export function AppNavigation(props: AppNavigationProps) {
-  const [theme, setTheme] = React.useState(readCoreTheme);
   const navigationActiveView = props.activeView === "simulator" ? "lernen" : props.activeView;
   const mobileBottomNavigation = <MobileBottomNavigation {...props} activeView={navigationActiveView} />;
-  const responsiveProps = {
-    ...props,
-    activeView: navigationActiveView,
-    theme,
-    onToggleTheme: () => setTheme(toggleCoreTheme),
-  };
+  const desktopRef = React.useRef<HTMLElement>(null);
+  const mobileRef = React.useRef<HTMLElement>(null);
+  const headerRefs = React.useMemo(() => [desktopRef, mobileRef], []);
+  const hidden = useHiddenOnScrollDown(`${props.activeView}:${props.back?.title ?? ""}`, headerRefs, props.scrollRegionRef);
+  useShellOffsets(hidden, headerRefs, props.scrollRegionRef);
+  const instant = !useFirstInput();
+  const responsiveProps = { ...props, activeView: navigationActiveView, hidden, instant };
 
   return (
     <>
-      <DesktopTopBar {...responsiveProps} />
-      <MobileHeader {...responsiveProps} />
+      <DesktopTopBar {...responsiveProps} headerRef={desktopRef} />
+      <MobileHeader {...responsiveProps} headerRef={mobileRef} />
       {typeof document === "undefined" ? mobileBottomNavigation : createPortal(mobileBottomNavigation, document.body)}
     </>
   );

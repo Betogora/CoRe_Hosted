@@ -12,6 +12,7 @@ import { CoreTooltip } from "./tooltipUi.tsx";
 import { DeckAppearanceIcon, getDeckAppearance } from "./deckAppearance.tsx";
 import { LEARNING_STATUS_UI } from "./learningStatusUi.ts";
 import { useStableCallback } from "./useStableCallback.ts";
+import { revealShellHeader } from "./shellBack.ts";
 
 export type DeckTreeView = "list" | "tiles";
 
@@ -222,12 +223,12 @@ type TopLevelPlacement = "top-bar" | "bottom-bar";
 
 const POINTER_DRAG_THRESHOLD = 6;
 
-function viewportRect(element: Element | null, inset = 0): ViewportRect | null {
+function viewportRect(element: Element | null, inset = 0, insetY = inset): ViewportRect | null {
   if (!element) return null;
   const rect = element.getBoundingClientRect();
   const width = rect.width - inset * 2;
-  const height = rect.height - inset * 2;
-  return width > 0 && height > 0 ? { x: rect.left + inset, y: rect.top + inset, width, height } : null;
+  const height = rect.height - insetY * 2;
+  return width > 0 && height > 0 ? { x: rect.left + inset, y: rect.top + insetY, width, height } : null;
 }
 
 function sameRect(left: ViewportRect | null, right: ViewportRect | null) {
@@ -261,6 +262,7 @@ function DeckDragFocusOverlay({ maskId, holes }: { maskId: string; holes: Viewpo
       className="pointer-events-none fixed inset-0 size-full"
       style={{ zIndex: 70 }}
       aria-hidden="true"
+      data-deck-drag-overlay="true"
       data-testid="deck-drag-focus-overlay"
     >
       <defs>
@@ -495,7 +497,8 @@ export function DeckTree({ rows, rootDeckIds, mode, view = "list", onViewChange,
 
     const sourceRect = viewportRect(drag.captureElement.closest("[data-deck-row='true']"));
     const targetRect = viewportRect(drag.targetElement);
-    const topBarRect = viewportRect(document.querySelector("[data-navigation-layout='top-bar'] > div"), 8);
+    // The card is a pseudo-element; the bar sits inside it with 8 px above and below.
+    const topBarRect = viewportRect(document.querySelector("[data-navigation-layout='top-bar'] [data-shell-bar]"), 8, 0);
     const bottomBarRect = topBarRect ? null : viewportRect(document.querySelector("[data-navigation-layout='bottom-bar']"));
     const topLevelTarget = topBarRect
       ? { placement: "top-bar" as const, rect: topBarRect }
@@ -517,10 +520,14 @@ export function DeckTree({ rows, rootDeckIds, mode, view = "list", onViewChange,
       });
     };
     document.addEventListener("scroll", scheduleMeasurement, true);
+    // A head hidden by scrolling slides back in at the drag start; its end position is the drop zone.
+    document.addEventListener("transitionend", scheduleMeasurement, true);
     window.addEventListener("resize", scheduleMeasurement);
+    revealShellHeader();
     scheduleMeasurement();
     return () => {
       document.removeEventListener("scroll", scheduleMeasurement, true);
+      document.removeEventListener("transitionend", scheduleMeasurement, true);
       window.removeEventListener("resize", scheduleMeasurement);
       if (frame) window.cancelAnimationFrame(frame);
     };

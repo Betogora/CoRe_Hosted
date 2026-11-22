@@ -7,10 +7,11 @@ import type { SyncStatus } from "../coreTypes.ts";
 import { WorkspaceStoreContext } from "../useWorkspaceStore.ts";
 import { createWorkspaceStore } from "../workspaceStore.ts";
 import { AppNavigation } from "./AppNavigation.tsx";
+import type { ShellBack } from "./shellBack.ts";
 
 const navigationItems = createMenuModel().listNavigationItems();
 
-function renderNavigation(activeView = "uebersicht", simulationOffsetMinutes = 0, pomodoroTimer: PomodoroTimer | null = null, syncStatus: SyncStatus = { status: "idle" }, manualSync = false, settingsOpen = false) {
+function renderNavigation(activeView = "uebersicht", simulationOffsetMinutes = 0, pomodoroTimer: PomodoroTimer | null = null, syncStatus: SyncStatus = { status: "idle" }, manualSync = false, settingsOpen = false, back: ShellBack | null = null) {
   const store = createWorkspaceStore();
   store.set({ syncStatus });
   return renderToStaticMarkup(
@@ -27,9 +28,29 @@ function renderNavigation(activeView = "uebersicht", simulationOffsetMinutes = 0
       onOpenSettings={() => undefined}
       onNavigate={() => undefined}
       onResetSimulation={() => undefined}
+      back={back}
     /></WorkspaceStoreContext.Provider>,
   );
 }
+
+test("subpages turn the floating card into the docked bar with back and title, keeping both groups mounted", () => {
+  const hub = renderNavigation();
+  assert.equal((hub.match(/data-shell-mode="hub"/g) ?? []).length, 2);
+  for (const group of hub.match(/<div class="core-shell-(brand|back)[^"]*"[^>]*>/g) ?? []) {
+    assert.equal(group.includes("inert"), group.includes("core-shell-back"));
+  }
+
+  const app = renderNavigation("erstellen", 0, null, { status: "idle" }, false, false, { title: "Karte selbst erstellen", label: "Erstellen", onSelect: () => undefined });
+  assert.equal((app.match(/data-shell-mode="app"/g) ?? []).length, 2);
+  const groups = app.match(/<div class="core-shell-(brand|back)[^"]*"[^>]*>/g) ?? [];
+  assert.equal(groups.length, 4);
+  for (const group of groups) assert.equal(group.includes("inert"), group.includes("core-shell-brand"));
+  assert.equal((app.match(/<button[^>]*aria-label="Zurück zu Erstellen"[^>]*>[\s\S]*?Karte selbst erstellen<\/span><\/button>/g) ?? []).length, 2);
+  assert.equal((app.match(/<h1 class="core-shell-lead/g) ?? []).length, 2);
+
+  const withIcon = renderNavigation("kartenstapel", 0, null, { status: "idle" }, false, false, { title: "Kapitel", label: "Lernen", icon: <span data-deck-icon="true" />, onSelect: () => undefined });
+  assert.equal((withIcon.match(/<button[^>]*aria-label="Zurück zu Lernen"[^>]*>[\s\S]*?data-deck-icon="true"[\s\S]*?Kapitel<\/span><\/button>/g) ?? []).length, 2);
+});
 
 test("automatic sync stays out of the header until something needs attention", () => {
   for (const syncStatus of [
@@ -121,61 +142,38 @@ test("bottom navigation keeps every icon before its visible label and exactly on
   }
 });
 
-test("the settings button marks the open dialog while the page and the simulator keep their main targets", () => {
+test("the menu button marks an open settings dialog or a menu page while the bottom bar keeps its main target", () => {
+  const activeMenuButtons = (markup: string) => (markup.match(/<button[^>]*data-navigation-utility="menu"[^>]*>/g) ?? []).filter((button) => button.includes("!text-core-action")).length;
   const settingsMarkup = renderNavigation("lernen", 0, null, { status: "idle" }, false, true);
   const settingsBottomBar = settingsMarkup.match(/<nav[^>]*data-navigation-layout="bottom-bar"[\s\S]*?<\/nav>/)?.[0] ?? "";
-  assert.equal((settingsMarkup.match(/<button[^>]*data-navigation-utility="settings"[^>]*aria-expanded="true"[^>]*>/g) ?? []).length, 2);
-  assert.equal((settingsMarkup.match(/<button[^>]*data-navigation-utility="help"[^>]*aria-current="page"[^>]*>/g) ?? []).length, 0);
+  assert.equal(activeMenuButtons(settingsMarkup), 2);
   assert.match(settingsBottomBar, /aria-current="page"[^>]*>[\s\S]*?>Lernen<\/span>/);
-  assert.equal((renderNavigation("lernen").match(/data-navigation-utility="settings"[^>]*aria-expanded="false"/g) ?? []).length, 2);
+  assert.equal(activeMenuButtons(renderNavigation("lernen")), 0);
+  assert.equal(activeMenuButtons(renderNavigation("statistik")), 2);
+  assert.equal(activeMenuButtons(renderNavigation("hilfe")), 2);
+  assert.equal((renderNavigation("statistik").match(/aria-current="page"/g) ?? []).length, 0);
 
   const simulatorMarkup = renderNavigation("simulator");
   const bottomBarMarkup = simulatorMarkup.match(/<nav[^>]*data-navigation-layout="bottom-bar"[\s\S]*?<\/nav>/)?.[0] ?? "";
   assert.match(bottomBarMarkup, /aria-current="page"[^>]*>[\s\S]*?>Lernen<\/span>/);
-
-  const helpMarkup = renderNavigation("hilfe");
-  assert.equal((helpMarkup.match(/<button[^>]*data-navigation-utility="help"[^>]*aria-current="page"[^>]*>/g) ?? []).length, 2);
-  assert.equal((helpMarkup.match(/<button[^>]*data-navigation-utility="settings"[^>]*aria-expanded="true"[^>]*>/g) ?? []).length, 0);
 });
 
-test("statistics is an icon-only utility with its own current state", () => {
-  const markup = renderNavigation("statistik");
-  const statisticsButtons = markup.match(/<button[^>]*data-navigation-utility="statistics"[\s\S]*?<\/button>/g) ?? [];
-  assert.equal(statisticsButtons.length, 2);
-  for (const button of statisticsButtons) {
-    assert.match(button, /aria-label="Statistik öffnen"/);
-    assert.match(button, /aria-current="page"/);
-    assert.match(button, /core-action-ghost/);
-    assert.equal(button.replace(/<[^>]+>/g, ""), "");
-  }
-  assert.equal((markup.match(/aria-current="page"/g) ?? []).length, 2);
-  assert.doesNotMatch(renderNavigation("uebersicht"), /data-navigation-utility="statistics"[^>]*aria-current/);
-});
-
-test("responsive navigation shares compact settings, theme and help actions without a profile preview", () => {
+test("responsive navigation keeps sync and one menu button as its only utilities", () => {
   const markup = renderNavigation("uebersicht", 0, null, { status: "idle" }, true);
   const topBarMarkup = markup.match(/<header[^>]*data-navigation-layout="top-bar"[\s\S]*?<\/header>/)?.[0] ?? "";
   const mobileHeaderMarkup = markup.match(/<header[^>]*data-navigation-layout="mobile-header"[\s\S]*?<\/header>/)?.[0] ?? "";
 
   assert.equal((markup.match(/data-navigation-utilities="true"/g) ?? []).length, 2);
-  assert.equal((markup.match(/aria-label="Einstellungen öffnen"/g) ?? []).length, 2);
-  assert.equal((markup.match(/aria-label="Hilfe öffnen"/g) ?? []).length, 2);
-  assert.equal((markup.match(/aria-label="Statistik öffnen"/g) ?? []).length, 2);
-  assert.equal((markup.match(/aria-label="Dark Mode einschalten"/g) ?? []).length, 2);
-  assert.equal((markup.match(/lucide-circle-help/g) ?? []).length, 2);
-  assert.equal((markup.match(/lucide-sun/g) ?? []).length, 2);
+  const menuButtons = markup.match(/<button[^>]*data-navigation-utility="menu"[^>]*>/g) ?? [];
+  assert.equal(menuButtons.length, 2);
+  for (const button of menuButtons) assert.match(button, /aria-label="Menü"/);
+  assert.doesNotMatch(markup, /Einstellungen öffnen|Hilfe öffnen|Statistik öffnen|Mode einschalten|data-navigation-utility="(theme|statistics|help|settings)"/);
   assert.doesNotMatch(topBarMarkup, /Content Repetition/);
   for (const layoutMarkup of [topBarMarkup, mobileHeaderMarkup]) {
     assert.match(layoutMarkup, /data-navigation-utilities="true" data-sync-status="idle"/);
-    assert.ok(layoutMarkup.indexOf('data-navigation-utility="sync"') < layoutMarkup.indexOf('data-navigation-utility="statistics"'));
-    assert.ok(layoutMarkup.indexOf('data-navigation-utility="statistics"') < layoutMarkup.indexOf('data-navigation-utility="theme"'));
-    assert.ok(layoutMarkup.indexOf('data-navigation-utility="theme"') < layoutMarkup.indexOf('data-navigation-utility="help"'));
-    assert.ok(layoutMarkup.indexOf('data-navigation-utility="help"') < layoutMarkup.indexOf('data-navigation-utility="settings"'));
+    assert.ok(layoutMarkup.indexOf('data-navigation-utility="sync"') < layoutMarkup.indexOf('data-navigation-utility="menu"'));
   }
   assert.ok(topBarMarkup.indexOf("</nav>") < topBarMarkup.indexOf('data-navigation-utilities="true"'));
-  assert.equal((markup.match(/data-navigation-utility="theme"[^>]*class="[^"]*core-action-ghost/g) ?? []).length, 2);
-  assert.equal((markup.match(/data-navigation-utility="theme"[^>]*core-action-secondary/g) ?? []).length, 0);
-  assert.doesNotMatch(markup, /role="switch"|aria-checked=/);
   assert.doesNotMatch(markup, />Ada<|>AD</);
 });
 

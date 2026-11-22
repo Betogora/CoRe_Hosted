@@ -225,14 +225,6 @@ export function CardHitTable({ items, rowOf, virtual, loading, searching, select
     observer.observe(sample);
     return () => observer.disconnect();
   }, [barShown, tableShown]);
-  const [mobileHeaderHeight, setMobileHeaderHeight] = React.useState(0);
-  React.useEffect(() => {
-    const header = document.querySelector<HTMLElement>('[data-navigation-layout="mobile-header"]');
-    if (!header) return;
-    const observer = new ResizeObserver(() => setMobileHeaderHeight(header.offsetHeight));
-    observer.observe(header);
-    return () => observer.disconnect();
-  }, []);
   return tableShown ? (
     <div className="min-w-0 max-w-full overflow-clip rounded-panel border border-core-border bg-core-surface" data-testid="card-library-sheet">
   <table className="w-full table-fixed border-collapse" data-testid="card-library-table" aria-busy={loading || undefined} aria-rowcount={items.length}>
@@ -242,7 +234,7 @@ export function CardHitTable({ items, rowOf, virtual, loading, searching, select
         <col className="w-20 sm:w-[5.5rem]" />
       </colgroup>
       {/* From xl the screen region scrolls; its top padding (xl:py-10 in App) would otherwise hold the header 40 px low. */}
-      <thead ref={theadRef} onChangeCapture={(event) => { toggledInHeader.current = event.target instanceof HTMLInputElement && event.target.type === "checkbox" && event.currentTarget.contains(event.target); }} onClickCapture={(event) => { if (event.target instanceof Element && event.target.closest(".core-card-selection-close")) toggledInHeader.current = true; }} className="sticky top-[var(--core-card-table-sticky-top)] z-10 bg-core-surface xl:-top-10" style={{ "--core-card-table-sticky-top": `${mobileHeaderHeight}px` } as React.CSSProperties}>
+      <thead ref={theadRef} onChangeCapture={(event) => { toggledInHeader.current = event.target instanceof HTMLInputElement && event.target.type === "checkbox" && event.currentTarget.contains(event.target); }} onClickCapture={(event) => { if (event.target instanceof Element && event.target.closest(".core-card-selection-close")) toggledInHeader.current = true; }} className="sticky top-[var(--shell-sticky-top)] z-10 bg-core-surface">
         {selectionBar ? (
           <tr className="core-card-table-header border-b border-core-border">
             <th scope="col" colSpan={3} className="p-0 text-left font-normal">

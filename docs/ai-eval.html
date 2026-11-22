@@ -1657,11 +1657,11 @@ video {
 .top-44 {
   top: 11rem;
 }
-.top-\[5\.5rem\] {
-  top: 5.5rem;
+.top-\[calc\(var\(--shell-offset\2c 4\.5rem\)\+0\.5rem\)\] {
+  top: calc(var(--shell-offset,4.5rem) + 0.5rem);
 }
-.top-\[var\(--core-card-table-sticky-top\)\] {
-  top: var(--core-card-table-sticky-top);
+.top-\[var\(--shell-sticky-top\)\] {
+  top: var(--shell-sticky-top);
 }
 .top-full {
   top: 100%;
@@ -1996,9 +1996,6 @@ video {
 .h-11 {
   height: 2.75rem;
 }
-.h-16 {
-  height: 4rem;
-}
 .h-2 {
   height: 0.5rem;
 }
@@ -2049,6 +2046,9 @@ video {
 }
 .h-auto {
   height: auto;
+}
+.h-button {
+  height: var(--core-button-height);
 }
 .h-control {
   height: var(--core-control-height);
@@ -2233,6 +2233,9 @@ video {
 }
 .w-4\/5 {
   width: 80%;
+}
+.w-56 {
+  width: 14rem;
 }
 .w-64 {
   width: 16rem;
@@ -3159,6 +3162,9 @@ video {
 .pl-1 {
   padding-left: 0.25rem;
 }
+.pl-1\.5 {
+  padding-left: 0.375rem;
+}
 .pl-2 {
   padding-left: 0.5rem;
 }
@@ -3194,6 +3200,9 @@ video {
 }
 .pr-2 {
   padding-right: 0.5rem;
+}
+.pr-3 {
+  padding-right: 0.75rem;
 }
 .pr-4 {
   padding-right: 1rem;
@@ -3820,7 +3829,7 @@ summary {
 }
 
 @media (max-width: 26.8125rem) {
-  .core-mobile-header > div:has([data-navigation-utility="sync"], [data-pomodoro-progress]) [data-navigation-brand] > span {
+  .core-mobile-header .core-shell-bar:has([data-navigation-utility="sync"], [data-pomodoro-progress]) [data-navigation-brand] > span {
     position: absolute;
     width: 1px;
     height: 1px;
@@ -3829,7 +3838,7 @@ summary {
     white-space: nowrap;
   }
 
-  .core-mobile-header > div:has([data-navigation-utility="sync"], [data-pomodoro-progress]) [data-navigation-utilities="true"] {
+  .core-mobile-header .core-shell-bar:has([data-navigation-utility="sync"], [data-pomodoro-progress]) [data-navigation-utilities="true"] {
     gap: 0;
   }
 }
@@ -5135,11 +5144,11 @@ body:has([aria-modal="true"]) .core-success-toast {
     padding: 0.25rem;
   }
 
-  .core-mobile-header {
-    padding-inline: 0.25rem;
+  .core-mobile-header .core-shell-frame {
+    --shell-gutter: 0.25rem;
   }
 
-  .core-mobile-header > div {
+  .core-mobile-header .core-shell-bar {
     gap: 0.125rem;
   }
 
@@ -5663,10 +5672,25 @@ button.core-steps-step {
   margin-top: var(--core-space-lg);
 }
 
+/* In the app the navigation bar carries title and icon: the path shares its row with the study action, and the head
+   moves closer to the bar. */
+.core-deck-content-head[data-title-in-shell] {
+  grid-template-areas: "path study" "tabs tabs";
+  margin-top: calc(-1 * var(--core-space-lg));
+}
+
+.core-deck-content-head[data-title-in-shell] .core-deck-content-tabs {
+  margin-top: var(--core-space-sm);
+}
+
 @media (max-width: 639px) {
   .core-deck-content-head {
     grid-template-columns: minmax(0, 1fr);
     grid-template-areas: "path" "title" "tabs" "study";
+  }
+
+  .core-deck-content-head[data-title-in-shell] {
+    grid-template-areas: "path" "tabs" "study";
   }
 
   .core-deck-content-title {
@@ -6440,6 +6464,180 @@ button.core-steps-step {
   .dashboard-widget-content { height: auto; }
   .dashboard-widget-content > * { height: auto; max-height: var(--dashboard-widget-height); }
   .dashboard-widget [data-heatmap-period="week"] { min-height: 12rem; }
+}
+
+/* The layout jumps to the target height at once; only a clipped surface, translate and opacity move, so the
+   page below is neither laid out nor rasterised again in every frame. */
+.core-shell-frame {
+  --shell-gutter: 0.5rem;
+  --shell-ease: cubic-bezier(0.2, 0, 0, 1);
+  --shell-card-inset: max(var(--shell-gutter), calc((100% - 80rem) / 2));
+  position: relative;
+  isolation: isolate;
+  padding-inline: var(--shell-gutter);
+  border-bottom: var(--core-border-width) solid transparent;
+  /* The border switches once at the end instead of being recomputed in every frame. */
+  transition: border-color 0s;
+}
+
+[data-navigation-layout="top-bar"] .core-shell-frame {
+  --shell-gutter: 1rem;
+}
+
+[data-shell-mode="hub"] .core-shell-frame {
+  padding-bottom: calc(2rem - var(--core-border-width));
+}
+
+[data-shell-mode="app"] .core-shell-frame {
+  border-bottom-color: var(--core-border);
+  transition-delay: 280ms;
+}
+
+.core-shell-frame::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto;
+  z-index: -1;
+  height: 5rem;
+  pointer-events: none;
+  background-color: var(--core-surface);
+  clip-path: inset(0 0 2rem 0 round 0);
+  transition: clip-path 280ms var(--shell-ease);
+}
+
+[data-shell-mode="hub"] .core-shell-frame::before {
+  clip-path: inset(0.5rem var(--shell-card-inset) 0.5rem round var(--core-radius-panel));
+}
+
+/* Border and shadow of the card do not morph, they only fade. */
+.core-shell-frame::after {
+  content: "";
+  position: absolute;
+  top: 0.5rem;
+  right: var(--shell-card-inset);
+  left: var(--shell-card-inset);
+  z-index: -1;
+  height: 4rem;
+  pointer-events: none;
+  border: var(--core-border-width) solid var(--core-border);
+  border-radius: var(--core-radius-panel);
+  box-shadow: var(--core-shadow-floating);
+  opacity: 0;
+  transition: opacity 140ms var(--shell-ease);
+}
+
+[data-shell-mode="hub"] .core-shell-frame::after {
+  opacity: 1;
+  transition-delay: 140ms;
+}
+
+/* Own layers from the start: the transition begins without laying out new layers. */
+.core-shell-bar {
+  height: 3rem;
+  transition: translate 280ms var(--shell-ease);
+  will-change: translate;
+}
+
+[data-shell-mode="hub"] .core-shell-bar {
+  translate: 0 1rem;
+}
+
+.core-shell-lead {
+  display: grid;
+  align-items: center;
+}
+
+.core-shell-lead > * {
+  grid-area: 1 / 1;
+}
+
+.core-shell-brand {
+  transition:
+    opacity 140ms var(--shell-ease) 120ms,
+    translate 280ms var(--shell-ease) 80ms;
+  will-change: translate, opacity;
+}
+
+[data-shell-mode="app"] .core-shell-brand {
+  opacity: 0;
+  translate: -14px 0;
+  transition-delay: 0s;
+}
+
+.core-shell-back {
+  opacity: 0;
+  translate: 10px 0;
+  transition:
+    opacity 120ms var(--shell-ease),
+    translate 280ms var(--shell-ease);
+  will-change: translate, opacity;
+}
+
+[data-shell-mode="app"] .core-shell-back {
+  opacity: 1;
+  translate: none;
+  transition-delay: 70ms;
+}
+
+[data-shell-instant] .core-shell-frame,
+[data-shell-instant] .core-shell-frame::before,
+[data-shell-instant] .core-shell-frame::after,
+[data-shell-instant] .core-shell-bar,
+[data-shell-instant] .core-shell-brand,
+[data-shell-instant] .core-shell-back {
+  transition: none;
+}
+
+[data-shell-mode="app"] .core-shell-status {
+  padding-top: 0.5rem;
+}
+
+/* Over scrolled content only the bar and the status take pointer input, never the transparent margins. */
+.core-shell-header {
+  pointer-events: none;
+  transition:
+    translate 200ms cubic-bezier(0.4, 0, 0.2, 1),
+    visibility 200ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.core-shell-bar,
+.core-shell-status {
+  pointer-events: auto;
+}
+
+.core-menu-row[aria-current],
+.core-menu-row[aria-current] > svg {
+  background: var(--core-surface-muted);
+  color: var(--core-action-primary);
+}
+
+/* Hidden instead of only moved: off screen it neither takes focus nor covers anything. */
+.core-shell-header[data-shell-hidden] {
+  translate: 0 -100%;
+  visibility: hidden;
+}
+
+/* AppNavigation sets --shell-height and --shell-offset (0 while hidden). Sticky insets count from the scroll
+   area's padding edge; on wide screens the content region scrolls with the bar height plus 2.5rem above. */
+:root {
+  --shell-sticky-top: var(--shell-offset, 0px);
+  scroll-padding-top: var(--shell-height, 0px);
+}
+
+@media (min-width: 80rem) {
+  :root {
+    --shell-sticky-top: calc(var(--shell-offset, 0px) - var(--shell-height, 0px) - 2.5rem);
+  }
+}
+
+/* The global rule only shortens durations; without delays card, border and brand switch together. */
+@media (prefers-reduced-motion: reduce) {
+  .core-shell-frame,
+  .core-shell-frame::after,
+  .core-shell-brand,
+  .core-shell-back {
+    transition-delay: 0s !important;
+  }
 }
 .marker\:text-core-muted *::marker {
   color: var(--core-text-muted);
@@ -7456,10 +7654,6 @@ button.core-steps-step {
     position: sticky;
   }
 
-  .xl\:-top-10 {
-    top: -2.5rem;
-  }
-
   .xl\:bottom-4 {
     bottom: 1rem;
   }
@@ -7476,6 +7670,10 @@ button.core-steps-step {
     top: 1.5rem;
   }
 
+  .xl\:z-30 {
+    z-index: 30;
+  }
+
   .xl\:order-1 {
     order: 1;
   }
@@ -7486,6 +7684,22 @@ button.core-steps-step {
 
   .xl\:col-span-2 {
     grid-column: span 2 / span 2;
+  }
+
+  .xl\:col-start-1 {
+    grid-column-start: 1;
+  }
+
+  .xl\:row-span-2 {
+    grid-row: span 2 / span 2;
+  }
+
+  .xl\:row-start-1 {
+    grid-row-start: 1;
+  }
+
+  .xl\:mr-\[var\(--shell-scrollbar\2c 0px\)\] {
+    margin-right: var(--shell-scrollbar,0px);
   }
 
   .xl\:block {
@@ -7515,6 +7729,10 @@ button.core-steps-step {
 
   .xl\:max-w-\[45\.5rem\] {
     max-width: 45.5rem;
+  }
+
+  .xl\:scroll-pt-\[var\(--shell-height\2c 5rem\)\] {
+    scroll-padding-top: var(--shell-height,5rem);
   }
 
   .xl\:grid-cols-2 {
@@ -7566,6 +7784,14 @@ button.core-steps-step {
     padding-bottom: 2.5rem;
   }
 
+  .xl\:pb-10 {
+    padding-bottom: 2.5rem;
+  }
+
+  .xl\:pt-\[calc\(var\(--shell-height\2c 5rem\)\+2\.5rem\)\] {
+    padding-top: calc(var(--shell-height,5rem) + 2.5rem);
+  }
+
   .xl\:first\:min-h-\[28\.5rem\]:first-child {
     min-height: 28.5rem;
   }
@@ -7615,6 +7841,12 @@ button.core-steps-step {
 .\[\&\>svg\]\:size-\[15px\]>svg {
   width: 15px;
   height: 15px;
+}
+.\[\&\>svg\]\:text-core-muted>svg {
+  color: var(--core-text-muted);
+}
+.hover\:\[\&\>svg\]\:text-core-action>svg:hover {
+  color: var(--core-action-primary);
 }
 @media not all and (min-width: 640px) {
 
@@ -7853,6 +8085,7 @@ body { margin: 0; color: var(--core-text); background: var(--core-canvas); font:
 .catalog .core-deck-summary-name-measure { position: fixed; left: -10000px; }
 body:has(.catalog-shell-preview) > .core-mobile-bottom-navigation { z-index: 71; }
 body:has(.catalog-shell-preview, .catalog-product-preview) > .core-tooltip { z-index: 80; }
+body:has(.catalog-shell-preview) > [data-radix-popper-content-wrapper] { z-index: 80 !important; }
 body:has(.catalog-shell-preview, .catalog-product-preview) { overflow: hidden; }
 .catalog-product-preview { position: fixed; inset: 0; z-index: 50; overflow-y: auto; overflow-x: hidden; background: var(--core-canvas); }
 .catalog-product-bar { position: sticky; top: 0; z-index: 50; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px; padding: 12px 10px; background: var(--core-canvas); }

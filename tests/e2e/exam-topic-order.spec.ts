@@ -1,5 +1,6 @@
 import { expect, test, type Locator, type Page } from "@playwright/test";
 import { matrixThemes, visualOutput } from "./support/visualMatrix.ts";
+import { switchColorScheme } from "./support/navigationMenu.ts";
 
 const viewports = visualOutput
   ? [[320, 720], [360, 800], [390, 844], [430, 932], [639, 900], [640, 900], [1280, 720], [1440, 900], [720, 450]]
@@ -8,7 +9,7 @@ async function topicIds(list: Locator) { return list.locator(":scope > li").eval
 async function openDemo(page: Page, dark = false) {
   await page.goto("/docs/ui-elements.html?preview=screens");
   await page.getByRole("searchbox", { name: "Katalog durchsuchen", exact: true }).fill("Produktansichten");
-  if (dark) await page.getByRole("button", { name: "Dark Mode einschalten", exact: true }).click();
+  if (dark) await switchColorScheme(page, "dark");
   return page.locator(".catalog-demo").filter({ has: page.getByRole("heading", { name: "Prüfungen · Themenreihenfolge", exact: true }) });
 }
 async function positionList(page: Page, list: Locator) {

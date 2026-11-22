@@ -7,6 +7,7 @@ import { readActiveAccountState, resetToFreshLocalState, signedInTestClient } fr
 import { e2eAuthStatePath, loadE2EEnvironment } from "./support/e2eEnvironment.ts";
 import { seedAccountState } from "../support/seedAccountState.ts";
 import { deckSettingsDialog, openSettingsArea } from "./support/settingsDialog.ts";
+import { openNavigationMenuItem } from "./support/navigationMenu.ts";
 
 const DECK_IDS = {
   rootA: "navigation-root-a",
@@ -703,7 +704,7 @@ test("[Vertrag: Lerninhalte] Zusammenfassungen und Mind Map gehören zum angemel
     await mindMaps.getByRole("textbox", { name: "Kartentitel bearbeiten", exact: true }).fill("Thema B");
     await mindMaps.getByRole("button", { name: "Bearbeitung abschließen", exact: true }).click();
     await expect(mindMaps.getByRole("status").filter({ hasText: /^Gespeichert$/ })).toBeAttached();
-    await page.goto("/"); await page.getByRole("button", { name: "Einstellungen öffnen" }).first().click();
+    await page.goto("/"); await openNavigationMenuItem(page, "Einstellungen");
     await page.getByRole("button", { name: "Abmelden" }).click(); await signIn(loadE2EEnvironment());
     await page.goto(`${CONTENT_URL}summary`);
     await expect(summaries.getByTestId("summary-list")).toHaveCount(0);

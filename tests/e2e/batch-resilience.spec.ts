@@ -9,6 +9,7 @@ import { readActiveAccountState, resetToFreshLocalState, signedInTestClient } fr
 import { chooseCoreSelectOption } from "./support/coreSelect.ts";
 import { loadE2EEnvironment } from "./support/e2eEnvironment.ts";
 import { seedAccountState } from "../support/seedAccountState.ts";
+import { shellBackButton } from "./support/navigationMenu.ts";
 
 const DECK_IDS = {
   rootA: "batch-root-a",
@@ -393,7 +394,7 @@ test("[Vertrag: ein Dateifeld ohne Formatauswahl und Terminalzustände] @beta-co
   await page.getByRole("button", { name: /^Import\b/ }).click();
   const importCreation = page.getByRole("region", { name: "Import" });
   await expect(importCreation.getByRole("heading", { name: "Karten importieren" })).toBeVisible();
-  await expect(importCreation.getByRole("button", { name: "Erstellen", exact: true })).toBeVisible();
+  await expect(shellBackButton(page)).toHaveAttribute("aria-label", "Zurück zu Erstellen");
   await expect(importCreation.getByRole("button", { name: /^(APKG|Text|CSV|Excel\/Tabelle)$/ })).toHaveCount(0);
   await expect(importCreation.getByRole("textbox", { name: "Importinhalt" })).toHaveCount(0);
   await page.locator('input[type="file"][accept=".apkg,.colpkg,.txt,.csv,.tsv"]').setInputFiles({

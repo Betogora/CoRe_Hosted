@@ -6,6 +6,7 @@ import type { CoreMode } from "../coreTypes.ts";
 import { ActionButton, CrossLinkButton } from "./actionUi.tsx";
 import { CoreSwitch } from "./formControls.tsx";
 import { CoreTooltip } from "./tooltipUi.tsx";
+import { useShellBack } from "./shellBack.ts";
 
 interface SoftPanelProps extends HTMLAttributes<HTMLElement> {
   children?: ReactNode;
@@ -204,10 +205,16 @@ export function StatTile({ label, value, hint, className = "", ...props }: StatT
   );
 }
 
+type PageHeaderProps = { action?: ReactNode; greeting?: string; tag?: ReactNode } & (
+  | { title: ReactNode; back?: undefined }
+  | { title: string; back: { label: string; onSelect: () => void } }
+);
+
 /** `greeting` is read as the start of the heading; `tag` stays outside the heading's accessible name. */
-export function PageHeader({ title, action, greeting, tag, back }: { title: ReactNode; action?: ReactNode; greeting?: string; tag?: ReactNode; back?: { label: string; onSelect: () => void } }) {
+export function PageHeader({ title, action, greeting, tag, back }: PageHeaderProps) {
+  const inShell = useShellBack(back && typeof title === "string" ? { title, ...back } : undefined);
   const heading = (
-    <h2 className="core-heading-1 text-core-text outline-none" data-screen-heading tabIndex={-1}>
+    <h2 className={`${inShell ? "sr-only" : "core-heading-1 text-core-text"} outline-none`} data-screen-heading tabIndex={-1}>
       {greeting ? <span className="sr-only">{`${greeting} `}</span> : null}
       {title}
     </h2>
@@ -215,7 +222,7 @@ export function PageHeader({ title, action, greeting, tag, back }: { title: Reac
   return (
     <header className={action ? "core-page-header-with-action flex min-w-0 items-end justify-between gap-3" : "min-w-0"}>
       <div className="min-w-0 space-y-1">
-        {back ? <div className="core-page-header-back"><CrossLinkButton direction="back" onSelect={back.onSelect}>{back.label}</CrossLinkButton></div> : null}
+        {back && !inShell ? <div className="core-page-header-back"><CrossLinkButton direction="back" onSelect={back.onSelect}>{back.label}</CrossLinkButton></div> : null}
         {greeting ? <p aria-hidden="true" className="core-status-label text-core-muted">{greeting}</p> : null}
         {tag ? <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1">{heading}{tag}</div> : heading}
       </div>

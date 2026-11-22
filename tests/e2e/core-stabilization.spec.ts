@@ -6,6 +6,7 @@ import { collectBrowserErrors } from "./support/browserErrors.ts";
 import { chooseCoreSelectOption } from "./support/coreSelect.ts";
 import { loadE2EEnvironment } from "./support/e2eEnvironment.ts";
 import { deckSettingsDialog, openSettingsArea, settingsDialog } from "./support/settingsDialog.ts";
+import { openNavigationMenuItem } from "./support/navigationMenu.ts";
 import { matrixViewports, visualOutput } from "./support/visualMatrix.ts";
 
 const PDF_SELECTION_FIXTURE = fileURLToPath(new URL("../fixtures/pdf-selection.pdf", import.meta.url));
@@ -251,7 +252,7 @@ test("heatmap color is picked in the appearance settings and persists for the da
 
 test("statistics uses the shared filtered heatmap without clipped shadows or retired subtitles", async ({ page }: any) => {
   await resetToFreshLocalState(page);
-  await page.getByRole("button", { name: "Statistik öffnen" }).click();
+  await openNavigationMenuItem(page, "Statistik");
 
   await expect(page.getByTestId("study-heatmap-header").getByRole("heading", { name: /Tage? Streak/ })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Lernkalender" })).toHaveCount(0);
@@ -605,7 +606,7 @@ test("browser back returns from settings to the previous screen", async ({ page 
   await resetToFreshLocalState(page);
 
   await mainMenu(page).getByRole("button", { name: "Lernen" }).click();
-  await page.getByRole("button", { name: "Einstellungen öffnen" }).click();
+  await openNavigationMenuItem(page, "Einstellungen");
   const dialog = settingsDialog(page);
   await expect(dialog).toBeVisible();
   await expect(page).toHaveURL(/\/lernen\?settings=start$/);
@@ -638,7 +639,7 @@ test("browser back returns from settings to the previous screen", async ({ page 
 
 test("offline changes stay pending and flush when the browser reconnects", async ({ page, context }: any) => {
   await resetToFreshLocalState(page);
-  await page.getByRole("button", { name: "Einstellungen öffnen" }).click();
+  await openNavigationMenuItem(page, "Einstellungen");
   const dialog = settingsDialog(page);
   const displayName = dialog.getByLabel("Anzeigename");
   const originalDisplayName = await displayName.inputValue();
@@ -1126,7 +1127,7 @@ test("@beta-core @hosted-core settings resolve and persist an account-bound sync
 
     await page.reload();
     await expect(page.getByRole("navigation", { name: /Hauptmen/ })).toBeVisible();
-    await page.getByRole("button", { name: "Einstellungen öffnen" }).click();
+    await openNavigationMenuItem(page, "Einstellungen");
     await openSettingsArea(settingsDialog(page), "daten");
     const panel = page.getByTestId("sync-conflict-panel");
     const conflict = page.getByTestId(`sync-conflict-${conflictId}`);
