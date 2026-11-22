@@ -168,8 +168,8 @@ privilegierten Node-Prozess; Vite und Playwright erhalten keine Service Role.
 
 ## 6. Datenbank, RLS und Restore
 
-Bei Schemaänderungen gelten die Gates aus `AGENTS.md` (`db:types:check`,
-`test:rls:local`, `test:e2e:local`). `supabase/verify_schema_v1.sql` prüft
+Bei Schemaänderungen gelten die Gates aus `AGENTS.md`: Typdrift, vollständige
+RLS- und Browser-Suite laufen im PR-Job `affected-e2e`. `supabase/verify_schema_v1.sql` prüft
 Struktur, RLS, Policies, Grants, Constraints und Buckets und ist die einzige
 zusätzliche SQL-Verifikation.
 
