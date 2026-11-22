@@ -1241,7 +1241,9 @@ test("[Vertrag: KI-Varianten je Kartenart, Zähler, Stapellauf und Anzeigen] Der
   const bar = page.getByTestId("variant-generation-bar");
   await expect(bar.getByRole("status")).toHaveText("17 Varianten generiert, 1 nicht umformulierbar", { timeout: 60_000 });
   expect(new Set(requests.map((request) => request.kind))).toEqual(new Set(["basic", "type-in", "cloze", "choice"]));
-  await expect(dialog.getByTestId("deck-settings-variant-count")).toHaveText("1 Karte ohne Variante");
+  // The card reported as not rephrasable is refused and no longer waits for a variant.
+  await expect(dialog.getByTestId("deck-settings-variant-count")).toHaveText("Keine Karte wartet auf eine Variante.");
+  await expect(dialog.getByRole("button", { name: "Varianten generieren" })).toHaveCount(0);
 
   await dialog.getByRole("button", { name: "Stapeleinstellungen schließen" }).click();
   await bar.getByRole("button", { name: "Anzeigen" }).click();

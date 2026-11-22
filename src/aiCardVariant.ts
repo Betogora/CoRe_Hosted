@@ -51,20 +51,22 @@ export function aiCardVariantAvoidTexts(card: Pick<Card, "variants">): string[] 
 
 const asHtml = (text: string) => text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 
+/** Whether a result for `source` still belongs to the card, which may have changed during the request. */
+export function asksVariantSource(source: AiCardVariantSource, current: { note: Note; card: Card } | null | undefined): current is { note: Note; card: Card } {
+  const currentSource = current ? cardVariantSource(current.note, current.card) : null;
+  const requestKey = (candidate: AiCardVariantSource) => {
+    const request = createAiCardVariantRequest(candidate);
+    return `${aiCardVariantSourceKey(request.source)}\u0000${JSON.stringify(request.choice ?? null)}`;
+  };
+  return Boolean(currentSource) && requestKey(currentSource!) === requestKey(source);
+}
+
 export function createAiGeneratedVariantDraft(
   source: AiCardVariantSource,
   current: { note: Note; card: Card } | null | undefined,
   generated: AiCardVariantSuccess,
 ) {
-  if (!current) {
-    throw new AiCardVariantContractError("source_changed", "Die Karte wurde während der Generierung geändert. Bitte starte sie erneut.");
-  }
-  const currentSource = cardVariantSource(current.note, current.card);
-  const requestKey = (candidate: AiCardVariantSource) => {
-    const request = createAiCardVariantRequest(candidate);
-    return `${aiCardVariantSourceKey(request.source)}\u0000${JSON.stringify(request.choice ?? null)}`;
-  };
-  if (!currentSource || requestKey(currentSource) !== requestKey(source)) {
+  if (!asksVariantSource(source, current)) {
     throw new AiCardVariantContractError("source_changed", "Die Karte wurde während der Generierung geändert. Bitte starte sie erneut.");
   }
   const variant = {

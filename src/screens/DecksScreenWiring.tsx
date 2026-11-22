@@ -57,7 +57,7 @@ export function DecksScreenWiring() {
         onRunCardBatch={hydration ? cardCommands.runDeckCardBatch : undefined}
         onPrepareTextReplace={hydration ? cardCommands.prepareDeckTextReplace : undefined}
         onStudyHits={hydration ? studyStart.startHitSession : undefined}
-        onFindDuplicates={hydration?.findDuplicates}
+        onListSurplusDuplicateIds={hydration?.listSurplusDuplicateIds}
         onLoadPracticeCards={hydration ? async (cardIds) => (await hydration.openCards(cardIds)).filter((body): body is { card: Card; note: Note } => Boolean(body)) : undefined}
         onListHitCardIds={hydration ? (request) => hydration.listCardIds(request) : undefined}
         variantGenerationRunning={variantBatch.running}

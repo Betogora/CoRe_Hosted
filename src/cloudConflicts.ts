@@ -74,6 +74,7 @@ const CONFLICT_FIELD_LABELS = Object.freeze({
   marked: "Markierung",
   status: "Status",
   anki_flag: "Flagge",
+  variant_refusal: "Variantenerzeugung",
   source: "Quelle",
   definition: "Anki-Vorlage",
   fields: "Anki-Felder",
