@@ -44,7 +44,7 @@ async function setup({ cloud = null }: { cloud?: unknown } = {}) {
     deckId, page: 0, pageSize: 50, query: "", sort: DEFAULT_CARD_TABLE_SORT, selectedCardId, searchContext: { todayStart: Date.parse(NOW) },
   });
   const shownIds = (deckId: string) => store.get().cardPages[deckId]?.pages[0]?.map((entry) => entry.id).sort();
-  return { repository, store, commands, showList, shownIds };
+  return { repository, store, commands, showList, shownIds, bootRun: { current: 1 } };
 }
 
 test("Inhalt speichern aktualisiert Store, offene Karte und die Zeilen aller Stapel, die den Inhalt zeigen", async () => {
@@ -138,6 +138,21 @@ test("eine Aktion an der offenen Karte und eine gleich folgende Flagge bauen auf
 
   const card = (await repository.loadCardBody("card-1-forward"))?.card;
   assert.deepEqual([card?.status, card?.ankiFlag], ["suspended", 2]);
+});
+
+test("eine Aktion an der offenen Karte holt einen hier unvollständigen Inhalt über die Hydrierung", async () => {
+  const { repository, store, bootRun } = await setup();
+  // Without the body of a sibling on this device the local graph is missing.
+  const partial = { ...repository, loadNoteGraphs: async (noteIds: string[]) => noteIds.map(() => null) };
+  const hydration = { openCards: (ids: string[]) => repository.loadCardBodies(ids), loadNoteGraph: (id: string) => repository.loadNoteGraph(id) };
+  const commands = createCardCommands({
+    store, repository: partial, hydration: () => hydration as unknown as ReturnType<Parameters<typeof createCardCommands>[0]["hydration"]>, cloud: null, syncEngine: () => null, refresh: () => undefined, now: () => NOW, bootRun,
+  });
+
+  const result = await commands.createCardEditorServices([], () => undefined).runCardAction("card-0-forward", { kind: "suspended", suspended: true });
+
+  assert.equal(result.changedCount, 1);
+  assert.equal((await repository.loadCardBody("card-0-forward"))?.card.status, "suspended");
 });
 
 test("schnelle Sofortänderungen am Lernstand bauen in ihrer Reihenfolge aufeinander auf", async () => {

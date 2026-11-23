@@ -9,7 +9,6 @@ type RetranslationPlan =
   | { status: "unchanged" | "kept" }
   | { status: "updated"; change: NoteGraphChange };
 
-
 export function planRetranslation(note: Note, cards: Card[], source: NoteTypeSource, noteSource: NoteSource, updatedAt = new Date().toISOString()): RetranslationPlan {
   const translated = retranslateNoteContent(source, noteSource.fields, note.content.tags);
   if (!translated) return { status: "kept" };

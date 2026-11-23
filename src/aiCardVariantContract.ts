@@ -199,10 +199,10 @@ export const AI_CARD_VARIANT_REJECTION_MESSAGES = {
   unchanged_front: "Das Modell hat die Kartenfrage nicht erkennbar umformuliert.",
   duplicate_variant: "Diese Variante gibt es schon. Bitte erneut generieren.",
 } as const;
-export type AiCardVariantRejection = keyof typeof AI_CARD_VARIANT_REJECTION_MESSAGES;
+type AiCardVariantRejection = keyof typeof AI_CARD_VARIANT_REJECTION_MESSAGES;
 export const AI_CARD_VARIANT_REJECTIONS: ReadonlySet<string> = new Set(Object.keys(AI_CARD_VARIANT_REJECTION_MESSAGES));
 
-export type GeneratedAiCardVariant =
+type GeneratedAiCardVariant =
   | { kind: "variant"; variant: AiCardVariantSuccess["variant"] }
   | { kind: "not_rephrasable" }
   | { kind: "invalid_fields" }

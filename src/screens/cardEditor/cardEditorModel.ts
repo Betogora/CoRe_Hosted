@@ -1,5 +1,5 @@
 import { notePromptLabel, planNoteContentChange, type NoteEditorValue } from "../../coreModel.ts";
-import type { Card, CardStudyStatePatch, CardVariant, Note, NoteContent } from "../../coreTypes.ts";
+import type { Card, CardVariant, Note, NoteContent } from "../../coreTypes.ts";
 import { stripHtml } from "../../htmlSafety.ts";
 import { createCardTableRow } from "../../libraryModel.ts";
 import { catalogEntryFromCard, type NoteGraph } from "../../workspaceReplica.ts";

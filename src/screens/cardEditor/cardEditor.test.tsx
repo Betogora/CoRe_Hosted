@@ -5,7 +5,6 @@ import type { CardEditorServices } from "../../appScreenProps.ts";
 import { addCardVariant, createBasicNote, createCoreDeck, createManualNoteContent, createNote, noteEditorValue, planNoteContentChange, validateNoteEditorValue } from "../../coreModel.ts";
 import { AI_CARD_VARIANT_PROMPT_VERSION } from "../../aiCardVariantContract.ts";
 import { editVariantText } from "../../coreVariantService.ts";
-import type { CardStudyStatePatch } from "../../coreTypes.ts";
 import { cardEditorTitle, draftChangeSummary, variantStateMarks } from "./cardEditorModel.ts";
 import { draftBaseGraph } from "./CardEditorContentTab.tsx";
 import { CardEditorStudyTab } from "./CardEditorStudyTab.tsx";
@@ -19,7 +18,6 @@ const services: CardEditorServices = {
   buryCards: async () => [],
   editVariant: async () => undefined,
   removeNoteMedia: async () => null,
-  loadCard: async () => null,
   listReviewEvents: async () => [],
   listTagDirectory: async () => [],
   listNoteTypes: async () => [],

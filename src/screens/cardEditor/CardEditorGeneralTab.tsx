@@ -1,9 +1,9 @@
 import React from "react";
 import { CalendarClock, CalendarDays, Check, Copy, Layers, MoveRight, Snail } from "lucide-react";
-import type { CardEditorServices, DecksScreenProps } from "../../appScreenProps.ts";
+import type { CardEditorServices } from "../../appScreenProps.ts";
 import type { SimilarNote } from "../../cloudRepositoryValidation.ts";
 import { notePromptLabel } from "../../coreModel.ts";
-import type { Card, CardStudyStatePatch, Deck } from "../../coreTypes.ts";
+import type { Card, Deck } from "../../coreTypes.ts";
 import { addLearningDays, getLearningDayKey, getLearningDayRange, getLearningDayStartForKey } from "../../learningDay.ts";
 import { manuallyBuriedCardIds } from "../../siblingBurying.ts";
 import type { NoteGraph } from "../../workspaceReplica.ts";
@@ -88,13 +88,12 @@ export interface CardEditorGeneralTabProps {
   pendingCards: readonly PendingCard[];
   onSetFlag: (flag: number) => void;
   onSetMarked: (marked: boolean) => void;
-  onSetStudyState: (cardId: string, patch: CardStudyStatePatch) => Promise<NoteGraph | null>;
   onSelectCard: (deckId: string, cardId: string) => void;
   onCardMoved: (deckId: string, cardId: string) => void;
   deckName: (deckId: string) => string;
 }
 
-export function CardEditorGeneralTab({ decks, graph, card, now, dayStartHour, timeZone, services, pendingCards, onSetFlag, onSetMarked, onSetStudyState, onSelectCard, onCardMoved, deckName }: CardEditorGeneralTabProps) {
+export function CardEditorGeneralTab({ decks, graph, card, now, dayStartHour, timeZone, services, pendingCards, onSetFlag, onSetMarked, onSelectCard, onCardMoved, deckName }: CardEditorGeneralTabProps) {
   const { note } = graph;
   const online = useOnline();
   const setSuccessToast = useSuccessToast();
@@ -193,7 +192,7 @@ export function CardEditorGeneralTab({ decks, graph, card, now, dayStartHour, ti
     if (result?.changedCount) offerUndo(next ? "Karte ausgesetzt." : "Karte reaktiviert.", result.undo);
   }
 
-  async function changeTags(tags: string[], change: { added: string[]; removed: string[] }) {
+  async function changeTags(change: { added: string[]; removed: string[] }) {
     const result = await run("tags", () => services.runCardAction(card.id, { kind: "tags", add: change.added, remove: change.removed }), "Die Tags konnten nicht gespeichert werden.");
     if (!result?.changedCount || !change.removed.length || change.added.length) return;
     const label = change.removed.length === 1 ? `Tag „${change.removed[0]}“ entfernt.` : `${change.removed.length} Tags entfernt.`;
@@ -263,7 +262,7 @@ export function CardEditorGeneralTab({ decks, graph, card, now, dayStartHour, ti
       </div>
       <div className="core-card-editor-column">
         <Section title="Tags" testId="card-tags">
-          <TagInput tags={note.content.tags} importedTags={note.importedTags ?? []} loadDirectory={services.listTagDirectory} label="Tags bearbeiten" labelHidden onChange={(tags, change) => void changeTags(tags, change)} disabled={busy === "tags"} />
+          <TagInput tags={note.content.tags} importedTags={note.importedTags ?? []} loadDirectory={services.listTagDirectory} label="Tags bearbeiten" labelHidden onChange={(_tags, change) => void changeTags(change)} disabled={busy === "tags"} />
         </Section>
         {siblings.length > 1 || pendingCards.length ? (
           <Section title="Karten aus diesem Inhalt" testId="card-siblings">

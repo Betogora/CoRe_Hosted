@@ -311,7 +311,7 @@ test("plant mehrere Karten in einer lokalen Transaktion neu", async () => {
   const repository = await openRepository(workspaceState());
   const before = (await repository.loadCardBody("card-0"))?.card;
   assert.ok(before);
-  const result = await repository.rescheduleCards(["card-0", "card-1", "card-0"], "2026-08-24T04:00:00.000Z", "2026-08-21T10:00:00.000Z");
+  const result = await repository.rescheduleCards(["card-0", "card-1", "card-0"], new Map(["card-0", "card-1", "card-0"].map((id) => [id, "2026-08-24T04:00:00.000Z"])), "2026-08-21T10:00:00.000Z");
   assert.equal(result.length, 2);
   const after = (await repository.loadCardBody("card-0"))?.card;
   assert.equal(after?.study.dueAt, "2026-08-24T04:00:00.000Z");
@@ -327,7 +327,7 @@ test("plant mehrere Karten in einer lokalen Transaktion neu", async () => {
 test("fehlende Karten brechen den gesamten Batch ab", async () => {
   const repository = await openRepository(workspaceState());
   const before = (await repository.loadCardBody("card-0"))?.card.study.dueAt;
-  await assert.rejects(() => repository.rescheduleCards(["card-0", "fehlt"], "2026-08-24T04:00:00.000Z", "2026-08-21T10:00:00.000Z"), /nicht gefunden/);
+  await assert.rejects(() => repository.rescheduleCards(["card-0", "fehlt"], new Map(["card-0", "fehlt"].map((id) => [id, "2026-08-24T04:00:00.000Z"])), "2026-08-21T10:00:00.000Z"), /nicht gefunden/);
   assert.equal((await repository.loadCardBody("card-0"))?.card.study.dueAt, before);
   assert.equal(repository.outbox.listPending().filter((mutation) => mutation.type === "review-atomic").length, 0);
   repository.close();
@@ -335,7 +335,7 @@ test("fehlende Karten brechen den gesamten Batch ab", async () => {
 
 test("identische Termine erzeugen kein manuelles Ereignis", async () => {
   const repository = await openRepository(workspaceState(1));
-  await repository.rescheduleCards(["card-0"], DUE_AT, "2026-08-19T10:00:00.000Z");
+  await repository.rescheduleCards(["card-0"], new Map(["card-0"].map((id) => [id, DUE_AT])), "2026-08-19T10:00:00.000Z");
   assert.equal(repository.outbox.listPending().filter((mutation) => mutation.type === "review-atomic").length, 0);
   repository.close();
 });
@@ -343,7 +343,7 @@ test("identische Termine erzeugen kein manuelles Ereignis", async () => {
 test("Cachebereinigung schützt aktive Karten und noch nicht synchronisierte Reviews", async () => {
   const repository = await openRepository(workspaceState());
   try {
-    await repository.rescheduleCards(["card-0"], "2026-08-24T04:00:00.000Z", "2026-08-21T10:00:00.000Z");
+    await repository.rescheduleCards(["card-0"], new Map(["card-0"].map((id) => [id, "2026-08-24T04:00:00.000Z"])), "2026-08-21T10:00:00.000Z");
     const result = await repository.evictCachedCardBodies(Number.MAX_SAFE_INTEGER, ["card-1"]);
     assert.equal(result.evictedCount, 1);
     assert.ok(result.freedBytes > 0);
@@ -360,7 +360,7 @@ test("ausgesetzte Karten bleiben bei der Neuplanung ausgesetzt", async () => {
   const initialState = workspaceState(1);
   initialState.decks[0].cards[0].status = "suspended";
   const repository = await openRepository(initialState);
-  await repository.rescheduleCards(["card-0"], "2026-08-24T04:00:00.000Z", "2026-08-21T10:00:00.000Z");
+  await repository.rescheduleCards(["card-0"], new Map(["card-0"].map((id) => [id, "2026-08-24T04:00:00.000Z"])), "2026-08-21T10:00:00.000Z");
   assert.equal((await repository.loadCardBody("card-0"))?.card.status, "suspended");
   assert.equal((await repository.listCatalogPage("deck-idb")).items[0].reviewable, false);
   repository.close();
@@ -369,7 +369,7 @@ test("ausgesetzte Karten bleiben bei der Neuplanung ausgesetzt", async () => {
 test("Offline-Neuplanungen bleiben nach erneutem Öffnen erhalten", async () => {
   const userId = randomUUID();
   const repository = await openRepository(workspaceState(1), userId);
-  await repository.rescheduleCards(["card-0"], "2026-08-24T04:00:00.000Z", "2026-08-21T10:00:00.000Z");
+  await repository.rescheduleCards(["card-0"], new Map(["card-0"].map((id) => [id, "2026-08-24T04:00:00.000Z"])), "2026-08-21T10:00:00.000Z");
   await repository.flush();
   repository.close();
   const reopened = await openRepository(workspaceState(0), userId);
@@ -383,7 +383,7 @@ test("manuelle Neuplanungen zählen nicht als Lernaktivität", async () => {
   const repository = await openRepository(initialState);
   await repository.listDeckSummaries(SUMMARY_CONTEXT);
 
-  await repository.rescheduleCards(["card-0"], "2026-08-24T04:00:00.000Z", "2026-08-21T10:00:00.000Z");
+  await repository.rescheduleCards(["card-0"], new Map(["card-0"].map((id) => [id, "2026-08-24T04:00:00.000Z"])), "2026-08-21T10:00:00.000Z");
   repository.recordReview(answerVariant(initialState.decks[0], "card-1", null, "good", { now: "2026-08-21T10:00:00.000Z" }));
   await repository.flush();
 
@@ -757,7 +757,7 @@ test("der lokale Katalog führt den Lernverlauf fort und behält ihn bei Inhalts
     .then((page) => page.items.map((entry) => entry.id).sort());
 
   repository.recordReview(answerVariant(initialState.decks[0], "card-0", null, "again", { now: "2026-08-21T10:00:00.000Z" }));
-  await repository.rescheduleCards(["card-1"], "2026-08-30T04:00:00.000Z", "2026-08-21T10:05:00.000Z");
+  await repository.rescheduleCards(["card-1"], new Map(["card-1"].map((id) => [id, "2026-08-30T04:00:00.000Z"])), "2026-08-21T10:05:00.000Z");
   assert.deepEqual(await ids("rated:1:1"), ["card-0"]);
   assert.deepEqual(await ids("introduced:1"), ["card-0"]);
   assert.deepEqual(await ids("resched:1"), ["card-1"], "eine Neuplanung ist keine Antwort");

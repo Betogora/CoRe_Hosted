@@ -56,7 +56,6 @@ const CARD_EDITOR_SERVICES: CardEditorServices = {
   buryCards: async () => [],
   editVariant: async () => undefined,
   removeNoteMedia: async () => null,
-  loadCard: async () => null,
   listReviewEvents: async () => [],
   listTagDirectory: async () => [],
   listNoteTypes: async () => [],

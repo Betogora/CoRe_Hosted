@@ -454,8 +454,8 @@ export async function createIndexedDbCoreRepository({ userId, initialState, inde
       await transactionDone(transaction);
       return sources.map(({ id, name }) => ({ id, name })).sort((left, right) => left.name.localeCompare(right.name, "de"));
     },
-    rescheduleCards(cardIds: string[], dueAt: string | ReadonlyMap<string, string>, occurredAt = new Date().toISOString()) {
-      return applyManualStudyChanges(cardIds, MANUAL_RESCHEDULE_KIND, (card) => rescheduleCard(card, typeof dueAt === "string" ? dueAt : dueAt.get(card.id)!, occurredAt), occurredAt);
+    rescheduleCards(cardIds: string[], dueAt: ReadonlyMap<string, string>, occurredAt = new Date().toISOString()) {
+      return applyManualStudyChanges(cardIds, MANUAL_RESCHEDULE_KIND, (card) => rescheduleCard(card, dueAt.get(card.id)!, occurredAt), occurredAt);
     },
     resetCards(cardIds: string[], occurredAt = new Date().toISOString()) {
       return applyManualStudyChanges(cardIds, "manual_reset", (card) => resetCardStudy(card, occurredAt), occurredAt);

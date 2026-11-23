@@ -84,7 +84,6 @@ export interface CardEditorServices {
   buryCards: (cardIds: string[], buried: boolean) => Promise<Card[]>;
   editVariant: (cardId: string, variantId: string, text: { front: string; back: string }) => Promise<void>;
   removeNoteMedia: (graph: NoteGraph, names: string[]) => Promise<NoteGraph | null>;
-  loadCard: (cardId: string) => Promise<{ card: Card; note: Note } | null>;
   listReviewEvents: (cardId: string) => Promise<ReviewEvent[]>;
   listTagDirectory: () => Promise<TagDirectoryEntry[]>;
   listNoteTypes: () => Promise<{ id: string; name: string }[]>;

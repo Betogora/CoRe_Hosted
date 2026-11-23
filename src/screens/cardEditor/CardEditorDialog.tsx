@@ -207,7 +207,6 @@ export function CardEditorDialog(props: CardEditorDialogProps) {
             pendingCards={pendingCards}
             onSetFlag={setFlag}
             onSetMarked={setMarked}
-            onSetStudyState={onSetStudyState}
             onSelectCard={props.onSelectCard}
             onCardMoved={props.onCardMoved}
             deckName={props.deckName}

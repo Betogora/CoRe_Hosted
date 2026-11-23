@@ -2,7 +2,7 @@ import { aiCardVariantAvoidTexts, asksVariantSource, createAiGeneratedVariantDra
 import { AI_CARD_VARIANT_PROMPT_VERSION, AI_CARD_VARIANT_REJECTIONS, AiCardVariantContractError } from "./aiCardVariantContract.ts";
 import type { SettingsSection } from "./appNavigation.ts";
 import type { CardEditorServices, CreationScreenProps, DecksCardPage, DecksCardPageRequest } from "./appScreenProps.ts";
-import type { CardBatchAction, CardBatchDependencies, CardBatchResult } from "./cardBatchActions.ts";
+import type { CardBatchAction, CardBatchDependencies, CardBatchRepository, CardBatchResult } from "./cardBatchActions.ts";
 import type { CardVariantBatchMode } from "./cardVariantBatch.ts";
 import { addCardVariant, applyCardStudyStatePatch, createNote, duplicateNote, planNoteGraphContentChange, recordVariantOutcome, removeUnusedNoteMedia, replaceOutdatedVariants } from "./coreModel.ts";
 import type { Card, CardStudyStatePatch, NoteContent } from "./coreTypes.ts";
@@ -216,9 +216,9 @@ export function createCardCommands({ store, repository, hydration, cloud, syncEn
     return cards;
   }
 
-  async function runBatch(openCards: CardBatchDependencies["openCards"], cardIds: string[], action: CardBatchAction, afterWrite: () => unknown): Promise<CardBatchResult> {
+  async function runBatch(dependencies: Pick<CardBatchDependencies, "repository" | "openCards">, cardIds: string[], action: CardBatchAction, afterWrite: () => unknown): Promise<CardBatchResult> {
     const { runCardBatch } = await import("./cardBatchActions.ts");
-    const result = await runCardBatch({ repository, openCards, now }, cardIds, action);
+    const result = await runCardBatch({ ...dependencies, now }, cardIds, action);
     await afterWrite();
     return { ...result, undo: async () => {
       const undone = await result.undo();
@@ -230,17 +230,30 @@ export function createCardCommands({ store, repository, hydration, cloud, syncEn
   function runDeckCardBatch(cardIds: string[], action: CardBatchAction) {
     const workspaceHydrationService = hydration();
     if (!workspaceHydrationService) throw new Error("Die Kartenverwaltung ist noch nicht bereit.");
-    return runBatch(workspaceHydrationService.openCards, cardIds, action, reloadLists);
+    return runBatch({ repository, openCards: workspaceHydrationService.openCards }, cardIds, action, reloadLists);
   }
 
   /** An action on the open card keeps the lists in place, so its row stays under the cursor; a deletion reloads them. */
   function runCardAction(cardId: string, action: CardBatchAction): Promise<CardBatchResult> {
     return inCardWriteChain(async () => {
-      // The open card is on this device already.
-      const openCards = hydration()?.openCards ?? ((cardIds: string[]) => repository.loadCardBodies(cardIds));
+      const service = hydration();
+      // The open card is on this device already; a sibling may not be, so its content comes from the cloud.
+      const openCards = service?.openCards ?? ((cardIds: string[]) => repository.loadCardBodies(cardIds));
+      const batchRepository: CardBatchRepository = {
+        loadNoteGraphs: async (noteIds) => {
+          const local = await repository.loadNoteGraphs(noteIds);
+          return Promise.all(local.map((graph, index) => graph ?? service?.loadNoteGraph(noteIds[index]).catch(() => null) ?? null));
+        },
+        saveNoteGraphs: (changes) => repository.saveNoteGraphs(changes),
+        buryCards: (...args) => repository.buryCards(...args),
+        resetCards: (...args) => repository.resetCards(...args),
+        setCardsLeech: (...args) => repository.setCardsLeech(...args),
+        rescheduleCards: (...args) => repository.rescheduleCards(...args),
+        restoreCardStudies: (...args) => repository.restoreCardStudies(...args),
+      };
       const noteId = (await openCards([cardId]))[0]?.note.id;
       if (!noteId) throw new Error("Die Karte ist nicht mehr verfügbar.");
-      const result = await runBatch(openCards, [cardId], action, action.kind === "delete" ? reloadLists : () => reloadNoteGraph(noteId, action.kind === "deck"));
+      const result = await runBatch({ repository: batchRepository, openCards }, [cardId], action, action.kind === "delete" ? reloadLists : () => reloadNoteGraph(noteId, action.kind === "deck"));
       return { ...result, undo: () => inCardWriteChain(result.undo) };
     });
   }
@@ -402,7 +415,6 @@ export function createCardCommands({ store, repository, hydration, cloud, syncEn
       buryCards: (cardIds, buried) => applyManualStudyChanges((current) => current.buryCards(cardIds, buried, now())),
       editVariant: editDeckCardVariant,
       removeNoteMedia: removeDeckNoteMedia,
-      loadCard: async (cardId) => repository.loadCardBody(cardId),
       listReviewEvents: async (cardId) => repository.listCardReviewEvents(cardId),
       listTagDirectory: async () => {
         const local = () => repository.listTagDirectory();
