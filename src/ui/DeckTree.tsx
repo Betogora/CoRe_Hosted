@@ -13,8 +13,7 @@ import { DeckAppearanceIcon, getDeckAppearance } from "./deckAppearance.tsx";
 import { LEARNING_STATUS_UI } from "./learningStatusUi.ts";
 import { useStableCallback } from "./useStableCallback.ts";
 import { revealShellHeader } from "./shellBack.ts";
-
-export type DeckTreeView = "list" | "tiles";
+import type { DeckTreeView } from "./deckTreeView.ts";
 
 const DECK_COUNT_DEFINITIONS = [
   { ...LEARNING_STATUS_UI.new, valueKey: "newCards", metric: "new" },
@@ -145,30 +144,6 @@ export const DECK_TREE_VIEW_OPTIONS = [
   { value: "tiles", label: "Als Kacheln anzeigen", icon: Grid2x2 },
   { value: "list", label: "Als Liste anzeigen", icon: List },
 ] as const;
-
-const DECK_TREE_VIEW_STORAGE_KEY = "core.deckView.v1";
-
-function readStoredDeckTreeView(): DeckTreeView {
-  if (typeof window === "undefined") return "list";
-  try {
-    return window.localStorage.getItem(DECK_TREE_VIEW_STORAGE_KEY) === "tiles" ? "tiles" : "list";
-  } catch {
-    return "list";
-  }
-}
-
-export function useStoredDeckTreeView() {
-  const [view, setView] = React.useState(readStoredDeckTreeView);
-  const changeView = React.useCallback((next: DeckTreeView) => {
-    setView(next);
-    try {
-      window.localStorage.setItem(DECK_TREE_VIEW_STORAGE_KEY, next);
-    } catch {
-      // Die Ansicht bleibt ohne browserlokale Speicherung umschaltbar.
-    }
-  }, []);
-  return [view, changeView] as const;
-}
 
 export interface DeckTreeProps {
   rows: DeckLibraryRow[];

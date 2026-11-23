@@ -26,6 +26,8 @@ export function useSettingsOverlay({ settingsSection, deckSettings, navigateToRo
   const settingsDraftGuardRef = React.useRef<SettingsDraftGuard | null>(null);
   const settingsOverlayKeyRef = React.useRef<string | null>(null);
   const settingsHistoryPushedRef = React.useRef(false);
+  /** The open deck dialog has its own history entry directly above the settings it was opened from. */
+  const deckEntryAboveSettingsRef = React.useRef(false);
   const [settingsDraftOpen, setSettingsDraftOpen] = React.useState(false);
   const [settingsNavigationBlocked, setSettingsNavigationBlocked] = React.useState(false);
   const [savingSettingsDraft, setSavingSettingsDraft] = React.useState<SettingsSaveScope | "global" | null>(null);
@@ -34,7 +36,10 @@ export function useSettingsOverlay({ settingsSection, deckSettings, navigateToRo
   const settingsOverlay = settingsOverlayKey({ settingsSection: settingsSection ?? undefined, deckSettings: deckSettings ?? undefined });
   settingsOverlayKeyRef.current = settingsOverlay;
   React.useEffect(() => {
-    if (!settingsOverlay) settingsHistoryPushedRef.current = false;
+    // The deck flag outlives the settings below it, so going forward again still finds the deck above them.
+    if (settingsOverlay) return;
+    settingsHistoryPushedRef.current = false;
+    deckEntryAboveSettingsRef.current = false;
   }, [settingsOverlay]);
 
   /** With a settings draft open only a change within its dialog passes; undefined while no draft is open. */
@@ -51,11 +56,14 @@ export function useSettingsOverlay({ settingsSection, deckSettings, navigateToRo
 
   const openSettingsOverlay = React.useCallback((overlay: SettingsOverlay) => {
     const current = getCurrentRoute();
-    const replace = Boolean(settingsOverlayKey(current));
+    // A deck opened from settings this app pushed gets its own entry, so going back returns to the settings instead of leaving them.
+    const aboveSettings = Boolean(overlay.deckSettings && current.mode === "view" && current.settingsSection && settingsHistoryPushedRef.current);
+    const replace = Boolean(settingsOverlayKey(current)) && !aboveSettings;
     const base = current.mode === "view" ? createViewRoute(current.viewId, { ...current, selectedCardId: undefined, cardEditorReturnContext: undefined }) : current;
     const open = () => {
       const opened = navigateToRoute(withSettingsOverlay(base, overlay), { replace });
-      if (!replace && settingsOverlayKey(opened)) settingsHistoryPushedRef.current = true;
+      if (aboveSettings) deckEntryAboveSettingsRef.current = Boolean(opened.deckSettings);
+      else if (!replace && settingsOverlayKey(opened)) settingsHistoryPushedRef.current = true;
     };
     if (current.mode === "view" && current.selectedCardId) leaveCardDraft(open);
     else open();
@@ -74,14 +82,32 @@ export function useSettingsOverlay({ settingsSection, deckSettings, navigateToRo
       return;
     }
     const current = getCurrentRoute();
-    // Closing a deck dialog keeps that deck as focus, so it replaces the entry instead of going back.
-    if (settingsHistoryPushedRef.current && !current.deckSettings) {
+    // Closing a deck dialog keeps that deck as focus, so it replaces the entry instead of going back; above the
+    // settings both entries go, or going back would reopen the settings.
+    if (settingsHistoryPushedRef.current && (!current.deckSettings || deckEntryAboveSettingsRef.current)) {
       settingsHistoryPushedRef.current = false;
-      window.history.back();
+      window.history.go(current.deckSettings ? -2 : -1);
       return;
     }
     navigateToRoute(withSettingsOverlay(current, {}), { replace: true });
   }, [getCurrentRoute, navigateToRoute]);
+
+  /** From a deck dialog to the single-deck area of the settings: back to the entry below, or in place of the deck dialog. */
+  const returnToSettings = React.useCallback(() => {
+    if (deckEntryAboveSettingsRef.current) window.history.back();
+    else navigateToRoute(withSettingsOverlay(getCurrentRoute(), { settingsSection: "stapel" }), { replace: true });
+  }, [getCurrentRoute, navigateToRoute]);
+
+  /** Leaves a deck dialog whose deck is gone; `then` adjusts the route that remains. Above the settings both entries go,
+   * as when closing, so neither the settings nor the deck can come back. */
+  const leaveDeckSettings = React.useCallback((then: () => void) => {
+    if (!deckEntryAboveSettingsRef.current) {
+      then();
+      return;
+    }
+    window.addEventListener("popstate", then, { once: true });
+    window.history.go(-2);
+  }, []);
 
   const handleSettingsDraftStateChange = React.useCallback((guard: SettingsDraftGuard | null) => {
     settingsDraftGuardRef.current = guard;
@@ -144,6 +170,8 @@ export function useSettingsOverlay({ settingsSection, deckSettings, navigateToRo
     openSettings,
     openDeckSettings,
     selectSettingsOverlay,
+    returnToSettings,
+    leaveDeckSettings,
     closeSettings,
     handleSettingsDraftStateChange,
     requestSettingsContextAction,

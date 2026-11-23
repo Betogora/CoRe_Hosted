@@ -25,15 +25,31 @@ function segmentGroup(html: string, label: string) {
 test("learning settings render as rows without boxed panels", () => {
   const html = renderPanel(createDeckLearningSettingsDraft({}));
 
-  assert.ok((html.match(/class="core-settings-row"/g)?.length ?? 0) >= 12);
+  assert.ok((html.match(/class="core-settings-row"/g)?.length ?? 0) >= 11);
   assert.doesNotMatch(html, /core-surface-raised|rounded-panel|bg-core-subtle p-4/);
+  assert.doesNotMatch(html, /core-settings-row-hint/, "Erklärungen stehen hinter dem Hinweis, nicht unter dem Titel");
   for (const testId of ["learning-settings-bury-new", "learning-settings-bury-review", "learning-settings-bury-interday"]) assert.match(html, new RegExp(`type="checkbox" role="switch" data-testid="${testId}"`));
+  assert.match(html, /<legend[^>]*>.*?>Geschwisterkarten<\/span><button type="button" aria-label="Hinweis: Geschwisterkarten"/, "die Gruppe erklärt sich über den Hinweis an ihrer Überschrift");
+});
+
+test("the learning profile is one row with the selection, its apply action and a menu", () => {
+  const draft = createDeckLearningSettingsDraft({});
+  const html = renderPanel(draft);
+  const row = html.slice(html.indexOf('data-testid="learning-profile-row"'), html.indexOf(">Tagesrunde</h3>"));
+  assert.match(row, /aria-label="Lernprofil"[^>]*data-testid="learning-profile-select"/);
+  assert.match(row, /aria-label="Weitere Aktionen für Lernprofile"/);
+  assert.equal(row.match(/<button/g)?.length, 4, "Hinweis, Auswahl, Anwenden und Menü");
+  assert.doesNotMatch(row, /<input|Neuere Fassung/);
+
+  const applied = renderPanel({ ...draft, learningProfileSource: { id: "builtin:standard", contentVersion: 0 } });
+  assert.match(applied, /role="status"[^>]*>Neuere Fassung</, "eine ältere angewandte Fassung ist markiert");
+  assert.doesNotMatch(applied, /Herkunft:/);
 });
 
 test("preset choices mark the stored preset and show its value", () => {
   const html = renderPanel(createDeckLearningSettingsDraft({ variantThresholdDays: 21, maxActiveVariantsPerCard: 2 }));
 
-  assert.match(segmentGroup(html, "Varianten einsetzen ab Haltbarkeit"), /aria-pressed="true"[^>]*>Standard</);
+  assert.match(segmentGroup(html, "Varianten ab Haltbarkeit"), /aria-pressed="true"[^>]*>Standard</);
   assert.match(html, /data-testid="learning-settings-variant-threshold"[\s\S]*?>21 Tage</);
   assert.match(segmentGroup(html, "Aktive Varianten pro Karte"), /aria-pressed="true"[^>]*>2</);
   assert.match(segmentGroup(html, "Lernschritte"), /aria-pressed="true"[^>]*>Standard</);
@@ -44,7 +60,7 @@ test("preset choices mark the stored preset and show its value", () => {
 test("stored values outside the presets stay visible as own values", () => {
   const html = renderPanel(createDeckLearningSettingsDraft({ variantThresholdDays: 14, maxActiveVariantsPerCard: 5, schedulerProfile: { learningStepsMinutes: [2, 20] } }));
 
-  for (const label of ["Varianten einsetzen ab Haltbarkeit", "Aktive Varianten pro Karte", "Lernschritte"]) assert.doesNotMatch(segmentGroup(html, label), /aria-pressed="true"/);
+  for (const label of ["Varianten ab Haltbarkeit", "Aktive Varianten pro Karte", "Lernschritte"]) assert.doesNotMatch(segmentGroup(html, label), /aria-pressed="true"/);
   assert.match(html, />Eigene · 14 Tage</);
   assert.match(html, />Eigene · 5</);
   assert.match(html, />Eigene · 2 → 20 Min\.</);
@@ -55,6 +71,6 @@ test("a high retention target warns in the row text instead of an alert", () => 
   const html = renderPanel({ ...draft, schedulerProfile: { ...draft.schedulerProfile, desiredRetention: 0.98 } });
 
   assert.match(html, /aria-valuetext="98 %"/);
-  assert.match(html, /Über 97 % steigt die tägliche Belastung meist sehr stark\./);
+  assert.match(html, /Über 97 % steigt die Last stark\./);
   assert.doesNotMatch(html, /role="alert"/);
 });

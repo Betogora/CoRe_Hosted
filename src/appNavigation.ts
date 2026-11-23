@@ -6,7 +6,7 @@ const menu = createMenuModel();
 const defaultViewId = menu.defaultViewId;
 const studyFallbackViewId: AppViewId = "lernen";
 const reviewReturnViews = ["today", "learn", "decks", "exams"] as const;
-export const SETTINGS_SECTIONS = ["start", "konto", "darstellung", "daten", "konflikte", "ueber", "lerntag", "tagesrunde", "scheduler", "flaggen", "fokus"] as const;
+export const SETTINGS_SECTIONS = ["start", "konto", "darstellung", "daten", "konflikte", "ueber", "lerntag", "flaggen", "fokus", "stapel", "tagesrunde", "scheduler"] as const;
 export const DECK_SETTINGS_SECTIONS = ["start", "stapel", "tagesrunde", "neue-karten", "scheduler"] as const;
 export const HELP_TOPICS = ["active-recall", "spaced-repetition", "planung", "varianten", "pruefungssitzung", "kartenverwaltung"] as const;
 const deckContentTabs = ["children", "summary", "mind-map", "cards"] as const;
@@ -28,7 +28,7 @@ export interface DeckSettingsOverlay {
   deckId: string;
   section: DeckSettingsSection;
 }
-export type LearningSettingsSection = "lerntag" | "tagesrunde" | "scheduler" | "flaggen" | "fokus";
+export type LearningSettingsSection = "lerntag" | "flaggen" | "fokus" | "stapel" | "tagesrunde" | "scheduler";
 
 export function settingsContentSection(section: SettingsSection): GeneralSettingsSection | LearningSettingsSection {
   return section === "start" ? "konto" : section === "konflikte" ? "daten" : section;

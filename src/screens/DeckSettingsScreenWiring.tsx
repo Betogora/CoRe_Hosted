@@ -51,17 +51,17 @@ export function DeckSettingsScreenWiring() {
       })}
       onDeleteDeck={async (deckId) => {
         const result = await deckCommands.deleteDeck(deckId);
-        if (result) {
+        if (result) settings.leaveDeckSettings(() => {
           const current = getCurrentRoute();
           const deleted = new Set(result.deletedDeckIds);
           navigateToRoute(current.mode === "study"
             ? createViewRoute("lernen")
             : createViewRoute(current.viewId, { ...current, deckSettings: undefined, ...(current.focusedDeckId && deleted.has(current.focusedDeckId) ? { focusedDeckId: undefined, selectedCardId: undefined } : {}) }), { replace: true });
-        }
+        });
         return result;
       }}
       onSelectDeck={(deckId) => settings.selectSettingsOverlay({ deckSettings: { deckId, section: deckSettings.section } })}
-      onOpenGlobalSettings={() => settings.openSettings("tagesrunde")}
+      onOpenGlobalSettings={getCurrentRoute().mode === "study" ? undefined : settings.returnToSettings}
       variantGeneration={workspaceHydrationService ? { start: (deck, mode) => variantBatch.start(deck, { mode }), running: variantBatch.running, cardsWithoutVariant } : undefined}
       offlineDeck={offlineDeck}
       bodyCache={focusedDeckBodyCache}

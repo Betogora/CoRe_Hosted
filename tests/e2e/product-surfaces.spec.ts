@@ -118,7 +118,7 @@ test("general and learning settings each save their sections together through on
   await expect(dialog.getByRole("heading", { name: "Konto", exact: true })).toBeVisible();
   await page.getByLabel("Anzeigename").fill("CoRe Save-Bar E2E");
   await openSettingsArea(dialog, "daten");
-  await page.getByRole("group", { name: "Intervall der automatischen Synchronisierung" }).getByRole("button", { name: "15", exact: true }).click();
+  await page.getByRole("group", { name: "Intervall der automatischen Synchronisierung" }).getByRole("button", { name: "15 Min.", exact: true }).click();
   const saveBar = page.getByTestId("settings-save-bar");
   await expect(saveBar).toHaveCount(1);
   await expect(saveBar.getByRole("button", { name: "Speichern", exact: true })).toHaveCount(1);
@@ -326,7 +326,7 @@ test("settings dialog switches between side list and area list at 768 px", async
   const dialog = settingsDialog(page);
   const areas = dialog.getByRole("navigation", { name: "Bereiche der Einstellungen" });
   await expect(areas).toBeVisible();
-  await expect(areas.locator("[data-settings-section]")).toHaveCount(9);
+  await expect(areas.locator("[data-settings-section]")).toHaveCount(10);
   await expect(dialog.getByRole("heading", { name: "Konto", exact: true })).toBeVisible();
 
   await openSettingsArea(dialog, "ueber");

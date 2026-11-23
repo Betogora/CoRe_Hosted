@@ -8,7 +8,9 @@ import { normalizeDayStartHour } from "../learningDay.ts";
 import { formatSimulationDuration } from "../simulationClock.ts";
 import { createDeckLearningSettingsDraft, createGlobalCardSettingsDraft, settingsDraftsEqual, type GlobalCardSettingsDraft } from "../settingsDraft.ts";
 import { CrossLinkButton } from "../ui/actionUi.tsx";
+import { CoreTag } from "../ui/coreUi.tsx";
 import { FlagIcon, flagName } from "../ui/flagUi.tsx";
+import { InfoHint } from "../ui/InfoHint.tsx";
 import { normalizeFlagNames } from "../uiPreferences.ts";
 import { CoreNumberField } from "../ui/CoreNumberField.tsx";
 import { useSuccessToast } from "../ui/feedbackUi.tsx";
@@ -32,7 +34,6 @@ export interface GlobalCardSettingsScreenProps {
   onDraftStateChange: (guard: SettingsDraftGuard | null) => void;
   onNavigate: NavigateToView;
   simulationOffsetMinutes: number;
-  simulationDateLabel: string;
   pomodoroTimer: PomodoroTimer | null;
   onStartPomodoro: (minutes: number) => void;
 }
@@ -45,10 +46,11 @@ const sectionIds = {
 
 const headingIds: Record<GlobalCardSettingsScreenProps["section"], string> = {
   lerntag: "card-settings-planning-heading",
-  tagesrunde: "learning-settings-daily-heading",
-  scheduler: "learning-settings-scheduler-heading",
   flaggen: "card-settings-flags-heading",
   fokus: "card-settings-focus-heading",
+  stapel: "card-settings-decks-heading",
+  tagesrunde: "learning-settings-daily-heading",
+  scheduler: "learning-settings-scheduler-heading",
 };
 
 const easyDayOptions: ReadonlyArray<{ value: EasyDayLevel; label: string }> = [
@@ -67,7 +69,7 @@ const weekdayLabels: Record<keyof EasyDays, string> = {
   sunday: "Sonntag",
 };
 
-export function GlobalCardSettingsScreen({ section, decks, onOpenDeckSettings, timeZone, globalSchedulerPreferences, flagNames, learningProfiles, onSaveLearningProfiles, onSaveSettings, onDraftStateChange, onNavigate, simulationOffsetMinutes, simulationDateLabel, pomodoroTimer, onStartPomodoro }: GlobalCardSettingsScreenProps) {
+export function GlobalCardSettingsScreen({ section, decks, onOpenDeckSettings, timeZone, globalSchedulerPreferences, flagNames, learningProfiles, onSaveLearningProfiles, onSaveSettings, onDraftStateChange, onNavigate, simulationOffsetMinutes, pomodoroTimer, onStartPomodoro }: GlobalCardSettingsScreenProps) {
   const persistedDraft = createGlobalCardSettingsDraft(globalSchedulerPreferences, flagNames);
   const persistedDraftKey = JSON.stringify(persistedDraft);
   const [baseline, setBaseline] = React.useState<GlobalCardSettingsDraft>(persistedDraft);
@@ -133,30 +135,29 @@ export function GlobalCardSettingsScreen({ section, decks, onOpenDeckSettings, t
       {section === "lerntag" ? (
         <section id={sectionIds.planning} className="core-settings-section" aria-labelledby="card-settings-planning-heading">
           <h2 id="card-settings-planning-heading" tabIndex={-1} className="core-heading-2 text-core-text outline-none">Lerntag & Planung</h2>
-          <p className="core-settings-row-hint">Gilt kontoweit. Stapel und Lernprofile ändern diese Werte nicht.</p>
           <div className="core-settings-list">
             <div className="core-settings-row">
-              <div className="core-settings-row-text">
-                <label htmlFor="card-settings-day-start-hour" className="core-settings-row-title">Neuer Tag beginnt um</label>
-                <p id="card-settings-day-start-hint" className="core-settings-row-hint">Davor zählt die Zeit noch zum Vortag.</p>
-              </div>
+              <label htmlFor="card-settings-day-start-hour" className="core-settings-row-title">Neuer Tag beginnt um</label>
               <div className="core-settings-row-control">
-                <CoreNumberField id="card-settings-day-start-hour" value={draft.dayStartHour} min={0} max={23} unit="Uhr" ariaDescribedBy="card-settings-day-start-hint" className="w-32" onChange={(dayStartHour) => setDraft((current) => ({ ...current, dayStartHour }))} />
+                <CoreNumberField id="card-settings-day-start-hour" value={draft.dayStartHour} min={0} max={23} unit="Uhr" className="w-32" onChange={(dayStartHour) => setDraft((current) => ({ ...current, dayStartHour }))} />
               </div>
             </div>
             <div className="core-settings-row">
-              <div className="core-settings-row-text">
+              <div className="core-settings-row-heading">
                 <label htmlFor="card-settings-learn-ahead" className="core-settings-row-title">Lernkarten vorziehen</label>
-                <p id="card-settings-learn-ahead-hint" className="core-settings-row-hint">Lernkarten, die in diesem Zeitraum fällig werden, erscheinen schon jetzt. 0 schaltet aus.</p>
+                <InfoHint label="Lernkarten vorziehen" id="card-settings-learn-ahead-hint">Ist sonst keine Karte mehr dran, zeigt dir CoRe Lernschritte, die innerhalb dieser Zeit fällig würden, schon jetzt. So musst du nicht warten oder für wenige Karten später zurückkommen. Wiederholungen werden nie vorgezogen; 0 schaltet das aus.</InfoHint>
               </div>
               <div className="core-settings-row-control">
                 <CoreNumberField id="card-settings-learn-ahead" value={draft.learnAheadMinutes} min={0} max={720} unit="Min." ariaDescribedBy="card-settings-learn-ahead-hint" className="w-32" onChange={(learnAheadMinutes) => setDraft((current) => ({ ...current, learnAheadMinutes }))} />
               </div>
             </div>
             <div className="core-settings-row" data-testid="card-settings-leech">
-              <label htmlFor="card-settings-leech-threshold" className="core-settings-row-title">Lernbremse ab Fehlern</label>
+              <div className="core-settings-row-heading">
+                <label htmlFor="card-settings-leech-threshold" className="core-settings-row-title">Lernbremse ab Fehlern</label>
+                <InfoHint label="Lernbremse ab Fehlern" id="card-settings-leech-hint">Vergisst du eine Karte in der Wiederholung so oft, markiert CoRe sie als Lernbremse, danach erneut nach jeweils der halben Zahl weiterer Fehler. Die Karte bleibt im Lernplan; die Markierung zeigt dir, dass sich eine Überarbeitung lohnen kann.</InfoHint>
+              </div>
               <div className="core-settings-row-control">
-                <CoreNumberField id="card-settings-leech-threshold" value={draft.leechThreshold} min={1} max={99} unit="Fehler" className="w-32" onChange={(leechThreshold) => setDraft((current) => ({ ...current, leechThreshold }))} />
+                <CoreNumberField id="card-settings-leech-threshold" value={draft.leechThreshold} min={1} max={99} unit="Fehler" ariaDescribedBy="card-settings-leech-hint" className="w-32" onChange={(leechThreshold) => setDraft((current) => ({ ...current, leechThreshold }))} />
               </div>
             </div>
             <div className="core-settings-row" data-layout="inline">
@@ -166,8 +167,12 @@ export function GlobalCardSettingsScreen({ section, decks, onOpenDeckSettings, t
           </div>
 
           <fieldset className="core-settings-group">
-            <legend className="float-left w-full core-heading-3 text-core-text">Wochenrhythmus</legend>
-            <p className="core-settings-row-hint">Verteilt neu berechnete Wiederholungen auf passendere Tage. Sieben gleiche Werte ändern nichts.</p>
+            <legend className="float-left w-full">
+              <span className="core-settings-row-heading">
+                <span className="core-heading-3 text-core-text">Wochenrhythmus</span>
+                <InfoHint label="Wochenrhythmus">Stell Tage, an denen du wenig Zeit hast, auf ‚Weniger‘ oder ‚Minimal‘. CoRe plant neue Wiederholungen dann bevorzugt auf die übrigen Tage; bereits geplante Karten bleiben, wo sie sind.</InfoHint>
+              </span>
+            </legend>
             <div className="core-settings-matrix-frame mt-2">
               <table className="core-settings-matrix">
                 <thead>
@@ -218,9 +223,9 @@ export function GlobalCardSettingsScreen({ section, decks, onOpenDeckSettings, t
         />
       ) : null}
 
-      {section === "tagesrunde" ? (
-        <div className="core-settings-group">
-          <h3 className="core-heading-3 text-core-text">Einzelne Stapel</h3>
+      {section === "stapel" ? (
+        <section className="core-settings-section" aria-labelledby="card-settings-decks-heading">
+          <h2 id="card-settings-decks-heading" tabIndex={-1} className="core-heading-2 text-core-text outline-none">Einzelne Stapel</h2>
           <div className="core-settings-list">
             <div className="core-settings-row" data-layout="inline">
               <span className="core-settings-row-title">Stapeleinstellungen</span>
@@ -229,13 +234,12 @@ export function GlobalCardSettingsScreen({ section, decks, onOpenDeckSettings, t
               </div>
             </div>
           </div>
-        </div>
+        </section>
       ) : null}
 
       {section === "flaggen" ? (
         <section id={sectionIds.flags} className="core-settings-section" aria-labelledby="card-settings-flags-heading">
           <h2 id="card-settings-flags-heading" tabIndex={-1} className="core-heading-2 text-core-text outline-none">Flaggen</h2>
-          <p className="core-settings-row-hint">Eigene Namen gelten kontoweit. Ein leeres Feld zeigt den Farbnamen.</p>
           <div className="mt-2 grid gap-2">
             {draft.flagNames.map((name, index) => {
               const colorName = flagName(index + 1);
@@ -263,9 +267,9 @@ export function GlobalCardSettingsScreen({ section, decks, onOpenDeckSettings, t
           <h2 id="card-settings-focus-heading" tabIndex={-1} className="core-heading-2 text-core-text outline-none">Fokuswerkzeuge</h2>
           <div className="core-settings-list">
             <div className="core-settings-row" data-layout="inline">
-              <div className="core-settings-row-text">
+              <div className="core-settings-row-heading">
                 <span className="core-settings-row-title">Simulator</span>
-                {simulationOffsetMinutes > 0 ? <p className="core-settings-row-hint">{`Aktiv: ${simulationDateLabel} · +${formatSimulationDuration(simulationOffsetMinutes)}`}</p> : null}
+                {simulationOffsetMinutes > 0 ? <CoreTag tone="info" data-testid="card-settings-simulation-state">{`Aktiv · +${formatSimulationDuration(simulationOffsetMinutes)}`}</CoreTag> : null}
               </div>
               <div className="core-settings-row-control">
                 <CrossLinkButton onSelect={() => onNavigate("simulator")}>Simulator öffnen</CrossLinkButton>

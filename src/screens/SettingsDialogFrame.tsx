@@ -1,6 +1,6 @@
 import React from "react";
 import { createPortal } from "react-dom";
-import { ChevronLeft, ChevronRight, type LucideIcon } from "lucide-react";
+import { ArrowLeft, ChevronLeft, ChevronRight, type LucideIcon } from "lucide-react";
 import { CloseButton, IconButton } from "../ui/actionUi.tsx";
 import { useModalDialog } from "../ui/useModalDialog.ts";
 
@@ -21,12 +21,14 @@ export interface SettingsDialogFrameProps<S extends string> {
   onSelectSection: (section: S) => unknown;
   onShowAreaList?: () => unknown;
   onClose: () => unknown;
+  /** The dialog this one belongs to; shown before the title, narrow as `icon` instead of the label. */
+  back?: { label: string; icon: LucideIcon; onSelect: () => unknown };
   navigationHeader?: React.ReactNode;
   footer?: React.ReactNode;
   children: React.ReactNode;
 }
 
-export function SettingsDialogFrame<S extends string>({ title, closeLabel, navigationLabel, testId, groups, activeSection, showAreaList, onSelectSection, onShowAreaList, onClose, navigationHeader, footer, children }: SettingsDialogFrameProps<S>) {
+export function SettingsDialogFrame<S extends string>({ title, closeLabel, navigationLabel, testId, groups, activeSection, showAreaList, onSelectSection, onShowAreaList, onClose, back, navigationHeader, footer, children }: SettingsDialogFrameProps<S>) {
   const titleId = React.useId();
   // Escape belongs to the dialog; otherwise a study session underneath would also read it as "exit".
   const { dialogRef, initialFocusRef } = useModalDialog({ open: true, onClose, stopEscapePropagation: true });
@@ -53,8 +55,24 @@ export function SettingsDialogFrame<S extends string>({ title, closeLabel, navig
         data-settings-view={showAreaList ? "areas" : "area"}
         className="core-overlay flex h-dvh w-full flex-col overflow-hidden md:h-[min(48rem,88dvh)] md:max-w-5xl md:rounded-overlay"
       >
-        <header className={`core-dialog-header ${showAreaList || !onShowAreaList ? "pl-6" : "pl-[var(--core-dialog-corner-inset)] md:pl-6"}`}>
+        <header className={`core-dialog-header ${back || (!showAreaList && onShowAreaList) ? "pl-[var(--core-dialog-corner-inset)] md:pl-6" : "pl-6"}`}>
           {showAreaList || !onShowAreaList ? null : <IconButton label="Zurück zu den Bereichen" icon={ChevronLeft} variant="ghost" className="md:hidden" onClick={onShowAreaList} />}
+          {back ? (
+            <>
+              <button
+                type="button"
+                aria-label={`Zurück zu ${back.label}`}
+                data-settings-back="true"
+                onClick={back.onSelect}
+                className={`flex h-button min-w-button shrink-0 items-center justify-center gap-1.5 rounded-control text-core-text transition-colors hover:bg-core-hover md:-ml-2 md:pl-1.5 md:pr-2 md:text-core-secondary md:hover:text-core-text md:[&>svg]:text-core-muted md:hover:[&>svg]:text-core-action ${showAreaList || !onShowAreaList ? "" : "max-md:-ml-2"}`}
+              >
+                <back.icon className="shrink-0 md:hidden" size={18} aria-hidden="true" />
+                <ArrowLeft className="hidden shrink-0 md:block" size={20} aria-hidden="true" />
+                <span className="hidden core-heading-3 md:inline">{back.label}</span>
+              </button>
+              <ChevronRight className="-ml-3 shrink-0 text-core-muted md:-ml-1 md:mr-1" size={16} aria-hidden="true" />
+            </>
+          ) : null}
           <h2 id={titleId} className="flex min-w-0 flex-1 items-center gap-3 core-heading-2 text-core-text">{title}</h2>
           <CloseButton ref={initialFocusRef} label={closeLabel} onClick={onClose} />
         </header>
