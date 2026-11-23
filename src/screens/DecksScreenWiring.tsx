@@ -6,7 +6,7 @@ import { DecksScreen } from "./DecksScreen.tsx";
 import { useDeckPractice } from "./useDeckPractice.tsx";
 
 export function DecksScreenWiring() {
-  const { navigation, settings, clock, studyStart, cardCommands, cardEditorServices, deckCommands, variantBatch, requestDeckCoreMode, hydration, cloud, mediaStore } = useAppServices();
+  const { navigation, settings, clock, studyStart, cardCommands, cardEditorServices, deckCommands, variantBatch, requestDeckCoreMode, hydration, mediaStore } = useAppServices();
   const workspaceStore = useWorkspaceStore();
   const state = useWorkspaceValue((snapshot) => snapshot.state);
   const { focusedDeckId, selectedCardId, deckContent, deckContentTab, cardEditorTab, cardEditorReturnContext, cardQuery, navigateToRoute, navigateToView, navigateToViewNow } = navigation;
@@ -22,20 +22,8 @@ export function DecksScreenWiring() {
         contentTab={deckContentTab}
         cardQuery={cardQuery}
         onOpenDeckContent={(deckId, tab = "children") => navigateToViewNow("kartenstapel", { focusedDeckId: deckId, deckContent: true, deckContentTab: tab })}
-        summaryAccountId={state.profile.userId}
-        learningContentCloud={cloud}
-        onGenerateSummary={async (input, signal) => {
-          const accountId = workspaceStore.get().state?.profile.userId;
-          if (!accountId || !hydration || !cloud) throw new Error("Die Anmeldung und Kartenablage sind noch nicht bereit.");
-          const { generateLearningSummary } = await import("../aiLearningSummary.ts");
-          const result = await generateLearningSummary(input, async (ids, options) => {
-            const loaded = await hydration.prepareContentDecks(ids, options);
-            if (workspaceStore.get().state?.profile.userId !== accountId) throw new Error("Das Konto wurde gewechselt. Öffne die Zusammenfassungen erneut.");
-            return loaded;
-          }, workspaceStore.get().state!.decks, cloud, signal);
-          if (workspaceStore.get().state?.profile.userId !== accountId) throw new Error("Das Konto wurde gewechselt. Öffne die Zusammenfassungen erneut.");
-          return result;
-        }}
+        learningContentAccount={cardCommands.learningContentAccount()}
+        onGenerateSummary={cardCommands.generateLearningSummary}
         onRequestCardPage={cardCommands.requestCardPage}
         now={clock.learningNow}
         dayStartHour={clock.globalSchedulerPreferences.dayStartHour}

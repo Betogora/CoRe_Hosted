@@ -7,7 +7,8 @@ import type { AccountMediaStore } from "./mediaStore.ts";
 import { requestPersistentWorkspaceStorage } from "./workspaceStorage.ts";
 import type { CardCatalogEntry, CatalogPage, NoteGraph, OfflineDeckRecord } from "./workspaceReplica.ts";
 import { markReplicaStartupGate } from "./appPerformance.ts";
-import { getLearningDayKey } from "./learningDay.ts";
+import { getLearningDayKey, getLearningDayRange } from "./learningDay.ts";
+import type { StatisticsSelection } from "./statisticsModel.ts";
 
 interface CardPageRequest {
   /** The list: a deck id, or a key of its own for `deckIds` read as one list (the flat hit list). */
@@ -612,6 +613,33 @@ export function createWorkspaceHydrationService({
     return snapshot;
   };
 
+  /**
+   * The local projection of the selection, completed by the account's statistics (cached offline) and the answers that
+   * still wait for sync.
+   */
+  const queryStatistics = async (selection: StatisticsSelection) => {
+    const projection = await repository.queryStatistics(selection);
+    const { period, now, timeZone = "UTC", dayStartHour = 0 } = selection;
+    const periodDays = period === "30d" ? 30 : period === "90d" ? 90 : period === "365d" ? 365 : null;
+    const startReference = periodDays == null ? null : new Date(Date.parse(now) - (periodDays - 1) * 86_400_000).toISOString();
+    const startRange = startReference ? getLearningDayRange(startReference, { timeZone, dayStartHour }) : null;
+    const endRange = getLearningDayRange(now, { timeZone, dayStartHour });
+    try {
+      const snapshot = await refreshStatistics(
+        projection.scopeDeckIds,
+        startRange ? new Date(startRange.start).toISOString() : null,
+        endRange ? new Date(endRange.end).toISOString() : null,
+        timeZone,
+        dayStartHour,
+      );
+      if (!snapshot) throw new Error("Für diese Auswahl ist noch keine vollständige Offline-Statistik gespeichert.");
+      const { mergeAccountStatisticsSnapshot } = await import("./statisticsModel.ts");
+      return mergeAccountStatisticsSnapshot(projection, snapshot, repository.outbox.pendingReviewEvents());
+    } catch (error) {
+      throw error instanceof Error ? error : new Error("Statistik konnte nicht geladen werden.");
+    }
+  };
+
   /** Answers still waiting for sync replace the server's values. */
   const loadExamPlanningData = async (deckIds: string[], signal?: AbortSignal) => {
     if (!isOnline()) throw new Error("Die Prüfungsplanung braucht eine Verbindung.");
@@ -682,6 +710,7 @@ export function createWorkspaceHydrationService({
     removeDeckDownload,
     enforceQuota,
     refreshStatistics,
+    queryStatistics,
     loadExamPlanningData,
     refreshDueForecast,
     prepareReimport,

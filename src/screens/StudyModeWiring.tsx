@@ -1,5 +1,4 @@
 import React from "react";
-import { requestAiCardHelp } from "../aiCardHelp.ts";
 import { reviewReturnContextToViewRoute } from "../appNavigation.ts";
 import type { StudyModeProps } from "../appScreenProps.ts";
 import { EXAM_SESSION_DECK_ID } from "../examPlanSettings.ts";
@@ -14,7 +13,7 @@ const MemoizedStudyMode = React.memo(StudyMode);
 
 /** Its callbacks keep their identity across shell renders. */
 export function StudyModeWiring() {
-  const { navigation, settings, clock, pomodoro, sync, study, cardEditorServices, cloud, mediaStore } = useAppServices();
+  const { navigation, settings, clock, pomodoro, sync, study, cardCommands, cardEditorServices, mediaStore } = useAppServices();
   const { studyRequest, deckSettings, navigateToRoute, navigateToViewNow } = navigation;
   const { learningNow, learningDayKey, learningTimeZone, globalSchedulerPreferences } = clock;
   const shellDecks = useWorkspaceValue((snapshot) => snapshot.state?.decks);
@@ -29,7 +28,7 @@ export function StudyModeWiring() {
     focusedDeckId: deckId, selectedCardId: cardId, cardEditorTab: tab, cardEditorReturnContext: { deckId: studyRequest.deckId, returnContext: studyRequest.returnContext },
   }));
   const editStudyDeck = useStableCallback((currentDeckId: string) => currentDeckId === EXAM_SESSION_DECK_ID ? navigateToViewNow("pruefungen") : settings.openDeckSettings(currentDeckId));
-  const askStudyCardHelp = useStableCallback((...[request, signal]: Parameters<StudyModeProps["onAskCardHelp"]>) => requestAiCardHelp(request, cloud, { signal }));
+  const askStudyCardHelp = useStableCallback((...[request, signal]: Parameters<StudyModeProps["onAskCardHelp"]>) => cardCommands.askCardHelp(request, signal));
   // The plan a session starts from; deck counts stay as they were at the start until a new learning day begins.
   const studyDeckSummaries = useWorkspaceValue((snapshot) => studyRequest ? snapshot.deckSummaries : undefined);
   const studySessionPlan = React.useMemo(() => {

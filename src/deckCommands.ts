@@ -11,6 +11,7 @@ import { createDeckLibraryModel } from "./libraryModel.ts";
 import { updateDeckNewCardLimitForDate } from "./reviewService.ts";
 import { applyDeckSettingsDraftChanges, createDeckSettingsDraft, normalizeDeckSettingsDraft, type DeckSettingsDraft, type GeneralSettingsDraft, type GlobalCardSettingsDraft } from "./settingsDraft.ts";
 import { setDeckExpanded, type DeckExpansionSurface } from "./uiPreferences.ts";
+import type { WorkspaceHydrationService } from "./workspaceHydrationService.ts";
 import type { WorkspaceStore } from "./workspaceStore.ts";
 
 type RefreshOptions = { preserveCardPages?: boolean };
@@ -19,6 +20,8 @@ type CreateDeckInput = Parameters<typeof createWorkspaceDeck>[1];
 export interface DeckCommandsContext {
   store: WorkspaceStore;
   repository: IndexedDbCoreRepository;
+  /** The service follows the media store, which arrives after the workspace opened. */
+  hydration: () => WorkspaceHydrationService | null;
   /** Without `preserveCardPages` it empties the card pages. */
   refresh: (options?: RefreshOptions) => unknown;
   requestSync: () => void;
@@ -51,7 +54,7 @@ function withDeckLearningSettings(deck: Deck, settings: LearningSettingsInput): 
   };
 }
 
-export function createDeckCommands({ store, repository, refresh, requestSync, syncNow, updateStudyDecks }: DeckCommandsContext) {
+export function createDeckCommands({ store, repository, hydration, refresh, requestSync, syncNow, updateStudyDecks }: DeckCommandsContext) {
   function runRepositoryMutation<T>(mutation: (current: IndexedDbCoreRepository) => T, refreshOptions?: RefreshOptions): T {
     const result = mutation(repository);
     refresh(refreshOptions);
@@ -266,7 +269,29 @@ export function createDeckCommands({ store, repository, refresh, requestSync, sy
     }), { preserveCardPages: true });
   }
 
+  /** The store follows the download's progress, so the deck shows how much is on this device. */
+  async function downloadDeck(deckId: string) {
+    const service = hydration();
+    if (!service) throw new Error("Die Kartenablage ist noch nicht bereit.");
+    const showDownload = async () => {
+      const record = await repository.getOfflineDeck(deckId);
+      if (record) store.set((current) => ({ offlineDecks: { ...current.offlineDecks, [deckId]: record } }));
+    };
+    await service.downloadDeck(deckId, () => { void showDownload(); });
+    await showDownload();
+  }
+
+  async function removeDeckDownload(deckId: string) {
+    const service = hydration();
+    if (!service) throw new Error("Die Kartenablage ist noch nicht bereit.");
+    await service.removeDeckDownload(deckId);
+    store.set((current) => ({ offlineDecks: Object.fromEntries(Object.entries(current.offlineDecks).filter(([id]) => id !== deckId)) }));
+  }
+
   return {
+    getDeckBodyCache: (deckId: string) => repository.getDeckBodyResidencySummary(deckId),
+    downloadDeck,
+    removeDeckDownload,
     createDeck,
     updateDeck,
     addAdditionalNewCards,

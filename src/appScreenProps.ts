@@ -165,8 +165,7 @@ export interface CardEditorServices {
 
 export interface DecksScreenProps extends DeckTreeScreenProps {
   decks: Deck[];
-  summaryAccountId?: string;
-  learningContentCloud?: import("@supabase/supabase-js").SupabaseClient | null;
+  learningContentAccount?: import("./learningSummaries.ts").LearningContentAccount | null;
   onGenerateSummary?: (input: import("./aiLearningSummary.ts").SummaryGenerationInput, signal: AbortSignal) => Promise<import("./aiLearningSummary.ts").SummaryGenerationResult>;
   contentDeckId?: string | null;
   contentTab?: DeckContentTab;

@@ -12,6 +12,9 @@ import { getGlobalSchedulerPreferences } from "./deckSettings.ts";
 import { createGlobalDefaultDeckSettings } from "./globalLearningDefaults.ts";
 import type { IndexedDbCoreRepository } from "./indexedDbCoreRepository.ts";
 import type { createSupabaseBrowserClient } from "./supabaseClient.ts";
+import type { AiCardHelpRequest } from "./aiCardHelpContract.ts";
+import type { SummaryGenerationInput } from "./aiLearningSummary.ts";
+import type { LearningContentAccount } from "./learningSummaries.ts";
 import type { AccountSyncEngine } from "./syncEngine.ts";
 import type { WorkspaceHydrationService } from "./workspaceHydrationService.ts";
 import { catalogEntryFromCard, type NoteGraph } from "./workspaceReplica.ts";
@@ -321,6 +324,33 @@ export function createCardCommands({ store, repository, hydration, cloud, syncEn
     return { deck, cardIds: graph.cards.map((card) => card.id) };
   }
 
+  async function askCardHelp(request: AiCardHelpRequest, signal?: AbortSignal) {
+    const { requestAiCardHelp } = await import("./aiCardHelp.ts");
+    return requestAiCardHelp(request, cloud, { signal });
+  }
+
+  /** Online storage of the signed-in account's summaries and mind maps; without the cloud they stay in this browser. */
+  function learningContentAccount(): LearningContentAccount | null {
+    const userId = store.get().state?.profile.userId;
+    return userId ? { userId, cloud } : null;
+  }
+
+  /** The decks load as the account they were asked for; a switched account ends the generation. */
+  async function generateLearningSummary(input: SummaryGenerationInput, signal: AbortSignal) {
+    const accountId = store.get().state?.profile.userId;
+    const service = hydration();
+    if (!accountId || !service || !cloud) throw new Error("Die Anmeldung und Kartenablage sind noch nicht bereit.");
+    const switched = () => store.get().state?.profile.userId !== accountId;
+    const { generateLearningSummary: generate } = await import("./aiLearningSummary.ts");
+    const result = await generate(input, async (ids, options) => {
+      const loaded = await service.prepareContentDecks(ids, options);
+      if (switched()) throw new Error("Das Konto wurde gewechselt. Öffne die Zusammenfassungen erneut.");
+      return loaded;
+    }, store.get().state!.decks, cloud, signal);
+    if (switched()) throw new Error("Das Konto wurde gewechselt. Öffne die Zusammenfassungen erneut.");
+    return result;
+  }
+
   async function listDeckContents(deckId: string) {
     const service = hydration();
     const cardIds = service ? await service.listCardIds({ deckIds: [deckId] }) : await repository.listCardIds([deckId]);
@@ -412,6 +442,9 @@ export function createCardCommands({ store, repository, hydration, cloud, syncEn
     generateDeckCardVariant,
     updateDeckCardVariant,
     saveManualNote,
+    askCardHelp,
+    learningContentAccount,
+    generateLearningSummary,
     listDeckContents,
     importTextNotes,
     createCardEditorServices,

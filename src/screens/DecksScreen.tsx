@@ -65,8 +65,7 @@ const CONTENT_TAB_LOADING = <p className="p-6 core-body text-core-muted" role="s
 
 export function DecksScreen({
   decks,
-  summaryAccountId,
-  learningContentCloud = null,
+  learningContentAccount = null,
   onGenerateSummary,
   onStartDeck,
   onPracticeDeck,
@@ -568,12 +567,12 @@ export function DecksScreen({
         action={<ActionButton variant="secondary" icon={Play} disabled={!hasStudyCards} onClick={() => onStartDeck(contentRow.deck)}>Karten lernen</ActionButton>} />
       : <EmptyState icon={Layers} title="Stapel nicht gefunden oder nicht verfügbar." />
   ) : contentDeckId && contentTab === "summary" ? (
-    contentDeck ? <React.Suspense fallback={CONTENT_TAB_LOADING}><DeckSummariesPanel key={`${summaryAccountId ?? contentDeck.ownerId}:${contentDeck.id}`} deck={contentDeck} treeDecks={libraryDecks}
-      userId={summaryAccountId ?? contentDeck.ownerId} cloud={learningContentCloud} onGenerateSummary={onGenerateSummary} onDraftStateChange={handleEditorDraftStateChange} /></React.Suspense>
+    contentDeck ? <React.Suspense fallback={CONTENT_TAB_LOADING}><DeckSummariesPanel key={`${learningContentAccount?.userId ?? contentDeck.ownerId}:${contentDeck.id}`} deck={contentDeck} treeDecks={libraryDecks}
+      userId={learningContentAccount?.userId ?? contentDeck.ownerId} cloud={learningContentAccount?.cloud ?? null} onGenerateSummary={onGenerateSummary} onDraftStateChange={handleEditorDraftStateChange} /></React.Suspense>
       : <EmptyState icon={FileText} title="Stapel nicht gefunden oder nicht verfügbar." />
   ) : contentDeckId && contentTab === "mind-map" ? (
-    contentDeck ? <React.Suspense fallback={CONTENT_TAB_LOADING}><DeckMindMapsPanel key={`${summaryAccountId ?? contentDeck.ownerId}:${contentDeck.id}`} deck={contentDeck}
-      userId={summaryAccountId ?? contentDeck.ownerId} cloud={learningContentCloud} onGenerateSummary={onGenerateSummary} onDraftStateChange={handleEditorDraftStateChange} /></React.Suspense>
+    contentDeck ? <React.Suspense fallback={CONTENT_TAB_LOADING}><DeckMindMapsPanel key={`${learningContentAccount?.userId ?? contentDeck.ownerId}:${contentDeck.id}`} deck={contentDeck}
+      userId={learningContentAccount?.userId ?? contentDeck.ownerId} cloud={learningContentAccount?.cloud ?? null} onGenerateSummary={onGenerateSummary} onDraftStateChange={handleEditorDraftStateChange} /></React.Suspense>
       : <EmptyState icon={Network} title="Stapel nicht gefunden oder nicht verfügbar." />
   ) : <section className="grid min-w-0 gap-4" aria-label="Karten" data-testid="card-library-panel">
       <div className="grid gap-4">
