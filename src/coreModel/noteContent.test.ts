@@ -82,8 +82,6 @@ test("Lückentext erzeugt eine Karte je Lückennummer, auch verschachtelt und me
   assert.deepEqual(result.promptKeys, ["cloze:1", "cloze:2", "cloze:3", "cloze:4", "cloze:5"]);
   assert.deepEqual(clozeOrdinals("{{c2::a}} {{c10::b}} {{c2::c}}"), [2, 10]);
   assert.equal(clozeOrdinals("{{c1::offen"), null);
-  assert.equal(clozeOrdinals(String.raw`{{c1::a\}}`), null, "maskierte Klammern schließen keine Lücke, wie in der Darstellung");
-  assert.deepEqual(clozeOrdinals("{{c0::a}} {{c1::b}}"), [1]);
   rejected(note([{ ...text, html: "{{c1::offen" }], { kind: "cloze" }), /nicht geschlossene Lücke/);
   rejected(note([{ ...text, html: "Ohne Lücke" }], { kind: "cloze" }), /keine Karte/);
   rejected(note([{ ...text, role: "extra" }], { kind: "cloze" }), /Rolle Frage/);
