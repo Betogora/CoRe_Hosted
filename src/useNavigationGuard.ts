@@ -26,7 +26,6 @@ interface NavigationGuardOptions extends Omit<Parameters<typeof useAppNavigation
 }
 
 export function useNavigationGuard({ settingsBlocksNavigation, ...options }: NavigationGuardOptions) {
-  // A view's draft guards only leaving that view; moves within it are the screen's own.
   const draftGuards = React.useRef<Partial<Record<GuardedView, DraftGuard>>>({});
   const [pendingNavigation, setPendingNavigation] = React.useState<PendingNavigation | null>(null);
   const [savingPendingNavigation, setSavingPendingNavigation] = React.useState(false);

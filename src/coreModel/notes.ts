@@ -189,7 +189,6 @@ export const cardHasStudy = (card: Card) => card.study.reps > 0 || card.study.st
  */
 type RemovedCardPolicy = "delete" | "keepStudied" | "skip";
 
-/** The whole graph after a content change, its removed cards deleted. */
 export function planNoteGraphContentChange(
   previous: { note: Note; cards: readonly Card[] },
   nextContent: unknown,

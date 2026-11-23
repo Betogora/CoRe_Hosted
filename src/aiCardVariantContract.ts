@@ -214,7 +214,6 @@ function readGeneratedOptions(value: unknown): { id: string; text: string }[] | 
   return valid ? (value as { id: string; text: string }[]).map((option) => ({ id: option.id, text: normalizeAiCardText(option.text) })) : null;
 }
 
-/** Reads the model's tool arguments for `input` and checks that the variant still asks the card's answer. */
 export function parseGeneratedVariant(toolArguments: unknown, input: AiCardVariantRequest): GeneratedAiCardVariant {
   const rawArguments = toolArguments !== null && typeof toolArguments === "object" ? toolArguments as Record<string, unknown> : {};
   const keys = input.choice ? "front,options,rephrasable" : "back,front,rephrasable";

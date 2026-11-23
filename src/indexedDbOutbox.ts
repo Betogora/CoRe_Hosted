@@ -144,7 +144,6 @@ export function createReplicaOutbox({ userId, database, outboxRows, enqueueWrite
       }
       return states;
     },
-    /** Answers taken back here whose removal has not reached the cloud. */
     takenBackReviewEventIds() {
       return new Set(listPending().flatMap((mutation) => mutation.type === "review-undo" && mutation.entityId ? [mutation.entityId] : []));
     },

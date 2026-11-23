@@ -212,7 +212,6 @@ export function createCardCommands({ store, repository, hydration, cloud, syncEn
     return cards;
   }
 
-  /** One write path for one card or many: the undo closure skips cards changed since. */
   async function runBatch(openCards: CardBatchDependencies["openCards"], cardIds: string[], action: CardBatchAction, afterWrite: () => unknown): Promise<CardBatchResult> {
     const { runCardBatch } = await import("./cardBatchActions.ts");
     const result = await runCardBatch({ repository, openCards, now }, cardIds, action);

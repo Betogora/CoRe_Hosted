@@ -269,7 +269,6 @@ export function createDeckCommands({ store, repository, hydration, refresh, requ
     }), { preserveCardPages: true });
   }
 
-  /** The store follows the download's progress, so the deck shows how much is on this device. */
   async function downloadDeck(deckId: string) {
     const service = hydration();
     if (!service) throw new Error("Die Kartenablage ist noch nicht bereit.");
