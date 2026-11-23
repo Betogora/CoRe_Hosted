@@ -50,10 +50,6 @@ export function InfoHint({ label, children, id, className = "" }: InfoHintProps)
             clearHoverTimer();
             setOpen((current) => current === "pinned" ? false : "pinned");
           }}
-          onKeyDown={(event) => {
-            // The popover has taken this Escape; a dialog around the hint must not close with it.
-            if (event.key === "Escape" && event.defaultPrevented) event.stopPropagation();
-          }}
         >
           <Info size={16} aria-hidden="true" />
         </button>
@@ -70,6 +66,8 @@ export function InfoHint({ label, children, id, className = "" }: InfoHintProps)
           className="core-overlay z-[90] w-max max-w-[min(20rem,calc(100vw-1.5rem))] rounded-panel px-3.5 py-3 core-body text-core-text outline-none"
           // The focus stays on the button, so its Escape closes only the hint.
           onOpenAutoFocus={(event) => event.preventDefault()}
+          // Radix sees this Escape first, wherever the focus is; a dialog around the hint must not close with it.
+          onEscapeKeyDown={(event) => event.stopPropagation()}
           onPointerEnter={clearHoverTimer}
           onPointerLeave={hover(false, HOVER_CLOSE_DELAY_MS)}
         >

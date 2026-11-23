@@ -98,7 +98,16 @@ export function useSettingsOverlay({ settingsSection, deckSettings, navigateToRo
     else navigateToRoute(withSettingsOverlay(getCurrentRoute(), { settingsSection: "stapel" }), { replace: true });
   }, [getCurrentRoute, navigateToRoute]);
 
-  const deckOpenedAboveSettings = React.useCallback(() => deckEntryAboveSettingsRef.current, []);
+  /** Leaves a deck dialog whose deck is gone; `then` adjusts the route that remains. Above the settings both entries go,
+   * as when closing, so neither the settings nor the deck can come back. */
+  const leaveDeckSettings = React.useCallback((then: () => void) => {
+    if (!deckEntryAboveSettingsRef.current) {
+      then();
+      return;
+    }
+    window.addEventListener("popstate", then, { once: true });
+    window.history.go(-2);
+  }, []);
 
   const handleSettingsDraftStateChange = React.useCallback((guard: SettingsDraftGuard | null) => {
     settingsDraftGuardRef.current = guard;
@@ -162,7 +171,7 @@ export function useSettingsOverlay({ settingsSection, deckSettings, navigateToRo
     openDeckSettings,
     selectSettingsOverlay,
     returnToSettings,
-    deckOpenedAboveSettings,
+    leaveDeckSettings,
     closeSettings,
     handleSettingsDraftStateChange,
     requestSettingsContextAction,

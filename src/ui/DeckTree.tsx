@@ -15,7 +15,6 @@ import { useStableCallback } from "./useStableCallback.ts";
 import { revealShellHeader } from "./shellBack.ts";
 import type { DeckTreeView } from "./deckTreeView.ts";
 
-
 const DECK_COUNT_DEFINITIONS = [
   { ...LEARNING_STATUS_UI.new, valueKey: "newCards", metric: "new" },
   { ...LEARNING_STATUS_UI.inProgress, valueKey: "inProgressCards", metric: "in-progress" },
