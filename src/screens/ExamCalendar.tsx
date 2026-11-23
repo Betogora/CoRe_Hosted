@@ -1,9 +1,9 @@
 import React from "react";
-import { Plus, RotateCcw, Trash2, X } from "lucide-react";
+import { Plus, RotateCcw, Trash2 } from "lucide-react";
 import type { Deck, ExamPlan, StudyTimeCapacity } from "../coreTypes.ts";
 import { isValidExamCalendar } from "../examPlanSettings.ts";
 import { EXAM_NEW_CARDS_PER_MINUTE_LIMIT, getExamLastNewDate, getExamStudyMinutes, isExamDayOverloaded, getExamTopicOrder, type ExamPortfolioForecast } from "../examPlanning.ts";
-import { ActionButton, IconButton } from "../ui/actionUi.tsx";
+import { ActionButton, CloseButton, IconButton } from "../ui/actionUi.tsx";
 import { CoreDatePicker } from "../ui/CoreDatePicker.tsx";
 import { SoftPanel, CoreSegmentedControl } from "../ui/coreUi.tsx";
 import { StatusMessage } from "../ui/feedbackUi.tsx";
@@ -113,7 +113,7 @@ export function ExamCalendar({ exams, capacity, forecast, decks, today, busy, in
     </div>
     {detailsOpen ? <div className="grid min-w-0 gap-4">
     <SoftPanel className="grid min-w-0 gap-5 p-5 sm:p-6" data-testid="exam-day-editor">
-      <div className="flex justify-between gap-3"><div><h4 className="core-heading-3 text-core-text">{formatExamDate(date)}</h4><p className="mt-0.5 core-body text-core-secondary">{hasSelectedForecast ? formatExamCount(selectedWork.newCards, "neue Karte", "neue Karten") : "Karten: –"} · {formatExamMinutes(dayMinutes)} Lernzeit</p></div><IconButton label="Tagesdetails schließen" icon={X} onClick={() => setDetailsOpen(false)} /></div>
+      <div className="flex justify-between gap-3"><div><h4 className="core-heading-3 text-core-text">{formatExamDate(date)}</h4><p className="mt-0.5 core-body text-core-secondary">{hasSelectedForecast ? formatExamCount(selectedWork.newCards, "neue Karte", "neue Karten") : "Karten: –"} · {formatExamMinutes(dayMinutes)} Lernzeit</p></div><CloseButton label="Tagesdetails schließen" className="-mr-[calc(1.25rem+var(--core-border-width)-var(--core-dialog-corner-inset))] -mt-[calc(1.25rem+var(--core-border-width)-var(--core-dialog-corner-inset))] shrink-0 self-start sm:-mr-[calc(1.5rem+var(--core-border-width)-var(--core-dialog-corner-inset))] sm:-mt-[calc(1.5rem+var(--core-border-width)-var(--core-dialog-corner-inset))]" onClick={() => setDetailsOpen(false)} /></div>
       {isExamDayOverloaded(selectedWork.newCards, dayMinutes) ? <StatusMessage tone="warning">Mehr als {EXAM_NEW_CARDS_PER_MINUTE_LIMIT} neue Karten pro Minute Lernzeit</StatusMessage> : null}
       {shown.filter((exam) => exam.examDate === date).map((exam) => <StatusMessage key={exam.id} tone="info">Prüfungstag: {exam.name}</StatusMessage>)}
       <fieldset disabled={busy || locked} className="grid min-w-0 gap-5">

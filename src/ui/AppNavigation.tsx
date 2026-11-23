@@ -300,9 +300,9 @@ function NavigationUtilityButtons({ activeView, onNavigate, onPreloadView, setti
         <Popover.Portal>
           <Popover.Content
             align="end"
-            sideOffset={8}
+            sideOffset={6}
             collisionPadding={16}
-            className="core-overlay z-[60] grid w-56 gap-0.5 rounded-panel p-1.5"
+            className="core-overlay z-[60] grid w-max gap-0.5 rounded-panel p-1.5"
             data-navigation-menu="true"
             onCloseAutoFocus={(event) => { if (navigatedFromMenu.current) event.preventDefault(); navigatedFromMenu.current = false; }}
           >

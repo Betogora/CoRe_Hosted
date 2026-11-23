@@ -1086,7 +1086,7 @@ summary {
   .core-date-segment-literal { margin-inline: -1px; color: var(--core-text-muted); }
   .core-date-field-trigger { position: relative; display: grid; width: 1.5rem; height: 1.5rem; flex-shrink: 0; place-items: center; border-radius: var(--core-radius-round); color: var(--core-text-muted); transition: background-color 150ms ease, color 150ms ease; }
   .core-date-field-trigger:hover, .core-date-field-trigger[data-state="open"] { background: var(--core-surface-hover); color: var(--core-text); }
-  .core-date-calendar { --core-calendar-cell: 2.25rem; width: calc(7 * var(--core-calendar-cell) + 1.5rem); max-width: calc(100vw - 1.5rem); padding: var(--core-space-md); border-radius: var(--core-radius-overlay); transform-origin: var(--radix-popover-content-transform-origin); animation: core-date-calendar-enter 150ms ease; }
+  .core-date-calendar { --core-calendar-cell: 2.25rem; width: calc(7 * var(--core-calendar-cell) + 1.5rem); max-width: calc(100vw - 1.5rem); padding: var(--core-space-md); border-radius: var(--core-radius-panel); transform-origin: var(--radix-popover-content-transform-origin); animation: core-date-calendar-enter 150ms ease; }
   .core-date-calendar-header { display: flex; align-items: center; gap: var(--core-space-xs); padding: 0 0.125rem var(--core-space-lg); }
   .core-date-calendar-heading { display: inline-flex; flex: 1 1 auto; align-items: center; gap: var(--core-space-xs); min-width: 0; min-height: 1.5rem; border-radius: var(--core-radius-inset); color: var(--core-text); font: 500 var(--core-type-body)/var(--core-leading-body) var(--core-font-sans); text-transform: capitalize; }
   .core-date-calendar-heading[aria-expanded="true"] { color: var(--core-action-primary); }

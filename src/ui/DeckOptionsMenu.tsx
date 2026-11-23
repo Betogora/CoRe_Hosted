@@ -96,7 +96,7 @@ export const DeckOptionsMenu = React.memo(function DeckOptionsMenu({ row, decks,
               event.preventDefault();
             }}
             align="end"
-            sideOffset={8}
+            sideOffset={6}
             collisionPadding={16}
             className="core-overlay z-[60] grid w-72 gap-1 rounded-panel p-1.5"
           >
