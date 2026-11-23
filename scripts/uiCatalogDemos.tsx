@@ -9,7 +9,7 @@ import { CoreWordmark } from "../src/ui/CoreWordmark.tsx";
 import { BrainMascot } from "../src/ui/BrainMascot.tsx";
 import { DailyMotivationWidget } from "../src/screens/DailyMotivationWidget.tsx";
 import React, { useRef, useState } from "react";
-import { ArrowUpRight, Ban, BookOpen, ChevronRight, Copy, Eye, FileSpreadsheet, FileText, Grid2x2, Highlighter, Info, Layers, List, MoreHorizontal, Pencil, PenLine, Play, Plus, RefreshCw, Save, Settings, Sparkles, Star, Trash2, X, type LucideIcon } from "lucide-react";
+import { ArrowUpRight, Ban, BookOpen, ChevronRight, Copy, Eye, FileSpreadsheet, FileText, Grid2x2, Info, Layers, List, MoreHorizontal, Palette, Pencil, PenLine, Play, Plus, RefreshCw, Save, Settings, Sparkles, Star, Trash2, X, type LucideIcon } from "lucide-react";
 import { addCardVariant, addNoteField, applyCardStudyStatePatch, cardStudyFromReviewState, type OcclusionMode, createBasicNote, createCoreDeck, createManualNoteContent, createNote, createReviewState, noteBlocks, type ManualContentKind } from "../src/coreModel.ts";
 import type { CardStudyStatePatch, Deck, ExamPlanningSettings, CoreMode, NewReviewOrder, NoteContent, NoteField, OcclusionMask, SavedCardSearch, SyncStatus } from "../src/coreTypes.ts";
 import type { CardEditorServices, DecksCardPageRequest } from "../src/appScreenProps.ts";
@@ -36,7 +36,7 @@ import { CoreDatePicker } from "../src/ui/CoreDatePicker.tsx";
 import { CoreCheckbox, CoreRadio, CoreSlider, CoreSwitch } from "../src/ui/formControls.tsx";
 import { FlagDot, FlagPicker } from "../src/ui/flagUi.tsx";
 import { TagInput } from "../src/ui/TagInput.tsx";
-import { ColorPicker } from "../src/ui/ColorPicker.tsx";
+import { COLOR_PICKER_PRESETS, ColorPicker, ColorSwatchButton } from "../src/ui/ColorPicker.tsx";
 import { FileDropField } from "../src/ui/FileDropField.tsx";
 import { SettingsSaveBar } from "../src/ui/SettingsSaveBar.tsx";
 import { VariantGenerationBar } from "../src/ui/VariantGenerationBar.tsx";
@@ -475,7 +475,7 @@ function ContentDemo({ section }: { section: string }) {
     {section === "dialogs" && <Demo title="CardPreviewDialog"><ActionButton variant="secondary" onClick={() => setPreview(true)}>Kartenvorschau öffnen</ActionButton><CardPreviewDialog note={fixture.note} cards={fixture.cards} mediaUrls={fixture.mediaUrls} open={preview} onOpenChange={setPreview} /></Demo>}
     {section === "editor" && <Demo title="RichTextEditor" wide><RichTextEditor value={text} onChange={setText} ariaLabel="Beispiel-Karteninhalt" isActive showAllTools clozeActions={{ groupId: 1 }} imageActions={{ mediaUrls, prepare: prepareImage }} /></Demo>}
     {section === "editor" && <Demo title="RichTextEditor · Dokumentwerkzeuge" wide><RichTextEditor value={text} onChange={setText} ariaLabel="Beispiel-Dokument mit Dokumentwerkzeugen" isActive documentTools /></Demo>}
-    {section === "colors" && <Demo title="ColorPicker · Farbfeld und Werkzeug"><div className="catalog-row"><ColorPicker ariaLabel="Farbe wählen" value={color} onValueCommit={setColor} /><ColorPicker variant="tool" icon={Highlighter} ariaLabel="Markerfarbe" value={color} onValueCommit={setColor} /></div></Demo>}
+    {section === "colors" && <Demo title="ColorPicker und ColorSwatchButton · Picker, Farbfelder und Palette"><div className="catalog-row"><ColorPicker ariaLabel="Farbe wählen" value={color} onValueCommit={setColor} /><div role="group" aria-label="Stiftfarbe" className="flex flex-wrap items-center gap-1">{COLOR_PICKER_PRESETS.slice(0, 5).map((preset) => <ColorSwatchButton key={preset} color={preset} aria-label={`Stiftfarbe ${preset}`} aria-pressed={color === preset} onClick={() => setColor(preset)} />)}<ColorPicker variant="tool" icon={Palette} ariaLabel="Eigene Stiftfarbe" value={color} onValueCommit={setColor} /></div></div></Demo>}
     {section === "media" && <Demo title="PdfDocumentViewer" wide><PdfDemo /></Demo>}
   </>;
 }
@@ -859,7 +859,7 @@ export const DEMO_GROUPS = [
   { id: "progress", section: "primitive", title: "Fortschritt", description: "Tagesfortschritt, Zeitfortschritt sowie bestimmte und unbestimmte Prozessanzeigen.", components: ["DailyReviewProgress", "PomodoroProgress", "VariantGenerationBar"], render: () => <><FeedbackDemo section="progress" /><LearningDemo section="progress" /><ProductViewsDemo kind="import" /></> },
   { id: "dialogs", section: "primitive", title: "Dialoge", description: "Bestätigung, Dialograhmen, Speicherleiste, Kartenvorschau und Lerneinstellungen.", components: ["ActionDialog", "DialogFrame", "SettingsSaveBar", "CardPreviewDialog", "StudySettingsOverlay"], render: () => <><FeedbackDemo section="dialogs" /><StructureDemo section="dialogs" /><ContentDemo section="dialogs" /><LearningDemo section="dialogs" /></> },
   { id: "tags-flags", section: "primitive", title: "Tags und Flaggen", description: "Tag-Eingabe, Flaggenwähler und Flaggenpunkt.", components: ["TagInput", "FlagPicker", "FlagDot"], render: TagsAndFlagsDemo },
-  { id: "colors", section: "primitive", title: "Farbwahl", description: "Farbfeld oder Werkzeug, Farbkreis und Schnellwahl.", components: ["ColorPicker"], render: () => <ContentDemo section="colors" /> },
+  { id: "colors", section: "primitive", title: "Farbwahl", description: "Farbfeld oder Werkzeug, Farbkreis und Schnellwahl.", components: ["ColorPicker", "ColorSwatchButton"], render: () => <ContentDemo section="colors" /> },
   { id: "flaechen", section: "shared", title: "Flächen und leere Zustände", description: "Inhaltsflächen und leere Zustände.", components: ["SoftPanel", "EmptyState"], render: () => <FoundationsDemo section="surfaces" /> },
   { id: "struktur", section: "shared", title: "Abschnittskopf, Schritte und Reiter", description: "Kopf jeder Fläche, nummerierte Schritte und Unterstreichungs-Reiter, im Stapelkopf und im Karteneditor.", components: ["SectionHeader", "Steps", "CoreTabs", "CoreTabPanel"], wide: true, render: () => <StructureDemo section="struktur" /> },
   { id: "headings", section: "shared", title: "Seitenköpfe", description: "Seitentitel sowie Köpfe von Lernen und Kartenverwaltung.", components: ["PageHeader", "LearningAreaHeader"], render: () => <><FoundationsDemo section="headings" /><NavigationDemo section="headings" /></> },

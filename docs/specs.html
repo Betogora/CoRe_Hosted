@@ -2289,9 +2289,6 @@ video {
 .w-px {
   width: 1px;
 }
-.\!min-w-0 {
-  min-width: 0px !important;
-}
 .min-w-0 {
   min-width: 0px;
 }
@@ -2990,9 +2987,6 @@ video {
 .p-0 {
   padding: 0px;
 }
-.p-0\.5 {
-  padding: 0.125rem;
-}
 .p-1 {
   padding: 0.25rem;
 }
@@ -3393,11 +3387,6 @@ video {
 }
 .outline {
   outline-style: solid;
-}
-.ring {
-  --tw-ring-offset-shadow: var(--tw-ring-inset) 0 0 0 var(--tw-ring-offset-width) var(--tw-ring-offset-color);
-  --tw-ring-shadow: var(--tw-ring-inset) 0 0 0 calc(3px + var(--tw-ring-offset-width)) var(--tw-ring-color);
-  box-shadow: var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow, 0 0 #0000);
 }
 .ring-2 {
   --tw-ring-offset-shadow: var(--tw-ring-inset) 0 0 0 var(--tw-ring-offset-width) var(--tw-ring-offset-color);
@@ -4425,46 +4414,53 @@ svg.lucide {
 }
 
 .core-steps {
-  container-type: inline-size;
   min-width: 0;
 }
 
 .core-steps > ol {
-  display: flex;
-  align-items: center;
-  gap: var(--core-space-sm);
+  display: grid;
+  grid-auto-columns: minmax(0, 1fr);
+  grid-auto-flow: column;
   min-width: 0;
   margin: 0;
-  padding: 0.25rem 0;
+  padding: 0;
   list-style: none;
 }
 
 .core-steps li {
+  position: relative;
   display: flex;
-  align-items: center;
-  gap: var(--core-space-sm);
+  justify-content: center;
+  min-width: 0;
   color: var(--core-text-muted);
 }
 
-.core-steps li + li {
-  flex: 1 1 0;
-}
-
+/* Spans from the previous marker's centre to this one's; 1rem is the step padding plus half a marker. */
 .core-steps-line {
-  flex: 1 1 0.75rem;
-  min-width: 0.5rem;
+  position: absolute;
+  top: calc(1rem - var(--core-border-width) / 2);
+  right: calc(50% + 0.75rem + var(--core-space-sm));
+  left: calc(-50% + 0.75rem + var(--core-space-sm));
   height: var(--core-border-width);
   background: var(--core-border-interactive);
 }
 
 .core-steps-step {
-  display: inline-flex;
+  display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: var(--core-space-sm);
+  gap: 0.375rem;
   min-width: 0;
+  max-width: 100%;
+  padding: 0.25rem var(--core-space-xs);
   color: inherit;
   font: var(--core-weight-control) 0.8125rem/1.25rem var(--core-font-sans);
-  white-space: nowrap;
+  text-align: center;
+  overflow-wrap: break-word;
+}
+
+.core-steps-label {
+  max-width: 100%;
 }
 
 button.core-steps-step:not(:disabled):hover .core-steps-label {
@@ -4474,6 +4470,10 @@ button.core-steps-step:not(:disabled):hover .core-steps-label {
 
 button.core-steps-step:not(:disabled):hover .core-steps-marker {
   border-color: var(--core-action-primary);
+}
+
+button.core-steps-step {
+  border-radius: var(--core-radius-inset);
 }
 
 button.core-steps-step:disabled {
@@ -4499,26 +4499,6 @@ button.core-steps-step:disabled {
 .core-steps li[data-state="current"] { color: var(--core-action-primary); }
 .core-steps li[data-state="current"] .core-steps-step { font-weight: var(--core-weight-heading); }
 .core-steps li[data-state="current"] .core-steps-marker { border-color: var(--core-action-primary); background: var(--core-action-primary); color: var(--core-text-on-accent); box-shadow: 0 0 0 3px var(--core-focus-ring-soft); }
-
-@container (max-width: 32.49rem) {
-  .core-steps li:not([aria-current]) .core-steps-label {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    overflow: hidden;
-    clip: rect(0, 0, 0, 0);
-    white-space: nowrap;
-  }
-
-  .core-steps > ol,
-  .core-steps li {
-    gap: var(--core-space-xs);
-  }
-
-  .core-steps li[aria-current] .core-steps-step {
-    white-space: normal;
-  }
-}
 
 .core-tabs {
   position: relative;
@@ -5040,6 +5020,55 @@ body:has([aria-modal="true"]) .core-success-toast {
   background: color-mix(in srgb, var(--core-surface-muted) 50%, var(--core-surface));
 }
 
+.core-color-swatch {
+  display: grid;
+  width: var(--core-button-height);
+  height: var(--core-button-height);
+  flex-shrink: 0;
+  place-items: center;
+  border-radius: var(--core-radius-control);
+  transition: background-color 140ms ease;
+}
+
+.core-color-swatch:not(:disabled):hover {
+  background: var(--core-surface-hover);
+}
+
+.core-color-swatch:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.core-color-swatch-dot {
+  display: grid;
+  width: 1.25rem;
+  height: 1.25rem;
+  flex-shrink: 0;
+  place-items: center;
+  border-radius: var(--core-radius-round);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--core-text) 30%, transparent);
+}
+
+:is([aria-pressed="true"], [aria-checked="true"]) > .core-color-swatch-dot {
+  box-shadow: 0 0 0 2px var(--core-surface-raised), 0 0 0 4px color-mix(in srgb, var(--core-text) 70%, transparent);
+}
+
+.core-color-swatch-picker > .core-color-swatch-dot {
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--core-text) 30%, transparent), 0 0 0 2px var(--core-surface), 0 0 0 3px var(--core-border);
+}
+
+.core-color-swatch-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  justify-items: center;
+}
+
+/* Seven columns fit the picker only below the shared minimum button width. */
+.core-color-swatch-grid > .core-color-swatch {
+  width: 100%;
+  min-width: 0;
+}
+
 .core-rich-text-tool {
   display: grid;
   width: var(--core-button-height);
@@ -5287,13 +5316,6 @@ button[aria-label] {
 
 /* The forward arrow follows its label. In the components layer so `xl:hidden` wins. */
 
-/* Kept after .core-auth-panel button for the cascade. */
-button.core-steps-step {
-  min-height: var(--core-button-height);
-  border-radius: var(--core-radius-inset);
-  padding-inline: var(--core-space-xs);
-  margin-inline: calc(-1 * var(--core-space-xs));
-}
 
 .core-card-editor-frame {
   --core-card-editor-surface: var(--core-surface-raised);
@@ -6209,9 +6231,6 @@ button.core-steps-step {
 .core-mindmap-image-upload:has(input:disabled) { opacity: .5; cursor: default; }
 .core-mindmap-image-upload input { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: inherit; }
 .core-mindmap-color-picker { min-width: 0; }
-.core-mindmap-swatch { display: grid; place-items: center; width: 44px; height: 44px; border: var(--core-border-width) solid var(--core-border); background: var(--core-surface); }
-.core-mindmap-swatch span { width: 24px; height: 24px; border-radius: var(--core-radius-round); background: var(--mindmap-ink); }
-.core-mindmap-swatch[aria-pressed="true"] { border-color: var(--core-action-primary); box-shadow: var(--core-shadow-selection); }
 @container core-mindmap (max-width: 30rem) {
   .core-mindmap-heading > label { flex-basis: 100%; }
   .core-mindmap-heading > .core-action-primary { width: 100%; }
@@ -6232,10 +6251,7 @@ button.core-steps-step {
 .core-summary-text-tools { display: contents; }
 .core-summary-text-tools[hidden] { display: none; }
 .core-summary-text-tools [role="toolbar"] { position: static; border: 0; padding: 0; background: transparent; }
-.core-summary-swatch, .core-summary-ink-dot { display: grid; place-items: center; width: var(--core-button-height); height: var(--core-button-height); flex-shrink: 0; border-radius: var(--core-radius-control); transition: background-color 140ms ease; }
-.core-summary-swatch:hover { background: var(--core-surface-hover); }
-.core-summary-swatch span { width: 1.25rem; height: 1.25rem; border-radius: var(--core-radius-round); background: var(--summary-ink); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--core-text) 30%, transparent); }
-.core-summary-swatch[aria-pressed="true"] span { box-shadow: 0 0 0 2px var(--core-surface-raised), 0 0 0 4px color-mix(in srgb, var(--core-text) 70%, transparent); }
+.core-summary-ink-dot { display: grid; place-items: center; width: var(--core-button-height); height: var(--core-button-height); flex-shrink: 0; }
 .core-summary-ink-dot span { border-radius: var(--core-radius-round); }
 .core-summary-stepper { display: flex; align-items: center; }
 .core-summary-stepper input { width: 3rem; height: var(--core-button-height); padding: 0; border: var(--core-border-width) solid var(--core-border); border-radius: var(--core-radius-control); background: var(--core-surface); color: var(--core-text); text-align: center; font: inherit; font-variant-numeric: tabular-nums; -moz-appearance: textfield; -webkit-appearance: textfield; appearance: textfield; }
@@ -6699,11 +6715,6 @@ button.core-steps-step {
   --tw-scale-y: 1.05;
   transform: translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y));
 }
-.hover\:scale-110:hover {
-  --tw-scale-x: 1.1;
-  --tw-scale-y: 1.1;
-  transform: translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y));
-}
 .hover\:border-core-action:hover {
   border-color: var(--core-action-primary);
 }
@@ -6781,9 +6792,6 @@ button.core-steps-step {
 }
 .enabled\:cursor-ns-resize:enabled {
   cursor: ns-resize;
-}
-.disabled\:pointer-events-none:disabled {
-  pointer-events: none;
 }
 .disabled\:cursor-default:disabled {
   cursor: default;
@@ -7051,18 +7059,6 @@ button.core-steps-step {
 }
 @media (min-width: 640px) {
 
-  .sm\:sr-only {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    padding: 0;
-    margin: -1px;
-    overflow: hidden;
-    clip: rect(0, 0, 0, 0);
-    white-space: nowrap;
-    border-width: 0;
-  }
-
   .sm\:static {
     position: static;
   }
@@ -7092,10 +7088,6 @@ button.core-steps-step {
     margin-right: 1.5rem;
   }
 
-  .sm\:-ml-3 {
-    margin-left: -0.75rem;
-  }
-
   .sm\:mr-0 {
     margin-right: 0px;
   }
@@ -7123,11 +7115,6 @@ button.core-steps-step {
     display: none;
   }
 
-  .sm\:size-control {
-    width: var(--core-control-height);
-    height: var(--core-control-height);
-  }
-
   .sm\:h-\[21rem\] {
     height: 21rem;
   }
@@ -7144,8 +7131,8 @@ button.core-steps-step {
     max-height: 92dvh;
   }
 
-  .sm\:min-h-0 {
-    min-height: 0px;
+  .sm\:w-14 {
+    width: 3.5rem;
   }
 
   .sm\:w-24 {
@@ -7397,10 +7384,6 @@ button.core-steps-step {
 
   .sm\:pr-4 {
     padding-right: 1rem;
-  }
-
-  .sm\:pt-0 {
-    padding-top: 0px;
   }
 }
 @media (min-width: 768px) {
@@ -9054,7 +9037,7 @@ html:has(.catalog-preview) { scroll-behavior: auto; }
 <p>Probe: Ein Satz gehört hinein, wenn er nach einer vollständigen Neugestaltung der Oberfläche unverändert gälte und eine Abweichung davon ein fachlicher Fehler wäre.</p>
 <p>Form: Stichpunkte, ein Gedanke je Punkt. Eine neue Regel ersetzt die alte, statt sie zu ergänzen. Wo Funktionen logisch voneinander abhängen, steht ein Schaubild als <code>schaubild</code>-Block direkt beim Text und wird mit ihm geändert (Schreibweise in <a href="index.html#readme--pflege"><code>README.md</code></a>). In Schaubildern sind KI-Schritte blau, Ergebnisse grün markiert.</p>
 <h2 id="specs--codeumfang-der-produktbereiche" class="core-heading-2" tabindex="-1">Codeumfang der Produktbereiche <a class="docs-anchor" href="#specs--codeumfang-der-produktbereiche" aria-label="Link zu Codeumfang der Produktbereiche">#</a></h2>
-<p>CoRe ist eine App mit mehreren Bereichen. Die Tabelle zeigt deren Anteil am Bildschirmcode; gemeinsam genutzte Logik, UI und API stehen separat.</p><div class="docs-code-stats"><dl class="flex min-w-0 flex-col"><dt class="core-status-label text-core-muted">Bildschirmcode</dt><dd class="core-metric mt-0.5 text-core-text">7.444</dd></dl><dl class="flex min-w-0 flex-col"><dt class="core-status-label text-core-muted">Gemeinsamer Code &amp; API</dt><dd class="core-metric mt-0.5 text-core-text">49.115</dd></dl><dl class="flex min-w-0 flex-col"><dt class="core-status-label text-core-muted">Quelldateien</dt><dd class="core-metric mt-0.5 text-core-text">310</dd></dl></div><div class="docs-code-chart"><div class="docs-table-scroll" tabindex="0" role="region" aria-label="Codeumfang je Produktbereich"><table><thead><tr><th>Bereich</th><th>Zeilen</th><th>Anteil</th></tr></thead><tbody><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-status-learned)" aria-hidden="true"></span>Heute</th><td>328</td><td>4,4 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-status-new)" aria-hidden="true"></span>Lernen & Karten</th><td>2.237</td><td>30,1 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-status-in-progress)" aria-hidden="true"></span>Erstellen & Import</th><td>2.109</td><td>28,3 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-action-primary)" aria-hidden="true"></span>Prüfungen</th><td>433</td><td>5,8 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-status-due)" aria-hidden="true"></span>Statistik</th><td>629</td><td>8,4 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-progress-completed)" aria-hidden="true"></span>Konto & Sync</th><td>796</td><td>10,7 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-text-secondary)" aria-hidden="true"></span>Hilfe</th><td>912</td><td>12,3 %</td></tr></tbody></table></div></div><p class="docs-source">Beim Erzeugen gemessen: nichtleere Zeilen in <code>src/</code> und <code>api/</code> (TS/TSX) sowie <code>src/styles.css</code>. Ohne Tests, Typdeklarationen, generierte Datenbanktypen, Dokumentation und Fremdcode. Bereichszuordnung nach Bildschirmdateien in <a href="../src/screens/README.md">der Screen-Landkarte</a>; übriger Code zählt gemeinsam. Enthält Kommentare und misst weder Laufzeit noch Komplexität.</p></article></main></div><script>function initializeDocsViewer() {
+<p>CoRe ist eine App mit mehreren Bereichen. Die Tabelle zeigt deren Anteil am Bildschirmcode; gemeinsam genutzte Logik, UI und API stehen separat.</p><div class="docs-code-stats"><dl class="flex min-w-0 flex-col"><dt class="core-status-label text-core-muted">Bildschirmcode</dt><dd class="core-metric mt-0.5 text-core-text">7.442</dd></dl><dl class="flex min-w-0 flex-col"><dt class="core-status-label text-core-muted">Gemeinsamer Code &amp; API</dt><dd class="core-metric mt-0.5 text-core-text">49.135</dd></dl><dl class="flex min-w-0 flex-col"><dt class="core-status-label text-core-muted">Quelldateien</dt><dd class="core-metric mt-0.5 text-core-text">310</dd></dl></div><div class="docs-code-chart"><div class="docs-table-scroll" tabindex="0" role="region" aria-label="Codeumfang je Produktbereich"><table><thead><tr><th>Bereich</th><th>Zeilen</th><th>Anteil</th></tr></thead><tbody><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-status-learned)" aria-hidden="true"></span>Heute</th><td>328</td><td>4,4 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-status-new)" aria-hidden="true"></span>Lernen & Karten</th><td>2.237</td><td>30,1 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-status-in-progress)" aria-hidden="true"></span>Erstellen & Import</th><td>2.109</td><td>28,3 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-action-primary)" aria-hidden="true"></span>Prüfungen</th><td>433</td><td>5,8 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-status-due)" aria-hidden="true"></span>Statistik</th><td>627</td><td>8,4 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-progress-completed)" aria-hidden="true"></span>Konto & Sync</th><td>796</td><td>10,7 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-text-secondary)" aria-hidden="true"></span>Hilfe</th><td>912</td><td>12,3 %</td></tr></tbody></table></div></div><p class="docs-source">Beim Erzeugen gemessen: nichtleere Zeilen in <code>src/</code> und <code>api/</code> (TS/TSX) sowie <code>src/styles.css</code>. Ohne Tests, Typdeklarationen, generierte Datenbanktypen, Dokumentation und Fremdcode. Bereichszuordnung nach Bildschirmdateien in <a href="../src/screens/README.md">der Screen-Landkarte</a>; übriger Code zählt gemeinsam. Enthält Kommentare und misst weder Laufzeit noch Komplexität.</p></article></main></div><script>function initializeDocsViewer() {
     const theme = document.getElementById("docs-theme");
     theme.addEventListener("click", () => {
         const dark = document.documentElement.dataset.coreTheme !== "dark";

@@ -16,7 +16,8 @@ test("color picker renders an accessible swatch trigger without a native color i
 
   assert.match(markup, /aria-label="Iconfarbe auswählen"/);
   assert.match(markup, /aria-haspopup="dialog"/);
-  assert.match(markup, /background-color:#4f5eb1/);
+  assert.match(markup, /class="core-color-swatch core-color-swatch-picker"/);
+  assert.match(markup, /class="core-color-swatch-dot" style="background-color:#4f5eb1"/);
   assert.doesNotMatch(markup, /<input|type="color"/);
 });
 
