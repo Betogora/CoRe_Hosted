@@ -1,5 +1,5 @@
 import type { Card, Note, NoteContent } from "../coreTypes.ts";
-import { fieldSearchKey, planNoteContentChange } from "./notes.ts";
+import { fieldSearchKey, planNoteContentChange, planNoteGraphContentChange } from "./notes.ts";
 import { normalizeTags } from "./tags.ts";
 
 /** Literal find and replace; no regular expressions. */
@@ -99,17 +99,17 @@ export function planTextReplace(graphs: readonly Graph[], cardIds: ReadonlySet<s
     if (!replaced.snippet) continue;
     const plan = (() => {
       try {
-        return planNoteContentChange(graph, replaced.content, updatedAt);
+        return planNoteGraphContentChange(graph, replaced.content, "skip", updatedAt);
       } catch {
         return null;
       }
     })();
-    if (!plan || plan.newCards.length || plan.removedCards.length) {
+    if (!plan || plan.status === "kept") {
       skippedCardIds.push(...selected);
       continue;
     }
-    if (!plan.changed) continue;
-    changes.push({ previous: graph, next: { note: plan.note, cards: plan.keptCards } });
+    if (plan.status === "unchanged") continue;
+    changes.push({ previous: graph, next: plan.next });
     changedCardIds.push(...selected);
     previews.push({ noteId: graph.note.id, ...replaced.snippet });
   }

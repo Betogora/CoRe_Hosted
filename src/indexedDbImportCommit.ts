@@ -1,4 +1,4 @@
-import { mergeImportedTags, normalizeCoreDeck, outdateVariantsOfChangedSource } from "./coreModel.ts";
+import { normalizeCoreDeck, outdateVariantsOfChangedSource, planImportedNoteUpdate } from "./coreModel.ts";
 import type { Card, Deck, DeckSettings, ImportVerificationScope, Note, ReviewEvent } from "./coreTypes.ts";
 import type { OutboxMutationInput, StagedMutations } from "./indexedDbOutbox.ts";
 import type { ImportCommitGraph, ImportMediaFile, NoteTypeSource } from "./apkgImport.ts";
@@ -195,42 +195,15 @@ export async function commitImportGraph(
           continue;
         }
         persistedNoteIds.set(incoming.id, existing.id);
-        // As in Anki, an older note in the package changes nothing: not the content, its tags, cards or raw fields.
-        if (existing.importedAnkiModifiedAt && incoming.importedAnkiModifiedAt
-          && Date.parse(incoming.importedAnkiModifiedAt) < Date.parse(existing.importedAnkiModifiedAt)) {
+        const update = planImportedNoteUpdate(existing, incoming, noteTypeSourceId, now);
+        if (update.status === "older") {
           olderInPackage += 1;
           olderNoteIds.add(incoming.id);
           continue;
         }
-        // Tags are no content: they merge three-way against the tags of the last import, even after local edits.
-        const locallyEdited = existing.importedContentRevision === null || existing.contentRevision > existing.importedContentRevision;
+        const { note, locallyEdited } = update;
         if (locallyEdited) keptLocalEdits += 1;
-        const importedTags = incoming.importedTags ?? incoming.content.tags;
-        const tags = mergeImportedTags(existing.content.tags, existing.importedTags, importedTags);
-        // A changed note type in Anki replaces the content as well, translated with the new type.
-        const contentChanged = !locallyEdited
-          && (existing.noteTypeSourceId !== noteTypeSourceId || JSON.stringify({ ...existing.content, tags: [] }) !== JSON.stringify({ ...incoming.content, tags: [] }));
-        const importedAnkiModifiedAt = incoming.importedAnkiModifiedAt ?? existing.importedAnkiModifiedAt;
-        const tagsChanged = JSON.stringify(tags) !== JSON.stringify(existing.content.tags)
-          || JSON.stringify(importedTags) !== JSON.stringify(existing.importedTags)
-          || importedAnkiModifiedAt !== existing.importedAnkiModifiedAt;
-        const note: Note = contentChanged
-          ? {
-            ...existing,
-            content: { ...incoming.content, tags },
-            media: incoming.media,
-            translator: incoming.translator,
-            noteTypeSourceId,
-            contentRevision: existing.contentRevision + 1,
-            importedContentRevision: existing.contentRevision + 1,
-            importedTags,
-            importedAnkiModifiedAt,
-            revision: existing.revision + 1,
-            updatedAt: now,
-          }
-          : tagsChanged
-            ? { ...existing, content: { ...existing.content, tags }, importedTags, importedAnkiModifiedAt, revision: existing.revision + 1, updatedAt: now }
-            : existing;
+        const contentChanged = note.contentRevision > existing.contentRevision;
         const localCards = (await Promise.all((await requestResult<IDBValidKey[]>(read.objectStore(STORE.cards).index("noteId").getAllKeys(existing.id)))
           .map((id) => requestResult<StoredCard | undefined>(read.objectStore(STORE.cards).get(id)))))
           .filter((card): card is StoredCard => Boolean(card && !card.deletedAt));

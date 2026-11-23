@@ -4,7 +4,7 @@ import type { SettingsSection } from "./appNavigation.ts";
 import type { CardEditorServices, CreationScreenProps, DecksCardPage, DecksCardPageRequest } from "./appScreenProps.ts";
 import type { CardBatchAction, CardBatchDependencies, CardBatchResult } from "./cardBatchActions.ts";
 import type { CardVariantBatchMode } from "./cardVariantBatch.ts";
-import { addCardVariant, applyCardStudyStatePatch, createNote, duplicateNote, planNoteContentChange, planNoteDeletion, recordVariantOutcome, removeUnusedNoteMedia, replaceOutdatedVariants } from "./coreModel.ts";
+import { addCardVariant, applyCardStudyStatePatch, createNote, duplicateNote, planNoteGraphContentChange, recordVariantOutcome, removeUnusedNoteMedia, replaceOutdatedVariants } from "./coreModel.ts";
 import type { Card, CardStudyStatePatch, NoteContent } from "./coreTypes.ts";
 import { cardVariantSource, deactivateVariant, deleteVariant, editVariantText, isEditedVariant, reactivateVariant } from "./coreVariantService.ts";
 import { createWorkspaceDeck } from "./coreWorkspace.ts";
@@ -180,18 +180,10 @@ export function createCardCommands({ store, repository, hydration, cloud, syncEn
     return graph;
   }
 
-  /** The write that changes a content; null when nothing changes. */
-  function noteContentChange(graph: NoteGraph, content: NoteContent) {
-    const plan = planNoteContentChange(graph, content);
-    if (!plan.changed && !plan.newCards.length && !plan.removedCards.length) return null;
-    const removed = planNoteDeletion(plan.note, plan.removedCards, new Date().toISOString()).cards;
-    return { previous: graph, next: { note: plan.note, cards: [...plan.keptCards, ...plan.newCards, ...removed] }, cardsChanged: plan.newCards.length > 0 || plan.removedCards.length > 0 };
-  }
-
   async function saveDeckNote(graph: NoteGraph, content: NoteContent) {
-    const change = noteContentChange(graph, content);
-    if (!change) return graph;
-    await repository.saveNoteGraphs([change]);
+    const change = planNoteGraphContentChange(graph, content, "delete");
+    if (change.status !== "changed") return graph;
+    await repository.saveNoteGraphs([{ previous: graph, next: change.next }]);
     return reloadNoteGraph(graph.note.id, change.cardsChanged);
   }
 
@@ -348,9 +340,10 @@ export function createCardCommands({ store, repository, hydration, cloud, syncEn
     if (!deck) return null;
     const changes = [
       ...creates.map((content) => ({ previous: null, next: createNote({ content, deckId: deck.id }) })),
+      // An imported row nobody confirms card by card never takes a studied card with it.
       ...updates.flatMap((update, index) => {
-        const change = noteContentChange(graphs[index]!, update.content);
-        return change ? [{ previous: change.previous, next: change.next }] : [];
+        const change = planNoteGraphContentChange(graphs[index]!, update.content, "keepStudied");
+        return change.status === "changed" ? [{ previous: graphs[index]!, next: change.next }] : [];
       }),
     ];
     try {

@@ -31,17 +31,21 @@ export {
 } from "./coreModel/cards.ts";
 export {
   applyCardStudyStatePatch,
+  cardHasStudy,
   createBasicNote,
   createNote,
   duplicateNote,
   fieldSearchKey,
   noteTextIndex,
   outdateVariantsOfChangedSource,
+  planImportedNoteUpdate,
   planNoteContentChange,
   planNoteDeletion,
+  planNoteGraphContentChange,
   planNoteRestore,
   removeUnusedNoteMedia,
   /** @internal */ setNoteMarked,
+  type RemovedCardPolicy,
 } from "./coreModel/notes.ts";
 export {
   noteContentMediaRefs,
