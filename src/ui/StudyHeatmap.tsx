@@ -7,7 +7,8 @@ import {
   type StudyHeatmapPeriod,
   type StudyHeatmapWindow,
 } from "../studyHeatmapModel.ts";
-import { CoreSegmentedControl, SoftPanel } from "./coreUi.tsx";
+import { SoftPanel } from "./coreUi.tsx";
+import { CoreSelect } from "./selectUi.tsx";
 import { colorContrast, normalizeColor } from "../colorMath.ts";
 import { shiftDayKey } from "../learningDay.ts";
 import { CoreTooltip } from "./tooltipUi.tsx";
@@ -222,11 +223,11 @@ function YearHeatmap({
   formatDayLabel: (day: StudyHeatmapDay) => string;
   scrollerRef: React.RefObject<HTMLDivElement | null>;
 }) {
-  const gridColumns = `2.25rem repeat(${window.weeks.length}, 19px)`;
+  const gridColumns = `2.25rem repeat(${window.weeks.length}, var(--core-heatmap-year-cell))`;
   return (
     <div
       ref={scrollerRef}
-      className="min-w-0 overflow-x-auto rounded-control pb-2 [scrollbar-gutter:stable]"
+      className="relative min-w-0 overflow-x-auto rounded-control pb-2 [scrollbar-gutter:stable]"
       tabIndex={0}
       role="group"
       aria-label={`Horizontal scrollbare Lern-Heatmap für das Jahr ${window.rangeStartKey.slice(0, 4)}`}
@@ -259,7 +260,7 @@ function YearHeatmap({
                   key={day.key}
                   day={day}
                   label={heatmapDayLabel(day, formatDayLabel)}
-                  className="size-[19px] rounded-marker"
+                  className="core-heatmap-year-cell rounded-marker"
                 />
               );
             })}
@@ -313,6 +314,7 @@ export function StudyHeatmap({
     [anchorKey, heatmap, period],
   );
   const navigationLabels = PERIOD_NAVIGATION_LABELS[period];
+  const rangeLabel = formatRangeLabel(visibleHeatmap);
 
   React.useEffect(() => setAnchorKey(null), [heatmap.todayKey]);
   React.useLayoutEffect(() => {
@@ -347,8 +349,8 @@ export function StudyHeatmap({
         </dl>
       </div>
       <div className="core-study-heatmap-body p-5 sm:p-6">
-        <div className="core-study-heatmap-controls flex w-full flex-wrap items-center justify-between gap-x-4 gap-y-3" data-testid="study-heatmap-controls">
-          <div className="core-study-heatmap-nav flex items-center gap-1">
+        <div className="core-study-heatmap-controls flex w-full items-center justify-between gap-3" data-testid="study-heatmap-controls">
+          <div className="core-study-heatmap-nav flex min-w-0 max-w-[16rem] flex-1 items-center">
             <CoreTooltip label={navigationLabels.previous}>
               <button
                 type="button"
@@ -360,7 +362,7 @@ export function StudyHeatmap({
                 <ChevronLeft size={16} aria-hidden="true" />
               </button>
             </CoreTooltip>
-            <p className="min-w-[7.5rem] text-center core-body font-semibold text-core-text" data-testid="study-heatmap-range-label">{formatRangeLabel(visibleHeatmap)}</p>
+            <p className="min-w-0 flex-1 truncate text-center core-body font-semibold text-core-text" data-testid="study-heatmap-range-label">{period === "year" ? rangeLabel : <>{rangeLabel.slice(0, -4)}<span className="core-heatmap-range-year">{rangeLabel.slice(-4)}</span></>}</p>
             <CoreTooltip label={navigationLabels.next}>
               <button
                 type="button"
@@ -373,7 +375,7 @@ export function StudyHeatmap({
               </button>
             </CoreTooltip>
           </div>
-          <CoreSegmentedControl ariaLabel="Heatmap-Zeitraum" options={PERIOD_OPTIONS} value={period} onValueChange={selectPeriod} className="core-heatmap-period-select" />
+          <CoreSelect ariaLabel="Heatmap-Zeitraum" options={PERIOD_OPTIONS} value={period} onValueChange={(value) => selectPeriod(value as StudyHeatmapPeriod)} className="core-heatmap-period-select" />
         </div>
         <div className="core-study-heatmap-view mt-5 min-w-0">
           {period === "week" ? <WeekHeatmap window={visibleHeatmap} formatDayLabel={formatDayLabel} /> : null}
