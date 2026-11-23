@@ -1,4 +1,3 @@
-import type { ExamPlanningData } from "./appScreenProps.ts";
 import type { Card, Deck, Note } from "./coreTypes.ts";
 import type { WorkspaceState } from "./coreWorkspace.ts";
 import { getGlobalSchedulerPreferences } from "./deckSettings.ts";
@@ -11,6 +10,11 @@ import { buriesSiblings } from "./siblingBurying.ts";
 import type { createSupabaseBrowserClient } from "./supabaseClient.ts";
 import type { StudyWindowCursor, WorkspaceHydrationService } from "./workspaceHydrationService.ts";
 import type { WorkspaceStore } from "./workspaceStore.ts";
+import type { CardStudySnapshot } from "./cloudRepositoryValidation.ts";
+
+export interface ExamPlanningData {
+  cards: CardStudySnapshot[];
+}
 
 export interface StudyPreparation {
   decks: Deck[];

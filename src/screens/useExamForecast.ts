@@ -1,8 +1,9 @@
 import React from "react";
-import type { ExamPlanningData, ExamPlanningScreenProps } from "../appScreenProps.ts";
 import type { Deck, ExamPlan, GlobalSchedulerPreferences, StudyTimeCapacity } from "../coreTypes.ts";
 import { createExamPortfolioForecast, getActiveExamDeckIds, getExamDeckIds, type ExamPortfolioForecast } from "../examPlanning.ts";
 import { getLearningDayKey } from "../learningDay.ts";
+import type { ExamPlanningData } from "../studyPreparation.ts";
+import type { ExamPlanningScreenProps } from "./ExamPlanningScreen.tsx";
 
 interface ExamForecastInput {
   decks: Deck[];

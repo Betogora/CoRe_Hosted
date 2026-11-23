@@ -1,33 +1,28 @@
 import type { CardSearchContext } from "./cardSearchQuery.ts";
 import type { CardBatchAction, CardBatchResult, TextReplaceSession } from "./cardBatchActions.ts";
 import type { HitStudyOrder } from "./hitStudySession.ts";
-import type { Dispatch, ReactNode, SetStateAction } from "react";
-import type { AppRoute, AppViewId, CardEditorTab, CreationCompletionKind, DeckContentTab, DeckSettingsSection, GeneralSettingsSection, LearningSettingsSection, SettingsSection, createViewRoute } from "./appNavigation.ts";
+import type { Dispatch, SetStateAction } from "react";
+import type { AppRoute, AppViewId, CardEditorTab, CreationCompletionKind, DeckContentTab, createViewRoute } from "./appNavigation.ts";
 import type { ApkgImportSession } from "./apkgImportSession.ts";
 import type { AiCardVariantSuccess } from "./aiCardVariantContract.ts";
-import type { AskCardHelp } from "./screens/StudyAiHelp.tsx";
-import type { DeckMutationResult, WorkspaceState } from "./coreWorkspace.ts";
-import type { CardStudySnapshot, SimilarNote } from "./cloudRepositoryValidation.ts";
-import type { Card, CardStudyStatePatch, CoreMode, Deck, ExamDailyTask, ExamPlanningSettings, GlobalSchedulerPreferences, LearningProfileTemplate, Note, NoteContent, Profile, ReviewEvent, SavedCardSearch } from "./coreTypes.ts";
+import type { DeckMutationResult } from "./coreWorkspace.ts";
+import type { SimilarNote } from "./cloudRepositoryValidation.ts";
+import type { Card, CardStudyStatePatch, CoreMode, Deck, Note, NoteContent, ReviewEvent, SavedCardSearch } from "./coreTypes.ts";
 import type { TagDirectoryEntry } from "./tagDirectory.ts";
 import type { CardTableSort } from "./libraryModel.ts";
 import type { AccountMediaStore } from "./mediaStore.ts";
 import type { ImportCommands } from "./importCommands.ts";
 import type { ManualNoteSaveInput } from "./screens/ManualCreationPanel.tsx";
 import type { ExistingTextImportNote, TextImportSaveInput } from "./textImport.ts";
-import type { PomodoroTimer } from "./pomodoroTimer.ts";
-import type { AnsweredTodayCard, DailyReviewProgressSummary, ReviewAnswerResult } from "./reviewService.ts";
 import type { CreationMethod } from "./useAppNavigation.ts";
-import type { DeckExpansionSurface } from "./uiPreferences.ts";
-import type { DeckLearningSettingsDraft, DeckSettingsDraft, GeneralSettingsDraft, GlobalCardSettingsDraft } from "./settingsDraft.ts";
-import type { CardCatalogEntry, NoteGraph, OfflineDeckRecord } from "./workspaceReplica.ts";
+import type { CardCatalogEntry, NoteGraph } from "./workspaceReplica.ts";
 
-type NavigateToView = (
+export type NavigateToView = (
   viewId: AppViewId | undefined,
   fields?: Parameters<typeof createViewRoute>[1],
   options?: { replace?: boolean },
 ) => AppRoute;
-type CreateDeckInput = { name?: string; parentDeckId?: string | null; description?: string; deckSettings?: Partial<Deck["deckSettings"]> };
+export type CreateDeckInput = { name?: string; parentDeckId?: string | null; description?: string; deckSettings?: Partial<Deck["deckSettings"]> };
 
 export interface CardDraftGuard { focus: () => void; save: () => Promise<boolean> }
 
@@ -69,75 +64,12 @@ export interface CreationScreenProps {
   onOpenDashboard: () => void;
 }
 
-interface DeckTreeScreenProps {
+export interface DeckTreeScreenProps {
   onStartDeck: (deck: Deck) => void;
   /** Absent while the card catalog is unavailable. */
   onPracticeDeck?: (deck: Deck, returnFocus: HTMLElement | null) => void;
   onSetDeckCoreMode: (deckId: string, coreMode: CoreMode) => unknown;
   onOpenDeckSettings: (deckId: string) => unknown;
-}
-
-export interface DashboardScreenProps extends DeckTreeScreenProps {
-  onPausePomodoro?: () => void;
-  onResumePomodoro?: () => void;
-  onResetPomodoro?: () => void;
-  pomodoroTimer?: PomodoroTimer | null;
-  onStartPomodoro?: (minutes: number) => void;
-  state: WorkspaceState;
-  now: string;
-  onNavigate: NavigateToView;
-  onStartAdditionalCards: (deckId: string, additionalCount: number) => { ok: boolean; message?: string };
-  onCreateDemo: () => Promise<Deck[] | null>;
-  onMoveDeck: (deckId: string, parentDeckId: string | null) => DeckMutationResult | null;
-  onSetDeckExpanded: (surface: DeckExpansionSurface, deckId: string, expanded: boolean) => unknown;
-  onStartExamUnit?: (blockId: string | null) => Promise<void>;
-  onLoadExamPlanningData?: ExamPlanningScreenProps["onLoadPlanningData"];
-  onSaveExamTasks?: (tasks: ExamDailyTask[]) => Promise<void>;
-  onLoadExamSummaryAvailability?: (deckId: string) => Promise<boolean>;
-  onLoadExamLocalCardIds?: ExamPlanningScreenProps["onLoadLocalCardIds"];
-}
-
-export interface ExamPlanningData {
-  cards: CardStudySnapshot[];
-}
-
-export interface ExamPlanningScreenProps {
-  state: WorkspaceState;
-  now: string;
-  /** May answer from a short-lived cache; `fresh` asks for study states straight from the cloud. */
-  onLoadPlanningData: (deckIds: string[], signal: AbortSignal, options?: { fresh?: boolean }) => Promise<ExamPlanningData>;
-  onSavePlanning: (settings: ExamPlanningSettings) => Promise<void>;
-  /** Merges today's checklist into the latest stored plan, never into a rendered snapshot. */
-  onSaveTasks: (tasks: ExamDailyTask[]) => Promise<void>;
-  onStartUnit: (blockId: string | null) => Promise<void>;
-  onLoadSummaryAvailability?: (deckId: string) => Promise<boolean>;
-  onLoadLocalCardIds?: (cardIds: string[]) => Promise<string[]>;
-  onDraftStateChange?: (dirty: boolean) => void;
-}
-
-export interface DeckSettingsScreenProps {
-  section: DeckSettingsSection;
-  onSelectSection: (section: DeckSettingsSection) => unknown;
-  deck: Deck | null;
-  decks: Deck[];
-  learningProfiles: LearningProfileTemplate[];
-  onSaveSettings: (deckId: string, draft: DeckSettingsDraft, scope: DeckSettingsSaveScope, baseline: DeckSettingsDraft) => DeckMutationResult | null;
-  onApplyLearningProfile: (deckId: string, settings: DeckLearningSettingsDraft) => Deck | null;
-  onSaveLearningProfiles: (profiles: LearningProfileTemplate[]) => unknown;
-  onDraftStateChange: (guard: SettingsDraftGuard | null) => void;
-  onRequestContextAction: (action: () => void) => void;
-  onCreateSubdeck: (parentDeckId: string) => unknown;
-  onDeleteDeck: (deckId: string) => Promise<{ deletedDeckIds: string[]; nextSelectedDeckId: string | null } | null>;
-  onSelectDeck: (deckId: string) => unknown;
-  onOpenGlobalSettings: () => unknown;
-  offlineDeck?: OfflineDeckRecord | null;
-  bodyCache?: { total: number; cached: number; downloaded: number } | null;
-  onDownloadDeck?: (deckId: string) => Promise<unknown>;
-  onRemoveDeckDownload?: (deckId: string) => Promise<unknown>;
-  /** `cardsWithoutVariant` is null while unknown; absent while generation is unavailable. */
-  variantGeneration?: { start: (deck: Deck, mode: "missing" | "refresh") => unknown; running: boolean; cardsWithoutVariant: number | null };
-  onClose: () => unknown;
-  footer?: ReactNode;
 }
 
 /** Null without a signed-in client; callers check online state themselves. */
@@ -239,104 +171,3 @@ export interface DecksCardPage {
   limitedToLocalCatalog?: boolean;
 }
 
-export interface LearnScreenProps extends DeckTreeScreenProps {
-  decks: Deck[];
-  now: string;
-  dayStartHour?: number;
-  learnAheadMinutes?: number;
-  timeZone?: string;
-  onCreateDeck: (input: CreateDeckInput) => Deck | null;
-  focusedDeckId: string | null;
-  initialParentDeckId: string;
-  onDeckCreationHandled: () => void;
-  onFocusDeck: (deckId: string | null) => unknown;
-  onOpenCardCreation: () => unknown;
-  onOpenDecks: (deckId?: string | null) => unknown;
-  onOpenDeckContent: (deckId: string) => unknown;
-  onOpenCardSettings: () => unknown;
-  onMoveDeck: (deckId: string, parentDeckId: string | null) => DeckMutationResult | null;
-  collapsedDeckIds: string[];
-  onSetDeckExpanded: (surface: DeckExpansionSurface, deckId: string, expanded: boolean) => unknown;
-}
-
-export interface SettingsDialogProps {
-  section: SettingsSection;
-  onSelectSection: (section: SettingsSection) => unknown;
-  onClose: () => unknown;
-  footer?: ReactNode;
-  children: ReactNode;
-}
-
-export interface SettingsScreenProps {
-  section: GeneralSettingsSection;
-  focusConflicts?: boolean;
-  profile: Profile;
-  onSaveSettings: (draft: GeneralSettingsDraft) => Profile | null | Promise<Profile | null>;
-  onDraftStateChange: (guard: SettingsDraftGuard | null) => void;
-  onSyncNow: () => Promise<unknown>;
-  onListConflicts: (options?: { refreshRemote?: boolean }) => Promise<unknown[]>;
-  onResolveConflict: (conflictId: string, decision: Record<string, unknown>) => Promise<unknown>;
-  onSignOut: () => Promise<void>;
-  onNavigate: NavigateToView;
-}
-
-export interface GlobalCardSettingsScreenProps {
-  section: LearningSettingsSection;
-  decks: Deck[];
-  onOpenDeckSettings: (deckId: string) => unknown;
-  timeZone: string;
-  globalSchedulerPreferences: GlobalSchedulerPreferences;
-  flagNames: readonly string[];
-  learningProfiles: LearningProfileTemplate[];
-  onSaveLearningProfiles: (profiles: LearningProfileTemplate[]) => unknown;
-  onSaveSettings: (draft: GlobalCardSettingsDraft, scope: GlobalLearningSettingsSaveScope) => Profile | null | Promise<Profile | null>;
-  onDraftStateChange: (guard: SettingsDraftGuard | null) => void;
-  onNavigate: NavigateToView;
-  simulationOffsetMinutes: number;
-  simulationDateLabel: string;
-  pomodoroTimer: PomodoroTimer | null;
-  onStartPomodoro: (minutes: number) => void;
-}
-
-export interface SimulatorScreenProps {
-  systemNow: string;
-  offsetMinutes: number;
-  onOffsetChange: (offsetMinutes: number) => void;
-}
-
-export interface StudyModeProps extends Partial<Pick<GlobalSchedulerPreferences, "dayStartHour" | "learnAheadMinutes" | "leechThreshold" | "easyDays">> {
-  shortcutsSuspended?: boolean;
-  deck: Deck;
-  decks: Deck[];
-  notes: Note[];
-  answeredToday?: readonly AnsweredTodayCard[];
-  deckId: string;
-  mediaStore: AccountMediaStore | null;
-  getNow: () => string;
-  learningDayKey?: string;
-  /** Account-wide due counts per future day at session start; without them Easy Days only sees the session cards. */
-  dueForecast?: ReadonlyMap<string, number> | null;
-  timeZone?: string;
-  simulationOffsetMinutes: number;
-  pomodoroTimer: PomodoroTimer | null;
-  onStartPomodoro: (minutes: number) => void;
-  onExit: () => void;
-  onReturnToLearn: () => void;
-  onEditCard: (deckId: string, cardId: string, tab?: CardEditorTab) => unknown;
-  onEditDeck: (deckId: string) => unknown;
-  flagNames: readonly string[];
-  onSetCardStudyState: (deckId: string, cardId: string, patch: CardStudyStatePatch) => { deck: Deck; note: Note } | null;
-  onSetDeckReviewOrder: (deckId: string, order: import("./coreTypes.ts").NewReviewOrder) => Deck | null;
-  onReview: (result: ReviewAnswerResult) => unknown;
-  onUndoReview: (result: ReviewAnswerResult, previous: Card) => Card | null;
-  onAskCardHelp: AskCardHelp;
-  sessionPlan?: { progress: DailyReviewProgressSummary; initialCardCount: number };
-  bufferSize?: number;
-  hasMoreCards?: boolean;
-  onLoadMoreCards?: () => Promise<{
-    decks: Deck[];
-    notes: Note[];
-    hasMoreCards: boolean;
-    bufferSize: number;
-  }>;
-}

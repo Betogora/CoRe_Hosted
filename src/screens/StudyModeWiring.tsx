@@ -1,12 +1,12 @@
 import React from "react";
 import { reviewReturnContextToViewRoute } from "../appNavigation.ts";
-import type { StudyModeProps } from "../appScreenProps.ts";
 import { EXAM_SESSION_DECK_ID } from "../examPlanSettings.ts";
 import { createDeckLibraryModel } from "../libraryModel.ts";
 import { useStableCallback } from "../ui/useStableCallback.ts";
 import { useAppServices } from "../useAppServices.ts";
 import { useWorkspaceValue } from "../useWorkspaceStore.ts";
 import { StudyMode } from "./StudyMode.tsx";
+import type { StudyModeProps } from "./StudyMode.tsx";
 
 // Memoized: a shell render without changed session data leaves the running session alone.
 const MemoizedStudyMode = React.memo(StudyMode);

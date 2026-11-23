@@ -1,6 +1,5 @@
 import React from "react";
 import { CalendarClock, ChevronLeft, ChevronRight } from "lucide-react";
-import type { SimulatorScreenProps } from "../appScreenProps.ts";
 import {
   MAX_SIMULATION_OFFSET_MINUTES,
   SIMULATION_MINUTES_PER_DAY,
@@ -15,6 +14,12 @@ import { IconButton } from "../ui/actionUi.tsx";
 import { CoreDatePicker } from "../ui/CoreDatePicker.tsx";
 import { CoreTag, PageHeader, SoftPanel } from "../ui/coreUi.tsx";
 import { StatusMessage } from "../ui/feedbackUi.tsx";
+
+export interface SimulatorScreenProps {
+  systemNow: string;
+  offsetMinutes: number;
+  onOffsetChange: (offsetMinutes: number) => void;
+}
 
 const quickOffsets = [
   { minutes: 0, label: "Heute" },

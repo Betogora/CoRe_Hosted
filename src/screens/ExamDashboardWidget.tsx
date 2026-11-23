@@ -1,6 +1,5 @@
 import React from "react";
 import { BookOpen, Play } from "lucide-react";
-import type { DashboardScreenProps, ExamPlanningScreenProps } from "../appScreenProps.ts";
 import type { ExamDailyTask } from "../coreTypes.ts";
 import { reconcileExamDailyTasks, setExamDailyTaskChecked } from "../examDailyTasks.ts";
 import { examDayDistance } from "../examPlanning.ts";
@@ -13,6 +12,8 @@ import { StatusMessage } from "../ui/feedbackUi.tsx";
 import { examColor, examTextColor, formatExamCount, formatExamDistance } from "./examPlanningUi.ts";
 import { useExamForecast, type ExamForecastState } from "./useExamForecast.ts";
 import { DashboardTaskText } from "./DashboardTaskText.tsx";
+import type { DashboardScreenProps } from "./DashboardScreen.tsx";
+import type { ExamPlanningScreenProps } from "./ExamPlanningScreen.tsx";
 
 export interface ExamDashboardPreview {
   onOpenTaskCountChange: (count: number) => void;

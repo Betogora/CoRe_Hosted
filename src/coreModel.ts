@@ -19,7 +19,6 @@ export {
   createCardVariant,
   getActiveVariants,
   isCardReviewBlocked,
-  moveCardToDeck,
   recordVariantOutcome,
   replaceOutdatedVariants,
   rescheduleCard,
@@ -45,7 +44,6 @@ export {
   planNoteRestore,
   removeUnusedNoteMedia,
   /** @internal */ setNoteMarked,
-  type RemovedCardPolicy,
 } from "./coreModel/notes.ts";
 export {
   noteContentMediaRefs,
@@ -91,4 +89,4 @@ export type { CardBatchEdit } from "./coreModel/batch.ts";
 export { planTextReplace, planTextReplaceUndo } from "./coreModel/replace.ts";
 export type { TextReplace, TextReplacePreview } from "./coreModel/replace.ts";
 export { createCoreDeck, normalizeCoreDeck } from "./coreModel/decks.ts";
-export { mergeImportedTags, normalizeTags, splitAnkiSystemTags, tagSearchKeys } from "./coreModel/tags.ts";
+export { normalizeTags, splitAnkiSystemTags, tagSearchKeys } from "./coreModel/tags.ts";

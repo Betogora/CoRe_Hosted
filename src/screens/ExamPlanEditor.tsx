@@ -1,6 +1,5 @@
 import React from "react";
 import { ArrowLeft, ArrowRight, ChevronDown, Save } from "lucide-react";
-import type { ExamPlanningScreenProps } from "../appScreenProps.ts";
 import type { Deck, ExamPlan, GlobalSchedulerPreferences, StudyTimeCapacity } from "../coreTypes.ts";
 import { EXAM_PLANNING_LIMITS, EXAM_RETENTION_LEVELS, createExamPlan } from "../examPlanSettings.ts";
 import { getExamDeckIds, getExamLastNewDate, getExamTopicOrder, shiftExamDay, toggleExamDeckSelection } from "../examPlanning.ts";
@@ -20,6 +19,7 @@ import { ExamTopicOrder } from "./ExamTopicOrder.tsx";
 import { ExamDeckSelection } from "./ExamDeckSelection.tsx";
 import { formatExamCount, formatExamDate, formatExamMinutes } from "./examPlanningUi.ts";
 import { useExamForecast } from "./useExamForecast.ts";
+import type { ExamPlanningScreenProps } from "./ExamPlanningScreen.tsx";
 
 const STEPS = ["Prüfung", "Lernstoff", "Lernzeit", "Lernplan"];
 const EXAM_GOALS = EXAM_RETENTION_LEVELS.map((retention, index) => ({ retention, label: ["Bestehen", "Gute Note", "Sehr gute Note", "Bestmöglich abschneiden"][index] }));
