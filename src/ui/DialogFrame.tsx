@@ -1,7 +1,6 @@
 import React, { type ReactNode } from "react";
 import { createPortal } from "react-dom";
-import { X } from "lucide-react";
-import { IconButton } from "./actionUi.tsx";
+import { CloseButton } from "./actionUi.tsx";
 import { useModalDialog } from "./useModalDialog.ts";
 
 export interface DialogFrameProps {
@@ -49,7 +48,7 @@ export function DialogFrame({ open, title, subtitle, leading, actions, onClose, 
             </div>
           ) : <h2 id={titleId} className="core-dialog-frame-title">{title}</h2>}
           {actions}
-          <IconButton ref={initialFocusRef} label={closeLabel} icon={X} variant="ghost" onClick={onClose} />
+          <CloseButton ref={initialFocusRef} label={closeLabel} onClick={onClose} />
         </header>
         {tabs ? <div className="core-dialog-frame-tabs">{tabs}</div> : null}
         <div className="core-dialog-frame-body">{children}</div>

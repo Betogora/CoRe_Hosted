@@ -8,7 +8,7 @@ import { normalizeDayStartHour } from "../learningDay.ts";
 import { formatSimulationDuration } from "../simulationClock.ts";
 import { createDeckLearningSettingsDraft, createGlobalCardSettingsDraft, settingsDraftsEqual, type GlobalCardSettingsDraft } from "../settingsDraft.ts";
 import { CrossLinkButton } from "../ui/actionUi.tsx";
-import { flagName } from "../ui/flagUi.tsx";
+import { FlagIcon, flagName } from "../ui/flagUi.tsx";
 import { normalizeFlagNames } from "../uiPreferences.ts";
 import { CoreNumberField } from "../ui/CoreNumberField.tsx";
 import { useSuccessToast } from "../ui/feedbackUi.tsx";
@@ -148,34 +148,36 @@ export function GlobalCardSettingsScreen({ section, decks, onOpenDeckSettings, t
           <fieldset className="core-settings-group">
             <legend className="float-left w-full core-heading-3 text-core-text">Wochenrhythmus</legend>
             <p className="core-settings-row-hint">Verteilt neu berechnete Wiederholungen auf passendere Tage. Sieben gleiche Werte ändern nichts.</p>
-            <table className="core-settings-matrix mt-2">
-              <thead>
-                <tr>
-                  <th scope="col"><span className="sr-only">Wochentag</span></th>
-                  {easyDayOptions.map((option) => <th key={option.value} scope="col">{option.label}</th>)}
-                </tr>
-              </thead>
-              <tbody>
-                {EASY_DAY_KEYS.map((key) => (
-                  <tr key={key} data-testid={`card-settings-easy-day-${key}`}>
-                    <th scope="row">{weekdayLabels[key]}</th>
-                    {easyDayOptions.map((option) => (
-                      <td key={option.value}>
-                        <label className="core-settings-matrix-cell" data-level={option.value}>
-                          <CoreRadio
-                            name={`card-settings-easy-day-${key}`}
-                            value={option.value}
-                            checked={draft.easyDays[key] === option.value}
-                            aria-label={`${weekdayLabels[key]}: ${option.label}`}
-                            onCheckedChange={() => setDraft((current) => ({ ...current, easyDays: { ...current.easyDays, [key]: option.value } }))}
-                          />
-                        </label>
-                      </td>
-                    ))}
+            <div className="core-settings-matrix-frame mt-2">
+              <table className="core-settings-matrix">
+                <thead>
+                  <tr>
+                    <th scope="col"><span className="sr-only">Wochentag</span></th>
+                    {easyDayOptions.map((option) => <th key={option.value} scope="col">{option.label}</th>)}
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {EASY_DAY_KEYS.map((key) => (
+                    <tr key={key} data-testid={`card-settings-easy-day-${key}`}>
+                      <th scope="row">{weekdayLabels[key]}</th>
+                      {easyDayOptions.map((option) => (
+                        <td key={option.value}>
+                          <label className="core-settings-matrix-cell" data-level={option.value}>
+                            <CoreRadio
+                              name={`card-settings-easy-day-${key}`}
+                              value={option.value}
+                              checked={draft.easyDays[key] === option.value}
+                              aria-label={`${weekdayLabels[key]}: ${option.label}`}
+                              onCheckedChange={() => setDraft((current) => ({ ...current, easyDays: { ...current.easyDays, [key]: option.value } }))}
+                            />
+                          </label>
+                        </td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </fieldset>
         </section>
       ) : null}
@@ -202,8 +204,8 @@ export function GlobalCardSettingsScreen({ section, decks, onOpenDeckSettings, t
           <div className="core-settings-list">
             <div className="core-settings-row" data-layout="inline">
               <span className="core-settings-row-title">Stapeleinstellungen</span>
-              <div className="core-settings-row-control md:w-72">
-                <DeckSelect ariaLabel="Stapeleinstellungen öffnen" value="" decks={decks} specialOption={{ value: "", label: "Stapel wählen", icon: Layers }} onValueChange={(deckId) => { if (deckId) onOpenDeckSettings(deckId); }} testId="card-settings-open-deck" className="w-full" />
+              <div className="core-settings-row-control">
+                <DeckSelect ariaLabel="Stapeleinstellungen öffnen" value="" decks={decks} specialOption={{ value: "", label: "Stapel wählen", icon: Layers }} onValueChange={(deckId) => { if (deckId) onOpenDeckSettings(deckId); }} testId="card-settings-open-deck" menuAlign="end" />
               </div>
             </div>
           </div>
@@ -214,26 +216,21 @@ export function GlobalCardSettingsScreen({ section, decks, onOpenDeckSettings, t
         <section id={sectionIds.flags} className="core-settings-section" aria-labelledby="card-settings-flags-heading">
           <h2 id="card-settings-flags-heading" tabIndex={-1} className="core-heading-2 text-core-text outline-none">Flaggen</h2>
           <p className="core-settings-row-hint">Eigene Namen gelten kontoweit. Ein leeres Feld zeigt den Farbnamen.</p>
-          <div className="core-settings-list">
+          <div className="mt-2 grid gap-2">
             {draft.flagNames.map((name, index) => {
               const colorName = flagName(index + 1);
               return (
-                <div key={colorName} className="core-settings-row">
-                  <span className="core-settings-row-title flex items-center gap-3">
-                    <span aria-hidden="true" className="core-color-swatch-dot" style={{ backgroundColor: `var(--core-flag-${index + 1})` }} />
-                    {colorName}
-                  </span>
-                  <div className="core-settings-row-control">
-                    <input
-                      className="core-field min-w-0 md:w-72"
-                      value={name}
-                      maxLength={40}
-                      placeholder={colorName}
-                      aria-label={`Name für Flagge ${colorName}`}
-                      data-testid={`card-settings-flag-${index + 1}`}
-                      onChange={(event) => setDraft((current) => ({ ...current, flagNames: current.flagNames.map((value, position) => position === index ? event.target.value : value) }))}
-                    />
-                  </div>
+                <div key={colorName} className="flex items-center gap-3">
+                  <FlagIcon flag={index + 1} size={22} />
+                  <input
+                    className="core-field min-w-0"
+                    value={name}
+                    maxLength={40}
+                    placeholder={colorName}
+                    aria-label={`Name für Flagge ${colorName}`}
+                    data-testid={`card-settings-flag-${index + 1}`}
+                    onChange={(event) => setDraft((current) => ({ ...current, flagNames: current.flagNames.map((value, position) => position === index ? event.target.value : value) }))}
+                  />
                 </div>
               );
             })}

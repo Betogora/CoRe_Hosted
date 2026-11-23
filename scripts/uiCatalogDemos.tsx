@@ -26,7 +26,7 @@ import { createStudyHeatmapModelFromCounts } from "../src/studyHeatmapModel.ts";
 import { shiftDayKey } from "../src/learningDay.ts";
 import { createDeckLearningSettingsDraft } from "../src/settingsDraft.ts";
 import { createPomodoroTimer, createPomodoroTimerFromSeconds, pausePomodoroTimer, resumePomodoroTimer, type PomodoroTimer } from "../src/pomodoroTimer.ts";
-import { ActionButton, CrossLinkButton, Disclosure, IconButton, ShowMoreButton } from "../src/ui/actionUi.tsx";
+import { ActionButton, CloseButton, CrossLinkButton, Disclosure, IconButton, ShowMoreButton } from "../src/ui/actionUi.tsx";
 import { ActionDialog, CardMarkButton, CoreIconSegmentedControl, CoreTag, CoreModeControl, CoreSegmentedControl, CoreSlidingTabs, CoreTriStateControl, CoreVerdictControl, EmptyState, PageHeader, SoftPanel, StatTile, type CoreTriState } from "../src/ui/coreUi.tsx";
 import { StatusMessage, useSuccessToast } from "../src/ui/feedbackUi.tsx";
 import { createAccountMediaStore, type AccountMediaStore } from "../src/mediaStore.ts";
@@ -34,7 +34,7 @@ import { CoreSelect, DeckMultiSelect, DeckSelect } from "../src/ui/selectUi.tsx"
 import { CoreTooltip } from "../src/ui/tooltipUi.tsx";
 import { CoreDatePicker } from "../src/ui/CoreDatePicker.tsx";
 import { CoreCheckbox, CoreRadio, CoreSlider, CoreSwitch } from "../src/ui/formControls.tsx";
-import { FlagDot, FlagPicker } from "../src/ui/flagUi.tsx";
+import { FlagDot, FlagIcon, FlagPicker } from "../src/ui/flagUi.tsx";
 import { TagInput } from "../src/ui/TagInput.tsx";
 import { COLOR_PICKER_PRESETS, ColorPicker, ColorSwatchButton } from "../src/ui/ColorPicker.tsx";
 import { FileDropField } from "../src/ui/FileDropField.tsx";
@@ -183,6 +183,7 @@ function ActionsDemo({ section }: { section: string }) {
       <CreationActionCard title="Anki-Stapel importieren" description="Eine vorhandene APKG-Datei übernehmen." icon={Layers} onSelect={() => toast("Import gewählt.")} />
     </div></Demo>}
     {section === "buttons" && <Demo title="IconButton · normal, destruktiv, destruktiv-dezent und ghost"><div className="catalog-row">{(["secondary", "destructive", "destructive-quiet", "ghost"] as const).map((variant) => <CoreTooltip key={variant} label={variant}><IconButton variant={variant} label={`${variant}: Beispielaktion`} icon={variant.startsWith("destructive") ? Trash2 : Settings} onClick={() => toast("Icon-Aktion ausgeführt.")} /></CoreTooltip>)}</div></Demo>}
+    {section === "buttons" && <Demo title="CloseButton · Kreuz von Dialogen, Leisten und Toasts"><div className="catalog-row"><CloseButton label="Beispiel schließen" onClick={() => toast("Geschlossen.")} /><CloseButton label="Gesperrtes Schließen" disabled /></div></Demo>}
     {section === "buttons" && <ShowMoreDemo />}
     {section === "buttons" && <Demo title="Disclosure · Abschnitt an Ort und Stelle aufklappen"><Disclosure summary="Erledigt (2)"><ul className="mt-2 grid gap-1 core-body text-core-muted line-through"><li>Zusammenfassung lesen · Atmung</li><li>Neue Karten · Niere</li></ul></Disclosure></Demo>}
     {section === "buttons" && <Demo title="CrossLinkButton · weiter und zurück"><div className="catalog-row"><CrossLinkButton onSelect={() => toast("Querlink gewählt.")}>Alle ansehen</CrossLinkButton><CrossLinkButton direction="back" onSelect={() => toast("Zurück gewählt.")}>Erstellen</CrossLinkButton></div></Demo>}
@@ -491,7 +492,7 @@ function TagsAndFlagsDemo() {
   ];
   return <>
     <Demo title="TagInput"><TagInput tags={tags} importedTags={["#AK_Step1::Herz", "AK::Kreislauf"]} loadDirectory={async () => directory} onChange={setTags} /></Demo>
-    <Demo title="FlagPicker und FlagDot"><FlagPicker value={flag} onValueChange={setFlag} names={["", "", "Wiederholen", "", "", "", ""]} onEditNames={() => undefined} /><div className="catalog-row">{[1, 2, 3, 4, 5, 6, 7].map((value) => <FlagDot key={value} flag={value} />)}</div></Demo>
+    <Demo title="FlagPicker und FlagDot"><FlagPicker value={flag} onValueChange={setFlag} names={["", "", "Wiederholen", "", "", "", ""]} onEditNames={() => undefined} /><div className="catalog-row">{[1, 2, 3, 4, 5, 6, 7].map((value) => <FlagDot key={value} flag={value} />)}</div><div className="catalog-row">{[1, 2, 3, 4, 5, 6, 7].map((value) => <FlagIcon key={value} flag={value} size={22} />)}</div></Demo>
   </>;
 }
 
@@ -849,7 +850,7 @@ function OcclusionEditorDemo() {
 export type CatalogSectionId = "grundlagen" | "primitive" | "shared" | "fachmuster" | "icons" | "inventar" | "karten";
 
 export const DEMO_GROUPS = [
-  { id: "aktionen", section: "primitive", title: "Buttons und Aufklapper", description: "Text-, Icon-, Querlink-, Aufklapp-, Aktionskarten-, Markierungs- und Bewertungsbuttons.", components: ["ActionButton", "IconButton", "CrossLinkButton", "ShowMoreButton", "Disclosure", "CreationActionCard", "CardMarkButton", "CardStudyStateControls"], render: () => <><ActionsDemo section="buttons" /><ControlsDemo section="buttons" /><LearningDemo section="buttons" /></> },
+  { id: "aktionen", section: "primitive", title: "Buttons und Aufklapper", description: "Text-, Icon-, Querlink-, Aufklapp-, Aktionskarten-, Markierungs- und Bewertungsbuttons.", components: ["ActionButton", "IconButton", "CloseButton", "CrossLinkButton", "ShowMoreButton", "Disclosure", "CreationActionCard", "CardMarkButton", "CardStudyStateControls"], render: () => <><ActionsDemo section="buttons" /><ControlsDemo section="buttons" /><LearningDemo section="buttons" /></> },
   { id: "auswahl", section: "primitive", title: "Segmentauswahl", description: "Segmente, gleitende Tabs, reine Icon-Auswahl, Dreifach-Schalter und Richtig-falsch-Urteil.", components: ["CoreSegmentedControl", "CoreSlidingTabs", "CoreIconSegmentedControl", "CoreTriStateControl", "CoreVerdictControl"], render: () => <ControlsDemo section="segments" /> },
   { id: "formulare", section: "primitive", title: "Eingabe- und Auswahlfelder", description: "Text, Zahl mit Einheit, Passwort, mehrzeilige Eingaben, Select, Datum, Datei, Einstellungszeilen und Lerneinstellungen.", components: ["CoreSelect", "CoreNumberField", "DeckSelect", "DeckMultiSelect", "CoreDatePicker", "FileDropField", "PomodoroTimerControl", "LearningSettingsPanel"], wide: true, render: () => <><FormsDemo section="forms" /><LearningDemo section="forms" /></> },
   { id: "auswahlfelder", section: "primitive", title: "Kontrollkästchen, Optionen und Regler", description: "Auswahl einzelner und mehrerer Werte, Ein/Aus-Zustände und Werte auf einer Skala.", components: ["CoreCheckbox", "CoreRadio", "CoreSwitch", "CoreModeControl", "CoreSlider"], render: ChoiceControlsDemo },
@@ -858,7 +859,7 @@ export const DEMO_GROUPS = [
   { id: "feedback", section: "primitive", title: "Statusmeldungen und Toasts", description: "Info, Erfolg, Warnung, Fehler und schließbare Toasts.", components: ["StatusMessage", "SuccessToast", "SuccessToastProvider"], render: () => <FeedbackDemo section="feedback" /> },
   { id: "progress", section: "primitive", title: "Fortschritt", description: "Tagesfortschritt, Zeitfortschritt sowie bestimmte und unbestimmte Prozessanzeigen.", components: ["DailyReviewProgress", "PomodoroProgress", "VariantGenerationBar"], render: () => <><FeedbackDemo section="progress" /><LearningDemo section="progress" /><ProductViewsDemo kind="import" /></> },
   { id: "dialogs", section: "primitive", title: "Dialoge", description: "Bestätigung, Dialograhmen, Speicherleiste, Kartenvorschau und Lerneinstellungen.", components: ["ActionDialog", "DialogFrame", "SettingsSaveBar", "CardPreviewDialog", "StudySettingsOverlay"], render: () => <><FeedbackDemo section="dialogs" /><StructureDemo section="dialogs" /><ContentDemo section="dialogs" /><LearningDemo section="dialogs" /></> },
-  { id: "tags-flags", section: "primitive", title: "Tags und Flaggen", description: "Tag-Eingabe, Flaggenwähler und Flaggenpunkt.", components: ["TagInput", "FlagPicker", "FlagDot"], render: TagsAndFlagsDemo },
+  { id: "tags-flags", section: "primitive", title: "Tags und Flaggen", description: "Tag-Eingabe, Flaggenwähler, Flaggenmarke und Flaggen-Icon.", components: ["TagInput", "FlagPicker", "FlagDot", "FlagIcon"], render: TagsAndFlagsDemo },
   { id: "colors", section: "primitive", title: "Farbwahl", description: "Farbfeld oder Werkzeug, Farbkreis und Schnellwahl.", components: ["ColorPicker", "ColorSwatchButton"], render: () => <ContentDemo section="colors" /> },
   { id: "flaechen", section: "shared", title: "Flächen und leere Zustände", description: "Inhaltsflächen und leere Zustände.", components: ["SoftPanel", "EmptyState"], render: () => <FoundationsDemo section="surfaces" /> },
   { id: "struktur", section: "shared", title: "Abschnittskopf, Schritte und Reiter", description: "Kopf jeder Fläche, nummerierte Schritte und Unterstreichungs-Reiter, im Stapelkopf und im Karteneditor.", components: ["SectionHeader", "Steps", "CoreTabs", "CoreTabPanel"], wide: true, render: () => <StructureDemo section="struktur" /> },

@@ -17,10 +17,13 @@ test("FlagPicker names every flag with its shortcut and never relies on color al
   assert.match(markup, /aria-label="Flagge Wichtig"/);
   assert.match(markup, /data-core-tooltip="Wichtig · Strg\+1"/);
   assert.match(markup, /var\(--core-flag-7\)/);
+  assert.equal(markup.match(/lucide-flag/g)?.length, 7, "jede Flagge ist ein Flaggen-Icon in ihrer Farbe");
   assert.match(markup, /grid-cols-4/);
   assert.match(markup, /aria-pressed="false" aria-label="Keine Flagge"/);
-  assert.match(markup, /class="core-color-swatch-dot"[^>]*>(?:(?!<\/span>).)*lucide-ban/, "Keine hat dieselbe runde Form wie die Flaggen");
-  assert.match(markup, /<span class="max-w-full truncate">Keine<\/span>/, "Namen stehen auf jeder Breite unter dem Farbfeld");
+  assert.match(markup, /lucide-ban/, "Keine zeigt ein Symbol statt einer Farbe");
+  assert.match(markup, /<span class="max-w-full truncate">Keine<\/span>/, "Namen stehen auf jeder Breite unter dem Icon");
+  assert.doesNotMatch(markup, /sr-only/, "Namen werden auf keiner Breite ausgeblendet");
+  assert.match(markup, /aria-pressed="true" aria-label="Flagge Grün" class="[^"]*border-core-action/, "die gewählte Flagge trägt den Auswahlrahmen");
   assert.match(markup, />Grün<\/span>/);
   assert.match(markup, /Namen bearbeiten/);
   const none = renderToStaticMarkup(<FlagPicker value={0} onValueChange={() => undefined} />);
@@ -30,5 +33,5 @@ test("FlagPicker names every flag with its shortcut and never relies on color al
 
 test("FlagDot renders only a set flag, with an accessible name", () => {
   assert.equal(renderToStaticMarkup(<FlagDot flag={0} />), "");
-  assert.match(renderToStaticMarkup(<FlagDot flag={2} />), /role="img" aria-label="Flagge Orange"/);
+  assert.match(renderToStaticMarkup(<FlagDot flag={2} />), /role="img" aria-label="Flagge Orange"[^>]*><svg[^>]*width="16"[^>]*fill="currentColor"[^>]*lucide-flag[^>]*style="color:var\(--core-flag-2\)"/);
 });

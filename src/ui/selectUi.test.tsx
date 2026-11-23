@@ -24,6 +24,8 @@ test("CoreSelect renders the controlled value with an accessible combobox trigge
   assert.match(markup, /aria-label="Kartentyp"/);
   assert.match(markup, />Basic</);
   assert.match(markup, /lucide-languages/);
+  for (const label of ["Basic", "Lückentext"]) assert.match(markup, new RegExp(`<span aria-hidden="true" data-label="${label}" class="invisible [^"]*after:content-`), "jede Option hält ihre Breite im Auslöser frei");
+  assert.equal(markup.match(/>Lückentext</g), null, "nur die gewählte Option steht als Text im Auslöser");
 });
 
 test("CoreSelect accepts an empty external value without losing its label", () => {

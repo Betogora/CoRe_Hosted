@@ -1,7 +1,7 @@
 import { createContext, useCallback, useContext, useState, type AnimationEvent, type HTMLAttributes, type ReactNode } from "react";
 import { createPortal } from "react-dom";
-import { CircleAlert, CircleCheck, Info, RotateCcw, TriangleAlert, X, type LucideIcon } from "lucide-react";
-import { ActionButton, IconButton } from "./actionUi.tsx";
+import { CircleAlert, CircleCheck, Info, RotateCcw, TriangleAlert, type LucideIcon } from "lucide-react";
+import { ActionButton, CloseButton } from "./actionUi.tsx";
 
 export interface StatusMessageProps extends HTMLAttributes<HTMLDivElement> {
   tone: "info" | "success" | "warning" | "error";
@@ -86,7 +86,7 @@ export function SuccessToast({
             action.onAction();
           }}>{action.label}</ActionButton>
         ) : null}
-        <IconButton label={dismissLabel} icon={X} variant="ghost" className="shrink-0" onClick={onDismiss} />
+        <CloseButton label={dismissLabel} className="shrink-0" onClick={onDismiss} />
       </div>
     </StatusMessage>
   );

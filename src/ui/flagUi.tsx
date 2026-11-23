@@ -1,15 +1,23 @@
-import { Ban } from "lucide-react";
+import { Ban, Flag } from "lucide-react";
 import { CrossLinkButton } from "./actionUi.tsx";
 import { CoreTooltip } from "./tooltipUi.tsx";
 
 const FLAG_COLOR_NAMES = ["Rot", "Orange", "Grün", "Blau", "Rosa", "Türkis", "Lila"] as const;
 
 const FLAGS = [1, 2, 3, 4, 5, 6, 7] as const;
-const FLAG_OPTION = "flex min-h-14 min-w-0 flex-col items-center justify-start gap-1.5 rounded-control px-1 pt-2.5 pb-1.5 core-caption font-semibold text-core-text transition hover:bg-core-subtle disabled:cursor-not-allowed disabled:opacity-60 sm:w-14";
+const FLAG_OPTION = "flex min-h-14 min-w-0 flex-col items-center justify-start gap-1.5 rounded-control border px-1 pt-2.5 pb-1.5 core-caption font-semibold text-core-text transition hover:bg-core-subtle disabled:cursor-not-allowed disabled:opacity-60 sm:w-14";
+
+function flagOptionClass(pressed: boolean) {
+  return `${FLAG_OPTION} ${pressed ? "border-core-action bg-core-subtle shadow-selection" : "border-transparent"}`;
+}
 
 export function flagName(flag: number, names: readonly string[] = []): string {
   if (flag < 1 || flag > 7) return "";
   return names[flag - 1]?.trim() || FLAG_COLOR_NAMES[flag - 1];
+}
+
+export function FlagIcon({ flag, size }: { flag: number; size: number }) {
+  return <Flag aria-hidden="true" size={size} fill="currentColor" className="shrink-0" style={{ color: `var(--core-flag-${flag})` }} />;
 }
 
 export function FlagDot({ flag, names, size = 12 }: { flag: number; names?: readonly string[]; size?: number }) {
@@ -17,7 +25,8 @@ export function FlagDot({ flag, names, size = 12 }: { flag: number; names?: read
   const label = `Flagge ${flagName(flag, names)}`;
   return (
     <CoreTooltip label={label}>
-      <span role="img" aria-label={label} className="inline-block shrink-0 rounded-round" style={{ width: size, height: size, background: `var(--core-flag-${flag})` }} />
+      {/* The flag fills about two thirds of its box; four pixels more keep it as present as a dot of `size`. */}
+      <span role="img" aria-label={label} className="inline-grid shrink-0"><FlagIcon flag={flag} size={size + 4} /></span>
     </CoreTooltip>
   );
 }
@@ -49,9 +58,9 @@ export function FlagPicker({ value, onValueChange, names, onEditNames, withNone 
                 aria-label={`Flagge ${name}`}
                 disabled={disabled}
                 onClick={() => onValueChange(pressed ? 0 : flag)}
-                className={FLAG_OPTION}
+                className={flagOptionClass(pressed)}
               >
-                <span aria-hidden="true" className="core-color-swatch-dot" style={{ backgroundColor: `var(--core-flag-${flag})` }} />
+                <FlagIcon flag={flag} size={20} />
                 <span className="max-w-full text-center leading-tight hyphens-auto break-words">{name}</span>
               </button>
             </CoreTooltip>
@@ -65,9 +74,9 @@ export function FlagPicker({ value, onValueChange, names, onEditNames, withNone 
               aria-label="Keine Flagge"
               disabled={disabled}
               onClick={() => onValueChange(0)}
-              className={FLAG_OPTION}
+              className={flagOptionClass(value === 0)}
             >
-              <span aria-hidden="true" className="core-color-swatch-dot"><Ban size={14} className="text-core-muted" /></span>
+              <Ban size={20} aria-hidden="true" className="shrink-0 text-core-muted" />
               <span className="max-w-full truncate">Keine</span>
             </button>
           </CoreTooltip>

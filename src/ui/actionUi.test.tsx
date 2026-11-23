@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { renderToStaticMarkup } from "react-dom/server";
 import { Save, Trash2 } from "lucide-react";
-import { ActionButton, CrossLinkButton, IconButton } from "./actionUi.tsx";
+import { ActionButton, CloseButton, CrossLinkButton, IconButton } from "./actionUi.tsx";
 
 test("ActionButton centralizes variants and the labeled loading contract", () => {
   const variants = ["primary", "secondary", "destructive"] as const;
@@ -37,6 +37,11 @@ test("IconButton offers a borderless ghost action with the same square target", 
   const markup = renderToStaticMarkup(<IconButton label="Optionen" icon={Save} variant="ghost" />);
   assert.match(markup, /core-action-ghost/);
   assert.match(markup, /min-w-button/);
+});
+
+test("CloseButton is the one named, borderless close cross and never submits a form", () => {
+  const markup = renderToStaticMarkup(<CloseButton label="Schließen" className="shrink-0" />);
+  assert.match(markup, /^<button type="button" aria-label="Schließen" class="core-action-ghost core-close-button shrink-0"><svg[^>]*lucide-x[^>]*aria-hidden="true"/);
 });
 
 test("IconButton offers a quiet destructive action that only turns red on hover", () => {

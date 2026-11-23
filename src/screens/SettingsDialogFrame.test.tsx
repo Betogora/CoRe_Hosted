@@ -30,7 +30,10 @@ test("the frame labels its dialog, areas and close action from its caller", () =
   assert.match(html, /data-testid="frame-backdrop"/);
   assert.match(html, /role="dialog" aria-modal="true" aria-labelledby="[^"]+" data-testid="frame" data-settings-view="area"/);
   assert.match(html, /aria-label="Rahmen schließen"/);
-  assert.match(html, /<nav aria-label="Bereiche des Rahmens"[^>]*><div class="grid gap-2"><span>Kopfinhalt<\/span><\/div>/);
+  assert.match(html, /<nav aria-label="Bereiche des Rahmens"[^>]*><div class="grid gap-2 md:w-0 md:min-w-full"><span>Kopfinhalt<\/span><\/div>/, "der Spaltenkopf weitet die Spalte nicht");
+  assert.match(html, /<nav [^>]*class="[^"]*lg:w-max/, "die Spalte ist so breit wie ihr längster Bereich");
+  assert.equal(html.match(/data-label="(?:Erster|Zweiter) Bereich" class="[^"]*after:font-semibold after:content-\[attr\(data-label\)\]/g)?.length, 2, "jeder Bereich reserviert seine fette Breite");
+  assert.match(html, /<header class="core-dialog-header [^"]*">.*<button type="button" aria-label="Rahmen schließen" class="core-action-ghost core-close-button"/);
   assert.doesNotMatch(html, /core-caption font-medium text-core-muted/);
   assert.equal(html.match(/aria-current="page"/g)?.length, 1);
   assert.match(html, /aria-current="page" data-settings-section="b"/);
