@@ -13,10 +13,18 @@ test("PomodoroTimerControl exposes the collapsed global and study entry points",
     assert.match(markup, /aria-controls=/);
     assert.match(markup, /25 Min\./);
     if (variant === "study") assert.match(markup, /data-pomodoro-icon="tomato"/);
-    else assert.match(markup, /class="core-settings-row-title">Pomodoro-Timer<[\s\S]*Ein Start ersetzt einen laufenden Timer\./);
+    else assert.match(markup, /class="core-settings-row-title">Pomodoro-Timer<\/span><\/span>/, "ohne laufenden Timer steht kein Zustand am Titel");
     assert.doesNotMatch(markup, /Noch nicht verfügbar/);
   }
   assert.deepEqual(POMODORO_PRESET_MINUTES, [15, 25, 45]);
+});
+
+test("the settings row marks a running timer with its remaining time and keeps the duration as its value", () => {
+  const timer = createPomodoroTimer(25, Date.now() - 5 * 60_000, "pomodoro_running");
+  assert.ok(timer);
+  const markup = renderToStaticMarkup(<PomodoroTimerControl timer={timer} variant="settings" onStart={() => undefined} />);
+  assert.match(markup, /<span class="core-tag core-tag-info">Läuft · 20 Min\.<\/span>/);
+  assert.match(markup, />25 Min\.<svg/);
 });
 
 test("PomodoroProgress hides every projection without a running timer", () => {

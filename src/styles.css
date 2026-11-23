@@ -887,6 +887,15 @@ summary {
     font: var(--core-weight-body) var(--core-type-caption)/var(--core-leading-caption) var(--core-font-sans);
   }
 
+  /* A title with its hint and state tag on one line. */
+  .core-settings-row-heading {
+    display: flex;
+    min-width: 0;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--core-space-xs) var(--core-space-sm);
+  }
+
   .core-settings-row-control {
     display: flex;
     min-width: 0;
@@ -2697,6 +2706,36 @@ strong,
 /* Kept after .core-auth-panel button for the cascade. */
 button[aria-label] {
   min-width: var(--core-button-height);
+}
+
+/* After the button minimums: the hint takes 24 px inside the 20-px title line, so rows with and without one are equally
+   high; an invisible margin keeps the touch height around it. */
+button.core-info-hint {
+  position: relative;
+  display: inline-grid;
+  flex-shrink: 0;
+  width: 1.5rem;
+  min-width: 0;
+  height: 1.5rem;
+  min-height: 0;
+  place-items: center;
+  margin: -0.125rem calc(-1 * var(--core-space-xs));
+  border-radius: var(--core-radius-round);
+  color: var(--core-text-muted);
+  transition: background-color 150ms ease, color 150ms ease;
+}
+
+button.core-info-hint:is(:hover, [data-state="open"]) {
+  background: var(--core-surface-hover);
+  color: var(--core-text);
+}
+
+@media (pointer: coarse) {
+  button.core-info-hint::before {
+    position: absolute;
+    inset: -0.625rem;
+    content: "";
+  }
 }
 /* Kept after .core-auth-panel button for the cascade. */
 .core-deck-folder-breadcrumb button {

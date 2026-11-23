@@ -61,7 +61,7 @@ export function DeckSettingsScreenWiring() {
         return result;
       }}
       onSelectDeck={(deckId) => settings.selectSettingsOverlay({ deckSettings: { deckId, section: deckSettings.section } })}
-      onOpenGlobalSettings={() => settings.openSettings("tagesrunde")}
+      onOpenGlobalSettings={getCurrentRoute().mode === "study" ? undefined : settings.returnToSettings}
       variantGeneration={workspaceHydrationService ? { start: (deck, mode) => variantBatch.start(deck, { mode }), running: variantBatch.running, cardsWithoutVariant } : undefined}
       offlineDeck={offlineDeck}
       bodyCache={focusedDeckBodyCache}

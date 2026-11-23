@@ -129,7 +129,8 @@ export interface DeckSettingsScreenProps {
   onCreateSubdeck: (parentDeckId: string) => unknown;
   onDeleteDeck: (deckId: string) => Promise<{ deletedDeckIds: string[]; nextSelectedDeckId: string | null } | null>;
   onSelectDeck: (deckId: string) => unknown;
-  onOpenGlobalSettings: () => unknown;
+  /** Absent where the general settings cannot open, as inside a study session. */
+  onOpenGlobalSettings?: () => unknown;
   offlineDeck?: OfflineDeckRecord | null;
   bodyCache?: { total: number; cached: number; downloaded: number } | null;
   onDownloadDeck?: (deckId: string) => Promise<unknown>;
@@ -300,7 +301,6 @@ export interface GlobalCardSettingsScreenProps {
   onDraftStateChange: (guard: SettingsDraftGuard | null) => void;
   onNavigate: NavigateToView;
   simulationOffsetMinutes: number;
-  simulationDateLabel: string;
   pomodoroTimer: PomodoroTimer | null;
   onStartPomodoro: (minutes: number) => void;
 }

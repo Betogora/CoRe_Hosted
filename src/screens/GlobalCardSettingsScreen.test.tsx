@@ -24,7 +24,6 @@ function renderSettings(section: LearningSection, flagNames: string[] = ["", "",
       onDraftStateChange={() => undefined}
       onNavigate={() => createViewRoute("lernen")}
       simulationOffsetMinutes={3 * 24 * 60}
-      simulationDateLabel="Sonntag, 9. August 2026"
       pomodoroTimer={null}
       onStartPomodoro={() => undefined}
     />,
@@ -32,15 +31,20 @@ function renderSettings(section: LearningSection, flagNames: string[] = ["", "",
 }
 
 test("learning settings render exactly the requested dialog area without a page shell", () => {
-  const headings = { lerntag: "Lerntag &amp; Planung", tagesrunde: "Tagesrunde &amp; Lernprofile", scheduler: "Scheduler &amp; CoRe", flaggen: "Flaggen", fokus: "Fokuswerkzeuge" } as const;
+  const headings = { lerntag: "Lerntag &amp; Planung", flaggen: "Flaggen", fokus: "Fokuswerkzeuge", stapel: "Einzelne Stapel", tagesrunde: "Tagesrunde &amp; Lernprofile", scheduler: "Scheduler &amp; CoRe" } as const;
   for (const [section, heading] of Object.entries(headings) as Array<[LearningSection, string]>) {
     const html = renderSettings(section);
     assert.equal(html.match(/<h2 /g)?.length, 1);
     assert.match(html, new RegExp(`<h2[^>]*tabindex="-1"[^>]*>${heading}</h2>`));
     assert.doesNotMatch(html, />Lerneinstellungen</);
   }
-  assert.match(renderSettings("tagesrunde"), />Stapeleinstellungen<[\s\S]*?aria-label="Stapeleinstellungen öffnen"[^>]*data-testid="card-settings-open-deck"/);
-  assert.doesNotMatch(renderSettings("tagesrunde"), /Werte einzelner Stapel/);
+  assert.doesNotMatch(renderSettings("tagesrunde"), /Einzelne Stapel|card-settings-open-deck/);
+});
+
+test("the deck area is one row that opens the settings of a chosen deck", () => {
+  const html = renderSettings("stapel");
+  assert.match(html, />Stapeleinstellungen<[\s\S]*?aria-label="Stapeleinstellungen öffnen"[^>]*data-testid="card-settings-open-deck"/);
+  assert.equal(html.match(/class="core-settings-row"/g)?.length, 1);
 });
 
 test("global learning settings combine account-wide planning and reusable deck defaults", () => {
@@ -53,12 +57,15 @@ test("global learning settings combine account-wide planning and reusable deck d
   assert.match(focus, />Simulator</);
   assert.match(focus, />Pomodoro-Timer</);
   const daily = renderSettings("tagesrunde");
-  assert.match(daily, /Als Standardprofil verwenden/);
+  assert.match(daily, />Anwenden</);
+  assert.match(daily, /<span class="core-tag core-tag-neutral">Standard für neue Stapel<\/span>/);
+  assert.match(focus, /data-testid="card-settings-simulation-state"[^>]*>Aktiv · \+/);
   assert.match(daily, /Neue Karten pro Tag/);
   assert.match(daily, /Wiederholungen pro Tag/);
   const scheduler = renderSettings("scheduler");
   assert.match(scheduler, /Gewünschte Erinnerungsrate/);
-  assert.match(scheduler, /Standard für neue Stapel\. Lernprofile ändern diese Werte nicht\./);
+  assert.match(scheduler, /<span class="core-tag core-tag-neutral">Standard für neue Stapel<\/span>/);
+  assert.match(scheduler, /aria-label="Hinweis: Content Repetition"[\s\S]*?>Diese Werte gehören nicht zum Lernprofil\. Wendest du ein Profil an, bleiben sie unverändert\.</);
   for (const html of [planning, focus, daily, scheduler]) {
     assert.doesNotMatch(html, /Login-E-Mail|Automatisch synchronisieren|Impressum/);
     assert.doesNotMatch(html, /CoRe-Modus/);

@@ -1,18 +1,18 @@
 import * as Popover from "@radix-ui/react-popover";
 import React from "react";
-import { CalendarRange, Download, FolderPlus, Layers, RefreshCw, Sparkles, Trash2 } from "lucide-react";
+import { CalendarRange, Download, FolderPlus, Layers, RefreshCw, Settings, Sparkles, Trash2 } from "lucide-react";
 import type { DeckSettingsSection } from "../appNavigation.ts";
 import type { DeckSettingsSaveScope, DeckSettingsScreenProps, SettingsSaveOutcome } from "../appScreenProps.ts";
 import { CARD_VARIANT_BATCH_LIMIT } from "../cardVariantBatch.ts";
 import { createDefaultDeckSettings, normalizeDeckAppearance } from "../coreModel.ts";
 import { createDeckLibraryModel } from "../libraryModel.ts";
 import { useWorkspaceValue } from "../useWorkspaceStore.ts";
-import { ActionButton, CrossLinkButton } from "../ui/actionUi.tsx";
+import { ActionButton } from "../ui/actionUi.tsx";
 import { ColorPicker } from "../ui/ColorPicker.tsx";
 import { DeckAppearanceIcon, deckIconOptions, getDeckIcon } from "../ui/deckAppearance.tsx";
 import { useSuccessToast } from "../ui/feedbackUi.tsx";
 import { LearningSettingsPanel } from "../ui/LearningSettingsPanel.tsx";
-import { ActionDialog, CoreModeControl, EmptyState } from "../ui/coreUi.tsx";
+import { ActionDialog, CoreModeControl, CoreTag, EmptyState } from "../ui/coreUi.tsx";
 import { SettingsDialogFrame } from "./SettingsDialogFrame.tsx";
 import { DeckSelect } from "../ui/selectUi.tsx";
 import { createDeckLearningSettingsDraft, createDeckSettingsDraft, normalizeDeckSettingsDraft, settingsDraftsEqual, type DeckLearningSettingsDraft, type DeckSettingsDraft } from "../settingsDraft.ts";
@@ -161,6 +161,8 @@ export function DeckSettingsScreen({ section, onSelectSection, deck, decks, lear
     <DeckSelect ariaLabel="Stapel für Einstellungen auswählen" value={deck?.id ?? ""} decks={decks} specialOption={deck ? undefined : { value: "", label: "Stapel auswählen", icon: Layers }} onValueChange={(deckId) => { if (deckId && deckId !== deck?.id) onSelectDeck(deckId); }} testId="deck-settings-select" className="w-full" />
   );
 
+  const back = onOpenGlobalSettings ? { label: "Einstellungen", icon: Settings, onSelect: () => onRequestContextAction(onOpenGlobalSettings) } : undefined;
+
   if (!deck) {
     return (
       <SettingsDialogFrame<DeckSettingsArea>
@@ -173,6 +175,7 @@ export function DeckSettingsScreen({ section, onSelectSection, deck, decks, lear
         showAreaList={false}
         onSelectSection={onSelectSection}
         onClose={onClose}
+        back={back}
       >
         {decks.length > 0 ? (
           <section className="core-settings-section" aria-labelledby="deck-settings-select-heading">
@@ -222,11 +225,12 @@ export function DeckSettingsScreen({ section, onSelectSection, deck, decks, lear
     setDeleting(false);
   }
 
-  const offlineLabel = offlineDeck?.state === "downloading" ? "Wird heruntergeladen …"
-    : offlineDeck?.state === "available" ? "Offline verfügbar"
-      : offlineDeck?.state === "outdated" ? "Aktualisierung ausstehend"
-        : offlineDeck?.state === "error" ? "Download nicht abgeschlossen"
-          : bodyCache && bodyCache.cached + bodyCache.downloaded > 0 ? "Teilweise zwischengespeichert" : "Nur online";
+  const offlineState: { tone: "neutral" | "info" | "warning" | "success"; label: string } = offlineDeck?.state === "downloading"
+    ? { tone: "info", label: offlineDeck.expectedCardCount > 0 ? `Lädt · ${offlineDeck.verifiedCardCount} von ${offlineDeck.expectedCardCount} Karten` : "Lädt" }
+    : offlineDeck?.state === "available" ? { tone: "success", label: "Offline verfügbar" }
+      : offlineDeck?.state === "outdated" ? { tone: "warning", label: "Aktualisierung ausstehend" }
+        : offlineDeck?.state === "error" ? { tone: "warning", label: "Download unvollständig" }
+          : { tone: "neutral", label: bodyCache && bodyCache.cached + bodyCache.downloaded > 0 ? "Teilweise gespeichert" : "Nur online" };
 
   async function updateOfflineDownload(remove = false) {
     if (!onDownloadDeck || !onRemoveDeckDownload) return;
@@ -254,7 +258,8 @@ export function DeckSettingsScreen({ section, onSelectSection, deck, decks, lear
       onSelectSection={onSelectSection}
       onShowAreaList={() => onSelectSection("start")}
       onClose={onClose}
-      navigationHeader={<>{deckSwitch}<CrossLinkButton className="w-fit" onSelect={onOpenGlobalSettings}>Standardwerte</CrossLinkButton></>}
+      back={back}
+      navigationHeader={deckSwitch}
       footer={footer}
     >
     <div className="min-w-0" data-testid={`deck-settings-${deck.id}`}>
@@ -291,24 +296,23 @@ export function DeckSettingsScreen({ section, onSelectSection, deck, decks, lear
             </div>
             {variantGeneration && createDefaultDeckSettings(deck.deckSettings).coreMode === "on" ? (
               <div className="core-settings-row" data-testid="deck-settings-variant-generation">
-                <div className="core-settings-row-text">
+                <div className="core-settings-row-heading">
                   <span className="core-settings-row-title">Kartenvarianten</span>
-                  <p className="core-settings-row-hint" data-testid="deck-settings-variant-count">{variantGenerationRunning ? "Es läuft bereits eine Generierung."
-                    : cardsWithoutVariant === null ? `Je eine Variante für bis zu ${CARD_VARIANT_BATCH_LIMIT} Karten, nacheinander im Hintergrund.`
-                      : cardsWithoutVariant === 0 ? "Keine Karte wartet auf eine Variante."
-                        : `${cardsWithoutVariant.toLocaleString("de-DE")} ${cardsWithoutVariant === 1 ? "Karte" : "Karten"} ohne Variante`}</p>
+                  {variantGenerationRunning ? <CoreTag tone="info" data-testid="deck-settings-variant-count">Läuft</CoreTag>
+                    : cardsWithoutVariant === null ? null
+                      : <CoreTag tone="neutral" data-testid="deck-settings-variant-count">{`${cardsWithoutVariant.toLocaleString("de-DE")} ohne Variante`}</CoreTag>}
                 </div>
                 <div className="core-settings-row-control">
-                  {cardsWithoutVariant === 0 ? null : <ActionButton type="button" variant="secondary" icon={Sparkles} disabled={variantGenerationRunning} onClick={() => variantGeneration.start(deck, "missing")}>Varianten generieren</ActionButton>}
-                  <ActionButton type="button" variant="secondary" icon={RefreshCw} disabled={variantGenerationRunning} onClick={() => setRefreshDialogOpen(true)}>Varianten neu generieren</ActionButton>
+                  {cardsWithoutVariant === 0 ? null : <ActionButton type="button" variant="secondary" icon={Sparkles} disabled={variantGenerationRunning} onClick={() => variantGeneration.start(deck, "missing")}>Fehlende generieren</ActionButton>}
+                  <ActionButton type="button" variant="secondary" icon={RefreshCw} disabled={variantGenerationRunning} onClick={() => setRefreshDialogOpen(true)}>Neu generieren</ActionButton>
                 </div>
               </div>
             ) : null}
             {onDownloadDeck && onRemoveDeckDownload ? (
               <div className="core-settings-row">
-                <div className="core-settings-row-text">
+                <div className="core-settings-row-heading">
                   <span className="core-settings-row-title">Offline-Nutzung</span>
-                  <p className="core-settings-row-hint">{offlineLabel}{offlineDeck?.state === "downloading" && offlineDeck.expectedCardCount > 0 ? ` · ${offlineDeck.verifiedCardCount} von ${offlineDeck.expectedCardCount} Karten` : ""}</p>
+                  <CoreTag tone={offlineState.tone} data-testid="deck-settings-offline-state">{offlineState.label}</CoreTag>
                 </div>
                 <div className="core-settings-row-control">
                   {offlineDeck && offlineDeck.state !== "none" ? (
@@ -327,10 +331,7 @@ export function DeckSettingsScreen({ section, onSelectSection, deck, decks, lear
               </div>
             </div>
             <div className="core-settings-row" data-layout="inline">
-              <div className="core-settings-row-text">
-                <span className="core-settings-row-title">Stapel löschen</span>
-                <p className="core-settings-row-hint">Markiert den Stapel mit Unterstapeln und Karten als gelöscht.</p>
-              </div>
+              <span className="core-settings-row-title">Stapel löschen</span>
               <div className="core-settings-row-control">
                 <ActionButton type="button" variant="destructive" icon={Trash2} onClick={() => onRequestContextAction(() => setDeleteDialogOpen(true))}>Löschen</ActionButton>
               </div>

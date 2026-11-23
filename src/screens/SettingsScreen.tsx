@@ -3,13 +3,15 @@ import { Copy, RefreshCw, X } from "lucide-react";
 import { formatSyncStatusText } from "../accountSession.ts";
 import { APP_RUNTIME_INFO } from "../appRuntime.ts";
 import type { SettingsSaveOutcome, SettingsScreenProps } from "../appScreenProps.ts";
-import type { SyncIntervalMinutes } from "../coreTypes.ts";
+import type { SyncIntervalMinutes, SyncStatus } from "../coreTypes.ts";
 import { readFieldTimings } from "../fieldTimings.ts";
 import { formatFieldTimingsReport, readFieldTimingContext } from "../fieldTimingsReport.ts";
 import { ActionButton, CrossLinkButton } from "../ui/actionUi.tsx";
-import { CoreSegmentedControl } from "../ui/coreUi.tsx";
+import { CoreSegmentedControl, CoreTag } from "../ui/coreUi.tsx";
 import { ColorPicker } from "../ui/ColorPicker.tsx";
+import { useStoredDeckTreeView, type DeckTreeView } from "../ui/deckTreeView.ts";
 import { CoreSwitch } from "../ui/formControls.tsx";
+import { InfoHint } from "../ui/InfoHint.tsx";
 import { readCoreTheme, toggleCoreTheme } from "../coreTheme.ts";
 import { useHeatmapHistoryColor } from "../ui/StudyHeatmap.tsx";
 import { useSuccessToast } from "../ui/feedbackUi.tsx";
@@ -35,11 +37,39 @@ const headingIds = {
 
 const syncIntervalOptions = [
   { value: "0", label: "Aus" },
-  { value: "1", label: "1" },
-  { value: "5", label: "5" },
-  { value: "15", label: "15" },
-  { value: "30", label: "30" },
+  ...[1, 5, 15, 30].map((minutes) => ({ value: String(minutes), label: `${minutes} Min.` })),
 ];
+
+const deckViewOptions: ReadonlyArray<{ value: DeckTreeView; label: string }> = [
+  { value: "list", label: "Liste" },
+  { value: "tiles", label: "Kacheln" },
+];
+
+function formatSyncMoment(timestamp: string) {
+  const date = new Date(timestamp);
+  const time: Intl.DateTimeFormatOptions = { hour: "2-digit", minute: "2-digit" };
+  return date.toLocaleString("de-DE", date.toDateString() === new Date().toDateString() ? time : { day: "2-digit", month: "2-digit", ...time });
+}
+
+/** `detail` is the sentence of a state that needs one; it goes behind the hint. */
+function describeSyncStatus(syncStatus: SyncStatus, lastSyncedAt: string | null): { tone: "neutral" | "info" | "warning" | "success"; label: string; detail?: string } {
+  switch (syncStatus.status) {
+    case "saved":
+      return { tone: "success", label: `Synchronisiert · ${formatSyncMoment(syncStatus.savedAt)}` };
+    case "saving":
+      return { tone: "info", label: "Wird synchronisiert" };
+    case "pending":
+      return { tone: "neutral", label: `${syncStatus.pendingCount ? `${syncStatus.pendingCount} ausstehend` : "Ausstehend"}${lastSyncedAt ? ` · zuletzt ${formatSyncMoment(lastSyncedAt)}` : ""}` };
+    case "offline":
+      return { tone: "warning", label: `Offline${syncStatus.pendingCount ? ` · ${syncStatus.pendingCount} ausstehend` : ""}`, detail: formatSyncStatusText(syncStatus) };
+    case "conflict":
+      return { tone: "warning", label: syncStatus.conflictCount === 1 ? "1 Konflikt" : `${syncStatus.conflictCount} Konflikte`, detail: formatSyncStatusText(syncStatus) };
+    case "error":
+      return { tone: "warning", label: "Fehler", detail: formatSyncStatusText(syncStatus) };
+    default:
+      return { tone: "neutral", label: lastSyncedAt ? `Synchronisiert · ${formatSyncMoment(lastSyncedAt)}` : "Noch nicht synchronisiert" };
+  }
+}
 
 export function SettingsScreen({ section, focusConflicts = false, profile, onSaveSettings, onDraftStateChange, onSyncNow, onListConflicts, onResolveConflict, onSignOut, onNavigate }: SettingsScreenProps) {
   const { syncStatus, lastSyncedAt, storageStatus } = useWorkspaceValue(({ syncStatus, lastSyncedAt, storageStatus }) => ({ syncStatus, lastSyncedAt, storageStatus }));
@@ -52,6 +82,8 @@ export function SettingsScreen({ section, focusConflicts = false, profile, onSav
   const setSuccessToast = useSuccessToast();
   const [heatmapColor, setHeatmapColor] = useHeatmapHistoryColor();
   const [theme, setTheme] = React.useState(readCoreTheme);
+  const [deckView, setDeckView] = useStoredDeckTreeView();
+  const syncState = describeSyncStatus(syncStatus, lastSyncedAt);
   const workspaceStore = useWorkspaceStore();
   const fieldTimingsAvailable = React.useMemo(() => section === "ueber" && Object.keys(readFieldTimings()).length > 0, [section]);
   React.useEffect(() => {
@@ -151,12 +183,9 @@ export function SettingsScreen({ section, focusConflicts = false, profile, onSav
               </div>
             </div>
             <div className="core-settings-row">
-              <div className="core-settings-row-text">
-                <label htmlFor="settings-login-email" className="core-settings-row-title">Login-E-Mail</label>
-                <p id="login-email-help" className="core-settings-row-hint">Derzeit in CoRe nicht änderbar.</p>
-              </div>
+              <label htmlFor="settings-login-email" className="core-settings-row-title">Login-E-Mail</label>
               <div className="core-settings-row-control">
-                <input id="settings-login-email" readOnly className="core-settings-row-value w-full min-w-0 bg-transparent outline-none md:w-72 md:text-right" value={profile.email} aria-describedby="login-email-help" />
+                <input id="settings-login-email" readOnly className="core-settings-row-value w-full min-w-0 bg-transparent outline-none md:w-72 md:text-right" value={profile.email} />
               </div>
             </div>
             <div className="core-settings-row" data-layout="inline">
@@ -186,6 +215,12 @@ export function SettingsScreen({ section, focusConflicts = false, profile, onSav
                 <ColorPicker ariaLabel="Heatmap-Farbe ändern" value={heatmapColor} onValueCommit={setHeatmapColor} />
               </div>
             </div>
+            <div className="core-settings-row" data-layout="inline">
+              <span className="core-settings-row-title">Stapelansicht</span>
+              <div className="core-settings-row-control">
+                <CoreSegmentedControl ariaLabel="Stapelansicht" value={deckView} options={deckViewOptions} onValueChange={setDeckView} />
+              </div>
+            </div>
           </div>
         </section>
       ) : null}
@@ -195,21 +230,17 @@ export function SettingsScreen({ section, focusConflicts = false, profile, onSav
           <h2 id="settings-data-heading" tabIndex={-1} className="core-heading-2 text-core-text outline-none">Daten & Synchronisierung</h2>
           <div className="core-settings-list">
             <div className="core-settings-row">
-              <div className="core-settings-row-text">
+              <div className="core-settings-row-heading">
                 <span className="core-settings-row-title">Synchronisierung</span>
-                <p className="core-settings-row-hint">{formatSyncStatusText(syncStatus)}</p>
-                {lastSyncedAt ? <p className="core-settings-row-hint">Zuletzt erfolgreich: {new Date(lastSyncedAt).toLocaleString("de-DE")}</p> : null}
-                {(syncStatus.status === "pending" || syncStatus.status === "offline") && syncStatus.pendingCount ? <p className="core-settings-row-hint">Ausstehende Änderungen: {syncStatus.pendingCount}</p> : null}
+                <CoreTag tone={syncState.tone} role="status" data-testid="settings-sync-state">{syncState.label}</CoreTag>
+                {syncState.detail ? <InfoHint label={syncState.label}>{syncState.detail}</InfoHint> : null}
               </div>
               <div className="core-settings-row-control">
                 <ActionButton type="button" variant="primary" icon={RefreshCw} onClick={() => void syncNow()} loading={syncStatus.status === "saving"} disabled={accountBusy}>Jetzt synchronisieren</ActionButton>
               </div>
             </div>
             <div className="core-settings-row">
-              <div className="core-settings-row-text">
-                <span className="core-settings-row-title">Automatisch synchronisieren</span>
-                <p className="core-settings-row-hint">Abstand in Minuten. Bis zum Abgleich bleiben Änderungen in diesem Browser.</p>
-              </div>
+              <span className="core-settings-row-title">Automatisch synchronisieren</span>
               <div className="core-settings-row-control" data-testid="settings-sync-interval">
                 <CoreSegmentedControl
                   ariaLabel="Intervall der automatischen Synchronisierung"
@@ -222,12 +253,17 @@ export function SettingsScreen({ section, focusConflicts = false, profile, onSav
             </div>
             {storageStatus ? (
               <div className="core-settings-row" data-layout="inline" data-testid="workspace-storage-status">
-                <div className="core-settings-row-text">
+                <div className="core-settings-row-heading">
                   <span className="core-settings-row-title">Lokaler Gerätespeicher</span>
-                  <p className="core-settings-row-hint">Belegt: {formatStorageBytes(storageStatus.usage)} von {formatStorageBytes(storageStatus.quota)}</p>
+                  {storageStatus.persisted ? null : (
+                    <>
+                      <CoreTag tone="warning">Nicht dauerhaft</CoreTag>
+                      <InfoHint label="Nicht dauerhaft">Dein Browser darf die lokal gespeicherten Daten bei Platzmangel löschen. Synchronisierte Daten bleiben im Konto; noch nicht synchronisierte Änderungen können verloren gehen.</InfoHint>
+                    </>
+                  )}
                 </div>
                 <div className="core-settings-row-control">
-                  <span className="core-settings-row-value">{storageStatus.persisted ? "Dauerhaft" : storageStatus.supported ? "Nicht dauerhaft" : "Nicht unterstützt"}</span>
+                  <span className="core-settings-row-value">{formatStorageBytes(storageStatus.usage)} von {formatStorageBytes(storageStatus.quota)}</span>
                 </div>
               </div>
             ) : null}

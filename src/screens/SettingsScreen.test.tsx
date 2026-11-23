@@ -50,6 +50,12 @@ test("appearance settings pick the heatmap color with the shared color picker", 
   assert.match(html, /aria-label="Heatmap-Farbe ändern"[^>]*><span[^>]*background-color:#b55b43/);
 });
 
+test("appearance settings choose the deck view shared by Heute and Lernen", () => {
+  const group = renderSettings("darstellung").match(/<div role="group" aria-label="Stapelansicht".*?<\/div>/)?.[0] ?? "";
+  assert.match(group, /aria-pressed="true"[^>]*>Liste</);
+  assert.match(group, /aria-pressed="false"[^>]*>Kacheln</);
+});
+
 test("about settings contain help, legal placeholders, and the only visible version slot", () => {
   const html = renderSettings("ueber");
   assert.match(html, />Info-Seite öffnen</);
@@ -76,6 +82,7 @@ test("about settings copy performance data only once the account has measurement
 test("account settings show the login e-mail read-only in one wide panel", () => {
   const html = renderSettings();
   assert.match(html, /Login-E-Mail/);
+  assert.doesNotMatch(html, /nicht änderbar/);
   assert.match(html, /readOnly=""[^>]*value="login@example\.test"/);
   assert.doesNotMatch(html, /xl:grid-cols-\[1fr_0\.8fr\]/);
   assert.match(html, /<button type="button" class="core-action-secondary core-action-destructive-secondary [^"]*">(?:(?!<\/button>).)*<span>Abmelden<\/span><\/button>/);
@@ -115,15 +122,34 @@ test("conflict previews count only the selected direction", () => {
   assert.deepEqual(cloud.conflictIds, ["deck-add", "card-update", "variant-delete"]);
 });
 
-test("the last successful sync stays visible while changes are pending", () => {
-  const html = renderSettings("daten", { syncStatus: { status: "pending", message: "", pendingCount: 3 }, lastSyncedAt: "2026-10-12T08:30:00.000Z" });
-  assert.match(html, /Zuletzt erfolgreich: /);
-  assert.match(html, /Ausstehende Änderungen: 3/);
+test("the sync state is one tag that keeps the last successful sync while changes are pending", () => {
+  const state = (html: string) => html.match(/data-testid="settings-sync-state"[^>]*>([^<]*)</)?.[1] ?? "";
+  assert.match(state(renderSettings("daten", { syncStatus: { status: "pending", message: "", pendingCount: 3 }, lastSyncedAt: "2026-10-12T08:30:00.000Z" })), /^3 ausstehend · zuletzt 12\.10\., \d\d:30$/);
+  assert.match(state(renderSettings("daten", { syncStatus: { status: "saved", message: "", savedAt: "2026-10-12T08:30:00.000Z" } })), /^Synchronisiert · 12\.10\., \d\d:30$/);
+  assert.equal(state(renderSettings("daten")), "Noch nicht synchronisiert");
+  const offline = renderSettings("daten", { syncStatus: { status: "offline", message: "Offline. Zwei Änderungen bleiben vorgemerkt.", pendingCount: 2, nextRetryAt: null } });
+  assert.equal(state(offline), "Offline · 2 ausstehend");
+  assert.match(offline, /aria-label="Hinweis: Offline · 2 ausstehend"[\s\S]*?>Offline\. Zwei Änderungen bleiben vorgemerkt\.</);
+  assert.doesNotMatch(offline, /core-settings-row-hint/);
+});
+
+test("the device storage shows its usage and marks only storage the browser may clear", () => {
+  const render = (persisted: boolean) => {
+    const store = createWorkspaceStore();
+    store.set({ storageStatus: { supported: true, persisted, usage: 1024 * 1024, quota: 1024 * 1024 * 1024 } });
+    return renderToStaticMarkup(
+      <WorkspaceStoreContext.Provider value={store}><SettingsScreen section="daten" profile={createCoreRepository().getState().profile} onSaveSettings={() => null} onDraftStateChange={() => undefined} onSyncNow={async () => undefined} onListConflicts={async () => []} onResolveConflict={async () => undefined} onSignOut={async () => undefined} onNavigate={() => createViewRoute("uebersicht")} /></WorkspaceStoreContext.Provider>,
+    );
+  };
+  assert.match(render(true), /data-testid="workspace-storage-status"[\s\S]*?<span class="core-settings-row-value">[^<]+ von [^<]+<\/span>/);
+  assert.doesNotMatch(render(true), /Dauerhaft|Nicht dauerhaft/);
+  assert.match(render(false), />Nicht dauerhaft<[\s\S]*?>Dein Browser darf die lokal gespeicherten Daten bei Platzmangel löschen\. /);
 });
 
 test("automatic sync offers its fixed intervals as segments", () => {
   const html = renderSettings("daten");
   const group = html.slice(html.indexOf('aria-label="Intervall der automatischen Synchronisierung"'));
-  for (const label of ["Aus", "1", "5", "15", "30"]) assert.match(group, new RegExp(`class="core-segmented-control-option">${label}</button>`));
+  for (const label of ["Aus", "1 Min\\.", "5 Min\\.", "15 Min\\.", "30 Min\\."]) assert.match(group, new RegExp(`class="core-segmented-control-option">${label}</button>`));
+  assert.doesNotMatch(html, /Abstand in Minuten/);
   assert.match(html, /data-testid="settings-sync-interval"/);
 });

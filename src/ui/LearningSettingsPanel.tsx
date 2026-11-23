@@ -1,5 +1,6 @@
+import * as Popover from "@radix-ui/react-popover";
 import React from "react";
-import { AlertTriangle, CopyCheck, Flame, Leaf, Pencil, Plus, Save, Scale, SlidersHorizontal, Trash2 } from "lucide-react";
+import { AlertTriangle, Check, CopyCheck, Flame, Leaf, MoreHorizontal, Pencil, Plus, Save, Scale, SlidersHorizontal, Trash2, X } from "lucide-react";
 import type { LearningProfileTemplate } from "../coreTypes.ts";
 import {
   applyLearningProfileTemplateToDeckSettings,
@@ -13,10 +14,11 @@ import {
 } from "../deckSettings.ts";
 import { createDeckLearningSettingsDraft, type DeckLearningSettingsDraft } from "../settingsDraft.ts";
 import { ActionButton, IconButton } from "./actionUi.tsx";
-import { ActionDialog, CoreSegmentedControl } from "./coreUi.tsx";
+import { ActionDialog, CoreSegmentedControl, CoreTag } from "./coreUi.tsx";
 import { CoreNumberField } from "./CoreNumberField.tsx";
 import { useSuccessToast } from "./feedbackUi.tsx";
 import { CoreSlider, CoreSwitch } from "./formControls.tsx";
+import { InfoHint } from "./InfoHint.tsx";
 import { CoreSelect } from "./selectUi.tsx";
 
 const learningStepOptions = [
@@ -65,12 +67,15 @@ interface LearningSettingsPanelProps {
   onApplyProfile: (settings: DeckLearningSettingsDraft) => boolean;
 }
 
-function SettingsRow({ title, htmlFor, hint, hintId, children }: { title: string; htmlFor?: string; hint?: React.ReactNode; hintId?: string; children: React.ReactNode }) {
+function SettingsRow({ title, htmlFor, info, infoId, note, children }: { title: string; htmlFor?: string; info?: string; infoId?: string; note?: React.ReactNode; children: React.ReactNode }) {
   return (
     <div className="core-settings-row">
       <div className="core-settings-row-text">
-        {htmlFor ? <label htmlFor={htmlFor} className="core-settings-row-title">{title}</label> : <span className="core-settings-row-title">{title}</span>}
-        {hint ? <div id={hintId} className="core-settings-row-hint">{hint}</div> : null}
+        <div className="core-settings-row-heading">
+          {htmlFor ? <label htmlFor={htmlFor} className="core-settings-row-title">{title}</label> : <span className="core-settings-row-title">{title}</span>}
+          {info ? <InfoHint label={title} id={infoId}>{info}</InfoHint> : null}
+        </div>
+        {note}
       </div>
       <div className="core-settings-row-control">{children}</div>
     </div>
@@ -85,11 +90,11 @@ function SelectRow({ title, value, options, testId, onChange }: { title: string;
   );
 }
 
-function PresetRow({ title, hint, value, options, valueText, testId, onChange }: { title: string; hint?: React.ReactNode; value: string; options: ReadonlyArray<{ value: string; label: string }>; valueText: (isPreset: boolean) => string | null; testId: string; onChange: (value: string) => void }) {
+function PresetRow({ title, info, value, options, valueText, testId, onChange }: { title: string; info?: string; value: string; options: ReadonlyArray<{ value: string; label: string }>; valueText: (isPreset: boolean) => string | null; testId: string; onChange: (value: string) => void }) {
   const isPreset = options.some((option) => option.value === value);
   const text = valueText(isPreset);
   return (
-    <SettingsRow title={title} hint={hint}>
+    <SettingsRow title={title} info={info}>
       <span className="flex min-w-0 flex-wrap items-center justify-end gap-3 max-md:w-full" data-testid={testId}>
         {text ? <span className="core-settings-row-value max-md:mr-auto">{text}</span> : null}
         <CoreSegmentedControl ariaLabel={title} value={isPreset ? value : ""} options={options} className="max-md:min-w-0 max-md:flex-1 max-md:basis-56" onValueChange={(next) => { if (next) onChange(next); }} />
@@ -98,22 +103,48 @@ function PresetRow({ title, hint, value, options, valueText, testId, onChange }:
   );
 }
 
+function SectionTitle({ id, global, children }: { id: string; global: boolean; children: string }) {
+  return (
+    <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
+      <h2 id={id} tabIndex={-1} className="core-heading-2 text-core-text outline-none">{children}</h2>
+      {global ? <CoreTag tone="neutral">Standard für neue Stapel</CoreTag> : null}
+    </div>
+  );
+}
+
 export function LearningSettingsPanel({ draft, profiles, defaultProfileName, context = "deck", section, onProfilesChange, onDraftChange, onApplyProfile }: LearningSettingsPanelProps) {
   const [selectedProfileId, setSelectedProfileId] = React.useState(draft.learningProfileSource?.id ?? "custom");
-  const [profileName, setProfileName] = React.useState(defaultProfileName);
+  /** Null while the row shows the selection; otherwise the name being typed for a new or the selected own profile. */
+  const [profileEdit, setProfileEdit] = React.useState<{ mode: "create" | "rename"; name: string } | null>(null);
   const [deleteProfileId, setDeleteProfileId] = React.useState<string | null>(null);
   const setSuccessToast = useSuccessToast();
+  const profileNameRef = React.useRef<HTMLInputElement>(null);
+  const profileMenuRef = React.useRef<HTMLButtonElement>(null);
+  // The menu keeps the focus away from its button while its action opens the name field or a dialog.
+  const menuHandsFocusOn = React.useRef(false);
+  const editMode = profileEdit?.mode ?? null;
+  const leftEdit = React.useRef(false);
   React.useEffect(() => {
     setSelectedProfileId(draft.learningProfileSource?.id ?? "custom");
   }, [draft.learningProfileSource?.contentVersion, draft.learningProfileSource?.id]);
 
-  React.useEffect(() => setProfileName(defaultProfileName), [defaultProfileName]);
+  React.useEffect(() => {
+    if (editMode) {
+      leftEdit.current = true;
+      profileNameRef.current?.focus();
+      profileNameRef.current?.select();
+    } else if (leftEdit.current) {
+      leftEdit.current = false;
+      profileMenuRef.current?.focus();
+    }
+  }, [editMode]);
 
   const allProfiles = [...BUILT_IN_LEARNING_PROFILE_TEMPLATES, ...profiles];
   const selectedProfile = allProfiles.find((profile) => profile.id === selectedProfileId) ?? null;
   const selectedCustomProfile = profiles.find((profile) => profile.id === selectedProfileId) ?? null;
   const appliedProfile = draft.learningProfileSource ? allProfiles.find((profile) => profile.id === draft.learningProfileSource?.id) ?? null : null;
   const appliedProfileIsStale = Boolean(appliedProfile && draft.learningProfileSource && appliedProfile.contentVersion > draft.learningProfileSource.contentVersion);
+  const selectedIsApplied = Boolean(selectedProfile && selectedProfile.id === draft.learningProfileSource?.id && !appliedProfileIsStale);
   const profileOptions = [
     ...allProfiles.map((profile) => ({ value: profile.id, label: profile.name, icon: profile.id === "builtin:standard" ? Scale : profile.id === "builtin:intensive" ? Flame : profile.id === "builtin:relaxed" ? Leaf : Pencil })),
     { value: "custom", label: "Eigene Einstellungen", icon: SlidersHorizontal },
@@ -153,20 +184,19 @@ export function LearningSettingsPanel({ draft, profiles, defaultProfileName, con
       : `Lernprofil „${selectedProfile.name}“ wurde auf diesen Stapel angewandt.`);
   }
 
-  function createProfile() {
-    const result = createLearningProfileTemplate(profiles, { name: profileName, defaultName: defaultProfileName, settings: draft });
-    onProfilesChange(result.profiles);
-    setSelectedProfileId(result.template.id);
-    setProfileName(result.template.name);
-    setSuccessToast(`Lernprofil „${result.template.name}“ wurde angelegt.`);
-  }
-
-  function renameProfile() {
-    if (!selectedCustomProfile) return;
-    const next = renameLearningProfileTemplate(profiles, selectedCustomProfile.id, profileName);
-    onProfilesChange(next);
-    setProfileName(next.find((profile) => profile.id === selectedCustomProfile.id)?.name ?? profileName);
-    setSuccessToast("Lernprofil wurde umbenannt.");
+  function submitProfileEdit(event: React.FormEvent) {
+    event.preventDefault();
+    if (!profileEdit) return;
+    if (profileEdit.mode === "create") {
+      const result = createLearningProfileTemplate(profiles, { name: profileEdit.name, defaultName: defaultProfileName, settings: draft });
+      onProfilesChange(result.profiles);
+      setSelectedProfileId(result.template.id);
+      setSuccessToast(`Lernprofil „${result.template.name}“ wurde angelegt.`);
+    } else if (selectedCustomProfile) {
+      onProfilesChange(renameLearningProfileTemplate(profiles, selectedCustomProfile.id, profileEdit.name));
+      setSuccessToast("Lernprofil wurde umbenannt.");
+    }
+    setProfileEdit(null);
   }
 
   function updateProfile() {
@@ -185,48 +215,99 @@ export function LearningSettingsPanel({ draft, profiles, defaultProfileName, con
     setSuccessToast("Lernprofil wurde gelöscht. Bereits kopierte Stapelwerte bleiben erhalten.");
   }
 
+  function handOn(action: () => void) {
+    return () => {
+      menuHandsFocusOn.current = true;
+      action();
+    };
+  }
+
   return (
     <>
       {section === "daily" ? (
         <section id={dailySectionId} className="core-settings-section" aria-labelledby={dailyHeadingId}>
-          <h2 id={dailyHeadingId} tabIndex={-1} className="core-heading-2 text-core-text outline-none">Tagesrunde & Lernprofile</h2>
+          <SectionTitle id={dailyHeadingId} global={context === "global"}>Tagesrunde & Lernprofile</SectionTitle>
           <div className="core-settings-list">
-            <SettingsRow
-              title="Lernprofil-Vorlage"
-              hint={<>
-                <p>{context === "global"
-                  ? "Gilt für neue Stapel. Vorhandene Stapel ändern sich erst über „Auf alle Stapel anwenden“."
-                  : "Kopiert die Werte in diesen Stapel. Spätere Änderungen an der Vorlage wirken nicht automatisch weiter."}</p>
-                {draft.learningProfileSource ? (
-                  <p className={appliedProfileIsStale ? "mt-1 flex items-center gap-1 text-core-text" : "mt-1"} role={appliedProfileIsStale ? "status" : undefined}>
-                    {appliedProfileIsStale ? <AlertTriangle className="shrink-0 text-core-warning" size={14} aria-hidden="true" /> : null}
-                    Herkunft: {appliedProfile?.name ?? "Gelöschtes Lernprofil"} · Version {draft.learningProfileSource.contentVersion}{appliedProfileIsStale ? " · Neuere Vorlage verfügbar" : ""}
-                  </p>
-                ) : null}
-              </>}
-            >
-              <CoreSelect ariaLabel="Lernprofil-Vorlage" value={selectedProfileId} options={profileOptions} testId="learning-profile-select" className="w-full md:w-auto" menuAlign="end" onValueChange={(value) => { setSelectedProfileId(value); setProfileName(profiles.find((profile) => profile.id === value)?.name ?? defaultProfileName); }} />
-              <ActionButton type="button" variant="primary" icon={CopyCheck} disabled={!selectedProfile} onClick={applySelectedProfile}>{context === "global" ? "Als Standardprofil verwenden" : "Auf diesen Stapel anwenden"}</ActionButton>
-            </SettingsRow>
-            <SettingsRow title="Eigenes Lernprofil" htmlFor={`${sectionPrefix}-profile-name`}>
-              <input id={`${sectionPrefix}-profile-name`} aria-label="Name des eigenen Lernprofils" className="core-field min-w-0 basis-full md:w-56 md:basis-auto" value={profileName} onChange={(event) => setProfileName(event.target.value)} />
-              <ActionButton type="button" variant="secondary" icon={Plus} onClick={createProfile}>Anlegen</ActionButton>
-              <ActionButton type="button" variant="secondary" icon={Pencil} disabled={!selectedCustomProfile} onClick={renameProfile}>Umbenennen</ActionButton>
-              <IconButton type="button" variant="destructive-quiet" icon={Trash2} label="Lernprofil löschen" disabled={!selectedCustomProfile} onClick={() => setDeleteProfileId(selectedCustomProfile?.id ?? null)} />
-            </SettingsRow>
-            <SettingsRow title="Vorlage aktualisieren" hint="Übernimmt die aktuellen Werte in die gewählte eigene Vorlage. Stapel bleiben unverändert.">
-              <ActionButton type="button" variant="secondary" icon={Save} disabled={!selectedCustomProfile} onClick={updateProfile}>Mit aktuellen Werten aktualisieren</ActionButton>
-            </SettingsRow>
+            <div className="core-settings-row md:grid-cols-[auto_minmax(0,1fr)]" data-testid="learning-profile-row" data-profile-edit={editMode ?? undefined}>
+              <div className="core-settings-row-heading">
+                <span className="core-settings-row-title">Lernprofil</span>
+                {context === "deck" ? <InfoHint label="Lernprofil">Anwenden kopiert die Werte des Profils in diesen Stapel. Änderst du das Profil später, bleibt der Stapel unverändert, bis du es erneut anwendest.</InfoHint> : null}
+                {appliedProfileIsStale ? <CoreTag tone="warning" role="status">Neuere Fassung</CoreTag> : null}
+              </div>
+              {profileEdit ? (
+                <form className="core-settings-row-control flex-nowrap" onSubmit={submitProfileEdit}>
+                  <input
+                    ref={profileNameRef}
+                    aria-label={profileEdit.mode === "create" ? "Name des neuen Lernprofils" : "Neuer Name des Lernprofils"}
+                    className="core-field min-w-0 flex-1 md:w-64 md:flex-none"
+                    maxLength={60}
+                    value={profileEdit.name}
+                    data-testid="learning-profile-name"
+                    onChange={(event) => setProfileEdit({ ...profileEdit, name: event.target.value })}
+                    onKeyDown={(event) => {
+                      if (event.key !== "Escape") return;
+                      // Escape leaves the name field, not the settings dialog around it.
+                      event.stopPropagation();
+                      setProfileEdit(null);
+                    }}
+                  />
+                  <ActionButton type="submit" variant="primary" icon={Check}>{profileEdit.mode === "create" ? "Anlegen" : "Speichern"}</ActionButton>
+                  <IconButton type="button" variant="ghost" icon={X} label="Abbrechen" onClick={() => setProfileEdit(null)} />
+                </form>
+              ) : (
+                <div className="core-settings-row-control md:flex-nowrap">
+                  <CoreSelect ariaLabel="Lernprofil" value={selectedProfile ? selectedProfileId : "custom"} options={profileOptions} testId="learning-profile-select" className="w-full md:w-auto" menuAlign="end" onValueChange={setSelectedProfileId} />
+                  <ActionButton type="button" variant="secondary" icon={CopyCheck} disabled={!selectedProfile || selectedIsApplied} data-testid="learning-profile-apply" onClick={applySelectedProfile}>Anwenden</ActionButton>
+                  <Popover.Root>
+                    <Popover.Trigger asChild>
+                      <IconButton ref={profileMenuRef} type="button" icon={MoreHorizontal} label="Weitere Aktionen für Lernprofile" data-testid="learning-profile-menu" />
+                    </Popover.Trigger>
+                    <Popover.Portal>
+                      <Popover.Content
+                        align="end"
+                        sideOffset={6}
+                        collisionPadding={12}
+                        data-testid="learning-profile-menu-content"
+                        className="core-overlay z-[90] grid w-max max-w-[calc(100vw-1.5rem)] gap-0.5 rounded-panel p-1.5 outline-none"
+                        onCloseAutoFocus={(event) => {
+                          if (!menuHandsFocusOn.current) return;
+                          menuHandsFocusOn.current = false;
+                          event.preventDefault();
+                        }}
+                      >
+                        <Popover.Close asChild>
+                          <button type="button" className="core-menu-row" onClick={handOn(() => setProfileEdit({ mode: "create", name: defaultProfileName }))}><Plus size={16} aria-hidden="true" />Als neues Profil speichern</button>
+                        </Popover.Close>
+                        {selectedCustomProfile ? (
+                          <>
+                            <Popover.Close asChild>
+                              <button type="button" className="core-menu-row" onClick={handOn(() => setProfileEdit({ mode: "rename", name: selectedCustomProfile.name }))}><Pencil size={16} aria-hidden="true" />Umbenennen</button>
+                            </Popover.Close>
+                            <Popover.Close asChild>
+                              <button type="button" className="core-menu-row" onClick={updateProfile}><Save size={16} aria-hidden="true" />Mit aktuellen Werten aktualisieren</button>
+                            </Popover.Close>
+                            <div aria-hidden="true" className="core-menu-separator" />
+                            <Popover.Close asChild>
+                              <button type="button" className="core-menu-row" data-tone="danger" onClick={handOn(() => setDeleteProfileId(selectedCustomProfile.id))}><Trash2 size={16} aria-hidden="true" />Löschen</button>
+                            </Popover.Close>
+                          </>
+                        ) : null}
+                      </Popover.Content>
+                    </Popover.Portal>
+                  </Popover.Root>
+                </div>
+              )}
+            </div>
           </div>
 
           <div className="core-settings-group">
-            <h3 className="core-heading-3 text-core-text">Tagespensum und Reihenfolge</h3>
+            <h3 className="core-heading-3 text-core-text">Tagesrunde</h3>
             <div className="core-settings-list">
               <SettingsRow title="Neue Karten pro Tag" htmlFor="learning-settings-new-cards">
                 <CoreNumberField id="learning-settings-new-cards" value={draft.newCardsPerDay} min={0} max={500} className="w-32" onChange={(value) => editLearning({ newCardsPerDay: value })} />
               </SettingsRow>
-              <SettingsRow title="Wiederholungen pro Tag" htmlFor="learning-settings-max-reviews" hintId="learning-settings-max-reviews-hint" hint="Umfasst fällige, tagesübergreifende Lern- und neue Karten. Wiederholungen haben Vorrang.">
-                <CoreNumberField id="learning-settings-max-reviews" value={draft.maximumReviewsPerDay} min={0} max={2000} ariaDescribedBy="learning-settings-max-reviews-hint" className="w-32" onChange={(value) => editLearning({ maximumReviewsPerDay: value })} />
+              <SettingsRow title="Wiederholungen pro Tag" htmlFor="learning-settings-max-reviews">
+                <CoreNumberField id="learning-settings-max-reviews" value={draft.maximumReviewsPerDay} min={0} max={2000} className="w-32" onChange={(value) => editLearning({ maximumReviewsPerDay: value })} />
               </SettingsRow>
               <SelectRow title="Kartenreihenfolge" value={draft.newReviewOrder} options={reviewOrderOptions} testId="learning-settings-order" onChange={(value) => editLearning({ newReviewOrder: value })} />
               <PresetRow title="Neue Karten sortieren" value={draft.newCardSortOrder} options={newCardSortOptions} valueText={() => null} testId="learning-settings-new-sort" onChange={(value) => editLearning({ newCardSortOrder: value })} />
@@ -235,8 +316,12 @@ export function LearningSettingsPanel({ draft, profiles, defaultProfileName, con
           </div>
 
           <fieldset className="core-settings-group">
-            <legend className="float-left w-full core-heading-3 text-core-text">Geschwisterkarten begraben</legend>
-            <p className="core-settings-row-hint">Karten aus demselben Inhalt warten nach einer Antwort bis zum nächsten Lerntag. Lernstand und Fälligkeit bleiben.</p>
+            <legend className="float-left w-full">
+              <span className="core-settings-row-heading">
+                <span className="core-heading-3 text-core-text">Geschwisterkarten</span>
+                <InfoHint label="Geschwisterkarten">Geschwisterkarten stammen aus derselben Notiz, etwa Vorder- und Rückrichtung. War eine davon heute dran, warten die anderen bis zum nächsten Lerntag, damit sie sich nicht gegenseitig verraten. Lernstand und Fälligkeit ändern sich dadurch nicht.</InfoHint>
+              </span>
+            </legend>
             <div className="core-settings-list">
               {buryOptions.map((option) => (
                 <label key={option.key} className="core-settings-row cursor-pointer" data-layout="inline">
@@ -253,7 +338,7 @@ export function LearningSettingsPanel({ draft, profiles, defaultProfileName, con
 
       {section === "scheduler" ? (
         <section id={schedulerSectionId} className="core-settings-section" aria-labelledby={schedulerHeadingId}>
-          <h2 id={schedulerHeadingId} tabIndex={-1} className="core-heading-2 text-core-text outline-none">Scheduler & CoRe</h2>
+          <SectionTitle id={schedulerHeadingId} global={context === "global"}>Scheduler & CoRe</SectionTitle>
           <div className="core-settings-group mt-2">
             <h3 className="core-heading-3 text-core-text">Lernablauf</h3>
             <div className="core-settings-list">
@@ -275,10 +360,8 @@ export function LearningSettingsPanel({ draft, profiles, defaultProfileName, con
               <SettingsRow
                 title="Gewünschte Erinnerungsrate"
                 htmlFor="learning-settings-retention"
-                hint={<>
-                  <p>Höhere Werte bedeuten kürzere Abstände und mehr Wiederholungen.</p>
-                  {draft.schedulerProfile.desiredRetention > 0.97 ? <p className="mt-1 flex items-center gap-1 text-core-text"><AlertTriangle className="shrink-0 text-core-warning" size={14} aria-hidden="true" />Über 97 % steigt die tägliche Belastung meist sehr stark.</p> : null}
-                </>}
+                info="So sicher willst du eine Karte bei ihrer Wiederholung noch wissen. Ein höherer Wert plant kürzere Abstände und damit mehr Wiederholungen pro Tag."
+                note={draft.schedulerProfile.desiredRetention > 0.97 ? <p className="core-settings-row-hint flex items-center gap-1 text-core-text"><AlertTriangle className="shrink-0 text-core-warning" size={14} aria-hidden="true" />Über 97 % steigt die Last stark.</p> : null}
               >
                 <CoreSlider id="learning-settings-retention" className="w-full md:w-72" min={70} max={99} value={retentionPercent} formatValue={(percent) => `${percent} %`} data-testid="learning-settings-retention" onValueChange={(percent) => editLearning({ schedulerProfile: { desiredRetention: percent / 100 } })} />
               </SettingsRow>
@@ -289,12 +372,14 @@ export function LearningSettingsPanel({ draft, profiles, defaultProfileName, con
           </div>
 
           <div className="core-settings-group">
-            <h3 className="core-heading-3 text-core-text">Content Repetition</h3>
-            <p className="core-settings-row-hint">{context === "global" ? "Standard für neue Stapel." : "Gehört zu diesem Stapel."} Lernprofile ändern diese Werte nicht.</p>
+            <div className="core-settings-row-heading">
+              <h3 className="core-heading-3 text-core-text">Content Repetition</h3>
+              <InfoHint label="Content Repetition">Diese Werte gehören nicht zum Lernprofil. Wendest du ein Profil an, bleiben sie unverändert.</InfoHint>
+            </div>
             <div className="core-settings-list">
               <PresetRow
-                title="Varianten einsetzen ab Haltbarkeit"
-                hint="Ab dieser Haltbarkeit kommen statt der Karte ihre Varianten."
+                title="Varianten ab Haltbarkeit"
+                info="Behältst du eine Karte voraussichtlich mindestens so viele Tage, fragt CoRe statt der Originalkarte eine ihrer Varianten ab. So prüfst du, ob du den Inhalt beherrschst und nicht nur die Formulierung wiedererkennst."
                 value={String(draft.variantThresholdDays)}
                 options={variantThresholdOptions}
                 valueText={(isPreset) => `${isPreset ? "" : "Eigene · "}${draft.variantThresholdDays} Tage`}
@@ -303,7 +388,6 @@ export function LearningSettingsPanel({ draft, profiles, defaultProfileName, con
               />
               <PresetRow
                 title="Aktive Varianten pro Karte"
-                hint="Höchstzahl für Erzeugen und Abfragen."
                 value={String(draft.maxActiveVariantsPerCard)}
                 options={activeVariantOptions}
                 valueText={(isPreset) => isPreset ? null : `Eigene · ${draft.maxActiveVariantsPerCard}`}

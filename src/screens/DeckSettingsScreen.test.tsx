@@ -37,14 +37,15 @@ function renderScreen(currentDeck: Deck | null = deck, decks: Deck[] = [deck], o
   );
 }
 
-test("deck settings are one dialog in the shared settings frame with three areas, a deck switch and the defaults link", () => {
+test("deck settings are one dialog in the shared settings frame with three areas, a deck switch and the way back to the settings", () => {
   const html = renderScreen();
   assert.match(html, /role="dialog" aria-modal="true" aria-labelledby="[^"]+" data-testid="deck-settings-dialog"/);
   assert.match(html, /<nav aria-label="Bereiche der Stapeleinstellungen"/);
   for (const section of ["stapel", "tagesrunde", "scheduler"]) assert.match(html, new RegExp(`data-settings-section="${section}"`));
   assert.match(html, /aria-current="page" data-settings-section="stapel"/);
   assert.match(html, /data-testid="deck-settings-select"/);
-  assert.match(html, />Standardwerte</);
+  assert.match(html, /<button type="button" aria-label="Zurück zu Einstellungen" data-settings-back="true"[^>]*>.*?>Einstellungen<\/span><\/button>/);
+  assert.doesNotMatch(html, />Standardwerte</);
   assert.match(html, /aria-label="Stapeleinstellungen schließen"/);
   assert.doesNotMatch(html, /Zurück zu (?:Lernen|zur|der)|>Lerneinstellungen</);
   assert.doesNotMatch(html, /CoRe Automatisch|CoRe auto/);
@@ -96,9 +97,10 @@ test("deck profiles are copy-on-apply and global learn-ahead is absent", () => {
   const daily = renderScreen(deck, [deck], null, "tagesrunde");
   const scheduler = renderScreen(deck, [deck], null, "scheduler");
   const html = daily + scheduler;
-  assert.match(html, />Lernprofil-Vorlage</);
-  assert.match(html, />Auf diesen Stapel anwenden</);
-  assert.match(html, /Spätere Änderungen an der Vorlage wirken nicht automatisch weiter/);
+  assert.match(html, />Lernprofil</);
+  assert.match(html, />Anwenden</);
+  assert.match(html, /Änderst du das Profil später, bleibt der Stapel unverändert, bis du es erneut anwendest\./);
+  assert.doesNotMatch(html, /Standard für neue Stapel/);
   assert.match(html, />Neue Karten pro Tag</);
   assert.match(html, />Wiederholungen pro Tag</);
   assert.match(html, />Kartenreihenfolge</);
@@ -114,7 +116,6 @@ test("deck profiles are copy-on-apply and global learn-ahead is absent", () => {
     },
   };
   assert.match(renderScreen(forgottenFirstDeck, [forgottenFirstDeck], null, "tagesrunde"), /Wahrscheinlich vergessen zuerst/);
-  assert.match(html, /Wiederholungen haben Vorrang/);
   assert.match(html, />Lernschritte</);
   assert.match(html, />Nach einem Fehler erneut zeigen</);
   assert.doesNotMatch(html, /Kurze Abstände verdoppeln/);
@@ -139,7 +140,7 @@ test("the new-card target points at the stable daily-limit field", () => {
 });
 
 test("offline usage distinguishes cache, protected download and pending updates", () => {
-  assert.match(renderScreen(), /Teilweise zwischengespeichert/);
+  assert.match(renderScreen(), /data-testid="deck-settings-offline-state"[^>]*>Teilweise gespeichert</);
   assert.match(renderScreen(deck, [deck], {
     id: deck.id,
     deckId: deck.id,
@@ -200,16 +201,18 @@ test("variant generation is offered only for decks with CoRe switched on, names 
   assert.doesNotMatch(render(coreOff, false), /deck-settings-variant-generation/);
   const idle = render(coreOn, false);
   assert.match(idle, /data-testid="deck-settings-variant-generation"/);
-  assert.match(idle, />Varianten generieren</);
-  assert.match(idle, />Varianten neu generieren</, "refreshing stays reachable even when some cards can never get a variant");
-  assert.match(idle, /Je eine Variante für bis zu 50 Karten/);
-  assert.match(render(coreOn, true), /<button[^>]*disabled=""[^>]*>.*Varianten generieren/);
+  assert.match(idle, />Fehlende generieren</);
+  assert.match(idle, />Neu generieren</, "refreshing stays reachable even when some cards can never get a variant");
+  assert.doesNotMatch(idle, /deck-settings-variant-count/, "an unknown count shows no state");
+  const running = render(coreOn, true);
+  assert.match(running, /<button[^>]*disabled=""[^>]*>.*Fehlende generieren/);
+  assert.match(running, /data-testid="deck-settings-variant-count"[^>]*>Läuft</);
   const missing = render(coreOn, false, 12);
-  assert.match(missing, /data-testid="deck-settings-variant-count"[^>]*>12 Karten ohne Variante</);
-  assert.match(missing, />Varianten generieren</);
+  assert.match(missing, /data-testid="deck-settings-variant-count"[^>]*>12 ohne Variante</);
+  assert.match(missing, />Fehlende generieren</);
   const complete = render(coreOn, false, 0);
-  assert.match(complete, />Keine Karte wartet auf eine Variante\.</);
-  assert.match(complete, />Varianten neu generieren</);
-  assert.doesNotMatch(complete, />Varianten generieren</);
+  assert.match(complete, />0 ohne Variante</);
+  assert.match(complete, />Neu generieren</);
+  assert.doesNotMatch(complete, />Fehlende generieren</);
 });
 

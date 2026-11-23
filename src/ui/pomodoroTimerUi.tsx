@@ -7,7 +7,7 @@ import {
   type PomodoroTimer,
 } from "../pomodoroTimer.ts";
 import { ActionButton } from "./actionUi.tsx";
-import { CoreSegmentedControl } from "./coreUi.tsx";
+import { CoreSegmentedControl, CoreTag } from "./coreUi.tsx";
 
 export const POMODORO_PRESET_MINUTES = [15, 25, 45] as const;
 type PomodoroPreset = `${typeof POMODORO_PRESET_MINUTES[number]}`;
@@ -64,8 +64,9 @@ export function PomodoroTimerControl({ timer, variant, onStart }: PomodoroTimerC
   const regionId = React.useId();
   const errorId = React.useId();
   const snapshot = usePomodoroTimerSnapshot(timer);
-  const value = snapshot.running ? `${snapshot.remainingMinutes} Min.` : `${timer?.durationMinutes ?? DEFAULT_POMODORO_MINUTES} Min.`;
   const isSettings = variant === "settings";
+  // The settings row names the remaining time in its state tag, so its value stays the duration.
+  const value = snapshot.running && !isSettings ? `${snapshot.remainingMinutes} Min.` : `${timer?.durationMinutes ?? DEFAULT_POMODORO_MINUTES} Min.`;
   const selectedPreset = POMODORO_PRESET_OPTIONS.some((option) => option.value === minutes) ? minutes as PomodoroPreset : "";
 
   React.useEffect(() => {
@@ -95,11 +96,9 @@ export function PomodoroTimerControl({ timer, variant, onStart }: PomodoroTimerC
         onClick={() => setOpen((current) => !current)}
       >
         {isSettings ? (
-          <span className="core-settings-row-text flex-1">
+          <span className="core-settings-row-heading flex-1">
             <span className="core-settings-row-title">Pomodoro-Timer</span>
-            <span className="core-settings-row-hint">
-              {snapshot.running ? `Aktiv · noch ${snapshot.remainingMinutes} Min.` : "Läuft in diesem Browser. Ein Start ersetzt einen laufenden Timer."}
-            </span>
+            {snapshot.running ? <CoreTag tone="info">{`Läuft · ${snapshot.remainingMinutes} Min.`}</CoreTag> : null}
           </span>
         ) : (
           <span className="core-control-label flex min-w-0 flex-1 items-center gap-2 text-core-text">
