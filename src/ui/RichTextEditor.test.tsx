@@ -7,20 +7,18 @@ import {
   selectionOverlapsRichTextCloze,
 } from "./RichTextEditor.tsx";
 
-test("renders all tools in one toolbar when explicitly requested", () => {
-  const markup = renderToStaticMarkup(<RichTextEditor ariaLabel="Inhalt" showAllTools />);
-  assert.doesNotMatch(markup, /aria-label="Weitere Textwerkzeuge"/);
-  assert.match(markup, /aria-label="Unterstrichen"/);
-  assert.match(markup, /aria-label="Nummerierte Liste"/);
-  assert.match(markup, /display:contents/);
-  assert.doesNotMatch(markup, /hidden=""/);
-});
+const toolLabels = (markup: string) => Array.from(markup.matchAll(/<button[^>]*aria-label="([^"]+)"/g), (match) => match[1]);
+const documentFormatLabels = ["Fett", "Kursiv", "Unterstrichen", "Durchgestrichen", "Textfarbe", "Hervorheben", "Stichpunkte", "Nummerierte Liste", "Formatierung entfernen"];
 
 test("renders the grouped document toolbar without an overflow menu", () => {
   const markup = renderToStaticMarkup(<RichTextEditor ariaLabel="Zusammenfassung" documentTools />);
-  const labels = Array.from(markup.matchAll(/<button[^>]*aria-label="([^"]+)"/g), (match) => match[1]);
-  assert.deepEqual(labels, ["Rückgängig", "Wiederholen", "Fett", "Kursiv", "Unterstrichen", "Durchgestrichen", "Textfarbe", "Hervorheben", "Stichpunkte", "Nummerierte Liste", "Formatierung entfernen"]);
+  assert.deepEqual(toolLabels(markup), ["Rückgängig", "Wiederholen", ...documentFormatLabels]);
   assert.match(markup, /aria-label="Fett" aria-pressed="false"/);
+});
+
+test("leaves undo and redo to a caller with its own history", () => {
+  const markup = renderToStaticMarkup(<RichTextEditor ariaLabel="Kartentext" documentTools documentHistory={false} />);
+  assert.deepEqual(toolLabels(markup), documentFormatLabels);
 });
 
 test("finds the one cloze surrounding a selection or caret", () => {

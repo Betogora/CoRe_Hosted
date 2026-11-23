@@ -9,7 +9,7 @@ import { CoreWordmark } from "../src/ui/CoreWordmark.tsx";
 import { BrainMascot } from "../src/ui/BrainMascot.tsx";
 import { DailyMotivationWidget } from "../src/screens/DailyMotivationWidget.tsx";
 import React, { useRef, useState } from "react";
-import { ArrowUpRight, Ban, BookOpen, ChevronRight, Copy, Eye, FileSpreadsheet, FileText, Grid2x2, Info, Layers, List, MoreHorizontal, Palette, Pencil, PenLine, Play, Plus, RefreshCw, Save, Settings, Sparkles, Star, Trash2, X, type LucideIcon } from "lucide-react";
+import { ArrowUpRight, Ban, BookOpen, ChevronRight, Copy, Eye, FileSpreadsheet, FileText, Grid2x2, Info, Layers, List, MoreHorizontal, Pencil, PenLine, Plus, RefreshCw, Save, Settings, Sparkles, Star, Trash2, X, type LucideIcon } from "lucide-react";
 import { addCardVariant, addNoteField, applyCardStudyStatePatch, cardStudyFromReviewState, type OcclusionMode, createBasicNote, createCoreDeck, createManualNoteContent, createNote, createReviewState, noteBlocks, type ManualContentKind } from "../src/coreModel.ts";
 import type { CardStudyStatePatch, Deck, ExamPlanningSettings, CoreMode, NewReviewOrder, NoteContent, NoteField, OcclusionMask, SavedCardSearch, SyncStatus } from "../src/coreTypes.ts";
 import type { CardEditorServices, DecksCardPageRequest } from "../src/appScreenProps.ts";
@@ -36,7 +36,7 @@ import { CoreDatePicker } from "../src/ui/CoreDatePicker.tsx";
 import { CoreCheckbox, CoreRadio, CoreSlider, CoreSwitch } from "../src/ui/formControls.tsx";
 import { FlagDot, FlagIcon, FlagPicker } from "../src/ui/flagUi.tsx";
 import { TagInput } from "../src/ui/TagInput.tsx";
-import { COLOR_PICKER_PRESETS, ColorPicker, ColorSwatchButton } from "../src/ui/ColorPicker.tsx";
+import { COLOR_PICKER_PRESETS, ColorPicker, ColorSwatchButton, ColorSwatchRow } from "../src/ui/ColorPicker.tsx";
 import { FileDropField } from "../src/ui/FileDropField.tsx";
 import { SettingsSaveBar } from "../src/ui/SettingsSaveBar.tsx";
 import { VariantGenerationBar } from "../src/ui/VariantGenerationBar.tsx";
@@ -236,12 +236,11 @@ function StructureDemo({ section }: { section: string }) {
       <div className="max-w-[18rem]"><Steps ariaLabel="Schritte der automatischen Erstellung, schmal" items={STEP_DEMO_ITEMS} current={1} /></div>
     </div></Demo>}
     {section === "struktur" && <Demo title="CoreTabs und CoreTabPanel" wide><CoreTabs ariaLabel="Stapelinhalte" tabs={TAB_DEMO_ITEMS} value={tab} onValueChange={setTab} panelId="catalog-deck-content" /><CoreTabPanel panelId="catalog-deck-content" value={tab} className="pt-4 core-body text-core-secondary">Inhalt des Reiters {TAB_DEMO_ITEMS.find((item) => item.value === tab)?.label}.</CoreTabPanel></Demo>}
-    {section === "struktur" && <Demo title="Kopf der Stapelinhalte · Brotkrumen, Titel und Karten lernen auf einer Linie, Unterstreichungs-Reiter" wide>
+    {section === "struktur" && <Demo title="Kopf der Stapelinhalte · Brotkrumen, Titel und Unterstreichungs-Reiter" wide>
       <div className="core-deck-content-head">
         <nav className="core-deck-folder-breadcrumb" aria-label="Stapelpfad"><button type="button">Alle Stapel</button><ChevronRight size={16} aria-hidden="true" /><button type="button">Welt-Hauptstädte</button><ChevronRight size={16} aria-hidden="true" /><span aria-current="page">Europa</span></nav>
         <div className="core-deck-content-heading"><DeckAppearanceIcon deck={child} className="size-7" iconSize={16} /><h3 className="core-deck-content-title">Europa</h3></div>
         <div className="core-deck-content-tabs"><CoreTabs ariaLabel="Inhalte von Europa" tabs={TAB_DEMO_ITEMS} value={headTab} onValueChange={setHeadTab} panelId="catalog-deck-head" /></div>
-        <ActionButton variant="primary" icon={Play} className="core-deck-content-study" onClick={() => toast("Lernsitzung startet.")}>Karten lernen</ActionButton>
       </div>
       <CoreTabPanel panelId="catalog-deck-head" value={headTab} className="core-body text-core-secondary">Inhalt des Reiters {TAB_DEMO_ITEMS.find((item) => item.value === headTab)?.label}.</CoreTabPanel>
     </Demo>}
@@ -474,9 +473,9 @@ function ContentDemo({ section }: { section: string }) {
   return <>
     {section === "inhalt" && <Demo title="CardPresentationSurface" wide><SurfaceDemo /></Demo>}
     {section === "dialogs" && <Demo title="CardPreviewDialog"><ActionButton variant="secondary" onClick={() => setPreview(true)}>Kartenvorschau öffnen</ActionButton><CardPreviewDialog note={fixture.note} cards={fixture.cards} mediaUrls={fixture.mediaUrls} open={preview} onOpenChange={setPreview} /></Demo>}
-    {section === "editor" && <Demo title="RichTextEditor" wide><RichTextEditor value={text} onChange={setText} ariaLabel="Beispiel-Karteninhalt" isActive showAllTools clozeActions={{ groupId: 1 }} imageActions={{ mediaUrls, prepare: prepareImage }} /></Demo>}
+    {section === "editor" && <Demo title="RichTextEditor" wide><RichTextEditor value={text} onChange={setText} ariaLabel="Beispiel-Karteninhalt" isActive clozeActions={{ groupId: 1 }} imageActions={{ mediaUrls, prepare: prepareImage }} /></Demo>}
     {section === "editor" && <Demo title="RichTextEditor · Dokumentwerkzeuge" wide><RichTextEditor value={text} onChange={setText} ariaLabel="Beispiel-Dokument mit Dokumentwerkzeugen" isActive documentTools /></Demo>}
-    {section === "colors" && <Demo title="ColorPicker und ColorSwatchButton · Picker, Farbfelder und Palette"><div className="catalog-row"><ColorPicker ariaLabel="Farbe wählen" value={color} onValueCommit={setColor} /><div role="group" aria-label="Stiftfarbe" className="flex flex-wrap items-center gap-1">{COLOR_PICKER_PRESETS.slice(0, 5).map((preset) => <ColorSwatchButton key={preset} color={preset} aria-label={`Stiftfarbe ${preset}`} aria-pressed={color === preset} onClick={() => setColor(preset)} />)}<ColorPicker variant="tool" icon={Palette} ariaLabel="Eigene Stiftfarbe" value={color} onValueCommit={setColor} /></div></div></Demo>}
+    {section === "colors" && <Demo title="ColorPicker, ColorSwatchButton und ColorSwatchRow · Picker, Farbfeld und Farbreihe mit freier Farbe"><div className="catalog-row"><ColorPicker ariaLabel="Farbe wählen" value={color} onValueCommit={setColor} /><ColorSwatchButton color={color} aria-label="Farbfeld" aria-pressed /><ColorSwatchRow className="flex flex-wrap items-center gap-1" label="Stiftfarbe" colors={COLOR_PICKER_PRESETS.slice(0, 5).map((preset) => ({ value: preset, label: preset.toUpperCase() }))} value={color} onChange={setColor} /></div></Demo>}
     {section === "media" && <Demo title="PdfDocumentViewer" wide><PdfDemo /></Demo>}
   </>;
 }
@@ -856,7 +855,7 @@ export const DEMO_GROUPS = [
   { id: "progress", section: "primitive", title: "Fortschritt", description: "Tagesfortschritt, Zeitfortschritt sowie bestimmte und unbestimmte Prozessanzeigen.", components: ["DailyReviewProgress", "PomodoroProgress", "VariantGenerationBar"], render: () => <><FeedbackDemo section="progress" /><LearningDemo section="progress" /><ProductViewsDemo kind="import" /></> },
   { id: "dialogs", section: "primitive", title: "Dialoge", description: "Bestätigung, Dialograhmen, Speicherleiste, Kartenvorschau und Lerneinstellungen.", components: ["ActionDialog", "DialogFrame", "SettingsSaveBar", "CardPreviewDialog", "StudySettingsOverlay"], render: () => <><FeedbackDemo section="dialogs" /><StructureDemo section="dialogs" /><ContentDemo section="dialogs" /><LearningDemo section="dialogs" /></> },
   { id: "tags-flags", section: "primitive", title: "Tags und Flaggen", description: "Tag-Eingabe, Flaggenwähler, Flaggenmarke und Flaggen-Icon.", components: ["TagInput", "FlagPicker", "FlagDot", "FlagIcon"], render: TagsAndFlagsDemo },
-  { id: "colors", section: "primitive", title: "Farbwahl", description: "Farbfeld oder Werkzeug, Farbkreis und Schnellwahl.", components: ["ColorPicker", "ColorSwatchButton"], render: () => <ContentDemo section="colors" /> },
+  { id: "colors", section: "primitive", title: "Farbwahl", description: "Farbfeld oder Werkzeug, Farbkreis und Schnellwahl.", components: ["ColorPicker", "ColorSwatchButton", "ColorSwatchRow"], render: () => <ContentDemo section="colors" /> },
   { id: "flaechen", section: "shared", title: "Flächen und leere Zustände", description: "Inhaltsflächen und leere Zustände.", components: ["SoftPanel", "EmptyState"], render: () => <FoundationsDemo section="surfaces" /> },
   { id: "struktur", section: "shared", title: "Abschnittskopf, Schritte und Reiter", description: "Kopf jeder Fläche, nummerierte Schritte und Unterstreichungs-Reiter, im Stapelkopf und im Karteneditor.", components: ["SectionHeader", "Steps", "CoreTabs", "CoreTabPanel"], wide: true, render: () => <StructureDemo section="struktur" /> },
   { id: "headings", section: "shared", title: "Seitenköpfe", description: "Seitentitel sowie Köpfe von Lernen und Kartenverwaltung.", components: ["PageHeader", "LearningAreaHeader"], render: () => <><FoundationsDemo section="headings" /><NavigationDemo section="headings" /></> },

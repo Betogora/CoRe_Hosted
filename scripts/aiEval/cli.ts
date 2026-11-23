@@ -1,7 +1,7 @@
 import { existsSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { parseArgs } from "node:util";
-import { OUTPUT_ROOT, assignSplits, corpusCasesFile, handCasesFile, loadCases, readCases, readJson, sampleCorpus, seededRandom, writeJson } from "./cases.ts";
+import { SPLITS, outputRoot, assignSplits, type EvalCase, type Split, corpusCasesFile, handCasesFile, loadCases, readCases, readJson, sampleCorpus, seededRandom, writeJson } from "./cases.ts";
 import { definitionFor } from "./definitions.ts";
 import { generate, readAnswers, readMeta, runDirectory } from "./generate.ts";
 import { answerRef, buildJudgeTable, labelRef, readLabels, readVerdicts, type JudgeItem, type JudgeTable, type Verdicts } from "./judge.ts";
@@ -11,7 +11,7 @@ import { agreement, compare, decide, evaluateAnswers, ledgerRun, renderReport, s
 const USAGE = `npm run ai-eval -- <befehl> <anfragetyp> [optionen]
 
   cases <typ> [--corpus <n>] [--seed <n>]       Aufteilung festschreiben, optional n Korpusfälle ziehen
-  generate <typ> --run <name> [--split test|train|all] [--repetitions <n>] [--dry]
+  generate <typ> --run <name> [--split dev|train|holdout|all] [--repetitions <n>] [--budget <usd>] [--concurrency <n>] [--dry]
   table <typ> --run <name>                      Richtertabelle des Laufs schreiben
   score <typ> --run <name> [--baseline] [--change "<satz>"] [--record]
   calibration-table <typ>                       Richtertabelle aus den Handurteilen schreiben
@@ -20,6 +20,12 @@ const USAGE = `npm run ai-eval -- <befehl> <anfragetyp> [optionen]
 Anfragetypen: ${REQUEST_TYPES.map((type) => type.id).join(", ")}`;
 
 const SEED = 20261111;
+
+function positive(value: string, option: string, integer = false) {
+  const number = Number(value.replace(",", "."));
+  if (!Number.isFinite(number) || number <= 0 || (integer && !Number.isInteger(number))) throw new Error(`--${option} ist eine ${integer ? "ganze " : ""}Zahl über 0, nicht „${value}“.`);
+  return number;
+}
 const saveLedger = (ledger: EvalLedger) => writeJson(LEDGER_FILE, parseLedger(ledger));
 
 /** Tabelle und Schlüssel liegen getrennt, damit der Richter nur Eingabe und Ausgabe sieht. */
@@ -37,7 +43,8 @@ function verdictsIn(directory: string): Verdicts | null {
 
 async function main(argv: string[]) {
   const { values, positionals: [command, id] } = parseArgs({ args: argv, allowPositionals: true, options: {
-    run: { type: "string" }, split: { type: "string", default: "test" }, repetitions: { type: "string", default: "3" }, dry: { type: "boolean", default: false },
+    run: { type: "string" }, split: { type: "string", default: "dev" }, repetitions: { type: "string", default: "2" }, dry: { type: "boolean", default: false },
+    budget: { type: "string", default: "1" }, concurrency: { type: "string", default: "4" },
     corpus: { type: "string" }, seed: { type: "string", default: String(SEED) }, baseline: { type: "boolean", default: false }, change: { type: "string" },
     record: { type: "boolean", default: false }, judge: { type: "string", default: "claude-opus-5-5" },
   } });
@@ -58,19 +65,19 @@ async function main(argv: string[]) {
     const assigned = assignSplits([...hand, ...corpus], random);
     if (hand.length) writeJson(handCasesFile(id), { cases: assigned.slice(0, hand.length) });
     if (corpus.length) writeJson(corpusCasesFile(id), { cases: assigned.slice(hand.length) });
-    const count = (split: string) => assigned.filter((entry) => entry.split === split).length;
-    console.log(`${hand.length} Prüfkarten, ${corpus.length} Korpusfälle; Training ${count("train")}, Test ${count("test")}.`);
-    for (const category of [...new Set(assigned.map((entry) => entry.category))].sort()) console.log(`  ${category}: ${assigned.filter((entry) => entry.category === category).length}`);
+    const count = (members: readonly EvalCase[]) => SPLITS.map((split) => `${split} ${members.filter((entry) => entry.split === split).length}`).join(", ");
+    console.log(`${hand.length} Prüfkarten, ${corpus.length} Korpusfälle; ${count(assigned)}.`);
+    for (const category of [...new Set(assigned.map((entry) => entry.category))].sort()) console.log(`  ${category}: ${count(assigned.filter((entry) => entry.category === category))}`);
     return;
   }
 
   if (command === "generate") {
-    if (!["test", "train", "all"].includes(values.split)) throw new Error("--split ist test, train oder all.");
-    const split = values.split as "test" | "train" | "all";
-    const apiKey = values.dry ? "dry" : process.env.OPENROUTER_EVAL_API_KEY;
-    if (!apiKey) throw new Error("OPENROUTER_EVAL_API_KEY fehlt (Umgebungsvariable oder .env.local). Der Eval nutzt einen eigenen Schlüssel mit eigenem Limit.");
+    if (![...SPLITS, "all"].includes(values.split)) throw new Error(`--split ist ${SPLITS.join(", ")} oder all.`);
+    const split = values.split as Split | "all";
+    const apiKey = values.dry ? "dry" : process.env.OPENROUTER_API_KEY;
+    if (!apiKey) throw new Error("OPENROUTER_API_KEY fehlt (Benutzer-Umgebungsvariable). Der Eval nutzt den lokalen Schlüssel mit seinem Limit.");
     const cases = loadCases(definition).filter((entry) => split === "all" || entry.split === split);
-    const open = await generate({ definition, cases, repetitions: Number(values.repetitions), split, directory: runDirectory(id, run()), apiKey, dry: values.dry });
+    const open = await generate({ definition, cases, repetitions: positive(values.repetitions, "repetitions", true), split, directory: runDirectory(id, run()), apiKey, dry: values.dry, budgetUsd: positive(values.budget, "budget"), concurrency: positive(values.concurrency, "concurrency", true) });
     if (open) throw new Error(`${open} Antworten fehlen noch. Denselben Befehl erneut ausführen.`);
     return;
   }
@@ -78,7 +85,7 @@ async function main(argv: string[]) {
   if (command === "table") {
     const directory = runDirectory(id, run());
     const cases = new Map(loadCases(definition).map((entry) => [entry.id, entry]));
-    const answers: JudgeItem[] = readAnswers(directory).filter((row) => row.ok).map((row) => ({ ref: answerRef(row.caseId, row.repetition), request: cases.get(row.caseId)!.request, output: row.output }));
+    const answers: JudgeItem[] = readAnswers(directory).filter((row) => row.outcome === "answer" && !cases.get(row.caseId)!.refuse).map((row) => ({ ref: answerRef(row.caseId, row.repetition), request: cases.get(row.caseId)!.request, output: row.output }));
     const controls: JudgeItem[] = readLabels(definition).filter((label) => label.control).map((label) => ({ ref: labelRef(label.id), request: label.request, output: label.output }));
     const { table, key } = buildJudgeTable(definition, [...answers, ...controls], random);
     writeTable(directory, table, key);
@@ -115,7 +122,7 @@ async function main(argv: string[]) {
     console.log(report);
     if (!values.record) return;
     if (meta.dry) throw new Error("Ein Trockenlauf kommt nicht ins Ledger.");
-    if (meta.split !== "test") throw new Error("Ins Ledger kommen nur Läufe auf dem Testteil.");
+    if (meta.split !== "dev") throw new Error("Ins Ledger kommen nur Läufe auf dem Entscheidungsteil (dev).");
     if (!latestCalibration(ledger, type.id)) throw new Error("Der Richter ist für diesen Anfragetyp noch nicht kalibriert (calibration-score --record).");
     if (controls?.falsePasses) throw new Error("Der Richter hat einen Kontrolleintrag bei einem kritischen Kriterium fälschlich bestehen lassen. Der Lauf kommt nicht ins Ledger.");
     if (!values.change && decision !== "baseline") throw new Error("--change \"<die eine Änderung in einem Satz>\" fehlt.");
@@ -124,7 +131,7 @@ async function main(argv: string[]) {
     return;
   }
 
-  const calibration = `${OUTPUT_ROOT}/${id}/calibration`;
+  const calibration = `${outputRoot()}/${id}/calibration`;
   if (command === "calibration-table") {
     const labels = readLabels(definition);
     if (!labels.length) throw new Error(`Keine Handurteile für ${id}.`);

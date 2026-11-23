@@ -15,9 +15,12 @@ async function saveOnLeave(page: Page, panel: Locator) {
   await page.getByRole("dialog", { name: "Änderungen übernehmen?", exact: true }).getByRole("button", { name: "Speichern", exact: true }).click();
   await expect(panel.getByTestId("summary-list")).toBeVisible();
 }
+const aiForm = (page: Page) => page.getByRole("group", { name: "Zusammenfassung mit KI erstellen", exact: true });
+const lengthOption = (form: Locator, name: string) => form.getByRole("group", { name: "Länge", exact: true }).getByRole("button", { name, exact: true });
 async function openAiSettings(page: Page, panel: Locator) {
   await panel.getByRole("button", { name: "Zusammenfassung mit KI erstellen", exact: true }).click();
-  await page.getByRole("dialog", { name: "Zusammenfassung mit KI erstellen", exact: true }).getByRole("button", { name: "Einstellungen", exact: true }).click();
+  await aiForm(page).getByRole("button", { name: "Erweiterte Einstellungen", exact: true }).click();
+  return aiForm(page);
 }
 
 test("Schreiben öffnet einen Entwurf; Speichern erfolgt beim Verlassen und bleibt nach Reload erhalten", async ({ page }) => {
@@ -43,22 +46,20 @@ test("Schreiben öffnet einen Entwurf; Speichern erfolgt beim Verlassen und blei
   await expect(editor).toHaveText("Mein selbst geschriebener Überblick.");
 });
 
-test("KI-Einstellungen und Quellen liefern einen Entwurf; erst Verlassen speichert das bearbeitete Ergebnis", async ({ page }) => {
+test("KI-Einstellungen und Quellen liefern einen Entwurf; erst Speichern übernimmt das bearbeitete Ergebnis", async ({ page }) => {
   const panel = await openSummaries(page);
-  await openAiSettings(page, panel);
-  await page.getByRole("textbox", { name: "Titel", exact: true }).fill("KI aus einer Textquelle");
-  await page.getByLabel("Quelle anfügen (optional)").setInputFiles({ name: "skript.txt", mimeType: "text/plain", buffer: Buffer.from("ATP ist ein Energieträger. ADP besitzt zwei Phosphatgruppen.") });
-  await page.getByRole("button", { name: "Nur Quelle", exact: true }).click();
-  await page.getByRole("group", { name: "Länge", exact: true }).getByRole("button", { name: "Kurz", exact: true }).click();
-  await page.getByRole("combobox", { name: "Detailgrad", exact: true }).click();
-  await page.getByRole("option", { name: "Detailliert", exact: true }).click();
-  await page.getByRole("button", { name: "Mit KI erstellen", exact: true }).click();
+  const form = await openAiSettings(page, panel);
+  await form.locator('input[type="file"]').setInputFiles({ name: "skript.txt", mimeType: "text/plain", buffer: Buffer.from("ATP ist ein Energieträger. ADP besitzt zwei Phosphatgruppen.") });
+  await expect(form).toContainText("skript.txt");
+  await form.getByRole("group", { name: "Material", exact: true }).getByRole("button", { name: "Nur Quelle", exact: true }).click();
+  await lengthOption(form, "Kurz").click();
+  await form.getByRole("button", { name: "Mit KI erstellen", exact: true }).click();
   const editor = panel.getByRole("textbox", { name: "Zusammenfassung bearbeiten", exact: true });
   await expect(editor).toContainText("ATP ist ein Energieträger");
-  await expect(panel).toContainText("Ungespeicherte Änderungen");
-  await expect(panel).toContainText("Länge: Kurz · Detailgrad: Detailliert");
+  await panel.getByRole("textbox", { name: "Titel der Zusammenfassung", exact: true }).fill("KI aus einer Textquelle");
   await editor.fill("Mein bearbeitetes KI-Ergebnis.");
-  await saveOnLeave(page, panel);
+  await panel.getByRole("button", { name: "Speichern", exact: true }).click();
+  await expect(panel.getByRole("button", { name: "Gespeichert", exact: true })).toBeDisabled();
   await page.reload();
   await page.getByRole("button", { name: "Zusammenfassungen öffnen", exact: true }).click();
   await panel.getByRole("button", { name: "Zusammenfassung „KI aus einer Textquelle“ öffnen", exact: true }).click();
@@ -69,13 +70,12 @@ test("KI-Fehler erhalten Formular und vorhandene Fassungen", async ({ page }) =>
   const panel = await openSummaries(page);
   await page.getByRole("combobox", { name: "KI-Demoantwort", exact: true }).click();
   await page.getByRole("option", { name: "Fehler", exact: true }).click();
-  await openAiSettings(page, panel);
-  await page.getByRole("textbox", { name: "Titel", exact: true }).fill("Erhaltene Auswahl");
-  await page.getByRole("button", { name: "Mit KI erstellen", exact: true }).click();
-  const popup = page.getByRole("dialog", { name: "Zusammenfassung mit KI erstellen", exact: true });
-  await expect(popup).toContainText("Der KI-Dienst ist momentan nicht erreichbar");
-  await expect(popup.getByRole("textbox", { name: "Titel", exact: true })).toHaveValue("Erhaltene Auswahl");
-  await popup.getByRole("button", { name: "Abbrechen", exact: true }).click();
+  const form = await openAiSettings(page, panel);
+  await lengthOption(form, "Kurz").click();
+  await form.getByRole("button", { name: "Mit KI erstellen", exact: true }).click();
+  await expect(form).toContainText("Der KI-Dienst ist momentan nicht erreichbar");
+  await expect(lengthOption(form, "Kurz")).toHaveAttribute("aria-pressed", "true");
+  await form.getByRole("button", { name: "Abbrechen", exact: true }).click();
   await page.getByRole("dialog", { name: "Änderungen übernehmen?", exact: true }).getByRole("button", { name: "Verwerfen", exact: true }).click();
   await expect(panel.getByTestId("summary-list").getByRole("button", { name: /öffnen$/ })).toHaveCount(3);
 });
@@ -91,7 +91,7 @@ test("Ein Oberstapel zeigt die Fassungen seiner Unterstapel gruppiert und öffne
   await panel.getByRole("textbox", { name: "Zusammenfassungen durchsuchen", exact: true }).fill("Paris");
   await expect(list.getByRole("button", { name: /öffnen$/ })).toHaveCount(1);
   await group.getByRole("button", { name: "Zusammenfassung „Westeuropa“ öffnen", exact: true }).click();
-  await expect(panel).toContainText(`Grundlage: Unterstapel „${subdeck}“`);
+  await expect(panel.getByRole("textbox", { name: "Titel der Zusammenfassung", exact: true })).toHaveValue("Westeuropa");
   await panel.getByRole("textbox", { name: "Zusammenfassung bearbeiten", exact: true }).fill("Paris liegt an der Seine.");
   await saveOnLeave(page, panel);
   await page.reload();
@@ -99,19 +99,18 @@ test("Ein Oberstapel zeigt die Fassungen seiner Unterstapel gruppiert und öffne
   await expect(group).toContainText("Paris liegt an der Seine.");
 });
 
-test("Modulladefehler nach einem Update erhalten Titel und Einstellungen ohne Reload", async ({ page }) => {
+test("Modulladefehler nach einem Update erhalten die Einstellungen ohne Reload", async ({ page }) => {
   const panel = await openSummaries(page);
   await page.getByRole("combobox", { name: "KI-Demoantwort", exact: true }).click();
   await page.getByRole("option", { name: "Ladefehler nach Update", exact: true }).click();
-  await openAiSettings(page, panel);
-  await page.getByRole("textbox", { name: "Titel", exact: true }).fill("Mein Entwurf bleibt erhalten");
-  await page.getByRole("group", { name: "Länge", exact: true }).getByRole("button", { name: "Kurz", exact: true }).click();
-  await page.getByRole("button", { name: "Mit KI erstellen", exact: true }).click();
-  const popup = page.getByRole("dialog", { name: "Zusammenfassung mit KI erstellen", exact: true });
-  await expect(popup).toContainText("Ein Programmteil konnte nicht geladen werden.");
-  await expect(popup.getByRole("textbox", { name: "Titel", exact: true })).toHaveValue("Mein Entwurf bleibt erhalten");
-  await expect(popup.getByRole("group", { name: "Länge", exact: true }).getByRole("button", { name: "Kurz", exact: true })).toHaveAttribute("aria-pressed", "true");
-  await expect(popup.getByRole("button", { name: "Mit KI erstellen", exact: true })).toBeEnabled();
+  const form = await openAiSettings(page, panel);
+  await form.getByRole("textbox", { name: "Fokus (optional)", exact: true }).fill("Energiehaushalt");
+  await lengthOption(form, "Kurz").click();
+  await form.getByRole("button", { name: "Mit KI erstellen", exact: true }).click();
+  await expect(form).toContainText("Ein Programmteil konnte nicht geladen werden.");
+  await expect(form.getByRole("textbox", { name: "Fokus (optional)", exact: true })).toHaveValue("Energiehaushalt");
+  await expect(lengthOption(form, "Kurz")).toHaveAttribute("aria-pressed", "true");
+  await expect(form.getByRole("button", { name: "Mit KI erstellen", exact: true })).toBeEnabled();
 });
 
 test("Speicherfehler bleiben im Verlassen-Dialog sichtbar und der Entwurf geht nicht verloren", async ({ page }) => {
@@ -156,9 +155,8 @@ test("Ein Dokument wächst ohne Seitenumbruch; Text, Schrift und Zeichnungen ble
   await expect(editor.locator("b,strong")).toHaveText("Text mit Zeichnung.");
   await panel.getByRole("button", { name: "Stift", exact: true }).click();
   await expect(panel.getByRole("button", { name: "Fett", exact: true })).toBeHidden();
-  await panel.getByRole("button", { name: "Rot", exact: true }).click();
-  await panel.getByRole("spinbutton", { name: "Stiftstärke in Pixel", exact: true }).fill("5");
-  await panel.getByRole("spinbutton", { name: "Stiftstärke in Pixel", exact: true }).press("Enter");
+  await panel.getByRole("button", { name: "Stiftfarbe Rot", exact: true }).click();
+  await panel.getByRole("group", { name: "Strichstärke", exact: true }).getByRole("button", { name: "Dick", exact: true }).click();
   const drawing = panel.getByRole("img", { name: "Zeichenfläche Zusammenfassung", exact: true });
   await drawing.scrollIntoViewIfNeeded();
   const box = (await drawing.boundingBox())!;
@@ -166,9 +164,9 @@ test("Ein Dokument wächst ohne Seitenumbruch; Text, Schrift und Zeichnungen ble
   await page.mouse.move(box.x + 180, box.y + 220, { steps: 8 }); await page.mouse.up();
   await expect(drawing.locator("path")).toHaveCount(1);
   await expect(drawing.locator("path")).toHaveAttribute("stroke", "#e5484d");
-  await expect(drawing.locator("path")).toHaveAttribute("stroke-width", "5");
+  await expect(drawing.locator("path")).toHaveAttribute("stroke-width", "8");
   await panel.getByRole("button", { name: "Zeichenmarker", exact: true }).click();
-  await expect(panel.getByRole("button", { name: "Gelb", exact: true })).toHaveAttribute("aria-pressed", "true");
+  await expect(panel.getByRole("button", { name: "Markerfarbe Gelb", exact: true })).toHaveAttribute("aria-pressed", "true");
   await expect(panel.getByRole("button", { name: "Gerade auf Textzeile", exact: true })).toHaveAttribute("aria-pressed", "true");
   const row = (await editor.boundingBox())!;
   await page.mouse.move(row.x + 40, row.y + 40); await page.mouse.down();
@@ -180,7 +178,7 @@ test("Ein Dokument wächst ohne Seitenumbruch; Text, Schrift und Zeichnungen ble
   await expect(drawing.locator("path")).toHaveCount(0);
   await panel.getByRole("button", { name: "Zeichnung rückgängig", exact: true }).click();
   await panel.getByRole("button", { name: "Stift", exact: true }).click();
-  await expect(panel.getByRole("button", { name: "Rot", exact: true })).toHaveAttribute("aria-pressed", "true");
+  await expect(panel.getByRole("button", { name: "Stiftfarbe Rot", exact: true })).toHaveAttribute("aria-pressed", "true");
   await saveOnLeave(page, panel);
   await page.reload(); await page.getByRole("button", { name: "Zusammenfassungen öffnen", exact: true }).click();
   await panel.getByRole("button", { name: "Zusammenfassung „Europa im Überblick“ öffnen", exact: true }).click();
@@ -250,16 +248,16 @@ test("Zusammenfassungseditor: visuelle Pflichtmatrix für Text und Zeichenwerkze
   }
   await page.setViewportSize({ width: 390, height: 844 });
   await panel.getByRole("button", { name: "Schreiben", exact: true }).click();
-  await panel.getByRole("button", { name: "Arbeitsfläche vergrößern", exact: true }).click();
+  await panel.getByRole("button", { name: "Vollbild", exact: true }).click();
   const workspace = page.getByRole("dialog", { name: "Zusammenfassung bearbeiten – Arbeitsfläche", exact: true });
   await workspace.getByRole("button", { name: "Textfarbe", exact: true }).click();
   await page.screenshot({ path: testInfo.outputPath("390-text-color.png"), animations: "disabled" });
   await page.keyboard.press("Escape");
-  if (await workspace.isVisible()) await workspace.getByRole("button", { name: "Arbeitsfläche verkleinern", exact: true }).click();
-  await expect(panel.getByRole("button", { name: "Arbeitsfläche vergrößern", exact: true })).toBeFocused();
+  if (await workspace.isVisible()) await workspace.getByRole("button", { name: "Vollbild beenden", exact: true }).click();
+  await expect(panel.getByRole("button", { name: "Vollbild", exact: true })).toBeFocused();
 });
 
-test("Zusammenfassungsliste: Reihenfolge, Aktionsflächen und KI-Popover", async ({ page }) => {
+test("Zusammenfassungsliste: Reihenfolge, Aktionsflächen und KI-Formular", async ({ page }) => {
   const panel = await openSummaries(page);
   const search = panel.getByRole("textbox", { name: "Zusammenfassungen durchsuchen", exact: true });
   const list = panel.getByTestId("summary-list");
@@ -274,24 +272,27 @@ test("Zusammenfassungsliste: Reihenfolge, Aktionsflächen und KI-Popover", async
   await expect(panel).toContainText("Keine passende Zusammenfassung gefunden.");
   await expect(ai).toBeVisible();
   await ai.click();
-  const popup = page.getByRole("dialog", { name: "Zusammenfassung mit KI erstellen", exact: true });
-  await expect(popup.getByRole("textbox", { name: "Titel", exact: true })).toBeFocused();
-  await popup.getByRole("button", { name: "Nur dieser Stapel", exact: true }).click();
-  await expect(popup.getByRole("button", { name: "Nur dieser Stapel", exact: true })).toHaveAttribute("aria-pressed", "true");
-  await popup.getByRole("button", { name: "Einstellungen", exact: true }).click();
-  await popup.getByRole("combobox", { name: "Detailgrad", exact: true }).click();
-  await page.getByRole("option", { name: "Detailliert", exact: true }).click();
+  const form = aiForm(page), deckOnly = form.getByRole("group", { name: "Grundlage", exact: true }).getByRole("button", { name: "Nur dieser Stapel", exact: true });
+  await expect(ai).toHaveAttribute("aria-expanded", "true");
+  await expect(deckOnly).toBeFocused();
+  await expect(form.getByRole("combobox", { name: "Darstellung", exact: true })).toHaveCount(0);
+  await deckOnly.click();
+  await expect(deckOnly).toHaveAttribute("aria-pressed", "true");
+  await form.getByRole("button", { name: "Erweiterte Einstellungen", exact: true }).click();
+  await expect(form.getByRole("checkbox", { name: "Karten verlinken und Quellenstellen anzeigen", exact: true })).not.toBeChecked();
+  await form.getByRole("combobox", { name: "Darstellung", exact: true }).click();
+  await page.getByRole("option", { name: "Stichpunkte", exact: true }).click();
   await page.keyboard.press("Escape");
   const guard = page.getByRole("dialog", { name: "Änderungen übernehmen?", exact: true });
   await guard.getByRole("button", { name: "Weiter bearbeiten", exact: true }).click();
-  await expect(popup.getByRole("combobox", { name: "Detailgrad", exact: true })).toContainText("Detailliert");
-  await popup.getByRole("button", { name: "Abbrechen", exact: true }).click();
+  await expect(form.getByRole("combobox", { name: "Darstellung", exact: true })).toContainText("Stichpunkte");
+  await form.getByRole("button", { name: "Abbrechen", exact: true }).click();
   await guard.getByRole("button", { name: "Verwerfen", exact: true }).click();
-  await expect(popup).not.toBeVisible();
+  await expect(form).not.toBeVisible();
   await expect(ai).toBeFocused();
   await panel.getByRole("button", { name: "Zusammenfassung schreiben", exact: true }).click();
   await expect(panel.getByRole("textbox", { name: "Zusammenfassung bearbeiten", exact: true })).toBeEmpty();
-  await expect(panel).toContainText("Ungespeicherte Änderungen");
+  await expect(panel.getByRole("button", { name: "Speichern", exact: true })).toBeEnabled();
 });
 
 test("Löschen fragt nach, entfernt nur die gewählte Fassung und bleibt nach Reload", async ({ page }) => {
@@ -315,7 +316,7 @@ test("Löschen fragt nach, entfernt nur die gewählte Fassung und bleibt nach Re
   await expect(versions).toHaveCount(before - 1);
 });
 
-test("Zusammenfassungsliste und KI-Popover: visuelle Pflichtmatrix", async ({ page }, testInfo) => {
+test("Zusammenfassungsliste und KI-Formular: visuelle Pflichtmatrix", async ({ page }, testInfo) => {
   test.skip(!visualOutput, "Die vollständige Sichtmatrix wird gezielt ausgeführt.");
   test.setTimeout(300_000);
   const catalogPanel = await openSummaries(page);
@@ -336,30 +337,27 @@ test("Zusammenfassungsliste und KI-Popover: visuelle Pflichtmatrix", async ({ pa
       await page.screenshot({ path: testInfo.outputPath(`${size.width}-${theme}-list.png`), animations: "disabled" });
       expect(await panel.evaluate((element) => element.scrollWidth <= element.clientWidth + 1)).toBe(true);
       await panel.getByRole("button", { name: "Zusammenfassung mit KI erstellen", exact: true }).click();
-      const popup = page.getByRole("dialog", { name: "Zusammenfassung mit KI erstellen", exact: true });
-      await page.screenshot({ path: testInfo.outputPath(`${size.width}-${theme}-popover.png`), animations: "disabled" });
-      await expect(popup).toHaveAttribute("data-side", "bottom");
+      const form = aiForm(page);
+      await page.screenshot({ path: testInfo.outputPath(`${size.width}-${theme}-form.png`), animations: "disabled" });
       const triggerBox = (await panel.getByRole("button", { name: "Zusammenfassung mit KI erstellen", exact: true }).boundingBox())!;
-      const headerBox = (await product.locator(".catalog-product-bar").boundingBox())!;
-      expect(triggerBox.y).toBeGreaterThanOrEqual(headerBox.y + headerBox.height);
-      const box = (await popup.boundingBox())!;
-      expect(box.x).toBeGreaterThanOrEqual(0);
+      const box = (await form.boundingBox())!;
+      expect(Math.abs(box.x - triggerBox.x)).toBeLessThanOrEqual(1);
+      expect(Math.abs(box.width - triggerBox.width)).toBeLessThanOrEqual(1);
       expect(box.x + box.width).toBeLessThanOrEqual(size.width);
-      expect(box.y + box.height).toBeLessThanOrEqual(size.height + 1);
-      await popup.getByRole("button", { name: "Einstellungen", exact: true }).click();
-      await popup.getByRole("combobox", { name: "Detailgrad", exact: true }).click();
+      await form.getByRole("button", { name: "Erweiterte Einstellungen", exact: true }).click();
+      await form.getByRole("combobox", { name: "Darstellung", exact: true }).click();
       await page.screenshot({ path: testInfo.outputPath(`${size.width}-${theme}-select.png`), animations: "disabled" });
       await page.keyboard.press("Escape");
-      await popup.getByRole("button", { name: "Mit KI erstellen", exact: true }).scrollIntoViewIfNeeded();
+      await form.getByRole("button", { name: "Mit KI erstellen", exact: true }).scrollIntoViewIfNeeded();
       await page.screenshot({ path: testInfo.outputPath(`${size.width}-${theme}-settings.png`), animations: "disabled" });
-      expect(await popup.evaluate((element) => element.scrollWidth <= element.clientWidth + 1)).toBe(true);
+      expect(await form.evaluate((element) => element.scrollWidth <= element.clientWidth + 1)).toBe(true);
       await page.keyboard.press("Escape");
-      await expect(popup).not.toBeVisible();
+      await expect(form).not.toBeVisible();
     }
   }
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.evaluate(() => { document.documentElement.style.zoom = "2"; });
   await panel.scrollIntoViewIfNeeded();
   await panel.getByRole("button", { name: "Zusammenfassung mit KI erstellen", exact: true }).click();
-  await page.screenshot({ path: testInfo.outputPath("200-percent-popover.png"), animations: "disabled" });
+  await page.screenshot({ path: testInfo.outputPath("200-percent-form.png"), animations: "disabled" });
 });

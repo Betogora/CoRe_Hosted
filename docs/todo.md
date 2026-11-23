@@ -1,94 +1,89 @@
 # CoRe TODO
 
-Stand: 2026-11-22
+Stand: 2026-11-23
 
 Nur offene Arbeit. Ist-Stand in [`status.md`](status.md), Entscheidungen in
 [`decisions.md`](decisions.md), erledigte Arbeit in [`history.md`](history.md).
 
-Reihenfolge = Priorität. P5 wartet, bis alle KI-Prompts stehen. Offene Nachweise brauchen keinen Code und
+Reihenfolge = Priorität. Offene Nachweise brauchen keinen Code und
 laufen unabhängig davon; die Release-Voraussetzungen sind vor dem ersten
 externen Release fällig. „Später“ ist geparkt.
 
 ## P5: KI-Eval und Hillclimb
 
-Zurückgestellt, bis alle geplanten KI-Prompts stehen. Als Bauvorleistung
-steht der Runner mit Definitionen für Varianten (Frage/Antwort, Lückentext,
-Auswahl) und `card-help`; Ablauf, Ablage und Stand stehen unter
-[KI-Eval](ai-eval.md). Gemessen ist noch nichts: kein echter Lauf, keine
-Kalibrierung, kein Ledger-Eintrag. Karten aus einer Quelle und
-gegebenenfalls Quiz bekommen eine eigene Definition im selben Schema, sobald
-ihre Prompts stehen; für die Zusammenfassung fehlt ein Eval-Entwurf. Grundsätze im
-vorgeschlagenen
-[ADR-049](decisions.md#adr-049--ki-änderungen-nur-mit-eval-nachweis);
-Fallzahlen und Zielwerte sind ein Entwurf vom 2026-11-10 und dürfen neu
-bewertet werden.
+Alle vier KI-Routen stehen (`card-variant-v5`, `card-help-v1`,
+`source-cards-v2`, `learning-summary-v4`); P5 läuft. Im Ledger steht noch
+nichts; ein Probelauf vom 2026-11-23 steht im [Verlauf](history.md). Der Runner ([KI-Eval](ai-eval.md))
+kennt Varianten und `card-help` mit je 24 Prüfkarten in Training und
+Entscheidung (der Rückhalt füllt sich mit E), zählt jede Anfrage als
+Antwortklasse und hält je Lauf Fingerabdruck und Budget.
+Befunde, Versuchsaufbau und Arbeitspakete im Einzelnen stehen im
+[Versuchsplan](ai-eval-plan.md).
 
-- [ ] **Erste Runde Varianten (Agenda 4.1):** Anweisung „Frage anders
-      beginnen“ bleibt, dazu Satzbau umstellen als bevorzugtes Mittel.
-- [ ] **Eval-Schlüssel und Kostenziele:** `OPENROUTER_EVAL_API_KEY` mit
-      eigenem Limit als Benutzer-Umgebungsvariable anlegen
-      ([operations.md](operations.md#openrouter-schlüssel)). Kosten sind in jedem Lauf eine
-      feste Metrik (pro Antwort und hochgerechnet); die Zielwerte je
-      Anfragetyp werden mit der ersten Baseline festgelegt und in
-      `operations.md` übernommen.
-- [ ] **Fallsätze ausbauen:** Je Anfragetyp stehen 24 Prüfkarten, zwei je
-      Kategorie. Ziel etwa 120 Fälle je Anfragetyp aus weiteren Prüfkarten
-      und Korpusfällen (`cases --corpus`), `card-help` je Karte in allen drei
-      Modi. „Freitext ohne echte Frage“ deckt Dank, Bestätigung, eigenen
-      Antwortversuch, Bitte wie „einfacher“, Unverständnis, Unsinn und Text
-      ohne Kartenbezug ab. Lückentext braucht Fälle, deren Lücke fast den
-      ganzen Text trägt: Dort umschreibt das Modell die Lösung außerhalb der
-      Lücke, was die Routenprüfung nicht erkennt (M2).
-- [ ] **Kalibrieren und Baselines:** Je Anfragetyp ein Bewertungsbogen (je
-      Kriterium bestanden oder nicht, mit je einem Beispiel) und etwa 40
-      Einträge, nach Kategorie geschichtet und mit gezielt eingebauten
-      Fehlern je kritischem Kriterium, weil echte Antworten zu selten
-      durchfallen. Handurteil blind im selben Tabellenmodus wie der Richter.
-      Maße: Übereinstimmung und Cohens Kappa je Kriterium, dazu die Fälle, die
-      der Richter bei einem kritischen Kriterium fälschlich bestehen lässt
-      (Ziel ≥ 90 % Übereinstimmung bei den kritischen Kriterien, kein falsch
-      bestandener gesäter Fehler). Abweichungen durchsehen, Bogen oder
-      Richterauftrag schärfen und an frischen Einträgen bestätigen; derselbe
-      Richter zweimal über dieselbe Tabelle misst sein eigenes Rauschen. Aus
-      den Einträgen entstehen die etwa zehn Kontrolleinträge jeder
-      Richtertabelle. Richtermodell, Auftrag und Bogen sind danach
-      eingefroren; jede Änderung daran kalibriert neu. Danach Baseline je
-      Anfragetyp, erst dann Runden: je Runde eine Änderung aus
-      Trainingsfehlern, gemessen am Testteil. Nachweis: Kalibrierung und
-      Baseline je Anfragetyp im Ledger.
-- [ ] **Karten aus einer Quelle: Zerlegung der Quelle messen.** Heute geht
-      je Anfrage ein Abschnitt (≤ 15.000 Zeichen) an die KI. Das trennt
-      Zusammenhänge über Abschnitte, gewichtet „zentral“ nur je Abschnitt,
-      und die Obergrenze von 100 Vorschlägen wird von vorn verbraucht, sodass
-      hintere Kapitel langer Quellen leer ausgehen; Dopplungen verhindert nur
-      der Fragetext. Vergleichen auf den Prüfdokumenten in
-      `fixtures/ai-source/` und zusätzlich langen Quellen: (a) Abschnitte wie
-      heute, (b) die ganze Quelle als Kontext in jeder Anfrage, Karten nur für
-      den markierten Abschnitt, (c) erst eine Gliederung der ganzen Quelle
-      mit Kernaussagen und Kartenbudget je Abschnitt, dann die Abschnitte mit
-      dieser Gliederung. Kriterien: Verteilung der Karten über die Quelle,
-      getroffene Kernaussagen, abschnittsübergreifende Fragen, Dopplungen,
-      Belegtreue, Kosten und Laufzeit. Dazu die Reste nach `source-cards-v2`
-      ([Verlauf](history.md)): Single Choice wird nie gewählt, und
-      Tabellenzeilen mit zwei Angaben ergeben weiter Doppelfragen.
-- [ ] **Karten aus einer Quelle: Kartenmenge wirksam machen.** Weniger,
-      Normal und Mehr ergeben heute gleich viele Vorschläge (Messung vom
-      2026-11-22 im [Verlauf](history.md): 77, 76 und 77 auf den fünf
-      Prüfdokumenten, 6–10 je 1.000 Zeichen); die Schätzung im Formular nennt
-      deshalb für jede Stufe dieselbe Spanne. Ziel über dieselben
-      Prüfdokumente: Weniger höchstens 60 % und Mehr mindestens 140 % der
-      Vorschläge von Normal, ohne Füllkarten und bei gleicher Belegtreue.
-      Danach die Dichten je Stufe in `AI_SOURCE_AMOUNTS` neu messen.
-- [ ] **Zielwerte (Entwurf):** Varianten: Hauptwert ≥ 95 %, M2-Verletzungen
-      ≤ 1 % und keine bei Richtung, Kosten höchstens 1,2-fach, Latenz p90
-      ≤ 4 s. `card-help`: Hauptwert ≥ 90 %, H2 ≥ 98 %, H6 = 100 %; Streaming
-      erst, wenn die Latenz im Median über 4 s liegt.
-- [ ] **Neu zu bewerten:** Richter über Subscription oder über OpenRouter
-      (API-Gegenwert etwa 1–1,50 USD je Runde im Tabellenmodus, Luna etwa
-      0,02 USD je Runde); Fallzahl und Wiederholungen gegen das Rauschen
-      (bei 60 Testfällen × 3 etwa ±7,5 Punkte); ob ein anderes Modell als
-      Generator verglichen wird (Haiku 5.5 kostet auf OpenRouter dasselbe wie
-      Luna).
+Festgelegt am 2026-11-23: Erzeugt wird nur über OpenRouter mit dem lokalen
+Schlüssel und seinem Limit, nie über ein Modell aus einer Subscription.
+Richter ist Opus 5.5 als Subagent in Claude Code, je Block ein frischer
+Kontext. Eine Handkalibrierung gibt es vorerst nicht; jeder Bericht zeigt je
+Kriterium die zwei bis drei am wenigsten eindeutigen Urteile. Der Hillclimb läuft
+innerhalb eines Modells, der Referenz `openai/gpt-6-luna` mit `low`; ein
+Modellvergleich folgt später von Hand und wird nicht eigens gebaut. Ein
+Modellwechsel und das KI-Kontingent sind nicht Teil von P5.
+
+Pakete in dieser Reihenfolge; vor H laufen nur die Nachweise von F und G echt.
+
+- [ ] **Zugang:** `OPENROUTER_API_KEY` und `CORE_AI_EVAL_DIR` als
+      Benutzer-Umgebungsvariablen setzen ([operations.md](operations.md#openrouter-schlüssel));
+      erst dann sind echte Läufe möglich. Nur der Nutzer.
+- [ ] **Inhaltsfilter in den Routen:** Bricht der Anbieter mit
+      `finish_reason: content_filter` ab (im Probelauf vom 2026-11-23 bei
+      Karten mit eingeschleuster Anweisung, [Verlauf](history.md)), melden die
+      Routen heute „Werkzeug nicht korrekt verwendet“. Eigener Fehlercode und
+      eine verständliche Meldung; im Eval bleibt es eine verworfene Antwort.
+- [ ] **C – Kandidaten und Richter:** Prompt, Werkzeugschema, Ausgabegrenze
+      und Reasoning je Lauf über eine Kandidatendatei wählbar, ohne den Code
+      der Route zu ändern. Richtertabelle in Blöcken mit je einem frischen
+      Subagenten, Sicherheit je Urteil, Doppelurteile als Richterrauschen,
+      wiederverwendete Urteile für gleiche Ausgaben. `--record` ohne
+      Kalibrierung. Nachweis: zwei Kandidaten nebeneinander;
+      ein zweiter Lauf mit gleichen Ausgaben braucht keinen Richter.
+- [ ] **D – Auswertung und Übersicht:** Entscheidungsregel mit Kosten und
+      Latenz; Fallen im Bericht; Ergebnisdateien ohne Inhalte versioniert,
+      damit der Vergleich an keinem Worktree hängt. Seite
+      [KI-Eval](ai-eval.md) mit Rückhalt, Richterrauschen und Bilanz.
+      Nachweis: Bilanz aus einem Testledger; Vergleich ohne `output/`.
+- [ ] **E – Fallsätze Varianten und KI hilft:** je Anfragetyp etwa 100
+      Fälle aus Prüfkarten und Korpus (`cases --corpus`), darunter
+      Eintippen, Ketten mit vorhandenen Varianten, Lückentexte mit fast
+      textfüllender Lücke, Freitext ohne echte Frage und Fallen je kritischem
+      Kriterium; Injection-Fälle in mehreren Formen, weil der Inhaltsfilter
+      des Anbieters die plumpe „SYSTEM:“-Form abfängt. Nachweis: Fallzahlen je
+      Teil und Kategorie; Stichprobe vom Nutzer gesehen.
+- [ ] **F – Karten aus einer Quelle messbar machen:** Registereintrag und
+      Definition je Dokument über den ganzen Auftrag (mehrere Anfragen,
+      Zahlenwerte als Messgrößen), etwa 24 Dokumente mit Kernaussagen,
+      darunter lange Quellen. Nachweis: Die Messung vom 2026-11-22
+      ([Verlauf](history.md)) ist mit dem Runner nachgestellt.
+- [ ] **G – Zusammenfassung messbar machen:** Definition, etwa 24
+      Materialsätze mit Kernaussagen und Einstellungsprofilen. Nachweis: ein
+      echter Lauf über drei Materialsätze.
+- [ ] **H – Baseline:** alle Anfragetypen mit den Prompts des Codes auf
+      allen drei Teilen. Nachweis: Ledger und Seite. Haltepunkt: Der Nutzer
+      legt Zielwerte und Reihenfolge der Welle fest und sagt, ob der Richter
+      passt; die Zielwerte im Versuchsplan sind bis dahin ein Entwurf.
+- [ ] **I – Hillclimb, erste Welle:** Varianten, KI hilft, Karten aus einer
+      Quelle, Zusammenfassung. Je Runde drei bis fünf Kandidaten aus den
+      Trainingsfehlern, Vorauswahl am Trainingsteil, Entscheidung am
+      Entscheidungsteil; Ende bei erreichtem Ziel, drei Runden ohne Übernahme
+      oder acht Runden. Bei Karten aus einer Quelle zusätzlich: Kartenmenge
+      wirksam machen (Weniger höchstens 60 %, Mehr mindestens 140 % der
+      Vorschläge von Normal, ohne Füllkarten und bei gleicher Belegtreue;
+      danach die Dichten in `AI_SOURCE_AMOUNTS` neu messen), Single Choice
+      wird nie gewählt, Tabellenzeilen ergeben Doppelfragen, und die
+      Zerlegung der Quelle in drei Varianten vergleichen. Nachweis: je
+      Anfragetyp ein Pull Request mit Promptversion und Ledger-Einträgen.
+- [ ] **J – Abschluss:** Kostenziele je Anfragetyp nach `operations.md`,
+      Versuchsplan auflösen. Nachweis: Die Seite zeigt Bestand, Verlauf und
+      Bilanz für alle Anfragetypen.
 
 ## Offene Nachweise
 
@@ -152,6 +147,8 @@ neuen Code.
   `zipReader.ts` prüfen; Beleg je Folie oder Abschnitt).
 - Bilder als Quelle für Karten aus einer Quelle (teurer, eigener Hillclimb); braucht eine Ergänzung
   von ADR-011 (Agenda 3.3, 3.5).
+- Modellvergleich von Hand über eine Kandidatendatei, auf denselben
+  Fallsätzen, sobald die erste Welle von P5 steht.
 - KI-Kontingente je Nutzer im Zusammenspiel mit Bezahlstufen bzw.
   Abonnements (Umfang je Stufe, Credits, Abrechnung nach Kosten).
 

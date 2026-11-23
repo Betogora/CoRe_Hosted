@@ -15,7 +15,7 @@ export const summarySettingsSchema = v.strictObject({
 export type SummarySettings = v.InferOutput<typeof summarySettingsSchema>;
 
 export const summaryChoices = {
-  scope: [{ value: "deck", label: "Nur dieser Stapel" }, { value: "tree", label: "Stapel und Unterstapel" }],
+  scope: [{ value: "deck", label: "Nur dieser Stapel" }, { value: "tree", label: "Mit Unterstapeln" }],
   length: [{ value: "short", label: "Kurz" }, { value: "medium", label: "Mittel" }, { value: "long", label: "Lang" }],
   detail: [{ value: "essentials", label: "Kernaussagen" }, { value: "balanced", label: "Ausgewogen" }, { value: "detailed", label: "Detailliert" }],
   format: [{ value: "bullets", label: "Stichpunkte" }, { value: "sections", label: "Gegliedert" }, { value: "prose", label: "Fließtext" }],
@@ -23,6 +23,8 @@ export const summaryChoices = {
   register: [{ value: "simple", label: "Einfach" }, { value: "technical", label: "Fachnah" }],
 } as const;
 
+export const summaryDetailByLength = { short: "essentials", medium: "balanced", long: "detailed" } as const satisfies Record<SummarySettings["length"], SummarySettings["detail"]>;
+
 export function createSummarySettings(): SummarySettings {
-  return { scope: "tree", material: "cards", length: "medium", detail: "balanced", format: "sections", goal: "understand", register: "technical", focus: "", includeExamples: true, showReferences: true };
+  return { scope: "tree", material: "cards", length: "medium", detail: "balanced", format: "sections", goal: "understand", register: "technical", focus: "", includeExamples: true, showReferences: false };
 }

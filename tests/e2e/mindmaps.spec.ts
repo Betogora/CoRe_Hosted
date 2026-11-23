@@ -63,7 +63,7 @@ test("Oben erzeugte Karten werden beim Verknüpfen gleichartige Äste und lassen
   await mode(panel, "Verknüpfen"); await fit(panel); await node(panel, "Angehängte Notiz").click(); await node(panel, "Ast A").click();
   await expect(panel.locator(".core-mindmap-hierarchy path")).toHaveCount(3); await expect(panel.locator(".core-mindmap-edges path")).toHaveCount(0); await fit(panel);
   const card = node(panel, "Angehängte Notiz"); await expect(card).toHaveAttribute("data-color", (await node(panel, "Ast A").getAttribute("data-color"))!);
-  await mode(panel, "Verknüpfen"); await card.click();
+  await mode(panel, "Auswählen"); await card.click();
   const before = await card.evaluate((el) => (el as HTMLElement).style.left), r = await card.boundingBox();
   await page.mouse.move(r!.x + r!.width / 2, r!.y + r!.height / 2); await page.mouse.down(); await page.mouse.move(r!.x + r!.width / 2 + 35, r!.y + r!.height / 2 + 20, { steps: 6 }); await page.mouse.up();
   expect(await card.evaluate((el) => (el as HTMLElement).style.left)).not.toBe(before);
@@ -72,9 +72,9 @@ test("Oben erzeugte Karten werden beim Verknüpfen gleichartige Äste und lassen
 
 test("Schreiben bearbeitet ausgewählte Karten oder freies Flächentext-HTML mit Bewegung und Löschung", async ({ page }) => {
   const panel = await openMindMaps(page); await root(panel, "Karte");
-  await mode(panel, "Gestalten"); await panel.getByRole("group", { name: "Gestalten", exact: true }).getByRole("button", { name: "Schreiben", exact: true }).click();
+  await mode(panel, "Schreiben");
   await panel.getByRole("textbox", { name: "Kartentext bearbeiten" }).fill("Direkt in der ausgewählten Karte"); await finish(panel);
-  await panel.getByTestId("mindmap-canvas").press("Escape"); await mode(panel, "Gestalten");
+  await panel.getByTestId("mindmap-canvas").press("Escape"); await mode(panel, "Schreiben");
   const canvas = panel.getByTestId("mindmap-canvas"); await canvas.evaluate((el) => el.scrollIntoView({ block: "center", behavior: "instant" })); await canvas.click({ position: { x: 80, y: 150 } });
   const editor = panel.getByRole("textbox", { name: "Text auf der Fläche bearbeiten" }); await editor.fill("Freie Worte"); await editor.press("Control+A"); await panel.getByRole("button", { name: "Fett", exact: true }).click(); await finish(panel);
   const text = panel.getByTestId("mindmap-free-text"); await expect(text.locator("b,strong")).toHaveText("Freie Worte"); await expect(text.locator(".core-mindmap-node-label")).toHaveCount(0); await expect(text.getByRole("button", { name: "Unterknoten hinzufügen" })).toHaveCount(0);
@@ -85,7 +85,7 @@ test("Schreiben bearbeitet ausgewählte Karten oder freies Flächentext-HTML mit
 test("Freie Text- und Markerfarben erhalten die Auswahl trotz Fokuswechsel und Reload", async ({ page }) => {
   const panel = await openMindMaps(page); await root(panel, "Formatierte Notiz"); await node(panel, "Formatierte Notiz").dblclick();
   const editor = panel.getByRole("textbox", { name: "Kartentext bearbeiten", exact: true }); await editor.fill("Farbe bleibt gespeichert.");
-  for (const [label, color, property, expected] of [["Stiftfarbe", "#e5484d", "color", "rgb(229, 72, 77)"], ["Markerfarbe", "#f6dd8e", "backgroundColor", "rgb(246, 221, 142)"]] as const) {
+  for (const [label, color, property, expected] of [["Textfarbe", "#e5484d", "color", "rgb(229, 72, 77)"], ["Hervorheben", "#f6dd8e", "backgroundColor", "rgb(246, 221, 142)"]] as const) {
     await editor.press("Control+A"); await panel.getByRole("button", { name: label, exact: true }).click(); await page.getByRole("dialog", { name: label, exact: true }).getByRole("radio", { name: `Farbe ${color.toUpperCase()}`, exact: true }).click();
     await expect.poll(() => editor.evaluate((el, args) => Array.from(el.querySelectorAll("*")).some((n) => getComputedStyle(n)[args.property] === args.expected), { property, expected })).toBe(true);
     await panel.getByRole("button", { name: label, exact: true }).click();
@@ -98,7 +98,7 @@ test("Freie Text- und Markerfarben erhalten die Auswahl trotz Fokuswechsel und R
 test("Direkte Bearbeitung mit allen Textwerkzeugen oben, automatischer Werkzeugwahl und fetten Titeln über normalem Text", async ({ page }) => {
   const panel = await openMindMaps(page); await expect(panel.locator(".core-mindmap-primary-tools").getByRole("button", { name: "Aus Zusammenfassung", exact: true })).toBeVisible();
   await root(panel, "Energie"); await node(panel, "Energie").dblclick();
-  for (const name of ["Unterstrichen", "Stichpunkte", "Nummerierte Liste", "Formatierung löschen"]) await expect(panel.getByRole("button", { name, exact: true })).toBeVisible();
+  for (const name of ["Unterstrichen", "Durchgestrichen", "Stichpunkte", "Nummerierte Liste", "Formatierung entfernen"]) await expect(panel.getByRole("button", { name, exact: true })).toBeVisible();
   await expect(panel.getByRole("group", { name: "Mindmap-Werkzeug", exact: true }).getByRole("button", { name: "Karte bearbeiten", exact: true })).toHaveAttribute("aria-pressed", "true");
   await expect(panel.getByRole("textbox", { name: "Kartentitel bearbeiten" })).toBeFocused();
   await panel.getByRole("textbox", { name: "Kartentext bearbeiten" }).fill("ATP transportiert Energie.");
@@ -173,19 +173,19 @@ test("Umrandung passt sich beim Verschieben an und lässt sich unabhängig lösc
   await expect(panel.getByTestId("mindmap-node")).toHaveCount(3);
 });
 
-test("Gestalten enthält Zeichnen, Radieren und Schreiben mit Farben und Strichstärken", async ({ page }) => {
-  const panel = await openMindMaps(page); await mode(panel, "Gestalten"); await panel.getByRole("button", { name: "Stiftfarbe Koralle", exact: true }).click(); await panel.getByRole("group", { name: "Strichstärke", exact: true }).getByRole("button", { name: "Dick", exact: true }).click();
+test("Stift, Radierer und Schreiben zeichnen, löschen und schreiben mit Farben und Strichstärken", async ({ page }) => {
+  const panel = await openMindMaps(page); await mode(panel, "Stift"); await panel.getByRole("button", { name: "Stiftfarbe Koralle", exact: true }).click(); await panel.getByRole("group", { name: "Strichstärke", exact: true }).getByRole("button", { name: "Dick", exact: true }).click();
   const canvas = panel.getByTestId("mindmap-canvas"); await fit(panel); const r = await canvas.boundingBox();
   await page.mouse.move(r!.x + 70, r!.y + 60); await page.mouse.down(); await page.mouse.move(r!.x + 210, r!.y + 100, { steps: 8 }); await page.mouse.up();
   await expect(panel.locator(".core-mindmap-ink > polyline")).toHaveCSS("stroke-width", "8px");
-  await panel.getByRole("group", { name: "Gestalten", exact: true }).getByRole("button", { name: "Radieren", exact: true }).click(); await fit(panel);
+  await mode(panel, "Radierer"); await fit(panel);
   const inkPoint = await panel.locator(".core-mindmap-eraser-hit").evaluate((el) => {
     const line = el as SVGPolylineElement, p = line.points.getItem(Math.floor(line.points.length / 2)), m = line.getScreenCTM()!;
     return { x: m.a * p.x + m.c * p.y + m.e, y: m.b * p.x + m.d * p.y + m.f };
   });
   await page.mouse.click(inkPoint.x, inkPoint.y); await expect(panel.locator(".core-mindmap-ink")).toHaveCount(0);
   await panel.getByRole("button", { name: "Rückgängig", exact: true }).click(); await expect(panel.locator(".core-mindmap-ink")).toHaveCount(1);
-  await panel.getByRole("group", { name: "Gestalten", exact: true }).getByRole("button", { name: "Schreiben", exact: true }).click(); await canvas.click({ position: { x: 150, y: 180 } });
+  await mode(panel, "Schreiben"); await canvas.click({ position: { x: 150, y: 180 } });
   await panel.getByRole("textbox", { name: "Text auf der Fläche bearbeiten" }).fill("Freier Text auf der Fläche."); await finish(panel); await save(panel); await reload(page, panel);
   await expect(panel.getByTestId("mindmap-free-text")).toContainText("Freier Text auf der Fläche."); await expect(panel.getByTestId("mindmap-node")).toHaveCount(0); await expect(panel.locator(".core-mindmap-ink")).toHaveCount(1);
 });

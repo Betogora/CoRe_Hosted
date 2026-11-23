@@ -1,11 +1,14 @@
 import type { EvalCase } from "./cases.ts";
 import type { EvalDefinition } from "./definitions.ts";
-import type { AnswerRow, RunMeta } from "./generate.ts";
+import type { AnswerRow, Outcome, RunMeta } from "./generate.ts";
 import { answerRef, labelRef, type Label, type Verdicts } from "./judge.ts";
 import type { EvalRun, RequestType } from "./ledger.ts";
 
-/** Ein Kriterium fehlt in `criteria`, wenn es für die Anfrage nicht gilt oder die Antwort den Vertrag nicht besteht. */
-export type AnswerResult = { caseId: string; repetition: number; category: string; criteria: Record<string, boolean>; main: boolean; costUsd: number | null; latencyMs: number; totalTokens: number | null; model: string | null };
+/**
+ * Ein Kriterium fehlt in `criteria`, wenn es für die Anfrage nicht gilt, die Antwort den Vertrag nicht besteht oder eine
+ * der beiden Seiten (Fall oder Modell) eine Ablehnung ist.
+ */
+export type AnswerResult = { caseId: string; repetition: number; category: string; outcome: Outcome; criteria: Record<string, boolean>; main: boolean; costUsd: number | null; latencyMs: number; totalTokens: number | null; model: string | null };
 
 const RESAMPLES = 2000;
 const mean = (values: readonly number[]) => values.length ? values.reduce((sum, value) => sum + value, 0) / values.length : 0;
@@ -18,8 +21,10 @@ export function evaluateAnswers(definition: EvalDefinition, cases: readonly Eval
     const ref = answerRef(entry.id, repetition);
     const row = byKey.get(ref);
     if (!row) throw new Error(`Antwort ${entry.id}#${repetition} fehlt. „generate“ mit demselben Laufnamen fortsetzen.`);
-    const criteria: Record<string, boolean> = { [definition.contract]: row.ok };
-    if (row.ok) {
+    const valid = row.outcome === "answer" || row.outcome === "refused";
+    const criteria: Record<string, boolean> = { [definition.contract]: valid };
+    if (valid && definition.refusal) criteria[definition.refusal.criterion] = (row.outcome === "refused") === Boolean(entry.refuse);
+    if (row.outcome === "answer" && !entry.refuse) {
       for (const [id, check] of Object.entries(definition.automatic)) criteria[id] = (criteria[id] ?? true) && check(entry.request, row.output);
       const judged = verdicts.get(ref);
       for (const { id } of definition.judged(entry.request)) {
@@ -27,7 +32,7 @@ export function evaluateAnswers(definition: EvalDefinition, cases: readonly Eval
         criteria[id] = (criteria[id] ?? true) && judged[id];
       }
     }
-    return { caseId: entry.id, repetition, category: entry.category, criteria, main: definition.main.every((id) => criteria[id] ?? true), costUsd: row.costUsd, latencyMs: row.latencyMs, totalTokens: row.totalTokens, model: row.model };
+    return { caseId: entry.id, repetition, category: entry.category, outcome: row.outcome, criteria, main: definition.main.every((id) => criteria[id] ?? true), costUsd: row.costUsd, latencyMs: row.latencyMs, totalTokens: row.totalTokens, model: row.model };
   }));
 }
 
@@ -62,6 +67,7 @@ export function summarize(results: readonly AnswerResult[], random: () => number
     low: round(interval.low),
     high: round(interval.high),
     criteria: criteriaShares(results),
+    outcomes: Object.fromEntries((["answer", "refused", "rejected", "timeout"] as const).map((outcome) => [outcome, results.filter((result) => result.outcome === outcome).length])) as Record<Outcome, number>,
     categories: [...new Set(results.map((result) => result.category))].sort().map((category) => {
       const members = results.filter((result) => result.category === category);
       return { category, answers: members.length, main: round(mean(members.map((result) => result.main ? 1 : 0))), criteria: criteriaShares(members) };
@@ -133,6 +139,7 @@ export function renderReport({ type, run, meta, summary, comparison, decision, c
     `- Hauptwert: ${percent(summary.main)} (95 %-Intervall ${percent(summary.low)} bis ${percent(summary.high)})${type.target === null ? "" : `, Ziel ${percent(type.target)}`}`,
     `- Kosten: ${summary.costUsd.toPrecision(3)} USD je Antwort, ${summary.costTotalUsd.toFixed(4)} USD im Lauf; ${summary.tokens} Tokens je Antwort`,
     `- Latenz: Median ${summary.latencyP50Ms} ms, p90 ${summary.latencyP90Ms} ms`,
+    `- Antworten: ${summary.outcomes.answer} angenommen, ${summary.outcomes.refused} als ungeeignet abgelehnt, ${summary.outcomes.rejected} von der Route verworfen, ${summary.outcomes.timeout} Zeitüberschreitungen`,
     `- Geantwortete Modelle: ${summary.models.join(", ") || "keine"}`,
     comparison ? `- Gegen den Bestand: ${comparison.delta >= 0 ? "+" : "−"}${percent(Math.abs(comparison.delta))} Punkte bei Rauschen ±${percent(comparison.noise)}, ${comparison.gained} Fälle gewonnen, ${comparison.lost} verloren (${comparison.cases} gemeinsame Fälle)` : "- Kein Vergleich: Baseline",
     `- Entscheidung: ${decision}`,

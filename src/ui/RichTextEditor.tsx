@@ -146,7 +146,6 @@ function ToolbarButton({ label, icon: Icon, onRun, disabled = false, pressed }: 
 
 interface RichTextEditorProps {
   toolbarHost?: HTMLElement | null;
-  showAllTools?: boolean;
   value?: string;
   onChange?: (value: string) => void;
   onFocus?: (event: React.FocusEvent<HTMLDivElement>) => void;
@@ -161,10 +160,12 @@ interface RichTextEditorProps {
   imageActions?: RichTextImageActions;
   toolbarOnFocus?: boolean;
   documentTools?: boolean;
+  /** `false` when the caller owns undo and redo, like the mind map with its own history. */
+  documentHistory?: boolean;
   documentSettings?: React.ReactNode;
 }
 
-export function RichTextEditor({ value = "", onChange, onFocus, isActive = false, minHeightClass = "min-h-48", ariaLabel, ariaInvalid = false, ariaDescribedBy, clozeActions, imageActions, toolbarHost, showAllTools = false, toolbarOnFocus = false, documentTools = false, documentSettings }: RichTextEditorProps) {
+export function RichTextEditor({ value = "", onChange, onFocus, isActive = false, minHeightClass = "min-h-48", ariaLabel, ariaInvalid = false, ariaDescribedBy, clozeActions, imageActions, toolbarHost, toolbarOnFocus = false, documentTools = false, documentHistory = true, documentSettings }: RichTextEditorProps) {
   const editorRef = React.useRef<HTMLDivElement>(null);
   const imageInputRef = React.useRef<HTMLInputElement>(null);
   const selectionRef = React.useRef<Range | null>(null);
@@ -609,10 +610,10 @@ export function RichTextEditor({ value = "", onChange, onFocus, isActive = false
   const editorDescribedBy = [ariaDescribedBy, clozeStatus ? clozeStatusId : null, imageStatus || imageError ? imageStatusId : null].filter(Boolean).join(" ") || undefined;
   const toolbar = documentTools ? (
       <div role="toolbar" aria-label="Werkzeuge zur Textformatierung" className={`core-rich-text-toolbar core-rich-text-document-toolbar ${toolbarHost ? "" : toolbarFrame}`}>
-        <div className="core-rich-text-group" role="group" aria-label="Verlauf">
+        {documentHistory && <div className="core-rich-text-group" role="group" aria-label="Verlauf">
           <ToolbarButton label="Rückgängig" icon={Undo2} onRun={() => runCommand("undo")} />
           <ToolbarButton label="Wiederholen" icon={Redo2} onRun={() => runCommand("redo")} />
-        </div>
+        </div>}
         {documentSettings}
         <div className="core-rich-text-group" role="group" aria-label="Zeichenformat">
           <ToolbarButton label="Fett" icon={Bold} pressed={Boolean(formatState.bold)} onRun={() => runCommand("bold")} />
@@ -665,12 +666,12 @@ export function RichTextEditor({ value = "", onChange, onFocus, isActive = false
         ) : null}
         {clozeActions ? <ToolbarButton label={`Auswahl als Lücke c${normalizeClozeGroupId(clozeActions.groupId)} markieren`} icon={Braces} onRun={addCloze} /> : null}
         <ToolbarButton label="Auswahl als Formel setzen" icon={Sigma} onRun={addFormula} />
-        {!showAllTools && <CoreTooltip label="Weitere Textwerkzeuge">
+        <CoreTooltip label="Weitere Textwerkzeuge">
           <button type="button" className="core-rich-text-tool" aria-label="Weitere Textwerkzeuge" aria-expanded={moreToolsOpen} aria-controls={moreToolsId} onMouseDown={(event) => { event.preventDefault(); saveSelection(); }} onClick={() => { setMoreToolsOpen((open) => !open); }}>
             <MoreHorizontal size={16} aria-hidden="true" />
           </button>
-        </CoreTooltip>}
-        <div id={moreToolsId} hidden={!showAllTools && !moreToolsOpen} style={showAllTools ? { display: "contents" } : undefined} className={showAllTools ? "core-rich-text-extra-tools" : "core-rich-text-extra-tools w-full flex-wrap items-center gap-1 border-t border-core-border pt-2"}>
+        </CoreTooltip>
+        <div id={moreToolsId} hidden={!moreToolsOpen} className="core-rich-text-extra-tools w-full flex-wrap items-center gap-1 border-t border-core-border pt-2">
           <ToolbarButton label="Unterstrichen" icon={Underline} onRun={() => runCommand("underline")} />
           <span className="mx-1 h-7 w-px bg-core-border" aria-hidden="true" />
           <ToolbarButton label="Stichpunkte" icon={List} onRun={() => runCommand("insertUnorderedList")} />

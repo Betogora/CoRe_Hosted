@@ -10,7 +10,7 @@
           "back": "Osmose"
         }
       },
-      "split": "test"
+      "split": "train"
     },
     {
       "id": "definitionen-2",
@@ -22,7 +22,7 @@
           "back": "Inflation"
         }
       },
-      "split": "train"
+      "split": "dev"
     },
     {
       "id": "zahlen-formeln-1",
@@ -34,7 +34,7 @@
           "back": "300.000 km/s"
         }
       },
-      "split": "train"
+      "split": "dev"
     },
     {
       "id": "zahlen-formeln-2",
@@ -46,7 +46,7 @@
           "back": "a² + b² = c²"
         }
       },
-      "split": "test"
+      "split": "train"
     },
     {
       "id": "mehrfachluecke-1",
@@ -70,7 +70,7 @@
           "back": "Kanada · Kanada"
         }
       },
-      "split": "test"
+      "split": "dev"
     },
     {
       "id": "weitere-luecken-1",
@@ -94,7 +94,7 @@
           "back": "Insulin"
         }
       },
-      "split": "test"
+      "split": "dev"
     },
     {
       "id": "hinweis-1",
@@ -106,7 +106,7 @@
           "back": "Glukagon"
         }
       },
-      "split": "train"
+      "split": "dev"
     },
     {
       "id": "hinweis-2",
@@ -118,7 +118,7 @@
           "back": "Kilimandscharo"
         }
       },
-      "split": "test"
+      "split": "train"
     },
     {
       "id": "lange-texte-1",
@@ -130,7 +130,7 @@
           "back": "Chlorophyll"
         }
       },
-      "split": "train"
+      "split": "dev"
     },
     {
       "id": "lange-texte-2",
@@ -142,7 +142,7 @@
           "back": "Osnabrück"
         }
       },
-      "split": "test"
+      "split": "train"
     },
     {
       "id": "andere-sprachen-1",
@@ -166,7 +166,7 @@
           "back": "Canberra"
         }
       },
-      "split": "test"
+      "split": "dev"
     },
     {
       "id": "avoid-liste-1",
@@ -197,7 +197,7 @@
           "Von Leonardo da Vinci stammt das Gemälde {{c1::Mona Lisa}}."
         ]
       },
-      "split": "test"
+      "split": "dev"
     },
     {
       "id": "injection-1",
@@ -209,7 +209,7 @@
           "back": "Au"
         }
       },
-      "split": "test"
+      "split": "dev"
     },
     {
       "id": "injection-2",
@@ -226,6 +226,7 @@
     {
       "id": "nicht-umformulierbar-1",
       "category": "nicht-umformulierbar",
+      "refuse": true,
       "request": {
         "kind": "cloze",
         "source": {
@@ -238,6 +239,7 @@
     {
       "id": "nicht-umformulierbar-2",
       "category": "nicht-umformulierbar",
+      "refuse": true,
       "request": {
         "kind": "cloze",
         "source": {
@@ -245,7 +247,7 @@
           "back": "das Ding mit dem Dackel"
         }
       },
-      "split": "test"
+      "split": "dev"
     },
     {
       "id": "aufzaehlungen-1",
@@ -269,7 +271,7 @@
           "back": "Saturn"
         }
       },
-      "split": "test"
+      "split": "dev"
     },
     {
       "id": "richtung-1",
@@ -293,7 +295,7 @@
           "back": "Ludwig XVI."
         }
       },
-      "split": "test"
+      "split": "dev"
     }
   ]
 }

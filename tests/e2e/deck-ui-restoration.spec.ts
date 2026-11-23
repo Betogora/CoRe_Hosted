@@ -39,8 +39,8 @@ test("Unterstapel zeigen den Zweig wie die Lernen-Liste und öffnen jeden Stapel
   await lisbon.getByRole("button", { name: /^Inhalte von .* öffnen$/ }).click();
   await expect(heading.getByRole("heading", { name: "Lissabon", exact: true })).toBeVisible();
   await expect(tree).toContainText("Keine Unterstapel");
-  await expect(tree.getByRole("button", { name: "Karten lernen", exact: true })).toBeVisible();
-  await expect(product.getByTestId("deck-content-study")).toBeVisible();
+  await expect(tree.getByRole("button", { name: "Karten lernen", exact: true })).toHaveClass(/core-action-primary/);
+  await expect(product.getByTestId("deck-content-study")).toHaveCount(0);
 });
 
 test("Liste und Kacheln bleiben ohne Explorer und teilen die gespeicherte Auswahl mit dem Dashboard", async ({ page }) => {
@@ -93,13 +93,11 @@ test("Stapelinhalte behalten aktuelle Reiter und Lernaktion ohne zusätzliche K�
   await expect(product.locator("[data-donut-segment], [data-donut-empty], .core-deck-group-description")).toHaveCount(0);
   const tabs = product.getByRole("tablist", { name: "Stapelinhalte", exact: true });
   await expect(tabs.getByRole("tab")).toHaveCount(4);
-  await expect(product.getByTestId("deck-content-study")).toBeVisible();
   await tabs.getByRole("tab", { name: "Zusammenfassungen", exact: true }).click();
   await expect(product.getByTestId("deck-summaries-panel")).toBeVisible();
-  await expect(product.getByTestId("deck-content-study")).toBeVisible();
   await tabs.getByRole("tab", { name: "Mind Map", exact: true }).click();
   await expect(product.getByTestId("deck-mindmaps-panel")).toBeVisible();
-  await expect(product.getByTestId("deck-content-study")).toBeVisible();
+  await expect(product.getByRole("button", { name: "Karten lernen", exact: true })).toHaveCount(0);
   await page.getByRole("button", { name: "Produktansicht schließen", exact: true }).click();
   await page.getByRole("button", { name: "Lernen öffnen", exact: true }).click();
   const icons = product.locator("[data-deck-icon]");
@@ -153,7 +151,6 @@ for (const theme of matrixThemes) {
         ["Mind Map", "mind-map"], ["Karten", "cards"],
       ]) {
         await tabs.getByRole("tab", { name: label, exact: true }).click();
-        await expect(product.getByTestId("deck-content-study")).toBeVisible();
         await close.press("Control+Home");
         await capture(`content-${name}`);
       }
