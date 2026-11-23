@@ -386,6 +386,16 @@ test("ein nach Reload fortgesetzter Deck-Download zählt bereits geprüfte Karte
   }
 });
 
+test("die Statistik nennt offline eine Auswahl ohne gespeicherten Kontostand", async () => {
+  const userId = randomUUID();
+  const repository = await createIndexedDbCoreRepository({ userId, initialState: workspace(userId, [], []), indexedDb: new IDBFactory() });
+  const service = createWorkspaceHydrationService({ repository, mediaStore: null, client: { async rpc() { throw new Error("offline"); } } });
+  await withNavigator({ onLine: false }, async () => {
+    await assert.rejects(service.queryStatistics({ period: "30d", deckIds: "all", now: "2026-08-21T12:00:00.000Z", timeZone: "UTC" }), /keine vollständige Offline-Statistik/);
+  });
+  repository.close();
+});
+
 test("ein zwischengespeicherter Statistikstand im alten Format gilt offline als fehlend", async () => {
   const userId = randomUUID();
   const repository = await createIndexedDbCoreRepository({ userId, initialState: workspace(userId, [], []), indexedDb: new IDBFactory() });

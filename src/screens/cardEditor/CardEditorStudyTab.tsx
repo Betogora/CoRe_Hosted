@@ -12,6 +12,7 @@ import { CardEditorSection as Section } from "./CardEditorSection.tsx";
 import { RetrievabilityChart } from "./RetrievabilityChart.tsx";
 import { createRetrievabilityCurve } from "./retrievabilityCurve.ts";
 import { useOnline } from "./useOnline.ts";
+import type { NoteGraph } from "../../workspaceReplica.ts";
 
 const BANDS: Array<{ value: MaturityBand; label: string }> = [
   { value: "new", label: "Neu" },
@@ -75,6 +76,7 @@ function useReviewEvents(cardId: string, services: CardEditorServices, online: b
 }
 
 export interface CardEditorStudyTabProps {
+  graph: NoteGraph;
   card: Card;
   now: string;
   dayStartHour?: number;
@@ -82,7 +84,7 @@ export interface CardEditorStudyTabProps {
   services: CardEditorServices;
 }
 
-export function CardEditorStudyTab({ card, now, dayStartHour, timeZone, services }: CardEditorStudyTabProps) {
+export function CardEditorStudyTab({ graph, card, now, dayStartHour, timeZone, services }: CardEditorStudyTabProps) {
   const online = useOnline();
   const setSuccessToast = useSuccessToast();
   const [confirmReset, setConfirmReset] = React.useState(false);
@@ -112,7 +114,7 @@ export function CardEditorStudyTab({ card, now, dayStartHour, timeZone, services
     setResetting(true);
     setError("");
     try {
-      await services.resetCards([card.id]);
+      await services.runCardAction(graph, card.id, { kind: "reset" });
       setConfirmReset(false);
       setSuccessToast("Lernstand zurückgesetzt. Die Karte ist wieder neu.");
     } catch {

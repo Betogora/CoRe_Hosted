@@ -15,7 +15,7 @@ import { CoreTabPanel, CoreTabs } from "../ui/CoreTabs.tsx";
 import { DeckAppearanceIcon, getDeckAppearance } from "../ui/deckAppearance.tsx";
 import { DialogFrame } from "../ui/DialogFrame.tsx";
 import { useSuccessToast } from "../ui/feedbackUi.tsx";
-import { cardSearchTerms, unsupportedCardSearchTerms, withCardSearchTermState } from "./cardSearch/cardSearchExpression.ts";
+import { cardSearchTerms, unsupportedCardSearchTerms, withCardSearchDeck } from "./cardSearch/cardSearchExpression.ts";
 import { AdvancedCardSearch } from "./cardSearch/AdvancedCardSearch.tsx";
 import { CardSearchBar } from "./cardSearch/CardSearchBar.tsx";
 import { createCardSearchMenu } from "./cardSearch/cardSearchMenu.ts";
@@ -25,10 +25,10 @@ import { CardSelectionBar } from "./cardList/CardSelectionBar.tsx";
 import { useCardSelection } from "./cardList/useCardSelection.ts";
 import { TagManagerDialog } from "./cardList/TagManagerDialog.tsx";
 import { renameDirectoryTag } from "../tagDirectory.ts";
-import { parseCardSearchQuery } from "../cardSearchQuery.ts";
+import { findsOnlyDuplicates, parseCardSearchQuery } from "../cardSearchQuery.ts";
 import { HitStudyFlow } from "./cardList/HitStudyFlow.tsx";
 import { hitStudyQuery } from "../hitStudySession.ts";
-import type { CardBatchAction } from "../cardBatchActions.ts";
+import type { CardBatchAction, CardBatchResult } from "../cardBatchActions.ts";
 import { CardEditorDialog, cardEditorFrameClass, type CardEditorHitNavigation } from "./cardEditor/CardEditorDialog.tsx";
 import { DeckSubstacksPanel } from "./DeckSubstacksPanel.tsx";
 import { LearningAreaHeader } from "./LearningAreaHeader.tsx";
@@ -65,8 +65,7 @@ const CONTENT_TAB_LOADING = <p className="p-6 core-body text-core-muted" role="s
 
 export function DecksScreen({
   decks,
-  summaryAccountId,
-  learningContentCloud = null,
+  learningContentAccount = null,
   onGenerateSummary,
   onStartDeck,
   onPracticeDeck,
@@ -89,9 +88,6 @@ export function DecksScreen({
   onSaveNote,
   onSetCardStudyState,
   onDuplicateNote,
-  onDeleteNote,
-  onUndoDeleteNote,
-  onRescheduleCards,
   onGenerateVariant,
   onGenerateCardVariants,
   onRunCardBatch,
@@ -169,7 +165,7 @@ export function DecksScreen({
   const [pendingCardDelete, setPendingCardDelete] = React.useState<{ deckId: string; cardId: string; graph: NoteGraph } | null>(null);
   const preserveToastForSelectionChange = React.useRef(false);
   const [deletingCard, setDeletingCard] = React.useState(false);
-  const [deletedCardUndo, setDeletedCardUndo] = React.useState<{ deckId: string; cardId: string; undo: NoteGraph; deleted: NoteGraph; description: string } | null>(null);
+  const [deletedCardUndo, setDeletedCardUndo] = React.useState<{ deckId: string; cardId: string; undo: CardBatchResult["undo"]; description: string } | null>(null);
   const [pendingDetailAction, setPendingDetailAction] = React.useState<PendingDetailAction | null>(null);
   const [savingPendingDraft, setSavingPendingDraft] = React.useState(false);
   const cardDraftGuardRef = React.useRef<CardDraftGuard | null>(null);
@@ -355,7 +351,7 @@ export function DecksScreen({
   }
 
   const prepareSelectionReplace = useStableCallback(async () => onPrepareTextReplace!(await selectedIds()));
-  const searchingDuplicates = React.useMemo(() => parseCardSearchQuery(deferredQuery).terms.some((term) => term.kind === "duplicate" && !term.negated), [deferredQuery]);
+  const searchingDuplicates = React.useMemo(() => findsOnlyDuplicates(parseCardSearchQuery(deferredQuery)), [deferredQuery]);
   async function selectSurplusDuplicates() {
     try {
       const count = await selectLoadedCards(() => onListSurplusDuplicateIds!({ deckIds: hitScope, query: deferredQuery, searchContext }));
@@ -429,9 +425,9 @@ export function DecksScreen({
     setDeckStatus("");
     setSuccessToast("");
     try {
-      const result = await onDeleteNote(deletion.graph);
-      if (!result?.deleted.note.deletedAt) throw new Error("Löschung fehlgeschlagen.");
-      setDeletedCardUndo({ deckId: deletion.deckId, cardId: deletion.cardId, undo: result.undo, deleted: result.deleted, description });
+      const result = await cardEditor.runCardAction(deletion.graph, deletion.cardId, { kind: "delete" });
+      if (!result.changedCount) throw new Error("Löschung fehlgeschlagen.");
+      setDeletedCardUndo({ deckId: deletion.deckId, cardId: deletion.cardId, undo: result.undo, description });
       setPendingCardDelete(null);
       preserveToastForSelectionChange.current = true;
       onSelectDeck(deletion.deckId);
@@ -455,8 +451,7 @@ export function DecksScreen({
   async function undoCardDelete() {
     if (!deletedCardUndo) return;
     try {
-      const result = await onUndoDeleteNote(deletedCardUndo.undo, deletedCardUndo.deleted);
-      if (!result) throw new Error("Undo fehlgeschlagen.");
+      await deletedCardUndo.undo();
       onSelectDeck(deletedCardUndo.deckId, deletedCardUndo.cardId);
       setDeckStatus("");
       setDeckStatusType("status");
@@ -507,7 +502,6 @@ export function DecksScreen({
           onSetStudyState={(cardId, patch) => onSetCardStudyState(selectedDeck.id, cardId, patch)}
           onDuplicateNote={() => onDuplicateNote(selectedGraph)}
           onDeleteNote={requestCardDelete}
-          onRescheduleCards={onRescheduleCards}
           onGenerateVariant={(cardId) => onGenerateVariant(selectedDeck.id, cardId)}
           onUpdateVariant={onUpdateVariant}
           onSelectCard={selectFromEditor}
@@ -573,12 +567,12 @@ export function DecksScreen({
         action={<ActionButton variant="primary" icon={Play} disabled={!hasStudyCards} onClick={() => onStartDeck(contentRow.deck)}>Karten lernen</ActionButton>} />
       : <EmptyState icon={Layers} title="Stapel nicht gefunden oder nicht verfügbar." />
   ) : contentDeckId && contentTab === "summary" ? (
-    contentDeck ? <React.Suspense fallback={CONTENT_TAB_LOADING}><DeckSummariesPanel key={`${summaryAccountId ?? contentDeck.ownerId}:${contentDeck.id}`} deck={contentDeck} treeDecks={libraryDecks}
-      userId={summaryAccountId ?? contentDeck.ownerId} cloud={learningContentCloud} onGenerateSummary={onGenerateSummary} onDraftStateChange={handleEditorDraftStateChange} /></React.Suspense>
+    contentDeck ? <React.Suspense fallback={CONTENT_TAB_LOADING}><DeckSummariesPanel key={`${learningContentAccount?.userId ?? contentDeck.ownerId}:${contentDeck.id}`} deck={contentDeck} treeDecks={libraryDecks}
+      userId={learningContentAccount?.userId ?? contentDeck.ownerId} cloud={learningContentAccount?.cloud ?? null} onGenerateSummary={onGenerateSummary} onDraftStateChange={handleEditorDraftStateChange} /></React.Suspense>
       : <EmptyState icon={FileText} title="Stapel nicht gefunden oder nicht verfügbar." />
   ) : contentDeckId && contentTab === "mind-map" ? (
-    contentDeck ? <React.Suspense fallback={CONTENT_TAB_LOADING}><DeckMindMapsPanel key={`${summaryAccountId ?? contentDeck.ownerId}:${contentDeck.id}`} deck={contentDeck}
-      userId={summaryAccountId ?? contentDeck.ownerId} cloud={learningContentCloud} onGenerateSummary={onGenerateSummary} onDraftStateChange={handleEditorDraftStateChange} /></React.Suspense>
+    contentDeck ? <React.Suspense fallback={CONTENT_TAB_LOADING}><DeckMindMapsPanel key={`${learningContentAccount?.userId ?? contentDeck.ownerId}:${contentDeck.id}`} deck={contentDeck}
+      userId={learningContentAccount?.userId ?? contentDeck.ownerId} cloud={learningContentAccount?.cloud ?? null} onGenerateSummary={onGenerateSummary} onDraftStateChange={handleEditorDraftStateChange} /></React.Suspense>
       : <EmptyState icon={Network} title="Stapel nicht gefunden oder nicht verfügbar." />
   ) : <section className="grid min-w-0 gap-4" aria-label="Karten" data-testid="card-library-panel">
       <div className="grid gap-4">
@@ -654,7 +648,7 @@ export function DecksScreen({
         ) : null}
       </div>
 
-      {deferredQuery.trim() ? <MatchingDecks groups={tableModel.groups.filter((group) => group.deckMatches)} onOpen={(deckId) => changeQuery(withCardSearchTermState(cardSearchTerms(query).filter((term) => !/^-?did:/i.test(term)).join(" "), `did:${deckId}`, "in"))} /> : null}
+      {deferredQuery.trim() ? <MatchingDecks groups={tableModel.groups.filter((group) => group.deckMatches)} onOpen={(deckId) => changeQuery(withCardSearchDeck(cardSearchTerms(query).join(" "), deckId))} /> : null}
       <CardHitTable
         items={items}
         rowOf={rowOf}

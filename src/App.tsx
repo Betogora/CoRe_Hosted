@@ -219,9 +219,9 @@ function AppContent() {
   }) : null, [latestLearningNow, supabase, workspaceHydrationService, workspaceRepository, workspaceStore]);
   const study = useStudySession({ preparation: studyPreparation, repository: workspaceRepository, cardCommands, refresh: latestRefresh, requestSync, now: learningNow });
   const deckCommands = React.useMemo(() => workspaceRepository ? createDeckCommands({
-    store: workspaceStore, repository: workspaceRepository, refresh: latestRefresh,
+    store: workspaceStore, repository: workspaceRepository, hydration: latestHydration, refresh: latestRefresh,
     requestSync: () => syncEngineRef.current?.requestSync(), syncNow: latestSyncNow, updateStudyDecks: study.setDecks,
-  }) : null, [latestRefresh, latestSyncNow, study.setDecks, syncEngineRef, workspaceRepository, workspaceStore]);
+  }) : null, [latestHydration, latestRefresh, latestSyncNow, study.setDecks, syncEngineRef, workspaceRepository, workspaceStore]);
   const studyStart = useStudyStart({ preparation: studyPreparation, session: study, navigation, deckCommands, clock });
   const importCommands = React.useMemo(() => workspaceRepository ? createImportCommands({
     store: workspaceStore, repository: workspaceRepository, hydration: latestHydration, cloud: supabase ?? null,
@@ -324,7 +324,7 @@ function AppContent() {
   const services = {
     navigation, settings, clock, pomodoro, sync, study, studyStart, studyPreparation, cardCommands, cardEditorServices, deckCommands,
     importCommands, importSession, variantBatch, requestDeckCoreMode, signOut: () => account.signOut(workspaceStore.get().state?.profile),
-    repository: workspaceRepository, hydration: workspaceHydrationService, cloud: supabase ?? null, mediaStore,
+    hydration: workspaceHydrationService, mediaStore,
   };
   const studyDeck = studyRequest ? study.decks?.find((deck) => deck.id === studyRequest.deckId) ?? null : null;
   const deckSettingsDialog = deckSettings ? <React.Suspense fallback={null}><DeckSettingsScreenWiring /></React.Suspense> : null;

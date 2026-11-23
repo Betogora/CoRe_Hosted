@@ -4,6 +4,7 @@ import {
   AI_CARD_VARIANT_DEADLINE_MS,
   AI_CARD_VARIANT_ENDPOINT,
   AI_CARD_VARIANT_PROMPT_VERSION,
+  AI_CARD_VARIANT_REJECTION_MESSAGES,
   AiCardVariantContractError,
   aiCardVariantSourceKey,
   aiVariantFieldText,
@@ -78,7 +79,7 @@ export function createAiGeneratedVariantDraft(
     front: aiVariantFieldText(candidate.front),
     back: aiVariantFieldText(candidate.back),
   }) === generatedKey);
-  if (duplicate) throw new AiCardVariantContractError("duplicate_variant", "Diese Variante gibt es schon. Bitte erneut generieren.");
+  if (duplicate) throw new AiCardVariantContractError("duplicate_variant", AI_CARD_VARIANT_REJECTION_MESSAGES.duplicate_variant);
 
   return {
     // Variants are stored as HTML like note fields; the generated plain text keeps characters such as "K < 1".

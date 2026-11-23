@@ -1,8 +1,7 @@
 import React from "react";
 import { examColor, formatExamDate, formatExamDistance, formatExamPercent } from "./examPlanningUi.ts";
 import { CalendarCheck, ChevronDown, Pause, Pencil, Play, Plus, RefreshCcw, RotateCcw, Trash2 } from "lucide-react";
-import type { ExamPlanningScreenProps } from "../appScreenProps.ts";
-import type { ExamPlan, ExamPlanningSettings, StudyTimeCapacity } from "../coreTypes.ts";
+import type { ExamDailyTask, ExamPlan, ExamPlanningSettings, StudyTimeCapacity } from "../coreTypes.ts";
 import { removeExamPlan, upsertExamPlan } from "../examPlanSettings.ts";
 import { examDayDistance, getExamCurrentProgress, getExamStatus, type ExamForecastSummary } from "../examPlanning.ts";
 import { getLearningDayKey, getLearningTimeZone } from "../learningDay.ts";
@@ -16,6 +15,22 @@ import { ExamCalendar } from "./ExamCalendar.tsx";
 import { ExamDashboardWidget } from "./ExamDashboardWidget.tsx";
 import { useExamForecast } from "./useExamForecast.ts";
 import { useWorkspaceValue } from "../useWorkspaceStore.ts";
+import type { ExamPlanningData } from "../studyPreparation.ts";
+import type { WorkspaceState } from "../coreWorkspace.ts";
+
+export interface ExamPlanningScreenProps {
+  state: WorkspaceState;
+  now: string;
+  /** May answer from a short-lived cache; `fresh` asks for study states straight from the cloud. */
+  onLoadPlanningData: (deckIds: string[], signal: AbortSignal, options?: { fresh?: boolean }) => Promise<ExamPlanningData>;
+  onSavePlanning: (settings: ExamPlanningSettings) => Promise<void>;
+  /** Merges today's checklist into the latest stored plan, never into a rendered snapshot. */
+  onSaveTasks: (tasks: ExamDailyTask[]) => Promise<void>;
+  onStartUnit: (blockId: string | null) => Promise<void>;
+  onLoadSummaryAvailability?: (deckId: string) => Promise<boolean>;
+  onLoadLocalCardIds?: (cardIds: string[]) => Promise<string[]>;
+  onDraftStateChange?: (dirty: boolean) => void;
+}
 
 const STATUS_LABELS = { paused: "Pausiert", completed: "Abgeschlossen" } as const;
 

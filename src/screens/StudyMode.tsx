@@ -1,6 +1,5 @@
 import React from "react";
 import { CheckCircle2, ChevronDown, CircleAlert, Eye, Shuffle, SlidersHorizontal, X } from "lucide-react";
-import type { StudyModeProps } from "../appScreenProps.ts";
 import { HIT_REVIEW_KIND } from "../reviewEventKinds.ts";
 import { DEFAULT_EASY_DAYS, createEasyDaysDueCounts, shiftEasyDaysDueCounts } from "../easyDays.ts";
 import { cancelFieldTiming, startFieldTiming } from "../fieldTimings.ts";
@@ -37,7 +36,49 @@ import { CoreTooltip } from "../ui/tooltipUi.tsx";
 import { formatLimitSummary, formatReviewIntervalLabel, ratingButtons } from "./screenConstants.ts";
 import { StudyAiHelp } from "./StudyAiHelp.tsx";
 import { aiCardHelpCard } from "../aiCardHelp.ts";
-import type { Card, CardStudyState, CardStudyStatePatch, Deck, Note, ReviewRating } from "../coreTypes.ts";
+import type { Card, CardStudyState, CardStudyStatePatch, Deck, GlobalSchedulerPreferences, Note, ReviewRating } from "../coreTypes.ts";
+import type { AskCardHelp } from "./StudyAiHelp.tsx";
+import type { AnsweredTodayCard, DailyReviewProgressSummary } from "../reviewService.ts";
+import type { PomodoroTimer } from "../pomodoroTimer.ts";
+import type { AccountMediaStore } from "../mediaStore.ts";
+import type { CardEditorTab } from "../appNavigation.ts";
+
+export interface StudyModeProps extends Partial<Pick<GlobalSchedulerPreferences, "dayStartHour" | "learnAheadMinutes" | "leechThreshold" | "easyDays">> {
+  shortcutsSuspended?: boolean;
+  deck: Deck;
+  decks: Deck[];
+  notes: Note[];
+  answeredToday?: readonly AnsweredTodayCard[];
+  deckId: string;
+  mediaStore: AccountMediaStore | null;
+  getNow: () => string;
+  learningDayKey?: string;
+  /** Account-wide due counts per future day at session start; without them Easy Days only sees the session cards. */
+  dueForecast?: ReadonlyMap<string, number> | null;
+  timeZone?: string;
+  simulationOffsetMinutes: number;
+  pomodoroTimer: PomodoroTimer | null;
+  onStartPomodoro: (minutes: number) => void;
+  onExit: () => void;
+  onReturnToLearn: () => void;
+  onEditCard: (deckId: string, cardId: string, tab?: CardEditorTab) => unknown;
+  onEditDeck: (deckId: string) => unknown;
+  flagNames: readonly string[];
+  onSetCardStudyState: (deckId: string, cardId: string, patch: CardStudyStatePatch) => { deck: Deck; note: Note } | null;
+  onSetDeckReviewOrder: (deckId: string, order: import("../coreTypes.ts").NewReviewOrder) => Deck | null;
+  onReview: (result: ReviewAnswerResult) => unknown;
+  onUndoReview: (result: ReviewAnswerResult, previous: Card) => Card | null;
+  onAskCardHelp: AskCardHelp;
+  sessionPlan?: { progress: DailyReviewProgressSummary; initialCardCount: number };
+  bufferSize?: number;
+  hasMoreCards?: boolean;
+  onLoadMoreCards?: () => Promise<{
+    decks: Deck[];
+    notes: Note[];
+    hasMoreCards: boolean;
+    bufferSize: number;
+  }>;
+}
 
 function createEasyDaysContext(
   decks: Deck[],

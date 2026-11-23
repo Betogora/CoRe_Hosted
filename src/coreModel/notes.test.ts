@@ -4,7 +4,7 @@ import type { Card, NoteContent, RevealPrompt } from "../coreTypes.ts";
 import { addCardVariant, createCardVariant, getActiveVariants, replaceOutdatedVariants } from "./cards.ts";
 import { createManualNoteContent } from "./creation.ts";
 import { notePromptLabel } from "./noteContent.ts";
-import { createBasicNote, createNote, duplicateNote, planNoteContentChange, planNoteDeletion, removeUnusedNoteMedia } from "./notes.ts";
+import { createBasicNote, createNote, duplicateNote, planImportedNoteUpdate, planNoteContentChange, planNoteDeletion, planNoteGraphContentChange, removeUnusedNoteMedia } from "./notes.ts";
 
 const CREATED_AT = "2026-10-06T10:00:00.000Z";
 const CHANGED_AT = "2026-10-06T11:00:00.000Z";
@@ -365,4 +365,32 @@ test("Vorlagenmedien mit `_` bleiben beim Bearbeiten, Duplizieren und Bereinigen
   assert.deepEqual(edited.note.media, font);
   assert.deepEqual(duplicateNote(graph.note, graph.cards, CHANGED_AT).note.media, font);
   assert.equal(removeUnusedNoteMedia(graph.note, ["_schrift.woff2"], CHANGED_AT), graph.note);
+});
+
+test("eine Inhaltsänderung löscht entfallene Karten nur nach ihrer Regel", () => {
+  const graph = create(cloze("{{c1::A}} {{c2::B}}"));
+  const studied = { ...graph, cards: graph.cards.map((card) => card.promptKey === "cloze:2" ? { ...card, study: { ...card.study, reps: 1, state: "review" as const } } : card) };
+  const fewer = cloze("{{c1::A}} B");
+
+  const deleted = planNoteGraphContentChange(studied, fewer, "delete", CHANGED_AT);
+  assert.equal(deleted.status, "changed");
+  assert.equal(deleted.status === "changed" && deleted.next.cards.find((card) => card.promptKey === "cloze:2")?.deletedAt, CHANGED_AT);
+  assert.deepEqual(planNoteGraphContentChange(studied, fewer, "keepStudied", CHANGED_AT), { status: "kept" }, "eine gelernte Karte geht nicht unbestätigt verloren");
+  assert.equal(planNoteGraphContentChange(graph, fewer, "keepStudied", CHANGED_AT).status, "changed", "eine neue Karte darf gehen");
+  assert.deepEqual(planNoteGraphContentChange(graph, fewer, "skip", CHANGED_AT), { status: "kept" });
+  assert.deepEqual(planNoteGraphContentChange(graph, graph.note.content, "skip", CHANGED_AT), { status: "unchanged" });
+});
+
+test("ein Reimport ersetzt nur unbearbeitete Inhalte und übergeht ältere Notizen", () => {
+  const imported = { ...create(reveal()).note, importedContentRevision: 1, importedTags: [], importedAnkiModifiedAt: CREATED_AT };
+  const incoming = { ...create(content({ kind: "reveal", prompts: [prompt("forward")] }, "Neue Frage")).note, importedAnkiModifiedAt: CHANGED_AT };
+
+  const replaced = planImportedNoteUpdate(imported, incoming, imported.noteTypeSourceId, CHANGED_AT);
+  assert.equal(replaced.status === "update" && replaced.note.contentRevision, imported.contentRevision + 1);
+  assert.equal(replaced.status === "update" && replaced.note.importedContentRevision, imported.contentRevision + 1);
+  const edited = { ...imported, contentRevision: 2 };
+  const kept = planImportedNoteUpdate(edited, incoming, imported.noteTypeSourceId, CHANGED_AT);
+  assert.equal(kept.status === "update" && kept.locallyEdited, true);
+  assert.equal(kept.status === "update" && kept.note.contentRevision, 2, "eine lokale Bearbeitung bleibt");
+  assert.deepEqual(planImportedNoteUpdate({ ...imported, importedAnkiModifiedAt: CHANGED_AT }, { ...incoming, importedAnkiModifiedAt: CREATED_AT }, imported.noteTypeSourceId, CHANGED_AT), { status: "older" });
 });

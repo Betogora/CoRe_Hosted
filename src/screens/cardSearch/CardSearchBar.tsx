@@ -1,6 +1,6 @@
 import React from "react";
 import { Layers, ListFilter, Search, X } from "lucide-react";
-import { cardSearchGroupMembers, cardSearchTerms, cardSearchText, withCardSearchTermState, withCardSearchText, withoutCardSearchItem } from "./cardSearchExpression.ts";
+import { cardSearchTerms, cardSearchText, withCardSearchDeck, withCardSearchText, withoutCardSearchItem } from "./cardSearchExpression.ts";
 import type { Deck } from "../../coreTypes.ts";
 import { CrossLinkButton } from "../../ui/actionUi.tsx";
 import { StatusMessage } from "../../ui/feedbackUi.tsx";
@@ -33,7 +33,6 @@ export function CardSearchBar({ query, onQueryChange, decks, categories, advance
   const terms = cardSearchTerms(query);
   const deckTerm = terms.find((term) => /^did:/i.test(term));
   const deckValue = deckTerm ? deckTerm.slice("did:".length) : ALL_DECKS;
-  const deckTerms = terms.filter((term) => /^-?did:/i.test(term) || cardSearchGroupMembers(term)?.members.every((member) => /^did:/i.test(member)));
   const filterCount = terms.filter((term) => term !== deckTerm).length;
   const conflict = cardSearchConflictMessage(query, categories);
 
@@ -64,10 +63,7 @@ export function CardSearchBar({ query, onQueryChange, decks, categories, advance
             ariaLabel="Stapel filtern"
             className="w-full"
             specialOption={{ value: ALL_DECKS, label: "Alle Stapel", icon: Layers }}
-            onValueChange={(value) => {
-              const without = deckTerms.reduce((current, term) => withoutCardSearchItem(current, term), query);
-              onQueryChange(value === ALL_DECKS ? without : withCardSearchTermState(without, `did:${value}`, "in"));
-            }}
+            onValueChange={(value) => onQueryChange(withCardSearchDeck(query, value === ALL_DECKS ? null : value))}
           />
         </div>
         <button

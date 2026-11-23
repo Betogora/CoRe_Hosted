@@ -1,3 +1,4 @@
+import type { AiSourceCardsRequest } from "./aiSourceCardsContract.ts";
 import type { ImportCommitGraph, ImportMediaFile } from "./apkgImport.ts";
 import type { ImportVerificationScope } from "./coreTypes.ts";
 import type { WorkspaceState } from "./coreWorkspace.ts";
@@ -144,8 +145,13 @@ export function createImportCommands(context: ImportCommandsContext) {
     return count;
   }
 
+  async function requestSourceCards(request: AiSourceCardsRequest, signal: AbortSignal) {
+    const { requestAiSourceCards } = await import("./aiSourceCards.ts");
+    return requestAiSourceCards(request, cloud, signal);
+  }
+
   const commands = {
-    commitImport, importDemo, followSyncStatus, continuePendingFrom, retranslate,
+    commitImport, importDemo, followSyncStatus, continuePendingFrom, retranslate, requestSourceCards,
     getInterruptedImport: () => repository.getInterruptedImport(),
   };
   pendingByCommands.set(commands, pending);

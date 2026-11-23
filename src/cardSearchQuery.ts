@@ -354,6 +354,11 @@ function termMatches(entry: SearchableEntry, term: CardSearchTerm, duplicateNote
   }
 }
 
+/** Whether every hit is a duplicate, so the surplus copies among the hits can be picked. */
+export function findsOnlyDuplicates(search: CardSearchQuery): boolean {
+  return search.terms.some((clause) => clause.kind === "duplicate" && !clause.negated);
+}
+
 /** Whether the search names `is:duplicate`, which needs the duplicate contents of the whole account. */
 export function searchesDuplicates(search: CardSearchQuery): boolean {
   return search.terms.some((clause) => clause.kind === "any" ? clause.terms.some((term) => term.kind === "duplicate") : clause.kind === "duplicate");

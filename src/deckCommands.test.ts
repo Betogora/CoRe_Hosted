@@ -50,7 +50,7 @@ async function setup() {
   refresh();
   let studyDecks: Deck[] | null = [{ ...initialState.decks[0] }];
   const commands = createDeckCommands({
-    store, repository, refresh, requestSync: () => undefined, syncNow: async () => undefined,
+    store, repository, hydration: () => null, refresh, requestSync: () => undefined, syncNow: async () => undefined,
     updateStudyDecks: (update) => { studyDecks = update(studyDecks); },
   });
   const deck = (deckId: string) => store.get().state?.decks.find((candidate) => candidate.id === deckId);

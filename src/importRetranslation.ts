@@ -1,5 +1,5 @@
 import { TRANSLATOR_VERSIONS, retranslateNoteContent, type NoteSource, type NoteTypeSource } from "./apkgNoteTranslation.ts";
-import { planNoteContentChange, planNoteDeletion } from "./coreModel.ts";
+import { cardHasStudy, planNoteContentChange, planNoteDeletion } from "./coreModel.ts";
 import type { CloudClient } from "./cloudRepository.ts";
 import type { Card, Note } from "./coreTypes.ts";
 import type { IndexedDbCoreRepository, NoteGraphChange } from "./indexedDbCoreRepository.ts";
@@ -8,8 +8,6 @@ import { createMainThreadBudget } from "./mainThreadBudget.ts";
 type RetranslationPlan =
   | { status: "unchanged" | "kept" }
   | { status: "updated"; change: NoteGraphChange };
-
-const hasStudy = (card: Card) => card.study.reps > 0 || card.study.state !== "new";
 
 export function planRetranslation(note: Note, cards: Card[], source: NoteTypeSource, noteSource: NoteSource, updatedAt = new Date().toISOString()): RetranslationPlan {
   const translated = retranslateNoteContent(source, noteSource.fields, note.content.tags);
@@ -36,7 +34,7 @@ export function planRetranslation(note: Note, cards: Card[], source: NoteTypeSou
   });
   const renamedIds = new Set(renamed.map((card) => card.id));
   const removedCards = plan.removedCards.filter((card) => !renamedIds.has(card.id));
-  if (removedCards.some(hasStudy)) return { status: "kept" };
+  if (removedCards.some(cardHasStudy)) return { status: "kept" };
   const next: Note = { ...plan.note, translator: translated.translator, importedContentRevision: plan.note.contentRevision };
   return {
     status: "updated",

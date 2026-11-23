@@ -163,10 +163,6 @@ function nowIso() {
   return new Date().toISOString();
 }
 
-function makeId(prefix = "sync") {
-  return `${prefix}_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
-}
-
 function normalizeDevice(device: { id?: unknown; label?: unknown; userAgent?: unknown } = {}) {
   const id = String(device?.id ?? "").trim();
   if (!id) throw new Error("Sync-Engine braucht eine Geräte-ID.");
@@ -182,29 +178,6 @@ function createDeviceRegistrationError(error: unknown) {
   registrationError.name = "SyncDeviceRegistrationError";
   registrationError.code = "sync_device_registration_failed";
   return registrationError;
-}
-
-interface SyncMutationInput {
-  id?: string;
-  type?: string;
-  payload?: SyncMutationPayload;
-  baseRevision?: number | null;
-  table?: string | null;
-  entityId?: string | null;
-  createdAt?: string;
-}
-
-function createMutation(input: SyncMutationInput = {}, now: () => string = nowIso, deviceId: string) {
-  return {
-    id: input.id ?? makeId("mutation"),
-    type: input.type,
-    payload: input.payload ?? {},
-    baseRevision: input.baseRevision ?? null,
-    deviceId,
-    table: input.table ?? (input.type === SYNC_MUTATION_TYPES.profilePatch ? "profiles" : null),
-    entityId: input.entityId ?? input.payload?.event?.id ?? null,
-    createdAt: input.createdAt ?? now(),
-  };
 }
 
 function createDefaultAdapter(client: CloudClient, userId: string) {
@@ -389,12 +362,6 @@ export function createSyncEngine({
     }
   }
 
-  function enqueuePendingMutation(mutation: ReturnType<typeof createMutation>) {
-    const queued = outbox.enqueue(mutation);
-    requestLocalSync();
-    return queued;
-  }
-
   function clearRetryTimer() {
     if (retryTimer === null) return;
     clearTimer(retryTimer);
@@ -510,34 +477,6 @@ export function createSyncEngine({
       await initialize?.();
       emitStatus(outbox.count() > 0 ? createSyncPendingStatus(outbox.count()) : createSyncSavedStatus("Cloud geladen.", now));
     },
-    enqueueMutation(input: SyncMutationInput = {}) {
-      const mutation = createMutation(input, now, syncDevice.id);
-      if (!mutation.type) throw new Error("Sync-Mutation braucht einen Typ.");
-      if (mutation.type === SYNC_MUTATION_TYPES.profilePatch) {
-        if (!mutation.payload?.profile || typeof mutation.payload.profile !== "object" || Array.isArray(mutation.payload.profile)) {
-          throw new Error("Profil-Mutation braucht ein vollständiges Profil.");
-        }
-        const staleProfilePatchIds = outbox.listPending()
-          .filter((pending: QueuedMutation) => pending.type === SYNC_MUTATION_TYPES.profilePatch)
-          .map((pending: QueuedMutation) => pending.id);
-        outbox.remove(staleProfilePatchIds);
-        return enqueuePendingMutation(mutation);
-      }
-      if (mutation.type === SYNC_MUTATION_TYPES.entityMutation) {
-        const table = mutation.payload?.table ?? mutation.table;
-        const entityId = mutation.entityId ?? mutation.payload?.entity?.id ?? mutation.payload?.entityId;
-        if (!table || !entityId) throw new Error("Entity-Mutation braucht Tabelle und ID.");
-        const staleEntityMutationIds = outbox.listPending()
-          .filter((pending: QueuedMutation) => pending.type === SYNC_MUTATION_TYPES.entityMutation
-            && (pending.payload?.table ?? pending.table) === table
-            && (pending.entityId ?? pending.payload?.entity?.id ?? pending.payload?.entityId) === entityId)
-          .map((pending: QueuedMutation) => pending.id);
-        outbox.remove(staleEntityMutationIds);
-        return enqueuePendingMutation(mutation);
-      }
-      return enqueuePendingMutation(mutation);
-    },
-
     pendingCount() {
       return outbox.count();
     },
