@@ -550,7 +550,6 @@ summary {
     box-shadow: var(--core-shadow-raised);
   }
 
-  /* 8 px to the top edge, the side edge and the divider keep the close button concentric with the dialog corner. */
   .core-dialog-header,
   .core-dialog-frame-header {
     display: flex;

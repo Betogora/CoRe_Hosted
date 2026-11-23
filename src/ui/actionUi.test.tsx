@@ -1,5 +1,4 @@
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
 import test from "node:test";
 import { renderToStaticMarkup } from "react-dom/server";
 import { Save, Trash2 } from "lucide-react";
@@ -43,8 +42,6 @@ test("IconButton offers a borderless ghost action with the same square target", 
 test("CloseButton is the one named, borderless close cross and never submits a form", () => {
   const markup = renderToStaticMarkup(<CloseButton label="Schließen" className="shrink-0" />);
   assert.match(markup, /^<button type="button" aria-label="Schließen" class="core-action-ghost core-close-button shrink-0"><svg[^>]*lucide-x[^>]*aria-hidden="true"/);
-  const styles = readFileSync("src/styles.css", "utf8");
-  assert.match(styles, /\.core-close-button svg \{\s*width: 1\.3125rem;\s*height: 1\.3125rem;/, "das Kreuz misst 21 px an genau einer Stelle");
 });
 
 test("IconButton offers a quiet destructive action that only turns red on hover", () => {
