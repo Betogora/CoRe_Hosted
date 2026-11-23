@@ -3,7 +3,7 @@ import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import test from "node:test";
-import { SPLITS, assignSplits, loadCases, sampleCorpus, seededRandom, type DraftCase, type EvalCase } from "./cases.ts";
+import { SPLITS, assignSplits, loadCases, placeholderCard, sampleCorpus, seededRandom, type DraftCase, type EvalCase } from "./cases.ts";
 import { corpusCategory, definitionFor, judgeItemsFor, numberTokens, rephrased, wordDistance, type EvalDefinition } from "./definitions.ts";
 import { generate, mockCompletion, payloadBuilder, payloadFingerprint, readAnswers, type AnswerRow, type Outcome } from "./generate.ts";
 import { answerRef, borderlineCases, buildJudgeTable, labelRef, readLabels, readVerdicts, type JudgeBlock, type Label, type Verdicts } from "./judge.ts";
@@ -71,6 +71,13 @@ test("Korpuskarten bekommen ihre Kategorie nach der ersten zutreffenden Regel", 
   assert.equal(corpusCategory({ front: "Nenne die Basen.", back: "Adenin, Thymin, Guanin" }), "aufzaehlungen");
   assert.equal(corpusCategory({ front: "Was ist Osmose?", back: "Diffusion von Wasser durch eine Membran" }), "definitionen");
   assert.equal(corpusCategory({ front: "Hauptstadt?", back: "Canberra" }), "kurzantworten");
+});
+
+test("Korpusziehung überspringt gelöschte, Platzhalter- und ID-Karten echter Stapel", () => {
+  assert.equal(placeholderCard({ front: "Inhalt gelöscht - !DELETE markierte Karte", back: "Inhalt gelöscht - !DELETE markierte Karte Hydrozephalus" }), true);
+  assert.equal(placeholderCard({ front: "Alte PLATZHALTER - delete", back: "1684769975937 4489d860" }), true);
+  assert.equal(placeholderCard({ front: "1671009369950", back: "d29bdef1-fd5e-48bb-9f37-7329b24d0e45" }), true);
+  assert.equal(placeholderCard({ front: "Spannmuskeln M. vocalis", back: "N. laryngeus inferior" }), false);
 });
 
 test("Korpusziehung liefert bei gleichem Startwert dieselben Fälle im Anfragevertrag der Route", async () => {

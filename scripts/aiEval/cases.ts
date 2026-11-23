@@ -116,6 +116,13 @@ export function loadCases(definition: EvalDefinition): EvalCase[] {
   return cases as EvalCase[];
 }
 
+/**
+ * Echte Stapel enthalten gelöschte, Platzhalter- und ID-Karten. Sie sind kein Lerninhalt; eine Ablehnung wäre dort richtig
+ * und würde als Fehler des Modells zählen.
+ */
+export const placeholderCard = ({ front, back }: { front: string; back: string }) =>
+  /!DELETE|PLATZHALTER|Inhalt gelöscht/i.test(`${front} ${back}`) || /^\s*\d{10,}\s*$/.test(front) || /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(back.trim());
+
 export async function sampleCorpus(definition: EvalDefinition, count: number, seed: number, directory = "fixtures/apkg/corpus"): Promise<DraftCase[]> {
   const files = existsSync(directory) ? readdirSync(directory).filter((name) => /\.(?:apkg|colpkg)$/i.test(name)).sort() : [];
   if (!files.length) throw new Error(`Kein Korpus in ${directory}.`);
@@ -128,7 +135,7 @@ export async function sampleCorpus(definition: EvalDefinition, count: number, se
       const note = notes.get(card.noteId);
       const source = note && cardVariantSource(note, card);
       const html = note?.content.fields.map((field) => field.html).join("\u0000") ?? "";
-      if (source && !/<img|\[sound:/i.test(html)) cards.set(hash(`${source.front}\u0000${source.back}`), { source, note: hash(`${name}\u0000${html}`) });
+      if (source && !/<img|\[sound:/i.test(html) && !placeholderCard(source)) cards.set(hash(`${source.front}\u0000${source.back}`), { source, note: hash(`${name}\u0000${html}`) });
     }
   }
   const keys = shuffled([...cards.keys()].sort(), seededRandom(seed));
