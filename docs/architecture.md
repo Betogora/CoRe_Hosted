@@ -78,12 +78,12 @@ Pfade liegen unter `src/`, soweit kein anderer angegeben ist. Private Teilmodule
 
 | Eigentümer | Verantwortung |
 | --- | --- |
-| `useAppServices.ts` | einziger Zugang der Verdrahtungen zu den Diensten des geöffneten Arbeitsbereichs |
+| `useAppServices.ts` | einziger Zugang der Verdrahtungen zu den Diensten des geöffneten Arbeitsbereichs; ohne Repository und Cloud |
 | `useAccountWorkspace.ts`, `authenticatedWorkspaceBoot.ts`, `cloudAuth.ts` | Anmeldung, Sitzungsprüfung und accountgebundener Start (ADR-038) |
 | `useWorkspaceSync.ts`, `appSyncLifecycle.ts` | Sync-Lebenszyklus, Status und Konflikte |
 | `workspaceStore.ts`, `useWorkspaceStore.ts` | Store des geöffneten Kontos ohne React; Bildschirme abonnieren nur ihren Teil |
 | `appNavigation.ts`, `useAppNavigation.ts` | typisierter AppRoute und einzige Browser-History-Anbindung |
-| `useNavigationGuard.ts`, `useSettingsOverlay.ts` | Entwurfsschutz vor jeder Navigation; Einstellungsdialoge mit Entwurf |
+| `useNavigationGuard.ts`, `useSettingsOverlay.ts` | Entwurfsschutz beim Verlassen einer Ansicht; Einstellungsdialoge mit Entwurf |
 | `studyPreparation.ts`, `useStudyStart.ts`, `useStudySession.ts` | Lernsitzung vorbereiten (ohne React), starten und führen |
 | `useLearningClock.ts`, `learningDay.ts`, `simulationClock.ts` | Lernzeit mit Simulationsversatz, Tagesbeginn, Zeitzone und Lerntagwechsel |
 | `usePomodoroTimer.ts`, `pomodoroTimer.ts` | einziger accountgebundener Fokustimer über Tabs |
@@ -92,14 +92,14 @@ Pfade liegen unter `src/`, soweit kein anderer angegeben ist. Private Teilmodule
 
 ### Befehle
 
-Befehlsmodule laufen ohne React und entstehen je Arbeitsbereich aus Store, lokalem Repository und Sync. Jede Schreibung übernimmt den Repository-Stand in den Store und fordert einen Sync an.
+Befehlsmodule laufen ohne React, je Arbeitsbereich aus Store, Repository und Sync. Jede Schreibung übernimmt den Repository-Stand in den Store und fordert einen Sync an.
 
 | Eigentümer | Verantwortung |
 | --- | --- |
-| `cardCommands.ts` | Kartenseiten, Inhalte speichern, löschen, wiederherstellen, duplizieren, verschieben; Lernstand, Varianten, Medien, manuelle Erstellung, Textimport |
-| `deckCommands.ts` | Stapel, Stapel- und globale Einstellungen, Lernprofile, Prüfungsaufgaben, gespeicherte Suchen |
-| `importCommands.ts` | Importgraph übernehmen, Cloud-Bestätigung je Import, einmalige Neuübersetzung |
-| `cardBatchActions.ts` | Massenaktionen der Kartenverwaltung als ein Schreibvorgang, Rückgängig als neue Änderung |
+| `cardCommands.ts` | Kartenseiten, Inhalte speichern und duplizieren; Lernstand, Varianten, Medien, Erstellung, Textimport, KI-Hilfen |
+| `deckCommands.ts` | Stapel, Stapel- und globale Einstellungen, Lernprofile, Prüfungsaufgaben, gespeicherte Suchen, Offline-Download |
+| `importCommands.ts` | Importgraph übernehmen, Cloud-Bestätigung je Import, einmalige Neuübersetzung, Quellkarten |
+| `cardBatchActions.ts` | Aktionen an Karten als ein Schreibvorgang; Rückgängig überspringt seither geänderte Karten |
 | `cardVariantBatch.ts` | Stapelgenerierung von Varianten mit Abbruch |
 
 ### Domäne
@@ -235,7 +235,7 @@ Befehlsmodule laufen ohne React und entstehen je Arbeitsbereich aus Store, lokal
 
 ### Sync
 
-- Lokale Mutation und Outbox werden in einer Transaktion geschrieben. Cloudwrite und lokaler Abschluss haben getrennte Grenzen; ein gescheiterter Sync setzt den lokalen Erfolg nicht zurück.
+- Lokale Mutation und Outbox werden in einer Transaktion geschrieben. Payloads liest nur die Outbox. Cloudwrite und lokaler Abschluss haben getrennte Grenzen; ein gescheiterter Sync setzt den lokalen Erfolg nicht zurück.
 - Ein Sync-Zyklus sendet die Outbox (`entity-mutation`, `deck-command`, `profile-patch`, `review-atomic`, `review-undo`), lädt alle Deltas seit den `sync_change_id`-Cursorn und aktualisiert zuletzt Konflikte und Status. Gleichzeitige Anforderungen teilen einen Lauf.
 - Die Outbox hält je Entität höchstens eine Mutation. Ein ersetzter unbestätigter Insert bleibt Insert; eine Zeile, die zuletzt dasselbe Gerät schrieb, gilt als verlorene Antwort und wird Update. Löschungen laufen zuletzt in umgekehrter Fremdschlüsselreihenfolge.
 - `review-undo` folgt seiner `review-atomic`-Mutation und wird nicht gesendet, solange diese scheitert. Ausstehende Bewertungen und Rücknahmen schützen Karte und Ereignis vor dem Überschreiben durch Abrufe.
@@ -356,14 +356,14 @@ Befehlsmodule laufen ohne React und entstehen je Arbeitsbereich aus Store, lokal
 ### Varianten und Lernhilfe
 
 - Varianten entstehen nur aus der bereinigten Quelle einer Karte (`cardVariantSource`; Art `basic`, `type-in`, `cloze`, `choice`). Vor der Mutation prüft der Vertrag Anzahl, Schema, Änderung, Duplikate, Größen und den aktuellen Inhalt.
-- Antwort, Eintippvergleich, Lückenlösung, Options-IDs und Richtigkeit kommen beim Darstellen stets von der Karte. Eine Auswahl-Variante speichert Stamm und Optionen in `front`/`back`, umformulierte Optionstexte in `meta.options`. `clozeSyntax.ts` zerlegt Anki-Lücken für Renderer und Vertrag.
+- Antwort, Eintippvergleich, Lückenlösung, Options-IDs und Richtigkeit kommen beim Darstellen von der Karte. Eine Auswahl-Variante speichert Stamm und Optionen in `front`/`back`, umformulierte Optionstexte in `meta.options`. `clozeSyntax.ts` zerlegt Anki-Lücken für Erzeugung, Renderer und Vertrag.
 - `not_rephrasable` (422) oder drei Abweisungen in Folge (`AI_CARD_VARIANT_REJECTIONS`) vermerkt die Karte in `variantRefusal`, gültig bei gleicher `contentRevision`; `activeVariantRefusal`, `catalogEntryFromCard` und `refresh_card_catalog` werten gleich aus.
 - Geänderter Text einer behaltenen Karte, auch per Reimport, macht ihre aktiven Varianten veraltet (`meta.outdated`); eine Neuerzeugung ersetzt sie.
 - `aiCardHelp.ts` bildet den Kartentext der Lernhilfe: ohne Quellenfelder und Bildverdeckungen, eine Lücke verdeckt nur sich selbst.
 
 ### Karten aus einer Quelle
 
-- `aiSourceCreation.ts` validiert den Auftrag und baut die Anweisungen. `aiSourceCardsContract.ts` prüft je Anfrage einen Abschnitt der Quelle als Einheiten mit ID und die Antwort: Strukturfehler verwerfen sie ganz; Vorschläge mit ungültigen Feldern oder Formen, unbekanntem Beleg, wiederholter Frage oder über dem Restlimit fallen gezählt heraus. `aiSourceCards.ts` liest die Quelle im Browser, zerlegt sie in belegte Einheiten (PDF-Seite, Zeilenblöcke, Tabellenzeilen mit Kopfzeile) und schickt Abschnitte nacheinander über `requestAiSourceCards`, das die Antwort erneut prüft. Gespeichert wird erst bei der Übernahme, über `createManualNoteContent` und `saveManualNote`.
+- `aiSourceCreation.ts` validiert den Auftrag und baut die Anweisungen. `aiSourceCardsContract.ts` prüft je Anfrage einen Abschnitt der Quelle als Einheiten mit ID und die Antwort: Strukturfehler verwerfen sie ganz; Vorschläge mit ungültigen Feldern oder Formen, unbekanntem Beleg, wiederholter Frage oder über dem Restlimit fallen gezählt heraus. `aiSourceCards.ts` liest die Quelle im Browser, zerlegt sie in belegte Einheiten (PDF-Seite, Zeilenblöcke, Tabellenzeilen mit Kopfzeile) und schickt Abschnitte einzeln über `requestAiSourceCards`, das die Antwort erneut prüft. Gespeichert wird erst bei der Übernahme, über `createManualNoteContent` und `saveManualNote`.
 
 ### Zusammenfassungen und Mindmaps
 
