@@ -158,10 +158,7 @@ test("deck content shows only its own cards without deck headings and uses the e
   assert.match(markup, /aria-expanded="false" aria-controls="advanced-card-search"/);
   assert.match(markup, /Was ist ATP\?/);
   assert.doesNotMatch(markup, /Was ist H2O|Aktive Stapel|Bereich in Lernen|deck-toggle-|deck-header-/);
-  assert.match(markup, /data-testid="deck-content-study"[^>]*>[\s\S]*?Karten lernen/);
-  const actions = markup.slice(markup.indexOf('data-testid="deck-content-actions"'));
-  assert.ok(actions.indexOf('aria-label="Stapelinhalte"') < actions.indexOf('data-testid="deck-content-study"'));
-  assert.doesNotMatch(markup.slice(markup.indexOf('data-testid="deck-content-heading"'), markup.indexOf('data-testid="deck-content-actions"')), /data-testid="deck-content-study"/);
+  assert.doesNotMatch(markup, /Karten lernen/, "der Stapelkopf trägt keine Lernaktion");
   assert.match(markup, /aria-label="Karten durchsuchen"/);
   const editor = renderScreen([deck, other], {
     contentDeckId: deck.id,
@@ -196,8 +193,7 @@ test("deck content opens on its subdecks with path, heading and branch actions",
   const leaf = renderScreen([root, child, grandchild], { contentDeckId: grandchild.id, contentTab: "children" });
   const leafPanel = leaf.slice(leaf.indexOf('data-testid="deck-content-substacks"'));
   assert.match(leafPanel, /role="status">Keine Unterstapel</);
-  assert.match(leafPanel, /<button(?=[^>]*disabled="")[^>]*>[\s\S]*?Karten lernen/);
-  assert.match(leaf, /data-testid="deck-content-study"/);
+  assert.match(leafPanel, /<button(?=[^>]*disabled="")(?=[^>]*core-action-primary)[^>]*>[\s\S]*?Karten lernen/);
   assert.doesNotMatch(leaf, /content-deck-row-/);
   const top = renderScreen([root, child], { contentDeckId: root.id, contentTab: "summary" });
   assert.match(top, /aria-selected="true"[^>]*data-label="Zusammenfassungen"/);
@@ -221,17 +217,13 @@ test("substack tree starts collapsed and keeps other branches outside the opened
   assert.match(markup, /aria-label="Inhalte von Hauptstapel \/ Kapitel öffnen"/);
 });
 
-test("deck learning is disabled only for an empty deck, including the paged catalog", () => {
+test("deck learning without subdecks is disabled only for an empty deck, including the paged catalog", () => {
   const deck = deckOf("empty", "Leer", []);
-  const empty = renderScreen([deck], { contentDeckId: deck.id });
-  assert.match(empty, /<button(?=[^>]*disabled="")(?=[^>]*data-testid="deck-content-study")/);
-  const catalog = renderScreen([deck], { contentDeckId: deck.id, cardPages: {}, deckSummaries: new Map([[deck.id, summaryWithTotal(deck, 60)]]) });
-  assert.doesNotMatch(catalog, /<button(?=[^>]*disabled="")(?=[^>]*data-testid="deck-content-study")/);
-  assert.match(catalog, /data-testid="deck-content-study"/);
-  const child = deckOf("child", "Unterstapel", [basicGraph("child", "Frage", "Antwort")], { parentDeckId: deck.id });
-  const subtree = renderScreen([deck, child], { contentDeckId: deck.id });
-  assert.doesNotMatch(subtree, /<button(?=[^>]*disabled="")(?=[^>]*data-testid="deck-content-study")/);
-  assert.doesNotMatch(renderScreen([deck]), /data-testid="deck-content-study"/);
+  const study = /<button(?=[^>]*disabled="")[^>]*>(?:(?!<\/button>)[\s\S])*Karten lernen/;
+  assert.match(renderScreen([deck], { contentDeckId: deck.id, contentTab: "children" }), study);
+  const catalog = renderScreen([deck], { contentDeckId: deck.id, contentTab: "children", cardPages: {}, deckSummaries: new Map([[deck.id, summaryWithTotal(deck, 60)]]) });
+  assert.doesNotMatch(catalog, study);
+  assert.match(catalog, /Karten lernen/);
 });
 
 test("deck content includes its complete subtree without its parent or other branches", () => {

@@ -570,7 +570,7 @@ export function DecksScreen({
       onOpenDeck={(id) => onOpenDeckContent(id, "children")}
       onStudy={onStartDeck} onPractice={onPracticeDeck} onOpenSettings={onOpenDeckSettings} onSetCoreMode={onSetDeckCoreMode} onMoveDeck={onMoveDeck} />
       : <DeckContentPlaceholder label="Unterstapel" icon={Layers} title="Keine Unterstapel" testId="deck-content-substacks"
-        action={<ActionButton variant="secondary" icon={Play} disabled={!hasStudyCards} onClick={() => onStartDeck(contentRow.deck)}>Karten lernen</ActionButton>} />
+        action={<ActionButton variant="primary" icon={Play} disabled={!hasStudyCards} onClick={() => onStartDeck(contentRow.deck)}>Karten lernen</ActionButton>} />
       : <EmptyState icon={Layers} title="Stapel nicht gefunden oder nicht verfügbar." />
   ) : contentDeckId && contentTab === "summary" ? (
     contentDeck ? <React.Suspense fallback={CONTENT_TAB_LOADING}><DeckSummariesPanel key={`${summaryAccountId ?? contentDeck.ownerId}:${contentDeck.id}`} deck={contentDeck} treeDecks={libraryDecks}
@@ -717,8 +717,6 @@ export function DecksScreen({
             <CoreTabs ariaLabel="Stapelinhalte" tabs={deckContentTabs} value={contentTab} panelId={contentPanelId}
               onValueChange={(tab) => requestDetailAction(() => onOpenDeckContent(contentDeckId, tab))} />
           </div>
-          {contentDeck ? <ActionButton variant="primary" icon={Play} disabled={!hasStudyCards} className="core-deck-content-study"
-            onClick={() => requestDetailAction(() => onStartDeck(contentDeck))} data-testid="deck-content-study">Karten lernen</ActionButton> : null}
         </div>
       ) : <LearningAreaHeader area="cards" onOpenCardSettings={onOpenCardSettings} />}
 

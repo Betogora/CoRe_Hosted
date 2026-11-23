@@ -152,7 +152,7 @@ Karte
 - Verschieben macht einen Stapel samt Unterbaum zum direkten Unterstapel des Ziels oder zum Hauptstapel. Ausgeschlossen sind nur der Stapel selbst und seine Nachfahren. Importherkunft und Tags bleiben.
 - Das Löschen eines Stapelbaums ist endgültig, nennt vorher Unterstapel und Kartenzahl und wird durch späteren Sync nicht rückgängig.
 - Je Stapel zeigen `Heute` und `Lernen` die Tageszahlen `Neu`, `Offen` und `Fällig` nach [Tagesrunde und Limits](#tagesrunde-und-limits); Elternstapel zählen ihren Teilbaum.
-- Ein geöffneter Stapel bündelt Unterstapel, die Karten des ganzen Teilbaums, Zusammenfassungen und Mindmap und startet das Lernen.
+- Ein geöffneter Stapel bündelt Unterstapel, die Karten des ganzen Teilbaums, Zusammenfassungen und Mindmap; gelernt wird aus den Unterstapeln.
 - Wo ein Stapel gewählt wird, steht sein vollständiger Pfad, damit gleichnamige Unterstapel unterscheidbar bleiben.
 
 ## 3. Kernjourneys
@@ -636,11 +636,11 @@ Aus den Karten eines Stapels entsteht eine gegliederte, belegte Fassung zum Lese
 - **Material:** die Karten des Stapels, auf Wunsch samt Unterstapeln, und optional eine angehängte Quelle (PDF, Text, Markdown, CSV, TSV). Die Quelle kann die Karten ergänzen oder ersetzen und wird nicht gespeichert.
 - Jeder Inhalt geht genau einmal ein, unabhängig von der Zahl seiner Karten; Varianten zählen nicht. Bei Auswahlkarten sind richtige und falsche Optionen unterschieden.
 - Das Material wird vor der Anfrage vollständig geladen. Ist es größer als die Obergrenze (3.000 Inhalte oder 400.000 Zeichen), wird die Erstellung sichtbar abgewiesen und nie still gekürzt.
-- **Wünsche:** Länge, Detailgrad, Darstellung, Lernziel, Fokus, Sprachniveau, Beispiele, sichtbare Verweise. Länge (etwa 1–2, 3–5 oder 6–10 Minuten Lesezeit) und Detailgrad sind unabhängig. Die Wünsche sind ein eigener Auftrag; Fokus und Material überschreiben die Anweisungen nicht.
+- **Wünsche:** Länge, Darstellung, Lernziel, Fokus, Beispiele, sichtbare Verweise (vorab aus). Die Länge (etwa 1–2, 3–5 oder 6–10 Min. Lesezeit) setzt auch den Detailgrad. Die Wünsche sind ein eigener Auftrag; Fokus und Material überschreiben die Anweisungen nicht.
 - **Materialtreue:** Die KI darf nur wiedergeben, was im Material steht. Definitionen, Zahlen, Einheiten, Formeln, Verneinungen, Bedingungen und Ausnahmen bleiben; Widersprüche nennt sie mit beiden Fundstellen, Lücken als Hinweis. Bei knapper Länge gehen Fokus und zentrale Konzepte vor; wenig Material wird nicht aufgefüllt.
 - **Antwort:** Hauptabschnitte mit höchstens einer Ebene Unterabschnitten, darin Absätze und Stichpunkte aus Stichwort und Aussage, je Abschnitt Verweise auf das Material und optional belegte Querbezüge zwischen Stichworten.
 - Den Text baut die App aus dieser Struktur. Kartenverweise führen zu vorhandenen Karten, Quellverweise nennen Datei und Seite; unbekannte Verweise, leere Abschnitte und abgeschnittene Antworten werden abgewiesen.
-- Das Ergebnis öffnet als ungespeicherter Entwurf; erst das Speichern übernimmt ihn. Modell, Promptfassung und Erstellungszeit bleiben an der Fassung.
+- Das Ergebnis öffnet als ungespeicherter Entwurf unter dem Stapelnamen; erst das Speichern übernimmt ihn. Modell, Promptfassung und Erstellungszeit bleiben an der Fassung.
 - Abbrechen beendet die Anfrage; eine verspätete Antwort wird nicht übernommen. Ein Fehler erhält den Auftrag.
 - Bilder, Ton und gescannte Seiten ohne Text werden nicht ausgewertet; was ausgelassen wurde, steht im Ergebnis.
 - **Grenze:** Der Prompt allein garantiert keine Faktentreue; deshalb die Belege. Ausgabesprache ist Deutsch.
@@ -753,7 +753,7 @@ Fassung | im Konto, mehrere je Stapel
 
 - Ein Stapel hat beliebig viele benannte Fassungen; eine neue überschreibt keine bestehende.
 - Eine Fassung entsteht per [KI-Zusammenfassung](#ki-zusammenfassung) oder von Hand aus einem leeren Entwurf.
-- Jede Fassung nennt Titel, Umfang, Detailgrad und die aus dem tatsächlichen Text berechnete Lesezeit.
+- Jede Fassung nennt Titel, Umfang, Detailgrad und die aus ihrem Text berechnete Lesezeit.
 - Fassungen liegen im Konto und erscheinen auf jedem Gerät ([ADR-043](decisions.md#adr-043--zusammenfassungen-und-mindmaps-als-versionierte-online-dokumente)).
 - Löschen entfernt eine Fassung auf allen Geräten; daraus erzeugte Mindmap-Karten bleiben.
 - Unter den eigenen Fassungen zeigt ein Stapel die seiner Unterstapel, gruppiert, bearbeitbar und löschbar; sie bleiben ihrem Stapel. Neue entstehen nur im geöffneten Stapel.
@@ -762,7 +762,7 @@ Fassung | im Konto, mehrere je Stapel
 
 - Die Fassung steht auf einer durchgehenden Schreibfläche mit formatiertem Text und Handzeichnungen.
 - Eine Textmarkierung gehört zum Text und wandert mit ihm; freie Striche liegen auf der Zeichenfläche.
-- Gespeichert wird beim Verlassen: Ein geänderter Entwurf fragt nach Speichern, Verwerfen oder Weiterbearbeiten. Es gibt kein automatisches Speichern.
+- Gespeichert wird bewusst oder beim Verlassen; dann fragt ein geänderter Entwurf nach Speichern, Verwerfen oder Weiterbearbeiten, nie automatisch.
 - Ohne Verbindung wird lokal gespeichert, als noch nicht synchronisiert gekennzeichnet und beim nächsten Öffnen hochgeladen.
 - Hat ein anderes Gerät dieselbe Fassung inzwischen geändert, bleibt dessen Stand; die eigenen Änderungen werden eine eigene „Konfliktfassung“.
 - **Bewusst nicht:** Seiten und Seitenformate, Export.
