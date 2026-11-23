@@ -1,8 +1,11 @@
 """Writes fixtures/ai-source/ohmsches-gesetz.pdf: a small text PDF with three pages, the middle one without a text layer.
 
-The PDF is built by hand (Helvetica, WinAnsi encoding) so the fixture needs no extra dependency.
+The PDF is built by hand (Helvetica, WinAnsi encoding) so the fixture needs no extra dependency. Next to it,
+ohmsches-gesetz.pages.json holds the pages as the app reads them; the AI eval uses it because pdf.js does not run
+under Node with the app's build.
 Run: python scripts/create_ai_source_fixtures.py
 """
+import json
 from pathlib import Path
 
 PAGES = [
@@ -92,4 +95,6 @@ def build() -> bytes:
 if __name__ == "__main__":
     target = Path(__file__).resolve().parent.parent / "fixtures" / "ai-source" / "ohmsches-gesetz.pdf"
     target.write_bytes(build())
-    print(f"geschrieben: {target}")
+    pages = [{"pageNumber": number, "text": "\n".join(lines) if lines else "", "textItemCount": len([line for line in lines or [] if line])} for number, lines in enumerate(PAGES, 1)]
+    target.with_suffix(".pages.json").write_text(json.dumps({"pages": pages}, ensure_ascii=False, indent=2) + "\n", encoding="utf-8", newline="\n")
+    print(f"geschrieben: {target} und {target.with_suffix('.pages.json').name}")

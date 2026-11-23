@@ -1,0 +1,13 @@
+{
+  "keypoints": [
+    "Das ohmsche Gesetz lautet U = R · I mit U in Volt, I in Ampere und R in Ohm.",
+    "Es gilt nur für ohmsche Leiter, deren Widerstand bei konstanter Temperatur nicht von der Stromstärke abhängt, etwa Metalldrähte.",
+    "Eine Glühlampe ist kein ohmscher Leiter, weil ihr Widerstand mit der Temperatur steigt.",
+    "An 100 Ohm mit 12 V fließen 0,12 A.",
+    "In der Reihenschaltung fließt durch alle Widerstände derselbe Strom.",
+    "In der Reihenschaltung ist der Gesamtwiderstand die Summe der Einzelwiderstände, und die Spannung teilt sich auf.",
+    "In der Parallelschaltung liegt an allen Widerständen dieselbe Spannung.",
+    "In der Parallelschaltung addieren sich die Kehrwerte; der Gesamtwiderstand ist kleiner als der kleinste Einzelwiderstand.",
+    "Die elektrische Leistung ist P = U · I in Watt."
+  ]
+}

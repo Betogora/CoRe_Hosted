@@ -151,7 +151,7 @@ export function splitAiSource(document: Pick<TransientSourceDocument, "fileName"
   return { units, notices };
 }
 
-function sourcePortions(units: SourceUnit[]): SourceUnit[][] {
+export function sourcePortions(units: SourceUnit[]): SourceUnit[][] {
   const portions: SourceUnit[][] = [];
   let current: SourceUnit[] = [];
   let size = 0;

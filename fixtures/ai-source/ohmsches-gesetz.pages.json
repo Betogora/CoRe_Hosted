@@ -1,0 +1,19 @@
+{
+  "pages": [
+    {
+      "pageNumber": 1,
+      "text": "Das ohmsche Gesetz\n\nDas ohmsche Gesetz beschreibt den Zusammenhang zwischen Spannung, Stromstärke\nund Widerstand in einem elektrischen Leiter. Es lautet: U = R · I.\nDabei ist U die Spannung in Volt (V), I die Stromstärke in Ampere (A)\nund R der elektrische Widerstand in der Einheit Ohm.\n\nDas Gesetz gilt nur für ohmsche Leiter, deren Widerstand bei konstanter\nTemperatur unabhängig von der Stromstärke ist, etwa für Metalldrähte.\nEine Glühlampe ist kein ohmscher Leiter, weil ihr Widerstand mit der\nTemperatur des Glühfadens steigt.\n\nBeispiel: Liegt an einem Widerstand von 100 Ohm eine Spannung von 12 V an,\nfließt ein Strom von I = U / R = 12 V / 100 Ohm = 0,12 A.",
+      "textItemCount": 11
+    },
+    {
+      "pageNumber": 2,
+      "text": "",
+      "textItemCount": 0
+    },
+    {
+      "pageNumber": 3,
+      "text": "Reihen- und Parallelschaltung\n\nIn einer Reihenschaltung fließt durch alle Widerstände derselbe Strom.\nDer Gesamtwiderstand ist die Summe der Einzelwiderstände: R = R1 + R2.\nDie Gesamtspannung teilt sich auf die Widerstände auf.\n\nIn einer Parallelschaltung liegt an allen Widerständen dieselbe Spannung.\nDie Kehrwerte addieren sich: 1/R = 1/R1 + 1/R2.\nDer Gesamtwiderstand ist daher immer kleiner als der kleinste\nEinzelwiderstand.\n\nElektrische Leistung: P = U · I, gemessen in Watt (W).",
+      "textItemCount": 9
+    }
+  ]
+}

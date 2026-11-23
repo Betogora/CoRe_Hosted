@@ -1,14 +1,15 @@
 import type { EvalCase } from "./cases.ts";
-import type { EvalDefinition } from "./definitions.ts";
+import { judgeItemsFor, type EvalDefinition } from "./definitions.ts";
 import type { AnswerRow, Outcome, RunMeta } from "./generate.ts";
 import { answerRef, labelRef, type Label, type Verdicts, type borderlineCases } from "./judge.ts";
 import type { EvalRun, RequestType } from "./ledger.ts";
 
 /**
- * Ein Kriterium fehlt in `criteria`, wenn es für die Anfrage nicht gilt, die Antwort den Vertrag nicht besteht oder eine
- * der beiden Seiten (Fall oder Modell) eine Ablehnung ist.
+ * `criteria` und `main` sind Anteile: 0 oder 1 bei einem Richtereintrag je Antwort, sonst der Anteil bestandener Einträge.
+ * Ein Kriterium fehlt, wenn es für die Anfrage nicht gilt, die Antwort den Vertrag nicht besteht oder eine der beiden
+ * Seiten (Fall oder Modell) eine Ablehnung ist.
  */
-export type AnswerResult = { caseId: string; repetition: number; category: string; trap: boolean; outcome: Outcome; criteria: Record<string, boolean>; main: boolean; costUsd: number | null; latencyMs: number; totalTokens: number | null; model: string | null };
+export type AnswerResult = { caseId: string; repetition: number; category: string; trap: boolean; outcome: Outcome; criteria: Record<string, number>; main: number; metrics?: Record<string, number>; costUsd: number | null; latencyMs: number; totalTokens: number | null; model: string | null };
 
 const RESAMPLES = 2000;
 const mean = (values: readonly number[]) => values.length ? values.reduce((sum, value) => sum + value, 0) / values.length : 0;
@@ -17,28 +18,41 @@ const round = (value: number) => Math.round(value * 10000) / 10000;
 
 export function evaluateAnswers(definition: EvalDefinition, cases: readonly EvalCase[], repetitions: number, rows: readonly AnswerRow[], verdicts: Verdicts): AnswerResult[] {
   const byKey = new Map(rows.map((row) => [answerRef(row.caseId, row.repetition), row]));
+  const isMain = (id: string) => definition.main.includes(id);
   return cases.flatMap((entry) => Array.from({ length: repetitions }, (_, repetition) => {
     const ref = answerRef(entry.id, repetition);
     const row = byKey.get(ref);
     if (!row) throw new Error(`Antwort ${entry.id}#${repetition} fehlt. „generate“ mit demselben Laufnamen fortsetzen.`);
     const valid = row.outcome === "answer" || row.outcome === "refused";
-    const criteria: Record<string, boolean> = { [definition.contract]: valid };
-    if (valid && definition.refusal) criteria[definition.refusal.criterion] = (row.outcome === "refused") === Boolean(entry.refuse);
-    if (row.outcome === "answer" && !entry.refuse) {
-      for (const [id, check] of Object.entries(definition.automatic)) criteria[id] = (criteria[id] ?? true) && check(entry.request, row.output);
-      const judged = verdicts.get(ref);
-      for (const { id } of definition.judged(entry.request)) {
-        if (judged?.[id] === undefined) throw new Error(`Richterurteil ${id} für ${entry.id}#${repetition} fehlt.`);
-        criteria[id] = (criteria[id] ?? true) && judged[id];
+    const passed: Record<string, boolean> = { [definition.contract]: valid };
+    if (valid && definition.refusal) passed[definition.refusal.criterion] = (row.outcome === "refused") === Boolean(entry.refuse);
+    const shares: Record<string, number[]> = {};
+    let itemMains: number[] = [];
+    const judging = row.outcome === "answer" && !entry.refuse;
+    if (judging) {
+      for (const [id, check] of Object.entries(definition.automatic)) passed[id] = check(entry.request, row.output);
+      for (const item of judgeItemsFor(definition, ref, entry.request, row.output)) {
+        const judged = verdicts.get(item.ref);
+        const itemPassed = item.criteria.map(({ id }) => {
+          if (judged?.[id] === undefined) throw new Error(`Richterurteil ${id} für ${item.ref.replace(/^answer:/, "")} fehlt.`);
+          (shares[id.split(":")[0]] ??= []).push(judged[id] ? 1 : 0);
+          return { id: id.split(":")[0], ok: judged[id] };
+        });
+        if (itemPassed.some(({ id }) => isMain(id))) itemMains.push(itemPassed.every(({ id, ok }) => ok || !isMain(id)) ? 1 : 0);
       }
     }
-    return { caseId: entry.id, repetition, category: entry.category, trap: Boolean(entry.trap), outcome: row.outcome, criteria, main: definition.main.every((id) => criteria[id] ?? true), costUsd: row.costUsd, latencyMs: row.latencyMs, totalTokens: row.totalTokens, model: row.model };
+    const criteria = { ...Object.fromEntries(Object.entries(passed).map(([id, ok]) => [id, ok ? 1 : 0])), ...Object.fromEntries(Object.entries(shares).map(([id, values]) => [id, round(mean(values))])) };
+    const automaticMain = Object.entries(passed).every(([id, ok]) => ok || !isMain(id));
+    if (definition.items && !itemMains.length) itemMains = [0];
+    const main = !valid || !automaticMain ? 0 : itemMains.length ? round(mean(itemMains)) : 1;
+    const metrics = judging && definition.metrics ? { metrics: definition.metrics(entry.request, row.output) } : {};
+    return { caseId: entry.id, repetition, category: entry.category, trap: Boolean(entry.trap), outcome: row.outcome, criteria, main, ...metrics, costUsd: row.costUsd, latencyMs: row.latencyMs, totalTokens: row.totalTokens, model: row.model };
   }));
 }
 
 function caseScores(results: readonly AnswerResult[]) {
   const scores = new Map<string, number[]>();
-  for (const result of results) scores.set(result.caseId, [...(scores.get(result.caseId) ?? []), result.main ? 1 : 0]);
+  for (const result of results) scores.set(result.caseId, [...(scores.get(result.caseId) ?? []), result.main]);
   return new Map([...scores].map(([caseId, values]) => [caseId, mean(values)]));
 }
 
@@ -50,7 +64,12 @@ function bootstrap(values: readonly number[], random: () => number) {
 
 function criteriaShares(results: readonly AnswerResult[]) {
   const ids = [...new Set(results.flatMap((result) => Object.keys(result.criteria)))].sort();
-  return Object.fromEntries(ids.map((id) => [id, round(mean(results.filter((result) => id in result.criteria).map((result) => result.criteria[id] ? 1 : 0)))]));
+  return Object.fromEntries(ids.map((id) => [id, round(mean(results.filter((result) => id in result.criteria).map((result) => result.criteria[id])))]));
+}
+
+function metricMeans(results: readonly AnswerResult[]) {
+  const ids = [...new Set(results.flatMap((result) => Object.keys(result.metrics ?? {})))].sort();
+  return Object.fromEntries(ids.map((id) => [id, round(mean(results.flatMap((result) => result.metrics && id in result.metrics ? [result.metrics[id]] : [])))]));
 }
 
 export type Summary = ReturnType<typeof summarize>;
@@ -69,11 +88,12 @@ export function summarize(results: readonly AnswerResult[], random: () => number
     low: round(interval.low),
     high: round(interval.high),
     criteria: criteriaShares(results),
-    traps: { answers: traps.length, errors: traps.filter((result) => critical.some((id) => result.criteria[id] === false)).length },
+    metrics: metricMeans(results),
+    traps: { answers: traps.length, errors: traps.filter((result) => critical.some((id) => id in result.criteria && result.criteria[id] < 1)).length },
     outcomes: Object.fromEntries((["answer", "refused", "rejected", "timeout"] as const).map((outcome) => [outcome, results.filter((result) => result.outcome === outcome).length])) as Record<Outcome, number>,
     categories: [...new Set(results.map((result) => result.category))].sort().map((category) => {
       const members = results.filter((result) => result.category === category);
-      return { category, answers: members.length, main: round(mean(members.map((result) => result.main ? 1 : 0))), criteria: criteriaShares(members) };
+      return { category, answers: members.length, main: round(mean(members.map((result) => result.main))), criteria: criteriaShares(members), metrics: metricMeans(members) };
     }),
     costUsd: mean(costs),
     costTotalUsd: costs.reduce((sum, value) => sum + value, 0),
@@ -137,10 +157,12 @@ export function ledgerRun({ type, run, meta, summary, decision, change, comparis
     cases: summary.cases, repetitions: summary.repetitions, main: summary.main, low: summary.low, high: summary.high, criteria: summary.criteria,
     outcomes: summary.outcomes, traps: summary.traps,
     costUsd: Number(summary.costUsd.toPrecision(3)), costTotalUsd: Number(summary.costTotalUsd.toPrecision(3)), latencyP90Ms: summary.latencyP90Ms, judge,
+    ...(Object.keys(summary.metrics).length ? { metrics: summary.metrics } : {}),
     ...(comparison ? { comparison: { noise: comparison.noise, gained: comparison.gained, lost: comparison.lost } } : {}),
   };
 }
 
+const number = (value: number) => value.toLocaleString("de-DE", { maximumFractionDigits: 2 });
 const percent = (share: number) => `${(share * 100).toLocaleString("de-DE", { minimumFractionDigits: 1, maximumFractionDigits: 1 })} %`;
 
 type ReportJudge = { model: string; fingerprint: string; entries: number; cached: number; noise: Record<string, number> };
@@ -149,6 +171,7 @@ const fields = (record: Record<string, string>) => Object.entries(record).map(([
 /** `decision` ist `null` bei Läufen auf dem Trainingsteil, die nichts entscheiden. */
 export function renderReport({ type, run, meta, summary, comparison, decision, failed = [], controls, judge }: { type: RequestType; run: string; meta: RunMeta; summary: Summary; comparison: ReturnType<typeof compare> | null; decision: EvalRun["decision"] | null; failed?: readonly string[]; controls: ReturnType<typeof agreement> | null; judge: ReportJudge | null }) {
   const ids = Object.keys(summary.criteria);
+  const metricIds = Object.keys(summary.metrics);
   const noise = judge ? Object.entries(judge.noise).map(([id, share]) => `${id} ${percent(share)}`).join(", ") : "";
   const lines = [
     `# ${type.label}: Lauf ${run}`,
@@ -171,6 +194,15 @@ export function renderReport({ type, run, meta, summary, comparison, decision, f
     ...summary.categories.map((category) => `| ${category.category} | ${category.answers} | ${percent(category.main)} | ${ids.map((id) => id in category.criteria ? percent(category.criteria[id]) : "–").join(" | ")} |`),
     `| alle | ${summary.cases * summary.repetitions} | ${percent(summary.main)} | ${ids.map((id) => percent(summary.criteria[id])).join(" | ")} |`,
     "",
+    ...metricIds.length ? [
+      "Messgrößen je Antwort, gemittelt:",
+      "",
+      `| Kategorie | ${metricIds.join(" | ")} |`,
+      `| --- | ${metricIds.map(() => "---").join(" | ")} |`,
+      ...[...summary.categories.map((category) => ({ name: category.category, values: category.metrics })), { name: "alle", values: summary.metrics }]
+        .map(({ name, values }) => `| ${name} | ${metricIds.map((id) => id in values ? number(values[id]) : "–").join(" | ")} |`),
+      "",
+    ] : [],
   ];
   return lines.join("\n");
 }
@@ -179,7 +211,7 @@ export function renderBorderline(type: RequestType, run: string, borderline: Ret
   return [`# ${type.label}: Grenzfälle in Lauf ${run}`, "", ...borderline.length ? borderline.flatMap(({ id, cases }) => [
     `## ${id}`, "",
     ...cases.flatMap((entry) => [
-      `- ${entry.entry}: ${entry.passed ? "bestanden" : "nicht bestanden"}, Sicherheit ${entry.sure[id]}${entry.flipped ? ", Doppelurteil gekippt" : ""}${entry.note ? ` – ${entry.note}` : ""}`,
+      `- ${entry.entry}: ${entry.passed ? "bestanden" : "nicht bestanden"}, Sicherheit ${entry.sure}${entry.flipped ? ", Doppelurteil gekippt" : ""}${entry.note ? ` – ${entry.note}` : ""}`,
       `  - Eingabe: ${fields(entry.eingabe)}`,
       `  - Ausgabe: ${fields(entry.ausgabe)}`,
     ]),

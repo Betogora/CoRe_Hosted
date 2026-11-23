@@ -24,7 +24,7 @@ Nennt `score` fehlende Blöcke, nur für diese den Richter erneut starten; `tabl
 
 ## Eine Runde
 
-Eine Runde misst Kandidaten gegen den Bestand. Ein Kandidat ist eine Datei `<Datenordner>/<typ>/candidates/<name>.ts`, deren Standardexport den gebauten Payload der Route ändert, ohne den Code der Route anzufassen:
+Eine Runde misst Kandidaten gegen den Bestand. Ein Kandidat ist eine Datei `<Datenordner>/<typ>/candidates/<name>.ts`, deren Standardexport `(payload, request) => payload` den gebauten Payload der Route ändert, ohne den Code der Route anzufassen; `request` ist die Anfrage an die Route (bei Karten aus einer Quelle die des Abschnitts):
 
 ```ts
 export default (payload: any) => ({ ...payload, reasoning: { effort: "medium" } });

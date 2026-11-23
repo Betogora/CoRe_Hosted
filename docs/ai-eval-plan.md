@@ -42,8 +42,8 @@ Nachweis, nimm ihn und nenne die Abweichung im Pull Request.
   Tests), `server/aiRoute.ts`, `api/ai/`, die vier Vertragsmodule
   `src/ai*Contract.ts`, den Skill `.agents/skills/ai-eval/SKILL.md` und
   `.claude/agents/eval-judge.md`.
-- **Reihenfolge:** F und G in beliebiger Reihenfolge, dann H → I → J. A
-  bis E und der Probelauf sind erledigt; dessen Ergebnis steht im
+- **Reihenfolge:** Ausbau der Fallsätze für Quelle und Zusammenfassung,
+  dann H → I → J. A bis G und der Probelauf sind erledigt; dessen Ergebnis steht im
   [Verlauf](history.md), die Rohdaten im Datenordner unter
   `<typ>/2026-11-23-probe/`. Seine Fehlermuster (Lückentext als Frage mit
   nachgestellter Lücke, übernommene eingeschleuste Anweisungen, umgekehrte
@@ -93,8 +93,8 @@ Vier Routen, alle über `OPENROUTER_MODEL` (`openai/gpt-6-luna`), Reasoning
 | --- | --- | --- | --- | --- |
 | `card-variant` | `card-variant-v5` | Frage/Antwort, Eintippen (Zusatzregel), Lückentext, Auswahl (Single, Multiple, Kprim) | drei feste Texte | Definitionen für drei Arten |
 | `card-help` | `card-help-v1` | Erklären, Beispiel, eigene Frage mit bis zu sechs Wechseln Verlauf | ein fester Text | Definition |
-| `source-cards` | `source-cards-v2` | je Abschnitt (≤ 15.000 Zeichen, ≤ 25 Karten) mit `avoid` und Restmenge aus früheren Abschnitten | Funktion von sieben Einstellungen | fehlt im Register und auf der Seite; fünf Prüfdokumente |
-| `summary` | `learning-summary-v4` | eine Anfrage je Zusammenfassung, bis 400.000 Zeichen Material | Funktion von zehn Einstellungen | im Register, ohne Definition |
+| `source-cards` | `source-cards-v2` | je Abschnitt (≤ 15.000 Zeichen, ≤ 25 Karten) mit `avoid` und Restmenge aus früheren Abschnitten | Funktion von sieben Einstellungen | Definition, fünf Prüfdokumente |
+| `summary` | `learning-summary-v4` | eine Anfrage je Zusammenfassung, bis 400.000 Zeichen Material | Funktion von zehn Einstellungen | Definition, drei Materialsätze |
 
 Weitere Aufrufe an ein Sprachmodell gibt es nicht; die Mindmap entsteht ohne
 KI aus der Zusammenfassung.
@@ -430,49 +430,47 @@ Umgesetzt am 2026-11-23. Stand und Abweichungen:
 - **Gruppen** halten bei KI hilft alle Fälle einer Karte zusammen, darunter
   sechs Karten in allen drei Modi.
 
-### F – Karten aus einer Quelle messbar machen
+### F und G – erledigt
 
-Idee: Der Fall ist der Auftrag, den die App ausführt, nicht die einzelne
-Anfrage.
+Umgesetzt am 2026-11-23. Stand und Abweichungen:
 
-- **Definition verallgemeinern (R14):** Eine Definition führt ihren Fall
-  selbst aus und bekommt dafür vom Runner eine Funktion, die einen Payload
-  sendet (Frist, Wiederholung, Kosten, Latenz und Transkript bleiben im
-  Runner und summieren sich je Fall). Für die bestehenden Definitionen ist
-  das ein Aufruf mit `buildPayload` und `extract`. Dazu je Definition
-  Messgrößen (Zahl je Fall) und Richtereinträge als Liste je Fall, mit
-  optionalem gemeinsamem Material.
-- **Auftrag:** `runAiSourceCards` aus `src/aiSourceCards.ts` mit einem
-  Anfrager, der `buildSourceCardsToolPayload` sendet und mit
-  `extractGeneratedSourceCards` prüft; so gelten Abschnitte, `avoid`,
-  Restmenge und Abbruchregeln der App. Prüfen, ob `readAiSource` unter Node
-  läuft (PDF); sonst die gelesenen Einheiten des PDF als Fixture ablegen.
-- **Fälle:** Dokument mal Profil. Profile: Standard (Vorgaben aus
-  `createAiSourceCreationDraft`), alle Kartenformen, Weniger, Mehr.
-  Kernaussagen je Dokument als `fixtures/ai-source/<name>.keypoints.json`.
-- **Richtereinträge:** je gezogener Karte (fester Startwert) die Karte mit
-  den Texten ihrer Belegstellen; je Kernaussage die Aussage mit allen
-  Karten des Auftrags (Q6); beides nach Dokument gebündelt.
-- **Register:** `source-cards` in `REQUEST_TYPES` mit kritischem Q2.
-- **Fertig, wenn** der Trockenlauf über alle Dokumente endet und die Messung
-  vom 2026-11-22 (fünf Prüfdokumente, drei Stufen, nur Frage–Antwort) mit dem
-  Runner nachgestellt ist: gleiche Größenordnung, Kartenmenge als Messgröße
-  im Bericht. Budget dafür höchstens 0,50 USD.
-
-### G – Zusammenfassung messbar machen
-
-- **Fälle:** Materialsatz mal Einstellungsprofil. Materialsätze als Dateien
-  unter `fixtures/ai-eval/` mit Stapeln und Einheiten in genau der Form, die
-  `src/aiLearningSummary.ts` an die Route schickt (dessen Aufbereitung
-  wiederverwenden statt nachbauen), dazu Kernaussagen und eingebaute
-  Widersprüche.
-- **Automatisch:** Z1–Z5 nach der Tabelle; Wortzahl gegen die Obergrenzen
-  300, 750 und 1.500 aus `buildLearningSummaryPrompt`.
-- **Richtereinträge:** je Abschnitt und Unterabschnitt der Text mit dem
-  Material seiner `references`; je Kernaussage und je eingebautem Widerspruch
-  die ganze Zusammenfassung; je Zusammenfassung gebündelt.
-- **Fertig, wenn** der Trockenlauf endet und ein echter Lauf über drei
-  Materialsätze einen Bericht mit Grenzfällen ergibt.
+- **Definition mit mehreren Anfragen:** `run` führt einen Fall wie die App aus
+  (`runAiSourceCards` mit Abschnitten, `avoid` und Restmenge); der Runner
+  gibt ihr `send`, das Kandidat, Wiederholung, Kosten und Latenz übernimmt.
+  Eine Zeitüberschreitung ist ein gescheiterter Abschnitt; ein Schlüssel-,
+  Limit- oder Endpunktfehler lässt den Fall offen.
+- **Mehrere Richtereinträge je Antwort** (`items`): Kriterien sind Anteile
+  bestandener Einträge, bei einem Eintrag je Antwort weiter 0 oder 1. Der
+  Hauptwert ist der Anteil der Einträge mit allen Hauptkriterien, unter
+  bestandenen automatischen Kriterien (bei Quellenkarten auch Q1); über den
+  Lauf wird je Fall gemittelt. Kriterien `Q6:<dokument>-n`,
+  `Z8:<satz>-n` und `Z9:<satz>-n` sind je Kernaussage oder Widerspruch eines;
+  sie zählen unter Q6, Z8 und Z9.
+- **Messgrößen** (`metrics`) je Antwort: bei Quellenkarten Kartenzahl,
+  Karten je 1.000 Zeichen, Anteil je Form, belegte und letzte belegte Stelle,
+  Abbruch an der Obergrenze, gescheiterte Abschnitte, verworfene Vorschläge;
+  bei der Zusammenfassung Wörter, Abschnitte, belegtes Material und
+  Warnungen. Der Bericht mittelt sie je Kategorie; das Ledger trägt sie.
+- **Karten aus einer Quelle:** Fall ist Dokument mal Profil (Standard, alle
+  Formen, Weniger, Mehr), gruppiert nach Dokument. Der Richter sieht zehn
+  Karten mit ihren Belegstellen (bei Weniger und Mehr fünf, nur Q2) und
+  einen Eintrag mit allen Karten gegen die Kernaussagen. Das PDF liest der
+  Eval über `ohmsches-gesetz.pages.json`, die das Erzeugerskript neben das
+  PDF schreibt.
+- **Zusammenfassung:** Fall ist Materialsatz mal Profil (Standard,
+  kurz-pruefung, lang-einfach) aus `fixtures/ai-eval/summary-material/`.
+  Der Richter sieht bis zu vier Abschnitte mit ihrem belegten Material und
+  einen Eintrag mit der ganzen Zusammenfassung gegen Kernaussagen und
+  eingebaute Widersprüche.
+- **Fallzahl:** fünf Dokumente (20 Fälle) und drei Materialsätze (6 Fälle)
+  statt je etwa 24; der Ausbau steht als eigener Punkt vor H in `todo.md`.
+- **Gemeinsames Material** in einem Block ist nicht gebaut; jeder Eintrag
+  trägt sein Material selbst.
+- **Bootstrap je Fall** (Dokument mal Profil), nicht je Dokument; das
+  Intervall ist dort zu eng.
+- **Kandidaten** bekommen als zweites Argument die Anfrage an die Route: bei
+  Quellenkarten die des Abschnitts, bei der Zusammenfassung `request.route`.
+- Handurteile gibt es nur für Typen mit einem Richtereintrag je Antwort.
 
 ### H – Baseline
 

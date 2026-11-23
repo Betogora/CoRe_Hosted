@@ -17,7 +17,7 @@ export type Candidate = { name: string; transform: (payload: unknown, request: u
 type Payload = { model: string; reasoning: { effort: string } };
 
 export const payloadBuilder = (definition: EvalDefinition, candidate: Candidate | null = null) =>
-  (request: unknown) => (candidate ? candidate.transform(definition.buildPayload(request), request) : definition.buildPayload(request)) as Payload;
+  (request: unknown) => (candidate ? candidate.transform(definition.buildPayload(request), definition.routeRequest?.(request) ?? request) : definition.buildPayload(request)) as Payload;
 
 /**
  * `answer`: die Route nimmt die Antwort an. `refused`: das Modell meldet den Fall mit dem Ablehnungscode der Definition
@@ -119,7 +119,7 @@ export async function generate({ definition, candidate = null, cases, repetition
     for (let attempt = 1; ; attempt++) {
       timing.startedAt = Date.now();
       try {
-        const mock = dry ? definition.mock(entry.request) : null;
+        const mock = dry ? definition.mock(entry.request, payload) : null;
         return mock ? mockCompletion(mock.tool, mock.arguments) : await requestOpenRouter(fetchImpl, apiKey, payload, AbortSignal.timeout(definition.deadlineMs), TEXTS);
       } catch (error) {
         if (!(error instanceof HttpError && RETRYABLE.has(error.code)) || attempt === ATTEMPTS) throw error;
@@ -132,6 +132,42 @@ export async function generate({ definition, candidate = null, cases, repetition
     while (next < open.length && !stop.reason) {
       if (spent >= budgetUsd) { stop.reason = `Budget von ${budgetUsd} USD erreicht (${spent.toFixed(4)} USD im Lauf). Mit höherem --budget fortsetzen.`; break; }
       const { entry, repetition } = open[next++];
+      if (definition.run) {
+        const calls: { request: unknown; response: unknown; latencyMs: number }[] = [];
+        let transport: unknown = null;
+        const send = async (routePayload: unknown, routeRequest: unknown) => {
+          const sent = candidate ? candidate.transform(routePayload, routeRequest) : routePayload;
+          const attempt = { startedAt: Date.now() };
+          try {
+            const response = await request(sent, entry, attempt);
+            calls.push({ request: sent, response, latencyMs: Date.now() - attempt.startedAt });
+            return response;
+          } catch (error) {
+            calls.push({ request: sent, response: null, latencyMs: Date.now() - attempt.startedAt });
+            if (errorCode(error) !== "provider_timeout") transport ??= error;
+            throw error;
+          }
+        };
+        const output = await definition.run(entry.request, send);
+        const billings = calls.map((call) => readBilling(call.response));
+        const sum = (values: (number | null)[]) => values.some((value) => value !== null) ? values.reduce<number>((total, value) => total + (value ?? 0), 0) : null;
+        const costUsd = sum(billings.map((billing) => billing.costUsd));
+        spent += costUsd ?? 0;
+        if (transport) {
+          const code = errorCode(transport);
+          if (code && FATAL.has(code)) stop.reason = `${code}. ${(transport as Error).message}`;
+          log(`${entry.id}#${repetition}: ${code ?? (transport instanceof Error ? transport.message : String(transport))}`);
+          continue;
+        }
+        const answer: AnswerRow = {
+          caseId: entry.id, repetition, outcome: "answer", error: null, output, model: billings.find((billing) => billing.model)?.model ?? null,
+          totalTokens: sum(billings.map((billing) => billing.totalTokens)), costUsd,
+          latencyMs: calls.reduce((total, call) => total + call.latencyMs, 0), transcript: { request: calls.map((call) => call.request), response: calls.map((call) => call.response) },
+        };
+        appendFileSync(path.join(directory, "answers.jsonl"), `${JSON.stringify(answer)}\n`, "utf8");
+        written++;
+        continue;
+      }
       const payload = build(entry.request);
       const timing = { startedAt: Date.now() };
       let response: unknown = null;
@@ -140,7 +176,7 @@ export async function generate({ definition, candidate = null, cases, repetition
       try {
         response = await request(payload, entry, timing);
         delivered = true;
-        row = { outcome: "answer", error: null, ...definition.extract(response, entry.request) };
+        row = { outcome: "answer", error: null, ...definition.extract!(response, entry.request) };
       } catch (error) {
         const code = errorCode(error);
         if (code === "provider_timeout") row = { outcome: "timeout", error: code, output: null, model: null, totalTokens: null, costUsd: null };

@@ -3,6 +3,7 @@ import * as v from "valibot";
 import { AI_CARD_HELP_PROMPT_VERSION } from "../../src/aiCardHelpContract.ts";
 import { AI_CARD_VARIANT_PROMPT_VERSION } from "../../src/aiCardVariantContract.ts";
 import { AI_LEARNING_SUMMARY_PROMPT_VERSION } from "../../src/aiLearningSummaryContract.ts";
+import { AI_SOURCE_CARDS_PROMPT_VERSION } from "../../src/aiSourceCardsContract.ts";
 
 export const LEDGER_FILE = "fixtures/ai-eval/ledger.json";
 /** Ergebnisse eines eingetragenen Laufs ohne Inhalte; der gepaarte Vergleich liest den Bestand von hier. */
@@ -14,7 +15,8 @@ export const REQUEST_TYPES = [
   { id: "card-variant-cloze", label: "Variante Lückentext", route: "/api/ai/card-variant", promptVersion: AI_CARD_VARIANT_PROMPT_VERSION, target: 0.95, critical: ["M2"] },
   { id: "card-variant-choice", label: "Variante Auswahl", route: "/api/ai/card-variant", promptVersion: AI_CARD_VARIANT_PROMPT_VERSION, target: 0.95, critical: ["M2"] },
   { id: "card-help", label: "Lernhilfe zur Karte", route: "/api/ai/card-help", promptVersion: AI_CARD_HELP_PROMPT_VERSION, target: 0.9, critical: ["H2", "H6"] },
-  { id: "learning-summary", label: "Zusammenfassung", route: "/api/ai/summary", promptVersion: AI_LEARNING_SUMMARY_PROMPT_VERSION, target: null, critical: [] },
+  { id: "source-cards", label: "Karten aus einer Quelle", route: "/api/ai/source-cards", promptVersion: AI_SOURCE_CARDS_PROMPT_VERSION, target: 0.9, critical: ["Q2"] },
+  { id: "learning-summary", label: "Zusammenfassung", route: "/api/ai/summary", promptVersion: AI_LEARNING_SUMMARY_PROMPT_VERSION, target: 0.95, critical: ["Z6"] },
 ] as const;
 
 export type RequestType = (typeof REQUEST_TYPES)[number];
@@ -49,6 +51,8 @@ const runSchema = v.strictObject({
   costTotalUsd: v.pipe(v.number(), v.minValue(0)),
   latencyP90Ms: v.pipe(v.number(), v.minValue(0)),
   judge: v.strictObject({ model: v.pipe(v.string(), v.minLength(1)), fingerprint, entries: count, cached: count, noise: v.record(v.string(), share) }),
+  /** Messgrößen je Antwort, über den Lauf gemittelt (etwa Karten je 1.000 Zeichen). */
+  metrics: v.optional(v.record(v.string(), v.number())),
   comparison: v.optional(v.strictObject({ noise: share, gained: count, lost: count })),
 });
 

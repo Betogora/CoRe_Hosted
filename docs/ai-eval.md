@@ -48,6 +48,17 @@ Agenten steht im Skill [`ai-eval`](../.agents/skills/ai-eval/SKILL.md).
 - Ratenlimit und Anbieterfehler werden mit wachsender Wartezeit bis zu fünfmal
   versucht; was danach scheitert, bleibt offen und wird beim nächsten Aufruf
   wiederholt. Schlüssel-, Limit- und Endpunktfehler halten den Lauf an.
+- Eine Definition darf einen Fall mit mehreren Anfragen ausführen, wie die App
+  einen Auftrag (Karten aus einer Quelle über alle Abschnitte); eine
+  Zeitüberschreitung ist dann ein gescheiterter Abschnitt. Sie darf je Antwort
+  mehrere Richtereinträge bilden (eine Kartenstichprobe, Abschnitte einer
+  Zusammenfassung, einen Eintrag gegen Kernaussagen). Kriterien sind dann je
+  Antwort Anteile bestandener Einträge, der Hauptwert der Anteil der Einträge
+  mit allen Hauptkriterien; über den Lauf wird je Fall gemittelt. Bootstrap
+  und Vergleich gehen je Fall, bei Quelle und Zusammenfassung also je Dokument
+  mal Profil; dort ist das Intervall zu eng, weil die Profile eines Dokuments
+  nicht unabhängig sind. Messgrößen wie die Kartenzahl mittelt der Bericht je
+  Kategorie.
 - Ein Kandidat ist ein Modul `<typ>/candidates/<name>.ts` im Datenordner,
   dessen Standardexport den gebauten Payload ändert (Prompt, Werkzeugschema,
   Ausgabegrenze, Reasoning, Modell); die Antwortprüfung bleibt die der Route.
@@ -92,6 +103,7 @@ Handurteile mit `control: true` laufen als Kontrolleinträge in jedem Lauf mit.
 | `scripts/aiEval/ledger.ts` | Register der Anfragetypen mit Ziel und kritischen Kriterien, Ledger-Prüfung | ja |
 | `scripts/aiEval/` sonst | `cases.ts`, `generate.ts`, `judge.ts`, `score.ts`, `cli.ts` für die Schritte, `page.ts` für diese Seite | ja |
 | `fixtures/ai-eval/<typ>.cases.json` | von Hand geschriebene Prüfkarten mit Kategorie, Aufteilung und optional `group`, `trap` (Falle für ein kritisches Kriterium) und `refuse` | ja |
+| `fixtures/ai-source/<dokument>.keypoints.json`, `fixtures/ai-eval/summary-material/<satz>.json` | Kernaussagen der Prüfdokumente; Materialsätze der Zusammenfassung mit Kernaussagen und eingebauten Widersprüchen | ja |
 | `fixtures/ai-eval/<typ>.labels.json` | Handurteile der Kalibrierung und Kontrolleinträge | ja |
 | `fixtures/ai-eval/ledger.json` | ein Eintrag je Lauf und je Kalibrierung, nur Kennzahlen | ja |
 | `fixtures/ai-eval/results/<typ>/<lauf>.json` | Ergebnis je Antwort eines eingetragenen Laufs ohne Inhalte; der gepaarte Vergleich liest den Bestand von hier | ja |
@@ -116,10 +128,11 @@ Reihenfolge der Läufe. `npm run check:docs` prüft Form und Reihenfolge.
 | `decision` | `baseline` beginnt eine Reihe und setzt den Bestand neu, `accepted` wird Bestand, `rejected` nicht, `holdout` ist eine Messung am Rückhalt |
 | `cases`, `repetitions` | Fälle und Wiederholungen je Fall |
 | `main`, `low`, `high` | Hauptwert als Anteil mit 95 %-Intervall, per Bootstrap über Fälle |
-| `criteria` | Anteil bestandener Antworten je Kriterium; die kritischen Kriterien des Anfragetyps sind Pflicht |
+| `criteria` | je Kriterium der Anteil, über die Antworten gemittelt; die kritischen Kriterien des Anfragetyps sind Pflicht |
 | `outcomes` | Antworten je Klasse: angenommen, abgelehnt, verworfen, Zeitüberschreitung |
 | `traps` | Antworten auf Fallen und davon Fehler bei kritischen Kriterien |
 | `costUsd`, `costTotalUsd`, `latencyP90Ms` | Kosten je Antwort und im Lauf, Latenz im 90. Perzentil |
+| `metrics` | optional: Messgrößen je Antwort, über den Lauf gemittelt |
 | `judge` | Richtermodell, Fingerabdruck von Auftrag und Bogen, neu bewertete Einträge und Einträge aus dem Cache (ohne Kontrolleinträge), Rauschen je Kriterium |
 | `comparison` | nur bei Runden, gepaart auf den gemeinsamen Fällen mit dem Bestand: `noise` als halbe Breite des 95 %-Intervalls des Abstands, `gained` und `lost` als gewonnene und verlorene Fälle |
 

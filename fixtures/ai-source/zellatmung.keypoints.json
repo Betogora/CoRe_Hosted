@@ -1,0 +1,18 @@
+{
+  "keypoints": [
+    "Die Zellatmung baut Glucose zu Kohlenstoffdioxid und Wasser ab; ein Teil der Energie wird in ATP gespeichert, der Rest wird als Wärme frei.",
+    "Die Summengleichung lautet C6H12O6 + 6 O2 → 6 CO2 + 6 H2O.",
+    "Die Zellatmung hat vier Abschnitte: Glykolyse, oxidative Decarboxylierung, Citratzyklus und Atmungskette.",
+    "Nur die Glykolyse läuft im Cytoplasma, alle anderen Abschnitte in den Mitochondrien.",
+    "Die Glykolyse spaltet Glucose in zwei Pyruvat und braucht keinen Sauerstoff.",
+    "Die Glykolyse liefert netto zwei ATP und zwei NADH, weil zwei ATP zur Aktivierung verbraucht und vier gewonnen werden.",
+    "Bei der oxidativen Decarboxylierung wird vom Pyruvat CO2 abgespalten und der Rest als Acetyl-CoA an Coenzym A gebunden; dabei entsteht NADH.",
+    "Der Citratzyklus in der Mitochondrienmatrix oxidiert den Acetylrest zu CO2 und liefert je Durchlauf drei NADH, ein FADH2 und ein ATP (GTP); er läuft je Glucose zweimal.",
+    "Der Citratzyklus verbraucht selbst keinen Sauerstoff, ist aber auf ihn angewiesen, weil NAD+ und FAD in der Atmungskette regeneriert werden.",
+    "Die Atmungskette liegt in der inneren Mitochondrienmembran; Sauerstoff ist der letzte Elektronenakzeptor, und es entsteht Wasser.",
+    "Der Protonengradient über der inneren Membran treibt die ATP-Synthase an (Chemiosmose).",
+    "Ohne Sauerstoff kommt die Atmungskette zum Erliegen, und ATP entsteht nur noch in der Glykolyse.",
+    "Je Glucose entstehen etwa 30 bis 32 ATP; ältere Lehrbücher nennen 36 oder 38.",
+    "Gärung regeneriert NAD+ ohne zusätzliches ATP: Milchsäuregärung in Muskelzellen bildet Lactat, alkoholische Gärung in Hefe Ethanol und CO2."
+  ]
+}

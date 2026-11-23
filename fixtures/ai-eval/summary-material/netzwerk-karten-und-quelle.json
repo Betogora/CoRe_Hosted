@@ -1,0 +1,64 @@
+{
+  "title": "Netzwerkgrundlagen",
+  "material": "cards-and-source",
+  "decks": [
+    {
+      "id": "d1",
+      "name": "Netzwerke"
+    }
+  ],
+  "units": [
+    {
+      "id": "m1",
+      "kind": "card",
+      "deck": "d1",
+      "text": "F: Wie lang ist eine IPv4-Adresse?\nA: 32 Bit."
+    },
+    {
+      "id": "m2",
+      "kind": "card",
+      "deck": "d1",
+      "text": "F: Was macht DNS?\nA: Es übersetzt Namen wie example.org in IP-Adressen."
+    },
+    {
+      "id": "m3",
+      "kind": "card",
+      "deck": "d1",
+      "text": "F: Was unterscheidet TCP von UDP?\nA: TCP ist verbindungsorientiert und sichert Reihenfolge und Vollständigkeit; UDP ist verbindungslos ohne Zustellgarantie."
+    },
+    {
+      "id": "m4",
+      "kind": "card",
+      "deck": "d1",
+      "text": "F: Welchen Port nutzt HTTPS standardmäßig?\nA: Port 8443."
+    },
+    {
+      "id": "m5",
+      "kind": "card",
+      "deck": "d1",
+      "text": "F: Auf welcher OSI-Schicht arbeitet ein Router?\nA: Auf Schicht 3."
+    },
+    {
+      "id": "m6",
+      "kind": "card",
+      "deck": "d1",
+      "text": "F: Was vergibt DHCP?\nA: IP-Adresse, Subnetzmaske, Gateway und DNS-Server."
+    },
+    {
+      "id": "m7",
+      "kind": "source",
+      "text": "Begriff,Erklärung\nIP-Adresse,\"Eindeutige Adresse eines Geräts in einem IP-Netz; IPv4-Adressen sind 32 Bit lang, IPv6-Adressen 128 Bit.\"\nSubnetzmaske,\"Legt fest, welcher Teil einer IPv4-Adresse das Netz und welcher das Gerät bezeichnet, zum Beispiel 255.255.255.0 für /24.\"\nRouter,\"Verbindet verschiedene Netze und leitet Pakete anhand der Ziel-IP-Adresse weiter; arbeitet auf Schicht 3 des OSI-Modells.\"\nSwitch,\"Verbindet Geräte innerhalb eines lokalen Netzes und leitet Rahmen anhand der MAC-Adresse weiter; arbeitet auf Schicht 2.\"\nMAC-Adresse,\"Hardware-Adresse einer Netzwerkschnittstelle mit 48 Bit, meist hexadezimal geschrieben.\"\nDNS,\"Domain Name System; übersetzt Namen wie example.org in IP-Adressen.\"\nDHCP,\"Dynamic Host Configuration Protocol; vergibt IP-Adresse, Subnetzmaske, Gateway und DNS-Server automatisch an Geräte.\"\nTCP,\"Verbindungsorientiertes Transportprotokoll; sichert Reihenfolge und Vollständigkeit der Daten durch Bestätigungen.\"\nUDP,\"Verbindungsloses Transportprotokoll ohne Zustellgarantie; geeignet für Echtzeitdaten wie Sprache oder Video.\"\nPort,\"Nummer zwischen 0 und 65535, die einen Dienst auf einem Gerät adressiert; HTTPS nutzt standardmäßig Port 443.\"\nThree-Way-Handshake,\"Verbindungsaufbau bei TCP mit den drei Nachrichten SYN, SYN-ACK und ACK.\"\nGateway,\"Router, über den ein Gerät Ziele außerhalb des eigenen Netzes erreicht.\"\nNAT,\"Network Address Translation; ersetzt private Adressen beim Übergang ins Internet durch eine öffentliche Adresse.\"\nPrivate Adressbereiche,\"IPv4-Bereiche, die im Internet nicht weitergeleitet werden: 10.0.0.0/8, 172.16.0.0/12 und 192.168.0.0/16.\"\nPing,\"Prüft mit ICMP-Echo-Anfragen, ob ein Gerät erreichbar ist, und misst die Laufzeit.\"\nLatenz,\"Zeit, die ein Datenpaket vom Sender zum Empfänger benötigt; meist in Millisekunden angegeben.\"\nBandbreite,\"Maximale Datenmenge, die pro Zeiteinheit übertragen werden kann, zum Beispiel 100 Mbit/s.\"\nOSI-Modell,\"Referenzmodell mit sieben Schichten von der Bitübertragung bis zur Anwendung.\"\nHTTP,\"Hypertext Transfer Protocol; überträgt Webseiten ohne Verschlüsselung, standardmäßig über Port 80.\"\nTLS,\"Transport Layer Security; verschlüsselt Verbindungen, etwa bei HTTPS, und weist die Identität des Servers mit Zertifikaten nach.\""
+    }
+  ],
+  "keypoints": [
+    "IPv4-Adressen sind 32 Bit, IPv6-Adressen 128 Bit lang.",
+    "DNS übersetzt Namen in IP-Adressen.",
+    "TCP ist verbindungsorientiert, UDP verbindungslos ohne Zustellgarantie.",
+    "Ein Router arbeitet auf Schicht 3, ein Switch auf Schicht 2.",
+    "DHCP vergibt Adresse, Subnetzmaske, Gateway und DNS-Server automatisch.",
+    "TLS verschlüsselt Verbindungen wie bei HTTPS und weist die Identität des Servers mit Zertifikaten nach."
+  ],
+  "contradictions": [
+    "Eine Karte nennt für HTTPS den Port 8443, die Quelle den Standardport 443."
+  ]
+}
