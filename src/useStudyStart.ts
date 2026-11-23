@@ -10,7 +10,7 @@ import type { useStudySession } from "./useStudySession.ts";
 import { useWorkspaceValue } from "./useWorkspaceStore.ts";
 
 type StudyNavigation = Pick<ReturnType<typeof useNavigationGuard>,
-  "studyRequest" | "activeView" | "focusedDeckId" | "selectedCardId" | "deckContent" | "deckContentTab" | "navigateToRoute" | "navigateToView" | "getStudyReturnRoute">;
+  "studyRequest" | "activeView" | "focusedDeckId" | "selectedCardId" | "deckContent" | "deckContentTab" | "navigateToRoute" | "navigateToViewNow" | "getStudyReturnRoute">;
 
 interface StudyStartContext {
   preparation: StudyPreparationCommands | null;
@@ -24,7 +24,7 @@ export function useStudyStart({ preparation, session, navigation, deckCommands, 
   const [emptyStudyStart, setEmptyStudyStart] = React.useState<EmptyStudyStart | null>(null);
   const [studyPreparationFailure, setStudyPreparationFailure] = React.useState<StudyPreparationFailure | null>(null);
   const state = useWorkspaceValue((snapshot) => snapshot.state);
-  const { studyRequest, activeView, focusedDeckId, selectedCardId, deckContent, deckContentTab, navigateToRoute, navigateToView, getStudyReturnRoute } = navigation;
+  const { studyRequest, activeView, focusedDeckId, selectedCardId, deckContent, deckContentTab, navigateToRoute, navigateToViewNow, getStudyReturnRoute } = navigation;
   const { adopt, reset, setDecks } = session;
   const now = clock.learningNow;
 
@@ -106,7 +106,7 @@ export function useStudyStart({ preparation, session, navigation, deckCommands, 
     const { getExamSummaryTaskDeckId } = await import("./examDailyTasks.ts");
     const summaryDeckId = blockId ? getExamSummaryTaskDeckId(blockId) : null;
     if (summaryDeckId) {
-      navigateToView("kartenstapel", { focusedDeckId: summaryDeckId, deckContent: true, deckContentTab: "summary" });
+      navigateToViewNow("kartenstapel", { focusedDeckId: summaryDeckId, deckContent: true, deckContentTab: "summary" });
       return;
     }
     if (!preparation || session.preparingKeyRef.current === EXAM_SESSION_DECK_ID) return;

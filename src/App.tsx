@@ -126,7 +126,7 @@ function AppContent() {
   const screenRegionRef = React.useRef<HTMLElement | null>(null);
   const [shellBack, setShellBack] = React.useState<ShellBack | null>(null);
   const navigation = useNavigationGuard({ authPhase, defaultViewId: menu.defaultViewId, settingsBlocksNavigation: (route) => settings.blocksNavigation(route) });
-  const { activeView, studyRequest, focusedDeckId, deckContent, creationMethod, settingsSection, deckSettings, navigateToView, resetBrowserRouteToDefault, pendingNavigation } = navigation;
+  const { activeView, studyRequest, focusedDeckId, deckContent, creationMethod, settingsSection, deckSettings, navigateToView, navigateToViewNow, resetBrowserRouteToDefault, pendingNavigation } = navigation;
   const settings = useSettingsOverlay(navigation);
   const { openSettings, openDeckSettings } = settings;
   const clock = useLearningClock(activeView);
@@ -227,7 +227,7 @@ function AppContent() {
     store: workspaceStore, repository: workspaceRepository, hydration: latestHydration, cloud: supabase ?? null,
     syncEngine: () => syncEngineRef.current, refresh: latestRefresh,
   }) : null, [latestHydration, latestRefresh, supabase, syncEngineRef, workspaceRepository, workspaceStore]);
-  const importSession = useImportSession(importCommands, cloudUser?.id ?? null, authPhase === "ready" && Boolean(syncEngine) && Boolean(supabase), useStableCallback(() => navigateToView("neue-karten", { creationMethod: "import" })));
+  const importSession = useImportSession(importCommands, cloudUser?.id ?? null, authPhase === "ready" && Boolean(syncEngine) && Boolean(supabase), useStableCallback(() => navigateToViewNow("neue-karten", { creationMethod: "import" })));
   const flagNamesKey = state?.profile.uiPreferences.flagNames.join("\n") ?? "";
   const cardEditorServices = React.useMemo(() => cardCommands?.createCardEditorServices(flagNamesKey.split("\n"), openSettings) ?? null, [cardCommands, flagNamesKey, openSettings]);
   const variantBatch = useCardVariantBatch({ cards: workspaceHydrationService, store: workspaceStore, generate: (...args) => cardCommands!.generateDeckCardVariant(...args), onToast: setSuccessToast });
@@ -377,7 +377,7 @@ function AppContent() {
                         <button type="button" onClick={() => navigateToView("lernen", { focusedDeckId: null })} className="inline-flex min-h-control items-center rounded-control bg-core-subtle px-6 core-body font-semibold text-core-action">
                           Zu Lernen
                         </button>
-                        <button type="button" onClick={() => navigateToView("kartenstapel", { focusedDeckId: null, selectedCardId: null })} className="inline-flex min-h-control items-center rounded-control border border-core-border bg-core-surface px-6 core-body font-semibold text-core-action">
+                        <button type="button" onClick={() => navigateToViewNow("kartenstapel", { focusedDeckId: null, selectedCardId: null })} className="inline-flex min-h-control items-center rounded-control border border-core-border bg-core-surface px-6 core-body font-semibold text-core-action">
                           Zur Kartenverwaltung
                         </button>
                       </div>

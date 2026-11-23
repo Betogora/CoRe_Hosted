@@ -83,7 +83,7 @@ Pfade liegen unter `src/`, soweit kein anderer angegeben ist. Private Teilmodule
 | `useWorkspaceSync.ts`, `appSyncLifecycle.ts` | Sync-Lebenszyklus, Status und Konflikte |
 | `workspaceStore.ts`, `useWorkspaceStore.ts` | Store des geöffneten Kontos ohne React; Bildschirme abonnieren nur ihren Teil |
 | `appNavigation.ts`, `useAppNavigation.ts` | typisierter AppRoute und einzige Browser-History-Anbindung |
-| `useNavigationGuard.ts`, `useSettingsOverlay.ts` | Entwurfsschutz beim Verlassen einer Ansicht; Einstellungsdialoge mit Entwurf |
+| `useNavigationGuard.ts`, `useSettingsOverlay.ts` | Entwurfsschutz vor jeder Navigation; Einstellungsdialoge mit Entwurf |
 | `studyPreparation.ts`, `useStudyStart.ts`, `useStudySession.ts` | Lernsitzung vorbereiten (ohne React), starten und führen |
 | `useLearningClock.ts`, `learningDay.ts`, `simulationClock.ts` | Lernzeit mit Simulationsversatz, Tagesbeginn, Zeitzone und Lerntagwechsel |
 | `usePomodoroTimer.ts`, `pomodoroTimer.ts` | einziger accountgebundener Fokustimer über Tabs |

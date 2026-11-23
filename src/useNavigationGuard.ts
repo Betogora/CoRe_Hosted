@@ -14,12 +14,6 @@ const GUARD_SOURCES = { "neue-karten": "creation", kartenstapel: "card", pruefun
 type GuardedView = keyof typeof GUARD_SOURCES;
 type PendingNavigation = { run: () => void; view: GuardedView };
 
-/** The view whose draft leaving `activeView` for `targetView` settles first; moves within a view settle nothing. */
-export function draftToSettle(activeView: string, targetView: string | undefined, guards: Partial<Record<GuardedView, DraftGuard>>): GuardedView | null {
-  const view = activeView in GUARD_SOURCES && targetView !== activeView ? activeView as GuardedView : null;
-  return view && guards[view] ? view : null;
-}
-
 interface NavigationGuardOptions extends Omit<Parameters<typeof useAppNavigation>[0], "onBeforeNavigation"> {
   /** Decides first while a settings draft is open; undefined lets the other drafts decide. */
   settingsBlocksNavigation: (route: AppRoute) => boolean | undefined;
@@ -47,16 +41,16 @@ export function useNavigationGuard({ settingsBlocksNavigation, ...options }: Nav
       return false;
     },
   });
-  const { activeView, navigateToView: navigateUnguarded } = navigation;
+  const { activeView, navigateToView: navigateToViewNow } = navigation;
 
-  const navigateToView = React.useCallback((...args: Parameters<typeof navigateUnguarded>) => {
-    const leaving = draftToSettle(activeView, args[0], draftGuards.current);
-    const guard = leaving ? draftGuards.current[leaving] : undefined;
-    if (!leaving || !guard) return navigateUnguarded(...args);
+  const navigateToView = React.useCallback((...args: Parameters<typeof navigateToViewNow>) => {
+    const view = activeView in GUARD_SOURCES ? activeView as GuardedView : null;
+    const guard = view ? draftGuards.current[view] : undefined;
+    if (!view || !guard) return navigateToViewNow(...args);
     if (guard.saving) guard.focus?.();
-    else setPendingNavigation({ view: leaving, run: () => { navigateUnguarded(...args); } });
+    else setPendingNavigation({ view, run: () => { navigateToViewNow(...args); } });
     return createViewRoute(activeView);
-  }, [activeView, navigateUnguarded]);
+  }, [activeView, navigateToViewNow]);
 
   const leaveCardDraft = React.useCallback((leave: () => void) => {
     if (draftGuards.current.kartenstapel) setPendingNavigation({ view: "kartenstapel", run: leave });
@@ -108,6 +102,7 @@ export function useNavigationGuard({ settingsBlocksNavigation, ...options }: Nav
   return {
     ...navigation,
     navigateToView,
+    navigateToViewNow,
     leaveCardDraft,
     handleCreationDraftStateChange,
     handleExamDraftStateChange,

@@ -14,7 +14,7 @@ const MemoizedStudyMode = React.memo(StudyMode);
 /** Its callbacks keep their identity across shell renders. */
 export function StudyModeWiring() {
   const { navigation, settings, clock, pomodoro, sync, study, cardCommands, cardEditorServices, mediaStore } = useAppServices();
-  const { studyRequest, deckSettings, navigateToRoute, navigateToView } = navigation;
+  const { studyRequest, deckSettings, navigateToRoute, navigateToViewNow } = navigation;
   const { learningNow, learningDayKey, learningTimeZone, globalSchedulerPreferences } = clock;
   const shellDecks = useWorkspaceValue((snapshot) => snapshot.state?.decks);
   const loadMoreStudyCards = useStableCallback(async () => studyRequest
@@ -24,10 +24,10 @@ export function StudyModeWiring() {
     sync.refresh();
     if (studyRequest) navigateToRoute(reviewReturnContextToViewRoute(studyRequest.returnContext), { replace: true });
   });
-  const editStudyCard = useStableCallback((...[deckId, cardId, tab]: Parameters<StudyModeProps["onEditCard"]>) => studyRequest && navigateToView("kartenstapel", {
+  const editStudyCard = useStableCallback((...[deckId, cardId, tab]: Parameters<StudyModeProps["onEditCard"]>) => studyRequest && navigateToViewNow("kartenstapel", {
     focusedDeckId: deckId, selectedCardId: cardId, cardEditorTab: tab, cardEditorReturnContext: { deckId: studyRequest.deckId, returnContext: studyRequest.returnContext },
   }));
-  const editStudyDeck = useStableCallback((currentDeckId: string) => currentDeckId === EXAM_SESSION_DECK_ID ? navigateToView("pruefungen") : settings.openDeckSettings(currentDeckId));
+  const editStudyDeck = useStableCallback((currentDeckId: string) => currentDeckId === EXAM_SESSION_DECK_ID ? navigateToViewNow("pruefungen") : settings.openDeckSettings(currentDeckId));
   const askStudyCardHelp = useStableCallback((...[request, signal]: Parameters<StudyModeProps["onAskCardHelp"]>) => cardCommands.askCardHelp(request, signal));
   // The plan a session starts from; deck counts stay as they were at the start until a new learning day begins.
   const studyDeckSummaries = useWorkspaceValue((snapshot) => studyRequest ? snapshot.deckSummaries : undefined);

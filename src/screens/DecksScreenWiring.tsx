@@ -9,7 +9,7 @@ export function DecksScreenWiring() {
   const { navigation, settings, clock, studyStart, cardCommands, cardEditorServices, deckCommands, variantBatch, requestDeckCoreMode, hydration, mediaStore } = useAppServices();
   const workspaceStore = useWorkspaceStore();
   const state = useWorkspaceValue((snapshot) => snapshot.state);
-  const { focusedDeckId, selectedCardId, deckContent, deckContentTab, cardEditorTab, cardEditorReturnContext, cardQuery, navigateToRoute, navigateToView } = navigation;
+  const { focusedDeckId, selectedCardId, deckContent, deckContentTab, cardEditorTab, cardEditorReturnContext, cardQuery, navigateToRoute, navigateToView, navigateToViewNow } = navigation;
   const deckPractice = useDeckPractice();
   if (!state) return null;
   return (
@@ -21,7 +21,7 @@ export function DecksScreenWiring() {
         contentDeckId={deckContent ? focusedDeckId : null}
         contentTab={deckContentTab}
         cardQuery={cardQuery}
-        onOpenDeckContent={(deckId, tab = "children") => navigateToView("kartenstapel", { focusedDeckId: deckId, deckContent: true, deckContentTab: tab })}
+        onOpenDeckContent={(deckId, tab = "children") => navigateToViewNow("kartenstapel", { focusedDeckId: deckId, deckContent: true, deckContentTab: tab })}
         learningContentAccount={cardCommands.learningContentAccount()}
         onGenerateSummary={cardCommands.generateLearningSummary}
         onRequestCardPage={cardCommands.requestCardPage}
@@ -50,7 +50,7 @@ export function DecksScreenWiring() {
         selectedDeckId={focusedDeckId}
         selectedCardId={selectedCardId}
         cardEditorTab={cardEditorTab}
-        onCardEditorTabChange={(tab) => navigateToView("kartenstapel", {
+        onCardEditorTabChange={(tab) => navigateToViewNow("kartenstapel", {
           focusedDeckId,
           selectedCardId,
           cardEditorTab: tab,
@@ -59,13 +59,13 @@ export function DecksScreenWiring() {
           cardEditorReturnContext: cardEditorReturnContext ?? undefined,
         }, { replace: true })}
         cardEditor={cardEditorServices}
-        onSelectDeck={deckContent ? (_deckId, cardId, tab) => navigateToView("kartenstapel", {
+        onSelectDeck={deckContent ? (_deckId, cardId, tab) => navigateToViewNow("kartenstapel", {
           focusedDeckId,
           selectedCardId: cardId,
           cardEditorTab: tab,
           deckContent: true,
           deckContentTab: "cards",
-        }) : (deckId, cardId, tab) => navigateToView("kartenstapel", {
+        }) : (deckId, cardId, tab) => navigateToViewNow("kartenstapel", {
           focusedDeckId: deckId || null,
           selectedCardId: deckId && cardId ? cardId : null,
           cardEditorTab: tab,

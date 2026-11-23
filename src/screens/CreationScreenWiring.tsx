@@ -7,7 +7,7 @@ export function CreationScreenWiring() {
   const { navigation, studyStart, cardCommands, cardEditorServices, importCommands, importSession, mediaStore } = useAppServices();
   const decks = useWorkspaceValue((snapshot) => snapshot.state?.decks);
   const accountId = useWorkspaceValue((snapshot) => snapshot.state?.profile.userId);
-  const { creationMethod, creationDeckId, completedDeckId, completedCount, completionKind, navigateToView } = navigation;
+  const { creationMethod, creationDeckId, completedDeckId, completedCount, completionKind, navigateToView, navigateToViewNow } = navigation;
   if (!decks) return null;
   return (
     <CreationScreen
@@ -31,7 +31,7 @@ export function CreationScreenWiring() {
           creationDeckId: method === "manual" || method === "ai-source" ? creationDeckId || null : null,
         } : {});
       }}
-      onTargetDeckChange={(deckId, options) => navigateToView("neue-karten", {
+      onTargetDeckChange={(deckId, options) => navigateToViewNow("neue-karten", {
         creationMethod: "manual",
         creationDeckId: deckId || null,
       }, options)}
@@ -41,14 +41,14 @@ export function CreationScreenWiring() {
       onRequestSourceCards={importCommands.requestSourceCards}
       listTagDirectory={cardEditorServices.listTagDirectory}
       onDraftStateChange={navigation.handleCreationDraftStateChange}
-      onSessionCompleted={(completion) => navigateToView("neue-karten", {
+      onSessionCompleted={(completion) => navigateToViewNow("neue-karten", {
         completedDeckId: completion.deckId,
         completedCount: completion.createdCount,
         completionKind: completion.kind,
       }, { replace: true })}
       onStartDeck={studyStart.startDeck}
-      onReviewDeck={(deckId) => navigateToView("kartenstapel", { focusedDeckId: deckId, deckContent: true, deckContentTab: "cards" })}
-      onOpenDashboard={() => navigateToView("uebersicht")}
+      onReviewDeck={(deckId) => navigateToViewNow("kartenstapel", { focusedDeckId: deckId, deckContent: true, deckContentTab: "cards" })}
+      onOpenDashboard={() => navigateToViewNow("uebersicht")}
     />
   );
 }
