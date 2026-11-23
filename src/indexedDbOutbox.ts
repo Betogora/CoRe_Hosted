@@ -96,32 +96,6 @@ export function createReplicaOutbox({ userId, database, outboxRows, enqueueWrite
   });
 
   const outbox = {
-    enqueue(input: Partial<SyncOutboxMutation> = {}) {
-      if (!input.id || !input.type) throw new Error("Sync-Mutation braucht ID und Typ.");
-      const existing = pendingOutbox.get(input.id);
-      if (existing) return existing;
-      const mutation = {
-        id: input.id,
-        userId,
-        deviceId: input.deviceId ?? null,
-        type: input.type,
-        table: input.table ?? null,
-        entityId: input.entityId ?? null,
-        baseRevision: input.baseRevision ?? null,
-        payload: input.payload ?? {},
-        createdAt: input.createdAt ?? new Date().toISOString(),
-        flushedAt: input.flushedAt ?? null,
-        retryCount: Number(input.retryCount ?? 0),
-        lastError: input.lastError ?? null,
-      } satisfies SyncOutboxMutation;
-      rememberPending(mutation);
-      void enqueueWrite(async () => {
-        const transaction = database.transaction(STORE.outbox, "readwrite");
-        transaction.objectStore(STORE.outbox).put(mutation);
-        await transactionDone(transaction);
-      });
-      return mutation;
-    },
     listPending: () => [...pendingOutbox.values()].filter((mutation) => !mutation.flushedAt).sort((left, right) => left.createdAt.localeCompare(right.createdAt) || left.id.localeCompare(right.id)),
     markFlushed(idsToFlush: string[] = [], flushedAt = new Date().toISOString()) {
       for (const id of idsToFlush) {

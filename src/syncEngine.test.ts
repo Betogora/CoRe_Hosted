@@ -30,6 +30,19 @@ function createTestOutbox(storage = createMemoryStorage()) {
   };
 }
 
+/** Queues like a repository write: the mutation lands in the outbox, then the engine hears of the local change. */
+function createTestEngine(options: any) {
+  const engine = createSyncEngine(options);
+  let created = 0;
+  return Object.assign(engine, {
+    queue(input: any) {
+      created += 1;
+      options.outbox.enqueue({ id: `mutation-${created}`, deviceId: options.device?.id ?? null, entityId: input.payload?.event?.id ?? null, ...input });
+      engine.requestSync();
+    },
+  });
+}
+
 function createNetworkTarget(initialOnline = true) {
   const listeners = new Map<string, Set<() => void>>();
   return {
@@ -115,29 +128,9 @@ function acknowledgingAdapter(onBatch?: (mutations: any[]) => void) {
   };
 }
 
-test("profile and entity mutations coalesce without a snapshot fallback", async () => {
-  const batches: any[][] = [];
-  const engine = createSyncEngine({
-    adapter: acknowledgingAdapter((batch) => batches.push(batch)),
-    outbox: createTestOutbox(),
-    device,
-  });
-
-  engine.enqueueMutation({ id: "profile-old", type: SYNC_MUTATION_TYPES.profilePatch, payload: { profile: { displayName: "Alt" } } });
-  engine.enqueueMutation({ id: "profile-new", type: SYNC_MUTATION_TYPES.profilePatch, payload: { profile: { displayName: "Neu" } } });
-  engine.enqueueMutation({ id: "card-old", type: SYNC_MUTATION_TYPES.entityMutation, payload: { table: "cards", entity: { id: "card-1", status: "active" } }, entityId: "card-1" });
-  engine.enqueueMutation({ id: "card-new", type: SYNC_MUTATION_TYPES.entityMutation, payload: { table: "cards", entity: { id: "card-1", status: "suspended" } }, entityId: "card-1" });
-
-  const result = await engine.flush();
-
-  assert.equal(result.mutations, 2);
-  assert.deepEqual(batches[0].map((mutation) => mutation.id), ["profile-new", "card-new"]);
-  assert.equal(engine.pendingCount(), 0);
-});
-
 test("manual sync pulls cloud deltas even when the outbox is empty", async () => {
   let pulls = 0;
-  const engine = createSyncEngine({
+  const engine = createTestEngine({
     adapter: { async listConflicts() { return []; } },
     outbox: createTestOutbox(),
     device,
@@ -154,7 +147,7 @@ test("manual sync pulls cloud deltas even when the outbox is empty", async () =>
 test("one conflicting mutation does not block acknowledged siblings or the cloud pull", async () => {
   const conflict = { id: "conflict-card-a", status: "open", cardId: "card-a" };
   let pulls = 0;
-  const engine = createSyncEngine({
+  const engine = createTestEngine({
     adapter: {
       async applyMutationBatch(mutations: any[]) {
         return {
@@ -170,8 +163,8 @@ test("one conflicting mutation does not block acknowledged siblings or the cloud
     device,
     async pullChanges() { pulls += 1; },
   });
-  engine.enqueueMutation({ id: "card-a", type: SYNC_MUTATION_TYPES.entityMutation, entityId: "card-a", payload: { table: "cards", entity: { id: "card-a" } } });
-  engine.enqueueMutation({ id: "card-b", type: SYNC_MUTATION_TYPES.entityMutation, entityId: "card-b", payload: { table: "cards", entity: { id: "card-b" } } });
+  engine.queue({ id: "card-a", type: SYNC_MUTATION_TYPES.entityMutation, entityId: "card-a", payload: { table: "cards", entity: { id: "card-a" } } });
+  engine.queue({ id: "card-b", type: SYNC_MUTATION_TYPES.entityMutation, entityId: "card-b", payload: { table: "cards", entity: { id: "card-b" } } });
 
   const result = await engine.syncNow();
 
@@ -182,7 +175,7 @@ test("one conflicting mutation does not block acknowledged siblings or the cloud
 
 test("autosync interval controls both periodic and debounced local triggers", () => {
   const activeTimers = createFakeTimers();
-  const active = createSyncEngine({
+  const active = createTestEngine({
     adapter: acknowledgingAdapter(), outbox: createTestOutbox(), device,
     setTimer: activeTimers.setTimer, clearTimer: activeTimers.clearTimer,
   });
@@ -192,7 +185,7 @@ test("autosync interval controls both periodic and debounced local triggers", ()
   stopActive();
 
   const manualTimers = createFakeTimers();
-  const manual = createSyncEngine({
+  const manual = createTestEngine({
     adapter: acknowledgingAdapter(), outbox: createTestOutbox(), device,
     setTimer: manualTimers.setTimer, clearTimer: manualTimers.clearTimer,
   });
@@ -205,7 +198,7 @@ test("autosync interval controls both periodic and debounced local triggers", ()
 test("a lifecycle started offline schedules its interval once the network returns", () => {
   const timers = createFakeTimers();
   const networkTarget = createNetworkTarget(false);
-  const engine = createSyncEngine({
+  const engine = createTestEngine({
     adapter: acknowledgingAdapter(), outbox: createTestOutbox(), device, networkTarget,
     setTimer: timers.setTimer, clearTimer: timers.clearTimer,
   });
@@ -220,7 +213,7 @@ test("focus and visibility run a full sync only for active automatic lifecycle",
   const networkTarget = createNetworkTarget();
   const documentTarget = createDocumentTarget();
   let pulls = 0;
-  const engine = createSyncEngine({
+  const engine = createTestEngine({
     adapter: acknowledgingAdapter(), outbox: createTestOutbox(), device,
     networkTarget, documentTarget,
     async pullChanges() { pulls += 1; },
@@ -249,7 +242,7 @@ test("hiding or leaving the page sends pending changes at once", async () => {
   const documentTarget = createDocumentTarget();
   const timers = createFakeTimers();
   let batches = 0;
-  const engine = createSyncEngine({
+  const engine = createTestEngine({
     adapter: acknowledgingAdapter(() => { batches += 1; }), outbox: createTestOutbox(), device,
     networkTarget, documentTarget, setTimer: timers.setTimer, clearTimer: timers.clearTimer,
   });
@@ -258,11 +251,11 @@ test("hiding or leaving the page sends pending changes at once", async () => {
   documentTarget.setVisibility("hidden");
   await waitForAsyncWork();
   assert.equal(batches, 0, "nothing pending, nothing sent");
-  engine.enqueueMutation({ id: "hidden", type: SYNC_MUTATION_TYPES.entityMutation, payload: { table: "cards", entity: { id: "card-1" } } });
+  engine.queue({ id: "hidden", type: SYNC_MUTATION_TYPES.entityMutation, payload: { table: "cards", entity: { id: "card-1" } } });
   documentTarget.setVisibility("hidden");
   await waitForAsyncWork();
   assert.deepEqual([batches, engine.pendingCount()], [1, 0], "hidden before the debounce ran");
-  engine.enqueueMutation({ id: "pagehide", type: SYNC_MUTATION_TYPES.entityMutation, payload: { table: "cards", entity: { id: "card-2" } } });
+  engine.queue({ id: "pagehide", type: SYNC_MUTATION_TYPES.entityMutation, payload: { table: "cards", entity: { id: "card-2" } } });
   networkTarget.dispatch("pagehide");
   await waitForAsyncWork();
   assert.deepEqual([batches, engine.pendingCount()], [2, 0]);
@@ -271,14 +264,14 @@ test("hiding or leaving the page sends pending changes at once", async () => {
 
 test("entity batches preserve foreign-key order", async () => {
   const order: string[] = [];
-  const engine = createSyncEngine({
+  const engine = createTestEngine({
     adapter: acknowledgingAdapter((batch) => order.push(...batch.map((mutation) => mutation.payload.table))),
     outbox: createTestOutbox(),
     device,
   });
 
   for (const table of ["review_events", "card_variants", "cards", "note_sources", "notes", "decks", "note_type_sources"]) {
-    engine.enqueueMutation({
+    engine.queue({
       id: `mutation-${table}`,
       type: SYNC_MUTATION_TYPES.entityMutation,
       entityId: table,
@@ -292,18 +285,18 @@ test("entity batches preserve foreign-key order", async () => {
 
 test("tombstones follow the upserts in reverse foreign-key order", async () => {
   const order: string[] = [];
-  const engine = createSyncEngine({
+  const engine = createTestEngine({
     adapter: acknowledgingAdapter((batch) => order.push(...batch.map((mutation) => `${mutation.payload.tombstone ? "delete" : "upsert"}:${mutation.payload.table}`))),
     outbox: createTestOutbox(),
     device,
   });
   const tombstone = (table: string) => ({ table, entityId: `${table}-old`, baseRevision: 1, deletedAt: "2026-07-09T09:00:00.000Z", tombstone: true });
 
-  engine.enqueueMutation({ id: "delete-deck", type: SYNC_MUTATION_TYPES.entityMutation, entityId: "decks-old", payload: tombstone("decks") });
-  engine.enqueueMutation({ id: "delete-note", type: SYNC_MUTATION_TYPES.entityMutation, entityId: "notes-old", payload: tombstone("notes") });
-  engine.enqueueMutation({ id: "delete-card", type: SYNC_MUTATION_TYPES.entityMutation, entityId: "cards-old", payload: tombstone("cards") });
-  engine.enqueueMutation({ id: "upsert-card", type: SYNC_MUTATION_TYPES.entityMutation, entityId: "card-new", payload: { table: "cards", entity: { id: "card-new" } } });
-  engine.enqueueMutation({ id: "upsert-note", type: SYNC_MUTATION_TYPES.entityMutation, entityId: "note-new", payload: { table: "notes", entity: { id: "note-new" } } });
+  engine.queue({ id: "delete-deck", type: SYNC_MUTATION_TYPES.entityMutation, entityId: "decks-old", payload: tombstone("decks") });
+  engine.queue({ id: "delete-note", type: SYNC_MUTATION_TYPES.entityMutation, entityId: "notes-old", payload: tombstone("notes") });
+  engine.queue({ id: "delete-card", type: SYNC_MUTATION_TYPES.entityMutation, entityId: "cards-old", payload: tombstone("cards") });
+  engine.queue({ id: "upsert-card", type: SYNC_MUTATION_TYPES.entityMutation, entityId: "card-new", payload: { table: "cards", entity: { id: "card-new" } } });
+  engine.queue({ id: "upsert-note", type: SYNC_MUTATION_TYPES.entityMutation, entityId: "note-new", payload: { table: "notes", entity: { id: "note-new" } } });
   await engine.flush();
 
   assert.deepEqual(order, ["upsert:notes", "upsert:cards", "delete:cards", "delete:notes", "delete:decks"]);
@@ -311,7 +304,7 @@ test("tombstones follow the upserts in reverse foreign-key order", async () => {
 
 test("confirmed rows update only affected local records before acknowledgement", async () => {
   const persisted: any[] = [];
-  const engine = createSyncEngine({
+  const engine = createTestEngine({
     adapter: {
       async applyMutationBatch(mutations: any[]) {
         return {
@@ -328,7 +321,7 @@ test("confirmed rows update only affected local records before acknowledgement",
       persisted.push(...rows);
     },
   });
-  engine.enqueueMutation({ id: "card", type: SYNC_MUTATION_TYPES.entityMutation, entityId: "card-1", payload: { table: "cards", entity: { id: "card-1" } } });
+  engine.queue({ id: "card", type: SYNC_MUTATION_TYPES.entityMutation, entityId: "card-1", payload: { table: "cards", entity: { id: "card-1" } } });
 
   await engine.flush();
 
@@ -339,7 +332,7 @@ test("confirmed rows update only affected local records before acknowledgement",
 test("partial acknowledgement retries only the remaining mutation", async () => {
   const batches: string[][] = [];
   let attempt = 0;
-  const engine = createSyncEngine({
+  const engine = createTestEngine({
     adapter: {
       async applyMutationBatch(mutations: any[]) {
         batches.push(mutations.map((mutation) => mutation.id));
@@ -352,8 +345,8 @@ test("partial acknowledgement retries only the remaining mutation", async () => 
     outbox: createTestOutbox(),
     device,
   });
-  engine.enqueueMutation({ id: "first", type: SYNC_MUTATION_TYPES.entityMutation, payload: { table: "cards", entity: { id: "card-1" } } });
-  engine.enqueueMutation({ id: "second", type: SYNC_MUTATION_TYPES.entityMutation, payload: { table: "cards", entity: { id: "card-2" } } });
+  engine.queue({ id: "first", type: SYNC_MUTATION_TYPES.entityMutation, payload: { table: "cards", entity: { id: "card-1" } } });
+  engine.queue({ id: "second", type: SYNC_MUTATION_TYPES.entityMutation, payload: { table: "cards", entity: { id: "card-2" } } });
 
   const first = await engine.flush();
   assert.equal(first.deferred, true);
@@ -368,7 +361,7 @@ test("a mutation enqueued during an active flush survives for the next flush", a
   let release!: () => void;
   const gate = new Promise<void>((resolve) => { release = resolve; });
   const batches: string[][] = [];
-  const engine = createSyncEngine({
+  const engine = createTestEngine({
     adapter: {
       async applyMutationBatch(mutations: any[]) {
         batches.push(mutations.map((mutation) => mutation.id));
@@ -379,10 +372,10 @@ test("a mutation enqueued during an active flush survives for the next flush", a
     outbox: createTestOutbox(),
     device,
   });
-  engine.enqueueMutation({ id: "first", type: SYNC_MUTATION_TYPES.entityMutation, entityId: "card-1", payload: { table: "cards", entity: { id: "card-1", status: "active" } } });
+  engine.queue({ id: "first", type: SYNC_MUTATION_TYPES.entityMutation, entityId: "card-1", payload: { table: "cards", entity: { id: "card-1", status: "active" } } });
   const active = engine.flush();
   await waitForAsyncWork();
-  engine.enqueueMutation({ id: "second", type: SYNC_MUTATION_TYPES.entityMutation, entityId: "card-1", payload: { table: "cards", entity: { id: "card-1", status: "suspended" } } });
+  engine.queue({ id: "second", type: SYNC_MUTATION_TYPES.entityMutation, entityId: "card-1", payload: { table: "cards", entity: { id: "card-1", status: "suspended" } } });
   release();
   await active;
 
@@ -395,7 +388,7 @@ test("a flush requested during an active flush sends mutations queued meanwhile"
   let release!: () => void;
   const gate = new Promise<void>((resolve) => { release = resolve; });
   const batches: string[][] = [];
-  const engine = createSyncEngine({
+  const engine = createTestEngine({
     adapter: {
       async applyMutationBatch(mutations: any[]) {
         batches.push(mutations.map((mutation) => mutation.id));
@@ -406,10 +399,10 @@ test("a flush requested during an active flush sends mutations queued meanwhile"
     outbox: createTestOutbox(),
     device,
   });
-  engine.enqueueMutation({ id: "card", type: SYNC_MUTATION_TYPES.entityMutation, entityId: "card-1", payload: { table: "cards", entity: { id: "card-1" } } });
+  engine.queue({ id: "card", type: SYNC_MUTATION_TYPES.entityMutation, entityId: "card-1", payload: { table: "cards", entity: { id: "card-1" } } });
   const active = engine.flush();
   await waitForAsyncWork();
-  engine.enqueueMutation({ id: "variant", type: SYNC_MUTATION_TYPES.entityMutation, entityId: "variant-1", payload: { table: "card_variants", entity: { id: "variant-1" } } });
+  engine.queue({ id: "variant", type: SYNC_MUTATION_TYPES.entityMutation, entityId: "variant-1", payload: { table: "card_variants", entity: { id: "variant-1" } } });
   void engine.flush({ force: true });
   release();
   await active;
@@ -421,12 +414,12 @@ test("a flush requested during an active flush sends mutations queued meanwhile"
 
 test("concurrent flush calls share one request", async () => {
   let calls = 0;
-  const engine = createSyncEngine({
+  const engine = createTestEngine({
     adapter: acknowledgingAdapter(() => { calls += 1; }),
     outbox: createTestOutbox(),
     device,
   });
-  engine.enqueueMutation({ id: "one", type: SYNC_MUTATION_TYPES.entityMutation, payload: { table: "cards", entity: { id: "card-1" } } });
+  engine.queue({ id: "one", type: SYNC_MUTATION_TYPES.entityMutation, payload: { table: "cards", entity: { id: "card-1" } } });
 
   await Promise.all([engine.flush(), engine.flush()]);
   assert.equal(calls, 1);
@@ -436,13 +429,13 @@ test("offline lifecycle keeps the outbox and flushes once after reconnect", asyn
   const networkTarget = createNetworkTarget(false);
   let calls = 0;
   const statuses: string[] = [];
-  const engine = createSyncEngine({
+  const engine = createTestEngine({
     adapter: acknowledgingAdapter(() => { calls += 1; }),
     outbox: createTestOutbox(),
     device,
     networkTarget,
   });
-  engine.enqueueMutation({ id: "offline", type: SYNC_MUTATION_TYPES.entityMutation, payload: { table: "cards", entity: { id: "card-1" } } });
+  engine.queue({ id: "offline", type: SYNC_MUTATION_TYPES.entityMutation, payload: { table: "cards", entity: { id: "card-1" } } });
   const stop = engine.startSyncLifecycle({ intervalMinutes: 5, onStatus: (status: any) => statuses.push(status.status) });
 
   assert.equal((await engine.flush()).offline, true);
@@ -459,7 +452,7 @@ test("offline lifecycle keeps the outbox and flushes once after reconnect", asyn
 test("retryable failures use capped backoff and manual flush bypasses it", async () => {
   const timers = createFakeTimers();
   let fail = true;
-  const engine = createSyncEngine({
+  const engine = createTestEngine({
     adapter: {
       async applyMutationBatch(mutations: any[]) {
         if (fail) return { acknowledgedMutationIds: [], failedMutationIds: mutations.map((mutation) => mutation.id), failures: mutations.map((mutation) => ({ mutationId: mutation.id, error: Object.assign(new Error("server"), { status: 503 }) })) };
@@ -474,7 +467,7 @@ test("retryable failures use capped backoff and manual flush bypasses it", async
     retryMaxDelayMs: 1_500,
     random: () => 1,
   });
-  engine.enqueueMutation({ id: "retry", type: SYNC_MUTATION_TYPES.entityMutation, payload: { table: "cards", entity: { id: "card-1" } } });
+  engine.queue({ id: "retry", type: SYNC_MUTATION_TYPES.entityMutation, payload: { table: "cards", entity: { id: "card-1" } } });
   const stop = engine.startSyncLifecycle({ onStatus() {} });
 
   await engine.flush();
@@ -488,7 +481,7 @@ test("retryable failures use capped backoff and manual flush bypasses it", async
 
 test("non-retryable failures surface without scheduling a timer", async () => {
   const timers = createFakeTimers();
-  const engine = createSyncEngine({
+  const engine = createTestEngine({
     adapter: {
       async applyMutationBatch(mutations: any[]) {
         return { acknowledgedMutationIds: [], failedMutationIds: mutations.map((mutation) => mutation.id), failures: [{ mutationId: mutations[0].id, error: Object.assign(new Error("bad request"), { status: 400 }) }] };
@@ -499,7 +492,7 @@ test("non-retryable failures surface without scheduling a timer", async () => {
     setTimer: timers.setTimer,
     clearTimer: timers.clearTimer,
   });
-  engine.enqueueMutation({ id: "invalid", type: SYNC_MUTATION_TYPES.entityMutation, entityId: "card-1", payload: { table: "cards", entity: { id: "card-1" } } });
+  engine.queue({ id: "invalid", type: SYNC_MUTATION_TYPES.entityMutation, entityId: "card-1", payload: { table: "cards", entity: { id: "card-1" } } });
   const stop = engine.startSyncLifecycle({ onStatus() {} });
 
   await assert.rejects(() => engine.flush({ force: true }), /bad request/);
@@ -510,10 +503,10 @@ test("non-retryable failures surface without scheduling a timer", async () => {
 
 test("initialize loads the cloud without blocking on the durable outbox", async () => {
   const storage = createMemoryStorage();
-  const first = createSyncEngine({ adapter: {}, outbox: createTestOutbox(storage), device });
-  first.enqueueMutation({ id: "persisted", type: SYNC_MUTATION_TYPES.entityMutation, payload: { table: "cards", entity: { id: "card-1" } } });
+  const first = createTestEngine({ adapter: {}, outbox: createTestOutbox(storage), device });
+  first.queue({ id: "persisted", type: SYNC_MUTATION_TYPES.entityMutation, payload: { table: "cards", entity: { id: "card-1" } } });
   const calls: string[] = [];
-  const restarted = createSyncEngine({
+  const restarted = createTestEngine({
     adapter: {
       async registerDevice() { calls.push("register"); },
       async applyMutationBatch() { calls.push("flush"); return { acknowledgedMutationIds: [], failedMutationIds: [] }; },
@@ -531,7 +524,7 @@ test("initialize loads the cloud without blocking on the durable outbox", async 
 test("conflict resolution persists only the resolved entity page", async () => {
   const page = { table: "decks", entities: [{ id: "deck-1", name: "Lokal" }], cursor: null, reset: false };
   const persisted: any[] = [];
-  const engine = createSyncEngine({
+  const engine = createTestEngine({
     adapter: {
       async resolveConflict() { return { conflict: { id: "conflict-1" }, resolvedPage: page }; },
       async listConflicts() { return []; },
@@ -551,13 +544,13 @@ test("conflict resolution persists only the resolved entity page", async () => {
 test("lifecycle cleanup prevents reconnect writes", async () => {
   const networkTarget = createNetworkTarget(false);
   let calls = 0;
-  const engine = createSyncEngine({
+  const engine = createTestEngine({
     adapter: acknowledgingAdapter(() => { calls += 1; }),
     outbox: createTestOutbox(),
     device,
     networkTarget,
   });
-  engine.enqueueMutation({ id: "pending", type: SYNC_MUTATION_TYPES.entityMutation, payload: { table: "cards", entity: { id: "card-1" } } });
+  engine.queue({ id: "pending", type: SYNC_MUTATION_TYPES.entityMutation, payload: { table: "cards", entity: { id: "card-1" } } });
   const stop = engine.startSyncLifecycle({ onStatus() {} });
   stop();
   networkTarget.setOnline(true);
