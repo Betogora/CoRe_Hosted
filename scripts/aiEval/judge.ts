@@ -144,11 +144,11 @@ export function readVerdicts(blocks: readonly JudgeBlock[], files: readonly unkn
   const pairs = Object.entries(key.duplicates).map(([duplicate, original]) => ({ original, a: given.get(original)!, b: given.get(duplicate)! }));
   const flipped = new Map<string, Set<string>>();
   const noise: Record<string, number> = {};
+  /** Je Einzelurteil gezählt: Ein Eintrag mit 20 Kernaussagen, von denen eine kippt, ist eine Abweichung unter 20. */
   for (const id of [...new Set(pairs.flatMap(({ a }) => Object.keys(a.results).map(baseId)))].sort()) {
-    const relevant = pairs.filter(({ a }) => Object.keys(a.results).some((criterion) => baseId(criterion) === id));
-    const changed = relevant.filter(({ a, b }) => Object.keys(a.results).some((criterion) => baseId(criterion) === id && a.results[criterion] !== b.results[criterion]));
-    flipped.set(id, new Set(changed.map(({ original }) => original)));
-    noise[id] = Math.round(changed.length / relevant.length * 10000) / 10000;
+    const judgments = pairs.flatMap(({ original, a, b }) => Object.keys(a.results).filter((criterion) => baseId(criterion) === id).map((criterion) => ({ original, changed: a.results[criterion] !== b.results[criterion] })));
+    flipped.set(id, new Set(judgments.filter(({ changed }) => changed).map(({ original }) => original)));
+    noise[id] = Math.round(judgments.filter(({ changed }) => changed).length / judgments.length * 10000) / 10000;
   }
   return { verdicts, given, fresh, noise, flipped, duplicates: new Set(Object.keys(key.duplicates)), judged: Object.keys(key.hashes).length, cached: new Set(Object.values(key.cached)).size };
 }

@@ -197,6 +197,15 @@ test("Richterblöcke: höchstens 25 Einträge, Doppel in einem anderen Block, Ra
   assert.notEqual(again.key.judge, buildJudgeTable(variant, items, seededRandom(3), { instructions: "Geänderter Auftrag", requests: [] }).key.judge);
 });
 
+test("Rauschen zählt je Einzelurteil: eine gekippte von vier Kernaussagen ist ein Viertel, nicht der ganze Eintrag", () => {
+  const criteria = [1, 2, 3, 4].map((index) => ({ id: `Q6:doc-${index}`, title: `Kernaussage ${index}`, pass: "ja", fail: "nein" }));
+  const entry = (id: string) => ({ entry: id, criteria: criteria.map((criterion) => criterion.id), eingabe: { quelle: "doc" }, ausgabe: { karten: "1. Frage → Antwort" } });
+  const blocks: JudgeBlock[] = [{ requestType: "source-cards", criteria, entries: [entry("e0001")] }, { requestType: "source-cards", criteria, entries: [entry("e0002")] }];
+  const key = { judge: "0000000000000000", entries: { e0001: [answerRef("d", 0)] }, duplicates: { e0002: "e0001" }, hashes: { e0001: "h" }, cached: {} };
+  const verdict = (id: string, flip: boolean) => ({ verdicts: [{ entry: id, results: Object.fromEntries(criteria.map((criterion, index) => [criterion.id, !(flip && index === 0)])), sure: Object.fromEntries(criteria.map((criterion) => [criterion.id, 3])) }] });
+  assert.deepEqual(readVerdicts(blocks, [verdict("e0001", false), verdict("e0002", true)], key).noise, { Q6: 0.25 });
+});
+
 test("Fingerabdruck des Richters hängt am Fallsatz, nicht an den Antworten eines Laufs", () => {
   const explain = help.parseRequest({ card: { prompt: "Was ist ATP?", answer: "Energieträger" }, mode: "explain" });
   const example = help.parseRequest({ card: { prompt: "Was ist ATP?", answer: "Energieträger" }, mode: "example" });

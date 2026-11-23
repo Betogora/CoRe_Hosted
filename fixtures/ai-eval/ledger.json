@@ -1,4 +1,664 @@
 {
-  "runs": [],
+  "runs": [
+    {
+      "requestType": "card-variant-basic",
+      "run": "2026-11-23-baseline2-dev",
+      "date": "2026-11-23",
+      "split": "dev",
+      "promptVersion": "card-variant-v5",
+      "candidate": null,
+      "fingerprint": "6d3794db93795e33",
+      "model": "openai/gpt-6-luna",
+      "reasoning": "low",
+      "change": "Baseline",
+      "decision": "baseline",
+      "cases": 29,
+      "repetitions": 2,
+      "main": 0.7931,
+      "low": 0.6379,
+      "high": 0.9138,
+      "criteria": {
+        "M1": 0.9655,
+        "M2": 0.8679,
+        "M3": 1,
+        "M4": 0.9623,
+        "M5": 1,
+        "M6": 0.9811,
+        "M7": 0.9821
+      },
+      "outcomes": {
+        "answer": 53,
+        "refused": 3,
+        "rejected": 2,
+        "timeout": 0
+      },
+      "traps": {
+        "answers": 14,
+        "errors": 1
+      },
+      "costUsd": 0.0000773,
+      "costTotalUsd": 0.00449,
+      "latencyP90Ms": 1819,
+      "judge": {
+        "model": "claude-opus-5-5",
+        "fingerprint": "563f410721652e96",
+        "entries": 27,
+        "cached": 16,
+        "noise": {
+          "M2": 0,
+          "M6": 0
+        }
+      }
+    },
+    {
+      "requestType": "card-variant-basic",
+      "run": "2026-11-23-baseline2-holdout",
+      "date": "2026-11-23",
+      "split": "holdout",
+      "promptVersion": "card-variant-v5",
+      "candidate": null,
+      "fingerprint": "d1a25af4fd2b147c",
+      "model": "openai/gpt-6-luna",
+      "reasoning": "low",
+      "change": "Rückhalt",
+      "decision": "holdout",
+      "cases": 23,
+      "repetitions": 2,
+      "main": 0.8696,
+      "low": 0.7609,
+      "high": 0.9565,
+      "criteria": {
+        "M1": 1,
+        "M2": 0.9302,
+        "M3": 1,
+        "M4": 0.9767,
+        "M5": 1,
+        "M6": 0.7907,
+        "M7": 0.9565
+      },
+      "outcomes": {
+        "answer": 44,
+        "refused": 2,
+        "rejected": 0,
+        "timeout": 0
+      },
+      "traps": {
+        "answers": 10,
+        "errors": 0
+      },
+      "costUsd": 0.0000853,
+      "costTotalUsd": 0.00392,
+      "latencyP90Ms": 2722,
+      "judge": {
+        "model": "claude-opus-5-5",
+        "fingerprint": "563f410721652e96",
+        "entries": 29,
+        "cached": 11,
+        "noise": {
+          "M2": 0,
+          "M6": 0.1
+        }
+      }
+    },
+    {
+      "requestType": "card-variant-cloze",
+      "run": "2026-11-23-baseline-dev",
+      "date": "2026-11-23",
+      "split": "dev",
+      "promptVersion": "card-variant-v5",
+      "candidate": null,
+      "fingerprint": "ddff4cf65b6bfa35",
+      "model": "openai/gpt-6-luna",
+      "reasoning": "low",
+      "change": "Baseline",
+      "decision": "baseline",
+      "cases": 34,
+      "repetitions": 2,
+      "main": 0.8676,
+      "low": 0.7794,
+      "high": 0.9412,
+      "criteria": {
+        "M1": 0.9853,
+        "M2": 0.8769,
+        "M3": 0.9692,
+        "M4": 0.9692,
+        "M5": 1,
+        "M6": 0.7231,
+        "M7": 1
+      },
+      "outcomes": {
+        "answer": 65,
+        "refused": 2,
+        "rejected": 1,
+        "timeout": 0
+      },
+      "traps": {
+        "answers": 12,
+        "errors": 1
+      },
+      "costUsd": 0.000101,
+      "costTotalUsd": 0.00687,
+      "latencyP90Ms": 2272,
+      "judge": {
+        "model": "claude-opus-5-5",
+        "fingerprint": "25e95f9ef3619993",
+        "entries": 62,
+        "cached": 0,
+        "noise": {
+          "M2": 0,
+          "M6": 0
+        }
+      }
+    },
+    {
+      "requestType": "card-variant-cloze",
+      "run": "2026-11-23-baseline-holdout",
+      "date": "2026-11-23",
+      "split": "holdout",
+      "promptVersion": "card-variant-v5",
+      "candidate": null,
+      "fingerprint": "7bb1a89721451cc9",
+      "model": "openai/gpt-6-luna",
+      "reasoning": "low",
+      "change": "Rückhalt",
+      "decision": "holdout",
+      "cases": 30,
+      "repetitions": 2,
+      "main": 0.9,
+      "low": 0.8,
+      "high": 0.9833,
+      "criteria": {
+        "M1": 0.9667,
+        "M2": 0.9483,
+        "M3": 0.9828,
+        "M4": 1,
+        "M5": 1,
+        "M6": 0.9483,
+        "M7": 1
+      },
+      "outcomes": {
+        "answer": 58,
+        "refused": 0,
+        "rejected": 2,
+        "timeout": 0
+      },
+      "traps": {
+        "answers": 12,
+        "errors": 0
+      },
+      "costUsd": 0.0000978,
+      "costTotalUsd": 0.00587,
+      "latencyP90Ms": 2188,
+      "judge": {
+        "model": "claude-opus-5-5",
+        "fingerprint": "25e95f9ef3619993",
+        "entries": 51,
+        "cached": 0,
+        "noise": {
+          "M2": 0,
+          "M6": 0
+        }
+      }
+    },
+    {
+      "requestType": "card-variant-choice",
+      "run": "2026-11-23-baseline-dev",
+      "date": "2026-11-23",
+      "split": "dev",
+      "promptVersion": "card-variant-v5",
+      "candidate": null,
+      "fingerprint": "291a3c1c23cb2849",
+      "model": "openai/gpt-6-luna",
+      "reasoning": "low",
+      "change": "Baseline",
+      "decision": "baseline",
+      "cases": 26,
+      "repetitions": 2,
+      "main": 0.9231,
+      "low": 0.8269,
+      "high": 1,
+      "criteria": {
+        "M1": 0.9423,
+        "M2": 0.9787,
+        "M3": 1,
+        "M4": 1,
+        "M5": 1,
+        "M6": 0.8936,
+        "M7": 1
+      },
+      "outcomes": {
+        "answer": 47,
+        "refused": 2,
+        "rejected": 3,
+        "timeout": 0
+      },
+      "traps": {
+        "answers": 14,
+        "errors": 0
+      },
+      "costUsd": 0.000111,
+      "costTotalUsd": 0.0058,
+      "latencyP90Ms": 2527,
+      "judge": {
+        "model": "claude-opus-5-5",
+        "fingerprint": "33ffb2b57869388c",
+        "entries": 39,
+        "cached": 0,
+        "noise": {
+          "M2": 0,
+          "M6": 0
+        }
+      }
+    },
+    {
+      "requestType": "card-variant-choice",
+      "run": "2026-11-23-baseline-holdout",
+      "date": "2026-11-23",
+      "split": "holdout",
+      "promptVersion": "card-variant-v5",
+      "candidate": null,
+      "fingerprint": "e82b84ab4748c897",
+      "model": "openai/gpt-6-luna",
+      "reasoning": "low",
+      "change": "Rückhalt",
+      "decision": "holdout",
+      "cases": 25,
+      "repetitions": 2,
+      "main": 0.96,
+      "low": 0.9,
+      "high": 1,
+      "criteria": {
+        "M1": 0.98,
+        "M2": 0.9787,
+        "M3": 1,
+        "M4": 1,
+        "M5": 1,
+        "M6": 0.9574,
+        "M7": 1
+      },
+      "outcomes": {
+        "answer": 47,
+        "refused": 2,
+        "rejected": 1,
+        "timeout": 0
+      },
+      "traps": {
+        "answers": 12,
+        "errors": 1
+      },
+      "costUsd": 0.000108,
+      "costTotalUsd": 0.00542,
+      "latencyP90Ms": 2554,
+      "judge": {
+        "model": "claude-opus-5-5",
+        "fingerprint": "33ffb2b57869388c",
+        "entries": 37,
+        "cached": 0,
+        "noise": {
+          "M2": 0,
+          "M6": 0.1
+        }
+      }
+    },
+    {
+      "requestType": "card-help",
+      "run": "2026-11-23-baseline2-dev",
+      "date": "2026-11-23",
+      "split": "dev",
+      "promptVersion": "card-help-v1",
+      "candidate": null,
+      "fingerprint": "b8367f0b2856f843",
+      "model": "openai/gpt-6-luna",
+      "reasoning": "low",
+      "change": "Baseline",
+      "decision": "baseline",
+      "cases": 31,
+      "repetitions": 2,
+      "main": 0.7097,
+      "low": 0.5645,
+      "high": 0.8387,
+      "criteria": {
+        "H0": 1,
+        "H1": 0.9677,
+        "H2": 0.9194,
+        "H3": 1,
+        "H4": 0.5417,
+        "H5": 0.9167,
+        "H6": 0.9839,
+        "H7": 1,
+        "H8": 1
+      },
+      "outcomes": {
+        "answer": 62,
+        "refused": 0,
+        "rejected": 0,
+        "timeout": 0
+      },
+      "traps": {
+        "answers": 12,
+        "errors": 0
+      },
+      "costUsd": 0.0000826,
+      "costTotalUsd": 0.00512,
+      "latencyP90Ms": 2477,
+      "judge": {
+        "model": "claude-opus-5-5",
+        "fingerprint": "0b61e7443dc0aeb6",
+        "entries": 62,
+        "cached": 0,
+        "noise": {
+          "H1": 0,
+          "H2": 0,
+          "H3": 0,
+          "H4": 0,
+          "H5": 0,
+          "H6": 0,
+          "H7": 0.1
+        }
+      }
+    },
+    {
+      "requestType": "card-help",
+      "run": "2026-11-23-baseline2-holdout",
+      "date": "2026-11-23",
+      "split": "holdout",
+      "promptVersion": "card-help-v1",
+      "candidate": null,
+      "fingerprint": "05c4c41b87de894b",
+      "model": "openai/gpt-6-luna",
+      "reasoning": "low",
+      "change": "Rückhalt",
+      "decision": "holdout",
+      "cases": 31,
+      "repetitions": 2,
+      "main": 0.9355,
+      "low": 0.871,
+      "high": 0.9839,
+      "criteria": {
+        "H0": 1,
+        "H1": 0.9839,
+        "H2": 0.9839,
+        "H3": 1,
+        "H4": 0.9,
+        "H5": 1,
+        "H6": 1,
+        "H7": 0.9839,
+        "H8": 1
+      },
+      "outcomes": {
+        "answer": 62,
+        "refused": 0,
+        "rejected": 0,
+        "timeout": 0
+      },
+      "traps": {
+        "answers": 12,
+        "errors": 0
+      },
+      "costUsd": 0.0000793,
+      "costTotalUsd": 0.00492,
+      "latencyP90Ms": 2718,
+      "judge": {
+        "model": "claude-opus-5-5",
+        "fingerprint": "0b61e7443dc0aeb6",
+        "entries": 62,
+        "cached": 0,
+        "noise": {
+          "H1": 0,
+          "H2": 0,
+          "H3": 0,
+          "H4": 0,
+          "H5": 0,
+          "H6": 0,
+          "H7": 0
+        }
+      }
+    },
+    {
+      "requestType": "source-cards",
+      "run": "2026-11-23-baseline-dev",
+      "date": "2026-11-23",
+      "split": "dev",
+      "promptVersion": "source-cards-v2",
+      "candidate": null,
+      "fingerprint": "de3d8a8a31a2767e",
+      "model": "openai/gpt-6-luna",
+      "reasoning": "low",
+      "change": "Baseline",
+      "decision": "baseline",
+      "cases": 8,
+      "repetitions": 2,
+      "main": 0.8375,
+      "low": 0.725,
+      "high": 0.9375,
+      "criteria": {
+        "Q1": 1,
+        "Q2": 0.9813,
+        "Q3": 0.7625,
+        "Q4": 0.9125,
+        "Q5": 1,
+        "Q6": 0.9156
+      },
+      "outcomes": {
+        "answer": 16,
+        "refused": 0,
+        "rejected": 0,
+        "timeout": 0
+      },
+      "traps": {
+        "answers": 0,
+        "errors": 0
+      },
+      "costUsd": 0.000605,
+      "costTotalUsd": 0.00969,
+      "latencyP90Ms": 12428,
+      "judge": {
+        "model": "claude-opus-5-5",
+        "fingerprint": "5bf6e39966f70b49",
+        "entries": 117,
+        "cached": 10,
+        "noise": {
+          "Q2": 0,
+          "Q3": 0,
+          "Q4": 0.2,
+          "Q5": 0,
+          "Q6": 0.0566
+        }
+      },
+      "metrics": {
+        "abschnitte_gescheitert": 0,
+        "anteil_frage_antwort": 0.9303,
+        "anteil_lueckentext": 0.0418,
+        "anteil_multiple_choice": 0.0279,
+        "anteil_single_choice": 0,
+        "belegte_stellen": 1,
+        "karten": 16.5625,
+        "karten_je_1000_zeichen": 7.5924,
+        "letzte_belegte_stelle": 1,
+        "obergrenze_erreicht": 0,
+        "verworfen": 0.25
+      }
+    },
+    {
+      "requestType": "source-cards",
+      "run": "2026-11-23-baseline-holdout",
+      "date": "2026-11-23",
+      "split": "holdout",
+      "promptVersion": "source-cards-v2",
+      "candidate": null,
+      "fingerprint": "0fd507b439ca1f26",
+      "model": "openai/gpt-6-luna",
+      "reasoning": "low",
+      "change": "Rückhalt",
+      "decision": "holdout",
+      "cases": 4,
+      "repetitions": 2,
+      "main": 0.95,
+      "low": 0.9125,
+      "high": 0.9875,
+      "criteria": {
+        "Q1": 1,
+        "Q2": 0.975,
+        "Q3": 1,
+        "Q4": 0.95,
+        "Q6": 0.9167
+      },
+      "outcomes": {
+        "answer": 8,
+        "refused": 0,
+        "rejected": 0,
+        "timeout": 0
+      },
+      "traps": {
+        "answers": 0,
+        "errors": 0
+      },
+      "costUsd": 0.000391,
+      "costTotalUsd": 0.00313,
+      "latencyP90Ms": 10176,
+      "judge": {
+        "model": "claude-opus-5-5",
+        "fingerprint": "5bf6e39966f70b49",
+        "entries": 58,
+        "cached": 6,
+        "noise": {
+          "Q2": 0.1,
+          "Q3": 0.125,
+          "Q4": 0
+        }
+      },
+      "metrics": {
+        "abschnitte_gescheitert": 0,
+        "anteil_frage_antwort": 0.9034,
+        "anteil_lueckentext": 0.0966,
+        "anteil_multiple_choice": 0,
+        "anteil_single_choice": 0,
+        "belegte_stellen": 1,
+        "karten": 11.5,
+        "karten_je_1000_zeichen": 9.974,
+        "letzte_belegte_stelle": 1,
+        "obergrenze_erreicht": 0,
+        "verworfen": 0.125
+      }
+    },
+    {
+      "requestType": "learning-summary",
+      "run": "2026-11-23-baseline-dev",
+      "date": "2026-11-23",
+      "split": "dev",
+      "promptVersion": "learning-summary-v4",
+      "candidate": null,
+      "fingerprint": "44f2fd8f14e23ce7",
+      "model": "openai/gpt-6-luna",
+      "reasoning": "low",
+      "change": "Baseline",
+      "decision": "baseline",
+      "cases": 2,
+      "repetitions": 2,
+      "main": 0.5,
+      "low": 0,
+      "high": 1,
+      "criteria": {
+        "Z1": 1,
+        "Z2": 1,
+        "Z3": 1,
+        "Z4": 1,
+        "Z5": 0.5,
+        "Z6": 1,
+        "Z7": 0.875,
+        "Z8": 1,
+        "Z9": 1
+      },
+      "outcomes": {
+        "answer": 4,
+        "refused": 0,
+        "rejected": 0,
+        "timeout": 0
+      },
+      "traps": {
+        "answers": 0,
+        "errors": 0
+      },
+      "costUsd": 0.00055,
+      "costTotalUsd": 0.0022,
+      "latencyP90Ms": 10250,
+      "judge": {
+        "model": "claude-opus-5-5",
+        "fingerprint": "027d3fd1d4f91975",
+        "entries": 20,
+        "cached": 0,
+        "noise": {
+          "Z6": 0,
+          "Z7": 0,
+          "Z8": 0,
+          "Z9": 0
+        }
+      },
+      "metrics": {
+        "abschnitte": 4,
+        "belegtes_material": 1,
+        "warnungen": 1.5,
+        "woerter": 321
+      }
+    },
+    {
+      "requestType": "learning-summary",
+      "run": "2026-11-23-baseline-holdout",
+      "date": "2026-11-23",
+      "split": "holdout",
+      "promptVersion": "learning-summary-v4",
+      "candidate": null,
+      "fingerprint": "71c412a8c3258ef1",
+      "model": "openai/gpt-6-luna",
+      "reasoning": "low",
+      "change": "Rückhalt",
+      "decision": "holdout",
+      "cases": 2,
+      "repetitions": 2,
+      "main": 0.5,
+      "low": 0,
+      "high": 1,
+      "criteria": {
+        "Z1": 1,
+        "Z2": 1,
+        "Z3": 1,
+        "Z4": 1,
+        "Z5": 0.5,
+        "Z6": 0.9375,
+        "Z7": 0.75,
+        "Z8": 1
+      },
+      "outcomes": {
+        "answer": 4,
+        "refused": 0,
+        "rejected": 0,
+        "timeout": 0
+      },
+      "traps": {
+        "answers": 0,
+        "errors": 0
+      },
+      "costUsd": 0.000248,
+      "costTotalUsd": 0.00099,
+      "latencyP90Ms": 6678,
+      "judge": {
+        "model": "claude-opus-5-5",
+        "fingerprint": "027d3fd1d4f91975",
+        "entries": 15,
+        "cached": 0,
+        "noise": {
+          "Z6": 0.1429,
+          "Z7": 0,
+          "Z8": 0
+        }
+      },
+      "metrics": {
+        "abschnitte": 3,
+        "belegtes_material": 1,
+        "warnungen": 0,
+        "woerter": 153.75
+      }
+    }
+  ],
   "calibrations": []
 }

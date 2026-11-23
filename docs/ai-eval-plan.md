@@ -472,15 +472,35 @@ Umgesetzt am 2026-11-23. Stand und Abweichungen:
   Quellenkarten die des Abschnitts, bei der Zusammenfassung `request.route`.
 - Handurteile gibt es nur für Typen mit einem Richtereintrag je Antwort.
 
-### H – Baseline
+### H – Baseline (bis auf den Haltepunkt erledigt)
 
-- Je Anfragetyp der Code auf allen drei Teilen mit zwei Wiederholungen. Ins
-  Ledger kommen der Entscheidungsteil als Baseline und der Rückhalt als
-  Messung; der Trainingsteil bleibt lokal.
-- Je Anfragetyp dem Nutzer Bericht und Grenzfälle zeigen.
-- **Haltepunkt:** Der Nutzer legt Zielwerte und Reihenfolge der Welle fest
-  und sagt, ob der Richter passt. Anfragetypen, die ihr Ziel schon
-  erreichen, brauchen keine Runden.
+Gemessen am 2026-11-23, zwei Wiederholungen, Richter Opus 5.5 in 59 Blöcken;
+Erzeugung rund 7 Cent.
+
+| Anfragetyp | Entscheidung | Rückhalt | Kritisch (Entscheidung) | Ziel |
+| --- | --- | --- | --- | --- |
+| Variante Frage/Antwort | 79,3 % | 87,0 % | M2 86,8 % | 95 % |
+| Variante Lückentext | 86,8 % | 90,0 % | M2 87,7 % | 95 % |
+| Variante Auswahl | 92,3 % | 96,0 % | M2 97,9 % | 95 % |
+| KI hilft | 71,0 % | 93,6 % | H2 91,9 %, H6 98,4 % | 90 % |
+| Karten aus einer Quelle | 83,8 % | 95,0 % | Q2 98,1 % | 90 % |
+| Zusammenfassung | 50,0 % | 50,0 % | Z6 100 % / 93,8 % | 95 % |
+
+- **Korpus bereinigt:** Die erste Erzeugung ergab bei Frage/Antwort 24 von
+  66 Ablehnungen, fast alle auf gelöschten, Platzhalter- und ID-Karten aus
+  echten Stapeln. `sampleCorpus` überspringt sie jetzt; Frage/Antwort und
+  KI hilft sind danach neu erzeugt (`baseline2`). Frage/Antwort hat nur noch
+  29 Korpusfälle.
+- **Rauschen** zählt je Einzelurteil; vorher kippte ein Q6-Eintrag mit 20
+  Kernaussagen schon bei einer abweichenden.
+- **Abstand Entscheidung zu Rückhalt** ist bei KI hilft (71 gegen 94 %) und
+  Quelle (84 gegen 95 %) groß: Die Teile sind klein und nach Kategorie
+  unterschiedlich schwer. Vergleiche in Runden gehen deshalb nur gepaart
+  gegen die Baseline desselben Teils.
+- **Zusammenfassung** hat je Teil nur zwei Fälle; das Intervall reicht von 0
+  bis 100 %. Beide Standardprofile scheitern an Z5 (Querbezüge auf
+  Stichwörter, die es nicht gibt).
+- Fallen: je Typ höchstens ein Fehler bei einem kritischen Kriterium.
 
 ### I – Hillclimb, erste Welle
 
