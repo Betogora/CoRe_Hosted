@@ -10,7 +10,7 @@ import { createLatestSaver } from "../latestSaver.ts";
 import { textToCardHtml } from "../richText.ts";
 import { ActionButton, IconButton } from "../ui/actionUi.tsx";
 import { ActionDialog, CoreSegmentedControl, SoftPanel } from "../ui/coreUi.tsx";
-import { COLOR_PICKER_PRESETS, ColorPicker } from "../ui/ColorPicker.tsx";
+import { COLOR_PICKER_PRESETS, ColorPicker, ColorSwatchButton } from "../ui/ColorPicker.tsx";
 import { normalizeColor } from "../colorMath.ts";
 import { StatusMessage } from "../ui/feedbackUi.tsx";
 import { CoreCheckbox, CoreSlider } from "../ui/formControls.tsx";
@@ -48,8 +48,8 @@ function connectionPath(from: MindMapRect, to: MindMapRect) {
 function ColorControl({ label, value = "default", onChange }: { label: string; value?: MindMapColor; onChange: (color: MindMapColor) => void }) {
   const [custom, setCustom] = React.useState(() => normalizeColor(value, COLOR_PICKER_PRESETS[7]));
   return <fieldset className="core-mindmap-color-picker"><legend className="core-caption text-core-muted">{label}</legend><div className="flex flex-wrap items-center gap-1">
-    {mindMapColors.map((color) => <button key={color.value} type="button" className="core-mindmap-swatch rounded-control" style={{ "--mindmap-ink": inkColor(color.value) } as React.CSSProperties} aria-label={`${label} ${color.label}`} aria-pressed={value === color.value} onClick={() => onChange(color.value)}><span aria-hidden="true"/></button>)}
-    <ColorPicker variant="tool" icon={Palette} className="core-mindmap-swatch rounded-control" ariaLabel={`${label} frei wählen`} value={normalizeColor(value, custom)} onValueCommit={(color) => { setCustom(color); onChange(color); }}/>
+    {mindMapColors.map((color) => <CoreTooltip key={color.value} label={color.label}><ColorSwatchButton color={inkColor(color.value)} aria-label={`${label} ${color.label}`} aria-pressed={value === color.value} onClick={() => onChange(color.value)}/></CoreTooltip>)}
+    <ColorPicker variant="tool" icon={Palette} ariaLabel={`${label} frei wählen`} value={normalizeColor(value, custom)} onValueCommit={(color) => { setCustom(color); onChange(color); }}/>
   </div></fieldset>;
 }
 export function DeckMindMapsPanel({ deck, userId, cloud = null, onGenerateSummary, onDraftStateChange }: DeckMindMapsPanelProps) {

@@ -4,7 +4,7 @@ import { Eraser, Highlighter, Maximize2, Minimize2, Minus, Palette, PenLine, Plu
 import { SUMMARY_FONT_SIZE, type LearningSummary, type SummaryPage, type SummaryStroke } from "../learningSummaries.ts";
 import { summaryDrawingLayout } from "../summaryDocumentLayout.ts";
 import { IconButton } from "../ui/actionUi.tsx";
-import { ColorPicker } from "../ui/ColorPicker.tsx";
+import { ColorPicker, ColorSwatchButton } from "../ui/ColorPicker.tsx";
 import { CoreIconSegmentedControl } from "../ui/coreUi.tsx";
 import { CoreSelect } from "../ui/selectUi.tsx";
 import { CoreTooltip } from "../ui/tooltipUi.tsx";
@@ -221,7 +221,7 @@ export function SummaryDocumentEditor({ value, onChange, busy }: {
         </div>}
         {(tool === "pen" || tool === "marker") && <>
           <div className="core-summary-tool-group" role="group" aria-label={tool === "marker" ? "Markerfarbe" : "Zeichenfarbe"}>
-            {inkPresets[tool].colors.map(([color, name]) => <CoreTooltip key={color} label={name}><button type="button" className="core-summary-swatch" aria-label={name} aria-pressed={ink.color === color} style={{ "--summary-ink": color } as React.CSSProperties} onClick={() => changeInkStyle({ color })}><span aria-hidden="true"/></button></CoreTooltip>)}
+            {inkPresets[tool].colors.map(([color, name]) => <CoreTooltip key={color} label={name}><ColorSwatchButton color={color} aria-label={name} aria-pressed={ink.color === color} onClick={() => changeInkStyle({ color })}/></CoreTooltip>)}
             <ColorPicker variant="tool" icon={Palette} ariaLabel={tool === "marker" ? "Eigene Markerfarbe" : "Eigene Stiftfarbe"} value={ink.color} onValueCommit={(color) => changeInkStyle({ color })}/>
           </div>
           {tool === "marker" && <div className="core-summary-tool-group"><CoreIconSegmentedControl ariaLabel="Markerart" options={markerModeOptions} value={markerMode} onValueChange={setMarkerMode}/></div>}
