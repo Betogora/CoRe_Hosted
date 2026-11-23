@@ -35,15 +35,6 @@ export function cardStateLabel(card: Card, note: Note, options: CardLabelOptions
   return `${card.study.reps === 1 ? "1 Wiederholung" : `${card.study.reps} Wiederholungen`} · fällig ${nextStudyLabel}`;
 }
 
-export async function changeSuspension(setStudyState: (cardId: string, patch: CardStudyStatePatch) => Promise<NoteGraph | null>, cardId: string, suspended: boolean) {
-  const saved = (await setStudyState(cardId, { suspended }))?.cards.find((candidate) => candidate.id === cardId);
-  return saved ? {
-    message: suspended ? "Karte ausgesetzt." : "Karte reaktiviert.",
-    unchanged: (current: { card: Card }) => current.card.revision === saved.revision,
-    undo: () => setStudyState(cardId, { suspended: !suspended }),
-  } : null;
-}
-
 export function cardHeaderLabel(note: Note, card: Card, count: number) {
   if (count < 2) return noteKindLabel(note);
   const label = notePromptLabel(note.content, card.promptKey);

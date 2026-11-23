@@ -6,7 +6,7 @@ import { addCardVariant, createBasicNote, createCoreDeck, createManualNoteConten
 import { AI_CARD_VARIANT_PROMPT_VERSION } from "../../aiCardVariantContract.ts";
 import { editVariantText } from "../../coreVariantService.ts";
 import type { CardStudyStatePatch } from "../../coreTypes.ts";
-import { cardEditorTitle, changeSuspension, draftChangeSummary, variantStateMarks } from "./cardEditorModel.ts";
+import { cardEditorTitle, draftChangeSummary, variantStateMarks } from "./cardEditorModel.ts";
 import { draftBaseGraph } from "./CardEditorContentTab.tsx";
 import { CardEditorStudyTab } from "./CardEditorStudyTab.tsx";
 import { CardEditorVariantsTab } from "./CardEditorVariantsTab.tsx";
@@ -15,11 +15,8 @@ import { RetrievabilityChart } from "./RetrievabilityChart.tsx";
 const NOW = "2026-08-06T10:00:00.000Z";
 const services: CardEditorServices = {
   flagNames: [],
-  moveCard: async () => null,
-  resetCards: async () => [],
-  setCardsLeech: async () => [],
+  runCardAction: async () => ({ changedCount: 1, undo: async () => ({ restoredCount: 1, skippedCount: 0 }) }),
   buryCards: async () => [],
-  restoreCardStudies: async () => [],
   editVariant: async () => undefined,
   removeNoteMedia: async () => null,
   loadCard: async () => null,
@@ -124,32 +121,6 @@ test("an edited draft keeps its base graph, so a synced version meets the confli
   assert.ok(validation.ok);
   const plan = planNoteContentChange(draftBaseGraph(synced, graph, true), validation.content);
   assert.equal(plan.note.revision, graph.note.revision + 1, "the save is based on the draft's revision, not the synced one");
-});
-
-test("suspending and reactivating act at once and offer an undo that sets the earlier state again (5.2)", async () => {
-  let graph = createBasicNote("deck", "Was ist ATP?", "Ein Energieträger.");
-  const cardId = graph.cards[0].id;
-  const patches: CardStudyStatePatch[] = [];
-  const setStudyState = async (id: string, patch: CardStudyStatePatch) => {
-    patches.push(patch);
-    graph = { ...graph, cards: graph.cards.map((card) => card.id === id ? { ...card, status: patch.suspended ? "suspended" as const : "active" as const, revision: card.revision + 1 } : card) };
-    return graph;
-  };
-
-  const suspended = await changeSuspension(setStudyState, cardId, true);
-  assert.ok(suspended);
-  assert.equal(suspended.message, "Karte ausgesetzt.");
-  assert.equal(graph.cards[0].status, "suspended");
-  assert.ok(suspended.unchanged({ card: graph.cards[0] }));
-  await suspended.undo();
-  assert.deepEqual(patches, [{ suspended: true }, { suspended: false }]);
-  assert.equal(graph.cards[0].status, "active");
-
-  const reactivated = await changeSuspension(setStudyState, cardId, false);
-  assert.ok(reactivated);
-  assert.equal(reactivated.message, "Karte reaktiviert.");
-  assert.equal(reactivated.unchanged({ card: { ...graph.cards[0], revision: graph.cards[0].revision + 1 } }), false, "a card changed meanwhile keeps its state");
-  assert.equal(await changeSuspension(async () => null, cardId, true), null, "a failed write offers no undo");
 });
 
 test("the footer names the effect of saving and the title is the plain question", () => {

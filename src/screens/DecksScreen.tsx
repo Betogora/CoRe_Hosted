@@ -28,7 +28,7 @@ import { renameDirectoryTag } from "../tagDirectory.ts";
 import { findsOnlyDuplicates, parseCardSearchQuery } from "../cardSearchQuery.ts";
 import { HitStudyFlow } from "./cardList/HitStudyFlow.tsx";
 import { hitStudyQuery } from "../hitStudySession.ts";
-import type { CardBatchAction } from "../cardBatchActions.ts";
+import type { CardBatchAction, CardBatchResult } from "../cardBatchActions.ts";
 import { CardEditorDialog, cardEditorFrameClass, type CardEditorHitNavigation } from "./cardEditor/CardEditorDialog.tsx";
 import { DeckSubstacksPanel } from "./DeckSubstacksPanel.tsx";
 import { LearningAreaHeader } from "./LearningAreaHeader.tsx";
@@ -89,9 +89,6 @@ export function DecksScreen({
   onSaveNote,
   onSetCardStudyState,
   onDuplicateNote,
-  onDeleteNote,
-  onUndoDeleteNote,
-  onRescheduleCards,
   onGenerateVariant,
   onGenerateCardVariants,
   onRunCardBatch,
@@ -169,7 +166,7 @@ export function DecksScreen({
   const [pendingCardDelete, setPendingCardDelete] = React.useState<{ deckId: string; cardId: string; graph: NoteGraph } | null>(null);
   const preserveToastForSelectionChange = React.useRef(false);
   const [deletingCard, setDeletingCard] = React.useState(false);
-  const [deletedCardUndo, setDeletedCardUndo] = React.useState<{ deckId: string; cardId: string; undo: NoteGraph; deleted: NoteGraph; description: string } | null>(null);
+  const [deletedCardUndo, setDeletedCardUndo] = React.useState<{ deckId: string; cardId: string; undo: CardBatchResult["undo"]; description: string } | null>(null);
   const [pendingDetailAction, setPendingDetailAction] = React.useState<PendingDetailAction | null>(null);
   const [savingPendingDraft, setSavingPendingDraft] = React.useState(false);
   const cardDraftGuardRef = React.useRef<CardDraftGuard | null>(null);
@@ -429,9 +426,9 @@ export function DecksScreen({
     setDeckStatus("");
     setSuccessToast("");
     try {
-      const result = await onDeleteNote(deletion.graph);
-      if (!result?.deleted.note.deletedAt) throw new Error("Löschung fehlgeschlagen.");
-      setDeletedCardUndo({ deckId: deletion.deckId, cardId: deletion.cardId, undo: result.undo, deleted: result.deleted, description });
+      const result = await cardEditor.runCardAction(deletion.cardId, { kind: "delete" });
+      if (!result.changedCount) throw new Error("Löschung fehlgeschlagen.");
+      setDeletedCardUndo({ deckId: deletion.deckId, cardId: deletion.cardId, undo: result.undo, description });
       setPendingCardDelete(null);
       preserveToastForSelectionChange.current = true;
       onSelectDeck(deletion.deckId);
@@ -455,8 +452,7 @@ export function DecksScreen({
   async function undoCardDelete() {
     if (!deletedCardUndo) return;
     try {
-      const result = await onUndoDeleteNote(deletedCardUndo.undo, deletedCardUndo.deleted);
-      if (!result) throw new Error("Undo fehlgeschlagen.");
+      await deletedCardUndo.undo();
       onSelectDeck(deletedCardUndo.deckId, deletedCardUndo.cardId);
       setDeckStatus("");
       setDeckStatusType("status");
@@ -507,7 +503,6 @@ export function DecksScreen({
           onSetStudyState={(cardId, patch) => onSetCardStudyState(selectedDeck.id, cardId, patch)}
           onDuplicateNote={() => onDuplicateNote(selectedGraph)}
           onDeleteNote={requestCardDelete}
-          onRescheduleCards={onRescheduleCards}
           onGenerateVariant={(cardId) => onGenerateVariant(selectedDeck.id, cardId)}
           onUpdateVariant={onUpdateVariant}
           onSelectCard={selectFromEditor}

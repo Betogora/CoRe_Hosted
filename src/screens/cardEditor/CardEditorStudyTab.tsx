@@ -112,7 +112,7 @@ export function CardEditorStudyTab({ card, now, dayStartHour, timeZone, services
     setResetting(true);
     setError("");
     try {
-      await services.resetCards([card.id]);
+      await services.runCardAction(card.id, { kind: "reset" });
       setConfirmReset(false);
       setSuccessToast("Lernstand zurückgesetzt. Die Karte ist wieder neu.");
     } catch {

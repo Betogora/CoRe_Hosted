@@ -148,11 +148,8 @@ interface CardEditorCloudReads {
 
 export interface CardEditorServices {
   flagNames: readonly string[];
-  moveCard: (cardId: string, deckId: string) => Promise<NoteGraph | null>;
-  resetCards: (cardIds: string[]) => Promise<Card[]>;
-  setCardsLeech: (cardIds: string[], leechedAt: string | null) => Promise<Card[]>;
+  runCardAction: (cardId: string, action: CardBatchAction) => Promise<CardBatchResult>;
   buryCards: (cardIds: string[], buried: boolean) => Promise<Card[]>;
-  restoreCardStudies: (studies: ReadonlyMap<string, Card["study"]>) => Promise<Card[]>;
   editVariant: (cardId: string, variantId: string, text: { front: string; back: string }) => Promise<void>;
   removeNoteMedia: (graph: NoteGraph, names: string[]) => Promise<NoteGraph | null>;
   loadCard: (cardId: string) => Promise<{ card: Card; note: Note } | null>;
@@ -183,9 +180,6 @@ export interface DecksScreenProps extends DeckTreeScreenProps {
   onSaveNote: (graph: NoteGraph, content: NoteContent) => Promise<NoteGraph | null>;
   onSetCardStudyState: (deckId: string, cardId: string, patch: CardStudyStatePatch) => Promise<NoteGraph | null>;
   onDuplicateNote: (graph: NoteGraph) => Promise<NoteGraph | null>;
-  onDeleteNote: (graph: NoteGraph) => Promise<{ deleted: NoteGraph; undo: NoteGraph } | null>;
-  onUndoDeleteNote: (undo: NoteGraph, deleted: NoteGraph) => Promise<NoteGraph | null>;
-  onRescheduleCards: (cardIds: string[], dueAt: string, occurredAt: string) => Promise<Card[]>;
   onGenerateVariant: (deckId: string, cardId: string) => Promise<AiCardVariantSuccess>;
   /** Uses the settings of `deckId`; absent while generation is unavailable. */
   onGenerateCardVariants?: (deckId: string, cardIds: string[]) => unknown;

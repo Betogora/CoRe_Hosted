@@ -2,9 +2,9 @@ import { aiCardVariantAvoidTexts, asksVariantSource, createAiGeneratedVariantDra
 import { AI_CARD_VARIANT_PROMPT_VERSION, AI_CARD_VARIANT_REJECTIONS, AiCardVariantContractError } from "./aiCardVariantContract.ts";
 import type { SettingsSection } from "./appNavigation.ts";
 import type { CardEditorServices, CreationScreenProps, DecksCardPage, DecksCardPageRequest } from "./appScreenProps.ts";
-import type { CardBatchAction } from "./cardBatchActions.ts";
+import type { CardBatchAction, CardBatchDependencies, CardBatchResult } from "./cardBatchActions.ts";
 import type { CardVariantBatchMode } from "./cardVariantBatch.ts";
-import { addCardVariant, applyCardStudyStatePatch, createNote, duplicateNote, moveCardToDeck, planNoteContentChange, planNoteDeletion, planNoteRestore, recordVariantOutcome, removeUnusedNoteMedia, replaceOutdatedVariants } from "./coreModel.ts";
+import { addCardVariant, applyCardStudyStatePatch, createNote, duplicateNote, planNoteContentChange, planNoteDeletion, recordVariantOutcome, removeUnusedNoteMedia, replaceOutdatedVariants } from "./coreModel.ts";
 import type { Card, CardStudyStatePatch, NoteContent } from "./coreTypes.ts";
 import { cardVariantSource, deactivateVariant, deleteVariant, editVariantText, isEditedVariant, reactivateVariant } from "./coreVariantService.ts";
 import { createWorkspaceDeck } from "./coreWorkspace.ts";
@@ -146,6 +146,16 @@ export function createCardCommands({ store, repository, hydration, cloud, syncEn
     return reloadNoteGraph(result.note.id);
   }
 
+  /**
+   * The two endings of every write: the store shows the replica, page requests from before the write stop (they would
+   * land with the old state) and the sync hears of the change. `reloadLists` drops the card lists, which load again;
+   * `reloadNoteGraph` keeps them and patches the rows of one content.
+   */
+  function reloadLists() {
+    refresh();
+    requestSync();
+  }
+
   // Follows a local write: the replica already holds the new graph, while the cloud may not have it yet.
   async function reloadNoteGraph(noteId: string, refreshPages = false): Promise<NoteGraph | null> {
     const graph = await repository.loadNoteGraph(noteId);
@@ -185,36 +195,19 @@ export function createCardCommands({ store, repository, hydration, cloud, syncEn
     return reloadNoteGraph(graph.note.id, change.cardsChanged);
   }
 
-  async function deleteDeckNote(graph: NoteGraph) {
-    const plan = planNoteDeletion(graph.note, graph.cards);
-    const deleted = { note: plan.note, cards: plan.cards };
-    await repository.saveNoteGraphs([{ previous: graph, next: deleted }]);
-    refresh();
-    requestSync();
-    return { deleted, undo: plan.undo };
-  }
-
-  async function undoDeleteDeckNote(undo: NoteGraph, deleted: NoteGraph) {
-    const restored = planNoteRestore(undo, deleted);
-    await repository.saveNoteGraphs([{ previous: deleted, next: restored }]);
-    refresh();
-    requestSync();
-    return restored;
-  }
-
   async function duplicateDeckNote(graph: NoteGraph) {
     // The stored graph, not the shown one: after a move or its undo the copy lands in the card's current decks.
     const current = await repository.loadNoteGraph(graph.note.id) ?? graph;
     const copy = duplicateNote(current.note, current.cards);
     await repository.saveNoteGraphs([{ previous: null, next: copy }]);
-    refresh();
-    requestSync();
+    reloadLists();
     return copy;
   }
 
   async function applyManualStudyChanges(change: (repository: IndexedDbCoreRepository) => Promise<Card[]>) {
     const cards = await change(repository);
     refresh({ preserveCardPages: true });
+    abortCardPageRequests();
     const byId = new Map(cards.map((card) => [card.id, card]));
     setCardPages((current) => Object.fromEntries(Object.entries(current).map(([deckId, page]) => [deckId, page?.selected && page.selected.cards.some((card) => byId.has(card.id)) ? {
       ...page,
@@ -224,21 +217,31 @@ export function createCardCommands({ store, repository, hydration, cloud, syncEn
     return cards;
   }
 
-  async function runDeckCardBatch(cardIds: string[], action: CardBatchAction) {
-    const workspaceHydrationService = hydration();
-    if (!workspaceHydrationService) throw new Error("Die Kartenverwaltung ist noch nicht bereit.");
+  /** One write path for one card or many: the undo closure skips cards changed since. */
+  async function runBatch(openCards: CardBatchDependencies["openCards"], cardIds: string[], action: CardBatchAction, afterWrite: () => unknown): Promise<CardBatchResult> {
     const { runCardBatch } = await import("./cardBatchActions.ts");
-    const afterWrite = () => {
-      refresh();
-      requestSync();
-    };
-    const result = await runCardBatch({ repository, openCards: workspaceHydrationService.openCards, now }, cardIds, action);
-    afterWrite();
+    const result = await runCardBatch({ repository, openCards, now }, cardIds, action);
+    await afterWrite();
     return { ...result, undo: async () => {
       const undone = await result.undo();
-      afterWrite();
+      await afterWrite();
       return undone;
     } };
+  }
+
+  function runDeckCardBatch(cardIds: string[], action: CardBatchAction) {
+    const workspaceHydrationService = hydration();
+    if (!workspaceHydrationService) throw new Error("Die Kartenverwaltung ist noch nicht bereit.");
+    return runBatch(workspaceHydrationService.openCards, cardIds, action, reloadLists);
+  }
+
+  /** An action on the open card keeps the lists in place, so its row stays under the cursor; a deletion reloads them. */
+  async function runCardAction(cardId: string, action: CardBatchAction) {
+    // The open card is on this device already.
+    const openCards = hydration()?.openCards ?? ((cardIds: string[]) => repository.loadCardBodies(cardIds));
+    const noteId = (await openCards([cardId]))[0]?.note.id;
+    if (!noteId) throw new Error("Die Karte ist nicht mehr verfügbar.");
+    return runBatch(openCards, [cardId], action, action.kind === "delete" ? reloadLists : () => reloadNoteGraph(noteId, action.kind === "deck"));
   }
 
   async function prepareDeckTextReplace(cardIds: string[]) {
@@ -246,19 +249,6 @@ export function createCardCommands({ store, repository, hydration, cloud, syncEn
     if (!workspaceHydrationService) throw new Error("Die Kartenverwaltung ist noch nicht bereit.");
     const { prepareTextReplace } = await import("./cardBatchActions.ts");
     return prepareTextReplace({ repository, openCards: workspaceHydrationService.openCards, now }, cardIds);
-  }
-
-  function rescheduleDeckCards(cardIds: string[], dueAt: string, occurredAt: string) {
-    return applyManualStudyChanges((current) => current.rescheduleCards(cardIds, dueAt, occurredAt));
-  }
-
-  async function moveDeckCard(cardId: string, deckId: string) {
-    const body = await repository.loadCardBody(cardId);
-    const graph = body ? await repository.loadNoteGraph(body.note.id) : null;
-    if (!graph) return null;
-    const next = { note: graph.note, cards: graph.cards.map((card) => card.id === cardId ? moveCardToDeck(card, deckId) : card) };
-    await repository.saveNoteGraphs([{ previous: graph, next }]);
-    return reloadNoteGraph(graph.note.id, true);
   }
 
   async function editDeckCardVariant(cardId: string, variantId: string, text: { front: string; back: string }) {
@@ -312,7 +302,6 @@ export function createCardCommands({ store, repository, hydration, cloud, syncEn
     const saved = await repository.updateCard(cardId, (card) => apply(card, variantId));
     if (!saved) throw new Error("Die Variante konnte nicht gespeichert werden.");
     await reloadNoteGraph(saved.note.id);
-    requestSync();
   }
 
   /** The deck of a creation: the given one, or a new deck of that name when no deck id is given. */
@@ -335,9 +324,8 @@ export function createCardCommands({ store, repository, hydration, cloud, syncEn
     try {
       await repository.saveNoteGraphs([{ previous: null, next: graph }]);
     } finally {
-      refresh();
+      reloadLists();
     }
-    requestSync();
     return { deck, cardIds: graph.cards.map((card) => card.id) };
   }
 
@@ -371,8 +359,7 @@ export function createCardCommands({ store, repository, hydration, cloud, syncEn
       if (!deckId) await repository.deleteDeckTree(deck.id).catch(() => undefined);
       throw error;
     } finally {
-      refresh();
-      requestSync();
+      reloadLists();
     }
     return { deck, cardCount: changes.reduce((total, change) => total + change.next.cards.filter((card) => !card.deletedAt).length, 0) };
   }
@@ -381,12 +368,9 @@ export function createCardCommands({ store, repository, hydration, cloud, syncEn
   function createCardEditorServices(flagNames: string[], openSettings: (section: SettingsSection) => unknown): CardEditorServices {
     return {
       flagNames,
-      moveCard: moveDeckCard,
+      runCardAction,
       // Manual events carry the learning time, so burying follows a simulated learning day as well.
-      resetCards: (cardIds) => applyManualStudyChanges((current) => current.resetCards(cardIds, now())),
-      setCardsLeech: (cardIds, leechedAt) => applyManualStudyChanges((current) => current.setCardsLeech(cardIds, leechedAt, now())),
       buryCards: (cardIds, buried) => applyManualStudyChanges((current) => current.buryCards(cardIds, buried, now())),
-      restoreCardStudies: (studies) => applyManualStudyChanges((current) => current.restoreCardStudies(studies, now())),
       editVariant: editDeckCardVariant,
       removeNoteMedia: removeDeckNoteMedia,
       loadCard: async (cardId) => repository.loadCardBody(cardId),
@@ -429,12 +413,9 @@ export function createCardCommands({ store, repository, hydration, cloud, syncEn
     applyCardStudyState,
     setCardStudyState,
     saveDeckNote,
-    deleteDeckNote,
-    undoDeleteDeckNote,
     duplicateDeckNote,
     runDeckCardBatch,
     prepareDeckTextReplace,
-    rescheduleDeckCards,
     generateDeckCardVariant,
     updateDeckCardVariant,
     saveManualNote,

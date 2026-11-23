@@ -75,14 +75,14 @@ test("Löschen entfernt den Inhalt samt Geschwistern; Rückgängig stellt den vo
   const graph = await repository.loadNoteGraph("note-0");
   assert.ok(graph);
 
-  const { deleted, undo } = await commands.deleteDeckNote(graph);
+  const { undo } = await commands.createCardEditorServices([], () => undefined).runCardAction("card-0-forward", { kind: "delete" });
   assert.equal(await repository.loadCardBody("card-0-reverse"), null);
   assert.deepEqual(store.get().cardPages, {}, "die Listen laden neu");
   await showList("deck-a");
   assert.deepEqual(shownIds("deck-a"), ["card-1-forward"]);
 
-  const restored = await commands.undoDeleteDeckNote(undo, deleted);
-  assert.equal(restored.note.deletedAt, null);
+  await undo();
+  assert.equal((await repository.loadNoteGraph("note-0"))?.note.deletedAt, null);
   assert.deepEqual(store.get().cardPages, {});
   await showList("deck-a");
   await showList("deck-b");
@@ -97,9 +97,9 @@ test("eine Karte wechselt in einen anderen Stapel; Listen, die sie zeigten, lade
   await showList("deck-b");
   const editor = commands.createCardEditorServices([], () => undefined);
 
-  const moved = await editor.moveCard("card-1-forward", "deck-b");
+  const moved = await editor.runCardAction("card-1-forward", { kind: "deck", deckId: "deck-b" });
 
-  assert.equal(moved?.cards[0]?.deckId, "deck-b");
+  assert.equal(moved.changedCount, 1);
   assert.equal((await repository.loadCardBody("card-1-forward"))?.card.deckId, "deck-b");
   assert.equal(store.get().cardPages["deck-a"], undefined, "der frühere Stapel lässt keine Zeile zurück");
   assert.equal(store.get().cardPages["deck-b"], undefined);
@@ -107,6 +107,24 @@ test("eine Karte wechselt in einen anderen Stapel; Listen, die sie zeigten, lade
   await showList("deck-b");
   assert.deepEqual(shownIds("deck-a"), ["card-0-forward"]);
   assert.deepEqual(shownIds("deck-b"), ["card-0-reverse", "card-1-forward"]);
+});
+
+test("eine Aktion an der offenen Karte lässt die Listen stehen; Rückgängig überspringt eine seither geänderte Karte", async () => {
+  const { store, commands, showList } = await setup();
+  await showList("deck-a", "card-1-forward");
+  const editor = commands.createCardEditorServices([], () => undefined);
+
+  const suspended = await editor.runCardAction("card-1-forward", { kind: "suspended", suspended: true });
+
+  assert.equal(suspended.changedCount, 1);
+  const row = () => store.get().cardPages["deck-a"]?.pages[0]?.find((entry) => entry.id === "card-1-forward");
+  assert.equal(row()?.reviewable, false, "die Zeile bleibt und zeigt den neuen Stand");
+  assert.equal(store.get().cardPages["deck-a"]?.selected?.cards.find((card) => card.id === "card-1-forward")?.status, "suspended");
+  await commands.applyCardStudyState("card-1-forward", { suspended: false });
+  assert.deepEqual(await suspended.undo(), { restoredCount: 0, skippedCount: 1 });
+
+  const unleeched = await editor.runCardAction("card-0-forward", { kind: "unleech" });
+  assert.deepEqual(await unleeched.undo(), { restoredCount: 1, skippedCount: 0 });
 });
 
 test("schnelle Sofortänderungen am Lernstand bauen in ihrer Reihenfolge aufeinander auf", async () => {

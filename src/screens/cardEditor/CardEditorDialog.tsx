@@ -68,7 +68,6 @@ export interface CardEditorDialogProps {
   onSetStudyState: (cardId: string, patch: CardStudyStatePatch) => Promise<NoteGraph | null>;
   onDuplicateNote: () => Promise<NoteGraph | null>;
   onDeleteNote: () => void;
-  onRescheduleCards: DecksScreenProps["onRescheduleCards"];
   onGenerateVariant: (cardId: string) => Promise<unknown>;
   onUpdateVariant: DecksScreenProps["onUpdateVariant"];
   onSelectCard: (deckId: string, cardId: string) => void;
@@ -209,7 +208,6 @@ export function CardEditorDialog(props: CardEditorDialogProps) {
             onSetFlag={setFlag}
             onSetMarked={setMarked}
             onSetStudyState={onSetStudyState}
-            onRescheduleCards={props.onRescheduleCards}
             onSelectCard={props.onSelectCard}
             onCardMoved={props.onCardMoved}
             deckName={props.deckName}

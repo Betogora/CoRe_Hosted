@@ -46,9 +46,6 @@ export function DecksScreenWiring() {
         onSaveNote={cardCommands.saveDeckNote}
         onSetCardStudyState={cardCommands.setCardStudyState}
         onDuplicateNote={cardCommands.duplicateDeckNote}
-        onDeleteNote={cardCommands.deleteDeckNote}
-        onUndoDeleteNote={cardCommands.undoDeleteDeckNote}
-        onRescheduleCards={cardCommands.rescheduleDeckCards}
         onGenerateVariant={cardCommands.generateDeckCardVariant}
         onGenerateCardVariants={hydration ? (deckId, cardIds) => {
           const deck = workspaceStore.get().state?.decks.find((candidate) => candidate.id === deckId);
