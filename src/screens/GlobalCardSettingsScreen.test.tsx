@@ -71,11 +71,14 @@ test("the Flaggen section names seven flags; an empty field stands for the color
   assert.match(flags, /placeholder="Rot" aria-label="Name für Flagge Rot"/);
   assert.match(flags, /placeholder="Blau"[^>]*value="Nachschlagen"/);
   assert.match(flags, /var\(--core-flag-7\)/);
+  assert.equal(flags.match(/<svg[^>]*lucide-flag[^>]*><path[^>]*><\/path><line[^>]*><\/line><\/svg><input/g)?.length, 7, "jede Zeile ist Flaggen-Icon und Feld, ohne Farbnamen als Beschriftung");
+  assert.doesNotMatch(flags, /core-settings-row-title|core-settings-list/);
 });
 
 test("the weekly rhythm is one table with a radio group per weekday", () => {
   const html = renderSettings("lerntag");
   const table = html.slice(html.indexOf('<table class="core-settings-matrix'), html.indexOf("</table>"));
+  assert.match(html, /<div class="core-settings-matrix-frame[^"]*"><table class="core-settings-matrix">/);
   for (const level of ["Normal", "Weniger", "Minimal"]) assert.match(table, new RegExp(`<th scope="col">${level}</th>`));
   assert.equal(table.match(/type="radio"/g)?.length, 21);
   assert.equal(table.match(/<input type="radio"[^>]*name="card-settings-easy-day-monday"/g)?.length, 3);

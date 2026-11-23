@@ -1,7 +1,7 @@
 import React from "react";
-import { Layers, Save, X } from "lucide-react";
+import { Layers, Save } from "lucide-react";
 import type { SettingsSaveScope } from "../appScreenProps.ts";
-import { ActionButton, IconButton } from "./actionUi.tsx";
+import { ActionButton, CloseButton } from "./actionUi.tsx";
 
 interface SettingsSaveBarProps {
   open: boolean;
@@ -33,10 +33,7 @@ export function SettingsSaveBar({ open, savingScope = null, navigationBlocked = 
           {status}
         </p>
       </div>
-      <IconButton
-        type="button"
-        variant="ghost"
-        icon={X}
+      <CloseButton
         label="Änderungen verwerfen"
         disabled={saving}
         className={mode === "deck-tree" || mode === "learning-global" ? "absolute right-2 top-2 rounded-control" : "absolute right-2 top-2 rounded-control sm:static sm:col-start-3 sm:row-start-1"}

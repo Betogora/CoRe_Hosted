@@ -137,7 +137,7 @@ async function expectDeckOptionUsesFullWidth(option: Locator) {
     const viewport = element.parentElement;
     return viewport != null
       && viewport.scrollHeight <= viewport.clientHeight
-      && Math.abs(viewport.getBoundingClientRect().right - element.getBoundingClientRect().right) < 0.5;
+      && Math.abs(viewport.getBoundingClientRect().right - Number.parseFloat(getComputedStyle(viewport).paddingRight) - element.getBoundingClientRect().right) < 0.5;
   })).toBe(true);
 }
 

@@ -1,7 +1,7 @@
 import React from "react";
 import { createPortal } from "react-dom";
-import { ChevronLeft, ChevronRight, X, type LucideIcon } from "lucide-react";
-import { IconButton } from "../ui/actionUi.tsx";
+import { ChevronLeft, ChevronRight, type LucideIcon } from "lucide-react";
+import { CloseButton, IconButton } from "../ui/actionUi.tsx";
 import { useModalDialog } from "../ui/useModalDialog.ts";
 
 export interface SettingsDialogArea<S extends string> {
@@ -53,14 +53,15 @@ export function SettingsDialogFrame<S extends string>({ title, closeLabel, navig
         data-settings-view={showAreaList ? "areas" : "area"}
         className="core-overlay flex h-dvh w-full flex-col overflow-hidden md:h-[min(48rem,88dvh)] md:max-w-5xl md:rounded-overlay"
       >
-        <header className="flex min-h-14 shrink-0 items-center gap-2 border-b border-core-border px-3 sm:px-4">
+        <header className={`core-dialog-header ${showAreaList || !onShowAreaList ? "pl-6" : "pl-[var(--core-dialog-corner-inset)] md:pl-6"}`}>
           {showAreaList || !onShowAreaList ? null : <IconButton label="Zurück zu den Bereichen" icon={ChevronLeft} variant="ghost" className="md:hidden" onClick={onShowAreaList} />}
-          <h2 id={titleId} className="flex min-w-0 flex-1 items-center gap-3 px-1 core-heading-2 text-core-text">{title}</h2>
-          <IconButton ref={initialFocusRef} label={closeLabel} icon={X} variant="ghost" onClick={onClose} />
+          <h2 id={titleId} className="flex min-w-0 flex-1 items-center gap-3 core-heading-2 text-core-text">{title}</h2>
+          <CloseButton ref={initialFocusRef} label={closeLabel} onClick={onClose} />
         </header>
         <div className="flex min-h-0 flex-1">
-          <nav aria-label={navigationLabel} className={`${showAreaList ? "flex" : "hidden"} min-h-0 w-full flex-col gap-4 overflow-y-auto overscroll-contain p-3 md:flex md:w-56 md:shrink-0 md:border-r md:border-core-border lg:w-72`}>
-            {navigationHeader ? <div className="grid gap-2">{navigationHeader}</div> : null}
+          <nav aria-label={navigationLabel} className={`${showAreaList ? "flex" : "hidden"} min-h-0 w-full flex-col gap-4 overflow-y-auto overscroll-contain p-3 empty:hidden md:flex md:w-56 md:shrink-0 md:border-r md:border-core-border lg:w-max`}>
+            {/* Takes the column width without widening it, so a long deck name truncates. */}
+            {navigationHeader ? <div className="grid gap-2 md:w-0 md:min-w-full">{navigationHeader}</div> : null}
             {groups.map((group, index) => (
               <div key={group.label ?? index} className="grid gap-1">
                 {group.label ? <p className="px-3 pt-1 core-caption font-medium text-core-muted">{group.label}</p> : null}
@@ -77,7 +78,8 @@ export function SettingsDialogFrame<S extends string>({ title, closeLabel, navig
                           className={`flex min-h-button w-full min-w-0 items-center gap-3 rounded-control px-3 text-left core-body transition-colors ${highlighted ? "md:bg-core-subtle md:font-semibold md:text-core-action" : ""} text-core-text hover:bg-core-subtle`}
                         >
                           <Icon className="shrink-0" size={18} aria-hidden="true" />
-                          <span className="min-w-0 flex-1 break-words">{label}</span>
+                          {/* The hidden bold copy reserves the active width, so the column never changes with the selection. */}
+                          <span data-label={label} className="grid min-w-0 flex-1 break-words after:invisible after:h-0 after:overflow-hidden after:font-semibold after:content-[attr(data-label)]">{label}</span>
                           <ChevronRight className="shrink-0 text-core-muted md:hidden" size={16} aria-hidden="true" />
                         </button>
                       </li>

@@ -1,4 +1,4 @@
-import { Ban } from "lucide-react";
+import { Ban, Flag } from "lucide-react";
 import { CrossLinkButton } from "./actionUi.tsx";
 import { CoreTooltip } from "./tooltipUi.tsx";
 
@@ -11,12 +11,17 @@ export function flagName(flag: number, names: readonly string[] = []): string {
   return names[flag - 1]?.trim() || FLAG_COLOR_NAMES[flag - 1];
 }
 
+export function FlagIcon({ flag, size }: { flag: number; size: number }) {
+  return <Flag aria-hidden="true" size={size} fill="currentColor" className="shrink-0" style={{ color: `var(--core-flag-${flag})` }} />;
+}
+
 export function FlagDot({ flag, names, size = 12 }: { flag: number; names?: readonly string[]; size?: number }) {
   if (flag < 1 || flag > 7) return null;
   const label = `Flagge ${flagName(flag, names)}`;
   return (
     <CoreTooltip label={label}>
-      <span role="img" aria-label={label} className="inline-block shrink-0 rounded-round" style={{ width: size, height: size, background: `var(--core-flag-${flag})` }} />
+      {/* The flag fills about two thirds of its box; four pixels more keep it as present as a dot of `size`. */}
+      <span role="img" aria-label={label} className="inline-grid shrink-0"><FlagIcon flag={flag} size={size + 4} /></span>
     </CoreTooltip>
   );
 }
@@ -50,7 +55,7 @@ export function FlagPicker({ value, onValueChange, names, onEditNames, withNone 
                 onClick={() => onValueChange(pressed ? 0 : flag)}
                 className={`core-flag-option flex min-h-14 min-w-0 flex-col items-center justify-start gap-1 rounded-control pt-2.5 sm:justify-center sm:pt-0 border core-caption font-semibold text-core-text transition hover:bg-core-subtle disabled:cursor-not-allowed disabled:opacity-60 sm:size-control sm:min-h-0 ${pressed ? "border-core-action bg-core-subtle shadow-selection" : "border-transparent"}`}
               >
-                <span aria-hidden="true" className="size-4 shrink-0 rounded-round" style={{ background: `var(--core-flag-${flag})` }} />
+                <FlagIcon flag={flag} size={20} />
                 <span className="max-w-full text-center leading-tight hyphens-auto break-words sm:sr-only">{name}</span>
               </button>
             </CoreTooltip>

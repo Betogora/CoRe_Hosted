@@ -80,7 +80,7 @@ function SettingsRow({ title, htmlFor, hint, hintId, children }: { title: string
 function SelectRow({ title, value, options, testId, onChange }: { title: string; value: string | number; options: Array<{ value: string; label: string }>; testId: string; onChange: (value: string) => void }) {
   return (
     <SettingsRow title={title}>
-      <CoreSelect ariaLabel={title} value={String(value)} options={options} testId={testId} className="w-full md:w-72" onValueChange={onChange} />
+      <CoreSelect ariaLabel={title} value={String(value)} options={options} testId={testId} className="w-full md:w-auto" menuAlign="end" onValueChange={onChange} />
     </SettingsRow>
   );
 }
@@ -90,9 +90,9 @@ function PresetRow({ title, hint, value, options, valueText, testId, onChange }:
   const text = valueText(isPreset);
   return (
     <SettingsRow title={title} hint={hint}>
-      <span className="flex min-w-0 flex-wrap items-center gap-3" data-testid={testId}>
-        <CoreSegmentedControl ariaLabel={title} value={isPreset ? value : ""} options={options} onValueChange={(next) => { if (next) onChange(next); }} />
-        {text ? <span className="core-settings-row-value">{text}</span> : null}
+      <span className="flex min-w-0 flex-wrap items-center justify-end gap-3 max-md:w-full" data-testid={testId}>
+        {text ? <span className="core-settings-row-value max-md:mr-auto">{text}</span> : null}
+        <CoreSegmentedControl ariaLabel={title} value={isPreset ? value : ""} options={options} className="max-md:min-w-0 max-md:flex-1 max-md:basis-56" onValueChange={(next) => { if (next) onChange(next); }} />
       </span>
     </SettingsRow>
   );
@@ -205,7 +205,7 @@ export function LearningSettingsPanel({ draft, profiles, defaultProfileName, con
                 ) : null}
               </>}
             >
-              <CoreSelect ariaLabel="Lernprofil-Vorlage" value={selectedProfileId} options={profileOptions} testId="learning-profile-select" className="w-full md:w-60" onValueChange={(value) => { setSelectedProfileId(value); setProfileName(profiles.find((profile) => profile.id === value)?.name ?? defaultProfileName); }} />
+              <CoreSelect ariaLabel="Lernprofil-Vorlage" value={selectedProfileId} options={profileOptions} testId="learning-profile-select" className="w-full md:w-auto" menuAlign="end" onValueChange={(value) => { setSelectedProfileId(value); setProfileName(profiles.find((profile) => profile.id === value)?.name ?? defaultProfileName); }} />
               <ActionButton type="button" variant="primary" icon={CopyCheck} disabled={!selectedProfile} onClick={applySelectedProfile}>{context === "global" ? "Als Standardprofil verwenden" : "Auf diesen Stapel anwenden"}</ActionButton>
             </SettingsRow>
             <SettingsRow title="Eigenes Lernprofil" htmlFor={`${sectionPrefix}-profile-name`}>

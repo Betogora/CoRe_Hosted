@@ -1,9 +1,9 @@
 import React from "react";
 import { createPortal } from "react-dom";
-import { ChevronLeft, ChevronRight, X } from "lucide-react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import { notePromptLabel } from "../coreModel.ts";
 import type { Card, Note } from "../coreTypes.ts";
-import { IconButton } from "./actionUi.tsx";
+import { CloseButton, IconButton } from "./actionUi.tsx";
 import { CoreSegmentedControl } from "./coreUi.tsx";
 import { StatusMessage } from "./feedbackUi.tsx";
 import { NoteCardContent } from "./NoteCardContent.tsx";
@@ -101,11 +101,11 @@ export function CardPreviewDialog({
           event.preventDefault();
           showCard(event.key === "ArrowLeft" ? -1 : 1);
         }}
-        className="core-card-preview-dialog core-overlay flex h-[100dvh] w-full flex-col overflow-hidden border-0 sm:h-auto sm:max-h-[92dvh] sm:max-w-3xl sm:rounded-overlay sm:border"
+        className="core-card-preview-dialog core-overlay flex h-[100dvh] w-full flex-col overflow-hidden border-0 max-sm:[--core-dialog-corner-inset:var(--core-space-sm)] sm:h-auto sm:max-h-[92dvh] sm:max-w-3xl sm:rounded-overlay sm:border"
       >
-        <header className="flex min-h-16 items-center gap-4 border-b border-core-border px-4 sm:px-6">
+        <header className="core-dialog-header pl-4 sm:pl-6">
           <h2 id={titleId} className="min-w-0 flex-1 core-heading-2 text-core-text">Kartenvorschau</h2>
-          <IconButton ref={closeButtonRef} label="Kartenvorschau schließen" icon={X} variant="ghost" onClick={closeDialog} />
+          <CloseButton ref={closeButtonRef} label="Kartenvorschau schließen" onClick={closeDialog} />
         </header>
 
         <div className="grid min-h-0 flex-1 overflow-y-auto overscroll-contain bg-core-surface">

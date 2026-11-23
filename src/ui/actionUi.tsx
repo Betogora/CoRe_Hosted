@@ -1,5 +1,5 @@
 import React from "react";
-import { ArrowLeft, ChevronDown, ChevronRight, ChevronUp, LoaderCircle, type LucideIcon } from "lucide-react";
+import { ArrowLeft, ChevronDown, ChevronRight, ChevronUp, LoaderCircle, X, type LucideIcon } from "lucide-react";
 
 const ACTION_VARIANT_CLASS = {
   primary: "core-action-primary",
@@ -58,6 +58,21 @@ export const IconButton = React.forwardRef<HTMLButtonElement, IconButtonProps>(f
       className={`${ACTION_VARIANT_CLASS[variant]} min-w-button p-2 ${className}`}
     >
       <Icon size={16} aria-hidden="true" />
+    </button>
+  );
+});
+
+export interface CloseButtonProps extends Omit<React.ButtonHTMLAttributes<HTMLButtonElement>, "aria-label" | "children"> {
+  label: string;
+}
+
+export const CloseButton = React.forwardRef<HTMLButtonElement, CloseButtonProps>(function CloseButton(
+  { label, className = "", ...props },
+  ref,
+) {
+  return (
+    <button type="button" {...props} ref={ref} aria-label={label} className={`core-action-ghost core-close-button ${className}`.trim()}>
+      <X aria-hidden="true" />
     </button>
   );
 });

@@ -17,6 +17,7 @@ test("FlagPicker names every flag with its shortcut and never relies on color al
   assert.match(markup, /aria-label="Flagge Wichtig"/);
   assert.match(markup, /data-core-tooltip="Wichtig · Strg\+1"/);
   assert.match(markup, /var\(--core-flag-7\)/);
+  assert.equal(markup.match(/lucide-flag/g)?.length, 7, "jede Flagge ist ein Flaggen-Icon in ihrer Farbe");
   assert.match(markup, /grid-cols-4/);
   assert.match(markup, /aria-pressed="false" aria-label="Keine Flagge"/);
   assert.match(markup, /<span class="max-w-full truncate sm:sr-only">Keine<\/span>/, "Keine steht schmal als Wort, breit als benanntes Symbol");
@@ -28,5 +29,5 @@ test("FlagPicker names every flag with its shortcut and never relies on color al
 
 test("FlagDot renders only a set flag, with an accessible name", () => {
   assert.equal(renderToStaticMarkup(<FlagDot flag={0} />), "");
-  assert.match(renderToStaticMarkup(<FlagDot flag={2} />), /role="img" aria-label="Flagge Orange"/);
+  assert.match(renderToStaticMarkup(<FlagDot flag={2} />), /role="img" aria-label="Flagge Orange"[^>]*><svg[^>]*width="16"[^>]*fill="currentColor"[^>]*lucide-flag[^>]*style="color:var\(--core-flag-2\)"/);
 });

@@ -38,6 +38,7 @@ test("preset choices mark the stored preset and show its value", () => {
   assert.match(segmentGroup(html, "Aktive Varianten pro Karte"), /aria-pressed="true"[^>]*>2</);
   assert.match(segmentGroup(html, "Lernschritte"), /aria-pressed="true"[^>]*>Standard</);
   assert.match(html, />1 → 10 Min\.</);
+  assert.match(html, /data-testid="learning-settings-steps"><span class="core-settings-row-value[^"]*">1 → 10 Min\.<\/span><div role="group" aria-label="Lernschritte"/, "der Wert steht links vor der rechtsbündigen Auswahl");
 });
 
 test("stored values outside the presets stay visible as own values", () => {

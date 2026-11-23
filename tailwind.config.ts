@@ -10,6 +10,7 @@ export default {
       spacing: {
         control: "var(--core-control-height)",
         button: "var(--core-button-height)",
+        "menu-row": "var(--core-menu-row-height)",
       },
       borderRadius: {
         marker: "var(--core-radius-marker)",

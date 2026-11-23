@@ -1,8 +1,8 @@
 import React from "react";
 import { createPortal } from "react-dom";
-import { ArrowUp, Lightbulb, LoaderCircle, MessageCircleQuestion, X } from "lucide-react";
+import { ArrowUp, Lightbulb, LoaderCircle, MessageCircleQuestion } from "lucide-react";
 import { MAX_AI_CARD_HELP_HISTORY, MAX_AI_CARD_HELP_QUESTION_CHARS, type AiCardHelpRequest } from "../aiCardHelpContract.ts";
-import { ActionButton, IconButton } from "../ui/actionUi.tsx";
+import { ActionButton, CloseButton } from "../ui/actionUi.tsx";
 import { BrainMascot } from "../ui/BrainMascot.tsx";
 import { StatusMessage } from "../ui/feedbackUi.tsx";
 import { useModalDialog } from "../ui/useModalDialog.ts";
@@ -74,7 +74,7 @@ export function StudyAiHelp({ card, onAsk, open, onOpenChange, returnFocusRef }:
         <div className="flex items-start gap-3 p-4">
           <span className="w-11 shrink-0" aria-hidden="true"><BrainMascot id="pastell-nicht-sicher" /></span>
           <p className="mt-1 flex-1 rounded-panel bg-core-subtle px-3 py-2 core-body text-core-text">Hi! Stell mir eine Frage zu dieser Karte.</p>
-          <IconButton ref={initialFocusRef} label="KI hilft schließen" icon={X} variant="ghost" onClick={close} />
+          <CloseButton ref={initialFocusRef} label="KI hilft schließen" className="-mr-[calc(1rem-var(--core-dialog-corner-inset))] -mt-[calc(1rem-var(--core-dialog-corner-inset))]" onClick={close} />
         </div>
         <div ref={listRef} className="grid min-h-0 flex-1 content-start gap-2 overflow-y-auto overscroll-contain px-4" aria-live="polite" aria-busy={pending}>
           {exchanges.map((exchange, index) => (

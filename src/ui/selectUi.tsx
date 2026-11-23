@@ -37,6 +37,8 @@ export interface CoreSelectProps {
   testId?: string;
   autoFocus?: boolean;
   leadingIcon?: LucideIcon;
+  /** Edge of the trigger the list keeps; `end` for right-aligned triggers, so a wider list grows to the left. */
+  menuAlign?: "start" | "end";
 }
 
 interface DeckSelectSpecialOption {
@@ -128,11 +130,9 @@ function hasDeckAncestor(parentByDeckId: Map<string, string | null>, candidateId
   return false;
 }
 
-const SELECT_ITEM_INDICATOR = (
-  <Select.ItemIndicator className="absolute right-3 grid place-items-center text-core-action">
-    <Check size={16} aria-hidden="true" />
-  </Select.ItemIndicator>
-);
+const OPTION_CLASS = "relative flex min-h-menu-row w-full items-center gap-3 rounded-inset pr-11 text-left core-body text-core-text";
+const OPTION_CHECK = <Check size={20} className="absolute right-3 text-core-action" aria-hidden="true" />;
+const DECK_OPTION_CLASS = `${OPTION_CLASS} py-0.5 hover:bg-core-subtle aria-selected:bg-core-subtle aria-selected:font-semibold`;
 
 function CoreSelectOptions({ options }: Pick<CoreSelectProps, "options">) {
   return options.map((option) => {
@@ -142,33 +142,33 @@ function CoreSelectOptions({ options }: Pick<CoreSelectProps, "options">) {
         key={option.value}
         value={encodeValue(option.value)}
         textValue={option.label}
-        className="relative flex min-h-control cursor-default select-none items-center gap-3 rounded-inset py-2 pl-3 pr-9 core-body leading-5 text-core-text outline-none data-[highlighted]:bg-core-subtle data-[state=checked]:bg-core-subtle data-[state=checked]:font-semibold"
+        className={`${OPTION_CLASS} cursor-default select-none py-1.5 pl-3 outline-none data-[highlighted]:bg-core-subtle data-[state=checked]:bg-core-subtle data-[state=checked]:font-semibold`}
       >
         {Icon ? <Icon size={17} className="shrink-0 text-core-muted" aria-hidden="true" /> : null}
         <Select.ItemText className="min-w-0 break-words">{option.label}</Select.ItemText>
-        {SELECT_ITEM_INDICATOR}
+        <Select.ItemIndicator asChild>{OPTION_CHECK}</Select.ItemIndicator>
       </Select.Item>
     );
   });
 }
 
-function SelectContent({ children, triggerRef }: { children: ReactNode; triggerRef: RefObject<HTMLButtonElement | null> }) {
+function SelectContent({ children, triggerRef, align }: { children: ReactNode; triggerRef: RefObject<HTMLButtonElement | null>; align: "start" | "end" }) {
   return (
     <Select.Portal>
       <Select.Content
         position="popper"
-        align="start"
+        align={align}
         sideOffset={6}
         collisionPadding={12}
         onPointerDownOutside={(event) => {
           if (event.target instanceof Node && triggerRef.current?.contains(event.target)) event.preventDefault();
         }}
-        className="core-overlay z-[90] max-h-[min(20rem,var(--radix-select-content-available-height))] w-[var(--radix-select-trigger-width)] max-w-[calc(100vw-1.5rem)] overflow-hidden rounded-control outline-none"
+        className="core-overlay z-[90] max-h-[min(20rem,var(--radix-select-content-available-height))] min-w-[var(--radix-select-trigger-width)] max-w-[calc(100vw-1.5rem)] overflow-hidden rounded-panel outline-none"
       >
         <Select.ScrollUpButton className="grid h-8 cursor-default place-items-center text-core-muted">
           <ChevronDown size={16} className="rotate-180" aria-hidden="true" />
         </Select.ScrollUpButton>
-        <Select.Viewport className="p-1">{children}</Select.Viewport>
+        <Select.Viewport className="p-1.5">{children}</Select.Viewport>
         <Select.ScrollDownButton className="grid h-8 cursor-default place-items-center text-core-muted">
           <ChevronDown size={16} aria-hidden="true" />
         </Select.ScrollDownButton>
@@ -231,10 +231,10 @@ function DeckPickerContent({
     <Popover.Portal>
       <Popover.Content
         align={align}
-        sideOffset={8}
+        sideOffset={6}
         collisionPadding={12}
         data-deck-select-content="true"
-        className={`core-overlay z-[90] grid max-h-[min(25rem,var(--radix-popover-content-available-height))] gap-3 overflow-hidden rounded-panel border border-core-border bg-core-surface p-3 shadow-raised outline-none ${showSearch ? "grid-rows-[auto_minmax(0,1fr)]" : "grid-rows-[minmax(0,1fr)]"} ${widthClassName}`}
+        className={`core-overlay z-[90] grid max-h-[min(25rem,var(--radix-popover-content-available-height))] overflow-hidden rounded-panel bg-core-surface outline-none ${showSearch ? "grid-rows-[auto_minmax(0,1fr)]" : "grid-rows-[minmax(0,1fr)]"} ${widthClassName}`}
         onOpenAutoFocus={(event) => {
           event.preventDefault();
           const content = event.currentTarget;
@@ -247,8 +247,8 @@ function DeckPickerContent({
         }}
       >
         {showSearch ? (
-          <div className="flex items-center gap-2 rounded-control border border-core-border bg-core-subtle px-3">
-            <Search size={17} className="shrink-0 text-core-muted" aria-hidden="true" />
+          <div className="flex items-center gap-3 border-b border-core-border pl-[1.125rem] pr-1.5">
+            <span className="grid size-7 shrink-0 place-items-center text-core-muted"><Search size={16} aria-hidden="true" /></span>
             <input
               value={query}
               onChange={(event) => onQueryChange(event.target.value)}
@@ -276,13 +276,12 @@ function DeckPickerContent({
           aria-multiselectable={multiple || undefined}
           data-deck-select-viewport="true"
           tabIndex={-1}
-          className="min-h-0 max-h-80 overflow-y-auto outline-none"
+          className="min-h-0 max-h-80 overflow-y-auto p-1.5 outline-none"
           onKeyDown={(event) => handleDeckOptionKeyDown(event, listboxId)}
         >
           {children}
           {empty ? <p className="p-4 text-center core-body text-core-muted">Kein passender Stapel.</p> : null}
         </div>
-        <Popover.Arrow className="fill-[var(--core-border)]" />
       </Popover.Content>
     </Popover.Portal>
   );
@@ -298,6 +297,7 @@ export const CoreSelect = forwardRef<HTMLButtonElement, CoreSelectProps>(functio
   testId,
   autoFocus,
   leadingIcon: LeadingIcon,
+  menuAlign = "start",
 }, ref) {
   const [open, setOpen] = useState(false);
   const triggerRef = useRef<HTMLButtonElement>(null);
@@ -330,15 +330,19 @@ export const CoreSelect = forwardRef<HTMLButtonElement, CoreSelectProps>(functio
         className={`group inline-flex min-h-control min-w-0 items-center gap-3 rounded-control border border-core-border bg-core-surface px-3 text-left core-body text-core-text transition data-[state=open]:border-core-action data-[state=open]:shadow-selection ${className}`}
       >
         {TriggerIcon ? <TriggerIcon size={17} className="shrink-0 text-core-text" aria-hidden="true" /> : null}
-        <span className="min-w-0 flex-1 truncate">
-          <Select.Value>{selectedLabel}</Select.Value>
+        {/* Every label is laid out in the same cell, so the trigger is as wide as its longest option and keeps that width when the value changes. */}
+        <span className="grid min-w-0 flex-1">
+          {options.map((option) => <span key={option.value} aria-hidden="true" data-label={option.label} className="invisible col-start-1 row-start-1 h-0 truncate after:content-[attr(data-label)]" />)}
+          <span className="col-start-1 row-start-1 truncate">
+            <Select.Value>{selectedLabel}</Select.Value>
+          </span>
         </span>
         <Select.Icon className="grid shrink-0 place-items-center text-core-muted">
           <ChevronDown size={16} className="transition-transform group-data-[state=open]:rotate-180" aria-hidden="true" />
         </Select.Icon>
       </Select.Trigger>
 
-      <SelectContent triggerRef={triggerRef}>
+      <SelectContent triggerRef={triggerRef} align={menuAlign}>
         <CoreSelectOptions options={options} />
       </SelectContent>
     </Select.Root>
@@ -356,6 +360,7 @@ export const DeckSelect = forwardRef<HTMLButtonElement, DeckSelectProps>(functio
   className = "",
   testId,
   autoFocus,
+  menuAlign,
 }, ref) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
@@ -416,6 +421,7 @@ export const DeckSelect = forwardRef<HTMLButtonElement, DeckSelectProps>(functio
         multiple={false}
         query={query}
         showSearch={showSearch}
+        align={menuAlign}
         widthClassName="w-[max(var(--radix-popover-trigger-width),24rem)] max-w-[calc(100vw-2rem)]"
         onQueryChange={setQuery}
       >
@@ -428,11 +434,11 @@ export const DeckSelect = forwardRef<HTMLButtonElement, DeckSelectProps>(functio
             data-deck-picker-option="true"
             data-deck-select-special-option="true"
             onClick={() => selectValue(specialOption.value)}
-            className="relative flex min-h-control w-full items-center gap-3 rounded-inset py-2 pl-3 pr-9 text-left core-body text-core-text hover:bg-core-subtle aria-selected:bg-core-subtle aria-selected:font-semibold"
+            className={`${DECK_OPTION_CLASS} pl-3`}
           >
             <SpecialOptionIcon option={specialOption} />
             <span className="min-w-0 flex-1 truncate">{specialOption.label}</span>
-            {specialOption.value === value ? <Check size={16} className="absolute right-3 text-core-action" aria-hidden="true" /> : null}
+            {specialOption.value === value ? OPTION_CHECK : null}
           </button>
         ) : null}
         {visibleRows.map((row) => {
@@ -449,12 +455,12 @@ export const DeckSelect = forwardRef<HTMLButtonElement, DeckSelectProps>(functio
                 data-deck-select-option={row.deck.id}
                 data-deck-depth={visibleDepth}
                 onClick={() => selectValue(row.deck.id)}
-                className="relative flex min-h-control w-full items-center gap-3 rounded-inset py-2 pr-9 text-left core-body text-core-text hover:bg-core-subtle aria-selected:bg-core-subtle aria-selected:font-semibold"
+                className={DECK_OPTION_CLASS}
                 style={{ paddingInlineStart: `calc(0.75rem + ${visibleDepth * DECK_DEPTH_INDENT_PX}px)` }}
               >
                 <DeckAppearanceIcon data-deck-icon="true" deck={row.deck} className="size-7 shrink-0" iconSize={14} />
                 <span className="min-w-0 flex-1 truncate">{row.deck.name}</span>
-                {selected ? <Check size={16} className="absolute right-3 text-core-action" aria-hidden="true" /> : null}
+                {selected ? OPTION_CHECK : null}
               </button>
             </CoreTooltip>
           );
@@ -526,13 +532,13 @@ export function DeckMultiSelect({ decks, value, onValueChange }: DeckMultiSelect
           aria-selected={value === "all"}
           data-deck-picker-option="true"
           onClick={() => onValueChange("all")}
-          className="relative flex min-h-control w-full items-center gap-3 rounded-inset py-2 pl-3 pr-9 text-left core-body text-core-text hover:bg-core-subtle aria-selected:bg-core-subtle aria-selected:font-semibold"
+          className={`${DECK_OPTION_CLASS} pl-3`}
         >
-          <FolderTree size={18} className="shrink-0 text-core-text" aria-hidden="true" />
+          <span className="grid size-7 shrink-0 place-items-center"><FolderTree size={18} aria-hidden="true" /></span>
           <span className="min-w-0 flex-1 truncate">Gesamte Sammlung</span>
-          {value === "all" ? <Check size={15} className="absolute right-3 text-core-text" aria-hidden="true" /> : null}
+          {value === "all" ? OPTION_CHECK : null}
         </button>
-        <div aria-hidden="true" className="my-2 border-t border-core-border" />
+        <div aria-hidden="true" className="core-menu-separator" />
         {visibleRows.map((row) => {
           const inherited = hasDeckAncestor(parentByDeckId, row.deck.id, selectedDeckIds);
           const checked = selectedDeckIds.has(row.deck.id) || inherited;
@@ -549,12 +555,12 @@ export function DeckMultiSelect({ decks, value, onValueChange }: DeckMultiSelect
                 data-deck-select-option={row.deck.id}
                 data-deck-depth={visibleDepth}
                 onClick={() => toggle(row.deck.id)}
-                className="relative flex min-h-control w-full items-center gap-3 rounded-inset py-2 pr-9 text-left core-body text-core-text hover:bg-core-subtle aria-selected:bg-core-subtle aria-selected:font-semibold disabled:cursor-default"
+                className={`${DECK_OPTION_CLASS} disabled:cursor-default`}
                 style={{ paddingInlineStart: `calc(0.75rem + ${visibleDepth * DECK_DEPTH_INDENT_PX}px)` }}
               >
                 <DeckAppearanceIcon data-deck-icon="true" deck={row.deck} className="size-7 shrink-0" iconSize={14} />
                 <span className="min-w-0 flex-1 truncate">{row.deck.name}</span>
-                {checked ? <Check size={15} className="absolute right-3 text-core-text" aria-hidden="true" /> : null}
+                {checked ? OPTION_CHECK : null}
               </button>
             </CoreTooltip>
           );

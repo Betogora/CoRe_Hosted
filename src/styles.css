@@ -24,6 +24,8 @@
   --core-control-height: 2.5rem;
   --core-button-height: 2.25rem;
   --core-selection-height: 2.375rem;
+  --core-menu-row-height: 2rem;
+  --core-dialog-corner-inset: var(--core-space-sm);
   --core-space-xs: 0.25rem;
   --core-space-sm: 0.5rem;
   --core-space-md: 0.75rem;
@@ -158,6 +160,7 @@
     --core-control-height: 2.75rem;
     --core-button-height: 2.75rem;
     --core-selection-height: 2.75rem;
+    --core-menu-row-height: 2.75rem;
   }
 }
 
@@ -540,9 +543,22 @@ summary {
   }
 
   .core-overlay {
+    /* The border is part of the 8 px between the dialog edge and its close button. */
+    --core-dialog-corner-inset: calc(var(--core-space-sm) - var(--core-border-width));
     border: var(--core-border-width) solid var(--core-border);
     background: var(--core-surface-raised);
     box-shadow: var(--core-shadow-raised);
+  }
+
+  /* 8 px to the top edge, the side edge and the divider keep the close button concentric with the dialog corner. */
+  .core-dialog-header,
+  .core-dialog-frame-header {
+    display: flex;
+    flex-shrink: 0;
+    align-items: center;
+    gap: var(--core-space-sm);
+    padding: var(--core-dialog-corner-inset) var(--core-dialog-corner-inset) calc(var(--core-space-sm) - var(--core-border-width)) 1.25rem;
+    border-bottom: var(--core-border-width) solid var(--core-border);
   }
 
   .core-settings-save-bar {
@@ -712,6 +728,21 @@ summary {
     background: transparent;
     color: var(--core-text-secondary);
     opacity: 0.5;
+  }
+
+  .core-close-button {
+    min-width: var(--core-button-height);
+    padding: 0;
+  }
+
+  .core-close-button:not(:disabled) {
+    color: var(--core-text);
+  }
+
+  .core-close-button svg {
+    width: 1.3125rem;
+    height: 1.3125rem;
+    stroke-width: 1.75;
   }
 
   .core-action-destructive {
@@ -942,7 +973,7 @@ summary {
   .core-menu-row {
     display: flex;
     width: 100%;
-    min-height: 2.75rem;
+    min-height: var(--core-menu-row-height);
     align-items: center;
     gap: 0.625rem;
     border-radius: var(--core-radius-inset);
@@ -1855,18 +1886,8 @@ button.core-steps-step:disabled {
   box-shadow: var(--core-shadow-raised);
 }
 
-.core-dialog-frame-header {
-  display: flex;
-  flex-shrink: 0;
-  align-items: center;
-  gap: var(--core-space-sm);
-  min-height: 3.5rem;
-  padding: 0 var(--core-space-md) 0 1.25rem;
-  border-bottom: var(--core-border-width) solid var(--core-border);
-}
-
 .core-dialog-frame-header[data-tabs] {
-  border-bottom: 0;
+  border-bottom-color: transparent;
 }
 
 .core-dialog-frame-title {
@@ -2468,15 +2489,29 @@ body:has([aria-modal="true"]) .core-success-toast {
     min-height: 0;
   }
 
+  .core-settings-matrix-frame {
+    container-type: inline-size;
+  }
+
   .core-settings-matrix {
     width: 100%;
-    max-width: 32rem;
     border-collapse: collapse;
     table-layout: fixed;
   }
 
   .core-settings-matrix tr > th:first-child {
     width: 6.5rem;
+  }
+
+  /* Wider than 32 rem, the value columns keep the width they have there and the row label takes the rest. */
+  @container (min-width: 32rem) {
+    .core-settings-matrix tr > th:first-child {
+      width: auto;
+    }
+
+    .core-settings-matrix tr > :not(:first-child) {
+      width: 8.5rem;
+    }
   }
 
   .core-settings-matrix th {
@@ -2728,7 +2763,13 @@ button.core-steps-step {
 
 .core-card-editor-frame .core-dialog-frame-header {
   flex-wrap: wrap;
-  padding-block: var(--core-space-sm);
+}
+
+/* The two-line heading is taller than the close button and centers it 12 px from the top and the divider; the side follows. */
+@media (min-width: 640px) {
+  .core-card-editor-frame .core-dialog-frame-header {
+    padding-inline-end: var(--core-space-md);
+  }
 }
 
 .core-card-editor-frame .core-dialog-frame-heading {
