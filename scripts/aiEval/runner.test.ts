@@ -175,6 +175,7 @@ test("Richterblöcke: höchstens 25 Einträge, Doppel in einem anderen Block, Ra
   const borderline = borderlineCases(blocks, reading);
   assert.equal(borderline.find(({ id }) => id === "M2")!.cases[0].entry, key.duplicates[flippedOn], "gekippte Urteile stehen vorn");
   assert.ok(borderline.every(({ cases: picked }) => picked.length === 3));
+  assert.ok(borderline.every(({ cases: picked }) => picked.every((entry) => !key.duplicates[entry.entry])), "Doppel erscheinen nicht als eigener Grenzfall");
 
   const again = buildJudgeTable(variant, [...items, { ref: answerRef("neu", 0), request: cases[0].request, output: { front: "Ganz neue Variante?", back: "Diffusion von Wasser" } }], seededRandom(3), { instructions: "Auftrag", requests: [], cache: reading.fresh });
   assert.deepEqual([again.blocks.length, again.blocks[0].entries.length, Object.keys(again.key.cached).length], [1, 1, 60]);

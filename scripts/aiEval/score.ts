@@ -175,7 +175,6 @@ export function renderReport({ type, run, meta, summary, comparison, decision, f
   return lines.join("\n");
 }
 
-/** Enthält Ein- und Ausgaben; die Datei ist für den Nutzer, der Agent liest sie nur bei Läufen auf dem Trainingsteil. */
 export function renderBorderline(type: RequestType, run: string, borderline: ReturnType<typeof borderlineCases>) {
   return [`# ${type.label}: Grenzfälle in Lauf ${run}`, "", ...borderline.length ? borderline.flatMap(({ id, cases }) => [
     `## ${id}`, "",

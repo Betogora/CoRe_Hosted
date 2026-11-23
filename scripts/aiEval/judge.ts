@@ -149,14 +149,14 @@ export function readVerdicts(blocks: readonly JudgeBlock[], files: readonly unkn
     flipped.set(id, new Set(changed.map(({ original }) => original)));
     noise[id] = Math.round(changed.length / relevant.length * 10000) / 10000;
   }
-  return { verdicts, given, fresh, noise, flipped, judged: Object.keys(key.hashes).length, cached: new Set(Object.values(key.cached)).size };
+  return { verdicts, given, fresh, noise, flipped, duplicates: new Set(Object.keys(key.duplicates)), judged: Object.keys(key.hashes).length, cached: new Set(Object.values(key.cached)).size };
 }
 
 export type VerdictReading = ReturnType<typeof readVerdicts>;
 
 /** Je Kriterium bis zu drei Einträge: zuerst gekippte Doppelurteile, dann die mit der geringsten Sicherheit unter 3. */
-export function borderlineCases(blocks: readonly JudgeBlock[], reading: Pick<VerdictReading, "given" | "flipped">) {
-  const entries = new Map(blocks.flatMap((block) => block.entries).filter((entry) => reading.given.has(entry.entry)).map((entry) => [entry.entry, entry]));
+export function borderlineCases(blocks: readonly JudgeBlock[], reading: Pick<VerdictReading, "given" | "flipped" | "duplicates">) {
+  const entries = new Map(blocks.flatMap((block) => block.entries).filter((entry) => !reading.duplicates.has(entry.entry)).map((entry) => [entry.entry, entry]));
   const criteria = [...new Set([...entries.values()].flatMap((entry) => entry.criteria))].sort();
   return criteria.map((id) => {
     const flipped = reading.flipped.get(id) ?? new Set<string>();
