@@ -106,7 +106,7 @@ const mentions = (text: string, answer: string) =>
  * Why a rephrased cloze text does not ask the source's gap: other gap groups or nesting (`invalid_gaps`), other
  * solutions (`changed_answer`), or a solution named outside its gap or in a hint where the source did not (`revealed_answer`).
  */
-export function checkClozeVariant(source: string, candidate: string): "invalid_gaps" | "changed_answer" | "revealed_answer" | null {
+export function checkClozeVariant(source: string, candidate: string): Extract<AiCardVariantRejection, "invalid_gaps" | "changed_answer" | "revealed_answer"> | null {
   const original = clozeVariantGaps(source);
   const variant = clozeVariantGaps(candidate);
   if (!original || !variant || variant.ordinal !== original.ordinal) return "invalid_gaps";
@@ -124,7 +124,7 @@ const NEGATION = /(?<!\p{L})(?:nicht|kein\p{L}*|falsch\p{L}*|unzutreffend\p{L}*|
  * `negated_option`). The check is deliberately strict: a harmless rewrite such as „asymptomatisch“ to „ohne Symptome“
  * is refused too.
  */
-export function checkChoiceVariant(source: { front: string; choice: AiCardVariantChoice }, front: string, options: { id: string; text: string }[]): "changed_options" | "negated_question" | "negated_option" | null {
+export function checkChoiceVariant(source: { front: string; choice: AiCardVariantChoice }, front: string, options: { id: string; text: string }[]): Extract<AiCardVariantRejection, "changed_options" | "negated_question" | "negated_option"> | null {
   const ids = (list: { id: string }[]) => list.map((option) => option.id).sort().join("\u0000");
   if (options.length !== source.choice.options.length || ids(options) !== ids(source.choice.options)) return "changed_options";
   const negationChanged = (original: string, candidate: string) => NEGATION.test(original) !== NEGATION.test(candidate);
@@ -185,13 +185,61 @@ export function aiCardVariantSourceKey(source: AiCardVariantRequest["source"]): 
 }
 
 /**
- * Results refused because they would ask something other than the card; errors of transport, provider, account or
- * a changed card say nothing about whether the card can be rephrased.
+ * Results refused because they would ask something other than the card, with their message; errors of transport,
+ * provider, account or a changed card say nothing about whether the card can be rephrased.
  */
-export const AI_CARD_VARIANT_REJECTIONS: ReadonlySet<string> = new Set([
-  "invalid_gaps", "changed_answer", "revealed_answer", "changed_options", "negated_question", "negated_option",
-  "invalid_variant", "unchanged_front", "duplicate_variant",
-]);
+export const AI_CARD_VARIANT_REJECTION_MESSAGES = {
+  invalid_gaps: "Das Modell hat die Lücken des Lückentexts verändert.",
+  changed_answer: "Das Modell hat die Lösung der Lücke verändert.",
+  revealed_answer: "Die Variante verrät die Lösung der Lücke.",
+  changed_options: "Das Modell hat die Antwortoptionen verändert.",
+  negated_question: "Die Variante hat eine Verneinung der Frage verändert; richtig und falsch könnten vertauscht sein.",
+  negated_option: "Die Variante hat eine Verneinung in einer Antwortoption verändert; richtig und falsch könnten vertauscht sein.",
+  invalid_variant: "Das Modell hat keine gültige neue Umformulierung geliefert.",
+  unchanged_front: "Das Modell hat die Kartenfrage nicht erkennbar umformuliert.",
+  duplicate_variant: "Diese Variante gibt es schon. Bitte erneut generieren.",
+} as const;
+export type AiCardVariantRejection = keyof typeof AI_CARD_VARIANT_REJECTION_MESSAGES;
+export const AI_CARD_VARIANT_REJECTIONS: ReadonlySet<string> = new Set(Object.keys(AI_CARD_VARIANT_REJECTION_MESSAGES));
+
+export type GeneratedAiCardVariant =
+  | { kind: "variant"; variant: AiCardVariantSuccess["variant"] }
+  | { kind: "not_rephrasable" }
+  | { kind: "invalid_fields" }
+  | { kind: "rejected"; code: AiCardVariantRejection };
+
+function readGeneratedOptions(value: unknown): { id: string; text: string }[] | null {
+  const valid = Array.isArray(value) && value.every((option) => option !== null && typeof option === "object"
+    && Object.keys(option).sort().join(",") === "id,text" && typeof option.id === "string" && typeof option.text === "string");
+  return valid ? (value as { id: string; text: string }[]).map((option) => ({ id: option.id, text: normalizeAiCardText(option.text) })) : null;
+}
+
+/** Reads the model's tool arguments for `input` and checks that the variant still asks the card's answer. */
+export function parseGeneratedVariant(toolArguments: unknown, input: AiCardVariantRequest): GeneratedAiCardVariant {
+  const rawArguments = toolArguments !== null && typeof toolArguments === "object" ? toolArguments as Record<string, unknown> : {};
+  const keys = input.choice ? "front,options,rephrasable" : "back,front,rephrasable";
+  if (Object.keys(rawArguments).sort().join(",") !== keys || typeof rawArguments.rephrasable !== "boolean") return { kind: "invalid_fields" };
+  if (!rawArguments.rephrasable) return { kind: "not_rephrasable" };
+  const front = normalizeAiCardText(rawArguments.front);
+  const options = input.choice ? readGeneratedOptions(rawArguments.options) : undefined;
+  if (options === null) return { kind: "invalid_fields" };
+  const choice = input.choice && options ? {
+    mode: input.choice.mode,
+    options: input.choice.options.map((option) => ({ ...option, text: options.find((candidate) => candidate.id === option.id)?.text ?? "" })),
+  } : undefined;
+  const back = input.kind === "cloze" ? input.source.back : choice ? choiceAnswerText(choice.options) : normalizeAiCardText(rawArguments.back);
+  const problem = (input.kind === "cloze" ? checkClozeVariant(input.source.front, front) : null)
+    ?? (input.choice && options ? checkChoiceVariant({ front: input.source.front, choice: input.choice }, front, options) : null);
+  if (problem) return { kind: "rejected", code: problem };
+  const variantRequest = parseAiCardVariantRequest({ kind: input.kind, source: { front, back }, ...(choice ? { choice } : {}) });
+  if (!variantRequest.success || aiCardVariantSourceKey(variantRequest.output.source) === aiCardVariantSourceKey(input.source)) {
+    return { kind: "rejected", code: "invalid_variant" };
+  }
+  if (normalizeAiCardText(variantRequest.output.source.front).toLocaleLowerCase("de-DE") === normalizeAiCardText(input.source.front).toLocaleLowerCase("de-DE")) {
+    return { kind: "rejected", code: "unchanged_front" };
+  }
+  return { kind: "variant", variant: { ...variantRequest.output.source, ...(choice ? { options: choice.options.map(({ id, text }) => ({ id, text })) } : {}) } };
+}
 
 export class AiCardVariantContractError extends Error {
   readonly code: string;

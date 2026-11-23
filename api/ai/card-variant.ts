@@ -4,13 +4,10 @@ import {
   MAX_AI_CARD_VARIANT_FIELD_CHARS,
   MAX_AI_CARD_VARIANT_OUTPUT_TOKENS,
   MAX_AI_CARD_VARIANT_REQUEST_BYTES,
-  aiCardVariantSourceKey,
-  checkChoiceVariant,
-  checkClozeVariant,
-  choiceAnswerText,
-  normalizeAiCardText,
+  AI_CARD_VARIANT_REJECTION_MESSAGES,
   parseAiCardVariantRequest,
   parseAiCardVariantSuccess,
+  parseGeneratedVariant,
   type AiCardVariantRequest,
   type AiCardVariantSuccess,
 } from "../../src/aiCardVariantContract.js";
@@ -74,18 +71,6 @@ const CHOICE_SYSTEM_PROMPT = [
   ...notRephrasable("front und options"),
 ].join(" ");
 
-const CLOZE_PROBLEMS = {
-  invalid_gaps: "Das Modell hat die Lücken des Lückentexts verändert.",
-  changed_answer: "Das Modell hat die Lösung der Lücke verändert.",
-  revealed_answer: "Die Variante verrät die Lösung der Lücke.",
-} as const;
-
-const CHOICE_PROBLEMS = {
-  changed_options: "Das Modell hat die Antwortoptionen verändert.",
-  negated_question: "Die Variante hat eine Verneinung der Frage verändert; richtig und falsch könnten vertauscht sein.",
-  negated_option: "Die Variante hat eine Verneinung in einer Antwortoption verändert; richtig und falsch könnten vertauscht sein.",
-} as const;
-
 function systemPrompt(kind: AiCardVariantRequest["kind"]) {
   return kind === "choice" ? CHOICE_SYSTEM_PROMPT : kind === "cloze" ? CLOZE_SYSTEM_PROMPT : kind === "type-in" ? `${SYSTEM_PROMPT} ${TYPE_IN_RULE}` : SYSTEM_PROMPT;
 }
@@ -131,41 +116,13 @@ export function buildOpenRouterPayload(input: AiCardVariantRequest) {
   };
 }
 
-function readOptions(value: unknown): { id: string; text: string }[] {
-  const valid = Array.isArray(value) && value.every((option) => option !== null && typeof option === "object"
-    && Object.keys(option).sort().join(",") === "id,text" && typeof option.id === "string" && typeof option.text === "string");
-  if (!valid) throw new HttpError(502, "invalid_tool_call", TEXTS.fields);
-  return (value as { id: string; text: string }[]).map((option) => ({ id: option.id, text: normalizeAiCardText(option.text) }));
-}
-
 export function extractGeneratedVariant(payload: unknown, input: AiCardVariantRequest): { result: AiCardVariantSuccess; costUsd: number | null } {
   const { toolArguments, model, usage, costUsd } = readToolCall(payload, "create_card_variant", TEXTS);
-  const rawArguments = toolArguments !== null && typeof toolArguments === "object" ? toolArguments as Record<string, unknown> : {};
-  const keys = input.choice ? "front,options,rephrasable" : "back,front,rephrasable";
-  if (Object.keys(rawArguments).sort().join(",") !== keys || typeof rawArguments.rephrasable !== "boolean") {
-    throw new HttpError(502, "invalid_tool_call", TEXTS.fields);
-  }
-  if (!rawArguments.rephrasable) throw new HttpError(422, "not_rephrasable", "Diese Karte lässt sich nicht sinnvoll umformulieren.");
-  const front = normalizeAiCardText(rawArguments.front);
-  const options = input.choice ? readOptions(rawArguments.options) : undefined;
-  const choice = input.choice && options ? {
-    mode: input.choice.mode,
-    options: input.choice.options.map((option) => ({ ...option, text: options.find((candidate) => candidate.id === option.id)?.text ?? "" })),
-  } : undefined;
-  const back = input.kind === "cloze" ? input.source.back : choice ? choiceAnswerText(choice.options) : normalizeAiCardText(rawArguments.back);
-  const clozeProblem = input.kind === "cloze" ? checkClozeVariant(input.source.front, front) : null;
-  if (clozeProblem) throw new HttpError(502, clozeProblem, CLOZE_PROBLEMS[clozeProblem]);
-  const choiceProblem = input.choice && options ? checkChoiceVariant({ front: input.source.front, choice: input.choice }, front, options) : null;
-  if (choiceProblem) throw new HttpError(502, choiceProblem, CHOICE_PROBLEMS[choiceProblem]);
-  const variantRequest = parseAiCardVariantRequest({ kind: input.kind, source: { front, back }, ...(choice ? { choice } : {}) });
-  if (!variantRequest.success || aiCardVariantSourceKey(variantRequest.output.source) === aiCardVariantSourceKey(input.source)) {
-    throw new HttpError(502, "invalid_variant", "Das Modell hat keine gültige neue Umformulierung geliefert.");
-  }
-  if (normalizeAiCardText(variantRequest.output.source.front).toLocaleLowerCase("de-DE") === normalizeAiCardText(input.source.front).toLocaleLowerCase("de-DE")) {
-    throw new HttpError(502, "unchanged_front", "Das Modell hat die Kartenfrage nicht erkennbar umformuliert.");
-  }
-  const variant = { ...variantRequest.output.source, ...(choice ? { options: choice.options.map(({ id, text }) => ({ id, text })) } : {}) };
-  const parsed = parseAiCardVariantSuccess({ variant, model, privacyMode: "zdr", usage });
+  const generated = parseGeneratedVariant(toolArguments, input);
+  if (generated.kind === "invalid_fields") throw new HttpError(502, "invalid_tool_call", TEXTS.fields);
+  if (generated.kind === "not_rephrasable") throw new HttpError(422, "not_rephrasable", "Diese Karte lässt sich nicht sinnvoll umformulieren.");
+  if (generated.kind === "rejected") throw new HttpError(502, generated.code, AI_CARD_VARIANT_REJECTION_MESSAGES[generated.code]);
+  const parsed = parseAiCardVariantSuccess({ variant: generated.variant, model, privacyMode: "zdr", usage });
   if (!parsed.success) throw new HttpError(502, "invalid_provider_response", TEXTS.invalid);
   return { result: parsed.output, costUsd };
 }
