@@ -42,12 +42,13 @@ Nachweis, nimm ihn und nenne die Abweichung im Pull Request.
   Tests), `server/aiRoute.ts`, `api/ai/`, die vier Vertragsmodule
   `src/ai*Contract.ts`, den Skill `.agents/skills/ai-eval/SKILL.md` und
   `.claude/agents/eval-judge.md`.
-- **Reihenfolge:** A → B → Probelauf → C → D, danach E, F und G in
-  beliebiger Reihenfolge, dann H → I → J. Der Probelauf läuft, sobald der
-  Schlüssel gesetzt ist, auf den vorhandenen Prüfkarten aller Anfragetypen mit
-  Definition (Training und Entscheidung, zwei Wiederholungen, einmal der
-  heutige Richter über die ganze Tabelle) und kommt nicht ins Ledger. Er zeigt
-  echte Fehlerbilder, bevor C und D gebaut werden. Vorschlag für den Schnitt: A und B in einem
+- **Reihenfolge:** C → D, danach E, F und G in beliebiger Reihenfolge, dann
+  H → I → J. A, B und der Probelauf sind erledigt; dessen Ergebnis steht im
+  [Verlauf](history.md), die Rohdaten im Datenordner unter
+  `<typ>/2026-11-23-probe/`. Seine Fehlermuster (Lückentext als Frage mit
+  nachgestellter Lücke, übernommene eingeschleuste Anweisungen, umgekehrte
+  Richtung bei Definitionen, Abschweifungen bei KI hilft) sind die ersten
+  Kandidaten für Paket I. Vorschlag für den Schnitt: A und B in einem
   Pull Request, danach je Paket einer.
 - **Je Pull Request:** `npm run typecheck`, die Modultests unter
   `scripts/aiEval/` (laufen mit `runModuleTests.ts`), ein Trockenlauf von

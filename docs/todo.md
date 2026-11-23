@@ -12,8 +12,8 @@ externen Release fällig. „Später“ ist geparkt.
 ## P5: KI-Eval und Hillclimb
 
 Alle vier KI-Routen stehen (`card-variant-v5`, `card-help-v1`,
-`source-cards-v2`, `learning-summary-v4`); P5 beginnt. Gemessen ist nichts:
-kein echter Lauf, kein Ledger-Eintrag. Der Runner ([KI-Eval](ai-eval.md))
+`source-cards-v2`, `learning-summary-v4`); P5 läuft. Im Ledger steht noch
+nichts; ein Probelauf vom 2026-11-23 steht im [Verlauf](history.md). Der Runner ([KI-Eval](ai-eval.md))
 kennt Varianten und `card-help` mit je 24 Prüfkarten in Training und
 Entscheidung (der Rückhalt füllt sich mit E), zählt jede Anfrage als
 Antwortklasse und hält je Lauf Fingerabdruck und Budget.
@@ -29,15 +29,16 @@ innerhalb eines Modells, der Referenz `openai/gpt-6-luna` mit `low`; ein
 Modellvergleich folgt später von Hand und wird nicht eigens gebaut. Ein
 Modellwechsel und das KI-Kontingent sind nicht Teil von P5.
 
-Pakete in dieser Reihenfolge; nach dem Probelauf misst erst H wieder.
+Pakete in dieser Reihenfolge; vor H laufen nur die Nachweise von F und G echt.
 
 - [ ] **Zugang:** `OPENROUTER_API_KEY` und `CORE_AI_EVAL_DIR` als
       Benutzer-Umgebungsvariablen setzen ([operations.md](operations.md#openrouter-schlüssel));
       erst dann sind echte Läufe möglich. Nur der Nutzer.
-- [ ] **Probelauf:** je Anfragetyp mit Definition ein echter Lauf auf den
-      vorhandenen Prüfkarten (Training und Entscheidung), gerichtet mit dem
-      heutigen Richter, nicht ins Ledger. Nachweis: Bericht je Anfragetyp
-      mit Kosten, Latenz, Antwortklassen und den häufigsten Fehlern.
+- [ ] **Inhaltsfilter in den Routen:** Bricht der Anbieter mit
+      `finish_reason: content_filter` ab (im Probelauf vom 2026-11-23 bei
+      Karten mit eingeschleuster Anweisung, [Verlauf](history.md)), melden die
+      Routen heute „Werkzeug nicht korrekt verwendet“. Eigener Fehlercode und
+      eine verständliche Meldung; im Eval bleibt es eine verworfene Antwort.
 - [ ] **C – Kandidaten und Richter:** Prompt, Werkzeugschema, Ausgabegrenze
       und Reasoning je Lauf über eine Kandidatendatei wählbar, ohne den Code
       der Route zu ändern. Richtertabelle in Blöcken mit je einem frischen
@@ -54,8 +55,9 @@ Pakete in dieser Reihenfolge; nach dem Probelauf misst erst H wieder.
       Fälle aus Prüfkarten und Korpus (`cases --corpus`), darunter
       Eintippen, Ketten mit vorhandenen Varianten, Lückentexte mit fast
       textfüllender Lücke, Freitext ohne echte Frage und Fallen je kritischem
-      Kriterium. Nachweis: Fallzahlen je Teil und Kategorie; Stichprobe vom
-      Nutzer gesehen.
+      Kriterium; Injection-Fälle in mehreren Formen, weil der Inhaltsfilter
+      des Anbieters die plumpe „SYSTEM:“-Form abfängt. Nachweis: Fallzahlen je
+      Teil und Kategorie; Stichprobe vom Nutzer gesehen.
 - [ ] **F – Karten aus einer Quelle messbar machen:** Registereintrag und
       Definition je Dokument über den ganzen Auftrag (mehrere Anfragen,
       Zahlenwerte als Messgrößen), etwa 24 Dokumente mit Kernaussagen,
