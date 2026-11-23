@@ -2,7 +2,8 @@ import { aiCardVariantAvoidTexts, asksVariantSource, createAiGeneratedVariantDra
 import { AI_CARD_VARIANT_PROMPT_VERSION, AI_CARD_VARIANT_REJECTIONS, AiCardVariantContractError } from "./aiCardVariantContract.ts";
 import type { SettingsSection } from "./appNavigation.ts";
 import type { CardEditorServices, CreationScreenProps, DecksCardPage, DecksCardPageRequest } from "./appScreenProps.ts";
-import type { CardBatchAction, CardBatchDependencies, CardBatchRepository, CardBatchResult } from "./cardBatchActions.ts";
+// Static: actions on the open card must also work offline, when a lazy chunk can no longer load.
+import { prepareTextReplace, runCardBatch, type CardBatchAction, type CardBatchDependencies, type CardBatchRepository, type CardBatchResult } from "./cardBatchActions.ts";
 import type { CardVariantBatchMode } from "./cardVariantBatch.ts";
 import { addCardVariant, applyCardStudyStatePatch, createNote, duplicateNote, planNoteGraphContentChange, recordVariantOutcome, removeUnusedNoteMedia, replaceOutdatedVariants } from "./coreModel.ts";
 import type { Card, CardStudyStatePatch, NoteContent } from "./coreTypes.ts";
@@ -217,7 +218,6 @@ export function createCardCommands({ store, repository, hydration, cloud, syncEn
   }
 
   async function runBatch(dependencies: Pick<CardBatchDependencies, "repository" | "openCards">, cardIds: string[], action: CardBatchAction, afterWrite: () => unknown): Promise<CardBatchResult> {
-    const { runCardBatch } = await import("./cardBatchActions.ts");
     const result = await runCardBatch({ ...dependencies, now }, cardIds, action);
     await afterWrite();
     return { ...result, undo: async () => {
@@ -260,7 +260,6 @@ export function createCardCommands({ store, repository, hydration, cloud, syncEn
   async function prepareDeckTextReplace(cardIds: string[]) {
     const workspaceHydrationService = hydration();
     if (!workspaceHydrationService) throw new Error("Die Kartenverwaltung ist noch nicht bereit.");
-    const { prepareTextReplace } = await import("./cardBatchActions.ts");
     return prepareTextReplace({ repository, openCards: workspaceHydrationService.openCards, now }, cardIds);
   }
 
