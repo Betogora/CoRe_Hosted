@@ -10,6 +10,7 @@ import type {
   OcclusionShape,
   RevealPrompt,
 } from "../coreTypes.ts";
+import { mapClozes } from "../clozeSyntax.ts";
 import { sanitizeNoteHtml, stripSanitizedHtml } from "../htmlSafety.ts";
 import { normalizeTags } from "./tags.ts";
 
@@ -45,16 +46,11 @@ function noteFieldHasContent(html: string): boolean {
 /** Cloze ordinals in Anki syntax, including `{{c1,2::…}}` and nested deletions; null when a deletion is not closed. */
 export function clozeOrdinals(html: string): number[] | null {
   const ordinals = new Set<number>();
-  let depth = 0;
-  for (const token of html.matchAll(/\{\{c(\d+(?:,\d+)*)::|\}\}/gi)) {
-    if (token[1]) {
-      depth += 1;
-      for (const ordinal of token[1].split(",").map(Number)) if (ordinal > 0) ordinals.add(ordinal);
-    } else if (depth > 0) {
-      depth -= 1;
-    }
-  }
-  return depth === 0 ? [...ordinals].sort((left, right) => left - right) : null;
+  const closed = mapClozes(html, (token) => {
+    for (const ordinal of token.ordinals) if (ordinal > 0) ordinals.add(ordinal);
+    return "";
+  });
+  return closed === null ? null : [...ordinals].sort((left, right) => left - right);
 }
 
 function parseFields(input: unknown, errors: string[]): NoteField[] {
