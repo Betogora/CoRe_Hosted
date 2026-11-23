@@ -113,7 +113,7 @@ test("statistics screen loads its dataset only after mounting", () => {
   );
 
   assert.match(markup, /aria-busy="true"/);
-  assert.match(markup, /Statistik wird geladen/);
+  assert.match(markup, /class="core-statistics-load-track" role="progressbar" aria-label="Statistik wird geladen"/);
   assert.doesNotMatch(markup, /Globaler Zeitraum/);
   assert.doesNotMatch(markup, /Bereiche der Statistik/);
 });

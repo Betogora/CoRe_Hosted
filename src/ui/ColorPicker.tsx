@@ -11,10 +11,20 @@ export const COLOR_PICKER_PRESETS = [
 
 interface ColorWheelPosition { hue: number; intensity: number }
 
-// Exact BengtsToolBox values without a CoRe geometry token: popover radius, inner shadow and the selection ring.
+// Exact BengtsToolBox values without a CoRe geometry token: popover radius and the wheel's inner shadow.
 const TOOLBOX_INNER_SHADOW = "inset 0 2px 4px 0 rgb(0 0 0 / 0.05)";
 const TOOLBOX_POPOVER_RADIUS = "12px";
-const TOOLBOX_SELECTED_RING = "0 0 0 2px var(--core-surface), 0 0 0 4px color-mix(in srgb, var(--core-text) 70%, transparent)";
+
+type ColorSwatchButtonProps = Omit<React.ComponentPropsWithRef<"button">, "color" | "children"> & { color: string };
+
+/** Selection state comes from `aria-pressed` or, inside a radiogroup, `aria-checked`. */
+export function ColorSwatchButton({ color, className = "", ...props }: ColorSwatchButtonProps) {
+  return (
+    <button type="button" {...props} className={`core-color-swatch ${className}`.trim()}>
+      <span aria-hidden="true" className="core-color-swatch-dot" style={{ backgroundColor: color }} />
+    </button>
+  );
+}
 
 function colorFromWheelPosition({ hue, intensity }: ColorWheelPosition) {
   return hsvToHex({ hue, saturation: clampNumber(intensity, 0, 1), value: 1 });
@@ -156,14 +166,7 @@ export function ColorPicker({
     </Popover.Trigger>
   ) : (
     <Popover.Trigger asChild>
-      <button
-        type="button"
-        aria-label={ariaLabel}
-        disabled={disabled}
-        className={`size-button shrink-0 rounded-control border border-core-border bg-core-canvas p-0.5 transition-colors hover:border-core-action disabled:pointer-events-none disabled:opacity-50 ${className}`}
-      >
-        <span aria-hidden="true" className="block size-full rounded-marker border border-core-border" style={{ backgroundColor: shownColor, boxShadow: TOOLBOX_INNER_SHADOW }} />
-      </button>
+      <ColorSwatchButton color={shownColor} aria-label={ariaLabel} disabled={disabled} className={`core-color-swatch-picker ${className}`} />
     </Popover.Trigger>
   );
 
@@ -239,19 +242,16 @@ export function ColorPicker({
               }}
             />
           </div>
-          <div role="radiogroup" aria-label="Farbvorschläge" className="mt-3 grid grid-cols-7 justify-items-center gap-2 border-t border-core-border pt-3">
+          <div role="radiogroup" aria-label="Farbvorschläge" className="core-color-swatch-grid mt-3 border-t border-core-border pt-3">
             {presets.map((preset) => {
               const presetColor = normalizeColor(preset, normalizedValue);
-              const selected = presetColor === previewColor;
               return (
-                <button
+                <ColorSwatchButton
                   key={presetColor}
-                  type="button"
+                  color={presetColor}
                   role="radio"
-                  aria-checked={selected}
+                  aria-checked={presetColor === previewColor}
                   aria-label={`Farbe ${presetColor.toUpperCase()}`}
-                  className={`size-7 min-h-0 !min-w-0 rounded-round transition-transform ${selected ? "" : "hover:scale-110"}`}
-                  style={{ backgroundColor: presetColor, boxShadow: selected ? TOOLBOX_SELECTED_RING : undefined }}
                   onMouseDown={tool ? (event) => event.preventDefault() : undefined}
                   onClick={() => {
                     applyColor(presetColor);

@@ -669,11 +669,9 @@ export function StatisticsScreen({ decks, queryStatistics, now, timeZone, daySta
     );
   }
   return (
-    <div className="space-y-8" aria-busy="true">
+    <div className="space-y-5" aria-busy="true">
       <PageHeader title="Statistik" />
-      <SoftPanel className="p-6" role="status" aria-live="polite">
-        <p className="core-body text-core-muted">Statistik wird geladen …</p>
-      </SoftPanel>
+      <div className="core-statistics-load-track" role="progressbar" aria-label="Statistik wird geladen"><span aria-hidden="true" /></div>
     </div>
   );
 }

@@ -220,7 +220,7 @@ export function GlobalCardSettingsScreen({ section, decks, onOpenDeckSettings, t
               return (
                 <div key={colorName} className="core-settings-row">
                   <span className="core-settings-row-title flex items-center gap-3">
-                    <span aria-hidden="true" className="size-4 shrink-0 rounded-round" style={{ background: `var(--core-flag-${index + 1})` }} />
+                    <span aria-hidden="true" className="core-color-swatch-dot" style={{ backgroundColor: `var(--core-flag-${index + 1})` }} />
                     {colorName}
                   </span>
                   <div className="core-settings-row-control">
