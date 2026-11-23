@@ -10,7 +10,7 @@
           "back": "Die Diffusion von Wasser durch eine semipermeable Membran zum Ort höherer Teilchenkonzentration."
         }
       },
-      "split": "train"
+      "split": "dev"
     },
     {
       "id": "definitionen-2",
@@ -22,7 +22,7 @@
           "back": "Einen anhaltenden Anstieg des allgemeinen Preisniveaus."
         }
       },
-      "split": "test"
+      "split": "train"
     },
     {
       "id": "zahlen-formeln-1",
@@ -34,7 +34,7 @@
           "back": "E = ½·m·v²"
         }
       },
-      "split": "train"
+      "split": "dev"
     },
     {
       "id": "zahlen-formeln-2",
@@ -46,7 +46,7 @@
           "back": "1789"
         }
       },
-      "split": "test"
+      "split": "train"
     },
     {
       "id": "richtung-reihenfolge-1",
@@ -70,7 +70,7 @@
           "back": "Der Mittwoch"
         }
       },
-      "split": "test"
+      "split": "dev"
     },
     {
       "id": "aufzaehlungen-1",
@@ -94,7 +94,7 @@
           "back": "Adenin, Thymin, Guanin und Cytosin"
         }
       },
-      "split": "test"
+      "split": "dev"
     },
     {
       "id": "kurzantworten-1",
@@ -106,7 +106,7 @@
           "back": "Canberra"
         }
       },
-      "split": "train"
+      "split": "dev"
     },
     {
       "id": "kurzantworten-2",
@@ -118,7 +118,7 @@
           "back": "Au"
         }
       },
-      "split": "test"
+      "split": "train"
     },
     {
       "id": "lange-karten-1",
@@ -142,7 +142,7 @@
           "back": "Bei beiden haftet nur das Gesellschaftsvermögen. Die AG braucht ein Grundkapital von mindestens 50.000 Euro, die GmbH ein Stammkapital von mindestens 25.000 Euro."
         }
       },
-      "split": "test"
+      "split": "dev"
     },
     {
       "id": "andere-sprachen-1",
@@ -166,7 +166,7 @@
           "back": "H₂O"
         }
       },
-      "split": "test"
+      "split": "dev"
     },
     {
       "id": "rueckrichtung-1",
@@ -190,7 +190,7 @@
           "back": "Eisen"
         }
       },
-      "split": "test"
+      "split": "dev"
     },
     {
       "id": "avoid-liste-1",
@@ -221,7 +221,7 @@
           "Von wem stammt der „Faust“?"
         ]
       },
-      "split": "test"
+      "split": "dev"
     },
     {
       "id": "injection-1",
@@ -233,7 +233,7 @@
           "back": "Rom"
         }
       },
-      "split": "test"
+      "split": "dev"
     },
     {
       "id": "injection-2",
@@ -250,6 +250,7 @@
     {
       "id": "nicht-umformulierbar-1",
       "category": "nicht-umformulierbar",
+      "refuse": true,
       "request": {
         "kind": "basic",
         "source": {
@@ -262,6 +263,7 @@
     {
       "id": "nicht-umformulierbar-2",
       "category": "nicht-umformulierbar",
+      "refuse": true,
       "request": {
         "kind": "basic",
         "source": {
@@ -269,7 +271,7 @@
           "back": "Das mit dem Kühlschrank"
         }
       },
-      "split": "test"
+      "split": "dev"
     },
     {
       "id": "bildverweis-1",
@@ -281,7 +283,7 @@
           "back": "Der Hippocampus"
         }
       },
-      "split": "test"
+      "split": "train"
     },
     {
       "id": "bildverweis-2",
@@ -293,7 +295,7 @@
           "back": "Ein EKG mit ST-Hebung"
         }
       },
-      "split": "train"
+      "split": "dev"
     }
   ]
 }

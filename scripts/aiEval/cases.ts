@@ -9,22 +9,32 @@ import { cardVariantSource } from "../../src/coreVariantService.ts";
 import type { EvalDefinition } from "./definitions.ts";
 import { parseStrict } from "./ledger.ts";
 
-export const OUTPUT_ROOT = "output/ai-eval";
+/** Wird bei jedem Aufruf gelesen, damit auch `CORE_AI_EVAL_DIR` aus `.env.local` greift, das die CLI nach den Imports lädt. */
+export const outputRoot = () => (process.env.CORE_AI_EVAL_DIR ?? "output/ai-eval").replace(/\\/g, "/");
 export const handCasesFile = (id: string) => `fixtures/ai-eval/${id}.cases.json`;
-export const corpusCasesFile = (id: string) => `${OUTPUT_ROOT}/${id}/corpus.cases.json`;
+export const corpusCasesFile = (id: string) => `${outputRoot()}/${id}/corpus.cases.json`;
 
-const split = v.picklist(["train", "test"]);
+export const SPLITS = ["train", "dev", "holdout"] as const;
+export type Split = (typeof SPLITS)[number];
+const SHARES: Record<Split, number> = { train: 0.4, dev: 0.3, holdout: 0.3 };
+const slug = v.pipe(v.string(), v.regex(/^[a-z0-9-]+$/));
 const casesSchema = v.strictObject({
   cases: v.array(v.strictObject({
-    id: v.pipe(v.string(), v.regex(/^[a-z0-9-]+$/)),
-    category: v.pipe(v.string(), v.regex(/^[a-z0-9-]+$/)),
-    split: v.optional(split),
+    id: slug,
+    category: slug,
+    split: v.optional(v.picklist(SPLITS)),
+    /** Fälle derselben Gruppe (eine Karte, Notiz oder Quelle) landen immer im selben Teil. */
+    group: v.optional(slug),
+    /** Falle für ein kritisches Kriterium; der Bericht zählt sie getrennt. */
+    trap: v.optional(v.literal(true)),
+    /** Das Modell soll den Fall mit dem Ablehnungscode der Definition als ungeeignet melden. */
+    refuse: v.optional(v.literal(true)),
     request: v.unknown(),
   })),
 });
 
 export type DraftCase = v.InferOutput<typeof casesSchema>["cases"][number];
-export type EvalCase = DraftCase & { split: "train" | "test" };
+export type EvalCase = DraftCase & { split: Split };
 
 export function seededRandom(seed: number) {
   let state = seed >>> 0;
@@ -60,23 +70,41 @@ export function readCases(definition: EvalDefinition, file: string): DraftCase[]
   return parseStrict(casesSchema, readJson(file), file).cases.map((entry) => {
     const request = definition.parseRequest(entry.request);
     if (!request) throw new Error(`${file}: Fall ${entry.id} besteht den Anfragevertrag der Route nicht.`);
+    if (entry.refuse && !definition.refusal) throw new Error(`${file}: Fall ${entry.id} erwartet eine Ablehnung, die ${definition.id} nicht kennt.`);
     return { ...entry, request };
   });
 }
 
+/**
+ * Je Kategorie geht jede Gruppe ohne Teil in den Teil, dem nach seinem Anteil die meisten Fälle fehlen; bei Gleichstand
+ * zuerst `dev` vor `holdout`, damit jede Kategorie mit zwei Fällen auch im Entscheidungsteil vorkommt. Eine Gruppe zählt
+ * zur Kategorie ihres ersten Falls, und vorhandene Zuordnungen bleiben stehen.
+ */
 export function assignSplits(cases: readonly DraftCase[], random: () => number): EvalCase[] {
-  const assigned = new Map<string, "train" | "test">();
+  const groups = new Map<string, DraftCase[]>();
+  for (const entry of cases) groups.set(entry.group ?? entry.id, [...(groups.get(entry.group ?? entry.id) ?? []), entry]);
+  const fixed = new Map<string, Split>();
+  for (const [key, members] of groups) {
+    const splits = new Set(members.flatMap((entry) => entry.split ?? []));
+    if (splits.size > 1) throw new Error(`Gruppe ${key} liegt in mehreren Teilen: ${[...splits].join(", ")}.`);
+    if (splits.size) fixed.set(key, [...splits][0]);
+  }
+  const assigned = new Map(fixed);
   for (const category of [...new Set(cases.map((entry) => entry.category))].sort()) {
-    const members = cases.filter((entry) => entry.category === category);
-    let test = members.filter((entry) => entry.split === "test").length;
-    let train = members.filter((entry) => entry.split === "train").length;
-    for (const entry of shuffled(members.filter((candidate) => !candidate.split), random)) {
-      const next = test < train || (test === train && random() < 0.5) ? "test" : "train";
-      if (next === "test") test++; else train++;
-      assigned.set(entry.id, next);
+    const keys = [...groups.keys()].filter((key) => groups.get(key)![0].category === category);
+    const counts: Record<Split, number> = { train: 0, dev: 0, holdout: 0 };
+    for (const key of keys) if (fixed.has(key)) counts[fixed.get(key)!] += groups.get(key)!.length;
+    for (const key of shuffled(keys.filter((candidate) => !fixed.has(candidate)), random)) {
+      const size = groups.get(key)!.length;
+      const total = counts.train + counts.dev + counts.holdout + size;
+      const deficit = (split: Split) => Math.round((SHARES[split] * total - counts[split]) * 1000);
+      const largest = Math.max(...SPLITS.map(deficit));
+      const split = SPLITS.find((candidate) => deficit(candidate) === largest)!;
+      counts[split] += size;
+      assigned.set(key, split);
     }
   }
-  return cases.map((entry) => ({ ...entry, split: entry.split ?? assigned.get(entry.id)! }));
+  return cases.map((entry) => ({ ...entry, split: assigned.get(entry.group ?? entry.id)! }));
 }
 
 export function loadCases(definition: EvalDefinition): EvalCase[] {
@@ -91,22 +119,25 @@ export function loadCases(definition: EvalDefinition): EvalCase[] {
 export async function sampleCorpus(definition: EvalDefinition, count: number, seed: number, directory = "fixtures/apkg/corpus"): Promise<DraftCase[]> {
   const files = existsSync(directory) ? readdirSync(directory).filter((name) => /\.(?:apkg|colpkg)$/i.test(name)).sort() : [];
   if (!files.length) throw new Error(`Kein Korpus in ${directory}.`);
-  const cards = new Map<string, AiCardVariantSource>();
+  const hash = (text: string) => createHash("sha1").update(text).digest("hex").slice(0, 10);
+  const cards = new Map<string, { source: AiCardVariantSource; note: string }>();
   for (const name of files) {
     const graph = await translateAnkiPackage(await readAnkiPackage(Object.assign(await openAsBlob(path.join(directory, name)), { name })));
     const notes = new Map(graph.notes.map((note) => [note.id, note]));
     for (const card of graph.cards) {
       const note = notes.get(card.noteId);
       const source = note && cardVariantSource(note, card);
-      if (source && !/<img|\[sound:/i.test(note.content.fields.map((field) => field.html).join(""))) cards.set(createHash("sha1").update(`${source.front}\u0000${source.back}`).digest("hex").slice(0, 10), source);
+      const html = note?.content.fields.map((field) => field.html).join("\u0000") ?? "";
+      if (source && !/<img|\[sound:/i.test(html)) cards.set(hash(`${source.front}\u0000${source.back}`), { source, note: hash(`${name}\u0000${html}`) });
     }
   }
   const keys = shuffled([...cards.keys()].sort(), seededRandom(seed));
   const cases: DraftCase[] = [];
   for (const key of keys) {
-    const entries = definition.fromCorpus(cards.get(key)!).filter((entry) => definition.parseRequest(entry.request));
+    const { source, note } = cards.get(key)!;
+    const entries = definition.fromCorpus(source).filter((entry) => definition.parseRequest(entry.request));
     if (cases.length + entries.length > count) break;
-    cases.push(...entries.map((entry) => ({ id: `corpus-${key}${entry.suffix}`, category: entry.category, request: entry.request as unknown })));
+    cases.push(...entries.map((entry) => ({ id: `corpus-${key}${entry.suffix}`, category: entry.category, group: `note-${note}`, request: entry.request as unknown })));
   }
   return cases;
 }

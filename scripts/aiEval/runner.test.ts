@@ -3,9 +3,9 @@ import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import test from "node:test";
-import { assignSplits, loadCases, sampleCorpus, seededRandom, type DraftCase, type EvalCase } from "./cases.ts";
+import { SPLITS, assignSplits, loadCases, sampleCorpus, seededRandom, type DraftCase, type EvalCase } from "./cases.ts";
 import { corpusCategory, definitionFor, numberTokens, rephrased, wordDistance } from "./definitions.ts";
-import { generate, mockCompletion, readAnswers, type AnswerRow } from "./generate.ts";
+import { generate, mockCompletion, readAnswers, type AnswerRow, type Outcome } from "./generate.ts";
 import { answerRef, buildJudgeTable, labelRef, readLabels, readVerdicts, type Label, type Verdicts } from "./judge.ts";
 import { REQUEST_TYPES } from "./ledger.ts";
 import { agreement, compare, decide, evaluateAnswers, summarize, type AnswerResult } from "./score.ts";
@@ -15,19 +15,22 @@ const help = definitionFor("card-help");
 const variantType = REQUEST_TYPES[0];
 const card = (front: string, back: string, avoid?: string[]) => ({ kind: "basic" as const, source: { front, back }, ...(avoid ? { avoid } : {}) });
 const cases: EvalCase[] = [
-  { id: "a", category: "definitionen", split: "test", request: card("Was ist Osmose?", "Diffusion von Wasser") },
-  { id: "b", category: "zahlen-formeln", split: "test", request: card("In welchem Jahr begann die Französische Revolution?", "1789") },
+  { id: "a", category: "definitionen", split: "dev", request: card("Was ist Osmose?", "Diffusion von Wasser") },
+  { id: "b", category: "zahlen-formeln", split: "dev", request: card("In welchem Jahr begann die Französische Revolution?", "1789") },
 ];
-const row = (caseId: string, repetition: number, output: unknown, ok = true): AnswerRow => ({ caseId, repetition, ok, error: ok ? null : "invalid_variant", output, model: ok ? "mock" : null, totalTokens: ok ? 120 : null, costUsd: ok ? 0.001 : null, latencyMs: 1000 + repetition * 500, transcript: { request: null, response: null } });
-const result = (caseId: string, repetition: number, main: boolean, criteria: Record<string, boolean> = { M1: true, M2: main }): AnswerResult => ({ caseId, repetition, category: "definitionen", criteria, main, costUsd: 0.001, latencyMs: 1000, totalTokens: 100, model: "mock" });
+const row = (caseId: string, repetition: number, output: unknown, outcome: Outcome = "answer"): AnswerRow => ({ caseId, repetition, outcome, error: outcome === "answer" ? null : outcome === "refused" ? "not_rephrasable" : "invalid_variant", output, model: "mock", totalTokens: 120, costUsd: 0.001, latencyMs: 1000 + repetition * 500, transcript: { request: null, response: null } });
+const result = (caseId: string, repetition: number, main: boolean, criteria: Record<string, boolean> = { M1: true, M2: main }): AnswerResult => ({ caseId, repetition, category: "definitionen", outcome: "answer", criteria, main, costUsd: 0.001, latencyMs: 1000, totalTokens: 100, model: "mock" });
+const completion = (toolArguments: unknown, cost = 0) => new Response(JSON.stringify({ ...mockCompletion("create_card_variant", toolArguments), usage: { total_tokens: 120, cost } }), { status: 200 });
 
 test("Versionierte Prüfkarten und Handurteile bestehen den Anfragevertrag und sind aufgeteilt", () => {
-  for (const definition of [variant, help]) {
+  for (const id of ["card-variant-basic", "card-variant-cloze", "card-variant-choice", "card-help"]) {
+    const definition = definitionFor(id);
     const loaded = loadCases(definition);
     assert.ok(loaded.length >= 24);
     for (const category of new Set(loaded.map((entry) => entry.category))) {
-      assert.deepEqual([...new Set(loaded.filter((entry) => entry.category === category).map((entry) => entry.split))].sort(), ["test", "train"], category);
+      for (const split of ["train", "dev"] as const) assert.ok(loaded.some((entry) => entry.category === category && entry.split === split), `${id} ${category} ${split}`);
     }
+    assert.deepEqual(loaded.filter((entry) => entry.refuse).map((entry) => entry.category), definition.refusal ? ["nicht-umformulierbar", "nicht-umformulierbar"] : []);
     assert.doesNotThrow(() => readLabels(definition));
   }
 });
@@ -47,10 +50,10 @@ test("Automatische Kriterien der Varianten: Zahlen zeichengenau, erkennbar umfor
 });
 
 test("Lernhilfe: Länge und Format automatisch, je Modus genau ein eigenes Richterkriterium", () => {
-  const { H1 } = help.automatic;
-  assert.equal(H1(null, "Kurze Antwort.\n- Punkt"), true);
-  assert.equal(H1(null, "**Fett** ist kein Klartext."), false);
-  assert.equal(H1(null, Array.from({ length: 151 }, () => "Wort").join(" ")), false);
+  const { H8 } = help.automatic;
+  assert.equal(H8(null, "Kurze Antwort.\n- Punkt"), true);
+  assert.equal(H8(null, "**Fett** ist kein Klartext."), false);
+  assert.equal(H8(null, Array.from({ length: 151 }, () => "Wort").join(" ")), false);
   const ids = (mode: string, question?: string) => help.judged(help.parseRequest({ card: { prompt: "Was ist ATP?", answer: "Energieträger" }, mode, ...(question ? { question } : {}) })).map((criterion) => criterion.id);
   assert.deepEqual(ids("explain"), ["H1", "H2", "H3", "H6", "H7"]);
   assert.deepEqual(ids("example"), ["H1", "H2", "H4", "H6", "H7"]);
@@ -69,39 +72,65 @@ test("Korpusziehung liefert bei gleichem Startwert dieselben Fälle im Anfrageve
   const first = await sampleCorpus(help, 6, 1, "fixtures/apkg");
   assert.deepEqual(first, await sampleCorpus(help, 6, 1, "fixtures/apkg"));
   assert.equal(first.length, 6);
-  assert.ok(first.every((entry) => /^corpus-[0-9a-f]{10}-(?:explain|example)$/.test(entry.id) && help.parseRequest(entry.request)));
+  assert.ok(first.every((entry) => /^corpus-[0-9a-f]{10}-(?:explain|example)$/.test(entry.id) && /^note-[0-9a-f]{10}$/.test(entry.group ?? "") && help.parseRequest(entry.request)));
+  assert.equal(first[0].group, first[1].group);
   assert.notDeepEqual(first, await sampleCorpus(help, 6, 2, "fixtures/apkg"));
 });
 
-test("Die Aufteilung ist je Kategorie hälftig, wiederholbar und lässt bestehende Zuordnungen stehen", () => {
-  const drafts: DraftCase[] = Array.from({ length: 10 }, (_, index) => ({ id: `c${index}`, category: index < 6 ? "x" : "y", request: {} }));
-  drafts[0].split = "train";
+test("Die Aufteilung folgt 40/30/30 je Kategorie, hält Gruppen zusammen, ist wiederholbar und lässt Zuordnungen stehen", () => {
+  const drafts: DraftCase[] = Array.from({ length: 20 }, (_, index) => ({ id: `c${index}`, category: index < 10 ? "x" : "y", request: {}, ...(index === 1 || index === 2 ? { group: "g" } : {}) }));
+  drafts[0].split = "holdout";
+  drafts[2].split = "dev";
   const first = assignSplits(drafts, seededRandom(7));
   assert.deepEqual(first, assignSplits(drafts, seededRandom(7)));
-  assert.equal(first[0].split, "train");
-  const tests = (category: string) => first.filter((entry) => entry.category === category && entry.split === "test").length;
-  assert.deepEqual([tests("x"), tests("y")], [3, 2]);
+  assert.deepEqual(first.slice(0, 3).map((entry) => entry.split), ["holdout", "dev", "dev"]);
+  const count = (category: string) => SPLITS.map((split) => first.filter((entry) => entry.category === category && entry.split === split).length);
+  assert.deepEqual([count("x"), count("y")], [[4, 3, 3], [4, 3, 3]]);
   assert.deepEqual(assignSplits(first, seededRandom(99)), first);
+  assert.throws(() => assignSplits([{ ...drafts[1], split: "train" }, drafts[2]], seededRandom(1)), /Gruppe g liegt in mehreren Teilen/);
 });
 
-test("Erzeugung: Vertragsfehler zählen als Antwort, Infrastrukturfehler bleiben offen, ein zweiter Aufruf setzt fort", async () => {
+test("Erzeugung: jede Anfrage endet in einer Antwortklasse, Anbieterfehler werden wiederholt, ein zweiter Aufruf setzt fort", async () => {
   const directory = mkdtempSync(path.join(tmpdir(), "ai-eval-"));
   try {
+    const responses: (() => Response)[] = [
+      () => completion({ rephrasable: true, front: "Was ist Osmose?", back: "Diffusion von Wasser" }, 0.01),
+      () => new Response("{}", { status: 429 }),
+      () => completion({ rephrasable: true, front: "Wie nennt man die Diffusion von Wasser durch eine Membran?", back: "Diffusion von Wasser" }),
+      () => completion({ rephrasable: false, front: "", back: "" }, 0.02),
+      () => { throw Object.assign(new Error("abgelaufen"), { name: "TimeoutError" }); },
+      ...Array.from({ length: 5 }, () => () => new Response("{}", { status: 503 })),
+      () => completion({ rephrasable: true, front: "Welcher Vorgang ist die Diffusion von Wasser?", back: "Diffusion von Wasser" }),
+    ];
     let calls = 0;
-    const answer = (front: string) => new Response(JSON.stringify(mockCompletion("create_card_variant", { rephrasable: true, front, back: "Diffusion von Wasser" })), { status: 200 });
-    const fetchImpl = (async () => {
-      calls++;
-      if (calls === 1) return answer("Was ist Osmose?");
-      if (calls === 2) return new Response("{}", { status: 429 });
-      return answer("Wie nennt man die Diffusion von Wasser durch eine Membran?");
-    }) as typeof fetch;
-    const options = { definition: variant, cases: cases.slice(0, 1), repetitions: 3, split: "test" as const, directory, apiKey: "test", fetchImpl, concurrency: 1, log: () => {} };
+    const fetchImpl = (async () => responses[calls++]()) as typeof fetch;
+    const options = { definition: variant, cases: cases.slice(0, 1), repetitions: 5, split: "dev" as const, directory, apiKey: "test", fetchImpl, concurrency: 1, retryDelayMs: 0, log: () => {} };
     assert.equal(await generate(options), 1);
-    assert.deepEqual(readAnswers(directory).map((entry) => [entry.repetition, entry.ok, entry.error]), [[0, false, "invalid_variant"], [2, true, null]]);
+    assert.deepEqual(readAnswers(directory).map((entry) => [entry.repetition, entry.outcome, entry.error, entry.costUsd]), [
+      [0, "rejected", "invalid_variant", 0.01], [1, "answer", null, 0], [2, "refused", "not_rephrasable", 0.02], [3, "timeout", "provider_timeout", null],
+    ]);
     assert.equal(await generate(options), 0);
-    assert.equal(calls, 4);
-    assert.deepEqual(readAnswers(directory).map((entry) => entry.repetition).sort(), [0, 1, 2]);
-    await assert.rejects(generate({ ...options, repetitions: 5 }), /mit repetitions = 3 begonnen/);
+    assert.equal(calls, 11);
+    assert.deepEqual(readAnswers(directory).map((entry) => entry.repetition), [0, 1, 2, 3, 4]);
+    await assert.rejects(generate({ ...options, repetitions: 3 }), /mit repetitions = 5 begonnen/);
+    const changed = { ...variant, buildPayload: (request: unknown) => ({ ...variant.buildPayload(request), max_tokens: 1 }) };
+    await assert.rejects(generate({ ...options, definition: changed }), /mit fingerprint = [0-9a-f]{16} begonnen/);
+  } finally {
+    rmSync(directory, { recursive: true, force: true });
+  }
+});
+
+test("Erzeugung: Verwerfen der Route und eine Antwort ohne JSON zählen als Antwort, das Budget hält den Lauf an", async () => {
+  const directory = mkdtempSync(path.join(tmpdir(), "ai-eval-"));
+  try {
+    const cloze = definitionFor("card-variant-cloze");
+    const request = cloze.parseRequest({ kind: "cloze", source: { front: "Die Hauptstadt Frankreichs ist {{c1::Paris}}.", back: "Paris" } });
+    let calls = 0;
+    const fetchImpl = (async () => calls++ === 0 ? new Response("kein JSON", { status: 200 }) : completion({ rephrasable: true, front: "Frankreichs Hauptstadt heißt Paris.", back: "Paris" }, 0.4)) as typeof fetch;
+    const options = { definition: cloze, cases: [{ id: "l", category: "x", split: "dev" as const, request }], repetitions: 5, split: "dev" as const, directory, apiKey: "test", fetchImpl, concurrency: 1, budgetUsd: 1, log: () => {} };
+    await assert.rejects(generate(options), /Budget von 1 USD erreicht/);
+    assert.deepEqual(readAnswers(directory).map((entry) => [entry.outcome, entry.error]), [["rejected", "invalid_provider_response"], ["rejected", "invalid_gaps"], ["rejected", "invalid_gaps"], ["rejected", "invalid_gaps"]]);
+    assert.equal(await generate({ ...options, budgetUsd: 2 }), 0);
   } finally {
     rmSync(directory, { recursive: true, force: true });
   }
@@ -125,7 +154,7 @@ test("Richtertabelle: ohne Dubletten und ohne Herkunft; unvollständige Urteile 
 
 test("Auswertung: Hauptwert verlangt Vertrag, automatische Kriterien und Richterurteil; Kriterien zählen nur gültige Antworten", () => {
   const good = { front: "Wie nennt man die Diffusion von Wasser?", back: "Diffusion von Wasser" };
-  const rows = [row("a", 0, good), row("a", 1, null, false), row("b", 0, { front: "Wann fing die Französische Revolution an?", back: "1799" }), row("b", 1, { front: "Wann fing die Französische Revolution an?", back: "1789" })];
+  const rows = [row("a", 0, good), row("a", 1, null, "rejected"), row("b", 0, { front: "Wann fing die Französische Revolution an?", back: "1799" }), row("b", 1, { front: "Wann fing die Französische Revolution an?", back: "1789" })];
   const verdicts: Verdicts = new Map([[answerRef("a", 0), { M2: true, M6: true }], [answerRef("b", 0), { M2: true, M6: true }], [answerRef("b", 1), { M2: false, M6: true }]]);
   const results = evaluateAnswers(variant, cases, 2, rows, verdicts);
   assert.deepEqual(results.map((entry) => entry.main), [true, false, false, false]);
@@ -138,6 +167,20 @@ test("Auswertung: Hauptwert verlangt Vertrag, automatische Kriterien und Richter
   assert.equal(summary.latencyP90Ms, 1500);
   assert.throws(() => evaluateAnswers(variant, cases, 2, rows.slice(1), verdicts), /Antwort a#0 fehlt/);
   assert.throws(() => evaluateAnswers(variant, cases, 2, rows, new Map()), /Richterurteil M2 für a#0 fehlt/);
+});
+
+test("Auswertung: Eine Ablehnung besteht nur, wenn der Fall sie erwartet, und geht nie an den Richter", () => {
+  const refuse: EvalCase = { id: "r", category: "nicht-umformulierbar", split: "dev", refuse: true, request: card("xqzt vblm?", "krwp") };
+  const good = { front: "Wie nennt man die Diffusion von Wasser?", back: "Diffusion von Wasser" };
+  const rows = [row("r", 0, null, "refused"), row("r", 1, { front: "Was bedeutet xqzt?", back: "krwp" }), row("a", 0, null, "refused"), row("a", 1, good)];
+  const results = evaluateAnswers(variant, [refuse, cases[0]], 2, rows, new Map([[answerRef("a", 1), { M2: true, M6: true }]]));
+  assert.deepEqual(results.map((entry) => [entry.outcome, entry.criteria, entry.main]), [
+    ["refused", { M1: true, M7: true }, true],
+    ["answer", { M1: true, M7: false }, false],
+    ["refused", { M1: true, M7: false }, false],
+    ["answer", { M1: true, M7: true, M3: true, M4: true, M5: true, M2: true, M6: true }, true],
+  ]);
+  assert.deepEqual(summarize(results, seededRandom(1)).outcomes, { answer: 2, refused: 2, rejected: 0, timeout: 0 });
 });
 
 test("Vergleich: übernommen nur über dem Rauschen und ohne schlechteres kritisches Kriterium", () => {
