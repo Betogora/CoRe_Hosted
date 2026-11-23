@@ -74,9 +74,10 @@ test("reported, excluded and outdated variants carry their marks; edited ones an
 });
 
 test("the study tab names the nine figures, the maturity band and the leech with its time", () => {
-  const card = createBasicNote("deck", "Was ist ATP?", "Ein Energieträger.").cards[0];
+  const graph = createBasicNote("deck", "Was ist ATP?", "Ein Energieträger.");
+  const card = graph.cards[0];
   const reviewed = { ...card, study: { ...card.study, state: "review" as const, reps: 9, lapses: 8, stability: 30, difficulty: 6.4, intervalDays: 21, lastReviewedAt: "2026-07-20T10:00:00.000Z", leechedAt: "2026-07-20T10:00:00.000Z", extra: { ...card.study.extra, stabilityFast: 30 } } };
-  const markup = renderToStaticMarkup(<CardEditorStudyTab card={reviewed} now={NOW} services={services} />);
+  const markup = renderToStaticMarkup(<CardEditorStudyTab graph={{ note: graph.note, cards: [reviewed] }} card={reviewed} now={NOW} services={services} />);
   const figures = markup.match(/data-testid="card-study-figures"[\s\S]*?<\/dl>/)?.[0] ?? "";
   assert.equal([...figures.matchAll(/<div class="core-card-editor-row"><dt>/g)].length, 9, "eine Zeile je Wert, Beschriftung links");
   assert.doesNotMatch(figures, /truncate/, "keine Beschriftung wird abgeschnitten");

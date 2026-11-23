@@ -233,17 +233,18 @@ export function createCardCommands({ store, repository, hydration, cloud, syncEn
     return runBatch({ repository, openCards: workspaceHydrationService.openCards }, cardIds, action, reloadLists);
   }
 
-  /** An action on the open card keeps the lists in place, so its row stays under the cursor; a deletion reloads them. */
-  function runCardAction(cardId: string, action: CardBatchAction): Promise<CardBatchResult> {
+  /**
+   * An action on the open card keeps the lists in place, so its row stays under the cursor; a deletion reloads them.
+   * The shown content stands in for a body or sibling that is not stored on this device (offline, evicted).
+   */
+  function runCardAction(shown: NoteGraph, cardId: string, action: CardBatchAction): Promise<CardBatchResult> {
     return inCardWriteChain(async () => {
-      const service = hydration();
-      // The open card is on this device already; a sibling may not be, so its content comes from the cloud.
-      const openCards = service?.openCards ?? ((cardIds: string[]) => repository.loadCardBodies(cardIds));
+      const openCards = async (cardIds: string[]) => (await repository.loadCardBodies(cardIds)).map((body, index) => {
+        const card = body ? undefined : shown.cards.find((candidate) => candidate.id === cardIds[index]);
+        return body ?? (card ? { card, note: shown.note } : null);
+      });
       const batchRepository: CardBatchRepository = {
-        loadNoteGraphs: async (noteIds) => {
-          const local = await repository.loadNoteGraphs(noteIds);
-          return Promise.all(local.map((graph, index) => graph ?? service?.loadNoteGraph(noteIds[index]).catch(() => null) ?? null));
-        },
+        loadNoteGraphs: async (noteIds) => (await repository.loadNoteGraphs(noteIds)).map((graph, index) => graph ?? (noteIds[index] === shown.note.id ? shown : null)),
         saveNoteGraphs: (changes) => repository.saveNoteGraphs(changes),
         buryCards: (...args) => repository.buryCards(...args),
         resetCards: (...args) => repository.resetCards(...args),
@@ -251,9 +252,7 @@ export function createCardCommands({ store, repository, hydration, cloud, syncEn
         rescheduleCards: (...args) => repository.rescheduleCards(...args),
         restoreCardStudies: (...args) => repository.restoreCardStudies(...args),
       };
-      const noteId = (await openCards([cardId]))[0]?.note.id;
-      if (!noteId) throw new Error("Die Karte ist nicht mehr verfügbar.");
-      const result = await runBatch({ repository: batchRepository, openCards }, [cardId], action, action.kind === "delete" ? reloadLists : () => reloadNoteGraph(noteId, action.kind === "deck"));
+      const result = await runBatch({ repository: batchRepository, openCards }, [cardId], action, action.kind === "delete" ? reloadLists : () => reloadNoteGraph(shown.note.id, action.kind === "deck"));
       return { ...result, undo: () => inCardWriteChain(result.undo) };
     });
   }

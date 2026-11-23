@@ -425,7 +425,7 @@ export function DecksScreen({
     setDeckStatus("");
     setSuccessToast("");
     try {
-      const result = await cardEditor.runCardAction(deletion.cardId, { kind: "delete" });
+      const result = await cardEditor.runCardAction(deletion.graph, deletion.cardId, { kind: "delete" });
       if (!result.changedCount) throw new Error("Löschung fehlgeschlagen.");
       setDeletedCardUndo({ deckId: deletion.deckId, cardId: deletion.cardId, undo: result.undo, description });
       setPendingCardDelete(null);

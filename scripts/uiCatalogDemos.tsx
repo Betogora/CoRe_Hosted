@@ -246,7 +246,7 @@ function StructureDemo({ section }: { section: string }) {
       <CoreTabPanel panelId="catalog-deck-head" value={headTab} className="core-body text-core-secondary">Inhalt des Reiters {TAB_DEMO_ITEMS.find((item) => item.value === headTab)?.label}.</CoreTabPanel>
     </Demo>}
     {section === "struktur" && <Demo title="Karteneditor · Abschnitte auf einer Fläche, Lernstand als Reifeband und Zeilenliste" wide>
-      <div className="core-card-editor-frame overflow-hidden rounded-panel border border-core-border"><CardEditorStudyTab card={variantStudyCard} now={`${today}T09:00:00Z`} services={catalogCardEditorServices} /></div>
+      <div className="core-card-editor-frame overflow-hidden rounded-panel border border-core-border"><CardEditorStudyTab graph={{ note: variantStudyGraph.note, cards: [variantStudyCard] }} card={variantStudyCard} now={`${today}T09:00:00Z`} services={catalogCardEditorServices} /></div>
     </Demo>}
     {section === "dialogs" && <Demo title="DialogFrame · s, m mit Reitern, l"><div className="catalog-row">{(["s", "m", "l"] as const).map((size) => <ActionButton key={size} variant="secondary" onClick={() => setDialog(size)}>{`Dialog ${size.toUpperCase()} öffnen`}</ActionButton>)}</div>
       <DialogFrame open={dialog !== null} size={dialog ?? "m"} title={dialog === "m" ? "Karte bearbeiten" : "Tags verwalten"} onClose={() => setDialog(null)}

@@ -75,7 +75,7 @@ test("Löschen entfernt den Inhalt samt Geschwistern; Rückgängig stellt den vo
   const graph = await repository.loadNoteGraph("note-0");
   assert.ok(graph);
 
-  const { undo } = await commands.createCardEditorServices([], () => undefined).runCardAction("card-0-forward", { kind: "delete" });
+  const { undo } = await commands.createCardEditorServices([], () => undefined).runCardAction(graph, "card-0-forward", { kind: "delete" });
   assert.equal(await repository.loadCardBody("card-0-reverse"), null);
   assert.deepEqual(store.get().cardPages, {}, "die Listen laden neu");
   await showList("deck-a");
@@ -97,7 +97,7 @@ test("eine Karte wechselt in einen anderen Stapel; Listen, die sie zeigten, lade
   await showList("deck-b");
   const editor = commands.createCardEditorServices([], () => undefined);
 
-  const moved = await editor.runCardAction("card-1-forward", { kind: "deck", deckId: "deck-b" });
+  const moved = await editor.runCardAction((await repository.loadNoteGraph("note-1"))!, "card-1-forward", { kind: "deck", deckId: "deck-b" });
 
   assert.equal(moved.changedCount, 1);
   assert.equal((await repository.loadCardBody("card-1-forward"))?.card.deckId, "deck-b");
@@ -110,11 +110,11 @@ test("eine Karte wechselt in einen anderen Stapel; Listen, die sie zeigten, lade
 });
 
 test("eine Aktion an der offenen Karte lässt die Listen stehen; Rückgängig überspringt eine seither geänderte Karte", async () => {
-  const { store, commands, showList } = await setup();
+  const { repository, store, commands, showList } = await setup();
   await showList("deck-a", "card-1-forward");
   const editor = commands.createCardEditorServices([], () => undefined);
 
-  const suspended = await editor.runCardAction("card-1-forward", { kind: "suspended", suspended: true });
+  const suspended = await editor.runCardAction((await repository.loadNoteGraph("note-1"))!, "card-1-forward", { kind: "suspended", suspended: true });
 
   assert.equal(suspended.changedCount, 1);
   const row = () => store.get().cardPages["deck-a"]?.pages[0]?.find((entry) => entry.id === "card-1-forward");
@@ -123,16 +123,17 @@ test("eine Aktion an der offenen Karte lässt die Listen stehen; Rückgängig ü
   await commands.applyCardStudyState("card-1-forward", { suspended: false });
   assert.deepEqual(await suspended.undo(), { restoredCount: 0, skippedCount: 1 });
 
-  const unleeched = await editor.runCardAction("card-0-forward", { kind: "unleech" });
+  const unleeched = await editor.runCardAction((await repository.loadNoteGraph("note-0"))!, "card-0-forward", { kind: "unleech" });
   assert.deepEqual(await unleeched.undo(), { restoredCount: 1, skippedCount: 0 });
 });
 
 test("eine Aktion an der offenen Karte und eine gleich folgende Flagge bauen aufeinander auf", async () => {
   const { repository, commands } = await setup();
   const editor = commands.createCardEditorServices([], () => undefined);
+  const shown = (await repository.loadNoteGraph("note-1"))!;
 
   await Promise.all([
-    editor.runCardAction("card-1-forward", { kind: "suspended", suspended: true }),
+    editor.runCardAction(shown, "card-1-forward", { kind: "suspended", suspended: true }),
     commands.applyCardStudyState("card-1-forward", { flag: 2 }),
   ]);
 
@@ -140,19 +141,17 @@ test("eine Aktion an der offenen Karte und eine gleich folgende Flagge bauen auf
   assert.deepEqual([card?.status, card?.ankiFlag], ["suspended", 2]);
 });
 
-test("eine Aktion an der offenen Karte holt einen hier unvollständigen Inhalt über die Hydrierung", async () => {
+test("eine Aktion an der offenen Karte nutzt den gezeigten Inhalt, wenn er hier nicht vollständig liegt", async () => {
   const { repository, store, bootRun } = await setup();
-  // Without the body of a sibling on this device the local graph is missing.
-  const partial = { ...repository, loadNoteGraphs: async (noteIds: string[]) => noteIds.map(() => null) };
-  const hydration = { openCards: (ids: string[]) => repository.loadCardBodies(ids), loadNoteGraph: (id: string) => repository.loadNoteGraph(id) };
-  const commands = createCardCommands({
-    store, repository: partial, hydration: () => hydration as unknown as ReturnType<Parameters<typeof createCardCommands>[0]["hydration"]>, cloud: null, syncEngine: () => null, refresh: () => undefined, now: () => NOW, bootRun,
-  });
+  const shown = (await repository.loadNoteGraph("note-0"))!;
+  // Offline or evicted: neither the body nor the content graph is stored on this device.
+  const partial = { ...repository, loadCardBodies: async (ids: string[]) => ids.map(() => null), loadNoteGraphs: async (ids: string[]) => ids.map(() => null) };
+  const commands = createCardCommands({ store, repository: partial, hydration: () => null, cloud: null, syncEngine: () => null, refresh: () => undefined, now: () => NOW, bootRun });
 
-  const result = await commands.createCardEditorServices([], () => undefined).runCardAction("card-0-forward", { kind: "suspended", suspended: true });
+  const result = await commands.createCardEditorServices([], () => undefined).runCardAction(shown, "card-0-forward", { kind: "delete" });
 
   assert.equal(result.changedCount, 1);
-  assert.equal((await repository.loadCardBody("card-0-forward"))?.card.status, "suspended");
+  assert.equal(await repository.loadCardBody("card-0-forward"), null);
 });
 
 test("schnelle Sofortänderungen am Lernstand bauen in ihrer Reihenfolge aufeinander auf", async () => {

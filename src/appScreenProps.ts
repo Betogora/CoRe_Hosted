@@ -80,7 +80,7 @@ interface CardEditorCloudReads {
 
 export interface CardEditorServices {
   flagNames: readonly string[];
-  runCardAction: (cardId: string, action: CardBatchAction) => Promise<CardBatchResult>;
+  runCardAction: (shown: NoteGraph, cardId: string, action: CardBatchAction) => Promise<CardBatchResult>;
   buryCards: (cardIds: string[], buried: boolean) => Promise<Card[]>;
   editVariant: (cardId: string, variantId: string, text: { front: string; back: string }) => Promise<void>;
   removeNoteMedia: (graph: NoteGraph, names: string[]) => Promise<NoteGraph | null>;

@@ -243,7 +243,7 @@ export function CardEditorDialog(props: CardEditorDialogProps) {
         ) : null)}
         {panel("study", tab === "study" ? (
           <React.Suspense fallback={loading}>
-            <CardEditorStudyTab card={card} now={props.now} dayStartHour={props.dayStartHour} timeZone={props.timeZone} services={services} />
+            <CardEditorStudyTab graph={graph} card={card} now={props.now} dayStartHour={props.dayStartHour} timeZone={props.timeZone} services={services} />
           </React.Suspense>
         ) : null)}
       </CoreTabPanel>

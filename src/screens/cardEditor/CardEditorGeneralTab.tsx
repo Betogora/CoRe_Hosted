@@ -152,7 +152,7 @@ export function CardEditorGeneralTab({ decks, graph, card, now, dayStartHour, ti
   async function reschedule() {
     const dueAt = getLearningDayStartForKey(date, dayOptions);
     if (!dueAt || date < minimumKey || date === dueDateKey) return;
-    const result = await run("reschedule", () => services.runCardAction(card.id, { kind: "due", dueAts: [dueAt.toISOString()] }), "Die nächste Fälligkeit konnte nicht neu geplant werden.");
+    const result = await run("reschedule", () => services.runCardAction(graph, card.id, { kind: "due", dueAts: [dueAt.toISOString()] }), "Die nächste Fälligkeit konnte nicht neu geplant werden.");
     if (result?.changedCount) offerUndo(`Nächste Fälligkeit auf ${formatDayKey(date)} gelegt.`, result.undo);
   }
 
@@ -161,14 +161,14 @@ export function CardEditorGeneralTab({ decks, graph, card, now, dayStartHour, ti
       if (await run("bury", () => services.buryCards([card.id], false), "Die Karte konnte nicht zurückgestellt werden.")) setEventsVersion((version) => version + 1);
       return;
     }
-    const result = await run("bury", () => services.runCardAction(card.id, { kind: "bury" }), "Die Karte konnte nicht zurückgestellt werden.");
+    const result = await run("bury", () => services.runCardAction(graph, card.id, { kind: "bury" }), "Die Karte konnte nicht zurückgestellt werden.");
     if (!result?.changedCount) return;
     setEventsVersion((version) => version + 1);
     offerUndo("Karte bis zum nächsten Lerntag zurückgestellt.", result.undo);
   }
 
   async function resetLeech() {
-    const result = await run("leech", () => services.runCardAction(card.id, { kind: "unleech" }), "Die Lernbremse konnte nicht zurückgesetzt werden.");
+    const result = await run("leech", () => services.runCardAction(graph, card.id, { kind: "unleech" }), "Die Lernbremse konnte nicht zurückgesetzt werden.");
     if (result?.changedCount) offerUndo("Lernbremse zurückgesetzt.", result.undo);
   }
 
@@ -177,7 +177,7 @@ export function CardEditorGeneralTab({ decks, graph, card, now, dayStartHour, ti
     const target = moveTarget;
     setMoveOpen(false);
     if (target === from) return;
-    const result = await run("move", () => services.runCardAction(card.id, { kind: "deck", deckId: target }), "Die Karte konnte nicht verschoben werden.");
+    const result = await run("move", () => services.runCardAction(graph, card.id, { kind: "deck", deckId: target }), "Die Karte konnte nicht verschoben werden.");
     if (!result?.changedCount) return;
     onCardMoved(target, card.id);
     offerUndo(`Karte nach „${deckName(target)}“ verschoben.`, async () => {
@@ -188,12 +188,12 @@ export function CardEditorGeneralTab({ decks, graph, card, now, dayStartHour, ti
   }
 
   async function suspend(next: boolean) {
-    const result = await run("suspend", () => services.runCardAction(card.id, { kind: "suspended", suspended: next }), next ? "Die Karte konnte nicht ausgesetzt werden." : "Die Karte konnte nicht reaktiviert werden.");
+    const result = await run("suspend", () => services.runCardAction(graph, card.id, { kind: "suspended", suspended: next }), next ? "Die Karte konnte nicht ausgesetzt werden." : "Die Karte konnte nicht reaktiviert werden.");
     if (result?.changedCount) offerUndo(next ? "Karte ausgesetzt." : "Karte reaktiviert.", result.undo);
   }
 
   async function changeTags(change: { added: string[]; removed: string[] }) {
-    const result = await run("tags", () => services.runCardAction(card.id, { kind: "tags", add: change.added, remove: change.removed }), "Die Tags konnten nicht gespeichert werden.");
+    const result = await run("tags", () => services.runCardAction(graph, card.id, { kind: "tags", add: change.added, remove: change.removed }), "Die Tags konnten nicht gespeichert werden.");
     if (!result?.changedCount || !change.removed.length || change.added.length) return;
     const label = change.removed.length === 1 ? `Tag „${change.removed[0]}“ entfernt.` : `${change.removed.length} Tags entfernt.`;
     offerUndo(label, result.undo);
