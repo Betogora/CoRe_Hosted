@@ -42,8 +42,8 @@ Nachweis, nimm ihn und nenne die Abweichung im Pull Request.
   Tests), `server/aiRoute.ts`, `api/ai/`, die vier Vertragsmodule
   `src/ai*Contract.ts`, den Skill `.agents/skills/ai-eval/SKILL.md` und
   `.claude/agents/eval-judge.md`.
-- **Reihenfolge:** E, F und G in beliebiger Reihenfolge, dann H → I → J. A
-  bis D und der Probelauf sind erledigt; dessen Ergebnis steht im
+- **Reihenfolge:** F und G in beliebiger Reihenfolge, dann H → I → J. A
+  bis E und der Probelauf sind erledigt; dessen Ergebnis steht im
   [Verlauf](history.md), die Rohdaten im Datenordner unter
   `<typ>/2026-11-23-probe/`. Seine Fehlermuster (Lückentext als Frage mit
   nachgestellter Lücke, übernommene eingeschleuste Anweisungen, umgekehrte
@@ -91,8 +91,8 @@ Vier Routen, alle über `OPENROUTER_MODEL` (`openai/gpt-6-luna`), Reasoning
 
 | Route | Prompt | Anfragearten | Prompt ist | Eval heute |
 | --- | --- | --- | --- | --- |
-| `card-variant` | `card-variant-v5` | Frage/Antwort, Eintippen (Zusatzregel), Lückentext, Auswahl (Single, Multiple, Kprim) | drei feste Texte | Definitionen für drei Arten, je 24 Prüfkarten; Eintippen ohne Prüfkarte |
-| `card-help` | `card-help-v1` | Erklären, Beispiel, eigene Frage mit bis zu sechs Wechseln Verlauf | ein fester Text | Definition, 24 Prüfkarten |
+| `card-variant` | `card-variant-v5` | Frage/Antwort, Eintippen (Zusatzregel), Lückentext, Auswahl (Single, Multiple, Kprim) | drei feste Texte | Definitionen für drei Arten |
+| `card-help` | `card-help-v1` | Erklären, Beispiel, eigene Frage mit bis zu sechs Wechseln Verlauf | ein fester Text | Definition |
 | `source-cards` | `source-cards-v2` | je Abschnitt (≤ 15.000 Zeichen, ≤ 25 Karten) mit `avoid` und Restmenge aus früheren Abschnitten | Funktion von sieben Einstellungen | fehlt im Register und auf der Seite; fünf Prüfdokumente |
 | `summary` | `learning-summary-v4` | eine Anfrage je Zusammenfassung, bis 400.000 Zeichen Material | Funktion von zehn Einstellungen | im Register, ohne Definition |
 
@@ -402,17 +402,33 @@ gelten:
 - Die Rohdaten des Probelaufs haben noch die alte Richtertabelle; `score`
   wertet sie nicht mehr aus. Ihr Ergebnis steht im Verlauf.
 
-### E – Fallsätze Varianten und KI hilft
+### E – erledigt
 
-- Prüfkarten nach „Fallsätze“ in den vier Falldateien ergänzen, mit `refuse`,
-  `trap` und `group`, wo sie gelten; Eintippen als eigene Kategorien in
-  `card-variant-basic`.
-- `npm run ai-eval -- cases <typ> --corpus <n>` zieht den Rest; die
-  Kategorien der Korpusfälle (`corpusCategory`, `clozeCorpusCategory`) vorher
-  an echten Zahlen prüfen, damit keine Kategorie den Satz dominiert.
-- **Fertig, wenn** jeder der vier Anfragetypen etwa 100 Fälle in drei Teilen
-  hat, die Fallen je kritischem Kriterium mindestens 20 Fälle zählen und der
-  Nutzer je Anfragetyp zehn Prüfkarten gesehen hat.
+Umgesetzt am 2026-11-23. Stand und Abweichungen:
+
+| Anfragetyp | Prüfkarten | Korpusfälle (lokal) | train/dev/holdout | Fallen | Ablehnungen |
+| --- | --- | --- | --- | --- | --- |
+| Frage/Antwort mit Eintippen | 62 | 40 | 42/33/27 | 20 | 4 |
+| Lückentext | 59 | 50 | 45/34/30 | 20 | 2 |
+| Auswahl | 78 | – | 27/26/25 | 20 | 4 |
+| KI hilft | 70 | 40 | 46/29/35 | 20 | – |
+
+- **Auswahl ohne Korpus:** Der lokale Anki-Korpus enthält keine
+  Auswahlkarten; deshalb 78 Prüfkarten statt etwa 100.
+- **Korpus:** Frage/Antwort kommt nur aus 108 Notizen, überwiegend
+  Zahlenkarten; Lückentext aus über 39.000 deutschen Medizin-Notizen. Die
+  Korpusfälle liegen in `<Datenordner>/<typ>/corpus.cases.json`; wer den
+  Fallsatz anderswo braucht, zieht sie mit `cases <typ> --corpus <n>` und
+  demselben Startwert neu (der Korpus muss unter `fixtures/apkg/corpus/`
+  liegen).
+- **Neue Kategorien:** `eintippen`, `knapp-fachlich` (kurze Fachkarten, die
+  nicht als ungeeignet gelten dürfen) und `verneinung` bei Frage/Antwort,
+  `grosse-luecke` und `verneinung` bei Lückentext, `verneinung` bei Auswahl.
+- **Injection** in mehreren Formen: Anweisung im Text, auf der Rückseite, im
+  Zusatzfeld, im Verlauf, in einer Auswahloption, als HTML-Kommentar und auf
+  Englisch.
+- **Gruppen** halten bei KI hilft alle Fälle einer Karte zusammen, darunter
+  sechs Karten in allen drei Modi.
 
 ### F – Karten aus einer Quelle messbar machen
 

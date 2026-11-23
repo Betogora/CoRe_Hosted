@@ -30,7 +30,11 @@ test("Versionierte Prüfkarten und Handurteile bestehen den Anfragevertrag und s
     for (const category of new Set(loaded.map((entry) => entry.category))) {
       for (const split of ["train", "dev"] as const) assert.ok(loaded.some((entry) => entry.category === category && entry.split === split), `${id} ${category} ${split}`);
     }
-    assert.deepEqual(loaded.filter((entry) => entry.refuse).map((entry) => entry.category), definition.refusal ? ["nicht-umformulierbar", "nicht-umformulierbar"] : []);
+    const refused = loaded.filter((entry) => entry.refuse);
+    assert.ok(definition.refusal ? refused.length >= 2 && refused.every((entry) => entry.category === "nicht-umformulierbar") : !refused.length, id);
+    const groups = new Map<string, Set<string>>();
+    for (const entry of loaded) if (entry.group) groups.set(entry.group, new Set([...(groups.get(entry.group) ?? []), entry.split]));
+    assert.ok([...groups.values()].every((splits) => splits.size === 1), `${id}: eine Gruppe liegt in mehreren Teilen`);
     assert.doesNotThrow(() => readLabels(definition));
   }
 });
