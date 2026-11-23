@@ -64,8 +64,7 @@ test("shared study heatmap defaults to seven days with the streak band and perio
   assert.match(markup, /--core-heatmap-on-strong:#ffffff/);
   assert.match(markup, /data-heatmap-history-color="#b55b43"/);
   assert.doesNotMatch(markup, /Heatmap-Farbe ändern/);
-  assert.match(markup, /data-testid="study-heatmap-controls"[\s\S]*Frühere sieben Tage anzeigen[\s\S]*role="group" aria-label="Heatmap-Zeitraum"/);
-  assert.match(markup, /aria-pressed="true"[^>]*>Woche</);
+  assert.match(markup, /data-testid="study-heatmap-controls"[\s\S]*Frühere sieben Tage anzeigen[\s\S]*role="combobox"[^>]*aria-label="Heatmap-Zeitraum"[\s\S]*>Woche</);
   assert.match(markup, /Frühere sieben Tage anzeigen/);
   assert.match(markup, /Spätere sieben Tage anzeigen/);
   assert.match(markup, /data-testid="study-heatmap-grid"[^>]*data-heatmap-period="week"/);
