@@ -5,6 +5,8 @@ import { AI_CARD_VARIANT_PROMPT_VERSION } from "../../src/aiCardVariantContract.
 import { AI_LEARNING_SUMMARY_PROMPT_VERSION } from "../../src/aiLearningSummaryContract.ts";
 
 export const LEDGER_FILE = "fixtures/ai-eval/ledger.json";
+/** Ergebnisse eines eingetragenen Laufs ohne Inhalte; der gepaarte Vergleich liest den Bestand von hier. */
+export const resultsFile = (id: string, run: string) => `fixtures/ai-eval/results/${id}/${run}.json`;
 
 /** `target` ist der Zielwert des Hauptwerts; `critical` nennt die Kriterien, die nie schlechter werden dürfen. */
 export const REQUEST_TYPES = [
@@ -20,25 +22,33 @@ export type RequestType = (typeof REQUEST_TYPES)[number];
 const share = v.pipe(v.number(), v.minValue(0), v.maxValue(1));
 const count = v.pipe(v.number(), v.integer(), v.minValue(0));
 const date = v.pipe(v.string(), v.isoDate());
+const fingerprint = v.pipe(v.string(), v.regex(/^[0-9a-f]{16}$/));
 const requestType = v.picklist(REQUEST_TYPES.map((type) => type.id));
 
 const runSchema = v.strictObject({
   requestType,
   run: v.pipe(v.string(), v.regex(/^[a-z0-9.-]+$/)),
   date,
+  split: v.picklist(["dev", "holdout"]),
   promptVersion: v.string(),
+  candidate: v.nullable(v.string()),
+  fingerprint,
   model: v.string(),
   reasoning: v.string(),
   change: v.pipe(v.string(), v.minLength(1)),
-  decision: v.picklist(["baseline", "accepted", "rejected"]),
+  decision: v.picklist(["baseline", "accepted", "rejected", "holdout"]),
   cases: count,
   repetitions: count,
   main: share,
   low: share,
   high: share,
   criteria: v.record(v.string(), share),
+  outcomes: v.strictObject({ answer: count, refused: count, rejected: count, timeout: count }),
+  traps: v.strictObject({ answers: count, errors: count }),
   costUsd: v.pipe(v.number(), v.minValue(0)),
+  costTotalUsd: v.pipe(v.number(), v.minValue(0)),
   latencyP90Ms: v.pipe(v.number(), v.minValue(0)),
+  judge: v.strictObject({ model: v.pipe(v.string(), v.minLength(1)), fingerprint, entries: count, cached: count, noise: v.record(v.string(), share) }),
   comparison: v.optional(v.strictObject({ noise: share, gained: count, lost: count })),
 });
 
@@ -57,8 +67,8 @@ export type EvalRun = v.InferOutput<typeof runSchema>;
 export type EvalCalibration = v.InferOutput<typeof calibrationSchema>;
 export type EvalLedger = v.InferOutput<typeof ledgerSchema>;
 /**
- * `number` zählt innerhalb des Anfragetyps; `reference` ist der zuletzt gültige Bestand davor, gegen den der Lauf
- * gemessen wurde.
+ * Die Reihe eines Anfragetyps sind seine Läufe auf dem Entscheidungsteil. `number` zählt innerhalb der Reihe; `reference`
+ * ist der zuletzt gültige Bestand davor, gegen den der Lauf gemessen wurde.
  */
 export type EvalSeriesEntry = { number: number; run: EvalRun; reference: EvalRun | null };
 
@@ -71,14 +81,17 @@ export function parseStrict<const Schema extends v.GenericSchema>(schema: Schema
 
 export function parseLedger(value: unknown): EvalLedger {
   const ledger = parseStrict(ledgerSchema, value, LEDGER_FILE);
+  for (const [index, run] of ledger.runs.entries()) {
+    const place = `${LEDGER_FILE}: Lauf ${index + 1} (${run.requestType}, ${run.run})`;
+    if (run.low > run.main || run.high < run.main) throw new Error(`${place}: Der Hauptwert liegt außerhalb seines Intervalls.`);
+    const missing = REQUEST_TYPES.find((type) => type.id === run.requestType)!.critical.find((id) => !(id in run.criteria));
+    if (missing) throw new Error(`${place}: Das kritische Kriterium ${missing} fehlt.`);
+    if ((run.decision === "holdout") !== (run.split === "holdout")) throw new Error(`${place}: Eine Messung am Rückhalt trägt die Entscheidung holdout, und nur sie.`);
+    if (run.decision === "baseline" || run.decision === "holdout" ? run.comparison : !run.comparison) throw new Error(`${place}: Nur Runden tragen einen Vergleich, eine Baseline oder Messung am Rückhalt nie.`);
+  }
   for (const type of REQUEST_TYPES) {
     for (const { number, run, reference } of seriesFor(ledger, type.id)) {
-      const place = `${LEDGER_FILE}: ${type.id}, Lauf ${number}`;
-      if (run.low > run.main || run.high < run.main) throw new Error(`${place}: Der Hauptwert liegt außerhalb seines Intervalls.`);
-      const missing = type.critical.find((id) => !(id in run.criteria));
-      if (missing) throw new Error(`${place}: Das kritische Kriterium ${missing} fehlt.`);
-      if (run.decision === "baseline" ? run.comparison : !run.comparison) throw new Error(`${place}: Nur Runden tragen einen Vergleich, eine Baseline nie.`);
-      if (run.decision !== "baseline" && !reference) throw new Error(`${place}: Vor der ersten Runde fehlt eine Baseline.`);
+      if (run.decision !== "baseline" && !reference) throw new Error(`${LEDGER_FILE}: ${type.id}, Lauf ${number}: Vor der ersten Runde fehlt eine Baseline.`);
     }
   }
   return ledger;
@@ -90,7 +103,7 @@ export function readLedger(file = LEDGER_FILE) {
 
 export function seriesFor(ledger: EvalLedger, id: RequestType["id"]): EvalSeriesEntry[] {
   let best: EvalRun | null = null;
-  return ledger.runs.filter((run) => run.requestType === id).map((run, index) => {
+  return ledger.runs.filter((run) => run.requestType === id && run.split === "dev").map((run, index) => {
     const entry = { number: index + 1, run, reference: best };
     if (run.decision !== "rejected") best = run;
     return entry;
@@ -99,6 +112,12 @@ export function seriesFor(ledger: EvalLedger, id: RequestType["id"]): EvalSeries
 
 export function bestRun(ledger: EvalLedger, id: RequestType["id"]) {
   return seriesFor(ledger, id).filter(({ run }) => run.decision !== "rejected").at(-1)?.run ?? null;
+}
+
+/** Die letzte Messung am Rückhalt mit Promptversion, Modell und Reasoning des Laufs; der Fingerabdruck hängt an den Fällen des Teils. */
+export function holdoutFor(ledger: EvalLedger, run: EvalRun) {
+  return ledger.runs.filter((other) => other.requestType === run.requestType && other.decision === "holdout"
+    && other.promptVersion === run.promptVersion && other.model === run.model && other.reasoning === run.reasoning).at(-1) ?? null;
 }
 
 export function latestCalibration(ledger: EvalLedger, id: RequestType["id"]) {

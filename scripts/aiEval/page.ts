@@ -1,8 +1,8 @@
 import { OPENROUTER_MODEL } from "../../server/aiRoute.ts";
 import { appendToSection, escapeHtml, renderMarkdown } from "../docsSite.ts";
-import { LEDGER_FILE, REQUEST_TYPES, bestRun, latestCalibration, seriesFor, type EvalLedger, type EvalRun, type EvalSeriesEntry, type RequestType } from "./ledger.ts";
+import { LEDGER_FILE, REQUEST_TYPES, bestRun, holdoutFor, latestCalibration, seriesFor, type EvalLedger, type EvalRun, type EvalSeriesEntry, type RequestType } from "./ledger.ts";
 
-const DECISIONS = { baseline: "Baseline", accepted: "übernommen", rejected: "verworfen" } as const;
+const DECISIONS = { baseline: "Baseline", accepted: "übernommen", rejected: "verworfen", holdout: "Rückhalt" } as const;
 const number = (value: number) => value.toLocaleString("de-DE", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
 const percent = (share: number) => `${number(share * 100)} %`;
 const interval = (run: EvalRun) => `${percent(run.main)} (${number(run.low * 100)}–${number(run.high * 100)})`;
@@ -18,15 +18,22 @@ function standing(type: RequestType, best: EvalRun | null) {
   return best.promptVersion === type.promptVersion && best.model === OPENROUTER_MODEL ? "Gemessen" : "Prompt im Code nicht gemessen";
 }
 
+const traps = (run: EvalRun) => run.traps.answers ? `${run.traps.errors} Fehler in ${run.traps.answers}` : "–";
+const noise = (run: EvalRun) => {
+  const shares = Object.values(run.judge.noise);
+  return shares.length ? `Rauschen bis ${percent(Math.max(...shares))}` : "ohne Doppelurteile";
+};
+
 export function bestTable(ledger: EvalLedger) {
   const rows = REQUEST_TYPES.map((type) => {
     const best = bestRun(ledger, type.id);
+    const held = best && holdoutFor(ledger, best);
     const calibration = latestCalibration(ledger, type.id);
-    const measured = best ? [code(best.promptVersion), interval(best), critical(type, best), usd(best.costUsd), seconds(best.latencyP90Ms), best.date] : ["–", "–", "–", "–", "–", "–"];
-    const judge = calibration ? `${percent(calibration.agreement)} · ${calibration.entries} Einträge · ${calibration.falsePasses} falsch bestanden` : "nicht kalibriert";
-    return [type.label, code(type.promptVersion), standing(type, best), ...measured.slice(0, 2), type.target === null ? "–" : percent(type.target), ...measured.slice(2), judge];
+    const measured = best ? [code(best.promptVersion), interval(best), held ? interval(held) : "–", critical(type, best), traps(best), usd(best.costUsd), seconds(best.latencyP90Ms), best.date] : ["–", "–", "–", "–", "–", "–", "–", "–"];
+    const judge = calibration ? `${percent(calibration.agreement)} · ${calibration.entries} Einträge · ${calibration.falsePasses} falsch bestanden` : best ? `nicht kalibriert · ${noise(best)}` : "nicht kalibriert";
+    return [type.label, code(type.promptVersion), standing(type, best), ...measured.slice(0, 3), type.target === null ? "–" : percent(type.target), ...measured.slice(3), judge];
   });
-  const head = ["Anfragetyp", "Im Code", "Stand", "Bester Prompt", "Hauptwert (95 %-Intervall)", "Ziel", "Kritisch", "Kosten je Antwort", "Latenz p90", "Lauf vom", "Richter"];
+  const head = ["Anfragetyp", "Im Code", "Stand", "Bester Prompt", "Hauptwert (95 %-Intervall)", "Rückhalt", "Ziel", "Kritisch", "Fallen", "Kosten je Antwort", "Latenz p90", "Lauf vom", "Richter"];
   return `<div class="docs-eval">${table("Bestand je Anfragetyp", head, rows)}</div><p class="docs-source">Modell im Code: ${code(OPENROUTER_MODEL)}. „Im Code“ liest die Versionskonstante des Vertragsmoduls beim Erzeugen.</p>`;
 }
 
@@ -80,8 +87,31 @@ export function progressSections(ledger: EvalLedger) {
   return sections.join("") || "<p>Noch kein Lauf im Ledger.</p>";
 }
 
+export function balanceSection(ledger: EvalLedger) {
+  if (!ledger.runs.length) return "<p>Noch kein Lauf im Ledger.</p>";
+  const sum = (runs: readonly EvalRun[], value: (run: EvalRun) => number) => runs.reduce((total, run) => total + value(run), 0);
+  const cachedShare = (runs: readonly EvalRun[]) => {
+    const all = sum(runs, (run) => run.judge.entries + run.judge.cached);
+    return all ? percent(sum(runs, (run) => run.judge.cached) / all) : "–";
+  };
+  const rows = REQUEST_TYPES.flatMap((type) => {
+    const runs = ledger.runs.filter((run) => run.requestType === type.id);
+    if (!runs.length) return [];
+    const series = seriesFor(ledger, type.id);
+    const baseline = series.filter(({ run }) => run.decision === "baseline").at(-1)?.run;
+    const best = bestRun(ledger, type.id);
+    return [[type.label, String(runs.length), String(sum(runs, (run) => run.cases * run.repetitions)), usd(sum(runs, (run) => run.costTotalUsd)),
+      String(sum(runs, (run) => run.judge.entries)), cachedShare(runs), baseline ? percent(baseline.main) : "–", best ? percent(best.main) : "–", type.target === null ? "–" : percent(type.target)]];
+  });
+  const total = ["alle", String(ledger.runs.length), String(sum(ledger.runs, (run) => run.cases * run.repetitions)), usd(sum(ledger.runs, (run) => run.costTotalUsd)),
+    String(sum(ledger.runs, (run) => run.judge.entries)), cachedShare(ledger.runs), "–", "–", "–"];
+  const head = ["Anfragetyp", "Läufe", "Antworten", "Kosten gesamt", "Neu bewertet", "Aus dem Urteilscache", "Baseline", "Bester Stand", "Ziel"];
+  return `<div class="docs-eval">${table("Bilanz je Anfragetyp", head, [...rows, total])}</div>`;
+}
+
 export function aiEvalDocument(markdown: string, ledger: EvalLedger) {
   const withBest = appendToSection(renderMarkdown(markdown, "ai-eval.md"), "ai-eval--bestand", bestTable(ledger), "ai-eval.md");
-  const html = appendToSection(withBest, "ai-eval--verlauf", progressSections(ledger), "ai-eval.md");
+  const withProgress = appendToSection(withBest, "ai-eval--verlauf", progressSections(ledger), "ai-eval.md");
+  const html = appendToSection(withProgress, "ai-eval--bilanz", balanceSection(ledger), "ai-eval.md");
   return `<article id="ai-eval--document" class="docs-document"><p class="docs-source">Verbindliche Quellen: <a href="ai-eval.md">ai-eval.md</a> und <a href="../${LEDGER_FILE}">${LEDGER_FILE}</a></p>${html}</article>`;
 }

@@ -42,20 +42,20 @@ Nachweis, nimm ihn und nenne die Abweichung im Pull Request.
   Tests), `server/aiRoute.ts`, `api/ai/`, die vier Vertragsmodule
   `src/ai*Contract.ts`, den Skill `.agents/skills/ai-eval/SKILL.md` und
   `.claude/agents/eval-judge.md`.
-- **Reihenfolge:** C → D, danach E, F und G in beliebiger Reihenfolge, dann
-  H → I → J. A, B und der Probelauf sind erledigt; dessen Ergebnis steht im
+- **Reihenfolge:** E, F und G in beliebiger Reihenfolge, dann H → I → J. A
+  bis D und der Probelauf sind erledigt; dessen Ergebnis steht im
   [Verlauf](history.md), die Rohdaten im Datenordner unter
   `<typ>/2026-11-23-probe/`. Seine Fehlermuster (Lückentext als Frage mit
   nachgestellter Lücke, übernommene eingeschleuste Anweisungen, umgekehrte
   Richtung bei Definitionen, Abschweifungen bei KI hilft) sind die ersten
-  Kandidaten für Paket I. Vorschlag für den Schnitt: A und B in einem
-  Pull Request, danach je Paket einer.
+  Kandidaten für Paket I. Je Paket ein Pull Request.
 - **Je Pull Request:** `npm run typecheck`, die Modultests unter
   `scripts/aiEval/` (laufen mit `runModuleTests.ts`), ein Trockenlauf von
   `cases` bis `score`, `npm run check:docs`, `audit-last-change`.
-- **Bezahlte Läufe** erst, wenn der Nutzer `OPENROUTER_API_KEY` und
-  `CORE_AI_EVAL_DIR` als Benutzer-Umgebungsvariablen gesetzt hat. Den Schlüssel trägt nur er ein; er erscheint in keinem Log, Bericht
-  oder Chat. Vor jedem Lauf Anfragetyp, Fallzahl und erwartete Kosten
+- **Bezahlte Läufe** brauchen `OPENROUTER_API_KEY` und `CORE_AI_EVAL_DIR`, als
+  Benutzer-Umgebungsvariablen oder in `.env.local` des Worktrees. Den
+  Schlüssel trägt nur der Nutzer ein; er erscheint in keinem Log, Bericht oder
+  Chat, und die Sitzung liest `.env.local` nicht. Vor jedem Lauf Anfragetyp, Fallzahl und erwartete Kosten
   nennen; solange das Limit des Schlüssels reicht, braucht ein Lauf keine
   Einzelfreigabe. Hält es an (`provider_budget_exhausted`), fragt die Sitzung
   den Nutzer, ob er es erhöht.
@@ -103,7 +103,10 @@ KI aus der Zusammenfassung.
 
 R1–R7 (Antwortklassen, erwartbare Ablehnung, Zeitüberschreitungen und Kosten,
 Fingerabdruck, Budget und Parallelität, getrenntes Formatkriterium bei
-`card-help`, drei Teile nach Gruppen) sind mit den Paketen A und B behoben.
+`card-help`, drei Teile nach Gruppen) sind mit den Paketen A und B behoben,
+R8–R13 (Kandidaten, Richterblöcke, festgehaltener Richter, Eintrag ohne
+Kalibrierung, versionierte Ergebnisse, Entscheidung mit Kosten und Latenz)
+mit C und D.
 
 Bewährt und bleibt: Erzeugen über Payload-Builder und Antwortprüfung der
 Route, fortsetzbare Läufe mit Transkript, Tabelle ohne Herkunft mit
@@ -112,12 +115,6 @@ Ledger, Trockenlauf.
 
 | Nr. | Befund | Folge | Paket |
 | --- | --- | --- | --- |
-| R8 | Reasoning, Ausgabegrenze und Prompt stehen nur im Code der Route. | Immer nur ein Kandidat; jeder Versuch ist eine Codeänderung. | C |
-| R9 | Der ganze Lauf geht als eine Tabelle an einen Subagenten. | Hunderte Einträge in einem Kontext: Spätere Urteile hängen von früheren ab. | C |
-| R10 | Der Richter ist nicht festgehalten: `model: opus` wandert mit Claude Code, `--judge` ist Freitext mit Vorgabewert, der Bogen kann sich spurlos ändern. | Läufe mit verschiedenen Richtern werden verglichen. | C |
-| R11 | `--record` verlangt eine Kalibrierung. | Widerspricht der Festlegung. | C |
-| R12 | Der gepaarte Vergleich braucht `results.json` des Bestands in `output/`, das je Worktree existiert und nicht versioniert ist. | Nach dem Entfernen eines Worktrees lässt sich keine Runde mehr auswerten. | D |
-| R13 | `decide` kennt weder Kosten noch Latenz noch Fallen. | Eine teurere oder langsamere Variante wird übernommen. | D |
 | R14 | Eine Definition ist eine Anfrage mit einer Antwort und kennt nur bestanden oder nicht. | Ein Auftrag aus mehreren Abschnitten und Zahlenwerte wie die Kartenmenge sind nicht messbar. | F |
 
 Nebenbei aufgefallen, nicht Teil von P5: Die Specs sagen „nie im
@@ -376,81 +373,34 @@ folgenden Pakete gelten:
 - **Ledger:** `--record` nimmt nur Läufe auf `dev`; die Kalibrierungsprüfung
   bleibt bis Paket C.
 
-### C – Kandidaten und Richter
+### C und D – erledigt
 
-Idee: Ein Versuch ist eine Datei, kein Commit; der Richter sieht kleine
-Blöcke und bewertet nichts zweimal.
+Umgesetzt am 2026-11-23. Abweichungen und Stand, die für die folgenden Pakete
+gelten:
 
-- **Kandidat (R8):** `--candidate <name>` lädt
-  `<Datenordner>/<typ>/candidates/<name>.ts` (unter Windows über
-  `pathToFileURL`) mit einer Standardfunktion `(payload, request) =>
-  payload`. Der Runner wendet sie nach `definition.buildPayload` an und
-  bildet den Fingerabdruck aus dem Ergebnis. `run.json` nennt den Kandidaten.
-  Ein Beispiel im Skill genügt als Dokumentation.
-- **Übernahme:** `score --record` bildet für „übernommen“ und für eine
-  Baseline den Fingerabdruck des Codes über dieselben Fälle und verlangt
-  Gleichheit mit dem Lauf; ein verworfener Kandidat wird ohne diese Prüfung
-  eingetragen.
-- **Blöcke (R9)** in `judge.ts`: aus `buildJudgeTable` werden Blöcke
-  `judge/block-001.json` … nach den Regeln unter „Richter“; der Schlüssel
-  bleibt außerhalb in `judge-key.json`. Urteile liegen je Block daneben
-  (`block-001.verdicts.json`); `readVerdicts` führt sie zusammen und nennt
-  fehlende Blöcke.
-- **Urteilsformat:** `results` bleibt je Kriterium ein Wahrheitswert, dazu
-  `sure` je Kriterium (1–3). `eval-judge.md` bekommt die Skala und den Block
-  als einzige Datei; die Anweisung, in Zwanzigerblöcken zu arbeiten,
-  entfällt.
-- **Doppelurteile und Cache:** `table` nimmt Einträge mit vorhandenem Urteil
-  aus den Blöcken, zieht 10 % der übrigen (mindestens zehn, mit festem
-  Startwert) als zweiten Eintrag in einen anderen Block; `score` schreibt
-  neue Urteile in den Cache `<Datenordner>/<typ>/judge-cache.json`. Schlüssel
-  des Cache: Hash über den Text von `eval-judge.md`, die Kriterien des
-  Eintrags mit ihren Texten sowie Eingabe und Ausgabe. Kontrolleinträge aus
-  Handurteilen laufen weiter mit, falls es welche gibt, und umgehen den
-  Cache.
-- **Richter festhalten (R10):** `score --judge <modell>` ist Pflicht und hat
-  keinen Vorgabewert; der Fingerabdruck des Richters steht im Bericht und
-  später im Ledger. Ein Vergleich mit einem Bestand anderen Fingerabdrucks
-  bricht ab, außer mit `--baseline`.
-- **Grenzfälle** im Bericht (`renderReport`) nach der Regel unter „Richter“.
-- **`--record` (R11)** verlangt keine Kalibrierung mehr.
-- **Skill:** nach `table` je Block ein `eval-judge` mit „Bewerte `<Pfad>`.“,
-  höchstens sechs gleichzeitig, danach `score`; Grenzfälle dem Nutzer zeigen.
-  Läufe mit Richter gehen nur in Claude Code.
-- **Tests:** Blockgrenzen und gemeinsames Material; Doppel landen in
-  verschiedenen Blöcken; ein zweiter Lauf mit gleichen Ausgaben ergibt keinen
-  Block; Rauschen aus gekippten Doppeln; Eintrag ohne Kalibrierung.
-- **Fertig, wenn** zwei Kandidaten eines Anfragetyps im Trockenlauf
-  nebeneinander ausgewertet sind und ein zweiter Lauf mit gleichen Ausgaben
-  keinen Richter braucht.
-
-### D – Auswertung und Übersicht
-
-Idee: Der Vergleich hängt an Git statt an einem Ordner, und die Entscheidung
-kennt Kosten.
-
-- **Ergebnisdateien (R12):** `score --record` schreibt
-  `fixtures/ai-eval/results/<typ>/<lauf>.json` (die heutigen `AnswerResult`
-  ohne Inhalte, mit Antwortklasse); `compare` liest den Bestand von dort.
-  Kennungen von Korpusfällen sind Hashes und verraten nichts.
-- **Entscheidung (R13)** in `score.ts` nach „Auswertung und Entscheidung“,
-  mit `--simplify` für Vereinfachungen. Fallen und Zuverlässigkeit im
-  Bericht.
-- **Ledger** (`ledger.ts`): je Lauf zusätzlich `split`, `fingerprint`,
-  `candidate`, `costTotalUsd`, `timeouts`, `traps` (Antworten, Fehler),
-  `judge` (Modell, Fingerabdruck, Einträge, Anteil aus dem Cache, Rauschen je
-  Kriterium) und `metrics`. Neue Entscheidung `holdout` für eine Messung am
-  Rückhalt: Sie setzt keinen Bestand und trägt keinen Vergleich. Die Reihe
-  aus Baseline und Runden läuft am Entscheidungsteil. `calibrations` bleibt
-  im Schema.
-- **Seite** (`page.ts`): Bestand mit Rückhalt, Richterrauschen und Fallen;
-  neuer Abschnitt „Bilanz“. `ai-eval.md` beschreibt den neuen Stand; der Satz
-  zur Bauvorleistung entfällt.
-- **Tests:** Entscheidungsregel an den Grenzen (Kosten, kritisches
-  Kriterium, Vereinfachung); Ledger-Prüfung der neuen Felder; Seite aus einem
-  Testledger (`page.test.ts`).
-- **Fertig, wenn** `score` ohne `output/` gegen einen eingetragenen Bestand
-  vergleicht und die Seite die Bilanz aus einem Testledger zeigt.
+- **Kandidat:** Der Standardexport bekommt den ganzen gebauten Payload und
+  die Anfrage und gibt den Payload zurück; Prompt, Schema, Grenzen, Reasoning
+  und Modell sind damit alle erreichbar. Ein späterer Modellvergleich von Hand
+  ist ein Kandidat, der `model` setzt.
+- **Doppelurteile** entstehen erst ab zwei Blöcken; bei einem Block wären
+  sie im selben Kontext wertlos.
+- **Gemeinsames Material** in einem Block (Karten eines Dokuments,
+  Abschnitte einer Zusammenfassung) baut Paket F beziehungsweise G; heute ist
+  jeder Eintrag für sich.
+- **Vereinfachung** (`--simplify`) gilt als übernommen, wenn der Abstand über
+  minus Rauschen liegt, also nicht messbar schlechter ist.
+- **Rückhalt** wird dem Bestand über Promptversion, Modell und Reasoning
+  zugeordnet, nicht über den Fingerabdruck; der hängt an den Fällen des Teils.
+- **Messgrößen** (Zahlenwerte je Fall) bringt Paket F mit R14 ins Ledger.
+- **Grenzfälle** stehen in `grenzfaelle.md` im Laufordner, nicht im Bericht:
+  Sie enthalten Ein- und Ausgaben, und die Sitzung soll Antworten aus
+  Entscheidung und Rückhalt nicht lesen. Der Nutzer bekommt den Link.
+- **Fingerabdruck des Payloads** umfasst den ganzen Payload samt
+  Nutzernachricht, mit sortierten Schlüsseln; er gilt damit nur für dieselben
+  Fälle. Der Fingerabdruck des Richters hängt an den Kriterien des ganzen
+  Fallsatzes, nicht an den Antworten eines Laufs.
+- Die Rohdaten des Probelaufs haben noch die alte Richtertabelle; `score`
+  wertet sie nicht mehr aus. Ihr Ergebnis steht im Verlauf.
 
 ### E – Fallsätze Varianten und KI hilft
 

@@ -8241,14 +8241,21 @@ html:has(.catalog-preview) { scroll-behavior: auto; }
 </style></head><body><div class="docs-frame"><aside class="docs-sidebar"><nav class="docs-panel docs-pages" aria-label="Doku-Seiten"><div class="docs-panel-head"><a class="docs-brand" href="index.html">CoRe <span>Docs</span></a><button type="button" id="docs-theme" aria-label="Dark Mode einschalten" style="color:var(--core-text)" class="core-action-ghost min-w-button p-2 size-button shrink-0 rounded-control"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-sun" aria-hidden="true"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2"></path><path d="M12 20v2"></path><path d="m4.93 4.93 1.41 1.41"></path><path d="m17.66 17.66 1.41 1.41"></path><path d="M2 12h2"></path><path d="M20 12h2"></path><path d="m6.34 17.66-1.41 1.41"></path><path d="m19.07 4.93-1.41 1.41"></path></svg><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-moon" aria-hidden="true"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"></path></svg></button></div><div class="docs-panel-links"><a href="index.html">Docs</a><a href="specs.html">Specs</a><a href="journeys.html">Journeys</a><a href="ui-elements.html">UI-Elements</a><a href="card-types.html">Kartenbausteine</a><a href="ai-eval.html" aria-current="page">KI-Eval</a></div></nav><div class="docs-panel docs-search-panel" role="search"><label class="catalog-search"><span class="catalog-search-label">KI-Eval durchsuchen</span><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-search" aria-hidden="true"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.3-4.3"></path></svg><input id="docs-search" type="search" placeholder="Anfragetyp, Kriterium …" autocomplete="off"></label><p id="docs-search-count" class="docs-count" role="status"></p></div><nav class="docs-panel docs-toc" aria-label="Inhalt"><strong>Inhalt</strong><div id="docs-toc" class="docs-panel-links"></div></nav></aside><main class="docs-main"><article id="ai-eval--document" class="docs-document"><p class="docs-source">Verbindliche Quellen: <a href="ai-eval.md">ai-eval.md</a> und <a href="../fixtures/ai-eval/ledger.json">fixtures/ai-eval/ledger.json</a></p><h1 id="ai-eval--ki-eval" class="core-heading-1" tabindex="-1">KI-Eval <a class="docs-anchor" href="#ai-eval--ki-eval" aria-label="Link zu KI-Eval">#</a></h1>
 <p>Stand der per Hillclimb gemessenen KI-Prompts. Grundsätze stehen in
 <a href="decisions.md#adr-049--ki-%C3%A4nderungen-nur-mit-eval-nachweis">ADR-049</a>, offene
-Arbeit unter <a href="todo.md#p5-ki-eval-und-hillclimb">P5</a>. Bestand und Verlauf
-entstehen beim Erzeugen aus dem Ledger; die Prompttexte stehen nur im Code.</p>
+Arbeit unter <a href="todo.md#p5-ki-eval-und-hillclimb">P5</a>. Bestand, Verlauf und
+Bilanz entstehen beim Erzeugen aus dem Ledger; die Prompttexte stehen nur im
+Code.</p>
 <h2 id="ai-eval--bestand" class="core-heading-2" tabindex="-1">Bestand <a class="docs-anchor" href="#ai-eval--bestand" aria-label="Link zu Bestand">#</a></h2>
-<p>Eine Zeile je Anfragetyp: der Prompt im Code und der beste gemessene Stand.
-Weicht beides voneinander ab, ist der Prompt im Code nicht gemessen.</p>
-<div class="docs-eval"><div class="docs-table-scroll" tabindex="0" role="region" aria-label="Bestand je Anfragetyp"><table><thead><tr><th>Anfragetyp</th><th>Im Code</th><th>Stand</th><th>Bester Prompt</th><th>Hauptwert (95 %-Intervall)</th><th>Ziel</th><th>Kritisch</th><th>Kosten je Antwort</th><th>Latenz p90</th><th>Lauf vom</th><th>Richter</th></tr></thead><tbody><tr><th scope="row">Variante Frage/Antwort</th><td><code>card-variant-v5</code></td><td>Noch kein Lauf</td><td>–</td><td>–</td><td>95,0 %</td><td>–</td><td>–</td><td>–</td><td>–</td><td>nicht kalibriert</td></tr><tr><th scope="row">Variante Lückentext</th><td><code>card-variant-v5</code></td><td>Noch kein Lauf</td><td>–</td><td>–</td><td>95,0 %</td><td>–</td><td>–</td><td>–</td><td>–</td><td>nicht kalibriert</td></tr><tr><th scope="row">Variante Auswahl</th><td><code>card-variant-v5</code></td><td>Noch kein Lauf</td><td>–</td><td>–</td><td>95,0 %</td><td>–</td><td>–</td><td>–</td><td>–</td><td>nicht kalibriert</td></tr><tr><th scope="row">Lernhilfe zur Karte</th><td><code>card-help-v1</code></td><td>Noch kein Lauf</td><td>–</td><td>–</td><td>90,0 %</td><td>–</td><td>–</td><td>–</td><td>–</td><td>nicht kalibriert</td></tr><tr><th scope="row">Zusammenfassung</th><td><code>learning-summary-v4</code></td><td>Noch kein Lauf</td><td>–</td><td>–</td><td>–</td><td>–</td><td>–</td><td>–</td><td>–</td><td>nicht kalibriert</td></tr></tbody></table></div></div><p class="docs-source">Modell im Code: <code>openai/gpt-6-luna</code>. „Im Code“ liest die Versionskonstante des Vertragsmoduls beim Erzeugen.</p><h2 id="ai-eval--verlauf" class="core-heading-2" tabindex="-1">Verlauf <a class="docs-anchor" href="#ai-eval--verlauf" aria-label="Link zu Verlauf">#</a></h2>
-<p>Hauptwert auf dem Entscheidungsteil je Lauf. Ein Lauf ist eine Baseline oder eine Runde
-mit genau einer Änderung.</p>
+<p>Eine Zeile je Anfragetyp: der Prompt im Code und der beste gemessene Stand am
+Entscheidungsteil, dazu die Messung am Rückhalt mit derselben Promptversion.
+Weicht der Prompt im Code vom besten Stand ab, ist er nicht gemessen.</p>
+<div class="docs-eval"><div class="docs-table-scroll" tabindex="0" role="region" aria-label="Bestand je Anfragetyp"><table><thead><tr><th>Anfragetyp</th><th>Im Code</th><th>Stand</th><th>Bester Prompt</th><th>Hauptwert (95 %-Intervall)</th><th>Rückhalt</th><th>Ziel</th><th>Kritisch</th><th>Fallen</th><th>Kosten je Antwort</th><th>Latenz p90</th><th>Lauf vom</th><th>Richter</th></tr></thead><tbody><tr><th scope="row">Variante Frage/Antwort</th><td><code>card-variant-v5</code></td><td>Noch kein Lauf</td><td>–</td><td>–</td><td>–</td><td>95,0 %</td><td>–</td><td>–</td><td>–</td><td>–</td><td>–</td><td>nicht kalibriert</td></tr><tr><th scope="row">Variante Lückentext</th><td><code>card-variant-v5</code></td><td>Noch kein Lauf</td><td>–</td><td>–</td><td>–</td><td>95,0 %</td><td>–</td><td>–</td><td>–</td><td>–</td><td>–</td><td>nicht kalibriert</td></tr><tr><th scope="row">Variante Auswahl</th><td><code>card-variant-v5</code></td><td>Noch kein Lauf</td><td>–</td><td>–</td><td>–</td><td>95,0 %</td><td>–</td><td>–</td><td>–</td><td>–</td><td>–</td><td>nicht kalibriert</td></tr><tr><th scope="row">Lernhilfe zur Karte</th><td><code>card-help-v1</code></td><td>Noch kein Lauf</td><td>–</td><td>–</td><td>–</td><td>90,0 %</td><td>–</td><td>–</td><td>–</td><td>–</td><td>–</td><td>nicht kalibriert</td></tr><tr><th scope="row">Zusammenfassung</th><td><code>learning-summary-v4</code></td><td>Noch kein Lauf</td><td>–</td><td>–</td><td>–</td><td>–</td><td>–</td><td>–</td><td>–</td><td>–</td><td>–</td><td>nicht kalibriert</td></tr></tbody></table></div></div><p class="docs-source">Modell im Code: <code>openai/gpt-6-luna</code>. „Im Code“ liest die Versionskonstante des Vertragsmoduls beim Erzeugen.</p><h2 id="ai-eval--verlauf" class="core-heading-2" tabindex="-1">Verlauf <a class="docs-anchor" href="#ai-eval--verlauf" aria-label="Link zu Verlauf">#</a></h2>
+<p>Hauptwert auf dem Entscheidungsteil je Lauf. Ein Lauf ist eine Baseline oder
+eine Runde mit genau einer Änderung; Messungen am Rückhalt gehören zu keiner
+Reihe.</p>
+<p>Noch kein Lauf im Ledger.</p><h2 id="ai-eval--bilanz" class="core-heading-2" tabindex="-1">Bilanz <a class="docs-anchor" href="#ai-eval--bilanz" aria-label="Link zu Bilanz">#</a></h2>
+<p>Was das Experiment bisher gekostet hat: Läufe, Antworten, Kosten, neu
+bewertete Einträge und der Anteil der Einträge aus dem Urteilscache, je Anfragetyp mit
+Baseline, bestem Stand und Ziel.</p>
 <p>Noch kein Lauf im Ledger.</p><h2 id="ai-eval--ablauf" class="core-heading-2" tabindex="-1">Ablauf <a class="docs-anchor" href="#ai-eval--ablauf" aria-label="Link zu Ablauf">#</a></h2>
 <p>Ein Lauf besteht aus fünf Befehlen von <code>npm run ai-eval</code>; die Schrittfolge für
 Agenten steht im Skill <a href="../.agents/skills/ai-eval/SKILL.md"><code>ai-eval</code></a>.</p>
@@ -8268,22 +8275,22 @@ Agenten steht im Skill <a href="../.agents/skills/ai-eval/SKILL.md"><code>ai-eva
 <tr>
 <td>Erzeugen</td>
 <td><code>generate &lt;typ&gt; --run &lt;name&gt;</code></td>
-<td>je Fall zwei Antworten (<code>--repetitions</code>) auf dem Entscheidungsteil (<code>--split</code>) über Payload-Builder und Antwortprüfung der Route, <code>--concurrency</code> parallel (Vorgabe 4), bis <code>--budget</code> USD (Vorgabe 1); ein zweiter Aufruf setzt fort</td>
+<td>je Fall zwei Antworten (<code>--repetitions</code>) auf dem Entscheidungsteil (<code>--split</code>) über Payload-Builder und Antwortprüfung der Route, <code>--concurrency</code> parallel (Vorgabe 4), bis <code>--budget</code> USD (Vorgabe 1); <code>--candidate &lt;name&gt;</code> ersetzt den Payload; ein zweiter Aufruf setzt fort</td>
 </tr>
 <tr>
-<td>Tabelle</td>
+<td>Blöcke</td>
 <td><code>table &lt;typ&gt; --run &lt;name&gt;</code></td>
-<td>Richtertabelle ohne Dubletten, gemischt, ohne Herkunft, mit den Kontrolleinträgen</td>
+<td>Richterblöcke ohne Dubletten und ohne Herkunft, gemischt, mit Kontrolleinträgen und Doppeln</td>
 </tr>
 <tr>
 <td>Richten</td>
-<td>Subagent <a href="../.claude/agents/eval-judge.md"><code>eval-judge</code></a></td>
-<td>Urteile je Eintrag und Kriterium</td>
+<td>je Block ein Subagent <a href="../.claude/agents/eval-judge.md"><code>eval-judge</code></a></td>
+<td>Urteil und Sicherheit je Eintrag und Kriterium</td>
 </tr>
 <tr>
 <td>Auswerten</td>
-<td><code>score &lt;typ&gt; --run &lt;name&gt;</code></td>
-<td>Bericht; mit <code>--record</code> der Ledger-Eintrag</td>
+<td><code>score &lt;typ&gt; --run &lt;name&gt; --judge &lt;modell&gt;</code></td>
+<td>Bericht und Grenzfälle; am Entscheidungsteil die Entscheidung; mit <code>--record</code> der Ledger-Eintrag und die Ergebnisdatei</td>
 </tr>
 </tbody></table>
 <ul>
@@ -8298,20 +8305,40 @@ alle Antworten.</li>
 <li>Ratenlimit und Anbieterfehler werden mit wachsender Wartezeit bis zu fünfmal
 versucht; was danach scheitert, bleibt offen und wird beim nächsten Aufruf
 wiederholt. Schlüssel-, Limit- und Endpunktfehler halten den Lauf an.</li>
-<li>Jeder Lauf hält den Fingerabdruck seines Payloads ohne Nutzdaten fest; ein
-Prompt, Werkzeugschema, Modell oder Reasoning, das sich seitdem geändert
-hat, setzt ihn nicht fort.</li>
-<li><code>score</code> entscheidet eine Runde selbst: übernommen, wenn der Abstand zum
-Bestand über dem Rauschen liegt und kein kritisches Kriterium schlechter ist.</li>
-<li>Ins Ledger kommt ein Lauf nur vom Entscheidungsteil, mit kalibriertem Richter und
-ohne fälschlich bestandenen Kontrolleintrag bei einem kritischen Kriterium.</li>
+<li>Ein Kandidat ist ein Modul <code>&lt;typ&gt;/candidates/&lt;name&gt;.ts</code> im Datenordner,
+dessen Standardexport den gebauten Payload ändert (Prompt, Werkzeugschema,
+Ausgabegrenze, Reasoning, Modell); die Antwortprüfung bleibt die der Route.
+Jeder Lauf hält den Fingerabdruck seiner Payloads fest; ein geänderter
+Payload setzt ihn nicht fort.</li>
+<li>Ein Block hat höchstens 25 Einträge und etwa 12.000 Zeichen, je Block urteilt
+ein frischer Richter. Ab zwei Blöcken steht ein Zehntel der Einträge
+(mindestens zehn) ein zweites Mal in einem anderen Block, zusätzlich zu
+dessen Einträgen; der Anteil gekippter Urteile ist das Rauschen des Richters.
+<code>grenzfaelle.md</code> im Laufordner zeigt je Kriterium bis zu drei Grenzfälle:
+gekippte Urteile, dann die mit der geringsten Sicherheit. Sie enthält Ein-
+und Ausgaben und ist für den Nutzer; der Bericht selbst nennt nur
+Kennzahlen.</li>
+<li>Ein Urteil gilt für Richterauftrag, Bogen, Eingabe und Ausgabe und landet im
+Urteilscache <code>&lt;typ&gt;/judge-cache.json</code>; dieselbe Ausgabe bekommt in späteren
+Läufen dasselbe Urteil ohne Richter. Ein anderer Richterauftrag oder Bogen
+ändert den Fingerabdruck des Richters, und die Reihe beginnt mit einer neuen
+Baseline.</li>
+<li><code>score</code> entscheidet eine Runde selbst: übernommen, wenn der gepaarte Abstand
+zum Bestand über dem Rauschen liegt (mit <code>--simplify</code> für Kürzungen: nicht
+messbar schlechter), kein kritisches Kriterium schlechter wird und Kosten je
+Antwort und Latenz p90 höchstens das 1,2-Fache betragen. Fallen (<code>trap</code>)
+zählt der Bericht getrennt.</li>
+<li>Ins Ledger kommen Läufe auf dem Entscheidungsteil und Messungen am Rückhalt.
+Eine Baseline, eine Übernahme und eine Messung am Rückhalt trägt <code>--record</code>
+nur ein, wenn der Code der Route denselben Payload baut wie der Lauf; ein
+übernommener Kandidat muss also zuerst in die Route. Ein Kontrolleintrag, den
+der Richter bei einem kritischen Kriterium fälschlich bestehen lässt,
+verhindert den Eintrag, und seine Urteile kommen nicht in den Cache.</li>
 <li><code>generate --dry</code> erzeugt nachgebildete Antworten ohne Schlüssel und Kosten;
 ein Trockenlauf kommt nie ins Ledger.</li>
 </ul>
-<p>Die Kalibrierung vergleicht den Richter mit den Handurteilen:
-<code>calibration-table &lt;typ&gt;</code>, dann der Richter, dann <code>calibration-score &lt;typ&gt;</code>.
-Handurteile mit <code>control: true</code> laufen als Kontrolleinträge in jeder
-Richtertabelle mit.</p>
+<p>Eine Kalibrierung ist nicht vorgesehen, aber möglich: <code>calibration-table &lt;typ&gt;</code>, dann die Richter, dann <code>calibration-score &lt;typ&gt; --judge &lt;modell&gt;</code>.
+Handurteile mit <code>control: true</code> laufen als Kontrolleinträge in jedem Lauf mit.</p>
 <h2 id="ai-eval--ablage" class="core-heading-2" tabindex="-1">Ablage <a class="docs-anchor" href="#ai-eval--ablage" aria-label="Link zu Ablage">#</a></h2>
 <table>
 <thead>
@@ -8352,8 +8379,13 @@ Richtertabelle mit.</p>
 <td>ja</td>
 </tr>
 <tr>
+<td><code>fixtures/ai-eval/results/&lt;typ&gt;/&lt;lauf&gt;.json</code></td>
+<td>Ergebnis je Antwort eines eingetragenen Laufs ohne Inhalte; der gepaarte Vergleich liest den Bestand von hier</td>
+<td>ja</td>
+</tr>
+<tr>
 <td><code>$CORE_AI_EVAL_DIR/&lt;typ&gt;/</code>, sonst <code>output/ai-eval/&lt;typ&gt;/</code></td>
-<td>Korpusfälle und je Lauf ein Ordner mit Antworten samt Transkript, Richtertabelle, Urteilen und Bericht</td>
+<td>Korpusfälle, Kandidaten, Urteilscache und je Lauf ein Ordner mit Antworten samt Transkript, Richterblöcken, Urteilen und Bericht</td>
 <td>nein</td>
 </tr>
 </tbody></table>
@@ -8372,12 +8404,16 @@ Reihenfolge der Läufe. <code>npm run check:docs</code> prüft Form und Reihenfo
 </tr>
 </thead>
 <tbody><tr>
-<td><code>requestType</code>, <code>run</code>, <code>date</code></td>
-<td>Anfragetyp aus dem Register, Name des Laufordners im Datenordner unter <code>&lt;typ&gt;/</code>, Tag des Laufs</td>
+<td><code>requestType</code>, <code>run</code>, <code>date</code>, <code>split</code></td>
+<td>Anfragetyp aus dem Register, Name des Laufordners im Datenordner unter <code>&lt;typ&gt;/</code>, Tag des Laufs, <code>dev</code> oder <code>holdout</code></td>
 </tr>
 <tr>
-<td><code>promptVersion</code>, <code>model</code>, <code>reasoning</code></td>
-<td>gemessene Promptversion, angefragtes Modell, Reasoning-Stufe</td>
+<td><code>promptVersion</code>, <code>candidate</code>, <code>fingerprint</code></td>
+<td>Promptversion (bei Baseline, Übernahme und Rückhalt die des Codes), Kandidatendatei oder <code>null</code>, Fingerabdruck des Payloads</td>
+</tr>
+<tr>
+<td><code>model</code>, <code>reasoning</code></td>
+<td>angefragtes Modell, Reasoning-Stufe</td>
 </tr>
 <tr>
 <td><code>change</code></td>
@@ -8385,11 +8421,11 @@ Reihenfolge der Läufe. <code>npm run check:docs</code> prüft Form und Reihenfo
 </tr>
 <tr>
 <td><code>decision</code></td>
-<td><code>baseline</code> beginnt eine Reihe und setzt den Bestand neu, <code>accepted</code> wird Bestand, <code>rejected</code> nicht</td>
+<td><code>baseline</code> beginnt eine Reihe und setzt den Bestand neu, <code>accepted</code> wird Bestand, <code>rejected</code> nicht, <code>holdout</code> ist eine Messung am Rückhalt</td>
 </tr>
 <tr>
 <td><code>cases</code>, <code>repetitions</code></td>
-<td>Testfälle und Wiederholungen je Fall</td>
+<td>Fälle und Wiederholungen je Fall</td>
 </tr>
 <tr>
 <td><code>main</code>, <code>low</code>, <code>high</code></td>
@@ -8400,8 +8436,20 @@ Reihenfolge der Läufe. <code>npm run check:docs</code> prüft Form und Reihenfo
 <td>Anteil bestandener Antworten je Kriterium; die kritischen Kriterien des Anfragetyps sind Pflicht</td>
 </tr>
 <tr>
-<td><code>costUsd</code>, <code>latencyP90Ms</code></td>
-<td>Kosten je Antwort, Latenz im 90. Perzentil</td>
+<td><code>outcomes</code></td>
+<td>Antworten je Klasse: angenommen, abgelehnt, verworfen, Zeitüberschreitung</td>
+</tr>
+<tr>
+<td><code>traps</code></td>
+<td>Antworten auf Fallen und davon Fehler bei kritischen Kriterien</td>
+</tr>
+<tr>
+<td><code>costUsd</code>, <code>costTotalUsd</code>, <code>latencyP90Ms</code></td>
+<td>Kosten je Antwort und im Lauf, Latenz im 90. Perzentil</td>
+</tr>
+<tr>
+<td><code>judge</code></td>
+<td>Richtermodell, Fingerabdruck von Auftrag und Bogen, neu bewertete Einträge und Einträge aus dem Cache (ohne Kontrolleinträge), Rauschen je Kriterium</td>
 </tr>
 <tr>
 <td><code>comparison</code></td>
