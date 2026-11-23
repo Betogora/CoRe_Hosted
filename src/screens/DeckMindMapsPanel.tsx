@@ -1,6 +1,6 @@
 import React from "react";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { Check, Copy, Eraser, FileText, Maximize2, Minimize2, ImagePlus, Sparkles, Image as ImageIcon, Link2, Focus, Minus, MousePointer2, Network, Palette, Pencil, Plus, Redo2, Scan, StickyNote, Trash2, Type, Undo2, X } from "lucide-react";
+import { Check, Copy, Eraser, FileText, Maximize2, Minimize2, ImagePlus, Sparkles, Image as ImageIcon, Link2, Focus, Minus, MousePointer2, Network, PenLine, Pencil, Plus, Redo2, Scan, SquareDashedMousePointer, StickyNote, Trash2, Type, Undo2, X } from "lucide-react";
 import type { SummaryGenerationInput, SummaryGenerationResult } from "../aiLearningSummary.ts";
 import type { CardDraftGuard } from "../appScreenProps.ts";
 import type { Deck } from "../coreTypes.ts";
@@ -9,9 +9,8 @@ import { MIND_MAP_LIMITS, addMindMapFromSummary, addMindMapRelativeNode, clearMi
 import { createLatestSaver } from "../latestSaver.ts";
 import { textToCardHtml } from "../richText.ts";
 import { ActionButton, IconButton } from "../ui/actionUi.tsx";
-import { ActionDialog, CoreSegmentedControl, SoftPanel } from "../ui/coreUi.tsx";
-import { COLOR_PICKER_PRESETS, ColorPicker, ColorSwatchButton } from "../ui/ColorPicker.tsx";
-import { normalizeColor } from "../colorMath.ts";
+import { ActionDialog, CoreIconSegmentedControl, CoreSegmentedControl, SoftPanel } from "../ui/coreUi.tsx";
+import { ColorSwatchRow } from "../ui/ColorPicker.tsx";
 import { StatusMessage } from "../ui/feedbackUi.tsx";
 import { CoreCheckbox, CoreSlider } from "../ui/formControls.tsx";
 import { RichTextEditor } from "../ui/RichTextEditor.tsx";
@@ -20,6 +19,7 @@ import { CoreTooltip } from "../ui/tooltipUi.tsx";
 
 interface DeckMindMapsPanelProps { deck: Deck; userId: string; cloud?: SupabaseClient | null; onGenerateSummary?: (input: SummaryGenerationInput, signal: AbortSignal) => Promise<SummaryGenerationResult>; onDraftStateChange: (guard: CardDraftGuard | null) => void; }
 type Mode = "idle" | "connect" | "edit" | "design" | "add";
+type DesignTool = "text" | "pen" | "erase";
 type Selection = { kind: MindMapElementKind; ids: string[] };
 type Viewport = MindMapPoint & { zoom: number };
 type Gesture = { pointer: number; start: MindMapPoint; viewport: Viewport; before: LearningMindMap; moved: boolean; target?: { kind: MindMapElementKind; id: string }; points?: MindMapPoint[]; resize?: { kind: "summary"; end: "start" | "end"; id: string }; };
@@ -33,6 +33,9 @@ const UNSYNCED = "Noch nicht synchronisiert", OVERWRITTEN = "Gespeichert. Dein S
 function hasDefaultTitle(node: MindMapNode) { return node.label === "Neue Notiz" || node.label === "Neues Stichwort"; }
 const colorTokens: Record<string, string> = { default: "var(--core-text)", blue: "var(--core-info)", purple: "var(--core-success)", yellow: "var(--core-warning)", red: "var(--core-danger)" };
 function inkColor(color: MindMapColor = "default") { return colorTokens[color] ?? color; }
+const swatchColors = mindMapColors.map((color) => ({ ...color, color: inkColor(color.value) }));
+const strokeWidthOptions = [{ value: "2", label: "Fein" }, { value: "4", label: "Mittel" }, { value: "8", label: "Dick" }] as const;
+const nodeKindOptions = [{ value: "keyword", label: "Stichwortkarte" }, { value: "text", label: "Textkarte" }] as const;
 function nodeStyle(map: LearningMindMap, node: MindMapNode): React.CSSProperties {
   const a = mindMapNodeColor(map, node), intensity = a.strength;
   return { "--mindmap-ink": inkColor(a.color), "--mindmap-surface": a.color === "default" ? "var(--core-surface-raised)" : `color-mix(in srgb, ${inkColor(a.color)} ${intensity}%, var(--core-surface))` } as React.CSSProperties;
@@ -45,13 +48,6 @@ function connectionPath(from: MindMapRect, to: MindMapRect) {
   const forward = to.x >= from.x, x1 = from.x + (forward ? from.width : 0), x2 = to.x + (forward ? 0 : to.width), y1 = from.y + from.height / 2, y2 = to.y + to.height / 2, bend = Math.max(60, Math.abs(x2 - x1) / 2) * (forward ? 1 : -1);
   return `M ${x1} ${y1} C ${x1 + bend} ${y1}, ${x2 - bend} ${y2}, ${x2} ${y2}`;
 }
-function ColorControl({ label, value = "default", onChange }: { label: string; value?: MindMapColor; onChange: (color: MindMapColor) => void }) {
-  const [custom, setCustom] = React.useState(() => normalizeColor(value, COLOR_PICKER_PRESETS[7]));
-  return <fieldset className="core-mindmap-color-picker"><legend className="core-caption text-core-muted">{label}</legend><div className="flex flex-wrap items-center gap-1">
-    {mindMapColors.map((color) => <CoreTooltip key={color.value} label={color.label}><ColorSwatchButton color={inkColor(color.value)} aria-label={`${label} ${color.label}`} aria-pressed={value === color.value} onClick={() => onChange(color.value)}/></CoreTooltip>)}
-    <ColorPicker variant="tool" icon={Palette} ariaLabel={`${label} frei wählen`} value={normalizeColor(value, custom)} onValueCommit={(color) => { setCustom(color); onChange(color); }}/>
-  </div></fieldset>;
-}
 export function DeckMindMapsPanel({ deck, userId, cloud = null, onGenerateSummary, onDraftStateChange }: DeckMindMapsPanelProps) {
   const [generationScope, setGenerationScope] = React.useState<SummarySettings["scope"]>("tree"), [generating, setGenerating] = React.useState(false);
   const generationRef = React.useRef<AbortController | null>(null), [replaceRequest, setReplaceRequest] = React.useState<{ summary: LearningSummary; cards: number } | null>(null);
@@ -63,7 +59,7 @@ export function DeckMindMapsPanel({ deck, userId, cloud = null, onGenerateSummar
   const [editPart, setEditPart] = React.useState<"title" | "text">("title");
   const editStartedRef = React.useRef(0);
   const [multipleSelection, setMultipleSelection] = React.useState(false);
-  const [mode, setMode] = React.useState<Mode>("idle"), [designTool, setDesignTool] = React.useState<"pen" | "erase" | "text">("pen"), [connecting, setConnecting] = React.useState(false), [linkFrom, setLinkFrom] = React.useState<string | null>(null);
+  const [mode, setMode] = React.useState<Mode>("idle"), [designTool, setDesignTool] = React.useState<DesignTool>("pen"), [connecting, setConnecting] = React.useState(false), [linkFrom, setLinkFrom] = React.useState<string | null>(null);
   const [viewport, setViewport] = React.useState<Viewport>({ x: 40, y: 80, zoom: 1 }); const viewportRef = React.useRef(viewport); viewportRef.current = viewport;
   const [ink, setInk] = React.useState<MindMapPoint[]>([]), [penColor, setPenColor] = React.useState<MindMapColor>("default"), [penWidth, setPenWidth] = React.useState<2 | 4 | 8>(4);
   const [history, setHistory] = React.useState<{ past: LearningMindMap[]; future: LearningMindMap[] }>({ past: [], future: [] });
@@ -74,15 +70,25 @@ export function DeckMindMapsPanel({ deck, userId, cloud = null, onGenerateSummar
   const account = React.useMemo(() => ({ userId, cloud }), [userId, cloud]);
   savedRef.current = saved;
   const [createFromSummary, setCreateFromSummary] = React.useState(false), [sourceOpen, setSourceOpen] = React.useState(false);
-  const [toolbarHost, setToolbarHost] = React.useState<HTMLDivElement | null>(null);
+  const [cardTextTools, setCardTextTools] = React.useState<HTMLDivElement | null>(null), [freeTextTools, setFreeTextTools] = React.useState<HTMLDivElement | null>(null);
   const [canvasSize, setCanvasSize] = React.useState({ width: 0, height: 0 });
   const [fullscreen, setFullscreen] = React.useState(false), tapRef = React.useRef<{ id: string; time: number; x: number; y: number } | null>(null), pinchRef = React.useRef<{ start: number; mid: MindMapPoint; viewport: Viewport } | null>(null);
   const [confirmClear, setConfirmClear] = React.useState(false);
   const [shortcutsOpen, setShortcutsOpen] = React.useState(false), clipboardRef = React.useRef<MindMapClipboard | null>(null), textSessionRef = React.useRef<string | null>(null);
-  const canvasRef = React.useRef<HTMLDivElement>(null), gestureRef = React.useRef<Gesture | null>(null), suppressClick = React.useRef(false);
+  const toolsRef = React.useRef<HTMLDivElement>(null), canvasRef = React.useRef<HTMLDivElement>(null), gestureRef = React.useRef<Gesture | null>(null), suppressClick = React.useRef(false);
   const dirty = draft !== null && draft !== saved;
   const primary = selection.ids.at(-1), node = selection.kind === "node" ? draft?.nodes.find((n) => n.id === primary) : undefined;
   const boundary = selection.kind === "boundary" ? draft?.boundaries.find((n) => n.id === primary) : undefined, bracket = selection.kind === "summary" ? draft?.summaries.find((n) => n.id === primary) : undefined;
+  const selected = node ?? boundary ?? bracket, hasNodes = Boolean(draft?.nodes.length);
+  const toolOptions = React.useMemo(() => [
+    { value: "idle", label: "Auswählen", icon: MousePointer2 },
+    { value: "edit", label: "Karte bearbeiten", icon: StickyNote, disabled: mode !== "edit" && !hasNodes },
+    { value: "connect", label: "Verknüpfen", icon: Link2, disabled: mode !== "connect" && !hasNodes },
+    { value: "add", label: "Hinzufügen", icon: Plus, disabled: mode !== "add" && !hasNodes },
+    { value: "text", label: "Schreiben", icon: Type },
+    { value: "pen", label: "Stift", icon: PenLine },
+    { value: "erase", label: "Radierer", icon: Eraser },
+  ] as const, [mode, hasNodes]);
   React.useEffect(() => {
     let active = true; setLoading(true); setLoadError("");
     void Promise.allSettled([loadInfinityMindMap(account, deck.id), loadLearningSummaries(account, [deck.id]).then((loaded) => loaded.summaries)]).then(([loaded, sources]) => {
@@ -119,6 +125,8 @@ export function DeckMindMapsPanel({ deck, userId, cloud = null, onGenerateSummar
   React.useEffect(() => () => onDraftStateChange(null), [onDraftStateChange]);
   React.useEffect(() => () => generationRef.current?.abort(), []);
   React.useEffect(() => { textSessionRef.current = null; }, [editing]);
+  // A narrow row scrolls; the controls of another tool start at its beginning again.
+  React.useEffect(() => { toolsRef.current?.scrollTo({ left: 0 }); }, [mode, designTool]);
   React.useEffect(() => { if (!dirty && !readingImages) return; const handler = (e: BeforeUnloadEvent) => { e.preventDefault(); e.returnValue = ""; }; window.addEventListener("beforeunload", handler); return () => window.removeEventListener("beforeunload", handler); }, [dirty, readingImages]);
   function update(next: LearningMindMap, remember = true) { const limit = mindMapLimitError(next); if (limit) { setError(limit); return; } const before = draftRef.current; if (before && remember) setHistory((h) => ({ past: [...h.past.slice(-99), before], future: [] })); const changed = { ...next, updatedAt: new Date().toISOString() }; draftRef.current = changed; setDraft(changed); setSaveFailed(false); setError(""); setNotice(""); }
   function run(action: () => void) { try { action(); } catch (cause: unknown) { setError(cause instanceof Error ? cause.message : "Die Änderung konnte nicht übernommen werden."); } }
@@ -330,25 +338,38 @@ export function DeckMindMapsPanel({ deck, userId, cloud = null, onGenerateSummar
     else if (e.shiftKey && e.code === "Digit1") { handled(); setEditing(null); setExpanded(null); fit(); }
     else if (key === "?") { handled(); setShortcutsOpen(true); }
   }
+  function chooseTool(value: Exclude<Mode, "design"> | DesignTool) {
+    const next: Mode = value === "text" || value === "pen" || value === "erase" ? "design" : value;
+    if (next === "design") setDesignTool(value as DesignTool);
+    setMode(next); if (next !== "add") setMultipleSelection(false); setConnecting(next === "connect"); setLinkFrom(null);
+    if (value === "text" && node) beginEdit(node.id, true);
+    else if (next === "edit" && node && selection.ids.length === 1) beginEdit(node.id);
+    else if (next !== "edit") { setEditing(null); setExpanded(null); }
+  }
   function propertyControls() {
-    if (node?.kind === "freeText") return <CoreTooltip label="Text entfernen · Entf"><IconButton icon={Trash2} label="Text entfernen" aria-keyshortcuts="Delete" variant="destructive" onClick={() => removeSelected()}/></CoreTooltip>;
-    if (node) return <>
-      {!draft!.summaries.some((item) => item.nodeId === node.id) && <ColorControl label="Kastenfarbe" value={mindMapNodeColor(draft!, node).color} onChange={(color) => editNode({ color })}/>}
-      <CoreSegmentedControl ariaLabel="Kastenart" value={node.kind} onValueChange={(kind) => editNode({ kind })} options={[{ value: "keyword", label: "Stichwortkarte" }, { value: "text", label: "Textkarte" }]}/>
-      <label className="core-mindmap-image-upload core-action-secondary rounded-control"><ImagePlus size={18} aria-hidden="true"/><span>Bild hinzufügen</span><input type="file" multiple accept="image/png,image/jpeg,image/webp,image/gif" aria-label="Bild hinzufügen" disabled={(node.images?.length ?? 0) >= 4 || mindMapImageIds(draft!).size >= MIND_MAP_LIMITS.images || selection.ids.length > 1} onChange={(e) => { const files = Array.from(e.target.files ?? []); e.target.value = ""; if (files.length) void addImages(files, node.id); }}/></label>
-      <CoreTooltip label={`Duplizieren · ${MOD}+D`}><IconButton icon={Copy} label="Duplizieren" aria-keyshortcuts="Control+D Meta+D" onClick={duplicateSelected}/></CoreTooltip>
-      <CoreTooltip label="Karte entfernen · Entf"><IconButton icon={Trash2} label="Karte entfernen" aria-keyshortcuts="Delete" variant="destructive" onClick={() => removeSelected()}/></CoreTooltip>
+    if (node && node.kind !== "freeText") return <>
+      {!draft!.summaries.some((item) => item.nodeId === node.id) && <ColorSwatchRow className="core-editor-tool-group" label="Kastenfarbe" colors={swatchColors} value={mindMapNodeColor(draft!, node).color} onChange={(color) => editNode({ color })}/>}
+      <div className="core-editor-tool-group"><CoreSegmentedControl ariaLabel="Kastenart" value={node.kind} onValueChange={(kind) => editNode({ kind })} options={nodeKindOptions}/></div>
+      <div className="core-editor-tool-group"><CoreTooltip label="Bild hinzufügen"><label className="core-mindmap-image-upload core-action-ghost"><ImagePlus aria-hidden="true"/><input type="file" multiple accept="image/png,image/jpeg,image/webp,image/gif" aria-label="Bild hinzufügen" disabled={(node.images?.length ?? 0) >= 4 || mindMapImageIds(draft!).size >= MIND_MAP_LIMITS.images || selection.ids.length > 1} onChange={(e) => { const files = Array.from(e.target.files ?? []); e.target.value = ""; if (files.length) void addImages(files, node.id); }}/></label></CoreTooltip></div>
     </>;
     if (boundary) return <>
-      <label className="core-field-group core-mindmap-compact-field"><span className="core-caption text-core-muted">Beschriftung</span><input className="core-field-input" aria-label="Umrandung beschriften" maxLength={120} value={boundary.label} onChange={(e) => editBoundary({ label: e.target.value })}/></label>
-      <ColorControl label="Rahmenfarbe" value={boundary.color} onChange={(color) => editBoundary({ color })}/><ColorControl label="Hintergrundfarbe" value={boundary.fillColor} onChange={(fillColor) => editBoundary({ fillColor })}/>
-      <CoreSlider className="core-mindmap-compact-field" label="Transparenz" min={0} max={100} value={Math.round((1 - (boundary.opacity ?? 0.08)) * 100)} formatValue={(percent) => `${percent} %`} onValueChange={(percent) => editBoundary({ opacity: 1 - percent / 100 })}/>
-      <CoreSegmentedControl ariaLabel="Rahmenstärke" value={String(boundary.strokeWidth ?? 2)} options={[{ value: "2", label: "Fein" }, { value: "4", label: "Mittel" }, { value: "8", label: "Dick" }]} onValueChange={(value) => editBoundary({ strokeWidth: Number(value) as 2 | 4 | 8 })}/>
-      <CoreSelect ariaLabel="Rahmenform" value={boundary.shape} options={[{ value: "rectangle", label: "Rechteck" }, { value: "rounded", label: "Abgerundet" }, { value: "ellipse", label: "Ellipse" }]} onValueChange={(shape) => editBoundary({ shape: shape as NonNullable<typeof boundary>["shape"] })}/>
-      <ActionButton variant="destructive" icon={Trash2} onClick={() => removeSelected()}>Umrandung entfernen</ActionButton>
+      <div className="core-editor-tool-group"><input className="core-field core-mindmap-compact-field" aria-label="Umrandung beschriften" placeholder="Beschriftung" maxLength={120} value={boundary.label} onChange={(e) => editBoundary({ label: e.target.value })}/></div>
+      <div className="core-editor-tool-group"><span className="core-caption text-core-muted">Rahmen</span><ColorSwatchRow className="flex items-center gap-1" label="Rahmenfarbe" colors={swatchColors} value={boundary.color ?? "default"} onChange={(color) => editBoundary({ color })}/></div>
+      <div className="core-editor-tool-group"><span className="core-caption text-core-muted">Fläche</span><ColorSwatchRow className="flex items-center gap-1" label="Hintergrundfarbe" colors={swatchColors} value={boundary.fillColor ?? "default"} onChange={(fillColor) => editBoundary({ fillColor })}/></div>
+      <div className="core-editor-tool-group"><span className="core-caption text-core-muted">Transparenz</span><CoreSlider className="core-mindmap-compact-field" aria-label="Transparenz" formatValue={null} aria-valuetext={`${Math.round((1 - (boundary.opacity ?? 0.08)) * 100)} %`} min={0} max={100} value={Math.round((1 - (boundary.opacity ?? 0.08)) * 100)} onValueChange={(percent) => editBoundary({ opacity: 1 - percent / 100 })}/></div>
+      <div className="core-editor-tool-group"><CoreSegmentedControl ariaLabel="Rahmenstärke" value={String(boundary.strokeWidth ?? 2)} options={strokeWidthOptions} onValueChange={(value) => editBoundary({ strokeWidth: Number(value) as 2 | 4 | 8 })}/></div>
+      <div className="core-editor-tool-group"><CoreSelect ariaLabel="Rahmenform" value={boundary.shape} options={[{ value: "rectangle", label: "Rechteck" }, { value: "rounded", label: "Abgerundet" }, { value: "ellipse", label: "Ellipse" }]} onValueChange={(shape) => editBoundary({ shape: shape as NonNullable<typeof boundary>["shape"] })}/></div>
     </>;
-    if (bracket) return <><ActionButton variant="secondary" icon={Pencil} onClick={() => beginEdit(bracket.nodeId)}>Zusammenfassung bearbeiten</ActionButton><ActionButton variant="destructive" icon={Trash2} onClick={() => removeSelected()}>Zusammenfassung entfernen</ActionButton></>;
+    if (bracket) return <div className="core-editor-tool-group"><ActionButton variant="secondary" icon={Pencil} onClick={() => beginEdit(bracket.nodeId)}>Zusammenfassung bearbeiten</ActionButton></div>;
     return null;
+  }
+  function selectionActions() {
+    const removeLabel = node?.kind === "freeText" ? "Text entfernen" : node ? "Karte entfernen" : boundary ? "Umrandung entfernen" : "Zusammenfassung entfernen";
+    return <>
+      {node && node.kind !== "freeText" && <CoreTooltip label={`Duplizieren · ${MOD}+D`}><IconButton variant="ghost" icon={Copy} label="Duplizieren" aria-keyshortcuts="Control+D Meta+D" onClick={duplicateSelected}/></CoreTooltip>}
+      <CoreTooltip label={`${removeLabel} · Entf`}><IconButton variant="destructive-quiet" icon={Trash2} label={removeLabel} aria-keyshortcuts="Delete" onClick={() => removeSelected()}/></CoreTooltip>
+      {node && <CoreTooltip label="Bearbeitung abschließen"><IconButton icon={Check} label="Bearbeitung abschließen" onClick={() => { setEditing(null); setExpanded(null); setMode("idle"); }}/></CoreTooltip>}
+    </>;
   }
   if (loading) return <StatusMessage tone="info" announce="polite">Mindmap wird geladen …</StatusMessage>;
   if (loadError) return <div className="grid gap-3"><StatusMessage tone="error">{loadError}</StatusMessage><ActionButton variant="secondary" onClick={() => setRetry((r) => r + 1)}>Erneut laden</ActionButton></div>;
@@ -360,13 +381,39 @@ export function DeckMindMapsPanel({ deck, userId, cloud = null, onGenerateSummar
     {error && <div className="grid gap-2"><StatusMessage tone="error" announce="assertive">{error}</StatusMessage>{saveFailed && <ActionButton variant="secondary" onClick={() => { setError(""); void persist(); }}>Erneut speichern</ActionButton>}</div>}
     {readingImages && <StatusMessage tone="info" announce="polite">Bilder werden geladen …</StatusMessage>}
     <div className="grid min-w-0 gap-3" inert={readingImages}>
-      <div className="core-mindmap-primary-tools" aria-label="Mindmap-Werkzeuge"><div className="flex flex-wrap items-center gap-2"><ActionButton variant="secondary" icon={Plus} disabled={draft.nodes.length >= MIND_MAP_LIMITS.nodes} onClick={() => addNode("root")}>Stichwort</ActionButton><ActionButton variant="secondary" icon={StickyNote} disabled={draft.nodes.length >= MIND_MAP_LIMITS.nodes} onClick={() => addNode("root", "text")}>Textfeld</ActionButton></div><div role="group" aria-label="Mindmap-Werkzeug" className="flex items-center gap-1">{([["connect", "Verknüpfen", Link2], ["edit", "Karte bearbeiten", StickyNote], ["design", "Gestalten", Pencil], ["add", "Hinzufügen", Plus]] as const).map(([value, label, icon]) => <CoreTooltip key={value} label={label}><IconButton className="core-mindmap-tool" variant="ghost" icon={icon} label={label} aria-pressed={mode === value} disabled={value !== "design" && value !== mode && !draft.nodes.length} onClick={() => { const next = value === mode ? "idle" : value; setMode(next); if (next !== "add") setMultipleSelection(false); setConnecting(next === "connect"); setLinkFrom(null); if (next !== "edit") { setEditing(null); setExpanded(null); } else if (node && selection.ids.length === 1) beginEdit(node.id); }}/></CoreTooltip>)}</div><div className="flex items-center gap-1"><CoreTooltip label={`Rückgängig · ${MOD}+Z`}><IconButton className="core-mindmap-tool" variant="ghost" icon={Undo2} label="Rückgängig" aria-keyshortcuts="Control+Z Meta+Z" disabled={!history.past.length} onClick={() => travel("past")}/></CoreTooltip><CoreTooltip label={`Wiederholen · ${MOD}+Y`}><IconButton className="core-mindmap-tool" variant="ghost" icon={Redo2} label="Wiederholen" aria-keyshortcuts="Control+Y Meta+Shift+Z" disabled={!history.future.length} onClick={() => travel("future")}/></CoreTooltip><CoreTooltip label="Fläche leeren"><IconButton className="core-mindmap-tool" variant="ghost" icon={Trash2} label="Fläche leeren" disabled={!draft.nodes.length && !draft.strokes.length} onClick={() => setConfirmClear(true)}/></CoreTooltip></div>{(summaries.length > 0 || onGenerateSummary) && <ActionButton className="core-mindmap-source-action" variant="secondary" icon={summaries.length ? FileText : Sparkles} disabled={generating} aria-expanded={createFromSummary} onClick={() => setCreateFromSummary(!createFromSummary)}>{summaries.length ? "Aus Zusammenfassung" : "Mit KI erstellen"}</ActionButton>}</div>
-      {mode === "connect" && <SoftPanel className="core-mindmap-tools" aria-label="Verbindungen"><CoreSegmentedControl ariaLabel="Verbindungslinien" value={draft.connectionColor} onValueChange={(connectionColor) => update({ ...draft, connectionColor })} options={[{ value: "gray", label: "Graue Linien" }, { value: "node", label: "Kastenfarben" }]}/></SoftPanel>}
-      {mode === "add" && <SoftPanel className="core-mindmap-tools" aria-label="Zusätzliche Elemente"><ActionButton variant={multipleSelection ? "primary" : "secondary"} icon={MousePointer2} aria-pressed={multipleSelection} onClick={() => { setMultipleSelection(!multipleSelection); setSelection({ kind: "node", ids: [] }); setEditing(null); setExpanded(null); }}>Mehrfachauswahl</ActionButton><ActionButton variant="secondary" icon={Network} onClick={() => createExtra("summary")}>Zusammenfassung</ActionButton><ActionButton variant="secondary" icon={Scan} onClick={() => createExtra("boundary")}>Umrandung</ActionButton></SoftPanel>}
-      {mode === "design" && <SoftPanel className="core-mindmap-tools" aria-label="Gestaltungswerkzeuge"><CoreSegmentedControl ariaLabel="Gestalten" value={designTool} onValueChange={(tool) => { setDesignTool(tool); if (tool === "text" && node) beginEdit(node.id, true); }} options={[{ value: "pen", label: "Zeichnen", icon: Pencil }, { value: "erase", label: "Radieren", icon: Eraser }, { value: "text", label: "Schreiben", icon: Type }]}/>{designTool === "pen" && <><ColorControl label="Stiftfarbe" value={penColor} onChange={setPenColor}/><CoreSegmentedControl ariaLabel="Strichstärke" value={String(penWidth)} onValueChange={(v) => setPenWidth(Number(v) as 2 | 4 | 8)} options={[{ value: "2", label: "Fein" }, { value: "4", label: "Mittel" }, { value: "8", label: "Dick" }]}/></>}</SoftPanel>}
-      {mode === "edit" && primary && <SoftPanel className="core-mindmap-tools" aria-label="Elementeigenschaften">{propertyControls()}{node && <IconButton icon={Check} label="Bearbeitung abschließen" onClick={() => { setEditing(null); setExpanded(null); setMode("idle"); }}/>}</SoftPanel>}
-      <div ref={setToolbarHost} className="core-mindmap-text-toolbar"/>
-      {connecting && <p className="core-caption text-core-muted" role="status">{linkFrom ? "Jetzt das zweite Element wählen." : "Zwei Elemente wählen, um sie zu verbinden oder zu trennen."}</p>}
+      <div className="core-editor-toolbar core-mindmap-primary-tools core-surface-raised" aria-label="Mindmap-Werkzeuge">
+        <CoreIconSegmentedControl ariaLabel="Mindmap-Werkzeug" className="core-editor-toolbar-modes" value={mode === "design" ? designTool : mode === "edit" && node?.kind === "freeText" ? "text" : mode} onValueChange={chooseTool} options={toolOptions}/>
+        <div className="core-mindmap-fixed-actions">
+          <ActionButton variant="secondary" icon={Plus} disabled={draft.nodes.length >= MIND_MAP_LIMITS.nodes} onClick={() => addNode("root")}>Stichwort</ActionButton>
+          <ActionButton variant="secondary" icon={StickyNote} disabled={draft.nodes.length >= MIND_MAP_LIMITS.nodes} onClick={() => addNode("root", "text")}>Textfeld</ActionButton>
+          {(summaries.length > 0 || onGenerateSummary) && <ActionButton className="core-mindmap-source-action" variant="secondary" icon={summaries.length ? FileText : Sparkles} disabled={generating} aria-expanded={createFromSummary} onClick={() => setCreateFromSummary(!createFromSummary)}>{summaries.length ? "Aus Zusammenfassung" : "Mit KI erstellen"}</ActionButton>}
+          <CoreTooltip label="Fläche leeren"><IconButton variant="destructive-quiet" icon={Trash2} label="Fläche leeren" disabled={!draft.nodes.length && !draft.strokes.length} onClick={() => setConfirmClear(true)}/></CoreTooltip>
+        </div>
+        <div className="core-editor-toolbar-actions">
+          <CoreTooltip label={fullscreen ? "Vollbild beenden" : "Vollbild"}><IconButton variant="ghost" icon={fullscreen ? Minimize2 : Maximize2} label={fullscreen ? "Vollbild beenden" : "Vollbild"} aria-pressed={fullscreen} onClick={() => setFullscreen(!fullscreen)}/></CoreTooltip>
+        </div>
+        <div className="core-editor-toolbar-context">
+          <div ref={toolsRef} className="core-editor-toolbar-tools">
+            <div className="core-editor-tool-group" role="group" aria-label="Verlauf">
+              <CoreTooltip label={`Rückgängig · ${MOD}+Z`}><IconButton variant="ghost" icon={Undo2} label="Rückgängig" aria-keyshortcuts="Control+Z Meta+Z" disabled={!history.past.length} onClick={() => travel("past")}/></CoreTooltip>
+              <CoreTooltip label={`Wiederholen · ${MOD}+Y`}><IconButton variant="ghost" icon={Redo2} label="Wiederholen" aria-keyshortcuts="Control+Y Meta+Shift+Z" disabled={!history.future.length} onClick={() => travel("future")}/></CoreTooltip>
+            </div>
+            {mode === "connect" && <>
+              <div className="core-editor-tool-group"><CoreSegmentedControl ariaLabel="Verbindungslinien" value={draft.connectionColor} onValueChange={(connectionColor) => update({ ...draft, connectionColor })} options={[{ value: "gray", label: "Graue Linien" }, { value: "node", label: "Kastenfarben" }]}/></div>
+              <p className="core-editor-tool-group core-caption text-core-muted" role="status">{linkFrom ? "Jetzt das zweite Element wählen." : "Zwei Elemente wählen, um sie zu verbinden oder zu trennen."}</p>
+            </>}
+            {mode === "add" && <div className="core-editor-tool-group" role="group" aria-label="Zusätzliche Elemente"><ActionButton variant={multipleSelection ? "primary" : "secondary"} icon={SquareDashedMousePointer} aria-pressed={multipleSelection} onClick={() => { setMultipleSelection(!multipleSelection); setSelection({ kind: "node", ids: [] }); setEditing(null); setExpanded(null); }}>Mehrfachauswahl</ActionButton><ActionButton variant="secondary" icon={Network} onClick={() => createExtra("summary")}>Zusammenfassung</ActionButton><ActionButton variant="secondary" icon={Scan} onClick={() => createExtra("boundary")}>Umrandung</ActionButton></div>}
+            {mode === "design" && designTool === "pen" && <>
+              <ColorSwatchRow className="core-editor-tool-group" label="Stiftfarbe" colors={swatchColors} value={penColor} onChange={setPenColor}/>
+              <div className="core-editor-tool-group"><CoreSegmentedControl ariaLabel="Strichstärke" value={String(penWidth)} onValueChange={(v) => setPenWidth(Number(v) as 2 | 4 | 8)} options={strokeWidthOptions}/></div>
+            </>}
+            {mode === "edit" && selected && propertyControls()}
+            <div ref={setFreeTextTools} className="core-editor-toolbar-text"/>
+          </div>
+          {mode === "edit" && selected && <div className="core-editor-toolbar-end" role="group" aria-label="Auswahl">{selectionActions()}</div>}
+        </div>
+        <div ref={setCardTextTools} className="core-editor-toolbar-context core-mindmap-text-toolbar"/>
+      </div>
       {createFromSummary && <SoftPanel className="grid gap-3 p-4" aria-label="Mindmap aus Zusammenfassung">
         {summaries.length ? <div className="flex min-w-0 flex-wrap items-center gap-3">
           {summaries.length > 1 ? <CoreSelect className="w-full sm:w-auto sm:max-w-xs" ariaLabel="Zusammenfassung für Mindmap" value={summaryId} options={summaries.map((s) => ({ value: s.id, label: s.title }))} onValueChange={setSummaryId}/> : <p className="core-body min-w-0 break-words">Aus „{summaries[0].title}“</p>}
@@ -390,14 +437,14 @@ export function DeckMindMapsPanel({ deck, userId, cloud = null, onGenerateSummar
           {draft.summaries.map((item) => { const r = mindMapSummaryRect(draft, item), target = endpoint(item.nodeId); if (!target) return null; const x = item.side === "right" ? r.x + r.width + 16 : r.x - 16, sign = item.side === "right" ? -1 : 1, cy = r.y + r.height / 2, selected = selection.kind === "summary" && primary === item.id; return <div key={item.id} className={`core-mindmap-summary${selected ? " is-selected" : ""}`} data-testid="mindmap-summary"><svg className="core-mindmap-lines"><path className="core-mindmap-summary-line" d={`M ${x} ${r.y} C ${x - sign * 24} ${r.y}, ${x - sign * 24} ${r.y + r.height}, ${x} ${r.y + r.height} M ${x - sign * 18} ${cy} L ${item.side === "right" ? target.rect.x : target.rect.x + target.rect.width} ${target.rect.y + target.rect.height / 2}`} onPointerDown={(e) => { e.stopPropagation(); select("summary", item.id); setMode("edit"); }}/></svg><button type="button" className="core-mindmap-summary-select rounded-control" style={{ left: x - sign * 18 - 20, top: cy - 20 }} aria-label="Zusammenfassung auswählen" onPointerDown={(e) => e.stopPropagation()} onClick={() => { select("summary", item.id); setMode("edit"); }}><Network size={16}/></button>{selected && (["start", "end"] as const).map((end) => <button key={end} type="button" className="core-mindmap-summary-handle rounded-round" aria-label={`Zusammenfassung ${end === "start" ? "oben" : "unten"} erweitern`} style={{ left: x - 12, top: (end === "start" ? r.y : r.y + r.height) - 12 }} onPointerDown={(e) => startGesture(e, { kind: "summary", id: item.id }, { kind: "summary", id: item.id, end })}/> )}</div>; })}
           {draft.nodes.map((item) => { const selected = selection.kind === "node" && selection.ids.includes(item.id), isEditing = item.id === editing, isExpanded = isEditing || expanded === item.id, r = mindMapNodeRect(item, isExpanded), source = mindMapNodeSource(draft, item), direction = mindMapNodeDirection(item, item.parentId ? nodeById.get(item.parentId) : undefined), kindName = item.kind === "freeText" ? "Freier Text" : item.kind === "keyword" ? "Stichwort" : "Textkarte"; return <div key={item.id} role="group" className={`core-mindmap-node rounded-control${item.kind === "freeText" ? " is-free-text" : item.kind === "text" ? " is-text" : " is-keyword"}${selected ? " is-selected" : ""}${isExpanded ? " is-expanded" : ""}${isEditing ? " is-editing" : ""}${linkFrom === item.id ? " is-link-source" : ""}`} style={{ ...nodeStyle(draft, item), left: item.x, top: item.y, width: r.width, height: r.height }} data-testid={item.kind === "freeText" ? "mindmap-free-text" : "mindmap-node"} data-node-id={item.id} data-color={mindMapNodeColor(draft, item).color} aria-label={`${kindName} „${item.label}“`} onPointerDown={(e) => { startLongPress(e, item.id); startGesture(e, { kind: "node", id: item.id }); }} onPointerUp={(e) => handleTap(e, item.id)} onClick={(e) => { select("node", item.id, e.shiftKey || e.ctrlKey || e.metaKey); if (!(e.target as HTMLElement).closest("input,textarea,[contenteditable='true'],a,button:not(.core-mindmap-node-select)")) e.currentTarget.querySelector<HTMLElement>(":scope > .core-mindmap-node-select")?.focus({ preventScroll: true }); }} onDoubleClick={(e) => { e.stopPropagation(); if (!isEditing) beginEdit(item.id, item.kind !== "keyword" && !(e.target as HTMLElement).closest(".core-mindmap-node-label")); }} onContextMenu={(e) => { e.preventDefault(); select("node", item.id); setMode("add"); }}>
             <button type="button" className="core-mindmap-node-select" aria-label={`${kindName} „${item.label}“ auswählen`} aria-pressed={selected}/>
-            {isEditing ? <div className="core-mindmap-inline-editor" onPointerDown={(e) => e.stopPropagation()} onClick={(e) => e.stopPropagation()}>{item.kind !== "freeText" && <input className="core-mindmap-inline-title" aria-label="Kartentitel bearbeiten" maxLength={120} value={item.label} onPointerDown={(e) => { if (hasDefaultTitle(item)) { e.preventDefault(); e.currentTarget.focus(); e.currentTarget.select(); } }} onClick={(e) => { if (hasDefaultTitle(item)) { e.preventDefault(); e.currentTarget.select(); } }} onChange={(e) => editText(item.id, { label: e.target.value })}/>}<RichTextEditor value={item.html ?? textToCardHtml(item.text || item.sourceText || "")} ariaLabel={item.kind === "freeText" ? "Text auf der Fläche bearbeiten" : "Kartentext bearbeiten"} isActive showAllTools toolbarHost={toolbarHost} minHeightClass="min-h-32" onChange={(html) => editText(item.id, { html })}/></div> : <>{item.kind !== "freeText" && <span className="core-mindmap-node-label core-body" onPointerDown={(e) => { if (hasDefaultTitle(item) && !connecting && !multipleSelection && !e.shiftKey && !e.ctrlKey && !e.metaKey) e.stopPropagation(); }} onClick={(e) => { if (hasDefaultTitle(item) && !connecting && !multipleSelection && !e.shiftKey && !e.ctrlKey && !e.metaKey) { e.stopPropagation(); beginEdit(item.id); } }}>{item.label || "Ohne Titel"}</span>}{item.kind === "keyword" && <span className="core-mindmap-node-icons text-core-muted">{Boolean(item.text.trim() || item.sourceText?.trim()) && <button type="button" aria-label="Text anzeigen" onPointerDown={(e) => e.stopPropagation()} onClick={(e) => { e.stopPropagation(); select("node", item.id); setExpanded(expanded === item.id ? null : item.id); }}><FileText size={16}/></button>}{Boolean(item.images?.length) && <button type="button" aria-label="Bilder anzeigen" onPointerDown={(e) => e.stopPropagation()} onClick={(e) => { e.stopPropagation(); select("node", item.id); setExpanded(expanded === item.id ? null : item.id); }}><ImageIcon size={16}/></button>}</span>}{(item.kind !== "keyword" || isExpanded) && <div className="core-mindmap-note-text core-body" dangerouslySetInnerHTML={{ __html: item.html ?? textToCardHtml(item.text || item.sourceText || "") }}/>}</>}
+            {isEditing ? <div className="core-mindmap-inline-editor" onPointerDown={(e) => e.stopPropagation()} onClick={(e) => e.stopPropagation()}>{item.kind !== "freeText" && <input className="core-mindmap-inline-title" aria-label="Kartentitel bearbeiten" maxLength={120} value={item.label} onPointerDown={(e) => { if (hasDefaultTitle(item)) { e.preventDefault(); e.currentTarget.focus(); e.currentTarget.select(); } }} onClick={(e) => { if (hasDefaultTitle(item)) { e.preventDefault(); e.currentTarget.select(); } }} onChange={(e) => editText(item.id, { label: e.target.value })}/>}<RichTextEditor value={item.html ?? textToCardHtml(item.text || item.sourceText || "")} ariaLabel={item.kind === "freeText" ? "Text auf der Fläche bearbeiten" : "Kartentext bearbeiten"} isActive documentTools documentHistory={false} toolbarHost={item.kind === "freeText" ? freeTextTools : cardTextTools} minHeightClass="min-h-32" onChange={(html) => editText(item.id, { html })}/></div> : <>{item.kind !== "freeText" && <span className="core-mindmap-node-label core-body" onPointerDown={(e) => { if (hasDefaultTitle(item) && !connecting && !multipleSelection && !e.shiftKey && !e.ctrlKey && !e.metaKey) e.stopPropagation(); }} onClick={(e) => { if (hasDefaultTitle(item) && !connecting && !multipleSelection && !e.shiftKey && !e.ctrlKey && !e.metaKey) { e.stopPropagation(); beginEdit(item.id); } }}>{item.label || "Ohne Titel"}</span>}{item.kind === "keyword" && <span className="core-mindmap-node-icons text-core-muted">{Boolean(item.text.trim() || item.sourceText?.trim()) && <button type="button" aria-label="Text anzeigen" onPointerDown={(e) => e.stopPropagation()} onClick={(e) => { e.stopPropagation(); select("node", item.id); setExpanded(expanded === item.id ? null : item.id); }}><FileText size={16}/></button>}{Boolean(item.images?.length) && <button type="button" aria-label="Bilder anzeigen" onPointerDown={(e) => e.stopPropagation()} onClick={(e) => { e.stopPropagation(); select("node", item.id); setExpanded(expanded === item.id ? null : item.id); }}><ImageIcon size={16}/></button>}</span>}{(item.kind !== "keyword" || isExpanded) && <div className="core-mindmap-note-text core-body" dangerouslySetInnerHTML={{ __html: item.html ?? textToCardHtml(item.text || item.sourceText || "") }}/>}</>}
             {(item.kind === "text" || isExpanded) && Boolean(item.images?.length) && <div className="core-mindmap-node-images">{item.images!.map((image) => <div key={image.id} className="relative"><img src={imageUrlsRef.current.get(image.id)} alt={image.name} draggable={false}/>{isEditing && <button type="button" className="core-mindmap-image-remove rounded-round" aria-label={`Bild „${image.name}“ entfernen`} onPointerDown={(e) => e.stopPropagation()} onClick={(e) => { e.stopPropagation(); update(editMindMapNode(draftRef.current!, item.id, { images: item.images!.filter((n) => n.id !== image.id) })); }}><X size={14}/></button>}</div>)}</div>}
             {isExpanded && source && item.sourceText !== undefined && <div className="core-mindmap-inline-source" onPointerDown={(e) => e.stopPropagation()} onClick={(e) => e.stopPropagation()}><button type="button" aria-expanded={sourceOpen} onClick={() => setSourceOpen(!sourceOpen)}>Quelle: {source.title}</button>{sourceOpen && <div><p>Gespeicherte Fassung vom {new Date(source.updatedAt).toLocaleDateString("de-DE")}</p>{source.text}</div>}</div>}
             {item.kind !== "freeText" && selected && !isEditing && !connecting && !multipleSelection && selection.ids.length === 1 && <><button type="button" className={`core-mindmap-node-add at-sibling ${direction.vertical === "above" ? "to-top" : "to-bottom"} rounded-round`} aria-label="Stichwort auf gleicher Ebene hinzufügen" onPointerDown={(e) => e.stopPropagation()} onClick={(e) => { e.stopPropagation(); addNode("sibling"); }}><Plus size={18}/></button><button type="button" className={`core-mindmap-node-add at-child ${direction.side === "left" ? "to-left" : "to-right"} rounded-round`} aria-label="Unterknoten hinzufügen" onPointerDown={(e) => e.stopPropagation()} onClick={(e) => { e.stopPropagation(); addNode("child"); }}><Plus size={18}/></button></>}
           </div>; })}
         </div>
         {!draft.nodes.length && !draft.strokes.length && <div className="core-mindmap-empty" onPointerDown={(e) => e.stopPropagation()}><Network size={22} className="text-core-action" aria-hidden="true"/><p className="core-heading-3 text-core-text">Deine Mindmap</p><ActionButton variant="secondary" icon={Plus} onClick={() => addNode("root")}>Erstes Thema</ActionButton></div>}
-        <div className="core-mindmap-zoom rounded-control border border-core-border bg-core-surface" onPointerDown={(e) => e.stopPropagation()}><CoreTooltip label="Verkleinern · −"><IconButton variant="ghost" icon={Minus} label="Verkleinern" aria-keyshortcuts="-" onClick={() => zoomAt(1 / 1.2)}/></CoreTooltip><span className="core-caption font-semibold tabular-nums text-core-secondary">{Math.round(viewport.zoom * 100)} %</span><CoreTooltip label="Vergrößern · +"><IconButton variant="ghost" icon={Plus} label="Vergrößern" aria-keyshortcuts="+" onClick={() => zoomAt(1.2)}/></CoreTooltip><CoreTooltip label="Alles anzeigen · ⇧+1"><IconButton variant="ghost" icon={Focus} label="Alles anzeigen" aria-keyshortcuts="Shift+1" onClick={() => { setEditing(null); setExpanded(null); fit(); }}/></CoreTooltip><IconButton variant="ghost" className="core-mindmap-fullscreen-toggle" icon={fullscreen ? Minimize2 : Maximize2} label={fullscreen ? "Vollbild beenden" : "Vollbild"} aria-pressed={fullscreen} onClick={() => setFullscreen(!fullscreen)}/></div>
+        <div className="core-mindmap-zoom rounded-control border border-core-border bg-core-surface" onPointerDown={(e) => e.stopPropagation()}><CoreTooltip label="Verkleinern · −"><IconButton variant="ghost" icon={Minus} label="Verkleinern" aria-keyshortcuts="-" onClick={() => zoomAt(1 / 1.2)}/></CoreTooltip><span className="core-caption font-semibold tabular-nums text-core-secondary">{Math.round(viewport.zoom * 100)} %</span><CoreTooltip label="Vergrößern · +"><IconButton variant="ghost" icon={Plus} label="Vergrößern" aria-keyshortcuts="+" onClick={() => zoomAt(1.2)}/></CoreTooltip><CoreTooltip label="Alles anzeigen · ⇧+1"><IconButton variant="ghost" icon={Focus} label="Alles anzeigen" aria-keyshortcuts="Shift+1" onClick={() => { setEditing(null); setExpanded(null); fit(); }}/></CoreTooltip></div>
       </div>
       {notice && <p className="sr-only" role="status">{notice}</p>}
     </div>

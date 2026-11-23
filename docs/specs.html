@@ -5198,7 +5198,7 @@ body:has([aria-modal="true"]) .core-success-toast {
   width: 1rem;
   height: 1rem;
 }
-.core-rich-text-tool[aria-pressed="true"], .core-mindmap-tool[aria-pressed="true"] { background: var(--core-action-soft); color: var(--core-action-primary); }
+.core-rich-text-tool[aria-pressed="true"] { background: var(--core-action-soft); color: var(--core-action-primary); }
 
 .core-auth-mascot {
   height: 9.5rem;
@@ -5707,11 +5707,8 @@ button[aria-label] {
 
 .core-deck-content-head {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  grid-template-areas: "path path" "title study" "tabs tabs";
+  grid-template-areas: "path" "title" "tabs";
   align-items: center;
-  -moz-column-gap: var(--core-space-lg);
-       column-gap: var(--core-space-lg);
   min-width: 0;
 }
 
@@ -5735,20 +5732,15 @@ button[aria-label] {
   letter-spacing: -0.015em;
 }
 
-.core-deck-content-study {
-  grid-area: study;
-}
-
 .core-deck-content-tabs {
   grid-area: tabs;
   min-width: 0;
   margin-top: var(--core-space-lg);
 }
 
-/* In the app the navigation bar carries title and icon: the path shares its row with the study action, and the head
-   moves closer to the bar. */
+/* In the app the navigation bar carries title and icon, so the head moves closer to the bar. */
 .core-deck-content-head[data-title-in-shell] {
-  grid-template-areas: "path study" "tabs tabs";
+  grid-template-areas: "path" "tabs";
   margin-top: calc(-1 * var(--core-space-lg));
 }
 
@@ -5757,15 +5749,6 @@ button[aria-label] {
 }
 
 @media (max-width: 639px) {
-  .core-deck-content-head {
-    grid-template-columns: minmax(0, 1fr);
-    grid-template-areas: "path" "title" "tabs" "study";
-  }
-
-  .core-deck-content-head[data-title-in-shell] {
-    grid-template-areas: "path" "tabs" "study";
-  }
-
   .core-deck-content-title {
     overflow: hidden;
     text-overflow: ellipsis;
@@ -5776,10 +5759,6 @@ button[aria-label] {
     margin-top: var(--core-space-md);
   }
 
-  .core-deck-content-study {
-    width: 100%;
-    margin-top: var(--core-space-lg);
-  }
 }
 
 .core-status-warning {
@@ -6162,23 +6141,33 @@ button[aria-label] {
 
 .core-summary-panel { container: core-summary / inline-size; }
 @container core-summary (min-width: 48rem) {
-  .core-summary-create-actions { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .core-summary-create-actions { grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; }
 }
-.core-summary-create-actions[data-open="true"] { padding-bottom: min(36rem, 75dvh); }
-.core-summary-create-action { scroll-margin-top: calc(2 * var(--core-control-height) + var(--core-space-xl)); display: flex; align-items: center; gap: var(--core-space-md); width: 100%; min-height: 72px; padding: var(--core-space-lg); border: var(--core-border-width) solid var(--core-border); border-radius: var(--core-radius-panel); background: var(--core-surface-raised); color: var(--core-text); text-align: left; font: var(--core-weight-heading) var(--core-type-heading-3)/var(--core-leading-heading-3) var(--core-font-sans); transition: border-color 140ms ease, box-shadow 140ms ease, transform 140ms ease; }
+.core-summary-create-ai { display: grid; min-width: 0; }
+.core-summary-create-action { display: flex; align-items: center; gap: var(--core-space-md); width: 100%; min-height: 72px; padding: var(--core-space-lg); border: var(--core-border-width) solid var(--core-border); border-radius: var(--core-radius-panel); background: var(--core-surface-raised); color: var(--core-text); text-align: left; font: var(--core-weight-heading) var(--core-type-heading-3)/var(--core-leading-heading-3) var(--core-font-sans); transition: border-color 140ms ease, box-shadow 140ms ease, transform 140ms ease; }
 .core-summary-create-icon { display: grid; flex-shrink: 0; place-items: center; width: 2.5rem; height: 2.5rem; border-radius: var(--core-radius-control); background: var(--core-surface-muted); color: var(--core-action-primary); transition: background-color 140ms ease, color 140ms ease; }
 .core-summary-create-action > span { min-width: 0; overflow-wrap: anywhere; }
-.core-summary-create-action:not(:disabled):hover, .core-summary-create-action[data-state="open"] { border-color: color-mix(in srgb, var(--core-action-primary) 45%, var(--core-border)); box-shadow: var(--core-shadow-raised); }
-.core-summary-create-action:not(:disabled):hover { transform: translateY(-1px); }
-.core-summary-create-action:not(:disabled):hover .core-summary-create-icon, .core-summary-create-action[data-state="open"] .core-summary-create-icon { background: var(--core-action-primary); color: var(--core-text-on-accent); }
-.core-summary-material .core-action-secondary[aria-pressed="true"] { border-color: var(--core-action-primary); background: var(--core-action-soft); color: var(--core-action-primary); }
-.core-summary-create-popover input[type="file"] { padding-block: 0.375rem; color: var(--core-text-secondary); }
-.core-summary-create-popover input[type="file"]::file-selector-button { margin-right: var(--core-space-md); padding: 0.25rem 0.75rem; border: var(--core-border-width) solid var(--core-border); border-radius: var(--core-radius-inset); background: var(--core-surface); color: var(--core-text); font: var(--core-weight-emphasis) var(--core-type-caption)/var(--core-leading-caption) var(--core-font-sans); cursor: pointer; }
+.core-summary-create-action:not(:disabled):hover, .core-summary-create-action[aria-expanded="true"], .core-summary-create-form { border-color: color-mix(in srgb, var(--core-action-primary) 45%, var(--core-border)); }
+.core-summary-create-action:not(:disabled):not([aria-expanded="true"]):hover { box-shadow: var(--core-shadow-raised); transform: translateY(-1px); }
+.core-summary-create-action:not(:disabled):hover .core-summary-create-icon, .core-summary-create-action[aria-expanded="true"] .core-summary-create-icon { background: var(--core-action-primary); color: var(--core-text-on-accent); }
+.core-summary-create-action[aria-expanded="true"] { border-bottom-color: var(--core-border); border-end-start-radius: 0; border-end-end-radius: 0; }
 .core-summary-create-action:disabled { opacity: 0.5; cursor: not-allowed; }
-.core-summary-create-popover { z-index: 75; display: grid; gap: var(--core-space-lg); width: min(30rem, calc(100vw - 16px)); max-height: var(--radix-popover-content-available-height); overflow-y: auto; overscroll-behavior: contain; padding: var(--core-space-lg); border: var(--core-border-width) solid var(--core-border); border-radius: var(--core-radius-panel); background: var(--core-surface); color: var(--core-text); box-shadow: var(--core-shadow-raised); }
-.core-summary-create-popover .core-summary-actions > button { flex: 1; }
-.core-summary-create-popover .core-segmented-control { width: 100%; }
-.core-summary-create-popover .core-segmented-control-option { white-space: normal; flex: 1; }
+.core-summary-create-form { container: summary-create / inline-size; display: grid; gap: var(--core-space-lg); min-width: 0; padding: var(--core-space-lg); border-width: 0 var(--core-border-width) var(--core-border-width); border-style: solid; border-radius: var(--core-radius-panel); border-start-start-radius: 0; border-start-end-radius: 0; background: var(--core-surface-raised); }
+.core-summary-create-form .core-segmented-control { width: 100%; }
+.core-summary-create-form .core-segmented-control-option { white-space: normal; flex: 1; }
+.core-summary-create-footer { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--core-space-md); }
+.core-summary-source-chip { display: flex; align-items: center; justify-self: start; gap: var(--core-space-sm); min-width: 0; max-width: 100%; min-height: 2rem; padding-inline-start: var(--core-space-md); border-radius: var(--core-radius-inset); background: var(--core-surface-muted); color: var(--core-text); font: var(--core-weight-emphasis) var(--core-type-body)/var(--core-leading-body) var(--core-font-sans); }
+.core-summary-source-chip > svg { flex-shrink: 0; color: var(--core-text-muted); }
+.core-summary-source-chip > button { display: grid; flex-shrink: 0; place-items: center; width: 2rem; height: 2rem; border-radius: var(--core-radius-inset); color: var(--core-text-muted); }
+.core-summary-source-chip > button:hover { color: var(--core-text); }
+.core-summary-create-wait { display: flex; flex-wrap: wrap; align-items: center; gap: var(--core-space-md); }
+.core-summary-create-wait-message { flex: 1 1 auto; min-width: 0; }
+@container summary-create (max-width: 32rem) {
+  .core-summary-create-footer .core-summary-actions { flex-basis: 100%; }
+  .core-summary-create-footer .core-summary-actions > button, .core-summary-create-wait > button { flex: 1; }
+}
+.core-summary-title-field { min-height: var(--core-button-height); padding-block: 0.25rem; }
+.core-summary-editor-heading { display: grid; grid-template-columns: auto minmax(0, 1fr); grid-auto-columns: auto; grid-auto-flow: column; align-items: center; gap: var(--core-space-sm) var(--core-space-md); min-width: 0; }
 .core-summary-row { position: relative; display: grid; min-width: 0; }
 .core-summary-preview { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: var(--core-space-xl); }
 .core-summary-preview:hover { border-color: var(--core-border-interactive); background-color: var(--core-surface-hover); }
@@ -6203,11 +6192,11 @@ button[aria-label] {
 
 .core-mindmap-panel { container: core-mindmap / inline-size; }
 .core-mindmap-heading { min-width: 0; }
-.core-mindmap-primary-tools { display: flex; align-items: center; flex-wrap: wrap; gap: var(--core-space-sm); min-width: 0; }
-.core-mindmap-tools { display: flex; align-items: center; flex-wrap: wrap; gap: var(--core-space-sm); padding: var(--core-space-sm); min-width: 0; }
+.core-mindmap-fixed-actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--core-space-sm); min-width: 0; margin-left: auto; }
+.core-mindmap-fixed-actions + .core-editor-toolbar-actions { margin-left: 0; }
 .core-mindmap-compact-field { width: 160px; max-width: 100%; }
 .core-mindmap-text-toolbar:empty { display: none; }
-.core-mindmap-text-toolbar > [role="toolbar"] { border-radius: var(--core-radius-control); position: relative; }
+.core-mindmap-text-toolbar > [role="toolbar"] { flex: 1 1 0; min-height: var(--core-control-height); }
 .core-mindmap-canvas { position: relative; min-width: 0; height: 640px; max-height: 75dvh; min-height: 360px; overflow: hidden; touch-action: none; background-color: var(--core-surface); background-image: radial-gradient(circle, var(--core-border) 1px, transparent 1px); cursor: grab; }
 .core-mindmap-canvas[data-tool="pen"], .core-mindmap-canvas[data-tool="text"] { cursor: crosshair; }
 .core-mindmap-canvas[data-tool="erase"] { cursor: cell; }
@@ -6221,11 +6210,6 @@ button[aria-label] {
 .core-mindmap-node.is-selected { cursor: grab; border-color: var(--mindmap-ink, var(--core-border-interactive)); box-shadow: var(--core-shadow-selection); }
 .core-mindmap-node.is-link-source { border-color: var(--core-info); box-shadow: var(--core-shadow-selection); }
 .core-mindmap-node-label { font-weight: 700; overflow: hidden; overflow-wrap: anywhere; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
-.core-mindmap-source-action { margin-left: auto; }
-@container core-mindmap (max-width: 43rem) { .core-mindmap-source-action { margin-left: 0; } }
-/* IconButton sets the text colour inline, so the pressed colour goes on the icon. */
-.core-mindmap-tool[aria-pressed="true"] svg { color: var(--core-action-primary); }
-.core-mindmap-tool:disabled { opacity: 0.35; }
 .core-mindmap-source-action[aria-expanded="true"] { border-color: var(--core-action-primary); background: var(--core-action-soft); color: var(--core-action-primary); }
 .core-mindmap-node.is-keyword:not(.is-expanded) { justify-content: center; }
 .core-mindmap-node.is-keyword .core-mindmap-node-label, .core-mindmap-node.is-keyword .core-mindmap-inline-title { text-align: center; }
@@ -6280,36 +6264,56 @@ button[aria-label] {
 .core-mindmap-panel.is-fullscreen { position: fixed; inset: 0; z-index: 60; display: flex; flex-direction: column; gap: var(--core-space-sm); padding: var(--core-space-sm); overflow-y: auto; background: var(--core-canvas); }
 .core-mindmap-panel.is-fullscreen > * { flex: 1 0 auto; display: flex; flex-direction: column; }
 .core-mindmap-panel.is-fullscreen .core-mindmap-canvas { flex: 1 0 auto; height: auto; max-height: none; min-height: 60dvh; }
-@media (min-width: 768px) and (pointer: fine) { .core-mindmap-fullscreen-toggle { display: none; } }
 @media (max-width: 767px) { .core-mindmap-canvas { max-height: 60dvh; } }
 .core-mindmap-empty { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: var(--core-space-md); padding: var(--core-space-xl); text-align: center; color: var(--core-text-muted); pointer-events: none; }
 .core-mindmap-empty button { pointer-events: auto; }
-.core-mindmap-image-upload { position: relative; display: flex; align-items: center; justify-content: center; gap: var(--core-space-sm); min-height: 44px; padding: var(--core-space-sm); cursor: pointer; }
+.core-mindmap-image-upload { position: relative; min-width: var(--core-button-height); padding: 0; color: var(--core-text); cursor: pointer; }
 .core-mindmap-image-upload:has(input:disabled) { opacity: .5; cursor: default; }
 .core-mindmap-image-upload input { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: inherit; }
-.core-mindmap-color-picker { min-width: 0; }
 @container core-mindmap (max-width: 30rem) {
   .core-mindmap-heading > label { flex-basis: 100%; }
   .core-mindmap-heading > .core-action-primary { width: 100%; }
   .core-mindmap-canvas { height: 520px; }
-  .core-mindmap-tools .core-mindmap-color-picker { flex-basis: 100%; }
+  .core-mindmap-primary-tools .core-editor-toolbar-modes { flex: 1 1 0; max-width: -moz-max-content; max-width: max-content; grid-auto-columns: minmax(0, var(--core-control-height)); }
+  .core-mindmap-fixed-actions { order: 1; flex-basis: 100%; gap: var(--core-space-xs); margin-left: 0; }
+  .core-mindmap-fixed-actions > .core-action-secondary { padding-inline: var(--core-space-md); }
+  .core-mindmap-fixed-actions > .core-mindmap-source-action { min-width: var(--core-button-height); padding-inline: 0; gap: 0; }
+  .core-mindmap-fixed-actions > :last-child, .core-mindmap-fixed-actions + .core-editor-toolbar-actions { margin-left: auto; }
+  .core-mindmap-primary-tools .core-editor-toolbar-context { order: 2; }
+  .core-mindmap-source-action > span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
 }
 .core-summary-document-editor { min-width: 0; container: summary-document / inline-size; }
-.core-summary-tools { position: sticky; top: 0; z-index: 20; display: flex; flex-wrap: wrap; align-items: center; gap: var(--core-space-md); padding: var(--core-space-sm); border: var(--core-border-width) solid var(--core-border); border-radius: var(--core-radius-control); }
+.core-editor-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: var(--core-space-sm); min-width: 0; padding: var(--core-space-sm); border-radius: var(--core-radius-panel); }
+.core-editor-toolbar-modes { flex: none; }
+.core-editor-toolbar-actions, .core-editor-toolbar-end, .core-editor-toolbar-tools, .core-editor-tool-group, .core-rich-text-document-toolbar, .core-rich-text-group { display: flex; align-items: center; min-width: 0; }
+.core-editor-toolbar-actions { gap: var(--core-space-xs); margin-left: auto; }
+/* The row reaches the panel edges, so its clip leaves room for the focus outline of the first and last control. */
+.core-editor-toolbar-context { display: flex; align-items: flex-start; gap: var(--core-space-sm); flex: 1 0 calc(100% + 2 * var(--core-space-sm)); min-width: 0; margin-inline: calc(-1 * var(--core-space-sm)); padding: var(--core-space-sm) var(--core-space-sm) 0; border-top: var(--core-border-width) solid var(--core-border); overflow-x: clip; }
+.core-editor-toolbar-tools, .core-rich-text-document-toolbar { flex-wrap: wrap; gap: var(--core-space-xs) var(--core-space-md); }
+.core-editor-toolbar-tools { flex: 1 1 0; min-height: var(--core-control-height); }
+/* Every group carries a separator; the row starts one separator further left, so the context row clips it at the start of each line. */
+.core-editor-toolbar-tools, .core-mindmap-text-toolbar > [role="toolbar"] { margin-inline-start: calc(-1 * (var(--core-space-md) + var(--core-border-width))); }
+:is(.core-editor-toolbar-tools, .core-editor-toolbar .core-rich-text-document-toolbar) > :is(.core-editor-tool-group, .core-rich-text-group) { padding-inline-start: var(--core-space-md); border-inline-start: var(--core-border-width) solid var(--core-border); }
+.core-editor-toolbar-end { flex: none; gap: var(--core-space-xs); min-height: var(--core-control-height); }
+.core-editor-tool-group, .core-rich-text-group { flex: none; gap: var(--core-space-xs); }
+.core-rich-text-group + .core-rich-text-group { padding-inline-start: var(--core-space-md); border-inline-start: var(--core-border-width) solid var(--core-border); }
+.core-editor-tool-group > .core-caption { white-space: nowrap; }
+.core-editor-toolbar-text { display: contents; }
+.core-editor-toolbar-text[hidden] { display: none; }
+.core-editor-toolbar [role="toolbar"] { position: static; border: 0; padding: 0; background: transparent; }
+.core-editor-toolbar .core-rich-text-tool:not([aria-pressed="true"]) { color: var(--core-text); }
+/* Below this width the text tools of a summary no longer fit one line. */
+@container (max-width: 52rem) {
+  .core-editor-toolbar-tools, .core-rich-text-document-toolbar { flex-wrap: nowrap; }
+  /* A scrolling row also clips upwards and downwards; the block padding keeps the focus outline inside it. */
+  .core-editor-toolbar-tools, .core-mindmap-text-toolbar > [role="toolbar"] { overflow-x: auto; overscroll-behavior-x: contain; scrollbar-width: none; min-height: calc(var(--core-control-height) + 2 * var(--core-space-xs)); margin-block: calc(-1 * var(--core-space-xs)); padding-block: var(--core-space-xs); }
+  /* Fades the cut-off end. A mask on the row would also hide the colour popovers that open inside it. */
+  :is(.core-editor-toolbar-tools, .core-mindmap-text-toolbar > [role="toolbar"])::after { content: ""; position: sticky; inset-inline-end: 0; flex: none; align-self: stretch; width: var(--core-space-xl); margin-inline-start: calc(-1 * var(--core-space-md)); background: linear-gradient(to right, transparent, var(--core-surface-raised)); pointer-events: none; }
+  .core-editor-toolbar-tools .core-rich-text-document-toolbar { flex: none; }
+}
+.core-summary-tools { position: sticky; top: 0; z-index: 20; }
 /* Canvas band above the stuck tools: covers the gap to the scroll area edge so the sheet never shows above them. */
 .core-summary-tools::before { content: ""; position: absolute; inset-inline: calc(-1 * var(--core-border-width)); bottom: calc(100% + var(--core-border-width)); height: var(--core-space-sm); background: var(--core-canvas); pointer-events: none; }
-.core-summary-tool-context, .core-summary-tool-group, .core-summary-tool-actions, .core-rich-text-document-toolbar, .core-rich-text-group { display: flex; align-items: center; min-width: 0; }
-.core-summary-tool-context, .core-rich-text-document-toolbar { flex: 1 1 0; flex-wrap: wrap; gap: var(--core-space-xs) var(--core-space-md); }
-.core-summary-tool-group, .core-rich-text-group { flex: none; gap: var(--core-space-xs); }
-.core-summary-tool-group + .core-summary-tool-group, .core-rich-text-group + .core-rich-text-group { padding-inline-start: var(--core-space-md); border-inline-start: var(--core-border-width) solid var(--core-border); }
-.core-summary-tool-group > .core-caption { white-space: nowrap; }
-.core-summary-tool-modes { flex-shrink: 0; }
-.core-summary-tool-actions { gap: var(--core-space-xs); margin-left: auto; }
-.core-summary-text-tools { display: contents; }
-.core-summary-text-tools[hidden] { display: none; }
-.core-summary-text-tools [role="toolbar"] { position: static; border: 0; padding: 0; background: transparent; }
-.core-summary-ink-dot { display: grid; place-items: center; width: var(--core-button-height); height: var(--core-button-height); flex-shrink: 0; }
-.core-summary-ink-dot span { border-radius: var(--core-radius-round); }
 .core-summary-stepper { display: flex; align-items: center; }
 .core-summary-stepper input { width: 3rem; height: var(--core-button-height); padding: 0; border: var(--core-border-width) solid var(--core-border); border-radius: var(--core-radius-control); background: var(--core-surface); color: var(--core-text); text-align: center; font: inherit; font-variant-numeric: tabular-nums; -moz-appearance: textfield; -webkit-appearance: textfield; appearance: textfield; }
 .core-summary-stepper input::-webkit-inner-spin-button, .core-summary-stepper input::-webkit-outer-spin-button { margin: 0; -webkit-appearance: none; }
@@ -6324,24 +6328,19 @@ button[aria-label] {
 .core-summary-drawing-layer[data-tool="eraser"] path { pointer-events: stroke; }
 .core-summary-drawing-layer[data-tool="eraser"] path:hover { stroke-opacity: 0.45; }
 .core-summary-expanded { position: fixed; inset: 0; z-index: 70; overflow-y: auto; overscroll-behavior: contain; background: var(--core-canvas); padding: var(--core-space-sm); }
-@container summary-document (width < 68rem) {
-  .core-summary-tool-context, .core-rich-text-document-toolbar { flex-wrap: nowrap; }
-  .core-summary-tool-context { order: 1; flex-basis: 100%; overflow-x: auto; overscroll-behavior-x: contain; scrollbar-width: none; padding-top: var(--core-space-sm); padding-inline-end: var(--core-space-xl); border-top: var(--core-border-width) solid var(--core-border); -webkit-mask-image: linear-gradient(to right, #000 calc(100% - var(--core-space-xl)), transparent); mask-image: linear-gradient(to right, #000 calc(100% - var(--core-space-xl)), transparent); }
-  .core-rich-text-document-toolbar { flex: none; }
-}
 @container summary-document (max-width: 40rem) {
-  .core-summary-tools { gap: var(--core-space-sm); }
   .core-summary-sheet .rich-text-field { padding: var(--core-space-lg); }
 }
 
 @container core-summary (max-width: 36rem) {
-  .core-summary-editor-heading { flex-direction: column; align-items: stretch; }
+  .core-summary-editor-heading > * { grid-row: 1; }
+  .core-summary-editor-heading > .core-summary-sync-tag { grid-row: 2; grid-column: 2; justify-self: start; }
+  .core-summary-save { width: var(--core-button-height); padding-inline: 0; gap: 0; }
+  .core-summary-save > span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
   .core-summary-preview { grid-template-columns: minmax(0, 1fr); gap: var(--core-space-md); padding: var(--core-space-lg); }
   .core-summary-preview h4 { padding-inline-end: var(--core-button-height); }
   .core-summary-delete { top: calc(var(--core-space-lg) + (var(--core-leading-heading-3) - var(--core-button-height)) / 2); right: var(--core-space-sm); }
   .core-summary-preview-action { justify-content: space-between; }
-  .core-summary-actions { flex-direction: column-reverse; }
-  .core-summary-actions > button { width: 100%; }
 }
 
 .core-mindmap-links { min-width: 120px; }
@@ -6907,6 +6906,15 @@ button[aria-label] {
 }
 .group:disabled .group-disabled\:text-core-muted {
   color: var(--core-text-muted);
+}
+.aria-expanded\:border-core-action[aria-expanded="true"] {
+  border-color: var(--core-action-primary);
+}
+.aria-expanded\:bg-\[var\(--core-action-soft\)\][aria-expanded="true"] {
+  background-color: var(--core-action-soft);
+}
+.aria-expanded\:text-core-action[aria-expanded="true"] {
+  color: var(--core-action-primary);
 }
 .aria-pressed\:border-core-action[aria-pressed="true"] {
   border-color: var(--core-action-primary);
@@ -8376,7 +8384,7 @@ html:has(.catalog-preview) { scroll-behavior: auto; }
 <li>Verschieben macht einen Stapel samt Unterbaum zum direkten Unterstapel des Ziels oder zum Hauptstapel. Ausgeschlossen sind nur der Stapel selbst und seine Nachfahren. Importherkunft und Tags bleiben.</li>
 <li>Das Löschen eines Stapelbaums ist endgültig, nennt vorher Unterstapel und Kartenzahl und wird durch späteren Sync nicht rückgängig.</li>
 <li>Je Stapel zeigen <code>Heute</code> und <code>Lernen</code> die Tageszahlen <code>Neu</code>, <code>Offen</code> und <code>Fällig</code> nach <a href="#specs--tagesrunde-und-limits">Tagesrunde und Limits</a>; Elternstapel zählen ihren Teilbaum.</li>
-<li>Ein geöffneter Stapel bündelt Unterstapel, die Karten des ganzen Teilbaums, Zusammenfassungen und Mindmap und startet das Lernen.</li>
+<li>Ein geöffneter Stapel bündelt Unterstapel, die Karten des ganzen Teilbaums, Zusammenfassungen und Mindmap; gelernt wird aus den Unterstapeln.</li>
 <li>Wo ein Stapel gewählt wird, steht sein vollständiger Pfad, damit gleichnamige Unterstapel unterscheidbar bleiben.</li>
 </ul>
 <h2 id="specs--3-kernjourneys" class="core-heading-2" tabindex="-1">3. Kernjourneys <a class="docs-anchor" href="#specs--3-kernjourneys" aria-label="Link zu 3. Kernjourneys">#</a></h2>
@@ -8778,11 +8786,11 @@ html:has(.catalog-preview) { scroll-behavior: auto; }
 <li><strong>Material:</strong> die Karten des Stapels, auf Wunsch samt Unterstapeln, und optional eine angehängte Quelle (PDF, Text, Markdown, CSV, TSV). Die Quelle kann die Karten ergänzen oder ersetzen und wird nicht gespeichert.</li>
 <li>Jeder Inhalt geht genau einmal ein, unabhängig von der Zahl seiner Karten; Varianten zählen nicht. Bei Auswahlkarten sind richtige und falsche Optionen unterschieden.</li>
 <li>Das Material wird vor der Anfrage vollständig geladen. Ist es größer als die Obergrenze (3.000 Inhalte oder 400.000 Zeichen), wird die Erstellung sichtbar abgewiesen und nie still gekürzt.</li>
-<li><strong>Wünsche:</strong> Länge, Detailgrad, Darstellung, Lernziel, Fokus, Sprachniveau, Beispiele, sichtbare Verweise. Länge (etwa 1–2, 3–5 oder 6–10 Minuten Lesezeit) und Detailgrad sind unabhängig. Die Wünsche sind ein eigener Auftrag; Fokus und Material überschreiben die Anweisungen nicht.</li>
+<li><strong>Wünsche:</strong> Länge, Darstellung, Lernziel, Fokus, Beispiele, sichtbare Verweise (vorab aus). Die Länge (etwa 1–2, 3–5 oder 6–10 Min. Lesezeit) setzt auch den Detailgrad. Die Wünsche sind ein eigener Auftrag; Fokus und Material überschreiben die Anweisungen nicht.</li>
 <li><strong>Materialtreue:</strong> Die KI darf nur wiedergeben, was im Material steht. Definitionen, Zahlen, Einheiten, Formeln, Verneinungen, Bedingungen und Ausnahmen bleiben; Widersprüche nennt sie mit beiden Fundstellen, Lücken als Hinweis. Bei knapper Länge gehen Fokus und zentrale Konzepte vor; wenig Material wird nicht aufgefüllt.</li>
 <li><strong>Antwort:</strong> Hauptabschnitte mit höchstens einer Ebene Unterabschnitten, darin Absätze und Stichpunkte aus Stichwort und Aussage, je Abschnitt Verweise auf das Material und optional belegte Querbezüge zwischen Stichworten.</li>
 <li>Den Text baut die App aus dieser Struktur. Kartenverweise führen zu vorhandenen Karten, Quellverweise nennen Datei und Seite; unbekannte Verweise, leere Abschnitte und abgeschnittene Antworten werden abgewiesen.</li>
-<li>Das Ergebnis öffnet als ungespeicherter Entwurf; erst das Speichern übernimmt ihn. Modell, Promptfassung und Erstellungszeit bleiben an der Fassung.</li>
+<li>Das Ergebnis öffnet als ungespeicherter Entwurf unter dem Stapelnamen; erst das Speichern übernimmt ihn. Modell, Promptfassung und Erstellungszeit bleiben an der Fassung.</li>
 <li>Abbrechen beendet die Anfrage; eine verspätete Antwort wird nicht übernommen. Ein Fehler erhält den Auftrag.</li>
 <li>Bilder, Ton und gescannte Seiten ohne Text werden nicht ausgewertet; was ausgelassen wurde, steht im Ergebnis.</li>
 <li><strong>Grenze:</strong> Der Prompt allein garantiert keine Faktentreue; deshalb die Belege. Ausgabesprache ist Deutsch.</li>
@@ -8865,7 +8873,7 @@ html:has(.catalog-preview) { scroll-behavior: auto; }
 <ul>
 <li>Ein Stapel hat beliebig viele benannte Fassungen; eine neue überschreibt keine bestehende.</li>
 <li>Eine Fassung entsteht per <a href="#specs--ki-zusammenfassung">KI-Zusammenfassung</a> oder von Hand aus einem leeren Entwurf.</li>
-<li>Jede Fassung nennt Titel, Umfang, Detailgrad und die aus dem tatsächlichen Text berechnete Lesezeit.</li>
+<li>Jede Fassung nennt Titel, Umfang, Detailgrad und die aus ihrem Text berechnete Lesezeit.</li>
 <li>Fassungen liegen im Konto und erscheinen auf jedem Gerät (<a href="decisions.md#adr-043--zusammenfassungen-und-mindmaps-als-versionierte-online-dokumente">ADR-043</a>).</li>
 <li>Löschen entfernt eine Fassung auf allen Geräten; daraus erzeugte Mindmap-Karten bleiben.</li>
 <li>Unter den eigenen Fassungen zeigt ein Stapel die seiner Unterstapel, gruppiert, bearbeitbar und löschbar; sie bleiben ihrem Stapel. Neue entstehen nur im geöffneten Stapel.</li>
@@ -8874,7 +8882,7 @@ html:has(.catalog-preview) { scroll-behavior: auto; }
 <ul>
 <li>Die Fassung steht auf einer durchgehenden Schreibfläche mit formatiertem Text und Handzeichnungen.</li>
 <li>Eine Textmarkierung gehört zum Text und wandert mit ihm; freie Striche liegen auf der Zeichenfläche.</li>
-<li>Gespeichert wird beim Verlassen: Ein geänderter Entwurf fragt nach Speichern, Verwerfen oder Weiterbearbeiten. Es gibt kein automatisches Speichern.</li>
+<li>Gespeichert wird bewusst oder beim Verlassen; dann fragt ein geänderter Entwurf nach Speichern, Verwerfen oder Weiterbearbeiten, nie automatisch.</li>
 <li>Ohne Verbindung wird lokal gespeichert, als noch nicht synchronisiert gekennzeichnet und beim nächsten Öffnen hochgeladen.</li>
 <li>Hat ein anderes Gerät dieselbe Fassung inzwischen geändert, bleibt dessen Stand; die eigenen Änderungen werden eine eigene „Konfliktfassung“.</li>
 <li><strong>Bewusst nicht:</strong> Seiten und Seitenformate, Export.</li>
@@ -9158,7 +9166,7 @@ html:has(.catalog-preview) { scroll-behavior: auto; }
 <p>Probe: Ein Satz gehört hinein, wenn er nach einer vollständigen Neugestaltung der Oberfläche unverändert gälte und eine Abweichung davon ein fachlicher Fehler wäre.</p>
 <p>Form: Stichpunkte, ein Gedanke je Punkt. Eine neue Regel ersetzt die alte, statt sie zu ergänzen. Wo Funktionen logisch voneinander abhängen, steht ein Schaubild als <code>schaubild</code>-Block direkt beim Text und wird mit ihm geändert (Schreibweise in <a href="index.html#readme--pflege"><code>README.md</code></a>). In Schaubildern sind KI-Schritte blau, Ergebnisse grün markiert.</p>
 <h2 id="specs--codeumfang-der-produktbereiche" class="core-heading-2" tabindex="-1">Codeumfang der Produktbereiche <a class="docs-anchor" href="#specs--codeumfang-der-produktbereiche" aria-label="Link zu Codeumfang der Produktbereiche">#</a></h2>
-<p>CoRe ist eine App mit mehreren Bereichen. Die Tabelle zeigt deren Anteil am Bildschirmcode; gemeinsam genutzte Logik, UI und API stehen separat.</p><div class="docs-code-stats"><dl class="flex min-w-0 flex-col"><dt class="core-status-label text-core-muted">Bildschirmcode</dt><dd class="core-metric mt-0.5 text-core-text">7.441</dd></dl><dl class="flex min-w-0 flex-col"><dt class="core-status-label text-core-muted">Gemeinsamer Code &amp; API</dt><dd class="core-metric mt-0.5 text-core-text">49.190</dd></dl><dl class="flex min-w-0 flex-col"><dt class="core-status-label text-core-muted">Quelldateien</dt><dd class="core-metric mt-0.5 text-core-text">310</dd></dl></div><div class="docs-code-chart"><div class="docs-table-scroll" tabindex="0" role="region" aria-label="Codeumfang je Produktbereich"><table><thead><tr><th>Bereich</th><th>Zeilen</th><th>Anteil</th></tr></thead><tbody><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-status-learned)" aria-hidden="true"></span>Heute</th><td>328</td><td>4,4 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-status-new)" aria-hidden="true"></span>Lernen & Karten</th><td>2.234</td><td>30 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-status-in-progress)" aria-hidden="true"></span>Erstellen & Import</th><td>2.109</td><td>28,3 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-action-primary)" aria-hidden="true"></span>Prüfungen</th><td>433</td><td>5,8 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-status-due)" aria-hidden="true"></span>Statistik</th><td>627</td><td>8,4 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-progress-completed)" aria-hidden="true"></span>Konto & Sync</th><td>798</td><td>10,7 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-text-secondary)" aria-hidden="true"></span>Hilfe</th><td>912</td><td>12,3 %</td></tr></tbody></table></div></div><p class="docs-source">Beim Erzeugen gemessen: nichtleere Zeilen in <code>src/</code> und <code>api/</code> (TS/TSX) sowie <code>src/styles.css</code>. Ohne Tests, Typdeklarationen, generierte Datenbanktypen, Dokumentation und Fremdcode. Bereichszuordnung nach Bildschirmdateien in <a href="../src/screens/README.md">der Screen-Landkarte</a>; übriger Code zählt gemeinsam. Enthält Kommentare und misst weder Laufzeit noch Komplexität.</p></article></main></div><script>function initializeDocsViewer() {
+<p>CoRe ist eine App mit mehreren Bereichen. Die Tabelle zeigt deren Anteil am Bildschirmcode; gemeinsam genutzte Logik, UI und API stehen separat.</p><div class="docs-code-stats"><dl class="flex min-w-0 flex-col"><dt class="core-status-label text-core-muted">Bildschirmcode</dt><dd class="core-metric mt-0.5 text-core-text">7.439</dd></dl><dl class="flex min-w-0 flex-col"><dt class="core-status-label text-core-muted">Gemeinsamer Code &amp; API</dt><dd class="core-metric mt-0.5 text-core-text">49.285</dd></dl><dl class="flex min-w-0 flex-col"><dt class="core-status-label text-core-muted">Quelldateien</dt><dd class="core-metric mt-0.5 text-core-text">310</dd></dl></div><div class="docs-code-chart"><div class="docs-table-scroll" tabindex="0" role="region" aria-label="Codeumfang je Produktbereich"><table><thead><tr><th>Bereich</th><th>Zeilen</th><th>Anteil</th></tr></thead><tbody><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-status-learned)" aria-hidden="true"></span>Heute</th><td>328</td><td>4,4 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-status-new)" aria-hidden="true"></span>Lernen & Karten</th><td>2.232</td><td>30 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-status-in-progress)" aria-hidden="true"></span>Erstellen & Import</th><td>2.109</td><td>28,4 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-action-primary)" aria-hidden="true"></span>Prüfungen</th><td>433</td><td>5,8 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-status-due)" aria-hidden="true"></span>Statistik</th><td>627</td><td>8,4 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-progress-completed)" aria-hidden="true"></span>Konto & Sync</th><td>798</td><td>10,7 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-text-secondary)" aria-hidden="true"></span>Hilfe</th><td>912</td><td>12,3 %</td></tr></tbody></table></div></div><p class="docs-source">Beim Erzeugen gemessen: nichtleere Zeilen in <code>src/</code> und <code>api/</code> (TS/TSX) sowie <code>src/styles.css</code>. Ohne Tests, Typdeklarationen, generierte Datenbanktypen, Dokumentation und Fremdcode. Bereichszuordnung nach Bildschirmdateien in <a href="../src/screens/README.md">der Screen-Landkarte</a>; übriger Code zählt gemeinsam. Enthält Kommentare und misst weder Laufzeit noch Komplexität.</p></article></main></div><script>function initializeDocsViewer() {
     const theme = document.getElementById("docs-theme");
     theme.addEventListener("click", () => {
         const dark = document.documentElement.dataset.coreTheme !== "dark";

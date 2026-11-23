@@ -1,11 +1,11 @@
 import React from "react";
 import { createPortal } from "react-dom";
-import { Eraser, Highlighter, Maximize2, Minimize2, Minus, Palette, PenLine, Plus, Redo2, Spline, Trash2, Type, Undo2 } from "lucide-react";
+import { Eraser, Highlighter, Maximize2, Minimize2, Minus, PenLine, Plus, Redo2, Spline, Trash2, Type, Undo2 } from "lucide-react";
 import { SUMMARY_FONT_SIZE, type LearningSummary, type SummaryPage, type SummaryStroke } from "../learningSummaries.ts";
 import { summaryDrawingLayout } from "../summaryDocumentLayout.ts";
 import { IconButton } from "../ui/actionUi.tsx";
-import { ColorPicker, ColorSwatchButton } from "../ui/ColorPicker.tsx";
-import { CoreIconSegmentedControl } from "../ui/coreUi.tsx";
+import { ColorSwatchRow } from "../ui/ColorPicker.tsx";
+import { CoreIconSegmentedControl, CoreSegmentedControl } from "../ui/coreUi.tsx";
 import { CoreSelect } from "../ui/selectUi.tsx";
 import { CoreTooltip } from "../ui/tooltipUi.tsx";
 import { RichTextEditor } from "../ui/RichTextEditor.tsx";
@@ -15,10 +15,13 @@ const SUMMARY_TOOLS_GAP = 8;
 
 type Tool = "text" | "pen" | "marker" | "eraser";
 const toolOptions = [{ value: "text", label: "Schreiben", icon: Type }, { value: "pen", label: "Stift", icon: PenLine }, { value: "marker", label: "Zeichenmarker", icon: Highlighter }, { value: "eraser", label: "Radierer", icon: Eraser }] as const;
+/** `widths` are the strokes in px behind `Fein`, `Mittel` and `Dick`. */
 const inkPresets = {
-  pen: { label: "Stiftstärke", min: 1, max: 20, colors: [["#181d25", "Schwarz"], ["#3b7dd8", "Blau"], ["#e5484d", "Rot"], ["#3fa66b", "Grün"], ["#8b5cf6", "Violett"]] },
-  marker: { label: "Markerbreite", min: 4, max: 24, colors: [["#f6d36b", "Gelb"], ["#9ed5b3", "Grün"], ["#a4c2ee", "Blau"], ["#f5a3a6", "Rosa"], ["#f9c48f", "Orange"]] },
+  pen: { colorLabel: "Stiftfarbe", widths: [2, 4, 8], colors: [{ value: "#181d25", label: "Schwarz" }, { value: "#3b7dd8", label: "Blau" }, { value: "#e5484d", label: "Rot" }, { value: "#3fa66b", label: "Grün" }, { value: "#8b5cf6", label: "Violett" }] },
+  marker: { colorLabel: "Markerfarbe", widths: [8, 14, 22], colors: [{ value: "#f6d36b", label: "Gelb" }, { value: "#9ed5b3", label: "Grün" }, { value: "#a4c2ee", label: "Blau" }, { value: "#f5a3a6", label: "Rosa" }, { value: "#f9c48f", label: "Orange" }] },
 } as const;
+const widthLabels = ["Fein", "Mittel", "Dick"] as const;
+const widthOptions = { pen: inkPresets.pen.widths.map((width, index) => ({ value: String(width), label: widthLabels[index] })), marker: inkPresets.marker.widths.map((width, index) => ({ value: String(width), label: widthLabels[index] })) };
 const fontOptions = [{ value: "sans", label: "Standard" }, { value: "serif", label: "Serif" }] as const;
 const markerModeOptions = [{ value: "line", label: "Gerade auf Textzeile", icon: Minus }, { value: "free", label: "Freihand", icon: Spline }] as const;
 type TextRow = { top: number; bottom: number; left: number; right: number };
@@ -86,8 +89,8 @@ export function SummaryDocumentEditor({ value, onChange, busy }: {
 }) {
   const pages = React.useMemo(() => value.pages ?? [{ id: value.id, html: value.html, strokes: [] }], [value.pages, value.id, value.html]);
   const [tool, setTool] = React.useState<Tool>("text");
-  const [pen, setPen] = React.useState({ color: "#3b7dd8", width: 3 });
-  const [marker, setMarker] = React.useState({ color: "#f6d36b", width: 12 });
+  const [pen, setPen] = React.useState({ color: "#3b7dd8", width: 4 });
+  const [marker, setMarker] = React.useState({ color: "#f6d36b", width: 14 });
   const [markerMode, setMarkerMode] = React.useState<"line" | "free">("line");
   const [expanded, setExpanded] = React.useState(false);
   const [toolbarContainer, setToolbarContainer] = React.useState<HTMLDivElement | null>(null);
@@ -97,6 +100,7 @@ export function SummaryDocumentEditor({ value, onChange, busy }: {
   const rootRef = React.useRef<HTMLDivElement>(null);
   const sheetRef = React.useRef<HTMLDivElement>(null);
   const expandRef = React.useRef<HTMLButtonElement>(null);
+  const toolsRef = React.useRef<HTMLDivElement>(null);
   const [sheetSize, setSheetSize] = React.useState({ width: 794, height: 640 });
   const [stickyTop, setStickyTop] = React.useState("0px");
   const fieldId = React.useId();
@@ -104,6 +108,9 @@ export function SummaryDocumentEditor({ value, onChange, busy }: {
   const scale = sheetSize.width / drawing.width;
   const ink = tool === "marker" ? marker : pen;
   const changeInkStyle = (change: Partial<typeof ink>) => (tool === "marker" ? setMarker : setPen)((current) => ({ ...current, ...change }));
+
+  // A narrow row scrolls; the controls of another tool start at its beginning again.
+  React.useEffect(() => { toolsRef.current?.scrollTo({ left: 0 }); }, [tool]);
 
   function updatePages(next: SummaryPage[]) { onChange({ ...value, pages: next, html: next.map((page) => page.html).join("\n") }); }
   function changeInk(next: SummaryPage[]) {
@@ -211,31 +218,29 @@ export function SummaryDocumentEditor({ value, onChange, busy }: {
         else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first?.focus(); }
       }
     }}>
-    <div className="core-summary-tools core-surface-raised" style={{ top: stickyTop, scrollMarginTop: `calc(max(${stickyTop}, 0px) + 12px)` }} inert={busy}>
-      <CoreIconSegmentedControl ariaLabel="Schreiben und Zeichnen" className="core-summary-tool-modes" options={toolOptions} value={tool} onValueChange={setTool}/>
-      <div className="core-summary-tool-context">
-        <div ref={setToolbarContainer} className="core-summary-text-tools" hidden={tool !== "text"}/>
-        {tool !== "text" && <div className="core-summary-tool-group" role="group" aria-label="Zeichnung bearbeiten">
-          <CoreTooltip label="Zeichnung rückgängig"><IconButton variant="ghost" label="Zeichnung rückgängig" icon={Undo2} disabled={!history.current.undo.length} onClick={() => undoDrawing(false)}/></CoreTooltip>
-          <CoreTooltip label="Zeichnung wiederholen"><IconButton variant="ghost" label="Zeichnung wiederholen" icon={Redo2} disabled={!history.current.redo.length} onClick={() => undoDrawing(true)}/></CoreTooltip>
-        </div>}
-        {(tool === "pen" || tool === "marker") && <>
-          <div className="core-summary-tool-group" role="group" aria-label={tool === "marker" ? "Markerfarbe" : "Zeichenfarbe"}>
-            {inkPresets[tool].colors.map(([color, name]) => <CoreTooltip key={color} label={name}><ColorSwatchButton color={color} aria-label={name} aria-pressed={ink.color === color} onClick={() => changeInkStyle({ color })}/></CoreTooltip>)}
-            <ColorPicker variant="tool" icon={Palette} ariaLabel={tool === "marker" ? "Eigene Markerfarbe" : "Eigene Stiftfarbe"} value={ink.color} onValueCommit={(color) => changeInkStyle({ color })}/>
-          </div>
-          {tool === "marker" && <div className="core-summary-tool-group"><CoreIconSegmentedControl ariaLabel="Markerart" options={markerModeOptions} value={markerMode} onValueChange={setMarkerMode}/></div>}
-          {(tool === "pen" || markerMode === "free") && <div className="core-summary-tool-group">
-            <NumberStepper label={inkPresets[tool].label} value={ink.width} min={inkPresets[tool].min} max={inkPresets[tool].max} onChange={(width) => changeInkStyle({ width })}/>
-            <span className="core-summary-ink-dot" aria-hidden="true"><span style={{ width: Math.min(28, ink.width), height: Math.min(28, ink.width), background: ink.color, opacity: tool === "marker" ? 0.6 : 1 }}/></span>
-          </div>}
-        </>}
-        {tool === "eraser" && <div className="core-summary-tool-group">
-          <CoreTooltip label="Alle Zeichnungen entfernen"><IconButton variant="ghost" label="Alle Zeichnungen entfernen" icon={Trash2} disabled={!pages.some((page) => page.strokes.length)} onClick={() => changeInk(pages.map((page) => ({ ...page, strokes: [] })))}/></CoreTooltip>
-        </div>}
+    <div className="core-editor-toolbar core-summary-tools core-surface-raised" style={{ top: stickyTop, scrollMarginTop: `calc(max(${stickyTop}, 0px) + 12px)` }} inert={busy}>
+      <CoreIconSegmentedControl ariaLabel="Schreiben und Zeichnen" className="core-editor-toolbar-modes" options={toolOptions} value={tool} onValueChange={setTool}/>
+      <div className="core-editor-toolbar-actions">
+        <CoreTooltip label={expanded ? "Vollbild beenden" : "Vollbild"}><IconButton ref={expandRef} variant="ghost" label={expanded ? "Vollbild beenden" : "Vollbild"} icon={expanded ? Minimize2 : Maximize2} onClick={() => setExpanded(!expanded)}/></CoreTooltip>
       </div>
-      <div className="core-summary-tool-actions">
-        <CoreTooltip label={expanded ? "Arbeitsfläche verkleinern" : "Arbeitsfläche vergrößern"}><IconButton ref={expandRef} variant="ghost" label={expanded ? "Arbeitsfläche verkleinern" : "Arbeitsfläche vergrößern"} icon={expanded ? Minimize2 : Maximize2} onClick={() => setExpanded(!expanded)}/></CoreTooltip>
+      <div className="core-editor-toolbar-context">
+        <div ref={toolsRef} className="core-editor-toolbar-tools">
+          <div ref={setToolbarContainer} className="core-editor-toolbar-text" hidden={tool !== "text"}/>
+          {tool !== "text" && <div className="core-editor-tool-group" role="group" aria-label="Verlauf">
+            <CoreTooltip label="Zeichnung rückgängig"><IconButton variant="ghost" label="Zeichnung rückgängig" icon={Undo2} disabled={!history.current.undo.length} onClick={() => undoDrawing(false)}/></CoreTooltip>
+            <CoreTooltip label="Zeichnung wiederholen"><IconButton variant="ghost" label="Zeichnung wiederholen" icon={Redo2} disabled={!history.current.redo.length} onClick={() => undoDrawing(true)}/></CoreTooltip>
+          </div>}
+          {(tool === "pen" || tool === "marker") && <>
+            <ColorSwatchRow className="core-editor-tool-group" label={inkPresets[tool].colorLabel} colors={inkPresets[tool].colors} value={ink.color} onChange={(color) => changeInkStyle({ color })}/>
+            {tool === "marker" && <div className="core-editor-tool-group"><CoreIconSegmentedControl ariaLabel="Markerart" options={markerModeOptions} value={markerMode} onValueChange={setMarkerMode}/></div>}
+            {(tool === "pen" || markerMode === "free") && <div className="core-editor-tool-group">
+              <CoreSegmentedControl ariaLabel="Strichstärke" value={String(ink.width)} options={widthOptions[tool]} onValueChange={(width) => changeInkStyle({ width: Number(width) })}/>
+            </div>}
+          </>}
+          {tool === "eraser" && <div className="core-editor-tool-group">
+            <CoreTooltip label="Alle Zeichnungen entfernen"><IconButton variant="destructive-quiet" label="Alle Zeichnungen entfernen" icon={Trash2} disabled={!pages.some((page) => page.strokes.length)} onClick={() => changeInk(pages.map((page) => ({ ...page, strokes: [] })))}/></CoreTooltip>
+          </div>}
+        </div>
       </div>
       <span className="sr-only" id={`${fieldId}-hint`}>Eine durchgehende Seite. Der Text und die Zeichenfläche wachsen nach unten.</span>
     </div>

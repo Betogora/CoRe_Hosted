@@ -664,10 +664,10 @@ test("[Vertrag: Lerninhalte] KI-Ergebnis bleibt Entwurf und wird beim Verlassen 
   const summaries = page.getByTestId("deck-summaries-panel"), editor = summaries.getByRole("textbox", { name: "Zusammenfassung bearbeiten", exact: true });
   await page.goto(`${CONTENT_URL}summary`);
   await summaries.getByRole("button", { name: "Zusammenfassung mit KI erstellen", exact: true }).click();
-  const popup = page.getByRole("dialog", { name: "Zusammenfassung mit KI erstellen", exact: true });
-  await popup.getByRole("button", { name: "Mit KI erstellen", exact: true }).click();
+  const form = summaries.getByRole("group", { name: "Zusammenfassung mit KI erstellen", exact: true });
+  await form.getByRole("button", { name: "Mit KI erstellen", exact: true }).click();
   await expect(editor).toContainText("Karte B1 führt zu Antwort B1.");
-  await expect(summaries).toContainText("Ungespeicherte Änderungen");
+  await expect(summaries.getByRole("button", { name: "Speichern", exact: true })).toBeEnabled();
   expect(requests[0].units).toHaveLength(2);
   await editor.fill("Eigene Fassung.");
   await summaries.getByRole("button", { name: "Alle Zusammenfassungen", exact: true }).click();
@@ -675,10 +675,11 @@ test("[Vertrag: Lerninhalte] KI-Ergebnis bleibt Entwurf und wird beim Verlassen 
   await expect(summaries.getByTestId("summary-list")).toContainText("Eigene Fassung.");
   hold = true;
   await summaries.getByRole("button", { name: "Zusammenfassung mit KI erstellen", exact: true }).click();
-  await popup.getByRole("button", { name: "Mit KI erstellen", exact: true }).click();
+  await form.getByRole("button", { name: "Mit KI erstellen", exact: true }).click();
   await expect.poll(() => requests.length).toBe(2);
-  await popup.getByRole("button", { name: "KI-Erstellung abbrechen", exact: true }).click();
-  await expect(popup.getByRole("button", { name: "Mit KI erstellen", exact: true })).toBeEnabled();
+  await expect(form).toContainText("KI-Zusammenfassung wird erstellt …");
+  await form.getByRole("button", { name: "Abbrechen", exact: true }).click();
+  await expect(form.getByRole("button", { name: "Mit KI erstellen", exact: true })).toBeEnabled();
 });
 
 test("[Vertrag: Lerninhalte] Zusammenfassungen und Mind Map gehören zum angemeldeten Konto", async ({ browser }) => {

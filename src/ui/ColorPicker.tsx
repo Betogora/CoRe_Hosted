@@ -1,5 +1,6 @@
 import * as Popover from "@radix-ui/react-popover";
 import React from "react";
+import { Palette } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { clampNumber, hexToHsv, hsvToHex, normalizeColor } from "../colorMath.ts";
 import { CoreTooltip } from "./tooltipUi.tsx";
@@ -23,6 +24,30 @@ export function ColorSwatchButton({ color, className = "", ...props }: ColorSwat
     <button type="button" {...props} className={`core-color-swatch ${className}`.trim()}>
       <span aria-hidden="true" className="core-color-swatch-dot" style={{ backgroundColor: color }} />
     </button>
+  );
+}
+
+/**
+ * Quick colors followed by a free color. `label` names the row and prefixes every swatch, e.g. `Stiftfarbe Rot`.
+ * A quick color may be a token name; `color` then carries the CSS color it shows.
+ */
+export function ColorSwatchRow<T extends string>({ label, colors, value, onChange, className = "" }: {
+  label: string;
+  colors: ReadonlyArray<{ value: T; label: string; color?: string }>;
+  value: string;
+  onChange: (color: T | string) => void;
+  className?: string;
+}) {
+  const [custom, setCustom] = React.useState(() => normalizeColor(value, COLOR_PICKER_PRESETS[7]));
+  return (
+    <div role="group" aria-label={label} className={className}>
+      {colors.map((color) => (
+        <CoreTooltip key={color.value} label={color.label}>
+          <ColorSwatchButton color={color.color ?? color.value} aria-label={`${label} ${color.label}`} aria-pressed={value === color.value} onClick={() => onChange(color.value)} />
+        </CoreTooltip>
+      ))}
+      <ColorPicker variant="tool" icon={Palette} ariaLabel={`${label} frei wählen`} value={normalizeColor(value, custom)} onValueCommit={(color) => { setCustom(color); onChange(color); }} />
+    </div>
   );
 }
 

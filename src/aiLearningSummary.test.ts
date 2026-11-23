@@ -15,7 +15,7 @@ const notes = [graph.note, childGraph.note];
 const root = createCoreDeck({ id: "root", name: "Biologie", cards: [card] });
 const child = createCoreDeck({ id: "child", name: "Chemie", parentDeckId: "root", cards: childGraph.cards });
 const source: TransientSourceDocument = { id: "local-source", fileName: "Skript.pdf", mimeType: "application/pdf", text: "ATP ist ein Energieträger.", textExtractionStatus: "success", metadata: { pages: [{ pageNumber: 1, text: "ATP ist ein Energieträger.", textItemCount: 4 }, { pageNumber: 2, text: "Kein Textlayer gefunden.", textItemCount: 0 }] } };
-const defaults = createSummarySettings();
+const defaults = { ...createSummarySettings(), showReferences: true };
 const prepared = prepareSummaryMaterial([root], notes, root.id, "Überblick", defaults);
 const generated: AiLearningSummarySuccess = { summary: { sections: [{ heading: "Energie", paragraphs: ["ATP ist ein Energieträger."], points: [], references: ["m1"], subsections: [] }], warnings: [], relations: [] }, model: "openai/gpt-6-luna", privacyMode: "zdr" as const, promptVersion: AI_LEARNING_SUMMARY_PROMPT_VERSION, usage: null };
 
