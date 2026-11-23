@@ -590,7 +590,7 @@ Prüfung | Struktur und Grenzen werden validiert
 - Die KI antwortet in einer vorgegebenen Struktur. Eine Antwort, die die Struktur oder ihre Grenzen verletzt, wird verworfen statt angezeigt.
 - KI läuft nur auf ausdrückliche Aktion, nie beim Antworten oder im Hintergrund. Jede Anfrage hat eine feste Frist; Fehler ändern nichts und werden nicht automatisch wiederholt.
 - Die Kosten begrenzt das Limit des Schlüssels; jede Anfrage wird mit ihren Kosten protokolliert, ohne Inhalte.
-- Prompt, Antwortstruktur oder Modell sollen sich künftig nur mit gemessenem Nachweis ändern ([ADR-049](decisions.md#adr-049--ki-änderungen-nur-mit-eval-nachweis), vorgeschlagen; Stand unter [KI-Eval](ai-eval.md)).
+- Prompt, Antwortstruktur oder Modell ändern sich nur mit gemessenem Nachweis ([ADR-049](decisions.md#adr-049--ki-änderungen-nur-mit-eval-nachweis); Stand unter [KI-Eval](ai-eval.md)).
 - **Bewusst nicht:** Modellwahl durch Nutzer, Ersatzmodelle ohne Speicherverbot, Serverwarteschlange, gespeicherte Chatverläufe. Ein Kontingent je Nutzer ist Voraussetzung, bevor KI-Funktionen externen Nutzern offenstehen.
 
 ### Überblick der KI-Funktionen

@@ -13,7 +13,8 @@ Paket J wird sie gelöscht.
 
 Vom Nutzer am 2026-11-23 entschieden und bindend:
 
-- **Generator:** nur OpenRouter mit eigenem Eval-Schlüssel. Kein Modell aus
+- **Generator:** nur OpenRouter mit dem lokalen Schlüssel `OPENROUTER_API_KEY`
+  und seinem Limit (am 2026-11-23 etwa 3 EUR, wird bei Bedarf erhöht). Kein Modell aus
   einer Subscription als Generator.
 - **Ein Modell:** Der Hillclimb läuft innerhalb des Referenzmodells
   `openai/gpt-6-luna`. Ein Modellvergleich folgt später von Hand und wird
@@ -41,17 +42,23 @@ Nachweis, nimm ihn und nenne die Abweichung im Pull Request.
   Tests), `server/aiRoute.ts`, `api/ai/`, die vier Vertragsmodule
   `src/ai*Contract.ts`, den Skill `.agents/skills/ai-eval/SKILL.md` und
   `.claude/agents/eval-judge.md`.
-- **Reihenfolge:** A → B → C → D, danach E, F und G in beliebiger
-  Reihenfolge, dann H → I → J. Vorschlag für den Schnitt: A und B in einem
+- **Reihenfolge:** C → D, danach E, F und G in beliebiger Reihenfolge, dann
+  H → I → J. A, B und der Probelauf sind erledigt; dessen Ergebnis steht im
+  [Verlauf](history.md), die Rohdaten im Datenordner unter
+  `<typ>/2026-11-23-probe/`. Seine Fehlermuster (Lückentext als Frage mit
+  nachgestellter Lücke, übernommene eingeschleuste Anweisungen, umgekehrte
+  Richtung bei Definitionen, Abschweifungen bei KI hilft) sind die ersten
+  Kandidaten für Paket I. Vorschlag für den Schnitt: A und B in einem
   Pull Request, danach je Paket einer.
 - **Je Pull Request:** `npm run typecheck`, die Modultests unter
   `scripts/aiEval/` (laufen mit `runModuleTests.ts`), ein Trockenlauf von
   `cases` bis `score`, `npm run check:docs`, `audit-last-change`.
-- **Bezahlte Läufe** erst, wenn der Nutzer Schlüssel und Datenordner gesetzt
-  hat. Den Schlüssel trägt nur er ein; er erscheint in keinem Log, Bericht
+- **Bezahlte Läufe** erst, wenn der Nutzer `OPENROUTER_API_KEY` und
+  `CORE_AI_EVAL_DIR` als Benutzer-Umgebungsvariablen gesetzt hat. Den Schlüssel trägt nur er ein; er erscheint in keinem Log, Bericht
   oder Chat. Vor jedem Lauf Anfragetyp, Fallzahl und erwartete Kosten
-  nennen; innerhalb des Paketbudgets (B–G zusammen 2 USD für Probeläufe, H
-  4 USD, I 20 USD, J 3 USD) braucht ein Lauf keine Einzelfreigabe.
+  nennen; solange das Limit des Schlüssels reicht, braucht ein Lauf keine
+  Einzelfreigabe. Hält es an (`provider_budget_exhausted`), fragt die Sitzung
+  den Nutzer, ob er es erhöht.
 - **Inhalte aus echten Stapeln** stehen nie in Commits, Pull Requests oder
   versionierten Dateien.
 - Ein geänderter Prompt erreicht `main` nur über einen Pull Request, den der
@@ -94,6 +101,10 @@ KI aus der Zusammenfassung.
 
 ## Befunde am Runner
 
+R1–R7 (Antwortklassen, erwartbare Ablehnung, Zeitüberschreitungen und Kosten,
+Fingerabdruck, Budget und Parallelität, getrenntes Formatkriterium bei
+`card-help`, drei Teile nach Gruppen) sind mit den Paketen A und B behoben.
+
 Bewährt und bleibt: Erzeugen über Payload-Builder und Antwortprüfung der
 Route, fortsetzbare Läufe mit Transkript, Tabelle ohne Herkunft mit
 getrenntem Schlüssel, Bootstrap über Fälle, gepaarter Vergleich, geprüftes
@@ -101,13 +112,6 @@ Ledger, Trockenlauf.
 
 | Nr. | Befund | Folge | Paket |
 | --- | --- | --- | --- |
-| R1 | `generate.ts` kennt als Vertragsfehler nur vier Codes (`CONTRACT_FAILURES`). Die Variantenroute wirft außerdem `not_rephrasable`, `invalid_gaps`, `changed_answer`, `revealed_answer`, `changed_options`, `negated_question` und `negated_option`. | Solche Antworten gelten als offen und werden bei jedem Aufruf neu angefragt: Der Lauf wird nie fertig, und genau die Ablehnungen, die M1 zählen soll, fehlen. Der Trockenlauf zeigt das nicht, weil die nachgebildete Antwort immer gültig ist. | B |
-| R2 | „Nicht umformulierbar“ ist nur ein Fehler. Die sechs Prüfkarten der Kategorie `nicht-umformulierbar` erwarten diese Antwort. | Richtiges Verhalten lässt sich nicht bestehen, eine falsche Verweigerung nicht von einer richtigen trennen. | B |
-| R3 | Zeitüberschreitungen werden still wiederholt; abgelehnte Antworten tragen keine Kosten. | Latenz p90, Zuverlässigkeit und Kosten sind geschönt; Lernende sähen einen Fehler. | B |
-| R4 | Ein Lauf erkennt seinen Prompt nur an der von Hand erhöhten Versionskonstante. | Ein geänderter Prompt ohne neue Version mischt sich in einen fortgesetzten Lauf. | B |
-| R5 | Kein Budgetabbruch, feste Parallelität 4, kein Warten bei 429. | Große Läufe sind weder begrenzt noch robust. | B |
-| R6 | `H1` bei `card-help` bedeutet dreierlei: Vertrag, Format (Wortzahl, kein Markdown) und Sprache. | Ein Fehler lässt sich nicht zuordnen. | B |
-| R7 | Die Aufteilung geht je Fall und kennt zwei Teile. `card-help` erzeugt aus einer Korpuskarte zwei Fälle, Lückentexte einer Notiz mehrere. | Dieselbe Karte liegt in Training und Test; jede Runde entscheidet am Teil, der auch berichtet wird. | B |
 | R8 | Reasoning, Ausgabegrenze und Prompt stehen nur im Code der Route. | Immer nur ein Kandidat; jeder Versuch ist eine Codeänderung. | C |
 | R9 | Der ganze Lauf geht als eine Tabelle an einen Subagenten. | Hunderte Einträge in einem Kontext: Spätere Urteile hängen von früheren ab. | C |
 | R10 | Der Richter ist nicht festgehalten: `model: opus` wandert mit Claude Code, `--judge` ist Freitext mit Vorgabewert, der Bogen kann sich spurlos ändern. | Läufe mit verschiedenen Richtern werden verglichen. | C |
@@ -155,13 +159,10 @@ entschieden, passt sich die Promptfolge an ihn an.
 | Entscheidung (`dev`) | 30 % | jede Runde: übernehmen oder verwerfen | nur Kennzahlen und Fallkennungen |
 | Rückhalt (`holdout`) | 30 % | Baseline und Wellenende; der berichtete Wert | niemand vor Wellenende |
 
-Da nichts gemessen ist, wird die heutige Aufteilung verworfen und neu
-gezogen.
-
 | Anfragetyp | Fälle | Zusammensetzung |
 | --- | --- | --- |
-| Varianten Frage/Antwort (mit Eintippen), Lückentext, Auswahl | je etwa 200 | etwa 80 Prüfkarten über die Kategorien, der Rest aus dem Korpus; liefert der Korpus für eine Art zu wenig, entsprechend mehr Prüfkarten |
-| KI hilft | etwa 200 | jede Prüfkarte in allen drei Modi, Korpusfälle in Erklären und Beispiel |
+| Varianten Frage/Antwort (mit Eintippen), Lückentext, Auswahl | je etwa 100 | etwa 50 Prüfkarten über die Kategorien, der Rest aus dem Korpus; liefert der Korpus für eine Art zu wenig, entsprechend mehr Prüfkarten |
+| KI hilft | etwa 100 | jede Prüfkarte in allen drei Modi, Korpusfälle in Erklären und Beispiel |
 | Karten aus einer Quelle | etwa 24 Dokumente | die fünf Prüfdokumente, dazu weitere Fächer und Formate und mindestens vier lange Quellen (über 60.000 Zeichen); je Dokument 10–30 Kernaussagen |
 | Zusammenfassung | etwa 24 Materialsätze | Karten, Quelle und beides; je Satz Kernaussagen und zwei Einstellungsprofile aus einer paarweise deckenden Liste von etwa zwölf |
 
@@ -266,8 +267,9 @@ Zeitüberschreitungen sind bei jedem Anfragetyp feste Messgrößen.
 - **Rückhalt:** gemessen zur Baseline und am Wellenende. Liegt der Gewinn
   dort unter der Hälfte des Gewinns am Entscheidungsteil, ist die Reihe
   überangepasst: anhalten und den Entscheidungsteil vergrößern.
-- Ehrliche Grenze: Mit etwa 60 Fällen im Entscheidungsteil sind
-  Verbesserungen unter etwa drei Punkten je Runde nicht belegbar.
+- Ehrliche Grenze: Mit etwa 30 Fällen im Entscheidungsteil sind
+  Verbesserungen unter etwa fünf Punkten je Runde nicht belegbar. Reicht das
+  nicht, wächst der Fallsatz des betroffenen Anfragetyps.
 
 ### Hillclimb je Anfragetyp
 
@@ -340,83 +342,39 @@ Inhalte zeigt.
 | eine Runde Varianten oder KI hilft | etwa 0,15 USD |
 | eine Runde Karten aus einer Quelle | etwa 0,50 USD |
 | eine Runde Zusammenfassung | etwa 1 USD |
-| ganzes Experiment | 10–25 USD; Limit des Schlüssels 30 USD |
+| ganzes Experiment | 10–25 USD; das Limit des Schlüssels wird in Schritten erhöht |
 
 Runden zu Quellenkarten und Zusammenfassung laufen ohne die langen Quellen
 und Materialsätze; die kommen nur zur Baseline, in den Strukturversuchen und
 am Wellenende dran. Den Richter trägt die Subscription: Die Baseline aller
-Anfragetypen sind etwa 200 Blöcke, eine Runde danach 5–15. Stellschraube ist
+Anfragetypen sind etwa 100 Blöcke, eine Runde danach 3–8. Stellschraube ist
 die Fallzahl je Anfragetyp.
 
 ## Arbeitspakete
 
-### A – Grundsätze und Zugang
+### A und B – erledigt
 
-- **ADR-049** neu fassen und auf „angenommen“ setzen. Inhalt: Änderungen an
-  Prompt, Werkzeugschema, Reasoning, Ausgabegrenzen oder Modell nur mit
-  Eval-Nachweis; fester Fallsatz in drei Teilen, geschichtet und nach Gruppe
-  getrennt; erzeugt wird über Payload-Builder und Antwortprüfung der Route
-  bei OpenRouter mit ZDR, ein Kandidat darf den Payload ersetzen; bewertet
-  wird automatisch und durch Opus 5.5 in Blöcken, ohne Kalibrierung, mit
-  Richterrauschen und Grenzfällen je Bericht; Übernahme nach der
-  Entscheidungsregel und über den Fingerabdruck; Rohdaten und Korpusfälle
-  lokal, Ergebnisdateien ohne Inhalte versioniert. Verworfen bleibt ein
-  Ersatzmodell als Generator; neu verworfen ist die Handkalibrierung vorab.
-- `operations.md`, Abschnitt „OpenRouter-Schlüssel“: Limit 30 USD und
-  `CORE_AI_EVAL_DIR`, abgelegt wie der lokale Schlüssel.
-- `specs.md`: Der Satz zu ADR-049 verliert „künftig“ und „vorgeschlagen“
-  (Größengrenze von `check:docs` beachten).
-- Der Nutzer legt den Schlüssel `CoRe Eval` mit Limit an und setzt beide
-  Umgebungsvariablen; danach Terminal und Agent-App neu starten.
-- **Fertig, wenn** ADR-049 angenommen ist und `npm run ai-eval` den Schlüssel
-  findet (geprüft an `GET https://openrouter.ai/api/v1/key`, ohne den Wert
-  auszugeben).
+Umgesetzt am 2026-11-23. Abweichungen vom ursprünglichen Ansatz, die für die
+folgenden Pakete gelten:
 
-### B – Runner reparieren
-
-Idee: Jede Anfrage endet in genau einer Antwortklasse, ein Lauf kennt seinen
-Kandidaten selbst, und die Aufteilung trägt drei Teile.
-
-- **Antwortklassen (R1, R3)** in `generate.ts`: Transport und Auswertung
-  trennen, statt eine Codeliste zu pflegen. Wirft `requestOpenRouter`, ist
-  es eine Zeitüberschreitung (`provider_timeout`: Antwort mit Klasse
-  `timeout`), ein wiederholbarer Fehler (`rate_limited`,
-  `provider_unavailable`, `provider_error`: warten und wiederholen, sonst
-  offen) oder ein Abbruch (die heutige Menge `FATAL`). Wirft danach
-  `definition.extract` einen Fehler mit `code`, ist es eine abgelehnte
-  Antwort mit diesem Code; alles andere ist ein Programmfehler und bricht
-  ab. `AnswerRow.ok` wird zu einer Klasse `answer`, `rejected` oder
-  `timeout`. Kosten und Tokens auch bei abgelehnten Antworten über
-  `readBilling` aus `server/aiRoute.ts`.
-- **Eignung (R2):** Die Variantendefinitionen fangen `not_rephrasable` in
-  ihrem `extract` und liefern es als Ausgabe (`rephrasable: false`). Ein Fall
-  trägt optional `expect: { rephrasable: false }`; M7 vergleicht beides. Ist
-  eine der beiden Seiten „nicht umformulierbar“, gelten nur M1 und M7, und
-  der Richter bekommt keinen Eintrag. Die sechs vorhandenen Prüfkarten der
-  Kategorie bekommen `expect`.
-- **Fingerabdruck (R4):** wie unter „Kandidat“, in `run.json`; die
-  Fortsetzungsprüfung vergleicht ihn statt Promptversion, Modell und
-  Reasoning einzeln.
-- **Menge (R5):** `--budget <usd>` (Vorgabe 1) summiert die Kosten des
-  Laufordners und hält an; `--concurrency <n>` (Vorgabe 4); bei 429 bis zu
-  fünf Versuche mit wachsender Wartezeit.
-- **`card-help` (R6):** H0 ist der Vertrag, H8 das Format (automatisch), H1
-  nur noch die Sprache (Richter).
-- **Aufteilung (R7)** in `cases.ts`: `split` ist `train`, `dev` oder
-  `holdout`, im Verhältnis 40/30/30 je Kategorie; ein Fall trägt optional
-  `group`, und eine Gruppe bleibt zusammen. Korpusfälle bekommen die Gruppe
-  ihrer Notiz. Ein Fall trägt optional `trap: true`. Die vorhandenen
-  `split`-Werte der vier Falldateien löschen und neu ziehen. `generate
-  --split` kennt die drei Teile und `all`, Vorgabe `dev`.
-- **Tests** in `runner.test.ts` mit nachgebildetem `fetch`: Variante mit
-  `rephrasable: false` besteht M7 bei passendem `expect`; Lückentext mit
-  veränderter Lücke wird `rejected` mit `invalid_gaps`, und der Lauf endet
-  ohne offene Antwort; Zeitüberschreitung wird `timeout`; 429 und danach
-  Erfolg ergibt eine Zeile; geänderter Systemprompt bricht die Fortsetzung
-  ab; überschrittenes Budget hält an; Gruppen werden nie getrennt.
-- `ai-eval.md` und Skill an Befehle und Antwortklassen anpassen.
-- **Fertig, wenn** ein Trockenlauf mit nachgebildeten Ablehnungen und einer
-  Zeitüberschreitung von `cases` bis `score` vollständig endet.
+- **Schlüssel:** Es gibt keinen eigenen Eval-Schlüssel. Der Runner liest
+  `OPENROUTER_API_KEY`, den lokalen Schlüssel aus `operations.md`.
+- **Ablehnung:** Ein Fall erwartet „nicht umformulierbar“ mit `refuse: true`
+  (statt `expect`). Eine Definition nennt in `refusal` Fehlercode und
+  Kriterium (Varianten: `not_rephrasable`, M7). Die Antwortklassen sind
+  `answer`, `refused`, `rejected` und `timeout`; `AnswerRow.outcome` ersetzt
+  `ok`.
+- **Fälle:** `group`, `trap` und `refuse` sind optionale Felder je Fall;
+  `trap` wird erst in Paket D ausgewertet. Die Aufteilung gibt jede Gruppe in
+  den Teil, dem nach seinem Anteil die meisten Fälle fehlen, bei Gleichstand
+  `dev` vor `holdout`. Bei zwei Fällen je Kategorie ergibt das einen Fall in
+  `train` und einen in `dev`; der Rückhalt füllt sich erst mit Paket E. So
+  sieht der Entscheidungsteil jede Kategorie, auch Injection und Ablehnung.
+- **Fingerabdruck:** `payloadFingerprint` in `generate.ts`, 16 Hexzeichen,
+  über die verschiedenen Payloads ohne Nutzernachricht. Paket C nutzt ihn für
+  die Übernahmeprüfung.
+- **Ledger:** `--record` nimmt nur Läufe auf `dev`; die Kalibrierungsprüfung
+  bleibt bis Paket C.
 
 ### C – Kandidaten und Richter
 
@@ -496,14 +454,14 @@ kennt Kosten.
 
 ### E – Fallsätze Varianten und KI hilft
 
-- Prüfkarten nach „Fallsätze“ in den vier Falldateien ergänzen, mit `expect`,
+- Prüfkarten nach „Fallsätze“ in den vier Falldateien ergänzen, mit `refuse`,
   `trap` und `group`, wo sie gelten; Eintippen als eigene Kategorien in
   `card-variant-basic`.
 - `npm run ai-eval -- cases <typ> --corpus <n>` zieht den Rest; die
   Kategorien der Korpusfälle (`corpusCategory`, `clozeCorpusCategory`) vorher
   an echten Zahlen prüfen, damit keine Kategorie den Satz dominiert.
-- **Fertig, wenn** jeder der vier Anfragetypen etwa 200 Fälle in drei Teilen
-  hat, die Fallen je kritischem Kriterium mindestens 40 Fälle zählen und der
+- **Fertig, wenn** jeder der vier Anfragetypen etwa 100 Fälle in drei Teilen
+  hat, die Fallen je kritischem Kriterium mindestens 20 Fälle zählen und der
   Nutzer je Anfragetyp zehn Prüfkarten gesehen hat.
 
 ### F – Karten aus einer Quelle messbar machen
@@ -586,8 +544,8 @@ Festgelegt werden sie am Haltepunkt von Paket H.
 
 | Anfragetyp | Hauptwert am Rückhalt | Kritisch | Weitere |
 | --- | --- | --- | --- |
-| Varianten | ≥ 95 % | Fallen zu Richtung, Reihenfolge und Verneinung: 0 Fehler bei mindestens 80 Antworten je Kartenart | Kosten höchstens das 1,2-Fache der Baseline, Latenz p90 ≤ 4 s |
-| KI hilft | ≥ 90 % | H2: höchstens 2 Fehler je 100 Antworten; H6: 0 Fehler in den Fallen bei mindestens 80 Antworten | Streaming erst, wenn die Latenz im Median über 4 s liegt |
+| Varianten | ≥ 95 % | Fallen zu Richtung, Reihenfolge und Verneinung: 0 Fehler bei mindestens 40 Antworten je Kartenart | Kosten höchstens das 1,2-Fache der Baseline, Latenz p90 ≤ 4 s |
+| KI hilft | ≥ 90 % | H2: höchstens 2 Fehler je 100 Antworten; H6: 0 Fehler in den Fallen bei mindestens 40 Antworten | Streaming erst, wenn die Latenz im Median über 4 s liegt |
 | Karten aus einer Quelle | ≥ 90 % | Q2 ≥ 98 % der bewerteten Karten | Q6 ≥ 80 % bei Normal, keine Dubletten, Kartenmenge 60 % und 140 %, jede erlaubte Form kommt vor, wo das Dokument sie trägt |
 | Zusammenfassung | ≥ 95 % | Z6 ≥ 98 % der Abschnitte | Z2 ≥ 90 %, Z8 ≥ 80 %, jeder eingebaute Widerspruch gemeldet |
 
@@ -596,7 +554,7 @@ Festgelegt werden sie am Haltepunkt von Paket H.
 - **Richter ohne Kalibrierung:** Ein systematischer Fehler bleibt unsichtbar.
   Dagegen stehen automatische Kriterien, wo immer eine Regel prüfbar ist, das
   Richterrauschen und die Grenzfälle je Bericht.
-- **Limits der Subscription:** Die Baseline sind etwa 200 Richterblöcke. Sie
+- **Limits der Subscription:** Die Baseline sind etwa 100 Richterblöcke. Sie
   läuft je Anfragetyp getrennt und lässt sich fortsetzen.
 - **Selbst geschriebene Fälle** sind leichter als echte Karten. Deshalb die
   Korpusfälle und die Fallen.

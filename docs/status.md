@@ -21,7 +21,7 @@ vollständig.
 - Schema: einzige Baseline `20261030103636_kartenmodell_baseline.sql` plus spätere Migrationen; keine Upgrade- oder Backfillkette (ADR-034).
 - Browser-Replica: IndexedDB `core.workspace.entities.v5.<userId>`, ohne Lesepfade für frühere lokale Datenbanken.
 - Server: nur die authentifizierten KI-Routen `/api/ai/card-variant`, `/api/ai/card-help`, `/api/ai/summary` und `/api/ai/source-cards` über OpenRouter (ADR-011).
-- KI-Eval: Runner für Varianten Frage/Antwort, Lückentext und Auswahl sowie `card-help` (`npm run ai-eval`, ADR-049) mit je 24 Prüfkarten; `source-cards` fehlt im Register, die Zusammenfassung hat keine Definition. Kein echter Lauf, Ledger leer, Richter ohne Kalibrierung. Stand unter [KI-Eval](ai-eval.md), Umbau und Messung in [`todo.md`](todo.md) unter P5.
+- KI-Eval: Runner für Varianten Frage/Antwort, Lückentext und Auswahl sowie `card-help` (`npm run ai-eval`, ADR-049) mit je 24 Prüfkarten in Training und Entscheidung, Antwortklassen, Fingerabdruck und Budget je Lauf; `source-cards` fehlt im Register, die Zusammenfassung hat keine Definition. Ein Probelauf (2026-11-23), Ledger leer, Richter ohne Kalibrierung. Stand unter [KI-Eval](ai-eval.md), Umbau und Messung in [`todo.md`](todo.md) unter P5.
 - Kartenmodell `Note`/`Card` in App, Import, Persistenz und Sync (ADR-032); Scheduler FSRS-7 mit Reife aus der Haltbarkeit (ADR-044).
 
 ## Reifestatus
@@ -43,5 +43,5 @@ Die verbindliche Reifeentscheidung steht in [ADR-001](decisions.md#adr-001--prod
 - **Begraben:** Stapelzähler zählen zwei noch unbeantwortete Geschwister bis zur ersten Antwort beide (Anki zeigt eines). Ein Gerät mit unvollständigem lokalen Katalog übernimmt Antworten erst mit dem nächsten Bootstrap in die Zähler.
 - **Speicher:** Ein vollständiger 10-GB-Medienbestand ist im Browser nicht garantiert; Browser-Eviction bleibt Plattformgrenze. Die native App mit lokaler Vollreplik (ADR-036) ist nicht begonnen.
 - **Karten aus einer Quelle:** Die Kartenmenge (weniger, normal, mehr) ändert die Zahl der Vorschläge bisher nicht (Messung im [Verlauf](history.md)); die Schätzung nennt daher je Stufe dieselbe Spanne. Ziel in [`todo.md`](todo.md) unter P5.
-- **KI-Prompts:** Kein Prompt ist gemessen. Ein echter Eval-Lauf bliebe heute hängen, weil der Runner von der Variantenroute abgelehnte Antworten endlos neu anfragt ([Versuchsplan](ai-eval-plan.md)).
+- **KI-Prompts:** Kein Prompt hat eine Baseline im Ledger. Der Probelauf vom 2026-11-23 ([Verlauf](history.md)) liegt bei Varianten unter dem Ziel von 95 % (Frage/Antwort 85 %, Lückentext 81 %, Auswahl 100 %) und bei KI hilft unter 90 % (77 %); Karten mit eingeschleuster Anweisung bricht der Inhaltsfilter des Anbieters mit irreführender Meldung ab.
 - **Gerätelokal:** Dashboard-Layout und eigene To-dos liegen pro Konto nur im Browser und synchronisieren nicht.

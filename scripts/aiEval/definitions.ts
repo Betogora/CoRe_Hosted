@@ -16,6 +16,8 @@ export interface EvalDefinition<Request = unknown, Output = unknown> {
   contract: string;
   /** Kriterien, die für den Hauptwert alle bestehen müssen. */
   main: readonly string[];
+  /** Fehlercode der Route, mit dem das Modell einen ungeeigneten Fall meldet, und das Kriterium, das ihn mit `refuse` des Falls vergleicht. */
+  refusal?: { code: string; criterion: string };
   parseRequest(value: unknown): Request | null;
   buildPayload(request: Request): { model: string; reasoning: { effort: string } };
   extract(payload: unknown, request: Request): Generated<Output>;
@@ -69,7 +71,8 @@ const cardVariantBasic: EvalDefinition<AiCardVariantRequest, AiCardVariantReques
   id: "card-variant-basic",
   deadlineMs: AI_CARD_VARIANT_DEADLINE_MS,
   contract: "M1",
-  main: ["M1", "M2", "M3", "M4", "M5"],
+  main: ["M1", "M2", "M3", "M4", "M5", "M7"],
+  refusal: { code: "not_rephrasable", criterion: "M7" },
   parseRequest: (value) => {
     const request = parseAiCardVariantRequest(value).output;
     return request?.kind === "basic" || request?.kind === "type-in" ? request : null;
@@ -108,7 +111,8 @@ const cardVariantCloze: EvalDefinition<AiCardVariantRequest, AiCardVariantReques
   id: "card-variant-cloze",
   deadlineMs: AI_CARD_VARIANT_DEADLINE_MS,
   contract: "M1",
-  main: ["M1", "M2", "M3", "M4", "M5"],
+  main: ["M1", "M2", "M3", "M4", "M5", "M7"],
+  refusal: { code: "not_rephrasable", criterion: "M7" },
   parseRequest: (value) => {
     const request = parseAiCardVariantRequest(value).output;
     return request?.kind === "cloze" ? request : null;
@@ -141,7 +145,8 @@ const cardVariantChoice: EvalDefinition<AiCardVariantRequest, ChoiceOutput> = {
   id: "card-variant-choice",
   deadlineMs: AI_CARD_VARIANT_DEADLINE_MS,
   contract: "M1",
-  main: ["M1", "M2", "M3", "M4", "M5"],
+  main: ["M1", "M2", "M3", "M4", "M5", "M7"],
+  refusal: { code: "not_rephrasable", criterion: "M7" },
   parseRequest: (value) => {
     const request = parseAiCardVariantRequest(value).output;
     return request?.kind === "choice" ? request : null;
@@ -179,8 +184,8 @@ const HELP_MODE: Record<AiCardHelpRequest["mode"], JudgedCriterion> = {
 const cardHelp: EvalDefinition<AiCardHelpRequest, string> = {
   id: "card-help",
   deadlineMs: AI_CARD_HELP_DEADLINE_MS,
-  contract: "H1",
-  main: ["H1", "H2", "H3", "H4", "H5", "H6"],
+  contract: "H0",
+  main: ["H0", "H1", "H2", "H3", "H4", "H5", "H6", "H8"],
   parseRequest(value) {
     const parsed = parseAiCardHelpRequest(value);
     return parsed.success ? parsed.output : null;
@@ -192,7 +197,7 @@ const cardHelp: EvalDefinition<AiCardHelpRequest, string> = {
   },
   mock: (request) => ({ tool: "answer_learner", arguments: { answer: `Nachgebildete Antwort im Modus ${request.mode} zur Karte: ${request.card.prompt}` } }),
   automatic: {
-    H1: (_request, output) => output.split(/\s+/).length <= 150 && !/(?:\*\*|^#{1,6} |`)/m.test(output),
+    H8: (_request, output) => output.split(/\s+/).length <= 150 && !/(?:\*\*|^#{1,6} |`)/m.test(output),
   },
   judged: (request) => [
     { id: "H1", title: "Sprache", pass: "Die Antwort steht in der Sprache der Frage, ohne Frage in der Sprache der Karte.", fail: "Die Antwort steht in einer anderen Sprache." },

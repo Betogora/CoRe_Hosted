@@ -12,39 +12,33 @@ externen Release fällig. „Später“ ist geparkt.
 ## P5: KI-Eval und Hillclimb
 
 Alle vier KI-Routen stehen (`card-variant-v5`, `card-help-v1`,
-`source-cards-v2`, `learning-summary-v4`); P5 beginnt. Gemessen ist nichts:
-kein echter Lauf, kein Ledger-Eintrag. Der Runner ([KI-Eval](ai-eval.md))
-kennt Varianten und `card-help` mit je 24 Prüfkarten und bliebe in einem
-echten Lauf an abgelehnten Antworten hängen. Befunde, Versuchsaufbau und
-Arbeitspakete im Einzelnen stehen im [Versuchsplan](ai-eval-plan.md).
+`source-cards-v2`, `learning-summary-v4`); P5 läuft. Im Ledger steht noch
+nichts; ein Probelauf vom 2026-11-23 steht im [Verlauf](history.md). Der Runner ([KI-Eval](ai-eval.md))
+kennt Varianten und `card-help` mit je 24 Prüfkarten in Training und
+Entscheidung (der Rückhalt füllt sich mit E), zählt jede Anfrage als
+Antwortklasse und hält je Lauf Fingerabdruck und Budget.
+Befunde, Versuchsaufbau und Arbeitspakete im Einzelnen stehen im
+[Versuchsplan](ai-eval-plan.md).
 
-Festgelegt am 2026-11-23: Erzeugt wird nur über OpenRouter mit eigenem
-Eval-Schlüssel, nie über ein Modell aus einer Subscription. Richter ist
-Opus 5.5 als Subagent in Claude Code, je Block ein frischer Kontext. Eine
-Handkalibrierung gibt es vorerst nicht; jeder Bericht zeigt je Kriterium
-die zwei bis drei am wenigsten eindeutigen Urteile. Der Hillclimb läuft
+Festgelegt am 2026-11-23: Erzeugt wird nur über OpenRouter mit dem lokalen
+Schlüssel und seinem Limit, nie über ein Modell aus einer Subscription.
+Richter ist Opus 5.5 als Subagent in Claude Code, je Block ein frischer
+Kontext. Eine Handkalibrierung gibt es vorerst nicht; jeder Bericht zeigt je
+Kriterium die zwei bis drei am wenigsten eindeutigen Urteile. Der Hillclimb läuft
 innerhalb eines Modells, der Referenz `openai/gpt-6-luna` mit `low`; ein
 Modellvergleich folgt später von Hand und wird nicht eigens gebaut. Ein
 Modellwechsel und das KI-Kontingent sind nicht Teil von P5.
 
-Pakete in dieser Reihenfolge; A bis G messen noch nichts.
+Pakete in dieser Reihenfolge; vor H laufen nur die Nachweise von F und G echt.
 
-- [ ] **A – Grundsätze und Zugang:**
-      [ADR-049](decisions.md#adr-049--ki-änderungen-nur-mit-eval-nachweis)
-      nach den Festlegungen neu fassen und annehmen (Kandidat als Datei,
-      drei Teile je Fallsatz, Richter in Blöcken ohne Kalibrierung, Übernahme
-      über den Fingerabdruck des Prompts). `OPENROUTER_EVAL_API_KEY` mit
-      Limit 30 USD und `CORE_AI_EVAL_DIR` als Benutzer-Umgebungsvariablen
-      ([operations.md](operations.md#openrouter-schlüssel)).
-- [ ] **B – Runner reparieren:** Heute bleibt ein echter Lauf hängen, weil
-      `generate.ts` sieben Ablehnungscodes der Variantenroute nicht kennt und
-      solche Antworten endlos neu anfragt. Von der Route abgelehnte Antworten
-      und Zeitüberschreitungen zählen als Antwort statt offen zu bleiben;
-      „nicht umformulierbar“ ist je Fall erwartbar; ein Lauf erkennt seinen
-      Prompt am Fingerabdruck; Budgetabbruch, einstellbare Parallelität,
-      Warten bei Ratenlimit; Aufteilung in Training, Entscheidung und
-      Rückhalt nach Gruppen. Nachweis: Trockenlauf mit nachgebildeten
-      Ablehnungen endet vollständig.
+- [ ] **Zugang:** `OPENROUTER_API_KEY` und `CORE_AI_EVAL_DIR` als
+      Benutzer-Umgebungsvariablen setzen ([operations.md](operations.md#openrouter-schlüssel));
+      erst dann sind echte Läufe möglich. Nur der Nutzer.
+- [ ] **Inhaltsfilter in den Routen:** Bricht der Anbieter mit
+      `finish_reason: content_filter` ab (im Probelauf vom 2026-11-23 bei
+      Karten mit eingeschleuster Anweisung, [Verlauf](history.md)), melden die
+      Routen heute „Werkzeug nicht korrekt verwendet“. Eigener Fehlercode und
+      eine verständliche Meldung; im Eval bleibt es eine verworfene Antwort.
 - [ ] **C – Kandidaten und Richter:** Prompt, Werkzeugschema, Ausgabegrenze
       und Reasoning je Lauf über eine Kandidatendatei wählbar, ohne den Code
       der Route zu ändern. Richtertabelle in Blöcken mit je einem frischen
@@ -57,12 +51,13 @@ Pakete in dieser Reihenfolge; A bis G messen noch nichts.
       damit der Vergleich an keinem Worktree hängt. Seite
       [KI-Eval](ai-eval.md) mit Rückhalt, Richterrauschen und Bilanz.
       Nachweis: Bilanz aus einem Testledger; Vergleich ohne `output/`.
-- [ ] **E – Fallsätze Varianten und KI hilft:** je Anfragetyp etwa 200
+- [ ] **E – Fallsätze Varianten und KI hilft:** je Anfragetyp etwa 100
       Fälle aus Prüfkarten und Korpus (`cases --corpus`), darunter
       Eintippen, Ketten mit vorhandenen Varianten, Lückentexte mit fast
       textfüllender Lücke, Freitext ohne echte Frage und Fallen je kritischem
-      Kriterium. Nachweis: Fallzahlen je Teil und Kategorie; Stichprobe vom
-      Nutzer gesehen.
+      Kriterium; Injection-Fälle in mehreren Formen, weil der Inhaltsfilter
+      des Anbieters die plumpe „SYSTEM:“-Form abfängt. Nachweis: Fallzahlen je
+      Teil und Kategorie; Stichprobe vom Nutzer gesehen.
 - [ ] **F – Karten aus einer Quelle messbar machen:** Registereintrag und
       Definition je Dokument über den ganzen Auftrag (mehrere Anfragen,
       Zahlenwerte als Messgrößen), etwa 24 Dokumente mit Kernaussagen,

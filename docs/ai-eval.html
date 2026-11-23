@@ -8242,13 +8242,12 @@ html:has(.catalog-preview) { scroll-behavior: auto; }
 <p>Stand der per Hillclimb gemessenen KI-Prompts. Grundsätze stehen in
 <a href="decisions.md#adr-049--ki-%C3%A4nderungen-nur-mit-eval-nachweis">ADR-049</a>, offene
 Arbeit unter <a href="todo.md#p5-ki-eval-und-hillclimb">P5</a>. Bestand und Verlauf
-entstehen beim Erzeugen aus dem Ledger; die Prompttexte stehen nur im Code.
-Der Runner ist Bauvorleistung: Bis P5 beginnt, bleibt das Ledger leer.</p>
+entstehen beim Erzeugen aus dem Ledger; die Prompttexte stehen nur im Code.</p>
 <h2 id="ai-eval--bestand" class="core-heading-2" tabindex="-1">Bestand <a class="docs-anchor" href="#ai-eval--bestand" aria-label="Link zu Bestand">#</a></h2>
 <p>Eine Zeile je Anfragetyp: der Prompt im Code und der beste gemessene Stand.
 Weicht beides voneinander ab, ist der Prompt im Code nicht gemessen.</p>
 <div class="docs-eval"><div class="docs-table-scroll" tabindex="0" role="region" aria-label="Bestand je Anfragetyp"><table><thead><tr><th>Anfragetyp</th><th>Im Code</th><th>Stand</th><th>Bester Prompt</th><th>Hauptwert (95 %-Intervall)</th><th>Ziel</th><th>Kritisch</th><th>Kosten je Antwort</th><th>Latenz p90</th><th>Lauf vom</th><th>Richter</th></tr></thead><tbody><tr><th scope="row">Variante Frage/Antwort</th><td><code>card-variant-v5</code></td><td>Noch kein Lauf</td><td>–</td><td>–</td><td>95,0 %</td><td>–</td><td>–</td><td>–</td><td>–</td><td>nicht kalibriert</td></tr><tr><th scope="row">Variante Lückentext</th><td><code>card-variant-v5</code></td><td>Noch kein Lauf</td><td>–</td><td>–</td><td>95,0 %</td><td>–</td><td>–</td><td>–</td><td>–</td><td>nicht kalibriert</td></tr><tr><th scope="row">Variante Auswahl</th><td><code>card-variant-v5</code></td><td>Noch kein Lauf</td><td>–</td><td>–</td><td>95,0 %</td><td>–</td><td>–</td><td>–</td><td>–</td><td>nicht kalibriert</td></tr><tr><th scope="row">Lernhilfe zur Karte</th><td><code>card-help-v1</code></td><td>Noch kein Lauf</td><td>–</td><td>–</td><td>90,0 %</td><td>–</td><td>–</td><td>–</td><td>–</td><td>nicht kalibriert</td></tr><tr><th scope="row">Zusammenfassung</th><td><code>learning-summary-v4</code></td><td>Noch kein Lauf</td><td>–</td><td>–</td><td>–</td><td>–</td><td>–</td><td>–</td><td>–</td><td>nicht kalibriert</td></tr></tbody></table></div></div><p class="docs-source">Modell im Code: <code>openai/gpt-6-luna</code>. „Im Code“ liest die Versionskonstante des Vertragsmoduls beim Erzeugen.</p><h2 id="ai-eval--verlauf" class="core-heading-2" tabindex="-1">Verlauf <a class="docs-anchor" href="#ai-eval--verlauf" aria-label="Link zu Verlauf">#</a></h2>
-<p>Hauptwert auf dem Testteil je Lauf. Ein Lauf ist eine Baseline oder eine Runde
+<p>Hauptwert auf dem Entscheidungsteil je Lauf. Ein Lauf ist eine Baseline oder eine Runde
 mit genau einer Änderung.</p>
 <p>Noch kein Lauf im Ledger.</p><h2 id="ai-eval--ablauf" class="core-heading-2" tabindex="-1">Ablauf <a class="docs-anchor" href="#ai-eval--ablauf" aria-label="Link zu Ablauf">#</a></h2>
 <p>Ein Lauf besteht aus fünf Befehlen von <code>npm run ai-eval</code>; die Schrittfolge für
@@ -8264,12 +8263,12 @@ Agenten steht im Skill <a href="../.agents/skills/ai-eval/SKILL.md"><code>ai-eva
 <tbody><tr>
 <td>Fälle</td>
 <td><code>cases &lt;typ&gt;</code></td>
-<td>schreibt die Aufteilung neuer Fälle in Training und Test fest, je Kategorie hälftig; <code>--corpus &lt;n&gt;</code> zieht Korpuskarten mit festem Startwert</td>
+<td>schreibt die Aufteilung neuer Fälle fest: je Kategorie 40 % Training (<code>train</code>), 30 % Entscheidung (<code>dev</code>), 30 % Rückhalt (<code>holdout</code>), Fälle derselben <code>group</code> im selben Teil; <code>--corpus &lt;n&gt;</code> zieht Korpuskarten mit festem Startwert, gruppiert nach Notiz</td>
 </tr>
 <tr>
 <td>Erzeugen</td>
 <td><code>generate &lt;typ&gt; --run &lt;name&gt;</code></td>
-<td>je Fall drei Antworten über Payload-Builder und Antwortprüfung der Route, höchstens vier parallel; ein zweiter Aufruf setzt fort</td>
+<td>je Fall zwei Antworten (<code>--repetitions</code>) auf dem Entscheidungsteil (<code>--split</code>) über Payload-Builder und Antwortprüfung der Route, <code>--concurrency</code> parallel (Vorgabe 4), bis <code>--budget</code> USD (Vorgabe 1); ein zweiter Aufruf setzt fort</td>
 </tr>
 <tr>
 <td>Tabelle</td>
@@ -8288,15 +8287,23 @@ Agenten steht im Skill <a href="../.agents/skills/ai-eval/SKILL.md"><code>ai-eva
 </tr>
 </tbody></table>
 <ul>
-<li>Ein Kriterium besteht, wenn seine automatische Prüfung und sein Richterurteil
-bestehen. Lehnt die Antwortprüfung der Route eine Antwort ab, fällt nur das
-Vertragskriterium durch; die übrigen Kriterien zählen über die gültigen
-Antworten. Der Hauptwert zählt alle Antworten.</li>
-<li>Anbieter- und Netzfehler sind keine Antwort: Sie bleiben offen und werden
-beim nächsten Aufruf wiederholt.</li>
+<li>Jede Anfrage endet als angenommene Antwort, als Ablehnung des Falls durch das
+Modell (bei Varianten „nicht umformulierbar“), als von der Route verworfene
+Antwort oder als Zeitüberschreitung. Verworfene Antworten und
+Zeitüberschreitungen bestehen nur das Vertragskriterium nicht; eine
+Ablehnung besteht das Ablehnungskriterium (M7), wenn der Fall sie mit
+<code>refuse: true</code> erwartet. Nur angenommene Antworten auf Fälle ohne
+<code>refuse</code> gehen an automatische Prüfungen und Richter. Der Hauptwert zählt
+alle Antworten.</li>
+<li>Ratenlimit und Anbieterfehler werden mit wachsender Wartezeit bis zu fünfmal
+versucht; was danach scheitert, bleibt offen und wird beim nächsten Aufruf
+wiederholt. Schlüssel-, Limit- und Endpunktfehler halten den Lauf an.</li>
+<li>Jeder Lauf hält den Fingerabdruck seines Payloads ohne Nutzdaten fest; ein
+Prompt, Werkzeugschema, Modell oder Reasoning, das sich seitdem geändert
+hat, setzt ihn nicht fort.</li>
 <li><code>score</code> entscheidet eine Runde selbst: übernommen, wenn der Abstand zum
 Bestand über dem Rauschen liegt und kein kritisches Kriterium schlechter ist.</li>
-<li>Ins Ledger kommt ein Lauf nur vom Testteil, mit kalibriertem Richter und
+<li>Ins Ledger kommt ein Lauf nur vom Entscheidungsteil, mit kalibriertem Richter und
 ohne fälschlich bestandenen Kontrolleintrag bei einem kritischen Kriterium.</li>
 <li><code>generate --dry</code> erzeugt nachgebildete Antworten ohne Schlüssel und Kosten;
 ein Trockenlauf kommt nie ins Ledger.</li>
@@ -8331,7 +8338,7 @@ Richtertabelle mit.</p>
 </tr>
 <tr>
 <td><code>fixtures/ai-eval/&lt;typ&gt;.cases.json</code></td>
-<td>von Hand geschriebene Prüfkarten mit Kategorie und Aufteilung</td>
+<td>von Hand geschriebene Prüfkarten mit Kategorie, Aufteilung und optional <code>group</code>, <code>trap</code> (Falle für ein kritisches Kriterium) und <code>refuse</code></td>
 <td>ja</td>
 </tr>
 <tr>
@@ -8345,7 +8352,7 @@ Richtertabelle mit.</p>
 <td>ja</td>
 </tr>
 <tr>
-<td><code>output/ai-eval/&lt;typ&gt;/</code></td>
+<td><code>$CORE_AI_EVAL_DIR/&lt;typ&gt;/</code>, sonst <code>output/ai-eval/&lt;typ&gt;/</code></td>
 <td>Korpusfälle und je Lauf ein Ordner mit Antworten samt Transkript, Richtertabelle, Urteilen und Bericht</td>
 <td>nein</td>
 </tr>
@@ -8366,7 +8373,7 @@ Reihenfolge der Läufe. <code>npm run check:docs</code> prüft Form und Reihenfo
 </thead>
 <tbody><tr>
 <td><code>requestType</code>, <code>run</code>, <code>date</code></td>
-<td>Anfragetyp aus dem Register, Name des Laufordners unter <code>output/ai-eval/&lt;typ&gt;/</code>, Tag des Laufs</td>
+<td>Anfragetyp aus dem Register, Name des Laufordners im Datenordner unter <code>&lt;typ&gt;/</code>, Tag des Laufs</td>
 </tr>
 <tr>
 <td><code>promptVersion</code>, <code>model</code>, <code>reasoning</code></td>

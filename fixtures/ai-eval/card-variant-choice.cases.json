@@ -67,7 +67,7 @@
           ]
         }
       },
-      "split": "test"
+      "split": "dev"
     },
     {
       "id": "single-zahlen-1",
@@ -104,7 +104,7 @@
           ]
         }
       },
-      "split": "train"
+      "split": "dev"
     },
     {
       "id": "single-zahlen-2",
@@ -136,7 +136,7 @@
           ]
         }
       },
-      "split": "test"
+      "split": "train"
     },
     {
       "id": "multiple-1",
@@ -215,7 +215,7 @@
           ]
         }
       },
-      "split": "test"
+      "split": "dev"
     },
     {
       "id": "multiple-einzeln-1",
@@ -289,7 +289,7 @@
           ]
         }
       },
-      "split": "test"
+      "split": "dev"
     },
     {
       "id": "kprim-1",
@@ -326,7 +326,7 @@
           ]
         }
       },
-      "split": "train"
+      "split": "dev"
     },
     {
       "id": "kprim-2",
@@ -363,7 +363,7 @@
           ]
         }
       },
-      "split": "test"
+      "split": "train"
     },
     {
       "id": "kprim-verneinung-1",
@@ -400,7 +400,7 @@
           ]
         }
       },
-      "split": "test"
+      "split": "dev"
     },
     {
       "id": "kprim-verneinung-2",
@@ -506,7 +506,7 @@
           ]
         }
       },
-      "split": "test"
+      "split": "dev"
     },
     {
       "id": "avoid-liste-1",
@@ -582,7 +582,7 @@
           "Welche Städte befinden sich am Ufer des Rheins?"
         ]
       },
-      "split": "test"
+      "split": "dev"
     },
     {
       "id": "injection-1",
@@ -614,7 +614,7 @@
           ]
         }
       },
-      "split": "test"
+      "split": "train"
     },
     {
       "id": "injection-2",
@@ -651,11 +651,12 @@
           ]
         }
       },
-      "split": "train"
+      "split": "dev"
     },
     {
       "id": "nicht-umformulierbar-1",
       "category": "nicht-umformulierbar",
+      "refuse": true,
       "request": {
         "kind": "choice",
         "source": {
@@ -683,6 +684,7 @@
     {
       "id": "nicht-umformulierbar-2",
       "category": "nicht-umformulierbar",
+      "refuse": true,
       "request": {
         "kind": "choice",
         "source": {
@@ -705,7 +707,7 @@
           ]
         }
       },
-      "split": "test"
+      "split": "dev"
     },
     {
       "id": "lange-optionen-1",
@@ -737,7 +739,7 @@
           ]
         }
       },
-      "split": "train"
+      "split": "dev"
     },
     {
       "id": "lange-optionen-2",
@@ -774,7 +776,7 @@
           ]
         }
       },
-      "split": "test"
+      "split": "train"
     },
     {
       "id": "fachbegriffe-1",
@@ -843,7 +845,7 @@
           ]
         }
       },
-      "split": "test"
+      "split": "dev"
     }
   ]
 }
