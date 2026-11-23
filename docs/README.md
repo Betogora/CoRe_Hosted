@@ -27,6 +27,7 @@ Gerüst der Katalog-Browsertests.
 | Was ist als Nächstes zu tun? | [`todo.md`](todo.md) | Erledigtes |
 | Wie wird getestet und geprüft? | [`test-portfolio.md`](test-portfolio.md) | Release-Abläufe |
 | Welcher KI-Prompt ist gemessen, wie lief der Hillclimb? | [`ai-eval.md`](ai-eval.md) | Prompttexte (stehen im Code), offene Evals |
+| Wie läuft das Hillclimb-Experiment, was wird am Runner umgebaut? | [`ai-eval-plan.md`](ai-eval-plan.md) | Messwerte, Umfang und Gates; besteht nur während P5 |
 | Wie wird freigegeben, zurückgerollt, wiederhergestellt? | [`operations.md`](operations.md) | Testinventur, ausgefüllte Nachweise |
 | Was lief auf Production, was waren die Meilensteine? | [`history.md`](history.md) | heutiger Vertrag, Arbeitsdetails (stehen in Commits) |
 | Wie verhält sich Anki? | [`anki-format-analysis.md`](anki-format-analysis.md) | CoRes Übersetzung (steht in der Architektur) |
