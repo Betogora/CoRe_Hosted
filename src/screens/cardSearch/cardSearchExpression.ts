@@ -92,6 +92,13 @@ export function withCardSearchTermState(query: string, term: string, state: "" |
   return items.filter((item): item is QueryItem => Boolean(item)).map((item) => item.source).join(" ");
 }
 
+/** Limits the search to one deck, or lifts the limit with null, in place of every deck term it had. */
+export function withCardSearchDeck(query: string, deckId: string | null): string {
+  const isDeckItem = (source: string) => /^-?did:/i.test(source) || Boolean(cardSearchGroupMembers(source)?.members.every((member) => /^did:/i.test(member)));
+  const without = cardSearchTerms(query).filter(isDeckItem).reduce((current, source) => withoutCardSearchItem(current, source), String(query ?? ""));
+  return deckId === null ? without : withCardSearchTermState(without, `did:${deckId}`, "in");
+}
+
 export function withoutCardSearchItem(query: string, source: string): string {
   return queryItems(String(query ?? "")).filter((item) => item.source !== source).map((item) => item.source).join(" ");
 }

@@ -15,7 +15,7 @@ import { CoreTabPanel, CoreTabs } from "../ui/CoreTabs.tsx";
 import { DeckAppearanceIcon, getDeckAppearance } from "../ui/deckAppearance.tsx";
 import { DialogFrame } from "../ui/DialogFrame.tsx";
 import { useSuccessToast } from "../ui/feedbackUi.tsx";
-import { cardSearchTerms, unsupportedCardSearchTerms, withCardSearchTermState } from "./cardSearch/cardSearchExpression.ts";
+import { cardSearchTerms, unsupportedCardSearchTerms, withCardSearchDeck } from "./cardSearch/cardSearchExpression.ts";
 import { AdvancedCardSearch } from "./cardSearch/AdvancedCardSearch.tsx";
 import { CardSearchBar } from "./cardSearch/CardSearchBar.tsx";
 import { createCardSearchMenu } from "./cardSearch/cardSearchMenu.ts";
@@ -25,7 +25,7 @@ import { CardSelectionBar } from "./cardList/CardSelectionBar.tsx";
 import { useCardSelection } from "./cardList/useCardSelection.ts";
 import { TagManagerDialog } from "./cardList/TagManagerDialog.tsx";
 import { renameDirectoryTag } from "../tagDirectory.ts";
-import { parseCardSearchQuery } from "../cardSearchQuery.ts";
+import { findsOnlyDuplicates, parseCardSearchQuery } from "../cardSearchQuery.ts";
 import { HitStudyFlow } from "./cardList/HitStudyFlow.tsx";
 import { hitStudyQuery } from "../hitStudySession.ts";
 import type { CardBatchAction } from "../cardBatchActions.ts";
@@ -355,7 +355,7 @@ export function DecksScreen({
   }
 
   const prepareSelectionReplace = useStableCallback(async () => onPrepareTextReplace!(await selectedIds()));
-  const searchingDuplicates = React.useMemo(() => parseCardSearchQuery(deferredQuery).terms.some((term) => term.kind === "duplicate" && !term.negated), [deferredQuery]);
+  const searchingDuplicates = React.useMemo(() => findsOnlyDuplicates(parseCardSearchQuery(deferredQuery)), [deferredQuery]);
   async function selectSurplusDuplicates() {
     try {
       const count = await selectLoadedCards(() => onListSurplusDuplicateIds!({ deckIds: hitScope, query: deferredQuery, searchContext }));
@@ -654,7 +654,7 @@ export function DecksScreen({
         ) : null}
       </div>
 
-      {deferredQuery.trim() ? <MatchingDecks groups={tableModel.groups.filter((group) => group.deckMatches)} onOpen={(deckId) => changeQuery(withCardSearchTermState(cardSearchTerms(query).filter((term) => !/^-?did:/i.test(term)).join(" "), `did:${deckId}`, "in"))} /> : null}
+      {deferredQuery.trim() ? <MatchingDecks groups={tableModel.groups.filter((group) => group.deckMatches)} onOpen={(deckId) => changeQuery(withCardSearchDeck(cardSearchTerms(query).join(" "), deckId))} /> : null}
       <CardHitTable
         items={items}
         rowOf={rowOf}
