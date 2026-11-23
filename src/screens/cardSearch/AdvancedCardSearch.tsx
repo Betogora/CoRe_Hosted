@@ -4,7 +4,7 @@ import { cardSearchTermState, cardSearchTerms, cardSearchTermsOfKind, cardSearch
 import { fieldSearchKey } from "../../coreModel.ts";
 import type { SavedCardSearch } from "../../coreTypes.ts";
 import { SAVED_SEARCH_LIMIT, SAVED_SEARCH_NAME_LENGTH } from "../../uiPreferences.ts";
-import { ActionButton, CrossLinkButton, Disclosure, IconButton } from "../../ui/actionUi.tsx";
+import { ActionButton, CloseButton, CrossLinkButton, Disclosure, IconButton } from "../../ui/actionUi.tsx";
 import { CoreTriStateControl } from "../../ui/coreUi.tsx";
 import { StatusMessage, useSuccessToast } from "../../ui/feedbackUi.tsx";
 import { FlagDot } from "../../ui/flagUi.tsx";
@@ -326,10 +326,10 @@ export function AdvancedCardSearch({ id, query, onQueryChange, categories, resul
       className="grid min-w-0 gap-4 rounded-panel border border-core-border bg-core-surface p-4 md:p-5 max-md:fixed max-md:inset-0 max-md:z-50 max-md:content-start max-md:overflow-y-auto max-md:rounded-none max-md:border-0 max-md:pb-28"
       data-testid="advanced-card-search"
     >
-      <div className="flex min-h-11 items-center gap-1 md:hidden">
+      <div className={`-mr-2 -mt-2 flex min-h-button items-center gap-1 md:hidden ${mobileOpen ? "-ml-2" : ""}`}>
         {mobileOpen ? <IconButton icon={ArrowLeft} variant="ghost" label="Zurück zu den Kategorien" onClick={() => setMobileOpen(false)} /> : null}
         <h2 className="min-w-0 flex-1 truncate core-heading-2 text-core-text">{mobileOpen ? active.label : "Erweiterte Suche"}</h2>
-        <IconButton icon={X} variant="ghost" label="Erweiterte Suche schließen" onClick={onClose} />
+        <CloseButton label="Erweiterte Suche schließen" onClick={onClose} />
       </div>
       <div className="flex min-w-0 flex-wrap items-center gap-3">
         <div className="flex min-h-control min-w-0 flex-1 basis-64 items-center gap-1 rounded-control border border-core-border bg-core-canvas py-0.5 pl-3" data-testid="card-search-expression">

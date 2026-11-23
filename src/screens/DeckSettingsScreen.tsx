@@ -43,14 +43,14 @@ function DeckIconPicker({ value, color, onChange }: { value: string; color: stri
         </button>
       </Popover.Trigger>
       <Popover.Portal>
-        <Popover.Content align="end" sideOffset={6} collisionPadding={12} aria-label="Icon auswählen" data-testid="deck-icon-popover" className="core-overlay z-[90] w-[min(17rem,calc(100vw-1.5rem))] rounded-panel p-2 outline-none" style={{ color }}>
+        <Popover.Content align="end" sideOffset={6} collisionPadding={12} aria-label="Icon auswählen" data-testid="deck-icon-popover" className="core-overlay z-[90] w-[min(17rem,calc(100vw-1.5rem))] rounded-panel p-1.5 outline-none" style={{ color }}>
           <div className="grid grid-cols-5 gap-1" role="group" aria-label="Icon-Auswahl" data-testid="deck-icon-grid">
             {deckIconOptions.map((option) => {
               const Icon = option.icon;
               const selected = option.key === value;
               return (
                 <Popover.Close asChild key={option.key}>
-                  <button type="button" aria-label={option.label} aria-pressed={selected} className={`grid size-11 place-items-center rounded-control border transition-colors ${selected ? "border-core-action bg-core-subtle" : "border-transparent hover:bg-core-subtle"}`} onClick={() => onChange(option.key)}>
+                  <button type="button" aria-label={option.label} aria-pressed={selected} className={`grid size-11 place-items-center rounded-inset border transition-colors ${selected ? "border-core-action bg-core-subtle" : "border-transparent hover:bg-core-subtle"}`} onClick={() => onChange(option.key)}>
                     <Icon size={20} aria-hidden="true" />
                   </button>
                 </Popover.Close>

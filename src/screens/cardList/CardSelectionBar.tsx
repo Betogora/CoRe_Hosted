@@ -189,7 +189,7 @@ export function CardSelectionBar({ count, hitTotal, searching, allHits, disabled
           </button>
         </Popover.Trigger>
         <Popover.Portal>
-          <Popover.Content align="end" sideOffset={8} collisionPadding={16} className="core-overlay z-[60] grid max-h-[min(32rem,var(--radix-popover-content-available-height))] w-64 gap-0.5 overflow-y-auto rounded-panel p-1.5">
+          <Popover.Content align="end" sideOffset={6} collisionPadding={16} className="core-overlay z-[60] grid max-h-[min(32rem,var(--radix-popover-content-available-height))] w-max gap-0.5 overflow-y-auto rounded-panel p-1.5">
             {MENU.filter((entry) => (entry.id !== "variants" || onGenerateVariants) && (entry.id !== "replace" || onPrepareReplace) && (entry.id !== "study" || onStudy)).map(({ id, label: entryLabel, icon: Icon, shortcut }, index) => (
               <React.Fragment key={id}>
                 {index > 0 && GROUP_STARTS.has(id) ? <div className="core-menu-separator" role="separator" /> : null}
@@ -200,7 +200,7 @@ export function CardSelectionBar({ count, hitTotal, searching, allHits, disabled
                     open(id);
                   }}>
                     <Icon size={16} aria-hidden="true" />{entryLabel}
-                    {shortcut ? <span className="ml-auto core-caption tabular-nums text-core-muted" aria-hidden="true">{shortcut.label}</span> : null}
+                    {shortcut ? <span className="ml-auto pl-4 core-caption tabular-nums text-core-muted" aria-hidden="true">{shortcut.label}</span> : null}
                   </button>
                 </Popover.Close>
               </React.Fragment>

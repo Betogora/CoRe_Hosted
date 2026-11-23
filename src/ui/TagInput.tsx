@@ -144,14 +144,14 @@ export function TagInput({ tags, importedTags = [], loadDirectory, onChange, lab
           />
         </div>
         {listOpen ? (
-          <ul id={listId} role="listbox" aria-label="Vorschläge" className="core-overlay absolute inset-x-0 top-full z-20 mt-1 grid max-h-64 overflow-y-auto rounded-control border border-core-border p-1 shadow-floating">
+          <ul id={listId} role="listbox" aria-label="Vorschläge" className="core-overlay absolute inset-x-0 top-full z-20 mt-1.5 grid max-h-64 overflow-y-auto rounded-panel border border-core-border p-1.5 shadow-floating">
             {suggestions.map((entry, index) => (
               <li
                 key={entry.tag}
                 id={`${listId}-${index}`}
                 role="option"
                 aria-selected={index === activeIndex}
-                className={`flex min-h-control cursor-pointer items-center justify-between gap-3 rounded-inset px-3 core-body text-core-text ${index === activeIndex ? "bg-core-subtle" : "hover:bg-core-subtle"}`}
+                className={`flex min-h-menu-row cursor-pointer items-center justify-between gap-3 rounded-inset px-3 core-body text-core-text ${index === activeIndex ? "bg-core-subtle" : "hover:bg-core-subtle"}`}
                 onMouseDown={(event) => {
                   event.preventDefault();
                   add(entry.tag);

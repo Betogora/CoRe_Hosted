@@ -309,7 +309,7 @@ export function CoreDatePicker({ value, min, max, today, ariaLabel, ariaDescribe
         <Popover.Content
           ref={contentRef}
           align="end"
-          sideOffset={8}
+          sideOffset={6}
           collisionPadding={12}
           role="dialog"
           aria-label={`${ariaLabel}: Datum auswählen`}
