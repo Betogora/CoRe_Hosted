@@ -1,6 +1,6 @@
 # CoRe-Status
 
-Stand: 2026-11-14
+Stand: 2026-11-23
 
 Was heute vorhanden ist und was noch fehlt. Das Verhalten jeder Funktion steht
 in [`specs.md`](specs.md), offene Arbeit in [`todo.md`](todo.md), datierte
@@ -20,8 +20,8 @@ vollständig.
 - Production: `https://core-hosted.vercel.app`; Datenbank ist das Pre-Release-Projekt `CoRe-Database` (`hirbiuiydczmnjqtoyqx`), zuletzt am 2026-10-08 vollständig zurückgesetzt.
 - Schema: einzige Baseline `20261030103636_kartenmodell_baseline.sql` plus spätere Migrationen; keine Upgrade- oder Backfillkette (ADR-034).
 - Browser-Replica: IndexedDB `core.workspace.entities.v5.<userId>`, ohne Lesepfade für frühere lokale Datenbanken.
-- Server: nur die authentifizierten KI-Routen `/api/ai/card-variant`, `/api/ai/summary` und `/api/ai/card-help` über OpenRouter (ADR-011).
-- KI-Eval: Runner für Varianten Frage/Antwort, Lückentext und Auswahl sowie `card-help` (`npm run ai-eval`, ADR-049) mit je 24 Prüfkarten als Bauvorleistung für P5; kein echter Lauf, Richter nicht kalibriert, Ledger leer. Stand unter [KI-Eval](ai-eval.md).
+- Server: nur die authentifizierten KI-Routen `/api/ai/card-variant`, `/api/ai/card-help`, `/api/ai/summary` und `/api/ai/source-cards` über OpenRouter (ADR-011).
+- KI-Eval: Runner für Varianten Frage/Antwort, Lückentext und Auswahl sowie `card-help` (`npm run ai-eval`, ADR-049) mit je 24 Prüfkarten; `source-cards` fehlt im Register, die Zusammenfassung hat keine Definition. Kein echter Lauf, Ledger leer, Richter ohne Kalibrierung. Stand unter [KI-Eval](ai-eval.md), Umbau und Messung in [`todo.md`](todo.md) unter P5.
 - Kartenmodell `Note`/`Card` in App, Import, Persistenz und Sync (ADR-032); Scheduler FSRS-7 mit Reife aus der Haltbarkeit (ADR-044).
 
 ## Reifestatus
@@ -43,4 +43,5 @@ Die verbindliche Reifeentscheidung steht in [ADR-001](decisions.md#adr-001--prod
 - **Begraben:** Stapelzähler zählen zwei noch unbeantwortete Geschwister bis zur ersten Antwort beide (Anki zeigt eines). Ein Gerät mit unvollständigem lokalen Katalog übernimmt Antworten erst mit dem nächsten Bootstrap in die Zähler.
 - **Speicher:** Ein vollständiger 10-GB-Medienbestand ist im Browser nicht garantiert; Browser-Eviction bleibt Plattformgrenze. Die native App mit lokaler Vollreplik (ADR-036) ist nicht begonnen.
 - **Karten aus einer Quelle:** Die Kartenmenge (weniger, normal, mehr) ändert die Zahl der Vorschläge bisher nicht (Messung im [Verlauf](history.md)); die Schätzung nennt daher je Stufe dieselbe Spanne. Ziel in [`todo.md`](todo.md) unter P5.
+- **KI-Prompts:** Kein Prompt ist gemessen. Ein echter Eval-Lauf bliebe heute hängen, weil der Runner von der Variantenroute abgelehnte Antworten endlos neu anfragt ([Versuchsplan](ai-eval-plan.md)).
 - **Gerätelokal:** Dashboard-Layout und eigene To-dos liegen pro Konto nur im Browser und synchronisieren nicht.
