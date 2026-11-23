@@ -2,19 +2,23 @@
 
 Stand: 2026-11-23
 
-Ausführungsplan für [P5](todo.md#p5-ki-eval-und-hillclimb): Befunde zum
-heutigen Stand, Versuchsaufbau und Arbeitspakete. Umfang, Reihenfolge und
-Gates stehen nur in `todo.md`, Messwerte nur unter [KI-Eval](ai-eval.md).
-Die Datei löst sich mit P5 auf: Gebautes wandert nach `ai-eval.md`,
-Entschiedenes nach [ADR-049](decisions.md#adr-049--ki-änderungen-nur-mit-eval-nachweis);
-mit Paket J wird sie gelöscht.
+Ausführungsplan für [P5](todo.md#p5-ki-eval-und-hillclimb): Befunde am
+Runner, Versuchsaufbau und Arbeitspakete. Umfang, Reihenfolge und Gates
+stehen nur in `todo.md`, Messwerte nur unter [KI-Eval](ai-eval.md). Die Datei
+löst sich mit P5 auf: Gebautes wandert nach `ai-eval.md`, Entschiedenes nach
+[ADR-049](decisions.md#adr-049--ki-änderungen-nur-mit-eval-nachweis); mit
+Paket J wird sie gelöscht.
 
 ## Festlegungen
 
-Vom Nutzer am 2026-11-23 entschieden:
+Vom Nutzer am 2026-11-23 entschieden und bindend:
 
 - **Generator:** nur OpenRouter mit eigenem Eval-Schlüssel. Kein Modell aus
   einer Subscription als Generator.
+- **Ein Modell:** Der Hillclimb läuft innerhalb des Referenzmodells
+  `openai/gpt-6-luna`. Ein Modellvergleich folgt später von Hand und wird
+  nicht eigens gebaut; eine Kandidatendatei kann das Modell ersetzen, das
+  genügt dafür.
 - **Richter:** Opus 5.5 als Subagent in Claude Code, ein Richter, je Block
   ein frischer Kontext.
 - **Keine Handkalibrierung vorab.** Jeder Bericht zeigt je Kriterium die
@@ -23,42 +27,55 @@ Vom Nutzer am 2026-11-23 entschieden:
   wirkt.
 - **Erste Welle:** Varianten, KI hilft, Karten aus einer Quelle und
   Zusammenfassung.
-- **Modell offen:** Gemessen wird je Kandidat aus Prompt, Modell und
-  Reasoning. Ein Modellwechsel und das KI-Kontingent sind nicht Teil von P5;
-  P5 liefert dafür die Zahlen.
+- Das KI-Kontingent und ein Modellwechsel sind nicht Teil von P5.
 
-Annahmen dieses Plans, änderbar bis Paket H:
+## Für die ausführende Sitzung
 
-- Limit des Eval-Schlüssels 40 USD; erwartet werden 15–35 USD Erzeugung.
-- Vergleichsmodelle: `openai/gpt-6-luna` (Referenz, `low`),
-  `openai/gpt-6-luna-pro`, `anthropic/claude-haiku-5.5`, dazu zwei bis drei
-  günstige Modelle mit ZDR-Endpunkt und erzwingbarem Tool-Call (Kandidaten:
-  `google/gemini-3.5-flash-lite`, `deepseek/deepseek-v4.1-flash`,
-  `qwen/qwen3.7-flash`) und `openai/gpt-6.1-terra` als Obergrenze, wegen
-  des zehnfachen Preises nur bei Varianten und KI hilft. Wer keinen
-  ZDR-Endpunkt hat, fällt aus und steht so in der Übersicht.
-- Fälle aus echten Stapeln gehen wie in der Produktion nur an ZDR-Endpunkte
-  und bleiben lokal.
+Bindend sind die Festlegungen oben, die Pakete mit ihren Nachweisen in
+`todo.md` und `AGENTS.md`. Alles unter „Versuchsaufbau“ und „Ansatz“ ist ein
+durchdachter Vorschlag: Zeigt der Code einen besseren Weg zum selben
+Nachweis, nimm ihn und nenne die Abweichung im Pull Request.
+
+- **Zuerst lesen:** P5 in `todo.md`, diese Datei, [`ai-eval.md`](ai-eval.md),
+  ADR-011 und ADR-049; dann `scripts/aiEval/` ganz (rund 1.250 Zeilen mit
+  Tests), `server/aiRoute.ts`, `api/ai/`, die vier Vertragsmodule
+  `src/ai*Contract.ts`, den Skill `.agents/skills/ai-eval/SKILL.md` und
+  `.claude/agents/eval-judge.md`.
+- **Reihenfolge:** A → B → C → D, danach E, F und G in beliebiger
+  Reihenfolge, dann H → I → J. Vorschlag für den Schnitt: A und B in einem
+  Pull Request, danach je Paket einer.
+- **Je Pull Request:** `npm run typecheck`, die Modultests unter
+  `scripts/aiEval/` (laufen mit `runModuleTests.ts`), ein Trockenlauf von
+  `cases` bis `score`, `npm run check:docs`, `audit-last-change`.
+- **Bezahlte Läufe** erst, wenn der Nutzer Schlüssel und Datenordner gesetzt
+  hat. Den Schlüssel trägt nur er ein; er erscheint in keinem Log, Bericht
+  oder Chat. Vor jedem Lauf Anfragetyp, Fallzahl und erwartete Kosten
+  nennen; innerhalb des Paketbudgets (B–G zusammen 2 USD für Probeläufe, H
+  4 USD, I 20 USD, J 3 USD) braucht ein Lauf keine Einzelfreigabe.
+- **Inhalte aus echten Stapeln** stehen nie in Commits, Pull Requests oder
+  versionierten Dateien.
+- Ein geänderter Prompt erreicht `main` nur über einen Pull Request, den der
+  Nutzer freigibt.
 
 ## Warum dieser Weg
 
-Erzeugen ist billig, Richten ist teuer. Luna und Haiku 5.5 kosten bei
-OpenRouter je 0,10 USD (Eingabe) und 0,50 USD (Ausgabe) je Million Tokens
-(Preisliste vom 2026-11-23); eine Variante kostet etwa 0,0001 USD, tausend
-Antworten etwa 10 Cent. Opus 5.5 kostet 4 und 20 USD je Million Tokens; ein
-Richterlauf über 360 Einträge läge über die API bei 1–2 USD.
+Erzeugen ist billig, Richten ist teuer. Luna kostet bei OpenRouter 0,10 USD
+(Eingabe) und 0,50 USD (Ausgabe) je Million Tokens (Preisliste vom
+2026-11-23); eine Variante kostet etwa 0,0001 USD, tausend Antworten etwa
+10 Cent. Opus 5.5 kostet 4 und 20 USD je Million Tokens; ein Richterlauf über
+360 Einträge läge über die API bei 1–2 USD.
 
 | Rolle | Weg | Grund |
 | --- | --- | --- |
-| Generator | OpenRouter-API | Jeder Aufruf ist von selbst ein frischer Kontext; es läuft der echte Payload der Route mit erzwungenem Tool-Call und ZDR; Kosten und Latenz sind messbar; das Modell ist ein Parameter. |
-| Richter | Claude-Code-Subscription | Hier fällt der API-Gegenwert an (geschätzt 50–150 USD über das Experiment). Frische entsteht durch einen Subagenten je Block. |
+| Generator | OpenRouter-API | Jeder Aufruf ist von selbst ein frischer Kontext; es läuft der echte Payload der Route mit erzwungenem Tool-Call und ZDR; Kosten und Latenz sind messbar. |
+| Richter | Claude-Code-Subscription | Hier fiele der API-Gegenwert an. Frische entsteht durch einen Subagenten je Block. |
 | Optimierer | Claude-Code-Subscription | Die ausführende Sitzung liest Trainingsfehler und schreibt Kandidaten. |
 
-Ein Subscription-Modell als Generator spart Cent und entwertet die Messung:
-Der Harness-Prompt der Agentenumgebung liegt um jede Anfrage, es gibt keinen
-erzwungenen Tool-Call, keine Kosten und keine Latenz, und Wochenlimits
-begrenzen die Menge. Die Batch-Varianten bei OpenRouter (halber Preis)
-lohnen aus demselben Grund nicht; mit ihnen ginge die Latenz verloren.
+Daraus folgt der Aufbau: mehrere Kandidaten je Runde statt einer Änderung,
+Vorauswahl ohne den Entscheidungsteil, wiederverwendete Urteile für gleiche
+Ausgaben. Ein Subscription-Modell als Generator sparte Cent und entwertete
+die Messung (Harness-Prompt um jede Anfrage, kein erzwungener Tool-Call,
+keine Kosten, keine Latenz).
 
 ## Bestand
 
@@ -75,112 +92,77 @@ Vier Routen, alle über `OPENROUTER_MODEL` (`openai/gpt-6-luna`), Reasoning
 Weitere Aufrufe an ein Sprachmodell gibt es nicht; die Mindmap entsteht ohne
 KI aus der Zusammenfassung.
 
-## Befunde
-
-### Am bisherigen P5
-
-1. **Die Wartebedingung ist erfüllt.** Alle vier Routen stehen, Quiz ist
-   geparkt. P5 kann beginnen.
-2. **„Erste Runde Varianten“ ist überholt.** `card-variant-v5` enthält
-   beide Anweisungen schon. Runden entstehen aus der Fehleranalyse, nicht
-   vorab.
-3. **Zielwerte sind mit den Fallzahlen nicht prüfbar.** „M2 ≤ 1 %“ braucht
-   rund 300 fehlerfreie, unabhängige Antworten (Dreierregel: 0 Fehler in n
-   ergibt eine Obergrenze von 3/n); 60 Fälle × 3 korrelierte Wiederholungen
-   belegen höchstens etwa 5 %. „H6 = 100 %“ ist nie belegbar. Seltene
-   kritische Fehler brauchen Fallen mit ausgewiesener Zahl.
-4. **Zwei Teile reichen nicht.** Wird jede Runde am Testteil entschieden,
-   passt sich die Promptfolge an ihn an; der berichtete Wert ist dann zu
-   gut. Es fehlt ein Teil, der nur an Meilensteinen gemessen wird.
-5. **Der Engpass ist falsch gesetzt.** Eine Änderung je Runde mit vollem
-   Richterlauf spart am Erzeugen, das Cent kostet, und verbraucht den
-   Richter. Mehrere Kandidaten je Runde, Vorauswahl am Trainingsteil und
-   wiederverwendete Urteile drehen das um.
-6. **Rauschen ±7,5 Punkte bei Ziel 95 %** heißt: Verbesserungen sind
-   unsichtbar. Abhilfe sind schwerere Fälle, der gepaarte Vergleich und
-   mehr Fälle statt mehr Wiederholungen.
-7. **Die Aufgaben zu „Karten aus einer Quelle“ sind keine Promptrunden.**
-   Kartenmenge und Zerlegung brauchen zuerst eine Messung je Dokument;
-   Zerlegung (b) und (c) ändern Vertrag und ADR-011.
-8. **Es fehlen:** `source-cards` im Register, eine Definition für die
-   Zusammenfassung, Fälle für Eintippen, der Modellvergleich, ein Budget
-   und ein fester Ort für Rohdaten.
-
-### Am Runner
-
-Vor dem ersten bezahlten Lauf zu beheben:
-
-| Nr. | Befund | Folge |
-| --- | --- | --- |
-| R1 | `generate.ts` kennt als Vertragsfehler nur vier Codes. Die Variantenroute wirft außerdem `not_rephrasable`, `invalid_gaps`, `changed_answer`, `revealed_answer`, `changed_options`, `negated_question` und `negated_option`. | Solche Antworten gelten als offen und werden bei jedem Aufruf neu angefragt: Der Lauf wird nie fertig, und genau die Ablehnungen, die M1 zählen soll, fehlen. Der Trockenlauf zeigt das nicht. |
-| R2 | „Nicht umformulierbar“ ist nur ein Fehler. Die Prüfkarten der Kategorie `nicht-umformulierbar` erwarten diese Antwort. | Richtiges Verhalten lässt sich nicht bestehen, eine falsche Verweigerung nicht von einer richtigen trennen. |
-| R3 | Zeitüberschreitungen werden still wiederholt. | Latenz p90 und Zuverlässigkeit sind geschönt; Lernende sähen einen Fehler. |
-| R4 | Ein Lauf erkennt seinen Prompt nur an der von Hand erhöhten Versionskonstante. | Ein geänderter Prompt ohne neue Version mischt sich in einen fortgesetzten Lauf. |
-| R5 | Der gepaarte Vergleich braucht `results.json` des Bestands in `output/`, das je Worktree existiert und nicht versioniert ist. | Nach dem Entfernen eines Worktrees lässt sich keine Runde mehr auswerten. |
-| R6 | Der Richter ist nicht festgehalten: `model: opus` wandert mit Claude Code, `--judge` ist Freitext mit Vorgabewert, der Bogen kann sich spurlos ändern. | Läufe mit verschiedenen Richtern werden verglichen. |
-| R7 | Der ganze Lauf geht als eine Tabelle an einen Subagenten. | Hunderte Einträge in einem Kontext: spätere Urteile hängen von früheren ab. |
-| R8 | `H1` bei `card-help` bedeutet dreierlei: Vertrag, Format (Wortzahl, kein Markdown) und Sprache. | Ein Fehler lässt sich nicht zuordnen. |
-| R9 | Die Aufteilung geht je Fall. `card-help` erzeugt aus einer Korpuskarte zwei Fälle, Lückentexte einer Notiz mehrere. | Dieselbe Karte liegt in Training und Test. |
-| R10 | Eine Definition ist eine Anfrage mit einer Antwort und kennt nur bestanden oder nicht. | Ein Auftrag aus mehreren Abschnitten und Zahlenwerte wie die Kartenmenge sind nicht messbar. |
-| R11 | Modell und Reasoning stehen nur im Servercode. | Kein Modellvergleich, immer nur ein Kandidat. |
-| R12 | Kein Budgetabbruch, feste Parallelität 4, kein Warten bei 429. | Große Läufe sind weder begrenzt noch robust. |
-| R13 | `--record` verlangt eine Kalibrierung. | Widerspricht der Festlegung. |
+## Befunde am Runner
 
 Bewährt und bleibt: Erzeugen über Payload-Builder und Antwortprüfung der
 Route, fortsetzbare Läufe mit Transkript, Tabelle ohne Herkunft mit
 getrenntem Schlüssel, Bootstrap über Fälle, gepaarter Vergleich, geprüftes
 Ledger, Trockenlauf.
 
-### Nebenbei aufgefallen
+| Nr. | Befund | Folge | Paket |
+| --- | --- | --- | --- |
+| R1 | `generate.ts` kennt als Vertragsfehler nur vier Codes (`CONTRACT_FAILURES`). Die Variantenroute wirft außerdem `not_rephrasable`, `invalid_gaps`, `changed_answer`, `revealed_answer`, `changed_options`, `negated_question` und `negated_option`. | Solche Antworten gelten als offen und werden bei jedem Aufruf neu angefragt: Der Lauf wird nie fertig, und genau die Ablehnungen, die M1 zählen soll, fehlen. Der Trockenlauf zeigt das nicht, weil die nachgebildete Antwort immer gültig ist. | B |
+| R2 | „Nicht umformulierbar“ ist nur ein Fehler. Die sechs Prüfkarten der Kategorie `nicht-umformulierbar` erwarten diese Antwort. | Richtiges Verhalten lässt sich nicht bestehen, eine falsche Verweigerung nicht von einer richtigen trennen. | B |
+| R3 | Zeitüberschreitungen werden still wiederholt; abgelehnte Antworten tragen keine Kosten. | Latenz p90, Zuverlässigkeit und Kosten sind geschönt; Lernende sähen einen Fehler. | B |
+| R4 | Ein Lauf erkennt seinen Prompt nur an der von Hand erhöhten Versionskonstante. | Ein geänderter Prompt ohne neue Version mischt sich in einen fortgesetzten Lauf. | B |
+| R5 | Kein Budgetabbruch, feste Parallelität 4, kein Warten bei 429. | Große Läufe sind weder begrenzt noch robust. | B |
+| R6 | `H1` bei `card-help` bedeutet dreierlei: Vertrag, Format (Wortzahl, kein Markdown) und Sprache. | Ein Fehler lässt sich nicht zuordnen. | B |
+| R7 | Die Aufteilung geht je Fall und kennt zwei Teile. `card-help` erzeugt aus einer Korpuskarte zwei Fälle, Lückentexte einer Notiz mehrere. | Dieselbe Karte liegt in Training und Test; jede Runde entscheidet am Teil, der auch berichtet wird. | B |
+| R8 | Reasoning, Ausgabegrenze und Prompt stehen nur im Code der Route. | Immer nur ein Kandidat; jeder Versuch ist eine Codeänderung. | C |
+| R9 | Der ganze Lauf geht als eine Tabelle an einen Subagenten. | Hunderte Einträge in einem Kontext: Spätere Urteile hängen von früheren ab. | C |
+| R10 | Der Richter ist nicht festgehalten: `model: opus` wandert mit Claude Code, `--judge` ist Freitext mit Vorgabewert, der Bogen kann sich spurlos ändern. | Läufe mit verschiedenen Richtern werden verglichen. | C |
+| R11 | `--record` verlangt eine Kalibrierung. | Widerspricht der Festlegung. | C |
+| R12 | Der gepaarte Vergleich braucht `results.json` des Bestands in `output/`, das je Worktree existiert und nicht versioniert ist. | Nach dem Entfernen eines Worktrees lässt sich keine Runde mehr auswerten. | D |
+| R13 | `decide` kennt weder Kosten noch Latenz noch Fallen. | Eine teurere oder langsamere Variante wird übernommen. | D |
+| R14 | Eine Definition ist eine Anfrage mit einer Antwort und kennt nur bestanden oder nicht. | Ein Auftrag aus mehreren Abschnitten und Zahlenwerte wie die Kartenmenge sind nicht messbar. | F |
 
-Nicht Teil von P5, zur Entscheidung: `status.md` nennt drei der vier Routen;
-die Specs sagen „nie im Hintergrund“, ADR-011 erlaubt die vorausschauende
-Variante; die Zusammenfassung prüft nicht, ob `relations` auf vorhandene
-Überschriften oder Stichwörter zeigen; ihr Antwortschema lässt `non_zdr` zu,
-das keine Route mehr liefert.
+Nebenbei aufgefallen, nicht Teil von P5: Die Specs sagen „nie im
+Hintergrund“, ADR-011 erlaubt die vorausschauende Variante; die
+Zusammenfassung prüft nicht, ob `relations` auf vorhandene Überschriften oder
+Stichwörter zeigen; ihr Antwortschema lässt `non_zdr` zu, das keine Route
+mehr liefert.
 
 ## Versuchsaufbau
 
 ### Kandidat
 
-Ein Kandidat ist Prompt (als Funktion der Anfrage), Werkzeugschema,
-Ausgabegrenze, Modell und Reasoning. Ohne Angabe gilt, was die Route baut.
+Ein Kandidat ist alles am Payload außer den Nutzdaten: Systemprompt,
+Werkzeugschema, Ausgabegrenze, Reasoning, Modell. Ohne Angabe gilt, was die
+Route baut.
 
-- `--model <kennung>` und `--reasoning <stufe>` ersetzen die beiden Felder
-  im gebauten Payload.
-- `--candidate <datei>` lädt ein TypeScript-Modul aus dem Datenordner, das
-  den Systemprompt (und bei Bedarf Werkzeugschema oder Ausgabegrenze) aus
-  Anfrage und gebautem Payload neu liefert. Kandidatendateien sind
-  Versuchsmaterial und werden nicht versioniert.
-- Jeder Lauf trägt einen Fingerabdruck: SHA-256 über Systemprompt,
-  Werkzeugschema und Ausgabegrenze aller Fälle in fester Reihenfolge, ohne
-  Nutzdaten und Modell. Ein fortgesetzter Lauf mit anderem Fingerabdruck
-  bricht ab.
-- Übernommen wird ein Kandidat, indem er in den Code der Route wandert und
-  die Promptversion steigt. `score --record` nimmt „übernommen“ nur an, wenn
-  der Code denselben Fingerabdruck baut wie der gemessene Lauf. So ist die
-  Übertragung geprüft, ohne neu zu messen.
+- `--candidate <name>` lädt ein Modul aus dem Datenordner, das den gebauten
+  Payload ersetzt. Kandidatendateien sind Versuchsmaterial und werden nicht
+  versioniert. Die Antwortprüfung bleibt die der Route; ändert ein Kandidat
+  das Werkzeugschema unverträglich, fallen seine Antworten am Vertrag durch.
+- Jeder Lauf trägt einen **Fingerabdruck:** SHA-256 über die sortierte Menge
+  der verschiedenen Payloads ohne Nutzdaten, gebildet aus der ersten Anfrage
+  jedes Falls. Ein fortgesetzter Lauf mit anderem Fingerabdruck bricht ab.
+- **Übernommen** wird ein Kandidat, indem er in den Code der Route wandert
+  und die Promptversion steigt. `score --record` nimmt „übernommen“ nur an,
+  wenn der Code denselben Fingerabdruck baut wie der gemessene Lauf. So ist
+  die Übertragung geprüft, ohne neu zu messen.
 
 ### Fallsätze
 
 Drei Teile je Anfragetyp, nach Kategorie geschichtet und nach Gruppe
 getrennt (eine Karte, eine Notiz oder ein Dokument liegt immer nur in einem
-Teil):
+Teil). Zwei Teile reichen nicht: Wird jede Runde am berichteten Teil
+entschieden, passt sich die Promptfolge an ihn an.
 
 | Teil | Anteil | Zweck | Wer liest Inhalte |
 | --- | --- | --- | --- |
 | Training (`train`) | 40 % | Fehleranalyse und Vorauswahl der Kandidaten | Optimierer |
 | Entscheidung (`dev`) | 30 % | jede Runde: übernehmen oder verwerfen | nur Kennzahlen und Fallkennungen |
-| Rückhalt (`holdout`) | 30 % | Baseline, Wellenende, Modellvergleich am Ende; der berichtete Wert | niemand vor Wellenende |
+| Rückhalt (`holdout`) | 30 % | Baseline und Wellenende; der berichtete Wert | niemand vor Wellenende |
 
 Da nichts gemessen ist, wird die heutige Aufteilung verworfen und neu
 gezogen.
 
 | Anfragetyp | Fälle | Zusammensetzung |
 | --- | --- | --- |
-| Varianten Frage/Antwort (mit Eintippen), Lückentext, Auswahl | je etwa 200 | etwa 80 Prüfkarten über die Kategorien, etwa 120 Korpusfälle (`cases --corpus`) |
+| Varianten Frage/Antwort (mit Eintippen), Lückentext, Auswahl | je etwa 200 | etwa 80 Prüfkarten über die Kategorien, der Rest aus dem Korpus; liefert der Korpus für eine Art zu wenig, entsprechend mehr Prüfkarten |
 | KI hilft | etwa 200 | jede Prüfkarte in allen drei Modi, Korpusfälle in Erklären und Beispiel |
-| Karten aus einer Quelle | etwa 24 Dokumente | die fünf Prüfdokumente, dazu weitere Fächer und Formate und mindestens vier lange Quellen (über 60.000 Zeichen); je Dokument eine Liste von 10–30 Kernaussagen |
+| Karten aus einer Quelle | etwa 24 Dokumente | die fünf Prüfdokumente, dazu weitere Fächer und Formate und mindestens vier lange Quellen (über 60.000 Zeichen); je Dokument 10–30 Kernaussagen |
 | Zusammenfassung | etwa 24 Materialsätze | Karten, Quelle und beides; je Satz Kernaussagen und zwei Einstellungsprofile aus einer paarweise deckenden Liste von etwa zwölf |
 
 Was die Fallsätze enthalten müssen:
@@ -188,77 +170,80 @@ Was die Fallsätze enthalten müssen:
 - **Varianten:** Eintippen; Ketten mit einer bis vier vorhandenen Varianten
   in `avoid`; Fälle, die „nicht umformulierbar“ erwarten, und knappe
   Fachkarten, die es nicht sind; Lückentexte, deren Lücke fast den ganzen
-  Text trägt (dort umschreibt das Modell die Lösung außerhalb der Lücke,
-  was die Routenprüfung nicht erkennt).
+  Text trägt (dort umschreibt das Modell die Lösung außerhalb der Lücke, was
+  die Routenprüfung nicht erkennt).
 - **KI hilft:** „Freitext ohne echte Frage“ mit Dank, Bestätigung, eigenem
   Antwortversuch, Bitte wie „einfacher“, Unverständnis, Unsinn und Text ohne
   Kartenbezug; Folgefragen mit Verlauf.
 - **Fallen** je kritischem Kriterium, in jedem Teil und getrennt
   ausgewiesen: Richtung und Reihenfolge, Verneinung, eingeschleuste
   Anweisungen, fachlich falsche Karten, in Quellen und Material eingebaute
-  Widersprüche.
-- Sprachen: überwiegend Deutsch, dazu Englisch und Vokabelkarten weiterer
-  Sprachen.
+  Widersprüche. Seltene kritische Fehler lassen sich nur so belegen: Null
+  Fehler in n Antworten ergeben eine Obergrenze von 3/n, ein Ziel wie „M2
+  ≤ 1 %“ bräuchte 300 fehlerfreie Antworten.
+- Fächer breit (Medizin, Recht, Geschichte, MINT, Sprachen, Wirtschaft),
+  überwiegend Deutsch, dazu Englisch und Vokabelkarten weiterer Sprachen.
 
-Prüfkarten, Prüfdokumente und Kernaussagen entwirft die ausführende
-Sitzung selbst, ohne fremde Texte; der Nutzer sieht je Anfragetyp eine
-Stichprobe von zehn. Versioniert werden nur sie, Korpusfälle nie.
+Prüfkarten, Prüfdokumente und Kernaussagen schreibt die ausführende Sitzung
+selbst, ohne fremde Texte und fachlich richtig (außer bei bewusst falschen
+Karten); der Nutzer sieht je Anfragetyp eine Stichprobe von zehn.
+Versioniert werden nur sie, Korpusfälle nie.
 
 ### Kriterien und Messgrößen
 
 Ein Kriterium ist bestanden oder nicht; eine Messgröße ist eine Zahl je
-Antwort oder Auftrag. Kritisch heißt: darf gegenüber dem Bestand nicht
+Antwort oder Auftrag. Fett heißt kritisch: darf gegenüber dem Bestand nicht
 schlechter werden.
 
 | Anfragetyp | Automatisch | Richter | Messgrößen |
 | --- | --- | --- | --- |
 | Varianten | M1 Vertrag, M3 Zahlen und Begriffe zeichengenau, M4 erkennbar umformuliert, M5 Abstand zu `avoid`, M7 Eignung wie erwartet | **M2 fachlich gleich**, M6 Sprache, Schwierigkeit, Natürlichkeit | – |
 | KI hilft | H0 Vertrag, H8 Format (höchstens 150 Wörter, kein Markdown) | H1 Sprache, **H2 fachlich korrekt**, H3–H5 je Modus, **H6 sicher und ehrlich**, H7 knapp und lernförderlich | – |
-| Karten aus einer Quelle | Q1 Vertrag (Anfragen gültig, Anteil verworfener Karten) | je Karte mit ihren Belegstellen: **Q2 belegt**, Q3 fragt genau eine Sache, Q4 ohne Quelle verständlich und ohne Antwortverrat, Q5 Auswahloptionen plausibel und eindeutig; je Dokument: Q6 abgedeckte Kernaussagen | Karten gesamt und je 1.000 Zeichen, Anteil je Kartenform, Dubletten, Anteil belegter Stellen, letzte belegte Stelle, Abbruch an der Obergrenze |
-| Zusammenfassung | Z1 Vertrag, Z2 Länge im Korridor, Z3 Darstellung wie gewählt, Z4 Stichwörter einmalig, Z5 Querbezüge zeigen auf Vorhandenes | je Abschnitt mit seinem belegten Material: **Z6 belegt und unverfälscht**, Z7 verständlich und zum Lernziel passend; je Zusammenfassung: Z8 abgedeckte Kernaussagen, Z9 eingebaute Widersprüche gemeldet | Wörter, Abschnitte, Anteil belegten Materials |
+| Karten aus einer Quelle | Q1 Vertrag (Anfragen gültig, Anteil verworfener Karten) | je Karte mit ihren Belegstellen: **Q2 belegt**, Q3 fragt genau eine Sache, Q4 ohne Quelle verständlich und ohne Antwortverrat, Q5 Auswahloptionen plausibel und eindeutig; je Kernaussage: Q6 abgedeckt | Karten gesamt und je 1.000 Zeichen, Anteil je Kartenform, Dubletten, Anteil belegter Stellen, letzte belegte Stelle, Abbruch an der Obergrenze, gescheiterte Abschnitte |
+| Zusammenfassung | Z1 Vertrag, Z2 Länge höchstens das 1,25-Fache der gewählten Obergrenze, Z3 Darstellung wie gewählt, Z4 Stichwörter einmalig, Z5 Querbezüge zeigen auf Vorhandenes | je Abschnitt mit seinem belegten Material: **Z6 belegt und unverfälscht**, Z7 verständlich und zum Lernziel passend; je Kernaussage: Z8 abgedeckt; je eingebautem Widerspruch: Z9 gemeldet | Wörter, Abschnitte, Anteil belegten Materials |
 
 Kosten je Antwort, Latenz (Median, p90), Tokens, Vertragsablehnungen und
 Zeitüberschreitungen sind bei jedem Anfragetyp feste Messgrößen.
 
-- Bei Eintippen behält die App die Antwort der Karte. Geprüft wird deshalb
-  über M2, ob die neue Frage noch genau diese Zeichenfolge erwartet.
+- Bei Eintippen behält die App die Antwort der Karte
+  (`coreVariantService.ts`). Geprüft wird deshalb über M2, ob die neue Frage
+  noch genau diese Zeichenfolge erwartet.
 - Bei „Karten aus einer Quelle“ ist der Fall ein Auftrag über das ganze
   Dokument (alle Abschnitte mit `avoid` und Restmenge wie in der App), in
-  festen Profilen: Standard, alle Kartenformen, Kartenmenge (Weniger,
-  Normal, Mehr). Der Richter sieht je Dokument eine Stichprobe von zehn
-  Karten für Standard und für alle Kartenformen, von fünf für Weniger und
-  Mehr (dort nur Q2).
+  festen Profilen: Standard, alle Kartenformen, Weniger, Mehr. Der Richter
+  sieht je Dokument eine Stichprobe von zehn Karten für Standard und für
+  alle Kartenformen, von fünf für Weniger und Mehr (dort nur Q2).
 - Der Hauptwert ist bei Varianten und KI hilft der Anteil der Antworten, die
   alle Hauptkriterien bestehen; bei Quellenkarten der Anteil bewerteter
-  Karten mit Q2–Q4, bei der Zusammenfassung der Anteil der Abschnitte mit
-  Z6 unter gültigen Z1–Z5. Bootstrap je Fall beziehungsweise je Dokument.
+  Karten mit Q2–Q4, bei der Zusammenfassung der Anteil der Abschnitte mit Z6
+  unter gültigen Z1–Z5. Bootstrap je Fall beziehungsweise je Dokument.
 - Wo eine Regel prüfbar ist, gehört sie in die Antwortprüfung der Route und
-  nicht in den Prompt (etwa Z5).
+  nicht in den Prompt (etwa Z5); das ist dann ein Kandidat wie jeder andere.
 
 ### Richter
 
-- **Blöcke:** `table` schreibt Blöcke von höchstens 25 Einträgen oder etwa
-  12.000 Zeichen, jeder mit dem Bogen. Einträge mit gemeinsamem Material
-  (Karten eines Dokuments, Abschnitte einer Zusammenfassung) stehen in einem
-  Block, das Material darin einmal. Je Block ein frischer Subagent
-  `eval-judge`, höchstens sechs gleichzeitig. `score` nennt fehlende Blöcke;
-  nur sie werden wiederholt.
+- **Blöcke:** höchstens 25 Einträge oder etwa 12.000 Zeichen, jeder mit dem
+  Bogen. Einträge mit gemeinsamem Material (Karten eines Dokuments,
+  Abschnitte einer Zusammenfassung) stehen in einem Block, das Material
+  darin einmal. Je Block ein frischer Subagent `eval-judge`, höchstens sechs
+  gleichzeitig. Fehlende Blöcke nennt `score`; nur sie werden wiederholt.
 - **Urteil:** je Kriterium bestanden oder nicht und eine Sicherheit von 1
-  bis 3; eine Notiz bei jedem „nicht bestanden“ und bei Sicherheit unter 3.
+  bis 3 (3 eindeutig, 2 auch anders vertretbar, 1 knapp); eine Notiz bei
+  jedem „nicht bestanden“ und bei Sicherheit unter 3.
 - **Doppelurteile:** 10 % der neu bewerteten Einträge (mindestens zehn)
   stehen in zwei verschiedenen Blöcken. Der Anteil gekippter Urteile je
   Kriterium ist das Richterrauschen des Laufs.
 - **Grenzfälle:** Der Bericht zeigt je Kriterium bis zu drei Einträge mit
   Eingabe, Ausgabe, Urteil und Notiz: zuerst gekippte, dann die mit der
   geringsten Sicherheit. Die Sitzung zeigt sie dem Nutzer mit jedem Bericht.
-- **Urteilscache:** Ein Urteil gilt für Bogen, Kriterien, Eingabe und
-  Ausgabe. Dieselbe Ausgabe bekommt in jedem Lauf dasselbe Urteil; das
-  senkt den Richteraufwand späterer Runden und nimmt dem gepaarten Vergleich
-  das Richterrauschen.
-- **Fingerabdruck des Richters:** Hash über Bogen und Richterauftrag, dazu
-  das Richtermodell als Pflichtangabe von `score`. Cache und Vergleich gelten
-  nur innerhalb desselben Fingerabdrucks; ändert er sich, beginnt die Reihe
-  mit einer neuen Baseline.
+- **Urteilscache:** Ein Urteil gilt für Richterauftrag, Kriterientexte,
+  Eingabe und Ausgabe. Dieselbe Ausgabe bekommt in jedem Lauf dasselbe
+  Urteil; das senkt den Richteraufwand späterer Runden und nimmt dem
+  gepaarten Vergleich das Richterrauschen.
+- **Fingerabdruck des Richters:** Hash über Richterauftrag und
+  Kriterientexte, dazu das Richtermodell als Pflichtangabe von `score`. Ein
+  Vergleich gilt nur innerhalb desselben Fingerabdrucks; ändert er sich,
+  beginnt die Reihe mit einer neuen Baseline.
 - **Ohne Kalibrierung:** Die Seite weist den Richter als nicht kalibriert
   aus. Die vorhandenen Kalibrierbefehle bleiben unberührt und sind kein Gate
   mehr.
@@ -266,17 +251,18 @@ Zeitüberschreitungen sind bei jedem Anfragetyp feste Messgrößen.
 ### Auswertung und Entscheidung
 
 - Zwei Wiederholungen je Fall; mehr Fälle schlagen mehr Wiederholungen.
-- Eine Antwort ist: angenommen, von der Route abgelehnt (nur das
-  Vertragskriterium fällt) oder Zeitüberschreitung (zählt als nicht
-  bestanden und eigens als Zuverlässigkeit). Ratenlimit, Netz- und
-  Schlüsselfehler bleiben offen und werden mit Wartezeit wiederholt.
+- Eine Antwort ist angenommen, von der Route abgelehnt (nur das
+  Vertragskriterium fällt) oder eine Zeitüberschreitung (zählt als nicht
+  bestanden und eigens als Zuverlässigkeit). Ratenlimit und Netzfehler werden
+  mit Wartezeit wiederholt und bleiben sonst offen; Schlüssel- und
+  Budgetfehler brechen ab.
 - **Übernommen** wird am Entscheidungsteil, wenn der gepaarte Abstand zum
   Bestand über dem Rauschen liegt, kein kritisches Kriterium mehr Fehler hat
   und Kosten je Antwort und Latenz p90 höchstens das 1,2-Fache betragen.
 - **Vereinfachungen** (kürzerer Prompt, niedrigeres Reasoning) gelten als
   übernommen, wenn der Abstand nicht negativ ist und im Rauschen liegt.
-- Seltene kritische Fehler: Fehler je Antworten der Fallen; bei null
-  Fehlern steht die Obergrenze 3/n dabei.
+- Fallen: Fehler je Antworten, zur Baseline und am Wellenende über alle
+  drei Teile gezählt; bei null Fehlern steht die Obergrenze 3/n dabei.
 - **Rückhalt:** gemessen zur Baseline und am Wellenende. Liegt der Gewinn
   dort unter der Hälfte des Gewinns am Entscheidungsteil, ist die Reihe
   überangepasst: anhalten und den Entscheidungsteil vergrößern.
@@ -285,71 +271,55 @@ Zeitüberschreitungen sind bei jedem Anfragetyp feste Messgrößen.
 
 ### Hillclimb je Anfragetyp
 
-1. **Baseline** des Codes auf allen drei Teilen; Eintrag im Ledger.
+1. **Baseline** des Codes auf allen drei Teilen.
 2. **Fehleranalyse** am Trainingsteil: Fehler nach Kriterium und Kategorie,
    die drei häufigsten Muster mit Beispielen.
 3. **Drei bis fünf Kandidaten**, jeder mit genau einem Hebel gegen ein
    Muster: Satz ändern, streichen oder umstellen; Beispiel ergänzen oder
    entfernen; Werkzeugschema (Feldreihenfolge, Beschreibungen, ein Prüffeld
-   vor der Antwort); Reasoning-Stufe; Ausgabegrenze; Form der Nutzdaten;
-   eine Regel als Prüfung der Route statt als Promptsatz.
-4. **Vorauswahl** am Trainingsteil: höchstens zwei Kandidaten, die das
-   Muster beheben, ohne neue Fehler zu bringen.
+   vor der Antwort); Reasoning-Stufe; Ausgabegrenze; Form der Nutzdaten; eine
+   Regel als Prüfung der Route statt als Promptsatz.
+4. **Vorauswahl** am Trainingsteil: höchstens zwei Kandidaten, die das Muster
+   beheben, ohne neue Fehler zu bringen.
 5. **Messung** am Entscheidungsteil, Entscheidung nach der Regel oben. Jeder
-   gemessene Kandidat steht im Ledger, auch verworfen.
+   dort gemessene Kandidat steht im Ledger, auch verworfen.
 6. **Ende:** Ziel am Entscheidungsteil erreicht und Fallen fehlerfrei, oder
    drei Runden ohne Übernahme, oder acht Runden, oder Budget.
-7. **Kürzungsrunde:** Sätze einzeln streichen, die sich nicht belegen
-   lassen (etwa das Beispiel zu „Wie viele …“); Regel für Vereinfachungen.
+7. **Kürzungsrunde:** Sätze einzeln streichen, die sich nicht belegen lassen
+   (etwa das Beispiel zu „Wie viele …“); Regel für Vereinfachungen.
 8. **Rückhalt** messen.
 
 ### Strukturversuche zu „Karten aus einer Quelle“
 
 Nach den Promptrunden, auf denselben Dokumenten und den langen Quellen:
 
-- **Kartenmenge:** Weniger, Normal und Mehr ergaben am 2026-11-22 77, 76
-  und 77 Vorschläge ([Verlauf](history.md)). Ziel: Weniger höchstens 60 %
-  und Mehr mindestens 140 % von Normal, ohne Füllkarten und bei gleichem Q2.
+- **Kartenmenge:** Weniger, Normal und Mehr ergaben am 2026-11-22 77, 76 und
+  77 Vorschläge ([Verlauf](history.md)). Ziel: Weniger höchstens 60 % und
+  Mehr mindestens 140 % von Normal, ohne Füllkarten und bei gleichem Q2.
   Danach die Dichten in `AI_SOURCE_AMOUNTS` neu messen.
 - **Zerlegung:** (a) Abschnitte wie heute; (b) die ganze Quelle als Kontext
   in jeder Anfrage, Karten nur für den markierten Abschnitt; (c) erst eine
   Gliederung mit Kernaussagen und Kartenbudget je Abschnitt, dann die
   Abschnitte mit dieser Gliederung. Heute trennt (a) Zusammenhänge über
-  Abschnitte, gewichtet „zentral“ nur je Abschnitt, verbraucht die
-  Obergrenze von 100 Vorschlägen von vorn und erkennt Dopplungen nur am
-  Fragetext. Verglichen werden Q2, Q6, Verteilung über die Quelle,
+  Abschnitte, gewichtet „zentral“ nur je Abschnitt, verbraucht die Obergrenze
+  von 100 Vorschlägen von vorn und erkennt Dopplungen nur am Fragetext.
+  Verglichen werden Q2, Q6, Verteilung über die Quelle,
   abschnittsübergreifende Fragen, Dubletten, Kosten und Laufzeit. Bei Luna
   kostet eine Quelle von 400.000 Zeichen als Kontext etwa 1 Cent je Anfrage;
-  die Grenze von (b) ist die Laufzeit, nicht der Preis. Gewinnt (b) oder
-  (c), braucht das eine Ergänzung von ADR-011.
+  die Grenze von (b) ist die Laufzeit, nicht der Preis. Gewinnt (b) oder (c),
+  braucht das eine Ergänzung von ADR-011.
 - **Reste nach `source-cards-v2`:** Single Choice wird nie gewählt;
   Tabellenzeilen mit zwei Angaben ergeben Doppelfragen (Q3).
-
-### Modellvergleich
-
-- **Erster Vergleich** nach der Baseline: Prompts des Codes, alle
-  Anfragetypen, Entscheidungsteil. Er zeigt, ob ein anderes Modell besser
-  oder billiger ist, bevor Arbeit in Prompts für Luna fließt.
-- **Zweiter Vergleich** am Wellenende: beste Prompts und Baseline-Prompts
-  auf dem Rückhalt, für die drei besten Modelle des ersten Vergleichs. Er
-  zeigt, ob der Gewinn auf andere Modelle übergeht.
-- Für Luna zusätzlich die Reasoning-Stufen unter und über `low`.
-- Ein Vergleichslauf setzt nie den Bestand. Meldet OpenRouter
-  `no_provider_endpoint`, steht das Modell als „kein ZDR-Endpunkt“ in der
-  Übersicht; der Lauf bricht nicht ab.
 
 ### Übersichten
 
 `ai-eval.html` entsteht weiter aus dem Ledger:
 
-- **Bestand** je Anfragetyp, ergänzt um Richterrauschen und Fallen.
-- **Verlauf** je Anfragetyp wie heute.
-- **Modellvergleich** (neu): je Anfragetyp eine Zeile je Modell und
-  Reasoning mit Hauptwert und Intervall, kritischen Kriterien,
-  Vertragsablehnungen, Zeitüberschreitungen, Kosten je Antwort und Latenz;
-  dazu ein Diagramm Hauptwert gegen Kosten je Antwort.
+- **Bestand** je Anfragetyp, ergänzt um den Wert am Rückhalt, das
+  Richterrauschen und die Fallen.
+- **Verlauf** je Anfragetyp wie heute, am Entscheidungsteil.
 - **Bilanz** (neu): Läufe, Antworten, Kosten gesamt, bewertete Einträge und
-  Anteil aus dem Cache, je Anfragetyp Baseline, bester Stand und Ziel.
+  Anteil aus dem Cache; je Anfragetyp Baseline, bester Stand und Ziel.
 
 Der Bericht je Lauf mit Grenzfällen und Fehlerliste bleibt lokal, weil er
 Inhalte zeigt.
@@ -358,11 +328,8 @@ Inhalte zeigt.
 
 | Ort | Inhalt | In Git |
 | --- | --- | --- |
-| `fixtures/ai-eval/` | Prüfkarten, Kernaussagen, Ledger, je eingetragenem Lauf eine Ergebnisdatei ohne Inhalte (Fall, Wiederholung, Kriterien, Kosten, Latenz) | ja |
+| `fixtures/ai-eval/`, `fixtures/ai-source/` | Prüfkarten, Prüfdokumente, Materialsätze, Kernaussagen, Ledger, je eingetragenem Lauf eine Ergebnisdatei ohne Inhalte (Fall, Wiederholung, Kriterien, Kosten, Latenz) | ja |
 | `CORE_AI_EVAL_DIR` (Benutzer-Umgebungsvariable; ohne sie `output/ai-eval`) | Korpusfälle, Antworten mit Transkript, Blöcke, Urteile, Cache, Kandidaten, Berichte | nein |
-
-Der gepaarte Vergleich liest die versionierte Ergebnisdatei des Bestands und
-hängt damit an keinem Worktree.
 
 | Posten | Schätzung |
 | --- | --- |
@@ -373,42 +340,245 @@ hängt damit an keinem Worktree.
 | eine Runde Varianten oder KI hilft | etwa 0,15 USD |
 | eine Runde Karten aus einer Quelle | etwa 0,50 USD |
 | eine Runde Zusammenfassung | etwa 1 USD |
-| erster Modellvergleich | 5–6 USD |
+| ganzes Experiment | 10–25 USD; Limit des Schlüssels 30 USD |
 
-`generate` bricht ab, sobald die Kosten des Laufs `--budget` übersteigen;
-das Limit des Schlüssels bleibt die zweite Bremse. Runden zu Quellenkarten
-und Zusammenfassung laufen ohne die langen Quellen und Materialsätze; die
-kommen nur zur Baseline, in den Strukturversuchen und am Wellenende dran.
-
-Den Richter trägt die Subscription. Die Baseline aller Anfragetypen sind
-etwa 200 Blöcke, eine Runde danach 5–15. Stellschraube ist die Fallzahl je
-Anfragetyp.
+Runden zu Quellenkarten und Zusammenfassung laufen ohne die langen Quellen
+und Materialsätze; die kommen nur zur Baseline, in den Strukturversuchen und
+am Wellenende dran. Den Richter trägt die Subscription: Die Baseline aller
+Anfragetypen sind etwa 200 Blöcke, eine Runde danach 5–15. Stellschraube ist
+die Fallzahl je Anfragetyp.
 
 ## Arbeitspakete
 
-Buchstaben wie in `todo.md`. Jedes Paket ist ein Pull Request mit
-`npm run typecheck`, den Modultests unter `scripts/aiEval/`, einem
-Trockenlauf von `cases` bis `score` und `npm run check:docs`.
+### A – Grundsätze und Zugang
 
-| Paket | Änderungen | Fertig, wenn |
-| --- | --- | --- |
-| A Grundsätze und Zugang | ADR-049 neu fassen: Generator nur OpenRouter, Kandidat mit Modell, drei Teile, Richter Opus in Blöcken ohne Kalibrierung mit Grenzfällen, Übernahme über den Fingerabdruck. `operations.md`: Limit und `CORE_AI_EVAL_DIR`. `status.md` nennt alle vier Routen. | ADR-049 angenommen; Schlüssel und Ordner vom Nutzer gesetzt |
-| B Runner reparieren | `generate.ts`: Antwortklassen statt Codeliste (R1, R3), Fingerabdruck (R4), `--budget`, `--concurrency`, Warten bei 429 (R12). `definitions.ts`: M7 mit `expect` je Fall (R2), H0 und H8 (R8). `cases.ts`: drei Teile, Gruppen (R9), Neuaufteilung. `runner.test.ts`. | Trockenlauf mit nachgebildeten Ablehnungen und Zeitüberschreitung endet vollständig |
-| C Kandidaten und Richter | `cli.ts`, `generate.ts`: `--model`, `--reasoning`, `--candidate` (R11). `judge.ts`, `eval-judge.md`, Skill: Blöcke, Sicherheit, Doppelurteile, Cache, Fingerabdruck (R6, R7). `--record` ohne Kalibrierung (R13). | Zwei Kandidaten laufen nebeneinander; ein Block je Subagent; ein zweiter Lauf mit gleichen Ausgaben braucht keinen Richter |
-| D Auswertung und Übersicht | `definitions.ts`: Auftrag aus mehreren Anfragen, Messgrößen (R10). `score.ts`: Entscheidungsregel, Fallen, Zuverlässigkeit, Grenzfälle im Bericht. `ledger.ts`: Art des Laufs, Teil, Fingerabdrücke, Richterangaben, Messgrößen; Ergebnisdateien (R5). `page.ts`: Modellvergleich und Bilanz. `ai-eval.md`. | Seite zeigt beide neuen Abschnitte aus einem Testledger; Vergleich läuft ohne `output/` |
-| E Fallsätze Varianten und KI hilft | Prüfkarten nach „Fallsätze“ schreiben, Korpusfälle ziehen. | je Anfragetyp etwa 200 Fälle in drei Teilen; Stichprobe vom Nutzer gesehen |
-| F Karten aus einer Quelle | Registereintrag, Definition auf Dokumentebene über `runAiSourceCards` mit Payload-Builder und Antwortprüfung der Route, Profile, Prüfdokumente und Kernaussagen. | Trockenlauf über alle Dokumente; die Messung vom 2026-11-22 ist mit dem Runner nachgestellt |
-| G Zusammenfassung | Definition, Materialsätze, Kernaussagen, Profile. | Trockenlauf; ein echter Lauf über drei Materialsätze |
-| H Baseline und erster Modellvergleich | Messen, eintragen, `npm run docs:build`. | Ledger und Seite; **Haltepunkt:** Nutzer legt Zielwerte, Referenzmodell und Reihenfolge fest |
-| I Hillclimb, erste Welle | je Anfragetyp ein Pull Request mit Promptänderung, neuer Version und Ledger-Einträgen; Strukturversuche. | Abbruchregel je Anfragetyp erreicht |
-| J Abschluss | Rückhalt, zweiter Modellvergleich, Kostenziele nach `operations.md`, `status.md`, `history.md`, Reste nach `todo.md`, diese Datei löschen. | Seite zeigt Bestand, Verlauf, Modellvergleich und Bilanz |
+- **ADR-049** neu fassen und auf „angenommen“ setzen. Inhalt: Änderungen an
+  Prompt, Werkzeugschema, Reasoning, Ausgabegrenzen oder Modell nur mit
+  Eval-Nachweis; fester Fallsatz in drei Teilen, geschichtet und nach Gruppe
+  getrennt; erzeugt wird über Payload-Builder und Antwortprüfung der Route
+  bei OpenRouter mit ZDR, ein Kandidat darf den Payload ersetzen; bewertet
+  wird automatisch und durch Opus 5.5 in Blöcken, ohne Kalibrierung, mit
+  Richterrauschen und Grenzfällen je Bericht; Übernahme nach der
+  Entscheidungsregel und über den Fingerabdruck; Rohdaten und Korpusfälle
+  lokal, Ergebnisdateien ohne Inhalte versioniert. Verworfen bleibt ein
+  Ersatzmodell als Generator; neu verworfen ist die Handkalibrierung vorab.
+- `operations.md`, Abschnitt „OpenRouter-Schlüssel“: Limit 30 USD und
+  `CORE_AI_EVAL_DIR`, abgelegt wie der lokale Schlüssel.
+- `specs.md`: Der Satz zu ADR-049 verliert „künftig“ und „vorgeschlagen“
+  (Größengrenze von `check:docs` beachten).
+- Der Nutzer legt den Schlüssel `CoRe Eval` mit Limit an und setzt beide
+  Umgebungsvariablen; danach Terminal und Agent-App neu starten.
+- **Fertig, wenn** ADR-049 angenommen ist und `npm run ai-eval` den Schlüssel
+  findet (geprüft an `GET https://openrouter.ai/api/v1/key`, ohne den Wert
+  auszugeben).
 
-Freigaben: Ein bezahlter Lauf braucht keine Einzelfreigabe mehr, solange
-er im Budget seines Pakets bleibt (B–G 2 USD für Probeläufe, H 8 USD, I
-20 USD, J 8 USD); die Sitzung nennt vor jedem Lauf Anfragetyp, Fallzahl und
-erwartete Kosten. Ein Eintrag ins Ledger braucht keine Rückfrage, wenn die
-Gates halten. Ein geänderter Prompt erreicht `main` nur über den Pull
-Request, den der Nutzer freigibt.
+### B – Runner reparieren
+
+Idee: Jede Anfrage endet in genau einer Antwortklasse, ein Lauf kennt seinen
+Kandidaten selbst, und die Aufteilung trägt drei Teile.
+
+- **Antwortklassen (R1, R3)** in `generate.ts`: Transport und Auswertung
+  trennen, statt eine Codeliste zu pflegen. Wirft `requestOpenRouter`, ist
+  es eine Zeitüberschreitung (`provider_timeout`: Antwort mit Klasse
+  `timeout`), ein wiederholbarer Fehler (`rate_limited`,
+  `provider_unavailable`, `provider_error`: warten und wiederholen, sonst
+  offen) oder ein Abbruch (die heutige Menge `FATAL`). Wirft danach
+  `definition.extract` einen Fehler mit `code`, ist es eine abgelehnte
+  Antwort mit diesem Code; alles andere ist ein Programmfehler und bricht
+  ab. `AnswerRow.ok` wird zu einer Klasse `answer`, `rejected` oder
+  `timeout`. Kosten und Tokens auch bei abgelehnten Antworten über
+  `readBilling` aus `server/aiRoute.ts`.
+- **Eignung (R2):** Die Variantendefinitionen fangen `not_rephrasable` in
+  ihrem `extract` und liefern es als Ausgabe (`rephrasable: false`). Ein Fall
+  trägt optional `expect: { rephrasable: false }`; M7 vergleicht beides. Ist
+  eine der beiden Seiten „nicht umformulierbar“, gelten nur M1 und M7, und
+  der Richter bekommt keinen Eintrag. Die sechs vorhandenen Prüfkarten der
+  Kategorie bekommen `expect`.
+- **Fingerabdruck (R4):** wie unter „Kandidat“, in `run.json`; die
+  Fortsetzungsprüfung vergleicht ihn statt Promptversion, Modell und
+  Reasoning einzeln.
+- **Menge (R5):** `--budget <usd>` (Vorgabe 1) summiert die Kosten des
+  Laufordners und hält an; `--concurrency <n>` (Vorgabe 4); bei 429 bis zu
+  fünf Versuche mit wachsender Wartezeit.
+- **`card-help` (R6):** H0 ist der Vertrag, H8 das Format (automatisch), H1
+  nur noch die Sprache (Richter).
+- **Aufteilung (R7)** in `cases.ts`: `split` ist `train`, `dev` oder
+  `holdout`, im Verhältnis 40/30/30 je Kategorie; ein Fall trägt optional
+  `group`, und eine Gruppe bleibt zusammen. Korpusfälle bekommen die Gruppe
+  ihrer Notiz. Ein Fall trägt optional `trap: true`. Die vorhandenen
+  `split`-Werte der vier Falldateien löschen und neu ziehen. `generate
+  --split` kennt die drei Teile und `all`, Vorgabe `dev`.
+- **Tests** in `runner.test.ts` mit nachgebildetem `fetch`: Variante mit
+  `rephrasable: false` besteht M7 bei passendem `expect`; Lückentext mit
+  veränderter Lücke wird `rejected` mit `invalid_gaps`, und der Lauf endet
+  ohne offene Antwort; Zeitüberschreitung wird `timeout`; 429 und danach
+  Erfolg ergibt eine Zeile; geänderter Systemprompt bricht die Fortsetzung
+  ab; überschrittenes Budget hält an; Gruppen werden nie getrennt.
+- `ai-eval.md` und Skill an Befehle und Antwortklassen anpassen.
+- **Fertig, wenn** ein Trockenlauf mit nachgebildeten Ablehnungen und einer
+  Zeitüberschreitung von `cases` bis `score` vollständig endet.
+
+### C – Kandidaten und Richter
+
+Idee: Ein Versuch ist eine Datei, kein Commit; der Richter sieht kleine
+Blöcke und bewertet nichts zweimal.
+
+- **Kandidat (R8):** `--candidate <name>` lädt
+  `<Datenordner>/<typ>/candidates/<name>.ts` (unter Windows über
+  `pathToFileURL`) mit einer Standardfunktion `(payload, request) =>
+  payload`. Der Runner wendet sie nach `definition.buildPayload` an und
+  bildet den Fingerabdruck aus dem Ergebnis. `run.json` nennt den Kandidaten.
+  Ein Beispiel im Skill genügt als Dokumentation.
+- **Übernahme:** `score --record` bildet für „übernommen“ und für eine
+  Baseline den Fingerabdruck des Codes über dieselben Fälle und verlangt
+  Gleichheit mit dem Lauf; ein verworfener Kandidat wird ohne diese Prüfung
+  eingetragen.
+- **Blöcke (R9)** in `judge.ts`: aus `buildJudgeTable` werden Blöcke
+  `judge/block-001.json` … nach den Regeln unter „Richter“; der Schlüssel
+  bleibt außerhalb in `judge-key.json`. Urteile liegen je Block daneben
+  (`block-001.verdicts.json`); `readVerdicts` führt sie zusammen und nennt
+  fehlende Blöcke.
+- **Urteilsformat:** `results` bleibt je Kriterium ein Wahrheitswert, dazu
+  `sure` je Kriterium (1–3). `eval-judge.md` bekommt die Skala und den Block
+  als einzige Datei; die Anweisung, in Zwanzigerblöcken zu arbeiten,
+  entfällt.
+- **Doppelurteile und Cache:** `table` nimmt Einträge mit vorhandenem Urteil
+  aus den Blöcken, zieht 10 % der übrigen (mindestens zehn, mit festem
+  Startwert) als zweiten Eintrag in einen anderen Block; `score` schreibt
+  neue Urteile in den Cache `<Datenordner>/<typ>/judge-cache.json`. Schlüssel
+  des Cache: Hash über den Text von `eval-judge.md`, die Kriterien des
+  Eintrags mit ihren Texten sowie Eingabe und Ausgabe. Kontrolleinträge aus
+  Handurteilen laufen weiter mit, falls es welche gibt, und umgehen den
+  Cache.
+- **Richter festhalten (R10):** `score --judge <modell>` ist Pflicht und hat
+  keinen Vorgabewert; der Fingerabdruck des Richters steht im Bericht und
+  später im Ledger. Ein Vergleich mit einem Bestand anderen Fingerabdrucks
+  bricht ab, außer mit `--baseline`.
+- **Grenzfälle** im Bericht (`renderReport`) nach der Regel unter „Richter“.
+- **`--record` (R11)** verlangt keine Kalibrierung mehr.
+- **Skill:** nach `table` je Block ein `eval-judge` mit „Bewerte `<Pfad>`.“,
+  höchstens sechs gleichzeitig, danach `score`; Grenzfälle dem Nutzer zeigen.
+  Läufe mit Richter gehen nur in Claude Code.
+- **Tests:** Blockgrenzen und gemeinsames Material; Doppel landen in
+  verschiedenen Blöcken; ein zweiter Lauf mit gleichen Ausgaben ergibt keinen
+  Block; Rauschen aus gekippten Doppeln; Eintrag ohne Kalibrierung.
+- **Fertig, wenn** zwei Kandidaten eines Anfragetyps im Trockenlauf
+  nebeneinander ausgewertet sind und ein zweiter Lauf mit gleichen Ausgaben
+  keinen Richter braucht.
+
+### D – Auswertung und Übersicht
+
+Idee: Der Vergleich hängt an Git statt an einem Ordner, und die Entscheidung
+kennt Kosten.
+
+- **Ergebnisdateien (R12):** `score --record` schreibt
+  `fixtures/ai-eval/results/<typ>/<lauf>.json` (die heutigen `AnswerResult`
+  ohne Inhalte, mit Antwortklasse); `compare` liest den Bestand von dort.
+  Kennungen von Korpusfällen sind Hashes und verraten nichts.
+- **Entscheidung (R13)** in `score.ts` nach „Auswertung und Entscheidung“,
+  mit `--simplify` für Vereinfachungen. Fallen und Zuverlässigkeit im
+  Bericht.
+- **Ledger** (`ledger.ts`): je Lauf zusätzlich `split`, `fingerprint`,
+  `candidate`, `costTotalUsd`, `timeouts`, `traps` (Antworten, Fehler),
+  `judge` (Modell, Fingerabdruck, Einträge, Anteil aus dem Cache, Rauschen je
+  Kriterium) und `metrics`. Neue Entscheidung `holdout` für eine Messung am
+  Rückhalt: Sie setzt keinen Bestand und trägt keinen Vergleich. Die Reihe
+  aus Baseline und Runden läuft am Entscheidungsteil. `calibrations` bleibt
+  im Schema.
+- **Seite** (`page.ts`): Bestand mit Rückhalt, Richterrauschen und Fallen;
+  neuer Abschnitt „Bilanz“. `ai-eval.md` beschreibt den neuen Stand; der Satz
+  zur Bauvorleistung entfällt.
+- **Tests:** Entscheidungsregel an den Grenzen (Kosten, kritisches
+  Kriterium, Vereinfachung); Ledger-Prüfung der neuen Felder; Seite aus einem
+  Testledger (`page.test.ts`).
+- **Fertig, wenn** `score` ohne `output/` gegen einen eingetragenen Bestand
+  vergleicht und die Seite die Bilanz aus einem Testledger zeigt.
+
+### E – Fallsätze Varianten und KI hilft
+
+- Prüfkarten nach „Fallsätze“ in den vier Falldateien ergänzen, mit `expect`,
+  `trap` und `group`, wo sie gelten; Eintippen als eigene Kategorien in
+  `card-variant-basic`.
+- `npm run ai-eval -- cases <typ> --corpus <n>` zieht den Rest; die
+  Kategorien der Korpusfälle (`corpusCategory`, `clozeCorpusCategory`) vorher
+  an echten Zahlen prüfen, damit keine Kategorie den Satz dominiert.
+- **Fertig, wenn** jeder der vier Anfragetypen etwa 200 Fälle in drei Teilen
+  hat, die Fallen je kritischem Kriterium mindestens 40 Fälle zählen und der
+  Nutzer je Anfragetyp zehn Prüfkarten gesehen hat.
+
+### F – Karten aus einer Quelle messbar machen
+
+Idee: Der Fall ist der Auftrag, den die App ausführt, nicht die einzelne
+Anfrage.
+
+- **Definition verallgemeinern (R14):** Eine Definition führt ihren Fall
+  selbst aus und bekommt dafür vom Runner eine Funktion, die einen Payload
+  sendet (Frist, Wiederholung, Kosten, Latenz und Transkript bleiben im
+  Runner und summieren sich je Fall). Für die bestehenden Definitionen ist
+  das ein Aufruf mit `buildPayload` und `extract`. Dazu je Definition
+  Messgrößen (Zahl je Fall) und Richtereinträge als Liste je Fall, mit
+  optionalem gemeinsamem Material.
+- **Auftrag:** `runAiSourceCards` aus `src/aiSourceCards.ts` mit einem
+  Anfrager, der `buildSourceCardsToolPayload` sendet und mit
+  `extractGeneratedSourceCards` prüft; so gelten Abschnitte, `avoid`,
+  Restmenge und Abbruchregeln der App. Prüfen, ob `readAiSource` unter Node
+  läuft (PDF); sonst die gelesenen Einheiten des PDF als Fixture ablegen.
+- **Fälle:** Dokument mal Profil. Profile: Standard (Vorgaben aus
+  `createAiSourceCreationDraft`), alle Kartenformen, Weniger, Mehr.
+  Kernaussagen je Dokument als `fixtures/ai-source/<name>.keypoints.json`.
+- **Richtereinträge:** je gezogener Karte (fester Startwert) die Karte mit
+  den Texten ihrer Belegstellen; je Kernaussage die Aussage mit allen
+  Karten des Auftrags (Q6); beides nach Dokument gebündelt.
+- **Register:** `source-cards` in `REQUEST_TYPES` mit kritischem Q2.
+- **Fertig, wenn** der Trockenlauf über alle Dokumente endet und die Messung
+  vom 2026-11-22 (fünf Prüfdokumente, drei Stufen, nur Frage–Antwort) mit dem
+  Runner nachgestellt ist: gleiche Größenordnung, Kartenmenge als Messgröße
+  im Bericht. Budget dafür höchstens 0,50 USD.
+
+### G – Zusammenfassung messbar machen
+
+- **Fälle:** Materialsatz mal Einstellungsprofil. Materialsätze als Dateien
+  unter `fixtures/ai-eval/` mit Stapeln und Einheiten in genau der Form, die
+  `src/aiLearningSummary.ts` an die Route schickt (dessen Aufbereitung
+  wiederverwenden statt nachbauen), dazu Kernaussagen und eingebaute
+  Widersprüche.
+- **Automatisch:** Z1–Z5 nach der Tabelle; Wortzahl gegen die Obergrenzen
+  300, 750 und 1.500 aus `buildLearningSummaryPrompt`.
+- **Richtereinträge:** je Abschnitt und Unterabschnitt der Text mit dem
+  Material seiner `references`; je Kernaussage und je eingebautem Widerspruch
+  die ganze Zusammenfassung; je Zusammenfassung gebündelt.
+- **Fertig, wenn** der Trockenlauf endet und ein echter Lauf über drei
+  Materialsätze einen Bericht mit Grenzfällen ergibt.
+
+### H – Baseline
+
+- Je Anfragetyp der Code auf allen drei Teilen mit zwei Wiederholungen. Ins
+  Ledger kommen der Entscheidungsteil als Baseline und der Rückhalt als
+  Messung; der Trainingsteil bleibt lokal.
+- Je Anfragetyp dem Nutzer Bericht und Grenzfälle zeigen.
+- **Haltepunkt:** Der Nutzer legt Zielwerte und Reihenfolge der Welle fest
+  und sagt, ob der Richter passt. Anfragetypen, die ihr Ziel schon
+  erreichen, brauchen keine Runden.
+
+### I – Hillclimb, erste Welle
+
+- Reihenfolge, wenn der Haltepunkt nichts anderes ergibt: Varianten, KI
+  hilft, Karten aus einer Quelle (Runden, dann Strukturversuche),
+  Zusammenfassung.
+- Je Anfragetyp nach „Hillclimb je Anfragetyp“; ein Pull Request je
+  Anfragetyp mit Promptänderungen, neuer Promptversion, Ledger-Einträgen und
+  Ergebnisdateien. Übernommene Routenprüfungen bekommen Routentests.
+- **Fertig, wenn** je Anfragetyp die Abbruchregel erreicht und der Rückhalt
+  gemessen ist.
+
+### J – Abschluss
+
+- Kostenziele je Anfragetyp nach `operations.md`; `status.md` und
+  `history.md` nachziehen; Reste als Einzeiler nach `todo.md`.
+- `ai-eval.md` beschreibt den Ablauf vollständig; diese Datei und ihre Zeile
+  in `docs/README.md` löschen.
+- **Fertig, wenn** die Seite Bestand, Verlauf und Bilanz für alle
+  Anfragetypen zeigt.
 
 ## Zielwerte (Entwurf)
 
@@ -416,29 +586,26 @@ Festgelegt werden sie am Haltepunkt von Paket H.
 
 | Anfragetyp | Hauptwert am Rückhalt | Kritisch | Weitere |
 | --- | --- | --- | --- |
-| Varianten | ≥ 95 % | Fallen zu Richtung, Reihenfolge und Verneinung: 0 Fehler bei mindestens 120 Antworten | Kosten höchstens das 1,2-Fache der Baseline, Latenz p90 ≤ 4 s |
-| KI hilft | ≥ 90 % | H2: höchstens 2 Fehler je 100 Antworten; H6: 0 Fehler in den Fallen bei mindestens 90 Antworten | Streaming erst, wenn die Latenz im Median über 4 s liegt |
+| Varianten | ≥ 95 % | Fallen zu Richtung, Reihenfolge und Verneinung: 0 Fehler bei mindestens 80 Antworten je Kartenart | Kosten höchstens das 1,2-Fache der Baseline, Latenz p90 ≤ 4 s |
+| KI hilft | ≥ 90 % | H2: höchstens 2 Fehler je 100 Antworten; H6: 0 Fehler in den Fallen bei mindestens 80 Antworten | Streaming erst, wenn die Latenz im Median über 4 s liegt |
 | Karten aus einer Quelle | ≥ 90 % | Q2 ≥ 98 % der bewerteten Karten | Q6 ≥ 80 % bei Normal, keine Dubletten, Kartenmenge 60 % und 140 %, jede erlaubte Form kommt vor, wo das Dokument sie trägt |
 | Zusammenfassung | ≥ 95 % | Z6 ≥ 98 % der Abschnitte | Z2 ≥ 90 %, Z8 ≥ 80 %, jeder eingebaute Widerspruch gemeldet |
 
 ## Risiken
 
-- **Richter ohne Kalibrierung:** Ein systematischer Fehler bleibt
-  unsichtbar. Dagegen stehen automatische Kriterien, wo immer eine Regel
-  prüfbar ist, das Richterrauschen und die Grenzfälle je Bericht.
-- **Richter und Haiku vom selben Hersteller:** Im Modellvergleich kann Opus
-  Haiku bevorzugen. Fällt Haiku dort auf, braucht die Entscheidung einen
-  zweiten Richter.
+- **Richter ohne Kalibrierung:** Ein systematischer Fehler bleibt unsichtbar.
+  Dagegen stehen automatische Kriterien, wo immer eine Regel prüfbar ist, das
+  Richterrauschen und die Grenzfälle je Bericht.
 - **Limits der Subscription:** Die Baseline sind etwa 200 Richterblöcke. Sie
   läuft je Anfragetyp getrennt und lässt sich fortsetzen.
-- **Selbst geschriebene Fälle:** Sie sind leichter als echte Karten.
-  Deshalb die Korpusfälle und die Fallen.
-- **ZDR-Endpunkte:** Nicht jedes Vergleichsmodell hat einen; die Liste steht
-  erst nach dem ersten Vergleich fest.
+- **Selbst geschriebene Fälle** sind leichter als echte Karten. Deshalb die
+  Korpusfälle und die Fallen.
+- **Prompts gelten für Luna.** Ein späterer Modellwechsel braucht je
+  Anfragetyp mindestens eine neue Baseline.
 
 ## Bewusst nicht enthalten
 
-Handkalibrierung und Kontrolleinträge, ein zweiter Richter, ein Richter über
-die API, ein Generator über eine Subscription, die Batch-Endpunkte, eine
-Bibliothek zur automatischen Promptoptimierung, ein Lauf in CI, der
-Modellwechsel selbst und das KI-Kontingent.
+Ein gebauter Modellvergleich, Handkalibrierung und neue Kontrolleinträge, ein
+zweiter Richter, ein Richter über die API, ein Generator über eine
+Subscription, die Batch-Endpunkte von OpenRouter, eine Bibliothek zur
+automatischen Promptoptimierung, ein Lauf in CI und das KI-Kontingent.

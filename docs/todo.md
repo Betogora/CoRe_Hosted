@@ -23,38 +23,41 @@ Eval-Schlüssel, nie über ein Modell aus einer Subscription. Richter ist
 Opus 5.5 als Subagent in Claude Code, je Block ein frischer Kontext. Eine
 Handkalibrierung gibt es vorerst nicht; jeder Bericht zeigt je Kriterium
 die zwei bis drei am wenigsten eindeutigen Urteile. Das Modell ist offen:
-Gemessen wird je Kandidat aus Prompt, Modell und Reasoning, Referenz ist
-`openai/gpt-6-luna` mit `low`. Ein Modellwechsel und das KI-Kontingent sind
-nicht Teil von P5.
+Der Hillclimb läuft innerhalb des Referenzmodells `openai/gpt-6-luna`; ein
+Modellvergleich folgt später von Hand und wird nicht eigens gebaut. Ein
+Modellwechsel und das KI-Kontingent sind nicht Teil von P5.
 
 Pakete in dieser Reihenfolge; A bis G messen noch nichts.
 
 - [ ] **A – Grundsätze und Zugang:**
       [ADR-049](decisions.md#adr-049--ki-änderungen-nur-mit-eval-nachweis)
-      nach den Festlegungen neu fassen und annehmen (Kandidat mit Modell,
+      nach den Festlegungen neu fassen und annehmen (Kandidat als Datei,
       drei Teile je Fallsatz, Richter in Blöcken ohne Kalibrierung, Übernahme
       über den Fingerabdruck des Prompts). `OPENROUTER_EVAL_API_KEY` mit
-      Limit 40 USD und `CORE_AI_EVAL_DIR` als Benutzer-Umgebungsvariablen
+      Limit 30 USD und `CORE_AI_EVAL_DIR` als Benutzer-Umgebungsvariablen
       ([operations.md](operations.md#openrouter-schlüssel)).
-- [ ] **B – Runner reparieren:** Von der Route abgelehnte Antworten und
-      Zeitüberschreitungen zählen als Antwort statt offen zu bleiben; „nicht
+- [ ] **B – Runner reparieren:** Heute bleibt ein echter Lauf hängen, weil
+      `generate.ts` sieben Ablehnungscodes der Variantenroute nicht kennt und
+      solche Antworten endlos neu anfragt. Von der Route abgelehnte Antworten
+      und Zeitüberschreitungen zählen als Antwort statt offen zu bleiben; „nicht
       umformulierbar“ ist je Fall erwartbar; ein Lauf erkennt seinen Prompt
       am Fingerabdruck; Budgetabbruch, einstellbare Parallelität, Warten bei
       Ratenlimit; Aufteilung in Training, Entscheidung und Rückhalt nach
       Gruppen. Nachweis: Trockenlauf mit nachgebildeten Ablehnungen endet
       vollständig.
-- [ ] **C – Kandidaten und Richter:** Modell, Reasoning und Prompt je Lauf
-      wählbar, ohne den Code der Route zu ändern. Richtertabelle in Blöcken
+- [ ] **C – Kandidaten und Richter:** Prompt, Werkzeugschema, Ausgabegrenze
+      und Reasoning je Lauf über eine Kandidatendatei wählbar, ohne den Code
+      der Route zu ändern. Richtertabelle in Blöcken
       mit je einem frischen Subagenten, Sicherheit je Urteil, Doppelurteile
       als Richterrauschen, wiederverwendete Urteile für gleiche Ausgaben.
       `--record` ohne Kalibrierung. Nachweis: zwei Kandidaten nebeneinander;
       ein zweiter Lauf mit gleichen Ausgaben braucht keinen Richter.
-- [ ] **D – Auswertung und Übersicht:** Aufträge aus mehreren Anfragen und
-      Zahlenwerte als Messgrößen; Entscheidungsregel mit Kosten und Latenz;
+- [ ] **D – Auswertung und Übersicht:** Entscheidungsregel mit Kosten und
+      Latenz;
       Fallen und Grenzfälle im Bericht; Ergebnisdateien ohne Inhalte
       versioniert, damit der Vergleich an keinem Worktree hängt. Seite
-      [KI-Eval](ai-eval.md) mit Modellvergleich und Bilanz. Nachweis: beide
-      Abschnitte aus einem Testledger.
+      [KI-Eval](ai-eval.md) mit Rückhalt, Richterrauschen und Bilanz. Nachweis:
+      Bilanz aus einem Testledger; Vergleich ohne `output/`.
 - [ ] **E – Fallsätze Varianten und KI hilft:** je Anfragetyp etwa 200
       Fälle aus Prüfkarten und Korpus (`cases --corpus`), darunter
       Eintippen, Ketten mit vorhandenen Varianten, Lückentexte mit fast
@@ -62,16 +65,17 @@ Pakete in dieser Reihenfolge; A bis G messen noch nichts.
       Kriterium. Nachweis: Fallzahlen je Teil und Kategorie; Stichprobe vom
       Nutzer gesehen.
 - [ ] **F – Karten aus einer Quelle messbar machen:** Registereintrag und
-      Definition je Dokument über den ganzen Auftrag, etwa 24 Dokumente mit
+      Definition je Dokument über den ganzen Auftrag (mehrere Anfragen,
+      Zahlenwerte als Messgrößen), etwa 24 Dokumente mit
       Kernaussagen, darunter lange Quellen. Nachweis: Die Messung vom
       2026-11-22 ([Verlauf](history.md)) ist mit dem Runner nachgestellt.
 - [ ] **G – Zusammenfassung messbar machen:** Definition, etwa 24
       Materialsätze mit Kernaussagen und Einstellungsprofilen. Nachweis: ein
       echter Lauf über drei Materialsätze.
-- [ ] **H – Baseline und erster Modellvergleich:** alle Anfragetypen mit
-      den Prompts des Codes; Vergleichsmodelle nach dem Versuchsplan.
-      Nachweis: Ledger und Seite. Haltepunkt: Der Nutzer legt Zielwerte,
-      Referenzmodell und Reihenfolge der Welle fest; die Zielwerte im
+- [ ] **H – Baseline:** alle Anfragetypen mit den Prompts des Codes auf
+      allen drei Teilen. Nachweis: Ledger und Seite. Haltepunkt: Der Nutzer
+      legt Zielwerte und Reihenfolge der Welle fest und sagt, ob der Richter
+      passt; die Zielwerte im
       Versuchsplan sind bis dahin ein Entwurf.
 - [ ] **I – Hillclimb, erste Welle:** Varianten, KI hilft, Karten aus einer
       Quelle, Zusammenfassung. Je Runde drei bis fünf Kandidaten aus den
@@ -84,9 +88,9 @@ Pakete in dieser Reihenfolge; A bis G messen noch nichts.
       wird nie gewählt, Tabellenzeilen ergeben Doppelfragen, und die
       Zerlegung der Quelle in drei Varianten vergleichen. Nachweis: je
       Anfragetyp ein Pull Request mit Promptversion und Ledger-Einträgen.
-- [ ] **J – Abschluss:** Rückhalt messen, zweiter Modellvergleich,
-      Kostenziele je Anfragetyp nach `operations.md`, Versuchsplan auflösen.
-      Nachweis: Die Seite zeigt Bestand, Verlauf, Modellvergleich und Bilanz.
+- [ ] **J – Abschluss:** Kostenziele je Anfragetyp nach `operations.md`,
+      Versuchsplan auflösen. Nachweis: Die Seite zeigt Bestand, Verlauf und
+      Bilanz für alle Anfragetypen.
 
 ## Offene Nachweise
 
@@ -150,6 +154,8 @@ neuen Code.
   `zipReader.ts` prüfen; Beleg je Folie oder Abschnitt).
 - Bilder als Quelle für Karten aus einer Quelle (teurer, eigener Hillclimb); braucht eine Ergänzung
   von ADR-011 (Agenda 3.3, 3.5).
+- Modellvergleich von Hand über eine Kandidatendatei, auf denselben
+  Fallsätzen, sobald die erste Welle von P5 steht.
 - KI-Kontingente je Nutzer im Zusammenspiel mit Bezahlstufen bzw.
   Abonnements (Umfang je Stufe, Credits, Abrechnung nach Kosten).
 
