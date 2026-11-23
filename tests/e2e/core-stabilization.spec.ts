@@ -50,7 +50,8 @@ function mainMenu(page: Page) {
 }
 
 async function animationsFinished(locator: Locator) {
-  await locator.evaluate((element: HTMLElement) => Promise.all(element.getAnimations({ subtree: true }).map((animation) => animation.finished)));
+  // Chromium can leave a finished CSS transition's `finished` promise unresolved, so poll the play state instead.
+  await expect.poll(() => locator.evaluate((element: HTMLElement) => element.getAnimations({ subtree: true }).some((animation) => animation.playState === "running"))).toBe(false);
 }
 
 async function hasVisibleOutline(locator: Locator) {
