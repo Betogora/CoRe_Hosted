@@ -27,9 +27,8 @@ async function openEditor(page: Page, dark = false) {
 }
 
 async function positions(page: Page) {
-  await page.locator(".dashboard-widget-grid").evaluate(async (grid) => {
-    await Promise.all(grid.getAnimations({ subtree: true }).map((animation) => animation.finished.catch(() => undefined)));
-  });
+  // Chromium can leave a finished CSS transition's `finished` promise unresolved, so poll the play state instead.
+  await expect.poll(() => page.locator(".dashboard-widget-grid").evaluate((grid) => grid.getAnimations({ subtree: true }).some((animation) => animation.playState === "running"))).toBe(false);
   const grip = page.getByRole("button", { name: "Lerntimer verschieben", exact: true });
   await grip.scrollIntoViewIfNeeded();
   await grip.hover();
