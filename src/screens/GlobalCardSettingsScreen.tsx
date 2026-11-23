@@ -1,9 +1,9 @@
 import React from "react";
 import { Layers } from "lucide-react";
-import type { GlobalCardSettingsScreenProps, GlobalLearningSettingsSaveScope, SettingsSaveOutcome } from "../appScreenProps.ts";
+import type { GlobalLearningSettingsSaveScope, NavigateToView, SettingsDraftGuard, SettingsSaveOutcome } from "../appScreenProps.ts";
 import { normalizeLearnAheadMinutes, normalizeLeechThreshold } from "../deckSettings.ts";
 import { EASY_DAY_KEYS, normalizeEasyDays } from "../easyDays.ts";
-import type { EasyDayLevel, EasyDays } from "../coreTypes.ts";
+import type { Deck, EasyDayLevel, EasyDays, GlobalSchedulerPreferences, LearningProfileTemplate, Profile } from "../coreTypes.ts";
 import { normalizeDayStartHour } from "../learningDay.ts";
 import { formatSimulationDuration } from "../simulationClock.ts";
 import { createDeckLearningSettingsDraft, createGlobalCardSettingsDraft, settingsDraftsEqual, type GlobalCardSettingsDraft } from "../settingsDraft.ts";
@@ -18,6 +18,25 @@ import { CoreRadio } from "../ui/formControls.tsx";
 import { LearningSettingsPanel } from "../ui/LearningSettingsPanel.tsx";
 import { PomodoroTimerControl } from "../ui/pomodoroTimerUi.tsx";
 import { DeckSelect } from "../ui/selectUi.tsx";
+import type { LearningSettingsSection } from "../appNavigation.ts";
+import type { PomodoroTimer } from "../pomodoroTimer.ts";
+
+export interface GlobalCardSettingsScreenProps {
+  section: LearningSettingsSection;
+  decks: Deck[];
+  onOpenDeckSettings: (deckId: string) => unknown;
+  timeZone: string;
+  globalSchedulerPreferences: GlobalSchedulerPreferences;
+  flagNames: readonly string[];
+  learningProfiles: LearningProfileTemplate[];
+  onSaveLearningProfiles: (profiles: LearningProfileTemplate[]) => unknown;
+  onSaveSettings: (draft: GlobalCardSettingsDraft, scope: GlobalLearningSettingsSaveScope) => Profile | null | Promise<Profile | null>;
+  onDraftStateChange: (guard: SettingsDraftGuard | null) => void;
+  onNavigate: NavigateToView;
+  simulationOffsetMinutes: number;
+  pomodoroTimer: PomodoroTimer | null;
+  onStartPomodoro: (minutes: number) => void;
+}
 
 const sectionIds = {
   planning: "card-settings-planning",

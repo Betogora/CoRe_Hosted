@@ -5,8 +5,8 @@ import path from "node:path";
 import test from "node:test";
 import { SPLITS, assignSplits, loadCases, sampleCorpus, seededRandom, type DraftCase, type EvalCase } from "./cases.ts";
 import { corpusCategory, definitionFor, numberTokens, rephrased, wordDistance } from "./definitions.ts";
-import { generate, mockCompletion, readAnswers, type AnswerRow, type Outcome } from "./generate.ts";
-import { answerRef, buildJudgeTable, labelRef, readLabels, readVerdicts, type Label, type Verdicts } from "./judge.ts";
+import { generate, mockCompletion, payloadBuilder, payloadFingerprint, readAnswers, type AnswerRow, type Outcome } from "./generate.ts";
+import { answerRef, borderlineCases, buildJudgeTable, labelRef, readLabels, readVerdicts, type JudgeBlock, type Label, type Verdicts } from "./judge.ts";
 import { REQUEST_TYPES } from "./ledger.ts";
 import { agreement, compare, decide, evaluateAnswers, summarize, type AnswerResult } from "./score.ts";
 
@@ -19,7 +19,7 @@ const cases: EvalCase[] = [
   { id: "b", category: "zahlen-formeln", split: "dev", request: card("In welchem Jahr begann die Französische Revolution?", "1789") },
 ];
 const row = (caseId: string, repetition: number, output: unknown, outcome: Outcome = "answer"): AnswerRow => ({ caseId, repetition, outcome, error: outcome === "answer" ? null : outcome === "refused" ? "not_rephrasable" : "invalid_variant", output, model: "mock", totalTokens: 120, costUsd: 0.001, latencyMs: 1000 + repetition * 500, transcript: { request: null, response: null } });
-const result = (caseId: string, repetition: number, main: boolean, criteria: Record<string, boolean> = { M1: true, M2: main }): AnswerResult => ({ caseId, repetition, category: "definitionen", outcome: "answer", criteria, main, costUsd: 0.001, latencyMs: 1000, totalTokens: 100, model: "mock" });
+const result = (caseId: string, repetition: number, main: boolean, criteria: Record<string, boolean> = { M1: true, M2: main }): AnswerResult => ({ caseId, repetition, category: "definitionen", trap: false, outcome: "answer", criteria, main, costUsd: 0.001, latencyMs: 1000, totalTokens: 100, model: "mock" });
 const completion = (toolArguments: unknown, cost = 0) => new Response(JSON.stringify({ ...mockCompletion("create_card_variant", toolArguments), usage: { total_tokens: 120, cost } }), { status: 200 });
 
 test("Versionierte Prüfkarten und Handurteile bestehen den Anfragevertrag und sind aufgeteilt", () => {
@@ -136,20 +136,72 @@ test("Erzeugung: Verwerfen der Route und eine Antwort ohne JSON zählen als Antw
   }
 });
 
+const verdictFor = (block: JudgeBlock, results: (entry: string, id: string) => boolean, sure = () => 3) => ({
+  verdicts: block.entries.map((entry) => ({ entry: entry.entry, results: Object.fromEntries(entry.criteria.map((id) => [id, results(entry.entry, id)])), sure: Object.fromEntries(entry.criteria.map((id) => [id, sure()])) })),
+});
+
 test("Richtertabelle: ohne Dubletten und ohne Herkunft; unvollständige Urteile brechen ab", () => {
   const same = { front: "Wie nennt man die Diffusion von Wasser?", back: "Diffusion von Wasser" };
   const items = [0, 1].map((repetition) => ({ ref: answerRef("a", repetition), request: cases[0].request, output: same }));
   const control = { ref: labelRef("kontrolle-1"), request: cases[1].request, output: { front: "Wann endete die Französische Revolution?", back: "1789" } };
-  const { table, key } = buildJudgeTable(variant, [...items, control], seededRandom(1));
-  assert.equal(table.entries.length, 2);
-  assert.doesNotMatch(JSON.stringify(table), /answer:|label:|kontrolle/);
-  assert.deepEqual(table.criteria.map((criterion) => criterion.id), ["M2", "M6"]);
-  assert.deepEqual(Object.values(key).map((refs) => refs.length).sort(), [1, 2]);
-  const complete = { verdicts: table.entries.map((entry) => ({ entry: entry.entry, results: { M2: true, M6: false } })) };
-  const verdicts = readVerdicts(complete, table, key);
-  assert.deepEqual(verdicts.get(answerRef("a", 1)), { M2: true, M6: false });
-  assert.throws(() => readVerdicts({ verdicts: complete.verdicts.slice(1) }, table, key), /unvollständig \(1 Einträge\)/);
-  assert.throws(() => readVerdicts({ verdicts: [{ ...complete.verdicts[0], results: { M2: true } }, complete.verdicts[1]] }, table, key), /braucht genau M2, M6/);
+  const { blocks, key } = buildJudgeTable(variant, [...items, control], seededRandom(1), { instructions: "Auftrag", requests: [] });
+  assert.equal(blocks.length, 1);
+  assert.equal(blocks[0].entries.length, 2);
+  assert.doesNotMatch(JSON.stringify(blocks), /answer:|label:|kontrolle/);
+  assert.deepEqual(blocks[0].criteria.map((criterion) => criterion.id), ["M2", "M6"]);
+  assert.deepEqual(readVerdicts(blocks, [verdictFor(blocks[0], () => true)], key).judged, 1, "Kontrolleinträge zählen nicht als bewertete Einträge");
+  assert.deepEqual(Object.values(key.entries).map((refs) => refs.length).sort(), [1, 2]);
+  assert.equal(Object.keys(key.hashes).length, 1, "Kontrolleinträge kommen nie in den Urteilscache");
+  const complete = verdictFor(blocks[0], () => true);
+  assert.deepEqual(readVerdicts(blocks, [complete], key).verdicts.get(answerRef("a", 1)), { M2: true, M6: true });
+  assert.throws(() => readVerdicts(blocks, [null], key), /Urteile fehlen für Block 1/);
+  assert.throws(() => readVerdicts(blocks, [{ verdicts: complete.verdicts.slice(1) }], key), /unvollständig \(1 Einträge\)/);
+  assert.throws(() => readVerdicts(blocks, [{ verdicts: complete.verdicts.map((verdict) => ({ ...verdict, sure: { M2: 3 } })) }], key), /braucht genau M2, M6/);
+});
+
+test("Richterblöcke: höchstens 25 Einträge, Doppel in einem anderen Block, Rauschen aus gekippten Doppeln, Urteilscache für gleiche Ausgaben", () => {
+  const items = Array.from({ length: 60 }, (_, index) => ({ ref: answerRef(`c${index}`, 0), request: cases[0].request, output: { front: `Variante Nummer ${index}?`, back: "Diffusion von Wasser" } }));
+  const { blocks, key } = buildJudgeTable(variant, items, seededRandom(2), { instructions: "Auftrag", requests: [] });
+  assert.equal(blocks.length, 3);
+  assert.equal(blocks.reduce((sum, block) => sum + block.entries.length, 0), 70);
+  assert.ok(blocks.every((block) => block.entries.filter((entry) => !key.duplicates[entry.entry]).length <= 25));
+  assert.equal(Object.keys(key.duplicates).length, 10);
+  const blockOf = (entry: string) => blocks.findIndex((block) => block.entries.some((candidate) => candidate.entry === entry));
+  for (const [duplicate, original] of Object.entries(key.duplicates)) assert.notEqual(blockOf(duplicate), blockOf(original));
+  const flippedOn = Object.keys(key.duplicates)[0];
+  const reading = readVerdicts(blocks, blocks.map((block) => verdictFor(block, (entry, id) => !(entry === flippedOn && id === "M2"), () => 2)), key);
+  assert.deepEqual(reading.noise, { M2: 0.1, M6: 0 });
+  assert.deepEqual([reading.judged, reading.cached, Object.keys(reading.fresh).length], [60, 0, 60]);
+  const borderline = borderlineCases(blocks, reading);
+  assert.equal(borderline.find(({ id }) => id === "M2")!.cases[0].entry, key.duplicates[flippedOn], "gekippte Urteile stehen vorn");
+  assert.ok(borderline.every(({ cases: picked }) => picked.length === 3));
+  assert.ok(borderline.every(({ cases: picked }) => picked.every((entry) => !key.duplicates[entry.entry])), "Doppel erscheinen nicht als eigener Grenzfall");
+
+  const again = buildJudgeTable(variant, [...items, { ref: answerRef("neu", 0), request: cases[0].request, output: { front: "Ganz neue Variante?", back: "Diffusion von Wasser" } }], seededRandom(3), { instructions: "Auftrag", requests: [], cache: reading.fresh });
+  assert.deepEqual([again.blocks.length, again.blocks[0].entries.length, Object.keys(again.key.cached).length], [1, 1, 60]);
+  const cachedReading = readVerdicts(again.blocks, [verdictFor(again.blocks[0], () => false)], again.key, reading.fresh);
+  assert.deepEqual([cachedReading.verdicts.get(answerRef("c5", 0)), cachedReading.verdicts.get(answerRef("neu", 0))], [{ M2: true, M6: true }, { M2: false, M6: false }]);
+  assert.equal(buildJudgeTable(variant, items, seededRandom(3), { instructions: "Geänderter Auftrag", requests: [], cache: reading.fresh }).blocks.length, 3, "ein anderer Richterauftrag nutzt den Cache nicht");
+  assert.notEqual(again.key.judge, buildJudgeTable(variant, items, seededRandom(3), { instructions: "Geänderter Auftrag", requests: [] }).key.judge);
+});
+
+test("Fingerabdruck des Richters hängt am Fallsatz, nicht an den Antworten eines Laufs", () => {
+  const explain = help.parseRequest({ card: { prompt: "Was ist ATP?", answer: "Energieträger" }, mode: "explain" });
+  const example = help.parseRequest({ card: { prompt: "Was ist ATP?", answer: "Energieträger" }, mode: "example" });
+  const answer = { ref: answerRef("x", 0), request: explain, output: "ATP speichert Energie." };
+  const fingerprint = (items: typeof answer[]) => buildJudgeTable(help, items, seededRandom(1), { instructions: "Auftrag", requests: [explain, example] }).key.judge;
+  assert.equal(fingerprint([answer]), fingerprint([]), "fehlt H4, weil alle Beispiel-Antworten verworfen wurden, bleibt der Fingerabdruck gleich");
+});
+
+test("Fingerabdruck des Payloads: unabhängig von der Feldreihenfolge, empfindlich für Nutzernachricht und Kandidat", () => {
+  const code = payloadFingerprint(payloadBuilder(variant), cases);
+  const reordered = { name: "umgestellt", transform: (payload: unknown) => Object.fromEntries(Object.entries(payload as object).reverse()) };
+  assert.equal(payloadFingerprint(payloadBuilder(variant, reordered), cases), code);
+  const userMessage = { name: "nutzer", transform: (payload: unknown) => {
+    const value = payload as { messages: { role: string; content: string }[] };
+    return { ...value, messages: value.messages.map((message) => message.role === "user" ? { ...message, content: `Bitte genau: ${message.content}` } : message) };
+  } };
+  assert.notEqual(payloadFingerprint(payloadBuilder(variant, userMessage), cases), code);
 });
 
 test("Auswertung: Hauptwert verlangt Vertrag, automatische Kriterien und Richterurteil; Kriterien zählen nur gültige Antworten", () => {
@@ -181,6 +233,8 @@ test("Auswertung: Eine Ablehnung besteht nur, wenn der Fall sie erwartet, und ge
     ["answer", { M1: true, M7: true, M3: true, M4: true, M5: true, M2: true, M6: true }, true],
   ]);
   assert.deepEqual(summarize(results, seededRandom(1)).outcomes, { answer: 2, refused: 2, rejected: 0, timeout: 0 });
+  const trapped = evaluateAnswers(variant, [{ ...cases[0], trap: true }], 2, [row("a", 0, good), row("a", 1, good)], new Map([[answerRef("a", 0), { M2: false, M6: true }], [answerRef("a", 1), { M2: true, M6: true }]]));
+  assert.deepEqual(summarize(trapped, seededRandom(1), ["M2"]).traps, { answers: 2, errors: 1 });
 });
 
 test("Vergleich: übernommen nur über dem Rauschen und ohne schlechteres kritisches Kriterium", () => {
@@ -192,12 +246,18 @@ test("Vergleich: übernommen nur über dem Rauschen und ohne schlechteres kritis
   assert.deepEqual([strong.delta, strong.gained, strong.lost, strong.cases], [0.35, 14, 0, 40]);
   assert.ok(strong.noise > 0 && strong.noise < strong.delta);
   const summaries = [better, reference, noisy].map((entries) => summarize(entries, seededRandom(5)));
-  assert.equal(decide(variantType, summaries[0], summaries[1], strong), "accepted");
+  assert.deepEqual(decide(variantType, summaries[0], summaries[1], strong), { decision: "accepted", failed: [] });
   const weak = compare(noisy, reference, seededRandom(5));
   assert.deepEqual([weak.delta, weak.gained, weak.lost], [0, 1, 1]);
-  assert.equal(decide(variantType, summaries[2], summaries[1], weak), "rejected");
+  assert.deepEqual(decide(variantType, summaries[2], summaries[1], weak).failed, ["Abstand nicht über dem Rauschen"]);
+  assert.equal(decide(variantType, summaries[2], summaries[1], weak, true).decision, "accepted", "eine Vereinfachung darf im Rauschen liegen");
+  const saturated = compare(reference, reference, seededRandom(5));
+  assert.deepEqual([saturated.delta, saturated.noise], [0, 0]);
+  assert.equal(decide(variantType, summaries[1], summaries[1], saturated, true).decision, "accepted", "gleich gut gilt als nicht schlechter");
   const worseCritical = { ...summaries[0], criteria: { ...summaries[0].criteria, M2: 0.1 } };
-  assert.equal(decide(variantType, worseCritical, summaries[1], strong), "rejected");
+  assert.deepEqual(decide(variantType, worseCritical, summaries[1], strong).failed, ["kritisches Kriterium M2 schlechter"]);
+  const slower = { ...summaries[0], costUsd: summaries[1].costUsd * 1.3, latencyP90Ms: summaries[1].latencyP90Ms * 1.21 };
+  assert.deepEqual(decide(variantType, slower, summaries[1], strong).failed, ["Kosten über dem 1,2-Fachen", "Latenz p90 über dem 1,2-Fachen"]);
   assert.throws(() => compare(better, [result("fremd", 0, true)], seededRandom(5)), /keinen gemeinsamen Fall/);
 });
 

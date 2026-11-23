@@ -7,7 +7,7 @@ import { useWorkspaceStore, useWorkspaceValue } from "../useWorkspaceStore.ts";
 import { DeckSettingsScreen } from "./DeckSettingsScreen.tsx";
 
 export function DeckSettingsScreenWiring() {
-  const { navigation, settings, clock, deckCommands, variantBatch, repository: workspaceRepository, hydration: workspaceHydrationService } = useAppServices();
+  const { navigation, settings, clock, deckCommands, variantBatch, hydration: workspaceHydrationService } = useAppServices();
   const workspaceStore = useWorkspaceStore();
   const decks = useWorkspaceValue((snapshot) => snapshot.state?.decks);
   const { deckSettings, focusedDeckId, getCurrentRoute, navigateToRoute, navigateToView } = navigation;
@@ -17,11 +17,11 @@ export function DeckSettingsScreenWiring() {
   React.useEffect(() => {
     if (!deckId) return undefined;
     let active = true;
-    void workspaceRepository.getDeckBodyResidencySummary(deckId).then((summary) => {
+    void deckCommands.getDeckBodyCache(deckId).then((summary) => {
       if (active) setFocusedDeckBodyCache(summary);
     });
     return () => { active = false; };
-  }, [deckId, offlineDeck, workspaceRepository]);
+  }, [deckCommands, deckId, offlineDeck]);
   const [cardsWithoutVariant, setCardsWithoutVariant] = React.useState<number | null>(null);
   const { countWithoutVariant, running: variantsRunning } = variantBatch;
   React.useEffect(() => {
@@ -65,18 +65,8 @@ export function DeckSettingsScreenWiring() {
       variantGeneration={workspaceHydrationService ? { start: (deck, mode) => variantBatch.start(deck, { mode }), running: variantBatch.running, cardsWithoutVariant } : undefined}
       offlineDeck={offlineDeck}
       bodyCache={focusedDeckBodyCache}
-      onDownloadDeck={workspaceHydrationService ? async (deckId) => {
-        const refreshDownload = async () => {
-          const record = await workspaceRepository.getOfflineDeck(deckId);
-          if (record) workspaceStore.set((current) => ({ offlineDecks: { ...current.offlineDecks, [deckId]: record } }));
-        };
-        await workspaceHydrationService.downloadDeck(deckId, () => { void refreshDownload(); });
-        await refreshDownload();
-      } : undefined}
-      onRemoveDeckDownload={workspaceHydrationService ? async (deckId) => {
-        await workspaceHydrationService.removeDeckDownload(deckId);
-        workspaceStore.set((current) => ({ offlineDecks: Object.fromEntries(Object.entries(current.offlineDecks).filter(([id]) => id !== deckId)) }));
-      } : undefined}
+      onDownloadDeck={workspaceHydrationService ? deckCommands.downloadDeck : undefined}
+      onRemoveDeckDownload={workspaceHydrationService ? deckCommands.removeDeckDownload : undefined}
       onClose={settings.closeSettings}
       footer={settings.settingsDraftOpen ? (
         <SettingsSaveBar

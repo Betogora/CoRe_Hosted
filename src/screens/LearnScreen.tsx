@@ -1,6 +1,5 @@
 import React from "react";
 import { ChevronRight, FolderPlus, Layers, Plus } from "lucide-react";
-import type { LearnScreenProps } from "../appScreenProps.ts";
 import { createDeckLibraryModel } from "../libraryModel.ts";
 import { useWorkspaceValue } from "../useWorkspaceStore.ts";
 import { ActionButton } from "../ui/actionUi.tsx";
@@ -10,6 +9,30 @@ import { useStoredDeckTreeView } from "../ui/deckTreeView.ts";
 import { useSuccessToast } from "../ui/feedbackUi.tsx";
 import { DeckSelect } from "../ui/selectUi.tsx";
 import { LearningAreaHeader } from "./LearningAreaHeader.tsx";
+import type { Deck } from "../coreTypes.ts";
+import type { DeckExpansionSurface } from "../uiPreferences.ts";
+import type { CreateDeckInput, DeckTreeScreenProps } from "../appScreenProps.ts";
+import type { DeckMutationResult } from "../coreWorkspace.ts";
+
+export interface LearnScreenProps extends DeckTreeScreenProps {
+  decks: Deck[];
+  now: string;
+  dayStartHour?: number;
+  learnAheadMinutes?: number;
+  timeZone?: string;
+  onCreateDeck: (input: CreateDeckInput) => Deck | null;
+  focusedDeckId: string | null;
+  initialParentDeckId: string;
+  onDeckCreationHandled: () => void;
+  onFocusDeck: (deckId: string | null) => unknown;
+  onOpenCardCreation: () => unknown;
+  onOpenDecks: (deckId?: string | null) => unknown;
+  onOpenDeckContent: (deckId: string) => unknown;
+  onOpenCardSettings: () => unknown;
+  onMoveDeck: (deckId: string, parentDeckId: string | null) => DeckMutationResult | null;
+  collapsedDeckIds: string[];
+  onSetDeckExpanded: (surface: DeckExpansionSurface, deckId: string, expanded: boolean) => unknown;
+}
 
 function createDefaultDeckDraft(parentDeckId = "") {
   return {

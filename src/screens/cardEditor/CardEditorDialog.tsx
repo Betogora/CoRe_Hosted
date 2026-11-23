@@ -68,7 +68,6 @@ export interface CardEditorDialogProps {
   onSetStudyState: (cardId: string, patch: CardStudyStatePatch) => Promise<NoteGraph | null>;
   onDuplicateNote: () => Promise<NoteGraph | null>;
   onDeleteNote: () => void;
-  onRescheduleCards: DecksScreenProps["onRescheduleCards"];
   onGenerateVariant: (cardId: string) => Promise<unknown>;
   onUpdateVariant: DecksScreenProps["onUpdateVariant"];
   onSelectCard: (deckId: string, cardId: string) => void;
@@ -208,8 +207,6 @@ export function CardEditorDialog(props: CardEditorDialogProps) {
             pendingCards={pendingCards}
             onSetFlag={setFlag}
             onSetMarked={setMarked}
-            onSetStudyState={onSetStudyState}
-            onRescheduleCards={props.onRescheduleCards}
             onSelectCard={props.onSelectCard}
             onCardMoved={props.onCardMoved}
             deckName={props.deckName}
@@ -246,7 +243,7 @@ export function CardEditorDialog(props: CardEditorDialogProps) {
         ) : null)}
         {panel("study", tab === "study" ? (
           <React.Suspense fallback={loading}>
-            <CardEditorStudyTab card={card} now={props.now} dayStartHour={props.dayStartHour} timeZone={props.timeZone} services={services} />
+            <CardEditorStudyTab graph={graph} card={card} now={props.now} dayStartHour={props.dayStartHour} timeZone={props.timeZone} services={services} />
           </React.Suspense>
         ) : null)}
       </CoreTabPanel>

@@ -2,7 +2,7 @@ import * as Popover from "@radix-ui/react-popover";
 import React from "react";
 import { CalendarRange, Download, FolderPlus, Layers, RefreshCw, Settings, Sparkles, Trash2 } from "lucide-react";
 import type { DeckSettingsSection } from "../appNavigation.ts";
-import type { DeckSettingsSaveScope, DeckSettingsScreenProps, SettingsSaveOutcome } from "../appScreenProps.ts";
+import type { DeckSettingsSaveScope, SettingsDraftGuard, SettingsSaveOutcome } from "../appScreenProps.ts";
 import { CARD_VARIANT_BATCH_LIMIT } from "../cardVariantBatch.ts";
 import { createDefaultDeckSettings, normalizeDeckAppearance } from "../coreModel.ts";
 import { createDeckLibraryModel } from "../libraryModel.ts";
@@ -16,6 +16,35 @@ import { ActionDialog, CoreModeControl, CoreTag, EmptyState } from "../ui/coreUi
 import { SettingsDialogFrame } from "./SettingsDialogFrame.tsx";
 import { DeckSelect } from "../ui/selectUi.tsx";
 import { createDeckLearningSettingsDraft, createDeckSettingsDraft, normalizeDeckSettingsDraft, settingsDraftsEqual, type DeckLearningSettingsDraft, type DeckSettingsDraft } from "../settingsDraft.ts";
+import type { Deck, LearningProfileTemplate } from "../coreTypes.ts";
+import type { OfflineDeckRecord } from "../workspaceReplica.ts";
+import type { DeckMutationResult } from "../coreWorkspace.ts";
+
+export interface DeckSettingsScreenProps {
+  section: DeckSettingsSection;
+  onSelectSection: (section: DeckSettingsSection) => unknown;
+  deck: Deck | null;
+  decks: Deck[];
+  learningProfiles: LearningProfileTemplate[];
+  onSaveSettings: (deckId: string, draft: DeckSettingsDraft, scope: DeckSettingsSaveScope, baseline: DeckSettingsDraft) => DeckMutationResult | null;
+  onApplyLearningProfile: (deckId: string, settings: DeckLearningSettingsDraft) => Deck | null;
+  onSaveLearningProfiles: (profiles: LearningProfileTemplate[]) => unknown;
+  onDraftStateChange: (guard: SettingsDraftGuard | null) => void;
+  onRequestContextAction: (action: () => void) => void;
+  onCreateSubdeck: (parentDeckId: string) => unknown;
+  onDeleteDeck: (deckId: string) => Promise<{ deletedDeckIds: string[]; nextSelectedDeckId: string | null } | null>;
+  onSelectDeck: (deckId: string) => unknown;
+  /** Absent where the general settings cannot open, as inside a study session. */
+  onOpenGlobalSettings?: () => unknown;
+  offlineDeck?: OfflineDeckRecord | null;
+  bodyCache?: { total: number; cached: number; downloaded: number } | null;
+  onDownloadDeck?: (deckId: string) => Promise<unknown>;
+  onRemoveDeckDownload?: (deckId: string) => Promise<unknown>;
+  /** `cardsWithoutVariant` is null while unknown; absent while generation is unavailable. */
+  variantGeneration?: { start: (deck: Deck, mode: "missing" | "refresh") => unknown; running: boolean; cardsWithoutVariant: number | null };
+  onClose: () => unknown;
+  footer?: React.ReactNode;
+}
 
 type DeckSettingsArea = Exclude<DeckSettingsSection, "start" | "neue-karten">;
 

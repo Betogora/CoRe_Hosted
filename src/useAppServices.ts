@@ -4,10 +4,8 @@ import type { CardCommands } from "./cardCommands.ts";
 import type { CoreMode } from "./coreTypes.ts";
 import type { DeckCommands } from "./deckCommands.ts";
 import type { ImportCommands } from "./importCommands.ts";
-import type { IndexedDbCoreRepository } from "./indexedDbCoreRepository.ts";
 import type { AccountMediaStore } from "./mediaStore.ts";
 import type { StudyPreparationCommands } from "./studyPreparation.ts";
-import type { createSupabaseBrowserClient } from "./supabaseClient.ts";
 import type { useCardVariantBatch } from "./useCardVariantBatch.ts";
 import type { useImportSession } from "./useImportSession.ts";
 import type { useLearningClock } from "./useLearningClock.ts";
@@ -36,9 +34,7 @@ export interface AppServices {
   variantBatch: ReturnType<typeof useCardVariantBatch>;
   requestDeckCoreMode: (deckId: string, coreMode: CoreMode) => unknown;
   signOut: () => Promise<void>;
-  repository: IndexedDbCoreRepository;
   hydration: WorkspaceHydrationService | null;
-  cloud: ReturnType<typeof createSupabaseBrowserClient> | null;
   mediaStore: AccountMediaStore | null;
 }
 

@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { moveCardToDeck } from "../coreModel.ts";
+import { moveCardToDeck } from "./cards.ts";
 import { resetCardStudy, restoreCardStudy, setCardFlag, setCardLeech } from "./cards.ts";
 import { createBasicNote, planNoteContentChange, setNoteTags } from "./notes.ts";
 import { mergeImportedTags, normalizeTags, splitAnkiSystemTags, tagSearchKeys } from "./tags.ts";

@@ -69,13 +69,13 @@ const IMPORT_EXCEPTIONS: readonly ImportException[] = [];
 /** Obergrenzen, die nur sinken dürfen: Istwert darüber oder darunter bricht ab. */
 const MODULE_LIMITS: readonly ModuleLimit[] = [
   { file: "src/App.tsx", measure: "Zeilen", max: 503 },
-  { file: "src/appScreenProps.ts", measure: "Zeilen", max: 349 },
-  { file: "src/screens/DecksScreen.tsx", measure: "Zeilen", max: 754 },
+  { file: "src/appScreenProps.ts", measure: "Zeilen", max: 172 },
+  { file: "src/screens/DecksScreen.tsx", measure: "Zeilen", max: 748 },
   { file: "src/cloudRepository.ts", measure: "Zeilen", max: 405 },
   { file: "src/cloudRepository.ts", measure: "any-Typen", max: 0 },
   { file: "src/cloudRevisionedWrites.ts", measure: "any-Typen", max: 2 },
   { file: "src/syncEngine.ts", measure: "any-Typen", max: 3 },
-  { file: "src/indexedDbCoreRepository.ts", measure: "Zeilen", max: 853 },
+  { file: "src/indexedDbCoreRepository.ts", measure: "Zeilen", max: 851 },
   { file: "src/apkgImportInternal.ts", measure: "any-Typen", max: 3 },
   { file: "src/cloudAuth.ts", measure: "any-Typen", max: 3 },
   { file: "src/documentModel.ts", measure: "any-Typen", max: 0 },

@@ -34,11 +34,17 @@ function createDevice(client: SupabaseClient, userId: string, id: string, isOnli
     remove(ids: string[]) { ids.forEach((key) => rows.delete(key)); },
     count: () => [...rows.values()].filter((row) => !row.flushedAt).length,
   };
-  return createAccountSyncEngine(client, {
+  const engine = createAccountSyncEngine(client, {
     userId,
     outbox,
     device: { id, label: id, userAgent: "CoRe Zwei-Geräte-Test" },
     isOnline,
+  });
+  return Object.assign(engine, {
+    queue(input: any) {
+      outbox.enqueue({ entityId: input.payload?.event?.id ?? null, ...input });
+      engine.requestSync();
+    },
   });
 }
 
@@ -94,7 +100,7 @@ test("zwei Geräte schützen Entity-Revisionen, Offline-Reviews und Soft-Deletes
   const { deck: seededDeck, card } = await seedDeckWithNote(clientA, "device_two_a", "Zwei-Geräte-Ausgang", "Welche Änderung wird synchronisiert?", "Das Review.");
   const deck = seededDeck;
 
-  engineB.enqueueMutation({
+  engineB.queue({
     id: `content-b-${deck.id}`,
     type: SYNC_MUTATION_TYPES.entityMutation,
     entityId: deck.id,
@@ -103,7 +109,7 @@ test("zwei Geräte schützen Entity-Revisionen, Offline-Reviews und Soft-Deletes
   await engineB.flush({ force: true });
   assert.equal(engineB.pendingCount(), 0);
 
-  engineA.enqueueMutation({
+  engineA.queue({
     id: `stale-a-${deck.id}`,
     type: SYNC_MUTATION_TYPES.entityMutation,
     entityId: deck.id,
@@ -120,7 +126,7 @@ test("zwei Geräte schützen Entity-Revisionen, Offline-Reviews und Soft-Deletes
   let online = false;
   const offlineEngine = createDevice(clientA, userId, "device_two_offline", () => online);
   const review = reviewMutation(userId, deck, card, "2026-07-14T12:00:00.000Z", `review_two_device_once_${card.id}`);
-  offlineEngine.enqueueMutation(review);
+  offlineEngine.queue(review);
   await offlineEngine.flush();
   assert.equal(offlineEngine.pendingCount(), 1);
   online = true;
@@ -132,14 +138,14 @@ test("zwei Geräte schützen Entity-Revisionen, Offline-Reviews und Soft-Deletes
 
   const remoteDeck = await readDeckRow(clientA, userId, deck.id);
   assert.ok(remoteDeck);
-  engineB.enqueueMutation({
+  engineB.queue({
     id: `delete-b-${deck.id}`,
     type: SYNC_MUTATION_TYPES.entityMutation,
     entityId: deck.id,
     payload: { table: "decks", entityId: deck.id, baseRevision: remoteDeck.revision, tombstone: true, deletedAt: "2026-07-14T13:00:00.000Z" },
   });
   await engineB.flush({ force: true });
-  engineA.enqueueMutation({
+  engineA.queue({
     id: `reactivate-a-${deck.id}`,
     type: SYNC_MUTATION_TYPES.entityMutation,
     entityId: deck.id,
@@ -169,7 +175,7 @@ test("eine Folgeänderung nach verlorener Insert-Antwort wird nur auf dem eigene
   assert.ifError(staleConflictError);
 
   const { cards: _cards, reviewEvents: _reviewEvents, ...deck } = createCoreDeck({ name: "Verlorene Insert-Antwort", source: "manual" });
-  const insertAndChange = (engine: ReturnType<typeof createDevice>, id: string, name: string) => engine.enqueueMutation({
+  const insertAndChange = (engine: ReturnType<typeof createDevice>, id: string, name: string) => engine.queue({
     id,
     type: SYNC_MUTATION_TYPES.entityMutation,
     entityId: deck.id,
@@ -219,8 +225,8 @@ test("Review auf Gerät A und Inhaltskorrektur auf Gerät B laufen ohne Konflikt
   });
   assert.equal(corrected.changed, true);
 
-  engineA.enqueueMutation(reviewMutation(userId, deck, card, "2026-07-15T08:00:00.000Z", `review_parallel_${card.id}`));
-  engineB.enqueueMutation({
+  engineA.queue(reviewMutation(userId, deck, card, "2026-07-15T08:00:00.000Z", `review_parallel_${card.id}`));
+  engineB.queue({
     id: `content-b-${note.id}`,
     type: SYNC_MUTATION_TYPES.entityMutation,
     entityId: note.id,
@@ -240,7 +246,7 @@ test("Review auf Gerät A und Inhaltskorrektur auf Gerät B laufen ohne Konflikt
   assert.equal(cardRow.study_revision, card.studyRevision + 1);
   assert.equal(cardRow.revision, card.revision, "Ein Review darf die Kartenrevision für Inhaltsänderungen nicht verbrauchen.");
 
-  engineA.enqueueMutation({
+  engineA.queue({
     id: `stale-content-a-${note.id}`,
     type: SYNC_MUTATION_TYPES.entityMutation,
     entityId: note.id,

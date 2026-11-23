@@ -1,8 +1,8 @@
 import React from "react";
 import type { AppViewId } from "./appNavigation.ts";
-import type { SettingsDialogProps } from "./appScreenProps.ts";
 import { markAppPerformance, measureAppPerformance } from "./appPerformance.ts";
 import { allowsBrowserAutomaticPreloading, createChunkPrefetcher, FEATURE_CHUNKS_ELEMENT_ID, parseFeatureChunks, type FeatureChunks } from "./appFeaturePreload.ts";
+import type { SettingsDialogProps } from "./screens/SettingsDialog.tsx";
 
 type AppFeatureId = "card-settings" | "creation" | "dashboard" | "deck-settings" | "decks" | "exams" | "help" | "learn" | "settings" | "settings-dialog" | "simulator" | "statistics" | "study";
 

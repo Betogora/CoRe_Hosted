@@ -2,8 +2,8 @@ import React from "react";
 import { Copy, RefreshCw, X } from "lucide-react";
 import { formatSyncStatusText } from "../accountSession.ts";
 import { APP_RUNTIME_INFO } from "../appRuntime.ts";
-import type { SettingsSaveOutcome, SettingsScreenProps } from "../appScreenProps.ts";
-import type { SyncIntervalMinutes, SyncStatus } from "../coreTypes.ts";
+import type { NavigateToView, SettingsDraftGuard, SettingsSaveOutcome } from "../appScreenProps.ts";
+import type { Profile, SyncIntervalMinutes, SyncStatus } from "../coreTypes.ts";
 import { readFieldTimings } from "../fieldTimings.ts";
 import { formatFieldTimingsReport, readFieldTimingContext } from "../fieldTimingsReport.ts";
 import { ActionButton, CrossLinkButton } from "../ui/actionUi.tsx";
@@ -19,6 +19,20 @@ import { createGeneralSettingsDraft, settingsDraftsEqual, type GeneralSettingsDr
 import { SyncConflictPanel } from "./SyncConflictPanel.tsx";
 import { formatStorageBytes } from "../workspaceStorage.ts";
 import { useWorkspaceStore, useWorkspaceValue } from "../useWorkspaceStore.ts";
+import type { GeneralSettingsSection } from "../appNavigation.ts";
+
+export interface SettingsScreenProps {
+  section: GeneralSettingsSection;
+  focusConflicts?: boolean;
+  profile: Profile;
+  onSaveSettings: (draft: GeneralSettingsDraft) => Profile | null | Promise<Profile | null>;
+  onDraftStateChange: (guard: SettingsDraftGuard | null) => void;
+  onSyncNow: () => Promise<unknown>;
+  onListConflicts: (options?: { refreshRemote?: boolean }) => Promise<unknown[]>;
+  onResolveConflict: (conflictId: string, decision: Record<string, unknown>) => Promise<unknown>;
+  onSignOut: () => Promise<void>;
+  onNavigate: NavigateToView;
+}
 
 const sectionIds = {
   account: "settings-account",

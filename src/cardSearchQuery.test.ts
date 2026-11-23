@@ -3,6 +3,7 @@ import test from "node:test";
 import {
   cardSearchContextTerms,
   deckPatternMatches,
+  findsOnlyDuplicates,
   namePatternMatches,
   matchesCardSearch,
   parseCardSearchQuery,
@@ -15,6 +16,7 @@ import {
   cardSearchTermState,
   cardSearchTerms,
   cardSearchText,
+  withCardSearchDeck,
   withCardSearchTermState,
   unsupportedCardSearchTerms,
   withCardSearchText,
@@ -76,6 +78,12 @@ test("Mit, Egal und Ohne schreiben einen Begriff und lassen Text und andere Begr
   assert.equal(withCardSearchTermState(query, "IS:DUE", ""), "herz flag:2", "ohne Rücksicht auf Groß-/Kleinschreibung");
   assert.deepEqual(cardSearchTerms("herz is:due -tag:x ursprung:scaleni"), ["is:due", "-tag:x", "ursprung:scaleni"]);
   assert.equal(cardSearchText("herz is:due  lunge"), "herz lunge");
+});
+
+test("Ein Stapel ersetzt jede bisherige Stapelbedingung und lässt den Rest stehen", () => {
+  assert.equal(withCardSearchDeck("herz did:a flag:1", "b"), "herz flag:1 did:b");
+  assert.equal(withCardSearchDeck("herz -did:a (did:b or did:c) flag:1", "d"), "herz flag:1 did:d");
+  assert.equal(withCardSearchDeck("herz did:a flag:1", null), "herz flag:1");
 });
 
 test("Getippte Begriffe wandern beim Leerzeichen aus dem Suchfeld zu den Filtern", () => {
@@ -195,6 +203,10 @@ test("is:duplicate prüft die Duplikat-Inhalte des Kontos und gilt ohne sie für
   assert.deepEqual(parseCardSearchQuery("-is:Duplicate").terms, [{ kind: "duplicate", negated: true }]);
   assert.equal(searchesDuplicates(parseCardSearchQuery("tag:a or is:duplicate")), true);
   assert.equal(searchesDuplicates(parseCardSearchQuery("is:due")), false);
+  assert.equal(searchesDuplicates(parseCardSearchQuery("-is:duplicate")), true, "auch das Ausschließen braucht die Duplikat-Inhalte");
+  assert.equal(findsOnlyDuplicates(parseCardSearchQuery("herz is:duplicate")), true);
+  assert.equal(findsOnlyDuplicates(parseCardSearchQuery("tag:a or is:duplicate")), false, "eine Oder-Gruppe findet auch Nicht-Duplikate");
+  assert.equal(findsOnlyDuplicates(parseCardSearchQuery("-is:duplicate")), false);
   assert.equal(matchesCardSearch(entry(), parseCardSearchQuery("is:duplicate"), duplicates), true);
   assert.equal(matchesCardSearch(entry({ noteId: "note-b" }), parseCardSearchQuery("is:duplicate"), duplicates), false);
   assert.equal(matchesCardSearch(entry({ noteId: "note-b" }), parseCardSearchQuery("-is:duplicate"), duplicates), true);

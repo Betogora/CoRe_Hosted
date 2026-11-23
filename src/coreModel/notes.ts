@@ -4,7 +4,7 @@ import { setCardFlag, setCardSuspended } from "./cards.ts";
 import { makeId } from "./coreValues.ts";
 import { noteContentMediaRefs, parseNoteContent } from "./noteContent.ts";
 import { createCardStudy } from "./reviewState.ts";
-import { normalizeTags } from "./tags.ts";
+import { mergeImportedTags, normalizeTags } from "./tags.ts";
 
 const SHA1_NAME = /^[0-9a-f]{40}$/;
 const SEARCH_TEXT_LIMIT = 4_000;
@@ -178,6 +178,70 @@ export function planNoteContentChange(
     newCards,
     removedCards: [...cardsByKey.values()],
   };
+}
+
+export const cardHasStudy = (card: Card) => card.study.reps > 0 || card.study.state !== "new";
+
+/**
+ * Cards whose prompt a new content no longer has: `delete` them (an edit the learner confirms), keep the content as it
+ * is when one of them was studied (`keepStudied`, a change nobody confirms card by card), or whenever a card would come
+ * or go (`skip`).
+ */
+type RemovedCardPolicy = "delete" | "keepStudied" | "skip";
+
+export function planNoteGraphContentChange(
+  previous: { note: Note; cards: readonly Card[] },
+  nextContent: unknown,
+  policy: RemovedCardPolicy,
+  updatedAt = new Date().toISOString(),
+): { status: "unchanged" } | { status: "kept" } | { status: "changed"; next: { note: Note; cards: Card[] }; cardsChanged: boolean } {
+  const plan = planNoteContentChange(previous, nextContent, updatedAt);
+  const cardsChanged = plan.newCards.length > 0 || plan.removedCards.length > 0;
+  if (!plan.changed && !cardsChanged) return { status: "unchanged" };
+  if ((policy === "skip" && cardsChanged) || (policy === "keepStudied" && plan.removedCards.some(cardHasStudy))) return { status: "kept" };
+  const removed = planNoteDeletion(plan.note, plan.removedCards, updatedAt).cards;
+  return { status: "changed", next: { note: plan.note, cards: [...plan.keptCards, ...plan.newCards, ...removed] }, cardsChanged };
+}
+
+/**
+ * A reimported note against the stored one, as in Anki: an older note in the package changes nothing; tags merge
+ * three-way against the last import; the content (and a changed note type) replaces it only while nobody edited it here.
+ */
+export function planImportedNoteUpdate(
+  existing: Note,
+  incoming: Note,
+  noteTypeSourceId: string | null,
+  updatedAt: string,
+): { status: "older" } | { status: "update"; note: Note; locallyEdited: boolean } {
+  if (existing.importedAnkiModifiedAt && incoming.importedAnkiModifiedAt
+    && Date.parse(incoming.importedAnkiModifiedAt) < Date.parse(existing.importedAnkiModifiedAt)) return { status: "older" };
+  const locallyEdited = existing.importedContentRevision === null || existing.contentRevision > existing.importedContentRevision;
+  const importedTags = incoming.importedTags ?? incoming.content.tags;
+  const tags = mergeImportedTags(existing.content.tags, existing.importedTags, importedTags);
+  const contentChanged = !locallyEdited
+    && (existing.noteTypeSourceId !== noteTypeSourceId || JSON.stringify({ ...existing.content, tags: [] }) !== JSON.stringify({ ...incoming.content, tags: [] }));
+  const importedAnkiModifiedAt = incoming.importedAnkiModifiedAt ?? existing.importedAnkiModifiedAt;
+  const tagsChanged = JSON.stringify(tags) !== JSON.stringify(existing.content.tags)
+    || JSON.stringify(importedTags) !== JSON.stringify(existing.importedTags)
+    || importedAnkiModifiedAt !== existing.importedAnkiModifiedAt;
+  const note: Note = contentChanged
+    ? {
+      ...existing,
+      content: { ...incoming.content, tags },
+      media: incoming.media,
+      translator: incoming.translator,
+      noteTypeSourceId,
+      contentRevision: existing.contentRevision + 1,
+      importedContentRevision: existing.contentRevision + 1,
+      importedTags,
+      importedAnkiModifiedAt,
+      revision: existing.revision + 1,
+      updatedAt,
+    }
+    : tagsChanged
+      ? { ...existing, content: { ...existing.content, tags }, importedTags, importedAnkiModifiedAt, revision: existing.revision + 1, updatedAt }
+      : existing;
+  return { status: "update", note, locallyEdited };
 }
 
 export function planNoteDeletion(note: Note, cards: readonly Card[], deletedAt = new Date().toISOString()) {

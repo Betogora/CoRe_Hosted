@@ -52,14 +52,10 @@ function summaryWithTotal(deck: Deck, totalCards: number): DeckLibrarySummary {
 
 const CARD_EDITOR_SERVICES: CardEditorServices = {
   flagNames: [],
-  moveCard: async () => null,
-  resetCards: async () => [],
-  setCardsLeech: async () => [],
+  runCardAction: async () => ({ changedCount: 1, undo: async () => ({ restoredCount: 1, skippedCount: 0 }) }),
   buryCards: async () => [],
-  restoreCardStudies: async () => [],
   editVariant: async () => undefined,
   removeNoteMedia: async () => null,
-  loadCard: async () => null,
   listReviewEvents: async () => [],
   listTagDirectory: async () => [],
   listNoteTypes: async () => [],
@@ -112,9 +108,6 @@ function renderScreen(decks: Deck[], { syncConflictCardIds, deckSummaries, cardP
     onSaveNote: async () => null,
     onSetCardStudyState: async () => null,
     onDuplicateNote: async () => null,
-    onDeleteNote: async () => null,
-    onUndoDeleteNote: async () => null,
-    onRescheduleCards: async () => [],
     onGenerateVariant: async () => ({
       variant: { front: "Neue Frage", back: "Neue Antwort" },
       model: "example/free:free",

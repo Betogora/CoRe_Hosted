@@ -6,8 +6,7 @@ import { CreationActionCard } from "../ui/CreationActionCard.tsx";
 import { FileArchive, PenLine, Play, Sparkles } from "lucide-react";
 import { createDeckLibraryModel, createStudyHeatmapModel, type DailyLearningPlan, type DailyLearningSession } from "../libraryModel.ts";
 import { getGlobalSchedulerPreferences } from "../deckSettings.ts";
-import type { DashboardScreenProps } from "../appScreenProps.ts";
-import type { Deck } from "../coreTypes.ts";
+import type { Deck, ExamDailyTask } from "../coreTypes.ts";
 import { getLearningDayKey, getLearningTimeZone } from "../learningDay.ts";
 import type { StudyHeatmapDay } from "../studyHeatmapModel.ts";
 import { ActionButton, CrossLinkButton } from "../ui/actionUi.tsx";
@@ -21,6 +20,31 @@ import { formatLearningCardCount } from "../ui/learningStatusUi.ts";
 import { DeckSelect } from "../ui/selectUi.tsx";
 import { StudyHeatmap } from "../ui/StudyHeatmap.tsx";
 import { useWorkspaceValue } from "../useWorkspaceStore.ts";
+import type { DeckExpansionSurface } from "../uiPreferences.ts";
+import type { DeckMutationResult, WorkspaceState } from "../coreWorkspace.ts";
+import type { PomodoroTimer } from "../pomodoroTimer.ts";
+import type { ExamPlanningScreenProps } from "./ExamPlanningScreen.tsx";
+import type { DeckTreeScreenProps, NavigateToView } from "../appScreenProps.ts";
+
+export interface DashboardScreenProps extends DeckTreeScreenProps {
+  onPausePomodoro?: () => void;
+  onResumePomodoro?: () => void;
+  onResetPomodoro?: () => void;
+  pomodoroTimer?: PomodoroTimer | null;
+  onStartPomodoro?: (minutes: number) => void;
+  state: WorkspaceState;
+  now: string;
+  onNavigate: NavigateToView;
+  onStartAdditionalCards: (deckId: string, additionalCount: number) => { ok: boolean; message?: string };
+  onCreateDemo: () => Promise<Deck[] | null>;
+  onMoveDeck: (deckId: string, parentDeckId: string | null) => DeckMutationResult | null;
+  onSetDeckExpanded: (surface: DeckExpansionSurface, deckId: string, expanded: boolean) => unknown;
+  onStartExamUnit?: (blockId: string | null) => Promise<void>;
+  onLoadExamPlanningData?: ExamPlanningScreenProps["onLoadPlanningData"];
+  onSaveExamTasks?: (tasks: ExamDailyTask[]) => Promise<void>;
+  onLoadExamSummaryAvailability?: (deckId: string) => Promise<boolean>;
+  onLoadExamLocalCardIds?: ExamPlanningScreenProps["onLoadLocalCardIds"];
+}
 
 const DASHBOARD_DECK_LIMIT = 8;
 

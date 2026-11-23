@@ -1,9 +1,9 @@
 import React from "react";
 import { CalendarClock, CalendarDays, Check, Copy, Layers, MoveRight, Snail } from "lucide-react";
-import type { CardEditorServices, DecksScreenProps } from "../../appScreenProps.ts";
+import type { CardEditorServices } from "../../appScreenProps.ts";
 import type { SimilarNote } from "../../cloudRepositoryValidation.ts";
 import { notePromptLabel } from "../../coreModel.ts";
-import type { Card, CardStudyStatePatch, Deck } from "../../coreTypes.ts";
+import type { Card, Deck } from "../../coreTypes.ts";
 import { addLearningDays, getLearningDayKey, getLearningDayRange, getLearningDayStartForKey } from "../../learningDay.ts";
 import { manuallyBuriedCardIds } from "../../siblingBurying.ts";
 import type { NoteGraph } from "../../workspaceReplica.ts";
@@ -18,7 +18,7 @@ import { DeckSelect } from "../../ui/selectUi.tsx";
 import { TagInput } from "../../ui/TagInput.tsx";
 import { CoreTooltip } from "../../ui/tooltipUi.tsx";
 import { useOnline } from "./useOnline.ts";
-import { cardStateLabel, changeSuspension } from "./cardEditorModel.ts";
+import { cardStateLabel } from "./cardEditorModel.ts";
 import { CardEditorSection as Section } from "./CardEditorSection.tsx";
 import type { PendingCard } from "./CardEditorContentTab.tsx";
 
@@ -88,14 +88,12 @@ export interface CardEditorGeneralTabProps {
   pendingCards: readonly PendingCard[];
   onSetFlag: (flag: number) => void;
   onSetMarked: (marked: boolean) => void;
-  onSetStudyState: (cardId: string, patch: CardStudyStatePatch) => Promise<NoteGraph | null>;
-  onRescheduleCards: DecksScreenProps["onRescheduleCards"];
   onSelectCard: (deckId: string, cardId: string) => void;
   onCardMoved: (deckId: string, cardId: string) => void;
   deckName: (deckId: string) => string;
 }
 
-export function CardEditorGeneralTab({ decks, graph, card, now, dayStartHour, timeZone, services, pendingCards, onSetFlag, onSetMarked, onSetStudyState, onRescheduleCards, onSelectCard, onCardMoved, deckName }: CardEditorGeneralTabProps) {
+export function CardEditorGeneralTab({ decks, graph, card, now, dayStartHour, timeZone, services, pendingCards, onSetFlag, onSetMarked, onSelectCard, onCardMoved, deckName }: CardEditorGeneralTabProps) {
   const { note } = graph;
   const online = useOnline();
   const setSuccessToast = useSuccessToast();
@@ -123,17 +121,15 @@ export function CardEditorGeneralTab({ decks, graph, card, now, dayStartHour, ti
   const exams = useIdleLoad(() => services.listExamsForDeck(card.deckId), card.deckId);
 
   /** Undo is a new, synced change and drops out with a note if the card changed meanwhile. */
-  function offerUndo(message: string, unchanged: (current: { card: Card; note: NoteGraph["note"] }) => boolean, undo: () => Promise<unknown>) {
+  function offerUndo(message: string, undo: () => Promise<{ restoredCount: number }>) {
     setSuccessToast(message, {
       action: {
         label: "Rückgängig",
         onAction: () => void (async () => {
-          const current = await services.loadCard(card.id);
-          if (!current || !unchanged(current)) {
+          if (!(await undo()).restoredCount) {
             setSuccessToast("Rückgängig ist nicht mehr möglich: Die Karte wurde inzwischen geändert.", { appearance: "neutral" });
             return;
           }
-          await undo();
           setEventsVersion((version) => version + 1);
         })().catch(() => setSuccessToast("Rückgängig ist fehlgeschlagen.", { appearance: "neutral" })),
       },
@@ -156,32 +152,24 @@ export function CardEditorGeneralTab({ decks, graph, card, now, dayStartHour, ti
   async function reschedule() {
     const dueAt = getLearningDayStartForKey(date, dayOptions);
     if (!dueAt || date < minimumKey || date === dueDateKey) return;
-    const previous = card.study;
-    const updated = await run("reschedule", () => onRescheduleCards([card.id], dueAt.toISOString(), new Date(now).toISOString()), "Die nächste Fälligkeit konnte nicht neu geplant werden.");
-    const next = updated?.[0];
-    if (!next) return;
-    offerUndo(`Nächste Fälligkeit auf ${formatDayKey(date)} gelegt.`, (current) => current.card.studyRevision === next.studyRevision,
-      () => services.restoreCardStudies(new Map([[card.id, previous]])));
+    const result = await run("reschedule", () => services.runCardAction(graph, card.id, { kind: "due", dueAts: [dueAt.toISOString()] }), "Die nächste Fälligkeit konnte nicht neu geplant werden.");
+    if (result?.changedCount) offerUndo(`Nächste Fälligkeit auf ${formatDayKey(date)} gelegt.`, result.undo);
   }
 
   async function bury(buriedNext: boolean) {
-    const updated = await run("bury", () => services.buryCards([card.id], buriedNext), "Die Karte konnte nicht zurückgestellt werden.");
-    const next = updated?.[0];
-    if (!next) return;
-    setEventsVersion((version) => version + 1);
-    if (buriedNext) {
-      offerUndo("Karte bis zum nächsten Lerntag zurückgestellt.", (current) => current.card.studyRevision === next.studyRevision,
-        () => services.buryCards([card.id], false));
+    if (!buriedNext) {
+      if (await run("bury", () => services.buryCards([card.id], false), "Die Karte konnte nicht zurückgestellt werden.")) setEventsVersion((version) => version + 1);
+      return;
     }
+    const result = await run("bury", () => services.runCardAction(graph, card.id, { kind: "bury" }), "Die Karte konnte nicht zurückgestellt werden.");
+    if (!result?.changedCount) return;
+    setEventsVersion((version) => version + 1);
+    offerUndo("Karte bis zum nächsten Lerntag zurückgestellt.", result.undo);
   }
 
   async function resetLeech() {
-    const previous = card.study.leechedAt;
-    const updated = await run("leech", () => services.setCardsLeech([card.id], null), "Die Lernbremse konnte nicht zurückgesetzt werden.");
-    const next = updated?.[0];
-    if (!next) return;
-    offerUndo("Lernbremse zurückgesetzt.", (current) => current.card.studyRevision === next.studyRevision,
-      () => services.setCardsLeech([card.id], previous));
+    const result = await run("leech", () => services.runCardAction(graph, card.id, { kind: "unleech" }), "Die Lernbremse konnte nicht zurückgesetzt werden.");
+    if (result?.changedCount) offerUndo("Lernbremse zurückgesetzt.", result.undo);
   }
 
   async function move() {
@@ -189,27 +177,26 @@ export function CardEditorGeneralTab({ decks, graph, card, now, dayStartHour, ti
     const target = moveTarget;
     setMoveOpen(false);
     if (target === from) return;
-    const moved = await run("move", () => services.moveCard(card.id, target), "Die Karte konnte nicht verschoben werden.");
-    const next = moved?.cards.find((candidate) => candidate.id === card.id);
-    if (!next) return;
+    const result = await run("move", () => services.runCardAction(graph, card.id, { kind: "deck", deckId: target }), "Die Karte konnte nicht verschoben werden.");
+    if (!result?.changedCount) return;
     onCardMoved(target, card.id);
-    offerUndo(`Karte nach „${deckName(target)}“ verschoben.`, (current) => current.card.revision === next.revision, async () => {
-      await services.moveCard(card.id, from);
-      onCardMoved(from, card.id);
+    offerUndo(`Karte nach „${deckName(target)}“ verschoben.`, async () => {
+      const undone = await result.undo();
+      if (undone.restoredCount) onCardMoved(from, card.id);
+      return undone;
     });
   }
 
   async function suspend(next: boolean) {
-    const change = await run("suspend", () => changeSuspension(onSetStudyState, card.id, next), next ? "Die Karte konnte nicht ausgesetzt werden." : "Die Karte konnte nicht reaktiviert werden.");
-    if (change) offerUndo(change.message, change.unchanged, change.undo);
+    const result = await run("suspend", () => services.runCardAction(graph, card.id, { kind: "suspended", suspended: next }), next ? "Die Karte konnte nicht ausgesetzt werden." : "Die Karte konnte nicht reaktiviert werden.");
+    if (result?.changedCount) offerUndo(next ? "Karte ausgesetzt." : "Karte reaktiviert.", result.undo);
   }
 
-  async function changeTags(tags: string[], change: { added: string[]; removed: string[] }) {
-    const previous = note.content.tags;
-    const saved = await run("tags", () => onSetStudyState(card.id, { tags }), "Die Tags konnten nicht gespeichert werden.");
-    if (!saved || !change.removed.length || change.added.length) return;
+  async function changeTags(change: { added: string[]; removed: string[] }) {
+    const result = await run("tags", () => services.runCardAction(graph, card.id, { kind: "tags", add: change.added, remove: change.removed }), "Die Tags konnten nicht gespeichert werden.");
+    if (!result?.changedCount || !change.removed.length || change.added.length) return;
     const label = change.removed.length === 1 ? `Tag „${change.removed[0]}“ entfernt.` : `${change.removed.length} Tags entfernt.`;
-    offerUndo(label, (current) => current.note.revision === saved.note.revision, () => onSetStudyState(card.id, { tags: previous }));
+    offerUndo(label, result.undo);
   }
 
   const suspended = card.status === "suspended";
@@ -275,7 +262,7 @@ export function CardEditorGeneralTab({ decks, graph, card, now, dayStartHour, ti
       </div>
       <div className="core-card-editor-column">
         <Section title="Tags" testId="card-tags">
-          <TagInput tags={note.content.tags} importedTags={note.importedTags ?? []} loadDirectory={services.listTagDirectory} label="Tags bearbeiten" labelHidden onChange={(tags, change) => void changeTags(tags, change)} disabled={busy === "tags"} />
+          <TagInput tags={note.content.tags} importedTags={note.importedTags ?? []} loadDirectory={services.listTagDirectory} label="Tags bearbeiten" labelHidden onChange={(_tags, change) => void changeTags(change)} disabled={busy === "tags"} />
         </Section>
         {siblings.length > 1 || pendingCards.length ? (
           <Section title="Karten aus diesem Inhalt" testId="card-siblings">

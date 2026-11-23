@@ -75,7 +75,7 @@ test("Lernstandsaktionen laufen als manuelle Ereignisse; Rückgängig übersprin
   const due = await runCardBatch({ ...dependencies, random: () => 0.9 }, forward, { kind: "due", dueAts });
   assert.equal(due.changedCount, 2);
   assert.equal((await repository.loadCardBody(forward[0]))?.card.study.dueAt, dueAts[1]);
-  await repository.rescheduleCards([forward[1]], "2026-12-01T00:00:00.000Z", NOW);
+  await repository.rescheduleCards([forward[1]], new Map([[forward[1], "2026-12-01T00:00:00.000Z"]]), NOW);
   assert.deepEqual(await due.undo(), { restoredCount: 1, skippedCount: 1 }, "die später neu geplante Karte behält ihr Datum");
   assert.equal((await repository.loadCardBody(forward[1]))?.card.study.dueAt, "2026-12-01T00:00:00.000Z");
 

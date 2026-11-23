@@ -6,6 +6,7 @@ export type CardBatchAction =
   | CardBatchEdit
   | { kind: "bury" }
   | { kind: "reset" }
+  | { kind: "unleech" }
   /** Each card gets one of these learning-day starts at random. */
   | { kind: "due"; dueAts: readonly string[] }
   | { kind: "delete" }
@@ -17,6 +18,7 @@ export interface CardBatchRepository {
   saveNoteGraphs(changes: Array<{ previous: NoteGraph | null; next: NoteGraph }>): Promise<void>;
   buryCards(cardIds: string[], buried: boolean, occurredAt?: string): Promise<Card[]>;
   resetCards(cardIds: string[], occurredAt?: string): Promise<Card[]>;
+  setCardsLeech(cardIds: string[], leechedAt: string | null, occurredAt?: string): Promise<Card[]>;
   rescheduleCards(cardIds: string[], dueAt: ReadonlyMap<string, string>, occurredAt?: string): Promise<Card[]>;
   restoreCardStudies(studies: ReadonlyMap<string, Card["study"]>, occurredAt?: string): Promise<Card[]>;
 }
@@ -73,11 +75,12 @@ export async function runCardBatch(dependencies: CardBatchDependencies, cardIds:
   const selected = new Set(bodies.map((body) => body.card.id));
   const occurredAt = dependencies.now();
 
-  if (action.kind === "bury" || action.kind === "reset" || action.kind === "due") {
+  if (action.kind === "bury" || action.kind === "reset" || action.kind === "unleech" || action.kind === "due") {
     const before = new Map(bodies.map((body) => [body.card.id, body.card.study]));
     const random = dependencies.random ?? Math.random;
     const changed = action.kind === "bury" ? await repository.buryCards([...selected], true, occurredAt)
       : action.kind === "reset" ? await repository.resetCards([...selected], occurredAt)
+        : action.kind === "unleech" ? await repository.setCardsLeech([...selected], null, occurredAt)
         : await repository.rescheduleCards([...selected], new Map([...selected].map((id) => [id, action.dueAts[Math.floor(random() * action.dueAts.length)]])), occurredAt);
     const revisionAfter = new Map(changed.map((card) => [card.id, card.studyRevision]));
     return {

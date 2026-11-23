@@ -7,7 +7,8 @@ import type { AccountMediaStore } from "./mediaStore.ts";
 import { requestPersistentWorkspaceStorage } from "./workspaceStorage.ts";
 import type { CardCatalogEntry, CatalogPage, NoteGraph, OfflineDeckRecord } from "./workspaceReplica.ts";
 import { markReplicaStartupGate } from "./appPerformance.ts";
-import { getLearningDayKey } from "./learningDay.ts";
+import { getLearningDayKey, getLearningDayRange } from "./learningDay.ts";
+import type { StatisticsSelection } from "./statisticsModel.ts";
 
 interface CardPageRequest {
   /** The list: a deck id, or a key of its own for `deckIds` read as one list (the flat hit list). */
@@ -266,13 +267,10 @@ export function createWorkspaceHydrationService({
     const noteIds = new Set<string>(askedWhilePending?.noteIds);
     // A first write (no base revision) means a card created here, which no cloud page can show yet.
     const createdCardIds = new Set<string>(askedWhilePending?.createdCardIds);
-    for (const mutation of repository.outbox.listPending()) {
-      if (mutation.type === "review-atomic" || mutation.type === "review-undo") cardIds.add((mutation.payload as { card: { id: string } }).card.id);
-      else if (mutation.table === "cards" && mutation.entityId) {
-        cardIds.add(mutation.entityId);
-        if (mutation.baseRevision === null) createdCardIds.add(mutation.entityId);
-      } else if (mutation.table === "notes" && mutation.entityId) noteIds.add(mutation.entityId);
-    }
+    const pending = repository.outbox.pendingChangeIds();
+    for (const id of pending.cardIds) cardIds.add(id);
+    for (const id of pending.noteIds) noteIds.add(id);
+    for (const id of pending.createdCardIds) createdCardIds.add(id);
     return { cardIds, noteIds, createdCardIds };
   };
   const pendingCreatedIds = async (scope: readonly string[], request: Pick<CardPageRequest, "query" | "searchContext">, created: ReadonlySet<string>, known: ReadonlySet<string>) =>
@@ -615,19 +613,44 @@ export function createWorkspaceHydrationService({
     return snapshot;
   };
 
+  /**
+   * The local projection of the selection, completed by the account's statistics (cached offline) and the answers that
+   * still wait for sync.
+   */
+  const queryStatistics = async (selection: StatisticsSelection) => {
+    const projection = await repository.queryStatistics(selection);
+    const { period, now, timeZone = "UTC", dayStartHour = 0 } = selection;
+    const periodDays = period === "30d" ? 30 : period === "90d" ? 90 : period === "365d" ? 365 : null;
+    const startReference = periodDays == null ? null : new Date(Date.parse(now) - (periodDays - 1) * 86_400_000).toISOString();
+    const startRange = startReference ? getLearningDayRange(startReference, { timeZone, dayStartHour }) : null;
+    const endRange = getLearningDayRange(now, { timeZone, dayStartHour });
+    try {
+      const snapshot = await refreshStatistics(
+        projection.scopeDeckIds,
+        startRange ? new Date(startRange.start).toISOString() : null,
+        endRange ? new Date(endRange.end).toISOString() : null,
+        timeZone,
+        dayStartHour,
+      );
+      if (!snapshot) throw new Error("Für diese Auswahl ist noch keine vollständige Offline-Statistik gespeichert.");
+      const { mergeAccountStatisticsSnapshot } = await import("./statisticsModel.ts");
+      return mergeAccountStatisticsSnapshot(projection, snapshot, repository.outbox.pendingReviewEvents());
+    } catch (error) {
+      throw error instanceof Error ? error : new Error("Statistik konnte nicht geladen werden.");
+    }
+  };
+
   /** Answers still waiting for sync replace the server's values. */
   const loadExamPlanningData = async (deckIds: string[], signal?: AbortSignal) => {
     if (!isOnline()) throw new Error("Die Prüfungsplanung braucht eine Verbindung.");
     if (!deckIds.length) return { cards: [] };
     const { listAccountCardStudyStates } = await import("./cloudRepository.ts");
     const cards = new Map((await listAccountCardStudyStates(client, deckIds, signal)).map((card) => [card.cardId, card]));
-    for (const mutation of repository.outbox.listPending()) {
-      if (mutation.type !== "review-atomic" && mutation.type !== "review-undo") continue;
-      const { card } = mutation.payload as { card: { id: string; study: CardStudyState } };
-      const snapshot = cards.get(card.id);
+    for (const [cardId, pendingStudy] of repository.outbox.pendingStudyStates()) {
+      const snapshot = cards.get(cardId);
       if (!snapshot) continue;
-      const { extra, ...study } = card.study;
-      cards.set(card.id, { ...snapshot, study, stabilityFast: extra.stabilityFast ?? snapshot.stabilityFast });
+      const { extra, ...study } = pendingStudy;
+      cards.set(cardId, { ...snapshot, study, stabilityFast: extra.stabilityFast ?? snapshot.stabilityFast });
     }
     return { cards: [...cards.values()] };
   };
@@ -687,6 +710,7 @@ export function createWorkspaceHydrationService({
     removeDeckDownload,
     enforceQuota,
     refreshStatistics,
+    queryStatistics,
     loadExamPlanningData,
     refreshDueForecast,
     prepareReimport,

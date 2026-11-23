@@ -1,5 +1,5 @@
 import { notePromptLabel, planNoteContentChange, type NoteEditorValue } from "../../coreModel.ts";
-import type { Card, CardStudyStatePatch, CardVariant, Note, NoteContent } from "../../coreTypes.ts";
+import type { Card, CardVariant, Note, NoteContent } from "../../coreTypes.ts";
 import { stripHtml } from "../../htmlSafety.ts";
 import { createCardTableRow } from "../../libraryModel.ts";
 import { catalogEntryFromCard, type NoteGraph } from "../../workspaceReplica.ts";
@@ -33,15 +33,6 @@ export function cardStateLabel(card: Card, note: Note, options: CardLabelOptions
   if (card.study.reps === 0) return "neu, ohne Lernstand";
   const { nextStudyLabel } = createCardTableRow(catalogEntryFromCard(card, note), options);
   return `${card.study.reps === 1 ? "1 Wiederholung" : `${card.study.reps} Wiederholungen`} · fällig ${nextStudyLabel}`;
-}
-
-export async function changeSuspension(setStudyState: (cardId: string, patch: CardStudyStatePatch) => Promise<NoteGraph | null>, cardId: string, suspended: boolean) {
-  const saved = (await setStudyState(cardId, { suspended }))?.cards.find((candidate) => candidate.id === cardId);
-  return saved ? {
-    message: suspended ? "Karte ausgesetzt." : "Karte reaktiviert.",
-    unchanged: (current: { card: Card }) => current.card.revision === saved.revision,
-    undo: () => setStudyState(cardId, { suspended: !suspended }),
-  } : null;
 }
 
 export function cardHeaderLabel(note: Note, card: Card, count: number) {

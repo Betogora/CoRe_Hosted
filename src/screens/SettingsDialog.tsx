@@ -1,7 +1,15 @@
+import type { ReactNode } from "react";
 import { CalendarClock, CalendarRange, Database, Flag, Info, Layers, Palette, Sparkles, Timer, User } from "lucide-react";
-import { settingsContentSection, type GeneralSettingsSection, type LearningSettingsSection } from "../appNavigation.ts";
-import type { SettingsDialogProps } from "../appScreenProps.ts";
+import { settingsContentSection, type GeneralSettingsSection, type LearningSettingsSection, type SettingsSection } from "../appNavigation.ts";
 import { SettingsDialogFrame } from "./SettingsDialogFrame.tsx";
+
+export interface SettingsDialogProps {
+  section: SettingsSection;
+  onSelectSection: (section: SettingsSection) => unknown;
+  onClose: () => unknown;
+  footer?: ReactNode;
+  children: ReactNode;
+}
 
 const settingsGroups = [
   {

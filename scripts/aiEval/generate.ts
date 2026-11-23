@@ -9,7 +9,15 @@ import { REQUEST_TYPES } from "./ledger.ts";
 
 export const runDirectory = (id: string, run: string) => `${outputRoot()}/${id}/${run}`;
 
-export type RunMeta = { requestType: string; promptVersion: string; model: string; reasoning: string; fingerprint: string; repetitions: number; split: Split | "all"; dry: boolean; date: string };
+/** `candidate` nennt die Kandidatendatei, die den Payload der Route ersetzt hat; `null` misst den Code. */
+export type RunMeta = { requestType: string; promptVersion: string; candidate: string | null; model: string; reasoning: string; fingerprint: string; repetitions: number; split: Split | "all"; dry: boolean; date: string };
+
+/** Ersetzt den gebauten Payload der Route; die Antwortprüfung bleibt die der Route. */
+export type Candidate = { name: string; transform: (payload: unknown, request: unknown) => unknown };
+type Payload = { model: string; reasoning: { effort: string } };
+
+export const payloadBuilder = (definition: EvalDefinition, candidate: Candidate | null = null) =>
+  (request: unknown) => (candidate ? candidate.transform(definition.buildPayload(request), request) : definition.buildPayload(request)) as Payload;
 
 /**
  * `answer`: die Route nimmt die Antwort an. `refused`: das Modell meldet den Fall mit dem Ablehnungscode der Definition
@@ -52,13 +60,14 @@ export function mockCompletion(tool: string, toolArguments: unknown) {
   return { model: "mock", choices: [{ finish_reason: "tool_calls", message: { tool_calls: [{ function: { name: tool, arguments: JSON.stringify(toolArguments) } }] } }], usage: { prompt_tokens: 100, completion_tokens: 20, total_tokens: 120, cost: 0 } };
 }
 
-/** Hash über alle verschiedenen Payloads der Fälle ohne Nutzernachricht: Prompt, Werkzeugschema, Grenzen, Modell, Reasoning. */
-export function payloadFingerprint(definition: EvalDefinition, cases: readonly EvalCase[]) {
-  const shapes = new Set(cases.map((entry) => {
-    const payload = definition.buildPayload(entry.request) as { messages?: { role: string }[] };
-    return JSON.stringify({ ...payload, messages: payload.messages?.filter((message) => message.role !== "user") });
-  }));
-  return createHash("sha256").update([...shapes].sort().join("\n")).digest("hex").slice(0, 16);
+/** JSON mit sortierten Schlüsseln, damit ein gleicher Payload unabhängig von der Reihenfolge seiner Felder gleich hasht. */
+const canonical = (value: unknown): string => Array.isArray(value) ? `[${value.map(canonical).join(",")}]`
+  : value !== null && typeof value === "object" ? `{${Object.keys(value).sort().map((key) => `${JSON.stringify(key)}:${canonical((value as Record<string, unknown>)[key])}`).join(",")}}`
+  : JSON.stringify(value);
+
+/** Hash über die Payloads aller Fälle; gleich nur bei denselben Fällen und demselben Prompt, Schema, Grenzen, Modell und Reasoning. */
+export function payloadFingerprint(build: (request: unknown) => Payload, cases: readonly EvalCase[]) {
+  return createHash("sha256").update(cases.map((entry) => canonical(build(entry.request))).sort().join("\n")).digest("hex").slice(0, 16);
 }
 
 const errorCode = (error: unknown) => error !== null && typeof error === "object" && typeof (error as { code?: unknown }).code === "string" ? (error as { code: string }).code : null;
@@ -67,8 +76,9 @@ const errorCode = (error: unknown) => error !== null && typeof error === "object
  * Vorhandene Zeilen bleiben; ein abgebrochener Lauf setzt dort fort. Ratenlimit und Anbieterfehler werden mit wachsender
  * Wartezeit wiederholt; was danach scheitert, bleibt offen. Gibt die Zahl der offenen Antworten zurück.
  */
-export async function generate({ definition, cases, repetitions, split, directory, apiKey, fetchImpl = globalThis.fetch, dry = false, concurrency = 4, budgetUsd = 1, retryDelayMs = 2000, log = console.log }: {
+export async function generate({ definition, candidate = null, cases, repetitions, split, directory, apiKey, fetchImpl = globalThis.fetch, dry = false, concurrency = 4, budgetUsd = 1, retryDelayMs = 2000, log = console.log }: {
   definition: EvalDefinition;
+  candidate?: Candidate | null;
   cases: readonly EvalCase[];
   repetitions: number;
   split: RunMeta["split"];
@@ -82,10 +92,11 @@ export async function generate({ definition, cases, repetitions, split, director
   log?: (line: string) => void;
 }) {
   if (!cases.length) throw new Error("Keine Fälle für diesen Lauf.");
-  const sample = definition.buildPayload(cases[0].request);
+  const build = payloadBuilder(definition, candidate);
+  const sample = build(cases[0].request);
   const meta: RunMeta = {
-    requestType: definition.id, promptVersion: REQUEST_TYPES.find((type) => type.id === definition.id)!.promptVersion,
-    model: sample.model, reasoning: sample.reasoning.effort, fingerprint: payloadFingerprint(definition, cases), repetitions, split, dry, date: new Date().toISOString().slice(0, 10),
+    requestType: definition.id, promptVersion: REQUEST_TYPES.find((type) => type.id === definition.id)!.promptVersion, candidate: candidate?.name ?? null,
+    model: sample.model, reasoning: sample.reasoning.effort, fingerprint: payloadFingerprint(build, cases), repetitions, split, dry, date: new Date().toISOString().slice(0, 10),
   };
   mkdirSync(directory, { recursive: true });
   if (existsSync(path.join(directory, "run.json"))) {
@@ -121,7 +132,7 @@ export async function generate({ definition, cases, repetitions, split, director
     while (next < open.length && !stop.reason) {
       if (spent >= budgetUsd) { stop.reason = `Budget von ${budgetUsd} USD erreicht (${spent.toFixed(4)} USD im Lauf). Mit höherem --budget fortsetzen.`; break; }
       const { entry, repetition } = open[next++];
-      const payload = definition.buildPayload(entry.request);
+      const payload = build(entry.request);
       const timing = { startedAt: Date.now() };
       let response: unknown = null;
       let delivered = false;
