@@ -5,6 +5,11 @@ import { CoreTooltip } from "./tooltipUi.tsx";
 const FLAG_COLOR_NAMES = ["Rot", "Orange", "Grün", "Blau", "Rosa", "Türkis", "Lila"] as const;
 
 const FLAGS = [1, 2, 3, 4, 5, 6, 7] as const;
+const FLAG_OPTION = "flex min-h-14 min-w-0 flex-col items-center justify-start gap-1.5 rounded-control border px-1 pt-2.5 pb-1.5 core-caption font-semibold text-core-text transition hover:bg-core-subtle disabled:cursor-not-allowed disabled:opacity-60 sm:w-14";
+
+function flagOptionClass(pressed: boolean) {
+  return `${FLAG_OPTION} ${pressed ? "border-core-action bg-core-subtle shadow-selection" : "border-transparent"}`;
+}
 
 export function flagName(flag: number, names: readonly string[] = []): string {
   if (flag < 1 || flag > 7) return "";
@@ -41,7 +46,7 @@ export interface FlagPickerProps {
 export function FlagPicker({ value, onValueChange, names, onEditNames, withNone = true, disabled = false, className = "" }: FlagPickerProps) {
   return (
     <div className={`grid min-w-0 gap-2 ${className}`}>
-      <div role="group" aria-label="Flagge" className="grid grid-cols-4 gap-1 sm:-ml-3 sm:flex sm:flex-wrap sm:items-center" data-flag-picker="true">
+      <div role="group" aria-label="Flagge" className="grid grid-cols-4 gap-1 sm:flex sm:flex-wrap" data-flag-picker="true">
         {FLAGS.map((flag) => {
           const name = flagName(flag, names);
           const pressed = value === flag;
@@ -53,10 +58,10 @@ export function FlagPicker({ value, onValueChange, names, onEditNames, withNone 
                 aria-label={`Flagge ${name}`}
                 disabled={disabled}
                 onClick={() => onValueChange(pressed ? 0 : flag)}
-                className={`core-flag-option flex min-h-14 min-w-0 flex-col items-center justify-start gap-1 rounded-control pt-2.5 sm:justify-center sm:pt-0 border core-caption font-semibold text-core-text transition hover:bg-core-subtle disabled:cursor-not-allowed disabled:opacity-60 sm:size-control sm:min-h-0 ${pressed ? "border-core-action bg-core-subtle shadow-selection" : "border-transparent"}`}
+                className={flagOptionClass(pressed)}
               >
                 <FlagIcon flag={flag} size={20} />
-                <span className="max-w-full text-center leading-tight hyphens-auto break-words sm:sr-only">{name}</span>
+                <span className="max-w-full text-center leading-tight hyphens-auto break-words">{name}</span>
               </button>
             </CoreTooltip>
           );
@@ -69,10 +74,10 @@ export function FlagPicker({ value, onValueChange, names, onEditNames, withNone 
               aria-label="Keine Flagge"
               disabled={disabled}
               onClick={() => onValueChange(0)}
-              className={`flex min-h-14 min-w-0 flex-col items-center justify-start gap-1 rounded-control pt-2.5 sm:justify-center sm:pt-0 border core-caption font-semibold text-core-text transition hover:bg-core-subtle disabled:cursor-not-allowed disabled:opacity-60 sm:size-control sm:min-h-0 ${value === 0 ? "border-core-action bg-core-subtle shadow-selection" : "border-transparent"}`}
+              className={flagOptionClass(value === 0)}
             >
-              <Ban size={16} aria-hidden="true" className="shrink-0 text-core-muted" />
-              <span className="max-w-full truncate sm:sr-only">Keine</span>
+              <Ban size={20} aria-hidden="true" className="shrink-0 text-core-muted" />
+              <span className="max-w-full truncate">Keine</span>
             </button>
           </CoreTooltip>
         ) : null}
