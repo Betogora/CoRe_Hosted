@@ -171,7 +171,10 @@ async function expectYearCells(grid: Locator) {
       weekdayLabelsSticky: weekdayLabel ? window.getComputedStyle(weekdayLabel).position === "sticky" : false,
     };
   });
-  expect(layout).toMatchObject({ cellWidth: 19, cellHeight: 19, cellRadius: "6px", weekdayLabelsSticky: true });
+  expect(layout).toMatchObject({ cellRadius: "6px", weekdayLabelsSticky: true });
+  expect(layout.cellHeight).toBeCloseTo(layout.cellWidth, 1);
+  expect(layout.cellWidth).toBeGreaterThanOrEqual(19);
+  expect(layout.cellWidth).toBeLessThanOrEqual(32);
   expect(layout.todayShadow).not.toBe("none");
 }
 
@@ -184,7 +187,8 @@ test("dashboard heatmap keeps band, controls, period views and year cells inside
     { label: "Monat", value: "month" },
     { label: "Jahr", value: "year" },
   ]) {
-    await page.getByRole("group", { name: "Heatmap-Zeitraum" }).getByRole("button", { name: period.label, exact: true }).click();
+    await page.getByRole("combobox", { name: "Heatmap-Zeitraum" }).click();
+    await page.getByRole("option", { name: period.label, exact: true }).click();
 
     for (const width of viewports) {
       await page.setViewportSize({ width, height: 900 });

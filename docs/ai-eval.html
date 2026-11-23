@@ -1968,10 +1968,6 @@ video {
   width: 1.125rem;
   height: 1.125rem;
 }
-.size-\[19px\] {
-  width: 19px;
-  height: 19px;
-}
 .size-button {
   width: var(--core-button-height);
   height: var(--core-button-height);
@@ -2323,9 +2319,6 @@ video {
 .min-w-\[56rem\] {
   min-width: 56rem;
 }
-.min-w-\[7\.5rem\] {
-  min-width: 7.5rem;
-}
 .min-w-button {
   min-width: var(--core-button-height);
 }
@@ -2349,6 +2342,9 @@ video {
 }
 .max-w-\[14rem\] {
   max-width: 14rem;
+}
+.max-w-\[16rem\] {
+  max-width: 16rem;
 }
 .max-w-\[18rem\] {
   max-width: 18rem;
@@ -2745,9 +2741,6 @@ video {
 }
 .gap-y-2 {
   row-gap: 0.5rem;
-}
-.gap-y-3 {
-  row-gap: 0.75rem;
 }
 .space-y-1 > :not([hidden]) ~ :not([hidden]) {
   --tw-space-y-reverse: 0;
@@ -3849,6 +3842,12 @@ svg.lucide {
 
 .core-study-heatmap-container {
   container: core-study-heatmap / inline-size;
+  --core-heatmap-year-cell: 19px;
+}
+
+.core-heatmap-year-cell {
+  width: var(--core-heatmap-year-cell);
+  height: var(--core-heatmap-year-cell);
 }
 
 @container core-study-heatmap (max-width: 20rem) {
@@ -3857,15 +3856,9 @@ svg.lucide {
   }
 }
 
-@container core-study-heatmap (max-width: 30rem) {
-  .core-study-heatmap-controls > .core-heatmap-period-select {
-    width: 100%;
-    order: -1;
-  }
-
-  .core-study-heatmap-nav {
-    width: 100%;
-    justify-content: space-between;
+@container core-study-heatmap (max-width: 25rem) {
+  .core-heatmap-range-year {
+    display: none;
   }
 }
 
@@ -5070,7 +5063,8 @@ body:has([aria-modal="true"]) .core-success-toast {
 }
 
 .core-heatmap-period-select {
-  width: 14rem;
+  width: 6.75rem;
+  flex: none;
 }
 
 .core-study-heatmap-band {
@@ -6457,6 +6451,11 @@ button.core-steps-step {
 .dashboard-todos [data-testid="dashboard-exam-unit"] > .grid { grid-template-columns: minmax(0, 1fr); }
 @media (min-width: 640px) and (max-width: 999px) {
   .dashboard-widget-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+/* Only tiles with a fixed height can size year cells from it; 4.5rem covers the month row, row gaps, padding and the horizontal scrollbar. */
+@media (min-width: 640px) {
+  .dashboard-widget .core-study-heatmap-view:has([data-heatmap-period="year"]) { container-type: size; }
+  .dashboard-widget [data-heatmap-period="year"] { --core-heatmap-year-cell: clamp(19px, calc((100cqh - 4.5rem) / 7), 2rem); }
 }
 @media (max-width: 639px) {
   .dashboard-modules .core-page-header-with-action { flex-wrap: nowrap; align-items: flex-end; }
