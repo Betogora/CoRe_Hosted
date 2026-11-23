@@ -339,7 +339,7 @@ export function DeckSettingsScreen({ section, onSelectSection, deck, decks, lear
           </div>
         </section>
       ) : (
-        <LearningSettingsPanel section={area === "tagesrunde" ? "daily" : "scheduler"} draft={activeDraft.learning} profiles={learningProfiles} defaultProfileName={deck.name} onProfilesChange={onSaveLearningProfiles} onDraftChange={changeLearningDraft} onApplyProfile={applyLearningProfile} />
+        <LearningSettingsPanel key={deck.id} section={area === "tagesrunde" ? "daily" : "scheduler"} draft={activeDraft.learning} profiles={learningProfiles} defaultProfileName={deck.name} onProfilesChange={onSaveLearningProfiles} onDraftChange={changeLearningDraft} onApplyProfile={applyLearningProfile} />
       )}
     </div>
 

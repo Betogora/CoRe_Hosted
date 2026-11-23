@@ -255,7 +255,7 @@ export function SettingsScreen({ section, focusConflicts = false, profile, onSav
               <div className="core-settings-row" data-layout="inline" data-testid="workspace-storage-status">
                 <div className="core-settings-row-heading">
                   <span className="core-settings-row-title">Lokaler Gerätespeicher</span>
-                  {storageStatus.persisted ? null : (
+                  {storageStatus.persisted || !storageStatus.supported ? null : (
                     <>
                       <CoreTag tone="warning">Nicht dauerhaft</CoreTag>
                       <InfoHint label="Nicht dauerhaft">Dein Browser darf die lokal gespeicherten Daten bei Platzmangel löschen. Synchronisierte Daten bleiben im Konto; noch nicht synchronisierte Änderungen können verloren gehen.</InfoHint>
@@ -263,7 +263,7 @@ export function SettingsScreen({ section, focusConflicts = false, profile, onSav
                   )}
                 </div>
                 <div className="core-settings-row-control">
-                  <span className="core-settings-row-value">{formatStorageBytes(storageStatus.usage)} von {formatStorageBytes(storageStatus.quota)}</span>
+                  <span className="core-settings-row-value">{storageStatus.usage == null || storageStatus.quota == null ? "Nicht unterstützt" : `${formatStorageBytes(storageStatus.usage)} von ${formatStorageBytes(storageStatus.quota)}`}</span>
                 </div>
               </div>
             ) : null}

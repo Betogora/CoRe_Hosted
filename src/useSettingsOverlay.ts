@@ -36,8 +36,10 @@ export function useSettingsOverlay({ settingsSection, deckSettings, navigateToRo
   const settingsOverlay = settingsOverlayKey({ settingsSection: settingsSection ?? undefined, deckSettings: deckSettings ?? undefined });
   settingsOverlayKeyRef.current = settingsOverlay;
   React.useEffect(() => {
-    if (!settingsOverlay) settingsHistoryPushedRef.current = false;
-    if (!settingsOverlay?.startsWith("deck:")) deckEntryAboveSettingsRef.current = false;
+    // The deck flag outlives the settings below it, so going forward again still finds the deck above them.
+    if (settingsOverlay) return;
+    settingsHistoryPushedRef.current = false;
+    deckEntryAboveSettingsRef.current = false;
   }, [settingsOverlay]);
 
   /** With a settings draft open only a change within its dialog passes; undefined while no draft is open. */
@@ -54,8 +56,8 @@ export function useSettingsOverlay({ settingsSection, deckSettings, navigateToRo
 
   const openSettingsOverlay = React.useCallback((overlay: SettingsOverlay) => {
     const current = getCurrentRoute();
-    // A deck opened from the settings gets its own entry, so going back returns to the settings instead of leaving them.
-    const aboveSettings = Boolean(overlay.deckSettings && current.mode === "view" && current.settingsSection);
+    // A deck opened from settings this app pushed gets its own entry, so going back returns to the settings instead of leaving them.
+    const aboveSettings = Boolean(overlay.deckSettings && current.mode === "view" && current.settingsSection && settingsHistoryPushedRef.current);
     const replace = Boolean(settingsOverlayKey(current)) && !aboveSettings;
     const base = current.mode === "view" ? createViewRoute(current.viewId, { ...current, selectedCardId: undefined, cardEditorReturnContext: undefined }) : current;
     const open = () => {
@@ -90,11 +92,13 @@ export function useSettingsOverlay({ settingsSection, deckSettings, navigateToRo
     navigateToRoute(withSettingsOverlay(current, {}), { replace: true });
   }, [getCurrentRoute, navigateToRoute]);
 
-  /** From a deck dialog to the deck list of the settings: back to the entry below, or in place of the deck dialog. */
+  /** From a deck dialog to the single-deck area of the settings: back to the entry below, or in place of the deck dialog. */
   const returnToSettings = React.useCallback(() => {
     if (deckEntryAboveSettingsRef.current) window.history.back();
     else navigateToRoute(withSettingsOverlay(getCurrentRoute(), { settingsSection: "stapel" }), { replace: true });
   }, [getCurrentRoute, navigateToRoute]);
+
+  const deckOpenedAboveSettings = React.useCallback(() => deckEntryAboveSettingsRef.current, []);
 
   const handleSettingsDraftStateChange = React.useCallback((guard: SettingsDraftGuard | null) => {
     settingsDraftGuardRef.current = guard;
@@ -158,6 +162,7 @@ export function useSettingsOverlay({ settingsSection, deckSettings, navigateToRo
     openDeckSettings,
     selectSettingsOverlay,
     returnToSettings,
+    deckOpenedAboveSettings,
     closeSettings,
     handleSettingsDraftStateChange,
     requestSettingsContextAction,

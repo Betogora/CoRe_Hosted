@@ -6,7 +6,7 @@ import type { Deck, Note } from "../../src/coreTypes.ts";
 import { readActiveAccountState, resetToFreshLocalState, signedInTestClient } from "./support/appState.ts";
 import { e2eAuthStatePath, loadE2EEnvironment } from "./support/e2eEnvironment.ts";
 import { seedAccountState } from "../support/seedAccountState.ts";
-import { deckSettingsDialog, openSettingsArea } from "./support/settingsDialog.ts";
+import { deckSettingsDialog, openSettingsArea, settingsDialog } from "./support/settingsDialog.ts";
 import { openNavigationMenuItem } from "./support/navigationMenu.ts";
 
 const DECK_IDS = {
@@ -525,6 +525,36 @@ test("[Vertrag: Review-Karteneditor] Bearbeiten und Schließen kehren reload-fä
   await waitForApp(page);
   await page.getByRole("button", { name: "Detailansicht schließen" }).click();
   await expect(page).toHaveURL(`/kartenstapel?deck=${DECK_IDS.childA}`);
+});
+
+test("[Vertrag: Einstellungen und Stapel] ein Stapel aus den Einstellungen führt per Zurück dorthin zurück", async ({ page }) => {
+  await page.goto("/lernen");
+  await waitForApp(page);
+  await openNavigationMenuItem(page, "Einstellungen");
+  const openDeckFromSettings = async () => {
+    await openSettingsArea(settingsDialog(page), "stapel");
+    await page.getByTestId("card-settings-open-deck").click();
+    await page.getByRole("option", { name: "Bereich A", exact: true }).click();
+    await expect(deckSettingsDialog(page).getByTestId("deck-settings-title-name")).toHaveText("Bereich A");
+  };
+
+  await openDeckFromSettings();
+  await page.goBack();
+  await expect(deckSettingsDialog(page)).toHaveCount(0);
+  await expect(settingsDialog(page).locator('[data-settings-section="stapel"]')).toHaveAttribute("aria-current", "page");
+  await page.goForward();
+  await expect(deckSettingsDialog(page).getByTestId("deck-settings-title-name")).toHaveText("Bereich A");
+  await page.goBack();
+  await expect(settingsDialog(page).locator('[data-settings-section="stapel"]')).toHaveAttribute("aria-current", "page");
+
+  await openDeckFromSettings();
+  await deckSettingsDialog(page).getByRole("button", { name: "Zurück zu Einstellungen" }).click();
+  await expect(settingsDialog(page).locator('[data-settings-section="stapel"]')).toHaveAttribute("aria-current", "page");
+
+  await openDeckFromSettings();
+  await deckSettingsDialog(page).getByRole("button", { name: "Stapeleinstellungen schließen" }).click();
+  await expect(page).toHaveURL("/lernen");
+  await expect(settingsDialog(page)).toHaveCount(0);
 });
 
 test("[Vertrag: Review-Stapeleinstellungen] der Stapeldialog liegt reload-fähig über der Sitzung", async ({ page }) => {

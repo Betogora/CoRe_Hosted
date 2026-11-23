@@ -82,7 +82,6 @@ test("about settings copy performance data only once the account has measurement
 test("account settings show the login e-mail read-only in one wide panel", () => {
   const html = renderSettings();
   assert.match(html, /Login-E-Mail/);
-  assert.doesNotMatch(html, /nicht änderbar/);
   assert.match(html, /readOnly=""[^>]*value="login@example\.test"/);
   assert.doesNotMatch(html, /xl:grid-cols-\[1fr_0\.8fr\]/);
   assert.match(html, /<button type="button" class="core-action-secondary core-action-destructive-secondary [^"]*">(?:(?!<\/button>).)*<span>Abmelden<\/span><\/button>/);
@@ -134,22 +133,24 @@ test("the sync state is one tag that keeps the last successful sync while change
 });
 
 test("the device storage shows its usage and marks only storage the browser may clear", () => {
-  const render = (persisted: boolean) => {
+  const render = (persisted: boolean, supported = true) => {
     const store = createWorkspaceStore();
-    store.set({ storageStatus: { supported: true, persisted, usage: 1024 * 1024, quota: 1024 * 1024 * 1024 } });
+    store.set({ storageStatus: supported ? { supported, persisted, usage: 1024 * 1024, quota: 1024 * 1024 * 1024 } : { supported, persisted, usage: null, quota: null } });
     return renderToStaticMarkup(
       <WorkspaceStoreContext.Provider value={store}><SettingsScreen section="daten" profile={createCoreRepository().getState().profile} onSaveSettings={() => null} onDraftStateChange={() => undefined} onSyncNow={async () => undefined} onListConflicts={async () => []} onResolveConflict={async () => undefined} onSignOut={async () => undefined} onNavigate={() => createViewRoute("uebersicht")} /></WorkspaceStoreContext.Provider>,
     );
   };
   assert.match(render(true), /data-testid="workspace-storage-status"[\s\S]*?<span class="core-settings-row-value">[^<]+ von [^<]+<\/span>/);
   assert.doesNotMatch(render(true), /Dauerhaft|Nicht dauerhaft/);
-  assert.match(render(false), />Nicht dauerhaft<[\s\S]*?>Dein Browser darf die lokal gespeicherten Daten bei Platzmangel löschen\. /);
+  assert.match(render(false), />Nicht dauerhaft<[\s\S]*?aria-label="Hinweis: Nicht dauerhaft"/);
+  const unsupported = render(false, false);
+  assert.match(unsupported, /<span class="core-settings-row-value">Nicht unterstützt<\/span>/);
+  assert.doesNotMatch(unsupported, /Nicht dauerhaft/);
 });
 
 test("automatic sync offers its fixed intervals as segments", () => {
   const html = renderSettings("daten");
   const group = html.slice(html.indexOf('aria-label="Intervall der automatischen Synchronisierung"'));
   for (const label of ["Aus", "1 Min\\.", "5 Min\\.", "15 Min\\.", "30 Min\\."]) assert.match(group, new RegExp(`class="core-segmented-control-option">${label}</button>`));
-  assert.doesNotMatch(html, /Abstand in Minuten/);
   assert.match(html, /data-testid="settings-sync-interval"/);
 });

@@ -51,7 +51,8 @@ export function DeckSettingsScreenWiring() {
       })}
       onDeleteDeck={async (deckId) => {
         const result = await deckCommands.deleteDeck(deckId);
-        if (result) {
+        if (result && settings.deckOpenedAboveSettings()) settings.returnToSettings();
+        else if (result) {
           const current = getCurrentRoute();
           const deleted = new Set(result.deletedDeckIds);
           navigateToRoute(current.mode === "study"

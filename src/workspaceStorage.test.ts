@@ -11,8 +11,8 @@ test("fordert persistenten Workspace-Speicher an und berichtet Nutzung und Quote
   });
   assert.equal(requested, 1);
   assert.deepEqual(status, { supported: true, persisted: true, usage: 12 * 1024 * 1024, quota: 2 * 1024 * 1024 * 1024 });
-  assert.equal(formatStorageBytes(status.usage), "12 MiB");
-  assert.equal(formatStorageBytes(status.quota), "2 GiB");
+  assert.equal(formatStorageBytes(status.usage), "12,6 MB");
+  assert.equal(formatStorageBytes(status.quota), "2,1 GB");
 });
 
 test("behandelt abgewiesene Browser-Speicheranfragen als Best Effort", async () => {

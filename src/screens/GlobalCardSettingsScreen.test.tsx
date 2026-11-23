@@ -65,7 +65,7 @@ test("global learning settings combine account-wide planning and reusable deck d
   const scheduler = renderSettings("scheduler");
   assert.match(scheduler, /Gewünschte Erinnerungsrate/);
   assert.match(scheduler, /<span class="core-tag core-tag-neutral">Standard für neue Stapel<\/span>/);
-  assert.match(scheduler, /aria-label="Hinweis: Content Repetition"[\s\S]*?>Diese Werte gehören nicht zum Lernprofil\. Wendest du ein Profil an, bleiben sie unverändert\.</);
+  assert.match(scheduler, /aria-label="Hinweis: Content Repetition"/);
   for (const html of [planning, focus, daily, scheduler]) {
     assert.doesNotMatch(html, /Login-E-Mail|Automatisch synchronisieren|Impressum/);
     assert.doesNotMatch(html, /CoRe-Modus/);

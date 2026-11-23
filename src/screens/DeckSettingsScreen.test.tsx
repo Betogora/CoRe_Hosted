@@ -99,7 +99,7 @@ test("deck profiles are copy-on-apply and global learn-ahead is absent", () => {
   const html = daily + scheduler;
   assert.match(html, />Lernprofil</);
   assert.match(html, />Anwenden</);
-  assert.match(html, /Änderst du das Profil später, bleibt der Stapel unverändert, bis du es erneut anwendest\./);
+  assert.match(html, /aria-label="Hinweis: Lernprofil"/);
   assert.doesNotMatch(html, /Standard für neue Stapel/);
   assert.match(html, />Neue Karten pro Tag</);
   assert.match(html, />Wiederholungen pro Tag</);

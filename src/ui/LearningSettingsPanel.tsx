@@ -67,13 +67,13 @@ interface LearningSettingsPanelProps {
   onApplyProfile: (settings: DeckLearningSettingsDraft) => boolean;
 }
 
-function SettingsRow({ title, htmlFor, info, infoId, note, children }: { title: string; htmlFor?: string; info?: string; infoId?: string; note?: React.ReactNode; children: React.ReactNode }) {
+function SettingsRow({ title, htmlFor, info, note, children }: { title: string; htmlFor?: string; info?: string; note?: React.ReactNode; children: React.ReactNode }) {
   return (
     <div className="core-settings-row">
       <div className="core-settings-row-text">
         <div className="core-settings-row-heading">
           {htmlFor ? <label htmlFor={htmlFor} className="core-settings-row-title">{title}</label> : <span className="core-settings-row-title">{title}</span>}
-          {info ? <InfoHint label={title} id={infoId}>{info}</InfoHint> : null}
+          {info ? <InfoHint label={title}>{info}</InfoHint> : null}
         </div>
         {note}
       </div>
@@ -186,7 +186,7 @@ export function LearningSettingsPanel({ draft, profiles, defaultProfileName, con
 
   function submitProfileEdit(event: React.FormEvent) {
     event.preventDefault();
-    if (!profileEdit) return;
+    if (!profileEdit?.name.trim()) return;
     if (profileEdit.mode === "create") {
       const result = createLearningProfileTemplate(profiles, { name: profileEdit.name, defaultName: defaultProfileName, settings: draft });
       onProfilesChange(result.profiles);
@@ -251,7 +251,7 @@ export function LearningSettingsPanel({ draft, profiles, defaultProfileName, con
                       setProfileEdit(null);
                     }}
                   />
-                  <ActionButton type="submit" variant="primary" icon={Check}>{profileEdit.mode === "create" ? "Anlegen" : "Speichern"}</ActionButton>
+                  <ActionButton type="submit" variant="primary" icon={Check} disabled={!profileEdit.name.trim()}>{profileEdit.mode === "create" ? "Anlegen" : "Speichern"}</ActionButton>
                   <IconButton type="button" variant="ghost" icon={X} label="Abbrechen" onClick={() => setProfileEdit(null)} />
                 </form>
               ) : (

@@ -1135,6 +1135,15 @@ video {
     font: var(--core-weight-body) var(--core-type-caption)/var(--core-leading-caption) var(--core-font-sans);
   }
 
+  /* A title with its hint and state tag on one line. */
+  .core-settings-row-heading {
+    display: flex;
+    min-width: 0;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--core-space-xs) var(--core-space-sm);
+  }
+
   .core-settings-row-control {
     display: flex;
     min-width: 0;
@@ -1825,6 +1834,9 @@ video {
 .-ml-2 {
   margin-left: -0.5rem;
 }
+.-ml-3 {
+  margin-left: -0.75rem;
+}
 .-mr-2 {
   margin-right: -0.5rem;
 }
@@ -2428,6 +2440,9 @@ video {
 .max-w-\[calc\(100vw-2rem\)\] {
   max-width: calc(100vw - 2rem);
 }
+.max-w-\[min\(20rem\2c calc\(100vw-1\.5rem\)\)\] {
+  max-width: min(20rem, calc(100vw - 1.5rem));
+}
 .max-w-full {
   max-width: 100%;
 }
@@ -2676,6 +2691,9 @@ video {
 }
 .flex-wrap {
   flex-wrap: wrap;
+}
+.flex-nowrap {
+  flex-wrap: nowrap;
 }
 .place-items-center {
   place-items: center;
@@ -3092,6 +3110,10 @@ video {
 .px-3 {
   padding-left: 0.75rem;
   padding-right: 0.75rem;
+}
+.px-3\.5 {
+  padding-left: 0.875rem;
+  padding-right: 0.875rem;
 }
 .px-4 {
   padding-left: 1rem;
@@ -5290,6 +5312,36 @@ strong,
 button[aria-label] {
   min-width: var(--core-button-height);
 }
+
+/* After the button minimums: the hint takes 24 px inside the 20-px title line, so rows with and without one are equally
+   high; an invisible margin keeps the touch height around it. */
+button.core-info-hint {
+  position: relative;
+  display: inline-grid;
+  flex-shrink: 0;
+  width: 1.5rem;
+  min-width: 0;
+  height: 1.5rem;
+  min-height: 0;
+  place-items: center;
+  margin: -0.125rem calc(-1 * var(--core-space-xs));
+  border-radius: var(--core-radius-round);
+  color: var(--core-text-muted);
+  transition: background-color 150ms ease, color 150ms ease;
+}
+
+button.core-info-hint:is(:hover, [data-state="open"]) {
+  background: var(--core-surface-hover);
+  color: var(--core-text);
+}
+
+@media (pointer: coarse) {
+  button.core-info-hint::before {
+    position: absolute;
+    inset: -0.625rem;
+    content: "";
+  }
+}
 /* Kept after .core-auth-panel button for the cascade. */
 .core-deck-folder-breadcrumb button {
   min-height: var(--core-control-height);
@@ -7017,6 +7069,10 @@ button[aria-label] {
     z-index: 50;
   }
 
+  .max-md\:-ml-2 {
+    margin-left: -0.5rem;
+  }
+
   .max-md\:mr-auto {
     margin-right: auto;
   }
@@ -7516,8 +7572,24 @@ button[aria-label] {
     top: 1.25rem;
   }
 
+  .md\:-ml-1 {
+    margin-left: -0.25rem;
+  }
+
+  .md\:-ml-2 {
+    margin-left: -0.5rem;
+  }
+
+  .md\:mr-1 {
+    margin-right: 0.25rem;
+  }
+
   .md\:block {
     display: block;
+  }
+
+  .md\:inline {
+    display: inline;
   }
 
   .md\:flex {
@@ -7561,6 +7633,10 @@ button[aria-label] {
     width: 14rem;
   }
 
+  .md\:w-64 {
+    width: 16rem;
+  }
+
   .md\:w-72 {
     width: 18rem;
   }
@@ -7589,12 +7665,12 @@ button[aria-label] {
     flex: 1.4;
   }
 
-  .md\:shrink-0 {
-    flex-shrink: 0;
+  .md\:flex-none {
+    flex: none;
   }
 
-  .md\:basis-auto {
-    flex-basis: auto;
+  .md\:shrink-0 {
+    flex-shrink: 0;
   }
 
   .md\:grid-cols-2 {
@@ -7609,12 +7685,20 @@ button[aria-label] {
     grid-template-columns: 13rem minmax(0,1fr);
   }
 
+  .md\:grid-cols-\[auto_minmax\(0\2c 1fr\)\] {
+    grid-template-columns: auto minmax(0,1fr);
+  }
+
   .md\:grid-cols-\[minmax\(0\2c 1fr\)_12rem_auto\] {
     grid-template-columns: minmax(0,1fr) 12rem auto;
   }
 
   .md\:flex-wrap {
     flex-wrap: wrap;
+  }
+
+  .md\:flex-nowrap {
+    flex-wrap: nowrap;
   }
 
   .md\:items-end {
@@ -7683,12 +7767,20 @@ button[aria-label] {
     padding-right: 0.75rem;
   }
 
+  .md\:pl-1\.5 {
+    padding-left: 0.375rem;
+  }
+
   .md\:pl-4 {
     padding-left: 1rem;
   }
 
   .md\:pl-6 {
     padding-left: 1.5rem;
+  }
+
+  .md\:pr-2 {
+    padding-right: 0.5rem;
   }
 
   .md\:pr-8 {
@@ -7705,6 +7797,14 @@ button[aria-label] {
 
   .md\:text-core-action {
     color: var(--core-action-primary);
+  }
+
+  .md\:text-core-secondary {
+    color: var(--core-text-secondary);
+  }
+
+  .md\:hover\:text-core-text:hover {
+    color: var(--core-text);
   }
 }
 @media (min-width: 1024px) {
@@ -7963,6 +8063,16 @@ button[aria-label] {
 
   .max-sm\:\[\&\>svg\]\:\!mt-3>svg {
     margin-top: 0.75rem !important;
+  }
+}
+@media (min-width: 768px) {
+
+  .md\:\[\&\>svg\]\:text-core-muted>svg {
+    color: var(--core-text-muted);
+  }
+
+  .md\:hover\:\[\&\>svg\]\:text-core-action>svg:hover {
+    color: var(--core-action-primary);
   }
 }
 .\[\&\>tr\[data-card-row\]\]\:opacity-60>tr[data-card-row] {

@@ -534,7 +534,7 @@ Gruppe:
 Originalkarte | wird selbst abgefragt; die Kette wartet
 ```
 
-- Die Schwelle `Varianten einsetzen ab Haltbarkeit` beträgt je Stapel 7, 21 (Standard) oder 60 Tage. Der Mindestabstand schützt vor kurzen Abständen nach `Schwer`, beim Vorziehen und in Prüfungssitzungen.
+- Die Schwelle `Varianten ab Haltbarkeit` beträgt je Stapel 7, 21 (Standard) oder 60 Tage. Der Mindestabstand schützt vor kurzen Abständen nach `Schwer`, beim Vorziehen und in Prüfungssitzungen.
 - Die Kette besteht aus den aktiven Varianten, die ältesten zuerst, höchstens so viele, wie der Stapel je Karte erlaubt (1 bis 3). Der Lernstand merkt sich die erreichte Stufe; Stufe 0 ist die Karte selbst.
 - Nach einer Variante führen `Gut` und `Leicht` zur nächsten Stufe, `Schwer` wiederholt die Variante, `Nochmal` geht eine Stufe zurück. Antworten auf die Karte selbst ändern die Stufe nicht.
 - Nach der letzten Variante kommt die, deren Formulierung am längsten nicht gesehen wurde.
@@ -885,12 +885,13 @@ Jede Einstellung gilt für genau einen Bereich.
 | --- | --- |
 | Konto, auf allen Geräten | Tagesbeginn, Vorziehfenster, Lernbremse, Easy Days, Lernprofile, Standard für neue Stapel, Flaggennamen, gespeicherte Suchen, Prüfungspläne |
 | Einen Stapel | Tageslimits, Reihenfolge und Sortierung, Begraben, Lernschritte, Zielerinnerung, maximales Intervall, CoRe-Modus, Variantenschwelle, aktive Varianten, Name und Aussehen, Offline-Nutzung |
-| Diesen Browser | heller oder dunkler Modus, Heatmap-Farbe, Anordnung von `Heute` und eigene To-dos, Pomodoro-Timer, Simulationsuhr |
+| Diesen Browser | heller oder dunkler Modus, Heatmap-Farbe, Stapelansicht, Anordnung von `Heute` und eigene To-dos, Pomodoro-Timer, Simulationsuhr |
 
 - Einstellungen werden als Entwurf geändert und ausdrücklich gespeichert oder verworfen; ein ungespeicherter Entwurf hält jedes Verlassen auf.
-- Stapeleinstellungen lassen sich für nur diesen Stapel oder samt Unterstapeln speichern; übertragen werden dabei nur die geänderten Werte.
+- Stapeleinstellungen öffnen aus den Einstellungen; Zurück führt dorthin.
+- Stapeleinstellungen werden für diesen Stapel oder samt Unterstapeln gespeichert; übertragen werden nur geänderte Werte.
 - Kontowerte werden nie in Stapel kopiert und von Lernprofilen nicht verändert.
-- Sofort, ohne Entwurf, wirken das Anwenden eines Lernprofils, der manuelle Sync, die Heatmap-Farbe und die Lerneinstellungen einer laufenden Sitzung.
+- Ohne Entwurf wirken sofort: Anwenden eines Lernprofils, manueller Sync, Heatmap-Farbe, Stapelansicht und Lerneinstellungen einer laufenden Sitzung.
 
 ### Tagesrunde und Lernprofile
 
@@ -979,7 +980,7 @@ Gruppe:
 ### Speicherplatz
 
 - Wird der Speicher knapp, entfernt CoRe nur im Konto bestätigte Inhalte und Medien, die nicht ausdrücklich offline verfügbar sind. Ausstehende Änderungen, Konflikte, Downloads und gerade gelernte Karten bleiben.
-- Die Einstellungen zeigen, ob der Speicher dauerhaft ist und wie viel belegt und frei ist. Ohne dauerhafte Speicherfreigabe kann der Browser Daten entfernen.
+- Die Einstellungen zeigen den belegten Speicher und warnen, wenn der Browser ihn räumen darf.
 - Programmteile werden erst bei absehbarer Nutzung vorgeladen, nie pauschal bei sparsamer oder langsamer Verbindung.
 
 ### Rückgängig und manuelle Ereignisse

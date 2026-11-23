@@ -70,7 +70,6 @@ export function InfoHint({ label, children, id, className = "" }: InfoHintProps)
           className="core-overlay z-[90] w-max max-w-[min(20rem,calc(100vw-1.5rem))] rounded-panel px-3.5 py-3 core-body text-core-text outline-none"
           // The focus stays on the button, so its Escape closes only the hint.
           onOpenAutoFocus={(event) => event.preventDefault()}
-          onEscapeKeyDown={(event) => { if (open === "hover") event.preventDefault(); }}
           onPointerEnter={clearHoverTimer}
           onPointerLeave={hover(false, HOVER_CLOSE_DELAY_MS)}
         >
