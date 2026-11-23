@@ -1,14 +1,14 @@
 import type { EvalCase } from "./cases.ts";
 import type { EvalDefinition } from "./definitions.ts";
 import type { AnswerRow, Outcome, RunMeta } from "./generate.ts";
-import { answerRef, labelRef, type Label, type Verdicts } from "./judge.ts";
+import { answerRef, labelRef, type Label, type Verdicts, type borderlineCases } from "./judge.ts";
 import type { EvalRun, RequestType } from "./ledger.ts";
 
 /**
  * Ein Kriterium fehlt in `criteria`, wenn es für die Anfrage nicht gilt, die Antwort den Vertrag nicht besteht oder eine
  * der beiden Seiten (Fall oder Modell) eine Ablehnung ist.
  */
-export type AnswerResult = { caseId: string; repetition: number; category: string; outcome: Outcome; criteria: Record<string, boolean>; main: boolean; costUsd: number | null; latencyMs: number; totalTokens: number | null; model: string | null };
+export type AnswerResult = { caseId: string; repetition: number; category: string; trap: boolean; outcome: Outcome; criteria: Record<string, boolean>; main: boolean; costUsd: number | null; latencyMs: number; totalTokens: number | null; model: string | null };
 
 const RESAMPLES = 2000;
 const mean = (values: readonly number[]) => values.length ? values.reduce((sum, value) => sum + value, 0) / values.length : 0;
@@ -32,7 +32,7 @@ export function evaluateAnswers(definition: EvalDefinition, cases: readonly Eval
         criteria[id] = (criteria[id] ?? true) && judged[id];
       }
     }
-    return { caseId: entry.id, repetition, category: entry.category, outcome: row.outcome, criteria, main: definition.main.every((id) => criteria[id] ?? true), costUsd: row.costUsd, latencyMs: row.latencyMs, totalTokens: row.totalTokens, model: row.model };
+    return { caseId: entry.id, repetition, category: entry.category, trap: Boolean(entry.trap), outcome: row.outcome, criteria, main: definition.main.every((id) => criteria[id] ?? true), costUsd: row.costUsd, latencyMs: row.latencyMs, totalTokens: row.totalTokens, model: row.model };
   }));
 }
 
@@ -55,7 +55,9 @@ function criteriaShares(results: readonly AnswerResult[]) {
 
 export type Summary = ReturnType<typeof summarize>;
 
-export function summarize(results: readonly AnswerResult[], random: () => number) {
+/** Eine Falle zählt als Fehler, wenn eines der kritischen Kriterien `critical` durchfällt. */
+export function summarize(results: readonly AnswerResult[], random: () => number, critical: readonly string[] = []) {
+  const traps = results.filter((result) => result.trap);
   const scores = [...caseScores(results).values()];
   const costs = results.flatMap((result) => result.costUsd === null ? [] : [result.costUsd]);
   const latencies = results.map((result) => result.latencyMs);
@@ -67,6 +69,7 @@ export function summarize(results: readonly AnswerResult[], random: () => number
     low: round(interval.low),
     high: round(interval.high),
     criteria: criteriaShares(results),
+    traps: { answers: traps.length, errors: traps.filter((result) => critical.some((id) => result.criteria[id] === false)).length },
     outcomes: Object.fromEntries((["answer", "refused", "rejected", "timeout"] as const).map((outcome) => [outcome, results.filter((result) => result.outcome === outcome).length])) as Record<Outcome, number>,
     categories: [...new Set(results.map((result) => result.category))].sort().map((category) => {
       const members = results.filter((result) => result.category === category);
@@ -90,9 +93,17 @@ export function compare(candidate: readonly AnswerResult[], reference: readonly 
   return { cases: differences.length, delta: round(mean(differences)), noise: round((high - low) / 2), gained: differences.filter((value) => value > 0).length, lost: differences.filter((value) => value < 0).length };
 }
 
-export function decide(type: RequestType, candidate: Summary, reference: Summary, comparison: ReturnType<typeof compare>): "accepted" | "rejected" {
-  const criticalHolds = type.critical.every((id) => (candidate.criteria[id] ?? 0) >= (reference.criteria[id] ?? 0));
-  return comparison.delta > comparison.noise && criticalHolds ? "accepted" : "rejected";
+const LIMIT = 1.2;
+
+/** `failed` nennt die verletzten Bedingungen; leer heißt übernommen. */
+export function decide(type: RequestType, candidate: Summary, reference: Summary, comparison: ReturnType<typeof compare>, simplify = false) {
+  const failed = [
+    ...(simplify ? comparison.delta >= -comparison.noise : comparison.delta > comparison.noise) ? [] : [simplify ? "messbar schlechter als der Bestand" : "Abstand nicht über dem Rauschen"],
+    ...type.critical.filter((id) => (candidate.criteria[id] ?? 0) < (reference.criteria[id] ?? 0)).map((id) => `kritisches Kriterium ${id} schlechter`),
+    ...candidate.costUsd > reference.costUsd * LIMIT ? ["Kosten über dem 1,2-Fachen"] : [],
+    ...candidate.latencyP90Ms > reference.latencyP90Ms * LIMIT ? ["Latenz p90 über dem 1,2-Fachen"] : [],
+  ];
+  return { decision: failed.length ? "rejected" as const : "accepted" as const, failed };
 }
 
 export function agreement(type: RequestType, labels: readonly Label[], verdicts: Verdicts) {
@@ -118,31 +129,41 @@ export function agreement(type: RequestType, labels: readonly Label[], verdicts:
   };
 }
 
-export function ledgerRun(type: RequestType, run: string, meta: RunMeta, summary: Summary, decision: EvalRun["decision"], change: string, comparison: ReturnType<typeof compare> | null): EvalRun {
+/** `promptVersion` ist bei Baseline, Übernahme und Rückhalt die Version im Code, sonst die beim Erzeugen. */
+export function ledgerRun({ type, run, meta, summary, decision, change, comparison, judge, promptVersion }: { type: RequestType; run: string; meta: RunMeta; summary: Summary; decision: EvalRun["decision"]; change: string; comparison: ReturnType<typeof compare> | null; judge: EvalRun["judge"]; promptVersion: string }): EvalRun {
   return {
-    requestType: type.id, run, date: meta.date, promptVersion: meta.promptVersion, model: meta.model, reasoning: meta.reasoning, change, decision,
+    requestType: type.id, run, date: meta.date, split: meta.split === "holdout" ? "holdout" : "dev", promptVersion, candidate: meta.candidate, fingerprint: meta.fingerprint,
+    model: meta.model, reasoning: meta.reasoning, change, decision,
     cases: summary.cases, repetitions: summary.repetitions, main: summary.main, low: summary.low, high: summary.high, criteria: summary.criteria,
-    costUsd: Number(summary.costUsd.toPrecision(3)), latencyP90Ms: summary.latencyP90Ms,
+    outcomes: summary.outcomes, traps: summary.traps,
+    costUsd: Number(summary.costUsd.toPrecision(3)), costTotalUsd: Number(summary.costTotalUsd.toPrecision(3)), latencyP90Ms: summary.latencyP90Ms, judge,
     ...(comparison ? { comparison: { noise: comparison.noise, gained: comparison.gained, lost: comparison.lost } } : {}),
   };
 }
 
 const percent = (share: number) => `${(share * 100).toLocaleString("de-DE", { minimumFractionDigits: 1, maximumFractionDigits: 1 })} %`;
 
-export function renderReport({ type, run, meta, summary, comparison, decision, controls }: { type: RequestType; run: string; meta: RunMeta; summary: Summary; comparison: ReturnType<typeof compare> | null; decision: EvalRun["decision"]; controls: ReturnType<typeof agreement> | null }) {
+type ReportJudge = { model: string; fingerprint: string; entries: number; cached: number; noise: Record<string, number> };
+const fields = (record: Record<string, string>) => Object.entries(record).map(([name, value]) => `${name}: ${value}`).join(" · ");
+
+/** `decision` ist `null` bei Läufen auf dem Trainingsteil, die nichts entscheiden. */
+export function renderReport({ type, run, meta, summary, comparison, decision, failed = [], controls, judge }: { type: RequestType; run: string; meta: RunMeta; summary: Summary; comparison: ReturnType<typeof compare> | null; decision: EvalRun["decision"] | null; failed?: readonly string[]; controls: ReturnType<typeof agreement> | null; judge: ReportJudge | null }) {
   const ids = Object.keys(summary.criteria);
+  const noise = judge ? Object.entries(judge.noise).map(([id, share]) => `${id} ${percent(share)}`).join(", ") : "";
   const lines = [
     `# ${type.label}: Lauf ${run}`,
     "",
-    `Prompt ${meta.promptVersion}, Modell ${meta.model}, Reasoning ${meta.reasoning}, ${summary.cases} Fälle × ${summary.repetitions} (${meta.split})${meta.dry ? ", Trockenlauf mit nachgebildeten Antworten" : ""}.`,
+    `Prompt ${meta.promptVersion}${meta.candidate ? ` mit Kandidat ${meta.candidate}` : ""}, Modell ${meta.model}, Reasoning ${meta.reasoning}, Fingerabdruck ${meta.fingerprint}, ${summary.cases} Fälle × ${summary.repetitions} (${meta.split})${meta.dry ? ", Trockenlauf mit nachgebildeten Antworten" : ""}.`,
     "",
     `- Hauptwert: ${percent(summary.main)} (95 %-Intervall ${percent(summary.low)} bis ${percent(summary.high)})${type.target === null ? "" : `, Ziel ${percent(type.target)}`}`,
     `- Kosten: ${summary.costUsd.toPrecision(3)} USD je Antwort, ${summary.costTotalUsd.toFixed(4)} USD im Lauf; ${summary.tokens} Tokens je Antwort`,
     `- Latenz: Median ${summary.latencyP50Ms} ms, p90 ${summary.latencyP90Ms} ms`,
     `- Antworten: ${summary.outcomes.answer} angenommen, ${summary.outcomes.refused} als ungeeignet abgelehnt, ${summary.outcomes.rejected} von der Route verworfen, ${summary.outcomes.timeout} Zeitüberschreitungen`,
     `- Geantwortete Modelle: ${summary.models.join(", ") || "keine"}`,
-    comparison ? `- Gegen den Bestand: ${comparison.delta >= 0 ? "+" : "−"}${percent(Math.abs(comparison.delta))} Punkte bei Rauschen ±${percent(comparison.noise)}, ${comparison.gained} Fälle gewonnen, ${comparison.lost} verloren (${comparison.cases} gemeinsame Fälle)` : "- Kein Vergleich: Baseline",
-    `- Entscheidung: ${decision}`,
+    ...(summary.traps.answers ? [`- Fallen: ${summary.traps.errors} Fehler bei kritischen Kriterien in ${summary.traps.answers} Antworten${summary.traps.errors ? "" : ` (Obergrenze 3/n = ${percent(3 / summary.traps.answers)})`}`] : []),
+    ...(judge ? [`- Richter: ${judge.model}, Fingerabdruck ${judge.fingerprint}; ${judge.entries} Einträge neu bewertet, ${judge.cached} aus dem Urteilscache${noise ? `; Rauschen der Doppelurteile ${noise}` : ""}`] : []),
+    comparison ? `- Gegen den Bestand: ${comparison.delta >= 0 ? "+" : "−"}${percent(Math.abs(comparison.delta))} Punkte bei Rauschen ±${percent(comparison.noise)}, ${comparison.gained} Fälle gewonnen, ${comparison.lost} verloren (${comparison.cases} gemeinsame Fälle)` : `- Kein Vergleich: ${decision === "holdout" ? "Rückhalt" : decision === "baseline" ? "Baseline" : "Trainingsteil"}`,
+    ...(decision ? [`- Entscheidung: ${decision}${failed.length ? ` (${failed.join(", ")})` : ""}`] : []),
     ...(controls ? [`- Kontrolleinträge: ${controls.entries - new Set(controls.disagreements.map((line) => line.split(" ")[0])).size} von ${controls.entries} wie das Handurteil${controls.disagreements.length ? `; Abweichungen: ${controls.disagreements.join("; ")}` : ""}`] : []),
     "",
     `| Kategorie | Antworten | Hauptwert | ${ids.join(" | ")} |`,
@@ -152,4 +173,17 @@ export function renderReport({ type, run, meta, summary, comparison, decision, c
     "",
   ];
   return lines.join("\n");
+}
+
+/** Enthält Ein- und Ausgaben; die Datei ist für den Nutzer, der Agent liest sie nur bei Läufen auf dem Trainingsteil. */
+export function renderBorderline(type: RequestType, run: string, borderline: ReturnType<typeof borderlineCases>) {
+  return [`# ${type.label}: Grenzfälle in Lauf ${run}`, "", ...borderline.length ? borderline.flatMap(({ id, cases }) => [
+    `## ${id}`, "",
+    ...cases.flatMap((entry) => [
+      `- ${entry.entry}: ${entry.passed ? "bestanden" : "nicht bestanden"}, Sicherheit ${entry.sure[id]}${entry.flipped ? ", Doppelurteil gekippt" : ""}${entry.note ? ` – ${entry.note}` : ""}`,
+      `  - Eingabe: ${fields(entry.eingabe)}`,
+      `  - Ausgabe: ${fields(entry.ausgabe)}`,
+    ]),
+    "",
+  ]) : ["Keine: alle neuen Urteile sind eindeutig, kein Doppelurteil ist gekippt.", ""]].join("\n");
 }

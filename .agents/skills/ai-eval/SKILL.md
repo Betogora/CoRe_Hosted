@@ -5,34 +5,45 @@ description: Führt einen Lauf des KI-Evals aus – Antworten erzeugen, Richtert
 
 # KI-Eval
 
-Ablage und Ledger-Format stehen in `docs/ai-eval.md`, die Regeln in ADR-049. Jeder Schritt ist ein Befehl; denke dir keine Zwischenschritte aus und ändere keine Dateien im Datenordner (`CORE_AI_EVAL_DIR`, sonst `output/ai-eval/`) von Hand.
+Ablage und Ledger-Format stehen in `docs/ai-eval.md`, die Regeln in ADR-049. Jeder Schritt ist ein Befehl; denke dir keine Zwischenschritte aus und ändere keine Dateien im Datenordner (`CORE_AI_EVAL_DIR`, sonst `output/ai-eval/`) von Hand, außer Kandidatendateien.
 
-Der Lauf kostet Geld. Starte `generate` ohne `--dry` nur, wenn der Nutzer den Lauf verlangt hat, und nenne vorher Anfragetyp, Fallzahl, Wiederholungen und erwartete Kosten.
+Der Lauf kostet Geld. Nenne vor jedem `generate` ohne `--dry` Anfragetyp, Fallzahl, Wiederholungen und erwartete Kosten. Solange das Limit des Schlüssels reicht, braucht ein Lauf keine Einzelfreigabe; hält es an (`provider_budget_exhausted`), frag den Nutzer, ob er es erhöht.
 
 ## Ein Lauf
 
-`<typ>` ist ein Anfragetyp aus `npm run ai-eval` (ohne Argumente), `<name>` ein Laufname aus Kleinbuchstaben, Ziffern, Punkt und Bindestrich, üblich `<datum>-<promptversion>`.
+`<typ>` ist ein Anfragetyp aus `npm run ai-eval` (ohne Argumente), `<name>` ein Laufname aus Kleinbuchstaben, Ziffern, Punkt und Bindestrich, üblich `<datum>-<promptversion>` oder `<datum>-<kandidat>`.
 
 1. `npm run ai-eval -- cases <typ>` – schreibt die Aufteilung neuer Fälle fest und zeigt die Fallzahlen.
-2. `npm run ai-eval -- generate <typ> --run <name>` – erzeugt die Antworten auf dem Entscheidungsteil (`dev`), höchstens für `--budget` USD (Vorgabe 1). Meldet der Befehl offene Antworten, denselben Befehl wiederholen; vorhandene Antworten bleiben. Hält das Budget den Lauf an, mit höherem `--budget` fortsetzen, sobald der Nutzer zustimmt.
-3. `npm run ai-eval -- table <typ> --run <name>` – schreibt `judge-table.json` in den Laufordner und nennt ihren Pfad.
-4. Den Subagenten `eval-judge` mit genau diesem Auftrag starten: „Bewerte `<Pfad>`.“, mit dem Pfad, den `table` nennt. Er schreibt `judge-verdicts.json` daneben. Gib ihm keine weiteren Hinweise und bewerte nicht selbst.
-5. `npm run ai-eval -- score <typ> --run <name>` – prüft Vollständigkeit und zeigt den Bericht. Für den ersten Lauf eines Anfragetyps und für jeden Neustart der Reihe `--baseline` anhängen.
-6. Bericht dem Nutzer zeigen. Erst auf seine Zustimmung denselben Befehl mit `--record` und bei einer Runde mit `--change "<die eine Änderung in einem Satz>"` wiederholen, danach `npm run docs:build`.
+2. `npm run ai-eval -- generate <typ> --run <name>` – erzeugt die Antworten auf dem Entscheidungsteil (`dev`), höchstens für `--budget` USD (Vorgabe 1). Meldet der Befehl offene Antworten, denselben Befehl wiederholen; vorhandene Antworten bleiben.
+3. `npm run ai-eval -- table <typ> --run <name>` – schreibt die Richterblöcke und nennt je Block den Auftrag. Antworten mit Urteil im Cache brauchen keinen Richter.
+4. Je Block einen Subagenten `eval-judge` mit genau dem genannten Auftrag „Bewerte `<Pfad>`.“ starten, höchstens sechs gleichzeitig. Gib ihnen keine weiteren Hinweise und bewerte nicht selbst.
+5. `npm run ai-eval -- score <typ> --run <name> --judge claude-opus-5-5` – prüft Vollständigkeit, füllt den Urteilscache und zeigt den Bericht. Für den ersten Lauf eines Anfragetyps und für jeden Neustart der Reihe `--baseline` anhängen.
+6. Dem Nutzer Hauptwert und Entscheidung nennen und die Datei `grenzfaelle.md`, die `score` nennt, als Link geben. Bei Läufen auf dem Entscheidungsteil oder dem Rückhalt liest du sie nicht selbst. Dann denselben Befehl mit `--record` (bei einer Runde mit `--change "<die eine Änderung in einem Satz>"`) und danach `npm run docs:build`.
 
-Meldet `score` unvollständige Urteile, den Richter mit demselben Auftrag erneut starten. Verweigert `--record` den Eintrag, die Meldung dem Nutzer nennen und nichts umgehen.
+Nennt `score` fehlende Blöcke, nur für diese den Richter erneut starten; `table` nicht erneut ausführen. Verweigert `--record` den Eintrag, die Meldung dem Nutzer nennen und nichts umgehen.
 
 ## Eine Runde
 
-Eine Runde ändert genau eine Sache an Prompt, Werkzeugschema, Reasoning, Ausgabegrenze oder Modell der Route und erhöht die Promptversion im Vertragsmodul. Die Idee kommt aus Fehlern des Trainingsteils (`generate … --split train` mit eigenem Laufnamen), gemessen wird am Entscheidungsteil. Den Rückhalt (`--split holdout`) misst du nur zur Baseline und am Ende einer Reihe und liest seine Antworten nicht. Lautet die Entscheidung `rejected`, die Änderung im Code zurücknehmen; der Ledger-Eintrag bleibt.
+Eine Runde misst Kandidaten gegen den Bestand. Ein Kandidat ist eine Datei `<Datenordner>/<typ>/candidates/<name>.ts`, deren Standardexport den gebauten Payload der Route ändert, ohne den Code der Route anzufassen:
+
+```ts
+export default (payload: any) => ({ ...payload, reasoning: { effort: "medium" } });
+```
+
+1. Fehler des Trainingsteils lesen (`generate … --split train` mit eigenem Laufnamen, dann `table`, `score` und `grenzfaelle.md` sowie die Antworten im Laufordner), die drei häufigsten Muster benennen. Ein Lauf auf dem Trainingsteil entscheidet nichts und kommt nicht ins Ledger.
+2. Drei bis fünf Kandidaten schreiben, jeder mit genau einem Hebel gegen ein Muster, und am Trainingsteil mit `--candidate <name>` vorauswählen.
+3. Höchstens zwei Kandidaten am Entscheidungsteil messen (`generate … --candidate <name>`, `table`, `score`; `--simplify` bei einer Kürzung oder niedrigerem Reasoning). Antworten des Entscheidungsteils nicht lesen, nur Bericht und Kennzahlen.
+4. Lautet die Entscheidung `rejected`, mit `--record --change "…"` eintragen und den Kandidaten liegen lassen. Lautet sie `accepted`, den Kandidaten in die Route übernehmen, die Promptversion im Vertragsmodul erhöhen und erst dann `--record --change "…"`; `--record` prüft, dass der Code denselben Payload baut.
+
+Den Rückhalt (`--split holdout`) misst du nur zur Baseline und am Ende einer Reihe, mit `--record`, und liest seine Antworten nicht.
 
 ## Kalibrierung des Richters
 
-Handurteile stehen in `fixtures/ai-eval/<typ>.labels.json`.
+Nur auf Wunsch des Nutzers. Handurteile stehen in `fixtures/ai-eval/<typ>.labels.json`.
 
 1. `npm run ai-eval -- calibration-table <typ>`
-2. `eval-judge` mit „Bewerte `<Pfad>`.“ starten, mit dem Pfad, den `calibration-table` nennt.
-3. `npm run ai-eval -- calibration-score <typ>` – zeigt Übereinstimmung, Kappa und jede Abweichung. Mit `--record` ins Ledger eintragen, sobald der Nutzer zustimmt.
+2. Je Block `eval-judge` mit dem genannten Auftrag starten.
+3. `npm run ai-eval -- calibration-score <typ> --judge claude-opus-5-5` – zeigt Übereinstimmung, Kappa und jede Abweichung. Mit `--record` ins Ledger eintragen, sobald der Nutzer zustimmt.
 
 ## Trockenlauf
 
