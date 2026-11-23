@@ -14,8 +14,8 @@ externen Release fällig. „Später“ ist geparkt.
 Alle vier KI-Routen stehen (`card-variant-v5`, `card-help-v1`,
 `source-cards-v2`, `learning-summary-v4`); P5 läuft. Im Ledger steht noch
 nichts; ein Probelauf vom 2026-11-23 steht im [Verlauf](history.md). Der Runner ([KI-Eval](ai-eval.md))
-kennt Varianten und `card-help` mit je 24 Prüfkarten in Training und
-Entscheidung (der Rückhalt füllt sich mit E), misst Kandidaten als Datei,
+kennt Varianten und `card-help` mit 59 bis 78 Prüfkarten je Anfragetyp und
+lokalen Korpusfällen in drei Teilen, je 20 Fallen, misst Kandidaten als Datei,
 lässt in Blöcken mit Urteilscache richten und entscheidet Runden selbst.
 Befunde, Versuchsaufbau und Arbeitspakete im Einzelnen stehen im
 [Versuchsplan](ai-eval-plan.md).
@@ -36,13 +36,6 @@ Pakete in dieser Reihenfolge; vor H laufen nur die Nachweise von F und G echt.
       Karten mit eingeschleuster Anweisung, [Verlauf](history.md)), melden die
       Routen heute „Werkzeug nicht korrekt verwendet“. Eigener Fehlercode und
       eine verständliche Meldung; im Eval bleibt es eine verworfene Antwort.
-- [ ] **E – Fallsätze Varianten und KI hilft:** je Anfragetyp etwa 100
-      Fälle aus Prüfkarten und Korpus (`cases --corpus`), darunter
-      Eintippen, Ketten mit vorhandenen Varianten, Lückentexte mit fast
-      textfüllender Lücke, Freitext ohne echte Frage und Fallen je kritischem
-      Kriterium; Injection-Fälle in mehreren Formen, weil der Inhaltsfilter
-      des Anbieters die plumpe „SYSTEM:“-Form abfängt. Nachweis: Fallzahlen je
-      Teil und Kategorie; Stichprobe vom Nutzer gesehen.
 - [ ] **F – Karten aus einer Quelle messbar machen:** Registereintrag und
       Definition je Dokument über den ganzen Auftrag (mehrere Anfragen,
       Zahlenwerte als Messgrößen), etwa 24 Dokumente mit Kernaussagen,
