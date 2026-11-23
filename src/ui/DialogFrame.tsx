@@ -18,15 +18,17 @@ export interface DialogFrameProps {
   closeLabel?: string;
   /** Element that receives focus after closing; otherwise the element focused before opening. */
   returnFocusRef?: React.RefObject<HTMLElement | null>;
+  /** Element that receives focus on opening; otherwise the close button. */
+  startFocusRef?: React.RefObject<HTMLElement | null>;
   testId?: string;
   className?: string;
   onKeyDown?: React.KeyboardEventHandler<HTMLDivElement>;
   children: ReactNode;
 }
 
-export function DialogFrame({ open, title, subtitle, leading, actions, onClose, size = "m", tabs, footer, closeLabel = "Schließen", returnFocusRef, testId, className, onKeyDown, children }: DialogFrameProps) {
+export function DialogFrame({ open, title, subtitle, leading, actions, onClose, size = "m", tabs, footer, closeLabel = "Schließen", returnFocusRef, startFocusRef, testId, className, onKeyDown, children }: DialogFrameProps) {
   const titleId = React.useId();
-  const { dialogRef, initialFocusRef } = useModalDialog({ open, onClose, returnFocusRef, stopEscapePropagation: true });
+  const { dialogRef, initialFocusRef } = useModalDialog({ open, onClose, returnFocusRef, startFocusRef, stopEscapePropagation: true });
   if (!open) return null;
 
   const dialog = (

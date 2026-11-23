@@ -25,6 +25,7 @@ export function TextReplaceDialog({ count, prepare, onRun, onClose }: TextReplac
   const [target, setTarget] = React.useState("all");
   const [matchCase, setMatchCase] = React.useState(false);
   const [running, setRunning] = React.useState(false);
+  const findRef = React.useRef<HTMLInputElement | null>(null);
 
   React.useEffect(() => {
     let active = true;
@@ -66,6 +67,7 @@ export function TextReplaceDialog({ count, prepare, onRun, onClose }: TextReplac
       title={LABEL}
       size="s"
       onClose={onClose}
+      startFocusRef={findRef}
       footer={(
         <>
           <ActionButton variant="secondary" disabled={running} onClick={onClose}>Abbrechen</ActionButton>
@@ -77,7 +79,7 @@ export function TextReplaceDialog({ count, prepare, onRun, onClose }: TextReplac
           <p className="core-body text-core-secondary">Wörtlicher Text in den Inhalten von <strong className="font-semibold text-core-text">{cardCount(count)}</strong>, nie Formatierung oder Links.</p>
           <div className="grid gap-3">
             <label className="core-field-group min-w-0"><span className="core-field-label">Suchen</span>
-              <input className="core-field w-full" value={find} autoFocus onChange={(event) => setFind(event.target.value)} />
+              <input ref={findRef} className="core-field w-full" value={find} onChange={(event) => setFind(event.target.value)} />
             </label>
             <label className="core-field-group min-w-0"><span className="core-field-label">Ersetzen durch</span>
               <input className="core-field w-full" value={replace} onChange={(event) => setReplace(event.target.value)} />

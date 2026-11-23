@@ -92,6 +92,7 @@ export interface CardSelectionBarProps {
 
 export function CardSelectionBar({ count, hitTotal, searching, allHits, disabled, onSelectAllHits, onClear, decks, flagNames, loadTagDirectory, now, dayStartHour, timeZone, onGenerateVariants, onStudy, onPrepareReplace, onRun, request }: CardSelectionBarProps) {
   const [dialog, setDialog] = React.useState<DialogState | null>(null);
+  const actionsRef = React.useRef<HTMLButtonElement | null>(null);
   const [running, setRunning] = React.useState(false);
   const dayOptions = React.useMemo(() => ({ dayStartHour, timeZone }), [dayStartHour, timeZone]);
   const todayKey = getLearningDayKey(now, dayOptions) ?? "";
@@ -183,7 +184,7 @@ export function CardSelectionBar({ count, hitTotal, searching, allHits, disabled
       ) : null}
       <Popover.Root>
         <Popover.Trigger asChild>
-          <button type="button" disabled={disabled} className="core-action-primary core-card-selection-actions ml-auto inline-flex items-center gap-1.5" data-testid="card-selection-actions">
+          <button ref={actionsRef} type="button" disabled={disabled} className="core-action-primary core-card-selection-actions ml-auto inline-flex items-center gap-1.5" data-testid="card-selection-actions">
             Aktionen<ChevronDown size={16} aria-hidden="true" />
           </button>
         </Popover.Trigger>
@@ -193,7 +194,11 @@ export function CardSelectionBar({ count, hitTotal, searching, allHits, disabled
               <React.Fragment key={id}>
                 {index > 0 && GROUP_STARTS.has(id) ? <div className="core-menu-separator" role="separator" /> : null}
                 <Popover.Close asChild>
-                  <button type="button" aria-keyshortcuts={shortcut?.keys} className="core-menu-row" data-tone={id === "delete" ? "danger" : undefined} onClick={() => open(id)}>
+                  <button type="button" aria-keyshortcuts={shortcut?.keys} className="core-menu-row" data-tone={id === "delete" ? "danger" : undefined} onClick={() => {
+                    // Makes the trigger the dialog's return target; the popover then sees the focus moved out and no longer pulls it back from the dialog's start.
+                    actionsRef.current?.focus();
+                    open(id);
+                  }}>
                     <Icon size={16} aria-hidden="true" />{entryLabel}
                     {shortcut ? <span className="ml-auto core-caption tabular-nums text-core-muted" aria-hidden="true">{shortcut.label}</span> : null}
                   </button>

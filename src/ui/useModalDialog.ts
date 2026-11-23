@@ -29,11 +29,14 @@ export function useModalDialog({
   open,
   onClose,
   returnFocusRef,
+  startFocusRef,
   stopEscapePropagation = false,
 }: {
   open: boolean;
   onClose: () => void;
   returnFocusRef?: React.RefObject<HTMLElement | null>;
+  /** Receives the focus on opening instead of the returned `initialFocusRef`. */
+  startFocusRef?: React.RefObject<HTMLElement | null>;
   stopEscapePropagation?: boolean;
 }) {
   const dialogRef = React.useRef<HTMLDivElement | null>(null);
@@ -56,7 +59,7 @@ export function useModalDialog({
       unlockedOverflow = document.body.style.overflow;
       document.body.style.overflow = "hidden";
     }
-    const frame = window.requestAnimationFrame(() => initialFocusRef.current?.focus());
+    const frame = window.requestAnimationFrame(() => (startFocusRef ?? initialFocusRef).current?.focus());
     const dialog = dialogRef.current;
     if (dialog) openDialogs.push(dialog);
 
@@ -99,7 +102,7 @@ export function useModalDialog({
         returnFocus?.focus();
       });
     };
-  }, [open, returnFocusRef, stopEscapePropagation]);
+  }, [open, returnFocusRef, startFocusRef, stopEscapePropagation]);
 
   return { dialogRef, initialFocusRef };
 }
