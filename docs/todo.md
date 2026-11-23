@@ -22,8 +22,8 @@ Festgelegt am 2026-11-23: Erzeugt wird nur über OpenRouter mit eigenem
 Eval-Schlüssel, nie über ein Modell aus einer Subscription. Richter ist
 Opus 5.5 als Subagent in Claude Code, je Block ein frischer Kontext. Eine
 Handkalibrierung gibt es vorerst nicht; jeder Bericht zeigt je Kriterium
-die zwei bis drei am wenigsten eindeutigen Urteile. Das Modell ist offen:
-Der Hillclimb läuft innerhalb des Referenzmodells `openai/gpt-6-luna`; ein
+die zwei bis drei am wenigsten eindeutigen Urteile. Der Hillclimb läuft
+innerhalb eines Modells, der Referenz `openai/gpt-6-luna` mit `low`; ein
 Modellvergleich folgt später von Hand und wird nicht eigens gebaut. Ein
 Modellwechsel und das KI-Kontingent sind nicht Teil von P5.
 
@@ -39,25 +39,24 @@ Pakete in dieser Reihenfolge; A bis G messen noch nichts.
 - [ ] **B – Runner reparieren:** Heute bleibt ein echter Lauf hängen, weil
       `generate.ts` sieben Ablehnungscodes der Variantenroute nicht kennt und
       solche Antworten endlos neu anfragt. Von der Route abgelehnte Antworten
-      und Zeitüberschreitungen zählen als Antwort statt offen zu bleiben; „nicht
-      umformulierbar“ ist je Fall erwartbar; ein Lauf erkennt seinen Prompt
-      am Fingerabdruck; Budgetabbruch, einstellbare Parallelität, Warten bei
-      Ratenlimit; Aufteilung in Training, Entscheidung und Rückhalt nach
-      Gruppen. Nachweis: Trockenlauf mit nachgebildeten Ablehnungen endet
-      vollständig.
+      und Zeitüberschreitungen zählen als Antwort statt offen zu bleiben;
+      „nicht umformulierbar“ ist je Fall erwartbar; ein Lauf erkennt seinen
+      Prompt am Fingerabdruck; Budgetabbruch, einstellbare Parallelität,
+      Warten bei Ratenlimit; Aufteilung in Training, Entscheidung und
+      Rückhalt nach Gruppen. Nachweis: Trockenlauf mit nachgebildeten
+      Ablehnungen endet vollständig.
 - [ ] **C – Kandidaten und Richter:** Prompt, Werkzeugschema, Ausgabegrenze
       und Reasoning je Lauf über eine Kandidatendatei wählbar, ohne den Code
-      der Route zu ändern. Richtertabelle in Blöcken
-      mit je einem frischen Subagenten, Sicherheit je Urteil, Doppelurteile
-      als Richterrauschen, wiederverwendete Urteile für gleiche Ausgaben.
-      `--record` ohne Kalibrierung. Nachweis: zwei Kandidaten nebeneinander;
+      der Route zu ändern. Richtertabelle in Blöcken mit je einem frischen
+      Subagenten, Sicherheit je Urteil, Doppelurteile als Richterrauschen,
+      wiederverwendete Urteile für gleiche Ausgaben. `--record` ohne
+      Kalibrierung. Nachweis: zwei Kandidaten nebeneinander;
       ein zweiter Lauf mit gleichen Ausgaben braucht keinen Richter.
 - [ ] **D – Auswertung und Übersicht:** Entscheidungsregel mit Kosten und
-      Latenz;
-      Fallen und Grenzfälle im Bericht; Ergebnisdateien ohne Inhalte
-      versioniert, damit der Vergleich an keinem Worktree hängt. Seite
-      [KI-Eval](ai-eval.md) mit Rückhalt, Richterrauschen und Bilanz. Nachweis:
-      Bilanz aus einem Testledger; Vergleich ohne `output/`.
+      Latenz; Fallen im Bericht; Ergebnisdateien ohne Inhalte versioniert,
+      damit der Vergleich an keinem Worktree hängt. Seite
+      [KI-Eval](ai-eval.md) mit Rückhalt, Richterrauschen und Bilanz.
+      Nachweis: Bilanz aus einem Testledger; Vergleich ohne `output/`.
 - [ ] **E – Fallsätze Varianten und KI hilft:** je Anfragetyp etwa 200
       Fälle aus Prüfkarten und Korpus (`cases --corpus`), darunter
       Eintippen, Ketten mit vorhandenen Varianten, Lückentexte mit fast
@@ -66,17 +65,16 @@ Pakete in dieser Reihenfolge; A bis G messen noch nichts.
       Nutzer gesehen.
 - [ ] **F – Karten aus einer Quelle messbar machen:** Registereintrag und
       Definition je Dokument über den ganzen Auftrag (mehrere Anfragen,
-      Zahlenwerte als Messgrößen), etwa 24 Dokumente mit
-      Kernaussagen, darunter lange Quellen. Nachweis: Die Messung vom
-      2026-11-22 ([Verlauf](history.md)) ist mit dem Runner nachgestellt.
+      Zahlenwerte als Messgrößen), etwa 24 Dokumente mit Kernaussagen,
+      darunter lange Quellen. Nachweis: Die Messung vom 2026-11-22
+      ([Verlauf](history.md)) ist mit dem Runner nachgestellt.
 - [ ] **G – Zusammenfassung messbar machen:** Definition, etwa 24
       Materialsätze mit Kernaussagen und Einstellungsprofilen. Nachweis: ein
       echter Lauf über drei Materialsätze.
 - [ ] **H – Baseline:** alle Anfragetypen mit den Prompts des Codes auf
       allen drei Teilen. Nachweis: Ledger und Seite. Haltepunkt: Der Nutzer
       legt Zielwerte und Reihenfolge der Welle fest und sagt, ob der Richter
-      passt; die Zielwerte im
-      Versuchsplan sind bis dahin ein Entwurf.
+      passt; die Zielwerte im Versuchsplan sind bis dahin ein Entwurf.
 - [ ] **I – Hillclimb, erste Welle:** Varianten, KI hilft, Karten aus einer
       Quelle, Zusammenfassung. Je Runde drei bis fünf Kandidaten aus den
       Trainingsfehlern, Vorauswahl am Trainingsteil, Entscheidung am
