@@ -116,12 +116,10 @@ export async function createIndexedDbCoreRepository({ userId, initialState, inde
   const flushWrites = () => writeChain;
   const {
     outbox,
-    rememberPending,
     pendingEntityMutation,
     pendingEntityIdsForTable,
     pendingEntityMutationIds,
-    queueMutations,
-    writeOutbox,
+    stageMutations,
   } = createReplicaOutbox({ userId, database, outboxRows, enqueueWrite, flushWrites });
   let syncConflictCardIds = new Set<string>(syncConflictCardIdRow?.value ?? []);
   let replicaStatus: ReplicaStatus = replicaStatusRow?.value ?? {
@@ -153,7 +151,7 @@ export async function createIndexedDbCoreRepository({ userId, initialState, inde
     },
   });
   const { applyReplicaCatalogChanges, applyReplicaCatalogChange } = studyOverview;
-  const reviewWrites = createReviewWrites({ userId, database, enqueueWrite, outbox: { rememberPending }, studyOverview, markCatalogChanged });
+  const reviewWrites = createReviewWrites({ database, enqueueWrite, stageMutations, studyOverview, markCatalogChanged });
   const cardBodies = createCardBodies(database, {
     flushWrites,
     pendingEntityMutation,
@@ -208,7 +206,7 @@ export async function createIndexedDbCoreRepository({ userId, initialState, inde
         await completed;
         return cards as Card[];
       }
-      const mutationBatch = queueMutations(changes.map(({ card, event }) => ({
+      const mutationBatch = stageMutations(changes.map(({ card, event }) => ({
         type: "review-atomic",
         table: "review_events",
         entityId: event.id,
@@ -226,7 +224,7 @@ export async function createIndexedDbCoreRepository({ userId, initialState, inde
         return { deckId: card.deckId, before: previousCatalog, after: nextCatalog };
       });
       await applyReplicaCatalogChanges(transaction, catalogChanges, occurredAt);
-      writeOutbox(transaction, mutationBatch);
+      mutationBatch.write(transaction);
       transaction.objectStore(STORE.meta).put({ key: "updatedAt", value: occurredAt });
       await completed;
       shell = { ...shell!, updatedAt: occurredAt };
@@ -242,7 +240,7 @@ export async function createIndexedDbCoreRepository({ userId, initialState, inde
   const writeNoteGraphs = (changes: NoteGraphChange[]) => enqueueWrite(async () => {
     if (!changes.length) return;
     const updatedAt = new Date().toISOString();
-    const mutationBatch = queueMutations(planEntityMutations(
+    const mutationBatch = stageMutations(planEntityMutations(
       { notes: changes.flatMap((change) => change.previous ? [change.previous.note] : []), cards: changes.flatMap((change) => change.previous?.cards ?? []) },
       { notes: changes.map((change) => change.next.note), cards: changes.flatMap((change) => change.next.cards) },
     ));
@@ -297,7 +295,7 @@ export async function createIndexedDbCoreRepository({ userId, initialState, inde
       for (const variant of card.variants) variantStore.put(variantRecord(variant, card.deckId));
     });
     await applyReplicaCatalogChanges(transaction, catalogChanges, updatedAt);
-    writeOutbox(transaction, mutationBatch);
+    mutationBatch.write(transaction);
     transaction.objectStore(STORE.meta).put({ key: "updatedAt", value: updatedAt });
     await done;
     shell = { ...shell!, updatedAt };
@@ -342,7 +340,7 @@ export async function createIndexedDbCoreRepository({ userId, initialState, inde
     const previous = new Map(shell!.decks.map((deck) => [deck.id, deck]));
     const next = decks.map(deckRecord);
     const updatedAt = new Date().toISOString();
-    const mutationBatch = queueMutations(planEntityMutations(
+    const mutationBatch = stageMutations(planEntityMutations(
       { decks: next.flatMap((deck) => previous.has(deck.id) ? [{ ...previous.get(deck.id)!, cards: [], reviewEvents: [] } as Deck] : []) },
       { decks: next.map((deck) => ({ ...deck, cards: [], reviewEvents: [] } as Deck)) },
     ));
@@ -353,7 +351,7 @@ export async function createIndexedDbCoreRepository({ userId, initialState, inde
         transaction.objectStore(STORE.decks).put(deck);
         if (!previous.has(deck.id)) transaction.objectStore(STORE.deckStudySummaries).put(emptyDeckStudySummary(deck.id));
       }
-      writeOutbox(transaction, mutationBatch);
+      mutationBatch.write(transaction);
       transaction.objectStore(STORE.meta).put({ key: "updatedAt", value: updatedAt });
       await transactionDone(transaction);
     });
@@ -475,7 +473,7 @@ export async function createIndexedDbCoreRepository({ userId, initialState, inde
     ...reviewWrites,
     async commitImportGraph(graph: ImportCommitGraph, options: ImportCommitOptions) {
       await writeChain;
-      return commitImportGraph({ database, userId, shellDecks: () => shell!.decks, replaceShellDecks, queueMutations, writeOutbox, writeNoteGraphs }, graph, options);
+      return commitImportGraph({ database, userId, shellDecks: () => shell!.decks, replaceShellDecks, stageMutations, writeNoteGraphs }, graph, options);
     },
     getInterruptedImport: () => writeChain.then(() => readInterruptedImport(database)),
     /** Safe to re-queue: the cloud matches existing rows idempotently. */
@@ -504,11 +502,11 @@ export async function createIndexedDbCoreRepository({ userId, initialState, inde
         ...(cards as Card[]).flatMap((card) => card.variants.map((variant) => insertEntityMutation("card_variants", variant))),
         ...(reviews as ReviewEvent[]).map((review) => insertEntityMutation("review_events", review)),
       ];
-      const batch = queueMutations(inputs);
+      const batch = stageMutations(inputs);
       const write = database.transaction(STORE.outbox, "readwrite");
-      writeOutbox(write, batch);
+      batch.write(write);
       await transactionDone(write);
-      return batch.queued.length;
+      return batch.count;
     },
     getSyncConflictCardIds: (): ReadonlySet<string> => new Set(syncConflictCardIds),
     async readSyncMetadata(key: string): Promise<unknown> {
@@ -596,7 +594,7 @@ export async function createIndexedDbCoreRepository({ userId, initialState, inde
       const deletedDecks = shell!.decks.filter((deck) => deletedIds.has(deck.id));
       if (!deletedDecks.length) return { deletedDeckIds: [] as string[], deletedDecks, nextSelectedDeckId: shell!.decks[0]?.id ?? null };
       const deletedAt = new Date().toISOString();
-      const mutationBatch = queueMutations([{ type: "deck-command", table: "decks", entityId: deckId, payload: { deckId, deletedAt } }]);
+      const mutationBatch = stageMutations([{ type: "deck-command", table: "decks", entityId: deckId, payload: { deckId, deletedAt } }]);
       shell = { ...shell!, decks: shell!.decks.filter((deck) => !deletedIds.has(deck.id)), updatedAt: deletedAt };
       await enqueueWrite(async () => {
         const stores = [STORE.decks, STORE.cards, STORE.variants, STORE.reviewEvents, STORE.cardCatalog, STORE.bodyResidency, STORE.deckStudySummaries, STORE.offlineDecks, STORE.offlineManifests, STORE.statisticsSnapshots, STORE.outbox, STORE.meta];
@@ -625,7 +623,7 @@ export async function createIndexedDbCoreRepository({ userId, initialState, inde
           );
         }
         transaction.objectStore(STORE.statisticsSnapshots).clear();
-        writeOutbox(transaction, mutationBatch);
+        mutationBatch.write(transaction);
         transaction.objectStore(STORE.meta).put({ key: "updatedAt", value: deletedAt });
         await Promise.all(deletions);
         await transactionDone(transaction);
@@ -649,12 +647,12 @@ export async function createIndexedDbCoreRepository({ userId, initialState, inde
       const completeProfile = requireCompleteProfile(profile, userId);
       const updatedAt = new Date().toISOString();
       shell = { ...shell!, profile: completeProfile, updatedAt };
-      const mutationBatch = queueMutations([{ type: "profile-patch", table: "profiles", entityId: completeProfile.userId, payload: { profile: completeProfile } }]);
+      const mutationBatch = stageMutations([{ type: "profile-patch", table: "profiles", entityId: completeProfile.userId, payload: { profile: completeProfile } }]);
       void enqueueWrite(async () => {
         const transaction = database.transaction([STORE.meta, STORE.outbox], "readwrite");
         transaction.objectStore(STORE.meta).put({ key: "profile", value: completeProfile });
         transaction.objectStore(STORE.meta).put({ key: "updatedAt", value: updatedAt });
-        writeOutbox(transaction, mutationBatch);
+        mutationBatch.write(transaction);
         await transactionDone(transaction);
       });
       return completeProfile;

@@ -413,7 +413,7 @@ export function createCardCommands({ store, repository, hydration, cloud, syncEn
         // Answers taken back here leave the history before the cloud has removed them.
         listCardReviewEvents: async (cardId, signal) => {
           const events = await (await import("./cloudRepository.ts")).listCardReviewEvents(cloud, cardId, signal);
-          const takenBack = new Set(repository.outbox.listPending().flatMap((mutation) => mutation.type === "review-undo" ? [mutation.entityId] : []));
+          const takenBack = repository.outbox.takenBackReviewEventIds();
           return events.filter((event) => !takenBack.has(event.id));
         },
         listSimilarNotes: async (noteId, signal) => (await import("./cloudRepository.ts")).listSimilarNotes(cloud, noteId, signal),

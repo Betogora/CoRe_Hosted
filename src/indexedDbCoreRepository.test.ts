@@ -222,6 +222,9 @@ test("eine Bewertung erhöht studyRevision statt revision und reiht eine atomare
   assert.equal(mutation.type, "review-atomic");
   assert.deepEqual((mutation.payload as any).card, { id: "card-0", study: result.updatedCard.study, updatedAt: result.updatedCard.updatedAt });
   assert.equal((mutation.payload as any).event.cardId, "card-0");
+  assert.deepEqual(repository.outbox.pendingReviewEvents().map((event) => event.id), [result.event.id]);
+  assert.deepEqual(repository.outbox.pendingStudyStates().get("card-0"), result.updatedCard.study);
+  assert.deepEqual([...repository.outbox.pendingChangeIds().cardIds], ["card-0"]);
   repository.close();
 });
 
@@ -249,6 +252,9 @@ test("das Zurücknehmen einer Bewertung entfernt das Ereignis und stellt Lernsta
   assert.deepEqual(pending.map((mutation) => mutation.type), ["review-atomic", "review-undo"], "die Rücknahme folgt ihrer Bewertung");
   assert.deepEqual((pending[1].payload as any).card.study, previous.study);
   assert.equal((pending[1].payload as any).event.id, result.event.id);
+  assert.deepEqual([...repository.outbox.takenBackReviewEventIds()], [result.event.id]);
+  assert.deepEqual(repository.outbox.pendingReviewEvents(), [], "eine zurückgenommene Bewertung zählt nicht mehr");
+  assert.deepEqual(repository.outbox.pendingStudyStates().get("card-0"), previous.study, "der Lernstand der Rücknahme gilt");
 
   await repository.persistMutationAcknowledgements([{ table: "cards", row: { id: "card-0", updated_at: result.updatedCard.updatedAt, deleted_at: null }, entity: result.updatedCard }]);
   assert.deepEqual((await repository.loadCardBody("card-0"))?.card.study, previous.study);

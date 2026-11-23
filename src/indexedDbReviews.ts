@@ -1,5 +1,5 @@
 import type { Card, CardVariant, Note } from "./coreTypes.ts";
-import type { createReplicaOutbox } from "./indexedDbOutbox.ts";
+import type { OutboxMutationInput, StagedMutations } from "./indexedDbOutbox.ts";
 import {
   STORE,
   cardRecord,
@@ -14,16 +14,14 @@ import {
 } from "./indexedDbStore.ts";
 import type { createStudyOverview } from "./indexedDbStudyOverview.ts";
 import type { ReviewAnswerResult } from "./reviewService.ts";
-import type { SyncOutboxMutation } from "./syncEngine.ts";
 import { catalogEntryFromCard, catalogReviewHistory, withStudyEvents, type CatalogReviewHistory } from "./workspaceReplica.ts";
 
 const REVIEW_STORES = [STORE.cards, STORE.variants, STORE.notes, STORE.cardCatalog, STORE.bodyResidency, STORE.deckStudySummaries, STORE.reviewEvents, STORE.outbox, STORE.meta, STORE.syncMetadata];
 
-export function createReviewWrites({ userId, database, enqueueWrite, outbox, studyOverview, markCatalogChanged }: {
-  userId: string;
+export function createReviewWrites({ database, enqueueWrite, stageMutations, studyOverview, markCatalogChanged }: {
   database: IDBDatabase;
   enqueueWrite: <T>(write: () => Promise<T>) => Promise<T>;
-  outbox: Pick<ReturnType<typeof createReplicaOutbox>, "rememberPending">;
+  stageMutations: (inputs: readonly OutboxMutationInput[]) => StagedMutations;
   studyOverview: ReturnType<typeof createStudyOverview>;
   markCatalogChanged: (cardId: string) => void;
 }) {
@@ -33,25 +31,18 @@ export function createReviewWrites({ userId, database, enqueueWrite, outbox, stu
   const write = (result: ReviewAnswerResult, card: Card, variant: CardVariant | null, type: "review-atomic" | "review-undo", at: string, catalogFor: (stored: StoredCardCatalog | null, note: Note | null, card: Card) => StoredCardCatalog | null) => {
     const { deck, event } = result;
     const takenBack = type === "review-undo";
-    const mutation: SyncOutboxMutation = {
+    const mutation = stageMutations([{
       id: takenBack ? `review_undo_${event.id}` : `review_${event.id}`,
-      userId,
-      deviceId: null,
       type,
       table: "review_events",
       entityId: event.id,
-      baseRevision: null,
       payload: {
         event,
         card: { id: card.id, study: card.study, updatedAt: card.updatedAt },
         variant: variant ? { id: variant.id, performance: variant.performance, updatedAt: variant.updatedAt } : null,
       },
       createdAt: at,
-      flushedAt: null,
-      retryCount: 0,
-      lastError: null,
-    };
-    outbox.rememberPending(mutation);
+    }]);
     studyOverview.countReview(event.answeredAt, takenBack ? -1 : 1);
     void enqueueWrite(async () => {
       const transaction = database.transaction(REVIEW_STORES, "readwrite");
@@ -74,7 +65,7 @@ export function createReviewWrites({ userId, database, enqueueWrite, outbox, stu
       cards.put(cardRecord(answered));
       if (variant) transaction.objectStore(STORE.variants).put(variantRecord(variant, card.deckId));
       if (!takenBack) transaction.objectStore(STORE.reviewEvents).put(event);
-      transaction.objectStore(STORE.outbox).put(mutation);
+      mutation.write(transaction);
       transaction.objectStore(STORE.meta).put({ key: "updatedAt", value: at });
       studyOverview.writeReviewCounts(transaction);
       await transactionDone(transaction);

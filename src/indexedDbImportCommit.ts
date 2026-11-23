@@ -1,6 +1,6 @@
 import { mergeImportedTags, normalizeCoreDeck, outdateVariantsOfChangedSource } from "./coreModel.ts";
 import type { Card, Deck, DeckSettings, ImportVerificationScope, Note, ReviewEvent } from "./coreTypes.ts";
-import type { SyncOutboxMutation } from "./syncEngine.ts";
+import type { OutboxMutationInput, StagedMutations } from "./indexedDbOutbox.ts";
 import type { ImportCommitGraph, ImportMediaFile, NoteTypeSource } from "./apkgImport.ts";
 import type { ImportSource, InterruptedImport } from "./creationWorkflow.ts";
 import { insertEntityMutation, planEntityMutations } from "./syncMutationPlanner.ts";
@@ -64,13 +64,12 @@ export interface ImportCommitOptions {
 }
 
 export async function commitImportGraph(
-  { database, userId, shellDecks, replaceShellDecks, queueMutations, writeOutbox, writeNoteGraphs }: {
+  { database, userId, shellDecks, replaceShellDecks, stageMutations, writeNoteGraphs }: {
     database: IDBDatabase;
     userId: string;
     shellDecks: () => WorkspaceDeckSummary[];
     replaceShellDecks: (decks: WorkspaceDeckSummary[], updatedAt?: string) => void;
-    queueMutations: (inputs: any[]) => { queued: SyncOutboxMutation[]; removedIds: string[] };
-    writeOutbox: (transaction: IDBTransaction, batch: { queued: SyncOutboxMutation[]; removedIds: string[] }) => void;
+    stageMutations: (inputs: readonly OutboxMutationInput[]) => StagedMutations;
     writeNoteGraphs: (changes: NoteGraphChange[]) => Promise<void>;
   },
   graph: ImportCommitGraph,
@@ -99,12 +98,12 @@ export async function commitImportGraph(
     await transactionDone(transaction);
   }
 
-  const queueAndWrite = async (stores: string[], inputs: any[], write: (transaction: IDBTransaction) => Promise<void> | void) => {
-    const batch = queueMutations(inputs);
+  const queueAndWrite = async (stores: string[], inputs: OutboxMutationInput[], write: (transaction: IDBTransaction) => Promise<void> | void) => {
+    const batch = stageMutations(inputs);
     const transaction = database.transaction([...new Set([...stores, STORE.outbox])], "readwrite");
     const done = transactionDone(transaction);
     await write(transaction);
-    writeOutbox(transaction, batch);
+    batch.write(transaction);
     await done;
   };
 

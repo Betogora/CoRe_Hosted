@@ -266,13 +266,10 @@ export function createWorkspaceHydrationService({
     const noteIds = new Set<string>(askedWhilePending?.noteIds);
     // A first write (no base revision) means a card created here, which no cloud page can show yet.
     const createdCardIds = new Set<string>(askedWhilePending?.createdCardIds);
-    for (const mutation of repository.outbox.listPending()) {
-      if (mutation.type === "review-atomic" || mutation.type === "review-undo") cardIds.add((mutation.payload as { card: { id: string } }).card.id);
-      else if (mutation.table === "cards" && mutation.entityId) {
-        cardIds.add(mutation.entityId);
-        if (mutation.baseRevision === null) createdCardIds.add(mutation.entityId);
-      } else if (mutation.table === "notes" && mutation.entityId) noteIds.add(mutation.entityId);
-    }
+    const pending = repository.outbox.pendingChangeIds();
+    for (const id of pending.cardIds) cardIds.add(id);
+    for (const id of pending.noteIds) noteIds.add(id);
+    for (const id of pending.createdCardIds) createdCardIds.add(id);
     return { cardIds, noteIds, createdCardIds };
   };
   const pendingCreatedIds = async (scope: readonly string[], request: Pick<CardPageRequest, "query" | "searchContext">, created: ReadonlySet<string>, known: ReadonlySet<string>) =>
@@ -621,13 +618,11 @@ export function createWorkspaceHydrationService({
     if (!deckIds.length) return { cards: [] };
     const { listAccountCardStudyStates } = await import("./cloudRepository.ts");
     const cards = new Map((await listAccountCardStudyStates(client, deckIds, signal)).map((card) => [card.cardId, card]));
-    for (const mutation of repository.outbox.listPending()) {
-      if (mutation.type !== "review-atomic" && mutation.type !== "review-undo") continue;
-      const { card } = mutation.payload as { card: { id: string; study: CardStudyState } };
-      const snapshot = cards.get(card.id);
+    for (const [cardId, pendingStudy] of repository.outbox.pendingStudyStates()) {
+      const snapshot = cards.get(cardId);
       if (!snapshot) continue;
-      const { extra, ...study } = card.study;
-      cards.set(card.id, { ...snapshot, study, stabilityFast: extra.stabilityFast ?? snapshot.stabilityFast });
+      const { extra, ...study } = pendingStudy;
+      cards.set(cardId, { ...snapshot, study, stabilityFast: extra.stabilityFast ?? snapshot.stabilityFast });
     }
     return { cards: [...cards.values()] };
   };
