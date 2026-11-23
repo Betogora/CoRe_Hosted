@@ -132,8 +132,6 @@ export async function generate({ definition, candidate = null, cases, repetition
     while (next < open.length && !stop.reason) {
       if (spent >= budgetUsd) { stop.reason = `Budget von ${budgetUsd} USD erreicht (${spent.toFixed(4)} USD im Lauf). Mit höherem --budget fortsetzen.`; break; }
       const { entry, repetition } = open[next++];
-      const payload = build(entry.request);
-      const timing = { startedAt: Date.now() };
       if (definition.run) {
         const calls: { request: unknown; response: unknown; latencyMs: number }[] = [];
         let transport: unknown = null;
@@ -170,6 +168,8 @@ export async function generate({ definition, candidate = null, cases, repetition
         written++;
         continue;
       }
+      const payload = build(entry.request);
+      const timing = { startedAt: Date.now() };
       let response: unknown = null;
       let delivered = false;
       let row: Omit<AnswerRow, "caseId" | "repetition" | "latencyMs" | "transcript">;
