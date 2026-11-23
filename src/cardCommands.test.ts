@@ -127,6 +127,19 @@ test("eine Aktion an der offenen Karte lässt die Listen stehen; Rückgängig ü
   assert.deepEqual(await unleeched.undo(), { restoredCount: 1, skippedCount: 0 });
 });
 
+test("eine Aktion an der offenen Karte und eine gleich folgende Flagge bauen aufeinander auf", async () => {
+  const { repository, commands } = await setup();
+  const editor = commands.createCardEditorServices([], () => undefined);
+
+  await Promise.all([
+    editor.runCardAction("card-1-forward", { kind: "suspended", suspended: true }),
+    commands.applyCardStudyState("card-1-forward", { flag: 2 }),
+  ]);
+
+  const card = (await repository.loadCardBody("card-1-forward"))?.card;
+  assert.deepEqual([card?.status, card?.ankiFlag], ["suspended", 2]);
+});
+
 test("schnelle Sofortänderungen am Lernstand bauen in ihrer Reihenfolge aufeinander auf", async () => {
   const { repository, commands } = await setup();
 

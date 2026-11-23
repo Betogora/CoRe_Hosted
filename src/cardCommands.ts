@@ -39,7 +39,7 @@ export type CardCommands = ReturnType<typeof createCardCommands>;
 
 export function createCardCommands({ store, repository, hydration, cloud, syncEngine, refresh, now, bootRun }: CardCommandsContext) {
   const cardPageRequests = new Map<string, { controller: AbortController; listKey: string; view: string }>();
-  let studyStatePatchChain: Promise<unknown> = Promise.resolve();
+  let cardWriteChain: Promise<unknown> = Promise.resolve();
   const requestSync = () => syncEngine()?.requestSync();
 
   function setCardPages(update: (current: WorkspaceSnapshot["cardPages"]) => WorkspaceSnapshot["cardPages"]) {
@@ -122,11 +122,15 @@ export function createCardCommands({ store, repository, hydration, cloud, syncEn
     return true;
   }
 
-  /** Patches run one after another, so quick successive changes each build on the stored result of the previous one. */
-  function applyCardStudyState(cardId: string, patch: CardStudyStatePatch) {
-    const run = studyStatePatchChain.then(() => writeCardStudyState(cardId, patch));
-    studyStatePatchChain = run.catch(() => undefined);
+  /** Writes to the open card run one after another, so quick successive changes each build on the stored result of the previous one. */
+  function inCardWriteChain<T>(write: () => Promise<T>) {
+    const run = cardWriteChain.then(write);
+    cardWriteChain = run.catch(() => undefined);
     return run;
+  }
+
+  function applyCardStudyState(cardId: string, patch: CardStudyStatePatch) {
+    return inCardWriteChain(() => writeCardStudyState(cardId, patch));
   }
 
   async function writeCardStudyState(cardId: string, patch: CardStudyStatePatch) {
@@ -230,12 +234,15 @@ export function createCardCommands({ store, repository, hydration, cloud, syncEn
   }
 
   /** An action on the open card keeps the lists in place, so its row stays under the cursor; a deletion reloads them. */
-  async function runCardAction(cardId: string, action: CardBatchAction) {
-    // The open card is on this device already.
-    const openCards = hydration()?.openCards ?? ((cardIds: string[]) => repository.loadCardBodies(cardIds));
-    const noteId = (await openCards([cardId]))[0]?.note.id;
-    if (!noteId) throw new Error("Die Karte ist nicht mehr verfügbar.");
-    return runBatch(openCards, [cardId], action, action.kind === "delete" ? reloadLists : () => reloadNoteGraph(noteId, action.kind === "deck"));
+  function runCardAction(cardId: string, action: CardBatchAction): Promise<CardBatchResult> {
+    return inCardWriteChain(async () => {
+      // The open card is on this device already.
+      const openCards = hydration()?.openCards ?? ((cardIds: string[]) => repository.loadCardBodies(cardIds));
+      const noteId = (await openCards([cardId]))[0]?.note.id;
+      if (!noteId) throw new Error("Die Karte ist nicht mehr verfügbar.");
+      const result = await runBatch(openCards, [cardId], action, action.kind === "delete" ? reloadLists : () => reloadNoteGraph(noteId, action.kind === "deck"));
+      return { ...result, undo: () => inCardWriteChain(result.undo) };
+    });
   }
 
   async function prepareDeckTextReplace(cardIds: string[]) {
