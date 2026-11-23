@@ -356,7 +356,7 @@ Befehlsmodule laufen ohne React, je Arbeitsbereich aus Store, Repository und Syn
 ### Varianten und Lernhilfe
 
 - Varianten entstehen nur aus der bereinigten Quelle einer Karte (`cardVariantSource`; Art `basic`, `type-in`, `cloze`, `choice`). Vor der Mutation prüft der Vertrag Anzahl, Schema, Änderung, Duplikate, Größen und den aktuellen Inhalt.
-- Antwort, Eintippvergleich, Lückenlösung, Options-IDs und Richtigkeit kommen beim Darstellen von der Karte. Eine Auswahl-Variante speichert Stamm und Optionen in `front`/`back`, umformulierte Optionstexte in `meta.options`. `clozeSyntax.ts` zerlegt Anki-Lücken für Erzeugung, Renderer und Vertrag.
+- Antwort, Eintippvergleich, Lückenlösung, Options-IDs und Richtigkeit kommen beim Darstellen von der Karte. Eine Auswahl-Variante speichert Stamm und Optionen in `front`/`back`, umformulierte Optionstexte in `meta.options`. `clozeSyntax.ts` zerlegt Anki-Lücken für Renderer und Vertrag.
 - `not_rephrasable` (422) oder drei Abweisungen in Folge (`AI_CARD_VARIANT_REJECTIONS`) vermerkt die Karte in `variantRefusal`, gültig bei gleicher `contentRevision`; `activeVariantRefusal`, `catalogEntryFromCard` und `refresh_card_catalog` werten gleich aus.
 - Geänderter Text einer behaltenen Karte, auch per Reimport, macht ihre aktiven Varianten veraltet (`meta.outdated`); eine Neuerzeugung ersetzt sie.
 - `aiCardHelp.ts` bildet den Kartentext der Lernhilfe: ohne Quellenfelder und Bildverdeckungen, eine Lücke verdeckt nur sich selbst.
