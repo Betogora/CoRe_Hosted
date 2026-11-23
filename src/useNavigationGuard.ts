@@ -3,7 +3,22 @@ import { createViewRoute, type AppRoute } from "./appNavigation.ts";
 import type { CardDraftGuard } from "./appScreenProps.ts";
 import { useAppNavigation } from "./useAppNavigation.ts";
 
-type PendingNavigation = { run: () => void; source: "creation" | "card" | "exams" };
+/** An unsaved draft of a view; `save` lets leaving keep it, without it leaving discards it. */
+interface DraftGuard {
+  saving: boolean;
+  focus: (() => void) | null;
+  save?: () => Promise<boolean>;
+}
+
+const GUARD_SOURCES = { "neue-karten": "creation", kartenstapel: "card", pruefungen: "exams" } as const;
+type GuardedView = keyof typeof GUARD_SOURCES;
+type PendingNavigation = { run: () => void; view: GuardedView };
+
+/** The view whose draft leaving `activeView` for `targetView` settles first; moves within a view settle nothing. */
+export function draftToSettle(activeView: string, targetView: string | undefined, guards: Partial<Record<GuardedView, DraftGuard>>): GuardedView | null {
+  const view = activeView in GUARD_SOURCES && targetView !== activeView ? activeView as GuardedView : null;
+  return view && guards[view] ? view : null;
+}
 
 interface NavigationGuardOptions extends Omit<Parameters<typeof useAppNavigation>[0], "onBeforeNavigation"> {
   /** Decides first while a settings draft is open; undefined lets the other drafts decide. */
@@ -11,11 +26,8 @@ interface NavigationGuardOptions extends Omit<Parameters<typeof useAppNavigation
 }
 
 export function useNavigationGuard({ settingsBlocksNavigation, ...options }: NavigationGuardOptions) {
-  const creationDraftDirtyRef = React.useRef(false);
-  const examDraftDirtyRef = React.useRef(false);
-  const creationSavingRef = React.useRef(false);
-  const creationDraftFocusRef = React.useRef<(() => void) | null>(null);
-  const cardDraftGuardRef = React.useRef<CardDraftGuard | null>(null);
+  // A view's draft guards only leaving that view; moves within it are the screen's own.
+  const draftGuards = React.useRef<Partial<Record<GuardedView, DraftGuard>>>({});
   const [pendingNavigation, setPendingNavigation] = React.useState<PendingNavigation | null>(null);
   const [savingPendingNavigation, setSavingPendingNavigation] = React.useState(false);
 
@@ -24,59 +36,50 @@ export function useNavigationGuard({ settingsBlocksNavigation, ...options }: Nav
     onBeforeNavigation(route, source) {
       const settingsDecision = settingsBlocksNavigation(route);
       if (settingsDecision !== undefined) return settingsDecision;
-      if (source === "browser" && creationSavingRef.current) {
-        creationDraftFocusRef.current?.();
+      const creation = draftGuards.current["neue-karten"];
+      if (source === "browser" && creation?.saving) {
+        creation.focus?.();
         return true;
       }
-      if (source === "browser" && creationDraftDirtyRef.current) {
-        setPendingNavigation({ source: "creation", run: () => navigation.navigateToRoute(route) });
+      if (source === "browser" && creation) {
+        setPendingNavigation({ view: "neue-karten", run: () => navigation.navigateToRoute(route) });
         return true;
       }
       return false;
     },
   });
-  const { activeView, navigateToView: navigateToViewNow } = navigation;
+  const { activeView, navigateToView: navigateUnguarded } = navigation;
 
-  const navigateToView = React.useCallback((...args: Parameters<typeof navigateToViewNow>) => {
-    if (activeView === "neue-karten" && creationSavingRef.current) {
-      creationDraftFocusRef.current?.();
-      return createViewRoute(activeView);
-    }
-    if (activeView === "neue-karten" && creationDraftDirtyRef.current) {
-      setPendingNavigation({ source: "creation", run: () => { navigateToViewNow(...args); } });
-      return createViewRoute(activeView);
-    }
-    if (activeView === "kartenstapel" && cardDraftGuardRef.current) {
-      setPendingNavigation({ source: "card", run: () => { navigateToViewNow(...args); } });
-      return createViewRoute(activeView);
-    }
-    if (activeView === "pruefungen" && examDraftDirtyRef.current) {
-      setPendingNavigation({ source: "exams", run: () => { navigateToViewNow(...args); } });
-      return createViewRoute(activeView);
-    }
-    return navigateToViewNow(...args);
-  }, [activeView, navigateToViewNow]);
+  const navigateToView = React.useCallback((...args: Parameters<typeof navigateUnguarded>) => {
+    const leaving = draftToSettle(activeView, args[0], draftGuards.current);
+    const guard = leaving ? draftGuards.current[leaving] : undefined;
+    if (!leaving || !guard) return navigateUnguarded(...args);
+    if (guard.saving) guard.focus?.();
+    else setPendingNavigation({ view: leaving, run: () => { navigateUnguarded(...args); } });
+    return createViewRoute(activeView);
+  }, [activeView, navigateUnguarded]);
 
   const leaveCardDraft = React.useCallback((leave: () => void) => {
-    if (cardDraftGuardRef.current) setPendingNavigation({ source: "card", run: leave });
+    if (draftGuards.current.kartenstapel) setPendingNavigation({ view: "kartenstapel", run: leave });
     else leave();
   }, []);
 
+  const setDraftGuard = (view: GuardedView, guard: DraftGuard | null) => {
+    if (guard) draftGuards.current[view] = guard;
+    else delete draftGuards.current[view];
+  };
+
   const handleCreationDraftStateChange = React.useCallback((dirty: boolean, focusDraft: (() => void) | null, saving: boolean) => {
-    creationDraftDirtyRef.current = dirty;
-    creationDraftFocusRef.current = focusDraft;
-    creationSavingRef.current = saving;
+    setDraftGuard("neue-karten", dirty || saving ? { saving, focus: focusDraft } : null);
   }, []);
 
   const handleExamDraftStateChange = React.useCallback((dirty: boolean) => {
-    examDraftDirtyRef.current = dirty;
+    setDraftGuard("pruefungen", dirty ? { saving: false, focus: null } : null);
   }, []);
 
   const handleCardDraftStateChange = React.useCallback((guard: CardDraftGuard | null) => {
-    cardDraftGuardRef.current = guard;
+    setDraftGuard("kartenstapel", guard ? { saving: false, focus: guard.focus, save: guard.save } : null);
   }, []);
-
-  const pendingCardNavigation = pendingNavigation?.source === "card";
 
   function runPendingNavigation() {
     const pending = pendingNavigation;
@@ -85,34 +88,32 @@ export function useNavigationGuard({ settingsBlocksNavigation, ...options }: Nav
   }
 
   async function confirmPendingNavigation() {
-    if (!pendingCardNavigation) {
-      creationDraftDirtyRef.current = false;
-      examDraftDirtyRef.current = false;
+    const guard = pendingNavigation ? draftGuards.current[pendingNavigation.view] : undefined;
+    if (!guard?.save) {
+      if (pendingNavigation) delete draftGuards.current[pendingNavigation.view];
       runPendingNavigation();
       return;
     }
     setSavingPendingNavigation(true);
     try {
-      if (await cardDraftGuardRef.current?.save()) runPendingNavigation();
+      if (await guard.save()) runPendingNavigation();
     } finally {
       setSavingPendingNavigation(false);
     }
   }
 
   function focusPendingDraft() {
-    if (pendingCardNavigation) cardDraftGuardRef.current?.focus();
-    else creationDraftFocusRef.current?.();
+    if (pendingNavigation) draftGuards.current[pendingNavigation.view]?.focus?.();
   }
 
   return {
     ...navigation,
     navigateToView,
-    navigateToViewNow,
     leaveCardDraft,
     handleCreationDraftStateChange,
     handleExamDraftStateChange,
     handleCardDraftStateChange,
-    pendingNavigation: pendingNavigation?.source ?? null,
+    pendingNavigation: pendingNavigation ? GUARD_SOURCES[pendingNavigation.view] : null,
     savingPendingNavigation,
     cancelPendingNavigation: () => setPendingNavigation(null),
     discardPendingNavigation: runPendingNavigation,

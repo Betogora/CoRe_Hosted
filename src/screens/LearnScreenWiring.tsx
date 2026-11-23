@@ -7,7 +7,7 @@ import { useDeckPractice } from "./useDeckPractice.tsx";
 export function LearnScreenWiring() {
   const { navigation, settings, clock, studyStart, deckCommands, requestDeckCoreMode } = useAppServices();
   const state = useWorkspaceValue((snapshot) => snapshot.state);
-  const { focusedDeckId, deckCreationParentId, navigateToView, navigateToViewNow } = navigation;
+  const { focusedDeckId, deckCreationParentId, navigateToView } = navigation;
   const deckPractice = useDeckPractice();
   if (!state) return null;
 
@@ -17,7 +17,7 @@ export function LearnScreenWiring() {
 
   function createDeck(input?: Parameters<DeckCommands["createDeck"]>[0]) {
     const saved = deckCommands.createDeck(input);
-    if (saved) navigateToViewNow("lernen", { focusedDeckId: saved.id }, { replace: true });
+    if (saved) navigateToView("lernen", { focusedDeckId: saved.id }, { replace: true });
     return saved;
   }
 
@@ -34,10 +34,10 @@ export function LearnScreenWiring() {
         onCreateDeck={createDeck}
         focusedDeckId={focusedDeckId}
         initialParentDeckId={deckCreationParentId}
-        onDeckCreationHandled={() => navigateToViewNow("lernen", { focusedDeckId }, { replace: true })}
+        onDeckCreationHandled={() => navigateToView("lernen", { focusedDeckId }, { replace: true })}
         onFocusDeck={openLearn}
         onOpenCardCreation={() => navigateToView("neue-karten", { creationMethod: "manual", creationDeckId: focusedDeckId || null })}
-        onOpenDecks={(deckId = null, cardId = null) => navigateToViewNow("kartenstapel", {
+        onOpenDecks={(deckId = null, cardId = null) => navigateToView("kartenstapel", {
           focusedDeckId: deckId || null,
           selectedCardId: deckId && cardId ? cardId : null,
         })}
