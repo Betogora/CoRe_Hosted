@@ -14,8 +14,10 @@ externen Release fällig. „Später“ ist geparkt.
 Alle vier KI-Routen stehen (`card-variant-v5`, `card-help-v1`,
 `source-cards-v2`, `learning-summary-v4`); P5 läuft. Im Ledger steht noch
 nichts; ein Probelauf vom 2026-11-23 steht im [Verlauf](history.md). Der Runner ([KI-Eval](ai-eval.md))
-kennt Varianten und `card-help` mit 59 bis 78 Prüfkarten je Anfragetyp und
-lokalen Korpusfällen in drei Teilen, je 20 Fallen, misst Kandidaten als Datei,
+kennt alle sechs Anfragetypen: Varianten und `card-help` mit 59 bis 78
+Prüfkarten je Anfragetyp und lokalen Korpusfällen in drei Teilen, je 20
+Fallen, dazu Karten aus einer Quelle als ganzen Auftrag je Dokument und
+Profil und die Zusammenfassung je Materialsatz und Profil. Er misst Kandidaten als Datei,
 lässt in Blöcken mit Urteilscache richten und entscheidet Runden selbst.
 Befunde, Versuchsaufbau und Arbeitspakete im Einzelnen stehen im
 [Versuchsplan](ai-eval-plan.md).
@@ -29,21 +31,19 @@ innerhalb eines Modells, der Referenz `openai/gpt-6-luna` mit `low`; ein
 Modellvergleich folgt später von Hand und wird nicht eigens gebaut. Ein
 Modellwechsel und das KI-Kontingent sind nicht Teil von P5.
 
-Pakete in dieser Reihenfolge; vor H laufen nur die Nachweise von F und G echt.
+Pakete in dieser Reihenfolge.
 
 - [ ] **Inhaltsfilter in den Routen:** Bricht der Anbieter mit
       `finish_reason: content_filter` ab (im Probelauf vom 2026-11-23 bei
       Karten mit eingeschleuster Anweisung, [Verlauf](history.md)), melden die
       Routen heute „Werkzeug nicht korrekt verwendet“. Eigener Fehlercode und
       eine verständliche Meldung; im Eval bleibt es eine verworfene Antwort.
-- [ ] **F – Karten aus einer Quelle messbar machen:** Registereintrag und
-      Definition je Dokument über den ganzen Auftrag (mehrere Anfragen,
-      Zahlenwerte als Messgrößen), etwa 24 Dokumente mit Kernaussagen,
-      darunter lange Quellen. Nachweis: Die Messung vom 2026-11-22
-      ([Verlauf](history.md)) ist mit dem Runner nachgestellt.
-- [ ] **G – Zusammenfassung messbar machen:** Definition, etwa 24
-      Materialsätze mit Kernaussagen und Einstellungsprofilen. Nachweis: ein
-      echter Lauf über drei Materialsätze.
+- [ ] **Fallsätze Quelle und Zusammenfassung ausbauen:** Karten aus einer
+      Quelle hat fünf Prüfdokumente, die Zusammenfassung drei Materialsätze.
+      Ziel je etwa 24 mit Kernaussagen, über Fächer und Formate verteilt,
+      darunter mindestens vier lange Quellen (über 60.000 Zeichen) und weitere
+      eingebaute Widersprüche; dazu weitere Einstellungsprofile der
+      Zusammenfassung, paarweise deckend. Nachweis: Fallzahlen je Teil.
 - [ ] **H – Baseline:** alle Anfragetypen mit den Prompts des Codes auf
       allen drei Teilen. Nachweis: Ledger und Seite. Haltepunkt: Der Nutzer
       legt Zielwerte und Reihenfolge der Welle fest und sagt, ob der Richter

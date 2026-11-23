@@ -1,0 +1,91 @@
+{
+  "title": "Gewaltenteilung",
+  "material": "cards",
+  "decks": [
+    {
+      "id": "d1",
+      "name": "Politik"
+    },
+    {
+      "id": "d2",
+      "name": "Gewaltenteilung",
+      "parent": "d1"
+    },
+    {
+      "id": "d3",
+      "name": "Föderalismus und Verfassungsgericht",
+      "parent": "d1"
+    }
+  ],
+  "units": [
+    {
+      "id": "m1",
+      "kind": "card",
+      "deck": "d2",
+      "text": "F: Was ist der Zweck der Gewaltenteilung?\nA: Machtmissbrauch verhindern, indem sich unabhängige Staatsorgane gegenseitig kontrollieren."
+    },
+    {
+      "id": "m2",
+      "kind": "card",
+      "deck": "d2",
+      "text": "F: Wer gilt als wichtiger Vordenker der Gewaltenteilung?\nA: Charles de Montesquieu, „Vom Geist der Gesetze“ (1748)."
+    },
+    {
+      "id": "m3",
+      "kind": "card",
+      "deck": "d2",
+      "text": "F: Welche drei Gewalten unterscheidet man?\nA: Legislative (Gesetzgebung), Exekutive (Ausführung) und Judikative (Rechtsprechung)."
+    },
+    {
+      "id": "m4",
+      "kind": "card",
+      "deck": "d2",
+      "text": "F: Wo ist die Gewaltenteilung im Grundgesetz verankert?\nA: In Artikel 20 Absatz 2."
+    },
+    {
+      "id": "m5",
+      "kind": "card",
+      "deck": "d2",
+      "text": "F: Was bedeutet Gewaltenverschränkung?\nA: Legislative und Exekutive sind nicht vollständig getrennt, etwa weil der Bundestag den Bundeskanzler wählt und viele Minister Abgeordnete sind."
+    },
+    {
+      "id": "m6",
+      "kind": "card",
+      "deck": "d2",
+      "text": "F: Wer kontrolliert im parlamentarischen System vor allem die Regierung?\nA: Die Opposition."
+    },
+    {
+      "id": "m7",
+      "kind": "card",
+      "deck": "d3",
+      "text": "F: Was ist vertikale Gewaltenteilung?\nA: Die Verteilung staatlicher Aufgaben auf Bund, Länder und Gemeinden."
+    },
+    {
+      "id": "m8",
+      "kind": "card",
+      "deck": "d3",
+      "text": "F: Welcher Artikel schützt den Föderalismus vor Abschaffung?\nA: Artikel 79 Absatz 3 des Grundgesetzes."
+    },
+    {
+      "id": "m9",
+      "kind": "card",
+      "deck": "d3",
+      "text": "F: Wann wird das Bundesverfassungsgericht tätig?\nA: Nur auf Antrag; es kann Gesetze für nichtig erklären."
+    },
+    {
+      "id": "m10",
+      "kind": "card",
+      "deck": "d3",
+      "text": "F: Warum heißen die Medien „vierte Gewalt“?\nA: Wegen ihrer Kontrollfunktion durch Berichterstattung; rechtlich sind sie keine Staatsgewalt."
+    }
+  ],
+  "keypoints": [
+    "Die Gewaltenteilung soll Machtmissbrauch durch gegenseitige Kontrolle unabhängiger Organe verhindern.",
+    "Legislative, Exekutive und Judikative sind die drei Gewalten.",
+    "Die Gewaltenteilung ist in Artikel 20 Absatz 2 des Grundgesetzes verankert.",
+    "Legislative und Exekutive sind in Deutschland verschränkt.",
+    "Die vertikale Gewaltenteilung verteilt Aufgaben auf Bund, Länder und Gemeinden und ist durch Artikel 79 Absatz 3 geschützt.",
+    "Das Bundesverfassungsgericht wird nur auf Antrag tätig und kann Gesetze für nichtig erklären."
+  ],
+  "contradictions": []
+}

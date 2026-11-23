@@ -1,0 +1,204 @@
+{
+  "cases": [
+    {
+      "id": "zellatmung-standard",
+      "category": "standard",
+      "group": "zellatmung",
+      "request": {
+        "source": "zellatmung.md",
+        "profile": "standard"
+      },
+      "split": "train"
+    },
+    {
+      "id": "zellatmung-alle-formen",
+      "category": "alle-formen",
+      "group": "zellatmung",
+      "request": {
+        "source": "zellatmung.md",
+        "profile": "alle-formen"
+      },
+      "split": "train"
+    },
+    {
+      "id": "zellatmung-weniger",
+      "category": "weniger",
+      "group": "zellatmung",
+      "request": {
+        "source": "zellatmung.md",
+        "profile": "weniger"
+      },
+      "split": "train"
+    },
+    {
+      "id": "zellatmung-mehr",
+      "category": "mehr",
+      "group": "zellatmung",
+      "request": {
+        "source": "zellatmung.md",
+        "profile": "mehr"
+      },
+      "split": "train"
+    },
+    {
+      "id": "gewaltenteilung-standard",
+      "category": "standard",
+      "group": "gewaltenteilung",
+      "request": {
+        "source": "gewaltenteilung.txt",
+        "profile": "standard"
+      },
+      "split": "dev"
+    },
+    {
+      "id": "gewaltenteilung-alle-formen",
+      "category": "alle-formen",
+      "group": "gewaltenteilung",
+      "request": {
+        "source": "gewaltenteilung.txt",
+        "profile": "alle-formen"
+      },
+      "split": "dev"
+    },
+    {
+      "id": "gewaltenteilung-weniger",
+      "category": "weniger",
+      "group": "gewaltenteilung",
+      "request": {
+        "source": "gewaltenteilung.txt",
+        "profile": "weniger"
+      },
+      "split": "dev"
+    },
+    {
+      "id": "gewaltenteilung-mehr",
+      "category": "mehr",
+      "group": "gewaltenteilung",
+      "request": {
+        "source": "gewaltenteilung.txt",
+        "profile": "mehr"
+      },
+      "split": "dev"
+    },
+    {
+      "id": "netzwerk-glossar-standard",
+      "category": "standard",
+      "group": "netzwerk-glossar",
+      "request": {
+        "source": "netzwerk-glossar.csv",
+        "profile": "standard"
+      },
+      "split": "dev"
+    },
+    {
+      "id": "netzwerk-glossar-alle-formen",
+      "category": "alle-formen",
+      "group": "netzwerk-glossar",
+      "request": {
+        "source": "netzwerk-glossar.csv",
+        "profile": "alle-formen"
+      },
+      "split": "dev"
+    },
+    {
+      "id": "netzwerk-glossar-weniger",
+      "category": "weniger",
+      "group": "netzwerk-glossar",
+      "request": {
+        "source": "netzwerk-glossar.csv",
+        "profile": "weniger"
+      },
+      "split": "dev"
+    },
+    {
+      "id": "netzwerk-glossar-mehr",
+      "category": "mehr",
+      "group": "netzwerk-glossar",
+      "request": {
+        "source": "netzwerk-glossar.csv",
+        "profile": "mehr"
+      },
+      "split": "dev"
+    },
+    {
+      "id": "franzoesische-revolution-standard",
+      "category": "standard",
+      "group": "franzoesische-revolution",
+      "request": {
+        "source": "franzoesische-revolution.tsv",
+        "profile": "standard"
+      },
+      "split": "train"
+    },
+    {
+      "id": "franzoesische-revolution-alle-formen",
+      "category": "alle-formen",
+      "group": "franzoesische-revolution",
+      "request": {
+        "source": "franzoesische-revolution.tsv",
+        "profile": "alle-formen"
+      },
+      "split": "train"
+    },
+    {
+      "id": "franzoesische-revolution-weniger",
+      "category": "weniger",
+      "group": "franzoesische-revolution",
+      "request": {
+        "source": "franzoesische-revolution.tsv",
+        "profile": "weniger"
+      },
+      "split": "train"
+    },
+    {
+      "id": "franzoesische-revolution-mehr",
+      "category": "mehr",
+      "group": "franzoesische-revolution",
+      "request": {
+        "source": "franzoesische-revolution.tsv",
+        "profile": "mehr"
+      },
+      "split": "train"
+    },
+    {
+      "id": "ohmsches-gesetz-standard",
+      "category": "standard",
+      "group": "ohmsches-gesetz",
+      "request": {
+        "source": "ohmsches-gesetz.pdf",
+        "profile": "standard"
+      },
+      "split": "holdout"
+    },
+    {
+      "id": "ohmsches-gesetz-alle-formen",
+      "category": "alle-formen",
+      "group": "ohmsches-gesetz",
+      "request": {
+        "source": "ohmsches-gesetz.pdf",
+        "profile": "alle-formen"
+      },
+      "split": "holdout"
+    },
+    {
+      "id": "ohmsches-gesetz-weniger",
+      "category": "weniger",
+      "group": "ohmsches-gesetz",
+      "request": {
+        "source": "ohmsches-gesetz.pdf",
+        "profile": "weniger"
+      },
+      "split": "holdout"
+    },
+    {
+      "id": "ohmsches-gesetz-mehr",
+      "category": "mehr",
+      "group": "ohmsches-gesetz",
+      "request": {
+        "source": "ohmsches-gesetz.pdf",
+        "profile": "mehr"
+      },
+      "split": "holdout"
+    }
+  ]
+}

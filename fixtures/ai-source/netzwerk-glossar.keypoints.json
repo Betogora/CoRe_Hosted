@@ -1,0 +1,24 @@
+{
+  "keypoints": [
+    "Eine IP-Adresse adressiert ein Gerät eindeutig; IPv4 hat 32 Bit, IPv6 128 Bit.",
+    "Die Subnetzmaske trennt Netz- und Geräteteil einer IPv4-Adresse, etwa 255.255.255.0 für /24.",
+    "Ein Router verbindet Netze und leitet Pakete nach der Ziel-IP weiter (Schicht 3).",
+    "Ein Switch verbindet Geräte im lokalen Netz und leitet Rahmen nach der MAC-Adresse weiter (Schicht 2).",
+    "Eine MAC-Adresse ist die 48-Bit-Hardware-Adresse einer Netzwerkschnittstelle.",
+    "DNS übersetzt Namen in IP-Adressen.",
+    "DHCP vergibt IP-Adresse, Subnetzmaske, Gateway und DNS-Server automatisch.",
+    "TCP ist verbindungsorientiert und sichert Reihenfolge und Vollständigkeit durch Bestätigungen.",
+    "UDP ist verbindungslos ohne Zustellgarantie und eignet sich für Echtzeitdaten.",
+    "Ein Port (0 bis 65535) adressiert einen Dienst; HTTPS nutzt Port 443.",
+    "Der Three-Way-Handshake baut eine TCP-Verbindung mit SYN, SYN-ACK und ACK auf.",
+    "Ein Gateway ist der Router, über den ein Gerät Ziele außerhalb des eigenen Netzes erreicht.",
+    "NAT ersetzt private Adressen beim Übergang ins Internet durch eine öffentliche Adresse.",
+    "Private IPv4-Bereiche sind 10.0.0.0/8, 172.16.0.0/12 und 192.168.0.0/16.",
+    "Ping prüft mit ICMP-Echo die Erreichbarkeit und misst die Laufzeit.",
+    "Latenz ist die Laufzeit eines Pakets vom Sender zum Empfänger, meist in Millisekunden.",
+    "Bandbreite ist die maximale Datenmenge pro Zeit, etwa 100 Mbit/s.",
+    "Das OSI-Modell hat sieben Schichten von der Bitübertragung bis zur Anwendung.",
+    "HTTP überträgt Webseiten unverschlüsselt, standardmäßig über Port 80.",
+    "TLS verschlüsselt Verbindungen wie bei HTTPS und weist die Identität des Servers mit Zertifikaten nach."
+  ]
+}

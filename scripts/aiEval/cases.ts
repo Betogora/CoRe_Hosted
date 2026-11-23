@@ -135,7 +135,7 @@ export async function sampleCorpus(definition: EvalDefinition, count: number, se
   const cases: DraftCase[] = [];
   for (const key of keys) {
     const { source, note } = cards.get(key)!;
-    const entries = definition.fromCorpus(source).filter((entry) => definition.parseRequest(entry.request));
+    const entries = (definition.fromCorpus?.(source) ?? []).filter((entry) => definition.parseRequest(entry.request));
     if (cases.length + entries.length > count) break;
     cases.push(...entries.map((entry) => ({ id: `corpus-${key}${entry.suffix}`, category: entry.category, group: `note-${note}`, request: entry.request as unknown })));
   }

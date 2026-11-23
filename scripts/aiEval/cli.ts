@@ -2,8 +2,8 @@ import { existsSync, readFileSync, readdirSync, rmSync, writeFileSync } from "no
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 import { parseArgs } from "node:util";
-import { SPLITS, outputRoot, assignSplits, type EvalCase, type Split, corpusCasesFile, handCasesFile, loadCases, readCases, readJson, sampleCorpus, seededRandom, writeJson } from "./cases.ts";
-import { definitionFor, type EvalDefinition } from "./definitions.ts";
+import { SPLITS, outputRoot, assignSplits, type DraftCase, type EvalCase, type Split, corpusCasesFile, handCasesFile, loadCases, readCases, readJson, sampleCorpus, seededRandom, writeJson } from "./cases.ts";
+import { definitionFor, judgeItemsFor, type EvalDefinition } from "./definitions.ts";
 import { generate, payloadBuilder, payloadFingerprint, readAnswers, readMeta, runDirectory, type Candidate } from "./generate.ts";
 import { JUDGE_INSTRUCTIONS_FILE, answerRef, borderlineCases, buildJudgeTable, labelRef, readLabels, readVerdicts, type JudgeBlock, type JudgeCache, type JudgeItem, type JudgeKey, type VerdictReading } from "./judge.ts";
 import { LEDGER_FILE, REQUEST_TYPES, bestRun, parseLedger, readLedger, resultsFile, type EvalLedger, type EvalRun } from "./ledger.ts";
@@ -100,8 +100,11 @@ async function main(argv: string[]) {
     const sampled = values.corpus ? await sampleCorpus(definition, Number(values.corpus), Number(values.seed)) : [];
     const corpus = [...known, ...sampled.filter((entry) => !known.some((other) => other.id === entry.id))];
     const assigned = assignSplits([...hand, ...corpus], random);
-    if (hand.length) writeJson(handCasesFile(id), { cases: assigned.slice(0, hand.length) });
-    if (corpus.length) writeJson(corpusCasesFile(id), { cases: assigned.slice(hand.length) });
+    // The files keep the request as written; readCases returns it parsed, which may be much larger.
+    const raw = new Map([handCasesFile(id), corpusCasesFile(id)].flatMap((file) => existsSync(file) ? (readJson(file) as { cases: DraftCase[] }).cases.map((entry) => [entry.id, entry.request] as const) : []));
+    const written = assigned.map((entry) => ({ ...entry, request: raw.get(entry.id) ?? entry.request }));
+    if (hand.length) writeJson(handCasesFile(id), { cases: written.slice(0, hand.length) });
+    if (corpus.length) writeJson(corpusCasesFile(id), { cases: written.slice(hand.length) });
     const count = (members: readonly EvalCase[]) => SPLITS.map((split) => `${split} ${members.filter((entry) => entry.split === split).length}`).join(", ");
     console.log(`${hand.length} Prüfkarten, ${corpus.length} Korpusfälle; ${count(assigned)}.`);
     for (const category of [...new Set(assigned.map((entry) => entry.category))].sort()) console.log(`  ${category}: ${count(assigned.filter((entry) => entry.category === category))}`);
@@ -123,8 +126,8 @@ async function main(argv: string[]) {
   if (command === "table") {
     const directory = runDirectory(id, run());
     const cases = new Map(loadCases(definition).map((entry) => [entry.id, entry]));
-    const answers: JudgeItem[] = readAnswers(directory).filter((row) => row.outcome === "answer" && !cases.get(row.caseId)!.refuse).map((row) => ({ ref: answerRef(row.caseId, row.repetition), request: cases.get(row.caseId)!.request, output: row.output }));
-    const controls: JudgeItem[] = readLabels(definition).filter((label) => label.control).map((label) => ({ ref: labelRef(label.id), request: label.request, output: label.output }));
+    const answers: JudgeItem[] = readAnswers(directory).filter((row) => row.outcome === "answer" && !cases.get(row.caseId)!.refuse).flatMap((row) => judgeItemsFor(definition, answerRef(row.caseId, row.repetition), cases.get(row.caseId)!.request, row.output));
+    const controls: JudgeItem[] = readLabels(definition).filter((label) => label.control).flatMap((label) => judgeItemsFor(definition, labelRef(label.id), label.request, label.output));
     const { blocks, key } = buildJudgeTable(definition, [...answers, ...controls], random, { instructions: instructions(), requests: [...cases.values()].map((entry) => entry.request), cache: readCache(id) });
     writeTable(directory, blocks, key);
     return;
@@ -138,7 +141,9 @@ async function main(argv: string[]) {
     const cache = readCache(id);
     const judged = meta.dry ? null : verdictsIn(directory, cache);
     const judgeModel = meta.dry ? "nachgebildet" : requireJudge(values.judge);
-    const verdicts = judged?.reading.verdicts ?? new Map(cases.flatMap((entry) => Array.from({ length: meta.repetitions }, (_, repetition) => [answerRef(entry.id, repetition), Object.fromEntries(definition.judged(entry.request).map((criterion) => [criterion.id, true]))] as const)));
+    const caseById = new Map(cases.map((entry) => [entry.id, entry]));
+    const verdicts = judged?.reading.verdicts ?? new Map(readAnswers(directory).filter((row) => row.outcome === "answer" && caseById.has(row.caseId)).flatMap((row) => judgeItemsFor(definition, answerRef(row.caseId, row.repetition), caseById.get(row.caseId)!.request, row.output)
+      .map((item) => [item.ref, Object.fromEntries(item.criteria.map((criterion) => [criterion.id, true]))] as const)));
     const results = evaluateAnswers(definition, cases, meta.repetitions, readAnswers(directory), verdicts);
     writeJson(path.join(directory, "results.json"), results);
     const summary = summarize(results, random, type.critical);
@@ -190,7 +195,7 @@ async function main(argv: string[]) {
   if (command === "calibration-table") {
     const labels = readLabels(definition);
     if (!labels.length) throw new Error(`Keine Handurteile für ${id}.`);
-    const { blocks, key } = buildJudgeTable(definition, labels.map((label) => ({ ref: labelRef(label.id), request: label.request, output: label.output })), random, { instructions: instructions(), requests: labels.map((label) => label.request) });
+    const { blocks, key } = buildJudgeTable(definition, labels.flatMap((label) => judgeItemsFor(definition, labelRef(label.id), label.request, label.output)), random, { instructions: instructions(), requests: labels.map((label) => label.request) });
     writeTable(calibration, blocks, key);
     return;
   }

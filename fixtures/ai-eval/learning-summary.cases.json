@@ -1,0 +1,64 @@
+{
+  "cases": [
+    {
+      "id": "zellatmung-quelle-standard",
+      "category": "standard",
+      "group": "zellatmung-quelle",
+      "request": {
+        "set": "zellatmung-quelle",
+        "profile": "standard"
+      },
+      "split": "train"
+    },
+    {
+      "id": "zellatmung-quelle-kurz-pruefung",
+      "category": "kurz-pruefung",
+      "group": "zellatmung-quelle",
+      "request": {
+        "set": "zellatmung-quelle",
+        "profile": "kurz-pruefung"
+      },
+      "split": "train"
+    },
+    {
+      "id": "gewaltenteilung-karten-standard",
+      "category": "standard",
+      "group": "gewaltenteilung-karten",
+      "request": {
+        "set": "gewaltenteilung-karten",
+        "profile": "standard"
+      },
+      "split": "holdout"
+    },
+    {
+      "id": "gewaltenteilung-karten-lang-einfach",
+      "category": "lang-einfach",
+      "group": "gewaltenteilung-karten",
+      "request": {
+        "set": "gewaltenteilung-karten",
+        "profile": "lang-einfach"
+      },
+      "split": "holdout"
+    },
+    {
+      "id": "netzwerk-karten-und-quelle-standard",
+      "category": "standard",
+      "group": "netzwerk-karten-und-quelle",
+      "request": {
+        "set": "netzwerk-karten-und-quelle",
+        "profile": "standard"
+      },
+      "split": "dev"
+    },
+    {
+      "id": "netzwerk-karten-und-quelle-kurz-pruefung",
+      "category": "kurz-pruefung",
+      "group": "netzwerk-karten-und-quelle",
+      "request": {
+        "set": "netzwerk-karten-und-quelle",
+        "profile": "kurz-pruefung"
+      },
+      "split": "dev"
+    }
+  ]
+}

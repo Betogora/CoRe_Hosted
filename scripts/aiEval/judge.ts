@@ -2,7 +2,7 @@ import { createHash } from "node:crypto";
 import { existsSync } from "node:fs";
 import * as v from "valibot";
 import { readJson, shuffled } from "./cases.ts";
-import type { EvalDefinition, JudgedCriterion } from "./definitions.ts";
+import type { EvalDefinition, JudgedCriterion, Rendered } from "./definitions.ts";
 import { parseStrict } from "./ledger.ts";
 
 export const labelsFile = (id: string) => `fixtures/ai-eval/${id}.labels.json`;
@@ -29,8 +29,8 @@ const verdictsSchema = v.strictObject({
 
 /** `control` mischt den Eintrag als Kontrolleintrag in jede Richtertabelle. */
 export type Label = v.InferOutput<typeof labelsSchema>["entries"][number];
-/** `ref` führt zurück zur Antwort oder zum Handurteil. */
-export type JudgeItem = { ref: string; request: unknown; output: unknown };
+/** `ref` führt zurück zur Antwort oder zum Handurteil (`judgeItemsFor`). */
+export type JudgeItem = { ref: string; criteria: JudgedCriterion[]; rendered: Rendered };
 export type JudgeEntry = { entry: string; criteria: string[]; eingabe: Record<string, string>; ausgabe: Record<string, string> };
 export type JudgeBlock = { requestType: string; criteria: JudgedCriterion[]; entries: JudgeEntry[] };
 /** `sure`: 3 eindeutig, 2 auch anders vertretbar, 1 knapp. */
@@ -47,10 +47,12 @@ export type JudgeKey = { judge: string; entries: Record<string, string[]>; dupli
 export const answerRef = (caseId: string, repetition: number) => `answer:${caseId}#${repetition}`;
 export const labelRef = (id: string) => `label:${id}`;
 const hash = (text: string) => createHash("sha256").update(text).digest("hex").slice(0, 16);
+const baseId = (id: string) => id.split(":")[0];
 
 export function readLabels(definition: EvalDefinition): Label[] {
   const file = labelsFile(definition.id);
   if (!existsSync(file)) return [];
+  if (definition.items) throw new Error(`${file}: Handurteile gibt es nur für Anfragetypen mit einem Richtereintrag je Antwort.`);
   return parseStrict(labelsSchema, readJson(file), file).entries.map((entry) => {
     const request = definition.parseRequest(entry.request);
     if (!request) throw new Error(`${file}: Eintrag ${entry.id} besteht den Anfragevertrag der Route nicht.`);
@@ -68,16 +70,15 @@ export function readLabels(definition: EvalDefinition): Label[] {
 export function buildJudgeTable(definition: EvalDefinition, items: readonly JudgeItem[], random: () => number, { instructions, requests, cache = {} }: { instructions: string; requests: readonly unknown[]; cache?: JudgeCache }) {
   const groups = new Map<string, JudgeItem[]>();
   for (const item of items) {
-    const identity = JSON.stringify([item.request, item.output]);
+    const identity = JSON.stringify([item.criteria.map((criterion) => criterion.id), item.rendered]);
     groups.set(identity, [...(groups.get(identity) ?? []), item]);
   }
   const allCriteria = new Map<string, JudgedCriterion>();
   const key: JudgeKey = { judge: "", entries: {}, duplicates: {}, hashes: {}, cached: {} };
-  const open: { refs: string[]; hash: string | null; criteria: JudgedCriterion[]; rendered: ReturnType<EvalDefinition["render"]> }[] = [];
+  const open: { refs: string[]; hash: string | null; criteria: JudgedCriterion[]; rendered: Rendered }[] = [];
   for (const group of groups.values()) {
-    const criteria = definition.judged(group[0].request);
+    const { criteria, rendered } = group[0];
     for (const criterion of criteria) allCriteria.set(criterion.id, criterion);
-    const rendered = definition.render(group[0].request, group[0].output);
     const control = group.some((item) => item.ref.startsWith("label:"));
     const entryHash = control ? null : hash(JSON.stringify([instructions, criteria, rendered]));
     if (entryHash && cache[entryHash]) for (const item of group) key.cached[item.ref] = entryHash;
@@ -143,9 +144,9 @@ export function readVerdicts(blocks: readonly JudgeBlock[], files: readonly unkn
   const pairs = Object.entries(key.duplicates).map(([duplicate, original]) => ({ original, a: given.get(original)!, b: given.get(duplicate)! }));
   const flipped = new Map<string, Set<string>>();
   const noise: Record<string, number> = {};
-  for (const id of [...new Set(pairs.flatMap(({ a }) => Object.keys(a.results)))].sort()) {
-    const relevant = pairs.filter(({ a }) => id in a.results);
-    const changed = relevant.filter(({ a, b }) => a.results[id] !== b.results[id]);
+  for (const id of [...new Set(pairs.flatMap(({ a }) => Object.keys(a.results).map(baseId)))].sort()) {
+    const relevant = pairs.filter(({ a }) => Object.keys(a.results).some((criterion) => baseId(criterion) === id));
+    const changed = relevant.filter(({ a, b }) => Object.keys(a.results).some((criterion) => baseId(criterion) === id && a.results[criterion] !== b.results[criterion]));
     flipped.set(id, new Set(changed.map(({ original }) => original)));
     noise[id] = Math.round(changed.length / relevant.length * 10000) / 10000;
   }
@@ -155,14 +156,17 @@ export function readVerdicts(blocks: readonly JudgeBlock[], files: readonly unkn
 export type VerdictReading = ReturnType<typeof readVerdicts>;
 
 /** Je Kriterium bis zu drei Einträge: zuerst gekippte Doppelurteile, dann die mit der geringsten Sicherheit unter 3. */
+/** Kriterien je Kernaussage oder Widerspruch (`Q6:x`) zählen gemeinsam: Sicherheit ist die geringste, bestanden heißt alle. */
 export function borderlineCases(blocks: readonly JudgeBlock[], reading: Pick<VerdictReading, "given" | "flipped" | "duplicates">) {
   const entries = new Map(blocks.flatMap((block) => block.entries).filter((entry) => !reading.duplicates.has(entry.entry)).map((entry) => [entry.entry, entry]));
-  const criteria = [...new Set([...entries.values()].flatMap((entry) => entry.criteria))].sort();
+  const criteria = [...new Set([...entries.values()].flatMap((entry) => entry.criteria.map(baseId)))].sort();
   return criteria.map((id) => {
     const flipped = reading.flipped.get(id) ?? new Set<string>();
-    const candidates = [...entries.values()].filter((entry) => entry.criteria.includes(id) && (flipped.has(entry.entry) || reading.given.get(entry.entry)!.sure[id] < 3));
-    const rank = (entry: JudgeEntry) => (flipped.has(entry.entry) ? 0 : 1) * 10 + reading.given.get(entry.entry)!.sure[id];
+    const ids = (entry: JudgeEntry) => entry.criteria.filter((criterion) => baseId(criterion) === id);
+    const sure = (entry: JudgeEntry) => Math.min(...ids(entry).map((criterion) => reading.given.get(entry.entry)!.sure[criterion]));
+    const candidates = [...entries.values()].filter((entry) => ids(entry).length && (flipped.has(entry.entry) || sure(entry) < 3));
+    const rank = (entry: JudgeEntry) => (flipped.has(entry.entry) ? 0 : 1) * 10 + sure(entry);
     const picked = [...candidates].sort((a, b) => rank(a) - rank(b) || a.entry.localeCompare(b.entry)).slice(0, 3);
-    return { id, cases: picked.map((entry) => ({ entry: entry.entry, flipped: flipped.has(entry.entry), ...reading.given.get(entry.entry)!, passed: reading.given.get(entry.entry)!.results[id], eingabe: entry.eingabe, ausgabe: entry.ausgabe })) };
+    return { id, cases: picked.map((entry) => ({ entry: entry.entry, flipped: flipped.has(entry.entry), note: reading.given.get(entry.entry)!.note, sure: sure(entry), passed: ids(entry).every((criterion) => reading.given.get(entry.entry)!.results[criterion]), eingabe: entry.eingabe, ausgabe: entry.ausgabe })) };
   }).filter(({ cases }) => cases.length);
 }

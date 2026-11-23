@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import test from "node:test";
 import { SPLITS, assignSplits, loadCases, sampleCorpus, seededRandom, type DraftCase, type EvalCase } from "./cases.ts";
-import { corpusCategory, definitionFor, numberTokens, rephrased, wordDistance } from "./definitions.ts";
+import { corpusCategory, definitionFor, judgeItemsFor, numberTokens, rephrased, wordDistance, type EvalDefinition } from "./definitions.ts";
 import { generate, mockCompletion, payloadBuilder, payloadFingerprint, readAnswers, type AnswerRow, type Outcome } from "./generate.ts";
 import { answerRef, borderlineCases, buildJudgeTable, labelRef, readLabels, readVerdicts, type JudgeBlock, type Label, type Verdicts } from "./judge.ts";
 import { REQUEST_TYPES } from "./ledger.ts";
@@ -19,7 +19,8 @@ const cases: EvalCase[] = [
   { id: "b", category: "zahlen-formeln", split: "dev", request: card("In welchem Jahr begann die Französische Revolution?", "1789") },
 ];
 const row = (caseId: string, repetition: number, output: unknown, outcome: Outcome = "answer"): AnswerRow => ({ caseId, repetition, outcome, error: outcome === "answer" ? null : outcome === "refused" ? "not_rephrasable" : "invalid_variant", output, model: "mock", totalTokens: 120, costUsd: 0.001, latencyMs: 1000 + repetition * 500, transcript: { request: null, response: null } });
-const result = (caseId: string, repetition: number, main: boolean, criteria: Record<string, boolean> = { M1: true, M2: main }): AnswerResult => ({ caseId, repetition, category: "definitionen", trap: false, outcome: "answer", criteria, main, costUsd: 0.001, latencyMs: 1000, totalTokens: 100, model: "mock" });
+const result = (caseId: string, repetition: number, main: boolean): AnswerResult => ({ caseId, repetition, category: "definitionen", trap: false, outcome: "answer", criteria: { M1: 1, M2: main ? 1 : 0 }, main: main ? 1 : 0, costUsd: 0.001, latencyMs: 1000, totalTokens: 100, model: "mock" });
+const item = (definition: EvalDefinition, ref: string, request: unknown, output: unknown) => judgeItemsFor(definition, ref, request, output)[0];
 const completion = (toolArguments: unknown, cost = 0) => new Response(JSON.stringify({ ...mockCompletion("create_card_variant", toolArguments), usage: { total_tokens: 120, cost } }), { status: 200 });
 
 test("Versionierte Prüfkarten und Handurteile bestehen den Anfragevertrag und sind aufgeteilt", () => {
@@ -146,8 +147,8 @@ const verdictFor = (block: JudgeBlock, results: (entry: string, id: string) => b
 
 test("Richtertabelle: ohne Dubletten und ohne Herkunft; unvollständige Urteile brechen ab", () => {
   const same = { front: "Wie nennt man die Diffusion von Wasser?", back: "Diffusion von Wasser" };
-  const items = [0, 1].map((repetition) => ({ ref: answerRef("a", repetition), request: cases[0].request, output: same }));
-  const control = { ref: labelRef("kontrolle-1"), request: cases[1].request, output: { front: "Wann endete die Französische Revolution?", back: "1789" } };
+  const items = [0, 1].map((repetition) => item(variant, answerRef("a", repetition), cases[0].request, same));
+  const control = item(variant, labelRef("kontrolle-1"), cases[1].request, { front: "Wann endete die Französische Revolution?", back: "1789" });
   const { blocks, key } = buildJudgeTable(variant, [...items, control], seededRandom(1), { instructions: "Auftrag", requests: [] });
   assert.equal(blocks.length, 1);
   assert.equal(blocks[0].entries.length, 2);
@@ -164,7 +165,7 @@ test("Richtertabelle: ohne Dubletten und ohne Herkunft; unvollständige Urteile 
 });
 
 test("Richterblöcke: höchstens 25 Einträge, Doppel in einem anderen Block, Rauschen aus gekippten Doppeln, Urteilscache für gleiche Ausgaben", () => {
-  const items = Array.from({ length: 60 }, (_, index) => ({ ref: answerRef(`c${index}`, 0), request: cases[0].request, output: { front: `Variante Nummer ${index}?`, back: "Diffusion von Wasser" } }));
+  const items = Array.from({ length: 60 }, (_, index) => item(variant, answerRef(`c${index}`, 0), cases[0].request, { front: `Variante Nummer ${index}?`, back: "Diffusion von Wasser" }));
   const { blocks, key } = buildJudgeTable(variant, items, seededRandom(2), { instructions: "Auftrag", requests: [] });
   assert.equal(blocks.length, 3);
   assert.equal(blocks.reduce((sum, block) => sum + block.entries.length, 0), 70);
@@ -181,7 +182,7 @@ test("Richterblöcke: höchstens 25 Einträge, Doppel in einem anderen Block, Ra
   assert.ok(borderline.every(({ cases: picked }) => picked.length === 3));
   assert.ok(borderline.every(({ cases: picked }) => picked.every((entry) => !key.duplicates[entry.entry])), "Doppel erscheinen nicht als eigener Grenzfall");
 
-  const again = buildJudgeTable(variant, [...items, { ref: answerRef("neu", 0), request: cases[0].request, output: { front: "Ganz neue Variante?", back: "Diffusion von Wasser" } }], seededRandom(3), { instructions: "Auftrag", requests: [], cache: reading.fresh });
+  const again = buildJudgeTable(variant, [...items, item(variant, answerRef("neu", 0), cases[0].request, { front: "Ganz neue Variante?", back: "Diffusion von Wasser" })], seededRandom(3), { instructions: "Auftrag", requests: [], cache: reading.fresh });
   assert.deepEqual([again.blocks.length, again.blocks[0].entries.length, Object.keys(again.key.cached).length], [1, 1, 60]);
   const cachedReading = readVerdicts(again.blocks, [verdictFor(again.blocks[0], () => false)], again.key, reading.fresh);
   assert.deepEqual([cachedReading.verdicts.get(answerRef("c5", 0)), cachedReading.verdicts.get(answerRef("neu", 0))], [{ M2: true, M6: true }, { M2: false, M6: false }]);
@@ -192,7 +193,7 @@ test("Richterblöcke: höchstens 25 Einträge, Doppel in einem anderen Block, Ra
 test("Fingerabdruck des Richters hängt am Fallsatz, nicht an den Antworten eines Laufs", () => {
   const explain = help.parseRequest({ card: { prompt: "Was ist ATP?", answer: "Energieträger" }, mode: "explain" });
   const example = help.parseRequest({ card: { prompt: "Was ist ATP?", answer: "Energieträger" }, mode: "example" });
-  const answer = { ref: answerRef("x", 0), request: explain, output: "ATP speichert Energie." };
+  const answer = item(help, answerRef("x", 0), explain, "ATP speichert Energie.");
   const fingerprint = (items: typeof answer[]) => buildJudgeTable(help, items, seededRandom(1), { instructions: "Auftrag", requests: [explain, example] }).key.judge;
   assert.equal(fingerprint([answer]), fingerprint([]), "fehlt H4, weil alle Beispiel-Antworten verworfen wurden, bleibt der Fingerabdruck gleich");
 });
@@ -213,9 +214,9 @@ test("Auswertung: Hauptwert verlangt Vertrag, automatische Kriterien und Richter
   const rows = [row("a", 0, good), row("a", 1, null, "rejected"), row("b", 0, { front: "Wann fing die Französische Revolution an?", back: "1799" }), row("b", 1, { front: "Wann fing die Französische Revolution an?", back: "1789" })];
   const verdicts: Verdicts = new Map([[answerRef("a", 0), { M2: true, M6: true }], [answerRef("b", 0), { M2: true, M6: true }], [answerRef("b", 1), { M2: false, M6: true }]]);
   const results = evaluateAnswers(variant, cases, 2, rows, verdicts);
-  assert.deepEqual(results.map((entry) => entry.main), [true, false, false, false]);
-  assert.deepEqual(results[1].criteria, { M1: false });
-  assert.equal(results[2].criteria.M3, false);
+  assert.deepEqual(results.map((entry) => entry.main), [1, 0, 0, 0]);
+  assert.deepEqual(results[1].criteria, { M1: 0 });
+  assert.equal(results[2].criteria.M3, 0);
   const summary = summarize(results, seededRandom(3));
   assert.deepEqual([summary.cases, summary.repetitions, summary.main], [2, 2, 0.25]);
   assert.deepEqual([summary.criteria.M1, summary.criteria.M2, summary.criteria.M3], [0.75, 0.6667, 0.6667]);
@@ -231,10 +232,10 @@ test("Auswertung: Eine Ablehnung besteht nur, wenn der Fall sie erwartet, und ge
   const rows = [row("r", 0, null, "refused"), row("r", 1, { front: "Was bedeutet xqzt?", back: "krwp" }), row("a", 0, null, "refused"), row("a", 1, good)];
   const results = evaluateAnswers(variant, [refuse, cases[0]], 2, rows, new Map([[answerRef("a", 1), { M2: true, M6: true }]]));
   assert.deepEqual(results.map((entry) => [entry.outcome, entry.criteria, entry.main]), [
-    ["refused", { M1: true, M7: true }, true],
-    ["answer", { M1: true, M7: false }, false],
-    ["refused", { M1: true, M7: false }, false],
-    ["answer", { M1: true, M7: true, M3: true, M4: true, M5: true, M2: true, M6: true }, true],
+    ["refused", { M1: 1, M7: 1 }, 1],
+    ["answer", { M1: 1, M7: 0 }, 0],
+    ["refused", { M1: 1, M7: 0 }, 0],
+    ["answer", { M1: 1, M7: 1, M3: 1, M4: 1, M5: 1, M2: 1, M6: 1 }, 1],
   ]);
   assert.deepEqual(summarize(results, seededRandom(1)).outcomes, { answer: 2, refused: 2, rejected: 0, timeout: 0 });
   const trapped = evaluateAnswers(variant, [{ ...cases[0], trap: true }], 2, [row("a", 0, good), row("a", 1, good)], new Map([[answerRef("a", 0), { M2: false, M6: true }], [answerRef("a", 1), { M2: true, M6: true }]]));
@@ -275,3 +276,99 @@ test("Kalibrierung: Übereinstimmung der kritischen Kriterien, Kappa und fälsch
   assert.deepEqual(outcome.disagreements, ["l2 M2: Handurteil nicht bestanden, Richter bestanden", "l3 M6: Handurteil nicht bestanden, Richter bestanden"]);
   assert.throws(() => agreement(variantType, labels, new Map()), /Richterurteil für Eintrag l1 fehlt/);
 });
+
+const sourceCards = definitionFor("source-cards");
+const summary = definitionFor("learning-summary");
+const toolCompletion = (tool: string, toolArguments: unknown, cost = 0.001) => new Response(JSON.stringify({ ...mockCompletion(tool, toolArguments), usage: { total_tokens: 500, cost } }), { status: 200 });
+const sourceCard = (front: string, source = "s1", extra: Record<string, unknown> = {}) => ({ form: "basic", front, back: "Antwort", options: [], explanation: "", sources: [source], ...extra });
+
+test("Karten aus einer Quelle: jedes Prüfdokument wird gelesen, das PDF über seine gelesenen Seiten ohne die Seite ohne Textlayer", () => {
+  for (const source of ["zellatmung.md", "gewaltenteilung.txt", "netzwerk-glossar.csv", "franzoesische-revolution.tsv", "ohmsches-gesetz.pdf"]) {
+    const request = sourceCards.parseRequest({ source, profile: "standard" }) as { units: { label: string }[]; keypoints: string[] };
+    assert.ok(request.units.length >= 1 && request.keypoints.length >= 9, source);
+  }
+  const pdf = sourceCards.parseRequest({ source: "ohmsches-gesetz.pdf", profile: "weniger" }) as { units: { label: string }[]; settings: { amount: string } };
+  assert.deepEqual([...new Set(pdf.units.map((unit) => unit.label))], ["Seite 1", "Seite 3"]);
+  assert.equal(pdf.settings.amount, "less");
+  assert.equal(sourceCards.parseRequest({ source: "fehlt.md", profile: "standard" }), null);
+  assert.equal(sourceCards.parseRequest({ source: "zellatmung.md", profile: "viel" }), null);
+});
+
+test("Karten aus einer Quelle: ein Auftrag läuft wie in der App, wird anteilig gewertet und liefert Messgrößen", async () => {
+  const request = sourceCards.parseRequest({ source: "gewaltenteilung.txt", profile: "standard" }) as { units: unknown[]; keypoints: string[] };
+  const fronts = Array.from({ length: 12 }, (_, index) => `Welche Aussage ${index + 1} trifft auf die Gewaltenteilung zu?`);
+  const output = await sourceCards.run!(request, async () => mockCompletion("create_source_cards", { cards: fronts.map((front) => sourceCard(front)), warnings: [] })) as { cards: unknown[]; failed: number };
+  assert.deepEqual([output.cards.length, output.failed], [12, 0]);
+  const items = judgeItemsFor(sourceCards, answerRef("g", 0), request, output);
+  const cards = items.filter((entry) => entry.key.startsWith("karte-"));
+  const keypoints = items.find((entry) => entry.key === "kernaussagen")!;
+  assert.equal(cards.length, 10, "Stichprobe von zehn Karten");
+  assert.deepEqual(cards[0].criteria.map((criterion) => criterion.id), ["Q2", "Q3", "Q4"]);
+  assert.match(cards[0].rendered.eingabe.belegstellen, /Gewaltenteilung/);
+  assert.equal(keypoints.criteria.length, request.keypoints.length);
+  assert.ok(keypoints.criteria.every((criterion) => criterion.id.startsWith("Q6:gewaltenteilung-")));
+  const verdicts: Verdicts = new Map(items.map((entry, index) => [entry.ref, Object.fromEntries(entry.criteria.map((criterion, position) => [criterion.id, !(index === 0 && criterion.id === "Q3") && !(entry.key === "kernaussagen" && position < 2)]))]));
+  const [graded] = evaluateAnswers(sourceCards, [{ id: "g", category: "standard", split: "dev", request }], 1, [{ ...row("g", 0, output), outcome: "answer" }], verdicts);
+  assert.equal(graded.main, 0.9, "neun von zehn Karten bestehen Q2 bis Q4");
+  assert.equal(graded.criteria.Q6, Math.round((request.keypoints.length - 2) / request.keypoints.length * 10000) / 10000);
+  assert.equal(graded.criteria.Q1, 1);
+  assert.equal(graded.metrics!.karten, 12);
+  assert.equal(graded.metrics!.anteil_frage_antwort, 1);
+
+  const counting = sourceCards.parseRequest({ source: "gewaltenteilung.txt", profile: "mehr" });
+  assert.deepEqual(judgeItemsFor(sourceCards, answerRef("g", 0), counting, output).filter((entry) => entry.key.startsWith("karte-")).map((entry) => entry.criteria.map((criterion) => criterion.id).join()), ["Q2", "Q2", "Q2", "Q2", "Q2"]);
+});
+
+test("Karten aus einer Quelle: eine Zeitüberschreitung ist ein gescheiterter Abschnitt, ein Schlüsselfehler lässt den Fall offen und hält an", async () => {
+  const directory = mkdtempSync(path.join(tmpdir(), "ai-eval-"));
+  try {
+    const request = sourceCards.parseRequest({ source: "zellatmung.md", profile: "standard" });
+    const entry: EvalCase = { id: "z", category: "standard", split: "dev", request };
+    const options = { definition: sourceCards, cases: [entry], repetitions: 1, split: "dev" as const, directory, apiKey: "test", concurrency: 1, retryDelayMs: 0, log: () => {} };
+    await generate({ ...options, fetchImpl: (async () => { throw Object.assign(new Error("abgelaufen"), { name: "TimeoutError" }); }) as typeof fetch });
+    const [answer] = readAnswers(directory);
+    assert.deepEqual([answer.outcome, (answer.output as { failed: number }).failed], ["answer", 1]);
+    const [graded] = evaluateAnswers(sourceCards, [entry], 1, [answer], new Map(judgeItemsFor(sourceCards, answerRef("z", 0), request, answer.output).map((item) => [item.ref, Object.fromEntries(item.criteria.map((criterion) => [criterion.id, true]))])));
+    assert.deepEqual([graded.criteria.Q1, graded.main], [0, 0], "ein gescheiterter Abschnitt nimmt den Hauptwert");
+
+    const second = mkdtempSync(path.join(tmpdir(), "ai-eval-"));
+    await assert.rejects(generate({ ...options, directory: second, fetchImpl: (async () => new Response("{}", { status: 402 })) as typeof fetch }), /Angehalten: provider_budget_exhausted/);
+    assert.equal(readAnswers(second).length, 0);
+    rmSync(second, { recursive: true, force: true });
+
+    const third = mkdtempSync(path.join(tmpdir(), "ai-eval-"));
+    await generate({ ...options, directory: third, fetchImpl: (async () => toolCompletion("create_source_cards", { cards: [sourceCard("Wo läuft die Glykolyse ab?")], warnings: [] }, 0.002)) as typeof fetch });
+    const [costed] = readAnswers(third);
+    assert.deepEqual([costed.costUsd, (costed.transcript.request as unknown[]).length], [0.002, 1]);
+    rmSync(third, { recursive: true, force: true });
+  } finally {
+    rmSync(directory, { recursive: true, force: true });
+  }
+});
+
+test("Zusammenfassung: Länge, Darstellung, Stichwörter und Querbezüge automatisch; Abschnitte und Kernaussagen an den Richter", () => {
+  const request = summary.parseRequest({ set: "netzwerk-karten-und-quelle", profile: "kurz-pruefung" }) as { route: { settings: { length: string; format: string; material: string } }; contradictions: string[] };
+  assert.deepEqual([request.route.settings.length, request.route.settings.format, request.route.settings.material], ["short", "bullets", "cards-and-source"]);
+  assert.equal(summary.parseRequest({ set: "fehlt", profile: "standard" }), null);
+  const block = (heading: string, points: [string, string][], paragraphs: string[] = []) => ({ heading, paragraphs, points: points.map(([keyword, text]) => ({ keyword, text })), references: ["m1"] });
+  const output = {
+    sections: [{ ...block("Adressen", [["IPv4", "32 Bit"], ["DNS", "Namen zu Adressen"]]), subsections: [block("Transport", [["TCP", "verbindungsorientiert"]])] }],
+    warnings: ["HTTPS-Port widersprüchlich: 8443 oder 443."], relations: [{ from: "TCP", to: "DNS" }],
+  };
+  const { Z2, Z3, Z4, Z5 } = summary.automatic;
+  assert.deepEqual([Z2(request, output), Z3(request, output), Z4(request, output), Z5(request, output)], [true, true, true, true]);
+  assert.equal(Z3(request, { ...output, sections: [{ ...block("Adressen", [], ["Nur Fließtext."]), subsections: [] }] }), false, "Stichpunkte verlangt");
+  assert.equal(Z4(request, { ...output, sections: [{ ...block("A", [["DNS", "x"], ["dns", "y"]]), subsections: [] }] }), false);
+  assert.equal(Z5(request, { ...output, relations: [{ from: "TCP", to: "Router" }] }), false);
+  assert.equal(Z5(request, { ...output, relations: [{ from: "tcp", to: "dns" }] }), true, "wie die Mindmap ohne Groß-/Kleinschreibung");
+  const seen: unknown[] = [];
+  payloadBuilder(summary, { name: "k", transform: (payload, route) => { seen.push(route); return payload; } })(request);
+  assert.equal(seen[0], request.route, "ein Kandidat bekommt die Anfrage an die Route");
+  assert.equal(Z2(request, { ...output, sections: [{ ...block("Lang", [], [Array.from({ length: 400 }, () => "Wort").join(" ")]), subsections: [] }] }), false, "über dem 1,25-Fachen von 300 Wörtern");
+  const items = judgeItemsFor(summary, answerRef("n", 0), request, output);
+  assert.deepEqual(items.filter((entry) => entry.key.startsWith("abschnitt-")).map((entry) => entry.rendered.ausgabe.ueberschrift).sort(), ["Adressen", "Transport"]);
+  const keypoints = items.find((entry) => entry.key === "kernaussagen")!;
+  assert.ok(keypoints.criteria.some((criterion) => criterion.id === "Z9:netzwerk-karten-und-quelle-1"));
+  assert.match(keypoints.rendered.ausgabe.warnungen, /8443/);
+});
+

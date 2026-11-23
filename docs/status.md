@@ -21,7 +21,7 @@ vollständig.
 - Schema: einzige Baseline `20261030103636_kartenmodell_baseline.sql` plus spätere Migrationen; keine Upgrade- oder Backfillkette (ADR-034).
 - Browser-Replica: IndexedDB `core.workspace.entities.v5.<userId>`, ohne Lesepfade für frühere lokale Datenbanken.
 - Server: nur die authentifizierten KI-Routen `/api/ai/card-variant`, `/api/ai/card-help`, `/api/ai/summary` und `/api/ai/source-cards` über OpenRouter (ADR-011).
-- KI-Eval: Runner für Varianten Frage/Antwort, Lückentext und Auswahl sowie `card-help` (`npm run ai-eval`, ADR-049) mit 59 bis 78 Prüfkarten je Anfragetyp und lokalen Korpusfällen in drei Teilen, Antwortklassen, Budget, Kandidaten als Datei, Richterblöcken mit Urteilscache und versionierten Ergebnissen; `source-cards` fehlt im Register, die Zusammenfassung hat keine Definition. Ein Probelauf (2026-11-23), Ledger leer, Richter ohne Kalibrierung. Stand unter [KI-Eval](ai-eval.md), Umbau und Messung in [`todo.md`](todo.md) unter P5.
+- KI-Eval: Runner für Varianten Frage/Antwort, Lückentext und Auswahl sowie `card-help` (`npm run ai-eval`, ADR-049) mit 59 bis 78 Prüfkarten je Anfragetyp und lokalen Korpusfällen in drei Teilen, Antwortklassen, Budget, Kandidaten als Datei, Richterblöcken mit Urteilscache und versionierten Ergebnissen; Karten aus einer Quelle mit fünf Prüfdokumenten und die Zusammenfassung mit drei Materialsätzen. Ein Probelauf (2026-11-23), Ledger leer, Richter ohne Kalibrierung. Stand unter [KI-Eval](ai-eval.md), Umbau und Messung in [`todo.md`](todo.md) unter P5.
 - Kartenmodell `Note`/`Card` in App, Import, Persistenz und Sync (ADR-032); Scheduler FSRS-7 mit Reife aus der Haltbarkeit (ADR-044).
 
 ## Reifestatus
