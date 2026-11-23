@@ -26,9 +26,9 @@ export async function requestPersistentWorkspaceStorage(storage: StorageManagerL
 
 export function formatStorageBytes(value: number | null): string {
   if (value == null) return "unbekannt";
-  const units = ["Byte", "KiB", "MiB", "GiB", "TiB"];
+  const units = ["Byte", "KB", "MB", "GB", "TB"];
   let amount = Math.max(0, value);
   let unit = 0;
-  while (amount >= 1024 && unit < units.length - 1) { amount /= 1024; unit += 1; }
+  while (amount >= 1000 && unit < units.length - 1) { amount /= 1000; unit += 1; }
   return `${amount.toLocaleString("de-DE", { maximumFractionDigits: unit === 0 ? 0 : 1 })} ${units[unit]}`;
 }

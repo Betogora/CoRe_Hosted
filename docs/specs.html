@@ -1135,6 +1135,14 @@ video {
     font: var(--core-weight-body) var(--core-type-caption)/var(--core-leading-caption) var(--core-font-sans);
   }
 
+  .core-settings-row-heading {
+    display: flex;
+    min-width: 0;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--core-space-xs) var(--core-space-sm);
+  }
+
   .core-settings-row-control {
     display: flex;
     min-width: 0;
@@ -1825,6 +1833,9 @@ video {
 .-ml-2 {
   margin-left: -0.5rem;
 }
+.-ml-3 {
+  margin-left: -0.75rem;
+}
 .-mr-2 {
   margin-right: -0.5rem;
 }
@@ -2428,6 +2439,9 @@ video {
 .max-w-\[calc\(100vw-2rem\)\] {
   max-width: calc(100vw - 2rem);
 }
+.max-w-\[min\(20rem\2c calc\(100vw-1\.5rem\)\)\] {
+  max-width: min(20rem, calc(100vw - 1.5rem));
+}
 .max-w-full {
   max-width: 100%;
 }
@@ -2676,6 +2690,9 @@ video {
 }
 .flex-wrap {
   flex-wrap: wrap;
+}
+.flex-nowrap {
+  flex-wrap: nowrap;
 }
 .place-items-center {
   place-items: center;
@@ -3092,6 +3109,10 @@ video {
 .px-3 {
   padding-left: 0.75rem;
   padding-right: 0.75rem;
+}
+.px-3\.5 {
+  padding-left: 0.875rem;
+  padding-right: 0.875rem;
 }
 .px-4 {
   padding-left: 1rem;
@@ -5290,6 +5311,36 @@ strong,
 button[aria-label] {
   min-width: var(--core-button-height);
 }
+
+/* After the button minimums: the hint takes 24 px inside the 20-px title line, so rows with and without one are equally
+   high; an invisible margin keeps the touch height around it. */
+button.core-info-hint {
+  position: relative;
+  display: inline-grid;
+  flex-shrink: 0;
+  width: 1.5rem;
+  min-width: 0;
+  height: 1.5rem;
+  min-height: 0;
+  place-items: center;
+  margin: -0.125rem calc(-1 * var(--core-space-xs));
+  border-radius: var(--core-radius-round);
+  color: var(--core-text-muted);
+  transition: background-color 150ms ease, color 150ms ease;
+}
+
+button.core-info-hint:is(:hover, [data-state="open"]) {
+  background: var(--core-surface-hover);
+  color: var(--core-text);
+}
+
+@media (pointer: coarse) {
+  button.core-info-hint::before {
+    position: absolute;
+    inset: -0.625rem;
+    content: "";
+  }
+}
 /* Kept after .core-auth-panel button for the cascade. */
 .core-deck-folder-breadcrumb button {
   min-height: var(--core-control-height);
@@ -7017,6 +7068,10 @@ button[aria-label] {
     z-index: 50;
   }
 
+  .max-md\:-ml-2 {
+    margin-left: -0.5rem;
+  }
+
   .max-md\:mr-auto {
     margin-right: auto;
   }
@@ -7516,8 +7571,24 @@ button[aria-label] {
     top: 1.25rem;
   }
 
+  .md\:-ml-1 {
+    margin-left: -0.25rem;
+  }
+
+  .md\:-ml-2 {
+    margin-left: -0.5rem;
+  }
+
+  .md\:mr-1 {
+    margin-right: 0.25rem;
+  }
+
   .md\:block {
     display: block;
+  }
+
+  .md\:inline {
+    display: inline;
   }
 
   .md\:flex {
@@ -7561,6 +7632,10 @@ button[aria-label] {
     width: 14rem;
   }
 
+  .md\:w-64 {
+    width: 16rem;
+  }
+
   .md\:w-72 {
     width: 18rem;
   }
@@ -7589,12 +7664,12 @@ button[aria-label] {
     flex: 1.4;
   }
 
-  .md\:shrink-0 {
-    flex-shrink: 0;
+  .md\:flex-none {
+    flex: none;
   }
 
-  .md\:basis-auto {
-    flex-basis: auto;
+  .md\:shrink-0 {
+    flex-shrink: 0;
   }
 
   .md\:grid-cols-2 {
@@ -7609,12 +7684,20 @@ button[aria-label] {
     grid-template-columns: 13rem minmax(0,1fr);
   }
 
+  .md\:grid-cols-\[auto_minmax\(0\2c 1fr\)\] {
+    grid-template-columns: auto minmax(0,1fr);
+  }
+
   .md\:grid-cols-\[minmax\(0\2c 1fr\)_12rem_auto\] {
     grid-template-columns: minmax(0,1fr) 12rem auto;
   }
 
   .md\:flex-wrap {
     flex-wrap: wrap;
+  }
+
+  .md\:flex-nowrap {
+    flex-wrap: nowrap;
   }
 
   .md\:items-end {
@@ -7683,12 +7766,20 @@ button[aria-label] {
     padding-right: 0.75rem;
   }
 
+  .md\:pl-1\.5 {
+    padding-left: 0.375rem;
+  }
+
   .md\:pl-4 {
     padding-left: 1rem;
   }
 
   .md\:pl-6 {
     padding-left: 1.5rem;
+  }
+
+  .md\:pr-2 {
+    padding-right: 0.5rem;
   }
 
   .md\:pr-8 {
@@ -7705,6 +7796,14 @@ button[aria-label] {
 
   .md\:text-core-action {
     color: var(--core-action-primary);
+  }
+
+  .md\:text-core-secondary {
+    color: var(--core-text-secondary);
+  }
+
+  .md\:hover\:text-core-text:hover {
+    color: var(--core-text);
   }
 }
 @media (min-width: 1024px) {
@@ -7963,6 +8062,16 @@ button[aria-label] {
 
   .max-sm\:\[\&\>svg\]\:\!mt-3>svg {
     margin-top: 0.75rem !important;
+  }
+}
+@media (min-width: 768px) {
+
+  .md\:\[\&\>svg\]\:text-core-muted>svg {
+    color: var(--core-text-muted);
+  }
+
+  .md\:hover\:\[\&\>svg\]\:text-core-action>svg:hover {
+    color: var(--core-action-primary);
   }
 }
 .\[\&\>tr\[data-card-row\]\]\:opacity-60>tr[data-card-row] {
@@ -8671,7 +8780,7 @@ html:has(.catalog-preview) { scroll-behavior: auto; }
 <p>Bei eingeschaltetem CoRe-Modus kommen gefestigte Karten im Review nur noch als Varianten, eine nach der anderen (<a href="decisions.md#adr-039--core-modus-anaus-und-variantenkette">ADR-039</a>). Die Freigabe entscheidet, ob eine Variante kommt, die Kette, welche.</p>
 <figure class="docs-diagram"><figcaption>Wann statt der Karte eine Variante abgefragt wird</figcaption><div class="docs-diagram-row"><p class="docs-diagram-lane">Alle fünf Bedingungen müssen gelten</p><ol class="docs-diagram-boxes"><li class="docs-diagram-box"><strong>CoRe-Modus</strong><span>im Stapel der Karte eingeschaltet</span></li><li class="docs-diagram-link">und</li><li class="docs-diagram-box"><strong>Phase</strong><span>die Karte ist in der Wiederholung</span></li><li class="docs-diagram-link">und</li><li class="docs-diagram-box"><strong>Letzte Bewertung</strong><span>war nicht „Nochmal“</span></li><li class="docs-diagram-link">und</li><li class="docs-diagram-box"><strong>Haltbarkeit</strong><span>erreicht die Schwelle des Stapels</span></li><li class="docs-diagram-link">und</li><li class="docs-diagram-box"><strong>Abstand</strong><span>seit der letzten Antwort mindestens drei Tage</span></li><li class="docs-diagram-link">dann</li><li class="docs-diagram-box" data-tone="primary"><strong>Kette</strong><span>die nächste Variante nach der erreichten Stufe</span></li></ol></div><p class="docs-diagram-down">sonst</p><div class="docs-diagram-row"><ol class="docs-diagram-boxes"><li class="docs-diagram-box"><strong>Originalkarte</strong><span>wird selbst abgefragt; die Kette wartet</span></li></ol></div></figure>
 <ul>
-<li>Die Schwelle <code>Varianten einsetzen ab Haltbarkeit</code> beträgt je Stapel 7, 21 (Standard) oder 60 Tage. Der Mindestabstand schützt vor kurzen Abständen nach <code>Schwer</code>, beim Vorziehen und in Prüfungssitzungen.</li>
+<li>Die Schwelle <code>Varianten ab Haltbarkeit</code> beträgt je Stapel 7, 21 (Standard) oder 60 Tage. Der Mindestabstand schützt vor kurzen Abständen nach <code>Schwer</code>, beim Vorziehen und in Prüfungssitzungen.</li>
 <li>Die Kette besteht aus den aktiven Varianten, die ältesten zuerst, höchstens so viele, wie der Stapel je Karte erlaubt (1 bis 3). Der Lernstand merkt sich die erreichte Stufe; Stufe 0 ist die Karte selbst.</li>
 <li>Nach einer Variante führen <code>Gut</code> und <code>Leicht</code> zur nächsten Stufe, <code>Schwer</code> wiederholt die Variante, <code>Nochmal</code> geht eine Stufe zurück. Antworten auf die Karte selbst ändern die Stufe nicht.</li>
 <li>Nach der letzten Variante kommt die, deren Formulierung am längsten nicht gesehen wurde.</li>
@@ -9011,14 +9120,15 @@ html:has(.catalog-preview) { scroll-behavior: auto; }
 </tr>
 <tr>
 <td>Diesen Browser</td>
-<td>heller oder dunkler Modus, Heatmap-Farbe, Anordnung von <code>Heute</code> und eigene To-dos, Pomodoro-Timer, Simulationsuhr</td>
+<td>heller oder dunkler Modus, Heatmap-Farbe, Stapelansicht, Anordnung von <code>Heute</code> und eigene To-dos, Pomodoro-Timer, Simulationsuhr</td>
 </tr>
 </tbody></table>
 <ul>
 <li>Einstellungen werden als Entwurf geändert und ausdrücklich gespeichert oder verworfen; ein ungespeicherter Entwurf hält jedes Verlassen auf.</li>
-<li>Stapeleinstellungen lassen sich für nur diesen Stapel oder samt Unterstapeln speichern; übertragen werden dabei nur die geänderten Werte.</li>
+<li>Stapeleinstellungen öffnen aus den Einstellungen; Zurück führt dorthin.</li>
+<li>Stapeleinstellungen werden für diesen Stapel oder samt Unterstapeln gespeichert; übertragen werden nur geänderte Werte.</li>
 <li>Kontowerte werden nie in Stapel kopiert und von Lernprofilen nicht verändert.</li>
-<li>Sofort, ohne Entwurf, wirken das Anwenden eines Lernprofils, der manuelle Sync, die Heatmap-Farbe und die Lerneinstellungen einer laufenden Sitzung.</li>
+<li>Ohne Entwurf wirken sofort: Anwenden eines Lernprofils, manueller Sync, Heatmap-Farbe, Stapelansicht und Lerneinstellungen einer laufenden Sitzung.</li>
 </ul>
 <h3 id="specs--tagesrunde-und-lernprofile" class="core-heading-3" tabindex="-1">Tagesrunde und Lernprofile <a class="docs-anchor" href="#specs--tagesrunde-und-lernprofile" aria-label="Link zu Tagesrunde und Lernprofile">#</a></h3>
 <ul>
@@ -9090,7 +9200,7 @@ html:has(.catalog-preview) { scroll-behavior: auto; }
 <h3 id="specs--speicherplatz" class="core-heading-3" tabindex="-1">Speicherplatz <a class="docs-anchor" href="#specs--speicherplatz" aria-label="Link zu Speicherplatz">#</a></h3>
 <ul>
 <li>Wird der Speicher knapp, entfernt CoRe nur im Konto bestätigte Inhalte und Medien, die nicht ausdrücklich offline verfügbar sind. Ausstehende Änderungen, Konflikte, Downloads und gerade gelernte Karten bleiben.</li>
-<li>Die Einstellungen zeigen, ob der Speicher dauerhaft ist und wie viel belegt und frei ist. Ohne dauerhafte Speicherfreigabe kann der Browser Daten entfernen.</li>
+<li>Die Einstellungen zeigen den belegten Speicher und warnen, wenn der Browser ihn räumen darf.</li>
 <li>Programmteile werden erst bei absehbarer Nutzung vorgeladen, nie pauschal bei sparsamer oder langsamer Verbindung.</li>
 </ul>
 <h3 id="specs--rückgängig-und-manuelle-ereignisse" class="core-heading-3" tabindex="-1">Rückgängig und manuelle Ereignisse <a class="docs-anchor" href="#specs--rückgängig-und-manuelle-ereignisse" aria-label="Link zu Rückgängig und manuelle Ereignisse">#</a></h3>
@@ -9166,7 +9276,7 @@ html:has(.catalog-preview) { scroll-behavior: auto; }
 <p>Probe: Ein Satz gehört hinein, wenn er nach einer vollständigen Neugestaltung der Oberfläche unverändert gälte und eine Abweichung davon ein fachlicher Fehler wäre.</p>
 <p>Form: Stichpunkte, ein Gedanke je Punkt. Eine neue Regel ersetzt die alte, statt sie zu ergänzen. Wo Funktionen logisch voneinander abhängen, steht ein Schaubild als <code>schaubild</code>-Block direkt beim Text und wird mit ihm geändert (Schreibweise in <a href="index.html#readme--pflege"><code>README.md</code></a>). In Schaubildern sind KI-Schritte blau, Ergebnisse grün markiert.</p>
 <h2 id="specs--codeumfang-der-produktbereiche" class="core-heading-2" tabindex="-1">Codeumfang der Produktbereiche <a class="docs-anchor" href="#specs--codeumfang-der-produktbereiche" aria-label="Link zu Codeumfang der Produktbereiche">#</a></h2>
-<p>CoRe ist eine App mit mehreren Bereichen. Die Tabelle zeigt deren Anteil am Bildschirmcode; gemeinsam genutzte Logik, UI und API stehen separat.</p><div class="docs-code-stats"><dl class="flex min-w-0 flex-col"><dt class="core-status-label text-core-muted">Bildschirmcode</dt><dd class="core-metric mt-0.5 text-core-text">7.602</dd></dl><dl class="flex min-w-0 flex-col"><dt class="core-status-label text-core-muted">Gemeinsamer Code &amp; API</dt><dd class="core-metric mt-0.5 text-core-text">49.120</dd></dl><dl class="flex min-w-0 flex-col"><dt class="core-status-label text-core-muted">Quelldateien</dt><dd class="core-metric mt-0.5 text-core-text">310</dd></dl></div><div class="docs-code-chart"><div class="docs-table-scroll" tabindex="0" role="region" aria-label="Codeumfang je Produktbereich"><table><thead><tr><th>Bereich</th><th>Zeilen</th><th>Anteil</th></tr></thead><tbody><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-status-learned)" aria-hidden="true"></span>Heute</th><td>351</td><td>4,6 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-status-new)" aria-hidden="true"></span>Lernen & Karten</th><td>2.338</td><td>30,8 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-status-in-progress)" aria-hidden="true"></span>Erstellen & Import</th><td>2.109</td><td>27,7 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-action-primary)" aria-hidden="true"></span>Prüfungen</th><td>447</td><td>5,9 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-status-due)" aria-hidden="true"></span>Statistik</th><td>627</td><td>8,2 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-progress-completed)" aria-hidden="true"></span>Konto & Sync</th><td>818</td><td>10,8 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-text-secondary)" aria-hidden="true"></span>Hilfe</th><td>912</td><td>12 %</td></tr></tbody></table></div></div><p class="docs-source">Beim Erzeugen gemessen: nichtleere Zeilen in <code>src/</code> und <code>api/</code> (TS/TSX) sowie <code>src/styles.css</code>. Ohne Tests, Typdeklarationen, generierte Datenbanktypen, Dokumentation und Fremdcode. Bereichszuordnung nach Bildschirmdateien in <a href="../src/screens/README.md">der Screen-Landkarte</a>; übriger Code zählt gemeinsam. Enthält Kommentare und misst weder Laufzeit noch Komplexität.</p></article></main></div><script>function initializeDocsViewer() {
+<p>CoRe ist eine App mit mehreren Bereichen. Die Tabelle zeigt deren Anteil am Bildschirmcode; gemeinsam genutzte Logik, UI und API stehen separat.</p><div class="docs-code-stats"><dl class="flex min-w-0 flex-col"><dt class="core-status-label text-core-muted">Bildschirmcode</dt><dd class="core-metric mt-0.5 text-core-text">7.666</dd></dl><dl class="flex min-w-0 flex-col"><dt class="core-status-label text-core-muted">Gemeinsamer Code &amp; API</dt><dd class="core-metric mt-0.5 text-core-text">49.344</dd></dl><dl class="flex min-w-0 flex-col"><dt class="core-status-label text-core-muted">Quelldateien</dt><dd class="core-metric mt-0.5 text-core-text">312</dd></dl></div><div class="docs-code-chart"><div class="docs-table-scroll" tabindex="0" role="region" aria-label="Codeumfang je Produktbereich"><table><thead><tr><th>Bereich</th><th>Zeilen</th><th>Anteil</th></tr></thead><tbody><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-status-learned)" aria-hidden="true"></span>Heute</th><td>352</td><td>4,6 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-status-new)" aria-hidden="true"></span>Lernen & Karten</th><td>2.344</td><td>30,6 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-status-in-progress)" aria-hidden="true"></span>Erstellen & Import</th><td>2.109</td><td>27,5 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-action-primary)" aria-hidden="true"></span>Prüfungen</th><td>447</td><td>5,8 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-status-due)" aria-hidden="true"></span>Statistik</th><td>627</td><td>8,2 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-progress-completed)" aria-hidden="true"></span>Konto & Sync</th><td>875</td><td>11,4 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-text-secondary)" aria-hidden="true"></span>Hilfe</th><td>912</td><td>11,9 %</td></tr></tbody></table></div></div><p class="docs-source">Beim Erzeugen gemessen: nichtleere Zeilen in <code>src/</code> und <code>api/</code> (TS/TSX) sowie <code>src/styles.css</code>. Ohne Tests, Typdeklarationen, generierte Datenbanktypen, Dokumentation und Fremdcode. Bereichszuordnung nach Bildschirmdateien in <a href="../src/screens/README.md">der Screen-Landkarte</a>; übriger Code zählt gemeinsam. Enthält Kommentare und misst weder Laufzeit noch Komplexität.</p></article></main></div><script>function initializeDocsViewer() {
     const theme = document.getElementById("docs-theme");
     theme.addEventListener("click", () => {
         const dark = document.documentElement.dataset.coreTheme !== "dark";

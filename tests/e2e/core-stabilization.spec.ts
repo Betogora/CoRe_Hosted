@@ -50,7 +50,8 @@ function mainMenu(page: Page) {
 }
 
 async function animationsFinished(locator: Locator) {
-  await locator.evaluate((element: HTMLElement) => Promise.all(element.getAnimations({ subtree: true }).map((animation) => animation.finished)));
+  // Chromium can leave a finished CSS transition's `finished` promise unresolved, so poll the play state instead.
+  await expect.poll(() => locator.evaluate((element: HTMLElement) => element.getAnimations({ subtree: true }).some((animation) => animation.playState === "running"))).toBe(false);
 }
 
 async function hasVisibleOutline(locator: Locator) {
@@ -620,7 +621,6 @@ test("browser back returns from settings to the previous screen", async ({ page 
   }
   await expect(dialog.getByRole("heading", { name: "Konto", exact: true })).toBeVisible();
   await expect(dialog.getByLabel("Login-E-Mail")).not.toBeEditable();
-  await expect(dialog.getByText("Derzeit in CoRe nicht änderbar.")).toBeVisible();
   await openSettingsArea(dialog, "ueber");
   await expect(page.getByText("Impressum", { exact: true })).toBeVisible();
   await expect(page.getByText("Datenschutzerklärung", { exact: true })).toBeVisible();
@@ -647,28 +647,27 @@ test("offline changes stay pending and flush when the browser reconnects", async
   const dialog = settingsDialog(page);
   const displayName = dialog.getByLabel("Anzeigename");
   const originalDisplayName = await displayName.inputValue();
-  const dataArea = dialog.getByLabel("Daten & Synchronisierung");
 
   try {
     await context.setOffline(true);
     await openSettingsArea(dialog, "daten");
-    await expect(dataArea.getByText("Offline. Die Verbindung wird automatisch erneut geprüft.")).toBeVisible();
+    await expect(dialog.getByTestId("settings-sync-state")).toHaveText("Offline");
     await expect(dialog.getByRole("button", { name: "Jetzt synchronisieren" })).toBeEnabled();
 
     await openSettingsArea(dialog, "konto");
     await displayName.fill(`${originalDisplayName} Offline`);
     await page.getByTestId("settings-save-bar").getByRole("button", { name: "Speichern" }).click();
     await openSettingsArea(dialog, "daten");
-    await expect(dataArea.getByText("Offline. Eine Änderung bleibt vorgemerkt und wird automatisch synchronisiert.")).toBeVisible();
+    await expect(dialog.getByTestId("settings-sync-state")).toHaveText("Offline · 1 ausstehend");
 
     await context.setOffline(false);
-    await expect(dataArea.getByText(/Zuletzt synchronisiert:/)).toBeVisible();
+    await expect(dialog.getByTestId("settings-sync-state")).toHaveText(/^Synchronisiert · /);
 
     await openSettingsArea(dialog, "konto");
     await displayName.fill(originalDisplayName);
     await page.getByTestId("settings-save-bar").getByRole("button", { name: "Speichern" }).click();
     await openSettingsArea(dialog, "daten");
-    await expect(dataArea.getByText(/Zuletzt synchronisiert:/)).toBeVisible();
+    await expect(dialog.getByTestId("settings-sync-state")).toHaveText(/^Synchronisiert · /);
   } finally {
     await context.setOffline(false);
   }
@@ -796,7 +795,7 @@ test("deck settings save appearance, learning, scheduler and CoRe values togethe
   expect((await readAppState(page)).decks.find((deck: { id: string }) => deck.id === DECK_IDS.africa).deckSettings.maximumReviewsPerDay).toBe(initialMaximumReviews);
   expect((await readAppState(page)).decks.find((deck: { id: string }) => deck.id === DECK_IDS.africa).deckSettings.schedulerProfile.maximumIntervalDays).toBe(initialMaximumInterval);
 
-  await page.getByRole("group", { name: "Varianten einsetzen ab Haltbarkeit" }).getByRole("button", { name: "Später", exact: true }).click();
+  await page.getByRole("group", { name: "Varianten ab Haltbarkeit" }).getByRole("button", { name: "Später", exact: true }).click();
   await page.getByRole("group", { name: "Aktive Varianten pro Karte" }).getByRole("button", { name: "3", exact: true }).click();
   await expect(saveBar).toHaveCount(1);
   await saveBar.getByRole("button", { name: "Speichern" }).click();
@@ -830,7 +829,7 @@ test("deck settings save appearance, learning, scheduler and CoRe values togethe
   await openSettingsArea(deckSettingsDialog(page), "scheduler");
   await expect(page.getByTestId("learning-settings-maximum-interval")).toHaveValue(String(nextMaximumInterval));
   await expect(page.getByTestId("learning-settings-retention")).toHaveValue(String(nextRetentionPercent));
-  await expect(page.getByRole("group", { name: "Varianten einsetzen ab Haltbarkeit" }).getByRole("button", { name: "Später", exact: true })).toHaveAttribute("aria-pressed", "true");
+  await expect(page.getByRole("group", { name: "Varianten ab Haltbarkeit" }).getByRole("button", { name: "Später", exact: true })).toHaveAttribute("aria-pressed", "true");
   await expect(page.getByTestId("learning-settings-variant-threshold")).toContainText("60 Tage");
   await expect(page.getByRole("group", { name: "Aktive Varianten pro Karte" }).getByRole("button", { name: "3", exact: true })).toHaveAttribute("aria-pressed", "true");
 
@@ -857,7 +856,7 @@ test("[Vertrag: KI-Variante, Reveal, Originalkarte und Variantenverwaltung] @gol
   await page.getByTestId("learning-settings-max-reviews").fill("1");
   // The fixture card lasts about 18 days, below the default threshold of 21.
   await openSettingsArea(deckSettingsDialog(page), "scheduler");
-  await page.getByRole("group", { name: "Varianten einsetzen ab Haltbarkeit" }).getByRole("button", { name: "Früher", exact: true }).click();
+  await page.getByRole("group", { name: "Varianten ab Haltbarkeit" }).getByRole("button", { name: "Früher", exact: true }).click();
   await page.getByTestId("settings-save-bar").getByRole("button", { name: "Speichern" }).click();
   await expect(page.getByRole("status").filter({ hasText: "Stapeleinstellungen wurden für den Stapel gespeichert." })).toBeVisible();
   await deckSettingsDialog(page).getByRole("button", { name: "Stapeleinstellungen schließen" }).click();
@@ -1201,14 +1200,14 @@ test("[Vertrag: KI-Varianten je Kartenart, Zähler, Stapellauf und Anzeigen] Der
   const dialog = deckSettingsDialog(page);
   await expect(dialog.getByRole("switch", { name: "CoRe-Modus" })).toBeChecked();
 
-  await expect(dialog.getByTestId("deck-settings-variant-count")).toHaveText("18 Karten ohne Variante");
-  await dialog.getByRole("button", { name: "Varianten generieren" }).click();
+  await expect(dialog.getByTestId("deck-settings-variant-count")).toHaveText("18 ohne Variante");
+  await dialog.getByRole("button", { name: "Fehlende generieren" }).click();
   const bar = page.getByTestId("variant-generation-bar");
   await expect(bar.getByRole("status")).toHaveText("17 Varianten generiert, 1 nicht umformulierbar", { timeout: 60_000 });
   expect(new Set(requests.map((request) => request.kind))).toEqual(new Set(["basic", "type-in", "cloze", "choice"]));
   // The card reported as not rephrasable is refused and no longer waits for a variant.
-  await expect(dialog.getByTestId("deck-settings-variant-count")).toHaveText("Keine Karte wartet auf eine Variante.");
-  await expect(dialog.getByRole("button", { name: "Varianten generieren" })).toHaveCount(0);
+  await expect(dialog.getByTestId("deck-settings-variant-count")).toHaveText("0 ohne Variante");
+  await expect(dialog.getByRole("button", { name: "Fehlende generieren" })).toHaveCount(0);
 
   await dialog.getByRole("button", { name: "Stapeleinstellungen schließen" }).click();
   await bar.getByRole("button", { name: "Anzeigen" }).click();

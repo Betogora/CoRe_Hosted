@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { CalendarClock, CalendarRange, Database, Flag, Info, Palette, Sparkles, Timer, User } from "lucide-react";
+import { CalendarClock, CalendarRange, Database, Flag, Info, Layers, Palette, Sparkles, Timer, User } from "lucide-react";
 import { settingsContentSection, type GeneralSettingsSection, type LearningSettingsSection, type SettingsSection } from "../appNavigation.ts";
 import { SettingsDialogFrame } from "./SettingsDialogFrame.tsx";
 
@@ -25,10 +25,16 @@ const settingsGroups = [
     label: "Lernen",
     items: [
       { section: "lerntag", label: "Lerntag & Planung", icon: CalendarClock },
-      { section: "tagesrunde", label: "Tagesrunde & Lernprofile", icon: CalendarRange },
-      { section: "scheduler", label: "Scheduler & CoRe", icon: Sparkles },
       { section: "flaggen", label: "Flaggen", icon: Flag },
       { section: "fokus", label: "Fokuswerkzeuge", icon: Timer },
+    ],
+  },
+  {
+    label: "Stapel",
+    items: [
+      { section: "stapel", label: "Einzelne Stapel", icon: Layers },
+      { section: "tagesrunde", label: "Tagesrunde & Lernprofile", icon: CalendarRange },
+      { section: "scheduler", label: "Scheduler & CoRe", icon: Sparkles },
     ],
   },
 ] as const;

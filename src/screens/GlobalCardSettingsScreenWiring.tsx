@@ -1,5 +1,4 @@
 import { settingsContentSection, type LearningSettingsSection } from "../appNavigation.ts";
-import { formatSimulationDate } from "../simulationClock.ts";
 import { useAppServices } from "../useAppServices.ts";
 import { useWorkspaceValue } from "../useWorkspaceStore.ts";
 import { GlobalCardSettingsScreen } from "./GlobalCardSettingsScreen.tsx";
@@ -23,7 +22,6 @@ export function GlobalCardSettingsScreenWiring() {
       decks={state.decks}
       onOpenDeckSettings={(deckId) => settings.openDeckSettings(deckId)}
       simulationOffsetMinutes={clock.simulationOffsetMinutes}
-      simulationDateLabel={formatSimulationDate(clock.learningNow)}
       pomodoroTimer={pomodoro.pomodoroTimer}
       onStartPomodoro={pomodoro.startPomodoro}
     />
