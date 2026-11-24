@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import type { NoteContent, NoteField, RevealPrompt } from "../coreTypes.ts";
+import { mapClozes } from "../clozeSyntax.ts";
 import { clozeOrdinals, deriveNotePromptKeys, noteContentMediaRefs, parseNoteContent } from "./noteContent.ts";
 
 function field(id: string, role: NoteField["role"], html: string, name = id): NoteField {
@@ -154,4 +155,24 @@ test("Strukturfehler werden mit deutschen Meldungen abgewiesen", () => {
   rejected(note([front, back], { kind: "reveal", prompts: [prompt("forward", ["front"], ["back"]), prompt("forward", ["back"], ["front"])] }), /eindeutig/);
   rejected(note([front, back], { kind: "flashcard" } as never), /Abfrageart/);
   rejected(note([front, back], { kind: "reveal", prompts: [prompt("forward", ["front"], ["back"])] }, { speech: [{ fieldId: "front", language: "Deutsch" }] }), /Sprache/);
+});
+
+test("jede Lücke, für die eine Karte entsteht, findet auch die Darstellung", () => {
+  const samples = [
+    "{{c1::a}} {{c2::b::Hinweis}}",
+    String.raw`{{c1::a\}}`,
+    "{{c1::{x}}",
+    "{{c1::if (x) {}}",
+    String.raw`{{c1::\(\frac{a}{b}\)}} und {{c2::c}}`,
+    "{{c1::außen {{c2::innen}} außen}}",
+    "{{c0::null}} {{c1::eins}}",
+    "{{c1::offen",
+  ];
+  for (const sample of samples) {
+    const shown = new Set<number>();
+    const mapped = mapClozes(sample, (token) => { for (const ordinal of token.ordinals) if (ordinal > 0) shown.add(ordinal); return ""; });
+    const created = clozeOrdinals(sample);
+    assert.equal(mapped === null, created === null, sample);
+    assert.deepEqual([...shown].sort((left, right) => left - right), created ?? [], sample);
+  }
 });
