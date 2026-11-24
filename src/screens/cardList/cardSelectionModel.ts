@@ -1,4 +1,4 @@
-import type { CardSelectionActionId } from "./CardSelectionBar.tsx";
+export type CardSelectionActionId = "study" | "deck" | "replace" | "tags-add" | "tags-remove" | "flag" | "flag-remove" | "mark" | "unmark" | "suspend" | "unsuspend" | "bury" | "due" | "reset" | "variants" | "delete";
 
 export interface CardSelectionRequest {
   id: CardSelectionActionId;
