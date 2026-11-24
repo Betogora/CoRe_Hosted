@@ -90,8 +90,7 @@ export function NoteContentEditor({ note, value, structure, onValueChange, onStr
 
   function correctnessLocked(index: number) {
     if (choiceMode !== "multiple") return false;
-    const isCorrect = options[index].correct;
-    return (isCorrect && correctCount === 1) || (!isCorrect && correctCount === options.length - 1);
+    return options[index].correct && correctCount === 1;
   }
 
   function removeOption(index: number) {

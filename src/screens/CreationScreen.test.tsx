@@ -148,27 +148,25 @@ test("manual target selection shows complete deck paths", () => {
   assert.match(markup, /data-testid="manual-actions"[\s\S]*?Karte speichern[\s\S]*?Entwurf verwerfen/);
 });
 
-test("manual options share one desktop row and keep labeled segmented choices", () => {
+test("the question type leads the shared editor toolbar; learning direction and typing stay a labeled row", () => {
   const markup = renderToStaticMarkup(<CreationScreen decks={[]} initialMethod="manual" {...callbacks} />);
 
-  assert.match(markup, /class="grid min-w-0 gap-4 md:flex md:flex-wrap md:items-end md:gap-x-6" data-testid="manual-card-options"/);
-  assert.match(markup, />Fragentyp</);
-  assert.match(markup, /aria-label="Fragentyp"[^>]*core-segmented-control/);
+  assert.match(markup, /class="core-editor-toolbar core-surface-raised core-manual-tools"[^>]*>[\s\S]*?aria-label="Fragentyp"[^>]*core-segmented-control/);
   assert.match(markup, />Single Choice</);
   assert.match(markup, />Multiple Choice</);
   assert.match(markup, />Bildverdeckung</);
-  assert.match(markup, />Lernrichtung</);
+  assert.match(markup, /data-testid="manual-card-options"[\s\S]*?>Lernrichtung</);
   assert.match(markup, /aria-label="Lernrichtung"[^>]*core-segmented-control/);
   assert.match(markup, />Beide Richtungen</);
+  assert.match(markup, /role="switch" aria-checked="false" aria-label="Vorderseite nach dem Speichern behalten" class="core-keep-pin"/, "keeping a field is a bare pin");
   assert.match(markup, /data-testid="manual-card-options"[\s\S]*?role="switch"[^>]*aria-label="Antwort eintippen"/, "Antwort eintippen steht bei der Lernrichtung, nicht bei den Bausteinen");
   assert.doesNotMatch(markup, /Weitere Optionen|Antwortoptionen statt freier Antwort verwenden|Vorder- und Rückseite zusätzlich umgekehrt abfragen/);
 });
 
-test("manual images are editor actions without separate drop fields", () => {
+test("manual fields share one toolbar and have no separate image drop fields", () => {
   const markup = renderToStaticMarkup(<CreationScreen decks={[]} initialMethod="manual" {...callbacks} />);
 
-  assert.equal((markup.match(/aria-label="Bild an Cursorposition einfügen"/g) ?? []).length, 2);
-  assert.equal((markup.match(/accept="image\/\*"/g) ?? []).length, 2);
+  assert.doesNotMatch(markup, /Werkzeuge zur Textformatierung/, "the fields render no own toolbar; the shared bar fills after mounting");
   assert.doesNotMatch(markup, /Bild zur (?:Vorder|Rück)seite einfügen|kind="image"/);
   const blocks = markup.slice(markup.indexOf('data-testid="note-blocks"'));
   assert.doesNotMatch(blocks, /Antwort eintippen/);

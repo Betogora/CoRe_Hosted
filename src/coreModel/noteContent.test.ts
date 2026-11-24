@@ -107,7 +107,8 @@ test("Auswahlfragen prüfen Modus und richtige Antworten", () => {
   // Kprim has no fixed number of statements, like the Anki add-on that fills as many as Q_ fields.
   for (const count of [1, 3, 4, 5]) parsed(note([question], { kind: "choice", mode: "kprim", options: options(Array(count).fill(true)) }));
   rejected(note([question], { kind: "choice", mode: "single", options: options([true, true]) }), /genau eine richtige/);
-  rejected(note([question], { kind: "choice", mode: "multiple", options: options([true, true]) }), /eine falsche/);
+  parsed(note([question], { kind: "choice", mode: "multiple", options: options([true, true]) }));
+  rejected(note([question], { kind: "choice", mode: "multiple", options: options([false, false]) }), /mindestens eine richtige/);
   rejected(note([question], { kind: "choice", mode: "kprim", options: [] }), /mindestens eine Aussage/);
 });
 

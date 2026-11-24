@@ -1,8 +1,9 @@
 import React from "react";
 import type { TagDirectoryEntry } from "../tagDirectory.ts";
 import { TagInput } from "../ui/TagInput.tsx";
-import { ArrowDown, ArrowUp, CircleAlert, Eye, FileText, ImagePlus, Layers, Plus, Save, X } from "lucide-react";
+import { ArrowDown, ArrowUp, CircleAlert, CircleDot, Eye, FileText, ImageOff, ImagePlus, Layers, ListChecks, Pin, Plus, Save, SquareSplitVertical, X } from "lucide-react";
 import {
+  choiceKindPatch,
   createManualBatchSession,
   manualDraftsEqual,
   nextManualFocusTarget,
@@ -17,6 +18,7 @@ import { isManualSourceDocument, MANUAL_SOURCE_DOCUMENT_ACCEPT, MANUAL_SOURCE_DO
 import { clearManualDraft, restoredDraftDeck, restoreManualDraft, storeManualDraft } from "../manualCreationDraft.ts";
 import { ActionButton, IconButton } from "../ui/actionUi.tsx";
 import { ActionDialog, CoreSegmentedControl, SoftPanel } from "../ui/coreUi.tsx";
+import { EditorToolbar, EditorToolbarContext } from "../ui/EditorToolbar.tsx";
 import { useSuccessToast } from "../ui/feedbackUi.tsx";
 import { FileDropField } from "../ui/FileDropField.tsx";
 import { CoreCheckbox, CoreRadio, CoreSwitch } from "../ui/formControls.tsx";
@@ -45,10 +47,10 @@ type AdditionalField = { id: string; name: string; value: string; role: AddableF
 type ManualSaveProgress = { label: string; percent: number };
 const FIELD_ROLE_OPTIONS = (["prompt", "hint", "extra", "source"] as const).map((value) => ({ value, label: NOTE_FIELD_ROLE_LABELS[value] }));
 const QUESTION_TYPE_OPTIONS = [
-  { value: "standard", label: "Standard" },
-  { value: "single-choice", label: "Single Choice" },
-  { value: "multiple-choice", label: "Multiple Choice" },
-  { value: "image-occlusion", label: "Bildverdeckung" },
+  { value: "standard", label: "Standard", icon: SquareSplitVertical },
+  { value: "single-choice", label: "Single Choice", icon: CircleDot },
+  { value: "multiple-choice", label: "Multiple Choice", icon: ListChecks },
+  { value: "image-occlusion", label: "Bildverdeckung", icon: ImageOff },
 ] as const;
 /** `image` is the SHA-1 name of a prepared manual image. */
 type OcclusionDraft = { image: string | null; mode: OcclusionMode; masks: OcclusionMask[] };
@@ -79,7 +81,7 @@ export interface ManualCreationPanelProps {
   renderHeader: (actions: React.ReactNode) => React.ReactNode;
 }
 
-interface KeepFieldSwitchProps {
+interface KeepFieldPinProps {
   isPinned: boolean;
   label: string;
   onToggle: () => void;
@@ -102,10 +104,12 @@ function isPdfDocument(document: TransientSourceDocument | null): boolean {
   return document?.mimeType === "application/pdf";
 }
 
-function KeepFieldSwitch({ isPinned, label, onToggle }: KeepFieldSwitchProps) {
+function KeepFieldPin({ isPinned, label, onToggle }: KeepFieldPinProps) {
   return (
     <CoreTooltip label="Bleibt nach dem Speichern für die nächste Karte stehen">
-      <CoreSwitch size="sm" labelPlacement="start" checked={isPinned} onCheckedChange={onToggle} label="Behalten" aria-label={`${label} nach dem Speichern behalten`} />
+      <button type="button" role="switch" aria-checked={isPinned} aria-label={`${label} nach dem Speichern behalten`} className="core-keep-pin" onClick={onToggle}>
+        <Pin size={16} fill={isPinned ? "currentColor" : "none"} aria-hidden="true" />
+      </button>
     </CoreTooltip>
   );
 }
@@ -145,6 +149,9 @@ export function ManualCreationPanel({
   const { currentDraft, pinnedFields } = batchState;
   const { kind, front, back, answerOptions, correctOptionIndices, tags } = currentDraft;
   const [activeField, setActiveField] = React.useState<ActiveField>("front");
+  /** `front`, `back` or the id of an additional field; that editor shows its tools in the shared bar. */
+  const [toolbarField, setToolbarField] = React.useState("front");
+  const [textToolsHost, setTextToolsHost] = React.useState<HTMLDivElement | null>(null);
   const [documentMode, setDocumentMode] = React.useState(false);
   const [document, setDocument] = React.useState<TransientSourceDocument | null>(null);
   const [documentObjectUrl, setDocumentObjectUrl] = React.useState("");
@@ -400,10 +407,7 @@ export function ManualCreationPanel({
   function removeAnswerOption(index: number) {
     if (answerOptions.length <= 2) return;
     const isCorrect = correctOptionIndices.includes(index);
-    if (kind === "multiple-choice") {
-      const falseOptionCount = answerOptions.length - correctOptionIndices.length;
-      if ((isCorrect && correctOptionIndices.length === 1) || (!isCorrect && falseOptionCount === 1)) return;
-    }
+    if (kind === "multiple-choice" && isCorrect && correctOptionIndices.length === 1) return;
     const nextOptions = answerOptions.filter((_, optionIndex) => optionIndex !== index);
     const nextCorrectOptionIndices = correctOptionIndices
       .filter((optionIndex) => optionIndex !== index)
@@ -424,7 +428,6 @@ export function ManualCreationPanel({
     } else if (kind === "multiple-choice") {
       const isCorrect = correctOptionIndices.includes(index);
       if (isCorrect && correctOptionIndices.length === 1) return;
-      if (!isCorrect && correctOptionIndices.length >= answerOptions.length - 1) return;
       dispatchBatch({
         type: "draft",
         patch: {
@@ -583,14 +586,13 @@ export function ManualCreationPanel({
     const validation = workflow.validateManualCard(manualInput());
     return validation.ok ? createNote({ content: validation.content, deckId: "preview", media: validation.media }) : null;
   }, [additionalFields, answerOptions, back, kind, correctOptionIndices, front, imageRegistryVersion, occlusion, previewOpen, tags, typeIn, workflow]);
-  const frontFieldActive = activeField === "front";
-  const backFieldActive = activeField === "back";
+  const toolsField = toolbarField === "back" || additionalFields.some((field) => field.id === toolbarField) ? toolbarField : "front";
+  const fieldTools = (field: string) => ({ documentTools: true, toolbarHost: toolsField === field ? textToolsHost : null, isActive: toolsField === field });
   const shouldShowPdfViewer = documentMode && isPdfDocument(document) && Boolean(documentObjectUrl);
 
   const editor = (
-    <div ref={editorRootRef} className="grid min-w-0 gap-4" aria-busy={isSaving || undefined}>
+    <div ref={editorRootRef} className="core-manual-editor grid min-w-0 gap-4" aria-busy={isSaving || undefined}>
       <div data-testid="manual-draft-controls" className="grid min-w-0 gap-4" inert={isSaving} aria-disabled={isSaving || undefined}>
-      <div className="grid min-w-0 gap-4">
         <div className="grid min-w-0 gap-3">
           <div className="flex flex-wrap items-end gap-3">
             {!useNewDeck && decks.length > 0 ? (
@@ -639,22 +641,6 @@ export function ManualCreationPanel({
 
         <div className="grid min-w-0 gap-4 md:flex md:flex-wrap md:items-end md:gap-x-6" data-testid="manual-card-options">
           <div className="grid min-w-0 gap-2">
-            <span className="core-field-label">Fragentyp</span>
-            <CoreSegmentedControl
-              ariaLabel="Fragentyp"
-              className="core-question-type-control"
-              options={QUESTION_TYPE_OPTIONS}
-              value={isOcclusion ? "image-occlusion" : isChoice ? kind : "standard"}
-              onValueChange={(value) => value === "image-occlusion" ? (setOcclusion((current) => current ?? { image: null, mode: "hide-all-guess-one", masks: [] }), dispatchBatch({ type: "draft", patch: { kind: "basic" } })) : (setOcclusion(null), dispatchBatch({
-                type: "draft",
-                patch: {
-                  kind: value === "standard" ? (isChoice ? "basic" : kind) : value,
-                  correctOptionIndices: value === "single-choice" ? [correctOptionIndices[0] ?? 0] : correctOptionIndices,
-                },
-              }))}
-            />
-          </div>
-          <div className="grid min-w-0 gap-2">
             <span className="core-field-label">Lernrichtung</span>
             <CoreSegmentedControl
               ariaLabel="Lernrichtung"
@@ -676,15 +662,29 @@ export function ManualCreationPanel({
             </div>
           ) : null}
         </div>
-      </div>
+
+        <EditorToolbar className="core-manual-tools" aria-label="Kartenwerkzeuge"
+          modes={<CoreSegmentedControl
+            ariaLabel="Fragentyp"
+            className="core-question-type-control core-editor-toolbar-modes"
+            options={QUESTION_TYPE_OPTIONS}
+            value={isOcclusion ? "image-occlusion" : isChoice ? kind : "standard"}
+            onValueChange={(value) => value === "image-occlusion" ? (setOcclusion((current) => current ?? { image: null, mode: "hide-all-guess-one", masks: [] }), dispatchBatch({ type: "draft", patch: { kind: "basic" } })) : (setOcclusion(null), dispatchBatch({
+              type: "draft",
+              patch: value === "standard" ? { kind: isChoice ? "basic" : kind } : choiceKindPatch(currentDraft, value),
+            }))}
+          />}
+>
+          <EditorToolbarContext><div ref={setTextToolsHost} className="core-editor-toolbar-text" /></EditorToolbarContext>
+        </EditorToolbar>
 
       <div className="grid min-w-0 gap-4">
         <div data-manual-focus="front" className="grid min-w-0 gap-2 core-field-label">
           <div className="flex min-h-button items-center justify-between gap-2">
             <span>{frontLabel}</span>
-            <KeepFieldSwitch isPinned={pinnedFields.front} label={frontLabel} onToggle={() => togglePinnedField("front")} />
+            <KeepFieldPin isPinned={pinnedFields.front} label={frontLabel} onToggle={() => togglePinnedField("front")} />
           </div>
-          <RichTextEditor value={front} onFocus={() => setActiveField("front")} onChange={(value) => {
+          <RichTextEditor value={front} onFocus={() => { setActiveField("front"); setToolbarField("front"); }} onChange={(value) => {
             const hasClozeMarkup = /\{\{c\d+::/i.test(value);
             dispatchBatch({
               type: "draft",
@@ -694,7 +694,7 @@ export function ManualCreationPanel({
               },
             });
             setFieldErrors((current) => ({ ...current, front: undefined }));
-          }} clozeActions={isChoice || isOcclusion ? undefined : { groupId: nextClozeGroup }} imageActions={imageActions} isActive={frontFieldActive} minHeightClass={isOcclusion ? "min-h-20" : "min-h-32"} ariaLabel={isChoice ? `${isSingleChoice ? "Single" : "Multiple"}-Choice-Frage` : frontLabel} ariaInvalid={Boolean(fieldErrors.front)} />
+          }} clozeActions={isChoice || isOcclusion ? undefined : { groupId: nextClozeGroup }} imageActions={imageActions} {...fieldTools("front")} minHeightClass={isOcclusion ? "min-h-20" : "min-h-32"} ariaLabel={isChoice ? `${isSingleChoice ? "Single" : "Multiple"}-Choice-Frage` : frontLabel} ariaInvalid={Boolean(fieldErrors.front)} />
           {fieldErrors.front ? <p className="core-caption font-medium text-core-danger" role="alert">{fieldErrors.front}</p> : null}
         </div>
         {occlusion ? (
@@ -726,9 +726,7 @@ export function ManualCreationPanel({
             </legend>
             {answerOptions.map((option, index) => {
               const isCorrect = correctOptionIndices.includes(index);
-              const falseOptionCount = answerOptions.length - correctOptionIndices.length;
-              const correctnessLocked = isMultipleChoice
-                && ((isCorrect && correctOptionIndices.length === 1) || (!isCorrect && falseOptionCount === 1));
+              const correctnessLocked = isMultipleChoice && isCorrect && correctOptionIndices.length === 1;
               const removalLocked = answerOptions.length <= 2 || (isMultipleChoice && correctnessLocked);
               return (
                 <div key={index} className="flex min-w-0 items-center gap-2">
@@ -738,7 +736,7 @@ export function ManualCreationPanel({
                       : <CoreCheckbox checked={isCorrect} disabled={correctnessLocked} invalid={Boolean(fieldErrors.correctOptions)} onCheckedChange={() => toggleCorrectOption(index)} aria-label={`Option ${index + 1} als richtig markieren`} />}
                   </span>
                   <input data-manual-focus={index === 0 ? "option-0" : undefined} className="core-field min-w-0 flex-1" value={option} onChange={(event) => updateAnswerOption(index, event.target.value)} placeholder={`Option ${index + 1}`} aria-label={`Antwortoption ${index + 1}`} aria-invalid={Boolean(fieldErrors.options)} />
-                  <IconButton type="button" icon={X} label={`Antwortoption ${index + 1} entfernen`} onClick={() => removeAnswerOption(index)} disabled={removalLocked} />
+                  <IconButton type="button" variant="ghost" icon={X} label={`Antwortoption ${index + 1} entfernen`} onClick={() => removeAnswerOption(index)} disabled={removalLocked} />
                 </div>
               );
             })}
@@ -750,63 +748,62 @@ export function ManualCreationPanel({
         <div data-manual-focus="back" className="grid min-w-0 gap-2 core-field-label">
           <div className="flex min-h-button items-center justify-between gap-2">
             <span>{answerLabel}</span>
-            <KeepFieldSwitch isPinned={pinnedFields.back} label={answerLabel} onToggle={() => togglePinnedField("back")} />
+            <KeepFieldPin isPinned={pinnedFields.back} label={answerLabel} onToggle={() => togglePinnedField("back")} />
           </div>
-          <RichTextEditor value={back} onFocus={() => setActiveField("back")} onChange={(value) => {
+          <RichTextEditor value={back} onFocus={() => { setActiveField("back"); setToolbarField("back"); }} onChange={(value) => {
             dispatchBatch({ type: "draft", patch: { back: value } });
             setFieldErrors((current) => ({ ...current, back: undefined }));
-          }} imageActions={imageActions} isActive={backFieldActive} minHeightClass="min-h-32" ariaLabel={answerLabel} ariaInvalid={Boolean(fieldErrors.back)} />
+          }} imageActions={imageActions} {...fieldTools("back")} minHeightClass="min-h-32" ariaLabel={answerLabel} ariaInvalid={Boolean(fieldErrors.back)} />
           {fieldErrors.back ? <p className="core-caption font-medium text-core-danger" role="alert">{fieldErrors.back}</p> : null}
         </div>
       </div>
 
       <div className="grid gap-4">
-          {additionalFields.map((field, index) => (
-            <div key={field.id} className="grid min-w-0 gap-3 rounded-inset bg-core-subtle p-4">
-              <div className="grid min-w-0 gap-3 md:grid-cols-[minmax(0,1fr)_12rem_auto]">
-                <label className="grid gap-2 core-field-label">
-                  Feldname
+          {additionalFields.map((field, index) => {
+            const fieldLabel = field.name || `Feld ${index + 1}`;
+            const invalidName = invalidAdditionalFieldIds.includes(field.id);
+            return (
+              <div key={field.id} className="grid min-w-0 gap-2">
+                <div className="flex min-w-0 flex-wrap items-center gap-2">
                   <input
-                    className="core-field min-w-0"
+                    className="core-manual-field-name core-field-label"
                     value={field.name}
+                    aria-label="Feldname"
                     data-additional-field-name={field.id}
-                    aria-invalid={invalidAdditionalFieldIds.includes(field.id) || undefined}
-                    aria-describedby={invalidAdditionalFieldIds.includes(field.id) ? `additional-field-error-${field.id}` : undefined}
+                    aria-invalid={invalidName || undefined}
+                    aria-describedby={invalidName ? `additional-field-error-${field.id}` : undefined}
                     onChange={(event) => {
                       setAdditionalFields((current) => current.map((candidate) => candidate.id === field.id ? { ...candidate, name: event.target.value } : candidate));
                       setInvalidAdditionalFieldIds((current) => current.filter((id) => id !== field.id));
                     }}
                   />
-                  {invalidAdditionalFieldIds.includes(field.id) ? <span id={`additional-field-error-${field.id}`} className="core-caption font-medium text-core-danger" role="alert">Bitte einen eindeutigen Feldnamen eingeben.</span> : null}
-                </label>
-                <label className="grid gap-2 core-field-label">
-                  Rolle
-                  <CoreSelect ariaLabel={`Rolle von ${field.name || `Feld ${index + 1}`}`} value={field.role} options={FIELD_ROLE_OPTIONS} onValueChange={(role) => setAdditionalFields((current) => current.map((candidate) => candidate.id === field.id ? { ...candidate, role: role as AddableFieldRole } : candidate))} />
-                </label>
-                <div className="flex items-end gap-1">
-                  {index > 0 ? <IconButton type="button" icon={ArrowUp} label={`${field.name || `Feld ${index + 1}`} nach oben`} onClick={() => setAdditionalFields((current) => {
-                    const next = [...current];
-                    [next[index - 1], next[index]] = [next[index], next[index - 1]];
-                    return next;
-                  })} /> : null}
-                  {index < additionalFields.length - 1 ? <IconButton type="button" icon={ArrowDown} label={`${field.name || `Feld ${index + 1}`} nach unten`} onClick={() => setAdditionalFields((current) => {
-                    const next = [...current];
-                    [next[index], next[index + 1]] = [next[index + 1], next[index]];
-                    return next;
-                  })} /> : null}
-                  <IconButton type="button" icon={X} label={`${field.name || `Feld ${index + 1}`} entfernen`} onClick={() => {
-                    const next = additionalFields.filter((candidate) => candidate.id !== field.id);
-                    pruneInlineImages({ front, back, additionalFields: next, occlusion: occlusion?.image ? { image: occlusion.image, mode: occlusion.mode, masks: occlusion.masks } : undefined });
-                    setAdditionalFields(next);
-                  }} />
+                  <div className="ml-auto flex min-w-0 items-center gap-1">
+                    <CoreSelect ariaLabel={`Rolle von ${fieldLabel}`} className="core-manual-field-role" value={field.role} options={FIELD_ROLE_OPTIONS} onValueChange={(role) => setAdditionalFields((current) => current.map((candidate) => candidate.id === field.id ? { ...candidate, role: role as AddableFieldRole } : candidate))} />
+                    {index > 0 ? <IconButton type="button" variant="ghost" icon={ArrowUp} label={`${fieldLabel} nach oben`} onClick={() => setAdditionalFields((current) => {
+                      const next = [...current];
+                      [next[index - 1], next[index]] = [next[index], next[index - 1]];
+                      return next;
+                    })} /> : null}
+                    {index < additionalFields.length - 1 ? <IconButton type="button" variant="ghost" icon={ArrowDown} label={`${fieldLabel} nach unten`} onClick={() => setAdditionalFields((current) => {
+                      const next = [...current];
+                      [next[index], next[index + 1]] = [next[index + 1], next[index]];
+                      return next;
+                    })} /> : null}
+                    <IconButton type="button" variant="ghost" icon={X} label={`${fieldLabel} entfernen`} onClick={() => {
+                      const next = additionalFields.filter((candidate) => candidate.id !== field.id);
+                      pruneInlineImages({ front, back, additionalFields: next, occlusion: occlusion?.image ? { image: occlusion.image, mode: occlusion.mode, masks: occlusion.masks } : undefined });
+                      setAdditionalFields(next);
+                    }} />
+                  </div>
                 </div>
+                {invalidName ? <span id={`additional-field-error-${field.id}`} className="core-caption font-medium text-core-danger" role="alert">Bitte einen eindeutigen Feldnamen eingeben.</span> : null}
+                <RichTextEditor value={field.value} onFocus={() => setToolbarField(field.id)} onChange={(value) => {
+                  const next = additionalFields.map((candidate) => candidate.id === field.id ? { ...candidate, value } : candidate);
+                  setAdditionalFields(next);
+                }} imageActions={imageActions} {...fieldTools(field.id)} ariaLabel={`Inhalt von ${fieldLabel}`} minHeightClass="min-h-24" />
               </div>
-              <RichTextEditor value={field.value} onChange={(value) => {
-                const next = additionalFields.map((candidate) => candidate.id === field.id ? { ...candidate, value } : candidate);
-                setAdditionalFields(next);
-              }} imageActions={imageActions} ariaLabel={`Inhalt von ${field.name || `Feld ${index + 1}`}`} minHeightClass="min-h-24" />
-            </div>
-          ))}
+            );
+          })}
           <NoteBlockControls
             fieldRoles={FIELD_ROLE_OPTIONS.map((option) => option.value).filter((role) => !isOcclusion || role !== "prompt")}
             onAddField={addAdditionalField}

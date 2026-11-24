@@ -6363,6 +6363,18 @@ button.core-info-hint:is(:hover, [data-state="open"]) {
   .core-editor-toolbar-tools .core-rich-text-document-toolbar { flex: none; }
 }
 .core-summary-tools { position: sticky; top: 0; z-index: 20; }
+.core-manual-editor { container-type: inline-size; }
+.core-manual-tools { position: sticky; top: calc(var(--shell-sticky-top, 0px) + var(--core-space-sm)); z-index: 20; }
+.core-keep-pin { display: inline-grid; place-items: center; width: var(--core-button-height); height: var(--core-button-height); margin-inline-end: calc((16px - var(--core-button-height)) / 2); color: var(--core-text-muted); cursor: pointer; }
+.core-keep-pin:hover { color: var(--core-text); }
+.core-keep-pin[aria-checked="true"] { color: var(--core-action-primary); }
+.core-manual-field-name { flex: 1 1 6rem; min-width: 0; max-width: 16rem; min-height: var(--core-button-height); margin-inline-start: calc(-1 * var(--core-space-sm)); padding-inline: var(--core-space-sm); border: var(--core-border-width) solid transparent; border-radius: var(--core-radius-control); background: transparent; color: var(--core-text); }
+.core-manual-field-name:hover { border-color: var(--core-border); }
+.core-manual-field-name:focus { border-color: var(--core-action-primary); }
+.core-manual-field-name[aria-invalid="true"] { border-color: var(--core-danger); }
+.core-manual-field-role { width: 9rem; }
+/* Panel band above the stuck tools: the fields never show through the gap to the scroll area edge. */
+.core-manual-tools::before { content: ""; position: absolute; inset-inline: calc(-1 * var(--core-border-width)); bottom: calc(100% + var(--core-border-width)); height: var(--core-space-sm); background: var(--core-surface-raised); pointer-events: none; }
 /* Canvas band above the stuck tools: covers the gap to the scroll area edge so the sheet never shows above them. */
 .core-summary-tools::before { content: ""; position: absolute; inset-inline: calc(-1 * var(--core-border-width)); bottom: calc(100% + var(--core-border-width)); height: var(--core-space-sm); background: var(--core-canvas); pointer-events: none; }
 .core-summary-stepper { display: flex; align-items: center; }
@@ -7686,10 +7698,6 @@ button.core-info-hint:is(:hover, [data-state="open"]) {
 
   .md\:grid-cols-\[auto_minmax\(0\2c 1fr\)\] {
     grid-template-columns: auto minmax(0,1fr);
-  }
-
-  .md\:grid-cols-\[minmax\(0\2c 1fr\)_12rem_auto\] {
-    grid-template-columns: minmax(0,1fr) 12rem auto;
   }
 
   .md\:flex-wrap {

@@ -26,15 +26,27 @@ type ManualBatchAction =
   | { type: "saved"; targetDeckId: string }
   | { type: "discard" };
 
+const EMPTY_ANSWER_OPTIONS = ["", "", ""];
+
+function defaultCorrectOptions(kind: ManualContentKind) {
+  return kind === "single-choice" ? [1] : kind === "multiple-choice" ? [0, 1] : [0];
+}
+
 function createManualDraft(kind: ManualContentKind = "basic"): ManualCreationDraft {
   return {
     kind,
     front: "",
     back: "",
-    answerOptions: ["", ""],
-    correctOptionIndices: [0],
+    answerOptions: EMPTY_ANSWER_OPTIONS,
+    correctOptionIndices: defaultCorrectOptions(kind),
     tags: [],
   };
+}
+
+/** Empty options take the preset answers of the new kind; filled ones keep theirs, Single Choice only the first. */
+export function choiceKindPatch(draft: ManualCreationDraft, kind: "single-choice" | "multiple-choice"): Partial<ManualCreationDraft> {
+  if (draft.answerOptions.every((option) => !option.trim())) return { kind, answerOptions: EMPTY_ANSWER_OPTIONS, correctOptionIndices: defaultCorrectOptions(kind) };
+  return { kind, correctOptionIndices: kind === "single-choice" ? [draft.correctOptionIndices[0] ?? 0] : draft.correctOptionIndices };
 }
 
 export function createManualBatchSession(targetDeckId = ""): ManualBatchSessionState {
@@ -56,8 +68,8 @@ function resetManualDraft(
     kind: draft.kind === "cloze" && !pinnedFields.front ? "basic" : draft.kind,
     front: pinnedFields.front ? draft.front : "",
     back: pinnedFields.back ? draft.back : "",
-    answerOptions: ["", ""],
-    correctOptionIndices: [0],
+    answerOptions: EMPTY_ANSWER_OPTIONS,
+    correctOptionIndices: defaultCorrectOptions(draft.kind),
     tags: [],
   };
 }
@@ -89,8 +101,13 @@ export function reduceManualBatchSession(
   };
 }
 
+/** Answer options only count for choice questions; elsewhere they are leftovers of a type switch or an older draft. */
+function comparableDraft(draft: ManualCreationDraft) {
+  return draft.kind === "single-choice" || draft.kind === "multiple-choice" ? draft : { ...draft, answerOptions: [], correctOptionIndices: [] };
+}
+
 export function manualDraftsEqual(left: ManualCreationDraft, right: ManualCreationDraft): boolean {
-  return JSON.stringify(left) === JSON.stringify(right);
+  return JSON.stringify(comparableDraft(left)) === JSON.stringify(comparableDraft(right));
 }
 
 export function nextManualFocusTarget(state: ManualBatchSessionState): ManualFocusTarget {
