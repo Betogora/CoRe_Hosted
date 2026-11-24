@@ -542,6 +542,32 @@ Erzeugung rund 7 Cent.
   kleinere Verbesserungen sind nicht messbar. Die Vorauswahl mit einer
   Wiederholung schwankt ähnlich stark (Musterbeispiel: H4 67 → 92 → 63 %).
 
+### K – Messschärfe und L – ausgewogene Fallsätze
+
+Anlass ist die Welle KI hilft: 31 Karten je Teil, eine Karte rund 3 Punkte,
+Rauschen um ±10 Punkte; der Rückhalt bestätigte den Gewinn nicht. Das
+Rauschen kommt fast nur vom Erzeuger, die Doppelurteile des Richters sind
+stabil. Doppelt so viele Fälle senkten es nur auf etwa ±7.
+
+- **Nachmessen:** Nach zwei Wiederholungen bekommen nur Karten, bei denen
+  Bestand und Kandidat oder die Wiederholungen voneinander abweichen, zwei
+  weitere, für beide Prompts (geschätzt 20 bis 30 % mehr Anfragen).
+- **Ziel-Entscheidung:** Ein Kandidat nennt Kriterium und Modus oder
+  Kategorie seines Fehlerbilds. Übernommen wird vorläufig, wenn er dort
+  mindestens zwei Karten mehr gewinnt als verliert, am Rest höchstens eine
+  Karte verliert und kein kritisches Kriterium schlechter wird.
+- **Sammelprüfung:** Nach höchstens drei vorläufigen Schritten misst der
+  Stapel gegen den letzten bestätigten Stand mit drei Wiederholungen; ist er
+  nicht besser als das Rauschen, fällt der Schritt mit dem schwächsten Beleg
+  heraus.
+- **Begründung:** Jede Übernahme trägt zwei Sätze aus den geänderten
+  Trainingsantworten (Fehlerbild behoben, nichts Neues kaputt).
+- **Sicherheit 1** zählt nicht für die Entscheidung, nur für die Grenzfälle.
+- **Fallraster** wie in `todo.md` unter L; Referenzaussagen für Fachfakten,
+  damit der Richter nicht aus dem Gedächtnis urteilt.
+- **Berichte und Tabellen:** Hauptwert als richtige Antworten „x von n“ mit
+  Prozent; Kosten nur, wenn sie vom Bestand abweichen.
+
 ### J – Abschluss
 
 - Kostenziele je Anfragetyp nach `operations.md`; `status.md` und
