@@ -1,6 +1,6 @@
 import React from "react";
 import { ArrowLeft, BookmarkPlus, Check, ChevronRight, Copy, Pencil, Plus, RotateCcw, Trash2, X } from "lucide-react";
-import { cardSearchTermState, cardSearchTerms, cardSearchTermsOfKind, cardSearchText, withCardSearchTermState } from "./cardSearchExpression.ts";
+import { cardSearchTermState, cardSearchTerms, cardSearchTermsOfKind, cardSearchText, withCardSearchTermState } from "../../cardSearchQuery.ts";
 import { fieldSearchKey } from "../../coreModel.ts";
 import type { SavedCardSearch } from "../../coreTypes.ts";
 import { SAVED_SEARCH_LIMIT, SAVED_SEARCH_NAME_LENGTH } from "../../uiPreferences.ts";

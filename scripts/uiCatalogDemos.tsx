@@ -228,6 +228,7 @@ function StructureDemo({ section }: { section: string }) {
   const [view, setView] = useState("list");
   const [dialog, setDialog] = useState<"s" | "m" | "l" | null>(null);
   const [dialogTab, setDialogTab] = useState<"content" | "study">("content");
+  const [discardOpen, setDiscardOpen] = useState(false);
   const toast = useSuccessToast();
   return <>
     {section === "struktur" && <Demo title="SectionHeader · mit Zähler und Aktion, daneben ohne" wide><div className="catalog-two">
@@ -254,9 +255,10 @@ function StructureDemo({ section }: { section: string }) {
     {section === "dialogs" && <Demo title="DialogFrame · s, m mit Reitern, l"><div className="catalog-row">{(["s", "m", "l"] as const).map((size) => <ActionButton key={size} variant="secondary" onClick={() => setDialog(size)}>{`Dialog ${size.toUpperCase()} öffnen`}</ActionButton>)}</div>
       <DialogFrame open={dialog !== null} size={dialog ?? "m"} title={dialog === "m" ? "Karte bearbeiten" : "Tags verwalten"} onClose={() => setDialog(null)}
         tabs={dialog === "m" ? <CoreTabs ariaLabel="Bereiche" tabs={[{ value: "content", label: "Inhalt" }, { value: "study", label: "Lernen" }]} value={dialogTab} onValueChange={setDialogTab} panelId="catalog-dialog-panel" /> : undefined}
-        footer={<><ActionButton variant="secondary" onClick={() => setDialog(null)}>Abbrechen</ActionButton><ActionButton variant="primary" onClick={() => { setDialog(null); toast("Beispiel gespeichert."); }}>Speichern</ActionButton></>}>
+        footer={<><ActionButton variant="secondary" onClick={() => setDiscardOpen(true)}>Abbrechen</ActionButton><ActionButton variant="primary" onClick={() => { setDialog(null); toast("Beispiel gespeichert."); }}>Speichern</ActionButton></>}>
         {dialog === "m" ? <CoreTabPanel panelId="catalog-dialog-panel" value={dialogTab} className="core-body text-core-text">{dialogTab === "content" ? "Felder der Karte." : "Lernstand der Karte."}</CoreTabPanel> : <ul className="core-settings-list">{["geo", "hauptstaedte", "europa", "afrika"].map((tag, index) => <li key={tag} className="flex min-h-12 items-center justify-between gap-3 core-body"><span className="font-medium text-core-text">{tag}</span><span className="text-core-muted">{`${(index + 1) * 13} Karten`}</span></li>)}</ul>}
       </DialogFrame>
+      <ActionDialog open={discardOpen} title="Änderungen verwerfen?" description="Deine Eingaben in diesem Dialog gehen verloren." confirmLabel="Verwerfen" cancelLabel="Weiter bearbeiten" destructive onConfirm={() => { setDiscardOpen(false); setDialog(null); }} onCancel={() => setDiscardOpen(false)} />
     </Demo>}
   </>;
 }
@@ -339,6 +341,7 @@ function FormsDemo({ section }: { section: string }) {
   const [date, setDate] = useState(today);
   const [fileName, setFileName] = useState("");
   const [learnAhead, setLearnAhead] = useState(20);
+  const [fontSize, setFontSize] = useState(16);
   return <>
     {section === "forms" && <Demo title="CoreSelect"><CoreSelect ariaLabel="Kartenreihenfolge" value={value} onValueChange={setValue} options={[{ value: "reviews-first", label: "Fällige Karten zuerst" }, { value: "mixed", label: "Neue und fällige mischen" }, { value: "new-first", label: "Neue Karten zuerst" }]} /></Demo>}
     {section === "forms" && <Demo title="DeckSelect · Hierarchie und Suche"><DeckSelect ariaLabel="Zielstapel" value={deckId} onValueChange={setDeckId} decks={sampleDecks} /></Demo>}
@@ -346,6 +349,7 @@ function FormsDemo({ section }: { section: string }) {
     {section === "forms" && <Demo title="CoreDatePicker"><CoreDatePicker today={today} value={date} min="2026-09-01" max="2027-12-31" ariaLabel="Lerndatum wählen" onValueChange={setDate} /></Demo>}
     {section === "forms" && <Demo title="Native Felder"><label className="catalog-field">Stapelname<input className="min-h-control rounded-control border border-core-border px-3 text-core-text" defaultValue="Biologie" /></label><label className="catalog-field">Neue Karten pro Tag<input type="number" defaultValue={20} min={0} className="min-h-control rounded-control border border-core-border px-3 text-core-text" /></label><label className="catalog-field">Ungültige Eingabe<input aria-invalid="true" aria-describedby="catalog-input-error" className="min-h-control rounded-control border border-core-danger px-3" defaultValue="" /><span id="catalog-input-error" className="text-core-danger">Bitte einen Namen eingeben.</span></label><label className="catalog-field">Mehrzeiliger Inhalt<textarea defaultValue="Zusätzlicher Kontext" className="rounded-control border border-core-border p-3" /></label><label className="catalog-field">Passwort<input type="password" defaultValue="beispiel" className="min-h-control rounded-control border border-core-border px-3" /></label><label className="catalog-field">Deaktiviertes Feld<input disabled defaultValue="Nicht verfügbar" className="min-h-control rounded-control border border-core-border px-3 disabled:opacity-50" /></label></Demo>}
     {section === "forms" && <Demo title="CoreNumberField · Einstellungszeile" wide><div className="core-settings-list w-full"><div className="core-settings-row"><label htmlFor="catalog-learn-ahead" className="core-settings-row-title">Lernkarten vorziehen</label><div className="core-settings-row-control"><CoreNumberField id="catalog-learn-ahead" value={learnAhead} min={0} max={720} unit="Min." className="w-32" onChange={setLearnAhead} /></div></div><div className="core-settings-row" data-layout="inline"><span className="core-settings-row-title">Profilzeitzone</span><div className="core-settings-row-control"><span className="core-settings-row-value">Europe/Berlin</span></div></div></div></Demo>}
+    {section === "forms" && <Demo title="CoreNumberField · mit Minus und Plus"><CoreNumberField id="catalog-font-size" stepLabel="Schriftgröße" ariaLabel="Schriftgröße in Pixel" value={fontSize} min={10} max={32} onChange={setFontSize} /></Demo>}
     {section === "forms" && <Demo title="FileDropField"><FileDropField accept="image/*" pasteImages ariaLabel="Bild einfügen oder ablegen" prompt="Bild mit Strg+V einfügen oder hier ablegen" detail="PNG, JPEG, GIF oder WebP" actionLabel={fileName ? "Bild ersetzen" : "Bild auswählen"} onFile={(file) => setFileName(file.name)}>{fileName && <p className="core-body">{fileName}</p>}</FileDropField></Demo>}
   </>;
 }

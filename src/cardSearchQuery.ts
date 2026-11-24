@@ -63,7 +63,7 @@ export interface CardSearchContext {
 }
 
 /** Keys of Anki's search syntax (and CoRe's `has:`); any other `name:text` searches the field of that name. */
-export const ANKI_SEARCH_KEYS = new Set(["added", "card", "cid", "deck", "did", "dupe", "edited", "flag", "has", "introduced", "is", "mid", "nc", "nid", "note", "preset", "prop", "rated", "re", "resched", "sc", "tag", "w"]);
+const ANKI_SEARCH_KEYS = new Set(["added", "card", "cid", "deck", "did", "dupe", "edited", "flag", "has", "introduced", "is", "mid", "nc", "nid", "note", "preset", "prop", "rated", "re", "resched", "sc", "tag", "w"]);
 
 export interface CardSearchQuery {
   /** The longest word that must match on its own, lower case: a prefilter over the content text (one index lookup). */
@@ -98,7 +98,7 @@ function dueRange(operator: string, days: number, context: CardSearchContext | u
   return { from: dayBound(context, days), to: dayBound(context, days + 1) };
 }
 
-export function parseTerm(token: string, context?: CardSearchContext): CardSearchTerm | null {
+function parseTerm(token: string, context?: CardSearchContext): CardSearchTerm | null {
   const field = /^(-?)([\p{L}\p{N}_]+):(.+)$/u.exec(token);
   if (field && !ANKI_SEARCH_KEYS.has(field[2].toLowerCase())) {
     return { kind: "field", name: field[2].toLocaleLowerCase("de"), value: field[3].toLocaleLowerCase("de"), negated: field[1] === "-" };
@@ -156,7 +156,7 @@ interface Token {
   end: number;
 }
 
-export function tokenize(query: string): Token[] {
+function tokenize(query: string): Token[] {
   const tokens: Token[] = [];
   let index = 0;
   while (index < query.length) {
@@ -180,39 +180,55 @@ export function tokenize(query: string): Token[] {
   return tokens;
 }
 
+/** A group `-?( … )` with its source span; `end` is null while its parenthesis is not closed (it then runs to the end). */
+type SyntaxGroup = { type: "group"; items: SyntaxItem[]; negated: boolean; start: number; end: number | null };
+type SyntaxItem = (Omit<Token, "type"> & { type: "atom" | "or" | "close" }) | SyntaxGroup;
+
+/** The query as written: atoms, `or` and groups in order; only the top level holds stray `)`. */
+function parseSyntax(query: string): SyntaxItem[] {
+  const tokens = tokenize(query);
+  let position = 0;
+  const sequence = (nested: boolean): SyntaxItem[] => {
+    const items: SyntaxItem[] = [];
+    while (position < tokens.length && !(nested && tokens[position].type === "close")) {
+      const token = tokens[position];
+      position += 1;
+      if (token.type !== "open") {
+        items.push(token as SyntaxItem);
+        continue;
+      }
+      const inner = sequence(true);
+      const close = tokens[position];
+      if (close) position += 1;
+      items.push({ type: "group", items: inner, negated: token.negated, start: token.start, end: close ? close.end : null });
+    }
+    return items;
+  };
+  return sequence(false);
+}
+
 type SearchNode = { type: "atom"; value: string; negated: boolean } | { type: "and" | "or"; nodes: SearchNode[]; negated: boolean };
 
-/** `expr := and ("or" and)*`, `and := unary+`, `unary := "-"? (atom | "(" expr ")")`; stray tokens are skipped. */
-function parseNodes(tokens: Token[]): SearchNode {
-  let position = 0;
-  const parseUnary = (): SearchNode | null => {
-    const token = tokens[position];
-    if (!token || token.type === "close" || token.type === "or") return null;
-    position += 1;
-    if (token.type === "atom") return { type: "atom", value: token.value, negated: token.negated };
-    const inner = parseOr();
-    if (tokens[position]?.type === "close") position += 1;
-    return { ...inner, negated: inner.negated !== token.negated };
-  };
-  const parseAnd = (): SearchNode => {
-    const nodes: SearchNode[] = [];
-    for (let node = parseUnary(); node; node = parseUnary()) nodes.push(node);
-    return { type: "and", nodes, negated: false };
-  };
-  const parseOr = (): SearchNode => {
-    const nodes = [parseAnd()];
-    while (tokens[position]?.type === "or") {
-      position += 1;
-      nodes.push(parseAnd());
-    }
-    return nodes.length === 1 ? nodes[0] : { type: "or", nodes: nodes.filter((node) => node.type !== "and" || node.nodes.length), negated: false };
-  };
-  const nodes: SearchNode[] = [];
-  while (position < tokens.length) {
-    nodes.push(parseOr());
-    if (position < tokens.length) position += 1;
+/** `expr := and ("or" and)*`, `and := unary*`, `unary := "-"? (atom | "(" expr ")")`. */
+function expressionOf(items: readonly SyntaxItem[]): SearchNode {
+  const conjunctions: SearchNode[][] = [[]];
+  for (const item of items) {
+    if (item.type === "or") conjunctions.push([]);
+    else if (item.type === "atom") conjunctions.at(-1)!.push({ type: "atom", value: item.value, negated: item.negated });
+    else if (item.type === "group") conjunctions.at(-1)!.push({ ...expressionOf(item.items), negated: item.negated });
   }
-  return { type: "and", nodes, negated: false };
+  const nodes = conjunctions.map((conjunction): SearchNode => ({ type: "and", nodes: conjunction, negated: false }));
+  return nodes.length === 1 ? nodes[0] : { type: "or", nodes: nodes.filter((_, index) => conjunctions[index].length), negated: false };
+}
+
+/** A stray `)` at the top level ends one expression and starts the next; all of them must match. */
+function searchTreeOf(items: readonly SyntaxItem[]): SearchNode {
+  const expressions: SyntaxItem[][] = [[]];
+  for (const item of items) {
+    if (item.type === "close") expressions.push([]);
+    else expressions.at(-1)!.push(item);
+  }
+  return { type: "and", nodes: expressions.map(expressionOf), negated: false };
 }
 
 /** Beyond this many clauses a query counts as too nested; it then matches nothing. */
@@ -242,7 +258,7 @@ function clausesOf(node: SearchNode, negate: boolean, context?: CardSearchContex
 export function parseCardSearchQuery(query: unknown, context?: CardSearchContext): CardSearchQuery {
   let clauses: CardSearchTerm[][];
   try {
-    clauses = clausesOf(parseNodes(tokenize(String(query ?? ""))), false, context);
+    clauses = clausesOf(searchTreeOf(parseSyntax(String(query ?? ""))), false, context);
   } catch {
     return { text: "", terms: [{ kind: "any", terms: [], negated: false }] };
   }
@@ -392,4 +408,172 @@ export function pathMatchesCardSearch(path: string, search: CardSearchQuery): bo
 
 export function isEmptyCardSearch(search: CardSearchQuery): boolean {
   return !search.text && search.terms.length === 0;
+}
+
+interface QueryItem {
+  source: string;
+  kind: "word" | "term" | "group" | "or";
+  /** Members of a group `(a or b …)` of plain terms, as the menu writes it; null for any other group. */
+  members: string[] | null;
+  negated: boolean;
+}
+
+/** The top level of a query as chips and text; an unclosed group stays text until it is finished. */
+function queryItems(query: string): QueryItem[] {
+  return parseSyntax(query).flatMap((item): QueryItem[] => {
+    if (item.type === "group") {
+      if (item.end === null) return [{ source: query.slice(item.start).trim(), kind: "word", members: null, negated: false }];
+      const plain = item.items.length % 2 === 1 && item.items.every((part, position) => position % 2 === 1
+        ? part.type === "or"
+        : part.type === "atom" && !part.negated && parseTerm(part.value) !== null);
+      return [{
+        source: query.slice(item.start, item.end),
+        kind: "group",
+        members: plain ? item.items.flatMap((part) => part.type === "atom" ? [query.slice(part.start, part.end)] : []) : null,
+        negated: item.negated,
+      }];
+    }
+    if (item.type === "close") return [];
+    if (item.type === "or") return [{ source: "or", kind: "or", members: null, negated: false }];
+    return [{ source: query.slice(item.start, item.end), kind: parseTerm(item.value) ? "term" : "word", members: null, negated: item.negated }];
+  });
+}
+
+const sameTerm = (left: string, right: string) => left.toLocaleLowerCase("und") === right.toLocaleLowerCase("und");
+
+/** Tri-state of one term in the query: `in` as written or within a menu group, `out` negated, `""` absent. */
+export function cardSearchTermState(query: string, term: string): "" | "in" | "out" {
+  for (const item of queryItems(String(query ?? ""))) {
+    if (item.kind === "term" && sameTerm(item.source, term)) return "in";
+    if (item.kind === "term" && sameTerm(item.source, `-${term}`)) return "out";
+    if (item.kind === "group" && !item.negated && item.members?.some((member) => sameTerm(member, term))) return "in";
+  }
+  return "";
+}
+
+/**
+ * Sets one term to `in`, `out` or absent and keeps the text and every other term in place. With `siblings` (the terms
+ * of the same menu group) an `in` joins the siblings already set to `in` as one group: `(flag:1 or flag:2)`.
+ */
+export function withCardSearchTermState(query: string, term: string, state: "" | "in" | "out", siblings: readonly string[] = []): string {
+  const items: Array<QueryItem | null> = queryItems(String(query ?? "")).flatMap((item): QueryItem[] => {
+    if (item.kind === "term" && (sameTerm(item.source, term) || sameTerm(item.source, `-${term}`))) return [];
+    if (item.kind !== "group" || item.negated || !item.members?.some((member) => sameTerm(member, term))) return [item];
+    const members = item.members.filter((member) => !sameTerm(member, term));
+    if (!members.length) return [];
+    return [members.length === 1 ? { source: members[0], kind: "term", members: null, negated: false } : { ...item, source: `(${members.join(" or ")})`, members }];
+  });
+  if (state === "out") items.push({ source: `-${term}`, kind: "term", members: null, negated: true });
+  if (state === "in") {
+    const isSibling = (candidate: string) => siblings.some((sibling) => sameTerm(sibling, candidate));
+    const joined: string[] = [];
+    let place = -1;
+    items.forEach((item, index) => {
+      const members = item?.kind === "term" && !item.negated && isSibling(item.source) ? [item.source]
+        : item?.kind === "group" && !item.negated && item.members?.every(isSibling) ? item.members : null;
+      if (!members) return;
+      joined.push(...members);
+      if (place < 0) place = index;
+      items[index] = null;
+    });
+    const added = joined.length ? `(${[...joined, term].join(" or ")})` : term;
+    const item: QueryItem = { source: added, kind: joined.length ? "group" : "term", members: joined.length ? [...joined, term] : null, negated: false };
+    if (place < 0) items.push(item);
+    else items[place] = item;
+  }
+  return items.filter((item): item is QueryItem => Boolean(item)).map((item) => item.source).join(" ");
+}
+
+/** Limits the search to one deck, or lifts the limit with null, in place of every deck term it had. */
+export function withCardSearchDeck(query: string, deckId: string | null): string {
+  const isDeckItem = (source: string) => /^-?did:/i.test(source) || Boolean(cardSearchGroupMembers(source)?.members.every((member) => /^did:/i.test(member)));
+  const without = cardSearchTerms(query).filter(isDeckItem).reduce((current, source) => withoutCardSearchItem(current, source), String(query ?? ""));
+  return deckId === null ? without : withCardSearchTermState(without, `did:${deckId}`, "in");
+}
+
+export function withoutCardSearchItem(query: string, source: string): string {
+  return queryItems(String(query ?? "")).filter((item) => item.source !== source).map((item) => item.source).join(" ");
+}
+
+export function cardSearchText(query: string): string {
+  return queryItems(String(query ?? "")).filter((item) => item.kind === "word" || item.kind === "or").map((item) => item.source).join(" ");
+}
+
+export function cardSearchTermsOfKind(query: string, kind: CardSearchTerm["kind"]): string[] {
+  return queryItems(String(query ?? "")).filter((item) => item.kind === "term" && parseTerm(item.source)?.kind === kind).map((item) => item.source);
+}
+
+export function cardSearchTerms(query: string): string[] {
+  return queryItems(String(query ?? "")).filter((item) => item.kind === "term" || item.kind === "group").map((item) => item.source);
+}
+
+/** Fixed day for comparing `prop:due` ranges; only their order matters. */
+const DAY_ZERO = { todayStart: 0 };
+
+/** Learning phases a term allows, or null when it says nothing about them; new cards have no due date or interval. */
+function termPhases(term: CardSearchTerm): readonly string[] | null {
+  if (term.kind === "state") return [term.value];
+  if (term.kind === "maturity") return ["review"];
+  if (term.kind === "due" || (term.kind === "prop" && term.field !== "reps" && term.field !== "lapses")) return ["learn", "review"];
+  return null;
+}
+
+function termsExclude(left: string, right: string): boolean {
+  const a = parseTerm(left, DAY_ZERO);
+  const b = parseTerm(right, DAY_ZERO);
+  if (!a || !b || a.negated || b.negated) return false;
+  const [phasesA, phasesB] = [termPhases(a), termPhases(b)];
+  if (phasesA && phasesB && !phasesA.some((phase) => phasesB.includes(phase))) return true;
+  if (a.kind === "due" && b.kind === "due") return Boolean((a.to && b.from && a.to <= b.from) || (b.to && a.from && b.to <= a.from));
+  if (a.kind === "suspended" || b.kind === "suspended") return [a, b].some((term) => term.kind === "due" && term.reviewableOnly);
+  if (a.kind !== b.kind) return (a.kind === "tag-none" && b.kind === "tag") || (a.kind === "tag" && b.kind === "tag-none");
+  return (a.kind === "flag" || a.kind === "form" || a.kind === "card" || a.kind === "maturity") && a.value !== (b as typeof a).value;
+}
+
+/** Groups of chips, as written in the query, that no card can meet together; a top-level `or` is not checked. */
+export function cardSearchConflicts(query: string): string[][] {
+  const all = queryItems(String(query ?? ""));
+  if (all.some((item) => item.kind === "or")) return [];
+  const items = all.filter((item) => item.kind === "term" || item.members);
+  const required = items.filter((item) => !item.negated).map((item) => ({ source: item.source, terms: item.members ?? [item.source] }));
+  const excluded = items.filter((item) => item.negated).flatMap((item) => (item.members ?? [item.source.slice(1)]).map((term) => ({ source: item.source, term })));
+  return required.flatMap((filter, index) => {
+    const exclusive = required.slice(index + 1)
+      .filter((other) => filter.terms.every((term) => other.terms.every((otherTerm) => termsExclude(term, otherTerm))))
+      .map((other) => [filter.source, other.source]);
+    const negations = filter.terms.map((term) => excluded.find((entry) => sameTerm(entry.term, term))?.source);
+    return negations.every(Boolean) ? [...exclusive, [filter.source, ...new Set(negations as string[])]] : exclusive;
+  });
+}
+
+/** Members of a chip `(a or b …)` written as a menu group, else null. */
+export function cardSearchGroupMembers(source: string): { members: string[]; negated: boolean } | null {
+  const [item] = queryItems(source);
+  return item?.kind === "group" && item.members ? { members: item.members, negated: item.negated } : null;
+}
+
+/**
+ * Typing into the search field: the query keeps its terms and takes the new text; a recognized term that the user
+ * finished with a space (or that is followed by more words) becomes a term and leaves the field.
+ */
+export function withCardSearchText(query: string, input: string): { query: string; input: string } {
+  const finished = /\s$/.test(input);
+  const items = queryItems(input);
+  // Text with `or` stays one expression in the field; promoting its terms would change what it means.
+  const combined = items.some((item) => item.kind === "or");
+  const promoted = items.map((item, index) => !combined && (item.kind === "term" || item.kind === "group") && (finished || index < items.length - 1));
+  const terms = items.filter((_, index) => promoted[index]).map((item) => item.source);
+  const rest = items.filter((_, index) => !promoted[index]).map((item) => item.source);
+  return {
+    query: [...cardSearchTerms(query), ...terms, ...rest].join(" "),
+    input: rest.join(" ") + (finished && rest.length ? " " : ""),
+  };
+}
+
+/** Anki terms CoRe does not know yet; the search treats them as text. */
+export function unsupportedCardSearchTerms(query: unknown): string[] {
+  return tokenize(String(query ?? "")).filter((token) => {
+    const match = token.type === "atom" ? /^([a-z]+):./i.exec(token.value) : null;
+    return Boolean(match && ANKI_SEARCH_KEYS.has(match[1].toLowerCase()) && !parseTerm(token.value));
+  }).map((token) => String(query).slice(token.start, token.end));
 }

@@ -8,6 +8,7 @@ import { createDeckLibraryModel, type DeckLibrarySummary } from "../libraryModel
 import { ActionButton } from "../ui/actionUi.tsx";
 import { CoreDatePicker } from "../ui/CoreDatePicker.tsx";
 import { ColorPicker } from "../ui/ColorPicker.tsx";
+import { commitNumberInput } from "../ui/CoreNumberField.tsx";
 import { ActionDialog, PageHeader } from "../ui/coreUi.tsx";
 import { CoreCheckbox, CoreRadio, CoreSwitch } from "../ui/formControls.tsx";
 import { StatusMessage } from "../ui/feedbackUi.tsx";
@@ -165,7 +166,7 @@ export function ExamPlanEditor({ embedded = false, onDirtyChange, decks, deckSum
         }} className="flex min-h-12 w-full items-center justify-between gap-3 py-2 text-left core-control-label font-semibold text-core-text"><span>Lerntage und durchschnittliche Lernzeit</span><ChevronDown size={16} aria-hidden="true" className={`shrink-0 text-core-muted transition-transform motion-reduce:transition-none ${!time.weeklyMinutes ? "rotate-180" : ""}`} /></button>
         {!time.weeklyMinutes ? <div id={`${plan.id}-average-time`} className="grid min-w-0 gap-4 pb-4">
           <div className="grid grid-cols-4 gap-1 sm:grid-cols-7 sm:gap-2" role="group" aria-label="Lerntage">{WEEKDAYS.map((name, index) => <label key={name} className={`flex min-h-control cursor-pointer flex-col items-center justify-center gap-2 rounded-control border px-1 py-3 core-caption font-semibold ${time.weekdays[index] ? "border-core-action bg-core-info-soft text-core-text" : "border-core-border text-core-muted"}`}><CoreCheckbox aria-label={name} checked={time.weekdays[index]} onCheckedChange={(checked) => patch({ studyTime: { ...time, weekdays: time.weekdays.map((value, i) => i === index ? checked : value) } })} /><span aria-hidden="true">{name.slice(0, 2)}</span></label>)}</div>
-          <label className={`${FIELD_GROUP} sm:max-w-xs`}><span className="core-field-label">Lernzeit pro Lerntag · Min.</span><input className="core-field" type="number" inputMode="numeric" min={0} max={1440} step={15} value={time.dailyMinutes} onChange={(event) => patch({ studyTime: { ...time, dailyMinutes: Math.min(1440, Math.max(0, Math.round(Number(event.target.value) || 0))) } })} /></label>
+          <label className={`${FIELD_GROUP} sm:max-w-xs`}><span className="core-field-label">Lernzeit pro Lerntag · Min.</span><input className="core-field" type="number" inputMode="numeric" min={0} max={1440} step={15} value={time.dailyMinutes} onChange={(event) => patch({ studyTime: { ...time, dailyMinutes: commitNumberInput(event.target.value, 0, 0, 1440) } })} /></label>
         </div> : null}
       </div>
       <div className="min-w-0">
@@ -173,7 +174,7 @@ export function ExamPlanEditor({ embedded = false, onDirtyChange, decks, deckSum
           if (!time.weeklyMinutes) patch({ studyTime: { ...time, weeklyMinutes: time.weekdays.map((selected) => selected ? time.dailyMinutes : 0) } });
         }} className="flex min-h-12 w-full items-center justify-between gap-3 py-2 text-left core-control-label font-semibold text-core-text"><span>Lernzeit je Wochentag festlegen</span><ChevronDown size={16} aria-hidden="true" className={`shrink-0 text-core-muted transition-transform motion-reduce:transition-none ${time.weeklyMinutes ? "rotate-180" : ""}`} /></button>
         {time.weeklyMinutes ? <div id={`${plan.id}-weekday-time`} className="grid min-w-0 grid-cols-2 gap-3 pb-4 sm:grid-cols-3" role="group" aria-label="Lernzeit je Wochentag">{WEEKDAYS.map((name, index) => <label key={name} className={FIELD_GROUP}><span className="core-field-label">{name} · Min.</span><input className="core-field self-end" type="number" inputMode="numeric" min={0} max={1440} step={15} value={time.weekdays[index] ? time.weeklyMinutes![index] : 0} onChange={(event) => {
-          const minutes = Math.min(1440, Math.max(0, Math.round(Number(event.target.value) || 0)));
+          const minutes = commitNumberInput(event.target.value, 0, 0, 1440);
           patch({ studyTime: { ...time, weekdays: time.weekdays.map((selected, i) => i === index ? minutes > 0 : selected), weeklyMinutes: time.weeklyMinutes!.map((value, i) => i === index ? minutes : time.weekdays[i] ? value : 0) } });
         }} /></label>)}</div> : null}
       </div>

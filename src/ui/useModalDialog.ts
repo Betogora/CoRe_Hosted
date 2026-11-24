@@ -3,22 +3,11 @@ import React from "react";
 const FOCUSABLE_SELECTOR =
   'button:not([disabled]), iframe, [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
-/** Dialogs of this hook in opening order; only the last one answers Escape. */
+/** Dialogs of this hook in opening order; only the last one answers Escape, also while the focus rests on the page. */
 const openDialogs: HTMLElement[] = [];
 /** Open dialogs share one scroll lock; the page scrolls again once the last one closes, in any closing order. */
 let scrollLocks = 0;
 let unlockedOverflow = "";
-
-/**
- * Another dialog lies on top, also while the focus rests on the page: a later one of this hook, or a foreign modal
- * such as `ActionDialog` portalled after this one.
- */
-function isCoveredByOtherDialog(dialog: HTMLElement | null) {
-  if (!dialog) return false;
-  if (openDialogs.at(-1) !== dialog) return true;
-  return [...document.querySelectorAll<HTMLElement>('[aria-modal="true"]')]
-    .some((other) => !openDialogs.includes(other) && Boolean(dialog.compareDocumentPosition(other) & Node.DOCUMENT_POSITION_FOLLOWING));
-}
 
 function isInsideOtherDialog(target: Element, dialog: HTMLElement | null) {
   const owner = target.closest('[role="dialog"], [role="alertdialog"]');
@@ -31,6 +20,7 @@ export function useModalDialog({
   returnFocusRef,
   startFocusRef,
   stopEscapePropagation = false,
+  returnFocus,
 }: {
   open: boolean;
   onClose: () => void;
@@ -38,15 +28,19 @@ export function useModalDialog({
   /** Receives the focus on opening instead of the returned `initialFocusRef`. */
   startFocusRef?: React.RefObject<HTMLElement | null>;
   stopEscapePropagation?: boolean;
+  /** Replaces focusing the return target after closing, even when another element took the focus meanwhile. */
+  returnFocus?: (target: HTMLElement | null) => void;
 }) {
   const dialogRef = React.useRef<HTMLDivElement | null>(null);
   const initialFocusRef = React.useRef<HTMLButtonElement | null>(null);
   const fallbackReturnFocusRef = React.useRef<HTMLElement | null>(null);
   const onCloseRef = React.useRef(onClose);
+  const returnFocusCallbackRef = React.useRef(returnFocus);
 
   React.useEffect(() => {
     onCloseRef.current = onClose;
-  }, [onClose]);
+    returnFocusCallbackRef.current = returnFocus;
+  }, [onClose, returnFocus]);
 
   // Before any passive effect: content that focuses its own heading on mount would otherwise become the return target.
   React.useLayoutEffect(() => {
@@ -67,7 +61,7 @@ export function useModalDialog({
       if (event.key === "Escape") {
         // An open selection list or a confirmation stacked on top handles its own Escape first.
         if (event.target instanceof Element && (event.target.closest("[data-radix-popper-content-wrapper]") || isInsideOtherDialog(event.target, dialogRef.current))) return;
-        if (isCoveredByOtherDialog(dialog)) return;
+        if (dialog && openDialogs.at(-1) !== dialog) return;
         event.preventDefault();
         if (stopEscapePropagation) event.stopPropagation();
         onCloseRef.current();
@@ -94,12 +88,14 @@ export function useModalDialog({
       if (--scrollLocks === 0) document.body.style.overflow = unlockedOverflow;
       document.removeEventListener("keydown", handleKeyDown);
       if (dialog) openDialogs.splice(openDialogs.indexOf(dialog), 1);
-      const returnFocus = returnFocusRef?.current ?? fallbackReturnFocusRef.current;
+      const target = returnFocusRef?.current ?? fallbackReturnFocusRef.current;
+      const returnFocus = returnFocusCallbackRef.current;
       window.requestAnimationFrame(() => {
+        if (returnFocus) return returnFocus(target);
         // What opened in the dialog's place, such as `Nur üben`, keeps the focus it took.
         const active = document.activeElement;
         if (active && active !== document.body && !dialog?.contains(active)) return;
-        returnFocus?.focus();
+        target?.focus();
       });
     };
   }, [open, returnFocusRef, startFocusRef, stopEscapePropagation]);

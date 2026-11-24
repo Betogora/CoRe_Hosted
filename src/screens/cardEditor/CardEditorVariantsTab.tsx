@@ -1,8 +1,8 @@
 import React from "react";
 import { Pencil, PowerOff, RefreshCw, RotateCcw, Settings, Sparkles, Trash2 } from "lucide-react";
 import type { CardEditorServices, DecksScreenProps } from "../../appScreenProps.ts";
-import { activeVariantRefusal, VARIANT_FAILURE_LIMIT } from "../../coreModel.ts";
-import { cardVariantSource, classifyCardEligibility, describeVariantReadiness, isEditedVariant } from "../../coreVariantService.ts";
+import { activeVariantRefusal, isEditedVariant, VARIANT_FAILURE_LIMIT } from "../../coreModel.ts";
+import { cardVariantSource, classifyCardEligibility, describeVariantReadiness } from "../../coreVariantService.ts";
 import type { Card, CardVariant, Deck, Note } from "../../coreTypes.ts";
 import { aiVariantFieldText, type AiCardVariantSource } from "../../aiCardVariantContract.ts";
 import { ActionButton, CrossLinkButton, IconButton } from "../../ui/actionUi.tsx";
