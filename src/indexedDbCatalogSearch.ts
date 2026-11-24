@@ -18,6 +18,14 @@ export interface CatalogCursor {
   id: string;
 }
 
+export interface CardPageRequest {
+  page?: number;
+  pageSize?: number;
+  query?: string;
+  sort?: CardTableSort;
+  searchContext?: CardSearchContext;
+}
+
 /** Catalog rows read per transaction while the search index loads; small enough to keep each task short. */
 const SEARCH_INDEX_BATCH_SIZE = 1_000;
 
@@ -29,8 +37,14 @@ export function createCatalogSearch(database: IDBDatabase, flushWrites: () => Pr
   let searchIndexReady = false;
   let searchIndexLoad: Promise<void> | null = null;
   const changedCatalogIds = new Set<string>();
-  const markCatalogChanged = (id: string) => { changedCatalogIds.add(id); };
+  // Keyset cursors of a deck's pages; any catalog change can move rows across page borders.
+  const pageCursorsByKey = new Map<string, Map<number, CatalogCursor | null>>();
+  const markCatalogChanged = (id: string) => {
+    changedCatalogIds.add(id);
+    pageCursorsByKey.clear();
+  };
   const markCatalogReset = () => {
+    pageCursorsByKey.clear();
     searchIndexGeneration += 1;
     searchIndexReady = false;
     changedCatalogIds.clear();
@@ -90,7 +104,6 @@ export function createCatalogSearch(database: IDBDatabase, flushWrites: () => Pr
     includeTotal = false,
     searchContext,
   }: { cursor?: CatalogCursor | null; limit?: number; query?: string; sort?: CardTableSort; includeTotal?: boolean; searchContext?: CardSearchContext } = {}) => {
-    await flushWrites();
     const pageLimit = Math.min(CATALOG_PAGE_LIMIT, Math.max(1, Math.floor(Number(limit))));
     if (!isEmptyCardSearch(parseCardSearchQuery(query))) {
       await ensureSearchIndex();
@@ -112,6 +125,11 @@ export function createCatalogSearch(database: IDBDatabase, flushWrites: () => Pr
         nextCursor: hasMore && lastItem ? { sortValue: catalogSortValue(lastItem, sort.field), id: lastItem.id } : null,
       };
     }
+    return readKeysetPage(deckId, cursor, pageLimit, sort, includeTotal);
+  };
+
+  const readKeysetPage = async (deckId: string, cursor: CatalogCursor | null, pageLimit: number, sort: CardTableSort, includeTotal: boolean) => {
+    await flushWrites();
     const indexName = sort.field === "nextStudyDate" ? "deckDue" : sort.field === "variants" ? "deckVariants" : "deckSort";
     const sortValueOf = (row: StoredCardCatalog) => indexName === "deckDue" ? row.dueSort : indexName === "deckVariants" ? String(row.hasActiveVariants) : row.sortText;
     const keyFor = (value: string, id: string): IDBValidKey => indexName === "deckVariants" ? [deckId, Number(value), id] : [deckId, value, id];
@@ -167,13 +185,59 @@ export function createCatalogSearch(database: IDBDatabase, flushWrites: () => Pr
     };
   };
 
+  /**
+   * The search index answers any page at once; a single deck without a search walks its keyset pages only until the
+   * index is loaded.
+   */
+  const listCardPage = async (deckIds: readonly string[], {
+    page = 0,
+    pageSize = CATALOG_PAGE_LIMIT,
+    query = "",
+    sort = { field: "sortField", direction: "asc" } as CardTableSort,
+    searchContext,
+  }: CardPageRequest = {}) => {
+    await flushWrites();
+    if (deckIds.length !== 1 || searchIndexReady || !isEmptyCardSearch(parseCardSearchQuery(query))) {
+      await ensureSearchIndex();
+      const requestedPage = Math.max(0, Math.floor(page));
+      const slice = searchIndex.slice(query, sort, searchContext, deckIds, requestedPage * pageSize, pageSize);
+      return {
+        items: slice.items,
+        page: requestedPage,
+        pageSize,
+        totalCount: slice.totalCount,
+        hasMore: (requestedPage + 1) * pageSize < slice.totalCount,
+      };
+    }
+    const deckId = deckIds[0];
+    const pageLimit = Math.min(CATALOG_PAGE_LIMIT, Math.max(1, Math.floor(Number(pageSize))));
+    const key = JSON.stringify([deckId, query, sort.field, sort.direction, searchContext ?? null, pageLimit]);
+    const cursors = pageCursorsByKey.get(key) ?? new Map<number, CatalogCursor | null>([[0, null]]);
+    pageCursorsByKey.set(key, cursors);
+    let requestedPage = Math.max(0, Math.floor(page));
+    while (!cursors.has(requestedPage)) requestedPage -= 1;
+    let result = await readKeysetPage(deckId, cursors.get(requestedPage) ?? null, pageLimit, sort, true);
+    while (requestedPage < page && result.nextCursor) {
+      requestedPage += 1;
+      cursors.set(requestedPage, result.nextCursor);
+      result = await readKeysetPage(deckId, result.nextCursor, pageLimit, sort, true);
+    }
+    if (result.nextCursor) cursors.set(requestedPage + 1, result.nextCursor);
+    return {
+      items: result.items,
+      page: requestedPage,
+      pageSize,
+      totalCount: result.totalCount ?? result.items.length,
+      hasMore: result.hasMore,
+    };
+  };
+
   return {
-    searchIndex,
-    isSearchIndexReady: () => searchIndexReady,
     markCatalogChanged,
     markCatalogReset,
     ensureSearchIndex,
     listCatalogPage,
+    listCardPage,
     async loadCatalogEntries(cardIds: readonly string[]) {
       await flushWrites();
       const transaction = database.transaction(STORE.cardCatalog, "readonly");

@@ -1,11 +1,12 @@
 import React from "react";
 import { createPortal } from "react-dom";
-import { Eraser, Highlighter, Maximize2, Minimize2, Minus, PenLine, Plus, Redo2, Spline, Trash2, Type, Undo2 } from "lucide-react";
+import { Eraser, Highlighter, Maximize2, Minimize2, Minus, PenLine, Redo2, Spline, Trash2, Type, Undo2 } from "lucide-react";
 import { SUMMARY_FONT_SIZE, type LearningSummary, type SummaryPage, type SummaryStroke } from "../learningSummaries.ts";
 import { summaryDrawingLayout } from "../summaryDocumentLayout.ts";
 import { IconButton } from "../ui/actionUi.tsx";
 import { ColorSwatchRow } from "../ui/ColorPicker.tsx";
 import { CoreIconSegmentedControl, CoreSegmentedControl } from "../ui/coreUi.tsx";
+import { CoreNumberField } from "../ui/CoreNumberField.tsx";
 import { CoreSelect } from "../ui/selectUi.tsx";
 import { CoreTooltip } from "../ui/tooltipUi.tsx";
 import { EditorToolbar, EditorToolbarContext } from "../ui/EditorToolbar.tsx";
@@ -71,16 +72,6 @@ function highlightTextRow(field: HTMLElement, overlay: SVGSVGElement, row: TextR
   selection?.collapseToEnd();
 }
 
-function NumberStepper({ label, value, min, max, onChange }: { label: string; value: number; min: number; max: number; onChange: (value: number) => void }) {
-  const [draft, setDraft] = React.useState(String(value));
-  React.useEffect(() => setDraft(String(value)), [value]);
-  const commit = () => { const next = Math.round(Number(draft)); if (draft.trim() && Number.isFinite(next)) onChange(Math.min(max, Math.max(min, next))); setDraft(String(value)); };
-  return <div className="core-summary-stepper" role="group" aria-label={label}>
-    <CoreTooltip label={`${label} verringern`}><IconButton variant="ghost" label={`${label} verringern`} icon={Minus} disabled={value <= min} onClick={() => onChange(value - 1)}/></CoreTooltip>
-    <input type="number" inputMode="numeric" aria-label={`${label} in Pixel`} min={min} max={max} step={1} value={draft} onChange={(event) => setDraft(event.target.value)} onBlur={commit} onKeyDown={(event) => { if (event.key === "Enter") commit(); }}/>
-    <CoreTooltip label={`${label} erhöhen`}><IconButton variant="ghost" label={`${label} erhöhen`} icon={Plus} disabled={value >= max} onClick={() => onChange(value + 1)}/></CoreTooltip>
-  </div>;
-}
 function strokePath(stroke: SummaryStroke) {
   return stroke.points.map(([x, y], index) => `${index ? "L" : "M"}${x} ${y}`).join(" ") + (stroke.points.length === 1 ? " l0.01 0" : "");
 }
@@ -246,7 +237,7 @@ export function SummaryDocumentEditor({ value, onChange, busy, compact = false }
         <RichTextEditor value={value.html} ariaLabel="Zusammenfassung bearbeiten" ariaDescribedBy={`${fieldId}-hint`} toolbarHost={toolbarContainer} documentTools={compact ? "essential" : true} minHeightClass=""
           documentSettings={compact ? null : <div className="core-rich-text-group" role="group" aria-label="Schrift">
             <CoreSelect ariaLabel="Schrift" className="core-summary-font-select" value={value.font} options={fontOptions} onValueChange={(font) => onChange({ ...value, font: font as LearningSummary["font"] })}/>
-            <NumberStepper label="Schriftgröße" value={value.fontSize} min={SUMMARY_FONT_SIZE.min} max={SUMMARY_FONT_SIZE.max} onChange={(fontSize) => onChange({ ...value, fontSize })}/>
+            <CoreNumberField id={`${fieldId}-font-size`} stepLabel="Schriftgröße" ariaLabel="Schriftgröße in Pixel" value={value.fontSize} min={SUMMARY_FONT_SIZE.min} max={SUMMARY_FONT_SIZE.max} onChange={(fontSize) => onChange({ ...value, fontSize })}/>
           </div>}
           onChange={(html) => { if (html !== value.html) updatePages(pages.map((page, index) => ({ ...page, html: index === 0 ? html : "" }))); }}/>
         <svg className="core-summary-drawing-layer" data-tool={tool} viewBox={`0 0 ${drawing.width} ${sheetSize.height / scale}`} aria-label="Zeichenfläche Zusammenfassung" role="img" onPointerDown={startInk} onPointerMove={moveInk} onPointerUp={endInk} onPointerCancel={cancelInk} onLostPointerCapture={cancelInk}>

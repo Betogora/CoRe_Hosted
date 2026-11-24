@@ -1,6 +1,6 @@
 import { AI_CARD_VARIANT_PROMPT_VERSION, AiCardVariantContractError } from "./aiCardVariantContract.ts";
-import { activeVariantRefusal, getActiveVariants } from "./coreModel.ts";
-import { classifyCardEligibility, hasOlderVariantRefusal, isEditedVariant } from "./coreVariantService.ts";
+import { activeVariantRefusal, getActiveVariants, isEditedVariant } from "./coreModel.ts";
+import { classifyCardEligibility, hasOlderVariantRefusal } from "./coreVariantService.ts";
 import type { Card, Deck, DeckSettings, Note } from "./coreTypes.ts";
 import type { CardCatalogEntry } from "./workspaceReplica.ts";
 

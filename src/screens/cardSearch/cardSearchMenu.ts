@@ -1,4 +1,4 @@
-import { cardSearchConflicts, cardSearchGroupMembers } from "./cardSearchExpression.ts";
+import { cardSearchConflicts, cardSearchGroupMembers } from "../../cardSearchQuery.ts";
 import { Activity, CalendarClock, CalendarRange, Flag, Gauge, Layers, Sparkles, Tag, TextCursorInput, CircleHelp, type LucideIcon } from "lucide-react";
 import { flagName } from "../../ui/flagUi.tsx";
 import type { Deck } from "../../coreTypes.ts";

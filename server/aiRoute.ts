@@ -5,7 +5,7 @@ import type { Database } from "../src/database.types.js";
 export const OPENROUTER_CHAT_ENDPOINT = "https://openrouter.ai/api/v1/chat/completions";
 export const OPENROUTER_MODEL = "openai/gpt-6-luna";
 
-export type Environment = Record<string, string | undefined>;
+type Environment = Record<string, string | undefined>;
 
 export interface ProviderTexts {
   rateLimited: string;
@@ -17,7 +17,12 @@ export interface ProviderTexts {
   fields: string;
 }
 
-export type AiRouteLogEntry = {
+export interface AiRouteTexts extends ProviderTexts {
+  unconfigured: string;
+  internal: string;
+}
+
+type AiRouteLogEntry = {
   event: "ai_card_variant" | "ai_card_help" | "ai_learning_summary" | "ai_source_cards";
   outcome: string;
   status: number;
@@ -61,7 +66,7 @@ function firstHeaderValue(value: unknown): string {
   return String(Array.isArray(value) ? value[0] : value ?? "").split(",")[0].trim();
 }
 
-export function json(res: any, statusCode: number, body: unknown, headers: Record<string, string> = {}) {
+function json(res: any, statusCode: number, body: unknown, headers: Record<string, string> = {}) {
   res.statusCode = statusCode;
   res.setHeader("Content-Type", "application/json; charset=utf-8");
   res.setHeader("Cache-Control", "private, no-store");
@@ -118,7 +123,7 @@ export function parseBearerToken(req: any): string {
 }
 
 /** The client and its cached JWKS live as long as the function instance; the JWT is verified locally. */
-export function createAuthenticator(env: Environment) {
+function createAuthenticator(env: Environment) {
   const url = env.SUPABASE_URL ?? env.VITE_SUPABASE_URL;
   const publishableKey = env.SUPABASE_PUBLISHABLE_KEY ?? env.VITE_SUPABASE_PUBLISHABLE_KEY;
   const client = url && publishableKey
@@ -173,13 +178,15 @@ function usageValue(value: unknown): number | null {
   return typeof value === "number" && Number.isFinite(value) && value >= 0 ? value : null;
 }
 
+type Billing = Pick<AiRouteLogEntry, "model" | "totalTokens" | "costUsd">;
+
 const billingSchema = v.looseObject({
   model: v.optional(v.string()),
   usage: v.optional(v.looseObject({ total_tokens: v.optional(v.unknown()), cost: v.optional(v.unknown()) })),
 });
 
 /** Readable even when the answer itself is cut off or unusable. */
-export function readBilling(payload: unknown): Pick<AiRouteLogEntry, "model" | "totalTokens" | "costUsd"> {
+export function readBilling(payload: unknown): Billing {
   const parsed = v.safeParse(billingSchema, payload);
   const output = parsed.success ? parsed.output : {};
   return { model: output.model || null, totalTokens: usageValue(output.usage?.total_tokens), costUsd: usageValue(output.usage?.cost) };
@@ -208,6 +215,69 @@ export function readToolCall(payload: unknown, tool: string, texts: ProviderText
   };
 }
 
-export function logAiRoute(entry: AiRouteLogEntry) {
+function logAiRoute(entry: AiRouteLogEntry) {
   console.info(JSON.stringify(entry));
+}
+
+interface AiRoute<Input, Result extends { model: string }> {
+  event: AiRouteLogEntry["event"];
+  maxBytes: number;
+  deadlineMs: number;
+  promptVersion: string;
+  texts: AiRouteTexts;
+  parse(body: unknown): Input;
+  buildPayload(input: Input): unknown;
+  extract(payload: unknown, input: Input): Result;
+  /** Its errors answer 400 from `parse` (413 for the code `tooLarge`) and 502 from `extract`. */
+  domainError?: { type: abstract new (...args: never[]) => Error & { code: string }; tooLarge: string };
+}
+
+export function createAiRoute<Input, Result extends { model: string }>(route: AiRoute<Input, Result>) {
+  function toHttpError(error: unknown, generating: boolean): HttpError {
+    if (error instanceof HttpError) return error;
+    const domain = route.domainError;
+    if (domain && error instanceof domain.type) {
+      return new HttpError(generating ? 502 : error.code === domain.tooLarge ? 413 : 400, error.code, error.message);
+    }
+    return new HttpError(500, "internal_error", route.texts.internal);
+  }
+
+  return function createHandler({ env = process.env, fetchImpl = globalThis.fetch, authenticate, log = logAiRoute }: {
+    env?: Environment;
+    fetchImpl?: typeof fetch;
+    authenticate?: (accessToken: string) => Promise<string>;
+    log?: (entry: AiRouteLogEntry) => void;
+  } = {}) {
+    const authenticateRequest = authenticate ?? createAuthenticator(env);
+    return async function handler(req: any, res: any) {
+      if (req.method !== "POST") {
+        json(res, 405, { error: { code: "method_not_allowed", message: "Nur POST ist erlaubt." } }, { Allow: "POST" });
+        return;
+      }
+      if (!isAllowedOrigin(req)) {
+        json(res, 403, { error: { code: "forbidden_origin", message: "Diese Anfrage ist nicht erlaubt." } });
+        return;
+      }
+      const startedAt = Date.now();
+      let billing: Billing | null = null;
+      try {
+        await authenticateRequest(parseBearerToken(req));
+        const apiKey = env.OPENROUTER_API_KEY;
+        if (!apiKey) throw new HttpError(503, "missing_openrouter_api_key", route.texts.unconfigured);
+        const input = route.parse(await readJsonBody(req, route.maxBytes));
+
+        billing = { model: null, totalTokens: null, costUsd: null };
+        const payload = await requestOpenRouter(fetchImpl, apiKey, route.buildPayload(input), AbortSignal.timeout(route.deadlineMs), route.texts);
+        // Read before extracting, so a cut-off or rejected answer still logs what it cost.
+        billing = readBilling(payload);
+        const result = route.extract(payload, input);
+        log({ event: route.event, outcome: "ok", status: 200, latencyMs: Date.now() - startedAt, ...billing, model: result.model });
+        json(res, 200, result, { "X-CoRe-Prompt-Version": route.promptVersion });
+      } catch (caught) {
+        const error = toHttpError(caught, billing !== null);
+        if (billing) log({ event: route.event, outcome: error.code, status: error.statusCode, latencyMs: Date.now() - startedAt, ...billing });
+        json(res, error.statusCode, { error: { code: error.code, message: error.message } }, error.statusCode === 401 ? { "WWW-Authenticate": "Bearer" } : {});
+      }
+    };
+  };
 }
