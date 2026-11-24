@@ -336,7 +336,7 @@ const sourceCards: EvalDefinition<SourceCardsCase, SourceCardsOutput> = {
   judged: (request) => [...Object.values(SOURCE_CRITERIA), ...sourceKeypoints(request)],
   items(request, output) {
     const counting = COUNT_PROFILES.includes(request.profile);
-    const cards = sample(output.cards, (card) => card.front, counting ? 5 : 10).map((card) => ({
+    const cards = sample(output.cards, (card) => card.front, counting ? 3 : 5).map((card) => ({
       key: `karte-${hash(card.front).slice(0, 10)}`,
       criteria: counting ? [SOURCE_CRITERIA.Q2] : [SOURCE_CRITERIA.Q2, SOURCE_CRITERIA.Q3, SOURCE_CRITERIA.Q4, ...card.options.length ? [SOURCE_CRITERIA.Q5] : []],
       rendered: {
@@ -386,7 +386,7 @@ const SUMMARY_PROFILES = {
   "lang-stichpunkte-verstehen": { length: "long", detail: "detailed", format: "bullets", goal: "understand", includeExamples: true },
 } as const satisfies Record<string, Partial<SummarySettings>>;
 const SUMMARY_WORD_LIMITS: Record<SummarySettings["length"], number> = { short: 300, medium: 750, long: 1_500 };
-const SUMMARY_SECTIONS_JUDGED = 4;
+const SUMMARY_SECTIONS_JUDGED = 2;
 
 const materialSchema = v.strictObject({
   title: v.string(), material: v.picklist(["cards", "source", "cards-and-source"]), decks: v.array(v.unknown()), units: v.array(v.unknown()),

@@ -1623,6 +1623,255 @@
           "M6": 0
         }
       }
+    },
+    {
+      "requestType": "learning-summary",
+      "run": "2026-11-24-l-baseline-dev",
+      "date": "2026-11-24",
+      "split": "dev",
+      "promptVersion": "learning-summary-v4",
+      "candidate": null,
+      "fingerprint": "09c550e0044c8e7a",
+      "model": "openai/gpt-6-luna",
+      "reasoning": "low",
+      "change": "Neue Baseline auf den ausgewogenen Fallsätzen (Paket L)",
+      "decision": "baseline",
+      "cases": 20,
+      "repetitions": 2,
+      "main": 0.5375,
+      "low": 0.375,
+      "high": 0.6875,
+      "criteria": {
+        "Z1": 0.9,
+        "Z2": 0.9444,
+        "Z3": 1,
+        "Z4": 1,
+        "Z5": 0.6667,
+        "Z6": 0.9444,
+        "Z7": 0.7778,
+        "Z8": 0.9861,
+        "Z9": 0.9318
+      },
+      "outcomes": {
+        "answer": 36,
+        "refused": 0,
+        "rejected": 4,
+        "timeout": 0
+      },
+      "traps": {
+        "answers": 0,
+        "errors": 0
+      },
+      "costUsd": 0.00073,
+      "costTotalUsd": 0.0292,
+      "latencyP90Ms": 17735,
+      "judge": {
+        "model": "claude-opus-5-5",
+        "fingerprint": "a89086c0cf8c8650",
+        "entries": 108,
+        "cached": 0,
+        "noise": {
+          "Z6": 0,
+          "Z7": 0,
+          "Z8": 0,
+          "Z9": 0
+        }
+      },
+      "metrics": {
+        "abschnitte": 4.8056,
+        "belegtes_material": 0.9985,
+        "warnungen": 1.25,
+        "woerter": 490.0278
+      }
+    },
+    {
+      "requestType": "learning-summary",
+      "run": "2026-11-24-l-baseline-holdout",
+      "date": "2026-11-24",
+      "split": "holdout",
+      "promptVersion": "learning-summary-v4",
+      "candidate": null,
+      "fingerprint": "b9d2f81b99bc3fb9",
+      "model": "openai/gpt-6-luna",
+      "reasoning": "low",
+      "change": "Rückhalt der neuen Baseline (Paket L)",
+      "decision": "holdout",
+      "cases": 12,
+      "repetitions": 2,
+      "main": 0.3958,
+      "low": 0.1667,
+      "high": 0.6458,
+      "criteria": {
+        "Z1": 0.9167,
+        "Z2": 0.7727,
+        "Z3": 0.9545,
+        "Z4": 1,
+        "Z5": 0.5909,
+        "Z6": 0.9091,
+        "Z7": 0.75,
+        "Z8": 0.9909,
+        "Z9": 0.9545
+      },
+      "outcomes": {
+        "answer": 22,
+        "refused": 0,
+        "rejected": 2,
+        "timeout": 0
+      },
+      "traps": {
+        "answers": 0,
+        "errors": 0
+      },
+      "costUsd": 0.000754,
+      "costTotalUsd": 0.0181,
+      "latencyP90Ms": 17885,
+      "judge": {
+        "model": "claude-opus-5-5",
+        "fingerprint": "a89086c0cf8c8650",
+        "entries": 66,
+        "cached": 0,
+        "noise": {
+          "Z6": 0,
+          "Z7": 0.1429,
+          "Z8": 0,
+          "Z9": 0
+        }
+      },
+      "metrics": {
+        "abschnitte": 4,
+        "belegtes_material": 1,
+        "warnungen": 1.1364,
+        "woerter": 445.6818
+      }
+    },
+    {
+      "requestType": "source-cards",
+      "run": "2026-11-24-l-baseline-dev",
+      "date": "2026-11-24",
+      "split": "dev",
+      "promptVersion": "source-cards-v2",
+      "candidate": null,
+      "fingerprint": "b935ec7b66903c05",
+      "model": "openai/gpt-6-luna",
+      "reasoning": "low",
+      "change": "Neue Baseline auf den ausgewogenen Fallsätzen (Paket L)",
+      "decision": "baseline",
+      "cases": 24,
+      "repetitions": 2,
+      "main": 0.8503,
+      "low": 0.7951,
+      "high": 0.9045,
+      "criteria": {
+        "Q1": 1,
+        "Q2": 0.9847,
+        "Q3": 0.8625,
+        "Q4": 0.9188,
+        "Q5": 1,
+        "Q6": 0.7272
+      },
+      "outcomes": {
+        "answer": 48,
+        "refused": 0,
+        "rejected": 0,
+        "timeout": 0
+      },
+      "traps": {
+        "answers": 0,
+        "errors": 0
+      },
+      "costUsd": 0.00221,
+      "costTotalUsd": 0.106,
+      "latencyP90Ms": 119512,
+      "judge": {
+        "model": "claude-opus-5-5",
+        "fingerprint": "edd8713b2c29c6c4",
+        "entries": 250,
+        "cached": 0,
+        "noise": {
+          "Q2": 0,
+          "Q3": 0,
+          "Q4": 0.0526,
+          "Q5": 0,
+          "Q6": 0.05
+        }
+      },
+      "metrics": {
+        "abschnitte_gescheitert": 0,
+        "anteil_frage_antwort": 0.9312,
+        "anteil_lueckentext": 0.0389,
+        "anteil_multiple_choice": 0.0261,
+        "anteil_single_choice": 0.0038,
+        "belegte_stellen": 0.8894,
+        "karten": 33.7708,
+        "karten_je_1000_zeichen": 4.5522,
+        "letzte_belegte_stelle": 0.94,
+        "obergrenze_erreicht": 0.0833,
+        "verworfen": 2.7917
+      }
+    },
+    {
+      "requestType": "source-cards",
+      "run": "2026-11-24-l-baseline-holdout",
+      "date": "2026-11-24",
+      "split": "holdout",
+      "promptVersion": "source-cards-v2",
+      "candidate": null,
+      "fingerprint": "e4aff0b11e162630",
+      "model": "openai/gpt-6-luna",
+      "reasoning": "low",
+      "change": "Rückhalt der neuen Baseline (Paket L)",
+      "decision": "holdout",
+      "cases": 14,
+      "repetitions": 2,
+      "main": 0.8738,
+      "low": 0.7524,
+      "high": 0.9738,
+      "criteria": {
+        "Q1": 0.9643,
+        "Q2": 0.9738,
+        "Q3": 0.9667,
+        "Q4": 0.9111,
+        "Q5": 1,
+        "Q6": 0.7792
+      },
+      "outcomes": {
+        "answer": 28,
+        "refused": 0,
+        "rejected": 0,
+        "timeout": 0
+      },
+      "traps": {
+        "answers": 0,
+        "errors": 0
+      },
+      "costUsd": 0.00195,
+      "costTotalUsd": 0.0546,
+      "latencyP90Ms": 132467,
+      "judge": {
+        "model": "claude-opus-5-5",
+        "fingerprint": "edd8713b2c29c6c4",
+        "entries": 140,
+        "cached": 0,
+        "noise": {
+          "Q2": 0,
+          "Q3": 0,
+          "Q4": 0,
+          "Q6": 0.1167
+        }
+      },
+      "metrics": {
+        "abschnitte_gescheitert": 0.0357,
+        "anteil_frage_antwort": 0.9233,
+        "anteil_lueckentext": 0.0558,
+        "anteil_multiple_choice": 0.0108,
+        "anteil_single_choice": 0.0101,
+        "belegte_stellen": 0.8668,
+        "karten": 31.5714,
+        "karten_je_1000_zeichen": 5.2615,
+        "letzte_belegte_stelle": 0.9333,
+        "obergrenze_erreicht": 0.0357,
+        "verworfen": 2.6429
+      }
     }
   ],
   "calibrations": []

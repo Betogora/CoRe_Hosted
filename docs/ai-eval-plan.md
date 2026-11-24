@@ -214,8 +214,10 @@ Zeitüberschreitungen sind bei jedem Anfragetyp feste Messgrößen.
 - Bei „Karten aus einer Quelle“ ist der Fall ein Auftrag über das ganze
   Dokument (alle Abschnitte mit `avoid` und Restmenge wie in der App), in
   festen Profilen: Standard, alle Kartenformen, Weniger, Mehr. Der Richter
-  sieht je Dokument eine Stichprobe von zehn Karten für Standard und für
-  alle Kartenformen, von fünf für Weniger und Mehr (dort nur Q2).
+  sieht je Dokument eine Stichprobe von fünf Karten für Standard und für
+  alle Kartenformen, von drei für Weniger und Mehr (dort nur Q2); seit
+  Paket L halbiert, weil das Rauschen vom Erzeuger kommt, nicht von der
+  Stichprobe.
 - Der Hauptwert ist bei Varianten und KI hilft der Anteil der Antworten, die
   alle Hauptkriterien bestehen; bei Quellenkarten der Anteil bewerteter
   Karten mit Q2–Q4, bei der Zusammenfassung der Anteil der Abschnitte mit Z6
@@ -458,14 +460,14 @@ Umgesetzt am 2026-11-23. Stand und Abweichungen:
   bei der Zusammenfassung Wörter, Abschnitte, belegtes Material und
   Warnungen. Der Bericht mittelt sie je Kategorie; das Ledger trägt sie.
 - **Karten aus einer Quelle:** Fall ist Dokument mal Profil (Standard, alle
-  Formen, Weniger, Mehr), gruppiert nach Dokument. Der Richter sieht zehn
-  Karten mit ihren Belegstellen (bei Weniger und Mehr fünf, nur Q2) und
+  Formen, Weniger, Mehr), gruppiert nach Dokument. Der Richter sieht fünf
+  Karten mit ihren Belegstellen (bei Weniger und Mehr drei, nur Q2) und
   einen Eintrag mit allen Karten gegen die Kernaussagen. Das PDF liest der
   Eval über `ohmsches-gesetz.pages.json`, die das Erzeugerskript neben das
   PDF schreibt.
 - **Zusammenfassung:** Fall ist Materialsatz mal Profil aus
   `fixtures/ai-eval/summary-material/`.
-  Der Richter sieht bis zu vier Abschnitte mit ihrem belegten Material und
+  Der Richter sieht bis zu zwei Abschnitte mit ihrem belegten Material und
   einen Eintrag mit der ganzen Zusammenfassung gegen Kernaussagen und
   eingebaute Widersprüche.
 - **Gemeinsames Material** in einem Block ist nicht gebaut; jeder Eintrag
@@ -545,7 +547,7 @@ Erzeugung rund 7 Cent.
   kleinere Verbesserungen sind nicht messbar. Die Vorauswahl mit einer
   Wiederholung schwankt ähnlich stark (Musterbeispiel: H4 67 → 92 → 63 %).
 
-### K – Messschärfe (erledigt) und L – ausgewogene Fallsätze
+### K – Messschärfe und L – ausgewogene Fallsätze (erledigt)
 
 Anlass ist die Welle KI hilft: 31 Karten je Teil, eine Karte rund 3 Punkte,
 Rauschen um ±10 Punkte; der Rückhalt bestätigte den Gewinn nicht. Das

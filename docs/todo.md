@@ -1,6 +1,6 @@
 # CoRe TODO
 
-Stand: 2026-11-23
+Stand: 2026-11-24
 
 Nur offene Arbeit. Ist-Stand in [`status.md`](status.md), Entscheidungen in
 [`decisions.md`](decisions.md), erledigte Arbeit in [`history.md`](history.md).
@@ -13,11 +13,12 @@ externen Release fällig. „Später“ ist geparkt.
 
 Alle vier KI-Routen stehen (`card-variant-v5`, `card-help-v2`,
 `source-cards-v2`, `learning-summary-v4`); P5 läuft. Die Baseline aller
-sechs Anfragetypen steht im Ledger und auf der Seite [KI-Eval](ai-eval.md). Der Runner
-kennt alle sechs Anfragetypen: Varianten und `card-help` mit 59 bis 78
-Prüfkarten je Anfragetyp und lokalen Korpusfällen in drei Teilen, je 20
-Fallen, dazu Karten aus einer Quelle als ganzen Auftrag je Dokument und
-Profil und die Zusammenfassung je Materialsatz und Profil. Er misst Kandidaten als Datei,
+sechs Anfragetypen steht auf den ausgewogenen Fallsätzen im Ledger und auf
+der Seite [KI-Eval](ai-eval.md): Varianten und `card-help` mit 96 bis 120
+Prüfkarten über sieben Fächer mit Referenzaussagen und höchstens 20 % aus
+dem eigenen Fundus, Karten aus einer Quelle mit 24 Dokumenten (vier über
+60.000 Zeichen) und die Zusammenfassung mit 24 Materialsätzen in neun
+paarweise deckenden Profilen. Der Runner misst Kandidaten als Datei,
 lässt in Blöcken mit Urteilscache richten und entscheidet Runden selbst.
 Befunde, Versuchsaufbau und Arbeitspakete im Einzelnen stehen im
 [Versuchsplan](ai-eval-plan.md).
@@ -38,19 +39,8 @@ Pakete in dieser Reihenfolge.
       Karten mit eingeschleuster Anweisung, [Verlauf](history.md)), melden die
       Routen heute „Werkzeug nicht korrekt verwendet“. Eigener Fehlercode und
       eine verständliche Meldung; im Eval bleibt es eine verworfene Antwort.
-- [ ] **L – Ausgewogene Fallsätze:** Varianten und KI hilft je etwa 120 Fälle
-      aus einem Raster Fach (Medizin, Naturwissenschaft, Technik/IT, Mathe,
-      Sprachen, Recht/Wirtschaft, Geschichte/Geografie) × Kartenform ×
-      Schwierigkeit plus feste Risikofälle; anspruchsvolle Fachfakten mit
-      Referenzaussage für den Richter; eigener Fundus höchstens 20 %, je
-      Stapel höchstens drei Karten; Teile 35/40/25. Karten aus einer Quelle
-      und Zusammenfassung je etwa 24 Dokumente oder Materialsätze über Fächer
-      und Formate, darunter mindestens vier lange Quellen (über 60.000
-      Zeichen), eingebaute Widersprüche und paarweise deckende Profile der
-      Zusammenfassung. Danach Baselines neu. Nachweis: Fallzahlen je Teil und
-      Fach, neue Baselines im Ledger.
 - [ ] **I – Hillclimb, erste Welle** auf Reasoning `low` (KI hilft erledigt,
-      `card-help-v2`; die übrigen nach L): KI hilft, Varianten,
+      `card-help-v2`): KI hilft, Varianten,
       Karten aus einer Quelle, Zusammenfassung. Je Runde drei bis fünf
       Kandidaten aus den Trainingsfehlern, Vorauswahl am Trainingsteil,
       Entscheidung am Entscheidungsteil; mindestens drei Runden, Ende nach

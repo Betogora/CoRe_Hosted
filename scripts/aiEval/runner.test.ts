@@ -363,21 +363,21 @@ test("Karten aus einer Quelle: ein Auftrag läuft wie in der App, wird anteilig 
   const items = judgeItemsFor(sourceCards, answerRef("g", 0), request, output);
   const cards = items.filter((entry) => entry.key.startsWith("karte-"));
   const keypoints = items.find((entry) => entry.key === "kernaussagen")!;
-  assert.equal(cards.length, 10, "Stichprobe von zehn Karten");
+  assert.equal(cards.length, 5, "Stichprobe von fünf Karten");
   assert.deepEqual(cards[0].criteria.map((criterion) => criterion.id), ["Q2", "Q3", "Q4"]);
   assert.match(cards[0].rendered.eingabe.belegstellen, /Gewaltenteilung/);
   assert.equal(keypoints.criteria.length, request.keypoints.length);
   assert.ok(keypoints.criteria.every((criterion) => criterion.id.startsWith("Q6:gewaltenteilung-")));
   const verdicts: Verdicts = new Map(items.map((entry, index) => [entry.ref, Object.fromEntries(entry.criteria.map((criterion, position) => [criterion.id, !(index === 0 && criterion.id === "Q3") && !(entry.key === "kernaussagen" && position < 2)]))]));
   const [graded] = evaluateAnswers(sourceCards, [{ id: "g", category: "standard", subject: "naturwissenschaft", split: "dev", request }], 1, [{ ...row("g", 0, output), outcome: "answer" }], verdicts);
-  assert.equal(graded.main, 0.9, "neun von zehn Karten bestehen Q2 bis Q4");
+  assert.equal(graded.main, 0.8, "vier von fünf Karten bestehen Q2 bis Q4");
   assert.equal(graded.criteria.Q6, Math.round((request.keypoints.length - 2) / request.keypoints.length * 10000) / 10000);
   assert.equal(graded.criteria.Q1, 1);
   assert.equal(graded.metrics!.karten, 12);
   assert.equal(graded.metrics!.anteil_frage_antwort, 1);
 
   const counting = sourceCards.parseRequest({ source: "gewaltenteilung.txt", profile: "mehr" });
-  assert.deepEqual(judgeItemsFor(sourceCards, answerRef("g", 0), counting, output).filter((entry) => entry.key.startsWith("karte-")).map((entry) => entry.criteria.map((criterion) => criterion.id).join()), ["Q2", "Q2", "Q2", "Q2", "Q2"]);
+  assert.deepEqual(judgeItemsFor(sourceCards, answerRef("g", 0), counting, output).filter((entry) => entry.key.startsWith("karte-")).map((entry) => entry.criteria.map((criterion) => criterion.id).join()), ["Q2", "Q2", "Q2"]);
 });
 
 test("Karten aus einer Quelle: eine Zeitüberschreitung ist ein gescheiterter Abschnitt, ein Schlüsselfehler lässt den Fall offen und hält an", async () => {
