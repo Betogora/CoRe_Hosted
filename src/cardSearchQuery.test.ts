@@ -2,25 +2,23 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   cardSearchContextTerms,
-  deckPatternMatches,
-  findsOnlyDuplicates,
-  namePatternMatches,
-  matchesCardSearch,
-  parseCardSearchQuery,
-  searchesDuplicates,
-  type CardSearchContext,
-} from "./cardSearchQuery.ts";
-import {
   cardSearchGroupMembers,
-  withoutCardSearchItem,
   cardSearchTermState,
   cardSearchTerms,
   cardSearchText,
+  deckPatternMatches,
+  findsOnlyDuplicates,
+  matchesCardSearch,
+  namePatternMatches,
+  parseCardSearchQuery,
+  searchesDuplicates,
+  unsupportedCardSearchTerms,
   withCardSearchDeck,
   withCardSearchTermState,
-  unsupportedCardSearchTerms,
   withCardSearchText,
-} from "./screens/cardSearch/cardSearchExpression.ts";
+  withoutCardSearchItem,
+  type CardSearchContext,
+} from "./cardSearchQuery.ts";
 
 type Entry = Parameters<typeof matchesCardSearch>[0];
 const entry = (overrides: Partial<Entry> = {}): Entry => ({
@@ -259,4 +257,15 @@ test("Menü und Suchfeld schreiben Gruppen einer Kategorie und lassen freie Komb
   assert.deepEqual(withCardSearchText("", "herz or tag:x "), { query: "herz or tag:x", input: "herz or tag:x " }, "mit or bleibt alles im Feld");
   assert.deepEqual(withCardSearchText("", "(flag:1 or flag:2) herz"), { query: "(flag:1 or flag:2) herz", input: "herz" }, "eine fertige Gruppe wird ein Filter");
   assert.equal(cardSearchText('herz "deck:Anatomie 1" (lunge'), "herz (lunge", "eine offene Klammer bleibt Text, bis sie geschlossen ist");
+});
+
+test("Abfrage hin und zurück: Filter und Text ergeben zusammen dieselbe Suche, ein Begriff aus und wieder an auch", () => {
+  const sorted = ({ text, terms }: ReturnType<typeof parseCardSearchQuery>) => ({ text, terms: terms.map((clause) => JSON.stringify(clause)).sort() });
+  const same = (left: string, right: string, message: string) => assert.deepEqual(sorted(parseCardSearchQuery(left, TODAY)), sorted(parseCardSearchQuery(right, TODAY)), message);
+  for (const query of ['herz (flag:1 or flag:2) -tag:x "vena cava"', "-(is:new tag:x) lunge did:a ursprung:scaleni", 'herz -did:a ((did:b or did:c) is:due) "deck:Anatomie 1" prop:r>3', "herz ) is:new (lunge"]) {
+    same([...cardSearchTerms(query), cardSearchText(query)].join(" "), query, query);
+    for (const term of cardSearchTerms(query).filter((source) => cardSearchTermState(query, source) === "in")) {
+      same(withCardSearchTermState(withCardSearchTermState(query, term, ""), term, "in"), query, `${query} ohne und mit ${term}`);
+    }
+  }
 });

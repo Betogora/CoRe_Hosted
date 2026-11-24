@@ -4,7 +4,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { createCoreDeck } from "../../coreModel.ts";
 import { AdvancedCardSearch, suggestedSearchName } from "./AdvancedCardSearch.tsx";
 import { CardSearchBar } from "./CardSearchBar.tsx";
-import { cardSearchConflicts } from "./cardSearchExpression.ts";
+import { cardSearchConflicts } from "../../cardSearchQuery.ts";
 import { cardSearchConflictMessage, cardSearchTermLabel, createCardSearchMenu } from "./cardSearchMenu.ts";
 
 const parent = createCoreDeck({ id: "deck-bio", name: "Biologie", source: "manual" });
