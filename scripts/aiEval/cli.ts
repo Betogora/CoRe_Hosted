@@ -5,8 +5,8 @@ import { parseArgs } from "node:util";
 import { SPLITS, outputRoot, assignSplits, type DraftCase, type EvalCase, type Split, corpusCasesFile, handCasesFile, loadCases, readCases, readJson, sampleCorpus, seededRandom, writeJson } from "./cases.ts";
 import { definitionFor, judgeItemsFor, type EvalDefinition } from "./definitions.ts";
 import { generate, payloadBuilder, payloadFingerprint, readAnswers, readMeta, runDirectory, type Candidate } from "./generate.ts";
-import { JUDGE_INSTRUCTIONS_FILE, answerRef, borderlineCases, buildJudgeTable, labelRef, readLabels, readVerdicts, type JudgeBlock, type JudgeCache, type JudgeItem, type JudgeKey, type VerdictReading } from "./judge.ts";
-import { LEDGER_FILE, REQUEST_TYPES, bestRun, parseLedger, readLedger, resultsFile, type EvalLedger, type EvalRun } from "./ledger.ts";
+import { JUDGE_INSTRUCTIONS_FILE, answerRef, referenceRef, borderlineCases, buildJudgeTable, labelRef, readLabels, readVerdicts, type JudgeBlock, type JudgeCache, type JudgeItem, type JudgeKey, type VerdictReading } from "./judge.ts";
+import { LEDGER_FILE, REQUEST_TYPES, bestRun, confirmationState, parseLedger, readLedger, resultsFile, type EvalLedger, type EvalRun } from "./ledger.ts";
 import { agreement, compare, decide, evaluateAnswers, ledgerRun, renderBorderline, renderReport, summarize, type AnswerResult } from "./score.ts";
 
 const USAGE = `npm run ai-eval -- <befehl> <anfragetyp> [optionen]
@@ -14,13 +14,17 @@ const USAGE = `npm run ai-eval -- <befehl> <anfragetyp> [optionen]
   cases <typ> [--corpus <n>] [--seed <n>]       Aufteilung festschreiben, optional n Korpusfälle ziehen
   generate <typ> --run <name> [--split dev|train|holdout|all] [--repetitions <n>] [--budget <usd>] [--concurrency <n>] [--candidate <name>] [--dry]
   table <typ> --run <name>                      Richterblöcke des Laufs schreiben
-  score <typ> --run <name> --judge <modell> [--baseline] [--simplify] [--change "<satz>"] [--record]
+  more <typ> --run <name> [--budget <usd>]         kippende Fälle für Kandidat und Bestand zweimal nachmessen
+  score <typ> --run <name> --judge <modell> [--baseline] [--simplify] [--target <kriterien,kategorien>] [--confirm] [--change "<satz>"] [--reason "<zwei sätze>"] [--record]
   calibration-table <typ>                       Richterblöcke aus den Handurteilen schreiben
   calibration-score <typ> --judge <modell> [--record]
 
 Anfragetypen: ${REQUEST_TYPES.map((type) => type.id).join(", ")}`;
 
 const SEED = 20261111;
+const MORE_REPETITIONS = 2;
+const PROVISIONAL_LIMIT = 3;
+const CONFIRM_REPETITIONS = 3;
 
 function positive(value: string, option: string, integer = false) {
   const number = Number(value.replace(",", "."));
@@ -41,10 +45,16 @@ async function loadCandidate(id: string, name: string): Promise<Candidate> {
   return { name, transform: transform as Candidate["transform"] };
 }
 
-/** Blöcke und Schlüssel liegen getrennt, damit der Richter nur Eingabe und Ausgabe sieht. */
-function writeTable(directory: string, blocks: readonly JudgeBlock[], key: JudgeKey) {
+/**
+ * Blöcke und Schlüssel liegen getrennt, damit der Richter nur Eingabe und Ausgabe sieht. Vorhandene Urteile werden nur
+ * ersetzt, wenn „score“ sie schon in den Urteilscache übernommen hat (Nachmessung).
+ */
+function writeTable(directory: string, blocks: readonly JudgeBlock[], key: JudgeKey, cache: JudgeCache = {}) {
   const judgeDirectory = path.join(directory, "judge");
-  if (existsSync(judgeDirectory) && readdirSync(judgeDirectory).some((name) => name.endsWith(".verdicts.json"))) {
+  const keyFile = path.join(directory, "judge-key.json");
+  const judgedBefore = existsSync(keyFile) ? Object.values((readJson(keyFile) as JudgeKey).hashes) : [];
+  if (existsSync(judgeDirectory) && readdirSync(judgeDirectory).some((name) => name.endsWith(".verdicts.json"))
+    && !(judgedBefore.length && judgedBefore.every((entryHash) => cache[entryHash]))) {
     throw new Error(`In ${judgeDirectory} liegen schon Urteile. Erst „score“ ausführen; neue Blöcke nur nach Löschen dieses Ordners.`);
   }
   rmSync(judgeDirectory, { recursive: true, force: true });
@@ -71,6 +81,16 @@ function requireJudge(model: string | undefined) {
   return model;
 }
 
+/** Mit `confirm` misst die Sammelprüfung gegen den letzten bestätigten Stand, sonst jeder Lauf gegen den Bestand. */
+function referenceFor(ledger: EvalLedger, id: EvalRun["requestType"], confirm: boolean) {
+  const state = confirmationState(ledger, id);
+  if (!confirm) return bestRun(ledger, id);
+  if (!state.pending) throw new Error("Es gibt keine vorläufigen Schritte; eine Sammelprüfung ist nicht nötig.");
+  return state.confirmed;
+}
+
+const REFERENCE_META = "reference.json";
+
 function checkCodeBuildsRun(definition: EvalDefinition, cases: readonly EvalCase[], fingerprint: string, candidate: string | null) {
   if (payloadFingerprint(payloadBuilder(definition), cases) !== fingerprint) {
     throw new Error(`Der Code baut einen anderen Payload als der gemessene Lauf${candidate ? ` mit Kandidat ${candidate}` : ""}. Erst den Kandidaten in die Route übernehmen und die Promptversion erhöhen, dann erneut eintragen.`);
@@ -83,6 +103,7 @@ async function main(argv: string[]) {
     budget: { type: "string", default: "1" }, concurrency: { type: "string", default: "4" }, candidate: { type: "string" },
     corpus: { type: "string" }, seed: { type: "string", default: String(SEED) }, baseline: { type: "boolean", default: false }, simplify: { type: "boolean", default: false },
     change: { type: "string" }, record: { type: "boolean", default: false }, judge: { type: "string" },
+    target: { type: "string" }, reason: { type: "string" }, confirm: { type: "boolean", default: false },
   } });
   if (!command || !id) throw new Error(USAGE);
   const definition = definitionFor(id);
@@ -107,7 +128,10 @@ async function main(argv: string[]) {
     if (corpus.length) writeJson(corpusCasesFile(id), { cases: written.slice(hand.length) });
     const count = (members: readonly EvalCase[]) => SPLITS.map((split) => `${split} ${members.filter((entry) => entry.split === split).length}`).join(", ");
     console.log(`${hand.length} Prüfkarten, ${corpus.length} Korpusfälle; ${count(assigned)}.`);
-    for (const category of [...new Set(assigned.map((entry) => entry.category))].sort()) console.log(`  ${category}: ${count(assigned.filter((entry) => entry.category === category))}`);
+    for (const field of ["category", "subject", "difficulty"] as const) {
+      console.log({ category: "Kategorie", subject: "Fach", difficulty: "Schwierigkeit" }[field]);
+      for (const value of [...new Set(assigned.map((entry) => entry[field] ?? "ohne"))].sort()) console.log(`  ${value}: ${count(assigned.filter((entry) => (entry[field] ?? "ohne") === value))}`);
+    }
     return;
   }
 
@@ -126,10 +150,11 @@ async function main(argv: string[]) {
   if (command === "table") {
     const directory = runDirectory(id, run());
     const cases = new Map(loadCases(definition).map((entry) => [entry.id, entry]));
-    const answers: JudgeItem[] = readAnswers(directory).filter((row) => row.outcome === "answer" && !cases.get(row.caseId)!.refuse).flatMap((row) => judgeItemsFor(definition, answerRef(row.caseId, row.repetition), cases.get(row.caseId)!.request, row.output));
+    const items = (file: "answers.jsonl" | "reference.jsonl", refFor: typeof answerRef): JudgeItem[] => readAnswers(directory, file).filter((row) => row.outcome === "answer" && !cases.get(row.caseId)!.refuse).flatMap((row) => judgeItemsFor(definition, refFor(row.caseId, row.repetition), cases.get(row.caseId)!.request, row.output, cases.get(row.caseId)!.reference));
     const controls: JudgeItem[] = readLabels(definition).filter((label) => label.control).flatMap((label) => judgeItemsFor(definition, labelRef(label.id), label.request, label.output));
-    const { blocks, key } = buildJudgeTable(definition, [...answers, ...controls], random, { instructions: instructions(), requests: [...cases.values()].map((entry) => entry.request), cache: readCache(id) });
-    writeTable(directory, blocks, key);
+    const cache = readCache(id);
+    const { blocks, key } = buildJudgeTable(definition, [...items("answers.jsonl", answerRef), ...items("reference.jsonl", referenceRef), ...controls], random, { instructions: instructions(), requests: [...cases.values()].map((entry) => entry.request), references: [...cases.values()].map((entry) => entry.reference ?? []), cache });
+    writeTable(directory, blocks, key, cache);
     return;
   }
 
@@ -142,9 +167,11 @@ async function main(argv: string[]) {
     const judged = meta.dry ? null : verdictsIn(directory, cache);
     const judgeModel = meta.dry ? "nachgebildet" : requireJudge(values.judge);
     const caseById = new Map(cases.map((entry) => [entry.id, entry]));
-    const verdicts = judged?.reading.verdicts ?? new Map(readAnswers(directory).filter((row) => row.outcome === "answer" && caseById.has(row.caseId)).flatMap((row) => judgeItemsFor(definition, answerRef(row.caseId, row.repetition), caseById.get(row.caseId)!.request, row.output)
+    const verdicts = judged?.reading.verdicts ?? new Map((["answers.jsonl", "reference.jsonl"] as const).flatMap((file) => readAnswers(directory, file).filter((row) => row.outcome === "answer" && caseById.has(row.caseId))
+      .flatMap((row) => judgeItemsFor(definition, (file === "answers.jsonl" ? answerRef : referenceRef)(row.caseId, row.repetition), caseById.get(row.caseId)!.request, row.output))
       .map((item) => [item.ref, Object.fromEntries(item.criteria.map((criterion) => [criterion.id, true]))] as const)));
-    const results = evaluateAnswers(definition, cases, meta.repetitions, readAnswers(directory), verdicts);
+    const unsure = judged?.reading.unsure ?? new Set<string>();
+    const results = evaluateAnswers(definition, cases, meta.repetitions, readAnswers(directory), verdicts, { unsure });
     writeJson(path.join(directory, "results.json"), results);
     const summary = summarize(results, random, type.critical);
     const controlLabels = readLabels(definition).filter((label) => label.control);
@@ -155,18 +182,30 @@ async function main(argv: string[]) {
     const ledger = readLedger();
     const holdout = meta.split === "holdout";
     const decides = meta.split === "dev";
-    const reference = values.baseline || !decides ? null : bestRun(ledger, type.id);
+    const confirm = values.confirm;
+    const state = confirmationState(ledger, type.id);
+    const target = values.target ? values.target.split(",").map((entry) => entry.trim()).filter(Boolean) : [];
+    if (confirm && (meta.candidate || meta.repetitions < CONFIRM_REPETITIONS)) throw new Error(`Eine Sammelprüfung misst den Code ohne Kandidat mit mindestens ${CONFIRM_REPETITIONS} Wiederholungen.`);
+    if (confirm && target.length) throw new Error("Eine Sammelprüfung entscheidet über den ganzen Teil, ohne --target.");
+    const reference = values.baseline || !decides ? null : referenceFor(ledger, type.id, confirm);
     if (decides && !values.baseline && !reference) throw new Error("Im Ledger steht noch kein Bestand. Den ersten Lauf mit --baseline auswerten.");
     if (reference && reference.judge.fingerprint !== judge.fingerprint && !meta.dry) throw new Error(`Der Bestand wurde mit einem anderen Richterauftrag oder Bogen bewertet (${reference.judge.fingerprint}, jetzt ${judge.fingerprint}). Die Reihe mit --baseline neu beginnen.`);
     let comparison = null;
+    let remeasuredCost = 0;
     let decision: EvalRun["decision"] | null = holdout ? "holdout" : decides ? "baseline" : null;
     let failed: string[] = [];
     if (reference) {
       const file = resultsFile(id, reference.run);
       if (!existsSync(file)) throw new Error(`${file} fehlt. Ohne die Ergebnisse des Bestands gibt es keinen gepaarten Vergleich.`);
-      const before = readJson(file) as AnswerResult[];
-      comparison = compare(results, before, random);
+      const remeasured = readAnswers(directory, "reference.jsonl");
+      if (remeasured.length && (confirm || (readJson(path.join(directory, REFERENCE_META)) as { run: string }).run !== reference.run)) throw new Error(`Die Nachmessung in ${directory} gilt nicht dem Bestand ${reference.run}.`);
+      const extra = (rows: readonly { caseId: string; repetition: number }[], from: number) => rows.filter((entry) => entry.repetition >= from).map((entry) => entry.caseId).sort().join(",");
+      if (extra(readAnswers(directory), meta.repetitions) !== extra(remeasured, 0)) throw new Error("Die Nachmessung ist unvollständig: Kandidat und Bestand haben nicht dieselben Zusatzantworten. „more“ erneut ausführen.");
+      remeasuredCost = remeasured.reduce((sum, entry) => sum + (entry.costUsd ?? 0), 0);
+      const before = [...readJson(file) as AnswerResult[], ...evaluateAnswers(definition, cases.filter((entry) => remeasured.some((row) => row.caseId === entry.id)), 0, remeasured, verdicts, { refFor: referenceRef, unsure })];
+      comparison = compare(results, before, random, target);
       ({ decision, failed } = decide(type, summary, summarize(before, random, type.critical), comparison, values.simplify));
+      if (decision === "accepted" && !confirm && state.pending) decision = "provisional";
     }
     const report = renderReport({ type, run: name, meta, summary, comparison, decision, failed, controls, judge: judged ? judge : null });
     writeFileSync(path.join(directory, "report.md"), report, "utf8");
@@ -180,14 +219,54 @@ async function main(argv: string[]) {
     if (meta.dry) throw new Error("Ein Trockenlauf kommt nicht ins Ledger.");
     if (!decision) throw new Error("Ins Ledger kommen nur Läufe auf dem Entscheidungsteil (dev) oder dem Rückhalt (holdout).");
     if (controls?.falsePasses) throw new Error("Der Richter hat einen Kontrolleintrag bei einem kritischen Kriterium fälschlich bestehen lassen. Der Lauf kommt nicht ins Ledger.");
-    if (!values.change && decision !== "baseline" && decision !== "holdout") throw new Error("--change \"<die eine Änderung in einem Satz>\" fehlt.");
+    if (!values.change && !confirm && decision !== "baseline" && decision !== "holdout") throw new Error("--change \"<die eine Änderung in einem Satz>\" fehlt.");
+    if (!values.reason && !confirm && (decision === "accepted" || decision === "provisional")) throw new Error("--reason \"<zwei Sätze aus den geänderten Trainingsantworten: Fehlerbild behoben, nichts Neues kaputt>\" fehlt.");
+    if (decision === "provisional" && state.pending >= PROVISIONAL_LIMIT) throw new Error(`Schon ${state.pending} vorläufige Schritte offen. Erst die Sammelprüfung (--confirm) auswerten.`);
     if (decision !== "rejected") checkCodeBuildsRun(definition, cases, meta.fingerprint, meta.candidate);
     if (existsSync(resultsFile(id, name))) throw new Error(`${resultsFile(id, name)} gibt es schon. Ein Lauf kommt nur einmal ins Ledger.`);
-    const change = values.change ?? (decision === "holdout" ? "Rückhalt" : "Baseline");
-    const next = parseLedger({ ...ledger, runs: [...ledger.runs, ledgerRun({ type, run: name, meta, summary, decision, change, comparison, judge, promptVersion: decision === "rejected" ? meta.promptVersion : type.promptVersion })] });
+    const change = values.change ?? (confirm ? `Sammelprüfung von ${state.pending} vorläufigen Schritten` : decision === "holdout" ? "Rückhalt" : "Baseline");
+    const next = parseLedger({ ...ledger, runs: [...ledger.runs, ledgerRun({ type, run: name, meta, summary: { ...summary, costTotalUsd: summary.costTotalUsd + remeasuredCost }, decision, change, comparison, judge, promptVersion: decision === "rejected" && !confirm ? meta.promptVersion : type.promptVersion, reason: values.reason, confirmation: confirm })] });
     writeJson(resultsFile(id, name), results);
     saveLedger(next);
     console.log(`Im Ledger eingetragen: ${decision}. Danach „npm run docs:build“.`);
+    if (confirm && decision === "rejected") console.log(`Bestand ist wieder ${state.confirmed?.run}. Die vorläufigen Schritte im Code zurücknehmen; die mit dem stärksten Beleg als neue Kandidaten messen.`);
+    return;
+  }
+
+  if (command === "more") {
+    const name = run();
+    const directory = runDirectory(id, name);
+    const meta = readMeta(directory);
+    if (meta.split !== "dev") throw new Error("Nachgemessen wird nur auf dem Entscheidungsteil.");
+    const resultsPath = path.join(directory, "results.json");
+    if (!existsSync(resultsPath)) throw new Error(`${resultsPath} fehlt. Erst „table“, Richter und „score“ ausführen.`);
+    if (definition.items) throw new Error("Nachgemessen wird nur bei Typen mit einem Richtereintrag je Antwort; hier mehr Wiederholungen beim Erzeugen wählen.");
+    if (meta.repetitions >= CONFIRM_REPETITIONS && !meta.candidate) throw new Error("Eine Sammelprüfung wird nicht nachgemessen; sie hat schon mehr Wiederholungen.");
+    const reference = bestRun(readLedger(), type.id);
+    if (!reference) throw new Error("Im Ledger steht noch kein Bestand.");
+    const cases = loadCases(definition).filter((entry) => entry.split === "dev");
+    const candidate = meta.candidate ? await loadCandidate(id, meta.candidate) : null;
+    if (payloadFingerprint(payloadBuilder(definition, candidate), cases) !== meta.fingerprint) throw new Error(`Der Kandidat baut nicht mehr den Payload von ${name}.`);
+    if (payloadFingerprint(payloadBuilder(definition), cases) !== reference.fingerprint) throw new Error(`Der Code baut nicht den Payload des Bestands ${reference.run}; ihn kann nur der Code von damals nachmessen.`);
+    const own = readJson(resultsPath) as AnswerResult[];
+    const before = readJson(resultsFile(id, reference.run)) as AnswerResult[];
+    const mains = (rows: readonly AnswerResult[], caseId: string) => rows.flatMap((row) => row.caseId === caseId && row.main !== null ? [row.main] : []);
+    const average = (values: readonly number[]) => values.reduce((sum, value) => sum + value, 0) / values.length;
+    const wobbly = cases.filter((entry) => {
+      const mine = mains(own, entry.id), theirs = mains(before, entry.id);
+      return new Set(mine).size > 1 || new Set(theirs).size > 1 || average(mine) !== average(theirs);
+    });
+    if (!wobbly.length) { console.log("Kein Fall kippt; keine Nachmessung nötig."); return; }
+    if (existsSync(path.join(directory, REFERENCE_META)) && (readJson(path.join(directory, REFERENCE_META)) as { run: string }).run !== reference.run) throw new Error(`${name} wurde schon gegen einen anderen Bestand nachgemessen.`);
+    writeJson(path.join(directory, REFERENCE_META), { run: reference.run });
+    const apiKey = process.env.OPENROUTER_API_KEY;
+    if (!apiKey && !meta.dry) throw new Error("OPENROUTER_API_KEY fehlt (Benutzer-Umgebungsvariable oder .env.local).");
+    const common = { definition, cases: wobbly, split: meta.split, directory, extend: true, apiKey: apiKey ?? "dry", dry: meta.dry, budgetUsd: positive(values.budget, "budget"), concurrency: positive(values.concurrency, "concurrency", true) };
+    console.log(`${wobbly.length} von ${cases.length} Fällen kippen; je ${MORE_REPETITIONS} weitere Antworten für Kandidat und Bestand ${reference.run}.`);
+    const open = await generate({ ...common, candidate, repetitions: meta.repetitions + MORE_REPETITIONS })
+      + await generate({ ...common, candidate: null, repetitions: MORE_REPETITIONS, file: "reference.jsonl" });
+    if (open) throw new Error(`${open} Antworten fehlen noch. Denselben Befehl erneut ausführen.`);
+    console.log("Danach „table“, Richter und „score“ wie gewohnt.");
     return;
   }
 

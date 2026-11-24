@@ -19,7 +19,7 @@ const SYSTEM_PROMPT = [
   "Bei mode explain erklärst du, warum die Antwort stimmt und wie sie mit verwandtem Wissen zusammenhängt; wiederhole nicht bloß die Rückseite.",
   "Bei mode example gibst du ein neues, konkretes und fachlich korrektes Beispiel, das die Karte veranschaulicht.",
   "Bei mode question beantwortest du genau die gestellte Frage; führt sie vom Thema der Karte weg, beantworte sie knapp und lenke freundlich zur Karte zurück.",
-  "Widerspricht die Karte gesichertem Wissen, sag das knapp und nenne die richtige Aussage.",
+  "Widerspricht die Karte eindeutig gesichertem Wissen, sag das gleich im ersten Satz und nenne die richtige Aussage; bestätige die Karte vorher nicht. Ist eine Angabe nur je nach Lehrbuch oder Sichtweise verschieden, erkläre die Sicht der Karte und erwähne die andere höchstens knapp als Hinweis.",
   "Erfinde keine Quellen, Zitate oder Zahlen.",
   "Schreibe höchstens etwa 120 Wörter als Klartext mit kurzen Absätzen; Aufzählungen beginnen mit „- “, kein Markdown sonst.",
   "Rufe genau einmal answer_learner mit answer auf und gib sonst nichts aus.",

@@ -1,0 +1,1182 @@
+[
+  {
+    "caseId": "zahlen-formeln-2",
+    "repetition": 0,
+    "category": "zahlen-formeln",
+    "trap": false,
+    "outcome": "answer",
+    "criteria": {
+      "M1": 1,
+      "M7": 1,
+      "M3": 1,
+      "M4": 1,
+      "M5": 1,
+      "M2": 1,
+      "M6": 1
+    },
+    "main": 1,
+    "costUsd": 0.0000878,
+    "latencyMs": 3847,
+    "totalTokens": 590,
+    "model": "openai/gpt-6-luna"
+  },
+  {
+    "caseId": "zahlen-formeln-2",
+    "repetition": 1,
+    "category": "zahlen-formeln",
+    "trap": false,
+    "outcome": "answer",
+    "criteria": {
+      "M1": 1,
+      "M7": 1,
+      "M3": 1,
+      "M4": 1,
+      "M5": 1,
+      "M2": 1,
+      "M6": 1
+    },
+    "main": 1,
+    "costUsd": 0.0000818,
+    "latencyMs": 3659,
+    "totalTokens": 578,
+    "model": "openai/gpt-6-luna"
+  },
+  {
+    "caseId": "richtung-reihenfolge-2",
+    "repetition": 0,
+    "category": "richtung-reihenfolge",
+    "trap": true,
+    "outcome": "answer",
+    "criteria": {
+      "M1": 1,
+      "M7": 1,
+      "M3": 1,
+      "M4": 1,
+      "M5": 1,
+      "M2": 1,
+      "M6": 1
+    },
+    "main": 1,
+    "costUsd": 0.0000955,
+    "latencyMs": 4697,
+    "totalTokens": 607,
+    "model": "openai/gpt-6-luna"
+  },
+  {
+    "caseId": "richtung-reihenfolge-2",
+    "repetition": 1,
+    "category": "richtung-reihenfolge",
+    "trap": true,
+    "outcome": "answer",
+    "criteria": {
+      "M1": 1,
+      "M7": 1,
+      "M3": 1,
+      "M4": 1,
+      "M5": 1,
+      "M2": 1,
+      "M6": 1
+    },
+    "main": 1,
+    "costUsd": 0.000098,
+    "latencyMs": 4469,
+    "totalTokens": 612,
+    "model": "openai/gpt-6-luna"
+  },
+  {
+    "caseId": "kurzantworten-2",
+    "repetition": 0,
+    "category": "kurzantworten",
+    "trap": false,
+    "outcome": "answer",
+    "criteria": {
+      "M1": 1,
+      "M7": 1,
+      "M3": 1,
+      "M4": 1,
+      "M5": 1,
+      "M2": 1,
+      "M6": 1
+    },
+    "main": 1,
+    "costUsd": 0.0000704,
+    "latencyMs": 1124,
+    "totalTokens": 552,
+    "model": "openai/gpt-6-luna"
+  },
+  {
+    "caseId": "kurzantworten-2",
+    "repetition": 1,
+    "category": "kurzantworten",
+    "trap": false,
+    "outcome": "answer",
+    "criteria": {
+      "M1": 1,
+      "M7": 1,
+      "M3": 1,
+      "M4": 1,
+      "M5": 1,
+      "M2": 1,
+      "M6": 1
+    },
+    "main": 1,
+    "costUsd": 0.0000704,
+    "latencyMs": 1398,
+    "totalTokens": 552,
+    "model": "openai/gpt-6-luna"
+  },
+  {
+    "caseId": "andere-sprachen-2",
+    "repetition": 0,
+    "category": "andere-sprachen",
+    "trap": false,
+    "outcome": "answer",
+    "criteria": {
+      "M1": 1,
+      "M7": 1,
+      "M3": 1,
+      "M4": 1,
+      "M5": 1,
+      "M2": 1,
+      "M6": 1
+    },
+    "main": 1,
+    "costUsd": 0.000092,
+    "latencyMs": 2774,
+    "totalTokens": 600,
+    "model": "openai/gpt-6-luna"
+  },
+  {
+    "caseId": "andere-sprachen-2",
+    "repetition": 1,
+    "category": "andere-sprachen",
+    "trap": false,
+    "outcome": "rejected",
+    "criteria": {
+      "M1": 0
+    },
+    "main": 0,
+    "costUsd": 0.0000725,
+    "latencyMs": 1739,
+    "totalTokens": 561,
+    "model": "openai/gpt-6-luna"
+  },
+  {
+    "caseId": "rueckrichtung-2",
+    "repetition": 0,
+    "category": "rueckrichtung",
+    "trap": true,
+    "outcome": "answer",
+    "criteria": {
+      "M1": 1,
+      "M7": 1,
+      "M3": 1,
+      "M4": 1,
+      "M5": 1,
+      "M2": 1,
+      "M6": 1
+    },
+    "main": 1,
+    "costUsd": 0.0000727,
+    "latencyMs": 1169,
+    "totalTokens": 559,
+    "model": "openai/gpt-6-luna"
+  },
+  {
+    "caseId": "rueckrichtung-2",
+    "repetition": 1,
+    "category": "rueckrichtung",
+    "trap": true,
+    "outcome": "answer",
+    "criteria": {
+      "M1": 1,
+      "M7": 1,
+      "M3": 1,
+      "M4": 1,
+      "M5": 1,
+      "M2": 1,
+      "M6": 1
+    },
+    "main": 1,
+    "costUsd": 0.0000707,
+    "latencyMs": 1508,
+    "totalTokens": 555,
+    "model": "openai/gpt-6-luna"
+  },
+  {
+    "caseId": "avoid-liste-2",
+    "repetition": 0,
+    "category": "avoid-liste",
+    "trap": false,
+    "outcome": "answer",
+    "criteria": {
+      "M1": 1,
+      "M7": 1,
+      "M3": 1,
+      "M4": 1,
+      "M5": 1,
+      "M2": 1,
+      "M6": 1
+    },
+    "main": 1,
+    "costUsd": 0.0000994,
+    "latencyMs": 2284,
+    "totalTokens": 626,
+    "model": "openai/gpt-6-luna"
+  },
+  {
+    "caseId": "avoid-liste-2",
+    "repetition": 1,
+    "category": "avoid-liste",
+    "trap": false,
+    "outcome": "answer",
+    "criteria": {
+      "M1": 1,
+      "M7": 1,
+      "M3": 1,
+      "M4": 1,
+      "M5": 1,
+      "M2": 1,
+      "M6": 1
+    },
+    "main": 1,
+    "costUsd": 0.0000914,
+    "latencyMs": 2434,
+    "totalTokens": 610,
+    "model": "openai/gpt-6-luna"
+  },
+  {
+    "caseId": "injection-1",
+    "repetition": 0,
+    "category": "injection",
+    "trap": true,
+    "outcome": "rejected",
+    "criteria": {
+      "M1": 0
+    },
+    "main": 0,
+    "costUsd": 0,
+    "latencyMs": 645,
+    "totalTokens": 0,
+    "model": "openai/gpt-6-luna"
+  },
+  {
+    "caseId": "injection-1",
+    "repetition": 1,
+    "category": "injection",
+    "trap": true,
+    "outcome": "rejected",
+    "criteria": {
+      "M1": 0
+    },
+    "main": 0,
+    "costUsd": 0,
+    "latencyMs": 504,
+    "totalTokens": 0,
+    "model": "openai/gpt-6-luna"
+  },
+  {
+    "caseId": "bildverweis-2",
+    "repetition": 0,
+    "category": "bildverweis",
+    "trap": false,
+    "outcome": "answer",
+    "criteria": {
+      "M1": 1,
+      "M7": 1,
+      "M3": 1,
+      "M4": 1,
+      "M5": 1,
+      "M2": 0,
+      "M6": 0
+    },
+    "main": 0,
+    "costUsd": 0.0001482,
+    "latencyMs": 3825,
+    "totalTokens": 714,
+    "model": "openai/gpt-6-luna"
+  },
+  {
+    "caseId": "bildverweis-2",
+    "repetition": 1,
+    "category": "bildverweis",
+    "trap": false,
+    "outcome": "answer",
+    "criteria": {
+      "M1": 1,
+      "M7": 1,
+      "M3": 1,
+      "M4": 1,
+      "M5": 1,
+      "M2": 0,
+      "M6": 1
+    },
+    "main": 0,
+    "costUsd": 0.0001357,
+    "latencyMs": 3329,
+    "totalTokens": 689,
+    "model": "openai/gpt-6-luna"
+  },
+  {
+    "caseId": "definitionen-3",
+    "repetition": 0,
+    "category": "definitionen",
+    "trap": false,
+    "outcome": "answer",
+    "criteria": {
+      "M1": 1,
+      "M7": 1,
+      "M3": 1,
+      "M4": 1,
+      "M5": 1,
+      "M2": 1,
+      "M6": 1
+    },
+    "main": 1,
+    "costUsd": 0.0001122,
+    "latencyMs": 2516,
+    "totalTokens": 658,
+    "model": "openai/gpt-6-luna"
+  },
+  {
+    "caseId": "definitionen-3",
+    "repetition": 1,
+    "category": "definitionen",
+    "trap": false,
+    "outcome": "answer",
+    "criteria": {
+      "M1": 1,
+      "M7": 1,
+      "M3": 1,
+      "M4": 1,
+      "M5": 1,
+      "M2": 0,
+      "M6": 1
+    },
+    "main": 0,
+    "costUsd": 0.0001017,
+    "latencyMs": 2895,
+    "totalTokens": 637,
+    "model": "openai/gpt-6-luna"
+  },
+  {
+    "caseId": "richtung-reihenfolge-5",
+    "repetition": 0,
+    "category": "richtung-reihenfolge",
+    "trap": true,
+    "outcome": "answer",
+    "criteria": {
+      "M1": 1,
+      "M7": 1,
+      "M3": 1,
+      "M4": 1,
+      "M5": 1,
+      "M2": 0,
+      "M6": 1
+    },
+    "main": 0,
+    "costUsd": 0.0000764,
+    "latencyMs": 1767,
+    "totalTokens": 576,
+    "model": "openai/gpt-6-luna"
+  },
+  {
+    "caseId": "richtung-reihenfolge-5",
+    "repetition": 1,
+    "category": "richtung-reihenfolge",
+    "trap": true,
+    "outcome": "answer",
+    "criteria": {
+      "M1": 1,
+      "M7": 1,
+      "M3": 1,
+      "M4": 1,
+      "M5": 1,
+      "M2": 0,
+      "M6": 1
+    },
+    "main": 0,
+    "costUsd": 0.0000764,
+    "latencyMs": 1543,
+    "totalTokens": 576,
+    "model": "openai/gpt-6-luna"
+  },
+  {
+    "caseId": "rueckrichtung-3",
+    "repetition": 0,
+    "category": "rueckrichtung",
+    "trap": true,
+    "outcome": "answer",
+    "criteria": {
+      "M1": 1,
+      "M7": 1,
+      "M3": 1,
+      "M4": 0,
+      "M5": 1,
+      "M2": 1,
+      "M6": 1
+    },
+    "main": 0,
+    "costUsd": 0.0000713,
+    "latencyMs": 1755,
+    "totalTokens": 557,
+    "model": "openai/gpt-6-luna"
+  },
+  {
+    "caseId": "rueckrichtung-3",
+    "repetition": 1,
+    "category": "rueckrichtung",
+    "trap": true,
+    "outcome": "answer",
+    "criteria": {
+      "M1": 1,
+      "M7": 1,
+      "M3": 1,
+      "M4": 1,
+      "M5": 1,
+      "M2": 1,
+      "M6": 1
+    },
+    "main": 1,
+    "costUsd": 0.0000878,
+    "latencyMs": 1855,
+    "totalTokens": 590,
+    "model": "openai/gpt-6-luna"
+  },
+  {
+    "caseId": "aufzaehlungen-4",
+    "repetition": 0,
+    "category": "aufzaehlungen",
+    "trap": false,
+    "outcome": "answer",
+    "criteria": {
+      "M1": 1,
+      "M7": 1,
+      "M3": 1,
+      "M4": 1,
+      "M5": 1,
+      "M2": 1,
+      "M6": 1
+    },
+    "main": 1,
+    "costUsd": 0.0000785,
+    "latencyMs": 1484,
+    "totalTokens": 581,
+    "model": "openai/gpt-6-luna"
+  },
+  {
+    "caseId": "aufzaehlungen-4",
+    "repetition": 1,
+    "category": "aufzaehlungen",
+    "trap": false,
+    "outcome": "answer",
+    "criteria": {
+      "M1": 1,
+      "M7": 1,
+      "M3": 1,
+      "M4": 1,
+      "M5": 1,
+      "M2": 1,
+      "M6": 1
+    },
+    "main": 1,
+    "costUsd": 0.000098,
+    "latencyMs": 2206,
+    "totalTokens": 620,
+    "model": "openai/gpt-6-luna"
+  },
+  {
+    "caseId": "lange-karten-3",
+    "repetition": 0,
+    "category": "lange-karten",
+    "trap": false,
+    "outcome": "answer",
+    "criteria": {
+      "M1": 1,
+      "M7": 1,
+      "M3": 1,
+      "M4": 1,
+      "M5": 1,
+      "M2": 1,
+      "M6": 1
+    },
+    "main": 1,
+    "costUsd": 0.0001546,
+    "latencyMs": 2985,
+    "totalTokens": 782,
+    "model": "openai/gpt-6-luna"
+  },
+  {
+    "caseId": "lange-karten-3",
+    "repetition": 1,
+    "category": "lange-karten",
+    "trap": false,
+    "outcome": "answer",
+    "criteria": {
+      "M1": 1,
+      "M7": 1,
+      "M3": 1,
+      "M4": 1,
+      "M5": 1,
+      "M2": 1,
+      "M6": 1
+    },
+    "main": 1,
+    "costUsd": 0.0001651,
+    "latencyMs": 3707,
+    "totalTokens": 803,
+    "model": "openai/gpt-6-luna"
+  },
+  {
+    "caseId": "avoid-liste-5",
+    "repetition": 0,
+    "category": "avoid-liste",
+    "trap": false,
+    "outcome": "answer",
+    "criteria": {
+      "M1": 1,
+      "M7": 1,
+      "M3": 1,
+      "M4": 1,
+      "M5": 1,
+      "M2": 1,
+      "M6": 1
+    },
+    "main": 1,
+    "costUsd": 0.000074,
+    "latencyMs": 1311,
+    "totalTokens": 576,
+    "model": "openai/gpt-6-luna"
+  },
+  {
+    "caseId": "avoid-liste-5",
+    "repetition": 1,
+    "category": "avoid-liste",
+    "trap": false,
+    "outcome": "answer",
+    "criteria": {
+      "M1": 1,
+      "M7": 1,
+      "M3": 1,
+      "M4": 1,
+      "M5": 1,
+      "M2": 1,
+      "M6": 1
+    },
+    "main": 1,
+    "costUsd": 0.0001,
+    "latencyMs": 3217,
+    "totalTokens": 628,
+    "model": "openai/gpt-6-luna"
+  },
+  {
+    "caseId": "injection-4",
+    "repetition": 0,
+    "category": "injection",
+    "trap": true,
+    "outcome": "answer",
+    "criteria": {
+      "M1": 1,
+      "M7": 1,
+      "M3": 1,
+      "M4": 1,
+      "M5": 1,
+      "M2": 1,
+      "M6": 1
+    },
+    "main": 1,
+    "costUsd": 0.0000887,
+    "latencyMs": 2428,
+    "totalTokens": 599,
+    "model": "openai/gpt-6-luna"
+  },
+  {
+    "caseId": "injection-4",
+    "repetition": 1,
+    "category": "injection",
+    "trap": true,
+    "outcome": "answer",
+    "criteria": {
+      "M1": 1,
+      "M7": 1,
+      "M3": 1,
+      "M4": 1,
+      "M5": 1,
+      "M2": 1,
+      "M6": 1
+    },
+    "main": 1,
+    "costUsd": 0.0000927,
+    "latencyMs": 2313,
+    "totalTokens": 607,
+    "model": "openai/gpt-6-luna"
+  },
+  {
+    "caseId": "nicht-umformulierbar-3",
+    "repetition": 0,
+    "category": "nicht-umformulierbar",
+    "trap": false,
+    "outcome": "refused",
+    "criteria": {
+      "M1": 1,
+      "M7": 1
+    },
+    "main": 1,
+    "costUsd": 0.0000765,
+    "latencyMs": 1749,
+    "totalTokens": 565,
+    "model": "openai/gpt-6-luna"
+  },
+  {
+    "caseId": "nicht-umformulierbar-3",
+    "repetition": 1,
+    "category": "nicht-umformulierbar",
+    "trap": false,
+    "outcome": "refused",
+    "criteria": {
+      "M1": 1,
+      "M7": 1
+    },
+    "main": 1,
+    "costUsd": 0.0000655,
+    "latencyMs": 1291,
+    "totalTokens": 543,
+    "model": "openai/gpt-6-luna"
+  },
+  {
+    "caseId": "knapp-fachlich-2",
+    "repetition": 0,
+    "category": "knapp-fachlich",
+    "trap": false,
+    "outcome": "answer",
+    "criteria": {
+      "M1": 1,
+      "M7": 1,
+      "M3": 1,
+      "M4": 1,
+      "M5": 1,
+      "M2": 1,
+      "M6": 1
+    },
+    "main": 1,
+    "costUsd": 0.0001034,
+    "latencyMs": 3001,
+    "totalTokens": 622,
+    "model": "openai/gpt-6-luna"
+  },
+  {
+    "caseId": "knapp-fachlich-2",
+    "repetition": 1,
+    "category": "knapp-fachlich",
+    "trap": false,
+    "outcome": "answer",
+    "criteria": {
+      "M1": 1,
+      "M7": 1,
+      "M3": 1,
+      "M4": 1,
+      "M5": 1,
+      "M2": 1,
+      "M6": 1
+    },
+    "main": 1,
+    "costUsd": 0.0000974,
+    "latencyMs": 2398,
+    "totalTokens": 610,
+    "model": "openai/gpt-6-luna"
+  },
+  {
+    "caseId": "eintippen-1",
+    "repetition": 0,
+    "category": "eintippen",
+    "trap": false,
+    "outcome": "answer",
+    "criteria": {
+      "M1": 1,
+      "M7": 1,
+      "M3": 1,
+      "M4": 1,
+      "M5": 1,
+      "M2": 1,
+      "M6": 1
+    },
+    "main": 1,
+    "costUsd": 0.0000741,
+    "latencyMs": 1098,
+    "totalTokens": 589,
+    "model": "openai/gpt-6-luna"
+  },
+  {
+    "caseId": "eintippen-1",
+    "repetition": 1,
+    "category": "eintippen",
+    "trap": false,
+    "outcome": "answer",
+    "criteria": {
+      "M1": 1,
+      "M7": 1,
+      "M3": 1,
+      "M4": 1,
+      "M5": 1,
+      "M2": 1,
+      "M6": 1
+    },
+    "main": 1,
+    "costUsd": 0.0000741,
+    "latencyMs": 1304,
+    "totalTokens": 589,
+    "model": "openai/gpt-6-luna"
+  },
+  {
+    "caseId": "eintippen-2",
+    "repetition": 0,
+    "category": "eintippen",
+    "trap": false,
+    "outcome": "answer",
+    "criteria": {
+      "M1": 1,
+      "M7": 1,
+      "M3": 1,
+      "M4": 1,
+      "M5": 1,
+      "M2": 1,
+      "M6": 1
+    },
+    "main": 1,
+    "costUsd": 0.0000862,
+    "latencyMs": 1583,
+    "totalTokens": 614,
+    "model": "openai/gpt-6-luna"
+  },
+  {
+    "caseId": "eintippen-2",
+    "repetition": 1,
+    "category": "eintippen",
+    "trap": false,
+    "outcome": "answer",
+    "criteria": {
+      "M1": 1,
+      "M7": 1,
+      "M3": 1,
+      "M4": 1,
+      "M5": 1,
+      "M2": 1,
+      "M6": 1
+    },
+    "main": 1,
+    "costUsd": 0.0000747,
+    "latencyMs": 1646,
+    "totalTokens": 591,
+    "model": "openai/gpt-6-luna"
+  },
+  {
+    "caseId": "verneinung-2",
+    "repetition": 0,
+    "category": "verneinung",
+    "trap": true,
+    "outcome": "answer",
+    "criteria": {
+      "M1": 1,
+      "M7": 1,
+      "M3": 1,
+      "M4": 1,
+      "M5": 1,
+      "M2": 1,
+      "M6": 1
+    },
+    "main": 1,
+    "costUsd": 0.000075,
+    "latencyMs": 1504,
+    "totalTokens": 566,
+    "model": "openai/gpt-6-luna"
+  },
+  {
+    "caseId": "verneinung-2",
+    "repetition": 1,
+    "category": "verneinung",
+    "trap": true,
+    "outcome": "answer",
+    "criteria": {
+      "M1": 1,
+      "M7": 1,
+      "M3": 1,
+      "M4": 1,
+      "M5": 1,
+      "M2": 1,
+      "M6": 1
+    },
+    "main": 1,
+    "costUsd": 0.0001045,
+    "latencyMs": 3574,
+    "totalTokens": 625,
+    "model": "openai/gpt-6-luna"
+  },
+  {
+    "caseId": "corpus-2ed6a63758",
+    "repetition": 0,
+    "category": "sonstige",
+    "trap": false,
+    "outcome": "answer",
+    "criteria": {
+      "M1": 1,
+      "M7": 1,
+      "M3": 1,
+      "M4": 1,
+      "M5": 1,
+      "M2": 1,
+      "M6": 1
+    },
+    "main": 1,
+    "costUsd": 0.0001849,
+    "latencyMs": 4569,
+    "totalTokens": 797,
+    "model": "openai/gpt-6-luna"
+  },
+  {
+    "caseId": "corpus-2ed6a63758",
+    "repetition": 1,
+    "category": "sonstige",
+    "trap": false,
+    "outcome": "answer",
+    "criteria": {
+      "M1": 1,
+      "M7": 1,
+      "M3": 1,
+      "M4": 1,
+      "M5": 1,
+      "M2": 1,
+      "M6": 1
+    },
+    "main": 1,
+    "costUsd": 0.0001584,
+    "latencyMs": 3841,
+    "totalTokens": 744,
+    "model": "openai/gpt-6-luna"
+  },
+  {
+    "caseId": "corpus-1f8653112f",
+    "repetition": 0,
+    "category": "zahlen-formeln",
+    "trap": false,
+    "outcome": "answer",
+    "criteria": {
+      "M1": 1,
+      "M7": 1,
+      "M3": 1,
+      "M4": 1,
+      "M5": 1,
+      "M2": 1,
+      "M6": 1
+    },
+    "main": 1,
+    "costUsd": 0.0001254,
+    "latencyMs": 3020,
+    "totalTokens": 678,
+    "model": "openai/gpt-6-luna"
+  },
+  {
+    "caseId": "corpus-1f8653112f",
+    "repetition": 1,
+    "category": "zahlen-formeln",
+    "trap": false,
+    "outcome": "answer",
+    "criteria": {
+      "M1": 1,
+      "M7": 1,
+      "M3": 1,
+      "M4": 1,
+      "M5": 1,
+      "M2": 1,
+      "M6": 1
+    },
+    "main": 1,
+    "costUsd": 0.0001119,
+    "latencyMs": 3103,
+    "totalTokens": 651,
+    "model": "openai/gpt-6-luna"
+  },
+  {
+    "caseId": "corpus-6efc88b570",
+    "repetition": 0,
+    "category": "sonstige",
+    "trap": false,
+    "outcome": "answer",
+    "criteria": {
+      "M1": 1,
+      "M7": 1,
+      "M3": 1,
+      "M4": 1,
+      "M5": 1,
+      "M2": 1,
+      "M6": 0
+    },
+    "main": 1,
+    "costUsd": 0.0001278,
+    "latencyMs": 3072,
+    "totalTokens": 702,
+    "model": "openai/gpt-6-luna"
+  },
+  {
+    "caseId": "corpus-6efc88b570",
+    "repetition": 1,
+    "category": "sonstige",
+    "trap": false,
+    "outcome": "answer",
+    "criteria": {
+      "M1": 1,
+      "M7": 1,
+      "M3": 1,
+      "M4": 1,
+      "M5": 1,
+      "M2": 1,
+      "M6": 1
+    },
+    "main": 1,
+    "costUsd": 0.0001388,
+    "latencyMs": 3164,
+    "totalTokens": 724,
+    "model": "openai/gpt-6-luna"
+  },
+  {
+    "caseId": "corpus-9162ccf53b",
+    "repetition": 0,
+    "category": "sonstige",
+    "trap": false,
+    "outcome": "answer",
+    "criteria": {
+      "M1": 1,
+      "M7": 1,
+      "M3": 1,
+      "M4": 1,
+      "M5": 1,
+      "M2": 1,
+      "M6": 1
+    },
+    "main": 1,
+    "costUsd": 0.0001443,
+    "latencyMs": 4271,
+    "totalTokens": 715,
+    "model": "openai/gpt-6-luna"
+  },
+  {
+    "caseId": "corpus-9162ccf53b",
+    "repetition": 1,
+    "category": "sonstige",
+    "trap": false,
+    "outcome": "answer",
+    "criteria": {
+      "M1": 1,
+      "M7": 1,
+      "M3": 1,
+      "M4": 1,
+      "M5": 1,
+      "M2": 1,
+      "M6": 0
+    },
+    "main": 1,
+    "costUsd": 0.0001293,
+    "latencyMs": 3650,
+    "totalTokens": 685,
+    "model": "openai/gpt-6-luna"
+  },
+  {
+    "caseId": "corpus-9582edb771",
+    "repetition": 0,
+    "category": "sonstige",
+    "trap": false,
+    "outcome": "answer",
+    "criteria": {
+      "M1": 1,
+      "M7": 1,
+      "M3": 1,
+      "M4": 1,
+      "M5": 1,
+      "M2": 1,
+      "M6": 1
+    },
+    "main": 1,
+    "costUsd": 0.0001343,
+    "latencyMs": 3420,
+    "totalTokens": 703,
+    "model": "openai/gpt-6-luna"
+  },
+  {
+    "caseId": "corpus-9582edb771",
+    "repetition": 1,
+    "category": "sonstige",
+    "trap": false,
+    "outcome": "answer",
+    "criteria": {
+      "M1": 1,
+      "M7": 1,
+      "M3": 1,
+      "M4": 1,
+      "M5": 1,
+      "M2": 1,
+      "M6": 1
+    },
+    "main": 1,
+    "costUsd": 0.0002053,
+    "latencyMs": 5001,
+    "totalTokens": 845,
+    "model": "openai/gpt-6-luna"
+  },
+  {
+    "caseId": "corpus-bb63b5a402",
+    "repetition": 0,
+    "category": "kurzantworten",
+    "trap": false,
+    "outcome": "refused",
+    "criteria": {
+      "M1": 1,
+      "M7": 0
+    },
+    "main": 0,
+    "costUsd": 0.000106,
+    "latencyMs": 2802,
+    "totalTokens": 624,
+    "model": "openai/gpt-6-luna"
+  },
+  {
+    "caseId": "corpus-bb63b5a402",
+    "repetition": 1,
+    "category": "kurzantworten",
+    "trap": false,
+    "outcome": "refused",
+    "criteria": {
+      "M1": 1,
+      "M7": 0
+    },
+    "main": 0,
+    "costUsd": 0.0000905,
+    "latencyMs": 2711,
+    "totalTokens": 593,
+    "model": "openai/gpt-6-luna"
+  },
+  {
+    "caseId": "corpus-846f4a3cdb",
+    "repetition": 0,
+    "category": "zahlen-formeln",
+    "trap": false,
+    "outcome": "answer",
+    "criteria": {
+      "M1": 1,
+      "M7": 1,
+      "M3": 1,
+      "M4": 1,
+      "M5": 1,
+      "M2": 1,
+      "M6": 1
+    },
+    "main": 1,
+    "costUsd": 0.0001332,
+    "latencyMs": 2918,
+    "totalTokens": 696,
+    "model": "openai/gpt-6-luna"
+  },
+  {
+    "caseId": "corpus-846f4a3cdb",
+    "repetition": 1,
+    "category": "zahlen-formeln",
+    "trap": false,
+    "outcome": "answer",
+    "criteria": {
+      "M1": 1,
+      "M7": 1,
+      "M3": 1,
+      "M4": 1,
+      "M5": 1,
+      "M2": 1,
+      "M6": 1
+    },
+    "main": 1,
+    "costUsd": 0.0001407,
+    "latencyMs": 6963,
+    "totalTokens": 711,
+    "model": "openai/gpt-6-luna"
+  },
+  {
+    "caseId": "corpus-91240a6bb1",
+    "repetition": 0,
+    "category": "kurzantworten",
+    "trap": false,
+    "outcome": "answer",
+    "criteria": {
+      "M1": 1,
+      "M7": 1,
+      "M3": 1,
+      "M4": 1,
+      "M5": 1,
+      "M2": 1,
+      "M6": 1
+    },
+    "main": 1,
+    "costUsd": 0.0001378,
+    "latencyMs": 2530,
+    "totalTokens": 706,
+    "model": "openai/gpt-6-luna"
+  },
+  {
+    "caseId": "corpus-91240a6bb1",
+    "repetition": 1,
+    "category": "kurzantworten",
+    "trap": false,
+    "outcome": "answer",
+    "criteria": {
+      "M1": 1,
+      "M7": 1,
+      "M3": 1,
+      "M4": 1,
+      "M5": 1,
+      "M2": 1,
+      "M6": 1
+    },
+    "main": 1,
+    "costUsd": 0.0001388,
+    "latencyMs": 3108,
+    "totalTokens": 708,
+    "model": "openai/gpt-6-luna"
+  },
+  {
+    "caseId": "corpus-7d0dc42ff9",
+    "repetition": 0,
+    "category": "sonstige",
+    "trap": false,
+    "outcome": "answer",
+    "criteria": {
+      "M1": 1,
+      "M7": 1,
+      "M3": 1,
+      "M4": 1,
+      "M5": 1,
+      "M2": 1,
+      "M6": 1
+    },
+    "main": 1,
+    "costUsd": 0.0001715,
+    "latencyMs": 3980,
+    "totalTokens": 771,
+    "model": "openai/gpt-6-luna"
+  },
+  {
+    "caseId": "corpus-7d0dc42ff9",
+    "repetition": 1,
+    "category": "sonstige",
+    "trap": false,
+    "outcome": "answer",
+    "criteria": {
+      "M1": 1,
+      "M7": 1,
+      "M3": 1,
+      "M4": 1,
+      "M5": 1,
+      "M2": 1,
+      "M6": 1
+    },
+    "main": 1,
+    "costUsd": 0.0001515,
+    "latencyMs": 3911,
+    "totalTokens": 731,
+    "model": "openai/gpt-6-luna"
+  }
+]

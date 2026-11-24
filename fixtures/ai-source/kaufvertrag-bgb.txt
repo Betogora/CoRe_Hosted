@@ -1,0 +1,75 @@
+Der Kaufvertrag nach dem BGB
+
+Der Kaufvertrag ist der häufigste Vertrag des Alltags. Er ist im Bürgerlichen Gesetzbuch (BGB) ab § 433 geregelt.
+
+Zustandekommen des Vertrags
+
+Ein Kaufvertrag kommt durch zwei übereinstimmende Willenserklärungen zustande: das Angebot (Antrag) und die Annahme (§§ 145 ff. BGB). Wer ein Angebot macht, ist daran grundsätzlich gebunden (§ 145 BGB). Beide Erklärungen müssen sich inhaltlich decken, mindestens über die Kaufsache und den Kaufpreis.
+
+Die Auslage von Waren im Schaufenster, Prospekte, Kataloge und die Darstellung in einem Online-Shop sind in der Regel noch kein Angebot. Es handelt sich um eine Aufforderung an die Kundschaft, selbst ein Angebot abzugeben (invitatio ad offerendum). Das Angebot gibt erst der Kunde ab, etwa an der Kasse oder mit dem Absenden der Bestellung. Die automatische Eingangsbestätigung eines Online-Shops ist meist noch keine Annahme.
+
+Ein Angebot unter Anwesenden, auch am Telefon, kann nur sofort angenommen werden (§ 147 Abs. 1 BGB). Ein Angebot unter Abwesenden, etwa per Brief oder E-Mail, kann bis zu dem Zeitpunkt angenommen werden, zu dem der Antragende eine Antwort unter regelmäßigen Umständen erwarten darf (§ 147 Abs. 2 BGB). Der Antragende kann auch selbst eine Frist für die Annahme setzen (§ 148 BGB). Eine verspätete Annahme und eine Annahme unter Erweiterungen, Einschränkungen oder sonstigen Änderungen gelten als Ablehnung, verbunden mit einem neuen Angebot (§ 150 BGB).
+
+Schweigen ist im Rechtsverkehr grundsätzlich keine Annahme. Wer unbestellt Ware zugeschickt bekommt, muss sie weder bezahlen noch zurückschicken; ein Unternehmer erwirbt gegenüber einem Verbraucher durch die Zusendung unbestellter Waren keinen Anspruch (§ 241a BGB).
+
+Ein Kaufvertrag ist grundsätzlich formfrei; er kann mündlich, schriftlich, elektronisch oder durch schlüssiges Verhalten geschlossen werden. Eine wichtige Ausnahme ist der Kauf eines Grundstücks: Er muss notariell beurkundet werden (§ 311b Abs. 1 BGB), sonst ist er nichtig.
+
+Wirksam handeln kann nur, wer geschäftsfähig ist. Kinder unter sieben Jahren sind geschäftsunfähig; ihre Willenserklärungen sind nichtig (§§ 104, 105 BGB). Minderjährige zwischen sieben und 17 Jahren sind beschränkt geschäftsfähig (§ 106 BGB). Ein Kaufvertrag, den sie ohne Einwilligung der Eltern schließen, ist schwebend unwirksam, bis die Eltern ihn genehmigen oder die Genehmigung verweigern (§ 108 BGB). Nach dem sogenannten Taschengeldparagrafen (§ 110 BGB) ist ein solcher Vertrag von Anfang an wirksam, wenn der Minderjährige die Leistung mit Mitteln bewirkt, die ihm zu diesem Zweck oder zur freien Verfügung überlassen wurden. Ratenkäufe fallen nicht darunter, weil die Leistung erst mit der letzten Rate vollständig bewirkt ist.
+
+Pflichten der Vertragsparteien
+
+Nach § 433 Abs. 1 BGB muss der Verkäufer dem Käufer die Sache übergeben und ihm das Eigentum daran verschaffen. Die Sache muss frei von Sach- und Rechtsmängeln sein. Nach § 433 Abs. 2 BGB muss der Käufer den vereinbarten Kaufpreis zahlen und die gekaufte Sache abnehmen. Die Abnahmepflicht ist also eine echte Pflicht des Käufers und nicht nur ein Recht.
+
+Zahlt der Käufer nicht rechtzeitig, kommt er in Verzug, wenn er nach Fälligkeit gemahnt wurde (§ 286 Abs. 1 BGB). Ohne Mahnung gerät der Schuldner einer Geldforderung spätestens 30 Tage nach Fälligkeit und Zugang einer Rechnung in Verzug (§ 286 Abs. 3 BGB); gegenüber einem Verbraucher gilt das nur, wenn er in der Rechnung auf diese Folge hingewiesen wurde. Die Verzugszinsen betragen fünf Prozentpunkte über dem Basiszinssatz, bei Geschäften, an denen kein Verbraucher beteiligt ist, neun Prozentpunkte (§ 288 BGB).
+
+Wann eine Sache mangelhaft ist
+
+Eine Sache ist nach § 434 BGB frei von Sachmängeln, wenn sie bei Gefahrübergang den subjektiven Anforderungen, den objektiven Anforderungen und den Montageanforderungen entspricht. Subjektiv muss sie die vereinbarte Beschaffenheit haben und sich für die vertraglich vorausgesetzte Verwendung eignen. Objektiv muss sie sich für die gewöhnliche Verwendung eignen und eine Beschaffenheit aufweisen, die bei Sachen derselben Art üblich ist und die der Käufer erwarten kann, auch aufgrund öffentlicher Werbeaussagen des Herstellers. Ein Sachmangel liegt auch vor, wenn eine unsachgemäße Montage oder eine fehlerhafte Montageanleitung zu Fehlern führt, und wenn eine andere als die geschuldete Sache geliefert wird.
+
+Ein Rechtsmangel liegt vor, wenn Dritte in Bezug auf die Sache Rechte gegen den Käufer geltend machen können, die er nicht im Kaufvertrag übernommen hat (§ 435 BGB), etwa weil die Sache gestohlen und noch nicht wirksam übereignet war oder weil ein Pfandrecht besteht.
+
+Maßgeblich ist der Zeitpunkt des Gefahrübergangs. Beim gewöhnlichen Kauf geht die Gefahr mit der Übergabe der Sache auf den Käufer über (§ 446 BGB). Beim Versendungskauf geht sie schon mit der Übergabe an die Transportperson über (§ 447 BGB). Das gilt jedoch nicht beim Verbrauchsgüterkauf: Dort trägt der Unternehmer das Transportrisiko, bis die Ware beim Verbraucher ankommt (§ 475 Abs. 2 BGB).
+
+Kannte der Käufer den Mangel bei Vertragsschluss, stehen ihm keine Mängelrechte zu (§ 442 BGB). Blieb ihm der Mangel infolge grober Fahrlässigkeit unbekannt, hat er Rechte nur, wenn der Verkäufer den Mangel arglistig verschwiegen oder eine Garantie übernommen hat.
+
+Rechte des Käufers bei Mängeln
+
+Ist die Sache mangelhaft, hat der Käufer die Rechte aus § 437 BGB. An erster Stelle steht die Nacherfüllung (§ 439 BGB). Der Käufer kann wählen, ob der Mangel beseitigt (Nachbesserung) oder eine mangelfreie Sache geliefert wird (Nachlieferung). Die Kosten der Nacherfüllung, etwa für Transport, Arbeit und Material, trägt der Verkäufer. Er kann die gewählte Art der Nacherfüllung nur verweigern, wenn sie unverhältnismäßige Kosten verursacht.
+
+Erst wenn die Nacherfüllung fehlgeschlagen ist, verweigert wurde, dem Käufer unzumutbar ist oder eine angemessene Frist zur Nacherfüllung erfolglos abgelaufen ist, kann der Käufer weitere Rechte geltend machen. Eine Nachbesserung gilt nach dem zweiten erfolglosen Versuch als fehlgeschlagen, wenn sich aus der Art der Sache oder des Mangels nichts anderes ergibt (§ 440 Satz 2 BGB). Der Käufer hat dann die Wahl:
+
+Er kann vom Vertrag zurücktreten (§§ 437 Nr. 2, 440, 323 BGB). Beide Seiten geben dann die empfangenen Leistungen zurück. Bei einem unerheblichen Mangel ist der Rücktritt ausgeschlossen (§ 323 Abs. 5 Satz 2 BGB).
+
+Er kann stattdessen den Kaufpreis mindern (§ 441 BGB). Die Minderung ist auch bei einem unerheblichen Mangel möglich. Rücktritt und Minderung schließen sich gegenseitig aus, weil der Käufer bei der Minderung die Sache behält.
+
+Er kann außerdem Schadensersatz verlangen (§§ 437 Nr. 3, 280, 281 BGB), wenn der Verkäufer den Mangel zu vertreten hat; das Verschulden des Verkäufers wird dabei vermutet. Statt des Schadensersatzes kann der Käufer den Ersatz vergeblicher Aufwendungen verlangen (§ 284 BGB). Schadensersatz kann neben dem Rücktritt verlangt werden.
+
+Der Verkäufer kann die Mängelrechte vertraglich ausschließen, etwa mit der Formulierung „gekauft wie gesehen“ beim privaten Gebrauchtwagenkauf. Auf einen solchen Ausschluss kann er sich jedoch nicht berufen, wenn er den Mangel arglistig verschwiegen oder eine Garantie für die Beschaffenheit übernommen hat (§ 444 BGB). Von der gesetzlichen Mängelhaftung, auch Gewährleistung genannt, ist die Garantie zu unterscheiden: Sie ist eine freiwillige zusätzliche Zusage des Verkäufers oder Herstellers, deren Inhalt sich aus der Garantieerklärung ergibt (§ 443 BGB).
+
+Verjährung der Mängelansprüche
+
+Die Mängelansprüche verjähren nach § 438 BGB grundsätzlich in zwei Jahren. Die Frist beginnt bei beweglichen Sachen mit der Ablieferung, bei Grundstücken mit der Übergabe. Für Bauwerke und für Sachen, die entsprechend ihrer üblichen Verwendung für ein Bauwerk verwendet wurden und dessen Mangelhaftigkeit verursacht haben, etwa Dachziegel, beträgt die Frist fünf Jahre. Besteht der Mangel in einem dinglichen Recht eines Dritten, aufgrund dessen er die Herausgabe der Sache verlangen kann, verjähren die Ansprüche erst in 30 Jahren.
+
+Hat der Verkäufer den Mangel arglistig verschwiegen, gilt stattdessen die regelmäßige Verjährungsfrist von drei Jahren (§ 195 BGB). Sie beginnt erst mit dem Schluss des Jahres, in dem der Käufer von dem Mangel Kenntnis erlangt hat (§ 199 Abs. 1 BGB).
+
+Verbrauchsgüterkauf
+
+Ein Verbrauchsgüterkauf liegt vor, wenn ein Unternehmer einem Verbraucher eine Ware verkauft (§ 474 Abs. 1 BGB). Ein Verbraucher ist jeder Mensch, der ein Rechtsgeschäft überwiegend zu privaten Zwecken abschließt (§ 13 BGB). Verkauft eine Privatperson an eine andere Privatperson, liegt kein Verbrauchsgüterkauf vor. Für den Verbrauchsgüterkauf gelten zum Schutz des Verbrauchers zusätzliche Regeln.
+
+Beweislastumkehr: Grundsätzlich muss der Käufer beweisen, dass die Sache schon bei Gefahrübergang mangelhaft war. Zeigt sich beim Verbrauchsgüterkauf ein Mangel innerhalb eines Jahres seit Gefahrübergang, wird jedoch vermutet, dass die Sache bereits bei Gefahrübergang mangelhaft war (§ 477 Abs. 1 BGB). Dann muss der Unternehmer das Gegenteil beweisen. Bis Ende 2021 betrug diese Frist nur sechs Monate; beim Kauf lebender Tiere gilt sie weiterhin nur sechs Monate.
+
+Kein Ausschluss der Mängelrechte: Der Unternehmer kann die Rechte des Verbrauchers aus § 437 BGB vor Mitteilung eines Mangels nicht wirksam ausschließen oder einschränken (§ 476 Abs. 1 BGB). Klauseln wie „gekauft wie gesehen“ sind gegenüber Verbrauchern deshalb unwirksam. Ausgenommen ist der Anspruch auf Schadensersatz, der in den Grenzen des AGB-Rechts beschränkt werden kann.
+
+Verkürzung der Verjährung: Die Verjährungsfrist von zwei Jahren darf beim Verbrauchsgüterkauf nicht verkürzt werden. Nur bei gebrauchten Sachen ist eine Verkürzung auf mindestens ein Jahr ab Ablieferung zulässig (§ 476 Abs. 2 BGB); der Verbraucher muss davon vor Abgabe seiner Vertragserklärung eigens in Kenntnis gesetzt werden, und die Verkürzung muss ausdrücklich und gesondert vereinbart werden.
+
+Widerrufsrecht bei Fernabsatz
+
+Wird ein Vertrag zwischen einem Unternehmer und einem Verbraucher ausschließlich über Fernkommunikationsmittel geschlossen, etwa im Online-Shop, per Telefon oder per Brief, hat der Verbraucher ein Widerrufsrecht (§ 312g Abs. 1 BGB). Dasselbe gilt für Verträge, die außerhalb von Geschäftsräumen geschlossen werden, etwa an der Haustür. Im Ladengeschäft gibt es dagegen kein gesetzliches Widerrufsrecht; ein Umtausch ist dort nur möglich, wenn der Händler ihn freiwillig anbietet.
+
+Die Widerrufsfrist beträgt 14 Tage (§ 355 Abs. 2 BGB). Beim Kauf beginnt sie nicht vor dem Erhalt der Ware (§ 356 Abs. 2 BGB) und nicht, bevor der Verbraucher ordnungsgemäß über sein Widerrufsrecht belehrt wurde. Fehlt die Belehrung, erlischt das Widerrufsrecht spätestens zwölf Monate und 14 Tage nach dem Erhalt der Ware (§ 356 Abs. 3 BGB). Der Widerruf muss nicht begründet werden, muss aber eindeutig erklärt werden; die kommentarlose Rücksendung der Ware genügt nicht.
+
+Kein Widerrufsrecht besteht unter anderem bei Waren, die nach Kundenwünschen angefertigt wurden, bei schnell verderblichen Waren und bei versiegelten Waren, die aus Gründen des Gesundheitsschutzes oder der Hygiene nicht zur Rückgabe geeignet sind, wenn ihre Versiegelung nach der Lieferung entfernt wurde (§ 312g Abs. 2 BGB).
+
+Handelskauf
+
+Ist der Kauf für beide Seiten ein Handelsgeschäft, gilt zusätzlich die Untersuchungs- und Rügepflicht nach § 377 HGB. Der Käufer muss die Ware unverzüglich nach der Ablieferung untersuchen und einen erkennbaren Mangel unverzüglich anzeigen. Ein versteckter Mangel muss unverzüglich nach seiner Entdeckung gerügt werden. Unterlässt der Käufer die rechtzeitige Rüge, gilt die Ware als genehmigt, und er verliert seine Mängelrechte, es sei denn, der Verkäufer hat den Mangel arglistig verschwiegen.

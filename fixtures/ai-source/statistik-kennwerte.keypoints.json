@@ -1,0 +1,22 @@
+{
+  "keypoints": [
+    "Das arithmetische Mittel ist die Summe aller Werte geteilt durch ihre Anzahl und reagiert stark auf Ausreißer.",
+    "Der Median ist der mittlere Wert der geordneten Daten, bei gerader Anzahl der Mittelwert der beiden mittleren Werte, und wird von Ausreißern kaum beeinflusst.",
+    "Der Modus ist der häufigste Wert und als einziger Lageparameter auch für nominale Merkmale geeignet.",
+    "Der Interquartilsabstand Q3 − Q1 umfasst die mittleren 50 % der Daten.",
+    "Bei der Stichprobenvarianz teilt man durch n − 1, damit die Varianz der Grundgesamtheit nicht systematisch unterschätzt wird.",
+    "Bei einer Normalverteilung liegen etwa 68 % der Werte innerhalb einer Standardabweichung um den Mittelwert und etwa 95 % innerhalb von zwei.",
+    "Der z-Wert gibt an, um wie viele Standardabweichungen ein Wert vom Mittelwert abweicht.",
+    "Der Pearson-Korrelationskoeffizient liegt zwischen −1 und +1 und misst nur lineare Zusammenhänge; r = 0 schließt einen nichtlinearen Zusammenhang nicht aus.",
+    "Eine Korrelation belegt keine Kausalität.",
+    "Die Spearman-Rangkorrelation erfasst auch monotone nichtlineare Zusammenhänge und ist robust gegenüber Ausreißern.",
+    "Bei einfacher linearer Regression ist das Bestimmtheitsmaß R² das Quadrat von r.",
+    "Der Standardfehler des Mittelwerts ist s / √n und halbiert sich bei vierfachem Stichprobenumfang.",
+    "Ein 95-%-Konfidenzintervall bedeutet nicht, dass der wahre Wert mit 95 % Wahrscheinlichkeit im konkret berechneten Intervall liegt.",
+    "Die Nullhypothese kann ein Test nur ablehnen oder beibehalten, aber nie beweisen.",
+    "Der p-Wert ist die Wahrscheinlichkeit, unter der Nullhypothese ein mindestens so extremes Ergebnis zu erhalten, und nicht die Wahrscheinlichkeit, dass die Nullhypothese wahr ist.",
+    "Ist der p-Wert kleiner als das Signifikanzniveau, meist 0,05, wird die Nullhypothese abgelehnt.",
+    "Ein Fehler 1. Art lehnt eine wahre Nullhypothese ab, ein Fehler 2. Art behält eine falsche bei.",
+    "Die Teststärke ist 1 − β und steigt mit größerem Stichprobenumfang und größerem Effekt."
+  ]
+}

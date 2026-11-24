@@ -1,0 +1,177 @@
+{
+  "title": "Volkswirtschaftslehre",
+  "material": "cards",
+  "decks": [
+    {
+      "id": "d1",
+      "name": "Volkswirtschaftslehre"
+    },
+    {
+      "id": "d2",
+      "name": "Mikroökonomie",
+      "parent": "d1"
+    },
+    {
+      "id": "d3",
+      "name": "Makroökonomie",
+      "parent": "d1"
+    },
+    {
+      "id": "d4",
+      "name": "Geldpolitik",
+      "parent": "d3"
+    }
+  ],
+  "units": [
+    {
+      "id": "m1",
+      "kind": "card",
+      "deck": "d2",
+      "text": "F: Was versteht man unter Knappheit?\nA: Die Bedürfnisse der Menschen sind unbegrenzt, die Mittel zu ihrer Befriedigung aber begrenzt; deshalb muss gewirtschaftet werden."
+    },
+    {
+      "id": "m2",
+      "kind": "card",
+      "deck": "d2",
+      "text": "F: Was sind Opportunitätskosten?\nA: Der entgangene Nutzen der besten nicht gewählten Alternative."
+    },
+    {
+      "id": "m3",
+      "kind": "card",
+      "deck": "d2",
+      "text": "F: Was besagt das Gesetz der Nachfrage?\nA: Steigt der Preis eines Gutes, sinkt bei sonst gleichen Bedingungen die nachgefragte Menge."
+    },
+    {
+      "id": "m4",
+      "kind": "card",
+      "deck": "d2",
+      "text": "F: Wie reagiert die angebotene Menge auf Preisänderungen?\nA: Steigt der Preis, steigt bei sonst gleichen Bedingungen die angebotene Menge."
+    },
+    {
+      "id": "m5",
+      "kind": "card",
+      "deck": "d2",
+      "text": "F: Was ist das Marktgleichgewicht?\nA: Der Zustand, in dem angebotene und nachgefragte Menge übereinstimmen; der zugehörige Preis heißt Gleichgewichtspreis."
+    },
+    {
+      "id": "m6",
+      "kind": "card",
+      "deck": "d2",
+      "text": "F: Was bewirkt ein Höchstpreis unterhalb des Gleichgewichtspreises?\nA: Einen Nachfrageüberhang: Zu diesem Preis wird mehr nachgefragt als angeboten."
+    },
+    {
+      "id": "m7",
+      "kind": "card",
+      "deck": "d2",
+      "text": "F: Was bewirkt ein Mindestpreis oberhalb des Gleichgewichtspreises?\nA: Einen Angebotsüberhang: Zu diesem Preis wird mehr angeboten als nachgefragt."
+    },
+    {
+      "id": "m8",
+      "kind": "card",
+      "deck": "d2",
+      "text": "F: Wie ist die Preiselastizität der Nachfrage definiert?\nA: Als prozentuale Änderung der nachgefragten Menge geteilt durch die prozentuale Preisänderung; ist ihr Betrag kleiner als 1, ist die Nachfrage unelastisch."
+    },
+    {
+      "id": "m9",
+      "kind": "card",
+      "deck": "d2",
+      "text": "F: Wie verhält sich ein Monopolist im Vergleich zu vollständiger Konkurrenz?\nA: Er setzt einen höheren Preis über den Grenzkosten und bietet eine geringere Menge an."
+    },
+    {
+      "id": "m10",
+      "kind": "card",
+      "deck": "d2",
+      "text": "F: Was sind negative externe Effekte?\nA: Kosten, die ein Verursacher Dritten auferlegt, ohne dafür zu bezahlen, etwa durch Umweltverschmutzung; eine Pigou-Steuer soll sie dem Verursacher anlasten."
+    },
+    {
+      "id": "m11",
+      "kind": "card",
+      "deck": "d2",
+      "text": "F: Was kennzeichnet ein öffentliches Gut?\nA: Nicht-Rivalität im Konsum und Nicht-Ausschließbarkeit; deshalb tritt das Trittbrettfahrerproblem auf."
+    },
+    {
+      "id": "m12",
+      "kind": "card",
+      "deck": "d3",
+      "text": "F: Was misst das Bruttoinlandsprodukt?\nA: Den Wert aller in einem Zeitraum im Inland hergestellten Waren und Dienstleistungen, soweit sie nicht als Vorleistungen verbraucht werden."
+    },
+    {
+      "id": "m13",
+      "kind": "card",
+      "deck": "d3",
+      "text": "F: Was unterscheidet nominales und reales BIP?\nA: Das reale BIP ist preisbereinigt; es zeigt die Veränderung der Produktionsmenge ohne Preiseffekte."
+    },
+    {
+      "id": "m14",
+      "kind": "card",
+      "deck": "d3",
+      "text": "F: Welche Ziele nennt das magische Viereck des Stabilitätsgesetzes von 1967?\nA: Stabilität des Preisniveaus, einen hohen Beschäftigungsstand, außenwirtschaftliches Gleichgewicht sowie stetiges und angemessenes Wirtschaftswachstum."
+    },
+    {
+      "id": "m15",
+      "kind": "card",
+      "deck": "d3",
+      "text": "F: Warum heißt das Viereck „magisch“?\nA: Weil sich die Ziele teilweise widersprechen und nicht alle gleichzeitig vollständig erreichbar sind."
+    },
+    {
+      "id": "m16",
+      "kind": "card",
+      "deck": "d3",
+      "text": "F: Welche Phasen hat ein Konjunkturzyklus?\nA: Aufschwung, Boom (Hochkonjunktur), Abschwung und Tiefphase (Depression)."
+    },
+    {
+      "id": "m17",
+      "kind": "card",
+      "deck": "d3",
+      "text": "F: Was ist Inflation, und wie wird sie gemessen?\nA: Ein anhaltender Anstieg des allgemeinen Preisniveaus; gemessen wird sie mit einem Verbraucherpreisindex, der die Preise eines Warenkorbs vergleicht."
+    },
+    {
+      "id": "m18",
+      "kind": "card",
+      "deck": "d3",
+      "text": "F: Wie wird die Arbeitslosenquote berechnet?\nA: Als Anteil der Arbeitslosen an allen Erwerbspersonen."
+    },
+    {
+      "id": "m19",
+      "kind": "card",
+      "deck": "d3",
+      "text": "F: Was bedeutet antizyklische Fiskalpolitik?\nA: Der Staat erhöht im Abschwung die Ausgaben oder senkt die Steuern und hält sich im Boom zurück, um Konjunkturschwankungen zu glätten."
+    },
+    {
+      "id": "m20",
+      "kind": "card",
+      "deck": "d4",
+      "text": "F: Was ist das vorrangige Ziel der Europäischen Zentralbank?\nA: Preisstabilität; sie strebt mittelfristig eine Inflationsrate von 2 Prozent an."
+    },
+    {
+      "id": "m21",
+      "kind": "card",
+      "deck": "d4",
+      "text": "F: Wie wirkt eine Erhöhung der Leitzinsen?\nA: Kredite werden teurer, Kreditnachfrage und Investitionen sinken, und der Preisauftrieb wird gedämpft."
+    },
+    {
+      "id": "m22",
+      "kind": "card",
+      "deck": "d4",
+      "text": "F: Was ist quantitative Lockerung?\nA: Der Kauf von Wertpapieren, vor allem Staatsanleihen, durch die Zentralbank in großem Umfang, um langfristige Zinsen zu senken."
+    },
+    {
+      "id": "m23",
+      "kind": "card",
+      "deck": "d4",
+      "text": "F: Warum gilt Deflation als gefährlich?\nA: Wenn Preise sinken, schieben Haushalte und Unternehmen Käufe und Investitionen auf, was die Wirtschaft weiter schwächen kann."
+    }
+  ],
+  "keypoints": [
+    "Opportunitätskosten sind der entgangene Nutzen der besten nicht gewählten Alternative.",
+    "Steigt der Preis, sinkt die nachgefragte Menge und steigt die angebotene Menge.",
+    "Ein Höchstpreis unter dem Gleichgewichtspreis führt zu einem Nachfrageüberhang, ein Mindestpreis darüber zu einem Angebotsüberhang.",
+    "Öffentliche Güter sind durch Nicht-Rivalität und Nicht-Ausschließbarkeit gekennzeichnet.",
+    "Das reale BIP ist preisbereinigt.",
+    "Das magische Viereck umfasst Preisniveaustabilität, hohen Beschäftigungsstand, außenwirtschaftliches Gleichgewicht und stetiges, angemessenes Wachstum.",
+    "Antizyklische Fiskalpolitik erhöht im Abschwung die Staatsausgaben oder senkt die Steuern.",
+    "Die EZB strebt mittelfristig eine Inflationsrate von 2 Prozent an.",
+    "Eine Leitzinserhöhung verteuert Kredite und dämpft den Preisauftrieb."
+  ],
+  "contradictions": []
+}

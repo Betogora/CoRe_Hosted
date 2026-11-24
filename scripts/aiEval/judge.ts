@@ -45,6 +45,9 @@ export type JudgeCache = Record<string, Verdict>;
 export type JudgeKey = { judge: string; entries: Record<string, string[]>; duplicates: Record<string, string>; hashes: Record<string, string>; cached: Record<string, string> };
 
 export const answerRef = (caseId: string, repetition: number) => `answer:${caseId}#${repetition}`;
+/** Nachmessung des Bestands im Lauf eines Kandidaten (`reference.jsonl`). */
+export const referenceRef = (caseId: string, repetition: number) => `reference:${caseId}#${repetition}`;
+export const unsureKey = (ref: string, criterion: string) => `${ref}|${criterion}`;
 export const labelRef = (id: string) => `label:${id}`;
 const hash = (text: string) => createHash("sha256").update(text).digest("hex").slice(0, 16);
 const baseId = (id: string) => id.split(":")[0];
@@ -66,8 +69,11 @@ export function readLabels(definition: EvalDefinition): Label[] {
  * Die Blöcke verraten weder Fall noch Wiederholung noch Kontrolleintrag. Einträge mit Urteil im Cache gehen in keinen
  * Block; ab zwei Blöcken steht ein Anteil der übrigen ein zweites Mal in einem anderen Block.
  */
-/** `requests` sind alle Anfragen des Fallsatzes; ihre Kriterien bestimmen den Fingerabdruck, egal welche Antworten ein Lauf hat. */
-export function buildJudgeTable(definition: EvalDefinition, items: readonly JudgeItem[], random: () => number, { instructions, requests, cache = {} }: { instructions: string; requests: readonly unknown[]; cache?: JudgeCache }) {
+/**
+ * `requests` sind alle Anfragen des Fallsatzes, `references` seine Referenzaussagen; beide bestimmen den Fingerabdruck,
+ * egal welche Antworten ein Lauf hat.
+ */
+export function buildJudgeTable(definition: EvalDefinition, items: readonly JudgeItem[], random: () => number, { instructions, requests, references = [], cache = {} }: { instructions: string; requests: readonly unknown[]; references?: readonly (readonly string[])[]; cache?: JudgeCache }) {
   const groups = new Map<string, JudgeItem[]>();
   for (const item of items) {
     const identity = JSON.stringify([item.criteria.map((criterion) => criterion.id), item.rendered]);
@@ -85,7 +91,7 @@ export function buildJudgeTable(definition: EvalDefinition, items: readonly Judg
     else open.push({ refs: group.map((item) => item.ref), hash: entryHash, criteria, rendered });
   }
   for (const request of requests) for (const criterion of definition.judged(request)) allCriteria.set(criterion.id, criterion);
-  key.judge = hash(JSON.stringify([instructions, [...allCriteria.values()].sort((a, b) => a.id.localeCompare(b.id))]));
+  key.judge = hash(JSON.stringify([instructions, [...allCriteria.values()].sort((a, b) => a.id.localeCompare(b.id)), references]));
 
   const entries: JudgeEntry[] = shuffled(open, random).map((group, index) => {
     const entry = `e${String(index + 1).padStart(4, "0")}`;
@@ -135,22 +141,27 @@ export function readVerdicts(blocks: readonly JudgeBlock[], files: readonly unkn
   if (problems.length) throw new Error(`Richterurteile unvollständig (${problems.length} Einträge), zum Beispiel: ${problems.slice(0, 3).join("; ")}.`);
 
   const verdicts: Verdicts = new Map();
-  for (const [entry, refs] of Object.entries(key.entries)) for (const ref of refs) verdicts.set(ref, given.get(entry)!.results);
+  const unsure = new Set<string>();
+  const keep = (ref: string, verdict: Verdict) => {
+    verdicts.set(ref, verdict.results);
+    for (const [criterion, level] of Object.entries(verdict.sure)) if (level === 1) unsure.add(unsureKey(ref, criterion));
+  };
+  for (const [entry, refs] of Object.entries(key.entries)) for (const ref of refs) keep(ref, given.get(entry)!);
   for (const [ref, entryHash] of Object.entries(key.cached)) {
     if (!cache[entryHash]) throw new Error(`Das Urteil für ${ref} fehlt im Urteilscache. Den Ordner judge des Laufs löschen und „table“ erneut ausführen.`);
-    verdicts.set(ref, cache[entryHash].results);
+    keep(ref, cache[entryHash]);
   }
   const fresh: JudgeCache = Object.fromEntries(Object.entries(key.hashes).map(([entry, entryHash]) => [entryHash, given.get(entry)!]));
   const pairs = Object.entries(key.duplicates).map(([duplicate, original]) => ({ original, a: given.get(original)!, b: given.get(duplicate)! }));
   const flipped = new Map<string, Set<string>>();
   const noise: Record<string, number> = {};
+  // Je Einzelurteil gezählt: Ein Eintrag mit 20 Kernaussagen, von denen eine kippt, ist eine Abweichung unter 20.
   for (const id of [...new Set(pairs.flatMap(({ a }) => Object.keys(a.results).map(baseId)))].sort()) {
-    const relevant = pairs.filter(({ a }) => Object.keys(a.results).some((criterion) => baseId(criterion) === id));
-    const changed = relevant.filter(({ a, b }) => Object.keys(a.results).some((criterion) => baseId(criterion) === id && a.results[criterion] !== b.results[criterion]));
-    flipped.set(id, new Set(changed.map(({ original }) => original)));
-    noise[id] = Math.round(changed.length / relevant.length * 10000) / 10000;
+    const judgments = pairs.flatMap(({ original, a, b }) => Object.keys(a.results).filter((criterion) => baseId(criterion) === id).map((criterion) => ({ original, changed: a.results[criterion] !== b.results[criterion] })));
+    flipped.set(id, new Set(judgments.filter(({ changed }) => changed).map(({ original }) => original)));
+    noise[id] = Math.round(judgments.filter(({ changed }) => changed).length / judgments.length * 10000) / 10000;
   }
-  return { verdicts, given, fresh, noise, flipped, duplicates: new Set(Object.keys(key.duplicates)), judged: Object.keys(key.hashes).length, cached: new Set(Object.values(key.cached)).size };
+  return { verdicts, unsure, given, fresh, noise, flipped, duplicates: new Set(Object.keys(key.duplicates)), judged: Object.keys(key.hashes).length, cached: new Set(Object.values(key.cached)).size };
 }
 
 export type VerdictReading = ReturnType<typeof readVerdicts>;

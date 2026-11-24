@@ -1,6 +1,6 @@
 # CoRe TODO
 
-Stand: 2026-11-23
+Stand: 2026-11-24
 
 Nur offene Arbeit. Ist-Stand in [`status.md`](status.md), Entscheidungen in
 [`decisions.md`](decisions.md), erledigte Arbeit in [`history.md`](history.md).
@@ -11,13 +11,14 @@ externen Release fällig. „Später“ ist geparkt.
 
 ## P5: KI-Eval und Hillclimb
 
-Alle vier KI-Routen stehen (`card-variant-v5`, `card-help-v1`,
-`source-cards-v2`, `learning-summary-v4`); P5 läuft. Im Ledger steht noch
-nichts; ein Probelauf vom 2026-11-23 steht im [Verlauf](history.md). Der Runner ([KI-Eval](ai-eval.md))
-kennt alle sechs Anfragetypen: Varianten und `card-help` mit 59 bis 78
-Prüfkarten je Anfragetyp und lokalen Korpusfällen in drei Teilen, je 20
-Fallen, dazu Karten aus einer Quelle als ganzen Auftrag je Dokument und
-Profil und die Zusammenfassung je Materialsatz und Profil. Er misst Kandidaten als Datei,
+Alle vier KI-Routen stehen (`card-variant-v5`, `card-help-v2`,
+`source-cards-v2`, `learning-summary-v4`); P5 läuft. Die Baseline aller
+sechs Anfragetypen steht auf den ausgewogenen Fallsätzen im Ledger und auf
+der Seite [KI-Eval](ai-eval.md): Varianten und `card-help` mit 96 bis 120
+Prüfkarten über sieben Fächer mit Referenzaussagen und höchstens 20 % aus
+dem eigenen Fundus, Karten aus einer Quelle mit 24 Dokumenten (vier über
+60.000 Zeichen) und die Zusammenfassung mit 24 Materialsätzen in neun
+paarweise deckenden Profilen. Der Runner misst Kandidaten als Datei,
 lässt in Blöcken mit Urteilscache richten und entscheidet Runden selbst.
 Befunde, Versuchsaufbau und Arbeitspakete im Einzelnen stehen im
 [Versuchsplan](ai-eval-plan.md).
@@ -38,21 +39,12 @@ Pakete in dieser Reihenfolge.
       Karten mit eingeschleuster Anweisung, [Verlauf](history.md)), melden die
       Routen heute „Werkzeug nicht korrekt verwendet“. Eigener Fehlercode und
       eine verständliche Meldung; im Eval bleibt es eine verworfene Antwort.
-- [ ] **Fallsätze Quelle und Zusammenfassung ausbauen:** Karten aus einer
-      Quelle hat fünf Prüfdokumente, die Zusammenfassung drei Materialsätze.
-      Ziel je etwa 24 mit Kernaussagen, über Fächer und Formate verteilt,
-      darunter mindestens vier lange Quellen (über 60.000 Zeichen) und weitere
-      eingebaute Widersprüche; dazu weitere Einstellungsprofile der
-      Zusammenfassung, paarweise deckend. Nachweis: Fallzahlen je Teil.
-- [ ] **H – Baseline:** alle Anfragetypen mit den Prompts des Codes auf
-      allen drei Teilen. Nachweis: Ledger und Seite. Haltepunkt: Der Nutzer
-      legt Zielwerte und Reihenfolge der Welle fest und sagt, ob der Richter
-      passt; die Zielwerte im Versuchsplan sind bis dahin ein Entwurf.
-- [ ] **I – Hillclimb, erste Welle:** Varianten, KI hilft, Karten aus einer
-      Quelle, Zusammenfassung. Je Runde drei bis fünf Kandidaten aus den
-      Trainingsfehlern, Vorauswahl am Trainingsteil, Entscheidung am
-      Entscheidungsteil; Ende bei erreichtem Ziel, drei Runden ohne Übernahme
-      oder acht Runden. Bei Karten aus einer Quelle zusätzlich: Kartenmenge
+- [ ] **I – Hillclimb, erste Welle** auf Reasoning `low` (KI hilft erledigt,
+      `card-help-v2`): Varianten,
+      Karten aus einer Quelle, Zusammenfassung. Je Runde drei bis fünf
+      Kandidaten aus den Trainingsfehlern, Vorauswahl am Trainingsteil,
+      Entscheidung am Entscheidungsteil; mindestens drei Runden, Ende nach
+      drei Runden ohne Übernahme oder nach acht Runden. Bei Karten aus einer Quelle zusätzlich: Kartenmenge
       wirksam machen (Weniger höchstens 60 %, Mehr mindestens 140 % der
       Vorschläge von Normal, ohne Füllkarten und bei gleicher Belegtreue;
       danach die Dichten in `AI_SOURCE_AMOUNTS` neu messen), Single Choice

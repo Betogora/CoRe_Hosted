@@ -1,0 +1,41 @@
+{
+  "title": "Diabetes mellitus",
+  "material": "cards-and-source",
+  "decks": [
+    { "id": "d1", "name": "Innere Medizin" },
+    { "id": "d2", "name": "Diabetes mellitus", "parent": "d1" }
+  ],
+  "units": [
+    { "id": "m1", "kind": "card", "deck": "d2", "text": "F: Was ist die Ursache des Typ-1-Diabetes?\nA: Eine Autoimmunreaktion zerstört die insulinbildenden Betazellen der Bauchspeicheldrüse; es entsteht ein absoluter Insulinmangel." },
+    { "id": "m2", "kind": "card", "deck": "d2", "text": "F: Was kennzeichnet den Typ-2-Diabetes?\nA: Eine Insulinresistenz der Gewebe zusammen mit einer nachlassenden Insulinausschüttung, also ein relativer Insulinmangel." },
+    { "id": "m3", "kind": "card", "deck": "d2", "text": "F: Welche klassischen Symptome zeigt ein deutlich erhöhter Blutzucker?\nA: Vermehrtes Wasserlassen (Polyurie), starker Durst (Polydipsie), Müdigkeit und ungewollter Gewichtsverlust." },
+    { "id": "m4", "kind": "card", "deck": "d2", "text": "F: Ab welchem Nüchternplasmaglukosewert liegt ein Diabetes vor?\nA: Ab 126 mg/dl (7,0 mmol/l)." },
+    { "id": "m5", "kind": "card", "deck": "d2", "text": "F: Ab welchem HbA1c-Wert liegt ein Diabetes vor?\nA: Ab einem HbA1c von 7,5 %." },
+    { "id": "m6", "kind": "card", "deck": "d2", "text": "F: Über welchen Zeitraum spiegelt der HbA1c den Blutzucker wider?\nA: Über die letzten etwa 8 bis 12 Wochen." },
+    { "id": "m7", "kind": "card", "deck": "d2", "text": "F: Wie wirkt Metformin?\nA: Es hemmt vor allem die Glukoseneubildung in der Leber und verbessert die Insulinempfindlichkeit." },
+    { "id": "m8", "kind": "card", "deck": "d2", "text": "F: Verursacht Metformin allein Unterzuckerungen?\nA: Nein, als Monotherapie führt Metformin praktisch nicht zu Hypoglykämien." },
+    { "id": "m9", "kind": "card", "deck": "d2", "text": "F: Ab welchem Blutzuckerwert spricht man von einer Hypoglykämie?\nA: Unter 70 mg/dl (3,9 mmol/l)." },
+    { "id": "m10", "kind": "card", "deck": "d2", "text": "F: Was gibt man bei einer Hypoglykämie mit erhaltenem Bewusstsein?\nA: 15 bis 20 Gramm schnell wirksame Kohlenhydrate, etwa Traubenzucker." },
+    { "id": "m11", "kind": "card", "deck": "d2", "text": "F: Was sind typische Zeichen einer diabetischen Ketoazidose?\nA: Tiefe, schnelle Atmung (Kußmaul-Atmung), Azetongeruch der Atemluft, Übelkeit und Bauchschmerzen." },
+    { "id": "m12", "kind": "card", "deck": "d2", "text": "F: Welche mikrovaskulären Spätfolgen hat ein Diabetes?\nA: Retinopathie, Nephropathie und Neuropathie." },
+    {
+      "id": "m13",
+      "kind": "source",
+      "text": "# Diabetes mellitus\n\nDiabetes mellitus ist eine chronische Stoffwechselerkrankung, bei der der Blutzucker dauerhaft erhöht ist. Ursache ist ein Mangel an Insulin oder eine verminderte Wirkung des Insulins. Insulin wird in den Betazellen der Langerhans-Inseln der Bauchspeicheldrüse gebildet und senkt den Blutzucker, indem es die Aufnahme von Glukose in Muskel- und Fettzellen fördert und die Glukosefreisetzung aus der Leber hemmt.\n\n## Formen\n\nBeim Typ-1-Diabetes zerstört das Immunsystem die Betazellen. Es entsteht ein absoluter Insulinmangel, der meist im Kindes- oder jungen Erwachsenenalter auftritt. Betroffene sind von Beginn an auf Insulin angewiesen.\n\nDer Typ-2-Diabetes macht rund 90 Prozent aller Fälle aus. Er beruht auf einer Insulinresistenz, zu der im Verlauf eine abnehmende Insulinausschüttung hinzukommt. Wichtige Risikofaktoren sind Übergewicht, Bewegungsmangel und eine familiäre Veranlagung. Die Erkrankung beginnt oft schleichend und bleibt lange unbemerkt.\n\n## Diagnose\n\nEin Diabetes liegt vor, wenn mindestens eines der folgenden Kriterien erfüllt ist: eine Nüchternplasmaglukose von mindestens 126 mg/dl (7,0 mmol/l), ein Plasmaglukosewert von mindestens 200 mg/dl zwei Stunden nach einem oralen Glukosetoleranztest, ein Gelegenheitswert von mindestens 200 mg/dl zusammen mit typischen Symptomen oder ein HbA1c von mindestens 6,5 % (48 mmol/mol).\n\nDer HbA1c gibt den Anteil des roten Blutfarbstoffs an, an den Glukose gebunden ist. Weil rote Blutkörperchen etwa 120 Tage leben, spiegelt der Wert den durchschnittlichen Blutzucker der letzten 8 bis 12 Wochen wider. Er dient sowohl der Diagnose als auch der Verlaufskontrolle.\n\n## Behandlung des Typ-2-Diabetes\n\nGrundlage der Behandlung sind Lebensstiländerungen: Gewichtsabnahme, regelmäßige Bewegung und eine ausgewogene Ernährung. Reicht das nicht aus, ist Metformin in der Regel das Medikament der ersten Wahl. Es senkt vor allem die Glukoseneubildung in der Leber, führt allein kaum zu Unterzuckerungen und wirkt sich nicht ungünstig auf das Körpergewicht aus. Bei stark eingeschränkter Nierenfunktion darf es nicht gegeben werden, weil sonst das Risiko einer seltenen, aber gefährlichen Laktatazidose steigt.\n\nSGLT2-Hemmer senken den Blutzucker, indem sie die Rückaufnahme von Glukose in der Niere hemmen, sodass mehr Glukose mit dem Urin ausgeschieden wird. Reichen Tabletten nicht aus, wird zusätzlich Insulin eingesetzt.\n\n## Akute Komplikationen\n\nEine Hypoglykämie liegt bei einem Blutzucker unter 70 mg/dl (3,9 mmol/l) vor. Sie äußert sich durch Zittern, Schwitzen, Herzklopfen, Heißhunger und Verwirrtheit und tritt vor allem unter Insulin oder Sulfonylharnstoffen auf. Ist die Person bei Bewusstsein, erhält sie 15 bis 20 Gramm schnell wirksame Kohlenhydrate. Ist sie bewusstlos, darf ihr nichts eingeflößt werden; dann gibt man Glukagon oder intravenös Glukose.\n\nDie diabetische Ketoazidose tritt vor allem beim Typ-1-Diabetes auf, wenn Insulin fehlt. Der Körper baut dann Fett ab, und es entstehen saure Ketonkörper. Typisch sind eine vertiefte Kußmaul-Atmung, Azetongeruch, Übelkeit und Bauchschmerzen. Die Ketoazidose ist ein Notfall.\n\n## Spätfolgen\n\nEin dauerhaft erhöhter Blutzucker schädigt die Gefäße. Schäden an den kleinen Gefäßen (Mikroangiopathie) führen zu Retinopathie an der Netzhaut, Nephropathie an den Nieren und Neuropathie an den Nerven. Schäden an den großen Gefäßen (Makroangiopathie) erhöhen das Risiko für Herzinfarkt, Schlaganfall und Durchblutungsstörungen der Beine. Aus Neuropathie und schlechter Durchblutung kann ein diabetisches Fußsyndrom mit schlecht heilenden Wunden entstehen. Deshalb werden regelmäßige Augenuntersuchungen, Urintests auf Eiweiß und Kontrollen der Füße empfohlen."
+    }
+  ],
+  "keypoints": [
+    "Beim Typ-1-Diabetes zerstört das Immunsystem die Betazellen, sodass ein absoluter Insulinmangel entsteht.",
+    "Der Typ-2-Diabetes macht rund 90 Prozent der Fälle aus und beruht auf einer Insulinresistenz mit nachlassender Insulinausschüttung.",
+    "Ein Diabetes liegt bei einer Nüchternplasmaglukose von mindestens 126 mg/dl vor.",
+    "Der HbA1c spiegelt den durchschnittlichen Blutzucker der letzten 8 bis 12 Wochen wider.",
+    "Metformin ist beim Typ-2-Diabetes meist das Medikament der ersten Wahl, senkt die Glukoseneubildung in der Leber und führt allein kaum zu Unterzuckerungen.",
+    "Bei stark eingeschränkter Nierenfunktion darf Metformin wegen des Risikos einer Laktatazidose nicht gegeben werden.",
+    "Eine Hypoglykämie liegt unter 70 mg/dl vor und wird bei erhaltenem Bewusstsein mit 15 bis 20 Gramm schnell wirksamen Kohlenhydraten behandelt.",
+    "Die diabetische Ketoazidose tritt vor allem beim Typ-1-Diabetes auf und zeigt sich durch Kußmaul-Atmung und Azetongeruch.",
+    "Mikrovaskuläre Spätfolgen sind Retinopathie, Nephropathie und Neuropathie, makrovaskuläre erhöhen das Risiko für Herzinfarkt und Schlaganfall."
+  ],
+  "contradictions": [
+    "Eine Karte nennt als diagnostischen Grenzwert einen HbA1c von 7,5 %, die Quelle einen HbA1c von mindestens 6,5 %."
+  ]
+}

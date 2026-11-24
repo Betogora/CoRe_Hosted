@@ -1,0 +1,48 @@
+{
+  "title": "Relationale Datenbanken",
+  "material": "cards",
+  "decks": [
+    { "id": "d1", "name": "Datenbanken" },
+    { "id": "d2", "name": "Relationales Modell", "parent": "d1" },
+    { "id": "d3", "name": "SQL", "parent": "d1" },
+    { "id": "d4", "name": "Transaktionen", "parent": "d1" }
+  ],
+  "units": [
+    { "id": "m1", "kind": "card", "deck": "d2", "text": "F: Woraus besteht eine Relation im relationalen Modell?\nA: Aus einer Tabelle mit benannten Spalten (Attributen) und Zeilen (Tupeln)." },
+    { "id": "m2", "kind": "card", "deck": "d2", "text": "F: Was ist ein Primärschlüssel?\nA: Ein Attribut oder eine Attributkombination, die jede Zeile einer Tabelle eindeutig identifiziert; er darf nicht NULL sein." },
+    { "id": "m3", "kind": "card", "deck": "d2", "text": "F: Was ist ein Fremdschlüssel?\nA: Ein Attribut, das auf den Primärschlüssel einer anderen Tabelle verweist und so eine Beziehung herstellt." },
+    { "id": "m4", "kind": "card", "deck": "d2", "text": "F: Was bedeutet referenzielle Integrität?\nA: Jeder Fremdschlüsselwert muss als Primärschlüssel in der referenzierten Tabelle vorkommen oder NULL sein." },
+    { "id": "m5", "kind": "card", "deck": "d2", "text": "F: Wie bildet man eine n:m-Beziehung relational ab?\nA: Über eine Verbindungstabelle, die die Fremdschlüssel beider beteiligten Tabellen enthält." },
+    { "id": "m6", "kind": "card", "deck": "d2", "text": "F: Was verlangt die erste Normalform (1NF)?\nA: Alle Attributwerte sind atomar; es gibt keine Listen oder Wiederholungsgruppen in einer Zelle." },
+    { "id": "m7", "kind": "card", "deck": "d2", "text": "F: Was verlangt die zweite Normalform (2NF)?\nA: Die Tabelle ist in 1NF, und jedes Nichtschlüsselattribut hängt vom gesamten Primärschlüssel ab, nicht nur von einem Teil davon." },
+    { "id": "m8", "kind": "card", "deck": "d2", "text": "F: Was verlangt die dritte Normalform (3NF)?\nA: Die Tabelle ist in 2NF, und kein Nichtschlüsselattribut hängt transitiv über ein anderes Nichtschlüsselattribut vom Schlüssel ab." },
+    { "id": "m9", "kind": "card", "deck": "d2", "text": "F: Welche Anomalien vermeidet die Normalisierung?\nA: Einfüge-, Änderungs- und Löschanomalien, die durch redundant gespeicherte Daten entstehen." },
+    { "id": "m10", "kind": "card", "deck": "d3", "text": "F: Welche Reihenfolge haben die Klauseln einer SELECT-Abfrage?\nA: SELECT, FROM, WHERE, GROUP BY, HAVING, ORDER BY." },
+    { "id": "m11", "kind": "card", "deck": "d3", "text": "F: Was unterscheidet WHERE von HAVING?\nA: WHERE filtert einzelne Zeilen vor der Gruppierung, HAVING filtert Gruppen nach der Aggregation." },
+    { "id": "m12", "kind": "card", "deck": "d3", "text": "F: Was liefert ein INNER JOIN?\nA: Nur die Zeilenkombinationen, für die die Verknüpfungsbedingung in beiden Tabellen erfüllt ist." },
+    { "id": "m13", "kind": "card", "deck": "d3", "text": "F: Was liefert ein LEFT JOIN?\nA: Alle Zeilen der linken Tabelle; fehlt ein passender Partner rechts, sind dessen Spalten NULL." },
+    { "id": "m14", "kind": "card", "deck": "d3", "text": "F: Warum findet „WHERE spalte = NULL“ keine Zeilen?\nA: Vergleiche mit NULL ergeben weder wahr noch falsch, sondern unbekannt; man prüft mit IS NULL." },
+    { "id": "m15", "kind": "card", "deck": "d3", "text": "F: Was zählt COUNT(*) im Unterschied zu COUNT(spalte)?\nA: COUNT(*) zählt alle Zeilen, COUNT(spalte) nur die Zeilen, in denen die Spalte nicht NULL ist." },
+    { "id": "m16", "kind": "card", "deck": "d3", "text": "F: Wozu dient ein Index?\nA: Er beschleunigt das Suchen und Sortieren nach den indizierten Spalten, verlangsamt aber Einfügen, Ändern und Löschen und braucht zusätzlichen Speicher." },
+    { "id": "m17", "kind": "card", "deck": "d3", "text": "F: Wie schützt man eine Anwendung vor SQL-Injection?\nA: Mit vorbereiteten Anweisungen (Prepared Statements), bei denen Eingaben als Parameter übergeben und nie in den SQL-Text eingefügt werden." },
+    { "id": "m18", "kind": "card", "deck": "d4", "text": "F: Wofür steht ACID?\nA: Für Atomicity, Consistency, Isolation und Durability – die Eigenschaften zuverlässiger Transaktionen." },
+    { "id": "m19", "kind": "card", "deck": "d4", "text": "F: Was bedeutet Atomarität?\nA: Eine Transaktion wird ganz oder gar nicht ausgeführt; bei einem Fehler werden alle ihre Änderungen per ROLLBACK zurückgenommen." },
+    { "id": "m20", "kind": "card", "deck": "d4", "text": "F: Was bedeutet Dauerhaftigkeit?\nA: Nach einem erfolgreichen COMMIT bleiben die Änderungen auch nach einem Systemabsturz erhalten." },
+    { "id": "m21", "kind": "card", "deck": "d4", "text": "F: Was ist ein Dirty Read?\nA: Eine Transaktion liest Daten, die eine andere Transaktion geändert, aber noch nicht bestätigt hat." },
+    { "id": "m22", "kind": "card", "deck": "d4", "text": "F: Welche Isolationsstufe verhindert alle Nebenläufigkeitsanomalien?\nA: SERIALIZABLE; sie wirkt so, als liefen die Transaktionen nacheinander ab." },
+    { "id": "m23", "kind": "card", "deck": "d4", "text": "F: Was ist ein Deadlock?\nA: Zwei oder mehr Transaktionen warten gegenseitig auf Sperren, die die jeweils andere hält; das System bricht eine davon ab." }
+  ],
+  "keypoints": [
+    "Ein Primärschlüssel identifiziert jede Zeile eindeutig und darf nicht NULL sein.",
+    "Ein Fremdschlüssel verweist auf den Primärschlüssel einer anderen Tabelle, und die referenzielle Integrität verlangt, dass jeder Fremdschlüsselwert dort vorkommt oder NULL ist.",
+    "Eine n:m-Beziehung wird über eine Verbindungstabelle mit den Fremdschlüsseln beider Tabellen abgebildet.",
+    "Die Normalformen 1NF bis 3NF verlangen atomare Werte, volle Abhängigkeit vom gesamten Schlüssel und keine transitiven Abhängigkeiten.",
+    "WHERE filtert Zeilen vor der Gruppierung, HAVING Gruppen nach der Aggregation.",
+    "Ein LEFT JOIN liefert alle Zeilen der linken Tabelle und füllt fehlende Partner mit NULL.",
+    "Vergleiche mit NULL ergeben unbekannt, deshalb prüft man mit IS NULL.",
+    "Ein Index beschleunigt Suchen und Sortieren, verlangsamt aber Schreibvorgänge.",
+    "Prepared Statements schützen vor SQL-Injection, weil Eingaben als Parameter übergeben werden.",
+    "Atomarität bedeutet, dass eine Transaktion ganz oder gar nicht ausgeführt wird, Dauerhaftigkeit, dass bestätigte Änderungen einen Absturz überstehen."
+  ],
+  "contradictions": []
+}

@@ -1,0 +1,24 @@
+{
+  "keypoints": [
+    "Gregor Mendel führte Kreuzungsversuche mit Erbsen durch und veröffentlichte seine Ergebnisse 1866; sie wurden erst um 1900 wiederentdeckt.",
+    "Allele sind verschiedene Ausprägungen desselben Gens, und jede diploide Zelle besitzt von jedem Gen zwei Allele.",
+    "Rezessive Merkmale zeigen sich im Phänotyp nur, wenn das Lebewesen für sie homozygot ist.",
+    "Dominant heißt nicht häufig; ein dominantes Allel kann in einer Bevölkerung selten sein.",
+    "Nach der Uniformitätsregel sind alle F1-Nachkommen zweier für ein Merkmal verschieden homozygoter Eltern gleich, auch bei reziproker Kreuzung.",
+    "Nach der Spaltungsregel spaltet die F2 beim dominant-rezessiven Erbgang im Phänotyp 3 : 1 und im Genotyp 1 : 2 : 1 auf, beim intermediären Erbgang 1 : 2 : 1.",
+    "Beim dihybriden dominant-rezessiven Erbgang ergibt sich in der F2 das Phänotypverhältnis 9 : 3 : 3 : 1.",
+    "Die Unabhängigkeitsregel gilt nur für Gene, die nicht gekoppelt sind, also auf verschiedenen Chromosomen oder weit voneinander entfernt liegen.",
+    "Bei der Rückkreuzung mit einem homozygot rezessiven Partner zeigt ein Verhältnis von 1 : 1, dass das untersuchte Lebewesen heterozygot war.",
+    "Beim autosomal-dominanten Erbgang tritt das Merkmal in jeder Generation auf, und ein heterozygot betroffener Elternteil gibt es mit 50 Prozent an jedes Kind weiter.",
+    "Beim autosomal-rezessiven Erbgang haben zwei heterozygote Eltern für jedes Kind ein Risiko von 25 Prozent.",
+    "Beim X-chromosomal-rezessiven Erbgang sind fast nur Männer betroffen, und ein betroffener Vater gibt das Merkmal nie an seine Söhne weiter.",
+    "Die Blutgruppenallele A und B sind kodominant und beide dominant gegenüber 0.",
+    "Zwei Eltern mit Blutgruppe A können ein Kind mit Blutgruppe 0 haben, wenn beide den Genotyp A0 besitzen.",
+    "Menschliche Körperzellen sind diploid mit 46 Chromosomen, Keimzellen haploid mit 23.",
+    "In der Meiose I werden die homologen Chromosomen getrennt, in der Meiose II die Schwesterchromatiden; dazwischen wird die DNA nicht verdoppelt.",
+    "Das Crossing-over findet in der Prophase I statt und kombiniert Allele auf einem Chromosom neu.",
+    "Durch zufällige Verteilung der Chromosomen ergeben sich beim Menschen 2 hoch 23, etwa 8,4 Millionen Kombinationen je Keimzelle.",
+    "Nur Keimbahnmutationen werden vererbt, somatische Mutationen nicht.",
+    "Eine Insertion oder Deletion, deren Basenzahl nicht durch drei teilbar ist, verschiebt das Leseraster."
+  ]
+}

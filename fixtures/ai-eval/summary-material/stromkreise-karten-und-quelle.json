@@ -1,0 +1,39 @@
+{
+  "title": "Elektrische Stromkreise",
+  "material": "cards-and-source",
+  "decks": [
+    { "id": "d1", "name": "Physik" },
+    { "id": "d2", "name": "Elektrizitätslehre", "parent": "d1" }
+  ],
+  "units": [
+    { "id": "m1", "kind": "card", "deck": "d2", "text": "F: Was ist die elektrische Stromstärke?\nA: Die Ladung, die pro Zeit durch einen Leiterquerschnitt fließt: I = Q / t, gemessen in Ampere." },
+    { "id": "m2", "kind": "card", "deck": "d2", "text": "F: Wie lautet das ohmsche Gesetz?\nA: U = R · I; bei konstanter Temperatur ist die Stromstärke in einem metallischen Leiter proportional zur Spannung." },
+    { "id": "m3", "kind": "card", "deck": "d2", "text": "F: In welcher Einheit wird der elektrische Widerstand angegeben?\nA: In Ohm; 1 Ω = 1 V / A." },
+    { "id": "m4", "kind": "card", "deck": "d2", "text": "F: Was gilt für die Stromstärke in einer Reihenschaltung?\nA: Sie ist an jeder Stelle des Stromkreises gleich." },
+    { "id": "m5", "kind": "card", "deck": "d2", "text": "F: Wie berechnet man den Gesamtwiderstand einer Reihenschaltung?\nA: Man addiert die Einzelwiderstände: R = R1 + R2 + …" },
+    { "id": "m6", "kind": "card", "deck": "d2", "text": "F: Wie verhält sich der Gesamtwiderstand einer Parallelschaltung zu den Einzelwiderständen?\nA: Er ist größer als der größte Einzelwiderstand." },
+    { "id": "m7", "kind": "card", "deck": "d2", "text": "F: Was besagt die Knotenregel?\nA: In jedem Verzweigungspunkt ist die Summe der zufließenden Ströme gleich der Summe der abfließenden Ströme." },
+    { "id": "m8", "kind": "card", "deck": "d2", "text": "F: Wie berechnet man die elektrische Leistung?\nA: P = U · I, gemessen in Watt." },
+    { "id": "m9", "kind": "card", "deck": "d2", "text": "F: Welche Spannung hat das Haushaltsnetz in Deutschland?\nA: 110 Volt Wechselspannung." },
+    { "id": "m10", "kind": "card", "deck": "d2", "text": "F: Wie hängt der Widerstand eines Drahtes von Länge und Querschnitt ab?\nA: Er wächst proportional zur Länge und nimmt mit größerem Querschnitt ab." },
+    {
+      "id": "m11",
+      "kind": "source",
+      "text": "# Der einfache Stromkreis\n\nEin elektrischer Strom fließt nur in einem geschlossenen Stromkreis. Dazu gehören eine Spannungsquelle, zum Beispiel eine Batterie, Leitungen und mindestens ein Verbraucher wie eine Lampe. Die Spannung U, gemessen in Volt, ist der Antrieb des Stroms. Die Stromstärke I, gemessen in Ampere, gibt an, wie viel Ladung pro Sekunde durch den Leiter fließt. Der Widerstand R, gemessen in Ohm, beschreibt, wie stark ein Bauteil den Stromfluss hemmt.\n\n## Ohmsches Gesetz\n\nFür viele metallische Leiter gilt bei gleichbleibender Temperatur das ohmsche Gesetz U = R · I. Verdoppelt man die Spannung, verdoppelt sich die Stromstärke. Diese Proportionalität gilt nicht mehr, wenn sich der Leiter stark erwärmt: Der Widerstand von Metallen steigt mit der Temperatur. Der Glühfaden einer Glühlampe hat deshalb im Betrieb einen deutlich höheren Widerstand als im kalten Zustand.\n\nDer Widerstand eines Drahtes hängt von seinem Material, seiner Länge l und seiner Querschnittsfläche A ab: R = ρ · l / A. Dabei ist ρ der spezifische Widerstand des Materials. Kupfer hat einen kleinen spezifischen Widerstand und wird deshalb für Leitungen verwendet.\n\n## Reihenschaltung\n\nIn einer Reihenschaltung liegen alle Bauteile hintereinander in einem einzigen Stromweg. Die Stromstärke ist überall gleich. Die Gesamtspannung teilt sich auf die Bauteile auf, und zwar im Verhältnis ihrer Widerstände. Der Gesamtwiderstand ist die Summe der Einzelwiderstände. Fällt ein Bauteil aus, ist der gesamte Stromkreis unterbrochen.\n\n## Parallelschaltung\n\nIn einer Parallelschaltung verzweigt sich der Stromkreis. An allen Zweigen liegt dieselbe Spannung an. Die Gesamtstromstärke ist die Summe der Ströme in den einzelnen Zweigen. Für den Gesamtwiderstand gilt 1 / R = 1 / R1 + 1 / R2 + … Der Gesamtwiderstand ist deshalb immer kleiner als der kleinste Einzelwiderstand. Jeder zusätzliche Zweig bietet dem Strom einen weiteren Weg. Die Steckdosen einer Wohnung sind parallel geschaltet, damit jedes Gerät die volle Netzspannung erhält und unabhängig von den anderen ein- und ausgeschaltet werden kann.\n\n## Kirchhoffsche Regeln\n\nDie Knotenregel besagt, dass in einem Verzweigungspunkt ebenso viel Strom zufließt wie abfließt; Ladung geht nicht verloren. Die Maschenregel besagt, dass in jedem geschlossenen Umlauf eines Netzwerks die Summe der Teilspannungen gleich der Quellenspannung ist.\n\n## Leistung und Energie\n\nDie elektrische Leistung ist P = U · I und wird in Watt angegeben. Die umgesetzte elektrische Energie ist E = P · t. Im Alltag rechnet man sie in Kilowattstunden ab: Ein Gerät mit 1000 Watt, das eine Stunde läuft, setzt eine Kilowattstunde um.\n\n## Haushaltsnetz und Sicherungen\n\nDas Haushaltsnetz in Deutschland liefert eine Wechselspannung von 230 Volt mit einer Frequenz von 50 Hertz. Sicherungen unterbrechen den Stromkreis, wenn die Stromstärke einen festgelegten Wert übersteigt, etwa bei einem Kurzschluss oder wenn zu viele Geräte gleichzeitig an einem Stromkreis betrieben werden. Sie schützen so die Leitungen vor Überhitzung."
+    }
+  ],
+  "keypoints": [
+    "Ein Strom fließt nur in einem geschlossenen Stromkreis aus Spannungsquelle, Leitungen und Verbraucher.",
+    "Das ohmsche Gesetz U = R · I gilt für metallische Leiter nur bei gleichbleibender Temperatur, weil der Widerstand von Metallen mit der Temperatur steigt.",
+    "Der Widerstand eines Drahtes ist R = ρ · l / A und wächst mit der Länge und sinkt mit größerem Querschnitt.",
+    "In einer Reihenschaltung ist die Stromstärke überall gleich, und der Gesamtwiderstand ist die Summe der Einzelwiderstände.",
+    "In einer Parallelschaltung liegt an allen Zweigen dieselbe Spannung an, und die Ströme der Zweige addieren sich.",
+    "Nach der Knotenregel fließt in einen Verzweigungspunkt ebenso viel Strom hinein wie hinaus.",
+    "Die elektrische Leistung ist P = U · I in Watt, die Energie E = P · t wird im Alltag in Kilowattstunden abgerechnet.",
+    "Sicherungen unterbrechen den Stromkreis bei zu hoher Stromstärke und schützen die Leitungen vor Überhitzung."
+  ],
+  "contradictions": [
+    "Eine Karte nennt den Gesamtwiderstand einer Parallelschaltung größer als den größten Einzelwiderstand, die Quelle immer kleiner als den kleinsten Einzelwiderstand.",
+    "Eine Karte gibt die Spannung des deutschen Haushaltsnetzes mit 110 Volt an, die Quelle mit 230 Volt."
+  ]
+}

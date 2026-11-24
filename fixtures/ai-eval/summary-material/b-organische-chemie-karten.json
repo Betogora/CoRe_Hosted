@@ -1,0 +1,219 @@
+{
+  "title": "Organische Chemie: Stoffklassen und Reaktionen",
+  "material": "cards",
+  "decks": [
+    {
+      "id": "d1",
+      "name": "Organische Chemie"
+    },
+    {
+      "id": "d2",
+      "name": "Kohlenwasserstoffe",
+      "parent": "d1"
+    },
+    {
+      "id": "d3",
+      "name": "Funktionelle Gruppen",
+      "parent": "d1"
+    },
+    {
+      "id": "d4",
+      "name": "Reaktionstypen",
+      "parent": "d1"
+    }
+  ],
+  "units": [
+    {
+      "id": "m1",
+      "kind": "card",
+      "deck": "d2",
+      "text": "F: Was sind Alkane?\nA: Gesättigte Kohlenwasserstoffe mit ausschließlich Einfachbindungen; kettenförmige Alkane haben die allgemeine Summenformel CnH2n+2."
+    },
+    {
+      "id": "m2",
+      "kind": "card",
+      "deck": "d2",
+      "text": "F: Was kennzeichnet Alkene?\nA: Mindestens eine C=C-Doppelbindung; kettenförmige Alkene mit einer Doppelbindung haben die Summenformel CnH2n."
+    },
+    {
+      "id": "m3",
+      "kind": "card",
+      "deck": "d2",
+      "text": "F: Was kennzeichnet Alkine?\nA: Mindestens eine C≡C-Dreifachbindung; kettenförmige Alkine mit einer Dreifachbindung haben die Summenformel CnH2n−2."
+    },
+    {
+      "id": "m4",
+      "kind": "card",
+      "deck": "d2",
+      "text": "F: Wie ist das Kohlenstoffatom im Methan hybridisiert, und welche Geometrie ergibt sich?\nA: sp³-hybridisiert; das Molekül ist tetraedrisch mit Bindungswinkeln von etwa 109,5°."
+    },
+    {
+      "id": "m5",
+      "kind": "card",
+      "deck": "d2",
+      "text": "F: Welche Geometrie hat Ethen?\nA: Die Kohlenstoffatome sind sp²-hybridisiert; das Molekül ist planar mit Bindungswinkeln von etwa 120°."
+    },
+    {
+      "id": "m6",
+      "kind": "card",
+      "deck": "d2",
+      "text": "F: Welche Geometrie hat Ethin?\nA: Die Kohlenstoffatome sind sp-hybridisiert; das Molekül ist linear mit Bindungswinkeln von 180°."
+    },
+    {
+      "id": "m7",
+      "kind": "card",
+      "deck": "d2",
+      "text": "F: Was ist eine homologe Reihe?\nA: Eine Reihe von Verbindungen, deren aufeinanderfolgende Glieder sich jeweils um eine CH₂-Gruppe unterscheiden."
+    },
+    {
+      "id": "m8",
+      "kind": "card",
+      "deck": "d2",
+      "text": "F: Warum steigt die Siedetemperatur der Alkane mit der Kettenlänge?\nA: Längere Moleküle haben eine größere Oberfläche, daher wirken stärkere Van-der-Waals-Kräfte zwischen ihnen."
+    },
+    {
+      "id": "m9",
+      "kind": "card",
+      "deck": "d2",
+      "text": "F: Warum sieden verzweigte Alkane niedriger als unverzweigte Isomere?\nA: Verzweigte Moleküle sind kompakter und haben eine kleinere Kontaktfläche, sodass die Van-der-Waals-Kräfte schwächer sind."
+    },
+    {
+      "id": "m10",
+      "kind": "card",
+      "deck": "d2",
+      "text": "F: Was sind Konstitutionsisomere?\nA: Verbindungen mit gleicher Summenformel, aber unterschiedlicher Verknüpfung der Atome, zum Beispiel Butan und 2-Methylpropan (C₄H₁₀)."
+    },
+    {
+      "id": "m11",
+      "kind": "card",
+      "deck": "d2",
+      "text": "F: Warum gibt es bei Alkenen cis-trans-Isomerie?\nA: Um die C=C-Doppelbindung ist keine freie Drehung möglich, sodass Substituenten auf derselben oder auf entgegengesetzten Seiten liegen können."
+    },
+    {
+      "id": "m12",
+      "kind": "card",
+      "deck": "d2",
+      "text": "F: Was kennzeichnet Benzol?\nA: Benzol (C₆H₆) ist ein aromatischer Ring mit sechs delokalisierten π-Elektronen; alle C-C-Bindungen sind gleich lang."
+    },
+    {
+      "id": "m13",
+      "kind": "card",
+      "deck": "d3",
+      "text": "F: Welche funktionelle Gruppe haben Alkohole, und wie enden ihre Namen?\nA: Die Hydroxygruppe (–OH); die Namen enden auf -ol, zum Beispiel Ethanol."
+    },
+    {
+      "id": "m14",
+      "kind": "card",
+      "deck": "d3",
+      "text": "F: Warum sind kurzkettige Alkohole gut wasserlöslich?\nA: Ihre Hydroxygruppe bildet Wasserstoffbrücken zu Wassermolekülen; mit wachsender Kettenlänge sinkt die Wasserlöslichkeit."
+    },
+    {
+      "id": "m15",
+      "kind": "card",
+      "deck": "d3",
+      "text": "F: Wozu werden primäre, sekundäre und tertiäre Alkohole oxidiert?\nA: Primäre Alkohole zu Aldehyden und weiter zu Carbonsäuren, sekundäre zu Ketonen; tertiäre Alkohole lassen sich unter milden Bedingungen nicht oxidieren."
+    },
+    {
+      "id": "m16",
+      "kind": "card",
+      "deck": "d3",
+      "text": "F: Was ist ein Aldehyd?\nA: Eine Verbindung mit der Carbonylgruppe am Kettenende (–CHO); die Namen enden auf -al, zum Beispiel Ethanal."
+    },
+    {
+      "id": "m17",
+      "kind": "card",
+      "deck": "d3",
+      "text": "F: Was ist ein Keton?\nA: Eine Verbindung mit der Carbonylgruppe innerhalb der Kohlenstoffkette; die Namen enden auf -on, zum Beispiel Propanon (Aceton)."
+    },
+    {
+      "id": "m18",
+      "kind": "card",
+      "deck": "d3",
+      "text": "F: Wie unterscheidet die Fehling-Probe Aldehyde von Ketonen?\nA: Aldehyde reduzieren die Kupfer(II)-Ionen zu rotem Kupfer(I)-oxid; Ketone ergeben in der Regel keinen roten Niederschlag."
+    },
+    {
+      "id": "m19",
+      "kind": "card",
+      "deck": "d3",
+      "text": "F: Welche funktionelle Gruppe haben Carbonsäuren?\nA: Die Carboxygruppe (–COOH); Ethansäure ist der systematische Name der Essigsäure."
+    },
+    {
+      "id": "m20",
+      "kind": "card",
+      "deck": "d3",
+      "text": "F: Warum sind Carbonsäuren sauer?\nA: Sie geben das Proton der Carboxygruppe ab; das entstehende Carboxylat-Ion ist durch Mesomerie stabilisiert. Carbonsäuren sind schwache Säuren."
+    },
+    {
+      "id": "m21",
+      "kind": "card",
+      "deck": "d3",
+      "text": "F: Warum reagieren Amine basisch?\nA: Das Stickstoffatom der Aminogruppe (–NH₂) besitzt ein freies Elektronenpaar, das ein Proton aufnehmen kann."
+    },
+    {
+      "id": "m22",
+      "kind": "card",
+      "deck": "d3",
+      "text": "F: Wie entsteht ein Ester?\nA: Aus einer Carbonsäure und einem Alkohol unter Abspaltung von Wasser, zum Beispiel Ethansäureethylester aus Ethansäure und Ethanol."
+    },
+    {
+      "id": "m23",
+      "kind": "card",
+      "deck": "d4",
+      "text": "F: Wie reagieren Alkane mit Halogenen unter Lichteinfluss?\nA: In einer radikalischen Substitution mit Startreaktion, Kettenfortpflanzung und Kettenabbruch."
+    },
+    {
+      "id": "m24",
+      "kind": "card",
+      "deck": "d4",
+      "text": "F: Wie weist man eine C=C-Doppelbindung mit Bromwasser nach?\nA: Brom wird in einer elektrophilen Addition an die Doppelbindung angelagert, dabei entfärbt sich das Bromwasser."
+    },
+    {
+      "id": "m25",
+      "kind": "card",
+      "deck": "d4",
+      "text": "F: Warum reagiert Benzol mit Brom nicht durch Addition, sondern durch Substitution?\nA: Bei der elektrophilen aromatischen Substitution bleibt das energetisch günstige aromatische System erhalten."
+    },
+    {
+      "id": "m26",
+      "kind": "card",
+      "deck": "d4",
+      "text": "F: Was für eine Reaktion ist die Veresterung?\nA: Eine säurekatalysierte Kondensationsreaktion, die zu einem Gleichgewicht führt."
+    },
+    {
+      "id": "m27",
+      "kind": "card",
+      "deck": "d4",
+      "text": "F: Was ist eine Verseifung?\nA: Die Spaltung eines Esters mit einer Lauge zu einem Carboxylat-Salz und einem Alkohol; sie verläuft praktisch nicht umkehrbar."
+    },
+    {
+      "id": "m28",
+      "kind": "card",
+      "deck": "d4",
+      "text": "F: Wie entsteht aus einem Alkohol ein Alken?\nA: Durch Eliminierung von Wasser, zum Beispiel beim Erhitzen mit konzentrierter Schwefelsäure."
+    },
+    {
+      "id": "m29",
+      "kind": "card",
+      "deck": "d4",
+      "text": "F: Was geschieht bei einer nucleophilen Substitution an einem Halogenalkan?\nA: Ein Nucleophil wie das Hydroxid-Ion ersetzt das Halogenatom; aus einem Halogenalkan entsteht so ein Alkohol."
+    },
+    {
+      "id": "m30",
+      "kind": "card",
+      "deck": "d4",
+      "text": "F: Wie unterscheiden sich SN1- und SN2-Reaktion?\nA: Die SN2-Reaktion verläuft in einem Schritt unter Umkehr der Konfiguration; die SN1-Reaktion verläuft in zwei Schritten über ein Carbokation."
+    }
+  ],
+  "keypoints": [
+    "Alkane sind gesättigte Kohlenwasserstoffe mit ausschließlich Einfachbindungen und der allgemeinen Summenformel CnH2n+2.",
+    "Methan ist sp³-hybridisiert und tetraedrisch, Ethen sp²-hybridisiert und planar, Ethin sp-hybridisiert und linear.",
+    "Die Siedetemperatur der Alkane steigt mit der Kettenlänge wegen stärkerer Van-der-Waals-Kräfte, verzweigte Isomere sieden niedriger.",
+    "Konstitutionsisomere haben die gleiche Summenformel, aber eine unterschiedliche Verknüpfung der Atome.",
+    "Primäre Alkohole werden zu Aldehyden und weiter zu Carbonsäuren oxidiert, sekundäre zu Ketonen.",
+    "Ein Ester entsteht aus einer Carbonsäure und einem Alkohol unter Abspaltung von Wasser.",
+    "Bromwasser wird durch elektrophile Addition an eine C=C-Doppelbindung entfärbt.",
+    "Benzol reagiert durch elektrophile aromatische Substitution, weil dabei das aromatische System erhalten bleibt.",
+    "Die SN2-Reaktion verläuft in einem Schritt unter Umkehr der Konfiguration, die SN1-Reaktion über ein Carbokation."
+  ],
+  "contradictions": []
+}

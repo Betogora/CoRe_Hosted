@@ -1,0 +1,442 @@
+Grundlagen der Betriebswirtschaft und des Wirtschaftsrechts
+
+Dieser Text richtet sich an Studienanfänger in wirtschaftswissenschaftlichen und wirtschaftsrechtlichen Studiengängen. Er führt in sieben Themen ein: die Kaufmannseigenschaft, die Rechtsformen von Unternehmen, die Buchführung mit Bilanz und Gewinn- und Verlustrechnung, betriebswirtschaftliche Kennzahlen, die Kosten- und Leistungsrechnung, die Investitionsrechnung und den Kaufvertrag mit den Rechten des Käufers bei Mängeln. Die rechtlichen Angaben beziehen sich auf das deutsche Recht, vor allem auf das Bürgerliche Gesetzbuch (BGB), das Handelsgesetzbuch (HGB), das GmbH-Gesetz und das Aktiengesetz. Gesetze ändern sich; wer einen konkreten Fall lösen muss, sollte immer den aktuellen Gesetzestext lesen.
+
+Teil 1: Unternehmen, Kaufleute und Handelsregister
+
+Das Unternehmen als wirtschaftliche Einheit
+
+Ein Unternehmen ist eine wirtschaftlich selbstständige Einheit, die Güter oder Dienstleistungen für einen Markt erstellt. Betriebswirtschaftlich wird oft zwischen Betrieb und Unternehmen unterschieden: Der Betrieb ist die technisch-organisatorische Einheit, in der produziert wird, das Unternehmen die rechtlich-finanzielle Einheit, die nach außen auftritt. Ein Unternehmen kann deshalb mehrere Betriebe umfassen, etwa mehrere Werke an verschiedenen Standorten.
+
+Unternehmen handeln nach dem ökonomischen Prinzip. In seiner Form als Maximalprinzip verlangt es, mit gegebenen Mitteln einen möglichst großen Erfolg zu erzielen. Als Minimalprinzip verlangt es, einen vorgegebenen Erfolg mit möglichst geringem Mitteleinsatz zu erreichen. Beide Formen gleichzeitig zu verlangen, also mit minimalem Einsatz den maximalen Erfolg zu erzielen, ist logisch nicht möglich, weil dann keine der beiden Größen festliegt.
+
+Die wichtigsten Kennzahlen dieser Zielsetzung sind Produktivität, Wirtschaftlichkeit und Rentabilität. Die Produktivität setzt mengenmäßigen Output ins Verhältnis zum mengenmäßigen Input, etwa produzierte Stück je Arbeitsstunde. Die Wirtschaftlichkeit setzt wertmäßig Leistungen ins Verhältnis zu Kosten; ein Wert über 1 bedeutet, dass die Leistungen die Kosten übersteigen. Die Rentabilität setzt den Gewinn ins Verhältnis zum eingesetzten Kapital. Sie wird im Teil über Kennzahlen genauer behandelt.
+
+Wer ist Kaufmann?
+
+Das Handelsgesetzbuch ist das Sonderprivatrecht der Kaufleute. Ob jemand Kaufmann ist, entscheidet deshalb darüber, ob die strengeren Regeln des HGB gelten, etwa die Pflicht zur Buchführung, die Möglichkeit, eine Prokura zu erteilen, die Untersuchungs- und Rügepflicht beim Handelskauf und die Regeln über das kaufmännische Bestätigungsschreiben.
+
+Kaufmann ist nach Paragraf 1 HGB, wer ein Handelsgewerbe betreibt. Ein Handelsgewerbe ist jeder Gewerbebetrieb, es sei denn, das Unternehmen erfordert nach Art oder Umfang keinen in kaufmännischer Weise eingerichteten Geschäftsbetrieb. Man nennt diesen Kaufmann Istkaufmann, weil er Kaufmann ist, sobald diese Voraussetzungen vorliegen – unabhängig davon, ob er im Handelsregister eingetragen ist. Die Eintragung wirkt beim Istkaufmann deshalb nur deklaratorisch, sie bestätigt also einen ohnehin bestehenden Zustand. Merkmale eines kaufmännisch eingerichteten Geschäftsbetriebs sind etwa ein hoher Umsatz, viele Beschäftigte, mehrere Standorte, umfangreiche Lagerhaltung und vielfältige Geschäftsbeziehungen.
+
+Ein Kleingewerbetreibender, dessen Unternehmen keinen kaufmännischen Geschäftsbetrieb erfordert, ist kein Kaufmann. Er kann sich jedoch freiwillig in das Handelsregister eintragen lassen und wird dann nach Paragraf 2 HGB Kannkaufmann. Für ihn wirkt die Eintragung konstitutiv: Erst durch die Eintragung wird er Kaufmann. Ebenso können Land- und Forstwirte nach Paragraf 3 HGB durch Eintragung Kaufleute werden.
+
+Handelsgesellschaften wie die OHG und die KG sind Kaufleute, weil sie ein Handelsgewerbe betreiben. Kapitalgesellschaften wie die GmbH und die Aktiengesellschaft sind dagegen kraft ihrer Rechtsform Kaufleute, auch wenn sie gar kein Gewerbe betreiben. Man spricht vom Formkaufmann nach Paragraf 6 HGB. Eine GmbH, die etwa nur ihr eigenes Vermögen verwaltet, ist deshalb trotzdem Kaufmann.
+
+Angehörige der freien Berufe wie Ärzte, Rechtsanwälte, Steuerberater und Architekten betreiben kein Gewerbe und sind deshalb als Einzelpersonen keine Kaufleute. Gründen sie allerdings eine GmbH, ist diese als Formkaufmann wiederum Kaufmann.
+
+Das Handelsregister
+
+Das Handelsregister ist ein öffentliches, elektronisch geführtes Verzeichnis, das die Amtsgerichte führen. Jeder darf es ohne besonderen Grund einsehen. Es gliedert sich in die Abteilung A für Einzelkaufleute und Personenhandelsgesellschaften und die Abteilung B für Kapitalgesellschaften. Eingetragen werden unter anderem die Firma, der Sitz, der Gegenstand des Unternehmens, die vertretungsberechtigten Personen, bei Kapitalgesellschaften das Stamm- oder Grundkapital und bei der KG die Haftsummen der Kommanditisten.
+
+Das Handelsregister genießt öffentlichen Glauben in einer bestimmten Form, der sogenannten negativen Publizität nach Paragraf 15 Absatz 1 HGB: Solange eine eintragungspflichtige Tatsache nicht eingetragen und bekannt gemacht ist, kann sie einem Dritten nicht entgegengehalten werden, es sei denn, der Dritte kannte sie. Widerruft ein Kaufmann zum Beispiel eine Prokura, lässt den Widerruf aber nicht eintragen, kann sich ein gutgläubiger Geschäftspartner weiter auf die Prokura berufen.
+
+Die Firma ist der Name, unter dem ein Kaufmann seine Geschäfte betreibt und unterschreibt. Sie muss zur Kennzeichnung geeignet sein, Unterscheidungskraft besitzen und darf nicht irreführen. Außerdem muss sie stets einen Rechtsformzusatz enthalten, zum Beispiel „eingetragener Kaufmann“ oder „e. K.“, „OHG“, „KG“ oder „GmbH“. Der Rechtsformzusatz zeigt Geschäftspartnern, wie die Haftung geregelt ist.
+
+Prokura und Handlungsvollmacht
+
+Die Prokura ist eine handelsrechtliche Vollmacht mit gesetzlich festgelegtem, sehr weitem Umfang. Nur ein Kaufmann kann sie erteilen, und zwar nur ausdrücklich, also nicht stillschweigend. Der Prokurist darf alle gerichtlichen und außergerichtlichen Geschäfte vornehmen, die der Betrieb irgendeines Handelsgewerbes mit sich bringt. Eine Beschränkung des Umfangs ist Dritten gegenüber unwirksam; sie gilt nur im Innenverhältnis. Überschreitet der Prokurist eine solche interne Grenze, ist das Geschäft nach außen trotzdem wirksam, aber er macht sich gegenüber dem Inhaber schadensersatzpflichtig.
+
+Es gibt jedoch Geschäfte, die auch ein Prokurist nicht vornehmen darf. Grundstücke darf er nur veräußern oder belasten, wenn ihm diese Befugnis besonders erteilt worden ist; der Kauf eines Grundstücks ist ihm dagegen erlaubt. Ausgeschlossen sind außerdem Grundlagengeschäfte, die das Unternehmen selbst betreffen, etwa die Unterzeichnung des Jahresabschlusses, die Stellung eines Insolvenzantrags, die Erteilung einer weiteren Prokura und die Veräußerung des gesamten Unternehmens.
+
+Die Erteilung der Prokura ist zum Handelsregister anzumelden; die Eintragung wirkt aber nur deklaratorisch. Die Prokura ist also schon mit ihrer Erteilung wirksam. Sie kann jederzeit widerrufen werden und ist nicht übertragbar. Bei einer Gesamtprokura dürfen mehrere Prokuristen nur gemeinsam handeln.
+
+Die Handlungsvollmacht nach Paragraf 54 HGB ist schwächer als die Prokura. Sie erstreckt sich nur auf Geschäfte, die der Betrieb eines derartigen Handelsgewerbes gewöhnlich mit sich bringt. Sie kann auch stillschweigend erteilt werden, wird nicht in das Handelsregister eingetragen und umfasst ohne besondere Befugnis weder Grundstücksgeschäfte noch die Aufnahme von Darlehen, das Eingehen von Wechselverbindlichkeiten oder die Prozessführung.
+
+Teil 2: Rechtsformen von Unternehmen
+
+Überblick und Auswahlkriterien
+
+Die Wahl der Rechtsform ist eine der grundlegenden Entscheidungen bei der Gründung eines Unternehmens. Sie bestimmt vor allem, wer für die Schulden des Unternehmens haftet, wie viel Kapital bei der Gründung aufgebracht werden muss, wer das Unternehmen leitet und vertritt, wie der Gewinn verteilt und besteuert wird, welche Publizitätspflichten bestehen und wie aufwendig und teuer die Gründung ist.
+
+Grundsätzlich unterscheidet man Einzelunternehmen, Personengesellschaften und Kapitalgesellschaften. Bei Personengesellschaften stehen die Gesellschafter mit ihrer persönlichen Haftung und Mitarbeit im Vordergrund; mindestens ein Gesellschafter haftet unbeschränkt mit seinem Privatvermögen. Kapitalgesellschaften sind dagegen juristische Personen mit eigener Rechtspersönlichkeit; für ihre Schulden haftet grundsätzlich nur das Gesellschaftsvermögen. Im Gegenzug verlangt das Gesetz bei Kapitalgesellschaften ein Mindestkapital und strengere Regeln zur Kapitalerhaltung, Buchführung und Offenlegung.
+
+Das Einzelunternehmen
+
+Beim Einzelunternehmen betreibt eine einzelne natürliche Person das Unternehmen auf eigene Rechnung. Ein Mindestkapital ist nicht vorgeschrieben, und die Gründung erfordert keine besonderen Formalitäten außer der Gewerbeanmeldung. Ist das Unternehmen ein Handelsgewerbe, muss der Inhaber es als eingetragener Kaufmann in das Handelsregister eintragen lassen.
+
+Der Inhaber entscheidet allein, trägt den gesamten Gewinn und haftet für alle Verbindlichkeiten des Unternehmens unbeschränkt mit seinem gesamten Privatvermögen. Eine Trennung zwischen Geschäfts- und Privatvermögen gibt es haftungsrechtlich nicht. Nachteilig ist außerdem, dass die Kapitalbasis auf das Vermögen und die Kreditwürdigkeit einer einzigen Person beschränkt ist.
+
+Die Gesellschaft bürgerlichen Rechts
+
+Die Gesellschaft bürgerlichen Rechts (GbR) entsteht, wenn sich mindestens zwei Personen durch einen Gesellschaftsvertrag verpflichten, einen gemeinsamen Zweck zu fördern. Der Vertrag ist grundsätzlich formfrei und kann sogar stillschweigend geschlossen werden. Ein Mindestkapital ist nicht erforderlich. Typische Beispiele sind Fahrgemeinschaften, Bürogemeinschaften von Freiberuflern und kleine Gewerbebetriebe, die kein Handelsgewerbe sind. Betreibt eine GbR ein Handelsgewerbe, wird sie kraft Gesetzes zur OHG.
+
+Seit dem Inkrafttreten des Gesetzes zur Modernisierung des Personengesellschaftsrechts am 1. Januar 2024 ist eine GbR rechtsfähig, wenn sie nach dem gemeinsamen Willen der Gesellschafter am Rechtsverkehr teilnehmen soll. Sie kann dann selbst Verträge schließen, Eigentum erwerben, klagen und verklagt werden. Sie kann sich freiwillig in das neu geschaffene Gesellschaftsregister eintragen lassen und trägt dann den Zusatz „eGbR“. Will sie Grundstücke oder Rechte erwerben, die in einem Register eingetragen werden, etwa im Grundbuch, muss sie vorher in das Gesellschaftsregister eingetragen sein.
+
+Für die Verbindlichkeiten der GbR haften die Gesellschafter persönlich, unbeschränkt, unmittelbar und als Gesamtschuldner. Ein Gläubiger kann also jeden einzelnen Gesellschafter auf die gesamte Schuld in Anspruch nehmen, nicht nur auf einen Anteil; der in Anspruch genommene Gesellschafter kann dann von den anderen einen Ausgleich verlangen. Die Geschäftsführung steht den Gesellschaftern grundsätzlich gemeinschaftlich zu, sofern der Gesellschaftsvertrag nichts anderes regelt.
+
+Die offene Handelsgesellschaft
+
+Die offene Handelsgesellschaft (OHG) ist eine Personengesellschaft, deren Zweck auf den Betrieb eines Handelsgewerbes unter gemeinschaftlicher Firma gerichtet ist und bei der die Haftung keines Gesellschafters beschränkt ist. Sie benötigt mindestens zwei Gesellschafter und kein Mindestkapital. Gesellschafter können natürliche Personen, aber auch juristische Personen und andere Personengesellschaften sein.
+
+Jeder Gesellschafter haftet für die Verbindlichkeiten der OHG persönlich, unbeschränkt, unmittelbar und gesamtschuldnerisch mit seinem gesamten Privatvermögen. Eine Vereinbarung, die diese Haftung ausschließt, ist Dritten gegenüber unwirksam. Wer in eine bestehende OHG eintritt, haftet auch für die Verbindlichkeiten, die vor seinem Eintritt entstanden sind. Wer aus der OHG ausscheidet, haftet für die bis dahin begründeten Verbindlichkeiten noch fünf Jahre weiter, wenn sie in diesem Zeitraum fällig und gerichtlich geltend gemacht werden; man spricht von Nachhaftung.
+
+Zur Geschäftsführung ist grundsätzlich jeder Gesellschafter allein berechtigt und verpflichtet; widerspricht jedoch ein anderer geschäftsführender Gesellschafter einer Maßnahme, muss sie unterbleiben. Für Handlungen, die über den gewöhnlichen Betrieb hinausgehen, ist ein Beschluss aller Gesellschafter nötig. Nach außen ist jeder Gesellschafter allein zur Vertretung berechtigt, sofern der Gesellschaftsvertrag nichts anderes bestimmt und dies im Handelsregister eingetragen ist. Die Gesellschafter unterliegen einem Wettbewerbsverbot: Sie dürfen ohne Einwilligung der anderen im Handelszweig der Gesellschaft keine Geschäfte auf eigene Rechnung machen.
+
+Die Kommanditgesellschaft
+
+Die Kommanditgesellschaft (KG) unterscheidet sich von der OHG dadurch, dass bei mindestens einem Gesellschafter die Haftung auf einen bestimmten Betrag beschränkt ist. Sie hat also zwei Arten von Gesellschaftern: mindestens einen Komplementär, der wie ein OHG-Gesellschafter unbeschränkt haftet, und mindestens einen Kommanditisten, der nur bis zur Höhe seiner im Handelsregister eingetragenen Haftsumme haftet. Ein Mindestkapital ist auch für die KG nicht vorgeschrieben.
+
+Der Kommanditist haftet den Gläubigern bis zur Höhe seiner Einlage unmittelbar. Hat er seine Einlage vollständig geleistet, ist seine persönliche Haftung ausgeschlossen. Wird ihm die Einlage später zurückgezahlt, lebt die Haftung in diesem Umfang wieder auf. Eine wichtige Ausnahme gilt vor der Eintragung: Beginnt die KG ihre Geschäfte mit Zustimmung des Kommanditisten, bevor sie im Handelsregister eingetragen ist, haftet der Kommanditist für die bis zur Eintragung begründeten Verbindlichkeiten unbeschränkt wie ein Komplementär, es sei denn, der Gläubiger wusste von seiner Beteiligung als Kommanditist.
+
+Die Geschäftsführung und Vertretung liegt allein bei den Komplementären. Kommanditisten sind von der Geschäftsführung ausgeschlossen und haben keine Vertretungsmacht. Sie können Handlungen der Komplementäre, die über den gewöhnlichen Betrieb des Handelsgewerbes hinausgehen, aber widersprechen und haben ein Kontrollrecht: Sie dürfen eine Abschrift des Jahresabschlusses verlangen und ihn anhand der Bücher prüfen. Das Wettbewerbsverbot der OHG gilt für Kommanditisten nicht.
+
+Die Verteilung von Gewinn und Verlust regelt in der Praxis fast immer der Gesellschaftsvertrag, weil die gesetzlichen Regeln nur hilfsweise gelten und die unterschiedliche Rolle von Komplementär und Kommanditist kaum abbilden. Häufig erhält der Komplementär vorab eine Vergütung für seine Geschäftsführung und eine Prämie für sein unbeschränktes Haftungsrisiko. Am Verlust nimmt der Kommanditist nur bis zur Höhe seines Kapitalanteils und seiner noch ausstehenden Einlage teil.
+
+Die Gesellschaft mit beschränkter Haftung
+
+Die Gesellschaft mit beschränkter Haftung (GmbH) ist die in Deutschland am weitesten verbreitete Kapitalgesellschaft. Sie ist eine juristische Person und kann von einer oder mehreren Personen gegründet werden; eine Einpersonen-GmbH ist also zulässig. Für die Verbindlichkeiten der GmbH haftet den Gläubigern nur das Gesellschaftsvermögen. Die Gesellschafter riskieren grundsätzlich nur ihre Einlage.
+
+Das Stammkapital einer GmbH muss mindestens 25.000 Euro betragen. Es muss bei der Gründung aber nicht vollständig eingezahlt werden. Bevor die GmbH zum Handelsregister angemeldet wird, muss auf jeden Geschäftsanteil mindestens ein Viertel seines Nennbetrags eingezahlt sein, und insgesamt müssen mindestens 12.500 Euro, also die Hälfte des Mindeststammkapitals, eingezahlt sein. Sacheinlagen, etwa ein Fahrzeug oder eine Maschine, müssen dagegen vor der Anmeldung vollständig geleistet werden. Die ausstehenden Bareinlagen kann die Gesellschaft später einfordern; im Insolvenzfall fordert sie der Insolvenzverwalter ein.
+
+Der Gesellschaftsvertrag einer GmbH muss notariell beurkundet werden. Für einfache Gründungen mit höchstens drei Gesellschaftern und einem Geschäftsführer steht ein gesetzliches Musterprotokoll zur Verfügung, das die Kosten senkt. Seit August 2022 ist außerdem eine Online-Gründung per Videokommunikation mit einem Notar möglich. Auch die Übertragung eines Geschäftsanteils bedarf der notariellen Form.
+
+Eine GmbH entsteht als juristische Person erst mit der Eintragung in das Handelsregister; die Eintragung wirkt also konstitutiv. Vor der Eintragung besteht die GmbH als solche nicht. Wer in dieser Zeit im Namen der künftigen Gesellschaft handelt, haftet persönlich und gesamtschuldnerisch. Diese Handelndenhaftung soll Gläubiger schützen, solange noch nicht geprüft ist, ob das Stammkapital tatsächlich aufgebracht wurde.
+
+Die GmbH hat zwei notwendige Organe: den oder die Geschäftsführer und die Gesellschafterversammlung. Der Geschäftsführer leitet die Gesellschaft und vertritt sie nach außen; seine Vertretungsmacht kann im Außenverhältnis nicht beschränkt werden. Anders als der Vorstand einer Aktiengesellschaft ist er aber an Weisungen der Gesellschafterversammlung gebunden. Geschäftsführer muss eine natürliche, unbeschränkt geschäftsfähige Person sein; er muss nicht Gesellschafter sein. Ein Aufsichtsrat ist nur vorgeschrieben, wenn die GmbH in der Regel mehr als 500 Arbeitnehmer beschäftigt; sonst kann er freiwillig eingerichtet werden.
+
+Die beschränkte Haftung gilt nicht ausnahmslos. Gesellschafter haften persönlich, wenn sie ihre Einlage nicht vollständig geleistet haben, wenn ihnen das Stammkapital verbotenerweise zurückgezahlt wurde oder wenn sie der Gesellschaft gezielt Vermögen entziehen und so ihre Insolvenz herbeiführen. Banken verlangen bei kleinen GmbHs außerdem häufig persönliche Bürgschaften der Gesellschafter; in diesem Fall haftet der Gesellschafter aus der Bürgschaft, nicht aus seiner Stellung als Gesellschafter. Der Geschäftsführer haftet der Gesellschaft, wenn er seine Pflichten verletzt und dabei nicht die Sorgfalt eines ordentlichen Geschäftsmannes anwendet.
+
+Die Unternehmergesellschaft (haftungsbeschränkt)
+
+Die Unternehmergesellschaft (haftungsbeschränkt), kurz UG (haftungsbeschränkt), ist keine eigene Rechtsform, sondern eine Variante der GmbH mit geringerem Stammkapital. Sie kann bereits mit einem Stammkapital von einem Euro gegründet werden. Der Rechtsformzusatz muss vollständig „Unternehmergesellschaft (haftungsbeschränkt)“ oder „UG (haftungsbeschränkt)“ lauten; der Zusatz „haftungsbeschränkt“ darf nicht abgekürzt werden.
+
+Für die UG gelten mehrere Sonderregeln. Das Stammkapital muss vor der Anmeldung vollständig in bar eingezahlt sein; Sacheinlagen sind ausgeschlossen. Außerdem muss die UG jedes Jahr ein Viertel ihres Jahresüberschusses, vermindert um einen Verlustvortrag aus dem Vorjahr, in eine gesetzliche Rücklage einstellen. Diese Rücklage darf nur verwendet werden, um das Stammkapital aus Gesellschaftsmitteln zu erhöhen oder um Verluste auszugleichen. Die Pflicht zur Rücklage endet erst, wenn das Stammkapital auf mindestens 25.000 Euro erhöht wird. Dann gelten die allgemeinen GmbH-Regeln, und die Gesellschaft darf ihren Rechtsformzusatz in GmbH ändern, muss es aber nicht.
+
+Die geringe Kapitalausstattung ist zugleich der größte Nachteil der UG: Geschäftspartner und Banken bewerten die Kreditwürdigkeit oft zurückhaltend, und schon kleine Verluste können zu einer Überschuldung führen.
+
+Die Aktiengesellschaft
+
+Die Aktiengesellschaft (AG) ist eine Kapitalgesellschaft, deren Grundkapital in Aktien zerlegt ist. Das Grundkapital beträgt mindestens 50.000 Euro. Aktien können als Nennbetragsaktien mit einem Mindestnennbetrag von einem Euro oder als Stückaktien ohne Nennbetrag ausgegeben werden. Bei Bareinlagen muss vor der Anmeldung mindestens ein Viertel des geringsten Ausgabebetrags eingezahlt sein, und ein Aufgeld, also der Betrag über dem Nennbetrag, muss vollständig eingezahlt werden. Die Satzung muss notariell beurkundet werden. Die AG eignet sich besonders, um großes Kapital von vielen Anlegern einzusammeln, weil Aktien – vor allem an der Börse – leicht übertragbar sind.
+
+Die AG hat drei Organe. Der Vorstand leitet die Gesellschaft unter eigener Verantwortung und ist anders als der GmbH-Geschäftsführer nicht an Weisungen der Aktionäre oder des Aufsichtsrats gebunden. Der Aufsichtsrat bestellt den Vorstand, beruft ihn ab und überwacht seine Geschäftsführung; er besteht aus mindestens drei Mitgliedern. Niemand darf zugleich Mitglied des Vorstands und des Aufsichtsrats derselben Gesellschaft sein. Die Hauptversammlung der Aktionäre wählt die Anteilseignervertreter im Aufsichtsrat, beschließt über die Verwendung des Bilanzgewinns, über die Entlastung von Vorstand und Aufsichtsrat und über Satzungsänderungen. Satzungsänderungen erfordern in der Regel eine Mehrheit von drei Vierteln des bei der Beschlussfassung vertretenen Grundkapitals.
+
+Die GmbH & Co. KG und die Insolvenzantragspflicht
+
+Bei der GmbH & Co. KG ist eine GmbH der einzige Komplementär einer KG. Die GmbH haftet zwar als Komplementär unbeschränkt, aber eben nur mit ihrem eigenen Vermögen. Im Ergebnis haftet damit keine natürliche Person unbeschränkt. Die Rechtsform verbindet die Flexibilität einer Personengesellschaft mit der Haftungsbeschränkung einer Kapitalgesellschaft. Die Firma muss die Haftungsbeschränkung erkennen lassen.
+
+Bei Gesellschaften, in denen keine natürliche Person unbeschränkt haftet – also bei GmbH, UG, AG und GmbH & Co. KG –, verlangt das Gesetz, dass die Geschäftsleitung bei Zahlungsunfähigkeit oder Überschuldung rechtzeitig einen Insolvenzantrag stellt. Der Antrag muss ohne schuldhaftes Zögern gestellt werden, spätestens drei Wochen nach Eintritt der Zahlungsunfähigkeit und spätestens sechs Wochen nach Eintritt der Überschuldung. Wer diese Pflicht verletzt, macht sich wegen Insolvenzverschleppung strafbar und haftet persönlich für Zahlungen, die er nach Eintritt der Insolvenzreife noch geleistet hat. Zahlungsunfähig ist ein Schuldner, der nicht in der Lage ist, seine fälligen Zahlungspflichten zu erfüllen; eine bloß vorübergehende Zahlungsstockung genügt nicht.
+
+Teil 3: Buchführung, Bilanz und Gewinn- und Verlustrechnung
+
+Buchführungspflicht und Inventur
+
+Jeder Kaufmann ist verpflichtet, Bücher zu führen und in ihnen seine Handelsgeschäfte und die Lage seines Vermögens nach den Grundsätzen ordnungsmäßiger Buchführung ersichtlich zu machen. Die Buchführung muss so beschaffen sein, dass ein sachverständiger Dritter sich innerhalb angemessener Zeit einen Überblick über die Geschäftsvorfälle und die Lage des Unternehmens verschaffen kann. Oberster Grundsatz ist: keine Buchung ohne Beleg.
+
+Von dieser Pflicht sind Einzelkaufleute befreit, die an zwei aufeinanderfolgenden Abschlussstichtagen nicht mehr als 800.000 Euro Umsatzerlöse und nicht mehr als 80.000 Euro Jahresüberschuss erzielen. Beide Grenzen müssen gleichzeitig eingehalten sein. Die Befreiung gilt nur für Einzelkaufleute, nicht für Personenhandelsgesellschaften und erst recht nicht für Kapitalgesellschaften. Befreite Einzelkaufleute und Freiberufler ermitteln ihren Gewinn für die Steuer in der Regel mit der einfacheren Einnahmenüberschussrechnung, die nur Zahlungseingänge und Zahlungsausgänge gegenüberstellt.
+
+Bücher, Inventare und Jahresabschlüsse müssen zehn Jahre aufbewahrt werden, empfangene und abgesandte Handelsbriefe sechs Jahre. Die Frist beginnt mit dem Schluss des Kalenderjahres, in dem das Dokument entstanden ist.
+
+Zu Beginn des Handelsgewerbes und zum Ende jedes Geschäftsjahres muss der Kaufmann ein Inventar aufstellen, also ein ausführliches Verzeichnis aller Vermögensgegenstände und Schulden nach Art, Menge und Wert. Die Tätigkeit, die zu diesem Verzeichnis führt, heißt Inventur. Bei der Stichtagsinventur werden die Bestände am Abschlussstichtag oder in zeitlicher Nähe dazu körperlich gezählt, gemessen oder gewogen. Bei der permanenten Inventur wird der Bestand laufend in einer Lagerbuchhaltung fortgeschrieben und nur einmal im Jahr, zu einem beliebigen Zeitpunkt, körperlich überprüft. Bei der Stichprobeninventur wird der Bestand mit anerkannten mathematisch-statistischen Verfahren aus Stichproben hochgerechnet. Das Inventar endet mit der Berechnung des Reinvermögens: Vermögen minus Schulden ergibt das Eigenkapital.
+
+Aufbau der Bilanz
+
+Die Bilanz ist eine kurz gefasste Gegenüberstellung von Vermögen und Kapital zu einem Stichtag. Sie ist also eine Zeitpunktrechnung, während die Gewinn- und Verlustrechnung eine Zeitraumrechnung ist. Die linke Seite heißt Aktivseite und zeigt die Mittelverwendung, also wofür das Kapital eingesetzt ist. Die rechte Seite heißt Passivseite und zeigt die Mittelherkunft, also woher das Kapital stammt. Beide Seiten sind stets gleich groß; es gilt die Bilanzgleichung:
+
+Summe der Aktiva = Eigenkapital + Fremdkapital
+
+Auf der Aktivseite unterscheidet man das Anlagevermögen vom Umlaufvermögen. Zum Anlagevermögen gehören nur Gegenstände, die dazu bestimmt sind, dauernd dem Geschäftsbetrieb zu dienen. Es gliedert sich in immaterielle Vermögensgegenstände wie Lizenzen und Software, Sachanlagen wie Grundstücke, Gebäude, Maschinen und Fahrzeuge und Finanzanlagen wie langfristige Beteiligungen. Zum Umlaufvermögen gehören Gegenstände, die nur kurzfristig im Unternehmen bleiben, nämlich Vorräte, Forderungen, Wertpapiere des Umlaufvermögens und flüssige Mittel wie Kassenbestand und Bankguthaben. Entscheidend ist nicht die Art des Gegenstands, sondern seine Zweckbestimmung: Ein Auto ist beim Autohändler Umlaufvermögen, beim Handwerksbetrieb, der es als Firmenwagen nutzt, Anlagevermögen.
+
+Die Aktivseite ist nach steigender Liquidität geordnet, beginnend mit dem am schwersten zu Geld zu machenden Vermögen. Die Passivseite ist nach steigender Fälligkeit geordnet: zuerst das Eigenkapital, das dem Unternehmen unbefristet zur Verfügung steht, dann die Rückstellungen und schließlich die Verbindlichkeiten.
+
+Das Eigenkapital einer Kapitalgesellschaft besteht unter anderem aus dem gezeichneten Kapital, also dem Stamm- oder Grundkapital, den Kapitalrücklagen, den Gewinnrücklagen, dem Gewinn- oder Verlustvortrag und dem Jahresüberschuss oder Jahresfehlbetrag. Zum Fremdkapital gehören Rückstellungen und Verbindlichkeiten. Rückstellungen werden für Verpflichtungen gebildet, die dem Grunde nach bestehen, deren Höhe oder Fälligkeit aber noch ungewiss ist, etwa für Pensionszusagen, Steuernachzahlungen, Prozessrisiken oder Gewährleistungen. Sie sind kein Eigenkapital, auch wenn das umgangssprachlich manchmal angenommen wird.
+
+Bilanzveränderungen
+
+Jeder Geschäftsvorfall verändert die Bilanz, aber nie ihr Gleichgewicht. Es gibt genau vier Arten von Bilanzveränderungen. Beim Aktivtausch werden nur Posten der Aktivseite verändert, die Bilanzsumme bleibt gleich; ein Beispiel ist der Kauf einer Maschine gegen Banküberweisung. Beim Passivtausch werden nur Posten der Passivseite verändert; ein Beispiel ist die Umwandlung einer Lieferantenverbindlichkeit in ein Darlehen. Bei der Aktiv-Passiv-Mehrung nehmen beide Seiten um denselben Betrag zu, etwa beim Kauf von Waren auf Ziel. Bei der Aktiv-Passiv-Minderung nehmen beide Seiten ab, etwa wenn eine Verbindlichkeit per Banküberweisung beglichen wird.
+
+In der doppelten Buchführung wird jeder Geschäftsvorfall auf mindestens zwei Konten gebucht, einmal im Soll und einmal im Haben. Aktivkonten nehmen im Soll zu und im Haben ab, Passivkonten nehmen im Haben zu und im Soll ab. Aufwandskonten und Ertragskonten sind Unterkonten des Eigenkapitals: Aufwendungen werden im Soll gebucht und mindern das Eigenkapital, Erträge werden im Haben gebucht und erhöhen es.
+
+Grundsätze der Bewertung
+
+Das Handelsrecht ist vom Gläubigerschutz geprägt. Der Kaufmann soll sich nicht reicher rechnen, als er ist, damit kein Gewinn ausgeschüttet wird, der gar nicht erwirtschaftet wurde. Daraus folgt das Vorsichtsprinzip, das sich in mehreren Einzelregeln konkretisiert.
+
+Nach dem Anschaffungskostenprinzip dürfen Vermögensgegenstände höchstens mit ihren Anschaffungs- oder Herstellungskosten angesetzt werden. Das gilt auch dann, wenn ihr Marktwert inzwischen deutlich gestiegen ist. Ein Grundstück, das vor dreißig Jahren für 100.000 Euro gekauft wurde und heute 600.000 Euro wert ist, steht deshalb weiterhin mit höchstens 100.000 Euro in der Bilanz; der Unterschied bildet eine sogenannte stille Reserve. Die Anschaffungskosten umfassen den Kaufpreis zuzüglich der Anschaffungsnebenkosten wie Fracht, Montage und Notarkosten und abzüglich Anschaffungspreisminderungen wie Rabatt und Skonto. Eine abziehbare Vorsteuer gehört nicht zu den Anschaffungskosten.
+
+Nach dem Realisationsprinzip dürfen Gewinne erst ausgewiesen werden, wenn sie durch einen Umsatz verwirklicht sind, in der Regel mit der Lieferung oder Leistung. Nach dem Imparitätsprinzip werden Gewinne und Verluste ungleich behandelt: Verluste müssen schon dann berücksichtigt werden, wenn sie absehbar sind, auch wenn sie noch nicht eingetreten sind. Deshalb sind Rückstellungen für drohende Verluste aus schwebenden Geschäften zu bilden.
+
+Das Niederstwertprinzip regelt, wann ein Vermögensgegenstand unter seine fortgeführten Anschaffungskosten abgeschrieben werden muss. Für das Umlaufvermögen gilt das strenge Niederstwertprinzip: Liegt der Wert am Abschlussstichtag unter dem Buchwert, muss immer auf den niedrigeren Wert abgeschrieben werden, gleichgültig, ob die Wertminderung dauerhaft oder nur vorübergehend ist. Für das Anlagevermögen gilt das gemilderte Niederstwertprinzip: Eine außerplanmäßige Abschreibung ist nur bei einer voraussichtlich dauernden Wertminderung Pflicht. Bei einer nur vorübergehenden Wertminderung ist sie für Sachanlagen und immaterielle Vermögensgegenstände verboten und nur bei Finanzanlagen als Wahlrecht erlaubt. Fällt der Grund für eine außerplanmäßige Abschreibung später weg, muss wieder zugeschrieben werden, allerdings höchstens bis zu den fortgeführten Anschaffungskosten; eine Ausnahme bildet der entgeltlich erworbene Geschäfts- oder Firmenwert, für den eine Zuschreibung verboten ist.
+
+Für Verbindlichkeiten gilt spiegelbildlich das Höchstwertprinzip: Sie werden mit ihrem Erfüllungsbetrag angesetzt, und steigt dieser, etwa bei einer Fremdwährungsverbindlichkeit wegen eines Wechselkursanstiegs, muss der höhere Wert angesetzt werden.
+
+Selbst geschaffene immaterielle Vermögensgegenstände des Anlagevermögens, etwa eine selbst entwickelte Software, dürfen aktiviert werden, müssen es aber nicht. Aktivierbar sind dabei nur die Entwicklungskosten, nicht die Forschungskosten. Selbst geschaffene Marken, Drucktitel, Verlagsrechte und Kundenlisten dürfen überhaupt nicht aktiviert werden.
+
+Planmäßige Abschreibungen
+
+Abnutzbare Gegenstände des Anlagevermögens verlieren durch Nutzung, technischen Fortschritt und Zeitablauf an Wert. Ihre Anschaffungs- oder Herstellungskosten werden deshalb durch planmäßige Abschreibungen auf die Jahre der voraussichtlichen Nutzungsdauer verteilt. Abschreibungen sind Aufwand und mindern den Gewinn, sind aber nicht mit einer Auszahlung verbunden, denn die Auszahlung fand schon beim Kauf statt.
+
+Bei der linearen Abschreibung wird jedes Jahr derselbe Betrag abgeschrieben:
+
+Jährliche Abschreibung = (Anschaffungskosten − Restwert) : Nutzungsdauer
+
+Eine Maschine mit Anschaffungskosten von 60.000 Euro, einer Nutzungsdauer von sechs Jahren und ohne Restwert wird also jährlich mit 10.000 Euro abgeschrieben. Wird sie im Laufe des Jahres angeschafft, wird im ersten Jahr nur zeitanteilig für die Monate ab der Anschaffung abgeschrieben. Bei der degressiven Abschreibung wird ein fester Prozentsatz vom jeweiligen Restbuchwert abgeschrieben, sodass die Beträge von Jahr zu Jahr sinken; steuerlich ist sie nur in gesetzlich bestimmten Zeiträumen und bis zu bestimmten Höchstsätzen zulässig. Bei der leistungsabhängigen Abschreibung richtet sich der Betrag nach der tatsächlichen Nutzung, zum Beispiel nach gefahrenen Kilometern oder Maschinenstunden.
+
+Nicht planmäßig abgeschrieben werden Gegenstände, die sich nicht abnutzen, vor allem Grund und Boden und Finanzanlagen. Gebäude auf einem Grundstück werden dagegen planmäßig abgeschrieben; deshalb muss der Kaufpreis eines bebauten Grundstücks auf Grund und Boden und Gebäude aufgeteilt werden. Steuerlich dürfen geringwertige Wirtschaftsgüter mit Anschaffungskosten bis 800 Euro netto im Jahr der Anschaffung vollständig als Betriebsausgabe abgezogen werden.
+
+Die Gewinn- und Verlustrechnung
+
+Die Gewinn- und Verlustrechnung (GuV) stellt die Aufwendungen und Erträge eines Geschäftsjahres gegenüber. Übersteigen die Erträge die Aufwendungen, ergibt sich ein Jahresüberschuss, im umgekehrten Fall ein Jahresfehlbetrag. Der Jahresüberschuss der GuV stimmt mit der Veränderung des Eigenkapitals in der Bilanz überein, sofern keine Einlagen oder Entnahmen stattgefunden haben. Bilanz und GuV sind also über das Eigenkapital miteinander verknüpft.
+
+Kapitalgesellschaften müssen die GuV in Staffelform aufstellen und können zwischen zwei Verfahren wählen. Beim Gesamtkostenverfahren werden alle Aufwendungen der Periode nach Aufwandsarten gegliedert, also Materialaufwand, Personalaufwand und Abschreibungen. Da diese Aufwendungen auch für Erzeugnisse anfallen, die noch auf Lager liegen, werden Bestandserhöhungen an fertigen und unfertigen Erzeugnissen als Ertrag hinzugerechnet und Bestandsminderungen abgezogen. Beim Umsatzkostenverfahren werden den Umsatzerlösen nur die Herstellungskosten der tatsächlich verkauften Erzeugnisse gegenübergestellt, gegliedert nach Funktionsbereichen wie Herstellung, Vertrieb und Verwaltung. Beide Verfahren führen zum selben Jahresergebnis; sie unterscheiden sich nur in der Gliederung.
+
+Der Jahresabschluss eines Einzelkaufmanns und einer Personenhandelsgesellschaft besteht aus Bilanz und GuV. Kapitalgesellschaften müssen den Jahresabschluss zusätzlich um einen Anhang erweitern, der die Posten erläutert, und mittelgroße und große Kapitalgesellschaften müssen außerdem einen Lagebericht aufstellen. Die Größenklasse richtet sich nach Bilanzsumme, Umsatzerlösen und Zahl der Arbeitnehmer; maßgeblich ist, ob mindestens zwei dieser drei Merkmale an zwei aufeinanderfolgenden Abschlussstichtagen überschritten werden. Kleine Kapitalgesellschaften müssen ihren Jahresabschluss nicht von einem Abschlussprüfer prüfen lassen, mittelgroße und große dagegen schon.
+
+Teil 4: Betriebswirtschaftliche Kennzahlen
+
+Vier Begriffspaare des Rechnungswesens
+
+Im Rechnungswesen werden vier Begriffspaare unterschieden, die im Alltag oft verwechselt werden. Auszahlungen und Einzahlungen verändern den Bestand an Zahlungsmitteln, also Kasse und Bankguthaben. Ausgaben und Einnahmen verändern das Geldvermögen, das zusätzlich Forderungen und Verbindlichkeiten umfasst. Aufwendungen und Erträge verändern das Reinvermögen, also das Eigenkapital, und werden in der GuV erfasst. Kosten und Leistungen schließlich sind der betriebsbedingte, periodenrichtige und ordentliche Werteverzehr beziehungsweise Wertzuwachs; sie sind die Grundlage der Kostenrechnung.
+
+Die Begriffe fallen zeitlich oft auseinander. Kauft ein Unternehmen Rohstoffe auf Ziel, liegt eine Ausgabe, aber noch keine Auszahlung vor; die Auszahlung folgt erst, wenn die Rechnung bezahlt wird. Zum Aufwand werden die Rohstoffe erst, wenn sie verbraucht werden. Eine Maschine führt beim Kauf zu einer Auszahlung, wird aber erst über die Nutzungsdauer durch Abschreibungen zu Aufwand.
+
+Aufwand und Kosten sind ebenfalls nicht identisch. Neutraler Aufwand ist Aufwand, der keine Kosten darstellt. Er ist entweder betriebsfremd, etwa eine Spende, periodenfremd, etwa eine Steuernachzahlung für frühere Jahre, oder außerordentlich, etwa ein nicht versicherter Brandschaden. Umgekehrt gibt es kalkulatorische Kosten, denen kein oder ein anders hoher Aufwand gegenübersteht. Anderskosten werden in der Kostenrechnung mit einem anderen Wert angesetzt als in der Buchhaltung, etwa kalkulatorische Abschreibungen auf Basis der Wiederbeschaffungskosten. Zusatzkosten stehen überhaupt keinem Aufwand gegenüber. Das wichtigste Beispiel ist der kalkulatorische Unternehmerlohn: Er wird nur bei Einzelunternehmen und Personengesellschaften angesetzt, weil die mitarbeitenden Inhaber dort kein Gehalt beziehen, das als Aufwand gebucht würde. Bei einer GmbH ist das Geschäftsführergehalt dagegen bereits Personalaufwand, sodass kein kalkulatorischer Unternehmerlohn angesetzt wird. Weitere Zusatzkosten sind die kalkulatorische Miete für eigene, betrieblich genutzte Räume und die kalkulatorischen Zinsen auf das Eigenkapital.
+
+Kennzahlen der Kapitalstruktur
+
+Kennzahlen verdichten die Informationen aus Bilanz und GuV. Eine einzelne Kennzahl sagt allerdings wenig aus; aussagekräftig wird sie erst im Vergleich mit Vorjahren, mit anderen Unternehmen derselben Branche oder mit Sollwerten.
+
+Die Eigenkapitalquote gibt den Anteil des Eigenkapitals am Gesamtkapital an:
+
+Eigenkapitalquote = Eigenkapital : Gesamtkapital × 100
+
+Eine hohe Eigenkapitalquote zeigt, dass das Unternehmen Verluste länger auffangen kann, ohne überschuldet zu sein, und verbessert seine Kreditwürdigkeit. Welche Quote angemessen ist, hängt stark von der Branche ab: Anlagenintensive Industrieunternehmen brauchen in der Regel mehr Eigenkapital als Handelsunternehmen. Der Verschuldungsgrad setzt Fremdkapital und Eigenkapital ins Verhältnis:
+
+Verschuldungsgrad = Fremdkapital : Eigenkapital × 100
+
+Kennzahlen der Anlagendeckung
+
+Die Kennzahlen der Anlagendeckung prüfen, ob langfristig gebundenes Vermögen auch langfristig finanziert ist. Dahinter steht die goldene Finanzierungsregel der Fristenkongruenz: Kapital soll mindestens so lange im Unternehmen verfügbar sein, wie das damit finanzierte Vermögen gebunden ist. Eine Maschine, die zehn Jahre genutzt wird, sollte deshalb nicht mit einem Kredit finanziert werden, der in sechs Monaten zurückgezahlt werden muss.
+
+Anlagendeckungsgrad I = Eigenkapital : Anlagevermögen × 100
+
+Anlagendeckungsgrad II = (Eigenkapital + langfristiges Fremdkapital) : Anlagevermögen × 100
+
+Nach der goldenen Bilanzregel im weiteren Sinne soll der Anlagendeckungsgrad II mindestens 100 Prozent betragen, das Anlagevermögen also vollständig durch Eigenkapital und langfristiges Fremdkapital gedeckt sein. Liegt er darunter, ist ein Teil des Anlagevermögens kurzfristig finanziert, und das Unternehmen gerät in Schwierigkeiten, wenn kurzfristige Kredite nicht verlängert werden.
+
+Kennzahlen der Liquidität
+
+Liquiditätskennzahlen setzen kurzfristig verfügbare Mittel ins Verhältnis zu den kurzfristigen Verbindlichkeiten. Man unterscheidet drei Grade:
+
+Liquidität 1. Grades = flüssige Mittel : kurzfristige Verbindlichkeiten × 100
+
+Liquidität 2. Grades = (flüssige Mittel + kurzfristige Forderungen) : kurzfristige Verbindlichkeiten × 100
+
+Liquidität 3. Grades = Umlaufvermögen : kurzfristige Verbindlichkeiten × 100
+
+Als Faustregel soll die Liquidität 2. Grades mindestens 100 Prozent betragen; für die Liquidität 3. Grades werden häufig Werte zwischen 120 und 200 Prozent genannt, weil Vorräte erst verkauft werden müssen, bevor sie zu Geld werden. Eine Liquidität 1. Grades von 100 Prozent ist dagegen nicht erstrebenswert, denn hohe Bankguthaben werfen kaum Zinsen ab. Bilanzielle Liquiditätskennzahlen sind stichtagsbezogen und vergangenheitsorientiert; sie zeigen nicht, wann die einzelnen Zahlungen tatsächlich fällig werden. Für die Steuerung der Zahlungsfähigkeit ist deshalb ein Liquiditätsplan unverzichtbar.
+
+Kennzahlen der Rentabilität
+
+Rentabilitätskennzahlen setzen den Erfolg ins Verhältnis zum eingesetzten Kapital oder zum Umsatz:
+
+Eigenkapitalrentabilität = Gewinn : Eigenkapital × 100
+
+Gesamtkapitalrentabilität = (Gewinn + Fremdkapitalzinsen) : Gesamtkapital × 100
+
+Umsatzrentabilität = Gewinn : Umsatzerlöse × 100
+
+Bei der Gesamtkapitalrentabilität werden die Fremdkapitalzinsen zum Gewinn hinzugerechnet, weil das Gesamtkapital sowohl die Eigenkapitalgeber als auch die Fremdkapitalgeber entlohnt. Ohne diese Korrektur würde ein stark fremdfinanziertes Unternehmen schlechter dastehen, nur weil es seine Kapitalgeber über Zinsen statt über Gewinn bezahlt.
+
+Der Return on Investment (ROI) zerlegt die Rentabilität in zwei Faktoren:
+
+ROI = Umsatzrentabilität × Kapitalumschlag = (Gewinn : Umsatz) × (Umsatz : Gesamtkapital)
+
+Ein Unternehmen kann denselben ROI also mit hoher Umsatzrendite und langsamem Kapitalumschlag oder mit geringer Umsatzrendite und schnellem Kapitalumschlag erzielen. Ein Lebensmitteldiscounter arbeitet typischerweise mit geringer Umsatzrendite, setzt sein Kapital aber sehr häufig im Jahr um.
+
+Der Leverage-Effekt
+
+Der Leverage-Effekt beschreibt, wie zusätzliches Fremdkapital die Eigenkapitalrentabilität beeinflusst. Die Eigenkapitalrentabilität steigt durch zusätzliche Verschuldung nur dann, wenn die Gesamtkapitalrentabilität höher ist als der Fremdkapitalzins. Es gilt:
+
+Eigenkapitalrentabilität = Gesamtkapitalrentabilität + (Gesamtkapitalrentabilität − Fremdkapitalzins) × Fremdkapital : Eigenkapital
+
+Ein Beispiel: Ein Unternehmen mit 100.000 Euro Eigenkapital und ohne Fremdkapital erzielt eine Gesamtkapitalrentabilität von 10 Prozent, also einen Gewinn von 10.000 Euro; die Eigenkapitalrentabilität beträgt ebenfalls 10 Prozent. Nimmt es zusätzlich 100.000 Euro Kredit zu 5 Prozent auf und erzielt auf das Gesamtkapital von 200.000 Euro weiterhin 10 Prozent, also 20.000 Euro vor Zinsen, bleiben nach 5.000 Euro Zinsen 15.000 Euro Gewinn. Die Eigenkapitalrentabilität steigt auf 15 Prozent.
+
+Der Effekt wirkt aber auch in die Gegenrichtung. Sinkt die Gesamtkapitalrentabilität unter den Fremdkapitalzins, etwa in einer Rezession, verringert jede zusätzliche Verschuldung die Eigenkapitalrentabilität, und es kann schnell ein Verlust entstehen. Man spricht dann vom Leverage-Risiko. Eine hohe Verschuldung erhöht also die Chancen und die Risiken der Eigenkapitalgeber.
+
+Weitere Erfolgskennzahlen
+
+Das EBIT ist das Ergebnis vor Zinsen und Steuern; es zeigt den Erfolg der operativen Tätigkeit unabhängig von Finanzierung und Besteuerung. Das EBITDA ist das Ergebnis vor Zinsen, Steuern und Abschreibungen. Es wird oft verwendet, um Unternehmen mit unterschiedlicher Investitionstätigkeit zu vergleichen, blendet aber aus, dass Anlagen irgendwann ersetzt werden müssen.
+
+Der Cashflow zeigt den Zahlungsmittelüberschuss aus der laufenden Geschäftstätigkeit. Vereinfacht wird er indirekt berechnet, indem man zum Jahresüberschuss die Aufwendungen hinzurechnet, die nicht zu Auszahlungen geführt haben, vor allem die Abschreibungen und die Erhöhung langfristiger Rückstellungen. Der Cashflow zeigt, wie viel Geld das Unternehmen aus eigener Kraft für Investitionen, Schuldentilgung und Ausschüttungen erwirtschaftet hat. Ein Unternehmen kann einen Gewinn ausweisen und trotzdem zahlungsunfähig werden, wenn Kunden spät zahlen oder hohe Beträge in Vorräten gebunden sind.
+
+Teil 5: Kosten- und Leistungsrechnung
+
+Aufgaben und Aufbau
+
+Die Kosten- und Leistungsrechnung ist anders als die Finanzbuchhaltung nicht gesetzlich vorgeschrieben. Sie dient der internen Steuerung: Sie soll die Wirtschaftlichkeit kontrollieren, Grundlagen für Preisentscheidungen liefern und zeigen, welche Produkte und Bereiche zum Erfolg beitragen. Sie gliedert sich in drei Stufen. Die Kostenartenrechnung fragt, welche Kosten angefallen sind, etwa Material-, Personal- und Abschreibungskosten. Die Kostenstellenrechnung fragt, wo die Kosten angefallen sind, etwa in Einkauf, Fertigung, Verwaltung oder Vertrieb. Die Kostenträgerrechnung fragt, wofür die Kosten angefallen sind, also für welches Produkt oder welchen Auftrag.
+
+Einzelkosten und Gemeinkosten
+
+Einzelkosten lassen sich einem Kostenträger direkt und verursachungsgerecht zurechnen, etwa das Material, das in ein bestimmtes Produkt eingeht, oder die Fertigungslöhne, die für einen Auftrag aufgezeichnet werden. Gemeinkosten fallen für mehrere oder alle Kostenträger gemeinsam an und lassen sich nur über Schlüssel verteilen, etwa die Miete der Fabrikhalle, das Gehalt des Werksleiters oder die Stromkosten der Verwaltung.
+
+Die Verteilung der Gemeinkosten auf die Kostenstellen erfolgt im Betriebsabrechnungsbogen (BAB). In ihm werden die Gemeinkosten nach geeigneten Schlüsseln wie Fläche, Zahl der Mitarbeiter oder Maschinenstunden auf die Kostenstellen verteilt. Anschließend werden für jede Hauptkostenstelle Zuschlagssätze berechnet, die das Verhältnis der Gemeinkosten zu einer Bezugsgröße angeben, etwa der Materialgemeinkostenzuschlag als Prozentsatz der Materialeinzelkosten.
+
+Fixe und variable Kosten
+
+Für Entscheidungen wichtiger als die Unterscheidung von Einzel- und Gemeinkosten ist die Unterscheidung nach dem Verhalten bei Änderungen der Produktionsmenge. Fixe Kosten bleiben innerhalb einer bestimmten Kapazität unabhängig von der Menge gleich, etwa Miete, Versicherungen, Gehälter und zeitabhängige Abschreibungen. Variable Kosten verändern sich mit der Menge, etwa Material, Verpackung und Energie für die Maschinen. Die Gesamtkosten ergeben sich als:
+
+Gesamtkosten = Fixkosten + variable Stückkosten × Menge
+
+Mit steigender Menge verteilen sich die Fixkosten auf mehr Stück, sodass die fixen Kosten je Stück und damit die gesamten Stückkosten sinken. Diese Fixkostendegression ist einer der Gründe, warum große Produktionsmengen kostengünstiger sind. Fixkosten sind allerdings nur innerhalb einer Kapazitätsgrenze fix: Wird eine zweite Maschine oder eine zweite Schicht nötig, steigen sie sprunghaft. Man spricht dann von sprungfixen Kosten.
+
+Vollkostenrechnung und Zuschlagskalkulation
+
+Die Vollkostenrechnung verteilt alle Kosten, also auch die fixen Gemeinkosten, auf die Kostenträger. Ihr wichtigstes Verfahren in Industriebetrieben mit mehreren Produkten ist die Zuschlagskalkulation. Ein Beispiel zeigt das Schema:
+
+Materialeinzelkosten: 100,00 Euro
+Materialgemeinkosten (10 Prozent der Materialeinzelkosten): 10,00 Euro
+Materialkosten: 110,00 Euro
+Fertigungseinzelkosten (Fertigungslöhne): 50,00 Euro
+Fertigungsgemeinkosten (120 Prozent der Fertigungslöhne): 60,00 Euro
+Fertigungskosten: 110,00 Euro
+Herstellkosten: 220,00 Euro
+Verwaltungsgemeinkosten (10 Prozent der Herstellkosten): 22,00 Euro
+Vertriebsgemeinkosten (5 Prozent der Herstellkosten): 11,00 Euro
+Selbstkosten: 253,00 Euro
+
+Die Herstellkosten sind die Summe aus Materialkosten und Fertigungskosten. Verwaltungs- und Vertriebsgemeinkosten werden üblicherweise als Prozentsatz der Herstellkosten zugeschlagen. Zu den Selbstkosten wird ein Gewinnzuschlag gerechnet, im Beispiel bei 10 Prozent also 25,30 Euro, sodass sich ein Barverkaufspreis von 278,30 Euro ergibt. Für Unternehmen mit nur einem einheitlichen Produkt, etwa ein Wasserwerk, genügt die einfache Divisionskalkulation, bei der die Gesamtkosten durch die Produktionsmenge geteilt werden.
+
+Die Vollkostenrechnung hat eine wichtige Schwäche: Sie behandelt fixe Kosten so, als seien sie proportional zur Menge. Wer auf ihrer Grundlage kurzfristig entscheidet, kann Fehler machen. Lehnt ein Unternehmen einen Auftrag ab, weil der Preis unter den Selbstkosten liegt, fallen die Fixkosten trotzdem an – sie verteilen sich dann nur auf weniger Stück.
+
+Teilkostenrechnung und Deckungsbeitrag
+
+Die Teilkostenrechnung rechnet den Produkten nur die variablen Kosten zu und behandelt die Fixkosten als Block. Ihre zentrale Größe ist der Deckungsbeitrag:
+
+Stückdeckungsbeitrag = Verkaufspreis − variable Stückkosten
+
+Der Deckungsbeitrag gibt an, wie viel jedes verkaufte Stück zur Deckung der Fixkosten und, wenn diese gedeckt sind, zum Gewinn beiträgt. Ein Gewinn entsteht erst, wenn die Summe der Deckungsbeiträge die Fixkosten übersteigt.
+
+Die Gewinnschwelle oder der Break-even-Point ist die Menge, bei der die Erlöse genau die Gesamtkosten decken und der Gewinn null ist:
+
+Break-even-Menge = Fixkosten : Stückdeckungsbeitrag
+
+Ein Beispiel: Ein Unternehmen verkauft ein Produkt zu 50 Euro, die variablen Stückkosten betragen 30 Euro, die Fixkosten 100.000 Euro im Jahr. Der Stückdeckungsbeitrag beträgt 20 Euro, die Gewinnschwelle liegt bei 100.000 : 20 = 5.000 Stück. Jedes weitere verkaufte Stück erhöht den Gewinn um 20 Euro.
+
+Preisuntergrenzen und Zusatzaufträge
+
+Die kurzfristige Preisuntergrenze entspricht den variablen Stückkosten. Solange ein Preis über ihnen liegt, erwirtschaftet jedes Stück einen positiven Deckungsbeitrag und verringert den Verlust oder erhöht den Gewinn. Die langfristige Preisuntergrenze entspricht dagegen den gesamten Stückkosten einschließlich der anteiligen Fixkosten, denn auf Dauer muss ein Unternehmen alle Kosten decken.
+
+Ein Zusatzauftrag zu einem Preis unter den Selbstkosten lohnt sich kurzfristig, wenn er einen positiven Deckungsbeitrag bringt. Das gilt aber nur, wenn freie Kapazitäten vorhanden sind, wenn keine zusätzlichen Fixkosten entstehen und wenn der niedrige Preis keine Rückwirkungen auf die Preise für die Stammkunden hat. Im Beispiel oben könnte das Unternehmen bei freier Kapazität 1.000 zusätzliche Stück zu 35 Euro liefern und damit seinen Gewinn um 5.000 Euro steigern, obwohl die Selbstkosten bei einer Menge von 5.000 Stück 50 Euro betragen.
+
+Ist die Kapazität dagegen knapp, kommt es auf den Deckungsbeitrag je Einheit des Engpasses an, den relativen Deckungsbeitrag. Ist zum Beispiel die Maschinenzeit der Engpass, werden die Produkte in der Reihenfolge des Deckungsbeitrags je Maschinenminute gefertigt, nicht in der Reihenfolge des Stückdeckungsbeitrags. Ein Produkt mit hohem Stückdeckungsbeitrag kann also nachrangig sein, wenn es den Engpass besonders lange beansprucht.
+
+Auch bei der Frage, ob ein Teil selbst hergestellt oder fremdbezogen werden soll, vergleicht man kurzfristig die variablen Kosten der Eigenfertigung mit dem Einkaufspreis. Fixkosten, die bei beiden Varianten unverändert anfallen, spielen für die Entscheidung keine Rolle.
+
+Teil 6: Investitionsrechnung
+
+Statische und dynamische Verfahren
+
+Eine Investition ist die langfristige Bindung von Kapital in Vermögen, von dem man sich künftige Rückflüsse erhofft, etwa der Kauf einer Maschine, der Bau einer Halle oder die Entwicklung eines neuen Produkts. Die Investitionsrechnung prüft, ob sich eine solche Investition lohnt und welche von mehreren Alternativen vorzuziehen ist.
+
+Die statischen Verfahren arbeiten mit Durchschnittswerten einer repräsentativen Periode und berücksichtigen nicht, wann die Zahlungen anfallen. Sie sind einfach, vernachlässigen aber, dass ein Euro heute mehr wert ist als ein Euro in fünf Jahren, weil er in der Zwischenzeit verzinslich angelegt werden könnte. Die dynamischen Verfahren berücksichtigen diesen zeitlichen Unterschied, indem sie alle Zahlungen auf einen gemeinsamen Zeitpunkt ab- oder aufzinsen.
+
+Die statischen Verfahren
+
+Bei der Kostenvergleichsrechnung werden die durchschnittlichen Kosten je Periode mehrerer Alternativen verglichen; gewählt wird die kostengünstigste. Das Verfahren ist nur dann sinnvoll, wenn die Alternativen dieselben Erlöse erzielen, denn Unterschiede in den Erlösen bleiben unberücksichtigt. Die Gewinnvergleichsrechnung bezieht deshalb die Erlöse ein und wählt die Alternative mit dem höchsten durchschnittlichen Gewinn.
+
+Die Rentabilitätsvergleichsrechnung setzt den durchschnittlichen Gewinn ins Verhältnis zum durchschnittlich gebundenen Kapital. Bei einer Investition, die gleichmäßig abgeschrieben wird, beträgt das durchschnittlich gebundene Kapital die Summe aus Anschaffungskosten und Restwert, geteilt durch zwei. Eine Maschine für 80.000 Euro ohne Restwert bindet also im Durchschnitt 40.000 Euro. Erwirtschaftet sie einen durchschnittlichen Gewinn von 6.000 Euro, beträgt ihre Rentabilität 15 Prozent.
+
+Die Amortisationsrechnung ermittelt, nach wie vielen Jahren das eingesetzte Kapital durch die Rückflüsse wieder hereingeholt ist:
+
+Amortisationsdauer = Kapitaleinsatz : durchschnittlicher jährlicher Rückfluss
+
+Der Rückfluss ist dabei nicht der Gewinn allein, sondern der Gewinn zuzüglich der Abschreibungen, weil Abschreibungen den Gewinn mindern, ohne zu Auszahlungen zu führen. Eine Investition gilt als vorteilhaft, wenn ihre Amortisationsdauer kürzer ist als eine vom Unternehmen festgelegte Höchstdauer. Die Amortisationsrechnung ist vor allem ein Maß für das Risiko, denn sie zeigt, wie lange das Kapital gefährdet ist. Über die Rentabilität sagt sie nichts aus, weil sie alle Rückflüsse nach dem Amortisationszeitpunkt außer Acht lässt.
+
+Abzinsen und Aufzinsen
+
+Grundlage der dynamischen Verfahren ist die Zinseszinsrechnung. Ein heutiger Betrag K0 wächst bei einem Zinssatz i in n Jahren auf:
+
+Kn = K0 × (1 + i)^n
+
+Umgekehrt ergibt sich der heutige Wert, der Barwert, eines Betrags, der erst in n Jahren gezahlt wird, durch Abzinsen:
+
+K0 = Kn : (1 + i)^n
+
+Ein Betrag von 10.000 Euro, der in zwei Jahren gezahlt wird, ist bei einem Zinssatz von 5 Prozent heute 10.000 : 1,1025 = 9.070,29 Euro wert. Der Zinssatz, mit dem abgezinst wird, heißt Kalkulationszinssatz. Er entspricht der Mindestverzinsung, die der Investor verlangt, etwa der Rendite einer alternativen Geldanlage oder dem Zinssatz für einen Kredit.
+
+Die Kapitalwertmethode
+
+Der Kapitalwert einer Investition ist die Summe aller auf den Anfangszeitpunkt abgezinsten Ein- und Auszahlungen:
+
+C0 = −I0 + Summe über t von 1 bis n der (Et − At) : (1 + i)^t
+
+Dabei ist I0 die Anschaffungsauszahlung, Et sind die Einzahlungen und At die Auszahlungen im Jahr t, und i ist der Kalkulationszinssatz. Eine Investition ist vorteilhaft, wenn ihr Kapitalwert größer als null ist. Ein positiver Kapitalwert bedeutet, dass die Investition das eingesetzte Kapital zurückgewinnt, es zum Kalkulationszinssatz verzinst und darüber hinaus einen Überschuss in Höhe des Kapitalwerts erwirtschaftet. Ein Kapitalwert von genau null bedeutet nicht, dass die Investition keinen Ertrag bringt, sondern dass sie sich genau zum Kalkulationszinssatz verzinst. Von mehreren Alternativen ist diejenige mit dem höchsten Kapitalwert vorzuziehen.
+
+Ein Beispiel zeigt den Unterschied zu den statischen Verfahren. Eine Maschine kostet 100.000 Euro und bringt vier Jahre lang einen jährlichen Rückfluss von 30.000 Euro; der Kalkulationszinssatz beträgt 8 Prozent. Die Summe der Rückflüsse beträgt 120.000 Euro und übersteigt die Anschaffungsauszahlung deutlich. Die statische Amortisationsdauer beträgt 3,33 Jahre und liegt damit innerhalb der Nutzungsdauer. Bei gleichen jährlichen Rückflüssen kann man den Barwert mit dem Rentenbarwertfaktor berechnen, der für vier Jahre und 8 Prozent 3,3121 beträgt. Der Barwert der Rückflüsse beträgt also 30.000 × 3,3121 = 99.363 Euro, und der Kapitalwert beträgt −637 Euro. Die Investition ist nach der Kapitalwertmethode knapp nicht vorteilhaft, obwohl sie statisch betrachtet einen Überschuss von 20.000 Euro erzielt.
+
+Interner Zinsfuß und Annuitätenmethode
+
+Der interne Zinsfuß ist der Zinssatz, bei dem der Kapitalwert einer Investition genau null beträgt. Er gibt die effektive Verzinsung des gebundenen Kapitals an. Eine Investition ist vorteilhaft, wenn ihr interner Zinsfuß über dem Kalkulationszinssatz liegt. Im Beispiel liegt der interne Zinsfuß bei etwa 7,7 Prozent und damit knapp unter dem Kalkulationszinssatz von 8 Prozent – das Ergebnis stimmt also mit dem negativen Kapitalwert überein. Der interne Zinsfuß lässt sich in der Regel nicht direkt berechnen, sondern wird durch Probieren oder mit einer Näherungsformel bestimmt. Bei Investitionen, deren Zahlungsreihe mehrfach das Vorzeichen wechselt, kann es mehrere interne Zinsfüße oder gar keinen geben; dann ist die Kapitalwertmethode vorzuziehen.
+
+Die Annuitätenmethode rechnet den Kapitalwert in gleich hohe jährliche Beträge um, indem sie ihn mit dem Annuitätenfaktor multipliziert. Die Annuität gibt an, welcher gleichbleibende Überschuss jährlich über die Nutzungsdauer entnommen werden könnte. Eine Investition ist vorteilhaft, wenn ihre Annuität positiv ist. Kapitalwertmethode und Annuitätenmethode kommen bei einer einzelnen Investition immer zum gleichen Urteil über die Vorteilhaftigkeit; die Annuität ist nur leichter mit jährlichen Größen wie Gewinnen oder Kosten zu vergleichen.
+
+Teil 7: Kaufvertrag und Gewährleistung
+
+Zustandekommen des Kaufvertrags
+
+Ein Vertrag kommt durch zwei übereinstimmende Willenserklärungen zustande, das Angebot und die Annahme. Wer einem anderen die Schließung eines Vertrags anbietet, ist an das Angebot gebunden, es sei denn, er hat die Gebundenheit ausgeschlossen, etwa durch den Zusatz „freibleibend“ oder „ohne Obligo“. Die Auslage von Waren im Schaufenster, ein Katalog und die Darstellung in einem Onlineshop sind in der Regel noch keine Angebote, sondern nur Aufforderungen an die Kunden, selbst ein Angebot abzugeben. Deshalb muss ein Händler einen falsch ausgezeichneten Artikel nicht zum angegebenen Preis verkaufen.
+
+Ein Angebot unter Anwesenden, auch am Telefon, kann nur sofort angenommen werden. Ein Angebot unter Abwesenden kann nur bis zu dem Zeitpunkt angenommen werden, in dem der Anbietende den Eingang der Antwort unter regelmäßigen Umständen erwarten darf. Eine verspätete Annahme gilt als neues Angebot. Ebenso gilt eine Annahme unter Erweiterungen, Einschränkungen oder sonstigen Änderungen als Ablehnung, verbunden mit einem neuen Angebot.
+
+Schweigen ist im Rechtsverkehr grundsätzlich keine Willenserklärung und damit auch keine Annahme. Wer einem Verbraucher unbestellt Waren zusendet, erwirbt dadurch keinen Anspruch gegen ihn; der Verbraucher muss die Ware weder bezahlen noch zurücksenden. Eine wichtige Ausnahme vom Grundsatz gilt unter Kaufleuten beim kaufmännischen Bestätigungsschreiben: Bestätigt ein Kaufmann schriftlich den Inhalt eines zuvor mündlich geführten Vertragsgesprächs, und widerspricht der Empfänger nicht unverzüglich, gilt der Vertrag mit dem bestätigten Inhalt als geschlossen.
+
+Der Kaufvertrag ist grundsätzlich formfrei und kann mündlich, schriftlich, elektronisch oder durch schlüssiges Verhalten geschlossen werden, etwa durch das Auflegen der Ware auf das Kassenband. Eine wichtige Ausnahme ist der Kauf eines Grundstücks: Er bedarf der notariellen Beurkundung. Ein ohne diese Form geschlossener Grundstückskaufvertrag ist nichtig, wird aber wirksam, wenn die Auflassung und die Eintragung in das Grundbuch erfolgen.
+
+Geschäftsfähigkeit
+
+Wirksame Willenserklärungen kann nur abgeben, wer geschäftsfähig ist. Kinder unter sieben Jahren sind geschäftsunfähig; ihre Willenserklärungen sind nichtig. Minderjährige zwischen sieben und siebzehn Jahren sind beschränkt geschäftsfähig. Sie brauchen für Willenserklärungen, durch die sie nicht lediglich einen rechtlichen Vorteil erlangen, die Einwilligung ihrer gesetzlichen Vertreter, in der Regel der Eltern. Ein ohne Einwilligung geschlossener Vertrag ist schwebend unwirksam: Genehmigen die Eltern ihn nachträglich, wird er von Anfang an wirksam; verweigern sie die Genehmigung, ist er endgültig unwirksam. Ein Kaufvertrag bringt dem Minderjährigen nie lediglich einen rechtlichen Vorteil, weil er zur Zahlung des Kaufpreises verpflichtet.
+
+Nach dem sogenannten Taschengeldparagrafen ist ein Vertrag, den ein Minderjähriger ohne Zustimmung schließt, von Anfang an wirksam, wenn er die vertragsmäßige Leistung mit Mitteln bewirkt, die ihm zu diesem Zweck oder zur freien Verfügung überlassen worden sind. Entscheidend ist, dass der Minderjährige vollständig bezahlt. Ein Ratenkauf ist deshalb nicht über den Taschengeldparagrafen gedeckt, auch wenn die erste Rate aus dem Taschengeld stammt.
+
+Anfechtung
+
+Eine wirksame Willenserklärung kann unter bestimmten Voraussetzungen angefochten werden; sie ist dann von Anfang an nichtig. Anfechtungsgründe sind vor allem der Inhaltsirrtum, etwa wenn sich jemand über die Bedeutung seiner Erklärung irrt, der Erklärungsirrtum, etwa ein Verschreiben oder Vertippen, der Irrtum über eine verkehrswesentliche Eigenschaft einer Person oder Sache sowie die arglistige Täuschung und die widerrechtliche Drohung. Eine Anfechtung wegen Irrtums muss unverzüglich erfolgen, nachdem der Anfechtende den Irrtum erkannt hat, und verpflichtet ihn, dem anderen den Vertrauensschaden zu ersetzen. Eine Anfechtung wegen arglistiger Täuschung oder Drohung ist dagegen innerhalb eines Jahres möglich. Kein Anfechtungsgrund ist der bloße Motivirrtum, etwa wenn jemand ein Geschenk kauft und der Beschenkte es schon besitzt, und auch ein interner Kalkulationsirrtum berechtigt grundsätzlich nicht zur Anfechtung.
+
+Pflichten der Vertragsparteien und Eigentumsübertragung
+
+Durch den Kaufvertrag wird der Verkäufer verpflichtet, dem Käufer die Sache zu übergeben und ihm das Eigentum daran zu verschaffen, und zwar frei von Sach- und Rechtsmängeln. Der Käufer ist verpflichtet, den vereinbarten Kaufpreis zu zahlen und die gekaufte Sache abzunehmen.
+
+Der Kaufvertrag selbst überträgt aber noch kein Eigentum. Das deutsche Recht trennt zwischen dem Verpflichtungsgeschäft, dem Kaufvertrag, und dem Verfügungsgeschäft, das die Rechtslage an der Sache unmittelbar ändert. Man spricht vom Trennungsprinzip. Das Eigentum an einer beweglichen Sache geht erst durch Einigung über den Eigentumsübergang und Übergabe der Sache über. Nach dem Abstraktionsprinzip ist die Wirksamkeit der Übereignung außerdem grundsätzlich unabhängig von der Wirksamkeit des Kaufvertrags. Ist der Kaufvertrag nichtig, bleibt der Käufer trotzdem Eigentümer, muss die Sache aber nach den Regeln über die ungerechtfertigte Bereicherung zurückgeben.
+
+Beim Eigentumsvorbehalt übereignet der Verkäufer die Sache nur unter der aufschiebenden Bedingung der vollständigen Kaufpreiszahlung. Der Käufer erhält den Besitz, wird aber erst mit der letzten Zahlung Eigentümer. Zahlt er nicht, kann der Verkäufer die Sache nur herausverlangen, wenn er vom Vertrag zurückgetreten ist.
+
+Wer eine Sache von einem Nichtberechtigten erwirbt, kann dennoch Eigentümer werden, wenn er gutgläubig ist, also weder weiß noch grob fahrlässig nicht weiß, dass die Sache dem Veräußerer nicht gehört. Ein gutgläubiger Erwerb ist jedoch ausgeschlossen, wenn die Sache dem Eigentümer gestohlen worden, verloren gegangen oder sonst abhandengekommen ist. Diese Ausnahme gilt wiederum nicht für Geld und für Sachen, die öffentlich versteigert werden.
+
+Der Sachmangel
+
+Eine Sache ist frei von Sachmängeln, wenn sie bei Gefahrübergang den subjektiven Anforderungen, den objektiven Anforderungen und den Montageanforderungen entspricht. Die subjektiven Anforderungen ergeben sich aus dem Vertrag, vor allem aus der vereinbarten Beschaffenheit und der vertraglich vorausgesetzten Verwendung. Die objektiven Anforderungen verlangen, dass sich die Sache für die gewöhnliche Verwendung eignet und eine Beschaffenheit aufweist, die bei Sachen derselben Art üblich ist und die der Käufer erwarten kann; dazu gehören auch öffentliche Äußerungen des Herstellers, etwa in der Werbung. Ein Sachmangel liegt auch vor, wenn der Verkäufer eine andere Sache als die geschuldete oder eine zu geringe Menge liefert, und wenn eine vereinbarte Montage unsachgemäß durchgeführt wurde.
+
+Maßgeblich ist der Zeitpunkt des Gefahrübergangs. Er liegt in der Regel bei der Übergabe der Sache an den Käufer. Beim Versendungskauf, bei dem der Verkäufer die Sache auf Verlangen des Käufers an einen anderen Ort als den Erfüllungsort versendet, geht die Gefahr schon mit der Übergabe an das Transportunternehmen über. Diese Regel gilt jedoch nicht beim Verbrauchsgüterkauf, also wenn ein Verbraucher eine Ware von einem Unternehmer kauft: Hier trägt der Unternehmer die Transportgefahr, bis die Ware beim Verbraucher ankommt, es sei denn, der Verbraucher hat das Transportunternehmen selbst beauftragt.
+
+Die Rechte des Käufers bei Mängeln
+
+Ist die Sache mangelhaft, hat der Käufer ein abgestuftes System von Rechten. An erster Stelle steht die Nacherfüllung. Der Käufer kann nach seiner Wahl die Beseitigung des Mangels oder die Lieferung einer mangelfreien Sache verlangen. Der Verkäufer kann die gewählte Art der Nacherfüllung nur verweigern, wenn sie mit unverhältnismäßigen Kosten verbunden ist. Die zur Nacherfüllung erforderlichen Aufwendungen, insbesondere Transport-, Wege-, Arbeits- und Materialkosten, trägt der Verkäufer.
+
+Erst wenn die Nacherfüllung gescheitert ist, kann der Käufer vom Vertrag zurücktreten oder den Kaufpreis mindern. Dafür muss er dem Verkäufer grundsätzlich zuvor eine angemessene Frist zur Nacherfüllung gesetzt haben, die erfolglos abgelaufen ist. Die Fristsetzung ist entbehrlich, wenn der Verkäufer die Nacherfüllung ernsthaft und endgültig verweigert, wenn sie fehlgeschlagen ist oder wenn sie dem Käufer unzumutbar ist. Eine Nachbesserung gilt nach dem zweiten erfolglosen Versuch als fehlgeschlagen, sofern sich aus der Art der Sache oder des Mangels nichts anderes ergibt. Beim Verbrauchsgüterkauf genügt es, dass der Verbraucher den Mangel mitteilt; eine ausdrückliche Fristsetzung ist dann nicht erforderlich, und nach Ablauf einer angemessenen Frist kann er zurücktreten oder mindern.
+
+Der Rücktritt ist ausgeschlossen, wenn der Mangel unerheblich ist. Die Minderung ist dagegen auch bei einem unerheblichen Mangel möglich. Bei der Minderung wird der Kaufpreis in dem Verhältnis herabgesetzt, in dem der Wert der mangelfreien Sache zum Wert der mangelhaften Sache gestanden hätte. Rücktritt und Minderung setzen kein Verschulden des Verkäufers voraus.
+
+Neben oder statt Rücktritt und Minderung kann der Käufer Schadensersatz verlangen. Anders als Rücktritt und Minderung setzt der Schadensersatz voraus, dass der Verkäufer die Pflichtverletzung zu vertreten hat. Das Verschulden wird allerdings vermutet: Der Verkäufer muss beweisen, dass ihn kein Verschulden trifft.
+
+Die Rechte des Käufers sind ausgeschlossen, wenn er den Mangel bei Vertragsschluss kennt. Ist ihm der Mangel infolge grober Fahrlässigkeit unbekannt geblieben, kann er Rechte nur geltend machen, wenn der Verkäufer den Mangel arglistig verschwiegen oder eine Garantie für die Beschaffenheit übernommen hat. Ein vertraglicher Ausschluss der Mängelrechte ist zwischen Privatleuten und zwischen Unternehmern grundsätzlich zulässig, außer wenn der Verkäufer den Mangel arglistig verschwiegen oder eine Garantie übernommen hat. Beim Verbrauchsgüterkauf kann der Unternehmer die Mängelrechte des Verbrauchers dagegen weder ausschließen noch beschränken.
+
+Verjährung und Beweislast
+
+Die Mängelansprüche verjähren bei beweglichen Sachen in zwei Jahren ab der Ablieferung der Sache. Bei einem Bauwerk und bei Sachen, die entsprechend ihrer üblichen Verwendung für ein Bauwerk verwendet worden sind und dessen Mangelhaftigkeit verursacht haben, beträgt die Frist fünf Jahre. Hat der Verkäufer den Mangel arglistig verschwiegen, gilt die regelmäßige Verjährungsfrist von drei Jahren, die erst mit dem Schluss des Jahres beginnt, in dem der Käufer von dem Mangel Kenntnis erlangt hat. Beim Verbrauchsgüterkauf gebrauchter Sachen kann die Verjährung auf ein Jahr verkürzt werden, wenn der Verbraucher vor Vertragsschluss eigens davon in Kenntnis gesetzt und die Verkürzung ausdrücklich und gesondert vereinbart wurde. Bei neuen Sachen ist eine Verkürzung gegenüber einem Verbraucher nicht möglich.
+
+Grundsätzlich muss der Käufer beweisen, dass der Mangel schon bei Gefahrübergang vorhanden war. Beim Verbrauchsgüterkauf gilt jedoch eine Beweislastumkehr: Zeigt sich innerhalb eines Jahres seit Gefahrübergang ein Mangel, wird vermutet, dass die Sache bereits bei Gefahrübergang mangelhaft war. Bei lebenden Tieren beträgt dieser Zeitraum sechs Monate. Die Vermutung gilt nicht, wenn sie mit der Art der Sache oder des Mangels unvereinbar ist. Nach Ablauf der Frist muss der Verbraucher selbst beweisen, dass der Mangel schon bei der Übergabe bestand, obwohl seine Ansprüche noch nicht verjährt sind.
+
+Gewährleistung, Garantie und Widerrufsrecht
+
+Die gesetzliche Gewährleistung, also die Mängelhaftung, trifft immer den Verkäufer, nicht den Hersteller. Eine Garantie ist dagegen eine freiwillige zusätzliche Zusage des Herstellers oder des Verkäufers, deren Inhalt und Dauer der Garantiegeber selbst bestimmt. Eine Garantie tritt neben die gesetzlichen Rechte und schränkt sie nicht ein. Der Käufer kann also wählen, ob er seine Ansprüche gegen den Verkäufer oder aus der Garantie geltend macht.
+
+Vom Gewährleistungsrecht zu unterscheiden ist das Widerrufsrecht. Es steht einem Verbraucher bei Fernabsatzverträgen, etwa im Onlinehandel, und bei Verträgen zu, die außerhalb von Geschäftsräumen geschlossen werden. Die Widerrufsfrist beträgt vierzehn Tage und beginnt bei einem Warenkauf in der Regel mit dem Erhalt der Ware, aber nicht, bevor der Verbraucher ordnungsgemäß über sein Widerrufsrecht belehrt wurde. Fehlt die Belehrung, erlischt das Widerrufsrecht spätestens zwölf Monate und vierzehn Tage nach dem Erhalt der Ware. Der Widerruf setzt keinen Mangel voraus und muss nicht begründet werden. Beim Kauf im Ladengeschäft besteht kein gesetzliches Widerrufsrecht; ein Umtausch ist dort nur eine freiwillige Kulanzleistung des Händlers. Ausgeschlossen ist das Widerrufsrecht unter anderem bei Waren, die nach Kundenwünschen angefertigt wurden, bei schnell verderblichen Waren und bei versiegelten Hygieneartikeln, wenn die Versiegelung nach der Lieferung entfernt wurde.
+
+Der Handelskauf und die Rügepflicht
+
+Ist der Kauf für beide Vertragsparteien ein Handelsgeschäft, gilt eine besondere Pflicht des Käufers. Er muss die Ware unverzüglich nach der Ablieferung untersuchen, soweit dies nach ordnungsmäßigem Geschäftsgang tunlich ist, und einen Mangel dem Verkäufer unverzüglich anzeigen. Zeigt sich ein Mangel, der bei der Untersuchung nicht erkennbar war, muss die Anzeige unverzüglich nach seiner Entdeckung erfolgen. Unterlässt der Käufer die rechtzeitige Rüge, gilt die Ware als genehmigt, und er verliert seine Mängelrechte. Das gilt nicht, wenn der Verkäufer den Mangel arglistig verschwiegen hat. Die Rügepflicht gilt nur beim beiderseitigen Handelsgeschäft; kauft ein Verbraucher bei einem Kaufmann, muss er die Ware nicht sofort untersuchen.
+
+Zahlungsverzug des Käufers
+
+Zahlt der Käufer nicht, kommt er grundsätzlich erst durch eine Mahnung nach Fälligkeit in Verzug. Eine Mahnung ist entbehrlich, wenn für die Zahlung ein Zeitpunkt nach dem Kalender bestimmt ist, etwa „zahlbar bis 15. März“. Außerdem kommt der Schuldner einer Geldforderung spätestens in Verzug, wenn er nicht innerhalb von 30 Tagen nach Fälligkeit und Zugang einer Rechnung zahlt. Gegenüber einem Verbraucher gilt diese 30-Tage-Regel nur, wenn er in der Rechnung besonders auf diese Folge hingewiesen worden ist.
+
+Während des Verzugs ist eine Geldschuld zu verzinsen. Der Verzugszinssatz beträgt für das Jahr fünf Prozentpunkte über dem Basiszinssatz. Ist kein Verbraucher beteiligt, beträgt er neun Prozentpunkte über dem Basiszinssatz, und der Gläubiger kann zusätzlich eine Pauschale von 40 Euro verlangen. Darüber hinaus muss der Schuldner den Schaden ersetzen, der dem Gläubiger durch den Verzug entsteht.

@@ -92,7 +92,7 @@ Vier Routen, alle über `OPENROUTER_MODEL` (`openai/gpt-6-luna`), Reasoning
 | Route | Prompt | Anfragearten | Prompt ist | Eval heute |
 | --- | --- | --- | --- | --- |
 | `card-variant` | `card-variant-v5` | Frage/Antwort, Eintippen (Zusatzregel), Lückentext, Auswahl (Single, Multiple, Kprim) | drei feste Texte | Definitionen für drei Arten |
-| `card-help` | `card-help-v1` | Erklären, Beispiel, eigene Frage mit bis zu sechs Wechseln Verlauf | ein fester Text | Definition |
+| `card-help` | `card-help-v2` | Erklären, Beispiel, eigene Frage mit bis zu sechs Wechseln Verlauf | ein fester Text | Definition |
 | `source-cards` | `source-cards-v2` | je Abschnitt (≤ 15.000 Zeichen, ≤ 25 Karten) mit `avoid` und Restmenge aus früheren Abschnitten | Funktion von sieben Einstellungen | Definition, fünf Prüfdokumente |
 | `summary` | `learning-summary-v4` | eine Anfrage je Zusammenfassung, bis 400.000 Zeichen Material | Funktion von zehn Einstellungen | Definition, drei Materialsätze |
 
@@ -145,23 +145,23 @@ Route baut.
 
 ### Fallsätze
 
-Drei Teile je Anfragetyp, nach Kategorie geschichtet und nach Gruppe
+Drei Teile je Anfragetyp, nach Kategorie und Fach geschichtet und nach Gruppe
 getrennt (eine Karte, eine Notiz oder ein Dokument liegt immer nur in einem
 Teil). Zwei Teile reichen nicht: Wird jede Runde am berichteten Teil
 entschieden, passt sich die Promptfolge an ihn an.
 
 | Teil | Anteil | Zweck | Wer liest Inhalte |
 | --- | --- | --- | --- |
-| Training (`train`) | 40 % | Fehleranalyse und Vorauswahl der Kandidaten | Optimierer |
-| Entscheidung (`dev`) | 30 % | jede Runde: übernehmen oder verwerfen | nur Kennzahlen und Fallkennungen |
-| Rückhalt (`holdout`) | 30 % | Baseline und Wellenende; der berichtete Wert | niemand vor Wellenende |
+| Training (`train`) | 35 % | Fehleranalyse und Vorauswahl der Kandidaten | Optimierer |
+| Entscheidung (`dev`) | 40 % | jede Runde: übernehmen oder verwerfen | nur Kennzahlen und Fallkennungen |
+| Rückhalt (`holdout`) | 25 % | Baseline und Wellenende; der berichtete Wert | niemand vor Wellenende |
 
 | Anfragetyp | Fälle | Zusammensetzung |
 | --- | --- | --- |
-| Varianten Frage/Antwort (mit Eintippen), Lückentext, Auswahl | je etwa 100 | etwa 50 Prüfkarten über die Kategorien, der Rest aus dem Korpus; liefert der Korpus für eine Art zu wenig, entsprechend mehr Prüfkarten |
-| KI hilft | etwa 100 | jede Prüfkarte in allen drei Modi, Korpusfälle in Erklären und Beispiel |
+| Varianten Frage/Antwort (mit Eintippen), Lückentext, Auswahl | je etwa 120 | Prüfkarten aus dem Raster Fach × Kategorie × Schwierigkeit, höchstens 20 % aus dem Korpus mit höchstens drei Karten je Stapel; Auswahl hat keine Korpuskarten |
+| KI hilft | etwa 120 | Prüfkarten aus demselben Raster über die drei Modi, Korpusfälle in Erklären und Beispiel |
 | Karten aus einer Quelle | etwa 24 Dokumente | die fünf Prüfdokumente, dazu weitere Fächer und Formate und mindestens vier lange Quellen (über 60.000 Zeichen); je Dokument 10–30 Kernaussagen |
-| Zusammenfassung | etwa 24 Materialsätze | Karten, Quelle und beides; je Satz Kernaussagen und zwei Einstellungsprofile aus einer paarweise deckenden Liste von etwa zwölf |
+| Zusammenfassung | etwa 24 Materialsätze | Karten, Quelle und beides; je Satz Kernaussagen und zwei von neun Einstellungsprofilen, die jedes Wertepaar der in der App wählbaren Einstellungen (Länge, Darstellung, Lernziel, Beispiele) abdecken |
 
 Was die Fallsätze enthalten müssen:
 
@@ -179,8 +179,13 @@ Was die Fallsätze enthalten müssen:
   Widersprüche. Seltene kritische Fehler lassen sich nur so belegen: Null
   Fehler in n Antworten ergeben eine Obergrenze von 3/n, ein Ziel wie „M2
   ≤ 1 %“ bräuchte 300 fehlerfreie Antworten.
-- Fächer breit (Medizin, Recht, Geschichte, MINT, Sprachen, Wirtschaft),
-  überwiegend Deutsch, dazu Englisch und Vokabelkarten weiterer Sprachen.
+- Fächer: Medizin, Naturwissenschaft, Technik/IT, Mathematik, Sprachen,
+  Recht/Wirtschaft, Geschichte/Geografie, je etwa ein Siebtel der
+  Prüfkarten, dazu der eigene Fundus (`fundus`); überwiegend Deutsch, dazu
+  Englisch und Vokabelkarten weiterer Sprachen.
+- **Referenzaussagen** (`reference`) bei schweren Fällen, Fachfakten,
+  Zahlen und falschen Karten; der Richter prüft an ihnen statt nur aus dem
+  Gedächtnis.
 
 Prüfkarten, Prüfdokumente und Kernaussagen schreibt die ausführende Sitzung
 selbst, ohne fremde Texte und fachlich richtig (außer bei bewusst falschen
@@ -209,8 +214,10 @@ Zeitüberschreitungen sind bei jedem Anfragetyp feste Messgrößen.
 - Bei „Karten aus einer Quelle“ ist der Fall ein Auftrag über das ganze
   Dokument (alle Abschnitte mit `avoid` und Restmenge wie in der App), in
   festen Profilen: Standard, alle Kartenformen, Weniger, Mehr. Der Richter
-  sieht je Dokument eine Stichprobe von zehn Karten für Standard und für
-  alle Kartenformen, von fünf für Weniger und Mehr (dort nur Q2).
+  sieht je Dokument eine Stichprobe von fünf Karten für Standard und für
+  alle Kartenformen, von drei für Weniger und Mehr (dort nur Q2); seit
+  Paket L halbiert, weil das Rauschen vom Erzeuger kommt, nicht von der
+  Stichprobe.
 - Der Hauptwert ist bei Varianten und KI hilft der Anteil der Antworten, die
   alle Hauptkriterien bestehen; bei Quellenkarten der Anteil bewerteter
   Karten mit Q2–Q4, bei der Zusammenfassung der Anteil der Abschnitte mit Z6
@@ -282,8 +289,9 @@ Zeitüberschreitungen sind bei jedem Anfragetyp feste Messgrößen.
    beheben, ohne neue Fehler zu bringen.
 5. **Messung** am Entscheidungsteil, Entscheidung nach der Regel oben. Jeder
    dort gemessene Kandidat steht im Ledger, auch verworfen.
-6. **Ende:** Ziel am Entscheidungsteil erreicht und Fallen fehlerfrei, oder
-   drei Runden ohne Übernahme, oder acht Runden, oder Budget.
+6. **Ende:** frühestens nach drei Runden; dann nach drei Runden ohne
+   Übernahme, nach acht Runden oder am Budget. Der Zielwert beendet nichts,
+   er ist nur Orientierung auf der Seite.
 7. **Kürzungsrunde:** Sätze einzeln streichen, die sich nicht belegen lassen
    (etwa das Beispiel zu „Wie viele …“); Regel für Vereinfachungen.
 8. **Rückhalt** messen.
@@ -452,18 +460,16 @@ Umgesetzt am 2026-11-23. Stand und Abweichungen:
   bei der Zusammenfassung Wörter, Abschnitte, belegtes Material und
   Warnungen. Der Bericht mittelt sie je Kategorie; das Ledger trägt sie.
 - **Karten aus einer Quelle:** Fall ist Dokument mal Profil (Standard, alle
-  Formen, Weniger, Mehr), gruppiert nach Dokument. Der Richter sieht zehn
-  Karten mit ihren Belegstellen (bei Weniger und Mehr fünf, nur Q2) und
+  Formen, Weniger, Mehr), gruppiert nach Dokument. Der Richter sieht fünf
+  Karten mit ihren Belegstellen (bei Weniger und Mehr drei, nur Q2) und
   einen Eintrag mit allen Karten gegen die Kernaussagen. Das PDF liest der
   Eval über `ohmsches-gesetz.pages.json`, die das Erzeugerskript neben das
   PDF schreibt.
-- **Zusammenfassung:** Fall ist Materialsatz mal Profil (Standard,
-  kurz-pruefung, lang-einfach) aus `fixtures/ai-eval/summary-material/`.
-  Der Richter sieht bis zu vier Abschnitte mit ihrem belegten Material und
+- **Zusammenfassung:** Fall ist Materialsatz mal Profil aus
+  `fixtures/ai-eval/summary-material/`.
+  Der Richter sieht bis zu zwei Abschnitte mit ihrem belegten Material und
   einen Eintrag mit der ganzen Zusammenfassung gegen Kernaussagen und
   eingebaute Widersprüche.
-- **Fallzahl:** fünf Dokumente (20 Fälle) und drei Materialsätze (6 Fälle)
-  statt je etwa 24; der Ausbau steht als eigener Punkt vor H in `todo.md`.
 - **Gemeinsames Material** in einem Block ist nicht gebaut; jeder Eintrag
   trägt sein Material selbst.
 - **Bootstrap je Fall** (Dokument mal Profil), nicht je Dokument; das
@@ -472,26 +478,105 @@ Umgesetzt am 2026-11-23. Stand und Abweichungen:
   Quellenkarten die des Abschnitts, bei der Zusammenfassung `request.route`.
 - Handurteile gibt es nur für Typen mit einem Richtereintrag je Antwort.
 
-### H – Baseline
+### H – Baseline (erledigt)
 
-- Je Anfragetyp der Code auf allen drei Teilen mit zwei Wiederholungen. Ins
-  Ledger kommen der Entscheidungsteil als Baseline und der Rückhalt als
-  Messung; der Trainingsteil bleibt lokal.
-- Je Anfragetyp dem Nutzer Bericht und Grenzfälle zeigen.
-- **Haltepunkt:** Der Nutzer legt Zielwerte und Reihenfolge der Welle fest
-  und sagt, ob der Richter passt. Anfragetypen, die ihr Ziel schon
-  erreichen, brauchen keine Runden.
+Gemessen am 2026-11-23, zwei Wiederholungen, Richter Opus 5.5 in 59 Blöcken;
+Erzeugung rund 7 Cent.
+
+| Anfragetyp | Entscheidung | Rückhalt | Kritisch (Entscheidung) | Ziel |
+| --- | --- | --- | --- | --- |
+| Variante Frage/Antwort | 79,3 % | 87,0 % | M2 86,8 % | 95 % |
+| Variante Lückentext | 86,8 % | 90,0 % | M2 87,7 % | 95 % |
+| Variante Auswahl | 92,3 % | 96,0 % | M2 97,9 % | 95 % |
+| KI hilft | 71,0 % | 93,6 % | H2 91,9 %, H6 98,4 % | 90 % |
+| Karten aus einer Quelle | 83,8 % | 95,0 % | Q2 98,1 % | 90 % |
+| Zusammenfassung | 50,0 % | 50,0 % | Z6 100 % / 93,8 % | 95 % |
+
+- **Korpus bereinigt:** Die erste Erzeugung ergab bei Frage/Antwort 24 von
+  66 Ablehnungen, fast alle auf gelöschten, Platzhalter- und ID-Karten aus
+  echten Stapeln. `sampleCorpus` überspringt sie jetzt; Frage/Antwort und
+  KI hilft sind danach neu erzeugt (`baseline2`). Frage/Antwort hat nur noch
+  29 Korpusfälle.
+- **Rauschen** zählt je Einzelurteil; vorher kippte ein Q6-Eintrag mit 20
+  Kernaussagen schon bei einer abweichenden.
+- **Abstand Entscheidung zu Rückhalt** ist bei KI hilft (71 gegen 94 %) und
+  Quelle (84 gegen 95 %) groß: Die Teile sind klein und nach Kategorie
+  unterschiedlich schwer. Vergleiche in Runden gehen deshalb nur gepaart
+  gegen die Baseline desselben Teils.
+- **Zusammenfassung** hat je Teil nur zwei Fälle; das Intervall reicht von 0
+  bis 100 %. Beide Standardprofile scheitern an Z5 (Querbezüge auf
+  Stichwörter, die es nicht gibt).
+- Fallen: je Typ höchstens ein Fehler bei einem kritischen Kriterium.
+- **Vorprobe Reasoning `medium`** (2026-11-24, Entscheidungsteil, 2,7 Cent):
+  Frage/Antwort 81,0 % (+1,7, im Rauschen), KI hilft 87,1 % (+16,1, fast
+  ganz aus H4 Beispiel 54 → 88 %), Quelle 86,9 % (+3,1, im Rauschen, Q2
+  97,5 statt 98,1 %). Kosten 1,35- bis 1,5-fach, Latenz p90 1,6- bis
+  2,3-fach; alle drei nach der Regel verworfen. Der Hillclimb läuft auf
+  `low`; KI hilft misst `medium` am Ende mit dem besten Prompt erneut.
 
 ### I – Hillclimb, erste Welle
 
-- Reihenfolge, wenn der Haltepunkt nichts anderes ergibt: Varianten, KI
-  hilft, Karten aus einer Quelle (Runden, dann Strukturversuche),
-  Zusammenfassung.
+- Reihenfolge (Haltepunkt 2026-11-24): KI hilft (zuerst H4 Beispiel),
+  Varianten, Karten aus einer Quelle (Runden, dann Strukturversuche),
+  Zusammenfassung; alles auf `low`.
 - Je Anfragetyp nach „Hillclimb je Anfragetyp“; ein Pull Request je
   Anfragetyp mit Promptänderungen, neuer Promptversion, Ledger-Einträgen und
   Ergebnisdateien. Übernommene Routenprüfungen bekommen Routentests.
 - **Fertig, wenn** je Anfragetyp die Abbruchregel erreicht und der Rückhalt
   gemessen ist.
+
+**KI hilft (2026-11-24, abgeschlossen):**
+
+| Runde | Kandidat (ein Hebel) | Trainingsteil | Entscheidungsteil | Ergebnis |
+| --- | --- | --- | --- | --- |
+| 1 | Karte nur bei eindeutigem Gegenwissen korrigieren, dann im ersten Satz | 85,4 % | 83,9 % (+12,9, Rauschen ±11,3) | übernommen, `card-help-v2` |
+| 1 | fremde Bitten ablehnen | 83,3 % | 77,4 % (+6,5, H6 schlechter) | verworfen |
+| 1 | Verlauf-Bezug, Beispiel-Definition | 79,2 %, 81,3 % | – | Vorauswahl verfehlt |
+| 2 | Beispiel bei Faktenkarten als Situation | 85,4 % | 79,0 % (−4,8, H2 und H6 schlechter) | verworfen |
+| 2 | fremde Bitten sanft | 79,2 % | – | Vorauswahl verfehlt |
+| 3 | Auftrag hinter den Daten, alle Modi / nur Beispiel | 83,3 %, 77,1 % | – | Vorauswahl verfehlt |
+| 4 | Musterbeispiel im Prompt | 79,2 % | – | Vorauswahl verfehlt |
+| Kürzung | Satz zum Werkzeugaufruf gestrichen | – | 80,7 % (H2 und H6 schlechter) | verworfen |
+| Abschluss | `medium` auf `card-help-v2` | – | 88,7 % (+4,8 im Rauschen, Kosten 1,5-fach, p90 2,3-fach) | verworfen |
+
+- **Rückhalt:** `card-help-v2` 88,7 % gegen 93,6 % mit `v1` (2 Fälle
+  gewonnen, 5 verloren, im Rauschen). Der Gewinn am Entscheidungsteil ist
+  damit nicht bestätigt; er kam zur Hälfte aus H4, das die Änderung nicht
+  anspricht.
+- **Befund:** Mit 31 Fällen je Teil liegt das Rauschen bei ±10 Punkten;
+  kleinere Verbesserungen sind nicht messbar. Die Vorauswahl mit einer
+  Wiederholung schwankt ähnlich stark (Musterbeispiel: H4 67 → 92 → 63 %).
+
+### K – Messschärfe und L – ausgewogene Fallsätze (erledigt)
+
+Anlass ist die Welle KI hilft: 31 Karten je Teil, eine Karte rund 3 Punkte,
+Rauschen um ±10 Punkte; der Rückhalt bestätigte den Gewinn nicht. Das
+Rauschen kommt fast nur vom Erzeuger, die Doppelurteile des Richters sind
+stabil. Doppelt so viele Fälle senkten es nur auf etwa ±7.
+
+- **Nachmessen:** Nach zwei Wiederholungen bekommen nur Karten, bei denen
+  Bestand und Kandidat oder die Wiederholungen voneinander abweichen, zwei
+  weitere, für beide Prompts (geschätzt 20 bis 30 % mehr Anfragen).
+- **Ziel-Entscheidung:** Ein Kandidat nennt Kriterium und Modus oder
+  Kategorie seines Fehlerbilds. Übernommen wird vorläufig, wenn er dort
+  mindestens zwei Karten mehr gewinnt als verliert, am Rest höchstens eine
+  Karte verliert und kein kritisches Kriterium schlechter wird.
+- **Sammelprüfung:** Nach höchstens drei vorläufigen Schritten misst der
+  Stapel gegen den letzten bestätigten Stand mit drei Wiederholungen; ist er
+  nicht besser als das Rauschen, gilt wieder der letzte bestätigte Stand, und
+  die Schritte mit dem stärksten Beleg kommen als neue Kandidaten zurück
+  (einfacher und eindeutiger als einen einzelnen Schritt herauszurechnen).
+- **Umgesetzt (2026-11-24):** `more`, `score --target`, `--confirm` und
+  `--reason`, Entscheidung `provisional`, Sicherheit 1 ohne Wirkung, Bericht
+  mit „x von n“. Die bisherigen Läufe zählen Sicherheit-1-Urteile noch mit;
+  mit L beginnen ohnehin neue Baselines.
+- **Begründung:** Jede Übernahme trägt zwei Sätze aus den geänderten
+  Trainingsantworten (Fehlerbild behoben, nichts Neues kaputt).
+- **Sicherheit 1** zählt nicht für die Entscheidung, nur für die Grenzfälle.
+- **Fallraster** wie in `todo.md` unter L; Referenzaussagen für Fachfakten,
+  damit der Richter nicht aus dem Gedächtnis urteilt.
+- **Berichte und Tabellen:** Hauptwert als richtige Antworten „x von n“ mit
+  Prozent; Kosten nur, wenn sie vom Bestand abweichen.
 
 ### J – Abschluss
 
@@ -502,9 +587,9 @@ Umgesetzt am 2026-11-23. Stand und Abweichungen:
 - **Fertig, wenn** die Seite Bestand, Verlauf und Bilanz für alle
   Anfragetypen zeigt.
 
-## Zielwerte (Entwurf)
+## Zielwerte
 
-Festgelegt werden sie am Haltepunkt von Paket H.
+Orientierung auf der Seite, kein Abbruchgrund (Haltepunkt H, 2026-11-24).
 
 | Anfragetyp | Hauptwert am Rückhalt | Kritisch | Weitere |
 | --- | --- | --- | --- |

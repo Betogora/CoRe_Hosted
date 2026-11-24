@@ -31,11 +31,14 @@ export default (payload: any) => ({ ...payload, reasoning: { effort: "medium" } 
 ```
 
 1. Fehler des Trainingsteils lesen (`generate … --split train` mit eigenem Laufnamen, dann `table`, `score` und `grenzfaelle.md` sowie die Antworten im Laufordner), die drei häufigsten Muster benennen. Ein Lauf auf dem Trainingsteil entscheidet nichts und kommt nicht ins Ledger.
-2. Drei bis fünf Kandidaten schreiben, jeder mit genau einem Hebel gegen ein Muster, und am Trainingsteil mit `--candidate <name>` vorauswählen.
-3. Höchstens zwei Kandidaten am Entscheidungsteil messen (`generate … --candidate <name>`, `table`, `score`; `--simplify` bei einer Kürzung oder niedrigerem Reasoning). Antworten des Entscheidungsteils nicht lesen, nur Bericht und Kennzahlen.
-4. Lautet die Entscheidung `rejected`, mit `--record --change "…"` eintragen und den Kandidaten liegen lassen. Lautet sie `accepted`, den Kandidaten in die Route übernehmen, die Promptversion im Vertragsmodul erhöhen und erst dann `--record --change "…"`; `--record` prüft, dass der Code denselben Payload baut.
+2. Drei bis fünf Kandidaten schreiben, jeder mit genau einem Hebel gegen ein Muster, und am Trainingsteil mit `--candidate <name>` vorauswählen. Zu jedem die geänderten Trainingsantworten lesen: Ist das Fehlerbild behoben, ist etwas Neues kaputt?
+3. Höchstens zwei Kandidaten am Entscheidungsteil messen (`generate … --candidate <name>`, `table`, `score --target <Kriterien oder Kategorien des Fehlerbilds>`; `--simplify` bei einer Kürzung oder niedrigerem Reasoning). Bei Varianten und KI hilft danach `more` und erneut `table`, Richter und `score`. Antworten des Entscheidungsteils nicht lesen, nur Bericht und Kennzahlen.
+4. Lautet die Entscheidung `rejected`, mit `--record --change "…"` eintragen und den Kandidaten liegen lassen. Lautet sie `accepted` oder `provisional`, den Kandidaten in die Route übernehmen, die Promptversion im Vertragsmodul erhöhen und erst dann `--record --change "…" --reason "<zwei Sätze aus Schritt 2>"`; `--record` prüft, dass der Code denselben Payload baut.
+5. Nach höchstens drei vorläufigen Schritten den Code mit `generate … --repetitions 3` messen und mit `score --confirm --record` als Sammelprüfung auswerten. Verworfen heißt: die vorläufigen Schritte im Code zurücknehmen (neue Promptversion) und die mit dem stärksten Beleg als neue Kandidaten messen.
 
-Den Rückhalt (`--split holdout`) misst du nur zur Baseline und am Ende einer Reihe, mit `--record`, und liest seine Antworten nicht.
+Den Rückhalt (`--split holdout`) misst du nur zur Baseline und am Ende einer Reihe ohne offene vorläufige Schritte, mit `--record`, und liest seine Antworten nicht.
+
+Tabellen für den Nutzer zeigen je Zelle einen Wert: fett die Prozentzahl richtiger Antworten, dahinter „(x von n)“; Kosten und Latenz nur, wenn sie vom Bestand abweichen.
 
 ## Kalibrierung des Richters
 

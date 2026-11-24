@@ -2,7 +2,7 @@ import { OPENROUTER_MODEL } from "../../server/aiRoute.ts";
 import { appendToSection, escapeHtml, renderMarkdown } from "../docsSite.ts";
 import { LEDGER_FILE, REQUEST_TYPES, bestRun, holdoutFor, latestCalibration, seriesFor, type EvalLedger, type EvalRun, type EvalSeriesEntry, type RequestType } from "./ledger.ts";
 
-const DECISIONS = { baseline: "Baseline", accepted: "übernommen", rejected: "verworfen", holdout: "Rückhalt" } as const;
+const DECISIONS = { baseline: "Baseline", accepted: "übernommen", provisional: "vorläufig", rejected: "verworfen", holdout: "Rückhalt" } as const;
 const number = (value: number) => value.toLocaleString("de-DE", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
 const percent = (share: number) => `${number(share * 100)} %`;
 const interval = (run: EvalRun) => `${percent(run.main)} (${number(run.low * 100)}–${number(run.high * 100)})`;
@@ -52,17 +52,19 @@ export function progressPlot(type: RequestType, series: EvalSeriesEntry[]) {
   const target = type.target === null ? "" : `<line class="target" x1="${left}" x2="${left + plotWidth}" y1="${y(type.target)}" y2="${y(type.target)}"/><text x="${left + plotWidth + 8}" y="${y(type.target, 4)}">Ziel ${percent(type.target)}</text>`;
   let path = "";
   let last = 0;
-  series.forEach(({ run }, index) => {
-    if (run.decision === "rejected") return;
-    path += path ? `H${x(index)}V${y(run.main)}` : `M${x(index)} ${y(run.main)}`;
+  let standing = series[0].run;
+  series.forEach(({ run, confirmed }, index) => {
+    const best = run.decision !== "rejected" ? run : run.confirmation ? confirmed : null;
+    if (!best) return;
+    path += path ? `H${x(index)}V${y(best.main)}` : `M${x(index)} ${y(best.main)}`;
     last = index;
+    standing = best;
   });
   const marks = series.map(({ number: runNumber, run }, index) => {
     const title = `Lauf ${runNumber} · ${run.promptVersion} · ${interval(run)} · ${DECISIONS[run.decision]}`;
     return `<g data-decision="${run.decision}"><title>${escapeHtml(title)}</title><rect x="${px(left + column * index)}" y="${top}" width="${px(column)}" height="${height - top - bottom}" fill="transparent"/><line class="interval" x1="${x(index)}" x2="${x(index)}" y1="${y(run.high)}" y2="${y(run.low)}"/><circle cx="${x(index)}" cy="${y(run.main)}" r="5"/></g><text x="${x(index)}" y="${height - bottom + 18}" text-anchor="middle">${runNumber}</text>`;
   }).join("");
-  const best = series[last].run;
-  const value = `<text class="value" x="${x(last)}" y="${y(best.high, -8)}" text-anchor="middle">${percent(best.main)}</text>`;
+  const value = `<text class="value" x="${x(last)}" y="${y(standing.high, -8)}" text-anchor="middle">${percent(standing.main)}</text>`;
   const label = `Verlauf des Hauptwerts: ${type.label}`;
   return `<div class="docs-table-scroll" tabindex="0" role="region" aria-label="${label}"><svg class="docs-eval-plot" role="img" aria-label="${label}" width="${left + plotWidth + right}" height="${height}" viewBox="0 0 ${left + plotWidth + right} ${height}">${grid}${target}<path class="best" d="${path}H${x(series.length - 1)}"/>${marks}${value}<text x="${left - 8}" y="${height - bottom + 18}" text-anchor="end">Lauf</text></svg></div>`;
 }

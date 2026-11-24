@@ -1,0 +1,57 @@
+Chemische Bindungen und zwischenmolekulare Kräfte
+
+Atome verbinden sich zu Molekülen und Kristallen, weil sie dabei einen energieärmeren und damit stabileren Zustand erreichen. Welche Bindungsart entsteht, hängt vor allem davon ab, wie stark die beteiligten Atome Elektronen anziehen. Man unterscheidet drei Hauptbindungsarten: die Ionenbindung, die Atombindung und die Metallbindung. Davon zu trennen sind die zwischenmolekularen Kräfte, die zwischen Molekülen wirken und deutlich schwächer sind als die Bindungen innerhalb eines Moleküls.
+
+Elektronegativität
+
+Die Elektronegativität (EN) beschreibt, wie stark ein Atom in einer Bindung die gemeinsamen Bindungselektronen zu sich zieht. Am häufigsten wird die Skala nach Linus Pauling verwendet. Fluor hat mit 4,0 den höchsten Wert, es folgen Sauerstoff mit 3,5 und Stickstoff und Chlor mit jeweils etwa 3,0. Die niedrigsten Werte haben die Alkalimetalle am unteren Ende der ersten Hauptgruppe, etwa Caesium mit 0,7. Wasserstoff liegt bei 2,1, Kohlenstoff bei 2,5. Für die meisten Edelgase gibt man keine Elektronegativität an, weil sie kaum Bindungen eingehen.
+
+Im Periodensystem nimmt die Elektronegativität innerhalb einer Periode von links nach rechts zu, weil die Kernladung steigt, während der Atomradius kleiner wird. Innerhalb einer Hauptgruppe nimmt sie von oben nach unten ab, weil die Außenelektronen weiter vom Kern entfernt und durch innere Schalen stärker abgeschirmt sind.
+
+Aus der Differenz der Elektronegativitäten zweier Bindungspartner lässt sich die Bindungsart abschätzen. Als Faustregel gilt: Bei einer Differenz unter etwa 0,4 liegt eine unpolare Atombindung vor, zwischen 0,4 und 1,7 eine polare Atombindung, über 1,7 überwiegend eine Ionenbindung. Die Übergänge sind fließend; es gibt keine scharfe Grenze zwischen polarer Atombindung und Ionenbindung.
+
+Ionenbindung
+
+Eine Ionenbindung entsteht typischerweise zwischen einem Metall und einem Nichtmetall. Das Metallatom gibt ein oder mehrere Außenelektronen ab und wird zum positiv geladenen Kation; das Nichtmetallatom nimmt diese Elektronen auf und wird zum negativ geladenen Anion. Beide erreichen dadurch häufig die Elektronenkonfiguration eines Edelgases mit acht Außenelektronen (Oktettregel). Beim Natriumchlorid gibt jedes Natriumatom ein Elektron an ein Chloratom ab; es entstehen Na+- und Cl−-Ionen.
+
+Zusammengehalten werden die Ionen durch die elektrostatische Anziehung entgegengesetzter Ladungen. Diese Anziehung wirkt in alle Richtungen gleich, deshalb bilden sich keine einzelnen Moleküle, sondern ein regelmäßiges Ionengitter. Im Natriumchloridgitter ist jedes Natrium-Ion von sechs Chlorid-Ionen umgeben und umgekehrt; die Koordinationszahl beträgt also 6. Die Formel NaCl gibt deshalb kein Molekül an, sondern nur das Zahlenverhältnis der Ionen im Gitter, die Verhältnisformel.
+
+Die Energie, die frei wird, wenn sich Ionen aus dem Gaszustand zu einem Gitter zusammenlagern, heißt Gitterenergie. Sie ist umso größer, je höher die Ladungen der Ionen sind und je kleiner ihre Radien. Magnesiumoxid mit zweifach geladenen Ionen schmilzt deshalb erst bei etwa 2.800 °C, Natriumchlorid mit einfach geladenen Ionen schon bei 801 °C.
+
+Ionenverbindungen, auch Salze genannt, haben typische Eigenschaften: Sie sind bei Raumtemperatur fest und haben hohe Schmelz- und Siedetemperaturen. Sie sind hart, aber spröde; wird das Gitter durch einen Schlag verschoben, liegen gleich geladene Ionen nebeneinander, stoßen sich ab, und der Kristall bricht. Im festen Zustand leiten Salze den elektrischen Strom nicht, weil die Ionen im Gitter fest an ihren Plätzen sitzen. In der Schmelze und in wässriger Lösung leiten sie dagegen, weil sich die Ionen dann frei bewegen können. Viele Salze lösen sich gut in Wasser, aber nicht alle; Calciumcarbonat ist zum Beispiel nahezu unlöslich.
+
+Atombindung
+
+Die Atombindung, auch kovalente Bindung oder Elektronenpaarbindung genannt, entsteht vor allem zwischen Nichtmetallatomen. Die Atome teilen sich ein oder mehrere Elektronenpaare, die beiden Atomen gleichzeitig angehören. Auf diese Weise erreichen auch hier beide Partner meist ein Elektronenoktett; Wasserstoff erreicht mit zwei Elektronen die Konfiguration des Heliums.
+
+Teilen sich zwei Atome ein Elektronenpaar, spricht man von einer Einfachbindung, wie im Wasserstoffmolekül H2. Bei zwei gemeinsamen Paaren liegt eine Doppelbindung vor, wie im Sauerstoffmolekül O2, bei drei eine Dreifachbindung, wie im Stickstoffmolekül N2. Mit der Zahl der Bindungselektronenpaare steigt die Bindungsenergie, und die Bindungslänge nimmt ab. Die Dreifachbindung im Stickstoff ist deshalb besonders stark, was die Reaktionsträgheit des Luftstickstoffs erklärt. Elektronenpaare, die nicht an einer Bindung beteiligt sind, heißen freie oder nichtbindende Elektronenpaare.
+
+Sind beide Bindungspartner gleich, wie bei Cl2, werden die Bindungselektronen gleichmäßig geteilt; die Bindung ist unpolar. Sind die Partner verschieden elektronegativ, werden die Elektronen zum elektronegativeren Atom verschoben. Es entsteht eine polare Atombindung mit einer negativen Teilladung (δ−) am elektronegativeren und einer positiven Teilladung (δ+) am anderen Atom, etwa in Chlorwasserstoff HCl.
+
+Ob ein ganzes Molekül polar ist, hängt nicht nur von den Bindungen ab, sondern auch von seiner räumlichen Gestalt. Ein Molekül ist nur dann ein Dipol, wenn die Schwerpunkte der positiven und der negativen Teilladungen nicht zusammenfallen. Wasser ist gewinkelt gebaut und deshalb ein Dipol. Kohlenstoffdioxid enthält zwar zwei polare C=O-Bindungen, ist aber linear gebaut; die Teilladungen heben sich auf, und das Molekül ist insgesamt unpolar.
+
+Die Gestalt von Molekülen lässt sich mit dem Elektronenpaarabstoßungsmodell (EPA-Modell, international VSEPR) vorhersagen. Danach ordnen sich alle Elektronenpaare um ein Zentralatom so an, dass sie möglichst weit voneinander entfernt sind. Methan (CH4) mit vier bindenden Paaren ist tetraedrisch gebaut, der Bindungswinkel beträgt 109,5°. Ammoniak (NH3) hat drei bindende und ein freies Elektronenpaar und ist trigonal-pyramidal gebaut, mit etwa 107°. Wasser hat zwei bindende und zwei freie Elektronenpaare und ist gewinkelt, mit etwa 104,5°. Freie Elektronenpaare beanspruchen mehr Raum als bindende und drücken die Bindungen deshalb etwas zusammen. Mehrfachbindungen zählen im Modell wie eine einzige Bindung.
+
+Einige Stoffe bestehen nicht aus einzelnen Molekülen, sondern aus einem durchgehenden Gitter von Atombindungen, einem Atomgitter. Im Diamanten ist jedes Kohlenstoffatom tetraedrisch an vier weitere gebunden; Diamant ist deshalb extrem hart und leitet den Strom nicht. Im Graphit ist jedes Kohlenstoffatom nur an drei Nachbarn gebunden. Die Atome bilden Schichten, zwischen denen nur schwache Kräfte wirken, und das vierte Elektron jedes Atoms ist innerhalb der Schicht beweglich. Graphit ist deshalb weich und leitet den elektrischen Strom entlang der Schichten.
+
+Metallbindung
+
+In Metallen geben die Atome ihre Außenelektronen ab. Es entstehen positiv geladene Atomrümpfe, die ein regelmäßiges Metallgitter bilden, und frei bewegliche Elektronen, die sich zwischen ihnen als sogenanntes Elektronengas verteilen. Das Elektronengas hält die Atomrümpfe zusammen, weil es sie gemeinsam anzieht.
+
+Aus diesem Modell folgen die typischen Metalleigenschaften. Metalle leiten Strom und Wärme gut, weil sich die Elektronen frei bewegen. Die elektrische Leitfähigkeit nimmt mit steigender Temperatur ab, weil die stärker schwingenden Atomrümpfe die Elektronen behindern. Metalle sind verformbar, weil sich die Schichten der Atomrümpfe gegeneinander verschieben lassen, ohne dass die Bindung zerreißt; das Elektronengas passt sich der neuen Lage an. Der typische Metallglanz entsteht, weil die freien Elektronen Licht fast aller Wellenlängen reflektieren. Die meisten Metalle sind bei Raumtemperatur fest; Quecksilber ist das einzige Metall, das bei Raumtemperatur flüssig ist.
+
+Zwischenmolekulare Kräfte
+
+Zwischen Molekülen wirken Anziehungskräfte, die bestimmen, ob ein molekularer Stoff bei Raumtemperatur fest, flüssig oder gasförmig ist. Je stärker diese Kräfte sind, desto höher liegen Schmelz- und Siedetemperatur. Beim Sieden werden nur diese Kräfte überwunden; die Atombindungen innerhalb der Moleküle bleiben erhalten.
+
+Van-der-Waals-Kräfte, genauer London-Kräfte, wirken zwischen allen Molekülen, auch zwischen unpolaren. Sie entstehen durch kurzzeitige Ungleichverteilungen der Elektronen, die im Nachbarmolekül ebenfalls Dipole hervorrufen. Sie sind die schwächsten zwischenmolekularen Kräfte, nehmen aber mit der Größe und Oberfläche der Moleküle zu. Deshalb steigen die Siedetemperaturen der Alkane mit der Kettenlänge: Methan siedet bei etwa −162 °C, Hexan bei etwa 69 °C. Verzweigte Moleküle haben eine kleinere Oberfläche als unverzweigte mit gleicher Atomzahl und sieden deshalb niedriger. Zwischen Edelgasatomen wirken ausschließlich Van-der-Waals-Kräfte.
+
+Dipol-Dipol-Kräfte wirken zwischen polaren Molekülen. Die positive Teilladung eines Moleküls zieht die negative Teilladung eines benachbarten Moleküls an. Sie sind stärker als Van-der-Waals-Kräfte zwischen gleich großen Molekülen.
+
+Wasserstoffbrückenbindungen sind die stärksten zwischenmolekularen Kräfte. Sie entstehen nur, wenn ein Wasserstoffatom an eines der stark elektronegativen Atome Fluor, Sauerstoff oder Stickstoff gebunden ist und ein Nachbarmolekül ein freies Elektronenpaar an einem solchen Atom besitzt. Ein Wasserstoffatom, das an Kohlenstoff gebunden ist, bildet keine Wasserstoffbrücken, weil die C-H-Bindung kaum polar ist.
+
+Wasserstoffbrücken erklären viele besondere Eigenschaften des Wassers. Wasser siedet bei 100 °C, während das ähnlich gebaute, aber schwerere Schwefelwasserstoff H2S schon bei etwa −60 °C siedet, weil zwischen H2S-Molekülen keine nennenswerten Wasserstoffbrücken wirken. Im Eis ordnen die Wasserstoffbrücken die Moleküle zu einem weitmaschigen Gitter. Eis hat deshalb eine geringere Dichte als flüssiges Wasser und schwimmt. Die größte Dichte hat Wasser bei etwa 4 °C; diese Dichteanomalie sorgt dafür, dass Seen von oben nach unten zufrieren.
+
+Zwischenmolekulare Kräfte bestimmen auch die Löslichkeit. Es gilt die Regel „Ähnliches löst sich in Ähnlichem“: Polare Stoffe und Salze lösen sich gut in polaren Lösungsmitteln wie Wasser, unpolare Stoffe wie Fette und Öle in unpolaren Lösungsmitteln wie Benzin. Öl und Wasser mischen sich deshalb nicht. Stoffe, die sich in Wasser gut lösen, heißen hydrophil, solche, die sich in Fetten lösen, lipophil.
+
+Der Stärke nach geordnet gilt im Allgemeinen: Ionenbindung, Atombindung und Metallbindung sind die stärksten Bindungen. Es folgen mit großem Abstand die Wasserstoffbrücken, dann die Dipol-Dipol-Kräfte und schließlich die Van-der-Waals-Kräfte. Eine einzelne Wasserstoffbrücke ist etwa zehn- bis zwanzigmal schwächer als eine typische Atombindung.
