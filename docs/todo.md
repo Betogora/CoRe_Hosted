@@ -40,12 +40,11 @@ Pakete in dieser Reihenfolge.
       Routen heute „Werkzeug nicht korrekt verwendet“. Eigener Fehlercode und
       eine verständliche Meldung; im Eval bleibt es eine verworfene Antwort.
 - [ ] **I – Hillclimb, erste Welle** auf Reasoning `low` (KI hilft erledigt,
-      `card-help-v2`): KI hilft, Varianten,
+      `card-help-v2`): Varianten,
       Karten aus einer Quelle, Zusammenfassung. Je Runde drei bis fünf
       Kandidaten aus den Trainingsfehlern, Vorauswahl am Trainingsteil,
       Entscheidung am Entscheidungsteil; mindestens drei Runden, Ende nach
-      drei Runden ohne Übernahme oder nach acht Runden. Am Ende KI hilft
-      einmal mit `medium` und dem besten Prompt. Bei Karten aus einer Quelle zusätzlich: Kartenmenge
+      drei Runden ohne Übernahme oder nach acht Runden. Bei Karten aus einer Quelle zusätzlich: Kartenmenge
       wirksam machen (Weniger höchstens 60 %, Mehr mindestens 140 % der
       Vorschläge von Normal, ohne Füllkarten und bei gleicher Belegtreue;
       danach die Dichten in `AI_SOURCE_AMOUNTS` neu messen), Single Choice
