@@ -501,6 +501,12 @@ Erzeugung rund 7 Cent.
   bis 100 %. Beide Standardprofile scheitern an Z5 (Querbezüge auf
   Stichwörter, die es nicht gibt).
 - Fallen: je Typ höchstens ein Fehler bei einem kritischen Kriterium.
+- **Vorprobe Reasoning `medium`** (2026-11-24, Entscheidungsteil, 2,7 Cent):
+  Frage/Antwort 81,0 % (+1,7, im Rauschen), KI hilft 87,1 % (+16,1, fast
+  ganz aus H4 Beispiel 54 → 88 %), Quelle 86,9 % (+3,1, im Rauschen, Q2
+  97,5 statt 98,1 %). Kosten 1,35- bis 1,5-fach, Latenz p90 1,6- bis
+  2,3-fach; alle drei nach der Regel verworfen. Der Hillclimb läuft auf
+  `low`; KI hilft misst `medium` am Ende mit dem besten Prompt erneut.
 
 ### I – Hillclimb, erste Welle
 
