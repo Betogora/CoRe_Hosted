@@ -19,7 +19,6 @@ import { formatLearningCardCount } from "../ui/learningStatusUi.ts";
 import { DeckSelect } from "../ui/selectUi.tsx";
 import { StudyHeatmap } from "../ui/StudyHeatmap.tsx";
 import { useWorkspaceValue } from "../useWorkspaceStore.ts";
-import { rankFrequentDeckIds } from "../uiPreferences.ts";
 import type { WorkspaceState } from "../coreWorkspace.ts";
 import type { PomodoroTimer } from "../pomodoroTimer.ts";
 import type { ExamPlanningScreenProps } from "./ExamPlanningScreen.tsx";
@@ -37,6 +36,7 @@ export interface DashboardScreenProps {
   onNavigate: NavigateToView;
   onStartAdditionalCards: (deckId: string, additionalCount: number) => { ok: boolean; message?: string };
   onCreateDemo: () => Promise<Deck[] | null>;
+  frequentDeckIds: readonly string[];
   onSetPinnedDeckIds: (deckIds: string[]) => unknown;
   onStartExamUnit?: (blockId: string | null) => Promise<void>;
   onLoadExamPlanningData?: ExamPlanningScreenProps["onLoadPlanningData"];
@@ -231,7 +231,7 @@ function DailyLearningOverview({
   );
 }
 
-export function DashboardScreen({ state, now, onNavigate, onStartDeck, onStartAdditionalCards, onCreateDemo, onSetPinnedDeckIds, onStartExamUnit, onLoadExamPlanningData, onSaveExamTasks, onLoadExamSummaryAvailability, onLoadExamLocalCardIds, pomodoroTimer = null, onStartPomodoro = () => undefined, onPausePomodoro = () => undefined, onResumePomodoro = () => undefined, onResetPomodoro = () => undefined }: DashboardScreenProps) {
+export function DashboardScreen({ state, now, onNavigate, onStartDeck, onStartAdditionalCards, onCreateDemo, frequentDeckIds, onSetPinnedDeckIds, onStartExamUnit, onLoadExamPlanningData, onSaveExamTasks, onLoadExamSummaryAvailability, onLoadExamLocalCardIds, pomodoroTimer = null, onStartPomodoro = () => undefined, onPausePomodoro = () => undefined, onResumePomodoro = () => undefined, onResetPomodoro = () => undefined }: DashboardScreenProps) {
   const { deckSummaries, studyHeatmap: loadedHeatmap } = useWorkspaceValue(({ deckSummaries, studyHeatmap }) => ({ deckSummaries, studyHeatmap }));
   const globalSettings = getGlobalSchedulerPreferences(state.profile);
   const library = React.useMemo(
@@ -239,9 +239,6 @@ export function DashboardScreen({ state, now, onNavigate, onStartDeck, onStartAd
     [deckSummaries, globalSettings.dayStartHour, globalSettings.learnAheadMinutes, now, state.decks, state.profile.timezone],
   );
   const { dailyLearningPlan } = library;
-  const { dashboardPinnedDeckIds, dashboardStudyStarts } = state.profile.uiPreferences;
-  // Study starts carry real time, so a simulated learning clock neither hides nor freezes them.
-  const frequentDeckIds = React.useMemo(() => rankFrequentDeckIds(dashboardStudyStarts, new Date().toISOString()), [dashboardStudyStarts, now]);
   const timeZone = state.profile.timezone || undefined;
   const civilToday = getLearningDayKey(now, { timeZone }) ?? now.slice(0, 10);
   const nextExam = globalSettings.examPlanning.exams
@@ -315,7 +312,7 @@ export function DashboardScreen({ state, now, onNavigate, onStartDeck, onStartAd
         decks: <PinnedDecksWidget
           rows={library.rows}
           decks={state.decks}
-          pinnedDeckIds={dashboardPinnedDeckIds}
+          pinnedDeckIds={state.profile.uiPreferences.dashboardPinnedDeckIds}
           frequentDeckIds={frequentDeckIds}
           onPinnedDeckIdsChange={onSetPinnedDeckIds}
           onStudy={(row) => onStartDeck(row.deck)}

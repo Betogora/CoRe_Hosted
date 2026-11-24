@@ -17,7 +17,6 @@ const cloudProfile: Profile = {
     flagNames: ["", "", "", "", "", "", ""],
     savedSearches: [],
     dashboardPinnedDeckIds: [],
-    dashboardStudyStarts: [],
   },
 };
 

@@ -1024,7 +1024,6 @@ test("ein vor neuen UI-Präferenzen gespeichertes Profil lädt mit deren Standar
 
   const { uiPreferences } = (await openRepository(workspaceState(1), userId)).getShellState().profile;
   assert.deepEqual(uiPreferences.dashboardPinnedDeckIds, []);
-  assert.deepEqual(uiPreferences.dashboardStudyStarts, []);
   assert.deepEqual(uiPreferences.learnCollapsedDeckIds, ["deck-idb"]);
   assert.equal(uiPreferences.syncIntervalMinutes, 15);
 });

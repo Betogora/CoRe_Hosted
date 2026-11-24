@@ -34,7 +34,7 @@ async function setup() {
       timezone: "Europe/Berlin",
       onboardingComplete: true,
       schedulerPreferences: { settingsVersion: 2, dayStartHour: 0 },
-      uiPreferences: { learnCollapsedDeckIds: [], syncIntervalMinutes: 5, flagNames: ["", "", "", "", "", "", ""], savedSearches: [], dashboardPinnedDeckIds: [], dashboardStudyStarts: [] },
+      uiPreferences: { learnCollapsedDeckIds: [], syncIntervalMinutes: 5, flagNames: ["", "", "", "", "", "", ""], savedSearches: [], dashboardPinnedDeckIds: [] },
     } as unknown as WorkspaceState["profile"],
     decks: [
       createCoreDeck({ id: "deck-parent", name: "Eltern", source: "manual", cards: cardsOf("deck-parent") }),

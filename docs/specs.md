@@ -800,8 +800,8 @@ Fassung | im Konto, mehrere je Stapel
 - **Tagesstand:** Er fasst alle Hauptstapel ohne Doppelzählung in `Gelernt`, `Neu`, `Offen` und `Fällig` zusammen ([Tagesrunde und Limits](#tagesrunde-und-limits)).
 - **Lernstart:** startet den alphabetisch ersten Hauptstapel mit verfügbaren Karten; warten nur Lernschritte, kündigt er späteres Weiterlernen an, sonst meldet er das Tagesziel und bietet zusätzliche neue Karten an.
 - **Motivationsimpuls:** einer von 60 eigenen Lernimpulsen, je Lerntag stabil, auch offline.
-- **To-dos:** eigene Aufgaben und solche aus dem Prüfungsplaner, diese direkt lernbar; ohne Baustein bleiben die Aufgaben.
-- **Angepinnte Stapel:** bis zu vier, neueste oben, mit Lernstart und Weg zu allen; Lücken füllen die in 14 Tagen meistgestarteten, dann Hauptstapel. Ein fünfter Pin ersetzt einen, wie Lösen nach Rückfrage.
+- **To-dos:** eigene und Planeraufgaben, letztere direkt lernbar; ohne Baustein bleiben sie.
+- **Angepinnte Stapel:** bis zu vier, neueste oben, mit Lernstart und Weg zu allen; Lücken füllen die an den meisten von 14 Lerntagen gestarteten, dann Hauptstapel. Ein fünfter Pin ersetzt einen, wie Lösen nach Rückfrage.
 - **Bewusst nicht:** Zeitprognosen.
 
 ### Kartenverwaltung
@@ -885,7 +885,7 @@ Jede Einstellung gilt für genau einen Bereich.
 | --- | --- |
 | Konto, auf allen Geräten | Tagesbeginn, Vorziehfenster, Lernbremse, Easy Days, Lernprofile, Standard für neue Stapel, Flaggennamen, gespeicherte Suchen, Prüfungspläne, Pins von `Heute` |
 | Einen Stapel | Tageslimits, Reihenfolge und Sortierung, Begraben, Lernschritte, Zielerinnerung, maximales Intervall, CoRe-Modus, Variantenschwelle, aktive Varianten, Name und Aussehen, Offline-Nutzung |
-| Diesen Browser | heller oder dunkler Modus, Heatmap-Farbe, Stapelansicht, Anordnung von `Heute` und eigene To-dos, Pomodoro-Timer, Simulationsuhr |
+| Diesen Browser | heller oder dunkler Modus, Heatmap-Farbe, Stapelansicht, Anordnung, Lerntage und eigene To-dos von `Heute`, Pomodoro-Timer, Simulationsuhr |
 
 - Einstellungen werden als Entwurf geändert und ausdrücklich gespeichert oder verworfen; ein ungespeicherter Entwurf hält jedes Verlassen auf.
 - Stapeleinstellungen öffnen aus den Einstellungen; Zurück führt dorthin.

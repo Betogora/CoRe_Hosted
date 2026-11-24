@@ -21,6 +21,7 @@ const dashboardCallbacks = {
   onStartDeck: () => undefined,
   onStartAdditionalCards: () => ({ ok: true }),
   onCreateDemo: async () => null,
+  frequentDeckIds: [],
   onSetPinnedDeckIds: () => undefined,
 };
 

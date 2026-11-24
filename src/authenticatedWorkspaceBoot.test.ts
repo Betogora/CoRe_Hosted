@@ -22,7 +22,6 @@ function completeProfile(userId: string) {
       flagNames: ["", "", "", "", "", "", ""],
       savedSearches: [],
       dashboardPinnedDeckIds: [],
-      dashboardStudyStarts: [],
     },
   };
 }

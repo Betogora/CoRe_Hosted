@@ -1,3 +1,5 @@
+import React from "react";
+import { currentLearningDay, readFrequentDeckIds } from "../dashboardWidgets.ts";
 import { useAppServices } from "../useAppServices.ts";
 import { useWorkspaceValue } from "../useWorkspaceStore.ts";
 import { DashboardScreen } from "./DashboardScreen.tsx";
@@ -5,6 +7,9 @@ import { DashboardScreen } from "./DashboardScreen.tsx";
 export function DashboardScreenWiring() {
   const { navigation, clock, pomodoro, studyStart, studyPreparation, deckCommands, importCommands, hydration } = useAppServices();
   const state = useWorkspaceValue((snapshot) => snapshot.state);
+  const profile = state?.profile;
+  // learningNow ticks, so a new learning day re-reads the study days.
+  const frequentDeckIds = React.useMemo(() => profile ? readFrequentDeckIds(profile.userId, currentLearningDay(profile)) : [], [clock.learningNow, profile]);
   if (!state) return null;
   return (
     <DashboardScreen
@@ -23,6 +28,7 @@ export function DashboardScreenWiring() {
         navigation.navigateToView("lernen");
         return decks;
       }}
+      frequentDeckIds={frequentDeckIds}
       onSetPinnedDeckIds={deckCommands.saveDashboardPins}
       onStartExamUnit={studyStart.startExamUnit}
       onLoadExamPlanningData={studyPreparation.loadExamPlanningData}

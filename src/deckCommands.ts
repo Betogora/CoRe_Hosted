@@ -10,7 +10,7 @@ import { getLearningTimeZone } from "./learningDay.ts";
 import { createDeckLibraryModel } from "./libraryModel.ts";
 import { updateDeckNewCardLimitForDate } from "./reviewService.ts";
 import { applyDeckSettingsDraftChanges, createDeckSettingsDraft, normalizeDeckSettingsDraft, type DeckSettingsDraft, type GeneralSettingsDraft, type GlobalCardSettingsDraft } from "./settingsDraft.ts";
-import { addDashboardStudyStart, setDeckExpanded } from "./uiPreferences.ts";
+import { setDeckExpanded } from "./uiPreferences.ts";
 import type { WorkspaceHydrationService } from "./workspaceHydrationService.ts";
 import type { WorkspaceStore } from "./workspaceStore.ts";
 
@@ -279,16 +279,6 @@ export function createDeckCommands({ store, repository, hydration, refresh, requ
     }), { preserveCardPages: true });
   }
 
-  function recordDashboardStudyStart(deckId: string, at: string) {
-    const currentState = store.get().state;
-    if (!currentState) return null;
-    const profile = currentState.profile;
-    return runRepositoryMutation((current) => current.saveProfile({
-      ...profile,
-      uiPreferences: addDashboardStudyStart(profile.uiPreferences, deckId, at),
-    }), { preserveCardPages: true });
-  }
-
   async function downloadDeck(deckId: string) {
     const service = hydration();
     if (!service) throw new Error("Die Kartenablage ist noch nicht bereit.");
@@ -327,6 +317,5 @@ export function createDeckCommands({ store, repository, hydration, refresh, requ
     saveDeckExpansion,
     saveSearches,
     saveDashboardPins,
-    recordDashboardStudyStart,
   };
 }

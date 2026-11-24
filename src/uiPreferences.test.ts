@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { addDashboardStudyStart, fillDashboardDecks, leastFrequentPin, normalizeUiPreferences, rankFrequentDeckIds, SAVED_SEARCH_LIMIT, setDeckExpanded } from "./uiPreferences.ts";
+import { fillDashboardDecks, leastFrequentPin, normalizeUiPreferences, SAVED_SEARCH_LIMIT, setDeckExpanded } from "./uiPreferences.ts";
 
 test("UI preferences normalize persisted deck ids", () => {
   assert.deepEqual(normalizeUiPreferences({
@@ -12,7 +12,6 @@ test("UI preferences normalize persisted deck ids", () => {
     flagNames: ["", "", "", "", "", "", ""],
     savedSearches: [],
     dashboardPinnedDeckIds: [],
-    dashboardStudyStarts: [],
   });
 });
 
@@ -24,7 +23,6 @@ test("deck expansion stores collapsed decks of Lernen", () => {
     flagNames: ["", "", "", "", "", "", ""],
     savedSearches: [],
     dashboardPinnedDeckIds: [],
-    dashboardStudyStarts: [],
   });
   assert.equal(normalizeUiPreferences({ syncIntervalMinutes: 15 }).syncIntervalMinutes, 15);
   assert.equal(normalizeUiPreferences({ syncIntervalMinutes: 7 }).syncIntervalMinutes, 5);
@@ -57,15 +55,6 @@ test("Heute-Pins bleiben in ihrer Reihenfolge, ohne Dubletten und höchstens vie
   assert.deepEqual(normalizeUiPreferences({ dashboardPinnedDeckIds: ["a", "b", "a", "", 3, "c", "d", "e"] }).dashboardPinnedDeckIds, ["a", "b", "c", "d"]);
 });
 
-test("Lernstarts zählen 14 Tage; häufigere zuerst, bei Gleichstand der jüngere Start", () => {
-  const at = (days: number) => new Date(Date.UTC(2026, 10, 24) - days * 86_400_000).toISOString();
-  let preferences = normalizeUiPreferences({ dashboardStudyStarts: [{ deckId: "old", at: at(20) }, { deckId: "bad" }, { deckId: "a", at: at(3) }] });
-  assert.deepEqual(preferences.dashboardStudyStarts.map((entry) => entry.deckId), ["old", "a"]);
-  for (const [deckId, days] of [["b", 2], ["c", 5], ["c", 1]] as const) preferences = addDashboardStudyStart(preferences, deckId, at(days));
-  assert.deepEqual(preferences.dashboardStudyStarts.map((entry) => entry.deckId), ["a", "b", "c", "c"]);
-  assert.deepEqual(rankFrequentDeckIds([...preferences.dashboardStudyStarts, { deckId: "old", at: at(15) }], at(0)), ["c", "b", "a"]);
-});
-
 test("das Heute-Widget füllt bis vier Stapel auf: Pins, dann oft gelernte, dann Hauptstapel", () => {
   const existing = new Set(["p1", "p2", "f1", "f2", "m1", "m2"]);
   assert.deepEqual(fillDashboardDecks(["p1", "gone"], ["f1", "p1", "f2"], ["m1", "m2"], existing), [
@@ -75,11 +64,7 @@ test("das Heute-Widget füllt bis vier Stapel auf: Pins, dann oft gelernte, dann
   assert.ok(fillDashboardDecks(["p1", "p2", "f1", "f2"], ["m1"], ["m2"], existing).every((entry) => entry.pinned));
 });
 
-test("beim Ersetzen ist der zuletzt am seltensten gestartete Pin vorgewählt, nie gestartete zuerst", () => {
+test("beim Ersetzen ist der am niedrigsten gerankte Pin vorgewählt, ungerankte zuerst", () => {
   assert.equal(leastFrequentPin(["a", "b", "c"], ["c", "a", "b"]), "b");
   assert.equal(leastFrequentPin(["a", "b", "c", "d"], ["a", "d"]), "c");
-});
-
-test("Lernstarts in der Zukunft zählen nicht", () => {
-  assert.deepEqual(rankFrequentDeckIds([{ deckId: "later", at: "2026-12-10T08:00:00.000Z" }, { deckId: "now", at: "2026-11-24T08:00:00.000Z" }], "2026-11-24T10:00:00.000Z"), ["now"]);
 });
