@@ -12,7 +12,8 @@ export function clozeAt(value: string, start: number): ClozeToken | null {
   let braces = 0;
   let hintStart = -1;
   for (let cursor = textStart; cursor < value.length; cursor += 1) {
-    if (value[cursor] === "\\") { cursor += 1; continue; }
+    // A backslash never hides an opening: cards are made for every one.
+    if (value[cursor] === "\\" && !isClozeOpening(value, cursor + 1)) { cursor += 1; continue; }
     if (isClozeOpening(value, cursor)) {
       const child = clozeAt(value, cursor);
       if (!child) return null;
@@ -27,7 +28,7 @@ export function clozeAt(value: string, start: number): ClozeToken | null {
     else if (value[cursor] === "}" && braces > 0) braces -= 1;
   }
   // Cards are made by Anki's rule, which counts only openings and `}}` and knows neither escapes nor braces; a deletion
-  // this reading leaves open closes by that rule, so its answer is never shown in plain sight.
+  // this reading leaves open closes by that rule, so the gap of its card is shown.
   let depth = 0;
   let hint = -1;
   for (let cursor = textStart; cursor < value.length; cursor += 1) {

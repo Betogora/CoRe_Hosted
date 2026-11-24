@@ -167,6 +167,7 @@ test("jede Lücke, für die eine Karte entsteht, findet auch die Darstellung", (
     "{{c1::außen {{c2::innen}} außen}}",
     "{{c0::null}} {{c1::eins}}",
     "{{c1::{ {{c2::b}} }}",
+    String.raw`{{c1::Pfad C:\{{c2::Ordner}}}}`,
     String.raw`{{c1::a {{c2::b}} c\}}`,
     "{{c1::offen",
   ];
