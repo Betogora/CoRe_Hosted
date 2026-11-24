@@ -1,6 +1,6 @@
 import React from "react";
 import { Layers, ListFilter, Search, X } from "lucide-react";
-import { cardSearchTerms, cardSearchText, withCardSearchDeck, withCardSearchText, withoutCardSearchItem } from "./cardSearchExpression.ts";
+import { cardSearchTerms, cardSearchText, withCardSearchDeck, withCardSearchText, withoutCardSearchItem } from "../../cardSearchQuery.ts";
 import type { Deck } from "../../coreTypes.ts";
 import { CrossLinkButton } from "../../ui/actionUi.tsx";
 import { StatusMessage } from "../../ui/feedbackUi.tsx";

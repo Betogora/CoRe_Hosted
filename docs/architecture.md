@@ -112,7 +112,7 @@ Befehlsmodule laufen ohne React, je Arbeitsbereich aus Store, Repository und Syn
 | `reviewService.ts`, `siblingBurying.ts`, `reviewEventKinds.ts` | Tagesqueue, Begrabregel, Bewertungsarten und ihr Tagesverbrauch |
 | `scheduler.ts`, `easyDays.ts` | FSRS-7 über `ts-fsrs`, Haltbarkeit, Reifeband, Easy-Days-Entlastung (ADR-044, ADR-019) |
 | `coreVariantService.ts` | Eignung, Bereitschaft und Wahl von Varianten im Review |
-| `cardSearchQuery.ts`, `tagDirectory.ts` | Suchsprache in Anki-Schreibweise und ihre lokale Auswertung; Tag-Verzeichnis (ADR-045) |
+| `cardSearchQuery.ts`, `tagDirectory.ts` | Anki-Suchsprache: Parser, lokale Auswertung, Filterbearbeitung, Widersprüche; Tag-Verzeichnis (ADR-045) |
 | `catalogSearchIndex.ts`, `duplicateContents.ts` | In-Memory-Suche über den vollständigen Katalog (ADR-048); Duplikate (`is:duplicate`) |
 | `hitStudySession.ts` | `Treffer lernen` und Üben ohne Schreibpfad |
 | `examPlanning.ts`, `examPlanSettings.ts`, `examDailyTasks.ts`, `examCalendarModel.ts` | Prüfungsplanung, Planablage im Profil, Tagesaufgaben, Kalenderprojektion (ADR-042) |
