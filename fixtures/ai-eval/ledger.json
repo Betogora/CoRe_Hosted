@@ -1872,6 +1872,206 @@
         "obergrenze_erreicht": 0.0357,
         "verworfen": 2.6429
       }
+    },
+    {
+      "requestType": "learning-summary",
+      "run": "2026-11-24-i1-strenges-werkzeug",
+      "date": "2026-11-24",
+      "split": "dev",
+      "promptVersion": "learning-summary-v4",
+      "candidate": "strenges-werkzeug",
+      "fingerprint": "b4eaa63071c0dd9a",
+      "model": "openai/gpt-6-luna",
+      "reasoning": "low",
+      "change": "Werkzeugschema strict: true, damit Pflichtfelder wie subsections nicht fehlen",
+      "decision": "rejected",
+      "cases": 20,
+      "repetitions": 2,
+      "main": 0.525,
+      "low": 0.3375,
+      "high": 0.7125,
+      "criteria": {
+        "Z1": 0.975,
+        "Z2": 0.9231,
+        "Z3": 0.9487,
+        "Z4": 1,
+        "Z5": 0.5897,
+        "Z6": 0.9744,
+        "Z7": 0.7564,
+        "Z8": 0.9943,
+        "Z9": 0.9565
+      },
+      "outcomes": {
+        "answer": 39,
+        "refused": 0,
+        "rejected": 1,
+        "timeout": 0
+      },
+      "traps": {
+        "answers": 0,
+        "errors": 0
+      },
+      "costUsd": 0.000723,
+      "costTotalUsd": 0.0289,
+      "latencyP90Ms": 18833,
+      "judge": {
+        "model": "claude-opus-5-5",
+        "fingerprint": "a89086c0cf8c8650",
+        "entries": 117,
+        "cached": 0,
+        "noise": {
+          "Z6": 0.1667,
+          "Z7": 0,
+          "Z8": 0,
+          "Z9": 0
+        }
+      },
+      "metrics": {
+        "abschnitte": 5.1026,
+        "belegtes_material": 0.9899,
+        "warnungen": 1.0256,
+        "woerter": 476.5385
+      },
+      "comparison": {
+        "noise": 0.2188,
+        "gained": 6,
+        "lost": 7
+      }
+    },
+    {
+      "requestType": "learning-summary",
+      "run": "2026-11-24-i1-laenge-struktur",
+      "date": "2026-11-24",
+      "split": "dev",
+      "promptVersion": "learning-summary-v4",
+      "candidate": "laenge-struktur",
+      "fingerprint": "9b185135600c1879",
+      "model": "openai/gpt-6-luna",
+      "reasoning": "low",
+      "change": "Längenbudget zusätzlich als Höchstzahl von Abschnitten, Punkten und Absätzen für kurz und mittel",
+      "decision": "rejected",
+      "cases": 20,
+      "repetitions": 2,
+      "main": 0.375,
+      "low": 0.225,
+      "high": 0.5375,
+      "criteria": {
+        "Z1": 0.925,
+        "Z2": 0.9459,
+        "Z3": 0.973,
+        "Z4": 1,
+        "Z5": 0.5135,
+        "Z6": 0.9054,
+        "Z7": 0.8784,
+        "Z8": 0.9872,
+        "Z9": 0.913
+      },
+      "outcomes": {
+        "answer": 37,
+        "refused": 0,
+        "rejected": 3,
+        "timeout": 0
+      },
+      "traps": {
+        "answers": 0,
+        "errors": 0
+      },
+      "costUsd": 0.000699,
+      "costTotalUsd": 0.028,
+      "latencyP90Ms": 15743,
+      "judge": {
+        "model": "claude-opus-5-5",
+        "fingerprint": "a89086c0cf8c8650",
+        "entries": 110,
+        "cached": 1,
+        "noise": {
+          "Z6": 0,
+          "Z7": 0,
+          "Z8": 0,
+          "Z9": 0
+        }
+      },
+      "metrics": {
+        "abschnitte": 4.3514,
+        "belegtes_material": 0.9962,
+        "warnungen": 1.027,
+        "woerter": 480.6757
+      },
+      "comparison": {
+        "noise": 0.1625,
+        "gained": 5,
+        "lost": 9
+      }
+    },
+    {
+      "requestType": "learning-summary",
+      "run": "2026-11-24-i1-relationen-namen-x4",
+      "date": "2026-11-24",
+      "split": "dev",
+      "promptVersion": "learning-summary-v4",
+      "candidate": "relationen-namen",
+      "fingerprint": "165cf04a7cbfa611",
+      "model": "openai/gpt-6-luna",
+      "reasoning": "low",
+      "change": "Querbezüge nur zwischen vorhandenen headings und keywords, bei Fließtext nur zwischen headings (vier Wiederholungen; mit zwei: +20 Punkte, verworfen wegen Z6 93,1 statt 94,4 %)",
+      "decision": "rejected",
+      "cases": 20,
+      "repetitions": 4,
+      "main": 0.7,
+      "low": 0.5688,
+      "high": 0.825,
+      "criteria": {
+        "Z1": 0.8625,
+        "Z2": 0.8986,
+        "Z3": 0.942,
+        "Z4": 1,
+        "Z5": 0.942,
+        "Z6": 0.9783,
+        "Z7": 0.8696,
+        "Z8": 0.9826,
+        "Z9": 0.9125
+      },
+      "outcomes": {
+        "answer": 69,
+        "refused": 0,
+        "rejected": 11,
+        "timeout": 0
+      },
+      "traps": {
+        "answers": 0,
+        "errors": 0
+      },
+      "costUsd": 0.000638,
+      "costTotalUsd": 0.051,
+      "latencyP90Ms": 16495,
+      "judge": {
+        "model": "claude-opus-5-5",
+        "fingerprint": "a89086c0cf8c8650",
+        "entries": 206,
+        "cached": 0,
+        "noise": {
+          "Z6": 0,
+          "Z7": 0,
+          "Z8": 0,
+          "Z9": 0
+        }
+      },
+      "metrics": {
+        "abschnitte": 4.8406,
+        "belegtes_material": 1,
+        "warnungen": 1.1159,
+        "woerter": 457.1304
+      },
+      "comparison": {
+        "noise": 0.1844,
+        "gained": 8,
+        "lost": 5,
+        "target": [
+          "kurz-fliesstext-verstehen-ohne-beispiele",
+          "lang-fliesstext-pruefung",
+          "mittel-fliesstext-wiederholen-ohne-beispiele"
+        ]
+      }
     }
   ],
   "calibrations": []

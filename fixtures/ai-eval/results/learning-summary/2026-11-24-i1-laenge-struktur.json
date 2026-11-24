@@ -1,0 +1,1106 @@
+[
+  {
+    "caseId": "b-geometrie-karten-kurz-stichpunkte-wiederholen",
+    "repetition": 0,
+    "category": "kurz-stichpunkte-wiederholen",
+    "trap": false,
+    "outcome": "answer",
+    "criteria": {
+      "Z1": 1,
+      "Z2": 1,
+      "Z3": 1,
+      "Z4": 1,
+      "Z5": 1,
+      "Z6": 1,
+      "Z7": 1,
+      "Z8": 1
+    },
+    "main": 1,
+    "metrics": {
+      "woerter": 246,
+      "abschnitte": 2,
+      "belegtes_material": 1,
+      "warnungen": 0
+    },
+    "costUsd": 0.0006263,
+    "latencyMs": 7083,
+    "totalTokens": 2943,
+    "model": "openai/gpt-6-luna"
+  },
+  {
+    "caseId": "b-geometrie-karten-kurz-stichpunkte-wiederholen",
+    "repetition": 1,
+    "category": "kurz-stichpunkte-wiederholen",
+    "trap": false,
+    "outcome": "answer",
+    "criteria": {
+      "Z1": 1,
+      "Z2": 1,
+      "Z3": 1,
+      "Z4": 1,
+      "Z5": 1,
+      "Z6": 1,
+      "Z7": 1,
+      "Z8": 1
+    },
+    "main": 1,
+    "metrics": {
+      "woerter": 224,
+      "abschnitte": 2,
+      "belegtes_material": 1,
+      "warnungen": 0
+    },
+    "costUsd": 0.00034192,
+    "latencyMs": 6408,
+    "totalTokens": 2860,
+    "model": "openai/gpt-6-luna"
+  },
+  {
+    "caseId": "b-geometrie-karten-mittel-stichpunkte-pruefung-ohne-beispiele",
+    "repetition": 0,
+    "category": "mittel-stichpunkte-pruefung-ohne-beispiele",
+    "trap": false,
+    "outcome": "answer",
+    "criteria": {
+      "Z1": 1,
+      "Z2": 1,
+      "Z3": 1,
+      "Z4": 1,
+      "Z5": 1,
+      "Z6": 1,
+      "Z7": 1,
+      "Z8": 1
+    },
+    "main": 1,
+    "metrics": {
+      "woerter": 267,
+      "abschnitte": 2,
+      "belegtes_material": 1,
+      "warnungen": 0
+    },
+    "costUsd": 0.00038095,
+    "latencyMs": 6867,
+    "totalTokens": 2941,
+    "model": "openai/gpt-6-luna"
+  },
+  {
+    "caseId": "b-geometrie-karten-mittel-stichpunkte-pruefung-ohne-beispiele",
+    "repetition": 1,
+    "category": "mittel-stichpunkte-pruefung-ohne-beispiele",
+    "trap": false,
+    "outcome": "answer",
+    "criteria": {
+      "Z1": 1,
+      "Z2": 1,
+      "Z3": 1,
+      "Z4": 1,
+      "Z5": 0,
+      "Z6": 1,
+      "Z7": 1,
+      "Z8": 1
+    },
+    "main": 0,
+    "metrics": {
+      "woerter": 259,
+      "abschnitte": 3,
+      "belegtes_material": 1,
+      "warnungen": 0
+    },
+    "costUsd": 0.000634675,
+    "latencyMs": 6910,
+    "totalTokens": 2962,
+    "model": "openai/gpt-6-luna"
+  },
+  {
+    "caseId": "b-it-sicherheit-karten-und-quelle-lang-gegliedert-wiederholen-ohne-beispiele",
+    "repetition": 0,
+    "category": "lang-gegliedert-wiederholen-ohne-beispiele",
+    "trap": false,
+    "outcome": "answer",
+    "criteria": {
+      "Z1": 1,
+      "Z2": 1,
+      "Z3": 1,
+      "Z4": 1,
+      "Z5": 0,
+      "Z6": 1,
+      "Z7": 0.5,
+      "Z8": 1,
+      "Z9": 1
+    },
+    "main": 0,
+    "metrics": {
+      "woerter": 548,
+      "abschnitte": 4,
+      "belegtes_material": 1,
+      "warnungen": 3
+    },
+    "costUsd": 0.00070953,
+    "latencyMs": 12639,
+    "totalTokens": 4047,
+    "model": "openai/gpt-6-luna"
+  },
+  {
+    "caseId": "b-it-sicherheit-karten-und-quelle-lang-gegliedert-wiederholen-ohne-beispiele",
+    "repetition": 1,
+    "category": "lang-gegliedert-wiederholen-ohne-beispiele",
+    "trap": false,
+    "outcome": "answer",
+    "criteria": {
+      "Z1": 1,
+      "Z2": 1,
+      "Z3": 1,
+      "Z4": 1,
+      "Z5": 0,
+      "Z6": 1,
+      "Z7": 1,
+      "Z8": 1,
+      "Z9": 1
+    },
+    "main": 0,
+    "metrics": {
+      "woerter": 448,
+      "abschnitte": 4,
+      "belegtes_material": 1,
+      "warnungen": 4
+    },
+    "costUsd": 0.00060003,
+    "latencyMs": 10409,
+    "totalTokens": 3828,
+    "model": "openai/gpt-6-luna"
+  },
+  {
+    "caseId": "b-it-sicherheit-karten-und-quelle-mittel-fliesstext-wiederholen-ohne-beispiele",
+    "repetition": 0,
+    "category": "mittel-fliesstext-wiederholen-ohne-beispiele",
+    "trap": false,
+    "outcome": "answer",
+    "criteria": {
+      "Z1": 1,
+      "Z2": 1,
+      "Z3": 1,
+      "Z4": 1,
+      "Z5": 0,
+      "Z6": 1,
+      "Z7": 1,
+      "Z8": 1,
+      "Z9": 1
+    },
+    "main": 0,
+    "metrics": {
+      "woerter": 428,
+      "abschnitte": 5,
+      "belegtes_material": 1,
+      "warnungen": 2
+    },
+    "costUsd": 0.00054533,
+    "latencyMs": 10289,
+    "totalTokens": 3699,
+    "model": "openai/gpt-6-luna"
+  },
+  {
+    "caseId": "b-it-sicherheit-karten-und-quelle-mittel-fliesstext-wiederholen-ohne-beispiele",
+    "repetition": 1,
+    "category": "mittel-fliesstext-wiederholen-ohne-beispiele",
+    "trap": false,
+    "outcome": "answer",
+    "criteria": {
+      "Z1": 1,
+      "Z2": 1,
+      "Z3": 1,
+      "Z4": 1,
+      "Z5": 1,
+      "Z6": 1,
+      "Z7": 1,
+      "Z8": 1,
+      "Z9": 1
+    },
+    "main": 1,
+    "metrics": {
+      "woerter": 368,
+      "abschnitte": 4,
+      "belegtes_material": 1,
+      "warnungen": 2
+    },
+    "costUsd": 0.000784925,
+    "latencyMs": 8970,
+    "totalTokens": 3591,
+    "model": "openai/gpt-6-luna"
+  },
+  {
+    "caseId": "b-literaturbegriffe-englisch-quelle-kurz-fliesstext-verstehen-ohne-beispiele",
+    "repetition": 0,
+    "category": "kurz-fliesstext-verstehen-ohne-beispiele",
+    "trap": false,
+    "outcome": "rejected",
+    "criteria": {
+      "Z1": 0
+    },
+    "main": 0,
+    "costUsd": 0.000479865,
+    "latencyMs": 7416,
+    "totalTokens": 3061,
+    "model": "openai/gpt-6-luna"
+  },
+  {
+    "caseId": "b-literaturbegriffe-englisch-quelle-kurz-fliesstext-verstehen-ohne-beispiele",
+    "repetition": 1,
+    "category": "kurz-fliesstext-verstehen-ohne-beispiele",
+    "trap": false,
+    "outcome": "answer",
+    "criteria": {
+      "Z1": 1,
+      "Z2": 1,
+      "Z3": 1,
+      "Z4": 1,
+      "Z5": 1,
+      "Z7": 0.5,
+      "Z6": 1,
+      "Z8": 0.8889
+    },
+    "main": 1,
+    "metrics": {
+      "woerter": 297,
+      "abschnitte": 3,
+      "belegtes_material": 1,
+      "warnungen": 0
+    },
+    "costUsd": 0.00036639,
+    "latencyMs": 8029,
+    "totalTokens": 3102,
+    "model": "openai/gpt-6-luna"
+  },
+  {
+    "caseId": "b-literaturbegriffe-englisch-quelle-lang-stichpunkte-verstehen",
+    "repetition": 0,
+    "category": "lang-stichpunkte-verstehen",
+    "trap": false,
+    "outcome": "answer",
+    "criteria": {
+      "Z1": 1,
+      "Z2": 1,
+      "Z3": 1,
+      "Z4": 1,
+      "Z5": 1,
+      "Z6": 0.5,
+      "Z7": 1,
+      "Z8": 1
+    },
+    "main": 0.5,
+    "metrics": {
+      "woerter": 825,
+      "abschnitte": 5,
+      "belegtes_material": 1,
+      "warnungen": 0
+    },
+    "costUsd": 0.00094178,
+    "latencyMs": 15743,
+    "totalTokens": 4242,
+    "model": "openai/gpt-6-luna"
+  },
+  {
+    "caseId": "b-literaturbegriffe-englisch-quelle-lang-stichpunkte-verstehen",
+    "repetition": 1,
+    "category": "lang-stichpunkte-verstehen",
+    "trap": false,
+    "outcome": "answer",
+    "criteria": {
+      "Z1": 1,
+      "Z2": 1,
+      "Z3": 1,
+      "Z4": 1,
+      "Z5": 1,
+      "Z6": 0.5,
+      "Z7": 1,
+      "Z8": 1
+    },
+    "main": 0.5,
+    "metrics": {
+      "woerter": 773,
+      "abschnitte": 5,
+      "belegtes_material": 1,
+      "warnungen": 0
+    },
+    "costUsd": 0.00092278,
+    "latencyMs": 14451,
+    "totalTokens": 4204,
+    "model": "openai/gpt-6-luna"
+  },
+  {
+    "caseId": "b-mikrobiologie-karten-mittel-stichpunkte-pruefung-ohne-beispiele",
+    "repetition": 0,
+    "category": "mittel-stichpunkte-pruefung-ohne-beispiele",
+    "trap": false,
+    "outcome": "answer",
+    "criteria": {
+      "Z1": 1,
+      "Z2": 1,
+      "Z3": 1,
+      "Z4": 1,
+      "Z5": 1,
+      "Z6": 1,
+      "Z7": 0.5,
+      "Z8": 1,
+      "Z9": 0
+    },
+    "main": 1,
+    "metrics": {
+      "woerter": 298,
+      "abschnitte": 4,
+      "belegtes_material": 1,
+      "warnungen": 0
+    },
+    "costUsd": 0.00069012,
+    "latencyMs": 11232,
+    "totalTokens": 3528,
+    "model": "openai/gpt-6-luna"
+  },
+  {
+    "caseId": "b-mikrobiologie-karten-mittel-stichpunkte-pruefung-ohne-beispiele",
+    "repetition": 1,
+    "category": "mittel-stichpunkte-pruefung-ohne-beispiele",
+    "trap": false,
+    "outcome": "answer",
+    "criteria": {
+      "Z1": 1,
+      "Z2": 1,
+      "Z3": 1,
+      "Z4": 1,
+      "Z5": 1,
+      "Z6": 1,
+      "Z7": 1,
+      "Z8": 1,
+      "Z9": 1
+    },
+    "main": 1,
+    "metrics": {
+      "woerter": 297,
+      "abschnitte": 4,
+      "belegtes_material": 1,
+      "warnungen": 1
+    },
+    "costUsd": 0.00055697,
+    "latencyMs": 10763,
+    "totalTokens": 3540,
+    "model": "openai/gpt-6-luna"
+  },
+  {
+    "caseId": "b-mikrobiologie-karten-standard",
+    "repetition": 0,
+    "category": "standard",
+    "trap": false,
+    "outcome": "answer",
+    "criteria": {
+      "Z1": 1,
+      "Z2": 1,
+      "Z3": 1,
+      "Z4": 1,
+      "Z5": 0,
+      "Z6": 1,
+      "Z7": 1,
+      "Z8": 1,
+      "Z9": 1
+    },
+    "main": 0,
+    "metrics": {
+      "woerter": 325,
+      "abschnitte": 4,
+      "belegtes_material": 1,
+      "warnungen": 2
+    },
+    "costUsd": 0.0008068,
+    "latencyMs": 8988,
+    "totalTokens": 3505,
+    "model": "openai/gpt-6-luna"
+  },
+  {
+    "caseId": "b-mikrobiologie-karten-standard",
+    "repetition": 1,
+    "category": "standard",
+    "trap": false,
+    "outcome": "answer",
+    "criteria": {
+      "Z1": 1,
+      "Z2": 1,
+      "Z3": 1,
+      "Z4": 1,
+      "Z5": 1,
+      "Z6": 1,
+      "Z7": 1,
+      "Z8": 1,
+      "Z9": 1
+    },
+    "main": 1,
+    "metrics": {
+      "woerter": 313,
+      "abschnitte": 4,
+      "belegtes_material": 1,
+      "warnungen": 1
+    },
+    "costUsd": 0.0004866,
+    "latencyMs": 8093,
+    "totalTokens": 3412,
+    "model": "openai/gpt-6-luna"
+  },
+  {
+    "caseId": "b-oekosysteme-quelle-mittel-fliesstext-wiederholen-ohne-beispiele",
+    "repetition": 0,
+    "category": "mittel-fliesstext-wiederholen-ohne-beispiele",
+    "trap": false,
+    "outcome": "rejected",
+    "criteria": {
+      "Z1": 0
+    },
+    "main": 0,
+    "costUsd": 0.000849635,
+    "latencyMs": 11614,
+    "totalTokens": 3948,
+    "model": "openai/gpt-6-luna"
+  },
+  {
+    "caseId": "b-oekosysteme-quelle-mittel-fliesstext-wiederholen-ohne-beispiele",
+    "repetition": 1,
+    "category": "mittel-fliesstext-wiederholen-ohne-beispiele",
+    "trap": false,
+    "outcome": "answer",
+    "criteria": {
+      "Z1": 1,
+      "Z2": 1,
+      "Z3": 0,
+      "Z4": 1,
+      "Z5": 0,
+      "Z6": 1,
+      "Z7": 0.5,
+      "Z8": 1
+    },
+    "main": 0,
+    "metrics": {
+      "woerter": 608,
+      "abschnitte": 5,
+      "belegtes_material": 1,
+      "warnungen": 0
+    },
+    "costUsd": 0.00069285,
+    "latencyMs": 11261,
+    "totalTokens": 3947,
+    "model": "openai/gpt-6-luna"
+  },
+  {
+    "caseId": "b-oekosysteme-quelle-kurz-stichpunkte-wiederholen",
+    "repetition": 0,
+    "category": "kurz-stichpunkte-wiederholen",
+    "trap": false,
+    "outcome": "answer",
+    "criteria": {
+      "Z1": 1,
+      "Z2": 0,
+      "Z3": 1,
+      "Z4": 1,
+      "Z5": 1,
+      "Z6": 1,
+      "Z7": 1,
+      "Z8": 1
+    },
+    "main": 0,
+    "metrics": {
+      "woerter": 500,
+      "abschnitte": 3,
+      "belegtes_material": 1,
+      "warnungen": 0
+    },
+    "costUsd": 0.000795715,
+    "latencyMs": 10503,
+    "totalTokens": 3848,
+    "model": "openai/gpt-6-luna"
+  },
+  {
+    "caseId": "b-oekosysteme-quelle-kurz-stichpunkte-wiederholen",
+    "repetition": 1,
+    "category": "kurz-stichpunkte-wiederholen",
+    "trap": false,
+    "outcome": "answer",
+    "criteria": {
+      "Z1": 1,
+      "Z2": 0,
+      "Z3": 1,
+      "Z4": 1,
+      "Z5": 1,
+      "Z6": 1,
+      "Z7": 1,
+      "Z8": 1
+    },
+    "main": 0,
+    "metrics": {
+      "woerter": 470,
+      "abschnitte": 4,
+      "belegtes_material": 1,
+      "warnungen": 0
+    },
+    "costUsd": 0.00064343,
+    "latencyMs": 14273,
+    "totalTokens": 3856,
+    "model": "openai/gpt-6-luna"
+  },
+  {
+    "caseId": "b-schlaganfall-quelle-lang-stichpunkte-verstehen",
+    "repetition": 0,
+    "category": "lang-stichpunkte-verstehen",
+    "trap": false,
+    "outcome": "answer",
+    "criteria": {
+      "Z1": 1,
+      "Z2": 1,
+      "Z3": 1,
+      "Z4": 1,
+      "Z5": 1,
+      "Z6": 1,
+      "Z7": 1,
+      "Z8": 1,
+      "Z9": 1
+    },
+    "main": 1,
+    "metrics": {
+      "woerter": 1287,
+      "abschnitte": 6,
+      "belegtes_material": 1,
+      "warnungen": 1
+    },
+    "costUsd": 0.00160478,
+    "latencyMs": 29593,
+    "totalTokens": 7332,
+    "model": "openai/gpt-6-luna"
+  },
+  {
+    "caseId": "b-schlaganfall-quelle-lang-stichpunkte-verstehen",
+    "repetition": 1,
+    "category": "lang-stichpunkte-verstehen",
+    "trap": false,
+    "outcome": "answer",
+    "criteria": {
+      "Z1": 1,
+      "Z2": 1,
+      "Z3": 1,
+      "Z4": 1,
+      "Z5": 1,
+      "Z6": 0.5,
+      "Z7": 0.5,
+      "Z8": 1,
+      "Z9": 1
+    },
+    "main": 0.5,
+    "metrics": {
+      "woerter": 1204,
+      "abschnitte": 4,
+      "belegtes_material": 1,
+      "warnungen": 2
+    },
+    "costUsd": 0.00145778,
+    "latencyMs": 26710,
+    "totalTokens": 7038,
+    "model": "openai/gpt-6-luna"
+  },
+  {
+    "caseId": "b-schlaganfall-quelle-lang-fliesstext-pruefung",
+    "repetition": 0,
+    "category": "lang-fliesstext-pruefung",
+    "trap": false,
+    "outcome": "answer",
+    "criteria": {
+      "Z1": 1,
+      "Z2": 1,
+      "Z3": 1,
+      "Z4": 1,
+      "Z5": 0,
+      "Z6": 1,
+      "Z7": 1,
+      "Z8": 1,
+      "Z9": 1
+    },
+    "main": 0,
+    "metrics": {
+      "woerter": 1292,
+      "abschnitte": 13,
+      "belegtes_material": 1,
+      "warnungen": 1
+    },
+    "costUsd": 0.00149844,
+    "latencyMs": 28211,
+    "totalTokens": 7135,
+    "model": "openai/gpt-6-luna"
+  },
+  {
+    "caseId": "b-schlaganfall-quelle-lang-fliesstext-pruefung",
+    "repetition": 1,
+    "category": "lang-fliesstext-pruefung",
+    "trap": false,
+    "outcome": "answer",
+    "criteria": {
+      "Z1": 1,
+      "Z2": 1,
+      "Z3": 1,
+      "Z4": 1,
+      "Z5": 0,
+      "Z6": 1,
+      "Z7": 1,
+      "Z8": 1,
+      "Z9": 1
+    },
+    "main": 0,
+    "metrics": {
+      "woerter": 1223,
+      "abschnitte": 6,
+      "belegtes_material": 1,
+      "warnungen": 2
+    },
+    "costUsd": 0.00136344,
+    "latencyMs": 26769,
+    "totalTokens": 6865,
+    "model": "openai/gpt-6-luna"
+  },
+  {
+    "caseId": "b-volkswirtschaft-karten-standard",
+    "repetition": 0,
+    "category": "standard",
+    "trap": false,
+    "outcome": "answer",
+    "criteria": {
+      "Z1": 1,
+      "Z2": 1,
+      "Z3": 1,
+      "Z4": 1,
+      "Z5": 0,
+      "Z6": 1,
+      "Z7": 1,
+      "Z8": 1
+    },
+    "main": 0,
+    "metrics": {
+      "woerter": 415,
+      "abschnitte": 3,
+      "belegtes_material": 1,
+      "warnungen": 1
+    },
+    "costUsd": 0.00069125,
+    "latencyMs": 11046,
+    "totalTokens": 3687,
+    "model": "openai/gpt-6-luna"
+  },
+  {
+    "caseId": "b-volkswirtschaft-karten-standard",
+    "repetition": 1,
+    "category": "standard",
+    "trap": false,
+    "outcome": "answer",
+    "criteria": {
+      "Z1": 1,
+      "Z2": 1,
+      "Z3": 1,
+      "Z4": 1,
+      "Z5": 0,
+      "Z6": 0.5,
+      "Z7": 1,
+      "Z8": 1
+    },
+    "main": 0,
+    "metrics": {
+      "woerter": 387,
+      "abschnitte": 3,
+      "belegtes_material": 1,
+      "warnungen": 0
+    },
+    "costUsd": 0.00051152,
+    "latencyMs": 10487,
+    "totalTokens": 3650,
+    "model": "openai/gpt-6-luna"
+  },
+  {
+    "caseId": "b-volkswirtschaft-karten-kurz-fliesstext-verstehen-ohne-beispiele",
+    "repetition": 0,
+    "category": "kurz-fliesstext-verstehen-ohne-beispiele",
+    "trap": false,
+    "outcome": "answer",
+    "criteria": {
+      "Z1": 1,
+      "Z2": 1,
+      "Z3": 1,
+      "Z4": 1,
+      "Z5": 0,
+      "Z6": 0.5,
+      "Z7": 1,
+      "Z8": 0.8889
+    },
+    "main": 0,
+    "metrics": {
+      "woerter": 340,
+      "abschnitte": 4,
+      "belegtes_material": 1,
+      "warnungen": 0
+    },
+    "costUsd": 0.00076505,
+    "latencyMs": 9631,
+    "totalTokens": 3546,
+    "model": "openai/gpt-6-luna"
+  },
+  {
+    "caseId": "b-volkswirtschaft-karten-kurz-fliesstext-verstehen-ohne-beispiele",
+    "repetition": 1,
+    "category": "kurz-fliesstext-verstehen-ohne-beispiele",
+    "trap": false,
+    "outcome": "answer",
+    "criteria": {
+      "Z1": 1,
+      "Z2": 1,
+      "Z3": 1,
+      "Z4": 1,
+      "Z5": 0,
+      "Z6": 1,
+      "Z7": 1,
+      "Z8": 1
+    },
+    "main": 0,
+    "metrics": {
+      "woerter": 332,
+      "abschnitte": 3,
+      "belegtes_material": 1,
+      "warnungen": 0
+    },
+    "costUsd": 0.00046126,
+    "latencyMs": 9375,
+    "totalTokens": 3524,
+    "model": "openai/gpt-6-luna"
+  },
+  {
+    "caseId": "netzwerk-karten-und-quelle-kurz-gegliedert-pruefung-ohne-beispiele",
+    "repetition": 0,
+    "category": "kurz-gegliedert-pruefung-ohne-beispiele",
+    "trap": false,
+    "outcome": "answer",
+    "criteria": {
+      "Z1": 1,
+      "Z2": 1,
+      "Z3": 1,
+      "Z4": 1,
+      "Z5": 0,
+      "Z6": 1,
+      "Z7": 1,
+      "Z8": 1,
+      "Z9": 1
+    },
+    "main": 0,
+    "metrics": {
+      "woerter": 264,
+      "abschnitte": 3,
+      "belegtes_material": 1,
+      "warnungen": 1
+    },
+    "costUsd": 0.0006243,
+    "latencyMs": 8129,
+    "totalTokens": 2915,
+    "model": "openai/gpt-6-luna"
+  },
+  {
+    "caseId": "netzwerk-karten-und-quelle-kurz-gegliedert-pruefung-ohne-beispiele",
+    "repetition": 1,
+    "category": "kurz-gegliedert-pruefung-ohne-beispiele",
+    "trap": false,
+    "outcome": "answer",
+    "criteria": {
+      "Z1": 1,
+      "Z2": 1,
+      "Z3": 1,
+      "Z4": 1,
+      "Z5": 1,
+      "Z6": 1,
+      "Z7": 1,
+      "Z8": 1,
+      "Z9": 1
+    },
+    "main": 1,
+    "metrics": {
+      "woerter": 222,
+      "abschnitte": 3,
+      "belegtes_material": 1,
+      "warnungen": 2
+    },
+    "costUsd": 0.0003376,
+    "latencyMs": 9223,
+    "totalTokens": 2820,
+    "model": "openai/gpt-6-luna"
+  },
+  {
+    "caseId": "netzwerk-karten-und-quelle-lang-gegliedert-wiederholen-ohne-beispiele",
+    "repetition": 0,
+    "category": "lang-gegliedert-wiederholen-ohne-beispiele",
+    "trap": false,
+    "outcome": "rejected",
+    "criteria": {
+      "Z1": 0
+    },
+    "main": 0,
+    "costUsd": 0.00069736,
+    "latencyMs": 12863,
+    "totalTokens": 3516,
+    "model": "openai/gpt-6-luna"
+  },
+  {
+    "caseId": "netzwerk-karten-und-quelle-lang-gegliedert-wiederholen-ohne-beispiele",
+    "repetition": 1,
+    "category": "lang-gegliedert-wiederholen-ohne-beispiele",
+    "trap": false,
+    "outcome": "answer",
+    "criteria": {
+      "Z1": 1,
+      "Z2": 1,
+      "Z3": 1,
+      "Z4": 1,
+      "Z5": 0,
+      "Z6": 1,
+      "Z7": 0,
+      "Z8": 1,
+      "Z9": 1
+    },
+    "main": 0,
+    "metrics": {
+      "woerter": 507,
+      "abschnitte": 7,
+      "belegtes_material": 1,
+      "warnungen": 2
+    },
+    "costUsd": 0.00074136,
+    "latencyMs": 14937,
+    "totalTokens": 3604,
+    "model": "openai/gpt-6-luna"
+  },
+  {
+    "caseId": "plattentektonik-karten-standard",
+    "repetition": 0,
+    "category": "standard",
+    "trap": false,
+    "outcome": "answer",
+    "criteria": {
+      "Z1": 1,
+      "Z2": 1,
+      "Z3": 1,
+      "Z4": 1,
+      "Z5": 1,
+      "Z6": 1,
+      "Z7": 1,
+      "Z8": 1,
+      "Z9": 1
+    },
+    "main": 1,
+    "metrics": {
+      "woerter": 387,
+      "abschnitte": 5,
+      "belegtes_material": 1,
+      "warnungen": 1
+    },
+    "costUsd": 0.0006935,
+    "latencyMs": 11213,
+    "totalTokens": 3588,
+    "model": "openai/gpt-6-luna"
+  },
+  {
+    "caseId": "plattentektonik-karten-standard",
+    "repetition": 1,
+    "category": "standard",
+    "trap": false,
+    "outcome": "answer",
+    "criteria": {
+      "Z1": 1,
+      "Z2": 1,
+      "Z3": 1,
+      "Z4": 1,
+      "Z5": 0,
+      "Z6": 1,
+      "Z7": 0.5,
+      "Z8": 1,
+      "Z9": 1
+    },
+    "main": 0,
+    "metrics": {
+      "woerter": 340,
+      "abschnitte": 4,
+      "belegtes_material": 1,
+      "warnungen": 1
+    },
+    "costUsd": 0.00050164,
+    "latencyMs": 10438,
+    "totalTokens": 3495,
+    "model": "openai/gpt-6-luna"
+  },
+  {
+    "caseId": "plattentektonik-karten-kurz-fliesstext-verstehen-ohne-beispiele",
+    "repetition": 0,
+    "category": "kurz-fliesstext-verstehen-ohne-beispiele",
+    "trap": false,
+    "outcome": "answer",
+    "criteria": {
+      "Z1": 1,
+      "Z2": 1,
+      "Z3": 1,
+      "Z4": 1,
+      "Z5": 1,
+      "Z6": 0.5,
+      "Z7": 1,
+      "Z8": 1,
+      "Z9": 1
+    },
+    "main": 0.5,
+    "metrics": {
+      "woerter": 283,
+      "abschnitte": 4,
+      "belegtes_material": 1,
+      "warnungen": 1
+    },
+    "costUsd": 0.00056374,
+    "latencyMs": 9294,
+    "totalTokens": 3303,
+    "model": "openai/gpt-6-luna"
+  },
+  {
+    "caseId": "plattentektonik-karten-kurz-fliesstext-verstehen-ohne-beispiele",
+    "repetition": 1,
+    "category": "kurz-fliesstext-verstehen-ohne-beispiele",
+    "trap": false,
+    "outcome": "answer",
+    "criteria": {
+      "Z1": 1,
+      "Z2": 1,
+      "Z3": 1,
+      "Z4": 1,
+      "Z5": 0,
+      "Z6": 0.5,
+      "Z7": 0.5,
+      "Z8": 1,
+      "Z9": 1
+    },
+    "main": 0,
+    "metrics": {
+      "woerter": 291,
+      "abschnitte": 4,
+      "belegtes_material": 0.95,
+      "warnungen": 1
+    },
+    "costUsd": 0.00044338,
+    "latencyMs": 8146,
+    "totalTokens": 3353,
+    "model": "openai/gpt-6-luna"
+  },
+  {
+    "caseId": "stromkreise-karten-und-quelle-lang-fliesstext-pruefung",
+    "repetition": 0,
+    "category": "lang-fliesstext-pruefung",
+    "trap": false,
+    "outcome": "answer",
+    "criteria": {
+      "Z1": 1,
+      "Z2": 1,
+      "Z3": 1,
+      "Z4": 1,
+      "Z5": 1,
+      "Z6": 1,
+      "Z7": 1,
+      "Z8": 1,
+      "Z9": 0.5
+    },
+    "main": 1,
+    "metrics": {
+      "woerter": 484,
+      "abschnitte": 8,
+      "belegtes_material": 1,
+      "warnungen": 2
+    },
+    "costUsd": 0.00058099,
+    "latencyMs": 11743,
+    "totalTokens": 3688,
+    "model": "openai/gpt-6-luna"
+  },
+  {
+    "caseId": "stromkreise-karten-und-quelle-lang-fliesstext-pruefung",
+    "repetition": 1,
+    "category": "lang-fliesstext-pruefung",
+    "trap": false,
+    "outcome": "answer",
+    "criteria": {
+      "Z1": 1,
+      "Z2": 1,
+      "Z3": 1,
+      "Z4": 1,
+      "Z5": 1,
+      "Z6": 1,
+      "Z7": 1,
+      "Z8": 1,
+      "Z9": 1
+    },
+    "main": 1,
+    "metrics": {
+      "woerter": 476,
+      "abschnitte": 8,
+      "belegtes_material": 1,
+      "warnungen": 2
+    },
+    "costUsd": 0.00062849,
+    "latencyMs": 11600,
+    "totalTokens": 3783,
+    "model": "openai/gpt-6-luna"
+  },
+  {
+    "caseId": "stromkreise-karten-und-quelle-kurz-gegliedert-pruefung-ohne-beispiele",
+    "repetition": 0,
+    "category": "kurz-gegliedert-pruefung-ohne-beispiele",
+    "trap": false,
+    "outcome": "answer",
+    "criteria": {
+      "Z1": 1,
+      "Z2": 1,
+      "Z3": 1,
+      "Z4": 1,
+      "Z5": 0,
+      "Z6": 1,
+      "Z7": 1,
+      "Z8": 0.875,
+      "Z9": 1
+    },
+    "main": 0,
+    "metrics": {
+      "woerter": 286,
+      "abschnitte": 3,
+      "belegtes_material": 0.9090909090909091,
+      "warnungen": 2
+    },
+    "costUsd": 0.00055355,
+    "latencyMs": 7210,
+    "totalTokens": 3372,
+    "model": "openai/gpt-6-luna"
+  },
+  {
+    "caseId": "stromkreise-karten-und-quelle-kurz-gegliedert-pruefung-ohne-beispiele",
+    "repetition": 1,
+    "category": "kurz-gegliedert-pruefung-ohne-beispiele",
+    "trap": false,
+    "outcome": "answer",
+    "criteria": {
+      "Z1": 1,
+      "Z2": 1,
+      "Z3": 1,
+      "Z4": 1,
+      "Z5": 0,
+      "Z6": 1,
+      "Z7": 1,
+      "Z8": 0.875,
+      "Z9": 0.5
+    },
+    "main": 0,
+    "metrics": {
+      "woerter": 271,
+      "abschnitte": 3,
+      "belegtes_material": 1,
+      "warnungen": 1
+    },
+    "costUsd": 0.0003854,
+    "latencyMs": 7597,
+    "totalTokens": 3337,
+    "model": "openai/gpt-6-luna"
+  }
+]
