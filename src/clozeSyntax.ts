@@ -26,13 +26,23 @@ export function clozeAt(value: string, start: number): ClozeToken | null {
     else if (value[cursor] === "{") braces += 1;
     else if (value[cursor] === "}" && braces > 0) braces -= 1;
   }
-  // Anki closes a deletion at the next `}}` and knows neither escapes nor braces; cards are made by that rule, so a
-  // deletion this reading leaves open is shown as Anki would show it rather than with its answer in plain sight.
-  const close = value.indexOf("}}", textStart);
-  if (close < 0) return null;
-  const body = value.slice(textStart, close);
-  const hint = body.indexOf("::");
-  return { text: hint < 0 ? body : body.slice(0, hint), hint: hint < 0 ? "" : body.slice(hint + 2), ordinals, end: close + 2 };
+  // Cards are made by Anki's rule, which counts only openings and `}}` and knows neither escapes nor braces; a deletion
+  // this reading leaves open closes by that rule, so its answer is never shown in plain sight.
+  let depth = 0;
+  let hint = -1;
+  for (let cursor = textStart; cursor < value.length; cursor += 1) {
+    const nested = isClozeOpening(value, cursor) ? value.slice(cursor).match(/^\{\{c\d+(?:,\d+)*::/i) : null;
+    if (nested) { depth += 1; cursor += nested[0].length - 1; continue; }
+    if (value.startsWith("}}", cursor)) {
+      if (depth === 0) return { text: value.slice(textStart, hint < 0 ? cursor : hint), hint: hint < 0 ? "" : value.slice(hint + 2, cursor), ordinals, end: cursor + 2 };
+      depth -= 1;
+      cursor += 1;
+    } else if (depth === 0 && hint < 0 && value.startsWith("::", cursor)) {
+      hint = cursor;
+      cursor += 1;
+    }
+  }
+  return null;
 }
 
 /**

@@ -166,6 +166,8 @@ test("jede Lücke, für die eine Karte entsteht, findet auch die Darstellung", (
     String.raw`{{c1::\(\frac{a}{b}\)}} und {{c2::c}}`,
     "{{c1::außen {{c2::innen}} außen}}",
     "{{c0::null}} {{c1::eins}}",
+    "{{c1::{ {{c2::b}} }}",
+    String.raw`{{c1::a {{c2::b}} c\}}`,
     "{{c1::offen",
   ];
   for (const sample of samples) {

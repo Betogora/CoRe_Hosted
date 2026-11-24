@@ -60,7 +60,7 @@ export function CoreNumberField({ id, value, min, max, onChange, unit, testId = 
       onChange={(event) => updateInput(event.target.value)}
       onBlur={commitInput}
       onKeyDown={(event) => {
-        if (event.key === "Enter") event.currentTarget.blur();
+        if (event.key === "Enter") commitInput();
       }}
     />
   );

@@ -770,6 +770,20 @@ test("ein Stapel liefert vor und nach dem Laden des Index dieselben Seiten", asy
   repository.close();
 });
 
+test("vor dem Laden des Index folgen die Seiten eines Stapels einer Löschung und der Seitengröße", async () => {
+  const repository = await openRepository(workspaceState(25));
+  const ids = async (page: number, pageSize: number) => (await repository.listCardPage("deck-idb", { page, pageSize })).items.map((entry) => entry.id);
+  const before = [...await ids(0, 10), ...await ids(1, 10), ...await ids(2, 10)];
+  assert.deepEqual(await ids(1, 5), before.slice(5, 10), "eine andere Seitengröße nutzt nicht die Grenzen der vorigen");
+
+  const graph = await repository.loadNoteGraph((await repository.loadCardBody(before[0]))!.note.id);
+  const deleted = planNoteDeletion(graph!.note, graph!.cards);
+  await repository.saveNoteGraphs([{ previous: graph, next: { note: deleted.note, cards: deleted.cards } }]);
+
+  assert.deepEqual(await ids(1, 10), before.slice(11, 21), "nach der Löschung beginnt Seite 2 an ihrer neuen Stelle");
+  repository.close();
+});
+
 test("der lokale Katalog führt den Lernverlauf fort und behält ihn bei Inhaltsänderungen", async () => {
   const initialState = workspaceState(2);
   const repository = await openRepository(initialState);

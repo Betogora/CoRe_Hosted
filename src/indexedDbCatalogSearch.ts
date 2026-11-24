@@ -37,8 +37,14 @@ export function createCatalogSearch(database: IDBDatabase, flushWrites: () => Pr
   let searchIndexReady = false;
   let searchIndexLoad: Promise<void> | null = null;
   const changedCatalogIds = new Set<string>();
-  const markCatalogChanged = (id: string) => { changedCatalogIds.add(id); };
+  // Keyset cursors of a deck's pages; any catalog change can move rows across page borders.
+  const pageCursorsByKey = new Map<string, Map<number, CatalogCursor | null>>();
+  const markCatalogChanged = (id: string) => {
+    changedCatalogIds.add(id);
+    pageCursorsByKey.clear();
+  };
   const markCatalogReset = () => {
+    pageCursorsByKey.clear();
     searchIndexGeneration += 1;
     searchIndexReady = false;
     changedCatalogIds.clear();
@@ -179,7 +185,6 @@ export function createCatalogSearch(database: IDBDatabase, flushWrites: () => Pr
     };
   };
 
-  const pageCursorsByKey = new Map<string, Map<number, CatalogCursor | null>>();
   /**
    * The search index answers any page at once; a single deck without a search walks its keyset pages only until the
    * index is loaded.
@@ -205,10 +210,10 @@ export function createCatalogSearch(database: IDBDatabase, flushWrites: () => Pr
       };
     }
     const deckId = deckIds[0];
-    const key = JSON.stringify([deckId, query, sort.field, sort.direction, searchContext ?? null]);
+    const pageLimit = Math.min(CATALOG_PAGE_LIMIT, Math.max(1, Math.floor(Number(pageSize))));
+    const key = JSON.stringify([deckId, query, sort.field, sort.direction, searchContext ?? null, pageLimit]);
     const cursors = pageCursorsByKey.get(key) ?? new Map<number, CatalogCursor | null>([[0, null]]);
     pageCursorsByKey.set(key, cursors);
-    const pageLimit = Math.min(CATALOG_PAGE_LIMIT, Math.max(1, Math.floor(Number(pageSize))));
     let requestedPage = Math.max(0, Math.floor(page));
     while (!cursors.has(requestedPage)) requestedPage -= 1;
     let result = await readKeysetPage(deckId, cursors.get(requestedPage) ?? null, pageLimit, sort, true);
