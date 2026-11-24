@@ -529,3 +529,15 @@ for (const { width, height } of sizes) for (const theme of matrixThemes) {
     expect(await page.locator(".catalog-product-preview").evaluate((element) => element.scrollWidth > element.clientWidth + 1)).toBe(false);
   });
 }
+
+test("die Heatmap-Farbe lässt sich im Bearbeitungsmodus am Widget wählen", async ({ page }) => {
+  await page.goto("/docs/ui-elements.html?preview=dashboard");
+  const picker = page.getByRole("button", { name: "Heatmap-Farbe ändern", exact: true });
+  await expect(picker).toHaveCount(0);
+  await page.getByRole("button", { name: "Seite bearbeiten", exact: true }).click();
+  await expect(picker).toHaveCount(1);
+  await expect(page.locator('[data-dashboard-widget="heatmap"]').getByRole("button", { name: "Heatmap-Farbe ändern", exact: true })).toBeVisible();
+  await picker.click();
+  await page.getByRole("radio", { name: "Farbe #3FA66B", exact: true }).click();
+  await expect(page.locator('[data-dashboard-widget="heatmap"] [data-heatmap-history-color]')).toHaveAttribute("data-heatmap-history-color", "#3fa66b");
+});
