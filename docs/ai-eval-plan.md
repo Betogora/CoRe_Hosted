@@ -92,7 +92,7 @@ Vier Routen, alle über `OPENROUTER_MODEL` (`openai/gpt-6-luna`), Reasoning
 | Route | Prompt | Anfragearten | Prompt ist | Eval heute |
 | --- | --- | --- | --- | --- |
 | `card-variant` | `card-variant-v5` | Frage/Antwort, Eintippen (Zusatzregel), Lückentext, Auswahl (Single, Multiple, Kprim) | drei feste Texte | Definitionen für drei Arten |
-| `card-help` | `card-help-v1` | Erklären, Beispiel, eigene Frage mit bis zu sechs Wechseln Verlauf | ein fester Text | Definition |
+| `card-help` | `card-help-v2` | Erklären, Beispiel, eigene Frage mit bis zu sechs Wechseln Verlauf | ein fester Text | Definition |
 | `source-cards` | `source-cards-v2` | je Abschnitt (≤ 15.000 Zeichen, ≤ 25 Karten) mit `avoid` und Restmenge aus früheren Abschnitten | Funktion von sieben Einstellungen | Definition, fünf Prüfdokumente |
 | `summary` | `learning-summary-v4` | eine Anfrage je Zusammenfassung, bis 400.000 Zeichen Material | Funktion von zehn Einstellungen | Definition, drei Materialsätze |
 

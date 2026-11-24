@@ -844,6 +844,128 @@
         "gained": 3,
         "lost": 1
       }
+    },
+    {
+      "requestType": "card-help",
+      "run": "2026-11-24-fremd",
+      "date": "2026-11-24",
+      "split": "dev",
+      "promptVersion": "card-help-v1",
+      "candidate": "fremd",
+      "fingerprint": "4b07479a5a515dee",
+      "model": "openai/gpt-6-luna",
+      "reasoning": "low",
+      "change": "Fremde Bitten ohne Fachbezug ablehnen statt knapp beantworten",
+      "decision": "rejected",
+      "cases": 31,
+      "repetitions": 2,
+      "main": 0.7742,
+      "low": 0.6452,
+      "high": 0.9032,
+      "criteria": {
+        "H0": 1,
+        "H1": 0.9677,
+        "H2": 0.9355,
+        "H3": 1,
+        "H4": 0.6667,
+        "H5": 0.8333,
+        "H6": 0.9677,
+        "H7": 0.9677,
+        "H8": 1
+      },
+      "outcomes": {
+        "answer": 62,
+        "refused": 0,
+        "rejected": 0,
+        "timeout": 0
+      },
+      "traps": {
+        "answers": 12,
+        "errors": 0
+      },
+      "costUsd": 0.0000887,
+      "costTotalUsd": 0.0055,
+      "latencyP90Ms": 2876,
+      "judge": {
+        "model": "claude-opus-5-5",
+        "fingerprint": "0b61e7443dc0aeb6",
+        "entries": 60,
+        "cached": 2,
+        "noise": {
+          "H1": 0,
+          "H2": 0.2,
+          "H3": 0,
+          "H4": 0.1429,
+          "H6": 0,
+          "H7": 0
+        }
+      },
+      "comparison": {
+        "noise": 0.0968,
+        "gained": 5,
+        "lost": 2
+      }
+    },
+    {
+      "requestType": "card-help",
+      "run": "2026-11-24-korrektur",
+      "date": "2026-11-24",
+      "split": "dev",
+      "promptVersion": "card-help-v2",
+      "candidate": "korrektur",
+      "fingerprint": "a8e7934c5ee919ea",
+      "model": "openai/gpt-6-luna",
+      "reasoning": "low",
+      "change": "Karte nur bei eindeutigem Gegenwissen korrigieren, dann im ersten Satz; Lehrbuchunterschiede als Hinweis",
+      "decision": "accepted",
+      "cases": 31,
+      "repetitions": 2,
+      "main": 0.8387,
+      "low": 0.7581,
+      "high": 0.9194,
+      "criteria": {
+        "H0": 1,
+        "H1": 1,
+        "H2": 0.9516,
+        "H3": 1,
+        "H4": 0.8333,
+        "H5": 0.8333,
+        "H6": 1,
+        "H7": 0.9516,
+        "H8": 0.9839
+      },
+      "outcomes": {
+        "answer": 62,
+        "refused": 0,
+        "rejected": 0,
+        "timeout": 0
+      },
+      "traps": {
+        "answers": 12,
+        "errors": 1
+      },
+      "costUsd": 0.0000872,
+      "costTotalUsd": 0.00541,
+      "latencyP90Ms": 2915,
+      "judge": {
+        "model": "claude-opus-5-5",
+        "fingerprint": "0b61e7443dc0aeb6",
+        "entries": 60,
+        "cached": 2,
+        "noise": {
+          "H1": 0,
+          "H2": 0,
+          "H3": 0,
+          "H4": 0,
+          "H6": 0,
+          "H7": 0
+        }
+      },
+      "comparison": {
+        "noise": 0.1129,
+        "gained": 10,
+        "lost": 3
+      }
     }
   ],
   "calibrations": []

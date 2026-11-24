@@ -11,7 +11,7 @@ externen Release fällig. „Später“ ist geparkt.
 
 ## P5: KI-Eval und Hillclimb
 
-Alle vier KI-Routen stehen (`card-variant-v5`, `card-help-v1`,
+Alle vier KI-Routen stehen (`card-variant-v5`, `card-help-v2`,
 `source-cards-v2`, `learning-summary-v4`); P5 läuft. Die Baseline aller
 sechs Anfragetypen steht im Ledger und auf der Seite [KI-Eval](ai-eval.md). Der Runner
 kennt alle sechs Anfragetypen: Varianten und `card-help` mit 59 bis 78

@@ -78,7 +78,7 @@ test("route answers with one provider call and a content-free log line", async (
   await handler(request(), res);
 
   assert.equal(res.statusCode, 200);
-  assert.equal(res.headers.get("x-core-prompt-version"), "card-help-v1");
+  assert.equal(res.headers.get("x-core-prompt-version"), "card-help-v2");
   assert.match(JSON.parse(res.body).answer, /^ATP speichert/);
   assert.deepEqual(calls, [OPENROUTER_CHAT_ENDPOINT]);
   assert.deepEqual({ ...(logs[0] as Record<string, unknown>), latencyMs: 0 }, { event: "ai_card_help", outcome: "ok", status: 200, latencyMs: 0, model: OPENROUTER_MODEL, totalTokens: 300, costUsd: 0.0001 });
