@@ -3767,9 +3767,9 @@ button.core-info-hint:is(:hover, [data-state="open"]) {
 .core-summary-tools { position: sticky; top: 0; z-index: 20; }
 /* Canvas band above the stuck tools: covers the gap to the scroll area edge so the sheet never shows above them. */
 .core-summary-tools::before { content: ""; position: absolute; inset-inline: calc(-1 * var(--core-border-width)); bottom: calc(100% + var(--core-border-width)); height: var(--core-space-sm); background: var(--core-canvas); pointer-events: none; }
-.core-summary-stepper { display: flex; align-items: center; }
-.core-summary-stepper input { width: 3rem; height: var(--core-button-height); padding: 0; border: var(--core-border-width) solid var(--core-border); border-radius: var(--core-radius-control); background: var(--core-surface); color: var(--core-text); text-align: center; font: inherit; font-variant-numeric: tabular-nums; -moz-appearance: textfield; appearance: textfield; }
-.core-summary-stepper input::-webkit-inner-spin-button, .core-summary-stepper input::-webkit-outer-spin-button { margin: 0; -webkit-appearance: none; }
+.core-number-stepper { display: flex; align-items: center; }
+.core-number-stepper input { width: 3rem; height: var(--core-button-height); padding: 0; border: var(--core-border-width) solid var(--core-border); border-radius: var(--core-radius-control); background: var(--core-surface); color: var(--core-text); text-align: center; font: inherit; font-variant-numeric: tabular-nums; -moz-appearance: textfield; appearance: textfield; }
+.core-number-stepper input::-webkit-inner-spin-button, .core-number-stepper input::-webkit-outer-spin-button { margin: 0; -webkit-appearance: none; }
 .core-summary-font-select { width: 8.5rem; }
 .core-summary-stage { min-width: 0; padding-top: var(--core-space-lg); }
 .core-summary-sheet { position: relative; width: min(100%, 794px); margin-inline: auto; background: var(--core-surface); border: var(--core-border-width) solid var(--core-border); border-radius: var(--core-radius-panel); }

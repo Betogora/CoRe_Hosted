@@ -7,6 +7,7 @@ import { ActionButton, CrossLinkButton } from "./actionUi.tsx";
 import { CoreSwitch } from "./formControls.tsx";
 import { CoreTooltip } from "./tooltipUi.tsx";
 import { useShellBack } from "./shellBack.ts";
+import { useModalDialog } from "./useModalDialog.ts";
 
 interface SoftPanelProps extends HTMLAttributes<HTMLElement> {
   children?: ReactNode;
@@ -50,31 +51,19 @@ export function ActionDialog({
   restoreFocus,
   destructive = false,
 }: ActionDialogProps) {
-  const dialogRef = React.useRef<HTMLDivElement | null>(null);
-  const cancelRef = React.useRef<HTMLButtonElement | null>(null);
-  const returnFocusRef = React.useRef<HTMLElement | null>(null);
   const closeReasonRef = React.useRef<"cancel" | "discard" | "confirm" | null>(null);
-  const onCancelRef = React.useRef(onCancel);
-  const onConfirmRef = React.useRef(onConfirm);
-  const restoreFocusRef = React.useRef(restoreFocus);
   const titleId = React.useId();
   const descriptionId = React.useId();
 
-  React.useEffect(() => {
-    onCancelRef.current = onCancel;
-    onConfirmRef.current = onConfirm;
-    restoreFocusRef.current = restoreFocus;
-  }, [onCancel, onConfirm, restoreFocus]);
-
   function cancelDialog() {
     closeReasonRef.current = "cancel";
-    onCancelRef.current();
+    onCancel();
   }
 
   function confirmDialog() {
-    if (!onConfirmRef.current) return;
+    if (!onConfirm) return;
     closeReasonRef.current = "confirm";
-    onConfirmRef.current();
+    onConfirm();
   }
 
   function discardDialog() {
@@ -82,50 +71,16 @@ export function ActionDialog({
     onDiscard?.();
   }
 
-  React.useEffect(() => {
-    if (!open) return undefined;
-    closeReasonRef.current = null;
-    returnFocusRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
-    const frame = window.requestAnimationFrame(() => cancelRef.current?.focus());
-
-    function handleKeyDown(event: KeyboardEvent) {
-      if (event.key === "Escape") {
-        if (event.target instanceof Element && event.target.closest("[data-radix-popper-content-wrapper]")) return;
-        event.preventDefault();
-        cancelDialog();
-        return;
-      }
-      if (event.key !== "Tab") return;
-      const focusable = dialogRef.current?.querySelectorAll<HTMLElement>(
-        'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
-      );
-      if (!focusable?.length) return;
-      const first = focusable[0];
-      const last = focusable[focusable.length - 1];
-      if (event.shiftKey && document.activeElement === first) {
-        event.preventDefault();
-        last.focus();
-      } else if (!event.shiftKey && document.activeElement === last) {
-        event.preventDefault();
-        first.focus();
-      }
-    }
-
-    document.addEventListener("keydown", handleKeyDown);
-    return () => {
-      window.cancelAnimationFrame(frame);
-      document.removeEventListener("keydown", handleKeyDown);
-      const closeReason = closeReasonRef.current;
-      const restoreFocus = restoreFocusRef.current;
-      window.requestAnimationFrame(() => {
-        if (closeReason && restoreFocus) {
-          restoreFocus(closeReason);
-          return;
-        }
-        returnFocusRef.current?.focus();
-      });
-    };
-  }, [open]);
+  const { dialogRef, initialFocusRef: cancelRef } = useModalDialog({
+    open,
+    onClose: cancelDialog,
+    returnFocus: (target) => {
+      const reason = closeReasonRef.current;
+      closeReasonRef.current = null;
+      if (reason && restoreFocus) restoreFocus(reason);
+      else target?.focus();
+    },
+  });
 
   if (!open) return null;
 
