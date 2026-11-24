@@ -3,14 +3,11 @@ import {
   SUMMARY_OUTPUT_TOKENS, buildLearningSummaryPrompt, parseAiLearningSummaryRequest, parseAiLearningSummarySuccess,
   type AiLearningSummaryRequest, type AiLearningSummarySuccess,
 } from "../../src/aiLearningSummaryContract.js";
-import {
-  HttpError, OPENROUTER_MODEL, createAuthenticator, isAllowedOrigin, json, logAiRoute, parseBearerToken, readJsonBody,
-  readToolCall, requestOpenRouter, type AiRouteLogEntry, type Environment, type ProviderTexts,
-} from "../../server/aiRoute.js";
+import { OPENROUTER_MODEL, createAiRoute, readToolCall, type AiRouteTexts } from "../../server/aiRoute.js";
 
 export const config = { maxDuration: 240 };
 
-const TEXTS: ProviderTexts = {
+const TEXTS: AiRouteTexts = {
   rateLimited: "Gerade wurden zu viele Zusammenfassungen angefordert. Bitte versuche es in einer Minute erneut.",
   unavailable: "Zusammenfassungen können gerade nicht erstellt werden.",
   rejected: "OpenRouter hat die Zusammenfassungsanfrage abgelehnt.",
@@ -18,6 +15,8 @@ const TEXTS: ProviderTexts = {
   invalid: "Die KI-Antwort war ungültig oder wurde vorzeitig abgeschnitten. Versuche eine kürzere Fassung.",
   tool: "Die KI hat das Zusammenfassungswerkzeug nicht korrekt verwendet.",
   fields: "Die KI hat keine lesbaren Zusammenfassungsfelder geliefert.",
+  unconfigured: "Die KI-Route ist noch nicht konfiguriert.",
+  internal: "Die Zusammenfassung konnte nicht erstellt werden.",
 };
 
 export function buildSummaryToolPayload(input: AiLearningSummaryRequest) {
@@ -64,32 +63,16 @@ export function extractGeneratedSummary(payload: unknown, input: AiLearningSumma
   return { result, costUsd };
 }
 
-export function createSummaryHandler({ env = process.env, fetchImpl = globalThis.fetch, authenticate, log = logAiRoute }: {
-  env?: Environment; fetchImpl?: typeof fetch; authenticate?: (accessToken: string) => Promise<string>; log?: (entry: AiRouteLogEntry) => void;
-} = {}) {
-  const authenticateRequest = authenticate ?? createAuthenticator(env);
-  return async (req: any, res: any) => {
-    if (req.method !== "POST") { json(res, 405, { error: { code: "method_not_allowed", message: "Nur POST ist erlaubt." } }, { Allow: "POST" }); return; }
-    if (!isAllowedOrigin(req)) { json(res, 403, { error: { code: "forbidden_origin", message: "Diese Anfrage ist nicht erlaubt." } }); return; }
-    const startedAt = Date.now();
-    let generating = false;
-    try {
-      await authenticateRequest(parseBearerToken(req));
-      const input = parseAiLearningSummaryRequest(await readJsonBody(req, MAX_SUMMARY_REQUEST_BYTES));
-      if (!env.OPENROUTER_API_KEY) throw new HttpError(503, "missing_openrouter_api_key", "Die KI-Route ist noch nicht konfiguriert.");
-      generating = true;
-      const payload = await requestOpenRouter(fetchImpl, env.OPENROUTER_API_KEY, buildSummaryToolPayload(input), AbortSignal.timeout(AI_LEARNING_SUMMARY_DEADLINE_MS), TEXTS);
-      const { result, costUsd } = extractGeneratedSummary(payload, input);
-      log({ event: "ai_learning_summary", outcome: "ok", status: 200, latencyMs: Date.now() - startedAt, model: result.model, totalTokens: result.usage?.totalTokens ?? null, costUsd });
-      json(res, 200, result, { "X-CoRe-Prompt-Version": AI_LEARNING_SUMMARY_PROMPT_VERSION });
-    } catch (error) {
-      const known = error instanceof HttpError || error instanceof AiLearningSummaryError;
-      const status = error instanceof HttpError ? error.statusCode : error instanceof AiLearningSummaryError ? error.code.startsWith("invalid_") && error.code !== "invalid_request" ? 502 : error.code === "material_too_large" ? 413 : 400 : 500;
-      const code = known ? error.code : "internal_error";
-      if (generating) log({ event: "ai_learning_summary", outcome: code, status, latencyMs: Date.now() - startedAt, model: null, totalTokens: null, costUsd: null });
-      json(res, status, { error: { code, message: known ? error.message : "Die Zusammenfassung konnte nicht erstellt werden." } }, status === 401 ? { "WWW-Authenticate": "Bearer" } : {});
-    }
-  };
-}
+export const createSummaryHandler = createAiRoute({
+  event: "ai_learning_summary",
+  maxBytes: MAX_SUMMARY_REQUEST_BYTES,
+  deadlineMs: AI_LEARNING_SUMMARY_DEADLINE_MS,
+  promptVersion: AI_LEARNING_SUMMARY_PROMPT_VERSION,
+  texts: TEXTS,
+  parse: parseAiLearningSummaryRequest,
+  buildPayload: buildSummaryToolPayload,
+  extract: (payload, input) => extractGeneratedSummary(payload, input).result,
+  domainError: { type: AiLearningSummaryError, tooLarge: "material_too_large" },
+});
 
 export default createSummaryHandler();
