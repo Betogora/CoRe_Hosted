@@ -2072,6 +2072,190 @@
           "mittel-fliesstext-wiederholen-ohne-beispiele"
         ]
       }
+    },
+    {
+      "requestType": "learning-summary",
+      "run": "2026-11-24-v5-baseline-dev",
+      "date": "2026-11-24",
+      "split": "dev",
+      "promptVersion": "learning-summary-v5",
+      "candidate": null,
+      "fingerprint": "09c550e0044c8e7a",
+      "model": "openai/gpt-6-luna",
+      "reasoning": "low",
+      "change": "Baseline",
+      "decision": "baseline",
+      "cases": 20,
+      "repetitions": 4,
+      "main": 0.6,
+      "low": 0.4625,
+      "high": 0.725,
+      "criteria": {
+        "Z1": 0.975,
+        "Z2": 0.9103,
+        "Z3": 0.9359,
+        "Z4": 1,
+        "Z5": 0.7564,
+        "Z6": 0.9359,
+        "Z7": 0.7885,
+        "Z8": 0.9861,
+        "Z9": 0.9348
+      },
+      "outcomes": {
+        "answer": 78,
+        "refused": 0,
+        "rejected": 2,
+        "timeout": 0
+      },
+      "traps": {
+        "answers": 0,
+        "errors": 0
+      },
+      "costUsd": 0.000714,
+      "costTotalUsd": 0.0557,
+      "latencyP90Ms": 15412,
+      "judge": {
+        "model": "claude-opus-5-5",
+        "fingerprint": "a89086c0cf8c8650",
+        "entries": 233,
+        "cached": 1,
+        "noise": {
+          "Z6": 0.0667,
+          "Z7": 0.1333,
+          "Z8": 0,
+          "Z9": 0
+        }
+      },
+      "metrics": {
+        "abschnitte": 4.6026,
+        "belegtes_material": 0.9943,
+        "warnungen": 1.0513,
+        "woerter": 497.6667
+      }
+    },
+    {
+      "requestType": "learning-summary",
+      "run": "2026-11-24-v5-relationen-namen",
+      "date": "2026-11-24",
+      "split": "dev",
+      "promptVersion": "learning-summary-v5",
+      "candidate": "relationen-namen",
+      "fingerprint": "165cf04a7cbfa611",
+      "model": "openai/gpt-6-luna",
+      "reasoning": "low",
+      "change": "from und to der relations müssen wörtlich ein heading oder keyword der Zusammenfassung sein; bei Fließtext verbinden sie nur headings.",
+      "decision": "rejected",
+      "cases": 20,
+      "repetitions": 4,
+      "main": 0.625,
+      "low": 0.475,
+      "high": 0.7563,
+      "criteria": {
+        "Z1": 0.9375,
+        "Z2": 0.9333,
+        "Z3": 0.9467,
+        "Z4": 1,
+        "Z5": 0.84,
+        "Z6": 0.9267,
+        "Z7": 0.8267,
+        "Z8": 0.9827,
+        "Z9": 0.9186
+      },
+      "outcomes": {
+        "answer": 75,
+        "refused": 0,
+        "rejected": 5,
+        "timeout": 0
+      },
+      "traps": {
+        "answers": 0,
+        "errors": 0
+      },
+      "costUsd": 0.000717,
+      "costTotalUsd": 0.0552,
+      "latencyP90Ms": 15590,
+      "judge": {
+        "model": "claude-opus-5-5",
+        "fingerprint": "a89086c0cf8c8650",
+        "entries": 222,
+        "cached": 3,
+        "noise": {
+          "Z6": 0,
+          "Z7": 0,
+          "Z8": 0.0123,
+          "Z9": 0
+        }
+      },
+      "metrics": {
+        "abschnitte": 4.8,
+        "belegtes_material": 0.9949,
+        "warnungen": 0.9733,
+        "woerter": 486.4133
+      },
+      "comparison": {
+        "noise": 0.1031,
+        "gained": 7,
+        "lost": 5
+      }
+    },
+    {
+      "requestType": "learning-summary",
+      "run": "2026-11-24-v5-baseline-holdout",
+      "date": "2026-11-24",
+      "split": "holdout",
+      "promptVersion": "learning-summary-v5",
+      "candidate": null,
+      "fingerprint": "b9d2f81b99bc3fb9",
+      "model": "openai/gpt-6-luna",
+      "reasoning": "low",
+      "change": "Rückhalt",
+      "decision": "holdout",
+      "cases": 12,
+      "repetitions": 2,
+      "main": 0.5,
+      "low": 0.25,
+      "high": 0.75,
+      "criteria": {
+        "Z1": 1,
+        "Z2": 0.8333,
+        "Z3": 1,
+        "Z4": 1,
+        "Z5": 0.6667,
+        "Z6": 0.8958,
+        "Z7": 0.7708,
+        "Z8": 0.9694,
+        "Z9": 0.9167
+      },
+      "outcomes": {
+        "answer": 24,
+        "refused": 0,
+        "rejected": 0,
+        "timeout": 0
+      },
+      "traps": {
+        "answers": 0,
+        "errors": 0
+      },
+      "costUsd": 0.000743,
+      "costTotalUsd": 0.0178,
+      "latencyP90Ms": 18037,
+      "judge": {
+        "model": "claude-opus-5-5",
+        "fingerprint": "a89086c0cf8c8650",
+        "entries": 72,
+        "cached": 0,
+        "noise": {
+          "Z6": 0,
+          "Z7": 0.2222,
+          "Z8": 0
+        }
+      },
+      "metrics": {
+        "abschnitte": 4.1667,
+        "belegtes_material": 0.9965,
+        "warnungen": 0.9583,
+        "woerter": 428.3333
+      }
     }
   ],
   "calibrations": []
