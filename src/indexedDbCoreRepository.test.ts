@@ -750,6 +750,26 @@ test("der Index liefert jede Seite direkt, auch stapelübergreifend als eine Lis
   repository.close();
 });
 
+test("ein Stapel liefert vor und nach dem Laden des Index dieselben Seiten", async () => {
+  const repository = await openRepository(workspaceState(25));
+  const sorts = [
+    { field: "sortField", direction: "asc" },
+    { field: "nextStudyDate", direction: "desc" },
+    { field: "variants", direction: "asc" },
+  ] as const;
+  const pages = (scope: string | string[]) => Promise.all(sorts.map(async (sort) => [
+    await repository.listCardPage(scope, { page: 2, pageSize: 10, sort }),
+    await repository.listCardPage(scope, { page: 0, pageSize: 10, sort }),
+    await repository.listCardPage(scope, { page: 1, pageSize: 10, sort }),
+  ]));
+  const keyset = await pages("deck-idb");
+  assert.deepEqual(await pages(["deck-idb"]), keyset);
+  assert.deepEqual(keyset[0].map((page) => [page.page, page.items.length, page.totalCount, page.hasMore]), [[2, 5, 25, false], [0, 10, 25, true], [1, 10, 25, true]]);
+  await repository.prepareCardSearch();
+  assert.deepEqual(await pages("deck-idb"), keyset);
+  repository.close();
+});
+
 test("der lokale Katalog führt den Lernverlauf fort und behält ihn bei Inhaltsänderungen", async () => {
   const initialState = workspaceState(2);
   const repository = await openRepository(initialState);
