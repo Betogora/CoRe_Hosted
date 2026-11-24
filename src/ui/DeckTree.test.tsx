@@ -116,20 +116,15 @@ test("deck tree maps six visible levels to group depths and clamps anything deep
   assert.doesNotMatch(collapsed, /data-testid="learn-deck-row-depth-9"|data-testid="learn-deck-row-depth-12"/);
 });
 
-test("deck tree keeps the compact summary order across dashboard and learning", () => {
-  const dashboard = renderToStaticMarkup(
-    <DeckTree rows={rows} mode="dashboard" collapsedDeckIds={[]} onDeckExpansionChange={() => undefined} onActivate={() => undefined} onStudy={() => undefined} onOpenSettings={() => undefined} onSetDeckCoreMode={() => undefined} onMoveDeck={() => null} />,
-  );
+test("deck tree keeps the compact summary order", () => {
   const learning = renderToStaticMarkup(
     <DeckTree rows={rows} mode="learn" collapsedDeckIds={[]} onDeckExpansionChange={() => undefined} onActivate={() => undefined} onStudy={() => undefined} onOpenSettings={() => undefined} onSetDeckCoreMode={() => undefined} onMoveDeck={() => null} />,
   );
 
-  for (const markup of [dashboard, learning]) {
-    assert.match(markup, /Stapeloptionen für Bereich/);
-    assert.ok(markup.indexOf('data-deck-count="due"') < markup.indexOf('aria-label="Bereich lernen"'));
-    assert.ok(markup.indexOf('aria-label="Bereich lernen"') < markup.indexOf("Stapeloptionen für Bereich"));
-    assert.match(markup, /data-deck-drag-source="true"/);
-  }
+  assert.match(learning, /Stapeloptionen für Bereich/);
+  assert.ok(learning.indexOf('data-deck-count="due"') < learning.indexOf('aria-label="Bereich lernen"'));
+  assert.ok(learning.indexOf('aria-label="Bereich lernen"') < learning.indexOf("Stapeloptionen für Bereich"));
+  assert.match(learning, /data-deck-drag-source="true"/);
   assert.match(learning, /aria-label="Bereich \/ Grundlagen lernen"/);
   assert.doesNotMatch(learning, /aria-pressed=|data-selected=/);
 });
@@ -195,11 +190,11 @@ test("deck tree content mode shows one branch with its opened deck as group head
 
 test("deck tree projects a persisted collapsed parent", () => {
   const markup = renderToStaticMarkup(
-    <DeckTree rows={rows} mode="dashboard" collapsedDeckIds={["root"]} onDeckExpansionChange={() => undefined} onActivate={() => undefined} onStudy={() => undefined} onOpenSettings={() => undefined} onSetDeckCoreMode={() => undefined} onMoveDeck={() => null} />,
+    <DeckTree rows={rows} mode="learn" collapsedDeckIds={["root"]} onDeckExpansionChange={() => undefined} onActivate={() => undefined} onStudy={() => undefined} onOpenSettings={() => undefined} onSetDeckCoreMode={() => undefined} onMoveDeck={() => null} />,
   );
 
   assert.match(markup, /Unterstapel von Bereich anzeigen/);
-  assert.doesNotMatch(markup, /dashboard-deck-row-child/);
+  assert.doesNotMatch(markup, /learn-deck-row-child/);
 });
 
 test("deck tree fills every hovered row neutrally across its activation surface", () => {
@@ -217,8 +212,8 @@ test("deck tree limits the collection to the selected main decks in their order"
     createCoreDeck({ id: "third-root", name: "Dritter Bereich", hierarchyPath: ["Dritter Bereich"], source: "manual", cards: [] }),
   ]).rows;
   const markup = renderToStaticMarkup(
-    <DeckTree rows={selectableRows} rootDeckIds={["third-root", "root"]} mode="dashboard" collapsedDeckIds={[]} onDeckExpansionChange={() => undefined} onActivate={() => undefined} onStudy={() => undefined} onOpenSettings={() => undefined} onSetDeckCoreMode={() => undefined} onMoveDeck={() => null} />,
+    <DeckTree rows={selectableRows} rootDeckIds={["third-root", "root"]} mode="content" collapsedDeckIds={[]} onDeckExpansionChange={() => undefined} onActivate={() => undefined} onStudy={() => undefined} onOpenSettings={() => undefined} onSetDeckCoreMode={() => undefined} onMoveDeck={() => null} />,
   );
 
-  assert.deepEqual([...markup.matchAll(/data-testid="dashboard-deck-row-([^"]+)"/g)].map((match) => match[1]), ["third-root", "root", "child"]);
+  assert.deepEqual([...markup.matchAll(/data-testid="content-deck-row-([^"]+)"/g)].map((match) => match[1]), ["third-root", "root", "child"]);
 });

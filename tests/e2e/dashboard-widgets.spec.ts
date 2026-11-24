@@ -291,9 +291,8 @@ for (const { width, height } of sizes) for (const theme of matrixThemes) test(`W
   await page.setViewportSize({ width, height });
   await openEditor(page, theme === "dark");
   await page.getByRole("button", { name: "Fertig", exact: true }).click();
-  await page.getByRole("button", { name: "Als Kacheln anzeigen", exact: true }).click();
-  await page.getByTestId("dashboard-deck-list").scrollIntoViewIfNeeded();
-  if (visualOutput) await page.screenshot({ path: info.outputPath("08-stapelkacheln.png") });
+  await page.locator('[data-dashboard-widget="decks"]').scrollIntoViewIfNeeded();
+  if (visualOutput) await page.screenshot({ path: info.outputPath("08-angepinnte-stapel.png") });
   expect(await page.locator(".catalog-product-preview").evaluate((element) => element.scrollWidth > element.clientWidth + 1)).toBe(false);
   await page.getByRole("button", { name: "Seite bearbeiten", exact: true }).click();
   const more = page.getByRole("button", { name: "Weitere Widgets", exact: true });

@@ -12,7 +12,6 @@ function isStringArray(value: unknown): value is string[] {
 
 function readUiPreferences(value: unknown): UiPreferences | null {
   if (!isRecord(value)
-    || !isStringArray(value.dashboardCollapsedDeckIds)
     || !isStringArray(value.learnCollapsedDeckIds)
     || typeof value.syncIntervalMinutes !== "number"
     || !isStringArray(value.flagNames)

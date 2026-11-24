@@ -21,10 +21,7 @@ const dashboardCallbacks = {
   onStartDeck: () => undefined,
   onStartAdditionalCards: () => ({ ok: true }),
   onCreateDemo: async () => null,
-  onSetDeckCoreMode: () => undefined,
-  onMoveDeck: () => null,
-  onOpenDeckSettings: () => undefined,
-  onSetDeckExpanded: () => undefined,
+  onSetPinnedDeckIds: () => undefined,
 };
 
 test("exam checklist shows at most three tasks per exam, prioritizes open tasks and only offers expansion when needed; the dashboard preview lists all open tasks", () => {
@@ -104,18 +101,12 @@ test("populated dashboard shows the aggregated open daily learning overview", ()
   assert.match(markup, /<h2 class="core-section-header-title">To-dos<\/h2><div class="core-section-header-action">/);
   assert.match(markup, /core-section-header-action">[\s\S]*?aria-label="Eigene Aufgabe hinzufügen"[\s\S]*?aria-label="Planer öffnen"/);
   assert.doesNotMatch(markup, /geschätzte Dauer|Dranbleiben lohnt sich|Für heute alles geschafft/);
-  assert.match(markup, /data-testid="deck-summary-header"[^>]*aria-hidden="true"/);
-  assert.match(markup, />Stapel<[\s\S]*>Neu<[\s\S]*>Offen<[\s\S]*>Fällig</);
-  assert.doesNotMatch(markup, /Originalkarten/);
-  assert.match(markup, /data-testid="dashboard-deck-list-header"/);
-  assert.match(markup, /data-deck-view="list"/);
-  assert.doesNotMatch(markup, /Alle Stapel öffnen|Alle Stapel ansehen/);
+  assert.match(markup, /<h2 class="core-section-header-title">Oft gelernte Stapel<\/h2>/);
+  assert.match(markup, /aria-label="Stapel anpinnen"/);
+  assert.match(markup, /data-testid="suggested-deck-[^"]+"/);
   assert.match(markup, /<button[^>]*aria-label="Biologie lernen"/);
-  assert.doesNotMatch(markup, />Lernen <svg/);
-  assert.match(markup, /data-deck-count="new"/);
-  assert.match(markup, /data-deck-count="in-progress"/);
-  assert.match(markup, /data-deck-count="due"/);
-  assert.doesNotMatch(markup, /data-deck-count="total"/);
+  assert.match(markup, />Alle Stapel ansehen</);
+  assert.doesNotMatch(markup, /Alle Stapel öffnen|Stapelansicht/);
   const dailyOverview = markup.match(/<section[^>]*data-testid="daily-learning-overview"[\s\S]*?<\/section>/)?.[0];
   assert.ok(dailyOverview);
   assert.doesNotMatch(markup, /data-donut-|Gesamtfortschritt/);
@@ -241,11 +232,11 @@ test("dashboard keeps later same-day learning steps in a disabled waiting state"
   assert.doesNotMatch(markup, /Tagesziel erreicht/);
 });
 
-test("dashboard starts the deck widget at eight roots, links to all decks and has no duplicate completed legend", () => {
+test("dashboard fills the deck widget with four suggestions, links to all decks and has no duplicate completed legend", () => {
   const baseState = createCoreRepository().getState();
   const decks = Array.from({ length: 10 }, (_, index) => createCoreDeck({ id: `preview-${index}`, name: `Stapel ${index}`, source: "manual", cards: [] }));
   const markup = renderToStaticMarkup(<DashboardScreen state={{ ...baseState, decks }} now="2026-08-06T10:00:00.000Z" {...dashboardCallbacks} />);
-  assert.equal((markup.match(/data-testid="dashboard-deck-row-/g) ?? []).length, 8);
+  assert.equal((markup.match(/data-testid="suggested-deck-/g) ?? []).length, 4);
   assert.match(markup, />Alle Stapel ansehen</);
   assert.doesNotMatch(markup, /Hauptstapel ansehen|Alle Stapel öffnen/);
   assert.doesNotMatch(markup, /Geschafft|Grauer Balken: für heute abgeschlossen/);

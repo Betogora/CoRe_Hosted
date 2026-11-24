@@ -230,7 +230,7 @@ export function SettingsScreen({ section, focusConflicts = false, profile, onSav
               </div>
             </div>
             <div className="core-settings-row" data-layout="inline">
-              <span className="core-settings-row-title">Stapelansicht</span>
+              <span className="core-settings-row-title">Stapelansicht in Lernen</span>
               <div className="core-settings-row-control">
                 <CoreSegmentedControl ariaLabel="Stapelansicht" value={deckView} options={deckViewOptions} onValueChange={setDeckView} />
               </div>

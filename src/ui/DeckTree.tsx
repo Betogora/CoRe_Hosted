@@ -7,7 +7,6 @@ import { DECK_DEPTH_INDENT_PX, getVisibleDeckDepth } from "../deckHierarchy.ts";
 import type { DeckLibraryRow } from "../libraryModel.ts";
 import { DeckOptionsMenu } from "./DeckOptionsMenu.tsx";
 import { IconButton } from "./actionUi.tsx";
-import { CoreIconSegmentedControl } from "./coreUi.tsx";
 import { CoreTooltip } from "./tooltipUi.tsx";
 import { DeckAppearanceIcon, getDeckAppearance } from "./deckAppearance.tsx";
 import { LEARNING_STATUS_UI } from "./learningStatusUi.ts";
@@ -149,9 +148,8 @@ export interface DeckTreeProps {
   rows: DeckLibraryRow[];
   /** Shows only these decks with their subtrees, in this order, each as its own group; menus and placement still see every row. */
   rootDeckIds?: readonly string[];
-  mode: "dashboard" | "learn" | "content";
+  mode: "learn" | "content";
   view?: DeckTreeView;
-  onViewChange?: (view: DeckTreeView) => void;
   contentAfterRows?: React.ReactNode;
   onActivate: (row: DeckLibraryRow) => void;
   onStudy: (row: DeckLibraryRow) => void;
@@ -350,7 +348,7 @@ const DeckTreeRow = React.memo(function DeckTreeRow({ row, mode, presentation, d
   );
 });
 
-export function DeckTree({ rows, rootDeckIds, mode, view = "list", onViewChange, contentAfterRows, onActivate, onStudy, onPractice, onOpenSettings, onSetDeckCoreMode, onMoveDeck, collapsedDeckIds, onDeckExpansionChange }: DeckTreeProps) {
+export function DeckTree({ rows, rootDeckIds, mode, view = "list", contentAfterRows, onActivate, onStudy, onPractice, onOpenSettings, onSetDeckCoreMode, onMoveDeck, collapsedDeckIds, onDeckExpansionChange }: DeckTreeProps) {
   const [draggedDeckId, setDraggedDeckId] = React.useState<string | null>(null);
   const [dropIntent, setDropIntent] = React.useState<DropIntent | null>(null);
   const [dragFocusLayout, setDragFocusLayout] = React.useState<DragFocusLayout | null>(null);
@@ -713,8 +711,6 @@ export function DeckTree({ rows, rootDeckIds, mode, view = "list", onViewChange,
       {folderRows.length ? <div className="core-deck-subfolder-grid">{folderRows.map((child) => renderRow(child, "subfolder"))}</div> : <p className="core-body text-core-muted">Keine Unterstapel.</p>}
     </section>
   ) : null;
-  const title = mode === "dashboard" ? "Aktive Stapel" : null;
-  const showViewControl = Boolean(onViewChange) && rows.length > 0;
 
   return (
     <>
@@ -728,18 +724,6 @@ export function DeckTree({ rows, rootDeckIds, mode, view = "list", onViewChange,
       >
         <span className="sr-only" role="status" aria-live="polite">{dragStatus}</span>
         <div className="core-deck-tree-layout grid">
-          {title || showViewControl ? <div className={`core-deck-tree-header grid min-h-control items-center gap-3${showViewControl ? " core-deck-tree-view-header" : ""}`} data-testid={`${mode}-deck-list-header`}>
-            <div className="core-deck-tree-heading min-w-0">
-              {title ? <h3 className="core-deck-tree-title break-words core-heading-3 text-core-text">{title}</h3> : null}
-            </div>
-            {showViewControl ? (
-              <div className="core-deck-tree-header-action flex flex-wrap items-center justify-end gap-2 justify-self-end">
-                {showViewControl && onViewChange ? (
-                  <CoreIconSegmentedControl ariaLabel="Stapelansicht" options={DECK_TREE_VIEW_OPTIONS} value={view} onValueChange={onViewChange} />
-                ) : null}
-              </div>
-            ) : null}
-          </div> : null}
           {view === "tiles" && rows.length > 0 ? (
             <div className="core-deck-folder-grid" ref={folderGridRef} data-testid={`${mode}-deck-tiles`}>
               {rootRows.map((row, index) => (

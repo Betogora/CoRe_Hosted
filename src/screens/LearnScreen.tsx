@@ -10,7 +10,6 @@ import { useSuccessToast } from "../ui/feedbackUi.tsx";
 import { DeckSelect } from "../ui/selectUi.tsx";
 import { LearningAreaHeader } from "./LearningAreaHeader.tsx";
 import type { Deck } from "../coreTypes.ts";
-import type { DeckExpansionSurface } from "../uiPreferences.ts";
 import type { CreateDeckInput, DeckTreeScreenProps } from "../appScreenProps.ts";
 import type { DeckMutationResult } from "../coreWorkspace.ts";
 
@@ -31,7 +30,7 @@ export interface LearnScreenProps extends DeckTreeScreenProps {
   onOpenCardSettings: () => unknown;
   onMoveDeck: (deckId: string, parentDeckId: string | null) => DeckMutationResult | null;
   collapsedDeckIds: string[];
-  onSetDeckExpanded: (surface: DeckExpansionSurface, deckId: string, expanded: boolean) => unknown;
+  onSetDeckExpanded: (deckId: string, expanded: boolean) => unknown;
 }
 
 function createDefaultDeckDraft(parentDeckId = "") {
@@ -146,7 +145,7 @@ export function LearnScreen({ decks, now, dayStartHour, learnAheadMinutes, timeZ
         view={deckView}
         contentAfterRows={deckCreateForm}
         collapsedDeckIds={collapsedDeckIds}
-        onDeckExpansionChange={(deckId, expanded) => onSetDeckExpanded("learn", deckId, expanded)}
+        onDeckExpansionChange={onSetDeckExpanded}
         onActivate={(row) => onOpenDeckContent(row.id)}
         onStudy={(row) => onStartDeck(row.deck)}
         onPractice={onPracticeDeck && ((row, returnFocus) => onPracticeDeck(row.deck, returnFocus))}

@@ -84,6 +84,7 @@ export function useStudyStart({ preparation, session, navigation, deckCommands, 
       if (outcome?.status === "empty") setEmptyStudyStart(outcome.emptyStart);
       if (outcome?.status !== "ready") return;
       adopt(outcome.preparation, preparationKey);
+      deckCommands?.recordDashboardStudyStart(deck.id, new Date().toISOString());
       navigateToRoute(createStudyRoute(deck.id, { returnContext }));
     } finally {
       if (session.preparingKeyRef.current === preparationKey) session.preparingKeyRef.current = "";

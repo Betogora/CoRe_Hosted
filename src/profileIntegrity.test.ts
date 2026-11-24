@@ -12,11 +12,12 @@ const cloudProfile: Profile = {
   onboardingComplete: true,
   schedulerPreferences: { settingsVersion: 2, dayStartHour: 0 },
   uiPreferences: {
-    dashboardCollapsedDeckIds: [],
     learnCollapsedDeckIds: [],
     syncIntervalMinutes: 5,
     flagNames: ["", "", "", "", "", "", ""],
     savedSearches: [],
+    dashboardPinnedDeckIds: [],
+    dashboardStudyStarts: [],
   },
 };
 
