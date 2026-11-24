@@ -144,7 +144,7 @@ export function readVerdicts(blocks: readonly JudgeBlock[], files: readonly unkn
   const pairs = Object.entries(key.duplicates).map(([duplicate, original]) => ({ original, a: given.get(original)!, b: given.get(duplicate)! }));
   const flipped = new Map<string, Set<string>>();
   const noise: Record<string, number> = {};
-  /** Je Einzelurteil gezählt: Ein Eintrag mit 20 Kernaussagen, von denen eine kippt, ist eine Abweichung unter 20. */
+  // Je Einzelurteil gezählt: Ein Eintrag mit 20 Kernaussagen, von denen eine kippt, ist eine Abweichung unter 20.
   for (const id of [...new Set(pairs.flatMap(({ a }) => Object.keys(a.results).map(baseId)))].sort()) {
     const judgments = pairs.flatMap(({ original, a, b }) => Object.keys(a.results).filter((criterion) => baseId(criterion) === id).map((criterion) => ({ original, changed: a.results[criterion] !== b.results[criterion] })));
     flipped.set(id, new Set(judgments.filter(({ changed }) => changed).map(({ original }) => original)));

@@ -282,8 +282,9 @@ Zeitüberschreitungen sind bei jedem Anfragetyp feste Messgrößen.
    beheben, ohne neue Fehler zu bringen.
 5. **Messung** am Entscheidungsteil, Entscheidung nach der Regel oben. Jeder
    dort gemessene Kandidat steht im Ledger, auch verworfen.
-6. **Ende:** Ziel am Entscheidungsteil erreicht und Fallen fehlerfrei, oder
-   drei Runden ohne Übernahme, oder acht Runden, oder Budget.
+6. **Ende:** frühestens nach drei Runden; dann nach drei Runden ohne
+   Übernahme, nach acht Runden oder am Budget. Der Zielwert beendet nichts,
+   er ist nur Orientierung auf der Seite.
 7. **Kürzungsrunde:** Sätze einzeln streichen, die sich nicht belegen lassen
    (etwa das Beispiel zu „Wie viele …“); Regel für Vereinfachungen.
 8. **Rückhalt** messen.
@@ -472,7 +473,7 @@ Umgesetzt am 2026-11-23. Stand und Abweichungen:
   Quellenkarten die des Abschnitts, bei der Zusammenfassung `request.route`.
 - Handurteile gibt es nur für Typen mit einem Richtereintrag je Antwort.
 
-### H – Baseline (bis auf den Haltepunkt erledigt)
+### H – Baseline (erledigt)
 
 Gemessen am 2026-11-23, zwei Wiederholungen, Richter Opus 5.5 in 59 Blöcken;
 Erzeugung rund 7 Cent.
@@ -510,9 +511,9 @@ Erzeugung rund 7 Cent.
 
 ### I – Hillclimb, erste Welle
 
-- Reihenfolge, wenn der Haltepunkt nichts anderes ergibt: Varianten, KI
-  hilft, Karten aus einer Quelle (Runden, dann Strukturversuche),
-  Zusammenfassung.
+- Reihenfolge (Haltepunkt 2026-11-24): KI hilft (zuerst H4 Beispiel),
+  Varianten, Karten aus einer Quelle (Runden, dann Strukturversuche),
+  Zusammenfassung; alles auf `low`.
 - Je Anfragetyp nach „Hillclimb je Anfragetyp“; ein Pull Request je
   Anfragetyp mit Promptänderungen, neuer Promptversion, Ledger-Einträgen und
   Ergebnisdateien. Übernommene Routenprüfungen bekommen Routentests.
@@ -528,9 +529,9 @@ Erzeugung rund 7 Cent.
 - **Fertig, wenn** die Seite Bestand, Verlauf und Bilanz für alle
   Anfragetypen zeigt.
 
-## Zielwerte (Entwurf)
+## Zielwerte
 
-Festgelegt werden sie am Haltepunkt von Paket H.
+Orientierung auf der Seite, kein Abbruchgrund (Haltepunkt H, 2026-11-24).
 
 | Anfragetyp | Hauptwert am Rückhalt | Kritisch | Weitere |
 | --- | --- | --- | --- |

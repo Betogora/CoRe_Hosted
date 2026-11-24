@@ -13,7 +13,7 @@ externen Release fällig. „Später“ ist geparkt.
 
 Alle vier KI-Routen stehen (`card-variant-v5`, `card-help-v1`,
 `source-cards-v2`, `learning-summary-v4`); P5 läuft. Die Baseline aller
-sechs Anfragetypen steht im Ledger und auf der Seite [KI-Eval](ai-eval.md). Der Runner ([KI-Eval](ai-eval.md))
+sechs Anfragetypen steht im Ledger und auf der Seite [KI-Eval](ai-eval.md). Der Runner
 kennt alle sechs Anfragetypen: Varianten und `card-help` mit 59 bis 78
 Prüfkarten je Anfragetyp und lokalen Korpusfällen in drei Teilen, je 20
 Fallen, dazu Karten aus einer Quelle als ganzen Auftrag je Dokument und
@@ -44,15 +44,12 @@ Pakete in dieser Reihenfolge.
       darunter mindestens vier lange Quellen (über 60.000 Zeichen) und weitere
       eingebaute Widersprüche; dazu weitere Einstellungsprofile der
       Zusammenfassung, paarweise deckend. Nachweis: Fallzahlen je Teil.
-- [ ] **H – Haltepunkt:** Die Baseline steht (Entscheidung und Rückhalt
-      je Anfragetyp im Ledger, Werte unter [KI-Eval](ai-eval.md)). Offen: Der
-      Nutzer legt Zielwerte und Reihenfolge der Welle fest und sagt, ob der
-      Richter passt; die Zielwerte im Versuchsplan sind bis dahin ein Entwurf.
-- [ ] **I – Hillclimb, erste Welle:** Varianten, KI hilft, Karten aus einer
-      Quelle, Zusammenfassung. Je Runde drei bis fünf Kandidaten aus den
-      Trainingsfehlern, Vorauswahl am Trainingsteil, Entscheidung am
-      Entscheidungsteil; Ende bei erreichtem Ziel, drei Runden ohne Übernahme
-      oder acht Runden. Bei Karten aus einer Quelle zusätzlich: Kartenmenge
+- [ ] **I – Hillclimb, erste Welle** auf Reasoning `low`: KI hilft, Varianten,
+      Karten aus einer Quelle, Zusammenfassung. Je Runde drei bis fünf
+      Kandidaten aus den Trainingsfehlern, Vorauswahl am Trainingsteil,
+      Entscheidung am Entscheidungsteil; mindestens drei Runden, Ende nach
+      drei Runden ohne Übernahme oder nach acht Runden. Am Ende KI hilft
+      einmal mit `medium` und dem besten Prompt. Bei Karten aus einer Quelle zusätzlich: Kartenmenge
       wirksam machen (Weniger höchstens 60 %, Mehr mindestens 140 % der
       Vorschläge von Normal, ohne Füllkarten und bei gleicher Belegtreue;
       danach die Dichten in `AI_SOURCE_AMOUNTS` neu messen), Single Choice
