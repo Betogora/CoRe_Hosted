@@ -11,14 +11,12 @@ import type {
   ReviewEvent,
 } from "./coreTypes.ts";
 import type { WorkspaceState } from "./coreWorkspace.ts";
-import type { CardTableSort } from "./libraryModel.ts";
 import type { SyncOutboxMutation } from "./syncEngine.ts";
 import type { CloudCatalogPage, CloudEntityPage } from "./cloudRepository.ts";
 import type { ReviewAnswerResult } from "./reviewService.ts";
 import type { ImportCommitGraph, NoteTypeSource } from "./apkgImport.ts";
 import { getLearningDayKey, getLearningDayRange } from "./learningDay.ts";
 import { insertEntityMutation, planEntityMutations } from "./syncMutationPlanner.ts";
-import { isEmptyCardSearch, parseCardSearchQuery, type CardSearchContext } from "./cardSearchQuery.ts";
 import { MANUAL_BURY_KIND, MANUAL_UNBURY_KIND } from "./siblingBurying.ts";
 import { createTagDirectoryBuilder } from "./tagDirectory.ts";
 import type { StatisticsSelection } from "./statisticsModel.ts";
@@ -37,7 +35,6 @@ import {
 } from "./workspaceReplica.ts";
 import {
   STORE,
-  CATALOG_PAGE_LIMIT,
   type NoteGraphChange,
   type StoredCard,
   type StoredCardCatalog,
@@ -61,7 +58,7 @@ import {
 } from "./indexedDbStore.ts";
 import { loadAnsweredTodayFrom } from "./indexedDbStudyCounts.ts";
 import { createReplicaOutbox } from "./indexedDbOutbox.ts";
-import { createCatalogSearch, type CatalogCursor } from "./indexedDbCatalogSearch.ts";
+import { createCatalogSearch, type CardPageRequest } from "./indexedDbCatalogSearch.ts";
 import { createStudyOverview } from "./indexedDbStudyOverview.ts";
 import { createReviewWrites } from "./indexedDbReviews.ts";
 import { writeCloudCatalogPages } from "./indexedDbCatalogSync.ts";
@@ -128,9 +125,8 @@ export async function createIndexedDbCoreRepository({ userId, initialState, inde
     catalogCursor: 0,
     catalogServerCursor: 0,
   };
-  const pageCursorsByKey = new Map<string, Map<number, CatalogCursor | null>>();
   const catalogSearch = createCatalogSearch(database, flushWrites);
-  const { searchIndex, markCatalogChanged, ensureSearchIndex } = catalogSearch;
+  const { markCatalogChanged, ensureSearchIndex } = catalogSearch;
 
   const putSyncMetadata = async (key: string, value: unknown) => {
     const transaction = database.transaction(STORE.syncMetadata, "readwrite");
@@ -662,59 +658,12 @@ export async function createIndexedDbCoreRepository({ userId, initialState, inde
     loadCatalogEntries: catalogSearch.loadCatalogEntries,
     listSurplusDuplicateIds: catalogSearch.listSurplusDuplicateIds,
     listCardIds: catalogSearch.listCardIds,
-    /**
-     * The search index answers any page at once; a single deck without a search walks its keyset pages only until the
-     * index is loaded.
-     */
-    async listCardPage(scope: string | readonly string[], { page = 0, pageSize = CATALOG_PAGE_LIMIT, query = "", sort = { field: "sortField", direction: "asc" } as CardTableSort, selectedCardId = null, searchContext }: {
-      page?: number;
-      pageSize?: number;
-      query?: string;
-      sort?: CardTableSort;
-      selectedCardId?: string | null;
-      searchContext?: CardSearchContext;
-    } = {}) {
+    async listCardPage(scope: string | readonly string[], { selectedCardId = null, ...request }: CardPageRequest & { selectedCardId?: string | null } = {}) {
       const deckIds = typeof scope === "string" ? [scope] : scope;
-      const selected = async () => {
-        const selectedBody = selectedCardId ? await loadCardBody(selectedCardId) : null;
-        const selectedGraph = selectedBody && deckIds.includes(selectedBody.card.deckId) ? await loadNoteGraph(selectedBody.note.id) : null;
-        return selectedGraph && selectedBody ? { ...selectedGraph, cardId: selectedBody.card.id } : null;
-      };
-      await writeChain;
-      if (deckIds.length !== 1 || catalogSearch.isSearchIndexReady() || !isEmptyCardSearch(parseCardSearchQuery(query))) {
-        await ensureSearchIndex();
-        const requestedPage = Math.max(0, Math.floor(page));
-        const slice = searchIndex.slice(query, sort, searchContext, deckIds, requestedPage * pageSize, pageSize);
-        return {
-          items: slice.items,
-          page: requestedPage,
-          pageSize,
-          totalCount: slice.totalCount,
-          hasMore: (requestedPage + 1) * pageSize < slice.totalCount,
-          selected: await selected(),
-        };
-      }
-      const deckId = deckIds[0];
-      const key = JSON.stringify([deckId, query, sort.field, sort.direction, searchContext ?? null]);
-      const cursors = pageCursorsByKey.get(key) ?? new Map<number, CatalogCursor | null>([[0, null]]);
-      pageCursorsByKey.set(key, cursors);
-      let requestedPage = Math.max(0, Math.floor(page));
-      while (!cursors.has(requestedPage)) requestedPage -= 1;
-      let result = await catalogSearch.listCatalogPage(deckId, { cursor: cursors.get(requestedPage) ?? null, limit: pageSize, query, sort, includeTotal: true, searchContext });
-      while (requestedPage < page && result.nextCursor) {
-        requestedPage += 1;
-        cursors.set(requestedPage, result.nextCursor);
-        result = await catalogSearch.listCatalogPage(deckId, { cursor: result.nextCursor, limit: pageSize, query, sort, includeTotal: true, searchContext });
-      }
-      if (result.nextCursor) cursors.set(requestedPage + 1, result.nextCursor);
-      return {
-        items: result.items,
-        page: requestedPage,
-        pageSize,
-        totalCount: result.totalCount ?? result.items.length,
-        hasMore: result.hasMore,
-        selected: await selected(),
-      };
+      const page = await catalogSearch.listCardPage(deckIds, request);
+      const selectedBody = selectedCardId ? await loadCardBody(selectedCardId) : null;
+      const selectedGraph = selectedBody && deckIds.includes(selectedBody.card.deckId) ? await loadNoteGraph(selectedBody.note.id) : null;
+      return { ...page, selected: selectedGraph && selectedBody ? { ...selectedGraph, cardId: selectedBody.card.id } : null };
     },
     async loadReviewSession(deckIds: string[], options: {
       now?: string;
