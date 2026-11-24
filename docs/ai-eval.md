@@ -35,7 +35,8 @@ Agenten steht im Skill [`ai-eval`](../.agents/skills/ai-eval/SKILL.md).
 | Erzeugen | `generate <typ> --run <name>` | je Fall zwei Antworten (`--repetitions`) auf dem Entscheidungsteil (`--split`) über Payload-Builder und Antwortprüfung der Route, `--concurrency` parallel (Vorgabe 4), bis `--budget` USD (Vorgabe 1); `--candidate <name>` ersetzt den Payload; ein zweiter Aufruf setzt fort |
 | Blöcke | `table <typ> --run <name>` | Richterblöcke ohne Dubletten und ohne Herkunft, gemischt, mit Kontrolleinträgen und Doppeln |
 | Richten | je Block ein Subagent [`eval-judge`](../.claude/agents/eval-judge.md) | Urteil und Sicherheit je Eintrag und Kriterium |
-| Auswerten | `score <typ> --run <name> --judge <modell>` | Bericht und Grenzfälle; am Entscheidungsteil die Entscheidung; mit `--record` der Ledger-Eintrag und die Ergebnisdatei |
+| Auswerten | `score <typ> --run <name> --judge <modell>` | Bericht mit richtigen Antworten „x von n“ und Grenzfälle; am Entscheidungsteil die Entscheidung; `--target` nennt das Fehlerbild, `--confirm` macht den Lauf zur Sammelprüfung; mit `--record` der Ledger-Eintrag und die Ergebnisdatei |
+| Nachmessen | `more <typ> --run <name>` | nach `score`, nur bei einem Richtereintrag je Antwort und nicht bei Sammelprüfungen: je zwei weitere Antworten für Kandidat und Bestand auf den Fällen, die kippen (Wiederholungen uneins oder anders als der Bestand); danach erneut `table`, Richter und `score` |
 
 - Jede Anfrage endet als angenommene Antwort, als Ablehnung des Falls durch das
   Modell (bei Varianten „nicht umformulierbar“), als von der Route verworfene
@@ -82,10 +83,25 @@ Agenten steht im Skill [`ai-eval`](../.agents/skills/ai-eval/SKILL.md).
   messbar schlechter), kein kritisches Kriterium schlechter wird und Kosten je
   Antwort und Latenz p90 höchstens das 1,2-Fache betragen. Fallen (`trap`)
   zählt der Bericht getrennt.
+- Scheitert ein Kandidat mit `--target` (Kriterien oder Kategorien seines
+  Fehlerbilds) nur am Rauschen, ist er vorläufig übernommen, wenn er dort
+  mindestens zwei Fälle mehr gewinnt als verliert und am Rest höchstens einen
+  Fall mehr verliert als gewinnt. Ein vorläufiger Schritt wird Bestand; solange
+  einer offen ist, ist jede Übernahme vorläufig. Nach höchstens drei misst
+  eine Sammelprüfung (`--confirm`, Code ohne Kandidat, mindestens drei
+  Wiederholungen) gegen den letzten bestätigten Stand; besteht sie, ist der
+  Stapel bestätigt, sonst gilt wieder der letzte bestätigte Stand.
+- Ein Urteil mit Sicherheit 1 zählt weder als bestanden noch als
+  durchgefallen; es steht nur unter den Grenzfällen. Hängt der Hauptwert einer
+  Antwort allein an einem solchen Urteil, zählt die Antwort für ihn nicht.
+- `--target` muss Kriterien oder Kategorien des Laufs nennen und einen Teil
+  der Fälle treffen, nicht alle.
 - Ins Ledger kommen Läufe auf dem Entscheidungsteil und Messungen am Rückhalt.
   Eine Baseline, eine Übernahme und eine Messung am Rückhalt trägt `--record`
   nur ein, wenn der Code der Route denselben Payload baut wie der Lauf; ein
-  übernommener Kandidat muss also zuerst in die Route. Ein Kontrolleintrag, den
+  übernommener Kandidat muss also zuerst in die Route. Eine Übernahme, auch
+  eine vorläufige, braucht `--reason` mit zwei Sätzen aus den geänderten
+  Trainingsantworten. Ein Kontrolleintrag, den
   der Richter bei einem kritischen Kriterium fälschlich bestehen lässt,
   verhindert den Eintrag, und seine Urteile kommen nicht in den Cache.
 - `generate --dry` erzeugt nachgebildete Antworten ohne Schlüssel und Kosten;
@@ -125,8 +141,8 @@ Reihenfolge der Läufe. `npm run check:docs` prüft Form und Reihenfolge.
 | `promptVersion`, `candidate`, `fingerprint` | Promptversion (bei Baseline, Übernahme und Rückhalt die des Codes), Kandidatendatei oder `null`, Fingerabdruck des Payloads |
 | `model`, `reasoning` | angefragtes Modell, Reasoning-Stufe |
 | `change` | die eine Änderung dieser Runde in einem Satz |
-| `decision` | `baseline` beginnt eine Reihe und setzt den Bestand neu, `accepted` wird Bestand, `rejected` nicht, `holdout` ist eine Messung am Rückhalt |
-| `cases`, `repetitions` | Fälle und Wiederholungen je Fall |
+| `decision` | `baseline` beginnt eine Reihe und setzt den Bestand neu, `accepted` wird bestätigter Bestand, `provisional` vorläufiger, `rejected` nicht, `holdout` ist eine Messung am Rückhalt |
+| `cases`, `repetitions` | Fälle und Wiederholungen, die jeder Fall mindestens hat; nachgemessene Fälle haben mehr |
 | `main`, `low`, `high` | Hauptwert als Anteil mit 95 %-Intervall, per Bootstrap über Fälle |
 | `criteria` | je Kriterium der Anteil, über die Antworten gemittelt; die kritischen Kriterien des Anfragetyps sind Pflicht |
 | `outcomes` | Antworten je Klasse: angenommen, abgelehnt, verworfen, Zeitüberschreitung |
@@ -134,7 +150,9 @@ Reihenfolge der Läufe. `npm run check:docs` prüft Form und Reihenfolge.
 | `costUsd`, `costTotalUsd`, `latencyP90Ms` | Kosten je Antwort und im Lauf, Latenz im 90. Perzentil |
 | `metrics` | optional: Messgrößen je Antwort, über den Lauf gemittelt |
 | `judge` | Richtermodell, Fingerabdruck von Auftrag und Bogen, neu bewertete Einträge und Einträge aus dem Cache (ohne Kontrolleinträge), Rauschen je Kriterium |
-| `comparison` | nur bei Runden, gepaart auf den gemeinsamen Fällen mit dem Bestand: `noise` als halbe Breite des 95 %-Intervalls des Abstands, `gained` und `lost` als gewonnene und verlorene Fälle |
+| `comparison` | nur bei Runden, gepaart auf den gemeinsamen Fällen mit dem Bestand: `noise` als halbe Breite des 95 %-Intervalls des Abstands, `gained` und `lost` als gewonnene und verlorene Fälle, optional `target` als Fehlerbild |
+| `reason` | optional: Begründung einer Übernahme aus den Trainingsantworten |
+| `confirmation` | optional: `true` bei einer Sammelprüfung; verworfen setzt sie den Bestand auf den letzten bestätigten zurück |
 
 | Feld einer Kalibrierung | Bedeutung |
 | --- | --- |

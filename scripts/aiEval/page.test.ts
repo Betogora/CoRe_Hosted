@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { OPENROUTER_MODEL } from "../../server/aiRoute.ts";
-import { REQUEST_TYPES, bestRun, holdoutFor, parseLedger, seriesFor, type EvalLedger } from "./ledger.ts";
+import { REQUEST_TYPES, bestRun, confirmationState, holdoutFor, parseLedger, seriesFor, type EvalLedger } from "./ledger.ts";
 import { aiEvalDocument, balanceSection, bestTable, progressSections } from "./page.ts";
 
 const variant = REQUEST_TYPES[0];
@@ -26,6 +26,20 @@ test("Ledger verlangt eine Baseline vor Runden, Vergleiche nur bei Runden und di
   assert.throws(() => parseLedger({ runs: [{ ...run, requestType: "quiz" }], calibrations: [] }), /ledger\.json: runs\.0\.requestType/);
   assert.throws(() => parseLedger({ runs: [{ ...holdout, decision: "baseline" }], calibrations: [] }), /Entscheidung holdout, und nur sie/);
   assert.throws(() => parseLedger({ runs: [run, { ...holdout, comparison: { noise: 0.04, gained: 1, lost: 0 } }], calibrations: [] }), /Rückhalt nie/);
+});
+
+test("Vorläufige Schritte werden Bestand; eine verworfene Sammelprüfung setzt auf den letzten bestätigten Stand zurück", () => {
+  const provisional = (name: string, main: number) => ({ ...round("accepted", "card-variant-v6", main), run: name, decision: "provisional" as const, reason: "Behoben." });
+  const confirm = (decision: "accepted" | "rejected") => ({ ...round(decision, "card-variant-v7", 0.93), run: `sammel-${decision}`, confirmation: true as const });
+  const open = parseLedger({ runs: [run, provisional("p1", 0.91), provisional("p2", 0.92)], calibrations: [] });
+  assert.equal(bestRun(open, variant.id)?.run, "p2");
+  assert.deepEqual([confirmationState(open, variant.id).confirmed?.run, confirmationState(open, variant.id).pending], [run.run, 2]);
+  const failed = parseLedger({ ...open, runs: [...open.runs, confirm("rejected")] });
+  assert.equal(bestRun(failed, variant.id)?.run, run.run);
+  assert.equal(confirmationState(failed, variant.id).pending, 0);
+  const passed = parseLedger({ ...open, runs: [...open.runs, confirm("accepted")] });
+  assert.deepEqual([bestRun(passed, variant.id)?.run, confirmationState(passed, variant.id).confirmed?.run], ["sammel-accepted", "sammel-accepted"]);
+  assert.equal(seriesFor(failed, variant.id).at(-1)?.reference?.run, run.run, "eine Sammelprüfung misst gegen den letzten bestätigten Stand");
 });
 
 test("Der Rückhalt gehört zu keiner Reihe und wird dem Bestand mit gleicher Promptversion zugeordnet", () => {

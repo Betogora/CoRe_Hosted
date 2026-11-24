@@ -542,7 +542,7 @@ Erzeugung rund 7 Cent.
   kleinere Verbesserungen sind nicht messbar. Die Vorauswahl mit einer
   Wiederholung schwankt ähnlich stark (Musterbeispiel: H4 67 → 92 → 63 %).
 
-### K – Messschärfe und L – ausgewogene Fallsätze
+### K – Messschärfe (erledigt) und L – ausgewogene Fallsätze
 
 Anlass ist die Welle KI hilft: 31 Karten je Teil, eine Karte rund 3 Punkte,
 Rauschen um ±10 Punkte; der Rückhalt bestätigte den Gewinn nicht. Das
@@ -558,8 +558,13 @@ stabil. Doppelt so viele Fälle senkten es nur auf etwa ±7.
   Karte verliert und kein kritisches Kriterium schlechter wird.
 - **Sammelprüfung:** Nach höchstens drei vorläufigen Schritten misst der
   Stapel gegen den letzten bestätigten Stand mit drei Wiederholungen; ist er
-  nicht besser als das Rauschen, fällt der Schritt mit dem schwächsten Beleg
-  heraus.
+  nicht besser als das Rauschen, gilt wieder der letzte bestätigte Stand, und
+  die Schritte mit dem stärksten Beleg kommen als neue Kandidaten zurück
+  (einfacher und eindeutiger als einen einzelnen Schritt herauszurechnen).
+- **Umgesetzt (2026-11-24):** `more`, `score --target`, `--confirm` und
+  `--reason`, Entscheidung `provisional`, Sicherheit 1 ohne Wirkung, Bericht
+  mit „x von n“. Die bisherigen Läufe zählen Sicherheit-1-Urteile noch mit;
+  mit L beginnen ohnehin neue Baselines.
 - **Begründung:** Jede Übernahme trägt zwei Sätze aus den geänderten
   Trainingsantworten (Fehlerbild behoben, nichts Neues kaputt).
 - **Sicherheit 1** zählt nicht für die Entscheidung, nur für die Grenzfälle.

@@ -45,8 +45,11 @@ const FATAL = new Set(["provider_budget_exhausted", "openrouter_auth_failed", "n
 const ATTEMPTS = 5;
 const TEXTS: ProviderTexts = { rateLimited: "Ratenlimit erreicht.", unavailable: "Schlüssel oder Limit prüfen.", rejected: "OpenRouter hat die Anfrage abgelehnt.", failed: "Anbieterfehler.", invalid: "Ungültige Antwort.", tool: "Werkzeug falsch verwendet.", fields: "Ungültige Felder." };
 
-export function readAnswers(directory: string): AnswerRow[] {
-  const file = path.join(directory, "answers.jsonl");
+/** `reference.jsonl` hält Nachmessungen des Bestands für den gepaarten Vergleich dieses Laufs. */
+export type AnswerFile = "answers.jsonl" | "reference.jsonl";
+
+export function readAnswers(directory: string, name: AnswerFile = "answers.jsonl"): AnswerRow[] {
+  const file = path.join(directory, name);
   return existsSync(file) ? readFileSync(file, "utf8").split("\n").filter(Boolean).map((line) => JSON.parse(line) as AnswerRow) : [];
 }
 
@@ -74,15 +77,18 @@ const errorCode = (error: unknown) => error !== null && typeof error === "object
 
 /**
  * Vorhandene Zeilen bleiben; ein abgebrochener Lauf setzt dort fort. Ratenlimit und Anbieterfehler werden mit wachsender
- * Wartezeit wiederholt; was danach scheitert, bleibt offen. Gibt die Zahl der offenen Antworten zurück.
+ * Wartezeit wiederholt; was danach scheitert, bleibt offen. Gibt die Zahl der offenen Antworten zurück. `extend` ergänzt
+ * Wiederholungen einzelner Fälle eines begonnenen Laufs, ohne dessen `run.json` zu prüfen oder zu ändern.
  */
-export async function generate({ definition, candidate = null, cases, repetitions, split, directory, apiKey, fetchImpl = globalThis.fetch, dry = false, concurrency = 4, budgetUsd = 1, retryDelayMs = 2000, log = console.log }: {
+export async function generate({ definition, candidate = null, cases, repetitions, split, directory, file = "answers.jsonl", extend = false, apiKey, fetchImpl = globalThis.fetch, dry = false, concurrency = 4, budgetUsd = 1, retryDelayMs = 2000, log = console.log }: {
   definition: EvalDefinition;
   candidate?: Candidate | null;
   cases: readonly EvalCase[];
   repetitions: number;
   split: RunMeta["split"];
   directory: string;
+  file?: AnswerFile;
+  extend?: boolean;
   apiKey: string;
   fetchImpl?: typeof fetch;
   dry?: boolean;
@@ -99,14 +105,15 @@ export async function generate({ definition, candidate = null, cases, repetition
     model: sample.model, reasoning: sample.reasoning.effort, fingerprint: payloadFingerprint(build, cases), repetitions, split, dry, date: new Date().toISOString().slice(0, 10),
   };
   mkdirSync(directory, { recursive: true });
-  if (existsSync(path.join(directory, "run.json"))) {
+  if (extend) readMeta(directory);
+  else if (existsSync(path.join(directory, "run.json"))) {
     const existing = readMeta(directory);
     for (const key of ["fingerprint", "repetitions", "split", "dry"] as const) {
       if (existing[key] !== meta[key]) throw new Error(`Der Lauf in ${directory} wurde mit ${key} = ${existing[key]} begonnen, jetzt gilt ${meta[key]}. Einen neuen Laufnamen wählen.`);
     }
   } else writeJson(path.join(directory, "run.json"), meta);
 
-  const existing = readAnswers(directory);
+  const existing = readAnswers(directory, file);
   const done = new Set(existing.map((row) => `${row.caseId}#${row.repetition}`));
   let spent = existing.reduce((sum, row) => sum + (row.costUsd ?? 0), 0);
   const open = cases.flatMap((entry) => Array.from({ length: repetitions }, (_, repetition) => ({ entry, repetition }))).filter(({ entry, repetition }) => !done.has(`${entry.id}#${repetition}`));
@@ -164,7 +171,7 @@ export async function generate({ definition, candidate = null, cases, repetition
           totalTokens: sum(billings.map((billing) => billing.totalTokens)), costUsd,
           latencyMs: calls.reduce((total, call) => total + call.latencyMs, 0), transcript: { request: calls.map((call) => call.request), response: calls.map((call) => call.response) },
         };
-        appendFileSync(path.join(directory, "answers.jsonl"), `${JSON.stringify(answer)}\n`, "utf8");
+        appendFileSync(path.join(directory, file), `${JSON.stringify(answer)}\n`, "utf8");
         written++;
         continue;
       }
@@ -189,7 +196,7 @@ export async function generate({ definition, candidate = null, cases, repetition
       }
       spent += row.costUsd ?? 0;
       const answer: AnswerRow = { caseId: entry.id, repetition, ...row, latencyMs: Date.now() - timing.startedAt, transcript: { request: payload, response } };
-      appendFileSync(path.join(directory, "answers.jsonl"), `${JSON.stringify(answer)}\n`, "utf8");
+      appendFileSync(path.join(directory, file), `${JSON.stringify(answer)}\n`, "utf8");
       written++;
     }
   }

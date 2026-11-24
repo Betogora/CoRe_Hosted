@@ -45,6 +45,9 @@ export type JudgeCache = Record<string, Verdict>;
 export type JudgeKey = { judge: string; entries: Record<string, string[]>; duplicates: Record<string, string>; hashes: Record<string, string>; cached: Record<string, string> };
 
 export const answerRef = (caseId: string, repetition: number) => `answer:${caseId}#${repetition}`;
+/** Nachmessung des Bestands im Lauf eines Kandidaten (`reference.jsonl`). */
+export const referenceRef = (caseId: string, repetition: number) => `reference:${caseId}#${repetition}`;
+export const unsureKey = (ref: string, criterion: string) => `${ref}|${criterion}`;
 export const labelRef = (id: string) => `label:${id}`;
 const hash = (text: string) => createHash("sha256").update(text).digest("hex").slice(0, 16);
 const baseId = (id: string) => id.split(":")[0];
@@ -135,10 +138,15 @@ export function readVerdicts(blocks: readonly JudgeBlock[], files: readonly unkn
   if (problems.length) throw new Error(`Richterurteile unvollständig (${problems.length} Einträge), zum Beispiel: ${problems.slice(0, 3).join("; ")}.`);
 
   const verdicts: Verdicts = new Map();
-  for (const [entry, refs] of Object.entries(key.entries)) for (const ref of refs) verdicts.set(ref, given.get(entry)!.results);
+  const unsure = new Set<string>();
+  const keep = (ref: string, verdict: Verdict) => {
+    verdicts.set(ref, verdict.results);
+    for (const [criterion, level] of Object.entries(verdict.sure)) if (level === 1) unsure.add(unsureKey(ref, criterion));
+  };
+  for (const [entry, refs] of Object.entries(key.entries)) for (const ref of refs) keep(ref, given.get(entry)!);
   for (const [ref, entryHash] of Object.entries(key.cached)) {
     if (!cache[entryHash]) throw new Error(`Das Urteil für ${ref} fehlt im Urteilscache. Den Ordner judge des Laufs löschen und „table“ erneut ausführen.`);
-    verdicts.set(ref, cache[entryHash].results);
+    keep(ref, cache[entryHash]);
   }
   const fresh: JudgeCache = Object.fromEntries(Object.entries(key.hashes).map(([entry, entryHash]) => [entryHash, given.get(entry)!]));
   const pairs = Object.entries(key.duplicates).map(([duplicate, original]) => ({ original, a: given.get(original)!, b: given.get(duplicate)! }));
@@ -150,7 +158,7 @@ export function readVerdicts(blocks: readonly JudgeBlock[], files: readonly unkn
     flipped.set(id, new Set(judgments.filter(({ changed }) => changed).map(({ original }) => original)));
     noise[id] = Math.round(judgments.filter(({ changed }) => changed).length / judgments.length * 10000) / 10000;
   }
-  return { verdicts, given, fresh, noise, flipped, duplicates: new Set(Object.keys(key.duplicates)), judged: Object.keys(key.hashes).length, cached: new Set(Object.values(key.cached)).size };
+  return { verdicts, unsure, given, fresh, noise, flipped, duplicates: new Set(Object.keys(key.duplicates)), judged: Object.keys(key.hashes).length, cached: new Set(Object.values(key.cached)).size };
 }
 
 export type VerdictReading = ReturnType<typeof readVerdicts>;

@@ -8399,7 +8399,12 @@ Agenten steht im Skill <a href="../.agents/skills/ai-eval/SKILL.md"><code>ai-eva
 <tr>
 <td>Auswerten</td>
 <td><code>score &lt;typ&gt; --run &lt;name&gt; --judge &lt;modell&gt;</code></td>
-<td>Bericht und Grenzfälle; am Entscheidungsteil die Entscheidung; mit <code>--record</code> der Ledger-Eintrag und die Ergebnisdatei</td>
+<td>Bericht mit richtigen Antworten „x von n“ und Grenzfälle; am Entscheidungsteil die Entscheidung; <code>--target</code> nennt das Fehlerbild, <code>--confirm</code> macht den Lauf zur Sammelprüfung; mit <code>--record</code> der Ledger-Eintrag und die Ergebnisdatei</td>
+</tr>
+<tr>
+<td>Nachmessen</td>
+<td><code>more &lt;typ&gt; --run &lt;name&gt;</code></td>
+<td>nach <code>score</code>, nur bei einem Richtereintrag je Antwort und nicht bei Sammelprüfungen: je zwei weitere Antworten für Kandidat und Bestand auf den Fällen, die kippen (Wiederholungen uneins oder anders als der Bestand); danach erneut <code>table</code>, Richter und <code>score</code></td>
 </tr>
 </tbody></table>
 <ul>
@@ -8448,10 +8453,25 @@ zum Bestand über dem Rauschen liegt (mit <code>--simplify</code> für Kürzunge
 messbar schlechter), kein kritisches Kriterium schlechter wird und Kosten je
 Antwort und Latenz p90 höchstens das 1,2-Fache betragen. Fallen (<code>trap</code>)
 zählt der Bericht getrennt.</li>
+<li>Scheitert ein Kandidat mit <code>--target</code> (Kriterien oder Kategorien seines
+Fehlerbilds) nur am Rauschen, ist er vorläufig übernommen, wenn er dort
+mindestens zwei Fälle mehr gewinnt als verliert und am Rest höchstens einen
+Fall mehr verliert als gewinnt. Ein vorläufiger Schritt wird Bestand; solange
+einer offen ist, ist jede Übernahme vorläufig. Nach höchstens drei misst
+eine Sammelprüfung (<code>--confirm</code>, Code ohne Kandidat, mindestens drei
+Wiederholungen) gegen den letzten bestätigten Stand; besteht sie, ist der
+Stapel bestätigt, sonst gilt wieder der letzte bestätigte Stand.</li>
+<li>Ein Urteil mit Sicherheit 1 zählt weder als bestanden noch als
+durchgefallen; es steht nur unter den Grenzfällen. Hängt der Hauptwert einer
+Antwort allein an einem solchen Urteil, zählt die Antwort für ihn nicht.</li>
+<li><code>--target</code> muss Kriterien oder Kategorien des Laufs nennen und einen Teil
+der Fälle treffen, nicht alle.</li>
 <li>Ins Ledger kommen Läufe auf dem Entscheidungsteil und Messungen am Rückhalt.
 Eine Baseline, eine Übernahme und eine Messung am Rückhalt trägt <code>--record</code>
 nur ein, wenn der Code der Route denselben Payload baut wie der Lauf; ein
-übernommener Kandidat muss also zuerst in die Route. Ein Kontrolleintrag, den
+übernommener Kandidat muss also zuerst in die Route. Eine Übernahme, auch
+eine vorläufige, braucht <code>--reason</code> mit zwei Sätzen aus den geänderten
+Trainingsantworten. Ein Kontrolleintrag, den
 der Richter bei einem kritischen Kriterium fälschlich bestehen lässt,
 verhindert den Eintrag, und seine Urteile kommen nicht in den Cache.</li>
 <li><code>generate --dry</code> erzeugt nachgebildete Antworten ohne Schlüssel und Kosten;
@@ -8546,11 +8566,11 @@ Reihenfolge der Läufe. <code>npm run check:docs</code> prüft Form und Reihenfo
 </tr>
 <tr>
 <td><code>decision</code></td>
-<td><code>baseline</code> beginnt eine Reihe und setzt den Bestand neu, <code>accepted</code> wird Bestand, <code>rejected</code> nicht, <code>holdout</code> ist eine Messung am Rückhalt</td>
+<td><code>baseline</code> beginnt eine Reihe und setzt den Bestand neu, <code>accepted</code> wird bestätigter Bestand, <code>provisional</code> vorläufiger, <code>rejected</code> nicht, <code>holdout</code> ist eine Messung am Rückhalt</td>
 </tr>
 <tr>
 <td><code>cases</code>, <code>repetitions</code></td>
-<td>Fälle und Wiederholungen je Fall</td>
+<td>Fälle und Wiederholungen, die jeder Fall mindestens hat; nachgemessene Fälle haben mehr</td>
 </tr>
 <tr>
 <td><code>main</code>, <code>low</code>, <code>high</code></td>
@@ -8582,7 +8602,15 @@ Reihenfolge der Läufe. <code>npm run check:docs</code> prüft Form und Reihenfo
 </tr>
 <tr>
 <td><code>comparison</code></td>
-<td>nur bei Runden, gepaart auf den gemeinsamen Fällen mit dem Bestand: <code>noise</code> als halbe Breite des 95 %-Intervalls des Abstands, <code>gained</code> und <code>lost</code> als gewonnene und verlorene Fälle</td>
+<td>nur bei Runden, gepaart auf den gemeinsamen Fällen mit dem Bestand: <code>noise</code> als halbe Breite des 95 %-Intervalls des Abstands, <code>gained</code> und <code>lost</code> als gewonnene und verlorene Fälle, optional <code>target</code> als Fehlerbild</td>
+</tr>
+<tr>
+<td><code>reason</code></td>
+<td>optional: Begründung einer Übernahme aus den Trainingsantworten</td>
+</tr>
+<tr>
+<td><code>confirmation</code></td>
+<td>optional: <code>true</code> bei einer Sammelprüfung; verworfen setzt sie den Bestand auf den letzten bestätigten zurück</td>
 </tr>
 </tbody></table>
 <table>

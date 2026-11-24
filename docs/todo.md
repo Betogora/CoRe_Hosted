@@ -38,16 +38,6 @@ Pakete in dieser Reihenfolge.
       Karten mit eingeschleuster Anweisung, [Verlauf](history.md)), melden die
       Routen heute „Werkzeug nicht korrekt verwendet“. Eigener Fehlercode und
       eine verständliche Meldung; im Eval bleibt es eine verworfene Antwort.
-- [ ] **K – Messschärfe:** Bei rund 30 Karten je Teil ist eine Karte etwa
-      3 Punkte wert; die Welle KI hilft blieb deshalb im Rauschen. Runner:
-      kippende Karten zweimal nachmessen; Kandidaten nennen ihr Fehlerbild
-      und werden dort (mindestens zwei Karten Saldo) und am Rest (höchstens
-      eine Karte schlechter, kritische Kriterien nicht schlechter) geprüft;
-      so Übernommenes gilt als vorläufig, bis eine Sammelprüfung mit drei
-      Wiederholungen nach höchstens drei Schritten es bestätigt; jede
-      Übernahme trägt eine Begründung aus den Trainingsantworten; Urteile mit
-      Sicherheit 1 entscheiden nicht. Berichte nennen als Hauptwert richtige
-      Antworten „x von n“. Nachweis: Runnertests, Doku.
 - [ ] **L – Ausgewogene Fallsätze:** Varianten und KI hilft je etwa 120 Fälle
       aus einem Raster Fach (Medizin, Naturwissenschaft, Technik/IT, Mathe,
       Sprachen, Recht/Wirtschaft, Geschichte/Geografie) × Kartenform ×
@@ -60,7 +50,7 @@ Pakete in dieser Reihenfolge.
       Zusammenfassung. Danach Baselines neu. Nachweis: Fallzahlen je Teil und
       Fach, neue Baselines im Ledger.
 - [ ] **I – Hillclimb, erste Welle** auf Reasoning `low` (KI hilft erledigt,
-      `card-help-v2`; die übrigen nach K und L): KI hilft, Varianten,
+      `card-help-v2`; die übrigen nach L): KI hilft, Varianten,
       Karten aus einer Quelle, Zusammenfassung. Je Runde drei bis fünf
       Kandidaten aus den Trainingsfehlern, Vorauswahl am Trainingsteil,
       Entscheidung am Entscheidungsteil; mindestens drei Runden, Ende nach
