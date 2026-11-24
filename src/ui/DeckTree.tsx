@@ -303,10 +303,14 @@ const DeckTreeRow = React.memo(function DeckTreeRow({ row, mode, presentation, d
     </button>
   ) : <span className="-me-2 size-control shrink-0" aria-hidden="true" />;
   const hasWork = row.summary.newCards + row.summary.inProgressCards + row.summary.dueCards > 0;
-  const studyAction = (
+  const studyAction = tile ? (
     <CoreTooltip label={`${row.name} lernen`} deckAppearance={getDeckAppearance(row.deck)}>
       <IconButton label={`${row.path} lernen`} icon={Play} variant="ghost" className="core-deck-icon-action core-deck-study-action pointer-events-auto" data-deck-has-work={hasWork ? "true" : "false"} onClick={() => onStudy(row)} />
     </CoreTooltip>
+  ) : (
+    <button type="button" aria-label={`${row.path} lernen`} className="core-deck-study-button pointer-events-auto" data-deck-has-work={hasWork ? "true" : "false"} onClick={() => onStudy(row)}>
+      <Play size={14} aria-hidden="true" /><span className="core-deck-study-label">Karten lernen</span>
+    </button>
   );
   const study = React.useCallback(() => onStudy(row), [onStudy, row]);
   const practice = React.useMemo(() => onPractice && ((returnFocus: HTMLElement | null) => onPractice(row, returnFocus)), [onPractice, row]);

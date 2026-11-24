@@ -160,7 +160,8 @@ interface RichTextEditorProps {
   };
   imageActions?: RichTextImageActions;
   toolbarOnFocus?: boolean;
-  documentTools?: boolean;
+  /** `essential` keeps bold, italic, underline, highlight and lists for narrow side panels. */
+  documentTools?: boolean | "essential";
   /** `false` when the caller owns undo and redo, like the mind map with its own history. */
   documentHistory?: boolean;
   documentSettings?: React.ReactNode;
@@ -646,9 +647,10 @@ export function RichTextEditor({ value = "", onChange, onFocus, isActive = false
   ) : null;
   const clozeTool = clozeActions ? <ToolbarButton label={`Auswahl als Lücke c${normalizeClozeGroupId(clozeActions.groupId)} markieren`} icon={Braces} onRun={addCloze} /> : null;
   const formulaTool = <ToolbarButton label="Auswahl als Formel setzen" icon={Sigma} onRun={addFormula} />;
+  const essentialTools = documentTools === "essential";
   const toolbar = documentTools ? (
       <div ref={toolbarRef} role="toolbar" aria-label="Werkzeuge zur Textformatierung" className={`core-rich-text-toolbar core-rich-text-document-toolbar ${toolbarHost ? "" : toolbarFrame}`} onKeyDown={leaveToolbar}>
-        {documentHistory && <div className="core-rich-text-group" role="group" aria-label="Verlauf">
+        {documentHistory && !essentialTools && <div className="core-rich-text-group" role="group" aria-label="Verlauf">
           <ToolbarButton label="Rückgängig" icon={Undo2} onRun={() => runCommand("undo")} />
           <ToolbarButton label="Wiederholen" icon={Redo2} onRun={() => runCommand("redo")} />
         </div>}
@@ -657,7 +659,7 @@ export function RichTextEditor({ value = "", onChange, onFocus, isActive = false
           <ToolbarButton label="Fett" icon={Bold} pressed={Boolean(formatState.bold)} onRun={() => runCommand("bold")} />
           <ToolbarButton label="Kursiv" icon={Italic} pressed={Boolean(formatState.italic)} onRun={() => runCommand("italic")} />
           <ToolbarButton label="Unterstrichen" icon={Underline} pressed={Boolean(formatState.underline)} onRun={() => runCommand("underline")} />
-          <ToolbarButton label="Durchgestrichen" icon={Strikethrough} pressed={Boolean(formatState.strikeThrough)} onRun={() => runCommand("strikeThrough")} />
+          {essentialTools ? null : <ToolbarButton label="Durchgestrichen" icon={Strikethrough} pressed={Boolean(formatState.strikeThrough)} onRun={() => runCommand("strikeThrough")} />}
         </div>
         {imageActions || clozeActions ? <div className="core-rich-text-group" role="group" aria-label="Einfügen">
           {imageTool}
@@ -666,16 +668,16 @@ export function RichTextEditor({ value = "", onChange, onFocus, isActive = false
           {formulaTool}
         </div> : null}
         <div className="core-rich-text-group" role="group" aria-label="Farbe">
-          <ColorPicker variant="tool" icon={Baseline} ariaLabel="Textfarbe" value={textColor} presets={textColorPresets} onOpenChange={openColorMenu} onValueCommit={(color) => applyColor("text", color)} />
+          {essentialTools ? null : <ColorPicker variant="tool" icon={Baseline} ariaLabel="Textfarbe" value={textColor} presets={textColorPresets} onOpenChange={openColorMenu} onValueCommit={(color) => applyColor("text", color)} />}
           <ColorPicker variant="tool" icon={Highlighter} ariaLabel="Hervorheben" value={highlightColor} presets={highlightColorPresets} onOpenChange={openColorMenu} onValueCommit={(color) => applyColor("highlight", color)} />
         </div>
         <div className="core-rich-text-group" role="group" aria-label="Listen">
           <ToolbarButton label="Stichpunkte" icon={List} pressed={Boolean(formatState.insertUnorderedList)} onRun={() => runCommand("insertUnorderedList")} />
           <ToolbarButton label="Nummerierte Liste" icon={ListOrdered} pressed={Boolean(formatState.insertOrderedList)} onRun={() => runCommand("insertOrderedList")} />
         </div>
-        <div className="core-rich-text-group">
+        {essentialTools ? null : <div className="core-rich-text-group">
           <ToolbarButton label="Formatierung entfernen" icon={RemoveFormatting} onRun={() => runCommand("removeFormat")} />
-        </div>
+        </div>}
       </div>
   ) : (
       <div ref={toolbarRef} role="toolbar" aria-label="Werkzeuge zur Textformatierung" className={`core-rich-text-toolbar flex max-w-full min-w-0 flex-wrap items-center gap-0.5 ${toolbarFrame}`} onKeyDown={leaveToolbar}>

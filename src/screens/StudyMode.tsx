@@ -1,5 +1,5 @@
 import React from "react";
-import { CheckCircle2, ChevronDown, CircleAlert, Eye, Shuffle, SlidersHorizontal, X } from "lucide-react";
+import { CheckCircle2, ChevronDown, CircleAlert, Eye, FileText, Shuffle, SlidersHorizontal, X } from "lucide-react";
 import { HIT_REVIEW_KIND } from "../reviewEventKinds.ts";
 import { DEFAULT_EASY_DAYS, createEasyDaysDueCounts, shiftEasyDaysDueCounts } from "../easyDays.ts";
 import { cancelFieldTiming, startFieldTiming } from "../fieldTimings.ts";
@@ -25,7 +25,7 @@ import {
 } from "../reviewService.ts";
 import { useNoteMediaPrefetch, useNoteMediaUrls } from "../ui/cardMedia.tsx";
 import { useSuccessToast } from "../ui/feedbackUi.tsx";
-import { DailyReviewProgress } from "../ui/DailyReviewProgress.tsx";
+import { DAILY_REVIEW_PROGRESS_SEGMENTS, DailyReviewProgress } from "../ui/DailyReviewProgress.tsx";
 import { PomodoroProgress } from "../ui/pomodoroTimerUi.tsx";
 import { NoteCardContent, revealLabel, useNoteCardPrefetch } from "../ui/NoteCardContent.tsx";
 import { StudySettingsOverlay } from "../ui/StudySettingsOverlay.tsx";
@@ -35,6 +35,7 @@ import { FlagDot } from "../ui/flagUi.tsx";
 import { CoreTooltip } from "../ui/tooltipUi.tsx";
 import { formatLimitSummary, formatReviewIntervalLabel, ratingButtons } from "./screenConstants.ts";
 import { StudyAiHelp } from "./StudyAiHelp.tsx";
+import { StudySidePanel } from "./StudySidePanel.tsx";
 import { aiCardHelpCard } from "../aiCardHelp.ts";
 import type { Card, CardStudyState, CardStudyStatePatch, Deck, GlobalSchedulerPreferences, Note, ReviewRating } from "../coreTypes.ts";
 import type { AskCardHelp } from "./StudyAiHelp.tsx";
@@ -70,6 +71,8 @@ export interface StudyModeProps extends Partial<Pick<GlobalSchedulerPreferences,
   onUndoReview: (result: ReviewAnswerResult, previous: Card) => Card | null;
   onAskCardHelp: AskCardHelp;
   sessionPlan?: { progress: DailyReviewProgressSummary; initialCardCount: number };
+  /** Absent where the session has no own deck, e.g. an exam unit; `reveal` opens the panel. */
+  renderSidePanel?: (reveal: () => void) => React.ReactNode;
   bufferSize?: number;
   hasMoreCards?: boolean;
   onLoadMoreCards?: () => Promise<{
@@ -101,10 +104,12 @@ function createEasyDaysContext(
   };
 }
 
+const STUDY_OPEN_COUNTS = DAILY_REVIEW_PROGRESS_SEGMENTS.filter((segment) => segment.key !== "learned");
+
 // Cards rendered and media loaded ahead: enough to answer quickly without holding many images.
 const PREFETCH_CARD_COUNT = 3;
 
-export function StudyMode({ shortcutsSuspended = false, deck, decks, notes, answeredToday, deckId, mediaStore, getNow, learningDayKey, dayStartHour = 0, learnAheadMinutes = 20, leechThreshold, easyDays = DEFAULT_EASY_DAYS, dueForecast = null, timeZone, simulationOffsetMinutes, pomodoroTimer, onStartPomodoro, onExit, onReturnToLearn, onEditCard, onEditDeck, flagNames, onSetCardStudyState, onSetDeckReviewOrder, onReview, onUndoReview, onAskCardHelp, sessionPlan, bufferSize = 50, hasMoreCards = false, onLoadMoreCards }: StudyModeProps) {
+export function StudyMode({ shortcutsSuspended = false, deck, decks, notes, answeredToday, deckId, mediaStore, getNow, learningDayKey, dayStartHour = 0, learnAheadMinutes = 20, leechThreshold, easyDays = DEFAULT_EASY_DAYS, dueForecast = null, timeZone, simulationOffsetMinutes, pomodoroTimer, onStartPomodoro, onExit, onReturnToLearn, onEditCard, onEditDeck, flagNames, onSetCardStudyState, onSetDeckReviewOrder, onReview, onUndoReview, onAskCardHelp, sessionPlan, renderSidePanel, bufferSize = 50, hasMoreCards = false, onLoadMoreCards }: StudyModeProps) {
   const [sessionDecks, setSessionDecks] = React.useState(decks);
   const [sessionNotes, setSessionNotes] = React.useState(() => new Map(notes.map((note) => [note.id, note])));
   /** Counts settings saved during the session, so the queue is planned again for any deck of the tree. */
@@ -123,6 +128,10 @@ export function StudyMode({ shortcutsSuspended = false, deck, decks, notes, answ
   const [showOriginal, setShowOriginal] = React.useState(false);
   const [showSettings, setShowSettings] = React.useState(false);
   const [showAiHelp, setShowAiHelp] = React.useState(false);
+  const [showSidePanel, setShowSidePanel] = React.useState(false);
+  const [sideWidth, setSideWidth] = React.useState(0);
+  const sidePanelId = React.useId();
+  const revealSidePanel = React.useCallback(() => setShowSidePanel(true), []);
   const [moreCardsAvailable, setMoreCardsAvailable] = React.useState(hasMoreCards);
   const [activeBufferSize, setActiveBufferSize] = React.useState(Math.max(1, bufferSize));
   const [loadingMoreCards, setLoadingMoreCards] = React.useState(false);
@@ -499,6 +508,8 @@ export function StudyMode({ shortcutsSuspended = false, deck, decks, notes, answ
   React.useEffect(() => {
     function handleKeyDown(event: KeyboardEvent) {
       if (showSettings || showAiHelp || shortcutsSuspended) return;
+      // Keys in the summary panel and its dialogs belong to the summary.
+      if (event.target instanceof Element && event.target.closest("[data-study-side-panel], [role='dialog'], [role='alertdialog']")) return;
       if ((event.ctrlKey || event.metaKey) && !event.altKey && !event.shiftKey && /^[1-7]$/.test(event.key) && current) {
         event.preventDefault();
         const flag = Number(event.key);
@@ -529,7 +540,12 @@ export function StudyMode({ shortcutsSuspended = false, deck, decks, notes, answ
   return (
     // A clicked control that keeps the focus would keep Space and Enter for itself; a keyboard-activated one (`detail` 0)
     // keeps it. Portalled dialogs are outside `main` in the DOM and keep theirs.
-    <main onClick={(event) => { if (event.detail > 0 && document.activeElement instanceof HTMLButtonElement && event.currentTarget.contains(document.activeElement)) cardContentRef.current?.focus({ preventScroll: true }); }} className={`flex min-h-screen flex-col bg-core-canvas p-4 text-core-text sm:p-8 ${current ? (showAnswer ? "pb-40 sm:pb-40" : "pb-28 sm:pb-28") : ""}`}>
+    <><main
+      onClick={(event) => { if (event.detail > 0 && document.activeElement instanceof HTMLButtonElement && event.currentTarget.contains(document.activeElement)) cardContentRef.current?.focus({ preventScroll: true }); }}
+      className={`core-study-mode flex min-h-screen flex-col bg-core-canvas p-4 text-core-text sm:p-8 ${current ? (showAnswer ? "pb-40 sm:pb-40" : "pb-28 sm:pb-28") : ""}`}
+      data-study-side={renderSidePanel ? (sideWidth ? "open" : "closed") : undefined}
+      style={{ "--core-study-side-width": `${sideWidth}px` } as React.CSSProperties}
+    >
       <div className="mx-auto flex w-full max-w-7xl flex-1 flex-col">
         <header className="core-study-header" data-testid="study-header">
           <div className="flex items-center justify-between gap-3">
@@ -537,11 +553,21 @@ export function StudyMode({ shortcutsSuspended = false, deck, decks, notes, answ
             <div className="flex min-w-0 flex-col items-center sm:flex-row sm:gap-2">
               <p className="min-w-0 max-w-full truncate core-heading-3 text-core-text">{rootDeck?.name ?? deck?.name}</p>
               <span className="flex shrink-0 items-center gap-2">
-                <span className="core-body font-medium tabular-nums text-core-muted">{sessionDailyProgress.completedTodayCount} / {sessionDailyProgress.total} Karten</span>
+                <dl className="flex items-baseline gap-2.5 core-body" aria-label="Heute offen" data-testid="study-open-counts">
+                  {STUDY_OPEN_COUNTS.map((count) => (
+                    <div key={count.countKey}>
+                      <dt className="sr-only">{count.label}</dt>
+                      <dd className="font-semibold tabular-nums" style={{ color: sessionDailyProgress[count.countKey] > 0 ? count.color : "var(--core-text-muted)" }}>{sessionDailyProgress[count.countKey]}</dd>
+                    </div>
+                  ))}
+                </dl>
                 {current?.card.ankiFlag ? <FlagDot flag={current.card.ankiFlag} names={flagNames} /> : null}
               </span>
             </div>
-            <IconButton type="button" onClick={() => setShowSettings((value) => !value)} label="Lerneinstellungen" icon={SlidersHorizontal} aria-haspopup="dialog" aria-expanded={showSettings} aria-controls="study-settings-overlay" />
+            <div className="flex shrink-0 items-center gap-2">
+              {renderSidePanel ? <IconButton type="button" className="core-study-side-toggle" onClick={() => setShowSidePanel((value) => !value)} label="Zusammenfassung" icon={FileText} aria-pressed={showSidePanel} aria-controls={sidePanelId} /> : null}
+              <IconButton type="button" onClick={() => setShowSettings((value) => !value)} label="Lerneinstellungen" icon={SlidersHorizontal} aria-haspopup="dialog" aria-expanded={showSettings} aria-controls="study-settings-overlay" />
+            </div>
           </div>
           <DailyReviewProgress progress={sessionDailyProgress} />
           {simulationOffsetMinutes > 0 ? (
@@ -707,5 +733,6 @@ export function StudyMode({ shortcutsSuspended = false, deck, decks, notes, answ
         {showAnswer && helpCard ? <StudyAiHelp card={helpCard} onAsk={onAskCardHelp} open={showAiHelp} onOpenChange={setShowAiHelp} returnFocusRef={cardContentRef} /> : null}
       </div>
     </main>
+    {renderSidePanel ? <StudySidePanel id={sidePanelId} open={showSidePanel} renderContent={() => renderSidePanel(revealSidePanel)} onWidthChange={setSideWidth} /> : null}</>
   );
 }

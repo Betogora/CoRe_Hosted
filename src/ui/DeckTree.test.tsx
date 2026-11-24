@@ -61,13 +61,13 @@ test("deck tree keeps one visual header and all three accessibly labelled metric
   assert.doesNotMatch(markup, /data-core-tooltip="Stapeloptionen für Bereich \/ Grundlagen"/);
 });
 
-test("deck tree marks the study arrow as action only for decks with work today", () => {
+test("deck tree rows offer `Karten lernen`, marked as action only for decks with work today", () => {
   const workRows = createDeckLibraryModel(createWorldCapitalsSeed().decks, { now: "2026-08-06T10:00:00.000Z" }).rows;
   const markup = renderToStaticMarkup(
     <DeckTree rows={workRows} mode="learn" collapsedDeckIds={[]} onDeckExpansionChange={() => undefined} onActivate={() => undefined} onStudy={() => undefined} onOpenSettings={() => undefined} onSetDeckCoreMode={() => undefined} onMoveDeck={() => null} />,
   );
 
-  assert.match(markup, /data-deck-has-work="true"[^>]*aria-label="Welt-Hauptstädte lernen"/);
+  assert.match(markup, /aria-label="Welt-Hauptstädte lernen"[^>]*data-deck-has-work="true"[^>]*>.*?>Karten lernen<\/span><\/button>/);
 });
 
 test("deck tree places caller content below the collection and omits an empty row frame", () => {

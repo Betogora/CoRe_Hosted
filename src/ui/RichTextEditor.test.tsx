@@ -21,6 +21,11 @@ test("leaves undo and redo to a caller with its own history", () => {
   assert.deepEqual(toolLabels(markup), documentFormatLabels);
 });
 
+test("keeps only the essential text tools for a narrow side panel", () => {
+  const markup = renderToStaticMarkup(<RichTextEditor ariaLabel="Zusammenfassung" documentTools="essential" />);
+  assert.deepEqual(toolLabels(markup), ["Fett", "Kursiv", "Unterstrichen", "Hervorheben", "Stichpunkte", "Nummerierte Liste"]);
+});
+
 test("adds the card tools of a field to the document toolbar", () => {
   const markup = renderToStaticMarkup(<RichTextEditor ariaLabel="Vorderseite" documentTools clozeActions={{ groupId: 2 }} imageActions={{ mediaUrls: {}, prepare: async () => ({ reference: "", previewUrl: "", alt: "" }) }} />);
   assert.deepEqual(toolLabels(markup), ["Rückgängig", "Wiederholen", "Fett", "Kursiv", "Unterstrichen", "Durchgestrichen", "Bild an Cursorposition einfügen", "Auswahl als Lücke c2 markieren", "Lücke entfernen", "Auswahl als Formel setzen", ...documentFormatLabels.slice(4)]);

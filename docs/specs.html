@@ -3992,8 +3992,36 @@ svg.lucide {
   gap: 0;
 }
 
-/* The column header reserves the width of the study and options icon buttons. */
-.core-deck-summary-actions-spacer { width: calc(2 * var(--core-button-height) + 0.25rem); }
+/* The column header reserves the width of the study button and the options icon button. */
+.core-deck-summary-responsive { --core-deck-study-width: 8.25rem; }
+.core-deck-summary-actions-spacer { width: calc(var(--core-deck-study-width) + var(--core-button-height) + var(--core-space-sm)); }
+
+.core-deck-study-button {
+  display: inline-flex;
+  width: var(--core-deck-study-width);
+  min-height: var(--core-button-height);
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  gap: var(--core-space-xs);
+  padding-inline: var(--core-space-sm);
+  border: var(--core-border-width) solid var(--core-border);
+  border-radius: var(--core-radius-control);
+  background: var(--core-surface);
+  color: var(--core-text-muted);
+  font: var(--core-weight-emphasis) var(--core-type-body)/var(--core-leading-body) var(--core-font-sans);
+  white-space: nowrap;
+  transition: background-color 140ms ease, border-color 140ms ease;
+}
+.core-deck-study-button[data-deck-has-work="true"] { border-color: var(--core-action-primary); color: var(--core-action-primary); }
+.core-deck-study-button:hover { background: var(--core-surface-hover); }
+.core-deck-study-button[data-deck-has-work="true"]:hover { background: var(--core-action-soft); }
+
+@container core-deck-summary (max-width: 32rem) {
+  .core-deck-summary-responsive { --core-deck-study-width: var(--core-button-height); }
+  .core-deck-study-button { padding-inline: 0; }
+  .core-deck-study-label { display: none; }
+}
 
 .core-deck-summary-count-value {
   color: var(--core-deck-count-color);
@@ -5959,6 +5987,62 @@ button.core-info-hint:is(:hover, [data-state="open"]) {
   }
 }
 
+.core-study-side-toggle, .core-study-side-panel { display: none; }
+
+@media (min-width: 64rem) {
+  .core-study-mode[data-study-side] {
+    padding-right: calc(var(--core-study-side-width, 0px) + 2rem);
+    transition: padding-right 220ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  .core-study-mode[data-study-side] .core-study-action-bar {
+    left: calc((100dvw - var(--core-study-side-width, 0px)) / 2);
+    width: calc(100dvw - var(--core-study-side-width, 0px) - 6rem);
+  }
+
+  .core-study-mode[data-study-side] .core-study-ai-entry { right: calc(var(--core-study-side-width, 0px) + 2rem); }
+
+  .core-study-side-toggle { display: inline-flex; }
+  .core-study-side-toggle[aria-pressed="true"] { background: var(--core-info-surface); }
+
+  .core-study-side-panel {
+    position: fixed;
+    inset-block: 0;
+    right: 0;
+    z-index: 31;
+    display: flex;
+    flex-direction: column;
+    border-left: var(--core-border-width) solid var(--core-border);
+    background: var(--core-surface);
+    transform: translateX(100%);
+    visibility: hidden;
+    transition: transform 220ms cubic-bezier(0.22, 1, 0.36, 1), visibility 0s linear 220ms;
+  }
+
+  .core-study-side-panel[data-open] {
+    transform: none;
+    visibility: visible;
+    transition: transform 220ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  .core-study-side-content { display: flex; min-height: 0; flex: 1 1 0; flex-direction: column; overflow-y: auto; padding: var(--core-space-lg); }
+
+  .core-study-side-resize {
+    position: absolute;
+    inset-block: 0;
+    left: -0.25rem;
+    z-index: 1;
+    width: 0.5rem;
+    cursor: col-resize;
+    touch-action: none;
+  }
+
+  .core-study-side-resize:hover,
+  .core-study-side-resize:focus-visible {
+    background: linear-gradient(to right, transparent 0.1875rem, var(--core-border-interactive) 0.1875rem, var(--core-border-interactive) 0.3125rem, transparent 0.3125rem);
+  }
+}
+
 .core-help-keyword {
   --core-help-keyword-highlight: color-mix(in srgb, var(--core-brand-secondary) 85%, transparent);
   color: inherit;
@@ -6385,6 +6469,17 @@ button.core-info-hint:is(:hover, [data-state="open"]) {
 .core-summary-sheet { position: relative; width: min(100%, 794px); margin-inline: auto; background: var(--core-surface); border: var(--core-border-width) solid var(--core-border); border-radius: var(--core-radius-panel); }
 .core-summary-sheet .rich-text-field { min-height: 638px; padding: var(--core-space-xl); border: 0; border-radius: var(--core-radius-panel); box-shadow: none; overflow: visible; font-family: var(--summary-font); font-size: var(--summary-size); line-height: 1.75; background: transparent; }
 .core-summary-sheet [role="toolbar"] { display: none; }
+.core-summary-document-editor[data-compact] .core-summary-tools { padding: 0 0 var(--core-space-xs); border: 0; border-bottom: var(--core-border-width) solid var(--core-border); border-radius: initial; background: var(--core-surface); box-shadow: none; }
+.core-summary-document-editor[data-compact] .core-summary-tools::before { inset-inline: 0; background: var(--core-surface); }
+.core-summary-document-editor[data-compact] .core-editor-toolbar-context { flex-basis: 100%; margin-inline: 0; padding: 0; border-top: 0; }
+.core-summary-document-editor[data-compact] .core-editor-toolbar-tools { margin-inline-start: calc(-1 * var(--core-space-md)); }
+.core-summary-document-editor[data-compact] .core-summary-stage { padding-top: 0; }
+.core-summary-document-editor[data-compact] .core-summary-sheet { width: 100%; border: 0; border-radius: initial; background: transparent; }
+.core-summary-document-editor[data-compact] .core-summary-sheet .rich-text-field { min-height: calc(100dvh - 8.25rem); padding: var(--core-space-md) 0; border-radius: initial; }
+.core-summary-compact-heading { display: flex; min-width: 0; align-items: center; gap: var(--core-space-xs); }
+.core-summary-compact-title { min-width: 0; flex: 1 1 0; padding: var(--core-space-xs) var(--core-space-sm); border: var(--core-border-width) solid transparent; border-radius: var(--core-radius-control); background: transparent; color: var(--core-text); font: var(--core-weight-emphasis) var(--core-type-body)/var(--core-leading-body) var(--core-font-sans); outline: none; }
+.core-summary-compact-title:hover { border-color: var(--core-border); }
+.core-summary-compact-title:focus { border-color: var(--core-action-primary); }
 .core-summary-drawing-layer { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
 .core-summary-drawing-layer:not([data-tool="text"]) { pointer-events: auto; touch-action: none; cursor: crosshair; }
 .core-summary-drawing-layer[data-tool="eraser"] { cursor: cell; }
@@ -8776,6 +8871,7 @@ html:has(.catalog-preview) { scroll-behavior: auto; }
 <li>Inhalte mit Vorlese-Angabe aus Anki lassen sich über die Sprachausgabe des Geräts vorlesen.</li>
 <li>Markierter Text lässt sich in AMBOSS nachschlagen. Erst der ausdrückliche Klick öffnet die Suche; übertragen wird nur der markierte Text.</li>
 <li>Nach dem Aufdecken steht <a href="#specs--ki-hilft">KI hilft</a> bereit.</li>
+<li>In der Sitzung lassen sich die <a href="#specs--zusammenfassungen">Zusammenfassungen</a> des Stapels lesen und von Hand schreiben, ohne dabei Karten zu bewerten; ein ungespeicherter Entwurf fragt beim Verlassen nach.</li>
 </ul>
 <h3 id="specs--pomodoro-timer" class="core-heading-3" tabindex="-1">Pomodoro-Timer <a class="docs-anchor" href="#specs--pomodoro-timer" aria-label="Link zu Pomodoro-Timer">#</a></h3>
 <ul>
@@ -8992,16 +9088,16 @@ html:has(.catalog-preview) { scroll-behavior: auto; }
 <li>Eine Fassung entsteht per <a href="#specs--ki-zusammenfassung">KI-Zusammenfassung</a> oder von Hand aus einem leeren Entwurf.</li>
 <li>Jede Fassung nennt Titel, Umfang, Detailgrad und die aus ihrem Text berechnete Lesezeit.</li>
 <li>Fassungen liegen im Konto und erscheinen auf jedem Gerät (<a href="decisions.md#adr-043--zusammenfassungen-und-mindmaps-als-versionierte-online-dokumente">ADR-043</a>).</li>
-<li>Löschen entfernt eine Fassung auf allen Geräten; daraus erzeugte Mindmap-Karten bleiben.</li>
-<li>Unter den eigenen Fassungen zeigt ein Stapel die seiner Unterstapel, gruppiert, bearbeitbar und löschbar; sie bleiben ihrem Stapel. Neue entstehen nur im geöffneten Stapel.</li>
+<li>Löschen gilt auf allen Geräten; daraus erzeugte Mindmap-Karten bleiben.</li>
+<li>Unter den eigenen Fassungen zeigt ein Stapel die seiner Unterstapel, gruppiert, bearbeitbar und löschbar; sie bleiben ihrem Stapel. Neue entstehen im geöffneten Stapel oder seiner Sitzung.</li>
 </ul>
 <h3 id="specs--zusammenfassung-bearbeiten-und-speichern" class="core-heading-3" tabindex="-1">Zusammenfassung bearbeiten und speichern <a class="docs-anchor" href="#specs--zusammenfassung-bearbeiten-und-speichern" aria-label="Link zu Zusammenfassung bearbeiten und speichern">#</a></h3>
 <ul>
-<li>Die Fassung steht auf einer durchgehenden Schreibfläche mit formatiertem Text und Handzeichnungen.</li>
+<li>Eine Fassung ist eine durchgehende Schreibfläche mit formatiertem Text und Handzeichnungen.</li>
 <li>Eine Textmarkierung gehört zum Text und wandert mit ihm; freie Striche liegen auf der Zeichenfläche.</li>
 <li>Gespeichert wird bewusst oder beim Verlassen; dann fragt ein geänderter Entwurf nach Speichern, Verwerfen oder Weiterbearbeiten, nie automatisch.</li>
-<li>Ohne Verbindung wird lokal gespeichert, als noch nicht synchronisiert gekennzeichnet und beim nächsten Öffnen hochgeladen.</li>
-<li>Hat ein anderes Gerät dieselbe Fassung inzwischen geändert, bleibt dessen Stand; die eigenen Änderungen werden eine eigene „Konfliktfassung“.</li>
+<li>Offline wird lokal gespeichert, als nicht synchronisiert markiert und beim nächsten Öffnen hochgeladen.</li>
+<li>Hat ein anderes Gerät die Fassung inzwischen geändert, bleibt dessen Stand; eigene Änderungen werden eine „Konfliktfassung“.</li>
 <li><strong>Bewusst nicht:</strong> Seiten und Seitenformate, Export.</li>
 </ul>
 <h3 id="specs--mindmap-erzeugen" class="core-heading-3" tabindex="-1">Mindmap erzeugen <a class="docs-anchor" href="#specs--mindmap-erzeugen" aria-label="Link zu Mindmap erzeugen">#</a></h3>
@@ -9009,19 +9105,18 @@ html:has(.catalog-preview) { scroll-behavior: auto; }
 <li>Jeder Stapel hat genau eine unbegrenzte Fläche; darauf können mehrere Bäume stehen.</li>
 <li>Aus einer gespeicherten Fassung desselben Stapels entsteht ein Baum auf dem Gerät, ohne KI: Überschriften werden Äste; Stichworte, kurze Absätze und Listenpunkte Karten; längere Absätze Text ihrer Abschnittskarte. Materialhinweise und Belege ergeben keine Karten.</li>
 <li>Belegte Querbezüge aus der Zusammenfassung werden Querverbindungen.</li>
-<li>Jede erzeugte Karte behält ihre Textstelle als unveränderliche Quelle; spätere Änderungen der Zusammenfassung überschreiben sie nicht.</li>
+<li>Jede erzeugte Karte behält ihre Textstelle als unveränderliche Quelle.</li>
 <li>Erneutes Erzeugen ersetzt den Baum dieser Fassung an seiner Stelle. Wurde er bearbeitet, fragt CoRe: überschreiben, daneben anlegen oder abbrechen. Andere Karten der Fläche bleiben.</li>
-<li>Hat der Stapel noch keine Fassung und ist die Fläche leer, entstehen Zusammenfassung und Mindmap in einem Zug. Eine Mindmap ohne gespeicherte Zusammenfassung entsteht nicht.</li>
+<li>Ohne Fassung und bei leerer Fläche entstehen Zusammenfassung und Mindmap in einem Zug; ohne gespeicherte Zusammenfassung entsteht keine Mindmap.</li>
 </ul>
 <h3 id="specs--mindmap-bearbeiten-und-speichern" class="core-heading-3" tabindex="-1">Mindmap bearbeiten und speichern <a class="docs-anchor" href="#specs--mindmap-bearbeiten-und-speichern" aria-label="Link zu Mindmap bearbeiten und speichern">#</a></h3>
 <ul>
 <li>Karten sind Stichwortkarten (Text eingeklappt) oder Textkarten (Text sichtbar), mit formatiertem Text und Bildern.</li>
 <li>Die Hierarchie ist zyklenfrei; Querverbindungen sind davon getrennt und dürfen Kreise bilden.</li>
-<li>Eine Klammer fasst benachbarte Geschwister unter einer eigenen, frei schreibbaren Karte zusammen, ohne KI. Eine Umrandung gruppiert Karten nur optisch. Beide lassen sich entfernen, ohne Karten zu verlieren.</li>
-<li>Dazu kommen freie Zeichnungen und freier Text.</li>
-<li>Automatisch platzierte Karten weichen wachsenden Nachbarn aus; von Hand platzierte bleiben, wo sie sind.</li>
+<li>Eine Klammer fasst benachbarte Geschwister unter einer frei schreibbaren Karte zusammen, ohne KI; eine Umrandung gruppiert nur optisch. Beide lassen sich entfernen, ohne Karten zu verlieren. Dazu kommen freie Zeichnungen und Text.</li>
+<li>Automatisch platzierte Karten weichen wachsenden Nachbarn aus; von Hand platzierte bleiben stehen.</li>
 <li>Änderungen speichern automatisch nach kurzer Pause. Rückgängig und Wiederholen umfassen alle Inhaltsänderungen, nicht die Ansicht.</li>
-<li>Die Mindmap liegt samt Bildern im Konto. Ohne Verbindung wird lokal gespeichert und später hochgeladen. Hat ein anderes Gerät inzwischen gespeichert, gewinnt der zuletzt gespeicherte Stand, mit Hinweis.</li>
+<li>Die Mindmap liegt samt Bildern im Konto, offline lokal bis zum Hochladen. Hat ein anderes Gerät inzwischen gespeichert, gewinnt der zuletzt gespeicherte Stand, mit Hinweis.</li>
 <li>Eine Mindmap hat feste Obergrenzen, darunter 2.000 Karten; eine Änderung darüber hinaus wird mit Grenze und aktuellem Wert abgewiesen.</li>
 <li><strong>Bewusst nicht:</strong> Export, gemeinsames Bearbeiten.</li>
 </ul>
@@ -9284,7 +9379,7 @@ html:has(.catalog-preview) { scroll-behavior: auto; }
 <p>Probe: Ein Satz gehört hinein, wenn er nach einer vollständigen Neugestaltung der Oberfläche unverändert gälte und eine Abweichung davon ein fachlicher Fehler wäre.</p>
 <p>Form: Stichpunkte, ein Gedanke je Punkt. Eine neue Regel ersetzt die alte, statt sie zu ergänzen. Wo Funktionen logisch voneinander abhängen, steht ein Schaubild als <code>schaubild</code>-Block direkt beim Text und wird mit ihm geändert (Schreibweise in <a href="index.html#readme--pflege"><code>README.md</code></a>). In Schaubildern sind KI-Schritte blau, Ergebnisse grün markiert.</p>
 <h2 id="specs--codeumfang-der-produktbereiche" class="core-heading-2" tabindex="-1">Codeumfang der Produktbereiche <a class="docs-anchor" href="#specs--codeumfang-der-produktbereiche" aria-label="Link zu Codeumfang der Produktbereiche">#</a></h2>
-<p>CoRe ist eine App mit mehreren Bereichen. Die Tabelle zeigt deren Anteil am Bildschirmcode; gemeinsam genutzte Logik, UI und API stehen separat.</p><div class="docs-code-stats"><dl class="flex min-w-0 flex-col"><dt class="core-status-label text-core-muted">Bildschirmcode</dt><dd class="core-metric mt-0.5 text-core-text">7.662</dd></dl><dl class="flex min-w-0 flex-col"><dt class="core-status-label text-core-muted">Gemeinsamer Code &amp; API</dt><dd class="core-metric mt-0.5 text-core-text">49.411</dd></dl><dl class="flex min-w-0 flex-col"><dt class="core-status-label text-core-muted">Quelldateien</dt><dd class="core-metric mt-0.5 text-core-text">313</dd></dl></div><div class="docs-code-chart"><div class="docs-table-scroll" tabindex="0" role="region" aria-label="Codeumfang je Produktbereich"><table><thead><tr><th>Bereich</th><th>Zeilen</th><th>Anteil</th></tr></thead><tbody><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-status-learned)" aria-hidden="true"></span>Heute</th><td>352</td><td>4,6 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-status-new)" aria-hidden="true"></span>Lernen & Karten</th><td>2.344</td><td>30,6 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-status-in-progress)" aria-hidden="true"></span>Erstellen & Import</th><td>2.105</td><td>27,5 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-action-primary)" aria-hidden="true"></span>Prüfungen</th><td>447</td><td>5,8 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-status-due)" aria-hidden="true"></span>Statistik</th><td>627</td><td>8,2 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-progress-completed)" aria-hidden="true"></span>Konto & Sync</th><td>875</td><td>11,4 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-text-secondary)" aria-hidden="true"></span>Hilfe</th><td>912</td><td>11,9 %</td></tr></tbody></table></div></div><p class="docs-source">Beim Erzeugen gemessen: nichtleere Zeilen in <code>src/</code> und <code>api/</code> (TS/TSX) sowie <code>src/styles.css</code>. Ohne Tests, Typdeklarationen, generierte Datenbanktypen, Dokumentation und Fremdcode. Bereichszuordnung nach Bildschirmdateien in <a href="../src/screens/README.md">der Screen-Landkarte</a>; übriger Code zählt gemeinsam. Enthält Kommentare und misst weder Laufzeit noch Komplexität.</p></article></main></div><script>function initializeDocsViewer() {
+<p>CoRe ist eine App mit mehreren Bereichen. Die Tabelle zeigt deren Anteil am Bildschirmcode; gemeinsam genutzte Logik, UI und API stehen separat.</p><div class="docs-code-stats"><dl class="flex min-w-0 flex-col"><dt class="core-status-label text-core-muted">Bildschirmcode</dt><dd class="core-metric mt-0.5 text-core-text">7.688</dd></dl><dl class="flex min-w-0 flex-col"><dt class="core-status-label text-core-muted">Gemeinsamer Code &amp; API</dt><dd class="core-metric mt-0.5 text-core-text">49.637</dd></dl><dl class="flex min-w-0 flex-col"><dt class="core-status-label text-core-muted">Quelldateien</dt><dd class="core-metric mt-0.5 text-core-text">314</dd></dl></div><div class="docs-code-chart"><div class="docs-table-scroll" tabindex="0" role="region" aria-label="Codeumfang je Produktbereich"><table><thead><tr><th>Bereich</th><th>Zeilen</th><th>Anteil</th></tr></thead><tbody><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-status-learned)" aria-hidden="true"></span>Heute</th><td>352</td><td>4,6 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-status-new)" aria-hidden="true"></span>Lernen & Karten</th><td>2.370</td><td>30,8 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-status-in-progress)" aria-hidden="true"></span>Erstellen & Import</th><td>2.105</td><td>27,4 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-action-primary)" aria-hidden="true"></span>Prüfungen</th><td>447</td><td>5,8 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-status-due)" aria-hidden="true"></span>Statistik</th><td>627</td><td>8,2 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-progress-completed)" aria-hidden="true"></span>Konto & Sync</th><td>875</td><td>11,4 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-text-secondary)" aria-hidden="true"></span>Hilfe</th><td>912</td><td>11,9 %</td></tr></tbody></table></div></div><p class="docs-source">Beim Erzeugen gemessen: nichtleere Zeilen in <code>src/</code> und <code>api/</code> (TS/TSX) sowie <code>src/styles.css</code>. Ohne Tests, Typdeklarationen, generierte Datenbanktypen, Dokumentation und Fremdcode. Bereichszuordnung nach Bildschirmdateien in <a href="../src/screens/README.md">der Screen-Landkarte</a>; übriger Code zählt gemeinsam. Enthält Kommentare und misst weder Laufzeit noch Komplexität.</p></article></main></div><script>function initializeDocsViewer() {
     const theme = document.getElementById("docs-theme");
     theme.addEventListener("click", () => {
         const dark = document.documentElement.dataset.coreTheme !== "dark";
