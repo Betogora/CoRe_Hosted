@@ -30,7 +30,7 @@ const TECHNICAL_CONTENT_FIELDS_BY_TABLE: Record<string, Set<string>> = {
   cards: new Set(CARD_STUDY_FIELDS),
   card_variants: new Set(["performance", "content_hash"]),
 };
-export const CONFLICT_PROTECTED_FIELDS = new Set([
+const CONFLICT_PROTECTED_FIELDS = new Set([
   ...ROW_IDENTITY_FIELDS,
   ...CARD_STUDY_FIELDS,
   "deck_id",
@@ -57,7 +57,7 @@ export const CONFLICT_PROTECTED_FIELDS = new Set([
   "content_hash",
 ]);
 
-export const CONFLICT_ACTIONS = new Set(["keep-local", "keep-remote", "merge-fields", "ignore", "reopen"]);
+const CONFLICT_ACTIONS = new Set(["keep-local", "keep-remote", "merge-fields", "ignore", "reopen"]);
 const CONFLICT_ENTITY_LABELS = Object.freeze({
   decks: "Stapel",
   notes: "Inhalt",
@@ -167,15 +167,15 @@ export function rowsHaveSameContent(left: CloudRow, right: CloudRow, entityTable
   return JSON.stringify(stableValue(comparableRow(left, entityTable))) === JSON.stringify(stableValue(comparableRow(right, entityTable)));
 }
 
-export function conflictValue(row: object = {}): CloudRow {
+function conflictValue(row: object = {}): CloudRow {
   return Object.fromEntries(Object.entries(row).filter(([key]) => key !== "user_id"));
 }
 
-export function isTombstoneConflict(localValue: CloudRow, remoteValue: CloudRow) {
+function isTombstoneConflict(localValue: CloudRow, remoteValue: CloudRow) {
   return Boolean(localValue.deleted_at || remoteValue.deleted_at || Object.keys(localValue).length === 0 || Object.keys(remoteValue).length === 0);
 }
 
-export function conflictFieldKeys(localValue: CloudRow = {}, remoteValue: CloudRow = {}) {
+function conflictFieldKeys(localValue: CloudRow = {}, remoteValue: CloudRow = {}) {
   return [...new Set([...Object.keys(localValue), ...Object.keys(remoteValue)])]
     .filter((field) => !CONFLICT_PROTECTED_FIELDS.has(field) && field !== "deleted_at")
     .filter((field) => !jsonValuesEqual(localValue[field], remoteValue[field]))
@@ -416,4 +416,42 @@ export async function listAccountSyncConflicts(client: CloudClient, { refreshRem
     .filter((row) => row.status === "open" || row.status === "ignored")
     .sort((left, right) => (statusOrder[left.status] - statusOrder[right.status]) || String(right.created_at).localeCompare(String(left.created_at)))
     .map(createConflictProjection);
+}
+
+export interface ConflictDecision {
+  action: string;
+  fieldChoices: Record<string, unknown>;
+  localValue: CloudRow;
+  remoteValue: CloudRow;
+  fields: string[];
+  tombstone: boolean;
+}
+
+export function normalizeConflictDecision(decision: { action?: unknown; fieldChoices?: unknown } = {}, conflictRow: Pick<SyncConflictRow, "local_value" | "remote_value">): ConflictDecision {
+  const action = requireNonEmptyString(decision.action, "Konfliktentscheidung fehlt.");
+  if (!CONFLICT_ACTIONS.has(action)) throw new Error("Konfliktentscheidung ist ungültig.");
+  const localValue = conflictValue(conflictRow.local_value);
+  const remoteValue = conflictValue(conflictRow.remote_value);
+  const fields = conflictFieldKeys(localValue, remoteValue);
+  const tombstone = isTombstoneConflict(localValue, remoteValue);
+
+  if (action !== "merge-fields") return { action, fieldChoices: {}, localValue, remoteValue, fields, tombstone };
+  if (tombstone) throw new Error("Gelöschte Inhalte können nicht feldweise zusammengeführt werden.");
+  const fieldChoices = (decision.fieldChoices && typeof decision.fieldChoices === "object" ? decision.fieldChoices : {}) as Record<string, unknown>;
+  for (const field of Object.keys(fieldChoices)) {
+    if (!fields.includes(field) || CONFLICT_PROTECTED_FIELDS.has(field)) throw new Error(`Konfliktfeld ist nicht auswählbar: ${field}`);
+    if (fieldChoices[field] !== "local" && fieldChoices[field] !== "remote") throw new Error(`Auswahl für ${field} ist ungültig.`);
+  }
+  const missing = fields.filter((field) => fieldChoices[field] !== "local" && fieldChoices[field] !== "remote");
+  if (missing.length) throw new Error("Bitte entscheide jedes geänderte Feld.");
+  return { action, fieldChoices: Object.fromEntries(fields.map((field) => [field, fieldChoices[field]])), localValue, remoteValue, fields, tombstone };
+}
+
+export function chosenConflictRow(normalized: ConflictDecision) {
+  if (normalized.action === "keep-local") return { ...normalized.localValue };
+  if (normalized.action === "keep-remote") return { ...normalized.remoteValue };
+  if (normalized.action !== "merge-fields") return null;
+  const chosen = { ...normalized.remoteValue };
+  for (const field of normalized.fields) chosen[field] = normalized.fieldChoices[field] === "local" ? normalized.localValue[field] : normalized.remoteValue[field];
+  return chosen;
 }

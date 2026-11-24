@@ -11,6 +11,7 @@ type TestCategory = (typeof CATEGORIES)[number];
 
 const CONTRACT_TESTS = new Set([
   "src/aiCardVariantRoute.test.ts",
+  "src/aiRoute.test.ts",
   "src/apkgFormatMatrix.test.ts",
   "src/apkgImport.test.ts",
   "src/apkgNoteTranslation.test.ts",

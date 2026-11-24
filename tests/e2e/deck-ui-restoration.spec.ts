@@ -119,6 +119,31 @@ test("Escape schließt einen Dialog auch nach einem Klick auf seinen Titel", asy
   await expect(dialog).toHaveCount(0);
 });
 
+test("Gestapelte Dialoge: Escape schließt nur den obersten, Fokus kehrt zurück, die Seite bleibt bis zuletzt gesperrt", async ({ page }) => {
+  await page.goto("/docs/ui-elements.html#dialogs");
+  await page.getByRole("searchbox", { name: "Katalog durchsuchen", exact: true }).fill("Dialoge");
+  const pageOverflow = () => page.evaluate(() => document.body.style.overflow);
+  const unlocked = await pageOverflow();
+  const opener = page.getByRole("button", { name: "Dialog S öffnen", exact: true });
+  await opener.click();
+  const frame = page.getByRole("dialog", { name: "Tags verwalten", exact: true });
+  const cancel = frame.getByRole("button", { name: "Abbrechen", exact: true });
+  await cancel.click();
+  const confirm = page.getByRole("dialog", { name: "Änderungen verwerfen?", exact: true });
+  await expect(confirm.getByRole("button", { name: "Weiter bearbeiten", exact: true })).toBeFocused();
+  expect(await pageOverflow()).toBe("hidden");
+  await confirm.getByRole("heading", { name: "Änderungen verwerfen?", exact: true }).click();
+  await page.keyboard.press("Escape");
+  await expect(confirm).toHaveCount(0);
+  await expect(frame).toBeVisible();
+  await expect(cancel).toBeFocused();
+  expect(await pageOverflow()).toBe("hidden");
+  await page.keyboard.press("Escape");
+  await expect(frame).toHaveCount(0);
+  await expect(opener).toBeFocused();
+  expect(await pageOverflow()).toBe(unlocked);
+});
+
 for (const theme of matrixThemes) {
   for (const viewport of visualOutput ? [...VISUAL_MATRIX_VIEWPORTS, { width: 1279, height: 900 }, { width: 1280, height: 900 }] : matrixViewports()) {
     test(`Stapelansichten: ${theme} bei ${viewport.width}×${viewport.height}`, async ({ page }, testInfo) => {

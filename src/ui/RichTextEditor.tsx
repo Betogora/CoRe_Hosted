@@ -145,6 +145,7 @@ function ToolbarButton({ label, icon: Icon, onRun, disabled = false, pressed }: 
 }
 
 interface RichTextEditorProps {
+  /** `null` renders no toolbar, e.g. while the shared host is not mounted yet or another field owns it. */
   toolbarHost?: HTMLElement | null;
   value?: string;
   onChange?: (value: string) => void;
@@ -167,6 +168,7 @@ interface RichTextEditorProps {
 
 export function RichTextEditor({ value = "", onChange, onFocus, isActive = false, minHeightClass = "min-h-48", ariaLabel, ariaInvalid = false, ariaDescribedBy, clozeActions, imageActions, toolbarHost, toolbarOnFocus = false, documentTools = false, documentHistory = true, documentSettings }: RichTextEditorProps) {
   const editorRef = React.useRef<HTMLDivElement>(null);
+  const toolbarRef = React.useRef<HTMLDivElement>(null);
   const imageInputRef = React.useRef<HTMLInputElement>(null);
   const selectionRef = React.useRef<Range | null>(null);
   const isFocusedRef = React.useRef(false);
@@ -600,16 +602,52 @@ export function RichTextEditor({ value = "", onChange, onFocus, isActive = false
     void insertImageFiles(files, dropRange);
   }
 
-  const toolbarShown = !toolbarOnFocus || focusWithin || colorMenuOpen;
+  const toolbarShown = toolbarHost !== null && (!toolbarOnFocus || focusWithin || colorMenuOpen);
   const active = isActive || (toolbarOnFocus && focusWithin);
-  const toolbarAttached = toolbarShown && !toolbarHost;
+  const toolbarAttached = toolbarShown && toolbarHost === undefined;
   const toolbarFrame = `rounded-t-control border p-1 ${active ? "border-core-action" : "border-core-border"}`;
   const fieldClass = `${minHeightClass} rich-text-field min-w-0 ${toolbarAttached ? "rounded-b-control border-t-0" : "rounded-control"} border bg-core-surface p-4 core-body-large font-normal leading-7 text-core-text outline-none transition ${
     active ? "border-core-action" : "border-core-border"
   } ${active && toolbarHost ? "shadow-selection" : ""}`;
   const editorDescribedBy = [ariaDescribedBy, clozeStatus ? clozeStatusId : null, imageStatus || imageError ? imageStatusId : null].filter(Boolean).join(" ") || undefined;
+  // A shared toolbar can stand far from its field in the tab order; Alt+F10 and Escape move between both, as in common editors.
+  function leaveToolbar(event: React.KeyboardEvent<HTMLDivElement>) {
+    if (!toolbarHost || event.key !== "Escape" || event.defaultPrevented || !toolbarRef.current?.contains(event.target as Node)) return;
+    event.preventDefault();
+    restoreSelection();
+  }
+
+  const imageTool = imageActions ? (
+    <>
+      <ToolbarButton
+        label="Bild an Cursorposition einfügen"
+        icon={ImagePlus}
+        disabled={isPreparingImages}
+        onRun={() => {
+          saveSelection();
+          imageInputRef.current?.click();
+        }}
+      />
+      <input
+        ref={imageInputRef}
+        className="sr-only"
+        type="file"
+        accept="image/*"
+        multiple
+        tabIndex={-1}
+        aria-hidden="true"
+        onChange={(event) => {
+          const files = Array.from(event.currentTarget.files ?? []);
+          event.currentTarget.value = "";
+          void insertImageFiles(files, selectionRef.current);
+        }}
+      />
+    </>
+  ) : null;
+  const clozeTool = clozeActions ? <ToolbarButton label={`Auswahl als Lücke c${normalizeClozeGroupId(clozeActions.groupId)} markieren`} icon={Braces} onRun={addCloze} /> : null;
+  const formulaTool = <ToolbarButton label="Auswahl als Formel setzen" icon={Sigma} onRun={addFormula} />;
   const toolbar = documentTools ? (
-      <div role="toolbar" aria-label="Werkzeuge zur Textformatierung" className={`core-rich-text-toolbar core-rich-text-document-toolbar ${toolbarHost ? "" : toolbarFrame}`}>
+      <div ref={toolbarRef} role="toolbar" aria-label="Werkzeuge zur Textformatierung" className={`core-rich-text-toolbar core-rich-text-document-toolbar ${toolbarHost ? "" : toolbarFrame}`} onKeyDown={leaveToolbar}>
         {documentHistory && <div className="core-rich-text-group" role="group" aria-label="Verlauf">
           <ToolbarButton label="Rückgängig" icon={Undo2} onRun={() => runCommand("undo")} />
           <ToolbarButton label="Wiederholen" icon={Redo2} onRun={() => runCommand("redo")} />
@@ -621,6 +659,12 @@ export function RichTextEditor({ value = "", onChange, onFocus, isActive = false
           <ToolbarButton label="Unterstrichen" icon={Underline} pressed={Boolean(formatState.underline)} onRun={() => runCommand("underline")} />
           <ToolbarButton label="Durchgestrichen" icon={Strikethrough} pressed={Boolean(formatState.strikeThrough)} onRun={() => runCommand("strikeThrough")} />
         </div>
+        {imageActions || clozeActions ? <div className="core-rich-text-group" role="group" aria-label="Einfügen">
+          {imageTool}
+          {clozeTool}
+          {clozeActions ? <ToolbarButton label="Lücke entfernen" icon={Unlink} onRun={removeCloze} /> : null}
+          {formulaTool}
+        </div> : null}
         <div className="core-rich-text-group" role="group" aria-label="Farbe">
           <ColorPicker variant="tool" icon={Baseline} ariaLabel="Textfarbe" value={textColor} presets={textColorPresets} onOpenChange={openColorMenu} onValueCommit={(color) => applyColor("text", color)} />
           <ColorPicker variant="tool" icon={Highlighter} ariaLabel="Hervorheben" value={highlightColor} presets={highlightColorPresets} onOpenChange={openColorMenu} onValueCommit={(color) => applyColor("highlight", color)} />
@@ -634,38 +678,12 @@ export function RichTextEditor({ value = "", onChange, onFocus, isActive = false
         </div>
       </div>
   ) : (
-      <div role="toolbar" aria-label="Werkzeuge zur Textformatierung" className={`core-rich-text-toolbar flex max-w-full min-w-0 flex-wrap items-center gap-0.5 ${toolbarFrame}`}>
+      <div ref={toolbarRef} role="toolbar" aria-label="Werkzeuge zur Textformatierung" className={`core-rich-text-toolbar flex max-w-full min-w-0 flex-wrap items-center gap-0.5 ${toolbarFrame}`} onKeyDown={leaveToolbar}>
         <ToolbarButton label="Fett" icon={Bold} onRun={() => runCommand("bold")} />
         <ToolbarButton label="Kursiv" icon={Italic} onRun={() => runCommand("italic")} />
-        {imageActions ? (
-          <>
-            <ToolbarButton
-              label="Bild an Cursorposition einfügen"
-              icon={ImagePlus}
-              disabled={isPreparingImages}
-              onRun={() => {
-                saveSelection();
-                imageInputRef.current?.click();
-              }}
-            />
-            <input
-              ref={imageInputRef}
-              className="sr-only"
-              type="file"
-              accept="image/*"
-              multiple
-              tabIndex={-1}
-              aria-hidden="true"
-              onChange={(event) => {
-                const files = Array.from(event.currentTarget.files ?? []);
-                event.currentTarget.value = "";
-                void insertImageFiles(files, selectionRef.current);
-              }}
-            />
-          </>
-        ) : null}
-        {clozeActions ? <ToolbarButton label={`Auswahl als Lücke c${normalizeClozeGroupId(clozeActions.groupId)} markieren`} icon={Braces} onRun={addCloze} /> : null}
-        <ToolbarButton label="Auswahl als Formel setzen" icon={Sigma} onRun={addFormula} />
+        {imageTool}
+        {clozeTool}
+        {formulaTool}
         <CoreTooltip label="Weitere Textwerkzeuge">
           <button type="button" className="core-rich-text-tool" aria-label="Weitere Textwerkzeuge" aria-expanded={moreToolsOpen} aria-controls={moreToolsId} onMouseDown={(event) => { event.preventDefault(); saveSelection(); }} onClick={() => { setMoreToolsOpen((open) => !open); }}>
             <MoreHorizontal size={16} aria-hidden="true" />
@@ -705,6 +723,7 @@ export function RichTextEditor({ value = "", onChange, onFocus, isActive = false
         aria-multiline="true"
         aria-invalid={ariaInvalid || undefined}
         aria-describedby={editorDescribedBy}
+        aria-keyshortcuts={toolbarShown ? "Alt+F10" : undefined}
         suppressContentEditableWarning
         onFocus={(event) => {
           isFocusedRef.current = true;
@@ -719,6 +738,13 @@ export function RichTextEditor({ value = "", onChange, onFocus, isActive = false
           if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "a") {
             event.preventDefault();
             selectEditorContents();
+          }
+          if (event.altKey && event.key === "F10") {
+            const tool = toolbarRef.current?.querySelector<HTMLElement>("button:not(:disabled)");
+            if (!tool) return;
+            event.preventDefault();
+            saveSelection();
+            tool.focus();
           }
         }}
         onBlur={handleBlur}

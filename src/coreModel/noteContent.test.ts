@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import type { NoteContent, NoteField, RevealPrompt } from "../coreTypes.ts";
+import { mapClozes } from "../clozeSyntax.ts";
 import { clozeOrdinals, deriveNotePromptKeys, noteContentMediaRefs, parseNoteContent } from "./noteContent.ts";
 
 function field(id: string, role: NoteField["role"], html: string, name = id): NoteField {
@@ -107,7 +108,8 @@ test("Auswahlfragen prüfen Modus und richtige Antworten", () => {
   // Kprim has no fixed number of statements, like the Anki add-on that fills as many as Q_ fields.
   for (const count of [1, 3, 4, 5]) parsed(note([question], { kind: "choice", mode: "kprim", options: options(Array(count).fill(true)) }));
   rejected(note([question], { kind: "choice", mode: "single", options: options([true, true]) }), /genau eine richtige/);
-  rejected(note([question], { kind: "choice", mode: "multiple", options: options([true, true]) }), /eine falsche/);
+  parsed(note([question], { kind: "choice", mode: "multiple", options: options([true, true]) }));
+  rejected(note([question], { kind: "choice", mode: "multiple", options: options([false, false]) }), /mindestens eine richtige/);
   rejected(note([question], { kind: "choice", mode: "kprim", options: [] }), /mindestens eine Aussage/);
 });
 
@@ -154,4 +156,27 @@ test("Strukturfehler werden mit deutschen Meldungen abgewiesen", () => {
   rejected(note([front, back], { kind: "reveal", prompts: [prompt("forward", ["front"], ["back"]), prompt("forward", ["back"], ["front"])] }), /eindeutig/);
   rejected(note([front, back], { kind: "flashcard" } as never), /Abfrageart/);
   rejected(note([front, back], { kind: "reveal", prompts: [prompt("forward", ["front"], ["back"])] }, { speech: [{ fieldId: "front", language: "Deutsch" }] }), /Sprache/);
+});
+
+test("jede Lücke, für die eine Karte entsteht, findet auch die Darstellung", () => {
+  const samples = [
+    "{{c1::a}} {{c2::b::Hinweis}}",
+    String.raw`{{c1::a\}}`,
+    "{{c1::{x}}",
+    "{{c1::if (x) {}}",
+    String.raw`{{c1::\(\frac{a}{b}\)}} und {{c2::c}}`,
+    "{{c1::außen {{c2::innen}} außen}}",
+    "{{c0::null}} {{c1::eins}}",
+    "{{c1::{ {{c2::b}} }}",
+    String.raw`{{c1::Pfad C:\{{c2::Ordner}}}}`,
+    String.raw`{{c1::a {{c2::b}} c\}}`,
+    "{{c1::offen",
+  ];
+  for (const sample of samples) {
+    const shown = new Set<number>();
+    const mapped = mapClozes(sample, (token) => { for (const ordinal of token.ordinals) if (ordinal > 0) shown.add(ordinal); return ""; });
+    const created = clozeOrdinals(sample);
+    assert.equal(mapped === null, created === null, sample);
+    assert.deepEqual([...shown].sort((left, right) => left - right), created ?? [], sample);
+  }
 });

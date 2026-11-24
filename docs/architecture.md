@@ -112,7 +112,7 @@ Befehlsmodule laufen ohne React, je Arbeitsbereich aus Store, Repository und Syn
 | `reviewService.ts`, `siblingBurying.ts`, `reviewEventKinds.ts` | Tagesqueue, Begrabregel, Bewertungsarten und ihr Tagesverbrauch |
 | `scheduler.ts`, `easyDays.ts` | FSRS-7 über `ts-fsrs`, Haltbarkeit, Reifeband, Easy-Days-Entlastung (ADR-044, ADR-019) |
 | `coreVariantService.ts` | Eignung, Bereitschaft und Wahl von Varianten im Review |
-| `cardSearchQuery.ts`, `tagDirectory.ts` | Suchsprache in Anki-Schreibweise und ihre lokale Auswertung; Tag-Verzeichnis (ADR-045) |
+| `cardSearchQuery.ts`, `tagDirectory.ts` | Anki-Suchsprache: Parser, lokale Auswertung, Filterbearbeitung, Widersprüche; Tag-Verzeichnis (ADR-045) |
 | `catalogSearchIndex.ts`, `duplicateContents.ts` | In-Memory-Suche über den vollständigen Katalog (ADR-048); Duplikate (`is:duplicate`) |
 | `hitStudySession.ts` | `Treffer lernen` und Üben ohne Schreibpfad |
 | `examPlanning.ts`, `examPlanSettings.ts`, `examDailyTasks.ts`, `examCalendarModel.ts` | Prüfungsplanung, Planablage im Profil, Tagesaufgaben, Kalenderprojektion (ADR-042) |
@@ -147,7 +147,7 @@ Befehlsmodule laufen ohne React, je Arbeitsbereich aus Store, Repository und Syn
 | `cloudLearningDocuments.ts` | revisionierte Tabellen der Zusammenfassungen und Mindmaps |
 | `supabaseClient.ts`, `supabaseRealtimeStub.ts` | Supabase-Client; Realtime im Browserbuild ersetzt, weil CoRe keine Kanäle öffnet |
 | `aiRouteRequest.ts`, `ai*Contract.ts`, `aiCardVariant.ts`, `aiCardHelp.ts`, `aiLearningSummary.ts` | Browseraufrufe und validierte Verträge der drei KI-Routen |
-| `api/ai/*.ts`, `server/aiRoute.ts` | Vercel Functions mit gemeinsamen Origin-, Bearer-, Body-, Provider- und Loghelfern |
+| `api/ai/*.ts`, `server/aiRoute.ts` | Vercel Functions; `createAiRoute` bildet die Hülle, jede Route liefert Parse, Payload und Extraktion |
 | `supabase/migrations/`, `supabase/verify_schema_v1.sql` | ausführbare SQL-Quellen; `database.types.ts` wird nur daraus erzeugt |
 
 ### Außerhalb der App
@@ -298,8 +298,8 @@ Befehlsmodule laufen ohne React, je Arbeitsbereich aus Store, Repository und Syn
 ## API-Vertrag
 
 - `POST /api/ai/card-variant`, `POST /api/ai/card-help`, `POST /api/ai/summary` und `POST /api/ai/source-cards` sind die einzigen CoRe-Serverendpunkte. Sie teilen `server/aiRoute.ts`, der Browser ruft sie über `aiRouteRequest.ts`; `npm run dev` stellt sie per Vite-Middleware bereit.
-- Jede Route verlangt Same Origin und einen Supabase-Bearer, den sie lokal gegen die gecachten JWKS prüft, begrenzt den Body, antwortet mit `no-store` und erzeugt genau einen erzwungenen Tool Call.
-- Eingaben, Grenzen und Antworten validieren `aiCardVariantContract.ts`, `aiCardHelpContract.ts`, `aiLearningSummaryContract.ts` und `aiSourceCardsContract.ts`; dort stehen auch die Fristen.
+- Jede Route verlangt Same Origin, einen Supabase-Bearer (lokal gegen die gecachten JWKS geprüft) und den Serverschlüssel, bevor sie den begrenzten Body liest; sie antwortet mit `no-store`, erzeugt genau einen erzwungenen Tool Call und loggt dessen Kosten auch bei verworfener Antwort.
+- Eingaben, Grenzen, Fristen und Antwortprüfung stehen in den `ai*Contract.ts`.
 - Modell ist `OPENROUTER_MODEL` in `server/aiRoute.ts`, derzeit `openai/gpt-6-luna` mit Reasoning `low`, ZDR verlangt und Training verboten (`data_collection: "deny"`); kein Modellkatalog, kein Fallback (ADR-011).
 - Der OpenRouter-Zugang steht nur in `process.env`; Secrets gehören weder in `VITE_*`, Browsercode, `localStorage`, Exporte noch Logs. Alle anderen Datenzugriffe laufen über die Supabase-Module. Betrieb: [Operations](operations.md).
 

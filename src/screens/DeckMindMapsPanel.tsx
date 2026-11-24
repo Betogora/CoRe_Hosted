@@ -14,6 +14,7 @@ import { ColorSwatchRow } from "../ui/ColorPicker.tsx";
 import { StatusMessage } from "../ui/feedbackUi.tsx";
 import { CoreCheckbox, CoreSlider } from "../ui/formControls.tsx";
 import { RichTextEditor } from "../ui/RichTextEditor.tsx";
+import { EditorToolbar, EditorToolbarContext } from "../ui/EditorToolbar.tsx";
 import { CoreSelect } from "../ui/selectUi.tsx";
 import { CoreTooltip } from "../ui/tooltipUi.tsx";
 
@@ -381,19 +382,16 @@ export function DeckMindMapsPanel({ deck, userId, cloud = null, onGenerateSummar
     {error && <div className="grid gap-2"><StatusMessage tone="error" announce="assertive">{error}</StatusMessage>{saveFailed && <ActionButton variant="secondary" onClick={() => { setError(""); void persist(); }}>Erneut speichern</ActionButton>}</div>}
     {readingImages && <StatusMessage tone="info" announce="polite">Bilder werden geladen …</StatusMessage>}
     <div className="grid min-w-0 gap-3" inert={readingImages}>
-      <div className="core-editor-toolbar core-mindmap-primary-tools core-surface-raised" aria-label="Mindmap-Werkzeuge">
-        <CoreIconSegmentedControl ariaLabel="Mindmap-Werkzeug" className="core-editor-toolbar-modes" value={mode === "design" ? designTool : mode === "edit" && node?.kind === "freeText" ? "text" : mode} onValueChange={chooseTool} options={toolOptions}/>
+      <EditorToolbar className="core-mindmap-primary-tools" aria-label="Mindmap-Werkzeuge"
+        modes={<><CoreIconSegmentedControl ariaLabel="Mindmap-Werkzeug" className="core-editor-toolbar-modes" value={mode === "design" ? designTool : mode === "edit" && node?.kind === "freeText" ? "text" : mode} onValueChange={chooseTool} options={toolOptions}/>
         <div className="core-mindmap-fixed-actions">
           <ActionButton variant="secondary" icon={Plus} disabled={draft.nodes.length >= MIND_MAP_LIMITS.nodes} onClick={() => addNode("root")}>Stichwort</ActionButton>
           <ActionButton variant="secondary" icon={StickyNote} disabled={draft.nodes.length >= MIND_MAP_LIMITS.nodes} onClick={() => addNode("root", "text")}>Textfeld</ActionButton>
           {(summaries.length > 0 || onGenerateSummary) && <ActionButton className="core-mindmap-source-action" variant="secondary" icon={summaries.length ? FileText : Sparkles} disabled={generating} aria-expanded={createFromSummary} onClick={() => setCreateFromSummary(!createFromSummary)}>{summaries.length ? "Aus Zusammenfassung" : "Mit KI erstellen"}</ActionButton>}
           <CoreTooltip label="Fläche leeren"><IconButton variant="destructive-quiet" icon={Trash2} label="Fläche leeren" disabled={!draft.nodes.length && !draft.strokes.length} onClick={() => setConfirmClear(true)}/></CoreTooltip>
-        </div>
-        <div className="core-editor-toolbar-actions">
-          <CoreTooltip label={fullscreen ? "Vollbild beenden" : "Vollbild"}><IconButton variant="ghost" icon={fullscreen ? Minimize2 : Maximize2} label={fullscreen ? "Vollbild beenden" : "Vollbild"} aria-pressed={fullscreen} onClick={() => setFullscreen(!fullscreen)}/></CoreTooltip>
-        </div>
-        <div className="core-editor-toolbar-context">
-          <div ref={toolsRef} className="core-editor-toolbar-tools">
+        </div></>}
+        actions={<CoreTooltip label={fullscreen ? "Vollbild beenden" : "Vollbild"}><IconButton variant="ghost" icon={fullscreen ? Minimize2 : Maximize2} label={fullscreen ? "Vollbild beenden" : "Vollbild"} aria-pressed={fullscreen} onClick={() => setFullscreen(!fullscreen)}/></CoreTooltip>}>
+        <EditorToolbarContext toolsRef={toolsRef} end={mode === "edit" && selected ? selectionActions() : null} endLabel="Auswahl">
             <div className="core-editor-tool-group" role="group" aria-label="Verlauf">
               <CoreTooltip label={`Rückgängig · ${MOD}+Z`}><IconButton variant="ghost" icon={Undo2} label="Rückgängig" aria-keyshortcuts="Control+Z Meta+Z" disabled={!history.past.length} onClick={() => travel("past")}/></CoreTooltip>
               <CoreTooltip label={`Wiederholen · ${MOD}+Y`}><IconButton variant="ghost" icon={Redo2} label="Wiederholen" aria-keyshortcuts="Control+Y Meta+Shift+Z" disabled={!history.future.length} onClick={() => travel("future")}/></CoreTooltip>
@@ -409,11 +407,9 @@ export function DeckMindMapsPanel({ deck, userId, cloud = null, onGenerateSummar
             </>}
             {mode === "edit" && selected && propertyControls()}
             <div ref={setFreeTextTools} className="core-editor-toolbar-text"/>
-          </div>
-          {mode === "edit" && selected && <div className="core-editor-toolbar-end" role="group" aria-label="Auswahl">{selectionActions()}</div>}
-        </div>
+        </EditorToolbarContext>
         <div ref={setCardTextTools} className="core-editor-toolbar-context core-mindmap-text-toolbar"/>
-      </div>
+      </EditorToolbar>
       {createFromSummary && <SoftPanel className="grid gap-3 p-4" aria-label="Mindmap aus Zusammenfassung">
         {summaries.length ? <div className="flex min-w-0 flex-wrap items-center gap-3">
           {summaries.length > 1 ? <CoreSelect className="w-full sm:w-auto sm:max-w-xs" ariaLabel="Zusammenfassung für Mindmap" value={summaryId} options={summaries.map((s) => ({ value: s.id, label: s.title }))} onValueChange={setSummaryId}/> : <p className="core-body min-w-0 break-words">Aus „{summaries[0].title}“</p>}

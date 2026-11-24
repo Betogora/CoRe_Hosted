@@ -10,10 +10,7 @@ import {
   type AiCardHelpRequest,
   type AiCardHelpSuccess,
 } from "../../src/aiCardHelpContract.js";
-import {
-  HttpError, OPENROUTER_MODEL, createAuthenticator, isAllowedOrigin, json, logAiRoute, parseBearerToken, readJsonBody,
-  readToolCall, requestOpenRouter, type AiRouteLogEntry, type Environment, type ProviderTexts,
-} from "../../server/aiRoute.js";
+import { HttpError, OPENROUTER_MODEL, createAiRoute, readToolCall, type AiRouteTexts } from "../../server/aiRoute.js";
 
 const SYSTEM_PROMPT = [
   "Du bist ein Lernbegleiter für genau eine Lernkarte, die die lernende Person gerade aufgedeckt hat.",
@@ -28,7 +25,7 @@ const SYSTEM_PROMPT = [
   "Rufe genau einmal answer_learner mit answer auf und gib sonst nichts aus.",
 ].join(" ");
 
-const TEXTS: ProviderTexts = {
+const TEXTS: AiRouteTexts = {
   rateLimited: "Die KI-Hilfe ist gerade ausgelastet. Bitte versuche es in einer Minute erneut.",
   unavailable: "Die KI-Hilfe ist gerade nicht verfügbar.",
   rejected: "OpenRouter hat die Frage abgelehnt.",
@@ -36,6 +33,8 @@ const TEXTS: ProviderTexts = {
   invalid: "Das Modell hat keine gültige Antwort geliefert.",
   tool: "Das Modell hat das Antwortwerkzeug nicht korrekt verwendet.",
   fields: "Das Modell hat eine ungültige Antwort geliefert.",
+  unconfigured: "Die KI-Hilfe ist noch nicht eingerichtet.",
+  internal: "Die KI-Hilfe konnte nicht antworten.",
 };
 
 export function buildOpenRouterPayload(input: AiCardHelpRequest) {
@@ -75,50 +74,19 @@ export function extractAnswer(payload: unknown): { result: AiCardHelpSuccess; co
   return { result: parsed.output, costUsd };
 }
 
-export function createCardHelpHandler({
-  env = process.env,
-  fetchImpl = globalThis.fetch,
-  authenticate,
-  log = logAiRoute,
-}: {
-  env?: Environment;
-  fetchImpl?: typeof fetch;
-  authenticate?: (accessToken: string) => Promise<string>;
-  log?: (entry: AiRouteLogEntry) => void;
-} = {}) {
-  const authenticateRequest = authenticate ?? createAuthenticator(env);
-  return async function handler(req: any, res: any) {
-    if (req.method !== "POST") {
-      json(res, 405, { error: { code: "method_not_allowed", message: "Nur POST ist erlaubt." } }, { Allow: "POST" });
-      return;
-    }
-    if (!isAllowedOrigin(req)) {
-      json(res, 403, { error: { code: "forbidden_origin", message: "Diese Anfrage ist nicht erlaubt." } });
-      return;
-    }
-    const startedAt = Date.now();
-    let generating = false;
-    try {
-      await authenticateRequest(parseBearerToken(req));
-      if (!env.OPENROUTER_API_KEY) throw new HttpError(503, "missing_openrouter_api_key", "Die KI-Hilfe ist noch nicht eingerichtet.");
-      const input = parseAiCardHelpRequest(await readJsonBody(req, MAX_AI_CARD_HELP_REQUEST_BYTES));
-      if (!input.success) throw new HttpError(400, "invalid_request", "Die Karte oder die Frage ist leer, zu lang oder ungültig.");
-
-      generating = true;
-      const payload = await requestOpenRouter(fetchImpl, env.OPENROUTER_API_KEY, buildOpenRouterPayload(input.output), AbortSignal.timeout(AI_CARD_HELP_DEADLINE_MS), TEXTS);
-      const { result, costUsd } = extractAnswer(payload);
-      log({ event: "ai_card_help", outcome: "ok", status: 200, latencyMs: Date.now() - startedAt, model: result.model, totalTokens: result.usage?.totalTokens ?? null, costUsd });
-      json(res, 200, result, { "X-CoRe-Prompt-Version": AI_CARD_HELP_PROMPT_VERSION });
-    } catch (error) {
-      const known = error instanceof HttpError;
-      const status = known ? error.statusCode : 500;
-      const code = known ? error.code : "internal_error";
-      if (generating) log({ event: "ai_card_help", outcome: code, status, latencyMs: Date.now() - startedAt, model: null, totalTokens: null, costUsd: null });
-      json(res, status, {
-        error: { code, message: known ? error.message : "Die KI-Hilfe konnte nicht antworten." },
-      }, status === 401 ? { "WWW-Authenticate": "Bearer" } : {});
-    }
-  };
-}
+export const createCardHelpHandler = createAiRoute({
+  event: "ai_card_help",
+  maxBytes: MAX_AI_CARD_HELP_REQUEST_BYTES,
+  deadlineMs: AI_CARD_HELP_DEADLINE_MS,
+  promptVersion: AI_CARD_HELP_PROMPT_VERSION,
+  texts: TEXTS,
+  parse(body) {
+    const input = parseAiCardHelpRequest(body);
+    if (!input.success) throw new HttpError(400, "invalid_request", "Die Karte oder die Frage ist leer, zu lang oder ungültig.");
+    return input.output;
+  },
+  buildPayload: buildOpenRouterPayload,
+  extract: (payload) => extractAnswer(payload).result,
+});
 
 export default createCardHelpHandler();

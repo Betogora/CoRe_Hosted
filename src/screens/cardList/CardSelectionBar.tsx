@@ -14,8 +14,8 @@ import { TagInput } from "../../ui/TagInput.tsx";
 import { useStableCallback } from "../../ui/useStableCallback.ts";
 import { cardCount } from "./cardListModel.ts";
 import { TextReplaceDialog } from "./TextReplaceDialog.tsx";
+import type { CardSelectionActionId } from "./cardSelectionModel.ts";
 
-export type CardSelectionActionId = "study" | "deck" | "replace" | "tags-add" | "tags-remove" | "flag" | "flag-remove" | "mark" | "unmark" | "suspend" | "unsuspend" | "bury" | "due" | "reset" | "variants" | "delete";
 type MenuActionId = CardSelectionActionId;
 
 const MENU: ReadonlyArray<{ id: MenuActionId; label: string; icon: LucideIcon; shortcut?: { label: string; keys: string } }> = [

@@ -9,7 +9,7 @@ import { CoreWordmark } from "../src/ui/CoreWordmark.tsx";
 import { BrainMascot } from "../src/ui/BrainMascot.tsx";
 import { DailyMotivationWidget } from "../src/screens/DailyMotivationWidget.tsx";
 import React, { useRef, useState } from "react";
-import { ArrowUpRight, Ban, BookOpen, ChevronRight, Copy, Eye, FileSpreadsheet, FileText, Grid2x2, Info, Layers, List, MoreHorizontal, Pencil, PenLine, Plus, RefreshCw, Save, Settings, Sparkles, Star, Trash2, X, type LucideIcon } from "lucide-react";
+import { ArrowUpRight, Ban, BookOpen, ChevronRight, Copy, Eraser, Eye, FileSpreadsheet, FileText, Grid2x2, Info, Layers, List, Maximize2, MoreHorizontal, Pencil, PenLine, Plus, RefreshCw, Save, Settings, Sparkles, Star, Trash2, Type, X, type LucideIcon } from "lucide-react";
 import { addCardVariant, addNoteField, applyCardStudyStatePatch, cardStudyFromReviewState, type OcclusionMode, createBasicNote, createCoreDeck, createManualNoteContent, createNote, createReviewState, noteBlocks, type ManualContentKind } from "../src/coreModel.ts";
 import type { CardStudyStatePatch, Deck, ExamPlanningSettings, CoreMode, NewReviewOrder, NoteContent, NoteField, OcclusionMask, SavedCardSearch, SyncStatus } from "../src/coreTypes.ts";
 import type { CardEditorServices, DecksCardPageRequest } from "../src/appScreenProps.ts";
@@ -60,6 +60,7 @@ import { StudySettingsOverlay } from "../src/ui/StudySettingsOverlay.tsx";
 import { CardPreviewDialog } from "../src/ui/CardPreviewDialog.tsx";
 import { CardPresentationSurface } from "../src/ui/CardPresentationSurface.tsx";
 import { RichTextEditor } from "../src/ui/RichTextEditor.tsx";
+import { EditorToolbar, EditorToolbarContext } from "../src/ui/EditorToolbar.tsx";
 import { PdfDocumentViewer } from "../src/ui/PdfDocumentViewer.tsx";
 import { LearningAreaHeader } from "../src/screens/LearningAreaHeader.tsx";
 import { ratingButtons } from "../src/screens/screenConstants.ts";
@@ -227,6 +228,7 @@ function StructureDemo({ section }: { section: string }) {
   const [view, setView] = useState("list");
   const [dialog, setDialog] = useState<"s" | "m" | "l" | null>(null);
   const [dialogTab, setDialogTab] = useState<"content" | "study">("content");
+  const [discardOpen, setDiscardOpen] = useState(false);
   const toast = useSuccessToast();
   return <>
     {section === "struktur" && <Demo title="SectionHeader · mit Zähler und Aktion, daneben ohne" wide><div className="catalog-two">
@@ -253,9 +255,10 @@ function StructureDemo({ section }: { section: string }) {
     {section === "dialogs" && <Demo title="DialogFrame · s, m mit Reitern, l"><div className="catalog-row">{(["s", "m", "l"] as const).map((size) => <ActionButton key={size} variant="secondary" onClick={() => setDialog(size)}>{`Dialog ${size.toUpperCase()} öffnen`}</ActionButton>)}</div>
       <DialogFrame open={dialog !== null} size={dialog ?? "m"} title={dialog === "m" ? "Karte bearbeiten" : "Tags verwalten"} onClose={() => setDialog(null)}
         tabs={dialog === "m" ? <CoreTabs ariaLabel="Bereiche" tabs={[{ value: "content", label: "Inhalt" }, { value: "study", label: "Lernen" }]} value={dialogTab} onValueChange={setDialogTab} panelId="catalog-dialog-panel" /> : undefined}
-        footer={<><ActionButton variant="secondary" onClick={() => setDialog(null)}>Abbrechen</ActionButton><ActionButton variant="primary" onClick={() => { setDialog(null); toast("Beispiel gespeichert."); }}>Speichern</ActionButton></>}>
+        footer={<><ActionButton variant="secondary" onClick={() => setDiscardOpen(true)}>Abbrechen</ActionButton><ActionButton variant="primary" onClick={() => { setDialog(null); toast("Beispiel gespeichert."); }}>Speichern</ActionButton></>}>
         {dialog === "m" ? <CoreTabPanel panelId="catalog-dialog-panel" value={dialogTab} className="core-body text-core-text">{dialogTab === "content" ? "Felder der Karte." : "Lernstand der Karte."}</CoreTabPanel> : <ul className="core-settings-list">{["geo", "hauptstaedte", "europa", "afrika"].map((tag, index) => <li key={tag} className="flex min-h-12 items-center justify-between gap-3 core-body"><span className="font-medium text-core-text">{tag}</span><span className="text-core-muted">{`${(index + 1) * 13} Karten`}</span></li>)}</ul>}
       </DialogFrame>
+      <ActionDialog open={discardOpen} title="Änderungen verwerfen?" description="Deine Eingaben in diesem Dialog gehen verloren." confirmLabel="Verwerfen" cancelLabel="Weiter bearbeiten" destructive onConfirm={() => { setDiscardOpen(false); setDialog(null); }} onCancel={() => setDiscardOpen(false)} />
     </Demo>}
   </>;
 }
@@ -338,6 +341,7 @@ function FormsDemo({ section }: { section: string }) {
   const [date, setDate] = useState(today);
   const [fileName, setFileName] = useState("");
   const [learnAhead, setLearnAhead] = useState(20);
+  const [fontSize, setFontSize] = useState(16);
   return <>
     {section === "forms" && <Demo title="CoreSelect"><CoreSelect ariaLabel="Kartenreihenfolge" value={value} onValueChange={setValue} options={[{ value: "reviews-first", label: "Fällige Karten zuerst" }, { value: "mixed", label: "Neue und fällige mischen" }, { value: "new-first", label: "Neue Karten zuerst" }]} /></Demo>}
     {section === "forms" && <Demo title="DeckSelect · Hierarchie und Suche"><DeckSelect ariaLabel="Zielstapel" value={deckId} onValueChange={setDeckId} decks={sampleDecks} /></Demo>}
@@ -345,6 +349,7 @@ function FormsDemo({ section }: { section: string }) {
     {section === "forms" && <Demo title="CoreDatePicker"><CoreDatePicker today={today} value={date} min="2026-09-01" max="2027-12-31" ariaLabel="Lerndatum wählen" onValueChange={setDate} /></Demo>}
     {section === "forms" && <Demo title="Native Felder"><label className="catalog-field">Stapelname<input className="min-h-control rounded-control border border-core-border px-3 text-core-text" defaultValue="Biologie" /></label><label className="catalog-field">Neue Karten pro Tag<input type="number" defaultValue={20} min={0} className="min-h-control rounded-control border border-core-border px-3 text-core-text" /></label><label className="catalog-field">Ungültige Eingabe<input aria-invalid="true" aria-describedby="catalog-input-error" className="min-h-control rounded-control border border-core-danger px-3" defaultValue="" /><span id="catalog-input-error" className="text-core-danger">Bitte einen Namen eingeben.</span></label><label className="catalog-field">Mehrzeiliger Inhalt<textarea defaultValue="Zusätzlicher Kontext" className="rounded-control border border-core-border p-3" /></label><label className="catalog-field">Passwort<input type="password" defaultValue="beispiel" className="min-h-control rounded-control border border-core-border px-3" /></label><label className="catalog-field">Deaktiviertes Feld<input disabled defaultValue="Nicht verfügbar" className="min-h-control rounded-control border border-core-border px-3 disabled:opacity-50" /></label></Demo>}
     {section === "forms" && <Demo title="CoreNumberField · Einstellungszeile" wide><div className="core-settings-list w-full"><div className="core-settings-row"><label htmlFor="catalog-learn-ahead" className="core-settings-row-title">Lernkarten vorziehen</label><div className="core-settings-row-control"><CoreNumberField id="catalog-learn-ahead" value={learnAhead} min={0} max={720} unit="Min." className="w-32" onChange={setLearnAhead} /></div></div><div className="core-settings-row" data-layout="inline"><span className="core-settings-row-title">Profilzeitzone</span><div className="core-settings-row-control"><span className="core-settings-row-value">Europe/Berlin</span></div></div></div></Demo>}
+    {section === "forms" && <Demo title="CoreNumberField · mit Minus und Plus"><CoreNumberField id="catalog-font-size" stepLabel="Schriftgröße" ariaLabel="Schriftgröße in Pixel" value={fontSize} min={10} max={32} onChange={setFontSize} /></Demo>}
     {section === "forms" && <Demo title="FileDropField"><FileDropField accept="image/*" pasteImages ariaLabel="Bild einfügen oder ablegen" prompt="Bild mit Strg+V einfügen oder hier ablegen" detail="PNG, JPEG, GIF oder WebP" actionLabel={fileName ? "Bild ersetzen" : "Bild auswählen"} onFile={(file) => setFileName(file.name)}>{fileName && <p className="core-body">{fileName}</p>}</FileDropField></Demo>}
   </>;
 }
@@ -478,6 +483,7 @@ function ContentDemo({ section }: { section: string }) {
     {section === "dialogs" && <Demo title="CardPreviewDialog"><ActionButton variant="secondary" onClick={() => setPreview(true)}>Kartenvorschau öffnen</ActionButton><CardPreviewDialog note={fixture.note} cards={fixture.cards} mediaUrls={fixture.mediaUrls} open={preview} onOpenChange={setPreview} /></Demo>}
     {section === "editor" && <Demo title="RichTextEditor" wide><RichTextEditor value={text} onChange={setText} ariaLabel="Beispiel-Karteninhalt" isActive clozeActions={{ groupId: 1 }} imageActions={{ mediaUrls, prepare: prepareImage }} /></Demo>}
     {section === "editor" && <Demo title="RichTextEditor · Dokumentwerkzeuge" wide><RichTextEditor value={text} onChange={setText} ariaLabel="Beispiel-Dokument mit Dokumentwerkzeugen" isActive documentTools /></Demo>}
+    {section === "editor" && <Demo title="RichTextEditor · Dokumentwerkzeuge mit Kartenwerkzeugen" wide><RichTextEditor value={text} onChange={setText} ariaLabel="Beispiel-Karte mit Dokumentwerkzeugen" isActive documentTools clozeActions={{ groupId: 1 }} imageActions={{ mediaUrls, prepare: prepareImage }} /></Demo>}
     {section === "colors" && <Demo title="ColorPicker, ColorSwatchButton und ColorSwatchRow · Picker, Farbfeld und Farbreihe mit freier Farbe"><div className="catalog-row"><ColorPicker ariaLabel="Farbe wählen" value={color} onValueCommit={setColor} /><ColorSwatchButton color={color} aria-label="Farbfeld" aria-pressed /><ColorSwatchRow className="flex flex-wrap items-center gap-1" label="Stiftfarbe" colors={COLOR_PICKER_PRESETS.slice(0, 5).map((preset) => ({ value: preset, label: preset.toUpperCase() }))} value={color} onChange={setColor} /></div></Demo>}
     {section === "media" && <Demo title="PdfDocumentViewer" wide><PdfDemo /></Demo>}
   </>;
@@ -496,6 +502,34 @@ function TagsAndFlagsDemo() {
     <Demo title="TagInput"><TagInput tags={tags} importedTags={["#AK_Step1::Herz", "AK::Kreislauf"]} loadDirectory={async () => directory} onChange={setTags} /></Demo>
     <Demo title="FlagPicker und FlagDot"><FlagPicker value={flag} onValueChange={setFlag} names={["", "", "Wiederholen", "", "", "", ""]} onEditNames={() => undefined} /><div className="catalog-row">{[1, 2, 3, 4, 5, 6, 7].map((value) => <FlagDot key={value} flag={value} />)}</div><div className="catalog-row">{[1, 2, 3, 4, 5, 6, 7].map((value) => <FlagIcon key={value} flag={value} size={22} />)}</div></Demo>
   </>;
+}
+
+function EditorToolbarDemo() {
+  const toast = useSuccessToast();
+  const [tool, setTool] = useState<"text" | "pen" | "eraser">("text");
+  const [penColor, setPenColor] = useState("#3b7dd8");
+  const [width, setWidth] = useState("4");
+  const [host, setHost] = useState<HTMLDivElement | null>(null);
+  const [text, setText] = useState("<p>Die Leiste trägt oben Modus und Aktionen, darunter die Werkzeuge des Modus oder Felds.</p>");
+  return (
+    <Demo title="EditorToolbar · Arbeitsleiste mit Modus, Aktionen und Werkzeugzeile" wide>
+      <div className="grid gap-3" style={{ containerType: "inline-size" }}>
+        <EditorToolbar
+          aria-label="Beispielwerkzeuge"
+          modes={<CoreIconSegmentedControl ariaLabel="Werkzeug" className="core-editor-toolbar-modes" value={tool} onValueChange={setTool} options={[{ value: "text", label: "Schreiben", icon: Type }, { value: "pen", label: "Stift", icon: PenLine }, { value: "eraser", label: "Radierer", icon: Eraser }]} />}
+          actions={<CoreTooltip label="Vollbild"><IconButton variant="ghost" icon={Maximize2} label="Vollbild" onClick={() => toast("Vollbild geöffnet.")} /></CoreTooltip>}>
+          <EditorToolbarContext end={tool === "eraser" ? <CoreTooltip label="Alle Zeichnungen entfernen"><IconButton variant="destructive-quiet" icon={Trash2} label="Alle Zeichnungen entfernen" onClick={() => toast("Zeichnungen entfernt.")} /></CoreTooltip> : null} endLabel="Zeichnungen">
+            <div ref={setHost} className="core-editor-toolbar-text" hidden={tool !== "text"} />
+            {tool === "pen" ? <>
+              <ColorSwatchRow className="core-editor-tool-group" label="Stiftfarbe" colors={[{ value: "#181d25", label: "Schwarz" }, { value: "#3b7dd8", label: "Blau" }, { value: "#e5484d", label: "Rot" }]} value={penColor} onChange={setPenColor} />
+              <div className="core-editor-tool-group"><CoreSegmentedControl ariaLabel="Strichstärke" value={width} onValueChange={setWidth} options={[{ value: "2", label: "Fein" }, { value: "4", label: "Mittel" }, { value: "8", label: "Dick" }]} /></div>
+            </> : null}
+          </EditorToolbarContext>
+        </EditorToolbar>
+        <RichTextEditor value={text} onChange={setText} ariaLabel="Beispieltext unter der Arbeitsleiste" documentTools toolbarHost={host} isActive={tool === "text"} minHeightClass="min-h-24" />
+      </div>
+    </Demo>
+  );
 }
 
 function NoteBlocksDemo() {
@@ -869,7 +903,7 @@ export const DEMO_GROUPS = [
   { id: "stapel", section: "shared", title: "Stapelbaum, Menü, Identität und Kartentabelle", description: "Stapelbaum mit seinen Zeilen, Unterstapel, Optionsmenü, Icon und Farbe eines Stapels sowie die Kartentabelle der Kartenverwaltung.", components: ["DeckOptionsMenu", "DeckTree", "DeckAppearanceIcon"], wide: true, render: () => <><DecksDemo section="stapel" /><FoundationsDemo section="symbols" /><ProductViewsDemo kind="decks" /></> },
   { id: "charts", section: "fachmuster", title: "Kennzahlen und Heatmap", description: "Einzelne Kennzahl, Kennzahlzeile und Lern-Heatmap.", components: ["StatTile", "MetricRow", "StudyHeatmap"], wide: true, render: () => <><FoundationsDemo section="charts" /><DecksDemo section="charts" /></> },
   { id: "inhalt", section: "karten", title: "Kartendarstellung", description: "Kartenfläche der Verwaltungsvorschau mit Vorder- und Rückseite.", components: ["CardPresentationSurface", "NoteCardContent"], wide: true, render: () => <ContentDemo section="inhalt" /> },
-  { id: "editor", section: "fachmuster", title: "Texteditor und Inhaltsbausteine", description: "Rich-Text-Toolbar und Inhaltsbausteine.", components: ["RichTextEditor", "NoteBlockControls"], wide: true, render: () => <><ContentDemo section="editor" /><NoteBlocksDemo /></> },
+  { id: "editor", section: "fachmuster", title: "Texteditor und Inhaltsbausteine", description: "Arbeitsleiste, Rich-Text-Toolbar und Inhaltsbausteine.", components: ["EditorToolbar", "EditorToolbarContext", "RichTextEditor", "NoteBlockControls"], wide: true, render: () => <><EditorToolbarDemo /><ContentDemo section="editor" /><NoteBlocksDemo /></> },
   { id: "bildverdeckung-editor", section: "fachmuster", title: "Bildverdeckungs-Editor", description: "Masken zeichnen, gruppieren und den Verdeckungsmodus wählen.", components: ["OcclusionEditor"], wide: true, render: OcclusionEditorDemo },
   { id: "media", section: "fachmuster", title: "PDF-Vorschau", description: "PDF-Vorschau mit Textauswahl.", components: ["PdfDocumentViewer"], wide: true, render: () => <ContentDemo section="media" /> },
   { id: "icon-rollen", section: "icons", title: "Häufige Icon-Rollen", description: "Wiederkehrende Aktionen und ihre Lucide-Icons.", components: [], render: IconRolesDemo },
