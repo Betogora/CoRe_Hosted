@@ -50,15 +50,13 @@ import {
 } from "./cloudRows.ts";
 import {
   CARD_STUDY_FIELDS,
-  CONFLICT_PROTECTED_FIELDS,
-  CONFLICT_ACTIONS,
   SyncConflictChangedError,
-  rowsHaveSameContent,
-  conflictValue,
-  isTombstoneConflict,
-  conflictFieldKeys,
+  chosenConflictRow,
   createConflictProjection,
+  normalizeConflictDecision,
+  rowsHaveSameContent,
   throwRevisionConflict,
+  type ConflictDecision,
 } from "./cloudConflicts.ts";
 
 export async function deleteAccountDeckTree(
@@ -504,44 +502,6 @@ export async function upsertAccountCloudProfile(client: CloudClient, profile: un
   const writeTimestamp = requireTimestamp(flushedAt, nowIso, "Flush-Zeitpunkt ist ungültig.");
   await saveCloudProfile(client, requireCompleteProfile(profile), writeTimestamp);
   return { acknowledgedMutationId: resolvedMutationId };
-}
-
-interface ConflictDecision {
-  action: string;
-  fieldChoices: Record<string, unknown>;
-  localValue: CloudRow;
-  remoteValue: CloudRow;
-  fields: string[];
-  tombstone: boolean;
-}
-
-function normalizeConflictDecision(decision: { action?: unknown; fieldChoices?: unknown } = {}, conflictRow: Pick<SyncConflictRow, "local_value" | "remote_value">): ConflictDecision {
-  const action = requireNonEmptyString(decision.action, "Konfliktentscheidung fehlt.");
-  if (!CONFLICT_ACTIONS.has(action)) throw new Error("Konfliktentscheidung ist ungültig.");
-  const localValue = conflictValue(conflictRow.local_value);
-  const remoteValue = conflictValue(conflictRow.remote_value);
-  const fields = conflictFieldKeys(localValue, remoteValue);
-  const tombstone = isTombstoneConflict(localValue, remoteValue);
-
-  if (action !== "merge-fields") return { action, fieldChoices: {}, localValue, remoteValue, fields, tombstone };
-  if (tombstone) throw new Error("Gelöschte Inhalte können nicht feldweise zusammengeführt werden.");
-  const fieldChoices = (decision.fieldChoices && typeof decision.fieldChoices === "object" ? decision.fieldChoices : {}) as Record<string, unknown>;
-  for (const field of Object.keys(fieldChoices)) {
-    if (!fields.includes(field) || CONFLICT_PROTECTED_FIELDS.has(field)) throw new Error(`Konfliktfeld ist nicht auswählbar: ${field}`);
-    if (fieldChoices[field] !== "local" && fieldChoices[field] !== "remote") throw new Error(`Auswahl für ${field} ist ungültig.`);
-  }
-  const missing = fields.filter((field) => fieldChoices[field] !== "local" && fieldChoices[field] !== "remote");
-  if (missing.length) throw new Error("Bitte entscheide jedes geänderte Feld.");
-  return { action, fieldChoices: Object.fromEntries(fields.map((field) => [field, fieldChoices[field]])), localValue, remoteValue, fields, tombstone };
-}
-
-function chosenConflictRow(normalized: ConflictDecision) {
-  if (normalized.action === "keep-local") return { ...normalized.localValue };
-  if (normalized.action === "keep-remote") return { ...normalized.remoteValue };
-  if (normalized.action !== "merge-fields") return null;
-  const chosen = { ...normalized.remoteValue };
-  for (const field of normalized.fields) chosen[field] = normalized.fieldChoices[field] === "local" ? normalized.localValue[field] : normalized.remoteValue[field];
-  return chosen;
 }
 
 async function persistConflictChoice(client: CloudClient, user: CloudUser, conflictRow: SyncConflictRow, normalized: ConflictDecision, { deviceId, resolvedAt }: { deviceId: string; resolvedAt: string }) {
