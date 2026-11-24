@@ -1209,6 +1209,420 @@
         "gained": 3,
         "lost": 4
       }
+    },
+    {
+      "requestType": "card-help",
+      "run": "2026-11-24-l-baseline-dev",
+      "date": "2026-11-24",
+      "split": "dev",
+      "promptVersion": "card-help-v2",
+      "candidate": null,
+      "fingerprint": "186ccf17d2a469b4",
+      "model": "openai/gpt-6-luna",
+      "reasoning": "low",
+      "change": "Neue Baseline auf den ausgewogenen Fallsätzen (Paket L)",
+      "decision": "baseline",
+      "cases": 38,
+      "repetitions": 2,
+      "main": 0.8158,
+      "low": 0.6974,
+      "high": 0.9342,
+      "criteria": {
+        "H0": 1,
+        "H1": 1,
+        "H2": 1,
+        "H3": 0.9615,
+        "H4": 0.7083,
+        "H5": 0.8846,
+        "H6": 1,
+        "H7": 0.9868,
+        "H8": 0.9605
+      },
+      "outcomes": {
+        "answer": 76,
+        "refused": 0,
+        "rejected": 0,
+        "timeout": 0
+      },
+      "traps": {
+        "answers": 16,
+        "errors": 0
+      },
+      "costUsd": 0.0000922,
+      "costTotalUsd": 0.00701,
+      "latencyP90Ms": 4305,
+      "judge": {
+        "model": "claude-opus-5-5",
+        "fingerprint": "b05ea61434503c47",
+        "entries": 76,
+        "cached": 0,
+        "noise": {
+          "H1": 0,
+          "H2": 0,
+          "H3": 0,
+          "H4": 0,
+          "H5": 0,
+          "H6": 0,
+          "H7": 0
+        }
+      }
+    },
+    {
+      "requestType": "card-help",
+      "run": "2026-11-24-l-baseline-holdout",
+      "date": "2026-11-24",
+      "split": "holdout",
+      "promptVersion": "card-help-v2",
+      "candidate": null,
+      "fingerprint": "e513032c3b88a4b0",
+      "model": "openai/gpt-6-luna",
+      "reasoning": "low",
+      "change": "Rückhalt der neuen Baseline (Paket L)",
+      "decision": "holdout",
+      "cases": 29,
+      "repetitions": 2,
+      "main": 1,
+      "low": 1,
+      "high": 1,
+      "criteria": {
+        "H0": 1,
+        "H1": 1,
+        "H2": 1,
+        "H3": 1,
+        "H4": 1,
+        "H5": 1,
+        "H6": 1,
+        "H7": 0.9833,
+        "H8": 1
+      },
+      "outcomes": {
+        "answer": 60,
+        "refused": 0,
+        "rejected": 0,
+        "timeout": 0
+      },
+      "traps": {
+        "answers": 14,
+        "errors": 0
+      },
+      "costUsd": 0.0000856,
+      "costTotalUsd": 0.00514,
+      "latencyP90Ms": 5194,
+      "judge": {
+        "model": "claude-opus-5-5",
+        "fingerprint": "b05ea61434503c47",
+        "entries": 60,
+        "cached": 0,
+        "noise": {
+          "H1": 0,
+          "H2": 0,
+          "H3": 0,
+          "H4": 0,
+          "H5": 0,
+          "H6": 0,
+          "H7": 0
+        }
+      }
+    },
+    {
+      "requestType": "card-variant-basic",
+      "run": "2026-11-24-l-baseline-dev",
+      "date": "2026-11-24",
+      "split": "dev",
+      "promptVersion": "card-variant-v5",
+      "candidate": null,
+      "fingerprint": "123239bcfa6283d9",
+      "model": "openai/gpt-6-luna",
+      "reasoning": "low",
+      "change": "Neue Baseline auf den ausgewogenen Fallsätzen (Paket L)",
+      "decision": "baseline",
+      "cases": 42,
+      "repetitions": 2,
+      "main": 0.8095,
+      "low": 0.6905,
+      "high": 0.9167,
+      "criteria": {
+        "M1": 0.9762,
+        "M2": 0.8846,
+        "M3": 0.9873,
+        "M4": 0.9747,
+        "M5": 1,
+        "M6": 0.9103,
+        "M7": 0.9878
+      },
+      "outcomes": {
+        "answer": 79,
+        "refused": 3,
+        "rejected": 2,
+        "timeout": 0
+      },
+      "traps": {
+        "answers": 26,
+        "errors": 5
+      },
+      "costUsd": 0.0000819,
+      "costTotalUsd": 0.00688,
+      "latencyP90Ms": 2995,
+      "judge": {
+        "model": "claude-opus-5-5",
+        "fingerprint": "c21478f1a1cbded0",
+        "entries": 69,
+        "cached": 0,
+        "noise": {
+          "M2": 0,
+          "M6": 0
+        }
+      }
+    },
+    {
+      "requestType": "card-variant-basic",
+      "run": "2026-11-24-l-baseline-holdout",
+      "date": "2026-11-24",
+      "split": "holdout",
+      "promptVersion": "card-variant-v5",
+      "candidate": null,
+      "fingerprint": "db10fcc153496cdb",
+      "model": "openai/gpt-6-luna",
+      "reasoning": "low",
+      "change": "Rückhalt der neuen Baseline (Paket L)",
+      "decision": "holdout",
+      "cases": 24,
+      "repetitions": 2,
+      "main": 0.875,
+      "low": 0.7708,
+      "high": 0.9583,
+      "criteria": {
+        "M1": 1,
+        "M2": 0.9545,
+        "M3": 1,
+        "M4": 0.9773,
+        "M5": 1,
+        "M6": 0.9767,
+        "M7": 0.9375
+      },
+      "outcomes": {
+        "answer": 45,
+        "refused": 3,
+        "rejected": 0,
+        "timeout": 0
+      },
+      "traps": {
+        "answers": 14,
+        "errors": 1
+      },
+      "costUsd": 0.0000814,
+      "costTotalUsd": 0.00391,
+      "latencyP90Ms": 2662,
+      "judge": {
+        "model": "claude-opus-5-5",
+        "fingerprint": "c21478f1a1cbded0",
+        "entries": 38,
+        "cached": 0,
+        "noise": {
+          "M2": 0.1,
+          "M6": 0
+        }
+      }
+    },
+    {
+      "requestType": "card-variant-choice",
+      "run": "2026-11-24-l-baseline-dev",
+      "date": "2026-11-24",
+      "split": "dev",
+      "promptVersion": "card-variant-v5",
+      "candidate": null,
+      "fingerprint": "e106022802c8f395",
+      "model": "openai/gpt-6-luna",
+      "reasoning": "low",
+      "change": "Neue Baseline auf den ausgewogenen Fallsätzen (Paket L)",
+      "decision": "baseline",
+      "cases": 45,
+      "repetitions": 2,
+      "main": 0.9556,
+      "low": 0.8889,
+      "high": 1,
+      "criteria": {
+        "M1": 0.9667,
+        "M2": 0.9882,
+        "M3": 1,
+        "M4": 1,
+        "M5": 1,
+        "M6": 0.9647,
+        "M7": 1
+      },
+      "outcomes": {
+        "answer": 85,
+        "refused": 2,
+        "rejected": 3,
+        "timeout": 0
+      },
+      "traps": {
+        "answers": 22,
+        "errors": 0
+      },
+      "costUsd": 0.000116,
+      "costTotalUsd": 0.0105,
+      "latencyP90Ms": 3879,
+      "judge": {
+        "model": "claude-opus-5-5",
+        "fingerprint": "83b1d1b07ae31e82",
+        "entries": 74,
+        "cached": 0,
+        "noise": {
+          "M2": 0,
+          "M6": 0.1
+        }
+      }
+    },
+    {
+      "requestType": "card-variant-choice",
+      "run": "2026-11-24-l-baseline-holdout",
+      "date": "2026-11-24",
+      "split": "holdout",
+      "promptVersion": "card-variant-v5",
+      "candidate": null,
+      "fingerprint": "28d49acab0fc2d27",
+      "model": "openai/gpt-6-luna",
+      "reasoning": "low",
+      "change": "Rückhalt der neuen Baseline (Paket L)",
+      "decision": "holdout",
+      "cases": 31,
+      "repetitions": 2,
+      "main": 0.9355,
+      "low": 0.8548,
+      "high": 1,
+      "criteria": {
+        "M1": 0.9839,
+        "M2": 0.9831,
+        "M3": 0.9661,
+        "M4": 1,
+        "M5": 1,
+        "M6": 0.9322,
+        "M7": 1
+      },
+      "outcomes": {
+        "answer": 59,
+        "refused": 2,
+        "rejected": 1,
+        "timeout": 0
+      },
+      "traps": {
+        "answers": 18,
+        "errors": 0
+      },
+      "costUsd": 0.000111,
+      "costTotalUsd": 0.00688,
+      "latencyP90Ms": 2964,
+      "judge": {
+        "model": "claude-opus-5-5",
+        "fingerprint": "83b1d1b07ae31e82",
+        "entries": 47,
+        "cached": 0,
+        "noise": {
+          "M2": 0,
+          "M6": 0
+        }
+      }
+    },
+    {
+      "requestType": "card-variant-cloze",
+      "run": "2026-11-24-l-baseline-dev",
+      "date": "2026-11-24",
+      "split": "dev",
+      "promptVersion": "card-variant-v5",
+      "candidate": null,
+      "fingerprint": "b67fd59b6e6c39a7",
+      "model": "openai/gpt-6-luna",
+      "reasoning": "low",
+      "change": "Neue Baseline auf den ausgewogenen Fallsätzen (Paket L)",
+      "decision": "baseline",
+      "cases": 43,
+      "repetitions": 2,
+      "main": 0.814,
+      "low": 0.7209,
+      "high": 0.8953,
+      "criteria": {
+        "M1": 0.9535,
+        "M2": 0.85,
+        "M3": 1,
+        "M4": 1,
+        "M5": 1,
+        "M6": 0.7089,
+        "M7": 1
+      },
+      "outcomes": {
+        "answer": 80,
+        "refused": 2,
+        "rejected": 4,
+        "timeout": 0
+      },
+      "traps": {
+        "answers": 20,
+        "errors": 4
+      },
+      "costUsd": 0.0000973,
+      "costTotalUsd": 0.00837,
+      "latencyP90Ms": 2763,
+      "judge": {
+        "model": "claude-opus-5-5",
+        "fingerprint": "8efb9aea2cfe1bad",
+        "entries": 76,
+        "cached": 0,
+        "noise": {
+          "M2": 0,
+          "M6": 0.1
+        }
+      }
+    },
+    {
+      "requestType": "card-variant-cloze",
+      "run": "2026-11-24-l-baseline-holdout",
+      "date": "2026-11-24",
+      "split": "holdout",
+      "promptVersion": "card-variant-v5",
+      "candidate": null,
+      "fingerprint": "f018d7109e616603",
+      "model": "openai/gpt-6-luna",
+      "reasoning": "low",
+      "change": "Rückhalt der neuen Baseline (Paket L)",
+      "decision": "holdout",
+      "cases": 31,
+      "repetitions": 2,
+      "main": 0.871,
+      "low": 0.7742,
+      "high": 0.9516,
+      "criteria": {
+        "M1": 0.9516,
+        "M2": 0.9153,
+        "M3": 1,
+        "M4": 1,
+        "M5": 1,
+        "M6": 0.8793,
+        "M7": 1
+      },
+      "outcomes": {
+        "answer": 59,
+        "refused": 0,
+        "rejected": 3,
+        "timeout": 0
+      },
+      "traps": {
+        "answers": 14,
+        "errors": 2
+      },
+      "costUsd": 0.0000976,
+      "costTotalUsd": 0.00605,
+      "latencyP90Ms": 3261,
+      "judge": {
+        "model": "claude-opus-5-5",
+        "fingerprint": "8efb9aea2cfe1bad",
+        "entries": 53,
+        "cached": 0,
+        "noise": {
+          "M2": 0,
+          "M6": 0
+        }
+      }
     }
   ],
   "calibrations": []
