@@ -1,8 +1,8 @@
-import { activeVariantRefusal, createCardVariant, createDefaultDeckSettings, getActiveVariants } from "./coreModel.ts";
+import { activeVariantRefusal, createDefaultDeckSettings, getActiveVariants } from "./coreModel.ts";
 import { stripSanitizedHtml } from "./htmlSafety.ts";
 import { chainVariants, isCardReadyForVariants, nextChainVariant, reachedVariantStage } from "./coreVariantService/variantSelection.ts";
 import { getDurabilityDays } from "./scheduler.ts";
-import { AI_CARD_VARIANT_PROMPT_VERSION, answerListText, checkClozeVariant, choiceAnswerText, clozeVariantGaps, createAiCardVariantRequest, type AiCardVariantSource } from "./aiCardVariantContract.ts";
+import { AI_CARD_VARIANT_PROMPT_VERSION, answerListText, choiceAnswerText, clozeVariantGaps, createAiCardVariantRequest, type AiCardVariantSource } from "./aiCardVariantContract.ts";
 import { mapClozes } from "./clozeSyntax.ts";
 import type { Card, CardVariant, Note, NoteContent, NoteField } from "./coreTypes.ts";
 
@@ -168,52 +168,3 @@ export function describeVariantReadiness(card: Card, deckSettings: DeckSettingsI
     nextVariantId: nextChainVariant(card, settings)?.id ?? null,
   };
 }
-
-export function deactivateVariant(card: Card, variantId: string, _reason = "Nutzer hat die Variante deaktiviert."): Card {
-  const updatedAt = new Date().toISOString();
-  return { ...card, variants: card.variants.map((variant) => variant.id === variantId ? { ...variant, isActive: false, qualityStatus: "disabled", updatedAt, revision: variant.revision + 1 } : variant), updatedAt };
-}
-
-/** A cloze variant must keep the card's gap group with the same solutions (`source` from `cardVariantSource`). */
-export function editVariantText(card: Card, variantId: string, text: { front: string; back: string }, updatedAt = new Date().toISOString(), source: AiCardVariantSource | null = null): Card {
-  const variant = card.variants.find((candidate) => candidate.id === variantId && !candidate.deletedAt);
-  if (!variant) throw new Error("Die Variante wurde nicht gefunden.");
-  if (source?.kind === "cloze") {
-    const problem = checkClozeVariant(source.front, plainText(text.front));
-    if (problem === "invalid_gaps" || problem === "changed_answer") throw new Error("Die Variante braucht die Lücke der Karte mit derselben Lösung.");
-    text = { front: text.front, back: source.back };
-  }
-  const edited = createCardVariant({ ...variant, front: text.front, back: text.back, meta: { ...variant.meta, editedAt: updatedAt }, updatedAt, revision: variant.revision + 1 });
-  if (!stripSanitizedHtml(edited.front).trim() || !stripSanitizedHtml(edited.back).trim()) throw new Error("Frage und Antwort der Variante dürfen nicht leer sein.");
-  if (edited.contentHash === variant.contentHash) return card;
-  if (card.variants.some((candidate) => candidate.id !== variantId && !candidate.deletedAt && candidate.contentHash === edited.contentHash)) {
-    throw new Error("Diese Formulierung gibt es für die Karte schon.");
-  }
-  return { ...card, variants: card.variants.map((candidate) => candidate.id === variantId ? edited : candidate), updatedAt };
-}
-
-export function isEditedVariant(variant: CardVariant): boolean {
-  return typeof variant.meta.editedAt === "string";
-}
-
-export function reactivateVariant(card: Card, variantId: string, updatedAt = new Date().toISOString()): Card {
-  return {
-    ...card,
-    variants: card.variants.map((variant) => variant.id === variantId && !variant.deletedAt && variant.meta.outdated !== true
-      ? { ...variant, isActive: true, qualityStatus: "active", updatedAt, revision: variant.revision + 1 }
-      : variant),
-    updatedAt,
-  };
-}
-
-/** Stays as a tombstone so sync deletes it everywhere. */
-export function deleteVariant(card: Card, variantId: string, updatedAt = new Date().toISOString()): Card {
-  return {
-    ...card,
-    variants: card.variants.map((variant) => variant.id === variantId && !variant.deletedAt
-      ? { ...variant, isActive: false, deletedAt: updatedAt, updatedAt, revision: variant.revision + 1 }
-      : variant),
-    updatedAt,
-  };
-}
-

@@ -19,14 +19,19 @@ import {
   createManualNoteContent,
   createNote,
   createReviewState,
+  deactivateVariant,
+  deleteVariant,
   duplicateNote,
+  editVariantText,
   getActiveVariants,
+  isEditedVariant,
   noteEditorValue,
   noteTextIndex,
   normalizeCoreDeck,
   planNoteContentChange,
   planNoteDeletion,
   planNoteRestore,
+  reactivateVariant,
   recordVariantOutcome,
   rescheduleCard,
   setCardSuspended,
@@ -36,6 +41,7 @@ import {
   type ManualNoteInput,
 } from "./coreModel.ts";
 import type { NoteInteraction, ReviewSchedulerState } from "./coreTypes.ts";
+import { cardVariantSource } from "./coreVariantService.ts";
 
 test("deck settings normalize appearance defaults and fallbacks", () => {
   const defaults = createDefaultDeckSettings();
@@ -414,4 +420,53 @@ test("die Sperre gilt nur, solange der Inhalt seine Revision behält; Tags ände
   assert.equal(activeVariantRefusal(edited.note, edited.keptCards[0]), null);
   const tagged = planNoteContentChange(previous, { ...note.content, tags: ["neu"] });
   assert.equal(activeVariantRefusal(tagged.note, tagged.keptCards[0]), "not_rephrasable");
+});
+
+test("Eine bearbeitete Lückentext-Variante braucht die Lücke der Karte mit derselben Lösung; die Antwort bleibt die der Karte", () => {
+  const { note, cards } = createNote({ deckId: "deck", content: createManualNoteContent({ kind: "cloze", front: "Die {{c1::Titanic}} sank 1912.", back: "" }) });
+  const card = addCardVariant(cards[0], { front: "Im Jahr 1912 ging die {{c1::Titanic}} unter.", back: "Titanic" });
+  const source = cardVariantSource(note, card);
+  const edit = (front: string) => editVariantText(card, card.variants[0].id, { front, back: "egal" }, "2026-10-30T12:00:00.000Z", source);
+
+  const edited = edit("<p>1912 sank die {{c1::Titanic}} im Nordatlantik.</p>");
+  assert.equal(edited.variants[0].back, "Titanic");
+  assert.throws(() => edit("1912 sank die {{c1::Lusitania}}."), /derselben Lösung/);
+  assert.throws(() => edit("1912 sank die {{c2::Titanic}}."), /derselben Lösung/);
+  assert.throws(() => edit("1912 sank die Titanic."), /derselben Lösung/);
+});
+
+test("reactivating a reported variant returns it to rotation with its feedback; outdated ones stay out; deleting leaves a tombstone", () => {
+  const base = createBasicNote("deck", "Was ist ATP?", "Energieträger").cards[0];
+  const card = addCardVariant(base, { front: "Wofür steht ATP?", back: "Energie" });
+  const [variant] = card.variants;
+  const reported = { ...card, variants: [{ ...variant, isActive: false, qualityStatus: "flagged" as const, feedback: [{ id: "feedback-1", type: "fachlich_falsch" as const, note: "", createdAt: "2026-10-12T09:00:00.000Z" }], revision: variant.revision + 1 }] };
+  const reactivated = reactivateVariant(reported, variant.id).variants[0];
+  assert.equal(reactivated.isActive, true);
+  assert.equal(reactivated.qualityStatus, "active");
+  assert.equal(reactivated.feedback.length, 1, "der Meldeverlauf bleibt");
+  assert.equal(reactivated.revision, variant.revision + 2);
+
+  const outdated = { ...reported, variants: reported.variants.map((entry) => ({ ...entry, meta: { ...entry.meta, outdated: true } })) };
+  assert.equal(reactivateVariant(outdated, variant.id).variants[0].isActive, false);
+
+  const deleted = deleteVariant(card, variant.id, "2026-10-12T10:00:00.000Z").variants[0];
+  assert.equal(deleted.deletedAt, "2026-10-12T10:00:00.000Z");
+  assert.equal(deleted.isActive, false);
+});
+
+test("Variantentext bearbeiten: eigene Formulierung, nicht leer, nicht doppelt; Ausschließen nimmt sie aus der Kette", () => {
+  const { cards } = createBasicNote("deck", "Frage", "Antwort");
+  const withVariants = addCardVariant(addCardVariant(cards[0], { front: "Variante A", back: "Antwort" }), { front: "Variante B", back: "Antwort" });
+  const [first, second] = withVariants.variants;
+
+  const edited = editVariantText(withVariants, first.id, { front: "Eigene Frage", back: "Antwort" }, "2026-10-30T12:00:00.000Z");
+  const editedVariant = edited.variants.find((variant) => variant.id === first.id)!;
+  assert.deepEqual([editedVariant.front, editedVariant.revision, isEditedVariant(editedVariant), isEditedVariant(second)], ["Eigene Frage", first.revision + 1, true, false]);
+  assert.notEqual(editedVariant.contentHash, first.contentHash);
+  assert.equal(editVariantText(edited, first.id, { front: "Eigene Frage", back: "Antwort" }), edited, "unverändert bleibt dieselbe Karte");
+  assert.throws(() => editVariantText(withVariants, first.id, { front: " ", back: "Antwort" }), /nicht leer/);
+  assert.throws(() => editVariantText(withVariants, first.id, { front: "Variante B", back: "Antwort" }), /schon/);
+
+  const disabled = deactivateVariant(edited, second.id).variants.find((variant) => variant.id === second.id)!;
+  assert.deepEqual([disabled.isActive, disabled.qualityStatus], [false, "disabled"]);
 });

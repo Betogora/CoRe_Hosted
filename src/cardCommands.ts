@@ -5,9 +5,9 @@ import type { CardEditorServices, CreationScreenProps, DecksCardPage, DecksCardP
 // Static: actions on the open card must also work offline, when a lazy chunk can no longer load.
 import { prepareTextReplace, runCardBatch, type CardBatchAction, type CardBatchDependencies, type CardBatchRepository, type CardBatchResult } from "./cardBatchActions.ts";
 import type { CardVariantBatchMode } from "./cardVariantBatch.ts";
-import { addCardVariant, applyCardStudyStatePatch, createNote, duplicateNote, planNoteGraphContentChange, recordVariantOutcome, removeUnusedNoteMedia, replaceOutdatedVariants } from "./coreModel.ts";
+import { addCardVariant, applyCardStudyStatePatch, createNote, deactivateVariant, deleteVariant, duplicateNote, editVariantText, isEditedVariant, planNoteGraphContentChange, reactivateVariant, recordVariantOutcome, removeUnusedNoteMedia, replaceOutdatedVariants } from "./coreModel.ts";
 import type { Card, CardStudyStatePatch, NoteContent } from "./coreTypes.ts";
-import { cardVariantSource, deactivateVariant, deleteVariant, editVariantText, isEditedVariant, reactivateVariant } from "./coreVariantService.ts";
+import { cardVariantSource } from "./coreVariantService.ts";
 import { createWorkspaceDeck } from "./coreWorkspace.ts";
 import { getGlobalSchedulerPreferences } from "./deckSettings.ts";
 import { createGlobalDefaultDeckSettings } from "./globalLearningDefaults.ts";
