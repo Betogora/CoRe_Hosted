@@ -520,6 +520,28 @@ Erzeugung rund 7 Cent.
 - **Fertig, wenn** je Anfragetyp die Abbruchregel erreicht und der Rückhalt
   gemessen ist.
 
+**KI hilft (2026-11-24, abgeschlossen):**
+
+| Runde | Kandidat (ein Hebel) | Trainingsteil | Entscheidungsteil | Ergebnis |
+| --- | --- | --- | --- | --- |
+| 1 | Karte nur bei eindeutigem Gegenwissen korrigieren, dann im ersten Satz | 85,4 % | 83,9 % (+12,9, Rauschen ±11,3) | übernommen, `card-help-v2` |
+| 1 | fremde Bitten ablehnen | 83,3 % | 77,4 % (+6,5, H6 schlechter) | verworfen |
+| 1 | Verlauf-Bezug, Beispiel-Definition | 79,2 %, 81,3 % | – | Vorauswahl verfehlt |
+| 2 | Beispiel bei Faktenkarten als Situation | 85,4 % | 79,0 % (−4,8, H2 und H6 schlechter) | verworfen |
+| 2 | fremde Bitten sanft | 79,2 % | – | Vorauswahl verfehlt |
+| 3 | Auftrag hinter den Daten, alle Modi / nur Beispiel | 83,3 %, 77,1 % | – | Vorauswahl verfehlt |
+| 4 | Musterbeispiel im Prompt | 79,2 % | – | Vorauswahl verfehlt |
+| Kürzung | Satz zum Werkzeugaufruf gestrichen | – | 80,7 % (H2 und H6 schlechter) | verworfen |
+| Abschluss | `medium` auf `card-help-v2` | – | 88,7 % (+4,8 im Rauschen, Kosten 1,5-fach, p90 2,3-fach) | verworfen |
+
+- **Rückhalt:** `card-help-v2` 88,7 % gegen 93,6 % mit `v1` (2 Fälle
+  gewonnen, 5 verloren, im Rauschen). Der Gewinn am Entscheidungsteil ist
+  damit nicht bestätigt; er kam zur Hälfte aus H4, das die Änderung nicht
+  anspricht.
+- **Befund:** Mit 31 Fällen je Teil liegt das Rauschen bei ±10 Punkten;
+  kleinere Verbesserungen sind nicht messbar. Die Vorauswahl mit einer
+  Wiederholung schwankt ähnlich stark (Musterbeispiel: H4 67 → 92 → 63 %).
+
 ### J – Abschluss
 
 - Kostenziele je Anfragetyp nach `operations.md`; `status.md` und
