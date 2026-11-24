@@ -23,11 +23,11 @@ import { HIT_LIST_KEY, useCardSearch } from "./cardList/useCardSearch.ts";
 import { CardHitTable, MatchingDecks } from "./cardList/CardHitTable.tsx";
 import { CardSelectionBar } from "./cardList/CardSelectionBar.tsx";
 import { useCardSelection } from "./cardList/useCardSelection.ts";
+import { useCardListKeys } from "./cardList/useCardListKeys.ts";
 import { TagManagerDialog } from "./cardList/TagManagerDialog.tsx";
 import { renameDirectoryTag } from "../tagDirectory.ts";
 import { findsOnlyDuplicates, parseCardSearchQuery } from "../cardSearchQuery.ts";
 import { HitStudyFlow } from "./cardList/HitStudyFlow.tsx";
-import { hitStudyQuery } from "../hitStudySession.ts";
 import type { CardBatchAction, CardBatchResult } from "../cardBatchActions.ts";
 import { CardEditorDialog, cardEditorFrameClass, type CardEditorHitNavigation } from "./cardEditor/CardEditorDialog.tsx";
 import { DeckSubstacksPanel } from "./DeckSubstacksPanel.tsx";
@@ -301,21 +301,17 @@ export function DecksScreen({
   }, [selectedCardId, selectedItemIndex >= 0]);
 
   const canSelect = Boolean(onRunCardBatch) && !onCloseSelectedCard;
-  const { selecting, setSelecting, checkedIds, allHits, setAllHits, clearSelection, selectLoadedCards, toggleCheck: stableToggleCheck, selectionCount, selectionRequest, lastUndoRef, keyActionRowRef, setFocusRowAfterAction } = useCardSelection({
-    canSelect, hitList, items, cardItems, rowOf, locateCard, deferredQuery, hitScope,
+  const selection = useCardSelection({
+    canSelect, hitList, deferredQuery, hitScope, cardSort,
+    listHitIds: onListHitCardIds && ((query, sort) => onListHitCardIds({ deckIds: hitScope, query, searchContext, sort })),
   });
+  const [lastUndo, setLastUndo] = React.useState<(() => void) | null>(null);
+  const refocusKeyRow = useCardListKeys({ selection, canSelect, rows: hitList.rowsByIndex, undo: lastUndo });
   const [runningBatch, setRunningBatch] = React.useState(false);
 
-  async function selectedIds() {
-    if (!allHits) return [...checkedIds];
-    if (!onListHitCardIds) return [];
-    return onListHitCardIds({ deckIds: hitScope, query: deferredQuery, searchContext });
-  }
-
   const runSelectionAction = async (action: CardBatchAction, done: (cards: string) => string) => {
-    await runCardBatchAction(selectedIds, action, done);
+    await runCardBatchAction(selection.resolveSelectedIds, action, done);
   };
-
 
   /** Returns true once the action ran. */
   async function runCardBatchAction(loadIds: () => Promise<string[]>, action: CardBatchAction, done: (cards: string) => string, onUndone?: () => void) {
@@ -325,9 +321,9 @@ export function DecksScreen({
       const ids = await loadIds();
       const result = await onRunCardBatch(ids, action);
       if (action.kind === "delete" && selectedCardId && ids.includes(selectedCardId)) closeDetail();
-      clearSelection();
+      selection.clear();
       const undo = () => {
-        lastUndoRef.current = null;
+        setLastUndo(null);
         void result.undo().then(({ restoredCount, skippedCount }) => {
           onUndone?.();
           setSuccessToast(skippedCount
@@ -335,7 +331,7 @@ export function DecksScreen({
             : `Rückgängig gemacht: ${cardCount(restoredCount)}`, { appearance: skippedCount ? "neutral" : "success" });
         }, () => setSuccessToast("Rückgängig ist fehlgeschlagen.", { appearance: "neutral" }));
       };
-      lastUndoRef.current = undo;
+      setLastUndo(() => undo);
       setSuccessToast(done(cardCount(result.changedCount)), { action: { label: "Rückgängig", onAction: undo } });
       return true;
     } catch (error) {
@@ -344,17 +340,15 @@ export function DecksScreen({
       return false;
     } finally {
       setRunningBatch(false);
-      // The list reloads after the action; the row takes the focus once it is rendered again.
-      setFocusRowAfterAction(keyActionRowRef.current);
-      keyActionRowRef.current = null;
+      refocusKeyRow();
     }
   }
 
-  const prepareSelectionReplace = useStableCallback(async () => onPrepareTextReplace!(await selectedIds()));
+  const prepareSelectionReplace = useStableCallback(async () => onPrepareTextReplace!(await selection.resolveSelectedIds()));
   const searchingDuplicates = React.useMemo(() => findsOnlyDuplicates(parseCardSearchQuery(deferredQuery)), [deferredQuery]);
   async function selectSurplusDuplicates() {
     try {
-      const count = await selectLoadedCards(() => onListSurplusDuplicateIds!({ deckIds: hitScope, query: deferredQuery, searchContext }));
+      const count = await selection.selectLoadedCards(() => onListSurplusDuplicateIds!({ deckIds: hitScope, query: deferredQuery, searchContext }));
       setDeckStatusType("status");
       setDeckStatus(count === 0 ? "Keine überzähligen Duplikate" : "");
     } catch (error) {
@@ -364,20 +358,17 @@ export function DecksScreen({
   }
   const [hitStudy, setHitStudy] = React.useState<"hits" | "selection" | null>(null);
   const canStudyHits = Boolean(onStudyHits && onLoadPracticeCards && onListHitCardIds);
-  const loadHitStudyIds = useStableCallback(async () => {
-    const ids = await onListHitCardIds!({ deckIds: hitScope, query: hitStudyQuery(deferredQuery), searchContext, sort: cardSort });
-    return hitStudy === "selection" && !allHits ? ids.filter((id) => checkedIds.has(id)) : ids;
-  });
+  const loadHitStudyIds = useStableCallback(() => selection.idsForStudy(hitStudy === "selection"));
 
   async function generateSelectionVariants() {
     if (!onGenerateCardVariants) return;
-    const ids = await selectedIds();
+    const ids = await selection.resolveSelectedIds();
     const selected = new Set(ids);
     const firstRow = [...hitList.rowsByIndex.values()].find((row) => selected.has(row.id));
     const deckId = firstRow?.entry.deckId ?? contentDeckId ?? selectedDeckId;
     if (!deckId || !ids.length) return;
     onGenerateCardVariants(deckId, ids);
-    clearSelection();
+    selection.clear();
   }
 
   async function savePendingDetailDraft() {
@@ -655,40 +646,40 @@ export function DecksScreen({
         virtual={virtual}
         loading={cardsLoading}
         searching={Boolean(deferredQuery.trim())}
-        selectionBar={selecting ? (
+        selectionBar={selection.selecting ? (
           <CardSelectionBar
-            count={selectionCount}
+            count={selection.count}
             hitTotal={onListHitCardIds && !cardsLoading ? hitList.totalCardCount : null}
             searching={Boolean(deferredQuery.trim())}
-            allHits={allHits}
-            onSelectAllHits={() => setAllHits(true)}
-            onClear={clearSelection}
+            allHits={selection.allHits}
+            onSelectAllHits={selection.selectAllHits}
+            onClear={selection.clear}
             decks={decks}
             flagNames={cardEditor.flagNames}
             loadTagDirectory={cardEditor.listTagDirectory}
             now={now}
             dayStartHour={dayStartHour}
             timeZone={timeZone}
-            disabled={runningBatch || selectionCount === 0}
+            disabled={runningBatch || selection.count === 0}
             onGenerateVariants={onGenerateCardVariants && !variantGenerationRunning ? () => void generateSelectionVariants() : undefined}
             onStudy={canStudyHits ? () => setHitStudy("selection") : undefined}
             onPrepareReplace={onPrepareTextReplace ? prepareSelectionReplace : undefined}
             onRun={runSelectionAction}
-            request={selectionRequest}
+            request={selection.request}
           />
         ) : null}
         sort={cardSort}
         onSort={changeSort}
-        onStartSelecting={canSelect ? () => setSelecting(true) : undefined}
+        onStartSelecting={canSelect ? selection.start : undefined}
         selectedCardId={selectedCardId}
         selectedGraph={selectedGraph}
         flagNames={cardEditor.flagNames}
         syncConflictCardIds={syncConflictCardIds}
         deckPathOf={hitScope.length > 1 ? deckPathOf : undefined}
         onSelect={stableRequestCardSelection}
-        isChecked={(cardId) => allHits || checkedIds.has(cardId)}
-        selecting={selecting}
-        onToggleCheck={stableToggleCheck}
+        isChecked={selection.isChecked}
+        selecting={selection.selecting}
+        onToggleCheck={selection.toggle}
       />
   </section>;
 
