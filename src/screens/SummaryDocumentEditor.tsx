@@ -8,6 +8,7 @@ import { ColorSwatchRow } from "../ui/ColorPicker.tsx";
 import { CoreIconSegmentedControl, CoreSegmentedControl } from "../ui/coreUi.tsx";
 import { CoreSelect } from "../ui/selectUi.tsx";
 import { CoreTooltip } from "../ui/tooltipUi.tsx";
+import { EditorToolbar, EditorToolbarContext } from "../ui/EditorToolbar.tsx";
 import { RichTextEditor } from "../ui/RichTextEditor.tsx";
 
 /** Gap between the scroll area edge and the stuck tools, in px (`--core-space-sm`). */
@@ -218,13 +219,10 @@ export function SummaryDocumentEditor({ value, onChange, busy }: {
         else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first?.focus(); }
       }
     }}>
-    <div className="core-editor-toolbar core-summary-tools core-surface-raised" style={{ top: stickyTop, scrollMarginTop: `calc(max(${stickyTop}, 0px) + 12px)` }} inert={busy}>
-      <CoreIconSegmentedControl ariaLabel="Schreiben und Zeichnen" className="core-editor-toolbar-modes" options={toolOptions} value={tool} onValueChange={setTool}/>
-      <div className="core-editor-toolbar-actions">
-        <CoreTooltip label={expanded ? "Vollbild beenden" : "Vollbild"}><IconButton ref={expandRef} variant="ghost" label={expanded ? "Vollbild beenden" : "Vollbild"} icon={expanded ? Minimize2 : Maximize2} onClick={() => setExpanded(!expanded)}/></CoreTooltip>
-      </div>
-      <div className="core-editor-toolbar-context">
-        <div ref={toolsRef} className="core-editor-toolbar-tools">
+    <EditorToolbar className="core-summary-tools" style={{ top: stickyTop, scrollMarginTop: `calc(max(${stickyTop}, 0px) + 12px)` }} inert={busy}
+      modes={<CoreIconSegmentedControl ariaLabel="Schreiben und Zeichnen" className="core-editor-toolbar-modes" options={toolOptions} value={tool} onValueChange={setTool}/>}
+      actions={<CoreTooltip label={expanded ? "Vollbild beenden" : "Vollbild"}><IconButton ref={expandRef} variant="ghost" label={expanded ? "Vollbild beenden" : "Vollbild"} icon={expanded ? Minimize2 : Maximize2} onClick={() => setExpanded(!expanded)}/></CoreTooltip>}>
+      <EditorToolbarContext toolsRef={toolsRef}>
           <div ref={setToolbarContainer} className="core-editor-toolbar-text" hidden={tool !== "text"}/>
           {tool !== "text" && <div className="core-editor-tool-group" role="group" aria-label="Verlauf">
             <CoreTooltip label="Zeichnung rückgängig"><IconButton variant="ghost" label="Zeichnung rückgängig" icon={Undo2} disabled={!history.current.undo.length} onClick={() => undoDrawing(false)}/></CoreTooltip>
@@ -240,10 +238,9 @@ export function SummaryDocumentEditor({ value, onChange, busy }: {
           {tool === "eraser" && <div className="core-editor-tool-group">
             <CoreTooltip label="Alle Zeichnungen entfernen"><IconButton variant="destructive-quiet" label="Alle Zeichnungen entfernen" icon={Trash2} disabled={!pages.some((page) => page.strokes.length)} onClick={() => changeInk(pages.map((page) => ({ ...page, strokes: [] })))}/></CoreTooltip>
           </div>}
-        </div>
-      </div>
+      </EditorToolbarContext>
       <span className="sr-only" id={`${fieldId}-hint`}>Eine durchgehende Seite. Der Text und die Zeichenfläche wachsen nach unten.</span>
-    </div>
+    </EditorToolbar>
     <div className="core-summary-stage" inert={busy}>
       <div ref={sheetRef} className="core-summary-sheet core-summary-editor" style={{ minHeight: Math.max(640, drawing.bottom * scale + 96) }}>
         <RichTextEditor value={value.html} ariaLabel="Zusammenfassung bearbeiten" ariaDescribedBy={`${fieldId}-hint`} toolbarHost={toolbarContainer} documentTools minHeightClass=""

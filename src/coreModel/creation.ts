@@ -54,14 +54,12 @@ export function validateManualNoteInput(input: ManualNoteInput): ManualNoteError
     if (!hasCardRichTextContent(input.front)) errors.front = "Bitte eine Frage eingeben.";
     const options = (input.answerOptions ?? []).map((option) => String(option).trim());
     const nonEmpty = options.filter(Boolean);
-    if (nonEmpty.length < 2 || nonEmpty.length !== options.length) errors.options = "Bitte mindestens zwei nichtleere Antwortoptionen eingeben.";
+    if (nonEmpty.length < 2) errors.options = "Bitte mindestens zwei nichtleere Antwortoptionen eingeben.";
+    else if (nonEmpty.length !== options.length) errors.options = "Bitte leere Antwortoptionen ausfüllen oder entfernen.";
     else if (new Set(nonEmpty.map((option) => option.toLocaleLowerCase("de-DE"))).size !== nonEmpty.length) errors.options = "Antwortoptionen müssen eindeutig sein.";
     const indices = [...new Set(input.correctOptionIndices ?? [])].filter((index) => Number.isInteger(index) && index >= 0 && index < options.length && Boolean(options[index]));
     if (input.kind === "single-choice" && indices.length !== 1) errors.correctOptions = "Bitte genau eine gültige richtige Antwort auswählen.";
-    if (input.kind === "multiple-choice") {
-      if (indices.length === 0) errors.correctOptions = "Bitte mindestens eine gültige richtige Antwort auswählen.";
-      else if (indices.length >= options.length) errors.correctOptions = "Bitte mindestens eine Antwortoption als falsch belassen.";
-    }
+    if (input.kind === "multiple-choice" && indices.length === 0) errors.correctOptions = "Bitte mindestens eine gültige richtige Antwort auswählen.";
     return errors;
   }
   if (!hasCardRichTextContent(input.front)) errors.front = "Bitte eine Vorderseite eingeben.";
