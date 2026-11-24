@@ -806,7 +806,6 @@ test("[Vertrag: typgerechter Multiple-Choice-Lebenszyklus] @beta-core Optionen, 
   await page.getByRole("textbox", { name: "Multiple-Choice-Frage" }).fill("Welche Option ist richtig?");
   await page.getByRole("textbox", { name: "Antwortoption 1", exact: true }).fill("Alpha");
   await page.getByRole("textbox", { name: "Antwortoption 2", exact: true }).fill("Beta");
-  await page.getByRole("button", { name: "Option hinzufügen" }).click();
   await page.getByRole("textbox", { name: "Antwortoption 3", exact: true }).fill("Gamma");
   await page.getByLabel("Option 2 als richtig markieren").check();
   await page.getByLabel("Option 1 als richtig markieren").uncheck();

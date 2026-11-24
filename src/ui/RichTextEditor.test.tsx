@@ -21,6 +21,18 @@ test("leaves undo and redo to a caller with its own history", () => {
   assert.deepEqual(toolLabels(markup), documentFormatLabels);
 });
 
+test("adds the card tools of a field to the document toolbar", () => {
+  const markup = renderToStaticMarkup(<RichTextEditor ariaLabel="Vorderseite" documentTools clozeActions={{ groupId: 2 }} imageActions={{ mediaUrls: {}, prepare: async () => ({ reference: "", previewUrl: "", alt: "" }) }} />);
+  assert.deepEqual(toolLabels(markup), ["Rückgängig", "Wiederholen", "Fett", "Kursiv", "Unterstrichen", "Durchgestrichen", "Bild an Cursorposition einfügen", "Auswahl als Lücke c2 markieren", "Lücke entfernen", "Auswahl als Formel setzen", ...documentFormatLabels.slice(4)]);
+  assert.match(markup, /role="group" aria-label="Einfügen"/);
+});
+
+test("renders no toolbar while another field owns the shared host", () => {
+  const markup = renderToStaticMarkup(<RichTextEditor ariaLabel="Rückseite" documentTools toolbarHost={null} />);
+  assert.doesNotMatch(markup, /role="toolbar"/);
+  assert.match(markup, /rich-text-field[^"]*rounded-control/);
+});
+
 test("finds the one cloze surrounding a selection or caret", () => {
   const text = "A {{c2::Berlin::Stadt}} B";
   const expectedSpan = { start: 2, end: 23, contentStart: 8, contentEnd: 14 };

@@ -10,6 +10,8 @@ import { CoreCheckbox } from "../ui/formControls.tsx";
 import { BrainMascot } from "../ui/BrainMascot.tsx";
 import { StatusMessage } from "../ui/feedbackUi.tsx";
 import { CoreTooltip } from "../ui/tooltipUi.tsx";
+import { ColorPicker } from "../ui/ColorPicker.tsx";
+import { useHeatmapHistoryColor } from "../ui/StudyHeatmap.tsx";
 import { useDashboardWidgetDrag } from "./useDashboardWidgetDrag.ts";
 import { useDashboardWidgetLayout } from "./useDashboardWidgetLayout.ts";
 import { DashboardTaskText } from "./DashboardTaskText.tsx";
@@ -29,6 +31,7 @@ export function DashboardWidgets({ userId, header, children, planner, onOpenPlan
 }) {
   const [preferences, setPreferences] = React.useState(() => readDashboardPreferences(userId));
   const [editing, setEditing] = React.useState(false);
+  const [heatmapColor, setHeatmapColor] = useHeatmapHistoryColor();
   const [storageError, setStorageError] = React.useState(false);
   const [announcement, setAnnouncement] = React.useState("");
   const [libraryExpanded, setLibraryExpanded] = React.useState(false);
@@ -118,7 +121,7 @@ export function DashboardWidgets({ userId, header, children, planner, onOpenPlan
               const adjacent = preferences.widgets[index + (event.key === "ArrowUp" ? -1 : 1)];
               if ((event.key === "ArrowUp" || event.key === "ArrowDown") && adjacent) { event.preventDefault(); move(widget.id, adjacent.id); }
             }} />
-            <div className="dashboard-widget-tool-actions"><IconButton variant="ghost" icon={ArrowUp} label={`${definition.title} nach vorne`} disabled={index === 0} onClick={() => move(widget.id, preferences.widgets[index - 1].id)} />
+            <div className="dashboard-widget-tool-actions">{widget.id === "heatmap" ? <ColorPicker ariaLabel="Heatmap-Farbe ändern" value={heatmapColor} onValueCommit={setHeatmapColor} /> : null}<IconButton variant="ghost" icon={ArrowUp} label={`${definition.title} nach vorne`} disabled={index === 0} onClick={() => move(widget.id, preferences.widgets[index - 1].id)} />
             <IconButton variant="ghost" icon={ArrowDown} label={`${definition.title} nach hinten`} disabled={index === preferences.widgets.length - 1} onClick={() => move(widget.id, preferences.widgets[index + 1].id)} />
             <IconButton variant="ghost" icon={X} label={`${definition.title} entfernen`} onClick={() => remove(widget.id)} /></div>
           </div> : null}

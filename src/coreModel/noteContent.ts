@@ -128,9 +128,7 @@ function parseChoice(input: Record<string, unknown>, errors: string[]): NoteInte
   if (mode === "kprim" && options.length === 0) errors.push("Kprim braucht mindestens eine Aussage.");
   if (mode !== "kprim" && options.length < 2) errors.push("Eine Auswahlfrage braucht mindestens zwei Antwortoptionen.");
   if (mode === "single" && correct !== 1) errors.push("Single Choice braucht genau eine richtige Antwort.");
-  if (mode === "multiple" && (correct === 0 || correct === options.length)) {
-    errors.push("Multiple Choice braucht mindestens eine richtige und eine falsche Antwort.");
-  }
+  if (mode === "multiple" && correct === 0) errors.push("Multiple Choice braucht mindestens eine richtige Antwort.");
   return { kind: "choice", mode, options };
 }
 

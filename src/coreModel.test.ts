@@ -137,7 +137,8 @@ test("manuelle Eingaben werden mit deutschen Feldmeldungen geprüft", () => {
   assert.deepEqual(validateManualNoteInput({ kind: "cloze", front: "Ohne Lücke", back: "" }), { front: "Bitte gültige Lücken wie {{c1::Begriff}} verwenden." });
   assert.deepEqual(validateManualNoteInput({ kind: "cloze", front: "{{c1::ATP}}", back: "" }), {});
   assert.deepEqual(validateManualNoteInput({ kind: "single-choice", front: "Frage", back: "", answerOptions: ["A", "a"], correctOptionIndices: [0] }), { options: "Antwortoptionen müssen eindeutig sein." });
-  assert.deepEqual(validateManualNoteInput({ kind: "multiple-choice", front: "Frage", back: "", answerOptions: ["A", "B"], correctOptionIndices: [0, 1] }), { correctOptions: "Bitte mindestens eine Antwortoption als falsch belassen." });
+  assert.deepEqual(validateManualNoteInput({ kind: "multiple-choice", front: "Frage", back: "", answerOptions: ["A", "B"], correctOptionIndices: [0, 1] }), {}, "every option may be correct");
+  assert.deepEqual(validateManualNoteInput({ kind: "multiple-choice", front: "Frage", back: "", answerOptions: ["A", "B"], correctOptionIndices: [] }), { correctOptions: "Bitte mindestens eine gültige richtige Antwort auswählen." });
 });
 
 test("Editorprüfung meldet leere Pflichtfelder manueller Inhalte und doppelte Optionen", () => {
@@ -375,6 +376,9 @@ test("Auswahlfragen prüfen Optionen und richtige Antworten mit deutschen Meldun
 
   assert.deepEqual(validateManualNoteInput({ kind: "single-choice", ...base, answerOptions: ["A", ""], correctOptionIndices: [0] }), {
     options: "Bitte mindestens zwei nichtleere Antwortoptionen eingeben.",
+  });
+  assert.deepEqual(validateManualNoteInput({ kind: "single-choice", ...base, answerOptions: ["Ja", "Nein", ""], correctOptionIndices: [0] }), {
+    options: "Bitte leere Antwortoptionen ausfüllen oder entfernen.",
   });
   assert.deepEqual(validateManualNoteInput({ kind: "single-choice", ...base, answerOptions: ["Ja", "ja"], correctOptionIndices: [0, 1] }), {
     options: "Antwortoptionen müssen eindeutig sein.",
