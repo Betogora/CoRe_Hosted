@@ -2,7 +2,7 @@ import * as v from "valibot";
 import { summarySettingsSchema } from "./learningSummarySettings.js";
 
 export const AI_LEARNING_SUMMARY_ENDPOINT = "/api/ai/summary";
-export const AI_LEARNING_SUMMARY_PROMPT_VERSION = "learning-summary-v4";
+export const AI_LEARNING_SUMMARY_PROMPT_VERSION = "learning-summary-v5";
 export const AI_LEARNING_SUMMARY_DEADLINE_MS = 120_000;
 const MAX_SUMMARY_MATERIAL_CHARS = 400_000;
 export const MAX_SUMMARY_REQUEST_BYTES = 1_536 * 1_024;
@@ -27,14 +27,14 @@ const requestSchema = v.strictObject({
 });
 const blockFields = {
   heading: text(160),
-  paragraphs: v.pipe(v.array(text(6_000)), v.maxLength(12)),
+  paragraphs: v.pipe(v.array(v.pipe(v.string(), v.trim(), v.maxLength(6_000))), v.filterItems((paragraph) => paragraph.length > 0), v.maxLength(12)),
   points: v.pipe(v.array(v.strictObject({ keyword: text(80), text: text(2_000) })), v.maxLength(30)),
   references: v.pipe(v.array(materialId), v.minLength(1), v.maxLength(MAX_SUMMARY_UNITS)),
 };
-const sectionSchema = v.strictObject({ ...blockFields, subsections: v.pipe(v.array(v.strictObject(blockFields)), v.maxLength(8)) });
+const sectionSchema = v.strictObject({ ...blockFields, subsections: v.optional(v.pipe(v.array(v.strictObject(blockFields)), v.maxLength(8)), []) });
 const generatedSchema = v.strictObject({
   sections: v.pipe(v.array(sectionSchema), v.minLength(1), v.maxLength(24)),
-  warnings: v.pipe(v.array(text(600)), v.maxLength(8)),
+  warnings: v.optional(v.pipe(v.array(text(600)), v.maxLength(8)), []),
   relations: v.optional(v.pipe(v.array(v.strictObject({ from: text(160), to: text(160) })), v.maxLength(12)), []),
 });
 const tokenCount = v.nullable(v.pipe(v.number(), v.integer(), v.minValue(0)));

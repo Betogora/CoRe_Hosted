@@ -59,6 +59,9 @@ test("Prompt vervollständigt alle Optionen und trennt Fokus von Systemanweisung
 test("KI-Ausgabe akzeptiert nur bekannte Verweise und wird ohne ausführbares HTML dargestellt", () => {
   assert.throws(() => parseAiLearningSummarySuccess({ ...generated, summary: { ...generated.summary, sections: [{ ...generated.summary.sections[0], references: ["m99"] }] } }, prepared.request), /verweise/i);
   assert.throws(() => parseAiLearningSummarySuccess({ ...generated, summary: { ...generated.summary, sections: [{ ...generated.summary.sections[0], paragraphs: [], points: [] }] } }, prepared.request), /leeren/);
+  const { subsections: _subsections, ...withoutSubsections } = generated.summary.sections[0];
+  const lenient = parseAiLearningSummarySuccess({ ...generated, summary: { sections: [{ ...withoutSubsections, paragraphs: [" ", ...withoutSubsections.paragraphs] }] } }, prepared.request);
+  assert.deepEqual([lenient.summary.sections[0].subsections, lenient.summary.warnings, lenient.summary.sections[0].paragraphs], [[], [], generated.summary.sections[0].paragraphs]);
   const html = generatedSummaryHtml({ ...generated, summary: { ...generated.summary, sections: [{ ...generated.summary.sections[0], paragraphs: ['<img src=x onerror="alert(1)"> & ATP'] }] } }, prepared);
   assert.match(html, /&lt;img/); assert.doesNotMatch(html, /<img/); assert.match(html, /<details><summary>Belege \(1\)<\/summary><p><small><a href="\/kartenstapel/);
   const stored = readLearningSummary({ ...createLearningSummary("root", "Titel", defaults), html, generation: { model: generated.model, privacyMode: generated.privacyMode, promptVersion: generated.promptVersion, generatedAt: new Date().toISOString(), materialUnits: 1 } });

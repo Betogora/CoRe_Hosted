@@ -12,7 +12,7 @@ externen Release fällig. „Später“ ist geparkt.
 ## P5: KI-Eval und Hillclimb
 
 Alle vier KI-Routen stehen (`card-variant-v5`, `card-help-v2`,
-`source-cards-v2`, `learning-summary-v4`); P5 läuft. Die Baseline aller
+`source-cards-v2`, `learning-summary-v5`); P5 läuft. Die Baseline aller
 sechs Anfragetypen steht auf den ausgewogenen Fallsätzen im Ledger und auf
 der Seite [KI-Eval](ai-eval.md): Varianten und `card-help` mit 96 bis 120
 Prüfkarten über sieben Fächer mit Referenzaussagen und höchstens 20 % aus
