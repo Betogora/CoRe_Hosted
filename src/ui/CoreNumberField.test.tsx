@@ -19,6 +19,19 @@ test("CoreNumberField uses its id as test id and leaves room only for a unit", (
   assert.doesNotMatch(markup, /pr-14/);
 });
 
+test("CoreNumberField with a step label frames the bare field with minus and plus buttons that stop at the range", () => {
+  const atMin = renderToStaticMarkup(<CoreNumberField id="font-size" stepLabel="Schriftgröße" ariaLabel="Schriftgröße in Pixel" value={10} min={10} max={32} onChange={() => undefined} />);
+
+  assert.match(atMin, /^<div class="core-number-stepper[^"]*" role="group" aria-label="Schriftgröße">/);
+  assert.match(atMin, /<input id="font-size" type="number"[^>]*aria-label="Schriftgröße in Pixel"[^>]*>/);
+  assert.doesNotMatch(atMin, /core-field/);
+  assert.match(atMin, /<button[^>]*disabled=""[^>]*aria-label="Schriftgröße verringern"/);
+  assert.doesNotMatch(atMin, /<button[^>]*disabled=""[^>]*aria-label="Schriftgröße erhöhen"/);
+
+  const atMax = renderToStaticMarkup(<CoreNumberField id="font-size" stepLabel="Schriftgröße" value={32} min={10} max={32} onChange={() => undefined} />);
+  assert.match(atMax, /<button[^>]*disabled=""[^>]*aria-label="Schriftgröße erhöhen"/);
+});
+
 test("committing rounds and clamps numbers and restores the value for unusable text", () => {
   assert.equal(commitNumberInput("3", 0, 0, 23), 3);
   assert.equal(commitNumberInput("30", 0, 0, 23), 23);
