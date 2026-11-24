@@ -69,8 +69,11 @@ export function readLabels(definition: EvalDefinition): Label[] {
  * Die Blöcke verraten weder Fall noch Wiederholung noch Kontrolleintrag. Einträge mit Urteil im Cache gehen in keinen
  * Block; ab zwei Blöcken steht ein Anteil der übrigen ein zweites Mal in einem anderen Block.
  */
-/** `requests` sind alle Anfragen des Fallsatzes; ihre Kriterien bestimmen den Fingerabdruck, egal welche Antworten ein Lauf hat. */
-export function buildJudgeTable(definition: EvalDefinition, items: readonly JudgeItem[], random: () => number, { instructions, requests, cache = {} }: { instructions: string; requests: readonly unknown[]; cache?: JudgeCache }) {
+/**
+ * `requests` sind alle Anfragen des Fallsatzes, `references` seine Referenzaussagen; beide bestimmen den Fingerabdruck,
+ * egal welche Antworten ein Lauf hat.
+ */
+export function buildJudgeTable(definition: EvalDefinition, items: readonly JudgeItem[], random: () => number, { instructions, requests, references = [], cache = {} }: { instructions: string; requests: readonly unknown[]; references?: readonly (readonly string[])[]; cache?: JudgeCache }) {
   const groups = new Map<string, JudgeItem[]>();
   for (const item of items) {
     const identity = JSON.stringify([item.criteria.map((criterion) => criterion.id), item.rendered]);
@@ -88,7 +91,7 @@ export function buildJudgeTable(definition: EvalDefinition, items: readonly Judg
     else open.push({ refs: group.map((item) => item.ref), hash: entryHash, criteria, rendered });
   }
   for (const request of requests) for (const criterion of definition.judged(request)) allCriteria.set(criterion.id, criterion);
-  key.judge = hash(JSON.stringify([instructions, [...allCriteria.values()].sort((a, b) => a.id.localeCompare(b.id))]));
+  key.judge = hash(JSON.stringify([instructions, [...allCriteria.values()].sort((a, b) => a.id.localeCompare(b.id)), references]));
 
   const entries: JudgeEntry[] = shuffled(open, random).map((group, index) => {
     const entry = `e${String(index + 1).padStart(4, "0")}`;

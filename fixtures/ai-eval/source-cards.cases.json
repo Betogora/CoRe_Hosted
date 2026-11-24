@@ -3,200 +3,638 @@
     {
       "id": "zellatmung-standard",
       "category": "standard",
+      "subject": "naturwissenschaft",
+      "split": "train",
       "group": "zellatmung",
       "request": {
         "source": "zellatmung.md",
         "profile": "standard"
-      },
-      "split": "train"
+      }
     },
     {
       "id": "zellatmung-alle-formen",
       "category": "alle-formen",
+      "subject": "naturwissenschaft",
+      "split": "train",
       "group": "zellatmung",
       "request": {
         "source": "zellatmung.md",
         "profile": "alle-formen"
-      },
-      "split": "train"
+      }
     },
     {
       "id": "zellatmung-weniger",
       "category": "weniger",
+      "subject": "naturwissenschaft",
+      "split": "train",
       "group": "zellatmung",
       "request": {
         "source": "zellatmung.md",
         "profile": "weniger"
-      },
-      "split": "train"
+      }
     },
     {
       "id": "zellatmung-mehr",
       "category": "mehr",
+      "subject": "naturwissenschaft",
+      "split": "train",
       "group": "zellatmung",
       "request": {
         "source": "zellatmung.md",
         "profile": "mehr"
-      },
-      "split": "train"
+      }
     },
     {
       "id": "gewaltenteilung-standard",
       "category": "standard",
+      "subject": "recht-wirtschaft",
+      "split": "dev",
       "group": "gewaltenteilung",
       "request": {
         "source": "gewaltenteilung.txt",
         "profile": "standard"
-      },
-      "split": "dev"
+      }
     },
     {
       "id": "gewaltenteilung-alle-formen",
       "category": "alle-formen",
+      "subject": "recht-wirtschaft",
+      "split": "dev",
       "group": "gewaltenteilung",
       "request": {
         "source": "gewaltenteilung.txt",
         "profile": "alle-formen"
-      },
-      "split": "dev"
+      }
     },
     {
       "id": "gewaltenteilung-weniger",
       "category": "weniger",
+      "subject": "recht-wirtschaft",
+      "split": "dev",
       "group": "gewaltenteilung",
       "request": {
         "source": "gewaltenteilung.txt",
         "profile": "weniger"
-      },
-      "split": "dev"
+      }
     },
     {
       "id": "gewaltenteilung-mehr",
       "category": "mehr",
+      "subject": "recht-wirtschaft",
+      "split": "dev",
       "group": "gewaltenteilung",
       "request": {
         "source": "gewaltenteilung.txt",
         "profile": "mehr"
-      },
-      "split": "dev"
+      }
     },
     {
       "id": "netzwerk-glossar-standard",
       "category": "standard",
+      "subject": "technik-it",
+      "split": "dev",
       "group": "netzwerk-glossar",
       "request": {
         "source": "netzwerk-glossar.csv",
         "profile": "standard"
-      },
-      "split": "dev"
+      }
     },
     {
       "id": "netzwerk-glossar-alle-formen",
       "category": "alle-formen",
+      "subject": "technik-it",
+      "split": "dev",
       "group": "netzwerk-glossar",
       "request": {
         "source": "netzwerk-glossar.csv",
         "profile": "alle-formen"
-      },
-      "split": "dev"
+      }
     },
     {
       "id": "netzwerk-glossar-weniger",
       "category": "weniger",
+      "subject": "technik-it",
+      "split": "dev",
       "group": "netzwerk-glossar",
       "request": {
         "source": "netzwerk-glossar.csv",
         "profile": "weniger"
-      },
-      "split": "dev"
+      }
     },
     {
       "id": "netzwerk-glossar-mehr",
       "category": "mehr",
+      "subject": "technik-it",
+      "split": "dev",
       "group": "netzwerk-glossar",
       "request": {
         "source": "netzwerk-glossar.csv",
+        "profile": "mehr"
+      }
+    },
+    {
+      "id": "franzoesische-revolution-standard",
+      "category": "standard",
+      "subject": "geschichte-geografie",
+      "split": "train",
+      "group": "franzoesische-revolution",
+      "request": {
+        "source": "franzoesische-revolution.tsv",
+        "profile": "standard"
+      }
+    },
+    {
+      "id": "franzoesische-revolution-alle-formen",
+      "category": "alle-formen",
+      "subject": "geschichte-geografie",
+      "split": "train",
+      "group": "franzoesische-revolution",
+      "request": {
+        "source": "franzoesische-revolution.tsv",
+        "profile": "alle-formen"
+      }
+    },
+    {
+      "id": "franzoesische-revolution-weniger",
+      "category": "weniger",
+      "subject": "geschichte-geografie",
+      "split": "train",
+      "group": "franzoesische-revolution",
+      "request": {
+        "source": "franzoesische-revolution.tsv",
+        "profile": "weniger"
+      }
+    },
+    {
+      "id": "franzoesische-revolution-mehr",
+      "category": "mehr",
+      "subject": "geschichte-geografie",
+      "split": "train",
+      "group": "franzoesische-revolution",
+      "request": {
+        "source": "franzoesische-revolution.tsv",
+        "profile": "mehr"
+      }
+    },
+    {
+      "id": "ohmsches-gesetz-standard",
+      "category": "standard",
+      "subject": "naturwissenschaft",
+      "split": "holdout",
+      "group": "ohmsches-gesetz",
+      "request": {
+        "source": "ohmsches-gesetz.pdf",
+        "profile": "standard"
+      }
+    },
+    {
+      "id": "ohmsches-gesetz-alle-formen",
+      "category": "alle-formen",
+      "subject": "naturwissenschaft",
+      "split": "holdout",
+      "group": "ohmsches-gesetz",
+      "request": {
+        "source": "ohmsches-gesetz.pdf",
+        "profile": "alle-formen"
+      }
+    },
+    {
+      "id": "ohmsches-gesetz-weniger",
+      "category": "weniger",
+      "subject": "naturwissenschaft",
+      "split": "holdout",
+      "group": "ohmsches-gesetz",
+      "request": {
+        "source": "ohmsches-gesetz.pdf",
+        "profile": "weniger"
+      }
+    },
+    {
+      "id": "ohmsches-gesetz-mehr",
+      "category": "mehr",
+      "subject": "naturwissenschaft",
+      "split": "holdout",
+      "group": "ohmsches-gesetz",
+      "request": {
+        "source": "ohmsches-gesetz.pdf",
+        "profile": "mehr"
+      }
+    },
+    {
+      "id": "analysis-ableitungen-standard",
+      "category": "standard",
+      "subject": "mathematik",
+      "group": "analysis-ableitungen",
+      "request": {
+        "source": "analysis-ableitungen.md",
+        "profile": "standard"
+      },
+      "split": "train"
+    },
+    {
+      "id": "analysis-ableitungen-alle-formen",
+      "category": "alle-formen",
+      "subject": "mathematik",
+      "group": "analysis-ableitungen",
+      "request": {
+        "source": "analysis-ableitungen.md",
+        "profile": "alle-formen"
+      },
+      "split": "train"
+    },
+    {
+      "id": "betriebssysteme-netze-standard",
+      "category": "standard",
+      "subject": "technik-it",
+      "split": "dev",
+      "group": "betriebssysteme-netze",
+      "request": {
+        "source": "betriebssysteme-netze.md",
+        "profile": "standard"
+      }
+    },
+    {
+      "id": "betriebssysteme-netze-weniger",
+      "category": "weniger",
+      "subject": "technik-it",
+      "split": "dev",
+      "group": "betriebssysteme-netze",
+      "request": {
+        "source": "betriebssysteme-netze.md",
+        "profile": "weniger"
+      }
+    },
+    {
+      "id": "betriebswirtschaft-grundlagen-standard",
+      "category": "standard",
+      "subject": "recht-wirtschaft",
+      "split": "train",
+      "group": "betriebswirtschaft-grundlagen",
+      "request": {
+        "source": "betriebswirtschaft-grundlagen.txt",
+        "profile": "standard"
+      }
+    },
+    {
+      "id": "betriebswirtschaft-grundlagen-mehr",
+      "category": "mehr",
+      "subject": "recht-wirtschaft",
+      "split": "train",
+      "group": "betriebswirtschaft-grundlagen",
+      "request": {
+        "source": "betriebswirtschaft-grundlagen.txt",
+        "profile": "mehr"
+      }
+    },
+    {
+      "id": "chemie-bindungen-standard",
+      "category": "standard",
+      "subject": "naturwissenschaft",
+      "group": "chemie-bindungen",
+      "request": {
+        "source": "chemie-bindungen.txt",
+        "profile": "standard"
+      },
+      "split": "dev"
+    },
+    {
+      "id": "chemie-bindungen-alle-formen",
+      "category": "alle-formen",
+      "subject": "naturwissenschaft",
+      "group": "chemie-bindungen",
+      "request": {
+        "source": "chemie-bindungen.txt",
+        "profile": "alle-formen"
+      },
+      "split": "dev"
+    },
+    {
+      "id": "englisch-zeiten-standard",
+      "category": "standard",
+      "subject": "sprachen",
+      "group": "englisch-zeiten",
+      "request": {
+        "source": "englisch-zeiten.md",
+        "profile": "standard"
+      },
+      "split": "train"
+    },
+    {
+      "id": "englisch-zeiten-weniger",
+      "category": "weniger",
+      "subject": "sprachen",
+      "group": "englisch-zeiten",
+      "request": {
+        "source": "englisch-zeiten.md",
+        "profile": "weniger"
+      },
+      "split": "train"
+    },
+    {
+      "id": "europa-19-jahrhundert-standard",
+      "category": "standard",
+      "subject": "geschichte-geografie",
+      "split": "holdout",
+      "group": "europa-19-jahrhundert",
+      "request": {
+        "source": "europa-19-jahrhundert.txt",
+        "profile": "standard"
+      }
+    },
+    {
+      "id": "europa-19-jahrhundert-mehr",
+      "category": "mehr",
+      "subject": "geschichte-geografie",
+      "split": "holdout",
+      "group": "europa-19-jahrhundert",
+      "request": {
+        "source": "europa-19-jahrhundert.txt",
+        "profile": "mehr"
+      }
+    },
+    {
+      "id": "franzoesisch-vokabeln-standard",
+      "category": "standard",
+      "subject": "sprachen",
+      "group": "franzoesisch-vokabeln",
+      "request": {
+        "source": "franzoesisch-vokabeln.csv",
+        "profile": "standard"
+      },
+      "split": "holdout"
+    },
+    {
+      "id": "franzoesisch-vokabeln-alle-formen",
+      "category": "alle-formen",
+      "subject": "sprachen",
+      "group": "franzoesisch-vokabeln",
+      "request": {
+        "source": "franzoesisch-vokabeln.csv",
+        "profile": "alle-formen"
+      },
+      "split": "holdout"
+    },
+    {
+      "id": "genetik-vererbung-standard",
+      "category": "standard",
+      "subject": "naturwissenschaft",
+      "group": "genetik-vererbung",
+      "request": {
+        "source": "genetik-vererbung.md",
+        "profile": "standard"
+      },
+      "split": "dev"
+    },
+    {
+      "id": "genetik-vererbung-weniger",
+      "category": "weniger",
+      "subject": "naturwissenschaft",
+      "group": "genetik-vererbung",
+      "request": {
+        "source": "genetik-vererbung.md",
+        "profile": "weniger"
+      },
+      "split": "dev"
+    },
+    {
+      "id": "git-befehle-standard",
+      "category": "standard",
+      "subject": "technik-it",
+      "group": "git-befehle",
+      "request": {
+        "source": "git-befehle.csv",
+        "profile": "standard"
+      },
+      "split": "train"
+    },
+    {
+      "id": "git-befehle-mehr",
+      "category": "mehr",
+      "subject": "technik-it",
+      "group": "git-befehle",
+      "request": {
+        "source": "git-befehle.csv",
+        "profile": "mehr"
+      },
+      "split": "train"
+    },
+    {
+      "id": "herz-kreislauf-standard",
+      "category": "standard",
+      "subject": "medizin",
+      "split": "dev",
+      "group": "herz-kreislauf",
+      "request": {
+        "source": "herz-kreislauf.md",
+        "profile": "standard"
+      }
+    },
+    {
+      "id": "herz-kreislauf-alle-formen",
+      "category": "alle-formen",
+      "subject": "medizin",
+      "split": "dev",
+      "group": "herz-kreislauf",
+      "request": {
+        "source": "herz-kreislauf.md",
+        "profile": "alle-formen"
+      }
+    },
+    {
+      "id": "kaufvertrag-bgb-standard",
+      "category": "standard",
+      "subject": "recht-wirtschaft",
+      "group": "kaufvertrag-bgb",
+      "request": {
+        "source": "kaufvertrag-bgb.txt",
+        "profile": "standard"
+      },
+      "split": "train"
+    },
+    {
+      "id": "kaufvertrag-bgb-weniger",
+      "category": "weniger",
+      "subject": "recht-wirtschaft",
+      "group": "kaufvertrag-bgb",
+      "request": {
+        "source": "kaufvertrag-bgb.txt",
+        "profile": "weniger"
+      },
+      "split": "train"
+    },
+    {
+      "id": "klimazonen-standard",
+      "category": "standard",
+      "subject": "geschichte-geografie",
+      "group": "klimazonen",
+      "request": {
+        "source": "klimazonen.md",
+        "profile": "standard"
+      },
+      "split": "dev"
+    },
+    {
+      "id": "klimazonen-mehr",
+      "category": "mehr",
+      "subject": "geschichte-geografie",
+      "group": "klimazonen",
+      "request": {
+        "source": "klimazonen.md",
         "profile": "mehr"
       },
       "split": "dev"
     },
     {
-      "id": "franzoesische-revolution-standard",
+      "id": "latein-deklinationen-standard",
       "category": "standard",
-      "group": "franzoesische-revolution",
+      "subject": "sprachen",
+      "group": "latein-deklinationen",
       "request": {
-        "source": "franzoesische-revolution.tsv",
+        "source": "latein-deklinationen.tsv",
         "profile": "standard"
       },
-      "split": "train"
+      "split": "dev"
     },
     {
-      "id": "franzoesische-revolution-alle-formen",
+      "id": "latein-deklinationen-alle-formen",
       "category": "alle-formen",
-      "group": "franzoesische-revolution",
+      "subject": "sprachen",
+      "group": "latein-deklinationen",
       "request": {
-        "source": "franzoesische-revolution.tsv",
+        "source": "latein-deklinationen.tsv",
         "profile": "alle-formen"
       },
-      "split": "train"
+      "split": "dev"
     },
     {
-      "id": "franzoesische-revolution-weniger",
-      "category": "weniger",
-      "group": "franzoesische-revolution",
-      "request": {
-        "source": "franzoesische-revolution.tsv",
-        "profile": "weniger"
-      },
-      "split": "train"
-    },
-    {
-      "id": "franzoesische-revolution-mehr",
-      "category": "mehr",
-      "group": "franzoesische-revolution",
-      "request": {
-        "source": "franzoesische-revolution.tsv",
-        "profile": "mehr"
-      },
-      "split": "train"
-    },
-    {
-      "id": "ohmsches-gesetz-standard",
+      "id": "lineare-algebra-standard",
       "category": "standard",
-      "group": "ohmsches-gesetz",
+      "subject": "mathematik",
+      "group": "lineare-algebra",
       "request": {
-        "source": "ohmsches-gesetz.pdf",
+        "source": "lineare-algebra.txt",
         "profile": "standard"
       },
       "split": "holdout"
     },
     {
-      "id": "ohmsches-gesetz-alle-formen",
-      "category": "alle-formen",
-      "group": "ohmsches-gesetz",
-      "request": {
-        "source": "ohmsches-gesetz.pdf",
-        "profile": "alle-formen"
-      },
-      "split": "holdout"
-    },
-    {
-      "id": "ohmsches-gesetz-weniger",
+      "id": "lineare-algebra-weniger",
       "category": "weniger",
-      "group": "ohmsches-gesetz",
+      "subject": "mathematik",
+      "group": "lineare-algebra",
       "request": {
-        "source": "ohmsches-gesetz.pdf",
+        "source": "lineare-algebra.txt",
         "profile": "weniger"
       },
       "split": "holdout"
     },
     {
-      "id": "ohmsches-gesetz-mehr",
-      "category": "mehr",
-      "group": "ohmsches-gesetz",
+      "id": "niere-physiologie-standard",
+      "category": "standard",
+      "subject": "medizin",
+      "group": "niere-physiologie",
       "request": {
-        "source": "ohmsches-gesetz.pdf",
+        "source": "niere-physiologie.md",
+        "profile": "standard"
+      },
+      "split": "holdout"
+    },
+    {
+      "id": "niere-physiologie-mehr",
+      "category": "mehr",
+      "subject": "medizin",
+      "group": "niere-physiologie",
+      "request": {
+        "source": "niere-physiologie.md",
         "profile": "mehr"
+      },
+      "split": "holdout"
+    },
+    {
+      "id": "notfall-reanimation-standard",
+      "category": "standard",
+      "subject": "medizin",
+      "group": "notfall-reanimation",
+      "request": {
+        "source": "notfall-reanimation.txt",
+        "profile": "standard"
+      },
+      "split": "dev"
+    },
+    {
+      "id": "notfall-reanimation-alle-formen",
+      "category": "alle-formen",
+      "subject": "medizin",
+      "group": "notfall-reanimation",
+      "request": {
+        "source": "notfall-reanimation.txt",
+        "profile": "alle-formen"
+      },
+      "split": "dev"
+    },
+    {
+      "id": "pharmakologie-antibiotika-standard",
+      "category": "standard",
+      "subject": "medizin",
+      "group": "pharmakologie-antibiotika",
+      "request": {
+        "source": "pharmakologie-antibiotika.tsv",
+        "profile": "standard"
+      },
+      "split": "train"
+    },
+    {
+      "id": "pharmakologie-antibiotika-weniger",
+      "category": "weniger",
+      "subject": "medizin",
+      "group": "pharmakologie-antibiotika",
+      "request": {
+        "source": "pharmakologie-antibiotika.tsv",
+        "profile": "weniger"
+      },
+      "split": "train"
+    },
+    {
+      "id": "statistik-kennwerte-standard",
+      "category": "standard",
+      "subject": "mathematik",
+      "group": "statistik-kennwerte",
+      "request": {
+        "source": "statistik-kennwerte.csv",
+        "profile": "standard"
+      },
+      "split": "dev"
+    },
+    {
+      "id": "statistik-kennwerte-mehr",
+      "category": "mehr",
+      "subject": "mathematik",
+      "group": "statistik-kennwerte",
+      "request": {
+        "source": "statistik-kennwerte.csv",
+        "profile": "mehr"
+      },
+      "split": "dev"
+    },
+    {
+      "id": "weimarer-republik-standard",
+      "category": "standard",
+      "subject": "geschichte-geografie",
+      "group": "weimarer-republik",
+      "request": {
+        "source": "weimarer-republik.tsv",
+        "profile": "standard"
+      },
+      "split": "holdout"
+    },
+    {
+      "id": "weimarer-republik-alle-formen",
+      "category": "alle-formen",
+      "subject": "geschichte-geografie",
+      "group": "weimarer-republik",
+      "request": {
+        "source": "weimarer-republik.tsv",
+        "profile": "alle-formen"
       },
       "split": "holdout"
     }

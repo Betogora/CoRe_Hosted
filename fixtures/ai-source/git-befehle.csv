@@ -1,0 +1,28 @@
+Befehl,Zweck,Beispiel
+git init,"Legt im aktuellen Ordner ein neues, leeres Repository an; dabei entsteht der versteckte Ordner .git.",git init
+git clone,"Kopiert ein entferntes Repository samt gesamter Historie und richtet den Remote origin ein.",git clone https://example.org/team/projekt.git
+git status,"Zeigt geänderte, vorgemerkte und nicht verfolgte Dateien sowie den aktuellen Branch; verändert nichts.",git status
+git add,"Merkt Änderungen für den nächsten Commit vor (Staging-Bereich); ohne add landen Änderungen nicht im Commit.",git add src/app.ts
+git commit,"Speichert die vorgemerkten Änderungen als neuen Commit mit Nachricht; nicht vorgemerkte Änderungen bleiben außen vor.","git commit -m ""Login-Fehler behoben"""
+git commit --amend,"Ersetzt den letzten Commit durch einen neuen mit geänderter Nachricht oder zusätzlichen Änderungen; bei bereits gepushten Commits nur mit Absprache verwenden.",git commit --amend
+git log,"Listet die Commits des aktuellen Branches, neueste zuerst.",git log --oneline --graph
+git diff,"Zeigt Änderungen im Arbeitsverzeichnis, die noch nicht vorgemerkt sind.",git diff
+git diff --staged,"Zeigt die vorgemerkten Änderungen, die in den nächsten Commit gehen.",git diff --staged
+git show,"Zeigt Nachricht und Änderungen eines einzelnen Commits.",git show a1b2c3d
+git branch,"Listet, erstellt oder löscht Branches; -d löscht nur bereits zusammengeführte Branches, -D erzwingt das Löschen.",git branch -d feature/suche
+git switch,"Wechselt den Branch; mit -c wird der Branch zuerst neu angelegt.",git switch -c feature/suche
+git checkout,"Älterer Befehl zum Wechseln von Branches und Wiederherstellen von Dateien; heute meist durch switch und restore ersetzt.",git checkout main
+git restore,"Verwirft ungespeicherte Änderungen an einer Datei im Arbeitsverzeichnis; mit --staged nimmt er nur die Vormerkung zurück.",git restore --staged src/app.ts
+git merge,"Führt einen anderen Branch in den aktuellen zusammen; ohne Verzweigung genügt ein Fast-Forward, sonst entsteht ein Merge-Commit.",git merge feature/suche
+git rebase,"Setzt die Commits des aktuellen Branches auf einen neuen Ausgangspunkt und schreibt dabei die Historie um; gepushte gemeinsame Branches nicht rebasen.",git rebase main
+git cherry-pick,"Übernimmt die Änderungen eines einzelnen Commits als neuen Commit in den aktuellen Branch.",git cherry-pick a1b2c3d
+git remote,"Verwaltet die entfernten Repositorys; -v zeigt ihre Adressen.",git remote -v
+git fetch,"Lädt neue Commits und Branches vom Remote herunter, ohne den eigenen Branch oder Dateien im Arbeitsverzeichnis zu verändern.",git fetch origin
+git pull,"Holt Änderungen vom Remote und führt sie in den aktuellen Branch zusammen; entspricht fetch und anschließendem merge, mit --rebase stattdessen fetch und rebase.",git pull --rebase
+git push,"Überträgt lokale Commits auf den Remote; -u verknüpft den lokalen Branch beim ersten Push dauerhaft mit dem entfernten.",git push -u origin feature/suche
+git stash,"Legt ungespeicherte Änderungen beiseite und stellt ein sauberes Arbeitsverzeichnis her; git stash pop holt sie zurück.","git stash push -m ""halbfertig"""
+git reset,"Setzt den Branch auf einen früheren Commit zurück: --soft behält Änderungen vorgemerkt, --mixed (Standard) behält sie unvorgemerkt, --hard verwirft sie endgültig.",git reset --soft HEAD~1
+git revert,"Erzeugt einen neuen Commit, der die Änderungen eines früheren Commits rückgängig macht; die Historie bleibt erhalten, deshalb sicher für gepushte Commits.",git revert a1b2c3d
+git tag,"Markiert einen Commit dauerhaft, etwa als Version; -a erzeugt einen annotierten Tag mit Nachricht.","git tag -a v1.2.0 -m ""Version 1.2.0"""
+git blame,"Zeigt für jede Zeile einer Datei, in welchem Commit und von wem sie zuletzt geändert wurde.",git blame src/app.ts
+git rm,"Löscht eine Datei und merkt die Löschung vor; mit --cached bleibt die Datei lokal erhalten und wird nur nicht mehr verfolgt.",git rm --cached .env

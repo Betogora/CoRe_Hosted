@@ -1,0 +1,29 @@
+Reanimation Erwachsener in Grundzügen
+
+Diese Übersicht fasst die Basismaßnahmen und die erweiterten Maßnahmen der Wiederbelebung Erwachsener nach den Leitlinien des European Resuscitation Council (ERC) zusammen. Sie ersetzt keinen Kurs und keine lokale Verfahrensanweisung.
+
+Ein Kreislaufstillstand liegt vor, wenn eine Person nicht reagiert und nicht normal atmet. Zur Prüfung spricht man die Person laut an und fasst sie an den Schultern. Reagiert sie nicht, macht man die Atemwege frei, indem man den Kopf überstreckt und das Kinn anhebt, und prüft höchstens zehn Sekunden lang, ob sie normal atmet. Eine Pulskontrolle wird Laien nicht empfohlen. Schnappatmung, also seltene, langsame oder geräuschvolle Atemzüge, ist keine normale Atmung und muss wie ein Atemstillstand behandelt werden.
+
+Atmet die Person nicht normal, wird sofort der Notruf 112 gewählt, möglichst über die Freisprechfunktion des Telefons, damit die Leitstelle bei der Wiederbelebung anleiten kann. Ist ein automatisierter externer Defibrillator (AED) in der Nähe, holt ihn eine zweite Person; ein einzelner Helfer verlässt die Person dafür nicht, wenn der AED nicht unmittelbar erreichbar ist.
+
+Die Herzdruckmassage beginnt ohne Verzögerung. Die Hände liegen übereinander in der Mitte des Brustkorbs, auf der unteren Hälfte des Brustbeins. Der Brustkorb wird mindestens 5 Zentimeter, aber nicht mehr als 6 Zentimeter tief eingedrückt, mit einer Frequenz von 100 bis 120 Kompressionen pro Minute. Nach jeder Kompression wird der Brustkorb vollständig entlastet, ohne dass die Hände sich abheben. Die Person liegt dafür auf einer harten Unterlage auf dem Rücken.
+
+Wer in der Beatmung geübt ist, wechselt 30 Kompressionen mit 2 Beatmungen ab. Jede Beatmung dauert etwa eine Sekunde und soll den Brustkorb sichtbar heben. Die Unterbrechung der Herzdruckmassage für zwei Beatmungen soll weniger als zehn Sekunden dauern. Wer nicht beatmen kann oder will, führt eine durchgehende Herzdruckmassage ohne Beatmung durch; das ist deutlich besser, als nichts zu tun.
+
+Sind mehrere Helfer anwesend, wechseln sie sich etwa alle zwei Minuten bei der Herzdruckmassage ab, weil die Qualität mit zunehmender Ermüdung schnell nachlässt. Der Wechsel soll die Pause so kurz wie möglich halten.
+
+Sobald der AED eintrifft, wird er eingeschaltet und seine Sprachanweisungen werden befolgt. Die Klebeelektroden kommen auf den entblößten Oberkörper: eine unterhalb des rechten Schlüsselbeins, die andere seitlich links unterhalb der Achsel. Während der AED den Rhythmus analysiert und während des Schocks berührt niemand die Person. Nach dem Schock wird die Herzdruckmassage sofort wieder aufgenommen, ohne zuvor die Atmung oder den Puls zu prüfen. Rät der AED von einem Schock ab, wird die Wiederbelebung ebenfalls sofort fortgesetzt.
+
+Die Basismaßnahmen werden fortgesetzt, bis der Rettungsdienst übernimmt, die Person sichtbar aufwacht, sich bewegt, die Augen öffnet und normal atmet, oder die Helfer erschöpft sind. Atmet eine bewusstlose Person normal, wird sie in die stabile Seitenlage gebracht, und ihre Atmung wird regelmäßig kontrolliert.
+
+Die erweiterten Maßnahmen durch professionelle Teams unterscheiden zwei Gruppen von Herzrhythmen. Defibrillierbar sind Kammerflimmern und pulslose ventrikuläre Tachykardie. Nicht defibrillierbar sind Asystolie und pulslose elektrische Aktivität; bei ihnen hilft ein Schock nicht.
+
+Bei einem defibrillierbaren Rhythmus wird ein einzelner Schock abgegeben, bei biphasischen Geräten in der Regel mit mindestens 150 Joule beim ersten Schock. Die Pause der Herzdruckmassage vor und nach dem Schock soll weniger als fünf Sekunden betragen. Danach folgen sofort zwei Minuten Herzdruckmassage, bevor der Rhythmus erneut beurteilt wird. Nur wenn ein Kammerflimmern unter Monitorüberwachung beobachtet wird, etwa im Herzkatheterlabor, und ein Defibrillator sofort bereitsteht, können bis zu drei Schocks direkt nacheinander abgegeben werden.
+
+Adrenalin wird in einer Dosis von 1 mg intravenös oder intraossär gegeben. Bei nicht defibrillierbarem Rhythmus erhält die Person es so früh wie möglich. Bei defibrillierbarem Rhythmus wird es erst nach dem dritten erfolglosen Schock gegeben. In beiden Fällen wird es danach alle 3 bis 5 Minuten wiederholt. Amiodaron wird nach dem dritten Schock in einer Dosis von 300 mg gegeben, eine weitere Dosis von 150 mg nach dem fünften Schock. Steht Amiodaron nicht zur Verfügung, kann Lidocain verwendet werden.
+
+Ein Rettungsteam sichert die Atemwege schrittweise, zunächst mit Beutel-Masken-Beatmung, dann bei Bedarf mit einer supraglottischen Atemwegshilfe oder durch Intubation. Ist der Atemweg mit einem Tubus gesichert, läuft die Herzdruckmassage ohne Pausen weiter, und es wird etwa zehnmal pro Minute beatmet. Die Kapnografie bestätigt die Lage des Tubus und überwacht die Qualität der Wiederbelebung; ein plötzlicher deutlicher Anstieg des endtidalen Kohlendioxids kann auf einen wieder einsetzenden Kreislauf hinweisen.
+
+Während der Wiederbelebung sucht das Team nach behandelbaren Ursachen, die man sich als „4 H und HITS“ merkt. Die vier H sind Hypoxie, Hypovolämie, Hypo- oder Hyperkaliämie und andere Stoffwechselstörungen sowie Hypothermie. HITS steht für Herzbeuteltamponade, Intoxikation, Thrombose in Herzkranzgefäßen oder Lungenarterien und Spannungspneumothorax.
+
+Kehrt der Spontankreislauf zurück, beginnt die Behandlung nach der Reanimation. Die Sauerstoffsättigung soll zwischen 94 und 98 Prozent liegen, also weder zu niedrig noch dauerhaft zu hoch. Ein zu niedriger Blutdruck wird vermieden; angestrebt wird ein mittlerer arterieller Druck über 65 mmHg. Fieber über 37,7 °C wird bei weiterhin bewusstlosen Patienten mindestens 72 Stunden lang verhindert. Ein 12-Kanal-EKG zeigt, ob ein Herzinfarkt mit ST-Hebung vorliegt und eine sofortige Herzkatheteruntersuchung nötig ist.

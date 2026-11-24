@@ -1,0 +1,23 @@
+{
+  "keypoints": [
+    "Die Ableitung f'(x0) ist die Steigung der Tangente an den Graphen im Punkt (x0 | f(x0)).",
+    "Die Ableitung ist der Grenzwert des Differenzenquotienten (f(x0 + h) − f(x0)) / h für h gegen 0.",
+    "Jede differenzierbare Funktion ist stetig, aber |x| ist bei x = 0 stetig und nicht differenzierbar.",
+    "Nach der Potenzregel hat x^n die Ableitung n · x^(n−1), auch für reelle Exponenten.",
+    "Die Produktregel lautet (u · v)' = u' · v + u · v'.",
+    "Die Quotientenregel lautet (u / v)' = (u' · v − u · v') / v² mit v(x) ≠ 0.",
+    "Nach der Kettenregel gilt (u(v(x)))' = u'(v(x)) · v'(x), also äußere Ableitung mal innere Ableitung.",
+    "Die Ableitung von e^x ist e^x und die Ableitung von ln(x) ist 1/x für x > 0.",
+    "Sinus hat die Ableitung Kosinus und Kosinus die Ableitung minus Sinus, sofern x im Bogenmaß angegeben ist.",
+    "Die Tangente lautet t(x) = f'(x0) · (x − x0) + f(x0); die Normale hat die Steigung −1 / f'(x0).",
+    "Eine ganzrationale Funktion mit nur geraden Exponenten ist achsensymmetrisch zur y-Achse, mit nur ungeraden Exponenten punktsymmetrisch zum Ursprung.",
+    "Eine ganzrationale Funktion vom Grad n hat höchstens n Nullstellen.",
+    "Notwendig für ein Extremum ist f'(x0) = 0; mit f''(x0) < 0 liegt ein Hochpunkt, mit f''(x0) > 0 ein Tiefpunkt vor.",
+    "Bei f(x) = x³ ist f'(0) = 0, aber bei x = 0 liegt kein Extremum, sondern ein Sattelpunkt.",
+    "Bei f(x) = x⁴ ist f''(0) = 0 und trotzdem liegt bei x = 0 ein Tiefpunkt; f''(x0) ≠ 0 ist hinreichend, aber nicht notwendig.",
+    "Für einen Wendepunkt ist f''(x0) = 0 notwendig und zusätzlich f'''(x0) ≠ 0 hinreichend.",
+    "Ein Wendepunkt mit waagerechter Tangente heißt Sattelpunkt.",
+    "Bei ganzrationalen Funktionen bestimmt der Summand mit dem höchsten Exponenten das Verhalten im Unendlichen.",
+    "Die Funktion f(x) = x³ − 3x hat den Hochpunkt (−1 | 2), den Tiefpunkt (1 | −2) und den Wendepunkt (0 | 0)."
+  ]
+}

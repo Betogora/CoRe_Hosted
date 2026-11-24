@@ -1,0 +1,42 @@
+{
+  "title": "Spanische Grammatik",
+  "material": "cards",
+  "decks": [
+    { "id": "d1", "name": "Spanisch" },
+    { "id": "d2", "name": "ser und estar", "parent": "d1" },
+    { "id": "d3", "name": "Vergangenheitszeiten", "parent": "d1" },
+    { "id": "d4", "name": "Subjuntivo", "parent": "d1" }
+  ],
+  "units": [
+    { "id": "m1", "kind": "card", "deck": "d2", "text": "F: Wofür verwendet man „ser“?\nA: Für dauerhafte Eigenschaften, Herkunft, Beruf, Identität und die Uhrzeit, z. B. „Soy de Madrid.“ und „Son las tres.“" },
+    { "id": "m2", "kind": "card", "deck": "d2", "text": "F: Wofür verwendet man „estar“?\nA: Für vorübergehende Zustände, das Befinden und die Lage von Personen oder Dingen, z. B. „Estoy cansado.“ und „La biblioteca está en el centro.“" },
+    { "id": "m3", "kind": "card", "deck": "d2", "text": "F: Mit welchem Verb gibt man an, wo ein Ereignis stattfindet?\nA: Mit „ser“, z. B. „La fiesta es en mi casa.“" },
+    { "id": "m4", "kind": "card", "deck": "d2", "text": "F: Was unterscheidet „Es listo.“ von „Está listo.“?\nA: „Es listo.“ heißt „Er ist klug.“, „Está listo.“ heißt „Er ist fertig.“" },
+    { "id": "m5", "kind": "card", "deck": "d2", "text": "F: Wie bildet man die Verlaufsform?\nA: Mit „estar“ und dem Gerundio, z. B. „Estoy leyendo un libro.“" },
+    { "id": "m6", "kind": "card", "deck": "d3", "text": "F: Wofür verwendet man das Pretérito indefinido?\nA: Für abgeschlossene Handlungen zu einem bestimmten Zeitpunkt in der Vergangenheit, z. B. „Ayer comí paella.“" },
+    { "id": "m7", "kind": "card", "deck": "d3", "text": "F: Wofür verwendet man das Pretérito imperfecto?\nA: Für Gewohnheiten, Beschreibungen und Hintergrundhandlungen in der Vergangenheit, z. B. „De niño jugaba al fútbol.“" },
+    { "id": "m8", "kind": "card", "deck": "d3", "text": "F: Wie wirken indefinido und imperfecto in einem Satz zusammen?\nA: Das imperfecto beschreibt die laufende Handlung, das indefinido die neu eintretende, z. B. „Leía cuando sonó el teléfono.“" },
+    { "id": "m9", "kind": "card", "deck": "d3", "text": "F: Wie lauten die Endungen des imperfecto bei Verben auf -ar?\nA: -aba, -abas, -aba, -ábamos, -abais, -aban, z. B. „hablaba“." },
+    { "id": "m10", "kind": "card", "deck": "d3", "text": "F: Welche drei Verben sind im imperfecto unregelmäßig?\nA: „ser“ (era), „ir“ (iba) und „ver“ (veía)." },
+    { "id": "m11", "kind": "card", "deck": "d3", "text": "F: Wie bildet man das Pretérito perfecto?\nA: Mit dem Präsens von „haber“ und dem Partizip, z. B. „He comido.“" },
+    { "id": "m12", "kind": "card", "deck": "d3", "text": "F: Wie lauten die Partizipien von „hacer“, „decir“ und „escribir“?\nA: „hecho“, „dicho“ und „escrito“." },
+    { "id": "m13", "kind": "card", "deck": "d4", "text": "F: Wie bildet man den Presente de subjuntivo regelmäßiger Verben?\nA: Von der 1. Person Singular des Präsens Indikativ fällt das -o weg; Verben auf -ar erhalten Endungen mit -e, Verben auf -er und -ir Endungen mit -a, z. B. „hable“, „coma“, „viva“." },
+    { "id": "m14", "kind": "card", "deck": "d4", "text": "F: Wie lautet der Subjuntivo von „tener“?\nA: „tenga“, abgeleitet von „tengo“." },
+    { "id": "m15", "kind": "card", "deck": "d4", "text": "F: Nach welchen Ausdrücken steht der Subjuntivo?\nA: Nach Ausdrücken des Wunsches, des Gefühls, des Zweifels und der Aufforderung, wenn das Subjekt des Nebensatzes ein anderes ist, z. B. „Quiero que vengas.“" },
+    { "id": "m16", "kind": "card", "deck": "d4", "text": "F: Steht nach „creo que“ der Subjuntivo?\nA: Nein, nach bejahtem „creo que“ steht der Indikativ („Creo que viene.“), nach verneintem „no creo que“ der Subjuntivo („No creo que venga.“)." },
+    { "id": "m17", "kind": "card", "deck": "d4", "text": "F: Welcher Modus folgt auf „cuando“ bei einer zukünftigen Handlung?\nA: Der Subjuntivo, z. B. „Cuando llegues, llámame.“" },
+    { "id": "m18", "kind": "card", "deck": "d4", "text": "F: Welche Konjunktion verlangt immer den Subjuntivo?\nA: „para que“, z. B. „Te lo explico para que lo entiendas.“" }
+  ],
+  "keypoints": [
+    "„ser“ steht für dauerhafte Eigenschaften, Herkunft, Beruf, Identität und die Uhrzeit, „estar“ für Zustände, Befinden und die Lage.",
+    "Wo ein Ereignis stattfindet, drückt man mit „ser“ aus, etwa „La fiesta es en mi casa.“",
+    "Die Verlaufsform wird mit „estar“ und dem Gerundio gebildet.",
+    "Das Pretérito indefinido steht für abgeschlossene Handlungen zu einem bestimmten Zeitpunkt, das imperfecto für Gewohnheiten, Beschreibungen und Hintergrund.",
+    "Im imperfecto sind nur „ser“, „ir“ und „ver“ unregelmäßig.",
+    "Das Pretérito perfecto wird mit dem Präsens von „haber“ und dem Partizip gebildet.",
+    "Der Presente de subjuntivo geht von der 1. Person Singular aus; Verben auf -ar erhalten Endungen mit -e, Verben auf -er und -ir Endungen mit -a.",
+    "Nach bejahtem „creo que“ steht der Indikativ, nach verneintem „no creo que“ der Subjuntivo.",
+    "Nach „cuando“ mit Zukunftsbezug und nach „para que“ steht der Subjuntivo."
+  ],
+  "contradictions": []
+}

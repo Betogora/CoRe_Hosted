@@ -31,7 +31,7 @@ Agenten steht im Skill [`ai-eval`](../.agents/skills/ai-eval/SKILL.md).
 
 | Schritt | Befehl | Ergebnis |
 | --- | --- | --- |
-| Fälle | `cases <typ>` | schreibt die Aufteilung neuer Fälle fest: je Kategorie 40 % Training (`train`), 30 % Entscheidung (`dev`), 30 % Rückhalt (`holdout`), Fälle derselben `group` im selben Teil; `--corpus <n>` zieht Korpuskarten mit festem Startwert, gruppiert nach Notiz |
+| Fälle | `cases <typ>` | schreibt die Aufteilung neuer Fälle fest: je Kategorie und je Fach 35 % Training (`train`), 40 % Entscheidung (`dev`), 25 % Rückhalt (`holdout`), Fälle derselben `group` im selben Teil; `--corpus <n>` zieht Korpuskarten mit festem Startwert, höchstens drei je Stapel, gruppiert nach Notiz; druckt die Fallzahlen je Teil nach Kategorie, Fach und Schwierigkeit |
 | Erzeugen | `generate <typ> --run <name>` | je Fall zwei Antworten (`--repetitions`) auf dem Entscheidungsteil (`--split`) über Payload-Builder und Antwortprüfung der Route, `--concurrency` parallel (Vorgabe 4), bis `--budget` USD (Vorgabe 1); `--candidate <name>` ersetzt den Payload; ein zweiter Aufruf setzt fort |
 | Blöcke | `table <typ> --run <name>` | Richterblöcke ohne Dubletten und ohne Herkunft, gemischt, mit Kontrolleinträgen und Doppeln |
 | Richten | je Block ein Subagent [`eval-judge`](../.claude/agents/eval-judge.md) | Urteil und Sicherheit je Eintrag und Kriterium |
@@ -118,7 +118,7 @@ Handurteile mit `control: true` laufen als Kontrolleinträge in jedem Lauf mit.
 | `scripts/aiEval/definitions.ts` | je Anfragetyp: Route, Kriterien, Bewertungsbogen, Hauptwert | ja |
 | `scripts/aiEval/ledger.ts` | Register der Anfragetypen mit Ziel und kritischen Kriterien, Ledger-Prüfung | ja |
 | `scripts/aiEval/` sonst | `cases.ts`, `generate.ts`, `judge.ts`, `score.ts`, `cli.ts` für die Schritte, `page.ts` für diese Seite | ja |
-| `fixtures/ai-eval/<typ>.cases.json` | von Hand geschriebene Prüfkarten mit Kategorie, Aufteilung und optional `group`, `trap` (Falle für ein kritisches Kriterium) und `refuse` | ja |
+| `fixtures/ai-eval/<typ>.cases.json` | von Hand geschriebene Prüfkarten mit Kategorie, Fach (`subject`; Korpusfälle `fundus`), Aufteilung und optional `difficulty`, `reference` (gesicherte Fachaussagen, die der Richter als `referenz` sieht), `group`, `trap` (Falle für ein kritisches Kriterium) und `refuse` | ja |
 | `fixtures/ai-source/<dokument>.keypoints.json`, `fixtures/ai-eval/summary-material/<satz>.json` | Kernaussagen der Prüfdokumente; Materialsätze der Zusammenfassung mit Kernaussagen und eingebauten Widersprüchen | ja |
 | `fixtures/ai-eval/<typ>.labels.json` | Handurteile der Kalibrierung und Kontrolleinträge | ja |
 | `fixtures/ai-eval/ledger.json` | ein Eintrag je Lauf und je Kalibrierung, nur Kennzahlen | ja |

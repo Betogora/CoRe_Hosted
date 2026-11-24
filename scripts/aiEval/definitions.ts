@@ -58,10 +58,13 @@ export interface EvalDefinition<Request = unknown, Output = unknown> {
   fromCorpus?(card: AiCardVariantSource): { suffix: string; category: string; request: Request }[];
 }
 
-/** Die Richtereinträge einer Antwort oder eines Handurteils, mit der Kennung `ref` je Eintrag. */
-export function judgeItemsFor(definition: EvalDefinition, ref: string, request: unknown, output: unknown) {
+/** Die Richtereinträge einer Antwort oder eines Handurteils, mit der Kennung `ref` je Eintrag; `reference` steht in jeder Eingabe. */
+export function judgeItemsFor(definition: EvalDefinition, ref: string, request: unknown, output: unknown, reference: readonly string[] = []) {
   const items = definition.items ? definition.items(request, output) : [{ key: "", criteria: definition.judged(request), rendered: definition.render!(request, output) }];
-  return items.map((item) => ({ ref: item.key ? `${ref}/${item.key}` : ref, key: item.key, criteria: item.criteria, rendered: item.rendered }));
+  return items.map((item) => ({
+    ref: item.key ? `${ref}/${item.key}` : ref, key: item.key, criteria: item.criteria,
+    rendered: reference.length ? { ...item.rendered, eingabe: { ...item.rendered.eingabe, referenz: reference.join("\n") } } : item.rendered,
+  }));
 }
 
 const words = (text: string) => normalizeAiCardText(text).toLocaleLowerCase("de-DE").split(/[^\p{L}\p{N}]+/u).filter(Boolean);
@@ -370,10 +373,17 @@ const sourceCards: EvalDefinition<SourceCardsCase, SourceCardsOutput> = {
 };
 
 const SUMMARY_DIRECTORY = "fixtures/ai-eval/summary-material";
+/** Jedes Wertepaar aus Länge, Darstellung, Lernziel und Beispielen kommt in mindestens einem Profil vor; den Detailgrad setzt die App mit der Länge, den Sprachstil gar nicht. */
 const SUMMARY_PROFILES = {
   standard: {},
-  "kurz-pruefung": { length: "short", format: "bullets", goal: "exam", detail: "essentials" },
-  "lang-einfach": { length: "long", format: "prose", goal: "understand", register: "simple", detail: "detailed", includeExamples: false },
+  "kurz-stichpunkte-wiederholen": { length: "short", detail: "essentials", format: "bullets", goal: "repeat", includeExamples: true },
+  "lang-gegliedert-wiederholen-ohne-beispiele": { length: "long", detail: "detailed", format: "sections", goal: "repeat", includeExamples: false },
+  "lang-fliesstext-pruefung": { length: "long", detail: "detailed", format: "prose", goal: "exam", includeExamples: true },
+  "kurz-fliesstext-verstehen-ohne-beispiele": { length: "short", detail: "essentials", format: "prose", goal: "understand", includeExamples: false },
+  "mittel-stichpunkte-pruefung-ohne-beispiele": { length: "medium", detail: "balanced", format: "bullets", goal: "exam", includeExamples: false },
+  "mittel-fliesstext-wiederholen-ohne-beispiele": { length: "medium", detail: "balanced", format: "prose", goal: "repeat", includeExamples: false },
+  "kurz-gegliedert-pruefung-ohne-beispiele": { length: "short", detail: "essentials", format: "sections", goal: "exam", includeExamples: false },
+  "lang-stichpunkte-verstehen": { length: "long", detail: "detailed", format: "bullets", goal: "understand", includeExamples: true },
 } as const satisfies Record<string, Partial<SummarySettings>>;
 const SUMMARY_WORD_LIMITS: Record<SummarySettings["length"], number> = { short: 300, medium: 750, long: 1_500 };
 const SUMMARY_SECTIONS_JUDGED = 4;

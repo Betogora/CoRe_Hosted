@@ -1,0 +1,21 @@
+{
+  "keypoints": [
+    "git init legt im aktuellen Ordner ein neues Repository mit dem versteckten Ordner .git an.",
+    "git clone kopiert ein entferntes Repository samt Historie und richtet den Remote origin ein.",
+    "git add merkt Änderungen für den nächsten Commit vor; ohne add landen sie nicht im Commit.",
+    "git commit --amend ersetzt den letzten Commit und sollte bei bereits gepushten Commits nur mit Absprache verwendet werden.",
+    "git diff zeigt nicht vorgemerkte Änderungen, git diff --staged die vorgemerkten.",
+    "git branch -d löscht nur bereits zusammengeführte Branches, -D erzwingt das Löschen.",
+    "git switch -c legt einen neuen Branch an und wechselt auf ihn.",
+    "git restore --staged nimmt nur die Vormerkung einer Datei zurück.",
+    "git merge kommt ohne Verzweigung mit einem Fast-Forward aus, sonst entsteht ein Merge-Commit.",
+    "git rebase schreibt die Historie um; gepushte gemeinsame Branches rebast man nicht.",
+    "git fetch lädt neue Commits vom Remote, ohne den eigenen Branch oder das Arbeitsverzeichnis zu verändern.",
+    "git pull entspricht fetch mit anschließendem merge, mit --rebase fetch mit anschließendem rebase.",
+    "git push -u verknüpft den lokalen Branch beim ersten Push dauerhaft mit dem entfernten.",
+    "git stash legt ungespeicherte Änderungen beiseite, git stash pop holt sie zurück.",
+    "git reset --soft behält Änderungen vorgemerkt, --mixed unvorgemerkt, und --hard verwirft sie endgültig.",
+    "git revert macht einen Commit durch einen neuen Commit rückgängig und ist deshalb sicher für gepushte Commits.",
+    "git rm --cached beendet die Verfolgung einer Datei, ohne sie lokal zu löschen."
+  ]
+}

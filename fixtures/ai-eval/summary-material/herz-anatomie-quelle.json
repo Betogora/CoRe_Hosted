@@ -1,0 +1,30 @@
+{
+  "title": "Anatomie des Herzens",
+  "material": "source",
+  "decks": [],
+  "units": [
+    {
+      "id": "m1",
+      "kind": "source",
+      "text": "# Aufbau des Herzens\n\nDas Herz ist ein etwa faustgroßer Hohlmuskel mit einer Masse von rund 300 Gramm. Es liegt im Mediastinum hinter dem Brustbein und befindet sich zu etwa zwei Dritteln links der Körpermittellinie. Die Herzspitze zeigt nach links vorn unten, die Herzbasis mit den großen Gefäßen nach rechts hinten oben.\n\n## Wandschichten und Herzbeutel\n\nDie Herzwand besteht aus drei Schichten. Innen liegt das Endokard, eine glatte Schicht, die auch die Herzklappen überzieht. Darauf folgt das Myokard, der eigentliche Herzmuskel. Außen liegt das Epikard. Das Herz ist vom Herzbeutel (Perikard) umgeben. Zwischen Herzbeutel und Epikard liegt ein schmaler Spalt mit wenigen Millilitern Flüssigkeit, der das reibungsarme Gleiten bei jedem Herzschlag ermöglicht.\n\n## Herzhöhlen\n\nDas Herz hat vier Höhlen: den rechten und den linken Vorhof sowie die rechte und die linke Kammer. Die Herzscheidewand (Septum) trennt die rechte von der linken Herzhälfte. Die rechte Herzhälfte pumpt sauerstoffarmes Blut in den Lungenkreislauf, die linke sauerstoffreiches Blut in den Körperkreislauf. Die Wand der linken Kammer ist deutlich dicker als die der rechten, weil sie gegen den höheren Druck im Körperkreislauf arbeiten muss.\n\n## Herzklappen\n\nVier Klappen sorgen dafür, dass das Blut nur in eine Richtung fließt. Zwischen Vorhöfen und Kammern liegen die Segelklappen: rechts die Trikuspidalklappe mit drei Segeln, links die Mitralklappe mit zwei Segeln. Sehnenfäden verbinden die Segel mit den Papillarmuskeln der Kammerwand und verhindern, dass die Segel bei der Kammerkontraktion in die Vorhöfe zurückschlagen. Am Ausgang der Kammern liegen die Taschenklappen: die Pulmonalklappe rechts und die Aortenklappe links. Alle Klappen öffnen und schließen sich passiv durch die Druckunterschiede zwischen den angrenzenden Räumen.\n\n## Weg des Blutes\n\nSauerstoffarmes Blut aus dem Körper gelangt über die obere und die untere Hohlvene in den rechten Vorhof. Von dort fließt es durch die Trikuspidalklappe in die rechte Kammer, die es durch die Pulmonalklappe in den Lungenstamm pumpt. In der Lunge nimmt das Blut Sauerstoff auf und gibt Kohlenstoffdioxid ab. Über vier Lungenvenen erreicht das sauerstoffreiche Blut den linken Vorhof, fließt durch die Mitralklappe in die linke Kammer und wird durch die Aortenklappe in die Aorta ausgeworfen."
+    },
+    {
+      "id": "m2",
+      "kind": "source",
+      "text": "# Herzkranzgefäße und Erregungsleitung\n\n## Herzkranzgefäße\n\nDer Herzmuskel wird nicht aus dem Blut in seinen Höhlen versorgt, sondern über eigene Gefäße, die Herzkranzgefäße (Koronararterien). Sie entspringen direkt oberhalb der Aortenklappe aus der Aorta. Die linke Koronararterie teilt sich kurz nach ihrem Ursprung in den Ramus interventricularis anterior, der an der Vorderseite zwischen den Kammern verläuft, und den Ramus circumflexus, der um die linke Herzseite zieht. Die rechte Koronararterie versorgt vor allem die rechte Herzhälfte und meist auch den Sinusknoten.\n\nDie Koronararterien werden überwiegend in der Diastole durchblutet, weil der angespannte Herzmuskel während der Systole die Gefäße in der Wand zusammendrückt. Das venöse Blut des Herzmuskels sammelt sich größtenteils im Sinus coronarius, der in den rechten Vorhof mündet.\n\n## Erregungsbildung und Erregungsleitung\n\nDas Herz erzeugt seine Erregung selbst. Der primäre Schrittmacher ist der Sinusknoten in der Wand des rechten Vorhofs nahe der Einmündung der oberen Hohlvene. Er gibt in Ruhe etwa 60 bis 80 Impulse pro Minute vor. Die Erregung breitet sich über die Vorhöfe aus und erreicht den AV-Knoten am Übergang von den Vorhöfen zu den Kammern.\n\nDer AV-Knoten verzögert die Weiterleitung. Dadurch ziehen sich die Kammern erst zusammen, nachdem die Vorhöfe sie gefüllt haben. Vom AV-Knoten läuft die Erregung über das His-Bündel, die beiden Tawara-Schenkel in der Kammerscheidewand und schließlich die Purkinje-Fasern in die Kammermuskulatur.\n\nZwischen Vorhöfen und Kammern liegt eine bindegewebige Ventilebene, die beide elektrisch voneinander isoliert. Die einzige normale Verbindung ist das His-Bündel.\n\nFällt der Sinusknoten aus, übernimmt der AV-Knoten als sekundärer Schrittmacher mit etwa 40 bis 60 Schlägen pro Minute. Fällt auch er aus, können Zellen der Kammern einen Ersatzrhythmus von nur etwa 20 bis 40 Schlägen pro Minute erzeugen."
+    }
+  ],
+  "keypoints": [
+    "Das Herz ist ein etwa faustgroßer Hohlmuskel von rund 300 Gramm und liegt zu etwa zwei Dritteln links der Körpermittellinie.",
+    "Die Herzwand besteht aus Endokard, Myokard und Epikard, und das Herz ist vom Herzbeutel umgeben.",
+    "Die Wand der linken Kammer ist dicker als die der rechten, weil sie gegen den höheren Druck im Körperkreislauf arbeitet.",
+    "Die Segelklappen sind rechts die Trikuspidalklappe und links die Mitralklappe, die Taschenklappen sind die Pulmonal- und die Aortenklappe.",
+    "Sehnenfäden und Papillarmuskeln verhindern, dass die Segelklappen in die Vorhöfe zurückschlagen.",
+    "Sauerstoffreiches Blut gelangt über vier Lungenvenen in den linken Vorhof und wird von der linken Kammer in die Aorta ausgeworfen.",
+    "Die Koronararterien entspringen oberhalb der Aortenklappe und werden überwiegend in der Diastole durchblutet.",
+    "Der Sinusknoten im rechten Vorhof ist der primäre Schrittmacher mit etwa 60 bis 80 Impulsen pro Minute.",
+    "Der AV-Knoten verzögert die Erregung, sodass sich die Kammern erst nach ihrer Füllung zusammenziehen.",
+    "Fällt der Sinusknoten aus, übernimmt der AV-Knoten mit etwa 40 bis 60 Schlägen pro Minute."
+  ],
+  "contradictions": []
+}

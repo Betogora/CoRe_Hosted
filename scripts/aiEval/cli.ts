@@ -128,7 +128,10 @@ async function main(argv: string[]) {
     if (corpus.length) writeJson(corpusCasesFile(id), { cases: written.slice(hand.length) });
     const count = (members: readonly EvalCase[]) => SPLITS.map((split) => `${split} ${members.filter((entry) => entry.split === split).length}`).join(", ");
     console.log(`${hand.length} Prüfkarten, ${corpus.length} Korpusfälle; ${count(assigned)}.`);
-    for (const category of [...new Set(assigned.map((entry) => entry.category))].sort()) console.log(`  ${category}: ${count(assigned.filter((entry) => entry.category === category))}`);
+    for (const field of ["category", "subject", "difficulty"] as const) {
+      console.log({ category: "Kategorie", subject: "Fach", difficulty: "Schwierigkeit" }[field]);
+      for (const value of [...new Set(assigned.map((entry) => entry[field] ?? "ohne"))].sort()) console.log(`  ${value}: ${count(assigned.filter((entry) => (entry[field] ?? "ohne") === value))}`);
+    }
     return;
   }
 
@@ -147,10 +150,10 @@ async function main(argv: string[]) {
   if (command === "table") {
     const directory = runDirectory(id, run());
     const cases = new Map(loadCases(definition).map((entry) => [entry.id, entry]));
-    const items = (file: "answers.jsonl" | "reference.jsonl", refFor: typeof answerRef): JudgeItem[] => readAnswers(directory, file).filter((row) => row.outcome === "answer" && !cases.get(row.caseId)!.refuse).flatMap((row) => judgeItemsFor(definition, refFor(row.caseId, row.repetition), cases.get(row.caseId)!.request, row.output));
+    const items = (file: "answers.jsonl" | "reference.jsonl", refFor: typeof answerRef): JudgeItem[] => readAnswers(directory, file).filter((row) => row.outcome === "answer" && !cases.get(row.caseId)!.refuse).flatMap((row) => judgeItemsFor(definition, refFor(row.caseId, row.repetition), cases.get(row.caseId)!.request, row.output, cases.get(row.caseId)!.reference));
     const controls: JudgeItem[] = readLabels(definition).filter((label) => label.control).flatMap((label) => judgeItemsFor(definition, labelRef(label.id), label.request, label.output));
     const cache = readCache(id);
-    const { blocks, key } = buildJudgeTable(definition, [...items("answers.jsonl", answerRef), ...items("reference.jsonl", referenceRef), ...controls], random, { instructions: instructions(), requests: [...cases.values()].map((entry) => entry.request), cache });
+    const { blocks, key } = buildJudgeTable(definition, [...items("answers.jsonl", answerRef), ...items("reference.jsonl", referenceRef), ...controls], random, { instructions: instructions(), requests: [...cases.values()].map((entry) => entry.request), references: [...cases.values()].map((entry) => entry.reference ?? []), cache });
     writeTable(directory, blocks, key, cache);
     return;
   }

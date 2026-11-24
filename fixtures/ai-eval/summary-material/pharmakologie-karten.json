@@ -1,0 +1,63 @@
+{
+  "title": "Pharmakologie",
+  "material": "cards",
+  "decks": [
+    { "id": "d1", "name": "Pharmakologie" },
+    { "id": "d2", "name": "Grundlagen", "parent": "d1" },
+    { "id": "d3", "name": "Analgetika", "parent": "d1" },
+    { "id": "d4", "name": "Herz-Kreislauf", "parent": "d1" }
+  ],
+  "units": [
+    { "id": "m1", "kind": "card", "deck": "d2", "text": "F: Wofür steht LADME?\nA: Für Liberation, Absorption, Distribution, Metabolismus und Elimination – die Phasen, die ein Arzneistoff im Körper durchläuft." },
+    { "id": "m2", "kind": "card", "deck": "d2", "text": "F: Was ist die Bioverfügbarkeit?\nA: Der Anteil eines Wirkstoffs, der unverändert den großen Kreislauf erreicht; bei intravenöser Gabe beträgt sie definitionsgemäß 100 %." },
+    { "id": "m3", "kind": "card", "deck": "d2", "text": "F: Was ist der First-Pass-Effekt?\nA: Die Verstoffwechselung eines oral aufgenommenen Wirkstoffs in Darmwand und Leber, bevor er den großen Kreislauf erreicht; er senkt die Bioverfügbarkeit." },
+    { "id": "m4", "kind": "card", "deck": "d2", "text": "F: Was gibt die Eliminationshalbwertszeit an?\nA: Die Zeit, in der die Plasmakonzentration eines Wirkstoffs auf die Hälfte abfällt." },
+    { "id": "m5", "kind": "card", "deck": "d2", "text": "F: Wann ist bei regelmäßiger Gabe das Fließgleichgewicht (Steady State) praktisch erreicht?\nA: Nach etwa vier bis fünf Halbwertszeiten." },
+    { "id": "m6", "kind": "card", "deck": "d2", "text": "F: Was beschreibt das Verteilungsvolumen?\nA: Das fiktive Volumen, in dem sich die gesamte Wirkstoffmenge mit der gemessenen Plasmakonzentration verteilen müsste." },
+    { "id": "m7", "kind": "card", "deck": "d2", "text": "F: Was ist die Clearance?\nA: Das Plasmavolumen, das pro Zeiteinheit vollständig von einem Wirkstoff befreit wird." },
+    { "id": "m8", "kind": "card", "deck": "d2", "text": "F: Was geschieht in der Phase-I-Reaktion der Biotransformation?\nA: Funktionelle Gruppen werden eingeführt oder freigelegt, vor allem durch Oxidation über Cytochrom-P450-Enzyme der Leber." },
+    { "id": "m9", "kind": "card", "deck": "d2", "text": "F: Was geschieht in der Phase-II-Reaktion der Biotransformation?\nA: Der Wirkstoff oder sein Metabolit wird an ein körpereigenes Molekül wie Glucuronsäure gekoppelt und dadurch besser wasserlöslich und ausscheidbar." },
+    { "id": "m10", "kind": "card", "deck": "d2", "text": "F: Was ist ein Prodrug?\nA: Eine zunächst unwirksame Vorstufe, die erst im Körper in den wirksamen Stoff umgewandelt wird." },
+    { "id": "m11", "kind": "card", "deck": "d2", "text": "F: Was bewirkt ein Enzyminduktor wie Rifampicin?\nA: Er steigert die Bildung von Cytochrom-P450-Enzymen und kann so die Wirkung gleichzeitig gegebener Arzneistoffe abschwächen." },
+    { "id": "m12", "kind": "card", "deck": "d2", "text": "F: Was ist die therapeutische Breite?\nA: Der Abstand zwischen wirksamer und toxischer Dosis; je kleiner sie ist, desto enger muss die Dosierung überwacht werden." },
+    { "id": "m13", "kind": "card", "deck": "d2", "text": "F: Was ist ein Agonist?\nA: Ein Stoff, der an einen Rezeptor bindet und ihn aktiviert." },
+    { "id": "m14", "kind": "card", "deck": "d2", "text": "F: Was ist ein kompetitiver Antagonist?\nA: Ein Stoff, der an dieselbe Bindungsstelle wie der Agonist bindet, den Rezeptor nicht aktiviert und durch höhere Agonistkonzentrationen verdrängt werden kann." },
+    { "id": "m15", "kind": "card", "deck": "d2", "text": "F: Was gibt der EC50-Wert an?\nA: Die Konzentration, bei der ein Wirkstoff 50 % seiner maximalen Wirkung erreicht." },
+    { "id": "m16", "kind": "card", "deck": "d3", "text": "F: Wie wirken nichtsteroidale Antirheumatika (NSAR)?\nA: Sie hemmen die Cyclooxygenasen COX-1 und COX-2 und damit die Bildung von Prostaglandinen." },
+    { "id": "m17", "kind": "card", "deck": "d3", "text": "F: Welche drei Hauptwirkungen haben NSAR?\nA: Sie wirken schmerzlindernd, fiebersenkend und entzündungshemmend." },
+    { "id": "m18", "kind": "card", "deck": "d3", "text": "F: Warum können NSAR die Magenschleimhaut schädigen?\nA: Die Hemmung von COX-1 senkt die Prostaglandine, die die Magenschleimhaut schützen." },
+    { "id": "m19", "kind": "card", "deck": "d3", "text": "F: Wodurch unterscheidet sich ASS von anderen NSAR?\nA: ASS hemmt die Cyclooxygenase irreversibel; deshalb hält die Hemmung der Thrombozytenaggregation für die Lebensdauer der Blutplättchen von etwa 7 bis 10 Tagen an." },
+    { "id": "m20", "kind": "card", "deck": "d3", "text": "F: Wirkt Paracetamol entzündungshemmend?\nA: Kaum; Paracetamol wirkt schmerzlindernd und fiebersenkend, aber nur schwach entzündungshemmend." },
+    { "id": "m21", "kind": "card", "deck": "d3", "text": "F: Welches Organ ist bei einer Paracetamol-Überdosierung gefährdet?\nA: Die Leber; Gegenmittel ist Acetylcystein." },
+    { "id": "m22", "kind": "card", "deck": "d3", "text": "F: Welche Tageshöchstdosis Paracetamol gilt für gesunde Erwachsene?\nA: 4 Gramm pro Tag." },
+    { "id": "m23", "kind": "card", "deck": "d3", "text": "F: An welchen Rezeptor binden Opioide wie Morphin vor allem?\nA: An den µ-Opioidrezeptor." },
+    { "id": "m24", "kind": "card", "deck": "d3", "text": "F: Welche Nebenwirkung von Opioiden ist akut am gefährlichsten?\nA: Die Atemdepression." },
+    { "id": "m25", "kind": "card", "deck": "d3", "text": "F: Welche Opioid-Nebenwirkung lässt auch bei Dauertherapie nicht nach?\nA: Die Verstopfung (Obstipation); deshalb wird meist ein Abführmittel mitverordnet." },
+    { "id": "m26", "kind": "card", "deck": "d3", "text": "F: Welches Medikament hebt eine Opioidwirkung auf?\nA: Naloxon, ein kompetitiver Antagonist am Opioidrezeptor." },
+    { "id": "m27", "kind": "card", "deck": "d3", "text": "F: Wie viel Paracetamol darf ein gesunder Erwachsener höchstens pro Tag einnehmen?\nA: Höchstens 2 Gramm pro Tag." },
+    { "id": "m28", "kind": "card", "deck": "d4", "text": "F: Wie wirken ACE-Hemmer?\nA: Sie hemmen das Angiotensin-Converting-Enzym, sodass weniger Angiotensin II entsteht; die Gefäße weiten sich und der Blutdruck sinkt." },
+    { "id": "m29", "kind": "card", "deck": "d4", "text": "F: Welche typische Nebenwirkung haben ACE-Hemmer?\nA: Trockenen Reizhusten, weil Bradykinin langsamer abgebaut wird." },
+    { "id": "m30", "kind": "card", "deck": "d4", "text": "F: Wie wirken Betablocker?\nA: Sie blockieren Beta-Adrenozeptoren und senken so Herzfrequenz und Kontraktionskraft des Herzens." },
+    { "id": "m31", "kind": "card", "deck": "d4", "text": "F: Warum sind nichtselektive Betablocker bei Asthma problematisch?\nA: Die Blockade von Beta-2-Rezeptoren in den Bronchien kann eine Verengung der Atemwege auslösen." },
+    { "id": "m32", "kind": "card", "deck": "d4", "text": "F: Wo wirken Schleifendiuretika wie Furosemid?\nA: Im aufsteigenden Teil der Henle-Schleife, wo sie den Na-K-2Cl-Cotransporter hemmen." },
+    { "id": "m33", "kind": "card", "deck": "d4", "text": "F: Welche Elektrolytstörung droht unter Schleifendiuretika?\nA: Eine Hypokaliämie." },
+    { "id": "m34", "kind": "card", "deck": "d4", "text": "F: Wie wirken Vitamin-K-Antagonisten wie Phenprocoumon?\nA: Sie hemmen in der Leber die Vitamin-K-abhängige Bildung der Gerinnungsfaktoren II, VII, IX und X." },
+    { "id": "m35", "kind": "card", "deck": "d4", "text": "F: Mit welchem Laborwert wird eine Therapie mit Vitamin-K-Antagonisten überwacht?\nA: Mit dem INR-Wert." }
+  ],
+  "keypoints": [
+    "Die Bioverfügbarkeit ist der Anteil eines Wirkstoffs, der unverändert den großen Kreislauf erreicht, und beträgt bei intravenöser Gabe 100 %.",
+    "Der First-Pass-Effekt in Darmwand und Leber senkt die Bioverfügbarkeit oral aufgenommener Wirkstoffe.",
+    "Bei regelmäßiger Gabe ist das Fließgleichgewicht nach etwa vier bis fünf Halbwertszeiten erreicht.",
+    "In der Phase-I-Reaktion werden funktionelle Gruppen vor allem über Cytochrom-P450-Enzyme eingeführt, in der Phase-II-Reaktion wird der Stoff gekoppelt und besser wasserlöslich.",
+    "Ein kompetitiver Antagonist bindet an dieselbe Stelle wie der Agonist, aktiviert den Rezeptor nicht und kann durch höhere Agonistkonzentrationen verdrängt werden.",
+    "NSAR hemmen COX-1 und COX-2 und damit die Prostaglandinbildung und wirken schmerzlindernd, fiebersenkend und entzündungshemmend.",
+    "ASS hemmt die Cyclooxygenase irreversibel, sodass die Hemmung der Thrombozytenaggregation etwa 7 bis 10 Tage anhält.",
+    "Bei einer Paracetamol-Überdosierung ist die Leber gefährdet; Gegenmittel ist Acetylcystein.",
+    "Die akut gefährlichste Nebenwirkung von Opioiden ist die Atemdepression, und Naloxon hebt die Opioidwirkung auf.",
+    "ACE-Hemmer senken die Bildung von Angiotensin II und können trockenen Reizhusten verursachen.",
+    "Vitamin-K-Antagonisten hemmen die Bildung der Gerinnungsfaktoren II, VII, IX und X und werden mit dem INR-Wert überwacht."
+  ],
+  "contradictions": [
+    "Eine Karte nennt als Tageshöchstdosis Paracetamol für gesunde Erwachsene 4 Gramm, eine andere Karte höchstens 2 Gramm."
+  ]
+}

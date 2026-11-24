@@ -1,0 +1,23 @@
+{
+  "keypoints": [
+    "Penicillin G hemmt die Zellwandsynthese über Penicillin-bindende Proteine und wirkt nur auf sich teilende Bakterien bakterizid.",
+    "Penicillin G ist nicht säurestabil und wird deshalb nur parenteral gegeben.",
+    "Amoxicillin verursacht besonders häufig bei Pfeifferschem Drüsenfieber ein Exanthem.",
+    "Flucloxacillin ist penicillinasefest, wirkt aber nicht gegen MRSA.",
+    "Cephalosporine sind unwirksam gegen Enterokokken.",
+    "Meropenem senkt den Valproat-Spiegel stark.",
+    "Vancomycin wird oral nicht resorbiert und deshalb oral nur gegen Clostridioides difficile eingesetzt.",
+    "Daptomycin ist bei Pneumonie unwirksam, weil Surfactant es inaktiviert.",
+    "Gentamicin bindet an die 30S-Untereinheit, wirkt nicht gegen Anaerobier und ist nephro- und ototoxisch.",
+    "Doxycyclin wird wegen Zahnverfärbung nicht bei Kindern unter 8 Jahren und nicht in der Schwangerschaft gegeben.",
+    "Clarithromycin verlängert die QT-Zeit und hemmt CYP3A4.",
+    "Clindamycin kann eine Clostridioides-difficile-assoziierte Kolitis auslösen.",
+    "Linezolid kann bei Therapie über zwei Wochen eine Myelosuppression, vor allem eine Thrombozytopenie, verursachen.",
+    "Fluorchinolone wie Ciprofloxacin hemmen die Gyrase und können Sehnenrupturen, besonders der Achillessehne, verursachen.",
+    "Cotrimoxazol blockiert die Folsäuresynthese an zwei Stellen: Sulfamethoxazol die Dihydropteroat-Synthase, Trimethoprim die Dihydrofolat-Reduktase.",
+    "Metronidazol wirkt gegen Anaerobier und Protozoen und führt mit Alkohol zu einer Disulfiram-ähnlichen Reaktion.",
+    "Rifampicin hemmt die bakterielle RNA-Polymerase, wird wegen schneller Resistenzbildung nie allein gegeben und kann als CYP-Induktor die Pille unwirksam machen.",
+    "Isoniazid verursacht eine periphere Neuropathie, weshalb zusätzlich Vitamin B6 gegeben wird.",
+    "Fosfomycin wird bei unkomplizierter Blasenentzündung der Frau als Einmalgabe von 3 g eingesetzt."
+  ]
+}

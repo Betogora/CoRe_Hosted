@@ -15,8 +15,8 @@ const help = definitionFor("card-help");
 const variantType = REQUEST_TYPES[0];
 const card = (front: string, back: string, avoid?: string[]) => ({ kind: "basic" as const, source: { front, back }, ...(avoid ? { avoid } : {}) });
 const cases: EvalCase[] = [
-  { id: "a", category: "definitionen", split: "dev", request: card("Was ist Osmose?", "Diffusion von Wasser") },
-  { id: "b", category: "zahlen-formeln", split: "dev", request: card("In welchem Jahr begann die Französische Revolution?", "1789") },
+  { id: "a", category: "definitionen", subject: "naturwissenschaft", split: "dev", request: card("Was ist Osmose?", "Diffusion von Wasser") },
+  { id: "b", category: "zahlen-formeln", subject: "naturwissenschaft", split: "dev", request: card("In welchem Jahr begann die Französische Revolution?", "1789") },
 ];
 const row = (caseId: string, repetition: number, output: unknown, outcome: Outcome = "answer"): AnswerRow => ({ caseId, repetition, outcome, error: outcome === "answer" ? null : outcome === "refused" ? "not_rephrasable" : "invalid_variant", output, model: "mock", totalTokens: 120, costUsd: 0.001, latencyMs: 1000 + repetition * 500, transcript: { request: null, response: null } });
 const result = (caseId: string, repetition: number, main: boolean, category = "definitionen"): AnswerResult => ({ caseId, repetition, category, trap: false, outcome: "answer", criteria: { M1: 1, M2: main ? 1 : 0 }, main: main ? 1 : 0, costUsd: 0.001, latencyMs: 1000, totalTokens: 100, model: "mock" });
@@ -84,20 +84,20 @@ test("Korpusziehung liefert bei gleichem Startwert dieselben Fälle im Anfrageve
   const first = await sampleCorpus(help, 6, 1, "fixtures/apkg");
   assert.deepEqual(first, await sampleCorpus(help, 6, 1, "fixtures/apkg"));
   assert.equal(first.length, 6);
-  assert.ok(first.every((entry) => /^corpus-[0-9a-f]{10}-(?:explain|example)$/.test(entry.id) && /^note-[0-9a-f]{10}$/.test(entry.group ?? "") && help.parseRequest(entry.request)));
+  assert.ok(first.every((entry) => entry.subject === "fundus" && /^corpus-[0-9a-f]{10}-(?:explain|example)$/.test(entry.id) && /^note-[0-9a-f]{10}$/.test(entry.group ?? "") && help.parseRequest(entry.request)));
   assert.equal(first[0].group, first[1].group);
   assert.notDeepEqual(first, await sampleCorpus(help, 6, 2, "fixtures/apkg"));
 });
 
-test("Die Aufteilung folgt 40/30/30 je Kategorie, hält Gruppen zusammen, ist wiederholbar und lässt Zuordnungen stehen", () => {
-  const drafts: DraftCase[] = Array.from({ length: 20 }, (_, index) => ({ id: `c${index}`, category: index < 10 ? "x" : "y", request: {}, ...(index === 1 || index === 2 ? { group: "g" } : {}) }));
+test("Die Aufteilung folgt 35/40/25 je Kategorie und je Fach, hält Gruppen zusammen, ist wiederholbar und lässt Zuordnungen stehen", () => {
+  const drafts: DraftCase[] = Array.from({ length: 40 }, (_, index) => ({ id: `c${index}`, category: index < 20 ? "x" : "y", subject: index % 3 ? "medizin" : "sprachen", request: {}, ...(index === 1 || index === 2 ? { group: "g" } : {}) }));
   drafts[0].split = "holdout";
   drafts[2].split = "dev";
   const first = assignSplits(drafts, seededRandom(7));
   assert.deepEqual(first, assignSplits(drafts, seededRandom(7)));
   assert.deepEqual(first.slice(0, 3).map((entry) => entry.split), ["holdout", "dev", "dev"]);
-  const count = (category: string) => SPLITS.map((split) => first.filter((entry) => entry.category === category && entry.split === split).length);
-  assert.deepEqual([count("x"), count("y")], [[4, 3, 3], [4, 3, 3]]);
+  const count = (field: "category" | "subject", value: string) => SPLITS.map((split) => first.filter((entry) => entry[field] === value && entry.split === split).length);
+  assert.deepEqual([count("category", "x"), count("category", "y"), count("subject", "medizin"), count("subject", "sprachen")], [[7, 8, 5], [7, 8, 5], [9, 11, 6], [5, 5, 4]]);
   assert.deepEqual(assignSplits(first, seededRandom(99)), first);
   assert.throws(() => assignSplits([{ ...drafts[1], split: "train" }, drafts[2]], seededRandom(1)), /Gruppe g liegt in mehreren Teilen/);
 });
@@ -139,7 +139,7 @@ test("Erzeugung: Verwerfen der Route und eine Antwort ohne JSON zählen als Antw
     const request = cloze.parseRequest({ kind: "cloze", source: { front: "Die Hauptstadt Frankreichs ist {{c1::Paris}}.", back: "Paris" } });
     let calls = 0;
     const fetchImpl = (async () => calls++ === 0 ? new Response("kein JSON", { status: 200 }) : completion({ rephrasable: true, front: "Frankreichs Hauptstadt heißt Paris.", back: "Paris" }, 0.4)) as typeof fetch;
-    const options = { definition: cloze, cases: [{ id: "l", category: "x", split: "dev" as const, request }], repetitions: 5, split: "dev" as const, directory, apiKey: "test", fetchImpl, concurrency: 1, budgetUsd: 1, log: () => {} };
+    const options = { definition: cloze, cases: [{ id: "l", category: "x", subject: "naturwissenschaft" as const, split: "dev" as const, request }], repetitions: 5, split: "dev" as const, directory, apiKey: "test", fetchImpl, concurrency: 1, budgetUsd: 1, log: () => {} };
     await assert.rejects(generate(options), /Budget von 1 USD erreicht/);
     assert.deepEqual(readAnswers(directory).map((entry) => [entry.outcome, entry.error]), [["rejected", "invalid_provider_response"], ["rejected", "invalid_gaps"], ["rejected", "invalid_gaps"], ["rejected", "invalid_gaps"]]);
     assert.equal(await generate({ ...options, budgetUsd: 2 }), 0);
@@ -150,6 +150,13 @@ test("Erzeugung: Verwerfen der Route und eine Antwort ohne JSON zählen als Antw
 
 const verdictFor = (block: JudgeBlock, results: (entry: string, id: string) => boolean, sure = () => 3) => ({
   verdicts: block.entries.map((entry) => ({ entry: entry.entry, results: Object.fromEntries(entry.criteria.map((id) => [id, results(entry.entry, id)])), sure: Object.fromEntries(entry.criteria.map((id) => [id, sure()])) })),
+});
+
+test("Referenzaussagen eines Falls stehen in jeder Richtereingabe, sonst keine", () => {
+  const output = { front: "Wie nennt man die Diffusion von Wasser?", back: "Diffusion von Wasser" };
+  const reference = ["Osmose ist die Diffusion von Wasser durch eine semipermeable Membran.", "Sie folgt dem Konzentrationsgefälle."];
+  assert.equal(judgeItemsFor(variant, answerRef("a", 0), cases[0].request, output, reference)[0].rendered.eingabe.referenz, reference.join("\n"));
+  assert.equal("referenz" in item(variant, answerRef("a", 0), cases[0].request, output).rendered.eingabe, false);
 });
 
 test("Richtertabelle: ohne Dubletten und ohne Herkunft; unvollständige Urteile brechen ab", () => {
@@ -212,6 +219,8 @@ test("Fingerabdruck des Richters hängt am Fallsatz, nicht an den Antworten eine
   const answer = item(help, answerRef("x", 0), explain, "ATP speichert Energie.");
   const fingerprint = (items: typeof answer[]) => buildJudgeTable(help, items, seededRandom(1), { instructions: "Auftrag", requests: [explain, example] }).key.judge;
   assert.equal(fingerprint([answer]), fingerprint([]), "fehlt H4, weil alle Beispiel-Antworten verworfen wurden, bleibt der Fingerabdruck gleich");
+  const withReference = (reference: string) => buildJudgeTable(help, [answer], seededRandom(1), { instructions: "Auftrag", requests: [explain, example], references: [[reference], []] }).key.judge;
+  assert.notEqual(withReference("ATP ist der universelle Energieträger der Zelle."), withReference("ATP liefert Energie durch Hydrolyse."), "eine geänderte Referenz verlangt eine neue Baseline");
 });
 
 test("Fingerabdruck des Payloads: unabhängig von der Feldreihenfolge, empfindlich für Nutzernachricht und Kandidat", () => {
@@ -251,7 +260,7 @@ test("Auswertung: Nachmessungen zählen mit, ein Urteil mit Sicherheit 1 weder a
   assert.deepEqual(results.map((entry) => [entry.repetition, entry.main, entry.criteria.M2]), [[0, 1, 1], [1, null, undefined], [2, 1, 1], [3, 1, 1]]);
   const summary = summarize(results, seededRandom(1));
   assert.deepEqual([summary.repetitions, summary.main], [4, 1]);
-  const helpCase: EvalCase = { id: "h", category: "sonstige", split: "dev", request: help.parseRequest({ card: { prompt: "Was ist ATP?", answer: "Energieträger" }, mode: "explain" }) };
+  const helpCase: EvalCase = { id: "h", category: "sonstige", subject: "naturwissenschaft", split: "dev", request: help.parseRequest({ card: { prompt: "Was ist ATP?", answer: "Energieträger" }, mode: "explain" }) };
   const helpVerdict = { H1: true, H2: true, H3: true, H6: false, H7: true };
   const helpResults = evaluateAnswers(help, [helpCase], 1, [row("h", 0, "ATP speichert Energie.")], new Map([[answerRef("h", 0), helpVerdict]]), { unsure: new Set([unsureKey(answerRef("h", 0), "H2")]) });
   assert.equal(helpResults[0].main, 0, "ein sicher durchgefallenes Hauptkriterium entscheidet trotz unsicherem anderen");
@@ -260,7 +269,7 @@ test("Auswertung: Nachmessungen zählen mit, ein Urteil mit Sicherheit 1 weder a
 });
 
 test("Auswertung: Eine Ablehnung besteht nur, wenn der Fall sie erwartet, und geht nie an den Richter", () => {
-  const refuse: EvalCase = { id: "r", category: "nicht-umformulierbar", split: "dev", refuse: true, request: card("xqzt vblm?", "krwp") };
+  const refuse: EvalCase = { id: "r", category: "nicht-umformulierbar", subject: "naturwissenschaft", split: "dev", refuse: true, request: card("xqzt vblm?", "krwp") };
   const good = { front: "Wie nennt man die Diffusion von Wasser?", back: "Diffusion von Wasser" };
   const rows = [row("r", 0, null, "refused"), row("r", 1, { front: "Was bedeutet xqzt?", back: "krwp" }), row("a", 0, null, "refused"), row("a", 1, good)];
   const results = evaluateAnswers(variant, [refuse, cases[0]], 2, rows, new Map([[answerRef("a", 1), { M2: true, M6: true }]]));
@@ -360,7 +369,7 @@ test("Karten aus einer Quelle: ein Auftrag läuft wie in der App, wird anteilig 
   assert.equal(keypoints.criteria.length, request.keypoints.length);
   assert.ok(keypoints.criteria.every((criterion) => criterion.id.startsWith("Q6:gewaltenteilung-")));
   const verdicts: Verdicts = new Map(items.map((entry, index) => [entry.ref, Object.fromEntries(entry.criteria.map((criterion, position) => [criterion.id, !(index === 0 && criterion.id === "Q3") && !(entry.key === "kernaussagen" && position < 2)]))]));
-  const [graded] = evaluateAnswers(sourceCards, [{ id: "g", category: "standard", split: "dev", request }], 1, [{ ...row("g", 0, output), outcome: "answer" }], verdicts);
+  const [graded] = evaluateAnswers(sourceCards, [{ id: "g", category: "standard", subject: "naturwissenschaft", split: "dev", request }], 1, [{ ...row("g", 0, output), outcome: "answer" }], verdicts);
   assert.equal(graded.main, 0.9, "neun von zehn Karten bestehen Q2 bis Q4");
   assert.equal(graded.criteria.Q6, Math.round((request.keypoints.length - 2) / request.keypoints.length * 10000) / 10000);
   assert.equal(graded.criteria.Q1, 1);
@@ -375,7 +384,7 @@ test("Karten aus einer Quelle: eine Zeitüberschreitung ist ein gescheiterter Ab
   const directory = mkdtempSync(path.join(tmpdir(), "ai-eval-"));
   try {
     const request = sourceCards.parseRequest({ source: "zellatmung.md", profile: "standard" });
-    const entry: EvalCase = { id: "z", category: "standard", split: "dev", request };
+    const entry: EvalCase = { id: "z", category: "standard", subject: "naturwissenschaft", split: "dev", request };
     const options = { definition: sourceCards, cases: [entry], repetitions: 1, split: "dev" as const, directory, apiKey: "test", concurrency: 1, retryDelayMs: 0, log: () => {} };
     await generate({ ...options, fetchImpl: (async () => { throw Object.assign(new Error("abgelaufen"), { name: "TimeoutError" }); }) as typeof fetch });
     const [answer] = readAnswers(directory);
@@ -399,7 +408,7 @@ test("Karten aus einer Quelle: eine Zeitüberschreitung ist ein gescheiterter Ab
 });
 
 test("Zusammenfassung: Länge, Darstellung, Stichwörter und Querbezüge automatisch; Abschnitte und Kernaussagen an den Richter", () => {
-  const request = summary.parseRequest({ set: "netzwerk-karten-und-quelle", profile: "kurz-pruefung" }) as { route: { settings: { length: string; format: string; material: string } }; contradictions: string[] };
+  const request = summary.parseRequest({ set: "netzwerk-karten-und-quelle", profile: "kurz-stichpunkte-wiederholen" }) as { route: { settings: { length: string; format: string; material: string } }; contradictions: string[] };
   assert.deepEqual([request.route.settings.length, request.route.settings.format, request.route.settings.material], ["short", "bullets", "cards-and-source"]);
   assert.equal(summary.parseRequest({ set: "fehlt", profile: "standard" }), null);
   const block = (heading: string, points: [string, string][], paragraphs: string[] = []) => ({ heading, paragraphs, points: points.map(([keyword, text]) => ({ keyword, text })), references: ["m1"] });

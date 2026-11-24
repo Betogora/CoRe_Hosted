@@ -1,0 +1,23 @@
+Begriff,Erklärung,Formel
+Arithmetisches Mittel,"Summe aller Werte geteilt durch ihre Anzahl; reagiert stark auf Ausreißer.",x̄ = (x1 + x2 + … + xn) / n
+Median,"Mittlerer Wert der der Größe nach geordneten Daten; bei gerader Anzahl der Mittelwert der beiden mittleren Werte. Ausreißer beeinflussen ihn kaum.","n ungerade: x((n+1)/2); n gerade: (x(n/2) + x(n/2+1)) / 2"
+Modus,"Häufigster Wert einer Verteilung; als einziger Lageparameter auch für nominale Merkmale wie Farben geeignet.",–
+Spannweite,"Abstand zwischen größtem und kleinstem Wert; hängt nur von den beiden Extremwerten ab.",R = xmax − xmin
+Quartile,"Das untere Quartil Q1 trennt die unteren 25 % der geordneten Daten ab, das obere Quartil Q3 die oberen 25 %; Q2 ist der Median.",–
+Interquartilsabstand,"Breite des Bereichs, in dem die mittleren 50 % der Daten liegen; robust gegenüber Ausreißern.",IQR = Q3 − Q1
+Varianz,"Mittlere quadratische Abweichung vom Mittelwert. Bei einer Stichprobe teilt man durch n − 1 statt durch n, damit die Varianz der Grundgesamtheit nicht systematisch unterschätzt wird.",s² = Σ(xi − x̄)² / (n − 1)
+Standardabweichung,"Wurzel aus der Varianz; hat dieselbe Einheit wie die Messwerte. Bei einer Normalverteilung liegen etwa 68 % der Werte innerhalb einer Standardabweichung um den Mittelwert und etwa 95 % innerhalb von zwei.",s = √s²
+Variationskoeffizient,"Standardabweichung im Verhältnis zum Mittelwert; vergleicht die Streuung von Daten mit unterschiedlichen Einheiten oder Größenordnungen. Nur sinnvoll bei Merkmalen mit positivem Mittelwert.",v = s / x̄
+z-Wert,"Gibt an, um wie viele Standardabweichungen ein Wert vom Mittelwert abweicht; standardisierte Werte haben Mittelwert 0 und Standardabweichung 1.",z = (x − x̄) / s
+Kovarianz,"Maß für den gemeinsamen linearen Zusammenhang zweier Merkmale; positiv bei gleichsinnigem, negativ bei gegensinnigem Verlauf. Ihr Betrag hängt von den Einheiten ab.",sxy = Σ(xi − x̄)(yi − ȳ) / (n − 1)
+Korrelationskoeffizient nach Pearson,"Normierte Kovarianz zwischen −1 und +1; misst nur lineare Zusammenhänge. r = 0 bedeutet keinen linearen Zusammenhang, schließt einen nichtlinearen aber nicht aus. Eine Korrelation belegt keine Kausalität.",r = sxy / (sx · sy)
+Rangkorrelation nach Spearman,"Pearson-Korrelation der Ränge statt der Werte; erfasst auch monotone, nichtlineare Zusammenhänge und ist robust gegenüber Ausreißern.",rs = 1 − 6 · Σdi² / (n · (n² − 1)) bei Rängen ohne Bindungen
+Bestimmtheitsmaß,"Anteil der Varianz der abhängigen Variable, der durch ein lineares Regressionsmodell erklärt wird; bei einfacher linearer Regression das Quadrat von r.",R² = r²
+Standardfehler des Mittelwerts,"Streuung des Stichprobenmittelwerts um den wahren Mittelwert; sinkt mit wachsendem Stichprobenumfang, bei vierfachem n halbiert er sich.",SE = s / √n
+Konfidenzintervall,"Bereich, der den wahren Parameter bei wiederholten Stichproben mit der angegebenen Wahrscheinlichkeit überdeckt, etwa 95 %. Es sagt nicht, dass der wahre Wert mit 95 % Wahrscheinlichkeit im konkret berechneten Intervall liegt.","x̄ ± 1,96 · SE (95 %; Normalverteilung)"
+Nullhypothese,"Annahme, dass kein Effekt oder kein Unterschied besteht; ein Test kann sie nur ablehnen oder beibehalten, aber nie beweisen.",H0: μ1 = μ2
+p-Wert,"Wahrscheinlichkeit, unter der Annahme der Nullhypothese ein mindestens so extremes Ergebnis wie das beobachtete zu erhalten. Er ist nicht die Wahrscheinlichkeit, dass die Nullhypothese wahr ist.",p = P(Ergebnis mindestens so extrem | H0)
+Signifikanzniveau,"Vorab festgelegte Grenze für den p-Wert, meist α = 0,05; ist p kleiner als α, wird die Nullhypothese abgelehnt.",p < α ⇒ H0 ablehnen
+Fehler 1. Art,"Die Nullhypothese wird abgelehnt, obwohl sie wahr ist (falsch positiv); seine Wahrscheinlichkeit ist höchstens α.",P(Fehler 1. Art) ≤ α
+Fehler 2. Art,"Die Nullhypothese wird beibehalten, obwohl sie falsch ist (falsch negativ); seine Wahrscheinlichkeit heißt β.",P(Fehler 2. Art) = β
+Teststärke,"Wahrscheinlichkeit, einen tatsächlich vorhandenen Effekt zu entdecken; steigt mit größerem Stichprobenumfang und größerem Effekt.",Power = 1 − β

@@ -1,0 +1,30 @@
+{
+  "title": "Grundlagen der Wahrscheinlichkeitsrechnung",
+  "material": "source",
+  "decks": [],
+  "units": [
+    {
+      "id": "m1",
+      "kind": "source",
+      "text": "# Grundbegriffe\n\nEin Zufallsexperiment ist ein Vorgang, der unter gleichen Bedingungen wiederholbar ist und dessen Ergebnis sich nicht vorhersagen lässt, zum Beispiel ein Würfelwurf. Die Menge aller möglichen Ergebnisse heißt Ergebnisraum Ω; beim Würfel ist Ω = {1, 2, 3, 4, 5, 6}. Ein Ereignis ist eine Teilmenge des Ergebnisraums, etwa „gerade Augenzahl“ = {2, 4, 6}.\n\nJede Wahrscheinlichkeit liegt zwischen 0 und 1. Das unmögliche Ereignis hat die Wahrscheinlichkeit 0, das sichere Ereignis die Wahrscheinlichkeit 1.\n\n## Laplace-Experimente\n\nSind alle Ergebnisse gleich wahrscheinlich, spricht man von einem Laplace-Experiment. Dann gilt: P(A) = Anzahl der für A günstigen Ergebnisse / Anzahl aller möglichen Ergebnisse. Die Wahrscheinlichkeit, eine gerade Zahl zu würfeln, ist also 3 / 6 = 1 / 2.\n\n## Gegenereignis\n\nDas Gegenereignis Ā tritt genau dann ein, wenn A nicht eintritt. Es gilt P(Ā) = 1 − P(A). Das Gegenereignis ist besonders nützlich bei Fragen nach „mindestens einem“ Treffer, weil man dann nur die Wahrscheinlichkeit für „keinen Treffer“ berechnen muss.\n\nEin bekanntes Beispiel ist das Geburtstagsproblem: Man berechnet die Wahrscheinlichkeit, dass alle Personen einer Gruppe an verschiedenen Tagen Geburtstag haben, und zieht sie von 1 ab. Schon ab 23 Personen liegt die Wahrscheinlichkeit, dass mindestens zwei am selben Tag Geburtstag haben, über 50 Prozent.\n\n## Additionssatz\n\nFür zwei beliebige Ereignisse gilt P(A ∪ B) = P(A) + P(B) − P(A ∩ B). Der Schnitt wird abgezogen, weil er sonst doppelt gezählt würde. Schließen sich A und B gegenseitig aus, ist P(A ∩ B) = 0, und die Wahrscheinlichkeiten addieren sich einfach.\n\n## Mehrstufige Zufallsexperimente\n\nMehrstufige Experimente stellt man mit Baumdiagrammen dar. Nach der ersten Pfadregel ist die Wahrscheinlichkeit eines Pfades das Produkt der Wahrscheinlichkeiten entlang des Pfades. Nach der zweiten Pfadregel ist die Wahrscheinlichkeit eines Ereignisses die Summe der Wahrscheinlichkeiten aller Pfade, die zu diesem Ereignis gehören.\n\nBeim Ziehen mit Zurücklegen bleiben die Wahrscheinlichkeiten auf jeder Stufe gleich. Beim Ziehen ohne Zurücklegen ändern sie sich, weil sich die Zusammensetzung der Urne nach jedem Zug ändert.\n\n## Bedingte Wahrscheinlichkeit und Unabhängigkeit\n\nDie bedingte Wahrscheinlichkeit von A unter der Bedingung B ist P(A | B) = P(A ∩ B) / P(B), sofern P(B) > 0. Sie gibt an, wie wahrscheinlich A ist, wenn man bereits weiß, dass B eingetreten ist.\n\nZwei Ereignisse heißen stochastisch unabhängig, wenn P(A ∩ B) = P(A) · P(B) gilt. Dann ändert das Wissen über B nichts an der Wahrscheinlichkeit von A. Aufeinanderfolgende Würfe eines Würfels sind unabhängig: Der Würfel hat kein Gedächtnis.\n\n## Satz von Bayes\n\nDer Satz von Bayes kehrt eine bedingte Wahrscheinlichkeit um: P(A | B) = P(B | A) · P(A) / P(B). Er wird zum Beispiel benötigt, um aus der Zuverlässigkeit eines Tests auf die Wahrscheinlichkeit zu schließen, dass ein positiv getesteter Mensch tatsächlich krank ist."
+    },
+    {
+      "id": "m2",
+      "kind": "source",
+      "text": "# Durchgerechnete Beispiele\n\n## Mindestens eine Sechs\n\nWie wahrscheinlich ist mindestens eine Sechs bei vier Würfen eines fairen Würfels? Das Gegenereignis ist „keine Sechs in vier Würfen“. Da die Würfe unabhängig sind, gilt P(keine Sechs) = (5/6)^4 ≈ 0,482. Also ist P(mindestens eine Sechs) = 1 − 0,482 ≈ 0,518, also etwa 51,8 Prozent. Der naheliegende Ansatz 4 · 1/6 ≈ 66,7 Prozent ist falsch, weil er Fälle mit mehreren Sechsen mehrfach zählt.\n\n## Ziehen ohne Zurücklegen\n\nIn einer Urne liegen drei rote und zwei blaue Kugeln. Man zieht zweimal ohne Zurücklegen. Die Wahrscheinlichkeit, zweimal Rot zu ziehen, ist nach der ersten Pfadregel 3/5 · 2/4 = 6/20 = 0,3. Mit Zurücklegen wäre sie 3/5 · 3/5 = 0,36.\n\n## Geburtstagsproblem\n\nIn einer Gruppe sollen mindestens zwei Personen am selben Tag Geburtstag haben. Damit die Wahrscheinlichkeit dafür über 50 Prozent liegt, braucht man mindestens 183 Personen, also die Hälfte von 365 Tagen, aufgerundet.\n\n## Medizinischer Test\n\nEine Krankheit tritt bei 1 Prozent der Bevölkerung auf. Ein Test erkennt 99 Prozent der Kranken (Sensitivität) und fällt bei 95 Prozent der Gesunden negativ aus (Spezifität). Wie wahrscheinlich ist eine Person krank, wenn ihr Test positiv ist?\n\nVon 10.000 Personen sind 100 krank; davon testen 99 positiv. Von den 9.900 Gesunden testen 5 Prozent, also 495, ebenfalls positiv. Insgesamt sind 594 Tests positiv, davon nur 99 bei Kranken. Die gesuchte Wahrscheinlichkeit ist 99 / 594 ≈ 16,7 Prozent. Obwohl der Test zuverlässig wirkt, ist die Mehrheit der positiven Ergebnisse falsch positiv, weil die Krankheit selten ist."
+    }
+  ],
+  "keypoints": [
+    "Jede Wahrscheinlichkeit liegt zwischen 0 und 1; das unmögliche Ereignis hat die Wahrscheinlichkeit 0, das sichere die Wahrscheinlichkeit 1.",
+    "Bei einem Laplace-Experiment ist die Wahrscheinlichkeit die Anzahl der günstigen durch die Anzahl aller möglichen Ergebnisse.",
+    "Für das Gegenereignis gilt P(Ā) = 1 − P(A), was Fragen nach mindestens einem Treffer vereinfacht.",
+    "Nach dem Additionssatz gilt P(A ∪ B) = P(A) + P(B) − P(A ∩ B).",
+    "Nach den Pfadregeln multipliziert man entlang eines Pfades und addiert die Pfade eines Ereignisses.",
+    "Zwei Ereignisse sind stochastisch unabhängig, wenn P(A ∩ B) = P(A) · P(B) gilt.",
+    "Die Wahrscheinlichkeit für mindestens eine Sechs bei vier Würfen beträgt 1 − (5/6)^4, also etwa 51,8 Prozent.",
+    "Beim Test mit 1 Prozent Häufigkeit, 99 Prozent Sensitivität und 95 Prozent Spezifität ist eine positiv getestete Person nur mit etwa 16,7 Prozent krank."
+  ],
+  "contradictions": [
+    "Die Grundbegriffe nennen für das Geburtstagsproblem schon 23 Personen für eine Wahrscheinlichkeit über 50 Prozent, die Beispiele dagegen mindestens 183 Personen."
+  ]
+}

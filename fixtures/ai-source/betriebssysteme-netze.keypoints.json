@@ -1,0 +1,32 @@
+{
+  "keypoints": [
+    "Im Kernelmodus darf Code alle Maschinenbefehle ausführen und auf alle Speicherbereiche zugreifen; im Benutzermodus sind privilegierte Befehle gesperrt, und ein Versuch löst eine Ausnahme aus.",
+    "Bei einem Systemaufruf wechselt der Prozessor kontrolliert in den Kernelmodus und springt nur an eine vom Kernel festgelegte Einsprungadresse.",
+    "Ein blockierter Prozess kann nie direkt in den Zustand „laufend“ wechseln, sondern wird nach dem Ereignis zuerst bereit und wartet auf die Zuteilung.",
+    "Nach fork erhält der Kindprozess den Rückgabewert 0 und der Elternprozess die PID des Kindes; schlägt fork fehl, erhält der Elternprozess −1.",
+    "Die Threads eines Prozesses teilen sich Adressraum, Heap und geöffnete Dateien, haben aber jeweils einen eigenen Befehlszähler, eigene Register und einen eigenen Stack.",
+    "Führt ein reiner Benutzer-Thread einen blockierenden Systemaufruf aus, blockiert der ganze Prozess, weil der Kernel nur den Prozess kennt.",
+    "Shortest Job First liefert unter den nicht unterbrechenden Verfahren die kleinste mittlere Wartezeit; seine unterbrechende Variante heißt Shortest Remaining Time First.",
+    "Ist die Zeitscheibe bei Round Robin sehr groß, verhält es sich wie FCFS; ist sie sehr klein, verbringt das System viel Zeit mit Kontextwechseln.",
+    "Bei der Prioritätsinversion wartet ein Prozess hoher Priorität indirekt auf einen unwichtigeren; Abhilfe schafft die Prioritätsvererbung an den Sperrinhaber.",
+    "Ein Deadlock kann nur entstehen, wenn alle vier Coffman-Bedingungen gleichzeitig erfüllt sind: wechselseitiger Ausschluss, Halten und Warten, keine Verdrängung und zyklisches Warten.",
+    "Zyklisches Warten lässt sich verhindern, indem alle Betriebsmittel durchnummeriert und nur in aufsteigender Reihenfolge angefordert werden.",
+    "Ein Zustand ist sicher, wenn es mindestens eine Reihenfolge gibt, in der alle Prozesse ihren Höchstbedarf erhalten und enden können; ein unsicherer Zustand ist noch kein Deadlock.",
+    "Paging beseitigt die externe Fragmentierung, nicht aber die interne.",
+    "Bei 4 KiB großen Seiten braucht der Versatz 12 Bit, sodass bei einem 32-Bit-Adressraum 20 Bit für die Seitennummer bleiben.",
+    "Beim Wechsel des Adressraums muss der TLB ohne Adressraumkennung geleert werden; beim Wechsel zwischen Threads desselben Prozesses bleibt er gültig.",
+    "Bei FIFO können mehr Kacheln zu mehr Seitenfehlern führen (Beladys Anomalie); LRU und das optimale Verfahren zeigen diese Anomalie nie.",
+    "Harte Links funktionieren nur innerhalb desselben Dateisystems und in der Regel nicht für Verzeichnisse; ein symbolischer Link bleibt nach dem Löschen des Ziels als verwaister Verweis zurück.",
+    "Das TCP/IP-Modell fasst die OSI-Schichten 5 bis 7 zur Anwendungsschicht und die Schichten 1 und 2 zur Netzzugangsschicht zusammen.",
+    "In einem Subnetz mit h Hostbits sind 2 hoch h minus 2 Adressen für Geräte nutzbar, weil Netz- und Broadcast-Adresse reserviert sind; ein /24-Netz hat 254 nutzbare Adressen.",
+    "Teilt man ein /24-Netz in vier gleich große Subnetze, entstehen /26-Netze mit je 64 Adressen, von denen 62 nutzbar sind.",
+    "Jeder Router verringert die TTL um eins; erreicht sie null, wird das Paket verworfen und der Absender per ICMP „Time Exceeded“ benachrichtigt.",
+    "Der TCP-Verbindungsaufbau erfolgt im Drei-Wege-Handschlag aus SYN, SYN-ACK und ACK.",
+    "Flusskontrolle schützt den Empfänger, Staukontrolle das Netz; unbestätigte Daten dürfen das Minimum aus Empfangsfenster und Staufenster nicht überschreiten.",
+    "Die Anfrage des Clients an den rekursiven Resolver ist rekursiv, die Anfragen des Resolvers an Root-, TLD- und autoritative Server sind iterativ.",
+    "POST ist weder sicher noch idempotent, während PUT und DELETE idempotent sind.",
+    "Der Statuscode 401 bedeutet „nicht angemeldet“, der Statuscode 403 „angemeldet, aber nicht berechtigt“.",
+    "Weil TLS 1.3 für jede Verbindung einen flüchtigen Diffie-Hellman-Schlüssel nutzt, bleiben frühere Verbindungen auch nach Diebstahl des privaten Serverschlüssels geschützt (Vorwärtsgeheimhaltung).",
+    "Ein Client vertraut einem Zertifikat nur bei einer lückenlosen Signaturkette bis zu einem hinterlegten Wurzelzertifikat; TLS garantiert aber nicht, dass der Inhaber der Domain vertrauenswürdig ist."
+  ]
+}

@@ -145,23 +145,23 @@ Route baut.
 
 ### Fallsätze
 
-Drei Teile je Anfragetyp, nach Kategorie geschichtet und nach Gruppe
+Drei Teile je Anfragetyp, nach Kategorie und Fach geschichtet und nach Gruppe
 getrennt (eine Karte, eine Notiz oder ein Dokument liegt immer nur in einem
 Teil). Zwei Teile reichen nicht: Wird jede Runde am berichteten Teil
 entschieden, passt sich die Promptfolge an ihn an.
 
 | Teil | Anteil | Zweck | Wer liest Inhalte |
 | --- | --- | --- | --- |
-| Training (`train`) | 40 % | Fehleranalyse und Vorauswahl der Kandidaten | Optimierer |
-| Entscheidung (`dev`) | 30 % | jede Runde: übernehmen oder verwerfen | nur Kennzahlen und Fallkennungen |
-| Rückhalt (`holdout`) | 30 % | Baseline und Wellenende; der berichtete Wert | niemand vor Wellenende |
+| Training (`train`) | 35 % | Fehleranalyse und Vorauswahl der Kandidaten | Optimierer |
+| Entscheidung (`dev`) | 40 % | jede Runde: übernehmen oder verwerfen | nur Kennzahlen und Fallkennungen |
+| Rückhalt (`holdout`) | 25 % | Baseline und Wellenende; der berichtete Wert | niemand vor Wellenende |
 
 | Anfragetyp | Fälle | Zusammensetzung |
 | --- | --- | --- |
-| Varianten Frage/Antwort (mit Eintippen), Lückentext, Auswahl | je etwa 100 | etwa 50 Prüfkarten über die Kategorien, der Rest aus dem Korpus; liefert der Korpus für eine Art zu wenig, entsprechend mehr Prüfkarten |
-| KI hilft | etwa 100 | jede Prüfkarte in allen drei Modi, Korpusfälle in Erklären und Beispiel |
+| Varianten Frage/Antwort (mit Eintippen), Lückentext, Auswahl | je etwa 120 | Prüfkarten aus dem Raster Fach × Kategorie × Schwierigkeit, höchstens 20 % aus dem Korpus mit höchstens drei Karten je Stapel; Auswahl hat keine Korpuskarten |
+| KI hilft | etwa 120 | Prüfkarten aus demselben Raster über die drei Modi, Korpusfälle in Erklären und Beispiel |
 | Karten aus einer Quelle | etwa 24 Dokumente | die fünf Prüfdokumente, dazu weitere Fächer und Formate und mindestens vier lange Quellen (über 60.000 Zeichen); je Dokument 10–30 Kernaussagen |
-| Zusammenfassung | etwa 24 Materialsätze | Karten, Quelle und beides; je Satz Kernaussagen und zwei Einstellungsprofile aus einer paarweise deckenden Liste von etwa zwölf |
+| Zusammenfassung | etwa 24 Materialsätze | Karten, Quelle und beides; je Satz Kernaussagen und zwei von neun Einstellungsprofilen, die jedes Wertepaar der in der App wählbaren Einstellungen (Länge, Darstellung, Lernziel, Beispiele) abdecken |
 
 Was die Fallsätze enthalten müssen:
 
@@ -179,8 +179,13 @@ Was die Fallsätze enthalten müssen:
   Widersprüche. Seltene kritische Fehler lassen sich nur so belegen: Null
   Fehler in n Antworten ergeben eine Obergrenze von 3/n, ein Ziel wie „M2
   ≤ 1 %“ bräuchte 300 fehlerfreie Antworten.
-- Fächer breit (Medizin, Recht, Geschichte, MINT, Sprachen, Wirtschaft),
-  überwiegend Deutsch, dazu Englisch und Vokabelkarten weiterer Sprachen.
+- Fächer: Medizin, Naturwissenschaft, Technik/IT, Mathematik, Sprachen,
+  Recht/Wirtschaft, Geschichte/Geografie, je etwa ein Siebtel der
+  Prüfkarten, dazu der eigene Fundus (`fundus`); überwiegend Deutsch, dazu
+  Englisch und Vokabelkarten weiterer Sprachen.
+- **Referenzaussagen** (`reference`) bei schweren Fällen, Fachfakten,
+  Zahlen und falschen Karten; der Richter prüft an ihnen statt nur aus dem
+  Gedächtnis.
 
 Prüfkarten, Prüfdokumente und Kernaussagen schreibt die ausführende Sitzung
 selbst, ohne fremde Texte und fachlich richtig (außer bei bewusst falschen
@@ -458,13 +463,11 @@ Umgesetzt am 2026-11-23. Stand und Abweichungen:
   einen Eintrag mit allen Karten gegen die Kernaussagen. Das PDF liest der
   Eval über `ohmsches-gesetz.pages.json`, die das Erzeugerskript neben das
   PDF schreibt.
-- **Zusammenfassung:** Fall ist Materialsatz mal Profil (Standard,
-  kurz-pruefung, lang-einfach) aus `fixtures/ai-eval/summary-material/`.
+- **Zusammenfassung:** Fall ist Materialsatz mal Profil aus
+  `fixtures/ai-eval/summary-material/`.
   Der Richter sieht bis zu vier Abschnitte mit ihrem belegten Material und
   einen Eintrag mit der ganzen Zusammenfassung gegen Kernaussagen und
   eingebaute Widersprüche.
-- **Fallzahl:** fünf Dokumente (20 Fälle) und drei Materialsätze (6 Fälle)
-  statt je etwa 24; der Ausbau steht als eigener Punkt vor H in `todo.md`.
 - **Gemeinsames Material** in einem Block ist nicht gebaut; jeder Eintrag
   trägt sein Material selbst.
 - **Bootstrap je Fall** (Dokument mal Profil), nicht je Dokument; das
