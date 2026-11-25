@@ -17,11 +17,11 @@ function completeProfile(userId: string) {
     onboardingComplete: true,
     schedulerPreferences: { settingsVersion: 2, dayStartHour: 0 },
     uiPreferences: {
-      dashboardCollapsedDeckIds: [],
       learnCollapsedDeckIds: [],
       syncIntervalMinutes: 5 as const,
       flagNames: ["", "", "", "", "", "", ""],
       savedSearches: [],
+      dashboardPinnedDeckIds: [],
     },
   };
 }

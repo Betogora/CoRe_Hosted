@@ -794,14 +794,14 @@ Fassung | im Konto, mehrere je Stapel
 
 `Heute` ist die Startseite: Tagesstand, Lernstart und persönliche Werkzeuge an einem Ort.
 
-- Die Seite besteht aus frei wählbaren und anordenbaren Bausteinen: Tagesstand, Motivationsimpuls, Lerntimer, aktive Stapel, To-dos, Lern-Heatmap und Prüfungsaufgaben. Anordnung und eigene To-dos gelten je Konto nur in diesem Browser.
-- **Feste Formate:** Bausteine haben feste, nicht wählbare Größen; längere Inhalte scrollen im Baustein statt in der Seite.
-- **Erststart:** Ein neues Konto beginnt ohne erfundene Daten. Ohne Stapel führt die Seite zu Import, manueller Karte oder Demo. Demo-Stapel entstehen nur auf ausdrückliche Aktion, einmalig und ohne Lernhistorie.
+- Die Seite besteht aus wähl- und anordenbaren Bausteinen: Tagesstand, Motivationsimpuls, Lerntimer, angepinnte Stapel, To-dos, Lern-Heatmap und Prüfungsaufgaben. Anordnung und eigene To-dos gelten je Konto nur in diesem Browser.
+- **Feste Formate:** Bausteine haben feste Größen; längere Inhalte scrollen im Baustein.
+- **Erststart:** Ein neues Konto beginnt ohne erfundene Daten. Ohne Stapel führt die Seite zu Import, manueller Karte oder Demo; Demo-Stapel entstehen nur auf ausdrückliche Aktion, einmalig, ohne Lernhistorie.
 - **Tagesstand:** Er fasst alle Hauptstapel ohne Doppelzählung in `Gelernt`, `Neu`, `Offen` und `Fällig` zusammen ([Tagesrunde und Limits](#tagesrunde-und-limits)).
-- **Lernstart:** Er startet den alphabetisch ersten Hauptstapel mit verfügbaren Karten. Warten nur noch Lernschritte, kündigt er späteres Weiterlernen an; ist alles gelernt, meldet er das Tagesziel und bietet zusätzliche neue Karten an.
+- **Lernstart:** startet den alphabetisch ersten Hauptstapel mit verfügbaren Karten; warten nur Lernschritte, kündigt er späteres Weiterlernen an, sonst meldet er das Tagesziel und bietet zusätzliche neue Karten an.
 - **Motivationsimpuls:** einer von 60 eigenen Lernimpulsen, je Lerntag stabil, auch offline.
-- **To-dos:** eigene Aufgaben und Aufgaben aus dem Prüfungsplaner; Planeraufgaben lassen sich direkt lernen. Wird der Baustein entfernt, bleiben die Aufgaben.
-- **Aktive Stapel:** so viele Hauptstapel, wie der Baustein fasst, startbare zuerst, und der Weg zu allen.
+- **To-dos:** eigene und Planeraufgaben, letztere direkt lernbar; ohne Baustein bleiben sie.
+- **Angepinnte Stapel:** bis zu vier, neueste oben, mit Lernstart und Weg zu allen; Lücken füllen die an den meisten von 14 Lerntagen gestarteten, dann Hauptstapel. Ein fünfter Pin ersetzt einen, wie Lösen nach Rückfrage.
 - **Bewusst nicht:** Zeitprognosen.
 
 ### Kartenverwaltung
@@ -883,9 +883,9 @@ Jede Einstellung gilt für genau einen Bereich.
 
 | Gilt für | Einstellungen |
 | --- | --- |
-| Konto, auf allen Geräten | Tagesbeginn, Vorziehfenster, Lernbremse, Easy Days, Lernprofile, Standard für neue Stapel, Flaggennamen, gespeicherte Suchen, Prüfungspläne |
+| Konto, auf allen Geräten | Tagesbeginn, Vorziehfenster, Lernbremse, Easy Days, Lernprofile, Standard für neue Stapel, Flaggennamen, gespeicherte Suchen, Prüfungspläne, Pins von `Heute` |
 | Einen Stapel | Tageslimits, Reihenfolge und Sortierung, Begraben, Lernschritte, Zielerinnerung, maximales Intervall, CoRe-Modus, Variantenschwelle, aktive Varianten, Name und Aussehen, Offline-Nutzung |
-| Diesen Browser | heller oder dunkler Modus, Heatmap-Farbe, Stapelansicht, Anordnung von `Heute` und eigene To-dos, Pomodoro-Timer, Simulationsuhr |
+| Diesen Browser | heller oder dunkler Modus, Heatmap-Farbe, Stapelansicht, Anordnung, Lerntage und eigene To-dos von `Heute`, Pomodoro-Timer, Simulationsuhr |
 
 - Einstellungen werden als Entwurf geändert und ausdrücklich gespeichert oder verworfen; ein ungespeicherter Entwurf hält jedes Verlassen auf.
 - Stapeleinstellungen öffnen aus den Einstellungen; Zurück führt dorthin.

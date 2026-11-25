@@ -7,7 +7,7 @@ import { addCardVariant, createBasicNote, createCoreDeck, planNoteContentChange,
 import type { Card, Deck, Note } from "./coreTypes.ts";
 import type { WorkspaceState } from "./coreWorkspace.ts";
 import { createIndexedDbCoreRepository } from "./indexedDbCoreRepository.ts";
-import { openDatabase } from "./indexedDbStore.ts";
+import { openDatabase, STORE } from "./indexedDbStore.ts";
 import { answerVariant } from "./reviewService.ts";
 
 Object.assign(globalThis, { IDBKeyRange });
@@ -1010,4 +1010,20 @@ test("eine Bewertung schreibt nur den Lernstand und behält eine inzwischen verm
   const [catalog] = (await repository.listCatalogPage("deck-idb")).items;
   assert.deepEqual([catalog.variantRefused, catalog.bodyRevision], [true, 2]);
   repository.close();
+});
+
+test("ein vor neuen UI-Präferenzen gespeichertes Profil lädt mit deren Standardwerten", async () => {
+  const userId = randomUUID();
+  const repository = await openRepository(workspaceState(1), userId);
+  const stored = repository.getShellState().profile;
+  const database = await openDatabase(indexedDB as unknown as IDBFactory, userId);
+  const transaction = database.transaction(STORE.meta, "readwrite");
+  transaction.objectStore(STORE.meta).put({ key: "profile", value: { ...stored, uiPreferences: { dashboardCollapsedDeckIds: ["deck-idb"], learnCollapsedDeckIds: ["deck-idb"], syncIntervalMinutes: 15 } } });
+  await new Promise((resolve) => { transaction.oncomplete = resolve; });
+  database.close();
+
+  const { uiPreferences } = (await openRepository(workspaceState(1), userId)).getShellState().profile;
+  assert.deepEqual(uiPreferences.dashboardPinnedDeckIds, []);
+  assert.deepEqual(uiPreferences.learnCollapsedDeckIds, ["deck-idb"]);
+  assert.equal(uiPreferences.syncIntervalMinutes, 15);
 });

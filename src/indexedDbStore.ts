@@ -1,5 +1,6 @@
 import type { Card, CardVariant, Deck, Note, ReviewEvent } from "./coreTypes.ts";
 import type { WorkspaceState } from "./coreWorkspace.ts";
+import { normalizeUiPreferences } from "./uiPreferences.ts";
 import {
   catalogEntryFromCard,
   type CatalogReviewHistory,
@@ -235,7 +236,9 @@ export async function loadShell(database: IDBDatabase): Promise<WorkspaceShell |
   await transactionDone(transaction);
   if (!metaRows.some((row) => row.key === "initialized")) return null;
   const meta = new Map(metaRows.map((row) => [row.key, row.value]));
-  return { version: 6, profile: meta.get("profile"), updatedAt: meta.get("updatedAt"), decks: deckRows };
+  const profile = meta.get("profile");
+  // A profile stored before a UI preference existed lacks it until the next cloud profile replaces it.
+  return { version: 6, profile: { ...profile, uiPreferences: normalizeUiPreferences(profile?.uiPreferences) }, updatedAt: meta.get("updatedAt"), decks: deckRows };
 }
 
 export function writeState(database: IDBDatabase, state: WorkspaceState): Promise<void> {

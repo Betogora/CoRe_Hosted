@@ -2094,6 +2094,9 @@ video {
 .h-\[100dvh\] {
   height: 100dvh;
 }
+.h-\[1lh\] {
+  height: 1lh;
+}
 .h-\[27rem\] {
   height: 27rem;
 }
@@ -2301,6 +2304,9 @@ video {
 }
 .w-4\/5 {
   width: 80%;
+}
+.w-5 {
+  width: 1.25rem;
 }
 .w-72 {
   width: 18rem;
@@ -3309,6 +3315,9 @@ video {
 .text-right {
   text-align: right;
 }
+.align-top {
+  vertical-align: top;
+}
 .align-middle {
   vertical-align: middle;
 }
@@ -3938,11 +3947,6 @@ svg.lucide {
   --core-deck-depth-indent: 18px;
 }
 
-
-.core-deck-tree-header {
-  grid-template-columns: minmax(0, 1fr);
-}
-
 .core-deck-summary-container {
   container: core-deck-summary / inline-size;
 }
@@ -4050,22 +4054,6 @@ svg.lucide {
 
   .core-deck-summary-metric-label-full {
     display: none;
-  }
-}
-
-@container core-deck-tree (min-width: 17rem) {
-  .core-deck-tree-header {
-    grid-template-columns: minmax(0, 1fr) auto;
-  }
-
-  .core-deck-tree-title {
-    grid-column: 1;
-    grid-row: 1;
-  }
-
-  .core-deck-tree-header-action {
-    grid-column: 2;
-    grid-row: 1;
   }
 }
 
@@ -4217,10 +4205,6 @@ svg.lucide {
 .core-deck-subfolder-summary .core-deck-summary-leading > span:last-child { flex-basis: auto; }
 .core-deck-subfolder-summary .core-deck-summary-leading > [data-deck-icon] { flex-shrink: 0; }
 .core-deck-subfolder-summary .core-deck-summary-leading > button { order: 1; }
-
-.core-deck-tree-header.core-deck-tree-view-header {
-  grid-template-columns: minmax(0, 1fr) auto;
-}
 
 .core-deck-tree-container .core-deck-tree-layout { gap: var(--core-space-sm); }
 
@@ -6484,7 +6468,17 @@ button.core-info-hint:is(:hover, [data-state="open"]) {
 .dashboard-widget-content { height: var(--dashboard-widget-height); }
 .dashboard-widget-content > * { height: 100%; overflow: hidden; }
 .dashboard-widget[data-dashboard-widget="decks"] .dashboard-widget-content > * { overflow-y: auto; }
-.dashboard-widget[data-dashboard-widget="decks"] .dashboard-widget-content > [data-fitting] { overflow-y: hidden; }
+.dashboard-pins-list { margin-top: var(--core-space-sm); }
+.dashboard-pin { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: var(--core-space-md); min-width: 0; border-bottom: var(--core-border-width) solid var(--core-border); padding-block: var(--core-space-md); }
+.dashboard-pin-name { display: -webkit-box; overflow: hidden; overflow-wrap: anywhere; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
+.dashboard-pin-meta { display: flex; flex-wrap: wrap; gap: 0.125rem var(--core-space-md); margin-top: 0.125rem; }
+.dashboard-pin-count { display: inline-flex; align-items: center; gap: 0.3125rem; }
+.dashboard-pin-count::before { content: ""; width: 0.5rem; height: 0.5rem; border-radius: var(--core-radius-round); background: var(--core-deck-count-color); }
+.dashboard-pin-count > dt { order: 1; }
+.dashboard-pin .core-deck-summary-count-value { font-size: var(--core-type-caption); line-height: var(--core-leading-caption); }
+.dashboard-pin-play { width: var(--core-button-height); padding: 0; border-radius: var(--core-radius-round); }
+.dashboard-pin-play svg { margin-inline-start: 0.125rem; }
+.dashboard-pin-replace { display: grid; gap: var(--core-space-sm); }
 .dashboard-learning-body { height: 100%; align-content: center; }
 .dashboard-todos { display: flex; flex-direction: column; }
 /* The inset keeps focus rings (2 px plus 3 px offset) inside the scroll area. */

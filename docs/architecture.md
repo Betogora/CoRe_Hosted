@@ -229,7 +229,7 @@ Befehlsmodule laufen ohne React, je Arbeitsbereich aus Store, Repository und Syn
 | `core-media-store.v3` | IndexedDB | Mediendateien und persistente SHA-1-Upload-Queue |
 | `core.learningSummaries.v2.<userId>`, `core.learningMindMaps.v2.<userId>` | IndexedDB | Zwischenspeicher und Warteschlange der Lerndokumente |
 | `core.accountState.v2`, `core.syncDevice.v2` | `accountStorage` | Accountzustand und Gerät; darin `core.fieldTimings.v1` |
-| `core.pomodoroTimer.v1`, `core.dashboard.widgets.v1` | Accountnamespace | Fokustimer, Widgetlayout und eigene To-dos |
+| `core.pomodoroTimer.v1`, `core.dashboard.*` | Accountnamespace | Fokustimer, Widgetlayout, eigene To-dos, Lerntage |
 | `core.theme.v1` | Browser | Theme-Präferenz |
 | `core.manualDraft.v1.<userId>` | `sessionStorage` | manueller Entwurf ohne Bilder |
 

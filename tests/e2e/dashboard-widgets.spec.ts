@@ -149,7 +149,7 @@ test("Touch-Drag übernimmt erst beim Loslassen; touchCancel verwirft die Vorsch
   await session.detach();
 });
 
-test("Feste Formate: Kacheln gleich hoch, Stapel in voller Breite, To-dos scrollen statt zu wachsen", async ({ page }, info) => {
+test("Feste Formate: Kacheln gleich hoch, Stapel in einer Spalte, To-dos scrollen statt zu wachsen", async ({ page }, info) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   await openEditor(page);
   await page.getByRole("button", { name: "Fertig", exact: true }).click();
@@ -157,11 +157,12 @@ test("Feste Formate: Kacheln gleich hoch, Stapel in voller Breite, To-dos scroll
     const rect = widget.getBoundingClientRect();
     return { id: widget.getAttribute("data-dashboard-widget"), top: rect.top, bottom: rect.bottom, left: rect.left, right: rect.right };
   }));
-  const grid = (await page.locator(".dashboard-widget-grid").boundingBox())!;
   const decks = (await page.locator('[data-dashboard-widget="decks"]').boundingBox())!;
-  expect(Math.abs(decks.width - grid.width)).toBeLessThan(2);
   const todos = page.locator('[data-dashboard-widget="todos"]');
-  const todosHeight = (await todos.boundingBox())!.height;
+  const todosBox = (await todos.boundingBox())!;
+  expect(Math.abs(decks.width - todosBox.width)).toBeLessThan(2);
+  expect(Math.abs(decks.height - todosBox.height)).toBeLessThan(2);
+  const todosHeight = todosBox.height;
   expect(Math.abs(todosHeight - (await page.locator('[data-dashboard-widget="heatmap"]').boundingBox())!.height)).toBeLessThan(2);
   await page.getByRole("spinbutton", { name: "Minuten", exact: true }).fill("45");
   await expect(page.getByRole("spinbutton", { name: "Minuten", exact: true })).toHaveValue("45");
@@ -188,7 +189,7 @@ test("Feste Formate: Kacheln gleich hoch, Stapel in voller Breite, To-dos scroll
   await page.screenshot({ path: info.outputPath("04-aufgeklappt.png") });
 });
 
-test("Gespeicherte Reihenfolge ist sichtbare Reihenfolge: keine Kachel rückt vor die volle Breite", async ({ page }) => {
+test("Gespeicherte Reihenfolge ist sichtbare Reihenfolge: keine Kachel rückt vor den Stapel-Baustein", async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   await openEditor(page);
   await page.getByRole("button", { name: "Lerntimer nach hinten", exact: true }).click();
@@ -291,9 +292,8 @@ for (const { width, height } of sizes) for (const theme of matrixThemes) test(`W
   await page.setViewportSize({ width, height });
   await openEditor(page, theme === "dark");
   await page.getByRole("button", { name: "Fertig", exact: true }).click();
-  await page.getByRole("button", { name: "Als Kacheln anzeigen", exact: true }).click();
-  await page.getByTestId("dashboard-deck-list").scrollIntoViewIfNeeded();
-  if (visualOutput) await page.screenshot({ path: info.outputPath("08-stapelkacheln.png") });
+  await page.locator('[data-dashboard-widget="decks"]').scrollIntoViewIfNeeded();
+  if (visualOutput) await page.screenshot({ path: info.outputPath("08-angepinnte-stapel.png") });
   expect(await page.locator(".catalog-product-preview").evaluate((element) => element.scrollWidth > element.clientWidth + 1)).toBe(false);
   await page.getByRole("button", { name: "Seite bearbeiten", exact: true }).click();
   const more = page.getByRole("button", { name: "Weitere Widgets", exact: true });

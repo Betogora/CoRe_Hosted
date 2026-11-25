@@ -10,7 +10,7 @@ import { getLearningTimeZone } from "./learningDay.ts";
 import { createDeckLibraryModel } from "./libraryModel.ts";
 import { updateDeckNewCardLimitForDate } from "./reviewService.ts";
 import { applyDeckSettingsDraftChanges, createDeckSettingsDraft, normalizeDeckSettingsDraft, type DeckSettingsDraft, type GeneralSettingsDraft, type GlobalCardSettingsDraft } from "./settingsDraft.ts";
-import { setDeckExpanded, type DeckExpansionSurface } from "./uiPreferences.ts";
+import { setDeckExpanded } from "./uiPreferences.ts";
 import type { WorkspaceHydrationService } from "./workspaceHydrationService.ts";
 import type { WorkspaceStore } from "./workspaceStore.ts";
 
@@ -248,13 +248,13 @@ export function createDeckCommands({ store, repository, hydration, refresh, requ
     await saveExamPlanning(withExamDailyTasks(getGlobalSchedulerPreferences(latest.profile).examPlanning, dailyTasks));
   }
 
-  function saveDeckExpansion(surface: DeckExpansionSurface, deckId: string, expanded: boolean) {
+  function saveDeckExpansion(deckId: string, expanded: boolean) {
     const currentState = store.get().state;
     if (!currentState) return null;
     const profile = currentState.profile;
     return runRepositoryMutation((current) => current.saveProfile({
       ...profile,
-      uiPreferences: setDeckExpanded(profile.uiPreferences, surface, deckId, expanded),
+      uiPreferences: setDeckExpanded(profile.uiPreferences, deckId, expanded),
     }), { preserveCardPages: true });
   }
 
@@ -266,6 +266,16 @@ export function createDeckCommands({ store, repository, hydration, refresh, requ
       ...profile,
       // saveProfile normalizes the preferences (limit, lengths, duplicate ids).
       uiPreferences: { ...profile.uiPreferences, savedSearches: searches },
+    }), { preserveCardPages: true });
+  }
+
+  function saveDashboardPins(deckIds: string[]) {
+    const currentState = store.get().state;
+    if (!currentState) return null;
+    const profile = currentState.profile;
+    return runRepositoryMutation((current) => current.saveProfile({
+      ...profile,
+      uiPreferences: { ...profile.uiPreferences, dashboardPinnedDeckIds: deckIds },
     }), { preserveCardPages: true });
   }
 
@@ -306,5 +316,6 @@ export function createDeckCommands({ store, repository, hydration, refresh, requ
     saveExamTasks,
     saveDeckExpansion,
     saveSearches,
+    saveDashboardPins,
   };
 }

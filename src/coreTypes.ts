@@ -44,12 +44,13 @@ export interface Profile {
 }
 
 export interface UiPreferences {
-  dashboardCollapsedDeckIds: string[];
   learnCollapsedDeckIds: string[];
   syncIntervalMinutes: SyncIntervalMinutes;
   /** Names of the flags 1–7; an empty name stands for the color name. */
   flagNames: string[];
   savedSearches: SavedCardSearch[];
+  /** Newest pin first, at most four. */
+  dashboardPinnedDeckIds: string[];
 }
 
 /** A named search expression; relative terms (`rated:1`, `is:due`) resolve whenever it is applied. */

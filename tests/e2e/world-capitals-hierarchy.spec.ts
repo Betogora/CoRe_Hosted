@@ -141,12 +141,13 @@ async function expectDeckOptionUsesFullWidth(option: Locator) {
   })).toBe(true);
 }
 
-test("dashboard shows the full grouped tree without progress ring and direct drag-and-drop", async ({ page }) => {
+test("learning shows the full grouped tree without progress ring and direct drag-and-drop", async ({ page }) => {
   await resetToFreshLocalState(page);
+  await mainMenu(page).getByRole("button", { name: "Lernen" }).click();
 
-  const rootRow = page.getByTestId(`dashboard-deck-row-${DECK_IDS.root}`);
-  const europeRow = page.getByTestId(`dashboard-deck-row-${DECK_IDS.europe}`);
-  const southAmericaRow = page.getByTestId(`dashboard-deck-row-${DECK_IDS.southAmerica}`);
+  const rootRow = page.getByTestId(`learn-deck-row-${DECK_IDS.root}`);
+  const europeRow = page.getByTestId(`learn-deck-row-${DECK_IDS.europe}`);
+  const southAmericaRow = page.getByTestId(`learn-deck-row-${DECK_IDS.southAmerica}`);
   await expect(rootRow).toBeVisible();
   await expect(europeRow).toBeVisible();
   await expect(metric(rootRow, "new")).toContainText("Neu");
@@ -162,15 +163,15 @@ test("dashboard shows the full grouped tree without progress ring and direct dra
   await expect(rootRow).toHaveCSS("border-bottom-width", "1px");
 
   await rootRow.getByRole("button", { name: "Stapeloptionen für Welt-Hauptstädte" }).click();
-  const dashboardMenu = page.getByTestId(`deck-options-menu-${DECK_IDS.root}`);
-  await expect(dashboardMenu.locator('[data-deck-icon="true"]')).toBeVisible();
-  await expect(dashboardMenu.getByRole("button", { name: "Einstellungen" })).toBeVisible();
-  await expect(dashboardMenu.getByRole("button", { name: "Verschieben" })).toBeVisible();
-  await expect(dashboardMenu.getByRole("button", { name: "Lernen", exact: true })).toBeVisible();
-  await expect(dashboardMenu.getByRole("button", { name: "Alle Karten frei üben" })).toBeVisible();
-  await expect(dashboardMenu.getByRole("button", { name: /Umbenennen|Unterstapel|Löschen/ })).toHaveCount(0);
-  await dashboardMenu.getByRole("button", { name: "Einstellungen" }).click();
-  await expect(page).toHaveURL(new RegExp(`/\\?settingsDeck=${DECK_IDS.root}&settings=start$`));
+  const deckMenu = page.getByTestId(`deck-options-menu-${DECK_IDS.root}`);
+  await expect(deckMenu.locator('[data-deck-icon="true"]')).toBeVisible();
+  await expect(deckMenu.getByRole("button", { name: "Einstellungen" })).toBeVisible();
+  await expect(deckMenu.getByRole("button", { name: "Verschieben" })).toBeVisible();
+  await expect(deckMenu.getByRole("button", { name: "Lernen", exact: true })).toBeVisible();
+  await expect(deckMenu.getByRole("button", { name: "Alle Karten frei üben" })).toBeVisible();
+  await expect(deckMenu.getByRole("button", { name: /Umbenennen|Unterstapel|Löschen/ })).toHaveCount(0);
+  await deckMenu.getByRole("button", { name: "Einstellungen" }).click();
+  await expect(page).toHaveURL(new RegExp(`/lernen\\?(?:.*&)?settingsDeck=${DECK_IDS.root}&settings=start$`));
   await deckSettingsDialog(page).getByRole("button", { name: "Stapeleinstellungen schließen" }).click();
   await expect(rootRow).toBeVisible();
 
@@ -185,17 +186,17 @@ test("dashboard shows the full grouped tree without progress ring and direct dra
 test("deck drag focus uses square row holes with desktop top bar and mobile bottom bar targets", async ({ page }) => {
   await page.setViewportSize({ width: 1536, height: 1000 });
   await resetToFreshLocalState(page);
+  await mainMenu(page).getByRole("button", { name: "Lernen" }).click();
 
-  const source = page.getByTestId(`dashboard-deck-row-${DECK_IDS.root}`);
+  const source = page.getByTestId(`learn-deck-row-${DECK_IDS.root}`);
   await startDeckDrag(page, source);
   const overlay = page.getByTestId("deck-drag-focus-overlay");
   await expect(overlay).toBeVisible();
   const sourceHole = overlay.locator('[data-drag-focus-hole="true"]');
   await expect(sourceHole).toHaveCount(1);
   expect(await sourceHole.getAttribute("rx")).toBeNull();
-  await expect(page.getByTestId("dashboard-deck-list-header")).not.toContainText("Auf die Hauptebene verschieben");
   const topBarPanel = page.locator('[data-navigation-layout="top-bar"] [data-shell-bar]');
-  const topBarTarget = page.getByTestId("dashboard-top-drop-zone");
+  const topBarTarget = page.getByTestId("learn-top-drop-zone");
   await expect(topBarTarget).toHaveAttribute("data-deck-top-drop-placement", "top-bar");
   const [topBarBox, topBarTargetBox] = await Promise.all([topBarPanel.boundingBox(), topBarTarget.boundingBox()]);
   expect(topBarBox).not.toBeNull();
@@ -211,7 +212,7 @@ test("deck drag focus uses square row holes with desktop top bar and mobile bott
   await expect(bottomBar).toBeVisible();
   const bottomBarBox = await bottomBar.boundingBox();
   await startDeckDrag(page, source);
-  const bottomTarget = page.getByTestId("dashboard-top-drop-zone");
+  const bottomTarget = page.getByTestId("learn-top-drop-zone");
   await expect(bottomTarget).toHaveAttribute("data-deck-top-drop-placement", "bottom-bar");
   const bottomTargetBox = await bottomTarget.boundingBox();
   expect(bottomBarBox).not.toBeNull();
@@ -275,35 +276,6 @@ test("statistics deck filter uses full-width selection rows while keeping multip
   await expect(trigger).toHaveAttribute("aria-expanded", "false");
   await trigger.click();
   await expect(page.getByRole("textbox", { name: "Stapel suchen" })).toHaveValue("");
-});
-
-test("dashboard deck header keeps its labels intact while changing rows at most once", async ({ page }) => {
-  await resetToFreshLocalState(page);
-
-  const widths = visualOutput ? [1440, 1280, 1279, 1152, 1024, 900, 768, 700, 640, 639, 390, 320] : [1440, 1280, 1279, 768, 640, 639, 390, 320];
-  let stackedHeaderSeen = false;
-  for (const width of widths) {
-    await page.setViewportSize({ width, height: 900 });
-    const layout = await page.getByTestId("dashboard-deck-list-header").evaluate((header: HTMLElement) => {
-      const centerY = (rect: DOMRect) => rect.top + rect.height / 2;
-      const title = header.querySelector<HTMLElement>("h3")!;
-      const action = header.querySelector<HTMLElement>("button")!;
-      const titleRect = title.getBoundingClientRect();
-      const actionRect = action.getBoundingClientRect();
-      return {
-        sameRow: Math.abs(centerY(titleRect) - centerY(actionRect)) <= 1,
-        titleSingleLine: title.scrollHeight <= title.clientHeight + 1,
-        actionSingleLine: action.scrollHeight <= action.clientHeight + 1,
-        pageFitsViewport: document.documentElement.scrollWidth <= window.innerWidth + 1,
-      };
-    });
-
-    if (!layout.sameRow) stackedHeaderSeen = true;
-    else expect(stackedHeaderSeen).toBe(false);
-    expect(layout.titleSingleLine).toBe(true);
-    expect(layout.actionSingleLine).toBe(true);
-    expect(layout.pageFitsViewport).toBe(true);
-  }
 });
 
 test("active deck header and rows fit every target width and toggle reliably on mobile", async ({ page }) => {
@@ -761,13 +733,10 @@ test("a real Play click immediately after drag starts learning", async ({ page }
   await expect(page.getByRole("button", { name: "Antwort anzeigen" })).toBeVisible();
 });
 
-test("three-dot actions share the local-name tooltip across dashboard and learning", async ({ page }) => {
+test("three-dot actions use the local-name tooltip in learning", async ({ page }) => {
   await resetToFreshLocalState(page);
 
   const tooltip = page.getByRole("tooltip");
-  const dashboardOptions = page.getByRole("button", { name: "Stapeloptionen für Welt-Hauptstädte / Afrika" });
-  await expect(dashboardOptions).not.toHaveAttribute("title");
-
   await mainMenu(page).getByRole("button", { name: "Lernen" }).click();
   const learningOptions = page.getByRole("button", { name: "Stapeloptionen für Welt-Hauptstädte / Afrika" });
   await expect(learningOptions).not.toHaveAttribute("title");
