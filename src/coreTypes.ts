@@ -51,7 +51,12 @@ export interface UiPreferences {
   savedSearches: SavedCardSearch[];
   /** Newest pin first, at most four. */
   dashboardPinnedDeckIds: string[];
+  /** Learning days on which a deck was started, within the 14 latest of them; merged as a set across devices. */
+  dashboardStudyDays: DashboardStudyDay[];
 }
+
+/** `day` is a learning day key `YYYY-MM-DD`. */
+export type DashboardStudyDay = { deckId: string; day: string };
 
 /** A named search expression; relative terms (`rated:1`, `is:due`) resolve whenever it is applied. */
 export type SavedCardSearch = { id: string; name: string; query: string };

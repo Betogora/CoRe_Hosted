@@ -1,5 +1,5 @@
 import type { User } from "@supabase/supabase-js";
-import { clearCloudAuthRedirectParams, getCloudWorkspaceUser, getPersistedCloudUser, readCloudAuthRedirectOutcome } from "./cloudAuth.ts";
+import { clearCloudAuthRedirectParams, getCloudWorkspaceUser, getPersistedCloudUser, loadCloudProfileChange, readCloudAuthRedirectOutcome } from "./cloudAuth.ts";
 import { createCoreRepository } from "./coreRepository.ts";
 import type { WorkspaceState } from "./coreWorkspace.ts";
 import { markReplicaStartupGate, markSessionChecked, markStartupPhaseReady, markStartupPhaseStarted } from "./appPerformance.ts";
@@ -217,12 +217,23 @@ async function finishAuthenticatedWorkspaceCloudSync(
     import("./cloudRepository.ts"),
     import("./syncEngine.ts"),
   ]);
+  let profileSeenAt: string | null = null;
+  // A running app reads the profile again only after another device or tab changed it.
+  const pullProfile = async () => {
+    const change = await loadCloudProfileChange(supabase, userId, profileSeenAt);
+    if (!change) return false;
+    profileSeenAt = change.updatedAt;
+    const before = JSON.stringify(repository.getShellState().profile);
+    await applyBootstrapProfile(repository, change.profile, userId);
+    return JSON.stringify(repository.getShellState().profile) !== before;
+  };
   const pullChanges = async () => {
     const previousCursor = repository.getReplicaStatus().catalogCursor;
     const nextCursor = await streamAccountCatalogChanges(supabase, previousCursor, (pages) => repository.applyCloudCatalogPages(pages, { keepComplete: true }));
     await repository.completeCatalogReconciliation(nextCursor);
     markReplicaStartupGate("catalogReconciled", { cursor: nextCursor });
-    return nextCursor !== previousCursor;
+    const profileChanged = await pullProfile();
+    return nextCursor !== previousCursor || profileChanged;
   };
   const syncEngine = createAccountSyncEngine(supabase, {
     userId,

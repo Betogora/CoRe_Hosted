@@ -20,7 +20,7 @@ import { insertEntityMutation, planEntityMutations } from "./syncMutationPlanner
 import { MANUAL_BURY_KIND, MANUAL_UNBURY_KIND } from "./siblingBurying.ts";
 import { createTagDirectoryBuilder } from "./tagDirectory.ts";
 import type { StatisticsSelection } from "./statisticsModel.ts";
-import { requireCompleteProfile } from "./profileIntegrity.ts";
+import { changeProfile, requireCompleteProfile, type ProfileChange } from "./profileIntegrity.ts";
 import { markStartupPhaseReady, markStartupPhaseStarted } from "./appPerformance.ts";
 import {
   catalogEntryFromCard,
@@ -118,6 +118,18 @@ export async function createIndexedDbCoreRepository({ userId, initialState, inde
     pendingEntityMutationIds,
     stageMutations,
   } = createReplicaOutbox({ userId, database, outboxRows, enqueueWrite, flushWrites });
+  // The shell changes before the queued write, so a profile patch made meanwhile builds on this profile.
+  const storeProfile = (profile: Profile, mutationBatch?: ReturnType<typeof stageMutations>) => {
+    const updatedAt = new Date().toISOString();
+    shell = { ...shell!, profile, updatedAt };
+    return enqueueWrite(async () => {
+      const transaction = database.transaction([STORE.meta, STORE.outbox], "readwrite");
+      transaction.objectStore(STORE.meta).put({ key: "profile", value: profile });
+      transaction.objectStore(STORE.meta).put({ key: "updatedAt", value: updatedAt });
+      mutationBatch?.write(transaction);
+      await transactionDone(transaction);
+    });
+  };
   let syncConflictCardIds = new Set<string>(syncConflictCardIdRow?.value ?? []);
   let replicaStatus: ReplicaStatus = replicaStatusRow?.value ?? {
     accountBaselineState: shell!.decks.length > 0 ? "nonempty" : "uninitialized",
@@ -571,13 +583,7 @@ export async function createIndexedDbCoreRepository({ userId, initialState, inde
       }
     },
     async applyCloudProfile(profile: Profile) {
-      const completeProfile = requireCompleteProfile(profile, userId);
-      const updatedAt = new Date().toISOString();
-      const transaction = database.transaction(STORE.meta, "readwrite");
-      transaction.objectStore(STORE.meta).put({ key: "profile", value: completeProfile });
-      transaction.objectStore(STORE.meta).put({ key: "updatedAt", value: updatedAt });
-      await transactionDone(transaction);
-      shell = { ...shell!, profile: completeProfile, updatedAt };
+      await storeProfile(requireCompleteProfile(profile, userId));
     },
     saveDeckMetadata,
     async deleteDeckTree(deckId: string) {
@@ -639,19 +645,10 @@ export async function createIndexedDbCoreRepository({ userId, initialState, inde
         }),
       }])[0] ?? null;
     },
-    saveProfile(profile: Profile) {
-      const completeProfile = requireCompleteProfile(profile, userId);
-      const updatedAt = new Date().toISOString();
-      shell = { ...shell!, profile: completeProfile, updatedAt };
-      const mutationBatch = stageMutations([{ type: "profile-patch", table: "profiles", entityId: completeProfile.userId, payload: { profile: completeProfile } }]);
-      void enqueueWrite(async () => {
-        const transaction = database.transaction([STORE.meta, STORE.outbox], "readwrite");
-        transaction.objectStore(STORE.meta).put({ key: "profile", value: completeProfile });
-        transaction.objectStore(STORE.meta).put({ key: "updatedAt", value: updatedAt });
-        mutationBatch.write(transaction);
-        await transactionDone(transaction);
-      });
-      return completeProfile;
+    patchProfile(change: ProfileChange | ((profile: Profile) => ProfileChange | null)) {
+      const { profile, patch } = changeProfile(shell!.profile, change, outbox.listPending(), userId);
+      if (patch) void storeProfile(profile, stageMutations([{ type: "profile-patch", table: "profiles", entityId: userId, payload: { patch, profile } }]));
+      return profile;
     },
     listDeckSummaries: studyOverview.listDeckSummaries,
     prepareCardSearch: () => ensureSearchIndex(),

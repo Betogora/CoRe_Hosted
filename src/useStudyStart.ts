@@ -1,6 +1,6 @@
 import React from "react";
 import { createReviewReturnContext, createStudyRoute, createViewRoute, reviewReturnContextToViewRoute } from "./appNavigation.ts";
-import { currentLearningDay, recordDeckStudyDay } from "./dashboardWidgets.ts";
+import { currentLearningDay } from "./dashboardWidgets.ts";
 import type { DeckCommands } from "./deckCommands.ts";
 import { EXAM_SESSION_DECK_ID } from "./examPlanSettings.ts";
 import { HIT_SESSION_DECK_ID, type HitStudyOrder } from "./hitStudySession.ts";
@@ -86,7 +86,7 @@ export function useStudyStart({ preparation, session, navigation, deckCommands, 
       if (outcome?.status !== "ready") return;
       adopt(outcome.preparation, preparationKey);
       navigateToRoute(createStudyRoute(deck.id, { returnContext }));
-      if (state) recordDeckStudyDay(state.profile.userId, deck.id, currentLearningDay(state.profile));
+      if (state) deckCommands?.recordDashboardStudyDay(deck.id, currentLearningDay(state.profile));
     } finally {
       if (session.preparingKeyRef.current === preparationKey) session.preparingKeyRef.current = "";
     }

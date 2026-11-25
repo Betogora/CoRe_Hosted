@@ -1,6 +1,6 @@
 import { expect, test, type Locator, type Page } from "@playwright/test";
 import { CORE_THEME_STORAGE_KEY } from "../../src/coreTheme.ts";
-import { readActiveAccountState, resetToFreshLocalState } from "./support/appState.ts";
+import { readActiveAccountState, resetToFreshLocalState, signedInTestClient } from "./support/appState.ts";
 import { openSettingsArea, settingsDialog } from "./support/settingsDialog.ts";
 import { openNavigationMenuItem, shellBackButton, switchColorScheme } from "./support/navigationMenu.ts";
 import { matrixThemes, matrixViewports } from "./support/visualMatrix.ts";
@@ -270,6 +270,23 @@ test("pinned decks on Heute stay in the profile and unpin only after confirmatio
   await dialog.getByRole("button", { name: "Lösen", exact: true }).click();
   await expect(pinned).toHaveCount(0);
   await expect.poll(async () => (await readActiveAccountState(page)).profile.uiPreferences.dashboardPinnedDeckIds).toEqual([]);
+});
+
+test("a pin on this device keeps a newer setting from another device and shows it after the next sync", async ({ page }) => {
+  await resetToFreshLocalState(page);
+  const { client, userId } = await signedInTestClient();
+  const { error } = await client.rpc("patch_account_profile", { p_patch: { scheduler_preferences: { dayStartHour: 5 } } });
+  expect(error).toBeNull();
+
+  const widget = page.locator('[data-dashboard-widget="decks"]');
+  await widget.getByRole("combobox", { name: "Stapel anpinnen" }).click();
+  await page.getByRole("option", { name: "Welt-Hauptstädte / Afrika", exact: true }).click();
+
+  await expect.poll(async () => {
+    const { data } = await client.from("profiles").select("scheduler_preferences,ui_preferences").eq("id", userId).single();
+    return [(data?.scheduler_preferences as { dayStartHour?: number } | undefined)?.dayStartHour, (data?.ui_preferences as { dashboardPinnedDeckIds?: string[] } | undefined)?.dashboardPinnedDeckIds];
+  }, { timeout: 20_000 }).toEqual([5, ["deck_world_capitals_afrika"]]);
+  await expect.poll(async () => (await readActiveAccountState(page)).profile.schedulerPreferences.dayStartHour, { timeout: 20_000 }).toBe(5);
 });
 
 test("deck expansion responds immediately in learning", async ({ page }) => {

@@ -188,22 +188,14 @@ export function createDeckCommands({ store, repository, hydration, refresh, requ
   function saveLearningProfiles(learningProfiles: LearningProfileTemplate[]) {
     const state = store.get().state;
     if (!state) return null;
-    return runRepositoryMutation((current) => current.saveProfile(withGlobalSchedulerPreferences(state.profile, { learningProfiles })));
+    return runRepositoryMutation((current) => current.patchProfile({ schedulerPreferences: { learningProfiles } }));
   }
 
   function saveGeneralSettings(draft: GeneralSettingsDraft) {
     const currentState = store.get().state;
     if (!currentState) return null;
     const syncIntervalChanged = currentState.profile.uiPreferences.syncIntervalMinutes !== draft.syncIntervalMinutes;
-    const profile = {
-      ...currentState.profile,
-      displayName: draft.displayName,
-      uiPreferences: {
-        ...currentState.profile.uiPreferences,
-        syncIntervalMinutes: draft.syncIntervalMinutes,
-      },
-    };
-    const saved = runRepositoryMutation((current) => current.saveProfile(profile));
+    const saved = runRepositoryMutation((current) => current.patchProfile({ displayName: draft.displayName, uiPreferences: { syncIntervalMinutes: draft.syncIntervalMinutes } }));
     if (saved && syncIntervalChanged) void syncNow().catch(() => undefined);
     return saved;
   }
@@ -211,21 +203,20 @@ export function createDeckCommands({ store, repository, hydration, refresh, requ
   function saveGlobalCardSettings(draft: GlobalCardSettingsDraft, scope: GlobalLearningSettingsSaveScope) {
     const currentState = store.get().state;
     if (!currentState) return null;
-    const nextProfile = withGlobalSchedulerPreferences({
-      ...currentState.profile,
-      uiPreferences: { ...currentState.profile.uiPreferences, flagNames: draft.flagNames },
-    }, {
-      dayStartHour: draft.dayStartHour,
-      learnAheadMinutes: draft.learnAheadMinutes,
-      leechThreshold: draft.leechThreshold,
-      easyDays: draft.easyDays,
-      defaultLearningSettings: draft.learning,
-    });
     let updatedDecks: Deck[] = [];
     const saved = runRepositoryMutation((current) => {
-      const savedProfile = current.saveProfile(nextProfile);
+      const savedProfile = current.patchProfile({
+        uiPreferences: { flagNames: draft.flagNames },
+        schedulerPreferences: {
+          dayStartHour: draft.dayStartHour,
+          learnAheadMinutes: draft.learnAheadMinutes,
+          leechThreshold: draft.leechThreshold,
+          easyDays: draft.easyDays,
+          defaultLearningSettings: draft.learning,
+        },
+      });
       if (scope === "all-decks") {
-        updatedDecks = current.saveDeckMetadata(currentState.decks.map((deck) => applyGlobalLearningDefaultsToDeck(deck, nextProfile.schedulerPreferences)));
+        updatedDecks = current.saveDeckMetadata(currentState.decks.map((deck) => applyGlobalLearningDefaultsToDeck(deck, getGlobalSchedulerPreferences(savedProfile))));
       }
       return savedProfile;
     }, { preserveCardPages: true });
@@ -236,7 +227,7 @@ export function createDeckCommands({ store, repository, hydration, refresh, requ
   async function saveExamPlanning(settings: ExamPlanningSettings) {
     const currentState = store.get().state;
     const saved = currentState
-      ? runRepositoryMutation((current) => current.saveProfile(withGlobalSchedulerPreferences(currentState.profile, { examPlanning: validateExamPlanningSettings(settings) })), { preserveCardPages: true })
+      ? runRepositoryMutation((current) => current.patchProfile({ schedulerPreferences: { examPlanning: validateExamPlanningSettings(settings) } }), { preserveCardPages: true })
       : null;
     if (!saved) throw new Error("Die Prüfungsplanung konnte nicht gespeichert werden.");
   }
@@ -251,32 +242,30 @@ export function createDeckCommands({ store, repository, hydration, refresh, requ
   function saveDeckExpansion(deckId: string, expanded: boolean) {
     const currentState = store.get().state;
     if (!currentState) return null;
-    const profile = currentState.profile;
-    return runRepositoryMutation((current) => current.saveProfile({
-      ...profile,
-      uiPreferences: setDeckExpanded(profile.uiPreferences, deckId, expanded),
-    }), { preserveCardPages: true });
+    return runRepositoryMutation((current) => current.patchProfile((profile) => ({
+      uiPreferences: { learnCollapsedDeckIds: setDeckExpanded(profile.uiPreferences, deckId, expanded).learnCollapsedDeckIds },
+    })), { preserveCardPages: true });
   }
 
   function saveSearches(searches: SavedCardSearch[]) {
     const currentState = store.get().state;
     if (!currentState) return null;
-    const profile = currentState.profile;
-    return runRepositoryMutation((current) => current.saveProfile({
-      ...profile,
-      // saveProfile normalizes the preferences (limit, lengths, duplicate ids).
-      uiPreferences: { ...profile.uiPreferences, savedSearches: searches },
-    }), { preserveCardPages: true });
+    // patchProfile normalizes the preferences (limit, lengths, duplicate ids).
+    return runRepositoryMutation((current) => current.patchProfile({ uiPreferences: { savedSearches: searches } }), { preserveCardPages: true });
   }
 
   function saveDashboardPins(deckIds: string[]) {
     const currentState = store.get().state;
     if (!currentState) return null;
-    const profile = currentState.profile;
-    return runRepositoryMutation((current) => current.saveProfile({
-      ...profile,
-      uiPreferences: { ...profile.uiPreferences, dashboardPinnedDeckIds: deckIds },
-    }), { preserveCardPages: true });
+    return runRepositoryMutation((current) => current.patchProfile({ uiPreferences: { dashboardPinnedDeckIds: deckIds } }), { preserveCardPages: true });
+  }
+
+  /** A deck counts once per learning day; a repeated start changes nothing. */
+  function recordDashboardStudyDay(deckId: string, day: string) {
+    if (store.get().state?.profile.uiPreferences.dashboardStudyDays.some((entry) => entry.deckId === deckId && entry.day === day) !== false) return null;
+    return runRepositoryMutation((current) => current.patchProfile(({ uiPreferences: { dashboardStudyDays } }) => (
+      dashboardStudyDays.some((entry) => entry.deckId === deckId && entry.day === day) ? null : { uiPreferences: { dashboardStudyDays: [...dashboardStudyDays, { deckId, day }] } }
+    )), { preserveCardPages: true });
   }
 
   async function downloadDeck(deckId: string) {
@@ -317,5 +306,6 @@ export function createDeckCommands({ store, repository, hydration, refresh, requ
     saveDeckExpansion,
     saveSearches,
     saveDashboardPins,
+    recordDashboardStudyDay,
   };
 }

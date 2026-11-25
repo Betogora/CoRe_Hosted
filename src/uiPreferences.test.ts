@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { fillDashboardDecks, leastFrequentPin, normalizeUiPreferences, SAVED_SEARCH_LIMIT, setDeckExpanded } from "./uiPreferences.ts";
+import { fillDashboardDecks, leastFrequentPin, mergeStudyDays, normalizeUiPreferences, rankFrequentDeckIds, SAVED_SEARCH_LIMIT, setDeckExpanded } from "./uiPreferences.ts";
 
 test("UI preferences normalize persisted deck ids", () => {
   assert.deepEqual(normalizeUiPreferences({
@@ -12,6 +12,7 @@ test("UI preferences normalize persisted deck ids", () => {
     flagNames: ["", "", "", "", "", "", ""],
     savedSearches: [],
     dashboardPinnedDeckIds: [],
+    dashboardStudyDays: [],
   });
 });
 
@@ -23,6 +24,7 @@ test("deck expansion stores collapsed decks of Lernen", () => {
     flagNames: ["", "", "", "", "", "", ""],
     savedSearches: [],
     dashboardPinnedDeckIds: [],
+    dashboardStudyDays: [],
   });
   assert.equal(normalizeUiPreferences({ syncIntervalMinutes: 15 }).syncIntervalMinutes, 15);
   assert.equal(normalizeUiPreferences({ syncIntervalMinutes: 7 }).syncIntervalMinutes, 5);
@@ -67,4 +69,23 @@ test("das Heute-Widget füllt bis vier Stapel auf: Pins, dann oft gelernte, dann
 test("beim Ersetzen ist der am niedrigsten gerankte Pin vorgewählt, ungerankte zuerst", () => {
   assert.equal(leastFrequentPin(["a", "b", "c"], ["c", "a", "b"]), "b");
   assert.equal(leastFrequentPin(["a", "b", "c", "d"], ["a", "d"]), "c");
+});
+
+test("Lerntage vereinigen sich als Menge, sortiert, ohne ungültige Tage", () => {
+  const merged = mergeStudyDays(
+    [{ deckId: "a", day: "2026-11-20" }, { deckId: "b", day: "2026-11-21" }, { deckId: "", day: "2026-11-21" }, { deckId: "c", day: "21.11.2026" }, { deckId: "d", day: "2026-02-30" }],
+    [{ deckId: "a", day: "2026-11-20" }, { deckId: "c", day: "2026-11-24" }, { deckId: "a", day: "2026-11-01" }],
+  );
+  assert.deepEqual(merged, [{ deckId: "a", day: "2026-11-01" }, { deckId: "a", day: "2026-11-20" }, { deckId: "b", day: "2026-11-21" }, { deckId: "c", day: "2026-11-24" }]);
+  assert.deepEqual(normalizeUiPreferences({ dashboardStudyDays: merged }).dashboardStudyDays, merged);
+});
+
+test("oft gelernt zählt Lerntage bis heute; Gleichstand gewinnt der spätere Tag", () => {
+  const days = [
+    { deckId: "a", day: "2026-11-20" }, { deckId: "a", day: "2026-11-21" },
+    { deckId: "b", day: "2026-11-22" }, { deckId: "b", day: "2026-11-23" },
+    { deckId: "c", day: "2026-11-23" }, { deckId: "later", day: "2026-12-01" }, { deckId: "old", day: "2026-11-05" },
+  ];
+  assert.deepEqual(rankFrequentDeckIds(days, "2026-11-24"), ["b", "a", "c"]);
+  assert.deepEqual(rankFrequentDeckIds(days, "2026-12-05"), ["b", "later", "c"]);
 });

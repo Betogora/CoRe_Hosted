@@ -6,7 +6,7 @@ import { EASY_DAY_KEYS, normalizeEasyDays } from "../easyDays.ts";
 import type { Deck, EasyDayLevel, EasyDays, GlobalSchedulerPreferences, LearningProfileTemplate, Profile } from "../coreTypes.ts";
 import { normalizeDayStartHour } from "../learningDay.ts";
 import { formatSimulationDuration } from "../simulationClock.ts";
-import { createDeckLearningSettingsDraft, createGlobalCardSettingsDraft, settingsDraftsEqual, type GlobalCardSettingsDraft } from "../settingsDraft.ts";
+import { createDeckLearningSettingsDraft, createGlobalCardSettingsDraft, rebaseSettingsDraft, settingsDraftsEqual, type GlobalCardSettingsDraft } from "../settingsDraft.ts";
 import { CrossLinkButton } from "../ui/actionUi.tsx";
 import { CoreTag } from "../ui/coreUi.tsx";
 import { FlagIcon, flagName } from "../ui/flagUi.tsx";
@@ -78,7 +78,7 @@ export function GlobalCardSettingsScreen({ section, decks, onOpenDeckSettings, t
   const setSuccessToast = useSuccessToast();
 
   React.useEffect(() => {
-    setDraft((current) => settingsDraftsEqual(current, baseline) ? persistedDraft : current);
+    setDraft((current) => rebaseSettingsDraft(current, baseline, persistedDraft));
     setBaseline(persistedDraft);
   }, [persistedDraftKey]);
 

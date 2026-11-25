@@ -116,3 +116,8 @@ export function applyDeckSettingsDraftChanges(
 export function settingsDraftsEqual<T>(left: T, right: T): boolean {
   return JSON.stringify(left) === JSON.stringify(right);
 }
+
+/** Fields the learner left untouched follow a newly persisted value, so saving never writes back a stale one. */
+export function rebaseSettingsDraft<T extends object>(draft: T, baseline: T, persisted: T): T {
+  return Object.fromEntries(Object.entries(persisted).map(([key, value]) => [key, settingsDraftsEqual(draft[key as keyof T], baseline[key as keyof T]) ? value : draft[key as keyof T]])) as T;
+}

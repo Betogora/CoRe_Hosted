@@ -883,9 +883,9 @@ Jede Einstellung gilt für genau einen Bereich.
 
 | Gilt für | Einstellungen |
 | --- | --- |
-| Konto, auf allen Geräten | Tagesbeginn, Vorziehfenster, Lernbremse, Easy Days, Lernprofile, Standard für neue Stapel, Flaggennamen, gespeicherte Suchen, Prüfungspläne, Pins von `Heute` |
+| Konto, auf allen Geräten | Tagesbeginn, Vorziehfenster, Lernbremse, Easy Days, Lernprofile, Standard für neue Stapel, Flaggennamen, gespeicherte Suchen, Prüfungspläne, Pins und Lerntage von `Heute` |
 | Einen Stapel | Tageslimits, Reihenfolge und Sortierung, Begraben, Lernschritte, Zielerinnerung, maximales Intervall, CoRe-Modus, Variantenschwelle, aktive Varianten, Name und Aussehen, Offline-Nutzung |
-| Diesen Browser | heller oder dunkler Modus, Heatmap-Farbe, Stapelansicht, Anordnung, Lerntage und eigene To-dos von `Heute`, Pomodoro-Timer, Simulationsuhr |
+| Diesen Browser | heller oder dunkler Modus, Heatmap-Farbe, Stapelansicht, Anordnung und eigene To-dos von `Heute`, Pomodoro-Timer, Simulationsuhr |
 
 - Einstellungen werden als Entwurf geändert und ausdrücklich gespeichert oder verworfen; ein ungespeicherter Entwurf hält jedes Verlassen auf.
 - Stapeleinstellungen öffnen aus den Einstellungen; Zurück führt dorthin.

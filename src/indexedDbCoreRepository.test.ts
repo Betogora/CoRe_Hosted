@@ -1027,3 +1027,24 @@ test("ein vor neuen UI-Präferenzen gespeichertes Profil lädt mit deren Standar
   assert.deepEqual(uiPreferences.learnCollapsedDeckIds, ["deck-idb"]);
   assert.equal(uiPreferences.syncIntervalMinutes, 15);
 });
+
+test("Profiländerungen warten als ein Patch mit genau den geänderten Schlüsseln", async () => {
+  const userId = randomUUID();
+  const initial = workspaceState(1);
+  const repository = await openRepository({ ...initial, profile: { ...initial.profile, userId } }, userId);
+  const profilePatches = () => repository.outbox.listPending().filter((mutation) => mutation.type === "profile-patch");
+  assert.equal(repository.patchProfile({ uiPreferences: { dashboardPinnedDeckIds: [] } }), repository.getShellState().profile);
+  assert.equal(profilePatches().length, 0);
+
+  repository.patchProfile({ uiPreferences: { dashboardPinnedDeckIds: ["deck-idb"] } });
+  repository.patchProfile({ schedulerPreferences: { dayStartHour: 3 } });
+  repository.patchProfile((profile) => ({ uiPreferences: { learnCollapsedDeckIds: [...profile.uiPreferences.learnCollapsedDeckIds, "deck-idb"] } }));
+
+  const [pending] = profilePatches();
+  assert.equal(profilePatches().length, 1);
+  assert.deepEqual((pending.payload as any).patch, {
+    uiPreferences: { dashboardPinnedDeckIds: ["deck-idb"], learnCollapsedDeckIds: ["deck-idb"] },
+    schedulerPreferences: { dayStartHour: 3 },
+  });
+  assert.equal(repository.getShellState().profile.schedulerPreferences.dayStartHour, 3);
+});

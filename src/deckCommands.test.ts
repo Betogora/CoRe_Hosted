@@ -34,7 +34,7 @@ async function setup() {
       timezone: "Europe/Berlin",
       onboardingComplete: true,
       schedulerPreferences: { settingsVersion: 2, dayStartHour: 0 },
-      uiPreferences: { learnCollapsedDeckIds: [], syncIntervalMinutes: 5, flagNames: ["", "", "", "", "", "", ""], savedSearches: [], dashboardPinnedDeckIds: [] },
+      uiPreferences: { learnCollapsedDeckIds: [], syncIntervalMinutes: 5, flagNames: ["", "", "", "", "", "", ""], savedSearches: [], dashboardPinnedDeckIds: [], dashboardStudyDays: [] },
     } as unknown as WorkspaceState["profile"],
     decks: [
       createCoreDeck({ id: "deck-parent", name: "Eltern", source: "manual", cards: cardsOf("deck-parent") }),
@@ -130,4 +130,14 @@ test("Zusatzkarten erhöhen erst nach erreichtem Tagesplan nur das heutige Neuli
     "deck-other": { ...before["deck-other"], newCardsTodayOverride: { date: "2026-11-12", limit: 1 } },
   }, "nur das heutige Limit des gewählten Stapels steigt, höchstens um die neuen Karten, die er noch hat");
   assert.deepEqual(repository.getShellState().decks.find((candidate) => candidate.id === "deck-other")?.deckSettings.newCardsTodayOverride, { date: "2026-11-12", limit: 1 }, "lokal gespeichert");
+});
+
+test("ein Stapel zählt je Lerntag einmal; ein wiederholter Start ändert nichts", async () => {
+  const { repository, commands } = await setup();
+  assert.ok(commands.recordDashboardStudyDay("deck-child", "2026-11-25"));
+  assert.equal(commands.recordDashboardStudyDay("deck-child", "2026-11-25"), null);
+  assert.deepEqual(repository.getShellState().profile.uiPreferences.dashboardStudyDays, [{ deckId: "deck-child", day: "2026-11-25" }]);
+  const pending = repository.outbox.listPending().filter((mutation) => mutation.type === "profile-patch");
+  assert.equal(pending.length, 1);
+  assert.deepEqual((pending[0].payload as { patch?: unknown }).patch, { uiPreferences: { dashboardStudyDays: [{ deckId: "deck-child", day: "2026-11-25" }] } });
 });

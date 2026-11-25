@@ -1,4 +1,4 @@
-import { saveCloudProfile } from "./cloudAuth.ts";
+import { createProfilePatchRow, createProfileRow } from "./cloudAuth.ts";
 import type { Card, CardVariant, ReviewEvent } from "./coreTypes.ts";
 import {
   cardFromRow,
@@ -12,7 +12,7 @@ import {
   type AccountTable,
   type SyncConflictRow,
 } from "./cloudRepositoryValidation.ts";
-import { requireCompleteProfile } from "./profileIntegrity.ts";
+import { readCompleteProfile, type ProfilePatch } from "./profileIntegrity.ts";
 import {
   type CloudRow,
   type CloudUser,
@@ -497,10 +497,15 @@ export async function recordAtomicReview(client: CloudClient, input: AtomicRevie
   };
 }
 
-export async function upsertAccountCloudProfile(client: CloudClient, profile: unknown, { mutationId, flushedAt }: { mutationId?: string; flushedAt?: string } = {}) {
+/** `profile` is the full local profile; it only fills a row that does not exist yet. */
+export async function patchAccountCloudProfile(client: CloudClient, patch: ProfilePatch | null, profile: unknown, { mutationId }: { mutationId?: string } = {}) {
   const resolvedMutationId = requireNonEmptyString(mutationId, "Mutation-ID fehlt.");
-  const writeTimestamp = requireTimestamp(flushedAt, nowIso, "Flush-Zeitpunkt ist ungültig.");
-  await saveCloudProfile(client, requireCompleteProfile(profile), writeTimestamp);
+  if (!patch) throw new Error("Profilpatch fehlt.");
+  const user = await getAuthenticatedUser(client);
+  const complete = readCompleteProfile(profile, user.id);
+  const { id: _id, updated_at: _updatedAt, ...insertRow } = createProfileRow(complete ?? {}, { ...user, email: complete?.email ?? null });
+  const { error } = await client.rpc("patch_account_profile", { p_patch: createProfilePatchRow(patch), p_insert: insertRow });
+  if (error) throw error;
   return { acknowledgedMutationId: resolvedMutationId };
 }
 
