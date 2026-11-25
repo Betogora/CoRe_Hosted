@@ -1,6 +1,6 @@
 import { expect, test, type Locator, type Page } from "@playwright/test";
 import { CORE_THEME_STORAGE_KEY } from "../../src/coreTheme.ts";
-import { readActiveAccountState, resetToFreshLocalState } from "./support/appState.ts";
+import { readActiveAccountState, resetToFreshLocalState, signedInTestClient } from "./support/appState.ts";
 import { openSettingsArea, settingsDialog } from "./support/settingsDialog.ts";
 import { openNavigationMenuItem, shellBackButton, switchColorScheme } from "./support/navigationMenu.ts";
 import { matrixThemes, matrixViewports } from "./support/visualMatrix.ts";
@@ -202,7 +202,8 @@ test("settings save bar keeps its depth and responsive position", async ({ page 
 test("deck expansion preserves the complete profile across reload and an isolated browser context", async ({ page, browser }) => {
   await resetToFreshLocalState(page);
   const before = (await readActiveAccountState(page)).profile;
-  const rootRow = page.getByTestId("dashboard-deck-row-deck_world_capitals");
+  await page.goto("/lernen");
+  const rootRow = page.getByTestId("learn-deck-row-deck_world_capitals");
   const toggle = rootRow.getByRole("button", { name: /Unterstapel von Welt-Hauptstädte (?:anzeigen|ausblenden)/ });
 
   await toggle.click();
@@ -246,13 +247,52 @@ test("deck expansion preserves the complete profile across reload and an isolate
   }
 });
 
-test("deck expansion responds immediately on dashboard and learning", async ({ page }) => {
+test("pinned decks on Heute stay in the profile and unpin only after confirmation", async ({ page }) => {
+  await resetToFreshLocalState(page);
+  const widget = page.locator('[data-dashboard-widget="decks"]');
+  await expect(widget.getByRole("heading", { name: "Oft gelernte Stapel", exact: true })).toBeVisible();
+  await widget.getByRole("combobox", { name: "Stapel anpinnen" }).click();
+  await page.getByRole("option", { name: "Welt-Hauptstädte / Afrika", exact: true }).click();
+  const pinned = widget.getByTestId("pinned-deck-deck_world_capitals_afrika");
+  await expect(pinned).toBeVisible();
+  await expect(widget.locator("li").first()).toHaveAttribute("data-testid", "pinned-deck-deck_world_capitals_afrika");
+  await expect(widget.getByRole("heading", { name: "Angepinnte Stapel", exact: true })).toBeVisible();
+  await expect.poll(async () => (await readActiveAccountState(page)).profile.uiPreferences.dashboardPinnedDeckIds).toEqual(["deck_world_capitals_afrika"]);
+
+  await page.reload();
+  await expect(pinned).toBeVisible();
+  await pinned.getByRole("button", { name: "Welt-Hauptstädte / Afrika lösen", exact: true }).click();
+  const dialog = page.getByRole("dialog", { name: "Stapel lösen?" });
+  await expect(dialog).toContainText("„Afrika“ ist nicht mehr angepinnt. Der Stapel und seine Karten bleiben erhalten.");
+  await dialog.getByRole("button", { name: "Abbrechen", exact: true }).click();
+  await expect(pinned).toBeVisible();
+  await pinned.getByRole("button", { name: "Welt-Hauptstädte / Afrika lösen", exact: true }).click();
+  await dialog.getByRole("button", { name: "Lösen", exact: true }).click();
+  await expect(pinned).toHaveCount(0);
+  await expect.poll(async () => (await readActiveAccountState(page)).profile.uiPreferences.dashboardPinnedDeckIds).toEqual([]);
+});
+
+test("a pin on this device keeps a newer setting from another device and shows it after the next sync", async ({ page }) => {
+  await resetToFreshLocalState(page);
+  const { client, userId } = await signedInTestClient();
+  const { error } = await client.rpc("patch_account_profile", { p_patch: { scheduler_preferences: { dayStartHour: 5 } } });
+  expect(error).toBeNull();
+
+  const widget = page.locator('[data-dashboard-widget="decks"]');
+  await widget.getByRole("combobox", { name: "Stapel anpinnen" }).click();
+  await page.getByRole("option", { name: "Welt-Hauptstädte / Afrika", exact: true }).click();
+
+  await expect.poll(async () => {
+    const { data } = await client.from("profiles").select("scheduler_preferences,ui_preferences").eq("id", userId).single();
+    return [(data?.scheduler_preferences as { dayStartHour?: number } | undefined)?.dayStartHour, (data?.ui_preferences as { dashboardPinnedDeckIds?: string[] } | undefined)?.dashboardPinnedDeckIds];
+  }, { timeout: 20_000 }).toEqual([5, ["deck_world_capitals_afrika"]]);
+  await expect.poll(async () => (await readActiveAccountState(page)).profile.schedulerPreferences.dayStartHour, { timeout: 20_000 }).toBe(5);
+});
+
+test("deck expansion responds immediately in learning", async ({ page }) => {
   await resetToFreshLocalState(page);
 
-  for (const surface of [
-    { path: "/", mode: "dashboard" },
-    { path: "/lernen", mode: "learn" },
-  ]) {
+  for (const surface of [{ path: "/lernen", mode: "learn" }]) {
     await page.goto(surface.path);
     await page.locator('[data-app-navigation="true"]:visible').first().waitFor({ state: "visible" });
     const root = page.getByTestId(`${surface.mode}-deck-row-deck_world_capitals`);

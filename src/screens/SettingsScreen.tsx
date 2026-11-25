@@ -15,7 +15,7 @@ import { InfoHint } from "../ui/InfoHint.tsx";
 import { readCoreTheme, toggleCoreTheme } from "../coreTheme.ts";
 import { useHeatmapHistoryColor } from "../ui/StudyHeatmap.tsx";
 import { useSuccessToast } from "../ui/feedbackUi.tsx";
-import { createGeneralSettingsDraft, settingsDraftsEqual, type GeneralSettingsDraft } from "../settingsDraft.ts";
+import { createGeneralSettingsDraft, rebaseSettingsDraft, settingsDraftsEqual, type GeneralSettingsDraft } from "../settingsDraft.ts";
 import { SyncConflictPanel } from "./SyncConflictPanel.tsx";
 import { formatStorageBytes } from "../workspaceStorage.ts";
 import { useWorkspaceStore, useWorkspaceValue } from "../useWorkspaceStore.ts";
@@ -101,7 +101,7 @@ export function SettingsScreen({ section, focusConflicts = false, profile, onSav
   const workspaceStore = useWorkspaceStore();
   const fieldTimingsAvailable = React.useMemo(() => section === "ueber" && Object.keys(readFieldTimings()).length > 0, [section]);
   React.useEffect(() => {
-    setDraft((current) => settingsDraftsEqual(current, baseline) ? persistedDraft : current);
+    setDraft((current) => rebaseSettingsDraft(current, baseline, persistedDraft));
     setBaseline(persistedDraft);
   }, [persistedDraftKey]);
 
@@ -230,7 +230,7 @@ export function SettingsScreen({ section, focusConflicts = false, profile, onSav
               </div>
             </div>
             <div className="core-settings-row" data-layout="inline">
-              <span className="core-settings-row-title">Stapelansicht</span>
+              <span className="core-settings-row-title">Stapelansicht in Lernen</span>
               <div className="core-settings-row-control">
                 <CoreSegmentedControl ariaLabel="Stapelansicht" value={deckView} options={deckViewOptions} onValueChange={setDeckView} />
               </div>

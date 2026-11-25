@@ -59,10 +59,10 @@ test("shared study heatmap defaults to seven days with the streak band and perio
   );
 
   assert.match(markup, /data-testid="study-heatmap-header"[^>]*><h3[^>]*><span[^>]*>1<\/span> <span class="core-heading-3">Tag Streak<\/span><\/h3>/);
-  assert.match(markup, /style="background:#b55b43;color:var\(--core-heatmap-on-strong\)" data-testid="study-heatmap-header"/);
+  assert.match(markup, /style="background:#b95e00;color:var\(--core-heatmap-on-strong\)" data-testid="study-heatmap-header"/);
   assert.match(markup, /<dt[^>]*>Lerntage<\/dt><dd[^>]*>1 \/ 1<\/dd>[\s\S]*<dt[^>]*>Morgen fällig<\/dt><dd[^>]*>0<\/dd>/);
   assert.match(markup, /--core-heatmap-on-strong:#ffffff/);
-  assert.match(markup, /data-heatmap-history-color="#b55b43"/);
+  assert.match(markup, /data-heatmap-history-color="#b95e00"/);
   assert.doesNotMatch(markup, /Heatmap-Farbe ändern/);
   assert.match(markup, /data-testid="study-heatmap-controls"[\s\S]*Frühere sieben Tage anzeigen[\s\S]*role="combobox"[^>]*aria-label="Heatmap-Zeitraum"[\s\S]*>Woche</);
   assert.match(markup, /Frühere sieben Tage anzeigen/);

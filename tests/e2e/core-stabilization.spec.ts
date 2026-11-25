@@ -234,7 +234,7 @@ test("heatmap color is picked in the appearance settings and persists for the da
   await page.reload();
 
   const heatmap = page.locator(".core-study-heatmap-container");
-  await expect(heatmap).toHaveAttribute("data-heatmap-history-color", "#b55b43");
+  await expect(heatmap).toHaveAttribute("data-heatmap-history-color", "#b95e00");
   await expect(heatmap.getByRole("button", { name: "Heatmap-Farbe ändern" })).toHaveCount(0);
 
   await page.goto("/?settings=darstellung");

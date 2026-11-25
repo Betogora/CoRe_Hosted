@@ -7,7 +7,7 @@ import { addCardVariant, createBasicNote, createCoreDeck, planNoteContentChange,
 import type { Card, Deck, Note } from "./coreTypes.ts";
 import type { WorkspaceState } from "./coreWorkspace.ts";
 import { createIndexedDbCoreRepository } from "./indexedDbCoreRepository.ts";
-import { openDatabase } from "./indexedDbStore.ts";
+import { openDatabase, STORE } from "./indexedDbStore.ts";
 import { answerVariant } from "./reviewService.ts";
 
 Object.assign(globalThis, { IDBKeyRange });
@@ -1010,4 +1010,41 @@ test("eine Bewertung schreibt nur den Lernstand und behält eine inzwischen verm
   const [catalog] = (await repository.listCatalogPage("deck-idb")).items;
   assert.deepEqual([catalog.variantRefused, catalog.bodyRevision], [true, 2]);
   repository.close();
+});
+
+test("ein vor neuen UI-Präferenzen gespeichertes Profil lädt mit deren Standardwerten", async () => {
+  const userId = randomUUID();
+  const repository = await openRepository(workspaceState(1), userId);
+  const stored = repository.getShellState().profile;
+  const database = await openDatabase(indexedDB as unknown as IDBFactory, userId);
+  const transaction = database.transaction(STORE.meta, "readwrite");
+  transaction.objectStore(STORE.meta).put({ key: "profile", value: { ...stored, uiPreferences: { dashboardCollapsedDeckIds: ["deck-idb"], learnCollapsedDeckIds: ["deck-idb"], syncIntervalMinutes: 15 } } });
+  await new Promise((resolve) => { transaction.oncomplete = resolve; });
+  database.close();
+
+  const { uiPreferences } = (await openRepository(workspaceState(1), userId)).getShellState().profile;
+  assert.deepEqual(uiPreferences.dashboardPinnedDeckIds, []);
+  assert.deepEqual(uiPreferences.learnCollapsedDeckIds, ["deck-idb"]);
+  assert.equal(uiPreferences.syncIntervalMinutes, 15);
+});
+
+test("Profiländerungen warten als ein Patch mit genau den geänderten Schlüsseln", async () => {
+  const userId = randomUUID();
+  const initial = workspaceState(1);
+  const repository = await openRepository({ ...initial, profile: { ...initial.profile, userId } }, userId);
+  const profilePatches = () => repository.outbox.listPending().filter((mutation) => mutation.type === "profile-patch");
+  assert.equal(repository.patchProfile({ uiPreferences: { dashboardPinnedDeckIds: [] } }), repository.getShellState().profile);
+  assert.equal(profilePatches().length, 0);
+
+  repository.patchProfile({ uiPreferences: { dashboardPinnedDeckIds: ["deck-idb"] } });
+  repository.patchProfile({ schedulerPreferences: { dayStartHour: 3 } });
+  repository.patchProfile((profile) => ({ uiPreferences: { learnCollapsedDeckIds: [...profile.uiPreferences.learnCollapsedDeckIds, "deck-idb"] } }));
+
+  const [pending] = profilePatches();
+  assert.equal(profilePatches().length, 1);
+  assert.deepEqual((pending.payload as any).patch, {
+    uiPreferences: { dashboardPinnedDeckIds: ["deck-idb"], learnCollapsedDeckIds: ["deck-idb"] },
+    schedulerPreferences: { dayStartHour: 3 },
+  });
+  assert.equal(repository.getShellState().profile.schedulerPreferences.dayStartHour, 3);
 });

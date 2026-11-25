@@ -52,6 +52,8 @@ export interface DeckSelectProps extends Omit<CoreSelectProps, "options" | "lead
   decks: readonly Deck[];
   selectableDeckIds?: readonly string[];
   specialOption?: DeckSelectSpecialOption;
+  /** Replaces the field with an icon-only ghost button named `ariaLabel`. */
+  triggerIcon?: LucideIcon;
 }
 
 export interface DeckMultiSelectProps {
@@ -361,6 +363,7 @@ export const DeckSelect = forwardRef<HTMLButtonElement, DeckSelectProps>(functio
   testId,
   autoFocus,
   menuAlign,
+  triggerIcon: TriggerIcon,
 }, ref) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
@@ -401,9 +404,9 @@ export const DeckSelect = forwardRef<HTMLButtonElement, DeckSelectProps>(functio
           data-state={open ? "open" : "closed"}
           data-deck-select-trigger="true"
           data-deck-select-searchable={showSearch ? "true" : "false"}
-          className={`group inline-flex min-h-control min-w-0 items-center gap-2 rounded-control border border-core-border bg-core-surface px-3 text-left core-body text-core-text transition data-[state=open]:border-core-action data-[state=open]:shadow-selection ${className}`}
+          className={TriggerIcon ? `core-action-ghost min-w-button p-2 text-core-text ${className}` : `group inline-flex min-h-control min-w-0 items-center gap-2 rounded-control border border-core-border bg-core-surface px-3 text-left core-body text-core-text transition data-[state=open]:border-core-action data-[state=open]:shadow-selection ${className}`}
         >
-          {selectedDeckRow ? (
+          {TriggerIcon ? <TriggerIcon size={16} aria-hidden="true" /> : <>{selectedDeckRow ? (
             <DeckAppearanceIcon data-deck-icon="true" deck={selectedDeckRow.deck} className="size-7" iconSize={14} />
           ) : selectedSpecialOption ? (
             <SpecialOptionIcon option={selectedSpecialOption} />
@@ -411,7 +414,7 @@ export const DeckSelect = forwardRef<HTMLButtonElement, DeckSelectProps>(functio
           <span className="min-w-0 flex-1 truncate">{selectedLabel}</span>
           <span className="grid shrink-0 place-items-center text-core-muted">
             <ChevronDown size={16} className="transition-transform group-data-[state=open]:rotate-180" aria-hidden="true" />
-          </span>
+          </span></>}
         </button>
       </Popover.Trigger>
 

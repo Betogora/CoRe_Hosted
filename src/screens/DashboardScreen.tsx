@@ -2,6 +2,7 @@ import React from "react";
 import { DashboardWidgets } from "./DashboardWidgets.tsx";
 import { DailyMotivationWidget } from "./DailyMotivationWidget.tsx";
 import { ExamDashboardWidget } from "./ExamDashboardWidget.tsx";
+import { PinnedDecksWidget } from "./PinnedDecksWidget.tsx";
 import { CreationActionCard } from "../ui/CreationActionCard.tsx";
 import { FileArchive, PenLine, Play, Sparkles } from "lucide-react";
 import { createDeckLibraryModel, createStudyHeatmapModel, type DailyLearningPlan, type DailyLearningSession } from "../libraryModel.ts";
@@ -9,24 +10,22 @@ import { getGlobalSchedulerPreferences } from "../deckSettings.ts";
 import type { Deck, ExamDailyTask } from "../coreTypes.ts";
 import { getLearningDayKey, getLearningTimeZone } from "../learningDay.ts";
 import type { StudyHeatmapDay } from "../studyHeatmapModel.ts";
-import { ActionButton, CrossLinkButton } from "../ui/actionUi.tsx";
+import { ActionButton } from "../ui/actionUi.tsx";
 import { CoreSegmentedControl, PageHeader, SoftPanel } from "../ui/coreUi.tsx";
 import { DialogFrame } from "../ui/DialogFrame.tsx";
 import { DailyReviewProgress, DAILY_REVIEW_PROGRESS_SEGMENTS } from "../ui/DailyReviewProgress.tsx";
-import { DeckTree } from "../ui/DeckTree.tsx";
-import { useStoredDeckTreeView } from "../ui/deckTreeView.ts";
 import { StatusMessage } from "../ui/feedbackUi.tsx";
 import { formatLearningCardCount } from "../ui/learningStatusUi.ts";
 import { DeckSelect } from "../ui/selectUi.tsx";
 import { StudyHeatmap } from "../ui/StudyHeatmap.tsx";
 import { useWorkspaceValue } from "../useWorkspaceStore.ts";
-import type { DeckExpansionSurface } from "../uiPreferences.ts";
-import type { DeckMutationResult, WorkspaceState } from "../coreWorkspace.ts";
+import type { WorkspaceState } from "../coreWorkspace.ts";
 import type { PomodoroTimer } from "../pomodoroTimer.ts";
 import type { ExamPlanningScreenProps } from "./ExamPlanningScreen.tsx";
 import type { DeckTreeScreenProps, NavigateToView } from "../appScreenProps.ts";
 
-export interface DashboardScreenProps extends DeckTreeScreenProps {
+export interface DashboardScreenProps {
+  onStartDeck: DeckTreeScreenProps["onStartDeck"];
   onPausePomodoro?: () => void;
   onResumePomodoro?: () => void;
   onResetPomodoro?: () => void;
@@ -37,51 +36,13 @@ export interface DashboardScreenProps extends DeckTreeScreenProps {
   onNavigate: NavigateToView;
   onStartAdditionalCards: (deckId: string, additionalCount: number) => { ok: boolean; message?: string };
   onCreateDemo: () => Promise<Deck[] | null>;
-  onMoveDeck: (deckId: string, parentDeckId: string | null) => DeckMutationResult | null;
-  onSetDeckExpanded: (surface: DeckExpansionSurface, deckId: string, expanded: boolean) => unknown;
+  frequentDeckIds: readonly string[];
+  onSetPinnedDeckIds: (deckIds: string[]) => unknown;
   onStartExamUnit?: (blockId: string | null) => Promise<void>;
   onLoadExamPlanningData?: ExamPlanningScreenProps["onLoadPlanningData"];
   onSaveExamTasks?: (tasks: ExamDailyTask[]) => Promise<void>;
   onLoadExamSummaryAvailability?: (deckId: string) => Promise<boolean>;
   onLoadExamLocalCardIds?: ExamPlanningScreenProps["onLoadLocalCardIds"];
-}
-
-const DASHBOARD_DECK_LIMIT = 8;
-
-/** Height the main decks need: subdecks of an expanded main deck and an open tile folder scroll instead of pushing main decks out of the widget. */
-function neededDeckHeight(panel: HTMLElement) {
-  const groups = panel.querySelectorAll<HTMLElement>("[data-deck-group]");
-  const last = groups[groups.length - 1];
-  if (last) {
-    const top = panel.getBoundingClientRect().top + panel.clientTop - panel.scrollTop;
-    const rowBottom = (last.firstElementChild as HTMLElement).getBoundingClientRect().bottom - top;
-    return rowBottom + panel.scrollHeight - (last.getBoundingClientRect().bottom - top);
-  }
-  const folder = panel.querySelector<HTMLElement>('[data-testid="dashboard-deck-folder-panel"]');
-  return panel.scrollHeight - (folder ? folder.offsetHeight + parseFloat(getComputedStyle(folder.parentElement!).rowGap) : 0);
-}
-
-function FittingPanel({ max, layoutKey, children }: { max: number; layoutKey: string; children: (count: number) => React.ReactNode }) {
-  const ref = React.useRef<HTMLElement>(null);
-  const [width, setWidth] = React.useState(0);
-  const key = `${layoutKey}|${width}`;
-  const [fit, setFit] = React.useState({ key, count: max, done: false });
-  const { count, done } = fit.key === key ? fit : { count: max, done: false };
-  React.useLayoutEffect(() => {
-    const element = ref.current!;
-    // offsetWidth includes the scrollbar, so one appearing after the fit does not start it again.
-    const observer = new ResizeObserver(() => setWidth(element.offsetWidth));
-    observer.observe(element);
-    return () => observer.disconnect();
-  }, []);
-  React.useLayoutEffect(() => {
-    if (done) return;
-    const element = ref.current!;
-    const fits = count === 1 || neededDeckHeight(element) <= element.clientHeight;
-    setFit({ key, count: fits ? count : count - 1, done: fits });
-  });
-  // While fitting, the panel hides its scrollbar so a narrower layout does not skew the measurement.
-  return <SoftPanel ref={ref} className="min-w-0 p-5 pb-3" data-fitting={done ? undefined : "true"}>{children(count)}</SoftPanel>;
 }
 
 function formatHeatmapDate(key: string) {
@@ -270,7 +231,7 @@ function DailyLearningOverview({
   );
 }
 
-export function DashboardScreen({ state, now, onNavigate, onStartDeck, onPracticeDeck, onStartAdditionalCards, onCreateDemo, onSetDeckCoreMode, onMoveDeck, onOpenDeckSettings, onSetDeckExpanded, onStartExamUnit, onLoadExamPlanningData, onSaveExamTasks, onLoadExamSummaryAvailability, onLoadExamLocalCardIds, pomodoroTimer = null, onStartPomodoro = () => undefined, onPausePomodoro = () => undefined, onResumePomodoro = () => undefined, onResetPomodoro = () => undefined }: DashboardScreenProps) {
+export function DashboardScreen({ state, now, onNavigate, onStartDeck, onStartAdditionalCards, onCreateDemo, frequentDeckIds, onSetPinnedDeckIds, onStartExamUnit, onLoadExamPlanningData, onSaveExamTasks, onLoadExamSummaryAvailability, onLoadExamLocalCardIds, pomodoroTimer = null, onStartPomodoro = () => undefined, onPausePomodoro = () => undefined, onResumePomodoro = () => undefined, onResetPomodoro = () => undefined }: DashboardScreenProps) {
   const { deckSummaries, studyHeatmap: loadedHeatmap } = useWorkspaceValue(({ deckSummaries, studyHeatmap }) => ({ deckSummaries, studyHeatmap }));
   const globalSettings = getGlobalSchedulerPreferences(state.profile);
   const library = React.useMemo(
@@ -278,9 +239,6 @@ export function DashboardScreen({ state, now, onNavigate, onStartDeck, onPractic
     [deckSummaries, globalSettings.dayStartHour, globalSettings.learnAheadMinutes, now, state.decks, state.profile.timezone],
   );
   const { dailyLearningPlan } = library;
-  const [deckView, setDeckView] = useStoredDeckTreeView();
-  const deckRoots = React.useMemo(() => library.rows.filter((row) => row.depth === 0), [library.rows]);
-  const rankedRootIds = React.useMemo(() => [...deckRoots].sort((a, b) => b.dailyLearningSession.startableCount - a.dailyLearningSession.startableCount).map((row) => row.id), [deckRoots]);
   const timeZone = state.profile.timezone || undefined;
   const civilToday = getLearningDayKey(now, { timeZone }) ?? now.slice(0, 10);
   const nextExam = globalSettings.examPlanning.exams
@@ -351,21 +309,15 @@ export function DashboardScreen({ state, now, onNavigate, onStartDeck, onPractic
         learning: <DailyLearningOverview plan={dailyLearningPlan} decks={state.decks} onStartDeck={onStartDeck} onStartAdditionalCards={onStartAdditionalCards} />,
         motivation: <DailyMotivationWidget now={now} timeZone={getLearningTimeZone(state.profile)} dayStartHour={globalSettings.dayStartHour} />,
         heatmap: <StudyHeatmap heatmap={studyHeatmap} formatDayLabel={heatmapDayLabel} />,
-        decks: <FittingPanel max={DASHBOARD_DECK_LIMIT} layoutKey={[deckView, library.rows.length, ...rankedRootIds].join(",")}>{(count) => <><DeckTree
+        decks: <PinnedDecksWidget
           rows={library.rows}
-          rootDeckIds={rankedRootIds.slice(0, count)}
-          mode="dashboard"
-          view={deckView}
-          onViewChange={setDeckView}
-          collapsedDeckIds={state.profile.uiPreferences.dashboardCollapsedDeckIds}
-          onDeckExpansionChange={(deckId, expanded) => onSetDeckExpanded("dashboard", deckId, expanded)}
-          onActivate={(row) => onNavigate("kartenstapel", { focusedDeckId: row.id, deckContent: true })}
+          decks={state.decks}
+          pinnedDeckIds={state.profile.uiPreferences.dashboardPinnedDeckIds}
+          frequentDeckIds={frequentDeckIds}
+          onPinnedDeckIdsChange={onSetPinnedDeckIds}
           onStudy={(row) => onStartDeck(row.deck)}
-          onPractice={onPracticeDeck && ((row, returnFocus) => onPracticeDeck(row.deck, returnFocus))}
-          onOpenSettings={onOpenDeckSettings}
-          onSetDeckCoreMode={onSetDeckCoreMode}
-          onMoveDeck={onMoveDeck}
-        />{rankedRootIds.length > count ? <CrossLinkButton onSelect={() => onNavigate("lernen")}>Alle Stapel ansehen</CrossLinkButton> : null}</>}</FittingPanel>,
+          onOpenLibrary={() => onNavigate("lernen")}
+        />,
       }}
     </DashboardWidgets>
   );

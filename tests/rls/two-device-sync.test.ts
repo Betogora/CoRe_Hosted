@@ -258,3 +258,38 @@ test("Review auf Gerät A und Inhaltskorrektur auf Gerät B laufen ohne Konflikt
   const { error: cleanupError } = await clientA.from("sync_conflicts").delete().eq("user_id", userId);
   assert.ifError(cleanupError);
 });
+
+test("Profilpatches zweier Geräte ändern nur ihre Schlüssel und vereinigen Lerntage", async () => {
+  const url = requiredEnvironment("VITE_SUPABASE_URL");
+  const key = requiredEnvironment("VITE_SUPABASE_PUBLISHABLE_KEY");
+  const email = requiredEnvironment("CORE_TWO_DEVICE_EMAIL");
+  const password = requiredEnvironment("CORE_TWO_DEVICE_PASSWORD");
+  assert.equal(isLocalSupabaseUrl(url), true, "Der Zwei-Geräte-Test darf nur gegen lokales Supabase laufen.");
+
+  const clientA = await createAuthenticatedClient(url, key, email, password);
+  const clientB = await createAuthenticatedClient(url, key, email, password);
+  const { data: userData } = await clientA.auth.getUser();
+  assert.ok(userData.user);
+  const userId = userData.user.id;
+  const { error: resetError } = await clientA.from("profiles").update({ scheduler_preferences: { settingsVersion: 3, dayStartHour: 0 }, ui_preferences: {} }).eq("id", userId);
+  assert.ifError(resetError);
+  const engineA = createDevice(clientA, userId, "device_profile_a");
+  const engineB = createDevice(clientB, userId, "device_profile_b");
+  const profilePatch = (id: string, patch: unknown) => ({ id, type: SYNC_MUTATION_TYPES.profilePatch, table: "profiles", entityId: userId, payload: { patch } });
+  const day = (offset: number) => new Date(Date.now() + offset * 86_400_000).toISOString().slice(0, 10);
+
+  engineA.queue(profilePatch("profile-a", { uiPreferences: { dashboardPinnedDeckIds: ["deck-a"], dashboardStudyDays: [{ deckId: "deck-a", day: day(-1) }, { deckId: "deck-old", day: day(-30) }] } }));
+  engineB.queue(profilePatch("profile-b", { schedulerPreferences: { dayStartHour: 4 }, uiPreferences: { dashboardStudyDays: [{ deckId: "deck-b", day: day(0) }, { deckId: "deck-a", day: day(-1) }, { deckId: "deck-future", day: "2099-01-01" }, { deckId: "deck-invalid", day: "2026-02-30" }] } }));
+  await engineA.syncNow();
+  await engineB.syncNow();
+
+  const { data, error } = await clientA.from("profiles").select("scheduler_preferences,ui_preferences").eq("id", userId).single();
+  assert.ifError(error);
+  assert.equal((data.scheduler_preferences as any).dayStartHour, 4);
+  assert.deepEqual((data.ui_preferences as any).dashboardPinnedDeckIds, ["deck-a"]);
+  assert.deepEqual((data.ui_preferences as any).dashboardStudyDays, [{ deckId: "deck-a", day: day(-1) }, { deckId: "deck-b", day: day(0) }]);
+
+  const anonymous = createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false } });
+  const { error: anonymousError } = await anonymous.rpc("patch_account_profile", { p_patch: { display_name: "Fremd" } });
+  assert.ok(anonymousError, "Ohne Anmeldung darf kein Profil geändert werden.");
+});

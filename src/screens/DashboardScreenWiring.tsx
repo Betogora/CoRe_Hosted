@@ -1,43 +1,41 @@
+import React from "react";
+import { currentLearningDay } from "../dashboardWidgets.ts";
+import { rankFrequentDeckIds } from "../uiPreferences.ts";
 import { useAppServices } from "../useAppServices.ts";
 import { useWorkspaceValue } from "../useWorkspaceStore.ts";
 import { DashboardScreen } from "./DashboardScreen.tsx";
-import { useDeckPractice } from "./useDeckPractice.tsx";
 
 export function DashboardScreenWiring() {
-  const { navigation, settings, clock, pomodoro, studyStart, studyPreparation, deckCommands, importCommands, requestDeckCoreMode, hydration } = useAppServices();
+  const { navigation, clock, pomodoro, studyStart, studyPreparation, deckCommands, importCommands, hydration } = useAppServices();
   const state = useWorkspaceValue((snapshot) => snapshot.state);
-  const deckPractice = useDeckPractice();
+  const profile = state?.profile;
+  // learningNow ticks, so a new learning day re-reads the study days.
+  const frequentDeckIds = React.useMemo(() => profile ? rankFrequentDeckIds(profile.uiPreferences.dashboardStudyDays, currentLearningDay(profile)) : [], [clock.learningNow, profile]);
   if (!state) return null;
   return (
-    <>
-      <DashboardScreen
-        onResetPomodoro={pomodoro.resetPomodoro}
-        onPausePomodoro={() => pomodoro.changePomodoroPause(true)}
-        onResumePomodoro={() => pomodoro.changePomodoroPause(false)}
-        pomodoroTimer={pomodoro.pomodoroTimer}
-        onStartPomodoro={pomodoro.startPomodoro}
-        state={state}
-        now={clock.learningNow}
-        onNavigate={navigation.navigateToView}
-        onStartDeck={studyStart.startDeck}
-        onPracticeDeck={deckPractice.practiceDeck}
-        onStartAdditionalCards={studyStart.startAdditionalCards}
-        onCreateDemo={async () => {
-          const decks = await importCommands.importDemo();
-          navigation.navigateToView("lernen");
-          return decks;
-        }}
-        onSetDeckCoreMode={requestDeckCoreMode}
-        onMoveDeck={deckCommands.moveDeck}
-        onOpenDeckSettings={(deckId) => settings.openDeckSettings(deckId)}
-        onSetDeckExpanded={deckCommands.saveDeckExpansion}
-        onStartExamUnit={studyStart.startExamUnit}
-        onLoadExamPlanningData={studyPreparation.loadExamPlanningData}
-        onLoadExamSummaryAvailability={studyPreparation.loadExamSummaryAvailability}
-        onLoadExamLocalCardIds={hydration?.listLocalCardIds}
-        onSaveExamTasks={deckCommands.saveExamTasks}
-      />
-      {deckPractice.element}
-    </>
+    <DashboardScreen
+      onResetPomodoro={pomodoro.resetPomodoro}
+      onPausePomodoro={() => pomodoro.changePomodoroPause(true)}
+      onResumePomodoro={() => pomodoro.changePomodoroPause(false)}
+      pomodoroTimer={pomodoro.pomodoroTimer}
+      onStartPomodoro={pomodoro.startPomodoro}
+      state={state}
+      now={clock.learningNow}
+      onNavigate={navigation.navigateToView}
+      onStartDeck={studyStart.startDeck}
+      onStartAdditionalCards={studyStart.startAdditionalCards}
+      onCreateDemo={async () => {
+        const decks = await importCommands.importDemo();
+        navigation.navigateToView("lernen");
+        return decks;
+      }}
+      frequentDeckIds={frequentDeckIds}
+      onSetPinnedDeckIds={deckCommands.saveDashboardPins}
+      onStartExamUnit={studyStart.startExamUnit}
+      onLoadExamPlanningData={studyPreparation.loadExamPlanningData}
+      onLoadExamSummaryAvailability={studyPreparation.loadExamSummaryAvailability}
+      onLoadExamLocalCardIds={hydration?.listLocalCardIds}
+      onSaveExamTasks={deckCommands.saveExamTasks}
+    />
   );
 }
