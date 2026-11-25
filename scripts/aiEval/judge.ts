@@ -8,7 +8,7 @@ import { parseStrict } from "./ledger.ts";
 export const labelsFile = (id: string) => `fixtures/ai-eval/${id}.labels.json`;
 export const JUDGE_INSTRUCTIONS_FILE = ".claude/agents/eval-judge.md";
 const BLOCK_ENTRIES = 25;
-const BLOCK_CHARS = 12_000;
+const BLOCK_CHARS = 48_000;
 const DUPLICATE_SHARE = 0.1;
 const MIN_DUPLICATES = 10;
 

@@ -227,7 +227,7 @@ Zeitüberschreitungen sind bei jedem Anfragetyp feste Messgrößen.
 
 ### Richter
 
-- **Blöcke:** höchstens 25 Einträge oder etwa 12.000 Zeichen, jeder mit dem
+- **Blöcke:** höchstens 25 Einträge oder etwa 48.000 Zeichen, jeder mit dem
   Bogen. Einträge mit gemeinsamem Material (Karten eines Dokuments,
   Abschnitte einer Zusammenfassung) stehen in einem Block, das Material
   darin einmal. Je Block ein frischer Subagent `eval-judge`, höchstens sechs

@@ -65,7 +65,7 @@ Agenten steht im Skill [`ai-eval`](../.agents/skills/ai-eval/SKILL.md).
   Ausgabegrenze, Reasoning, Modell); die Antwortprüfung bleibt die der Route.
   Jeder Lauf hält den Fingerabdruck seiner Payloads fest; ein geänderter
   Payload setzt ihn nicht fort.
-- Ein Block hat höchstens 25 Einträge und etwa 12.000 Zeichen, je Block urteilt
+- Ein Block hat höchstens 25 Einträge und etwa 48.000 Zeichen, je Block urteilt
   ein frischer Richter. Ab zwei Blöcken steht ein Zehntel der Einträge
   (mindestens zehn) ein zweites Mal in einem anderen Block, zusätzlich zu
   dessen Einträgen; der Anteil gekippter Urteile ist das Rauschen des Richters.

@@ -2256,6 +2256,136 @@
         "warnungen": 0.9583,
         "woerter": 428.3333
       }
+    },
+    {
+      "requestType": "learning-summary",
+      "run": "2026-11-25-i2-punkte-kurz",
+      "date": "2026-11-24",
+      "split": "dev",
+      "promptVersion": "learning-summary-v5",
+      "candidate": "punkte-kurz",
+      "fingerprint": "14ce9011865ae978",
+      "model": "openai/gpt-6-luna",
+      "reasoning": "low",
+      "change": "Jeder Stichpunkt-Text höchstens 20 Wörter, ohne das keyword zu wiederholen.",
+      "decision": "rejected",
+      "cases": 20,
+      "repetitions": 4,
+      "main": 0.6083,
+      "low": 0.4833,
+      "high": 0.7188,
+      "criteria": {
+        "Z1": 1,
+        "Z2": 0.9375,
+        "Z3": 0.9875,
+        "Z4": 1,
+        "Z5": 0.7,
+        "Z6": 0.943,
+        "Z7": 0.7563,
+        "Z8": 0.9774,
+        "Z9": 0.9375
+      },
+      "outcomes": {
+        "answer": 80,
+        "refused": 0,
+        "rejected": 0,
+        "timeout": 0
+      },
+      "traps": {
+        "answers": 0,
+        "errors": 0
+      },
+      "costUsd": 0.000699,
+      "costTotalUsd": 0.0559,
+      "latencyP90Ms": 14476,
+      "judge": {
+        "model": "claude-opus-5-5",
+        "fingerprint": "a89086c0cf8c8650",
+        "entries": 238,
+        "cached": 2,
+        "noise": {
+          "Z6": 0,
+          "Z7": 0.4118,
+          "Z8": 0,
+          "Z9": 0
+        }
+      },
+      "metrics": {
+        "abschnitte": 4.675,
+        "belegtes_material": 0.9903,
+        "warnungen": 1.0625,
+        "woerter": 457.575
+      },
+      "comparison": {
+        "noise": 0.0906,
+        "gained": 8,
+        "lost": 8
+      }
+    },
+    {
+      "requestType": "learning-summary",
+      "run": "2026-11-25-i2-woerter-pruefen",
+      "date": "2026-11-24",
+      "split": "dev",
+      "promptVersion": "learning-summary-v5",
+      "candidate": "woerter-pruefen",
+      "fingerprint": "7fa573e370c34849",
+      "model": "openai/gpt-6-luna",
+      "reasoning": "low",
+      "change": "Vor dem Aufruf Wörter zählen und über der Längengrenze kürzen, ohne Zahlen, Bedingungen oder Ausnahmen zu streichen.",
+      "decision": "rejected",
+      "cases": 20,
+      "repetitions": 4,
+      "main": 0.6063,
+      "low": 0.475,
+      "high": 0.7375,
+      "criteria": {
+        "Z1": 0.9875,
+        "Z2": 0.9494,
+        "Z3": 1,
+        "Z4": 1,
+        "Z5": 0.6835,
+        "Z6": 0.9367,
+        "Z7": 0.8608,
+        "Z8": 0.989,
+        "Z9": 0.9574
+      },
+      "outcomes": {
+        "answer": 79,
+        "refused": 0,
+        "rejected": 1,
+        "timeout": 0
+      },
+      "traps": {
+        "answers": 0,
+        "errors": 0
+      },
+      "costUsd": 0.000723,
+      "costTotalUsd": 0.0578,
+      "latencyP90Ms": 18468,
+      "judge": {
+        "model": "claude-opus-5-5",
+        "fingerprint": "a89086c0cf8c8650",
+        "entries": 236,
+        "cached": 1,
+        "noise": {
+          "Z6": 0,
+          "Z7": 0.2143,
+          "Z8": 0,
+          "Z9": 0.2222
+        }
+      },
+      "metrics": {
+        "abschnitte": 4.8101,
+        "belegtes_material": 0.9969,
+        "warnungen": 1.0127,
+        "woerter": 476.8734
+      },
+      "comparison": {
+        "noise": 0.0969,
+        "gained": 6,
+        "lost": 5
+      }
     }
   ],
   "calibrations": []
