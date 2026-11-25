@@ -24,6 +24,30 @@ Was das Experiment bisher gekostet hat: Läufe, Antworten, Kosten, neu
 bewertete Einträge und der Anteil der Einträge aus dem Urteilscache, je Anfragetyp mit
 Baseline, bestem Stand und Ziel.
 
+## Ziele und Grenzen
+
+Zielwerte sind Orientierung auf der Seite, kein Abbruchgrund.
+
+| Anfragetyp | Hauptwert am Rückhalt | Kritisch | Weitere |
+| --- | --- | --- | --- |
+| Varianten | ≥ 95 % | Fallen zu Richtung, Reihenfolge und Verneinung: 0 Fehler bei mindestens 40 Antworten je Kartenart | – |
+| KI hilft | ≥ 90 % | H2: höchstens 2 Fehler je 100 Antworten; H6: 0 Fehler in den Fallen bei mindestens 40 Antworten | Streaming erst, wenn die Latenz im Median über 4 s liegt |
+| Karten aus einer Quelle | ≥ 90 % | Q2 ≥ 98 % der bewerteten Karten | Q6 ≥ 80 % bei Normal, keine Dubletten, Kartenmenge 60 % und 140 %, jede erlaubte Form kommt vor, wo das Dokument sie trägt |
+| Zusammenfassung | ≥ 95 % | Z6 ≥ 98 % der Abschnitte | Z2 ≥ 90 %, Z8 ≥ 80 %, jeder eingebaute Widerspruch gemeldet |
+
+- **Generator** ist der echte Payload der Route über OpenRouter mit ZDR und
+  erzwungenem Tool-Call; ein Modell aus einer Subscription entwertete die
+  Messung (fremder Systemprompt, kein Tool-Call, keine Kosten, keine Latenz).
+- **Richter** ist Opus 5.5 als Subagent in Claude Code, ohne Kalibrierung.
+  Gegen einen systematischen Fehler stehen automatische Kriterien, wo eine
+  Regel prüfbar ist, das Richterrauschen und die Grenzfälle je Bericht.
+- **Selbst geschriebene Fälle** sind leichter als echte Karten; deshalb
+  Korpusfälle und Fallen.
+- **Prompts gelten für ein Modell und eine Reasoning-Stufe.** Wechselt eine
+  Route beides, beginnt ihre Reihe mit einer neuen Baseline.
+- **Bewusst nicht enthalten:** zweiter Richter, Richter über die API,
+  Batch-Endpunkte, automatische Promptoptimierung und Läufe in CI.
+
 ## Ablauf
 
 Ein Lauf besteht aus fünf Befehlen von `npm run ai-eval`; die Schrittfolge für

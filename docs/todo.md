@@ -12,25 +12,16 @@ externen Release fällig. „Später“ ist geparkt.
 ## P5: KI-Eval und Hillclimb
 
 Alle vier KI-Routen stehen (`card-variant-v5`, `card-help-v2`,
-`source-cards-v2`, `learning-summary-v5`); P5 läuft. Die Baseline aller
-sechs Anfragetypen steht auf den ausgewogenen Fallsätzen im Ledger und auf
-der Seite [KI-Eval](ai-eval.md): Varianten und `card-help` mit 96 bis 120
-Prüfkarten über sieben Fächer mit Referenzaussagen und höchstens 20 % aus
-dem eigenen Fundus, Karten aus einer Quelle mit 24 Dokumenten (vier über
-60.000 Zeichen) und die Zusammenfassung mit 24 Materialsätzen in neun
-paarweise deckenden Profilen. Der Runner misst Kandidaten als Datei,
-lässt in Blöcken mit Urteilscache richten und entscheidet Runden selbst.
-Befunde, Versuchsaufbau und Arbeitspakete im Einzelnen stehen im
-[Versuchsplan](ai-eval-plan.md).
+`source-cards-v2`, `learning-summary-v6`); P5 läuft. Bestand, Verlauf, Bilanz,
+Zielwerte und Grenzen des Experiments stehen auf der Seite
+[KI-Eval](ai-eval.md), die Fallsätze im Ledger.
 
 Festgelegt am 2026-11-23: Erzeugt wird nur über OpenRouter mit dem lokalen
 Schlüssel und seinem Limit, nie über ein Modell aus einer Subscription.
 Richter ist Opus 5.5 als Subagent in Claude Code, je Block ein frischer
-Kontext. Eine Handkalibrierung gibt es vorerst nicht; jeder Bericht zeigt je
-Kriterium die zwei bis drei am wenigsten eindeutigen Urteile. Der Hillclimb läuft
-innerhalb eines Modells, der Referenz `openai/gpt-6-luna` mit `low`; ein
-Modellvergleich folgt später von Hand und wird nicht eigens gebaut. Ein
-Modellwechsel und das KI-Kontingent sind nicht Teil von P5.
+Kontext; eine Handkalibrierung gibt es vorerst nicht. Seit 2026-11-25 werden
+Reasoning-Stufe und Modell wie Prompts als Kandidaten gegen denselben Bestand
+gemessen. Das KI-Kontingent ist nicht Teil von P5.
 
 Pakete in dieser Reihenfolge.
 
@@ -39,6 +30,22 @@ Pakete in dieser Reihenfolge.
       Karten mit eingeschleuster Anweisung, [Verlauf](history.md)), melden die
       Routen heute „Werkzeug nicht korrekt verwendet“. Eigener Fehlercode und
       eine verständliche Meldung; im Eval bleibt es eine verworfene Antwort.
+- [ ] **Modell- und Reasoning-Vergleich:** Luna `medium` für alle
+      Anfragetypen gegen den Bestand (Zusammenfassung übernommen,
+      `learning-summary-v6`), danach DeepSeek V4.1 Flash 1017 ohne Reasoning
+      bei Varianten und KI hilft und Claude Haiku 5.5 `medium` bei Karten aus
+      einer Quelle. Haiku geht mit ZDR nur mit `tool_choice: auto` und schreibt
+      Listen manchmal als JSON-Text; das zählt heute als verworfene Antwort.
+      Gewinnt ein Wechsel, bekommt die Route Modell und Reasoning im eigenen
+      Code und eine neue Baseline mit Rückhalt. Nachweis: je Konfiguration ein
+      Ledger-Eintrag.
+- [ ] **Entscheidungsregel umbauen:** feste Basis je Welle; Kandidaten mit
+      sichtbar behobenem Fehlerbild und etwa 70 % Wahrscheinlichkeit „besser“
+      kommen in einen Sammelkorb, kritische Kriterien dürfen im eigenen
+      Rauschen schwanken, die Kombination bestätigt eine Messung mit vier
+      Wiederholungen. Ein Faktorversuch nur bei höchstens drei Änderungen mit
+      Wechselwirkungsverdacht. Braucht eine Ergänzung von ADR-049. Nachweis:
+      Runner-Tests und eine Welle nach der neuen Regel.
 - [ ] **I – Hillclimb, erste Welle** auf Reasoning `low` (KI hilft erledigt,
       `card-help-v2`): Varianten,
       Karten aus einer Quelle, Zusammenfassung. Je Runde drei bis fünf
@@ -49,11 +56,11 @@ Pakete in dieser Reihenfolge.
       Vorschläge von Normal, ohne Füllkarten und bei gleicher Belegtreue;
       danach die Dichten in `AI_SOURCE_AMOUNTS` neu messen), Single Choice
       wird nie gewählt, Tabellenzeilen ergeben Doppelfragen, und die
-      Zerlegung der Quelle in drei Varianten vergleichen. Nachweis: je
+      Zerlegung der Quelle vergleichen: Abschnitte wie heute, die ganze Quelle
+      als Kontext mit Karten nur für den markierten Abschnitt, oder erst eine
+      Gliederung mit Kernaussagen und Kartenbudget je Abschnitt; die beiden
+      neuen Wege brauchen eine Ergänzung von ADR-011. Nachweis: je
       Anfragetyp ein Pull Request mit Promptversion und Ledger-Einträgen.
-- [ ] **J – Abschluss:** Kostenziele je Anfragetyp nach `operations.md`,
-      Versuchsplan auflösen. Nachweis: Die Seite zeigt Bestand, Verlauf und
-      Bilanz für alle Anfragetypen.
 
 ## Offene Nachweise
 
@@ -117,8 +124,9 @@ neuen Code.
   `zipReader.ts` prüfen; Beleg je Folie oder Abschnitt).
 - Bilder als Quelle für Karten aus einer Quelle (teurer, eigener Hillclimb); braucht eine Ergänzung
   von ADR-011 (Agenda 3.3, 3.5).
-- Modellvergleich von Hand über eine Kandidatendatei, auf denselben
-  Fallsätzen, sobald die erste Welle von P5 steht.
+- Specs („nie im Hintergrund“) und ADR-011 (vorausschauende Variante)
+  abgleichen; das Antwortschema der Zusammenfassung lässt `non_zdr` zu, das
+  keine Route mehr liefert.
 - KI-Kontingente je Nutzer im Zusammenspiel mit Bezahlstufen bzw.
   Abonnements (Umfang je Stufe, Credits, Abrechnung nach Kosten).
 

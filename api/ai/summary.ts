@@ -52,7 +52,7 @@ export function buildSummaryToolPayload(input: AiLearningSummaryRequest) {
       },
     } }],
     tool_choice: { type: "function", function: { name: "create_learning_summary" } },
-    reasoning: { effort: "low" }, max_tokens: SUMMARY_OUTPUT_TOKENS[input.settings.length], stream: false,
+    reasoning: { effort: "medium" }, max_tokens: SUMMARY_OUTPUT_TOKENS[input.settings.length], stream: false,
     provider: { require_parameters: true, data_collection: "deny", zdr: true },
   };
 }

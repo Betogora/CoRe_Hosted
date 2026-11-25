@@ -10,7 +10,7 @@ const summary = { sections: [{ heading: "ATP", paragraphs: ["ATP ist ein Energie
 const completion = (value: unknown = summary, name = "create_learning_summary", finish_reason = "tool_calls") => ({ model: OPENROUTER_MODEL, choices: [{ finish_reason, message: { tool_calls: [{ function: { name, arguments: JSON.stringify(value) } }] } }], usage: { prompt_tokens: 900, completion_tokens: 300, total_tokens: 1200, cost: 0.0004 } });
 test("Zusammenfassungs-Tool nutzt das feste Modell mit ZDR und bindet Auswahl, begrenzte Ausgabe und Material-IDs", () => {
   const payload = buildSummaryToolPayload(input);
-  assert.equal(payload.model, OPENROUTER_MODEL); assert.deepEqual(payload.reasoning, { effort: "low" });
+  assert.equal(payload.model, OPENROUTER_MODEL); assert.deepEqual(payload.reasoning, { effort: "medium" });
   assert.equal(payload.tools[0].function.name, "create_learning_summary");
   assert.equal(payload.tool_choice.function.name, "create_learning_summary");
   assert.equal(payload.max_tokens, 8192); assert.deepEqual(JSON.parse(payload.messages[1].content).decks, [{ id: "d1", name: "Biologie" }]);

@@ -2,7 +2,7 @@ import * as v from "valibot";
 import { summarySettingsSchema } from "./learningSummarySettings.js";
 
 export const AI_LEARNING_SUMMARY_ENDPOINT = "/api/ai/summary";
-export const AI_LEARNING_SUMMARY_PROMPT_VERSION = "learning-summary-v5";
+export const AI_LEARNING_SUMMARY_PROMPT_VERSION = "learning-summary-v6";
 export const AI_LEARNING_SUMMARY_DEADLINE_MS = 120_000;
 const MAX_SUMMARY_MATERIAL_CHARS = 400_000;
 export const MAX_SUMMARY_REQUEST_BYTES = 1_536 * 1_024;
