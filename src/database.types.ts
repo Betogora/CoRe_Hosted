@@ -1165,6 +1165,26 @@ export type Database = {
         }[]
       }
       load_reimport_targets: { Args: { p_guids: string[] }; Returns: Json }
+      patch_account_profile: {
+        Args: { p_insert?: Json; p_patch: Json }
+        Returns: {
+          created_at: string
+          display_name: string | null
+          email: string | null
+          id: string
+          onboarding_complete: boolean
+          scheduler_preferences: Json
+          timezone: string
+          ui_preferences: Json
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "profiles"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       pull_account_catalog_delta: {
         Args: { p_cursor?: number; p_limit?: number; p_max_bytes?: number }
         Returns: Json

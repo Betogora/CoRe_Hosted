@@ -1,4 +1,5 @@
 import { SYNC_MUTATION_TYPES } from "./syncMutationPlanner.ts";
+import { readProfilePatch } from "./profileIntegrity.ts";
 import type { SyncStatus } from "./coreTypes.ts";
 import {
   applyEntityMutation,
@@ -9,7 +10,7 @@ import {
   recordAtomicReview,
   resolveAccountSyncConflict,
   undoAtomicReview,
-  upsertAccountCloudProfile,
+  patchAccountCloudProfile,
   type AtomicReviewPayload,
   type CloudClient,
   type EntityMutationPayload,
@@ -249,10 +250,7 @@ function createDefaultAdapter(client: CloudClient, userId: string) {
         }
         try {
           const acknowledgement = mutation.type === SYNC_MUTATION_TYPES.profilePatch
-            ? await upsertAccountCloudProfile(client, mutation.payload?.profile, {
-                mutationId: mutation.id,
-                flushedAt: context.flushedAt,
-              })
+            ? await patchAccountCloudProfile(client, readProfilePatch(mutation), mutation.payload?.profile, { mutationId: mutation.id })
             : mutation.type === SYNC_MUTATION_TYPES.deckCommand
               ? {
                   ...(await deleteAccountDeckTree(client, mutation.payload?.deckId, {

@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import type { Profile } from "./coreTypes.ts";
-import { profileForBootstrap, readCompleteProfile, requireCompleteProfile } from "./profileIntegrity.ts";
+import { mergeProfilePatches, profileForBootstrap, profilePatchBetween, readCompleteProfile, requireCompleteProfile } from "./profileIntegrity.ts";
 import type { SyncOutboxMutation } from "./syncEngine.ts";
 
 const cloudProfile: Profile = {
@@ -17,6 +17,7 @@ const cloudProfile: Profile = {
     flagNames: ["", "", "", "", "", "", ""],
     savedSearches: [],
     dashboardPinnedDeckIds: [],
+    dashboardStudyDays: [],
   },
 };
 
@@ -53,7 +54,7 @@ test("erkennt nur vollständige Profile für den erwarteten Account", () => {
   );
 });
 
-test("der letzte vollständige Offline-Profilpatch gewinnt gegen das Cloud-Profil", () => {
+test("ein Outbox-Eintrag mit ganzem Profil von vor den Feldpatches gilt weiter für alle Felder", () => {
   const localProfile = { ...cloudProfile, displayName: "Lokal geändert" };
   const cardMutation = mutation("card", "entity-mutation", { table: "cards", entity: { id: "card-1" } });
   const validPatch = mutation("profile-valid", "profile-patch", { profile: localProfile });
@@ -61,4 +62,31 @@ test("der letzte vollständige Offline-Profilpatch gewinnt gegen das Cloud-Profi
   const profile = profileForBootstrap(cloudProfile, [cardMutation, validPatch], "user-1");
 
   assert.deepEqual(profile, localProfile);
+});
+
+test("ein Feldpatch ändert nur seine Schlüssel, neuere Cloud-Werte anderer Schlüssel bleiben", () => {
+  const newerCloud = { ...cloudProfile, displayName: "Anderes Gerät", schedulerPreferences: { ...cloudProfile.schedulerPreferences, dayStartHour: 4 } };
+  const pins = mutation("pins", "profile-patch", { patch: { uiPreferences: { dashboardPinnedDeckIds: ["deck-a"] } } });
+
+  const profile = profileForBootstrap(newerCloud, [pins], "user-1");
+
+  assert.equal(profile.displayName, "Anderes Gerät");
+  assert.equal(profile.schedulerPreferences.dayStartHour, 4);
+  assert.deepEqual(profile.uiPreferences.dashboardPinnedDeckIds, ["deck-a"]);
+});
+
+test("ein Patch enthält nur geänderte Schlüssel; spätere Patches gewinnen je Schlüssel, Lerntage vereinigen sich", () => {
+  const next = { ...cloudProfile, schedulerPreferences: { ...cloudProfile.schedulerPreferences, dayStartHour: 3 }, uiPreferences: { ...cloudProfile.uiPreferences, dashboardPinnedDeckIds: ["deck-a"] } };
+  assert.equal(profilePatchBetween(cloudProfile, cloudProfile), null);
+  assert.deepEqual(profilePatchBetween(cloudProfile, next), { schedulerPreferences: { dayStartHour: 3 }, uiPreferences: { dashboardPinnedDeckIds: ["deck-a"] } });
+
+  const merged = mergeProfilePatches(
+    { displayName: "Eins", uiPreferences: { dashboardPinnedDeckIds: ["deck-a"], dashboardStudyDays: [{ deckId: "deck-a", day: "2026-11-24" }] } },
+    { schedulerPreferences: { dayStartHour: 3 }, uiPreferences: { dashboardStudyDays: [{ deckId: "deck-b", day: "2026-11-25" }] } },
+  );
+  assert.deepEqual(merged, {
+    displayName: "Eins",
+    schedulerPreferences: { dayStartHour: 3 },
+    uiPreferences: { dashboardPinnedDeckIds: ["deck-a"], dashboardStudyDays: [{ deckId: "deck-a", day: "2026-11-24" }, { deckId: "deck-b", day: "2026-11-25" }] },
+  });
 });

@@ -1,6 +1,8 @@
 import * as v from "valibot";
+import { cloudTable, type CloudClient } from "./cloudQueries.ts";
 import type { Tables } from "./database.types.ts";
 import { withGlobalSchedulerPreferences } from "./deckSettings.ts";
+import type { ProfilePatch } from "./profileIntegrity.ts";
 import { normalizeUiPreferences } from "./uiPreferences.ts";
 
 const SESSION_MISSING_CODES = new Set(["AuthSessionMissingError", "session_not_found"]);
@@ -218,6 +220,27 @@ export function createProfileRow<Fields extends ProfileFields>(profile: Fields |
     ui_preferences: { ...normalizeUiPreferences(profile?.uiPreferences) },
     updated_at: timestamp,
   };
+}
+
+/** Only the patched columns; both preference objects carry only their patched top-level keys. */
+export function createProfilePatchRow(patch: ProfilePatch) {
+  return {
+    ...(patch.displayName === undefined ? {} : { display_name: patch.displayName }),
+    ...(patch.timezone === undefined ? {} : { timezone: patch.timezone }),
+    ...(patch.onboardingComplete === undefined ? {} : { onboarding_complete: patch.onboardingComplete }),
+    ...(patch.schedulerPreferences ? { scheduler_preferences: patch.schedulerPreferences } : {}),
+    ...(patch.uiPreferences ? { ui_preferences: patch.uiPreferences } : {}),
+  };
+}
+
+/** The account profile when its row changed after `since` (whenever `since` is null); null when unchanged. */
+export async function loadCloudProfileChange(client: CloudClient, userId: string, since: string | null) {
+  const query = cloudTable(client, "profiles").select("*").eq("id", userId);
+  const { data, error } = await (since ? query.gt("updated_at", since) : query).maybeSingle();
+  if (error) throw error;
+  if (data == null) return null;
+  const row = validateProfileRow(data);
+  return { updatedAt: row.updated_at ?? null, profile: createCloudProfile(row, { id: userId, email: row.email ?? null }) };
 }
 
 export function createCloudProfile<Fields extends ProfileFields>(row: unknown, user: CloudAuthUser | null | undefined, fallback: Fields | ProfileFields = {}, timestamp = nowIso()) {

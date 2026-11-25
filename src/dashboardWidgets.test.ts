@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { createAccountStorage } from "./accountStorage.ts";
-import { DASHBOARD_WIDGETS, moveDashboardWidget, normalizeDashboardPreferences, readDashboardPreferences, readFrequentDeckIds, recordDeckStudyDay, writeDashboardPreferences } from "./dashboardWidgets.ts";
+import { DASHBOARD_WIDGETS, moveDashboardWidget, normalizeDashboardPreferences, readDashboardPreferences, writeDashboardPreferences } from "./dashboardWidgets.ts";
 
 test("dashboard defaults include all six modules; an intentionally empty layout stays empty", () => {
   assert.deepEqual(normalizeDashboardPreferences(null).widgets.map((widget) => widget.id), DASHBOARD_WIDGETS.map((widget) => widget.id));
@@ -41,16 +41,4 @@ test("local dashboard preferences remain isolated between accounts", (context) =
   storage.setItem("core.dashboard.widgets.v1", JSON.stringify({ widgets: [], todos: [] }));
   assert.deepEqual(readDashboardPreferences("dashboard-test-b").widgets, [{ id: "motivation" }]);
   assert.deepEqual(readDashboardPreferences("dashboard-test-a"), first);
-});
-
-test("Lerntage zählen je Stapel einmal, nur die letzten 14 und keine aus der Zukunft", (context) => {
-  const values = new Map<string, string>();
-  const previous = Object.getOwnPropertyDescriptor(globalThis, "localStorage");
-  Object.defineProperty(globalThis, "localStorage", { configurable: true, value: { getItem: (key: string) => values.get(key) ?? null, setItem: (key: string, value: string) => values.set(key, value) } });
-  context.after(() => { if (previous) Object.defineProperty(globalThis, "localStorage", previous); else Reflect.deleteProperty(globalThis, "localStorage"); });
-  const user = "study-days";
-  for (const [deckId, day] of [["old", "2026-11-01"], ["a", "2026-11-20"], ["a", "2026-11-20"], ["a", "2026-11-21"], ["b", "2026-11-22"], ["b", "2026-11-23"], ["c", "2026-11-23"], ["later", "2026-12-01"]]) recordDeckStudyDay(user, deckId, day);
-  assert.deepEqual(readFrequentDeckIds(user, "2026-11-24"), ["b", "a", "c"]);
-  assert.deepEqual(readFrequentDeckIds(user, "2026-12-05"), ["b", "later", "c"]);
-  assert.deepEqual(readFrequentDeckIds("other-account", "2026-11-24"), []);
 });
