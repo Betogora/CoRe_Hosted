@@ -48,7 +48,7 @@ Pakete in dieser Reihenfolge.
       Wiederholungen. Ein Faktorversuch nur bei höchstens drei Änderungen mit
       Wechselwirkungsverdacht. Braucht eine Ergänzung von ADR-049. Nachweis:
       Runner-Tests und eine Welle nach der neuen Regel.
-- [ ] **I – Hillclimb, erste Welle** auf Reasoning `low` (KI hilft erledigt,
+- [ ] **I – Hillclimb, erste Welle** auf dem Bestand je Route (KI hilft erledigt,
       `card-help-v2`): Varianten,
       Karten aus einer Quelle, Zusammenfassung. Je Runde drei bis fünf
       Kandidaten aus den Trainingsfehlern, Vorauswahl am Trainingsteil,

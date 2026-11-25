@@ -108,7 +108,7 @@ export function buildOpenRouterPayload(input: AiCardVariantRequest) {
       },
     }],
     tool_choice: { type: "function", function: { name: "create_card_variant" } },
-    // Gemessen am 2026-11-25: medium hebt Frage/Antwort und Lückentext deutlich, bei Auswahl nicht.
+    // Auswahl bleibt bei low: medium war dort im Eval nicht besser.
     reasoning: { effort: input.kind === "choice" ? "low" : "medium" },
     max_tokens: MAX_AI_CARD_VARIANT_OUTPUT_TOKENS,
     stream: false,

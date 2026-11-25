@@ -44,7 +44,7 @@ Zielwerte sind Orientierung auf der Seite, kein Abbruchgrund.
 - **Selbst geschriebene Fälle** sind leichter als echte Karten; deshalb
   Korpusfälle und Fallen.
 - **Prompts gelten für ein Modell und eine Reasoning-Stufe.** Wechselt eine
-  Route beides, beginnt ihre Reihe mit einer neuen Baseline.
+  Route eines davon, beginnt ihre Reihe mit einer neuen Baseline.
 - **Bewusst nicht enthalten:** zweiter Richter, Richter über die API,
   Batch-Endpunkte, automatische Promptoptimierung und Läufe in CI.
 
@@ -135,12 +135,12 @@ Richtwerte für Kosten und Latenz sind eine Größenordnung, keine Grenze. Ein
 Kandidat darüber braucht eine bewusste Entscheidung, bevor er in die Route
 kommt; ein Modellwechsel bleibt immer eine eigene Entscheidung.
 
-| Anfragetyp | Einheit | Bestand (`low`, 2026-11-24) | Richtwert Kosten | Richtwert Latenz p90 |
+| Anfragetyp | Einheit | Bestand (2026-11-25) | Richtwert Kosten | Richtwert Latenz p90 |
 | --- | --- | --- | --- | --- |
-| Varianten | eine Variante | 0,08–0,12 mUSD, 3–4 s | ≤ 0,5 mUSD | ≤ 6 s |
+| Varianten | eine Variante | 0,08–0,15 mUSD, 3–4 s | ≤ 0,5 mUSD | ≤ 6 s |
 | KI hilft | eine Antwort | 0,09 mUSD, 4 s | ≤ 0,5 mUSD | ≤ 8 s |
 | Karten aus einer Quelle | ein Dokument | 2,2 mUSD, 120 s | ≤ 10 mUSD | ≤ 3 min |
-| Zusammenfassung | eine Zusammenfassung | 0,7 mUSD, 15 s | ≤ 3 mUSD | ≤ 60 s |
+| Zusammenfassung | eine Zusammenfassung | 0,9 mUSD, 31 s | ≤ 3 mUSD | ≤ 60 s |
 
 Eine Kalibrierung ist nicht vorgesehen, aber möglich: `calibration-table
 <typ>`, dann die Richter, dann `calibration-score <typ> --judge <modell>`.
