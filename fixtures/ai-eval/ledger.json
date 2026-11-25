@@ -2386,6 +2386,136 @@
         "gained": 6,
         "lost": 5
       }
+    },
+    {
+      "requestType": "learning-summary",
+      "run": "2026-11-25-luna-medium",
+      "date": "2026-11-25",
+      "split": "dev",
+      "promptVersion": "learning-summary-v5",
+      "candidate": "reasoning-medium",
+      "fingerprint": "89b087c915a55ae1",
+      "model": "openai/gpt-6-luna",
+      "reasoning": "medium",
+      "change": "Reasoning medium statt low.",
+      "decision": "rejected",
+      "cases": 20,
+      "repetitions": 4,
+      "main": 0.7188,
+      "low": 0.575,
+      "high": 0.8438,
+      "criteria": {
+        "Z1": 0.9625,
+        "Z2": 0.9481,
+        "Z3": 1,
+        "Z4": 1,
+        "Z5": 0.8442,
+        "Z6": 0.9221,
+        "Z7": 0.9156,
+        "Z8": 0.9867,
+        "Z9": 1
+      },
+      "outcomes": {
+        "answer": 77,
+        "refused": 0,
+        "rejected": 3,
+        "timeout": 0
+      },
+      "traps": {
+        "answers": 0,
+        "errors": 0
+      },
+      "costUsd": 0.000943,
+      "costTotalUsd": 0.0745,
+      "latencyP90Ms": 29082,
+      "judge": {
+        "model": "claude-opus-5-5",
+        "fingerprint": "a89086c0cf8c8650",
+        "entries": 230,
+        "cached": 1,
+        "noise": {
+          "Z6": 0.0769,
+          "Z7": 0.0769,
+          "Z8": 0,
+          "Z9": 0
+        }
+      },
+      "metrics": {
+        "abschnitte": 5.4156,
+        "belegtes_material": 0.9942,
+        "warnungen": 0.9351,
+        "woerter": 463.6883
+      },
+      "comparison": {
+        "noise": 0.175,
+        "gained": 10,
+        "lost": 5
+      }
+    },
+    {
+      "requestType": "learning-summary",
+      "run": "2026-11-25-haiku-medium",
+      "date": "2026-11-25",
+      "split": "dev",
+      "promptVersion": "learning-summary-v5",
+      "candidate": "haiku-medium",
+      "fingerprint": "88bcb34d8ab0e621",
+      "model": "anthropic/claude-haiku-5.5",
+      "reasoning": "medium",
+      "change": "Modell Claude Haiku 5.5 mit Reasoning medium und tool_choice auto statt GPT-6 Luna low.",
+      "decision": "rejected",
+      "cases": 20,
+      "repetitions": 4,
+      "main": 0.675,
+      "low": 0.5313,
+      "high": 0.8125,
+      "criteria": {
+        "Z1": 0.9,
+        "Z2": 0.8889,
+        "Z3": 0.9861,
+        "Z4": 1,
+        "Z5": 0.875,
+        "Z6": 0.9375,
+        "Z7": 0.9366,
+        "Z8": 0.9985,
+        "Z9": 1
+      },
+      "outcomes": {
+        "answer": 72,
+        "refused": 0,
+        "rejected": 8,
+        "timeout": 0
+      },
+      "traps": {
+        "answers": 0,
+        "errors": 0
+      },
+      "costUsd": 0.00438,
+      "costTotalUsd": 0.351,
+      "latencyP90Ms": 45805,
+      "judge": {
+        "model": "claude-opus-5-5",
+        "fingerprint": "a89086c0cf8c8650",
+        "entries": 213,
+        "cached": 2,
+        "noise": {
+          "Z6": 0.0667,
+          "Z7": 0,
+          "Z8": 0,
+          "Z9": 0
+        }
+      },
+      "metrics": {
+        "abschnitte": 9.8611,
+        "belegtes_material": 0.998,
+        "warnungen": 3.0139,
+        "woerter": 479.5694
+      },
+      "comparison": {
+        "noise": 0.1875,
+        "gained": 8,
+        "lost": 7
+      }
     }
   ],
   "calibrations": []
