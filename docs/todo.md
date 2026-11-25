@@ -11,7 +11,7 @@ externen Release fällig. „Später“ ist geparkt.
 
 ## P5: KI-Eval und Hillclimb
 
-Alle vier KI-Routen stehen (`card-variant-v5`, `card-help-v2`,
+Alle vier KI-Routen stehen (`card-variant-v6`, `card-help-v2`,
 `source-cards-v2`, `learning-summary-v6`); P5 läuft. Bestand, Verlauf, Bilanz,
 Zielwerte und Grenzen des Experiments stehen auf der Seite
 [KI-Eval](ai-eval.md), die Fallsätze im Ledger.
@@ -30,11 +30,13 @@ Pakete in dieser Reihenfolge.
       Karten mit eingeschleuster Anweisung, [Verlauf](history.md)), melden die
       Routen heute „Werkzeug nicht korrekt verwendet“. Eigener Fehlercode und
       eine verständliche Meldung; im Eval bleibt es eine verworfene Antwort.
-- [ ] **Modell- und Reasoning-Vergleich:** Luna `medium` für alle
-      Anfragetypen gegen den Bestand (Zusammenfassung übernommen,
-      `learning-summary-v6`), danach DeepSeek V4.1 Flash 1017 ohne Reasoning
-      bei Varianten und KI hilft und Claude Haiku 5.5 `medium` bei Karten aus
-      einer Quelle. Haiku geht mit ZDR nur mit `tool_choice: auto` und schreibt
+- [ ] **Modell- und Reasoning-Vergleich:** Luna `medium` ist für alle
+      Anfragetypen gemessen und bei Frage/Antwort, Lückentext und
+      Zusammenfassung übernommen; bei KI hilft (97,4 % gegen 81,6 %) scheitert
+      es nur an einer Antwort im kritischen Kriterium H2 und wartet auf die
+      neue Entscheidungsregel oder eine Entscheidung. Offen: DeepSeek V4.1
+      Flash 1017 ohne Reasoning bei Varianten und KI hilft, Claude Haiku 5.5
+      `medium` bei Karten aus einer Quelle. Haiku geht mit ZDR nur mit `tool_choice: auto` und schreibt
       Listen manchmal als JSON-Text; das zählt heute als verworfene Antwort.
       Gewinnt ein Wechsel, bekommt die Route Modell und Reasoning im eigenen
       Code und eine neue Baseline mit Rückhalt. Nachweis: je Konfiguration ein

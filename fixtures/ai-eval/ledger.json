@@ -2516,6 +2516,574 @@
         "gained": 8,
         "lost": 7
       }
+    },
+    {
+      "requestType": "card-variant-basic",
+      "run": "2026-11-25-luna-medium",
+      "date": "2026-11-25",
+      "split": "dev",
+      "promptVersion": "card-variant-v6",
+      "candidate": "reasoning-medium",
+      "fingerprint": "ee304dc50a6d78f2",
+      "model": "openai/gpt-6-luna",
+      "reasoning": "medium",
+      "change": "Reasoning medium statt low.",
+      "decision": "accepted",
+      "cases": 42,
+      "repetitions": 2,
+      "main": 0.9048,
+      "low": 0.8333,
+      "high": 0.9643,
+      "criteria": {
+        "M1": 0.9762,
+        "M2": 0.95,
+        "M3": 0.975,
+        "M4": 1,
+        "M5": 1,
+        "M6": 0.925,
+        "M7": 1
+      },
+      "outcomes": {
+        "answer": 80,
+        "refused": 2,
+        "rejected": 2,
+        "timeout": 0
+      },
+      "traps": {
+        "answers": 26,
+        "errors": 2
+      },
+      "costUsd": 0.0000992,
+      "costTotalUsd": 0.00833,
+      "latencyP90Ms": 3524,
+      "judge": {
+        "model": "claude-opus-5-5",
+        "fingerprint": "c21478f1a1cbded0",
+        "entries": 56,
+        "cached": 18,
+        "noise": {
+          "M2": 0,
+          "M6": 0
+        }
+      },
+      "comparison": {
+        "noise": 0.0893,
+        "gained": 6,
+        "lost": 1
+      },
+      "reason": "Ein Reasoning-Wechsel zielt auf kein einzelnes Fehlerbild; am Entscheidungsteil steigt vor allem fachlich korrekt (M2), ohne dass eine neue Fehlerart auftaucht. Einen Trainingsvergleich gibt es dafür nicht."
+    },
+    {
+      "requestType": "card-variant-cloze",
+      "run": "2026-11-25-luna-medium",
+      "date": "2026-11-25",
+      "split": "dev",
+      "promptVersion": "card-variant-v6",
+      "candidate": "reasoning-medium",
+      "fingerprint": "1dd89e3dc6b645f0",
+      "model": "openai/gpt-6-luna",
+      "reasoning": "medium",
+      "change": "Reasoning medium statt low.",
+      "decision": "accepted",
+      "cases": 43,
+      "repetitions": 2,
+      "main": 0.9535,
+      "low": 0.907,
+      "high": 0.9884,
+      "criteria": {
+        "M1": 1,
+        "M2": 0.9524,
+        "M3": 0.9881,
+        "M4": 1,
+        "M5": 1,
+        "M6": 0.869,
+        "M7": 1
+      },
+      "outcomes": {
+        "answer": 84,
+        "refused": 2,
+        "rejected": 0,
+        "timeout": 0
+      },
+      "traps": {
+        "answers": 20,
+        "errors": 0
+      },
+      "costUsd": 0.000147,
+      "costTotalUsd": 0.0127,
+      "latencyP90Ms": 4251,
+      "judge": {
+        "model": "claude-opus-5-5",
+        "fingerprint": "8efb9aea2cfe1bad",
+        "entries": 80,
+        "cached": 2,
+        "noise": {
+          "M2": 0,
+          "M6": 0
+        }
+      },
+      "comparison": {
+        "noise": 0.0814,
+        "gained": 12,
+        "lost": 1
+      },
+      "reason": "Ein Reasoning-Wechsel zielt auf kein einzelnes Fehlerbild; am Entscheidungsteil steigt vor allem fachlich korrekt (M2), ohne dass eine neue Fehlerart auftaucht. Einen Trainingsvergleich gibt es dafür nicht."
+    },
+    {
+      "requestType": "card-variant-choice",
+      "run": "2026-11-25-luna-medium",
+      "date": "2026-11-25",
+      "split": "dev",
+      "promptVersion": "card-variant-v5",
+      "candidate": "reasoning-medium",
+      "fingerprint": "ecf034ecabe163b9",
+      "model": "openai/gpt-6-luna",
+      "reasoning": "medium",
+      "change": "Reasoning medium statt low.",
+      "decision": "rejected",
+      "cases": 45,
+      "repetitions": 2,
+      "main": 0.9222,
+      "low": 0.8444,
+      "high": 0.9778,
+      "criteria": {
+        "M1": 0.9333,
+        "M2": 0.9878,
+        "M3": 1,
+        "M4": 1,
+        "M5": 1,
+        "M6": 0.9359,
+        "M7": 1
+      },
+      "outcomes": {
+        "answer": 82,
+        "refused": 2,
+        "rejected": 6,
+        "timeout": 0
+      },
+      "traps": {
+        "answers": 22,
+        "errors": 0
+      },
+      "costUsd": 0.000131,
+      "costTotalUsd": 0.0118,
+      "latencyP90Ms": 3515,
+      "judge": {
+        "model": "claude-opus-5-5",
+        "fingerprint": "83b1d1b07ae31e82",
+        "entries": 49,
+        "cached": 22,
+        "noise": {
+          "M2": 0,
+          "M6": 0.1
+        }
+      },
+      "comparison": {
+        "noise": 0.0444,
+        "gained": 1,
+        "lost": 4
+      }
+    },
+    {
+      "requestType": "card-help",
+      "run": "2026-11-25-luna-medium",
+      "date": "2026-11-25",
+      "split": "dev",
+      "promptVersion": "card-help-v2",
+      "candidate": "reasoning-medium",
+      "fingerprint": "166669098a419011",
+      "model": "openai/gpt-6-luna",
+      "reasoning": "medium",
+      "change": "Reasoning medium statt low.",
+      "decision": "rejected",
+      "cases": 38,
+      "repetitions": 2,
+      "main": 0.9737,
+      "low": 0.9342,
+      "high": 1,
+      "criteria": {
+        "H0": 1,
+        "H1": 1,
+        "H2": 0.9868,
+        "H3": 1,
+        "H4": 1,
+        "H5": 1,
+        "H6": 1,
+        "H7": 1,
+        "H8": 0.9868
+      },
+      "outcomes": {
+        "answer": 76,
+        "refused": 0,
+        "rejected": 0,
+        "timeout": 0
+      },
+      "traps": {
+        "answers": 16,
+        "errors": 0
+      },
+      "costUsd": 0.000117,
+      "costTotalUsd": 0.00892,
+      "latencyP90Ms": 4418,
+      "judge": {
+        "model": "claude-opus-5-5",
+        "fingerprint": "b05ea61434503c47",
+        "entries": 76,
+        "cached": 0,
+        "noise": {
+          "H1": 0,
+          "H2": 0,
+          "H3": 0,
+          "H4": 0,
+          "H5": 0,
+          "H6": 0,
+          "H7": 0
+        }
+      },
+      "comparison": {
+        "noise": 0.1118,
+        "gained": 9,
+        "lost": 1
+      }
+    },
+    {
+      "requestType": "learning-summary",
+      "run": "2026-11-25-v6-baseline-dev",
+      "date": "2026-11-25",
+      "split": "dev",
+      "promptVersion": "learning-summary-v6",
+      "candidate": null,
+      "fingerprint": "89b087c915a55ae1",
+      "model": "openai/gpt-6-luna",
+      "reasoning": "medium",
+      "change": "Baseline",
+      "decision": "baseline",
+      "cases": 20,
+      "repetitions": 4,
+      "main": 0.7938,
+      "low": 0.6813,
+      "high": 0.8813,
+      "criteria": {
+        "Z1": 0.95,
+        "Z2": 0.9474,
+        "Z3": 1,
+        "Z4": 1,
+        "Z5": 0.9211,
+        "Z6": 0.9671,
+        "Z7": 0.8947,
+        "Z8": 0.9957,
+        "Z9": 0.9889
+      },
+      "outcomes": {
+        "answer": 76,
+        "refused": 0,
+        "rejected": 4,
+        "timeout": 0
+      },
+      "traps": {
+        "answers": 0,
+        "errors": 0
+      },
+      "costUsd": 0.000927,
+      "costTotalUsd": 0.0732,
+      "latencyP90Ms": 30523,
+      "judge": {
+        "model": "claude-opus-5-5",
+        "fingerprint": "a89086c0cf8c8650",
+        "entries": 226,
+        "cached": 2,
+        "noise": {
+          "Z6": 0.0714,
+          "Z7": 0.0714,
+          "Z8": 0,
+          "Z9": 0
+        }
+      },
+      "metrics": {
+        "abschnitte": 5.1447,
+        "belegtes_material": 0.9988,
+        "warnungen": 0.9211,
+        "woerter": 478.0789
+      }
+    },
+    {
+      "requestType": "learning-summary",
+      "run": "2026-11-25-v6-baseline-holdout",
+      "date": "2026-11-25",
+      "split": "holdout",
+      "promptVersion": "learning-summary-v6",
+      "candidate": null,
+      "fingerprint": "7907796fccd679bb",
+      "model": "openai/gpt-6-luna",
+      "reasoning": "medium",
+      "change": "Rückhalt",
+      "decision": "holdout",
+      "cases": 12,
+      "repetitions": 2,
+      "main": 0.6875,
+      "low": 0.4792,
+      "high": 0.8542,
+      "criteria": {
+        "Z1": 1,
+        "Z2": 0.875,
+        "Z3": 1,
+        "Z4": 1,
+        "Z5": 0.7917,
+        "Z6": 0.8958,
+        "Z7": 0.8125,
+        "Z8": 0.9708,
+        "Z9": 1
+      },
+      "outcomes": {
+        "answer": 24,
+        "refused": 0,
+        "rejected": 0,
+        "timeout": 0
+      },
+      "traps": {
+        "answers": 0,
+        "errors": 0
+      },
+      "costUsd": 0.00103,
+      "costTotalUsd": 0.0247,
+      "latencyP90Ms": 25570,
+      "judge": {
+        "model": "claude-opus-5-5",
+        "fingerprint": "a89086c0cf8c8650",
+        "entries": 72,
+        "cached": 0,
+        "noise": {
+          "Z6": 0.1111,
+          "Z7": 0.1111,
+          "Z8": 0
+        }
+      },
+      "metrics": {
+        "abschnitte": 5.9583,
+        "belegtes_material": 1,
+        "warnungen": 1.0833,
+        "woerter": 430.625
+      }
+    },
+    {
+      "requestType": "card-variant-basic",
+      "run": "2026-11-25-v6-holdout",
+      "date": "2026-11-25",
+      "split": "holdout",
+      "promptVersion": "card-variant-v6",
+      "candidate": null,
+      "fingerprint": "c9693af5ad31f52e",
+      "model": "openai/gpt-6-luna",
+      "reasoning": "medium",
+      "change": "Rückhalt",
+      "decision": "holdout",
+      "cases": 24,
+      "repetitions": 2,
+      "main": 0.8542,
+      "low": 0.7292,
+      "high": 0.9583,
+      "criteria": {
+        "M1": 1,
+        "M2": 0.9091,
+        "M3": 1,
+        "M4": 1,
+        "M5": 1,
+        "M6": 0.9318,
+        "M7": 0.9375
+      },
+      "outcomes": {
+        "answer": 45,
+        "refused": 3,
+        "rejected": 0,
+        "timeout": 0
+      },
+      "traps": {
+        "answers": 14,
+        "errors": 0
+      },
+      "costUsd": 0.000101,
+      "costTotalUsd": 0.00485,
+      "latencyP90Ms": 3466,
+      "judge": {
+        "model": "claude-opus-5-5",
+        "fingerprint": "c21478f1a1cbded0",
+        "entries": 30,
+        "cached": 12,
+        "noise": {
+          "M2": 0,
+          "M6": 0
+        }
+      }
+    },
+    {
+      "requestType": "card-variant-cloze",
+      "run": "2026-11-25-v6-holdout",
+      "date": "2026-11-25",
+      "split": "holdout",
+      "promptVersion": "card-variant-v6",
+      "candidate": null,
+      "fingerprint": "af78c55966cfb6e7",
+      "model": "openai/gpt-6-luna",
+      "reasoning": "medium",
+      "change": "Rückhalt",
+      "decision": "holdout",
+      "cases": 31,
+      "repetitions": 2,
+      "main": 0.9516,
+      "low": 0.9032,
+      "high": 1,
+      "criteria": {
+        "M1": 1,
+        "M2": 0.9516,
+        "M3": 1,
+        "M4": 1,
+        "M5": 1,
+        "M6": 0.8871,
+        "M7": 1
+      },
+      "outcomes": {
+        "answer": 62,
+        "refused": 0,
+        "rejected": 0,
+        "timeout": 0
+      },
+      "traps": {
+        "answers": 14,
+        "errors": 0
+      },
+      "costUsd": 0.000144,
+      "costTotalUsd": 0.00896,
+      "latencyP90Ms": 4352,
+      "judge": {
+        "model": "claude-opus-5-5",
+        "fingerprint": "8efb9aea2cfe1bad",
+        "entries": 54,
+        "cached": 7,
+        "noise": {
+          "M2": 0,
+          "M6": 0
+        }
+      }
+    },
+    {
+      "requestType": "source-cards",
+      "run": "2026-11-25-luna-medium",
+      "date": "2026-11-25",
+      "split": "dev",
+      "promptVersion": "source-cards-v2",
+      "candidate": "reasoning-medium",
+      "fingerprint": "64c352a91bbcb5d4",
+      "model": "openai/gpt-6-luna",
+      "reasoning": "medium",
+      "change": "Reasoning medium statt low.",
+      "decision": "rejected",
+      "cases": 24,
+      "repetitions": 2,
+      "main": 0.8722,
+      "low": 0.8167,
+      "high": 0.9264,
+      "criteria": {
+        "Q1": 1,
+        "Q2": 0.9889,
+        "Q3": 0.85,
+        "Q4": 0.9688,
+        "Q5": 0.8571,
+        "Q6": 0.7658
+      },
+      "outcomes": {
+        "answer": 48,
+        "refused": 0,
+        "rejected": 0,
+        "timeout": 0
+      },
+      "traps": {
+        "answers": 0,
+        "errors": 0
+      },
+      "costUsd": 0.00282,
+      "costTotalUsd": 0.136,
+      "latencyP90Ms": 156172,
+      "judge": {
+        "model": "claude-opus-5-5",
+        "fingerprint": "edd8713b2c29c6c4",
+        "entries": 234,
+        "cached": 10,
+        "noise": {
+          "Q2": 0,
+          "Q3": 0,
+          "Q4": 0,
+          "Q5": 0,
+          "Q6": 0.0541
+        }
+      },
+      "metrics": {
+        "abschnitte_gescheitert": 0,
+        "anteil_frage_antwort": 0.9432,
+        "anteil_lueckentext": 0.0331,
+        "anteil_multiple_choice": 0.012,
+        "anteil_single_choice": 0.0117,
+        "belegte_stellen": 0.903,
+        "karten": 34.5417,
+        "karten_je_1000_zeichen": 4.7666,
+        "letzte_belegte_stelle": 0.9464,
+        "obergrenze_erreicht": 0.125,
+        "verworfen": 1.0208
+      },
+      "comparison": {
+        "noise": 0.0622,
+        "gained": 8,
+        "lost": 8
+      }
+    },
+    {
+      "requestType": "card-variant-choice",
+      "run": "2026-11-25-v6-baseline-dev",
+      "date": "2026-11-25",
+      "split": "dev",
+      "promptVersion": "card-variant-v6",
+      "candidate": null,
+      "fingerprint": "e106022802c8f395",
+      "model": "openai/gpt-6-luna",
+      "reasoning": "low",
+      "change": "Baseline",
+      "decision": "baseline",
+      "cases": 45,
+      "repetitions": 2,
+      "main": 0.9556,
+      "low": 0.8889,
+      "high": 1,
+      "criteria": {
+        "M1": 0.9556,
+        "M2": 1,
+        "M3": 1,
+        "M4": 1,
+        "M5": 1,
+        "M6": 0.9753,
+        "M7": 1
+      },
+      "outcomes": {
+        "answer": 84,
+        "refused": 2,
+        "rejected": 4,
+        "timeout": 0
+      },
+      "traps": {
+        "answers": 22,
+        "errors": 0
+      },
+      "costUsd": 0.000116,
+      "costTotalUsd": 0.0104,
+      "latencyP90Ms": 2631,
+      "judge": {
+        "model": "claude-opus-5-5",
+        "fingerprint": "83b1d1b07ae31e82",
+        "entries": 35,
+        "cached": 36,
+        "noise": {
+          "M2": 0,
+          "M6": 0
+        }
+      }
     }
   ],
   "calibrations": []

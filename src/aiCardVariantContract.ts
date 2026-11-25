@@ -3,7 +3,7 @@ import { mapClozes } from "./clozeSyntax.js";
 import { stripHtml } from "./htmlSafety.js";
 
 export const AI_CARD_VARIANT_ENDPOINT = "/api/ai/card-variant";
-export const AI_CARD_VARIANT_PROMPT_VERSION = "card-variant-v5";
+export const AI_CARD_VARIANT_PROMPT_VERSION = "card-variant-v6";
 export const MAX_AI_CARD_VARIANT_FIELD_CHARS = 1_200;
 const MAX_AI_CARD_VARIANT_SOURCE_CHARS = 2_400;
 const MAX_AI_CARD_VARIANT_AVOID_ITEMS = 5;
