@@ -304,7 +304,7 @@ test("Vergleich: übernommen nur über dem Rauschen und ohne schlechteres kritis
   const worseCritical = { ...summaries[0], criteria: { ...summaries[0].criteria, M2: 0.1 } };
   assert.deepEqual(decide(variantType, worseCritical, summaries[1], strong).failed, ["kritisches Kriterium M2 schlechter"]);
   const slower = { ...summaries[0], costUsd: summaries[1].costUsd * 1.3, latencyP90Ms: summaries[1].latencyP90Ms * 1.21 };
-  assert.deepEqual(decide(variantType, slower, summaries[1], strong).failed, ["Kosten über dem 1,2-Fachen", "Latenz p90 über dem 1,2-Fachen"]);
+  assert.deepEqual(decide(variantType, slower, summaries[1], strong), { decision: "accepted", failed: [] }, "Kosten und Latenz entscheiden nicht mit");
   assert.throws(() => compare(better, [result("fremd", 0, true)], seededRandom(5)), /keinen gemeinsamen Fall/);
 });
 

@@ -8458,9 +8458,9 @@ Läufen dasselbe Urteil ohne Richter. Ein anderer Richterauftrag oder Bogen
 Baseline.</li>
 <li><code>score</code> entscheidet eine Runde selbst: übernommen, wenn der gepaarte Abstand
 zum Bestand über dem Rauschen liegt (mit <code>--simplify</code> für Kürzungen: nicht
-messbar schlechter), kein kritisches Kriterium schlechter wird und Kosten je
-Antwort und Latenz p90 höchstens das 1,2-Fache betragen. Fallen (<code>trap</code>)
-zählt der Bericht getrennt.</li>
+messbar schlechter) und kein kritisches Kriterium schlechter wird. Kosten je
+Antwort und Latenz p90 entscheiden nicht mit; der Bericht zeigt sie, die
+Richtwerte unten ordnen sie ein. Fallen (<code>trap</code>) zählt der Bericht getrennt.</li>
 <li>Scheitert ein Kandidat mit <code>--target</code> (Kriterien oder Kategorien seines
 Fehlerbilds) nur am Rauschen, ist er vorläufig übernommen, wenn er dort
 mindestens zwei Fälle mehr gewinnt als verliert und am Rest höchstens einen
@@ -8485,6 +8485,48 @@ verhindert den Eintrag, und seine Urteile kommen nicht in den Cache.</li>
 <li><code>generate --dry</code> erzeugt nachgebildete Antworten ohne Schlüssel und Kosten;
 ein Trockenlauf kommt nie ins Ledger.</li>
 </ul>
+<p>Richtwerte für Kosten und Latenz sind eine Größenordnung, keine Grenze. Ein
+Kandidat darüber braucht eine bewusste Entscheidung, bevor er in die Route
+kommt; ein Modellwechsel bleibt immer eine eigene Entscheidung.</p>
+<table>
+<thead>
+<tr>
+<th>Anfragetyp</th>
+<th>Einheit</th>
+<th>Bestand (<code>low</code>, 2026-11-24)</th>
+<th>Richtwert Kosten</th>
+<th>Richtwert Latenz p90</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Varianten</td>
+<td>eine Variante</td>
+<td>0,08–0,12 mUSD, 3–4 s</td>
+<td>≤ 0,5 mUSD</td>
+<td>≤ 6 s</td>
+</tr>
+<tr>
+<td>KI hilft</td>
+<td>eine Antwort</td>
+<td>0,09 mUSD, 4 s</td>
+<td>≤ 0,5 mUSD</td>
+<td>≤ 8 s</td>
+</tr>
+<tr>
+<td>Karten aus einer Quelle</td>
+<td>ein Dokument</td>
+<td>2,2 mUSD, 120 s</td>
+<td>≤ 10 mUSD</td>
+<td>≤ 3 min</td>
+</tr>
+<tr>
+<td>Zusammenfassung</td>
+<td>eine Zusammenfassung</td>
+<td>0,7 mUSD, 15 s</td>
+<td>≤ 3 mUSD</td>
+<td>≤ 60 s</td>
+</tr>
+</tbody></table>
 <p>Eine Kalibrierung ist nicht vorgesehen, aber möglich: <code>calibration-table &lt;typ&gt;</code>, dann die Richter, dann <code>calibration-score &lt;typ&gt; --judge &lt;modell&gt;</code>.
 Handurteile mit <code>control: true</code> laufen als Kontrolleinträge in jedem Lauf mit.</p>
 <h2 id="ai-eval--ablage" class="core-heading-2" tabindex="-1">Ablage <a class="docs-anchor" href="#ai-eval--ablage" aria-label="Link zu Ablage">#</a></h2>

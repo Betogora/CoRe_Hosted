@@ -80,9 +80,9 @@ Agenten steht im Skill [`ai-eval`](../.agents/skills/ai-eval/SKILL.md).
   Baseline.
 - `score` entscheidet eine Runde selbst: übernommen, wenn der gepaarte Abstand
   zum Bestand über dem Rauschen liegt (mit `--simplify` für Kürzungen: nicht
-  messbar schlechter), kein kritisches Kriterium schlechter wird und Kosten je
-  Antwort und Latenz p90 höchstens das 1,2-Fache betragen. Fallen (`trap`)
-  zählt der Bericht getrennt.
+  messbar schlechter) und kein kritisches Kriterium schlechter wird. Kosten je
+  Antwort und Latenz p90 entscheiden nicht mit; der Bericht zeigt sie, die
+  Richtwerte unten ordnen sie ein. Fallen (`trap`) zählt der Bericht getrennt.
 - Scheitert ein Kandidat mit `--target` (Kriterien oder Kategorien seines
   Fehlerbilds) nur am Rauschen, ist er vorläufig übernommen, wenn er dort
   mindestens zwei Fälle mehr gewinnt als verliert und am Rest höchstens einen
@@ -106,6 +106,17 @@ Agenten steht im Skill [`ai-eval`](../.agents/skills/ai-eval/SKILL.md).
   verhindert den Eintrag, und seine Urteile kommen nicht in den Cache.
 - `generate --dry` erzeugt nachgebildete Antworten ohne Schlüssel und Kosten;
   ein Trockenlauf kommt nie ins Ledger.
+
+Richtwerte für Kosten und Latenz sind eine Größenordnung, keine Grenze. Ein
+Kandidat darüber braucht eine bewusste Entscheidung, bevor er in die Route
+kommt; ein Modellwechsel bleibt immer eine eigene Entscheidung.
+
+| Anfragetyp | Einheit | Bestand (`low`, 2026-11-24) | Richtwert Kosten | Richtwert Latenz p90 |
+| --- | --- | --- | --- | --- |
+| Varianten | eine Variante | 0,08–0,12 mUSD, 3–4 s | ≤ 0,5 mUSD | ≤ 6 s |
+| KI hilft | eine Antwort | 0,09 mUSD, 4 s | ≤ 0,5 mUSD | ≤ 8 s |
+| Karten aus einer Quelle | ein Dokument | 2,2 mUSD, 120 s | ≤ 10 mUSD | ≤ 3 min |
+| Zusammenfassung | eine Zusammenfassung | 0,7 mUSD, 15 s | ≤ 3 mUSD | ≤ 60 s |
 
 Eine Kalibrierung ist nicht vorgesehen, aber möglich: `calibration-table
 <typ>`, dann die Richter, dann `calibration-score <typ> --judge <modell>`.

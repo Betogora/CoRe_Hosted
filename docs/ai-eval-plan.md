@@ -262,8 +262,8 @@ Zeitüberschreitungen sind bei jedem Anfragetyp feste Messgrößen.
   mit Wartezeit wiederholt und bleiben sonst offen; Schlüssel- und
   Budgetfehler brechen ab.
 - **Übernommen** wird am Entscheidungsteil, wenn der gepaarte Abstand zum
-  Bestand über dem Rauschen liegt, kein kritisches Kriterium mehr Fehler hat
-  und Kosten je Antwort und Latenz p90 höchstens das 1,2-Fache betragen.
+  Bestand über dem Rauschen liegt und kein kritisches Kriterium mehr Fehler hat;
+  Kosten und Latenz ordnen die Richtwerte in [KI-Eval](ai-eval.md) ein.
 - **Vereinfachungen** (kürzerer Prompt, niedrigeres Reasoning) gelten als
   übernommen, wenn der Abstand nicht negativ ist und im Rauschen liegt.
 - Fallen: Fehler je Antworten, zur Baseline und am Wellenende über alle
@@ -593,7 +593,7 @@ Orientierung auf der Seite, kein Abbruchgrund (Haltepunkt H, 2026-11-24).
 
 | Anfragetyp | Hauptwert am Rückhalt | Kritisch | Weitere |
 | --- | --- | --- | --- |
-| Varianten | ≥ 95 % | Fallen zu Richtung, Reihenfolge und Verneinung: 0 Fehler bei mindestens 40 Antworten je Kartenart | Kosten höchstens das 1,2-Fache der Baseline, Latenz p90 ≤ 4 s |
+| Varianten | ≥ 95 % | Fallen zu Richtung, Reihenfolge und Verneinung: 0 Fehler bei mindestens 40 Antworten je Kartenart | Kosten und Latenz nach den Richtwerten in [KI-Eval](ai-eval.md) |
 | KI hilft | ≥ 90 % | H2: höchstens 2 Fehler je 100 Antworten; H6: 0 Fehler in den Fallen bei mindestens 40 Antworten | Streaming erst, wenn die Latenz im Median über 4 s liegt |
 | Karten aus einer Quelle | ≥ 90 % | Q2 ≥ 98 % der bewerteten Karten | Q6 ≥ 80 % bei Normal, keine Dubletten, Kartenmenge 60 % und 140 %, jede erlaubte Form kommt vor, wo das Dokument sie trägt |
 | Zusammenfassung | ≥ 95 % | Z6 ≥ 98 % der Abschnitte | Z2 ≥ 90 %, Z8 ≥ 80 %, jeder eingebaute Widerspruch gemeldet |

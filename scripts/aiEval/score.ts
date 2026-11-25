@@ -147,15 +147,11 @@ export function compare(candidate: readonly AnswerResult[], reference: readonly 
 const TARGET_MARGIN = 2;
 const REST_MARGIN = 1;
 
-const LIMIT = 1.2;
-
 /** `failed` nennt die verletzten Bedingungen; leer heißt übernommen oder vorläufig übernommen. */
 export function decide(type: RequestType, candidate: Summary, reference: Summary, comparison: ReturnType<typeof compare>, simplify = false) {
   const failed = [
     ...(simplify ? comparison.delta >= -comparison.noise : comparison.delta > comparison.noise) ? [] : [simplify ? "messbar schlechter als der Bestand" : "Abstand nicht über dem Rauschen"],
     ...type.critical.filter((id) => (candidate.criteria[id] ?? 0) < (reference.criteria[id] ?? 0)).map((id) => `kritisches Kriterium ${id} schlechter`),
-    ...candidate.costUsd > reference.costUsd * LIMIT ? ["Kosten über dem 1,2-Fachen"] : [],
-    ...candidate.latencyP90Ms > reference.latencyP90Ms * LIMIT ? ["Latenz p90 über dem 1,2-Fachen"] : [],
   ];
   const targeted = comparison.targeted;
   if (targeted && failed.length === 1 && failed[0] === "Abstand nicht über dem Rauschen") {
