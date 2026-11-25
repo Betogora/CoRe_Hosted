@@ -157,6 +157,31 @@ test("Wochenkalender ändert und löscht ausgewählte Lernzeit direkt am Block",
   await expect(page.getByText("Ungespeicherte Kalenderänderungen", { exact: true })).toBeVisible();
 });
 
+test("Wochenkalender verschiebt Lernzeit per langem Touch mit Vibration", async ({ page }) => {
+  await resetToFreshLocalState(page);
+  await planExam(page, "Geografie");
+  await page.getByRole("button", { name: "Woche", exact: true }).click();
+  const calendar = page.getByTestId("exam-week-calendar");
+  await calendar.locator('[data-week-day][aria-disabled="false"]').first().focus();
+  await page.keyboard.press("Enter");
+  const block = calendar.locator("[data-week-block]").first();
+  await expect(block).toHaveAccessibleName(/08:00 bis 08:30/);
+  await page.evaluate(() => { const calls: unknown[] = []; Object.assign(window, { vibrations: calls }); navigator.vibrate = (pattern) => { calls.push(pattern); return true; }; });
+  const box = await block.boundingBox();
+  if (!box) throw new Error("Lernzeit ist nicht sichtbar");
+  const touch = { pointerType: "touch", pointerId: 7, isPrimary: true, button: 0, clientX: box.x + box.width / 2 };
+  await block.dispatchEvent("pointerdown", { ...touch, clientY: box.y + 4 });
+  await block.dispatchEvent("pointermove", { ...touch, clientY: box.y + 36 });
+  await expect(block).toHaveAccessibleName(/08:00 bis 08:30/);
+  await block.dispatchEvent("pointerup", { ...touch, clientY: box.y + 36 });
+  await block.dispatchEvent("pointerdown", { ...touch, clientY: box.y + 4 });
+  await expect.poll(() => page.evaluate(() => (window as unknown as { vibrations: unknown[] }).vibrations.length)).toBe(1);
+  await block.dispatchEvent("pointermove", { ...touch, clientY: box.y + 36 });
+  await expect(block).toHaveAccessibleName(/09:00 bis 09:30/);
+  await block.dispatchEvent("pointerup", { ...touch, clientY: box.y + 36 });
+  await expect(block).toHaveAccessibleName(/09:00 bis 09:30/);
+});
+
 async function synchronized(page: Page) {
   await page.locator('[data-navigation-utilities="true"][data-sync-status="saved"]').first().waitFor({ state: "attached", timeout: 20_000 });
 }
