@@ -47,7 +47,7 @@ test("general settings render exactly the requested dialog area without a page s
 test("appearance settings pick the heatmap color with the shared color picker", () => {
   const html = renderSettings("darstellung");
   assert.match(html, />Heatmap-Farbe</);
-  assert.match(html, /aria-label="Heatmap-Farbe ändern"[^>]*><span[^>]*background-color:#b55b43/);
+  assert.match(html, /aria-label="Heatmap-Farbe ändern"[^>]*><span[^>]*background-color:#b95e00/);
 });
 
 test("appearance settings choose the deck view shared by Heute and Lernen", () => {
