@@ -28,7 +28,7 @@ const forecastToneByLevel = [
   "core-heatmap-forecast-level-4",
 ];
 export const HEATMAP_HISTORY_COLOR_STORAGE_KEY = "core.studyHeatmap.historyColor.v2";
-export const HEATMAP_HISTORY_DEFAULT_COLOR = "#b55b43";
+export const HEATMAP_HISTORY_DEFAULT_COLOR = "#b95e00";
 const PERIOD_OPTIONS: Array<{ value: StudyHeatmapPeriod; label: string }> = [
   { value: "week", label: "Woche" },
   { value: "month", label: "Monat" },
