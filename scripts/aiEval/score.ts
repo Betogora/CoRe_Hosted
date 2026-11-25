@@ -10,7 +10,7 @@ import type { EvalRun, RequestType } from "./ledger.ts";
  * Seiten (Fall oder Modell) eine Ablehnung ist. `main` ist `null`, wenn ein Hauptkriterium nur ein Urteil mit Sicherheit 1
  * hat und kein sicheres Hauptkriterium durchfällt; die Antwort zählt dann für den Hauptwert nicht.
  */
-export type AnswerResult = { caseId: string; repetition: number; category: string; trap: boolean; outcome: Outcome; criteria: Record<string, number>; main: number | null; metrics?: Record<string, number>; costUsd: number | null; latencyMs: number; totalTokens: number | null; model: string | null };
+export type AnswerResult = { caseId: string; /** Fehlt in älteren Ergebnissen; dann ist der Fall seine eigene Gruppe. */ group?: string; repetition: number; category: string; trap: boolean; outcome: Outcome; criteria: Record<string, number>; main: number | null; metrics?: Record<string, number>; costUsd: number | null; latencyMs: number; totalTokens: number | null; model: string | null };
 
 const RESAMPLES = 2000;
 const mean = (values: readonly number[]) => values.length ? values.reduce((sum, value) => sum + value, 0) / values.length : 0;
@@ -57,20 +57,39 @@ export function evaluateAnswers(definition: EvalDefinition, cases: readonly Eval
     if (definition.items && !itemMains.length && !undecided) itemMains = [0];
     const main = !valid || !automaticMain ? 0 : itemMains.length ? round(mean(itemMains)) : undecided ? null : 1;
     const metrics = judging && definition.metrics ? { metrics: definition.metrics(entry.request, row.output) } : {};
-    return { caseId: entry.id, repetition, category: entry.category, trap: Boolean(entry.trap), outcome: row.outcome, criteria, main, ...metrics, costUsd: row.costUsd, latencyMs: row.latencyMs, totalTokens: row.totalTokens, model: row.model };
+    return { caseId: entry.id, group: entry.group ?? entry.id, repetition, category: entry.category, trap: Boolean(entry.trap), outcome: row.outcome, criteria, main, ...metrics, costUsd: row.costUsd, latencyMs: row.latencyMs, totalTokens: row.totalTokens, model: row.model };
   }));
 }
 
-function caseScores(results: readonly AnswerResult[]) {
-  const scores = new Map<string, number[]>();
-  for (const result of results) if (result.main !== null) scores.set(result.caseId, [...(scores.get(result.caseId) ?? []), result.main]);
-  return new Map([...scores].map(([caseId, values]) => [caseId, mean(values)]));
+type CaseScore = { caseId: string; group: string; score: number };
+
+function caseScores(results: readonly AnswerResult[], value: (result: AnswerResult) => number | null | undefined = (result) => result.main): CaseScore[] {
+  const scores = new Map<string, { group: string; values: number[] }>();
+  for (const result of results) {
+    const score = value(result);
+    if (score === null || score === undefined) continue;
+    const entry = scores.get(result.caseId) ?? { group: result.group ?? result.caseId, values: [] };
+    entry.values.push(score);
+    scores.set(result.caseId, entry);
+  }
+  return [...scores].map(([caseId, { group, values }]) => ({ caseId, group, score: mean(values) }));
 }
 
-/** Bootstrap über Fälle: Wiederholungen eines Falls bleiben zusammen. */
-function bootstrap(values: readonly number[], random: () => number) {
-  const means = Array.from({ length: RESAMPLES }, () => mean(Array.from({ length: values.length }, () => values[Math.floor(random() * values.length)])));
-  return { low: quantile(means, 0.025), high: quantile(means, 0.975) };
+/**
+ * Bootstrap über Gruppen: Fälle derselben Karte, Notiz oder Quelle und die Wiederholungen eines Falls bleiben zusammen.
+ * `above` und `below` sind die Anteile der Stichproben mit Mittel über bzw. unter null.
+ */
+function bootstrap(scores: readonly CaseScore[], random: () => number) {
+  const byGroup = new Map<string, number[]>();
+  for (const { group, score } of scores) byGroup.set(group, [...(byGroup.get(group) ?? []), score]);
+  const groups = [...byGroup.values()];
+  const means = Array.from({ length: RESAMPLES }, () => mean(Array.from({ length: groups.length }, () => groups[Math.floor(random() * groups.length)]).flat()));
+  return { low: quantile(means, 0.025), high: quantile(means, 0.975), above: means.filter((value) => value > 0).length / RESAMPLES, below: means.filter((value) => value < 0).length / RESAMPLES };
+}
+
+function pairs(candidate: readonly AnswerResult[], reference: readonly AnswerResult[], value?: (result: AnswerResult) => number | null | undefined): CaseScore[] {
+  const before = new Map(caseScores(reference, value).map((entry) => [entry.caseId, entry.score]));
+  return caseScores(candidate, value).flatMap((entry) => before.has(entry.caseId) ? [{ ...entry, score: entry.score - before.get(entry.caseId)! }] : []);
 }
 
 function criteriaShares(results: readonly AnswerResult[]) {
@@ -88,12 +107,13 @@ export type Summary = ReturnType<typeof summarize>;
 /** Eine Falle zählt als Fehler, wenn eines der kritischen Kriterien `critical` durchfällt. */
 export function summarize(results: readonly AnswerResult[], random: () => number, critical: readonly string[] = []) {
   const traps = results.filter((result) => result.trap);
-  const scores = [...caseScores(results).values()];
+  const scored = caseScores(results);
+  const scores = scored.map(({ score }) => score);
   const counts = new Map<string, number>();
   for (const result of results) counts.set(result.caseId, (counts.get(result.caseId) ?? 0) + 1);
   const costs = results.flatMap((result) => result.costUsd === null ? [] : [result.costUsd]);
   const latencies = results.map((result) => result.latencyMs);
-  const interval = bootstrap(scores, random);
+  const interval = bootstrap(scored, random);
   return {
     cases: scores.length,
     repetitions: Math.min(...counts.values()),
@@ -126,35 +146,40 @@ function targetCases(results: readonly AnswerResult[], target: readonly string[]
 }
 
 /**
- * Gepaart auf gemeinsamen Fällen; Rauschen ist die halbe Breite des 95 %-Intervalls des Abstands. Mit `target` zählt der
- * Vergleich gewonnene und verlorene Fälle getrennt für das genannte Fehlerbild und den Rest.
+ * Gepaart auf gemeinsamen Fällen; Rauschen ist die halbe Breite des 95 %-Intervalls des Abstands, `better` und `worse` die
+ * Anteile der Stichproben mit positivem bzw. negativem Abstand, `critical` dasselbe `worse` je kritischem Kriterium.
+ * Mit `target` zählt der Vergleich gewonnene und verlorene Fälle getrennt für das genannte Fehlerbild und den Rest.
  */
-export function compare(candidate: readonly AnswerResult[], reference: readonly AnswerResult[], random: () => number, target: readonly string[] = []) {
-  const before = caseScores(reference);
-  const paired = [...caseScores(candidate)].flatMap(([caseId, score]) => before.has(caseId) ? [{ caseId, difference: score - before.get(caseId)! }] : []);
+export function compare(candidate: readonly AnswerResult[], reference: readonly AnswerResult[], random: () => number, target: readonly string[] = [], critical: readonly string[] = []) {
+  const paired = pairs(candidate, reference);
   if (!paired.length) throw new Error("Kandidat und Bestand haben keinen gemeinsamen Fall.");
-  const differences = paired.map(({ difference }) => difference);
-  const { low, high } = bootstrap(differences, random);
-  const tally = (members: readonly { difference: number }[]) => ({ cases: members.length, gained: members.filter(({ difference }) => difference > 0).length, lost: members.filter(({ difference }) => difference < 0).length });
+  const { low, high, above, below } = bootstrap(paired, random);
+  const tally = (members: readonly CaseScore[]) => ({ cases: members.length, gained: members.filter(({ score }) => score > 0).length, lost: members.filter(({ score }) => score < 0).length });
   const aimed = targetCases([...candidate, ...reference], target);
   if (target.length && (!paired.some(({ caseId }) => aimed.has(caseId)) || paired.every(({ caseId }) => aimed.has(caseId)))) throw new Error(`Das Fehlerbild ${target.join(", ")} trifft keinen oder jeden Fall; enger fassen, etwa mit einer Kategorie oder einem Modus-Kriterium.`);
   return {
-    delta: round(mean(differences)), noise: round((high - low) / 2), ...tally(paired),
+    delta: round(mean(paired.map(({ score }) => score))), noise: round((high - low) / 2), better: round(above), worse: round(below), ...tally(paired),
+    critical: Object.fromEntries(critical.flatMap((id) => {
+      const criterion = pairs(candidate, reference, (result) => result.criteria[id]);
+      return criterion.length ? [[id, round(bootstrap(criterion, random).below)]] : [];
+    })) as Record<string, number>,
     targeted: target.length ? { target: [...target], aimed: tally(paired.filter(({ caseId }) => aimed.has(caseId))), rest: tally(paired.filter(({ caseId }) => !aimed.has(caseId))) } : null,
   };
 }
 
+const DECISIVE_SHARE = 0.9;
 const TARGET_MARGIN = 2;
 const REST_MARGIN = 1;
+const NOT_BETTER = "besser in weniger als 90 % der Stichproben";
 
 /** `failed` nennt die verletzten Bedingungen; leer heißt übernommen oder vorläufig übernommen. */
-export function decide(type: RequestType, candidate: Summary, reference: Summary, comparison: ReturnType<typeof compare>, simplify = false) {
+export function decide(comparison: ReturnType<typeof compare>, simplify = false) {
   const failed = [
-    ...(simplify ? comparison.delta >= -comparison.noise : comparison.delta > comparison.noise) ? [] : [simplify ? "messbar schlechter als der Bestand" : "Abstand nicht über dem Rauschen"],
-    ...type.critical.filter((id) => (candidate.criteria[id] ?? 0) < (reference.criteria[id] ?? 0)).map((id) => `kritisches Kriterium ${id} schlechter`),
+    ...(simplify ? comparison.worse < DECISIVE_SHARE : comparison.better >= DECISIVE_SHARE) ? [] : [simplify ? "schlechter in mindestens 90 % der Stichproben" : NOT_BETTER],
+    ...Object.entries(comparison.critical).filter(([, worse]) => worse >= DECISIVE_SHARE).map(([id]) => `kritisches Kriterium ${id} schlechter in mindestens 90 % der Stichproben`),
   ];
   const targeted = comparison.targeted;
-  if (targeted && failed.length === 1 && failed[0] === "Abstand nicht über dem Rauschen") {
+  if (targeted && failed.length === 1 && failed[0] === NOT_BETTER) {
     const aimedMet = targeted.aimed.gained - targeted.aimed.lost >= TARGET_MARGIN;
     const restMet = targeted.rest.lost - targeted.rest.gained <= REST_MARGIN;
     if (aimedMet && restMet) return { decision: "provisional" as const, failed: [] };
@@ -224,7 +249,7 @@ export function renderReport({ type, run, meta, summary, comparison, decision, f
     `- Geantwortete Modelle: ${summary.models.join(", ") || "keine"}`,
     ...(summary.traps.answers ? [`- Fallen: ${summary.traps.errors} Fehler bei kritischen Kriterien in ${summary.traps.answers} Antworten${summary.traps.errors ? "" : ` (Obergrenze 3/n = ${percent(3 / summary.traps.answers)})`}`] : []),
     ...(judge ? [`- Richter: ${judge.model}, Fingerabdruck ${judge.fingerprint}; ${judge.entries} Einträge neu bewertet, ${judge.cached} aus dem Urteilscache${noise ? `; Rauschen der Doppelurteile ${noise}` : ""}`] : []),
-    comparison ? `- Gegen den Bestand: ${comparison.delta >= 0 ? "+" : "−"}${percent(Math.abs(comparison.delta))} Punkte bei Rauschen ±${percent(comparison.noise)}, ${comparison.gained} Fälle gewonnen, ${comparison.lost} verloren (${comparison.cases} gemeinsame Fälle)` : `- Kein Vergleich: ${decision === "holdout" ? "Rückhalt" : decision === "baseline" ? "Baseline" : "Trainingsteil"}`,
+    comparison ? `- Gegen den Bestand: ${comparison.delta >= 0 ? "+" : "−"}${percent(Math.abs(comparison.delta))} Punkte bei Rauschen ±${percent(comparison.noise)}, besser in ${percent(comparison.better)} der Stichproben, ${comparison.gained} Fälle gewonnen, ${comparison.lost} verloren (${comparison.cases} gemeinsame Fälle)` : `- Kein Vergleich: ${decision === "holdout" ? "Rückhalt" : decision === "baseline" ? "Baseline" : "Trainingsteil"}`,
     ...(comparison?.targeted ? [`- Fehlerbild ${comparison.targeted.target.join(", ")}: ${comparison.targeted.aimed.gained} Fälle gewonnen, ${comparison.targeted.aimed.lost} verloren (${comparison.targeted.aimed.cases} Fälle); übrige: ${comparison.targeted.rest.gained} gewonnen, ${comparison.targeted.rest.lost} verloren`] : []),
     ...(decision ? [`- Entscheidung: ${decision}${failed.length ? ` (${failed.join(", ")})` : ""}`] : []),
     ...(controls ? [`- Kontrolleinträge: ${controls.entries - new Set(controls.disagreements.map((line) => line.split(" ")[0])).size} von ${controls.entries} wie das Handurteil${controls.disagreements.length ? `; Abweichungen: ${controls.disagreements.join("; ")}` : ""}`] : []),

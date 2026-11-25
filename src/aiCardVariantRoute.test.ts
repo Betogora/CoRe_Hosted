@@ -34,6 +34,7 @@ test("OpenRouter payload forces one compact tool call on the fixed model with ZD
 test("provider extraction requires exactly one changed create_card_variant call", () => {
   const { result, costUsd } = extractGeneratedVariant(completion(), input);
   assert.equal(result.variant.front, "Wofür steht ATP?");
+  assert.equal(extractGeneratedVariant(completion(), { ...input, kind: "type-in" }).result.variant.back, input.source.back, "beim Eintippen zählt zeichengenau die Antwort der Karte");
   assert.equal(result.privacyMode, "zdr");
   assert.equal(result.usage?.totalTokens, 162);
   assert.equal(costUsd, 0.00003);

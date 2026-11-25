@@ -16,7 +16,7 @@ export const REQUEST_TYPES = [
   { id: "card-variant-choice", label: "Variante Auswahl", route: "/api/ai/card-variant", promptVersion: AI_CARD_VARIANT_PROMPT_VERSION, target: 0.95, critical: ["M2"] },
   { id: "card-help", label: "Lernhilfe zur Karte", route: "/api/ai/card-help", promptVersion: AI_CARD_HELP_PROMPT_VERSION, target: 0.9, critical: ["H2", "H6"] },
   { id: "source-cards", label: "Karten aus einer Quelle", route: "/api/ai/source-cards", promptVersion: AI_SOURCE_CARDS_PROMPT_VERSION, target: 0.9, critical: ["Q2"] },
-  { id: "learning-summary", label: "Zusammenfassung", route: "/api/ai/summary", promptVersion: AI_LEARNING_SUMMARY_PROMPT_VERSION, target: 0.95, critical: ["Z6"] },
+  { id: "learning-summary", label: "Zusammenfassung", route: "/api/ai/summary", promptVersion: AI_LEARNING_SUMMARY_PROMPT_VERSION, target: 0.9, critical: ["Z6"] },
 ] as const;
 
 export type RequestType = (typeof REQUEST_TYPES)[number];

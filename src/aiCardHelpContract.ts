@@ -1,7 +1,7 @@
 import * as v from "valibot";
 
 export const AI_CARD_HELP_ENDPOINT = "/api/ai/card-help";
-export const AI_CARD_HELP_PROMPT_VERSION = "card-help-v2";
+export const AI_CARD_HELP_PROMPT_VERSION = "card-help-v3";
 export const MAX_AI_CARD_HELP_FIELD_CHARS = 4_000;
 export const MAX_AI_CARD_HELP_QUESTION_CHARS = 500;
 export const MAX_AI_CARD_HELP_ANSWER_CHARS = 2_000;

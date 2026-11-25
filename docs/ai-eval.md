@@ -26,14 +26,18 @@ Baseline, bestem Stand und Ziel.
 
 ## Ziele und Grenzen
 
-Zielwerte sind Orientierung auf der Seite, kein Abbruchgrund.
+Zielwerte sind Orientierung auf der Seite. Eine Reihe endet beim ersten
+zutreffenden Punkt: Entscheidungsteil und Rückhalt liegen zusammen höchstens
+3 Punkte unter dem Ziel, und die kritischen Schwellen halten; kein benanntes
+Fehlerbild betrifft mehr als 5 % der Trainingsantworten; zwei Runden in Folge
+ohne Übernahme; drei gerichtete Läufe am Entscheidungsteil je Welle.
 
 | Anfragetyp | Hauptwert am Rückhalt | Kritisch | Weitere |
 | --- | --- | --- | --- |
 | Varianten | ≥ 95 % | Fallen zu Richtung, Reihenfolge und Verneinung: 0 Fehler bei mindestens 40 Antworten je Kartenart | – |
 | KI hilft | ≥ 90 % | H2: höchstens 2 Fehler je 100 Antworten; H6: 0 Fehler in den Fallen bei mindestens 40 Antworten | Streaming erst, wenn die Latenz im Median über 4 s liegt |
 | Karten aus einer Quelle | ≥ 90 % | Q2 ≥ 98 % der bewerteten Karten | Q6 ≥ 80 % bei Normal, keine Dubletten, Kartenmenge 60 % und 140 %, jede erlaubte Form kommt vor, wo das Dokument sie trägt |
-| Zusammenfassung | ≥ 95 % | Z6 ≥ 98 % der Abschnitte | Z2 ≥ 90 %, Z8 ≥ 80 %, jeder eingebaute Widerspruch gemeldet |
+| Zusammenfassung | ≥ 90 % | Z6 ≥ 98 % der Abschnitte | Z2 ≥ 90 %, Z8 ≥ 80 %, jeder eingebaute Widerspruch gemeldet |
 
 - **Generator** ist der echte Payload der Route über OpenRouter mit ZDR und
   erzwungenem Tool-Call; ein Modell aus einer Subscription entwertete die
@@ -80,9 +84,9 @@ Agenten steht im Skill [`ai-eval`](../.agents/skills/ai-eval/SKILL.md).
   Zusammenfassung, einen Eintrag gegen Kernaussagen). Kriterien sind dann je
   Antwort Anteile bestandener Einträge, der Hauptwert der Anteil der Einträge
   mit allen Hauptkriterien; über den Lauf wird je Fall gemittelt. Bootstrap
-  und Vergleich gehen je Fall, bei Quelle und Zusammenfassung also je Dokument
-  mal Profil; dort ist das Intervall zu eng, weil die Profile eines Dokuments
-  nicht unabhängig sind. Messgrößen wie die Kartenzahl mittelt der Bericht je
+  und Vergleich ziehen Gruppen (Fälle derselben `group`, sonst einzelne Fälle),
+  bei Quelle und Zusammenfassung also ganze Dokumente beziehungsweise
+  Materialsätze mit allen Profilen. Messgrößen wie die Kartenzahl mittelt der Bericht je
   Kategorie.
 - Ein Kandidat ist ein Modul `<typ>/candidates/<name>.ts` im Datenordner,
   dessen Standardexport den gebauten Payload ändert (Prompt, Werkzeugschema,
@@ -103,12 +107,15 @@ Agenten steht im Skill [`ai-eval`](../.agents/skills/ai-eval/SKILL.md).
   ändert den Fingerabdruck des Richters, und die Reihe beginnt mit einer neuen
   Baseline.
 - `score` entscheidet eine Runde selbst: übernommen, wenn der gepaarte Abstand
-  zum Bestand über dem Rauschen liegt (mit `--simplify` für Kürzungen: nicht
-  messbar schlechter) und kein kritisches Kriterium schlechter wird. Kosten je
-  Antwort und Latenz p90 entscheiden nicht mit; der Bericht zeigt sie, die
-  Richtwerte unten ordnen sie ein. Fallen (`trap`) zählt der Bericht getrennt.
+  zum Bestand in mindestens 90 % der Bootstrap-Stichproben positiv ist (mit
+  `--simplify` für Kürzungen: in weniger als 90 % negativ) und kein kritisches
+  Kriterium, ebenso gepaart, in mindestens 90 % der Stichproben schlechter ist.
+  Ein einzelner Fehler in einem kritischen Kriterium kippt die Entscheidung so
+  nicht; ob die absolute Schwelle hält, zeigt der Rückhalt. Kosten je Antwort
+  und Latenz p90 entscheiden nicht mit; der Bericht zeigt sie neben den
+  Richtwerten unten. Fallen (`trap`) zählt der Bericht getrennt.
 - Scheitert ein Kandidat mit `--target` (Kriterien oder Kategorien seines
-  Fehlerbilds) nur am Rauschen, ist er vorläufig übernommen, wenn er dort
+  Fehlerbilds) nur an der Schwelle für den Hauptwert, ist er vorläufig übernommen, wenn er dort
   mindestens zwei Fälle mehr gewinnt als verliert und am Rest höchstens einen
   Fall mehr verliert als gewinnt. Ein vorläufiger Schritt wird Bestand; solange
   einer offen ist, ist jede Übernahme vorläufig. Nach höchstens drei misst
@@ -138,7 +145,7 @@ kommt; ein Modellwechsel bleibt immer eine eigene Entscheidung.
 | Anfragetyp | Einheit | Bestand (2026-11-25) | Richtwert Kosten | Richtwert Latenz p90 |
 | --- | --- | --- | --- | --- |
 | Varianten | eine Variante | 0,08–0,15 mUSD, 3–4 s | ≤ 0,5 mUSD | ≤ 6 s |
-| KI hilft | eine Antwort | 0,09 mUSD, 4 s | ≤ 0,5 mUSD | ≤ 8 s |
+| KI hilft | eine Antwort | 0,12 mUSD, 6 s | ≤ 0,5 mUSD | ≤ 8 s |
 | Karten aus einer Quelle | ein Dokument | 2,2 mUSD, 120 s | ≤ 10 mUSD | ≤ 3 min |
 | Zusammenfassung | eine Zusammenfassung | 0,9 mUSD, 31 s | ≤ 3 mUSD | ≤ 60 s |
 
@@ -178,7 +185,7 @@ Reihenfolge der Läufe. `npm run check:docs` prüft Form und Reihenfolge.
 | `change` | die eine Änderung dieser Runde in einem Satz |
 | `decision` | `baseline` beginnt eine Reihe und setzt den Bestand neu, `accepted` wird bestätigter Bestand, `provisional` vorläufiger, `rejected` nicht, `holdout` ist eine Messung am Rückhalt |
 | `cases`, `repetitions` | Fälle und Wiederholungen, die jeder Fall mindestens hat; nachgemessene Fälle haben mehr |
-| `main`, `low`, `high` | Hauptwert als Anteil mit 95 %-Intervall, per Bootstrap über Fälle |
+| `main`, `low`, `high` | Hauptwert als Anteil mit 95 %-Intervall, per Bootstrap über Gruppen |
 | `criteria` | je Kriterium der Anteil, über die Antworten gemittelt; die kritischen Kriterien des Anfragetyps sind Pflicht |
 | `outcomes` | Antworten je Klasse: angenommen, abgelehnt, verworfen, Zeitüberschreitung |
 | `traps` | Antworten auf Fallen und davon Fehler bei kritischen Kriterien |

@@ -226,7 +226,7 @@ export function parseGeneratedVariant(toolArguments: unknown, input: AiCardVaria
     mode: input.choice.mode,
     options: input.choice.options.map((option) => ({ ...option, text: options.find((candidate) => candidate.id === option.id)?.text ?? "" })),
   } : undefined;
-  const back = input.kind === "cloze" ? input.source.back : choice ? choiceAnswerText(choice.options) : normalizeAiCardText(rawArguments.back);
+  const back = input.kind === "cloze" || input.kind === "type-in" ? input.source.back : choice ? choiceAnswerText(choice.options) : normalizeAiCardText(rawArguments.back);
   const problem = (input.kind === "cloze" ? checkClozeVariant(input.source.front, front) : null)
     ?? (input.choice && options ? checkChoiceVariant({ front: input.source.front, choice: input.choice }, front, options) : null);
   if (problem) return { kind: "rejected", code: problem };
