@@ -6176,17 +6176,18 @@ button.core-info-hint:is(:hover, [data-state="open"]) {
 
 .core-summary-panel { container: core-summary / inline-size; }
 .core-creation-menu { display: flex; flex-wrap: wrap; align-items: start; gap: var(--core-space-md); min-width: 0; }
-.core-creation-menu > * { flex: 1 1 20rem; min-width: 0; }
+.core-creation-menu > *, .core-creation-menu-entry:not(:only-child) > .core-creation-menu-action { flex: 1 1 20rem; min-width: 0; }
 .core-creation-menu-entry { display: grid; }
-/* An open form takes the row to itself; the other tiles follow below it. */
-.core-creation-menu-entry[data-open="true"] { flex-basis: 100%; }
+/* Beside other tiles, the tiles keep their row and an open form follows below all of them, so nothing jumps. */
+.core-creation-menu-entry:not(:only-child) { display: contents; }
+.core-creation-menu-entry:not(:only-child) > .core-creation-menu-form { order: 1; flex-basis: 100%; border-width: var(--core-border-width); border-radius: var(--core-radius-panel); }
 .core-creation-menu-action { display: flex; align-items: center; gap: var(--core-space-md); width: 100%; min-height: 72px; padding: var(--core-space-lg); border: var(--core-border-width) solid var(--core-border); border-radius: var(--core-radius-panel); background: var(--core-surface-raised); color: var(--core-text); text-align: left; font: var(--core-weight-heading) var(--core-type-heading-3)/var(--core-leading-heading-3) var(--core-font-sans); transition: border-color 140ms ease, box-shadow 140ms ease, transform 140ms ease; }
 .core-creation-menu-icon { display: grid; flex-shrink: 0; place-items: center; width: 2.5rem; height: 2.5rem; border-radius: var(--core-radius-control); background: var(--core-surface-muted); color: var(--core-action-primary); transition: background-color 140ms ease, color 140ms ease; }
 .core-creation-menu-action > span { min-width: 0; overflow-wrap: anywhere; }
 .core-creation-menu-action:not(:disabled):hover, .core-creation-menu-action[aria-expanded="true"], .core-creation-menu-form { border-color: color-mix(in srgb, var(--core-action-primary) 45%, var(--core-border)); }
 .core-creation-menu-action:not(:disabled):not([aria-expanded="true"]):hover { box-shadow: var(--core-shadow-raised); transform: translateY(-1px); }
 .core-creation-menu-action:not(:disabled):hover .core-creation-menu-icon, .core-creation-menu-action[aria-expanded="true"] .core-creation-menu-icon { background: var(--core-action-primary); color: var(--core-text-on-accent); }
-.core-creation-menu-action[aria-expanded="true"] { border-bottom-color: var(--core-border); border-end-start-radius: 0; border-end-end-radius: 0; }
+.core-creation-menu-entry:only-child > .core-creation-menu-action[aria-expanded="true"] { border-bottom-color: var(--core-border); border-end-start-radius: 0; border-end-end-radius: 0; }
 .core-creation-menu-action:disabled { opacity: 0.5; cursor: not-allowed; }
 .core-creation-menu-form { container: creation-menu-form / inline-size; display: grid; gap: var(--core-space-lg); min-width: 0; padding: var(--core-space-lg); border-width: 0 var(--core-border-width) var(--core-border-width); border-style: solid; border-radius: var(--core-radius-panel); border-start-start-radius: 0; border-start-end-radius: 0; background: var(--core-surface-raised); }
 .core-creation-menu-form .core-segmented-control { width: 100%; }

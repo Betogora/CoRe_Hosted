@@ -12,7 +12,6 @@ import { useStableCallback } from "../ui/useStableCallback.ts";
 import { useWorkspaceValue } from "../useWorkspaceStore.ts";
 import { ActionDialog, EmptyState, SoftPanel } from "../ui/coreUi.tsx";
 import { CoreTabPanel, CoreTabs } from "../ui/CoreTabs.tsx";
-import { QuizPanelContext } from "./quizPanelContext.ts";
 import { DECK_CONTENT_TABS } from "./screenConstants.ts";
 import { DeckAppearanceIcon, getDeckAppearance } from "../ui/deckAppearance.tsx";
 import { DialogFrame } from "../ui/DialogFrame.tsx";
@@ -37,6 +36,7 @@ import { useShellBack } from "../ui/shellBack.ts";
 
 interface PendingDetailAction {
   run: () => void;
+  leave: { title: string; description: string } | null;
 }
 
 function DeckContentPlaceholder({ label, icon: Icon, title, action, testId }: { label: string; icon: LucideIcon; title: string; action?: React.ReactNode; testId?: string }) {
@@ -62,6 +62,7 @@ export function DecksScreen({
   decks,
   learningContentAccount = null,
   onGenerateSummary,
+  quiz,
   onStartDeck,
   onPracticeDeck,
   contentDeckId = null,
@@ -103,7 +104,6 @@ export function DecksScreen({
   onRequestCardPage,
 }: DecksScreenProps) {
   const { deckSummaries, syncConflictCardIds, cardPages } = useWorkspaceValue(({ deckSummaries, syncConflictCardIds, cardPages }) => ({ deckSummaries, syncConflictCardIds, cardPages }));
-  const quiz = React.useContext(QuizPanelContext);
   const contentTab = selectedCardId ? "cards" : requestedContentTab === "quiz" && !quiz ? "children" : requestedContentTab;
   const contentLibrary = React.useMemo(() => contentDeckId ? createDeckLibraryModel(decks, { now, dayStartHour, learnAheadMinutes, timeZone, deckSummaries }) : null,
     [contentDeckId, dayStartHour, deckSummaries, decks, learnAheadMinutes, now, timeZone]);
@@ -250,11 +250,9 @@ export function DecksScreen({
   }
 
   function requestDetailAction(run: () => void) {
-    if (cardDraftGuardRef.current) {
-      setPendingDetailAction({ run });
-      return;
-    }
-    run();
+    const guard = cardDraftGuardRef.current;
+    if (guard) setPendingDetailAction({ run, leave: "leave" in guard ? guard.leave : null });
+    else run();
   }
 
   function requestCardSelection(deckId: string, cardId: string) {
@@ -369,7 +367,7 @@ export function DecksScreen({
 
   async function savePendingDetailDraft() {
     const guard = cardDraftGuardRef.current;
-    if (!pendingDetailAction || !guard) return;
+    if (!pendingDetailAction || !guard || !("save" in guard)) return;
     setSavingPendingDraft(true);
     try {
       if (!await guard.save()) return;
@@ -562,7 +560,7 @@ export function DecksScreen({
       userId={learningContentAccount?.userId ?? contentDeck.ownerId} cloud={learningContentAccount?.cloud ?? null} onGenerateSummary={onGenerateSummary} onDraftStateChange={handleEditorDraftStateChange} /></React.Suspense>
       : <EmptyState icon={Network} title="Stapel nicht gefunden oder nicht verfügbar." />
   ) : contentDeckId && contentTab === "quiz" && quiz ? (
-    contentDeck ? <React.Suspense fallback={CONTENT_TAB_LOADING}><DeckQuizPanel key={contentDeck.id} deck={contentDeck} treeDecks={libraryDecks} decks={decks} {...quiz} /></React.Suspense>
+    contentDeck ? <React.Suspense fallback={CONTENT_TAB_LOADING}><DeckQuizPanel key={`${quiz.account.userId}:${contentDeck.id}`} deck={contentDeck} treeDecks={libraryDecks} decks={decks} {...quiz} onDraftStateChange={handleEditorDraftStateChange} /></React.Suspense>
       : <EmptyState icon={ListChecks} title="Stapel nicht gefunden oder nicht verfügbar." />
   ) : <section className="grid min-w-0 gap-4" aria-label="Karten" data-testid="card-library-panel">
       <div className="grid gap-4">
@@ -709,16 +707,17 @@ export function DecksScreen({
 
       <ActionDialog
         open={Boolean(pendingDetailAction)}
-        title="Änderungen übernehmen?"
-        description="Du hast ungespeicherte Änderungen in diesem Entwurf. Speichere oder verwirf sie, bevor du den Editor verlässt."
-        confirmLabel="Speichern"
-        cancelLabel="Weiter bearbeiten"
-        discardLabel="Verwerfen"
+        destructive={Boolean(pendingDetailAction?.leave)}
+        title={pendingDetailAction?.leave?.title ?? "Änderungen übernehmen?"}
+        description={pendingDetailAction?.leave?.description ?? "Du hast ungespeicherte Änderungen in diesem Entwurf. Speichere oder verwirf sie, bevor du den Editor verlässt."}
+        confirmLabel={pendingDetailAction?.leave ? "Verlassen" : "Speichern"}
+        cancelLabel={pendingDetailAction?.leave ? "Weitermachen" : "Weiter bearbeiten"}
+        discardLabel={pendingDetailAction?.leave ? undefined : "Verwerfen"}
         confirmLoading={savingPendingDraft}
         restoreFocus={(reason) => { if (reason === "cancel") cardDraftGuardRef.current?.focus(); }}
         onCancel={() => setPendingDetailAction(null)}
-        onDiscard={discardPendingDetailDraft}
-        onConfirm={() => void savePendingDetailDraft()}
+        onDiscard={pendingDetailAction?.leave ? undefined : discardPendingDetailDraft}
+        onConfirm={() => pendingDetailAction?.leave ? discardPendingDetailDraft() : void savePendingDetailDraft()}
       />
       <ActionDialog
         open={Boolean(pendingCardDelete)}

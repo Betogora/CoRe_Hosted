@@ -12,6 +12,7 @@ export function DecksScreenWiring() {
   const { focusedDeckId, selectedCardId, deckContent, deckContentTab, cardEditorTab, cardEditorReturnContext, cardQuery, navigateToRoute, navigateToView, navigateToViewNow } = navigation;
   const deckPractice = useDeckPractice();
   if (!state) return null;
+  const learningContentAccount = cardCommands.learningContentAccount();
   return (
     <>
       <DecksScreen
@@ -22,8 +23,9 @@ export function DecksScreenWiring() {
         contentTab={deckContentTab}
         cardQuery={cardQuery}
         onOpenDeckContent={(deckId, tab = "children") => navigateToViewNow("kartenstapel", { focusedDeckId: deckId, deckContent: true, deckContentTab: tab })}
-        learningContentAccount={cardCommands.learningContentAccount()}
+        learningContentAccount={learningContentAccount}
         onGenerateSummary={cardCommands.generateLearningSummary}
+        quiz={learningContentAccount ? { account: learningContentAccount, onGenerateQuiz: cardCommands.generateQuiz, onAskHelp: cardCommands.askCardHelp, onSaveCard: cardCommands.saveManualNote } : undefined}
         onRequestCardPage={cardCommands.requestCardPage}
         now={clock.learningNow}
         dayStartHour={clock.globalSchedulerPreferences.dayStartHour}

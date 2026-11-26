@@ -99,8 +99,8 @@ export function QuizSaveCards({ quiz, attempt, decks, deckId, onSaveCard, onBack
   const id = React.useId();
   const headingRef = React.useRef<HTMLHeadingElement>(null);
   const wrong = React.useMemo(() => quiz.questions.filter((question) => !isQuizAnswerCorrect(question, attempt.answers[question.id])), [quiz, attempt]);
-  const sourceName = quiz.source.kind === "file" ? quiz.source.fileName : `Quiz „${quiz.title}“`;
-  const proposalsOf = (scope: "wrong" | "all") => (scope === "wrong" ? wrong : quiz.questions).map((question): ProposalDraft => ({ id: question.id, content: proposalNoteContent(question, sourceName) }));
+  const proposalsOf = (scope: "wrong" | "all") => (scope === "wrong" ? wrong : quiz.questions)
+    .map((question): ProposalDraft => ({ id: question.id, content: proposalNoteContent({ ...question, back: "", sources: [], sourceLabels: [] }, null) }));
   const [scope, setScope] = React.useState<"wrong" | "all">(wrong.length ? "wrong" : "all");
   const [proposals, setProposals] = React.useState(() => proposalsOf(scope));
   const [targetDeckId, setTargetDeckId] = React.useState(deckId);
@@ -135,7 +135,7 @@ export function QuizSaveCards({ quiz, attempt, decks, deckId, onSaveCard, onBack
           onValueChange={(next) => { setScope(next); setProposals(proposalsOf(next)); setSaveError(""); }} />
       </div> : null}
     </div>
-    <AiSourceProposalList plain result={{ proposals: quiz.questions, warnings: [], discarded: 0, failed: [], stopped: null }} notices={[]} proposals={proposals} saving={saving} saveError={saveError} headingRef={headingRef}
+    <AiSourceProposalList plain result={null} notices={[]} proposals={proposals} saving={saving} saveError={saveError} headingRef={headingRef}
       onEdit={setEditing} onRemove={(removed) => setProposals((current) => current.filter((proposal) => proposal.id !== removed))} onAdopt={() => void adopt()} onDiscard={onBack} />
     {edited ? <AiSourceProposalEditor key={edited.id} content={edited.content} onCancel={() => setEditing(null)}
       onApply={(content) => { setProposals((current) => current.map((proposal) => proposal.id === edited.id ? { ...proposal, content } : proposal)); setEditing(null); }} /> : null}

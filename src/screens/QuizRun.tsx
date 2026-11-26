@@ -19,6 +19,8 @@ export interface QuizRunState {
   confirm: "submit" | "leave" | null;
 }
 
+export const quizLeaveDescription = (answered: number) => answered === 1 ? "Deine Antwort wird verworfen." : `Deine ${answered} Antworten werden verworfen.`;
+
 export function QuizViewHeader({ title, backLabel, onBack }: { title: string; backLabel: string; onBack: () => void }) {
   return <div className="core-quiz-view-header">
     <CoreTooltip label={backLabel}><IconButton className="-ml-2" variant="ghost" icon={ArrowLeft} label={backLabel} onClick={onBack} /></CoreTooltip>
@@ -85,7 +87,7 @@ export function QuizRun({ quiz, run, onChange, onSubmit, onLeave, onAskHelp }: {
     <ActionDialog open={run.confirm === "submit"} title={open.length === 1 ? "1 Frage ist noch offen" : `${open.length} Fragen sind noch offen`} description="Offene Fragen zählen als falsch."
       cancelLabel="Offene Frage zeigen" confirmLabel="Abgeben" onCancel={() => onChange({ confirm: null })} onConfirm={onSubmit}
       restoreFocus={(reason) => { if (reason === "cancel") focusFirstOpen(); }} />
-    <ActionDialog open={run.confirm === "leave"} destructive title="Quiz verlassen?" description={answered === 1 ? "Deine Antwort wird verworfen." : `Deine ${answered} Antworten werden verworfen.`}
+    <ActionDialog open={run.confirm === "leave"} destructive title="Quiz verlassen?" description={quizLeaveDescription(answered)}
       cancelLabel="Weitermachen" confirmLabel="Verlassen" onCancel={() => onChange({ confirm: null })} onConfirm={onLeave} />
   </div>;
 }

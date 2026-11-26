@@ -25,7 +25,7 @@ function Proposal({ proposal, plain, disabled, onEdit, onRemove }: { proposal: P
       <div className="grid min-w-0 gap-2">
         {plain ? null : <p className="core-caption text-core-muted [overflow-wrap:anywhere]">{noteKindLabel(proposal)}{source ? ` · ${source}` : ""}</p>}
         <p className="whitespace-pre-wrap [overflow-wrap:anywhere] core-body font-semibold text-core-text">{content.interaction.kind === "cloze" ? <ClozeText text={question} /> : question}</p>
-        {text("answer").map((field) => <p key={field.name} className="whitespace-pre-wrap [overflow-wrap:anywhere] core-body text-core-text">{field.text}</p>)}
+        {plain ? null : text("answer").map((field) => <p key={field.name} className="whitespace-pre-wrap [overflow-wrap:anywhere] core-body text-core-text">{field.text}</p>)}
         {content.interaction.kind === "choice" ? (
           <ul className="grid gap-1">
             {content.interaction.options.map((option) => (
@@ -49,10 +49,11 @@ function Proposal({ proposal, plain, disabled, onEdit, onRemove }: { proposal: P
 }
 
 export function AiSourceProposalList({ result, notices, proposals, plain = false, saving, saveError, headingRef, onEdit, onRemove, onAdopt, onDiscard }: {
-  result: AiSourceCardsRunResult;
+  /** Null for proposals that come from no AI run. */
+  result: AiSourceCardsRunResult | null;
   notices: string[];
   proposals: ProposalDraft[];
-  /** Shows question and answers only; kind, source and extra stay in the card. */
+  /** Shows question and options only; kind, source, answer and extra stay in the card. */
   plain?: boolean;
   saving: boolean;
   saveError: string;
@@ -68,9 +69,9 @@ export function AiSourceProposalList({ result, notices, proposals, plain = false
       <h3 ref={headingRef} tabIndex={-1} className="min-w-0 scroll-mt-24 core-heading-3 text-core-text outline-none">
         {count === 1 ? "1 Vorschlag" : `${count.toLocaleString("de-DE")} Vorschläge`}
       </h3>
-      {describeAiSourceCardsRun(result).map((message) => <StatusMessage key={message} tone="warning">{message}</StatusMessage>)}
+      {result ? describeAiSourceCardsRun(result).map((message) => <StatusMessage key={message} tone="warning">{message}</StatusMessage>) : null}
       {notices.map((notice) => <StatusMessage key={notice} tone="info">{notice}</StatusMessage>)}
-      {result.warnings.length ? (
+      {result?.warnings.length ? (
         <StatusMessage tone="info">
           <p className="font-semibold">Hinweise der KI</p>
           <ul className="mt-1 grid list-disc gap-1 pl-5">{result.warnings.map((warning) => <li key={warning}>{warning}</li>)}</ul>

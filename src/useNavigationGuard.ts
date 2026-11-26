@@ -8,6 +8,8 @@ interface DraftGuard {
   saving: boolean;
   focus: (() => void) | null;
   save?: () => Promise<boolean>;
+  /** The question of a draft that can only be given up. */
+  leave?: { title: string; description: string };
 }
 
 const GUARD_SOURCES = { "neue-karten": "creation", kartenstapel: "card", pruefungen: "exams" } as const;
@@ -36,6 +38,11 @@ export function useNavigationGuard({ settingsBlocksNavigation, ...options }: Nav
       }
       if (source === "browser" && creation) {
         setPendingNavigation({ view: "neue-karten", run: () => navigation.navigateToRoute(route) });
+        return true;
+      }
+      // A running quiz has nothing to keep, so going back would lose its answers without a word.
+      if (source === "browser" && draftGuards.current.kartenstapel?.leave) {
+        setPendingNavigation({ view: "kartenstapel", run: () => navigation.navigateToRoute(route) });
         return true;
       }
       return false;
@@ -71,7 +78,7 @@ export function useNavigationGuard({ settingsBlocksNavigation, ...options }: Nav
   }, []);
 
   const handleCardDraftStateChange = React.useCallback((guard: CardDraftGuard | null) => {
-    setDraftGuard("kartenstapel", guard ? { saving: false, focus: guard.focus, save: guard.save } : null);
+    setDraftGuard("kartenstapel", guard ? { saving: false, focus: guard.focus, ..."save" in guard ? { save: guard.save } : { leave: guard.leave } } : null);
   }, []);
 
   function runPendingNavigation() {
@@ -108,6 +115,7 @@ export function useNavigationGuard({ settingsBlocksNavigation, ...options }: Nav
     handleExamDraftStateChange,
     handleCardDraftStateChange,
     pendingNavigation: pendingNavigation ? GUARD_SOURCES[pendingNavigation.view] : null,
+    pendingLeave: pendingNavigation ? draftGuards.current[pendingNavigation.view]?.leave ?? null : null,
     savingPendingNavigation,
     cancelPendingNavigation: () => setPendingNavigation(null),
     discardPendingNavigation: runPendingNavigation,

@@ -75,6 +75,21 @@ function cardText(value: string): string {
 
 const FIELD_ROLE_LABELS: Record<Exclude<NoteFieldRole, "source">, string> = { prompt: "F", answer: "A", hint: "Hinweis", extra: "Zusatz", note: "Notiz" };
 
+/** The readable text of a note as AI material, null for an image occlusion; `label` is its first field. */
+export function noteMaterialText(note: Note): { label: string; text: string } | null {
+  const interaction = note.content.interaction;
+  if (interaction.kind === "image-occlusion") return null;
+  const fieldTexts = note.content.fields.flatMap((field) => field.role === "source" ? [] : [{ role: field.role, text: cardText(field.html) }]).filter((field) => field.text);
+  const text = [
+    ...fieldTexts.map((field) => `${FIELD_ROLE_LABELS[field.role]}: ${field.text}`),
+    ...(interaction.kind === "choice" ? [
+      "Richtig: " + interaction.options.filter((option) => option.correct).map((option) => cardText(option.html)).join("; "),
+      "Falsch: " + interaction.options.filter((option) => !option.correct).map((option) => cardText(option.html)).join("; "),
+    ] : []),
+  ].join("\n").trim();
+  return { label: fieldTexts[0]?.text || "Karte", text };
+}
+
 export function prepareSummaryMaterial(decks: Deck[], notes: Note[], deckId: string, title: string, settings: SummarySettings, source: TransientSourceDocument | null = null): PreparedSummaryMaterial {
   const ids = new Set(summaryScopeDeckIds(decks, deckId, settings.scope));
   const scoped = decks.filter((deck) => ids.has(deck.id));
@@ -96,18 +111,10 @@ export function prepareSummaryMaterial(decks: Deck[], notes: Note[], deckId: str
         if (!note || note.deletedAt) throw new AiLearningSummaryError("incomplete_material", "Ein Karteninhalt ist noch nicht vollständig geladen. Versuche es erneut, sobald die Inhalte verfügbar sind.");
         if (seen.has(note.id)) continue;
         seen.add(note.id);
-        if (note.content.interaction.kind === "image-occlusion") { excludedImages += 1; continue; }
-        const fieldTexts = note.content.fields.flatMap((field) => field.role === "source" ? [] : [{ role: field.role, text: cardText(field.html) }]).filter((field) => field.text);
-        const interaction = note.content.interaction;
-        const text = [
-          ...fieldTexts.map((field) => `${FIELD_ROLE_LABELS[field.role]}: ${field.text}`),
-          ...(interaction.kind === "choice" ? [
-            "Richtig: " + interaction.options.filter((option) => option.correct).map((option) => cardText(option.html)).join("; "),
-            "Falsch: " + interaction.options.filter((option) => !option.correct).map((option) => cardText(option.html)).join("; "),
-          ] : []),
-        ].join("\n").trim();
-        if (!text) continue;
-        add("card", deck.name + " · " + (fieldTexts[0]?.text || "Karte"), text, appRouteToUrl({ mode: "view", viewId: "kartenstapel", focusedDeckId: deck.id, selectedCardId: card.id }), deckKeys.get(deck.id));
+        const material = noteMaterialText(note);
+        if (!material) { excludedImages += 1; continue; }
+        if (!material.text) continue;
+        add("card", deck.name + " · " + material.label, material.text, appRouteToUrl({ mode: "view", viewId: "kartenstapel", focusedDeckId: deck.id, selectedCardId: card.id }), deckKeys.get(deck.id));
       }
     }
     if (excludedImages) notices.push(`${excludedImages} ${excludedImages === 1 ? "Bildverdeckung wurde" : "Bildverdeckungen wurden"} nicht ausgewertet. Die Zusammenfassung berücksichtigt ausschließlich lesbaren Text.`);

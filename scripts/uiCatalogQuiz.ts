@@ -1,42 +1,38 @@
-import type { Quiz, QuizQuestion } from "../src/quiz.ts";
-import type { QuizGenerationInput, QuizPanelStart } from "../src/screens/DeckQuizPanel.tsx";
+import type { Quiz, QuizGenerationInput, QuizQuestion } from "../src/quiz.ts";
+import type { QuizPanelStart } from "../src/screens/DeckQuizPanel.tsx";
 
-const single = (id: string, front: string, options: string[], correct: number, explanation: string, sourceLabels: string[]): QuizQuestion =>
-  ({ id, form: "single-choice", front, back: "", options: options.map((text, index) => ({ text, correct: index === correct })), explanation, sources: [], sourceLabels });
-const multiple = (id: string, front: string, options: Array<[string, boolean]>, explanation: string, sourceLabels: string[]): QuizQuestion =>
-  ({ id, form: "multiple-choice", front, back: "", options: options.map(([text, correct]) => ({ text, correct })), explanation, sources: [], sourceLabels });
-const card = (country: string) => `Karte „Hauptstadt ${country}?“`;
-const page = (id: string, front: string, options: string[], correct: number, explanation: string, pageNumber: number) => single(id, front, options, correct, explanation, [`Seite ${pageNumber}`]);
+const single = (id: string, front: string, options: string[], correct: number, explanation: string): QuizQuestion =>
+  ({ id, form: "single-choice", front, options: options.map((text, index) => ({ text, correct: index === correct })), explanation });
+const multiple = (id: string, front: string, options: Array<[string, boolean]>, explanation: string): QuizQuestion =>
+  ({ id, form: "multiple-choice", front, options: options.map(([text, correct]) => ({ text, correct })), explanation });
 
 const europeQuestions = [
-  single("q1", "Welche Stadt ist die Hauptstadt von Portugal?", ["Porto", "Lissabon", "Coimbra", "Faro"], 1, "Lissabon liegt an der Mündung des Tejo und ist seit 1255 Hauptstadt.", [card("von Portugal")]),
-  single("q2", "Welche Hauptstadt liegt an der Donau?", ["Prag", "Warschau", "Budapest", "Bern"], 2, "Budapest entstand 1873 aus Buda, Óbuda und Pest beiderseits der Donau.", [card("von Ungarn")]),
-  multiple("q3", "Welche dieser Hauptstädte liegen an der Ostsee?", [["Tallinn", true], ["Riga", true], ["Vilnius", false], ["Helsinki", true]], "Vilnius liegt im Landesinneren Litauens, rund 300 km von der Küste entfernt.",
-    [card("von Estland"), card("von Lettland"), card("von Litauen"), card("von Finnland")]),
-  single("q4", "Welche Stadt ist die Bundesstadt der Schweiz?", ["Zürich", "Genf", "Bern", "Basel"], 2, "Bern ist Bundesstadt; eine Hauptstadt im rechtlichen Sinn kennt die Verfassung nicht.", [card("der Schweiz")]),
-  single("q5", "Welche Hauptstadt liegt am nördlichsten?", ["Oslo", "Helsinki", "Reykjavík", "Stockholm"], 2, "Reykjavík liegt auf etwa 64° nördlicher Breite.", [card("von Island")]),
-  multiple("q6", "Welche dieser Hauptstädte gehörten zu keiner Zeit zum Herrschaftsgebiet der Habsburgermonarchie?", [["Wien", false], ["Paris", true], ["Prag", false], ["Lissabon", true]], "Wien und Prag gehörten zur Habsburgermonarchie, Paris und Lissabon nie.",
-    [card("von Österreich"), card("von Tschechien")]),
-  single("q7", "Welche Stadt ist die Hauptstadt von Litauen?", ["Riga", "Vilnius", "Tallinn", "Kaunas"], 1, "Vilnius ist seit 1990 wieder Hauptstadt; Kaunas war es zwischen den Weltkriegen.", [card("von Litauen")]),
-  single("q8", "An welchem Fluss liegt Warschau?", ["Oder", "Weichsel", "Elbe", "Memel"], 1, "", [card("von Polen")]),
+  single("q1", "Welche Stadt ist die Hauptstadt von Portugal?", ["Porto", "Lissabon", "Coimbra", "Faro"], 1, "Lissabon liegt an der Mündung des Tejo und ist seit 1255 Hauptstadt."),
+  single("q2", "Welche Hauptstadt liegt an der Donau?", ["Prag", "Warschau", "Budapest", "Bern"], 2, "Budapest entstand 1873 aus Buda, Óbuda und Pest beiderseits der Donau."),
+  multiple("q3", "Welche dieser Hauptstädte liegen an der Ostsee?", [["Tallinn", true], ["Riga", true], ["Vilnius", false], ["Helsinki", true]], "Vilnius liegt im Landesinneren Litauens, rund 300 km von der Küste entfernt."),
+  single("q4", "Welche Stadt ist die Bundesstadt der Schweiz?", ["Zürich", "Genf", "Bern", "Basel"], 2, "Bern ist Bundesstadt; eine Hauptstadt im rechtlichen Sinn kennt die Verfassung nicht."),
+  single("q5", "Welche Hauptstadt liegt am nördlichsten?", ["Oslo", "Helsinki", "Reykjavík", "Stockholm"], 2, "Reykjavík liegt auf etwa 64° nördlicher Breite."),
+  multiple("q6", "Welche dieser Hauptstädte gehörten zu keiner Zeit zum Herrschaftsgebiet der Habsburgermonarchie?", [["Wien", false], ["Paris", true], ["Prag", false], ["Lissabon", true]], "Wien und Prag gehörten zur Habsburgermonarchie, Paris und Lissabon nie."),
+  single("q7", "Welche Stadt ist die Hauptstadt von Litauen?", ["Riga", "Vilnius", "Tallinn", "Kaunas"], 1, "Vilnius ist seit 1990 wieder Hauptstadt; Kaunas war es zwischen den Weltkriegen."),
+  single("q8", "An welchem Fluss liegt Warschau?", ["Oder", "Weichsel", "Elbe", "Memel"], 1, ""),
 ];
 
 const scriptQuestions = [
-  page("p1", "Welcher Fluss ist der längste Europas?", ["Donau", "Wolga", "Rhein", "Dnepr"], 1, "Die Wolga ist mit rund 3.530 km der längste Fluss Europas.", 2),
-  page("p2", "In welches Meer mündet die Donau?", ["Adria", "Ostsee", "Schwarzes Meer", "Ägäis"], 2, "Die Donau mündet mit einem Delta in Rumänien und der Ukraine ins Schwarze Meer.", 3),
-  page("p3", "Welcher Fluss fließt durch Paris?", ["Loire", "Rhône", "Garonne", "Seine"], 3, "Die Seine durchquert Paris von Südosten nach Westen.", 3),
-  page("p4", "An welchem Fluss liegt Köln?", ["Rhein", "Main", "Elbe", "Mosel"], 0, "Köln liegt am Niederrhein.", 4),
-  page("p5", "Welcher Fluss bildet den größten Teil der Grenze zwischen Rumänien und Bulgarien?", ["Theiß", "Pruth", "Donau", "Mariza"], 2, "Die Donau trennt beide Länder auf rund 470 km.", 4),
-  page("p6", "Welches Gebirge trennt die Iberische Halbinsel vom übrigen Europa?", ["Alpen", "Pyrenäen", "Apennin", "Karpaten"], 1, "Die Pyrenäen reichen vom Golf von Biskaya bis zum Mittelmeer.", 5),
-  page("p7", "Wie heißt der höchste Berg der Alpen?", ["Matterhorn", "Großglockner", "Mont Blanc", "Zugspitze"], 2, "Der Mont Blanc ist rund 4.800 m hoch.", 6),
-  page("p8", "Welches Gebirge durchzieht Italien von Nord nach Süd?", ["Dolomiten", "Apennin", "Pyrenäen", "Dinarisches Gebirge"], 1, "Der Apennin bildet das Rückgrat der italienischen Halbinsel.", 7),
-  page("p9", "Welches Gebirge bildet die östliche Grenze Europas?", ["Karpaten", "Balkangebirge", "Ural", "Skanden"], 2, "Der Ural gilt als Grenze zwischen Europa und Asien.", 8),
-  page("p10", "Zu welchem Gebirge gehört die Hohe Tatra?", ["Sudeten", "Alpen", "Rhodopen", "Karpaten"], 3, "Die Hohe Tatra ist der höchste Teil der Karpaten.", 9),
+  single("p1", "Welcher Fluss ist der längste Europas?", ["Donau", "Wolga", "Rhein", "Dnepr"], 1, "Die Wolga ist mit rund 3.530 km der längste Fluss Europas."),
+  single("p2", "In welches Meer mündet die Donau?", ["Adria", "Ostsee", "Schwarzes Meer", "Ägäis"], 2, "Die Donau mündet mit einem Delta in Rumänien und der Ukraine ins Schwarze Meer."),
+  single("p3", "Welcher Fluss fließt durch Paris?", ["Loire", "Rhône", "Garonne", "Seine"], 3, "Die Seine durchquert Paris von Südosten nach Westen."),
+  single("p4", "An welchem Fluss liegt Köln?", ["Rhein", "Main", "Elbe", "Mosel"], 0, "Köln liegt am Niederrhein."),
+  single("p5", "Welcher Fluss bildet den größten Teil der Grenze zwischen Rumänien und Bulgarien?", ["Theiß", "Pruth", "Donau", "Mariza"], 2, "Die Donau trennt beide Länder auf rund 470 km."),
+  single("p6", "Welches Gebirge trennt die Iberische Halbinsel vom übrigen Europa?", ["Alpen", "Pyrenäen", "Apennin", "Karpaten"], 1, "Die Pyrenäen reichen vom Golf von Biskaya bis zum Mittelmeer."),
+  single("p7", "Wie heißt der höchste Berg der Alpen?", ["Matterhorn", "Großglockner", "Mont Blanc", "Zugspitze"], 2, "Der Mont Blanc ist rund 4.800 m hoch."),
+  single("p8", "Welches Gebirge durchzieht Italien von Nord nach Süd?", ["Dolomiten", "Apennin", "Pyrenäen", "Dinarisches Gebirge"], 1, "Der Apennin bildet das Rückgrat der italienischen Halbinsel."),
+  single("p9", "Welches Gebirge bildet die östliche Grenze Europas?", ["Karpaten", "Balkangebirge", "Ural", "Skanden"], 2, "Der Ural gilt als Grenze zwischen Europa und Asien."),
+  single("p10", "Zu welchem Gebirge gehört die Hohe Tatra?", ["Sudeten", "Alpen", "Rhodopen", "Karpaten"], 3, "Die Hohe Tatra ist der höchste Teil der Karpaten."),
 ];
 
 const europe: Quiz = {
   version: 1, id: "quiz-europa", deckId: "catalog-world", title: "Hauptstädte Europas",
-  source: { kind: "cards", withSubdecks: true, cardCount: 24 },
+  source: { kind: "cards", withSubdecks: true },
   settings: { questionCount: 8, cardForms: ["single-choice", "multiple-choice"], wishes: "", trackTime: true },
   createdAt: "2026-11-20T09:12:00.000Z", updatedAt: "2026-11-23T18:40:00.000Z", questions: europeQuestions,
   attempts: [
@@ -94,15 +90,12 @@ const pause = (ms: number, signal: AbortSignal) => new Promise<void>((resolve, r
   signal.addEventListener("abort", () => { clearTimeout(timer); reject(new Error("abgebrochen")); });
 });
 
-/** `stall` holds the creation at its fourth question from the start, so the catalog can show the waiting state. */
-export async function generateQuizDemo(input: QuizGenerationInput, signal: AbortSignal, onProgress: (done: number, total: number) => void, stall = false): Promise<QuizQuestion[]> {
-  const questions = (input.source.kind === "file" ? scriptQuestions : europeQuestions).filter((question) => input.settings.cardForms.includes(question.form)).slice(0, input.settings.questionCount);
+/** `stall` holds the creation, so the catalog can show the waiting state. */
+export async function generateQuizDemo(input: QuizGenerationInput, signal: AbortSignal, stall = false): Promise<QuizQuestion[]> {
+  const questions = (input.file ? scriptQuestions : europeQuestions).filter((question) => input.settings.cardForms.includes(question.form)).slice(0, input.settings.questionCount);
+  await pause(stall ? 3_600_000 : 1_200, signal);
   if (!questions.length) throw new Error("Die Quelle ergab keine Fragen.");
-  for (let done = stall ? 3 : 0; done < questions.length; done += 1) {
-    onProgress(done, questions.length);
-    await pause(stall ? 3_600_000 : 350, signal);
-  }
-  return questions.map((question) => ({ ...question, id: crypto.randomUUID() }));
+  return questions;
 }
 
 export const askQuizHelpDemo = (_request: unknown, signal: AbortSignal) => pause(300, signal).then(() =>

@@ -49,7 +49,7 @@ export function CreationMenuForm({ open, onOpenChange, triggerRef, formRef, busy
   children: React.ReactNode;
 }) {
   const id = React.useId();
-  return <div className="core-creation-menu-entry" data-open={open}>
+  return <div className="core-creation-menu-entry">
     <Tile {...tile} ref={triggerRef} aria-expanded={open} aria-controls={`${id}-form`} onClick={() => onOpenChange(!open)} />
     {open ? <div id={`${id}-form`} ref={formRef} className="core-creation-menu-form" role="group" aria-label={tile.label} onKeyDown={(event) => {
       if (event.key === "Escape" && !event.defaultPrevented && !wait) { event.preventDefault(); event.stopPropagation(); onOpenChange(false); }

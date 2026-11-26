@@ -528,8 +528,8 @@ Frage/Antwort (85,4 %, Ziel 95 %) und Karten aus einer Quelle (86,8 %, Ziel
 - Persönliche FSRS-Parameter je Stapelprofil, nur wenn sie den eigenen
   Verlauf messbar besser vorhersagen (ADR-044; Ausarbeitung in Commit
   `4dd2af7`).
-- Quiz als eigenes Feature (ADR-042), danach Quizplanung im Prüfungsplaner;
-  Entwurf in Commit `71a7892` (`codex/klausurplaner-design`).
+- Quizplanung im Prüfungsplaner (ADR-042); Entwurf in Commit `71a7892`
+  (`codex/klausurplaner-design`).
 - Name des Schalters „CoRe-Modus“ nach dem Variantenkonzept; Vorschlag
   „Umformulierungen“ (Agenda 1.7).
 - Simulator für das ganze Konto entfernen; stattdessen eine selbst klickbare
