@@ -1,0 +1,42 @@
+{
+  "title": "Arbeitsrecht: Kündigung, Urlaub, Arbeitszeit",
+  "material": "cards-and-source",
+  "decks": [
+    { "id": "d1", "name": "Arbeitsrecht" },
+    { "id": "d2", "name": "Kündigung", "parent": "d1" },
+    { "id": "d3", "name": "Urlaub und Arbeitszeit", "parent": "d1" }
+  ],
+  "units": [
+    { "id": "m1", "kind": "card", "deck": "d2", "text": "F: Wie lang ist die gesetzliche Grundkündigungsfrist?\nA: Vier Wochen zum 15. oder zum Ende eines Kalendermonats (§ 622 Abs. 1 BGB)." },
+    { "id": "m2", "kind": "card", "deck": "d2", "text": "F: Wie lang ist die gesetzliche Kündigungsfrist während einer vereinbarten Probezeit?\nA: Vier Wochen." },
+    { "id": "m3", "kind": "card", "deck": "d2", "text": "F: Kann eine Kündigung wirksam per E-Mail erklärt werden?\nA: Ja, eine Kündigung per E-Mail ist wirksam, wenn sie dem Empfänger zugeht." },
+    { "id": "m4", "kind": "card", "deck": "d2", "text": "F: Ab wann gilt der allgemeine Kündigungsschutz?\nA: Wenn das Arbeitsverhältnis länger als sechs Monate besteht und der Betrieb in der Regel mehr als zehn Arbeitnehmer beschäftigt." },
+    { "id": "m5", "kind": "card", "deck": "d2", "text": "F: Welche drei Gründe können eine ordentliche Kündigung sozial rechtfertigen?\nA: Gründe in der Person, im Verhalten des Arbeitnehmers oder dringende betriebliche Erfordernisse." },
+    { "id": "m6", "kind": "card", "deck": "d2", "text": "F: Innerhalb welcher Frist muss eine Kündigungsschutzklage erhoben werden?\nA: Innerhalb von drei Wochen nach Zugang der schriftlichen Kündigung." },
+    { "id": "m7", "kind": "card", "deck": "d2", "text": "F: Was setzt eine außerordentliche Kündigung voraus?\nA: Einen wichtigen Grund, der die Fortsetzung bis zum Ende der Kündigungsfrist unzumutbar macht; sie muss binnen zwei Wochen ab Kenntnis erklärt werden." },
+    { "id": "m8", "kind": "card", "deck": "d3", "text": "F: Wie viel gesetzlichen Mindesturlaub hat ein Arbeitnehmer mit Fünftagewoche?\nA: 20 Arbeitstage pro Jahr." },
+    { "id": "m9", "kind": "card", "deck": "d3", "text": "F: Wie lange darf ein Arbeitnehmer werktäglich höchstens arbeiten?\nA: Acht Stunden, verlängerbar auf zehn Stunden, wenn im Durchschnitt von sechs Kalendermonaten oder 24 Wochen acht Stunden nicht überschritten werden." },
+    { "id": "m10", "kind": "card", "deck": "d3", "text": "F: Wie lang muss die Ruhezeit zwischen zwei Arbeitstagen mindestens sein?\nA: Elf Stunden ohne Unterbrechung." },
+    {
+      "id": "m11",
+      "kind": "source",
+      "text": "# Kündigung des Arbeitsverhältnisses\n\n## Form\n\nDie Kündigung eines Arbeitsverhältnisses bedarf nach § 623 BGB der Schriftform. Sie muss auf Papier erklärt und eigenhändig unterschrieben sein. Die elektronische Form ist ausdrücklich ausgeschlossen; eine Kündigung per E-Mail, SMS oder Messenger ist daher unwirksam. Die Kündigung wird erst wirksam, wenn sie dem Empfänger zugeht.\n\n## Kündigungsfristen\n\nDie Grundkündigungsfrist beträgt für beide Seiten vier Wochen zum 15. oder zum Ende eines Kalendermonats. Kündigt der Arbeitgeber, verlängert sich die Frist mit der Dauer der Betriebszugehörigkeit: nach zwei Jahren auf einen Monat, nach fünf Jahren auf zwei Monate, nach acht Jahren auf drei Monate, nach zehn Jahren auf vier Monate, nach zwölf Jahren auf fünf Monate, nach fünfzehn Jahren auf sechs Monate und nach zwanzig Jahren auf sieben Monate, jeweils zum Ende eines Kalendermonats. Für Kündigungen durch den Arbeitnehmer gilt ohne abweichende Vereinbarung weiter die Grundfrist.\n\nWährend einer vereinbarten Probezeit von höchstens sechs Monaten kann das Arbeitsverhältnis mit einer Frist von zwei Wochen gekündigt werden.\n\n## Kündigungsschutz\n\nDas Kündigungsschutzgesetz greift, wenn das Arbeitsverhältnis ohne Unterbrechung länger als sechs Monate bestanden hat und im Betrieb in der Regel mehr als zehn Arbeitnehmer beschäftigt sind. Dann muss eine ordentliche Kündigung des Arbeitgebers sozial gerechtfertigt sein. Sie kann durch Gründe in der Person (etwa lang andauernde Krankheit mit negativer Prognose), im Verhalten (etwa wiederholtes unentschuldigtes Fehlen) oder durch dringende betriebliche Erfordernisse (etwa die Schließung einer Abteilung) bedingt sein. Bei einer betriebsbedingten Kündigung muss der Arbeitgeber eine Sozialauswahl nach Betriebszugehörigkeit, Lebensalter, Unterhaltspflichten und Schwerbehinderung treffen.\n\nEiner verhaltensbedingten Kündigung muss in der Regel eine Abmahnung vorausgehen, die das Fehlverhalten konkret benennt und für den Wiederholungsfall arbeitsrechtliche Folgen androht.\n\nWer eine Kündigung für unwirksam hält, muss innerhalb von drei Wochen nach Zugang Kündigungsschutzklage beim Arbeitsgericht erheben. Versäumt er diese Frist, gilt die Kündigung als von Anfang an wirksam.\n\nBesteht ein Betriebsrat, muss er vor jeder Kündigung angehört werden. Eine ohne Anhörung ausgesprochene Kündigung ist unwirksam.\n\n## Außerordentliche Kündigung\n\nEine fristlose Kündigung nach § 626 BGB setzt einen wichtigen Grund voraus, der es unzumutbar macht, das Arbeitsverhältnis bis zum Ablauf der Kündigungsfrist fortzusetzen, etwa ein Diebstahl zulasten des Arbeitgebers. Sie muss innerhalb von zwei Wochen erklärt werden, nachdem der Kündigende von den maßgebenden Tatsachen erfahren hat.\n\n# Urlaub und Arbeitszeit\n\n## Urlaub\n\nNach dem Bundesurlaubsgesetz beträgt der Mindesturlaub 24 Werktage im Jahr. Das Gesetz zählt dabei alle Tage außer Sonn- und Feiertagen als Werktage, geht also von einer Sechstagewoche aus. Bei einer Fünftagewoche entspricht das 20 Arbeitstagen. Der volle Urlaubsanspruch entsteht erstmals nach sechs Monaten Wartezeit. Urlaub ist grundsätzlich im laufenden Kalenderjahr zu nehmen; aus dringenden Gründen kann er bis zum 31. März des Folgejahres übertragen werden.\n\n## Arbeitszeit\n\nDas Arbeitszeitgesetz begrenzt die werktägliche Arbeitszeit auf acht Stunden. Sie darf auf bis zu zehn Stunden verlängert werden, wenn innerhalb von sechs Kalendermonaten oder 24 Wochen im Durchschnitt acht Stunden werktäglich nicht überschritten werden. Nach Ende der täglichen Arbeitszeit ist eine ununterbrochene Ruhezeit von mindestens elf Stunden einzuhalten. Bei mehr als sechs bis neun Stunden Arbeit ist eine Pause von mindestens 30 Minuten vorgeschrieben, bei mehr als neun Stunden eine Pause von mindestens 45 Minuten."
+    }
+  ],
+  "keypoints": [
+    "Die Grundkündigungsfrist beträgt vier Wochen zum 15. oder zum Ende eines Kalendermonats.",
+    "Bei einer Kündigung durch den Arbeitgeber verlängert sich die Frist mit der Betriebszugehörigkeit stufenweise bis auf sieben Monate nach zwanzig Jahren.",
+    "Das Kündigungsschutzgesetz greift nach mehr als sechs Monaten Beschäftigung in Betrieben mit in der Regel mehr als zehn Arbeitnehmern.",
+    "Eine ordentliche Kündigung muss dann durch Gründe in der Person, im Verhalten oder durch dringende betriebliche Erfordernisse sozial gerechtfertigt sein.",
+    "Einer verhaltensbedingten Kündigung geht in der Regel eine Abmahnung voraus.",
+    "Die Kündigungsschutzklage muss innerhalb von drei Wochen nach Zugang erhoben werden, sonst gilt die Kündigung als wirksam.",
+    "Eine außerordentliche Kündigung braucht einen wichtigen Grund und muss binnen zwei Wochen ab Kenntnis erklärt werden.",
+    "Der gesetzliche Mindesturlaub beträgt 24 Werktage, bei einer Fünftagewoche 20 Arbeitstage.",
+    "Die werktägliche Arbeitszeit beträgt höchstens acht Stunden und ist im Durchschnitt ausgeglichen auf zehn Stunden verlängerbar.",
+    "Zwischen zwei Arbeitstagen liegt eine ununterbrochene Ruhezeit von mindestens elf Stunden."
+  ],
+  "contradictions": [
+    "Eine Karte nennt für die Kündigung in der Probezeit eine Frist von vier Wochen, die Quelle eine Frist von zwei Wochen.",
+    "Eine Karte hält eine Kündigung per E-Mail für wirksam, die Quelle erklärt sie wegen der vorgeschriebenen Schriftform für unwirksam."
+  ]
+}

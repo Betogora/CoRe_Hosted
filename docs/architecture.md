@@ -136,7 +136,7 @@ Befehlsmodule laufen ohne React, je Arbeitsbereich aus Store, Repository und Syn
 | `workspaceReplica.ts` | Datensatzformen der Replica (Katalogzeile, Kartenkörper, Status) |
 | `syncEngine.ts`, `syncMutationPlanner.ts` | Sync-Zyklus und Outbox-Arten |
 | `mediaStore.ts` | Mediencache, persistente Upload-Queue, URL-Auflösung |
-| `accountStorage.ts`, `profileIntegrity.ts`, `uiPreferences.ts` | kleine Accountnamespaces, vollständige Profilpatches, UI-Präferenzen im Profil |
+| `accountStorage.ts`, `profileIntegrity.ts`, `uiPreferences.ts` | kleine Accountnamespaces, Profilpatches, UI-Präferenzen im Profil |
 
 ### Cloud und KI-Routen
 
@@ -229,18 +229,18 @@ Befehlsmodule laufen ohne React, je Arbeitsbereich aus Store, Repository und Syn
 | `core-media-store.v3` | IndexedDB | Mediendateien und persistente SHA-1-Upload-Queue |
 | `core.learningSummaries.v2.<userId>`, `core.learningMindMaps.v2.<userId>` | IndexedDB | Zwischenspeicher und Warteschlange der Lerndokumente |
 | `core.accountState.v2`, `core.syncDevice.v2` | `accountStorage` | Accountzustand und Gerät; darin `core.fieldTimings.v1` |
-| `core.pomodoroTimer.v1`, `core.dashboard.widgets.v1` | Accountnamespace | Fokustimer, Widgetlayout und eigene To-dos |
+| `core.pomodoroTimer.v1`, `core.dashboard.*` | Accountnamespace | Fokustimer, Widgetlayout und eigene To-dos |
 | `core.theme.v1` | Browser | Theme-Präferenz |
 | `core.manualDraft.v1.<userId>` | `sessionStorage` | manueller Entwurf ohne Bilder |
 
 ### Sync
 
 - Lokale Mutation und Outbox werden in einer Transaktion geschrieben. Payloads liest nur die Outbox. Cloudwrite und lokaler Abschluss haben getrennte Grenzen; ein gescheiterter Sync setzt den lokalen Erfolg nicht zurück.
-- Ein Sync-Zyklus sendet die Outbox (`entity-mutation`, `deck-command`, `profile-patch`, `review-atomic`, `review-undo`), lädt alle Deltas seit den `sync_change_id`-Cursorn und aktualisiert zuletzt Konflikte und Status. Gleichzeitige Anforderungen teilen einen Lauf.
+- Ein Sync-Zyklus sendet die Outbox (`entity-mutation`, `deck-command`, `profile-patch`, `review-atomic`, `review-undo`), lädt Deltas seit den `sync_change_id`-Cursorn und ein neueres Profil, aktualisiert zuletzt Konflikte und Status. Gleichzeitige Anforderungen teilen einen Lauf.
 - Die Outbox hält je Entität höchstens eine Mutation. Ein ersetzter unbestätigter Insert bleibt Insert; eine Zeile, die zuletzt dasselbe Gerät schrieb, gilt als verlorene Antwort und wird Update. Löschungen laufen zuletzt in umgekehrter Fremdschlüsselreihenfolge.
 - `review-undo` folgt seiner `review-atomic`-Mutation und wird nicht gesendet, solange diese scheitert. Ausstehende Bewertungen und Rücknahmen schützen Karte und Ereignis vor dem Überschreiben durch Abrufe.
 - Geräte-, Zeit-, Zähler-, Eigentümer- und Schedulerprojektionen erzeugen allein keinen Inhaltskonflikt. Kartenwrites erhalten den Cloud-Lernstand. Konfliktmetadaten bleiben lokal; betroffene Karten (bei Inhaltskonflikt alle Geschwister) fehlen im Review, nicht in der Verwaltung.
-- Profilpatches enthalten das vollständige Profil. Nur ein erfolgreicher Cloud-Bootstrap darf unvollständige alte Profilpatches ersetzen.
+- Profilpatches tragen nur geänderte Schlüssel; wartende liegen über jedem Cloud-Profil.
 - Start (ADR-038): Die gespeicherte Sitzung startet sofort, `getUser()` bestätigt parallel; eine Ablehnung verwirft den Lauf.
 
 ### Hydrierung und Offline
@@ -269,6 +269,7 @@ Befehlsmodule laufen ohne React, je Arbeitsbereich aus Store, Repository und Syn
 | `load_reimport_targets`, `list_retranslation_candidates` | Reimportziele je Anki-GUID; unbearbeitete Importe älterer Übersetzer |
 | `list_account_tags`, `list_similar_notes` | Tag-Verzeichnis; ähnliche Inhalte |
 | `list_releasable_media` | nicht mehr referenzierte Medien |
+| `patch_account_profile` | Profilpatch je Schlüssel |
 
 ### Medien
 
@@ -300,7 +301,7 @@ Befehlsmodule laufen ohne React, je Arbeitsbereich aus Store, Repository und Syn
 - `POST /api/ai/card-variant`, `POST /api/ai/card-help`, `POST /api/ai/summary` und `POST /api/ai/source-cards` sind die einzigen CoRe-Serverendpunkte. Sie teilen `server/aiRoute.ts`, der Browser ruft sie über `aiRouteRequest.ts`; `npm run dev` stellt sie per Vite-Middleware bereit.
 - Jede Route verlangt Same Origin, einen Supabase-Bearer (lokal gegen die gecachten JWKS geprüft) und den Serverschlüssel, bevor sie den begrenzten Body liest; sie antwortet mit `no-store`, erzeugt genau einen erzwungenen Tool Call und loggt dessen Kosten auch bei verworfener Antwort.
 - Eingaben, Grenzen, Fristen und Antwortprüfung stehen in den `ai*Contract.ts`.
-- Modell ist `OPENROUTER_MODEL` in `server/aiRoute.ts`, derzeit `openai/gpt-6-luna` mit Reasoning `low`, ZDR verlangt und Training verboten (`data_collection: "deny"`); kein Modellkatalog, kein Fallback (ADR-011).
+- Modell: `OPENROUTER_MODEL` in `server/aiRoute.ts` (`openai/gpt-6-luna`), Reasoning je Route (`medium` außer Auswahl und Quelle), ZDR, `data_collection: "deny"`; ohne Katalog und Fallback (ADR-011).
 - Der OpenRouter-Zugang steht nur in `process.env`; Secrets gehören weder in `VITE_*`, Browsercode, `localStorage`, Exporte noch Logs. Alle anderen Datenzugriffe laufen über die Supabase-Module. Betrieb: [Operations](operations.md).
 
 ## Import und Übersetzung

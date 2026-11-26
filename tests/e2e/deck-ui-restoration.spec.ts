@@ -72,14 +72,11 @@ test("Liste und Kacheln bleiben ohne Explorer und teilen die gespeicherte Auswah
   await product.getByRole("button", { name: "Als Kacheln anzeigen", exact: true }).click();
   await page.getByRole("button", { name: "Produktansicht schließen", exact: true }).click();
   await page.getByRole("button", { name: "Tagesübersicht öffnen", exact: true }).click();
-  const dashboardDecks = product.getByTestId("dashboard-deck-list");
-  await expect(dashboardDecks).toHaveAttribute("data-deck-view", "tiles");
-  await dashboardDecks.getByRole("button", { name: "Als Liste anzeigen", exact: true }).click();
-  await expect(dashboardDecks).toHaveAttribute("data-deck-view", "list");
-  await expect(dashboardDecks.getByRole("button", { name: /^Alle (auf|ein)klappen$/ })).toHaveCount(0);
+  await expect(product.locator('[data-dashboard-widget="decks"]')).toBeVisible();
+  await expect(product.getByRole("button", { name: "Als Liste anzeigen", exact: true })).toHaveCount(0);
   await page.getByRole("button", { name: "Produktansicht schließen", exact: true }).click();
   await page.getByRole("button", { name: "Lernen öffnen", exact: true }).click();
-  await expect(product.getByTestId("learn-deck-list")).toHaveAttribute("data-deck-view", "list");
+  await expect(product.getByTestId("learn-deck-tiles")).toBeVisible();
 });
 
 test("Stapelinhalte behalten aktuelle Reiter und Lernaktion ohne zusätzliche Köpfe oder Anzahltexte", async ({ page }) => {
@@ -201,8 +198,9 @@ test("Sammlungsende, Schnellanlage und 200 Prozent Vergrößerung bleiben erreic
       await page.setViewportSize(viewport);
       await page.getByRole("button", { name: "Tagesübersicht öffnen", exact: true }).click();
       await close.press("Control+End");
-      await expect(product.getByRole("heading", { name: "Aktive Stapel", exact: true })).toBeVisible();
-      const lastDeckRow = product.locator("[data-testid^=\"dashboard-deck-row-\"]").last();
+      const decksWidget = product.locator('[data-dashboard-widget="decks"]');
+      await expect(decksWidget.getByRole("heading", { name: "Oft gelernte Stapel", exact: true })).toBeVisible();
+      const lastDeckRow = decksWidget.getByRole("button", { name: "Alle Stapel ansehen", exact: true });
       await lastDeckRow.scrollIntoViewIfNeeded();
       await expect(lastDeckRow).toBeInViewport({ ratio: 1 });
       if (visualOutput) await page.screenshot({ path: testInfo.outputPath(`${theme}-${viewport.width}-dashboard-decks.png`) });

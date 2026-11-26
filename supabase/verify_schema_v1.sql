@@ -255,7 +255,8 @@ begin
      or to_regprocedure('public.list_releasable_media(integer)') is null
      or to_regprocedure('public.load_reimport_targets(text[])') is null
      or to_regprocedure('public.list_account_tags()') is null
-     or to_regprocedure('public.list_similar_notes(text,integer)') is null then
+     or to_regprocedure('public.list_similar_notes(text,integer)') is null
+     or to_regprocedure('public.patch_account_profile(jsonb,jsonb)') is null then
     raise exception 'Mindestens ein RPC-Vertrag des Kartenmodells fehlt.';
   end if;
   if to_regprocedure('public.get_account_bootstrap_v2(text,integer,integer)') is not null
@@ -280,7 +281,8 @@ begin
       'public.list_releasable_media(integer)',
       'public.load_reimport_targets(text[])',
       'public.list_account_tags()',
-      'public.list_similar_notes(text,integer)'
+      'public.list_similar_notes(text,integer)',
+      'public.patch_account_profile(jsonb,jsonb)'
     ]) as signatures(signature)
     where not has_function_privilege('authenticated', signatures.signature, 'EXECUTE')
        or has_function_privilege('anon', signatures.signature, 'EXECUTE')
@@ -296,7 +298,7 @@ begin
         'record_review_atomic', 'get_account_bootstrap', 'get_account_due_forecast', 'pull_account_catalog_delta',
         'list_account_card_catalog', 'search_account_card_catalog', 'list_account_card_study_states', 'hydrate_account_cards', 'get_deck_offline_manifest', 'get_account_statistics',
         'delete_account_deck_tree', 'list_retranslation_candidates', 'list_releasable_media', 'load_reimport_targets',
-        'list_account_tags', 'list_similar_notes'
+        'list_account_tags', 'list_similar_notes', 'patch_account_profile'
       )
       and procedure_row.prosecdef
   ) then
@@ -310,7 +312,7 @@ begin
         'record_review_atomic', 'get_account_bootstrap', 'get_account_due_forecast', 'pull_account_catalog_delta',
         'list_account_card_catalog', 'search_account_card_catalog', 'list_account_card_study_states', 'hydrate_account_cards', 'get_deck_offline_manifest', 'get_account_statistics',
         'delete_account_deck_tree', 'list_retranslation_candidates', 'list_releasable_media', 'load_reimport_targets',
-        'list_account_tags', 'list_similar_notes'
+        'list_account_tags', 'list_similar_notes', 'patch_account_profile'
       )))
       and not coalesce(procedure_row.proconfig, '{}'::text[]) @> array['search_path=""']::text[]
   ) then

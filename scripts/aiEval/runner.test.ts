@@ -6,7 +6,7 @@ import test from "node:test";
 import { SPLITS, assignSplits, loadCases, placeholderCard, sampleCorpus, seededRandom, type DraftCase, type EvalCase } from "./cases.ts";
 import { corpusCategory, definitionFor, judgeItemsFor, numberTokens, rephrased, wordDistance, type EvalDefinition } from "./definitions.ts";
 import { generate, mockCompletion, payloadBuilder, payloadFingerprint, readAnswers, type AnswerRow, type Outcome } from "./generate.ts";
-import { answerRef, borderlineCases, buildJudgeTable, labelRef, readLabels, readVerdicts, type JudgeBlock, type Label, type Verdicts } from "./judge.ts";
+import { answerRef, borderlineCases, buildJudgeTable, labelRef, readLabels, readVerdicts, referenceRef, unsureKey, type JudgeBlock, type Label, type Verdicts } from "./judge.ts";
 import { REQUEST_TYPES } from "./ledger.ts";
 import { agreement, compare, decide, evaluateAnswers, summarize, type AnswerResult } from "./score.ts";
 
@@ -15,11 +15,11 @@ const help = definitionFor("card-help");
 const variantType = REQUEST_TYPES[0];
 const card = (front: string, back: string, avoid?: string[]) => ({ kind: "basic" as const, source: { front, back }, ...(avoid ? { avoid } : {}) });
 const cases: EvalCase[] = [
-  { id: "a", category: "definitionen", split: "dev", request: card("Was ist Osmose?", "Diffusion von Wasser") },
-  { id: "b", category: "zahlen-formeln", split: "dev", request: card("In welchem Jahr begann die Französische Revolution?", "1789") },
+  { id: "a", category: "definitionen", subject: "naturwissenschaft", split: "dev", request: card("Was ist Osmose?", "Diffusion von Wasser") },
+  { id: "b", category: "zahlen-formeln", subject: "naturwissenschaft", split: "dev", request: card("In welchem Jahr begann die Französische Revolution?", "1789") },
 ];
 const row = (caseId: string, repetition: number, output: unknown, outcome: Outcome = "answer"): AnswerRow => ({ caseId, repetition, outcome, error: outcome === "answer" ? null : outcome === "refused" ? "not_rephrasable" : "invalid_variant", output, model: "mock", totalTokens: 120, costUsd: 0.001, latencyMs: 1000 + repetition * 500, transcript: { request: null, response: null } });
-const result = (caseId: string, repetition: number, main: boolean): AnswerResult => ({ caseId, repetition, category: "definitionen", trap: false, outcome: "answer", criteria: { M1: 1, M2: main ? 1 : 0 }, main: main ? 1 : 0, costUsd: 0.001, latencyMs: 1000, totalTokens: 100, model: "mock" });
+const result = (caseId: string, repetition: number, main: boolean, category = "definitionen"): AnswerResult => ({ caseId, repetition, category, trap: false, outcome: "answer", criteria: { M1: 1, M2: main ? 1 : 0 }, main: main ? 1 : 0, costUsd: 0.001, latencyMs: 1000, totalTokens: 100, model: "mock" });
 const item = (definition: EvalDefinition, ref: string, request: unknown, output: unknown) => judgeItemsFor(definition, ref, request, output)[0];
 const completion = (toolArguments: unknown, cost = 0) => new Response(JSON.stringify({ ...mockCompletion("create_card_variant", toolArguments), usage: { total_tokens: 120, cost } }), { status: 200 });
 
@@ -84,20 +84,20 @@ test("Korpusziehung liefert bei gleichem Startwert dieselben Fälle im Anfrageve
   const first = await sampleCorpus(help, 6, 1, "fixtures/apkg");
   assert.deepEqual(first, await sampleCorpus(help, 6, 1, "fixtures/apkg"));
   assert.equal(first.length, 6);
-  assert.ok(first.every((entry) => /^corpus-[0-9a-f]{10}-(?:explain|example)$/.test(entry.id) && /^note-[0-9a-f]{10}$/.test(entry.group ?? "") && help.parseRequest(entry.request)));
+  assert.ok(first.every((entry) => entry.subject === "fundus" && /^corpus-[0-9a-f]{10}-(?:explain|example)$/.test(entry.id) && /^note-[0-9a-f]{10}$/.test(entry.group ?? "") && help.parseRequest(entry.request)));
   assert.equal(first[0].group, first[1].group);
   assert.notDeepEqual(first, await sampleCorpus(help, 6, 2, "fixtures/apkg"));
 });
 
-test("Die Aufteilung folgt 40/30/30 je Kategorie, hält Gruppen zusammen, ist wiederholbar und lässt Zuordnungen stehen", () => {
-  const drafts: DraftCase[] = Array.from({ length: 20 }, (_, index) => ({ id: `c${index}`, category: index < 10 ? "x" : "y", request: {}, ...(index === 1 || index === 2 ? { group: "g" } : {}) }));
+test("Die Aufteilung folgt 35/40/25 je Kategorie und je Fach, hält Gruppen zusammen, ist wiederholbar und lässt Zuordnungen stehen", () => {
+  const drafts: DraftCase[] = Array.from({ length: 40 }, (_, index) => ({ id: `c${index}`, category: index < 20 ? "x" : "y", subject: index % 3 ? "medizin" : "sprachen", request: {}, ...(index === 1 || index === 2 ? { group: "g" } : {}) }));
   drafts[0].split = "holdout";
   drafts[2].split = "dev";
   const first = assignSplits(drafts, seededRandom(7));
   assert.deepEqual(first, assignSplits(drafts, seededRandom(7)));
   assert.deepEqual(first.slice(0, 3).map((entry) => entry.split), ["holdout", "dev", "dev"]);
-  const count = (category: string) => SPLITS.map((split) => first.filter((entry) => entry.category === category && entry.split === split).length);
-  assert.deepEqual([count("x"), count("y")], [[4, 3, 3], [4, 3, 3]]);
+  const count = (field: "category" | "subject", value: string) => SPLITS.map((split) => first.filter((entry) => entry[field] === value && entry.split === split).length);
+  assert.deepEqual([count("category", "x"), count("category", "y"), count("subject", "medizin"), count("subject", "sprachen")], [[7, 8, 5], [7, 8, 5], [9, 11, 6], [5, 5, 4]]);
   assert.deepEqual(assignSplits(first, seededRandom(99)), first);
   assert.throws(() => assignSplits([{ ...drafts[1], split: "train" }, drafts[2]], seededRandom(1)), /Gruppe g liegt in mehreren Teilen/);
 });
@@ -139,7 +139,7 @@ test("Erzeugung: Verwerfen der Route und eine Antwort ohne JSON zählen als Antw
     const request = cloze.parseRequest({ kind: "cloze", source: { front: "Die Hauptstadt Frankreichs ist {{c1::Paris}}.", back: "Paris" } });
     let calls = 0;
     const fetchImpl = (async () => calls++ === 0 ? new Response("kein JSON", { status: 200 }) : completion({ rephrasable: true, front: "Frankreichs Hauptstadt heißt Paris.", back: "Paris" }, 0.4)) as typeof fetch;
-    const options = { definition: cloze, cases: [{ id: "l", category: "x", split: "dev" as const, request }], repetitions: 5, split: "dev" as const, directory, apiKey: "test", fetchImpl, concurrency: 1, budgetUsd: 1, log: () => {} };
+    const options = { definition: cloze, cases: [{ id: "l", category: "x", subject: "naturwissenschaft" as const, split: "dev" as const, request }], repetitions: 5, split: "dev" as const, directory, apiKey: "test", fetchImpl, concurrency: 1, budgetUsd: 1, log: () => {} };
     await assert.rejects(generate(options), /Budget von 1 USD erreicht/);
     assert.deepEqual(readAnswers(directory).map((entry) => [entry.outcome, entry.error]), [["rejected", "invalid_provider_response"], ["rejected", "invalid_gaps"], ["rejected", "invalid_gaps"], ["rejected", "invalid_gaps"]]);
     assert.equal(await generate({ ...options, budgetUsd: 2 }), 0);
@@ -150,6 +150,13 @@ test("Erzeugung: Verwerfen der Route und eine Antwort ohne JSON zählen als Antw
 
 const verdictFor = (block: JudgeBlock, results: (entry: string, id: string) => boolean, sure = () => 3) => ({
   verdicts: block.entries.map((entry) => ({ entry: entry.entry, results: Object.fromEntries(entry.criteria.map((id) => [id, results(entry.entry, id)])), sure: Object.fromEntries(entry.criteria.map((id) => [id, sure()])) })),
+});
+
+test("Referenzaussagen eines Falls stehen in jeder Richtereingabe, sonst keine", () => {
+  const output = { front: "Wie nennt man die Diffusion von Wasser?", back: "Diffusion von Wasser" };
+  const reference = ["Osmose ist die Diffusion von Wasser durch eine semipermeable Membran.", "Sie folgt dem Konzentrationsgefälle."];
+  assert.equal(judgeItemsFor(variant, answerRef("a", 0), cases[0].request, output, reference)[0].rendered.eingabe.referenz, reference.join("\n"));
+  assert.equal("referenz" in item(variant, answerRef("a", 0), cases[0].request, output).rendered.eingabe, false);
 });
 
 test("Richtertabelle: ohne Dubletten und ohne Herkunft; unvollständige Urteile brechen ab", () => {
@@ -197,12 +204,23 @@ test("Richterblöcke: höchstens 25 Einträge, Doppel in einem anderen Block, Ra
   assert.notEqual(again.key.judge, buildJudgeTable(variant, items, seededRandom(3), { instructions: "Geänderter Auftrag", requests: [] }).key.judge);
 });
 
+test("Rauschen zählt je Einzelurteil: eine gekippte von vier Kernaussagen ist ein Viertel, nicht der ganze Eintrag", () => {
+  const criteria = [1, 2, 3, 4].map((index) => ({ id: `Q6:doc-${index}`, title: `Kernaussage ${index}`, pass: "ja", fail: "nein" }));
+  const entry = (id: string) => ({ entry: id, criteria: criteria.map((criterion) => criterion.id), eingabe: { quelle: "doc" }, ausgabe: { karten: "1. Frage → Antwort" } });
+  const blocks: JudgeBlock[] = [{ requestType: "source-cards", criteria, entries: [entry("e0001")] }, { requestType: "source-cards", criteria, entries: [entry("e0002")] }];
+  const key = { judge: "0000000000000000", entries: { e0001: [answerRef("d", 0)] }, duplicates: { e0002: "e0001" }, hashes: { e0001: "h" }, cached: {} };
+  const verdict = (id: string, flip: boolean) => ({ verdicts: [{ entry: id, results: Object.fromEntries(criteria.map((criterion, index) => [criterion.id, !(flip && index === 0)])), sure: Object.fromEntries(criteria.map((criterion) => [criterion.id, 3])) }] });
+  assert.deepEqual(readVerdicts(blocks, [verdict("e0001", false), verdict("e0002", true)], key).noise, { Q6: 0.25 });
+});
+
 test("Fingerabdruck des Richters hängt am Fallsatz, nicht an den Antworten eines Laufs", () => {
   const explain = help.parseRequest({ card: { prompt: "Was ist ATP?", answer: "Energieträger" }, mode: "explain" });
   const example = help.parseRequest({ card: { prompt: "Was ist ATP?", answer: "Energieträger" }, mode: "example" });
   const answer = item(help, answerRef("x", 0), explain, "ATP speichert Energie.");
   const fingerprint = (items: typeof answer[]) => buildJudgeTable(help, items, seededRandom(1), { instructions: "Auftrag", requests: [explain, example] }).key.judge;
   assert.equal(fingerprint([answer]), fingerprint([]), "fehlt H4, weil alle Beispiel-Antworten verworfen wurden, bleibt der Fingerabdruck gleich");
+  const withReference = (reference: string) => buildJudgeTable(help, [answer], seededRandom(1), { instructions: "Auftrag", requests: [explain, example], references: [[reference], []] }).key.judge;
+  assert.notEqual(withReference("ATP ist der universelle Energieträger der Zelle."), withReference("ATP liefert Energie durch Hydrolyse."), "eine geänderte Referenz verlangt eine neue Baseline");
 });
 
 test("Fingerabdruck des Payloads: unabhängig von der Feldreihenfolge, empfindlich für Nutzernachricht und Kandidat", () => {
@@ -233,8 +251,25 @@ test("Auswertung: Hauptwert verlangt Vertrag, automatische Kriterien und Richter
   assert.throws(() => evaluateAnswers(variant, cases, 2, rows, new Map()), /Richterurteil M2 für a#0 fehlt/);
 });
 
+test("Auswertung: Nachmessungen zählen mit, ein Urteil mit Sicherheit 1 weder als bestanden noch als durchgefallen", () => {
+  const good = { front: "Wie nennt man die Diffusion von Wasser?", back: "Diffusion von Wasser" };
+  const rows = [0, 1, 2, 3].map((repetition) => row("a", repetition, good));
+  const verdicts: Verdicts = new Map(rows.map((entry) => [answerRef("a", entry.repetition), { M2: entry.repetition !== 1, M6: true }]));
+  const unsure = new Set([unsureKey(answerRef("a", 1), "M2")]);
+  const results = evaluateAnswers(variant, cases.slice(0, 1), 2, rows, verdicts, { unsure });
+  assert.deepEqual(results.map((entry) => [entry.repetition, entry.main, entry.criteria.M2]), [[0, 1, 1], [1, null, undefined], [2, 1, 1], [3, 1, 1]]);
+  const summary = summarize(results, seededRandom(1));
+  assert.deepEqual([summary.repetitions, summary.main], [4, 1]);
+  const helpCase: EvalCase = { id: "h", category: "sonstige", subject: "naturwissenschaft", split: "dev", request: help.parseRequest({ card: { prompt: "Was ist ATP?", answer: "Energieträger" }, mode: "explain" }) };
+  const helpVerdict = { H1: true, H2: true, H3: true, H6: false, H7: true };
+  const helpResults = evaluateAnswers(help, [helpCase], 1, [row("h", 0, "ATP speichert Energie.")], new Map([[answerRef("h", 0), helpVerdict]]), { unsure: new Set([unsureKey(answerRef("h", 0), "H2")]) });
+  assert.equal(helpResults[0].main, 0, "ein sicher durchgefallenes Hauptkriterium entscheidet trotz unsicherem anderen");
+  const remeasured = evaluateAnswers(variant, cases.slice(0, 1), 0, [row("a", 0, good)], new Map([[referenceRef("a", 0), { M2: false, M6: true }]]), { refFor: referenceRef });
+  assert.deepEqual(remeasured.map((entry) => entry.main), [0]);
+});
+
 test("Auswertung: Eine Ablehnung besteht nur, wenn der Fall sie erwartet, und geht nie an den Richter", () => {
-  const refuse: EvalCase = { id: "r", category: "nicht-umformulierbar", split: "dev", refuse: true, request: card("xqzt vblm?", "krwp") };
+  const refuse: EvalCase = { id: "r", category: "nicht-umformulierbar", subject: "naturwissenschaft", split: "dev", refuse: true, request: card("xqzt vblm?", "krwp") };
   const good = { front: "Wie nennt man die Diffusion von Wasser?", back: "Diffusion von Wasser" };
   const rows = [row("r", 0, null, "refused"), row("r", 1, { front: "Was bedeutet xqzt?", back: "krwp" }), row("a", 0, null, "refused"), row("a", 1, good)];
   const results = evaluateAnswers(variant, [refuse, cases[0]], 2, rows, new Map([[answerRef("a", 1), { M2: true, M6: true }]]));
@@ -249,7 +284,7 @@ test("Auswertung: Eine Ablehnung besteht nur, wenn der Fall sie erwartet, und ge
   assert.deepEqual(summarize(trapped, seededRandom(1), ["M2"]).traps, { answers: 2, errors: 1 });
 });
 
-test("Vergleich: übernommen nur über dem Rauschen und ohne schlechteres kritisches Kriterium", () => {
+test("Vergleich: übernommen erst ab 90 % „besser“, verworfen ab 90 % „schlechter“ in einem kritischen Kriterium", () => {
   const ids = Array.from({ length: 40 }, (_, index) => `c${index}`);
   const reference = ids.flatMap((id, index) => [0, 1, 2].map((repetition) => result(id, repetition, index < 20)));
   const better = ids.flatMap((id, index) => [0, 1, 2].map((repetition) => result(id, repetition, index < 34)));
@@ -257,20 +292,49 @@ test("Vergleich: übernommen nur über dem Rauschen und ohne schlechteres kritis
   const strong = compare(better, reference, seededRandom(5));
   assert.deepEqual([strong.delta, strong.gained, strong.lost, strong.cases], [0.35, 14, 0, 40]);
   assert.ok(strong.noise > 0 && strong.noise < strong.delta);
-  const summaries = [better, reference, noisy].map((entries) => summarize(entries, seededRandom(5)));
-  assert.deepEqual(decide(variantType, summaries[0], summaries[1], strong), { decision: "accepted", failed: [] });
+  assert.equal(strong.better, 1);
+  assert.deepEqual(decide(strong), { decision: "accepted", failed: [] });
   const weak = compare(noisy, reference, seededRandom(5));
   assert.deepEqual([weak.delta, weak.gained, weak.lost], [0, 1, 1]);
-  assert.deepEqual(decide(variantType, summaries[2], summaries[1], weak).failed, ["Abstand nicht über dem Rauschen"]);
-  assert.equal(decide(variantType, summaries[2], summaries[1], weak, true).decision, "accepted", "eine Vereinfachung darf im Rauschen liegen");
+  assert.deepEqual(decide(weak).failed, ["besser in weniger als 90 % der Stichproben"]);
+  assert.equal(decide(weak, true).decision, "accepted", "eine Vereinfachung darf im Rauschen liegen");
   const saturated = compare(reference, reference, seededRandom(5));
-  assert.deepEqual([saturated.delta, saturated.noise], [0, 0]);
-  assert.equal(decide(variantType, summaries[1], summaries[1], saturated, true).decision, "accepted", "gleich gut gilt als nicht schlechter");
-  const worseCritical = { ...summaries[0], criteria: { ...summaries[0].criteria, M2: 0.1 } };
-  assert.deepEqual(decide(variantType, worseCritical, summaries[1], strong).failed, ["kritisches Kriterium M2 schlechter"]);
-  const slower = { ...summaries[0], costUsd: summaries[1].costUsd * 1.3, latencyP90Ms: summaries[1].latencyP90Ms * 1.21 };
-  assert.deepEqual(decide(variantType, slower, summaries[1], strong).failed, ["Kosten über dem 1,2-Fachen", "Latenz p90 über dem 1,2-Fachen"]);
+  assert.deepEqual([saturated.delta, saturated.noise, saturated.better, saturated.worse], [0, 0, 0, 0]);
+  assert.equal(decide(saturated, true).decision, "accepted", "gleich gut gilt als nicht schlechter");
+  const criticalFails = (failing: number) => better.map((entry) => ({ ...entry, criteria: { ...entry.criteria, M2: Number(entry.caseId.slice(1)) < failing ? 0 : 1 } }));
+  const flawless = reference.map((entry) => ({ ...entry, criteria: { ...entry.criteria, M2: 1 } }));
+  const single = compare(criticalFails(1), flawless, seededRandom(5), [], ["M2"]);
+  assert.deepEqual(decide(single), { decision: "accepted", failed: [] }, "ein einzelner Fehler im kritischen Kriterium ist vom Zufall nicht zu trennen");
+  const three = compare(criticalFails(3), flawless, seededRandom(5), [], ["M2"]);
+  assert.deepEqual(decide(three).failed, ["kritisches Kriterium M2 schlechter in mindestens 90 % der Stichproben"]);
   assert.throws(() => compare(better, [result("fremd", 0, true)], seededRandom(5)), /keinen gemeinsamen Fall/);
+});
+
+test("Bootstrap zieht Gruppen: Fälle derselben Quelle machen das Intervall breiter als einzeln gezogene", () => {
+  const ids = Array.from({ length: 40 }, (_, index) => `c${index}`);
+  const reference = ids.map((id, index) => result(id, 0, index % 2 === 0));
+  const candidate = ids.map((id, index) => result(id, 0, index < 30));
+  const grouped = (entries: AnswerResult[]) => entries.map((entry) => ({ ...entry, group: `q${Math.floor(Number(entry.caseId.slice(1)) / 10)}` }));
+  assert.ok(compare(grouped(candidate), grouped(reference), seededRandom(5)).noise > compare(candidate, reference, seededRandom(5)).noise);
+  assert.ok(summarize(grouped(candidate), seededRandom(5)).high - summarize(grouped(candidate), seededRandom(5)).low > summarize(candidate, seededRandom(5)).high - summarize(candidate, seededRandom(5)).low);
+});
+
+test("Vergleich mit Fehlerbild: vorläufig bei zwei Fällen Saldo am Ziel und höchstens einem verlorenen im Rest", () => {
+  const ids = Array.from({ length: 40 }, (_, index) => `c${index}`);
+  const category = (index: number) => index < 6 ? "beispiel" : "sonstige";
+  const reference = ids.flatMap((id, index) => [0, 1].map((repetition) => result(id, repetition, index >= 3, category(index))));
+  const aimed = ids.flatMap((id, index) => [0, 1].map((repetition) => result(id, repetition, index >= 1 && index !== 20, category(index))));
+  const plain = compare(aimed, reference, seededRandom(5));
+  assert.equal(plain.targeted, null);
+  assert.deepEqual(decide(plain).decision, "rejected");
+  const targeted = compare(aimed, reference, seededRandom(5), ["beispiel"]);
+  assert.deepEqual([targeted.targeted?.aimed, targeted.targeted?.rest], [{ cases: 6, gained: 2, lost: 0 }, { cases: 34, gained: 0, lost: 1 }]);
+  assert.deepEqual(decide(targeted), { decision: "provisional", failed: [] });
+  const broken = ids.flatMap((id, index) => [0, 1].map((repetition) => result(id, repetition, index >= 1 && index !== 20 && index !== 21, category(index))));
+  const worse = compare(broken, reference, seededRandom(5), ["beispiel"]);
+  assert.deepEqual(decide(worse).failed, ["besser in weniger als 90 % der Stichproben", "übrige Fälle um mehr als einen schlechter"]);
+  assert.throws(() => compare(aimed, reference, seededRandom(5), ["M2"]), /keinen oder jeden Fall/, "ohne Rest prüft das Fehlerbild nichts");
+  assert.throws(() => compare(aimed, reference, seededRandom(5), ["beispeil"]), /kennt beispeil nicht/);
 });
 
 test("Kalibrierung: Übereinstimmung der kritischen Kriterien, Kappa und fälschlich bestandene Einträge", () => {
@@ -309,28 +373,28 @@ test("Karten aus einer Quelle: ein Auftrag läuft wie in der App, wird anteilig 
   const items = judgeItemsFor(sourceCards, answerRef("g", 0), request, output);
   const cards = items.filter((entry) => entry.key.startsWith("karte-"));
   const keypoints = items.find((entry) => entry.key === "kernaussagen")!;
-  assert.equal(cards.length, 10, "Stichprobe von zehn Karten");
+  assert.equal(cards.length, 5, "Stichprobe von fünf Karten");
   assert.deepEqual(cards[0].criteria.map((criterion) => criterion.id), ["Q2", "Q3", "Q4"]);
   assert.match(cards[0].rendered.eingabe.belegstellen, /Gewaltenteilung/);
   assert.equal(keypoints.criteria.length, request.keypoints.length);
   assert.ok(keypoints.criteria.every((criterion) => criterion.id.startsWith("Q6:gewaltenteilung-")));
   const verdicts: Verdicts = new Map(items.map((entry, index) => [entry.ref, Object.fromEntries(entry.criteria.map((criterion, position) => [criterion.id, !(index === 0 && criterion.id === "Q3") && !(entry.key === "kernaussagen" && position < 2)]))]));
-  const [graded] = evaluateAnswers(sourceCards, [{ id: "g", category: "standard", split: "dev", request }], 1, [{ ...row("g", 0, output), outcome: "answer" }], verdicts);
-  assert.equal(graded.main, 0.9, "neun von zehn Karten bestehen Q2 bis Q4");
+  const [graded] = evaluateAnswers(sourceCards, [{ id: "g", category: "standard", subject: "naturwissenschaft", split: "dev", request }], 1, [{ ...row("g", 0, output), outcome: "answer" }], verdicts);
+  assert.equal(graded.main, 0.8, "vier von fünf Karten bestehen Q2 bis Q4");
   assert.equal(graded.criteria.Q6, Math.round((request.keypoints.length - 2) / request.keypoints.length * 10000) / 10000);
   assert.equal(graded.criteria.Q1, 1);
   assert.equal(graded.metrics!.karten, 12);
   assert.equal(graded.metrics!.anteil_frage_antwort, 1);
 
   const counting = sourceCards.parseRequest({ source: "gewaltenteilung.txt", profile: "mehr" });
-  assert.deepEqual(judgeItemsFor(sourceCards, answerRef("g", 0), counting, output).filter((entry) => entry.key.startsWith("karte-")).map((entry) => entry.criteria.map((criterion) => criterion.id).join()), ["Q2", "Q2", "Q2", "Q2", "Q2"]);
+  assert.deepEqual(judgeItemsFor(sourceCards, answerRef("g", 0), counting, output).filter((entry) => entry.key.startsWith("karte-")).map((entry) => entry.criteria.map((criterion) => criterion.id).join()), ["Q2", "Q2", "Q2"]);
 });
 
 test("Karten aus einer Quelle: eine Zeitüberschreitung ist ein gescheiterter Abschnitt, ein Schlüsselfehler lässt den Fall offen und hält an", async () => {
   const directory = mkdtempSync(path.join(tmpdir(), "ai-eval-"));
   try {
     const request = sourceCards.parseRequest({ source: "zellatmung.md", profile: "standard" });
-    const entry: EvalCase = { id: "z", category: "standard", split: "dev", request };
+    const entry: EvalCase = { id: "z", category: "standard", subject: "naturwissenschaft", split: "dev", request };
     const options = { definition: sourceCards, cases: [entry], repetitions: 1, split: "dev" as const, directory, apiKey: "test", concurrency: 1, retryDelayMs: 0, log: () => {} };
     await generate({ ...options, fetchImpl: (async () => { throw Object.assign(new Error("abgelaufen"), { name: "TimeoutError" }); }) as typeof fetch });
     const [answer] = readAnswers(directory);
@@ -354,7 +418,7 @@ test("Karten aus einer Quelle: eine Zeitüberschreitung ist ein gescheiterter Ab
 });
 
 test("Zusammenfassung: Länge, Darstellung, Stichwörter und Querbezüge automatisch; Abschnitte und Kernaussagen an den Richter", () => {
-  const request = summary.parseRequest({ set: "netzwerk-karten-und-quelle", profile: "kurz-pruefung" }) as { route: { settings: { length: string; format: string; material: string } }; contradictions: string[] };
+  const request = summary.parseRequest({ set: "netzwerk-karten-und-quelle", profile: "kurz-stichpunkte-wiederholen" }) as { route: { settings: { length: string; format: string; material: string } }; contradictions: string[] };
   assert.deepEqual([request.route.settings.length, request.route.settings.format, request.route.settings.material], ["short", "bullets", "cards-and-source"]);
   assert.equal(summary.parseRequest({ set: "fehlt", profile: "standard" }), null);
   const block = (heading: string, points: [string, string][], paragraphs: string[] = []) => ({ heading, paragraphs, points: points.map(([keyword, text]) => ({ keyword, text })), references: ["m1"] });
@@ -362,12 +426,10 @@ test("Zusammenfassung: Länge, Darstellung, Stichwörter und Querbezüge automat
     sections: [{ ...block("Adressen", [["IPv4", "32 Bit"], ["DNS", "Namen zu Adressen"]]), subsections: [block("Transport", [["TCP", "verbindungsorientiert"]])] }],
     warnings: ["HTTPS-Port widersprüchlich: 8443 oder 443."], relations: [{ from: "TCP", to: "DNS" }],
   };
-  const { Z2, Z3, Z4, Z5 } = summary.automatic;
-  assert.deepEqual([Z2(request, output), Z3(request, output), Z4(request, output), Z5(request, output)], [true, true, true, true]);
+  const { Z2, Z3, Z4 } = summary.automatic;
+  assert.deepEqual([Z2(request, output), Z3(request, output), Z4(request, output)], [true, true, true]);
   assert.equal(Z3(request, { ...output, sections: [{ ...block("Adressen", [], ["Nur Fließtext."]), subsections: [] }] }), false, "Stichpunkte verlangt");
   assert.equal(Z4(request, { ...output, sections: [{ ...block("A", [["DNS", "x"], ["dns", "y"]]), subsections: [] }] }), false);
-  assert.equal(Z5(request, { ...output, relations: [{ from: "TCP", to: "Router" }] }), false);
-  assert.equal(Z5(request, { ...output, relations: [{ from: "tcp", to: "dns" }] }), true, "wie die Mindmap ohne Groß-/Kleinschreibung");
   const seen: unknown[] = [];
   payloadBuilder(summary, { name: "k", transform: (payload, route) => { seen.push(route); return payload; } })(request);
   assert.equal(seen[0], request.route, "ein Kandidat bekommt die Anfrage an die Route");

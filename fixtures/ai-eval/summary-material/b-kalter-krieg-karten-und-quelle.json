@@ -1,0 +1,240 @@
+{
+  "title": "Der Kalte Krieg",
+  "material": "cards-and-source",
+  "decks": [
+    {
+      "id": "d1",
+      "name": "Kalter Krieg"
+    },
+    {
+      "id": "d2",
+      "name": "Anfänge 1945–1955",
+      "parent": "d1"
+    },
+    {
+      "id": "d3",
+      "name": "Krisen und Entspannung",
+      "parent": "d1"
+    },
+    {
+      "id": "d4",
+      "name": "Ende des Kalten Krieges",
+      "parent": "d1"
+    }
+  ],
+  "units": [
+    {
+      "id": "m1",
+      "kind": "card",
+      "deck": "d2",
+      "text": "F: Was bezeichnet der Begriff Kalter Krieg?\nA: Den Systemkonflikt zwischen den USA mit ihren Verbündeten und der Sowjetunion mit dem Ostblock von etwa 1947 bis 1991, ohne direkten Krieg zwischen den Supermächten."
+    },
+    {
+      "id": "m2",
+      "kind": "card",
+      "deck": "d2",
+      "text": "F: Wer traf sich im Februar 1945 auf der Konferenz von Jalta?\nA: Churchill, Roosevelt und Stalin."
+    },
+    {
+      "id": "m3",
+      "kind": "card",
+      "deck": "d2",
+      "text": "F: Welche Grundsätze legte die Potsdamer Konferenz 1945 für Deutschland fest?\nA: Entmilitarisierung, Entnazifizierung, Demokratisierung und Dezentralisierung; Deutschland sollte als wirtschaftliche Einheit behandelt werden."
+    },
+    {
+      "id": "m4",
+      "kind": "card",
+      "deck": "d2",
+      "text": "F: Wer prägte 1946 das Bild vom „Eisernen Vorhang“?\nA: Winston Churchill in seiner Rede in Fulton."
+    },
+    {
+      "id": "m5",
+      "kind": "card",
+      "deck": "d2",
+      "text": "F: Was war die Truman-Doktrin von 1947?\nA: Die Zusage, freie Völker gegen kommunistische Unterwerfung zu unterstützen; sie begründete die Politik der Eindämmung (Containment)."
+    },
+    {
+      "id": "m6",
+      "kind": "card",
+      "deck": "d2",
+      "text": "F: Was war der Marshallplan?\nA: Ein amerikanisches Wiederaufbauprogramm für Europa ab 1948."
+    },
+    {
+      "id": "m7",
+      "kind": "card",
+      "deck": "d2",
+      "text": "F: Was löste die Berlin-Blockade aus?\nA: Die Währungsreform in den Westzonen im Juni 1948."
+    },
+    {
+      "id": "m8",
+      "kind": "card",
+      "deck": "d2",
+      "text": "F: Wie lange dauerte die Berlin-Blockade, und wie wurde West-Berlin versorgt?\nA: Von Juni 1948 bis Mai 1949; die Westmächte versorgten West-Berlin über eine Luftbrücke."
+    },
+    {
+      "id": "m9",
+      "kind": "card",
+      "deck": "d2",
+      "text": "F: Wann wurden die beiden deutschen Staaten gegründet?\nA: Die Bundesrepublik am 23. Mai 1949, die DDR am 7. Oktober 1949."
+    },
+    {
+      "id": "m10",
+      "kind": "card",
+      "deck": "d2",
+      "text": "F: In welchem Jahr wurde die NATO gegründet?\nA: 1955."
+    },
+    {
+      "id": "m11",
+      "kind": "card",
+      "deck": "d2",
+      "text": "F: Wann entstand der Warschauer Pakt?\nA: 1955, nach dem NATO-Beitritt der Bundesrepublik."
+    },
+    {
+      "id": "m12",
+      "kind": "card",
+      "deck": "d2",
+      "text": "F: Wie endete der Koreakrieg 1953?\nA: Mit einem Waffenstillstand; Korea blieb etwa entlang des 38. Breitengrads geteilt."
+    },
+    {
+      "id": "m13",
+      "kind": "card",
+      "deck": "d2",
+      "text": "F: Was geschah am 17. Juni 1953 in der DDR?\nA: Ein Volksaufstand, der von sowjetischen Truppen niedergeschlagen wurde."
+    },
+    {
+      "id": "m14",
+      "kind": "card",
+      "deck": "d3",
+      "text": "F: Wie endete der ungarische Volksaufstand 1956?\nA: Er wurde von sowjetischen Truppen niedergeschlagen."
+    },
+    {
+      "id": "m15",
+      "kind": "card",
+      "deck": "d3",
+      "text": "F: Was war der Sputnik-Schock 1957?\nA: Die Sowjetunion brachte den ersten künstlichen Erdsatelliten ins All; im Westen löste das Sorge über einen technischen Rückstand aus."
+    },
+    {
+      "id": "m16",
+      "kind": "card",
+      "deck": "d3",
+      "text": "F: Wann begann der Bau der Berliner Mauer?\nA: Am 13. August 1961."
+    },
+    {
+      "id": "m17",
+      "kind": "card",
+      "deck": "d3",
+      "text": "F: Worum ging es in der Kuba-Krise im Oktober 1962?\nA: Um sowjetische Mittelstreckenraketen auf Kuba; die USA verhängten eine Seeblockade, und die Sowjetunion zog die Raketen gegen die Zusage ab, Kuba nicht anzugreifen."
+    },
+    {
+      "id": "m18",
+      "kind": "card",
+      "deck": "d3",
+      "text": "F: Was war der „heiße Draht“?\nA: Eine 1963 eingerichtete direkte Fernschreibverbindung zwischen Washington und Moskau."
+    },
+    {
+      "id": "m19",
+      "kind": "card",
+      "deck": "d3",
+      "text": "F: Was war der Prager Frühling 1968?\nA: Ein Reformversuch in der Tschechoslowakei, der durch Truppen des Warschauer Pakts beendet wurde."
+    },
+    {
+      "id": "m20",
+      "kind": "card",
+      "deck": "d3",
+      "text": "F: Was besagte die Breschnew-Doktrin?\nA: Die Souveränität sozialistischer Staaten ist begrenzt; die Sowjetunion beanspruchte ein Recht zum Eingreifen, wenn der Sozialismus gefährdet schien."
+    },
+    {
+      "id": "m21",
+      "kind": "card",
+      "deck": "d3",
+      "text": "F: Was war das Leitbild der Neuen Ostpolitik Willy Brandts?\nA: „Wandel durch Annäherung“; dazu gehörten der Moskauer Vertrag 1970 und der Grundlagenvertrag mit der DDR 1972."
+    },
+    {
+      "id": "m22",
+      "kind": "card",
+      "deck": "d3",
+      "text": "F: Was wurde 1975 in Helsinki unterzeichnet?\nA: Die KSZE-Schlussakte, in der sich 35 Staaten unter anderem zur Achtung der Menschenrechte verpflichteten."
+    },
+    {
+      "id": "m23",
+      "kind": "card",
+      "deck": "d3",
+      "text": "F: Was sah der NATO-Doppelbeschluss von 1979 vor?\nA: Verhandlungen mit der Sowjetunion über Mittelstreckenraketen und, falls sie scheiterten, die Stationierung neuer amerikanischer Mittelstreckenraketen in Westeuropa."
+    },
+    {
+      "id": "m24",
+      "kind": "card",
+      "deck": "d3",
+      "text": "F: Welches Ereignis Ende 1979 belastete die Entspannung schwer?\nA: Der Einmarsch sowjetischer Truppen in Afghanistan im Dezember 1979."
+    },
+    {
+      "id": "m25",
+      "kind": "card",
+      "deck": "d4",
+      "text": "F: Wofür stehen Glasnost und Perestroika?\nA: Für Offenheit und Umbau, die Reformpolitik Michail Gorbatschows, der 1985 Generalsekretär der KPdSU wurde."
+    },
+    {
+      "id": "m26",
+      "kind": "card",
+      "deck": "d4",
+      "text": "F: Was regelte der INF-Vertrag von 1987?\nA: Die Abschaffung aller landgestützten Mittelstreckenraketen der USA und der Sowjetunion."
+    },
+    {
+      "id": "m27",
+      "kind": "card",
+      "deck": "d4",
+      "text": "F: Wann fiel die Berliner Mauer?\nA: Am 9. November 1989."
+    },
+    {
+      "id": "m28",
+      "kind": "card",
+      "deck": "d4",
+      "text": "F: An welchem Tag öffnete die DDR-Führung die Grenzübergänge in Berlin?\nA: Am 9. Oktober 1989, nach einer missverständlichen Ankündigung auf einer Pressekonferenz."
+    },
+    {
+      "id": "m29",
+      "kind": "card",
+      "deck": "d4",
+      "text": "F: Was regelte der Zwei-plus-Vier-Vertrag vom September 1990?\nA: Die außenpolitischen Bedingungen der deutschen Einheit; Deutschland erhielt die volle Souveränität."
+    },
+    {
+      "id": "m30",
+      "kind": "card",
+      "deck": "d4",
+      "text": "F: Wann trat die deutsche Einheit in Kraft?\nA: Am 3. Oktober 1990 mit dem Beitritt der DDR zur Bundesrepublik."
+    },
+    {
+      "id": "m31",
+      "kind": "card",
+      "deck": "d4",
+      "text": "F: Wann endete der Kalte Krieg mit der Auflösung der Sowjetunion?\nA: Im Dezember 1991."
+    },
+    {
+      "id": "m32",
+      "kind": "card",
+      "deck": "d4",
+      "text": "F: Warum gilt Gorbatschows Haltung gegenüber den Staaten des Warschauer Pakts als entscheidend für 1989?\nA: Er verzichtete auf ein militärisches Eingreifen und ermöglichte so friedliche Revolutionen in Mittel- und Osteuropa."
+    },
+    {
+      "id": "m33",
+      "kind": "source",
+      "text": "Überblick: Phasen des Kalten Krieges\n\nAls Kalter Krieg wird der Konflikt zwischen den von den USA geführten westlichen Staaten und dem von der Sowjetunion beherrschten Ostblock bezeichnet, der nach dem Zweiten Weltkrieg begann und mit dem Zerfall der Sowjetunion 1991 endete. Er war ein Systemkonflikt zwischen parlamentarischer Demokratie und Marktwirtschaft auf der einen und kommunistischer Einparteienherrschaft und Planwirtschaft auf der anderen Seite. Die beiden Supermächte führten nie direkt Krieg gegeneinander; stattdessen rüsteten sie auf, konkurrierten weltweit um Einfluss und unterstützten in Stellvertreterkriegen gegnerische Seiten.\n\nIn den ersten Nachkriegsjahren zerfiel das Bündnis der Siegermächte. Die USA verfolgten ab 1947 mit der Truman-Doktrin eine Politik der Eindämmung des Kommunismus und unterstützten mit dem Marshallplan den Wiederaufbau Westeuropas. Die Spaltung Deutschlands verfestigte sich mit der Berlin-Blockade 1948/49 und der Gründung zweier deutscher Staaten 1949. Im selben Jahr, 1949, gründeten die USA, Kanada und mehrere westeuropäische Staaten die NATO als Verteidigungsbündnis. Ebenfalls 1949 zündete die Sowjetunion ihre erste Atombombe und beendete damit das amerikanische Atomwaffenmonopol. Nach dem NATO-Beitritt der Bundesrepublik entstand 1955 als Gegenstück der Warschauer Pakt.\n\nDie folgenden Jahrzehnte prägte ein nuklearer Rüstungswettlauf. Beide Seiten besaßen schließlich so viele Atomwaffen, dass ein Angriff die eigene Vernichtung nach sich gezogen hätte. Dieses Gleichgewicht des Schreckens beruhte auf gegenseitiger Abschreckung. Wie gefährlich es war, zeigte die Kuba-Krise im Oktober 1962, als die Welt so nah wie nie an einem Atomkrieg stand. Danach richteten beide Seiten 1963 den heißen Draht zwischen Washington und Moskau ein und schlossen erste Rüstungskontrollabkommen.\n\nIn den 1970er-Jahren folgte eine Phase der Entspannung. Die Bundesrepublik schloss im Rahmen der Neuen Ostpolitik Verträge mit der Sowjetunion, Polen und der DDR, und 1975 unterzeichneten 35 Staaten die KSZE-Schlussakte von Helsinki. Mit dem sowjetischen Einmarsch in Afghanistan Ende 1979 und dem Streit um neue Mittelstreckenraketen in Europa verschärfte sich der Konflikt erneut.\n\nMit Michail Gorbatschow, der 1985 an die Spitze der KPdSU trat, begann der Wandel. Seine Reformpolitik von Glasnost und Perestroika und der Verzicht auf militärisches Eingreifen in den Staaten des Warschauer Pakts ermöglichten 1989 friedliche Revolutionen in Mittel- und Osteuropa. In der DDR erzwangen Massendemonstrationen und eine Fluchtbewegung über Ungarn und die Tschechoslowakei den Rücktritt Erich Honeckers; am Abend des 9. November 1989 öffnete sich die Berliner Mauer. Am 3. Oktober 1990 trat die DDR der Bundesrepublik bei. Im Dezember 1991 löste sich die Sowjetunion auf, und der Kalte Krieg war beendet."
+    }
+  ],
+  "keypoints": [
+    "Der Kalte Krieg war ein Systemkonflikt zwischen den USA mit ihren Verbündeten und der Sowjetunion mit dem Ostblock, ohne direkten Krieg zwischen den Supermächten.",
+    "Die Truman-Doktrin von 1947 begründete die Politik der Eindämmung des Kommunismus.",
+    "Die Berlin-Blockade dauerte von Juni 1948 bis Mai 1949, West-Berlin wurde über eine Luftbrücke versorgt.",
+    "Der Warschauer Pakt entstand 1955 nach dem NATO-Beitritt der Bundesrepublik.",
+    "Der Bau der Berliner Mauer begann am 13. August 1961.",
+    "In der Kuba-Krise im Oktober 1962 stand die Welt so nah wie nie an einem Atomkrieg.",
+    "Das Gleichgewicht des Schreckens beruhte auf gegenseitiger nuklearer Abschreckung.",
+    "Gorbatschows Reformpolitik von Glasnost und Perestroika und sein Verzicht auf militärisches Eingreifen ermöglichten 1989 friedliche Revolutionen.",
+    "Die deutsche Einheit trat am 3. Oktober 1990 in Kraft.",
+    "Der Kalte Krieg endete mit der Auflösung der Sowjetunion im Dezember 1991."
+  ],
+  "contradictions": [
+    "Eine Karte datiert die Gründung der NATO auf 1955, die Quelle auf 1949.",
+    "Eine Karte und die Quelle datieren die Öffnung der Berliner Mauer auf den 9. November 1989, eine andere Karte die Öffnung der Berliner Grenzübergänge auf den 9. Oktober 1989."
+  ]
+}

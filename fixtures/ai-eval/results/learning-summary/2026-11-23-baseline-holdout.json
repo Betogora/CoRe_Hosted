@@ -1,0 +1,114 @@
+[
+  {
+    "caseId": "gewaltenteilung-karten-standard",
+    "repetition": 0,
+    "category": "standard",
+    "trap": false,
+    "outcome": "answer",
+    "criteria": {
+      "Z1": 1,
+      "Z2": 1,
+      "Z3": 1,
+      "Z4": 1,
+      "Z5": 0,
+      "Z6": 1,
+      "Z7": 1,
+      "Z8": 1
+    },
+    "main": 0,
+    "metrics": {
+      "woerter": 135,
+      "abschnitte": 3,
+      "belegtes_material": 1,
+      "warnungen": 0
+    },
+    "costUsd": 0.00022886,
+    "latencyMs": 4059,
+    "totalTokens": 2236,
+    "model": "openai/gpt-6-luna"
+  },
+  {
+    "caseId": "gewaltenteilung-karten-standard",
+    "repetition": 1,
+    "category": "standard",
+    "trap": false,
+    "outcome": "answer",
+    "criteria": {
+      "Z1": 1,
+      "Z2": 1,
+      "Z3": 1,
+      "Z4": 1,
+      "Z5": 0,
+      "Z6": 0.75,
+      "Z7": 0,
+      "Z8": 1
+    },
+    "main": 0,
+    "metrics": {
+      "woerter": 193,
+      "abschnitte": 4,
+      "belegtes_material": 1,
+      "warnungen": 0
+    },
+    "costUsd": 0.00032536,
+    "latencyMs": 6678,
+    "totalTokens": 2429,
+    "model": "openai/gpt-6-luna"
+  },
+  {
+    "caseId": "gewaltenteilung-karten-lang-einfach",
+    "repetition": 0,
+    "category": "lang-einfach",
+    "trap": false,
+    "outcome": "answer",
+    "criteria": {
+      "Z1": 1,
+      "Z2": 1,
+      "Z3": 1,
+      "Z4": 1,
+      "Z5": 1,
+      "Z6": 1,
+      "Z7": 1,
+      "Z8": 1
+    },
+    "main": 1,
+    "metrics": {
+      "woerter": 138,
+      "abschnitte": 3,
+      "belegtes_material": 1,
+      "warnungen": 0
+    },
+    "costUsd": 0.0002212,
+    "latencyMs": 4418,
+    "totalTokens": 2205,
+    "model": "openai/gpt-6-luna"
+  },
+  {
+    "caseId": "gewaltenteilung-karten-lang-einfach",
+    "repetition": 1,
+    "category": "lang-einfach",
+    "trap": false,
+    "outcome": "answer",
+    "criteria": {
+      "Z1": 1,
+      "Z2": 1,
+      "Z3": 1,
+      "Z4": 1,
+      "Z5": 1,
+      "Z6": 1,
+      "Z7": 1,
+      "Z8": 1
+    },
+    "main": 1,
+    "metrics": {
+      "woerter": 149,
+      "abschnitte": 2,
+      "belegtes_material": 1,
+      "warnungen": 0
+    },
+    "costUsd": 0.0002147,
+    "latencyMs": 3556,
+    "totalTokens": 2192,
+    "model": "openai/gpt-6-luna"
+  }
+]

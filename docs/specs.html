@@ -2094,6 +2094,9 @@ video {
 .h-\[100dvh\] {
   height: 100dvh;
 }
+.h-\[1lh\] {
+  height: 1lh;
+}
 .h-\[27rem\] {
   height: 27rem;
 }
@@ -2301,6 +2304,9 @@ video {
 }
 .w-4\/5 {
   width: 80%;
+}
+.w-5 {
+  width: 1.25rem;
 }
 .w-72 {
   width: 18rem;
@@ -3309,6 +3315,9 @@ video {
 .text-right {
   text-align: right;
 }
+.align-top {
+  vertical-align: top;
+}
 .align-middle {
   vertical-align: middle;
 }
@@ -3640,15 +3649,15 @@ video {
   --core-exam-color-19: #9d174d;
   --core-exam-color-20: #155e75;
   --core-exam-on-color: #ffffff;
-  --core-brand-primary: #236492;
-  --core-brand-secondary: #c3d9e8;
-  --core-brand-accent: #b55b43;
+  --core-brand-primary: #003049;
+  --core-brand-secondary: #c1dae7;
+  --core-brand-accent: #b95e00;
   --core-brand-surface: #fcf1d7;
   --core-brand-fog: #dce3e7;
   --core-brand-ink: #1b2d3b;
 
   --core-help-stack-back: var(--core-brand-secondary);
-  --core-help-stack-border: #7c9fb9;
+  --core-help-stack-border: #78a1b6;
 
   --core-canvas: #f6f7f8;
   --core-surface: #ffffff;
@@ -3669,25 +3678,25 @@ video {
   --core-border: #e5e7eb;
   --core-border-interactive: #d1d5db;
   --core-focus: var(--core-brand-primary);
-  --core-focus-ring-soft: rgba(35, 100, 146, 0.2);
+  --core-focus-ring-soft: rgba(0, 48, 73, 0.2);
   --core-action-primary: var(--core-brand-primary);
-  --core-action-primary-hover: #3a739d;
-  --core-action-primary-active: #1d557c;
+  --core-action-primary-hover: #1a455b;
+  --core-action-primary-active: #00293e;
   --core-settings-save-border: var(--core-brand-secondary);
   --core-accent: var(--core-brand-accent);
-  --core-accent-surface: #f8efec;
-  --core-info: var(--core-brand-primary);
+  --core-accent-surface: #f7f0eb;
+  --core-info: #2c7da0;
   --core-success: #079455;
   --core-warning: #dc8a06;
   --core-danger: #d92d20;
   --core-danger-hover: #dd4236;
-  --core-info-surface: #ebf3f9;
+  --core-info-surface: #eaf3f8;
   --core-success-surface: #ecfdf3;
   --core-warning-surface: #fffaeb;
   --core-danger-surface: #fef3f2;
   --core-backdrop: rgba(17, 24, 39, 0.32);
   --core-shadow-raised: 0 16px 40px -12px rgba(16, 24, 40, 0.18), 0 0 0 1px rgba(16, 24, 40, 0.05);
-  --core-action-soft: #ebf3f9;
+  --core-action-soft: #eaf3f8;
   --core-selection-track: #e9eef1;
   --core-selection-indicator-shadow: 0 2px 6px rgba(27, 45, 59, 0.07);
   --core-shadow-floating: 0 18px 50px -36px rgba(6, 52, 79, 0.65);
@@ -3736,7 +3745,7 @@ video {
   color-scheme: dark;
   --core-brand-primary: #4f93c4;
   --core-brand-secondary: #2b4a5e;
-  --core-brand-accent: #d7765c;
+  --core-brand-accent: #d07d41;
   --core-brand-surface: #4a3e25;
   --core-brand-fog: #2a333d;
   --core-brand-ink: #dbe4ea;
@@ -3765,7 +3774,7 @@ video {
   --core-action-primary-active: #659bc0;
   --core-settings-save-border: var(--core-brand-secondary);
   --core-accent: var(--core-brand-accent);
-  --core-accent-surface: #3a231d;
+  --core-accent-surface: #382518;
   --core-info: #7ab8e3;
   --core-success: #3cc27a;
   --core-warning: #eaa23a;
@@ -3938,11 +3947,6 @@ svg.lucide {
   --core-deck-depth-indent: 18px;
 }
 
-
-.core-deck-tree-header {
-  grid-template-columns: minmax(0, 1fr);
-}
-
 .core-deck-summary-container {
   container: core-deck-summary / inline-size;
 }
@@ -3992,36 +3996,8 @@ svg.lucide {
   gap: 0;
 }
 
-/* The column header reserves the width of the study button and the options icon button. */
-.core-deck-summary-responsive { --core-deck-study-width: 8.25rem; }
-.core-deck-summary-actions-spacer { width: calc(var(--core-deck-study-width) + var(--core-button-height) + var(--core-space-sm)); }
-
-.core-deck-study-button {
-  display: inline-flex;
-  width: var(--core-deck-study-width);
-  min-height: var(--core-button-height);
-  flex-shrink: 0;
-  align-items: center;
-  justify-content: center;
-  gap: var(--core-space-xs);
-  padding-inline: var(--core-space-sm);
-  border: var(--core-border-width) solid var(--core-border);
-  border-radius: var(--core-radius-control);
-  background: var(--core-surface);
-  color: var(--core-text-muted);
-  font: var(--core-weight-emphasis) var(--core-type-body)/var(--core-leading-body) var(--core-font-sans);
-  white-space: nowrap;
-  transition: background-color 140ms ease, border-color 140ms ease;
-}
-.core-deck-study-button[data-deck-has-work="true"] { border-color: var(--core-action-primary); color: var(--core-action-primary); }
-.core-deck-study-button:hover { background: var(--core-surface-hover); }
-.core-deck-study-button[data-deck-has-work="true"]:hover { background: var(--core-action-soft); }
-
-@container core-deck-summary (max-width: 32rem) {
-  .core-deck-summary-responsive { --core-deck-study-width: var(--core-button-height); }
-  .core-deck-study-button { padding-inline: 0; }
-  .core-deck-study-label { display: none; }
-}
+/* The column header reserves the width of the study and options icon buttons. */
+.core-deck-summary-actions-spacer { width: calc(2 * var(--core-button-height) + 0.25rem); }
 
 .core-deck-summary-count-value {
   color: var(--core-deck-count-color);
@@ -4078,22 +4054,6 @@ svg.lucide {
 
   .core-deck-summary-metric-label-full {
     display: none;
-  }
-}
-
-@container core-deck-tree (min-width: 17rem) {
-  .core-deck-tree-header {
-    grid-template-columns: minmax(0, 1fr) auto;
-  }
-
-  .core-deck-tree-title {
-    grid-column: 1;
-    grid-row: 1;
-  }
-
-  .core-deck-tree-header-action {
-    grid-column: 2;
-    grid-row: 1;
   }
 }
 
@@ -4245,10 +4205,6 @@ svg.lucide {
 .core-deck-subfolder-summary .core-deck-summary-leading > span:last-child { flex-basis: auto; }
 .core-deck-subfolder-summary .core-deck-summary-leading > [data-deck-icon] { flex-shrink: 0; }
 .core-deck-subfolder-summary .core-deck-summary-leading > button { order: 1; }
-
-.core-deck-tree-header.core-deck-tree-view-header {
-  grid-template-columns: minmax(0, 1fr) auto;
-}
 
 .core-deck-tree-container .core-deck-tree-layout { gap: var(--core-space-sm); }
 
@@ -5987,62 +5943,6 @@ button.core-info-hint:is(:hover, [data-state="open"]) {
   }
 }
 
-.core-study-side-toggle, .core-study-side-panel { display: none; }
-
-@media (min-width: 64rem) {
-  .core-study-mode[data-study-side] {
-    padding-right: calc(var(--core-study-side-width, 0px) + 2rem);
-    transition: padding-right 220ms cubic-bezier(0.22, 1, 0.36, 1);
-  }
-
-  .core-study-mode[data-study-side] .core-study-action-bar {
-    left: calc((100dvw - var(--core-study-side-width, 0px)) / 2);
-    width: calc(100dvw - var(--core-study-side-width, 0px) - 6rem);
-  }
-
-  .core-study-mode[data-study-side] .core-study-ai-entry { right: calc(var(--core-study-side-width, 0px) + 2rem); }
-
-  .core-study-side-toggle { display: inline-flex; }
-  .core-study-side-toggle[aria-pressed="true"] { background: var(--core-info-surface); }
-
-  .core-study-side-panel {
-    position: fixed;
-    inset-block: 0;
-    right: 0;
-    z-index: 31;
-    display: flex;
-    flex-direction: column;
-    border-left: var(--core-border-width) solid var(--core-border);
-    background: var(--core-surface);
-    transform: translateX(100%);
-    visibility: hidden;
-    transition: transform 220ms cubic-bezier(0.22, 1, 0.36, 1), visibility 0s linear 220ms;
-  }
-
-  .core-study-side-panel[data-open] {
-    transform: none;
-    visibility: visible;
-    transition: transform 220ms cubic-bezier(0.22, 1, 0.36, 1);
-  }
-
-  .core-study-side-content { display: flex; min-height: 0; flex: 1 1 0; flex-direction: column; overflow-y: auto; padding: var(--core-space-lg); }
-
-  .core-study-side-resize {
-    position: absolute;
-    inset-block: 0;
-    left: -0.25rem;
-    z-index: 1;
-    width: 0.5rem;
-    cursor: col-resize;
-    touch-action: none;
-  }
-
-  .core-study-side-resize:hover,
-  .core-study-side-resize:focus-visible {
-    background: linear-gradient(to right, transparent 0.1875rem, var(--core-border-interactive) 0.1875rem, var(--core-border-interactive) 0.3125rem, transparent 0.3125rem);
-  }
-}
-
 .core-help-keyword {
   --core-help-keyword-highlight: color-mix(in srgb, var(--core-brand-secondary) 85%, transparent);
   color: inherit;
@@ -6469,17 +6369,6 @@ button.core-info-hint:is(:hover, [data-state="open"]) {
 .core-summary-sheet { position: relative; width: min(100%, 794px); margin-inline: auto; background: var(--core-surface); border: var(--core-border-width) solid var(--core-border); border-radius: var(--core-radius-panel); }
 .core-summary-sheet .rich-text-field { min-height: 638px; padding: var(--core-space-xl); border: 0; border-radius: var(--core-radius-panel); box-shadow: none; overflow: visible; font-family: var(--summary-font); font-size: var(--summary-size); line-height: 1.75; background: transparent; }
 .core-summary-sheet [role="toolbar"] { display: none; }
-.core-summary-document-editor[data-compact] .core-summary-tools { padding: 0 0 var(--core-space-xs); border: 0; border-bottom: var(--core-border-width) solid var(--core-border); border-radius: initial; background: var(--core-surface); box-shadow: none; }
-.core-summary-document-editor[data-compact] .core-summary-tools::before { inset-inline: 0; background: var(--core-surface); }
-.core-summary-document-editor[data-compact] .core-editor-toolbar-context { flex-basis: 100%; margin-inline: 0; padding: 0; border-top: 0; }
-.core-summary-document-editor[data-compact] .core-editor-toolbar-tools { margin-inline-start: calc(-1 * var(--core-space-md)); }
-.core-summary-document-editor[data-compact] .core-summary-stage { padding-top: 0; }
-.core-summary-document-editor[data-compact] .core-summary-sheet { width: 100%; border: 0; border-radius: initial; background: transparent; }
-.core-summary-document-editor[data-compact] .core-summary-sheet .rich-text-field { min-height: calc(100dvh - 8.25rem); padding: var(--core-space-md) 0; border-radius: initial; }
-.core-summary-compact-heading { display: flex; min-width: 0; align-items: center; gap: var(--core-space-xs); }
-.core-summary-compact-title { min-width: 0; flex: 1 1 0; padding: var(--core-space-xs) var(--core-space-sm); border: var(--core-border-width) solid transparent; border-radius: var(--core-radius-control); background: transparent; color: var(--core-text); font: var(--core-weight-emphasis) var(--core-type-body)/var(--core-leading-body) var(--core-font-sans); outline: none; }
-.core-summary-compact-title:hover { border-color: var(--core-border); }
-.core-summary-compact-title:focus { border-color: var(--core-action-primary); }
 .core-summary-drawing-layer { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
 .core-summary-drawing-layer:not([data-tool="text"]) { pointer-events: auto; touch-action: none; cursor: crosshair; }
 .core-summary-drawing-layer[data-tool="eraser"] { cursor: cell; }
@@ -6579,7 +6468,17 @@ button.core-info-hint:is(:hover, [data-state="open"]) {
 .dashboard-widget-content { height: var(--dashboard-widget-height); }
 .dashboard-widget-content > * { height: 100%; overflow: hidden; }
 .dashboard-widget[data-dashboard-widget="decks"] .dashboard-widget-content > * { overflow-y: auto; }
-.dashboard-widget[data-dashboard-widget="decks"] .dashboard-widget-content > [data-fitting] { overflow-y: hidden; }
+.dashboard-pins-list { margin-top: var(--core-space-sm); }
+.dashboard-pin { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: var(--core-space-md); min-width: 0; border-bottom: var(--core-border-width) solid var(--core-border); padding-block: var(--core-space-md); }
+.dashboard-pin-name { display: -webkit-box; overflow: hidden; overflow-wrap: anywhere; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
+.dashboard-pin-meta { display: flex; flex-wrap: wrap; gap: 0.125rem var(--core-space-md); margin-top: 0.125rem; }
+.dashboard-pin-count { display: inline-flex; align-items: center; gap: 0.3125rem; }
+.dashboard-pin-count::before { content: ""; width: 0.5rem; height: 0.5rem; border-radius: var(--core-radius-round); background: var(--core-deck-count-color); }
+.dashboard-pin-count > dt { order: 1; }
+.dashboard-pin .core-deck-summary-count-value { font-size: var(--core-type-caption); line-height: var(--core-leading-caption); }
+.dashboard-pin-play { width: var(--core-button-height); padding: 0; border-radius: var(--core-radius-round); }
+.dashboard-pin-play svg { margin-inline-start: 0.125rem; }
+.dashboard-pin-replace { display: grid; gap: var(--core-space-sm); }
 .dashboard-learning-body { height: 100%; align-content: center; }
 .dashboard-todos { display: flex; flex-direction: column; }
 /* The inset keeps focus rings (2 px plus 3 px offset) inside the scroll area. */
@@ -8871,7 +8770,6 @@ html:has(.catalog-preview) { scroll-behavior: auto; }
 <li>Inhalte mit Vorlese-Angabe aus Anki lassen sich über die Sprachausgabe des Geräts vorlesen.</li>
 <li>Markierter Text lässt sich in AMBOSS nachschlagen. Erst der ausdrückliche Klick öffnet die Suche; übertragen wird nur der markierte Text.</li>
 <li>Nach dem Aufdecken steht <a href="#specs--ki-hilft">KI hilft</a> bereit.</li>
-<li>In der Sitzung lassen sich die <a href="#specs--zusammenfassungen">Zusammenfassungen</a> des Stapels lesen und von Hand schreiben, ohne dabei Karten zu bewerten; ein ungespeicherter Entwurf fragt beim Verlassen nach.</li>
 </ul>
 <h3 id="specs--pomodoro-timer" class="core-heading-3" tabindex="-1">Pomodoro-Timer <a class="docs-anchor" href="#specs--pomodoro-timer" aria-label="Link zu Pomodoro-Timer">#</a></h3>
 <ul>
@@ -8997,14 +8895,14 @@ html:has(.catalog-preview) { scroll-behavior: auto; }
 <p>Aus den Karten eines Stapels entsteht eine gegliederte, belegte Fassung zum Lesen.</p>
 <ul>
 <li><strong>Material:</strong> die Karten des Stapels, auf Wunsch samt Unterstapeln, und optional eine angehängte Quelle (PDF, Text, Markdown, CSV, TSV). Die Quelle kann die Karten ergänzen oder ersetzen und wird nicht gespeichert.</li>
-<li>Jeder Inhalt geht genau einmal ein, unabhängig von der Zahl seiner Karten; Varianten zählen nicht. Bei Auswahlkarten sind richtige und falsche Optionen unterschieden.</li>
-<li>Das Material wird vor der Anfrage vollständig geladen. Ist es größer als die Obergrenze (3.000 Inhalte oder 400.000 Zeichen), wird die Erstellung sichtbar abgewiesen und nie still gekürzt.</li>
+<li>Jeder Inhalt geht genau einmal ein, gleich wie viele Karten er hat; Varianten zählen nicht. Bei Auswahlkarten sind richtige und falsche Optionen unterschieden.</li>
+<li>Das Material wird vor der Anfrage vollständig geladen. Ist es größer als die Obergrenze (3.000 Inhalte oder 400.000 Zeichen), wird die Erstellung sichtbar abgewiesen, nie still gekürzt.</li>
 <li><strong>Wünsche:</strong> Länge, Darstellung, Lernziel, Fokus, Beispiele, sichtbare Verweise (vorab aus). Die Länge (etwa 1–2, 3–5 oder 6–10 Min. Lesezeit) setzt auch den Detailgrad. Die Wünsche sind ein eigener Auftrag; Fokus und Material überschreiben die Anweisungen nicht.</li>
 <li><strong>Materialtreue:</strong> Die KI darf nur wiedergeben, was im Material steht. Definitionen, Zahlen, Einheiten, Formeln, Verneinungen, Bedingungen und Ausnahmen bleiben; Widersprüche nennt sie mit beiden Fundstellen, Lücken als Hinweis. Bei knapper Länge gehen Fokus und zentrale Konzepte vor; wenig Material wird nicht aufgefüllt.</li>
-<li><strong>Antwort:</strong> Hauptabschnitte mit höchstens einer Ebene Unterabschnitten, darin Absätze und Stichpunkte aus Stichwort und Aussage, je Abschnitt Verweise auf das Material und optional belegte Querbezüge zwischen Stichworten.</li>
-<li>Den Text baut die App aus dieser Struktur. Kartenverweise führen zu vorhandenen Karten, Quellverweise nennen Datei und Seite; unbekannte Verweise, leere Abschnitte und abgeschnittene Antworten werden abgewiesen.</li>
-<li>Das Ergebnis öffnet als ungespeicherter Entwurf unter dem Stapelnamen; erst das Speichern übernimmt ihn. Modell, Promptfassung und Erstellungszeit bleiben an der Fassung.</li>
-<li>Abbrechen beendet die Anfrage; eine verspätete Antwort wird nicht übernommen. Ein Fehler erhält den Auftrag.</li>
+<li><strong>Antwort:</strong> Hauptabschnitte mit höchstens einer Ebene Unterabschnitten, darin Absätze und Stichpunkte aus Stichwort und Aussage, je Abschnitt Verweise auf das Material und optional belegte Querbezüge.</li>
+<li>Den Text baut die App aus dieser Struktur. Kartenverweise führen zu vorhandenen Karten, Quellverweise nennen Datei und Seite. Abgewiesen werden unbekannte Verweise, leere Hauptabschnitte und abgeschnittene Antworten; leere Unterabschnitte und unbelegte Querbezüge entfallen.</li>
+<li>Das Ergebnis öffnet als ungespeicherter Entwurf unter dem Stapelnamen; Modell, Promptfassung und Erstellungszeit bleiben an der gespeicherten Fassung.</li>
+<li>Abbrechen beendet die Anfrage, eine verspätete Antwort verfällt. Ein Fehler erhält den Auftrag.</li>
 <li>Bilder, Ton und gescannte Seiten ohne Text werden nicht ausgewertet; was ausgelassen wurde, steht im Ergebnis.</li>
 <li><strong>Grenze:</strong> Der Prompt allein garantiert keine Faktentreue; deshalb die Belege. Ausgabesprache ist Deutsch.</li>
 </ul>
@@ -9088,16 +8986,16 @@ html:has(.catalog-preview) { scroll-behavior: auto; }
 <li>Eine Fassung entsteht per <a href="#specs--ki-zusammenfassung">KI-Zusammenfassung</a> oder von Hand aus einem leeren Entwurf.</li>
 <li>Jede Fassung nennt Titel, Umfang, Detailgrad und die aus ihrem Text berechnete Lesezeit.</li>
 <li>Fassungen liegen im Konto und erscheinen auf jedem Gerät (<a href="decisions.md#adr-043--zusammenfassungen-und-mindmaps-als-versionierte-online-dokumente">ADR-043</a>).</li>
-<li>Löschen gilt auf allen Geräten; daraus erzeugte Mindmap-Karten bleiben.</li>
-<li>Unter den eigenen Fassungen zeigt ein Stapel die seiner Unterstapel, gruppiert, bearbeitbar und löschbar; sie bleiben ihrem Stapel. Neue entstehen im geöffneten Stapel oder seiner Sitzung.</li>
+<li>Löschen entfernt eine Fassung auf allen Geräten; daraus erzeugte Mindmap-Karten bleiben.</li>
+<li>Unter den eigenen Fassungen zeigt ein Stapel die seiner Unterstapel, gruppiert, bearbeitbar und löschbar; sie bleiben ihrem Stapel. Neue entstehen nur im geöffneten Stapel.</li>
 </ul>
 <h3 id="specs--zusammenfassung-bearbeiten-und-speichern" class="core-heading-3" tabindex="-1">Zusammenfassung bearbeiten und speichern <a class="docs-anchor" href="#specs--zusammenfassung-bearbeiten-und-speichern" aria-label="Link zu Zusammenfassung bearbeiten und speichern">#</a></h3>
 <ul>
-<li>Eine Fassung ist eine durchgehende Schreibfläche mit formatiertem Text und Handzeichnungen.</li>
+<li>Die Fassung steht auf einer durchgehenden Schreibfläche mit formatiertem Text und Handzeichnungen.</li>
 <li>Eine Textmarkierung gehört zum Text und wandert mit ihm; freie Striche liegen auf der Zeichenfläche.</li>
 <li>Gespeichert wird bewusst oder beim Verlassen; dann fragt ein geänderter Entwurf nach Speichern, Verwerfen oder Weiterbearbeiten, nie automatisch.</li>
-<li>Offline wird lokal gespeichert, als nicht synchronisiert markiert und beim nächsten Öffnen hochgeladen.</li>
-<li>Hat ein anderes Gerät die Fassung inzwischen geändert, bleibt dessen Stand; eigene Änderungen werden eine „Konfliktfassung“.</li>
+<li>Ohne Verbindung wird lokal gespeichert, als noch nicht synchronisiert gekennzeichnet und beim nächsten Öffnen hochgeladen.</li>
+<li>Hat ein anderes Gerät dieselbe Fassung inzwischen geändert, bleibt dessen Stand; die eigenen Änderungen werden eine eigene „Konfliktfassung“.</li>
 <li><strong>Bewusst nicht:</strong> Seiten und Seitenformate, Export.</li>
 </ul>
 <h3 id="specs--mindmap-erzeugen" class="core-heading-3" tabindex="-1">Mindmap erzeugen <a class="docs-anchor" href="#specs--mindmap-erzeugen" aria-label="Link zu Mindmap erzeugen">#</a></h3>
@@ -9105,18 +9003,19 @@ html:has(.catalog-preview) { scroll-behavior: auto; }
 <li>Jeder Stapel hat genau eine unbegrenzte Fläche; darauf können mehrere Bäume stehen.</li>
 <li>Aus einer gespeicherten Fassung desselben Stapels entsteht ein Baum auf dem Gerät, ohne KI: Überschriften werden Äste; Stichworte, kurze Absätze und Listenpunkte Karten; längere Absätze Text ihrer Abschnittskarte. Materialhinweise und Belege ergeben keine Karten.</li>
 <li>Belegte Querbezüge aus der Zusammenfassung werden Querverbindungen.</li>
-<li>Jede erzeugte Karte behält ihre Textstelle als unveränderliche Quelle.</li>
+<li>Jede erzeugte Karte behält ihre Textstelle als unveränderliche Quelle; spätere Änderungen der Zusammenfassung überschreiben sie nicht.</li>
 <li>Erneutes Erzeugen ersetzt den Baum dieser Fassung an seiner Stelle. Wurde er bearbeitet, fragt CoRe: überschreiben, daneben anlegen oder abbrechen. Andere Karten der Fläche bleiben.</li>
-<li>Ohne Fassung und bei leerer Fläche entstehen Zusammenfassung und Mindmap in einem Zug; ohne gespeicherte Zusammenfassung entsteht keine Mindmap.</li>
+<li>Hat der Stapel noch keine Fassung und ist die Fläche leer, entstehen Zusammenfassung und Mindmap in einem Zug. Eine Mindmap ohne gespeicherte Zusammenfassung entsteht nicht.</li>
 </ul>
 <h3 id="specs--mindmap-bearbeiten-und-speichern" class="core-heading-3" tabindex="-1">Mindmap bearbeiten und speichern <a class="docs-anchor" href="#specs--mindmap-bearbeiten-und-speichern" aria-label="Link zu Mindmap bearbeiten und speichern">#</a></h3>
 <ul>
 <li>Karten sind Stichwortkarten (Text eingeklappt) oder Textkarten (Text sichtbar), mit formatiertem Text und Bildern.</li>
 <li>Die Hierarchie ist zyklenfrei; Querverbindungen sind davon getrennt und dürfen Kreise bilden.</li>
-<li>Eine Klammer fasst benachbarte Geschwister unter einer frei schreibbaren Karte zusammen, ohne KI; eine Umrandung gruppiert nur optisch. Beide lassen sich entfernen, ohne Karten zu verlieren. Dazu kommen freie Zeichnungen und Text.</li>
-<li>Automatisch platzierte Karten weichen wachsenden Nachbarn aus; von Hand platzierte bleiben stehen.</li>
+<li>Eine Klammer fasst benachbarte Geschwister unter einer eigenen, frei schreibbaren Karte zusammen, ohne KI. Eine Umrandung gruppiert Karten nur optisch. Beide lassen sich entfernen, ohne Karten zu verlieren.</li>
+<li>Dazu kommen freie Zeichnungen und freier Text.</li>
+<li>Automatisch platzierte Karten weichen wachsenden Nachbarn aus; von Hand platzierte bleiben, wo sie sind.</li>
 <li>Änderungen speichern automatisch nach kurzer Pause. Rückgängig und Wiederholen umfassen alle Inhaltsänderungen, nicht die Ansicht.</li>
-<li>Die Mindmap liegt samt Bildern im Konto, offline lokal bis zum Hochladen. Hat ein anderes Gerät inzwischen gespeichert, gewinnt der zuletzt gespeicherte Stand, mit Hinweis.</li>
+<li>Die Mindmap liegt samt Bildern im Konto. Ohne Verbindung wird lokal gespeichert und später hochgeladen. Hat ein anderes Gerät inzwischen gespeichert, gewinnt der zuletzt gespeicherte Stand, mit Hinweis.</li>
 <li>Eine Mindmap hat feste Obergrenzen, darunter 2.000 Karten; eine Änderung darüber hinaus wird mit Grenze und aktuellem Wert abgewiesen.</li>
 <li><strong>Bewusst nicht:</strong> Export, gemeinsames Bearbeiten.</li>
 </ul>
@@ -9124,14 +9023,14 @@ html:has(.catalog-preview) { scroll-behavior: auto; }
 <h3 id="specs--heute" class="core-heading-3" tabindex="-1">Heute <a class="docs-anchor" href="#specs--heute" aria-label="Link zu Heute">#</a></h3>
 <p><code>Heute</code> ist die Startseite: Tagesstand, Lernstart und persönliche Werkzeuge an einem Ort.</p>
 <ul>
-<li>Die Seite besteht aus frei wählbaren und anordenbaren Bausteinen: Tagesstand, Motivationsimpuls, Lerntimer, aktive Stapel, To-dos, Lern-Heatmap und Prüfungsaufgaben. Anordnung und eigene To-dos gelten je Konto nur in diesem Browser.</li>
-<li><strong>Feste Formate:</strong> Bausteine haben feste, nicht wählbare Größen; längere Inhalte scrollen im Baustein statt in der Seite.</li>
-<li><strong>Erststart:</strong> Ein neues Konto beginnt ohne erfundene Daten. Ohne Stapel führt die Seite zu Import, manueller Karte oder Demo. Demo-Stapel entstehen nur auf ausdrückliche Aktion, einmalig und ohne Lernhistorie.</li>
+<li>Die Seite besteht aus wähl- und anordenbaren Bausteinen: Tagesstand, Motivationsimpuls, Lerntimer, angepinnte Stapel, To-dos, Lern-Heatmap und Prüfungsaufgaben. Anordnung und eigene To-dos gelten je Konto nur in diesem Browser.</li>
+<li><strong>Feste Formate:</strong> Bausteine haben feste Größen; längere Inhalte scrollen im Baustein.</li>
+<li><strong>Erststart:</strong> Ein neues Konto beginnt ohne erfundene Daten. Ohne Stapel führt die Seite zu Import, manueller Karte oder Demo; Demo-Stapel entstehen nur auf ausdrückliche Aktion, einmalig, ohne Lernhistorie.</li>
 <li><strong>Tagesstand:</strong> Er fasst alle Hauptstapel ohne Doppelzählung in <code>Gelernt</code>, <code>Neu</code>, <code>Offen</code> und <code>Fällig</code> zusammen (<a href="#specs--tagesrunde-und-limits">Tagesrunde und Limits</a>).</li>
-<li><strong>Lernstart:</strong> Er startet den alphabetisch ersten Hauptstapel mit verfügbaren Karten. Warten nur noch Lernschritte, kündigt er späteres Weiterlernen an; ist alles gelernt, meldet er das Tagesziel und bietet zusätzliche neue Karten an.</li>
+<li><strong>Lernstart:</strong> startet den alphabetisch ersten Hauptstapel mit verfügbaren Karten; warten nur Lernschritte, kündigt er späteres Weiterlernen an, sonst meldet er das Tagesziel und bietet zusätzliche neue Karten an.</li>
 <li><strong>Motivationsimpuls:</strong> einer von 60 eigenen Lernimpulsen, je Lerntag stabil, auch offline.</li>
-<li><strong>To-dos:</strong> eigene Aufgaben und Aufgaben aus dem Prüfungsplaner; Planeraufgaben lassen sich direkt lernen. Wird der Baustein entfernt, bleiben die Aufgaben.</li>
-<li><strong>Aktive Stapel:</strong> so viele Hauptstapel, wie der Baustein fasst, startbare zuerst, und der Weg zu allen.</li>
+<li><strong>To-dos:</strong> eigene und Planeraufgaben, letztere direkt lernbar; ohne Baustein bleiben sie.</li>
+<li><strong>Angepinnte Stapel:</strong> bis zu vier, neueste oben, mit Lernstart und Weg zu allen; Lücken füllen die an den meisten von 14 Lerntagen gestarteten, dann Hauptstapel. Ein fünfter Pin ersetzt einen, wie Lösen nach Rückfrage.</li>
 <li><strong>Bewusst nicht:</strong> Zeitprognosen.</li>
 </ul>
 <h3 id="specs--kartenverwaltung" class="core-heading-3" tabindex="-1">Kartenverwaltung <a class="docs-anchor" href="#specs--kartenverwaltung" aria-label="Link zu Kartenverwaltung">#</a></h3>
@@ -9215,7 +9114,7 @@ html:has(.catalog-preview) { scroll-behavior: auto; }
 </thead>
 <tbody><tr>
 <td>Konto, auf allen Geräten</td>
-<td>Tagesbeginn, Vorziehfenster, Lernbremse, Easy Days, Lernprofile, Standard für neue Stapel, Flaggennamen, gespeicherte Suchen, Prüfungspläne</td>
+<td>Tagesbeginn, Vorziehfenster, Lernbremse, Easy Days, Lernprofile, Standard für neue Stapel, Flaggennamen, gespeicherte Suchen, Prüfungspläne, Pins und Lerntage von <code>Heute</code></td>
 </tr>
 <tr>
 <td>Einen Stapel</td>
@@ -9223,7 +9122,7 @@ html:has(.catalog-preview) { scroll-behavior: auto; }
 </tr>
 <tr>
 <td>Diesen Browser</td>
-<td>heller oder dunkler Modus, Heatmap-Farbe, Stapelansicht, Anordnung von <code>Heute</code> und eigene To-dos, Pomodoro-Timer, Simulationsuhr</td>
+<td>heller oder dunkler Modus, Heatmap-Farbe, Stapelansicht, Anordnung und eigene To-dos von <code>Heute</code>, Pomodoro-Timer, Simulationsuhr</td>
 </tr>
 </tbody></table>
 <ul>
@@ -9379,7 +9278,7 @@ html:has(.catalog-preview) { scroll-behavior: auto; }
 <p>Probe: Ein Satz gehört hinein, wenn er nach einer vollständigen Neugestaltung der Oberfläche unverändert gälte und eine Abweichung davon ein fachlicher Fehler wäre.</p>
 <p>Form: Stichpunkte, ein Gedanke je Punkt. Eine neue Regel ersetzt die alte, statt sie zu ergänzen. Wo Funktionen logisch voneinander abhängen, steht ein Schaubild als <code>schaubild</code>-Block direkt beim Text und wird mit ihm geändert (Schreibweise in <a href="index.html#readme--pflege"><code>README.md</code></a>). In Schaubildern sind KI-Schritte blau, Ergebnisse grün markiert.</p>
 <h2 id="specs--codeumfang-der-produktbereiche" class="core-heading-2" tabindex="-1">Codeumfang der Produktbereiche <a class="docs-anchor" href="#specs--codeumfang-der-produktbereiche" aria-label="Link zu Codeumfang der Produktbereiche">#</a></h2>
-<p>CoRe ist eine App mit mehreren Bereichen. Die Tabelle zeigt deren Anteil am Bildschirmcode; gemeinsam genutzte Logik, UI und API stehen separat.</p><div class="docs-code-stats"><dl class="flex min-w-0 flex-col"><dt class="core-status-label text-core-muted">Bildschirmcode</dt><dd class="core-metric mt-0.5 text-core-text">7.681</dd></dl><dl class="flex min-w-0 flex-col"><dt class="core-status-label text-core-muted">Gemeinsamer Code &amp; API</dt><dd class="core-metric mt-0.5 text-core-text">49.618</dd></dl><dl class="flex min-w-0 flex-col"><dt class="core-status-label text-core-muted">Quelldateien</dt><dd class="core-metric mt-0.5 text-core-text">315</dd></dl></div><div class="docs-code-chart"><div class="docs-table-scroll" tabindex="0" role="region" aria-label="Codeumfang je Produktbereich"><table><thead><tr><th>Bereich</th><th>Zeilen</th><th>Anteil</th></tr></thead><tbody><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-status-learned)" aria-hidden="true"></span>Heute</th><td>352</td><td>4,6 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-status-new)" aria-hidden="true"></span>Lernen & Karten</th><td>2.362</td><td>30,8 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-status-in-progress)" aria-hidden="true"></span>Erstellen & Import</th><td>2.105</td><td>27,4 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-action-primary)" aria-hidden="true"></span>Prüfungen</th><td>448</td><td>5,8 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-status-due)" aria-hidden="true"></span>Statistik</th><td>627</td><td>8,2 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-progress-completed)" aria-hidden="true"></span>Konto & Sync</th><td>875</td><td>11,4 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-text-secondary)" aria-hidden="true"></span>Hilfe</th><td>912</td><td>11,9 %</td></tr></tbody></table></div></div><p class="docs-source">Beim Erzeugen gemessen: nichtleere Zeilen in <code>src/</code> und <code>api/</code> (TS/TSX) sowie <code>src/styles.css</code>. Ohne Tests, Typdeklarationen, generierte Datenbanktypen, Dokumentation und Fremdcode. Bereichszuordnung nach Bildschirmdateien in <a href="../src/screens/README.md">der Screen-Landkarte</a>; übriger Code zählt gemeinsam. Enthält Kommentare und misst weder Laufzeit noch Komplexität.</p></article></main></div><script>function initializeDocsViewer() {
+<p>CoRe ist eine App mit mehreren Bereichen. Die Tabelle zeigt deren Anteil am Bildschirmcode; gemeinsam genutzte Logik, UI und API stehen separat.</p><div class="docs-code-stats"><dl class="flex min-w-0 flex-col"><dt class="core-status-label text-core-muted">Bildschirmcode</dt><dd class="core-metric mt-0.5 text-core-text">7.609</dd></dl><dl class="flex min-w-0 flex-col"><dt class="core-status-label text-core-muted">Gemeinsamer Code &amp; API</dt><dd class="core-metric mt-0.5 text-core-text">49.677</dd></dl><dl class="flex min-w-0 flex-col"><dt class="core-status-label text-core-muted">Quelldateien</dt><dd class="core-metric mt-0.5 text-core-text">315</dd></dl></div><div class="docs-code-chart"><div class="docs-table-scroll" tabindex="0" role="region" aria-label="Codeumfang je Produktbereich"><table><thead><tr><th>Bereich</th><th>Zeilen</th><th>Anteil</th></tr></thead><tbody><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-status-learned)" aria-hidden="true"></span>Heute</th><td>307</td><td>4 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-status-new)" aria-hidden="true"></span>Lernen & Karten</th><td>2.335</td><td>30,7 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-status-in-progress)" aria-hidden="true"></span>Erstellen & Import</th><td>2.105</td><td>27,7 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-action-primary)" aria-hidden="true"></span>Prüfungen</th><td>448</td><td>5,9 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-status-due)" aria-hidden="true"></span>Statistik</th><td>627</td><td>8,2 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-progress-completed)" aria-hidden="true"></span>Konto & Sync</th><td>875</td><td>11,5 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-text-secondary)" aria-hidden="true"></span>Hilfe</th><td>912</td><td>12 %</td></tr></tbody></table></div></div><p class="docs-source">Beim Erzeugen gemessen: nichtleere Zeilen in <code>src/</code> und <code>api/</code> (TS/TSX) sowie <code>src/styles.css</code>. Ohne Tests, Typdeklarationen, generierte Datenbanktypen, Dokumentation und Fremdcode. Bereichszuordnung nach Bildschirmdateien in <a href="../src/screens/README.md">der Screen-Landkarte</a>; übriger Code zählt gemeinsam. Enthält Kommentare und misst weder Laufzeit noch Komplexität.</p></article></main></div><script>function initializeDocsViewer() {
     const theme = document.getElementById("docs-theme");
     theme.addEventListener("click", () => {
         const dark = document.documentElement.dataset.coreTheme !== "dark";

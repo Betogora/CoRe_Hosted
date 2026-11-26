@@ -2,7 +2,7 @@ import { OPENROUTER_MODEL } from "../../server/aiRoute.ts";
 import { appendToSection, escapeHtml, renderMarkdown } from "../docsSite.ts";
 import { LEDGER_FILE, REQUEST_TYPES, bestRun, holdoutFor, latestCalibration, seriesFor, type EvalLedger, type EvalRun, type EvalSeriesEntry, type RequestType } from "./ledger.ts";
 
-const DECISIONS = { baseline: "Baseline", accepted: "übernommen", rejected: "verworfen", holdout: "Rückhalt" } as const;
+const DECISIONS = { baseline: "Baseline", accepted: "übernommen", provisional: "vorläufig", rejected: "verworfen", holdout: "Rückhalt" } as const;
 const number = (value: number) => value.toLocaleString("de-DE", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
 const percent = (share: number) => `${number(share * 100)} %`;
 const interval = (run: EvalRun) => `${percent(run.main)} (${number(run.low * 100)}–${number(run.high * 100)})`;
@@ -52,30 +52,42 @@ export function progressPlot(type: RequestType, series: EvalSeriesEntry[]) {
   const target = type.target === null ? "" : `<line class="target" x1="${left}" x2="${left + plotWidth}" y1="${y(type.target)}" y2="${y(type.target)}"/><text x="${left + plotWidth + 8}" y="${y(type.target, 4)}">Ziel ${percent(type.target)}</text>`;
   let path = "";
   let last = 0;
-  series.forEach(({ run }, index) => {
-    if (run.decision === "rejected") return;
-    path += path ? `H${x(index)}V${y(run.main)}` : `M${x(index)} ${y(run.main)}`;
+  let standing = series[0].run;
+  series.forEach(({ run, confirmed }, index) => {
+    const best = run.decision !== "rejected" ? run : run.confirmation ? confirmed : null;
+    if (!best) return;
+    path += path ? `H${x(index)}V${y(best.main)}` : `M${x(index)} ${y(best.main)}`;
     last = index;
+    standing = best;
   });
   const marks = series.map(({ number: runNumber, run }, index) => {
     const title = `Lauf ${runNumber} · ${run.promptVersion} · ${interval(run)} · ${DECISIONS[run.decision]}`;
     return `<g data-decision="${run.decision}"><title>${escapeHtml(title)}</title><rect x="${px(left + column * index)}" y="${top}" width="${px(column)}" height="${height - top - bottom}" fill="transparent"/><line class="interval" x1="${x(index)}" x2="${x(index)}" y1="${y(run.high)}" y2="${y(run.low)}"/><circle cx="${x(index)}" cy="${y(run.main)}" r="5"/></g><text x="${x(index)}" y="${height - bottom + 18}" text-anchor="middle">${runNumber}</text>`;
   }).join("");
-  const best = series[last].run;
-  const value = `<text class="value" x="${x(last)}" y="${y(best.high, -8)}" text-anchor="middle">${percent(best.main)}</text>`;
+  const value = `<text class="value" x="${x(last)}" y="${y(standing.high, -8)}" text-anchor="middle">${percent(standing.main)}</text>`;
   const label = `Verlauf des Hauptwerts: ${type.label}`;
   return `<div class="docs-table-scroll" tabindex="0" role="region" aria-label="${label}"><svg class="docs-eval-plot" role="img" aria-label="${label}" width="${left + plotWidth + right}" height="${height}" viewBox="0 0 ${left + plotWidth + right} ${height}">${grid}${target}<path class="best" d="${path}H${x(series.length - 1)}"/>${marks}${value}<text x="${left - 8}" y="${height - bottom + 18}" text-anchor="end">Lauf</text></svg></div>`;
 }
 
 const LEGEND = `<ul class="docs-eval-legend"><li><svg width="12" height="12" aria-hidden="true"><circle cx="6" cy="6" r="5"/></svg>Baseline oder übernommen</li><li><svg width="12" height="12" aria-hidden="true"><g data-decision="rejected"><circle cx="6" cy="6" r="5"/></g></svg>verworfen</li><li><svg width="24" height="12" aria-hidden="true"><path class="best" d="M0 6H24"/></svg>Bestand</li><li><svg width="24" height="12" aria-hidden="true"><line class="target" x1="0" x2="24" y1="6" y2="6"/></svg>Ziel</li><li><svg width="12" height="12" aria-hidden="true"><line class="interval" x1="6" x2="6" y1="0" y2="12"/></svg>95 %-Intervall</li></ul>`;
 
+/** Eine Baseline misst neu (Fälle, Bewertungsbogen, Parser oder Hauptwert); frühere Läufe sind damit nicht vergleichbar. */
+function baselineStarts(series: EvalSeriesEntry[]) {
+  let start = series[0].run;
+  return series.map(({ run }) => {
+    if (run.decision === "baseline") start = run;
+    return start;
+  });
+}
+
 function runsTable(type: RequestType, series: EvalSeriesEntry[]) {
-  const rows = series.map(({ number: runNumber, run, reference }) => [
-    String(runNumber), run.date, code(run.promptVersion), `<span class="docs-eval-change">${escapeHtml(run.change)}</span>`, interval(run),
-    ...(run.comparison && reference ? [points(run.main - reference.main), `±${number(run.comparison.noise * 100)} Pkt.`, `+${run.comparison.gained} / −${run.comparison.lost}`] : ["–", "–", "–"]),
+  const starts = baselineStarts(series);
+  const rows = series.map(({ number: runNumber, run, reference }, index) => [
+    String(runNumber), run.date, code(run.promptVersion), `<span class="docs-eval-change">${escapeHtml(run.change)}</span>`, interval(run), points(run.main - starts[index].main),
+    ...(run.comparison && reference ? [points(run.main - reference.main), `±${number(run.comparison.noise * 100)} Pkt.${run.comparison.better === undefined ? "" : ` · besser in ${number(run.comparison.better * 100)} %`}`, `+${run.comparison.gained} / −${run.comparison.lost}`] : ["–", "–", "–"]),
     critical(type, run), usd(run.costUsd), seconds(run.latencyP90Ms), `${run.cases} × ${run.repetitions}`, DECISIONS[run.decision],
   ]);
-  const head = ["Lauf", "Datum", "Prompt", "Änderung", "Hauptwert (95 %-Intervall)", "Δ zum Bestand", "Rauschen", "Fälle gewonnen / verloren", "Kritisch", "Kosten je Antwort", "Latenz p90", "Fälle × Läufe", "Entscheidung"];
+  const head = ["Lauf", "Datum", "Prompt", "Änderung", "Hauptwert (95 %-Intervall)", "Δ seit Baseline", "Δ zum Bestand", "Rauschen", "Fälle gewonnen / verloren", "Kritisch", "Kosten je Antwort", "Latenz p90", "Fälle × Läufe", "Entscheidung"];
   return table(`Läufe: ${type.label}`, head, rows);
 }
 

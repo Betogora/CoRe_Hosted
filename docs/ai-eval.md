@@ -2,7 +2,7 @@
 
 Stand der per Hillclimb gemessenen KI-Prompts. Grundsätze stehen in
 [ADR-049](decisions.md#adr-049--ki-änderungen-nur-mit-eval-nachweis), offene
-Arbeit unter [P5](todo.md#p5-ki-eval-und-hillclimb). Bestand, Verlauf und
+Arbeit unter [P5-Nachschlag](todo.md#p5-nachschlag-ki-hillclimb). Bestand, Verlauf und
 Bilanz entstehen beim Erzeugen aus dem Ledger; die Prompttexte stehen nur im
 Code.
 
@@ -24,6 +24,34 @@ Was das Experiment bisher gekostet hat: Läufe, Antworten, Kosten, neu
 bewertete Einträge und der Anteil der Einträge aus dem Urteilscache, je Anfragetyp mit
 Baseline, bestem Stand und Ziel.
 
+## Ziele und Grenzen
+
+Zielwerte sind Orientierung auf der Seite. Eine Reihe endet beim ersten
+zutreffenden Punkt: Entscheidungsteil und Rückhalt liegen zusammen höchstens
+3 Punkte unter dem Ziel, und die kritischen Schwellen halten; kein benanntes
+Fehlerbild betrifft mehr als 5 % der Trainingsantworten; zwei Runden in Folge
+ohne Übernahme; drei gerichtete Läufe am Entscheidungsteil je Welle.
+
+| Anfragetyp | Hauptwert am Rückhalt | Kritisch | Weitere |
+| --- | --- | --- | --- |
+| Varianten | ≥ 95 % | Fallen zu Richtung, Reihenfolge und Verneinung: 0 Fehler bei mindestens 40 Antworten je Kartenart | – |
+| KI hilft | ≥ 90 % | H2: höchstens 2 Fehler je 100 Antworten; H6: 0 Fehler in den Fallen bei mindestens 40 Antworten | Streaming erst, wenn die Latenz im Median über 4 s liegt |
+| Karten aus einer Quelle | ≥ 90 % | Q2 ≥ 98 % der bewerteten Karten | Q6 ≥ 80 % bei Normal, keine Dubletten, Kartenmenge 60 % und 140 %, jede erlaubte Form kommt vor, wo das Dokument sie trägt |
+| Zusammenfassung | ≥ 90 % | Z6 ≥ 98 % der Abschnitte | Z2 ≥ 90 %, Z8 ≥ 80 %, jeder eingebaute Widerspruch gemeldet |
+
+- **Generator** ist der echte Payload der Route über OpenRouter mit ZDR und
+  erzwungenem Tool-Call; ein Modell aus einer Subscription entwertete die
+  Messung (fremder Systemprompt, kein Tool-Call, keine Kosten, keine Latenz).
+- **Richter** ist Opus 5.5 als Subagent in Claude Code, ohne Kalibrierung.
+  Gegen einen systematischen Fehler stehen automatische Kriterien, wo eine
+  Regel prüfbar ist, das Richterrauschen und die Grenzfälle je Bericht.
+- **Selbst geschriebene Fälle** sind leichter als echte Karten; deshalb
+  Korpusfälle und Fallen.
+- **Prompts gelten für ein Modell und eine Reasoning-Stufe.** Wechselt eine
+  Route eines davon, beginnt ihre Reihe mit einer neuen Baseline.
+- **Bewusst nicht enthalten:** zweiter Richter, Richter über die API,
+  Batch-Endpunkte, automatische Promptoptimierung und Läufe in CI.
+
 ## Ablauf
 
 Ein Lauf besteht aus fünf Befehlen von `npm run ai-eval`; die Schrittfolge für
@@ -31,11 +59,12 @@ Agenten steht im Skill [`ai-eval`](../.agents/skills/ai-eval/SKILL.md).
 
 | Schritt | Befehl | Ergebnis |
 | --- | --- | --- |
-| Fälle | `cases <typ>` | schreibt die Aufteilung neuer Fälle fest: je Kategorie 40 % Training (`train`), 30 % Entscheidung (`dev`), 30 % Rückhalt (`holdout`), Fälle derselben `group` im selben Teil; `--corpus <n>` zieht Korpuskarten mit festem Startwert, gruppiert nach Notiz |
+| Fälle | `cases <typ>` | schreibt die Aufteilung neuer Fälle fest: je Kategorie und je Fach 35 % Training (`train`), 40 % Entscheidung (`dev`), 25 % Rückhalt (`holdout`), Fälle derselben `group` im selben Teil; `--corpus <n>` zieht Korpuskarten mit festem Startwert, höchstens drei je Stapel, gruppiert nach Notiz; druckt die Fallzahlen je Teil nach Kategorie, Fach und Schwierigkeit |
 | Erzeugen | `generate <typ> --run <name>` | je Fall zwei Antworten (`--repetitions`) auf dem Entscheidungsteil (`--split`) über Payload-Builder und Antwortprüfung der Route, `--concurrency` parallel (Vorgabe 4), bis `--budget` USD (Vorgabe 1); `--candidate <name>` ersetzt den Payload; ein zweiter Aufruf setzt fort |
 | Blöcke | `table <typ> --run <name>` | Richterblöcke ohne Dubletten und ohne Herkunft, gemischt, mit Kontrolleinträgen und Doppeln |
 | Richten | je Block ein Subagent [`eval-judge`](../.claude/agents/eval-judge.md) | Urteil und Sicherheit je Eintrag und Kriterium |
-| Auswerten | `score <typ> --run <name> --judge <modell>` | Bericht und Grenzfälle; am Entscheidungsteil die Entscheidung; mit `--record` der Ledger-Eintrag und die Ergebnisdatei |
+| Auswerten | `score <typ> --run <name> --judge <modell>` | Bericht mit richtigen Antworten „x von n“ und Grenzfälle; am Entscheidungsteil die Entscheidung; `--target` nennt das Fehlerbild, `--confirm` macht den Lauf zur Sammelprüfung; mit `--record` der Ledger-Eintrag und die Ergebnisdatei |
+| Nachmessen | `more <typ> --run <name>` | nach `score`, nur bei einem Richtereintrag je Antwort und nicht bei Sammelprüfungen: je zwei weitere Antworten für Kandidat und Bestand auf den Fällen, die kippen (Wiederholungen uneins oder anders als der Bestand); danach erneut `table`, Richter und `score` |
 
 - Jede Anfrage endet als angenommene Antwort, als Ablehnung des Falls durch das
   Modell (bei Varianten „nicht umformulierbar“), als von der Route verworfene
@@ -55,16 +84,16 @@ Agenten steht im Skill [`ai-eval`](../.agents/skills/ai-eval/SKILL.md).
   Zusammenfassung, einen Eintrag gegen Kernaussagen). Kriterien sind dann je
   Antwort Anteile bestandener Einträge, der Hauptwert der Anteil der Einträge
   mit allen Hauptkriterien; über den Lauf wird je Fall gemittelt. Bootstrap
-  und Vergleich gehen je Fall, bei Quelle und Zusammenfassung also je Dokument
-  mal Profil; dort ist das Intervall zu eng, weil die Profile eines Dokuments
-  nicht unabhängig sind. Messgrößen wie die Kartenzahl mittelt der Bericht je
+  und Vergleich ziehen Gruppen (Fälle derselben `group`, sonst einzelne Fälle),
+  bei Quelle und Zusammenfassung also ganze Dokumente beziehungsweise
+  Materialsätze mit allen Profilen. Messgrößen wie die Kartenzahl mittelt der Bericht je
   Kategorie.
 - Ein Kandidat ist ein Modul `<typ>/candidates/<name>.ts` im Datenordner,
   dessen Standardexport den gebauten Payload ändert (Prompt, Werkzeugschema,
   Ausgabegrenze, Reasoning, Modell); die Antwortprüfung bleibt die der Route.
   Jeder Lauf hält den Fingerabdruck seiner Payloads fest; ein geänderter
   Payload setzt ihn nicht fort.
-- Ein Block hat höchstens 25 Einträge und etwa 12.000 Zeichen, je Block urteilt
+- Ein Block hat höchstens 25 Einträge und etwa 48.000 Zeichen, je Block urteilt
   ein frischer Richter. Ab zwei Blöcken steht ein Zehntel der Einträge
   (mindestens zehn) ein zweites Mal in einem anderen Block, zusätzlich zu
   dessen Einträgen; der Anteil gekippter Urteile ist das Rauschen des Richters.
@@ -78,18 +107,47 @@ Agenten steht im Skill [`ai-eval`](../.agents/skills/ai-eval/SKILL.md).
   ändert den Fingerabdruck des Richters, und die Reihe beginnt mit einer neuen
   Baseline.
 - `score` entscheidet eine Runde selbst: übernommen, wenn der gepaarte Abstand
-  zum Bestand über dem Rauschen liegt (mit `--simplify` für Kürzungen: nicht
-  messbar schlechter), kein kritisches Kriterium schlechter wird und Kosten je
-  Antwort und Latenz p90 höchstens das 1,2-Fache betragen. Fallen (`trap`)
-  zählt der Bericht getrennt.
+  zum Bestand in mindestens 90 % der Bootstrap-Stichproben positiv ist (mit
+  `--simplify` für Kürzungen: in weniger als 90 % negativ) und kein kritisches
+  Kriterium, ebenso gepaart, in mindestens 90 % der Stichproben schlechter ist.
+  Ein einzelner Fehler in einem kritischen Kriterium kippt die Entscheidung so
+  nicht; ob die absolute Schwelle hält, zeigt der Rückhalt. Kosten je Antwort
+  und Latenz p90 entscheiden nicht mit; der Bericht zeigt sie neben den
+  Richtwerten unten. Fallen (`trap`) zählt der Bericht getrennt.
+- Scheitert ein Kandidat mit `--target` (Kriterien oder Kategorien seines
+  Fehlerbilds) nur an der Schwelle für den Hauptwert, ist er vorläufig übernommen, wenn er dort
+  mindestens zwei Fälle mehr gewinnt als verliert und am Rest höchstens einen
+  Fall mehr verliert als gewinnt. Ein vorläufiger Schritt wird Bestand; solange
+  einer offen ist, ist jede Übernahme vorläufig. Nach höchstens drei misst
+  eine Sammelprüfung (`--confirm`, Code ohne Kandidat, mindestens drei
+  Wiederholungen) gegen den letzten bestätigten Stand; besteht sie, ist der
+  Stapel bestätigt, sonst gilt wieder der letzte bestätigte Stand.
+- Ein Urteil mit Sicherheit 1 zählt weder als bestanden noch als
+  durchgefallen; es steht nur unter den Grenzfällen. Hängt der Hauptwert einer
+  Antwort allein an einem solchen Urteil, zählt die Antwort für ihn nicht.
+- `--target` muss Kriterien oder Kategorien des Laufs nennen und einen Teil
+  der Fälle treffen, nicht alle.
 - Ins Ledger kommen Läufe auf dem Entscheidungsteil und Messungen am Rückhalt.
   Eine Baseline, eine Übernahme und eine Messung am Rückhalt trägt `--record`
   nur ein, wenn der Code der Route denselben Payload baut wie der Lauf; ein
-  übernommener Kandidat muss also zuerst in die Route. Ein Kontrolleintrag, den
+  übernommener Kandidat muss also zuerst in die Route. Eine Übernahme, auch
+  eine vorläufige, braucht `--reason` mit zwei Sätzen aus den geänderten
+  Trainingsantworten. Ein Kontrolleintrag, den
   der Richter bei einem kritischen Kriterium fälschlich bestehen lässt,
   verhindert den Eintrag, und seine Urteile kommen nicht in den Cache.
 - `generate --dry` erzeugt nachgebildete Antworten ohne Schlüssel und Kosten;
   ein Trockenlauf kommt nie ins Ledger.
+
+Richtwerte für Kosten und Latenz sind eine Größenordnung, keine Grenze. Ein
+Kandidat darüber braucht eine bewusste Entscheidung, bevor er in die Route
+kommt; ein Modellwechsel bleibt immer eine eigene Entscheidung.
+
+| Anfragetyp | Einheit | Bestand (2026-11-25) | Richtwert Kosten | Richtwert Latenz p90 |
+| --- | --- | --- | --- | --- |
+| Varianten | eine Variante | 0,08–0,15 mUSD, 3–4 s | ≤ 0,5 mUSD | ≤ 6 s |
+| KI hilft | eine Antwort | 0,12 mUSD, 6 s | ≤ 0,5 mUSD | ≤ 8 s |
+| Karten aus einer Quelle | ein Dokument | 2,1 mUSD, 74 s | ≤ 10 mUSD | ≤ 3 min |
+| Zusammenfassung | eine Zusammenfassung | 0,9 mUSD, 31 s | ≤ 3 mUSD | ≤ 60 s |
 
 Eine Kalibrierung ist nicht vorgesehen, aber möglich: `calibration-table
 <typ>`, dann die Richter, dann `calibration-score <typ> --judge <modell>`.
@@ -102,7 +160,7 @@ Handurteile mit `control: true` laufen als Kontrolleinträge in jedem Lauf mit.
 | `scripts/aiEval/definitions.ts` | je Anfragetyp: Route, Kriterien, Bewertungsbogen, Hauptwert | ja |
 | `scripts/aiEval/ledger.ts` | Register der Anfragetypen mit Ziel und kritischen Kriterien, Ledger-Prüfung | ja |
 | `scripts/aiEval/` sonst | `cases.ts`, `generate.ts`, `judge.ts`, `score.ts`, `cli.ts` für die Schritte, `page.ts` für diese Seite | ja |
-| `fixtures/ai-eval/<typ>.cases.json` | von Hand geschriebene Prüfkarten mit Kategorie, Aufteilung und optional `group`, `trap` (Falle für ein kritisches Kriterium) und `refuse` | ja |
+| `fixtures/ai-eval/<typ>.cases.json` | von Hand geschriebene Prüfkarten mit Kategorie, Fach (`subject`; Korpusfälle `fundus`), Aufteilung und optional `difficulty`, `reference` (gesicherte Fachaussagen, die der Richter als `referenz` sieht), `group`, `trap` (Falle für ein kritisches Kriterium) und `refuse` | ja |
 | `fixtures/ai-source/<dokument>.keypoints.json`, `fixtures/ai-eval/summary-material/<satz>.json` | Kernaussagen der Prüfdokumente; Materialsätze der Zusammenfassung mit Kernaussagen und eingebauten Widersprüchen | ja |
 | `fixtures/ai-eval/<typ>.labels.json` | Handurteile der Kalibrierung und Kontrolleinträge | ja |
 | `fixtures/ai-eval/ledger.json` | ein Eintrag je Lauf und je Kalibrierung, nur Kennzahlen | ja |
@@ -125,16 +183,18 @@ Reihenfolge der Läufe. `npm run check:docs` prüft Form und Reihenfolge.
 | `promptVersion`, `candidate`, `fingerprint` | Promptversion (bei Baseline, Übernahme und Rückhalt die des Codes), Kandidatendatei oder `null`, Fingerabdruck des Payloads |
 | `model`, `reasoning` | angefragtes Modell, Reasoning-Stufe |
 | `change` | die eine Änderung dieser Runde in einem Satz |
-| `decision` | `baseline` beginnt eine Reihe und setzt den Bestand neu, `accepted` wird Bestand, `rejected` nicht, `holdout` ist eine Messung am Rückhalt |
-| `cases`, `repetitions` | Fälle und Wiederholungen je Fall |
-| `main`, `low`, `high` | Hauptwert als Anteil mit 95 %-Intervall, per Bootstrap über Fälle |
+| `decision` | `baseline` beginnt eine Reihe und setzt den Bestand neu, `accepted` wird bestätigter Bestand, `provisional` vorläufiger, `rejected` nicht, `holdout` ist eine Messung am Rückhalt |
+| `cases`, `repetitions` | Fälle und Wiederholungen, die jeder Fall mindestens hat; nachgemessene Fälle haben mehr |
+| `main`, `low`, `high` | Hauptwert als Anteil mit 95 %-Intervall, per Bootstrap über Gruppen |
 | `criteria` | je Kriterium der Anteil, über die Antworten gemittelt; die kritischen Kriterien des Anfragetyps sind Pflicht |
 | `outcomes` | Antworten je Klasse: angenommen, abgelehnt, verworfen, Zeitüberschreitung |
 | `traps` | Antworten auf Fallen und davon Fehler bei kritischen Kriterien |
 | `costUsd`, `costTotalUsd`, `latencyP90Ms` | Kosten je Antwort und im Lauf, Latenz im 90. Perzentil |
 | `metrics` | optional: Messgrößen je Antwort, über den Lauf gemittelt |
 | `judge` | Richtermodell, Fingerabdruck von Auftrag und Bogen, neu bewertete Einträge und Einträge aus dem Cache (ohne Kontrolleinträge), Rauschen je Kriterium |
-| `comparison` | nur bei Runden, gepaart auf den gemeinsamen Fällen mit dem Bestand: `noise` als halbe Breite des 95 %-Intervalls des Abstands, `gained` und `lost` als gewonnene und verlorene Fälle |
+| `comparison` | nur bei Runden, gepaart auf den gemeinsamen Fällen mit dem Bestand: `noise` als halbe Breite des 95 %-Intervalls des Abstands, optional `better` als Anteil der Bootstrap-Stichproben mit positivem Abstand, `gained` und `lost` als gewonnene und verlorene Fälle, optional `target` als Fehlerbild |
+| `reason` | optional: Begründung einer Übernahme aus den Trainingsantworten |
+| `confirmation` | optional: `true` bei einer Sammelprüfung; verworfen setzt sie den Bestand auf den letzten bestätigten zurück |
 
 | Feld einer Kalibrierung | Bedeutung |
 | --- | --- |

@@ -1,0 +1,250 @@
+[
+  {
+    "caseId": "ohmsches-gesetz-standard",
+    "repetition": 0,
+    "category": "standard",
+    "trap": false,
+    "outcome": "answer",
+    "criteria": {
+      "Q1": 1,
+      "Q2": 1,
+      "Q3": 1,
+      "Q4": 1,
+      "Q6": 1
+    },
+    "main": 1,
+    "metrics": {
+      "karten": 12,
+      "karten_je_1000_zeichen": 10.407632263660018,
+      "anteil_frage_antwort": 1,
+      "anteil_lueckentext": 0,
+      "anteil_single_choice": 0,
+      "anteil_multiple_choice": 0,
+      "belegte_stellen": 1,
+      "letzte_belegte_stelle": 1,
+      "obergrenze_erreicht": 0,
+      "abschnitte_gescheitert": 0,
+      "verworfen": 0
+    },
+    "costUsd": 0.00040263,
+    "latencyMs": 8206,
+    "totalTokens": 2463,
+    "model": "openai/gpt-6-luna"
+  },
+  {
+    "caseId": "ohmsches-gesetz-standard",
+    "repetition": 1,
+    "category": "standard",
+    "trap": false,
+    "outcome": "answer",
+    "criteria": {
+      "Q1": 1,
+      "Q2": 1,
+      "Q3": 1,
+      "Q4": 0.9,
+      "Q6": 0.7778
+    },
+    "main": 0.9,
+    "metrics": {
+      "karten": 11,
+      "karten_je_1000_zeichen": 9.540329575021683,
+      "anteil_frage_antwort": 1,
+      "anteil_lueckentext": 0,
+      "anteil_single_choice": 0,
+      "anteil_multiple_choice": 0,
+      "belegte_stellen": 1,
+      "letzte_belegte_stelle": 1,
+      "obergrenze_erreicht": 0,
+      "abschnitte_gescheitert": 0,
+      "verworfen": 0
+    },
+    "costUsd": 0.00035813,
+    "latencyMs": 7188,
+    "totalTokens": 2374,
+    "model": "openai/gpt-6-luna"
+  },
+  {
+    "caseId": "ohmsches-gesetz-alle-formen",
+    "repetition": 0,
+    "category": "alle-formen",
+    "trap": false,
+    "outcome": "answer",
+    "criteria": {
+      "Q1": 1,
+      "Q2": 1,
+      "Q3": 1,
+      "Q4": 0.9,
+      "Q6": 0.8889
+    },
+    "main": 0.9,
+    "metrics": {
+      "karten": 11,
+      "karten_je_1000_zeichen": 9.540329575021683,
+      "anteil_frage_antwort": 0.7272727272727273,
+      "anteil_lueckentext": 0.2727272727272727,
+      "anteil_single_choice": 0,
+      "anteil_multiple_choice": 0,
+      "belegte_stellen": 1,
+      "letzte_belegte_stelle": 1,
+      "obergrenze_erreicht": 0,
+      "abschnitte_gescheitert": 0,
+      "verworfen": 1
+    },
+    "costUsd": 0.000435475,
+    "latencyMs": 5920,
+    "totalTokens": 2467,
+    "model": "openai/gpt-6-luna"
+  },
+  {
+    "caseId": "ohmsches-gesetz-alle-formen",
+    "repetition": 1,
+    "category": "alle-formen",
+    "trap": false,
+    "outcome": "answer",
+    "criteria": {
+      "Q1": 1,
+      "Q2": 1,
+      "Q3": 1,
+      "Q4": 1,
+      "Q6": 1
+    },
+    "main": 1,
+    "metrics": {
+      "karten": 16,
+      "karten_je_1000_zeichen": 13.876843018213355,
+      "anteil_frage_antwort": 0.5,
+      "anteil_lueckentext": 0.5,
+      "anteil_single_choice": 0,
+      "anteil_multiple_choice": 0,
+      "belegte_stellen": 1,
+      "letzte_belegte_stelle": 1,
+      "obergrenze_erreicht": 0,
+      "abschnitte_gescheitert": 0,
+      "verworfen": 0
+    },
+    "costUsd": 0.00048489,
+    "latencyMs": 10176,
+    "totalTokens": 2653,
+    "model": "openai/gpt-6-luna"
+  },
+  {
+    "caseId": "ohmsches-gesetz-weniger",
+    "repetition": 0,
+    "category": "weniger",
+    "trap": false,
+    "outcome": "answer",
+    "criteria": {
+      "Q1": 1,
+      "Q2": 1,
+      "Q6": 1
+    },
+    "main": 1,
+    "metrics": {
+      "karten": 11,
+      "karten_je_1000_zeichen": 9.540329575021683,
+      "anteil_frage_antwort": 1,
+      "anteil_lueckentext": 0,
+      "anteil_single_choice": 0,
+      "anteil_multiple_choice": 0,
+      "belegte_stellen": 1,
+      "letzte_belegte_stelle": 1,
+      "obergrenze_erreicht": 0,
+      "abschnitte_gescheitert": 0,
+      "verworfen": 0
+    },
+    "costUsd": 0.00035561,
+    "latencyMs": 6519,
+    "totalTokens": 2367,
+    "model": "openai/gpt-6-luna"
+  },
+  {
+    "caseId": "ohmsches-gesetz-weniger",
+    "repetition": 1,
+    "category": "weniger",
+    "trap": false,
+    "outcome": "answer",
+    "criteria": {
+      "Q1": 1,
+      "Q2": 1,
+      "Q6": 0.6667
+    },
+    "main": 1,
+    "metrics": {
+      "karten": 8,
+      "karten_je_1000_zeichen": 6.938421509106678,
+      "anteil_frage_antwort": 1,
+      "anteil_lueckentext": 0,
+      "anteil_single_choice": 0,
+      "anteil_multiple_choice": 0,
+      "belegte_stellen": 1,
+      "letzte_belegte_stelle": 1,
+      "obergrenze_erreicht": 0,
+      "abschnitte_gescheitert": 0,
+      "verworfen": 0
+    },
+    "costUsd": 0.00029961,
+    "latencyMs": 5959,
+    "totalTokens": 2255,
+    "model": "openai/gpt-6-luna"
+  },
+  {
+    "caseId": "ohmsches-gesetz-mehr",
+    "repetition": 0,
+    "category": "mehr",
+    "trap": false,
+    "outcome": "answer",
+    "criteria": {
+      "Q1": 1,
+      "Q2": 1,
+      "Q6": 1
+    },
+    "main": 1,
+    "metrics": {
+      "karten": 11,
+      "karten_je_1000_zeichen": 9.540329575021683,
+      "anteil_frage_antwort": 1,
+      "anteil_lueckentext": 0,
+      "anteil_single_choice": 0,
+      "anteil_multiple_choice": 0,
+      "belegte_stellen": 1,
+      "letzte_belegte_stelle": 1,
+      "obergrenze_erreicht": 0,
+      "abschnitte_gescheitert": 0,
+      "verworfen": 0
+    },
+    "costUsd": 0.0003527,
+    "latencyMs": 6792,
+    "totalTokens": 2370,
+    "model": "openai/gpt-6-luna"
+  },
+  {
+    "caseId": "ohmsches-gesetz-mehr",
+    "repetition": 1,
+    "category": "mehr",
+    "trap": false,
+    "outcome": "answer",
+    "criteria": {
+      "Q1": 1,
+      "Q2": 0.8,
+      "Q6": 1
+    },
+    "main": 0.8,
+    "metrics": {
+      "karten": 12,
+      "karten_je_1000_zeichen": 10.407632263660018,
+      "anteil_frage_antwort": 1,
+      "anteil_lueckentext": 0,
+      "anteil_single_choice": 0,
+      "anteil_multiple_choice": 0,
+      "belegte_stellen": 1,
+      "letzte_belegte_stelle": 1,
+      "obergrenze_erreicht": 0,
+      "abschnitte_gescheitert": 0,
+      "verworfen": 0
+    },
+    "costUsd": 0.000441285,
+    "latencyMs": 7438,
+    "totalTokens": 2460,
+    "model": "openai/gpt-6-luna"
+  }
+]

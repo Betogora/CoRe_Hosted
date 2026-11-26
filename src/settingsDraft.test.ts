@@ -4,7 +4,7 @@ import { createBasicNote, createCoreDeck, createDefaultDeckSettings } from "./co
 import { createCoreRepository } from "./coreRepository.ts";
 import { getGlobalSchedulerPreferences } from "./deckSettings.ts";
 import type { Deck } from "./coreTypes.ts";
-import { applyDeckSettingsDraftChanges, createDeckSettingsDraft, createGeneralSettingsDraft, createGlobalCardSettingsDraft, normalizeDeckSettingsDraft, settingsDraftsEqual } from "./settingsDraft.ts";
+import { applyDeckSettingsDraftChanges, createDeckSettingsDraft, createGeneralSettingsDraft, createGlobalCardSettingsDraft, normalizeDeckSettingsDraft, rebaseSettingsDraft, settingsDraftsEqual } from "./settingsDraft.ts";
 
 function biologyDeck(): Deck {
   const deck = createCoreDeck({ name: "Biologie" });
@@ -93,4 +93,10 @@ test("deck-tree save applies only changed settings and keeps descendant identity
   assert.equal(propagated.learning.newCardsPerDay, 42);
   assert.equal(propagated.learning.maximumReviewsPerDay, 80);
   assert.equal(propagated.learning.schedulerProfile.desiredRetention, 0.94);
+});
+
+test("ein offener Entwurf übernimmt neu gespeicherte Werte nur für unberührte Felder", () => {
+  const baseline = { dayStartHour: 0, leechThreshold: 8 };
+  const draft = { dayStartHour: 0, leechThreshold: 5 };
+  assert.deepEqual(rebaseSettingsDraft(draft, baseline, { dayStartHour: 4, leechThreshold: 8 }), { dayStartHour: 4, leechThreshold: 5 });
 });

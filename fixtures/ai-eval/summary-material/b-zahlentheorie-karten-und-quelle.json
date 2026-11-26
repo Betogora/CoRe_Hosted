@@ -1,0 +1,96 @@
+{
+  "title": "Elementare Zahlentheorie",
+  "material": "cards-and-source",
+  "decks": [
+    {
+      "id": "d1",
+      "name": "Zahlentheorie"
+    }
+  ],
+  "units": [
+    {
+      "id": "m1",
+      "kind": "card",
+      "deck": "d1",
+      "text": "F: Was ist eine Primzahl?\nA: Eine natürliche Zahl größer als 1 mit genau zwei positiven Teilern, 1 und sich selbst; die 1 ist deshalb keine Primzahl."
+    },
+    {
+      "id": "m2",
+      "kind": "card",
+      "deck": "d1",
+      "text": "F: Wie viele Primzahlen gibt es unter 100?\nA: 26."
+    },
+    {
+      "id": "m3",
+      "kind": "card",
+      "deck": "d1",
+      "text": "F: Wer bewies, dass es unendlich viele Primzahlen gibt?\nA: Euklid."
+    },
+    {
+      "id": "m4",
+      "kind": "card",
+      "deck": "d1",
+      "text": "F: Was besagt der Fundamentalsatz der Arithmetik?\nA: Jede natürliche Zahl größer als 1 lässt sich bis auf die Reihenfolge eindeutig als Produkt von Primzahlen schreiben."
+    },
+    {
+      "id": "m5",
+      "kind": "card",
+      "deck": "d1",
+      "text": "F: Wie arbeitet der euklidische Algorithmus?\nA: Durch wiederholte Division mit Rest; der letzte von 0 verschiedene Rest ist der ggT."
+    },
+    {
+      "id": "m6",
+      "kind": "card",
+      "deck": "d1",
+      "text": "F: Wie groß ist ggT(84, 36)?\nA: 6."
+    },
+    {
+      "id": "m7",
+      "kind": "card",
+      "deck": "d1",
+      "text": "F: Wie hängen ggT und kgV zusammen?\nA: ggT(a, b) · kgV(a, b) = a · b."
+    },
+    {
+      "id": "m8",
+      "kind": "card",
+      "deck": "d1",
+      "text": "F: Wann heißen zwei Zahlen teilerfremd?\nA: Wenn ihr größter gemeinsamer Teiler 1 ist."
+    },
+    {
+      "id": "m9",
+      "kind": "card",
+      "deck": "d1",
+      "text": "F: Was bedeutet a ≡ b (mod m)?\nA: m teilt die Differenz a − b; a und b lassen beim Teilen durch m denselben Rest."
+    },
+    {
+      "id": "m10",
+      "kind": "card",
+      "deck": "d1",
+      "text": "F: Was besagt der kleine Satz von Fermat?\nA: Ist p eine Primzahl und a nicht durch p teilbar, dann gilt a^(p−1) ≡ 1 (mod p)."
+    },
+    {
+      "id": "m11",
+      "kind": "card",
+      "deck": "d1",
+      "text": "F: Wann ist eine Zahl durch 3 teilbar?\nA: Genau dann, wenn ihre Quersumme durch 3 teilbar ist."
+    },
+    {
+      "id": "m12",
+      "kind": "source",
+      "text": "Skript: Elementare Zahlentheorie\n\nTeilbarkeit. Eine ganze Zahl a teilt eine ganze Zahl b, geschrieben a | b, wenn es eine ganze Zahl k mit b = k · a gibt. Jede Zahl wird von 1 und von sich selbst geteilt.\n\nPrimzahlen. Eine Primzahl ist eine natürliche Zahl größer als 1, die genau zwei positive Teiler besitzt: 1 und sich selbst. Die 1 ist daher keine Primzahl, und 2 ist die einzige gerade Primzahl. Alle Primzahlen bis zu einer Grenze n findet man mit dem Sieb des Eratosthenes: Man schreibt die Zahlen von 2 bis n auf, markiert die kleinste nicht gestrichene Zahl als Primzahl und streicht alle ihre Vielfachen; das wiederholt man, bis die nächste unmarkierte Zahl größer als die Wurzel aus n ist. Für n = 100 genügt es daher, die Vielfachen von 2, 3, 5 und 7 zu streichen. Unter 100 gibt es 25 Primzahlen. Schon Euklid bewies, dass es unendlich viele Primzahlen gibt: Gäbe es nur endlich viele, so wäre ihr Produkt plus 1 durch keine von ihnen teilbar, was zu einem Widerspruch führt.\n\nPrimfaktorzerlegung. Nach dem Fundamentalsatz der Arithmetik lässt sich jede natürliche Zahl größer als 1 bis auf die Reihenfolge eindeutig als Produkt von Primzahlen schreiben, zum Beispiel 360 = 2³ · 3² · 5.\n\nGrößter gemeinsamer Teiler. Der ggT zweier Zahlen ist die größte Zahl, die beide teilt. Der euklidische Algorithmus berechnet ihn durch wiederholte Division mit Rest: Man teilt die größere Zahl durch die kleinere, ersetzt dann die größere durch die kleinere und die kleinere durch den Rest, bis der Rest 0 ist. Der letzte von 0 verschiedene Rest ist der ggT. Beispiel: 84 = 2 · 36 + 12 und 36 = 3 · 12 + 0, also ist ggT(84, 36) = 12. Für das kleinste gemeinsame Vielfache gilt ggT(a, b) · kgV(a, b) = a · b; daher ist kgV(84, 36) = 84 · 36 : 12 = 252. Zwei Zahlen heißen teilerfremd, wenn ihr ggT gleich 1 ist.\n\nKongruenzen. Zwei ganze Zahlen a und b heißen kongruent modulo m, geschrieben a ≡ b (mod m), wenn m die Differenz a − b teilt, wenn sie also beim Teilen durch m denselben Rest lassen. So gilt 17 ≡ 2 (mod 5). Mit Kongruenzen kann man ähnlich rechnen wie mit Gleichungen: Man darf auf beiden Seiten dieselbe Zahl addieren und mit derselben Zahl multiplizieren.\n\nKleiner Satz von Fermat. Ist p eine Primzahl und a eine ganze Zahl, die nicht durch p teilbar ist, dann gilt a^(p−1) ≡ 1 (mod p). Beispiel: 2⁶ = 64 = 9 · 7 + 1, also 2⁶ ≡ 1 (mod 7).\n\nTeilbarkeitsregeln. Eine Zahl ist genau dann durch 3 teilbar, wenn ihre Quersumme durch 3 teilbar ist; dasselbe gilt für 9. Durch 4 ist eine Zahl genau dann teilbar, wenn die aus ihren letzten beiden Ziffern gebildete Zahl durch 4 teilbar ist."
+    }
+  ],
+  "keypoints": [
+    "Eine Primzahl ist eine natürliche Zahl größer als 1 mit genau zwei positiven Teilern, die 1 ist keine Primzahl.",
+    "Es gibt unendlich viele Primzahlen, wie schon Euklid bewies.",
+    "Jede natürliche Zahl größer als 1 lässt sich bis auf die Reihenfolge eindeutig in Primfaktoren zerlegen.",
+    "Beim euklidischen Algorithmus ist der letzte von 0 verschiedene Rest der ggT.",
+    "Es gilt ggT(a, b) · kgV(a, b) = a · b.",
+    "a ≡ b (mod m) bedeutet, dass m die Differenz a − b teilt.",
+    "Nach dem kleinen Satz von Fermat gilt a^(p−1) ≡ 1 (mod p), wenn p eine Primzahl ist und a nicht durch p teilbar ist."
+  ],
+  "contradictions": [
+    "Eine Karte nennt 26 Primzahlen unter 100, die Quelle 25.",
+    "Eine Karte gibt ggT(84, 36) = 6 an, die Quelle berechnet ggT(84, 36) = 12."
+  ]
+}

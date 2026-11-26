@@ -1,64 +1,532 @@
 {
   "cases": [
     {
-      "id": "zellatmung-quelle-standard",
+      "id": "arbeitsrecht-karten-und-quelle-standard",
       "category": "standard",
-      "group": "zellatmung-quelle",
+      "subject": "recht-wirtschaft",
+      "group": "arbeitsrecht-karten-und-quelle",
       "request": {
-        "set": "zellatmung-quelle",
+        "set": "arbeitsrecht-karten-und-quelle",
         "profile": "standard"
       },
       "split": "train"
     },
     {
-      "id": "zellatmung-quelle-kurz-pruefung",
-      "category": "kurz-pruefung",
-      "group": "zellatmung-quelle",
+      "id": "arbeitsrecht-karten-und-quelle-kurz-fliesstext-verstehen-ohne-beispiele",
+      "category": "kurz-fliesstext-verstehen-ohne-beispiele",
+      "subject": "recht-wirtschaft",
+      "group": "arbeitsrecht-karten-und-quelle",
       "request": {
-        "set": "zellatmung-quelle",
-        "profile": "kurz-pruefung"
+        "set": "arbeitsrecht-karten-und-quelle",
+        "profile": "kurz-fliesstext-verstehen-ohne-beispiele"
       },
       "split": "train"
+    },
+    {
+      "id": "b-geometrie-karten-kurz-stichpunkte-wiederholen",
+      "category": "kurz-stichpunkte-wiederholen",
+      "subject": "mathematik",
+      "group": "b-geometrie-karten",
+      "request": {
+        "set": "b-geometrie-karten",
+        "profile": "kurz-stichpunkte-wiederholen"
+      },
+      "split": "dev"
+    },
+    {
+      "id": "b-geometrie-karten-mittel-stichpunkte-pruefung-ohne-beispiele",
+      "category": "mittel-stichpunkte-pruefung-ohne-beispiele",
+      "subject": "mathematik",
+      "group": "b-geometrie-karten",
+      "request": {
+        "set": "b-geometrie-karten",
+        "profile": "mittel-stichpunkte-pruefung-ohne-beispiele"
+      },
+      "split": "dev"
+    },
+    {
+      "id": "b-it-sicherheit-karten-und-quelle-lang-gegliedert-wiederholen-ohne-beispiele",
+      "category": "lang-gegliedert-wiederholen-ohne-beispiele",
+      "subject": "technik-it",
+      "group": "b-it-sicherheit-karten-und-quelle",
+      "request": {
+        "set": "b-it-sicherheit-karten-und-quelle",
+        "profile": "lang-gegliedert-wiederholen-ohne-beispiele"
+      },
+      "split": "dev"
+    },
+    {
+      "id": "b-it-sicherheit-karten-und-quelle-mittel-fliesstext-wiederholen-ohne-beispiele",
+      "category": "mittel-fliesstext-wiederholen-ohne-beispiele",
+      "subject": "technik-it",
+      "group": "b-it-sicherheit-karten-und-quelle",
+      "request": {
+        "set": "b-it-sicherheit-karten-und-quelle",
+        "profile": "mittel-fliesstext-wiederholen-ohne-beispiele"
+      },
+      "split": "dev"
+    },
+    {
+      "id": "b-kalter-krieg-karten-und-quelle-lang-fliesstext-pruefung",
+      "category": "lang-fliesstext-pruefung",
+      "subject": "geschichte-geografie",
+      "group": "b-kalter-krieg-karten-und-quelle",
+      "request": {
+        "set": "b-kalter-krieg-karten-und-quelle",
+        "profile": "lang-fliesstext-pruefung"
+      },
+      "split": "holdout"
+    },
+    {
+      "id": "b-kalter-krieg-karten-und-quelle-kurz-gegliedert-pruefung-ohne-beispiele",
+      "category": "kurz-gegliedert-pruefung-ohne-beispiele",
+      "subject": "geschichte-geografie",
+      "group": "b-kalter-krieg-karten-und-quelle",
+      "request": {
+        "set": "b-kalter-krieg-karten-und-quelle",
+        "profile": "kurz-gegliedert-pruefung-ohne-beispiele"
+      },
+      "split": "holdout"
+    },
+    {
+      "id": "b-literaturbegriffe-englisch-quelle-kurz-fliesstext-verstehen-ohne-beispiele",
+      "category": "kurz-fliesstext-verstehen-ohne-beispiele",
+      "subject": "sprachen",
+      "group": "b-literaturbegriffe-englisch-quelle",
+      "request": {
+        "set": "b-literaturbegriffe-englisch-quelle",
+        "profile": "kurz-fliesstext-verstehen-ohne-beispiele"
+      },
+      "split": "dev"
+    },
+    {
+      "id": "b-literaturbegriffe-englisch-quelle-lang-stichpunkte-verstehen",
+      "category": "lang-stichpunkte-verstehen",
+      "subject": "sprachen",
+      "group": "b-literaturbegriffe-englisch-quelle",
+      "request": {
+        "set": "b-literaturbegriffe-englisch-quelle",
+        "profile": "lang-stichpunkte-verstehen"
+      },
+      "split": "dev"
+    },
+    {
+      "id": "b-mikrobiologie-karten-mittel-stichpunkte-pruefung-ohne-beispiele",
+      "category": "mittel-stichpunkte-pruefung-ohne-beispiele",
+      "subject": "medizin",
+      "group": "b-mikrobiologie-karten",
+      "request": {
+        "set": "b-mikrobiologie-karten",
+        "profile": "mittel-stichpunkte-pruefung-ohne-beispiele"
+      },
+      "split": "dev"
+    },
+    {
+      "id": "b-mikrobiologie-karten-standard",
+      "category": "standard",
+      "subject": "medizin",
+      "group": "b-mikrobiologie-karten",
+      "request": {
+        "set": "b-mikrobiologie-karten",
+        "profile": "standard"
+      },
+      "split": "dev"
+    },
+    {
+      "id": "b-oekosysteme-quelle-mittel-fliesstext-wiederholen-ohne-beispiele",
+      "category": "mittel-fliesstext-wiederholen-ohne-beispiele",
+      "subject": "naturwissenschaft",
+      "group": "b-oekosysteme-quelle",
+      "request": {
+        "set": "b-oekosysteme-quelle",
+        "profile": "mittel-fliesstext-wiederholen-ohne-beispiele"
+      },
+      "split": "dev"
+    },
+    {
+      "id": "b-oekosysteme-quelle-kurz-stichpunkte-wiederholen",
+      "category": "kurz-stichpunkte-wiederholen",
+      "subject": "naturwissenschaft",
+      "group": "b-oekosysteme-quelle",
+      "request": {
+        "set": "b-oekosysteme-quelle",
+        "profile": "kurz-stichpunkte-wiederholen"
+      },
+      "split": "dev"
+    },
+    {
+      "id": "b-organische-chemie-karten-kurz-gegliedert-pruefung-ohne-beispiele",
+      "category": "kurz-gegliedert-pruefung-ohne-beispiele",
+      "subject": "naturwissenschaft",
+      "group": "b-organische-chemie-karten",
+      "request": {
+        "set": "b-organische-chemie-karten",
+        "profile": "kurz-gegliedert-pruefung-ohne-beispiele"
+      },
+      "split": "holdout"
+    },
+    {
+      "id": "b-organische-chemie-karten-lang-gegliedert-wiederholen-ohne-beispiele",
+      "category": "lang-gegliedert-wiederholen-ohne-beispiele",
+      "subject": "naturwissenschaft",
+      "group": "b-organische-chemie-karten",
+      "request": {
+        "set": "b-organische-chemie-karten",
+        "profile": "lang-gegliedert-wiederholen-ohne-beispiele"
+      },
+      "split": "holdout"
+    },
+    {
+      "id": "b-schlaganfall-quelle-lang-stichpunkte-verstehen",
+      "category": "lang-stichpunkte-verstehen",
+      "subject": "medizin",
+      "group": "b-schlaganfall-quelle",
+      "request": {
+        "set": "b-schlaganfall-quelle",
+        "profile": "lang-stichpunkte-verstehen"
+      },
+      "split": "dev"
+    },
+    {
+      "id": "b-schlaganfall-quelle-lang-fliesstext-pruefung",
+      "category": "lang-fliesstext-pruefung",
+      "subject": "medizin",
+      "group": "b-schlaganfall-quelle",
+      "request": {
+        "set": "b-schlaganfall-quelle",
+        "profile": "lang-fliesstext-pruefung"
+      },
+      "split": "dev"
+    },
+    {
+      "id": "b-volkswirtschaft-karten-standard",
+      "category": "standard",
+      "subject": "recht-wirtschaft",
+      "group": "b-volkswirtschaft-karten",
+      "request": {
+        "set": "b-volkswirtschaft-karten",
+        "profile": "standard"
+      },
+      "split": "dev"
+    },
+    {
+      "id": "b-volkswirtschaft-karten-kurz-fliesstext-verstehen-ohne-beispiele",
+      "category": "kurz-fliesstext-verstehen-ohne-beispiele",
+      "subject": "recht-wirtschaft",
+      "group": "b-volkswirtschaft-karten",
+      "request": {
+        "set": "b-volkswirtschaft-karten",
+        "profile": "kurz-fliesstext-verstehen-ohne-beispiele"
+      },
+      "split": "dev"
+    },
+    {
+      "id": "b-zahlentheorie-karten-und-quelle-kurz-stichpunkte-wiederholen",
+      "category": "kurz-stichpunkte-wiederholen",
+      "subject": "mathematik",
+      "group": "b-zahlentheorie-karten-und-quelle",
+      "request": {
+        "set": "b-zahlentheorie-karten-und-quelle",
+        "profile": "kurz-stichpunkte-wiederholen"
+      },
+      "split": "holdout"
+    },
+    {
+      "id": "b-zahlentheorie-karten-und-quelle-mittel-stichpunkte-pruefung-ohne-beispiele",
+      "category": "mittel-stichpunkte-pruefung-ohne-beispiele",
+      "subject": "mathematik",
+      "group": "b-zahlentheorie-karten-und-quelle",
+      "request": {
+        "set": "b-zahlentheorie-karten-und-quelle",
+        "profile": "mittel-stichpunkte-pruefung-ohne-beispiele"
+      },
+      "split": "holdout"
+    },
+    {
+      "id": "datenbanken-karten-lang-gegliedert-wiederholen-ohne-beispiele",
+      "category": "lang-gegliedert-wiederholen-ohne-beispiele",
+      "subject": "technik-it",
+      "group": "datenbanken-karten",
+      "request": {
+        "set": "datenbanken-karten",
+        "profile": "lang-gegliedert-wiederholen-ohne-beispiele"
+      },
+      "split": "holdout"
+    },
+    {
+      "id": "datenbanken-karten-mittel-fliesstext-wiederholen-ohne-beispiele",
+      "category": "mittel-fliesstext-wiederholen-ohne-beispiele",
+      "subject": "technik-it",
+      "group": "datenbanken-karten",
+      "request": {
+        "set": "datenbanken-karten",
+        "profile": "mittel-fliesstext-wiederholen-ohne-beispiele"
+      },
+      "split": "holdout"
+    },
+    {
+      "id": "datenstrukturen-quelle-lang-fliesstext-pruefung",
+      "category": "lang-fliesstext-pruefung",
+      "subject": "technik-it",
+      "group": "datenstrukturen-quelle",
+      "request": {
+        "set": "datenstrukturen-quelle",
+        "profile": "lang-fliesstext-pruefung"
+      },
+      "split": "train"
+    },
+    {
+      "id": "datenstrukturen-quelle-kurz-gegliedert-pruefung-ohne-beispiele",
+      "category": "kurz-gegliedert-pruefung-ohne-beispiele",
+      "subject": "technik-it",
+      "group": "datenstrukturen-quelle",
+      "request": {
+        "set": "datenstrukturen-quelle",
+        "profile": "kurz-gegliedert-pruefung-ohne-beispiele"
+      },
+      "split": "train"
+    },
+    {
+      "id": "diabetes-karten-und-quelle-kurz-fliesstext-verstehen-ohne-beispiele",
+      "category": "kurz-fliesstext-verstehen-ohne-beispiele",
+      "subject": "medizin",
+      "group": "diabetes-karten-und-quelle",
+      "request": {
+        "set": "diabetes-karten-und-quelle",
+        "profile": "kurz-fliesstext-verstehen-ohne-beispiele"
+      },
+      "split": "holdout"
+    },
+    {
+      "id": "diabetes-karten-und-quelle-lang-stichpunkte-verstehen",
+      "category": "lang-stichpunkte-verstehen",
+      "subject": "medizin",
+      "group": "diabetes-karten-und-quelle",
+      "request": {
+        "set": "diabetes-karten-und-quelle",
+        "profile": "lang-stichpunkte-verstehen"
+      },
+      "split": "holdout"
+    },
+    {
+      "id": "gewaltenteilung-karten-mittel-stichpunkte-pruefung-ohne-beispiele",
+      "category": "mittel-stichpunkte-pruefung-ohne-beispiele",
+      "subject": "recht-wirtschaft",
+      "split": "holdout",
+      "group": "gewaltenteilung-karten",
+      "request": {
+        "set": "gewaltenteilung-karten",
+        "profile": "mittel-stichpunkte-pruefung-ohne-beispiele"
+      }
     },
     {
       "id": "gewaltenteilung-karten-standard",
       "category": "standard",
+      "subject": "recht-wirtschaft",
+      "split": "holdout",
       "group": "gewaltenteilung-karten",
       "request": {
         "set": "gewaltenteilung-karten",
         "profile": "standard"
-      },
-      "split": "holdout"
+      }
     },
     {
-      "id": "gewaltenteilung-karten-lang-einfach",
-      "category": "lang-einfach",
-      "group": "gewaltenteilung-karten",
+      "id": "herz-anatomie-quelle-mittel-fliesstext-wiederholen-ohne-beispiele",
+      "category": "mittel-fliesstext-wiederholen-ohne-beispiele",
+      "subject": "medizin",
+      "group": "herz-anatomie-quelle",
       "request": {
-        "set": "gewaltenteilung-karten",
-        "profile": "lang-einfach"
+        "set": "herz-anatomie-quelle",
+        "profile": "mittel-fliesstext-wiederholen-ohne-beispiele"
       },
-      "split": "holdout"
+      "split": "train"
     },
     {
-      "id": "netzwerk-karten-und-quelle-standard",
+      "id": "herz-anatomie-quelle-kurz-stichpunkte-wiederholen",
+      "category": "kurz-stichpunkte-wiederholen",
+      "subject": "medizin",
+      "group": "herz-anatomie-quelle",
+      "request": {
+        "set": "herz-anatomie-quelle",
+        "profile": "kurz-stichpunkte-wiederholen"
+      },
+      "split": "train"
+    },
+    {
+      "id": "netzwerk-karten-und-quelle-kurz-gegliedert-pruefung-ohne-beispiele",
+      "category": "kurz-gegliedert-pruefung-ohne-beispiele",
+      "subject": "technik-it",
+      "split": "dev",
+      "group": "netzwerk-karten-und-quelle",
+      "request": {
+        "set": "netzwerk-karten-und-quelle",
+        "profile": "kurz-gegliedert-pruefung-ohne-beispiele"
+      }
+    },
+    {
+      "id": "netzwerk-karten-und-quelle-lang-gegliedert-wiederholen-ohne-beispiele",
+      "category": "lang-gegliedert-wiederholen-ohne-beispiele",
+      "subject": "technik-it",
+      "split": "dev",
+      "group": "netzwerk-karten-und-quelle",
+      "request": {
+        "set": "netzwerk-karten-und-quelle",
+        "profile": "lang-gegliedert-wiederholen-ohne-beispiele"
+      }
+    },
+    {
+      "id": "pharmakologie-karten-lang-stichpunkte-verstehen",
+      "category": "lang-stichpunkte-verstehen",
+      "subject": "medizin",
+      "group": "pharmakologie-karten",
+      "request": {
+        "set": "pharmakologie-karten",
+        "profile": "lang-stichpunkte-verstehen"
+      },
+      "split": "train"
+    },
+    {
+      "id": "pharmakologie-karten-lang-fliesstext-pruefung",
+      "category": "lang-fliesstext-pruefung",
+      "subject": "medizin",
+      "group": "pharmakologie-karten",
+      "request": {
+        "set": "pharmakologie-karten",
+        "profile": "lang-fliesstext-pruefung"
+      },
+      "split": "train"
+    },
+    {
+      "id": "plattentektonik-karten-standard",
       "category": "standard",
-      "group": "netzwerk-karten-und-quelle",
+      "subject": "geschichte-geografie",
+      "group": "plattentektonik-karten",
       "request": {
-        "set": "netzwerk-karten-und-quelle",
+        "set": "plattentektonik-karten",
         "profile": "standard"
       },
       "split": "dev"
     },
     {
-      "id": "netzwerk-karten-und-quelle-kurz-pruefung",
-      "category": "kurz-pruefung",
-      "group": "netzwerk-karten-und-quelle",
+      "id": "plattentektonik-karten-kurz-fliesstext-verstehen-ohne-beispiele",
+      "category": "kurz-fliesstext-verstehen-ohne-beispiele",
+      "subject": "geschichte-geografie",
+      "group": "plattentektonik-karten",
       "request": {
-        "set": "netzwerk-karten-und-quelle",
-        "profile": "kurz-pruefung"
+        "set": "plattentektonik-karten",
+        "profile": "kurz-fliesstext-verstehen-ohne-beispiele"
       },
       "split": "dev"
+    },
+    {
+      "id": "roemisches-reich-quelle-kurz-stichpunkte-wiederholen",
+      "category": "kurz-stichpunkte-wiederholen",
+      "subject": "geschichte-geografie",
+      "group": "roemisches-reich-quelle",
+      "request": {
+        "set": "roemisches-reich-quelle",
+        "profile": "kurz-stichpunkte-wiederholen"
+      },
+      "split": "train"
+    },
+    {
+      "id": "roemisches-reich-quelle-mittel-stichpunkte-pruefung-ohne-beispiele",
+      "category": "mittel-stichpunkte-pruefung-ohne-beispiele",
+      "subject": "geschichte-geografie",
+      "group": "roemisches-reich-quelle",
+      "request": {
+        "set": "roemisches-reich-quelle",
+        "profile": "mittel-stichpunkte-pruefung-ohne-beispiele"
+      },
+      "split": "train"
+    },
+    {
+      "id": "spanisch-grammatik-karten-lang-gegliedert-wiederholen-ohne-beispiele",
+      "category": "lang-gegliedert-wiederholen-ohne-beispiele",
+      "subject": "sprachen",
+      "group": "spanisch-grammatik-karten",
+      "request": {
+        "set": "spanisch-grammatik-karten",
+        "profile": "lang-gegliedert-wiederholen-ohne-beispiele"
+      },
+      "split": "train"
+    },
+    {
+      "id": "spanisch-grammatik-karten-mittel-fliesstext-wiederholen-ohne-beispiele",
+      "category": "mittel-fliesstext-wiederholen-ohne-beispiele",
+      "subject": "sprachen",
+      "group": "spanisch-grammatik-karten",
+      "request": {
+        "set": "spanisch-grammatik-karten",
+        "profile": "mittel-fliesstext-wiederholen-ohne-beispiele"
+      },
+      "split": "train"
+    },
+    {
+      "id": "stromkreise-karten-und-quelle-lang-fliesstext-pruefung",
+      "category": "lang-fliesstext-pruefung",
+      "subject": "naturwissenschaft",
+      "group": "stromkreise-karten-und-quelle",
+      "request": {
+        "set": "stromkreise-karten-und-quelle",
+        "profile": "lang-fliesstext-pruefung"
+      },
+      "split": "dev"
+    },
+    {
+      "id": "stromkreise-karten-und-quelle-kurz-gegliedert-pruefung-ohne-beispiele",
+      "category": "kurz-gegliedert-pruefung-ohne-beispiele",
+      "subject": "naturwissenschaft",
+      "group": "stromkreise-karten-und-quelle",
+      "request": {
+        "set": "stromkreise-karten-und-quelle",
+        "profile": "kurz-gegliedert-pruefung-ohne-beispiele"
+      },
+      "split": "dev"
+    },
+    {
+      "id": "wahrscheinlichkeit-quelle-kurz-fliesstext-verstehen-ohne-beispiele",
+      "category": "kurz-fliesstext-verstehen-ohne-beispiele",
+      "subject": "mathematik",
+      "group": "wahrscheinlichkeit-quelle",
+      "request": {
+        "set": "wahrscheinlichkeit-quelle",
+        "profile": "kurz-fliesstext-verstehen-ohne-beispiele"
+      },
+      "split": "train"
+    },
+    {
+      "id": "wahrscheinlichkeit-quelle-lang-stichpunkte-verstehen",
+      "category": "lang-stichpunkte-verstehen",
+      "subject": "mathematik",
+      "group": "wahrscheinlichkeit-quelle",
+      "request": {
+        "set": "wahrscheinlichkeit-quelle",
+        "profile": "lang-stichpunkte-verstehen"
+      },
+      "split": "train"
+    },
+    {
+      "id": "zellatmung-quelle-mittel-stichpunkte-pruefung-ohne-beispiele",
+      "category": "mittel-stichpunkte-pruefung-ohne-beispiele",
+      "subject": "naturwissenschaft",
+      "split": "train",
+      "group": "zellatmung-quelle",
+      "request": {
+        "set": "zellatmung-quelle",
+        "profile": "mittel-stichpunkte-pruefung-ohne-beispiele"
+      }
+    },
+    {
+      "id": "zellatmung-quelle-standard",
+      "category": "standard",
+      "subject": "naturwissenschaft",
+      "split": "train",
+      "group": "zellatmung-quelle",
+      "request": {
+        "set": "zellatmung-quelle",
+        "profile": "standard"
+      }
     }
   ]
 }

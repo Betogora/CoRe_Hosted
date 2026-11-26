@@ -19,7 +19,7 @@ test("OpenRouter payload forces one compact tool call on the fixed model with ZD
   assert.equal(payload.max_tokens, 1_024);
   assert.equal(payload.stream, false);
   assert.deepEqual(payload.tool_choice, { type: "function", function: { name: "create_card_variant" } });
-  assert.deepEqual(payload.reasoning, { effort: "low" });
+  assert.deepEqual(payload.reasoning, { effort: "medium" });
   assert.deepEqual(payload.provider, { require_parameters: true, data_collection: "deny", zdr: true });
   assert.equal(JSON.stringify(payload).includes("genau einmal create_card_variant"), true);
   assert.doesNotMatch(payload.messages[0].content, /eingetippt/);
@@ -34,6 +34,7 @@ test("OpenRouter payload forces one compact tool call on the fixed model with ZD
 test("provider extraction requires exactly one changed create_card_variant call", () => {
   const { result, costUsd } = extractGeneratedVariant(completion(), input);
   assert.equal(result.variant.front, "Wofür steht ATP?");
+  assert.equal(extractGeneratedVariant(completion(), { ...input, kind: "type-in" }).result.variant.back, input.source.back, "beim Eintippen zählt zeichengenau die Antwort der Karte");
   assert.equal(result.privacyMode, "zdr");
   assert.equal(result.usage?.totalTokens, 162);
   assert.equal(costUsd, 0.00003);
@@ -108,6 +109,7 @@ test("a choice variant rephrases stem and options by id, keeps every option's co
   const removed = () => { try { extractGeneratedVariant(answer("Welches Ion ist positiv geladen?", [{ id: "na", text: "Natrium" }, { id: "cl", text: "Chlorid" }]), negatedSource); return "ok"; } catch (error) { return (error as { code?: string }).code; } };
   assert.equal(removed(), "negated_question", "eine entfernte Verneinung vertauscht richtig und falsch ebenso");
   const kprim = { kind: "choice" as const, source: { front: "Welche Aussagen stimmen?", back: "x" }, choice: { mode: "kprim" as const, options: [{ id: "a", text: "Insulin senkt den Blutzucker.", correct: true }, { id: "b", text: "Glukagon senkt ihn nicht.", correct: true }] } };
+  assert.deepEqual(buildOpenRouterPayload(kprim).reasoning, { effort: "low" }, "Auswahl bleibt bei low");
   const kprimCode = (options: unknown) => { try { extractGeneratedVariant(answer("Welche Aussagen treffen zu?", options), kprim); return "ok"; } catch (error) { return (error as { code?: string }).code; } };
   assert.equal(kprimCode([{ id: "a", text: "Insulin senkt den Blutzucker nicht." }, { id: "b", text: "Glukagon senkt ihn nicht." }]), "negated_option");
   assert.equal(kprimCode([{ id: "a", text: "Insulin verringert den Blutzucker." }, { id: "b", text: "Glukagon senkt ihn." }]), "negated_option");

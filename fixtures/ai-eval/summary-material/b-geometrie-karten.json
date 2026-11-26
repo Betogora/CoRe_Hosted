@@ -1,0 +1,129 @@
+{
+  "title": "Geometrie: Dreiecke, Kreise und Körper",
+  "material": "cards",
+  "decks": [
+    {
+      "id": "d1",
+      "name": "Geometrie"
+    },
+    {
+      "id": "d2",
+      "name": "Dreiecke und Vielecke",
+      "parent": "d1"
+    },
+    {
+      "id": "d3",
+      "name": "Kreis und Körper",
+      "parent": "d1"
+    }
+  ],
+  "units": [
+    {
+      "id": "m1",
+      "kind": "card",
+      "deck": "d2",
+      "text": "F: Wie groß ist die Innenwinkelsumme eines Dreiecks?\nA: 180°."
+    },
+    {
+      "id": "m2",
+      "kind": "card",
+      "deck": "d2",
+      "text": "F: Wie groß ist die Innenwinkelsumme eines n-Ecks?\nA: (n − 2) · 180°; beim Viereck also 360°."
+    },
+    {
+      "id": "m3",
+      "kind": "card",
+      "deck": "d2",
+      "text": "F: Was besagt der Satz des Pythagoras?\nA: Im rechtwinkligen Dreieck gilt a² + b² = c², wobei c die Hypotenuse gegenüber dem rechten Winkel ist."
+    },
+    {
+      "id": "m4",
+      "kind": "card",
+      "deck": "d2",
+      "text": "F: Was besagt der Höhensatz?\nA: Im rechtwinkligen Dreieck gilt h² = p · q; p und q sind die Hypotenusenabschnitte."
+    },
+    {
+      "id": "m5",
+      "kind": "card",
+      "deck": "d2",
+      "text": "F: Was besagt der Kathetensatz?\nA: Im rechtwinkligen Dreieck gilt a² = c · p; p ist der an a anliegende Hypotenusenabschnitt."
+    },
+    {
+      "id": "m6",
+      "kind": "card",
+      "deck": "d2",
+      "text": "F: Wie berechnet man den Flächeninhalt eines Dreiecks?\nA: A = ½ · g · h, also die Hälfte des Produkts aus Grundseite und zugehöriger Höhe."
+    },
+    {
+      "id": "m7",
+      "kind": "card",
+      "deck": "d2",
+      "text": "F: Welche Kongruenzsätze für Dreiecke gibt es?\nA: SSS, SWS, WSW (gleichwertig SWW) und SsW, bei dem der Winkel der größeren Seite gegenüberliegt."
+    },
+    {
+      "id": "m8",
+      "kind": "card",
+      "deck": "d2",
+      "text": "F: Wie verändert sich der Flächeninhalt bei einer Streckung mit dem Faktor k?\nA: Längen werden mit k multipliziert, Flächeninhalte mit k²."
+    },
+    {
+      "id": "m9",
+      "kind": "card",
+      "deck": "d2",
+      "text": "F: Wo liegt der Mittelpunkt des Umkreises eines Dreiecks?\nA: Im Schnittpunkt der Mittelsenkrechten der drei Seiten."
+    },
+    {
+      "id": "m10",
+      "kind": "card",
+      "deck": "d2",
+      "text": "F: Wo liegt der Mittelpunkt des Inkreises eines Dreiecks?\nA: Im Schnittpunkt der drei Winkelhalbierenden."
+    },
+    {
+      "id": "m11",
+      "kind": "card",
+      "deck": "d2",
+      "text": "F: Was gilt für den Schwerpunkt eines Dreiecks?\nA: Er ist der Schnittpunkt der Seitenhalbierenden und teilt jede von ihnen im Verhältnis 2 : 1, vom Eckpunkt aus gemessen."
+    },
+    {
+      "id": "m12",
+      "kind": "card",
+      "deck": "d3",
+      "text": "F: Was besagt der Satz des Thales?\nA: Liegt ein Punkt C auf einem Kreis über dem Durchmesser AB, dann hat das Dreieck ABC bei C einen rechten Winkel."
+    },
+    {
+      "id": "m13",
+      "kind": "card",
+      "deck": "d3",
+      "text": "F: Wie berechnet man Umfang und Flächeninhalt eines Kreises?\nA: U = 2πr und A = πr²."
+    },
+    {
+      "id": "m14",
+      "kind": "card",
+      "deck": "d3",
+      "text": "F: Wie berechnet man Volumen und Oberfläche einer Kugel?\nA: V = 4/3 · πr³ und O = 4πr²."
+    },
+    {
+      "id": "m15",
+      "kind": "card",
+      "deck": "d3",
+      "text": "F: Wie berechnet man das Volumen eines Zylinders?\nA: V = πr² · h, also Grundfläche mal Höhe."
+    },
+    {
+      "id": "m16",
+      "kind": "card",
+      "deck": "d3",
+      "text": "F: Wie berechnet man das Volumen von Pyramide und Kegel?\nA: V = ⅓ · G · h; sie haben ein Drittel des Volumens eines Prismas beziehungsweise Zylinders mit gleicher Grundfläche und Höhe."
+    }
+  ],
+  "keypoints": [
+    "Die Innenwinkelsumme eines Dreiecks beträgt 180°, die eines n-Ecks (n − 2) · 180°.",
+    "Im rechtwinkligen Dreieck gilt a² + b² = c² mit der Hypotenuse c.",
+    "Im rechtwinkligen Dreieck gilt der Höhensatz h² = p · q.",
+    "Bei einer Streckung mit dem Faktor k werden Flächeninhalte mit k² multipliziert.",
+    "Der Umkreismittelpunkt ist der Schnittpunkt der Mittelsenkrechten, der Inkreismittelpunkt der Schnittpunkt der Winkelhalbierenden.",
+    "Der Schwerpunkt teilt die Seitenhalbierenden im Verhältnis 2 : 1.",
+    "Ein Dreieck mit einer Ecke auf dem Kreis über dem Durchmesser hat dort einen rechten Winkel.",
+    "Pyramide und Kegel haben das Volumen V = ⅓ · G · h."
+  ],
+  "contradictions": []
+}

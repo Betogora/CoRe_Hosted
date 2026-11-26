@@ -1,0 +1,2181 @@
+[
+  {
+    "caseId": "b-geometrie-karten-kurz-stichpunkte-wiederholen",
+    "repetition": 0,
+    "category": "kurz-stichpunkte-wiederholen",
+    "trap": false,
+    "outcome": "answer",
+    "criteria": {
+      "Z1": 1,
+      "Z2": 1,
+      "Z3": 1,
+      "Z4": 1,
+      "Z5": 1,
+      "Z6": 1,
+      "Z7": 1,
+      "Z8": 1
+    },
+    "main": 1,
+    "metrics": {
+      "woerter": 202,
+      "abschnitte": 6,
+      "belegtes_material": 1,
+      "warnungen": 4
+    },
+    "costUsd": 0.0027246,
+    "latencyMs": 17844,
+    "totalTokens": 9182,
+    "model": "anthropic/claude-haiku-5.5"
+  },
+  {
+    "caseId": "b-geometrie-karten-kurz-stichpunkte-wiederholen",
+    "repetition": 1,
+    "category": "kurz-stichpunkte-wiederholen",
+    "trap": false,
+    "outcome": "answer",
+    "criteria": {
+      "Z1": 1,
+      "Z2": 1,
+      "Z3": 1,
+      "Z4": 1,
+      "Z5": 1,
+      "Z6": 1,
+      "Z7": 1,
+      "Z8": 1
+    },
+    "main": 1,
+    "metrics": {
+      "woerter": 194,
+      "abschnitte": 8,
+      "belegtes_material": 1,
+      "warnungen": 2
+    },
+    "costUsd": 0.0022991,
+    "latencyMs": 15215,
+    "totalTokens": 8331,
+    "model": "anthropic/claude-haiku-5.5"
+  },
+  {
+    "caseId": "b-geometrie-karten-kurz-stichpunkte-wiederholen",
+    "repetition": 2,
+    "category": "kurz-stichpunkte-wiederholen",
+    "trap": false,
+    "outcome": "answer",
+    "criteria": {
+      "Z1": 1,
+      "Z2": 1,
+      "Z3": 1,
+      "Z4": 1,
+      "Z5": 1,
+      "Z6": 1,
+      "Z7": 1,
+      "Z8": 1
+    },
+    "main": 1,
+    "metrics": {
+      "woerter": 194,
+      "abschnitte": 7,
+      "belegtes_material": 1,
+      "warnungen": 4
+    },
+    "costUsd": 0.0024441,
+    "latencyMs": 15159,
+    "totalTokens": 8621,
+    "model": "anthropic/claude-haiku-5.5"
+  },
+  {
+    "caseId": "b-geometrie-karten-kurz-stichpunkte-wiederholen",
+    "repetition": 3,
+    "category": "kurz-stichpunkte-wiederholen",
+    "trap": false,
+    "outcome": "answer",
+    "criteria": {
+      "Z1": 1,
+      "Z2": 1,
+      "Z3": 1,
+      "Z4": 1,
+      "Z5": 1,
+      "Z6": 1,
+      "Z7": 1,
+      "Z8": 1
+    },
+    "main": 1,
+    "metrics": {
+      "woerter": 196,
+      "abschnitte": 6,
+      "belegtes_material": 1,
+      "warnungen": 3
+    },
+    "costUsd": 0.0021291,
+    "latencyMs": 12858,
+    "totalTokens": 7991,
+    "model": "anthropic/claude-haiku-5.5"
+  },
+  {
+    "caseId": "b-geometrie-karten-mittel-stichpunkte-pruefung-ohne-beispiele",
+    "repetition": 0,
+    "category": "mittel-stichpunkte-pruefung-ohne-beispiele",
+    "trap": false,
+    "outcome": "answer",
+    "criteria": {
+      "Z1": 1,
+      "Z2": 1,
+      "Z3": 1,
+      "Z4": 1,
+      "Z5": 1,
+      "Z6": 1,
+      "Z7": 1,
+      "Z8": 1
+    },
+    "main": 1,
+    "metrics": {
+      "woerter": 234,
+      "abschnitte": 6,
+      "belegtes_material": 1,
+      "warnungen": 3
+    },
+    "costUsd": 0.0031865,
+    "latencyMs": 21702,
+    "totalTokens": 10125,
+    "model": "anthropic/claude-haiku-5.5"
+  },
+  {
+    "caseId": "b-geometrie-karten-mittel-stichpunkte-pruefung-ohne-beispiele",
+    "repetition": 1,
+    "category": "mittel-stichpunkte-pruefung-ohne-beispiele",
+    "trap": false,
+    "outcome": "answer",
+    "criteria": {
+      "Z1": 1,
+      "Z2": 1,
+      "Z3": 1,
+      "Z4": 1,
+      "Z5": 1,
+      "Z6": 1,
+      "Z7": 1,
+      "Z8": 1
+    },
+    "main": 1,
+    "metrics": {
+      "woerter": 241,
+      "abschnitte": 8,
+      "belegtes_material": 1,
+      "warnungen": 4
+    },
+    "costUsd": 0.0025855,
+    "latencyMs": 16684,
+    "totalTokens": 8923,
+    "model": "anthropic/claude-haiku-5.5"
+  },
+  {
+    "caseId": "b-geometrie-karten-mittel-stichpunkte-pruefung-ohne-beispiele",
+    "repetition": 2,
+    "category": "mittel-stichpunkte-pruefung-ohne-beispiele",
+    "trap": false,
+    "outcome": "answer",
+    "criteria": {
+      "Z1": 1,
+      "Z2": 1,
+      "Z3": 1,
+      "Z4": 1,
+      "Z5": 1,
+      "Z6": 1,
+      "Z7": 1,
+      "Z8": 1
+    },
+    "main": 1,
+    "metrics": {
+      "woerter": 226,
+      "abschnitte": 8,
+      "belegtes_material": 1,
+      "warnungen": 5
+    },
+    "costUsd": 0.0029665,
+    "latencyMs": 20273,
+    "totalTokens": 9685,
+    "model": "anthropic/claude-haiku-5.5"
+  },
+  {
+    "caseId": "b-geometrie-karten-mittel-stichpunkte-pruefung-ohne-beispiele",
+    "repetition": 3,
+    "category": "mittel-stichpunkte-pruefung-ohne-beispiele",
+    "trap": false,
+    "outcome": "answer",
+    "criteria": {
+      "Z1": 1,
+      "Z2": 1,
+      "Z3": 1,
+      "Z4": 1,
+      "Z5": 1,
+      "Z6": 1,
+      "Z7": 1,
+      "Z8": 1
+    },
+    "main": 1,
+    "metrics": {
+      "woerter": 251,
+      "abschnitte": 9,
+      "belegtes_material": 1,
+      "warnungen": 4
+    },
+    "costUsd": 0.002874,
+    "latencyMs": 17969,
+    "totalTokens": 9500,
+    "model": "anthropic/claude-haiku-5.5"
+  },
+  {
+    "caseId": "b-it-sicherheit-karten-und-quelle-lang-gegliedert-wiederholen-ohne-beispiele",
+    "repetition": 0,
+    "category": "lang-gegliedert-wiederholen-ohne-beispiele",
+    "trap": false,
+    "outcome": "answer",
+    "criteria": {
+      "Z1": 1,
+      "Z2": 1,
+      "Z3": 1,
+      "Z4": 1,
+      "Z5": 1,
+      "Z6": 1,
+      "Z7": 0.5,
+      "Z8": 1,
+      "Z9": 1
+    },
+    "main": 1,
+    "metrics": {
+      "woerter": 551,
+      "abschnitte": 12,
+      "belegtes_material": 1,
+      "warnungen": 5
+    },
+    "costUsd": 0.0053354,
+    "latencyMs": 34419,
+    "totalTokens": 15486,
+    "model": "anthropic/claude-haiku-5.5"
+  },
+  {
+    "caseId": "b-it-sicherheit-karten-und-quelle-lang-gegliedert-wiederholen-ohne-beispiele",
+    "repetition": 1,
+    "category": "lang-gegliedert-wiederholen-ohne-beispiele",
+    "trap": false,
+    "outcome": "rejected",
+    "criteria": {
+      "Z1": 0
+    },
+    "main": 0,
+    "costUsd": 0.0044309,
+    "latencyMs": 28882,
+    "totalTokens": 13677,
+    "model": "anthropic/claude-haiku-5.5"
+  },
+  {
+    "caseId": "b-it-sicherheit-karten-und-quelle-lang-gegliedert-wiederholen-ohne-beispiele",
+    "repetition": 2,
+    "category": "lang-gegliedert-wiederholen-ohne-beispiele",
+    "trap": false,
+    "outcome": "rejected",
+    "criteria": {
+      "Z1": 0
+    },
+    "main": 0,
+    "costUsd": 0.0079519,
+    "latencyMs": 54687,
+    "totalTokens": 20719,
+    "model": "anthropic/claude-haiku-5.5"
+  },
+  {
+    "caseId": "b-it-sicherheit-karten-und-quelle-lang-gegliedert-wiederholen-ohne-beispiele",
+    "repetition": 3,
+    "category": "lang-gegliedert-wiederholen-ohne-beispiele",
+    "trap": false,
+    "outcome": "answer",
+    "criteria": {
+      "Z1": 1,
+      "Z2": 1,
+      "Z3": 1,
+      "Z4": 1,
+      "Z5": 1,
+      "Z6": 1,
+      "Z7": 1,
+      "Z8": 1,
+      "Z9": 1
+    },
+    "main": 1,
+    "metrics": {
+      "woerter": 534,
+      "abschnitte": 11,
+      "belegtes_material": 1,
+      "warnungen": 4
+    },
+    "costUsd": 0.0069479,
+    "latencyMs": 45964,
+    "totalTokens": 18711,
+    "model": "anthropic/claude-haiku-5.5"
+  },
+  {
+    "caseId": "b-it-sicherheit-karten-und-quelle-mittel-fliesstext-wiederholen-ohne-beispiele",
+    "repetition": 0,
+    "category": "mittel-fliesstext-wiederholen-ohne-beispiele",
+    "trap": false,
+    "outcome": "answer",
+    "criteria": {
+      "Z1": 1,
+      "Z2": 1,
+      "Z3": 1,
+      "Z4": 1,
+      "Z5": 1,
+      "Z6": 1,
+      "Z7": 1,
+      "Z8": 1,
+      "Z9": 1
+    },
+    "main": 1,
+    "metrics": {
+      "woerter": 490,
+      "abschnitte": 13,
+      "belegtes_material": 1,
+      "warnungen": 4
+    },
+    "costUsd": 0.0042337,
+    "latencyMs": 26624,
+    "totalTokens": 13217,
+    "model": "anthropic/claude-haiku-5.5"
+  },
+  {
+    "caseId": "b-it-sicherheit-karten-und-quelle-mittel-fliesstext-wiederholen-ohne-beispiele",
+    "repetition": 1,
+    "category": "mittel-fliesstext-wiederholen-ohne-beispiele",
+    "trap": false,
+    "outcome": "answer",
+    "criteria": {
+      "Z1": 1,
+      "Z2": 1,
+      "Z3": 1,
+      "Z4": 1,
+      "Z5": 1,
+      "Z6": 1,
+      "Z8": 1,
+      "Z9": 1
+    },
+    "main": 1,
+    "metrics": {
+      "woerter": 428,
+      "abschnitte": 10,
+      "belegtes_material": 1,
+      "warnungen": 4
+    },
+    "costUsd": 0.0039097,
+    "latencyMs": 23517,
+    "totalTokens": 12569,
+    "model": "anthropic/claude-haiku-5.5"
+  },
+  {
+    "caseId": "b-it-sicherheit-karten-und-quelle-mittel-fliesstext-wiederholen-ohne-beispiele",
+    "repetition": 2,
+    "category": "mittel-fliesstext-wiederholen-ohne-beispiele",
+    "trap": false,
+    "outcome": "answer",
+    "criteria": {
+      "Z1": 1,
+      "Z2": 1,
+      "Z3": 1,
+      "Z4": 1,
+      "Z5": 1,
+      "Z6": 1,
+      "Z7": 1,
+      "Z8": 1,
+      "Z9": 1
+    },
+    "main": 1,
+    "metrics": {
+      "woerter": 448,
+      "abschnitte": 10,
+      "belegtes_material": 1,
+      "warnungen": 4
+    },
+    "costUsd": 0.0047282,
+    "latencyMs": 28104,
+    "totalTokens": 14206,
+    "model": "anthropic/claude-haiku-5.5"
+  },
+  {
+    "caseId": "b-it-sicherheit-karten-und-quelle-mittel-fliesstext-wiederholen-ohne-beispiele",
+    "repetition": 3,
+    "category": "mittel-fliesstext-wiederholen-ohne-beispiele",
+    "trap": false,
+    "outcome": "answer",
+    "criteria": {
+      "Z1": 1,
+      "Z2": 1,
+      "Z3": 1,
+      "Z4": 1,
+      "Z5": 1,
+      "Z6": 1,
+      "Z7": 1,
+      "Z8": 1,
+      "Z9": 1
+    },
+    "main": 1,
+    "metrics": {
+      "woerter": 386,
+      "abschnitte": 9,
+      "belegtes_material": 1,
+      "warnungen": 3
+    },
+    "costUsd": 0.0041027,
+    "latencyMs": 24566,
+    "totalTokens": 12955,
+    "model": "anthropic/claude-haiku-5.5"
+  },
+  {
+    "caseId": "b-literaturbegriffe-englisch-quelle-kurz-fliesstext-verstehen-ohne-beispiele",
+    "repetition": 0,
+    "category": "kurz-fliesstext-verstehen-ohne-beispiele",
+    "trap": false,
+    "outcome": "answer",
+    "criteria": {
+      "Z1": 1,
+      "Z2": 1,
+      "Z3": 1,
+      "Z4": 1,
+      "Z5": 1,
+      "Z6": 1,
+      "Z7": 1,
+      "Z8": 0.8889
+    },
+    "main": 1,
+    "metrics": {
+      "woerter": 328,
+      "abschnitte": 4,
+      "belegtes_material": 1,
+      "warnungen": 3
+    },
+    "costUsd": 0.0026811,
+    "latencyMs": 16170,
+    "totalTokens": 9627,
+    "model": "anthropic/claude-haiku-5.5"
+  },
+  {
+    "caseId": "b-literaturbegriffe-englisch-quelle-kurz-fliesstext-verstehen-ohne-beispiele",
+    "repetition": 1,
+    "category": "kurz-fliesstext-verstehen-ohne-beispiele",
+    "trap": false,
+    "outcome": "answer",
+    "criteria": {
+      "Z1": 1,
+      "Z2": 1,
+      "Z3": 1,
+      "Z4": 1,
+      "Z5": 1,
+      "Z6": 1,
+      "Z7": 1,
+      "Z8": 1
+    },
+    "main": 1,
+    "metrics": {
+      "woerter": 337,
+      "abschnitte": 4,
+      "belegtes_material": 1,
+      "warnungen": 2
+    },
+    "costUsd": 0.0025176,
+    "latencyMs": 16163,
+    "totalTokens": 9300,
+    "model": "anthropic/claude-haiku-5.5"
+  },
+  {
+    "caseId": "b-literaturbegriffe-englisch-quelle-kurz-fliesstext-verstehen-ohne-beispiele",
+    "repetition": 2,
+    "category": "kurz-fliesstext-verstehen-ohne-beispiele",
+    "trap": false,
+    "outcome": "answer",
+    "criteria": {
+      "Z1": 1,
+      "Z2": 1,
+      "Z3": 1,
+      "Z4": 1,
+      "Z5": 1,
+      "Z6": 1,
+      "Z7": 1,
+      "Z8": 1
+    },
+    "main": 1,
+    "metrics": {
+      "woerter": 374,
+      "abschnitte": 8,
+      "belegtes_material": 1,
+      "warnungen": 4
+    },
+    "costUsd": 0.0021406,
+    "latencyMs": 12562,
+    "totalTokens": 8546,
+    "model": "anthropic/claude-haiku-5.5"
+  },
+  {
+    "caseId": "b-literaturbegriffe-englisch-quelle-kurz-fliesstext-verstehen-ohne-beispiele",
+    "repetition": 3,
+    "category": "kurz-fliesstext-verstehen-ohne-beispiele",
+    "trap": false,
+    "outcome": "answer",
+    "criteria": {
+      "Z1": 1,
+      "Z2": 0,
+      "Z3": 1,
+      "Z4": 1,
+      "Z5": 1,
+      "Z6": 1,
+      "Z7": 1,
+      "Z8": 1
+    },
+    "main": 0,
+    "metrics": {
+      "woerter": 398,
+      "abschnitte": 6,
+      "belegtes_material": 1,
+      "warnungen": 2
+    },
+    "costUsd": 0.0019871,
+    "latencyMs": 10802,
+    "totalTokens": 8239,
+    "model": "anthropic/claude-haiku-5.5"
+  },
+  {
+    "caseId": "b-literaturbegriffe-englisch-quelle-lang-stichpunkte-verstehen",
+    "repetition": 0,
+    "category": "lang-stichpunkte-verstehen",
+    "trap": false,
+    "outcome": "answer",
+    "criteria": {
+      "Z1": 1,
+      "Z2": 1,
+      "Z3": 1,
+      "Z4": 1,
+      "Z5": 1,
+      "Z6": 1,
+      "Z7": 1,
+      "Z8": 1
+    },
+    "main": 1,
+    "metrics": {
+      "woerter": 559,
+      "abschnitte": 13,
+      "belegtes_material": 1,
+      "warnungen": 3
+    },
+    "costUsd": 0.0032371,
+    "latencyMs": 19749,
+    "totalTokens": 10759,
+    "model": "anthropic/claude-haiku-5.5"
+  },
+  {
+    "caseId": "b-literaturbegriffe-englisch-quelle-lang-stichpunkte-verstehen",
+    "repetition": 1,
+    "category": "lang-stichpunkte-verstehen",
+    "trap": false,
+    "outcome": "rejected",
+    "criteria": {
+      "Z1": 0
+    },
+    "main": 0,
+    "costUsd": 0.0047416,
+    "latencyMs": 30635,
+    "totalTokens": 13768,
+    "model": "anthropic/claude-haiku-5.5"
+  },
+  {
+    "caseId": "b-literaturbegriffe-englisch-quelle-lang-stichpunkte-verstehen",
+    "repetition": 2,
+    "category": "lang-stichpunkte-verstehen",
+    "trap": false,
+    "outcome": "answer",
+    "criteria": {
+      "Z1": 1,
+      "Z2": 1,
+      "Z3": 1,
+      "Z4": 1,
+      "Z5": 1,
+      "Z6": 1,
+      "Z7": 1,
+      "Z8": 1
+    },
+    "main": 1,
+    "metrics": {
+      "woerter": 600,
+      "abschnitte": 15,
+      "belegtes_material": 1,
+      "warnungen": 3
+    },
+    "costUsd": 0.0060906,
+    "latencyMs": 41663,
+    "totalTokens": 16466,
+    "model": "anthropic/claude-haiku-5.5"
+  },
+  {
+    "caseId": "b-literaturbegriffe-englisch-quelle-lang-stichpunkte-verstehen",
+    "repetition": 3,
+    "category": "lang-stichpunkte-verstehen",
+    "trap": false,
+    "outcome": "rejected",
+    "criteria": {
+      "Z1": 0
+    },
+    "main": 0,
+    "costUsd": 0.0039356,
+    "latencyMs": 24633,
+    "totalTokens": 12156,
+    "model": "anthropic/claude-haiku-5.5"
+  },
+  {
+    "caseId": "b-mikrobiologie-karten-mittel-stichpunkte-pruefung-ohne-beispiele",
+    "repetition": 0,
+    "category": "mittel-stichpunkte-pruefung-ohne-beispiele",
+    "trap": false,
+    "outcome": "answer",
+    "criteria": {
+      "Z1": 1,
+      "Z2": 1,
+      "Z3": 1,
+      "Z4": 1,
+      "Z5": 1,
+      "Z6": 1,
+      "Z7": 1,
+      "Z8": 1,
+      "Z9": 1
+    },
+    "main": 1,
+    "metrics": {
+      "woerter": 296,
+      "abschnitte": 10,
+      "belegtes_material": 1,
+      "warnungen": 5
+    },
+    "costUsd": 0.0051492,
+    "latencyMs": 36160,
+    "totalTokens": 14408,
+    "model": "anthropic/claude-haiku-5.5"
+  },
+  {
+    "caseId": "b-mikrobiologie-karten-mittel-stichpunkte-pruefung-ohne-beispiele",
+    "repetition": 1,
+    "category": "mittel-stichpunkte-pruefung-ohne-beispiele",
+    "trap": false,
+    "outcome": "answer",
+    "criteria": {
+      "Z1": 1,
+      "Z2": 1,
+      "Z3": 1,
+      "Z4": 1,
+      "Z5": 1,
+      "Z6": 1,
+      "Z7": 1,
+      "Z8": 1,
+      "Z9": 1
+    },
+    "main": 1,
+    "metrics": {
+      "woerter": 246,
+      "abschnitte": 10,
+      "belegtes_material": 1,
+      "warnungen": 2
+    },
+    "costUsd": 0.0036007,
+    "latencyMs": 23048,
+    "totalTokens": 11311,
+    "model": "anthropic/claude-haiku-5.5"
+  },
+  {
+    "caseId": "b-mikrobiologie-karten-mittel-stichpunkte-pruefung-ohne-beispiele",
+    "repetition": 2,
+    "category": "mittel-stichpunkte-pruefung-ohne-beispiele",
+    "trap": false,
+    "outcome": "answer",
+    "criteria": {
+      "Z1": 1,
+      "Z2": 1,
+      "Z3": 1,
+      "Z4": 1,
+      "Z5": 1,
+      "Z6": 1,
+      "Z7": 1,
+      "Z8": 1,
+      "Z9": 1
+    },
+    "main": 1,
+    "metrics": {
+      "woerter": 239,
+      "abschnitte": 11,
+      "belegtes_material": 1,
+      "warnungen": 2
+    },
+    "costUsd": 0.0047372,
+    "latencyMs": 43405,
+    "totalTokens": 13584,
+    "model": "anthropic/claude-haiku-5.5"
+  },
+  {
+    "caseId": "b-mikrobiologie-karten-mittel-stichpunkte-pruefung-ohne-beispiele",
+    "repetition": 3,
+    "category": "mittel-stichpunkte-pruefung-ohne-beispiele",
+    "trap": false,
+    "outcome": "answer",
+    "criteria": {
+      "Z1": 1,
+      "Z2": 1,
+      "Z3": 1,
+      "Z4": 1,
+      "Z5": 1,
+      "Z6": 1,
+      "Z7": 1,
+      "Z8": 1,
+      "Z9": 1
+    },
+    "main": 1,
+    "metrics": {
+      "woerter": 239,
+      "abschnitte": 11,
+      "belegtes_material": 1,
+      "warnungen": 2
+    },
+    "costUsd": 0.0037152,
+    "latencyMs": 23812,
+    "totalTokens": 11540,
+    "model": "anthropic/claude-haiku-5.5"
+  },
+  {
+    "caseId": "b-mikrobiologie-karten-standard",
+    "repetition": 0,
+    "category": "standard",
+    "trap": false,
+    "outcome": "answer",
+    "criteria": {
+      "Z1": 1,
+      "Z2": 1,
+      "Z3": 1,
+      "Z4": 1,
+      "Z5": 1,
+      "Z7": 1,
+      "Z6": 1,
+      "Z8": 1,
+      "Z9": 1
+    },
+    "main": 1,
+    "metrics": {
+      "woerter": 321,
+      "abschnitte": 12,
+      "belegtes_material": 1,
+      "warnungen": 3
+    },
+    "costUsd": 0.0058325,
+    "latencyMs": 39310,
+    "totalTokens": 15793,
+    "model": "anthropic/claude-haiku-5.5"
+  },
+  {
+    "caseId": "b-mikrobiologie-karten-standard",
+    "repetition": 1,
+    "category": "standard",
+    "trap": false,
+    "outcome": "answer",
+    "criteria": {
+      "Z1": 1,
+      "Z2": 1,
+      "Z3": 1,
+      "Z4": 1,
+      "Z5": 1,
+      "Z6": 1,
+      "Z7": 1,
+      "Z8": 1,
+      "Z9": 1
+    },
+    "main": 1,
+    "metrics": {
+      "woerter": 353,
+      "abschnitte": 10,
+      "belegtes_material": 1,
+      "warnungen": 3
+    },
+    "costUsd": 0.0056915,
+    "latencyMs": 39621,
+    "totalTokens": 15511,
+    "model": "anthropic/claude-haiku-5.5"
+  },
+  {
+    "caseId": "b-mikrobiologie-karten-standard",
+    "repetition": 2,
+    "category": "standard",
+    "trap": false,
+    "outcome": "answer",
+    "criteria": {
+      "Z1": 1,
+      "Z2": 1,
+      "Z3": 1,
+      "Z4": 1,
+      "Z5": 1,
+      "Z6": 1,
+      "Z7": 1,
+      "Z8": 1,
+      "Z9": 1
+    },
+    "main": 1,
+    "metrics": {
+      "woerter": 335,
+      "abschnitte": 10,
+      "belegtes_material": 1,
+      "warnungen": 3
+    },
+    "costUsd": 0.0057665,
+    "latencyMs": 39198,
+    "totalTokens": 15661,
+    "model": "anthropic/claude-haiku-5.5"
+  },
+  {
+    "caseId": "b-mikrobiologie-karten-standard",
+    "repetition": 3,
+    "category": "standard",
+    "trap": false,
+    "outcome": "answer",
+    "criteria": {
+      "Z1": 1,
+      "Z2": 1,
+      "Z3": 1,
+      "Z4": 1,
+      "Z5": 1,
+      "Z6": 1,
+      "Z7": 1,
+      "Z8": 1,
+      "Z9": 1
+    },
+    "main": 1,
+    "metrics": {
+      "woerter": 328,
+      "abschnitte": 7,
+      "belegtes_material": 1,
+      "warnungen": 2
+    },
+    "costUsd": 0.0056855,
+    "latencyMs": 37793,
+    "totalTokens": 15499,
+    "model": "anthropic/claude-haiku-5.5"
+  },
+  {
+    "caseId": "b-oekosysteme-quelle-mittel-fliesstext-wiederholen-ohne-beispiele",
+    "repetition": 0,
+    "category": "mittel-fliesstext-wiederholen-ohne-beispiele",
+    "trap": false,
+    "outcome": "rejected",
+    "criteria": {
+      "Z1": 0
+    },
+    "main": 0,
+    "costUsd": 0.0031296,
+    "latencyMs": 17465,
+    "totalTokens": 10976,
+    "model": "anthropic/claude-haiku-5.5"
+  },
+  {
+    "caseId": "b-oekosysteme-quelle-mittel-fliesstext-wiederholen-ohne-beispiele",
+    "repetition": 1,
+    "category": "mittel-fliesstext-wiederholen-ohne-beispiele",
+    "trap": false,
+    "outcome": "answer",
+    "criteria": {
+      "Z1": 1,
+      "Z2": 1,
+      "Z3": 1,
+      "Z4": 1,
+      "Z5": 1,
+      "Z6": 1,
+      "Z7": 1,
+      "Z8": 1
+    },
+    "main": 1,
+    "metrics": {
+      "woerter": 663,
+      "abschnitte": 13,
+      "belegtes_material": 1,
+      "warnungen": 2
+    },
+    "costUsd": 0.0048686,
+    "latencyMs": 29397,
+    "totalTokens": 14454,
+    "model": "anthropic/claude-haiku-5.5"
+  },
+  {
+    "caseId": "b-oekosysteme-quelle-mittel-fliesstext-wiederholen-ohne-beispiele",
+    "repetition": 2,
+    "category": "mittel-fliesstext-wiederholen-ohne-beispiele",
+    "trap": false,
+    "outcome": "answer",
+    "criteria": {
+      "Z1": 1,
+      "Z2": 1,
+      "Z3": 1,
+      "Z4": 1,
+      "Z5": 1,
+      "Z6": 1,
+      "Z7": 1,
+      "Z8": 1
+    },
+    "main": 1,
+    "metrics": {
+      "woerter": 655,
+      "abschnitte": 7,
+      "belegtes_material": 1,
+      "warnungen": 2
+    },
+    "costUsd": 0.0031306,
+    "latencyMs": 17511,
+    "totalTokens": 10978,
+    "model": "anthropic/claude-haiku-5.5"
+  },
+  {
+    "caseId": "b-oekosysteme-quelle-mittel-fliesstext-wiederholen-ohne-beispiele",
+    "repetition": 3,
+    "category": "mittel-fliesstext-wiederholen-ohne-beispiele",
+    "trap": false,
+    "outcome": "answer",
+    "criteria": {
+      "Z1": 1,
+      "Z2": 1,
+      "Z3": 1,
+      "Z4": 1,
+      "Z5": 1,
+      "Z6": 1,
+      "Z7": 1,
+      "Z8": 1
+    },
+    "main": 1,
+    "metrics": {
+      "woerter": 691,
+      "abschnitte": 11,
+      "belegtes_material": 1,
+      "warnungen": 3
+    },
+    "costUsd": 0.0037591,
+    "latencyMs": 21613,
+    "totalTokens": 12235,
+    "model": "anthropic/claude-haiku-5.5"
+  },
+  {
+    "caseId": "b-oekosysteme-quelle-kurz-stichpunkte-wiederholen",
+    "repetition": 0,
+    "category": "kurz-stichpunkte-wiederholen",
+    "trap": false,
+    "outcome": "answer",
+    "criteria": {
+      "Z1": 1,
+      "Z2": 0,
+      "Z3": 1,
+      "Z4": 1,
+      "Z5": 1,
+      "Z6": 1,
+      "Z7": 1,
+      "Z8": 1
+    },
+    "main": 0,
+    "metrics": {
+      "woerter": 457,
+      "abschnitte": 9,
+      "belegtes_material": 1,
+      "warnungen": 2
+    },
+    "costUsd": 0.0053568,
+    "latencyMs": 34131,
+    "totalTokens": 15440,
+    "model": "anthropic/claude-haiku-5.5"
+  },
+  {
+    "caseId": "b-oekosysteme-quelle-kurz-stichpunkte-wiederholen",
+    "repetition": 1,
+    "category": "kurz-stichpunkte-wiederholen",
+    "trap": false,
+    "outcome": "answer",
+    "criteria": {
+      "Z1": 1,
+      "Z2": 0,
+      "Z3": 1,
+      "Z4": 1,
+      "Z5": 1,
+      "Z6": 0.5,
+      "Z7": 1,
+      "Z8": 1
+    },
+    "main": 0,
+    "metrics": {
+      "woerter": 417,
+      "abschnitte": 10,
+      "belegtes_material": 1,
+      "warnungen": 2
+    },
+    "costUsd": 0.0035913,
+    "latencyMs": 21639,
+    "totalTokens": 11909,
+    "model": "anthropic/claude-haiku-5.5"
+  },
+  {
+    "caseId": "b-oekosysteme-quelle-kurz-stichpunkte-wiederholen",
+    "repetition": 2,
+    "category": "kurz-stichpunkte-wiederholen",
+    "trap": false,
+    "outcome": "answer",
+    "criteria": {
+      "Z1": 1,
+      "Z2": 0,
+      "Z3": 1,
+      "Z4": 1,
+      "Z5": 1,
+      "Z6": 1,
+      "Z7": 1,
+      "Z8": 1
+    },
+    "main": 0,
+    "metrics": {
+      "woerter": 379,
+      "abschnitte": 10,
+      "belegtes_material": 1,
+      "warnungen": 2
+    },
+    "costUsd": 0.0036943,
+    "latencyMs": 22289,
+    "totalTokens": 12115,
+    "model": "anthropic/claude-haiku-5.5"
+  },
+  {
+    "caseId": "b-oekosysteme-quelle-kurz-stichpunkte-wiederholen",
+    "repetition": 3,
+    "category": "kurz-stichpunkte-wiederholen",
+    "trap": false,
+    "outcome": "answer",
+    "criteria": {
+      "Z1": 1,
+      "Z2": 1,
+      "Z3": 1,
+      "Z4": 1,
+      "Z5": 1,
+      "Z6": 1,
+      "Z7": 1,
+      "Z8": 1
+    },
+    "main": 1,
+    "metrics": {
+      "woerter": 358,
+      "abschnitte": 13,
+      "belegtes_material": 1,
+      "warnungen": 2
+    },
+    "costUsd": 0.0029763,
+    "latencyMs": 16926,
+    "totalTokens": 10679,
+    "model": "anthropic/claude-haiku-5.5"
+  },
+  {
+    "caseId": "b-schlaganfall-quelle-lang-stichpunkte-verstehen",
+    "repetition": 0,
+    "category": "lang-stichpunkte-verstehen",
+    "trap": false,
+    "outcome": "rejected",
+    "criteria": {
+      "Z1": 0
+    },
+    "main": 0,
+    "costUsd": 0.0100164,
+    "latencyMs": 65839,
+    "totalTokens": 27296,
+    "model": "anthropic/claude-haiku-5.5"
+  },
+  {
+    "caseId": "b-schlaganfall-quelle-lang-stichpunkte-verstehen",
+    "repetition": 1,
+    "category": "lang-stichpunkte-verstehen",
+    "trap": false,
+    "outcome": "answer",
+    "criteria": {
+      "Z1": 1,
+      "Z2": 1,
+      "Z3": 1,
+      "Z4": 1,
+      "Z5": 0,
+      "Z6": 0.5,
+      "Z7": 1,
+      "Z8": 1,
+      "Z9": 1
+    },
+    "main": 0,
+    "metrics": {
+      "woerter": 1246,
+      "abschnitte": 19,
+      "belegtes_material": 1,
+      "warnungen": 3
+    },
+    "costUsd": 0.0101094,
+    "latencyMs": 63591,
+    "totalTokens": 27482,
+    "model": "anthropic/claude-haiku-5.5"
+  },
+  {
+    "caseId": "b-schlaganfall-quelle-lang-stichpunkte-verstehen",
+    "repetition": 2,
+    "category": "lang-stichpunkte-verstehen",
+    "trap": false,
+    "outcome": "answer",
+    "criteria": {
+      "Z1": 1,
+      "Z2": 1,
+      "Z3": 1,
+      "Z4": 1,
+      "Z5": 0,
+      "Z6": 1,
+      "Z7": 1,
+      "Z8": 1,
+      "Z9": 1
+    },
+    "main": 0,
+    "metrics": {
+      "woerter": 1179,
+      "abschnitte": 18,
+      "belegtes_material": 1,
+      "warnungen": 4
+    },
+    "costUsd": 0.0085249,
+    "latencyMs": 52305,
+    "totalTokens": 24313,
+    "model": "anthropic/claude-haiku-5.5"
+  },
+  {
+    "caseId": "b-schlaganfall-quelle-lang-stichpunkte-verstehen",
+    "repetition": 3,
+    "category": "lang-stichpunkte-verstehen",
+    "trap": false,
+    "outcome": "answer",
+    "criteria": {
+      "Z1": 1,
+      "Z2": 1,
+      "Z3": 1,
+      "Z4": 1,
+      "Z5": 1,
+      "Z6": 1,
+      "Z7": 1,
+      "Z8": 1,
+      "Z9": 1
+    },
+    "main": 1,
+    "metrics": {
+      "woerter": 1156,
+      "abschnitte": 24,
+      "belegtes_material": 1,
+      "warnungen": 3
+    },
+    "costUsd": 0.0073349,
+    "latencyMs": 44835,
+    "totalTokens": 21933,
+    "model": "anthropic/claude-haiku-5.5"
+  },
+  {
+    "caseId": "b-schlaganfall-quelle-lang-fliesstext-pruefung",
+    "repetition": 0,
+    "category": "lang-fliesstext-pruefung",
+    "trap": false,
+    "outcome": "answer",
+    "criteria": {
+      "Z1": 1,
+      "Z2": 1,
+      "Z3": 1,
+      "Z4": 1,
+      "Z5": 1,
+      "Z6": 1,
+      "Z7": 1,
+      "Z8": 1,
+      "Z9": 1
+    },
+    "main": 1,
+    "metrics": {
+      "woerter": 1397,
+      "abschnitte": 18,
+      "belegtes_material": 1,
+      "warnungen": 4
+    },
+    "costUsd": 0.0063141,
+    "latencyMs": 35356,
+    "totalTokens": 19921,
+    "model": "anthropic/claude-haiku-5.5"
+  },
+  {
+    "caseId": "b-schlaganfall-quelle-lang-fliesstext-pruefung",
+    "repetition": 1,
+    "category": "lang-fliesstext-pruefung",
+    "trap": false,
+    "outcome": "answer",
+    "criteria": {
+      "Z1": 1,
+      "Z2": 1,
+      "Z3": 1,
+      "Z4": 1,
+      "Z5": 1,
+      "Z6": 1,
+      "Z7": 1,
+      "Z8": 1,
+      "Z9": 1
+    },
+    "main": 1,
+    "metrics": {
+      "woerter": 1411,
+      "abschnitte": 17,
+      "belegtes_material": 1,
+      "warnungen": 3
+    },
+    "costUsd": 0.0058501,
+    "latencyMs": 33230,
+    "totalTokens": 18993,
+    "model": "anthropic/claude-haiku-5.5"
+  },
+  {
+    "caseId": "b-schlaganfall-quelle-lang-fliesstext-pruefung",
+    "repetition": 2,
+    "category": "lang-fliesstext-pruefung",
+    "trap": false,
+    "outcome": "answer",
+    "criteria": {
+      "Z1": 1,
+      "Z2": 1,
+      "Z3": 1,
+      "Z4": 1,
+      "Z5": 1,
+      "Z6": 1,
+      "Z7": 1,
+      "Z8": 1,
+      "Z9": 1
+    },
+    "main": 1,
+    "metrics": {
+      "woerter": 1427,
+      "abschnitte": 18,
+      "belegtes_material": 1,
+      "warnungen": 2
+    },
+    "costUsd": 0.0064011,
+    "latencyMs": 36261,
+    "totalTokens": 20095,
+    "model": "anthropic/claude-haiku-5.5"
+  },
+  {
+    "caseId": "b-schlaganfall-quelle-lang-fliesstext-pruefung",
+    "repetition": 3,
+    "category": "lang-fliesstext-pruefung",
+    "trap": false,
+    "outcome": "answer",
+    "criteria": {
+      "Z1": 1,
+      "Z2": 1,
+      "Z3": 1,
+      "Z4": 1,
+      "Z5": 1,
+      "Z6": 1,
+      "Z7": 1,
+      "Z8": 1,
+      "Z9": 1
+    },
+    "main": 1,
+    "metrics": {
+      "woerter": 1496,
+      "abschnitte": 18,
+      "belegtes_material": 1,
+      "warnungen": 3
+    },
+    "costUsd": 0.0068591,
+    "latencyMs": 38308,
+    "totalTokens": 21011,
+    "model": "anthropic/claude-haiku-5.5"
+  },
+  {
+    "caseId": "b-volkswirtschaft-karten-standard",
+    "repetition": 0,
+    "category": "standard",
+    "trap": false,
+    "outcome": "answer",
+    "criteria": {
+      "Z1": 1,
+      "Z2": 1,
+      "Z3": 1,
+      "Z4": 1,
+      "Z5": 1,
+      "Z6": 1,
+      "Z7": 1,
+      "Z8": 1
+    },
+    "main": 1,
+    "metrics": {
+      "woerter": 445,
+      "abschnitte": 10,
+      "belegtes_material": 1,
+      "warnungen": 4
+    },
+    "costUsd": 0.0058338,
+    "latencyMs": 39157,
+    "totalTokens": 16206,
+    "model": "anthropic/claude-haiku-5.5"
+  },
+  {
+    "caseId": "b-volkswirtschaft-karten-standard",
+    "repetition": 1,
+    "category": "standard",
+    "trap": false,
+    "outcome": "rejected",
+    "criteria": {
+      "Z1": 0
+    },
+    "main": 0,
+    "costUsd": 0.0047848,
+    "latencyMs": 32445,
+    "totalTokens": 14108,
+    "model": "anthropic/claude-haiku-5.5"
+  },
+  {
+    "caseId": "b-volkswirtschaft-karten-standard",
+    "repetition": 2,
+    "category": "standard",
+    "trap": false,
+    "outcome": "answer",
+    "criteria": {
+      "Z1": 1,
+      "Z2": 1,
+      "Z3": 1,
+      "Z4": 1,
+      "Z5": 0,
+      "Z6": 0,
+      "Z7": 0,
+      "Z8": 1
+    },
+    "main": 0,
+    "metrics": {
+      "woerter": 547,
+      "abschnitte": 9,
+      "belegtes_material": 1,
+      "warnungen": 3
+    },
+    "costUsd": 0.0033538,
+    "latencyMs": 23927,
+    "totalTokens": 11246,
+    "model": "anthropic/claude-haiku-5.5"
+  },
+  {
+    "caseId": "b-volkswirtschaft-karten-standard",
+    "repetition": 3,
+    "category": "standard",
+    "trap": false,
+    "outcome": "answer",
+    "criteria": {
+      "Z1": 1,
+      "Z2": 1,
+      "Z3": 1,
+      "Z4": 1,
+      "Z5": 1,
+      "Z6": 0.5,
+      "Z7": 0,
+      "Z8": 1
+    },
+    "main": 0.5,
+    "metrics": {
+      "woerter": 680,
+      "abschnitte": 8,
+      "belegtes_material": 1,
+      "warnungen": 6
+    },
+    "costUsd": 0.0066018,
+    "latencyMs": 45805,
+    "totalTokens": 17742,
+    "model": "anthropic/claude-haiku-5.5"
+  },
+  {
+    "caseId": "b-volkswirtschaft-karten-kurz-fliesstext-verstehen-ohne-beispiele",
+    "repetition": 0,
+    "category": "kurz-fliesstext-verstehen-ohne-beispiele",
+    "trap": false,
+    "outcome": "answer",
+    "criteria": {
+      "Z1": 1,
+      "Z2": 1,
+      "Z3": 1,
+      "Z4": 1,
+      "Z5": 1,
+      "Z6": 1,
+      "Z7": 1,
+      "Z8": 1
+    },
+    "main": 1,
+    "metrics": {
+      "woerter": 345,
+      "abschnitte": 6,
+      "belegtes_material": 1,
+      "warnungen": 3
+    },
+    "costUsd": 0.0033873,
+    "latencyMs": 21559,
+    "totalTokens": 11261,
+    "model": "anthropic/claude-haiku-5.5"
+  },
+  {
+    "caseId": "b-volkswirtschaft-karten-kurz-fliesstext-verstehen-ohne-beispiele",
+    "repetition": 1,
+    "category": "kurz-fliesstext-verstehen-ohne-beispiele",
+    "trap": false,
+    "outcome": "answer",
+    "criteria": {
+      "Z1": 1,
+      "Z2": 1,
+      "Z3": 1,
+      "Z4": 1,
+      "Z5": 1,
+      "Z6": 1,
+      "Z7": 1,
+      "Z8": 1
+    },
+    "main": 1,
+    "metrics": {
+      "woerter": 364,
+      "abschnitte": 9,
+      "belegtes_material": 1,
+      "warnungen": 3
+    },
+    "costUsd": 0.0028808,
+    "latencyMs": 16747,
+    "totalTokens": 10248,
+    "model": "anthropic/claude-haiku-5.5"
+  },
+  {
+    "caseId": "b-volkswirtschaft-karten-kurz-fliesstext-verstehen-ohne-beispiele",
+    "repetition": 2,
+    "category": "kurz-fliesstext-verstehen-ohne-beispiele",
+    "trap": false,
+    "outcome": "answer",
+    "criteria": {
+      "Z1": 1,
+      "Z2": 1,
+      "Z3": 1,
+      "Z4": 1,
+      "Z5": 1,
+      "Z6": 1,
+      "Z7": 1,
+      "Z8": 1
+    },
+    "main": 1,
+    "metrics": {
+      "woerter": 339,
+      "abschnitte": 3,
+      "belegtes_material": 1,
+      "warnungen": 3
+    },
+    "costUsd": 0.0028838,
+    "latencyMs": 17649,
+    "totalTokens": 10254,
+    "model": "anthropic/claude-haiku-5.5"
+  },
+  {
+    "caseId": "b-volkswirtschaft-karten-kurz-fliesstext-verstehen-ohne-beispiele",
+    "repetition": 3,
+    "category": "kurz-fliesstext-verstehen-ohne-beispiele",
+    "trap": false,
+    "outcome": "answer",
+    "criteria": {
+      "Z1": 1,
+      "Z2": 1,
+      "Z3": 1,
+      "Z4": 1,
+      "Z5": 1,
+      "Z6": 1,
+      "Z7": 1,
+      "Z8": 1
+    },
+    "main": 1,
+    "metrics": {
+      "woerter": 316,
+      "abschnitte": 8,
+      "belegtes_material": 1,
+      "warnungen": 1
+    },
+    "costUsd": 0.0026373,
+    "latencyMs": 22578,
+    "totalTokens": 9761,
+    "model": "anthropic/claude-haiku-5.5"
+  },
+  {
+    "caseId": "netzwerk-karten-und-quelle-kurz-gegliedert-pruefung-ohne-beispiele",
+    "repetition": 0,
+    "category": "kurz-gegliedert-pruefung-ohne-beispiele",
+    "trap": false,
+    "outcome": "answer",
+    "criteria": {
+      "Z1": 1,
+      "Z2": 1,
+      "Z3": 1,
+      "Z4": 1,
+      "Z5": 0,
+      "Z6": 1,
+      "Z7": 1,
+      "Z8": 1,
+      "Z9": 1
+    },
+    "main": 0,
+    "metrics": {
+      "woerter": 298,
+      "abschnitte": 6,
+      "belegtes_material": 1,
+      "warnungen": 3
+    },
+    "costUsd": 0.0020718,
+    "latencyMs": 11671,
+    "totalTokens": 8094,
+    "model": "anthropic/claude-haiku-5.5"
+  },
+  {
+    "caseId": "netzwerk-karten-und-quelle-kurz-gegliedert-pruefung-ohne-beispiele",
+    "repetition": 1,
+    "category": "kurz-gegliedert-pruefung-ohne-beispiele",
+    "trap": false,
+    "outcome": "answer",
+    "criteria": {
+      "Z1": 1,
+      "Z2": 1,
+      "Z3": 1,
+      "Z4": 1,
+      "Z5": 0,
+      "Z6": 1,
+      "Z7": 1,
+      "Z8": 1,
+      "Z9": 1
+    },
+    "main": 0,
+    "metrics": {
+      "woerter": 280,
+      "abschnitte": 6,
+      "belegtes_material": 0.8571428571428571,
+      "warnungen": 3
+    },
+    "costUsd": 0.0034023,
+    "latencyMs": 22845,
+    "totalTokens": 10755,
+    "model": "anthropic/claude-haiku-5.5"
+  },
+  {
+    "caseId": "netzwerk-karten-und-quelle-kurz-gegliedert-pruefung-ohne-beispiele",
+    "repetition": 2,
+    "category": "kurz-gegliedert-pruefung-ohne-beispiele",
+    "trap": false,
+    "outcome": "answer",
+    "criteria": {
+      "Z1": 1,
+      "Z2": 1,
+      "Z3": 1,
+      "Z4": 1,
+      "Z5": 0,
+      "Z6": 1,
+      "Z7": 1,
+      "Z8": 1,
+      "Z9": 1
+    },
+    "main": 0,
+    "metrics": {
+      "woerter": 293,
+      "abschnitte": 11,
+      "belegtes_material": 1,
+      "warnungen": 2
+    },
+    "costUsd": 0.0032538,
+    "latencyMs": 21544,
+    "totalTokens": 10458,
+    "model": "anthropic/claude-haiku-5.5"
+  },
+  {
+    "caseId": "netzwerk-karten-und-quelle-kurz-gegliedert-pruefung-ohne-beispiele",
+    "repetition": 3,
+    "category": "kurz-gegliedert-pruefung-ohne-beispiele",
+    "trap": false,
+    "outcome": "answer",
+    "criteria": {
+      "Z1": 1,
+      "Z2": 1,
+      "Z3": 1,
+      "Z4": 1,
+      "Z5": 1,
+      "Z6": 1,
+      "Z7": 1,
+      "Z8": 1,
+      "Z9": 1
+    },
+    "main": 1,
+    "metrics": {
+      "woerter": 292,
+      "abschnitte": 7,
+      "belegtes_material": 1,
+      "warnungen": 2
+    },
+    "costUsd": 0.0035303,
+    "latencyMs": 23303,
+    "totalTokens": 11011,
+    "model": "anthropic/claude-haiku-5.5"
+  },
+  {
+    "caseId": "netzwerk-karten-und-quelle-lang-gegliedert-wiederholen-ohne-beispiele",
+    "repetition": 0,
+    "category": "lang-gegliedert-wiederholen-ohne-beispiele",
+    "trap": false,
+    "outcome": "answer",
+    "criteria": {
+      "Z1": 1,
+      "Z2": 1,
+      "Z3": 1,
+      "Z4": 1,
+      "Z5": 1,
+      "Z6": 1,
+      "Z7": 1,
+      "Z8": 1,
+      "Z9": 1
+    },
+    "main": 1,
+    "metrics": {
+      "woerter": 385,
+      "abschnitte": 7,
+      "belegtes_material": 1,
+      "warnungen": 3
+    },
+    "costUsd": 0.0065207,
+    "latencyMs": 48332,
+    "totalTokens": 16979,
+    "model": "anthropic/claude-haiku-5.5"
+  },
+  {
+    "caseId": "netzwerk-karten-und-quelle-lang-gegliedert-wiederholen-ohne-beispiele",
+    "repetition": 1,
+    "category": "lang-gegliedert-wiederholen-ohne-beispiele",
+    "trap": false,
+    "outcome": "answer",
+    "criteria": {
+      "Z1": 1,
+      "Z2": 1,
+      "Z3": 1,
+      "Z4": 1,
+      "Z5": 1,
+      "Z6": 1,
+      "Z7": 1,
+      "Z8": 1,
+      "Z9": 1
+    },
+    "main": 1,
+    "metrics": {
+      "woerter": 347,
+      "abschnitte": 8,
+      "belegtes_material": 1,
+      "warnungen": 2
+    },
+    "costUsd": 0.0060387,
+    "latencyMs": 45946,
+    "totalTokens": 16015,
+    "model": "anthropic/claude-haiku-5.5"
+  },
+  {
+    "caseId": "netzwerk-karten-und-quelle-lang-gegliedert-wiederholen-ohne-beispiele",
+    "repetition": 2,
+    "category": "lang-gegliedert-wiederholen-ohne-beispiele",
+    "trap": false,
+    "outcome": "answer",
+    "criteria": {
+      "Z1": 1,
+      "Z2": 1,
+      "Z3": 1,
+      "Z4": 1,
+      "Z5": 0,
+      "Z6": 1,
+      "Z7": 1,
+      "Z8": 1,
+      "Z9": 1
+    },
+    "main": 0,
+    "metrics": {
+      "woerter": 345,
+      "abschnitte": 10,
+      "belegtes_material": 1,
+      "warnungen": 2
+    },
+    "costUsd": 0.0042612,
+    "latencyMs": 28989,
+    "totalTokens": 12460,
+    "model": "anthropic/claude-haiku-5.5"
+  },
+  {
+    "caseId": "netzwerk-karten-und-quelle-lang-gegliedert-wiederholen-ohne-beispiele",
+    "repetition": 3,
+    "category": "lang-gegliedert-wiederholen-ohne-beispiele",
+    "trap": false,
+    "outcome": "answer",
+    "criteria": {
+      "Z1": 1,
+      "Z2": 1,
+      "Z3": 0,
+      "Z4": 1,
+      "Z5": 1,
+      "Z6": 1,
+      "Z7": 0.5,
+      "Z8": 1,
+      "Z9": 1
+    },
+    "main": 0,
+    "metrics": {
+      "woerter": 382,
+      "abschnitte": 9,
+      "belegtes_material": 1,
+      "warnungen": 3
+    },
+    "costUsd": 0.0075522,
+    "latencyMs": 54101,
+    "totalTokens": 19042,
+    "model": "anthropic/claude-haiku-5.5"
+  },
+  {
+    "caseId": "plattentektonik-karten-standard",
+    "repetition": 0,
+    "category": "standard",
+    "trap": false,
+    "outcome": "answer",
+    "criteria": {
+      "Z1": 1,
+      "Z2": 1,
+      "Z3": 1,
+      "Z4": 1,
+      "Z5": 1,
+      "Z6": 0.5,
+      "Z7": 1,
+      "Z8": 1,
+      "Z9": 1
+    },
+    "main": 0.5,
+    "metrics": {
+      "woerter": 417,
+      "abschnitte": 11,
+      "belegtes_material": 1,
+      "warnungen": 3
+    },
+    "costUsd": 0.0042554,
+    "latencyMs": 29539,
+    "totalTokens": 12710,
+    "model": "anthropic/claude-haiku-5.5"
+  },
+  {
+    "caseId": "plattentektonik-karten-standard",
+    "repetition": 1,
+    "category": "standard",
+    "trap": false,
+    "outcome": "answer",
+    "criteria": {
+      "Z1": 1,
+      "Z2": 1,
+      "Z3": 1,
+      "Z4": 1,
+      "Z5": 1,
+      "Z6": 1,
+      "Z7": 1,
+      "Z8": 1,
+      "Z9": 1
+    },
+    "main": 1,
+    "metrics": {
+      "woerter": 380,
+      "abschnitte": 9,
+      "belegtes_material": 1,
+      "warnungen": 2
+    },
+    "costUsd": 0.0056524,
+    "latencyMs": 37617,
+    "totalTokens": 15504,
+    "model": "anthropic/claude-haiku-5.5"
+  },
+  {
+    "caseId": "plattentektonik-karten-standard",
+    "repetition": 2,
+    "category": "standard",
+    "trap": false,
+    "outcome": "answer",
+    "criteria": {
+      "Z1": 1,
+      "Z2": 1,
+      "Z3": 1,
+      "Z4": 1,
+      "Z5": 1,
+      "Z6": 1,
+      "Z7": 1,
+      "Z8": 1,
+      "Z9": 1
+    },
+    "main": 1,
+    "metrics": {
+      "woerter": 412,
+      "abschnitte": 10,
+      "belegtes_material": 1,
+      "warnungen": 4
+    },
+    "costUsd": 0.0042889,
+    "latencyMs": 27107,
+    "totalTokens": 12777,
+    "model": "anthropic/claude-haiku-5.5"
+  },
+  {
+    "caseId": "plattentektonik-karten-standard",
+    "repetition": 3,
+    "category": "standard",
+    "trap": false,
+    "outcome": "answer",
+    "criteria": {
+      "Z1": 1,
+      "Z2": 1,
+      "Z3": 1,
+      "Z4": 1,
+      "Z5": 1,
+      "Z6": 0.5,
+      "Z7": 1,
+      "Z8": 1,
+      "Z9": 1
+    },
+    "main": 0.5,
+    "metrics": {
+      "woerter": 400,
+      "abschnitte": 9,
+      "belegtes_material": 1,
+      "warnungen": 3
+    },
+    "costUsd": 0.0039799,
+    "latencyMs": 26115,
+    "totalTokens": 12159,
+    "model": "anthropic/claude-haiku-5.5"
+  },
+  {
+    "caseId": "plattentektonik-karten-kurz-fliesstext-verstehen-ohne-beispiele",
+    "repetition": 0,
+    "category": "kurz-fliesstext-verstehen-ohne-beispiele",
+    "trap": false,
+    "outcome": "rejected",
+    "criteria": {
+      "Z1": 0
+    },
+    "main": 0,
+    "costUsd": 0.0031114,
+    "latencyMs": 26352,
+    "totalTokens": 10370,
+    "model": "anthropic/claude-haiku-5.5"
+  },
+  {
+    "caseId": "plattentektonik-karten-kurz-fliesstext-verstehen-ohne-beispiele",
+    "repetition": 1,
+    "category": "kurz-fliesstext-verstehen-ohne-beispiele",
+    "trap": false,
+    "outcome": "answer",
+    "criteria": {
+      "Z1": 1,
+      "Z2": 1,
+      "Z3": 1,
+      "Z4": 1,
+      "Z5": 1,
+      "Z6": 1,
+      "Z7": 0.5,
+      "Z8": 1,
+      "Z9": 1
+    },
+    "main": 1,
+    "metrics": {
+      "woerter": 335,
+      "abschnitte": 9,
+      "belegtes_material": 1,
+      "warnungen": 2
+    },
+    "costUsd": 0.0034819,
+    "latencyMs": 21296,
+    "totalTokens": 11111,
+    "model": "anthropic/claude-haiku-5.5"
+  },
+  {
+    "caseId": "plattentektonik-karten-kurz-fliesstext-verstehen-ohne-beispiele",
+    "repetition": 2,
+    "category": "kurz-fliesstext-verstehen-ohne-beispiele",
+    "trap": false,
+    "outcome": "answer",
+    "criteria": {
+      "Z1": 1,
+      "Z2": 1,
+      "Z3": 1,
+      "Z4": 1,
+      "Z5": 1,
+      "Z6": 0.5,
+      "Z7": 0.5,
+      "Z8": 1,
+      "Z9": 1
+    },
+    "main": 0.5,
+    "metrics": {
+      "woerter": 352,
+      "abschnitte": 9,
+      "belegtes_material": 1,
+      "warnungen": 2
+    },
+    "costUsd": 0.0028229,
+    "latencyMs": 17882,
+    "totalTokens": 9793,
+    "model": "anthropic/claude-haiku-5.5"
+  },
+  {
+    "caseId": "plattentektonik-karten-kurz-fliesstext-verstehen-ohne-beispiele",
+    "repetition": 3,
+    "category": "kurz-fliesstext-verstehen-ohne-beispiele",
+    "trap": false,
+    "outcome": "answer",
+    "criteria": {
+      "Z1": 1,
+      "Z2": 1,
+      "Z3": 1,
+      "Z4": 1,
+      "Z5": 1,
+      "Z6": 1,
+      "Z7": 1,
+      "Z8": 1,
+      "Z9": 1
+    },
+    "main": 1,
+    "metrics": {
+      "woerter": 338,
+      "abschnitte": 10,
+      "belegtes_material": 1,
+      "warnungen": 3
+    },
+    "costUsd": 0.0041254,
+    "latencyMs": 29700,
+    "totalTokens": 12398,
+    "model": "anthropic/claude-haiku-5.5"
+  },
+  {
+    "caseId": "stromkreise-karten-und-quelle-lang-fliesstext-pruefung",
+    "repetition": 0,
+    "category": "lang-fliesstext-pruefung",
+    "trap": false,
+    "outcome": "answer",
+    "criteria": {
+      "Z1": 1,
+      "Z2": 1,
+      "Z3": 1,
+      "Z4": 1,
+      "Z5": 1,
+      "Z6": 1,
+      "Z7": 1,
+      "Z8": 1,
+      "Z9": 1
+    },
+    "main": 1,
+    "metrics": {
+      "woerter": 524,
+      "abschnitte": 9,
+      "belegtes_material": 1,
+      "warnungen": 3
+    },
+    "costUsd": 0.004139,
+    "latencyMs": 24431,
+    "totalTokens": 12774,
+    "model": "anthropic/claude-haiku-5.5"
+  },
+  {
+    "caseId": "stromkreise-karten-und-quelle-lang-fliesstext-pruefung",
+    "repetition": 1,
+    "category": "lang-fliesstext-pruefung",
+    "trap": false,
+    "outcome": "answer",
+    "criteria": {
+      "Z1": 1,
+      "Z2": 1,
+      "Z3": 1,
+      "Z4": 1,
+      "Z5": 1,
+      "Z6": 1,
+      "Z7": 1,
+      "Z8": 1,
+      "Z9": 1
+    },
+    "main": 1,
+    "metrics": {
+      "woerter": 548,
+      "abschnitte": 8,
+      "belegtes_material": 1,
+      "warnungen": 3
+    },
+    "costUsd": 0.002599,
+    "latencyMs": 14936,
+    "totalTokens": 9694,
+    "model": "anthropic/claude-haiku-5.5"
+  },
+  {
+    "caseId": "stromkreise-karten-und-quelle-lang-fliesstext-pruefung",
+    "repetition": 2,
+    "category": "lang-fliesstext-pruefung",
+    "trap": false,
+    "outcome": "answer",
+    "criteria": {
+      "Z1": 1,
+      "Z2": 1,
+      "Z3": 1,
+      "Z4": 1,
+      "Z5": 1,
+      "Z6": 1,
+      "Z7": 1,
+      "Z8": 1,
+      "Z9": 1
+    },
+    "main": 1,
+    "metrics": {
+      "woerter": 545,
+      "abschnitte": 9,
+      "belegtes_material": 1,
+      "warnungen": 4
+    },
+    "costUsd": 0.002746,
+    "latencyMs": 15769,
+    "totalTokens": 9988,
+    "model": "anthropic/claude-haiku-5.5"
+  },
+  {
+    "caseId": "stromkreise-karten-und-quelle-lang-fliesstext-pruefung",
+    "repetition": 3,
+    "category": "lang-fliesstext-pruefung",
+    "trap": false,
+    "outcome": "answer",
+    "criteria": {
+      "Z1": 1,
+      "Z2": 1,
+      "Z3": 1,
+      "Z4": 1,
+      "Z5": 1,
+      "Z6": 1,
+      "Z7": 1,
+      "Z8": 1,
+      "Z9": 1
+    },
+    "main": 1,
+    "metrics": {
+      "woerter": 536,
+      "abschnitte": 11,
+      "belegtes_material": 1,
+      "warnungen": 3
+    },
+    "costUsd": 0.004136,
+    "latencyMs": 24968,
+    "totalTokens": 12768,
+    "model": "anthropic/claude-haiku-5.5"
+  },
+  {
+    "caseId": "stromkreise-karten-und-quelle-kurz-gegliedert-pruefung-ohne-beispiele",
+    "repetition": 0,
+    "category": "kurz-gegliedert-pruefung-ohne-beispiele",
+    "trap": false,
+    "outcome": "answer",
+    "criteria": {
+      "Z1": 1,
+      "Z2": 0,
+      "Z3": 1,
+      "Z4": 1,
+      "Z5": 1,
+      "Z6": 1,
+      "Z7": 1,
+      "Z8": 1,
+      "Z9": 1
+    },
+    "main": 0,
+    "metrics": {
+      "woerter": 409,
+      "abschnitte": 7,
+      "belegtes_material": 1,
+      "warnungen": 3
+    },
+    "costUsd": 0.0039067,
+    "latencyMs": 25946,
+    "totalTokens": 12343,
+    "model": "anthropic/claude-haiku-5.5"
+  },
+  {
+    "caseId": "stromkreise-karten-und-quelle-kurz-gegliedert-pruefung-ohne-beispiele",
+    "repetition": 1,
+    "category": "kurz-gegliedert-pruefung-ohne-beispiele",
+    "trap": false,
+    "outcome": "answer",
+    "criteria": {
+      "Z1": 1,
+      "Z2": 0,
+      "Z3": 1,
+      "Z4": 1,
+      "Z5": 1,
+      "Z6": 1,
+      "Z7": 0.5,
+      "Z8": 1,
+      "Z9": 1
+    },
+    "main": 0,
+    "metrics": {
+      "woerter": 412,
+      "abschnitte": 7,
+      "belegtes_material": 1,
+      "warnungen": 3
+    },
+    "costUsd": 0.0044272,
+    "latencyMs": 29622,
+    "totalTokens": 13384,
+    "model": "anthropic/claude-haiku-5.5"
+  },
+  {
+    "caseId": "stromkreise-karten-und-quelle-kurz-gegliedert-pruefung-ohne-beispiele",
+    "repetition": 2,
+    "category": "kurz-gegliedert-pruefung-ohne-beispiele",
+    "trap": false,
+    "outcome": "answer",
+    "criteria": {
+      "Z1": 1,
+      "Z2": 0,
+      "Z3": 1,
+      "Z4": 1,
+      "Z5": 0,
+      "Z6": 1,
+      "Z7": 1,
+      "Z8": 1,
+      "Z9": 1
+    },
+    "main": 0,
+    "metrics": {
+      "woerter": 388,
+      "abschnitte": 8,
+      "belegtes_material": 1,
+      "warnungen": 3
+    },
+    "costUsd": 0.0024912,
+    "latencyMs": 14726,
+    "totalTokens": 9512,
+    "model": "anthropic/claude-haiku-5.5"
+  },
+  {
+    "caseId": "stromkreise-karten-und-quelle-kurz-gegliedert-pruefung-ohne-beispiele",
+    "repetition": 3,
+    "category": "kurz-gegliedert-pruefung-ohne-beispiele",
+    "trap": false,
+    "outcome": "answer",
+    "criteria": {
+      "Z1": 1,
+      "Z2": 0,
+      "Z3": 1,
+      "Z4": 1,
+      "Z5": 0,
+      "Z6": 0.5,
+      "Z7": 1,
+      "Z8": 1,
+      "Z9": 1
+    },
+    "main": 0,
+    "metrics": {
+      "woerter": 415,
+      "abschnitte": 8,
+      "belegtes_material": 1,
+      "warnungen": 4
+    },
+    "costUsd": 0.0032997,
+    "latencyMs": 21176,
+    "totalTokens": 11129,
+    "model": "anthropic/claude-haiku-5.5"
+  }
+]

@@ -1,0 +1,113 @@
+{
+  "title": "IT-Sicherheit",
+  "material": "cards-and-source",
+  "decks": [
+    {
+      "id": "d1",
+      "name": "IT-Sicherheit"
+    },
+    {
+      "id": "d2",
+      "name": "Kryptografie",
+      "parent": "d1"
+    },
+    {
+      "id": "d3",
+      "name": "Angriffe und Schutz",
+      "parent": "d1"
+    }
+  ],
+  "units": [
+    {
+      "id": "m1",
+      "kind": "card",
+      "deck": "d1",
+      "text": "F: Welche drei klassischen Schutzziele hat die Informationssicherheit?\nA: Vertraulichkeit, Integrität und Verfügbarkeit."
+    },
+    {
+      "id": "m2",
+      "kind": "card",
+      "deck": "d2",
+      "text": "F: Was unterscheidet symmetrische von asymmetrischer Verschlüsselung?\nA: Symmetrische Verfahren nutzen denselben geheimen Schlüssel zum Ver- und Entschlüsseln; asymmetrische Verfahren nutzen ein Paar aus öffentlichem und privatem Schlüssel."
+    },
+    {
+      "id": "m3",
+      "kind": "card",
+      "deck": "d2",
+      "text": "F: Wie groß sind die Blöcke, die AES verschlüsselt?\nA: 256 Bit."
+    },
+    {
+      "id": "m4",
+      "kind": "card",
+      "deck": "d2",
+      "text": "F: Wie lang sollte ein RSA-Schlüssel mindestens sein?\nA: Mindestens 1024 Bit."
+    },
+    {
+      "id": "m5",
+      "kind": "card",
+      "deck": "d2",
+      "text": "F: Wie lang ist ein SHA-256-Hashwert?\nA: Stets 256 Bit, unabhängig von der Länge der Eingabe."
+    },
+    {
+      "id": "m6",
+      "kind": "card",
+      "deck": "d2",
+      "text": "F: Womit wird eine digitale Signatur erzeugt und womit geprüft?\nA: Sie wird mit dem privaten Schlüssel erzeugt und mit dem öffentlichen Schlüssel geprüft."
+    },
+    {
+      "id": "m7",
+      "kind": "card",
+      "deck": "d3",
+      "text": "F: Wie speichert man Passwörter sicher?\nA: Nie im Klartext, sondern mit einem zufälligen Salt und einer langsamen Hashfunktion wie Argon2 oder bcrypt."
+    },
+    {
+      "id": "m8",
+      "kind": "card",
+      "deck": "d3",
+      "text": "F: Was verlangt Mehr-Faktor-Authentisierung?\nA: Mindestens zwei Faktoren aus verschiedenen Kategorien: Wissen, Besitz und Inhärenz."
+    },
+    {
+      "id": "m9",
+      "kind": "card",
+      "deck": "d3",
+      "text": "F: Was hilft gegen SQL-Injection?\nA: Parametrisierte Abfragen (Prepared Statements)."
+    },
+    {
+      "id": "m10",
+      "kind": "card",
+      "deck": "d3",
+      "text": "F: Was ist Cross-Site-Scripting?\nA: Fremder Skriptcode gelangt in eine Webseite und wird im Browser anderer Nutzer ausgeführt."
+    },
+    {
+      "id": "m11",
+      "kind": "card",
+      "deck": "d3",
+      "text": "F: Gegen welches Schutzziel richtet sich ein DDoS-Angriff?\nA: Gegen die Verfügbarkeit."
+    },
+    {
+      "id": "m12",
+      "kind": "card",
+      "deck": "d3",
+      "text": "F: Was schützt am besten vor Datenverlust durch Ransomware?\nA: Regelmäßige Sicherungen, von denen mindestens eine offline aufbewahrt wird."
+    },
+    {
+      "id": "m13",
+      "kind": "source",
+      "text": "Leitfaden: Grundschutz für kleine Teams\n\n1. Schutzziele. Informationssicherheit verfolgt drei klassische Schutzziele: Vertraulichkeit bedeutet, dass nur Berechtigte Informationen lesen können. Integrität bedeutet, dass Daten nicht unbemerkt verändert werden können. Verfügbarkeit bedeutet, dass Systeme und Daten nutzbar sind, wenn sie gebraucht werden. Häufig kommen Authentizität und Verbindlichkeit hinzu.\n\n2. Verschlüsselung. Bei symmetrischen Verfahren verwenden Sender und Empfänger denselben geheimen Schlüssel. Der verbreitete Standard AES verschlüsselt Blöcke von 128 Bit und arbeitet mit Schlüssellängen von 128, 192 oder 256 Bit. Symmetrische Verfahren sind schnell, aber der Schlüssel muss sicher ausgetauscht werden. Asymmetrische Verfahren wie RSA nutzen ein Schlüsselpaar aus öffentlichem und privatem Schlüssel; was mit dem öffentlichen Schlüssel verschlüsselt wurde, kann nur der zugehörige private Schlüssel entschlüsseln. Für RSA empfehlen wir Schlüssellängen von mindestens 3000 Bit. In der Praxis werden beide Verfahren kombiniert: Ein asymmetrisches Verfahren sichert den Austausch eines symmetrischen Sitzungsschlüssels, mit dem anschließend die eigentlichen Daten verschlüsselt werden, so wie es etwa TLS tut.\n\n3. Hashfunktionen und Signaturen. Eine kryptografische Hashfunktion bildet beliebig lange Daten auf einen Wert fester Länge ab; SHA-256 erzeugt zum Beispiel stets 256 Bit. Aus dem Hashwert lässt sich die Eingabe nicht zurückrechnen, und schon kleinste Änderungen der Eingabe ändern den Hashwert vollständig. Eine digitale Signatur wird mit dem privaten Schlüssel erzeugt und mit dem öffentlichen Schlüssel geprüft; sie belegt, dass ein Dokument unverändert ist und vom Inhaber des Schlüssels stammt.\n\n4. Passwörter und Anmeldung. Passwörter werden niemals im Klartext gespeichert, sondern mit einem zufälligen Salt und einer bewusst langsamen Funktion wie Argon2 oder bcrypt gehasht. Das Salt verhindert, dass gleiche Passwörter gleiche Hashwerte ergeben und vorberechnete Tabellen nutzbar sind. Wo möglich, nutzen wir Mehr-Faktor-Authentisierung: Sie kombiniert mindestens zwei Faktoren aus verschiedenen Kategorien, nämlich Wissen wie ein Passwort, Besitz wie ein Smartphone oder einen Sicherheitsschlüssel und Inhärenz wie einen Fingerabdruck.\n\n5. Typische Angriffe. Beim Phishing versuchen Angreifer, mit gefälschten Nachrichten Zugangsdaten zu erbeuten oder Schadsoftware unterzuschieben. Bei einer SQL-Injection werden Eingaben so manipuliert, dass sie als Teil einer Datenbankabfrage ausgeführt werden; dagegen helfen parametrisierte Abfragen. Beim Cross-Site-Scripting gelangt fremder Skriptcode in eine Webseite und wird im Browser anderer Nutzer ausgeführt; dagegen helfen kontextgerechtes Maskieren von Ausgaben und eine Content Security Policy. Ein Distributed-Denial-of-Service-Angriff überlastet einen Dienst mit Anfragen aus vielen Quellen und richtet sich damit gegen die Verfügbarkeit. Ransomware verschlüsselt Daten und erpresst Lösegeld für ihre Freigabe.\n\n6. Organisatorische Maßnahmen. Wir sichern Daten nach der 3-2-1-Regel: drei Kopien auf zwei verschiedenen Medien, davon eine außerhalb des Standorts; mindestens eine Sicherung bleibt offline, damit Ransomware sie nicht erreicht. Sicherheitsupdates werden zeitnah eingespielt. Jede Person erhält nur die Rechte, die sie für ihre Aufgabe braucht (Prinzip der minimalen Rechte)."
+    }
+  ],
+  "keypoints": [
+    "Die drei klassischen Schutzziele sind Vertraulichkeit, Integrität und Verfügbarkeit.",
+    "Symmetrische Verfahren nutzen denselben geheimen Schlüssel, asymmetrische Verfahren ein Paar aus öffentlichem und privatem Schlüssel.",
+    "In der Praxis sichert ein asymmetrisches Verfahren den Austausch eines symmetrischen Sitzungsschlüssels.",
+    "Eine digitale Signatur wird mit dem privaten Schlüssel erzeugt und mit dem öffentlichen Schlüssel geprüft.",
+    "Passwörter werden mit einem zufälligen Salt und einer langsamen Funktion wie Argon2 oder bcrypt gehasht, niemals im Klartext gespeichert.",
+    "Mehr-Faktor-Authentisierung kombiniert mindestens zwei Faktoren aus verschiedenen Kategorien.",
+    "Gegen SQL-Injection helfen parametrisierte Abfragen.",
+    "Nach der 3-2-1-Regel gibt es drei Kopien auf zwei verschiedenen Medien, davon eine außerhalb des Standorts."
+  ],
+  "contradictions": [
+    "Eine Karte nennt für AES eine Blockgröße von 256 Bit, die Quelle eine Blockgröße von 128 Bit.",
+    "Eine Karte nennt für RSA eine Mindestschlüssellänge von 1024 Bit, die Quelle empfiehlt mindestens 3000 Bit."
+  ]
+}

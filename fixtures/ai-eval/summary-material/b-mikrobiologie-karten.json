@@ -1,0 +1,154 @@
+{
+  "title": "Bakterien, Viren und Antibiotika",
+  "material": "cards",
+  "decks": [
+    {
+      "id": "d1",
+      "name": "Mikrobiologie"
+    },
+    {
+      "id": "d2",
+      "name": "Bakterien",
+      "parent": "d1"
+    },
+    {
+      "id": "d3",
+      "name": "Antibiotika",
+      "parent": "d1"
+    },
+    {
+      "id": "d4",
+      "name": "Viren und Pilze",
+      "parent": "d1"
+    }
+  ],
+  "units": [
+    {
+      "id": "m1",
+      "kind": "card",
+      "deck": "d2",
+      "text": "F: Wo liegt die DNA einer Bakterienzelle?\nA: Bakterien haben keinen Zellkern; ihre DNA liegt als ringförmiges Chromosom frei im Zytoplasma, im sogenannten Nukleoid."
+    },
+    {
+      "id": "m2",
+      "kind": "card",
+      "deck": "d2",
+      "text": "F: Welche Ribosomen besitzen Bakterien?\nA: 70S-Ribosomen; Eukaryoten besitzen im Zytoplasma 80S-Ribosomen."
+    },
+    {
+      "id": "m3",
+      "kind": "card",
+      "deck": "d2",
+      "text": "F: Wie unterscheiden sich grampositive und gramnegative Bakterien im Zellwandaufbau?\nA: Grampositive Bakterien haben eine dicke Mureinschicht; gramnegative haben eine dünne Mureinschicht und zusätzlich eine äußere Membran."
+    },
+    {
+      "id": "m4",
+      "kind": "card",
+      "deck": "d2",
+      "text": "F: Welche Farbe zeigen Bakterien nach der Gramfärbung?\nA: Grampositive Bakterien erscheinen violett, gramnegative Bakterien rot."
+    },
+    {
+      "id": "m5",
+      "kind": "card",
+      "deck": "d2",
+      "text": "F: Was ist ein Endotoxin?\nA: Das Lipopolysaccharid der äußeren Membran gramnegativer Bakterien; es kann Fieber und einen Schock auslösen."
+    },
+    {
+      "id": "m6",
+      "kind": "card",
+      "deck": "d2",
+      "text": "F: Welche Bakteriengattungen bilden Endosporen?\nA: Vor allem Bacillus und Clostridium; Endosporen sind sehr widerstandsfähig gegen Hitze und Austrocknung."
+    },
+    {
+      "id": "m7",
+      "kind": "card",
+      "deck": "d2",
+      "text": "F: Was sind Plasmide?\nA: Kleine ringförmige DNA-Moleküle neben dem Chromosom; sie tragen oft Resistenzgene und können durch Konjugation auf andere Bakterien übertragen werden."
+    },
+    {
+      "id": "m8",
+      "kind": "card",
+      "deck": "d2",
+      "text": "F: Wie lang ist die Generationszeit von E. coli unter optimalen Bedingungen?\nA: Etwa 20 Minuten."
+    },
+    {
+      "id": "m9",
+      "kind": "card",
+      "deck": "d2",
+      "text": "F: Welche Phasen hat die bakterielle Wachstumskurve?\nA: Anlaufphase (lag-Phase), exponentielle Phase (log-Phase), stationäre Phase und Absterbephase."
+    },
+    {
+      "id": "m10",
+      "kind": "card",
+      "deck": "d2",
+      "text": "F: Warum wird eine Flüssigkultur von E. coli erst nach vielen Stunden trüb?\nA: Weil sich E. coli unter optimalen Bedingungen nur etwa alle 2 Stunden teilt."
+    },
+    {
+      "id": "m11",
+      "kind": "card",
+      "deck": "d3",
+      "text": "F: Wie wirkt Penicillin?\nA: Es hemmt die Zellwandsynthese, indem es Penicillin-bindende Proteine blockiert, und wirkt dadurch bakterizid."
+    },
+    {
+      "id": "m12",
+      "kind": "card",
+      "deck": "d3",
+      "text": "F: Wie werden Bakterien gegen Penicillin resistent?\nA: Häufig durch Betalaktamasen, die den Betalaktamring des Antibiotikums spalten."
+    },
+    {
+      "id": "m13",
+      "kind": "card",
+      "deck": "d3",
+      "text": "F: Wo greifen Aminoglykoside und Makrolide an?\nA: Aminoglykoside an der 30S-Untereinheit, Makrolide an der 50S-Untereinheit des bakteriellen Ribosoms; beide hemmen die Proteinbiosynthese."
+    },
+    {
+      "id": "m14",
+      "kind": "card",
+      "deck": "d3",
+      "text": "F: Warum helfen Antibiotika nicht gegen Erkältungsviren?\nA: Antibiotika greifen bakterielle Strukturen an; Viren besitzen weder Zellwand noch eigene Ribosomen, deshalb wirken Antibiotika nicht gegen Viren."
+    },
+    {
+      "id": "m15",
+      "kind": "card",
+      "deck": "d4",
+      "text": "F: Warum sind Viren obligat intrazellulär?\nA: Sie haben keinen eigenen Stoffwechsel und können sich nur mithilfe einer Wirtszelle vermehren."
+    },
+    {
+      "id": "m16",
+      "kind": "card",
+      "deck": "d4",
+      "text": "F: Woraus besteht ein Virus?\nA: Aus Erbgut (DNA oder RNA) in einer Proteinhülle, dem Kapsid; manche Viren haben zusätzlich eine Lipidhülle."
+    },
+    {
+      "id": "m17",
+      "kind": "card",
+      "deck": "d4",
+      "text": "F: Was sind Bakteriophagen?\nA: Viren, die Bakterien befallen."
+    },
+    {
+      "id": "m18",
+      "kind": "card",
+      "deck": "d4",
+      "text": "F: Was unterscheidet Pilze zellbiologisch von Bakterien?\nA: Pilze sind Eukaryoten mit Zellkern; ihre Zellwand enthält Chitin und ihre Zellmembran Ergosterol."
+    },
+    {
+      "id": "m19",
+      "kind": "card",
+      "deck": "d4",
+      "text": "F: Wie wirken Azol-Antimykotika?\nA: Sie hemmen die Synthese von Ergosterol und schädigen so die Zellmembran der Pilze."
+    }
+  ],
+  "keypoints": [
+    "Bakterien haben keinen Zellkern; ihre DNA liegt als ringförmiges Chromosom im Nukleoid.",
+    "Bakterien besitzen 70S-Ribosomen, Eukaryoten im Zytoplasma 80S-Ribosomen.",
+    "Grampositive Bakterien haben eine dicke Mureinschicht und erscheinen nach der Gramfärbung violett, gramnegative haben eine dünne Mureinschicht mit äußerer Membran und erscheinen rot.",
+    "Plasmide tragen oft Resistenzgene und können durch Konjugation auf andere Bakterien übertragen werden.",
+    "Penicillin hemmt die Zellwandsynthese und wirkt bakterizid; Betalaktamasen spalten seinen Betalaktamring.",
+    "Antibiotika wirken nicht gegen Viren, weil Viren weder Zellwand noch eigene Ribosomen besitzen.",
+    "Viren haben keinen eigenen Stoffwechsel und vermehren sich nur mithilfe einer Wirtszelle.",
+    "Pilze sind Eukaryoten, deren Zellwand Chitin und deren Zellmembran Ergosterol enthält."
+  ],
+  "contradictions": [
+    "Eine Karte gibt die Generationszeit von E. coli unter optimalen Bedingungen mit etwa 20 Minuten an, eine andere mit etwa 2 Stunden."
+  ]
+}

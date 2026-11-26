@@ -1,0 +1,45 @@
+{
+  "title": "Plattentektonik",
+  "material": "cards",
+  "decks": [
+    { "id": "d1", "name": "Geografie" },
+    { "id": "d2", "name": "Plattentektonik", "parent": "d1" },
+    { "id": "d3", "name": "Vulkane und Erdbeben", "parent": "d1" }
+  ],
+  "units": [
+    { "id": "m1", "kind": "card", "deck": "d2", "text": "F: Aus welchen Schalen ist die Erde aufgebaut?\nA: Aus Erdkruste, Erdmantel und Erdkern." },
+    { "id": "m2", "kind": "card", "deck": "d2", "text": "F: Was ist die Lithosphäre?\nA: Die starre äußere Schale aus Erdkruste und oberstem Erdmantel; sie ist in Platten zerbrochen." },
+    { "id": "m3", "kind": "card", "deck": "d2", "text": "F: Worauf bewegen sich die Lithosphärenplatten?\nA: Auf der Asthenosphäre, einer zähplastischen Zone des oberen Erdmantels." },
+    { "id": "m4", "kind": "card", "deck": "d2", "text": "F: Wer begründete die Theorie der Kontinentalverschiebung?\nA: Alfred Wegener im Jahr 1912." },
+    { "id": "m5", "kind": "card", "deck": "d2", "text": "F: Welche Belege nannte Wegener für die Kontinentalverschiebung?\nA: Die zueinander passenden Küstenlinien von Südamerika und Afrika sowie übereinstimmende Fossilien und Gesteine auf heute getrennten Kontinenten." },
+    { "id": "m6", "kind": "card", "deck": "d2", "text": "F: Was war Pangäa?\nA: Ein Superkontinent, der alle heutigen Kontinente vereinte und vor etwa 200 Millionen Jahren zu zerbrechen begann." },
+    { "id": "m7", "kind": "card", "deck": "d2", "text": "F: Was geschieht an einer divergenten Plattengrenze?\nA: Die Platten bewegen sich auseinander; aufsteigendes Magma bildet neue ozeanische Kruste, etwa am Mittelatlantischen Rücken." },
+    { "id": "m8", "kind": "card", "deck": "d2", "text": "F: Wie schnell entfernen sich Amerika und Europa voneinander?\nA: Um etwa 2 bis 3 Zentimeter pro Jahr." },
+    { "id": "m9", "kind": "card", "deck": "d2", "text": "F: Was belegen die Magnetstreifen am Meeresboden?\nA: Die Spreizung des Meeresbodens: Gestein beiderseits des Rückens zeigt spiegelbildlich die Umpolungen des Erdmagnetfelds." },
+    { "id": "m10", "kind": "card", "deck": "d2", "text": "F: Was geschieht, wenn eine ozeanische und eine kontinentale Platte aufeinandertreffen?\nA: Die dichtere ozeanische Platte taucht unter die kontinentale ab (Subduktion); es entstehen eine Tiefseerinne und Vulkane, etwa in den Anden." },
+    { "id": "m11", "kind": "card", "deck": "d2", "text": "F: Was entsteht, wenn zwei kontinentale Platten kollidieren?\nA: Ein Faltengebirge wie der Himalaya, weil keine der beiden Platten tief abtaucht." },
+    { "id": "m12", "kind": "card", "deck": "d2", "text": "F: Was ist eine Transformstörung?\nA: Eine Plattengrenze, an der zwei Platten seitlich aneinander vorbeigleiten, etwa die San-Andreas-Verwerfung in Kalifornien." },
+    { "id": "m13", "kind": "card", "deck": "d2", "text": "F: Wie tief ist der Marianengraben an seiner tiefsten Stelle?\nA: Knapp 11.000 Meter; er ist die tiefste Stelle der Weltmeere." },
+    { "id": "m14", "kind": "card", "deck": "d2", "text": "F: Warum ist ozeanische Kruste kaum älter als etwa 200 Millionen Jahre?\nA: Weil sie an Subduktionszonen ständig wieder in den Erdmantel abtaucht." },
+    { "id": "m15", "kind": "card", "deck": "d3", "text": "F: Was ist der Pazifische Feuerring?\nA: Ein Gürtel aus Subduktionszonen rund um den Pazifik, in dem ein Großteil der aktiven Vulkane und der stärksten Erdbeben liegt." },
+    { "id": "m16", "kind": "card", "deck": "d3", "text": "F: Wie entstehen Vulkaninseln wie Hawaii mitten auf einer Platte?\nA: Über einem ortsfesten Hotspot im Erdmantel; die Platte wandert darüber, sodass eine Kette immer älterer Inseln entsteht." },
+    { "id": "m17", "kind": "card", "deck": "d3", "text": "F: Was unterscheidet Hypozentrum und Epizentrum?\nA: Das Hypozentrum ist der Bebenherd im Erdinneren, das Epizentrum der Punkt der Erdoberfläche senkrecht darüber." },
+    { "id": "m18", "kind": "card", "deck": "d3", "text": "F: Wie verändert sich die freigesetzte Energie mit jeder Stufe der Momenten-Magnituden-Skala?\nA: Sie steigt um etwa das 32-Fache; die Skala ist logarithmisch." },
+    { "id": "m19", "kind": "card", "deck": "d3", "text": "F: Wie entsteht ein Tsunami?\nA: Meist durch ein starkes Seebeben, das den Meeresboden ruckartig hebt oder senkt und die darüberliegende Wassersäule verdrängt." },
+    { "id": "m20", "kind": "card", "deck": "d3", "text": "F: Wo liegt der tiefste Punkt der Weltmeere?\nA: Im Challengertief des Marianengrabens, rund 8.800 Meter unter dem Meeresspiegel." }
+  ],
+  "keypoints": [
+    "Die Lithosphäre aus Erdkruste und oberstem Erdmantel ist in Platten zerbrochen, die sich auf der zähplastischen Asthenosphäre bewegen.",
+    "Alfred Wegener begründete 1912 die Theorie der Kontinentalverschiebung mit passenden Küstenlinien sowie übereinstimmenden Fossilien und Gesteinen.",
+    "Der Superkontinent Pangäa begann vor etwa 200 Millionen Jahren zu zerbrechen.",
+    "An divergenten Plattengrenzen wie dem Mittelatlantischen Rücken entsteht neue ozeanische Kruste.",
+    "Bei der Subduktion taucht die dichtere ozeanische Platte unter die kontinentale ab, wobei Tiefseerinnen und Vulkane entstehen.",
+    "Kollidieren zwei kontinentale Platten, entsteht ein Faltengebirge wie der Himalaya.",
+    "An Transformstörungen wie der San-Andreas-Verwerfung gleiten Platten seitlich aneinander vorbei.",
+    "Vulkaninseln wie Hawaii entstehen über einem ortsfesten Hotspot, über den die Platte hinwegwandert.",
+    "Die Momenten-Magnituden-Skala ist logarithmisch, und jede Stufe bedeutet etwa 32-mal mehr Energie."
+  ],
+  "contradictions": [
+    "Eine Karte gibt die tiefste Stelle des Marianengrabens mit knapp 11.000 Metern an, eine andere das Challengertief mit rund 8.800 Metern."
+  ]
+}

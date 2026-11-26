@@ -1,0 +1,56 @@
+Grundlagen der linearen Algebra
+
+Die lineare Algebra beschäftigt sich mit Vektoren, Matrizen und linearen Gleichungssystemen. Sie wird in der Geometrie, der Physik, der Informatik und der Statistik gebraucht, etwa für Drehungen in Computergrafiken oder für Ausgleichsrechnungen.
+
+Ein Vektor im dreidimensionalen Raum ist ein Tripel reeller Zahlen, zum Beispiel a = (1, 2, 2). Geometrisch beschreibt er eine Verschiebung mit Richtung und Länge. Zwei Vektoren werden komponentenweise addiert: (1, 2, 2) + (2, −1, 0) = (3, 1, 2). Bei der Multiplikation mit einer Zahl, der Skalarmultiplikation, wird jede Komponente mit dieser Zahl multipliziert; ein negativer Faktor kehrt die Richtung um. Der Nullvektor (0, 0, 0) hat keine Richtung.
+
+Der Betrag eines Vektors ist seine Länge. Er wird mit dem Satz des Pythagoras berechnet: |a| = √(a1² + a2² + a3²). Für a = (1, 2, 2) ergibt sich |a| = √(1 + 4 + 4) = √9 = 3. Ein Vektor mit dem Betrag 1 heißt Einheitsvektor; man erhält ihn, indem man einen Vektor durch seinen Betrag teilt.
+
+Das Skalarprodukt zweier Vektoren ist eine Zahl und kein Vektor: a · b = a1·b1 + a2·b2 + a3·b3. Es hängt mit dem eingeschlossenen Winkel φ zusammen: a · b = |a| · |b| · cos(φ). Zwei Vektoren, die beide nicht der Nullvektor sind, stehen genau dann senkrecht aufeinander, wenn ihr Skalarprodukt null ist. Für a = (1, 2, 2) und b = (2, −1, 0) gilt a · b = 2 − 2 + 0 = 0; die beiden Vektoren sind also orthogonal. Ist das Skalarprodukt positiv, ist der Winkel spitz, ist es negativ, ist er stumpf.
+
+Das Vektorprodukt, auch Kreuzprodukt genannt, ist nur im dreidimensionalen Raum definiert. Es liefert einen Vektor, der auf beiden Ausgangsvektoren senkrecht steht:
+a × b = (a2·b3 − a3·b2, a3·b1 − a1·b3, a1·b2 − a2·b1).
+Für a = (1, 2, 2) und b = (2, −1, 0) ergibt sich a × b = (2, 4, −5). Der Betrag des Kreuzprodukts entspricht dem Flächeninhalt des Parallelogramms, das a und b aufspannen. Das Kreuzprodukt ist nicht kommutativ: Es gilt b × a = −(a × b).
+
+Vektoren v1, …, vk heißen linear unabhängig, wenn sich der Nullvektor aus ihnen nur auf triviale Weise kombinieren lässt, also wenn aus c1·v1 + … + ck·vk = 0 folgt, dass alle Koeffizienten c1 bis ck null sind. Andernfalls sind sie linear abhängig, und mindestens einer von ihnen lässt sich als Kombination der anderen schreiben. Im dreidimensionalen Raum sind mehr als drei Vektoren immer linear abhängig. Drei linear unabhängige Vektoren bilden eine Basis des Raums.
+
+Eine Matrix ist ein rechteckiges Zahlenschema mit m Zeilen und n Spalten; man spricht von einer m×n-Matrix. Das Element in Zeile i und Spalte j heißt aij. Hat eine Matrix gleich viele Zeilen wie Spalten, heißt sie quadratisch. Die Einheitsmatrix E ist quadratisch, hat auf der Hauptdiagonalen Einsen und sonst Nullen.
+
+Zwei Matrizen lassen sich nur addieren, wenn sie dieselbe Zeilen- und Spaltenzahl haben; addiert wird elementweise. Das Produkt A · B ist nur definiert, wenn A so viele Spalten hat wie B Zeilen. Ist A eine m×n-Matrix und B eine n×p-Matrix, so ist A · B eine m×p-Matrix. Das Element in Zeile i und Spalte j des Produkts ist das Skalarprodukt der i-ten Zeile von A mit der j-ten Spalte von B.
+
+Die Matrizenmultiplikation ist im Allgemeinen nicht kommutativ. Für A = ((1, 2), (0, 1)) und B = ((1, 0), (3, 1)), jeweils zeilenweise geschrieben, gilt A · B = ((7, 2), (3, 1)), aber B · A = ((1, 2), (3, 7)). Die Reihenfolge der Faktoren darf deshalb nicht vertauscht werden. Assoziativ ist die Multiplikation dagegen: (A · B) · C = A · (B · C). Für die Einheitsmatrix gilt A · E = E · A = A.
+
+Die transponierte Matrix A^T entsteht, indem man Zeilen und Spalten vertauscht. Für das Transponieren eines Produkts kehrt sich die Reihenfolge um: (A · B)^T = B^T · A^T.
+
+Eine quadratische Matrix A heißt invertierbar, wenn es eine Matrix A^(−1) gibt mit A · A^(−1) = A^(−1) · A = E. Nicht quadratische Matrizen haben keine Inverse in diesem Sinn. Eine quadratische Matrix ist genau dann invertierbar, wenn ihre Determinante nicht null ist. Auch beim Invertieren eines Produkts kehrt sich die Reihenfolge um: (A · B)^(−1) = B^(−1) · A^(−1).
+
+Die Determinante ist eine Zahl, die einer quadratischen Matrix zugeordnet ist. Für eine 2×2-Matrix ((a, b), (c, d)) gilt det = a·d − b·c. Beispiel: Die Matrix ((3, 1), (4, 2)) hat die Determinante 3·2 − 1·4 = 2. Ihre Inverse lautet (1/2) · ((2, −1), (−4, 3)): Man vertauscht die Elemente der Hauptdiagonalen, ändert das Vorzeichen der beiden anderen Elemente und teilt durch die Determinante.
+
+Für 3×3-Matrizen gibt es die Regel von Sarrus: Man schreibt die ersten beiden Spalten noch einmal rechts neben die Matrix, addiert die Produkte der drei Hauptdiagonalen und zieht die Produkte der drei Nebendiagonalen ab. Die Regel von Sarrus gilt ausschließlich für 3×3-Matrizen; für größere Matrizen verwendet man den Entwicklungssatz von Laplace oder formt die Matrix in eine Dreiecksform um.
+
+Wichtige Eigenschaften der Determinante sind:
+Vertauscht man zwei Zeilen, ändert die Determinante ihr Vorzeichen.
+Multipliziert man eine Zeile mit einer Zahl k, wird auch die Determinante mit k multipliziert.
+Addiert man ein Vielfaches einer Zeile zu einer anderen, bleibt die Determinante unverändert.
+Hat eine Matrix eine Nullzeile oder zwei gleiche Zeilen, ist ihre Determinante null.
+Bei einer Dreiecksmatrix ist die Determinante das Produkt der Elemente auf der Hauptdiagonalen.
+Für zwei quadratische Matrizen gleicher Größe gilt det(A · B) = det(A) · det(B), und det(A^T) = det(A).
+Geometrisch gibt der Betrag der Determinante einer 3×3-Matrix das Volumen des Spats an, den die drei Zeilenvektoren aufspannen. Ist die Determinante null, liegen die Vektoren in einer Ebene und sind linear abhängig.
+
+Ein lineares Gleichungssystem (LGS) besteht aus mehreren linearen Gleichungen mit denselben Unbekannten. In Matrixschreibweise lautet es A · x = b, wobei A die Koeffizientenmatrix, x der Vektor der Unbekannten und b der Vektor der rechten Seiten ist. Hängt man b als zusätzliche Spalte an A an, erhält man die erweiterte Koeffizientenmatrix.
+
+Ein LGS hat entweder genau eine Lösung, keine Lösung oder unendlich viele Lösungen. Genau zwei Lösungen sind nie möglich. Über die Lösbarkeit entscheidet der Rang: Ist der Rang der Koeffizientenmatrix kleiner als der Rang der erweiterten Matrix, gibt es keine Lösung. Sind beide Ränge gleich der Anzahl der Unbekannten, gibt es genau eine Lösung. Sind beide Ränge gleich, aber kleiner als die Anzahl der Unbekannten, gibt es unendlich viele Lösungen. Ist A quadratisch, gibt es genau dann genau eine Lösung, wenn det(A) ≠ 0 ist.
+
+Ein homogenes LGS mit b = 0 ist immer lösbar, weil der Nullvektor stets eine Lösung ist; man nennt sie die triviale Lösung. Weitere Lösungen gibt es nur, wenn die Spalten von A linear abhängig sind.
+
+Das Gauß-Verfahren löst ein LGS, indem es die erweiterte Matrix mit elementaren Zeilenumformungen in eine Stufenform bringt. Erlaubt sind drei Umformungen: zwei Zeilen vertauschen, eine Zeile mit einer Zahl ungleich null multiplizieren und ein Vielfaches einer Zeile zu einer anderen addieren. Keine dieser Umformungen ändert die Lösungsmenge. Nicht erlaubt ist es, eine Zeile mit null zu multiplizieren. In der Stufenform stehen unterhalb der Diagonalen nur Nullen. Anschließend bestimmt man die Unbekannten durch Rückwärtseinsetzen, beginnend mit der letzten Zeile.
+
+Beispiel: Gesucht ist die Lösung des Systems
+I: x + y + z = 6
+II: 2x − y + z = 3
+III: x + 2y − z = 2
+Im ersten Schritt wird x aus den Gleichungen II und III entfernt. II − 2·I ergibt −3y − z = −9. III − I ergibt y − 2z = −4. Im zweiten Schritt wird y aus der letzten Gleichung entfernt: Das Dreifache der neuen Gleichung III plus die neue Gleichung II ergibt −7z = −21, also z = 3. Rückwärts eingesetzt folgt aus y − 2·3 = −4, dass y = 2 ist, und aus x + 2 + 3 = 6, dass x = 1 ist. Die Lösung lautet (x, y, z) = (1, 2, 3). Die Determinante der Koeffizientenmatrix ist 7 und damit nicht null, deshalb ist diese Lösung eindeutig.
+
+Entsteht beim Gauß-Verfahren eine Zeile der Form 0 = c mit c ≠ 0, ist das System widersprüchlich und hat keine Lösung. Entsteht eine Nullzeile 0 = 0, ist eine Gleichung überflüssig; bleiben dann weniger Gleichungen als Unbekannte übrig, wählt man eine Unbekannte als freien Parameter, und es gibt unendlich viele Lösungen.
+
+Eine Alternative für kleine quadratische Systeme ist die Cramersche Regel. Dabei ersetzt man die Spalte der gesuchten Unbekannten durch den Vektor b und teilt die Determinante dieser Matrix durch die Determinante von A. Sie ist nur anwendbar, wenn det(A) ≠ 0 ist, und wird für große Systeme wegen des Rechenaufwands nicht verwendet.

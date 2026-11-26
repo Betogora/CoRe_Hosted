@@ -1,5 +1,6 @@
 import { expect, test, type Locator, type Page } from "@playwright/test";
 import { loadEnv } from "vite";
+import { AI_SOURCE_CARDS_PROMPT_VERSION } from "../../src/aiSourceCardsContract.ts";
 import { switchColorScheme } from "./support/navigationMenu.ts";
 
 async function openCatalogFlow(page: Page) {
@@ -164,7 +165,7 @@ test("Karten aus einer Quelle: Lauf mit Fortschritt, belegte Vorschläge, Abbrec
   expect(remoteRequests).toEqual([]);
 });
 
-const sourceCardsResponse = (cards: unknown[], extra: Record<string, unknown> = {}) => ({ cards, warnings: [], discarded: 0, model: "openai/gpt-6-luna", privacyMode: "zdr", promptVersion: "source-cards-v2", usage: null, ...extra });
+const sourceCardsResponse = (cards: unknown[], extra: Record<string, unknown> = {}) => ({ cards, warnings: [], discarded: 0, model: "openai/gpt-6-luna", privacyMode: "zdr", promptVersion: AI_SOURCE_CARDS_PROMPT_VERSION, usage: null, ...extra });
 const basicProposal = { form: "basic", front: "Wo liegt die Atmungskette?", back: "In der inneren Mitochondrienmembran.", options: [], explanation: "", sources: ["s1"] };
 const choiceProposal = { form: "single-choice", front: "Wo findet die Glykolyse statt?", back: "", options: [{ text: "Im Cytosol", correct: true }, { text: "Im Zellkern", correct: false }], explanation: "", sources: ["s2"] };
 

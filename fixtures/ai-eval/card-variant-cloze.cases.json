@@ -3,6 +3,8 @@
     {
       "id": "definitionen-1",
       "category": "definitionen",
+      "subject": "naturwissenschaft",
+      "difficulty": "leicht",
       "split": "train",
       "request": {
         "kind": "cloze",
@@ -15,6 +17,8 @@
     {
       "id": "definitionen-2",
       "category": "definitionen",
+      "subject": "recht-wirtschaft",
+      "difficulty": "leicht",
       "split": "dev",
       "request": {
         "kind": "cloze",
@@ -27,6 +31,8 @@
     {
       "id": "zahlen-formeln-1",
       "category": "zahlen-formeln",
+      "subject": "naturwissenschaft",
+      "difficulty": "leicht",
       "split": "holdout",
       "request": {
         "kind": "cloze",
@@ -39,6 +45,8 @@
     {
       "id": "zahlen-formeln-2",
       "category": "zahlen-formeln",
+      "subject": "mathematik",
+      "difficulty": "leicht",
       "split": "train",
       "request": {
         "kind": "cloze",
@@ -51,6 +59,8 @@
     {
       "id": "mehrfachluecke-1",
       "category": "mehrfachluecke",
+      "subject": "medizin",
+      "difficulty": "leicht",
       "split": "train",
       "request": {
         "kind": "cloze",
@@ -63,6 +73,8 @@
     {
       "id": "mehrfachluecke-2",
       "category": "mehrfachluecke",
+      "subject": "geschichte-geografie",
+      "difficulty": "leicht",
       "split": "dev",
       "request": {
         "kind": "cloze",
@@ -75,6 +87,8 @@
     {
       "id": "weitere-luecken-1",
       "category": "weitere-luecken",
+      "subject": "geschichte-geografie",
+      "difficulty": "leicht",
       "split": "train",
       "request": {
         "kind": "cloze",
@@ -87,6 +101,11 @@
     {
       "id": "weitere-luecken-2",
       "category": "weitere-luecken",
+      "subject": "medizin",
+      "difficulty": "mittel",
+      "reference": [
+        "Insulin senkt den Blutzuckerspiegel, Glukagon erhöht ihn."
+      ],
       "split": "dev",
       "request": {
         "kind": "cloze",
@@ -99,6 +118,12 @@
     {
       "id": "hinweis-1",
       "category": "hinweis",
+      "subject": "medizin",
+      "difficulty": "schwer",
+      "reference": [
+        "Glukagon ist ein Peptidhormon.",
+        "Glukagon wird in den A-Zellen (Alpha-Zellen) der Langerhans-Inseln des Pankreas gebildet, Insulin in den B-Zellen."
+      ],
       "split": "holdout",
       "request": {
         "kind": "cloze",
@@ -111,6 +136,8 @@
     {
       "id": "hinweis-2",
       "category": "hinweis",
+      "subject": "geschichte-geografie",
+      "difficulty": "leicht",
       "split": "train",
       "request": {
         "kind": "cloze",
@@ -123,6 +150,12 @@
     {
       "id": "lange-texte-1",
       "category": "lange-texte",
+      "subject": "naturwissenschaft",
+      "difficulty": "schwer",
+      "reference": [
+        "Chlorophyll absorbiert vor allem rotes und blaues Licht und reflektiert grünes.",
+        "Die Photosynthese läuft in den Chloroplasten ab und bildet aus Kohlenstoffdioxid und Wasser Glukose und Sauerstoff."
+      ],
       "split": "holdout",
       "request": {
         "kind": "cloze",
@@ -135,6 +168,12 @@
     {
       "id": "lange-texte-2",
       "category": "lange-texte",
+      "subject": "geschichte-geografie",
+      "difficulty": "schwer",
+      "reference": [
+        "Der Westfälische Friede von 1648 wurde in Münster und Osnabrück ausgehandelt und beendete den Dreißigjährigen Krieg.",
+        "Er bestätigte die Gleichberechtigung der Konfessionen im Reich und stärkte die Reichsstände gegenüber dem Kaiser."
+      ],
       "split": "train",
       "request": {
         "kind": "cloze",
@@ -147,6 +186,8 @@
     {
       "id": "andere-sprachen-1",
       "category": "andere-sprachen",
+      "subject": "sprachen",
+      "difficulty": "leicht",
       "split": "train",
       "request": {
         "kind": "cloze",
@@ -159,6 +200,8 @@
     {
       "id": "andere-sprachen-2",
       "category": "andere-sprachen",
+      "subject": "sprachen",
+      "difficulty": "leicht",
       "split": "dev",
       "request": {
         "kind": "cloze",
@@ -171,6 +214,11 @@
     {
       "id": "avoid-liste-1",
       "category": "avoid-liste",
+      "subject": "geschichte-geografie",
+      "difficulty": "leicht",
+      "reference": [
+        "Der Mount Everest ist mit 8.849 Metern der höchste Berg der Erde."
+      ],
       "split": "holdout",
       "request": {
         "kind": "cloze",
@@ -186,6 +234,8 @@
     {
       "id": "avoid-liste-2",
       "category": "avoid-liste",
+      "subject": "geschichte-geografie",
+      "difficulty": "leicht",
       "split": "train",
       "request": {
         "kind": "cloze",
@@ -202,6 +252,8 @@
     {
       "id": "injection-1",
       "category": "injection",
+      "subject": "naturwissenschaft",
+      "difficulty": "mittel",
       "split": "train",
       "trap": true,
       "request": {
@@ -215,6 +267,8 @@
     {
       "id": "injection-2",
       "category": "injection",
+      "subject": "geschichte-geografie",
+      "difficulty": "mittel",
       "split": "dev",
       "trap": true,
       "request": {
@@ -228,6 +282,8 @@
     {
       "id": "nicht-umformulierbar-1",
       "category": "nicht-umformulierbar",
+      "subject": "sprachen",
+      "difficulty": "leicht",
       "split": "train",
       "refuse": true,
       "request": {
@@ -241,6 +297,8 @@
     {
       "id": "nicht-umformulierbar-2",
       "category": "nicht-umformulierbar",
+      "subject": "sprachen",
+      "difficulty": "mittel",
       "split": "dev",
       "refuse": true,
       "request": {
@@ -254,6 +312,11 @@
     {
       "id": "aufzaehlungen-1",
       "category": "aufzaehlungen",
+      "subject": "medizin",
+      "difficulty": "mittel",
+      "reference": [
+        "Die drei Keimblätter des Embryos sind Ektoderm, Mesoderm und Entoderm."
+      ],
       "split": "dev",
       "request": {
         "kind": "cloze",
@@ -266,6 +329,8 @@
     {
       "id": "aufzaehlungen-2",
       "category": "aufzaehlungen",
+      "subject": "naturwissenschaft",
+      "difficulty": "leicht",
       "split": "train",
       "request": {
         "kind": "cloze",
@@ -278,6 +343,12 @@
     {
       "id": "richtung-1",
       "category": "richtung",
+      "subject": "naturwissenschaft",
+      "difficulty": "mittel",
+      "reference": [
+        "Die Phasen der Mitose sind Prophase, (Prometaphase,) Metaphase, Anaphase und Telophase.",
+        "Auf die Metaphase folgt die Anaphase."
+      ],
       "split": "holdout",
       "trap": true,
       "request": {
@@ -291,6 +362,12 @@
     {
       "id": "richtung-2",
       "category": "richtung",
+      "subject": "geschichte-geografie",
+      "difficulty": "mittel",
+      "reference": [
+        "Ludwig XVI. war bei Ausbruch der Französischen Revolution 1789 König von Frankreich.",
+        "Er regierte ab 1774 und wurde 1793 hingerichtet."
+      ],
       "split": "dev",
       "trap": true,
       "request": {
@@ -304,6 +381,8 @@
     {
       "id": "definitionen-3",
       "category": "definitionen",
+      "subject": "naturwissenschaft",
+      "difficulty": "leicht",
       "split": "train",
       "request": {
         "kind": "cloze",
@@ -316,6 +395,8 @@
     {
       "id": "definitionen-4",
       "category": "definitionen",
+      "subject": "naturwissenschaft",
+      "difficulty": "leicht",
       "split": "holdout",
       "request": {
         "kind": "cloze",
@@ -328,6 +409,8 @@
     {
       "id": "zahlen-formeln-3",
       "category": "zahlen-formeln",
+      "subject": "naturwissenschaft",
+      "difficulty": "leicht",
       "split": "train",
       "request": {
         "kind": "cloze",
@@ -340,6 +423,11 @@
     {
       "id": "zahlen-formeln-4",
       "category": "zahlen-formeln",
+      "subject": "naturwissenschaft",
+      "difficulty": "mittel",
+      "reference": [
+        "Die Avogadro-Konstante beträgt rund 6,022 · 10²³ Teilchen pro Mol."
+      ],
       "split": "dev",
       "request": {
         "kind": "cloze",
@@ -352,6 +440,8 @@
     {
       "id": "mehrfachluecke-3",
       "category": "mehrfachluecke",
+      "subject": "medizin",
+      "difficulty": "leicht",
       "split": "holdout",
       "request": {
         "kind": "cloze",
@@ -364,6 +454,8 @@
     {
       "id": "mehrfachluecke-4",
       "category": "mehrfachluecke",
+      "subject": "medizin",
+      "difficulty": "leicht",
       "split": "train",
       "request": {
         "kind": "cloze",
@@ -376,6 +468,8 @@
     {
       "id": "weitere-luecken-3",
       "category": "weitere-luecken",
+      "subject": "geschichte-geografie",
+      "difficulty": "leicht",
       "split": "holdout",
       "request": {
         "kind": "cloze",
@@ -388,6 +482,8 @@
     {
       "id": "hinweis-3",
       "category": "hinweis",
+      "subject": "medizin",
+      "difficulty": "leicht",
       "split": "dev",
       "request": {
         "kind": "cloze",
@@ -400,6 +496,13 @@
     {
       "id": "lange-texte-3",
       "category": "lange-texte",
+      "subject": "medizin",
+      "difficulty": "schwer",
+      "reference": [
+        "Der Citratzyklus läuft in der Mitochondrienmatrix ab.",
+        "Je Umlauf entstehen zwei CO₂, drei NADH, ein FADH₂ und ein GTP (bzw. ATP).",
+        "NADH und FADH₂ geben ihre Elektronen an die Atmungskette ab."
+      ],
       "split": "train",
       "request": {
         "kind": "cloze",
@@ -412,6 +515,12 @@
     {
       "id": "lange-texte-4",
       "category": "lange-texte",
+      "subject": "recht-wirtschaft",
+      "difficulty": "schwer",
+      "reference": [
+        "Das Grundgesetz wurde am 23. Mai 1949 verkündet.",
+        "Nach Art. 79 Abs. 3 GG (Ewigkeitsklausel) sind Änderungen unzulässig, die die Gliederung des Bundes in Länder, die Mitwirkung der Länder an der Gesetzgebung oder die Grundsätze der Art. 1 und 20 GG berühren."
+      ],
       "split": "dev",
       "request": {
         "kind": "cloze",
@@ -424,6 +533,8 @@
     {
       "id": "andere-sprachen-3",
       "category": "andere-sprachen",
+      "subject": "sprachen",
+      "difficulty": "leicht",
       "split": "train",
       "request": {
         "kind": "cloze",
@@ -436,6 +547,8 @@
     {
       "id": "andere-sprachen-4",
       "category": "andere-sprachen",
+      "subject": "sprachen",
+      "difficulty": "leicht",
       "split": "holdout",
       "request": {
         "kind": "cloze",
@@ -448,6 +561,8 @@
     {
       "id": "avoid-liste-3",
       "category": "avoid-liste",
+      "subject": "geschichte-geografie",
+      "difficulty": "mittel",
       "split": "train",
       "request": {
         "kind": "cloze",
@@ -465,6 +580,8 @@
     {
       "id": "avoid-liste-4",
       "category": "avoid-liste",
+      "subject": "naturwissenschaft",
+      "difficulty": "leicht",
       "split": "dev",
       "request": {
         "kind": "cloze",
@@ -480,6 +597,8 @@
     {
       "id": "injection-3",
       "category": "injection",
+      "subject": "naturwissenschaft",
+      "difficulty": "mittel",
       "split": "holdout",
       "trap": true,
       "request": {
@@ -493,6 +612,8 @@
     {
       "id": "injection-4",
       "category": "injection",
+      "subject": "geschichte-geografie",
+      "difficulty": "mittel",
       "split": "dev",
       "trap": true,
       "request": {
@@ -506,6 +627,8 @@
     {
       "id": "injection-5",
       "category": "injection",
+      "subject": "geschichte-geografie",
+      "difficulty": "mittel",
       "split": "train",
       "trap": true,
       "request": {
@@ -519,6 +642,8 @@
     {
       "id": "aufzaehlungen-3",
       "category": "aufzaehlungen",
+      "subject": "technik-it",
+      "difficulty": "leicht",
       "split": "holdout",
       "request": {
         "kind": "cloze",
@@ -531,6 +656,12 @@
     {
       "id": "richtung-3",
       "category": "richtung",
+      "subject": "medizin",
+      "difficulty": "schwer",
+      "reference": [
+        "Die rechte Herzkammer pumpt sauerstoffarmes Blut in die Lungenarterie (Truncus pulmonalis).",
+        "Über die Lungenvenen gelangt sauerstoffreiches Blut in den linken Vorhof."
+      ],
       "split": "dev",
       "trap": true,
       "request": {
@@ -544,6 +675,11 @@
     {
       "id": "richtung-4",
       "category": "richtung",
+      "subject": "geschichte-geografie",
+      "difficulty": "leicht",
+      "reference": [
+        "Die Jahreszeiten folgen in der Reihenfolge Frühling, Sommer, Herbst, Winter aufeinander."
+      ],
       "split": "train",
       "trap": true,
       "request": {
@@ -557,6 +693,12 @@
     {
       "id": "richtung-5",
       "category": "richtung",
+      "subject": "geschichte-geografie",
+      "difficulty": "mittel",
+      "reference": [
+        "Konrad Adenauer war von 1949 bis 1963 Bundeskanzler.",
+        "Sein Nachfolger war Ludwig Erhard (1963 bis 1966)."
+      ],
       "split": "train",
       "trap": true,
       "request": {
@@ -570,6 +712,11 @@
     {
       "id": "grosse-luecke-1",
       "category": "grosse-luecke",
+      "subject": "medizin",
+      "difficulty": "schwer",
+      "reference": [
+        "Osmose ist die Diffusion von Wasser durch eine semipermeable Membran hin zur höheren Konzentration gelöster Teilchen."
+      ],
       "split": "holdout",
       "request": {
         "kind": "cloze",
@@ -582,6 +729,11 @@
     {
       "id": "grosse-luecke-2",
       "category": "grosse-luecke",
+      "subject": "naturwissenschaft",
+      "difficulty": "schwer",
+      "reference": [
+        "Der erste Hauptsatz der Thermodynamik ist der Energieerhaltungssatz: Energie wird weder erzeugt noch vernichtet, sondern nur umgewandelt."
+      ],
       "split": "train",
       "request": {
         "kind": "cloze",
@@ -594,6 +746,11 @@
     {
       "id": "grosse-luecke-3",
       "category": "grosse-luecke",
+      "subject": "recht-wirtschaft",
+      "difficulty": "schwer",
+      "reference": [
+        "Inflation ist ein anhaltender Anstieg des allgemeinen Preisniveaus und damit ein Verlust an Kaufkraft des Geldes."
+      ],
       "split": "dev",
       "request": {
         "kind": "cloze",
@@ -606,6 +763,8 @@
     {
       "id": "grosse-luecke-4",
       "category": "grosse-luecke",
+      "subject": "medizin",
+      "difficulty": "mittel",
       "split": "train",
       "request": {
         "kind": "cloze",
@@ -618,6 +777,11 @@
     {
       "id": "verneinung-1",
       "category": "verneinung",
+      "subject": "naturwissenschaft",
+      "difficulty": "leicht",
+      "reference": [
+        "Pinguine sind flugunfähige Vögel; ihre Flügel dienen als Flossen beim Schwimmen."
+      ],
       "split": "dev",
       "trap": true,
       "request": {
@@ -631,6 +795,11 @@
     {
       "id": "verneinung-2",
       "category": "verneinung",
+      "subject": "medizin",
+      "difficulty": "mittel",
+      "reference": [
+        "Viren haben keinen eigenen Stoffwechsel und vermehren sich nur in Wirtszellen."
+      ],
       "split": "train",
       "trap": true,
       "request": {
@@ -644,6 +813,12 @@
     {
       "id": "verneinung-3",
       "category": "verneinung",
+      "subject": "naturwissenschaft",
+      "difficulty": "mittel",
+      "reference": [
+        "Edelgase sind wegen ihrer vollbesetzten Valenzschale sehr reaktionsträge.",
+        "Einige schwere Edelgase wie Xenon bilden unter besonderen Bedingungen Verbindungen."
+      ],
       "split": "holdout",
       "trap": true,
       "request": {
@@ -657,6 +832,12 @@
     {
       "id": "richtung-6",
       "category": "richtung",
+      "subject": "geschichte-geografie",
+      "difficulty": "mittel",
+      "reference": [
+        "Die Perioden des Erdmittelalters (Mesozoikum) sind Trias, Jura und Kreide.",
+        "Auf den Jura folgte die Kreide."
+      ],
       "split": "holdout",
       "trap": true,
       "request": {
@@ -670,6 +851,12 @@
     {
       "id": "richtung-7",
       "category": "richtung",
+      "subject": "medizin",
+      "difficulty": "mittel",
+      "reference": [
+        "Der Herzzyklus besteht aus Systole (Kontraktion und Auswurf) und Diastole (Erschlaffung und Füllung).",
+        "Auf die Systole folgt die Diastole."
+      ],
       "split": "train",
       "trap": true,
       "request": {
@@ -683,6 +870,11 @@
     {
       "id": "verneinung-4",
       "category": "verneinung",
+      "subject": "medizin",
+      "difficulty": "leicht",
+      "reference": [
+        "Antibiotika wirken gegen Bakterien, aber nicht gegen Viren."
+      ],
       "split": "train",
       "trap": true,
       "request": {
@@ -696,6 +888,12 @@
     {
       "id": "verneinung-5",
       "category": "verneinung",
+      "subject": "naturwissenschaft",
+      "difficulty": "mittel",
+      "reference": [
+        "Diamant ist ein elektrischer Isolator, weil alle Valenzelektronen in kovalenten Bindungen gebunden sind.",
+        "Graphit leitet dagegen elektrischen Strom."
+      ],
       "split": "dev",
       "trap": true,
       "request": {
@@ -709,6 +907,11 @@
     {
       "id": "verneinung-6",
       "category": "verneinung",
+      "subject": "naturwissenschaft",
+      "difficulty": "mittel",
+      "reference": [
+        "Alle Säugetiere atmen mit Lungen, auch im Wasser lebende wie Wale und Delfine."
+      ],
       "split": "holdout",
       "trap": true,
       "request": {
@@ -722,6 +925,8 @@
     {
       "id": "injection-6",
       "category": "injection",
+      "subject": "geschichte-geografie",
+      "difficulty": "mittel",
       "split": "holdout",
       "trap": true,
       "request": {
@@ -735,6 +940,8 @@
     {
       "id": "injection-7",
       "category": "injection",
+      "subject": "recht-wirtschaft",
+      "difficulty": "mittel",
       "split": "train",
       "trap": true,
       "request": {
@@ -744,6 +951,665 @@
           "back": "Yen"
         }
       }
+    },
+    {
+      "id": "l-zahlen-formeln-1",
+      "category": "zahlen-formeln",
+      "subject": "medizin",
+      "difficulty": "schwer",
+      "reference": [
+        "Ein Diabetes mellitus gilt ab einem HbA1c von 6,5 % (48 mmol/mol) als diagnostiziert.",
+        "Der HbA1c spiegelt den mittleren Blutzucker der letzten acht bis zwölf Wochen wider."
+      ],
+      "request": {
+        "kind": "cloze",
+        "source": {
+          "front": "Ab einem HbA1c-Wert von {{c1::6,5 %}} gilt ein Diabetes mellitus als gesichert; der Wert spiegelt den mittleren Blutzucker der letzten acht bis zwölf Wochen wider.",
+          "back": "6,5 %"
+        }
+      },
+      "split": "dev"
+    },
+    {
+      "id": "l-mehrfachluecke-1",
+      "category": "mehrfachluecke",
+      "subject": "medizin",
+      "difficulty": "schwer",
+      "reference": [
+        "Heparin verstärkt die Wirkung von Antithrombin und hemmt so vor allem Thrombin und Faktor Xa.",
+        "Die Wirkung von unfraktioniertem Heparin lässt sich mit Protamin aufheben."
+      ],
+      "request": {
+        "kind": "cloze",
+        "source": {
+          "front": "{{c1::Heparin}} wirkt gerinnungshemmend, indem es Antithrombin verstärkt; die Wirkung von unfraktioniertem {{c1::Heparin}} hebt man mit Protamin auf.",
+          "back": "Heparin · Heparin"
+        }
+      },
+      "split": "dev"
+    },
+    {
+      "id": "l-verneinung-1",
+      "category": "verneinung",
+      "subject": "medizin",
+      "difficulty": "schwer",
+      "reference": [
+        "Acetylsalicylsäure acetyliert die Cyclooxygenase der Thrombozyten und hemmt sie irreversibel.",
+        "Weil Thrombozyten keinen Zellkern haben, hält die Hemmung für ihre ganze Lebensdauer von etwa sieben bis zehn Tagen an."
+      ],
+      "trap": true,
+      "request": {
+        "kind": "cloze",
+        "source": {
+          "front": "Acetylsalicylsäure hemmt die Cyclooxygenase der Thrombozyten {{c1::irreversibel}}, deshalb hält die Plättchenhemmung für deren gesamte Lebensdauer an.",
+          "back": "irreversibel"
+        }
+      },
+      "split": "dev"
+    },
+    {
+      "id": "l-andere-sprachen-1",
+      "category": "andere-sprachen",
+      "subject": "sprachen",
+      "difficulty": "mittel",
+      "reference": [
+        "The present perfect links a past action or event to the present situation, e.g. ‘I have lost my keys’ (and still cannot find them)."
+      ],
+      "request": {
+        "kind": "cloze",
+        "source": {
+          "front": "The {{c1::present perfect}} links a past action to the present, as in ‘I have lost my keys’.",
+          "back": "present perfect"
+        }
+      },
+      "split": "dev"
+    },
+    {
+      "id": "l-andere-sprachen-2",
+      "category": "andere-sprachen",
+      "subject": "sprachen",
+      "difficulty": "schwer",
+      "reference": [
+        "Nach der Konjunktion „bien que“ steht im Französischen der Subjonctif, z. B. « bien qu’il soit malade »."
+      ],
+      "request": {
+        "kind": "cloze",
+        "source": {
+          "front": "Après la conjonction « bien que », le verbe se met au {{c1::subjonctif}}.",
+          "back": "subjonctif"
+        }
+      },
+      "split": "holdout"
+    },
+    {
+      "id": "l-andere-sprachen-3",
+      "category": "andere-sprachen",
+      "subject": "sprachen",
+      "difficulty": "schwer",
+      "reference": [
+        "Im Spanischen beschreibt „estar“ vorübergehende Zustände und Orte, „ser“ dauerhafte Eigenschaften und Identität.",
+        "„Estoy cansado“ heißt „Ich bin müde“."
+      ],
+      "request": {
+        "kind": "cloze",
+        "source": {
+          "front": "Para estados pasajeros se usa el verbo {{c1::estar}}, como en «Estoy cansado».",
+          "back": "estar"
+        }
+      },
+      "split": "train"
+    },
+    {
+      "id": "l-andere-sprachen-4",
+      "category": "andere-sprachen",
+      "subject": "sprachen",
+      "difficulty": "mittel",
+      "reference": [
+        "Das italienische „uovo“ (Ei) ist im Singular männlich und bildet den unregelmäßigen weiblichen Plural „uova“."
+      ],
+      "request": {
+        "kind": "cloze",
+        "source": {
+          "front": "In italiano il plurale irregolare di «uovo» è {{c1::uova}}.",
+          "back": "uova"
+        }
+      },
+      "split": "dev"
+    },
+    {
+      "id": "l-definitionen-1",
+      "category": "definitionen",
+      "subject": "sprachen",
+      "difficulty": "leicht",
+      "request": {
+        "kind": "cloze",
+        "source": {
+          "front": "Ein Wort, das eine Tätigkeit, einen Vorgang oder einen Zustand ausdrückt, nennt man {{c1::Verb}}.",
+          "back": "Verb"
+        }
+      },
+      "split": "holdout"
+    },
+    {
+      "id": "l-richtung-1",
+      "category": "richtung",
+      "subject": "sprachen",
+      "difficulty": "mittel",
+      "reference": [
+        "In der im deutschen Lateinunterricht üblichen Reihenfolge der Fälle folgen Nominativ, Genitiv, Dativ, Akkusativ, Ablativ (und Vokativ).",
+        "Auf den Genitiv folgt der Dativ."
+      ],
+      "trap": true,
+      "request": {
+        "kind": "cloze",
+        "source": {
+          "front": "In der Kasusreihe des Lateinunterrichts folgt auf den Genitiv der {{c1::Dativ}}.",
+          "back": "Dativ"
+        }
+      },
+      "split": "dev"
+    },
+    {
+      "id": "l-definitionen-2",
+      "category": "definitionen",
+      "subject": "recht-wirtschaft",
+      "difficulty": "schwer",
+      "reference": [
+        "Geschäftsfähigkeit ist die Fähigkeit, Rechtsgeschäfte selbstständig wirksam vorzunehmen.",
+        "Rechtsfähigkeit ist dagegen die Fähigkeit, Träger von Rechten und Pflichten zu sein; sie beginnt mit der Vollendung der Geburt."
+      ],
+      "request": {
+        "kind": "cloze",
+        "source": {
+          "front": "Die Fähigkeit, Rechtsgeschäfte selbstständig wirksam abzuschließen, heißt {{c1::Geschäftsfähigkeit}}.",
+          "back": "Geschäftsfähigkeit"
+        }
+      },
+      "split": "train"
+    },
+    {
+      "id": "l-zahlen-formeln-2",
+      "category": "zahlen-formeln",
+      "subject": "recht-wirtschaft",
+      "difficulty": "schwer",
+      "reference": [
+        "Nach § 106 BGB ist ein Minderjähriger ab Vollendung des siebten Lebensjahres beschränkt geschäftsfähig.",
+        "Wer das siebte Lebensjahr nicht vollendet hat, ist nach § 104 BGB geschäftsunfähig; volljährig wird man mit 18."
+      ],
+      "request": {
+        "kind": "cloze",
+        "source": {
+          "front": "Beschränkt geschäftsfähig ist nach § 106 BGB ein Minderjähriger ab Vollendung des {{c1::siebten}} Lebensjahres.",
+          "back": "siebten"
+        }
+      },
+      "split": "train"
+    },
+    {
+      "id": "l-verneinung-2",
+      "category": "verneinung",
+      "subject": "recht-wirtschaft",
+      "difficulty": "schwer",
+      "reference": [
+        "Schweigen ist im Zivilrecht grundsätzlich keine Willenserklärung und gilt daher nicht als Annahme eines Angebots.",
+        "Ausnahmen gelten etwa im Handelsverkehr beim kaufmännischen Bestätigungsschreiben."
+      ],
+      "trap": true,
+      "request": {
+        "kind": "cloze",
+        "source": {
+          "front": "Schweigen auf ein Vertragsangebot gilt im deutschen Zivilrecht grundsätzlich {{c1::nicht}} als Annahme.",
+          "back": "nicht"
+        }
+      },
+      "split": "train"
+    },
+    {
+      "id": "l-mehrfachluecke-2",
+      "category": "mehrfachluecke",
+      "subject": "recht-wirtschaft",
+      "difficulty": "schwer",
+      "reference": [
+        "Für Verbindlichkeiten der GmbH haftet den Gläubigern nur das Gesellschaftsvermögen (§ 13 Abs. 2 GmbHG).",
+        "Das Stammkapital einer GmbH muss mindestens 25.000 Euro betragen (§ 5 Abs. 1 GmbHG)."
+      ],
+      "request": {
+        "kind": "cloze",
+        "source": {
+          "front": "Für Schulden einer {{c1::GmbH}} haftet nur das Gesellschaftsvermögen; zur Gründung einer {{c1::GmbH}} braucht man ein Stammkapital von mindestens 25.000 Euro.",
+          "back": "GmbH · GmbH"
+        }
+      },
+      "split": "train"
+    },
+    {
+      "id": "l-lange-texte-1",
+      "category": "lange-texte",
+      "subject": "recht-wirtschaft",
+      "difficulty": "schwer",
+      "reference": [
+        "Eine Senkung des Leitzinses verbilligt Kredite und gilt als expansive (lockere) Geldpolitik.",
+        "Expansive Geldpolitik regt Investitionen und Konsum an und kann die Inflation erhöhen; eine Zinserhöhung wirkt restriktiv."
+      ],
+      "request": {
+        "kind": "cloze",
+        "source": {
+          "front": "Senkt eine Zentralbank den Leitzins, können sich Geschäftsbanken günstiger refinanzieren und geben Kredite billiger weiter; Unternehmen investieren dann eher, Haushalte sparen weniger und konsumieren mehr, und weil die Gesamtnachfrage steigt, kann mittelfristig auch das Preisniveau anziehen – eine solche Zinssenkung zählt deshalb zur {{c1::expansiven}} Geldpolitik.",
+          "back": "expansiven"
+        }
+      },
+      "split": "dev"
+    },
+    {
+      "id": "l-richtung-2",
+      "category": "richtung",
+      "subject": "recht-wirtschaft",
+      "difficulty": "mittel",
+      "reference": [
+        "Nach dem Gesetz der Nachfrage sinkt die nachgefragte Menge eines Gutes, wenn sein Preis steigt (unter sonst gleichen Bedingungen).",
+        "Die Nachfragekurve verläuft deshalb fallend."
+      ],
+      "trap": true,
+      "request": {
+        "kind": "cloze",
+        "source": {
+          "front": "Steigt der Preis eines gewöhnlichen Gutes, so {{c1::sinkt}} nach dem Gesetz der Nachfrage die nachgefragte Menge.",
+          "back": "sinkt"
+        }
+      },
+      "split": "holdout"
+    },
+    {
+      "id": "l-grosse-luecke-1",
+      "category": "grosse-luecke",
+      "subject": "recht-wirtschaft",
+      "difficulty": "schwer",
+      "reference": [
+        "Nach dem Abstraktionsprinzip sind Verpflichtungsgeschäft (z. B. Kaufvertrag) und Verfügungsgeschäft (z. B. Übereignung) rechtlich selbstständig.",
+        "Die Unwirksamkeit des Verpflichtungsgeschäfts lässt das Verfügungsgeschäft grundsätzlich unberührt; die Rückabwicklung erfolgt über das Bereicherungsrecht."
+      ],
+      "request": {
+        "kind": "cloze",
+        "source": {
+          "front": "Das Abstraktionsprinzip besagt: {{c1::Verpflichtungsgeschäft und Verfügungsgeschäft sind in ihrer Wirksamkeit voneinander unabhängig}}.",
+          "back": "Verpflichtungsgeschäft und Verfügungsgeschäft sind in ihrer Wirksamkeit voneinander unabhängig"
+        }
+      },
+      "split": "holdout"
+    },
+    {
+      "id": "l-avoid-liste-1",
+      "category": "avoid-liste",
+      "subject": "recht-wirtschaft",
+      "difficulty": "mittel",
+      "reference": [
+        "Art. 1 Abs. 1 GG erklärt die Würde des Menschen für unantastbar und verpflichtet alle staatliche Gewalt, sie zu achten und zu schützen."
+      ],
+      "request": {
+        "kind": "cloze",
+        "source": {
+          "front": "Artikel 1 des Grundgesetzes erklärt die {{c1::Menschenwürde}} für unantastbar.",
+          "back": "Menschenwürde"
+        },
+        "avoid": [
+          "Nach Artikel 1 des Grundgesetzes ist die {{c1::Menschenwürde}} unantastbar.",
+          "Unantastbar ist laut Artikel 1 Grundgesetz die {{c1::Menschenwürde}}."
+        ]
+      },
+      "split": "holdout"
+    },
+    {
+      "id": "l-definitionen-3",
+      "category": "definitionen",
+      "subject": "mathematik",
+      "difficulty": "leicht",
+      "request": {
+        "kind": "cloze",
+        "source": {
+          "front": "Eine natürliche Zahl größer als 1, die nur durch 1 und sich selbst teilbar ist, heißt {{c1::Primzahl}}.",
+          "back": "Primzahl"
+        }
+      },
+      "split": "dev"
+    },
+    {
+      "id": "l-zahlen-formeln-3",
+      "category": "zahlen-formeln",
+      "subject": "mathematik",
+      "difficulty": "schwer",
+      "reference": [
+        "Die Lösungen von x² + px + q = 0 sind x₁,₂ = −p/2 ± √((p/2)² − q) (p-q-Formel).",
+        "Ist (p/2)² − q negativ, gibt es keine reelle Lösung."
+      ],
+      "request": {
+        "kind": "cloze",
+        "source": {
+          "front": "Die Gleichung x² + px + q = 0 hat die Lösungen {{c1::x = −p/2 ± √((p/2)² − q)}}.",
+          "back": "x = −p/2 ± √((p/2)² − q)"
+        }
+      },
+      "split": "holdout"
+    },
+    {
+      "id": "l-mehrfachluecke-3",
+      "category": "mehrfachluecke",
+      "subject": "mathematik",
+      "difficulty": "schwer",
+      "reference": [
+        "Die Determinante der 2×2-Matrix ((a, b), (c, d)) ist ad − bc.",
+        "Eine quadratische Matrix ist genau dann invertierbar, wenn ihre Determinante ungleich null ist."
+      ],
+      "request": {
+        "kind": "cloze",
+        "source": {
+          "front": "Die {{c1::Determinante}} einer 2×2-Matrix ist ad − bc; ist die {{c1::Determinante}} null, so ist die Matrix nicht invertierbar.",
+          "back": "Determinante · Determinante"
+        }
+      },
+      "split": "holdout"
+    },
+    {
+      "id": "l-weitere-luecken-1",
+      "category": "weitere-luecken",
+      "subject": "mathematik",
+      "difficulty": "schwer",
+      "reference": [
+        "Nach dem Fundamentalsatz der Algebra hat jedes nichtkonstante Polynom mit komplexen Koeffizienten mindestens eine komplexe Nullstelle.",
+        "Daraus folgt, dass ein Polynom vom Grad n mit Vielfachheit gezählt genau n komplexe Nullstellen hat."
+      ],
+      "request": {
+        "kind": "cloze",
+        "source": {
+          "front": "Nach dem Fundamentalsatz der Algebra besitzt jedes nichtkonstante Polynom mit komplexen Koeffizienten mindestens eine {{c2::komplexe Nullstelle}}.",
+          "back": "komplexe Nullstelle"
+        }
+      },
+      "split": "train"
+    },
+    {
+      "id": "l-hinweis-1",
+      "category": "hinweis",
+      "subject": "mathematik",
+      "difficulty": "mittel",
+      "reference": [
+        "Die Eulersche Zahl e beträgt ungefähr 2,71828."
+      ],
+      "request": {
+        "kind": "cloze",
+        "source": {
+          "front": "Die Eulersche Zahl e beträgt gerundet {{c1::2,718::drei Nachkommastellen}}.",
+          "back": "2,718"
+        }
+      },
+      "split": "train"
+    },
+    {
+      "id": "l-lange-texte-2",
+      "category": "lange-texte",
+      "subject": "mathematik",
+      "difficulty": "schwer",
+      "reference": [
+        "Die vollständige Induktion besteht aus dem Induktionsanfang (Gültigkeit für einen Startwert) und dem Induktionsschritt von n auf n + 1.",
+        "Im Induktionsschritt wird die Induktionsvoraussetzung (Gültigkeit für n) benutzt, um die Gültigkeit für n + 1 zu zeigen."
+      ],
+      "request": {
+        "kind": "cloze",
+        "source": {
+          "front": "Bei der vollständigen Induktion zeigt man zuerst, dass eine Aussage für einen Startwert gilt; im {{c1::Induktionsschritt}} folgert man anschließend aus der Annahme, dass sie für ein beliebiges n gilt, dass sie auch für n + 1 gilt, und hat sie damit für alle natürlichen Zahlen ab dem Startwert bewiesen.",
+          "back": "Induktionsschritt"
+        }
+      },
+      "split": "holdout"
+    },
+    {
+      "id": "l-aufzaehlungen-1",
+      "category": "aufzaehlungen",
+      "subject": "mathematik",
+      "difficulty": "schwer",
+      "reference": [
+        "Eine Gruppe ist eine Menge mit einer Verknüpfung, die abgeschlossen und assoziativ ist, ein neutrales Element besitzt und zu jedem Element ein inverses Element enthält."
+      ],
+      "request": {
+        "kind": "cloze",
+        "source": {
+          "front": "Die Gruppenaxiome fordern Abgeschlossenheit, Assoziativität, ein neutrales Element und {{c1::zu jedem Element ein inverses Element}}.",
+          "back": "zu jedem Element ein inverses Element"
+        }
+      },
+      "split": "dev"
+    },
+    {
+      "id": "l-verneinung-3",
+      "category": "verneinung",
+      "subject": "mathematik",
+      "difficulty": "schwer",
+      "reference": [
+        "Jede differenzierbare Funktion ist stetig, aber nicht jede stetige Funktion ist differenzierbar.",
+        "Beispiel: f(x) = |x| ist bei 0 stetig, aber nicht differenzierbar."
+      ],
+      "trap": true,
+      "request": {
+        "kind": "cloze",
+        "source": {
+          "front": "Jede differenzierbare Funktion ist stetig; die Umkehrung gilt {{c1::nicht}}.",
+          "back": "nicht"
+        }
+      },
+      "split": "dev"
+    },
+    {
+      "id": "l-richtung-3",
+      "category": "richtung",
+      "subject": "mathematik",
+      "difficulty": "mittel",
+      "reference": [
+        "Jedes Quadrat ist ein Rechteck.",
+        "Ein Rechteck ist nur dann ein Quadrat, wenn alle vier Seiten gleich lang sind."
+      ],
+      "trap": true,
+      "request": {
+        "kind": "cloze",
+        "source": {
+          "front": "Jedes Quadrat ist ein {{c1::Rechteck}}, aber nicht jedes Rechteck ist ein Quadrat.",
+          "back": "Rechteck"
+        }
+      },
+      "split": "train"
+    },
+    {
+      "id": "l-grosse-luecke-2",
+      "category": "grosse-luecke",
+      "subject": "mathematik",
+      "difficulty": "schwer",
+      "reference": [
+        "Satz von Rolle: Ist f auf [a, b] stetig, auf (a, b) differenzierbar und gilt f(a) = f(b), so gibt es ein ξ in (a, b) mit f′(ξ) = 0."
+      ],
+      "request": {
+        "kind": "cloze",
+        "source": {
+          "front": "Der Satz von Rolle besagt: {{c1::Ist f auf [a, b] stetig, auf (a, b) differenzierbar und gilt f(a) = f(b), so gibt es ein ξ in (a, b) mit f′(ξ) = 0}}.",
+          "back": "Ist f auf [a, b] stetig, auf (a, b) differenzierbar und gilt f(a) = f(b), so gibt es ein ξ in (a, b) mit f′(ξ) = 0"
+        }
+      },
+      "split": "dev"
+    },
+    {
+      "id": "l-definitionen-4",
+      "category": "definitionen",
+      "subject": "technik-it",
+      "difficulty": "mittel",
+      "reference": [
+        "Eine Hashfunktion bildet Eingaben beliebiger Länge auf einen Wert fester Länge ab, den Hashwert."
+      ],
+      "request": {
+        "kind": "cloze",
+        "source": {
+          "front": "Eine Funktion, die aus Daten beliebiger Länge einen Wert fester Länge berechnet, heißt {{c1::Hashfunktion}}.",
+          "back": "Hashfunktion"
+        }
+      },
+      "split": "dev"
+    },
+    {
+      "id": "l-zahlen-formeln-4",
+      "category": "zahlen-formeln",
+      "subject": "technik-it",
+      "difficulty": "schwer",
+      "reference": [
+        "Quicksort hat eine mittlere Laufzeit von O(n log n).",
+        "Im schlechtesten Fall, etwa bei ungünstiger Pivotwahl, benötigt Quicksort O(n²)."
+      ],
+      "request": {
+        "kind": "cloze",
+        "source": {
+          "front": "Quicksort sortiert im Mittel in {{c1::O(n log n)}}, im ungünstigsten Fall aber erst in O(n²).",
+          "back": "O(n log n)"
+        }
+      },
+      "split": "train"
+    },
+    {
+      "id": "l-weitere-luecken-2",
+      "category": "weitere-luecken",
+      "subject": "technik-it",
+      "difficulty": "mittel",
+      "reference": [
+        "Der HTTP-Statuscode 404 („Not Found“) bedeutet, dass der Server die angeforderte Ressource nicht gefunden hat.",
+        "Codes der Klasse 5xx bezeichnen Serverfehler."
+      ],
+      "request": {
+        "kind": "cloze",
+        "source": {
+          "front": "Der HTTP-Statuscode {{c2::404}} meldet, dass der Server die angeforderte Ressource nicht gefunden hat.",
+          "back": "404"
+        }
+      },
+      "split": "dev"
+    },
+    {
+      "id": "l-hinweis-2",
+      "category": "hinweis",
+      "subject": "technik-it",
+      "difficulty": "leicht",
+      "request": {
+        "kind": "cloze",
+        "source": {
+          "front": "Ein Byte besteht aus {{c1::8::Anzahl}} Bit.",
+          "back": "8"
+        }
+      },
+      "split": "dev"
+    },
+    {
+      "id": "l-lange-texte-3",
+      "category": "lange-texte",
+      "subject": "technik-it",
+      "difficulty": "schwer",
+      "reference": [
+        "Bei asymmetrischer Verschlüsselung verschlüsselt der Absender mit dem öffentlichen Schlüssel des Empfängers; nur dessen privater Schlüssel entschlüsselt.",
+        "Eine digitale Signatur wird mit dem privaten Schlüssel erzeugt und mit dem öffentlichen Schlüssel geprüft."
+      ],
+      "request": {
+        "kind": "cloze",
+        "source": {
+          "front": "Bei asymmetrischer Verschlüsselung hat jede Partei ein Schlüsselpaar: Eine Nachricht an Alice wird mit Alices {{c1::öffentlichem Schlüssel}} verschlüsselt und lässt sich nur mit ihrem privaten Schlüssel wieder entschlüsseln, während eine digitale Signatur umgekehrt mit dem privaten Schlüssel erzeugt und mit dem öffentlichen geprüft wird.",
+          "back": "öffentlichem Schlüssel"
+        }
+      },
+      "split": "holdout"
+    },
+    {
+      "id": "l-aufzaehlungen-2",
+      "category": "aufzaehlungen",
+      "subject": "technik-it",
+      "difficulty": "schwer",
+      "reference": [
+        "Das TCP/IP-Referenzmodell hat vier Schichten: Netzzugangsschicht, Internetschicht, Transportschicht und Anwendungsschicht."
+      ],
+      "request": {
+        "kind": "cloze",
+        "source": {
+          "front": "Das TCP/IP-Modell besteht aus Netzzugangsschicht, Internetschicht, Transportschicht und {{c1::Anwendungsschicht}}.",
+          "back": "Anwendungsschicht"
+        }
+      },
+      "split": "train"
+    },
+    {
+      "id": "l-richtung-4",
+      "category": "richtung",
+      "subject": "technik-it",
+      "difficulty": "mittel",
+      "reference": [
+        "Ein Stack (Stapelspeicher) arbeitet nach dem LIFO-Prinzip: Das zuletzt abgelegte Element wird als erstes entnommen.",
+        "Eine Queue arbeitet dagegen nach FIFO."
+      ],
+      "trap": true,
+      "request": {
+        "kind": "cloze",
+        "source": {
+          "front": "Ein Stack arbeitet nach dem LIFO-Prinzip: Das zuletzt abgelegte Element wird als {{c1::erstes}} wieder entnommen.",
+          "back": "erstes"
+        }
+      },
+      "split": "dev"
+    },
+    {
+      "id": "l-grosse-luecke-3",
+      "category": "grosse-luecke",
+      "subject": "technik-it",
+      "difficulty": "schwer",
+      "reference": [
+        "Kapselung bedeutet in der objektorientierten Programmierung, dass der innere Zustand eines Objekts verborgen ist und nur über seine öffentliche Schnittstelle (Methoden) gelesen oder verändert wird."
+      ],
+      "request": {
+        "kind": "cloze",
+        "source": {
+          "front": "Kapselung in der objektorientierten Programmierung heißt: {{c1::Der innere Zustand eines Objekts ist von außen nur über seine Methoden zugänglich}}.",
+          "back": "Der innere Zustand eines Objekts ist von außen nur über seine Methoden zugänglich"
+        }
+      },
+      "split": "train"
+    },
+    {
+      "id": "l-verneinung-4",
+      "category": "verneinung",
+      "subject": "technik-it",
+      "difficulty": "schwer",
+      "reference": [
+        "In SQL liefert jeder Vergleich mit NULL mit = den Wahrheitswert UNKNOWN, auch NULL = NULL.",
+        "Auf NULL prüft man deshalb mit IS NULL."
+      ],
+      "trap": true,
+      "request": {
+        "kind": "cloze",
+        "source": {
+          "front": "In SQL ergibt der Vergleich NULL = NULL {{c1::nicht}} TRUE, sondern UNKNOWN.",
+          "back": "nicht"
+        }
+      },
+      "split": "train"
+    },
+    {
+      "id": "l-avoid-liste-2",
+      "category": "avoid-liste",
+      "subject": "technik-it",
+      "difficulty": "mittel",
+      "reference": [
+        "Arbeitsspeicher (RAM) ist flüchtig: Ohne Stromversorgung geht sein Inhalt verloren."
+      ],
+      "request": {
+        "kind": "cloze",
+        "source": {
+          "front": "Der Arbeitsspeicher verliert beim Ausschalten seinen Inhalt, weil er {{c1::flüchtig}} ist.",
+          "back": "flüchtig"
+        },
+        "avoid": [
+          "Weil der Arbeitsspeicher {{c1::flüchtig}} ist, geht sein Inhalt beim Ausschalten verloren.",
+          "Der Inhalt des Arbeitsspeichers ist nach dem Abschalten weg, da dieser {{c1::flüchtig}} ist."
+        ]
+      },
+      "split": "dev"
     }
   ]
 }

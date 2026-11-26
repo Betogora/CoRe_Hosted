@@ -1,0 +1,24 @@
+{
+  "keypoints": [
+    "Vektoren werden komponentenweise addiert; bei der Skalarmultiplikation wird jede Komponente mit der Zahl multipliziert.",
+    "Der Betrag eines Vektors ist √(a1² + a2² + a3²); für (1, 2, 2) ergibt sich 3.",
+    "Das Skalarprodukt ist eine Zahl und hängt über a · b = |a| · |b| · cos(φ) mit dem eingeschlossenen Winkel zusammen.",
+    "Zwei vom Nullvektor verschiedene Vektoren sind genau dann orthogonal, wenn ihr Skalarprodukt null ist.",
+    "Das Kreuzprodukt ist nur im dreidimensionalen Raum definiert und liefert einen Vektor, der auf beiden Ausgangsvektoren senkrecht steht.",
+    "Der Betrag des Kreuzprodukts ist der Flächeninhalt des aufgespannten Parallelogramms, und es gilt b × a = −(a × b).",
+    "Im dreidimensionalen Raum sind mehr als drei Vektoren immer linear abhängig.",
+    "Das Produkt A · B ist nur definiert, wenn A so viele Spalten hat wie B Zeilen; eine m×n-Matrix mal eine n×p-Matrix ergibt eine m×p-Matrix.",
+    "Die Matrizenmultiplikation ist im Allgemeinen nicht kommutativ, aber assoziativ.",
+    "Beim Transponieren eines Produkts kehrt sich die Reihenfolge um: (A · B)^T = B^T · A^T.",
+    "Eine quadratische Matrix ist genau dann invertierbar, wenn ihre Determinante nicht null ist.",
+    "Die Determinante einer 2×2-Matrix ((a, b), (c, d)) ist a·d − b·c.",
+    "Die Regel von Sarrus gilt ausschließlich für 3×3-Matrizen.",
+    "Vertauscht man zwei Zeilen, ändert die Determinante ihr Vorzeichen; addiert man ein Vielfaches einer Zeile zu einer anderen, bleibt sie unverändert.",
+    "Bei einer Dreiecksmatrix ist die Determinante das Produkt der Hauptdiagonalelemente, und es gilt det(A · B) = det(A) · det(B).",
+    "Ein lineares Gleichungssystem hat genau eine, keine oder unendlich viele Lösungen, nie genau zwei.",
+    "Ist der Rang der Koeffizientenmatrix kleiner als der Rang der erweiterten Matrix, hat das System keine Lösung.",
+    "Ein homogenes LGS ist immer lösbar, weil der Nullvektor stets eine Lösung ist.",
+    "Das Gauß-Verfahren bringt die erweiterte Matrix mit elementaren Zeilenumformungen in Stufenform und bestimmt die Unbekannten durch Rückwärtseinsetzen.",
+    "Entsteht beim Gauß-Verfahren eine Zeile 0 = c mit c ≠ 0, hat das System keine Lösung."
+  ]
+}

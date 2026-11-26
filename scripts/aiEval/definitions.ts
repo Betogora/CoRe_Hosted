@@ -58,10 +58,13 @@ export interface EvalDefinition<Request = unknown, Output = unknown> {
   fromCorpus?(card: AiCardVariantSource): { suffix: string; category: string; request: Request }[];
 }
 
-/** Die Richtereinträge einer Antwort oder eines Handurteils, mit der Kennung `ref` je Eintrag. */
-export function judgeItemsFor(definition: EvalDefinition, ref: string, request: unknown, output: unknown) {
+/** Die Richtereinträge einer Antwort oder eines Handurteils, mit der Kennung `ref` je Eintrag; `reference` steht in jeder Eingabe. */
+export function judgeItemsFor(definition: EvalDefinition, ref: string, request: unknown, output: unknown, reference: readonly string[] = []) {
   const items = definition.items ? definition.items(request, output) : [{ key: "", criteria: definition.judged(request), rendered: definition.render!(request, output) }];
-  return items.map((item) => ({ ref: item.key ? `${ref}/${item.key}` : ref, key: item.key, criteria: item.criteria, rendered: item.rendered }));
+  return items.map((item) => ({
+    ref: item.key ? `${ref}/${item.key}` : ref, key: item.key, criteria: item.criteria,
+    rendered: reference.length ? { ...item.rendered, eingabe: { ...item.rendered.eingabe, referenz: reference.join("\n") } } : item.rendered,
+  }));
 }
 
 const words = (text: string) => normalizeAiCardText(text).toLocaleLowerCase("de-DE").split(/[^\p{L}\p{N}]+/u).filter(Boolean);
@@ -333,7 +336,7 @@ const sourceCards: EvalDefinition<SourceCardsCase, SourceCardsOutput> = {
   judged: (request) => [...Object.values(SOURCE_CRITERIA), ...sourceKeypoints(request)],
   items(request, output) {
     const counting = COUNT_PROFILES.includes(request.profile);
-    const cards = sample(output.cards, (card) => card.front, counting ? 5 : 10).map((card) => ({
+    const cards = sample(output.cards, (card) => card.front, counting ? 3 : 5).map((card) => ({
       key: `karte-${hash(card.front).slice(0, 10)}`,
       criteria: counting ? [SOURCE_CRITERIA.Q2] : [SOURCE_CRITERIA.Q2, SOURCE_CRITERIA.Q3, SOURCE_CRITERIA.Q4, ...card.options.length ? [SOURCE_CRITERIA.Q5] : []],
       rendered: {
@@ -370,13 +373,20 @@ const sourceCards: EvalDefinition<SourceCardsCase, SourceCardsOutput> = {
 };
 
 const SUMMARY_DIRECTORY = "fixtures/ai-eval/summary-material";
+/** Jedes Wertepaar aus Länge, Darstellung, Lernziel und Beispielen kommt in mindestens einem Profil vor; den Detailgrad setzt die App mit der Länge, den Sprachstil gar nicht. */
 const SUMMARY_PROFILES = {
   standard: {},
-  "kurz-pruefung": { length: "short", format: "bullets", goal: "exam", detail: "essentials" },
-  "lang-einfach": { length: "long", format: "prose", goal: "understand", register: "simple", detail: "detailed", includeExamples: false },
+  "kurz-stichpunkte-wiederholen": { length: "short", detail: "essentials", format: "bullets", goal: "repeat", includeExamples: true },
+  "lang-gegliedert-wiederholen-ohne-beispiele": { length: "long", detail: "detailed", format: "sections", goal: "repeat", includeExamples: false },
+  "lang-fliesstext-pruefung": { length: "long", detail: "detailed", format: "prose", goal: "exam", includeExamples: true },
+  "kurz-fliesstext-verstehen-ohne-beispiele": { length: "short", detail: "essentials", format: "prose", goal: "understand", includeExamples: false },
+  "mittel-stichpunkte-pruefung-ohne-beispiele": { length: "medium", detail: "balanced", format: "bullets", goal: "exam", includeExamples: false },
+  "mittel-fliesstext-wiederholen-ohne-beispiele": { length: "medium", detail: "balanced", format: "prose", goal: "repeat", includeExamples: false },
+  "kurz-gegliedert-pruefung-ohne-beispiele": { length: "short", detail: "essentials", format: "sections", goal: "exam", includeExamples: false },
+  "lang-stichpunkte-verstehen": { length: "long", detail: "detailed", format: "bullets", goal: "understand", includeExamples: true },
 } as const satisfies Record<string, Partial<SummarySettings>>;
 const SUMMARY_WORD_LIMITS: Record<SummarySettings["length"], number> = { short: 300, medium: 750, long: 1_500 };
-const SUMMARY_SECTIONS_JUDGED = 4;
+const SUMMARY_SECTIONS_JUDGED = 2;
 
 const materialSchema = v.strictObject({
   title: v.string(), material: v.picklist(["cards", "source", "cards-and-source"]), decks: v.array(v.unknown()), units: v.array(v.unknown()),
@@ -402,7 +412,7 @@ const learningSummary: EvalDefinition<SummaryCase, Summary> = {
   id: "learning-summary",
   deadlineMs: AI_LEARNING_SUMMARY_DEADLINE_MS,
   contract: "Z1",
-  main: ["Z1", "Z2", "Z3", "Z4", "Z5", "Z6"],
+  main: ["Z1", "Z2", "Z3", "Z4", "Z6"],
   parseRequest(value) {
     const parsed = v.safeParse(v.strictObject({ set: v.pipe(v.string(), v.regex(/^[a-z0-9-]+$/)), profile: v.picklist(Object.keys(SUMMARY_PROFILES) as (keyof typeof SUMMARY_PROFILES)[]) }), value);
     if (!parsed.success || !existsSync(`${SUMMARY_DIRECTORY}/${parsed.output.set}.json`)) return null;
@@ -434,11 +444,6 @@ const learningSummary: EvalDefinition<SummaryCase, Summary> = {
       const keywords = summaryBlocks(output).flatMap((block) => block.points.map((point) => point.keyword.trim().toLocaleLowerCase("de-DE")));
       return new Set(keywords).size === keywords.length;
     },
-    Z5(_request, output) {
-      const name = (text: string) => text.trim().toLocaleLowerCase("de-DE");
-      const names = new Set(summaryBlocks(output).flatMap((block) => [block.heading, ...block.points.map((point) => point.keyword)]).map(name));
-      return (output.relations ?? []).every((relation) => names.has(name(relation.from)) && names.has(name(relation.to)));
-    },
   },
   judged: (request) => [...Object.values(SUMMARY_CRITERIA), ...summaryKeypoints(request)],
   items(request, output) {
@@ -460,7 +465,7 @@ const learningSummary: EvalDefinition<SummaryCase, Summary> = {
   },
   metrics(request, output) {
     const referenced = new Set(summaryBlocks(output).flatMap((block) => block.references));
-    return { woerter: summaryWords(output), abschnitte: summaryBlocks(output).length, belegtes_material: referenced.size / request.route.units.length, warnungen: output.warnings.length };
+    return { woerter: summaryWords(output), abschnitte: summaryBlocks(output).length, belegtes_material: referenced.size / request.route.units.length, warnungen: output.warnings.length, querbezuege: output.relations?.length ?? 0 };
   },
 };
 

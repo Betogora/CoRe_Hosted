@@ -635,14 +635,14 @@ Eine Variante fragt denselben Inhalt mit anderer Formulierung ab.
 Aus den Karten eines Stapels entsteht eine gegliederte, belegte Fassung zum Lesen.
 
 - **Material:** die Karten des Stapels, auf Wunsch samt Unterstapeln, und optional eine angehängte Quelle (PDF, Text, Markdown, CSV, TSV). Die Quelle kann die Karten ergänzen oder ersetzen und wird nicht gespeichert.
-- Jeder Inhalt geht genau einmal ein, unabhängig von der Zahl seiner Karten; Varianten zählen nicht. Bei Auswahlkarten sind richtige und falsche Optionen unterschieden.
-- Das Material wird vor der Anfrage vollständig geladen. Ist es größer als die Obergrenze (3.000 Inhalte oder 400.000 Zeichen), wird die Erstellung sichtbar abgewiesen und nie still gekürzt.
+- Jeder Inhalt geht genau einmal ein, gleich wie viele Karten er hat; Varianten zählen nicht. Bei Auswahlkarten sind richtige und falsche Optionen unterschieden.
+- Das Material wird vor der Anfrage vollständig geladen. Ist es größer als die Obergrenze (3.000 Inhalte oder 400.000 Zeichen), wird die Erstellung sichtbar abgewiesen, nie still gekürzt.
 - **Wünsche:** Länge, Darstellung, Lernziel, Fokus, Beispiele, sichtbare Verweise (vorab aus). Die Länge (etwa 1–2, 3–5 oder 6–10 Min. Lesezeit) setzt auch den Detailgrad. Die Wünsche sind ein eigener Auftrag; Fokus und Material überschreiben die Anweisungen nicht.
 - **Materialtreue:** Die KI darf nur wiedergeben, was im Material steht. Definitionen, Zahlen, Einheiten, Formeln, Verneinungen, Bedingungen und Ausnahmen bleiben; Widersprüche nennt sie mit beiden Fundstellen, Lücken als Hinweis. Bei knapper Länge gehen Fokus und zentrale Konzepte vor; wenig Material wird nicht aufgefüllt.
-- **Antwort:** Hauptabschnitte mit höchstens einer Ebene Unterabschnitten, darin Absätze und Stichpunkte aus Stichwort und Aussage, je Abschnitt Verweise auf das Material und optional belegte Querbezüge zwischen Stichworten.
-- Den Text baut die App aus dieser Struktur. Kartenverweise führen zu vorhandenen Karten, Quellverweise nennen Datei und Seite; unbekannte Verweise, leere Abschnitte und abgeschnittene Antworten werden abgewiesen.
-- Das Ergebnis öffnet als ungespeicherter Entwurf unter dem Stapelnamen; erst das Speichern übernimmt ihn. Modell, Promptfassung und Erstellungszeit bleiben an der Fassung.
-- Abbrechen beendet die Anfrage; eine verspätete Antwort wird nicht übernommen. Ein Fehler erhält den Auftrag.
+- **Antwort:** Hauptabschnitte mit höchstens einer Ebene Unterabschnitten, darin Absätze und Stichpunkte aus Stichwort und Aussage, je Abschnitt Verweise auf das Material und optional belegte Querbezüge.
+- Den Text baut die App aus dieser Struktur. Kartenverweise führen zu vorhandenen Karten, Quellverweise nennen Datei und Seite. Abgewiesen werden unbekannte Verweise, leere Hauptabschnitte und abgeschnittene Antworten; leere Unterabschnitte und unbelegte Querbezüge entfallen.
+- Das Ergebnis öffnet als ungespeicherter Entwurf unter dem Stapelnamen; Modell, Promptfassung und Erstellungszeit bleiben an der gespeicherten Fassung.
+- Abbrechen beendet die Anfrage, eine verspätete Antwort verfällt. Ein Fehler erhält den Auftrag.
 - Bilder, Ton und gescannte Seiten ohne Text werden nicht ausgewertet; was ausgelassen wurde, steht im Ergebnis.
 - **Grenze:** Der Prompt allein garantiert keine Faktentreue; deshalb die Belege. Ausgabesprache ist Deutsch.
 
@@ -794,14 +794,14 @@ Fassung | im Konto, mehrere je Stapel
 
 `Heute` ist die Startseite: Tagesstand, Lernstart und persönliche Werkzeuge an einem Ort.
 
-- Die Seite besteht aus frei wählbaren und anordenbaren Bausteinen: Tagesstand, Motivationsimpuls, Lerntimer, aktive Stapel, To-dos, Lern-Heatmap und Prüfungsaufgaben. Anordnung und eigene To-dos gelten je Konto nur in diesem Browser.
-- **Feste Formate:** Bausteine haben feste, nicht wählbare Größen; längere Inhalte scrollen im Baustein statt in der Seite.
-- **Erststart:** Ein neues Konto beginnt ohne erfundene Daten. Ohne Stapel führt die Seite zu Import, manueller Karte oder Demo. Demo-Stapel entstehen nur auf ausdrückliche Aktion, einmalig und ohne Lernhistorie.
+- Die Seite besteht aus wähl- und anordenbaren Bausteinen: Tagesstand, Motivationsimpuls, Lerntimer, angepinnte Stapel, To-dos, Lern-Heatmap und Prüfungsaufgaben. Anordnung und eigene To-dos gelten je Konto nur in diesem Browser.
+- **Feste Formate:** Bausteine haben feste Größen; längere Inhalte scrollen im Baustein.
+- **Erststart:** Ein neues Konto beginnt ohne erfundene Daten. Ohne Stapel führt die Seite zu Import, manueller Karte oder Demo; Demo-Stapel entstehen nur auf ausdrückliche Aktion, einmalig, ohne Lernhistorie.
 - **Tagesstand:** Er fasst alle Hauptstapel ohne Doppelzählung in `Gelernt`, `Neu`, `Offen` und `Fällig` zusammen ([Tagesrunde und Limits](#tagesrunde-und-limits)).
-- **Lernstart:** Er startet den alphabetisch ersten Hauptstapel mit verfügbaren Karten. Warten nur noch Lernschritte, kündigt er späteres Weiterlernen an; ist alles gelernt, meldet er das Tagesziel und bietet zusätzliche neue Karten an.
+- **Lernstart:** startet den alphabetisch ersten Hauptstapel mit verfügbaren Karten; warten nur Lernschritte, kündigt er späteres Weiterlernen an, sonst meldet er das Tagesziel und bietet zusätzliche neue Karten an.
 - **Motivationsimpuls:** einer von 60 eigenen Lernimpulsen, je Lerntag stabil, auch offline.
-- **To-dos:** eigene Aufgaben und Aufgaben aus dem Prüfungsplaner; Planeraufgaben lassen sich direkt lernen. Wird der Baustein entfernt, bleiben die Aufgaben.
-- **Aktive Stapel:** so viele Hauptstapel, wie der Baustein fasst, startbare zuerst, und der Weg zu allen.
+- **To-dos:** eigene und Planeraufgaben, letztere direkt lernbar; ohne Baustein bleiben sie.
+- **Angepinnte Stapel:** bis zu vier, neueste oben, mit Lernstart und Weg zu allen; Lücken füllen die an den meisten von 14 Lerntagen gestarteten, dann Hauptstapel. Ein fünfter Pin ersetzt einen, wie Lösen nach Rückfrage.
 - **Bewusst nicht:** Zeitprognosen.
 
 ### Kartenverwaltung
@@ -883,9 +883,9 @@ Jede Einstellung gilt für genau einen Bereich.
 
 | Gilt für | Einstellungen |
 | --- | --- |
-| Konto, auf allen Geräten | Tagesbeginn, Vorziehfenster, Lernbremse, Easy Days, Lernprofile, Standard für neue Stapel, Flaggennamen, gespeicherte Suchen, Prüfungspläne |
+| Konto, auf allen Geräten | Tagesbeginn, Vorziehfenster, Lernbremse, Easy Days, Lernprofile, Standard für neue Stapel, Flaggennamen, gespeicherte Suchen, Prüfungspläne, Pins und Lerntage von `Heute` |
 | Einen Stapel | Tageslimits, Reihenfolge und Sortierung, Begraben, Lernschritte, Zielerinnerung, maximales Intervall, CoRe-Modus, Variantenschwelle, aktive Varianten, Name und Aussehen, Offline-Nutzung |
-| Diesen Browser | heller oder dunkler Modus, Heatmap-Farbe, Stapelansicht, Anordnung von `Heute` und eigene To-dos, Pomodoro-Timer, Simulationsuhr |
+| Diesen Browser | heller oder dunkler Modus, Heatmap-Farbe, Stapelansicht, Anordnung und eigene To-dos von `Heute`, Pomodoro-Timer, Simulationsuhr |
 
 - Einstellungen werden als Entwurf geändert und ausdrücklich gespeichert oder verworfen; ein ungespeicherter Entwurf hält jedes Verlassen auf.
 - Stapeleinstellungen öffnen aus den Einstellungen; Zurück führt dorthin.

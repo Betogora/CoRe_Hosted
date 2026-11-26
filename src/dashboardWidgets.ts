@@ -1,10 +1,13 @@
 import { createAccountStorage } from "./accountStorage.ts";
+import type { Profile } from "./coreTypes.ts";
+import { getGlobalSchedulerPreferences } from "./deckSettings.ts";
+import { getLearningDayKey, getLearningTimeZone } from "./learningDay.ts";
 
 export const DASHBOARD_WIDGETS = [
   { id: "learning", title: "Dein Lernen heute", description: "Tagesziel und Fortschritt auf einen Blick.", width: "small" },
   { id: "motivation", title: "Dein Motivationsimpuls", description: "Ein täglicher Lernimpuls mit deinem Gehirn-Maskottchen.", width: "small" },
   { id: "timer", title: "Lerntimer", description: "Zeit für Fokus. Und für eine kleine Pause.", width: "small" },
-  { id: "decks", title: "Aktive Stapel", description: "Deine Stapel mit direktem Lernstart.", width: "full" },
+  { id: "decks", title: "Angepinnte Stapel", description: "Deine angepinnten Stapel mit direktem Lernstart.", width: "small" },
   { id: "todos", title: "To-dos", description: "Aufgaben aus dem Planer und eigene Vorhaben.", width: "small" },
   { id: "heatmap", title: "Lernaktivität", description: "Deine Heatmap mit Rückblick und Ausblick.", width: "small" },
 ] as const;
@@ -64,4 +67,10 @@ export function readDashboardPreferences(userId: string): DashboardPreferences {
 export function writeDashboardPreferences(userId: string, preferences: DashboardPreferences): boolean {
   try { createAccountStorage(userId).setItem(STORAGE_KEY, JSON.stringify({ ...preferences, motivationIntroduced: true })); return true; }
   catch { return false; }
+}
+
+/** Today's learning day by real time, so a simulated learning clock neither hides nor freezes study days. */
+export function currentLearningDay(profile: Profile) {
+  const now = new Date();
+  return getLearningDayKey(now, { timeZone: getLearningTimeZone(profile), dayStartHour: getGlobalSchedulerPreferences(profile).dayStartHour }) ?? now.toISOString().slice(0, 10);
 }

@@ -16,12 +16,19 @@ export const corpusCasesFile = (id: string) => `${outputRoot()}/${id}/corpus.cas
 
 export const SPLITS = ["train", "dev", "holdout"] as const;
 export type Split = (typeof SPLITS)[number];
-const SHARES: Record<Split, number> = { train: 0.4, dev: 0.3, holdout: 0.3 };
+const SHARES: Record<Split, number> = { train: 0.35, dev: 0.4, holdout: 0.25 };
+/** `fundus` sind Karten aus den eigenen Stapeln im Korpus. */
+export const SUBJECTS = ["medizin", "naturwissenschaft", "technik-it", "mathematik", "sprachen", "recht-wirtschaft", "geschichte-geografie", "fundus"] as const;
+const CORPUS_CARDS_PER_DECK = 3;
 const slug = v.pipe(v.string(), v.regex(/^[a-z0-9-]+$/));
 const casesSchema = v.strictObject({
   cases: v.array(v.strictObject({
     id: slug,
     category: slug,
+    subject: v.picklist(SUBJECTS),
+    difficulty: v.optional(v.picklist(["leicht", "mittel", "schwer"])),
+    /** Gesicherte Fachaussagen zum Fall; der Richter sieht sie als `referenz`. */
+    reference: v.optional(v.array(v.pipe(v.string(), v.minLength(1)))),
     split: v.optional(v.picklist(SPLITS)),
     /** Fälle derselben Gruppe (eine Karte, Notiz oder Quelle) landen immer im selben Teil. */
     group: v.optional(slug),
@@ -76,9 +83,9 @@ export function readCases(definition: EvalDefinition, file: string): DraftCase[]
 }
 
 /**
- * Je Kategorie geht jede Gruppe ohne Teil in den Teil, dem nach seinem Anteil die meisten Fälle fehlen; bei Gleichstand
- * zuerst `dev` vor `holdout`, damit jede Kategorie mit zwei Fällen auch im Entscheidungsteil vorkommt. Eine Gruppe zählt
- * zur Kategorie ihres ersten Falls, und vorhandene Zuordnungen bleiben stehen.
+ * Je Kategorie geht jede Gruppe ohne Teil in den Teil, dem nach seinem Anteil in Kategorie und Fach zusammen die meisten
+ * Fälle fehlen; bei Gleichstand zuerst `train` vor `dev` vor `holdout`. Eine Gruppe zählt zu Kategorie und Fach ihres
+ * ersten Falls, und vorhandene Zuordnungen bleiben stehen.
  */
 export function assignSplits(cases: readonly DraftCase[], random: () => number): EvalCase[] {
   const groups = new Map<string, DraftCase[]>();
@@ -90,17 +97,26 @@ export function assignSplits(cases: readonly DraftCase[], random: () => number):
     if (splits.size) fixed.set(key, [...splits][0]);
   }
   const assigned = new Map(fixed);
+  const subjects = new Map<string, Record<Split, number>>();
+  const tally = (key: string) => {
+    const subject = groups.get(key)![0].subject;
+    if (!subjects.has(subject)) subjects.set(subject, { train: 0, dev: 0, holdout: 0 });
+    return subjects.get(subject)!;
+  };
+  for (const [key, split] of fixed) tally(key)[split] += groups.get(key)!.length;
+  const missing = (counts: Record<Split, number>, split: Split, size: number) => SHARES[split] * (counts.train + counts.dev + counts.holdout + size) - counts[split];
   for (const category of [...new Set(cases.map((entry) => entry.category))].sort()) {
     const keys = [...groups.keys()].filter((key) => groups.get(key)![0].category === category);
     const counts: Record<Split, number> = { train: 0, dev: 0, holdout: 0 };
     for (const key of keys) if (fixed.has(key)) counts[fixed.get(key)!] += groups.get(key)!.length;
     for (const key of shuffled(keys.filter((candidate) => !fixed.has(candidate)), random)) {
       const size = groups.get(key)!.length;
-      const total = counts.train + counts.dev + counts.holdout + size;
-      const deficit = (split: Split) => Math.round((SHARES[split] * total - counts[split]) * 1000);
+      const subject = tally(key);
+      const deficit = (split: Split) => Math.round((missing(counts, split, size) + missing(subject, split, size)) * 1000);
       const largest = Math.max(...SPLITS.map(deficit));
       const split = SPLITS.find((candidate) => deficit(candidate) === largest)!;
       counts[split] += size;
+      subject[split] += size;
       assigned.set(key, split);
     }
   }
@@ -127,7 +143,7 @@ export async function sampleCorpus(definition: EvalDefinition, count: number, se
   const files = existsSync(directory) ? readdirSync(directory).filter((name) => /\.(?:apkg|colpkg)$/i.test(name)).sort() : [];
   if (!files.length) throw new Error(`Kein Korpus in ${directory}.`);
   const hash = (text: string) => createHash("sha1").update(text).digest("hex").slice(0, 10);
-  const cards = new Map<string, { source: AiCardVariantSource; note: string }>();
+  const cards = new Map<string, { source: AiCardVariantSource; note: string; deck: string }>();
   for (const name of files) {
     const graph = await translateAnkiPackage(await readAnkiPackage(Object.assign(await openAsBlob(path.join(directory, name)), { name })));
     const notes = new Map(graph.notes.map((note) => [note.id, note]));
@@ -135,16 +151,20 @@ export async function sampleCorpus(definition: EvalDefinition, count: number, se
       const note = notes.get(card.noteId);
       const source = note && cardVariantSource(note, card);
       const html = note?.content.fields.map((field) => field.html).join("\u0000") ?? "";
-      if (source && !/<img|\[sound:/i.test(html) && !placeholderCard(source)) cards.set(hash(`${source.front}\u0000${source.back}`), { source, note: hash(`${name}\u0000${html}`) });
+      if (source && !/<img|\[sound:/i.test(html) && !placeholderCard(source)) cards.set(hash(`${source.front}\u0000${source.back}`), { source, note: hash(`${name}\u0000${html}`), deck: `${name}\u0000${card.deckId}` });
     }
   }
   const keys = shuffled([...cards.keys()].sort(), seededRandom(seed));
   const cases: DraftCase[] = [];
+  const perDeck = new Map<string, number>();
   for (const key of keys) {
-    const { source, note } = cards.get(key)!;
+    const { source, note, deck } = cards.get(key)!;
+    if ((perDeck.get(deck) ?? 0) >= CORPUS_CARDS_PER_DECK) continue;
     const entries = (definition.fromCorpus?.(source) ?? []).filter((entry) => definition.parseRequest(entry.request));
+    if (!entries.length) continue;
     if (cases.length + entries.length > count) break;
-    cases.push(...entries.map((entry) => ({ id: `corpus-${key}${entry.suffix}`, category: entry.category, group: `note-${note}`, request: entry.request as unknown })));
+    perDeck.set(deck, (perDeck.get(deck) ?? 0) + 1);
+    cases.push(...entries.map((entry) => ({ id: `corpus-${key}${entry.suffix}`, category: entry.category, subject: "fundus" as const, group: `note-${note}`, request: entry.request as unknown })));
   }
   return cases;
 }

@@ -17,11 +17,12 @@ function completeProfile(userId: string) {
     onboardingComplete: true,
     schedulerPreferences: { settingsVersion: 2, dayStartHour: 0 },
     uiPreferences: {
-      dashboardCollapsedDeckIds: [],
       learnCollapsedDeckIds: [],
       syncIntervalMinutes: 5 as const,
       flagNames: ["", "", "", "", "", "", ""],
       savedSearches: [],
+      dashboardPinnedDeckIds: [],
+      dashboardStudyDays: [],
     },
   };
 }
@@ -39,7 +40,7 @@ test("ein während des Bootstrap bereits versendeter Profilpatch wird nicht von 
       updatedAt: "2026-08-17T10:00:00.000Z",
     },
   });
-  repository.saveProfile({ ...cloudProfile, displayName: "Offline gespeichert" });
+  repository.patchProfile({ displayName: "Offline gespeichert" });
   await repository.flush();
   const pendingAtRequest = repository.outbox.listPending();
   repository.outbox.remove(pendingAtRequest.map((mutation) => mutation.id));

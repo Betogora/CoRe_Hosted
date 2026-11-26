@@ -1,0 +1,501 @@
+[
+  {
+    "caseId": "gewaltenteilung-standard",
+    "repetition": 0,
+    "category": "standard",
+    "trap": false,
+    "outcome": "answer",
+    "criteria": {
+      "Q1": 1,
+      "Q2": 1,
+      "Q3": 0.9,
+      "Q4": 1,
+      "Q6": 1
+    },
+    "main": 0.9,
+    "metrics": {
+      "karten": 14,
+      "karten_je_1000_zeichen": 6.7340067340067336,
+      "anteil_frage_antwort": 1,
+      "anteil_lueckentext": 0,
+      "anteil_single_choice": 0,
+      "anteil_multiple_choice": 0,
+      "belegte_stellen": 1,
+      "letzte_belegte_stelle": 1,
+      "obergrenze_erreicht": 0,
+      "abschnitte_gescheitert": 0,
+      "verworfen": 0
+    },
+    "costUsd": 0.000768925,
+    "latencyMs": 9848,
+    "totalTokens": 2968,
+    "model": "openai/gpt-6-luna"
+  },
+  {
+    "caseId": "gewaltenteilung-standard",
+    "repetition": 1,
+    "category": "standard",
+    "trap": false,
+    "outcome": "answer",
+    "criteria": {
+      "Q1": 1,
+      "Q2": 1,
+      "Q3": 0.5,
+      "Q4": 1,
+      "Q6": 1
+    },
+    "main": 0.5,
+    "metrics": {
+      "karten": 14,
+      "karten_je_1000_zeichen": 6.7340067340067336,
+      "anteil_frage_antwort": 1,
+      "anteil_lueckentext": 0,
+      "anteil_single_choice": 0,
+      "anteil_multiple_choice": 0,
+      "belegte_stellen": 1,
+      "letzte_belegte_stelle": 1,
+      "obergrenze_erreicht": 0,
+      "abschnitte_gescheitert": 0,
+      "verworfen": 0
+    },
+    "costUsd": 0.000849425,
+    "latencyMs": 12371,
+    "totalTokens": 3129,
+    "model": "openai/gpt-6-luna"
+  },
+  {
+    "caseId": "gewaltenteilung-alle-formen",
+    "repetition": 0,
+    "category": "alle-formen",
+    "trap": false,
+    "outcome": "answer",
+    "criteria": {
+      "Q1": 1,
+      "Q2": 0.9,
+      "Q3": 0.8,
+      "Q4": 1,
+      "Q5": 1,
+      "Q6": 0.9091
+    },
+    "main": 0.7,
+    "metrics": {
+      "karten": 13,
+      "karten_je_1000_zeichen": 6.253006253006253,
+      "anteil_frage_antwort": 0.6153846153846154,
+      "anteil_lueckentext": 0.3076923076923077,
+      "anteil_single_choice": 0.07692307692307693,
+      "anteil_multiple_choice": 0,
+      "belegte_stellen": 1,
+      "letzte_belegte_stelle": 1,
+      "obergrenze_erreicht": 0,
+      "abschnitte_gescheitert": 0,
+      "verworfen": 0
+    },
+    "costUsd": 0.000881675,
+    "latencyMs": 14439,
+    "totalTokens": 3213,
+    "model": "openai/gpt-6-luna"
+  },
+  {
+    "caseId": "gewaltenteilung-alle-formen",
+    "repetition": 1,
+    "category": "alle-formen",
+    "trap": false,
+    "outcome": "answer",
+    "criteria": {
+      "Q1": 1,
+      "Q2": 1,
+      "Q3": 1,
+      "Q4": 1,
+      "Q5": 1,
+      "Q6": 1
+    },
+    "main": 1,
+    "metrics": {
+      "karten": 13,
+      "karten_je_1000_zeichen": 6.253006253006253,
+      "anteil_frage_antwort": 0.6153846153846154,
+      "anteil_lueckentext": 0.23076923076923078,
+      "anteil_single_choice": 0,
+      "anteil_multiple_choice": 0.15384615384615385,
+      "belegte_stellen": 1,
+      "letzte_belegte_stelle": 1,
+      "obergrenze_erreicht": 0,
+      "abschnitte_gescheitert": 0,
+      "verworfen": 0
+    },
+    "costUsd": 0.000988675,
+    "latencyMs": 19173,
+    "totalTokens": 3427,
+    "model": "openai/gpt-6-luna"
+  },
+  {
+    "caseId": "gewaltenteilung-weniger",
+    "repetition": 0,
+    "category": "weniger",
+    "trap": false,
+    "outcome": "answer",
+    "criteria": {
+      "Q1": 1,
+      "Q2": 1,
+      "Q6": 0.6364
+    },
+    "main": 1,
+    "metrics": {
+      "karten": 13,
+      "karten_je_1000_zeichen": 6.253006253006253,
+      "anteil_frage_antwort": 1,
+      "anteil_lueckentext": 0,
+      "anteil_single_choice": 0,
+      "anteil_multiple_choice": 0,
+      "belegte_stellen": 1,
+      "letzte_belegte_stelle": 1,
+      "obergrenze_erreicht": 0,
+      "abschnitte_gescheitert": 0,
+      "verworfen": 0
+    },
+    "costUsd": 0.000782175,
+    "latencyMs": 9291,
+    "totalTokens": 2993,
+    "model": "openai/gpt-6-luna"
+  },
+  {
+    "caseId": "gewaltenteilung-weniger",
+    "repetition": 1,
+    "category": "weniger",
+    "trap": false,
+    "outcome": "answer",
+    "criteria": {
+      "Q1": 1,
+      "Q2": 0.8,
+      "Q6": 0.7273
+    },
+    "main": 0.8,
+    "metrics": {
+      "karten": 13,
+      "karten_je_1000_zeichen": 6.253006253006253,
+      "anteil_frage_antwort": 1,
+      "anteil_lueckentext": 0,
+      "anteil_single_choice": 0,
+      "anteil_multiple_choice": 0,
+      "belegte_stellen": 1,
+      "letzte_belegte_stelle": 1,
+      "obergrenze_erreicht": 0,
+      "abschnitte_gescheitert": 0,
+      "verworfen": 0
+    },
+    "costUsd": 0.00064543,
+    "latencyMs": 11651,
+    "totalTokens": 3125,
+    "model": "openai/gpt-6-luna"
+  },
+  {
+    "caseId": "gewaltenteilung-mehr",
+    "repetition": 0,
+    "category": "mehr",
+    "trap": false,
+    "outcome": "answer",
+    "criteria": {
+      "Q1": 1,
+      "Q2": 1,
+      "Q6": 0.2727
+    },
+    "main": 1,
+    "metrics": {
+      "karten": 13,
+      "karten_je_1000_zeichen": 6.253006253006253,
+      "anteil_frage_antwort": 1,
+      "anteil_lueckentext": 0,
+      "anteil_single_choice": 0,
+      "anteil_multiple_choice": 0,
+      "belegte_stellen": 1,
+      "letzte_belegte_stelle": 1,
+      "obergrenze_erreicht": 0,
+      "abschnitte_gescheitert": 0,
+      "verworfen": 0
+    },
+    "costUsd": 0.0006328,
+    "latencyMs": 6625,
+    "totalTokens": 2701,
+    "model": "openai/gpt-6-luna"
+  },
+  {
+    "caseId": "gewaltenteilung-mehr",
+    "repetition": 1,
+    "category": "mehr",
+    "trap": false,
+    "outcome": "answer",
+    "criteria": {
+      "Q1": 1,
+      "Q2": 1,
+      "Q6": 1
+    },
+    "main": 1,
+    "metrics": {
+      "karten": 14,
+      "karten_je_1000_zeichen": 6.7340067340067336,
+      "anteil_frage_antwort": 1,
+      "anteil_lueckentext": 0,
+      "anteil_single_choice": 0,
+      "anteil_multiple_choice": 0,
+      "belegte_stellen": 1,
+      "letzte_belegte_stelle": 1,
+      "obergrenze_erreicht": 0,
+      "abschnitte_gescheitert": 0,
+      "verworfen": 0
+    },
+    "costUsd": 0.00046002,
+    "latencyMs": 8410,
+    "totalTokens": 2763,
+    "model": "openai/gpt-6-luna"
+  },
+  {
+    "caseId": "netzwerk-glossar-standard",
+    "repetition": 0,
+    "category": "standard",
+    "trap": false,
+    "outcome": "answer",
+    "criteria": {
+      "Q1": 1,
+      "Q2": 1,
+      "Q3": 1,
+      "Q4": 1,
+      "Q6": 0.95
+    },
+    "main": 1,
+    "metrics": {
+      "karten": 21,
+      "karten_je_1000_zeichen": 9.300265721877768,
+      "anteil_frage_antwort": 1,
+      "anteil_lueckentext": 0,
+      "anteil_single_choice": 0,
+      "anteil_multiple_choice": 0,
+      "belegte_stellen": 1,
+      "letzte_belegte_stelle": 1,
+      "obergrenze_erreicht": 0,
+      "abschnitte_gescheitert": 0,
+      "verworfen": 0
+    },
+    "costUsd": 0.0008928,
+    "latencyMs": 11797,
+    "totalTokens": 3275,
+    "model": "openai/gpt-6-luna"
+  },
+  {
+    "caseId": "netzwerk-glossar-standard",
+    "repetition": 1,
+    "category": "standard",
+    "trap": false,
+    "outcome": "answer",
+    "criteria": {
+      "Q1": 1,
+      "Q2": 1,
+      "Q3": 0.7,
+      "Q4": 1,
+      "Q6": 0.85
+    },
+    "main": 0.7,
+    "metrics": {
+      "karten": 20,
+      "karten_je_1000_zeichen": 8.857395925597874,
+      "anteil_frage_antwort": 1,
+      "anteil_lueckentext": 0,
+      "anteil_single_choice": 0,
+      "anteil_multiple_choice": 0,
+      "belegte_stellen": 1,
+      "letzte_belegte_stelle": 1,
+      "obergrenze_erreicht": 0,
+      "abschnitte_gescheitert": 0,
+      "verworfen": 0
+    },
+    "costUsd": 0.00061374,
+    "latencyMs": 9447,
+    "totalTokens": 3141,
+    "model": "openai/gpt-6-luna"
+  },
+  {
+    "caseId": "netzwerk-glossar-alle-formen",
+    "repetition": 0,
+    "category": "alle-formen",
+    "trap": false,
+    "outcome": "answer",
+    "criteria": {
+      "Q1": 1,
+      "Q2": 0.9,
+      "Q3": 0.9,
+      "Q4": 0.7,
+      "Q5": 1,
+      "Q6": 1
+    },
+    "main": 0.5,
+    "metrics": {
+      "karten": 21,
+      "karten_je_1000_zeichen": 9.300265721877768,
+      "anteil_frage_antwort": 0.5714285714285714,
+      "anteil_lueckentext": 0.3333333333333333,
+      "anteil_single_choice": 0.047619047619047616,
+      "anteil_multiple_choice": 0.047619047619047616,
+      "belegte_stellen": 1,
+      "letzte_belegte_stelle": 1,
+      "obergrenze_erreicht": 0,
+      "abschnitte_gescheitert": 0,
+      "verworfen": 0
+    },
+    "costUsd": 0.00103755,
+    "latencyMs": 14261,
+    "totalTokens": 3584,
+    "model": "openai/gpt-6-luna"
+  },
+  {
+    "caseId": "netzwerk-glossar-alle-formen",
+    "repetition": 1,
+    "category": "alle-formen",
+    "trap": false,
+    "outcome": "answer",
+    "criteria": {
+      "Q1": 1,
+      "Q2": 1,
+      "Q3": 0.8,
+      "Q4": 1,
+      "Q6": 1
+    },
+    "main": 0.8,
+    "metrics": {
+      "karten": 22,
+      "karten_je_1000_zeichen": 9.743135518157661,
+      "anteil_frage_antwort": 0.9090909090909091,
+      "anteil_lueckentext": 0.09090909090909091,
+      "anteil_single_choice": 0,
+      "anteil_multiple_choice": 0,
+      "belegte_stellen": 1,
+      "letzte_belegte_stelle": 1,
+      "obergrenze_erreicht": 0,
+      "abschnitte_gescheitert": 0,
+      "verworfen": 0
+    },
+    "costUsd": 0.00091,
+    "latencyMs": 18118,
+    "totalTokens": 3759,
+    "model": "openai/gpt-6-luna"
+  },
+  {
+    "caseId": "netzwerk-glossar-weniger",
+    "repetition": 0,
+    "category": "weniger",
+    "trap": false,
+    "outcome": "answer",
+    "criteria": {
+      "Q1": 1,
+      "Q2": 1,
+      "Q6": 1
+    },
+    "main": 1,
+    "metrics": {
+      "karten": 20,
+      "karten_je_1000_zeichen": 8.857395925597874,
+      "anteil_frage_antwort": 1,
+      "anteil_lueckentext": 0,
+      "anteil_single_choice": 0,
+      "anteil_multiple_choice": 0,
+      "belegte_stellen": 1,
+      "letzte_belegte_stelle": 1,
+      "obergrenze_erreicht": 0,
+      "abschnitte_gescheitert": 0,
+      "verworfen": 0
+    },
+    "costUsd": 0.00098905,
+    "latencyMs": 16330,
+    "totalTokens": 3466,
+    "model": "openai/gpt-6-luna"
+  },
+  {
+    "caseId": "netzwerk-glossar-weniger",
+    "repetition": 1,
+    "category": "weniger",
+    "trap": false,
+    "outcome": "answer",
+    "criteria": {
+      "Q1": 1,
+      "Q2": 1,
+      "Q6": 1
+    },
+    "main": 1,
+    "metrics": {
+      "karten": 21,
+      "karten_je_1000_zeichen": 9.300265721877768,
+      "anteil_frage_antwort": 1,
+      "anteil_lueckentext": 0,
+      "anteil_single_choice": 0,
+      "anteil_multiple_choice": 0,
+      "belegte_stellen": 1,
+      "letzte_belegte_stelle": 1,
+      "obergrenze_erreicht": 0,
+      "abschnitte_gescheitert": 0,
+      "verworfen": 0
+    },
+    "costUsd": 0.00072072,
+    "latencyMs": 13961,
+    "totalTokens": 3353,
+    "model": "openai/gpt-6-luna"
+  },
+  {
+    "caseId": "netzwerk-glossar-mehr",
+    "repetition": 0,
+    "category": "mehr",
+    "trap": false,
+    "outcome": "answer",
+    "criteria": {
+      "Q1": 1,
+      "Q2": 1,
+      "Q6": 1
+    },
+    "main": 1,
+    "metrics": {
+      "karten": 20,
+      "karten_je_1000_zeichen": 8.857395925597874,
+      "anteil_frage_antwort": 1,
+      "anteil_lueckentext": 0,
+      "anteil_single_choice": 0,
+      "anteil_multiple_choice": 0,
+      "belegte_stellen": 1,
+      "letzte_belegte_stelle": 1,
+      "obergrenze_erreicht": 0,
+      "abschnitte_gescheitert": 0,
+      "verworfen": 0
+    },
+    "costUsd": 0.000912175,
+    "latencyMs": 20203,
+    "totalTokens": 3319,
+    "model": "openai/gpt-6-luna"
+  },
+  {
+    "caseId": "netzwerk-glossar-mehr",
+    "repetition": 1,
+    "category": "mehr",
+    "trap": false,
+    "outcome": "answer",
+    "criteria": {
+      "Q1": 1,
+      "Q2": 1,
+      "Q6": 0.95
+    },
+    "main": 1,
+    "metrics": {
+      "karten": 25,
+      "karten_je_1000_zeichen": 11.071744906997344,
+      "anteil_frage_antwort": 1,
+      "anteil_lueckentext": 0,
+      "anteil_single_choice": 0,
+      "anteil_multiple_choice": 0,
+      "belegte_stellen": 1,
+      "letzte_belegte_stelle": 1,
+      "obergrenze_erreicht": 0,
+      "abschnitte_gescheitert": 0,
+      "verworfen": 0
+    },
+    "costUsd": 0.00108581,
+    "latencyMs": 26438,
+    "totalTokens": 4092,
+    "model": "openai/gpt-6-luna"
+  }
+]

@@ -55,7 +55,7 @@ export {
   applyEntityMutation,
   applyEntityMutationBatch,
   recordAtomicReview, undoAtomicReview,
-  upsertAccountCloudProfile,
+  patchAccountCloudProfile,
   resolveAccountSyncConflict,
 } from "./cloudRevisionedWrites.ts";
 export type { CloudEntityPage, EntityMutationPayload, AtomicReviewPayload } from "./cloudRevisionedWrites.ts";

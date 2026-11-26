@@ -77,7 +77,7 @@ test("Leere, unlesbare oder zu große Quellen werden mit Meldung abgewiesen", as
   assert.deepEqual((await readAiSource({ sourceMode: "text", sourceText: "Eingefügt.", file: null })).units, [{ label: "Zeile 1", text: "Eingefügt." }]);
 });
 
-const unit = (index: number, size = 4_000): SourceUnit => ({ label: `Seite ${index}`, text: "x".repeat(size) });
+const unit = (index: number, size = 2_000): SourceUnit => ({ label: `Seite ${index}`, text: "x".repeat(size) });
 const card = (front: string, sources = ["s1"]): GeneratedSourceCard => ({ form: "basic", front, back: "Antwort", options: [], explanation: "", sources });
 /** Every request the run builds must pass the route's own validation. */
 const checked = (respond: AiSourceCardsRequester): AiSourceCardsRequester => (body, signal) => respond(parseAiSourceCardsRequest(body), signal);
@@ -142,7 +142,7 @@ test("Abbruch behält Erhaltenes, Fehler einzelner Abschnitte werden genannt, Fe
   assert.deepEqual(describeAiSourceCardsRun(empty), ["1 Vorschlag wurde verworfen: ungültig, doppelt oder über der Obergrenze.", "Die Quelle ergab keine Kartenvorschläge."]);
 });
 
-const okResponse = (cards: GeneratedSourceCard[]) => ({ cards, warnings: [], discarded: 0, model: "openai/gpt-6-luna", privacyMode: "zdr", promptVersion: "source-cards-v2", usage: null });
+const okResponse = (cards: GeneratedSourceCard[]) => ({ cards, warnings: [], discarded: 0, model: "openai/gpt-6-luna", privacyMode: "zdr", promptVersion: "source-cards-v3", usage: null });
 
 test("Der Abruf sendet die Sitzung mit und prüft die Antwort gegen Anfrage und Vertrag", async () => {
   const supabase = { auth: { getSession: async () => ({ data: { session: { access_token: "session-test" } }, error: null }) } } as unknown as NonNullable<Parameters<typeof requestAiSourceCards>[1]>;
