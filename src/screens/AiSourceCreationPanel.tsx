@@ -1,5 +1,5 @@
 import React from "react";
-import { ArrowLeft, ArrowRight, CircleDot, FileText, ListChecks, MessageSquare, Sparkles, TextCursorInput, X } from "lucide-react";
+import { ChevronLeft, ChevronRight, CircleDot, FileText, ListChecks, MessageSquare, Sparkles, TextCursorInput, X } from "lucide-react";
 import type { CreationScreenProps } from "../appScreenProps.ts";
 import { adoptionDeckId, describeAiSourceCardsRun, proposalNoteContent, readAiSource, runAiSourceCards, saveProposals, type AiSourceCardsRequester, type AiSourceCardsRunResult, type ProposalDraft, type ReadSource } from "../aiSourceCards.ts";
 import {
@@ -196,8 +196,8 @@ export function AiSourceCreationPanel({ decks, initialTargetDeckId, onDraftState
   const editedProposal = run?.phase === "done" ? run.proposals.find((proposal) => proposal.id === editing) ?? null : null;
 
   const stepActions = <div className="core-step-actions">
-    {step > 0 ? <ActionButton type="button" variant="secondary" icon={ArrowLeft} onClick={() => setStep((current) => current - 1)}>Vorheriger Schritt</ActionButton> : <span aria-hidden="true" />}
-    {step < 2 ? <ActionButton type="submit" variant="primary" icon={ArrowRight} loading={reading}>{step === 0 ? "Weiter zu den Kartenformen" : "Weiter zu den Vorgaben"}</ActionButton> : <ActionButton type="submit" variant="primary" icon={ArrowRight}>Auftrag prüfen</ActionButton>}
+    {step > 0 ? <ActionButton type="button" variant="secondary" icon={ChevronLeft} onClick={() => setStep((current) => current - 1)}>Vorheriger Schritt</ActionButton> : <span aria-hidden="true" />}
+    {step < 2 ? <ActionButton type="submit" variant="primary" icon={ChevronRight} loading={reading}>{step === 0 ? "Weiter zu den Kartenformen" : "Weiter zu den Vorgaben"}</ActionButton> : <ActionButton type="submit" variant="primary" icon={ChevronRight}>Auftrag prüfen</ActionButton>}
   </div>;
 
   const amountLabel = AI_SOURCE_AMOUNTS.find(({ value }) => value === settings.amount)!.label;
@@ -252,7 +252,7 @@ export function AiSourceCreationPanel({ decks, initialTargetDeckId, onDraftState
           {runError ? <StatusMessage tone="error" announce="assertive">{runError}</StatusMessage> : null}
           {onRequestSourceCards && !online ? <StatusMessage tone="warning">Ohne Verbindung kann die KI keine Karten erstellen.</StatusMessage> : null}
           <div className="flex flex-wrap gap-3">
-            <ActionButton type="button" variant="secondary" icon={ArrowLeft} onClick={() => editStep(step)}>Einstellungen bearbeiten</ActionButton>
+            <ActionButton type="button" variant="secondary" icon={ChevronLeft} onClick={() => editStep(step)}>Einstellungen bearbeiten</ActionButton>
             <ActionButton type="button" variant="primary" icon={Sparkles} disabled={!onRequestSourceCards || !valid || !online} onClick={() => void createCards()}>Karten erstellen</ActionButton>
           </div>
         </SoftPanel>

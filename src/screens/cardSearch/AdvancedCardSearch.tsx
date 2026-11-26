@@ -1,5 +1,5 @@
 import React from "react";
-import { ArrowLeft, BookmarkPlus, Check, ChevronRight, Copy, Pencil, Plus, RotateCcw, Trash2, X } from "lucide-react";
+import { BookmarkPlus, Check, ChevronLeft, ChevronRight, Copy, Pencil, Plus, RotateCcw, Trash2, X } from "lucide-react";
 import { cardSearchTermState, cardSearchTerms, cardSearchTermsOfKind, cardSearchText, withCardSearchTermState } from "../../cardSearchQuery.ts";
 import { fieldSearchKey } from "../../coreModel.ts";
 import type { SavedCardSearch } from "../../coreTypes.ts";
@@ -327,7 +327,7 @@ export function AdvancedCardSearch({ id, query, onQueryChange, categories, resul
       data-testid="advanced-card-search"
     >
       <div className={`-mr-2 -mt-2 flex min-h-button items-center gap-1 md:hidden ${mobileOpen ? "-ml-2" : ""}`}>
-        {mobileOpen ? <IconButton icon={ArrowLeft} variant="ghost" label="Zurück zu den Kategorien" onClick={() => setMobileOpen(false)} /> : null}
+        {mobileOpen ? <IconButton icon={ChevronLeft} variant="ghost" label="Zurück zu den Kategorien" onClick={() => setMobileOpen(false)} /> : null}
         <h2 className="min-w-0 flex-1 truncate core-heading-2 text-core-text">{mobileOpen ? active.label : "Erweiterte Suche"}</h2>
         <CloseButton label="Erweiterte Suche schließen" onClick={onClose} />
       </div>

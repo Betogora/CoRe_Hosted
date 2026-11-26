@@ -1,5 +1,5 @@
 import React, { type CSSProperties, type ReactNode } from "react";
-import { ArrowLeft, ChevronDown, ChevronRight, Grid2x2, List, PanelsTopLeft, Play, X } from "lucide-react";
+import { ChevronDown, ChevronLeft, ChevronRight, Grid2x2, List, PanelsTopLeft, Play, X } from "lucide-react";
 import { createPortal } from "react-dom";
 import { createDeckPlacementValidator, type DeckMutationResult } from "../coreWorkspace.ts";
 import type { CoreMode, Deck } from "../coreTypes.ts";
@@ -708,7 +708,7 @@ export function DeckTree({ rows, rootDeckIds, mode, view = "list", contentAfterR
           <CoreTooltip label="Stapel öffnen">
             <IconButton label={`Inhalte von ${folderRow.path} öffnen`} icon={PanelsTopLeft} onClick={() => onActivate(folderRow)} />
           </CoreTooltip>
-          <IconButton label="Eine Ebene zurück" icon={ArrowLeft} onClick={() => folderRow.parentDeckId ? setFolderDeckId(folderRow.parentDeckId) : closeFolder()} />
+          <IconButton label="Eine Ebene zurück" icon={ChevronLeft} onClick={() => folderRow.parentDeckId ? setFolderDeckId(folderRow.parentDeckId) : closeFolder()} />
           <IconButton label="Unterstapelübersicht schließen" icon={X} onClick={closeFolder} />
         </div>
       </div>

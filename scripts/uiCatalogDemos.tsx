@@ -9,7 +9,7 @@ import { CoreWordmark } from "../src/ui/CoreWordmark.tsx";
 import { BrainMascot } from "../src/ui/BrainMascot.tsx";
 import { DailyMotivationWidget } from "../src/screens/DailyMotivationWidget.tsx";
 import React, { useRef, useState } from "react";
-import { ArrowUpRight, Ban, BookOpen, ChevronRight, Copy, Eraser, Eye, FileSpreadsheet, FileText, Grid2x2, Info, Layers, List, Maximize2, MoreHorizontal, Pencil, PenLine, Plus, RefreshCw, Save, Settings, Sparkles, Star, Trash2, Type, X, type LucideIcon } from "lucide-react";
+import { ArrowUpRight, Ban, BookOpen, ChevronDown, ChevronLeft, ChevronRight, Copy, Eraser, Eye, FileSpreadsheet, FileText, Grid2x2, Info, Layers, List, Maximize2, MoreHorizontal, Pencil, PenLine, Play, Plus, RefreshCw, Save, Settings, Sparkles, Star, Trash2, Type, X, type LucideIcon } from "lucide-react";
 import { addCardVariant, addNoteField, applyCardStudyStatePatch, cardStudyFromReviewState, type OcclusionMode, createBasicNote, createCoreDeck, createManualNoteContent, createNote, createReviewState, noteBlocks, type ManualContentKind } from "../src/coreModel.ts";
 import type { CardStudyStatePatch, Deck, ExamPlanningSettings, CoreMode, NewReviewOrder, NoteContent, NoteField, OcclusionMask, SavedCardSearch, SyncStatus } from "../src/coreTypes.ts";
 import type { CardEditorServices, DecksCardPageRequest } from "../src/appScreenProps.ts";
@@ -927,8 +927,23 @@ const catalogCardEditorServices: CardEditorServices = {
 
 const ICON_ROLES: Array<[LucideIcon, string]> = [[Plus, "Hinzufügen"], [Save, "Speichern"], [Pencil, "Bearbeiten"], [Copy, "Kopieren"], [Trash2, "Löschen"], [X, "Schließen"], [Eye, "Vorschau"], [Star, "Markieren"], [Ban, "Aussetzen"], [RefreshCw, "Synchronisieren"], [Sparkles, "KI-Variante"], [Settings, "Einstellungen"]];
 
+const DIRECTION_ROLES: Array<[LucideIcon, string, string]> = [
+  [Play, "Starten", "Beginnt eine Lernsitzung oder den Timer. Immer gefüllt; ohne Text im runden Knopf."],
+  [ChevronRight, "Weiter", "Führt auf eine andere Seite oder zum nächsten Schritt. Steht hinter dem Text."],
+  [ChevronLeft, "Zurück", "Führt eine Ebene oder einen Schritt zurück. Steht vor dem Text."],
+  [ChevronDown, "Aufklappen", "Zeigt mehr an Ort und Stelle. Offen zeigt das Zeichen nach oben."],
+  [ArrowUpRight, "Bereich wechseln", "Springt in einen anderen großen Bereich, etwa von den To-dos in den Planer."],
+];
+
 function IconRolesDemo() {
-  return <Demo title="Aktionen und ihre Icons"><ul className="catalog-icon-roles">{ICON_ROLES.map(([Icon, label]) => <li key={label}><span className="grid size-control place-items-center rounded-control bg-core-surface-muted text-core-action"><Icon size={18} aria-hidden="true" /></span>{label}</li>)}</ul></Demo>;
+  const tile = "grid size-control shrink-0 place-items-center rounded-control bg-core-surface-muted text-core-action";
+  return <>
+    <Demo title="Aktionen und ihre Icons"><ul className="catalog-icon-roles">{ICON_ROLES.map(([Icon, label]) => <li key={label}><span className={tile}><Icon size={18} aria-hidden="true" /></span>{label}</li>)}</ul></Demo>
+    <Demo title="Richtung und Start" wide>
+      <ul className="catalog-icon-roles catalog-direction-roles">{DIRECTION_ROLES.map(([Icon, label, text]) => <li key={label}><span className={tile}><Icon size={18} fill={Icon === Play ? "currentColor" : "none"} aria-hidden="true" /></span><span>{label}<small>{text}</small></span></li>)}</ul>
+      <p className="core-caption text-core-muted">Pfeile mit Schaft sind keine Wegzeichen: → und ← entfallen. ↑ und ↓ bleiben für Reihenfolge und Sortierung, weil sie ein Objekt bewegen.</p>
+    </Demo>
+  </>;
 }
 
 function ChoiceOptionListDemo() {
