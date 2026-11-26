@@ -28,6 +28,7 @@ test("deck tree keeps one visual header and all three accessibly labelled metric
   assert.match(markup, /aria-label="Inhalte von Bereich öffnen"/);
   assert.match(markup, /lucide-play/);
   assert.equal((markup.match(/data-deck-has-work="false"/g) ?? []).length, 2);
+  assert.equal((markup.match(/data-deck-has-work="false"[^>]*class="core-action-secondary /g) ?? []).length, 2);
   assert.doesNotMatch(markup, /data-donut-|Gesamtfortschritt/);
   assert.match(markup, /aria-label="Bereich \/ Grundlagen lernen"/);
   assert.doesNotMatch(markup, />Bereich \/ Grundlagen</);
@@ -67,7 +68,7 @@ test("deck tree rows offer `Karten lernen`, marked as action only for decks with
     <DeckTree rows={workRows} mode="learn" collapsedDeckIds={[]} onDeckExpansionChange={() => undefined} onActivate={() => undefined} onStudy={() => undefined} onOpenSettings={() => undefined} onSetDeckCoreMode={() => undefined} onMoveDeck={() => null} />,
   );
 
-  assert.match(markup, /aria-label="Welt-Hauptstädte lernen"[^>]*data-deck-has-work="true"[^>]*>.*?>Karten lernen<\/span><\/button>/);
+  assert.match(markup, /aria-label="Welt-Hauptstädte lernen"[^>]*data-deck-has-work="true"[^>]*class="core-action-primary [^>]*>.*?>Karten lernen<\/span><\/button>/);
 });
 
 test("deck tree places caller content below the collection and omits an empty row frame", () => {

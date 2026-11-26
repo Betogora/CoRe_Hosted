@@ -1,5 +1,5 @@
 import React from "react";
-import { CheckCircle2, ChevronDown, CircleAlert, Eye, FileText, Shuffle, SlidersHorizontal, X } from "lucide-react";
+import { CheckCircle2, ChevronDown, CircleAlert, Eye, FileText, Shuffle, SlidersHorizontal } from "lucide-react";
 import { HIT_REVIEW_KIND } from "../reviewEventKinds.ts";
 import { DEFAULT_EASY_DAYS, createEasyDaysDueCounts, shiftEasyDaysDueCounts } from "../easyDays.ts";
 import { cancelFieldTiming, startFieldTiming } from "../fieldTimings.ts";
@@ -29,9 +29,11 @@ import { DAILY_REVIEW_PROGRESS_SEGMENTS, DailyReviewProgress } from "../ui/Daily
 import { PomodoroProgress } from "../ui/pomodoroTimerUi.tsx";
 import { NoteCardContent, revealLabel, useNoteCardPrefetch } from "../ui/NoteCardContent.tsx";
 import { StudySettingsOverlay } from "../ui/StudySettingsOverlay.tsx";
-import { ActionButton, IconButton } from "../ui/actionUi.tsx";
+import { ActionButton, CloseButton, IconButton } from "../ui/actionUi.tsx";
 import { CoreTag } from "../ui/coreUi.tsx";
 import { FlagDot } from "../ui/flagUi.tsx";
+import { DeckAppearanceIcon, getDeckAppearance } from "../ui/deckAppearance.tsx";
+import { formatLearningCardCount } from "../ui/learningStatusUi.ts";
 import { CoreTooltip } from "../ui/tooltipUi.tsx";
 import { formatLimitSummary, formatReviewIntervalLabel, ratingButtons } from "./screenConstants.ts";
 import { StudyAiHelp } from "./StudyAiHelp.tsx";
@@ -548,28 +550,38 @@ export function StudyMode({ shortcutsSuspended = false, deck, decks, notes, answ
     >
       <div className="mx-auto flex w-full max-w-7xl flex-1 flex-col">
         <header className="core-study-header" data-testid="study-header">
-          <div className="flex items-center justify-between gap-3">
-            <IconButton type="button" onClick={onExit} label="Lernmodus verlassen" icon={X} />
-            <div className="flex min-w-0 flex-col items-center sm:flex-row sm:gap-2">
-              <p className="min-w-0 max-w-full truncate core-heading-3 text-core-text">{rootDeck?.name ?? deck?.name}</p>
+          <div className="core-study-header-bar">
+            <CloseButton onClick={onExit} label="Lernmodus verlassen" />
+            <div className="core-study-title">
+              <CoreTooltip label={rootDeck?.name ?? ""} deckAppearance={getDeckAppearance(rootDeck ?? undefined)}>
+                <div className="core-study-deck">
+                  <DeckAppearanceIcon deck={rootDeck ?? undefined} className="size-6" iconSize={18} style={{ "--core-deck-icon-background": "transparent" } as React.CSSProperties} />
+                  <p className="min-w-0 truncate core-heading-3 text-core-text">{rootDeck?.name}</p>
+                </div>
+              </CoreTooltip>
               <span className="flex shrink-0 items-center gap-2">
-                <dl className="flex items-baseline gap-2.5 core-body" aria-label="Heute offen" data-testid="study-open-counts">
-                  {STUDY_OPEN_COUNTS.map((count) => (
-                    <div key={count.countKey}>
-                      <dt className="sr-only">{count.label}</dt>
-                      <dd className="font-semibold tabular-nums" style={{ color: sessionDailyProgress[count.countKey] > 0 ? count.color : "var(--core-text-muted)" }}>{sessionDailyProgress[count.countKey]}</dd>
-                    </div>
-                  ))}
+                <dl className="core-study-counts" aria-label="Heute offen" data-testid="study-open-counts">
+                  {STUDY_OPEN_COUNTS.map((count) => {
+                    const value = sessionDailyProgress[count.countKey];
+                    return (
+                      <CoreTooltip key={count.countKey} label={count.label} side="bottom" swatchColor={count.color} value={formatLearningCardCount(value)}>
+                        <div>
+                          <dt className="sr-only">{count.label}</dt>
+                          <dd data-count-empty={value === 0 || undefined} style={{ "--core-study-count-color": count.color } as React.CSSProperties}>{value}</dd>
+                        </div>
+                      </CoreTooltip>
+                    );
+                  })}
                 </dl>
                 {current?.card.ankiFlag ? <FlagDot flag={current.card.ankiFlag} names={flagNames} /> : null}
               </span>
             </div>
-            <div className="flex shrink-0 items-center gap-2">
-              {renderSidePanel ? <IconButton type="button" className="core-study-side-toggle" onClick={() => setShowSidePanel((value) => !value)} label="Zusammenfassung" icon={FileText} aria-pressed={showSidePanel} aria-controls={sidePanelId} /> : null}
-              <IconButton type="button" onClick={() => setShowSettings((value) => !value)} label="Lerneinstellungen" icon={SlidersHorizontal} aria-haspopup="dialog" aria-expanded={showSettings} aria-controls="study-settings-overlay" />
+            <div className="core-study-header-actions">
+              {renderSidePanel ? <CoreTooltip label="Zusammenfassung" side="bottom"><IconButton type="button" variant="ghost" className="core-study-side-toggle" onClick={() => setShowSidePanel((value) => !value)} label="Zusammenfassung" icon={FileText} aria-pressed={showSidePanel} aria-controls={sidePanelId} /></CoreTooltip> : null}
+              <CoreTooltip label="Lerneinstellungen" side="bottom"><IconButton type="button" variant="ghost" onClick={() => setShowSettings((value) => !value)} label="Lerneinstellungen" icon={SlidersHorizontal} aria-haspopup="dialog" aria-expanded={showSettings} aria-controls="study-settings-overlay" /></CoreTooltip>
             </div>
           </div>
-          <DailyReviewProgress progress={sessionDailyProgress} />
+          <DailyReviewProgress progress={sessionDailyProgress} tooltipSide="bottom" />
           {simulationOffsetMinutes > 0 ? (
             <p className="core-status-warning text-center font-semibold" role="status">
               Simulation aktiv · {formatSimulationDate(getNow())} · +{formatSimulationDuration(simulationOffsetMinutes)}

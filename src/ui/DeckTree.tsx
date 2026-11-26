@@ -6,7 +6,7 @@ import type { CoreMode, Deck } from "../coreTypes.ts";
 import { DECK_DEPTH_INDENT_PX, getVisibleDeckDepth } from "../deckHierarchy.ts";
 import type { DeckLibraryRow } from "../libraryModel.ts";
 import { DeckOptionsMenu } from "./DeckOptionsMenu.tsx";
-import { IconButton } from "./actionUi.tsx";
+import { ActionButton, IconButton } from "./actionUi.tsx";
 import { CoreIconSegmentedControl } from "./coreUi.tsx";
 import { CoreTooltip } from "./tooltipUi.tsx";
 import { DeckAppearanceIcon, getDeckAppearance } from "./deckAppearance.tsx";
@@ -308,9 +308,9 @@ const DeckTreeRow = React.memo(function DeckTreeRow({ row, mode, presentation, d
       <IconButton label={`${row.path} lernen`} icon={Play} variant="ghost" className="core-deck-icon-action core-deck-study-action pointer-events-auto" data-deck-has-work={hasWork ? "true" : "false"} onClick={() => onStudy(row)} />
     </CoreTooltip>
   ) : (
-    <button type="button" aria-label={`${row.path} lernen`} className="core-deck-study-button pointer-events-auto" data-deck-has-work={hasWork ? "true" : "false"} onClick={() => onStudy(row)}>
-      <Play size={14} aria-hidden="true" /><span className="core-deck-study-label">Karten lernen</span>
-    </button>
+    <ActionButton type="button" variant={hasWork ? "primary" : "secondary"} icon={Play} aria-label={`${row.path} lernen`} className="core-deck-study-button pointer-events-auto" data-deck-has-work={hasWork ? "true" : "false"} onClick={() => onStudy(row)}>
+      Karten lernen
+    </ActionButton>
   );
   const study = React.useCallback(() => onStudy(row), [onStudy, row]);
   const practice = React.useMemo(() => onPractice && ((returnFocus: HTMLElement | null) => onPractice(row, returnFocus)), [onPractice, row]);

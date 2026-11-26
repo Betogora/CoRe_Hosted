@@ -181,7 +181,7 @@ test("StudyMode exposes labeled learning without an idle Pomodoro progress", () 
 
   assert.match(markup, /aria-label="Lernfortschritt"/);
   assert.doesNotMatch(markup, />Lernfortschritt</);
-  assert.match(markup, /<header class="core-study-header"[^>]*>.*>Fortschritt<\/p><span[^>]*><dl[^>]*data-testid="study-open-counts"/);
+  assert.match(markup, /<header class="core-study-header"[^>]*>.*>Fortschritt<\/p><\/div><span[^>]*><dl[^>]*data-testid="study-open-counts"/);
   assertOpenCounts(markup, { new: 1, open: 0, due: 0 });
   assert.match(markup, /aria-valuetext="Gelernt: 0 Karten, Neu: 1 Karte, Offen: 0 Karten, Fällig: 0 Karten"/);
   assert.doesNotMatch(markup, /Pomodoro-Timer|Nicht gestartet|study-pomodoro-progress/);

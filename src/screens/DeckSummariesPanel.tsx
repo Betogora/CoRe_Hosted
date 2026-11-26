@@ -255,27 +255,17 @@ export function DeckSummariesPanel({ deck, treeDecks, userId, cloud = null, onGe
         </div>}
         <button type="button" className="core-summary-create-action" disabled={busy || loading || Boolean(loadError)} onClick={() => request(startManual)}><span className="core-summary-create-icon" aria-hidden="true"><PenLine size={20}/></span><span>Zusammenfassung schreiben</span></button>
       </div>
-    </> : draft && compact ? <>
-      <div className="core-summary-compact-heading">
-        <CoreTooltip label="Alle Zusammenfassungen"><IconButton variant="ghost" icon={ArrowLeft} label="Alle Zusammenfassungen" disabled={busy} onClick={() => request(backToList)}/></CoreTooltip>
-        <input disabled={busy} ref={titleRef} aria-label="Titel der Zusammenfassung" className="core-summary-compact-title" value={draft.title} maxLength={120} onChange={(event) => setDraft({ ...draft, title: event.target.value })} aria-invalid={Boolean(error) && !draft.title.trim() || undefined} />
-        {unsynced.has(draft.id) ? <CoreTag tone="warning">Nicht synchronisiert</CoreTag> : null}
-        <CoreTooltip label={dirty ? "Speichern" : "Gespeichert"}><IconButton variant="ghost" icon={dirty ? Save : Check} label={dirty ? "Speichern" : "Gespeichert"} disabled={busy || !dirty} onClick={() => void persist()}/></CoreTooltip>
-      </div>
-      {error ? <StatusMessage tone="error" announce="assertive">{error}</StatusMessage> : null}
-      {notice ? <StatusMessage tone="info" announce="polite">{notice}</StatusMessage> : null}
-      <SummaryDocumentEditor key={draft.id} value={draft} onChange={setDraft} busy={busy} compact/>
     </> : draft ? <>
       <div className="core-summary-editor-heading">
         <CoreTooltip label="Alle Zusammenfassungen"><IconButton icon={ArrowLeft} label="Alle Zusammenfassungen" disabled={busy} onClick={() => request(backToList)}/></CoreTooltip>
-        <input disabled={busy} ref={titleRef} aria-label="Titel der Zusammenfassung" className="core-field core-heading-2 core-summary-title-field" value={draft.title} maxLength={120} onChange={(event) => setDraft({ ...draft, title: event.target.value })} aria-invalid={Boolean(error) && !draft.title.trim() || undefined} />
+        <input disabled={busy} ref={titleRef} aria-label="Titel der Zusammenfassung" className={`core-field ${compact ? "core-heading-3" : "core-heading-2"} core-summary-title-field`} value={draft.title} maxLength={120} onChange={(event) => setDraft({ ...draft, title: event.target.value })} aria-invalid={Boolean(error) && !draft.title.trim() || undefined} />
         {unsynced.has(draft.id) ? <CoreTag tone="warning" className="core-summary-sync-tag">Nicht synchronisiert</CoreTag> : null}
-        {dirty ? <ActionButton variant="primary" icon={Save} loading={busy} className="core-summary-save" onClick={() => void persist().then((saved) => { if (saved) titleRef.current?.focus(); })}>Speichern</ActionButton>
+        {dirty ? <ActionButton variant="primary" icon={Save} loading={busy} className="core-summary-save" onClick={() => void persist().then((saved) => { if (saved && !compact) titleRef.current?.focus(); })}>Speichern</ActionButton>
           : <ActionButton variant="secondary" icon={Check} disabled className="core-summary-save">Gespeichert</ActionButton>}
       </div>
       {error ? <StatusMessage tone="error" announce="assertive">{error}</StatusMessage> : null}
       {notice ? <StatusMessage tone="info" announce="polite">{notice}</StatusMessage> : null}
-      <SummaryDocumentEditor key={draft.id} value={draft} onChange={setDraft} busy={busy}/>
+      <SummaryDocumentEditor key={draft.id} value={draft} onChange={setDraft} busy={busy} compact={compact}/>
     </> : null}
     <ActionDialog open={Boolean(deleting)} destructive title="Zusammenfassung löschen?" description={error || `„${deleting?.title ?? ""}“ wird auf allen Geräten gelöscht.`} confirmLabel="Löschen" cancelLabel="Abbrechen" confirmLoading={busy} onCancel={() => { setDeleting(null); setError(""); }} onConfirm={() => void confirmDelete()}/>
     <ActionDialog open={Boolean(pending)} title="Änderungen übernehmen?" description={error || "Du hast ungespeicherte Änderungen an dieser Zusammenfassung. Speichere oder verwirf sie, bevor du den Bereich verlässt."} confirmLabel="Speichern" cancelLabel="Weiter bearbeiten" discardLabel="Verwerfen" confirmLoading={busy} onCancel={() => setPending(null)} onDiscard={() => { const run = pending; setPending(null); run?.(); }} onConfirm={() => { void persist().then((success) => { if (success) { const run = pending; setPending(null); run?.(); } }); }} restoreFocus={(reason) => { if (reason === "cancel") focusCurrent(); }}/>
