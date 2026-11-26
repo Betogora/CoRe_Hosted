@@ -1242,6 +1242,8 @@ svg.lucide {
   white-space: nowrap;
 }
 
+.core-deck-summary-count-value:not([data-count-empty="true"]) { font-weight: 800; }
+
 .core-deck-summary-count-value[data-count-empty="true"] {
   color: var(--core-text-muted);
 }
@@ -3306,8 +3308,8 @@ button.core-info-hint:is(:hover, [data-state="open"]) {
   font: var(--core-weight-emphasis) var(--core-type-body)/var(--core-leading-body) var(--core-font-sans);
   font-variant-numeric: tabular-nums;
 }
-.core-study-counts dd { color: var(--core-study-count-color); }
-.core-study-counts dd[data-count-empty] { color: var(--core-text-muted); }
+.core-study-counts dd { color: var(--core-study-count-color); font-weight: 800; }
+.core-study-counts dd[data-count-empty] { color: var(--core-text-muted); font-weight: inherit; }
 
 .core-study-header .core-daily-progress { --core-daily-progress-hit: 0.5rem; height: 0.25rem; }
 
