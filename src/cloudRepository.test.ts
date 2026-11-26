@@ -262,8 +262,10 @@ test("eine zurückgenommene Bewertung geht erst nach ihrer Bewertung an den Serv
   await repository.flush();
   const calls: string[] = [];
   let reviewReaches = false;
+  let userLookups = 0;
   const client = fakeCloudClient({
     ...fakeTableClient("user", () => []),
+    auth: { getUser: async () => { userLookups++; return { data: { user: { id: "user" } }, error: null }; } },
     rpc: async (name: string, input: Record<string, any>) => {
       calls.push(name);
       if (name === "record_review_atomic" && !reviewReaches) return { data: null, error: { message: "Netzwerk unterbrochen" } };
@@ -283,6 +285,7 @@ test("eine zurückgenommene Bewertung geht erst nach ihrer Bewertung an den Serv
   reviewReaches = true;
   await engine.flush({ force: true });
   assert.deepEqual(calls, ["record_review_atomic", "record_review_atomic", "undo_review_atomic"]);
+  assert.equal(userLookups, 0, "die Sync-Engine kennt das Konto und fragt den Auth-Server nicht je Bewertung");
   assert.equal(repository.outbox.count(), 0);
   repository.close();
 });

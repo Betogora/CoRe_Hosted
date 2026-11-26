@@ -203,7 +203,7 @@ function createDefaultAdapter(client: CloudClient, userId: string) {
         failures.push({ mutationId, error });
         if ((error as ThrownValue)?.conflict) conflicts.push((error as ThrownValue)?.conflict);
       };
-      const entityOptions = (item: QueuedMutation) => ({ deviceId: item.deviceId ?? context.deviceId, flushedAt: context.flushedAt });
+      const entityOptions = (item: QueuedMutation) => ({ deviceId: item.deviceId ?? context.deviceId, flushedAt: context.flushedAt, userId });
       for (let mutationIndex = 0; mutationIndex < mutations.length;) {
         const mutation = mutations[mutationIndex];
         if (mutation.type === SYNC_MUTATION_TYPES.entityMutation && !mutation.payload?.tombstone) {
@@ -250,7 +250,7 @@ function createDefaultAdapter(client: CloudClient, userId: string) {
         }
         try {
           const acknowledgement = mutation.type === SYNC_MUTATION_TYPES.profilePatch
-            ? await patchAccountCloudProfile(client, readProfilePatch(mutation), mutation.payload?.profile, { mutationId: mutation.id })
+            ? await patchAccountCloudProfile(client, readProfilePatch(mutation), mutation.payload?.profile, { mutationId: mutation.id, userId })
             : mutation.type === SYNC_MUTATION_TYPES.deckCommand
               ? {
                   ...(await deleteAccountDeckTree(client, mutation.payload?.deckId, {
@@ -263,6 +263,7 @@ function createDefaultAdapter(client: CloudClient, userId: string) {
               ? { ...(await applyEntityMutation(client, mutation.payload, entityOptions(mutation))), acknowledgedMutationId: mutation.id }
               : await (mutation.type === SYNC_MUTATION_TYPES.reviewUndo ? undoAtomicReview : recordAtomicReview)(client, mutation.payload, {
                     mutationId: mutation.id,
+                    userId,
                     deviceId: mutation.deviceId ?? context.deviceId,
                   });
           const acknowledged: {

@@ -63,6 +63,7 @@ export { ImportGraphVerificationError, verifyAccountImportGraph } from "./cloudI
 
 interface AccountBootstrapPage {
   profile: ReturnType<typeof createCloudProfile>;
+  /** `updated_at` of the stored profile row; null without a row. */ profileUpdatedAt: string | null;
   decks: Array<{ deck: Deck; summary: DeckStudySummary }>;
   nextCursor: string;
   hasMore: boolean;
@@ -101,10 +102,9 @@ export async function loadAccountCloudBootstrap(
   });
   return {
     profile: createCloudProfile(profileRows[0] ?? null, { id: userId, email: user.email ?? null }),
+    profileUpdatedAt: typeof profileRows[0]?.updated_at === "string" ? profileRows[0].updated_at : null,
     decks,
-    nextCursor: candidate.nextCursor,
-    hasMore: candidate.hasMore,
-    confirmedEmpty: candidate.confirmedEmpty,
+    nextCursor: candidate.nextCursor, hasMore: candidate.hasMore, confirmedEmpty: candidate.confirmedEmpty,
     conflictCount,
     serverCatalogCursor,
     studyOverview: candidate.studyOverview == null ? undefined : validateAccountStudyOverview(candidate.studyOverview),
@@ -165,7 +165,7 @@ export async function streamAccountCatalogChanges(
       // A failed apply ends the stream; the page loaded ahead is then dropped without an unhandled rejection.
       pending.catch(() => undefined);
     }
-    await onPage(CATALOG_TABLES.map((table) => {
+    if (delta.changes.length > 0 || delta.nextCursor !== next) await onPage(CATALOG_TABLES.map((table) => {
       const rows = delta.changes.filter((change) => change.table === table).map((change) => change.row);
       const entities = table === "decks"
         ? validateAccountRows("decks", rows).map(deckFromRow)

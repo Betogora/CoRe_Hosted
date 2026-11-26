@@ -37,6 +37,8 @@ export interface AuthenticatedWorkspaceBootResult {
 
 interface AuthenticatedWorkspaceBootstrapResult {
   conflictCount: number;
+  /** `updated_at` of the profile the bootstrap applied; null without a stored row. */
+  profileUpdatedAt: string | null;
 }
 
 interface AuthenticatedWorkspaceCloudResult {
@@ -60,7 +62,7 @@ export async function bootAuthenticatedWorkspace(
     timeZone: state.profile.timezone,
   });
   const bootstrap = createBootstrapRetryCoordinator(supabase, user, repository);
-  const cloudSync = bootstrap.ready.then(() => finishAuthenticatedWorkspaceCloudSync(supabase, user.id, repository));
+  const cloudSync = bootstrap.ready.then((result) => finishAuthenticatedWorkspaceCloudSync(supabase, user.id, repository, result.profileUpdatedAt));
   return {
     repository,
     state,
@@ -193,7 +195,7 @@ async function finishAuthenticatedWorkspaceBootstrap(
   markReplicaStartupGate("accountBaselineReady", { deckCount: bootstrap.decks.length });
   // The 365-day forecast is not part of the first render; it completes the overview afterwards.
   void loadAccountDueForecast(supabase).then(repository.applyDueForecast).catch(() => undefined);
-  return { conflictCount: bootstrap.conflictCount };
+  return { conflictCount: bootstrap.conflictCount, profileUpdatedAt: bootstrap.profileUpdatedAt };
 }
 
 export async function applyBootstrapProfile(
@@ -212,15 +214,15 @@ async function finishAuthenticatedWorkspaceCloudSync(
   supabase: SupabaseBrowserClient,
   userId: string,
   repository: IndexedDbCoreRepository,
+  bootstrapProfileUpdatedAt: string | null,
 ): Promise<AuthenticatedWorkspaceCloudResult> {
   const [{ streamAccountCatalogChanges }, { createAccountSyncEngine }] = await Promise.all([
     import("./cloudRepository.ts"),
     import("./syncEngine.ts"),
   ]);
-  let profileSeenAt: string | null = null;
-  // A running app reads the profile again only after another device or tab changed it.
-  const pullProfile = async () => {
-    const change = await loadCloudProfileChange(supabase, userId, profileSeenAt);
+  // A running app reads the profile again only after another device or tab changed it, starting with the bootstrap's.
+  let profileSeenAt = bootstrapProfileUpdatedAt;
+  const applyProfileChange = async (change: Awaited<ReturnType<typeof loadCloudProfileChange>>) => {
     if (!change) return false;
     profileSeenAt = change.updatedAt;
     const before = JSON.stringify(repository.getShellState().profile);
@@ -228,11 +230,14 @@ async function finishAuthenticatedWorkspaceCloudSync(
     return JSON.stringify(repository.getShellState().profile) !== before;
   };
   const pullChanges = async () => {
+    // Loaded alongside the catalog delta, applied after it as before.
+    const profileChange = loadCloudProfileChange(supabase, userId, profileSeenAt);
+    profileChange.catch(() => undefined);
     const previousCursor = repository.getReplicaStatus().catalogCursor;
     const nextCursor = await streamAccountCatalogChanges(supabase, previousCursor, (pages) => repository.applyCloudCatalogPages(pages, { keepComplete: true }));
-    await repository.completeCatalogReconciliation(nextCursor);
+    if (nextCursor !== previousCursor || repository.getReplicaStatus().catalogCompleteness !== "complete") await repository.completeCatalogReconciliation(nextCursor);
     markReplicaStartupGate("catalogReconciled", { cursor: nextCursor });
-    const profileChanged = await pullProfile();
+    const profileChanged = await applyProfileChange(await profileChange);
     return nextCursor !== previousCursor || profileChanged;
   };
   const syncEngine = createAccountSyncEngine(supabase, {
