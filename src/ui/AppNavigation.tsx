@@ -1,6 +1,6 @@
 import React from "react";
 import type { LucideIcon } from "lucide-react";
-import { AlertTriangle, ArrowLeft, BarChart3, BookOpen, CalendarCheck, CalendarClock, CircleHelp, CloudAlert, CloudOff, Home, Layers, Menu, PlusSquare, RefreshCw, Settings } from "lucide-react";
+import { AlertTriangle, BarChart3, BookOpen, CalendarCheck, CalendarClock, ChevronLeft, CircleHelp, CloudAlert, CloudOff, Home, Layers, Menu, PlusSquare, RefreshCw, Settings } from "lucide-react";
 import * as Popover from "@radix-ui/react-popover";
 import { createPortal } from "react-dom";
 import type { MenuViewId } from "../menuModel.ts";
@@ -188,7 +188,7 @@ function ShellLead({ back, brandClassName, onNavigate }: { back: ShellBack | nul
           onClick={() => back?.onSelect()}
           className="-ml-2 flex h-button min-w-0 items-center gap-1.5 rounded-control pl-1.5 pr-3 text-core-text transition-colors hover:bg-core-hover [&>svg]:text-core-muted hover:[&>svg]:text-core-action"
         >
-          <ArrowLeft className="shrink-0" size={20} aria-hidden="true" />
+          <ChevronLeft className="shrink-0" size={20} aria-hidden="true" />
           {shownBack?.icon ? <span className="flex shrink-0" aria-hidden="true">{shownBack.icon}</span> : null}
           <span className="min-w-0 truncate core-heading-3">{shownBack?.title}</span>
         </button>

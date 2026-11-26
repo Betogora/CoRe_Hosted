@@ -195,7 +195,7 @@ function DailyLearningOverview({
     <>
       <section className="dashboard-poster dashboard-learning" data-tone={achieved ? "green" : plan.status === "waiting" ? "fog" : "navy"} data-testid="daily-learning-overview" data-status={plan.status}>
         <SectionHeader level={2} title="Heute" action={<span className="dashboard-poster-meta" data-testid="daily-learning-total">{progress.completedTodayCount} / {progress.total}<span className="sr-only"> Karten gelernt</span></span>} />
-        <p className="dashboard-poster-goal"><span className="dashboard-poster-giant">{goalCount}</span> <span className="dashboard-poster-subtitle">{goalLabel}</span></p>
+        <p className="dashboard-poster-goal"><span className="dashboard-poster-giant" style={{ "--digits": String(goalCount).length } as React.CSSProperties}>{goalCount}</span> <span className="dashboard-poster-subtitle">{goalLabel}</span></p>
         {plan.status === "open" && parts.length ? (
           <dl className="dashboard-learning-scale" style={{ gridTemplateColumns: parts.map((segment) => `minmax(max-content, ${progress[segment.countKey]}fr)`).join(" ") }}>
             {parts.map((segment) => (

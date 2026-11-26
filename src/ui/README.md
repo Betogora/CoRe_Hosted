@@ -98,7 +98,7 @@ Nicht für Reviewratings, MCQ-Antworten, Tabs, Farbfelder, Navigationszeilen ode
 
 Spezialisierte native Buttons dürfen direkt `core-action-primary`, `core-action-secondary` oder `core-action-destructive` nutzen, wenn eine React-Abstraktion ihr Interface verschlechtern würde.
 
-`CreationActionCard` aus `CreationActionCard.tsx` (`title`, `description?`, `icon`, `onSelect`) ist die liegende Aktionskarte von Erstellen: Icon frei links (24 px, Handlungsblau), Titel 16/24 · 650, optionale Beschreibung darunter, Radius `control`, flach. Hover setzt den Rahmen auf `--core-border-interactive` und die Fläche auf `--core-surface-muted`, ohne Anheben und Schatten. Der Inhalt beginnt oben, sodass Titel in einem Raster auf einer Linie stehen; ohne Beschreibung ist die Karte 72 px hoch. Die Aktion bleibt beim Aufrufer.
+`CreationActionCard` aus `CreationActionCard.tsx` (`title`, `icon`, `onSelect`) ist die liegende Aktionskarte von Erstellen: Icon frei links (24 px, Handlungsblau), Titel 16/24 · 650, Radius `control`, flach. Hover setzt den Rahmen auf `--core-border-interactive` und die Fläche auf `--core-surface-muted`, ohne Anheben und Schatten. Der Inhalt beginnt oben, sodass Titel in einem Raster auf einer Linie stehen; ohne Beschreibung ist die Karte 72 px hoch. Die Aktion bleibt beim Aufrufer.
 
 ## Tooltips
 
@@ -215,7 +215,7 @@ Die Statistik verwendet lokal `.core-statistics-load-track`: dauerhaft 3 px Höh
 
 `VariantGenerationBar` aus `src/ui/VariantGenerationBar.tsx` ist die app-weite, zweizeilige Infobox einer laufenden KI-Variantengenerierung: Stapel-Icon, „Varianten generieren X von Y“ und `Abbrechen`, darunter ein neutraler Balken (`bg-core-subtle`/`bg-core-action`). Sie schwebt unter 1280 px über der Bottom-Bar und ab 1280 px zentriert über dem Inhaltsbereich. Ein Ergebnis, das Aufmerksamkeit braucht, ersetzt die Zählzeile und bietet `Schließen`; Zustand und Ablauf besitzt `useCardVariantBatch`.
 
-`DailyReviewProgress` aus `src/ui/DailyReviewProgress.tsx` ist der vollständig gefüllte Tagesfortschritt des Lernkopfs. Er ordnet eindeutige Karten als `Gelernt`, `Neu`, `Offen` und `Fällig`, verwendet für `Gelernt` den neutralen Token `--core-learning-progress-completed` und bezieht die übrigen Bezeichnungen und Farben aus `LEARNING_STATUS_UI`. Er nennt auch leere Gruppen im zugänglichen Wertetext und zeigt für vorhandene Segmente die gemeinsamen Kurztooltips mit Statusfarbe, Status und Anteil am Balken (die Kartenzahl steht schon darüber); `tooltipSide="bottom"` öffnet sie darunter. Der Balken des Lernkopfs ist 4 px hoch und nimmt den Zeiger je 8 px darüber und darunter an. `achieved` rendert unabhängig von `0 / 0` einen vollständig grauen Balken; sichtbare Zähler und Zustandsentscheidung bleiben beim Aufrufer.
+`DailyReviewProgress` aus `src/ui/DailyReviewProgress.tsx` ist der vollständig gefüllte Tagesfortschritt des Lernkopfs. Er ordnet eindeutige Karten als `Gelernt`, `Neu`, `Offen` und `Fällig`, verwendet für `Gelernt` den neutralen Token `--core-learning-progress-completed` und bezieht die übrigen Bezeichnungen und Farben aus `LEARNING_STATUS_UI`. Er nennt auch leere Gruppen im zugänglichen Wertetext und zeigt für vorhandene Segmente die gemeinsamen Kurztooltips mit Statusfarbe, Status und Anteil am Balken (die Kartenzahl steht schon darüber); `tooltipSide="bottom"` öffnet sie darunter. Der Balken des Lernkopfs ist 4 px hoch und nimmt den Zeiger je 8 px darüber und darunter an.
 
 ## Spezialisierte Feature-Module
 

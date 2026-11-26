@@ -95,7 +95,7 @@ test("populated dashboard shows the aggregated open daily learning overview", ()
   assert.match(markup, /<p aria-hidden="true"[^>]*>Willkommen zurück,<\/p>/);
   assert.match(markup, /<h2[^>]*data-screen-heading[^>]*><span class="sr-only">Willkommen zurück, <\/span><span class="core-dashboard-name">Noemi!<\/span><\/h2>/);
   assert.match(markup, /data-tone="navy" data-testid="daily-learning-overview" data-status="open"><div class="core-section-header"><h2 class="core-section-header-title">Heute<\/h2>/);
-  assert.match(markup, /<p class="dashboard-poster-goal"><span class="dashboard-poster-giant">1<\/span> <span class="dashboard-poster-subtitle">Karte noch heute<\/span><\/p>/);
+  assert.match(markup, /<p class="dashboard-poster-goal"><span class="dashboard-poster-giant"[^>]*>1<\/span> <span class="dashboard-poster-subtitle">Karte noch heute<\/span><\/p>/);
   assert.match(markup, /data-testid="daily-learning-total">0 \/ 1<span class="sr-only"> Karten gelernt<\/span>/);
   assert.match(markup, /<dl class="dashboard-learning-scale" style="grid-template-columns:minmax\(max-content, 1fr\)"><div data-daily-learning-metric="new"><dt>Neu<\/dt><dd>1<\/dd><\/div><\/dl>/);
   assert.match(markup, /<button type="button" class="dashboard-poster-action dashboard-learning-action">(?:(?!<\/button>)[\s\S])*Jetzt lernen:<span class="dashboard-learning-deck">(?:(?!<\/button>)[\s\S])*<span>Biologie<\/span>(?:(?!<\/button>)[\s\S])*lucide-play/);
@@ -207,7 +207,7 @@ test("achieved dashboard keeps today's completed cards in the total and success 
 
   assert.match(markup, /data-tone="green" data-testid="daily-learning-overview" data-status="achieved"/);
   assert.match(markup, /data-testid="daily-learning-total">1 \/ 1</);
-  assert.match(markup, /<span class="dashboard-poster-giant">1<\/span> <span class="dashboard-poster-subtitle">Karte gelernt\.<\/span>/);
+  assert.match(markup, /<span class="dashboard-poster-giant"[^>]*>1<\/span> <span class="dashboard-poster-subtitle">Karte gelernt\.<\/span>/);
   assert.doesNotMatch(markup.match(/data-testid="daily-learning-overview"[\s\S]*?<\/section>/)![0], /data-daily-learning-metric|Tagesziel erreicht|morgen fällig/i);
   assert.doesNotMatch(markup, /Keine Karten mehr fällig|Für heute alles geschafft|benötigte Zeit/);
 });
@@ -229,7 +229,7 @@ test("dashboard keeps later same-day learning steps in a disabled waiting state"
   );
 
   assert.match(markup, /data-tone="fog" data-testid="daily-learning-overview" data-status="waiting"/);
-  assert.match(markup, /<span class="dashboard-poster-giant">1<\/span> <span class="dashboard-poster-subtitle">Karte kommt später wieder\.<\/span>/);
+  assert.match(markup, /<span class="dashboard-poster-giant"[^>]*>1<\/span> <span class="dashboard-poster-subtitle">Karte kommt später wieder\.<\/span>/);
   assert.match(markup, /<button[^>]*disabled=""[^>]*>(?:(?!<\/button>)[\s\S])*Später weiterlernen/);
   assert.doesNotMatch(markup, /Tagesziel erreicht|data-daily-learning-metric|\d+ Min\./);
 });

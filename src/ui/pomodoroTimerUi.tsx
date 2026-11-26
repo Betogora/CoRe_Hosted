@@ -52,7 +52,6 @@ export function useStudyTimerColor() {
   return [color, commit] as const;
 }
 
-/** The surface color stays the same in both themes; only the text follows it, like on the heatmap band. */
 function studyTimerColorStyle(color: string) {
   return {
     "--core-study-timer": color,
@@ -208,7 +207,6 @@ export interface StudyTimerTileProps {
   onReset: () => void;
 }
 
-/** The Lerntimer as a full-colour tile: set the minutes, start, pause and reset the one account timer. */
 export function StudyTimerTile({ timer, onStart, onPause, onResume, onReset }: StudyTimerTileProps) {
   const [color] = useStudyTimerColor();
   const snapshot = usePomodoroTimerSnapshot(timer);
@@ -221,9 +219,18 @@ export function StudyTimerTile({ timer, onStart, onPause, onResume, onReset }: S
   const active = timer !== null && snapshot.remainingMilliseconds > 0;
   const paused = active && timer.pausedAt !== undefined;
   const remaining = clockParts(snapshot.remainingMilliseconds);
+  const tile = React.useRef<HTMLDivElement>(null);
+  const refocus = React.useRef(false);
+  // Start and reset swap the whole foot; the keyboard focus moves to the new main button instead of falling to the page.
+  const keepFocus = () => { refocus.current = tile.current?.contains(document.activeElement) ?? false; };
+  React.useLayoutEffect(() => {
+    if (!refocus.current) return;
+    refocus.current = false;
+    tile.current?.querySelector<HTMLButtonElement>("button[data-solid]")?.focus();
+  }, [active]);
 
   return (
-    <div className="core-study-timer-tile" style={studyTimerColorStyle(color)} data-state={!active ? "ready" : paused ? "paused" : "running"}>
+    <div ref={tile} className="core-study-timer-tile" style={studyTimerColorStyle(color)} data-state={!active ? "ready" : paused ? "paused" : "running"}>
       {active ? <span className="core-study-timer-level" style={{ height: `${(1 - snapshot.progress) * 100}%` }} aria-hidden="true" /> : null}
       <h2 className="core-study-timer-label">Lerntimer</h2>
       {active ? (
@@ -234,7 +241,7 @@ export function StudyTimerTile({ timer, onStart, onPause, onResume, onReset }: S
               ? <button type="button" className="core-study-timer-button" data-solid aria-label="Lerntimer fortsetzen" onClick={onResume}><FilledPlay size={22} /></button>
               : <button type="button" className="core-study-timer-button" data-solid aria-label="Lerntimer pausieren" onClick={onPause}><Pause size={22} fill="currentColor" aria-hidden="true" /></button>}
             <CoreTooltip label="Lerntimer zurücksetzen">
-              <button type="button" className="core-study-timer-button" aria-label="Lerntimer zurücksetzen" disabled={!paused} onClick={onReset}><RotateCcw size={20} aria-hidden="true" /></button>
+              <button type="button" className="core-study-timer-button" aria-label="Lerntimer zurücksetzen" disabled={!paused} onClick={() => { keepFocus(); onReset(); }}><RotateCcw size={20} aria-hidden="true" /></button>
             </CoreTooltip>
           </div>
         </>
@@ -244,7 +251,9 @@ export function StudyTimerTile({ timer, onStart, onPause, onResume, onReset }: S
           noValidate
           onSubmit={(event) => {
             event.preventDefault();
-            if (duration.value > 0) onStart(duration.value);
+            if (duration.value <= 0) return;
+            keepFocus();
+            onStart(duration.value);
           }}
         >
           <TimerClock duration={duration} />
@@ -333,7 +342,6 @@ export interface PomodoroPillProps {
   onPauseChange: (paused: boolean) => void;
 }
 
-/** The running or paused timer in the timer color, filled by the elapsed share; the whole pill pauses or resumes it. */
 export function PomodoroPill({ timer, onPauseChange }: PomodoroPillProps) {
   const [color] = useStudyTimerColor();
   const snapshot = usePomodoroTimerSnapshot(timer);

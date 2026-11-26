@@ -186,9 +186,8 @@ function ActionsDemo({ section }: { section: string }) {
       <div className="catalog-row"><ActionButton variant="destructive-secondary" icon={X} onClick={() => toast("Beispielaktion ausgeführt.")}>Abmelden</ActionButton></div>
       <div className="catalog-row"><ActionButton variant="primary" disabled>Deaktiviert</ActionButton><ActionButton variant="primary" loading>Wird gespeichert …</ActionButton></div>
     </Demo>}
-    {section === "buttons" && <Demo title="CreationActionCard · im Raster mit und ohne Beschreibung"><div className="grid gap-4">
+    {section === "buttons" && <Demo title="CreationActionCard · im Raster"><div className="grid gap-4">
       <div className="catalog-two">{([["Karten selbst erstellen", PenLine], ["Import", FileSpreadsheet]] as const).map(([title, icon]) => <CreationActionCard key={title} title={title} icon={icon} onSelect={() => toast(`${title} gewählt.`)} />)}</div>
-      <CreationActionCard title="Anki-Stapel importieren" description="Eine vorhandene APKG-Datei übernehmen." icon={Layers} onSelect={() => toast("Import gewählt.")} />
     </div></Demo>}
     {section === "buttons" && <Demo title="IconButton · normal, destruktiv, destruktiv-dezent und ghost"><div className="catalog-row">{(["secondary", "destructive", "destructive-quiet", "ghost"] as const).map((variant) => <CoreTooltip key={variant} label={variant}><IconButton variant={variant} label={`${variant}: Beispielaktion`} icon={variant.startsWith("destructive") ? Trash2 : Settings} onClick={() => toast("Icon-Aktion ausgeführt.")} /></CoreTooltip>)}</div></Demo>}
     {section === "buttons" && <Demo title="CloseButton · Kreuz von Dialogen, Leisten und Toasts"><div className="catalog-row"><CloseButton label="Beispiel schließen" onClick={() => toast("Geschlossen.")} /><CloseButton label="Gesperrtes Schließen" disabled /></div></Demo>}

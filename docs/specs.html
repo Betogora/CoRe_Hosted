@@ -5332,7 +5332,6 @@ body:has([aria-modal="true"]) .core-success-toast {
   }
 }
 
-/* Wide (statistics page): band and run form a head on the left, the heatmap stands to its right. */
 @container core-study-heatmap (min-width: 56rem) {
   .core-study-heatmap-layout {
     display: grid;
@@ -6089,7 +6088,6 @@ button.core-info-hint:is(:hover, [data-state="open"]) {
 .core-study-header .core-study-timer-pill-icon { width: 1.75rem; height: 1.75rem; }
 .core-study-header .core-study-timer-pill-icon > svg { width: 0.75rem; height: 0.75rem; }
 
-/* With the timer pill the title moves to the left and shares the row with pill and tools. */
 @media (max-width: 39.9375rem) {
   .core-study-header-bar:has(.core-study-timer-pill) { grid-template-columns: auto minmax(0, 1fr) auto; gap: 0.375rem; }
   .core-study-header-bar:has(.core-study-timer-pill) .core-study-title { align-items: flex-start; }
@@ -6106,7 +6104,6 @@ button.core-info-hint:is(:hover, [data-state="open"]) {
 
 @media (min-width: 40rem) {
   .core-study-header { margin-inline: 0; padding-inline: 0; }
-  /* The deck name stays next to the close button and the counts sit in the middle of the row, with or without the pill. */
   .core-study-header-bar { position: relative; display: flex; }
   .core-study-title { flex: 0 1 auto; max-width: calc(50% - 6rem); margin-inline-end: auto; }
   .core-study-count-group { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); }
@@ -6174,7 +6171,6 @@ button.core-info-hint:is(:hover, [data-state="open"]) {
 .core-study-side-toggle[aria-pressed="true"] { background: var(--core-action-soft); }
 .core-study-side-toggle[aria-pressed="true"] > svg { color: var(--core-action-primary); }
 
-/* Below 64rem the summary opens as a sheet from the bottom, like the learning settings. */
 @media (max-width: 63.9375rem) {
   .core-study-side-backdrop { position: fixed; inset: 0; z-index: 80; background: var(--core-backdrop); }
   .core-study-side-panel {
@@ -6931,7 +6927,9 @@ button.core-info-hint:is(:hover, [data-state="open"]) {
 .dashboard-pin-replace { display: grid; gap: var(--core-space-sm); }
 .dashboard-widget .core-section-header-title { font: 700 0.8125rem/1.25rem var(--core-font-sans); letter-spacing: 0.14em; text-transform: uppercase; }
 .dashboard-poster { --bg: var(--core-brand-primary); --fg: var(--core-text-on-accent); position: relative; display: flex; flex-direction: column; min-width: 0; padding: 1.375rem; overflow: hidden; border-radius: var(--core-radius-panel); background: var(--bg); color: var(--fg); font-family: var(--core-font-sans); }
-.dashboard-poster[data-tone="green"] { --bg: var(--core-success); }
+/* White text on the success green alone stays below 4.5:1 for the small label and button text. */
+.dashboard-poster[data-tone="green"] { --bg: color-mix(in srgb, var(--core-success) 78%, #000); }
+[data-core-theme="dark"] .dashboard-poster[data-tone="green"] { --bg: var(--core-success); }
 .dashboard-poster[data-tone="fog"] { --bg: var(--core-brand-secondary); --fg: var(--core-brand-ink); }
 .dashboard-poster[data-tone="cream"] { --bg: var(--core-brand-surface); --fg: var(--core-brand-ink); }
 .dashboard-poster .core-section-header { flex: none; }
@@ -6968,7 +6966,7 @@ button.dashboard-poster-action:not(:disabled):hover { background: color-mix(in s
 .dashboard-learning-deck > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .dashboard-learning[data-status="waiting"] .dashboard-poster-subtitle { max-width: 9em; }
 /* Status colours stay recognisable but are mixed toward the text colour until they read on the surface. */
-.dashboard-learning { --count-new: color-mix(in srgb, var(--core-learning-status-new) 80%, var(--fg)); --count-in-progress: var(--core-learning-status-in-progress); --count-due: color-mix(in srgb, var(--core-learning-status-due) 25%, var(--fg)); }
+.dashboard-learning { container-type: inline-size; --count-new: color-mix(in srgb, var(--core-learning-status-new) 80%, var(--fg)); --count-in-progress: var(--core-learning-status-in-progress); --count-due: color-mix(in srgb, var(--core-learning-status-due) 25%, var(--fg)); }
 [data-core-theme="dark"] .dashboard-learning { --count-new: color-mix(in srgb, var(--core-learning-status-new) 30%, var(--fg)); --count-in-progress: color-mix(in srgb, var(--core-learning-status-in-progress) 25%, var(--fg)); --count-due: color-mix(in srgb, var(--core-learning-status-due) 20%, var(--fg)); }
 .dashboard-learning-scale { display: grid; flex: none; -moz-column-gap: 0.25rem; column-gap: 0.25rem; margin: 1.25rem 0 0; }
 .dashboard-learning-scale > div { display: grid; grid-template-columns: auto 1fr; gap: 0.5rem 0.375rem; align-items: baseline; min-width: 0; white-space: nowrap; }
@@ -6981,6 +6979,12 @@ button.dashboard-poster-action:not(:disabled):hover { background: color-mix(in s
 .dashboard-learning-scale dd { grid-row: 2; grid-column: 1; margin: 0; color: var(--count); font: 750 1.375rem/1.375rem var(--core-font-sans); letter-spacing: -0.02em; }
 .dashboard-learning-scale dt { grid-row: 2; grid-column: 2; padding-right: 0.625rem; color: color-mix(in srgb, var(--fg) 78%, transparent); font: 600 0.9375rem/1.375rem var(--core-font-sans); }
 .dashboard-learning-scale > div:last-child dt { padding-right: 0; }
+/* --digits comes from DashboardScreen; four-digit backlogs shrink to the tile instead of being clipped. */
+.dashboard-learning .dashboard-poster-giant { font-size: min(9.75rem, calc(100cqi / (var(--digits, 2) * 0.6))); }
+@container (max-width: 17rem) {
+  .dashboard-learning-scale > div { grid-template-columns: auto; }
+  .dashboard-learning-scale dt { grid-row: 3; grid-column: 1; padding-right: 0; }
+}
 .dashboard-todos-list { flex: 1 1 auto; min-height: 0; overflow-y: auto; margin: 0.5rem -0.625rem 0 -0.375rem; padding: 0 0.625rem 2rem 0.375rem; -webkit-mask-image: linear-gradient(#000 calc(100% - 2rem), transparent); mask-image: linear-gradient(#000 calc(100% - 2rem), transparent); }
 .dashboard-todo, .dashboard-todos-exam { display: flex; align-items: center; gap: 0.25rem 0.5rem; min-width: 0; min-height: 2.75rem; padding-block: 0.375rem; border-top: 1.5px solid color-mix(in srgb, var(--fg) 16%, transparent); }
 .dashboard-todos-list > ul:first-child > .dashboard-todo:first-child, .dashboard-todos-planner:first-child > section:first-of-type > .dashboard-todos-exam { border-top: 0; }
@@ -7061,7 +7065,7 @@ form.dashboard-todos-add:focus-within { outline: 2px solid var(--fg); outline-of
   .dashboard-first-start-title { font-size: 3.25rem; }
   .dashboard-first-start-mascot { display: none; }
 }
-/* Lerntimer: full surface in the timer color; --core-study-timer and --core-study-timer-on come from pomodoroTimerUi.tsx. */
+/* --core-study-timer and --core-study-timer-on come from pomodoroTimerUi.tsx. */
 .core-study-timer-tile { position: relative; display: flex; flex-direction: column; container-type: inline-size; min-width: 0; padding: 1.375rem; overflow: hidden; border-radius: var(--core-radius-panel); background: var(--core-study-timer); color: var(--core-study-timer-on); font-family: var(--core-font-sans); }
 .core-study-timer-tile > :not(.core-study-timer-level) { position: relative; }
 .core-study-timer-label { margin: 0; font: 700 0.8125rem/1.25rem var(--core-font-sans); letter-spacing: 0.14em; text-transform: uppercase; }
@@ -7125,6 +7129,7 @@ form.dashboard-todos-add:focus-within { outline: 2px solid var(--fg); outline-of
   .dashboard-widget-content > * { height: auto; max-height: var(--dashboard-widget-height); }
   .dashboard-poster-goal { margin-top: 1.25rem; }
   .dashboard-poster-giant { font-size: 8.5rem; }
+  .dashboard-learning .dashboard-poster-giant { font-size: min(8.5rem, calc(100cqi / (var(--digits, 2) * 0.6))); }
 }
 
 /* The layout jumps to the target height at once; only a clipped surface, translate and opacity move, so the
@@ -9641,7 +9646,7 @@ html:has(.catalog-preview) { scroll-behavior: auto; }
 <li>Die wahre Erinnerungsquote zählt je Karte und Lerntag nur die erste Wiederholung nach mindestens einem Tag Abstand.</li>
 <li>Historische Kategorien folgen Anki und dem Zustand vor der Antwort; der Kartenstatus zählt die Reife.</li>
 <li>Die Lern-Heatmap zeigt Aktivität je Lerntag und den Streak der gewählten Stapel; ein Lerntag zählt ab einer gültigen Bewertung. Künftig zeigt sie je aktiver Karte die nächste Fälligkeit; gelernte und erwartete Tage bleiben unterscheidbar.</li>
-<li>Unter dem Streak zeigt sie die letzten sieben Tage bis heute als Serie: gelernt, verpasst oder heute noch offen.</li>
+<li>Sie zeigt die letzten sieben Tage bis heute als Serie: gelernt, verpasst oder heute noch offen.</li>
 <li>Fehlen Historie, Zeitmessung oder Stichprobe, wird das erklärt; es werden keine Nullwerte erfunden.</li>
 <li><strong>Bewusst nicht:</strong> Ankis klassische Leichtigkeit.</li>
 </ul>
@@ -9817,7 +9822,7 @@ html:has(.catalog-preview) { scroll-behavior: auto; }
 <p>Probe: Ein Satz gehört hinein, wenn er nach einer vollständigen Neugestaltung der Oberfläche unverändert gälte und eine Abweichung davon ein fachlicher Fehler wäre.</p>
 <p>Form: Stichpunkte, ein Gedanke je Punkt. Eine neue Regel ersetzt die alte, statt sie zu ergänzen. Wo Funktionen logisch voneinander abhängen, steht ein Schaubild als <code>schaubild</code>-Block direkt beim Text und wird mit ihm geändert (Schreibweise in <a href="index.html#readme--pflege"><code>README.md</code></a>). In Schaubildern sind KI-Schritte blau, Ergebnisse grün markiert.</p>
 <h2 id="specs--codeumfang-der-produktbereiche" class="core-heading-2" tabindex="-1">Codeumfang der Produktbereiche <a class="docs-anchor" href="#specs--codeumfang-der-produktbereiche" aria-label="Link zu Codeumfang der Produktbereiche">#</a></h2>
-<p>CoRe ist eine App mit mehreren Bereichen. Die Tabelle zeigt deren Anteil am Bildschirmcode; gemeinsam genutzte Logik, UI und API stehen separat.</p><div class="docs-code-stats"><dl class="flex min-w-0 flex-col"><dt class="core-status-label text-core-muted">Bildschirmcode</dt><dd class="core-metric mt-0.5 text-core-text">7.681</dd></dl><dl class="flex min-w-0 flex-col"><dt class="core-status-label text-core-muted">Gemeinsamer Code &amp; API</dt><dd class="core-metric mt-0.5 text-core-text">51.384</dd></dl><dl class="flex min-w-0 flex-col"><dt class="core-status-label text-core-muted">Quelldateien</dt><dd class="core-metric mt-0.5 text-core-text">323</dd></dl></div><div class="docs-code-chart"><div class="docs-table-scroll" tabindex="0" role="region" aria-label="Codeumfang je Produktbereich"><table><thead><tr><th>Bereich</th><th>Zeilen</th><th>Anteil</th></tr></thead><tbody><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-info)" aria-hidden="true"></span>Heute</th><td>307</td><td>4 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-status-new)" aria-hidden="true"></span>Lernen & Karten</th><td>2.371</td><td>30,9 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-status-in-progress)" aria-hidden="true"></span>Erstellen & Import</th><td>2.105</td><td>27,4 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-action-primary)" aria-hidden="true"></span>Prüfungen</th><td>448</td><td>5,8 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-status-due)" aria-hidden="true"></span>Statistik</th><td>655</td><td>8,5 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-progress-completed)" aria-hidden="true"></span>Konto & Sync</th><td>883</td><td>11,5 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-text-secondary)" aria-hidden="true"></span>Hilfe</th><td>912</td><td>11,9 %</td></tr></tbody></table></div></div><p class="docs-source">Beim Erzeugen gemessen: nichtleere Zeilen in <code>src/</code> und <code>api/</code> (TS/TSX) sowie <code>src/styles.css</code>. Ohne Tests, Typdeklarationen, generierte Datenbanktypen, Dokumentation und Fremdcode. Bereichszuordnung nach Bildschirmdateien in <a href="../src/screens/README.md">der Screen-Landkarte</a>; übriger Code zählt gemeinsam. Enthält Kommentare und misst weder Laufzeit noch Komplexität.</p></article></main></div><script>function initializeDocsViewer() {
+<p>CoRe ist eine App mit mehreren Bereichen. Die Tabelle zeigt deren Anteil am Bildschirmcode; gemeinsam genutzte Logik, UI und API stehen separat.</p><div class="docs-code-stats"><dl class="flex min-w-0 flex-col"><dt class="core-status-label text-core-muted">Bildschirmcode</dt><dd class="core-metric mt-0.5 text-core-text">7.681</dd></dl><dl class="flex min-w-0 flex-col"><dt class="core-status-label text-core-muted">Gemeinsamer Code &amp; API</dt><dd class="core-metric mt-0.5 text-core-text">51.380</dd></dl><dl class="flex min-w-0 flex-col"><dt class="core-status-label text-core-muted">Quelldateien</dt><dd class="core-metric mt-0.5 text-core-text">323</dd></dl></div><div class="docs-code-chart"><div class="docs-table-scroll" tabindex="0" role="region" aria-label="Codeumfang je Produktbereich"><table><thead><tr><th>Bereich</th><th>Zeilen</th><th>Anteil</th></tr></thead><tbody><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-info)" aria-hidden="true"></span>Heute</th><td>307</td><td>4 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-status-new)" aria-hidden="true"></span>Lernen & Karten</th><td>2.371</td><td>30,9 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-status-in-progress)" aria-hidden="true"></span>Erstellen & Import</th><td>2.105</td><td>27,4 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-action-primary)" aria-hidden="true"></span>Prüfungen</th><td>448</td><td>5,8 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-status-due)" aria-hidden="true"></span>Statistik</th><td>655</td><td>8,5 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-progress-completed)" aria-hidden="true"></span>Konto & Sync</th><td>883</td><td>11,5 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-text-secondary)" aria-hidden="true"></span>Hilfe</th><td>912</td><td>11,9 %</td></tr></tbody></table></div></div><p class="docs-source">Beim Erzeugen gemessen: nichtleere Zeilen in <code>src/</code> und <code>api/</code> (TS/TSX) sowie <code>src/styles.css</code>. Ohne Tests, Typdeklarationen, generierte Datenbanktypen, Dokumentation und Fremdcode. Bereichszuordnung nach Bildschirmdateien in <a href="../src/screens/README.md">der Screen-Landkarte</a>; übriger Code zählt gemeinsam. Enthält Kommentare und misst weder Laufzeit noch Komplexität.</p></article></main></div><script>function initializeDocsViewer() {
     const theme = document.getElementById("docs-theme");
     theme.addEventListener("click", () => {
         const dark = document.documentElement.dataset.coreTheme !== "dark";

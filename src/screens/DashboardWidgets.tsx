@@ -1,6 +1,6 @@
 import React from "react";
 import { createPortal } from "react-dom";
-import { ArrowDown, ArrowUp, ArrowUpRight, Check, ChevronDown, ChevronUp, CornerDownLeft, GripVertical, LayoutGrid, Pause, Pencil, Play, Plus, RotateCcw, Trash2, X } from "lucide-react";
+import { ArrowDown, ArrowUp, ArrowUpRight, Check, ChevronDown, ChevronUp, CornerDownLeft, GripVertical, LayoutGrid, Pencil, Plus, RotateCcw, Trash2, X } from "lucide-react";
 import { DASHBOARD_WIDGETS, moveDashboardWidget, readDashboardPreferences, writeDashboardPreferences, type DashboardPreferences, type DashboardWidgetId } from "../dashboardWidgets.ts";
 import type { PomodoroTimer } from "../pomodoroTimer.ts";
 import { ActionButton, IconButton } from "../ui/actionUi.tsx";

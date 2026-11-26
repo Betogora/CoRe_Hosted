@@ -879,7 +879,7 @@ Die Statistik zeigt Lernaktivität, Planung und Gedächtnismodell für gewählte
 - Die wahre Erinnerungsquote zählt je Karte und Lerntag nur die erste Wiederholung nach mindestens einem Tag Abstand.
 - Historische Kategorien folgen Anki und dem Zustand vor der Antwort; der Kartenstatus zählt die Reife.
 - Die Lern-Heatmap zeigt Aktivität je Lerntag und den Streak der gewählten Stapel; ein Lerntag zählt ab einer gültigen Bewertung. Künftig zeigt sie je aktiver Karte die nächste Fälligkeit; gelernte und erwartete Tage bleiben unterscheidbar.
-- Unter dem Streak zeigt sie die letzten sieben Tage bis heute als Serie: gelernt, verpasst oder heute noch offen.
+- Sie zeigt die letzten sieben Tage bis heute als Serie: gelernt, verpasst oder heute noch offen.
 - Fehlen Historie, Zeitmessung oder Stichprobe, wird das erklärt; es werden keine Nullwerte erfunden.
 - **Bewusst nicht:** Ankis klassische Leichtigkeit.
 

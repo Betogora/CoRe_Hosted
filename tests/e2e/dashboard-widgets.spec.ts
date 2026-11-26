@@ -247,8 +247,9 @@ test("Timer: Minuten, Dauern, Mausrad, Pause und Fortsetzen", async ({ page }) =
   await expect(minutes).toHaveValue("02");
   await minutes.hover(); await page.mouse.wheel(0, -100);
   await expect(minutes).toHaveValue("04");
-  await timer.getByRole("button", { name: "Lerntimer starten", exact: true }).click();
+  await timer.getByRole("button", { name: "Lerntimer starten", exact: true }).press("Enter");
   await expect(minutes).toHaveCount(0);
+  await expect(timer.getByRole("button", { name: "Lerntimer pausieren", exact: true })).toBeFocused();
   const clock = timer.getByRole("timer");
   await expect(clock).toContainText(/0[34]:\d\d/);
   await expect(timer.getByRole("button", { name: "Lerntimer zurücksetzen", exact: true })).toBeDisabled();
@@ -259,8 +260,9 @@ test("Timer: Minuten, Dauern, Mausrad, Pause und Fortsetzen", async ({ page }) =
   await timer.getByRole("button", { name: "Lerntimer fortsetzen", exact: true }).click();
   await expect.poll(() => clock.textContent()).not.toBe(frozen);
   await timer.getByRole("button", { name: "Lerntimer pausieren", exact: true }).click();
-  await timer.getByRole("button", { name: "Lerntimer zurücksetzen", exact: true }).click();
+  await timer.getByRole("button", { name: "Lerntimer zurücksetzen", exact: true }).press("Enter");
   await expect(minutes).toHaveValue("04");
+  await expect(timer.getByRole("button", { name: "Lerntimer starten", exact: true })).toBeFocused();
   await expect(timer.getByText(/Bereit|Endet um|Dauer ändern/)).toHaveCount(0);
 });
 
