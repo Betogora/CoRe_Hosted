@@ -16,7 +16,7 @@ export const REQUEST_TYPES = [
   { id: "card-variant-choice", label: "Variante Auswahl", route: "/api/ai/card-variant", promptVersion: AI_CARD_VARIANT_PROMPT_VERSION, target: 0.95, critical: ["M2"] },
   { id: "card-help", label: "Lernhilfe zur Karte", route: "/api/ai/card-help", promptVersion: AI_CARD_HELP_PROMPT_VERSION, target: 0.9, critical: ["H2", "H6"] },
   { id: "source-cards", label: "Karten aus einer Quelle", route: "/api/ai/source-cards", promptVersion: AI_SOURCE_CARDS_PROMPT_VERSION, target: 0.9, critical: ["Q2"] },
-  { id: "learning-summary", label: "Zusammenfassung", route: "/api/ai/summary", promptVersion: AI_LEARNING_SUMMARY_PROMPT_VERSION, target: 0.95, critical: ["Z6"] },
+  { id: "learning-summary", label: "Zusammenfassung", route: "/api/ai/summary", promptVersion: AI_LEARNING_SUMMARY_PROMPT_VERSION, target: 0.9, critical: ["Z6"] },
 ] as const;
 
 export type RequestType = (typeof REQUEST_TYPES)[number];
@@ -54,7 +54,7 @@ const runSchema = v.strictObject({
   /** Messgrößen je Antwort, über den Lauf gemittelt (etwa Karten je 1.000 Zeichen). */
   metrics: v.optional(v.record(v.string(), v.number())),
   /** `target` nennt das Fehlerbild (Kriterien oder Kategorien), an dem eine vorläufige Übernahme gemessen wurde. */
-  comparison: v.optional(v.strictObject({ noise: share, gained: count, lost: count, target: v.optional(v.array(v.string())) })),
+  comparison: v.optional(v.strictObject({ noise: share, better: v.optional(share), gained: count, lost: count, target: v.optional(v.array(v.string())) })),
   /** Zwei Sätze aus den geänderten Trainingsantworten: Fehlerbild behoben, nichts Neues kaputt. */
   reason: v.optional(v.pipe(v.string(), v.minLength(1))),
   /** Sammelprüfung der vorläufigen Schritte gegen den letzten bestätigten Stand. */

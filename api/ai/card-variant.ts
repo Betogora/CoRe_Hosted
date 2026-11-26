@@ -86,6 +86,7 @@ const TEXTS: AiRouteTexts = {
   rejected: "OpenRouter hat die Kartenanfrage abgelehnt.",
   failed: "Das Modell konnte keine Kartenvariante erstellen.",
   invalid: "Das Modell hat keine gültige Kartenvariante geliefert.",
+  filtered: "Der Inhaltsfilter des KI-Anbieters hat die Variante für diese Karte blockiert.",
   tool: "Das Modell hat das Kartenwerkzeug nicht korrekt verwendet.",
   fields: "Das Modell hat ungültige Kartenfelder geliefert.",
   unconfigured: "Die Variantengenerierung ist noch nicht eingerichtet.",
@@ -108,7 +109,8 @@ export function buildOpenRouterPayload(input: AiCardVariantRequest) {
       },
     }],
     tool_choice: { type: "function", function: { name: "create_card_variant" } },
-    reasoning: { effort: "low" },
+    // Auswahl bleibt bei low: medium war dort im Eval nicht besser.
+    reasoning: { effort: input.kind === "choice" ? "low" : "medium" },
     max_tokens: MAX_AI_CARD_VARIANT_OUTPUT_TOKENS,
     stream: false,
     provider: { require_parameters: true, data_collection: "deny", zdr: true },

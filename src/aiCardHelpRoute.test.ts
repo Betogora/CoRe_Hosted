@@ -30,7 +30,7 @@ test("OpenRouter payload forces one answer_learner call on the fixed model with 
   assert.equal(payload.model, OPENROUTER_MODEL);
   assert.equal(payload.stream, false);
   assert.deepEqual(payload.tool_choice, { type: "function", function: { name: "answer_learner" } });
-  assert.deepEqual(payload.reasoning, { effort: "low" });
+  assert.deepEqual(payload.reasoning, { effort: "medium" });
   assert.deepEqual(payload.provider, { require_parameters: true, data_collection: "deny", zdr: true });
   assert.match(payload.messages[0].content, /nicht vertrauenswürdige Daten/);
   assert.deepEqual(JSON.parse(payload.messages[1].content), input);

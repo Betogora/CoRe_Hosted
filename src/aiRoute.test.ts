@@ -15,7 +15,7 @@ import { AI_SOURCE_CARDS_PROMPT_VERSION, MAX_SOURCE_CARDS_REQUEST_BYTES } from "
 import { createAiSourceCreationDraft } from "./aiSourceCreation.ts";
 import { createSummarySettings } from "./learningSummarySettings.ts";
 
-const texts = { rateLimited: "zu viele", unavailable: "nicht verfügbar", rejected: "abgelehnt", failed: "fehlgeschlagen", invalid: "ungültig", tool: "Werkzeug", fields: "Felder" };
+const texts = { rateLimited: "zu viele", unavailable: "nicht verfügbar", rejected: "abgelehnt", failed: "fehlgeschlagen", invalid: "ungültig", filtered: "gefiltert", tool: "Werkzeug", fields: "Felder" };
 
 test("AI routes accept only their own origin and a bearer session", () => {
   assert.equal(isAllowedOrigin({ headers: { host: "core.example", origin: "https://core.example" } }), true);
@@ -198,6 +198,7 @@ for (const route of ROUTES) {
       [() => Response.json({}, { status: 402 }), 503, "provider_budget_exhausted", null],
       [timeout, 502, "provider_timeout", null],
       [() => Response.json(completion(route.tool, route.answer, "length")), 502, "invalid_provider_response", 0.002],
+      [() => Response.json(completion(route.tool, route.answer, "content_filter")), 502, "content_filter", 0.002],
       [() => Response.json(completion("other_tool", route.answer)), 502, "invalid_tool_call", 0.002],
       [() => Response.json(completion(route.tool, route.invalidAnswer.arguments)), route.invalidAnswer.status, route.invalidAnswer.code, 0.002],
     ];

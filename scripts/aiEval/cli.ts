@@ -203,8 +203,8 @@ async function main(argv: string[]) {
       if (extra(readAnswers(directory), meta.repetitions) !== extra(remeasured, 0)) throw new Error("Die Nachmessung ist unvollständig: Kandidat und Bestand haben nicht dieselben Zusatzantworten. „more“ erneut ausführen.");
       remeasuredCost = remeasured.reduce((sum, entry) => sum + (entry.costUsd ?? 0), 0);
       const before = [...readJson(file) as AnswerResult[], ...evaluateAnswers(definition, cases.filter((entry) => remeasured.some((row) => row.caseId === entry.id)), 0, remeasured, verdicts, { refFor: referenceRef, unsure })];
-      comparison = compare(results, before, random, target);
-      ({ decision, failed } = decide(type, summary, summarize(before, random, type.critical), comparison, values.simplify));
+      comparison = compare(results, before, random, target, type.critical);
+      ({ decision, failed } = decide(comparison, values.simplify));
       if (decision === "accepted" && !confirm && state.pending) decision = "provisional";
     }
     const report = renderReport({ type, run: name, meta, summary, comparison, decision, failed, controls, judge: judged ? judge : null });
