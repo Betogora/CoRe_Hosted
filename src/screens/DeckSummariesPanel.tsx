@@ -80,7 +80,7 @@ export function DeckSummariesPanel({ deck, treeDecks, userId, cloud = null, onGe
   const dirty = view === "editor" ? JSON.stringify(draft) !== JSON.stringify(saved ?? blank)
     : view === "create" && (Boolean(source) || JSON.stringify(settings) !== JSON.stringify(initialSettings()));
   const generating = busy && generationRef.current !== null;
-  const focusCurrent = () => view === "create" ? createRef.current?.querySelector<HTMLElement>("button:not(:disabled), input")?.focus() : titleRef.current?.focus();
+  const focusCurrent = () => view === "create" ? createRef.current?.querySelector<HTMLElement>("button:not(:disabled), input")?.focus() : (titleRef.current ?? panelRef.current?.querySelector<HTMLElement>('[contenteditable="true"]'))?.focus();
 
   const treeKey = treeDecks.filter((item) => !item.deletedAt).map((item) => item.id).join("\n");
 
