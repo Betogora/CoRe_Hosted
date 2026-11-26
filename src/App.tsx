@@ -352,7 +352,7 @@ function AppContent() {
             activeView={activeView === "kartenstapel" && deckContent ? "lernen" : activeView}
             simulationOffsetMinutes={clock.simulationOffsetMinutes}
             simulationDateLabel={formatSimulationDate(learningNow)}
-            pomodoroTimer={pomodoro.pomodoroTimer}
+            pomodoroTimer={pomodoro.pomodoroTimer} onPomodoroPauseChange={pomodoro.changePomodoroPause}
             manualSync={state.profile.uiPreferences.syncIntervalMinutes === 0}
             onSyncNow={() => void sync.syncNow()}
             onOpenSyncSettings={(target) => openSettings(target === "sync" ? "daten" : "konflikte")}

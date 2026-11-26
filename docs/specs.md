@@ -492,10 +492,10 @@ Fällig | ausgewählte Wiederholungen
 
 - Vor dem Aufdecken zeigt die Sitzung nur den Lerninhalt, ohne Hinweis auf Herkunft, Variante, Reife oder Planung.
 - Sie nennt Stapel und Tagesfortschritt, aber keine Kartenposition.
-- Die gezeigte Karte wechselt erst mit ihrer Bewertung; die nächsten Karten samt Medien werden währenddessen vorbereitet.
-- Es gibt keinen eigenen Sitzungsstand: Nach Reload, Verlassen und Sync ergibt sich der Fortschritt aus gespeicherten Bewertungen und Lernständen.
+- Die Karte wechselt erst mit ihrer Bewertung; die nächsten samt Medien werden währenddessen vorbereitet.
+- Kein eigener Sitzungsstand: Nach Reload, Verlassen und Sync folgt der Fortschritt aus gespeicherten Bewertungen und Lernständen.
 - Das Ende nennt die Zahl beantworteter Karten und führt zum Ausgangspunkt zurück. Ein Reload erhält Sitzung und Rückweg; fremde Rücksprungziele werden nicht angenommen.
-- Ist ein Stapel oder eine Karte nicht verfügbar, folgt eine verständliche nächste Aktion; nie öffnet sich stillschweigend eine andere Karte.
+- Fehlt ein Stapel oder eine Karte, folgt eine verständliche nächste Aktion; nie öffnet sich stillschweigend eine andere.
 - Aus der Sitzung heraus wirken sofort: Flagge, Markierung, Aussetzen, Kartenreihenfolge und Timer. Editor und Stapeleinstellungen öffnen sich über der Sitzung und führen an dieselbe Karte zurück; gespeicherte Einstellungen gelten sofort.
 - Aussetzen pausiert die Karte samt Varianten, ohne ihren Lernstand zu ändern; sie fehlt dann in Runde, Tageszahlen und Fortschritt. Nach dem Reaktivieren ist ein vergangener Termin sofort wieder relevant.
 - Löst eine Bewertung die Lernbremse aus, weist die Sitzung einmal darauf hin.
@@ -504,10 +504,11 @@ Fällig | ausgewählte Wiederholungen
 - Markierter Text lässt sich in AMBOSS nachschlagen. Erst der ausdrückliche Klick öffnet die Suche; übertragen wird nur der markierte Text.
 - In der Sitzung lassen sich die [Zusammenfassungen](#zusammenfassungen) des Stapels lesen und von Hand schreiben, ohne dabei Karten zu bewerten; ein ungespeicherter Entwurf fragt beim Verlassen nach.
 
-### Pomodoro-Timer
+### Lerntimer
 
-- Je Konto gibt es genau einen Timer in diesem Browser. Er läuft mit echter Uhrzeit, übersteht Navigation, Reload und weitere Tabs und nutzt weder das Konto noch die simulierte Lernzeit.
-- Ein laufender Timer ist in der ganzen App sichtbar; sein Ablauf wird gemeldet.
+- Je Konto ein Timer je Browser, in echter Uhrzeit über Navigation, Reload und Tabs hinweg, ohne Konto und Simulation.
+- Dauer: ganze Minuten, Vorschläge 10, 25, 50 (Standard 25).
+- Läuft oder pausiert er, ist er überall sichtbar und pausier- und fortsetzbar, zurücksetzbar nur pausiert. Sein Ablauf wird gemeldet.
 - **Bewusst nicht:** Töne, automatische Pausenzyklen.
 
 ### Freigabe der Varianten
@@ -890,12 +891,12 @@ Jede Einstellung gilt für genau einen Bereich.
 | --- | --- |
 | Konto, auf allen Geräten | Tagesbeginn, Vorziehfenster, Lernbremse, Easy Days, Lernprofile, Standard für neue Stapel, Flaggennamen, gespeicherte Suchen, Prüfungspläne, Pins und Lerntage von `Heute` |
 | Einen Stapel | Tageslimits, Reihenfolge und Sortierung, Begraben, Lernschritte, Zielerinnerung, maximales Intervall, CoRe-Modus, Variantenschwelle, aktive Varianten, Name und Aussehen, Offline-Nutzung |
-| Diesen Browser | heller oder dunkler Modus, Heatmap-Farbe, Stapelansicht, Anordnung und eigene To-dos von `Heute`, Pomodoro-Timer, Simulationsuhr |
+| Diesen Browser | heller oder dunkler Modus, Heatmap-Farbe, Stapelansicht, Anordnung und eigene To-dos von `Heute`, Lerntimer samt Farbe, Simulationsuhr |
 
 - Einstellungen werden als Entwurf geändert und ausdrücklich gespeichert oder verworfen; ein ungespeicherter Entwurf hält jedes Verlassen auf.
 - Stapeleinstellungen werden für diesen Stapel oder samt Unterstapeln gespeichert; übertragen werden nur geänderte Werte.
 - Kontowerte werden nie in Stapel kopiert und von Lernprofilen nicht verändert.
-- Ohne Entwurf wirken sofort: Anwenden eines Lernprofils, manueller Sync, Heatmap-Farbe, Stapelansicht und Lerneinstellungen einer laufenden Sitzung.
+- Ohne Entwurf wirken sofort: Anwenden eines Lernprofils, manueller Sync, Heatmap- und Timerfarbe, Stapelansicht und Lerneinstellungen einer laufenden Sitzung.
 
 ### Tagesrunde und Lernprofile
 

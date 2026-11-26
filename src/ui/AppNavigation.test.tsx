@@ -21,6 +21,7 @@ function renderNavigation(activeView = "uebersicht", simulationOffsetMinutes = 0
       simulationOffsetMinutes={simulationOffsetMinutes}
       simulationDateLabel="Sonntag, 9. August 2026"
       pomodoroTimer={pomodoroTimer}
+      onPomodoroPauseChange={() => undefined}
       manualSync={manualSync}
       onSyncNow={() => undefined}
       onOpenSyncSettings={() => undefined}
@@ -187,11 +188,11 @@ test("active simulation remains visible in both navigation layouts", () => {
   assert.match(minuteMarkup, /\+10 Minuten/);
 });
 
-test("active Pomodoro timer appears in the desktop top bar and mobile header", () => {
+test("an active Lerntimer appears as a pausing pill in the desktop top bar and mobile header", () => {
   const timer = createPomodoroTimer(25, Date.now(), "pomodoro_navigation");
   assert.ok(timer);
   const markup = renderNavigation("uebersicht", 0, timer);
 
-  assert.equal((markup.match(/data-pomodoro-progress="header"/g) ?? []).length, 2);
-  assert.equal((markup.match(/Noch 25 Min\./g) ?? []).length, 4);
+  assert.equal((markup.match(/data-pomodoro-pill="true"/g) ?? []).length, 2);
+  assert.equal((markup.match(/aria-label="Lerntimer pausieren, noch 25 Min\."/g) ?? []).length, 2);
 });

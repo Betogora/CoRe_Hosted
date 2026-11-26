@@ -40,7 +40,7 @@ test("StudySettingsOverlay renders one responsive dialog with the canonical sect
   assert.match(markup, /Markieren/);
   assert.match(markup, /Aussetzen/);
   assert.match(markup, /data-card-study-state-controls="true"/);
-  assert.match(markup, /Pomodoro-Timer/);
+  assert.match(markup, />Lerntimer</);
   assert.match(markup, /Kartenreihenfolge/);
   assert.match(markup, /Fällige Karten zuerst/);
   assert.match(markup, /role="switch" aria-label="Aussetzen"/);
@@ -61,9 +61,8 @@ test("StudySettingsOverlay keeps deck editing available when card actions are di
   assert.doesNotMatch(deckEditButton.match(/^<button[^>]*>/)?.[0] ?? "", /\sdisabled=""/);
   assert.match(markup, /aria-label="Karte markieren"[^>]*disabled/);
   assert.match(markup, /<input type="checkbox" role="switch" aria-label="Aussetzen" disabled=""\/>/);
-  assert.match(markup, /Pomodoro-Timer/);
+  assert.match(markup, />Lerntimer</);
   assert.match(markup, /aria-expanded="false"/);
-  assert.doesNotMatch(markup, /Pomodoro[^<]*noch nicht verfügbar/i);
 });
 
 test("StudySettingsOverlay renders selected mark and suspended states", () => {

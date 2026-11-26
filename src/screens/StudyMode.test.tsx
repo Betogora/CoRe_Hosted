@@ -5,6 +5,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { addCardVariant, cardStudyFromReviewState, createBasicNote, createCoreDeck, createReviewState } from "../coreModel.ts";
 import type { Card, Deck, Note, ReviewEvent } from "../coreTypes.ts";
 import { variantPresentation } from "../coreVariantService.ts";
+import { createPomodoroTimer } from "../pomodoroTimer.ts";
 import { StudyMode } from "./StudyMode.tsx";
 import { formatReviewIntervalLabel, ratingButtons } from "./screenConstants.ts";
 
@@ -27,6 +28,7 @@ function studyCallbacks(deck: Deck, notes: Note[]) {
     mediaStore: null,
     pomodoroTimer: null,
     onStartPomodoro: () => undefined,
+    onPomodoroPauseChange: () => undefined,
     onExit: () => undefined,
     onReturnToLearn: () => undefined,
     onEditCard: () => undefined,
@@ -162,7 +164,7 @@ test("StudyMode shows a loading status instead of an empty card while the conten
   assert.doesNotMatch(markup, /Kartendarstellung wird vorbereitet/);
 });
 
-test("StudyMode exposes labeled learning without an idle Pomodoro progress", () => {
+test("StudyMode exposes labeled learning without an idle Lerntimer", () => {
   const item = basicItem("deck_progress", "Frage", "Antwort", {
     review: { state: "new", dueAt: "2026-08-06T09:00:00.000Z", reps: 0 },
   });
@@ -184,7 +186,7 @@ test("StudyMode exposes labeled learning without an idle Pomodoro progress", () 
   assert.match(markup, /<header class="core-study-header"[^>]*>.*>Fortschritt<\/p><span[^>]*><dl[^>]*data-testid="study-open-counts"/);
   assertOpenCounts(markup, { new: 1, open: 0, due: 0 });
   assert.match(markup, /aria-valuetext="Gelernt: 0 Karten, Neu: 1 Karte, Offen: 0 Karten, Fällig: 0 Karten"/);
-  assert.doesNotMatch(markup, /Pomodoro-Timer|Nicht gestartet|study-pomodoro-progress/);
+  assert.doesNotMatch(markup, /Lerntimer|data-pomodoro-pill|Nicht gestartet/);
   assert.doesNotMatch(markup, /Neue Karten heute|heute eingeführt|\+10/);
 });
 
@@ -345,7 +347,17 @@ test("the summary side panel opens only from its header button and renders nothi
   let markup: string;
   try { markup = renderToStaticMarkup(<StudyMode {...props} renderSidePanel={() => <p>Fassung</p>} />); } finally { globalThis.document = previousDocument; }
   assert.match(markup, /<header[\s\S]*?<button[^>]*aria-pressed="false"[^>]*aria-label="Zusammenfassung"[\s\S]*?aria-label="Lerneinstellungen"[\s\S]*?<\/header>/);
-  assert.match(markup, /<\/main><aside[^>]*data-testid="study-side-panel"/);
+  assert.match(markup, /<\/main><div[^>]*role="complementary"[^>]*data-testid="study-side-panel"/);
   assert.doesNotMatch(markup, /Fassung/);
   assert.doesNotMatch(renderToStaticMarkup(<StudyMode {...props} />), /aria-label="Zusammenfassung"|study-side-panel/);
+});
+
+test("a running Lerntimer sits as a pill before the header tools and replaces the old progress bar", () => {
+  const item = basicItem("deck_timer", "Frage", "Antwort");
+  const deck = createCoreDeck({ id: "deck_timer", name: "Welt-Hauptstädte", source: "manual", cards: [item.card], reviewEvents: [] });
+  const timer = createPomodoroTimer(25, Date.now() - 7 * 60_000, "pomodoro_study");
+  const markup = renderToStaticMarkup(<StudyMode deck={deck} decks={[deck]} notes={[item.note]} deckId={deck.id} getNow={() => "2026-08-06T10:00:00.000Z"} simulationOffsetMinutes={0} {...studyCallbacks(deck, [item.note])} pomodoroTimer={timer} />);
+  assert.match(markup, /<div class="core-study-header-actions"><button[^>]*class="core-study-timer-pill"[^>]*aria-label="Lerntimer pausieren, noch 18 Min\."[\s\S]*?aria-label="Lerneinstellungen"/);
+  assert.match(markup, /class="core-study-count-group[^"]*"><dl[^>]*data-testid="study-open-counts"/);
+  assert.doesNotMatch(markup, /role="progressbar"[^>]*aria-label="Lerntimer"|study-pomodoro-progress/);
 });

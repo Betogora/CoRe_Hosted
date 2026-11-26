@@ -243,7 +243,7 @@ test("dashboard fills the deck widget with four suggestions, links to all decks 
   assert.doesNotMatch(markup, /Hauptstapel ansehen|Alle Stapel öffnen/);
   assert.doesNotMatch(markup, /Geschafft|Grauer Balken: für heute abgeschlossen/);
   assert.equal((markup.match(/data-daily-learning-metric=/g) ?? []).length, 0);
-  assert.match(markup, /Timer zurücksetzen/);
+  assert.match(markup, /aria-label="Lerntimer starten"/);
 });
 
 test("achieved dashboard offers additional new cards only when stock remains beyond the daily limit", () => {
