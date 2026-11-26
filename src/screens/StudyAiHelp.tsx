@@ -7,10 +7,10 @@ import { BrainMascot } from "../ui/BrainMascot.tsx";
 import { StatusMessage } from "../ui/feedbackUi.tsx";
 import { useModalDialog } from "../ui/useModalDialog.ts";
 
-const QUICK_QUESTIONS = [
-  { label: "Erklären", icon: MessageCircleQuestion, mode: "explain", question: "Erkläre mir diese Karte." },
-  { label: "Beispiel", icon: Lightbulb, mode: "example", question: "Gib mir ein Beispiel dazu." },
-] as const;
+const SUBJECTS = {
+  card: { greeting: "Hi! Stell mir eine Frage zu dieser Karte.", explain: "Erkläre mir diese Karte.", field: "Frage zu dieser Karte" },
+  question: { greeting: "Hi! Was möchtest du zu dieser Frage wissen?", explain: "Erkläre mir diese Frage.", field: "Rückfrage zu dieser Frage" },
+} as const;
 
 interface Exchange { question: string; answer?: string; error?: string }
 
@@ -20,13 +20,21 @@ export type AskCardHelp = (request: AiCardHelpRequest, signal: AbortSignal) => P
  * The chat history survives closing and ends with the card; unmounting on card change aborts a running request.
  * Closing puts the focus on `returnFocusRef`, or where it was on opening while that is empty.
  */
-export function StudyAiHelp({ card, onAsk, open, onOpenChange, returnFocusRef }: {
+export function StudyAiHelp({ card, onAsk, open, onOpenChange, returnFocusRef, subject = "card", entry = "floating" }: {
   card: AiCardHelpRequest["card"];
   onAsk: AskCardHelp;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   returnFocusRef?: React.RefObject<HTMLElement | null>;
+  subject?: keyof typeof SUBJECTS;
+  /** `inline` sits in the content, one per quiz question; `floating` hovers over the study session. */
+  entry?: "floating" | "inline";
 }) {
+  const texts = SUBJECTS[subject];
+  const quickQuestions = [
+    { label: "Erklären", icon: MessageCircleQuestion, mode: "explain", question: texts.explain },
+    { label: "Beispiel", icon: Lightbulb, mode: "example", question: "Gib mir ein Beispiel dazu." },
+  ] as const;
   const [exchanges, setExchanges] = React.useState<Exchange[]>([]);
   const [draft, setDraft] = React.useState("");
   const listRef = React.useRef<HTMLDivElement>(null);
@@ -73,7 +81,7 @@ export function StudyAiHelp({ card, onAsk, open, onOpenChange, returnFocusRef }:
         <div className="mx-auto mt-2 h-1 w-10 rounded-round bg-core-border md:hidden" aria-hidden="true" />
         <div className="flex items-start gap-3 p-4">
           <span className="w-11 shrink-0" aria-hidden="true"><BrainMascot id="pastell-nicht-sicher" /></span>
-          <p className="mt-1 flex-1 rounded-panel bg-core-subtle px-3 py-2 core-body text-core-text">Hi! Stell mir eine Frage zu dieser Karte.</p>
+          <p className="mt-1 flex-1 rounded-panel bg-core-subtle px-3 py-2 core-body text-core-text">{texts.greeting}</p>
           <CloseButton ref={initialFocusRef} label="KI hilft schließen" className="-mr-[calc(1rem-var(--core-dialog-corner-inset))] -mt-[calc(1rem-var(--core-dialog-corner-inset))]" onClick={close} />
         </div>
         <div ref={listRef} className="grid min-h-0 flex-1 content-start gap-2 overflow-y-auto overscroll-contain px-4" aria-live="polite" aria-busy={pending}>
@@ -103,12 +111,12 @@ export function StudyAiHelp({ card, onAsk, open, onOpenChange, returnFocusRef }:
           }}
         >
           <div className="grid grid-cols-2 gap-2">
-            {QUICK_QUESTIONS.map(({ label, icon, mode, question }) => (
+            {quickQuestions.map(({ label, icon, mode, question }) => (
               <ActionButton key={label} type="button" variant="secondary" icon={icon} disabled={pending} onClick={() => ask(mode, question)}>{label}</ActionButton>
             ))}
           </div>
           <div className="flex gap-2">
-            <input className="core-field min-w-0 flex-1" value={draft} maxLength={MAX_AI_CARD_HELP_QUESTION_CHARS} placeholder="Stelle eine Frage …" aria-label="Frage zu dieser Karte" onChange={(event) => setDraft(event.target.value)} />
+            <input className="core-field min-w-0 flex-1" value={draft} maxLength={MAX_AI_CARD_HELP_QUESTION_CHARS} placeholder="Stelle eine Frage …" aria-label={texts.field} onChange={(event) => setDraft(event.target.value)} />
             <ActionButton type="submit" variant="primary" icon={ArrowUp} aria-label="Frage senden" disabled={!draft.trim() || pending} />
           </div>
         </form>
@@ -118,9 +126,9 @@ export function StudyAiHelp({ card, onAsk, open, onOpenChange, returnFocusRef }:
 
   return (
     <>
-      <button type="button" className="core-study-ai-entry core-action-secondary rounded-round py-1 pl-1 pr-4 shadow-raised" aria-haspopup="dialog" aria-expanded={open} onClick={() => onOpenChange(true)}>
+      <button type="button" className={`core-action-secondary rounded-round py-1 pl-1 pr-4 ${entry === "floating" ? "core-study-ai-entry shadow-raised" : "core-study-ai-inline shrink-0"}`} aria-haspopup="dialog" aria-expanded={open} onClick={() => onOpenChange(true)}>
         <span className="w-8 shrink-0" aria-hidden="true"><BrainMascot id="pastell-app" /></span>
-        KI hilft
+        <span>KI hilft</span>
       </button>
       {dialog && typeof document !== "undefined" ? createPortal(dialog, document.body) : dialog}
     </>

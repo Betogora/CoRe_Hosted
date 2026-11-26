@@ -1,10 +1,10 @@
 import React from "react";
-import { CheckCircle2, ExternalLink, Volume2, XCircle } from "lucide-react";
+import { ExternalLink, Volume2 } from "lucide-react";
 import type { Card, Note } from "../coreTypes.ts";
 import { resolvePresentationMedia } from "../presentationFrame.ts";
-import { NOTE_THEME_COLORS, evaluateNoteChoice, noteHasMath, notePlainText, renderCard, renderNoteChoiceOptions, renderNoteSpeech, type NotePresentationResult, type NotePresentationTheme } from "../notePresentation.ts";
+import { NOTE_THEME_COLORS, noteHasMath, notePlainText, renderCard, renderNoteChoiceOptions, renderNoteSpeech, type NotePresentationResult, type NotePresentationTheme } from "../notePresentation.ts";
 import { ActionButton } from "./actionUi.tsx";
-import { CoreVerdictControl } from "./coreUi.tsx";
+import { ChoiceOptionList } from "./ChoiceOptionList.tsx";
 import { StatusMessage } from "./feedbackUi.tsx";
 import { CardPresentationSurface } from "./CardPresentationSurface.tsx";
 import { NoteLayoutContext, type NoteLayoutSource } from "./noteLayoutContext.ts";
@@ -19,8 +19,6 @@ export interface NoteCardContentProps {
 }
 
 type Speech = Awaited<ReturnType<typeof renderNoteSpeech>>;
-/** `missed`: a correct option that was not chosen. */
-type OptionTone = "idle" | "selected" | "correct" | "missed" | "wrong" | "muted";
 
 function readTheme(): NotePresentationTheme | null {
   if (typeof document === "undefined") return null;
@@ -175,7 +173,6 @@ function NoteCardContentBody({ note, card, revealed, onReveal, surface = "review
   if (!presentation) return <StatusMessage tone="info" announce="polite">Kartendarstellung wird vorbereitet …</StatusMessage>;
   // Until the answer side matches the final input, the question stays visible instead of a loading state.
   const answerResult = !revealed ? null : typedAnswer === undefined ? presentation.answer : typedResult?.typed === typedAnswer ? typedResult.result : null;
-  const choiceResult = interaction.kind === "choice" ? evaluateNoteChoice(interaction, selected) : null;
   // An original layout turns to its back like in Anki; the back repeats the front through `{{FrontSide}}`.
   const original = presentation.question.layout === "original";
   const oneFrame = interaction.kind === "cloze" || interaction.kind === "image-occlusion" || surface !== "review" || original;
@@ -207,40 +204,15 @@ function NoteCardContentBody({ note, card, revealed, onReveal, surface = "review
         onKeyDown={(event) => { if (event.key === "Enter" && !event.nativeEvent.isComposing) { event.preventDefault(); onReveal(); } }} />
     </div> : null}
 
-    {interaction.kind === "choice" ? <div className="grid gap-2" role="group" aria-label="Antwortoptionen">
-      {interaction.options.map((option, index) => {
-        const result = choiceResult![index];
-        const isSelected = selected[option.id] === true;
-        const letter = String.fromCharCode(65 + index);
-        const tone: OptionTone = !revealed ? (isSelected && interaction.mode !== "kprim" ? "selected" : "idle")
-          : interaction.mode === "kprim" ? (result.selected === null ? "idle" : result.correct ? "correct" : "wrong")
-            : option.correct ? (isSelected ? "correct" : "missed") : isSelected ? "wrong" : "muted";
-        const StateIcon = tone === "correct" || tone === "missed" ? CheckCircle2 : tone === "wrong" ? XCircle : null;
-        const stateIcon = StateIcon ? <StateIcon className="core-mcq-state-icon" size={20} aria-hidden="true" /> : null;
-        const badge = <span aria-hidden="true" className="core-mcq-letter">{letter}</span>;
-        const html = resolvePresentationMedia(presentation.options.find((item) => item.id === option.id)?.html ?? "", mediaUrls).replace(/\s(?:src|poster)="(?!data:|blob:)[^"]*"/gi, "");
-        const text = <div className="card-html min-w-0 flex-1 overflow-x-auto core-body text-inherit" dangerouslySetInnerHTML={{ __html: html }} />;
-        const plain = notePlainText(option.html);
-        const feedback = tone === "correct" ? "core-mcq-option-correct" : tone === "wrong" ? "core-mcq-option-wrong" : "";
-        if (interaction.mode === "kprim") return <div key={option.id} data-tone={tone} className={`core-kprim-option grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center ${feedback}`}>
-          <div className="flex min-w-0 items-center gap-3">{badge}{text}</div>
-          <div className="grid justify-items-start gap-2 sm:justify-items-end">
-            <CoreVerdictControl label={`Aussage ${letter}`} disabled={revealed} value={result.selected} onValueChange={(value) => setSelected((current) => ({ ...current, [option.id]: value }))} />
-            {revealed ? <p className="flex items-center gap-1.5 core-caption font-semibold text-core-text">{stateIcon}Lösung: {option.correct ? "richtig" : "falsch"}</p> : null}
-          </div>
-        </div>;
-        const indicator = stateIcon ?? <span aria-hidden="true" className="core-mcq-indicator" data-shape={interaction.mode === "single" ? "dot" : "box"}>
-          {interaction.mode === "single" ? null : <svg viewBox="0 0 17 18"><polyline points="1 9 7 14 15 4" /></svg>}
-        </span>;
-        return <button key={option.id} type="button" disabled={revealed} aria-pressed={isSelected} data-tone={tone}
-          aria-label={`Antwortoption ${letter}: ${plain}${tone === "correct" ? " (richtig)" : tone === "missed" ? " (richtig, nicht gewählt)" : tone === "wrong" ? " (falsch gewählt)" : ""}`}
-          className={`core-mcq-option ${feedback}`}
-          onClick={() => {
-            setSelected((current) => interaction.mode === "single" ? { [option.id]: true } : { ...current, [option.id]: !current[option.id] });
-            if (interaction.mode === "single") onReveal();
-          }}>{badge}{text}{indicator}</button>;
-      })}
-    </div> : null}
+    {interaction.kind === "choice" ? <ChoiceOptionList mode={interaction.mode} revealed={revealed} answers={selected}
+      options={interaction.options.map((option) => ({
+        id: option.id, correct: option.correct, label: notePlainText(option.html),
+        html: resolvePresentationMedia(presentation.options.find((item) => item.id === option.id)?.html ?? "", mediaUrls).replace(/\s(?:src|poster)="(?!data:|blob:)[^"]*"/gi, ""),
+      }))}
+      onAnswersChange={(answers) => {
+        setSelected(answers);
+        if (interaction.mode === "single") onReveal();
+      }} /> : null}
 
     {prepared || (answerResult && !oneFrame && !isEmptyAnswer(answerResult)) ? <CardPresentationSurface {...frameProps} presentation={answerResult ?? presentation.answer} title={oneFrame ? "Aufgedeckte Karte" : "Antwort"} concealed={prepared === "hidden"} scrollTargetId={original ? "answer" : undefined} onLoad={revealed ? undefined : () => setAnswerAhead("ready")} /> : null}
     {diagnostics.length ? <StatusMessage tone="warning">{diagnostics.map((item, index) => <p key={index}>{item.message}</p>)}</StatusMessage> : null}

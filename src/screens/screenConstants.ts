@@ -7,6 +7,14 @@ export const ratingButtons = [
   { key: "easy", shortcutKey: RATING_SHORTCUT_KEYS.easy, label: "Leicht", className: "core-rating-easy" },
 ];
 
+export const DECK_CONTENT_TABS = [
+  { value: "children", label: "Unterstapel" },
+  { value: "summary", label: "Zusammenfassungen" },
+  { value: "mind-map", label: "Mind Map" },
+  { value: "quiz", label: "Quiz" },
+  { value: "cards", label: "Karten" },
+] as const;
+
 export function formatLimitSummary(hiddenDueCount: number, hiddenNewCount: number) {
   const parts = [
     hiddenDueCount > 0 ? `${hiddenDueCount} ${hiddenDueCount === 1 ? "fällige Karte" : "fällige Karten"}` : "",

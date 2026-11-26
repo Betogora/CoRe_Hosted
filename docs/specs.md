@@ -1,10 +1,10 @@
 # Specs
 
-**Stand:** 2026-11-19
+**Stand:** 2026-11-26
 
 **CoRe ist ein Lernwerkzeug für alle, die große Stoffmengen über Monate sicher im Kopf behalten müssen, zuerst für Studierende und Auszubildende auf dem Weg zur Prüfung.** Es wiederholt nicht Karten, sondern Inhalte: Gefestigtes Wissen kehrt in neuer Formulierung zurück, damit Verstehen geübt wird statt Wiedererkennen. Ziel ist Wissen, das in der Prüfung abrufbar ist, auch wenn die Frage anders gestellt wird.
 
-Die Specs beschreiben, was CoRe tun soll und warum: je Funktion die Absicht, ihre Regeln und die Entscheidungen, die der Code umsetzt. Wer sie liest, soll das Produkt prüfen können, ohne in den Code zu schauen. Wie die Datei gepflegt wird, steht [am Ende](#pflege-dieser-datei).
+Die Specs beschreiben je Funktion Absicht, Regeln und Entscheidungen, sodass sich das Produkt ohne Blick in den Code prüfen lässt. Wie die Datei gepflegt wird, steht [am Ende](#pflege-dieser-datei).
 
 ## 1. Produkt
 
@@ -152,7 +152,7 @@ Karte
 - Verschieben macht einen Stapel samt Unterbaum zum direkten Unterstapel des Ziels oder zum Hauptstapel. Ausgeschlossen sind nur der Stapel selbst und seine Nachfahren. Importherkunft und Tags bleiben.
 - Das Löschen eines Stapelbaums ist endgültig, nennt vorher Unterstapel und Kartenzahl und wird durch späteren Sync nicht rückgängig.
 - Je Stapel zeigen `Heute` und `Lernen` die Tageszahlen `Neu`, `Offen` und `Fällig` nach [Tagesrunde und Limits](#tagesrunde-und-limits); Elternstapel zählen ihren Teilbaum.
-- Ein geöffneter Stapel bündelt Unterstapel, die Karten des ganzen Teilbaums, Zusammenfassungen und Mindmap; gelernt wird aus den Unterstapeln.
+- Ein geöffneter Stapel bündelt Unterstapel, die Karten des ganzen Teilbaums, Zusammenfassungen, Mindmap und Quizze; gelernt wird aus den Unterstapeln.
 - Wo ein Stapel gewählt wird, steht sein vollständiger Pfad, damit gleichnamige Unterstapel unterscheidbar bleiben.
 
 ## 3. Kernjourneys
@@ -502,12 +502,10 @@ Fällig | ausgewählte Wiederholungen
 - Bewertungen und Aussetzen der laufenden Sitzung lassen sich rückwärts zurücknehmen, mit dem Lernstand von davor; eine Bewertung verschwindet auf allen Geräten aus Verlauf, Statistik und Tageszahlen. Flagge, Markierung oder Aussetzung sperren das für frühere Bewertungen derselben Karte; Kartenreihenfolge, neuer Lerntag oder Verlassen beenden es.
 - Inhalte mit Vorlese-Angabe aus Anki lassen sich über die Sprachausgabe des Geräts vorlesen.
 - Markierter Text lässt sich in AMBOSS nachschlagen. Erst der ausdrückliche Klick öffnet die Suche; übertragen wird nur der markierte Text.
-- Nach dem Aufdecken steht [KI hilft](#ki-hilft) bereit.
 
 ### Pomodoro-Timer
 
 - Je Konto gibt es genau einen Timer in diesem Browser. Er läuft mit echter Uhrzeit, übersteht Navigation, Reload und weitere Tabs und nutzt weder das Konto noch die simulierte Lernzeit.
-- Er lässt sich aus der Sitzung, von `Heute` und aus den Einstellungen starten, anhalten und zurücksetzen; überall ist es derselbe Timer.
 - Ein laufender Timer ist in der ganzen App sichtbar; sein Ablauf wird gemeldet.
 - **Bewusst nicht:** Töne, automatische Pausenzyklen.
 
@@ -600,11 +598,11 @@ Prüfung | Struktur und Grenzen werden validiert
 | [KI hilft](#ki-hilft) | Frage zur aufgedeckten Karte | Text der Karte wie abgefragt, Hinweis-, Zusatz- und Notizfelder, die Frage, bis zu sechs frühere Antworten | eine Antwort als reiner Text | flüchtiger Verlauf, der mit der Karte endet |
 | [Kartenvariante](#kartenvarianten-erzeugen) | Aktion an einer Karte oder für einen Stapel | Frage und Antwort, Lückentext oder Frage und Optionen der Karte, Fragen ihrer vorhandenen Varianten | eine Umformulierung oder die Meldung „nicht umformulierbar“ | Variante an der Karte, falls neu und Karte unverändert |
 | [Zusammenfassung](#ki-zusammenfassung) | Erstellen einer Fassung | lesbare Inhalte des Stapels, optional eine Quelle, die Wünsche als getrennter Auftrag | Abschnitte, Stichpunkte, Belege, Querbezüge | ungespeicherter Entwurf; den Text baut die App |
-| [Karten aus einer Quelle](#automatisch-aus-einer-quelle) | Erstellen mit einer Quelle | Auftrag als getrennte Daten, je Anfrage ein Abschnitt der Quelle mit Stellen, die bisherigen Fragen | belegte Kartenvorschläge und Hinweise | ungespeicherte Vorschläge; Karten erst nach Übernahme |
+| [Karten aus einer Quelle](#automatisch-aus-einer-quelle) | Erstellen mit einer Quelle oder eines [Quiz](#quiz) | Auftrag als getrennte Daten, je Anfrage ein Abschnitt der Quelle mit Stellen, die bisherigen Fragen | belegte Kartenvorschläge und Hinweise | ungespeicherte Vorschläge; Karten erst nach Übernahme |
 
 ### KI hilft
 
-Eine Lernhilfe zu genau der Karte, die gerade aufgedeckt ist.
+Eine Lernhilfe zu genau der aufgedeckten Karte oder einer [Quizfrage](#quiz).
 
 - Angeboten werden Erklären, ein Beispiel und eine eigene Frage.
 - Die KI sieht die Karte so, wie sie abgefragt wurde: Bei Lückentext ist nur die eigene Lücke verdeckt, bei Auswahlfragen sind richtige und falsche Optionen benannt. Das Quellenfeld bleibt auf dem Gerät.
@@ -699,7 +697,7 @@ Prüfungssitzung | normale Sitzung mit der Zielerinnerung der Prüfung
 
 ### Kalender und Lernblöcke
 
-- Der Kalender zeigt Prüfungstermine und je Tag die Lernaufgaben nach Prüfung, als Monat oder Woche; jede Prüfung lässt sich ein- und ausblenden, ohne die Planung zu ändern.
+- Der Kalender zeigt Prüfungstermine und je Tag die Lernaufgaben nach Prüfung; jede Prüfung lässt sich ein- und ausblenden, ohne die Planung zu ändern.
 - Ein Lernblock reserviert Zeit an einem Tag. Einer Prüfung zugeordnet, setzt er deren Lernzeit an diesem Tag; ohne Zuordnung ist er eine Notiz ohne Wirkung auf die Verteilung. Blöcke überlappen nicht.
 - Änderungen am Kalender werden mit neu berechneter Vorschau ausdrücklich gespeichert oder verworfen.
 
@@ -788,6 +786,17 @@ Fassung | im Konto, mehrere je Stapel
 - Eine Mindmap hat feste Obergrenzen, darunter 2.000 Karten; eine Änderung darüber hinaus wird mit Grenze und aktuellem Wert abgewiesen.
 - **Bewusst nicht:** Export, gemeinsames Bearbeiten.
 
+### Quiz
+
+Ein Selbsttest zum Stoff eines Stapels, ohne Wirkung auf Lernstand und Statistik.
+
+- Die KI stellt über [Karten aus einer Quelle](#automatisch-aus-einer-quelle) 5–20 Single- und Multiple-Choice-Fragen mit je vier Antworten in gemischter Reihenfolge, aus zufällig gewählten Karten (optional samt Unterstapeln) oder einer ungespeicherten PDF mit Textebene.
+- Antworten bleiben bis zur Abgabe änderbar; offene zählen falsch, Multiple Choice nur ganz richtig. Durchgänge werden nicht zwischengespeichert.
+- [KI hilft](#ki-hilft) sieht vor der Abgabe die Frage ohne Lösung und Erklärung und markiert sie. **Grenze:** Die KI kann die Lösung selbst wissen.
+- Die Auswertung zeigt den Anteil richtiger Antworten, auf Wunsch die Dauer, und jede Frage mit Lösung. Falsche Fragen lassen sich als eigenes Quiz wiederholen, Fragen als Auswahlkarten mit Erklärung und ohne Quelle übernehmen.
+- Quizze und ihre letzten 100 Durchgänge liegen im Konto; Durchgänge zweier Geräte bleiben beide.
+- **Bewusst nicht:** Zeitlimit, Nachbau einer Altklausur, neue Fragen zu einem bestehenden Quiz.
+
 ## 9. Überblick und Verwaltung
 
 ### Heute
@@ -795,7 +804,6 @@ Fassung | im Konto, mehrere je Stapel
 `Heute` ist die Startseite: Tagesstand, Lernstart und persönliche Werkzeuge an einem Ort.
 
 - Die Seite besteht aus wähl- und anordenbaren Bausteinen: Tagesstand, Motivationsimpuls, Lerntimer, angepinnte Stapel, To-dos, Lern-Heatmap und Prüfungsaufgaben. Anordnung und eigene To-dos gelten je Konto nur in diesem Browser.
-- **Feste Formate:** Bausteine haben feste Größen; längere Inhalte scrollen im Baustein.
 - **Erststart:** Ein neues Konto beginnt ohne erfundene Daten. Ohne Stapel führt die Seite zu Import, manueller Karte oder Demo; Demo-Stapel entstehen nur auf ausdrückliche Aktion, einmalig, ohne Lernhistorie.
 - **Tagesstand:** Er fasst alle Hauptstapel ohne Doppelzählung in `Gelernt`, `Neu`, `Offen` und `Fällig` zusammen ([Tagesrunde und Limits](#tagesrunde-und-limits)).
 - **Lernstart:** startet den alphabetisch ersten Hauptstapel mit verfügbaren Karten; warten nur Lernschritte, kündigt er späteres Weiterlernen an, sonst meldet er das Tagesziel und bietet zusätzliche neue Karten an.
@@ -808,7 +816,7 @@ Fassung | im Konto, mehrere je Stapel
 
 `Karten` ist die Gesamtverwaltung aller Karten aller Stapel: suchen, auswählen, gemeinsam ändern, pflegen und gezielt lernen.
 
-- Die Kartenverwaltung zeigt eine flache, sortierbare Liste; die Stapelstruktur ordnet `Lernen`. Ein geöffneter Stapel zeigt dieselbe Liste, begrenzt auf seinen Teilbaum.
+- Die Kartenverwaltung ist eine flache, sortierbare Liste, im geöffneten Stapel begrenzt auf seinen Teilbaum; die Stapelstruktur ordnet `Lernen`.
 - Ausgesetzte, markierte, geflaggte und zu klärende Karten bleiben sichtbar und sind als solche gekennzeichnet.
 - Suche, Sortierung und Blättern arbeiten über den ganzen Bestand, ohne ihn vollständig zu laden ([Große Bestände](#große-bestände)).
 - **Bewusst nicht:** Kartenerstellung und Stapelaktionen an dieser Stelle.
@@ -818,7 +826,7 @@ Fassung | im Konto, mehrere je Stapel
 - Die Suche umfasst alle Felder, Antwortoptionen und Tags; Stapel, deren Pfad passt, werden zusätzlich als Filter angeboten.
 - Sie versteht Ankis Suchschreibweise: Status, Reife, Fälligkeit, Flagge, Tag, Stapel, Inhaltsform, Notiztyp, Zeiträume, Lernwerte und einzelne Felder, mit Verneinung, `or` und Klammern. Dieselben Filter lassen sich ohne Schreibweise zusammenstellen; jede Stellung nennt ihre Wirkung.
 - Sich ausschließende Filter bleiben erlaubt; die Suche nennt den Widerspruch.
-- Noch nicht unterstützte Anki-Begriffe werden benannt und als Text gesucht. Die vollständige Schreibweise erklärt die App selbst.
+- Noch nicht unterstützte Anki-Begriffe werden benannt und als Text gesucht.
 - Online- und Offline-Suche liefern dieselben Treffer ([ADR-048](decisions.md#adr-048--kartensuche-lokal-über-den-vollständigen-katalog)).
 - Gespeicherte Suchen gehören zum Konto; relative Begriffe wie „heute“ gelten am Tag der Anwendung.
 - **Bewusst nicht:** reguläre Ausdrücke.
@@ -843,8 +851,6 @@ Fassung | im Konto, mehrere je Stapel
 
 ### Karteneditor
 
-Derselbe Editor öffnet sich aus Kartenverwaltung, Stapelinhalten und Sitzung und führt dorthin zurück.
-
 - **Sofortaktionen** wirken ohne Speichern und sind rückgängig: Flagge, Markierung, Aussetzen, Zurückstellen, Neu planen, Verschieben in einen anderen Stapel, Tags. Dazu nennt der Editor alle Karten desselben Inhalts und ähnliche Inhalte.
 - `Neu planen` setzt nur die Fälligkeit auf den Beginn des gewählten Lerntags; Gedächtniswerte und Aussetzung bleiben.
 - **Inhaltsänderungen** sind ein Entwurf, der ausdrücklich gespeichert wird, mit Vorschau wie beim Lernen. Öffnen und Schließen ohne Eingabe ändert nichts, auch nicht an importiertem Text.
@@ -866,7 +872,6 @@ Derselbe Editor öffnet sich aus Kartenverwaltung, Stapelinhalten und Sitzung un
 Die Statistik zeigt Lernaktivität, Planung und Gedächtnismodell für gewählte Stapel und Zeiträume ([ADR-015](decisions.md#adr-015--globale-fsrs-statistik-und-anki-historie)).
 
 - Ein gemeinsamer Filter aus Zeitraum und Umfang (ganze Sammlung oder Stapel, Unterstapel ohne Doppelzählung) steuert alle Bereiche außer der Heatmap.
-- Die Bereiche sind Überblick, Lernaktivität, Planung und Kartenbestand, Gedächtnismodell, Antwortverhalten und Stapelvergleich.
 - Drei Arten von Werten bleiben unterscheidbar: Historie (Gelerntes), Momentaufnahme (heutige Reife, Schwierigkeit, Haltbarkeit, Abrufwahrscheinlichkeit) und Ausblick (Rückstand, künftige Fälligkeiten).
 - Bestandsverteilungen (Intervalle, Stabilität, Schwierigkeit, Abrufwahrscheinlichkeit) haben feste, stets vollständige Töpfe; Schwierigkeit, Stabilität und Abrufwahrscheinlichkeit zählen nur gelernte Karten.
 - Ausgewertet wird im Konto; noch nicht synchronisierte Bewertungen fließen sofort ein.
@@ -888,7 +893,6 @@ Jede Einstellung gilt für genau einen Bereich.
 | Diesen Browser | heller oder dunkler Modus, Heatmap-Farbe, Stapelansicht, Anordnung und eigene To-dos von `Heute`, Pomodoro-Timer, Simulationsuhr |
 
 - Einstellungen werden als Entwurf geändert und ausdrücklich gespeichert oder verworfen; ein ungespeicherter Entwurf hält jedes Verlassen auf.
-- Stapeleinstellungen öffnen aus den Einstellungen; Zurück führt dorthin.
 - Stapeleinstellungen werden für diesen Stapel oder samt Unterstapeln gespeichert; übertragen werden nur geänderte Werte.
 - Kontowerte werden nie in Stapel kopiert und von Lernprofilen nicht verändert.
 - Ohne Entwurf wirken sofort: Anwenden eines Lernprofils, manueller Sync, Heatmap-Farbe, Stapelansicht und Lerneinstellungen einer laufenden Sitzung.
@@ -903,15 +907,14 @@ Jede Einstellung gilt für genau einen Bereich.
 ### Konto und Anmeldung
 
 - Angemeldet wird mit E-Mail und Passwort.
-- Das Profil enthält Anzeigename und Login-E-Mail. Die Oberfläche ist deutsch.
+- Das Profil enthält Anzeigename und Login-E-Mail.
 - Sicherheitskritische Aktionen sind von Profil- und Lernoptionen getrennt.
 
 ### Hilfe
 
-- Ein kurzer Einstieg zeigt, wie man mit CoRe lernt und ehrlich bewertet; die Tiefe sind verlinkte Unterseiten mit teilbarer Adresse.
+- Die Hilfe erklärt, wie man mit CoRe lernt und ehrlich bewertet; jede Seite hat eine teilbare Adresse.
 - Zwei geführte Geschichten erklären, warum CoRe Abrufreize wechselt (Active Recall wird Smarter Recall) und wie der Scheduler plant (Spaced Repetition wird Content Repetition).
 - Sie erklärt Abrufwahrscheinlichkeit, Haltbarkeit und Schwierigkeit qualitativ, ohne scheinbar exakte Werte, und verspricht keine feste Wiederholungsnummer für Varianten.
-- Nachschlagethemen erklären Planung, Varianten, Prüfungssitzung und Kartenverwaltung samt Suchschreibweise.
 - Die Hilfe verändert weder Karten noch Lernstand; ihre Aussagen stimmen mit Kapitel [Lernen](#5-lernen) überein.
 
 ### Simulator
@@ -949,14 +952,13 @@ Gruppe:
 
 ### Sync und Konflikte
 
-- Ein Sync sendet zuerst lokale Änderungen, lädt dann Neues aus dem Konto und aktualisiert zuletzt den Status. Manueller und automatischer Sync sind derselbe Ablauf.
+- Manueller und automatischer Sync sind derselbe Ablauf.
 - Der automatische Sync läuft nach Änderungen, bei Netzrückkehr, beim Verlassen oder Ausblenden der Seite und in einem wählbaren Intervall; er lässt sich abschalten, dann wird von Hand synchronisiert.
 - Solange alles läuft, meldet die App nichts; sichtbar werden nur Offline, Fehler und Konflikte.
 - Lernstand und Inhalt sind getrennt: Eine Bewertung auf einem Gerät und eine Inhaltskorrektur auf einem anderen erzeugen keinen Konflikt.
 - Bewertungen gehen nie verloren: Die Ereignisse beider Geräte bleiben, das jüngste bestimmt den Lernstand. Bei Neuplanungen bestimmt die spätere Aktion den Termin.
 - Ein Konflikt betrifft nur seine Karte oder seinen Stapel. Vor der Entscheidung zwischen dem Stand dieses Browsers und dem des Kontos zeigt CoRe die Folgen beider Richtungen.
 - Konfliktkarten bleiben bis zur Entscheidung außerhalb der Lernrunde und sind in der Kartenverwaltung gekennzeichnet.
-- Status und Konflikte sind ohne technische Begriffe verständlich.
 
 ### App-Start und neues Gerät
 
@@ -980,7 +982,7 @@ Gruppe:
 ### Speicherplatz
 
 - Wird der Speicher knapp, entfernt CoRe nur im Konto bestätigte Inhalte und Medien, die nicht ausdrücklich offline verfügbar sind. Ausstehende Änderungen, Konflikte, Downloads und gerade gelernte Karten bleiben.
-- Die Einstellungen zeigen den belegten Speicher und warnen, wenn der Browser ihn räumen darf.
+- CoRe nennt den belegten Speicher und warnt, wenn der Browser ihn räumen darf.
 - Programmteile werden erst bei absehbarer Nutzung vorgeladen, nie pauschal bei sparsamer oder langsamer Verbindung.
 
 ### Rückgängig und manuelle Ereignisse

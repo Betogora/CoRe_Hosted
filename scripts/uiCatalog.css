@@ -72,6 +72,12 @@ body:has(.catalog-shell-preview, .catalog-product-preview) > .core-tooltip { z-i
 body:has(.catalog-shell-preview) > [data-radix-popper-content-wrapper] { z-index: 80 !important; }
 body:has(.catalog-shell-preview, .catalog-product-preview) { overflow: hidden; }
 .catalog-product-preview { position: fixed; inset: 0; z-index: 50; overflow-y: auto; overflow-x: hidden; background: var(--core-canvas); }
+/* The quiz preview scrolls with the page: a capture of the whole view then shows nothing of the catalog behind it. */
+.catalog-product-preview.catalog-product-flow { position: absolute; inset: 0 0 auto; min-height: 100dvh; overflow: visible; }
+body:has(.catalog-product-flow) { overflow: visible; }
+.catalog-preview:has(> .catalog-product-flow) > :not(.catalog-product-flow) { display: none; }
+/* A modal locks scrolling in the app, so the view behind it is one screen. */
+body:has([aria-modal="true"]) .catalog-product-flow > section { height: 100dvh; overflow: clip; }
 .catalog-product-bar { position: sticky; top: 0; z-index: 50; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px; padding: 12px 10px; background: var(--core-canvas); }
 .catalog-row { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
 .catalog-two { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }

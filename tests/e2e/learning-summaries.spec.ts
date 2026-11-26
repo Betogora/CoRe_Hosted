@@ -262,8 +262,8 @@ test("Zusammenfassungsliste: Reihenfolge, Aktionsflächen und KI-Formular", asyn
   const search = panel.getByRole("textbox", { name: "Zusammenfassungen durchsuchen", exact: true });
   const list = panel.getByTestId("summary-list");
   const ai = panel.getByRole("button", { name: "Zusammenfassung mit KI erstellen", exact: true });
+  expect((await ai.boundingBox())!.y).toBeLessThan((await search.boundingBox())!.y);
   expect((await search.boundingBox())!.y).toBeLessThan((await list.boundingBox())!.y);
-  expect((await list.boundingBox())!.y).toBeLessThan((await ai.boundingBox())!.y);
   await expect(ai.locator("button")).toHaveCount(0);
   await expect(panel).not.toContainText("Auf diesem Gerät gespeichert");
   await search.fill("Lissabon");
