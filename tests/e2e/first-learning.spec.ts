@@ -141,7 +141,7 @@ test("Die Zusammenfassung neben der Karte behält ihre Tasten und den Entwurf un
   await guard.getByRole("button", { name: "Speichern", exact: true }).click();
   await expect(page.getByRole("button", { name: "Antwort anzeigen" })).toHaveCount(0);
 
-  await page.getByRole("button", { name: "Jetzt lernen" }).click();
+  await page.getByRole("button", { name: /^.+ lernen$/ }).first().click();
   await toggle.click();
   await panel.getByRole("button", { name: /^Zusammenfassung „.+“ öffnen$/ }).click();
   await expect(editor).toHaveText("Polen 1 2");
@@ -242,7 +242,8 @@ test("ungenutzte neue Karten verlinken gezielt zum fokussierten Tageslimit", asy
   await page.getByTestId("settings-save-bar").getByRole("button", { name: "Speichern" }).click();
 
   await page.goto(`/lernen?deck=${encodeURIComponent(deckId)}`);
-  await page.getByTestId(`learn-deck-row-${deckId}`).getByRole("button", { name: /lernen/ }).click();
+  await page.getByTestId(`deck-options-${deckId}`).click();
+  await page.getByTestId(`deck-options-menu-${deckId}`).getByRole("button", { name: "Lernen", exact: true }).click();
   const emptyDialog = page.getByRole("dialog", { name: "Tageslimit erreicht" });
   await expect(emptyDialog).toBeVisible();
   await expect(emptyDialog).toContainText("1 neue Karte bleibt wegen deiner Tageslimits für später vorgemerkt.");
