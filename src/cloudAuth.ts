@@ -381,8 +381,9 @@ export async function signUpCloudAccount<User extends CloudAuthUser>(
   return saveCloudProfile(client, createCloudProfile(null, data.user, profile, timestamp), timestamp);
 }
 
-export async function signInCloudAccount(
-  client: AuthClient<{ signInWithPassword(credentials: { email: string; password: string }): PromiseLike<{ data: { user: CloudAuthUser | null }; error: unknown }> }>,
+/** The signed-in user, so the caller boots without asking the auth server again. */
+export async function signInCloudAccount<User extends CloudAuthUser>(
+  client: AuthClient<{ signInWithPassword(credentials: { email: string; password: string }): PromiseLike<{ data: { user: User | null }; error: unknown }> }>,
   profile: ProfileFields,
   password: string,
   timestamp = nowIso(),
@@ -393,14 +394,15 @@ export async function signInCloudAccount(
 
   const { data, error } = await client.auth.signInWithPassword({ email, password });
   if (error) throw error;
+  if (!data.user) throw new Error("Anmeldung konnte nicht bestätigt werden.");
 
   const initialProfile = createCloudProfile(null, data.user, profile, timestamp);
   const { error: profileError } = await (client.from("profiles") as ProfilesTable).upsert(
-    createProfileRow(initialProfile, data.user!, timestamp),
+    createProfileRow(initialProfile, data.user, timestamp),
     { onConflict: "id", ignoreDuplicates: true },
   );
   if (profileError) throw profileError;
-  return initialProfile;
+  return data.user;
 }
 
 export async function signInWithMagicLink(

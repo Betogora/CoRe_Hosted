@@ -190,10 +190,7 @@ export function useAccountWorkspace(events: AccountWorkspaceEvents) {
     setAuthBusy(true);
     setAuthMessage("");
     try {
-      await signInCloudAccount(supabase, { email }, password);
-      const user = await getCloudUser(supabase);
-      if (!user) throw new Error("Anmeldung konnte nicht bestätigt werden.");
-      await boot(user);
+      await boot(await signInCloudAccount(supabase, { email }, password));
     } catch (error) {
       setAuthPhase("signed-out");
       setAuthMessage(formatCloudAuthError(error, "Anmeldung fehlgeschlagen."));

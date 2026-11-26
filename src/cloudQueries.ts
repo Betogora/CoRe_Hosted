@@ -154,11 +154,12 @@ export async function upsertRows(client: CloudClient, table: string, rows: objec
   }, concurrency);
 }
 
-export async function selectKeysetRows<Row extends { id: string }>(client: CloudClient, table: string, userId: string, validate: (rows: unknown) => Row[], { optional = false }: { optional?: boolean } = {}) {
+export async function selectKeysetRows<Row extends { id: string }>(client: CloudClient, table: string, userId: string, validate: (rows: unknown) => Row[], { optional = false, where }: { optional?: boolean; where?: { field: string; values: string[] } } = {}) {
   const rows: Row[] = [];
   let cursor: string | null = null;
   while (true) {
     let query = cloudTable(client, table).select("*").eq("user_id", userId).order("id", { ascending: true }).limit(CLOUD_PAGE_SIZE);
+    if (where) query = query.in(where.field, where.values);
     if (cursor) query = query.gt("id", cursor);
     const { data, error } = await query;
     if (error) {

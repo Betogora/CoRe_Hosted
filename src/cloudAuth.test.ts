@@ -92,9 +92,9 @@ test("cloud sign-in creates a missing profile without overwriting an existing on
     },
   };
 
-  const profile = await signInCloudAccount(client, { email: user.email }, "supersecret");
+  const signedIn = await signInCloudAccount(client, { email: user.email }, "supersecret");
 
-  assert.equal(profile.userId, user.id);
+  assert.equal(signedIn.id, user.id);
   assert.deepEqual(upserts[0]?.options, { onConflict: "id", ignoreDuplicates: true });
   assert.equal(upserts[0]?.row.id, user.id);
 });

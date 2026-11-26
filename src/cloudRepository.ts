@@ -63,7 +63,8 @@ export { ImportGraphVerificationError, verifyAccountImportGraph } from "./cloudI
 
 interface AccountBootstrapPage {
   profile: ReturnType<typeof createCloudProfile>;
-  /** `updated_at` of the stored profile row; null without a row. */ profileUpdatedAt: string | null;
+  /** `updated_at` of the stored profile row; null without a row. */
+  profileUpdatedAt: string | null;
   decks: Array<{ deck: Deck; summary: DeckStudySummary }>;
   nextCursor: string;
   hasMore: boolean;
@@ -104,7 +105,9 @@ export async function loadAccountCloudBootstrap(
     profile: createCloudProfile(profileRows[0] ?? null, { id: userId, email: user.email ?? null }),
     profileUpdatedAt: typeof profileRows[0]?.updated_at === "string" ? profileRows[0].updated_at : null,
     decks,
-    nextCursor: candidate.nextCursor, hasMore: candidate.hasMore, confirmedEmpty: candidate.confirmedEmpty,
+    nextCursor: candidate.nextCursor,
+    hasMore: candidate.hasMore,
+    confirmedEmpty: candidate.confirmedEmpty,
     conflictCount,
     serverCatalogCursor,
     studyOverview: candidate.studyOverview == null ? undefined : validateAccountStudyOverview(candidate.studyOverview),
@@ -189,12 +192,8 @@ function parseCatalogPage(data: unknown, knownTotalCount?: number): CatalogPage 
   if (!Array.isArray(candidate.items) || !Number.isSafeInteger(totalCount) || totalCount! < 0 || typeof candidate.hasMore !== "boolean") {
     throw new Error("Kartenkatalog-Seite ist unvollständig.");
   }
-  const nextCursor = candidate.nextCursor == null ? null : candidate.nextCursor;
-  if (nextCursor != null && (typeof nextCursor !== "object" || Array.isArray(nextCursor)
-    || typeof (nextCursor as Record<string, unknown>).sortValue !== "string"
-    || typeof (nextCursor as Record<string, unknown>).id !== "string")) {
-    throw new Error("Kartenkatalog-Cursor ist ungültig.");
-  }
+  const nextCursor = candidate.nextCursor == null ? null : requireJsonRecord(candidate.nextCursor, "Kartenkatalog-Cursor ist ungültig.");
+  if (nextCursor && (typeof nextCursor.sortValue !== "string" || typeof nextCursor.id !== "string")) throw new Error("Kartenkatalog-Cursor ist ungültig.");
   return {
     items: validateCardCatalogRows(candidate.items),
     totalCount: totalCount!,

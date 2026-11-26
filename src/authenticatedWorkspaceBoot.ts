@@ -230,7 +230,7 @@ async function finishAuthenticatedWorkspaceCloudSync(
     return JSON.stringify(repository.getShellState().profile) !== before;
   };
   const pullChanges = async () => {
-    // Loaded alongside the catalog delta, applied after it as before.
+    // Requested with the catalog delta to save a round trip; applied after it, so local writes keep their order.
     const profileChange = loadCloudProfileChange(supabase, userId, profileSeenAt);
     profileChange.catch(() => undefined);
     const previousCursor = repository.getReplicaStatus().catalogCursor;

@@ -22,7 +22,7 @@ Solche Pakete beginnen deshalb mit ihrer Messung (Schritt 0).
 | --- | --- | --- |
 | `affected-e2e` mit voller Suite | 12 bis 14 min (Testschritt 800 s); seit T1 ohne 266 s Katalog, seit T3 drei Shards mit je rund 140 s Tests statt 432 s, in CI noch ungemessen | höchstens 5 min |
 | `catalog-e2e` | 4,5 bis 6,5 min mit 2 Workern; seit T1 lokal auf 4 CPUs 176 statt 364 s, in CI noch ungemessen | höchstens 4 min |
-| Roundtrips nacheinander je Bewertung | 5 | 2 |
+| Roundtrips nacheinander je Bewertung | 5; seit A4 3 (ohne `getUser`, Profil parallel zum Delta) | 2 |
 | `srcdoc` einer Formelkarte | rund 400 KB | rund 30 KB |
 
 Für alle Pakete gilt:
@@ -52,62 +52,28 @@ der Entscheidung, A6, T4, A7 und T5 nach Bedarf.
 ### App
 
 - [ ] **A4 – Roundtrips in Start, Sync und Lernstart (H4):**
-  - Schritt 0: `src/performanceGates.ts` definiert Grenzen für Lernstart
-    (p75 1 s), Review lokal gespeichert (p95 250 ms) und Delta-Sync (p75
-    2 s); gemessen wird nur die Suite `startup`
-    (`tests/performance/startup.spec.ts`). Messpunkte ergänzen (Lernstart
-    von Klick bis `core:working_set_ready`), dazu Request-Zähler je
-    Bewertung und je Leerlauf-Sync.
-  - Bewertung: `applyEntityMutation`, `applyEntityMutationBatch`,
-    `recordAtomicReview` und `patchAccountCloudProfile`
-    (`src/cloudRevisionedWrites.ts:331,389,468,504`) holen je Aufruf
-    `GET /auth/v1/user`. `authenticatedUserForKnownSession`
-    (`src/cloudQueries.ts:81-97`) gibt es; die `userId` durchreichen. RLS
-    und `auth.uid()` in den RPCs bleiben. Ein Rückstau von N Bewertungen
-    braucht dann N statt 2N Requests.
-  - Sync-Zyklus (`src/syncEngine.ts:545-548`): Delta, Profil und Konflikte
-    laufen nacheinander. Parallel abrufen; die Regel „Konflikte zuletzt“
-    aus `architecture.md` und das Profil-Overlay mit wartenden Patches
-    gelten weiter für das Anwenden. `streamAccountCatalogChanges`
-    (`src/cloudRepository.ts:168-180`) liefert auch leer fünf Seiten, was
-    je Leerlauf-Sync eine Schreibtransaktion über rund zehn Stores,
-    `loadShell` und zwei volle `count()` kostet
-    (`src/indexedDbCoreRepository.ts:331-336,384-397`): leeres Delta früh
-    beenden. Konflikte mit Statusfilter und schmalen Spalten statt
-    `select *` (`src/cloudConflicts.ts:397-400`). Mindestabstand für
-    Fokus-Syncs bei leerer Outbox.
+  - Konfliktabfrage (`src/cloudConflicts.ts`, über `selectKeysetRows`)
+    lädt weiter `select *` samt Wert-Snapshots; schmale Spalten, wo die
+    Werte nicht gebraucht werden.
+  - Schritt 0 fehlt weiter: Messpunkte für Lernstart (`studyStartP75Ms`),
+    Review-Persistenz und Delta-Sync in `tests/performance/startup.spec.ts`.
   - Folgekette nach dem Boot
-    (`src/authenticatedWorkspaceBoot.ts:62-63,173-197,211-268`,
-    `src/useAccountWorkspace.ts:99-123`, `src/appMediaLifecycle.ts:17`):
-    `profileSeenAt` aus dem Bootstrap setzen (kein zweiter Profilabruf),
-    Konflikte bei `conflictCount` 0 überspringen, Geräte-Registrierung
-    parallel, `list_releasable_media` höchstens täglich, `cloudState` nur
-    bei echter Änderung ersetzen (zwei Shell-Render weniger). Messung:
-    `core:cloud_sync_after_start`.
-  - Lernstart: `prepareStudyWindow`
-    (`src/workspaceHydrationService.ts:407-414,223-228`) ruft je Stapel des
-    Teilbaums nacheinander `fetchCatalogPage` auf, auch bei vollständigem
-    Katalog, und setzt ihn dabei auf `partial` (kein `keepComplete`). Bei
-    vollständigem Katalog nur einen Delta-Pull anstoßen, sonst vier
-    Abrufe parallel wie `hydrateCards` und `keepComplete` übergeben.
-    Vorher festhalten, dass der Delta-Pull für Bewertungen anderer Geräte
-    genügt.
-  - Stapelzahlen: Der Boot wartet auf `listDeckSummaries`
-    (`src/authenticatedWorkspaceBoot.ts:58`), danach rechnet
-    `src/useDeckSummaries.ts:15,31-41` dieselbe Projektion erneut. Den
-    Schlüssel des Boot-Ergebnisses als geladen vormerken; Messung
+    (`src/authenticatedWorkspaceBoot.ts`, `src/useAccountWorkspace.ts`,
+    `src/appMediaLifecycle.ts`): Konflikte bei `conflictCount` 0
+    überspringen, Geräte-Registrierung parallel, `list_releasable_media`
+    höchstens täglich, `cloudState` nur bei echter Änderung ersetzen.
+  - Lernstart: Eine Cloud-Katalogseite setzt einen vollständigen Katalog
+    auf `partial`; `src/workspaceHydrationService.test.ts` hält das
+    ausdrücklich fest. Klären, ob `keepComplete` gemeint ist.
+  - Stapelzahlen: Nach `listDeckSummaries` im Boot rechnet
+    `src/useDeckSummaries.ts` dieselbe Projektion erneut; Messung
     `projectionRebuildCount`.
-  - Neues Gerät: Bootstrap-RPC parallel zur lokalen Öffnung starten
-    (`src/authenticatedWorkspaceBoot.ts:52-63`) und den Chunk der Route
-    beim App-Start per `prefetchAppView` holen
-    (`src/appFeatureLoading.tsx:82,99-111`); Messung
+  - Neues Gerät: Bootstrap-RPC parallel zur lokalen Öffnung starten und
+    den Chunk der Route beim App-Start holen; Messung
     `newDeviceDashboardP75Ms`.
-  - Anmeldung: Nach `signInWithPassword` folgen ein abgewarteter
-    Profil-Upsert und `getUser()` (`src/useAccountWorkspace.ts:193-196`,
-    `src/cloudAuth.ts:387-395`). Mit `data.user` booten, Upsert parallel;
-    das Profil muss vor dem ersten Profilpatch existieren.
-  - Nachweis: Zähler und die drei neuen Messwerte vorher und nachher;
-    `weekly-performance` auf dem Branch.
+  - Anmeldung: Profil-Upsert parallel zum Boot; das Profil muss vor dem
+    ersten Profilpatch existieren.
+  - Nachweis: `weekly-performance` auf dem Branch.
 - [ ] **A5 – Sitzungsstart mit abgelaufenem Token:** Entscheidung offen,
       berührt ADR-038. `auth.getSession()` erneuert ein Token, das in
       unter 90 s abläuft, bevor es antwortet

@@ -404,14 +404,15 @@ export function createWorkspaceHydrationService({
     const currentTime = Date.parse(now);
     const catalogEntries: CardCatalogEntry[] = [];
     let catalogHasMore = false;
-    for (const deckId of deckIds) {
-      if (isOnline()) {
-        try {
-          await fetchCatalogPage({ deckId, page: 0, pageSize: catalogPageSize, sort: { field: "nextStudyDate", direction: "asc" } });
-        } catch {
+    // Fresh first pages carry reviews from other devices; up to four requests at once, like the card hydration.
+    if (isOnline()) {
+      for (const group of chunk(deckIds, 4)) {
+        await Promise.all(group.map((deckId) => fetchCatalogPage({ deckId, page: 0, pageSize: catalogPageSize, sort: { field: "nextStudyDate", direction: "asc" } })
           // A locally available study window remains usable while catalog refresh waits for retry.
-        }
+          .catch(() => undefined)));
       }
+    }
+    for (const deckId of deckIds) {
       const cursor = options.cursorByDeck?.[deckId];
       const cursorDueAt = cursor ? Date.parse(cursor.dueAt) : Number.NaN;
       let pageCursor: { sortValue: string; id: string } | null = null;
