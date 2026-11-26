@@ -12,6 +12,8 @@ import { useStableCallback } from "../ui/useStableCallback.ts";
 import { useWorkspaceValue } from "../useWorkspaceStore.ts";
 import { ActionDialog, EmptyState, SoftPanel } from "../ui/coreUi.tsx";
 import { CoreTabPanel, CoreTabs } from "../ui/CoreTabs.tsx";
+import { QuizPanelContext } from "./quizPanelContext.ts";
+import { DECK_CONTENT_TABS } from "./screenConstants.ts";
 import { DeckAppearanceIcon, getDeckAppearance } from "../ui/deckAppearance.tsx";
 import { DialogFrame } from "../ui/DialogFrame.tsx";
 import { useSuccessToast } from "../ui/feedbackUi.tsx";
@@ -37,13 +39,6 @@ interface PendingDetailAction {
   run: () => void;
 }
 
-const deckContentTabs = [
-  { value: "children", label: "Unterstapel" },
-  { value: "summary", label: "Zusammenfassungen" },
-  { value: "mind-map", label: "Mind Map" },
-  { value: "cards", label: "Karten" },
-] as const;
-
 function DeckContentPlaceholder({ label, icon: Icon, title, action, testId }: { label: string; icon: LucideIcon; title: string; action?: React.ReactNode; testId?: string }) {
   return (
     <SoftPanel aria-label={label} className="flex min-h-[214px] items-center justify-center p-6 sm:p-10" data-testid={testId}>
@@ -59,6 +54,7 @@ function DeckContentPlaceholder({ label, icon: Icon, title, action, testId }: { 
 // Summaries and mind maps are most of this screen's code but load with their tab only, so preloading the card
 // management stays below the 50 ms task budget.
 const DeckSummariesPanel = React.lazy(() => import("./DeckSummariesPanel.tsx").then((module) => ({ default: module.DeckSummariesPanel })));
+const DeckQuizPanel = React.lazy(() => import("./DeckQuizPanel.tsx").then((module) => ({ default: module.DeckQuizPanel })));
 const DeckMindMapsPanel = React.lazy(() => import("./DeckMindMapsPanel.tsx").then((module) => ({ default: module.DeckMindMapsPanel })));
 const CONTENT_TAB_LOADING = <p className="p-6 core-body text-core-muted" role="status" data-testid="deck-content-tab-loading">Wird geladen …</p>;
 
@@ -107,7 +103,8 @@ export function DecksScreen({
   onRequestCardPage,
 }: DecksScreenProps) {
   const { deckSummaries, syncConflictCardIds, cardPages } = useWorkspaceValue(({ deckSummaries, syncConflictCardIds, cardPages }) => ({ deckSummaries, syncConflictCardIds, cardPages }));
-  const contentTab = selectedCardId ? "cards" : requestedContentTab;
+  const quiz = React.useContext(QuizPanelContext);
+  const contentTab = selectedCardId ? "cards" : requestedContentTab === "quiz" && !quiz ? "children" : requestedContentTab;
   const contentLibrary = React.useMemo(() => contentDeckId ? createDeckLibraryModel(decks, { now, dayStartHour, learnAheadMinutes, timeZone, deckSummaries }) : null,
     [contentDeckId, dayStartHour, deckSummaries, decks, learnAheadMinutes, now, timeZone]);
   const contentRowById = React.useMemo(() => new Map(contentLibrary?.rows.map((row) => [row.id, row])), [contentLibrary]);
@@ -564,6 +561,9 @@ export function DecksScreen({
     contentDeck ? <React.Suspense fallback={CONTENT_TAB_LOADING}><DeckMindMapsPanel key={`${learningContentAccount?.userId ?? contentDeck.ownerId}:${contentDeck.id}`} deck={contentDeck}
       userId={learningContentAccount?.userId ?? contentDeck.ownerId} cloud={learningContentAccount?.cloud ?? null} onGenerateSummary={onGenerateSummary} onDraftStateChange={handleEditorDraftStateChange} /></React.Suspense>
       : <EmptyState icon={Network} title="Stapel nicht gefunden oder nicht verfügbar." />
+  ) : contentDeckId && contentTab === "quiz" && quiz ? (
+    contentDeck ? <React.Suspense fallback={CONTENT_TAB_LOADING}><DeckQuizPanel key={contentDeck.id} deck={contentDeck} treeDecks={libraryDecks} decks={decks} {...quiz} /></React.Suspense>
+      : <EmptyState icon={ListChecks} title="Stapel nicht gefunden oder nicht verfügbar." />
   ) : <section className="grid min-w-0 gap-4" aria-label="Karten" data-testid="card-library-panel">
       <div className="grid gap-4">
         <CardSearchBar
@@ -698,7 +698,7 @@ export function DecksScreen({
             <h2 className="core-deck-content-title outline-none" data-screen-heading tabIndex={-1}>{contentDeck?.name ?? "Stapelinhalte"}</h2>
           </div>
           <div className="core-deck-content-tabs" data-testid="deck-content-actions">
-            <CoreTabs ariaLabel="Stapelinhalte" tabs={deckContentTabs} value={contentTab} panelId={contentPanelId}
+            <CoreTabs ariaLabel="Stapelinhalte" tabs={quiz ? DECK_CONTENT_TABS : DECK_CONTENT_TABS.filter((tab) => tab.value !== "quiz")} value={contentTab} panelId={contentPanelId}
               onValueChange={(tab) => requestDetailAction(() => onOpenDeckContent(contentDeckId, tab))} />
           </div>
         </div>

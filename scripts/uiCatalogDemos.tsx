@@ -100,6 +100,11 @@ import { NoteCardContent } from "../src/ui/NoteCardContent.tsx";
 import { generatedSummaryHtml, prepareSummaryMaterial, type SummaryGenerationInput, type SummaryGenerationResult } from "../src/aiLearningSummary.ts";
 import { AI_LEARNING_SUMMARY_PROMPT_VERSION, type AiLearningSummarySuccess } from "../src/aiLearningSummaryContract.ts";
 import { DeckSummariesPanel } from "../src/screens/DeckSummariesPanel.tsx";
+import type { QuizPanelServices } from "../src/screens/DeckQuizPanel.tsx";
+import { QuizPanelContext } from "../src/screens/quizPanelContext.ts";
+import { ChoiceOptionList } from "../src/ui/ChoiceOptionList.tsx";
+import { CreationMenu, CreationMenuAction, CreationMenuForm } from "../src/ui/CreationMenu.tsx";
+import { QUIZ_CATALOG_STATES, askQuizHelpDemo, catalogQuizzes, generateQuizDemo, quizCatalogStart, type QuizCatalogState } from "./uiCatalogQuiz.ts";
 import { DeckMindMapsPanel } from "../src/screens/DeckMindMapsPanel.tsx";
 import { createLearningSummary, createSummarySettings, loadLearningSummaries, saveLearningSummary } from "../src/learningSummaries.ts";
 
@@ -686,7 +691,7 @@ const DEMO_TEXT_IMPORT = {
   }),
 };
 
-const PRODUCT_VIEWS = ["auth", "conflict", "statistics", "simulator", "help", "dashboard", "dashboard-empty", "learn", "exams", "creation", "ai-source", "manual", "import", "decks", "deck-content", "deck-settings", "study", "study-variant", "study-variant-image"];
+const PRODUCT_VIEWS = ["auth", "conflict", "statistics", "simulator", "help", "dashboard", "dashboard-empty", "learn", "exams", "creation", "ai-source", "manual", "import", "decks", "deck-content", "quiz", "deck-settings", "study", "study-variant", "study-variant-image"];
 
 /**
  * Browser-test harness outside the catalog: `?preview=cards` shows every renderer case; any other value lists the real
@@ -695,6 +700,33 @@ const PRODUCT_VIEWS = ["auth", "conflict", "statistics", "simulator", "help", "d
 export function CatalogPreview({ kind }: { kind: string }) {
   if (kind === "cards") return <div id="note-content" className="catalog-preview catalog-demo-grid">{noteDemoGraphs.map((item) => <NoteDemo key={item.id} item={item} />)}</div>;
   return <div id="screens" className="catalog-preview catalog-demo-grid">{PRODUCT_VIEWS.map((id) => <ProductViewsDemo key={id} kind={id} />)}<ExamTopicOrderDemo /><SummaryContentDemo /><MindMapContentDemo /></div>;
+}
+
+/** `?preview=quiz&state=<state>` opens the quiz tab in that state, so each one can be captured without clicks. */
+function quizCatalogState(): QuizCatalogState {
+  const state = typeof window === "undefined" ? null : new URLSearchParams(window.location.search).get("state");
+  return QUIZ_CATALOG_STATES.find((item) => item === state) ?? "liste";
+}
+
+/**
+ * States that live inside a component reach it like a learner would: by one click. A state opened from the address
+ * shows no keyboard focus frame, as after a click with the mouse.
+ */
+function useCatalogQuizState(active: boolean, clickSelector: string | null, onClicked?: () => void) {
+  React.useEffect(() => {
+    if (!active) return;
+    const blur = () => window.setTimeout(() => { if (document.activeElement instanceof HTMLElement) document.activeElement.blur(); }, 150);
+    let settled = blur();
+    const timer = clickSelector ? window.setInterval(() => {
+      const target = document.querySelector<HTMLButtonElement>(clickSelector);
+      if (!target || target.disabled) return;
+      window.clearInterval(timer);
+      target.click();
+      onClicked?.();
+      settled = blur();
+    }, 100) : undefined;
+    return () => { window.clearInterval(timer); window.clearTimeout(settled); };
+  }, [active, clickSelector]);
 }
 
 function ProductViewsDemo({ kind }: { kind: string }) {
@@ -748,7 +780,12 @@ function ProductViewsDemo({ kind }: { kind: string }) {
   const [catalogCardDecks, setCatalogCardDecks] = useState(substackDemoDecks);
   const [cardEditorTab, setCardEditorTab] = useState<CardEditorTab>("general");
   const [savedSearches, setSavedSearches] = useState<SavedCardSearch[]>([{ id: "demo-search", name: "Heute nicht gewusst", query: "rated:1:1" }]);
-  const [contentTab, setContentTab] = useState<DeckContentTab>("children");
+  const [quizState] = useState(quizCatalogState);
+  const [contentTab, setContentTab] = useState<DeckContentTab>(kind !== "quiz" ? "children" : quizState === "menue-zusammenfassung" ? "summary" : "quiz");
+  const [summaryMenuOpen, setSummaryMenuOpen] = useState(false);
+  useCatalogQuizState(kind === "quiz" && typeof window !== "undefined" && new URLSearchParams(window.location.search).has("state"),
+    quizState === "menue-zusammenfassung" ? ".core-summary-panel .core-creation-menu-action" : quizState === "lauf-hilfe" ? '[data-testid="study-ai-help"] form button' : null,
+    () => { if (quizState === "menue-zusammenfassung") setSummaryMenuOpen(true); });
   const [helpTopic, setHelpTopic] = useState<HelpTopic | null>(null);
   // Pages read the sample cards through the ref, so a flag, mark or suspension survives a reload.
   const catalogCardDecksRef = React.useRef(catalogCardDecks);
@@ -781,6 +818,13 @@ function ProductViewsDemo({ kind }: { kind: string }) {
     return graph;
   }, [catalogStore]);
   const noop = React.useCallback(() => undefined, []);
+  const quizServices = React.useMemo<QuizPanelServices>(() => ({
+    quizzes: quizState === "leer" ? [] : catalogQuizzes,
+    start: quizCatalogStart(quizState),
+    onGenerateQuiz: (input, signal, onProgress) => generateQuizDemo(input, signal, onProgress, quizState === "erstellung"),
+    onAskHelp: askQuizHelpDemo,
+    onSaveCard: async () => ({ deck: sampleDecks[0], cardIds: [crypto.randomUUID()] }),
+  }), [quizState]);
   const askCatalogCardHelp = React.useCallback((_request: unknown, signal: AbortSignal) => new Promise<string>((resolve, reject) => {
     const timer = setTimeout(() => resolve("Die Karte fragt nach dem Kern des Begriffs.\n\n- Merke dir die Antwort als Ursache, nicht als Definition.\n- Verknüpfe sie mit einem Beispiel aus deinem Alltag."), 800);
     signal.addEventListener("abort", () => { clearTimeout(timer); reject(new Error("abgebrochen")); });
@@ -820,13 +864,14 @@ function ProductViewsDemo({ kind }: { kind: string }) {
     ["import", "ApkgImportPanel und TextImportPanel · ein Dateifeld für Anki-Pakete, Text und CSV", "Import"],
     ["decks", "DecksScreen · Tabelle als ein Blatt, Karteneditor als Dialog", "Kartenverwaltung"],
     ["deck-content", "DecksScreen · Titel und Karten lernen auf einer Linie, Unterstreichungs-Reiter", "Stapelinhalte"],
+    ["quiz", "DeckQuizPanel · Prototyp: Erstellmenü, Liste, Ablauf, Auswertung und Speichern als Karten", "Quiz"],
     ["settings", "SettingsDialog · alle Bereiche der Einstellungen", "Einstellungen"],
     ["deck-settings", "DeckSettingsScreen · Darstellung und Lernwerte", "Stapeleinstellungen"],
     ["study", "StudyMode · Frage, Antwort und Bewertungen", "Lernsitzung"],
     ["study-variant", "StudyMode · Kartenvariante mit einklappbarer Originalkarte", "Lernsitzung mit Variante"],
     ["study-variant-image", "StudyMode · Kartenvariante mit Bild aus dem Zusatzfeld", "Lernsitzung mit Bildvariante"],
   );
-  return <>{views.filter(([id]) => id === kind).map(([id, title, label]) => <Demo key={id} title={title}><ActionButton variant="secondary" onClick={() => { conflicts.current = [conflict]; setMessage(""); setView(id); }}>{label} öffnen</ActionButton></Demo>)}{view && <div className="catalog-product-preview core-screen-region" onKeyDown={(event) => { if (event.key === "Escape" && !event.defaultPrevented) setView(""); }}><div className="catalog-product-bar"><p className="core-caption">Echte Produktansicht · lokale Demodaten</p><ActionButton variant="secondary" autoFocus onClick={() => setView("")}>Produktansicht schließen</ActionButton></div>
+  return <>{views.filter(([id]) => id === kind).map(([id, title, label]) => <Demo key={id} title={title}><ActionButton variant="secondary" onClick={() => { conflicts.current = [conflict]; setMessage(""); setView(id); }}>{label} öffnen</ActionButton></Demo>)}{view && <div className={`catalog-product-preview core-screen-region${view === "quiz" ? " catalog-product-flow" : ""}`} onKeyDown={(event) => { if (event.key === "Escape" && !event.defaultPrevented) setView(""); }}><div className="catalog-product-bar"><p className="core-caption">Echte Produktansicht · lokale Demodaten</p><ActionButton variant="secondary" autoFocus onClick={() => setView("")}>Produktansicht schließen</ActionButton></div>
     <section className="min-w-0 overflow-x-clip px-2.5 pb-32 pt-8 sm:px-4 lg:px-6"><WorkspaceStoreContext.Provider value={catalogStore}>
     {view === "auth" && <AuthGateScreen message={message} onSignIn={() => setMessage("Demo-Anmeldung geprüft.")} onSignUp={() => setMessage("Demo-Registrierung geprüft.")} onResetPassword={() => setMessage("Demo-Reset angefordert.")} />}
     {view === "conflict" && <SyncConflictPanel onListConflicts={listConflicts} onResolveConflict={resolveConflict} />}
@@ -839,7 +884,7 @@ function ProductViewsDemo({ kind }: { kind: string }) {
     {view === "learn" && <LearnScreen decks={sampleDecks} now={selection.now} onStartDeck={noop} onPracticeDeck={setDemoPracticeDeck} onCreateDeck={() => deck} focusedDeckId={focusedDemoDeckId} initialParentDeckId="" onDeckCreationHandled={noop} onFocusDeck={setFocusedDemoDeckId} onOpenCardCreation={noop} onOpenDecks={(id) => { setFocusedDemoDeckId(id ?? null); setView("decks"); }} onOpenDeckContent={(id) => { setFocusedDemoDeckId(id); setContentTab("children"); setSelectedCardId(null); setView("deck-content"); }} onOpenCardSettings={noop} onOpenDeckSettings={noop} onSetDeckCoreMode={noop} onMoveDeck={() => null} collapsedDeckIds={collapsedDemoDeckIds} onSetDeckExpanded={(id, expanded) => setCollapsedDemoDeckIds((current) => expanded ? current.filter((value) => !(typeof id === "string" ? [id] : id).includes(value)) : [...new Set([...current, ...(typeof id === "string" ? [id] : id)])])} />}
     {demoPracticeDeck ? <HitStudyFlow title="Alle Karten frei üben" practiceDeckName={demoPracticeDeck.name} loadCardIds={loadDemoPracticeIds} loadPracticeCards={async (ids) => sampleDecks.flatMap((candidate) => candidate.cards).filter((card) => ids.includes(card.id)).map((card) => ({ card, note: sampleNotesById.get(card.noteId)! }))} mediaStore={null} onClose={() => setDemoPracticeDeck(null)} /> : null}
     {["creation", "manual", "import", "ai-source"].includes(view) && <CreationScreen decks={sampleDecks} importActions={DEMO_IMPORT_ACTIONS} {...DEMO_TEXT_IMPORT} initialMethod={view === "manual" ? "manual" : view === "import" ? "import" : view === "ai-source" ? "ai-source" : ""} onMethodChange={(method) => setView(method || "creation")} onRequestSourceCards={requestSourceCardsDemo} onSaveManualNote={view === "ai-source" ? async () => ({ deck: sampleDecks[0], cardIds: ["catalog-ai-source-card"] }) : undefined} />}
-    {["decks", "deck-content"].includes(view) && <DecksScreen learningContentAccount={{ userId: "catalog-summaries", cloud: null }} onGenerateSummary={generateSummaryDemo} contentDeckId={view === "deck-content" ? focusedDemoDeckId ?? deck.id : null} contentTab={contentTab} onOpenDeckContent={(id, tab) => { setFocusedDemoDeckId(id); setContentTab(tab ?? "children"); setSelectedCardId(null); }} decks={catalogCardDecks} now={selection.now} mediaStore={null} onStartDeck={(selectedDeck) => { setDemoStudyDeck(selectedDeck); setView("study"); }} onSetDeckCoreMode={noop} onRequestCardPage={requestCardPage} onSaveNote={async () => null} onSetCardStudyState={setCatalogCardStudyState} onDuplicateNote={async () => null} onRunCardBatch={async (cardIds) => ({ changedCount: cardIds.length, undo: async () => ({ restoredCount: cardIds.length, skippedCount: 0 }) })} onListHitCardIds={async () => substackDemoDecks.flatMap((item) => item.cards.map((card) => card.id))} onListSurplusDuplicateIds={async ({ deckIds }) => surplusDuplicateCardIds(catalogCardDecksRef.current.filter((candidate) => deckIds.includes(candidate.id)).flatMap((candidate) => candidate.cards).map((card) => catalogEntryFromCard(card, sampleNotesById.get(card.noteId) ?? null)))} onStudyHits={async () => undefined} onLoadPracticeCards={async () => []} onGenerateCardVariants={noop} onPrepareTextReplace={async () => ({ fieldNames: ["Vorderseite", "Rückseite"], preview: (edit) => ({ changedCount: edit.find ? 2 : 0, skippedCount: 0, examples: edit.find ? [{ noteId: "catalog-replace", place: "Vorderseite", before: `Was ist die Hauptstadt von ${edit.find}?`, after: `Was ist die Hauptstadt von ${edit.replace}?` }] : [] }) })} onGenerateVariant={async () => { throw new Error("Keine KI-Anfrage in der Vorschau."); }} onUpdateVariant={async () => undefined} selectedDeckId={view === "deck-content" ? focusedDemoDeckId ?? deck.id : selectedCardId ? deck.id : null} selectedCardId={selectedCardId} cardEditorTab={cardEditorTab} onCardEditorTabChange={setCardEditorTab} cardEditor={catalogCardEditorServices} onSelectDeck={(_id, cardId, tab) => { setSelectedCardId(cardId ?? null); setCardEditorTab(tab ?? "general"); }} onOpenLearn={noop} onOpenCardSettings={noop} onMoveDeck={() => null} onOpenDeckSettings={noop} onDraftStateChange={noop} savedSearches={savedSearches} onSavedSearchesChange={setSavedSearches} />}
+    {["decks", "deck-content", "quiz"].includes(view) && <div data-quiz-state={view === "quiz" && summaryMenuOpen ? "menue-zusammenfassung" : undefined}><QuizPanelContext.Provider value={view === "quiz" ? quizServices : null}><DecksScreen learningContentAccount={{ userId: "catalog-summaries", cloud: null }} onGenerateSummary={generateSummaryDemo} contentDeckId={view !== "decks" ? focusedDemoDeckId ?? deck.id : null} contentTab={contentTab} onOpenDeckContent={(id, tab) => { setFocusedDemoDeckId(id); setContentTab(tab ?? "children"); setSelectedCardId(null); }} decks={catalogCardDecks} now={selection.now} mediaStore={null} onStartDeck={(selectedDeck) => { setDemoStudyDeck(selectedDeck); setView("study"); }} onSetDeckCoreMode={noop} onRequestCardPage={requestCardPage} onSaveNote={async () => null} onSetCardStudyState={setCatalogCardStudyState} onDuplicateNote={async () => null} onRunCardBatch={async (cardIds) => ({ changedCount: cardIds.length, undo: async () => ({ restoredCount: cardIds.length, skippedCount: 0 }) })} onListHitCardIds={async () => substackDemoDecks.flatMap((item) => item.cards.map((card) => card.id))} onListSurplusDuplicateIds={async ({ deckIds }) => surplusDuplicateCardIds(catalogCardDecksRef.current.filter((candidate) => deckIds.includes(candidate.id)).flatMap((candidate) => candidate.cards).map((card) => catalogEntryFromCard(card, sampleNotesById.get(card.noteId) ?? null)))} onStudyHits={async () => undefined} onLoadPracticeCards={async () => []} onGenerateCardVariants={noop} onPrepareTextReplace={async () => ({ fieldNames: ["Vorderseite", "Rückseite"], preview: (edit) => ({ changedCount: edit.find ? 2 : 0, skippedCount: 0, examples: edit.find ? [{ noteId: "catalog-replace", place: "Vorderseite", before: `Was ist die Hauptstadt von ${edit.find}?`, after: `Was ist die Hauptstadt von ${edit.replace}?` }] : [] }) })} onGenerateVariant={async () => { throw new Error("Keine KI-Anfrage in der Vorschau."); }} onUpdateVariant={async () => undefined} selectedDeckId={view !== "decks" ? focusedDemoDeckId ?? deck.id : selectedCardId ? deck.id : null} selectedCardId={selectedCardId} cardEditorTab={cardEditorTab} onCardEditorTabChange={setCardEditorTab} cardEditor={catalogCardEditorServices} onSelectDeck={(_id, cardId, tab) => { setSelectedCardId(cardId ?? null); setCardEditorTab(tab ?? "general"); }} onOpenLearn={noop} onOpenCardSettings={noop} onMoveDeck={() => null} onOpenDeckSettings={noop} onDraftStateChange={noop} savedSearches={savedSearches} onSavedSearchesChange={setSavedSearches} /></QuizPanelContext.Provider></div>}
     {view === "settings" && <SettingsDialog section={settingsSection} onSelectSection={setSettingsSection} onClose={() => setView("")} footer={settingsFooter}>{settingsSectionGroup(settingsSection) === "general"
       ? <SettingsScreen section={settingsContentSection(settingsSection) as GeneralSettingsSection} focusConflicts={settingsSection === "konflikte"} profile={workspace.profile} onSaveSettings={() => workspace.profile} onDraftStateChange={setSettingsGuard} onSyncNow={async () => undefined} onListConflicts={async () => []} onResolveConflict={async () => undefined} onSignOut={async () => undefined} onNavigate={navigate} />
       : <GlobalCardSettingsScreen section={settingsContentSection(settingsSection) as LearningSettingsSection} decks={sampleDecks} onOpenDeckSettings={(deckId) => { setSettingsDeckId(deckId); setDeckSettingsSection("start"); setView("deck-settings"); }} timeZone="Europe/Berlin" globalSchedulerPreferences={getGlobalSchedulerPreferences(workspace.profile)} flagNames={workspace.profile.uiPreferences.flagNames} learningProfiles={settingsProfiles} onSaveLearningProfiles={setSettingsProfiles} onSaveSettings={() => workspace.profile} onDraftStateChange={setSettingsGuard} onNavigate={navigate} simulationOffsetMinutes={3 * 24 * 60} pomodoroTimer={dashboardTimer} onStartPomodoro={(minutes) => setDashboardTimer(createPomodoroTimerFromSeconds(Math.round(minutes * 60)))} />}</SettingsDialog>}
@@ -873,6 +918,41 @@ function IconRolesDemo() {
   return <Demo title="Aktionen und ihre Icons"><ul className="catalog-icon-roles">{ICON_ROLES.map(([Icon, label]) => <li key={label}><span className="grid size-control place-items-center rounded-control bg-core-surface-muted text-core-action"><Icon size={18} aria-hidden="true" /></span>{label}</li>)}</ul></Demo>;
 }
 
+function ChoiceOptionListDemo() {
+  const options = ["Porto", "Lissabon", "Coimbra", "Faro"].map((label, index) => ({ id: String(index), label, correct: index === 1 || index === 3 }));
+  const [answers, setAnswers] = useState<Record<string, boolean>>({ 1: true, 2: true });
+  const [revealed, setRevealed] = useState(false);
+  return <Demo title="ChoiceOptionList · Auswahl und Auflösung für Karte und Quiz">
+    <ChoiceOptionList mode="multiple" options={options} answers={answers} revealed={revealed} onAnswersChange={setAnswers} />
+    <div className="catalog-row mt-4"><ActionButton variant="secondary" onClick={() => setRevealed((current) => !current)}>{revealed ? "Auswahl ändern" : "Auflösen"}</ActionButton></div>
+  </Demo>;
+}
+
+function CreationMenuDemo() {
+  const [open, setOpen] = useState(true);
+  const [advanced, setAdvanced] = useState(false);
+  const [length, setLength] = useState("medium");
+  const [count, setCount] = useState(10);
+  const [examples, setExamples] = useState(true);
+  const [progress, setProgress] = useState<number | null>(null);
+  React.useEffect(() => {
+    if (progress === null) return;
+    const timer = window.setTimeout(() => setProgress(progress < 8 ? progress + 1 : null), 500);
+    return () => window.clearTimeout(timer);
+  }, [progress]);
+  return <Demo title="CreationMenu · Aktionsflächen, aufklappendes Formular, erweiterte Einstellungen und Wartezustand" wide>
+    <CreationMenu>
+      <CreationMenuForm icon={Sparkles} label="Mit KI erstellen" open={open} onOpenChange={setOpen} advancedOpen={advanced} onAdvancedOpenChange={setAdvanced} submitLabel="Erstellen" submitIcon={Sparkles} onSubmit={() => setProgress(0)}
+        wait={progress === null ? null : { message: `Teil ${Math.min(progress + 1, 8)} von 8 wird erstellt …`, progress: { done: progress, total: 8 }, onCancel: () => setProgress(null) }}
+        advanced={<CoreCheckbox className="core-creation-menu-wide" label="Beispiele aufnehmen" checked={examples} onCheckedChange={setExamples} />}>
+        <div className="grid min-w-0 gap-2"><span className="core-field-label">Länge</span><CoreSegmentedControl ariaLabel="Länge" options={[{ value: "short", label: "Kurz" }, { value: "medium", label: "Mittel" }, { value: "long", label: "Lang" }]} value={length} onValueChange={setLength} /></div>
+        <CoreSlider label="Anzahl" min={5} max={20} value={count} onValueChange={setCount} />
+      </CreationMenuForm>
+      <CreationMenuAction icon={PenLine} label="Selbst schreiben" onSelect={() => undefined} />
+    </CreationMenu>
+  </Demo>;
+}
+
 function OcclusionEditorDemo() {
   const [masks, setMasks] = useState<OcclusionMask[]>([
     { id: "mask-1", ordinal: 1, shape: { kind: "rect", left: 0.2, top: 0.22, width: 0.22, height: 0.28, angle: 0 }, alwaysOccluded: false },
@@ -898,13 +978,14 @@ export const DEMO_GROUPS = [
   { id: "dialogs", section: "primitive", title: "Dialoge", description: "Bestätigung, Dialograhmen, Speicherleiste, Kartenvorschau und Lerneinstellungen.", components: ["ActionDialog", "DialogFrame", "SettingsSaveBar", "CardPreviewDialog", "StudySettingsOverlay"], render: () => <><FeedbackDemo section="dialogs" /><StructureDemo section="dialogs" /><ContentDemo section="dialogs" /><LearningDemo section="dialogs" /></> },
   { id: "tags-flags", section: "primitive", title: "Tags und Flaggen", description: "Tag-Eingabe, Flaggenwähler, Flaggenmarke und Flaggen-Icon.", components: ["TagInput", "FlagPicker", "FlagDot", "FlagIcon"], render: TagsAndFlagsDemo },
   { id: "colors", section: "primitive", title: "Farbwahl", description: "Farbfeld oder Werkzeug, Farbkreis und Schnellwahl.", components: ["ColorPicker", "ColorSwatchButton", "ColorSwatchRow"], render: () => <ContentDemo section="colors" /> },
+  { id: "erstellmenue", section: "shared", title: "Erstellmenü", description: "Aktionsflächen mit aufklappendem Formular, erweiterten Einstellungen und Wartezustand; Zusammenfassung und Quiz teilen es.", components: ["CreationMenu", "CreationMenuAction", "CreationMenuForm"], wide: true, render: CreationMenuDemo },
   { id: "flaechen", section: "shared", title: "Flächen und leere Zustände", description: "Inhaltsflächen und leere Zustände.", components: ["SoftPanel", "EmptyState"], render: () => <FoundationsDemo section="surfaces" /> },
   { id: "struktur", section: "shared", title: "Abschnittskopf, Schritte und Reiter", description: "Kopf jeder Fläche, nummerierte Schritte und Unterstreichungs-Reiter, im Stapelkopf und im Karteneditor.", components: ["SectionHeader", "Steps", "CoreTabs", "CoreTabPanel"], wide: true, render: () => <StructureDemo section="struktur" /> },
   { id: "headings", section: "shared", title: "Seitenköpfe", description: "Seitentitel sowie Köpfe von Lernen und Kartenverwaltung.", components: ["PageHeader", "LearningAreaHeader"], render: () => <><FoundationsDemo section="headings" /><NavigationDemo section="headings" /></> },
   { id: "navigation", section: "shared", title: "Navigation und Einstellungsdialog", description: "Responsive Hauptnavigation, CoRe-Wortmarke und der gemeinsame Rahmen der Einstellungsdialoge.", components: ["AppNavigation", "CoreWordmark", "SettingsDialog"], render: () => <><NavigationDemo section="navigation" /><ProductViewsDemo kind="settings" /></> },
   { id: "stapel", section: "shared", title: "Stapelbaum, Menü, Identität und Kartentabelle", description: "Stapelbaum mit seinen Zeilen, Unterstapel, Optionsmenü, Icon und Farbe eines Stapels sowie die Kartentabelle der Kartenverwaltung.", components: ["DeckOptionsMenu", "DeckTree", "DeckAppearanceIcon"], wide: true, render: () => <><DecksDemo section="stapel" /><FoundationsDemo section="symbols" /><ProductViewsDemo kind="decks" /></> },
   { id: "charts", section: "fachmuster", title: "Kennzahlen und Heatmap", description: "Einzelne Kennzahl, Kennzahlzeile und Lern-Heatmap.", components: ["StatTile", "MetricRow", "StudyHeatmap"], wide: true, render: () => <><FoundationsDemo section="charts" /><DecksDemo section="charts" /></> },
-  { id: "inhalt", section: "karten", title: "Kartendarstellung", description: "Kartenfläche der Verwaltungsvorschau mit Vorder- und Rückseite.", components: ["CardPresentationSurface", "NoteCardContent"], wide: true, render: () => <ContentDemo section="inhalt" /> },
+  { id: "inhalt", section: "karten", title: "Kartendarstellung", description: "Kartenfläche der Verwaltungsvorschau mit Vorder- und Rückseite.", components: ["CardPresentationSurface", "NoteCardContent", "ChoiceOptionList"], wide: true, render: () => <><ContentDemo section="inhalt" /><ChoiceOptionListDemo /></> },
   { id: "editor", section: "fachmuster", title: "Texteditor und Inhaltsbausteine", description: "Arbeitsleiste, Rich-Text-Toolbar und Inhaltsbausteine.", components: ["EditorToolbar", "EditorToolbarContext", "RichTextEditor", "NoteBlockControls"], wide: true, render: () => <><EditorToolbarDemo /><ContentDemo section="editor" /><NoteBlocksDemo /></> },
   { id: "bildverdeckung-editor", section: "fachmuster", title: "Bildverdeckungs-Editor", description: "Masken zeichnen, gruppieren und den Verdeckungsmodus wählen.", components: ["OcclusionEditor"], wide: true, render: OcclusionEditorDemo },
   { id: "media", section: "fachmuster", title: "PDF-Vorschau", description: "PDF-Vorschau mit Textauswahl.", components: ["PdfDocumentViewer"], wide: true, render: () => <ContentDemo section="media" /> },

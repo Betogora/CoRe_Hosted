@@ -15,7 +15,7 @@ function ClozeText({ text }: { text: string }) {
   return <>{parts.map((part, index) => index % 2 ? <span key={index} className="rounded-marker bg-core-accent-soft px-1 text-core-text">{part}</span> : part)}</>;
 }
 
-function Proposal({ proposal, disabled, onEdit, onRemove }: { proposal: ProposalDraft; disabled: boolean; onEdit: () => void; onRemove: () => void }) {
+function Proposal({ proposal, plain, disabled, onEdit, onRemove }: { proposal: ProposalDraft; plain: boolean; disabled: boolean; onEdit: () => void; onRemove: () => void }) {
   const { content } = proposal;
   const text = (role: string) => content.fields.filter((field) => field.role === role).map((field) => ({ name: field.name, text: plainLines(field.html) })).filter((field) => field.text);
   const question = text("prompt").map((field) => field.text).join("\n");
@@ -23,7 +23,7 @@ function Proposal({ proposal, disabled, onEdit, onRemove }: { proposal: Proposal
   return (
     <li className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] gap-3 border-b border-core-border px-4 py-3 last:border-0" data-testid="ai-source-proposal">
       <div className="grid min-w-0 gap-2">
-        <p className="core-caption text-core-muted [overflow-wrap:anywhere]">{noteKindLabel(proposal)}{source ? ` · ${source}` : ""}</p>
+        {plain ? null : <p className="core-caption text-core-muted [overflow-wrap:anywhere]">{noteKindLabel(proposal)}{source ? ` · ${source}` : ""}</p>}
         <p className="whitespace-pre-wrap [overflow-wrap:anywhere] core-body font-semibold text-core-text">{content.interaction.kind === "cloze" ? <ClozeText text={question} /> : question}</p>
         {text("answer").map((field) => <p key={field.name} className="whitespace-pre-wrap [overflow-wrap:anywhere] core-body text-core-text">{field.text}</p>)}
         {content.interaction.kind === "choice" ? (
@@ -38,7 +38,7 @@ function Proposal({ proposal, disabled, onEdit, onRemove }: { proposal: Proposal
             ))}
           </ul>
         ) : null}
-        {text("extra").map((field) => <p key={field.name} className="whitespace-pre-wrap [overflow-wrap:anywhere] core-body text-core-secondary">{field.text}</p>)}
+        {plain ? null : text("extra").map((field) => <p key={field.name} className="whitespace-pre-wrap [overflow-wrap:anywhere] core-body text-core-secondary">{field.text}</p>)}
       </div>
       <div className="flex items-start gap-1">
         <IconButton type="button" variant="ghost" icon={Pencil} label="Vorschlag bearbeiten" disabled={disabled} onClick={onEdit} />
@@ -48,10 +48,12 @@ function Proposal({ proposal, disabled, onEdit, onRemove }: { proposal: Proposal
   );
 }
 
-export function AiSourceProposalList({ result, notices, proposals, saving, saveError, headingRef, onEdit, onRemove, onAdopt, onDiscard }: {
+export function AiSourceProposalList({ result, notices, proposals, plain = false, saving, saveError, headingRef, onEdit, onRemove, onAdopt, onDiscard }: {
   result: AiSourceCardsRunResult;
   notices: string[];
   proposals: ProposalDraft[];
+  /** Shows question and answers only; kind, source and extra stay in the card. */
+  plain?: boolean;
   saving: boolean;
   saveError: string;
   headingRef: Ref<HTMLHeadingElement>;
@@ -76,7 +78,7 @@ export function AiSourceProposalList({ result, notices, proposals, saving, saveE
       ) : null}
       {count ? (
         <ol className="grid min-w-0 overflow-hidden rounded-panel border border-core-border">
-          {proposals.map((proposal) => <Proposal key={proposal.id} proposal={proposal} disabled={saving} onEdit={() => onEdit(proposal.id)} onRemove={() => onRemove(proposal.id)} />)}
+          {proposals.map((proposal) => <Proposal key={proposal.id} proposal={proposal} plain={plain} disabled={saving} onEdit={() => onEdit(proposal.id)} onRemove={() => onRemove(proposal.id)} />)}
         </ol>
       ) : null}
       {saveError ? <StatusMessage tone="error" announce="assertive">{saveError}</StatusMessage> : null}
