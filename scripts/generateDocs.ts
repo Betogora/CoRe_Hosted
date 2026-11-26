@@ -50,7 +50,7 @@ export function docLimitFailures(read: (file: string) => string, limits: readonl
 
 export function codeFootprint() {
   const groups = [
-    { label: "Heute", files: ["DashboardScreen"], color: "var(--core-accent)" },
+    { label: "Heute", files: ["DashboardScreen"], color: "var(--core-learning-status-learned)" },
     { label: "Lernen & Karten", files: ["LearnScreen", "LearningAreaHeader", "DecksScreen", "StudyMode", "DeckSettingsScreen", "GlobalCardSettingsScreen", "SimulatorScreen"], color: "var(--core-learning-status-new)" },
     { label: "Erstellen & Import", files: ["CreationScreen", "CreationHome", "ManualCreationPanel", "ApkgImportPanel", "TextImportPanel", "AiSourceCreationPanel"], color: "var(--core-learning-status-in-progress)" },
     { label: "Prüfungen", files: ["ExamPlanningScreen", "ExamPlanEditor"], color: "var(--core-action-primary)" },
