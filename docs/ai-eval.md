@@ -2,7 +2,7 @@
 
 Stand der per Hillclimb gemessenen KI-Prompts. Grundsätze stehen in
 [ADR-049](decisions.md#adr-049--ki-änderungen-nur-mit-eval-nachweis), offene
-Arbeit unter [Später › KI](todo.md#ki). Bestand, Verlauf und
+Arbeit unter [P5-Nachschlag](todo.md#p5-nachschlag-ki-hillclimb). Bestand, Verlauf und
 Bilanz entstehen beim Erzeugen aus dem Ledger; die Prompttexte stehen nur im
 Code.
 

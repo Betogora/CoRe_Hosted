@@ -81,9 +81,9 @@ test("Verlauf zeichnet je Lauf einen Punkt, hält den Bestand als Linie und list
   assert.match(html, /<td>−2,0 Pkt\.<\/td><td>±4,0 Pkt\.<\/td><td>\+6 \/ −2<\/td>/);
   assert.match(html, /<td>\+5,0 Pkt\.<\/td>/);
   assert.equal([...html.matchAll(/<h3 id="ai-eval--verlauf-/g)].length, 1);
-  const restart = { ...run, run: "neuer-fallsatz", cases: 80, main: 0.7, low: 0.6, high: 0.8 };
-  const rows = progressSections(parseLedger({ runs: [run, round("accepted", "card-variant-v6", 0.95), restart, { ...round("accepted", "card-variant-v7", 0.76), cases: 80 }], calibrations: [] })).match(/<tr><th scope="row">\d+<\/th>.*?<\/tr>/g)!;
-  assert.deepEqual(rows.map((row) => row.match(/<td>([^<]*Pkt\.)<\/td>/)![1]), ["±0,0 Pkt.", "+5,0 Pkt.", "±0,0 Pkt.", "+6,0 Pkt."], "Gesamtabstand zum Start des jeweiligen Fallsatzes");
+  const restart = { ...run, run: "neue-baseline", main: 0.7, low: 0.6, high: 0.8 };
+  const rows = progressSections(parseLedger({ runs: [run, round("accepted", "card-variant-v6", 0.95), restart, round("accepted", "card-variant-v7", 0.76)], calibrations: [] })).match(/<tr><th scope="row">\d+<\/th>.*?<\/tr>/g)!;
+  assert.deepEqual(rows.map((row) => row.match(/<td>([^<]*Pkt\.)<\/td>/)![1]), ["±0,0 Pkt.", "+5,0 Pkt.", "±0,0 Pkt.", "+6,0 Pkt."], "jede Baseline setzt neu an, auch bei gleicher Fallzahl");
 });
 
 test("Die Bilanz summiert Läufe, Antworten, Kosten und Richteraufwand je Anfragetyp", () => {

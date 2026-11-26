@@ -1,13 +1,14 @@
 # CoRe TODO
 
-Stand: 2026-11-24
+Stand: 2026-11-26
 
 Nur offene Arbeit. Ist-Stand in [`status.md`](status.md), Entscheidungen in
 [`decisions.md`](decisions.md), erledigte Arbeit in [`history.md`](history.md).
 
 Reihenfolge = Priorität. Offene Nachweise brauchen keinen Code und
 laufen unabhängig davon; die Release-Voraussetzungen sind vor dem ersten
-externen Release fällig. „Später“ ist geparkt.
+externen Release fällig. Der P5-Nachschlag ist der Rest des KI-Hillclimbs.
+„Später“ ist geparkt.
 
 ## Offene Nachweise
 
@@ -48,9 +49,15 @@ neuen Code.
 ## Vor dem ersten externen Release
 
 - [ ] **KI-Kontingent pro Nutzer:** Alle Nutzer teilen das Ausgabenlimit des
-      OpenRouter-Schlüssels; ein Tageslimit je Account (atomare Zählung in
-      Supabase) verhindert, dass ein Nutzer es allein aufbraucht. Braucht eine
-      Ergänzung zu ADR-011.
+      OpenRouter-Schlüssels; ein Limit je Account (atomare Zählung in
+      Supabase) verhindert, dass ein Nutzer es allein aufbraucht. Vorschlag:
+      ein Budget in Kosten statt in Anfragen, etwa je Monat. KI hilft,
+      Varianten und Zusammenfassung lesen die Kosten je Anfrage schon
+      (`costUsd`), Karten aus einer Quelle noch nicht. Dringender seit
+      Reasoning `medium` und der schrittweisen Neuerzeugung der Varianten
+      (`card-variant-v6`); Richtwert: eine Variante für jede von 50.000 Karten
+      kostet rund 7–8 $. Braucht eine Ergänzung zu ADR-011; Bezahlstufen
+      bleiben unter „Später“.
 - [ ] **Magic Link:** Gebaut, aber per Flag aus. Braucht einen eigenen
       SMTP-Server in Supabase, freigegebene Redirect-Adressen (Produktion,
       Preview), eine deutsche Mailvorlage und zusätzlich einen 6-stelligen
@@ -63,20 +70,42 @@ neuen Code.
       und den Zielwert festlegen (Vorschlag: höchstens 2 Minuten). Nachweis:
       Messung mit 50.000 Karten vom Login bis zum vollständigen Katalog.
 
+## P5-Nachschlag: KI-Hillclimb
+
+P5 ist am 2026-11-25 abgeschlossen; Stand je Route und Verlauf auf der Seite
+[KI-Eval](ai-eval.md), Regel in ADR-049. Unter Ziel liegen am Rückhalt
+Frage/Antwort (85,4 %, Ziel 95 %) und Karten aus einer Quelle (86,8 %, Ziel
+90 %).
+
+- [ ] **Lange Quellen über die ganze Länge:** Ein Auftrag ergibt höchstens
+      100 Karten, die Abschnitte (bis 6.000 Zeichen) laufen der Reihe nach.
+      Bei Normal (3,5–5 Karten je 1.000 Zeichen) ist nach etwa 20.000 Zeichen
+      (≈ 7 Seiten) Schluss, der Rest wird nicht abgefragt. Vorschlag: ein
+      günstiger Gliederungsaufruf vorab, der die 100 Karten auf alle
+      Abschnitte verteilt; Alternative ist die ganze Quelle als Kontext.
+      Braucht eine Ergänzung von ADR-011 und eine eigene Hillclimb-Welle.
+      Nachweis: letzte belegte Stelle bei Quellen über 20.000 Zeichen nahe am
+      Ende, Hauptwert nicht schlechter. In derselben Welle: mehr Single Choice
+      (bei allen Formen 4 % statt jeder achten Karte) und keine Doppelfragen
+      aus Tabellenzeilen.
+- [ ] **Frage/Antwort unter Ziel:** Zuerst 20–30 Handurteile je Anfragetyp
+      gegen den Richter, um zu klären, ob er zu streng ist. Erst danach ein
+      Prüfaufruf für Varianten oder der Modellvergleich gegen
+      `openai/gpt-6-luna` (DeepSeek V4.1 Flash ohne Reasoning, Claude Haiku
+      5.5 `medium`).
+- [ ] **Kleinkram, zusammen mit dem KI-Kontingent:** Specs („nie im
+      Hintergrund“) und ADR-011 (vorausschauende Variante) abgleichen;
+      `non_zdr` aus dem Antwortschema der Zusammenfassung streichen, weil
+      keine Route es mehr liefert.
+
 ## Später
 
 ### KI
 
-- Weiterer KI-Hillclimb ([KI-Eval](ai-eval.md)): Frage/Antwort und Quelle liegen unter
-  Ziel. Hebel: Zerlegung der Quelle (ADR-011), Prüfaufruf für Varianten, mehr Single Choice,
-  keine Doppelfragen aus Tabellenzeilen, 20–30 Handurteile je Typ, Modellvergleich.
 - DOCX und PPTX als Quellen für Karten aus einer Quelle (ZIP und XML, ohne neue Abhängigkeit über
   `zipReader.ts` prüfen; Beleg je Folie oder Abschnitt).
 - Bilder als Quelle für Karten aus einer Quelle (teurer, eigener Hillclimb); braucht eine Ergänzung
   von ADR-011 (Agenda 3.3, 3.5).
-- Specs („nie im Hintergrund“) und ADR-011 (vorausschauende Variante)
-  abgleichen; das Antwortschema der Zusammenfassung lässt `non_zdr` zu, das
-  keine Route mehr liefert.
 - KI-Kontingente je Nutzer im Zusammenspiel mit Bezahlstufen bzw.
   Abonnements (Umfang je Stufe, Credits, Abrechnung nach Kosten).
 
