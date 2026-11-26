@@ -30,8 +30,9 @@ Solche Pakete beginnen deshalb mit ihrer Messung (Schritt 0).
 
 Für alle Pakete gilt:
 
-- Je Paket ein Pull Request von `origin/main`; die Beschreibung nennt die
-  Kennzahl vorher und nachher.
+- Alle Pakete entstehen auf einem gemeinsamen Branch, je Paket ein Commit,
+  dessen Nachricht die Kennzahl vorher und nachher nennt; gemergt wird
+  gemeinsam über einen Pull Request.
 - A2, A4 und A5 berühren Bootstrap, Preload, Sync, Service Worker oder
   Chunking: vor dem Merge `gh workflow run weekly-performance.yml --ref <branch>`.
 - **Hill-Climbing** (H1 bis H5): je Schritt genau eine Änderung, Kennzahl
@@ -99,7 +100,7 @@ der Entscheidung, A6, T4, A7 und T5 nach Bedarf.
   - Abschluss: harte Grenze in `scripts/verifyBuildChunks.ts` und
     `src/performanceGates.ts` von 300 auf rund 265 KiB senken und in
     `test-portfolio.md` nachziehen, damit der Gewinn hält.
-  - Nachweis: Tabelle je Schritt im Pull Request; größter Lazy-Graph bleibt
+  - Nachweis: Tabelle je Schritt im Commit; größter Lazy-Graph bleibt
     unter 175 KiB; `preloadedTabP75Ms` und `lazyTabP75Ms` grün.
 - [ ] **A3 – Revisionskaskade entkoppeln (H3):** `learningNow`
       (`src/useLearningClock.ts:24`) ist ein Millisekunden-Zeitstempel, der
@@ -256,8 +257,8 @@ der Entscheidung, A6, T4, A7 und T5 nach Bedarf.
   - Nachweis: Benchmark vorher und nachher, Feldwerte `core:answer_shown`
     und `core:rating_to_next_card` (ADR-050). „Der Rahmen lädt nichts nach“
     bleibt.
-- [ ] **A7 – Große Datenmengen und Editoren:** je Punkt ein eigener Pull
-      Request, jeder mit eigener Messung zuerst.
+- [ ] **A7 – Große Datenmengen und Editoren:** je Punkt ein eigener
+      Commit, jeder mit eigener Messung zuerst.
   - Upload nach großen Importen (ergänzt „Erste Synchronisation großer
     Konten“, die den Download betrifft): Der Start lädt die ganze Outbox
     per `getAll()`, der Flush sendet einen Batch mit `select *` zur
@@ -383,7 +384,7 @@ der Entscheidung, A6, T4, A7 und T5 nach Bedarf.
     (`first-learning:110`). Fünf Tests fahren einen vollen APKG-Import
     über die Oberfläche; `exam-planning` klickt den Assistenten viermal.
   - Nachweis: Sekunden je Spec vorher und nachher, je Änderung der
-    schützende Zwilling im Pull Request.
+    schützende Zwilling im Commit.
 - [ ] **T5 – Erst messen, dann entscheiden:**
   - Production-Build mit `vite preview` statt Dev-Server für die
     Supabase-Suite (rund 240 Kaltstarts laden 312 ungebündelte Module;
