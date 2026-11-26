@@ -33,81 +33,24 @@ Für alle Pakete gilt:
 - Der Branch berührt Service Worker und Chunking, später auch Bootstrap
   und Sync: vor dem gemeinsamen Merge
   `gh workflow run weekly-performance.yml --ref <branch>`.
-- **Hill-Climbing** (H2 bis H5): je Schritt genau eine Änderung, Kennzahl
+- **Hill-Climbing** (H2, H4, H5): je Schritt genau eine Änderung, Kennzahl
   vorher und nachher messen, nur übernehmen, wenn sie sinkt und alle Gates
   grün bleiben. Ende beim Ziel oder nach drei Schritten in Folge ohne
   nennenswerten Gewinn (unter 1 KiB, unter 2 % oder Zähler unverändert).
 - Unverändert lassen: `quality` (rund 50 s, Engpass Typecheck samt knip),
   Modultests (179 Dateien in 12 s) und RLS (21 Fälle in 6 s).
 
-Reihenfolge: A3 und A4; A5 nach
+Reihenfolge: A4; A5 nach
 der Entscheidung, A6, T4, A7 und T5 nach Bedarf.
 
 | Spur | Kennzahl | Schleife | Paket |
 | --- | --- | --- | --- |
 | H2 | Sekunden je Spec | `npm run test:e2e:catalog` lokal ohne Docker (rund 3 min); Supabase-Specs über die Artefakte `*-e2e-timings` aus CI, danach `SUPABASE_SHARDS` nachziehen | T4 |
-| H3 | Rechenläufe und Renders je Revision | Zähler als Modultest | A3 |
 | H4 | Requests je Bewertung und je Leerlauf-Sync | Zähler gegen `tests/support/fakeLearningCloud.ts` | A4 |
 | H5 | `srcdoc`-Bytes und Millisekunden je Kartenbundle | Mikro-Benchmark, fehlt noch | A6 |
 
 ### App
 
-- [ ] **A3 – Revisionskaskade entkoppeln (H3):** `learningNow`
-      (`src/useLearningClock.ts:24`) ist ein Millisekunden-Zeitstempel, der
-      bei jeder Workspace-Revision neu entsteht, also bei jedem lokalen
-      Schreiben und jedem Sync mit Inhalt, und er dient als Memo- und
-      Effekt-Schlüssel.
-  - Schritt 0: Zähler als Modultests für Prognoseläufe je Haken in der
-    Tagescheckliste (Ziel 0), Diagramm-Commits je Revision (Ziel höchstens
-    1), `DeckTreeRow`-Renders je Revision ohne Stapeländerung (Ziel 0) und
-    Renders des aktiven Screens je Importschritt (Ziel 0).
-  - Verdrahtungen zuerst, weil der Stapelbaum sie braucht:
-    `DecksScreenWiring.tsx:11`, `LearnScreenWiring.tsx:9`,
-    `DashboardScreenWiring.tsx:10`, `ExamPlanningScreenWiring.tsx:7` und
-    `GlobalCardSettingsScreenWiring.tsx:8` wählen `snapshot.state`. Weil
-    `getShellState()` jedes Deck klont (`src/indexedDbCoreRepository.ts:375`),
-    bekommt `state.decks` je Revision eine neue Identität. Getrennt
-    `state?.decks` und die Profilteile wählen, wie es Statistik und
-    Erstellung schon tun.
-  - Prüfungsprognose: Der Schlüssel in `src/screens/useExamForecast.ts:40`
-    enthält `now`. Ein Haken in der Checkliste löst so zwei volle Läufe von
-    `createExamPortfolioForecast` aus (Budget 1 s für 7.000 Karten), obwohl
-    der Kommentar in Zeile 38 das Gegenteil will. Schlüssel auf Lerntag
-    plus grobes Zeitfenster stellen, `now` erst beim Rechnen lesen und
-    `clock.globalSchedulerPreferences` durchreichen, statt sie je Render
-    neu zu normalisieren (`ExamDashboardWidget.tsx:36-72`,
-    `ExamPlanningScreen.tsx:111,125`). Tageswechsel und „Plan neu
-    berechnen“ müssen weiter auslösen; `npm run benchmark:exams` bleibt
-    grün.
-  - Statistik: `StatisticsScreenWiring.tsx:11-17` fragt je Revision neu ab
-    (lokale Projektion, RPC `get_account_statistics`, Cache), und jede
-    Abfrage rendert alle Diagramme zweimal
-    (`StatisticsScreen.tsx:306-479,641-653`, kein `memo`). Diagramme mit
-    `React.memo`, Hintergrundauffrischung ohne Ladezustand, kein
-    State-Wechsel bei inhaltsgleicher Projektion, Schlüssel auf Lerntag
-    plus echten Datenanlass. Neue Bewertungen müssen weiter erscheinen.
-  - Stapelbaum: `createDeckLibraryModel`
-    (`src/libraryModel.ts:72-120,291-323`) erzeugt je `now` neue
-    `row`-Objekte, deshalb rendern alle `DeckTreeRow` trotz `memo`. Je
-    Zeile laufen ein `ResizeObserver`, ein `document.fonts`-Listener und
-    ein Mess-Span (`src/ui/DeckTree.tsx:25-62,289,664-688`).
-    `row`-Objekte bei gleichen Anzeigewerten wiederverwenden, ein Observer
-    für die Spaltenbreite, `content-visibility: auto` mit
-    `contain-intrinsic-size` auf `.core-deck-tree-group`. `onStudy` darf
-    kein veraltetes Deck bekommen; Drag-Overlay und Fokus brauchen die
-    Sichtprüfung.
-  - Fortschritt: Import- und Variantenfortschritt sind State in
-    `AppContent` (`src/App.tsx:230,233,323-328`, `useImportSession.ts:8`,
-    `useCardVariantBatch.ts:70-72`); jeder Schritt rendert den aktiven
-    Screen. In einen kleinen Store legen, den nur Erstellung und
-    Variantenleiste abonnieren. `useNavigationGuard`, `beforeunload` und
-    der Kontowechsel lesen die Importsitzung weiter.
-  - Kleinposten: Inline-`options` an `CoreSegmentedControl` als Konstanten
-    (`src/ui/coreUi.tsx:228-241`; Aufrufer `NoteContentEditor.tsx:125`,
-    `ExamCalendar.tsx:107`, `HitStudyDialog.tsx:73,83`,
-    `AiSourceCreationPanel.tsx:272`, `DeckMindMapsPanel.tsx:400`);
-    `readTheme()` je Theme cachen und `cardBundle()` nicht in jedem Render
-    aufrufen (`src/ui/NoteCardContent.tsx:25-30,50-52`).
 - [ ] **A4 – Roundtrips in Start, Sync und Lernstart (H4):**
   - Schritt 0: `src/performanceGates.ts` definiert Grenzen für Lernstart
     (p75 1 s), Review lokal gespeichert (p95 250 ms) und Delta-Sync (p75
@@ -401,6 +344,8 @@ Frage/Antwort (85,4 %, Ziel 95 %) und Karten aus einer Quelle (86,8 %, Ziel
 
 ### Kartenverwaltung
 
+- Rest der Revisionskaskade, ungemessen: Verdrahtungen wählen `snapshot.state` statt `state?.decks`, je Stapelzeile ein
+  `ResizeObserver` ohne `content-visibility`, Import- und Variantenfortschritt als State in `AppContent`.
 - Gliederung nach Tags als aufklappbarer Tag-Baum in einer Seitenleiste, wie
   in Anki (Agenda 5.7).
 - Massenaktionen schneller: 1.000 Karten lokal in höchstens 1 s statt 2 bis 4 s.

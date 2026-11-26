@@ -83,7 +83,7 @@ function isPlainObject(value: unknown): value is Record<string, unknown> {
   return prototype === Object.prototype || prototype === null;
 }
 
-function isSameContent(a: unknown, b: unknown): boolean {
+export function isSameContent(a: unknown, b: unknown): boolean {
   if (Object.is(a, b)) return true;
   if (Array.isArray(a) && Array.isArray(b)) return a.length === b.length && a.every((item, index) => isSameContent(item, b[index]));
   if (a instanceof Map && b instanceof Map) {

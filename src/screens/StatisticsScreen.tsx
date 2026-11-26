@@ -29,6 +29,7 @@ import {
 } from "../statisticsModel.ts";
 import type { StudyHeatmapDay } from "../studyHeatmapModel.ts";
 import type { MaturityBand } from "../coreTypes.ts";
+import { isSameContent } from "../workspaceStore.ts";
 import { ActionButton } from "../ui/actionUi.tsx";
 import { CoreSegmentedControl, EmptyState, PageHeader, SoftPanel, StatTile } from "../ui/coreUi.tsx";
 import { CoreTabPanel, CoreTabs, type CoreTab } from "../ui/CoreTabs.tsx";
@@ -40,7 +41,6 @@ import { StudyHeatmap } from "../ui/StudyHeatmap.tsx";
 export interface StatisticsScreenProps {
   decks: StatisticsDataset["decks"];
   queryStatistics: (selection: { period: StatisticsPeriod; deckIds: StatisticsDeckSelection }) => Promise<StatisticsProjection>;
-  now: string;
   timeZone: string;
   dayStartHour?: number;
   onNavigate: (viewId: "neue-karten" | "kartenstapel", options?: { focusedDeckId: string; deckContent: boolean }) => unknown;
@@ -489,7 +489,8 @@ function RetentionTable({ rows }: { rows: StatisticsProjection["retention"] }) {
   );
 }
 
-export function StatisticsScreenContent({ dataset: { decks, projection: statistics }, selection, loading = false, error = false, onRetry, onSelectionChange, onNavigate, timeZone, dayStartHour = 0 }: StatisticsScreenContentProps) {
+// The screen renders again with every workspace revision; the charts only when their data or selection changes.
+export const StatisticsScreenContent = React.memo(function StatisticsScreenContent({ dataset: { decks, projection: statistics }, selection, loading = false, error = false, onRetry, onSelectionChange, onNavigate, timeZone, dayStartHour = 0 }: StatisticsScreenContentProps) {
   const periodRef = React.useRef<HTMLDivElement>(null);
   const { period, deckIds: deckSelection } = selection ?? statistics.selection;
   const showDeckComparison = statistics.selection.deckIds === "all" || statistics.scopeDeckIds.length > 1;
@@ -627,24 +628,32 @@ export function StatisticsScreenContent({ dataset: { decks, projection: statisti
       </div>
     </div>
   );
-}
+});
 
 type StatisticsLoadState =
   | { status: "loading" | "error"; dataset: StatisticsDataset | null }
   | { status: "ready"; dataset: StatisticsDataset };
 
-export function StatisticsScreen({ decks, queryStatistics, now, timeZone, dayStartHour = 0, ...contentProps }: StatisticsScreenProps) {
+export function StatisticsScreen({ decks, queryStatistics, timeZone, dayStartHour = 0, ...contentProps }: StatisticsScreenProps) {
   const [attempt, setAttempt] = React.useState(0);
+  const retry = React.useCallback(() => setAttempt((value) => value + 1), []);
   const [loadState, setLoadState] = React.useState<StatisticsLoadState>({ status: "loading", dataset: null });
   const [selection, setSelection] = React.useState<{ period: StatisticsPeriod; deckIds: StatisticsDeckSelection }>({ period: "365d", deckIds: "all" });
 
+  const shown = React.useRef<{ selection: typeof selection; attempt: number } | null>(null);
+
   React.useEffect(() => {
     let active = true;
-    setLoadState((current) => ({ ...current, status: "loading" }));
+    // A new workspace revision refreshes in the background; only a changed selection or a retry shows the loading state.
+    if (shown.current?.selection !== selection || shown.current.attempt !== attempt) setLoadState((current) => ({ ...current, status: "loading" }));
     void Promise.resolve()
       .then(() => queryStatistics(selection))
       .then((projection) => {
-        if (active) setLoadState({ status: "ready", dataset: { decks, projection } });
+        if (!active) return;
+        shown.current = { selection, attempt };
+        setLoadState((current) => current.status === "ready" && current.dataset.decks === decks && isSameContent(current.dataset.projection, projection)
+          ? current
+          : { status: "ready", dataset: { decks, projection } });
       })
       .catch(() => {
         if (active) setLoadState((current) => ({ ...current, status: "error" }));
@@ -653,7 +662,7 @@ export function StatisticsScreen({ decks, queryStatistics, now, timeZone, daySta
   }, [attempt, decks, queryStatistics, selection]);
 
   if (loadState.dataset) {
-    return <StatisticsScreenContent {...contentProps} now={now} timeZone={timeZone} dayStartHour={dayStartHour} dataset={loadState.dataset} selection={selection} loading={loadState.status === "loading"} error={loadState.status === "error"} onRetry={() => setAttempt((value) => value + 1)} onSelectionChange={setSelection} />;
+    return <StatisticsScreenContent {...contentProps} timeZone={timeZone} dayStartHour={dayStartHour} dataset={loadState.dataset} selection={selection} loading={loadState.status === "loading"} error={loadState.status === "error"} onRetry={retry} onSelectionChange={setSelection} />;
   }
   if (loadState.status === "error") {
     return (

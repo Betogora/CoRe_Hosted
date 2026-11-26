@@ -23,6 +23,9 @@ interface ExamForecastInput {
 
 export type ExamForecastState = ReturnType<typeof useExamForecast>;
 
+// `now` moves with every workspace revision; the plan follows the clock in quarter hours, which also meet each learning-day start.
+const FORECAST_TIME_STEP_MS = 15 * 60_000;
+
 /** Study states load once per deck selection; changes to dates, goals or time only recalculate locally. */
 export function useExamForecast({ decks, exams, capacity, preferences, timeZone, now, onLoadPlanningData, delayMs = 0, includeInactive = false, enabled = true }: ExamForecastInput) {
   const [result, setResult] = React.useState<{ key: string; forecast: ExamPortfolioForecast; data: ExamPlanningData } | null>(null);
@@ -37,7 +40,8 @@ export function useExamForecast({ decks, exams, capacity, preferences, timeZone,
   const deckKey = decks.map((deck) => `${deck.id}:${deck.updatedAt}:${deck.parentDeckId ?? ""}`).join("|");
   // Of the checklist only frozen targets shape the plan; checking a task off does not recalculate.
   const targets = (preferences.examPlanning.dailyTasks ?? []).filter((task) => task.kind === "study").map((task) => [task.id, task.date, task.planningKey, task.cardIds]);
-  const key = JSON.stringify([exams, capacity, targets, preferences.dayStartHour, preferences.easyDays, now, timeZone, scope, deckKey, revision]);
+  const timeStep = Math.floor(Date.parse(now) / FORECAST_TIME_STEP_MS);
+  const key = JSON.stringify([exams, capacity, targets, preferences.dayStartHour, preferences.easyDays, timeStep, timeZone, scope, deckKey, revision]);
 
   const calculate = React.useEffectEvent(async (signal: AbortSignal) => {
     setBusy(true);

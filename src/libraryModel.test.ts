@@ -8,6 +8,7 @@ import {
   createCardSearchContext,
   createCardTableModel,
   createDeckLibraryModel,
+  reuseEqualRows,
   createStudyHeatmapModel,
 } from "./libraryModel.ts";
 import { createStudyHeatmapModelFromCounts, createStudyHeatmapWindow } from "./studyHeatmapModel.ts";
@@ -696,4 +697,17 @@ test("deck: und note: lösen sich über Pfad und Namen auf; der Katalog kennt No
 
 test("Abfrageschlüssel werden zur Abfragenummer wie in Ankis card:N", () => {
   assert.deepEqual(["forward", "reverse", "choice", "anki-0", "anki-1", "cloze:3", "io:12", "eigene"].map(promptOrdinal), [1, 2, 1, 1, 2, 3, 12, null]);
+});
+
+test("rows of a later now keep their identity while their content stays, and a changed row is new", () => {
+  const decks = [createCoreDeck({ id: "a", name: "A" }), createCoreDeck({ id: "b", name: "B" })];
+  const first = createDeckLibraryModel(decks, { now: "2026-08-06T12:00:00.000Z" }).rows;
+  const later = createDeckLibraryModel(decks, { now: "2026-08-06T12:00:05.000Z" }).rows;
+  assert.notEqual(later[0], first[0]);
+  assert.equal(reuseEqualRows(first, later), first);
+  const renamed = createDeckLibraryModel([decks[0], { ...decks[1], name: "B2" }], { now: "2026-08-06T12:00:05.000Z" }).rows;
+  const reused = reuseEqualRows(first, renamed);
+  assert.notEqual(reused, first);
+  assert.equal(reused[0], first[0]);
+  assert.equal(reused[1], renamed[1]);
 });

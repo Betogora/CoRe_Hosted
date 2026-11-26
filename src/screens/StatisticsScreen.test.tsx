@@ -28,7 +28,6 @@ test("statistics screen exposes one global filter and the complete CoRe analysis
   const markup = renderToStaticMarkup(
     <StatisticsScreenContent
       dataset={{ decks: [deck], projection }}
-      now="2026-08-06T12:00:00.000Z"
       timeZone="Europe/Berlin"
       onNavigate={() => { throw new Error("navigation is not expected during server rendering"); }}
     />,
@@ -68,7 +67,6 @@ test("statistics screen exposes one global filter and the complete CoRe analysis
   const singleDeckMarkup = renderToStaticMarkup(
     <StatisticsScreenContent
       dataset={{ decks: [deck], projection: projectStatistics([deck], { ...selection, deckIds: [deck.id] }) }}
-      now="2026-08-06T12:00:00.000Z"
       timeZone="Europe/Berlin"
       onNavigate={() => undefined}
     />,
@@ -80,7 +78,7 @@ test("statistics refresh keeps previous results and shows the requested filter w
   const deck = createCoreDeck({ id: "refresh_deck", name: "Biologie", source: "manual", cards: [{ ...createBasicNote("refresh_deck", "Frage", "Antwort").cards[0], id: "refresh_card" }] });
   const dataset = { decks: [deck], projection: projectStatistics([deck], { period: "365d", deckIds: "all", now: "2026-09-30T12:00:00.000Z", timeZone: "Europe/Berlin" }) };
   dataset.projection.summary.reviewCount = 42;
-  const render = (loading: boolean, error = false) => renderToStaticMarkup(<StatisticsScreenContent dataset={dataset} selection={{ period: "90d", deckIds: [deck.id] }} loading={loading} error={error} onRetry={() => undefined} now="2026-09-30T12:00:00.000Z" timeZone="Europe/Berlin" onNavigate={() => undefined} />);
+  const render = (loading: boolean, error = false) => renderToStaticMarkup(<StatisticsScreenContent dataset={dataset} selection={{ period: "90d", deckIds: [deck.id] }} loading={loading} error={error} onRetry={() => undefined} timeZone="Europe/Berlin" onNavigate={() => undefined} />);
   const pending = render(true);
   assert.match(pending, /aria-pressed="true"[^>]*>90 Tage<\/button>/);
   assert.match(pending, /Stapel filtern\. Aktuell: Biologie/);
@@ -106,7 +104,6 @@ test("statistics screen loads its dataset only after mounting", () => {
     <StatisticsScreen
       decks={[]}
       queryStatistics={async (selection) => projectStatistics([], { ...selection, now: "2026-08-06T12:00:00.000Z", timeZone: "Europe/Berlin" })}
-      now="2026-08-06T12:00:00.000Z"
       timeZone="Europe/Berlin"
       onNavigate={() => undefined}
     />,
