@@ -334,9 +334,11 @@ test("fehlendes Stapelziel bleibt sichtbar und lässt sich durch einen neuen Sta
   await expect(page.getByTestId("ai-source-summary")).toContainText("Quelle (neuer Stapel)");
 });
 
+// Declared as skipped, so the visual matrix builds no page when it does not run.
+const visualTest = process.env.CORE_VISUAL_OUTPUT ? test : test.skip;
+
 for (const theme of ["light", "dark"] as const) {
-  test(`Formular-Breakpoints ${theme}`, async ({ page }, testInfo) => {
-    test.skip(!process.env.CORE_VISUAL_OUTPUT, "Die vollständige Sichtmatrix wird gezielt ausgeführt.");
+  visualTest(`Formular-Breakpoints ${theme}`, async ({ page }, testInfo) => {
     test.setTimeout(60_000);
     await page.setViewportSize({ width: 1440, height: 900 });
     await installEmptyAccount(page);
@@ -360,8 +362,7 @@ for (const theme of ["light", "dark"] as const) {
     await panel.getByLabel("Dein Quelltext").fill("Bei der Zellatmung wird die Energie aus Glucose für die Bildung von ATP genutzt.");
     await page.screenshot({ path: testInfo.outputPath("mobile-text.png"), animations: "disabled", fullPage: true });
   });
-  test(`Layoutwechsel ${theme}`, async ({ page }, testInfo) => {
-    test.skip(!process.env.CORE_VISUAL_OUTPUT, "Die vollständige Sichtmatrix wird gezielt ausgeführt.");
+  visualTest(`Layoutwechsel ${theme}`, async ({ page }, testInfo) => {
     await installEmptyAccount(page);
     await page.goto("/neue-karten");
     if (theme === "dark") await switchColorScheme(page, "dark");
@@ -373,8 +374,7 @@ for (const theme of ["light", "dark"] as const) {
     }
   });
   for (const [width, height] of [[320, 720], [360, 800], [390, 844], [430, 932], [1280, 720], [1440, 900]]) {
-    test(`Sichtprüfung ${theme} ${width}×${height}`, async ({ page }, testInfo) => {
-      test.skip(!process.env.CORE_VISUAL_OUTPUT, "Die vollständige Sichtmatrix wird gezielt ausgeführt.");
+    visualTest(`Sichtprüfung ${theme} ${width}×${height}`, async ({ page }, testInfo) => {
       test.setTimeout(120_000);
       await page.setViewportSize({ width, height });
       await installEmptyAccount(page);

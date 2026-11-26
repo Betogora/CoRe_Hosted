@@ -31,7 +31,7 @@ jobs:
         run: npm ci
 
       - name: Chromium installieren
-        run: npx playwright install --with-deps chromium
+        run: npx playwright install --with-deps --only-shell chromium
 
       - name: Nächtliches Core-Gate ausführen
         run: npm run gate:nightly

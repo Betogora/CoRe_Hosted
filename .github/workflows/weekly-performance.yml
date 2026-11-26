@@ -28,7 +28,7 @@ jobs:
         run: npm ci
 
       - name: Chromium installieren
-        run: npx playwright install --with-deps chromium
+        run: npx playwright install --with-deps --only-shell chromium
 
       - name: Wöchentliches Performance-Gate ausführen
         run: npm run performance:measure:local

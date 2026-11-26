@@ -126,8 +126,8 @@ test("Kartenbausteine: Audio und MP4 spielen im scriptfreien Frame, Vorlesen ble
   await expect.poll(() => spoken).toEqual([{ text: "Herzinsuffizienz bezeichnet eine eingeschränkte Pumpfunktion des Herzens.", language: "de-DE" }]);
 });
 
-test("Kartenbausteine: visuelle Pflichtmatrix in beiden Themes und Darstellungen", async ({ page }) => {
-  test.skip(!visualOutput, "Die vollständige Sichtmatrix wird gezielt ausgeführt.");
+// Declared as skipped, so `beforeEach` does not load the catalog when the matrix does not run.
+(visualOutput ? test : test.skip)("Kartenbausteine: visuelle Pflichtmatrix in beiden Themes und Darstellungen", async ({ page }) => {
   test.setTimeout(900_000);
   const output = path.resolve("test-results/note-presentation/matrix");
   await mkdir(output, { recursive: true });

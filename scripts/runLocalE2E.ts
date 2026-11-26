@@ -125,9 +125,9 @@ async function changedFiles() {
   return [...await git(["diff", "--name-only", base]), ...await git(["ls-files", "--others", "--exclude-standard"])];
 }
 
-function runCatalogE2E(args: readonly string[]) {
+function runCatalogE2E() {
   console.log("Katalogflows ohne Supabase parallel ausführen …");
-  return runCommand(process.execPath, [PLAYWRIGHT_CLI_PATH, "test", "--config=playwright.catalog.config.ts", ...args]);
+  return runCommand(process.execPath, [PLAYWRIGHT_CLI_PATH, "test", "--config=playwright.catalog.config.ts"]);
 }
 
 export async function runLocalE2E(playwrightArguments: string[] = []) {
@@ -147,7 +147,7 @@ export async function runLocalE2E(playwrightArguments: string[] = []) {
   if (affected) {
     console.log(affected.full
       ? "Gemeinsame Infrastruktur oder nicht zugeordneter Produktcode geändert: vollständige Browser- und RLS-Suite ausführen …"
-      : `Betroffene Browserflows: ${[...affected.catalog, ...affected.supabase].join(", ") || "keine"}${affected.rls ? "; vollständige RLS-Suite" : ""}`);
+      : `Betroffene Browserflows mit Supabase: ${affected.supabase.join(", ") || "keine"}${affected.rls ? "; vollständige RLS-Suite" : ""}`);
   }
   const needsSupabase = !affected || runFullRls || affectedSupabaseSpecs.length > 0;
 
@@ -158,8 +158,8 @@ export async function runLocalE2E(playwrightArguments: string[] = []) {
       throw new Error("Docker Desktop läuft nicht. Starte Docker Desktop und führe den Befehl danach erneut aus.");
     }
   }
-  if (runFullE2E && forwardedPlaywrightArguments.length === 0) await runCatalogE2E([]);
-  else if (affected && !affected.full && affected.catalog.length) await runCatalogE2E(specPaths(affected.catalog));
+  // In pull requests the required job `catalog-e2e` runs the catalog flows.
+  if (gate === "release" && forwardedPlaywrightArguments.length === 0) await runCatalogE2E();
   if (!needsSupabase) return;
 
   let supabaseStartAttempted = false;

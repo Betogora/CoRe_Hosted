@@ -43,7 +43,8 @@ GitHub-Runnern wiederholt „Data limit exceeded“ meldete.
 - `npm run test:e2e:affected:local`: wählt die Specs aus den Änderungen gegenüber
   der Merge-Basis mit `origin/main`, auch uncommittet (`scripts/affectedE2ESpecs.ts`),
   und läuft als PR-Job `affected-e2e`; lokal dient er der Fehlersuche.
-  Geänderte Specs laufen immer; Produktquellen wählen über ihren Bereich, Doku und
+  Katalogflows laufen dort nicht, sie prüft der Job `catalog-e2e` vollständig.
+  Geänderte Supabase-Specs laufen immer; Produktquellen wählen über ihren Bereich, Doku und
   Modultests keine, geänderte RLS-Tests die vollständige RLS-Suite. Gemeinsame
   E2E-Infrastruktur, Playwright- und Build-Konfiguration, Abhängigkeiten,
   Migrationen, App-Shell und nicht zugeordnete Produktquellen führen zur

@@ -51,10 +51,19 @@ jobs:
         run: npm ci
 
       - name: Chromium installieren
-        run: npx playwright install --with-deps chromium
+        run: npx playwright install --with-deps --only-shell chromium
 
       - name: Katalogflows ohne Supabase ausführen
         run: npm run test:e2e:catalog
+
+      - name: Testdauern hochladen
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: catalog-e2e-timings-${{ github.run_id }}
+          path: test-timings/
+          if-no-files-found: ignore
+          retention-days: 30
 
       - name: Fehlerartefakte hochladen
         if: failure()
@@ -88,10 +97,19 @@ jobs:
         run: npm ci
 
       - name: Chromium installieren
-        run: npx playwright install --with-deps chromium
+        run: npx playwright install --with-deps --only-shell chromium
 
       - name: Betroffene Browserflows und RLS ausführen
         run: npm run test:e2e:affected:local
+
+      - name: Testdauern hochladen
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: affected-e2e-timings-${{ github.run_id }}
+          path: test-timings/
+          if-no-files-found: ignore
+          retention-days: 30
 
       - name: Fehlerartefakte hochladen
         if: failure()

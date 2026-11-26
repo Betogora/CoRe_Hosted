@@ -42,13 +42,13 @@ Für alle Pakete gilt:
 - Unverändert lassen: `quality` (rund 50 s, Engpass Typecheck samt knip),
   Modultests (179 Dateien in 12 s) und RLS (21 Fälle in 6 s).
 
-Reihenfolge: T1, dann A2, dann T2 und T3, dann A3 und A4; A5 nach
+Reihenfolge: A2, dann T2 und T3, dann A3 und A4; A5 nach
 der Entscheidung, A6, T4, A7 und T5 nach Bedarf.
 
 | Spur | Kennzahl | Schleife | Paket |
 | --- | --- | --- | --- |
 | H1 | initiales JavaScript in KiB gzip | `npm run build` gibt den Wert aus (`scripts/verifyBuildChunks.ts`), rund 20 s, ohne Supabase | A2 |
-| H2 | Sekunden je Spec | `npm run test:e2e:catalog` lokal ohne Docker (rund 5 min); Supabase-Specs über den JSON-Reporter aus T1 | T3, T4 |
+| H2 | Sekunden je Spec | `npm run test:e2e:catalog` lokal ohne Docker (rund 5 min); Supabase-Specs über die Artefakte `*-e2e-timings` aus CI | T3, T4 |
 | H3 | Rechenläufe und Renders je Revision | Zähler als Modultest | A3 |
 | H4 | Requests je Bewertung und je Leerlauf-Sync | Zähler gegen `tests/support/fakeLearningCloud.ts` | A4 |
 | H5 | `srcdoc`-Bytes und Millisekunden je Kartenbundle | Mikro-Benchmark, fehlt noch | A6 |
@@ -293,26 +293,6 @@ der Entscheidung, A6, T4, A7 und T5 nach Bedarf.
 
 ### Tests
 
-- [ ] **T1 – Doppelläufe und Fixkosten:**
-  - `scripts/runLocalE2E.ts:161-162` startet im Gate `affected` die
-    Katalog-Suite, obwohl der Pflicht-Check `catalog-e2e` sie auf demselben
-    Commit fährt (in 81 % der Pull Requests komplett doppelt, 212 bis
-    266 s). Im Gate `affected` streichen, `release` behält sie.
-    `test-portfolio.md` anpassen und die Direkt-Push-Regel in `AGENTS.md`
-    um `npm run test:e2e:catalog` ergänzen.
-  - `playwright.catalog.config.ts`: `workers` in CI von 2 auf 3, dann 4
-    (der Runner hat 4 Kerne), und `trace: "off"`; der Screenshot bei
-    Fehlschlag bleibt. Auf Flakes der Zieh- und Echtzeit-Tests achten
-    (`dashboard-widgets.spec.ts:83,235`, `exam-topic-order.spec.ts:66`).
-  - Chromium-Download in `ci.yml`, `nightly-core.yml` und
-    `weekly-performance.yml` cachen (19 bis 44 s je Job).
-  - JSON-Reporter beider Playwright-Konfigurationen immer als Artefakt
-    hochladen; ohne ihn gibt es in CI keine Dauer je Test.
-  - Übersprungene Tests bauen heute Kontext und Seite auf
-    (`ai-source-creation.spec.ts:338,363,376`,
-    `note-presentation.spec.ts:8-12`).
-  - Nachweis: Testschritt von `affected-e2e` von 800 auf rund 535 s,
-    `catalog-e2e` unter 4 min, drei Läufe in Folge grün.
 - [ ] **T2 – Auswahl schärfen:** Kennzahl ist der Anteil voller Läufe.
       Gemessen, indem `affectedE2ESpecs` über die Dateilisten der letzten
       86 Merges nach `main` läuft; 10 volle Läufe kamen allein von

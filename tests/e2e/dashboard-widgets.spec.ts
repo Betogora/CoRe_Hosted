@@ -341,7 +341,8 @@ test("Motivation wechselt ohne Neuladen auch nach einem inaktiven Tab", async ({
 });
 
 test.describe("Maskottchen-Vorrat", () => {
-  // The stock is a local design aid outside the deployment; build it once for these checks.
+  // The stock is a local design aid outside the deployment; one worker builds it once, parallel workers would overwrite each other's files.
+  test.describe.configure({ mode: "serial" });
   const stock = (file: string) => pathToFileURL(path.resolve("output/mascots", file)).href;
   test.beforeAll(() => { execFileSync(process.execPath, [path.resolve("node_modules/tsx/dist/cli.mjs"), "scripts/generateMascots.tsx"]); });
 

@@ -1,6 +1,6 @@
 import { CATALOG_SPECS } from "../tests/e2e/support/catalogSpecs.ts";
 
-export type AffectedE2ESpecs = { full: true } | { full: false; catalog: string[]; supabase: string[]; rls: boolean };
+export type AffectedE2ESpecs = { full: true } | { full: false; supabase: string[]; rls: boolean };
 
 const FULL_RUN = [
   /^tests\/e2e\/support\//, /^tests\/e2e\/auth\.setup\.ts$/, /^playwright(?:\.[a-z]+)?\.config\.ts$/,
@@ -8,9 +8,8 @@ const FULL_RUN = [
   /^(?:vite|tailwind)\.config\.ts$/, /^index\.html$/, /^supabase\//, /^src\/(?:App|main)\.tsx$/,
   /^src\/(?:styles\.css|coreTypes\.ts|database\.types\.ts)$/,
 ];
-const IGNORED = [/\.test\.tsx?$/, /\.md$/, /^\.github\//, /^docs\/(?!ui-elements\.html$|card-types\.html$)/, /^fixtures\/apkg\/corpus\//];
-// The catalog pages and their generator only feed the Supabase-free catalog flows.
-const CATALOG_SOURCES = /^(?:docs\/(?:ui-elements|card-types)\.html|scripts\/(?:uiCatalog\w*|generateDocs|docsSite)\.\w+)$/;
+// The catalog pages and their generator only feed the catalog flows, which the job `catalog-e2e` runs completely on every pull request.
+const IGNORED = [/\.test\.tsx?$/, /\.md$/, /^\.github\//, /^docs\//, /^scripts\/(?:uiCatalog\w*|generateDocs|docsSite)\.\w+$/, /^fixtures\/apkg\/corpus\//];
 const AREAS: [RegExp, string[]][] = [
   [/[Ss]ummar/, ["learning-summaries", "navigation-context"]],
   [/mindMap|MindMap/, ["mindmaps", "navigation-context"]],
@@ -40,12 +39,10 @@ export function affectedE2ESpecs(changedFiles: readonly string[]): AffectedE2ESp
     if (spec) { specs.add(spec); continue; }
     if (FULL_RUN.some((pattern) => pattern.test(file))) return { full: true };
     if (IGNORED.some((pattern) => pattern.test(file))) continue;
-    if (CATALOG_SOURCES.test(file)) { CATALOG_SPECS.forEach((name) => specs.add(name)); continue; }
     const areas = AREAS.filter(([pattern]) => pattern.test(file)).flatMap(([, names]) => names);
     if (areas.length) areas.forEach((name) => specs.add(name));
-    else if (file.startsWith("src/ui/")) [...CATALOG_SPECS, "product-surfaces"].forEach((name) => specs.add(name));
+    else if (file.startsWith("src/ui/")) specs.add("product-surfaces");
     else if (/^(?:src|api|server|public)\//.test(file)) return { full: true };
   }
-  const sorted = [...specs].sort();
-  return { full: false, catalog: sorted.filter((name) => CATALOG_SPECS.includes(name)), supabase: sorted.filter((name) => !CATALOG_SPECS.includes(name)), rls };
+  return { full: false, supabase: [...specs].filter((name) => !CATALOG_SPECS.includes(name)).sort(), rls };
 }

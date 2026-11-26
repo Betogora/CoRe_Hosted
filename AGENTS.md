@@ -250,7 +250,8 @@ categories, commands, CI jobs, and the visual matrix.
   results, and unverified cases; type checking and geometry assertions do not
   replace visual inspection.
 - A direct push to `main` skips the PR jobs: run `npm run gate:push` and, for
-  browser-visible changes, `npm run test:e2e:affected:local` first.
+  browser-visible changes, `npm run test:e2e:catalog` and
+  `npm run test:e2e:affected:local` first.
 
 ## Completion Check
 
