@@ -75,12 +75,18 @@ jobs:
             test-results/
           if-no-files-found: ignore
 
-  affected-e2e:
+  affected-e2e-shard:
     if: github.event_name == 'pull_request'
+    name: affected-e2e-shard (${{ matrix.shard }}/3)
     runs-on: ubuntu-latest
     timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3]
     env:
       SUPABASE_INTERNAL_IMAGE_REGISTRY: ghcr.io
+      CORE_E2E_SHARD: ${{ matrix.shard }}
     steps:
       - name: Repository auschecken
         uses: actions/checkout@v7
@@ -106,7 +112,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v7
         with:
-          name: affected-e2e-timings-${{ github.run_id }}
+          name: affected-e2e-timings-${{ github.run_id }}-${{ matrix.shard }}
           path: test-timings/
           if-no-files-found: ignore
           retention-days: 30
@@ -115,9 +121,19 @@ jobs:
         if: failure()
         uses: actions/upload-artifact@v7
         with:
-          name: affected-e2e-failure-${{ github.run_id }}
+          name: affected-e2e-failure-${{ github.run_id }}-${{ matrix.shard }}
           path: |
             playwright-report/
             test-results/
           if-no-files-found: ignore
           retention-days: 7
+
+  # Required check: the branch protection expects one job with this name.
+  affected-e2e:
+    if: always() && github.event_name == 'pull_request'
+    needs: affected-e2e-shard
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Ergebnis der drei Shards prüfen
+        run: test "${{ needs.affected-e2e-shard.result }}" = "success"

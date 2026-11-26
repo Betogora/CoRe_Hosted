@@ -2,6 +2,13 @@ import { CATALOG_SPECS } from "../tests/e2e/support/catalogSpecs.ts";
 
 export type AffectedE2ESpecs = { full: true } | { full: false; supabase: string[]; rls: boolean };
 
+/** Fixed spec lists of the CI shards, balanced by their measured CI seconds (about 140 s each). */
+export const SUPABASE_SHARDS = [
+  ["core-stabilization", "batch-resilience", "exam-planning", "auth-gate"],
+  ["card-lifecycle", "product-surfaces", "apkg-quality-report", "zz-media-import", "auth-resilience"],
+  ["navigation-context", "world-capitals-hierarchy", "first-learning", "auth-lifecycle"],
+];
+
 const FULL_RUN = [
   /^tests\/e2e\/support\//, /^tests\/e2e\/auth\.setup\.ts$/, /^playwright(?:\.[a-z]+)?\.config\.ts$/,
   /^scripts\/(?:runLocalE2E|localE2EEnvironment|affectedE2ESpecs)\.ts$/, /^package(?:-lock)?\.json$/,
@@ -32,6 +39,18 @@ const AREAS: [RegExp, string[]][] = [
   [/Help|\/help\//, ["product-surfaces"]],
   [/pomodoro|Pomodoro/, ["product-surfaces", "core-stabilization"]],
 ];
+
+/**
+ * The part of a selection one CI shard runs. `specs: null` runs every spec; only the primary shard (the first, or the
+ * only one without sharding) runs RLS, schema and type checks and the beta artifact.
+ */
+export function shardSelection(selection: AffectedE2ESpecs, shard: number | null) {
+  const own = shard === null ? null : SUPABASE_SHARDS[shard - 1];
+  if (shard !== null && !own) throw new Error(`Unbekannter Supabase-Shard ${shard}; erlaubt sind 1 bis ${SUPABASE_SHARDS.length}.`);
+  const primary = shard === null || shard === 1;
+  if (selection.full) return { full: true, specs: own ? [...own] : null, rls: primary, primary };
+  return { full: false, specs: selection.supabase.filter((name) => !own || own.includes(name)), rls: primary && selection.rls, primary };
+}
 
 export function affectedE2ESpecs(changedFiles: readonly string[]): AffectedE2ESpecs {
   const specs = new Set<string>();

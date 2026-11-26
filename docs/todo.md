@@ -20,7 +20,7 @@ Solche Pakete beginnen deshalb mit ihrer Messung (Schritt 0).
 
 | Kennzahl | Stand | Ziel |
 | --- | --- | --- |
-| `affected-e2e` mit voller Suite | 12 bis 14 min (Testschritt 800 s, davon 266 s Katalog, seit T1 entfallen) | höchstens 5 min |
+| `affected-e2e` mit voller Suite | 12 bis 14 min (Testschritt 800 s); seit T1 ohne 266 s Katalog, seit T3 drei Shards mit je rund 140 s Tests statt 432 s, in CI noch ungemessen | höchstens 5 min |
 | `catalog-e2e` | 4,5 bis 6,5 min mit 2 Workern; seit T1 lokal auf 4 CPUs 176 statt 364 s, in CI noch ungemessen | höchstens 4 min |
 | Roundtrips nacheinander je Bewertung | 5 | 2 |
 | `srcdoc` einer Formelkarte | rund 400 KB | rund 30 KB |
@@ -40,12 +40,12 @@ Für alle Pakete gilt:
 - Unverändert lassen: `quality` (rund 50 s, Engpass Typecheck samt knip),
   Modultests (179 Dateien in 12 s) und RLS (21 Fälle in 6 s).
 
-Reihenfolge: T3, dann A3 und A4; A5 nach
+Reihenfolge: A3 und A4; A5 nach
 der Entscheidung, A6, T4, A7 und T5 nach Bedarf.
 
 | Spur | Kennzahl | Schleife | Paket |
 | --- | --- | --- | --- |
-| H2 | Sekunden je Spec | `npm run test:e2e:catalog` lokal ohne Docker (rund 5 min); Supabase-Specs über die Artefakte `*-e2e-timings` aus CI | T3, T4 |
+| H2 | Sekunden je Spec | `npm run test:e2e:catalog` lokal ohne Docker (rund 3 min); Supabase-Specs über die Artefakte `*-e2e-timings` aus CI, danach `SUPABASE_SHARDS` nachziehen | T4 |
 | H3 | Rechenläufe und Renders je Revision | Zähler als Modultest | A3 |
 | H4 | Requests je Bewertung und je Leerlauf-Sync | Zähler gegen `tests/support/fakeLearningCloud.ts` | A4 |
 | H5 | `srcdoc`-Bytes und Millisekunden je Kartenbundle | Mikro-Benchmark, fehlt noch | A6 |
@@ -243,25 +243,6 @@ der Entscheidung, A6, T4, A7 und T5 nach Bedarf.
 
 ### Tests
 
-- [ ] **T3 – Supabase-Suite in drei Shards (H2):** 119 Tests laufen seriell
-      in 432 s, ohne Ausreißer (längster 10,3 s). Drei Jobs mit festen
-      Dateilisten, jeder mit eigenem Supabase, ohne Änderung am Testcode:
-  - Shard 1 (rund 141 s): `core-stabilization`, `batch-resilience`,
-    `exam-planning`, `auth-gate`; dazu RLS, Typ-Drift und Beta-Artefakt.
-  - Shard 2 (rund 141 s): `card-lifecycle`, `product-surfaces`,
-    `apkg-quality-report`, `zz-media-import`, `auth-resilience`.
-  - Shard 3 (rund 140 s): `navigation-context`,
-    `world-capitals-hierarchy`, `first-learning`, `auth-lifecycle`.
-  - Ein Sammeljob trägt den Namen des Pflicht-Checks `affected-e2e`. Ein
-    Test stellt sicher, dass jede Supabase-Spec in genau einem Shard
-    liegt. Ein Shard ohne betroffene Spec endet ohne Supabase-Start.
-  - Preis: zwei weitere Runner mit je rund 115 s Fixkosten. „Ein Konto je
-    Worker“ spart sie, scheitert aber zunächst an 30 Anmeldungen je 5
-    Minuten (`supabase/config.toml:207`), am Reset des ganzen Kontos
-    (`tests/e2e/support/appState.ts:46-67`) und an drei unverträglichen
-    Grundzuständen auf einem Konto.
-  - Nachweis: `affected-e2e` mit voller Suite unter 5 min; Zuschnitt nach
-    den Sekunden aus dem JSON-Reporter nachziehen.
 - [ ] **T4 – Suite verschlanken (H2):** Vor jedem Streichen oder
       Zusammenlegen den Test benennen, der den Vertrag weiter schützt;
       `@golden-e2e` und `@beta-core` bleiben unangetastet.

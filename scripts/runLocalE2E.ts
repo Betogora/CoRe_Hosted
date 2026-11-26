@@ -9,7 +9,7 @@ import {
   provisionLocalE2EAccounts,
 } from "./localE2EEnvironment.ts";
 import { synchronizeDatabaseTypes } from "./databaseTypes.ts";
-import { affectedE2ESpecs } from "./affectedE2ESpecs.ts";
+import { affectedE2ESpecs, shardSelection } from "./affectedE2ESpecs.ts";
 
 const SUPABASE_CLI_PATH = path.join(process.cwd(), "node_modules", "supabase", "dist", "supabase.js");
 const PLAYWRIGHT_CLI_PATH = path.join(process.cwd(), "node_modules", "@playwright", "test", "cli.js");
@@ -140,14 +140,17 @@ export async function runLocalE2E(playwrightArguments: string[] = []) {
   const runGoldenE2E = gate === "pr" || gate === "golden";
   const runBetaE2E = gate === "beta";
   const runPerformance = gate === "performance";
-  const affected = gate === "affected" ? affectedE2ESpecs(await changedFiles()) : null;
+  const shard = gate === "affected" && process.env.CORE_E2E_SHARD ? Number(process.env.CORE_E2E_SHARD) : null;
+  const affected = gate === "affected" ? shardSelection(affectedE2ESpecs(await changedFiles()), shard) : null;
   const runFullE2E = gate === "release" || affected?.full === true;
-  const runFullRls = gate === "rls" || gate === "release" || Boolean(affected && (affected.full || affected.rls));
-  const affectedSupabaseSpecs = affected && !affected.full ? affected.supabase : [];
+  const primaryShard = affected?.primary ?? true;
+  const runFullRls = gate === "rls" || gate === "release" || Boolean(affected?.rls);
+  const affectedSupabaseSpecs = affected?.specs ?? [];
   if (affected) {
-    console.log(affected.full
+    const scope = shard === null ? "" : ` (Shard ${shard})`;
+    console.log(affected.full && !affected.specs
       ? "Gemeinsame Infrastruktur oder nicht zugeordneter Produktcode geändert: vollständige Browser- und RLS-Suite ausführen …"
-      : `Betroffene Browserflows mit Supabase: ${affected.supabase.join(", ") || "keine"}${affected.rls ? "; vollständige RLS-Suite" : ""}`);
+      : `Betroffene Browserflows mit Supabase${scope}: ${affectedSupabaseSpecs.join(", ") || "keine"}${affected.rls ? "; vollständige RLS-Suite" : ""}`);
   }
   const needsSupabase = !affected || runFullRls || affectedSupabaseSpecs.length > 0;
 
@@ -174,8 +177,10 @@ export async function runLocalE2E(playwrightArguments: string[] = []) {
     console.log("Ausstehende lokale Migrationen anwenden …");
     await runSupabase(["migration", "up", "--local"]);
 
-    console.log("Versionierte Supabase-Datenbanktypen prüfen …");
-    await synchronizeDatabaseTypes({ mode: "check" });
+    if (primaryShard) {
+      console.log("Versionierte Supabase-Datenbanktypen prüfen …");
+      await synchronizeDatabaseTypes({ mode: "check" });
+    }
 
     const { stdout } = await runSupabase(["status", "--output-format", "json"], {
       capture: true,
@@ -188,10 +193,12 @@ export async function runLocalE2E(playwrightArguments: string[] = []) {
     await provisionLocalE2EAccounts(privilegedTestEnvironment);
 
     console.log(`Lokales Produktgate „${gate}“ ausführen …`);
-    console.log("Supabase-Schema, RLS-Policies und Foreign Keys prüfen …");
-    await runSupabase(["db", "query", "--local", "--file", "supabase/verify_schema_v1.sql"], {
-      capture: true,
-    });
+    if (primaryShard) {
+      console.log("Supabase-Schema, RLS-Policies und Foreign Keys prüfen …");
+      await runSupabase(["db", "query", "--local", "--file", "supabase/verify_schema_v1.sql"], {
+        capture: true,
+      });
+    }
 
     if (runCoreRls || runFullRls) {
       const rlsTestPaths = runCoreRls
@@ -235,7 +242,7 @@ export async function runLocalE2E(playwrightArguments: string[] = []) {
       await runCommand(process.execPath, [PLAYWRIGHT_CLI_PATH, "test", ...selectedArguments], {
         env: { ...testEnvironment, CORE_E2E_GATE: runFullE2E ? "release" : gate },
       });
-      if (runFullE2E && forwardedPlaywrightArguments.length === 0) {
+      if (runFullE2E && primaryShard && forwardedPlaywrightArguments.length === 0) {
         console.log("E-Mail-/Passwort-Beta-Artefakt im selben Supabase-Lauf prüfen …");
         await runCommand(process.execPath, [PLAYWRIGHT_CLI_PATH, "test", "--project=auth-gate-chromium", "--grep", BETA_CORE_TAG, "--no-deps"], {
           env: { ...testEnvironment, CORE_E2E_GATE: "beta" },

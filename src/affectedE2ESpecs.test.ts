@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { readdirSync } from "node:fs";
 import test from "node:test";
-import { affectedE2ESpecs } from "../scripts/affectedE2ESpecs.ts";
+import { affectedE2ESpecs, shardSelection, SUPABASE_SHARDS } from "../scripts/affectedE2ESpecs.ts";
 import { CATALOG_SPECS } from "../tests/e2e/support/catalogSpecs.ts";
 
 test("affected browser gate runs changed Supabase specs and the Supabase specs mapped to changed screens", () => {
@@ -52,4 +52,19 @@ test("every selected spec exists and every Supabase spec is reachable from a pro
     }
   }
   assert.deepEqual(specs.filter((name) => !reached.has(name)), []);
+});
+
+test("every Supabase spec runs in exactly one CI shard", () => {
+  const specs = readdirSync("tests/e2e").filter((name) => name.endsWith(".spec.ts")).map((name) => name.replace(/\.spec\.ts$/, "")).filter((name) => !CATALOG_SPECS.includes(name));
+  assert.deepEqual(SUPABASE_SHARDS.flat().sort(), specs.sort());
+});
+
+test("a shard runs its part of the selection and only the first shard adds RLS and the checks", () => {
+  const partial = affectedE2ESpecs(["src/screens/cardList/CardHitTable.tsx", "tests/rls/ownership-smoke.test.ts"]);
+  assert.deepEqual(shardSelection(partial, 1), { full: false, specs: [], rls: true, primary: true });
+  assert.deepEqual(shardSelection(partial, 2), { full: false, specs: ["card-lifecycle"], rls: false, primary: false });
+  assert.deepEqual(shardSelection(partial, 3), { full: false, specs: ["navigation-context"], rls: false, primary: false });
+  assert.deepEqual(shardSelection({ full: true }, 3), { full: true, specs: SUPABASE_SHARDS[2], rls: false, primary: false });
+  assert.deepEqual(shardSelection({ full: true }, null), { full: true, specs: null, rls: true, primary: true });
+  assert.throws(() => shardSelection({ full: true }, 4), /Shard 4/);
 });

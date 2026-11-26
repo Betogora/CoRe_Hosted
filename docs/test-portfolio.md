@@ -12,7 +12,7 @@ Laufzeiten bei jedem Lauf selbst.
 | --- | --- | --- | --- |
 | Pull Request, Push auf `main`, manuell | GitHub `ci.yml`, Job `quality` | `npm run gate:push` | ja, Pflicht-Check für `main` |
 | wie oben | GitHub `ci.yml`, Job `catalog-e2e` | `npm run test:e2e:catalog` | ja, Pflicht-Check für `main` |
-| Pull Request | GitHub `ci.yml`, Job `affected-e2e` | `npm run test:e2e:affected:local` | ja, Pflicht-Check für `main` |
+| Pull Request | GitHub `ci.yml`, drei Jobs `affected-e2e-shard`, Sammeljob `affected-e2e` | `npm run test:e2e:affected:local` mit `CORE_E2E_SHARD` | ja, `affected-e2e` ist Pflicht-Check für `main` |
 | jedes Vercel-Deployment | Build-Befehl in `vercel.json` | `npm run gate:push` | ja, ohne Erfolg kein Deployment |
 | täglich 02:17 UTC, veröffentlichtes Release, manuell | GitHub `nightly-core.yml` | `npm run gate:nightly` | ja |
 | montags 04:17 UTC, manuell | GitHub `weekly-performance.yml` | `npm run performance:measure:local` | ja |
@@ -44,6 +44,9 @@ GitHub-Runnern wiederholt „Data limit exceeded“ meldete.
   der Merge-Basis mit `origin/main`, auch uncommittet (`scripts/affectedE2ESpecs.ts`),
   und läuft als PR-Job `affected-e2e`; lokal dient er der Fehlersuche.
   Katalogflows laufen dort nicht, sie prüft der Job `catalog-e2e` vollständig.
+  In CI teilt `CORE_E2E_SHARD` die Auswahl auf drei Jobs mit festen
+  Spec-Listen (`SUPABASE_SHARDS`); RLS, Schema-, Typprüfung und Beta-Artefakt
+  laufen im ersten. Ohne die Variable läuft lokal die ganze Auswahl.
   Geänderte Supabase-Specs laufen immer; Produktquellen wählen über ihren Bereich, Doku und
   Modultests keine, geänderte RLS-Tests die vollständige RLS-Suite. Gemeinsame
   E2E-Infrastruktur, Playwright- und Build-Konfiguration, Abhängigkeiten,
