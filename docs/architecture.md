@@ -20,7 +20,7 @@ Nicht hinein gehört:
 
 Probe: Ein Satz gehört nicht hinein, wenn er falsch wird, sobald man eine Funktion umbenennt oder umbaut, ohne dass sich ein Vertrag ändert. Umsetzungsdetails stehen in Code, Kommentaren und Tests.
 
-Form: Stichpunkte oder Tabellenzeilen, ein Gedanke je Punkt. Eine geänderte Regel ersetzt die alte, statt sie zu ergänzen. Angepasst wird die Datei nur bei geändertem Eigentümer, geänderter Invariante oder geänderter öffentlicher Schnittstelle. `npm run check:docs` prüft eine feste Höchstgröße der ganzen Datei (`DOC_LIMITS` in `scripts/generateDocs.ts`).
+Form: Stichpunkte oder Tabellenzeilen, ein Gedanke je Punkt. Eine geänderte Regel ersetzt die alte, statt sie zu ergänzen. Angepasst wird die Datei nur bei geändertem Eigentümer, Invariante oder öffentlicher Schnittstelle. `npm run check:docs` begrenzt die Dateigröße (`DOC_LIMITS` in `scripts/generateDocs.ts`).
 
 ## Systembild
 
@@ -293,8 +293,8 @@ Befehlsmodule laufen ohne React, je Arbeitsbereich aus Store, Repository und Syn
 
 ### App-Shell und Vorladen
 
-- Vercel revalidiert HTML und Service Worker; Assets und API-Pfade sind vom SPA-Rewrite ausgenommen. `public/sw.js` cacht JavaScript nur mit JavaScript-MIME-Typ. Es gibt keinen automatischen Reload, damit offene Entwürfe erhalten bleiben.
-- Automatisches Vorladen lädt Bildschirm-Chunks nur herunter; ausgeführt wird ein Bildschirm erst bei erkennbarer Absicht oder Aufruf.
+- Vercel revalidiert HTML und Service Worker; Assets sind unveränderlich und wie API-Pfade vom SPA-Rewrite ausgenommen. `public/sw.js` cacht JavaScript nur mit JavaScript-MIME-Typ und behält Assets der letzten zwei Builds (`sw-assets.json`). Kein automatischer Reload: offene Entwürfe bleiben.
+- Automatisches Vorladen lädt Bildschirm-Chunks nur herunter; ausgeführt werden sie erst bei Absicht oder Aufruf.
 
 ## API-Vertrag
 

@@ -28,25 +28,32 @@ interface PreloadableChunk {
  * The session check needs the Supabase client before anything else; as a dynamic chunk it would only start
  * loading after the first render. Preloading it with the entry overlaps its download with the app bundle.
  */
-export function sessionClientPreloadTags(bundle: Record<string, PreloadableChunk>, html: string, base = "/"): HtmlTagDescriptor[] {
+export function sessionClientPreloadTags(bundle: Record<string, PreloadableChunk>, html: string, base = "/", supabaseUrl = ""): HtmlTagDescriptor[] {
   const client = Object.values(bundle).find((chunk) => chunk.type === "chunk" && String(chunk.facadeModuleId ?? "").replaceAll("\\", "/").endsWith("/src/supabaseClient.ts"));
   if (!client) return [];
-  return [...(client.imports ?? []), client.fileName]
-    .filter((fileName) => !html.includes(fileName))
-    .map((fileName) => ({ tag: "link", attrs: { rel: "modulepreload", crossorigin: true, href: `${base}${fileName}` }, injectTo: "head" }));
+  const supabaseOrigin = URL.parse(supabaseUrl.trim())?.origin;
+  return [
+    // supabase-js sends no credentials, so the warmed connection must be the anonymous CORS one.
+    ...(supabaseOrigin ? [{ tag: "link", attrs: { rel: "preconnect", crossorigin: true, href: supabaseOrigin }, injectTo: "head" } as const] : []),
+    ...[...(client.imports ?? []), client.fileName]
+      .filter((fileName) => !html.includes(fileName))
+      .map((fileName) => ({ tag: "link", attrs: { rel: "modulepreload", crossorigin: true, href: `${base}${fileName}` }, injectTo: "head" } as const)),
+  ];
 }
 
 function preloadSessionClient(): Plugin {
   let base = "/";
+  let supabaseUrl = "";
   return {
     name: "core-preload-session-client",
     apply: "build",
     configResolved(config) {
       base = config.base;
+      supabaseUrl = loadEnv(config.mode, config.root, "VITE_SUPABASE_URL").VITE_SUPABASE_URL ?? "";
     },
     transformIndexHtml: {
       order: "post",
-      handler: (html, context) => context.bundle ? sessionClientPreloadTags(context.bundle as unknown as Record<string, PreloadableChunk>, html, base) : [],
+      handler: (html, context) => context.bundle ? sessionClientPreloadTags(context.bundle as unknown as Record<string, PreloadableChunk>, html, base, supabaseUrl) : [],
     },
   };
 }
@@ -105,6 +112,21 @@ function listFeatureChunks(): Plugin {
   };
 }
 
+/** `public/sw.js` reads this list to drop cached assets of older builds. */
+function listBuildAssets(): Plugin {
+  return {
+    name: "core-build-assets",
+    apply: "build",
+    generateBundle: {
+      order: "post",
+      handler(_options, bundle) {
+        const files = Object.keys(bundle).filter((file) => file.startsWith("assets/")).map((file) => `/${file}`).sort();
+        this.emitFile({ type: "asset", fileName: "sw-assets.json", source: JSON.stringify(files) });
+      },
+    },
+  };
+}
+
 export function resolveReleaseInfo({ version = packageJson.version } = {}) {
   return { version };
 }
@@ -149,7 +171,7 @@ export default defineConfig({
   define: {
     __CORE_RELEASE_INFO__: JSON.stringify(resolveReleaseInfo()),
   },
-  plugins: [react(), preloadSessionClient(), listFeatureChunks(), localAiRoutes()],
+  plugins: [react(), preloadSessionClient(), listFeatureChunks(), listBuildAssets(), localAiRoutes()],
   resolve: {
     // CoRe uses no Realtime channels; the stub keeps the WebSocket client (about 15 KiB gzip) out of the start graph.
     alias: [{ find: /^@supabase\/realtime-js$/, replacement: fileURLToPath(new URL("./src/supabaseRealtimeStub.ts", import.meta.url)) }],

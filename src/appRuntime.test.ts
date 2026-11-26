@@ -54,6 +54,8 @@ test("the entry preloads the Supabase client chunk for the session check", () =>
     ["/assets/supabase-vendor.js", "/assets/supabaseClient.js"],
   );
   assert.deepEqual(sessionClientPreloadTags({}, ""), []);
+  assert.deepEqual(sessionClientPreloadTags(bundle, "", "/", " https://project.supabase.co/ \n")[0]?.attrs, { rel: "preconnect", crossorigin: true, href: "https://project.supabase.co" });
+  assert.equal(sessionClientPreloadTags(bundle, "", "/", "kein-url").some((tag) => tag.attrs?.rel === "preconnect"), false);
 });
 
 test("die Chunkliste nennt je Bildschirm seine Dateien außerhalb des Startgraphen und seine kleinen Unterbereiche", () => {

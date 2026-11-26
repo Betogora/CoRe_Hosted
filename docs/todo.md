@@ -67,7 +67,6 @@ Solche Pakete beginnen deshalb mit ihrer Messung (Schritt 0).
 | --- | --- | --- |
 | Initiales JavaScript (gzip) | 295,3 KiB bei Grenze 300; am 22.11. noch 246,8 | höchstens 250 KiB |
 | Start-CSS | 191 KiB roh, 34,9 KiB gzip, eine Datei | rund 25 KiB gzip |
-| `Cache-Control` für `/assets/*` in Production | `public, max-age=0, must-revalidate` | `public, max-age=31536000, immutable` |
 | `affected-e2e` mit voller Suite | 12 bis 14 min (Testschritt 800 s) | höchstens 5 min |
 | `catalog-e2e` | 4,5 bis 6,5 min (120 Tests, 2 Worker) | höchstens 4 min |
 | Pull Requests mit voller Suite | 57 von 86 (66 %) in drei Wochen | höchstens 40 % |
@@ -78,7 +77,7 @@ Für alle Pakete gilt:
 
 - Je Paket ein Pull Request von `origin/main`; die Beschreibung nennt die
   Kennzahl vorher und nachher.
-- A1, A2, A4 und A5 berühren Bootstrap, Preload, Sync, Service Worker oder
+- A2, A4 und A5 berühren Bootstrap, Preload, Sync, Service Worker oder
   Chunking: vor dem Merge `gh workflow run weekly-performance.yml --ref <branch>`.
 - **Hill-Climbing** (H1 bis H5): je Schritt genau eine Änderung, Kennzahl
   vorher und nachher messen, nur übernehmen, wenn sie sinkt und alle Gates
@@ -87,7 +86,7 @@ Für alle Pakete gilt:
 - Unverändert lassen: `quality` (rund 50 s, Engpass Typecheck samt knip),
   Modultests (179 Dateien in 12 s) und RLS (21 Fälle in 6 s).
 
-Reihenfolge: A1 und T1, dann A2, dann T2 und T3, dann A3 und A4; A5 nach
+Reihenfolge: T1, dann A2, dann T2 und T3, dann A3 und A4; A5 nach
 der Entscheidung, A6, T4, A7 und T5 nach Bedarf.
 
 | Spur | Kennzahl | Schleife | Paket |
@@ -100,32 +99,6 @@ der Entscheidung, A6, T4, A7 und T5 nach Bedarf.
 
 ### App
 
-- [ ] **A1 – Auslieferung:** klein, gemessen, ohne Schritt 0.
-  - `vercel.json`: Regel für `/assets/(.*)` mit
-    `public, max-age=31536000, immutable`. Die vorhandene `no-cache`-Regel
-    nimmt `/assets` nur aus, deshalb gilt dort Vercels Standard, und jeder
-    Start ohne Service-Worker-Treffer revalidiert 16 Dateien.
-  - App-Schrift (`/fonts/manrope/manrope-variable.woff2`, eingebunden in
-    `src/styles.css:5-11`): `<link rel="preload" as="font" type="font/woff2"
-    crossorigin>` in `index.html` und heraus aus `no-cache`, entweder über
-    Vite als gehashtes Asset oder mit eigener Header-Regel ohne `immutable`.
-    `src/ui/CardPresentationSurface.tsx:8` lädt dieselbe Datei per `fetch`;
-    Pfad und `crossorigin` müssen dazu passen.
-  - `index.html`: `<link rel="preconnect" href="%VITE_SUPABASE_URL%"
-    crossorigin>`.
-  - `public/sw.js`: Der Cache `core-app-shell-v1` wechselt nie den Namen und
-    behält die gehashten Assets jedes Deploys; das zählt in
-    `storage.estimate()` und damit in die 80-%-Bereinigung der Medien. Alte
-    Assets entfernen, ohne einem offenen Tab mit altem Stand die Chunks zu
-    nehmen (Vertrag „kein automatischer Reload“; etwa Assets des laufenden
-    und des vorigen Builds behalten).
-  - `public/sw.js`: Navigation Preload einschalten
-    (`registration.navigationPreload.enable()` in `activate`,
-    `event.preloadResponse` in der Navigation). HTML aus dem Cache bleibt
-    reiner Rückfall.
-  - Nachweis: `curl -I` auf ein Asset der Preview zeigt `immutable`;
-    `weekly-performance` auf dem Branch grün, `serviceWorkerP75CostMs` und
-    Offline-Kaltstart vorher und nachher.
 - [ ] **A2 – Startgraph unter 250 KiB (H1):** Der Startgraph wuchs in zwei
       Sprüngen, mit PR #145 (Topbar, +24 KiB) und PR #179 (Profilabgleich,
       +18 KiB). Zusammensetzung in KiB gzip: React 59; Supabase 36;
