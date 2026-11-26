@@ -20,7 +20,7 @@ Solche Pakete beginnen deshalb mit ihrer Messung (Schritt 0).
 
 | Kennzahl | Stand | Ziel |
 | --- | --- | --- |
-| Initiales JavaScript (gzip) | 295,3 KiB bei Grenze 300; am 22.11. noch 246,8 | höchstens 250 KiB |
+| Initiales JavaScript (gzip) | 255,9 KiB bei Grenze 265 (vor A2 295,3; am 22.11. 246,8) | höchstens 250 KiB |
 | Start-CSS | 191 KiB roh, 34,9 KiB gzip, eine Datei | rund 25 KiB gzip |
 | `affected-e2e` mit voller Suite | 12 bis 14 min (Testschritt 800 s, davon 266 s Katalog, seit T1 entfallen) | höchstens 5 min |
 | `catalog-e2e` | 4,5 bis 6,5 min mit 2 Workern; seit T1 lokal auf 4 CPUs 176 statt 364 s, in CI noch ungemessen | höchstens 4 min |
@@ -55,53 +55,37 @@ der Entscheidung, A6, T4, A7 und T5 nach Bedarf.
 
 ### App
 
-- [ ] **A2 – Startgraph unter 250 KiB (H1):** Der Startgraph wuchs in zwei
-      Sprüngen, mit PR #145 (Topbar, +24 KiB) und PR #179 (Profilabgleich,
-      +18 KiB). Zusammensetzung in KiB gzip: React 59; Supabase 36;
-      lokale Persistenz und Hydration 32; Kernmodell, Lernen und Prüfungen
-      30; Radix und Floating-UI 28,5; Cloud und Auth 20; UI 14; xss 6,6;
-      ts-fsrs 6; valibot 5,3; lucide 5 (63 Icons); Kartensuche 4,5; übrige
-      App 38. Kandidaten nach erwarteter Wirkung:
-  1. `src/ui/AppNavigation.tsx:4` importiert `@radix-ui/react-popover`
-     statisch und hält damit Radix samt Floating-UI im Start
-     (`tooltipUi.tsx` braucht beides nicht). Popover erst beim Öffnen des
-     Menüs laden; `pomodoroTimerUi.tsx` (Zeile 14) ebenso prüfen.
-  2. `src/cloudAuth.ts:2` importiert `cloudTable` aus `cloudQueries.ts`
-     statisch; `vite.config.ts` legt das in den Chunk `cloud-repository`
-     (12,9 KiB), der so samt `cloudRepositoryValidation.ts` im Start liegt.
-     Stattdessen `client.from("profiles")` wie im Rest der Datei. Danach
-     verschwinden die Build-Warnungen „Circular chunk: index →
-     cloud-repository → index“ und „dynamisch und statisch importiert“.
-  3. Der Chunk mit `indexedDbReviews` (37,7 KiB) trägt valibot,
-     `cardSearchQuery.ts`, `learningProfiles`, `examPlanSettings`,
-     `studyHeatmapModel` und `aiCardVariantContract`. Ketten aus dem Start:
-     `App.tsx` → `workspaceHydrationService.ts` → `cardSearchQuery.ts`;
-     `App.tsx` → `cardCommands.ts` → `deckSettings.ts` →
-     `learningProfiles.ts`; `App.tsx` → `useAccountWorkspace.ts` →
-     `authenticatedWorkspaceBoot.ts` → `profileIntegrity.ts`. Je Kette
-     prüfen, ob ein Typimport oder ein dynamischer Import an der
-     Nutzungsstelle reicht; die Eigentümer aus `architecture.md` bleiben.
-  4. `src/App.tsx:9-19` importiert die Befehlsmodule statisch; darüber
-     liegen `reviewService` → `scheduler` → ts-fsrs (13 KiB) und
-     `coreModel` → `htmlSafety` → xss (10 KiB) im Start. Nur übernehmen,
-     wenn Lernstart und Kartenanzeige nicht später werden.
-  5. 34 der 102 Chunks sind Icon-Chunks unter 1,5 kB; zusammenlegen, wo
-     sie gemeinsam laden.
-  6. Start-CSS: Blöcke einzelner Screens aus `src/styles.css` (4.162
+- [ ] **A2 – Startgraph unter 250 KiB (H1):** Stand 255,9 KiB bei Grenze
+      265 (Radix samt Floating-UI lädt erst mit dem Navigationsmenü,
+      `cloudAuth.ts` zieht den Cloud-Chunk nicht mehr in den Start). Die
+      Rechnung zählt Radix jetzt zum Statistik-Graphen (176,8 statt
+      153,9 KiB, Ziel 175), obwohl die Statistik nur über das schon
+      geladene Menü erreichbar ist. Restliche Kandidaten:
+  1. FSRS aus dem Start lösen: `libraryModel.ts` braucht aus
+     `scheduler.ts` nur Zusammenfassungen, das Modul lädt aber ts-fsrs
+     samt `@open-spaced-repetition/srs-kit` (zusammen rund 66 KiB roh;
+     `srs-kit` liegt im Einstiegschunk, weil `manualChunkForModule` nur
+     `ts-fsrs` zuordnet). Bewerten muss offline funktionieren; das
+     FSRS-Modul muss deshalb mit der Lernansicht vorgeladen werden.
+  2. Kleinposten je unter 2,5 KiB gzip, jeweils lazy mit Rückfall ohne
+     Error-Boundary: Pomodoro-Anzeige im Kopf, `SettingsSaveBar`,
+     `VariantGenerationBarWiring`.
+  3. `cardSearchQuery.ts` (21,8 KiB roh) hängt an Stapelbaum, lokaler
+     Suche und Hydration; nur mit Umbau der Suchnaht lösbar.
+  4. Start-CSS: Blöcke einzelner Screens aus `src/styles.css` (4.162
      Zeilen) in CSS-Dateien verschieben, die der jeweilige Lazy-Screen
      importiert. Roh: Dashboard 13 KB, Mindmap 12,4, Zusammenfassung 9,6,
      Datumsauswahl 6,3, Rich-Text und Erstellung 4,9, Heatmap 3,9,
      Karteneditor 3,7, Prüfungen 2,9. Risiko: `@layer components` und
      Kaskadenreihenfolge über Dateigrenzen; visuelle Pflichtmatrix je
      verschobenem Screen. Entlastet zugleich T2.
-  - Die Zerlegung je Modul liefert ein Rollup-Plugin, das in
-    `generateBundle` die `renderedLength` je Modul der Start-Chunks
-    summiert (nicht im Repository).
-  - Abschluss: harte Grenze in `scripts/verifyBuildChunks.ts` und
-    `src/performanceGates.ts` von 300 auf rund 265 KiB senken und in
-    `test-portfolio.md` nachziehen, damit der Gewinn hält.
-  - Nachweis: Tabelle je Schritt im Commit; größter Lazy-Graph bleibt
-    unter 175 KiB; `preloadedTabP75Ms` und `lazyTabP75Ms` grün.
+  - Nicht lohnend: Der Import-Commit (`indexedDbImportCommit.ts`) lädt
+    trotzdem bei jedem Start, weil `useImportSession` beim Start nach
+    unterbrochenen Importen fragt; der KI-Variantenvertrag hängt an fünf
+    Startmodulen.
+  - Nachweis: Tabelle je Schritt im Commit; `preloadedTabP75Ms` und
+    `lazyTabP75Ms` grün; Grenze in `scripts/verifyBuildChunks.ts` und
+    `src/performanceGates.ts` mit dem Gewinn nachziehen.
 - [ ] **A3 – Revisionskaskade entkoppeln (H3):** `learningNow`
       (`src/useLearningClock.ts:24`) ist ein Millisekunden-Zeitstempel, der
       bei jeder Workspace-Revision neu entsteht, also bei jedem lokalen

@@ -59,7 +59,7 @@ const PERFORMANCE_GATES: ReadonlyArray<{ key: keyof PerformanceSnapshot; maximum
   { key: "deltaSyncP75Ms", maximum: 2_000, label: "Delta-Sync p75" },
   { key: "deltaSyncP95Ms", maximum: 5_000, label: "Delta-Sync p95" },
   { key: "blockingRepeatStartRequests", maximum: 1, label: "Blockierende Requests beim Wiederholungsstart" },
-  { key: "initialJavaScriptGzipBytes", maximum: 300 * 1024, label: "Initiales JavaScript gzip" },
+  { key: "initialJavaScriptGzipBytes", maximum: 265 * 1024, label: "Initiales JavaScript gzip" },
   { key: "largestFeatureGzipBytes", maximum: 200 * 1024, label: "Feature-Tab gzip" },
   { key: "bootstrapCompressedBytes", maximum: 200 * 1024, label: "Bootstrap komprimiert" },
   { key: "longestBackgroundTaskMs", maximum: 50, label: "Hintergrundtask" },

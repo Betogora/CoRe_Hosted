@@ -36,13 +36,13 @@ test("compressed budgets cover the initial graph, lazy additions and workers", (
     workers: ["assets/pdf.worker.mjs"],
   });
   assert.deepEqual(findCompressedBudgetViolations(manifest, {
-    "assets/index.js": 300 * 1024 + 1,
+    "assets/index.js": 265 * 1024 + 1,
     "assets/creation.js": 150 * 1024,
     "assets/vendor.js": 50 * 1024 + 1,
     "assets/pdf.worker.mjs": 525 * 1024 + 1,
   }), [
     { kind: "worker", name: "assets/pdf.worker.mjs", bytes: 525 * 1024 + 1, maxBytes: 525 * 1024 },
-    { kind: "initial", name: "initialer Importgraph", bytes: 300 * 1024 + 1, maxBytes: 300 * 1024 },
+    { kind: "initial", name: "initialer Importgraph", bytes: 265 * 1024 + 1, maxBytes: 265 * 1024 },
     { kind: "lazy-route", name: "CreationScreen", bytes: 200 * 1024 + 1, maxBytes: 200 * 1024 },
   ]);
 });

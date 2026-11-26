@@ -145,7 +145,7 @@ Zielwerte:
 | Erste Seite eines 100k-Stapels und Lernstart | p75 ≤ 1 s, p95 ≤ 2 s |
 | Review lokal dauerhaft gespeichert | p95 ≤ 250 ms |
 | Normaler Delta-Sync | p75 ≤ 2 s, p95 ≤ 5 s, nie startblockierend |
-| Initiales JavaScript (gzip) | Ziel ≤ 250 KiB, Grenze 300 KiB |
+| Initiales JavaScript (gzip) | Ziel ≤ 250 KiB, Grenze 265 KiB |
 | Normaler Feature-Tab (gzip) | Ziel ≤ 150 KiB, Grenze 200 KiB |
 | Statistik-Tab (gzip) | Ziel ≤ 175 KiB, Grenze 200 KiB; die Diagrammbibliothek macht rund 80 % aus |
 | Bootstrapdaten | < 200 KiB komprimiert, ohne Kartenkörper oder Medien |
@@ -153,7 +153,7 @@ Zielwerte:
 
 Geprüft werden sie so:
 
-- Der Production-Build erzwingt die Bundle-Grenzen (300 KiB gzip initial, 200 KiB
+- Der Production-Build erzwingt die Bundle-Grenzen (265 KiB gzip initial, 200 KiB
   je Lazy-Feature) bei jedem `gate:push`.
 - `npm run performance:measure:local` startet lokales Supabase, baut die
   E2E-Production-App und misst je zehn gedrosselte Läufe (Chromium, etwa 1,6 Mbit/s,

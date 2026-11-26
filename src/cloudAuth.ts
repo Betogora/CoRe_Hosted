@@ -1,5 +1,5 @@
 import * as v from "valibot";
-import { cloudTable, type CloudClient } from "./cloudQueries.ts";
+import type { CloudClient } from "./cloudQueries.ts";
 import type { Tables } from "./database.types.ts";
 import { withGlobalSchedulerPreferences } from "./deckSettings.ts";
 import type { ProfilePatch } from "./profileIntegrity.ts";
@@ -63,7 +63,14 @@ interface AuthClient<Auth> {
 
 type RedirectOptions = { emailRedirectTo?: string };
 
+interface ProfileQuery {
+  eq(column: string, value: string): ProfileQuery;
+  gt(column: string, value: string): ProfileQuery;
+  maybeSingle(): PromiseLike<{ data: unknown; error: unknown }>;
+}
+
 interface ProfilesTable {
+  select(columns: string): ProfileQuery;
   upsert(row: object, options: { onConflict: string; ignoreDuplicates?: boolean }): PromiseLike<{ error: unknown }> & {
     select(columns: string): { single(): PromiseLike<{ data: unknown; error: unknown }> };
   };
@@ -235,7 +242,7 @@ export function createProfilePatchRow(patch: ProfilePatch) {
 
 /** The account profile when its row changed after `since` (whenever `since` is null); null when unchanged. */
 export async function loadCloudProfileChange(client: CloudClient, userId: string, since: string | null) {
-  const query = cloudTable(client, "profiles").select("*").eq("id", userId);
+  const query = (client.from("profiles") as ProfilesTable).select("*").eq("id", userId);
   const { data, error } = await (since ? query.gt("updated_at", since) : query).maybeSingle();
   if (error) throw error;
   if (data == null) return null;
