@@ -489,7 +489,7 @@ export function compareTypedAnswer(expected: string, typed: string): { correct: 
   return { correct: expected.normalize("NFC") === typed.normalize("NFC"), typed: actual, expected: target };
 }
 
-export function evaluateNoteChoice(choice: Extract<NoteInteraction, { kind: "choice" }>, answers: Record<string, boolean>) {
+export function evaluateNoteChoice(choice: { kind?: "choice"; mode: "single" | "multiple" | "kprim"; options: ReadonlyArray<{ id: string; correct: boolean }> }, answers: Readonly<Record<string, boolean>>) {
   return choice.options.map((option) => {
     const selected = choice.mode === "kprim" ? answers[option.id] ?? null : answers[option.id] === true;
     return { selected, correct: selected === option.correct };

@@ -3560,6 +3560,9 @@ video {
 .ease-out {
   transition-timing-function: cubic-bezier(0, 0, 0.2, 1);
 }
+.\[-webkit-touch-callout\:none\] {
+  -webkit-touch-callout: none;
+}
 .\[overflow-wrap\:anywhere\] {
   overflow-wrap: anywhere;
 }
@@ -6280,31 +6283,43 @@ button.core-info-hint:is(:hover, [data-state="open"]) {
 }
 
 .core-summary-panel { container: core-summary / inline-size; }
-@container core-summary (min-width: 48rem) {
-  .core-summary-create-actions { grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; }
-}
-.core-summary-create-ai { display: grid; min-width: 0; }
-.core-summary-create-action { display: flex; align-items: center; gap: var(--core-space-md); width: 100%; min-height: 72px; padding: var(--core-space-lg); border: var(--core-border-width) solid var(--core-border); border-radius: var(--core-radius-panel); background: var(--core-surface-raised); color: var(--core-text); text-align: left; font: var(--core-weight-heading) var(--core-type-heading-3)/var(--core-leading-heading-3) var(--core-font-sans); transition: border-color 140ms ease, box-shadow 140ms ease, transform 140ms ease; }
-.core-summary-create-icon { display: grid; flex-shrink: 0; place-items: center; width: 2.5rem; height: 2.5rem; border-radius: var(--core-radius-control); background: var(--core-surface-muted); color: var(--core-action-primary); transition: background-color 140ms ease, color 140ms ease; }
-.core-summary-create-action > span { min-width: 0; overflow-wrap: anywhere; }
-.core-summary-create-action:not(:disabled):hover, .core-summary-create-action[aria-expanded="true"], .core-summary-create-form { border-color: color-mix(in srgb, var(--core-action-primary) 45%, var(--core-border)); }
-.core-summary-create-action:not(:disabled):not([aria-expanded="true"]):hover { box-shadow: var(--core-shadow-raised); transform: translateY(-1px); }
-.core-summary-create-action:not(:disabled):hover .core-summary-create-icon, .core-summary-create-action[aria-expanded="true"] .core-summary-create-icon { background: var(--core-action-primary); color: var(--core-text-on-accent); }
-.core-summary-create-action[aria-expanded="true"] { border-bottom-color: var(--core-border); border-end-start-radius: 0; border-end-end-radius: 0; }
-.core-summary-create-action:disabled { opacity: 0.5; cursor: not-allowed; }
-.core-summary-create-form { container: summary-create / inline-size; display: grid; gap: var(--core-space-lg); min-width: 0; padding: var(--core-space-lg); border-width: 0 var(--core-border-width) var(--core-border-width); border-style: solid; border-radius: var(--core-radius-panel); border-start-start-radius: 0; border-start-end-radius: 0; background: var(--core-surface-raised); }
-.core-summary-create-form .core-segmented-control { width: 100%; }
-.core-summary-create-form .core-segmented-control-option { white-space: normal; flex: 1; }
-.core-summary-create-footer { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--core-space-md); }
+.core-creation-menu { display: flex; flex-wrap: wrap; align-items: start; gap: var(--core-space-md); min-width: 0; }
+.core-creation-menu > *, .core-creation-menu-entry:not(:only-child) > .core-creation-menu-action { flex: 1 1 20rem; min-width: 0; }
+.core-creation-menu-entry { display: grid; }
+/* Beside other tiles, the tiles keep their row and an open form follows below all of them, so nothing jumps. */
+.core-creation-menu-entry:not(:only-child) { display: contents; }
+.core-creation-menu-entry:not(:only-child) > .core-creation-menu-form { order: 1; flex-basis: 100%; border-width: var(--core-border-width); border-radius: var(--core-radius-panel); }
+.core-creation-menu-action { display: flex; align-items: center; gap: var(--core-space-md); width: 100%; min-height: 72px; padding: var(--core-space-lg); border: var(--core-border-width) solid var(--core-border); border-radius: var(--core-radius-panel); background: var(--core-surface-raised); color: var(--core-text); text-align: left; font: var(--core-weight-heading) var(--core-type-heading-3)/var(--core-leading-heading-3) var(--core-font-sans); transition: border-color 140ms ease, box-shadow 140ms ease, transform 140ms ease; }
+.core-creation-menu-icon { display: grid; flex-shrink: 0; place-items: center; width: 2.5rem; height: 2.5rem; border-radius: var(--core-radius-control); background: var(--core-surface-muted); color: var(--core-action-primary); transition: background-color 140ms ease, color 140ms ease; }
+.core-creation-menu-action > span { min-width: 0; overflow-wrap: anywhere; }
+.core-creation-menu-action:not(:disabled):hover, .core-creation-menu-action[aria-expanded="true"], .core-creation-menu-form { border-color: color-mix(in srgb, var(--core-action-primary) 45%, var(--core-border)); }
+.core-creation-menu-action:not(:disabled):not([aria-expanded="true"]):hover { box-shadow: var(--core-shadow-raised); transform: translateY(-1px); }
+.core-creation-menu-action:not(:disabled):hover .core-creation-menu-icon, .core-creation-menu-action[aria-expanded="true"] .core-creation-menu-icon { background: var(--core-action-primary); color: var(--core-text-on-accent); }
+.core-creation-menu-entry:only-child > .core-creation-menu-action[aria-expanded="true"] { border-bottom-color: var(--core-border); border-end-start-radius: 0; border-end-end-radius: 0; }
+.core-creation-menu-action:disabled { opacity: 0.5; cursor: not-allowed; }
+.core-creation-menu-form { container: creation-menu-form / inline-size; display: grid; gap: var(--core-space-lg); min-width: 0; padding: var(--core-space-lg); border-width: 0 var(--core-border-width) var(--core-border-width); border-style: solid; border-radius: var(--core-radius-panel); border-start-start-radius: 0; border-start-end-radius: 0; background: var(--core-surface-raised); }
+.core-creation-menu-form .core-segmented-control { width: 100%; }
+.core-creation-menu-form .core-segmented-control-option { white-space: normal; flex: 1; }
+.core-creation-menu-fields { display: flex; flex-wrap: wrap; align-items: start; gap: var(--core-space-lg); min-width: 0; }
+.core-creation-menu-fields > * { flex: 1 1 18rem; min-width: 0; }
+.core-creation-menu-fields > .core-creation-menu-wide { flex-basis: 100%; }
+.core-creation-menu-fields > .core-slider { row-gap: var(--core-space-sm); }
+.core-creation-menu-footer { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--core-space-md); }
 .core-summary-source-chip { display: flex; align-items: center; justify-self: start; gap: var(--core-space-sm); min-width: 0; max-width: 100%; min-height: 2rem; padding-inline-start: var(--core-space-md); border-radius: var(--core-radius-inset); background: var(--core-surface-muted); color: var(--core-text); font: var(--core-weight-emphasis) var(--core-type-body)/var(--core-leading-body) var(--core-font-sans); }
 .core-summary-source-chip > svg { flex-shrink: 0; color: var(--core-text-muted); }
 .core-summary-source-chip > button { display: grid; flex-shrink: 0; place-items: center; width: 2rem; height: 2rem; border-radius: var(--core-radius-inset); color: var(--core-text-muted); }
 .core-summary-source-chip > button:hover { color: var(--core-text); }
-.core-summary-create-wait { display: flex; flex-wrap: wrap; align-items: center; gap: var(--core-space-md); }
-.core-summary-create-wait-message { flex: 1 1 auto; min-width: 0; }
-@container summary-create (max-width: 32rem) {
-  .core-summary-create-footer .core-summary-actions { flex-basis: 100%; }
-  .core-summary-create-footer .core-summary-actions > button, .core-summary-create-wait > button { flex: 1; }
+.core-creation-menu-wait { display: flex; flex-wrap: wrap; align-items: center; gap: var(--core-space-md); }
+.core-creation-menu-wait-message { flex: 1 1 auto; min-width: 0; }
+.core-creation-menu-wait-progress { order: 1; flex-basis: 100%; }
+/* Where fields share a row, a slider keeps the centre line of the segmented controls beside it. */
+@container creation-menu-form (min-width: 37rem) {
+  .core-creation-menu-fields > .core-slider > .core-slider-track { margin-block: calc((var(--core-selection-height) - 1.25rem) / 2); }
+}
+@container creation-menu-form (max-width: 32rem) {
+  .core-creation-menu-footer .core-creation-menu-submit { flex-basis: 100%; }
+  .core-creation-menu-footer .core-creation-menu-submit > button, .core-creation-menu-wait > button { flex: 1; }
+  .core-creation-menu-wait-progress { order: 0; }
 }
 .core-summary-title-field { min-height: var(--core-button-height); padding-block: 0.25rem; }
 .core-summary-editor-heading { display: grid; grid-template-columns: auto minmax(0, 1fr); grid-auto-columns: auto; grid-auto-flow: column; align-items: center; gap: var(--core-space-sm) var(--core-space-md); min-width: 0; }
@@ -6318,6 +6333,60 @@ button.core-info-hint:is(:hover, [data-state="open"]) {
 .core-summary-preview-action { flex-shrink: 0; align-self: end; }
 /* A sibling of the card, because the card itself is a button. */
 .core-summary-delete { position: absolute; top: calc(1.5rem + (var(--core-leading-heading-3) - var(--core-button-height)) / 2); right: var(--core-space-md); }
+.core-quiz-panel { container: core-quiz-panel / inline-size; }
+.core-quiz-list { display: grid; min-width: 0; }
+.core-quiz-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; min-width: 0; padding-inline-end: var(--core-space-sm); border-bottom: var(--core-border-width) solid var(--core-border); }
+.core-quiz-row:has(.core-quiz-row-open:hover) { background: var(--core-surface-hover); }
+.core-quiz-row-open { display: grid; grid-template-columns: minmax(0, 1fr) 3.5rem 9rem 6rem; align-items: baseline; gap: var(--core-space-xs) var(--core-space-lg); min-width: 0; min-height: 3.5rem; padding: var(--core-space-md) var(--core-space-lg); color: var(--core-text-secondary); font: var(--core-weight-body) var(--core-type-body-large)/var(--core-leading-body-large) var(--core-font-sans); text-align: start; }
+.core-quiz-row-open > :is(strong, b) { min-width: 0; overflow-wrap: anywhere; color: var(--core-text); font-weight: var(--core-weight-heading); }
+.core-quiz-row-open > em { grid-column: span 2; color: var(--core-text-muted); font-style: normal; }
+@container core-quiz-panel (max-width: 40rem) {
+  .core-quiz-row-open { display: flex; flex-wrap: wrap; -moz-column-gap: var(--core-space-md); column-gap: var(--core-space-md); padding-inline: 0; }
+  .core-quiz-row-open > strong { flex-basis: 100%; }
+  .core-quiz-row-open > time { margin-inline-start: auto; }
+}
+.core-quiz-view { container: core-quiz / inline-size; display: grid; gap: var(--core-space-xl); width: 100%; max-width: 48rem; min-width: 0; margin-inline: auto; }
+.core-quiz-view-header { display: flex; align-items: start; gap: var(--core-space-xs); min-width: 0; }
+.core-quiz-view-header > h3 { flex: 1; min-width: 0; padding-block: calc((var(--core-button-height) - var(--core-leading-heading-2)) / 2); overflow-wrap: anywhere; }
+.core-quiz-questions { display: grid; min-width: 0; }
+.core-quiz-question { --core-quiz-help-height: 2.625rem; display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: start; gap: var(--core-space-md); min-width: 0; padding-block: var(--core-space-xl); border-top: var(--core-border-width) solid var(--core-border); scroll-margin-top: calc(var(--shell-height, 0px) + var(--core-space-lg)); }
+.core-quiz-question:first-child { padding-top: 0; border-top: 0; }
+.core-quiz-question:last-child { padding-bottom: 0; }
+/* Number and question sit on the centre line of the help entry beside them, also when the question wraps. */
+.core-quiz-question > :is(span, h4) { padding-block: calc((var(--core-quiz-help-height) - var(--core-leading-heading-2)) / 2); }
+.core-quiz-question > span { min-width: 1.25rem; color: var(--core-text-muted); font: var(--core-weight-control) var(--core-type-heading-2)/var(--core-leading-heading-2) var(--core-font-sans); font-variant-numeric: tabular-nums; }
+.core-quiz-question > h4 { overflow-wrap: anywhere; }
+.core-quiz-question > [role="group"] { grid-column: 1 / -1; }
+.core-quiz-question .core-mcq-option .core-body { font: var(--core-weight-control) var(--core-type-body-large)/var(--core-leading-body-large) var(--core-font-sans); }
+.core-quiz-bar { position: sticky; bottom: max(0.75rem, env(safe-area-inset-bottom)); z-index: 30; display: flex; align-items: center; gap: var(--core-space-md); min-width: 0; padding: var(--core-space-sm) var(--core-space-sm) var(--core-space-sm) var(--core-space-md); border-radius: var(--core-radius-panel); }
+/* Below 80rem the bottom navigation of the app floats over the content. */
+@media (max-width: 79.9375rem) {
+  body:has(.core-mobile-bottom-navigation) .core-quiz-bar { bottom: calc(env(safe-area-inset-bottom) + 5.5rem); }
+}
+.core-quiz-score { display: flex; align-items: center; gap: var(--core-space-xl); min-width: 0; }
+.core-quiz-ring { position: relative; display: grid; flex-shrink: 0; place-items: center; width: 7.5rem; height: 7.5rem; }
+.core-quiz-ring > svg { position: absolute; inset: 0; rotate: -90deg; fill: none; stroke-width: 10; }
+.core-quiz-ring-track { stroke: var(--core-surface-muted); }
+.core-quiz-ring-value { stroke: var(--core-action-primary); stroke-linecap: round; }
+.core-quiz-actions { display: flex; flex-wrap: wrap; gap: var(--core-space-sm); min-width: 0; }
+.core-quiz-results { display: grid; min-width: 0; border-top: var(--core-border-width) solid var(--core-border-interactive); }
+.core-quiz-result { min-width: 0; border-bottom: var(--core-border-width) solid var(--core-border); }
+.core-quiz-result-row { display: grid; grid-template-columns: 1.5rem auto minmax(0, 1fr) auto auto; align-items: center; gap: var(--core-space-xs) var(--core-space-md); width: 100%; min-height: 3rem; padding-block: var(--core-space-md); text-align: start; }
+.core-quiz-result-row:hover { background: var(--core-surface-hover); }
+.core-quiz-result-number { color: var(--core-text-muted); font: var(--core-weight-control) var(--core-type-body)/var(--core-leading-body) var(--core-font-sans); font-variant-numeric: tabular-nums; text-align: end; }
+.core-quiz-result-tags { display: flex; flex-wrap: wrap; grid-column: 4; justify-content: flex-end; gap: var(--core-space-sm); }
+.core-quiz-result-chevron { grid-column: 5; grid-row: 1; flex-shrink: 0; color: var(--core-text-muted); transition: rotate 150ms ease; }
+.core-quiz-result-row[aria-expanded="true"] .core-quiz-result-chevron { rotate: 180deg; }
+.core-quiz-result-detail { display: grid; gap: var(--core-space-md); min-width: 0; padding: var(--core-space-xs) 0 var(--core-space-xl) calc(1.5rem + 1.25rem + 2 * var(--core-space-md)); }
+.core-quiz-result-detail .core-mcq-option { animation: none; }
+@container core-quiz (max-width: 32rem) {
+  /* The help entry keeps its name for assistive technology and shows the mascot alone. */
+  .core-study-ai-inline { position: relative; gap: 0; padding-inline-end: var(--core-space-xs); }
+  .core-study-ai-inline > span:last-child { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+  .core-quiz-actions > button { flex: 1 1 100%; }
+  .core-quiz-result-tags { grid-row: 2; grid-column: 3; justify-content: flex-start; }
+  .core-quiz-result-detail { padding-inline-start: 0; }
+}
 .core-summary-editor .rich-text-field { font-family: var(--summary-font); font-size: var(--summary-size); overflow-wrap: anywhere; }
 .core-summary-editor .rich-text-field :is(h1, h2, h3, h4) { font-weight: var(--core-weight-heading); margin-block: var(--core-space-lg) var(--core-space-sm); }
 .core-summary-editor .rich-text-field h1 { font-size: var(--core-type-heading-1); }
@@ -8423,6 +8492,12 @@ body:has(.catalog-shell-preview, .catalog-product-preview) > .core-tooltip { z-i
 body:has(.catalog-shell-preview) > [data-radix-popper-content-wrapper] { z-index: 80 !important; }
 body:has(.catalog-shell-preview, .catalog-product-preview) { overflow: hidden; }
 .catalog-product-preview { position: fixed; inset: 0; z-index: 50; overflow-y: auto; overflow-x: hidden; background: var(--core-canvas); }
+/* The quiz preview scrolls with the page: a capture of the whole view then shows nothing of the catalog behind it. */
+.catalog-product-preview.catalog-product-flow { position: absolute; inset: 0 0 auto; min-height: 100dvh; overflow: visible; }
+body:has(.catalog-product-flow) { overflow: visible; }
+.catalog-preview:has(> .catalog-product-flow) > :not(.catalog-product-flow) { display: none; }
+/* A modal locks scrolling in the app, so the view behind it is one screen. */
+body:has([aria-modal="true"]) .catalog-product-flow > section { height: 100dvh; overflow: clip; }
 .catalog-product-bar { position: sticky; top: 0; z-index: 50; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px; padding: 12px 10px; background: var(--core-canvas); }
 .catalog-row { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
 .catalog-two { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
@@ -8463,9 +8538,9 @@ html { scroll-behavior: smooth; }
 html:has(.catalog-preview) { scroll-behavior: auto; }
 @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
 </style></head><body><div class="docs-frame"><aside class="docs-sidebar"><nav class="docs-panel docs-pages" aria-label="Doku-Seiten"><div class="docs-panel-head"><a class="docs-brand" href="index.html">CoRe <span>Docs</span></a><button type="button" id="docs-theme" aria-label="Dark Mode einschalten" style="color:var(--core-text)" class="core-action-ghost min-w-button p-2 size-button shrink-0 rounded-control"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-sun" aria-hidden="true"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2"></path><path d="M12 20v2"></path><path d="m4.93 4.93 1.41 1.41"></path><path d="m17.66 17.66 1.41 1.41"></path><path d="M2 12h2"></path><path d="M20 12h2"></path><path d="m6.34 17.66-1.41 1.41"></path><path d="m19.07 4.93-1.41 1.41"></path></svg><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-moon" aria-hidden="true"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"></path></svg></button></div><div class="docs-panel-links"><a href="index.html">Docs</a><a href="specs.html" aria-current="page">Specs</a><a href="journeys.html">Journeys</a><a href="ui-elements.html">UI-Elements</a><a href="card-types.html">Kartenbausteine</a><a href="ai-eval.html">KI-Eval</a></div></nav><div class="docs-panel docs-search-panel" role="search"><label class="catalog-search"><span class="catalog-search-label">Specs durchsuchen</span><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-search" aria-hidden="true"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.3-4.3"></path></svg><input id="docs-search" type="search" placeholder="Anforderung, Begriff …" autocomplete="off"></label><p id="docs-search-count" class="docs-count" role="status"></p></div><nav class="docs-panel docs-toc" aria-label="Inhalt"><strong>Inhalt</strong><div id="docs-toc" class="docs-panel-links"></div></nav></aside><main class="docs-main"><article id="specs--document" class="docs-document"><h1 id="specs--specs" class="core-heading-1" tabindex="-1">Specs <a class="docs-anchor" href="#specs--specs" aria-label="Link zu Specs">#</a></h1>
-<p><strong>Stand:</strong> 2026-11-19</p>
+<p><strong>Stand:</strong> 2026-11-26</p>
 <p><strong>CoRe ist ein Lernwerkzeug für alle, die große Stoffmengen über Monate sicher im Kopf behalten müssen, zuerst für Studierende und Auszubildende auf dem Weg zur Prüfung.</strong> Es wiederholt nicht Karten, sondern Inhalte: Gefestigtes Wissen kehrt in neuer Formulierung zurück, damit Verstehen geübt wird statt Wiedererkennen. Ziel ist Wissen, das in der Prüfung abrufbar ist, auch wenn die Frage anders gestellt wird.</p>
-<p>Die Specs beschreiben, was CoRe tun soll und warum: je Funktion die Absicht, ihre Regeln und die Entscheidungen, die der Code umsetzt. Wer sie liest, soll das Produkt prüfen können, ohne in den Code zu schauen. Wie die Datei gepflegt wird, steht <a href="#specs--pflege-dieser-datei">am Ende</a>.</p>
+<p>Die Specs beschreiben je Funktion Absicht, Regeln und Entscheidungen, sodass sich das Produkt ohne Blick in den Code prüfen lässt. Wie die Datei gepflegt wird, steht <a href="#specs--pflege-dieser-datei">am Ende</a>.</p>
 <h2 id="specs--1-produkt" class="core-heading-2" tabindex="-1">1. Produkt <a class="docs-anchor" href="#specs--1-produkt" aria-label="Link zu 1. Produkt">#</a></h2>
 <h3 id="specs--zielgruppen" class="core-heading-3" tabindex="-1">Zielgruppen <a class="docs-anchor" href="#specs--zielgruppen" aria-label="Link zu Zielgruppen">#</a></h3>
 <p>CoRe startet Anki-kompatibel und plant vorhersehbar: Jede planbare Karte ist eine eigene Lerneinheit, eine Sitzung behält ihren Plan, und jede Bewertung nennt vorab ihren Abstand.</p>
@@ -8608,7 +8683,7 @@ html:has(.catalog-preview) { scroll-behavior: auto; }
 <li>Verschieben macht einen Stapel samt Unterbaum zum direkten Unterstapel des Ziels oder zum Hauptstapel. Ausgeschlossen sind nur der Stapel selbst und seine Nachfahren. Importherkunft und Tags bleiben.</li>
 <li>Das Löschen eines Stapelbaums ist endgültig, nennt vorher Unterstapel und Kartenzahl und wird durch späteren Sync nicht rückgängig.</li>
 <li>Je Stapel zeigen <code>Heute</code> und <code>Lernen</code> die Tageszahlen <code>Neu</code>, <code>Offen</code> und <code>Fällig</code> nach <a href="#specs--tagesrunde-und-limits">Tagesrunde und Limits</a>; Elternstapel zählen ihren Teilbaum.</li>
-<li>Ein geöffneter Stapel bündelt Unterstapel, die Karten des ganzen Teilbaums, Zusammenfassungen und Mindmap; gelernt wird aus den Unterstapeln.</li>
+<li>Ein geöffneter Stapel bündelt Unterstapel, die Karten des ganzen Teilbaums, Zusammenfassungen, Mindmap und Quizze; gelernt wird aus den Unterstapeln.</li>
 <li>Wo ein Stapel gewählt wird, steht sein vollständiger Pfad, damit gleichnamige Unterstapel unterscheidbar bleiben.</li>
 </ul>
 <h2 id="specs--3-kernjourneys" class="core-heading-2" tabindex="-1">3. Kernjourneys <a class="docs-anchor" href="#specs--3-kernjourneys" aria-label="Link zu 3. Kernjourneys">#</a></h2>
@@ -8882,13 +8957,11 @@ html:has(.catalog-preview) { scroll-behavior: auto; }
 <li>Bewertungen und Aussetzen der laufenden Sitzung lassen sich rückwärts zurücknehmen, mit dem Lernstand von davor; eine Bewertung verschwindet auf allen Geräten aus Verlauf, Statistik und Tageszahlen. Flagge, Markierung oder Aussetzung sperren das für frühere Bewertungen derselben Karte; Kartenreihenfolge, neuer Lerntag oder Verlassen beenden es.</li>
 <li>Inhalte mit Vorlese-Angabe aus Anki lassen sich über die Sprachausgabe des Geräts vorlesen.</li>
 <li>Markierter Text lässt sich in AMBOSS nachschlagen. Erst der ausdrückliche Klick öffnet die Suche; übertragen wird nur der markierte Text.</li>
-<li>Nach dem Aufdecken steht <a href="#specs--ki-hilft">KI hilft</a> bereit.</li>
 <li>In der Sitzung lassen sich die <a href="#specs--zusammenfassungen">Zusammenfassungen</a> des Stapels lesen und von Hand schreiben, ohne dabei Karten zu bewerten; ein ungespeicherter Entwurf fragt beim Verlassen nach.</li>
 </ul>
 <h3 id="specs--pomodoro-timer" class="core-heading-3" tabindex="-1">Pomodoro-Timer <a class="docs-anchor" href="#specs--pomodoro-timer" aria-label="Link zu Pomodoro-Timer">#</a></h3>
 <ul>
 <li>Je Konto gibt es genau einen Timer in diesem Browser. Er läuft mit echter Uhrzeit, übersteht Navigation, Reload und weitere Tabs und nutzt weder das Konto noch die simulierte Lernzeit.</li>
-<li>Er lässt sich aus der Sitzung, von <code>Heute</code> und aus den Einstellungen starten, anhalten und zurücksetzen; überall ist es derselbe Timer.</li>
 <li>Ein laufender Timer ist in der ganzen App sichtbar; sein Ablauf wird gemeldet.</li>
 <li><strong>Bewusst nicht:</strong> Töne, automatische Pausenzyklen.</li>
 </ul>
@@ -8974,14 +9047,14 @@ html:has(.catalog-preview) { scroll-behavior: auto; }
 </tr>
 <tr>
 <td><a href="#specs--automatisch-aus-einer-quelle">Karten aus einer Quelle</a></td>
-<td>Erstellen mit einer Quelle</td>
+<td>Erstellen mit einer Quelle oder eines <a href="#specs--quiz">Quiz</a></td>
 <td>Auftrag als getrennte Daten, je Anfrage ein Abschnitt der Quelle mit Stellen, die bisherigen Fragen</td>
 <td>belegte Kartenvorschläge und Hinweise</td>
 <td>ungespeicherte Vorschläge; Karten erst nach Übernahme</td>
 </tr>
 </tbody></table>
 <h3 id="specs--ki-hilft" class="core-heading-3" tabindex="-1">KI hilft <a class="docs-anchor" href="#specs--ki-hilft" aria-label="Link zu KI hilft">#</a></h3>
-<p>Eine Lernhilfe zu genau der Karte, die gerade aufgedeckt ist.</p>
+<p>Eine Lernhilfe zu genau der aufgedeckten Karte oder einer <a href="#specs--quiz">Quizfrage</a>.</p>
 <ul>
 <li>Angeboten werden Erklären, ein Beispiel und eine eigene Frage.</li>
 <li>Die KI sieht die Karte so, wie sie abgefragt wurde: Bei Lückentext ist nur die eigene Lücke verdeckt, bei Auswahlfragen sind richtige und falsche Optionen benannt. Das Quellenfeld bleibt auf dem Gerät.</li>
@@ -9059,7 +9132,7 @@ html:has(.catalog-preview) { scroll-behavior: auto; }
 </ul>
 <h3 id="specs--kalender-und-lernblöcke" class="core-heading-3" tabindex="-1">Kalender und Lernblöcke <a class="docs-anchor" href="#specs--kalender-und-lernblöcke" aria-label="Link zu Kalender und Lernblöcke">#</a></h3>
 <ul>
-<li>Der Kalender zeigt Prüfungstermine und je Tag die Lernaufgaben nach Prüfung, als Monat oder Woche; jede Prüfung lässt sich ein- und ausblenden, ohne die Planung zu ändern.</li>
+<li>Der Kalender zeigt Prüfungstermine und je Tag die Lernaufgaben nach Prüfung; jede Prüfung lässt sich ein- und ausblenden, ohne die Planung zu ändern.</li>
 <li>Ein Lernblock reserviert Zeit an einem Tag. Einer Prüfung zugeordnet, setzt er deren Lernzeit an diesem Tag; ohne Zuordnung ist er eine Notiz ohne Wirkung auf die Verteilung. Blöcke überlappen nicht.</li>
 <li>Änderungen am Kalender werden mit neu berechneter Vorschau ausdrücklich gespeichert oder verworfen.</li>
 </ul>
@@ -9132,12 +9205,21 @@ html:has(.catalog-preview) { scroll-behavior: auto; }
 <li>Eine Mindmap hat feste Obergrenzen, darunter 2.000 Karten; eine Änderung darüber hinaus wird mit Grenze und aktuellem Wert abgewiesen.</li>
 <li><strong>Bewusst nicht:</strong> Export, gemeinsames Bearbeiten.</li>
 </ul>
+<h3 id="specs--quiz" class="core-heading-3" tabindex="-1">Quiz <a class="docs-anchor" href="#specs--quiz" aria-label="Link zu Quiz">#</a></h3>
+<p>Ein Selbsttest zum Stoff eines Stapels, ohne Wirkung auf Lernstand und Statistik.</p>
+<ul>
+<li>Die KI stellt über <a href="#specs--automatisch-aus-einer-quelle">Karten aus einer Quelle</a> 5–20 Single- und Multiple-Choice-Fragen mit je vier Antworten in gemischter Reihenfolge, aus zufällig gewählten Karten (optional samt Unterstapeln) oder einer ungespeicherten PDF mit Textebene.</li>
+<li>Antworten bleiben bis zur Abgabe änderbar; offene zählen falsch, Multiple Choice nur ganz richtig. Durchgänge werden nicht zwischengespeichert.</li>
+<li><a href="#specs--ki-hilft">KI hilft</a> sieht vor der Abgabe die Frage ohne Lösung und Erklärung und markiert sie. <strong>Grenze:</strong> Die KI kann die Lösung selbst wissen.</li>
+<li>Die Auswertung zeigt den Anteil richtiger Antworten, auf Wunsch die Dauer, und jede Frage mit Lösung. Falsche Fragen lassen sich als eigenes Quiz wiederholen, Fragen als Auswahlkarten mit Erklärung und ohne Quelle übernehmen.</li>
+<li>Quizze und ihre letzten 100 Durchgänge liegen im Konto; Durchgänge zweier Geräte bleiben beide.</li>
+<li><strong>Bewusst nicht:</strong> Zeitlimit, Nachbau einer Altklausur, neue Fragen zu einem bestehenden Quiz.</li>
+</ul>
 <h2 id="specs--9-überblick-und-verwaltung" class="core-heading-2" tabindex="-1">9. Überblick und Verwaltung <a class="docs-anchor" href="#specs--9-überblick-und-verwaltung" aria-label="Link zu 9. Überblick und Verwaltung">#</a></h2>
 <h3 id="specs--heute" class="core-heading-3" tabindex="-1">Heute <a class="docs-anchor" href="#specs--heute" aria-label="Link zu Heute">#</a></h3>
 <p><code>Heute</code> ist die Startseite: Tagesstand, Lernstart und persönliche Werkzeuge an einem Ort.</p>
 <ul>
 <li>Die Seite besteht aus wähl- und anordenbaren Bausteinen: Tagesstand, Motivationsimpuls, Lerntimer, angepinnte Stapel, To-dos, Lern-Heatmap und Prüfungsaufgaben. Anordnung und eigene To-dos gelten je Konto nur in diesem Browser.</li>
-<li><strong>Feste Formate:</strong> Bausteine haben feste Größen; längere Inhalte scrollen im Baustein.</li>
 <li><strong>Erststart:</strong> Ein neues Konto beginnt ohne erfundene Daten. Ohne Stapel führt die Seite zu Import, manueller Karte oder Demo; Demo-Stapel entstehen nur auf ausdrückliche Aktion, einmalig, ohne Lernhistorie.</li>
 <li><strong>Tagesstand:</strong> Er fasst alle Hauptstapel ohne Doppelzählung in <code>Gelernt</code>, <code>Neu</code>, <code>Offen</code> und <code>Fällig</code> zusammen (<a href="#specs--tagesrunde-und-limits">Tagesrunde und Limits</a>).</li>
 <li><strong>Lernstart:</strong> startet den alphabetisch ersten Hauptstapel mit verfügbaren Karten; warten nur Lernschritte, kündigt er späteres Weiterlernen an, sonst meldet er das Tagesziel und bietet zusätzliche neue Karten an.</li>
@@ -9149,7 +9231,7 @@ html:has(.catalog-preview) { scroll-behavior: auto; }
 <h3 id="specs--kartenverwaltung" class="core-heading-3" tabindex="-1">Kartenverwaltung <a class="docs-anchor" href="#specs--kartenverwaltung" aria-label="Link zu Kartenverwaltung">#</a></h3>
 <p><code>Karten</code> ist die Gesamtverwaltung aller Karten aller Stapel: suchen, auswählen, gemeinsam ändern, pflegen und gezielt lernen.</p>
 <ul>
-<li>Die Kartenverwaltung zeigt eine flache, sortierbare Liste; die Stapelstruktur ordnet <code>Lernen</code>. Ein geöffneter Stapel zeigt dieselbe Liste, begrenzt auf seinen Teilbaum.</li>
+<li>Die Kartenverwaltung ist eine flache, sortierbare Liste, im geöffneten Stapel begrenzt auf seinen Teilbaum; die Stapelstruktur ordnet <code>Lernen</code>.</li>
 <li>Ausgesetzte, markierte, geflaggte und zu klärende Karten bleiben sichtbar und sind als solche gekennzeichnet.</li>
 <li>Suche, Sortierung und Blättern arbeiten über den ganzen Bestand, ohne ihn vollständig zu laden (<a href="#specs--gro%C3%9Fe-best%C3%A4nde">Große Bestände</a>).</li>
 <li><strong>Bewusst nicht:</strong> Kartenerstellung und Stapelaktionen an dieser Stelle.</li>
@@ -9159,7 +9241,7 @@ html:has(.catalog-preview) { scroll-behavior: auto; }
 <li>Die Suche umfasst alle Felder, Antwortoptionen und Tags; Stapel, deren Pfad passt, werden zusätzlich als Filter angeboten.</li>
 <li>Sie versteht Ankis Suchschreibweise: Status, Reife, Fälligkeit, Flagge, Tag, Stapel, Inhaltsform, Notiztyp, Zeiträume, Lernwerte und einzelne Felder, mit Verneinung, <code>or</code> und Klammern. Dieselben Filter lassen sich ohne Schreibweise zusammenstellen; jede Stellung nennt ihre Wirkung.</li>
 <li>Sich ausschließende Filter bleiben erlaubt; die Suche nennt den Widerspruch.</li>
-<li>Noch nicht unterstützte Anki-Begriffe werden benannt und als Text gesucht. Die vollständige Schreibweise erklärt die App selbst.</li>
+<li>Noch nicht unterstützte Anki-Begriffe werden benannt und als Text gesucht.</li>
 <li>Online- und Offline-Suche liefern dieselben Treffer (<a href="decisions.md#adr-048--kartensuche-lokal-%C3%BCber-den-vollst%C3%A4ndigen-katalog">ADR-048</a>).</li>
 <li>Gespeicherte Suchen gehören zum Konto; relative Begriffe wie „heute“ gelten am Tag der Anwendung.</li>
 <li><strong>Bewusst nicht:</strong> reguläre Ausdrücke.</li>
@@ -9183,7 +9265,6 @@ html:has(.catalog-preview) { scroll-behavior: auto; }
 <li>Ein Stapel lässt sich samt Unterstapeln direkt aus der Stapelliste frei üben: alle seine Karten nach denselben Regeln wie <code>Nur üben</code>, in der Reihenfolge des Stapels oder gemischt.</li>
 </ul>
 <h3 id="specs--karteneditor" class="core-heading-3" tabindex="-1">Karteneditor <a class="docs-anchor" href="#specs--karteneditor" aria-label="Link zu Karteneditor">#</a></h3>
-<p>Derselbe Editor öffnet sich aus Kartenverwaltung, Stapelinhalten und Sitzung und führt dorthin zurück.</p>
 <ul>
 <li><strong>Sofortaktionen</strong> wirken ohne Speichern und sind rückgängig: Flagge, Markierung, Aussetzen, Zurückstellen, Neu planen, Verschieben in einen anderen Stapel, Tags. Dazu nennt der Editor alle Karten desselben Inhalts und ähnliche Inhalte.</li>
 <li><code>Neu planen</code> setzt nur die Fälligkeit auf den Beginn des gewählten Lerntags; Gedächtniswerte und Aussetzung bleiben.</li>
@@ -9205,7 +9286,6 @@ html:has(.catalog-preview) { scroll-behavior: auto; }
 <p>Die Statistik zeigt Lernaktivität, Planung und Gedächtnismodell für gewählte Stapel und Zeiträume (<a href="decisions.md#adr-015--globale-fsrs-statistik-und-anki-historie">ADR-015</a>).</p>
 <ul>
 <li>Ein gemeinsamer Filter aus Zeitraum und Umfang (ganze Sammlung oder Stapel, Unterstapel ohne Doppelzählung) steuert alle Bereiche außer der Heatmap.</li>
-<li>Die Bereiche sind Überblick, Lernaktivität, Planung und Kartenbestand, Gedächtnismodell, Antwortverhalten und Stapelvergleich.</li>
 <li>Drei Arten von Werten bleiben unterscheidbar: Historie (Gelerntes), Momentaufnahme (heutige Reife, Schwierigkeit, Haltbarkeit, Abrufwahrscheinlichkeit) und Ausblick (Rückstand, künftige Fälligkeiten).</li>
 <li>Bestandsverteilungen (Intervalle, Stabilität, Schwierigkeit, Abrufwahrscheinlichkeit) haben feste, stets vollständige Töpfe; Schwierigkeit, Stabilität und Abrufwahrscheinlichkeit zählen nur gelernte Karten.</li>
 <li>Ausgewertet wird im Konto; noch nicht synchronisierte Bewertungen fließen sofort ein.</li>
@@ -9240,7 +9320,6 @@ html:has(.catalog-preview) { scroll-behavior: auto; }
 </tbody></table>
 <ul>
 <li>Einstellungen werden als Entwurf geändert und ausdrücklich gespeichert oder verworfen; ein ungespeicherter Entwurf hält jedes Verlassen auf.</li>
-<li>Stapeleinstellungen öffnen aus den Einstellungen; Zurück führt dorthin.</li>
 <li>Stapeleinstellungen werden für diesen Stapel oder samt Unterstapeln gespeichert; übertragen werden nur geänderte Werte.</li>
 <li>Kontowerte werden nie in Stapel kopiert und von Lernprofilen nicht verändert.</li>
 <li>Ohne Entwurf wirken sofort: Anwenden eines Lernprofils, manueller Sync, Heatmap-Farbe, Stapelansicht und Lerneinstellungen einer laufenden Sitzung.</li>
@@ -9255,15 +9334,14 @@ html:has(.catalog-preview) { scroll-behavior: auto; }
 <h3 id="specs--konto-und-anmeldung" class="core-heading-3" tabindex="-1">Konto und Anmeldung <a class="docs-anchor" href="#specs--konto-und-anmeldung" aria-label="Link zu Konto und Anmeldung">#</a></h3>
 <ul>
 <li>Angemeldet wird mit E-Mail und Passwort.</li>
-<li>Das Profil enthält Anzeigename und Login-E-Mail. Die Oberfläche ist deutsch.</li>
+<li>Das Profil enthält Anzeigename und Login-E-Mail.</li>
 <li>Sicherheitskritische Aktionen sind von Profil- und Lernoptionen getrennt.</li>
 </ul>
 <h3 id="specs--hilfe" class="core-heading-3" tabindex="-1">Hilfe <a class="docs-anchor" href="#specs--hilfe" aria-label="Link zu Hilfe">#</a></h3>
 <ul>
-<li>Ein kurzer Einstieg zeigt, wie man mit CoRe lernt und ehrlich bewertet; die Tiefe sind verlinkte Unterseiten mit teilbarer Adresse.</li>
+<li>Die Hilfe erklärt, wie man mit CoRe lernt und ehrlich bewertet; jede Seite hat eine teilbare Adresse.</li>
 <li>Zwei geführte Geschichten erklären, warum CoRe Abrufreize wechselt (Active Recall wird Smarter Recall) und wie der Scheduler plant (Spaced Repetition wird Content Repetition).</li>
 <li>Sie erklärt Abrufwahrscheinlichkeit, Haltbarkeit und Schwierigkeit qualitativ, ohne scheinbar exakte Werte, und verspricht keine feste Wiederholungsnummer für Varianten.</li>
-<li>Nachschlagethemen erklären Planung, Varianten, Prüfungssitzung und Kartenverwaltung samt Suchschreibweise.</li>
 <li>Die Hilfe verändert weder Karten noch Lernstand; ihre Aussagen stimmen mit Kapitel <a href="#specs--5-lernen">Lernen</a> überein.</li>
 </ul>
 <h3 id="specs--simulator" class="core-heading-3" tabindex="-1">Simulator <a class="docs-anchor" href="#specs--simulator" aria-label="Link zu Simulator">#</a></h3>
@@ -9284,14 +9362,13 @@ html:has(.catalog-preview) { scroll-behavior: auto; }
 </ul>
 <h3 id="specs--sync-und-konflikte" class="core-heading-3" tabindex="-1">Sync und Konflikte <a class="docs-anchor" href="#specs--sync-und-konflikte" aria-label="Link zu Sync und Konflikte">#</a></h3>
 <ul>
-<li>Ein Sync sendet zuerst lokale Änderungen, lädt dann Neues aus dem Konto und aktualisiert zuletzt den Status. Manueller und automatischer Sync sind derselbe Ablauf.</li>
+<li>Manueller und automatischer Sync sind derselbe Ablauf.</li>
 <li>Der automatische Sync läuft nach Änderungen, bei Netzrückkehr, beim Verlassen oder Ausblenden der Seite und in einem wählbaren Intervall; er lässt sich abschalten, dann wird von Hand synchronisiert.</li>
 <li>Solange alles läuft, meldet die App nichts; sichtbar werden nur Offline, Fehler und Konflikte.</li>
 <li>Lernstand und Inhalt sind getrennt: Eine Bewertung auf einem Gerät und eine Inhaltskorrektur auf einem anderen erzeugen keinen Konflikt.</li>
 <li>Bewertungen gehen nie verloren: Die Ereignisse beider Geräte bleiben, das jüngste bestimmt den Lernstand. Bei Neuplanungen bestimmt die spätere Aktion den Termin.</li>
 <li>Ein Konflikt betrifft nur seine Karte oder seinen Stapel. Vor der Entscheidung zwischen dem Stand dieses Browsers und dem des Kontos zeigt CoRe die Folgen beider Richtungen.</li>
 <li>Konfliktkarten bleiben bis zur Entscheidung außerhalb der Lernrunde und sind in der Kartenverwaltung gekennzeichnet.</li>
-<li>Status und Konflikte sind ohne technische Begriffe verständlich.</li>
 </ul>
 <h3 id="specs--app-start-und-neues-gerät" class="core-heading-3" tabindex="-1">App-Start und neues Gerät <a class="docs-anchor" href="#specs--app-start-und-neues-gerät" aria-label="Link zu App-Start und neues Gerät">#</a></h3>
 <ul>
@@ -9315,7 +9392,7 @@ html:has(.catalog-preview) { scroll-behavior: auto; }
 <h3 id="specs--speicherplatz" class="core-heading-3" tabindex="-1">Speicherplatz <a class="docs-anchor" href="#specs--speicherplatz" aria-label="Link zu Speicherplatz">#</a></h3>
 <ul>
 <li>Wird der Speicher knapp, entfernt CoRe nur im Konto bestätigte Inhalte und Medien, die nicht ausdrücklich offline verfügbar sind. Ausstehende Änderungen, Konflikte, Downloads und gerade gelernte Karten bleiben.</li>
-<li>Die Einstellungen zeigen den belegten Speicher und warnen, wenn der Browser ihn räumen darf.</li>
+<li>CoRe nennt den belegten Speicher und warnt, wenn der Browser ihn räumen darf.</li>
 <li>Programmteile werden erst bei absehbarer Nutzung vorgeladen, nie pauschal bei sparsamer oder langsamer Verbindung.</li>
 </ul>
 <h3 id="specs--rückgängig-und-manuelle-ereignisse" class="core-heading-3" tabindex="-1">Rückgängig und manuelle Ereignisse <a class="docs-anchor" href="#specs--rückgängig-und-manuelle-ereignisse" aria-label="Link zu Rückgängig und manuelle Ereignisse">#</a></h3>
@@ -9391,7 +9468,7 @@ html:has(.catalog-preview) { scroll-behavior: auto; }
 <p>Probe: Ein Satz gehört hinein, wenn er nach einer vollständigen Neugestaltung der Oberfläche unverändert gälte und eine Abweichung davon ein fachlicher Fehler wäre.</p>
 <p>Form: Stichpunkte, ein Gedanke je Punkt. Eine neue Regel ersetzt die alte, statt sie zu ergänzen. Wo Funktionen logisch voneinander abhängen, steht ein Schaubild als <code>schaubild</code>-Block direkt beim Text und wird mit ihm geändert (Schreibweise in <a href="index.html#readme--pflege"><code>README.md</code></a>). In Schaubildern sind KI-Schritte blau, Ergebnisse grün markiert.</p>
 <h2 id="specs--codeumfang-der-produktbereiche" class="core-heading-2" tabindex="-1">Codeumfang der Produktbereiche <a class="docs-anchor" href="#specs--codeumfang-der-produktbereiche" aria-label="Link zu Codeumfang der Produktbereiche">#</a></h2>
-<p>CoRe ist eine App mit mehreren Bereichen. Die Tabelle zeigt deren Anteil am Bildschirmcode; gemeinsam genutzte Logik, UI und API stehen separat.</p><div class="docs-code-stats"><dl class="flex min-w-0 flex-col"><dt class="core-status-label text-core-muted">Bildschirmcode</dt><dd class="core-metric mt-0.5 text-core-text">7.643</dd></dl><dl class="flex min-w-0 flex-col"><dt class="core-status-label text-core-muted">Gemeinsamer Code &amp; API</dt><dd class="core-metric mt-0.5 text-core-text">49.928</dd></dl><dl class="flex min-w-0 flex-col"><dt class="core-status-label text-core-muted">Quelldateien</dt><dd class="core-metric mt-0.5 text-core-text">316</dd></dl></div><div class="docs-code-chart"><div class="docs-table-scroll" tabindex="0" role="region" aria-label="Codeumfang je Produktbereich"><table><thead><tr><th>Bereich</th><th>Zeilen</th><th>Anteil</th></tr></thead><tbody><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-info)" aria-hidden="true"></span>Heute</th><td>307</td><td>4 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-status-new)" aria-hidden="true"></span>Lernen & Karten</th><td>2.369</td><td>31 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-status-in-progress)" aria-hidden="true"></span>Erstellen & Import</th><td>2.105</td><td>27,5 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-action-primary)" aria-hidden="true"></span>Prüfungen</th><td>448</td><td>5,9 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-status-due)" aria-hidden="true"></span>Statistik</th><td>627</td><td>8,2 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-progress-completed)" aria-hidden="true"></span>Konto & Sync</th><td>875</td><td>11,4 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-text-secondary)" aria-hidden="true"></span>Hilfe</th><td>912</td><td>11,9 %</td></tr></tbody></table></div></div><p class="docs-source">Beim Erzeugen gemessen: nichtleere Zeilen in <code>src/</code> und <code>api/</code> (TS/TSX) sowie <code>src/styles.css</code>. Ohne Tests, Typdeklarationen, generierte Datenbanktypen, Dokumentation und Fremdcode. Bereichszuordnung nach Bildschirmdateien in <a href="../src/screens/README.md">der Screen-Landkarte</a>; übriger Code zählt gemeinsam. Enthält Kommentare und misst weder Laufzeit noch Komplexität.</p></article></main></div><script>function initializeDocsViewer() {
+<p>CoRe ist eine App mit mehreren Bereichen. Die Tabelle zeigt deren Anteil am Bildschirmcode; gemeinsam genutzte Logik, UI und API stehen separat.</p><div class="docs-code-stats"><dl class="flex min-w-0 flex-col"><dt class="core-status-label text-core-muted">Bildschirmcode</dt><dd class="core-metric mt-0.5 text-core-text">7.643</dd></dl><dl class="flex min-w-0 flex-col"><dt class="core-status-label text-core-muted">Gemeinsamer Code &amp; API</dt><dd class="core-metric mt-0.5 text-core-text">50.909</dd></dl><dl class="flex min-w-0 flex-col"><dt class="core-status-label text-core-muted">Quelldateien</dt><dd class="core-metric mt-0.5 text-core-text">323</dd></dl></div><div class="docs-code-chart"><div class="docs-table-scroll" tabindex="0" role="region" aria-label="Codeumfang je Produktbereich"><table><thead><tr><th>Bereich</th><th>Zeilen</th><th>Anteil</th></tr></thead><tbody><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-info)" aria-hidden="true"></span>Heute</th><td>307</td><td>4 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-status-new)" aria-hidden="true"></span>Lernen & Karten</th><td>2.369</td><td>31 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-status-in-progress)" aria-hidden="true"></span>Erstellen & Import</th><td>2.105</td><td>27,5 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-action-primary)" aria-hidden="true"></span>Prüfungen</th><td>448</td><td>5,9 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-status-due)" aria-hidden="true"></span>Statistik</th><td>627</td><td>8,2 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-progress-completed)" aria-hidden="true"></span>Konto & Sync</th><td>875</td><td>11,4 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-text-secondary)" aria-hidden="true"></span>Hilfe</th><td>912</td><td>11,9 %</td></tr></tbody></table></div></div><p class="docs-source">Beim Erzeugen gemessen: nichtleere Zeilen in <code>src/</code> und <code>api/</code> (TS/TSX) sowie <code>src/styles.css</code>. Ohne Tests, Typdeklarationen, generierte Datenbanktypen, Dokumentation und Fremdcode. Bereichszuordnung nach Bildschirmdateien in <a href="../src/screens/README.md">der Screen-Landkarte</a>; übriger Code zählt gemeinsam. Enthält Kommentare und misst weder Laufzeit noch Komplexität.</p></article></main></div><script>function initializeDocsViewer() {
     const theme = document.getElementById("docs-theme");
     theme.addEventListener("click", () => {
         const dark = document.documentElement.dataset.coreTheme !== "dark";

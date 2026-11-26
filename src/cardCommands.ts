@@ -16,6 +16,7 @@ import type { createSupabaseBrowserClient } from "./supabaseClient.ts";
 import type { AiCardHelpRequest } from "./aiCardHelpContract.ts";
 import type { SummaryGenerationInput } from "./aiLearningSummary.ts";
 import type { LearningContentAccount } from "./learningSummaries.ts";
+import type { QuizGenerationInput } from "./quiz.ts";
 import type { AccountSyncEngine } from "./syncEngine.ts";
 import type { WorkspaceHydrationService } from "./workspaceHydrationService.ts";
 import { catalogEntryFromCard, type NoteGraph } from "./workspaceReplica.ts";
@@ -368,6 +369,21 @@ export function createCardCommands({ store, repository, hydration, cloud, syncEn
     return result;
   }
 
+  /** Like the summary, a switched account ends the generation. */
+  async function generateQuiz(input: QuizGenerationInput, signal: AbortSignal) {
+    const accountId = store.get().state?.profile.userId;
+    const service = hydration();
+    const [{ generateQuizQuestions }, { readAiSource, requestAiSourceCards }] = await Promise.all([import("./quiz.ts"), import("./aiSourceCards.ts")]);
+    const questions = await generateQuizQuestions(input, {
+      listCardIds: (deckIds) => service ? service.listCardIds({ deckIds }) : repository.listCardIds(deckIds),
+      openNotes: async (cardIds) => (service ? await service.openCards(cardIds) : await repository.loadCardBodies(cardIds)).flatMap((body) => body ? [body.note] : []),
+      readFile: async (file) => (await readAiSource({ sourceMode: "file", sourceText: "", file })).units,
+      request: (request, requestSignal) => requestAiSourceCards(request, cloud, requestSignal),
+    }, signal);
+    if (store.get().state?.profile.userId !== accountId) throw new Error("Das Konto wurde gewechselt. Öffne das Quiz erneut.");
+    return questions;
+  }
+
   async function listDeckContents(deckId: string) {
     const service = hydration();
     const cardIds = service ? await service.listCardIds({ deckIds: [deckId] }) : await repository.listCardIds([deckId]);
@@ -461,6 +477,7 @@ export function createCardCommands({ store, repository, hydration, cloud, syncEn
     askCardHelp,
     learningContentAccount,
     generateLearningSummary,
+    generateQuiz,
     listDeckContents,
     importTextNotes,
     createCardEditorServices,

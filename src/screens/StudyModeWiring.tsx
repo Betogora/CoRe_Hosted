@@ -56,7 +56,7 @@ export function StudyModeWiring() {
     const leave = pendingLeave, guard = summaryGuardRef.current;
     setSavingLeave(true);
     try {
-      const saved = !guard || await guard.save();
+      const saved = !guard || !("save" in guard) || await guard.save();
       setPendingLeave(null);
       if (saved) leave?.();
       else revealSummary();

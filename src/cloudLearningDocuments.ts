@@ -2,7 +2,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { validateLearningDocumentRows, type LearningDocumentRow } from "./cloudRepositoryValidation.ts";
 
 /** The database stamps revision and time on every write. */
-export type LearningDocumentTable = "learning_summaries" | "learning_mind_maps";
+export type LearningDocumentTable = "learning_summaries" | "learning_mind_maps" | "learning_quizzes";
 const COLUMNS = "id, deck_id, document, revision, deleted_at";
 const IMAGE_BUCKET = "learning-mind-map-images";
 

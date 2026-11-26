@@ -339,7 +339,7 @@ function AppContent() {
   }
 
   const ActiveScreen = viewScreens[activeView];
-  const pendingCardNavigation = pendingNavigation === "card";
+  const pendingCardNavigation = pendingNavigation === "card" && !navigation.pendingLeave;
   const coreEnableDeck = coreEnableDeckId ? state.decks.find((deck) => deck.id === coreEnableDeckId) ?? null : null;
   const { emptyStudyStart, studyPreparationFailure } = studyStart;
 
@@ -439,16 +439,16 @@ function AppContent() {
         />
         <ActionDialog
           open={Boolean(pendingNavigation)}
-          title={pendingCardNavigation ? "Änderungen übernehmen?" : pendingNavigation === "exams" ? "Änderungen verwerfen?" : "Ungespeicherten Entwurf verlassen?"}
-          description={pendingCardNavigation
+          title={navigation.pendingLeave?.title ?? (pendingCardNavigation ? "Änderungen übernehmen?" : pendingNavigation === "exams" ? "Änderungen verwerfen?" : "Ungespeicherten Entwurf verlassen?")}
+          description={navigation.pendingLeave ? navigation.pendingLeave.description : pendingCardNavigation
             ? "Du hast ungespeicherte Änderungen an dieser Karte. Speichere oder verwirf sie, bevor du die Kartenverwaltung verlässt."
             : pendingNavigation === "exams"
               ? "Deine Änderungen an der Prüfungsplanung wurden noch nicht gespeichert."
               : creationMethod === "ai-source"
                 ? "Deine ausgewählte Quelle und deine Einstellungen werden verworfen."
                 : "Deine bereits gespeicherten Karten bleiben erhalten. Nur die aktuell eingegebenen, noch nicht gespeicherten Inhalte würden verworfen."}
-          confirmLabel={pendingCardNavigation ? "Speichern" : "Verwerfen und verlassen"}
-          cancelLabel="Weiter bearbeiten"
+          confirmLabel={navigation.pendingLeave ? "Verlassen" : pendingCardNavigation ? "Speichern" : "Verwerfen und verlassen"}
+          cancelLabel={navigation.pendingLeave ? "Weitermachen" : "Weiter bearbeiten"}
           discardLabel={pendingCardNavigation ? "Verwerfen" : undefined}
           confirmLoading={navigation.savingPendingNavigation}
           destructive={!pendingCardNavigation}

@@ -8,4 +8,5 @@ export const CATALOG_SPECS = [
   "learning-summaries",
   "mindmaps",
   "note-presentation",
+  "quiz",
 ];
