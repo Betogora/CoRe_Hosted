@@ -170,9 +170,10 @@ export function sampleQuizMaterial(units: readonly SourceUnit[], random = Math.r
   return sample;
 }
 
+/** The route sizes its card range by the material; the largest amount keeps short material from capping the question count. */
 export function quizSourceCardsRequest(units: readonly SourceUnit[], settings: QuizSettings): AiSourceCardsRequest {
   return {
-    settings: { ...createAiSourceCreationDraft().settings, cardForms: settings.cardForms, wishes: [QUIZ_WISH(settings.questionCount), settings.wishes].filter(Boolean).join("\n") },
+    settings: { ...createAiSourceCreationDraft().settings, amount: "more", cardForms: settings.cardForms, wishes: [QUIZ_WISH(settings.questionCount), settings.wishes].filter(Boolean).join("\n") },
     units: units.map((unit, index) => ({ id: `s${index + 1}`, ...unit })), avoid: [], limit: settings.questionCount,
   };
 }

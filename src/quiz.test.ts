@@ -104,7 +104,7 @@ test("a card quiz asks the source-card route once about a sample of the deck's c
   assert.equal(opened.length, 60);
   assert.equal(requests.length, 1);
   const [request] = requests;
-  assert.deepEqual([request.limit, request.avoid, request.settings.cardForms, request.units.length], [8, [], ["single-choice", "multiple-choice"], 60]);
+  assert.deepEqual([request.limit, request.avoid, request.settings.cardForms, request.settings.amount, request.units.length], [8, [], ["single-choice", "multiple-choice"], "more", 60]);
   assert.match(request.settings.wishes, /^Die Karten sind Fragen eines Quiz zur Selbstprüfung\. Erstelle genau 8 Fragen .* genau vier Antwortmöglichkeiten\.\nNur Jahreszahlen$/);
   assert.match(request.units[0].text, /^F: Frage \d+\nA: Antwort \d+$/);
   assert.equal(questions.length, 1);
