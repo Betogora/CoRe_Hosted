@@ -2,7 +2,7 @@ import { CATALOG_SPECS } from "../tests/e2e/support/catalogSpecs.ts";
 
 export type AffectedE2ESpecs = { full: true } | { full: false; supabase: string[]; rls: boolean };
 
-/** Fixed spec lists of the CI shards, balanced by their measured CI seconds (about 140 s each). */
+// Fixed lists instead of Playwright's `--shard`, which balances by test count rather than by measured seconds.
 export const SUPABASE_SHARDS = [
   ["core-stabilization", "batch-resilience", "exam-planning", "auth-gate"],
   ["card-lifecycle", "product-surfaces", "apkg-quality-report", "zz-media-import", "auth-resilience"],
@@ -40,10 +40,7 @@ const AREAS: [RegExp, string[]][] = [
   [/pomodoro|Pomodoro/, ["product-surfaces", "core-stabilization"]],
 ];
 
-/**
- * The part of a selection one CI shard runs. `specs: null` runs every spec; only the primary shard (the first, or the
- * only one without sharding) runs RLS, schema and type checks and the beta artifact.
- */
+/** `specs: null` runs every spec; `primary` is the first shard, or the only run without sharding. */
 export function shardSelection(selection: AffectedE2ESpecs, shard: number | null) {
   const own = shard === null ? null : SUPABASE_SHARDS[shard - 1];
   if (shard !== null && !own) throw new Error(`Unbekannter Supabase-Shard ${shard}; erlaubt sind 1 bis ${SUPABASE_SHARDS.length}.`);

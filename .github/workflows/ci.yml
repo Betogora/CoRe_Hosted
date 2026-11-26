@@ -130,7 +130,7 @@ jobs:
 
   # Required check: the branch protection expects one job with this name.
   affected-e2e:
-    if: always() && github.event_name == 'pull_request'
+    if: ${{ !cancelled() && github.event_name == 'pull_request' }}
     needs: affected-e2e-shard
     runs-on: ubuntu-latest
     timeout-minutes: 5
