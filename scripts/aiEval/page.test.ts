@@ -14,7 +14,7 @@ const run = {
 const holdout = { ...run, run: "2026-11-12-rueckhalt", split: "holdout" as const, decision: "holdout" as const, change: "Rückhalt", main: 0.86, low: 0.8, high: 0.92, judge: { ...run.judge, entries: 50, cached: 100 } };
 const round = (decision: "accepted" | "rejected", promptVersion: string, main: number) => ({ ...run, promptVersion, change: "Zahlen wörtlich übernehmen", decision, main, low: main - 0.05, high: main + 0.04, comparison: { noise: 0.04, gained: 6, lost: 2 } });
 const sample = (): EvalLedger => parseLedger({
-  runs: [run, holdout, round("rejected", "card-variant-v5", 0.88), round("accepted", "card-variant-v6", 0.95)],
+  runs: [run, holdout, round("rejected", "card-variant-v95", 0.88), round("accepted", "card-variant-v96", 0.95)],
   calibrations: [{ requestType: variant.id, date: "2026-11-11", judge: "claude-opus-5-5", entries: 40, agreement: 0.925, falsePasses: 1 }],
 });
 
@@ -54,7 +54,7 @@ test("Der Rückhalt gehört zu keiner Reihe und wird dem Bestand mit gleicher Pr
 test("Verworfene Runden ändern den Bestand nicht; jede Runde misst gegen den Bestand davor", () => {
   const ledger = sample();
   assert.deepEqual(seriesFor(ledger, variant.id).map(({ reference }) => reference?.promptVersion ?? null), [null, variant.promptVersion, variant.promptVersion]);
-  assert.equal(bestRun(ledger, variant.id)?.promptVersion, "card-variant-v6");
+  assert.equal(bestRun(ledger, variant.id)?.promptVersion, "card-variant-v96");
   assert.equal(bestRun(ledger, "card-help"), null);
 });
 
@@ -65,7 +65,7 @@ test("Bestand zeigt je Anfragetyp genau eine Zeile und markiert einen ungemessen
   assert.match(bestTable(parseLedger({ runs: [run], calibrations: [] })), /<td>Gemessen<\/td><td><code>card-variant-v\d+<\/code><\/td><td>90,0 % \(84,0–95,0\)<\/td><td>–<\/td><td>95,0 %<\/td><td>M2 98,0 %<\/td>/);
   const html = bestTable(sample());
   assert.equal([...html.matchAll(/<tr><th scope="row">/g)].length, REQUEST_TYPES.length);
-  assert.match(html, /Prompt im Code nicht gemessen<\/td><td><code>card-variant-v6<\/code>/);
+  assert.match(html, /Prompt im Code nicht gemessen<\/td><td><code>card-variant-v96<\/code>/);
   assert.match(html, /92,5 % · 40 Einträge · 1 falsch bestanden/);
 });
 
@@ -81,6 +81,9 @@ test("Verlauf zeichnet je Lauf einen Punkt, hält den Bestand als Linie und list
   assert.match(html, /<td>−2,0 Pkt\.<\/td><td>±4,0 Pkt\.<\/td><td>\+6 \/ −2<\/td>/);
   assert.match(html, /<td>\+5,0 Pkt\.<\/td>/);
   assert.equal([...html.matchAll(/<h3 id="ai-eval--verlauf-/g)].length, 1);
+  const restart = { ...run, run: "neue-baseline", main: 0.7, low: 0.6, high: 0.8 };
+  const rows = progressSections(parseLedger({ runs: [run, round("accepted", "card-variant-v6", 0.95), restart, round("accepted", "card-variant-v7", 0.76)], calibrations: [] })).match(/<tr><th scope="row">\d+<\/th>.*?<\/tr>/g)!;
+  assert.deepEqual(rows.map((row) => row.match(/<td>([^<]*Pkt\.)<\/td>/)![1]), ["±0,0 Pkt.", "+5,0 Pkt.", "±0,0 Pkt.", "+6,0 Pkt."], "jede Baseline setzt neu an, auch bei gleicher Fallzahl");
 });
 
 test("Die Bilanz summiert Läufe, Antworten, Kosten und Richteraufwand je Anfragetyp", () => {

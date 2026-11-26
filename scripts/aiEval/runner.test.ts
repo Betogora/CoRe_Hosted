@@ -284,7 +284,7 @@ test("Auswertung: Eine Ablehnung besteht nur, wenn der Fall sie erwartet, und ge
   assert.deepEqual(summarize(trapped, seededRandom(1), ["M2"]).traps, { answers: 2, errors: 1 });
 });
 
-test("Vergleich: übernommen nur über dem Rauschen und ohne schlechteres kritisches Kriterium", () => {
+test("Vergleich: übernommen erst ab 90 % „besser“, verworfen ab 90 % „schlechter“ in einem kritischen Kriterium", () => {
   const ids = Array.from({ length: 40 }, (_, index) => `c${index}`);
   const reference = ids.flatMap((id, index) => [0, 1, 2].map((repetition) => result(id, repetition, index < 20)));
   const better = ids.flatMap((id, index) => [0, 1, 2].map((repetition) => result(id, repetition, index < 34)));
@@ -292,20 +292,31 @@ test("Vergleich: übernommen nur über dem Rauschen und ohne schlechteres kritis
   const strong = compare(better, reference, seededRandom(5));
   assert.deepEqual([strong.delta, strong.gained, strong.lost, strong.cases], [0.35, 14, 0, 40]);
   assert.ok(strong.noise > 0 && strong.noise < strong.delta);
-  const summaries = [better, reference, noisy].map((entries) => summarize(entries, seededRandom(5)));
-  assert.deepEqual(decide(variantType, summaries[0], summaries[1], strong), { decision: "accepted", failed: [] });
+  assert.equal(strong.better, 1);
+  assert.deepEqual(decide(strong), { decision: "accepted", failed: [] });
   const weak = compare(noisy, reference, seededRandom(5));
   assert.deepEqual([weak.delta, weak.gained, weak.lost], [0, 1, 1]);
-  assert.deepEqual(decide(variantType, summaries[2], summaries[1], weak).failed, ["Abstand nicht über dem Rauschen"]);
-  assert.equal(decide(variantType, summaries[2], summaries[1], weak, true).decision, "accepted", "eine Vereinfachung darf im Rauschen liegen");
+  assert.deepEqual(decide(weak).failed, ["besser in weniger als 90 % der Stichproben"]);
+  assert.equal(decide(weak, true).decision, "accepted", "eine Vereinfachung darf im Rauschen liegen");
   const saturated = compare(reference, reference, seededRandom(5));
-  assert.deepEqual([saturated.delta, saturated.noise], [0, 0]);
-  assert.equal(decide(variantType, summaries[1], summaries[1], saturated, true).decision, "accepted", "gleich gut gilt als nicht schlechter");
-  const worseCritical = { ...summaries[0], criteria: { ...summaries[0].criteria, M2: 0.1 } };
-  assert.deepEqual(decide(variantType, worseCritical, summaries[1], strong).failed, ["kritisches Kriterium M2 schlechter"]);
-  const slower = { ...summaries[0], costUsd: summaries[1].costUsd * 1.3, latencyP90Ms: summaries[1].latencyP90Ms * 1.21 };
-  assert.deepEqual(decide(variantType, slower, summaries[1], strong).failed, ["Kosten über dem 1,2-Fachen", "Latenz p90 über dem 1,2-Fachen"]);
+  assert.deepEqual([saturated.delta, saturated.noise, saturated.better, saturated.worse], [0, 0, 0, 0]);
+  assert.equal(decide(saturated, true).decision, "accepted", "gleich gut gilt als nicht schlechter");
+  const criticalFails = (failing: number) => better.map((entry) => ({ ...entry, criteria: { ...entry.criteria, M2: Number(entry.caseId.slice(1)) < failing ? 0 : 1 } }));
+  const flawless = reference.map((entry) => ({ ...entry, criteria: { ...entry.criteria, M2: 1 } }));
+  const single = compare(criticalFails(1), flawless, seededRandom(5), [], ["M2"]);
+  assert.deepEqual(decide(single), { decision: "accepted", failed: [] }, "ein einzelner Fehler im kritischen Kriterium ist vom Zufall nicht zu trennen");
+  const three = compare(criticalFails(3), flawless, seededRandom(5), [], ["M2"]);
+  assert.deepEqual(decide(three).failed, ["kritisches Kriterium M2 schlechter in mindestens 90 % der Stichproben"]);
   assert.throws(() => compare(better, [result("fremd", 0, true)], seededRandom(5)), /keinen gemeinsamen Fall/);
+});
+
+test("Bootstrap zieht Gruppen: Fälle derselben Quelle machen das Intervall breiter als einzeln gezogene", () => {
+  const ids = Array.from({ length: 40 }, (_, index) => `c${index}`);
+  const reference = ids.map((id, index) => result(id, 0, index % 2 === 0));
+  const candidate = ids.map((id, index) => result(id, 0, index < 30));
+  const grouped = (entries: AnswerResult[]) => entries.map((entry) => ({ ...entry, group: `q${Math.floor(Number(entry.caseId.slice(1)) / 10)}` }));
+  assert.ok(compare(grouped(candidate), grouped(reference), seededRandom(5)).noise > compare(candidate, reference, seededRandom(5)).noise);
+  assert.ok(summarize(grouped(candidate), seededRandom(5)).high - summarize(grouped(candidate), seededRandom(5)).low > summarize(candidate, seededRandom(5)).high - summarize(candidate, seededRandom(5)).low);
 });
 
 test("Vergleich mit Fehlerbild: vorläufig bei zwei Fällen Saldo am Ziel und höchstens einem verlorenen im Rest", () => {
@@ -313,16 +324,15 @@ test("Vergleich mit Fehlerbild: vorläufig bei zwei Fällen Saldo am Ziel und h�
   const category = (index: number) => index < 6 ? "beispiel" : "sonstige";
   const reference = ids.flatMap((id, index) => [0, 1].map((repetition) => result(id, repetition, index >= 3, category(index))));
   const aimed = ids.flatMap((id, index) => [0, 1].map((repetition) => result(id, repetition, index >= 1 && index !== 20, category(index))));
-  const summaries = [aimed, reference].map((entries) => summarize(entries, seededRandom(5)));
   const plain = compare(aimed, reference, seededRandom(5));
   assert.equal(plain.targeted, null);
-  assert.deepEqual(decide(variantType, summaries[0], summaries[1], plain).decision, "rejected");
+  assert.deepEqual(decide(plain).decision, "rejected");
   const targeted = compare(aimed, reference, seededRandom(5), ["beispiel"]);
   assert.deepEqual([targeted.targeted?.aimed, targeted.targeted?.rest], [{ cases: 6, gained: 2, lost: 0 }, { cases: 34, gained: 0, lost: 1 }]);
-  assert.deepEqual(decide(variantType, summaries[0], summaries[1], targeted), { decision: "provisional", failed: [] });
+  assert.deepEqual(decide(targeted), { decision: "provisional", failed: [] });
   const broken = ids.flatMap((id, index) => [0, 1].map((repetition) => result(id, repetition, index >= 1 && index !== 20 && index !== 21, category(index))));
   const worse = compare(broken, reference, seededRandom(5), ["beispiel"]);
-  assert.deepEqual(decide(variantType, summarize(broken, seededRandom(5)), summaries[1], worse).failed, ["Abstand nicht über dem Rauschen", "übrige Fälle um mehr als einen schlechter"]);
+  assert.deepEqual(decide(worse).failed, ["besser in weniger als 90 % der Stichproben", "übrige Fälle um mehr als einen schlechter"]);
   assert.throws(() => compare(aimed, reference, seededRandom(5), ["M2"]), /keinen oder jeden Fall/, "ohne Rest prüft das Fehlerbild nichts");
   assert.throws(() => compare(aimed, reference, seededRandom(5), ["beispeil"]), /kennt beispeil nicht/);
 });
@@ -416,12 +426,10 @@ test("Zusammenfassung: Länge, Darstellung, Stichwörter und Querbezüge automat
     sections: [{ ...block("Adressen", [["IPv4", "32 Bit"], ["DNS", "Namen zu Adressen"]]), subsections: [block("Transport", [["TCP", "verbindungsorientiert"]])] }],
     warnings: ["HTTPS-Port widersprüchlich: 8443 oder 443."], relations: [{ from: "TCP", to: "DNS" }],
   };
-  const { Z2, Z3, Z4, Z5 } = summary.automatic;
-  assert.deepEqual([Z2(request, output), Z3(request, output), Z4(request, output), Z5(request, output)], [true, true, true, true]);
+  const { Z2, Z3, Z4 } = summary.automatic;
+  assert.deepEqual([Z2(request, output), Z3(request, output), Z4(request, output)], [true, true, true]);
   assert.equal(Z3(request, { ...output, sections: [{ ...block("Adressen", [], ["Nur Fließtext."]), subsections: [] }] }), false, "Stichpunkte verlangt");
   assert.equal(Z4(request, { ...output, sections: [{ ...block("A", [["DNS", "x"], ["dns", "y"]]), subsections: [] }] }), false);
-  assert.equal(Z5(request, { ...output, relations: [{ from: "TCP", to: "Router" }] }), false);
-  assert.equal(Z5(request, { ...output, relations: [{ from: "tcp", to: "dns" }] }), true, "wie die Mindmap ohne Groß-/Kleinschreibung");
   const seen: unknown[] = [];
   payloadBuilder(summary, { name: "k", transform: (payload, route) => { seen.push(route); return payload; } })(request);
   assert.equal(seen[0], request.route, "ein Kandidat bekommt die Anfrage an die Route");

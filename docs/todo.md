@@ -7,53 +7,8 @@ Nur offene Arbeit. Ist-Stand in [`status.md`](status.md), Entscheidungen in
 
 Reihenfolge = Priorität. Offene Nachweise brauchen keinen Code und
 laufen unabhängig davon; die Release-Voraussetzungen sind vor dem ersten
-externen Release fällig. „Später“ ist geparkt.
-
-## P5: KI-Eval und Hillclimb
-
-Alle vier KI-Routen stehen (`card-variant-v5`, `card-help-v2`,
-`source-cards-v2`, `learning-summary-v4`); P5 läuft. Die Baseline aller
-sechs Anfragetypen steht auf den ausgewogenen Fallsätzen im Ledger und auf
-der Seite [KI-Eval](ai-eval.md): Varianten und `card-help` mit 96 bis 120
-Prüfkarten über sieben Fächer mit Referenzaussagen und höchstens 20 % aus
-dem eigenen Fundus, Karten aus einer Quelle mit 24 Dokumenten (vier über
-60.000 Zeichen) und die Zusammenfassung mit 24 Materialsätzen in neun
-paarweise deckenden Profilen. Der Runner misst Kandidaten als Datei,
-lässt in Blöcken mit Urteilscache richten und entscheidet Runden selbst.
-Befunde, Versuchsaufbau und Arbeitspakete im Einzelnen stehen im
-[Versuchsplan](ai-eval-plan.md).
-
-Festgelegt am 2026-11-23: Erzeugt wird nur über OpenRouter mit dem lokalen
-Schlüssel und seinem Limit, nie über ein Modell aus einer Subscription.
-Richter ist Opus 5.5 als Subagent in Claude Code, je Block ein frischer
-Kontext. Eine Handkalibrierung gibt es vorerst nicht; jeder Bericht zeigt je
-Kriterium die zwei bis drei am wenigsten eindeutigen Urteile. Der Hillclimb läuft
-innerhalb eines Modells, der Referenz `openai/gpt-6-luna` mit `low`; ein
-Modellvergleich folgt später von Hand und wird nicht eigens gebaut. Ein
-Modellwechsel und das KI-Kontingent sind nicht Teil von P5.
-
-Pakete in dieser Reihenfolge.
-
-- [ ] **Inhaltsfilter in den Routen:** Bricht der Anbieter mit
-      `finish_reason: content_filter` ab (im Probelauf vom 2026-11-23 bei
-      Karten mit eingeschleuster Anweisung, [Verlauf](history.md)), melden die
-      Routen heute „Werkzeug nicht korrekt verwendet“. Eigener Fehlercode und
-      eine verständliche Meldung; im Eval bleibt es eine verworfene Antwort.
-- [ ] **I – Hillclimb, erste Welle** auf Reasoning `low` (KI hilft erledigt,
-      `card-help-v2`): Varianten,
-      Karten aus einer Quelle, Zusammenfassung. Je Runde drei bis fünf
-      Kandidaten aus den Trainingsfehlern, Vorauswahl am Trainingsteil,
-      Entscheidung am Entscheidungsteil; mindestens drei Runden, Ende nach
-      drei Runden ohne Übernahme oder nach acht Runden. Bei Karten aus einer Quelle zusätzlich: Kartenmenge
-      wirksam machen (Weniger höchstens 60 %, Mehr mindestens 140 % der
-      Vorschläge von Normal, ohne Füllkarten und bei gleicher Belegtreue;
-      danach die Dichten in `AI_SOURCE_AMOUNTS` neu messen), Single Choice
-      wird nie gewählt, Tabellenzeilen ergeben Doppelfragen, und die
-      Zerlegung der Quelle in drei Varianten vergleichen. Nachweis: je
-      Anfragetyp ein Pull Request mit Promptversion und Ledger-Einträgen.
-- [ ] **J – Abschluss:** Kostenziele je Anfragetyp nach `operations.md`,
-      Versuchsplan auflösen. Nachweis: Die Seite zeigt Bestand, Verlauf und
-      Bilanz für alle Anfragetypen.
+externen Release fällig. Der P5-Nachschlag ist der Rest des KI-Hillclimbs.
+„Später“ ist geparkt.
 
 ## P6: Performance und Testlaufzeit
 
@@ -481,9 +436,15 @@ neuen Code.
 ## Vor dem ersten externen Release
 
 - [ ] **KI-Kontingent pro Nutzer:** Alle Nutzer teilen das Ausgabenlimit des
-      OpenRouter-Schlüssels; ein Tageslimit je Account (atomare Zählung in
-      Supabase) verhindert, dass ein Nutzer es allein aufbraucht. Braucht eine
-      Ergänzung zu ADR-011.
+      OpenRouter-Schlüssels; ein Limit je Account (atomare Zählung in
+      Supabase) verhindert, dass ein Nutzer es allein aufbraucht. Vorschlag:
+      ein Budget in Kosten statt in Anfragen, etwa je Monat. KI hilft,
+      Varianten und Zusammenfassung lesen die Kosten je Anfrage schon
+      (`costUsd`), Karten aus einer Quelle noch nicht. Dringender seit
+      Reasoning `medium` und der schrittweisen Neuerzeugung der Varianten
+      (`card-variant-v6`); Richtwert: eine Variante für jede von 50.000 Karten
+      kostet rund 7–8 $. Braucht eine Ergänzung zu ADR-011; Bezahlstufen
+      bleiben unter „Später“.
 - [ ] **Magic Link:** Gebaut, aber per Flag aus. Braucht einen eigenen
       SMTP-Server in Supabase, freigegebene Redirect-Adressen (Produktion,
       Preview), eine deutsche Mailvorlage und zusätzlich einen 6-stelligen
@@ -496,6 +457,34 @@ neuen Code.
       und den Zielwert festlegen (Vorschlag: höchstens 2 Minuten). Nachweis:
       Messung mit 50.000 Karten vom Login bis zum vollständigen Katalog.
 
+## P5-Nachschlag: KI-Hillclimb
+
+P5 ist am 2026-11-25 abgeschlossen; Stand je Route und Verlauf auf der Seite
+[KI-Eval](ai-eval.md), Regel in ADR-049. Unter Ziel liegen am Rückhalt
+Frage/Antwort (85,4 %, Ziel 95 %) und Karten aus einer Quelle (86,8 %, Ziel
+90 %).
+
+- [ ] **Lange Quellen über die ganze Länge:** Ein Auftrag ergibt höchstens
+      100 Karten, die Abschnitte (bis 6.000 Zeichen) laufen der Reihe nach.
+      Bei Normal (3,5–5 Karten je 1.000 Zeichen) ist nach etwa 20.000 Zeichen
+      (≈ 7 Seiten) Schluss, der Rest wird nicht abgefragt. Vorschlag: ein
+      günstiger Gliederungsaufruf vorab, der die 100 Karten auf alle
+      Abschnitte verteilt; Alternative ist die ganze Quelle als Kontext.
+      Braucht eine Ergänzung von ADR-011 und eine eigene Hillclimb-Welle.
+      Nachweis: letzte belegte Stelle bei Quellen über 20.000 Zeichen nahe am
+      Ende, Hauptwert nicht schlechter. In derselben Welle: mehr Single Choice
+      (bei allen Formen 4 % statt jeder achten Karte) und keine Doppelfragen
+      aus Tabellenzeilen.
+- [ ] **Frage/Antwort unter Ziel:** Zuerst 20–30 Handurteile je Anfragetyp
+      gegen den Richter, um zu klären, ob er zu streng ist. Erst danach ein
+      Prüfaufruf für Varianten oder der Modellvergleich gegen
+      `openai/gpt-6-luna` (DeepSeek V4.1 Flash ohne Reasoning, Claude Haiku
+      5.5 `medium`).
+- [ ] **Kleinkram, zusammen mit dem KI-Kontingent:** Specs („nie im
+      Hintergrund“) und ADR-011 (vorausschauende Variante) abgleichen;
+      `non_zdr` aus dem Antwortschema der Zusammenfassung streichen, weil
+      keine Route es mehr liefert.
+
 ## Später
 
 ### KI
@@ -504,8 +493,6 @@ neuen Code.
   `zipReader.ts` prüfen; Beleg je Folie oder Abschnitt).
 - Bilder als Quelle für Karten aus einer Quelle (teurer, eigener Hillclimb); braucht eine Ergänzung
   von ADR-011 (Agenda 3.3, 3.5).
-- Modellvergleich von Hand über eine Kandidatendatei, auf denselben
-  Fallsätzen, sobald die erste Welle von P5 steht.
 - KI-Kontingente je Nutzer im Zusammenspiel mit Bezahlstufen bzw.
   Abonnements (Umfang je Stufe, Credits, Abrechnung nach Kosten).
 

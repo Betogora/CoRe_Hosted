@@ -14,6 +14,7 @@ const TEXTS: AiRouteTexts = {
   rejected: "OpenRouter hat die Kartenanfrage abgelehnt.",
   failed: "Die KI konnte keine Karten erstellen.",
   invalid: "Die KI-Antwort war ungültig oder wurde vorzeitig abgeschnitten.",
+  filtered: "Der Inhaltsfilter des KI-Anbieters hat diesen Abschnitt der Quelle blockiert.",
   tool: "Die KI hat das Kartenwerkzeug nicht korrekt verwendet.",
   fields: "Die KI hat keine lesbaren Kartenfelder geliefert.",
   unconfigured: "Die KI-Route ist noch nicht konfiguriert.",

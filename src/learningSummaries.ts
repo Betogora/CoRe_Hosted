@@ -11,7 +11,7 @@ const identifier = v.pipe(v.string(), v.minLength(1), v.maxLength(200));
 const generationSchema = v.strictObject({
   model: v.pipe(v.string(), v.minLength(1), v.maxLength(200)),
   privacyMode: v.picklist(["zdr", "non_zdr"]),
-  promptVersion: v.picklist(["learning-summary-v1", "learning-summary-v2", "learning-summary-v3", "learning-summary-v4"]),
+  promptVersion: v.picklist(["learning-summary-v1", "learning-summary-v2", "learning-summary-v3", "learning-summary-v4", "learning-summary-v5", "learning-summary-v6", "learning-summary-v7"]),
   generatedAt: v.pipe(v.string(), v.isoTimestamp()),
   materialUnits: v.pipe(v.number(), v.integer(), v.minValue(1), v.maxValue(500)),
   relations: v.optional(v.pipe(v.array(v.strictObject({ from: v.pipe(v.string(), v.minLength(1), v.maxLength(160)), to: v.pipe(v.string(), v.minLength(1), v.maxLength(160)) })), v.maxLength(12))),

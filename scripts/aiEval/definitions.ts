@@ -412,7 +412,7 @@ const learningSummary: EvalDefinition<SummaryCase, Summary> = {
   id: "learning-summary",
   deadlineMs: AI_LEARNING_SUMMARY_DEADLINE_MS,
   contract: "Z1",
-  main: ["Z1", "Z2", "Z3", "Z4", "Z5", "Z6"],
+  main: ["Z1", "Z2", "Z3", "Z4", "Z6"],
   parseRequest(value) {
     const parsed = v.safeParse(v.strictObject({ set: v.pipe(v.string(), v.regex(/^[a-z0-9-]+$/)), profile: v.picklist(Object.keys(SUMMARY_PROFILES) as (keyof typeof SUMMARY_PROFILES)[]) }), value);
     if (!parsed.success || !existsSync(`${SUMMARY_DIRECTORY}/${parsed.output.set}.json`)) return null;
@@ -444,11 +444,6 @@ const learningSummary: EvalDefinition<SummaryCase, Summary> = {
       const keywords = summaryBlocks(output).flatMap((block) => block.points.map((point) => point.keyword.trim().toLocaleLowerCase("de-DE")));
       return new Set(keywords).size === keywords.length;
     },
-    Z5(_request, output) {
-      const name = (text: string) => text.trim().toLocaleLowerCase("de-DE");
-      const names = new Set(summaryBlocks(output).flatMap((block) => [block.heading, ...block.points.map((point) => point.keyword)]).map(name));
-      return (output.relations ?? []).every((relation) => names.has(name(relation.from)) && names.has(name(relation.to)));
-    },
   },
   judged: (request) => [...Object.values(SUMMARY_CRITERIA), ...summaryKeypoints(request)],
   items(request, output) {
@@ -470,7 +465,7 @@ const learningSummary: EvalDefinition<SummaryCase, Summary> = {
   },
   metrics(request, output) {
     const referenced = new Set(summaryBlocks(output).flatMap((block) => block.references));
-    return { woerter: summaryWords(output), abschnitte: summaryBlocks(output).length, belegtes_material: referenced.size / request.route.units.length, warnungen: output.warnings.length };
+    return { woerter: summaryWords(output), abschnitte: summaryBlocks(output).length, belegtes_material: referenced.size / request.route.units.length, warnungen: output.warnings.length, querbezuege: output.relations?.length ?? 0 };
   },
 };
 

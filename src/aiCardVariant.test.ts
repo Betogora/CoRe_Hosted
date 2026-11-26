@@ -98,7 +98,7 @@ test("generated draft rejects changed sources and duplicate variants", () => {
   const draft = createAiGeneratedVariantDraft(source, original, generated);
   assert.equal(draft.meta.generationSource, "ai_generated");
   assert.equal(draft.front, "Anders gefragt");
-  assert.equal(draft.meta.promptVersion, "card-variant-v5");
+  assert.equal(draft.meta.promptVersion, "card-variant-v6");
   assert.equal(draft.meta.model, "provider/model:free");
 
   const changedContent = structuredClone(original.note.content);

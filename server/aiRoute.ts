@@ -13,6 +13,7 @@ export interface ProviderTexts {
   rejected: string;
   failed: string;
   invalid: string;
+  filtered: string;
   tool: string;
   fields: string;
 }
@@ -198,6 +199,7 @@ export function readToolCall(payload: unknown, tool: string, texts: ProviderText
   if (!completion.success || completion.output.choices.length !== 1 || completion.output.choices[0].finish_reason === "length") {
     throw new HttpError(502, "invalid_provider_response", texts.invalid);
   }
+  if (completion.output.choices[0].finish_reason === "content_filter") throw new HttpError(502, "content_filter", texts.filtered);
   const toolCalls = completion.output.choices[0].message.tool_calls;
   if (toolCalls.length !== 1 || toolCalls[0].function.name !== tool) throw new HttpError(502, "invalid_tool_call", texts.tool);
   let toolArguments: unknown;

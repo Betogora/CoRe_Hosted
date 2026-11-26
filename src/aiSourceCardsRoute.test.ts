@@ -27,7 +27,7 @@ test("Quellenkarten-Tool nutzt das feste Modell mit ZDR, trennt Auftrag und Mate
   assert.equal(payload.tool_choice.function.name, "create_source_cards");
   const system = payload.messages[0].content;
   assert.match(system, /Kartenmenge: Erstelle Karten für die Kernaussagen und wichtigen Zusammenhänge\./);
-  assert.match(system, /höchstens 7 Karten/);
+  assert.match(system, /etwa 1 Karte; erstelle höchstens 7\./);
   assert.match(system, /avoid enthält Fragen/);
   assert.ok(system.includes(JSON.stringify("Schwerpunkt Atmungskette")));
   assert.doesNotMatch(system, /ATP ist der wichtigste/);
@@ -36,7 +36,7 @@ test("Quellenkarten-Tool nutzt das feste Modell mit ZDR, trennt Auftrag und Mate
   assert.equal(card.maxItems, 7);
   assert.deepEqual(card.items.properties.form.enum, ["basic", "cloze"]);
   assert.deepEqual(card.items.properties.sources.items.enum, ["s1", "s2"]);
-  assert.equal(buildSourceCardsToolPayload(input).tools[0].function.parameters.properties.cards.maxItems, 25);
+  assert.equal(buildSourceCardsToolPayload(input).tools[0].function.parameters.properties.cards.maxItems, 45);
 });
 
 test("Alle vier Kartenformen kommen mit Beleg, Modell und Kosten zurück", () => {
@@ -44,7 +44,7 @@ test("Alle vier Kartenformen kommen mit Beleg, Modell und Kosten zurück", () =>
   assert.deepEqual(result.cards.map((card) => card.form), ["basic", "cloze", "single-choice", "multiple-choice"]);
   assert.equal(result.discarded, 0);
   assert.equal(result.privacyMode, "zdr");
-  assert.equal(result.promptVersion, "source-cards-v2");
+  assert.equal(result.promptVersion, "source-cards-v3");
   assert.equal(result.usage?.totalTokens, 2_800);
 });
 
@@ -88,10 +88,10 @@ test("Vorschläge über dem Rest- oder Abschnittslimit und unbrauchbare Hinweise
   const result = parseGeneratedSourceCards({ cards: [{ ...basic, back: "" }, ...generated.cards], warnings: [] }, parseAiSourceCardsRequest({ ...request, limit: 2 }));
   assert.deepEqual(result.cards, [basic, cloze]);
   assert.equal(result.discarded, 3);
-  const many = Array.from({ length: 26 }, (_, index) => ({ ...basic, front: `Frage ${index + 1}?` }));
+  const many = Array.from({ length: 46 }, (_, index) => ({ ...basic, front: `Frage ${index + 1}?` }));
   const warnings = [...Array.from({ length: 9 }, (_, index) => `Hinweis ${index + 1}`), "x".repeat(601), 7];
   const capped = parseGeneratedSourceCards({ cards: many, warnings }, input);
-  assert.equal(capped.cards.length, 25);
+  assert.equal(capped.cards.length, 45);
   assert.equal(capped.discarded, 1);
   assert.deepEqual(capped.warnings, Array.from({ length: 8 }, (_, index) => `Hinweis ${index + 1}`));
 });
@@ -114,5 +114,5 @@ test("Auftrag ohne Kartenform, mit doppelten Abschnitten, Ergänzungsschalter od
     { ...request, limit: 101 },
     { ...request, avoid: Array.from({ length: 100 }, (_, index) => `Frage ${index}`) },
   ]) assert.throws(() => parseAiSourceCardsRequest(value), (error: Error & { code?: string }) => error.code === "invalid_request");
-  assert.throws(() => parseAiSourceCardsRequest({ ...request, units: [{ id: "s1", label: "Seite 1", text: "x".repeat(15_001) }] }), (error: Error & { code?: string }) => error.code === "portion_too_large");
+  assert.throws(() => parseAiSourceCardsRequest({ ...request, units: [{ id: "s1", label: "Seite 1", text: "x".repeat(6_001) }] }), (error: Error & { code?: string }) => error.code === "portion_too_large");
 });

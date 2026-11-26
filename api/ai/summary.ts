@@ -13,6 +13,7 @@ const TEXTS: AiRouteTexts = {
   rejected: "OpenRouter hat die Zusammenfassungsanfrage abgelehnt.",
   failed: "Die KI konnte keine Zusammenfassung erstellen.",
   invalid: "Die KI-Antwort war ungültig oder wurde vorzeitig abgeschnitten. Versuche eine kürzere Fassung.",
+  filtered: "Der Inhaltsfilter des KI-Anbieters hat die Zusammenfassung blockiert.",
   tool: "Die KI hat das Zusammenfassungswerkzeug nicht korrekt verwendet.",
   fields: "Die KI hat keine lesbaren Zusammenfassungsfelder geliefert.",
   unconfigured: "Die KI-Route ist noch nicht konfiguriert.",
@@ -52,7 +53,7 @@ export function buildSummaryToolPayload(input: AiLearningSummaryRequest) {
       },
     } }],
     tool_choice: { type: "function", function: { name: "create_learning_summary" } },
-    reasoning: { effort: "low" }, max_tokens: SUMMARY_OUTPUT_TOKENS[input.settings.length], stream: false,
+    reasoning: { effort: "medium" }, max_tokens: SUMMARY_OUTPUT_TOKENS[input.settings.length], stream: false,
     provider: { require_parameters: true, data_collection: "deny", zdr: true },
   };
 }

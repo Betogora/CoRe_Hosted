@@ -43,7 +43,7 @@ export type AnswerRow = {
 const RETRYABLE = new Set(["rate_limited", "provider_unavailable", "provider_error"]);
 const FATAL = new Set(["provider_budget_exhausted", "openrouter_auth_failed", "no_provider_endpoint", "provider_request_rejected"]);
 const ATTEMPTS = 5;
-const TEXTS: ProviderTexts = { rateLimited: "Ratenlimit erreicht.", unavailable: "Schlüssel oder Limit prüfen.", rejected: "OpenRouter hat die Anfrage abgelehnt.", failed: "Anbieterfehler.", invalid: "Ungültige Antwort.", tool: "Werkzeug falsch verwendet.", fields: "Ungültige Felder." };
+const TEXTS: ProviderTexts = { rateLimited: "Ratenlimit erreicht.", unavailable: "Schlüssel oder Limit prüfen.", rejected: "OpenRouter hat die Anfrage abgelehnt.", failed: "Anbieterfehler.", invalid: "Ungültige Antwort.", filtered: "Vom Inhaltsfilter blockiert.", tool: "Werkzeug falsch verwendet.", fields: "Ungültige Felder." };
 
 /** `reference.jsonl` hält Nachmessungen des Bestands für den gepaarten Vergleich dieses Laufs. */
 export type AnswerFile = "answers.jsonl" | "reference.jsonl";
