@@ -112,11 +112,11 @@ test("populated dashboard shows the aggregated open daily learning overview", ()
   assert.ok(dailyOverview);
   assert.doesNotMatch(markup, /data-donut-|Gesamtfortschritt/);
   assert.doesNotMatch(markup, /aktive Tage/i);
-  assert.match(markup, /0<\/span> <span class="core-heading-3">Tage Streak/);
+  assert.match(markup, /0<\/span> <span class="core-study-heatmap-streak-label">Tage Streak/);
   assert.match(markup, /aria-label="Heatmap-Zeitraum"/);
   assert.match(markup, /Frühere sieben Tage anzeigen[\s\S]*data-testid="study-heatmap-grid"[\s\S]*data-testid="study-heatmap-legend"[\s\S]*Gelernt[\s\S]*Fällig/);
   assert.equal((markup.match(/data-heatmap-day=/g) ?? []).length, 7);
-  assert.match(markup, /class="[^"]*core-heatmap-week-track w-full max-w-\[4\.5rem\] rounded-control bg-core-subtle"/);
+  assert.match(markup, /class="[^"]*core-heatmap-week-tile rounded-control"/);
   assert.match(markup, /ring-2 ring-core-action/);
   assert.doesNotMatch(markup, /ring-inset/);
   for (let level = 1; level <= 4; level += 1) assert.match(markup, new RegExp(`core-heatmap-level-${level}`));

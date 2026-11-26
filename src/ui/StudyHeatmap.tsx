@@ -1,5 +1,5 @@
 import React from "react";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, Flame, X } from "lucide-react";
 import {
   createStudyHeatmapWindow,
   type StudyHeatmapDay,
@@ -132,13 +132,11 @@ function HeatmapDayCell({
   day,
   label,
   className,
-  barHeight,
   children,
 }: {
   day: StudyHeatmapDay;
   label: string;
   className: string;
-  barHeight?: string | null;
   children?: React.ReactNode;
 }) {
   if (day.isOutsideRange) return <span aria-hidden="true" className={`invisible ${className}`} />;
@@ -147,44 +145,64 @@ function HeatmapDayCell({
   return (
     <CoreTooltip label={label}>
       <span
-        className={`grid place-items-center transition-transform ${barHeight === undefined ? `border hover:scale-105 ${toneClass}` : ""} ${day.isToday ? "ring-2 ring-core-action ring-offset-2 ring-offset-core-surface" : ""} ${unavailableClass} ${className}`}
+        className={`grid place-items-center border transition-transform hover:scale-105 ${toneClass} ${day.isToday ? "ring-2 ring-core-action ring-offset-2 ring-offset-core-surface" : ""} ${unavailableClass} ${className}`}
         aria-label={label}
         data-heatmap-day={day.key}
         data-heatmap-kind={day.isForecastAvailable ? "forecast" : day.isFuture ? "unavailable" : "history"}
       >
-        {barHeight ? <span className={`block w-full self-end rounded-control border ${toneClass}`} style={{ height: barHeight }} /> : children}
+        {children}
       </span>
     </CoreTooltip>
   );
 }
 
 function WeekHeatmap({ window, formatDayLabel }: { window: StudyHeatmapWindow; formatDayLabel: (day: StudyHeatmapDay) => string }) {
-  const dayValue = (day: StudyHeatmapDay) => (day.isFuture ? day.forecastCount : day.count);
-  const maxValue = Math.max(1, ...window.days.map(dayValue));
   return (
     <div
-      className="grid grid-cols-7 gap-1.5 sm:gap-3"
+      className="core-heatmap-week"
       role="img"
       data-testid="study-heatmap-grid"
       data-heatmap-period="week"
       aria-label={`Lern-Heatmap von ${window.rangeStartKey} bis ${window.rangeEndKey}`}
     >
       {window.days.map((day) => {
-        const value = dayValue(day);
+        const value = (day.isFuture ? day.forecastCount : day.count).toLocaleString("de-DE");
         return (
-          <div key={day.key} className="grid min-w-0 justify-items-center gap-1.5">
-            <span className={`core-body font-semibold tabular-nums ${value === 0 ? "text-core-muted" : "text-core-text"}`}>{value.toLocaleString("de-DE")}</span>
-            <HeatmapDayCell
-              day={day}
-              label={heatmapDayLabel(day, formatDayLabel)}
-              className="core-heatmap-week-track w-full max-w-[4.5rem] rounded-control bg-core-subtle"
-              barHeight={value ? `${Math.max(10, (value / maxValue) * 100)}%` : null}
-            />
-            <span className={`core-caption text-center font-medium ${day.isToday ? "text-core-action" : "text-core-muted"}`}>
-              <span className="block">{day.isToday ? "Heute" : compactWeekLabel(day.key)}</span>
-              <span className="core-heatmap-week-date block whitespace-nowrap">{compactDate(day.key)}</span>
+          <div key={day.key} className="core-heatmap-week-day">
+            <HeatmapDayCell day={day} label={heatmapDayLabel(day, formatDayLabel)} className="core-heatmap-week-tile rounded-control">
+              <span
+                className="core-heatmap-week-count"
+                data-zero={value === "0" || undefined}
+                style={{ "--heatmap-count-digits": value.length, color: !day.isFuture && day.level === 4 ? "var(--core-heatmap-on-strong)" : undefined } as React.CSSProperties}
+              >
+                {value}
+              </span>
+            </HeatmapDayCell>
+            <span className={`core-heatmap-week-label core-caption ${day.isToday ? "font-bold text-core-action" : "font-medium text-core-muted"}`}>
+              <span>{day.isToday ? "Heute" : compactWeekLabel(day.key)}</span>
+              <span className="core-heatmap-week-date">{compactDate(day.key)}</span>
             </span>
           </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function StreakRun({ heatmap }: { heatmap: StudyHeatmapModel }) {
+  const days = Array.from({ length: 7 }, (_, index) => shiftDayKey(heatmap.todayKey, index - 6));
+  const learnedDays = days.filter((key) => (heatmap.countsByDay.get(key) ?? 0) > 0).length;
+  const todayOpen = !heatmap.countsByDay.get(heatmap.todayKey);
+  return (
+    <div className="core-study-heatmap-run" role="img" aria-label={`Letzte 7 Tage: an ${learnedDays} ${learnedDays === 1 ? "Tag" : "Tagen"} gelernt${todayOpen ? ", heute noch offen" : ""}`}>
+      {days.map((key) => {
+        const learned = (heatmap.countsByDay.get(key) ?? 0) > 0;
+        const today = key === heatmap.todayKey;
+        const state = learned ? "learned" : today ? "open" : "missed";
+        return (
+          <span key={key} className="core-study-heatmap-run-mark" data-state={state} data-today={today || undefined}>
+            {state === "missed" ? <X aria-hidden="true" /> : <Flame fill={learned ? "currentColor" : "none"} aria-hidden="true" />}
+          </span>
         );
       })}
     </div>
@@ -315,6 +333,10 @@ export function StudyHeatmap({
   );
   const navigationLabels = PERIOD_NAVIGATION_LABELS[period];
   const rangeLabel = formatRangeLabel(visibleHeatmap);
+  const streak = heatmap.currentStreak.toLocaleString("de-DE");
+  // Width of the streak in digit widths; a thousands separator is about half a digit wide.
+  const streakWidth = streak.replace(/\D/g, "").length + (streak.length - streak.replace(/\D/g, "").length) * 0.45;
+  const todayOpen = !heatmap.countsByDay.get(heatmap.todayKey);
 
   React.useEffect(() => setAnchorKey(null), [heatmap.todayKey]);
   React.useLayoutEffect(() => {
@@ -338,17 +360,18 @@ export function StudyHeatmap({
       style={createHeatmapColorStyle(historyColor)}
       data-heatmap-history-color={historyColor}
     >
-      <div className="core-study-heatmap-band px-5 py-4 sm:px-6" style={{ background: historyColor, color: "var(--core-heatmap-on-strong)" }} data-testid="study-heatmap-header">
-        <h3 className="flex min-w-0 items-baseline gap-2 whitespace-nowrap">
-          <span className="core-heading-1 tabular-nums">{heatmap.currentStreak.toLocaleString("de-DE")}</span>{" "}
-          <span className="core-heading-3">{heatmap.currentStreak === 1 ? "Tag Streak" : "Tage Streak"}</span>
+      <div className="core-study-heatmap-layout">
+      <div className="core-study-heatmap-head">
+      <div className="core-study-heatmap-band" style={{ background: historyColor, color: "var(--core-heatmap-on-strong)", "--heatmap-streak-width": streakWidth } as React.CSSProperties} data-testid="study-heatmap-header">
+        <h3 className="core-study-heatmap-streak">
+          <span className="core-study-heatmap-streak-count">{streak}</span>{" "}
+          <span className="core-study-heatmap-streak-label">{heatmap.currentStreak === 1 ? "Tag Streak" : "Tage Streak"}</span>
         </h3>
-        <dl className="core-study-heatmap-band-metrics">
-          <div><dt className="core-caption font-medium">Lerntage</dt><dd className="core-metric tabular-nums">{`${visibleHeatmap.activeDayCount} / ${visibleHeatmap.trackedDayCount}`}</dd></div>
-          <div><dt className="core-caption font-medium">Morgen fällig</dt><dd className="core-metric tabular-nums">{(heatmap.forecastCountsByDay.get(shiftDayKey(heatmap.todayKey, 1)) ?? 0).toLocaleString("de-DE")}</dd></div>
-        </dl>
+        <Flame className="core-study-heatmap-emblem" fill={todayOpen ? "none" : "currentColor"} data-open={todayOpen || undefined} aria-hidden="true" />
       </div>
-      <div className="core-study-heatmap-body p-5 sm:p-6">
+      <StreakRun heatmap={heatmap} />
+      </div>
+      <div className="core-study-heatmap-body">
         <div className="core-study-heatmap-controls flex w-full items-center justify-between gap-3" data-testid="study-heatmap-controls">
           <div className="core-study-heatmap-nav flex min-w-0 max-w-[16rem] flex-1 items-center">
             <CoreTooltip label={navigationLabels.previous}>
@@ -385,6 +408,7 @@ export function StudyHeatmap({
         <div className="mt-4" data-testid="study-heatmap-legend">
           <HeatmapLegend />
         </div>
+      </div>
       </div>
     </SoftPanel>
   );

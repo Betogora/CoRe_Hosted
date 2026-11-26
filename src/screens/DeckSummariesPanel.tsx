@@ -1,7 +1,7 @@
 import React from "react";
 import { flushSync } from "react-dom";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { ArrowLeft, Check, ChevronRight, Layers, Paperclip, PenLine, Save, Search, Sparkles, Trash2, X } from "lucide-react";
+import { Check, ChevronLeft, ChevronRight, Layers, Paperclip, PenLine, Save, Search, Sparkles, Trash2, X } from "lucide-react";
 import type { SummaryGenerationInput, SummaryGenerationResult } from "../aiLearningSummary.ts";
 import type { TransientSourceDocument } from "../documentModel.ts";
 import type { CardDraftGuard } from "../appScreenProps.ts";
@@ -246,7 +246,7 @@ export function DeckSummariesPanel({ deck, treeDecks, userId, cloud = null, onGe
         </> : null}
     </> : draft && compact ? <>
       <div className="core-summary-compact-heading">
-        <CoreTooltip label="Alle Zusammenfassungen"><IconButton variant="ghost" icon={ArrowLeft} label="Alle Zusammenfassungen" disabled={busy} onClick={() => request(backToList)}/></CoreTooltip>
+        <CoreTooltip label="Alle Zusammenfassungen"><IconButton variant="ghost" icon={ChevronLeft} label="Alle Zusammenfassungen" disabled={busy} onClick={() => request(backToList)}/></CoreTooltip>
         <h3 className="core-summary-compact-title">{draft.title}</h3>
         {unsynced.has(draft.id) ? <CoreTag tone="warning">Nicht synchronisiert</CoreTag> : null}
         <CoreTooltip label={dirty ? "Speichern" : "Gespeichert"}><IconButton variant="ghost" icon={dirty ? Save : Check} label={dirty ? "Speichern" : "Gespeichert"} disabled={busy || !dirty} onClick={() => void persist()}/></CoreTooltip>
@@ -256,7 +256,7 @@ export function DeckSummariesPanel({ deck, treeDecks, userId, cloud = null, onGe
       <SummaryDocumentEditor key={draft.id} value={draft} onChange={setDraft} busy={busy} compact/>
     </> : draft ? <>
       <div className="core-summary-editor-heading">
-        <CoreTooltip label="Alle Zusammenfassungen"><IconButton icon={ArrowLeft} label="Alle Zusammenfassungen" disabled={busy} onClick={() => request(backToList)}/></CoreTooltip>
+        <CoreTooltip label="Alle Zusammenfassungen"><IconButton icon={ChevronLeft} label="Alle Zusammenfassungen" disabled={busy} onClick={() => request(backToList)}/></CoreTooltip>
         <input disabled={busy} ref={titleRef} aria-label="Titel der Zusammenfassung" className="core-field core-heading-2 core-summary-title-field" value={draft.title} maxLength={120} onChange={(event) => setDraft({ ...draft, title: event.target.value })} aria-invalid={Boolean(error) && !draft.title.trim() || undefined} />
         {unsynced.has(draft.id) ? <CoreTag tone="warning" className="core-summary-sync-tag">Nicht synchronisiert</CoreTag> : null}
         {dirty ? <ActionButton variant="primary" icon={Save} loading={busy} className="core-summary-save" onClick={() => void persist().then((saved) => { if (saved) titleRef.current?.focus(); })}>Speichern</ActionButton>

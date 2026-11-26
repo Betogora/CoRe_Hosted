@@ -1,5 +1,5 @@
 import React from "react";
-import { ArrowLeft, Check, Timer } from "lucide-react";
+import { Check, ChevronLeft, Timer } from "lucide-react";
 import { formatQuizDuration, quizHelpCard, quizOptionId, quizSelection, type Quiz, type QuizQuestion } from "../quiz.ts";
 import { ActionButton, IconButton } from "../ui/actionUi.tsx";
 import { ChoiceOptionList } from "../ui/ChoiceOptionList.tsx";
@@ -23,7 +23,7 @@ export const quizLeaveDescription = (answered: number) => answered === 1 ? "Dein
 
 export function QuizViewHeader({ title, backLabel, onBack }: { title: string; backLabel: string; onBack: () => void }) {
   return <div className="core-quiz-view-header">
-    <CoreTooltip label={backLabel}><IconButton className="-ml-2" variant="ghost" icon={ArrowLeft} label={backLabel} onClick={onBack} /></CoreTooltip>
+    <CoreTooltip label={backLabel}><IconButton className="-ml-2" variant="ghost" icon={ChevronLeft} label={backLabel} onClick={onBack} /></CoreTooltip>
     <h3 className="core-heading-2 text-core-text">{title}</h3>
   </div>;
 }

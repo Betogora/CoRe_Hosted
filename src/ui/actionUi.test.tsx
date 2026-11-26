@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { renderToStaticMarkup } from "react-dom/server";
-import { Save, Trash2 } from "lucide-react";
+import { ChevronLeft, ChevronRight, Play, Save, Trash2 } from "lucide-react";
 import { ActionButton, CloseButton, CrossLinkButton, IconButton } from "./actionUi.tsx";
 
 test("ActionButton centralizes variants and the labeled loading contract", () => {
@@ -18,6 +18,15 @@ test("ActionButton centralizes variants and the labeled loading contract", () =>
   assert.match(loading, /disabled=""/);
   assert.match(loading, />Speichern</);
   assert.match(loading, /animate-spin/);
+});
+
+test("action buttons fill the play sign and put the forward chevron after the label", () => {
+  const start = renderToStaticMarkup(<><ActionButton variant="primary" icon={Play}>Lernen</ActionButton><IconButton label="Biologie lernen" icon={Play} variant="ghost" /></>);
+  assert.equal(start.match(/<svg[^>]*fill="currentColor"[^>]*lucide-play/g)?.length, 2);
+  assert.match(renderToStaticMarkup(<ActionButton variant="primary" icon={Save}>Speichern</ActionButton>), /<svg[^>]*fill="none"[^>]*lucide-save/);
+
+  assert.match(renderToStaticMarkup(<ActionButton variant="primary" icon={ChevronRight}>Weiter</ActionButton>), /<span>Weiter<\/span><svg[^>]*lucide-chevron-right/);
+  assert.match(renderToStaticMarkup(<ActionButton variant="secondary" icon={ChevronLeft}>Zurück</ActionButton>), /lucide-chevron-left[^>]*><path[^>]*><\/path><\/svg><span>Zurück<\/span>/);
 });
 
 test("IconButton exposes its required accessible name, semantic variant and square target", () => {
@@ -66,9 +75,9 @@ test("CrossLinkButton centralizes the compact cross-link style for buttons and a
   assert.doesNotMatch(markup, /bg-core-subtle|hover:bg-/, "ohne Füllfläche");
 });
 
-test("CrossLinkButton leads back to the parent surface with an arrow before its label", () => {
+test("CrossLinkButton leads back to the parent surface with a chevron before its label", () => {
   const markup = renderToStaticMarkup(<CrossLinkButton direction="back" onSelect={() => undefined}>Erstellen</CrossLinkButton>);
 
-  assert.match(markup, /<button type="button"[^>]*><svg[^>]*lucide-arrow-left[\s\S]*?<\/svg>Erstellen<\/button>/);
+  assert.match(markup, /<button type="button"[^>]*><svg[^>]*lucide-chevron-left[\s\S]*?<\/svg>Erstellen<\/button>/);
   assert.doesNotMatch(markup, /lucide-chevron-right/);
 });
