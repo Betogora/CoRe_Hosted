@@ -44,6 +44,31 @@ test("online quizzes reach a new device, offline changes follow on the next load
   assert.deepEqual(await loadDeckQuizzes(account, "deck"), []);
 });
 
+test("a quiz deleted while its first upload is on its way is deleted online too", async () => {
+  const cloud = fakeCloud(), account = cloud.account(`quiz-race-${crypto.randomUUID()}`);
+  let release!: () => void, inserting!: () => void;
+  const gate = new Promise<void>((resolve) => { release = resolve; }), inserted = new Promise<void>((resolve) => { inserting = resolve; });
+  const from = account.cloud.from.bind(account.cloud);
+  Object.assign(account.cloud, { from: (name: string) => {
+    type Request = { then: (resolve: (value: unknown) => unknown) => Promise<unknown> };
+    const builder = from(name) as unknown as { insert: (row: object) => Request }, insert = builder.insert;
+    builder.insert = (row) => {
+      const run = insert(row), then = run.then;
+      inserting();
+      run.then = (resolve: (value: unknown) => unknown) => gate.then(() => then(resolve));
+      return run;
+    };
+    return builder;
+  } });
+  const saving = saveDeckQuiz(account, quiz("gone"));
+  await inserted;
+  await deleteDeckQuiz(account, "gone");
+  release();
+  await saving;
+  assert.ok(cloud.rows.get("gone")?.deleted_at);
+  assert.deepEqual(await loadDeckQuizzes(account, "deck"), []);
+});
+
 test("attempts finished on two devices in between are both kept", async () => {
   const cloud = fakeCloud(), account = cloud.account(`quiz-conflict-${crypto.randomUUID()}`);
   const stored = await saveDeckQuiz(account, quiz("shared"));

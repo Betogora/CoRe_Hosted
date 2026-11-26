@@ -49,7 +49,10 @@ async function pushQuiz(account: CloudAccount, record: StoredQuiz, retry = true)
   }
   const result = await writeLearningDocument(cloud, TABLE, { userId, id: record.id, deckId: record.deckId, document: record.quiz, baseRevision: record.revision });
   if ("revision" in result) {
-    await writeStored(userId, [{ ...record, revision: result.revision, pending: false }]);
+    // The local copy may have changed while the write was on its way; a deletion then follows it online.
+    const current = await getStored(userId, record.id);
+    if (!current) await deleteLearningDocument(cloud, TABLE, record.id);
+    else await writeStored(userId, [{ ...current, revision: result.revision, pending: current.pending && JSON.stringify(current.quiz) !== JSON.stringify(record.quiz) }]);
     return true;
   }
   const remote = result.conflict && !result.conflict.deleted ? readQuiz(result.conflict.document) : null;
