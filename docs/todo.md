@@ -22,7 +22,6 @@ Solche Pakete beginnen deshalb mit ihrer Messung (Schritt 0).
 | --- | --- | --- |
 | `affected-e2e` mit voller Suite | 12 bis 14 min (Testschritt 800 s, davon 266 s Katalog, seit T1 entfallen) | höchstens 5 min |
 | `catalog-e2e` | 4,5 bis 6,5 min mit 2 Workern; seit T1 lokal auf 4 CPUs 176 statt 364 s, in CI noch ungemessen | höchstens 4 min |
-| Pull Requests mit voller Suite | 57 von 86 (66 %) in drei Wochen | höchstens 40 % |
 | Roundtrips nacheinander je Bewertung | 5 | 2 |
 | `srcdoc` einer Formelkarte | rund 400 KB | rund 30 KB |
 
@@ -41,7 +40,7 @@ Für alle Pakete gilt:
 - Unverändert lassen: `quality` (rund 50 s, Engpass Typecheck samt knip),
   Modultests (179 Dateien in 12 s) und RLS (21 Fälle in 6 s).
 
-Reihenfolge: T2 und T3, dann A3 und A4; A5 nach
+Reihenfolge: T3, dann A3 und A4; A5 nach
 der Entscheidung, A6, T4, A7 und T5 nach Bedarf.
 
 | Spur | Kennzahl | Schleife | Paket |
@@ -244,31 +243,6 @@ der Entscheidung, A6, T4, A7 und T5 nach Bedarf.
 
 ### Tests
 
-- [ ] **T2 – Auswahl schärfen:** Kennzahl ist der Anteil voller Läufe.
-      Gemessen, indem `affectedE2ESpecs` über die Dateilisten der letzten
-      86 Merges nach `main` läuft; 10 volle Läufe kamen allein von
-      `src/styles.css`, 8 allein von nicht zugeordneten Dateien.
-  - `src/appScreenProps.ts` (16 Pull Requests, nur Typen) ignorieren.
-  - `src/screens/cardList/` auf `card-lifecycle` und `navigation-context`
-    legen.
-  - Das Muster `coreRepository` trifft `indexedDbCoreRepository.ts` (13)
-    wegen der Großschreibung nicht. Ebenfalls zuordnen: `cardCommands.ts`
-    (9), `indexedDbImportCommit.ts` (7), `workspaceHydrationService.ts`
-    (7).
-  - `src/styles.css` auf `product-surfaces`, `core-stabilization`,
-    `world-capitals-hierarchy` und `navigation-context` legen (235 statt
-    428 s; die Katalog-Specs fährt `catalog-e2e` ohnehin). Aufgegeben wird bei
-    reinen CSS-Änderungen der PR-Lauf der übrigen Specs; `nightly-core`
-    fängt ihn.
-  - Lücken schließen, die heute nichts auslösen:
-    `tests/support/seedAccountState.ts`,
-    `tests/support/fakeLearningCloud.ts`,
-    `library/world-capitals/world-capitals.source.json`,
-    `postcss.config.ts`.
-  - Fehlgriffe: `.env.example` trifft `/exam/`, `CardPreviewDialog` trifft
-    `/[Rr]eview/`.
-  - Nachweis: Fälle in `src/affectedE2ESpecs.test.ts`; Wiederholung über
-    dieselben Merges ergibt höchstens 40 %; `test-portfolio.md` nachziehen.
 - [ ] **T3 – Supabase-Suite in drei Shards (H2):** 119 Tests laufen seriell
       in 432 s, ohne Ausreißer (längster 10,3 s). Drei Jobs mit festen
       Dateilisten, jeder mit eigenem Supabase, ohne Änderung am Testcode:

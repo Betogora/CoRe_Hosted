@@ -18,12 +18,24 @@ test("affected browser gate leaves docs, unit tests and catalog sources to other
   }
 });
 
+test("affected browser gate keeps frequent shared sources out of the full suite", () => {
+  assert.deepEqual(affectedE2ESpecs(["src/styles.css"]), { full: false, supabase: ["core-stabilization", "navigation-context", "product-surfaces", "world-capitals-hierarchy"], rls: false });
+  assert.deepEqual(affectedE2ESpecs(["src/screens/cardList/CardHitTable.tsx"]), { full: false, supabase: ["card-lifecycle", "navigation-context"], rls: false });
+  assert.deepEqual(affectedE2ESpecs(["src/appScreenProps.ts"]), { full: false, supabase: [], rls: false });
+  assert.equal(affectedE2ESpecs(["src/indexedDbCoreRepository.ts"]).full, false);
+});
+
+test("affected browser gate does not take example or preview names for exams or reviews", () => {
+  assert.deepEqual(affectedE2ESpecs([".env.example"]), { full: false, supabase: [], rls: false });
+  assert.deepEqual(affectedE2ESpecs(["src/ui/CardPreviewDialog.tsx"]), { full: false, supabase: ["card-lifecycle"], rls: false });
+});
+
 test("affected browser gate runs the full RLS suite for changed RLS tests", () => {
   assert.deepEqual(affectedE2ESpecs(["tests/rls/ownership-smoke.test.ts"]), { full: false, supabase: [], rls: true });
 });
 
 test("affected browser gate falls back to the full suite for shared infrastructure and unmapped product code", () => {
-  for (const file of ["tests/e2e/support/appState.ts", "playwright.config.ts", "package-lock.json", "supabase/migrations/x.sql", "src/App.tsx", "src/workspaceStorage.ts"]) {
+  for (const file of ["tests/e2e/support/appState.ts", "tests/support/seedAccountState.ts", "library/world-capitals/world-capitals.source.json", "postcss.config.ts", "playwright.config.ts", "package-lock.json", "supabase/migrations/x.sql", "src/App.tsx", "src/workspaceStorage.ts"]) {
     assert.deepEqual(affectedE2ESpecs(["tests/e2e/mindmaps.spec.ts", file]), { full: true }, file);
   }
 });
