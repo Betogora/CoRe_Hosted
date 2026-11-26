@@ -538,6 +538,9 @@ Frage/Antwort (85,4 %, Ziel 95 %) und Karten aus einer Quelle (86,8 %, Ziel
   `4dd2af7`).
 - Quizplanung im Prüfungsplaner (ADR-042); Entwurf in Commit `71a7892`
   (`codex/klausurplaner-design`).
+- Quiz-Feinschliff: Die Erstellung läuft weiter, wenn man Reiter oder Ansicht
+  verlässt (heute bricht sie ab); Ablauf und Auswertung füllen wie die übrigen
+  Stapelreiter die Breite, auf dem Telefon bleibt es kompakt.
 - Name des Schalters „CoRe-Modus“ nach dem Variantenkonzept; Vorschlag
   „Umformulierungen“ (Agenda 1.7).
 - Simulator für das ganze Konto entfernen; stattdessen eine selbst klickbare
