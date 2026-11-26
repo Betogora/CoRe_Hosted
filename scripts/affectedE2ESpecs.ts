@@ -32,7 +32,10 @@ const AREAS: [RegExp, string[]][] = [
   [/auth|Auth/, ["auth-gate", "auth-lifecycle", "auth-resilience"]],
   [/apkg|Apkg|[Tt]extImport|media|Media|zipReader|sqliteReader|importRetranslation|[Ii]mportSession|InterruptedImport|importCommands|ImportCommit/, ["apkg-quality-report", "first-learning", "zz-media-import", "batch-resilience", "world-capitals-hierarchy", "product-surfaces"]],
   [/cloud|Cloud|sync|Sync|[Cc]oreRepository|indexedDb|[Hh]ydration|workspaceReplica|accountDatabase|accountStorage|offline/, ["batch-resilience", "card-lifecycle", "core-stabilization", "navigation-context", "exam-planning", "auth-resilience", "zz-media-import"]],
-  [/appNavigation|AppNavigation|menuModel|appRoute|NavigationGuard/, ["navigation-context", "product-surfaces"]],
+  [/appNavigation|AppNavigation|menuModel|appRoute/, ["navigation-context", "product-surfaces"]],
+  [/NavigationGuard/, ["navigation-context", "product-surfaces", "exam-planning", "batch-resilience"]],
+  // Only the sign-up flow starts an account without a stored profile row.
+  [/profileIntegrity|[Cc]oreRepository/, ["auth-lifecycle"]],
   [/Settings|settings|learningProfiles|LearningDefaults|SaveBar|uiPreferences|profileIntegrity|fieldTimings/, ["product-surfaces", "core-stabilization"]],
   [/[Cc]reation|coreModel|cardCommands|cardBatchActions|clozeSyntax|cardEditor|NoteContentEditor|[Rr]ichText|[Tt]ag(?:Input|Directory)/, ["card-lifecycle", "batch-resilience", "first-learning"]],
   [/Simulator|DatePicker/, ["core-stabilization"]],

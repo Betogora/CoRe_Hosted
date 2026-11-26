@@ -22,7 +22,10 @@ test("affected browser gate keeps frequent shared sources out of the full suite"
   assert.deepEqual(affectedE2ESpecs(["src/styles.css"]), { full: false, supabase: ["core-stabilization", "navigation-context", "product-surfaces", "world-capitals-hierarchy"], rls: false });
   assert.deepEqual(affectedE2ESpecs(["src/screens/cardList/CardHitTable.tsx"]), { full: false, supabase: ["card-lifecycle", "navigation-context"], rls: false });
   assert.deepEqual(affectedE2ESpecs(["src/appScreenProps.ts"]), { full: false, supabase: [], rls: false });
-  assert.equal(affectedE2ESpecs(["src/indexedDbCoreRepository.ts"]).full, false);
+  const repository = affectedE2ESpecs(["src/indexedDbCoreRepository.ts"]);
+  assert.ok(!repository.full && repository.supabase.includes("auth-lifecycle"));
+  const guard = affectedE2ESpecs(["src/useNavigationGuard.ts"]);
+  assert.ok(!guard.full && ["exam-planning", "batch-resilience"].every((name) => guard.supabase.includes(name)));
 });
 
 test("affected browser gate does not take example or preview names for exams or reviews", () => {
