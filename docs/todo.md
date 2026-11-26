@@ -546,6 +546,8 @@ Frage/Antwort (85,4 %, Ziel 95 %) und Karten aus einer Quelle (86,8 %, Ziel
   Tageslimit neu aus den lokalen Stapelzählungen laden (heute Stand beim Start).
 - Semantische Themenzuordnung in ungegliederten Stapeln, ohne Lernstände zu
   ändern; ein Lösungsweg über Tags ist `Treffer lernen` der Kartenverwaltung.
+- Kopf der Lernsitzung fertigstellen: Anki-Kopf recherchieren, „Letzte
+  Bewertung zurücknehmen“ (heute Strg+Z) als Knopf im Kopf, Telefon und Desktop.
 
 ### Kartenverwaltung
 

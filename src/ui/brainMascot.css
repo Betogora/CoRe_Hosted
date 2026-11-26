@@ -4,9 +4,10 @@
 .brain-mascot-button { display: block; width: 100%; min-width: 44px; min-height: 44px; border: 0; border-radius: var(--core-radius-control, 12px); background: transparent; padding: 0; color: inherit; cursor: pointer; -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
 .brain-mascot-feedback { display: block; min-height: 2.6em; margin-top: 4px; color: var(--core-text-secondary, #4b5563); font-size: var(--core-type-caption, 12px); line-height: 1.3; }
 .motivation-widget { container-type: inline-size; }
-.motivation-widget-layout { display: grid; align-items: center; gap: 12px; margin-top: 16px; }
-.motivation-widget-quote { margin-top: 8px; overflow-wrap: anywhere; }
-.motivation-widget .brain-mascot { max-width: 200px; }
-@container (min-width: 25rem) {
-  .motivation-widget-layout { grid-template-columns: minmax(0, 1fr) 180px; gap: 24px; }
+.motivation-widget-quote { max-width: 11ch; margin-top: 1.5rem; overflow-wrap: anywhere; font: 750 clamp(1.75rem, 10cqi, 2.625rem)/1.04 var(--core-font-sans); letter-spacing: -0.035em; }
+.motivation-widget .brain-mascot { position: absolute; right: 1rem; bottom: 1rem; width: 9.5rem; }
+.motivation-widget .brain-mascot-feedback { color: inherit; }
+@media (max-width: 639px) {
+  .motivation-widget-quote { padding-bottom: 8.75rem; }
+  .motivation-widget .brain-mascot { width: 7.5rem; }
 }

@@ -19,7 +19,8 @@ keinen Schatten-Token für sie. Schatten tragen nur schwebende Ebenen:
 `shadow-selection` markiert fachliche Auswahl. Sichtbare Fokusrahmen erscheinen nur bei Tastaturfokus (siehe
 unten). Die Auswahlmarkierung ist kein Fokusring. Farbkennung und Zustand liegen
 auf der ganzen Form, nie auf einer einzelnen Kante: Prüfungsaufgaben tragen einen
-Rahmen rundum in Prüfungsfarbe mit getönter Fläche, Prüfungen in Überschriften
+Rahmen rundum in Prüfungsfarbe mit getönter Fläche (einzige Ausnahme: im
+To-do-Plakat von `Heute` ein Prüfungsfarbstreifen links an der Aufgabenzeile), Prüfungen in Überschriften
 einen Farbpunkt, der Prüfungstag den Klausur-Chip in voller Prüfungsfarbe;
 Hervorhebungen sind getönte Flächen.
 Kalendertage zeigen eine feste Zahl Einträge in voller Höhe, ohne Scrollen und
@@ -95,7 +96,7 @@ Nicht für Reviewratings, MCQ-Antworten, Tabs, Farbfelder, Navigationszeilen ode
 
 Spezialisierte native Buttons dürfen direkt `core-action-primary`, `core-action-secondary` oder `core-action-destructive` nutzen, wenn eine React-Abstraktion ihr Interface verschlechtern würde.
 
-`CreationActionCard` aus `CreationActionCard.tsx` (`title`, `description?`, `icon`, `onSelect`) ist die liegende Aktionskarte von Erstellen und leerem Dashboard: Icon frei links (24 px, Handlungsblau), Titel 16/24 · 650, optionale Beschreibung darunter, Radius `control`, flach. Hover setzt den Rahmen auf `--core-border-interactive` und die Fläche auf `--core-surface-muted`, ohne Anheben und Schatten. Der Inhalt beginnt oben, sodass Titel in einem Raster auf einer Linie stehen; ohne Beschreibung ist die Karte 72 px hoch. Die Aktion bleibt beim Aufrufer.
+`CreationActionCard` aus `CreationActionCard.tsx` (`title`, `description?`, `icon`, `onSelect`) ist die liegende Aktionskarte von Erstellen: Icon frei links (24 px, Handlungsblau), Titel 16/24 · 650, optionale Beschreibung darunter, Radius `control`, flach. Hover setzt den Rahmen auf `--core-border-interactive` und die Fläche auf `--core-surface-muted`, ohne Anheben und Schatten. Der Inhalt beginnt oben, sodass Titel in einem Raster auf einer Linie stehen; ohne Beschreibung ist die Karte 72 px hoch. Die Aktion bleibt beim Aufrufer.
 
 ## Tooltips
 
@@ -181,7 +182,7 @@ setSuccessToast("Karte verschoben.", { action: { label: "Rückgängig", onAction
 
 Auswahlfelder aus `src/ui/formControls.tsx` folgen Form und Verhalten von HeroUI v3 in CoRe-Farben; das native Eingabeelement bleibt das fokussierte und beschriftete Element, Tastatur und Formularsemantik kommen vom Browser. Ohne `label` benennt der Aufrufer das Element über `aria-label` oder eine umgebende `<label>`; weitere Input-Attribute (`name`, `value`, `data-testid`, `onClick`) gehen an das native Element.
 
-- `CoreCheckbox`: `checked`, `onCheckedChange`, `label?`, `description?`, `invalid?`, `disabled?`, `indeterminate?`, `accent?: { fill, on }` (Fachfarbe statt Aktionsblau, etwa die Prüfungsfarbe).
+- `CoreCheckbox`: `checked`, `onCheckedChange`, `label?`, `description?`, `invalid?`, `disabled?`, `indeterminate?`, `accent?: { fill, on }` (Fachfarbe statt Aktionsblau, etwa die Prüfungsfarbe). Das Kästchen misst 20 px mit 2-px-Rand, Rundung `marker` und 3 px starkem Haken; auf Plakatflächen übernimmt es deren Schriftfarbe.
 - `CoreRadio`: dieselben Props ohne `indeterminate` und `accent`, dazu Pflicht-`name`.
 - `CoreSwitch`: wie `CoreCheckbox` ohne `invalid`, `indeterminate` und `accent`, dazu `size?: "sm" | "md" | "lg"` und `labelPlacement?: "start" | "end"`; das native Element trägt `role="switch"`.
 - `CoreSlider`: `value`, `min`, `max`, `step?`, `onValueChange`, `label?`, `formatValue?` (sichtbarer und gesprochener Wert, `null` blendet ihn aus); darunter liegt ein natives `type="range"`.
@@ -212,7 +213,7 @@ Die Statistik verwendet lokal `.core-statistics-load-track`: dauerhaft 3 px Höh
 
 `VariantGenerationBar` aus `src/ui/VariantGenerationBar.tsx` ist die app-weite, zweizeilige Infobox einer laufenden KI-Variantengenerierung: Stapel-Icon, „Varianten generieren X von Y“ und `Abbrechen`, darunter der neutrale Balken im Stil von `PomodoroProgress` (`bg-core-subtle`/`bg-core-action`). Sie schwebt unter 1280 px über der Bottom-Bar und ab 1280 px zentriert über dem Inhaltsbereich. Ein Ergebnis, das Aufmerksamkeit braucht, ersetzt die Zählzeile und bietet `Schließen`; Zustand und Ablauf besitzt `useCardVariantBatch`.
 
-`DailyReviewProgress` aus `src/ui/DailyReviewProgress.tsx` ist der gemeinsame vollständig gefüllte Tagesfortschritt für Dashboard und Review. Er ordnet eindeutige Karten als `Gelernt`, `Neu`, `Offen` und `Fällig`, verwendet für `Gelernt` den neutralen Token `--core-learning-progress-completed` und bezieht die übrigen Bezeichnungen und Farben aus `LEARNING_STATUS_UI`. Er nennt auch leere Gruppen im zugänglichen Wertetext und zeigt für vorhandene Segmente die gemeinsamen Kurztooltips mit Statusfarbe, Status und Anteil am Balken (die Kartenzahl steht schon darüber); `tooltipSide="bottom"` öffnet sie darunter. Der Balken des Lernkopfs ist 4 px hoch und nimmt den Zeiger je 8 px darüber und darunter an. `achieved` rendert unabhängig von `0 / 0` einen vollständig grauen Balken; die grünen Dashboard-Abschlussakzente, sichtbaren Zähler und Zustandsentscheidung bleiben beim Aufrufer.
+`DailyReviewProgress` aus `src/ui/DailyReviewProgress.tsx` ist der vollständig gefüllte Tagesfortschritt des Lernkopfs. Er ordnet eindeutige Karten als `Gelernt`, `Neu`, `Offen` und `Fällig`, verwendet für `Gelernt` den neutralen Token `--core-learning-progress-completed` und bezieht die übrigen Bezeichnungen und Farben aus `LEARNING_STATUS_UI`. Er nennt auch leere Gruppen im zugänglichen Wertetext und zeigt für vorhandene Segmente die gemeinsamen Kurztooltips mit Statusfarbe, Status und Anteil am Balken (die Kartenzahl steht schon darüber); `tooltipSide="bottom"` öffnet sie darunter. Der Balken des Lernkopfs ist 4 px hoch und nimmt den Zeiger je 8 px darüber und darunter an. `achieved` rendert unabhängig von `0 / 0` einen vollständig grauen Balken; sichtbare Zähler und Zustandsentscheidung bleiben beim Aufrufer.
 
 ## Spezialisierte Feature-Module
 

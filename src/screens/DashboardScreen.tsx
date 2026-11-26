@@ -3,17 +3,17 @@ import { DashboardWidgets } from "./DashboardWidgets.tsx";
 import { DailyMotivationWidget } from "./DailyMotivationWidget.tsx";
 import { ExamDashboardWidget } from "./ExamDashboardWidget.tsx";
 import { PinnedDecksWidget } from "./PinnedDecksWidget.tsx";
-import { CreationActionCard } from "../ui/CreationActionCard.tsx";
-import { FileArchive, PenLine, Play, Sparkles } from "lucide-react";
+import { BookOpen, ChevronRight, Play } from "lucide-react";
 import { createDeckLibraryModel, createStudyHeatmapModel, type DailyLearningPlan, type DailyLearningSession } from "../libraryModel.ts";
 import { getGlobalSchedulerPreferences } from "../deckSettings.ts";
 import type { Deck, ExamDailyTask } from "../coreTypes.ts";
 import { getLearningDayKey, getLearningTimeZone } from "../learningDay.ts";
 import type { StudyHeatmapDay } from "../studyHeatmapModel.ts";
 import { ActionButton } from "../ui/actionUi.tsx";
-import { CoreSegmentedControl, PageHeader, SoftPanel } from "../ui/coreUi.tsx";
+import { CoreSegmentedControl, PageHeader } from "../ui/coreUi.tsx";
 import { DialogFrame } from "../ui/DialogFrame.tsx";
-import { DailyReviewProgress, DAILY_REVIEW_PROGRESS_SEGMENTS } from "../ui/DailyReviewProgress.tsx";
+import { DAILY_REVIEW_PROGRESS_SEGMENTS } from "../ui/DailyReviewProgress.tsx";
+import { SectionHeader } from "../ui/SectionHeader.tsx";
 import { StatusMessage } from "../ui/feedbackUi.tsx";
 import { formatLearningCardCount } from "../ui/learningStatusUi.ts";
 import { DeckSelect } from "../ui/selectUi.tsx";
@@ -177,11 +177,11 @@ function DailyLearningOverview({
   const { progress } = plan;
   const remaining = progress.newCount + progress.inProgressCount + progress.dueCount;
   const goalCount = achieved ? progress.completedTodayCount : remaining;
-  const goalLabel = achieved
-    ? `${goalCount === 1 ? "Karte" : "Karten"} gelernt · Tagesziel erreicht`
-    : `${goalCount === 1 ? "Karte" : "Karten"} noch heute`;
+  const one = goalCount === 1;
+  const goalLabel = achieved ? `${one ? "Karte" : "Karten"} gelernt.` : plan.status === "waiting" ? `${one ? "Karte kommt" : "Karten kommen"} später wieder.` : `${one ? "Karte" : "Karten"} noch heute`;
   const primaryLabel = achieved ? "Zusätzliche Karten lernen" : plan.status === "waiting" ? "Später weiterlernen" : "Jetzt lernen";
   const primaryDisabled = achieved ? additionalSessions.length === 0 : plan.status === "waiting" || !firstStartableDeck;
+  const parts = DAILY_REVIEW_PROGRESS_SEGMENTS.filter((segment) => segment.key !== "learned" && progress[segment.countKey] > 0);
 
   function activatePrimaryAction() {
     if (achieved) {
@@ -193,32 +193,26 @@ function DailyLearningOverview({
 
   return (
     <>
-      <SoftPanel className="dashboard-learning min-w-0 p-5" data-testid="daily-learning-overview" data-status={plan.status}>
-        <div className="dashboard-learning-body">
-          <div className="dashboard-learning-goal">
-            <h2 className="dashboard-learning-goal-title">
-              <span className="dashboard-learning-goal-count">{goalCount}</span>{" "}
-              <span className={achieved ? "text-[var(--core-success)]" : "text-core-secondary"}>{goalLabel}</span>
-            </h2>
-            <ActionButton variant="primary" icon={Play} disabled={primaryDisabled} onClick={activatePrimaryAction}>
-              {primaryLabel}
-            </ActionButton>
-          </div>
-          <div className="dashboard-learning-bar">
-            <DailyReviewProgress progress={progress} achieved={achieved} ariaLabel="Tagesziel" testId="dashboard-daily-progress" />
-          </div>
-          <dl className="dashboard-learning-metrics">
-            {DAILY_REVIEW_PROGRESS_SEGMENTS.map((segment) => (
-              <div key={segment.key} className="dashboard-learning-metric" data-daily-learning-metric={segment.key}>
-                <span className="dashboard-learning-dot" style={{ backgroundColor: segment.key === "learned" ? "var(--core-learning-progress-completed)" : segment.color }} aria-hidden="true" />
-                <dt className="order-2 core-body text-core-muted">{segment.label}</dt>
-                <dd className="order-1 dashboard-learning-metric-value">{progress[segment.countKey]}</dd>
+      <section className="dashboard-poster dashboard-learning" data-tone={achieved ? "green" : plan.status === "waiting" ? "fog" : "navy"} data-testid="daily-learning-overview" data-status={plan.status}>
+        <SectionHeader level={2} title="Heute" action={<span className="dashboard-poster-meta" data-testid="daily-learning-total">{progress.completedTodayCount} / {progress.total}<span className="sr-only"> Karten gelernt</span></span>} />
+        <p className="dashboard-poster-goal"><span className="dashboard-poster-giant">{goalCount}</span> <span className="dashboard-poster-subtitle">{goalLabel}</span></p>
+        {plan.status === "open" && parts.length ? (
+          <dl className="dashboard-learning-scale" style={{ gridTemplateColumns: parts.map((segment) => `minmax(max-content, ${progress[segment.countKey]}fr)`).join(" ") }}>
+            {parts.map((segment) => (
+              <div key={segment.key} data-daily-learning-metric={segment.key}>
+                <dt>{segment.label}</dt>
+                <dd>{progress[segment.countKey]}</dd>
               </div>
             ))}
           </dl>
-          <span className="dashboard-learning-total core-caption font-medium tabular-nums text-core-muted" data-testid="daily-learning-total">{progress.completedTodayCount} / {progress.total} Karten</span>
-        </div>
-      </SoftPanel>
+        ) : null}
+        <button type="button" className="dashboard-poster-action dashboard-learning-action" data-shade={achieved || undefined} disabled={primaryDisabled} onClick={activatePrimaryAction}>
+          {plan.status === "open" && firstStartableDeck
+            ? <span className="dashboard-learning-action-text">{primaryLabel}:<span className="dashboard-learning-deck"><BookOpen size={18} aria-hidden="true" /><span>{firstStartableDeck.name}</span></span></span>
+            : <span className="dashboard-learning-action-text">{primaryLabel}</span>}
+          <span className="dashboard-poster-play" aria-hidden="true"><Play size={18} /></span>
+        </button>
+      </section>
 
       <AdditionalCardsDialog
         open={additionalDialogOpen}
@@ -274,18 +268,24 @@ export function DashboardScreen({ state, now, onNavigate, onStartDeck, onStartAd
       <div className="grid min-w-0 gap-6">
         <PageHeader greeting={welcomeGreeting} title={welcomeTitle} />
 
-        <SoftPanel className="dashboard-first-start overflow-hidden p-6 sm:p-9">
-          <img src="/core-brain.svg" alt="" className="dashboard-first-start-mascot" draggable={false} />
-          <div className="dashboard-first-start-content min-w-0">
-            <h2 className="core-heading-2 text-core-text">Womit möchtest du starten?</h2>
-            <div className="dashboard-first-start-actions mt-6 grid gap-4">
-              <CreationActionCard title="Erste Karte erstellen" description="Frage und Antwort direkt eingeben." icon={PenLine} onSelect={() => onNavigate("neue-karten", { creationMethod: "manual" })} />
-              <CreationActionCard title="Anki-Stapel importieren" description="Vorhandene APKG-Datei laden." icon={FileArchive} onSelect={() => onNavigate("neue-karten", { creationMethod: "import" })} />
-              <CreationActionCard title="Demo ausprobieren" description={demoStatus === "busy" ? "Beispielstapel wird angelegt …" : "Beispielstapel auf Klick anlegen."} icon={Sparkles} onSelect={() => void createDemo()} />
-            </div>
-            {demoStatus === "error" ? <StatusMessage className="mt-4" tone="error" announce="assertive">Die Demo konnte nicht angelegt werden. Bitte versuche es erneut.</StatusMessage> : null}
+        <section className="dashboard-poster dashboard-first-start" data-tone="navy">
+          <div className="dashboard-first-start-text">
+            <h2 className="dashboard-first-start-title">Womit möchtest du starten?</h2>
+            <img src="/core-brain.svg" alt="" className="dashboard-first-start-mascot" draggable={false} />
           </div>
-        </SoftPanel>
+          <div className="dashboard-first-start-actions">
+            {([
+              ["Erste Karte erstellen", () => onNavigate("neue-karten", { creationMethod: "manual" })],
+              ["Anki-Stapel importieren", () => onNavigate("neue-karten", { creationMethod: "import" })],
+              [demoStatus === "busy" ? "Demo wird angelegt …" : "Demo ausprobieren", () => void createDemo()],
+            ] as const).map(([title, onSelect], index) => (
+              <button key={index} type="button" className="dashboard-poster-action" aria-busy={index === 2 && demoStatus === "busy" ? true : undefined} onClick={onSelect}>
+                {title}<ChevronRight size={24} aria-hidden="true" />
+              </button>
+            ))}
+            {demoStatus === "error" ? <StatusMessage tone="error" announce="assertive">Die Demo konnte nicht angelegt werden. Bitte versuche es erneut.</StatusMessage> : null}
+          </div>
+        </section>
       </div>
     );
   }
@@ -301,8 +301,8 @@ export function DashboardScreen({ state, now, onNavigate, onStartDeck, onStartAd
       onResumeTimer={onResumePomodoro}
       onResetTimer={onResetPomodoro}
       onOpenPlanner={() => onNavigate("pruefungen")}
-      planner={nextExam && onStartExamUnit && onLoadExamPlanningData && onSaveExamTasks ? (preview) => (
-        <ExamDashboardWidget preview={preview} state={state} now={now} onStart={onStartExamUnit} onLoad={onLoadExamPlanningData} onLoadSummaryAvailability={onLoadExamSummaryAvailability} onLoadLocalCardIds={onLoadExamLocalCardIds} onSaveTasks={onSaveExamTasks} onOpen={() => onNavigate("pruefungen")} />
+      planner={nextExam && onStartExamUnit && onLoadExamPlanningData && onSaveExamTasks ? (
+        <ExamDashboardWidget preview state={state} now={now} onStart={onStartExamUnit} onLoad={onLoadExamPlanningData} onLoadSummaryAvailability={onLoadExamSummaryAvailability} onLoadLocalCardIds={onLoadExamLocalCardIds} onSaveTasks={onSaveExamTasks} onOpen={() => onNavigate("pruefungen")} />
       ) : null}
     >
       {{

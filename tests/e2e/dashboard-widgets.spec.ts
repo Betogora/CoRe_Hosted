@@ -166,19 +166,18 @@ test("Feste Formate: Kacheln gleich hoch, Stapel in einer Spalte, To-dos scrolle
   expect(Math.abs(todosHeight - (await page.locator('[data-dashboard-widget="heatmap"]').boundingBox())!.height)).toBeLessThan(2);
   await page.getByRole("spinbutton", { name: "Minuten", exact: true }).fill("45");
   await expect(page.getByRole("spinbutton", { name: "Minuten", exact: true })).toHaveValue("45");
-  await page.getByRole("button", { name: "Eigene Aufgabe hinzufügen", exact: true }).click();
+  await page.getByRole("button", { name: "Neue Aufgabe", exact: true }).click();
   await page.getByRole("textbox", { name: "Eigene Aufgabe", exact: true }).fill("Eigener Test mit langem Aufgabentext ohne Verlust der Tagesaufgaben");
   await page.getByRole("button", { name: "Aufgabe hinzufügen", exact: true }).click();
   await expect(page.getByRole("checkbox", { name: "Eigener Test mit langem Aufgabentext ohne Verlust der Tagesaufgaben", exact: true })).toBeVisible();
   for (const text of ["Weitere Aufgabe zwei", "Weitere Aufgabe drei", "Weitere Aufgabe vier"]) {
-    await page.getByRole("button", { name: "Eigene Aufgabe hinzufügen", exact: true }).click();
+    await page.getByRole("button", { name: "Neue Aufgabe", exact: true }).click();
     await page.getByRole("textbox", { name: "Eigene Aufgabe", exact: true }).fill(text);
     await page.getByRole("button", { name: "Aufgabe hinzufügen", exact: true }).click();
   }
   expect(Math.abs((await todos.boundingBox())!.height - todosHeight)).toBeLessThan(2);
   expect(await page.locator(".dashboard-todos-list").evaluate((list) => list.scrollHeight > list.clientHeight)).toBe(true);
   await page.getByRole("checkbox", { name: "Weitere Aufgabe vier", exact: true }).click();
-  await page.getByText("Erledigt (1)", { exact: true }).click();
   await expect(page.getByRole("checkbox", { name: "Weitere Aufgabe vier", exact: true })).toBeChecked();
   await page.getByRole("checkbox", { name: "Weitere Aufgabe vier", exact: true }).click();
   await expect(page.getByRole("checkbox", { name: "Weitere Aufgabe vier", exact: true })).not.toBeChecked();
@@ -312,15 +311,15 @@ for (const { width, height } of matrixViewports()) for (const theme of matrixThe
     const widget = page.locator('[data-dashboard-widget="motivation"]');
     await expect(widget).toHaveAttribute("data-width", "small");
     await widget.scrollIntoViewIfNeeded();
-    await expect(widget.getByRole("heading", { name: "Dein Motivationsimpuls" })).toBeVisible();
+    await expect(widget.getByRole("heading", { name: "Dein Impuls" })).toBeVisible();
     await expect(widget.getByRole("button", { name: "Gehirn begrüßen" })).toBeVisible();
     if (visualOutput) await page.screenshot({ path: info.outputPath("motivation.png") });
     expect(await widget.evaluate((element) => element.scrollWidth > element.clientWidth + 1)).toBe(false);
-    await widget.getByRole("button", { name: "Dein Motivationsimpuls entfernen", exact: true }).click();
+    await widget.getByRole("button", { name: "Dein Impuls entfernen", exact: true }).click();
     await page.reload();
     await expect(widget).toHaveCount(0);
     await page.getByRole("button", { name: "Seite bearbeiten", exact: true }).click();
-    await page.getByRole("button", { name: "Dein Motivationsimpuls", exact: true }).click();
+    await page.getByRole("button", { name: "Dein Impuls", exact: true }).click();
     await expect(widget).toHaveCount(1);
     await page.getByRole("button", { name: "Fertig", exact: true }).click();
     await widget.getByRole("button", { name: "Gehirn begrüßen" }).click();
@@ -450,13 +449,16 @@ test("Aufgaben: alle offenen Aufgaben in scrollender Liste, Inline-Plus und ausk
   await expect.poll(() => planned.count()).toBeGreaterThan(3);
   const plannedCount = await planned.count();
   await expect(box.getByText("Keine eigenen Aufgaben offen.")).toHaveCount(0);
-  const add = box.getByRole("button", { name: "Eigene Aufgabe hinzufügen", exact: true });
+  const add = box.getByRole("button", { name: "Neue Aufgabe", exact: true });
   const text = "Langer eigener Lernauftrag: " + "Anatomie, Physiologie und klinische Zusammenhänge gründlich wiederholen. ".repeat(5);
   for (const title of [text, "Zweite eigene Aufgabe", "Dritte eigene Aufgabe", "Vierte eigene Aufgabe"]) {
     await add.click(); await box.getByRole("textbox", { name: "Eigene Aufgabe", exact: true }).fill(title);
     await box.getByRole("button", { name: "Aufgabe hinzufügen", exact: true }).click();
   }
   await expect(box.locator('[data-own-todo]').filter({ visible: true })).toHaveCount(4);
+  await expect(add).toBeFocused();
+  await add.click(); await page.keyboard.press("Escape");
+  await expect(add).toBeFocused();
   await expect(planned).toHaveCount(plannedCount);
   expect(await box.locator(".dashboard-todos-list").evaluate((list) => list.scrollHeight > list.clientHeight)).toBe(true);
   const own = box.locator('[data-own-todo]').first();
@@ -469,8 +471,9 @@ test("Aufgaben: alle offenen Aufgaben in scrollender Liste, Inline-Plus und ausk
   await own.getByRole("button", { name: "Aufgabentext einklappen" }).click();
   await page.screenshot({ path: info.outputPath("aufgaben-vorschau.png") });
   await box.getByRole("checkbox", { name: text, exact: true }).click();
-  await expect(box.locator('[data-own-todo]').filter({ visible: true })).toHaveCount(3);
-  await expect(box.getByRole("checkbox", { name: "Zweite eigene Aufgabe", exact: true })).toBeVisible();
+  await expect(box.locator('[data-own-todo]').filter({ visible: true })).toHaveCount(4);
+  await expect(box.getByRole("checkbox", { name: text, exact: true })).toBeChecked();
+  await expect(box.locator('[data-own-todo]').last()).toHaveAttribute("data-done", "true");
   await expect(planned).toHaveCount(plannedCount);
 });
 
@@ -487,7 +490,7 @@ for (const { width, height } of sizes) for (const theme of matrixThemes) {
     await box.scrollIntoViewIfNeeded();
     if (visualOutput) await page.screenshot({ path: info.outputPath("todos-empty-own.png") });
     const text = "Prüfungsstoff und Zusammenhänge wiederholen: " + "Pathologie, Anatomie und Physiologie. ".repeat(10);
-    await box.getByRole("button", { name: "Eigene Aufgabe hinzufügen", exact: true }).click();
+    await box.getByRole("button", { name: "Neue Aufgabe", exact: true }).click();
     if (visualOutput) await page.screenshot({ path: info.outputPath("todos-add.png") });
     await box.getByRole("textbox", { name: "Eigene Aufgabe", exact: true }).fill(text);
     await box.getByRole("button", { name: "Aufgabe hinzufügen", exact: true }).click();

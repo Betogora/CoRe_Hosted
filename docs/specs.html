@@ -1256,7 +1256,9 @@ video {
   .core-checkbox, .core-radio, .core-switch { display: inline-flex; flex-direction: column; gap: var(--core-space-xs); min-width: 0; -webkit-tap-highlight-color: transparent; }
   .core-checkbox-content, .core-radio-content, .core-switch-content { display: inline-flex; align-items: center; gap: var(--core-space-md); min-width: 0; min-height: var(--core-button-height); cursor: pointer; color: var(--core-text); font: 500 var(--core-type-body)/var(--core-leading-body) var(--core-font-sans); -webkit-user-select: none; -moz-user-select: none; user-select: none; }
   .core-checkbox-label, .core-radio-label, .core-switch-label { min-width: 0; overflow-wrap: anywhere; }
-  .core-checkbox-description, .core-radio-description { padding-inline-start: 1.75rem; color: var(--core-text-muted); font: var(--core-weight-body) var(--core-type-caption)/var(--core-leading-caption) var(--core-font-sans); }
+  .core-checkbox-description { padding-inline-start: 2rem; }
+  .core-radio-description { padding-inline-start: 1.75rem; }
+  .core-checkbox-description, .core-radio-description { color: var(--core-text-muted); font: var(--core-weight-body) var(--core-type-caption)/var(--core-leading-caption) var(--core-font-sans); }
   :is(.core-checkbox, .core-radio, .core-switch)[data-disabled] { opacity: 0.5; }
   :is(.core-checkbox, .core-radio, .core-switch)[data-disabled] :is(label, input) { cursor: not-allowed; }
   .core-checkbox-control, .core-radio-control, .core-switch-control { position: relative; display: inline-grid; flex-shrink: 0; place-items: center; }
@@ -1269,9 +1271,9 @@ video {
   :is(.core-checkbox-control, .core-radio-control, .core-switch-control):has(> input:focus-visible) { outline: 2px solid var(--core-focus); outline-offset: 3px; }
 
   .core-checkbox { --core-check-fill: var(--core-check-accent, var(--core-action-primary)); }
-  .core-checkbox-control { width: 1rem; height: 1rem; border: var(--core-border-width) solid color-mix(in srgb, var(--core-text-muted) 80%, var(--core-surface)); border-radius: var(--core-radius-marker); background: var(--core-surface); color: var(--core-check-on-accent, var(--core-text-on-accent)); transition: border-color 200ms cubic-bezier(0, 0, 0.2, 1), transform 100ms cubic-bezier(0, 0, 0.2, 1); }
-  .core-checkbox-control::before { content: ""; position: absolute; inset: calc(-1 * var(--core-border-width)); border-radius: inherit; background: var(--core-check-fill); opacity: 0; scale: 0.7; transition: scale 100ms linear, opacity 200ms linear, background-color 200ms cubic-bezier(0, 0, 0.2, 1); pointer-events: none; }
-  .core-checkbox-mark { position: relative; width: 0.625rem; height: 0.625rem; fill: none; stroke: currentColor; stroke-width: 2.5px; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 22; stroke-dashoffset: 66; pointer-events: none; }
+  .core-checkbox-control { width: 1.25rem; height: 1.25rem; border: 2px solid color-mix(in srgb, var(--core-text-muted) 80%, var(--core-surface)); border-radius: var(--core-radius-marker); background: var(--core-surface); color: var(--core-check-on-accent, var(--core-text-on-accent)); transition: border-color 200ms cubic-bezier(0, 0, 0.2, 1), transform 100ms cubic-bezier(0, 0, 0.2, 1); }
+  .core-checkbox-control::before { content: ""; position: absolute; inset: -2px; border-radius: inherit; background: var(--core-check-fill); opacity: 0; scale: 0.7; transition: scale 100ms linear, opacity 200ms linear, background-color 200ms cubic-bezier(0, 0, 0.2, 1); pointer-events: none; }
+  .core-checkbox-mark { position: relative; width: 0.75rem; height: 0.75rem; fill: none; stroke: currentColor; stroke-width: 3px; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 22; stroke-dashoffset: 66; pointer-events: none; }
   .core-checkbox-mark[data-mark="indeterminate"] { width: 0.75rem; height: 0.75rem; stroke-width: 3px; stroke-dasharray: none; stroke-dashoffset: 0; opacity: 0; }
   .core-checkbox:hover .core-checkbox-control { border-color: var(--core-text-muted); }
   .core-checkbox:hover:not([data-state="unchecked"]) .core-checkbox-control::before { background: color-mix(in srgb, var(--core-check-fill) 90%, var(--core-surface)); }
@@ -1759,12 +1761,6 @@ video {
 }
 .z-\[90\] {
   z-index: 90;
-}
-.order-1 {
-  order: 1;
-}
-.order-2 {
-  order: 2;
 }
 .order-last {
   order: 9999;
@@ -3383,9 +3379,6 @@ video {
 }
 .\!text-core-action {
   color: var(--core-action-primary) !important;
-}
-.text-\[var\(--core-success\)\] {
-  color: var(--core-success);
 }
 .text-core-action {
   color: var(--core-action-primary);
@@ -6661,10 +6654,80 @@ button.core-info-hint:is(:hover, [data-state="open"]) {
 .dashboard-pin-play { width: var(--core-button-height); padding: 0; border-radius: var(--core-radius-round); }
 .dashboard-pin-play svg { margin-inline-start: 0.125rem; }
 .dashboard-pin-replace { display: grid; gap: var(--core-space-sm); }
-.dashboard-learning-body { height: 100%; align-content: center; }
-.dashboard-todos { display: flex; flex-direction: column; }
-/* The inset keeps focus rings (2 px plus 3 px offset) inside the scroll area. */
-.dashboard-todos-list { flex: 1 1 auto; min-height: 0; overflow-y: auto; margin: 0 -0.625rem 0 -0.375rem; padding: 0 0.625rem 0.375rem 0.375rem; }
+.dashboard-widget .core-section-header-title { font: 700 0.8125rem/1.25rem var(--core-font-sans); letter-spacing: 0.14em; text-transform: uppercase; }
+.dashboard-poster { --bg: var(--core-brand-primary); --fg: var(--core-text-on-accent); position: relative; display: flex; flex-direction: column; min-width: 0; padding: 1.375rem; overflow: hidden; border-radius: var(--core-radius-panel); background: var(--bg); color: var(--fg); font-family: var(--core-font-sans); }
+.dashboard-poster[data-tone="green"] { --bg: var(--core-success); }
+.dashboard-poster[data-tone="fog"] { --bg: var(--core-brand-secondary); --fg: var(--core-brand-ink); }
+.dashboard-poster[data-tone="cream"] { --bg: var(--core-brand-surface); --fg: var(--core-brand-ink); }
+.dashboard-poster .core-section-header { flex: none; }
+.dashboard-poster .core-section-header-title { color: inherit; }
+/* The global focus ring uses the brand colour, which disappears on the brand-coloured surface. */
+.dashboard-poster :focus-visible { outline-color: var(--fg) !important; }
+.dashboard-poster .core-action-ghost:not(.core-action-destructive-quiet) { color: inherit !important; }
+.dashboard-poster .core-action-ghost:not(:disabled):hover { background: color-mix(in srgb, var(--fg) 12%, transparent); }
+.dashboard-poster .core-checkbox { --core-check-fill: var(--core-check-accent, var(--fg)); }
+.dashboard-poster .core-checkbox-control { border-color: var(--fg); background: transparent; color: var(--core-check-on-accent, var(--bg)); }
+.dashboard-poster-meta { color: color-mix(in srgb, var(--fg) 78%, transparent); font: 600 0.9375rem/1.25rem var(--core-font-sans); font-variant-numeric: tabular-nums; }
+.dashboard-poster-goal { margin: auto 0 0; }
+.dashboard-poster-giant { display: block; margin-left: -0.06em; font: 750 9.75rem/0.8 var(--core-font-sans); letter-spacing: -0.06em; }
+.dashboard-poster-subtitle { display: block; margin-top: 0.875rem; font: 650 1.375rem/1.2 var(--core-font-sans); letter-spacing: -0.01em; }
+.dashboard-poster-action { display: flex; flex: none; align-items: center; gap: 0.75rem; width: 100%; min-height: 3.5rem; margin-top: 1.125rem; padding: 0.5rem 0.625rem 0.5rem 1.25rem; border: 0; border-radius: var(--core-radius-panel); background: var(--fg); color: var(--bg); font: 700 1.0625rem/1.3 var(--core-font-sans); text-align: left; cursor: pointer; }
+button.dashboard-poster-action:not(:disabled):hover { background: color-mix(in srgb, var(--fg) 90%, var(--bg)); }
+.dashboard-poster-action:disabled { opacity: 0.5; cursor: not-allowed; }
+.dashboard-poster-action[data-shade] { background: color-mix(in srgb, var(--fg) 16%, transparent); color: var(--fg); }
+.dashboard-poster-action[data-shade]:not(:disabled):hover { background: color-mix(in srgb, var(--fg) 24%, transparent); }
+.dashboard-first-start .dashboard-poster-action > svg { flex: none; margin-left: auto; }
+.dashboard-poster-play { display: grid; flex: none; place-items: center; width: 2.5rem; height: 2.5rem; margin-left: auto; border-radius: var(--core-radius-round); background: var(--bg); color: var(--fg); }
+.dashboard-poster-action[data-shade] .dashboard-poster-play { background: var(--fg); color: var(--bg); }
+.dashboard-poster svg.lucide-play { margin-left: 0.125rem; fill: currentColor; }
+.dashboard-poster .dashboard-poster-pill { flex: none; gap: 0.375rem; min-height: 2rem; margin-left: auto; padding: 0.3125rem 0.75rem; border: 0; border-radius: var(--core-radius-round); background: var(--fg); color: var(--bg); font: 700 0.8125rem/1.25rem var(--core-font-sans); }
+.dashboard-poster .dashboard-poster-pill:not(:disabled):hover { background: color-mix(in srgb, var(--fg) 90%, var(--bg)); }
+.dashboard-poster .dashboard-poster-pill:disabled { opacity: 0.5; }
+.dashboard-poster .dashboard-poster-pill svg { width: 0.75rem; height: 0.75rem; }
+.dashboard-poster .core-action-ghost.dashboard-poster-dot { width: 2rem; min-width: 2rem; height: 2rem; min-height: 2rem; padding: 0; border-radius: var(--core-radius-round); background: var(--fg); color: var(--bg) !important; }
+.dashboard-poster .core-action-ghost.dashboard-poster-dot:not(:disabled):hover { background: color-mix(in srgb, var(--fg) 85%, var(--bg)); }
+.dashboard-poster .core-action-ghost.dashboard-poster-dot:disabled { background: color-mix(in srgb, var(--fg) 40%, transparent); color: var(--bg) !important; }
+.dashboard-learning-action-text { display: flex; flex: 1; flex-wrap: wrap; align-items: center; gap: 0.0625rem 0.4375rem; min-width: 0; }
+.dashboard-learning-deck { display: flex; align-items: center; gap: 0.375rem; min-width: 0; max-width: 100%; }
+.dashboard-learning-deck > svg { flex: none; }
+.dashboard-learning-deck > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dashboard-learning[data-status="waiting"] .dashboard-poster-subtitle { max-width: 9em; }
+/* Status colours stay recognisable but are mixed toward the text colour until they read on the surface. */
+.dashboard-learning { --count-new: color-mix(in srgb, var(--core-learning-status-new) 80%, var(--fg)); --count-in-progress: var(--core-learning-status-in-progress); --count-due: color-mix(in srgb, var(--core-learning-status-due) 25%, var(--fg)); }
+[data-core-theme="dark"] .dashboard-learning { --count-new: color-mix(in srgb, var(--core-learning-status-new) 30%, var(--fg)); --count-in-progress: color-mix(in srgb, var(--core-learning-status-in-progress) 25%, var(--fg)); --count-due: color-mix(in srgb, var(--core-learning-status-due) 20%, var(--fg)); }
+.dashboard-learning-scale { display: grid; flex: none; -moz-column-gap: 0.25rem; column-gap: 0.25rem; margin: 1.25rem 0 0; }
+.dashboard-learning-scale > div { display: grid; grid-template-columns: auto 1fr; gap: 0.5rem 0.375rem; align-items: baseline; min-width: 0; white-space: nowrap; }
+.dashboard-learning-scale > div::before { content: ""; grid-column: 1 / -1; height: 0.75rem; background: color-mix(in srgb, var(--fg) var(--shade), transparent); }
+.dashboard-learning-scale > div:first-child::before { border-start-start-radius: var(--core-radius-round); border-end-start-radius: var(--core-radius-round); }
+.dashboard-learning-scale > div:last-child::before { border-start-end-radius: var(--core-radius-round); border-end-end-radius: var(--core-radius-round); }
+.dashboard-learning-scale [data-daily-learning-metric="new"] { --shade: 34%; --count: var(--count-new); }
+.dashboard-learning-scale [data-daily-learning-metric="in-progress"] { --shade: 62%; --count: var(--count-in-progress); }
+.dashboard-learning-scale [data-daily-learning-metric="due"] { --shade: 100%; --count: var(--count-due); }
+.dashboard-learning-scale dd { grid-row: 2; grid-column: 1; margin: 0; color: var(--count); font: 750 1.375rem/1.375rem var(--core-font-sans); letter-spacing: -0.02em; }
+.dashboard-learning-scale dt { grid-row: 2; grid-column: 2; padding-right: 0.625rem; color: color-mix(in srgb, var(--fg) 78%, transparent); font: 600 0.9375rem/1.375rem var(--core-font-sans); }
+.dashboard-learning-scale > div:last-child dt { padding-right: 0; }
+.dashboard-todos-list { flex: 1 1 auto; min-height: 0; overflow-y: auto; margin: 0.5rem -0.625rem 0 -0.375rem; padding: 0 0.625rem 2rem 0.375rem; -webkit-mask-image: linear-gradient(#000 calc(100% - 2rem), transparent); mask-image: linear-gradient(#000 calc(100% - 2rem), transparent); }
+.dashboard-todo, .dashboard-todos-exam { display: flex; align-items: center; gap: 0.25rem 0.5rem; min-width: 0; min-height: 2.75rem; padding-block: 0.375rem; border-top: 1.5px solid color-mix(in srgb, var(--fg) 16%, transparent); }
+.dashboard-todos-list > ul:first-child > .dashboard-todo:first-child, .dashboard-todos-planner:first-child > section:first-of-type > .dashboard-todos-exam { border-top: 0; }
+.dashboard-todo-text, .dashboard-todos-planner strong { color: inherit; font: 650 1rem/1.3 var(--core-font-sans); }
+.dashboard-todo[data-done] .dashboard-todo-text { color: color-mix(in srgb, var(--fg) 60%, transparent); -webkit-text-decoration: line-through 2px; text-decoration: line-through 2px; }
+.dashboard-todos-planner .core-caption { color: color-mix(in srgb, var(--fg) 72%, transparent); }
+.dashboard-todo[data-exam-todo] { padding-left: 0.75rem; box-shadow: inset 4px 0 0 var(--dashboard-exam-color); }
+.dashboard-todos-exam { flex-wrap: wrap; }
+.dashboard-todos-exam h3 { min-width: 0; overflow-wrap: anywhere; font: 750 0.8125rem/1.25rem var(--core-font-sans); letter-spacing: 0.1em; text-transform: uppercase; }
+.dashboard-todos-exam > span { color: color-mix(in srgb, var(--fg) 72%, transparent); font: 600 0.8125rem/1.25rem var(--core-font-sans); }
+.dashboard-todos-planner > :not(section) { margin-top: 0.5rem; }
+.dashboard-todos .dashboard-todos-add { min-height: 3.25rem; margin-top: 0.75rem; padding: 0 0.5rem 0 1rem; gap: 0.625rem; font-size: 1rem; }
+form.dashboard-todos-add:focus-within { outline: 2px solid var(--fg); outline-offset: 2px; }
+.dashboard-todos-add input { flex: 1; min-width: 0; height: 2.5rem; border: 0; background: transparent; color: inherit; font: inherit; }
+.dashboard-todos-add input::-moz-placeholder { color: color-mix(in srgb, var(--bg) 65%, transparent); }
+.dashboard-todos-add input::placeholder { color: color-mix(in srgb, var(--bg) 65%, transparent); }
+.dashboard-todos-add button { display: grid; flex: none; place-items: center; width: 2.5rem; min-height: 2.5rem; border: 0; border-radius: var(--core-radius-round); background: var(--bg); color: var(--fg); cursor: pointer; }
+.dashboard-todos-add button:disabled { opacity: 0.5; cursor: not-allowed; }
+@media (hover: hover) and (pointer: fine) {
+  .dashboard-todo-delete { opacity: 0; }
+  .dashboard-todo:is(:hover, :focus-within) .dashboard-todo-delete { opacity: 1; }
+}
 .dashboard-widget .core-study-heatmap-container { display: flex; flex-direction: column; }
 .dashboard-widget .core-study-heatmap-band { padding-inline: 1.25rem; }
 .dashboard-widget .core-study-heatmap-body { display: flex; flex: 1 1 auto; flex-direction: column; min-height: 0; padding: 1.25rem; }
@@ -6715,34 +6778,16 @@ button.core-info-hint:is(:hover, [data-state="open"]) {
 .dashboard-mini-bar i:nth-child(4) { background: var(--core-learning-status-due); }
 .dashboard-mini-cells { display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px; width: 100%; }
 .dashboard-mini-cells i { height: 8px; border-radius: var(--core-radius-marker); background: var(--core-learning-status-new); }
-.dashboard-learning { container: dashboard-learning / inline-size; }
-.dashboard-learning-body { display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "goal goal" "bar bar" "metrics total"; align-items: center; }
-.dashboard-learning-goal { grid-area: goal; display: flex; flex-wrap: wrap; align-items: center; gap: var(--core-space-md) var(--core-space-xl); }
-.dashboard-learning-goal-title { min-width: 0; color: var(--core-text); font: var(--core-weight-control) var(--core-type-body-large)/var(--core-leading-body-large) var(--core-font-sans); }
-.dashboard-learning-goal-count { margin-inline-end: 0.375rem; color: var(--core-text); font-size: var(--core-type-heading-1); line-height: var(--core-leading-heading-1); font-weight: var(--core-weight-heading); letter-spacing: -0.01em; }
-.dashboard-learning-bar { grid-area: bar; margin-top: var(--core-space-xl); }
-.dashboard-learning-metrics { grid-area: metrics; display: flex; flex-wrap: wrap; gap: var(--core-space-sm) var(--core-space-xl); margin-top: var(--core-space-md); }
-.dashboard-learning-metric { display: flex; align-items: baseline; gap: 0.375rem; white-space: nowrap; }
-.dashboard-learning-dot { align-self: center; width: 0.5rem; height: 0.5rem; margin-inline-end: 0.125rem; border-radius: var(--core-radius-round); }
-.dashboard-learning-metric-value { color: var(--core-text); font: var(--core-weight-emphasis) var(--core-type-body-large)/var(--core-leading-body-large) var(--core-font-sans); }
-.dashboard-learning-total { grid-area: total; align-self: end; margin-top: var(--core-space-md); padding-inline-start: var(--core-space-lg); line-height: var(--core-leading-body-large); }
-@container dashboard-learning (max-width: 32rem) {
-  .dashboard-learning-body { grid-template-columns: minmax(0, 1fr); grid-template-areas: "goal" "total" "bar" "metrics"; }
-  .dashboard-learning-goal > .core-action-primary { flex: 1 0 100%; }
-  .dashboard-learning-total { justify-self: end; padding-inline-start: 0; }
-  .dashboard-learning-bar { margin-top: var(--core-space-sm); }
-  .dashboard-learning-metrics { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
-}
-
-.dashboard-first-start { display: grid; gap: var(--core-space-xl) 2.5rem; align-items: center; }
-.dashboard-first-start-mascot { width: 9rem; height: auto; }
-@media (min-width: 768px) {
-  .dashboard-first-start { grid-template-columns: 10rem minmax(0, 1fr); }
-  .dashboard-first-start-mascot { width: 100%; }
-}
-.dashboard-first-start-content { container: dashboard-first-start / inline-size; }
-@container dashboard-first-start (min-width: 60rem) {
-  .dashboard-first-start-actions { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.dashboard-first-start { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 2rem; min-height: 21rem; padding: 2rem; }
+.dashboard-first-start-text { display: flex; flex-direction: column; min-width: 0; }
+.dashboard-first-start-title { max-width: 9ch; font: 750 4.5rem/0.94 var(--core-font-sans); letter-spacing: -0.05em; }
+.dashboard-first-start-mascot { width: 7.5rem; height: auto; margin-top: auto; padding-top: 1.5rem; }
+.dashboard-first-start-actions { display: grid; align-content: end; gap: 0.625rem; }
+.dashboard-first-start .dashboard-poster-action { min-height: 4.5rem; margin-top: 0; padding: 0.75rem 1.125rem 0.75rem 1.25rem; }
+@media (max-width: 999px) {
+  .dashboard-first-start { grid-template-columns: minmax(0, 1fr); gap: 1.5rem; min-height: 0; padding: 1.375rem; }
+  .dashboard-first-start-title { font-size: 3.25rem; }
+  .dashboard-first-start-mascot { display: none; }
 }
 .dashboard-timer-clock { position: relative; width: min(100%, 208px); aspect-ratio: 1; align-self: center; display: grid; place-items: center; margin-block: auto; }
 .dashboard-timer { row-gap: 1rem; }
@@ -6757,9 +6802,6 @@ button.core-info-hint:is(:hover, [data-state="open"]) {
 @media (prefers-reduced-motion: reduce) { .dashboard-timer-remaining { transition: none; } }
 .dashboard-timer-dial input:focus-visible { outline: 2px solid var(--core-action-primary); background: var(--core-surface-muted); }
 .dashboard-widget-drag-preview { position: fixed; z-index: 90; display: flex; align-items: center; gap: var(--core-space-md); padding: var(--core-space-lg); pointer-events: none; border: 1px solid var(--core-action-primary); border-radius: var(--core-radius-panel); background: var(--core-surface); color: var(--core-text); box-shadow: var(--core-shadow-floating); }
-.dashboard-todos [data-testid="dashboard-exam-unit"] { padding: 1rem 0 0; border: 0; background: none; box-shadow: none; }
-.dashboard-todos [data-testid="dashboard-exam-unit"] > div:first-child { display: none; }
-.dashboard-todos [data-testid="dashboard-exam-unit"] > .grid { grid-template-columns: minmax(0, 1fr); }
 @media (min-width: 640px) and (max-width: 999px) {
   .dashboard-widget-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
@@ -6774,6 +6816,8 @@ button.core-info-hint:is(:hover, [data-state="open"]) {
   .dashboard-widget-content { height: auto; }
   .dashboard-widget-content > * { height: auto; max-height: var(--dashboard-widget-height); }
   .dashboard-widget [data-heatmap-period="week"] { min-height: 12rem; }
+  .dashboard-poster-goal { margin-top: 1.25rem; }
+  .dashboard-poster-giant { font-size: 8.5rem; }
 }
 
 /* The layout jumps to the target height at once; only a clipped surface, translate and opacity move, so the
@@ -7679,10 +7723,6 @@ button.core-info-hint:is(:hover, [data-state="open"]) {
     padding: 2rem;
   }
 
-  .sm\:p-9 {
-    padding: 2.25rem;
-  }
-
   .sm\:px-4 {
     padding-left: 1rem;
     padding-right: 1rem;
@@ -8286,11 +8326,12 @@ button.core-info-hint:is(:hover, [data-state="open"]) {
 .brain-mascot-button { display: block; width: 100%; min-width: 44px; min-height: 44px; border: 0; border-radius: var(--core-radius-control, 12px); background: transparent; padding: 0; color: inherit; cursor: pointer; -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
 .brain-mascot-feedback { display: block; min-height: 2.6em; margin-top: 4px; color: var(--core-text-secondary, #4b5563); font-size: var(--core-type-caption, 12px); line-height: 1.3; }
 .motivation-widget { container-type: inline-size; }
-.motivation-widget-layout { display: grid; align-items: center; gap: 12px; margin-top: 16px; }
-.motivation-widget-quote { margin-top: 8px; overflow-wrap: anywhere; }
-.motivation-widget .brain-mascot { max-width: 200px; }
-@container (min-width: 25rem) {
-  .motivation-widget-layout { grid-template-columns: minmax(0, 1fr) 180px; gap: 24px; }
+.motivation-widget-quote { max-width: 11ch; margin-top: 1.5rem; overflow-wrap: anywhere; font: 750 clamp(1.75rem, 10cqi, 2.625rem)/1.04 var(--core-font-sans); letter-spacing: -0.035em; }
+.motivation-widget .brain-mascot { position: absolute; right: 1rem; bottom: 1rem; width: 9.5rem; }
+.motivation-widget .brain-mascot-feedback { color: inherit; }
+@media (max-width: 639px) {
+  .motivation-widget-quote { padding-bottom: 8.75rem; }
+  .motivation-widget .brain-mascot { width: 7.5rem; }
 }
 
 body { margin: 0; color: var(--core-text); background: var(--core-canvas); font: var(--core-weight-body) var(--core-type-body-large)/var(--core-leading-body-large) var(--core-font-sans); }
@@ -9219,11 +9260,11 @@ html:has(.catalog-preview) { scroll-behavior: auto; }
 <h3 id="specs--heute" class="core-heading-3" tabindex="-1">Heute <a class="docs-anchor" href="#specs--heute" aria-label="Link zu Heute">#</a></h3>
 <p><code>Heute</code> ist die Startseite: Tagesstand, Lernstart und persönliche Werkzeuge an einem Ort.</p>
 <ul>
-<li>Die Seite besteht aus wähl- und anordenbaren Bausteinen: Tagesstand, Motivationsimpuls, Lerntimer, angepinnte Stapel, To-dos, Lern-Heatmap und Prüfungsaufgaben. Anordnung und eigene To-dos gelten je Konto nur in diesem Browser.</li>
+<li>Die Seite besteht aus wähl- und anordenbaren Bausteinen: Tagesstand, Impuls, Lerntimer, angepinnte Stapel, To-dos, Lern-Heatmap und Prüfungsaufgaben. Anordnung und eigene To-dos gelten je Konto nur in diesem Browser.</li>
 <li><strong>Erststart:</strong> Ein neues Konto beginnt ohne erfundene Daten. Ohne Stapel führt die Seite zu Import, manueller Karte oder Demo; Demo-Stapel entstehen nur auf ausdrückliche Aktion, einmalig, ohne Lernhistorie.</li>
 <li><strong>Tagesstand:</strong> Er fasst alle Hauptstapel ohne Doppelzählung in <code>Gelernt</code>, <code>Neu</code>, <code>Offen</code> und <code>Fällig</code> zusammen (<a href="#specs--tagesrunde-und-limits">Tagesrunde und Limits</a>).</li>
-<li><strong>Lernstart:</strong> startet den alphabetisch ersten Hauptstapel mit verfügbaren Karten; warten nur Lernschritte, kündigt er späteres Weiterlernen an, sonst meldet er das Tagesziel und bietet zusätzliche neue Karten an.</li>
-<li><strong>Motivationsimpuls:</strong> einer von 60 eigenen Lernimpulsen, je Lerntag stabil, auch offline.</li>
+<li><strong>Lernstart:</strong> nennt und startet den alphabetisch ersten Hauptstapel mit verfügbaren Karten; warten nur Lernschritte, kündigt er späteres Weiterlernen an, sonst bietet er zusätzliche neue Karten an.</li>
+<li><strong>Impuls:</strong> einer von 60 eigenen Lernimpulsen, je Lerntag stabil, auch offline.</li>
 <li><strong>To-dos:</strong> eigene und Planeraufgaben, letztere direkt lernbar; ohne Baustein bleiben sie.</li>
 <li><strong>Angepinnte Stapel:</strong> bis zu vier, neueste oben, mit Lernstart und Weg zu allen; Lücken füllen die an den meisten von 14 Lerntagen gestarteten, dann Hauptstapel. Ein fünfter Pin ersetzt einen, wie Lösen nach Rückfrage.</li>
 <li><strong>Bewusst nicht:</strong> Zeitprognosen.</li>
@@ -9468,7 +9509,7 @@ html:has(.catalog-preview) { scroll-behavior: auto; }
 <p>Probe: Ein Satz gehört hinein, wenn er nach einer vollständigen Neugestaltung der Oberfläche unverändert gälte und eine Abweichung davon ein fachlicher Fehler wäre.</p>
 <p>Form: Stichpunkte, ein Gedanke je Punkt. Eine neue Regel ersetzt die alte, statt sie zu ergänzen. Wo Funktionen logisch voneinander abhängen, steht ein Schaubild als <code>schaubild</code>-Block direkt beim Text und wird mit ihm geändert (Schreibweise in <a href="index.html#readme--pflege"><code>README.md</code></a>). In Schaubildern sind KI-Schritte blau, Ergebnisse grün markiert.</p>
 <h2 id="specs--codeumfang-der-produktbereiche" class="core-heading-2" tabindex="-1">Codeumfang der Produktbereiche <a class="docs-anchor" href="#specs--codeumfang-der-produktbereiche" aria-label="Link zu Codeumfang der Produktbereiche">#</a></h2>
-<p>CoRe ist eine App mit mehreren Bereichen. Die Tabelle zeigt deren Anteil am Bildschirmcode; gemeinsam genutzte Logik, UI und API stehen separat.</p><div class="docs-code-stats"><dl class="flex min-w-0 flex-col"><dt class="core-status-label text-core-muted">Bildschirmcode</dt><dd class="core-metric mt-0.5 text-core-text">7.643</dd></dl><dl class="flex min-w-0 flex-col"><dt class="core-status-label text-core-muted">Gemeinsamer Code &amp; API</dt><dd class="core-metric mt-0.5 text-core-text">50.909</dd></dl><dl class="flex min-w-0 flex-col"><dt class="core-status-label text-core-muted">Quelldateien</dt><dd class="core-metric mt-0.5 text-core-text">323</dd></dl></div><div class="docs-code-chart"><div class="docs-table-scroll" tabindex="0" role="region" aria-label="Codeumfang je Produktbereich"><table><thead><tr><th>Bereich</th><th>Zeilen</th><th>Anteil</th></tr></thead><tbody><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-info)" aria-hidden="true"></span>Heute</th><td>307</td><td>4 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-status-new)" aria-hidden="true"></span>Lernen & Karten</th><td>2.369</td><td>31 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-status-in-progress)" aria-hidden="true"></span>Erstellen & Import</th><td>2.105</td><td>27,5 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-action-primary)" aria-hidden="true"></span>Prüfungen</th><td>448</td><td>5,9 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-status-due)" aria-hidden="true"></span>Statistik</th><td>627</td><td>8,2 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-progress-completed)" aria-hidden="true"></span>Konto & Sync</th><td>875</td><td>11,4 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-text-secondary)" aria-hidden="true"></span>Hilfe</th><td>912</td><td>11,9 %</td></tr></tbody></table></div></div><p class="docs-source">Beim Erzeugen gemessen: nichtleere Zeilen in <code>src/</code> und <code>api/</code> (TS/TSX) sowie <code>src/styles.css</code>. Ohne Tests, Typdeklarationen, generierte Datenbanktypen, Dokumentation und Fremdcode. Bereichszuordnung nach Bildschirmdateien in <a href="../src/screens/README.md">der Screen-Landkarte</a>; übriger Code zählt gemeinsam. Enthält Kommentare und misst weder Laufzeit noch Komplexität.</p></article></main></div><script>function initializeDocsViewer() {
+<p>CoRe ist eine App mit mehreren Bereichen. Die Tabelle zeigt deren Anteil am Bildschirmcode; gemeinsam genutzte Logik, UI und API stehen separat.</p><div class="docs-code-stats"><dl class="flex min-w-0 flex-col"><dt class="core-status-label text-core-muted">Bildschirmcode</dt><dd class="core-metric mt-0.5 text-core-text">7.643</dd></dl><dl class="flex min-w-0 flex-col"><dt class="core-status-label text-core-muted">Gemeinsamer Code &amp; API</dt><dd class="core-metric mt-0.5 text-core-text">50.977</dd></dl><dl class="flex min-w-0 flex-col"><dt class="core-status-label text-core-muted">Quelldateien</dt><dd class="core-metric mt-0.5 text-core-text">323</dd></dl></div><div class="docs-code-chart"><div class="docs-table-scroll" tabindex="0" role="region" aria-label="Codeumfang je Produktbereich"><table><thead><tr><th>Bereich</th><th>Zeilen</th><th>Anteil</th></tr></thead><tbody><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-info)" aria-hidden="true"></span>Heute</th><td>307</td><td>4 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-status-new)" aria-hidden="true"></span>Lernen & Karten</th><td>2.369</td><td>31 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-status-in-progress)" aria-hidden="true"></span>Erstellen & Import</th><td>2.105</td><td>27,5 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-action-primary)" aria-hidden="true"></span>Prüfungen</th><td>448</td><td>5,9 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-status-due)" aria-hidden="true"></span>Statistik</th><td>627</td><td>8,2 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-progress-completed)" aria-hidden="true"></span>Konto & Sync</th><td>875</td><td>11,4 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-text-secondary)" aria-hidden="true"></span>Hilfe</th><td>912</td><td>11,9 %</td></tr></tbody></table></div></div><p class="docs-source">Beim Erzeugen gemessen: nichtleere Zeilen in <code>src/</code> und <code>api/</code> (TS/TSX) sowie <code>src/styles.css</code>. Ohne Tests, Typdeklarationen, generierte Datenbanktypen, Dokumentation und Fremdcode. Bereichszuordnung nach Bildschirmdateien in <a href="../src/screens/README.md">der Screen-Landkarte</a>; übriger Code zählt gemeinsam. Enthält Kommentare und misst weder Laufzeit noch Komplexität.</p></article></main></div><script>function initializeDocsViewer() {
     const theme = document.getElementById("docs-theme");
     theme.addEventListener("click", () => {
         const dark = document.documentElement.dataset.coreTheme !== "dark";

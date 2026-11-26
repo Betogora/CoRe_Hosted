@@ -1,9 +1,9 @@
 import React from "react";
 import { createPortal } from "react-dom";
-import { ArrowDown, ArrowUp, ArrowUpRight, Check, ChevronDown, ChevronUp, GripVertical, LayoutGrid, Pause, Pencil, Play, Plus, RotateCcw, Trash2, X } from "lucide-react";
+import { ArrowDown, ArrowUp, ArrowUpRight, Check, ChevronDown, ChevronUp, CornerDownLeft, GripVertical, LayoutGrid, Pause, Pencil, Play, Plus, RotateCcw, Trash2, X } from "lucide-react";
 import { DASHBOARD_WIDGETS, moveDashboardWidget, readDashboardPreferences, writeDashboardPreferences, type DashboardPreferences, type DashboardWidgetId } from "../dashboardWidgets.ts";
 import { getPomodoroTimerSnapshot, type PomodoroTimer } from "../pomodoroTimer.ts";
-import { ActionButton, Disclosure, IconButton } from "../ui/actionUi.tsx";
+import { ActionButton, IconButton } from "../ui/actionUi.tsx";
 import { SoftPanel } from "../ui/coreUi.tsx";
 import { SectionHeader } from "../ui/SectionHeader.tsx";
 import { CoreCheckbox } from "../ui/formControls.tsx";
@@ -15,13 +15,12 @@ import { useHeatmapHistoryColor } from "../ui/StudyHeatmap.tsx";
 import { useDashboardWidgetDrag } from "./useDashboardWidgetDrag.ts";
 import { useDashboardWidgetLayout } from "./useDashboardWidgetLayout.ts";
 import { DashboardTaskText } from "./DashboardTaskText.tsx";
-import type { ExamDashboardPreview } from "./ExamDashboardWidget.tsx";
 
 export function DashboardWidgets({ userId, header, children, planner, onOpenPlanner, timer, onStartTimer, onPauseTimer, onResumeTimer, onResetTimer }: {
   userId: string;
   header: (action: React.ReactNode) => React.ReactNode;
   children: Partial<Record<DashboardWidgetId, React.ReactNode>>;
-  planner: ((preview: ExamDashboardPreview) => React.ReactNode) | null;
+  planner: React.ReactNode;
   onOpenPlanner: () => void;
   timer: PomodoroTimer | null;
   onStartTimer: (minutes: number) => void;
@@ -134,30 +133,39 @@ export function DashboardWidgets({ userId, header, children, planner, onOpenPlan
   </div>;
 }
 
-function DashboardTodos({ todos, onChange, planner, onOpenPlanner }: { todos: DashboardPreferences["todos"]; onChange: (todos: DashboardPreferences["todos"]) => void; planner: ((preview: ExamDashboardPreview) => React.ReactNode) | null; onOpenPlanner: () => void }) {
+function DashboardTodos({ todos, onChange, planner, onOpenPlanner }: { todos: DashboardPreferences["todos"]; onChange: (todos: DashboardPreferences["todos"]) => void; planner: React.ReactNode; onOpenPlanner: () => void }) {
   const [text, setText] = React.useState("");
   const [adding, setAdding] = React.useState(false);
-  const [plannerCount, setPlannerCount] = React.useState(0);
   const listId = React.useId();
   const addButton = React.useRef<HTMLButtonElement>(null);
-  const open = todos.filter((todo) => !todo.done), done = todos.filter((todo) => todo.done);
-  const count = open.length + (planner ? plannerCount : 0);
+  const refocusAdd = React.useRef(false);
+  // The form replaces the add button; focus can only return once the button is rendered again.
+  React.useEffect(() => {
+    if (!adding && refocusAdd.current) addButton.current?.focus();
+    refocusAdd.current = false;
+  }, [adding]);
+  function close(refocus = false) {
+    // A blur while the form unmounts must not cancel a requested refocus.
+    if (refocus) refocusAdd.current = true;
+    setText("");
+    setAdding(false);
+  }
   function task(todo: DashboardPreferences["todos"][number]) {
     const id = `${listId}-${todo.id}`;
-    return <li key={todo.id} className="flex min-h-control min-w-0 items-center gap-2" data-own-todo={todo.id}><DashboardTaskText checkbox={<CoreCheckbox id={id} checked={todo.done} onCheckedChange={() => onChange(todos.map((entry) => entry.id === todo.id ? { ...entry, done: !entry.done } : entry))}/>}><span className={`core-body ${todo.done ? "text-core-muted line-through" : "text-core-text"}`}>{todo.text}</span></DashboardTaskText><IconButton icon={Trash2} variant="destructive-quiet" label={`Aufgabe löschen: ${todo.text}`} onClick={() => onChange(todos.filter((entry) => entry.id !== todo.id))} /></li>;
+    return <li key={todo.id} className="dashboard-todo" data-own-todo={todo.id} data-done={todo.done || undefined}><DashboardTaskText checkbox={<CoreCheckbox id={id} checked={todo.done} onCheckedChange={() => onChange(todos.map((entry) => entry.id === todo.id ? { ...entry, done: !entry.done } : entry))}/>}><span className="dashboard-todo-text">{todo.text}</span></DashboardTaskText><IconButton icon={Trash2} variant="destructive-quiet" className="dashboard-todo-delete" label={`Aufgabe löschen: ${todo.text}`} onClick={() => onChange(todos.filter((entry) => entry.id !== todo.id))} /></li>;
   }
-  return <SoftPanel className="dashboard-todos min-w-0 p-5">
-    <SectionHeader level={2} title="To-dos" count={count ? `${count} offen` : undefined} action={<span className="flex items-center"><IconButton ref={addButton} icon={Plus} variant="ghost" label="Eigene Aufgabe hinzufügen" aria-expanded={adding} onClick={() => setAdding(!adding)} /><IconButton icon={ArrowUpRight} variant="ghost" label="Planer öffnen" onClick={onOpenPlanner} /></span>} />
+  return <section className="dashboard-poster dashboard-todos" data-tone="cream">
+    <SectionHeader level={2} title="To-dos" action={<IconButton icon={ArrowUpRight} variant="ghost" label="Planer öffnen" onClick={onOpenPlanner} />} />
     <div className="dashboard-todos-list">
-    {adding ? <form className="mt-2 flex gap-2" onSubmit={(event) => { event.preventDefault(); if (!text.trim() || todos.length >= 500) return; onChange([...todos, { id: crypto.randomUUID(), text: text.trim(), done: false }]); setText(""); setAdding(false); addButton.current?.focus(); }}>
-      <input autoFocus className="core-field min-w-0 flex-1" aria-label="Eigene Aufgabe" placeholder="Was hast du dir vorgenommen?" maxLength={500} value={text} onChange={(event) => setText(event.target.value)} />
-      <IconButton icon={Plus} label="Aufgabe hinzufügen" type="submit" disabled={!text.trim() || todos.length >= 500} />
-    </form> : null}
-    {open.length ? <ul className="mt-3 grid gap-1">{open.map(task)}</ul> : null}
-    {done.length ? <Disclosure className="mt-3" summary={`Erledigt (${done.length})`}><ul className="mt-2 grid gap-1">{done.map(task)}</ul></Disclosure> : null}
-    {planner?.({ onOpenTaskCountChange: setPlannerCount })}
+      {todos.length ? <ul>{[...todos.filter((todo) => !todo.done), ...todos.filter((todo) => todo.done)].map(task)}</ul> : null}
+      {planner}
     </div>
-  </SoftPanel>;
+    {adding ? <form className="dashboard-poster-action dashboard-todos-add" onSubmit={(event) => { event.preventDefault(); if (!text.trim() || todos.length >= 500) return; onChange([...todos, { id: crypto.randomUUID(), text: text.trim(), done: false }]); close(true); }} onBlur={(event) => { if (!text.trim() && !event.currentTarget.contains(event.relatedTarget)) close(); }}>
+      <Plus size={20} aria-hidden="true" />
+      <input autoFocus aria-label="Eigene Aufgabe" placeholder="Was hast du dir vorgenommen?" maxLength={500} value={text} onChange={(event) => setText(event.target.value)} onKeyDown={(event) => { if (event.key === "Escape") { event.preventDefault(); close(true); } }} />
+      <button type="submit" aria-label="Aufgabe hinzufügen" disabled={!text.trim() || todos.length >= 500}><CornerDownLeft size={18} aria-hidden="true" /></button>
+    </form> : <button ref={addButton} type="button" className="dashboard-poster-action dashboard-todos-add" onClick={() => setAdding(true)}><Plus size={20} aria-hidden="true" />Neue Aufgabe</button>}
+  </section>;
 }
 
 function WidgetMiniature({ id }: { id: DashboardWidgetId }) {

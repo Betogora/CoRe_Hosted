@@ -5,7 +5,7 @@ import { getLearningDayKey, getLearningTimeZone } from "./learningDay.ts";
 
 export const DASHBOARD_WIDGETS = [
   { id: "learning", title: "Dein Lernen heute", description: "Tagesziel und Fortschritt auf einen Blick.", width: "small" },
-  { id: "motivation", title: "Dein Motivationsimpuls", description: "Ein täglicher Lernimpuls mit deinem Gehirn-Maskottchen.", width: "small" },
+  { id: "motivation", title: "Dein Impuls", description: "Ein täglicher Lernimpuls mit deinem Gehirn-Maskottchen.", width: "small" },
   { id: "timer", title: "Lerntimer", description: "Zeit für Fokus. Und für eine kleine Pause.", width: "small" },
   { id: "decks", title: "Angepinnte Stapel", description: "Deine angepinnten Stapel mit direktem Lernstart.", width: "small" },
   { id: "todos", title: "To-dos", description: "Aufgaben aus dem Planer und eigene Vorhaben.", width: "small" },
