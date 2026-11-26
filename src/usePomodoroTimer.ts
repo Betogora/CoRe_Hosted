@@ -45,7 +45,7 @@ export function usePomodoroTimer(userId: string | undefined) {
       const removed = clearPomodoroTimer(userId, storedTimer.id);
       pomodoroTimerRef.current = null;
       setPomodoroTimer(null);
-      if (removed) setSuccessToast("Timer abgelaufen.");
+      if (removed) setSuccessToast("Lerntimer abgelaufen.");
       return;
     }
     pomodoroTimerRef.current = storedTimer;
@@ -69,7 +69,7 @@ export function usePomodoroTimer(userId: string | undefined) {
         const removed = clearPomodoroTimer(accountUserId, nextTimer.id);
         pomodoroTimerRef.current = null;
         setPomodoroTimer(null);
-        if (removed) setSuccessToast("Timer abgelaufen.");
+        if (removed) setSuccessToast("Lerntimer abgelaufen.");
         return;
       }
       pomodoroTimerRef.current = nextTimer;
@@ -99,7 +99,7 @@ export function usePomodoroTimer(userId: string | undefined) {
       clearPomodoroTimer(accountUserId, activeTimer.id);
       pomodoroTimerRef.current = null;
       setPomodoroTimer(null);
-      setSuccessToast("Timer abgelaufen.");
+      setSuccessToast("Lerntimer abgelaufen.");
     }
 
     checkExpiry();

@@ -99,6 +99,7 @@ export function StudyModeWiring() {
       simulationOffsetMinutes={clock.simulationOffsetMinutes}
       pomodoroTimer={pomodoro.pomodoroTimer}
       onStartPomodoro={pomodoro.startPomodoro}
+      onPomodoroPauseChange={pomodoro.changePomodoroPause}
       onExit={leaveStudy}
       onReturnToLearn={leaveStudy}
       onEditCard={editStudyCard}

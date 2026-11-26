@@ -492,7 +492,7 @@ test("Lerneinstellungen wechseln bei 768 px zwischen Bottom Sheet und zentrierte
   expect(browserErrors).toEqual([]);
 });
 
-test("Pomodoro timer started in the learning settings remains global after leaving review", async ({ page }: any) => {
+test("Lerntimer started in the learning settings remains global after leaving review", async ({ page }: any) => {
   await page.setViewportSize({ width: 1280, height: 720 });
   await resetToFreshLocalState(page);
   await mainMenu(page).getByRole("button", { name: "Lernen" }).click();
@@ -502,34 +502,26 @@ test("Pomodoro timer started in the learning settings remains global after leavi
   await page.getByRole("button", { name: "Lerneinstellungen" }).click();
   const dialog = page.getByRole("dialog", { name: "Lerneinstellungen" });
   const control = dialog.locator('[data-pomodoro-control="study"]');
+  const minutes = control.getByRole("spinbutton", { name: "Minuten", exact: true });
   await control.locator("button").first().click();
-  await control.getByRole("button", { name: "15", exact: true }).click();
-  await expect(control.getByLabel("Dauer in Minuten")).toHaveValue("15");
-  await expect(page.getByTestId("study-pomodoro-progress")).toHaveCount(0);
+  await control.getByRole("button", { name: "50 Minuten", exact: true }).click();
+  await expect(minutes).toHaveValue("50");
+  await expect(page.locator("[data-pomodoro-pill]")).toHaveCount(0);
   const timerRowGeometry = await control.evaluate((element: HTMLElement) => {
-    const input = element.querySelector<HTMLInputElement>("input");
-    const presets = element.querySelector<HTMLElement>('[role="group"][aria-label="Pomodoro-Dauer"]');
-    const start = Array.from(element.querySelectorAll<HTMLButtonElement>("button")).find((button) => button.textContent?.trim() === "Start");
-    if (!input || !presets || !start) return null;
-    const inputRect = input.getBoundingClientRect();
-    const presetRect = presets.getBoundingClientRect();
-    const startRect = start.getBoundingClientRect();
-    return {
-      inputBottom: inputRect.bottom,
-      presetBottom: presetRect.bottom,
-      startBottom: startRect.bottom,
-      presetRight: presetRect.right,
-      startLeft: startRect.left,
-    };
+    const center = (target: Element | null) => { const rect = target?.getBoundingClientRect(); return rect ? { middle: rect.top + rect.height / 2, left: rect.left, right: rect.right } : null; };
+    const clock = center(element.querySelector(".core-study-timer-clock"));
+    const presets = center(element.querySelector('[role="group"][aria-label="Dauer wählen"]'));
+    const start = center(element.querySelector('[aria-label="Lerntimer starten"]'));
+    return clock && presets && start ? { clock, presets, start } : null;
   });
   expect(timerRowGeometry).not.toBeNull();
-  expect(Math.abs(timerRowGeometry!.inputBottom - timerRowGeometry!.presetBottom)).toBeLessThanOrEqual(1);
-  expect(Math.abs(timerRowGeometry!.inputBottom - timerRowGeometry!.startBottom)).toBeLessThanOrEqual(1);
-  expect(timerRowGeometry!.startLeft).toBeGreaterThan(timerRowGeometry!.presetRight);
-  await control.getByLabel("Dauer in Minuten").fill("10");
-  await control.getByRole("button", { name: "Start", exact: true }).click();
+  expect(Math.abs(timerRowGeometry!.clock.middle - timerRowGeometry!.presets.middle)).toBeLessThanOrEqual(2);
+  expect(Math.abs(timerRowGeometry!.presets.middle - timerRowGeometry!.start.middle)).toBeLessThanOrEqual(1);
+  expect(timerRowGeometry!.start.left).toBeGreaterThan(timerRowGeometry!.presets.right);
+  await minutes.fill("10");
+  await control.getByRole("button", { name: "Lerntimer starten", exact: true }).click();
   await expect(dialog).toHaveCount(0);
-  await expect(page.getByTestId("study-pomodoro-progress")).toHaveAttribute("aria-valuetext", "Noch 10 Min.");
+  await expect(page.getByTestId("study-header").locator("[data-pomodoro-pill]")).toHaveAttribute("aria-label", "Lerntimer pausieren, noch 10 Min.");
 
   await page.getByRole("button", { name: "Lerneinstellungen" }).click();
   const reopenedControl = page.getByRole("dialog", { name: "Lerneinstellungen" }).locator('[data-pomodoro-control="study"]');
@@ -538,7 +530,7 @@ test("Pomodoro timer started in the learning settings remains global after leavi
   await page.getByRole("dialog", { name: "Lerneinstellungen" }).getByRole("button", { name: "Lerneinstellungen schließen" }).click();
 
   await page.getByRole("button", { name: "Lernmodus verlassen" }).click();
-  await expect(page.locator('[data-navigation-layout="top-bar"] [data-pomodoro-progress="header"]')).toContainText("Noch 10 Min.");
+  await expect(page.locator('[data-navigation-layout="top-bar"] [data-pomodoro-pill]')).toHaveAttribute("aria-label", "Lerntimer pausieren, noch 10 Min.");
 });
 
 test("Lerneinstellungen speichern Markierung, Aussetzung und Kartenreihenfolge sofort", async ({ page }: any) => {
