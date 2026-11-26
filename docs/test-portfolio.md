@@ -243,7 +243,7 @@ getrennt mit realer SMTP-Zustellung abgenommen.
 - Ein Export, den außer Tests niemand nutzt, ist toter Code; Funktion und Test entfallen gemeinsam. Ausnahmen tragen `/** @internal */` (bewusst nur für Tests angebotene Seam-Hilfe) oder `/** @public */` (fertige Schnittstelle mit ausstehendem Aufrufer).
 - Abwesenheitsprüfungen gehören zur Entfernung selbst. Ausgenommen sind die Browserprüfungen für [Beta-Abnahme Punkt 4](specs.md#beta-abnahme), auch hosted.
 - Jeder Supabase-Browserflow beginnt mit einem Konto-Reset (`resetToFreshLocalState` oder der Seeder seiner Spec), weil alle Flows ein Konto teilen; kein Flow räumt nach sich auf. Feste Wartezeiten stehen nur dort, wo die Dauer selbst geprüft wird.
-- Eine neue Spec steht in `tests/e2e/support/catalogSpecs.ts` (ohne Supabase) oder in einem Projekt von `playwright.config.ts` und ist in `AREAS` von `scripts/affectedE2ESpecs.ts` zugeordnet; `src/affectedE2ESpecs.test.ts` meldet Lücken.
+- Eine neue Spec steht in `tests/e2e/support/catalogSpecs.ts` (ohne Supabase, läuft immer vollständig in `catalog-e2e`) oder in einem Projekt von `playwright.config.ts` und ist dann in `AREAS` von `scripts/affectedE2ESpecs.ts` zugeordnet; `src/affectedE2ESpecs.test.ts` meldet Lücken.
 - Golden- und RLS-Testnamen beginnen mit `[Vertrag: …]`.
 - Neue schwere Browser-, Storage-, Großdatei- oder Restore-Pfade werden `heavy-release`; ins PR-Gate darf nur ein enges Golden- oder Security-Smoke.
 - APKG-Matrix: Erwartungen ändern sich nur im Generator `scripts/create_apkg_matrix_fixtures.py` und nur bei belegter Abweichung von Anki oder einer ADR. Neue `KNOWN_GAPS` nur für bisher unentdeckte Lücken, nie um ein Gate grün zu machen.

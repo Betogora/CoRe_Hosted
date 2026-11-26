@@ -22,8 +22,8 @@ Solche Pakete beginnen deshalb mit ihrer Messung (Schritt 0).
 | --- | --- | --- |
 | Initiales JavaScript (gzip) | 295,3 KiB bei Grenze 300; am 22.11. noch 246,8 | höchstens 250 KiB |
 | Start-CSS | 191 KiB roh, 34,9 KiB gzip, eine Datei | rund 25 KiB gzip |
-| `affected-e2e` mit voller Suite | 12 bis 14 min (Testschritt 800 s) | höchstens 5 min |
-| `catalog-e2e` | 4,5 bis 6,5 min (120 Tests, 2 Worker) | höchstens 4 min |
+| `affected-e2e` mit voller Suite | 12 bis 14 min (Testschritt 800 s, davon 266 s Katalog, seit T1 entfallen) | höchstens 5 min |
+| `catalog-e2e` | 4,5 bis 6,5 min mit 2 Workern; seit T1 lokal auf 4 CPUs 176 statt 364 s, in CI noch ungemessen | höchstens 4 min |
 | Pull Requests mit voller Suite | 57 von 86 (66 %) in drei Wochen | höchstens 40 % |
 | Roundtrips nacheinander je Bewertung | 5 | 2 |
 | `srcdoc` einer Formelkarte | rund 400 KB | rund 30 KB |
@@ -304,9 +304,9 @@ der Entscheidung, A6, T4, A7 und T5 nach Bedarf.
     wegen der Großschreibung nicht. Ebenfalls zuordnen: `cardCommands.ts`
     (9), `indexedDbImportCommit.ts` (7), `workspaceHydrationService.ts`
     (7).
-  - `src/styles.css` auf alle Katalog-Specs plus `product-surfaces`,
-    `core-stabilization`, `world-capitals-hierarchy` und
-    `navigation-context` legen (235 statt 428 s). Aufgegeben wird bei
+  - `src/styles.css` auf `product-surfaces`, `core-stabilization`,
+    `world-capitals-hierarchy` und `navigation-context` legen (235 statt
+    428 s; die Katalog-Specs fährt `catalog-e2e` ohnehin). Aufgegeben wird bei
     reinen CSS-Änderungen der PR-Lauf der übrigen Specs; `nightly-core`
     fängt ihn.
   - Lücken schließen, die heute nichts auslösen:
