@@ -9,61 +9,6 @@ Reihenfolge = Priorität. Offene Nachweise brauchen keinen Code und
 laufen unabhängig davon; die Release-Voraussetzungen sind vor dem ersten
 externen Release fällig. „Später“ ist geparkt.
 
-## P5: KI-Eval und Hillclimb
-
-Alle vier KI-Routen stehen (`card-variant-v6`, `card-help-v2`,
-`source-cards-v2`, `learning-summary-v6`); P5 läuft. Bestand, Verlauf, Bilanz,
-Zielwerte und Grenzen des Experiments stehen auf der Seite
-[KI-Eval](ai-eval.md), die Fallsätze im Ledger.
-
-Festgelegt am 2026-11-23: Erzeugt wird nur über OpenRouter mit dem lokalen
-Schlüssel und seinem Limit, nie über ein Modell aus einer Subscription.
-Richter ist Opus 5.5 als Subagent in Claude Code, je Block ein frischer
-Kontext; eine Handkalibrierung gibt es vorerst nicht. Seit 2026-11-25 werden
-Reasoning-Stufe und Modell wie Prompts als Kandidaten gegen denselben Bestand
-gemessen. Das KI-Kontingent ist nicht Teil von P5.
-
-Pakete in dieser Reihenfolge.
-
-- [ ] **Inhaltsfilter in den Routen:** Bricht der Anbieter mit
-      `finish_reason: content_filter` ab (im Probelauf vom 2026-11-23 bei
-      Karten mit eingeschleuster Anweisung, [Verlauf](history.md)), melden die
-      Routen heute „Werkzeug nicht korrekt verwendet“. Eigener Fehlercode und
-      eine verständliche Meldung; im Eval bleibt es eine verworfene Antwort.
-- [ ] **Modell- und Reasoning-Vergleich:** Luna `medium` ist für alle
-      Anfragetypen gemessen und bei Frage/Antwort, Lückentext und
-      Zusammenfassung übernommen; bei KI hilft (97,4 % gegen 81,6 %) scheitert
-      es nur an einer Antwort im kritischen Kriterium H2 und wartet auf die
-      neue Entscheidungsregel oder eine Entscheidung. Offen: DeepSeek V4.1
-      Flash 1017 ohne Reasoning bei Varianten und KI hilft, Claude Haiku 5.5
-      `medium` bei Karten aus einer Quelle. Haiku geht mit ZDR nur mit `tool_choice: auto` und schreibt
-      Listen manchmal als JSON-Text; das zählt heute als verworfene Antwort.
-      Gewinnt ein Wechsel, bekommt die Route Modell und Reasoning im eigenen
-      Code und eine neue Baseline mit Rückhalt. Nachweis: je Konfiguration ein
-      Ledger-Eintrag.
-- [ ] **Entscheidungsregel umbauen:** feste Basis je Welle; Kandidaten mit
-      sichtbar behobenem Fehlerbild und etwa 70 % Wahrscheinlichkeit „besser“
-      kommen in einen Sammelkorb, kritische Kriterien dürfen im eigenen
-      Rauschen schwanken, die Kombination bestätigt eine Messung mit vier
-      Wiederholungen. Ein Faktorversuch nur bei höchstens drei Änderungen mit
-      Wechselwirkungsverdacht. Braucht eine Ergänzung von ADR-049. Nachweis:
-      Runner-Tests und eine Welle nach der neuen Regel.
-- [ ] **I – Hillclimb, erste Welle** auf dem Bestand je Route (KI hilft erledigt,
-      `card-help-v2`): Varianten,
-      Karten aus einer Quelle, Zusammenfassung. Je Runde drei bis fünf
-      Kandidaten aus den Trainingsfehlern, Vorauswahl am Trainingsteil,
-      Entscheidung am Entscheidungsteil; mindestens drei Runden, Ende nach
-      drei Runden ohne Übernahme oder nach acht Runden. Bei Karten aus einer Quelle zusätzlich: Kartenmenge
-      wirksam machen (Weniger höchstens 60 %, Mehr mindestens 140 % der
-      Vorschläge von Normal, ohne Füllkarten und bei gleicher Belegtreue;
-      danach die Dichten in `AI_SOURCE_AMOUNTS` neu messen), Single Choice
-      wird nie gewählt, Tabellenzeilen ergeben Doppelfragen, und die
-      Zerlegung der Quelle vergleichen: Abschnitte wie heute, die ganze Quelle
-      als Kontext mit Karten nur für den markierten Abschnitt, oder erst eine
-      Gliederung mit Kernaussagen und Kartenbudget je Abschnitt; die beiden
-      neuen Wege brauchen eine Ergänzung von ADR-011. Nachweis: je
-      Anfragetyp ein Pull Request mit Promptversion und Ledger-Einträgen.
-
 ## Offene Nachweise
 
 Abnahmen gebauter Funktionen; sie brauchen echte Geräte oder Daten, keinen
@@ -122,6 +67,13 @@ neuen Code.
 
 ### KI
 
+- Weiterer KI-Hillclimb (P5 abgeschlossen 2026-11-25, Stand auf der Seite
+  [KI-Eval](ai-eval.md)): Frage/Antwort und Karten aus einer Quelle liegen
+  unter Ziel; nächste Hebel sind die Zerlegung der Quelle (ganze Quelle als
+  Kontext oder Gliederung mit Kartenbudget, Ergänzung von ADR-011), ein
+  Prüfaufruf für Varianten, mehr Single Choice (bei allen Formen 4 % statt jeder achten Karte) und keine Doppelfragen aus Tabellenzeilen, 20–30 Handurteile je Anfragetyp zur
+  Richterkalibrierung und der Modellvergleich (DeepSeek V4.1 Flash ohne
+  Reasoning, Claude Haiku 5.5 `medium`).
 - DOCX und PPTX als Quellen für Karten aus einer Quelle (ZIP und XML, ohne neue Abhängigkeit über
   `zipReader.ts` prüfen; Beleg je Folie oder Abschnitt).
 - Bilder als Quelle für Karten aus einer Quelle (teurer, eigener Hillclimb); braucht eine Ergänzung

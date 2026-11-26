@@ -220,7 +220,7 @@ export function ledgerRun({ type, run, meta, summary, decision, change, comparis
     outcomes: summary.outcomes, traps: summary.traps,
     costUsd: Number(summary.costUsd.toPrecision(3)), costTotalUsd: Number(summary.costTotalUsd.toPrecision(3)), latencyP90Ms: summary.latencyP90Ms, judge,
     ...(Object.keys(summary.metrics).length ? { metrics: summary.metrics } : {}),
-    ...(comparison ? { comparison: { noise: comparison.noise, gained: comparison.gained, lost: comparison.lost, ...comparison.targeted ? { target: comparison.targeted.target } : {} } } : {}),
+    ...(comparison ? { comparison: { noise: comparison.noise, better: comparison.better, gained: comparison.gained, lost: comparison.lost, ...comparison.targeted ? { target: comparison.targeted.target } : {} } } : {}),
     ...(reason ? { reason } : {}),
     ...(confirmation ? { confirmation: true as const } : {}),
   };

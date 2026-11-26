@@ -301,7 +301,7 @@ Befehlsmodule laufen ohne React, je Arbeitsbereich aus Store, Repository und Syn
 - `POST /api/ai/card-variant`, `POST /api/ai/card-help`, `POST /api/ai/summary` und `POST /api/ai/source-cards` sind die einzigen CoRe-Serverendpunkte. Sie teilen `server/aiRoute.ts`, der Browser ruft sie über `aiRouteRequest.ts`; `npm run dev` stellt sie per Vite-Middleware bereit.
 - Jede Route verlangt Same Origin, einen Supabase-Bearer (lokal gegen die gecachten JWKS geprüft) und den Serverschlüssel, bevor sie den begrenzten Body liest; sie antwortet mit `no-store`, erzeugt genau einen erzwungenen Tool Call und loggt dessen Kosten auch bei verworfener Antwort.
 - Eingaben, Grenzen, Fristen und Antwortprüfung stehen in den `ai*Contract.ts`.
-- Modell: `OPENROUTER_MODEL` in `server/aiRoute.ts` (`openai/gpt-6-luna`), Reasoning je Route (`medium` für Zusammenfassung, Varianten ohne Auswahl), ZDR, `data_collection: "deny"`; ohne Katalog und Fallback (ADR-011).
+- Modell: `OPENROUTER_MODEL` in `server/aiRoute.ts` (`openai/gpt-6-luna`), Reasoning je Route (`medium` außer Auswahl und Quelle), ZDR, `data_collection: "deny"`; ohne Katalog und Fallback (ADR-011).
 - Der OpenRouter-Zugang steht nur in `process.env`; Secrets gehören weder in `VITE_*`, Browsercode, `localStorage`, Exporte noch Logs. Alle anderen Datenzugriffe laufen über die Supabase-Module. Betrieb: [Operations](operations.md).
 
 ## Import und Übersetzung

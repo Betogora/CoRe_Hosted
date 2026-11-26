@@ -9,7 +9,7 @@ export const MAX_AI_SOURCE_CHARS = 400_000;
 /** About 2,700 characters per page of running text. */
 export const AI_SOURCE_LIMIT_HINT = "Bis 20 MB (etwa 150 Seiten).";
 
-/** `density`: proposals per 1,000 read characters (low, high); Weniger about 60 %, Mehr about 150 % of Normal. */
+/** `density`: proposals per 1,000 read characters (low, high). */
 export const AI_SOURCE_AMOUNTS = [
   { value: "less", label: "Weniger", density: [2, 3], instruction: "Erstelle Karten nur für die zentralen Kernaussagen." },
   { value: "normal", label: "Normal", density: [3.5, 5], instruction: "Erstelle Karten für die Kernaussagen und wichtigen Zusammenhänge." },

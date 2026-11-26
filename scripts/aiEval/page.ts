@@ -84,7 +84,7 @@ function runsTable(type: RequestType, series: EvalSeriesEntry[]) {
   const starts = fallsatzStarts(series);
   const rows = series.map(({ number: runNumber, run, reference }, index) => [
     String(runNumber), run.date, code(run.promptVersion), `<span class="docs-eval-change">${escapeHtml(run.change)}</span>`, interval(run), points(run.main - starts[index].main),
-    ...(run.comparison && reference ? [points(run.main - reference.main), `±${number(run.comparison.noise * 100)} Pkt.`, `+${run.comparison.gained} / −${run.comparison.lost}`] : ["–", "–", "–"]),
+    ...(run.comparison && reference ? [points(run.main - reference.main), `±${number(run.comparison.noise * 100)} Pkt.${run.comparison.better === undefined ? "" : ` · besser in ${number(run.comparison.better * 100)} %`}`, `+${run.comparison.gained} / −${run.comparison.lost}`] : ["–", "–", "–"]),
     critical(type, run), usd(run.costUsd), seconds(run.latencyP90Ms), `${run.cases} × ${run.repetitions}`, DECISIONS[run.decision],
   ]);
   const head = ["Lauf", "Datum", "Prompt", "Änderung", "Hauptwert (95 %-Intervall)", "Δ seit Start des Fallsatzes", "Δ zum Bestand", "Rauschen", "Fälle gewonnen / verloren", "Kritisch", "Kosten je Antwort", "Latenz p90", "Fälle × Läufe", "Entscheidung"];

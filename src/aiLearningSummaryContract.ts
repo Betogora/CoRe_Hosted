@@ -97,7 +97,7 @@ export function parseAiLearningSummarySuccess(value: unknown, input: AiLearningS
   // Wie in der Mindmap: Ein Querbezug ohne passendes heading oder keyword ist nicht darstellbar.
   const name = (text: string) => text.trim().toLocaleLowerCase("de-DE");
   const names = new Set(result.summary.sections.flatMap((section) => [section, ...section.subsections]).flatMap((block) => [block.heading, ...block.points.map((point) => point.keyword)]).map(name));
-  result.summary.relations = result.summary.relations.filter((relation) => names.has(name(relation.from)) && names.has(name(relation.to)));
+  result.summary.relations = result.summary.relations.filter((relation) => name(relation.from) !== name(relation.to) && names.has(name(relation.from)) && names.has(name(relation.to)));
   if (JSON.stringify(result.summary).length > 200_000) throw new AiLearningSummaryError("invalid_response", "Die KI-Zusammenfassung ist zu umfangreich.");
   return result;
 }

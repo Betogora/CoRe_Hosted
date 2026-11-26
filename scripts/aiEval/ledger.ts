@@ -54,7 +54,7 @@ const runSchema = v.strictObject({
   /** Messgrößen je Antwort, über den Lauf gemittelt (etwa Karten je 1.000 Zeichen). */
   metrics: v.optional(v.record(v.string(), v.number())),
   /** `target` nennt das Fehlerbild (Kriterien oder Kategorien), an dem eine vorläufige Übernahme gemessen wurde. */
-  comparison: v.optional(v.strictObject({ noise: share, gained: count, lost: count, target: v.optional(v.array(v.string())) })),
+  comparison: v.optional(v.strictObject({ noise: share, better: v.optional(share), gained: count, lost: count, target: v.optional(v.array(v.string())) })),
   /** Zwei Sätze aus den geänderten Trainingsantworten: Fehlerbild behoben, nichts Neues kaputt. */
   reason: v.optional(v.pipe(v.string(), v.minLength(1))),
   /** Sammelprüfung der vorläufigen Schritte gegen den letzten bestätigten Stand. */

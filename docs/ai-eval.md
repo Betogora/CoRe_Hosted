@@ -2,7 +2,7 @@
 
 Stand der per Hillclimb gemessenen KI-Prompts. Grundsätze stehen in
 [ADR-049](decisions.md#adr-049--ki-änderungen-nur-mit-eval-nachweis), offene
-Arbeit unter [P5](todo.md#p5-ki-eval-und-hillclimb). Bestand, Verlauf und
+Arbeit unter [Später › KI](todo.md#ki). Bestand, Verlauf und
 Bilanz entstehen beim Erzeugen aus dem Ledger; die Prompttexte stehen nur im
 Code.
 
@@ -146,7 +146,7 @@ kommt; ein Modellwechsel bleibt immer eine eigene Entscheidung.
 | --- | --- | --- | --- | --- |
 | Varianten | eine Variante | 0,08–0,15 mUSD, 3–4 s | ≤ 0,5 mUSD | ≤ 6 s |
 | KI hilft | eine Antwort | 0,12 mUSD, 6 s | ≤ 0,5 mUSD | ≤ 8 s |
-| Karten aus einer Quelle | ein Dokument | 2,2 mUSD, 120 s | ≤ 10 mUSD | ≤ 3 min |
+| Karten aus einer Quelle | ein Dokument | 2,1 mUSD, 74 s | ≤ 10 mUSD | ≤ 3 min |
 | Zusammenfassung | eine Zusammenfassung | 0,9 mUSD, 31 s | ≤ 3 mUSD | ≤ 60 s |
 
 Eine Kalibrierung ist nicht vorgesehen, aber möglich: `calibration-table
@@ -192,7 +192,7 @@ Reihenfolge der Läufe. `npm run check:docs` prüft Form und Reihenfolge.
 | `costUsd`, `costTotalUsd`, `latencyP90Ms` | Kosten je Antwort und im Lauf, Latenz im 90. Perzentil |
 | `metrics` | optional: Messgrößen je Antwort, über den Lauf gemittelt |
 | `judge` | Richtermodell, Fingerabdruck von Auftrag und Bogen, neu bewertete Einträge und Einträge aus dem Cache (ohne Kontrolleinträge), Rauschen je Kriterium |
-| `comparison` | nur bei Runden, gepaart auf den gemeinsamen Fällen mit dem Bestand: `noise` als halbe Breite des 95 %-Intervalls des Abstands, `gained` und `lost` als gewonnene und verlorene Fälle, optional `target` als Fehlerbild |
+| `comparison` | nur bei Runden, gepaart auf den gemeinsamen Fällen mit dem Bestand: `noise` als halbe Breite des 95 %-Intervalls des Abstands, optional `better` als Anteil der Bootstrap-Stichproben mit positivem Abstand, `gained` und `lost` als gewonnene und verlorene Fälle, optional `target` als Fehlerbild |
 | `reason` | optional: Begründung einer Übernahme aus den Trainingsantworten |
 | `confirmation` | optional: `true` bei einer Sammelprüfung; verworfen setzt sie den Bestand auf den letzten bestätigten zurück |
 
