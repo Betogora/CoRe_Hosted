@@ -502,6 +502,14 @@ Frage/Antwort (85,4 %, Ziel 95 %) und Karten aus einer Quelle (86,8 %, Ziel
       Ende, Hauptwert nicht schlechter. In derselben Welle: mehr Single Choice
       (bei allen Formen 4 % statt jeder achten Karte) und keine Doppelfragen
       aus Tabellenzeilen.
+- [ ] **Quiz auf `source-cards-v3` klären:** Ein Quiz schickt eine
+      Stichprobe in einer Anfrage, die v3 auf 6.000 Zeichen begrenzt. Ein
+      PDF-Quiz fragt so nur etwa ein bis zwei zufällige Seiten ab. Zu klären:
+      Fragen auf mehrere Abschnitte verteilen oder den Gliederungsaufruf oben
+      mitnutzen. Ungemessen ist auch, ob luna mit der Kartenspanne von v3 und
+      Kartenmenge Mehr weiter genau die gewählte Fragenzahl liefert (gemessen
+      nur auf v2). Nachweis: PDF über 20.000 Zeichen mit Fragen aus Anfang,
+      Mitte und Ende; Fragenzahl bei 5, 10 und 20 eingehalten.
 - [ ] **Frage/Antwort unter Ziel:** Zuerst 20–30 Handurteile je Anfragetyp
       gegen den Richter, um zu klären, ob er zu streng ist. Erst danach ein
       Prüfaufruf für Varianten oder der Modellvergleich gegen
