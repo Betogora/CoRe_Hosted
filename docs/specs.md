@@ -502,6 +502,7 @@ Fällig | ausgewählte Wiederholungen
 - Bewertungen und Aussetzen der laufenden Sitzung lassen sich rückwärts zurücknehmen, mit dem Lernstand von davor; eine Bewertung verschwindet auf allen Geräten aus Verlauf, Statistik und Tageszahlen. Flagge, Markierung oder Aussetzung sperren das für frühere Bewertungen derselben Karte; Kartenreihenfolge, neuer Lerntag oder Verlassen beenden es.
 - Inhalte mit Vorlese-Angabe aus Anki lassen sich über die Sprachausgabe des Geräts vorlesen.
 - Markierter Text lässt sich in AMBOSS nachschlagen. Erst der ausdrückliche Klick öffnet die Suche; übertragen wird nur der markierte Text.
+- In der Sitzung lassen sich die [Zusammenfassungen](#zusammenfassungen) des Stapels lesen und von Hand schreiben, ohne dabei Karten zu bewerten; ein ungespeicherter Entwurf fragt beim Verlassen nach.
 
 ### Pomodoro-Timer
 
@@ -753,16 +754,16 @@ Fassung | im Konto, mehrere je Stapel
 - Eine Fassung entsteht per [KI-Zusammenfassung](#ki-zusammenfassung) oder von Hand aus einem leeren Entwurf.
 - Jede Fassung nennt Titel, Umfang, Detailgrad und die aus ihrem Text berechnete Lesezeit.
 - Fassungen liegen im Konto und erscheinen auf jedem Gerät ([ADR-043](decisions.md#adr-043--zusammenfassungen-und-mindmaps-als-versionierte-online-dokumente)).
-- Löschen entfernt eine Fassung auf allen Geräten; daraus erzeugte Mindmap-Karten bleiben.
-- Unter den eigenen Fassungen zeigt ein Stapel die seiner Unterstapel, gruppiert, bearbeitbar und löschbar; sie bleiben ihrem Stapel. Neue entstehen nur im geöffneten Stapel.
+- Löschen gilt auf allen Geräten; daraus erzeugte Mindmap-Karten bleiben.
+- Unter den eigenen Fassungen zeigt ein Stapel die seiner Unterstapel, gruppiert, bearbeitbar und löschbar; sie bleiben ihrem Stapel. Neue entstehen im geöffneten Stapel oder seiner Sitzung.
 
 ### Zusammenfassung bearbeiten und speichern
 
-- Die Fassung steht auf einer durchgehenden Schreibfläche mit formatiertem Text und Handzeichnungen.
+- Eine Fassung ist eine durchgehende Schreibfläche mit formatiertem Text und Handzeichnungen.
 - Eine Textmarkierung gehört zum Text und wandert mit ihm; freie Striche liegen auf der Zeichenfläche.
 - Gespeichert wird bewusst oder beim Verlassen; dann fragt ein geänderter Entwurf nach Speichern, Verwerfen oder Weiterbearbeiten, nie automatisch.
-- Ohne Verbindung wird lokal gespeichert, als noch nicht synchronisiert gekennzeichnet und beim nächsten Öffnen hochgeladen.
-- Hat ein anderes Gerät dieselbe Fassung inzwischen geändert, bleibt dessen Stand; die eigenen Änderungen werden eine eigene „Konfliktfassung“.
+- Offline wird lokal gespeichert, als nicht synchronisiert markiert und beim nächsten Öffnen hochgeladen.
+- Hat ein anderes Gerät die Fassung inzwischen geändert, bleibt dessen Stand; eigene Änderungen werden eine „Konfliktfassung“.
 - **Bewusst nicht:** Seiten und Seitenformate, Export.
 
 ### Mindmap erzeugen
@@ -770,19 +771,18 @@ Fassung | im Konto, mehrere je Stapel
 - Jeder Stapel hat genau eine unbegrenzte Fläche; darauf können mehrere Bäume stehen.
 - Aus einer gespeicherten Fassung desselben Stapels entsteht ein Baum auf dem Gerät, ohne KI: Überschriften werden Äste; Stichworte, kurze Absätze und Listenpunkte Karten; längere Absätze Text ihrer Abschnittskarte. Materialhinweise und Belege ergeben keine Karten.
 - Belegte Querbezüge aus der Zusammenfassung werden Querverbindungen.
-- Jede erzeugte Karte behält ihre Textstelle als unveränderliche Quelle; spätere Änderungen der Zusammenfassung überschreiben sie nicht.
+- Jede erzeugte Karte behält ihre Textstelle als unveränderliche Quelle.
 - Erneutes Erzeugen ersetzt den Baum dieser Fassung an seiner Stelle. Wurde er bearbeitet, fragt CoRe: überschreiben, daneben anlegen oder abbrechen. Andere Karten der Fläche bleiben.
-- Hat der Stapel noch keine Fassung und ist die Fläche leer, entstehen Zusammenfassung und Mindmap in einem Zug. Eine Mindmap ohne gespeicherte Zusammenfassung entsteht nicht.
+- Ohne Fassung und bei leerer Fläche entstehen Zusammenfassung und Mindmap in einem Zug; ohne gespeicherte Zusammenfassung entsteht keine Mindmap.
 
 ### Mindmap bearbeiten und speichern
 
 - Karten sind Stichwortkarten (Text eingeklappt) oder Textkarten (Text sichtbar), mit formatiertem Text und Bildern.
 - Die Hierarchie ist zyklenfrei; Querverbindungen sind davon getrennt und dürfen Kreise bilden.
-- Eine Klammer fasst benachbarte Geschwister unter einer eigenen, frei schreibbaren Karte zusammen, ohne KI. Eine Umrandung gruppiert Karten nur optisch. Beide lassen sich entfernen, ohne Karten zu verlieren.
-- Dazu kommen freie Zeichnungen und freier Text.
-- Automatisch platzierte Karten weichen wachsenden Nachbarn aus; von Hand platzierte bleiben, wo sie sind.
+- Eine Klammer fasst benachbarte Geschwister unter einer frei schreibbaren Karte zusammen, ohne KI; eine Umrandung gruppiert nur optisch. Beide lassen sich entfernen, ohne Karten zu verlieren. Dazu kommen freie Zeichnungen und Text.
+- Automatisch platzierte Karten weichen wachsenden Nachbarn aus; von Hand platzierte bleiben stehen.
 - Änderungen speichern automatisch nach kurzer Pause. Rückgängig und Wiederholen umfassen alle Inhaltsänderungen, nicht die Ansicht.
-- Die Mindmap liegt samt Bildern im Konto. Ohne Verbindung wird lokal gespeichert und später hochgeladen. Hat ein anderes Gerät inzwischen gespeichert, gewinnt der zuletzt gespeicherte Stand, mit Hinweis.
+- Die Mindmap liegt samt Bildern im Konto, offline lokal bis zum Hochladen. Hat ein anderes Gerät inzwischen gespeichert, gewinnt der zuletzt gespeicherte Stand, mit Hinweis.
 - Eine Mindmap hat feste Obergrenzen, darunter 2.000 Karten; eine Änderung darüber hinaus wird mit Grenze und aktuellem Wert abgewiesen.
 - **Bewusst nicht:** Export, gemeinsames Bearbeiten.
 

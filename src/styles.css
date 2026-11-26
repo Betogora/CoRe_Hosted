@@ -125,10 +125,10 @@
   --core-shadow-floating: 0 18px 50px -36px rgba(6, 52, 79, 0.65);
   --core-shadow-selection: 0 0 0 3px var(--core-focus-ring-soft);
   --core-selection: var(--core-brand-primary);
-  --core-learning-status-learned: var(--core-info);
-  --core-learning-status-new: var(--core-accent);
+  --core-learning-status-learned: var(--core-brand-primary);
+  --core-learning-status-new: #78a1b6;
   --core-learning-status-in-progress: var(--core-warning);
-  --core-learning-status-due: var(--core-success);
+  --core-learning-status-due: var(--core-brand-primary);
   --core-learning-progress-completed: #9ca3af;
   --core-flag-1: #d63b3b;
   --core-flag-2: #c76a08;
@@ -214,10 +214,10 @@
   --core-selection-indicator-shadow: 0 2px 6px rgba(0, 0, 0, 0.45);
   --core-shadow-floating: 0 18px 50px -30px rgba(0, 0, 0, 0.8);
   --core-selection: #7ab8e3;
-  --core-learning-status-learned: var(--core-info);
-  --core-learning-status-new: var(--core-accent);
+  --core-learning-status-learned: #c1dae7;
+  --core-learning-status-new: #5f8aa3;
   --core-learning-status-in-progress: var(--core-warning);
-  --core-learning-status-due: var(--core-success);
+  --core-learning-status-due: #c1dae7;
   --core-learning-progress-completed: #5b6672;
   --core-flag-1: #ff7a7a;
   --core-flag-2: #ffa14a;
@@ -1221,8 +1221,17 @@ svg.lucide {
   gap: 0;
 }
 
-/* The column header reserves the width of the study and options icon buttons. */
-.core-deck-summary-actions-spacer { width: calc(2 * var(--core-button-height) + 0.25rem); }
+/* The column header reserves the width of the study button and the options icon button. */
+.core-deck-summary-responsive { --core-deck-study-width: 9.5rem; }
+.core-deck-summary-actions-spacer { width: calc(var(--core-deck-study-width) + var(--core-button-height) + var(--core-space-xs)); }
+
+.core-deck-study-button { width: var(--core-deck-study-width); flex-shrink: 0; }
+
+@container core-deck-summary (max-width: 32rem) {
+  .core-deck-summary-responsive { --core-deck-study-width: var(--core-button-height); }
+  .core-deck-study-button { padding-inline: 0; gap: 0; }
+  .core-deck-study-button > span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+}
 
 .core-deck-summary-count-value {
   color: var(--core-deck-count-color);
@@ -1232,6 +1241,8 @@ svg.lucide {
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
+
+.core-deck-summary-count-value:not([data-count-empty="true"]) { font-weight: 800; }
 
 .core-deck-summary-count-value[data-count-empty="true"] {
   color: var(--core-text-muted);
@@ -1573,6 +1584,7 @@ svg.lucide {
     grid-column: 2;
     grid-row: 1 / span 2;
     align-self: center;
+    margin-inline-start: var(--core-space-sm);
   }
 }
 
@@ -3266,16 +3278,51 @@ button.core-info-hint:is(:hover, [data-state="open"]) {
   top: 0;
   z-index: 30;
   display: grid;
-  gap: 0.75rem;
+  /* An `auto` column would grow to a long deck name instead of letting it truncate. */
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--core-space-sm);
   margin: -0.75rem -1rem 0;
   padding: 0.75rem 1rem;
   background: var(--core-canvas);
 }
 
-.core-study-header [data-testid="study-daily-progress"] { height: 0.25rem; }
+/* The title stays centred while both sides have room and takes the space between the buttons for a long name. */
+.core-study-header-bar {
+  display: grid;
+  grid-template-columns: minmax(max-content, 1fr) minmax(0, auto) minmax(max-content, 1fr);
+  align-items: center;
+  gap: var(--core-space-md);
+}
+
+/* Borderless buttons hang out by their inner margin, so the icons end flush with the progress bar. */
+.core-study-header-bar > .core-close-button { justify-self: start; margin-inline-start: calc((1.3125rem - var(--core-button-height)) / 2); }
+.core-study-header-actions { display: flex; align-items: center; justify-self: end; gap: var(--core-space-xs); margin-inline-end: calc((1rem - var(--core-button-height)) / 2); }
+
+.core-study-title { display: flex; min-width: 0; flex-direction: column; align-items: center; }
+.core-study-deck { max-width: 100%; }
+
+.core-study-counts {
+  display: flex;
+  align-items: center;
+  gap: var(--core-space-md);
+  font: var(--core-weight-emphasis) var(--core-type-body)/var(--core-leading-body) var(--core-font-sans);
+  font-variant-numeric: tabular-nums;
+}
+.core-study-counts dd { color: var(--core-study-count-color); font-weight: 800; }
+.core-study-counts dd[data-count-empty] { color: var(--core-text-muted); font-weight: inherit; }
+
+.core-study-header .core-daily-progress { --core-daily-progress-hit: 0.5rem; height: 0.25rem; }
+
+.core-daily-progress-segment { position: relative; height: 100%; }
+.core-daily-progress-segment:first-child { border-start-start-radius: inherit; border-end-start-radius: inherit; }
+.core-daily-progress-segment:last-child { border-start-end-radius: inherit; border-end-end-radius: inherit; }
+/* Invisible hit area above and below a thin bar. */
+.core-daily-progress-segment::after { content: ""; position: absolute; inset: calc(-1 * var(--core-daily-progress-hit, 0px)) 0; }
 
 @media (min-width: 40rem) {
   .core-study-header { margin-inline: 0; padding-inline: 0; }
+  .core-study-title { flex-direction: row; gap: var(--core-space-lg); }
+  .core-study-counts { font-size: var(--core-type-heading-3); line-height: var(--core-leading-heading-3); }
 }
 
 .core-study-action-bar {
@@ -3333,6 +3380,64 @@ button.core-info-hint:is(:hover, [data-state="open"]) {
   .core-study-ai-entry {
     right: 2rem;
     bottom: calc(max(0.75rem, env(safe-area-inset-bottom)) + 4rem);
+  }
+}
+
+.core-study-side-toggle, .core-study-side-panel { display: none; }
+
+@media (min-width: 64rem) {
+  .core-study-mode[data-study-side] {
+    padding-right: calc(var(--core-study-side-width, 0px) + 2rem);
+    transition: padding-right 220ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  .core-study-mode[data-study-side] .core-study-action-bar {
+    left: calc((100dvw - var(--core-study-side-width, 0px)) / 2);
+    width: calc(100dvw - var(--core-study-side-width, 0px) - 6rem);
+  }
+
+  .core-study-mode[data-study-side] .core-study-ai-entry { right: calc(var(--core-study-side-width, 0px) + 2rem); }
+
+  .core-study-side-toggle { display: inline-flex; }
+  .core-study-side-toggle[aria-pressed="true"] { background: var(--core-action-soft); }
+  .core-study-side-toggle[aria-pressed="true"] > svg { color: var(--core-action-primary); }
+
+  .core-study-side-panel {
+    position: fixed;
+    inset-block: 0;
+    right: 0;
+    z-index: 31;
+    display: flex;
+    flex-direction: column;
+    border-left: var(--core-border-width) solid var(--core-border);
+    background: var(--core-surface);
+    transform: translateX(100%);
+    visibility: hidden;
+    transition: transform 220ms cubic-bezier(0.22, 1, 0.36, 1), visibility 0s linear 220ms;
+  }
+
+  .core-study-side-panel[data-open] {
+    transform: none;
+    visibility: visible;
+    transition: transform 220ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  /* The top inset equals the session's, so the panel head and the study header share one line. */
+  .core-study-side-content { display: flex; min-height: 0; flex: 1 1 0; flex-direction: column; overflow-y: auto; padding: 2rem var(--core-space-xl) var(--core-space-xl); }
+
+  .core-study-side-resize {
+    position: absolute;
+    inset-block: 0;
+    left: -0.25rem;
+    z-index: 1;
+    width: 0.5rem;
+    cursor: col-resize;
+    touch-action: none;
+  }
+
+  .core-study-side-resize:hover,
+  .core-study-side-resize:focus-visible {
+    background: linear-gradient(to right, transparent 0.1875rem, var(--core-border-interactive) 0.1875rem, var(--core-border-interactive) 0.3125rem, transparent 0.3125rem);
   }
 }
 
@@ -3608,6 +3713,8 @@ button.core-info-hint:is(:hover, [data-state="open"]) {
 }
 .core-summary-title-field { min-height: var(--core-button-height); padding-block: 0.25rem; }
 .core-summary-editor-heading { display: grid; grid-template-columns: auto minmax(0, 1fr); grid-auto-columns: auto; grid-auto-flow: column; align-items: center; gap: var(--core-space-sm) var(--core-space-md); min-width: 0; }
+.core-summary-compact-heading { display: flex; min-width: 0; align-items: center; gap: var(--core-space-xs); }
+.core-summary-compact-title { min-width: 0; flex: 1 1 0; overflow: hidden; padding-inline: var(--core-space-xs); color: var(--core-text); font: var(--core-weight-emphasis) var(--core-type-body)/var(--core-leading-body) var(--core-font-sans); text-overflow: ellipsis; white-space: nowrap; }
 .core-summary-row { position: relative; display: grid; min-width: 0; }
 .core-summary-preview { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: var(--core-space-xl); }
 .core-summary-preview:hover { border-color: var(--core-border-interactive); background-color: var(--core-surface-hover); }
@@ -3783,6 +3890,8 @@ button.core-info-hint:is(:hover, [data-state="open"]) {
 .core-editor-toolbar-actions { gap: var(--core-space-xs); margin-left: auto; }
 /* The row reaches the panel edges, so its clip leaves room for the focus outline of the first and last control. */
 .core-editor-toolbar-context { display: flex; align-items: flex-start; gap: var(--core-space-sm); flex: 1 0 calc(100% + 2 * var(--core-space-sm)); min-width: 0; margin-inline: calc(-1 * var(--core-space-sm)); padding: var(--core-space-sm) var(--core-space-sm) 0; border-top: var(--core-border-width) solid var(--core-border); overflow-x: clip; }
+/* Without modes and actions the tools are the first row and need no line above them. */
+.core-editor-toolbar-context:first-child { padding-top: 0; border-top: 0; }
 .core-editor-toolbar-tools, .core-rich-text-document-toolbar { flex-wrap: wrap; gap: var(--core-space-xs) var(--core-space-md); }
 .core-editor-toolbar-tools { flex: 1 1 0; min-height: var(--core-control-height); }
 /* Every group carries a separator; the row starts one separator further left, so the context row clips it at the start of each line. */
@@ -3828,6 +3937,10 @@ button.core-info-hint:is(:hover, [data-state="open"]) {
 .core-summary-sheet { position: relative; width: min(100%, 794px); margin-inline: auto; background: var(--core-surface); border: var(--core-border-width) solid var(--core-border); border-radius: var(--core-radius-panel); }
 .core-summary-sheet .rich-text-field { min-height: 638px; padding: var(--core-space-xl); border: 0; border-radius: var(--core-radius-panel); box-shadow: none; overflow: visible; font-family: var(--summary-font); font-size: var(--summary-size); line-height: 1.75; background: transparent; }
 .core-summary-sheet [role="toolbar"] { display: none; }
+/* The side panel is the sheet: the page fills it without a frame of its own. */
+.core-summary-document-editor[data-compact] .core-summary-tools::before { background: var(--core-surface); }
+.core-summary-document-editor[data-compact] .core-summary-sheet { width: 100%; border: 0; border-radius: initial; background: transparent; }
+.core-summary-document-editor[data-compact] .core-summary-sheet .rich-text-field { min-height: calc(100dvh - 8.25rem); padding: 0; border-radius: initial; }
 .core-summary-drawing-layer { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
 .core-summary-drawing-layer:not([data-tool="text"]) { pointer-events: auto; touch-action: none; cursor: crosshair; }
 .core-summary-drawing-layer[data-tool="eraser"] { cursor: cell; }

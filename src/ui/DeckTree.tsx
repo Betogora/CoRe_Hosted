@@ -6,7 +6,7 @@ import type { CoreMode, Deck } from "../coreTypes.ts";
 import { DECK_DEPTH_INDENT_PX, getVisibleDeckDepth } from "../deckHierarchy.ts";
 import type { DeckLibraryRow } from "../libraryModel.ts";
 import { DeckOptionsMenu } from "./DeckOptionsMenu.tsx";
-import { IconButton } from "./actionUi.tsx";
+import { ActionButton, IconButton } from "./actionUi.tsx";
 import { CoreTooltip } from "./tooltipUi.tsx";
 import { DeckAppearanceIcon, getDeckAppearance } from "./deckAppearance.tsx";
 import { LEARNING_STATUS_UI } from "./learningStatusUi.ts";
@@ -301,11 +301,15 @@ const DeckTreeRow = React.memo(function DeckTreeRow({ row, mode, presentation, d
     </button>
   ) : <span className="-me-2 size-control shrink-0" aria-hidden="true" />;
   const hasWork = row.summary.newCards + row.summary.inProgressCards + row.summary.dueCards > 0;
-  const studyAction = (
+  const studyAction = tile ? (
     <CoreTooltip label={`${row.name} lernen`} deckAppearance={getDeckAppearance(row.deck)}>
       <IconButton label={`${row.path} lernen`} icon={Play} variant="ghost" className="core-deck-icon-action core-deck-study-action pointer-events-auto" data-deck-has-work={hasWork ? "true" : "false"} onClick={() => onStudy(row)} />
     </CoreTooltip>
-  );
+  ) : hasWork ? (
+    <ActionButton type="button" variant="primary" icon={Play} aria-label={`${row.path} lernen`} className="core-deck-study-button pointer-events-auto" onClick={() => onStudy(row)}>
+      Karten lernen
+    </ActionButton>
+  ) : <span className="core-deck-study-button" aria-hidden="true" />;
   const study = React.useCallback(() => onStudy(row), [onStudy, row]);
   const practice = React.useMemo(() => onPractice && ((returnFocus: HTMLElement | null) => onPractice(row, returnFocus)), [onPractice, row]);
   const optionsMenu = <DeckOptionsMenu row={row} decks={decks} onStudy={study} onPractice={practice} onSetCoreMode={onSetCoreMode} onOpenSettings={onOpenSettings} onMoveDeck={onMoveDeck} />;

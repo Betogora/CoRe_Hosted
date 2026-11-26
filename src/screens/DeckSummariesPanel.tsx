@@ -28,6 +28,8 @@ interface DeckSummariesPanelProps {
   cloud?: SupabaseClient | null;
   onGenerateSummary?: (input: SummaryGenerationInput, signal: AbortSignal) => Promise<SummaryGenerationResult>;
   onDraftStateChange: (guard: CardDraftGuard | null) => void;
+  /** Narrow side panel: no AI creation, a blank page while the deck has no summary, and a slim editor. */
+  compact?: boolean;
 }
 
 function SummaryExcerpt({ text }: { text: string }) {
@@ -40,7 +42,7 @@ function SummaryExcerpt({ text }: { text: string }) {
   return <div ref={ref} data-clipped={clipped || undefined} className="core-summary-excerpt mt-4 core-body text-core-secondary" aria-hidden="true">{text}</div>;
 }
 
-export function DeckSummariesPanel({ deck, treeDecks, userId, cloud = null, onGenerateSummary, onDraftStateChange }: DeckSummariesPanelProps) {
+export function DeckSummariesPanel({ deck, treeDecks, userId, cloud = null, onGenerateSummary, onDraftStateChange, compact = false }: DeckSummariesPanelProps) {
   const account = React.useMemo(() => ({ userId, cloud }), [userId, cloud]);
   const [unsynced, setUnsynced] = React.useState<ReadonlySet<string>>(new Set()), [notice, setNotice] = React.useState("");
   const [summaries, setSummaries] = React.useState<LearningSummary[]>([]);
@@ -55,6 +57,9 @@ export function DeckSummariesPanel({ deck, treeDecks, userId, cloud = null, onGe
   const [advanced, setAdvanced] = React.useState(false);
   const [draft, setDraft] = React.useState<LearningSummary | null>(null);
   const [saved, setSaved] = React.useState<LearningSummary | null>(null);
+  /** A blank page the compact panel opened by itself; untouched it is no unsaved change. */
+  const [blank, setBlank] = React.useState<LearningSummary | null>(null);
+  const blankOpenedRef = React.useRef(false);
   const [busy, setBusy] = React.useState(false);
   const [source, setSource] = React.useState<TransientSourceDocument | null>(null);
   const [progress, setProgress] = React.useState("");
@@ -73,10 +78,10 @@ export function DeckSummariesPanel({ deck, treeDecks, userId, cloud = null, onGe
   const fieldId = React.useId();
   const toast = useSuccessToast();
   const defaultTitle = deck.name.trim().slice(0, 120) || "Zusammenfassung";
-  const dirty = view === "editor" ? JSON.stringify(draft) !== JSON.stringify(saved)
+  const dirty = view === "editor" ? JSON.stringify(draft) !== JSON.stringify(saved ?? blank)
     : view === "create" && (Boolean(source) || JSON.stringify(settings) !== JSON.stringify(initialSettings()));
   const generating = busy && generationRef.current !== null;
-  const focusCurrent = () => view === "create" ? createRef.current?.querySelector<HTMLElement>("button:not(:disabled), input")?.focus() : titleRef.current?.focus();
+  const focusCurrent = () => view === "create" ? createRef.current?.querySelector<HTMLElement>("button:not(:disabled), input")?.focus() : (titleRef.current ?? panelRef.current?.querySelector<HTMLElement>('[contenteditable="true"]'))?.focus();
 
   const treeKey = treeDecks.filter((item) => !item.deletedAt).map((item) => item.id).join("\n");
 
@@ -88,14 +93,16 @@ export function DeckSummariesPanel({ deck, treeDecks, userId, cloud = null, onGe
     let active = true;
     setLoading(true); setLoadError("");
     void loadLearningSummaries(account, treeKey.split("\n")).then((loaded) => {
-      if (active) { setSummaries(loaded.summaries); setUnsynced(loaded.unsynced); setLoading(false); }
+      if (!active) return;
+      setSummaries(loaded.summaries); setUnsynced(loaded.unsynced); setLoading(false);
+      if (compact && !loaded.summaries.length && !blankOpenedRef.current) { blankOpenedRef.current = true; startManual(true); }
     }).catch((cause: unknown) => { if (active) { setLoadError(cause instanceof Error ? cause.message : "Die Zusammenfassungen konnten nicht geladen werden."); setLoading(false); } });
     return () => { active = false; };
   }, [account, treeKey, retry]);
 
   React.useEffect(() => {
     if (view === "create") createRef.current?.querySelector<HTMLElement>("button")?.focus();
-    else if (view === "editor") titleRef.current?.focus();
+    else if (view === "editor") { if (!blank) titleRef.current?.focus(); }
     else if (triggerFocusRef.current) { triggerFocusRef.current = false; aiTriggerRef.current?.focus(); }
     else panelRef.current?.focus({ preventScroll: true });
   }, [view]);
@@ -166,12 +173,13 @@ export function DeckSummariesPanel({ deck, treeDecks, userId, cloud = null, onGe
   }
   function startCreate() { setSettings(initialSettings()); setSource(null); setAdvanced(false); setError(""); setNotice(""); setView("create"); }
   function closeCreate() { triggerFocusRef.current = true; backToList(); }
-  function startManual() {
-    setDraft(createLearningSummary(deck.id, defaultTitle, createSummarySettings()));
+  function startManual(untouched = false) {
+    const created = createLearningSummary(deck.id, defaultTitle, createSummarySettings());
+    setDraft(created); setBlank(untouched ? created : null);
     setSaved(null); setError(""); setNotice(""); setView("editor");
   }
-  function backToList() { setView("list"); setError(""); setDraft(null); setSaved(null); }
-  function open(summary: LearningSummary) { setDraft(summary); setSaved(summary); setError(""); setNotice(""); setView("editor"); }
+  function backToList() { setView("list"); setError(""); setDraft(null); setSaved(null); setBlank(null); }
+  function open(summary: LearningSummary) { setDraft(summary); setSaved(summary); setBlank(null); setError(""); setNotice(""); setView("editor"); }
   function applySaved({ saved: stored, unsynced: pending, replaced }: SavedLearningSummary) {
     setSummaries((items) => [stored, ...(replaced?.summary ? [replaced.summary] : []), ...items.filter((item) => item.id !== stored.id && item.id !== replaced?.id)]);
     setUnsynced((ids) => new Set([...ids].filter((id) => id !== stored.id && id !== replaced?.id).concat(pending ? [stored.id] : [])));
@@ -201,10 +209,10 @@ export function DeckSummariesPanel({ deck, treeDecks, userId, cloud = null, onGe
     <span className="core-summary-preview-action inline-flex items-center gap-2 core-body font-semibold text-core-action">Vollständig öffnen<ChevronRight size={17} aria-hidden="true"/></span>
   </button><IconButton className="core-summary-delete" variant="destructive-quiet" icon={Trash2} label={`Zusammenfassung „${summary.title}“ löschen`} disabled={busy} onClick={() => { setError(""); setDeleting(summary); }}/></div>;
 
-  return <section className="core-summary-panel grid min-w-0 gap-6" data-testid="deck-summaries-panel" aria-label="Zusammenfassungen" aria-busy={busy || loading} tabIndex={-1} ref={panelRef}>
+  return <section className={`core-summary-panel grid min-w-0 ${compact ? "gap-3" : "gap-6"}`} data-testid="deck-summaries-panel" aria-label="Zusammenfassungen" aria-busy={busy || loading} tabIndex={-1} ref={panelRef}>
     {view !== "editor" ? <>
       <CreationMenu>
-        <CreationMenuForm icon={Sparkles} label="Zusammenfassung mit KI erstellen" open={view === "create"} onOpenChange={(open) => open ? startCreate() : request(closeCreate)}
+        {compact ? null : <CreationMenuForm icon={Sparkles} label="Zusammenfassung mit KI erstellen" open={view === "create"} onOpenChange={(open) => open ? startCreate() : request(closeCreate)}
           triggerRef={aiTriggerRef} formRef={createRef} disabled={(busy && view !== "create") || loading || Boolean(loadError) || !onGenerateSummary} busy={busy}
           wait={generating ? { message: progress, onCancel: () => { generationRef.current?.abort(); setProgress("Erstellung wird abgebrochen …"); } } : null}
           advancedOpen={advanced} onAdvancedOpenChange={setAdvanced} error={error} submitLabel="Mit KI erstellen" submitIcon={Sparkles} onSubmit={generate}
@@ -223,7 +231,7 @@ export function DeckSummariesPanel({ deck, treeDecks, userId, cloud = null, onGe
           </>}>
           {hasSubdecks ? <div className="grid min-w-0 gap-2"><span className="core-field-label">Grundlage</span><CoreSegmentedControl ariaLabel="Grundlage" options={summaryChoices.scope} value={settings.scope} onValueChange={(value) => changeSetting("scope", value)} /></div> : null}
           <div className="grid min-w-0 gap-2"><span className="core-field-label">Länge</span><CoreSegmentedControl ariaLabel="Länge" options={summaryChoices.length} value={settings.length} onValueChange={(value) => setSettings((current) => ({ ...current, length: value, detail: summaryDetailByLength[value] }))} /></div>
-        </CreationMenuForm>
+        </CreationMenuForm>}
         <CreationMenuAction icon={PenLine} label="Zusammenfassung schreiben" disabled={busy || loading || Boolean(loadError)} onSelect={() => request(startManual)} />
       </CreationMenu>
       <label className="core-field-group"><span className="sr-only">Zusammenfassungen durchsuchen</span><span className="relative"><Search className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-core-muted" size={17} aria-hidden="true"/><input className="core-field w-full !pl-10" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Zusammenfassungen durchsuchen" aria-label="Zusammenfassungen durchsuchen" /></span></label>
@@ -236,6 +244,16 @@ export function DeckSummariesPanel({ deck, treeDecks, userId, cloud = null, onGe
           </section> : group.summaries.map(summaryRow))}</div>
           {!shown.length ? <StatusMessage tone="info">Keine passende Zusammenfassung gefunden.</StatusMessage> : null}
         </> : null}
+    </> : draft && compact ? <>
+      <div className="core-summary-compact-heading">
+        <CoreTooltip label="Alle Zusammenfassungen"><IconButton variant="ghost" icon={ArrowLeft} label="Alle Zusammenfassungen" disabled={busy} onClick={() => request(backToList)}/></CoreTooltip>
+        <h3 className="core-summary-compact-title">{draft.title}</h3>
+        {unsynced.has(draft.id) ? <CoreTag tone="warning">Nicht synchronisiert</CoreTag> : null}
+        <CoreTooltip label={dirty ? "Speichern" : "Gespeichert"}><IconButton variant="ghost" icon={dirty ? Save : Check} label={dirty ? "Speichern" : "Gespeichert"} disabled={busy || !dirty} onClick={() => void persist()}/></CoreTooltip>
+      </div>
+      {error ? <StatusMessage tone="error" announce="assertive">{error}</StatusMessage> : null}
+      {notice ? <StatusMessage tone="info" announce="polite">{notice}</StatusMessage> : null}
+      <SummaryDocumentEditor key={draft.id} value={draft} onChange={setDraft} busy={busy} compact/>
     </> : draft ? <>
       <div className="core-summary-editor-heading">
         <CoreTooltip label="Alle Zusammenfassungen"><IconButton icon={ArrowLeft} label="Alle Zusammenfassungen" disabled={busy} onClick={() => request(backToList)}/></CoreTooltip>

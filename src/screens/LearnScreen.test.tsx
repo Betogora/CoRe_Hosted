@@ -173,8 +173,8 @@ test("learning keeps duplicate subdeck names distinguishable and handles unavail
     />,
   );
 
-  assert.match(hierarchyMarkup, /aria-label="Bereich A \/ Gemeinsam lernen"/);
-  assert.match(hierarchyMarkup, /aria-label="Bereich B \/ Gemeinsam lernen"/);
+  assert.match(hierarchyMarkup, /aria-label="Inhalte von Bereich A \/ Gemeinsam öffnen"/);
+  assert.match(hierarchyMarkup, /aria-label="Inhalte von Bereich B \/ Gemeinsam öffnen"/);
   assert.match(fallbackMarkup, /Stapel nicht gefunden oder nicht verfügbar\./);
   assert.match(fallbackMarkup, /Zu Lernen/);
   assert.match(fallbackMarkup, /Zur Kartenverwaltung/);

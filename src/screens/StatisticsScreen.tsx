@@ -71,8 +71,8 @@ const STATISTICS_TABS: ReadonlyArray<CoreTab<StatisticsTab>> = [
 const STATISTICS_TABS_WITH_COMPARISON: ReadonlyArray<CoreTab<StatisticsTab>> = [...STATISTICS_TABS, { value: "comparison", label: "Stapelvergleich" }];
 const CATEGORY_COLORS = {
   learning: "var(--core-learning-status-in-progress)",
-  relearning: "var(--core-learning-status-new)",
-  young: "color-mix(in srgb, var(--core-learning-status-learned) 50%, var(--core-surface))",
+  relearning: "var(--core-accent)",
+  young: "var(--core-info)",
   mature: "var(--core-learning-status-learned)",
 };
 const RATING_BUTTONS = [["again", "Nochmal"], ["hard", "Schwer"], ["good", "Gut"], ["easy", "Leicht"]] as const;

@@ -27,6 +27,7 @@ Neueste zuerst. Projekt `hirbiuiydczmnjqtoyqx` ist `CoRe-Database`.
 
 | Datum | Art | Nachweis |
 | --- | --- | --- |
+| 2026-11-26 | Release | Übernahme aus `claude/ideen` abgeschlossen: Lernkalender-Touch PR #184 (`c48dd09`), Quiz PR #183 und Lernmodus PR #175 (Design-Revision K1–K5, Statusfarben Variante D) gemergt. Quiz vorher auf der Branch-Preview mit echtem Konto geprüft: 10 Fragen aus Karten (`source-cards-v3`), Abgabe mit Lücken, Ergebnis nach Reload und online gespeichert. Hosted-Smoke nicht ausgeführt. |
 | 2026-11-26 | Migration | `20261126090000_quizze` (Tabelle `learning_quizzes`, Owner-RLS, Revisions-Trigger) per `supabase db push --linked` vor dem Merge von PR #183; `verify_schema_v1.sql` grün, `migration list --linked` gleich, RLS aktiv. |
 | 2026-11-25 | Release | Angepinnte Stapel auf `Heute` und feldweiser Profilabgleich: PR #178 (`c74a2ba`) und PR #179 (`d1e35e2`) gemergt, beide Production-Deployments erfolgreich; Migration `20261125090000_profil_feldweise` vorher eingespielt (Eintrag darunter). `nightly-core` auf `d1e35e2` grün. Hosted-Smoke nicht ausgeführt. |
 | 2026-11-25 | Migration | `20261125090000_profil_feldweise` (RPC `patch_account_profile`, Invoker, nur `authenticated`) per `supabase db push --linked` vor dem Merge von PR #179; `verify_schema_v1.sql` grün, `migration list --linked` gleich. |

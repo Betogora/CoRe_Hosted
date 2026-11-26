@@ -76,8 +76,8 @@ function strokePath(stroke: SummaryStroke) {
   return stroke.points.map(([x, y], index) => `${index ? "L" : "M"}${x} ${y}`).join(" ") + (stroke.points.length === 1 ? " l0.01 0" : "");
 }
 
-export function SummaryDocumentEditor({ value, onChange, busy }: {
-  value: LearningSummary; onChange: (value: LearningSummary) => void; busy: boolean;
+export function SummaryDocumentEditor({ value, onChange, busy, compact = false }: {
+  value: LearningSummary; onChange: (value: LearningSummary) => void; busy: boolean; compact?: boolean;
 }) {
   const pages = React.useMemo(() => value.pages ?? [{ id: value.id, html: value.html, strokes: [] }], [value.pages, value.id, value.html]);
   const [tool, setTool] = React.useState<Tool>("text");
@@ -198,7 +198,7 @@ export function SummaryDocumentEditor({ value, onChange, busy }: {
   }
   function cancelInk() { gesture.current = null; setLiveStroke(null); }
 
-  const content = <div ref={rootRef} className={`core-summary-document-editor ${expanded ? "core-summary-expanded" : ""}`} role={expanded ? "dialog" : undefined} aria-modal={expanded || undefined} aria-label={expanded ? "Zusammenfassung bearbeiten – Arbeitsfläche" : undefined}
+  const content = <div ref={rootRef} className={`core-summary-document-editor ${expanded ? "core-summary-expanded" : ""}`} data-compact={compact || undefined} role={expanded ? "dialog" : undefined} aria-modal={expanded || undefined} aria-label={expanded ? "Zusammenfassung bearbeiten – Arbeitsfläche" : undefined}
     style={{ "--summary-font": value.font === "serif" ? "Georgia, serif" : "var(--core-font-sans)", "--summary-size": `${value.fontSize}px` } as React.CSSProperties}
     onKeyDown={(event) => {
       if (!expanded || event.defaultPrevented) return;
@@ -211,8 +211,8 @@ export function SummaryDocumentEditor({ value, onChange, busy }: {
       }
     }}>
     <EditorToolbar className="core-summary-tools" style={{ top: stickyTop, scrollMarginTop: `calc(max(${stickyTop}, 0px) + 12px)` }} inert={busy}
-      modes={<CoreIconSegmentedControl ariaLabel="Schreiben und Zeichnen" className="core-editor-toolbar-modes" options={toolOptions} value={tool} onValueChange={setTool}/>}
-      actions={<CoreTooltip label={expanded ? "Vollbild beenden" : "Vollbild"}><IconButton ref={expandRef} variant="ghost" label={expanded ? "Vollbild beenden" : "Vollbild"} icon={expanded ? Minimize2 : Maximize2} onClick={() => setExpanded(!expanded)}/></CoreTooltip>}>
+      modes={compact ? null : <CoreIconSegmentedControl ariaLabel="Schreiben und Zeichnen" className="core-editor-toolbar-modes" options={toolOptions} value={tool} onValueChange={setTool}/>}
+      actions={compact ? null : <CoreTooltip label={expanded ? "Vollbild beenden" : "Vollbild"}><IconButton ref={expandRef} variant="ghost" label={expanded ? "Vollbild beenden" : "Vollbild"} icon={expanded ? Minimize2 : Maximize2} onClick={() => setExpanded(!expanded)}/></CoreTooltip>}>
       <EditorToolbarContext toolsRef={toolsRef}>
           <div ref={setToolbarContainer} className="core-editor-toolbar-text" hidden={tool !== "text"}/>
           {tool !== "text" && <div className="core-editor-tool-group" role="group" aria-label="Verlauf">
@@ -234,8 +234,8 @@ export function SummaryDocumentEditor({ value, onChange, busy }: {
     </EditorToolbar>
     <div className="core-summary-stage" inert={busy}>
       <div ref={sheetRef} className="core-summary-sheet core-summary-editor" style={{ minHeight: Math.max(640, drawing.bottom * scale + 96) }}>
-        <RichTextEditor value={value.html} ariaLabel="Zusammenfassung bearbeiten" ariaDescribedBy={`${fieldId}-hint`} toolbarHost={toolbarContainer} documentTools minHeightClass=""
-          documentSettings={<div className="core-rich-text-group" role="group" aria-label="Schrift">
+        <RichTextEditor value={value.html} ariaLabel="Zusammenfassung bearbeiten" ariaDescribedBy={`${fieldId}-hint`} toolbarHost={toolbarContainer} documentTools={compact ? "essential" : true} minHeightClass=""
+          documentSettings={compact ? null : <div className="core-rich-text-group" role="group" aria-label="Schrift">
             <CoreSelect ariaLabel="Schrift" className="core-summary-font-select" value={value.font} options={fontOptions} onValueChange={(font) => onChange({ ...value, font: font as LearningSummary["font"] })}/>
             <CoreNumberField id={`${fieldId}-font-size`} stepLabel="Schriftgröße" ariaLabel="Schriftgröße in Pixel" value={value.fontSize} min={SUMMARY_FONT_SIZE.min} max={SUMMARY_FONT_SIZE.max} onChange={(fontSize) => onChange({ ...value, fontSize })}/>
           </div>}
