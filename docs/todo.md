@@ -67,13 +67,9 @@ neuen Code.
 
 ### KI
 
-- Weiterer KI-Hillclimb (P5 abgeschlossen 2026-11-25, Stand auf der Seite
-  [KI-Eval](ai-eval.md)): Frage/Antwort und Karten aus einer Quelle liegen
-  unter Ziel; nächste Hebel sind die Zerlegung der Quelle (ganze Quelle als
-  Kontext oder Gliederung mit Kartenbudget, Ergänzung von ADR-011), ein
-  Prüfaufruf für Varianten, mehr Single Choice (bei allen Formen 4 % statt jeder achten Karte) und keine Doppelfragen aus Tabellenzeilen, 20–30 Handurteile je Anfragetyp zur
-  Richterkalibrierung und der Modellvergleich (DeepSeek V4.1 Flash ohne
-  Reasoning, Claude Haiku 5.5 `medium`).
+- Weiterer KI-Hillclimb ([KI-Eval](ai-eval.md)): Frage/Antwort und Quelle liegen unter
+  Ziel. Hebel: Zerlegung der Quelle (ADR-011), Prüfaufruf für Varianten, mehr Single Choice,
+  keine Doppelfragen aus Tabellenzeilen, 20–30 Handurteile je Typ, Modellvergleich.
 - DOCX und PPTX als Quellen für Karten aus einer Quelle (ZIP und XML, ohne neue Abhängigkeit über
   `zipReader.ts` prüfen; Beleg je Folie oder Abschnitt).
 - Bilder als Quelle für Karten aus einer Quelle (teurer, eigener Hillclimb); braucht eine Ergänzung
