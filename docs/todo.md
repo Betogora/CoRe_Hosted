@@ -20,8 +20,6 @@ Solche Pakete beginnen deshalb mit ihrer Messung (Schritt 0).
 
 | Kennzahl | Stand | Ziel |
 | --- | --- | --- |
-| Initiales JavaScript (gzip) | 255,9 KiB bei Grenze 265 (vor A2 295,3; am 22.11. 246,8) | höchstens 250 KiB |
-| Start-CSS | 191 KiB roh, 34,9 KiB gzip, eine Datei | rund 25 KiB gzip |
 | `affected-e2e` mit voller Suite | 12 bis 14 min (Testschritt 800 s, davon 266 s Katalog, seit T1 entfallen) | höchstens 5 min |
 | `catalog-e2e` | 4,5 bis 6,5 min mit 2 Workern; seit T1 lokal auf 4 CPUs 176 statt 364 s, in CI noch ungemessen | höchstens 4 min |
 | Pull Requests mit voller Suite | 57 von 86 (66 %) in drei Wochen | höchstens 40 % |
@@ -33,21 +31,21 @@ Für alle Pakete gilt:
 - Alle Pakete entstehen auf einem gemeinsamen Branch, je Paket ein Commit,
   dessen Nachricht die Kennzahl vorher und nachher nennt; gemergt wird
   gemeinsam über einen Pull Request.
-- A2, A4 und A5 berühren Bootstrap, Preload, Sync, Service Worker oder
-  Chunking: vor dem Merge `gh workflow run weekly-performance.yml --ref <branch>`.
-- **Hill-Climbing** (H1 bis H5): je Schritt genau eine Änderung, Kennzahl
+- Der Branch berührt Service Worker und Chunking, später auch Bootstrap
+  und Sync: vor dem gemeinsamen Merge
+  `gh workflow run weekly-performance.yml --ref <branch>`.
+- **Hill-Climbing** (H2 bis H5): je Schritt genau eine Änderung, Kennzahl
   vorher und nachher messen, nur übernehmen, wenn sie sinkt und alle Gates
   grün bleiben. Ende beim Ziel oder nach drei Schritten in Folge ohne
   nennenswerten Gewinn (unter 1 KiB, unter 2 % oder Zähler unverändert).
 - Unverändert lassen: `quality` (rund 50 s, Engpass Typecheck samt knip),
   Modultests (179 Dateien in 12 s) und RLS (21 Fälle in 6 s).
 
-Reihenfolge: A2, dann T2 und T3, dann A3 und A4; A5 nach
+Reihenfolge: T2 und T3, dann A3 und A4; A5 nach
 der Entscheidung, A6, T4, A7 und T5 nach Bedarf.
 
 | Spur | Kennzahl | Schleife | Paket |
 | --- | --- | --- | --- |
-| H1 | initiales JavaScript in KiB gzip | `npm run build` gibt den Wert aus (`scripts/verifyBuildChunks.ts`), rund 20 s, ohne Supabase | A2 |
 | H2 | Sekunden je Spec | `npm run test:e2e:catalog` lokal ohne Docker (rund 5 min); Supabase-Specs über die Artefakte `*-e2e-timings` aus CI | T3, T4 |
 | H3 | Rechenläufe und Renders je Revision | Zähler als Modultest | A3 |
 | H4 | Requests je Bewertung und je Leerlauf-Sync | Zähler gegen `tests/support/fakeLearningCloud.ts` | A4 |
@@ -55,37 +53,6 @@ der Entscheidung, A6, T4, A7 und T5 nach Bedarf.
 
 ### App
 
-- [ ] **A2 – Startgraph unter 250 KiB (H1):** Stand 255,9 KiB bei Grenze
-      265 (Radix samt Floating-UI lädt erst mit dem Navigationsmenü,
-      `cloudAuth.ts` zieht den Cloud-Chunk nicht mehr in den Start). Die
-      Rechnung zählt Radix jetzt zum Statistik-Graphen (176,8 statt
-      153,9 KiB, Ziel 175), obwohl die Statistik nur über das schon
-      geladene Menü erreichbar ist. Restliche Kandidaten:
-  1. FSRS aus dem Start lösen: `libraryModel.ts` braucht aus
-     `scheduler.ts` nur Zusammenfassungen, das Modul lädt aber ts-fsrs
-     samt `@open-spaced-repetition/srs-kit` (zusammen rund 66 KiB roh;
-     `srs-kit` liegt im Einstiegschunk, weil `manualChunkForModule` nur
-     `ts-fsrs` zuordnet). Bewerten muss offline funktionieren; das
-     FSRS-Modul muss deshalb mit der Lernansicht vorgeladen werden.
-  2. Kleinposten je unter 2,5 KiB gzip, jeweils lazy mit Rückfall ohne
-     Error-Boundary: Pomodoro-Anzeige im Kopf, `SettingsSaveBar`,
-     `VariantGenerationBarWiring`.
-  3. `cardSearchQuery.ts` (21,8 KiB roh) hängt an Stapelbaum, lokaler
-     Suche und Hydration; nur mit Umbau der Suchnaht lösbar.
-  4. Start-CSS: Blöcke einzelner Screens aus `src/styles.css` (4.162
-     Zeilen) in CSS-Dateien verschieben, die der jeweilige Lazy-Screen
-     importiert. Roh: Dashboard 13 KB, Mindmap 12,4, Zusammenfassung 9,6,
-     Datumsauswahl 6,3, Rich-Text und Erstellung 4,9, Heatmap 3,9,
-     Karteneditor 3,7, Prüfungen 2,9. Risiko: `@layer components` und
-     Kaskadenreihenfolge über Dateigrenzen; visuelle Pflichtmatrix je
-     verschobenem Screen. Entlastet zugleich T2.
-  - Nicht lohnend: Der Import-Commit (`indexedDbImportCommit.ts`) lädt
-    trotzdem bei jedem Start, weil `useImportSession` beim Start nach
-    unterbrochenen Importen fragt; der KI-Variantenvertrag hängt an fünf
-    Startmodulen.
-  - Nachweis: Tabelle je Schritt im Commit; `preloadedTabP75Ms` und
-    `lazyTabP75Ms` grün; Grenze in `scripts/verifyBuildChunks.ts` und
-    `src/performanceGates.ts` mit dem Gewinn nachziehen.
 - [ ] **A3 – Revisionskaskade entkoppeln (H3):** `learningNow`
       (`src/useLearningClock.ts:24`) ist ein Millisekunden-Zeitstempel, der
       bei jeder Workspace-Revision neu entsteht, also bei jedem lokalen
