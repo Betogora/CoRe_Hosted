@@ -60,17 +60,14 @@ der Entscheidung, A6, T4, A7 und T5 nach Bedarf.
   - Folgekette nach dem Boot
     (`src/authenticatedWorkspaceBoot.ts`, `src/useAccountWorkspace.ts`,
     `src/appMediaLifecycle.ts`): Konflikte bei `conflictCount` 0
-    überspringen, Geräte-Registrierung parallel, `list_releasable_media`
-    höchstens täglich, `cloudState` nur bei echter Änderung ersetzen.
+    überspringen, `list_releasable_media` höchstens täglich, `cloudState`
+    nur bei echter Änderung ersetzen.
   - Lernstart: Eine Cloud-Katalogseite setzt einen vollständigen Katalog
     auf `partial`; `src/workspaceHydrationService.test.ts` hält das
     ausdrücklich fest. Klären, ob `keepComplete` gemeint ist.
-  - Stapelzahlen: Nach `listDeckSummaries` im Boot rechnet
-    `src/useDeckSummaries.ts` dieselbe Projektion erneut; Messung
-    `projectionRebuildCount`.
-  - Neues Gerät: Bootstrap-RPC parallel zur lokalen Öffnung starten und
-    den Chunk der Route beim App-Start holen; Messung
-    `newDeviceDashboardP75Ms`.
+  - Neues Gerät: Den Chunk der Startansicht schon beim Kontostart laden (im
+    Szenario `freshIsolated` rund 300 ms zwischen Workspace und Ansicht);
+    `src/App.tsx` steht an seiner Zeilengrenze, der Ort muss außerhalb liegen.
   - Anmeldung: Profil-Upsert parallel zum Boot; das Profil muss vor dem
     ersten Profilpatch existieren.
   - Nachweis: `weekly-performance` auf dem Branch.
