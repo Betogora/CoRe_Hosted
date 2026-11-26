@@ -32,7 +32,6 @@ import { StudySettingsOverlay } from "../ui/StudySettingsOverlay.tsx";
 import { ActionButton, CloseButton, IconButton } from "../ui/actionUi.tsx";
 import { CoreTag } from "../ui/coreUi.tsx";
 import { FlagDot } from "../ui/flagUi.tsx";
-import { DeckAppearanceIcon, getDeckAppearance } from "../ui/deckAppearance.tsx";
 import { formatLearningCardCount } from "../ui/learningStatusUi.ts";
 import { CoreTooltip } from "../ui/tooltipUi.tsx";
 import { formatLimitSummary, formatReviewIntervalLabel, ratingButtons } from "./screenConstants.ts";
@@ -553,11 +552,8 @@ export function StudyMode({ shortcutsSuspended = false, deck, decks, notes, answ
           <div className="core-study-header-bar">
             <CloseButton onClick={onExit} label="Lernmodus verlassen" />
             <div className="core-study-title">
-              <CoreTooltip label={rootDeck?.name ?? ""} deckAppearance={getDeckAppearance(rootDeck ?? undefined)}>
-                <div className="core-study-deck">
-                  <DeckAppearanceIcon deck={rootDeck ?? undefined} className="size-6" iconSize={18} style={{ "--core-deck-icon-background": "transparent" } as React.CSSProperties} />
-                  <p className="min-w-0 truncate core-heading-3 text-core-text">{rootDeck?.name}</p>
-                </div>
+              <CoreTooltip label={rootDeck?.name ?? ""}>
+                <p className="core-study-deck min-w-0 truncate core-heading-3 text-core-text">{rootDeck?.name}</p>
               </CoreTooltip>
               <span className="flex shrink-0 items-center gap-2">
                 <dl className="core-study-counts" aria-label="Heute offen" data-testid="study-open-counts">

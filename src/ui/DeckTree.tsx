@@ -305,11 +305,11 @@ const DeckTreeRow = React.memo(function DeckTreeRow({ row, mode, presentation, d
     <CoreTooltip label={`${row.name} lernen`} deckAppearance={getDeckAppearance(row.deck)}>
       <IconButton label={`${row.path} lernen`} icon={Play} variant="ghost" className="core-deck-icon-action core-deck-study-action pointer-events-auto" data-deck-has-work={hasWork ? "true" : "false"} onClick={() => onStudy(row)} />
     </CoreTooltip>
-  ) : (
-    <ActionButton type="button" variant={hasWork ? "primary" : "secondary"} icon={Play} aria-label={`${row.path} lernen`} className="core-deck-study-button pointer-events-auto" data-deck-has-work={hasWork ? "true" : "false"} onClick={() => onStudy(row)}>
+  ) : hasWork ? (
+    <ActionButton type="button" variant="primary" icon={Play} aria-label={`${row.path} lernen`} className="core-deck-study-button pointer-events-auto" onClick={() => onStudy(row)}>
       Karten lernen
     </ActionButton>
-  );
+  ) : <span className="core-deck-study-button" aria-hidden="true" />;
   const study = React.useCallback(() => onStudy(row), [onStudy, row]);
   const practice = React.useMemo(() => onPractice && ((returnFocus: HTMLElement | null) => onPractice(row, returnFocus)), [onPractice, row]);
   const optionsMenu = <DeckOptionsMenu row={row} decks={decks} onStudy={study} onPractice={practice} onSetCoreMode={onSetCoreMode} onOpenSettings={onOpenSettings} onMoveDeck={onMoveDeck} />;

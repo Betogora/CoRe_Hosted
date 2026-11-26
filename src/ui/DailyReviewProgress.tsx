@@ -47,7 +47,7 @@ export function DailyReviewProgress({
       data-testid={testId}
     >
       {achieved ? (
-        <CoreTooltip label="Tagesziel erreicht" side={tooltipSide} swatchColor="var(--core-learning-progress-completed)" value={formatLearningCardCount(progress.total)}>
+        <CoreTooltip label="Tagesziel erreicht" side={tooltipSide} swatchColor="var(--core-learning-progress-completed)" value="100 %">
           <span
             aria-hidden="true"
             data-study-progress-segment="achieved"
@@ -59,7 +59,7 @@ export function DailyReviewProgress({
         const count = progress[segment.countKey];
         const color = segment.key === "learned" ? "var(--core-learning-progress-completed)" : segment.color;
         return count > 0 ? (
-          <CoreTooltip key={segment.key} label={segment.label} side={tooltipSide} swatchColor={color} value={`${formatLearningCardCount(count)} · ${Math.round((count / drawnCount) * 100)} %`}>
+          <CoreTooltip key={segment.key} label={segment.label} side={tooltipSide} swatchColor={color} value={`${Math.round((count / drawnCount) * 100)} %`}>
             <span
               aria-hidden="true"
               data-study-progress-segment={segment.key}
