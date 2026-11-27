@@ -46,18 +46,12 @@ Reihenfolge: A4, danach A7 und T5 nach Bedarf.
 ### App
 
 - [ ] **A4 – Roundtrips in Start, Sync und Lernstart (H4):**
-  - Konfliktabfrage (`src/cloudConflicts.ts`, über `selectKeysetRows`)
-    lädt weiter `select *` samt Wert-Snapshots; schmale Spalten, wo die
-    Werte nicht gebraucht werden.
-  - Schritt 0 fehlt weiter: Messpunkte für Lernstart (`studyStartP75Ms`),
-    Review-Persistenz und Delta-Sync in `tests/performance/startup.spec.ts`.
-  - Folgekette nach dem Boot: den Konfliktabruf des ersten Syncs bei
-    `conflictCount` 0 und leerer Outbox überspringen (braucht eine Option
-    in `syncNow`); `list_releasable_media` höchstens täglich (braucht
-    einen gespeicherten Zeitpunkt je Konto).
-  - Anmeldung: Profil-Upsert parallel zum Boot; das Profil muss vor dem
-    ersten Profilpatch existieren.
-  - Nachweis: `weekly-performance` auf dem Branch.
+  - Messpunkte für Lernstart (`studyStartP75Ms`) und Review-Persistenz
+    (`reviewPersistP95Ms`) in `tests/performance/startup.spec.ts`, danach
+    die Roundtrips je Bewertung auf das Ziel der Tabelle.
+  - `deltaSyncP75Ms` und `deltaSyncP95Ms` nach dem ersten Lauf von
+    `weekly-performance` in die Start-Gates aufnehmen
+    (`STARTUP_PERFORMANCE_GATE_KEYS` in `src/performanceGates.ts`).
 - [ ] **A7 – Große Datenmengen und Editoren:** je Punkt ein eigener
       Commit, jeder mit eigener Messung zuerst.
   - Upload nach großen Importen (ergänzt „Erste Synchronisation großer

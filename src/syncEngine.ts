@@ -484,11 +484,12 @@ export function createSyncEngine({
       requestLocalSync();
     },
 
-    syncNow() {
-      return api.flush({ force: true });
+    /** `conflictsKnownEmpty`: the server just reported no open or ignored conflicts, so an empty batch skips listing them. */
+    syncNow({ conflictsKnownEmpty = false }: { conflictsKnownEmpty?: boolean } = {}) {
+      return api.flush({ force: true, conflictsKnownEmpty });
     },
 
-    async flush({ force = false }: { force?: boolean } = {}) {
+    async flush({ force = false, conflictsKnownEmpty = false }: { force?: boolean; conflictsKnownEmpty?: boolean } = {}) {
       if (activeFlush) {
         flushRequestedDuringActive = true;
         return activeFlush;
@@ -546,7 +547,8 @@ export function createSyncEngine({
         await outbox.flushPersistence?.();
         // A pull that reports `false` changed nothing locally, so callers can skip rebuilding their state.
         result.pulledChanges = (await pullChanges?.()) !== false;
-        result.conflicts = await refreshConflicts();
+        if (conflictsKnownEmpty && batch.length === 0) await persistConflictState?.([]);
+        else result.conflicts = await refreshConflicts();
         resetRetry();
         result.syncStatus = emitStatus(result.conflicts.length > 0
           ? createSyncConflictStatus(result.conflicts.length)

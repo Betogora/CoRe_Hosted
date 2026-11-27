@@ -95,10 +95,24 @@ test("cloud sign-in creates a missing profile without overwriting an existing on
   };
 
   const signedIn = await signInCloudAccount(client, { email: user.email }, "supersecret");
+  await signedIn.profileStored;
 
-  assert.equal(signedIn.id, user.id);
+  assert.equal(signedIn.user.id, user.id);
   assert.deepEqual(upserts[0]?.options, { onConflict: "id", ignoreDuplicates: true });
   assert.equal(upserts[0]?.row.id, user.id);
+});
+
+test("cloud sign-in returns the user before the profile write and reports its failure separately", async () => {
+  const failure = { message: "Profil nicht gespeichert" };
+  const client = {
+    auth: { async signInWithPassword() { return { data: { user }, error: null }; } },
+    from() { return { async upsert() { return { data: null, error: failure }; } }; },
+  };
+
+  const signedIn = await signInCloudAccount(client, { email: user.email }, "supersecret");
+
+  assert.equal(signedIn.user.id, user.id);
+  await assert.rejects(signedIn.profileStored, (error) => error === failure);
 });
 
 test("cloud auth represents pending email confirmation and signed-out state", () => {

@@ -400,7 +400,10 @@ export async function signUpCloudAccount<User extends CloudAuthUser>(
   return saveCloudProfile(client, createCloudProfile(null, data.user, profile, timestamp), timestamp);
 }
 
-/** The signed-in user, so the caller boots without asking the auth server again. */
+/**
+ * The signed-in user, so the caller boots without asking the auth server again, and the first profile write, which
+ * may run alongside the boot because a later profile patch inserts a missing row itself.
+ */
 export async function signInCloudAccount<User extends CloudAuthUser>(
   client: AuthClient<{ signInWithPassword(credentials: { email: string; password: string }): PromiseLike<{ data: { user: User | null }; error: unknown }> }>,
   profile: ProfileFields,
@@ -416,12 +419,13 @@ export async function signInCloudAccount<User extends CloudAuthUser>(
   if (!data.user) throw new Error("Anmeldung konnte nicht bestätigt werden.");
 
   const initialProfile = createCloudProfile(null, data.user, profile, timestamp);
-  const { error: profileError } = await (client.from("profiles") as ProfilesTable).upsert(
+  const profileStored = Promise.resolve((client.from("profiles") as ProfilesTable).upsert(
     createProfileRow(initialProfile, data.user, timestamp),
     { onConflict: "id", ignoreDuplicates: true },
-  );
-  if (profileError) throw profileError;
-  return data.user;
+  )).then(({ error }) => {
+    if (error) throw error;
+  });
+  return { user: data.user, profileStored };
 }
 
 export async function signInWithMagicLink(

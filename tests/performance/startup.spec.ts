@@ -37,6 +37,7 @@ interface StartupRun {
   sessionCheckedMs: number;
   bootstrapRpcMs: number;
   bootstrapApplyMs: number;
+  firstSyncAfterBootstrapMs: number;
   renderAfterBootstrapMs: number;
   dashboardFeatureLoadMs: number;
   learnPreloadMs: number;
@@ -149,6 +150,7 @@ async function measureRun(
   await page.goto("/", { waitUntil: "domcontentloaded", timeout: 60_000 });
   await waitForMark(page, targetMark);
   await waitForMark(page, appPerformanceMarks.firstDeckSummariesReady);
+  if (!offline) await waitForMark(page, appPerformanceMarks.cloudSyncReady);
   if (waitForAutomaticPreloads) {
     await waitForMark(page, "core:feature:learn:prefetched");
     await waitForMark(page, "core:feature:decks:prefetched");
@@ -192,6 +194,7 @@ async function measureRun(
       sessionCheckedMs: mark(marks.sessionChecked)?.startTime ?? Number.NaN,
       bootstrapRpcMs: measure(measures.bootstrapRpc),
       bootstrapApplyMs: measure(measures.bootstrapApply),
+      firstSyncAfterBootstrapMs: (mark(marks.cloudSyncReady)?.startTime ?? Number.NaN) - (mark(marks.cloudBootstrapReady)?.startTime ?? Number.NaN),
       renderAfterBootstrapMs: (mark(selectedTarget)?.startTime ?? Number.NaN) - (mark(marks.bootstrapApplyReady)?.startTime ?? Number.NaN),
       dashboardFeatureLoadMs: measure("core:feature:dashboard:load"),
       learnPreloadMs: measure("core:feature:learn:prefetch"),
@@ -308,6 +311,9 @@ test("misst normale, isolierte, Service-Worker-freie und offline Starts", async 
       firstDeckSummaries: round(percentile(freshRuns.map((run) => run.firstDeckSummariesMs), 0.75)),
       render: round(percentile(freshRuns.map((run) => run.renderAfterBootstrapMs), 0.75)),
     },
+    // The first sync of a set-up device pulls only the delta; it includes the device registration.
+    deltaSyncP75Ms: round(percentile(recurringPersisted.runs.map((run) => run.firstSyncAfterBootstrapMs), 0.75)),
+    deltaSyncP95Ms: round(percentile(recurringPersisted.runs.map((run) => run.firstSyncAfterBootstrapMs), 0.95)),
     persistedSummaryReadP75Ms: round(percentile(persistedSummaryRuns.map((run) => run.firstDeckSummariesMs), 0.75)),
     longestBackgroundTaskMs: Math.max(
       ...allRuns.map((run) => run.longestProjectionTaskMs),

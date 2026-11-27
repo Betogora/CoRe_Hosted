@@ -144,6 +144,26 @@ test("manual sync pulls cloud deltas even when the outbox is empty", async () =>
   assert.equal(result.syncStatus.status, "saved");
 });
 
+test("a sync the server reported conflict-free skips listing conflicts only while nothing was sent", async () => {
+  let listed = 0;
+  const persisted: unknown[][] = [];
+  const engine = createTestEngine({
+    adapter: { ...acknowledgingAdapter(), async listConflicts() { listed += 1; return []; } },
+    outbox: createTestOutbox(),
+    device,
+    async persistConflictState(conflicts: unknown[]) { persisted.push(conflicts); },
+  });
+
+  const idle = await engine.syncNow({ conflictsKnownEmpty: true });
+  assert.equal(listed, 0);
+  assert.deepEqual(persisted, [[]]);
+  assert.equal(idle.syncStatus.status, "saved");
+
+  engine.queue({ id: "card-a", type: SYNC_MUTATION_TYPES.entityMutation, entityId: "card-a", payload: { table: "cards", entity: { id: "card-a" } } });
+  await engine.syncNow({ conflictsKnownEmpty: true });
+  assert.equal(listed, 1);
+});
+
 test("one conflicting mutation does not block acknowledged siblings or the cloud pull", async () => {
   const conflict = { id: "conflict-card-a", status: "open", cardId: "card-a" };
   let pulls = 0;
