@@ -71,6 +71,8 @@ test("Prüfungsplanung: globaler Bereich, Plan im Profil, heutige Einheit als Le
   await expect(card).toBeFocused();
   await expect(card).toHaveAttribute("data-status", "paused");
   await expect(page.getByTestId("exam-today")).toHaveCount(0);
+  // Focusing the poster scrolled the page, which collapses the header.
+  await revealNavigation(page);
   await mainMenu(page).getByRole("button", { name: "Heute" }).click();
   await expect(page.getByTestId("dashboard-exam-unit")).toHaveCount(0);
 });
