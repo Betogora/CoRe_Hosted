@@ -698,6 +698,32 @@ test("ohne replizierte Suchtexte sucht auch ein vollständiger Katalog in der Cl
   repository.close();
 });
 
+test("mit vollständigem Katalog startet das Lernen ohne Katalogabruf und hydriert nur die erste Karte", async () => {
+  const userId = randomUUID();
+  const graphs = ["alpha", "beta"].map((name, index) => graph("deck-complete", name, name, `2026-08-17T0${8 + index}:00:00.000Z`));
+  const deck = createCoreDeck({ id: "deck-complete", ownerId: userId, name: "Vollständig", source: "manual", cards: graphs.map((entry) => entry.cards[0]) });
+  const state = workspace(userId, [deck], graphs.map((entry) => entry.note));
+  const repository = await createIndexedDbCoreRepository({ userId, initialState: state, indexedDb: new IDBFactory() });
+  await repository.evictCachedCardBodies(Number.MAX_SAFE_INTEGER);
+  const cloudRows = createCloudStateRows(state, userId);
+  const calls: string[] = [];
+  const client = {
+    async rpc(name: string, payload: any) {
+      calls.push(name);
+      if (name === "hydrate_account_cards") return { data: hydrateFrom(cloudRows, payload), error: null };
+      throw new Error(`Unerwartete RPC ${name}`);
+    },
+  };
+  const service = createWorkspaceHydrationService({ client, repository, mediaStore: null });
+  assert.equal(repository.getReplicaStatus().catalogCompleteness, "complete");
+
+  const study = await withNavigator({ onLine: true }, () => service.prepareStudyWindow([deck.id], { now: "2026-08-17T10:00:00.000Z", timeZone: "UTC" }));
+
+  assert.deepEqual(calls, ["hydrate_account_cards"]);
+  assert.equal(study.cards.length, 1);
+  repository.close();
+});
+
 test("der Lernstart holt die ersten Katalogseiten eines Teilbaums vier gleichzeitig statt nacheinander", async () => {
   const userId = randomUUID();
   const decks = Array.from({ length: 6 }, (_value, index) => createCoreDeck({ id: `deck-${index}`, name: `Stapel ${index}`, parentDeckId: index ? "deck-0" : null }));

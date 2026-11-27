@@ -405,8 +405,9 @@ export function createWorkspaceHydrationService({
     const currentTime = Date.parse(now);
     const catalogEntries: CardCatalogEntry[] = [];
     let catalogHasMore = false;
-    // Fresh first pages carry reviews from other devices; up to four requests at once, like the card hydration.
-    if (isOnline()) {
+    // A complete replica follows the delta pull. Otherwise fresh first pages carry reviews from other devices; up to
+    // four requests at once, like the card hydration.
+    if (isOnline() && repository.getReplicaStatus().catalogCompleteness !== "complete") {
       for (const group of chunk(deckIds, 4)) {
         await Promise.all(group.map((deckId) => fetchCatalogPage({ deckId, page: 0, pageSize: catalogPageSize, sort: { field: "nextStudyDate", direction: "asc" } })
           // A locally available study window remains usable while catalog refresh waits for retry.
