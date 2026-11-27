@@ -49,9 +49,6 @@ Reihenfolge: A4, danach A7 und T5 nach Bedarf.
   - Messpunkte für Lernstart (`studyStartP75Ms`) und Review-Persistenz
     (`reviewPersistP95Ms`) in `tests/performance/startup.spec.ts`, danach
     die Roundtrips je Bewertung auf das Ziel der Tabelle.
-  - `deltaSyncP75Ms` und `deltaSyncP95Ms` nach dem ersten Lauf von
-    `weekly-performance` in die Start-Gates aufnehmen
-    (`STARTUP_PERFORMANCE_GATE_KEYS` in `src/performanceGates.ts`).
 - [ ] **A7 – Große Datenmengen und Editoren:** je Punkt ein eigener
       Commit, jeder mit eigener Messung zuerst.
   - Upload nach großen Importen (ergänzt „Erste Synchronisation großer

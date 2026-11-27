@@ -79,6 +79,8 @@ const STARTUP_PERFORMANCE_GATE_KEYS = new Set<keyof PerformanceSnapshot>([
   "longestBackgroundTaskMs",
   "automaticPreloadLongestTaskMs",
   "automatic3gPreloadCount",
+  "deltaSyncP75Ms",
+  "deltaSyncP95Ms",
 ]);
 
 function selectedPerformanceGates(snapshot: PerformanceSnapshot) {

@@ -21,7 +21,7 @@ test("Performance-Abnahme akzeptiert kein unvollständiges Messartefakt", () => 
   assert.equal(missing.some((gate) => gate.key === "deltaSyncP95Ms"), true);
 });
 
-test("Startup-Artefakte müssen ihre neun Gates vollständig messen, ohne eine Vollabnahme vorzutäuschen", () => {
+test("Startup-Artefakte müssen ihre elf Gates vollständig messen, ohne eine Vollabnahme vorzutäuschen", () => {
   const startup = {
     suite: "startup" as const,
     recurringWorkspaceP75Ms: 1_500,
@@ -33,6 +33,8 @@ test("Startup-Artefakte müssen ihre neun Gates vollständig messen, ohne eine V
     longestBackgroundTaskMs: 50,
     automaticPreloadLongestTaskMs: 50,
     automatic3gPreloadCount: 0,
+    deltaSyncP75Ms: 2_000,
+    deltaSyncP95Ms: 5_000,
   };
 
   assert.deepEqual(findMissingPerformanceGates(startup), []);
@@ -40,4 +42,5 @@ test("Startup-Artefakte müssen ihre neun Gates vollständig messen, ohne eine V
   assert.equal(findMissingPerformanceGates({ ...startup, recurringWorkspaceP95Ms: undefined })[0]?.key, "recurringWorkspaceP95Ms");
   assert.equal(findMissingPerformanceGates({ ...startup, longestBackgroundTaskMs: Number.NaN })[0]?.key, "longestBackgroundTaskMs");
   assert.equal(evaluatePerformanceSnapshot({ ...startup, longestBackgroundTaskMs: 51 })[0]?.key, "longestBackgroundTaskMs");
+  assert.equal(evaluatePerformanceSnapshot({ ...startup, deltaSyncP95Ms: 5_001 })[0]?.key, "deltaSyncP95Ms");
 });
