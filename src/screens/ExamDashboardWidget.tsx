@@ -1,6 +1,6 @@
 import React from "react";
 import { BookOpen, Play } from "lucide-react";
-import type { ExamDailyTask } from "../coreTypes.ts";
+import type { ExamDailyTask, ExamPlan } from "../coreTypes.ts";
 import { reconcileExamDailyTasks, setExamDailyTaskChecked } from "../examDailyTasks.ts";
 import { examDayDistance } from "../examPlanning.ts";
 import { getLearningDayKey, getLearningTimeZone } from "../learningDay.ts";
@@ -18,7 +18,7 @@ import type { ExamPlanningScreenProps } from "./ExamPlanningScreen.tsx";
 interface ExamDashboardWidgetProps {
   state: DashboardScreenProps["state"]; now: string;
   onLoad: ExamPlanningScreenProps["onLoadPlanningData"];
-  onStart: (blockId: string | null) => Promise<void>;
+  onStart: (blockId: string | null, examId?: string) => Promise<void>;
   onSaveTasks: (tasks: ExamDailyTask[]) => Promise<void>;
   onOpen?: () => void;
   onLoadSummaryAvailability?: (deckId: string) => Promise<boolean>;
@@ -26,9 +26,11 @@ interface ExamDashboardWidgetProps {
   /** The page's plan; without it the widget computes its own. */
   planning?: ExamForecastState;
   preview?: boolean;
+  /** Shows only this exam's tasks, and its unit starts only this exam's cards. */
+  examId?: string;
 }
 
-export function ExamDashboardWidget({ state, now, onLoad, onStart, onSaveTasks, onOpen, onLoadSummaryAvailability, onLoadLocalCardIds, planning, preview }: ExamDashboardWidgetProps) {
+export function ExamDashboardWidget({ state, now, onLoad, onStart, onSaveTasks, onOpen, onLoadSummaryAvailability, onLoadLocalCardIds, planning, preview, examId }: ExamDashboardWidgetProps) {
   const preferences = getGlobalSchedulerPreferences(state.profile);
   const settings = preferences.examPlanning;
   const { exams, capacity } = settings;
@@ -86,16 +88,18 @@ export function ExamDashboardWidget({ state, now, onLoad, onStart, onSaveTasks, 
   }, [current, busy, saving, storedKey, taskKey, state.profile.userId]);
   async function start(blockId: string | null) {
     setStarting(true); setStartError("");
-    try { await onStart(blockId); reload(); }
+    try { await onStart(blockId, examId); reload(); }
     catch (failure) { setStartError(failure instanceof Error ? failure.message : "Die Einheit konnte nicht gestartet werden."); }
     finally { setStarting(false); }
   }
-  const groups = exams.filter((exam) => exam.status === "active" && exam.examDate > civilToday).sort((a, b) => a.examDate.localeCompare(b.examDate)).map((exam) => ({
+  const groups = exams.filter((exam) => exam.status === "active" && exam.examDate > civilToday && (!examId || exam.id === examId)).sort((a, b) => a.examDate.localeCompare(b.examDate)).map((exam) => ({
     exam,
     tasks: (pending ?? tasks).filter((task) => task.examId === exam.id).sort((a, b) => Number(a.completed !== null) - Number(b.completed !== null) || Number(a.kind !== "summary") - Number(b.kind !== "summary")),
   }));
   const completedTasks = groups.flatMap((group) => group.tasks.filter((task) => task.completed !== null));
-  const startDisabled = starting || saving || Boolean(saveError) || taskKey !== storedKey || (current ? !day?.blocks.length : !offline || !tasks.some((task) => task.kind === "study" && localCount(task) !== 0));
+  const unitTasks = tasks.filter((task) => task.kind === "study" && (!examId || task.examId === examId));
+  const startDisabled = starting || saving || Boolean(saveError) || taskKey !== storedKey || (current ? examId ? !unitTasks.length : !day?.blocks.length : !offline || !unitTasks.some((task) => localCount(task) !== 0));
+  const openCount = groups.reduce((sum, group) => sum + group.tasks.filter((task) => !task.completed).length, 0);
 
   function renderTask(task: ExamDailyTask, color: string) {
     const title = task.deckIds.map(deckName).join(" · ");
@@ -133,25 +137,43 @@ export function ExamDashboardWidget({ state, now, onLoad, onStart, onSaveTasks, 
     })}
     {completedTasks.length ? <Disclosure summary={`Erledigt im Planer (${completedTasks.length})`}><ul className="mt-2">{completedTasks.map((task) => renderTask(task, examColor(exams.findIndex((exam) => exam.id === task.examId), exams.find((exam) => exam.id === task.examId))))}</ul></Disclosure> : null}
   </div>;
-  return <SoftPanel className="exam-today-layout grid min-w-0 gap-4 p-3 min-[360px]:p-4 sm:p-6" data-testid="dashboard-exam-unit">
-    <div className="flex flex-wrap items-center justify-between gap-3"><h2 className="core-heading-3 text-core-text">Prüfungen · Heute</h2>{onOpen ? <ActionButton variant="secondary" onClick={onOpen}>Lernkalender öffnen</ActionButton> : null}</div>
-    {statuses}
-    <div className="flex min-w-0 flex-wrap items-center justify-between gap-3">
-      <h3 className="core-heading-3 text-core-text">Deine heutige Einheit</h3>
-      <ActionButton variant="primary" icon={Play} loading={starting} disabled={startDisabled} onClick={() => void start(null)}>Heutige Einheit lernen</ActionButton>
+  function renderTaskList(exam: ExamPlan, own: ExamDailyTask[], color: string) {
+    const expanded = expandedExams.includes(exam.id);
+    const listId = `${taskListId}-${exam.id}`;
+    const shown = expanded ? own : own.slice(0, 3);
+    return <div className="grid min-w-0 gap-2"><ul id={listId} className="grid divide-y divide-core-border">{shown.map((task) => renderTask(task, color))}</ul>
+      {own.length > 3 ? <ShowMoreButton expanded={expanded} hiddenCount={own.length - 3} controls={listId} onToggle={() => setExpandedExams((ids) => ids.includes(exam.id) ? ids.filter((id) => id !== exam.id) : [...ids, exam.id])} /> : null}</div>;
+  }
+  const openLabel = ready ? formatExamCount(openCount, "offene Aufgabe", "offene Aufgaben") : "Aufgaben werden berechnet …";
+  if (examId) {
+    const group = groups[0];
+    return <section className="exam-page-today grid min-w-0 content-start gap-3" aria-labelledby={`${taskListId}-today`} data-testid="exam-today-tasks">
+      <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-2"><h3 id={`${taskListId}-today`} className="core-heading-3 text-core-text">Heute</h3><span className="mr-auto core-body text-core-muted">{openLabel}</span>
+        <ActionButton variant="primary" icon={Play} loading={starting} disabled={startDisabled} onClick={() => void start(null)}>Heutige Einheit lernen</ActionButton></div>
+      {statuses}
+      {group?.tasks.length ? renderTaskList(group.exam, group.tasks, examColor(exams.indexOf(group.exam), group.exam)) : ready ? <p className="core-body text-core-muted">Heute keine offenen Aufgaben für diese Prüfung.</p> : null}
+    </section>;
+  }
+  return <SoftPanel className="exam-today-layout grid min-w-0 overflow-hidden p-0" data-testid="dashboard-exam-unit">
+    <div className="dashboard-poster exam-today-head" data-tone="navy">
+      <h2 className="exam-poster-eyebrow">Prüfungen · Heute</h2>
+      <div className="exam-today-head-row">
+        <p className="exam-today-count"><span className="exam-today-count-number">{ready ? openCount : "–"}</span><span>{openCount === 1 ? "Aufgabe" : "Aufgaben"}<br />offen</span></p>
+        <button type="button" className="dashboard-poster-action exam-today-start" disabled={startDisabled} aria-busy={starting || undefined} onClick={() => void start(null)}>Heutige Einheit lernen<span className="dashboard-poster-play"><Play size={18} aria-hidden="true" /></span></button>
+      </div>
     </div>
+    <div className="grid min-w-0 gap-4 p-3 min-[360px]:p-4 sm:p-6">
+    {onOpen ? <ActionButton variant="secondary" className="justify-self-start" onClick={onOpen}>Lernkalender öffnen</ActionButton> : null}
+    {statuses}
     <div className="exam-today-grid grid min-w-0 items-start gap-4">{groups.map(({ exam, tasks: own }) => {
-      const expanded = expandedExams.includes(exam.id);
-      const listId = `${taskListId}-${exam.id}`;
       const color = examColor(exams.indexOf(exam), exam);
-      const openCount = own.filter((task) => !task.completed).length;
-      const shown = expanded ? own : own.slice(0, 3);
+      const ownOpen = own.filter((task) => !task.completed).length;
       return <section key={exam.id} className="grid min-w-0 content-start gap-3 rounded-inset bg-core-subtle p-3 min-[360px]:p-4" aria-label={exam.name}>
-        <div><h3 className="flex min-w-0 items-center gap-2 core-heading-3 text-core-text"><span aria-hidden="true" className="size-2.5 shrink-0 rounded-round" style={{ backgroundColor: color }} /><span className="min-w-0 break-words">{exam.name}</span></h3><p className="mt-0.5 core-caption text-core-muted">Prüfung {formatExamDistance(examDayDistance(civilToday, exam.examDate))} · {ready ? formatExamCount(openCount, "offene Aufgabe", "offene Aufgaben") : "Aufgaben werden berechnet …"}</p></div>
-        <div className="grid min-w-0 gap-2"><ul id={listId} className="grid divide-y divide-core-border">{shown.map((task) => renderTask(task, color))}</ul>
-        {own.length > 3 ? <ShowMoreButton expanded={expanded} hiddenCount={own.length - 3} controls={listId} onToggle={() => setExpandedExams((ids) => ids.includes(exam.id) ? ids.filter((id) => id !== exam.id) : [...ids, exam.id])} /> : null}</div>
+        <div><h3 className="flex min-w-0 items-center gap-2 core-heading-3 text-core-text"><span aria-hidden="true" className="size-2.5 shrink-0 rounded-round" style={{ backgroundColor: color }} /><span className="min-w-0 break-words">{exam.name}</span></h3><p className="mt-0.5 core-caption text-core-muted">Prüfung {formatExamDistance(examDayDistance(civilToday, exam.examDate))} · {ready ? formatExamCount(ownOpen, "offene Aufgabe", "offene Aufgaben") : "Aufgaben werden berechnet …"}</p></div>
+        {renderTaskList(exam, own, color)}
         {ready && !own.length ? <p className="core-body text-core-muted">Heute keine offenen Aufgaben für diese Prüfung.</p> : null}
       </section>;
     })}</div>
+    </div>
   </SoftPanel>;
 }

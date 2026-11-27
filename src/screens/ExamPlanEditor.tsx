@@ -2,7 +2,7 @@ import React from "react";
 import { ChevronDown, ChevronLeft, ChevronRight, Save } from "lucide-react";
 import type { Deck, ExamPlan, GlobalSchedulerPreferences, StudyTimeCapacity } from "../coreTypes.ts";
 import { EXAM_PLANNING_LIMITS, EXAM_RETENTION_LEVELS, createExamPlan } from "../examPlanSettings.ts";
-import { getExamDeckIds, getExamLastNewDate, getExamTopicOrder, shiftExamDay, toggleExamDeckSelection } from "../examPlanning.ts";
+import { examDayDistance, getExamDeckIds, getExamLastNewDate, getExamTopicOrder, shiftExamDay, toggleExamDeckSelection } from "../examPlanning.ts";
 import { getLearningDayKey } from "../learningDay.ts";
 import { createDeckLibraryModel, type DeckLibrarySummary } from "../libraryModel.ts";
 import { ActionButton } from "../ui/actionUi.tsx";
@@ -18,7 +18,7 @@ import { ExamCalendar } from "./ExamCalendar.tsx";
 import { ExamTopicPreview } from "./ExamTopicPreview.tsx";
 import { ExamTopicOrder } from "./ExamTopicOrder.tsx";
 import { ExamDeckSelection } from "./ExamDeckSelection.tsx";
-import { formatExamCount, formatExamDate, formatExamMinutes } from "./examPlanningUi.ts";
+import { examColor, examTextColor, formatExamCount, formatExamDate, formatExamMinutes } from "./examPlanningUi.ts";
 import { useExamForecast } from "./useExamForecast.ts";
 import type { ExamPlanningScreenProps } from "./ExamPlanningScreen.tsx";
 
@@ -28,7 +28,6 @@ const WEEKDAYS = ["Montag", "Dienstag", "Mittwoch", "Donnerstag", "Freitag", "Sa
 
 const FIELD_GROUP = "core-field-group min-w-0";
 const HINT = "core-body text-core-muted";
-const TERM = "core-caption text-core-muted";
 
 function Summary({ children }: { children: React.ReactNode }) {
   return <summary className="flex min-h-control cursor-pointer list-none items-center justify-between gap-3 rounded-inset py-2 core-control-label font-semibold text-core-text [&::-webkit-details-marker]:hidden"><ChevronDown size={16} aria-hidden="true" className="order-last shrink-0 text-core-muted transition-transform group-open:rotate-180 motion-reduce:transition-none" />{children}</summary>;
@@ -103,7 +102,8 @@ export function ExamPlanEditor({ embedded = false, onDirtyChange, decks, deckSum
     <PageHeader title={initialPlan ? "Prüfung bearbeiten" : "Prüfung planen"} back={{ label: "Prüfungen", onSelect: () => { if (!saving) cancel(); } }} />
     <Steps ariaLabel="Schritte der Prüfungsplanung" current={step} onSelect={go} items={STEPS.map((label, index) => ({ label, disabled: saving || index > step + 1 }))} className="max-w-5xl xl:max-w-[45.5rem]" />
     </> : null}
-    <div className={!embedded && step !== 3 ? "grid min-w-0 max-w-5xl items-start gap-6 xl:grid-cols-[minmax(0,1fr)_17rem]" : "min-w-0"}>
+    <div className={!embedded && step !== 3 ? "exam-setup-sheet grid min-w-0 max-w-5xl" : "min-w-0"}>
+    {!embedded && step !== 3 ? renderContext() : null}
     <div className="grid min-w-0 gap-6">
     <fieldset ref={inspector} disabled={saving} className={embedded ? "grid min-w-0 gap-5" : "core-surface-raised grid min-w-0 gap-6 rounded-panel p-5 sm:p-6"} data-testid="exam-plan-inspector">
       {!embedded ? <h2 ref={heading} tabIndex={-1} className="sr-only scroll-mt-24">{STEPS[step]}</h2> : null}
@@ -151,7 +151,6 @@ export function ExamPlanEditor({ embedded = false, onDirtyChange, decks, deckSum
       <div ref={previewActions} className="exam-plan-actions sticky z-30 rounded-panel border border-core-border bg-core-surface p-2 sm:p-3" data-testid="exam-plan-actions">{renderStepActions()}</div>
     </> : null}
     </div>
-    {!embedded && step !== 3 ? renderContext() : null}
     </div>
     <ActionDialog open={discarding} title="Änderungen verwerfen?" description="Deine Änderungen an dieser Prüfung wurden noch nicht gespeichert." cancelLabel="Weiter bearbeiten" confirmLabel="Verwerfen" onCancel={() => setDiscarding(false)} onConfirm={onCancel} />
   </div>;
@@ -185,11 +184,16 @@ export function ExamPlanEditor({ embedded = false, onDirtyChange, decks, deckSum
       <CoreSwitch label="Varianten einbeziehen" checked={plan.variants} onCheckedChange={(variants) => patch({ variants })} />
     </div></details>
   </>; }
-  function renderContext() { return <aside className="core-surface-raised grid min-w-0 gap-4 rounded-panel p-5" aria-label="Deine Prüfung" data-testid="exam-setup-context">
-    <h3 className="flex min-w-0 items-center gap-2 core-heading-3 text-core-text"><span aria-hidden="true" className="size-2.5 shrink-0 rounded-round" style={{ backgroundColor: plan.color }} /><span className="min-w-0 break-words">{plan.name.trim() || "Neue Prüfung"}</span></h3>
-    <dl className="grid gap-4 core-body"><div className="grid gap-1"><dt className={TERM}>Prüfungsdatum</dt><dd className="text-core-text">{formatExamDate(plan.examDate)}</dd></div><div className="grid gap-1"><dt className={TERM}>Lernstart</dt><dd className="text-core-text">{formatExamDate(studyStartDate)}</dd></div><div className="grid gap-1"><dt className={TERM}>Lernstoff</dt><dd className="text-core-text">{selected.size ? `${formatExamCount(selected.size, "Stapel", "Stapel")} · ${formatExamCount(selectedCards, "Karte", "Karten")}` : "Noch auswählen"}</dd></div>{step > 0 ? <div className="grid gap-1"><dt className={TERM}>Letzte neue Karten</dt><dd className="text-core-text">{formatExamDate(getExamLastNewDate(plan))}</dd></div> : null}
-    {step >= 2 ? <div className="grid gap-2"><dt className={TERM}>Deine Woche</dt><dd className="grid gap-2">{WEEKDAYS.map((day, index) => <div key={day} className="flex justify-between gap-2"><span className="text-core-muted">{day}</span><span className="text-core-text">{time.weekdays[index] ? formatExamMinutes(time.weeklyMinutes?.[index] ?? time.dailyMinutes) : "Frei"}</span></div>)}</dd></div> : null}</dl>
-  </aside>; }
+  function renderContext() {
+    const weeklyMinutes = time.weekdays.reduce((sum, on, index) => sum + (on ? time.weeklyMinutes?.[index] ?? time.dailyMinutes : 0), 0);
+    const facts = [["Lernstart", formatExamDate(studyStartDate)], ["Lernstoff", selected.size ? `${formatExamCount(selected.size, "Stapel", "Stapel")} · ${formatExamCount(selectedCards, "Karte", "Karten")}` : "Noch auswählen"], ...(step > 0 ? [["Letzte neue Karten", formatExamDate(getExamLastNewDate(plan))]] : []), ...(step >= 2 ? [["Lernzeit pro Woche", formatExamMinutes(weeklyMinutes)]] : [])];
+    const index = exams.findIndex((exam) => exam.id === plan.id);
+    return <aside className="dashboard-poster exam-setup-poster" aria-label="Deine Prüfung" data-testid="exam-setup-context" style={{ "--bg": examColor(index < 0 ? exams.length : index, plan), "--fg": examTextColor(plan) } as React.CSSProperties}>
+      <div className="exam-setup-poster-title"><h3 className="exam-poster-eyebrow">{plan.name.trim() || "Neue Prüfung"}</h3><span className="exam-poster-date">{formatExamDate(plan.examDate)}</span></div>
+      <p className="exam-setup-poster-days"><span className="exam-setup-poster-number">{examDayDistance(studyStartDate, plan.examDate)}</span><span>Tage vom Lernstart bis zur Prüfung</span></p>
+      <dl className="exam-setup-facts">{facts.map(([term, value]) => <div key={term}><dt>{term}</dt><dd>{value}</dd></div>)}</dl>
+    </aside>;
+  }
   function renderPreview() { return <div className="grid gap-4" data-testid="exam-plan-preview" aria-busy={busy}>
     {error ? <StatusMessage tone="error">{error}</StatusMessage> : null}
     {!summary && !error ? <p role="status" className="core-body text-core-muted">Dein Plan wird berechnet …</p> : null}

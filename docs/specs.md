@@ -705,13 +705,13 @@ Prüfungssitzung | normale Sitzung mit der Zielerinnerung der Prüfung
 
 ### Tagesaufgaben und Prüfungssitzung
 
-- Je Thema gibt es eine Aufgabe mit eindeutiger Kartenmenge. Sie startet die Vereinigung ihrer neuen Karten und Wiederholungen; die ganze heutige Einheit lässt sich gemeinsam starten.
+- Je Thema gibt es eine Aufgabe mit eindeutiger Kartenmenge. Sie startet die Vereinigung ihrer neuen Karten und Wiederholungen; die heutige Einheit startet für alle Prüfungen gemeinsam oder für eine allein.
 - Vorschau, Aufgabenliste und Sitzung nutzen dieselben Zielkarten.
 - Prüfungssitzungen sind normale Lernsitzungen mit der Zielerinnerung der Prüfung. Sie gelten ohne die Tageslimits der Stapel und halten die Themenreihenfolge ein.
 - Eine Aufgabe ist automatisch erledigt, wenn alle Zielkarten seit dem Einplanen bewertet, in der Wiederholung und erst nach diesem Lerntag wieder fällig sind. Eine zurückgenommene Bewertung öffnet sie wieder.
 - Von Hand als erledigt markierte Aufgaben lassen sich wieder öffnen und ändern keinen Lernstand.
 - Die Zielkarten gelten für den aktuellen Lerntag; der nächste Lerntag beginnt eine neue Liste.
-- `Heute` zeigt die Aufgaben aller aktiven Prüfungen.
+- `Heute` zeigt die Aufgaben aller aktiven Prüfungen, die Prüfungsseite nur ihre eigenen.
 
 ### Leseaufgaben
 
@@ -721,7 +721,7 @@ Prüfungssitzung | normale Sitzung mit der Zielerinnerung der Prüfung
 
 ### Fortschritt und Lebenszyklus
 
-- Der Fortschritt nennt den Anteil `Gesehen` und darin den Anteil `Gefestigt`, bezogen auf alle gewählten Karten.
+- Der Fortschritt teilt alle gewählten Karten in `Gefestigt`, `Gesehen` (beantwortet, nicht reif) und `Neu` (nie beantwortet).
 - Gefestigt ist eine aktive Karte mit der Reife `Reif`; nach `Nochmal` zählt sie nicht mehr. Antworten auf Varianten zählen für die Karte.
 - Eine Prüfung lässt sich pausieren, fortsetzen, abschließen und löschen. Ab dem Tag nach ihrem Termin gilt sie als abgeschlossen.
 - Löschen entfernt Plan, Lernblöcke und Aufgaben; Karten und Lernstände bleiben.

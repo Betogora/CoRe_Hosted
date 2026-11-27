@@ -189,9 +189,9 @@ export function ExamWeekCalendar({ exams, shown, onToggleExam, capacity, forecas
     return [...(open ? entries : entries.slice(0, VISIBLE_TODOS)), <ShowMoreButton key="more" expanded={open} hiddenCount={hidden} context={`To-dos am ${formatExamDate(key)}`} onToggle={toggle} />];
   };
 
-  return <SoftPanel className="grid min-w-0 gap-4 p-3 sm:p-5" data-testid="exam-week-calendar">
-    <div className="flex min-w-0 flex-wrap items-center gap-2">
-      <h3 className="mr-3 core-heading-3 text-core-text">{formatExamDate(days[0], "short")} – {formatExamDate(days[6], "short")}</h3>
+  return <SoftPanel className="exam-calendar-panel grid min-w-0 gap-4 p-3 sm:p-5" data-testid="exam-week-calendar">
+    <div className="exam-calendar-head flex min-w-0 flex-wrap items-center gap-2">
+      <h3 className="mr-3 exam-poster-eyebrow">{formatExamDate(days[0], "short")} – {formatExamDate(days[6], "short")}</h3>
       <div className="mr-auto">{viewControl}</div>
       <ExamCalendarFilters exams={exams} shown={shown} color={color} onToggle={onToggleExam} />
       <div className="flex shrink-0 gap-2"><ActionButton variant="secondary" onClick={() => { setWeek(createExamWeekDays(today)[0]); setSelectedId(""); onSelect(today, false); }}>Heute</ActionButton><IconButton label="Vorherige Woche" icon={ChevronLeft} onClick={() => { setWeek(shiftExamDay(week, -7)); setSelection(null); setSelectedId(""); }} /><IconButton label="Nächste Woche" icon={ChevronRight} onClick={() => { setWeek(shiftExamDay(week, 7)); setSelection(null); setSelectedId(""); }} /></div>

@@ -58,12 +58,12 @@ for (const [width, height, scale] of viewports) test.describe(`${width}×${heigh
     await expect(editor.getByRole("button", { name: "Plan aktivieren", exact: true })).toBeEnabled();
     if (visualOutput) await product.screenshot({ path: info.outputPath("05-vorschau.png") });
     await editor.getByRole("button", { name: "Plan aktivieren", exact: true }).click();
-    await expect(product.getByRole("heading", { name: "Klausur mit sehr langem Namen: Herz und Lunge: Details öffnen", exact: true })).toBeVisible();
+    await expect(product.getByRole("button", { name: "Klausur mit sehr langem Namen: Herz und Lunge: Prüfung öffnen", exact: true })).toBeVisible();
     if (visualOutput) await product.screenshot({ path: info.outputPath("06-gespeichert.png") });
     const overflow = await product.evaluate((element) => element.scrollWidth > element.clientWidth + 1);
     expect(overflow).toBe(false);
     if (changedOrder) {
-      await product.getByRole("button", { name: "Klausur mit sehr langem Namen: Herz und Lunge: Details öffnen", exact: true }).click();
+      await product.getByRole("button", { name: "Klausur mit sehr langem Namen: Herz und Lunge: Prüfung öffnen", exact: true }).click();
       await product.getByRole("button", { name: "Bearbeiten", exact: true }).click();
       await editor.locator("summary").filter({ hasText: /^Lernstoff · \d+ Stapel$/ }).click();
       await editor.getByText("Themenreihenfolge ändern", { exact: true }).click();
@@ -81,7 +81,7 @@ test("der Kalender startet mit der aktuellen Woche und lässt frühere Wochen ge
   const today = await calendar.locator('[aria-current="date"]').getAttribute("data-date");
   const monday = new Date(`${today}T12:00:00Z`);
   monday.setUTCDate(monday.getUTCDate() - (monday.getUTCDay() + 6) % 7);
-  const first = monday.toISOString().slice(0, 10), title = await calendar.getByRole("heading").innerText();
+  const first = monday.toISOString().slice(0, 10), title = (await calendar.getByRole("heading").textContent())!;
   await expect(cells.first()).toHaveAttribute("data-date", first);
   expect(await cells.count()).toBeGreaterThanOrEqual(28);
   await calendar.getByRole("button", { name: "Frühere Wochen", exact: true }).click();
@@ -137,9 +137,9 @@ test("Stapelzweige, Suche und individuelle Wochentagszeiten bleiben beim Speiche
   await expect(editor.getByRole("spinbutton", { name: "Sonntag · Min.", exact: true })).toHaveValue("0");
   await expect(editor.getByRole("group", { name: "Lerntage", exact: true })).toHaveCount(0);
   await editor.getByRole("spinbutton", { name: "Samstag · Min.", exact: true }).fill("45");
-  await expect(editor.getByTestId("exam-setup-context")).toContainText("45 Min.");
+  await expect(editor.getByTestId("exam-setup-context")).toContainText("Lernzeit pro Woche10 Std. 15 Min.");
   await editor.getByRole("spinbutton", { name: "Samstag · Min.", exact: true }).fill("0");
-  await expect(editor.getByTestId("exam-setup-context")).toContainText("30 Min.");
+  await expect(editor.getByTestId("exam-setup-context")).toContainText("Lernzeit pro Woche9 Std. 30 Min.");
   await editor.getByRole("button", { name: "Lernplan ansehen", exact: true }).click();
   await expect(editor.getByTestId("exam-plan-preview").getByText("Lerntage", { exact: true })).toBeVisible();
   await expect(editor.getByTestId("exam-plan-preview").getByText("Einführungstage", { exact: true })).toHaveCount(0);
@@ -149,8 +149,8 @@ test("Stapelzweige, Suche und individuelle Wochentagszeiten bleiben beim Speiche
   await expect(editor.getByTestId("exam-plan-actions")).toBeInViewport({ ratio: 1 });
   await expect(editor.getByTestId("exam-topic-exam-date")).toBeInViewport({ ratio: 1 });
   await editor.getByRole("button", { name: "Plan aktivieren", exact: true }).click();
-  await product.getByRole("button", { name: "Wochentagsplan: Details öffnen", exact: true }).click();
-  const card = product.getByTestId("exam-card-details");
+  await product.getByRole("button", { name: "Wochentagsplan: Prüfung öffnen", exact: true }).click();
+  const card = product.locator('[data-testid^="exam-page-"]');
   await card.getByRole("button", { name: "Bearbeiten", exact: true }).click();
   await expect(editor.getByRole("radio", { name: "Bestmöglich abschneiden", exact: true })).toBeChecked();
   await expect(editor.getByRole("radio", { name: "Bestmöglich abschneiden", exact: true })).toHaveValue("0.97");
@@ -201,8 +201,8 @@ test("Lernzeit-Eingabewege übernehmen Defaults, aktivieren Tage direkt und erha
   await minutes("Samstag").fill("45");
   await editor.getByRole("button", { name: "Lernplan ansehen", exact: true }).click();
   await editor.getByRole("button", { name: "Plan aktivieren", exact: true }).click();
-  await product.getByRole("button", { name: "Zeitplan: Details öffnen", exact: true }).click();
-  await product.getByTestId("exam-card-details").getByRole("button", { name: "Bearbeiten", exact: true }).click();
+  await product.getByRole("button", { name: "Zeitplan: Prüfung öffnen", exact: true }).click();
+  await product.locator('[data-testid^="exam-page-"]').getByRole("button", { name: "Bearbeiten", exact: true }).click();
   await editor.getByText("Lernzeit und weitere Einstellungen", { exact: true }).click();
   await expect(exact).toHaveAttribute("aria-expanded", "true");
   await expect(minutes("Montag")).toHaveValue("0");
@@ -277,8 +277,8 @@ test("Lernstart ist heute vorbelegt und bleibt beim Speichern und Bearbeiten erh
   await expect(editor.getByTestId("exam-topic-preview")).toBeVisible();
   await expect(editor.getByTestId("exam-setup-context")).toHaveCount(0);
   await editor.getByRole("button", { name: "Plan aktivieren", exact: true }).click();
-  await product.getByRole("button", { name: "Plan mit späterem Start: Details öffnen", exact: true }).click();
-  await product.getByTestId("exam-card-details").last().getByRole("button", { name: "Bearbeiten", exact: true }).click();
+  await product.getByRole("button", { name: "Plan mit späterem Start: Prüfung öffnen", exact: true }).click();
+  await product.locator('[data-testid^="exam-page-"]').last().getByRole("button", { name: "Bearbeiten", exact: true }).click();
   await expect(editor.getByRole("group", { name: "Lernstart auswählen", exact: true })).toHaveText("19.10.2026");
 });
 
