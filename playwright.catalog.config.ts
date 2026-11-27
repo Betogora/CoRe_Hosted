@@ -11,10 +11,12 @@ export default defineConfig({
   outputDir: "test-results/catalog",
   globalSetup: "./tests/e2e/support/catalogWarmup.ts",
   fullyParallel: true,
+  // Playwright starts half as many workers as cores; on the 4-core runner one worker per core measured fastest.
+  workers: process.env.CI ? 4 : undefined,
   timeout: 30_000,
   retries: 0,
   reporter: process.env.CI
-    ? [["line"], ["html", { open: "never", outputFolder: "playwright-report" }]]
+    ? [["line"], ["html", { open: "never", outputFolder: "playwright-report" }], ["json", { outputFile: "test-timings/catalog.json" }]]
     : "list",
   expect: {
     timeout: 8_000,
@@ -22,7 +24,7 @@ export default defineConfig({
   use: {
     ...devices["Desktop Chrome"],
     baseURL: "http://127.0.0.1:5195/",
-    trace: "retain-on-failure",
+    trace: "off",
     screenshot: "only-on-failure",
   },
   webServer: {

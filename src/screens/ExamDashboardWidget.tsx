@@ -31,7 +31,7 @@ interface ExamDashboardWidgetProps {
 }
 
 export function ExamDashboardWidget({ state, now, onLoad, onStart, onSaveTasks, onOpen, onLoadSummaryAvailability, onLoadLocalCardIds, planning, preview, examId }: ExamDashboardWidgetProps) {
-  const preferences = getGlobalSchedulerPreferences(state.profile);
+  const preferences = React.useMemo(() => getGlobalSchedulerPreferences(state.profile), [state.profile]);
   const settings = preferences.examPlanning;
   const { exams, capacity } = settings;
   const timeZone = getLearningTimeZone(state.profile);

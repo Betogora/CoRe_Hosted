@@ -4,7 +4,7 @@ import { createPortal } from "react-dom";
 import { createDeckPlacementValidator, type DeckMutationResult } from "../coreWorkspace.ts";
 import type { CoreMode, Deck } from "../coreTypes.ts";
 import { DECK_DEPTH_INDENT_PX, getVisibleDeckDepth } from "../deckHierarchy.ts";
-import type { DeckLibraryRow } from "../libraryModel.ts";
+import { reuseEqualRows, type DeckLibraryRow } from "../libraryModel.ts";
 import { DeckOptionsMenu } from "./DeckOptionsMenu.tsx";
 import { ActionButton, IconButton } from "./actionUi.tsx";
 import { CoreTooltip } from "./tooltipUi.tsx";
@@ -352,7 +352,13 @@ const DeckTreeRow = React.memo(function DeckTreeRow({ row, mode, presentation, d
   );
 });
 
-export function DeckTree({ rows, rootDeckIds, mode, view = "list", contentAfterRows, onActivate, onStudy, onPractice, onOpenSettings, onSetDeckCoreMode, onMoveDeck, collapsedDeckIds, onDeckExpansionChange }: DeckTreeProps) {
+// The library model builds new rows for every `now`; keeping equal ones lets the memoized rows skip rendering.
+function useStableRows(rows: DeckLibraryRow[]) {
+  const previous = React.useRef<DeckLibraryRow[]>([]);
+  return React.useMemo(() => previous.current = reuseEqualRows(previous.current, rows), [rows]);
+}
+
+export function DeckTree({ rows: modelRows, rootDeckIds, mode, view = "list", contentAfterRows, onActivate, onStudy, onPractice, onOpenSettings, onSetDeckCoreMode, onMoveDeck, collapsedDeckIds, onDeckExpansionChange }: DeckTreeProps) {
   const [draggedDeckId, setDraggedDeckId] = React.useState<string | null>(null);
   const [dropIntent, setDropIntent] = React.useState<DropIntent | null>(null);
   const [dragFocusLayout, setDragFocusLayout] = React.useState<DragFocusLayout | null>(null);
@@ -360,6 +366,7 @@ export function DeckTree({ rows, rootDeckIds, mode, view = "list", contentAfterR
   const pointerDragRef = React.useRef<PointerDrag | null>(null);
   const suppressedClickDeckIdRef = React.useRef<string | null>(null);
   const dragMaskId = React.useId().replaceAll(":", "");
+  const rows = useStableRows(modelRows);
   const decks = React.useMemo(() => rows.map((row) => row.deck), [rows]);
   const shownRows = React.useMemo(() => {
     if (!rootDeckIds) return rows;

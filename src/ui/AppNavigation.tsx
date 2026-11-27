@@ -1,7 +1,6 @@
 import React from "react";
 import type { LucideIcon } from "lucide-react";
 import { AlertTriangle, BarChart3, BookOpen, CalendarCheck, CalendarClock, ChevronLeft, CircleHelp, CloudAlert, CloudOff, Home, Layers, Menu, PlusSquare, RefreshCw, Settings } from "lucide-react";
-import * as Popover from "@radix-ui/react-popover";
 import { createPortal } from "react-dom";
 import type { MenuViewId } from "../menuModel.ts";
 import type { PomodoroTimer } from "../pomodoroTimer.ts";
@@ -13,6 +12,34 @@ import { useSlidingSelection } from "./coreUi.tsx";
 import { CoreWordmark } from "./CoreWordmark.tsx";
 import { PomodoroPill } from "./PomodoroPill.tsx";
 import { SHELL_REVEAL_EVENT, type ShellBack } from "./shellBack.ts";
+
+type RadixPopover = typeof import("@radix-ui/react-popover");
+// Radix and Floating UI stay out of the start graph; the menu is the only popover of the shell and loads them once it mounts.
+let radixPopover: RadixPopover | null = null;
+
+function useRadixPopover(menuButtonRef: React.RefObject<HTMLButtonElement | null>) {
+  const [popover, setPopover] = React.useState(radixPopover);
+  const refocus = React.useRef(false);
+  React.useEffect(() => {
+    if (popover) return undefined;
+    let active = true;
+    // A failed load keeps the menu unavailable until the next mount instead of reaching the error boundary.
+    import("@radix-ui/react-popover").then((module) => {
+      radixPopover = module;
+      if (!active) return;
+      refocus.current = document.activeElement === menuButtonRef.current;
+      setPopover(module);
+    }, () => undefined);
+    return () => { active = false; };
+  }, [menuButtonRef, popover]);
+  React.useLayoutEffect(() => {
+    // The popover trigger replaces the waiting button; keyboard focus moves along.
+    if (!popover || !refocus.current) return;
+    refocus.current = false;
+    menuButtonRef.current?.focus();
+  }, [menuButtonRef, popover]);
+  return popover;
+}
 
 interface AppNavigationItem {
   id: MenuViewId;
@@ -257,10 +284,13 @@ function SyncUtilityButton({ syncStatus, manualSync, onSyncNow, onOpenSyncSettin
 
 type UtilityProps = Pick<AppNavigationProps, "activeView" | "onNavigate" | "onPreloadView" | "manualSync" | "onSyncNow" | "onOpenSyncSettings" | "settingsOpen" | "onOpenSettings" | "onPreloadSettings">;
 
-function NavigationUtilityButtons({ activeView, onNavigate, onPreloadView, settingsOpen, onOpenSettings, ...syncProps }: UtilityProps) {
-  const syncStatus = useWorkspaceValue((snapshot) => snapshot.syncStatus);
-  const menuTargetActive = settingsOpen || activeView === "statistik" || activeView === "hilfe";
-  const menuButtonRef = React.useRef<HTMLButtonElement>(null);
+type NavigationMenuProps = Pick<AppNavigationProps, "activeView" | "onNavigate" | "onPreloadView" | "onOpenSettings"> & {
+  Popover: RadixPopover;
+  trigger: React.ReactElement;
+  menuButtonRef: React.RefObject<HTMLButtonElement | null>;
+};
+
+function NavigationMenu({ Popover, activeView, onNavigate, onPreloadView, onOpenSettings, trigger, menuButtonRef }: NavigationMenuProps) {
   const navigatedFromMenu = React.useRef(false);
   const pageRow = (viewId: "statistik" | "hilfe", utility: string, label: string, Icon: LucideIcon) => {
     const preload = () => onPreloadView?.(viewId);
@@ -280,47 +310,61 @@ function NavigationUtilityButtons({ activeView, onNavigate, onPreloadView, setti
   };
 
   return (
+    <Popover.Root>
+      <Popover.Trigger asChild>{trigger}</Popover.Trigger>
+      <Popover.Portal>
+        <Popover.Content
+          align="end"
+          sideOffset={6}
+          collisionPadding={16}
+          className="core-overlay z-[60] grid w-max gap-0.5 rounded-panel p-1.5"
+          data-navigation-menu="true"
+          onCloseAutoFocus={(event) => { if (navigatedFromMenu.current) event.preventDefault(); navigatedFromMenu.current = false; }}
+        >
+          <Popover.Close asChild>
+            <button type="button" className="core-menu-row" data-navigation-utility="settings" onClick={() => {
+              // The dialog remembers the focused element as return target when it mounts, before the popover refocuses its trigger.
+              menuButtonRef.current?.focus();
+              onOpenSettings();
+            }}>
+              <Settings size={16} aria-hidden="true" />Einstellungen
+            </button>
+          </Popover.Close>
+          {pageRow("statistik", "statistics", "Statistik", BarChart3)}
+          {pageRow("hilfe", "help", "Hilfe", CircleHelp)}
+        </Popover.Content>
+      </Popover.Portal>
+    </Popover.Root>
+  );
+}
+
+function NavigationUtilityButtons({ activeView, onNavigate, onPreloadView, settingsOpen, onOpenSettings, ...syncProps }: UtilityProps) {
+  const syncStatus = useWorkspaceValue((snapshot) => snapshot.syncStatus);
+  const menuTargetActive = settingsOpen || activeView === "statistik" || activeView === "hilfe";
+  const menuButtonRef = React.useRef<HTMLButtonElement>(null);
+  const popover = useRadixPopover(menuButtonRef);
+  const menuButton = (
+    <IconButton
+      ref={menuButtonRef}
+      type="button"
+      variant="ghost"
+      data-app-navigation="true"
+      data-navigation-utility="menu"
+      label="Menü"
+      icon={Menu}
+      onPointerEnter={syncProps.onPreloadSettings}
+      onFocus={syncProps.onPreloadSettings}
+      onTouchStart={syncProps.onPreloadSettings}
+      className={`size-button shrink-0 rounded-control ${menuTargetActive ? "!bg-core-subtle !text-core-action" : ""}`}
+    />
+  );
+
+  return (
     <div className="flex shrink-0 items-center gap-0 min-[360px]:gap-1.5" data-navigation-utilities="true" data-sync-status={syncStatus.status}>
       <SyncUtilityButton syncStatus={syncStatus} {...syncProps} />
-      <Popover.Root>
-        <Popover.Trigger asChild>
-          <IconButton
-            ref={menuButtonRef}
-            type="button"
-            variant="ghost"
-            data-app-navigation="true"
-            data-navigation-utility="menu"
-            label="Menü"
-            icon={Menu}
-            onPointerEnter={syncProps.onPreloadSettings}
-            onFocus={syncProps.onPreloadSettings}
-            onTouchStart={syncProps.onPreloadSettings}
-            className={`size-button shrink-0 rounded-control ${menuTargetActive ? "!bg-core-subtle !text-core-action" : ""}`}
-          />
-        </Popover.Trigger>
-        <Popover.Portal>
-          <Popover.Content
-            align="end"
-            sideOffset={6}
-            collisionPadding={16}
-            className="core-overlay z-[60] grid w-max gap-0.5 rounded-panel p-1.5"
-            data-navigation-menu="true"
-            onCloseAutoFocus={(event) => { if (navigatedFromMenu.current) event.preventDefault(); navigatedFromMenu.current = false; }}
-          >
-            <Popover.Close asChild>
-              <button type="button" className="core-menu-row" data-navigation-utility="settings" onClick={() => {
-                // The dialog remembers the focused element as return target when it mounts, before the popover refocuses its trigger.
-                menuButtonRef.current?.focus();
-                onOpenSettings();
-              }}>
-                <Settings size={16} aria-hidden="true" />Einstellungen
-              </button>
-            </Popover.Close>
-            {pageRow("statistik", "statistics", "Statistik", BarChart3)}
-            {pageRow("hilfe", "help", "Hilfe", CircleHelp)}
-          </Popover.Content>
-        </Popover.Portal>
-      </Popover.Root>
+      {popover
+        ? <NavigationMenu Popover={popover} activeView={activeView} onNavigate={onNavigate} onPreloadView={onPreloadView} onOpenSettings={onOpenSettings} trigger={menuButton} menuButtonRef={menuButtonRef} />
+        : React.cloneElement(menuButton, { "aria-disabled": true })}
     </div>
   );
 }

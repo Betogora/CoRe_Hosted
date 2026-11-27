@@ -7,7 +7,7 @@ test("Performance-Abnahme meldet ausschließlich überschrittene harte Gates", (
     lcpMs: 2_500,
     inpMs: 201,
     cls: 0.11,
-    initialJavaScriptGzipBytes: 300 * 1024,
+    initialJavaScriptGzipBytes: 265 * 1024,
     largestFeatureGzipBytes: 200 * 1024 + 1,
   });
   assert.deepEqual(failures.map((failure) => failure.key), ["inpMs", "cls", "largestFeatureGzipBytes"]);

@@ -294,8 +294,8 @@ Befehlsmodule laufen ohne React, je Arbeitsbereich aus Store, Repository und Syn
 
 ### App-Shell und Vorladen
 
-- Vercel revalidiert HTML und Service Worker; Assets und API-Pfade sind vom SPA-Rewrite ausgenommen. `public/sw.js` cacht JavaScript nur mit JavaScript-MIME-Typ. Es gibt keinen automatischen Reload, damit offene Entwürfe erhalten bleiben.
-- Automatisches Vorladen lädt Bildschirm-Chunks nur herunter; ausgeführt wird ein Bildschirm erst bei erkennbarer Absicht oder Aufruf.
+- Vercel revalidiert HTML und Service Worker; Assets sind unveränderlich und wie API-Pfade ohne SPA-Rewrite. `public/sw.js` cacht JavaScript nur mit passendem MIME-Typ, behält Assets der letzten zwei Builds (`sw-assets.json`). Kein automatischer Reload: offene Entwürfe bleiben.
+- Automatisches Vorladen lädt Bildschirm-Chunks nur herunter; ausgeführt erst bei Absicht oder Aufruf.
 
 ## API-Vertrag
 

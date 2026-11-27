@@ -11,7 +11,7 @@ export default defineConfig({
   workers: 1,
   retries: 0,
   reporter: process.env.CI
-    ? [["line"], ["html", { open: "never", outputFolder: "playwright-report" }]]
+    ? [["line"], ["html", { open: "never", outputFolder: "playwright-report" }], ["json", { outputFile: `test-timings/supabase-${process.env.CORE_E2E_GATE ?? "local"}.json` }]]
     : "list",
   expect: {
     timeout: 8_000,

@@ -11,6 +11,7 @@ import { catalogEntryFromCard, type CardCatalogEntry } from "./workspaceReplica.
 import { getLearningDayRange } from "./learningDay.ts";
 import { cardSearchContextTerms, deckPatternMatches, isEmptyCardSearch, namePatternMatches, matchesCardSearch, parseCardSearchQuery, pathMatchesCardSearch, withoutCardSearchWords, type CardSearchContext } from "./cardSearchQuery.ts";
 import { collectDeckTreeIds } from "./coreWorkspace.ts";
+import { isSameContent } from "./workspaceStore.ts";
 
 type DateInput = string | number | Date;
 
@@ -120,6 +121,16 @@ function createDeckRow(
 }
 
 export type DeckLibraryRow = ReturnType<typeof createDeckRow>;
+
+/** Rows equal in content keep their previous identity; an unchanged list returns `previous` itself. */
+export function reuseEqualRows(previous: DeckLibraryRow[], rows: DeckLibraryRow[]) {
+  const byId = new Map(previous.map((row) => [row.id, row]));
+  const next = rows.map((row) => {
+    const kept = byId.get(row.id);
+    return kept && isSameContent(kept, row) ? kept : row;
+  });
+  return next.length === previous.length && next.every((row, index) => row === previous[index]) ? previous : next;
+}
 
 export function createCardSearchContext(
   query: string,

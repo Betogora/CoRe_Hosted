@@ -20,7 +20,6 @@ export function StatisticsScreenWiring() {
     <StatisticsScreen
       decks={decks}
       queryStatistics={queryStatistics}
-      now={learningNow}
       timeZone={learningTimeZone}
       dayStartHour={globalSchedulerPreferences.dayStartHour}
       onNavigate={navigation.navigateToView}

@@ -12,7 +12,7 @@ Laufzeiten bei jedem Lauf selbst.
 | --- | --- | --- | --- |
 | Pull Request, Push auf `main`, manuell | GitHub `ci.yml`, Job `quality` | `npm run gate:push` | ja, Pflicht-Check für `main` |
 | wie oben | GitHub `ci.yml`, Job `catalog-e2e` | `npm run test:e2e:catalog` | ja, Pflicht-Check für `main` |
-| Pull Request | GitHub `ci.yml`, Job `affected-e2e` | `npm run test:e2e:affected:local` | ja, Pflicht-Check für `main` |
+| Pull Request | GitHub `ci.yml`, drei Jobs `affected-e2e-shard`, Sammeljob `affected-e2e` | `npm run test:e2e:affected:local` mit `CORE_E2E_SHARD` | ja, `affected-e2e` ist Pflicht-Check für `main` |
 | jedes Vercel-Deployment | Build-Befehl in `vercel.json` | `npm run gate:push` | ja, ohne Erfolg kein Deployment |
 | täglich 02:17 UTC, veröffentlichtes Release, manuell | GitHub `nightly-core.yml` | `npm run gate:nightly` | ja |
 | montags 04:17 UTC, manuell | GitHub `weekly-performance.yml` | `npm run performance:measure:local` | ja |
@@ -43,7 +43,11 @@ GitHub-Runnern wiederholt „Data limit exceeded“ meldete.
 - `npm run test:e2e:affected:local`: wählt die Specs aus den Änderungen gegenüber
   der Merge-Basis mit `origin/main`, auch uncommittet (`scripts/affectedE2ESpecs.ts`),
   und läuft als PR-Job `affected-e2e`; lokal dient er der Fehlersuche.
-  Geänderte Specs laufen immer; Produktquellen wählen über ihren Bereich, Doku und
+  Katalogflows laufen dort nicht, sie prüft der Job `catalog-e2e` vollständig.
+  In CI teilt `CORE_E2E_SHARD` die Auswahl auf drei Jobs mit festen
+  Spec-Listen (`SUPABASE_SHARDS`); RLS, Schema-, Typprüfung und Beta-Artefakt
+  laufen im ersten. Ohne die Variable läuft lokal die ganze Auswahl.
+  Geänderte Supabase-Specs laufen immer; Produktquellen wählen über ihren Bereich, Doku und
   Modultests keine, geänderte RLS-Tests die vollständige RLS-Suite. Gemeinsame
   E2E-Infrastruktur, Playwright- und Build-Konfiguration, Abhängigkeiten,
   Migrationen, App-Shell und nicht zugeordnete Produktquellen führen zur
@@ -144,15 +148,15 @@ Zielwerte:
 | Erste Seite eines 100k-Stapels und Lernstart | p75 ≤ 1 s, p95 ≤ 2 s |
 | Review lokal dauerhaft gespeichert | p95 ≤ 250 ms |
 | Normaler Delta-Sync | p75 ≤ 2 s, p95 ≤ 5 s, nie startblockierend |
-| Initiales JavaScript (gzip) | Ziel ≤ 250 KiB, Grenze 300 KiB |
+| Initiales JavaScript (gzip) | Ziel ≤ 250 KiB, Grenze 265 KiB |
 | Normaler Feature-Tab (gzip) | Ziel ≤ 150 KiB, Grenze 200 KiB |
-| Statistik-Tab (gzip) | Ziel ≤ 175 KiB, Grenze 200 KiB; die Diagrammbibliothek macht rund 80 % aus |
+| Statistik-Tab (gzip) | Ziel ≤ 175 KiB, Grenze 200 KiB; die Diagrammbibliothek macht rund 80 % aus. Radix und Floating UI (rund 23 KiB) zählen rechnerisch mit, lädt aber schon die App-Shell, sobald ihre Navigation einhängt |
 | Bootstrapdaten | < 200 KiB komprimiert, ohne Kartenkörper oder Medien |
 | Hintergrundarbeit | Portionen von höchstens 50 ms |
 
 Geprüft werden sie so:
 
-- Der Production-Build erzwingt die Bundle-Grenzen (300 KiB gzip initial, 200 KiB
+- Der Production-Build erzwingt die Bundle-Grenzen (265 KiB gzip initial, 200 KiB
   je Lazy-Feature) bei jedem `gate:push`.
 - `npm run performance:measure:local` startet lokales Supabase, baut die
   E2E-Production-App und misst je zehn gedrosselte Läufe (Chromium, etwa 1,6 Mbit/s,
@@ -242,7 +246,7 @@ getrennt mit realer SMTP-Zustellung abgenommen.
 - Ein Export, den außer Tests niemand nutzt, ist toter Code; Funktion und Test entfallen gemeinsam. Ausnahmen tragen `/** @internal */` (bewusst nur für Tests angebotene Seam-Hilfe) oder `/** @public */` (fertige Schnittstelle mit ausstehendem Aufrufer).
 - Abwesenheitsprüfungen gehören zur Entfernung selbst. Ausgenommen sind die Browserprüfungen für [Beta-Abnahme Punkt 4](specs.md#beta-abnahme), auch hosted.
 - Jeder Supabase-Browserflow beginnt mit einem Konto-Reset (`resetToFreshLocalState` oder der Seeder seiner Spec), weil alle Flows ein Konto teilen; kein Flow räumt nach sich auf. Feste Wartezeiten stehen nur dort, wo die Dauer selbst geprüft wird.
-- Eine neue Spec steht in `tests/e2e/support/catalogSpecs.ts` (ohne Supabase) oder in einem Projekt von `playwright.config.ts` und ist in `AREAS` von `scripts/affectedE2ESpecs.ts` zugeordnet; `src/affectedE2ESpecs.test.ts` meldet Lücken.
+- Eine neue Spec steht in `tests/e2e/support/catalogSpecs.ts` (ohne Supabase, läuft immer vollständig in `catalog-e2e`) oder in einem Projekt von `playwright.config.ts` und ist dann in `AREAS` von `scripts/affectedE2ESpecs.ts` zugeordnet; `src/affectedE2ESpecs.test.ts` meldet Lücken.
 - Golden- und RLS-Testnamen beginnen mit `[Vertrag: …]`.
 - Neue schwere Browser-, Storage-, Großdatei- oder Restore-Pfade werden `heavy-release`; ins PR-Gate darf nur ein enges Golden- oder Security-Smoke.
 - APKG-Matrix: Erwartungen ändern sich nur im Generator `scripts/create_apkg_matrix_fixtures.py` und nur bei belegter Abweichung von Anki oder einer ADR. Neue `KNOWN_GAPS` nur für bisher unentdeckte Lücken, nie um ein Gate grün zu machen.

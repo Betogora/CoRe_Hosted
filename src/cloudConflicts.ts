@@ -396,8 +396,7 @@ async function closeObsoleteConflict(client: CloudClient, userId: string, row: S
 
 export async function listAccountSyncConflicts(client: CloudClient, { refreshRemote = false, userId }: { refreshRemote?: boolean; userId?: string } = {}) {
   const user = await authenticatedUserForKnownSession(client, userId);
-  const activeRows = (await selectKeysetRows(client, "sync_conflicts", user.id, validateSyncConflictRows, { optional: true }))
-    .filter((row) => row.status === "open" || row.status === "ignored");
+  const activeRows = await selectKeysetRows(client, "sync_conflicts", user.id, validateSyncConflictRows, { optional: true, where: { field: "status", values: ["open", "ignored"] } });
   const rowsToCheck = activeRows.filter((row) => REVISIONED_TABLE_SET.has(row.entity_table) && (
     refreshRemote || !rowsHaveSameContent(conflictValue(row.local_value), conflictValue(row.remote_value), row.entity_table)
   ));

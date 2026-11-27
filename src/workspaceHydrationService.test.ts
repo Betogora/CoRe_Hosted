@@ -141,7 +141,7 @@ test("Katalogseiten zeigen Previews und hydrieren nur den geöffneten Inhalt sam
   hydratedRequests.length = 0;
   await withNavigator({ onLine: true, connection: { saveData: true } }, async () => {
     const study = await service.prepareStudyWindow([deck.id], { now: "2026-08-17T10:00:00.000Z", timeZone: "UTC" });
-    assert.equal(repository.getReplicaStatus().catalogCompleteness, "partial", "der Lernstart übernimmt die aktuelle Cloud-Katalogseite");
+    assert.equal(repository.getReplicaStatus().catalogCompleteness, "complete", "die aktuelle Cloud-Katalogseite des Lernstarts lässt den vollständigen Katalog vollständig");
     assert.deepEqual(hydratedRequests, [{ cards: ["card-alpha"], notes: [] }], "der Lernstart wartet nur auf die erste jetzt lernbare Karte");
     assert.equal(study.cards.length, 1);
     assert.equal(study.cards[0]?.card.id, "card-alpha");
@@ -695,5 +695,26 @@ test("ohne replizierte Suchtexte sucht auch ein vollständiger Katalog in der Cl
   await withNavigator({ onLine: true }, () => service.queryCardPage({ deckId: deck.id, query: "accessorius", page: 0, pageSize: 50 }));
 
   assert.deepEqual(calls, ["search_account_card_catalog"]);
+  repository.close();
+});
+
+test("der Lernstart holt die ersten Katalogseiten eines Teilbaums vier gleichzeitig statt nacheinander", async () => {
+  const userId = randomUUID();
+  const decks = Array.from({ length: 6 }, (_value, index) => createCoreDeck({ id: `deck-${index}`, name: `Stapel ${index}`, parentDeckId: index ? "deck-0" : null }));
+  const repository = await createIndexedDbCoreRepository({ userId, initialState: workspace(userId, decks, []), indexedDb: new IDBFactory() as unknown as IDBFactory });
+  let inFlight = 0, maxInFlight = 0, requests = 0;
+  const client = {
+    async rpc(name: string) {
+      if (name !== "list_account_card_catalog") throw new Error(`Unerwartete RPC ${name}`);
+      requests++; inFlight++; maxInFlight = Math.max(maxInFlight, inFlight);
+      await new Promise((resolve) => setTimeout(resolve, 5));
+      inFlight--;
+      return { data: { items: [], totalCount: 0, hasMore: false, nextCursor: null }, error: null };
+    },
+  };
+  const service = createWorkspaceHydrationService({ client, repository, mediaStore: null });
+  await withNavigator({ onLine: true }, () => service.prepareStudyWindow(decks.map((deck) => deck.id), { now: "2026-08-17T10:00:00.000Z", timeZone: "UTC" }));
+  assert.equal(requests, 6);
+  assert.equal(maxInFlight, 4);
   repository.close();
 });

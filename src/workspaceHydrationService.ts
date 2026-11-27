@@ -220,12 +220,13 @@ export function createWorkspaceHydrationService({
     });
     request.signal?.throwIfAborted();
     totalCounts.set(key, cloudPage.totalCount);
+    // A cloud page only adds or updates rows; deletions still arrive with the delta, so a complete catalog stays complete.
     await repository.applyCloudCatalogPages([{
       table: "card_catalog",
       entities: cloudPage.items,
       reset: false,
       cursor: repository.getReplicaStatus().catalogCursor,
-    }]);
+    }], { keepComplete: true });
     if (cloudPage.hasMore && cloudPage.nextCursor) cursors.set(requestedPage + 1, cloudPage.nextCursor);
     for (const storedPage of [...cursors.keys()].sort((a, b) => a - b).slice(0, -32)) {
       if (storedPage !== 0 && storedPage !== requestedPage) cursors.delete(storedPage);
@@ -404,14 +405,15 @@ export function createWorkspaceHydrationService({
     const currentTime = Date.parse(now);
     const catalogEntries: CardCatalogEntry[] = [];
     let catalogHasMore = false;
-    for (const deckId of deckIds) {
-      if (isOnline()) {
-        try {
-          await fetchCatalogPage({ deckId, page: 0, pageSize: catalogPageSize, sort: { field: "nextStudyDate", direction: "asc" } });
-        } catch {
+    // Fresh first pages carry reviews from other devices; up to four requests at once, like the card hydration.
+    if (isOnline()) {
+      for (const group of chunk(deckIds, 4)) {
+        await Promise.all(group.map((deckId) => fetchCatalogPage({ deckId, page: 0, pageSize: catalogPageSize, sort: { field: "nextStudyDate", direction: "asc" } })
           // A locally available study window remains usable while catalog refresh waits for retry.
-        }
+          .catch(() => undefined)));
       }
+    }
+    for (const deckId of deckIds) {
       const cursor = options.cursorByDeck?.[deckId];
       const cursorDueAt = cursor ? Date.parse(cursor.dueAt) : Number.NaN;
       let pageCursor: { sortValue: string; id: string } | null = null;

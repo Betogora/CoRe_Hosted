@@ -27,7 +27,6 @@ import {
   toArray,
   toJson,
   normalizeRevision,
-  getAuthenticatedUser,
   authenticatedUserForKnownSession,
   requireNonEmptyString,
   requireTimestamp,
@@ -139,6 +138,8 @@ function preserveRemoteLearningProjection(entityTable: string, desiredRow: Cloud
 
 interface RevisionedWriteOptions {
   deviceId?: string;
+  /** The signed-in account; without it each write first asks the auth server. */
+  userId?: string;
   flushedAt?: string;
   baseRevision?: unknown;
   /** Remote row already loaded by a batch; `null` means it does not exist. */
@@ -328,7 +329,7 @@ export interface EntityMutationPayload {
 }
 
 export async function applyEntityMutation(client: CloudClient, mutation: EntityMutationPayload, options: RevisionedWriteOptions = {}) {
-  const user = await getAuthenticatedUser(client);
+  const user = await authenticatedUserForKnownSession(client, options.userId);
   const entityTable = requireNonEmptyString(mutation?.table, "Tabelle der Entity-Mutation fehlt.");
   if (mutation?.tombstone) {
     return softDeleteEntityForUser(client, user, {
@@ -386,7 +387,7 @@ async function upsertImportSourceRows(client: CloudClient, user: CloudUser, enti
 
 export async function applyEntityMutationBatch(client: CloudClient, mutations: EntityMutationPayload[], options: RevisionedWriteOptions = {}) {
   if (!mutations.length) return [];
-  const user = await getAuthenticatedUser(client);
+  const user = await authenticatedUserForKnownSession(client, options.userId);
   const entityTable = requireNonEmptyString(mutations[0]?.table, "Tabelle der Entity-Mutation fehlt.");
   if (mutations.some((mutation) => mutation.table !== entityTable || mutation.tombstone)) {
     return mapWithConcurrency(mutations, (mutation) => applyEntityMutation(client, mutation, options));
@@ -464,8 +465,8 @@ export interface AtomicReviewPayload {
   event?: ReviewEvent;
 }
 
-export async function recordAtomicReview(client: CloudClient, input: AtomicReviewPayload, { deviceId, mutationId }: { deviceId?: string; mutationId?: string } = {}) {
-  const user = await getAuthenticatedUser(client);
+export async function recordAtomicReview(client: CloudClient, input: AtomicReviewPayload, { deviceId, mutationId, userId }: { deviceId?: string; mutationId?: string; userId?: string } = {}) {
+  const user = await authenticatedUserForKnownSession(client, userId);
   const card = input?.card;
   const variant = input?.variant;
   const event = input?.event as ReviewEvent;
@@ -498,10 +499,10 @@ export async function recordAtomicReview(client: CloudClient, input: AtomicRevie
 }
 
 /** `profile` is the full local profile; it only fills a row that does not exist yet. */
-export async function patchAccountCloudProfile(client: CloudClient, patch: ProfilePatch | null, profile: unknown, { mutationId }: { mutationId?: string } = {}) {
+export async function patchAccountCloudProfile(client: CloudClient, patch: ProfilePatch | null, profile: unknown, { mutationId, userId }: { mutationId?: string; userId?: string } = {}) {
   const resolvedMutationId = requireNonEmptyString(mutationId, "Mutation-ID fehlt.");
   if (!patch) throw new Error("Profilpatch fehlt.");
-  const user = await getAuthenticatedUser(client);
+  const user = await authenticatedUserForKnownSession(client, userId);
   const complete = readCompleteProfile(profile, user.id);
   const { id: _id, updated_at: _updatedAt, ...insertRow } = createProfileRow(complete ?? {}, { ...user, email: complete?.email ?? null });
   const { error } = await client.rpc("patch_account_profile", { p_patch: createProfilePatchRow(patch), p_insert: insertRow });

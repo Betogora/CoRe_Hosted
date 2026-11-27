@@ -4,7 +4,7 @@ import path from "node:path";
 import { gzipSync } from "node:zlib";
 
 export const DEFAULT_MAX_CHUNK_BYTES = 500_000;
-export const DEFAULT_INITIAL_GZIP_BYTES = 300 * 1024;
+export const DEFAULT_INITIAL_GZIP_BYTES = 265 * 1024;
 export const TARGET_INITIAL_GZIP_BYTES = 250 * 1024;
 export const DEFAULT_LAZY_ROUTE_GZIP_BYTES = 200 * 1024;
 export const DEFAULT_WORKER_GZIP_BYTES = 525 * 1024;

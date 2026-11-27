@@ -71,7 +71,7 @@ const MODULE_LIMITS: readonly ModuleLimit[] = [
   { file: "src/App.tsx", measure: "Zeilen", max: 503 },
   { file: "src/appScreenProps.ts", measure: "Zeilen", max: 172 },
   { file: "src/screens/DecksScreen.tsx", measure: "Zeilen", max: 737 },
-  { file: "src/cloudRepository.ts", measure: "Zeilen", max: 405 },
+  { file: "src/cloudRepository.ts", measure: "Zeilen", max: 404 },
   { file: "src/cloudRepository.ts", measure: "any-Typen", max: 0 },
   { file: "src/cloudRevisionedWrites.ts", measure: "any-Typen", max: 2 },
   { file: "src/syncEngine.ts", measure: "any-Typen", max: 3 },

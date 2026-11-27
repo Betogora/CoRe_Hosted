@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import "fake-indexeddb/auto";
 import type { User } from "@supabase/supabase-js";
-import { applyBootstrapProfile, bootAuthenticatedWorkspace, startAuthenticatedWorkspaceSessionLifecycle } from "./authenticatedWorkspaceBoot.ts";
+import { applyBootstrapProfile, bootAuthenticatedWorkspace, firstSyncChanged, startAuthenticatedWorkspaceSessionLifecycle } from "./authenticatedWorkspaceBoot.ts";
 import { createIndexedDbCoreRepository } from "./indexedDbCoreRepository.ts";
 import type { createSupabaseBrowserClient } from "./supabaseClient.ts";
 
@@ -104,7 +104,7 @@ test("liefert den lokalen Workspace, bevor der Cloud-Bootstrap beendet ist", asy
     error: null,
   });
   await boot.bootstrapFirstAttempt;
-  await boot.cloudSync;
+  assert.equal((await boot.cloudSync).changed, true, "ein gescheiterter erster Sync veröffentlicht den Zustand trotzdem");
   assert.equal(calledRpcs[0], "get_account_bootstrap", "der Bootstrap läuft vor jedem Sync-RPC");
   assert.equal(boot.repository.getReplicaStatus().catalogServerCursor, 12);
   boot.stopCloudBootstrapRetry();
@@ -168,6 +168,41 @@ test("session lifecycle ignores boot and recovery results after unmount", async 
 
   assert.equal(boots, 0);
   assert.equal(recoveries, 0);
+});
+
+test("a session that auth-js later signs out discards the started workspace, before a start it does not", async () => {
+  const user = { id: "account-a" } as User;
+  let authListener: ((event: string, session: { user: User } | null) => void) | null = null;
+  let rejections = 0;
+  let booted = false;
+  const supabase = {
+    auth: {
+      getUser: async () => ({ data: { user }, error: null }),
+      onAuthStateChange(listener: (event: string, session: { user: User } | null) => void) {
+        authListener = listener;
+        return { data: { subscription: { unsubscribe() {} } } };
+      },
+    },
+    from() { return {}; },
+  } as unknown as SupabaseBrowserClient;
+  const cleanup = startAuthenticatedWorkspaceSessionLifecycle({
+    supabase,
+    onUnavailable() {},
+    onSignedOut() {},
+    onRedirectError() {},
+    onPasswordRecovery() {},
+    async onBoot() { booted = true; },
+    onSessionRejected() { rejections += 1; },
+    onFailure() {},
+  });
+  const emit = (event: string) => (authListener as ((event: string, session: { user: User } | null) => void) | null)?.(event, null);
+  emit("SIGNED_OUT");
+  assert.equal(rejections, 0);
+  await new Promise((resolve) => setTimeout(resolve, 0));
+  assert.equal(booted, true);
+  emit("SIGNED_OUT");
+  assert.equal(rejections, 1);
+  cleanup();
 });
 
 test("session lifecycle cold-starts offline from the persisted Supabase session", async () => {
@@ -255,4 +290,13 @@ test("session lifecycle discards the start when the server rejects the persisted
   await new Promise((resolve) => setTimeout(resolve, 0));
   assert.deepEqual(failingEvents, ["boot:account-a", "rejected:Serverfehler"]);
   stop();
+});
+
+test("only a first sync that sent, pulled and found nothing and left the conflict markers keeps the published state", () => {
+  const idle = { mutations: 0, pulledChanges: false, conflicts: [] };
+  assert.equal(firstSyncChanged(idle, new Set(["card-a"]), new Set(["card-a"])), false);
+  assert.equal(firstSyncChanged(idle, new Set(["card-a"]), new Set()), true, "a conflict resolved on another device clears its marker");
+  assert.equal(firstSyncChanged({ ...idle, pulledChanges: true }, new Set(), new Set()), true);
+  assert.equal(firstSyncChanged({ ...idle, mutations: 2 }, new Set(), new Set()), true);
+  assert.equal(firstSyncChanged(null, new Set(), new Set()), true);
 });

@@ -1,5 +1,5 @@
 import * as v from "valibot";
-import { cloudTable, type CloudClient } from "./cloudQueries.ts";
+import type { CloudClient } from "./cloudQueries.ts";
 import type { Tables } from "./database.types.ts";
 import { withGlobalSchedulerPreferences } from "./deckSettings.ts";
 import type { ProfilePatch } from "./profileIntegrity.ts";
@@ -63,7 +63,14 @@ interface AuthClient<Auth> {
 
 type RedirectOptions = { emailRedirectTo?: string };
 
+interface ProfileQuery {
+  eq(column: string, value: string): ProfileQuery;
+  gt(column: string, value: string): ProfileQuery;
+  maybeSingle(): PromiseLike<{ data: unknown; error: unknown }>;
+}
+
 interface ProfilesTable {
+  select(columns: string): ProfileQuery;
   upsert(row: object, options: { onConflict: string; ignoreDuplicates?: boolean }): PromiseLike<{ error: unknown }> & {
     select(columns: string): { single(): PromiseLike<{ data: unknown; error: unknown }> };
   };
@@ -235,7 +242,7 @@ export function createProfilePatchRow(patch: ProfilePatch) {
 
 /** The account profile when its row changed after `since` (whenever `since` is null); null when unchanged. */
 export async function loadCloudProfileChange(client: CloudClient, userId: string, since: string | null) {
-  const query = cloudTable(client, "profiles").select("*").eq("id", userId);
+  const query = (client.from("profiles") as ProfilesTable).select("*").eq("id", userId);
   const { data, error } = await (since ? query.gt("updated_at", since) : query).maybeSingle();
   if (error) throw error;
   if (data == null) return null;
@@ -312,10 +319,29 @@ export async function getCloudUser<User extends CloudAuthUser>(client: UserClien
   return getCurrentUser(client);
 }
 
+/**
+ * The user of the session auth-js keeps in its storage, read without refreshing the token; null without a readable one.
+ * An expired token cannot be refreshed without a network, and auth-js retries for up to 30 s before it gives up.
+ */
+async function readStoredSessionUser<User extends CloudAuthUser>(client: UserClient<User>): Promise<User | null> {
+  const storageKey: unknown = Reflect.get(client.auth, "storageKey");
+  const storage: unknown = Reflect.get(client.auth, "storage");
+  if (typeof storageKey !== "string" || !storage || typeof Reflect.get(storage, "getItem") !== "function") return null;
+  try {
+    const stored: unknown = await Reflect.apply(Reflect.get(storage, "getItem"), storage, [storageKey]);
+    const session: unknown = typeof stored === "string" ? JSON.parse(stored) : stored;
+    const user: unknown = session && typeof session === "object" ? Reflect.get(session, "user") : null;
+    return user && typeof user === "object" && typeof Reflect.get(user, "id") === "string" ? user as User : null;
+  } catch {
+    return null;
+  }
+}
+
 export async function getPersistedCloudUser<User extends CloudAuthUser>(client: UserClient<User>) {
   await assertCloudClient(client);
   if (typeof client?.auth?.getSession !== "function") return null;
   const { data, error } = await client.auth.getSession();
+  if (error && isConnectivityFailure(error)) return readStoredSessionUser(client);
   if (error && !isSessionMissing(error)) throw error;
   return data?.session?.user ?? null;
 }
@@ -324,7 +350,7 @@ export async function getCloudWorkspaceUser<User extends CloudAuthUser>(
   client: UserClient<User>,
   online = typeof navigator === "undefined" || navigator.onLine !== false,
 ) {
-  if (!online) return getPersistedCloudUser(client);
+  if (!online) return (await readStoredSessionUser(client)) ?? getPersistedCloudUser(client);
   try {
     return await getCurrentUser(client);
   } catch (error) {
@@ -374,8 +400,9 @@ export async function signUpCloudAccount<User extends CloudAuthUser>(
   return saveCloudProfile(client, createCloudProfile(null, data.user, profile, timestamp), timestamp);
 }
 
-export async function signInCloudAccount(
-  client: AuthClient<{ signInWithPassword(credentials: { email: string; password: string }): PromiseLike<{ data: { user: CloudAuthUser | null }; error: unknown }> }>,
+/** The signed-in user, so the caller boots without asking the auth server again. */
+export async function signInCloudAccount<User extends CloudAuthUser>(
+  client: AuthClient<{ signInWithPassword(credentials: { email: string; password: string }): PromiseLike<{ data: { user: User | null }; error: unknown }> }>,
   profile: ProfileFields,
   password: string,
   timestamp = nowIso(),
@@ -386,14 +413,15 @@ export async function signInCloudAccount(
 
   const { data, error } = await client.auth.signInWithPassword({ email, password });
   if (error) throw error;
+  if (!data.user) throw new Error("Anmeldung konnte nicht bestätigt werden.");
 
   const initialProfile = createCloudProfile(null, data.user, profile, timestamp);
   const { error: profileError } = await (client.from("profiles") as ProfilesTable).upsert(
-    createProfileRow(initialProfile, data.user!, timestamp),
+    createProfileRow(initialProfile, data.user, timestamp),
     { onConflict: "id", ignoreDuplicates: true },
   );
   if (profileError) throw profileError;
-  return initialProfile;
+  return data.user;
 }
 
 export async function signInWithMagicLink(

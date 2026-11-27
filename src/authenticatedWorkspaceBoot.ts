@@ -37,12 +37,16 @@ export interface AuthenticatedWorkspaceBootResult {
 
 interface AuthenticatedWorkspaceBootstrapResult {
   conflictCount: number;
+  /** `updated_at` of the profile the bootstrap applied; null without a stored row. */
+  profileUpdatedAt: string | null;
 }
 
 interface AuthenticatedWorkspaceCloudResult {
   syncEngine: AccountSyncEngine;
   conflictCount: number;
   pendingCount: number;
+  /** false when the first sync sent, pulled and found nothing, as `appSyncLifecycle` judges a later one. */
+  changed: boolean;
 }
 
 export async function bootAuthenticatedWorkspace(
@@ -60,7 +64,7 @@ export async function bootAuthenticatedWorkspace(
     timeZone: state.profile.timezone,
   });
   const bootstrap = createBootstrapRetryCoordinator(supabase, user, repository);
-  const cloudSync = bootstrap.ready.then(() => finishAuthenticatedWorkspaceCloudSync(supabase, user.id, repository));
+  const cloudSync = bootstrap.ready.then((result) => finishAuthenticatedWorkspaceCloudSync(supabase, user.id, repository, result.profileUpdatedAt));
   return {
     repository,
     state,
@@ -193,7 +197,7 @@ async function finishAuthenticatedWorkspaceBootstrap(
   markReplicaStartupGate("accountBaselineReady", { deckCount: bootstrap.decks.length });
   // The 365-day forecast is not part of the first render; it completes the overview afterwards.
   void loadAccountDueForecast(supabase).then(repository.applyDueForecast).catch(() => undefined);
-  return { conflictCount: bootstrap.conflictCount };
+  return { conflictCount: bootstrap.conflictCount, profileUpdatedAt: bootstrap.profileUpdatedAt };
 }
 
 export async function applyBootstrapProfile(
@@ -212,15 +216,15 @@ async function finishAuthenticatedWorkspaceCloudSync(
   supabase: SupabaseBrowserClient,
   userId: string,
   repository: IndexedDbCoreRepository,
+  bootstrapProfileUpdatedAt: string | null,
 ): Promise<AuthenticatedWorkspaceCloudResult> {
   const [{ streamAccountCatalogChanges }, { createAccountSyncEngine }] = await Promise.all([
     import("./cloudRepository.ts"),
     import("./syncEngine.ts"),
   ]);
-  let profileSeenAt: string | null = null;
-  // A running app reads the profile again only after another device or tab changed it.
-  const pullProfile = async () => {
-    const change = await loadCloudProfileChange(supabase, userId, profileSeenAt);
+  // A running app reads the profile again only after another device or tab changed it, starting with the bootstrap's.
+  let profileSeenAt = bootstrapProfileUpdatedAt;
+  const applyProfileChange = async (change: Awaited<ReturnType<typeof loadCloudProfileChange>>) => {
     if (!change) return false;
     profileSeenAt = change.updatedAt;
     const before = JSON.stringify(repository.getShellState().profile);
@@ -228,11 +232,14 @@ async function finishAuthenticatedWorkspaceCloudSync(
     return JSON.stringify(repository.getShellState().profile) !== before;
   };
   const pullChanges = async () => {
+    // Requested with the catalog delta to save a round trip; applied after it, so local writes keep their order.
+    const profileChange = loadCloudProfileChange(supabase, userId, profileSeenAt);
+    profileChange.catch(() => undefined);
     const previousCursor = repository.getReplicaStatus().catalogCursor;
     const nextCursor = await streamAccountCatalogChanges(supabase, previousCursor, (pages) => repository.applyCloudCatalogPages(pages, { keepComplete: true }));
-    await repository.completeCatalogReconciliation(nextCursor);
+    if (nextCursor !== previousCursor || repository.getReplicaStatus().catalogCompleteness !== "complete") await repository.completeCatalogReconciliation(nextCursor);
     markReplicaStartupGate("catalogReconciled", { cursor: nextCursor });
-    const profileChanged = await pullProfile();
+    const profileChanged = await applyProfileChange(await profileChange);
     return nextCursor !== previousCursor || profileChanged;
   };
   const syncEngine = createAccountSyncEngine(supabase, {
@@ -253,6 +260,7 @@ async function finishAuthenticatedWorkspaceCloudSync(
   } catch {
     // Die Lifecycle-Retries dürfen auch dann installiert werden, wenn die erste Geräte-Registrierung offline scheitert.
   }
+  const conflictCardIdsBefore = repository.getSyncConflictCardIds();
   let syncResult: Awaited<ReturnType<typeof syncEngine.syncNow>> | null = null;
   try {
     syncResult = await syncEngine.syncNow();
@@ -264,7 +272,19 @@ async function finishAuthenticatedWorkspaceCloudSync(
     syncEngine,
     conflictCount: syncResult?.conflicts?.length ?? 0,
     pendingCount: syncEngine.pendingCount(),
+    changed: firstSyncChanged(syncResult, conflictCardIdsBefore, repository.getSyncConflictCardIds()),
   };
+}
+
+/** A failed first sync counts as changed; so does one that only cleared or set conflict markers. */
+export function firstSyncChanged(
+  result: { mutations?: number; pulledChanges?: boolean; conflicts?: unknown[] } | null,
+  conflictCardIdsBefore: ReadonlySet<string>,
+  conflictCardIdsAfter: ReadonlySet<string>,
+) {
+  const unchanged = result?.mutations === 0 && result.pulledChanges === false && !result.conflicts?.length;
+  const sameConflicts = conflictCardIdsBefore.size === conflictCardIdsAfter.size && [...conflictCardIdsBefore].every((id) => conflictCardIdsAfter.has(id));
+  return !unchanged || !sameConflicts;
 }
 
 export function startAuthenticatedWorkspaceSessionLifecycle({
@@ -284,6 +304,7 @@ export function startAuthenticatedWorkspaceSessionLifecycle({
   }
 
   let active = true;
+  let booted = false;
   const loadSession = async () => {
     try {
       const redirectOutcome = readCloudAuthRedirectOutcome();
@@ -299,6 +320,7 @@ export function startAuthenticatedWorkspaceSessionLifecycle({
       if (!active) return;
       if (persisted) {
         markSessionChecked();
+        booted = true;
         const boot = onBoot(persisted);
         boot.catch(() => undefined);
         let confirmed: User | null;
@@ -328,6 +350,7 @@ export function startAuthenticatedWorkspaceSessionLifecycle({
         onPasswordRecovery(user);
         return;
       }
+      booted = true;
       await onBoot(user);
     } catch (error) {
       if (active) onFailure(error);
@@ -336,8 +359,10 @@ export function startAuthenticatedWorkspaceSessionLifecycle({
 
   void loadSession();
   const { data } = supabase.auth.onAuthStateChange((event, session) => {
-    if (!active || event !== "PASSWORD_RECOVERY" || !session?.user) return;
-    onPasswordRecovery(session.user);
+    if (!active) return;
+    // A start from storage is confirmed only once the network returns; auth-js removes a rejected session then.
+    if (event === "SIGNED_OUT" && booted) onSessionRejected(null);
+    if (event === "PASSWORD_RECOVERY" && session?.user) onPasswordRecovery(session.user);
   });
 
   return () => {

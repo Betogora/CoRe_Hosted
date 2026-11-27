@@ -88,7 +88,8 @@ test("Freie Text- und Markerfarben erhalten die Auswahl trotz Fokuswechsel und R
   for (const [label, color, property, expected] of [["Textfarbe", "#e5484d", "color", "rgb(229, 72, 77)"], ["Hervorheben", "#f6dd8e", "backgroundColor", "rgb(246, 221, 142)"]] as const) {
     await editor.press("Control+A"); await panel.getByRole("button", { name: label, exact: true }).click(); await page.getByRole("dialog", { name: label, exact: true }).getByRole("radio", { name: `Farbe ${color.toUpperCase()}`, exact: true }).click();
     await expect.poll(() => editor.evaluate((el, args) => Array.from(el.querySelectorAll("*")).some((n) => getComputedStyle(n)[args.property] === args.expected), { property, expected })).toBe(true);
-    await panel.getByRole("button", { name: label, exact: true }).click();
+    // The closing menu hands focus back to its trigger; selecting again before that loses the selection.
+    await panel.getByRole("button", { name: label, exact: true }).click(); await expect(page.getByRole("dialog", { name: label, exact: true })).toBeHidden();
   }
   await finish(panel); await save(panel); await reload(page, panel); await node(panel, "Formatierte Notiz").dblclick();
   expect(await editor.evaluate((el) => Array.from(el.querySelectorAll("*")).some((n) => getComputedStyle(n).color === "rgb(229, 72, 77)"))).toBe(true);

@@ -34,7 +34,7 @@ export interface ExamPlanningScreenProps {
 }
 
 export function ExamPlanningScreen({ state, now, onLoadPlanningData, onSavePlanning, onSaveTasks, onStartUnit, onLoadSummaryAvailability, onLoadLocalCardIds, onDraftStateChange }: ExamPlanningScreenProps) {
-  const preferences = getGlobalSchedulerPreferences(state.profile);
+  const preferences = React.useMemo(() => getGlobalSchedulerPreferences(state.profile), [state.profile]);
   const deckSummaries = useWorkspaceValue((snapshot) => snapshot.deckSummaries);
   const [calendarDraft, setCalendarDraft] = React.useState<ExamPlanningSettings | null>(null);
   const { exams, capacity } = calendarDraft ?? preferences.examPlanning;
