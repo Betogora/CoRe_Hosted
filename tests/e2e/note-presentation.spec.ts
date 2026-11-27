@@ -91,8 +91,8 @@ test("Kartenbausteine: KaTeX lädt eingebettete Schriften, Diagnosen erst auf ih
   const question = demo.frameLocator('iframe[title="Frage"]');
   await expect(question.locator(".katex")).toHaveCount(4);
   await expect.poll(() => question.locator("html").evaluate(async (root) => {
-    const faces = await root.ownerDocument.fonts.load('16px "KaTeX_Math"', "x");
-    return faces.some((face) => face.status === "loaded");
+    const faces = await Promise.all(['16px "KaTeX_Math"', '16px "Manrope Variable"'].map((font) => root.ownerDocument.fonts.load(font, "x")));
+    return faces.every((loaded) => loaded.some((face) => face.status === "loaded"));
   })).toBe(true);
   await expect.poll(() => question.locator("style").textContent()).not.toContain("url(fonts/");
   await expect(demo.getByText("Diese Formel konnte nicht dargestellt werden.", { exact: true })).toHaveCount(0);

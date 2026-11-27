@@ -22,7 +22,11 @@ function loadPresentationFontCss(): Promise<string> {
   })).then((rules) => {
     cachedPresentationFontCss = rules.join("");
     return cachedPresentationFontCss;
-  }).catch(() => "");
+  }).catch(() => {
+    // A failed load (offline, an asset hash replaced by a deploy) is retried by the next card.
+    presentationFontCssPromise = null;
+    return "";
+  });
   return presentationFontCssPromise;
 }
 

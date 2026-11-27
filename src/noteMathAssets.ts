@@ -20,6 +20,9 @@ export function loadNoteMathCss(): Promise<string> {
       const name = source.match(/url\([^)]*\/([^/)]+\.woff2)\)/)?.[1];
       return name ? `src:url("${embedded[`../node_modules/katex/dist/fonts/${name}`]}") format("woff2")` : "";
     });
+  }).catch((error: unknown) => {
+    cssPromise = null;
+    throw error;
   });
   return cssPromise;
 }
