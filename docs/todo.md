@@ -23,7 +23,6 @@ Solche Pakete beginnen deshalb mit ihrer Messung (Schritt 0).
 | `affected-e2e` mit voller Suite | 12 bis 14 min (Testschritt 800 s); seit T1 ohne 266 s Katalog, seit T3 drei Shards mit je rund 140 s Tests statt 432 s, in CI noch ungemessen | höchstens 5 min |
 | `catalog-e2e` | 4,5 bis 6,5 min mit 2 Workern; seit T1 lokal auf 4 CPUs 176 statt 364 s, in CI noch ungemessen | höchstens 4 min |
 | Roundtrips nacheinander je Bewertung | 5; seit A4 3 (ohne `getUser`, Profil parallel zum Delta) | 2 |
-| `srcdoc` einer Formelkarte | rund 400 KB | rund 30 KB |
 
 Für alle Pakete gilt:
 
@@ -33,18 +32,17 @@ Für alle Pakete gilt:
 - Der Branch berührt Service Worker und Chunking, später auch Bootstrap
   und Sync: vor dem gemeinsamen Merge
   `gh workflow run weekly-performance.yml --ref <branch>`.
-- **Hill-Climbing** (H2, H4): je Schritt genau eine Änderung, Kennzahl
+- **Hill-Climbing** (H4): je Schritt genau eine Änderung, Kennzahl
   vorher und nachher messen, nur übernehmen, wenn sie sinkt und alle Gates
   grün bleiben. Ende beim Ziel oder nach drei Schritten in Folge ohne
   nennenswerten Gewinn (unter 1 KiB, unter 2 % oder Zähler unverändert).
 - Unverändert lassen: `quality` (rund 50 s, Engpass Typecheck samt knip),
   Modultests (179 Dateien in 12 s) und RLS (21 Fälle in 6 s).
 
-Reihenfolge: A4, danach T4, A7 und T5 nach Bedarf.
+Reihenfolge: A4, danach A7 und T5 nach Bedarf.
 
 | Spur | Kennzahl | Schleife | Paket |
 | --- | --- | --- | --- |
-| H2 | Sekunden je Spec | `npm run test:e2e:catalog` lokal ohne Docker (rund 3 min); Supabase-Specs über die Artefakte `*-e2e-timings` aus CI, danach `SUPABASE_SHARDS` nachziehen | T4 |
 | H4 | Requests je Bewertung und je Leerlauf-Sync | Zähler gegen `tests/support/fakeLearningCloud.ts` | A4 |
 
 ### App
@@ -98,20 +96,6 @@ Reihenfolge: A4, danach T4, A7 und T5 nach Bedarf.
 
 ### Tests
 
-- [ ] **T4 – Suite verschlanken (H2):** Vor jedem Streichen oder
-      Zusammenlegen den Test benennen, der den Vertrag weiter schützt;
-      `@golden-e2e` und `@beta-core` bleiben unangetastet.
-  - Der Konto-Reset kostet rund 1,3 s je Test, bei 105 Resets 32 % der
-    Suite. Rein lesende Layout-Tests teilen sich einen Reset oder wandern
-    in den Katalog: `core-stabilization` :182, :258, :321, :596, :1010;
-    `product-surfaces` :12, :26, :158, :346, :427, :468, :501, :752;
-    `world-capitals-hierarchy` :186, :227, :281, :736; `navigation-context`
-    :195, :770. `resetToFreshLocalState` (`appState.ts:125`) nimmt einen
-    Startpfad an, statt fest `/` zu laden.
-  - Fünf Tests fahren einen vollen APKG-Import über die Oberfläche;
-    `exam-planning` klickt den Assistenten viermal.
-  - Nachweis: Sekunden je Spec vorher und nachher aus den Artefakten
-    `*-e2e-timings`, je Änderung der schützende Zwilling im Commit.
 - [ ] **T5 – Erst messen, dann entscheiden:**
   - Production-Build mit `vite preview` statt Dev-Server für die
     Supabase-Suite (rund 240 Kaltstarts laden 312 ungebündelte Module;

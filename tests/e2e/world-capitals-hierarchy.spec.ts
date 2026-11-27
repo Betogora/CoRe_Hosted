@@ -1,6 +1,6 @@
 import { expect, test, type Locator, type Page } from "@playwright/test";
 import { createCoreDeck } from "../../src/coreModel.ts";
-import { readActiveAccountState, resetToFreshLocalState } from "./support/appState.ts";
+import { readActiveAccountState, resetToFreshLocalState, shareFreshLocalState } from "./support/appState.ts";
 import { deckSettingsDialog, openSettingsArea } from "./support/settingsDialog.ts";
 import { openNavigationMenuItem } from "./support/navigationMenu.ts";
 import { visualOutput } from "./support/visualMatrix.ts";
@@ -183,99 +183,121 @@ test("learning shows the full grouped tree without progress ring and direct drag
   await expect(page.getByRole("button", { name: "Antwort anzeigen" })).toBeVisible();
 });
 
-test("deck drag focus uses square row holes with desktop top bar and mobile bottom bar targets", async ({ page }) => {
-  await page.setViewportSize({ width: 1536, height: 1000 });
-  await resetToFreshLocalState(page);
-  await mainMenu(page).getByRole("button", { name: "Lernen" }).click();
+test.describe("ohne Änderung an Konto und App-Zustand, auf einem gemeinsamen Reset", () => {
+  const freshPage = shareFreshLocalState();
 
-  const source = page.getByTestId(`learn-deck-row-${DECK_IDS.root}`);
-  await startDeckDrag(page, source);
-  const overlay = page.getByTestId("deck-drag-focus-overlay");
-  await expect(overlay).toBeVisible();
-  const sourceHole = overlay.locator('[data-drag-focus-hole="true"]');
-  await expect(sourceHole).toHaveCount(1);
-  expect(await sourceHole.getAttribute("rx")).toBeNull();
-  const topBarPanel = page.locator('[data-navigation-layout="top-bar"] [data-shell-bar]');
-  const topBarTarget = page.getByTestId("learn-top-drop-zone");
-  await expect(topBarTarget).toHaveAttribute("data-deck-top-drop-placement", "top-bar");
-  const [topBarBox, topBarTargetBox] = await Promise.all([topBarPanel.boundingBox(), topBarTarget.boundingBox()]);
-  expect(topBarBox).not.toBeNull();
-  expect(topBarTargetBox).not.toBeNull();
-  expect(topBarTargetBox!.x).toBeCloseTo(topBarBox!.x + 8, 0);
-  expect(topBarTargetBox!.y).toBeCloseTo(topBarBox!.y, 0);
-  expect(topBarTargetBox!.width).toBeCloseTo(topBarBox!.width - 16, 0);
-  expect(topBarTargetBox!.height).toBeCloseTo(topBarBox!.height, 0);
-  await cancelDeckDrag(page);
+  test("deck drag focus uses square row holes with desktop top bar and mobile bottom bar targets", async () => {
+    const page = await freshPage();
+    await page.setViewportSize({ width: 1536, height: 1000 });
+    await mainMenu(page).getByRole("button", { name: "Lernen" }).click();
 
-  await page.setViewportSize({ width: 390, height: 844 });
-  const bottomBar = page.locator('[data-navigation-layout="bottom-bar"]');
-  await expect(bottomBar).toBeVisible();
-  const bottomBarBox = await bottomBar.boundingBox();
-  await startDeckDrag(page, source);
-  const bottomTarget = page.getByTestId("learn-top-drop-zone");
-  await expect(bottomTarget).toHaveAttribute("data-deck-top-drop-placement", "bottom-bar");
-  const bottomTargetBox = await bottomTarget.boundingBox();
-  expect(bottomBarBox).not.toBeNull();
-  expect(bottomTargetBox).not.toBeNull();
-  expect(bottomTargetBox!.x).toBeCloseTo(bottomBarBox!.x, 0);
-  expect(bottomTargetBox!.y).toBeCloseTo(bottomBarBox!.y, 0);
-  expect(bottomTargetBox!.width).toBeCloseTo(bottomBarBox!.width, 0);
-  expect(bottomTargetBox!.height).toBeCloseTo(bottomBarBox!.height, 0);
-  await cancelDeckDrag(page);
-});
+    const source = page.getByTestId(`learn-deck-row-${DECK_IDS.root}`);
+    await startDeckDrag(page, source);
+    const overlay = page.getByTestId("deck-drag-focus-overlay");
+    await expect(overlay).toBeVisible();
+    const sourceHole = overlay.locator('[data-drag-focus-hole="true"]');
+    await expect(sourceHole).toHaveCount(1);
+    expect(await sourceHole.getAttribute("rx")).toBeNull();
+    const topBarPanel = page.locator('[data-navigation-layout="top-bar"] [data-shell-bar]');
+    const topBarTarget = page.getByTestId("learn-top-drop-zone");
+    await expect(topBarTarget).toHaveAttribute("data-deck-top-drop-placement", "top-bar");
+    const [topBarBox, topBarTargetBox] = await Promise.all([topBarPanel.boundingBox(), topBarTarget.boundingBox()]);
+    expect(topBarBox).not.toBeNull();
+    expect(topBarTargetBox).not.toBeNull();
+    expect(topBarTargetBox!.x).toBeCloseTo(topBarBox!.x + 8, 0);
+    expect(topBarTargetBox!.y).toBeCloseTo(topBarBox!.y, 0);
+    expect(topBarTargetBox!.width).toBeCloseTo(topBarBox!.width - 16, 0);
+    expect(topBarTargetBox!.height).toBeCloseTo(topBarBox!.height, 0);
+    await cancelDeckDrag(page);
 
-test("statistics deck filter uses full-width selection rows while keeping multiple selection", async ({ page }) => {
-  await resetToFreshLocalState(page);
-  await openNavigationMenuItem(page, "Statistik");
+    await page.setViewportSize({ width: 390, height: 844 });
+    const bottomBar = page.locator('[data-navigation-layout="bottom-bar"]');
+    await expect(bottomBar).toBeVisible();
+    const bottomBarBox = await bottomBar.boundingBox();
+    await startDeckDrag(page, source);
+    const bottomTarget = page.getByTestId("learn-top-drop-zone");
+    await expect(bottomTarget).toHaveAttribute("data-deck-top-drop-placement", "bottom-bar");
+    const bottomTargetBox = await bottomTarget.boundingBox();
+    expect(bottomBarBox).not.toBeNull();
+    expect(bottomTargetBox).not.toBeNull();
+    expect(bottomTargetBox!.x).toBeCloseTo(bottomBarBox!.x, 0);
+    expect(bottomTargetBox!.y).toBeCloseTo(bottomBarBox!.y, 0);
+    expect(bottomTargetBox!.width).toBeCloseTo(bottomBarBox!.width, 0);
+    expect(bottomTargetBox!.height).toBeCloseTo(bottomBarBox!.height, 0);
+    await cancelDeckDrag(page);
+  });
 
-  const trigger = page.getByRole("combobox", { name: /Stapel filtern/ });
-  await trigger.click();
-  const search = page.getByRole("textbox", { name: "Stapel suchen" });
-  await expect(search).toBeVisible();
-  await expect(search).toBeFocused();
-  const selectContent = page.locator('[data-deck-select-content="true"]:visible');
-  const viewport = selectContent.locator('[data-deck-select-viewport="true"]');
-  await expect.poll(() => viewport.evaluate((element) => getComputedStyle(element).overflowY)).toBe("auto");
-  await expect(viewport.locator(':scope > div[aria-hidden="true"]')).toHaveCount(1);
-  await expect(viewport.locator('input[type="checkbox"], [role="checkbox"]')).toHaveCount(0);
-  let allOption = viewport.getByRole("option", { name: "Gesamte Sammlung", exact: true });
-  await expect(allOption).toHaveAttribute("aria-selected", "true");
-  await expect(allOption.locator(".lucide-check")).toHaveCount(1);
-  const selectedBackground = await allOption.evaluate((option) => getComputedStyle(option).backgroundColor);
+  test("statistics deck filter uses full-width selection rows while keeping multiple selection", async () => {
+    const page = await freshPage();
+    await openNavigationMenuItem(page, "Statistik");
 
-  await search.fill("Europa");
-  const europeOption = viewport.getByRole("option", { name: "Welt-Hauptstädte / Europa", exact: true });
-  await expect(europeOption).toBeVisible();
-  await expect(viewport.getByRole("option", { name: "Welt-Hauptstädte", exact: true })).toHaveCount(0);
-  await expectDeckOptionUsesFullWidth(europeOption);
-  await europeOption.click();
-  await expect(trigger).toContainText("Europa");
+    const trigger = page.getByRole("combobox", { name: /Stapel filtern/ });
+    await trigger.click();
+    const search = page.getByRole("textbox", { name: "Stapel suchen" });
+    await expect(search).toBeVisible();
+    await expect(search).toBeFocused();
+    const selectContent = page.locator('[data-deck-select-content="true"]:visible');
+    const viewport = selectContent.locator('[data-deck-select-viewport="true"]');
+    await expect.poll(() => viewport.evaluate((element) => getComputedStyle(element).overflowY)).toBe("auto");
+    await expect(viewport.locator(':scope > div[aria-hidden="true"]')).toHaveCount(1);
+    await expect(viewport.locator('input[type="checkbox"], [role="checkbox"]')).toHaveCount(0);
+    let allOption = viewport.getByRole("option", { name: "Gesamte Sammlung", exact: true });
+    await expect(allOption).toHaveAttribute("aria-selected", "true");
+    await expect(allOption.locator(".lucide-check")).toHaveCount(1);
+    const selectedBackground = await allOption.evaluate((option) => getComputedStyle(option).backgroundColor);
 
-  await expect(trigger).toHaveAttribute("aria-expanded", "true");
-  await search.fill("");
-  const reopenedViewport = page.locator('[data-deck-select-content="true"]:visible [data-deck-select-viewport="true"]');
-  allOption = reopenedViewport.getByRole("option", { name: "Gesamte Sammlung", exact: true });
-  const reopenedEuropeOption = reopenedViewport.getByRole("option", { name: "Welt-Hauptstädte / Europa", exact: true });
-  await expect(allOption).toHaveAttribute("aria-selected", "false");
-  await expect(reopenedEuropeOption).toHaveAttribute("aria-selected", "true");
-  await expect(reopenedEuropeOption.locator(".lucide-check")).toHaveCount(1);
-  expect(await reopenedEuropeOption.evaluate((option) => getComputedStyle(option).backgroundColor)).toBe(selectedBackground);
-  expect(await reopenedEuropeOption.evaluate((option) => getComputedStyle(option).opacity)).toBe("1");
-  const southAmericaOption = reopenedViewport.getByRole("option", { name: "Welt-Hauptstädte / Südamerika", exact: true });
-  await southAmericaOption.click();
-  await expect(trigger).toContainText("2 Stapel ausgewählt");
-  await expect(trigger).toHaveAttribute("aria-expanded", "true");
-  const finalViewport = page.locator('[data-deck-select-content="true"]:visible [data-deck-select-viewport="true"]');
-  await expect(finalViewport.getByRole("option", { name: "Welt-Hauptstädte / Europa", exact: true })).toHaveAttribute("aria-selected", "true");
-  await expect(finalViewport.getByRole("option", { name: "Welt-Hauptstädte / Südamerika", exact: true })).toHaveAttribute("aria-selected", "true");
-  allOption = finalViewport.getByRole("option", { name: "Gesamte Sammlung", exact: true });
-  await allOption.click();
-  await expect(trigger).toContainText("Gesamte Sammlung");
+    await search.fill("Europa");
+    const europeOption = viewport.getByRole("option", { name: "Welt-Hauptstädte / Europa", exact: true });
+    await expect(europeOption).toBeVisible();
+    await expect(viewport.getByRole("option", { name: "Welt-Hauptstädte", exact: true })).toHaveCount(0);
+    await expectDeckOptionUsesFullWidth(europeOption);
+    await europeOption.click();
+    await expect(trigger).toContainText("Europa");
 
-  await trigger.click();
-  await expect(trigger).toHaveAttribute("aria-expanded", "false");
-  await trigger.click();
-  await expect(page.getByRole("textbox", { name: "Stapel suchen" })).toHaveValue("");
+    await expect(trigger).toHaveAttribute("aria-expanded", "true");
+    await search.fill("");
+    const reopenedViewport = page.locator('[data-deck-select-content="true"]:visible [data-deck-select-viewport="true"]');
+    allOption = reopenedViewport.getByRole("option", { name: "Gesamte Sammlung", exact: true });
+    const reopenedEuropeOption = reopenedViewport.getByRole("option", { name: "Welt-Hauptstädte / Europa", exact: true });
+    await expect(allOption).toHaveAttribute("aria-selected", "false");
+    await expect(reopenedEuropeOption).toHaveAttribute("aria-selected", "true");
+    await expect(reopenedEuropeOption.locator(".lucide-check")).toHaveCount(1);
+    expect(await reopenedEuropeOption.evaluate((option) => getComputedStyle(option).backgroundColor)).toBe(selectedBackground);
+    expect(await reopenedEuropeOption.evaluate((option) => getComputedStyle(option).opacity)).toBe("1");
+    const southAmericaOption = reopenedViewport.getByRole("option", { name: "Welt-Hauptstädte / Südamerika", exact: true });
+    await southAmericaOption.click();
+    await expect(trigger).toContainText("2 Stapel ausgewählt");
+    await expect(trigger).toHaveAttribute("aria-expanded", "true");
+    const finalViewport = page.locator('[data-deck-select-content="true"]:visible [data-deck-select-viewport="true"]');
+    await expect(finalViewport.getByRole("option", { name: "Welt-Hauptstädte / Europa", exact: true })).toHaveAttribute("aria-selected", "true");
+    await expect(finalViewport.getByRole("option", { name: "Welt-Hauptstädte / Südamerika", exact: true })).toHaveAttribute("aria-selected", "true");
+    allOption = finalViewport.getByRole("option", { name: "Gesamte Sammlung", exact: true });
+    await allOption.click();
+    await expect(trigger).toContainText("Gesamte Sammlung");
+
+    await trigger.click();
+    await expect(trigger).toHaveAttribute("aria-expanded", "false");
+    await trigger.click();
+    await expect(page.getByRole("textbox", { name: "Stapel suchen" })).toHaveValue("");
+  });
+
+  test("three-dot actions use the local-name tooltip in learning", async () => {
+    const page = await freshPage();
+
+    const tooltip = page.getByRole("tooltip");
+    await mainMenu(page).getByRole("button", { name: "Lernen" }).click();
+    const learningOptions = page.getByRole("button", { name: "Stapeloptionen für Welt-Hauptstädte / Afrika" });
+    await expect(learningOptions).not.toHaveAttribute("title");
+    await learningOptions.focus();
+    await expect(tooltip).toHaveText("Stapeloptionen für Afrika");
+    await page.keyboard.press("Escape");
+    await expect(tooltip).toHaveCount(0);
+    await learningOptions.click();
+    const learningMenu = page.getByTestId(`deck-options-menu-${DECK_IDS.africa}`);
+    await expect(learningMenu.getByText("Afrika", { exact: true })).toBeVisible();
+    await expect(learningMenu).not.toContainText("Welt-Hauptstädte / Afrika");
+    await page.keyboard.press("Escape");
+  });
 });
 
 test("active deck header and rows fit every target width and toggle reliably on mobile", async ({ page }) => {
@@ -731,22 +753,4 @@ test("a real Play click immediately after drag starts learning", async ({ page }
   await southAmericaRow.getByRole("button", { name: /Südamerika lernen$/ }).click({ force: true });
 
   await expect(page.getByRole("button", { name: "Antwort anzeigen" })).toBeVisible();
-});
-
-test("three-dot actions use the local-name tooltip in learning", async ({ page }) => {
-  await resetToFreshLocalState(page);
-
-  const tooltip = page.getByRole("tooltip");
-  await mainMenu(page).getByRole("button", { name: "Lernen" }).click();
-  const learningOptions = page.getByRole("button", { name: "Stapeloptionen für Welt-Hauptstädte / Afrika" });
-  await expect(learningOptions).not.toHaveAttribute("title");
-  await learningOptions.focus();
-  await expect(tooltip).toHaveText("Stapeloptionen für Afrika");
-  await page.keyboard.press("Escape");
-  await expect(tooltip).toHaveCount(0);
-  await learningOptions.click();
-  const learningMenu = page.getByTestId(`deck-options-menu-${DECK_IDS.africa}`);
-  await expect(learningMenu.getByText("Afrika", { exact: true })).toBeVisible();
-  await expect(learningMenu).not.toContainText("Welt-Hauptstädte / Afrika");
-  await page.keyboard.press("Escape");
 });
