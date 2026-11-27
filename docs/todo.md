@@ -104,28 +104,14 @@ Reihenfolge: A4, danach T4, A7 und T5 nach Bedarf.
   - Der Konto-Reset kostet rund 1,3 s je Test, bei 105 Resets 32 % der
     Suite. Rein lesende Layout-Tests teilen sich einen Reset oder wandern
     in den Katalog: `core-stabilization` :182, :258, :321, :596, :1010;
-    `product-surfaces` :12, :26, :158, :292, :362, :444, :485, :518, :769;
+    `product-surfaces` :12, :26, :158, :346, :427, :468, :501, :752;
     `world-capitals-hierarchy` :186, :227, :281, :736; `navigation-context`
     :195, :770. `resetToFreshLocalState` (`appState.ts:125`) nimmt einen
     Startpfad an, statt fest `/` zu laden.
-  - `mindmaps.spec.ts` (27 Tests, 31 % der Katalogzeit): 15 Tests legen
-    drei Karten über die Oberfläche an, 18-mal 600 ms Autosave, 16
-    Reloads. Speichern und Reload nur in :47, :117, :150 und :176; :296,
-    :316 und :324 sowie :253 und :98 zusammenlegen. Die Serialisierung
-    deckt `src/learningMindMaps.test.ts`.
-  - `dashboard-widgets.spec.ts` (26 Tests): :235 in :402 aufnehmen, :291
-    und :479 zusammenlegen, den Maskottchen-Block (:343-399, 38
-    `file://`-Navigationen) nach `nightly-core`.
-  - Faktisch doppelt: `batch-resilience:392` (deckt
-    `apkg-quality-report:119`), `product-surfaces:292` (Teilmenge von
-    :202) und :787 (`src/appNavigation.test.ts:166`),
-    `navigation-context:430` (`src/appNavigation.test.ts`) und :663, :687
-    (Katalog `learning-summaries`), `card-lifecycle` :470, :504, :694
-    (gleicher Stapel, gleiche Liste), `auth-lifecycle:32-43`
-    (`first-learning:110`). Fünf Tests fahren einen vollen APKG-Import
-    über die Oberfläche; `exam-planning` klickt den Assistenten viermal.
-  - Nachweis: Sekunden je Spec vorher und nachher, je Änderung der
-    schützende Zwilling im Commit.
+  - Fünf Tests fahren einen vollen APKG-Import über die Oberfläche;
+    `exam-planning` klickt den Assistenten viermal.
+  - Nachweis: Sekunden je Spec vorher und nachher aus den Artefakten
+    `*-e2e-timings`, je Änderung der schützende Zwilling im Commit.
 - [ ] **T5 – Erst messen, dann entscheiden:**
   - Production-Build mit `vite preview` statt Dev-Server für die
     Supabase-Suite (rund 240 Kaltstarts laden 312 ungebündelte Module;

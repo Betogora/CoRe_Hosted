@@ -199,14 +199,19 @@ test("settings save bar keeps its depth and responsive position", async ({ page 
   await page.evaluate(() => { document.documentElement.dataset.coreTheme = "light"; });
 });
 
-test("deck expansion preserves the complete profile across reload and an isolated browser context", async ({ page, browser }) => {
+test("deck expansion responds immediately and preserves the complete profile across reload and an isolated browser context", async ({ page, browser }) => {
   await resetToFreshLocalState(page);
   const before = (await readActiveAccountState(page)).profile;
   await page.goto("/lernen");
   const rootRow = page.getByTestId("learn-deck-row-deck_world_capitals");
   const toggle = rootRow.getByRole("button", { name: /Unterstapel von Welt-Hauptstädte (?:anzeigen|ausblenden)/ });
+  const child = page.getByTestId("learn-deck-row-deck_world_capitals_afrika");
 
+  await expect(toggle).toHaveAttribute("aria-expanded", "true");
+  await expect(child).toBeVisible();
   await toggle.click();
+  await expect(toggle).toHaveAttribute("aria-expanded", "false");
+  await expect(child).toHaveCount(0);
   const syncUtilities = page.locator('[data-navigation-utilities="true"]').first();
   await expect(syncUtilities).toHaveAttribute("data-sync-status", "pending");
   await expect(syncUtilities).toHaveAttribute("data-sync-status", "saved", { timeout: 20_000 });
@@ -287,27 +292,6 @@ test("a pin on this device keeps a newer setting from another device and shows i
     return [(data?.scheduler_preferences as { dayStartHour?: number } | undefined)?.dayStartHour, (data?.ui_preferences as { dashboardPinnedDeckIds?: string[] } | undefined)?.dashboardPinnedDeckIds];
   }, { timeout: 20_000 }).toEqual([5, ["deck_world_capitals_afrika"]]);
   await expect.poll(async () => (await readActiveAccountState(page)).profile.schedulerPreferences.dayStartHour, { timeout: 20_000 }).toBe(5);
-});
-
-test("deck expansion responds immediately in learning", async ({ page }) => {
-  await resetToFreshLocalState(page);
-
-  for (const surface of [{ path: "/lernen", mode: "learn" }]) {
-    await page.goto(surface.path);
-    await page.locator('[data-app-navigation="true"]:visible').first().waitFor({ state: "visible" });
-    const root = page.getByTestId(`${surface.mode}-deck-row-deck_world_capitals`);
-    const child = page.getByTestId(`${surface.mode}-deck-row-deck_world_capitals_afrika`);
-    const toggle = root.getByRole("button", { name: /Unterstapel von Welt-Hauptstädte (?:anzeigen|ausblenden)/ });
-
-    await expect(toggle).toHaveAttribute("aria-expanded", "true");
-    await expect(child).toBeVisible();
-    await toggle.click();
-    await expect(toggle).toHaveAttribute("aria-expanded", "false");
-    await expect(child).toHaveCount(0);
-    await toggle.click();
-    await expect(toggle).toHaveAttribute("aria-expanded", "true");
-    await expect(child).toBeVisible();
-  }
 });
 
 test("settings drafts block closing, group switches and browser history until saving", async ({ page }) => {
@@ -780,13 +764,5 @@ test("creation choices stay compact in both desktop target viewports", async ({ 
       expect(box!.y + box!.height).toBeLessThanOrEqual(viewport.height);
     }
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)).toBe(true);
-  }
-});
-
-test("retired Labs URLs always fall back to Today", async ({ page }) => {
-  for (const path of ["/graph", "/community", "/assistent", "/ki-jobs", "/lernplan"]) {
-    await page.goto(path);
-    await expect(page.getByRole("heading", { name: /^Willkommen (?:bei CoRe|zurück,)/ })).toBeVisible();
-    await expect(page).not.toHaveURL(new RegExp(`${path}$`));
   }
 });

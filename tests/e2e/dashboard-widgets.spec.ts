@@ -231,41 +231,6 @@ test("Widgetoptionen erhalten Pfeile und Entfernen ohne Größenwahl; abgebroche
   await expect.poll(() => order(page)).toEqual(defaults);
 });
 
-test("Timer: Minuten, Dauern, Mausrad, Pause und Fortsetzen", async ({ page }) => {
-  await openEditor(page);
-  await page.getByRole("button", { name: "Fertig", exact: true }).click();
-  const timer = page.locator('[data-dashboard-widget="timer"]');
-  const minutes = timer.getByRole("spinbutton", { name: "Minuten", exact: true });
-  await expect(timer.getByRole("button", { name: "25 Minuten", exact: true })).toHaveAttribute("aria-pressed", "true");
-  await timer.getByRole("button", { name: "50 Minuten", exact: true }).click();
-  await expect(minutes).toHaveValue("50");
-  await timer.getByRole("button", { name: "Dauer eintippen", exact: true }).click();
-  await expect(minutes).toBeFocused();
-  await page.keyboard.type("1");
-  await expect(minutes).toHaveValue("01");
-  await minutes.press("ArrowUp");
-  await expect(minutes).toHaveValue("02");
-  await minutes.hover(); await page.mouse.wheel(0, -100);
-  await expect(minutes).toHaveValue("04");
-  await timer.getByRole("button", { name: "Lerntimer starten", exact: true }).press("Enter");
-  await expect(minutes).toHaveCount(0);
-  await expect(timer.getByRole("button", { name: "Lerntimer pausieren", exact: true })).toBeFocused();
-  const clock = timer.getByRole("timer");
-  await expect(clock).toContainText(/0[34]:\d\d/);
-  await expect(timer.getByRole("button", { name: "Lerntimer zurücksetzen", exact: true })).toBeDisabled();
-  await timer.getByRole("button", { name: "Lerntimer pausieren", exact: true }).click();
-  const frozen = await clock.textContent();
-  await page.waitForTimeout(1200);
-  await expect(clock).toHaveText(frozen!);
-  await timer.getByRole("button", { name: "Lerntimer fortsetzen", exact: true }).click();
-  await expect.poll(() => clock.textContent()).not.toBe(frozen);
-  await timer.getByRole("button", { name: "Lerntimer pausieren", exact: true }).click();
-  await timer.getByRole("button", { name: "Lerntimer zurücksetzen", exact: true }).press("Enter");
-  await expect(minutes).toHaveValue("04");
-  await expect(timer.getByRole("button", { name: "Lerntimer starten", exact: true })).toBeFocused();
-  await expect(timer.getByText(/Bereit|Endet um|Dauer ändern/)).toHaveCount(0);
-});
-
 for (const width of [390, 1440]) test(`Widget aus Menüband ziehen ${width}`, async ({ page }, info) => {
   await page.setViewportSize({ width, height: 900 });
   await openEditor(page);
@@ -295,23 +260,6 @@ for (const width of [390, 1440]) test(`Widget aus Menüband ziehen ${width}`, as
   await expect.poll(() => page.locator('[data-dashboard-widget="timer"]').evaluate((widget) => widget.getBoundingClientRect().height >= widget.querySelector('.dashboard-widget-body')!.getBoundingClientRect().height)).toBe(true);
   await page.reload();
   await expect.poll(() => order(page)).toEqual(["timer", "learning", "motivation", "decks", "todos", "heatmap"]);
-});
-
-for (const { width, height } of sizes) for (const theme of matrixThemes) test(`Widget-Kacheln und Menüband ${width} ${theme}`, async ({ page }, info) => {
-  await page.setViewportSize({ width, height });
-  await openEditor(page, theme === "dark");
-  await page.getByRole("button", { name: "Fertig", exact: true }).click();
-  await page.locator('[data-dashboard-widget="decks"]').scrollIntoViewIfNeeded();
-  if (visualOutput) await page.screenshot({ path: info.outputPath("08-angepinnte-stapel.png") });
-  expect(await page.locator(".catalog-product-preview").evaluate((element) => element.scrollWidth > element.clientWidth + 1)).toBe(false);
-  await page.getByRole("button", { name: "Seite bearbeiten", exact: true }).click();
-  const more = page.getByRole("button", { name: "Weitere Widgets", exact: true });
-  if (await more.isVisible()) await more.click();
-  await page.locator(".dashboard-widget-library").scrollIntoViewIfNeeded();
-  await expect(page.locator(".dashboard-mini-cells i")).toHaveCount(35);
-  expect(await page.locator(".dashboard-mini-cells i").first().evaluate((cell) => cell.getBoundingClientRect().width)).toBeGreaterThan(6);
-  if (visualOutput) await page.screenshot({ path: info.outputPath("09-menueband.png") });
-  expect(await page.locator(".catalog-product-preview").evaluate((element) => element.scrollWidth > element.clientWidth + 1)).toBe(false);
 });
 
 for (const { width, height } of matrixViewports()) for (const theme of matrixThemes) {
@@ -409,11 +357,40 @@ test.describe("Maskottchen-Vorrat", () => {
 });
 
 
-test("Timer: Füllstand, Pause und Zurücksetzen auf die Startdauer", async ({ page }, info) => {
+test("Timer: Minuten, Dauern, Mausrad, Füllstand, Pause, Fortsetzen und Zurücksetzen auf die Startdauer", async ({ page }, info) => {
   await page.clock.install();
   await page.goto("/docs/ui-elements.html?preview=dashboard");
   const timer = page.locator('[data-dashboard-widget="timer"]');
   const minutes = timer.getByRole("spinbutton", { name: "Minuten", exact: true });
+  await expect(timer.getByRole("button", { name: "25 Minuten", exact: true })).toHaveAttribute("aria-pressed", "true");
+  await timer.getByRole("button", { name: "50 Minuten", exact: true }).click();
+  await expect(minutes).toHaveValue("50");
+  await timer.getByRole("button", { name: "Dauer eintippen", exact: true }).click();
+  await expect(minutes).toBeFocused();
+  await page.keyboard.type("1");
+  await expect(minutes).toHaveValue("01");
+  await minutes.press("ArrowUp");
+  await expect(minutes).toHaveValue("02");
+  await minutes.hover(); await page.mouse.wheel(0, -100);
+  await expect(minutes).toHaveValue("04");
+  await timer.getByRole("button", { name: "Lerntimer starten", exact: true }).press("Enter");
+  await expect(minutes).toHaveCount(0);
+  await expect(timer.getByRole("button", { name: "Lerntimer pausieren", exact: true })).toBeFocused();
+  const clock = timer.getByRole("timer");
+  await expect(clock).toContainText(/0[34]:\d\d/);
+  await expect(timer.getByRole("button", { name: "Lerntimer zurücksetzen", exact: true })).toBeDisabled();
+  await timer.getByRole("button", { name: "Lerntimer pausieren", exact: true }).click();
+  const frozen = await clock.textContent();
+  await page.clock.fastForward(2000);
+  await expect(clock).toHaveText(frozen!);
+  await timer.getByRole("button", { name: "Lerntimer fortsetzen", exact: true }).click();
+  await page.clock.fastForward(2000);
+  await expect.poll(() => clock.textContent()).not.toBe(frozen);
+  await timer.getByRole("button", { name: "Lerntimer pausieren", exact: true }).click();
+  await timer.getByRole("button", { name: "Lerntimer zurücksetzen", exact: true }).press("Enter");
+  await expect(minutes).toHaveValue("04");
+  await expect(timer.getByRole("button", { name: "Lerntimer starten", exact: true })).toBeFocused();
+  await expect(timer.getByText(/Bereit|Endet um|Dauer ändern/)).toHaveCount(0);
   const level = timer.locator(".core-study-timer-level");
   const height = () => level.evaluate((element) => parseFloat((element as HTMLElement).style.height));
   await minutes.fill("02");
@@ -424,9 +401,9 @@ test("Timer: Füllstand, Pause und Zurücksetzen auf die Startdauer", async ({ p
   await expect(timer.getByRole("timer")).toContainText(/01:[23]\d/);
   await expect.poll(height).toBeGreaterThan(20);
   await timer.getByRole("button", { name: "Lerntimer pausieren", exact: true }).click();
-  const frozen = await height();
+  const frozenLevel = await height();
   await page.clock.fastForward(60000);
-  expect(await height()).toBe(frozen);
+  expect(await height()).toBe(frozenLevel);
   await expect(timer.locator(".core-study-timer-tile")).toHaveAttribute("data-state", "paused");
   await page.screenshot({ path: info.outputPath("timer-pausiert.png") });
   await timer.getByRole("button", { name: "Lerntimer zurücksetzen", exact: true }).click();
@@ -475,7 +452,7 @@ test("Aufgaben: alle offenen Aufgaben in scrollender Liste, Inline-Plus und ausk
 
 
 for (const { width, height } of sizes) for (const theme of matrixThemes) {
-  test(`Kompakte Widgets ${width}×${height} ${theme}: Timer und Aufgaben`, async ({ page }, info) => {
+  test(`Kompakte Widgets, Kacheln und Menüband ${width}×${height} ${theme}`, async ({ page }, info) => {
     await page.setViewportSize({ width, height });
     await openEditor(page, theme === "dark");
     await page.getByRole("button", { name: "Fertig", exact: true }).click();
@@ -507,6 +484,16 @@ for (const { width, height } of sizes) for (const theme of matrixThemes) {
         });
       })).toBe(true);
     }
+    await page.locator('[data-dashboard-widget="decks"]').scrollIntoViewIfNeeded();
+    if (visualOutput) await page.screenshot({ path: info.outputPath("08-angepinnte-stapel.png") });
+    await page.getByRole("button", { name: "Seite bearbeiten", exact: true }).click();
+    const more = page.getByRole("button", { name: "Weitere Widgets", exact: true });
+    if (await more.isVisible()) await more.click();
+    await page.locator(".dashboard-widget-library").scrollIntoViewIfNeeded();
+    await expect(page.locator(".dashboard-mini-cells i")).toHaveCount(35);
+    expect(await page.locator(".dashboard-mini-cells i").first().evaluate((cell) => cell.getBoundingClientRect().width)).toBeGreaterThan(6);
+    if (visualOutput) await page.screenshot({ path: info.outputPath("09-menueband.png") });
+    expect(await page.locator(".catalog-product-preview").evaluate((element) => element.scrollWidth > element.clientWidth + 1)).toBe(false);
   });
 }
 

@@ -165,6 +165,7 @@ test("roundtrips an allowlisted review return from the selected card editor", ()
 
 test("falls back to today for unknown paths and ignores unsupported query values", () => {
   assert.deepEqual(parseAppRouteFromUrl("/does-not-exist?deck=deck_a&card=card_a"), { mode: "view", viewId: "uebersicht" });
+  for (const retired of ["/graph", "/community", "/assistent", "/ki-jobs", "/lernplan"]) assert.deepEqual(parseAppRouteFromUrl(retired), { mode: "view", viewId: "uebersicht" });
   assert.deepEqual(parseAppRouteFromUrl("/neue-karten?method=provider&card=ignored"), { mode: "view", viewId: "neue-karten" });
 });
 
