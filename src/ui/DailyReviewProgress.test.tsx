@@ -31,14 +31,3 @@ test("daily progress shares the canonical segment order, colors and accessible s
   assert.ok(markup.indexOf('data-study-progress-segment="in-progress"') < markup.indexOf('data-study-progress-segment="due"'));
 });
 
-test("achieved progress renders a full neutral-gray segment, including a zero-card goal", () => {
-  const completed = renderToStaticMarkup(<DailyReviewProgress progress={{ ...progress, completedTodayCount: 10, newCount: 0, inProgressCount: 0, dueCount: 0 }} achieved />);
-  const empty = renderToStaticMarkup(<DailyReviewProgress progress={{ completedTodayCount: 0, newCount: 0, inProgressCount: 0, dueCount: 0, total: 0 }} achieved />);
-
-  assert.match(completed, /data-study-progress-segment="achieved"[^>]*background-color:var\(--core-learning-progress-completed\)/);
-  assert.match(completed, /aria-valuenow="10"/);
-  assert.match(completed, /aria-valuetext="Tagesziel erreicht\./);
-  assert.match(empty, /aria-valuenow="1"/);
-  assert.match(empty, /aria-valuemax="1"/);
-  assert.match(empty, /Tagesziel erreicht/);
-});

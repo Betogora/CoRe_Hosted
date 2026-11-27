@@ -104,7 +104,7 @@ export function useStudyStart({ preparation, session, navigation, deckCommands, 
     return { ok: true };
   }
 
-  async function startExamUnit(blockId: string | null) {
+  async function startExamUnit(blockId: string | null, examId?: string) {
     const { getExamSummaryTaskDeckId } = await import("./examDailyTasks.ts");
     const summaryDeckId = blockId ? getExamSummaryTaskDeckId(blockId) : null;
     if (summaryDeckId) {
@@ -114,7 +114,7 @@ export function useStudyStart({ preparation, session, navigation, deckCommands, 
     if (!preparation || session.preparingKeyRef.current === EXAM_SESSION_DECK_ID) return;
     session.preparingKeyRef.current = EXAM_SESSION_DECK_ID;
     try {
-      const prepared = await preparation.prepareExamUnit(blockId);
+      const prepared = await preparation.prepareExamUnit(blockId, examId);
       adopt(prepared, EXAM_SESSION_DECK_ID);
       const returnRoute = createViewRoute(activeView === "pruefungen" ? "pruefungen" : "uebersicht");
       navigateToRoute(createStudyRoute(EXAM_SESSION_DECK_ID, { returnContext: createReviewReturnContext(returnRoute) }));

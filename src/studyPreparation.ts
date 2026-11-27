@@ -172,7 +172,7 @@ export function createStudyPreparation({ store, repository, hydration, cloud, no
     return result.summaries.length > 0;
   }
 
-  async function prepareExamUnit(blockId: string | null): Promise<StudyPreparation> {
+  async function prepareExamUnit(blockId: string | null, examId?: string): Promise<StudyPreparation> {
     const currentState = store.get().state;
     if (!hydration || !currentState) throw new Error("Die Kartenablage ist noch nicht bereit.");
     const preferences = getGlobalSchedulerPreferences(currentState.profile);
@@ -185,12 +185,12 @@ export function createStudyPreparation({ store, repository, hydration, cloud, no
     const { getExamSessionTargetIds, reconcileExamDailyTasks } = await import("./examDailyTasks.ts");
     // Today's saved checklist already holds the frozen targets; only calendar blocks or a missing checklist need a new plan.
     const storedTasks = (preferences.examPlanning.dailyTasks ?? []).filter((task) => task.date === todayKey);
-    let ids = blockId && !storedTasks.some((task) => task.id === blockId) ? [] : getExamSessionTargetIds(storedTasks, undefined, todayKey, blockId);
+    let ids = blockId && !storedTasks.some((task) => task.id === blockId) ? [] : getExamSessionTargetIds(storedTasks, undefined, todayKey, blockId, examId);
     if (!ids.length) {
       const data = await loadExamPlanningData(getActiveExamDeckIds(currentState.decks, exams, civilToday));
       const forecast = await createExamPortfolioForecast(currentState.decks, data.cards, exams, { now, preferences, timeZone: learningTimeZone, capacity, dailyTasks: preferences.examPlanning.dailyTasks });
       const tasks = reconcileExamDailyTasks(preferences.examPlanning, currentState.decks, forecast, data.cards, now, learningTimeZone, preferences.dayStartHour);
-      ids = getExamSessionTargetIds(tasks, forecast.days[0], todayKey, blockId);
+      ids = getExamSessionTargetIds(tasks, forecast.days[0], todayKey, blockId, examId);
     }
     if (!ids.length) throw new Error("Für heute ist in der Prüfungsplanung nichts mehr offen.");
     // Offline the unit runs on the target cards already on this device.

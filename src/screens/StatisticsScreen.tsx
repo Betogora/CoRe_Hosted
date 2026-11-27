@@ -1,6 +1,7 @@
 import React from "react";
 import {
   BarChart3,
+  Flame,
 } from "lucide-react";
 import {
   Area,
@@ -124,6 +125,35 @@ function formatDuration(milliseconds: number) {
   if (minutes < 1) return `${Math.round(milliseconds / 1_000)} Sek.`;
   if (minutes < 60) return `${formatNumber(minutes, 1)} Min.`;
   return `${formatNumber(minutes / 60, 1)} Std.`;
+}
+
+// Estimated width in em at the number's font size, so CSS can shrink long values to their tile: digit 0.58, separator 0.3, unit at about half size.
+function posterValueWidth(value: string, unit: string) {
+  let width = 0;
+  for (const char of value) width += /\d/.test(char) ? 0.58 : 0.3;
+  if (unit) width += 0.16 + unit.length * 0.34;
+  return Math.max(width, 0.6).toFixed(2);
+}
+
+function StatisticsOverview({ values, streak }: { values: ReadonlyArray<readonly [label: string, text: string]>; streak: number }) {
+  const leadDigits = values[0][1].replace(/\D/g, "").length;
+  return (
+    <div className="core-statistics-overview">
+      <dl style={{ "--statistics-lead": `minmax(0, ${Math.min(2.9, 1.5 + 0.2 * leadDigits)}fr)` } as React.CSSProperties}>
+        {values.map(([label, text], index) => {
+          const [value, unit = ""] = text.split(" ");
+          const tone = index === 0 ? "lead" : index === values.length - 1 ? "streak" : "soft";
+          return (
+            <div key={label} className="core-statistics-poster" data-tone={tone}>
+              <dt className="core-statistics-poster-label">{label}</dt>
+              <dd style={{ "--poster-value-width": posterValueWidth(value, unit) } as React.CSSProperties}><b>{value}</b>{unit ? <small>{" "}{unit}</small> : null}</dd>
+              {tone === "streak" ? <Flame className="core-statistics-poster-flame" fill={streak > 0 ? "currentColor" : "none"} data-off={streak > 0 ? undefined : ""} aria-hidden="true" /> : null}
+            </div>
+          );
+        })}
+      </dl>
+    </div>
+  );
 }
 
 function formatDate(value: string | null, timeZone: string, dayStartHour = 0) {
@@ -554,16 +584,16 @@ export function StatisticsScreenContent({ dataset: { decks, projection: statisti
       <div className="grid min-w-0 gap-6">
       <section className="min-w-0 pb-2" aria-labelledby="statistics-overview-title">
         <StatisticsSectionHeading id="statistics-overview-title">Überblick</StatisticsSectionHeading>
-        <MetricRow
-          className="core-statistics-overview"
-          items={[
-            { label: "Reviews", value: formatNumber(statistics.summary.reviewCount) },
-            { label: "Erfolgsrate", value: formatPercent(statistics.summary.successPercent) },
-            { label: "Wahre Quote", value: statistics.summary.trueRetentionSample > 0 ? formatPercent(statistics.summary.trueRetentionPercent) : "–" },
-            { label: "Gemessene Lernzeit", value: formatDuration(statistics.summary.totalDurationMs) },
-            { label: "Zeit pro Antwort", value: statistics.summary.timedCount > 0 ? formatDuration(statistics.summary.averageResponseMs) : "–" },
-            { label: "Aktive Lerntage", value: formatNumber(statistics.summary.activeDays) },
-            { label: "Aktuelle Serie", value: `${formatNumber(statistics.summary.currentStreak)} ${statistics.summary.currentStreak === 1 ? "Tag" : "Tage"}` },
+        <StatisticsOverview
+          streak={statistics.summary.currentStreak}
+          values={[
+            ["Reviews", formatNumber(statistics.summary.reviewCount)],
+            ["Erfolgsrate", formatPercent(statistics.summary.successPercent)],
+            ["Wahre Quote", statistics.summary.trueRetentionSample > 0 ? formatPercent(statistics.summary.trueRetentionPercent) : "–"],
+            ["Gemessene Lernzeit", formatDuration(statistics.summary.totalDurationMs)],
+            ["Zeit pro Antwort", statistics.summary.timedCount > 0 ? formatDuration(statistics.summary.averageResponseMs) : "–"],
+            ["Aktive Lerntage", formatNumber(statistics.summary.activeDays)],
+            ["Aktuelle Serie", `${formatNumber(statistics.summary.currentStreak)} ${statistics.summary.currentStreak === 1 ? "Tag" : "Tage"}`],
           ]}
         />
       </section>

@@ -55,7 +55,7 @@ test("global learning settings combine account-wide planning and reusable deck d
   assert.match(planning, /Europe\/Berlin/);
   const focus = renderSettings("fokus");
   assert.match(focus, />Simulator</);
-  assert.match(focus, />Pomodoro-Timer</);
+  assert.match(focus, />Lerntimer</);
   const daily = renderSettings("tagesrunde");
   assert.match(daily, />Anwenden</);
   assert.match(daily, /<span class="core-tag core-tag-neutral">Standard für neue Stapel<\/span>/);

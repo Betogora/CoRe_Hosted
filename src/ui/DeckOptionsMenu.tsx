@@ -113,7 +113,7 @@ export const DeckOptionsMenu = React.memo(function DeckOptionsMenu({ row, decks,
             <div className="-mx-1.5 grid gap-0.5 border-t border-core-border px-1.5 py-1.5">
               <Popover.Close asChild>
                 <button type="button" className="core-menu-row" onClick={onStudy}>
-                  <Play size={16} aria-hidden="true" />Lernen
+                  <Play size={16} fill="currentColor" aria-hidden="true" />Lernen
                 </button>
               </Popover.Close>
               {onPractice ? (

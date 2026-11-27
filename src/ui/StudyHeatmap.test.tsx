@@ -58,9 +58,10 @@ test("shared study heatmap defaults to seven days with the streak band and perio
     />,
   );
 
-  assert.match(markup, /data-testid="study-heatmap-header"[^>]*><h3[^>]*><span[^>]*>1<\/span> <span class="core-heading-3">Tag Streak<\/span><\/h3>/);
-  assert.match(markup, /style="background:#b95e00;color:var\(--core-heatmap-on-strong\)" data-testid="study-heatmap-header"/);
-  assert.match(markup, /<dt[^>]*>Lerntage<\/dt><dd[^>]*>1 \/ 1<\/dd>[\s\S]*<dt[^>]*>Morgen fällig<\/dt><dd[^>]*>0<\/dd>/);
+  assert.match(markup, /data-testid="study-heatmap-header"[^>]*><h3[^>]*><span[^>]*>1<\/span> <span class="core-study-heatmap-streak-label">Tag Streak<\/span><\/h3>/);
+  assert.match(markup, /style="background:#b95e00;color:var\(--core-heatmap-on-strong\);--heatmap-streak-width:1" data-testid="study-heatmap-header"/);
+  assert.doesNotMatch(markup, /Lerntage|Morgen fällig/);
+  assert.match(markup, /<\/h3><svg[^>]*fill="currentColor"[^>]*lucide-flame core-study-heatmap-emblem/, "heute gelernt: gefüllte Flamme im Band");
   assert.match(markup, /--core-heatmap-on-strong:#ffffff/);
   assert.match(markup, /data-heatmap-history-color="#b95e00"/);
   assert.doesNotMatch(markup, /Heatmap-Farbe ändern/);
@@ -83,7 +84,7 @@ test("shared study heatmap uses the plural streak title for zero and multiple da
       formatDayLabel={(day) => day.key}
     />,
   );
-  assert.match(emptyMarkup, /0<\/span> <span class="core-heading-3">Tage Streak/);
+  assert.match(emptyMarkup, /0<\/span> <span class="core-study-heatmap-streak-label">Tage Streak/);
 
   const streakMarkup = renderToStaticMarkup(
     <StudyHeatmap
@@ -94,7 +95,34 @@ test("shared study heatmap uses the plural streak title for zero and multiple da
       formatDayLabel={(day) => day.key}
     />,
   );
-  assert.match(streakMarkup, /3<\/span> <span class="core-heading-3">Tage Streak/);
+  assert.match(streakMarkup, /3<\/span> <span class="core-study-heatmap-streak-label">Tage Streak/);
+});
+
+test("shared study heatmap marks the last seven days in the run row, today on the right and still open", () => {
+  const markup = renderToStaticMarkup(
+    <StudyHeatmap
+      heatmap={createStudyHeatmapModelFromCounts({
+        todayKey: "2026-07-07",
+        countsByDay: new Map([["2026-07-02", 4], ["2026-07-05", 1], ["2026-07-06", 2]]),
+      })}
+      formatDayLabel={(day) => day.key}
+    />,
+  );
+
+  const run = markup.match(/<div class="core-study-heatmap-run"[\s\S]*?<\/div>/)?.[0] ?? "";
+  assert.match(run, /role="img" aria-label="Letzte 7 Tage: an 3 Tagen gelernt, heute noch offen"/);
+  assert.deepEqual([...run.matchAll(/data-state="(\w+)"/g)].map((match) => match[1]), ["missed", "learned", "missed", "missed", "learned", "learned", "open"]);
+  assert.match(run, /data-state="open" data-today="true"><svg[^>]*fill="none"[^>]*lucide-flame/);
+  assert.equal(run.match(/fill="currentColor"[^>]*lucide-flame/g)?.length, 3);
+  assert.equal(run.match(/lucide-x/g)?.length, 3);
+  assert.match(markup, /<svg[^>]*fill="none"[^>]*lucide-flame core-study-heatmap-emblem[^>]*data-open="true"/, "heute offen: Flamme im Band als Umriss");
+});
+
+test("shared study heatmap shows the week as flat tiles with the count inside", () => {
+  const markup = renderHeatmapWeekAt("2026-08-10");
+  const week = markup.match(/data-heatmap-period="week"[\s\S]*$/)?.[0] ?? "";
+  assert.match(week, /data-heatmap-day="2026-08-10"[^>]*><span class="core-heatmap-week-count"[^>]*>2<\/span><\/span>/);
+  assert.match(week, /data-heatmap-day="2026-08-09"[^>]*><span class="core-heatmap-week-count" data-zero="true"[^>]*>0<\/span>/);
 });
 
 test("shared study heatmap tints its history levels with the freely picked color", () => {
@@ -119,7 +147,7 @@ test("shared study heatmap renders forecast copy and levels and explains both sc
   assert.match(markup, /11\.08\.2026: voraussichtlich keine Karten fällig/);
   assert.match(markup, /12\.08\.2026: voraussichtlich 1 Karte fällig/);
   assert.match(markup, /13\.08\.2026: voraussichtlich 1\.200 Karten fällig/);
-  assert.match(markup, /data-heatmap-day="2026-08-11" data-heatmap-kind="forecast"[^>]*><\/span>/);
+  assert.match(markup, /data-heatmap-day="2026-08-11" data-heatmap-kind="forecast"[^>]*><span class="core-heatmap-week-count" data-zero="true"[^>]*>0<\/span><\/span>/);
   assert.match(markup, /core-heatmap-forecast-level-1/);
   assert.match(markup, /core-heatmap-forecast-level-4/);
   assert.match(markup, /data-heatmap-kind="forecast"/);

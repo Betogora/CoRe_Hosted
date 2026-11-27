@@ -3,6 +3,7 @@ import React from "react";
 import { Palette } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { clampNumber, hexToHsv, hsvToHex, normalizeColor } from "../colorMath.ts";
+import { IconButton } from "./actionUi.tsx";
 import { CoreTooltip } from "./tooltipUi.tsx";
 
 export const COLOR_PICKER_PRESETS = [
@@ -83,7 +84,7 @@ interface ColorPickerProps {
   value: string;
   ariaLabel: string;
   onValueCommit: (color: string) => void;
-  /** `tool` keeps a text selection alive in its editor. */
+  /** `tool` keeps a text selection alive in its editor. A compact picker with `icon` shows the icon instead of the color, for surfaces painted in that color. */
   variant?: "compact" | "tool";
   icon?: LucideIcon;
   presets?: readonly string[];
@@ -188,6 +189,10 @@ export function ColorPicker({
         {Icon ? <Icon size={16} aria-hidden="true" /> : null}
         <span aria-hidden="true" className="absolute inset-x-2 bottom-1 h-1 rounded-round" style={{ backgroundColor: shownColor }} />
       </button>
+    </Popover.Trigger>
+  ) : Icon ? (
+    <Popover.Trigger asChild>
+      <IconButton label={ariaLabel} icon={Icon} variant="ghost" disabled={disabled} className={className} />
     </Popover.Trigger>
   ) : (
     <Popover.Trigger asChild>

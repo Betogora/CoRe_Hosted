@@ -12,8 +12,6 @@ export const DAILY_REVIEW_PROGRESS_SEGMENTS = [
 
 interface DailyReviewProgressProps {
   progress: DailyReviewProgressSummary;
-  achieved?: boolean;
-  ariaLabel?: string;
   testId?: string;
   /** Opens the segment tooltips below the bar where content sits directly above it. */
   tooltipSide?: "bottom";
@@ -22,16 +20,12 @@ interface DailyReviewProgressProps {
 
 export function DailyReviewProgress({
   progress,
-  achieved = false,
-  ariaLabel = "Lernfortschritt",
   testId = "study-daily-progress",
   tooltipSide,
 }: DailyReviewProgressProps) {
   const segmentValueText = DAILY_REVIEW_PROGRESS_SEGMENTS
     .map((segment) => `${segment.label}: ${formatLearningCardCount(progress[segment.countKey])}`)
     .join(", ");
-  const valueText = achieved ? `Tagesziel erreicht. ${segmentValueText}` : segmentValueText;
-  const zeroGoalAchieved = achieved && progress.total === 0;
   // The share follows the drawn widths, which come from the four counts rather than from `total`.
   const drawnCount = DAILY_REVIEW_PROGRESS_SEGMENTS.reduce((sum, segment) => sum + progress[segment.countKey], 0);
 
@@ -39,23 +33,14 @@ export function DailyReviewProgress({
     <div
       className="core-daily-progress flex h-2.5 rounded-round bg-core-subtle"
       role="progressbar"
-      aria-label={ariaLabel}
+      aria-label="Lernfortschritt"
       aria-valuemin={0}
       aria-valuemax={Math.max(1, progress.total)}
-      aria-valuenow={zeroGoalAchieved ? 1 : achieved ? progress.total : progress.completedTodayCount}
-      aria-valuetext={valueText}
+      aria-valuenow={progress.completedTodayCount}
+      aria-valuetext={segmentValueText}
       data-testid={testId}
     >
-      {achieved ? (
-        <CoreTooltip label="Tagesziel erreicht" side={tooltipSide} swatchColor="var(--core-learning-progress-completed)" value="100 %">
-          <span
-            aria-hidden="true"
-            data-study-progress-segment="achieved"
-            className="core-daily-progress-segment flex-1"
-            style={{ backgroundColor: "var(--core-learning-progress-completed)" }}
-          />
-        </CoreTooltip>
-      ) : DAILY_REVIEW_PROGRESS_SEGMENTS.map((segment) => {
+      {DAILY_REVIEW_PROGRESS_SEGMENTS.map((segment) => {
         const count = progress[segment.countKey];
         const color = segment.key === "learned" ? "var(--core-learning-progress-completed)" : segment.color;
         return count > 0 ? (

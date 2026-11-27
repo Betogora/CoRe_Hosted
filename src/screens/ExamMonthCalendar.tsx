@@ -22,9 +22,9 @@ export function ExamMonthCalendar({ exams, shown, onToggleExam, forecast, today,
   const earlierWeeksHidden = days[0] > fullMonthDays[0];
   const visibleEntries = days.length === 42 ? 1 : 2;
 
-  return <SoftPanel className="grid min-w-0 gap-4 p-3 sm:p-5" data-testid="exam-month-calendar">
-    <div className="flex min-w-0 flex-wrap items-center gap-2">
-      <h3 className="mr-3 core-heading-3 text-core-text" aria-live="polite">{new Intl.DateTimeFormat("de-DE", { month: "long", year: "numeric", timeZone: "UTC" }).format(new Date(`${month}-01T12:00:00Z`))}</h3>
+  return <SoftPanel className="exam-calendar-panel grid min-w-0 gap-4 p-3 sm:p-5" data-testid="exam-month-calendar">
+    <div className="exam-calendar-head flex min-w-0 flex-wrap items-center gap-2">
+      <h3 className="mr-3 exam-poster-eyebrow" aria-live="polite">{new Intl.DateTimeFormat("de-DE", { month: "long", year: "numeric", timeZone: "UTC" }).format(new Date(`${month}-01T12:00:00Z`))}</h3>
       <div className="mr-auto">{viewControl}</div>
       <ExamCalendarFilters exams={exams} shown={shown} color={color} onToggle={onToggleExam} />
       <div className="flex shrink-0 gap-2">

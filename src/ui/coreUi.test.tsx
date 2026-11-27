@@ -47,7 +47,7 @@ test("page header keeps an optional action inside the header after its title", (
 test("page header leads with a back link above the title instead of an eyebrow", () => {
   const markup = renderToStaticMarkup(<PageHeader title="Karte selbst erstellen" back={{ label: "Erstellen", onSelect: () => undefined }} />);
 
-  assert.match(markup, /class="core-page-header-back"><button type="button"[^>]*><svg[^>]*lucide-arrow-left[\s\S]*?Erstellen<\/button><\/div><h2[^>]*>Karte selbst erstellen<\/h2>/);
+  assert.match(markup, /class="core-page-header-back"><button type="button"[^>]*><svg[^>]*lucide-chevron-left[\s\S]*?Erstellen<\/button><\/div><h2[^>]*>Karte selbst erstellen<\/h2>/);
 });
 
 test("page header reads the greeting as the start of the heading and keeps a page tag outside its name", () => {

@@ -1,6 +1,6 @@
 import React from "react";
 import type { CoreMode } from "./coreTypes.ts";
-import { ArrowRight, Database, Layers, Sparkles } from "lucide-react";
+import { ChevronRight, Database, Layers, Sparkles } from "lucide-react";
 import { authPhases, createSyncPendingStatus, createSyncSavingStatus, shouldShowAppShell, shouldShowAuthGate } from "./accountSession.ts";
 import { settingsSectionGroup, type AppViewId } from "./appNavigation.ts";
 import { startAppMediaRetryLifecycle } from "./appMediaLifecycle.ts";
@@ -352,7 +352,7 @@ function AppContent() {
             activeView={activeView === "kartenstapel" && deckContent ? "lernen" : activeView}
             simulationOffsetMinutes={clock.simulationOffsetMinutes}
             simulationDateLabel={formatSimulationDate(learningNow)}
-            pomodoroTimer={pomodoro.pomodoroTimer}
+            pomodoroTimer={pomodoro.pomodoroTimer} onPomodoroPauseChange={pomodoro.changePomodoroPause}
             manualSync={state.profile.uiPreferences.syncIntervalMinutes === 0}
             onSyncNow={() => void sync.syncNow()}
             onOpenSyncSettings={(target) => openSettings(target === "sync" ? "daten" : "konflikte")}
@@ -475,7 +475,7 @@ function AppContent() {
           ) : null}
           cancelLabel="Schließen"
           confirmLabel={emptyStudyStart?.hasAdditionalNewCards ? "Neue Karten pro Tag anpassen" : undefined}
-          actionIcons={emptyStudyStart?.hasAdditionalNewCards ? { confirm: ArrowRight } : undefined}
+          actionIcons={emptyStudyStart?.hasAdditionalNewCards ? { confirm: ChevronRight } : undefined}
           onCancel={studyStart.dismissEmptyStudyStart}
           onConfirm={emptyStudyStart?.hasAdditionalNewCards ? () => {
             const target = emptyStudyStart;

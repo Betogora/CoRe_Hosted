@@ -1,5 +1,5 @@
 import React from "react";
-import { ArrowLeft, ChevronDown, ChevronRight, ChevronUp, LoaderCircle, X, type LucideIcon } from "lucide-react";
+import { ChevronDown, ChevronLeft, ChevronRight, ChevronUp, LoaderCircle, Play, X, type LucideIcon } from "lucide-react";
 
 const ACTION_VARIANT_CLASS = {
   primary: "core-action-primary",
@@ -20,6 +20,8 @@ export const ActionButton = React.forwardRef<HTMLButtonElement, ActionButtonProp
   { variant, icon: Icon, loading = false, disabled, className = "", children, ...props },
   ref,
 ) {
+  const icon = loading ? <LoaderCircle className="animate-spin" size={16} aria-hidden="true" /> : Icon ? <ActionIcon icon={Icon} /> : null;
+  const trailing = Icon === ChevronRight;
   return (
     <button
       {...props}
@@ -28,15 +30,16 @@ export const ActionButton = React.forwardRef<HTMLButtonElement, ActionButtonProp
       aria-busy={loading || undefined}
       className={`${ACTION_VARIANT_CLASS[variant]} ${className}`}
     >
-      {loading ? (
-        <LoaderCircle className="animate-spin" size={16} aria-hidden="true" />
-      ) : Icon ? (
-        <Icon size={16} aria-hidden="true" />
-      ) : null}
+      {trailing ? null : icon}
       <span>{children}</span>
+      {trailing ? icon : null}
     </button>
   );
 });
+
+function ActionIcon({ icon: Icon }: { icon: LucideIcon }) {
+  return <Icon size={16} fill={Icon === Play ? "currentColor" : "none"} aria-hidden="true" />;
+}
 
 export interface IconButtonProps
   extends Omit<React.ButtonHTMLAttributes<HTMLButtonElement>, "aria-label"> {
@@ -57,7 +60,7 @@ export const IconButton = React.forwardRef<HTMLButtonElement, IconButtonProps>(f
       style={variant.startsWith("destructive") || props.disabled ? style : { ...style, color: "var(--core-text)" }}
       className={`${ACTION_VARIANT_CLASS[variant]} min-w-button p-2 ${className}`}
     >
-      <Icon size={16} aria-hidden="true" />
+      <ActionIcon icon={Icon} />
     </button>
   );
 });
@@ -122,7 +125,7 @@ export function Disclosure({ summary, children, className = "", ...props }: Omit
 export function CrossLinkButton({ children, className = "", direction = "forward", ...action }: CrossLinkButtonProps) {
   const content = direction === "back" ? (
     <>
-      <ArrowLeft size={15} aria-hidden="true" />
+      <ChevronLeft size={15} aria-hidden="true" />
       {children}
     </>
   ) : (

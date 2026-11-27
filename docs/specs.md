@@ -492,10 +492,10 @@ Fällig | ausgewählte Wiederholungen
 
 - Vor dem Aufdecken zeigt die Sitzung nur den Lerninhalt, ohne Hinweis auf Herkunft, Variante, Reife oder Planung.
 - Sie nennt Stapel und Tagesfortschritt, aber keine Kartenposition.
-- Die gezeigte Karte wechselt erst mit ihrer Bewertung; die nächsten Karten samt Medien werden währenddessen vorbereitet.
-- Es gibt keinen eigenen Sitzungsstand: Nach Reload, Verlassen und Sync ergibt sich der Fortschritt aus gespeicherten Bewertungen und Lernständen.
+- Die Karte wechselt erst mit ihrer Bewertung; die nächsten samt Medien werden währenddessen vorbereitet.
+- Kein eigener Sitzungsstand: Nach Reload, Verlassen und Sync folgt der Fortschritt aus gespeicherten Bewertungen und Lernständen.
 - Das Ende nennt die Zahl beantworteter Karten und führt zum Ausgangspunkt zurück. Ein Reload erhält Sitzung und Rückweg; fremde Rücksprungziele werden nicht angenommen.
-- Ist ein Stapel oder eine Karte nicht verfügbar, folgt eine verständliche nächste Aktion; nie öffnet sich stillschweigend eine andere Karte.
+- Fehlt ein Stapel oder eine Karte, folgt eine verständliche nächste Aktion; nie öffnet sich stillschweigend eine andere.
 - Aus der Sitzung heraus wirken sofort: Flagge, Markierung, Aussetzen, Kartenreihenfolge und Timer. Editor und Stapeleinstellungen öffnen sich über der Sitzung und führen an dieselbe Karte zurück; gespeicherte Einstellungen gelten sofort.
 - Aussetzen pausiert die Karte samt Varianten, ohne ihren Lernstand zu ändern; sie fehlt dann in Runde, Tageszahlen und Fortschritt. Nach dem Reaktivieren ist ein vergangener Termin sofort wieder relevant.
 - Löst eine Bewertung die Lernbremse aus, weist die Sitzung einmal darauf hin.
@@ -504,10 +504,11 @@ Fällig | ausgewählte Wiederholungen
 - Markierter Text lässt sich in AMBOSS nachschlagen. Erst der ausdrückliche Klick öffnet die Suche; übertragen wird nur der markierte Text.
 - In der Sitzung lassen sich die [Zusammenfassungen](#zusammenfassungen) des Stapels lesen und von Hand schreiben, ohne dabei Karten zu bewerten; ein ungespeicherter Entwurf fragt beim Verlassen nach.
 
-### Pomodoro-Timer
+### Lerntimer
 
-- Je Konto gibt es genau einen Timer in diesem Browser. Er läuft mit echter Uhrzeit, übersteht Navigation, Reload und weitere Tabs und nutzt weder das Konto noch die simulierte Lernzeit.
-- Ein laufender Timer ist in der ganzen App sichtbar; sein Ablauf wird gemeldet.
+- Je Konto ein Timer je Browser, in echter Uhrzeit über Navigation, Reload und Tabs hinweg, ohne Konto und Simulation.
+- Dauer: ganze Minuten, Vorschläge 10, 25, 50 (Standard 25).
+- Läuft oder pausiert er, ist er überall sichtbar und pausier- und fortsetzbar, zurücksetzbar nur pausiert. Sein Ablauf wird gemeldet.
 - **Bewusst nicht:** Töne, automatische Pausenzyklen.
 
 ### Freigabe der Varianten
@@ -704,13 +705,13 @@ Prüfungssitzung | normale Sitzung mit der Zielerinnerung der Prüfung
 
 ### Tagesaufgaben und Prüfungssitzung
 
-- Je Thema gibt es eine Aufgabe mit eindeutiger Kartenmenge. Sie startet die Vereinigung ihrer neuen Karten und Wiederholungen; die ganze heutige Einheit lässt sich gemeinsam starten.
+- Je Thema gibt es eine Aufgabe mit eindeutiger Kartenmenge. Sie startet die Vereinigung ihrer neuen Karten und Wiederholungen; die heutige Einheit startet für alle Prüfungen gemeinsam oder für eine allein.
 - Vorschau, Aufgabenliste und Sitzung nutzen dieselben Zielkarten.
 - Prüfungssitzungen sind normale Lernsitzungen mit der Zielerinnerung der Prüfung. Sie gelten ohne die Tageslimits der Stapel und halten die Themenreihenfolge ein.
 - Eine Aufgabe ist automatisch erledigt, wenn alle Zielkarten seit dem Einplanen bewertet, in der Wiederholung und erst nach diesem Lerntag wieder fällig sind. Eine zurückgenommene Bewertung öffnet sie wieder.
 - Von Hand als erledigt markierte Aufgaben lassen sich wieder öffnen und ändern keinen Lernstand.
 - Die Zielkarten gelten für den aktuellen Lerntag; der nächste Lerntag beginnt eine neue Liste.
-- `Heute` zeigt die Aufgaben aller aktiven Prüfungen.
+- `Heute` zeigt die Aufgaben aller aktiven Prüfungen, die Prüfungsseite nur ihre eigenen.
 
 ### Leseaufgaben
 
@@ -720,7 +721,7 @@ Prüfungssitzung | normale Sitzung mit der Zielerinnerung der Prüfung
 
 ### Fortschritt und Lebenszyklus
 
-- Der Fortschritt nennt den Anteil `Gesehen` und darin den Anteil `Gefestigt`, bezogen auf alle gewählten Karten.
+- Der Fortschritt teilt alle gewählten Karten in `Gefestigt`, `Gesehen` (beantwortet, nicht reif) und `Neu` (nie beantwortet).
 - Gefestigt ist eine aktive Karte mit der Reife `Reif`; nach `Nochmal` zählt sie nicht mehr. Antworten auf Varianten zählen für die Karte.
 - Eine Prüfung lässt sich pausieren, fortsetzen, abschließen und löschen. Ab dem Tag nach ihrem Termin gilt sie als abgeschlossen.
 - Löschen entfernt Plan, Lernblöcke und Aufgaben; Karten und Lernstände bleiben.
@@ -803,11 +804,11 @@ Ein Selbsttest zum Stoff eines Stapels, ohne Wirkung auf Lernstand und Statistik
 
 `Heute` ist die Startseite: Tagesstand, Lernstart und persönliche Werkzeuge an einem Ort.
 
-- Die Seite besteht aus wähl- und anordenbaren Bausteinen: Tagesstand, Motivationsimpuls, Lerntimer, angepinnte Stapel, To-dos, Lern-Heatmap und Prüfungsaufgaben. Anordnung und eigene To-dos gelten je Konto nur in diesem Browser.
+- Die Seite besteht aus wähl- und anordenbaren Bausteinen: Tagesstand, Impuls, Lerntimer, angepinnte Stapel, To-dos, Lern-Heatmap und Prüfungsaufgaben. Anordnung und eigene To-dos gelten je Konto nur in diesem Browser.
 - **Erststart:** Ein neues Konto beginnt ohne erfundene Daten. Ohne Stapel führt die Seite zu Import, manueller Karte oder Demo; Demo-Stapel entstehen nur auf ausdrückliche Aktion, einmalig, ohne Lernhistorie.
 - **Tagesstand:** Er fasst alle Hauptstapel ohne Doppelzählung in `Gelernt`, `Neu`, `Offen` und `Fällig` zusammen ([Tagesrunde und Limits](#tagesrunde-und-limits)).
-- **Lernstart:** startet den alphabetisch ersten Hauptstapel mit verfügbaren Karten; warten nur Lernschritte, kündigt er späteres Weiterlernen an, sonst meldet er das Tagesziel und bietet zusätzliche neue Karten an.
-- **Motivationsimpuls:** einer von 60 eigenen Lernimpulsen, je Lerntag stabil, auch offline.
+- **Lernstart:** nennt und startet den alphabetisch ersten Hauptstapel mit verfügbaren Karten; warten nur Lernschritte, kündigt er späteres Weiterlernen an, sonst bietet er zusätzliche neue Karten an.
+- **Impuls:** einer von 60 eigenen Lernimpulsen, je Lerntag stabil, auch offline.
 - **To-dos:** eigene und Planeraufgaben, letztere direkt lernbar; ohne Baustein bleiben sie.
 - **Angepinnte Stapel:** bis zu vier, neueste oben, mit Lernstart und Weg zu allen; Lücken füllen die an den meisten von 14 Lerntagen gestarteten, dann Hauptstapel. Ein fünfter Pin ersetzt einen, wie Lösen nach Rückfrage.
 - **Bewusst nicht:** Zeitprognosen.
@@ -878,7 +879,7 @@ Die Statistik zeigt Lernaktivität, Planung und Gedächtnismodell für gewählte
 - Die wahre Erinnerungsquote zählt je Karte und Lerntag nur die erste Wiederholung nach mindestens einem Tag Abstand.
 - Historische Kategorien folgen Anki und dem Zustand vor der Antwort; der Kartenstatus zählt die Reife.
 - Die Lern-Heatmap zeigt Aktivität je Lerntag und den Streak der gewählten Stapel; ein Lerntag zählt ab einer gültigen Bewertung. Künftig zeigt sie je aktiver Karte die nächste Fälligkeit; gelernte und erwartete Tage bleiben unterscheidbar.
-- Neben dem Streak nennt sie die Lerntage des gezeigten Zeitraums, gezählt ab der ersten Aktivität, und die morgen fälligen Karten.
+- Sie zeigt die letzten sieben Tage bis heute als Serie: gelernt, verpasst oder heute noch offen.
 - Fehlen Historie, Zeitmessung oder Stichprobe, wird das erklärt; es werden keine Nullwerte erfunden.
 - **Bewusst nicht:** Ankis klassische Leichtigkeit.
 
@@ -890,12 +891,12 @@ Jede Einstellung gilt für genau einen Bereich.
 | --- | --- |
 | Konto, auf allen Geräten | Tagesbeginn, Vorziehfenster, Lernbremse, Easy Days, Lernprofile, Standard für neue Stapel, Flaggennamen, gespeicherte Suchen, Prüfungspläne, Pins und Lerntage von `Heute` |
 | Einen Stapel | Tageslimits, Reihenfolge und Sortierung, Begraben, Lernschritte, Zielerinnerung, maximales Intervall, CoRe-Modus, Variantenschwelle, aktive Varianten, Name und Aussehen, Offline-Nutzung |
-| Diesen Browser | heller oder dunkler Modus, Heatmap-Farbe, Stapelansicht, Anordnung und eigene To-dos von `Heute`, Pomodoro-Timer, Simulationsuhr |
+| Diesen Browser | heller oder dunkler Modus, Heatmap-Farbe, Stapelansicht, Anordnung und eigene To-dos von `Heute`, Lerntimer samt Farbe, Simulationsuhr |
 
 - Einstellungen werden als Entwurf geändert und ausdrücklich gespeichert oder verworfen; ein ungespeicherter Entwurf hält jedes Verlassen auf.
 - Stapeleinstellungen werden für diesen Stapel oder samt Unterstapeln gespeichert; übertragen werden nur geänderte Werte.
 - Kontowerte werden nie in Stapel kopiert und von Lernprofilen nicht verändert.
-- Ohne Entwurf wirken sofort: Anwenden eines Lernprofils, manueller Sync, Heatmap-Farbe, Stapelansicht und Lerneinstellungen einer laufenden Sitzung.
+- Ohne Entwurf wirken sofort: Anwenden eines Lernprofils, manueller Sync, Heatmap- und Timerfarbe, Stapelansicht und Lerneinstellungen einer laufenden Sitzung.
 
 ### Tagesrunde und Lernprofile
 

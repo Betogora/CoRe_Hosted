@@ -98,6 +98,8 @@ test("Aufgaben-IDs und Sitzungsziele kommen aus dem Aufgabenmodul", () => {
   const tasks = reconcile();
   assert.deepEqual(getExamSessionTargetIds(tasks, forecast.days[0], date, "topic:exam:heart"), [card.cardId]);
   assert.deepEqual(getExamSessionTargetIds(tasks, forecast.days[0], date, null), [card.cardId]);
+  assert.deepEqual(getExamSessionTargetIds(tasks, forecast.days[0], date, null, exam.id), [card.cardId]);
+  assert.deepEqual(getExamSessionTargetIds(tasks, forecast.days[0], date, null, "other"), [], "die Einheit einer Prüfung startet keine Karten anderer Prüfungen");
   assert.deepEqual(getExamSessionTargetIds(tasks, forecast.days[0], "2026-10-21", "new"), [], "Kalenderblöcke anderer Tage starten keine Sitzung");
 });
 

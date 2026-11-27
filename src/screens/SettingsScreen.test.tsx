@@ -48,6 +48,7 @@ test("appearance settings pick the heatmap color with the shared color picker", 
   const html = renderSettings("darstellung");
   assert.match(html, />Heatmap-Farbe</);
   assert.match(html, /aria-label="Heatmap-Farbe ändern"[^>]*><span[^>]*background-color:#b95e00/);
+  assert.match(html, />Heatmap-Farbe<[\s\S]*?>Lerntimer-Farbe<[\s\S]*?aria-label="Lerntimer-Farbe ändern"[^>]*><span[^>]*background-color:#b95e00/, "eigene Zeile direkt unter der Heatmap-Farbe");
 });
 
 test("appearance settings choose the deck view shared by Heute and Lernen", () => {
@@ -90,7 +91,7 @@ test("account settings show the login e-mail read-only in one wide panel", () =>
 
 test("general settings do not contain global card settings", () => {
   for (const section of ["konto", "daten", "ueber"] as const) {
-    assert.doesNotMatch(renderSettings(section), /Neuer Tag beginnt|Lernkarten vorziehen|Wochenrhythmus|Simulator|Pomodoro-Timer/);
+    assert.doesNotMatch(renderSettings(section), /Neuer Tag beginnt|Lernkarten vorziehen|Wochenrhythmus|Simulator|Lerntimer/);
   }
 });
 

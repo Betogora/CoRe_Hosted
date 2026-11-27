@@ -6,6 +6,7 @@ import { createCoreRepository } from "../coreRepository.ts";
 import { ExamPlanningScreen } from "./ExamPlanningScreen.tsx";
 import { ExamMonthCalendar } from "./ExamMonthCalendar.tsx";
 import { ExamDashboardWidget } from "./ExamDashboardWidget.tsx";
+import { ExamPage } from "./ExamPage.tsx";
 import { getGlobalSchedulerPreferences, withGlobalSchedulerPreferences } from "../learningProfiles.ts";
 import { createCoreDeck } from "../coreModel.ts";
 import { ExamPlanEditor } from "./ExamPlanEditor.tsx";
@@ -34,16 +35,15 @@ test("der leere Planer zeigt die Anlage im Kopf und den Kalender vor der Prüfun
   assert.doesNotMatch(markup, /data-testid="exam-day-editor"/);
 });
 
-test("Prüfungskarten beginnen als neutrale, beschriftete Disclosure ohne sofortige Aktionen", () => {
+test("Prüfungen stehen als Plakate in ihrer Farbe, die zur Seite der Prüfung führen, ohne sofortige Aktionen", () => {
   const state = createCoreRepository().getState();
-  const exam = { ...createExamPlan("2026-10-18", ["deck"]), id: "patho", name: "Patho", examDate: "2026-11-19" };
+  const exam = { ...createExamPlan("2026-10-18", ["deck"]), id: "patho", name: "Patho", examDate: "2026-11-19", color: "#fde68a" };
   state.profile = withGlobalSchedulerPreferences(state.profile, { examPlanning: { version: 3, exams: [exam], capacity: createStudyTimeCapacity() } });
   const html = renderToStaticMarkup(<ExamPlanningScreen state={state} now="2026-10-18T12:00:00Z" onLoadPlanningData={async () => { throw new Error("Not called in SSR"); }} onSavePlanning={async () => undefined} onSaveTasks={async () => undefined} onStartUnit={async () => undefined} />);
-  assert.match(html, /aria-expanded="false"[^>]*aria-controls="[^"]+"[^>]*aria-label="Patho: Details öffnen"/);
-  assert.match(html, /19\. November 2026 · in 32 Tagen/);
+  assert.match(html, /<button type="button" class="dashboard-poster exam-poster" data-testid="exam-card-patho"[^>]*aria-label="Patho: Prüfung öffnen" style="--bg:#fde68a;--fg:#000000"/);
+  assert.match(html, /<span class="exam-poster-date">19\. November 2026<\/span><\/span><span class="dashboard-poster-giant exam-poster-giant">32<\/span><span class="dashboard-poster-subtitle exam-poster-subtitle">Tage bis zur Prüfung<\/span>/);
   assert.match(html, /<button(?=[^>]*disabled)[^>]*>(?:(?!<\/button>).)*Weitere Prüfung planen<\/span><\/button>/);
-  assert.ok(html.indexOf("Weitere Prüfung planen") > html.indexOf("Patho: Details öffnen"));
-  assert.doesNotMatch(html, /data-testid="exam-card-details"/);
+  assert.ok(html.indexOf("Weitere Prüfung planen") > html.indexOf("Patho: Prüfung öffnen"));
   assert.doesNotMatch(html, />Bearbeiten<|>Pausieren<|>Abschließen</);
 });
 
@@ -151,8 +151,9 @@ test("die geführte Planung zeigt nummerierte Schritte, einheitliche Optionskart
   assert.match(html, /<h2 tabindex="-1" class="sr-only[^"]*">Prüfung<\/h2>/);
   assert.doesNotMatch(html, /<button class="core-action-primary "[^>]*disabled/);
   assert.equal(html.match(/class="core-steps-step" disabled=""/g)?.length, 2);
-  assert.deepEqual([...html.matchAll(/<dt class="[^"]*">([^<]+)<\/dt>/g)].map((match) => match[1]), ["Prüfungsdatum", "Lernstart", "Lernstoff"]);
-  assert.match(html, />Lernstart<\/dt><dd class="text-core-text">18\. Oktober 2026<\/dd>/);
+  assert.deepEqual([...html.matchAll(/<dt>([^<]+)<\/dt>/g)].map((match) => match[1]), ["Lernstart", "Lernstoff"]);
+  assert.match(html, /<span class="exam-poster-date">[^<]+<\/span><\/div><p class="exam-setup-poster-days"><span class="exam-setup-poster-number">\d+<\/span><span>Tage vom Lernstart bis zur Prüfung<\/span><\/p>/);
+  assert.match(html, /<dt>Lernstart<\/dt><dd>18\. Oktober 2026<\/dd>/);
   assert.match(html, /<legend class="mb-3 core-field-label">Ziel<\/legend>/);
   assert.doesNotMatch(html, /Welche Prüfung steht an|Was ist dein Ziel/);
   assert.equal(html.match(/class="flex min-h-12 [^"]*rounded-control border px-4 py-2/g)?.length, 4);
@@ -227,4 +228,25 @@ test("Monatsansicht bündelt alle Aufgaben je Fach und zählt nur weitere Fachka
   const readOnly = render([third]);
   assert.match(readOnly, /data-exam-subject="biochem"[^]*?data-exam-task="summary">Lesen/);
   assert.doesNotMatch(readOnly, /data-exam-task="study"|exam-month-more/);
+});
+
+test("die Prüfungsseite teilt alle Karten in Gefestigt, Gesehen und Neu", () => {
+  const exam = { ...createExamPlan("2026-10-18", ["deck"]), id: "patho", name: "Patho", examDate: "2026-10-24" };
+  const html = renderToStaticMarkup(<ExamPage exam={exam} color="var(--core-exam-color-1)" decks={[]} summary={null} readiness={{ coverage: 0.6, consolidated: 0.2, totalCards: 10 }} civilToday="2026-10-18" busy={false} editor={null} today={null} onBack={() => undefined} onColor={() => undefined} onEdit={() => undefined} onStatus={() => undefined} onDelete={() => undefined} />);
+  assert.deepEqual([...html.matchAll(/<dt>([^<]+)<\/dt><dd>(\d+)<\/dd>/g)].map((match) => `${match[1]} ${match[2]}`), ["Gefestigt 2", "Gesehen 4", "Neu 4"]);
+  assert.match(html, /<span class="dashboard-poster-giant">6<\/span><span class="dashboard-poster-subtitle">Tage bis zur Prüfung<\/span>/);
+  assert.match(html, /aria-label="Farbe der Prüfung ändern"/);
+});
+
+test("Heute auf der Prüfungsseite zeigt nur die Aufgaben dieser Prüfung", () => {
+  const state = createCoreRepository().getState();
+  const date = "2026-10-20", own = { ...createExamPlan(date, ["deck"]), id: "anatomy", name: "Anatomie", examDate: "2026-10-27" }, other = { ...own, id: "physio", name: "Physiologie" };
+  state.profile = withGlobalSchedulerPreferences(state.profile, { examPlanning: { version: 3, exams: [own, other], capacity: createStudyTimeCapacity(), dailyTasks: [
+    { id: "topic:anatomy:deck", examId: own.id, date, kind: "study", deckIds: ["deck"], cardIds: ["a"], capturedAt: `${date}T08:00:00.000Z`, completed: null },
+    { id: "topic:physio:deck", examId: other.id, date, kind: "study", deckIds: ["deck"], cardIds: ["b"], capturedAt: `${date}T08:00:00.000Z`, completed: null },
+  ] } });
+  const html = renderToStaticMarkup(<ExamDashboardWidget examId={own.id} state={state} now={`${date}T12:00:00.000Z`} onLoad={async () => { throw new Error("Not called in SSR"); }} onSaveTasks={async () => undefined} onStart={async () => undefined} />);
+  assert.match(html, /data-exam-todo="topic:anatomy:deck"/);
+  assert.doesNotMatch(html, /topic:physio:deck/);
+  assert.match(html, />Heutige Einheit lernen</);
 });

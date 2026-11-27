@@ -26,7 +26,7 @@ import {
 import { useNoteMediaPrefetch, useNoteMediaUrls } from "../ui/cardMedia.tsx";
 import { useSuccessToast } from "../ui/feedbackUi.tsx";
 import { DAILY_REVIEW_PROGRESS_SEGMENTS, DailyReviewProgress } from "../ui/DailyReviewProgress.tsx";
-import { PomodoroProgress } from "../ui/pomodoroTimerUi.tsx";
+import { PomodoroPill } from "../ui/PomodoroPill.tsx";
 import { NoteCardContent, revealLabel, useNoteCardPrefetch } from "../ui/NoteCardContent.tsx";
 import { StudySettingsOverlay } from "../ui/StudySettingsOverlay.tsx";
 import { ActionButton, CloseButton, IconButton } from "../ui/actionUi.tsx";
@@ -61,6 +61,7 @@ export interface StudyModeProps extends Partial<Pick<GlobalSchedulerPreferences,
   simulationOffsetMinutes: number;
   pomodoroTimer: PomodoroTimer | null;
   onStartPomodoro: (minutes: number) => void;
+  onPomodoroPauseChange: (paused: boolean) => void;
   onExit: () => void;
   onReturnToLearn: () => void;
   onEditCard: (deckId: string, cardId: string, tab?: CardEditorTab) => unknown;
@@ -110,7 +111,7 @@ const STUDY_OPEN_COUNTS = DAILY_REVIEW_PROGRESS_SEGMENTS.filter((segment) => seg
 // Cards rendered and media loaded ahead: enough to answer quickly without holding many images.
 const PREFETCH_CARD_COUNT = 3;
 
-export function StudyMode({ shortcutsSuspended = false, deck, decks, notes, answeredToday, deckId, mediaStore, getNow, learningDayKey, dayStartHour = 0, learnAheadMinutes = 20, leechThreshold, easyDays = DEFAULT_EASY_DAYS, dueForecast = null, timeZone, simulationOffsetMinutes, pomodoroTimer, onStartPomodoro, onExit, onReturnToLearn, onEditCard, onEditDeck, flagNames, onSetCardStudyState, onSetDeckReviewOrder, onReview, onUndoReview, onAskCardHelp, sessionPlan, renderSidePanel, bufferSize = 50, hasMoreCards = false, onLoadMoreCards }: StudyModeProps) {
+export function StudyMode({ shortcutsSuspended = false, deck, decks, notes, answeredToday, deckId, mediaStore, getNow, learningDayKey, dayStartHour = 0, learnAheadMinutes = 20, leechThreshold, easyDays = DEFAULT_EASY_DAYS, dueForecast = null, timeZone, simulationOffsetMinutes, pomodoroTimer, onStartPomodoro, onPomodoroPauseChange, onExit, onReturnToLearn, onEditCard, onEditDeck, flagNames, onSetCardStudyState, onSetDeckReviewOrder, onReview, onUndoReview, onAskCardHelp, sessionPlan, renderSidePanel, bufferSize = 50, hasMoreCards = false, onLoadMoreCards }: StudyModeProps) {
   const [sessionDecks, setSessionDecks] = React.useState(decks);
   const [sessionNotes, setSessionNotes] = React.useState(() => new Map(notes.map((note) => [note.id, note])));
   /** Counts settings saved during the session, so the queue is planned again for any deck of the tree. */
@@ -133,6 +134,7 @@ export function StudyMode({ shortcutsSuspended = false, deck, decks, notes, answ
   const [sideWidth, setSideWidth] = React.useState(0);
   const sidePanelId = React.useId();
   const revealSidePanel = React.useCallback(() => setShowSidePanel(true), []);
+  const closeSidePanel = React.useCallback(() => setShowSidePanel(false), []);
   const [moreCardsAvailable, setMoreCardsAvailable] = React.useState(hasMoreCards);
   const [activeBufferSize, setActiveBufferSize] = React.useState(Math.max(1, bufferSize));
   const [loadingMoreCards, setLoadingMoreCards] = React.useState(false);
@@ -555,7 +557,7 @@ export function StudyMode({ shortcutsSuspended = false, deck, decks, notes, answ
               <CoreTooltip label={rootDeck?.name ?? ""}>
                 <p className="core-study-deck min-w-0 truncate core-heading-3 text-core-text">{rootDeck?.name}</p>
               </CoreTooltip>
-              <span className="flex shrink-0 items-center gap-2">
+              <span className="core-study-count-group flex shrink-0 items-center gap-2">
                 <dl className="core-study-counts" aria-label="Heute offen" data-testid="study-open-counts">
                   {STUDY_OPEN_COUNTS.map((count) => {
                     const value = sessionDailyProgress[count.countKey];
@@ -573,6 +575,7 @@ export function StudyMode({ shortcutsSuspended = false, deck, decks, notes, answ
               </span>
             </div>
             <div className="core-study-header-actions">
+              <PomodoroPill timer={pomodoroTimer} onPauseChange={onPomodoroPauseChange} />
               {renderSidePanel ? <CoreTooltip label="Zusammenfassung" side="bottom"><IconButton type="button" variant="ghost" className="core-study-side-toggle" onClick={() => setShowSidePanel((value) => !value)} label="Zusammenfassung" icon={FileText} aria-pressed={showSidePanel} aria-controls={sidePanelId} /></CoreTooltip> : null}
               <CoreTooltip label="Lerneinstellungen" side="bottom"><IconButton type="button" variant="ghost" onClick={() => setShowSettings((value) => !value)} label="Lerneinstellungen" icon={SlidersHorizontal} aria-haspopup="dialog" aria-expanded={showSettings} aria-controls="study-settings-overlay" /></CoreTooltip>
             </div>
@@ -583,7 +586,6 @@ export function StudyMode({ shortcutsSuspended = false, deck, decks, notes, answ
               Simulation aktiv · {formatSimulationDate(getNow())} · +{formatSimulationDuration(simulationOffsetMinutes)}
             </p>
           ) : null}
-          <PomodoroProgress timer={pomodoroTimer} variant="study" />
           {studyMissingMedia.length > 0 ? <p className="core-status-warning text-center core-body" role="status">{studyMissingMedia[0].status}{studyMissingMedia.length > 1 ? ` (${studyMissingMedia.length} Medien)` : ""}</p> : null}
         </header>
 
@@ -741,6 +743,6 @@ export function StudyMode({ shortcutsSuspended = false, deck, decks, notes, answ
         {showAnswer && helpCard ? <StudyAiHelp card={helpCard} onAsk={onAskCardHelp} open={showAiHelp} onOpenChange={setShowAiHelp} returnFocusRef={cardContentRef} /> : null}
       </div>
     </main>
-    {renderSidePanel ? <StudySidePanel id={sidePanelId} open={showSidePanel} renderContent={() => renderSidePanel(revealSidePanel)} onWidthChange={setSideWidth} /> : null}</>
+    {renderSidePanel ? <StudySidePanel id={sidePanelId} open={showSidePanel} onClose={closeSidePanel} renderContent={() => renderSidePanel(revealSidePanel)} onWidthChange={setSideWidth} /> : null}</>
   );
 }
