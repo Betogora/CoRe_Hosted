@@ -21,13 +21,14 @@ function countdown(exam: ExamPlan, civilToday: string) {
 
 function PosterTop({ exam, civilToday, before, heading }: { exam: ExamPlan; civilToday: string; before?: React.ReactNode; heading?: React.Ref<HTMLHeadingElement> }) {
   const status = getExamStatus(exam, civilToday);
-  const Heading = heading ? "h2" : "h3";
-  return <div className="exam-poster-top">
+  // Inside the poster button only phrasing content is valid, so its name is no heading there.
+  const Heading = heading ? "h2" : "span";
+  return <span className="exam-poster-top">
     {before}
     <Heading ref={heading} tabIndex={heading ? -1 : undefined} className="exam-poster-eyebrow outline-none">{exam.name}</Heading>
     {status !== "active" ? <span className="exam-poster-chip">{STATUS_LABELS[status]}</span> : null}
     <span className="exam-poster-date">{formatExamDate(exam.examDate)}</span>
-  </div>;
+  </span>;
 }
 
 export function ExamPosterLink({ exam, color, civilToday, disabled, onOpen }: { exam: ExamPlan; color: string; civilToday: string; disabled: boolean; onOpen: () => void }) {
@@ -48,7 +49,6 @@ interface ExamPageProps {
   readiness: ExamReadiness | null;
   civilToday: string;
   busy: boolean;
-  /** Replaces today's tasks and the deck list while the exam is edited. */
   editor: React.ReactNode;
   today: React.ReactNode;
   onBack: () => void;
@@ -61,6 +61,9 @@ interface ExamPageProps {
 export function ExamPage({ exam, color, decks, summary, readiness, civilToday, busy, editor, today, onBack, onColor, onEdit, onStatus, onDelete }: ExamPageProps) {
   const status = getExamStatus(exam, civilToday);
   const past = examDayDistance(civilToday, exam.examDate) <= 0;
+  const locked = busy || Boolean(editor);
+  const token = /^var\((--[\w-]+)\)$/.exec(color)?.[1];
+  const pickerColor = exam.color ?? ((token && typeof document !== "undefined" ? getComputedStyle(document.documentElement).getPropertyValue(token).trim() : "") || "#6f7e9e");
   const { value, label } = countdown(exam, civilToday);
   const total = readiness?.totalCards ?? 0;
   const seen = Math.round(total * (readiness?.coverage ?? 0)), solid = Math.min(seen, Math.round(total * (readiness?.consolidated ?? 0)));
@@ -72,12 +75,12 @@ export function ExamPage({ exam, color, decks, summary, readiness, civilToday, b
     <div className="core-page-header-back"><CrossLinkButton direction="back" onSelect={onBack}>Prüfungen</CrossLinkButton></div>
     <div className="min-w-0">
       <header className="dashboard-poster exam-page-hero" style={{ "--bg": color, "--fg": examTextColor(exam) } as React.CSSProperties}>
-        <PosterTop exam={exam} civilToday={civilToday} heading={heading} before={<ColorPicker icon={Palette} ariaLabel="Farbe der Prüfung ändern" value={exam.color ?? "#6f7e9e"} disabled={busy} onValueCommit={onColor} />} />
+        <PosterTop exam={exam} civilToday={civilToday} heading={heading} before={<ColorPicker icon={Palette} ariaLabel="Farbe der Prüfung ändern" value={pickerColor} disabled={locked} onValueCommit={onColor} />} />
         <div className="exam-page-actions">
-          <button type="button" className="exam-page-edit" disabled={busy} onClick={onEdit}><Pencil size={16} aria-hidden="true" />Bearbeiten</button>
-          <IconButton variant="ghost" icon={status === "active" ? Pause : Play} label={status === "active" ? "Pausieren" : status === "completed" ? "Wieder öffnen" : "Fortsetzen"} disabled={busy || (status !== "active" && past)} onClick={() => onStatus(status === "active" ? "paused" : "active")} />
-          {status !== "completed" ? <IconButton variant="ghost" icon={CalendarCheck} label="Abschließen" disabled={busy} onClick={() => onStatus("completed")} /> : null}
-          <IconButton variant="ghost" icon={Trash2} label="Löschen" disabled={busy} onClick={onDelete} />
+          <button type="button" className="exam-page-edit" disabled={locked} onClick={onEdit}><Pencil size={16} aria-hidden="true" />Bearbeiten</button>
+          <IconButton variant="ghost" icon={status === "active" ? Pause : Play} label={status === "active" ? "Pausieren" : status === "completed" ? "Wieder öffnen" : "Fortsetzen"} disabled={locked || (status !== "active" && past)} onClick={() => onStatus(status === "active" ? "paused" : "active")} />
+          {status !== "completed" ? <IconButton variant="ghost" icon={CalendarCheck} label="Abschließen" disabled={locked} onClick={() => onStatus("completed")} /> : null}
+          <IconButton variant="ghost" icon={Trash2} label="Löschen" disabled={locked} onClick={onDelete} />
         </div>
         <p className="exam-page-countdown"><span className="dashboard-poster-giant">{value}</span><span className="dashboard-poster-subtitle">{label}</span></p>
         {readiness ? <dl className="exam-page-parts" aria-label="Lernstand">

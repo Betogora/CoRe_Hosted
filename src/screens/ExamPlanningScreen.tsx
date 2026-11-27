@@ -44,13 +44,15 @@ export function ExamPlanningScreen({ state, now, onLoadPlanningData, onSavePlann
   const [editing, setEditing] = React.useState<ExamPlan | "new" | null>(null);
   const [openExamId, setOpenExamId] = React.useState<string | null>(null);
   const closedExamId = React.useRef<string | null>(null);
+  const undoButton = React.useRef<HTMLButtonElement>(null);
+  function leaveExam() { closedExamId.current = openExamId; setOpenExamId(null); }
   React.useLayoutEffect(() => {
     if (openExamId || !closedExamId.current) return;
     document.querySelector<HTMLElement>(`[data-testid="exam-card-${CSS.escape(closedExamId.current)}"]`)?.focus();
     closedExamId.current = null;
   }, [openExamId]);
   const [editorDirty, setEditorDirty] = React.useState(false);
-  const [pendingEditor, setPendingEditor] = React.useState<{ next: ExamPlan | "new" | null } | null>(null);
+  const [pendingEditor, setPendingEditor] = React.useState<{ next: ExamPlan | "new" | null; leave?: boolean } | null>(null);
   const [statusChange, setStatusChange] = React.useState<{ exam: ExamPlan; status: ExamPlan["status"] } | null>(null);
   const [deletedPlan, setDeletedPlan] = React.useState<{ exam: ExamPlan; index: number; blocks: NonNullable<StudyTimeCapacity["timeBlocks"]>; tasks: NonNullable<ExamPlanningSettings["dailyTasks"]> } | null>(null);
   const [deleting, setDeleting] = React.useState<ExamPlan | null>(null);
@@ -101,7 +103,7 @@ export function ExamPlanningScreen({ state, now, onLoadPlanningData, onSavePlann
   }
 
   const dialogs = <>
-      <ActionDialog open={Boolean(pendingEditor)} title="Änderungen verwerfen?" description="Deine Änderungen an dieser Prüfung wurden noch nicht gespeichert." cancelLabel="Weiter bearbeiten" confirmLabel="Verwerfen" onCancel={() => setPendingEditor(null)} onConfirm={() => { setEditing(pendingEditor?.next ?? null); setEditorDirty(false); setPendingEditor(null); }} />
+      <ActionDialog open={Boolean(pendingEditor)} title="Änderungen verwerfen?" description="Deine Änderungen an dieser Prüfung wurden noch nicht gespeichert." cancelLabel="Weiter bearbeiten" confirmLabel="Verwerfen" onCancel={() => setPendingEditor(null)} onConfirm={() => { setEditing(pendingEditor?.next ?? null); setEditorDirty(false); setPendingEditor(null); if (pendingEditor?.leave) leaveExam(); }} />
       <ActionDialog open={Boolean(statusChange)} title={statusChange?.status === "paused" ? "Prüfung pausieren?" : statusChange?.status === "completed" ? "Prüfung abschließen?" : "Prüfung fortsetzen?"} description={statusChange ? `${statusChange.exam.name}: ${statusChange.status === "paused" ? "Die Prüfungsplanung wird pausiert. Termin, Karten und Lernstand bleiben erhalten; normale Wiederholungen laufen weiter." : statusChange.status === "completed" ? "Die Prüfung wird als abgeschlossen geführt. Du kannst sie vor ihrem Termin wieder öffnen. Karten und Lernstand bleiben erhalten." : "Die Prüfung wird wieder in die gemeinsame Lernplanung aufgenommen."}` : ""} confirmLabel={statusChange?.status === "paused" ? "Pausieren" : statusChange?.status === "completed" ? "Abschließen" : "Fortsetzen"} cancelLabel="Abbrechen" confirmLoading={saving} onCancel={() => setStatusChange(null)} onConfirm={async () => {
         if (statusChange && await save(upsertExamPlan(preferences.examPlanning, { ...statusChange.exam, status: statusChange.status, updatedAt: new Date().toISOString() }))) setStatusChange(null);
       }} />
@@ -119,6 +121,7 @@ export function ExamPlanningScreen({ state, now, onLoadPlanningData, onSavePlann
             setDeletedPlan({ exam: deleting, index: exams.findIndex((exam) => exam.id === deleting.id), blocks: capacity.timeBlocks?.filter((block) => block.examId === deleting.id) ?? [], tasks: preferences.examPlanning.dailyTasks?.filter((task) => task.examId === deleting.id) ?? [] });
             setDeleting(null);
             setOpenExamId(null);
+            requestAnimationFrame(() => undoButton.current?.focus());
           }
         }}
       />
@@ -146,7 +149,7 @@ export function ExamPlanningScreen({ state, now, onLoadPlanningData, onSavePlann
         busy={saving || Boolean(calendarDraft)}
         editor={editing?.id === openExam.id ? editor(openExam, true) : null}
         today={<ExamDashboardWidget examId={openExam.id} state={state} now={now} planning={planning} onLoad={onLoadPlanningData} onStart={onStartUnit} onLoadSummaryAvailability={onLoadSummaryAvailability} onLoadLocalCardIds={onLoadLocalCardIds} onSaveTasks={onSaveTasks} />}
-        onBack={() => { requestEditing(null); if (!editorDirty) { closedExamId.current = openExam.id; setOpenExamId(null); } }}
+        onBack={() => { if (editorDirty) setPendingEditor({ next: null, leave: true }); else { setEditing(null); leaveExam(); } }}
         onColor={(color) => void save(upsertExamPlan(preferences.examPlanning, { ...openExam, color, colorIndex: undefined, updatedAt: new Date().toISOString() }))}
         onEdit={() => requestEditing(openExam)}
         onStatus={(status) => setStatusChange({ exam: openExam, status })}
@@ -173,7 +176,7 @@ export function ExamPlanningScreen({ state, now, onLoadPlanningData, onSavePlann
       <div className="grid min-w-0 items-start gap-6 xl:grid-cols-2">
       <div className="grid min-w-0 gap-4">
       <SectionHeader level={3} id="exam-list-title" title="Deine Prüfungen" action={exams.length === 0 || forecast ? <>{exams.length === 0 ? <IconButton label="Erste Prüfung planen" icon={Plus} disabled={addDisabled} onClick={() => requestEditing("new")} /> : null}{forecast ? <IconButton label="Plan neu berechnen" icon={RefreshCcw} variant="ghost" disabled={busy} onClick={reload} /> : null}</> : undefined} />
-      {deletedPlan ? <StatusMessage tone="success" announce="polite"><div className="flex flex-wrap items-center gap-3"><span>{deletedPlan.exam.name} wurde gelöscht.</span><ActionButton variant="secondary" icon={RotateCcw} loading={saving} onClick={async () => {
+      {deletedPlan ? <StatusMessage tone="success" announce="polite"><div className="flex flex-wrap items-center gap-3"><span>{deletedPlan.exam.name} wurde gelöscht.</span><ActionButton ref={undoButton} variant="secondary" icon={RotateCcw} loading={saving} onClick={async () => {
         try {
         const restored = upsertExamPlan(preferences.examPlanning, deletedPlan.exam);
         restored.exams = restored.exams.filter((exam) => exam.id !== deletedPlan.exam.id);

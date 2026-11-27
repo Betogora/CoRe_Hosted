@@ -41,7 +41,7 @@ test("Prüfungen stehen als Plakate in ihrer Farbe, die zur Seite der Prüfung f
   state.profile = withGlobalSchedulerPreferences(state.profile, { examPlanning: { version: 3, exams: [exam], capacity: createStudyTimeCapacity() } });
   const html = renderToStaticMarkup(<ExamPlanningScreen state={state} now="2026-10-18T12:00:00Z" onLoadPlanningData={async () => { throw new Error("Not called in SSR"); }} onSavePlanning={async () => undefined} onSaveTasks={async () => undefined} onStartUnit={async () => undefined} />);
   assert.match(html, /<button type="button" class="dashboard-poster exam-poster" data-testid="exam-card-patho"[^>]*aria-label="Patho: Prüfung öffnen" style="--bg:#fde68a;--fg:#000000"/);
-  assert.match(html, /<span class="exam-poster-date">19\. November 2026<\/span><\/div><span class="dashboard-poster-giant exam-poster-giant">32<\/span><span class="dashboard-poster-subtitle exam-poster-subtitle">Tage bis zur Prüfung<\/span>/);
+  assert.match(html, /<span class="exam-poster-date">19\. November 2026<\/span><\/span><span class="dashboard-poster-giant exam-poster-giant">32<\/span><span class="dashboard-poster-subtitle exam-poster-subtitle">Tage bis zur Prüfung<\/span>/);
   assert.match(html, /<button(?=[^>]*disabled)[^>]*>(?:(?!<\/button>).)*Weitere Prüfung planen<\/span><\/button>/);
   assert.ok(html.indexOf("Weitere Prüfung planen") > html.indexOf("Patho: Prüfung öffnen"));
   assert.doesNotMatch(html, />Bearbeiten<|>Pausieren<|>Abschließen</);
@@ -238,7 +238,7 @@ test("die Prüfungsseite teilt alle Karten in Gefestigt, Gesehen und Neu", () =>
   assert.match(html, /aria-label="Farbe der Prüfung ändern"/);
 });
 
-test("Heute auf der Prüfungsseite zeigt und startet nur die Aufgaben dieser Prüfung", () => {
+test("Heute auf der Prüfungsseite zeigt nur die Aufgaben dieser Prüfung", () => {
   const state = createCoreRepository().getState();
   const date = "2026-10-20", own = { ...createExamPlan(date, ["deck"]), id: "anatomy", name: "Anatomie", examDate: "2026-10-27" }, other = { ...own, id: "physio", name: "Physiologie" };
   state.profile = withGlobalSchedulerPreferences(state.profile, { examPlanning: { version: 3, exams: [own, other], capacity: createStudyTimeCapacity(), dailyTasks: [
