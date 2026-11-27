@@ -70,7 +70,11 @@ export function useNoteCardPrefetch(items: ReadonlyArray<{ note: Note; card: Car
   const layout = React.useContext(NoteLayoutContext);
   React.useEffect(() => {
     const theme = readTheme();
-    if (theme) for (const { note, card } of items) void cardBundle(note, card, "review", theme, layout).promise.catch(() => undefined);
+    if (!theme) return undefined;
+    // Sanitizing and typesetting the next cards waits until the shown card is drawn, so it never delays that card.
+    return whenDrawnAndIdle(() => {
+      for (const { note, card } of items) void cardBundle(note, card, "review", theme, layout).promise.catch(() => undefined);
+    });
   }, [items, layout]);
 }
 

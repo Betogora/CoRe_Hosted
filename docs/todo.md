@@ -33,20 +33,19 @@ Für alle Pakete gilt:
 - Der Branch berührt Service Worker und Chunking, später auch Bootstrap
   und Sync: vor dem gemeinsamen Merge
   `gh workflow run weekly-performance.yml --ref <branch>`.
-- **Hill-Climbing** (H2, H4, H5): je Schritt genau eine Änderung, Kennzahl
+- **Hill-Climbing** (H2, H4): je Schritt genau eine Änderung, Kennzahl
   vorher und nachher messen, nur übernehmen, wenn sie sinkt und alle Gates
   grün bleiben. Ende beim Ziel oder nach drei Schritten in Folge ohne
   nennenswerten Gewinn (unter 1 KiB, unter 2 % oder Zähler unverändert).
 - Unverändert lassen: `quality` (rund 50 s, Engpass Typecheck samt knip),
   Modultests (179 Dateien in 12 s) und RLS (21 Fälle in 6 s).
 
-Reihenfolge: A4, danach A6, T4, A7 und T5 nach Bedarf.
+Reihenfolge: A4, danach T4, A7 und T5 nach Bedarf.
 
 | Spur | Kennzahl | Schleife | Paket |
 | --- | --- | --- | --- |
 | H2 | Sekunden je Spec | `npm run test:e2e:catalog` lokal ohne Docker (rund 3 min); Supabase-Specs über die Artefakte `*-e2e-timings` aus CI, danach `SUPABASE_SHARDS` nachziehen | T4 |
 | H4 | Requests je Bewertung und je Leerlauf-Sync | Zähler gegen `tests/support/fakeLearningCloud.ts` | A4 |
-| H5 | `srcdoc`-Bytes und Millisekunden je Kartenbundle | Mikro-Benchmark, fehlt noch | A6 |
 
 ### App
 
@@ -63,30 +62,6 @@ Reihenfolge: A4, danach A6, T4, A7 und T5 nach Bedarf.
   - Anmeldung: Profil-Upsert parallel zum Boot; das Profil muss vor dem
     ersten Profilpatch existieren.
   - Nachweis: `weekly-performance` auf dem Branch.
-- [ ] **A6 – Kartenrahmen (H5):** braucht die visuelle Pflichtmatrix für
-      die Kartendarstellung.
-  - Schritt 0: Mikro-Benchmark für Millisekunden und `srcdoc`-Bytes je
-    `cardBundle` (Text, Lückentext mit Formeln, Auswahl).
-  - Manrope (rund 33 KB als base64) steht in jedem `srcdoc`; bei Formeln
-    kommen `katex.min.css` und alle 20 KaTeX-Schriften dazu (rund 370 KB),
-    und `renderCard` backt das in Frage und Antwort des Bundle-Caches je
-    Note (`src/ui/CardPresentationSurface.tsx:7-35,94-97`,
-    `src/noteMathAssets.ts:1-27`, `src/notePresentation.ts:379,454`). Im
-    Bundle nur den Body cachen, Math-CSS erst in der Surface einsetzen und
-    Schriften als `blob:`-URL liefern (die CSP erlaubt `font-src blob:`;
-    nie widerrufen; Safari mit Sandbox-`srcdoc` prüfen; die generierten
-    Katalogseiten brauchen weiter Data-URLs).
-  - `resolvePresentationMedia` (`src/presentationFrame.ts:21-36`) läuft mit
-    zwei Regex-Pässen über den ganzen String; Werte mit `data:` oder
-    `blob:` sofort überspringen.
-  - `useNoteCardPrefetch` (`src/ui/NoteCardContent.tsx:58-76,108-116`)
-    startet direkt im Effekt; über `whenDrawnAndIdle` einplanen. Ein Bundle
-    rendert fünfmal und bereinigt jedes Feld erneut mit xss und KaTeX
-    (`src/notePresentation.ts:128-181`): Ergebnis je Rohfeld cachen, ohne
-    einen Sanitizer-Pass auszulassen.
-  - Nachweis: Benchmark vorher und nachher, Feldwerte `core:answer_shown`
-    und `core:rating_to_next_card` (ADR-050). „Der Rahmen lädt nichts nach“
-    bleibt.
 - [ ] **A7 – Große Datenmengen und Editoren:** je Punkt ein eigener
       Commit, jeder mit eigener Messung zuerst.
   - Upload nach großen Importen (ergänzt „Erste Synchronisation großer

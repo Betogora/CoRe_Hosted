@@ -90,8 +90,10 @@ test("Kartenbausteine: KaTeX lädt eingebettete Schriften, Diagnosen erst auf ih
   const demo = page.locator('[data-note-demo="math"]');
   const question = demo.frameLocator('iframe[title="Frage"]');
   await expect(question.locator(".katex")).toHaveCount(4);
-  await expect.poll(() => question.locator("style").textContent()).toContain('src:url("data:font/woff2;base64,');
-  await expect.poll(() => question.locator("style").textContent()).toContain("font-family:KaTeX_Main");
+  await expect.poll(() => question.locator("html").evaluate(async (root) => {
+    const faces = await root.ownerDocument.fonts.load('16px "KaTeX_Math"', "x");
+    return faces.some((face) => face.status === "loaded");
+  })).toBe(true);
   await expect.poll(() => question.locator("style").textContent()).not.toContain("url(fonts/");
   await expect(demo.getByText("Diese Formel konnte nicht dargestellt werden.", { exact: true })).toHaveCount(0);
   await demo.getByRole("button", { name: "Aufdecken", exact: true }).click();
