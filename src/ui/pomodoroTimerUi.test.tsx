@@ -3,7 +3,8 @@ import test from "node:test";
 import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { createPomodoroTimer, pausePomodoroTimer } from "../pomodoroTimer.ts";
-import { POMODORO_PRESET_MINUTES, PomodoroPill, PomodoroTimerControl, StudyTimerTile } from "./pomodoroTimerUi.tsx";
+import { POMODORO_PRESET_MINUTES, PomodoroTimerControl, StudyTimerTile } from "./pomodoroTimerUi.tsx";
+import { PomodoroPill } from "./PomodoroPill.tsx";
 
 const noop = () => undefined;
 

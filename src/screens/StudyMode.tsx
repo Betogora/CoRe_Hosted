@@ -26,7 +26,7 @@ import {
 import { useNoteMediaPrefetch, useNoteMediaUrls } from "../ui/cardMedia.tsx";
 import { useSuccessToast } from "../ui/feedbackUi.tsx";
 import { DAILY_REVIEW_PROGRESS_SEGMENTS, DailyReviewProgress } from "../ui/DailyReviewProgress.tsx";
-import { PomodoroPill } from "../ui/pomodoroTimerUi.tsx";
+import { PomodoroPill } from "../ui/PomodoroPill.tsx";
 import { NoteCardContent, revealLabel, useNoteCardPrefetch } from "../ui/NoteCardContent.tsx";
 import { StudySettingsOverlay } from "../ui/StudySettingsOverlay.tsx";
 import { ActionButton, CloseButton, IconButton } from "../ui/actionUi.tsx";

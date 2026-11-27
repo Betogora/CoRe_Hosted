@@ -14,7 +14,7 @@ import { CoreSwitch } from "../ui/formControls.tsx";
 import { InfoHint } from "../ui/InfoHint.tsx";
 import { readCoreTheme, toggleCoreTheme } from "../coreTheme.ts";
 import { useHeatmapHistoryColor } from "../ui/StudyHeatmap.tsx";
-import { useStudyTimerColor } from "../ui/pomodoroTimerUi.tsx";
+import { useStudyTimerColor } from "../ui/PomodoroPill.tsx";
 import { useSuccessToast } from "../ui/feedbackUi.tsx";
 import { createGeneralSettingsDraft, rebaseSettingsDraft, settingsDraftsEqual, type GeneralSettingsDraft } from "../settingsDraft.ts";
 import { SyncConflictPanel } from "./SyncConflictPanel.tsx";

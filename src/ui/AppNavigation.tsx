@@ -11,7 +11,7 @@ import { useWorkspaceValue } from "../useWorkspaceStore.ts";
 import { IconButton } from "./actionUi.tsx";
 import { useSlidingSelection } from "./coreUi.tsx";
 import { CoreWordmark } from "./CoreWordmark.tsx";
-import { PomodoroPill } from "./pomodoroTimerUi.tsx";
+import { PomodoroPill } from "./PomodoroPill.tsx";
 import { SHELL_REVEAL_EVENT, type ShellBack } from "./shellBack.ts";
 
 interface AppNavigationItem {
