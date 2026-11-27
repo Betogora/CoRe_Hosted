@@ -56,14 +56,10 @@ Reihenfolge: A4, danach A6, T4, A7 und T5 nach Bedarf.
     Werte nicht gebraucht werden.
   - Schritt 0 fehlt weiter: Messpunkte für Lernstart (`studyStartP75Ms`),
     Review-Persistenz und Delta-Sync in `tests/performance/startup.spec.ts`.
-  - Folgekette nach dem Boot
-    (`src/authenticatedWorkspaceBoot.ts`, `src/useAccountWorkspace.ts`,
-    `src/appMediaLifecycle.ts`): Konflikte bei `conflictCount` 0
-    überspringen, `list_releasable_media` höchstens täglich, `cloudState`
-    nur bei echter Änderung ersetzen.
-  - Neues Gerät: Den Chunk der Startansicht schon beim Kontostart laden (im
-    Szenario `freshIsolated` rund 300 ms zwischen Workspace und Ansicht);
-    `src/App.tsx` steht an seiner Zeilengrenze, der Ort muss außerhalb liegen.
+  - Folgekette nach dem Boot: den Konfliktabruf des ersten Syncs bei
+    `conflictCount` 0 und leerer Outbox überspringen (braucht eine Option
+    in `syncNow`); `list_releasable_media` höchstens täglich (braucht
+    einen gespeicherten Zeitpunkt je Konto).
   - Anmeldung: Profil-Upsert parallel zum Boot; das Profil muss vor dem
     ersten Profilpatch existieren.
   - Nachweis: `weekly-performance` auf dem Branch.

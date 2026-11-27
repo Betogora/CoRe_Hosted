@@ -45,6 +45,8 @@ interface AuthenticatedWorkspaceCloudResult {
   syncEngine: AccountSyncEngine;
   conflictCount: number;
   pendingCount: number;
+  /** false when the first sync sent, pulled and found nothing, as `appSyncLifecycle` judges a later one. */
+  changed: boolean;
 }
 
 export async function bootAuthenticatedWorkspace(
@@ -258,6 +260,7 @@ async function finishAuthenticatedWorkspaceCloudSync(
   } catch {
     // Die Lifecycle-Retries dürfen auch dann installiert werden, wenn die erste Geräte-Registrierung offline scheitert.
   }
+  const conflictCardIdsBefore = repository.getSyncConflictCardIds();
   let syncResult: Awaited<ReturnType<typeof syncEngine.syncNow>> | null = null;
   try {
     syncResult = await syncEngine.syncNow();
@@ -269,7 +272,19 @@ async function finishAuthenticatedWorkspaceCloudSync(
     syncEngine,
     conflictCount: syncResult?.conflicts?.length ?? 0,
     pendingCount: syncEngine.pendingCount(),
+    changed: firstSyncChanged(syncResult, conflictCardIdsBefore, repository.getSyncConflictCardIds()),
   };
+}
+
+/** A failed first sync counts as changed; so does one that only cleared or set conflict markers. */
+export function firstSyncChanged(
+  result: { mutations?: number; pulledChanges?: boolean; conflicts?: unknown[] } | null,
+  conflictCardIdsBefore: ReadonlySet<string>,
+  conflictCardIdsAfter: ReadonlySet<string>,
+) {
+  const unchanged = result?.mutations === 0 && result.pulledChanges === false && !result.conflicts?.length;
+  const sameConflicts = conflictCardIdsBefore.size === conflictCardIdsAfter.size && [...conflictCardIdsBefore].every((id) => conflictCardIdsAfter.has(id));
+  return !unchanged || !sameConflicts;
 }
 
 export function startAuthenticatedWorkspaceSessionLifecycle({

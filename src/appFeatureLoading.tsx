@@ -1,5 +1,5 @@
 import React from "react";
-import type { AppViewId } from "./appNavigation.ts";
+import { parseAppRouteFromUrl, type AppViewId } from "./appNavigation.ts";
 import { markAppPerformance, measureAppPerformance } from "./appPerformance.ts";
 import { allowsBrowserAutomaticPreloading, createChunkPrefetcher, FEATURE_CHUNKS_ELEMENT_ID, parseFeatureChunks, type FeatureChunks } from "./appFeaturePreload.ts";
 import type { SettingsDialogProps } from "./screens/SettingsDialog.tsx";
@@ -90,6 +90,12 @@ export function prefetchAppView(viewId: AppViewId): Promise<unknown> {
     markAppPerformance(readyMark);
     measureAppPerformance(`core:feature:${feature}:prefetch`, startMark, readyMark);
   });
+}
+
+/** Downloads the view the URL opens on while an account boots; otherwise its download would start only once the workspace is ready. */
+export function prefetchOpeningView() {
+  const route = parseAppRouteFromUrl(window.location.href);
+  if (route.mode !== "study") void prefetchAppView(route.viewId).catch(() => undefined);
 }
 
 export function preloadSettingsDialog(): Promise<unknown> {

@@ -2,6 +2,7 @@ import React from "react";
 import type { User } from "@supabase/supabase-js";
 import { authPhaseForSession, authPhases, createSyncConflictStatus, createSyncErrorStatus, createSyncPendingStatus, createSyncSavedStatus, createSyncSavingStatus } from "./accountSession.ts";
 import type { AuthPhase } from "./accountSession.ts";
+import { prefetchOpeningView } from "./appFeatureLoading.tsx";
 import { markCloudBootstrapReady, markCloudSyncReady, markWorkspaceLocalReady } from "./appPerformance.ts";
 import { bootAuthenticatedWorkspace, startAuthenticatedWorkspaceSessionLifecycle, type AuthenticatedWorkspaceBootResult } from "./authenticatedWorkspaceBoot.ts";
 import { clearCloudAuthRedirectParams, formatCloudAuthError, getCloudUser, resetCloudPassword, signInCloudAccount, signInWithMagicLink, signOutCloudAccount, signUpCloudAccount, updateCloudPassword } from "./cloudAuth.ts";
@@ -69,6 +70,7 @@ export function useAccountWorkspace(events: AccountWorkspaceEvents) {
     const runId = bootRunRef.current + 1;
     bootRunRef.current = runId;
     setAuthPhase("loading-cloud");
+    prefetchOpeningView();
     setAuthMessage("");
     setBaselineLoadFailed(false);
     stopCloudBootstrapRetry();
@@ -112,14 +114,14 @@ export function useAccountWorkspace(events: AccountWorkspaceEvents) {
       if (bootRunRef.current !== runId) return;
       syncEngineRef.current = cloud.syncEngine;
       setSyncEngine(cloud.syncEngine);
-      eventsRef.current.cloudState(
-        started.repository.getShellState(),
-        cloud.conflictCount > 0
-          ? createSyncConflictStatus(cloud.conflictCount)
-          : cloud.pendingCount > 0
-            ? createSyncPendingStatus(cloud.pendingCount)
-            : createSyncSavedStatus("Cloud aktuell."),
-      );
+      const status = cloud.conflictCount > 0
+        ? createSyncConflictStatus(cloud.conflictCount)
+        : cloud.pendingCount > 0
+          ? createSyncPendingStatus(cloud.pendingCount)
+          : createSyncSavedStatus("Cloud aktuell.");
+      // An unchanged sync keeps the state the bootstrap published; a new one would recompute every view.
+      if (cloud.changed) eventsRef.current.cloudState(started.repository.getShellState(), status);
+      else eventsRef.current.syncStatus(status);
       markCloudSyncReady();
     }).catch((error) => {
       if (bootRunRef.current !== runId) return;
