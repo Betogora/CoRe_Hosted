@@ -59,7 +59,8 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  event.respondWith(caches.match(request).then((cached) => cached && canCache(cached) ? cached : fetch(request).then((response) => {
+  // A prefetch caches a chunk without the `Origin` header a module request sends; with `Vary: Origin` it would never match.
+  event.respondWith(caches.match(request, { ignoreVary: true }).then((cached) => cached && canCache(cached) ? cached : fetch(request).then((response) => {
     if (canCache(response)) {
       const copy = response.clone();
       void caches.open(CACHE_NAME).then((cache) => cache.put(request, copy));

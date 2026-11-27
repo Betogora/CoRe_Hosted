@@ -21,6 +21,7 @@ function worker({ cached, response, offline = false, entries = new Map<string, R
   const listeners = new Map<string, (event: unknown) => void>();
   const stored: Array<{ key: unknown; response: Response }> = [];
   const pending: Promise<unknown>[] = [];
+  const matchOptions: unknown[] = [];
   const cache = {
     put: async (key: unknown, response: Response) => { stored.push({ key, response }); entries.set(pathOf(key), response); },
     match: async (key: unknown) => entries.get(pathOf(key))?.clone(),
@@ -31,7 +32,7 @@ function worker({ cached, response, offline = false, entries = new Map<string, R
   runInNewContext(workerSource, {
     self: { location: { origin }, addEventListener: (name: string, listener: (event: unknown) => void) => listeners.set(name, listener) },
     caches: {
-      match: async () => cached,
+      match: async (_key: unknown, options?: unknown) => { matchOptions.push(options); return cached; },
       open: async () => cache,
     },
     fetch: async (input: unknown) => {
@@ -43,6 +44,7 @@ function worker({ cached, response, offline = false, entries = new Map<string, R
   });
   return {
     stored,
+    matchOptions,
     get fetches() { return fetches; },
     settled: () => Promise.all(pending),
     fetch: (path: string, mode = "cors", preloadResponse?: Promise<Response>) => {
@@ -82,6 +84,7 @@ test("valid cached modules remain available offline, including mjs and query str
   const runtime = worker({ cached, offline: true });
   assert.equal(await runtime.fetch("/assets/summary.mjs?v=1"), cached);
   assert.equal(runtime.fetches, 0);
+  assert.equal((runtime.matchOptions[0] as { ignoreVary?: boolean } | undefined)?.ignoreVary, true, "a chunk cached by a prefetch also answers the module request");
 });
 
 test("unsuccessful chunk responses are not cached and API requests bypass the worker", async () => {
