@@ -144,6 +144,52 @@ test("manual sync pulls cloud deltas even when the outbox is empty", async () =>
   assert.equal(result.syncStatus.status, "saved");
 });
 
+test("after sending, conflicts are listed alongside the pull and stored once it applied", async () => {
+  const order: string[] = [];
+  let finishPull!: () => void;
+  const engine = createTestEngine({
+    adapter: { ...acknowledgingAdapter(), async listConflicts() { order.push("list"); return [{ id: "conflict-a" }]; } },
+    outbox: createTestOutbox(),
+    device,
+    pullChanges: () => { order.push("pull"); return new Promise<void>((resolve) => { finishPull = () => { order.push("pulled"); resolve(); }; }); },
+    async persistConflictState(conflicts: unknown[]) { order.push(`store ${conflicts.length}`); },
+  });
+  engine.queue({ id: "review-a", type: SYNC_MUTATION_TYPES.entityMutation, entityId: "card-a", payload: { table: "cards", entity: { id: "card-a" } } });
+
+  const flushed = engine.syncNow();
+  await waitForAsyncWork();
+  assert.deepEqual(order, ["list", "pull"]);
+  finishPull();
+  const result = await flushed;
+
+  assert.deepEqual(order, ["list", "pull", "pulled", "store 1"]);
+  assert.equal(result.syncStatus.status, "conflict");
+});
+
+test("a failed pull reports its own error and leaves the parallel conflict listing without an unhandled rejection", async () => {
+  const unhandled: unknown[] = [];
+  const onUnhandled = (reason: unknown) => { unhandled.push(reason); };
+  process.on("unhandledRejection", onUnhandled);
+  try {
+    const stored: unknown[] = [];
+    const engine = createTestEngine({
+      adapter: { ...acknowledgingAdapter(), async listConflicts() { throw new Error("conflicts down"); } },
+      outbox: createTestOutbox(),
+      device,
+      async pullChanges() { throw new Error("pull down"); },
+      async persistConflictState(conflicts: unknown[]) { stored.push(conflicts); },
+    });
+    engine.queue({ id: "card-a", type: SYNC_MUTATION_TYPES.entityMutation, entityId: "card-a", payload: { table: "cards", entity: { id: "card-a" } } });
+
+    await assert.rejects(engine.syncNow(), /pull down/);
+    await new Promise((resolve) => setImmediate(resolve));
+    assert.deepEqual(stored, []);
+    assert.deepEqual(unhandled, []);
+  } finally {
+    process.off("unhandledRejection", onUnhandled);
+  }
+});
+
 test("a sync the server reported conflict-free skips listing conflicts only while nothing was sent", async () => {
   let listed = 0;
   const persisted: unknown[][] = [];

@@ -1,7 +1,7 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { expect, test, type Browser, type BrowserContext, type Page } from "@playwright/test";
-import { appPerformanceMarks, appPerformanceMeasures } from "../../src/appPerformance.ts";
+import { appPerformanceMarks, appPerformanceMeasures, REVIEW_PERSIST_MEASURE } from "../../src/appPerformance.ts";
 import { e2eAuthStatePath } from "../e2e/support/e2eEnvironment.ts";
 
 const RUNS_PER_SCENARIO = 10;
@@ -218,6 +218,36 @@ async function measureRun(
   return Object.fromEntries(Object.entries(result).map(([key, value]) => [key, typeof value === "number" ? round(value) : value])) as unknown as StartupRun;
 }
 
+/** One answer per run: from the click on Play to the first card, and from the rating to its stored transaction. */
+async function measureStudyRun(context: BrowserContext) {
+  const page = await context.newPage();
+  await throttlePage(page, false);
+  await page.goto("/lernen", { waitUntil: "domcontentloaded", timeout: 60_000 });
+  await waitForMark(page, appPerformanceMarks.cloudSyncReady);
+  const studyStartMs = await page.getByRole("button", { name: "Welt-Hauptstädte / Europa lernen", exact: true }).evaluate(async (button) => {
+    const start = performance.now();
+    (button as HTMLButtonElement).click();
+    // The card counts once its own frame shows content; the rating footer appears before that.
+    await new Promise<void>((resolve, reject) => {
+      const check = () => {
+        const drawn = [...document.querySelectorAll<HTMLIFrameElement>('[data-testid="study-card-content"] iframe')]
+          .some((frame) => !frame.closest('[aria-hidden="true"]') && Boolean(frame.contentDocument?.body?.textContent?.trim()));
+        if (drawn) resolve();
+        else if (performance.now() - start > 30_000) reject(new Error("Der Lernstart zeigte nach 30 s keine Karte."));
+        else requestAnimationFrame(check);
+      };
+      check();
+    });
+    return performance.now() - start;
+  });
+  await page.getByRole("button", { name: /^Antwort (anzeigen|prüfen)$/ }).click();
+  await page.getByRole("button", { name: /^Bewertung Gut/ }).click();
+  await page.waitForFunction((name) => performance.getEntriesByName(name, "measure").length > 0, REVIEW_PERSIST_MEASURE);
+  const reviewPersistMs = await page.evaluate((name) => performance.getEntriesByName(name, "measure").at(-1)!.duration, REVIEW_PERSIST_MEASURE);
+  await page.close();
+  return { studyStartMs: round(studyStartMs), reviewPersistMs: round(reviewPersistMs) };
+}
+
 async function measurePersistentScenario(context: BrowserContext, targetMark: string, offline: boolean) {
   const runs: StartupRun[] = [];
   for (let index = 0; index < RUNS_PER_SCENARIO; index += 1) runs.push(await measureRun(context, targetMark, offline));
@@ -229,6 +259,8 @@ test("misst normale, isolierte, Service-Worker-freie und offline Starts", async 
   await preparePersistedContext(persistedContext, true);
   const recurringPersisted = await measurePersistentScenario(persistedContext, appPerformanceMarks.workspaceLocalReady, false);
   expect(recurringPersisted.runs.every((run) => run.serviceWorkerStatus === "controlled")).toBe(true);
+  const studyRuns: Array<Awaited<ReturnType<typeof measureStudyRun>>> = [];
+  for (let index = 0; index < RUNS_PER_SCENARIO; index += 1) studyRuns.push(await measureStudyRun(persistedContext));
 
   const freshRuns: StartupRun[] = [];
   for (let index = 0; index < RUNS_PER_SCENARIO; index += 1) {
@@ -292,6 +324,7 @@ test("misst normale, isolierte, Service-Worker-freie und offline Starts", async 
       persistedWithoutServiceWorker: withoutDiagnostics(persistedWithoutServiceWorker),
       persistedOffline: withoutDiagnostics(persistedOffline),
       automatic4gPreload: withoutDiagnostics(automatic4gPreload),
+      study: { runs: studyRuns },
     },
     comparisons: {
       serviceWorkerP75CostMs: round(recurringPersisted.p75Ms - persistedWithoutServiceWorker.p75Ms),
@@ -311,6 +344,9 @@ test("misst normale, isolierte, Service-Worker-freie und offline Starts", async 
       firstDeckSummaries: round(percentile(freshRuns.map((run) => run.firstDeckSummariesMs), 0.75)),
       render: round(percentile(freshRuns.map((run) => run.renderAfterBootstrapMs), 0.75)),
     },
+    studyStartP75Ms: round(percentile(studyRuns.map((run) => run.studyStartMs), 0.75)),
+    studyStartP95Ms: round(percentile(studyRuns.map((run) => run.studyStartMs), 0.95)),
+    reviewPersistP95Ms: round(percentile(studyRuns.map((run) => run.reviewPersistMs), 0.95)),
     // The first sync of a set-up device pulls only the delta; it includes the device registration.
     deltaSyncP75Ms: round(percentile(recurringPersisted.runs.map((run) => run.firstSyncAfterBootstrapMs), 0.75)),
     deltaSyncP95Ms: round(percentile(recurringPersisted.runs.map((run) => run.firstSyncAfterBootstrapMs), 0.95)),

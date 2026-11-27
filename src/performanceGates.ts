@@ -81,6 +81,9 @@ const STARTUP_PERFORMANCE_GATE_KEYS = new Set<keyof PerformanceSnapshot>([
   "automatic3gPreloadCount",
   "deltaSyncP75Ms",
   "deltaSyncP95Ms",
+  "studyStartP75Ms",
+  "studyStartP95Ms",
+  "reviewPersistP95Ms",
 ]);
 
 function selectedPerformanceGates(snapshot: PerformanceSnapshot) {

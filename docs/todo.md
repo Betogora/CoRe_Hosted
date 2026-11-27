@@ -18,10 +18,6 @@ Production-Header und CI-Zeiten. Alles zu Start, Sync und Rendering stammt
 aus Code-Lektüre: Der Mechanismus ist belegt, die Zeitersparnis geschätzt.
 Solche Pakete beginnen deshalb mit ihrer Messung (Schritt 0).
 
-| Kennzahl | Stand | Ziel |
-| --- | --- | --- |
-| Roundtrips nacheinander je Bewertung | 5; seit A4 3 (ohne `getUser`, Profil parallel zum Delta) | 2 |
-
 Für alle Pakete gilt:
 
 - Alle Pakete entstehen auf einem gemeinsamen Branch, je Paket ein Commit,
@@ -30,25 +26,13 @@ Für alle Pakete gilt:
 - Der Branch berührt Service Worker und Chunking, später auch Bootstrap
   und Sync: vor dem gemeinsamen Merge
   `gh workflow run weekly-performance.yml --ref <branch>`.
-- **Hill-Climbing** (H4): je Schritt genau eine Änderung, Kennzahl
-  vorher und nachher messen, nur übernehmen, wenn sie sinkt und alle Gates
-  grün bleiben. Ende beim Ziel oder nach drei Schritten in Folge ohne
-  nennenswerten Gewinn (unter 1 KiB, unter 2 % oder Zähler unverändert).
 - Unverändert lassen: `quality` (rund 50 s, Engpass Typecheck samt knip),
   Modultests (179 Dateien in 12 s) und RLS (21 Fälle in 6 s).
 
-Reihenfolge: A4, danach A7 und T5 nach Bedarf.
-
-| Spur | Kennzahl | Schleife | Paket |
-| --- | --- | --- | --- |
-| H4 | Requests je Bewertung und je Leerlauf-Sync | Zähler gegen `tests/support/fakeLearningCloud.ts` | A4 |
+Reihenfolge: A7 und T5 nach Bedarf.
 
 ### App
 
-- [ ] **A4 – Roundtrips in Start, Sync und Lernstart (H4):**
-  - Messpunkte für Lernstart (`studyStartP75Ms`) und Review-Persistenz
-    (`reviewPersistP95Ms`) in `tests/performance/startup.spec.ts`, danach
-    die Roundtrips je Bewertung auf das Ziel der Tabelle.
 - [ ] **A7 – Große Datenmengen und Editoren:** je Punkt ein eigener
       Commit, jeder mit eigener Messung zuerst.
   - Upload nach großen Importen (ergänzt „Erste Synchronisation großer

@@ -3,6 +3,7 @@ import { randomUUID } from "node:crypto";
 import test from "node:test";
 import { IDBKeyRange, indexedDB } from "fake-indexeddb";
 import type { ImportCommitGraph, ImportGraphChunk } from "./apkgImport.ts";
+import { REVIEW_PERSIST_MEASURE } from "./appPerformance.ts";
 import { addCardVariant, createBasicNote, createCoreDeck, planNoteContentChange, planNoteDeletion, planNoteRestore } from "./coreModel.ts";
 import type { Card, Deck, Note } from "./coreTypes.ts";
 import type { WorkspaceState } from "./coreWorkspace.ts";
@@ -209,9 +210,13 @@ test("eine Bewertung erhöht studyRevision statt revision und reiht eine atomare
   const repository = await openRepository(initialState);
   const result = answerVariant(initialState.decks[0], "card-0", null, "good", { now: "2026-08-20T08:00:00.000Z" });
 
-  repository.recordReview(result);
-  await repository.flush();
-
+  try {
+    repository.recordReview(result);
+    await repository.flush();
+    assert.equal(performance.getEntriesByName(REVIEW_PERSIST_MEASURE, "measure").length, 1, "die Startmessung liest die Dauer bis zur gespeicherten Antwort");
+  } finally {
+    performance.clearMeasures(REVIEW_PERSIST_MEASURE);
+  }
   const body = await repository.loadCardBody("card-0");
   assert.equal(body?.card.studyRevision, 1);
   assert.equal(body?.card.revision, 1);

@@ -545,10 +545,15 @@ export function createSyncEngine({
 
         if (batchFailure) throw batchFailure;
         await outbox.flushPersistence?.();
+        // Listed alongside the pull; stored after it, because conflict markers resolve decks and notes to pulled cards.
+        const listedConflicts = conflictsKnownEmpty && batch.length === 0
+          ? Promise.resolve([])
+          : adapter.listConflicts ? adapter.listConflicts() : Promise.resolve([]);
+        listedConflicts.catch(() => undefined);
         // A pull that reports `false` changed nothing locally, so callers can skip rebuilding their state.
         result.pulledChanges = (await pullChanges?.()) !== false;
-        if (conflictsKnownEmpty && batch.length === 0) await persistConflictState?.([]);
-        else result.conflicts = await refreshConflicts();
+        result.conflicts = await listedConflicts;
+        await persistConflictState?.(result.conflicts);
         resetRetry();
         result.syncStatus = emitStatus(result.conflicts.length > 0
           ? createSyncConflictStatus(result.conflicts.length)

@@ -38,6 +38,9 @@ export const appPerformanceMeasures = {
   bootstrapApply: "core:bootstrap_apply",
 } as const;
 
+/** Not a start phase: field timings count those once per page load. */
+export const REVIEW_PERSIST_MEASURE = "core:review_persist";
+
 const startupPerformancePhases = {
   indexedDbOpen: {
     start: appPerformanceMarks.indexedDbOpenStart,
@@ -85,6 +88,12 @@ function browserPerformance(): PerformanceRecorder | null {
 
 export function markAppPerformance(name: string, recorder: PerformanceRecorder | null = browserPerformance()): void {
   recorder?.mark(name);
+}
+
+/** From an answer to the committed transaction that stores it with its outbox entry; only the latest one is kept. */
+export function measureReviewPersisted(startTime: number): void {
+  performance.clearMeasures(REVIEW_PERSIST_MEASURE);
+  performance.measure(REVIEW_PERSIST_MEASURE, { start: startTime, end: performance.now() });
 }
 
 export function markAppStarted(recorder: PerformanceRecorder | null = browserPerformance()): void {
