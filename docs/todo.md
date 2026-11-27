@@ -20,8 +20,8 @@ Solche Pakete beginnen deshalb mit ihrer Messung (Schritt 0).
 
 | Kennzahl | Stand | Ziel |
 | --- | --- | --- |
-| `affected-e2e` mit voller Suite | 12 bis 14 min (Testschritt 800 s); seit T1 ohne 266 s Katalog, seit T3 drei Shards mit je rund 140 s Tests statt 432 s, in CI noch ungemessen | höchstens 5 min |
-| `catalog-e2e` | 4,5 bis 6,5 min mit 2 Workern; seit T1 lokal auf 4 CPUs 176 statt 364 s, in CI noch ungemessen | höchstens 4 min |
+| `affected-e2e` mit voller Suite | 4,9 min, drei Shards mit 143, 146 und 149 s Tests (Lauf 46067216167) | höchstens 5 min |
+| `catalog-e2e` | 3,3 min (Lauf 46067216167) | höchstens 4 min |
 | Roundtrips nacheinander je Bewertung | 5; seit A4 3 (ohne `getUser`, Profil parallel zum Delta) | 2 |
 
 Für alle Pakete gilt:
