@@ -214,7 +214,7 @@ Befehlsmodule laufen ohne React, je Arbeitsbereich aus Store, Repository und Syn
 ## Kartendarstellung
 
 - `notePresentation.ts` rendert validierte `Note`/`Card`-Paare asynchron. Das Ergebnis trägt `srcdoc`, zugänglichen Text, Medienverweise, Interaktionen, Diagnosen und das Layout `core` oder `original`.
-- `presentationFrame.ts` besitzt das gemeinsame CSP-Gerüst und die Auflösung zu `blob:`/`data:`-URLs. `CardPresentationSurface` zeigt das Ergebnis im Sandbox-Iframe; Schriften und Formeln werden eingebettet, weil der Rahmen nichts nachlädt.
+- `presentationFrame.ts` besitzt das gemeinsame CSP-Gerüst und die Auflösung zu `blob:`/`data:`-URLs. `CardPresentationSurface` zeigt das Ergebnis im Sandbox-Iframe; Schriften kommen als `blob:` vom Host; der Rahmen lädt nichts nach.
 - `ui/NoteCardContent.tsx` ist der einzige Host für Review, Vorschau, Kartenverwaltung, Erstellung und Importvorschau und besitzt nur transienten Eingabe-, Auswahl- und Darstellungszustand. Medien löst er über `note.media` auf.
 - Feld-HTML durchläuft `sanitizeNoteHtml`, Vorlagen-HTML `sanitizeLayoutHtml` (`htmlSafety.ts`). Eingabevergleich und Auswahlauswertung bleiben reine Helfer des Renderers.
 - Originallayout (ADR-047): Die Regel steht einmal in `originalLayout.ts`, das auch der Importbericht nutzt. Der Host liest Vorlage und Stapelpfad über `NoteLayoutContext`, den die App an die replizierten `noteTypeSources` und die Importvorschau an ihre Vorlage bindet; bei leerer Vorderseite gilt das CoRe-Design mit Diagnose.

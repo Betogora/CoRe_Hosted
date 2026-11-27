@@ -11,26 +11,22 @@ const PRESENTATION_FONT_SOURCES = [
 let cachedPresentationFontCss = "";
 let presentationFontCssPromise: Promise<string> | null = null;
 
-function blobDataUrl(blob: Blob): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.addEventListener("load", () => resolve(typeof reader.result === "string" ? reader.result : ""), { once: true });
-    reader.addEventListener("error", () => reject(reader.error), { once: true });
-    reader.readAsDataURL(blob);
-  });
-}
-
 function loadPresentationFontCss(): Promise<string> {
   if (cachedPresentationFontCss) return Promise.resolve(cachedPresentationFontCss);
   presentationFontCssPromise ??= Promise.all(PRESENTATION_FONT_SOURCES.map(async ({ path, weight }) => {
     const response = await fetch(path);
     if (!response.ok) throw new Error(`Kartenschrift konnte nicht geladen werden: ${response.status}`);
-    const dataUrl = await blobDataUrl(await response.blob());
-    return `@font-face{font-family:"Manrope Variable";src:url(${dataUrl}) format('woff2');font-style:normal;font-weight:${weight};font-display:swap}`;
+    // The same-origin frame reads the font through a `blob:` URL that stays valid for the page's lifetime.
+    const fontUrl = URL.createObjectURL(await response.blob());
+    return `@font-face{font-family:"Manrope Variable";src:url(${fontUrl}) format('woff2');font-style:normal;font-weight:${weight};font-display:swap}`;
   })).then((rules) => {
     cachedPresentationFontCss = rules.join("");
     return cachedPresentationFontCss;
-  }).catch(() => "");
+  }).catch(() => {
+    // A failed load (offline, an asset hash replaced by a deploy) is retried by the next card.
+    presentationFontCssPromise = null;
+    return "";
+  });
   return presentationFontCssPromise;
 }
 

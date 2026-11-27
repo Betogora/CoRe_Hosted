@@ -6,13 +6,14 @@ const MEDIA_APKG_FIXTURE = fileURLToPath(new URL("../../fixtures/apkg/matrix/med
 
 test.describe.configure({ timeout: 60_000 });
 
-test("latest APKG preview shows the complete quality report without mutating account data", async ({ page }) => {
+test("latest APKG preview shows the complete quality report without mutating account data and commits with an accessible progressbar", async ({ page }) => {
   const browserErrors: string[] = [];
   page.on("pageerror", (error) => browserErrors.push(error.message));
   page.on("console", (message) => {
     if (message.type() === "error") browserErrors.push(message.text());
   });
   await resetToFreshLocalState(page);
+  await page.emulateMedia({ reducedMotion: "reduce" });
   const before = await readActiveAccountState(page);
   const beforeDeckCount = before.decks?.length ?? 0;
 
@@ -21,9 +22,30 @@ test("latest APKG preview shows the complete quality report without mutating acc
   await expect(page.getByRole("heading", { name: "Karten importieren" })).toBeVisible();
   await expect(page.getByText("APKG-, COLPKG-, TXT-, CSV- oder TSV-Datei hier ablegen")).toBeVisible();
   await expect(page.getByText("Importbericht erscheint nach dem Upload")).toHaveCount(0);
+  const reducedMotionObserved = page.evaluate(() => new Promise<string>((resolve) => {
+    const readTransition = () => {
+      const fill = document.querySelector('[data-testid="apkg-progress-fill"]');
+      return fill ? getComputedStyle(fill).transitionDuration : null;
+    };
+    const current = readTransition();
+    if (current !== null) return resolve(current);
+    const observer = new MutationObserver(() => {
+      const transition = readTransition();
+      if (transition === null) return;
+      observer.disconnect();
+      resolve(transition);
+    });
+    observer.observe(document.body, { childList: true, subtree: true });
+    window.setTimeout(() => {
+      observer.disconnect();
+      resolve("nicht beobachtet");
+    }, 5_000);
+  }));
   await page.locator('input[type="file"][accept=".apkg,.colpkg,.txt,.csv,.tsv"]').setInputFiles(MEDIA_APKG_FIXTURE);
 
+  expect(Number.parseFloat(await reducedMotionObserved)).toBeLessThanOrEqual(0.00001);
   await expect(page.getByRole("button", { name: "Import übernehmen" })).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByRole("button", { name: "Import übernehmen" })).toBeEnabled();
   await expect(page.getByRole("heading", { name: "Matrix Medien" })).toBeVisible();
   const statTiles = page.getByTestId("apkg-stat-tile");
   await expect(statTiles).toHaveCount(4);
@@ -65,36 +87,8 @@ test("latest APKG preview shows the complete quality report without mutating acc
     /Not allowed to load local resource: blob:/,
   ].some((knownMessage) => knownMessage.test(message)));
   expect(unexpectedBrowserErrors).toEqual([]);
-});
 
-test("APKG commit exposes an accessible progressbar before completion", async ({ page }) => {
-  await resetToFreshLocalState(page);
-  await page.emulateMedia({ reducedMotion: "reduce" });
-  await page.getByRole("navigation", { name: /Hauptmenü/ }).getByRole("button", { name: "Erstellen" }).click();
-  await page.getByRole("button", { name: /^Import\b/ }).click();
-  const reducedMotionObserved = page.evaluate(() => new Promise<string>((resolve) => {
-    const readTransition = () => {
-      const fill = document.querySelector('[data-testid="apkg-progress-fill"]');
-      return fill ? getComputedStyle(fill).transitionDuration : null;
-    };
-    const current = readTransition();
-    if (current !== null) return resolve(current);
-    const observer = new MutationObserver(() => {
-      const transition = readTransition();
-      if (transition === null) return;
-      observer.disconnect();
-      resolve(transition);
-    });
-    observer.observe(document.body, { childList: true, subtree: true });
-    window.setTimeout(() => {
-      observer.disconnect();
-      resolve("nicht beobachtet");
-    }, 5_000);
-  }));
-  await page.locator('input[type="file"][accept=".apkg,.colpkg,.txt,.csv,.tsv"]').setInputFiles(MEDIA_APKG_FIXTURE);
-  expect(Number.parseFloat(await reducedMotionObserved)).toBeLessThanOrEqual(0.00001);
-  await expect(page.getByRole("button", { name: "Import übernehmen" })).toBeEnabled({ timeout: 30_000 });
-
+  await page.setViewportSize({ width: 1280, height: 720 });
   const progressObserved = page.evaluate(() => new Promise<boolean>((resolve) => {
     const target = document.querySelector('[data-testid="apkg-file-progress"]');
     if (!target) return resolve(false);

@@ -1,3 +1,4 @@
+import { measureReviewPersisted } from "./appPerformance.ts";
 import type { Card, CardVariant, Note } from "./coreTypes.ts";
 import type { OutboxMutationInput, StagedMutations } from "./indexedDbOutbox.ts";
 import {
@@ -44,6 +45,7 @@ export function createReviewWrites({ database, enqueueWrite, stageMutations, stu
       createdAt: at,
     }]);
     studyOverview.countReview(event.answeredAt, takenBack ? -1 : 1);
+    const writeStartedAt = performance.now();
     void enqueueWrite(async () => {
       const transaction = database.transaction(REVIEW_STORES, "readwrite");
       const cards = transaction.objectStore(STORE.cards);
@@ -69,6 +71,7 @@ export function createReviewWrites({ database, enqueueWrite, stageMutations, stu
       transaction.objectStore(STORE.meta).put({ key: "updatedAt", value: at });
       studyOverview.writeReviewCounts(transaction);
       await transactionDone(transaction);
+      if (!takenBack) measureReviewPersisted(writeStartedAt);
       if (takenBack) historyBeforeAnswer.delete(event.id);
     });
   };

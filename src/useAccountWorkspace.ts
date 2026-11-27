@@ -192,7 +192,12 @@ export function useAccountWorkspace(events: AccountWorkspaceEvents) {
     setAuthBusy(true);
     setAuthMessage("");
     try {
-      await boot(await signInCloudAccount(supabase, { email }, password));
+      const { user, profileStored } = await signInCloudAccount(supabase, { email }, password);
+      const bootRun = bootRunRef.current + 1;
+      await Promise.all([boot(user), profileStored.catch((error: unknown) => {
+        if (bootRunRef.current === bootRun) discardWorkspace();
+        throw error;
+      })]);
     } catch (error) {
       setAuthPhase("signed-out");
       setAuthMessage(formatCloudAuthError(error, "Anmeldung fehlgeschlagen."));

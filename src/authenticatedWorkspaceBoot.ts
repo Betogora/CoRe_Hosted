@@ -64,7 +64,7 @@ export async function bootAuthenticatedWorkspace(
     timeZone: state.profile.timezone,
   });
   const bootstrap = createBootstrapRetryCoordinator(supabase, user, repository);
-  const cloudSync = bootstrap.ready.then((result) => finishAuthenticatedWorkspaceCloudSync(supabase, user.id, repository, result.profileUpdatedAt));
+  const cloudSync = bootstrap.ready.then((result) => finishAuthenticatedWorkspaceCloudSync(supabase, user.id, repository, result));
   return {
     repository,
     state,
@@ -216,14 +216,14 @@ async function finishAuthenticatedWorkspaceCloudSync(
   supabase: SupabaseBrowserClient,
   userId: string,
   repository: IndexedDbCoreRepository,
-  bootstrapProfileUpdatedAt: string | null,
+  bootstrap: AuthenticatedWorkspaceBootstrapResult,
 ): Promise<AuthenticatedWorkspaceCloudResult> {
   const [{ streamAccountCatalogChanges }, { createAccountSyncEngine }] = await Promise.all([
     import("./cloudRepository.ts"),
     import("./syncEngine.ts"),
   ]);
   // A running app reads the profile again only after another device or tab changed it, starting with the bootstrap's.
-  let profileSeenAt = bootstrapProfileUpdatedAt;
+  let profileSeenAt = bootstrap.profileUpdatedAt;
   const applyProfileChange = async (change: Awaited<ReturnType<typeof loadCloudProfileChange>>) => {
     if (!change) return false;
     profileSeenAt = change.updatedAt;
@@ -263,7 +263,7 @@ async function finishAuthenticatedWorkspaceCloudSync(
   const conflictCardIdsBefore = repository.getSyncConflictCardIds();
   let syncResult: Awaited<ReturnType<typeof syncEngine.syncNow>> | null = null;
   try {
-    syncResult = await syncEngine.syncNow();
+    syncResult = await syncEngine.syncNow({ conflictsKnownEmpty: bootstrap.conflictCount === 0 });
   } catch {
     // Der Coordinator wird trotzdem an React übergeben; Fokus-, Online- und Intervall-Retries bleiben damit aktiv.
   }

@@ -1,7 +1,7 @@
 import { expect, test, type Locator, type Page } from "@playwright/test";
 import { createClient } from "@supabase/supabase-js";
 import { fileURLToPath } from "node:url";
-import { readActiveAccountState, resetToFreshLocalState } from "./support/appState.ts";
+import { readActiveAccountState, resetToFreshLocalState, shareFreshLocalState } from "./support/appState.ts";
 import { collectBrowserErrors } from "./support/browserErrors.ts";
 import { chooseCoreSelectOption } from "./support/coreSelect.ts";
 import { loadE2EEnvironment } from "./support/e2eEnvironment.ts";
@@ -104,8 +104,7 @@ test("gemeinsame Dropdowns schließen durch erneutes Antippen und behalten Auswa
   });
   try {
     const page = await touchContext.newPage();
-    await resetToFreshLocalState(page);
-    await page.goto("/?settings=tagesrunde");
+    await resetToFreshLocalState(page, { path: "/?settings=tagesrunde" });
     const trigger = page.locator('button[aria-label="Kartenreihenfolge"]');
     const rowTitle = page.locator(".core-settings-row-title", { hasText: /^Kartenreihenfolge$/ });
     const firstOption = "Fällige Karten zuerst";
@@ -179,53 +178,202 @@ async function expectYearCells(grid: Locator) {
   expect(layout.todayShadow).not.toBe("none");
 }
 
-test("dashboard heatmap keeps band, controls, period views and year cells inside every responsive width", async ({ page }: any) => {
-  await resetToFreshLocalState(page);
+test.describe("ohne Änderung an Konto und App-Zustand, auf einem gemeinsamen Reset", () => {
+  const freshPage = shareFreshLocalState();
 
-  const viewports = visualOutput ? [1440, 1280, 1279, 1152, 1024, 900, 768, 700, 640, 639, 390, 320] : [1440, 1280, 1279, 768, 640, 639, 390, 320];
-  for (const period of [
-    { label: "Woche", value: "week" },
-    { label: "Monat", value: "month" },
-    { label: "Jahr", value: "year" },
-  ]) {
-    await page.getByRole("combobox", { name: "Heatmap-Zeitraum" }).click();
-    await page.getByRole("option", { name: period.label, exact: true }).click();
+  test("dashboard heatmap keeps band, controls, period views and year cells inside every responsive width", async () => {
+    const page = await freshPage();
 
-    for (const width of viewports) {
-      await page.setViewportSize({ width, height: 900 });
+    const viewports = visualOutput ? [1440, 1280, 1279, 1152, 1024, 900, 768, 700, 640, 639, 390, 320] : [1440, 1280, 1279, 768, 640, 639, 390, 320];
+    for (const period of [
+      { label: "Woche", value: "week" },
+      { label: "Monat", value: "month" },
+      { label: "Jahr", value: "year" },
+    ]) {
+      await page.getByRole("combobox", { name: "Heatmap-Zeitraum" }).click();
+      await page.getByRole("option", { name: period.label, exact: true }).click();
+
+      for (const width of viewports) {
+        await page.setViewportSize({ width, height: 900 });
+        const grid = page.getByTestId("study-heatmap-grid");
+        await expect(grid).toBeVisible();
+        await expect(grid).toHaveAttribute("data-heatmap-period", period.value);
+        await expect.poll(() => grid.locator("span[aria-label]").count()).toBeGreaterThan(0);
+
+        const layout = await page.locator(".core-study-heatmap-container").evaluate((panel: HTMLElement) => {
+          const inside = (rect: DOMRect, outer: DOMRect) => rect.left >= outer.left - 1 && rect.right <= outer.right + 1;
+          const panelRect = panel.getBoundingClientRect();
+          const band = panel.querySelector<HTMLElement>("[data-testid='study-heatmap-header']")!;
+          const title = band.querySelector<HTMLElement>("h3")!;
+          const controls = panel.querySelector<HTMLElement>("[data-testid='study-heatmap-controls']")!;
+          const periodSwitch = controls.querySelector<HTMLElement>("[aria-label='Heatmap-Zeitraum']")!;
+          const yearScroller = panel.querySelector<HTMLElement>("[aria-label^='Horizontal scrollbare Lern-Heatmap']");
+          const bandRect = band.getBoundingClientRect();
+          return {
+            bandSpansPanel: Math.abs(bandRect.left - panelRect.left) <= 1 && Math.abs(bandRect.right - panelRect.right) <= 1,
+            titleSingleRow: [...title.children].every((part) => part.getBoundingClientRect().top < title.children[0].getBoundingClientRect().bottom),
+            controlsInside: [...controls.querySelectorAll<HTMLElement>("button")].every((button) => inside(button.getBoundingClientRect(), panelRect)),
+            periodSwitchInside: inside(periodSwitch.getBoundingClientRect(), controls.getBoundingClientRect()),
+            pageFitsViewport: document.documentElement.scrollWidth <= window.innerWidth + 1,
+            yearScrollIsLocal: !yearScroller || (getComputedStyle(yearScroller).overflowX === "auto" && yearScroller.scrollWidth >= yearScroller.clientWidth),
+          };
+        });
+
+        expect(layout.bandSpansPanel).toBe(true);
+        expect(layout.titleSingleRow).toBe(true);
+        expect(layout.controlsInside).toBe(true);
+        expect(layout.periodSwitchInside).toBe(true);
+        expect(layout.pageFitsViewport).toBe(true);
+        expect(layout.yearScrollIsLocal).toBe(true);
+        if (period.value === "year" && [1440, 768, 390].includes(width)) await expectYearCells(grid);
+      }
+    }
+  });
+
+  test("statistics uses the shared filtered heatmap without clipped shadows or retired subtitles", async () => {
+    const page = await freshPage();
+    await openNavigationMenuItem(page, "Statistik");
+
+    await expect(page.getByTestId("study-heatmap-header").getByRole("heading", { name: /Tage? Streak/ })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Lernkalender" })).toHaveCount(0);
+    await expect(page.locator('section[aria-labelledby="statistics-overview-title"] dt')).toHaveCount(7);
+    const areas = page.getByRole("tablist", { name: "Bereiche der Statistik" });
+    for (const [area, chart] of [["Planung & Kartenbestand", "Zeitplanung"], ["FSRS-Gedächtnismodell", "FSRS-Schwierigkeit"], ["Antwortverhalten", "Wahre Erinnerungsquote"], ["Stapelvergleich", "Stapelvergleich"]] as const) {
+      await areas.getByRole("tab", { name: area, exact: true }).click();
+      await expect(page.getByRole("tabpanel").getByRole("heading", { name: chart, exact: true })).toBeVisible();
+    }
+    await expect(page.getByRole("button", { name: /^Stapelinhalte öffnen:/ }).first()).toBeVisible();
+    await areas.getByRole("tab", { name: "Lernaktivität", exact: true }).click();
+    for (const removedText of [
+      "Alle historischen Diagramme",
+      "pro aktivem Tag",
+      "Schwer, Gut oder Einfach",
+      "geeignete Reviews",
+      "Messung beginnt mit der nächsten Wiederholung",
+      "gemessene Antworten",
+      "Längste:",
+      "FSRS-Kennzahlen und aktuelle Bestandsverteilungen",
+    ]) await expect(page.getByText(removedText, { exact: false })).toHaveCount(0);
+
+    for (const theme of ["light", "dark"]) {
+      await page.evaluate((value: string) => { document.documentElement.dataset.coreTheme = value; }, theme);
+      const cellBackground = await page.getByTestId("study-heatmap-grid").locator("span[aria-label]").first().evaluate((cell: HTMLElement) => getComputedStyle(cell).backgroundColor);
+      expect(cellBackground).not.toBe("rgba(0, 0, 0, 0)");
+    }
+    await page.evaluate(() => { document.documentElement.dataset.coreTheme = "light"; });
+
+    for (const viewport of matrixViewports()) {
+      await page.setViewportSize(viewport);
       const grid = page.getByTestId("study-heatmap-grid");
       await expect(grid).toBeVisible();
-      await expect(grid).toHaveAttribute("data-heatmap-period", period.value);
-      await expect.poll(() => grid.locator("span[aria-label]").count()).toBeGreaterThan(0);
-
-      const layout = await page.locator(".core-study-heatmap-container").evaluate((panel: HTMLElement) => {
-        const inside = (rect: DOMRect, outer: DOMRect) => rect.left >= outer.left - 1 && rect.right <= outer.right + 1;
-        const panelRect = panel.getBoundingClientRect();
-        const band = panel.querySelector<HTMLElement>("[data-testid='study-heatmap-header']")!;
-        const title = band.querySelector<HTMLElement>("h3")!;
-        const controls = panel.querySelector<HTMLElement>("[data-testid='study-heatmap-controls']")!;
-        const periodSwitch = controls.querySelector<HTMLElement>("[aria-label='Heatmap-Zeitraum']")!;
-        const yearScroller = panel.querySelector<HTMLElement>("[aria-label^='Horizontal scrollbare Lern-Heatmap']");
-        const bandRect = band.getBoundingClientRect();
+      const layout = await page.getByRole("heading", { name: "Statistik" }).evaluate((heading: HTMLElement) => {
+        const screenRoot = heading.closest("header")?.parentElement?.parentElement as HTMLElement;
         return {
-          bandSpansPanel: Math.abs(bandRect.left - panelRect.left) <= 1 && Math.abs(bandRect.right - panelRect.right) <= 1,
-          titleSingleRow: [...title.children].every((part) => part.getBoundingClientRect().top < title.children[0].getBoundingClientRect().bottom),
-          controlsInside: [...controls.querySelectorAll<HTMLElement>("button")].every((button) => inside(button.getBoundingClientRect(), panelRect)),
-          periodSwitchInside: inside(periodSwitch.getBoundingClientRect(), controls.getBoundingClientRect()),
+          overflowX: getComputedStyle(screenRoot).overflowX,
           pageFitsViewport: document.documentElement.scrollWidth <= window.innerWidth + 1,
-          yearScrollIsLocal: !yearScroller || (getComputedStyle(yearScroller).overflowX === "auto" && yearScroller.scrollWidth >= yearScroller.clientWidth),
         };
       });
-
-      expect(layout.bandSpansPanel).toBe(true);
-      expect(layout.titleSingleRow).toBe(true);
-      expect(layout.controlsInside).toBe(true);
-      expect(layout.periodSwitchInside).toBe(true);
+      expect(layout.overflowX).toBe("visible");
       expect(layout.pageFitsViewport).toBe(true);
-      expect(layout.yearScrollIsLocal).toBe(true);
-      if (period.value === "year" && [1440, 768, 390].includes(width)) await expectYearCells(grid);
     }
-  }
+
+    await page.setViewportSize({ width: 390, height: 844 });
+    const rangeLabel = page.getByTestId("study-heatmap-range-label");
+    const initialRange = await rangeLabel.textContent();
+    const previousRange = page.getByRole("button", { name: "Frühere sieben Tage anzeigen" });
+    if (await previousRange.isEnabled()) {
+      await previousRange.click();
+      await expect(rangeLabel).not.toHaveText(initialRange!);
+    } else {
+      await expect(previousRange).toBeDisabled();
+    }
+
+    await page.getByRole("button", { name: "30 Tage" }).click();
+    await expect(page.getByRole("button", { name: "30 Tage" })).toHaveAttribute("aria-pressed", "true");
+    await expect(page.getByTestId("study-heatmap-grid")).toBeVisible();
+  });
+
+  test("CoRe tooltips replace native hints for heatmap and icon actions", async () => {
+    const page = await freshPage();
+    await page.setViewportSize({ width: 390, height: 844 });
+
+    const grid = page.getByTestId("study-heatmap-grid");
+    const dayCells = grid.locator("span[aria-label]");
+    await expect.poll(() => dayCells.count()).toBeGreaterThan(1);
+    await expect(grid.locator("[title]")).toHaveCount(0);
+
+    const firstDay = dayCells.first();
+    const firstLabel = await firstDay.getAttribute("aria-label");
+    expect(firstLabel).toBeTruthy();
+    await firstDay.hover();
+
+    const tooltip = page.getByRole("tooltip");
+    await expect(tooltip).toBeVisible();
+    await expect(tooltip).toHaveText(firstLabel!);
+    await expect(tooltip).toHaveCount(1);
+
+    const bounds = await tooltip.evaluate((element: HTMLElement) => {
+      const rect = element.getBoundingClientRect();
+      return { bottom: rect.bottom, left: rect.left, right: rect.right, top: rect.top };
+    });
+    expect(bounds.left).toBeGreaterThanOrEqual(8);
+    expect(bounds.right).toBeLessThanOrEqual(382);
+    expect(bounds.top).toBeGreaterThanOrEqual(8);
+    expect(bounds.bottom).toBeLessThanOrEqual(836);
+
+    const secondDay = dayCells.nth(1);
+    const secondLabel = await secondDay.getAttribute("aria-label");
+    await secondDay.hover();
+    await expect(tooltip).toHaveText(secondLabel!);
+    await tooltip.hover();
+    await page.waitForTimeout(150);
+    await expect(tooltip).toBeVisible();
+    await page.keyboard.press("Escape");
+    await expect(tooltip).toHaveCount(0);
+
+    await page.getByRole("navigation", { name: "Mobile Hauptnavigation" }).getByRole("button", { name: "Lernen" }).click();
+    const deckOptions = page.getByRole("button", { name: "Stapeloptionen für Welt-Hauptstädte / Afrika" });
+    await expect(deckOptions).not.toHaveAttribute("title");
+    await deckOptions.focus();
+    await expect(tooltip).toHaveText("Stapeloptionen für Afrika");
+    const deckTooltipIcon = tooltip.locator('[data-core-tooltip-deck-appearance="true"]');
+    await expect(deckTooltipIcon).toBeVisible();
+    const [deckTooltipLayout, rowIconColor] = await Promise.all([
+      tooltip.evaluate((element: HTMLElement) => {
+        const icon = element.querySelector<HTMLElement>('[data-core-tooltip-deck-appearance="true"]')!;
+        const iconRect = icon.getBoundingClientRect();
+        return {
+          height: element.getBoundingClientRect().height,
+          iconColor: getComputedStyle(icon).color,
+          iconHeight: iconRect.height,
+          iconWidth: iconRect.width,
+        };
+      }),
+      page.getByTestId(`learn-deck-row-${DECK_IDS.africa}`).locator('[data-deck-icon="true"]').evaluate((icon: HTMLElement) => getComputedStyle(icon).color),
+    ]);
+    expect(deckTooltipLayout).toEqual({ height: 28, iconColor: rowIconColor, iconHeight: 16, iconWidth: 16 });
+    await page.keyboard.press("Escape");
+    await expect(tooltip).toHaveCount(0);
+  });
+
+  test("shared CoRe date picker updates the simulator within its bounded range", async () => {
+    const page = await freshPage("/simulator");
+    await expect(page.getByRole("heading", { name: "Simulator", exact: true })).toBeVisible();
+
+    const dateTrigger = page.getByRole("group", { name: "Simuliertes Datum", exact: true });
+    const initialLabel = await dateTrigger.innerText();
+    await dateTrigger.getByRole("button", { name: "Simuliertes Datum: Kalender öffnen", exact: true }).click();
+    const datePicker = page.getByRole("dialog", { name: "Simuliertes Datum: Datum auswählen" });
+    await expect(datePicker).toBeVisible();
+    await expect(datePicker.locator('button[data-date-key][aria-current="date"]')).toHaveCount(1);
+    const nextDate = datePicker.locator('button[data-date-key]:not([disabled]):not([aria-pressed="true"])').first();
+    const nextDateKey = await nextDate.getAttribute("data-date-key");
+    await nextDate.click();
+
+    const [year, month, day] = nextDateKey!.split("-");
+    await expect(dateTrigger).toContainText(`${day}.${month}.${year}`);
+    await expect(dateTrigger).not.toHaveText(initialLabel);
+  });
 });
 
 test("heatmap color is picked in the appearance settings and persists for the dashboard heatmap", async ({ page }: any) => {
@@ -253,132 +401,6 @@ test("heatmap color is picked in the appearance settings and persists for the da
 
   await page.goto("/");
   await expect(heatmap).toHaveAttribute("data-heatmap-history-color", "#3fa66b");
-});
-
-test("statistics uses the shared filtered heatmap without clipped shadows or retired subtitles", async ({ page }: any) => {
-  await resetToFreshLocalState(page);
-  await openNavigationMenuItem(page, "Statistik");
-
-  await expect(page.getByTestId("study-heatmap-header").getByRole("heading", { name: /Tage? Streak/ })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Lernkalender" })).toHaveCount(0);
-  await expect(page.locator('section[aria-labelledby="statistics-overview-title"] dt')).toHaveCount(7);
-  const areas = page.getByRole("tablist", { name: "Bereiche der Statistik" });
-  for (const [area, chart] of [["Planung & Kartenbestand", "Zeitplanung"], ["FSRS-Gedächtnismodell", "FSRS-Schwierigkeit"], ["Antwortverhalten", "Wahre Erinnerungsquote"], ["Stapelvergleich", "Stapelvergleich"]] as const) {
-    await areas.getByRole("tab", { name: area, exact: true }).click();
-    await expect(page.getByRole("tabpanel").getByRole("heading", { name: chart, exact: true })).toBeVisible();
-  }
-  await expect(page.getByRole("button", { name: /^Stapelinhalte öffnen:/ }).first()).toBeVisible();
-  await areas.getByRole("tab", { name: "Lernaktivität", exact: true }).click();
-  for (const removedText of [
-    "Alle historischen Diagramme",
-    "pro aktivem Tag",
-    "Schwer, Gut oder Einfach",
-    "geeignete Reviews",
-    "Messung beginnt mit der nächsten Wiederholung",
-    "gemessene Antworten",
-    "Längste:",
-    "FSRS-Kennzahlen und aktuelle Bestandsverteilungen",
-  ]) await expect(page.getByText(removedText, { exact: false })).toHaveCount(0);
-
-  for (const theme of ["light", "dark"]) {
-    await page.evaluate((value: string) => { document.documentElement.dataset.coreTheme = value; }, theme);
-    const cellBackground = await page.getByTestId("study-heatmap-grid").locator("span[aria-label]").first().evaluate((cell: HTMLElement) => getComputedStyle(cell).backgroundColor);
-    expect(cellBackground).not.toBe("rgba(0, 0, 0, 0)");
-  }
-  await page.evaluate(() => { document.documentElement.dataset.coreTheme = "light"; });
-
-  for (const viewport of matrixViewports()) {
-    await page.setViewportSize(viewport);
-    const grid = page.getByTestId("study-heatmap-grid");
-    await expect(grid).toBeVisible();
-    const layout = await page.getByRole("heading", { name: "Statistik" }).evaluate((heading: HTMLElement) => {
-      const screenRoot = heading.closest("header")?.parentElement?.parentElement as HTMLElement;
-      return {
-        overflowX: getComputedStyle(screenRoot).overflowX,
-        pageFitsViewport: document.documentElement.scrollWidth <= window.innerWidth + 1,
-      };
-    });
-    expect(layout.overflowX).toBe("visible");
-    expect(layout.pageFitsViewport).toBe(true);
-  }
-
-  await page.setViewportSize({ width: 390, height: 844 });
-  const rangeLabel = page.getByTestId("study-heatmap-range-label");
-  const initialRange = await rangeLabel.textContent();
-  const previousRange = page.getByRole("button", { name: "Frühere sieben Tage anzeigen" });
-  if (await previousRange.isEnabled()) {
-    await previousRange.click();
-    await expect(rangeLabel).not.toHaveText(initialRange!);
-  } else {
-    await expect(previousRange).toBeDisabled();
-  }
-
-  await page.getByRole("button", { name: "30 Tage" }).click();
-  await expect(page.getByRole("button", { name: "30 Tage" })).toHaveAttribute("aria-pressed", "true");
-  await expect(page.getByTestId("study-heatmap-grid")).toBeVisible();
-});
-
-test("CoRe tooltips replace native hints for heatmap and icon actions", async ({ page }: any) => {
-  await resetToFreshLocalState(page);
-  await page.setViewportSize({ width: 390, height: 844 });
-
-  const grid = page.getByTestId("study-heatmap-grid");
-  const dayCells = grid.locator("span[aria-label]");
-  await expect.poll(() => dayCells.count()).toBeGreaterThan(1);
-  await expect(grid.locator("[title]")).toHaveCount(0);
-
-  const firstDay = dayCells.first();
-  const firstLabel = await firstDay.getAttribute("aria-label");
-  expect(firstLabel).toBeTruthy();
-  await firstDay.hover();
-
-  const tooltip = page.getByRole("tooltip");
-  await expect(tooltip).toBeVisible();
-  await expect(tooltip).toHaveText(firstLabel!);
-  await expect(tooltip).toHaveCount(1);
-
-  const bounds = await tooltip.evaluate((element: HTMLElement) => {
-    const rect = element.getBoundingClientRect();
-    return { bottom: rect.bottom, left: rect.left, right: rect.right, top: rect.top };
-  });
-  expect(bounds.left).toBeGreaterThanOrEqual(8);
-  expect(bounds.right).toBeLessThanOrEqual(382);
-  expect(bounds.top).toBeGreaterThanOrEqual(8);
-  expect(bounds.bottom).toBeLessThanOrEqual(836);
-
-  const secondDay = dayCells.nth(1);
-  const secondLabel = await secondDay.getAttribute("aria-label");
-  await secondDay.hover();
-  await expect(tooltip).toHaveText(secondLabel!);
-  await tooltip.hover();
-  await page.waitForTimeout(150);
-  await expect(tooltip).toBeVisible();
-  await page.keyboard.press("Escape");
-  await expect(tooltip).toHaveCount(0);
-
-  await page.getByRole("navigation", { name: "Mobile Hauptnavigation" }).getByRole("button", { name: "Lernen" }).click();
-  const deckOptions = page.getByRole("button", { name: "Stapeloptionen für Welt-Hauptstädte / Afrika" });
-  await expect(deckOptions).not.toHaveAttribute("title");
-  await deckOptions.focus();
-  await expect(tooltip).toHaveText("Stapeloptionen für Afrika");
-  const deckTooltipIcon = tooltip.locator('[data-core-tooltip-deck-appearance="true"]');
-  await expect(deckTooltipIcon).toBeVisible();
-  const [deckTooltipLayout, rowIconColor] = await Promise.all([
-    tooltip.evaluate((element: HTMLElement) => {
-      const icon = element.querySelector<HTMLElement>('[data-core-tooltip-deck-appearance="true"]')!;
-      const iconRect = icon.getBoundingClientRect();
-      return {
-        height: element.getBoundingClientRect().height,
-        iconColor: getComputedStyle(icon).color,
-        iconHeight: iconRect.height,
-        iconWidth: iconRect.width,
-      };
-    }),
-    page.getByTestId(`learn-deck-row-${DECK_IDS.africa}`).locator('[data-deck-icon="true"]').evaluate((icon: HTMLElement) => getComputedStyle(icon).color),
-  ]);
-  expect(deckTooltipLayout).toEqual({ height: 28, iconColor: rowIconColor, iconHeight: 16, iconWidth: 16 });
-  await page.keyboard.press("Escape");
-  await expect(tooltip).toHaveCount(0);
 });
 
 test("[Vertrag: Tastaturfokus bei Navigation und Overlays] Fokus folgt Seiten- und Overlaywechseln", async ({ page }: any) => {
@@ -971,8 +993,7 @@ test("card rescheduling preserves scheduler state and keeps version history out 
 });
 
 test("a card moved out of the opened deck, moved back and duplicated stays reachable with its copy", async ({ page }: any) => {
-  await resetToFreshLocalState(page);
-  await page.goto(`/kartenstapel?deck=${DECK_IDS.europe}&content=1&tab=cards`);
+  await resetToFreshLocalState(page, { path: `/kartenstapel?deck=${DECK_IDS.europe}&content=1&tab=cards` });
   const row = page.getByTestId("deck-card-card_world_capitals_alb");
   await row.click();
   const editor = page.getByTestId("card-detail-dialog");
@@ -997,26 +1018,6 @@ test("a card moved out of the opened deck, moved back and duplicated stays reach
   const copy = europe.cards.find((card: any) => card.id !== "card_world_capitals_alb" && frontHtml(card)?.includes("Albanien") && frontHtml(card)?.includes("(Kopie)"));
   expect(copy).toBeTruthy();
   await expect(page.getByTestId(`deck-card-${copy.id}`)).toBeAttached();
-});
-
-test("shared CoRe date picker updates the simulator within its bounded range", async ({ page }: any) => {
-  await resetToFreshLocalState(page);
-  await page.goto("/simulator");
-  await expect(page.getByRole("heading", { name: "Simulator", exact: true })).toBeVisible();
-
-  const dateTrigger = page.getByRole("group", { name: "Simuliertes Datum", exact: true });
-  const initialLabel = await dateTrigger.innerText();
-  await dateTrigger.getByRole("button", { name: "Simuliertes Datum: Kalender öffnen", exact: true }).click();
-  const datePicker = page.getByRole("dialog", { name: "Simuliertes Datum: Datum auswählen" });
-  await expect(datePicker).toBeVisible();
-  await expect(datePicker.locator('button[data-date-key][aria-current="date"]')).toHaveCount(1);
-  const nextDate = datePicker.locator('button[data-date-key]:not([disabled]):not([aria-pressed="true"])').first();
-  const nextDateKey = await nextDate.getAttribute("data-date-key");
-  await nextDate.click();
-
-  const [year, month, day] = nextDateKey!.split("-");
-  await expect(dateTrigger).toContainText(`${day}.${month}.${year}`);
-  await expect(dateTrigger).not.toHaveText(initialLabel);
 });
 
 test("[Vertrag: manuell mit PDF bis Bearbeiten und Review] @golden-e2e @beta-core @hosted-core PDF-Auswahl erzeugt nur Karteninhalt", async ({ page }: any) => {

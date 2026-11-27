@@ -253,9 +253,11 @@ export async function signMediaUrls(client: any, userId: string, sha1s: string[]
   return { urls, missing, expiresAt };
 }
 
+export const MEDIA_RELEASE_PAGE_SIZE = 100;
+
 export async function releaseUnreferencedMedia(client: any, userId: string) {
   const { listReleasableMedia } = await import("./cloudRepository.ts");
-  const releasable = await listReleasableMedia(client);
+  const releasable = await listReleasableMedia(client, MEDIA_RELEASE_PAGE_SIZE);
   const own = releasable.filter((entry) => entry.storagePath.startsWith(`${userId}/`));
   if (!own.length) return 0;
   const { error: removeError } = await client.storage.from(CORE_MEDIA_BUCKET).remove(own.map((entry) => entry.storagePath));

@@ -1,4 +1,4 @@
-import type { Page } from "@playwright/test";
+import { test, type Page } from "@playwright/test";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { createCoreRepository } from "../../../src/coreRepository.ts";
 import { createWorldCapitalsSeed } from "../../../src/fixtures/worldCapitals.ts";
@@ -66,7 +66,7 @@ export async function resetTestAccount(environment = loadE2EEnvironment(), addit
   }, "e2e-test-reset");
 }
 
-export async function resetToFreshLocalState(page: Page, options: { resetCloud?: boolean; waitForCloud?: boolean; additionalDecks?: Deck[]; additionalNotes?: Note[] } = {}) {
+export async function resetToFreshLocalState(page: Page, options: { path?: string; resetCloud?: boolean; waitForCloud?: boolean; additionalDecks?: Deck[]; additionalNotes?: Note[] } = {}) {
   await page.goto("/favicon.svg");
   if (options.resetCloud !== false) await resetTestAccount(loadE2EEnvironment(), { decks: options.additionalDecks, notes: options.additionalNotes });
 
@@ -122,16 +122,40 @@ export async function resetToFreshLocalState(page: Page, options: { resetCloud?:
   );
   if (authKeyAfter !== authKeyBefore) throw new Error("Der App-State-Reset hat die Supabase-Session verändert.");
 
-  await page.goto("/");
-  await page.locator('[data-app-navigation="true"]:visible').first().waitFor({ state: "visible" });
-  if (options.waitForCloud !== false) {
-    await page.locator('[data-navigation-utilities="true"][data-sync-status="saved"]:visible')
-      .waitFor({ state: "visible", timeout: 20_000 });
-  }
+  await openSynchronizedApp(page, options.path ?? "/", options.waitForCloud !== false);
   const syncDeviceId = await page.evaluate((key: string) => localStorage.getItem(key), SYNC_DEVICE_STORAGE_KEY);
   if (syncDeviceIdBefore && syncDeviceId !== syncDeviceIdBefore) throw new Error("Der App-State-Reset hat die stabile Geräte-ID verändert.");
 
   return { authStorageKey: authKeyAfter, syncDeviceId };
+}
+
+async function openSynchronizedApp(page: Page, path: string, waitForCloud = true) {
+  await page.goto(path);
+  await page.locator('[data-app-navigation="true"]:visible').first().waitFor({ state: "visible" });
+  if (waitForCloud) {
+    await page.locator('[data-navigation-utilities="true"][data-sync-status="saved"]:visible')
+      .waitFor({ state: "visible", timeout: 20_000 });
+  }
+}
+
+/** After a failure Playwright starts a new worker, whose first `freshPage` resets again. */
+export function shareFreshLocalState() {
+  let page!: Page;
+  let reset = false;
+  test.beforeAll(async ({ browser }) => {
+    page = await browser.newPage();
+  });
+  test.afterAll(async () => {
+    await page.close();
+  });
+  return async function freshPage(path = "/") {
+    const viewport = test.info().project.use.viewport;
+    if (viewport) await page.setViewportSize(viewport);
+    if (reset) await openSynchronizedApp(page, path);
+    else await resetToFreshLocalState(page, { path });
+    reset = true;
+    return page;
+  };
 }
 
 export async function readSyncDeviceId(page: Page) {

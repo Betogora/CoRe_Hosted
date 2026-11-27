@@ -85,6 +85,8 @@ Noch nie nachgewiesen: DB-Restore-Probe, Storage-Restore-Probe, realer Alarmempf
 - **2026-11-13** — KI-Varianten für alle Kartenarten außer Bildverdeckung: Eintippen, Lückentext (nur die eigene Lücke) und Auswahl (Single, Multiple Choice, Kprim; Richtigkeit bleibt bei der Karte), Variantenaktion je Stapelbaum mit Zähler.
 - **2026-11-19** — Karten aus einer Quelle per KI: PDF, Text, Markdown, CSV und TSV werden im Browser gelesen und abschnittweise belegt; Vorschläge in vier Formen lassen sich vor dem Speichern bearbeiten oder verwerfen (Route `source-cards`, ADR-011).
 - **2026-11-22** — Browsersuite verschlankt (Testsuite D): billigere Konto-Resets, zusammengelegte Überschneidungen, Breitenschleifen über die Matrix; Supabase-Flows im CI-Volllauf von `affected-e2e` 6,9 → 6,2 min (120 → 115 Tests, Lauf 45026219206 gegen 45041047899).
+- **2026-11-27** — Testlaufzeit (P6, T1–T4): Katalog mit vier Workern, Supabase-Flows in drei Shards, lesende Tests auf einem gemeinsamen Reset; volle Supabase-Suite in `affected-e2e` 4,9 min (Shards 143, 146 und 149 s Tests), `catalog-e2e` 3,3 min (Lauf 46067216167).
+- **2026-11-28** — Start, Sync und Lernstart ohne wartende Roundtrips (P6, A4): je Bewertung 2 statt 5 Roundtrips nacheinander, erster Sync ohne Konfliktabruf bei konfliktfreiem Bootstrap, Medienfreigabe täglich, Anmeldung ohne vorgeschalteten Profil-Upsert, Lernstart aus dem vollständigen lokalen Katalog. Start-Gates neu: Lernstart p75 694 ms (vorher 1.161 ms), Review lokal gespeichert p95 77 ms, Delta-Sync p75 419 ms (Lauf 46081858235).
 
 ### Oktober 2026
 

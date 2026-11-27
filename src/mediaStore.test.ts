@@ -405,3 +405,33 @@ test("ohne Cloud-Client werden keine Medien freigegeben", async () => {
   const store = createAccountMediaStore({ client: null, supabaseUrl: LOCAL_URL, userId: "release-user", indexedDB: null });
   assert.equal(await store.releaseUnreferencedMedia(), 0);
 });
+
+test("die Medienfreigabe fragt höchstens täglich, nach einer vollen Seite sofort weiter", async () => {
+  let clock = Date.parse("2026-11-27T08:00:00.000Z");
+  let releasable: Array<{ sha1: string; storagePath: string }> = [];
+  let lists = 0;
+  const deletion = { eq: () => deletion, in: async () => ({ error: null }) };
+  const client = {
+    async rpc() { lists += 1; return { data: releasable, error: null }; },
+    storage: { from: () => ({ remove: async () => ({ error: null }) }) },
+    from: () => ({ delete: () => deletion }),
+  };
+  const values = new Map<string, string>();
+  const storage = { getItem: (key: string) => values.get(key) ?? null, setItem: (key: string, value: string) => { values.set(key, value); } };
+  const store = createAccountMediaStore({ client, supabaseUrl: LOCAL_URL, userId: "release-user", indexedDB: null, storage, now: () => clock });
+
+  releasable = Array.from({ length: 100 }, (_, index) => ({ sha1: index.toString(16).padStart(40, "0"), storagePath: `release-user/${index}` }));
+  assert.equal(await store.releaseUnreferencedMedia(), 100);
+  releasable = [];
+  assert.equal(await store.releaseUnreferencedMedia(), 0);
+  assert.equal(await store.releaseUnreferencedMedia(), 0);
+  assert.equal(lists, 2);
+
+  clock += 24 * 60 * 60_000;
+  await store.releaseUnreferencedMedia();
+  assert.equal(lists, 3);
+
+  clock -= 365 * 24 * 60 * 60_000;
+  await store.releaseUnreferencedMedia();
+  assert.equal(lists, 4);
+});

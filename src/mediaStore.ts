@@ -1,6 +1,6 @@
 import * as v from "valibot";
 import { sha1DigestHex } from "./sha1.ts";
-import { classifyMediaError, mapWithConcurrency, releaseUnreferencedMedia, signMediaUrls, uploadMediaFiles, type CloudMediaControl, type MediaFailureKind } from "./cloudMediaStore.ts";
+import { classifyMediaError, mapWithConcurrency, MEDIA_RELEASE_PAGE_SIZE, releaseUnreferencedMedia, signMediaUrls, uploadMediaFiles, type CloudMediaControl, type MediaFailureKind } from "./cloudMediaStore.ts";
 import type { OfflineMediaManifestEntry } from "./workspaceReplica.ts";
 
 // One cached file per account and SHA-1.
@@ -11,6 +11,8 @@ const QUEUE_STORE = "upload_queue";
 const CLOUD_MEDIA_DOWNLOAD_CONCURRENCY = 4;
 const SIGNED_MEDIA_FETCH_OPTIONS: RequestInit = { credentials: "omit", redirect: "error", referrerPolicy: "no-referrer" };
 const SHA1_PATTERN = /^[a-f0-9]{40}$/;
+// The server releases media only a day after upload or a week after deletion, so a daily look finds everything.
+const MEDIA_RELEASE_INTERVAL_MS = 24 * 60 * 60_000;
 const sha1Schema = v.pipe(v.string(), v.regex(SHA1_PATTERN));
 const mediaFileSchema = v.looseObject({
   sha1: sha1Schema,
@@ -113,7 +115,7 @@ function trustedSignedMediaUrl(value: unknown, supabaseUrl: string) {
   }
 }
 
-export function createAccountMediaStore({ client, supabaseUrl, userId, indexedDB: indexedDb = globalThis.indexedDB, fetchImpl = globalThis.fetch }: { client: any; supabaseUrl: string; userId: string; indexedDB?: IDBFactory | null; fetchImpl?: typeof fetch }) {
+export function createAccountMediaStore({ client, supabaseUrl, userId, indexedDB: indexedDb = globalThis.indexedDB, fetchImpl = globalThis.fetch, storage = globalThis.localStorage ?? null, now = Date.now }: { client: any; supabaseUrl: string; userId: string; indexedDB?: IDBFactory | null; fetchImpl?: typeof fetch; storage?: Pick<Storage, "getItem" | "setItem"> | null; now?: () => number }) {
   const databaseApi = indexedDb ?? null;
 
   async function readAsset(sha1: string): Promise<AssetRecord | null> {
@@ -416,6 +418,18 @@ export function createAccountMediaStore({ client, supabaseUrl, userId, indexedDB
     return { retry, stop() { stopped = true; globalThis.removeEventListener?.("online", online); } };
   }
 
+  async function releaseDailyUnreferencedMedia() {
+    if (!client) return 0;
+    const key = `core.mediaRelease.v1.${userId}`;
+    // A stamp in the future (the clock went back) counts as due.
+    const elapsed = now() - Date.parse(storage?.getItem(key) ?? "");
+    if (elapsed >= 0 && elapsed < MEDIA_RELEASE_INTERVAL_MS) return 0;
+    const released = await releaseUnreferencedMedia(client, userId);
+    // A full page may leave more behind for the next call.
+    if (released < MEDIA_RELEASE_PAGE_SIZE) storage?.setItem(key, new Date(now()).toISOString());
+    return released;
+  }
+
   return {
     cacheMedia,
     syncQueuedMedia,
@@ -423,7 +437,7 @@ export function createAccountMediaStore({ client, supabaseUrl, userId, indexedDB
     cacheCloudManifestMedia,
     removeCachedDeckMedia,
     evictUnpinnedMedia,
-    releaseUnreferencedMedia: () => client ? releaseUnreferencedMedia(client, userId) : Promise.resolve(0),
+    releaseUnreferencedMedia: releaseDailyUnreferencedMedia,
     startRetryLifecycle,
   };
 }

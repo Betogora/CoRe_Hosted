@@ -131,7 +131,7 @@ test("Prüfungen bleiben auf dem Handy über die untere Navigation erreichbar", 
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)).toBe(true);
 });
 
-test("Wochenkalender ändert und löscht ausgewählte Lernzeit direkt am Block", async ({ page }) => {
+test("Wochenkalender ändert und löscht ausgewählte Lernzeit direkt am Block und verschiebt sie per langem Touch mit Vibration", async ({ page }) => {
   await resetToFreshLocalState(page);
   await planExam(page, "Geografie");
   await page.getByRole("button", { name: "Woche", exact: true }).click();
@@ -167,16 +167,9 @@ test("Wochenkalender ändert und löscht ausgewählte Lernzeit direkt am Block",
   await expect(block).toHaveCount(0);
   await expect(calendar.getByRole("slider", { name: "Ende der Lernzeit ändern" })).toHaveCount(0);
   await expect(page.getByText("Ungespeicherte Kalenderänderungen", { exact: true })).toBeVisible();
-});
 
-test("Wochenkalender verschiebt Lernzeit per langem Touch mit Vibration", async ({ page }) => {
-  await resetToFreshLocalState(page);
-  await planExam(page, "Geografie");
-  await page.getByRole("button", { name: "Woche", exact: true }).click();
-  const calendar = page.getByTestId("exam-week-calendar");
-  await calendar.locator('[data-week-day][aria-disabled="false"]').first().focus();
+  await day.focus();
   await page.keyboard.press("Enter");
-  const block = calendar.locator("[data-week-block]").first();
   await expect(block).toHaveAccessibleName(/08:00 bis 08:30/);
   await page.evaluate(() => { const calls: unknown[] = []; Object.assign(window, { vibrations: calls }); navigator.vibrate = (pattern) => { calls.push(pattern); return true; }; });
   const box = await block.boundingBox();
