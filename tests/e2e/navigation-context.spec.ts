@@ -483,7 +483,9 @@ test("[Vertrag: URL-Kontext] @beta-core Reload, Direktlink und Review-Rückweg e
 
   await page.goto("about:blank");
   await seedAccount();
-  await resetToFreshLocalState(page, { path: `/lernen?deck=${DECK_IDS.childB}`, resetCloud: false });
+  await resetToFreshLocalState(page, { resetCloud: false });
+  await page.goto(`/lernen?deck=${DECK_IDS.childB}`);
+  await waitForApp(page);
   await expect(page).toHaveURL(`/lernen?deck=${DECK_IDS.childB}`);
   await page.getByRole("button", { name: "Bereich B / Gemeinsam lernen" }).press("Enter");
   await expect(page).toHaveURL(new RegExp(

@@ -20,8 +20,6 @@ Solche Pakete beginnen deshalb mit ihrer Messung (Schritt 0).
 
 | Kennzahl | Stand | Ziel |
 | --- | --- | --- |
-| `affected-e2e` mit voller Suite | 4,9 min, drei Shards mit 143, 146 und 149 s Tests (Lauf 46067216167) | höchstens 5 min |
-| `catalog-e2e` | 3,3 min (Lauf 46067216167) | höchstens 4 min |
 | Roundtrips nacheinander je Bewertung | 5; seit A4 3 (ohne `getUser`, Profil parallel zum Delta) | 2 |
 
 Für alle Pakete gilt:

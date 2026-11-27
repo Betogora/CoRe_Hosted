@@ -140,16 +140,15 @@ async function openSynchronizedApp(page: Page, path: string, waitForCloud = true
 
 /** After a failure Playwright starts a new worker, whose first `freshPage` resets again. */
 export function shareFreshLocalState() {
-  let page: Page | null = null;
+  let page!: Page;
   let reset = false;
   test.beforeAll(async ({ browser }) => {
     page = await browser.newPage();
   });
   test.afterAll(async () => {
-    await page?.close();
+    await page.close();
   });
   return async function freshPage(path = "/") {
-    if (!page) throw new Error("Die gemeinsame Seite fehlt außerhalb ihres Testblocks.");
     const viewport = test.info().project.use.viewport;
     if (viewport) await page.setViewportSize(viewport);
     if (reset) await openSynchronizedApp(page, path);
