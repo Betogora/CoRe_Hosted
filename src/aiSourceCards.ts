@@ -233,13 +233,14 @@ export async function requestAiSourceCards(request: AiSourceCardsRequest, supaba
 
 const html = (value: string) => escapeCardHtmlText(value).replace(/\n/g, "<br>");
 
-export function proposalNoteContent(proposal: SourceCardProposal, sourceName: string): NoteContent {
-  const source = { name: "Quelle", role: "source" as const, value: html(`${sourceName} · ${proposal.sourceLabels.join("; ")}`) };
+/** Without `sourceName` the card names no source. */
+export function proposalNoteContent(proposal: SourceCardProposal, sourceName: string | null): NoteContent {
+  const source = sourceName === null ? [] : [{ name: "Quelle", role: "source" as const, value: html(`${sourceName} · ${proposal.sourceLabels.join("; ")}`) }];
   const explanation = proposal.explanation ? html(proposal.explanation) : "";
   const input: ManualNoteInput = proposal.form === "basic"
-    ? { kind: "basic", front: html(proposal.front), back: html(proposal.back), additionalFields: [...explanation ? [{ name: "Erklärung", role: "extra" as const, value: explanation }] : [], source] }
+    ? { kind: "basic", front: html(proposal.front), back: html(proposal.back), additionalFields: [...explanation ? [{ name: "Erklärung", role: "extra" as const, value: explanation }] : [], ...source] }
     : {
-      kind: proposal.form, front: html(proposal.front), back: explanation, additionalFields: [source],
+      kind: proposal.form, front: html(proposal.front), back: explanation, additionalFields: source,
       ...proposal.form === "cloze" ? {} : { answerOptions: proposal.options.map((option) => option.text), correctOptionIndices: proposal.options.flatMap((option, index) => option.correct ? [index] : []) },
     };
   return createManualNoteContent(input);

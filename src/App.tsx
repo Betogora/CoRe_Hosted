@@ -1,6 +1,6 @@
 import React from "react";
 import type { CoreMode } from "./coreTypes.ts";
-import { ArrowRight, Database, Layers, Sparkles } from "lucide-react";
+import { ChevronRight, Database, Layers, Sparkles } from "lucide-react";
 import { authPhases, createSyncPendingStatus, createSyncSavingStatus, shouldShowAppShell, shouldShowAuthGate } from "./accountSession.ts";
 import { settingsSectionGroup, type AppViewId } from "./appNavigation.ts";
 import { startAppMediaRetryLifecycle } from "./appMediaLifecycle.ts";
@@ -339,7 +339,7 @@ function AppContent() {
   }
 
   const ActiveScreen = viewScreens[activeView];
-  const pendingCardNavigation = pendingNavigation === "card";
+  const pendingCardNavigation = pendingNavigation === "card" && !navigation.pendingLeave;
   const coreEnableDeck = coreEnableDeckId ? state.decks.find((deck) => deck.id === coreEnableDeckId) ?? null : null;
   const { emptyStudyStart, studyPreparationFailure } = studyStart;
 
@@ -352,7 +352,7 @@ function AppContent() {
             activeView={activeView === "kartenstapel" && deckContent ? "lernen" : activeView}
             simulationOffsetMinutes={clock.simulationOffsetMinutes}
             simulationDateLabel={formatSimulationDate(learningNow)}
-            pomodoroTimer={pomodoro.pomodoroTimer}
+            pomodoroTimer={pomodoro.pomodoroTimer} onPomodoroPauseChange={pomodoro.changePomodoroPause}
             manualSync={state.profile.uiPreferences.syncIntervalMinutes === 0}
             onSyncNow={() => void sync.syncNow()}
             onOpenSyncSettings={(target) => openSettings(target === "sync" ? "daten" : "konflikte")}
@@ -439,16 +439,16 @@ function AppContent() {
         />
         <ActionDialog
           open={Boolean(pendingNavigation)}
-          title={pendingCardNavigation ? "Änderungen übernehmen?" : pendingNavigation === "exams" ? "Änderungen verwerfen?" : "Ungespeicherten Entwurf verlassen?"}
-          description={pendingCardNavigation
+          title={navigation.pendingLeave?.title ?? (pendingCardNavigation ? "Änderungen übernehmen?" : pendingNavigation === "exams" ? "Änderungen verwerfen?" : "Ungespeicherten Entwurf verlassen?")}
+          description={navigation.pendingLeave ? navigation.pendingLeave.description : pendingCardNavigation
             ? "Du hast ungespeicherte Änderungen an dieser Karte. Speichere oder verwirf sie, bevor du die Kartenverwaltung verlässt."
             : pendingNavigation === "exams"
               ? "Deine Änderungen an der Prüfungsplanung wurden noch nicht gespeichert."
               : creationMethod === "ai-source"
                 ? "Deine ausgewählte Quelle und deine Einstellungen werden verworfen."
                 : "Deine bereits gespeicherten Karten bleiben erhalten. Nur die aktuell eingegebenen, noch nicht gespeicherten Inhalte würden verworfen."}
-          confirmLabel={pendingCardNavigation ? "Speichern" : "Verwerfen und verlassen"}
-          cancelLabel="Weiter bearbeiten"
+          confirmLabel={navigation.pendingLeave ? "Verlassen" : pendingCardNavigation ? "Speichern" : "Verwerfen und verlassen"}
+          cancelLabel={navigation.pendingLeave ? "Weitermachen" : "Weiter bearbeiten"}
           discardLabel={pendingCardNavigation ? "Verwerfen" : undefined}
           confirmLoading={navigation.savingPendingNavigation}
           destructive={!pendingCardNavigation}
@@ -475,7 +475,7 @@ function AppContent() {
           ) : null}
           cancelLabel="Schließen"
           confirmLabel={emptyStudyStart?.hasAdditionalNewCards ? "Neue Karten pro Tag anpassen" : undefined}
-          actionIcons={emptyStudyStart?.hasAdditionalNewCards ? { confirm: ArrowRight } : undefined}
+          actionIcons={emptyStudyStart?.hasAdditionalNewCards ? { confirm: ChevronRight } : undefined}
           onCancel={studyStart.dismissEmptyStudyStart}
           onConfirm={emptyStudyStart?.hasAdditionalNewCards ? () => {
             const target = emptyStudyStart;

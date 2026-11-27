@@ -21,6 +21,7 @@ const TABLES = [
   "sync_conflicts",
   "learning_summaries",
   "learning_mind_maps",
+  "learning_quizzes",
 ];
 
 const keyOf = (table: string) => table === "media_files" ? "sha1" : "id";
@@ -184,6 +185,12 @@ function createFixture(userId: any, prefix: string, marker: string) {
       deck_id: deckId,
       document: { version: 1, marker },
     },
+    learning_quizzes: {
+      id: `${prefix}_quiz_${marker}`,
+      user_id: userId,
+      deck_id: deckId,
+      document: { version: 1, marker },
+    },
   };
 }
 
@@ -204,6 +211,7 @@ const UPDATE_CASES = {
   sync_conflicts: { column: "resolution", value: { verified: true } },
   learning_summaries: { column: "document", value: { version: 1, verified: true } },
   learning_mind_maps: { column: "document", value: { version: 1, verified: true } },
+  learning_quizzes: { column: "document", value: { version: 1, verified: true } },
 };
 
 async function insertFixture(client: SupabaseClient<any,"public","public",any,any>, fixture: Record<string, any>) {
@@ -578,6 +586,7 @@ test("lokales Supabase isoliert Nutzer A, Nutzer B und anon über alle accountge
         ["review_events", { ...fixtureA.review_events, id: `${prefix}_foreign_fk_review`, card_id: fixtureB.cards.id }],
         ["learning_summaries", { ...fixtureA.learning_summaries, id: `${prefix}_foreign_fk_summary`, deck_id: fixtureB.decks.id }],
         ["learning_mind_maps", { ...fixtureA.learning_mind_maps, id: fixtureB.decks.id, deck_id: fixtureB.decks.id }],
+        ["learning_quizzes", { ...fixtureA.learning_quizzes, id: `${prefix}_foreign_fk_quiz`, deck_id: fixtureB.decks.id }],
       ];
 
       for (const [table, row] of cases) {

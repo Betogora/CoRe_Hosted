@@ -1,6 +1,6 @@
 import React from "react";
 import type { LucideIcon } from "lucide-react";
-import { AlertTriangle, ArrowLeft, BarChart3, BookOpen, CalendarCheck, CalendarClock, CircleHelp, CloudAlert, CloudOff, Home, Layers, Menu, PlusSquare, RefreshCw, Settings } from "lucide-react";
+import { AlertTriangle, BarChart3, BookOpen, CalendarCheck, CalendarClock, ChevronLeft, CircleHelp, CloudAlert, CloudOff, Home, Layers, Menu, PlusSquare, RefreshCw, Settings } from "lucide-react";
 import { createPortal } from "react-dom";
 import type { MenuViewId } from "../menuModel.ts";
 import type { PomodoroTimer } from "../pomodoroTimer.ts";
@@ -10,7 +10,7 @@ import { useWorkspaceValue } from "../useWorkspaceStore.ts";
 import { IconButton } from "./actionUi.tsx";
 import { useSlidingSelection } from "./coreUi.tsx";
 import { CoreWordmark } from "./CoreWordmark.tsx";
-import { PomodoroProgress } from "./pomodoroTimerUi.tsx";
+import { PomodoroPill } from "./PomodoroPill.tsx";
 import { SHELL_REVEAL_EVENT, type ShellBack } from "./shellBack.ts";
 
 type RadixPopover = typeof import("@radix-ui/react-popover");
@@ -53,6 +53,7 @@ export interface AppNavigationProps {
   simulationOffsetMinutes: number;
   simulationDateLabel: string;
   pomodoroTimer: PomodoroTimer | null;
+  onPomodoroPauseChange: (paused: boolean) => unknown;
   onNavigate: (viewId: MenuViewId) => unknown;
   onPreloadView?: (viewId: MenuViewId) => unknown;
   onResetSimulation: () => unknown;
@@ -214,7 +215,7 @@ function ShellLead({ back, brandClassName, onNavigate }: { back: ShellBack | nul
           onClick={() => back?.onSelect()}
           className="-ml-2 flex h-button min-w-0 items-center gap-1.5 rounded-control pl-1.5 pr-3 text-core-text transition-colors hover:bg-core-hover [&>svg]:text-core-muted hover:[&>svg]:text-core-action"
         >
-          <ArrowLeft className="shrink-0" size={20} aria-hidden="true" />
+          <ChevronLeft className="shrink-0" size={20} aria-hidden="true" />
           {shownBack?.icon ? <span className="flex shrink-0" aria-hidden="true">{shownBack.icon}</span> : null}
           <span className="min-w-0 truncate core-heading-3">{shownBack?.title}</span>
         </button>
@@ -378,7 +379,7 @@ function SimulationStatus({ simulationDateLabel, simulationOffsetMinutes, onRese
   );
 }
 
-function DesktopTopBar({ back, hidden, instant, headerRef, navigationItems, activeView, simulationOffsetMinutes, simulationDateLabel, pomodoroTimer, onNavigate, onPreloadView, onResetSimulation, manualSync, onSyncNow, onOpenSyncSettings, settingsOpen, onOpenSettings, onPreloadSettings }: ResponsiveNavigationProps) {
+function DesktopTopBar({ back, hidden, instant, headerRef, navigationItems, activeView, simulationOffsetMinutes, simulationDateLabel, pomodoroTimer, onPomodoroPauseChange, onNavigate, onPreloadView, onResetSimulation, manualSync, onSyncNow, onOpenSyncSettings, settingsOpen, onOpenSettings, onPreloadSettings }: ResponsiveNavigationProps) {
   return (
     // Placed over the scrolling content region (App), so hiding it frees the space instead of leaving an empty row.
     <header ref={headerRef} className="core-shell-header hidden min-w-0 xl:relative xl:z-30 xl:col-start-1 xl:row-start-1 xl:mr-[var(--shell-scrollbar,0px)] xl:block" data-navigation-layout="top-bar" data-shell-mode={back ? "app" : "hub"} data-shell-hidden={hidden || undefined} data-shell-instant={instant || undefined}>
@@ -412,7 +413,7 @@ function DesktopTopBar({ back, hidden, instant, headerRef, navigationItems, acti
           </nav>
 
           <div className="flex min-w-0 items-center justify-end gap-3">
-            <PomodoroProgress timer={pomodoroTimer} variant="header" />
+            <PomodoroPill timer={pomodoroTimer} onPauseChange={onPomodoroPauseChange} />
             <NavigationUtilityButtons activeView={activeView} onNavigate={onNavigate} onPreloadView={onPreloadView} manualSync={manualSync} onSyncNow={onSyncNow} onOpenSyncSettings={onOpenSyncSettings} settingsOpen={settingsOpen} onOpenSettings={onOpenSettings} onPreloadSettings={onPreloadSettings} />
           </div>
         </div>
@@ -422,13 +423,13 @@ function DesktopTopBar({ back, hidden, instant, headerRef, navigationItems, acti
   );
 }
 
-function MobileHeader({ back, hidden, instant, headerRef, activeView, simulationOffsetMinutes, simulationDateLabel, pomodoroTimer, onNavigate, onPreloadView, onResetSimulation, manualSync, onSyncNow, onOpenSyncSettings, settingsOpen, onOpenSettings, onPreloadSettings }: ResponsiveNavigationProps) {
+function MobileHeader({ back, hidden, instant, headerRef, activeView, simulationOffsetMinutes, simulationDateLabel, pomodoroTimer, onPomodoroPauseChange, onNavigate, onPreloadView, onResetSimulation, manualSync, onSyncNow, onOpenSyncSettings, settingsOpen, onOpenSettings, onPreloadSettings }: ResponsiveNavigationProps) {
   return (
     <header ref={headerRef} className="core-mobile-header core-shell-header sticky top-0 z-30 min-w-0 xl:hidden" data-navigation-layout="mobile-header" data-shell-mode={back ? "app" : "hub"} data-shell-hidden={hidden || undefined} data-shell-instant={instant || undefined}>
       <div className="core-shell-frame">
         <div className="core-shell-bar flex min-w-0 items-center justify-between gap-3 px-3" data-shell-bar="true">
           <ShellLead back={back} brandClassName="core-mobile-brand core-brand" onNavigate={onNavigate} />
-          <PomodoroProgress timer={pomodoroTimer} variant="header" />
+          <PomodoroPill timer={pomodoroTimer} onPauseChange={onPomodoroPauseChange} />
           <NavigationUtilityButtons activeView={activeView} onNavigate={onNavigate} onPreloadView={onPreloadView} manualSync={manualSync} onSyncNow={onSyncNow} onOpenSyncSettings={onOpenSyncSettings} settingsOpen={settingsOpen} onOpenSettings={onOpenSettings} onPreloadSettings={onPreloadSettings} />
         </div>
       </div>

@@ -28,7 +28,4 @@ export function formatExamDistance(days: number) {
 export function formatExamClock(minutes: number) {
   return `${String(Math.floor(minutes / 60)).padStart(2, "0")}:${String(minutes % 60).padStart(2, "0")}`;
 }
-export function formatExamPercent(value: number | null) {
-  return value === null ? "–" : `${Math.round(value * 100)} %`;
-}
 

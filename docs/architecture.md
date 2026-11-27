@@ -20,7 +20,7 @@ Nicht hinein gehört:
 
 Probe: Ein Satz gehört nicht hinein, wenn er falsch wird, sobald man eine Funktion umbenennt oder umbaut, ohne dass sich ein Vertrag ändert. Umsetzungsdetails stehen in Code, Kommentaren und Tests.
 
-Form: Stichpunkte oder Tabellenzeilen, ein Gedanke je Punkt. Eine geänderte Regel ersetzt die alte, statt sie zu ergänzen. Angepasst wird die Datei nur bei geändertem Eigentümer, Invariante oder öffentlicher Schnittstelle. `npm run check:docs` begrenzt die Dateigröße (`DOC_LIMITS` in `scripts/generateDocs.ts`).
+Form: Stichpunkte oder Tabellenzeilen, ein Gedanke je Punkt. Eine geänderte Regel ersetzt die alte, statt sie zu ergänzen. Angepasst wird sie nur, wenn sich Eigentümer, Invariante oder öffentliche Schnittstelle ändern. `npm run check:docs` begrenzt ihre Größe (`DOC_LIMITS` in `scripts/generateDocs.ts`).
 
 ## Systembild
 
@@ -122,6 +122,7 @@ Befehlsmodule laufen ohne React, je Arbeitsbereich aus Store, Repository und Syn
 | `apkgImport.ts`, `apkgNoteTranslation.ts`, `importRetranslation.ts` | APKG-Vorschau und gestreamter Importgraph, Übersetzung, Neuübersetzung |
 | `textImport.ts` | Text- und CSV-Import |
 | `learningSummaries.ts`, `learningMindMaps.ts` | Zusammenfassungen und Mindmaps: Format, Operationen, lokale Ablage und Abgleich |
+| `quiz.ts`, `learningQuizzes.ts` | Quiz: Format, Bewertung, Erstellung über `source-cards`, Abgleich |
 | `aiSourceCreation.ts`, `aiSourceCardsContract.ts`, `aiSourceCards.ts` | Karten aus einer Quelle: Auftrag und Prompt, Vertrag der Route, Auslesen, Abschnittslauf, Abruf und Vorschlagsinhalt |
 | `dashboardWidgets.ts`, `dailyMotivation.ts`, `brainMascots.ts` | Dashboard-Layout und To-dos, Tagesimpuls, Maskottchen; nur lokal |
 | `fieldTimings.ts` | Feldwerte nur auf dem Gerät (ADR-050) |
@@ -251,7 +252,7 @@ Befehlsmodule laufen ohne React, je Arbeitsbereich aus Store, Repository und Syn
 
 ### Cloud-Schnittstellen
 
-- Tabellen mit Owner-RLS: `decks`, `notes`, `cards`, `card_variants`, `review_events`, `note_sources`, `note_type_sources`, `note_search`, `media_files`, `note_media`, `profiles`, `sync_devices`, `sync_conflicts`, `learning_summaries`, `learning_mind_maps`; Projektionen `card_catalog`, `deck_study_summaries`, `review_statistics_daily`.
+- Tabellen mit Owner-RLS: `decks`, `notes`, `cards`, `card_variants`, `review_events`, `note_sources`, `note_type_sources`, `note_search`, `media_files`, `note_media`, `profiles`, `sync_devices`, `sync_conflicts`, `learning_summaries`, `learning_mind_maps`, `learning_quizzes`; Projektionen `card_catalog`, `deck_study_summaries`, `review_statistics_daily`.
 - Projektionen pflegen anweisungsbezogene Trigger ohne fachliche Revisionsänderung. Nur Stapel, Katalog, Summaries, `note_type_sources` und `note_search` tragen `sync_change_id`.
 
 | RPC | Liefert |
@@ -293,8 +294,8 @@ Befehlsmodule laufen ohne React, je Arbeitsbereich aus Store, Repository und Syn
 
 ### App-Shell und Vorladen
 
-- Vercel revalidiert HTML und Service Worker; Assets sind unveränderlich und wie API-Pfade vom SPA-Rewrite ausgenommen. `public/sw.js` cacht JavaScript nur mit JavaScript-MIME-Typ und behält Assets der letzten zwei Builds (`sw-assets.json`). Kein automatischer Reload: offene Entwürfe bleiben.
-- Automatisches Vorladen lädt Bildschirm-Chunks nur herunter; ausgeführt werden sie erst bei Absicht oder Aufruf.
+- Vercel revalidiert HTML und Service Worker; Assets sind unveränderlich und wie API-Pfade ohne SPA-Rewrite. `public/sw.js` cacht JavaScript nur mit passendem MIME-Typ, behält Assets der letzten zwei Builds (`sw-assets.json`). Kein automatischer Reload: offene Entwürfe bleiben.
+- Automatisches Vorladen lädt Bildschirm-Chunks nur herunter; ausgeführt erst bei Absicht oder Aufruf.
 
 ## API-Vertrag
 
@@ -364,14 +365,14 @@ Befehlsmodule laufen ohne React, je Arbeitsbereich aus Store, Repository und Syn
 
 ### Karten aus einer Quelle
 
-- `aiSourceCreation.ts` validiert den Auftrag und baut die Anweisungen. `aiSourceCardsContract.ts` prüft je Anfrage einen Abschnitt der Quelle als Einheiten mit ID und die Antwort: Strukturfehler verwerfen sie ganz; Vorschläge mit ungültigen Feldern oder Formen, unbekanntem Beleg, wiederholter Frage oder über dem Restlimit fallen gezählt heraus. `aiSourceCards.ts` liest die Quelle im Browser, zerlegt sie in belegte Einheiten (PDF-Seite, Zeilenblöcke, Tabellenzeilen mit Kopfzeile) und schickt Abschnitte einzeln über `requestAiSourceCards`, das die Antwort erneut prüft. Gespeichert wird erst bei der Übernahme, über `createManualNoteContent` und `saveManualNote`.
+- `aiSourceCardsContract.ts` prüft je Anfrage einen Abschnitt als Einheiten mit ID und die Antwort: Strukturfehler verwerfen sie ganz; ungültige, unbelegte, wiederholte oder überzählige Vorschläge fallen gezählt heraus. `aiSourceCards.ts` zerlegt die Quelle im Browser in belegte Einheiten (PDF-Seite, Zeilenblöcke, Tabellenzeilen mit Kopfzeile) und schickt Abschnitte einzeln über `requestAiSourceCards`, das die Antwort erneut prüft. Gespeichert wird erst bei der Übernahme über `saveManualNote`.
 
 ### Zusammenfassungen und Mindmaps
 
-- Online liegen sie in `learning_summaries` (eine Zeile je Fassung) und `learning_mind_maps` (Zeilen-ID = Stapel-ID), mit `document` als versioniertem JSONB, Owner-RLS, Fremdschlüssel auf den eigenen Stapel und `deleted_at` (ADR-043).
+- Online liegen sie in `learning_summaries` (eine Zeile je Fassung), `learning_mind_maps` (Zeilen-ID = Stapel-ID) und `learning_quizzes` (eine Zeile je Quiz), mit `document` als versioniertem JSONB, Owner-RLS, Fremdschlüssel auf den eigenen Stapel und `deleted_at` (ADR-043).
 - Die Datenbank vergibt `revision` und `updated_at` per Trigger; `cloudLearningDocuments.ts` schreibt nur gegen die bekannte Revision. Ohne Supabase-Client bleibt alles lokal.
 - Speichern schreibt zuerst lokal und lädt dann hoch; offline Gespeichertes bleibt als ausstehend markiert und wird beim nächsten Öffnen abgeglichen.
-- Konflikte: Eine Zusammenfassung erhält eine `Konfliktfassung von …`, das Original den Cloudstand. Bei einer Mindmap gewinnt der zuletzt gespeicherte Stand; ein gleichzeitiges erstes Speichern (`23505`) gilt ebenfalls als Konflikt.
+- Konflikte: Eine Zusammenfassung erhält eine `Konfliktfassung von …`, das Original den Cloudstand. Ein Quiz ergänzt den Cloudstand um die eigenen Durchgänge. Bei einer Mindmap gewinnt der zuletzt gespeicherte Stand; ein gleichzeitiges erstes Speichern (`23505`) gilt ebenfalls als Konflikt.
 - Mindmap-Bilder liegen lokal unter ihrem SHA-1 und online im privaten Bucket `learning-mind-map-images` (`<userId>/<sha1>`). Sie werden vor der Map hochgeladen und erst freigegeben, wenn keine lokale und keine Online-Map sie mehr nutzt.
 - Erweiterungen des Dokumentformats sind optional, damit ältere Fassungen lesbar bleiben. In Mindmaps bilden `parentId` die azyklische Hierarchie und `edges` unabhängige Querverbindungen.
 - Mindmap-Operationen besitzt `learningMindMaps.ts`, der Screen nur Auswahl, Gesten und Ansicht. Autospeichern über `latestSaver.ts` überschreibt nie einen neueren Stand mit einem älteren.

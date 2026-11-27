@@ -60,10 +60,11 @@ export function getExamSummaryTaskDeckId(taskId: string): string | null {
   return kind === "summary" && deckId ? decodeURIComponent(deckId) : null;
 }
 
-export function getExamSessionTargetIds(tasks: readonly ExamDailyTask[], day: ExamPlanDay | undefined, todayKey: string, blockId: string | null): string[] {
+/** Without `blockId`, `examId` limits the unit to that exam's tasks; without both it spans all exams. */
+export function getExamSessionTargetIds(tasks: readonly ExamDailyTask[], day: ExamPlanDay | undefined, todayKey: string, blockId: string | null, examId?: string): string[] {
   const task = blockId ? tasks.find((entry) => entry.id === blockId && entry.kind === "study") : null;
   if (task) return task.cardIds;
-  if (!blockId) return [...new Set(tasks.filter((entry) => entry.kind === "study").flatMap((entry) => entry.cardIds))];
+  if (!blockId) return [...new Set(tasks.filter((entry) => entry.kind === "study" && (!examId || entry.examId === examId)).flatMap((entry) => entry.cardIds))];
   return day?.key === todayKey ? getExamSessionCardIds(day, blockId) : [];
 }
 

@@ -23,6 +23,7 @@ const gridOffset = (minute: number) => (Math.max(minute, EXAM_DAY_START) - EXAM_
 const gridPercent = (minute: number) => gridOffset(minute) / GRID_HEIGHT * 100 + "%";
 const FIELD = "core-field w-full min-w-0";
 const VISIBLE_TODOS = 3;
+const LONG_PRESS_MS = 500;
 
 export function ExamWeekCalendar({ exams, shown, onToggleExam, capacity, forecast, decks, today, date, busy, color, onSelect, onChange, viewControl }: {
   exams: ExamPlan[]; shown: ExamPlan[]; onToggleExam: (id: string) => void; capacity: StudyTimeCapacity; forecast: ExamPortfolioForecast | null; decks: Deck[];
@@ -37,6 +38,7 @@ export function ExamWeekCalendar({ exams, shown, onToggleExam, capacity, forecas
   const [openDays, setOpenDays] = React.useState<ReadonlySet<string>>(() => new Set());
   const [editing, setEditing] = React.useState<TimeRange & { id: string } | null>(null);
   const edit = React.useRef<{ id: string; y: number; move: boolean; next: TimeRange } | null>(null);
+  const press = React.useRef<{ id: string; x: number; y: number; timer: number; held: boolean } | null>(null);
   const [task, setTask] = React.useState<Task | null>(null);
   const [dragging, setDragging] = React.useState<Task & { x: number; y: number } | null>(null);
   const drag = React.useRef<Task & { x: number; y: number; moved: boolean } | null>(null);
@@ -71,6 +73,13 @@ export function ExamWeekCalendar({ exams, shown, onToggleExam, capacity, forecas
     observer.observe(container);
     return () => observer.disconnect();
   }, [week, date]);
+  React.useEffect(() => {
+    const container = scroller.current;
+    if (!container) return;
+    const holdScroll = (event: TouchEvent) => { if (press.current?.held) event.preventDefault(); };
+    container.addEventListener("touchmove", holdScroll, { passive: false });
+    return () => container.removeEventListener("touchmove", holdScroll);
+  }, []);
   React.useLayoutEffect(() => {
     const container = scroller.current;
     const block = container?.querySelector<HTMLElement>(`[data-week-block-container="${CSS.escape(selectedId)}"]`);
@@ -115,6 +124,28 @@ export function ExamWeekCalendar({ exams, shown, onToggleExam, capacity, forecas
     gesture.next = examBlockRangeAt(block, gesture.move, examMinuteAtPosition(gridOffset(anchor) + event.clientY - gesture.y, GRID_HEIGHT));
     setEditing({ id: block.id, ...gesture.next });
   }
+  /** A long touch on a block lifts it with a short vibration; the same finger then moves it, a move before that scrolls. */
+  function beginPress(event: React.PointerEvent<HTMLElement>, block: TimeBlock) {
+    suppressClick.current = false;
+    if (event.pointerType !== "touch" || busy || unavailable(block.date)) return;
+    const timer = window.setTimeout(() => {
+      const current = press.current;
+      if (current?.id !== block.id) return;
+      current.held = true;
+      navigator.vibrate?.(15);
+      setSelectedId(block.id);
+      edit.current = { id: block.id, y: current.y, move: true, next: block };
+      setEditing({ id: block.id, start: block.start, end: block.end });
+    }, LONG_PRESS_MS);
+    press.current = { id: block.id, x: event.clientX, y: event.clientY, timer, held: false };
+  }
+  function movePress(event: React.PointerEvent<HTMLElement>, block: TimeBlock) {
+    const current = press.current;
+    if (current?.id !== block.id) return;
+    if (current.held) updateEdit(event, block);
+    else if (Math.hypot(event.clientX - current.x, event.clientY - current.y) > 8) endPress();
+  }
+  function endPress() { const current = press.current; if (current) window.clearTimeout(current.timer); press.current = null; return current?.held ?? false; }
   function finishEdit(block: TimeBlock) { const gesture = edit.current; cancelEdit(); if (gesture?.id === block.id) changeTime(block, gesture.next); }
   function editByKeyboard(event: React.KeyboardEvent<HTMLElement>, block: TimeBlock, move: boolean) {
     if (event.key === "Escape") { event.preventDefault(); cancelEdit(); return; }
@@ -158,9 +189,9 @@ export function ExamWeekCalendar({ exams, shown, onToggleExam, capacity, forecas
     return [...(open ? entries : entries.slice(0, VISIBLE_TODOS)), <ShowMoreButton key="more" expanded={open} hiddenCount={hidden} context={`To-dos am ${formatExamDate(key)}`} onToggle={toggle} />];
   };
 
-  return <SoftPanel className="grid min-w-0 gap-4 p-3 sm:p-5" data-testid="exam-week-calendar">
-    <div className="flex min-w-0 flex-wrap items-center gap-2">
-      <h3 className="mr-3 core-heading-3 text-core-text">{formatExamDate(days[0], "short")} – {formatExamDate(days[6], "short")}</h3>
+  return <SoftPanel className="exam-calendar-panel grid min-w-0 gap-4 p-3 sm:p-5" data-testid="exam-week-calendar">
+    <div className="exam-calendar-head flex min-w-0 flex-wrap items-center gap-2">
+      <h3 className="mr-3 exam-poster-eyebrow">{formatExamDate(days[0], "short")} – {formatExamDate(days[6], "short")}</h3>
       <div className="mr-auto">{viewControl}</div>
       <ExamCalendarFilters exams={exams} shown={shown} color={color} onToggle={onToggleExam} />
       <div className="flex shrink-0 gap-2"><ActionButton variant="secondary" onClick={() => { setWeek(createExamWeekDays(today)[0]); setSelectedId(""); onSelect(today, false); }}>Heute</ActionButton><IconButton label="Vorherige Woche" icon={ChevronLeft} onClick={() => { setWeek(shiftExamDay(week, -7)); setSelection(null); setSelectedId(""); }} /><IconButton label="Nächste Woche" icon={ChevronRight} onClick={() => { setWeek(shiftExamDay(week, 7)); setSelection(null); setSelectedId(""); }} /></div>
@@ -213,7 +244,9 @@ export function ExamWeekCalendar({ exams, shown, onToggleExam, capacity, forecas
               const edge = `absolute touch-none select-none ${editable ? "cursor-move" : ""}`;
               const gestures = (move: boolean) => ({ onPointerDown: (event: React.PointerEvent<HTMLElement>) => beginEdit(event, block, move), onPointerMove: (event: React.PointerEvent<HTMLElement>) => updateEdit(event, block), onPointerUp: () => finishEdit(block), onPointerCancel: cancelEdit, onLostPointerCapture: cancelEdit });
               return <div key={block.id} data-week-block-container={block.id} className={`absolute inset-x-1 min-w-0 ${isSelected ? "z-[15]" : "z-10"}`} style={{ top: gridPercent(start), height: (end - start) / EXAM_DAY_MINUTES * 100 + "%" }}>
-                <CoreTooltip label={`${formatExamClock(start)}–${formatExamClock(end)} · ${blockName(block)}`}><button type="button" data-week-block={block.id} aria-label={`${formatExamDate(key)}, ${formatExamClock(start)} bis ${formatExamClock(end)}. ${blockName(block)}. ${activeSubject ? "Ausgewählte Aufgabe zuordnen" : "Zeitblock auswählen"}`} aria-pressed={isSelected} className={`absolute inset-0 grid min-h-0 w-full min-w-0 content-start gap-1 overflow-hidden rounded-control border-strong px-1 text-left ${end - start >= 60 ? "py-1" : ""} ${isSelected ? "shadow-selection" : ""} ${exam ? "" : "border-dashed border-core-border-strong bg-core-subtle text-core-text"}`} style={exam ? { background: color(exam), borderColor: color(exam), color: examTextColor(exam) } : undefined} onClick={() => { if (activeSubject) assign(block.id, activeSubject.id); else setSelectedId(block.id); }}>
+                <CoreTooltip label={`${formatExamClock(start)}–${formatExamClock(end)} · ${blockName(block)}`}><button type="button" data-week-block={block.id} aria-label={`${formatExamDate(key)}, ${formatExamClock(start)} bis ${formatExamClock(end)}. ${blockName(block)}. ${activeSubject ? "Ausgewählte Aufgabe zuordnen" : "Zeitblock auswählen"}`} aria-pressed={isSelected} className={`absolute inset-0 grid min-h-0 w-full min-w-0 select-none content-start gap-1 overflow-hidden rounded-control [-webkit-touch-callout:none] border-strong px-1 text-left ${end - start >= 60 ? "py-1" : ""} ${isSelected ? "shadow-selection" : ""} ${exam ? "" : "border-dashed border-core-border-strong bg-core-subtle text-core-text"}`} style={exam ? { background: color(exam), borderColor: color(exam), color: examTextColor(exam) } : undefined} onClick={() => { if (suppressClick.current) { suppressClick.current = false; return; } if (activeSubject) assign(block.id, activeSubject.id); else setSelectedId(block.id); }}
+                  onPointerDown={(event) => beginPress(event, block)} onPointerMove={(event) => movePress(event, block)}
+                  onPointerUp={() => { if (endPress()) { suppressClick.current = true; finishEdit(block); } }} onPointerCancel={() => { if (endPress()) cancelEdit(); }} onContextMenu={(event) => { if (press.current) event.preventDefault(); }}>
                   {end - start >= 30 ? <strong className="min-w-0 whitespace-nowrap core-caption">{formatExamClock(start)}–{formatExamClock(end)}</strong> : null}{end - start >= 90 ? <span className="min-w-0 truncate core-caption">{blockName(block)}</span> : null}
                 </button></CoreTooltip>
                 {isSelected ? <>

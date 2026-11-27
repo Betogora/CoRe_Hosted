@@ -31,7 +31,7 @@ test("Prüfungsplanung: globaler Bereich, Plan im Profil, heutige Einheit als Le
 
   const card = page.locator('[data-testid^="exam-card-exam"]');
   await expect(card).toHaveCount(1);
-  await expect(card.getByRole("heading", { name: "Geografie" })).toBeVisible();
+  await expect(card).toHaveAccessibleName("Geografie: Prüfung öffnen");
   const today = page.getByTestId("exam-today");
   await expect(today.getByRole("button", { name: "Heutige Einheit lernen" })).toBeEnabled({ timeout: 20_000 });
   await expect(today.locator("[data-exam-block]").first()).toBeVisible();
@@ -61,11 +61,18 @@ test("Prüfungsplanung: globaler Bereich, Plan im Profil, heutige Einheit als Le
 
   await page.reload();
   await mainMenu(page).getByRole("button", { name: "Prüfung", exact: true }).click();
-  await card.getByRole("button", { name: "Geografie: Details öffnen" }).click();
-  await card.getByRole("button", { name: "Pausieren" }).click();
+  await card.click();
+  const examPage = page.locator('[data-testid^="exam-page-exam"]');
+  await expect(examPage.getByRole("heading", { name: "Geografie" })).toBeFocused();
+  await examPage.getByRole("button", { name: "Pausieren" }).click();
   await page.getByRole("dialog", { name: "Prüfung pausieren?" }).getByRole("button", { name: "Pausieren", exact: true }).click();
+  await expect(examPage).toHaveAttribute("data-status", "paused");
+  await examPage.getByRole("button", { name: "Prüfungen", exact: true }).click();
+  await expect(card).toBeFocused();
   await expect(card).toHaveAttribute("data-status", "paused");
   await expect(page.getByTestId("exam-today")).toHaveCount(0);
+  // Focusing the poster scrolled the page, which collapses the header.
+  await revealNavigation(page);
   await mainMenu(page).getByRole("button", { name: "Heute" }).click();
   await expect(page.getByTestId("dashboard-exam-unit")).toHaveCount(0);
 });
@@ -75,13 +82,17 @@ test("Prüfungskarte bearbeitet inline, schützt Entwürfe und stellt gelöschte
   await planExam(page, "Geografie");
   const card = page.locator('[data-testid^="exam-card-exam"]').first();
   await expect(card.getByRole("button", { name: "Bearbeiten", exact: true })).toHaveCount(0);
-  await card.getByRole("button", { name: "Geografie: Details öffnen" }).click();
-  await expect(card.getByRole("progressbar")).toHaveCount(1);
-  await expect(card.getByRole("progressbar", { name: "Geografie: Lernfortschritt", exact: true })).toHaveAttribute("aria-valuetext", /gesehen, davon .* gefestigt/);
-  await expect(card.getByRole("list", { name: "Legende zum Lernfortschritt" }).locator("li")).toContainText(["Gesehen", "Gefestigt"]);
-  await expect(card.getByText(/Geschätzte Abrufsicherheit|keine Aussage über sichere Beherrschung/)).toHaveCount(0);
-  await card.getByRole("button", { name: "Bearbeiten", exact: true }).click();
-  const editor = card.getByTestId("exam-plan-editor");
+  await card.click();
+  const examPage = page.locator('[data-testid^="exam-page-exam"]');
+  await expect(examPage.getByRole("term")).toHaveText(["Gefestigt", "Gesehen", "Neu"]);
+  await expect(examPage.getByText(/Geschätzte Abrufsicherheit|keine Aussage über sichere Beherrschung/)).toHaveCount(0);
+  await examPage.getByRole("button", { name: "Farbe der Prüfung ändern", exact: true }).click();
+  await page.getByRole("slider", { name: "Farbkreis: links und rechts ändern den Farbton, oben und unten die Intensität" }).focus();
+  await page.keyboard.press("ArrowRight");
+  await page.keyboard.press("Escape");
+  await expect.poll(async () => (await readActiveAccountState(page)).profile.schedulerPreferences.examPlanning.exams[0].color).toMatch(/^#[0-9a-f]{6}$/);
+  await examPage.getByRole("button", { name: "Bearbeiten", exact: true }).click();
+  const editor = examPage.getByTestId("exam-plan-editor");
   await expect(editor).toHaveAttribute("data-embedded", "true");
   await editor.getByRole("textbox", { name: "Name", exact: true }).fill("Europa");
   await editor.getByRole("button", { name: "Prüfungsfarbe auswählen", exact: true }).click();
@@ -94,10 +105,11 @@ test("Prüfungskarte bearbeitet inline, schützt Entwürfe und stellt gelöschte
   await expect(editor.getByRole("textbox", { name: "Name", exact: true })).toHaveValue("Europa");
   await expect(editor.getByTestId("exam-plan-preview").getByText("Karten", { exact: true })).toBeVisible({ timeout: 20_000 });
   await editor.getByRole("button", { name: "Speichern", exact: true }).click();
-  await expect(card.getByRole("button", { name: "Europa: Details schließen" })).toBeVisible();
+  await expect(editor).toHaveCount(0);
+  await expect(examPage.getByRole("heading", { name: "Europa" })).toBeVisible();
   const beforeDelete = (await readActiveAccountState(page)).profile.schedulerPreferences.examPlanning;
   expect(beforeDelete.exams[0].color).toMatch(/^#[0-9a-f]{6}$/);
-  await card.getByRole("button", { name: "Löschen", exact: true }).click();
+  await examPage.getByRole("button", { name: "Löschen", exact: true }).click();
   await page.getByRole("dialog", { name: "Prüfung löschen?" }).getByRole("button", { name: "Löschen", exact: true }).click();
   await expect(card).toHaveCount(0);
   await page.getByRole("button", { name: "Rückgängig", exact: true }).click();
@@ -157,6 +169,31 @@ test("Wochenkalender ändert und löscht ausgewählte Lernzeit direkt am Block",
   await expect(page.getByText("Ungespeicherte Kalenderänderungen", { exact: true })).toBeVisible();
 });
 
+test("Wochenkalender verschiebt Lernzeit per langem Touch mit Vibration", async ({ page }) => {
+  await resetToFreshLocalState(page);
+  await planExam(page, "Geografie");
+  await page.getByRole("button", { name: "Woche", exact: true }).click();
+  const calendar = page.getByTestId("exam-week-calendar");
+  await calendar.locator('[data-week-day][aria-disabled="false"]').first().focus();
+  await page.keyboard.press("Enter");
+  const block = calendar.locator("[data-week-block]").first();
+  await expect(block).toHaveAccessibleName(/08:00 bis 08:30/);
+  await page.evaluate(() => { const calls: unknown[] = []; Object.assign(window, { vibrations: calls }); navigator.vibrate = (pattern) => { calls.push(pattern); return true; }; });
+  const box = await block.boundingBox();
+  if (!box) throw new Error("Lernzeit ist nicht sichtbar");
+  const touch = { pointerType: "touch", pointerId: 7, isPrimary: true, button: 0, clientX: box.x + box.width / 2 };
+  await block.dispatchEvent("pointerdown", { ...touch, clientY: box.y + 4 });
+  await block.dispatchEvent("pointermove", { ...touch, clientY: box.y + 36 });
+  await expect(block).toHaveAccessibleName(/08:00 bis 08:30/);
+  await block.dispatchEvent("pointerup", { ...touch, clientY: box.y + 36 });
+  await block.dispatchEvent("pointerdown", { ...touch, clientY: box.y + 4 });
+  await expect.poll(() => page.evaluate(() => (window as unknown as { vibrations: unknown[] }).vibrations.length)).toBe(1);
+  await block.dispatchEvent("pointermove", { ...touch, clientY: box.y + 36 });
+  await expect(block).toHaveAccessibleName(/09:00 bis 09:30/);
+  await block.dispatchEvent("pointerup", { ...touch, clientY: box.y + 36 });
+  await expect(block).toHaveAccessibleName(/09:00 bis 09:30/);
+});
+
 async function synchronized(page: Page) {
   await page.locator('[data-navigation-utilities="true"][data-sync-status="saved"]').first().waitFor({ state: "attached", timeout: 20_000 });
 }
@@ -176,7 +213,7 @@ test("Zwei Geräte teilen Plan und Häkchen; offline startet die Einheit aus lok
   try {
     await other.goto("/pruefungen");
     const otherCard = other.locator('[data-testid^="exam-card-exam"]');
-    await expect(otherCard.getByRole("heading", { name: "Geografie" })).toBeVisible({ timeout: 20_000 });
+    await expect(otherCard).toHaveAccessibleName("Geografie: Prüfung öffnen", { timeout: 20_000 });
     await expect(other.getByTestId("exam-today").locator('[data-exam-block="study"]').first().getByRole("checkbox")).toBeChecked({ timeout: 20_000 });
   } finally { await second.close(); }
 
@@ -198,16 +235,17 @@ test("Zwei Geräte teilen Plan und Häkchen; offline startet die Einheit aus lok
   await expect(today.getByText("Offline: zuletzt geplante Aufgaben", { exact: true })).toHaveCount(0, { timeout: 20_000 });
 
   const card = page.locator('[data-testid^="exam-card-exam"]').first();
-  await card.getByRole("button", { name: "Geografie: Details öffnen" }).click();
-  await card.getByRole("button", { name: "Bearbeiten", exact: true }).click();
-  await card.getByRole("textbox", { name: "Name", exact: true }).fill("Europa");
+  await card.click();
+  const examPage = page.locator('[data-testid^="exam-page-exam"]');
+  await examPage.getByRole("button", { name: "Bearbeiten", exact: true }).click();
+  await examPage.getByRole("textbox", { name: "Name", exact: true }).fill("Europa");
   await revealNavigation(page);
   await mainMenu(page).getByRole("button", { name: "Heute" }).click();
   const leave = page.getByRole("dialog", { name: "Änderungen verwerfen?" });
   await expect(leave).toBeVisible();
   await leave.getByRole("button", { name: "Weiter bearbeiten" }).click();
   await expect(page).toHaveURL(/\/pruefungen$/);
-  await expect(card.getByRole("textbox", { name: "Name", exact: true })).toHaveValue("Europa");
+  await expect(examPage.getByRole("textbox", { name: "Name", exact: true })).toHaveValue("Europa");
   await revealNavigation(page);
   await mainMenu(page).getByRole("button", { name: "Heute" }).click();
   await leave.getByRole("button", { name: "Verwerfen und verlassen" }).click();

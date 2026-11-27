@@ -9,7 +9,7 @@ const props = { card: { prompt: "Was ist ATP?", answer: "Ein Energieträger" }, 
 test("StudyAiHelp stays a single floating entry while closed", () => {
   const markup = renderToStaticMarkup(<StudyAiHelp {...props} open={false} />);
 
-  assert.match(markup, /core-study-ai-entry[^>]*aria-haspopup="dialog" aria-expanded="false"[^>]*>.*KI hilft<\/button>$/);
+  assert.match(markup, /core-study-ai-entry[^>]*aria-haspopup="dialog" aria-expanded="false"[^>]*>.*KI hilft<\/span><\/button>$/);
   assert.doesNotMatch(markup, /role="dialog"/);
 });
 

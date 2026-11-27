@@ -15,6 +15,8 @@ type TooltipSource = "focus" | "pointer";
 interface ActiveTooltip {
   deckAppearance?: DeckAppearance;
   label: string;
+  /** Preferred side; without it, or without room there, the tooltip opens above. */
+  preferredSide?: "bottom";
   swatchColor?: string;
   source: TooltipSource;
   trigger: HTMLElement;
@@ -99,7 +101,9 @@ export function CoreTooltipProvider({ children }: { children: React.ReactNode })
     const tooltipRect = tooltip.getBoundingClientRect();
     const spaceAbove = triggerRect.top - VIEWPORT_GUTTER_PX;
     const spaceBelow = window.innerHeight - triggerRect.bottom - VIEWPORT_GUTTER_PX;
-    const side = spaceAbove >= tooltipRect.height + TOOLTIP_GAP_PX || spaceAbove >= spaceBelow ? "top" : "bottom";
+    const fitsBelow = spaceBelow >= tooltipRect.height + TOOLTIP_GAP_PX;
+    const side = activeTooltip.preferredSide === "bottom" && fitsBelow ? "bottom"
+      : spaceAbove >= tooltipRect.height + TOOLTIP_GAP_PX || spaceAbove >= spaceBelow ? "top" : "bottom";
     const idealLeft = triggerRect.left + triggerRect.width / 2 - tooltipRect.width / 2;
     const maximumLeft = Math.max(VIEWPORT_GUTTER_PX, window.innerWidth - tooltipRect.width - VIEWPORT_GUTTER_PX);
     const left = clamp(idealLeft, VIEWPORT_GUTTER_PX, maximumLeft);
@@ -123,6 +127,7 @@ export function CoreTooltipProvider({ children }: { children: React.ReactNode })
       return trigger && label ? {
         deckAppearance: deckIconKey && deckIconColor ? { iconKey: deckIconKey, iconColor: deckIconColor } : undefined,
         label,
+        preferredSide: trigger.dataset.coreTooltipSide === "bottom" ? "bottom" as const : undefined,
         swatchColor: trigger.dataset.coreTooltipSwatch,
         trigger,
         value: trigger.dataset.coreTooltipValue,
@@ -249,15 +254,17 @@ type TooltipChildProps = React.HTMLAttributes<HTMLElement> & {
   "data-core-tooltip"?: string;
   "data-core-tooltip-deck-icon-color"?: string;
   "data-core-tooltip-deck-icon-key"?: string;
+  "data-core-tooltip-side"?: string;
   "data-core-tooltip-swatch"?: string;
   "data-core-tooltip-value"?: string;
   "aria-describedby"?: string;
   title?: string;
 };
 
-export function CoreTooltip({ label, deckAppearance, swatchColor, value, children }: {
+export function CoreTooltip({ label, deckAppearance, side, swatchColor, value, children }: {
   deckAppearance?: DeckAppearance;
   label: string;
+  side?: "bottom";
   swatchColor?: string;
   value?: string;
   children: React.ReactElement<TooltipChildProps>;
@@ -268,6 +275,7 @@ export function CoreTooltip({ label, deckAppearance, swatchColor, value, childre
     "data-core-tooltip": label,
     "data-core-tooltip-deck-icon-color": deckAppearance?.iconColor,
     "data-core-tooltip-deck-icon-key": deckAppearance?.iconKey,
+    "data-core-tooltip-side": side,
     "data-core-tooltip-swatch": swatchColor,
     "data-core-tooltip-value": value,
     title: undefined,

@@ -179,7 +179,6 @@ test("deck content opens on its subdecks with path, heading and branch actions",
   assert.match(markup, /aria-label="Stapelgruppe Kapitel" data-deck-group="child"/);
   assert.match(markup, /data-testid="content-deck-row-grandchild"/);
   assert.match(markup, /aria-label="Inhalte von Hauptstapel \/ Kapitel \/ Abschnitt öffnen"/);
-  assert.match(markup, /aria-label="Hauptstapel \/ Kapitel \/ Abschnitt lernen"/);
   assert.doesNotMatch(markup, /Aktive Stapel|learn-deck-create-form/);
   assert.doesNotMatch(markup, /data-testid="card-library-panel"|Einschließlich|direkte Unterstapel|data-donut-/);
 

@@ -166,19 +166,18 @@ test("Feste Formate: Kacheln gleich hoch, Stapel in einer Spalte, To-dos scrolle
   expect(Math.abs(todosHeight - (await page.locator('[data-dashboard-widget="heatmap"]').boundingBox())!.height)).toBeLessThan(2);
   await page.getByRole("spinbutton", { name: "Minuten", exact: true }).fill("45");
   await expect(page.getByRole("spinbutton", { name: "Minuten", exact: true })).toHaveValue("45");
-  await page.getByRole("button", { name: "Eigene Aufgabe hinzufügen", exact: true }).click();
+  await page.getByRole("button", { name: "Neue Aufgabe", exact: true }).click();
   await page.getByRole("textbox", { name: "Eigene Aufgabe", exact: true }).fill("Eigener Test mit langem Aufgabentext ohne Verlust der Tagesaufgaben");
   await page.getByRole("button", { name: "Aufgabe hinzufügen", exact: true }).click();
   await expect(page.getByRole("checkbox", { name: "Eigener Test mit langem Aufgabentext ohne Verlust der Tagesaufgaben", exact: true })).toBeVisible();
   for (const text of ["Weitere Aufgabe zwei", "Weitere Aufgabe drei", "Weitere Aufgabe vier"]) {
-    await page.getByRole("button", { name: "Eigene Aufgabe hinzufügen", exact: true }).click();
+    await page.getByRole("button", { name: "Neue Aufgabe", exact: true }).click();
     await page.getByRole("textbox", { name: "Eigene Aufgabe", exact: true }).fill(text);
     await page.getByRole("button", { name: "Aufgabe hinzufügen", exact: true }).click();
   }
   expect(Math.abs((await todos.boundingBox())!.height - todosHeight)).toBeLessThan(2);
   expect(await page.locator(".dashboard-todos-list").evaluate((list) => list.scrollHeight > list.clientHeight)).toBe(true);
   await page.getByRole("checkbox", { name: "Weitere Aufgabe vier", exact: true }).click();
-  await page.getByText("Erledigt (1)", { exact: true }).click();
   await expect(page.getByRole("checkbox", { name: "Weitere Aufgabe vier", exact: true })).toBeChecked();
   await page.getByRole("checkbox", { name: "Weitere Aufgabe vier", exact: true }).click();
   await expect(page.getByRole("checkbox", { name: "Weitere Aufgabe vier", exact: true })).not.toBeChecked();
@@ -232,29 +231,39 @@ test("Widgetoptionen erhalten Pfeile und Entfernen ohne Größenwahl; abgebroche
   await expect.poll(() => order(page)).toEqual(defaults);
 });
 
-test("Timer: Ziffern, Mausrad, Pause und Fortsetzen ohne Voreinstellungen", async ({ page }) => {
+test("Timer: Minuten, Dauern, Mausrad, Pause und Fortsetzen", async ({ page }) => {
   await openEditor(page);
   await page.getByRole("button", { name: "Fertig", exact: true }).click();
-  const minutes = page.getByRole("spinbutton", { name: "Minuten", exact: true });
-  const seconds = page.getByRole("spinbutton", { name: "Sekunden", exact: true });
-  await minutes.fill("01"); await seconds.fill("30");
-  await seconds.press("ArrowUp"); await expect(seconds).toHaveValue("31");
-  await seconds.hover(); await page.mouse.wheel(0, -100);
-  await expect(seconds).toHaveValue("33");
-  await page.getByRole("button", { name: "Start", exact: true }).click();
-  await expect(minutes).toHaveAttribute("readonly", "");
-  await expect(page.getByRole("button", { name: "Pause", exact: true })).toBeEnabled();
-  await page.getByRole("button", { name: "Pause", exact: true }).click();
-  const frozen = await seconds.inputValue();
+  const timer = page.locator('[data-dashboard-widget="timer"]');
+  const minutes = timer.getByRole("spinbutton", { name: "Minuten", exact: true });
+  await expect(timer.getByRole("button", { name: "25 Minuten", exact: true })).toHaveAttribute("aria-pressed", "true");
+  await timer.getByRole("button", { name: "50 Minuten", exact: true }).click();
+  await expect(minutes).toHaveValue("50");
+  await timer.getByRole("button", { name: "Dauer eintippen", exact: true }).click();
+  await expect(minutes).toBeFocused();
+  await page.keyboard.type("1");
+  await expect(minutes).toHaveValue("01");
+  await minutes.press("ArrowUp");
+  await expect(minutes).toHaveValue("02");
+  await minutes.hover(); await page.mouse.wheel(0, -100);
+  await expect(minutes).toHaveValue("04");
+  await timer.getByRole("button", { name: "Lerntimer starten", exact: true }).press("Enter");
+  await expect(minutes).toHaveCount(0);
+  await expect(timer.getByRole("button", { name: "Lerntimer pausieren", exact: true })).toBeFocused();
+  const clock = timer.getByRole("timer");
+  await expect(clock).toContainText(/0[34]:\d\d/);
+  await expect(timer.getByRole("button", { name: "Lerntimer zurücksetzen", exact: true })).toBeDisabled();
+  await timer.getByRole("button", { name: "Lerntimer pausieren", exact: true }).click();
+  const frozen = await clock.textContent();
   await page.waitForTimeout(1200);
-  await expect(seconds).toHaveValue(frozen);
-  await page.getByRole("button", { name: "Start", exact: true }).click();
-  await expect.poll(() => seconds.inputValue()).not.toBe(frozen);
-  await page.getByRole("button", { name: "Pause", exact: true }).click();
-  await seconds.fill("05");
-  await page.getByRole("button", { name: "Start", exact: true }).click();
-  await expect(seconds).toHaveValue("05");
-  await expect(page.getByText(/Dauer ändern|25 Min. Fokus/)).toHaveCount(0);
+  await expect(clock).toHaveText(frozen!);
+  await timer.getByRole("button", { name: "Lerntimer fortsetzen", exact: true }).click();
+  await expect.poll(() => clock.textContent()).not.toBe(frozen);
+  await timer.getByRole("button", { name: "Lerntimer pausieren", exact: true }).click();
+  await timer.getByRole("button", { name: "Lerntimer zurücksetzen", exact: true }).press("Enter");
+  await expect(minutes).toHaveValue("04");
+  await expect(timer.getByRole("button", { name: "Lerntimer starten", exact: true })).toBeFocused();
+  await expect(timer.getByText(/Bereit|Endet um|Dauer ändern/)).toHaveCount(0);
 });
 
 for (const width of [390, 1440]) test(`Widget aus Menüband ziehen ${width}`, async ({ page }, info) => {
@@ -312,15 +321,15 @@ for (const { width, height } of matrixViewports()) for (const theme of matrixThe
     const widget = page.locator('[data-dashboard-widget="motivation"]');
     await expect(widget).toHaveAttribute("data-width", "small");
     await widget.scrollIntoViewIfNeeded();
-    await expect(widget.getByRole("heading", { name: "Dein Motivationsimpuls" })).toBeVisible();
+    await expect(widget.getByRole("heading", { name: "Dein Impuls" })).toBeVisible();
     await expect(widget.getByRole("button", { name: "Gehirn begrüßen" })).toBeVisible();
     if (visualOutput) await page.screenshot({ path: info.outputPath("motivation.png") });
     expect(await widget.evaluate((element) => element.scrollWidth > element.clientWidth + 1)).toBe(false);
-    await widget.getByRole("button", { name: "Dein Motivationsimpuls entfernen", exact: true }).click();
+    await widget.getByRole("button", { name: "Dein Impuls entfernen", exact: true }).click();
     await page.reload();
     await expect(widget).toHaveCount(0);
     await page.getByRole("button", { name: "Seite bearbeiten", exact: true }).click();
-    await page.getByRole("button", { name: "Dein Motivationsimpuls", exact: true }).click();
+    await page.getByRole("button", { name: "Dein Impuls", exact: true }).click();
     await expect(widget).toHaveCount(1);
     await page.getByRole("button", { name: "Fertig", exact: true }).click();
     await widget.getByRole("button", { name: "Gehirn begrüßen" }).click();
@@ -400,47 +409,32 @@ test.describe("Maskottchen-Vorrat", () => {
 });
 
 
-test("Timer: Scrollen ohne Fokus, Ring, Pause und Reset auf die Startdauer", async ({ page }, info) => {
+test("Timer: Füllstand, Pause und Zurücksetzen auf die Startdauer", async ({ page }, info) => {
   await page.clock.install();
   await page.goto("/docs/ui-elements.html?preview=dashboard");
   const timer = page.locator('[data-dashboard-widget="timer"]');
   const minutes = timer.getByRole("spinbutton", { name: "Minuten", exact: true });
-  const seconds = timer.getByRole("spinbutton", { name: "Sekunden", exact: true });
-  const ring = timer.getByTestId("timer-countdown-ring");
-  const reset = timer.getByRole("button", { name: "Timer zurücksetzen" });
-  await expect(reset).toBeDisabled();
-  expect(await ring.evaluate((element) => getComputedStyle(element).stroke)).not.toBe("none");
-  await minutes.fill("01"); await seconds.fill("30");
-  await timer.getByRole("button", { name: "Start", exact: true }).focus();
-  await seconds.hover();
-  for (let i = 0; i < 5; i++) await seconds.dispatchEvent("wheel", { deltaY: -8, deltaMode: 0 });
-  await expect(seconds).toHaveValue("31");
-  await expect(seconds).not.toBeFocused();
-  await minutes.hover(); await page.mouse.wheel(0, -40);
+  const level = timer.locator(".core-study-timer-level");
+  const height = () => level.evaluate((element) => parseFloat((element as HTMLElement).style.height));
+  await minutes.fill("02");
+  await minutes.dispatchEvent("wheel", { deltaY: -40, ctrlKey: true });
   await expect(minutes).toHaveValue("02");
-  await seconds.dispatchEvent("wheel", { deltaY: -40, ctrlKey: true });
-  await expect(seconds).toHaveValue("31");
-  await timer.getByRole("button", { name: "Start", exact: true }).click();
-  await page.clock.fastForward(31000);
-  await expect(seconds).toHaveValue("00");
-  await expect.poll(async () => Number(await ring.getAttribute("stroke-dashoffset"))).toBeGreaterThan(.20);
-  await timer.getByRole("button", { name: "Pause", exact: true }).click();
-  const frozen = await ring.getAttribute("stroke-dashoffset");
+  await timer.getByRole("button", { name: "Lerntimer starten", exact: true }).click();
+  await page.clock.fastForward(30000);
+  await expect(timer.getByRole("timer")).toContainText(/01:[23]\d/);
+  await expect.poll(height).toBeGreaterThan(20);
+  await timer.getByRole("button", { name: "Lerntimer pausieren", exact: true }).click();
+  const frozen = await height();
   await page.clock.fastForward(60000);
-  await expect(ring).toHaveAttribute("stroke-dashoffset", frozen!);
+  expect(await height()).toBe(frozen);
+  await expect(timer.locator(".core-study-timer-tile")).toHaveAttribute("data-state", "paused");
   await page.screenshot({ path: info.outputPath("timer-pausiert.png") });
-  await seconds.fill("07");
-  await reset.click();
-  await expect(minutes).toHaveValue("02"); await expect(seconds).toHaveValue("31");
-  await expect(ring).toHaveAttribute("stroke-dashoffset", "0");
-  await expect(reset).toBeDisabled();
-  await timer.getByRole("button", { name: "Start", exact: true }).click();
+  await timer.getByRole("button", { name: "Lerntimer zurücksetzen", exact: true }).click();
+  await expect(minutes).toHaveValue("02");
+  await expect(level).toHaveCount(0);
+  await timer.getByRole("button", { name: "Lerntimer starten", exact: true }).click();
   await page.clock.fastForward(12000);
-  await reset.click();
-  await expect(seconds).toHaveValue("31");
-  await expect(timer.getByRole("button", { name: "Pause", exact: true })).toBeDisabled();
-  await page.clock.fastForward(180000);
-  await expect(seconds).toHaveValue("31");
+  await expect(timer.getByRole("button", { name: "Lerntimer zurücksetzen", exact: true })).toBeDisabled();
 });
 
 test("Aufgaben: alle offenen Aufgaben in scrollender Liste, Inline-Plus und ausklappbare lange Texte", async ({ page }, info) => {
@@ -451,13 +445,16 @@ test("Aufgaben: alle offenen Aufgaben in scrollender Liste, Inline-Plus und ausk
   await expect.poll(() => planned.count()).toBeGreaterThan(3);
   const plannedCount = await planned.count();
   await expect(box.getByText("Keine eigenen Aufgaben offen.")).toHaveCount(0);
-  const add = box.getByRole("button", { name: "Eigene Aufgabe hinzufügen", exact: true });
+  const add = box.getByRole("button", { name: "Neue Aufgabe", exact: true });
   const text = "Langer eigener Lernauftrag: " + "Anatomie, Physiologie und klinische Zusammenhänge gründlich wiederholen. ".repeat(5);
   for (const title of [text, "Zweite eigene Aufgabe", "Dritte eigene Aufgabe", "Vierte eigene Aufgabe"]) {
     await add.click(); await box.getByRole("textbox", { name: "Eigene Aufgabe", exact: true }).fill(title);
     await box.getByRole("button", { name: "Aufgabe hinzufügen", exact: true }).click();
   }
   await expect(box.locator('[data-own-todo]').filter({ visible: true })).toHaveCount(4);
+  await expect(add).toBeFocused();
+  await add.click(); await page.keyboard.press("Escape");
+  await expect(add).toBeFocused();
   await expect(planned).toHaveCount(plannedCount);
   expect(await box.locator(".dashboard-todos-list").evaluate((list) => list.scrollHeight > list.clientHeight)).toBe(true);
   const own = box.locator('[data-own-todo]').first();
@@ -470,8 +467,9 @@ test("Aufgaben: alle offenen Aufgaben in scrollender Liste, Inline-Plus und ausk
   await own.getByRole("button", { name: "Aufgabentext einklappen" }).click();
   await page.screenshot({ path: info.outputPath("aufgaben-vorschau.png") });
   await box.getByRole("checkbox", { name: text, exact: true }).click();
-  await expect(box.locator('[data-own-todo]').filter({ visible: true })).toHaveCount(3);
-  await expect(box.getByRole("checkbox", { name: "Zweite eigene Aufgabe", exact: true })).toBeVisible();
+  await expect(box.locator('[data-own-todo]').filter({ visible: true })).toHaveCount(4);
+  await expect(box.getByRole("checkbox", { name: text, exact: true })).toBeChecked();
+  await expect(box.locator('[data-own-todo]').last()).toHaveAttribute("data-done", "true");
   await expect(planned).toHaveCount(plannedCount);
 });
 
@@ -488,7 +486,7 @@ for (const { width, height } of sizes) for (const theme of matrixThemes) {
     await box.scrollIntoViewIfNeeded();
     if (visualOutput) await page.screenshot({ path: info.outputPath("todos-empty-own.png") });
     const text = "Prüfungsstoff und Zusammenhänge wiederholen: " + "Pathologie, Anatomie und Physiologie. ".repeat(10);
-    await box.getByRole("button", { name: "Eigene Aufgabe hinzufügen", exact: true }).click();
+    await box.getByRole("button", { name: "Neue Aufgabe", exact: true }).click();
     if (visualOutput) await page.screenshot({ path: info.outputPath("todos-add.png") });
     await box.getByRole("textbox", { name: "Eigene Aufgabe", exact: true }).fill(text);
     await box.getByRole("button", { name: "Aufgabe hinzufügen", exact: true }).click();
@@ -541,4 +539,16 @@ test("die Heatmap-Farbe lässt sich im Bearbeitungsmodus am Widget wählen", asy
   await picker.click();
   await page.getByRole("radio", { name: "Farbe #3FA66B", exact: true }).click();
   await expect(page.locator('[data-dashboard-widget="heatmap"] [data-heatmap-history-color]')).toHaveAttribute("data-heatmap-history-color", "#3fa66b");
+});
+
+test("die Lerntimer-Farbe lässt sich getrennt von der Heatmap am Widget wählen", async ({ page }) => {
+  await page.goto("/docs/ui-elements.html?preview=dashboard");
+  const tile = page.locator('[data-dashboard-widget="timer"] .core-study-timer-tile');
+  await expect(tile).toHaveCSS("background-color", "rgb(185, 94, 0)");
+  await page.getByRole("button", { name: "Seite bearbeiten", exact: true }).click();
+  await page.locator('[data-dashboard-widget="timer"]').getByRole("button", { name: "Lerntimer-Farbe ändern", exact: true }).click();
+  await page.getByRole("radio", { name: "Farbe #3FA66B", exact: true }).click();
+  await expect(tile).toHaveCSS("background-color", "rgb(63, 166, 107)");
+  await expect(page.locator('[data-dashboard-widget="heatmap"] [data-heatmap-history-color]')).toHaveAttribute("data-heatmap-history-color", "#b95e00");
+  expect(await page.evaluate(() => localStorage.getItem("core.studyTimer.color.v1"))).toBe("#3fa66b");
 });

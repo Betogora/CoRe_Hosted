@@ -462,8 +462,11 @@ test("[Vertrag: Geschwister begraben] @beta-core eine Antwort stellt die Geschwi
   expect(answered.reviewEvents).toHaveLength(1);
   expect(comparableStudy(buried.study)).toEqual(comparableStudy(original.study));
 
-  await page.reload();
-  await startLearning();
+  // Without cards for today the row offers no study button; the deck menu still starts learning.
+  await page.goto(`/lernen?deck=${encodeURIComponent(deck.id)}`);
+  await expect(page.getByTestId(`learn-deck-row-${deck.id}`).getByRole("button", { name: /lernen$/ })).toHaveCount(0);
+  await page.getByTestId(`deck-options-${deck.id}`).click();
+  await page.getByTestId(`deck-options-menu-${deck.id}`).getByRole("button", { name: "Lernen", exact: true }).click();
   await expect(page.getByRole("dialog", { name: "Keine fälligen Karten" })).toBeVisible();
 });
 

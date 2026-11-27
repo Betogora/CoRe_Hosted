@@ -9,7 +9,7 @@ import { CoreWordmark } from "../src/ui/CoreWordmark.tsx";
 import { BrainMascot } from "../src/ui/BrainMascot.tsx";
 import { DailyMotivationWidget } from "../src/screens/DailyMotivationWidget.tsx";
 import React, { useRef, useState } from "react";
-import { ArrowUpRight, Ban, BookOpen, ChevronRight, Copy, Eraser, Eye, FileSpreadsheet, FileText, Grid2x2, Info, Layers, List, Maximize2, MoreHorizontal, Pencil, PenLine, Plus, RefreshCw, Save, Settings, Sparkles, Star, Trash2, Type, X, type LucideIcon } from "lucide-react";
+import { ArrowUpRight, Ban, BookOpen, ChevronDown, ChevronLeft, ChevronRight, Copy, Eraser, Eye, FileSpreadsheet, FileText, Grid2x2, Info, Layers, List, Maximize2, MoreHorizontal, Palette, Pencil, PenLine, Play, Plus, RefreshCw, Save, Settings, Sparkles, Star, Trash2, Type, X, type LucideIcon } from "lucide-react";
 import { addCardVariant, addNoteField, applyCardStudyStatePatch, cardStudyFromReviewState, type OcclusionMode, createBasicNote, createCoreDeck, createManualNoteContent, createNote, createReviewState, noteBlocks, type ManualContentKind } from "../src/coreModel.ts";
 import type { CardStudyStatePatch, Deck, ExamPlanningSettings, CoreMode, NewReviewOrder, NoteContent, NoteField, OcclusionMask, SavedCardSearch, SyncStatus } from "../src/coreTypes.ts";
 import type { CardEditorServices, DecksCardPageRequest } from "../src/appScreenProps.ts";
@@ -52,7 +52,8 @@ import type { DeckTreeView } from "../src/ui/deckTreeView.ts";
 import { DeckSubstacksPanel } from "../src/screens/DeckSubstacksPanel.tsx";
 import { DailyReviewProgress } from "../src/ui/DailyReviewProgress.tsx";
 import { StudyHeatmap } from "../src/ui/StudyHeatmap.tsx";
-import { PomodoroProgress, PomodoroTimerControl } from "../src/ui/pomodoroTimerUi.tsx";
+import { PomodoroTimerControl, StudyTimerTile } from "../src/ui/pomodoroTimerUi.tsx";
+import { PomodoroPill } from "../src/ui/PomodoroPill.tsx";
 import { LearningSettingsPanel } from "../src/ui/LearningSettingsPanel.tsx";
 import { CoreNumberField } from "../src/ui/CoreNumberField.tsx";
 import { CardStudyStateControls } from "../src/ui/CardStudyStateControls.tsx";
@@ -100,6 +101,11 @@ import { NoteCardContent } from "../src/ui/NoteCardContent.tsx";
 import { generatedSummaryHtml, prepareSummaryMaterial, type SummaryGenerationInput, type SummaryGenerationResult } from "../src/aiLearningSummary.ts";
 import { AI_LEARNING_SUMMARY_PROMPT_VERSION, type AiLearningSummarySuccess } from "../src/aiLearningSummaryContract.ts";
 import { DeckSummariesPanel } from "../src/screens/DeckSummariesPanel.tsx";
+import type { QuizPanelServices } from "../src/screens/DeckQuizPanel.tsx";
+import { saveDeckQuiz } from "../src/learningQuizzes.ts";
+import { ChoiceOptionList } from "../src/ui/ChoiceOptionList.tsx";
+import { CreationMenu, CreationMenuAction, CreationMenuForm } from "../src/ui/CreationMenu.tsx";
+import { QUIZ_CATALOG_STATES, askQuizHelpDemo, catalogQuizzes, generateQuizDemo, quizCatalogStart, type QuizCatalogState } from "./uiCatalogQuiz.ts";
 import { DeckMindMapsPanel } from "../src/screens/DeckMindMapsPanel.tsx";
 import { createLearningSummary, createSummarySettings, loadLearningSummaries, saveLearningSummary } from "../src/learningSummaries.ts";
 
@@ -181,9 +187,8 @@ function ActionsDemo({ section }: { section: string }) {
       <div className="catalog-row"><ActionButton variant="destructive-secondary" icon={X} onClick={() => toast("Beispielaktion ausgeführt.")}>Abmelden</ActionButton></div>
       <div className="catalog-row"><ActionButton variant="primary" disabled>Deaktiviert</ActionButton><ActionButton variant="primary" loading>Wird gespeichert …</ActionButton></div>
     </Demo>}
-    {section === "buttons" && <Demo title="CreationActionCard · im Raster mit und ohne Beschreibung"><div className="grid gap-4">
+    {section === "buttons" && <Demo title="CreationActionCard · im Raster"><div className="grid gap-4">
       <div className="catalog-two">{([["Karten selbst erstellen", PenLine], ["Import", FileSpreadsheet]] as const).map(([title, icon]) => <CreationActionCard key={title} title={title} icon={icon} onSelect={() => toast(`${title} gewählt.`)} />)}</div>
-      <CreationActionCard title="Anki-Stapel importieren" description="Eine vorhandene APKG-Datei übernehmen." icon={Layers} onSelect={() => toast("Import gewählt.")} />
     </div></Demo>}
     {section === "buttons" && <Demo title="IconButton · normal, destruktiv, destruktiv-dezent und ghost"><div className="catalog-row">{(["secondary", "destructive", "destructive-quiet", "ghost"] as const).map((variant) => <CoreTooltip key={variant} label={variant}><IconButton variant={variant} label={`${variant}: Beispielaktion`} icon={variant.startsWith("destructive") ? Trash2 : Settings} onClick={() => toast("Icon-Aktion ausgeführt.")} /></CoreTooltip>)}</div></Demo>}
     {section === "buttons" && <Demo title="CloseButton · Kreuz von Dialogen, Leisten und Toasts"><div className="catalog-row"><CloseButton label="Beispiel schließen" onClick={() => toast("Geschlossen.")} /><CloseButton label="Gesperrtes Schließen" disabled /></div></Demo>}
@@ -367,6 +372,7 @@ function FeedbackDemo({ section }: { section: string }) {
     {section === "dialogs" && <Demo title="ActionDialog"><ActionButton variant="destructive" onClick={() => setDialog(true)}>Löschdialog öffnen</ActionButton><ActionDialog open={dialog} title="Stapel löschen?" description="Diese Demo verändert ausschließlich ihren eigenen Zustand." confirmLabel="Löschen" cancelLabel="Abbrechen" discardLabel="Entwurf verwerfen" destructive onConfirm={() => { setDialog(false); toast("Beispiel bestätigt."); }} onCancel={() => setDialog(false)} onDiscard={() => setDialog(false)} /></Demo>}
     {section === "dialogs" && <Demo title="SettingsSaveBar"><ActionButton variant="secondary" onClick={() => setBar(true)}>Speicherleiste öffnen</ActionButton><SettingsSaveBar open={bar} failed={false} mode="global" onSave={() => { setBar(false); toast("Beispiel gespeichert."); }} onDiscard={() => setBar(false)} /></Demo>}
     {section === "progress" && <Demo title="DailyReviewProgress"><DailyReviewProgress progress={progress} /></Demo>}
+    {section === "progress" && <Demo title="DailyReviewProgress · Tooltip unter dem Balken"><DailyReviewProgress progress={progress} tooltipSide="bottom" testId="study-daily-progress-below" /></Demo>}
     {section === "progress" && <Demo title="VariantGenerationBar"><div className="flex flex-wrap gap-2"><ActionButton variant="secondary" onClick={() => setVariantBar("running")}>Variantenleiste anzeigen</ActionButton><ActionButton variant="secondary" onClick={() => setVariantBar("outcome")}>Mit Abschlussmeldung</ActionButton></div>{variantBar ? <VariantGenerationBar deck={deck} done={variantBar === "running" ? 7 : 18} total={18} outcome={variantBar === "outcome" ? "Gestoppt nach 7 Varianten: Keine Verbindung" : null} onCancel={() => setVariantBar(null)} onClose={() => setVariantBar(null)} onShow={() => setVariantBar(null)} /> : null}</Demo>}
     {section === "progress" && <Demo title="Prozessindikator"><div className="core-statistics-load-track" role="progressbar" aria-label="Statistik wird aktualisiert"><span className="core-statistics-load-segment" /></div></Demo>}
   </>;
@@ -390,7 +396,7 @@ function NavigationDemo({ section }: { section: string }) {
   }, [syncDemo]);
   const toast = useSuccessToast();
   return <>
-    {section === "navigation" && <Demo title="AppNavigation" wide><div className="catalog-row"><CoreSelect ariaLabel="Sync-Zustand" value={syncDemo} onValueChange={setSyncDemo} options={[{ value: "saved", label: "Synchronisiert (kein Icon)" }, { value: "manual", label: "Manuell, ausstehend" }, { value: "offline", label: "Offline" }, { value: "error", label: "Fehler" }, { value: "conflict", label: "2 Konflikte" }]} /><ActionButton variant="secondary" onClick={() => setShowShell(true)}>App-Navigation öffnen</ActionButton></div>{showShell && <div className="catalog-shell-preview" onKeyDown={(event) => { if (event.key === "Escape") setShowShell(false); }}><WorkspaceStoreContext.Provider value={syncDemoStore}><AppNavigation activeView={view} navigationItems={menu.listNavigationItems()} simulationOffsetMinutes={0} simulationDateLabel="2. Oktober 2026" pomodoroTimer={null} onNavigate={setView} settingsOpen={false} onOpenSettings={() => toast("Einstellungsdialog geöffnet.")} onResetSimulation={() => undefined} manualSync={syncDemo === "manual"} onSyncNow={() => toast("Beispiel synchronisiert.")} onOpenSyncSettings={(target) => toast(target === "sync-conflicts" ? "Konflikte in den Einstellungen geöffnet." : "Synchronisierung in den Einstellungen geöffnet.")} back={subpage ? { title: "Karte selbst erstellen", label: "Erstellen", onSelect: () => setSubpage(false) } : null} /></WorkspaceStoreContext.Provider><div className="catalog-shell-content"><h2 className="core-heading-2">Navigation: {subpage ? "Karte selbst erstellen" : menu.getView(view)?.label ?? "Lernen"}</h2><div className="catalog-row">{subpage ? null : <ActionButton variant="secondary" onClick={() => setSubpage(true)}>Unterseite öffnen</ActionButton>}<ActionButton variant="primary" autoFocus onClick={() => setShowShell(false)}>Vorschau schließen</ActionButton></div></div></div>}</Demo>}
+    {section === "navigation" && <Demo title="AppNavigation" wide><div className="catalog-row"><CoreSelect ariaLabel="Sync-Zustand" value={syncDemo} onValueChange={setSyncDemo} options={[{ value: "saved", label: "Synchronisiert (kein Icon)" }, { value: "manual", label: "Manuell, ausstehend" }, { value: "offline", label: "Offline" }, { value: "error", label: "Fehler" }, { value: "conflict", label: "2 Konflikte" }]} /><ActionButton variant="secondary" onClick={() => setShowShell(true)}>App-Navigation öffnen</ActionButton></div>{showShell && <div className="catalog-shell-preview" onKeyDown={(event) => { if (event.key === "Escape") setShowShell(false); }}><WorkspaceStoreContext.Provider value={syncDemoStore}><AppNavigation activeView={view} navigationItems={menu.listNavigationItems()} simulationOffsetMinutes={0} simulationDateLabel="2. Oktober 2026" pomodoroTimer={null} onPomodoroPauseChange={() => undefined} onNavigate={setView} settingsOpen={false} onOpenSettings={() => toast("Einstellungsdialog geöffnet.")} onResetSimulation={() => undefined} manualSync={syncDemo === "manual"} onSyncNow={() => toast("Beispiel synchronisiert.")} onOpenSyncSettings={(target) => toast(target === "sync-conflicts" ? "Konflikte in den Einstellungen geöffnet." : "Synchronisierung in den Einstellungen geöffnet.")} back={subpage ? { title: "Karte selbst erstellen", label: "Erstellen", onSelect: () => setSubpage(false) } : null} /></WorkspaceStoreContext.Provider><div className="catalog-shell-content"><h2 className="core-heading-2">Navigation: {subpage ? "Karte selbst erstellen" : menu.getView(view)?.label ?? "Lernen"}</h2><div className="catalog-row">{subpage ? null : <ActionButton variant="secondary" onClick={() => setSubpage(true)}>Unterseite öffnen</ActionButton>}<ActionButton variant="primary" autoFocus onClick={() => setShowShell(false)}>Vorschau schließen</ActionButton></div></div></div>}</Demo>}
     {section === "navigation" && <Demo title="CoreWordmark"><span className="core-heading-1"><CoreWordmark /></span></Demo>}
     {section === "headings" && <Demo title="LearningAreaHeader" wide><div className="grid gap-6">{(["overview", "cards"] as const).map((area) => <LearningAreaHeader key={area} area={area} onOpenCardSettings={() => toast("Lerneinstellungen gewählt.")} viewControl={area === "overview" ? <CoreIconSegmentedControl ariaLabel="Stapelansicht" options={DECK_TREE_VIEW_OPTIONS} value="list" onValueChange={(next) => toast(next === "tiles" ? "Kacheln gewählt." : "Liste gewählt.")} /> : undefined} />)}</div></Demo>}
   </>;
@@ -484,7 +490,7 @@ function ContentDemo({ section }: { section: string }) {
     {section === "editor" && <Demo title="RichTextEditor" wide><RichTextEditor value={text} onChange={setText} ariaLabel="Beispiel-Karteninhalt" isActive clozeActions={{ groupId: 1 }} imageActions={{ mediaUrls, prepare: prepareImage }} /></Demo>}
     {section === "editor" && <Demo title="RichTextEditor · Dokumentwerkzeuge" wide><RichTextEditor value={text} onChange={setText} ariaLabel="Beispiel-Dokument mit Dokumentwerkzeugen" isActive documentTools /></Demo>}
     {section === "editor" && <Demo title="RichTextEditor · Dokumentwerkzeuge mit Kartenwerkzeugen" wide><RichTextEditor value={text} onChange={setText} ariaLabel="Beispiel-Karte mit Dokumentwerkzeugen" isActive documentTools clozeActions={{ groupId: 1 }} imageActions={{ mediaUrls, prepare: prepareImage }} /></Demo>}
-    {section === "colors" && <Demo title="ColorPicker, ColorSwatchButton und ColorSwatchRow · Picker, Farbfeld und Farbreihe mit freier Farbe"><div className="catalog-row"><ColorPicker ariaLabel="Farbe wählen" value={color} onValueCommit={setColor} /><ColorSwatchButton color={color} aria-label="Farbfeld" aria-pressed /><ColorSwatchRow className="flex flex-wrap items-center gap-1" label="Stiftfarbe" colors={COLOR_PICKER_PRESETS.slice(0, 5).map((preset) => ({ value: preset, label: preset.toUpperCase() }))} value={color} onChange={setColor} /></div></Demo>}
+    {section === "colors" && <Demo title="ColorPicker, ColorSwatchButton und ColorSwatchRow · Picker, Picker mit Symbol für Flächen in dieser Farbe, Farbfeld und Farbreihe mit freier Farbe"><div className="catalog-row"><ColorPicker ariaLabel="Farbe wählen" value={color} onValueCommit={setColor} /><ColorPicker icon={Palette} ariaLabel="Farbe über Symbol wählen" value={color} onValueCommit={setColor} /><ColorSwatchButton color={color} aria-label="Farbfeld" aria-pressed /><ColorSwatchRow className="flex flex-wrap items-center gap-1" label="Stiftfarbe" colors={COLOR_PICKER_PRESETS.slice(0, 5).map((preset) => ({ value: preset, label: preset.toUpperCase() }))} value={color} onChange={setColor} /></div></Demo>}
     {section === "media" && <Demo title="PdfDocumentViewer" wide><PdfDemo /></Demo>}
   </>;
 }
@@ -573,10 +579,11 @@ function LearningDemo({ section }: { section: string }) {
   const [draft, setDraft] = useState(() => createDeckLearningSettingsDraft(deck.deckSettings));
   const [profiles, setProfiles] = useState<React.ComponentProps<typeof LearningSettingsPanel>["profiles"]>([]);
   const start = (minutes: number) => setTimer(createPomodoroTimer(minutes));
-  const demoTimer = React.useMemo(() => createPomodoroTimer(25), []);
+  const [pillTimer, setPillTimer] = useState(() => createPomodoroTimer(25, Date.now() - 7 * 60_000));
   return <>
     {section === "forms" && <Demo title="PomodoroTimerControl"><PomodoroTimerControl timer={timer} variant="settings" onStart={start} /></Demo>}
-    {section === "progress" && <Demo title="PomodoroProgress"><PomodoroProgress timer={timer ?? demoTimer} variant="study" /></Demo>}
+    {section === "progress" && <Demo title="PomodoroPill · Lerntimer in Navigation und Lernsitzung"><PomodoroPill timer={pillTimer} onPauseChange={(paused) => setPillTimer((current) => paused ? pausePomodoroTimer(current) : resumePomodoroTimer(current))} /></Demo>}
+    {section === "progress" && <Demo title="StudyTimerTile · Lerntimer auf Heute"><div className="h-[29rem] max-w-md"><StudyTimerTile timer={timer} onStart={start} onPause={() => setTimer(pausePomodoroTimer)} onResume={() => setTimer(resumePomodoroTimer)} onReset={() => setTimer(null)} /></div></Demo>}
     {section === "dialogs" && <Demo title="StudySettingsOverlay"><ActionButton variant="secondary" onClick={() => setSettings(true)}>Lerneinstellungen öffnen</ActionButton><StudySettingsOverlay open={settings} canEditCard marked={marked} suspended={suspended} reviewOrder={order} pomodoroTimer={timer} onOpenChange={setSettings} onEditCard={() => setSettings(false)} onEditDeck={() => setSettings(false)} onMarkedChange={setMarked} onSuspendedChange={setSuspended} flag={flag} flagNames={[]} onFlagChange={setFlag} onReviewOrderChange={setOrder} onStartPomodoro={(minutes) => { start(minutes); setSettings(false); }} /></Demo>}
     {section === "forms" && <Demo title="LearningSettingsPanel · Tagesrunde und Scheduler" wide><LearningSettingsPanel section="daily" draft={draft} profiles={profiles} defaultProfileName="Standard" onProfilesChange={setProfiles} onDraftChange={setDraft} onApplyProfile={(next) => { setDraft(next); return true; }} /><LearningSettingsPanel section="scheduler" draft={draft} profiles={profiles} defaultProfileName="Standard" onProfilesChange={setProfiles} onDraftChange={setDraft} onApplyProfile={(next) => { setDraft(next); return true; }} /></Demo>}
     {section === "buttons" && <Demo title="Reviewratings"><div className="grid grid-cols-2 gap-2">{ratingButtons.map((rating, index) => <button type="button" key={rating.key} className={`core-rating-button ${rating.className}`}><span className="core-rating-dot" aria-hidden="true" /><span className="core-rating-text"><span className="core-control-label">{rating.label}</span><span className="core-caption font-medium tabular-nums">{["1 min", "5 min", "1 Tag", "4 Tage"][index]}</span></span></button>)}</div></Demo>}
@@ -686,7 +693,7 @@ const DEMO_TEXT_IMPORT = {
   }),
 };
 
-const PRODUCT_VIEWS = ["auth", "conflict", "statistics", "simulator", "help", "dashboard", "dashboard-empty", "learn", "exams", "creation", "ai-source", "manual", "import", "decks", "deck-content", "deck-settings", "study", "study-variant", "study-variant-image"];
+const PRODUCT_VIEWS = ["auth", "conflict", "statistics", "simulator", "help", "dashboard", "dashboard-empty", "learn", "exams", "creation", "ai-source", "manual", "import", "decks", "deck-content", "quiz", "deck-settings", "study", "study-variant", "study-variant-image"];
 
 /**
  * Browser-test harness outside the catalog: `?preview=cards` shows every renderer case; any other value lists the real
@@ -697,8 +704,38 @@ export function CatalogPreview({ kind }: { kind: string }) {
   return <div id="screens" className="catalog-preview catalog-demo-grid">{PRODUCT_VIEWS.map((id) => <ProductViewsDemo key={id} kind={id} />)}<ExamTopicOrderDemo /><SummaryContentDemo /><MindMapContentDemo /></div>;
 }
 
+/** `?preview=quiz&state=<state>` opens the quiz tab in that state, so each one can be captured without clicks. */
+const CATALOG_QUIZ_ACCOUNT = "catalog-quiz";
+
+function quizCatalogState(): QuizCatalogState {
+  const state = typeof window === "undefined" ? null : new URLSearchParams(window.location.search).get("state");
+  return QUIZ_CATALOG_STATES.find((item) => item === state) ?? "liste";
+}
+
+/**
+ * States that live inside a component reach it like a learner would: by one click. A state opened from the address
+ * shows no keyboard focus frame, as after a click with the mouse.
+ */
+function useCatalogQuizState(active: boolean, clickSelector: string | null, onClicked?: () => void) {
+  React.useEffect(() => {
+    if (!active) return;
+    const blur = () => window.setTimeout(() => { if (document.activeElement instanceof HTMLElement) document.activeElement.blur(); }, 150);
+    let settled = blur();
+    const timer = clickSelector ? window.setInterval(() => {
+      const target = document.querySelector<HTMLButtonElement>(clickSelector);
+      if (!target || target.disabled) return;
+      window.clearInterval(timer);
+      target.click();
+      onClicked?.();
+      settled = blur();
+    }, 100) : undefined;
+    return () => { window.clearInterval(timer); window.clearTimeout(settled); };
+  }, [active, clickSelector]);
+}
+
 function ProductViewsDemo({ kind }: { kind: string }) {
   const [dashboardTimer, setDashboardTimer] = useState<PomodoroTimer | null>(null);
+  const [studyTimer, setStudyTimer] = useState(() => createPomodoroTimer(25, Date.now() - 7 * 60_000));
   const [focusedDemoDeckId, setFocusedDemoDeckId] = useState<string | null>(null);
   const [demoStudyDeck, setDemoStudyDeck] = useState(deck);
   const [demoPracticeDeck, setDemoPracticeDeck] = useState<typeof deck | null>(null);
@@ -748,7 +785,12 @@ function ProductViewsDemo({ kind }: { kind: string }) {
   const [catalogCardDecks, setCatalogCardDecks] = useState(substackDemoDecks);
   const [cardEditorTab, setCardEditorTab] = useState<CardEditorTab>("general");
   const [savedSearches, setSavedSearches] = useState<SavedCardSearch[]>([{ id: "demo-search", name: "Heute nicht gewusst", query: "rated:1:1" }]);
-  const [contentTab, setContentTab] = useState<DeckContentTab>("children");
+  const [quizState] = useState(quizCatalogState);
+  const [contentTab, setContentTab] = useState<DeckContentTab>(kind !== "quiz" ? "children" : quizState === "menue-zusammenfassung" ? "summary" : "quiz");
+  const [summaryMenuOpen, setSummaryMenuOpen] = useState(false);
+  useCatalogQuizState(kind === "quiz" && typeof window !== "undefined" && new URLSearchParams(window.location.search).has("state"),
+    quizState === "menue-zusammenfassung" ? ".core-summary-panel .core-creation-menu-action" : quizState === "lauf-hilfe" ? '[data-testid="study-ai-help"] form button' : null,
+    () => { if (quizState === "menue-zusammenfassung") setSummaryMenuOpen(true); });
   const [helpTopic, setHelpTopic] = useState<HelpTopic | null>(null);
   // Pages read the sample cards through the ref, so a flag, mark or suspension survives a reload.
   const catalogCardDecksRef = React.useRef(catalogCardDecks);
@@ -781,6 +823,23 @@ function ProductViewsDemo({ kind }: { kind: string }) {
     return graph;
   }, [catalogStore]);
   const noop = React.useCallback(() => undefined, []);
+  const quizServices = React.useMemo<QuizPanelServices>(() => ({
+    account: { userId: CATALOG_QUIZ_ACCOUNT, cloud: null },
+    start: quizCatalogStart(quizState),
+    onGenerateQuiz: (input, signal) => generateQuizDemo(input, signal, quizState === "erstellung"),
+    onAskHelp: askQuizHelpDemo,
+    onSaveCard: async () => ({ deck: sampleDecks[0], cardIds: [crypto.randomUUID()] }),
+  }), [quizState]);
+  // Every opening starts from the sample quizzes again, without the ones made in an earlier visit.
+  const [quizzesSeeded, setQuizzesSeeded] = useState(false);
+  React.useEffect(() => {
+    if (view !== "quiz") { setQuizzesSeeded(false); return; }
+    let current = true;
+    void new Promise<void>((resolve) => { const request = indexedDB.deleteDatabase(`core.learningQuizzes.v1.${CATALOG_QUIZ_ACCOUNT}`); request.onsuccess = request.onerror = request.onblocked = () => resolve(); })
+      .then(async () => { for (const quiz of quizState === "leer" ? [] : catalogQuizzes) await saveDeckQuiz({ userId: CATALOG_QUIZ_ACCOUNT, cloud: null }, quiz); })
+      .then(() => { if (current) setQuizzesSeeded(true); });
+    return () => { current = false; };
+  }, [view, quizState]);
   const askCatalogCardHelp = React.useCallback((_request: unknown, signal: AbortSignal) => new Promise<string>((resolve, reject) => {
     const timer = setTimeout(() => resolve("Die Karte fragt nach dem Kern des Begriffs.\n\n- Merke dir die Antwort als Ursache, nicht als Definition.\n- Verknüpfe sie mit einem Beispiel aus deinem Alltag."), 800);
     signal.addEventListener("abort", () => { clearTimeout(timer); reject(new Error("abgebrochen")); });
@@ -810,8 +869,8 @@ function ProductViewsDemo({ kind }: { kind: string }) {
   }), [examDemoDecks, selection.now]);
   const views = [["auth", "AuthGateScreen · Anmeldung, Registrierung und Reset", "Anmeldung"], ["conflict", "SyncConflictPanel · Feldvergleich und Zusammenführung", "Konfliktauflösung"], ["statistics", "StatisticsScreenContent · alle Diagramme und Tabellen", "Statistik"], ["simulator", "SimulatorScreen · Lernuhr und Datumauswahl", "Simulator"], ["help", "HelpScreen · kurzer Einstieg mit verlinkten Geschichten und Nachschlagethemen", "Hilfe"]];
   views.push(
-    ["dashboard", "DashboardScreen · Tagesziel als Auftakt, nachrückende Widgets, Widget-Leiste und direkt einstellbarer Timer", "Tagesübersicht"],
-    ["dashboard-empty", "DashboardScreen · Erststart ohne Daten", "Erststart"],
+    ["dashboard", "DashboardScreen · Tagesstand, To-dos und Impuls als Plakate, nachrückende Widgets, Widget-Leiste und direkt einstellbarer Timer", "Tagesübersicht"],
+    ["dashboard-empty", "DashboardScreen · Erststart als Plakat ohne Daten", "Erststart"],
     ["learn", "LearnScreen · Stapel und Schnellformular", "Lernen"],
     ["exams", "ExamPlanningScreen · lokaler Plus-Einstieg bei leerer Prüfungsliste und durchgehendes Plus-Feld Weitere Prüfung planen unter bestehenden Prüfungen · einzeln umschaltbare Prüfungsfarben im Kalenderkopf statt globalem Dropdown, ausgefüllt oder hell umrandet · gemeinsame Monatskachel je Fach für Karten und Lesen, auch ohne neue Karten · Kalender ab aktueller Woche mit Rücknavigation · vier Schritte mit Rücksprüngen und genau einem Schritt vorwärts über die Leiste, Lernstart mit Vorgabe heute und sichtbarem Prüfungsziel auf der ersten Seite · durchsuchbare Stapelzweige mit Plusauswahl ohne Teilmarkierung · alternative Zeitangaben mit Durchschnitt oder direkt editierbaren Wochentagszeiten, freie Tage mit 0 Minuten · Vorschau mit Lerntagen, auf Kalenderhöhe begrenzter ausklappbarer Themenfolge, dauerhaftem Prüfungstermin und erreichbarer Planbestätigung · nichtmodale Tagesdetails", "Prüfungen"],
     ["creation", "CreationScreen · Drei Erstellungswege", "Erstellen"],
@@ -820,13 +879,14 @@ function ProductViewsDemo({ kind }: { kind: string }) {
     ["import", "ApkgImportPanel und TextImportPanel · ein Dateifeld für Anki-Pakete, Text und CSV", "Import"],
     ["decks", "DecksScreen · Tabelle als ein Blatt, Karteneditor als Dialog", "Kartenverwaltung"],
     ["deck-content", "DecksScreen · Titel und Karten lernen auf einer Linie, Unterstreichungs-Reiter", "Stapelinhalte"],
+    ["quiz", "DeckQuizPanel · Erstellmenü, Liste, Ablauf, Auswertung und Speichern als Karten", "Quiz"],
     ["settings", "SettingsDialog · alle Bereiche der Einstellungen", "Einstellungen"],
     ["deck-settings", "DeckSettingsScreen · Darstellung und Lernwerte", "Stapeleinstellungen"],
     ["study", "StudyMode · Frage, Antwort und Bewertungen", "Lernsitzung"],
     ["study-variant", "StudyMode · Kartenvariante mit einklappbarer Originalkarte", "Lernsitzung mit Variante"],
     ["study-variant-image", "StudyMode · Kartenvariante mit Bild aus dem Zusatzfeld", "Lernsitzung mit Bildvariante"],
   );
-  return <>{views.filter(([id]) => id === kind).map(([id, title, label]) => <Demo key={id} title={title}><ActionButton variant="secondary" onClick={() => { conflicts.current = [conflict]; setMessage(""); setView(id); }}>{label} öffnen</ActionButton></Demo>)}{view && <div className="catalog-product-preview core-screen-region" onKeyDown={(event) => { if (event.key === "Escape" && !event.defaultPrevented) setView(""); }}><div className="catalog-product-bar"><p className="core-caption">Echte Produktansicht · lokale Demodaten</p><ActionButton variant="secondary" autoFocus onClick={() => setView("")}>Produktansicht schließen</ActionButton></div>
+  return <>{views.filter(([id]) => id === kind).map(([id, title, label]) => <Demo key={id} title={title}><ActionButton variant="secondary" onClick={() => { conflicts.current = [conflict]; setMessage(""); setView(id); }}>{label} öffnen</ActionButton></Demo>)}{view && <div className={`catalog-product-preview core-screen-region${view === "quiz" ? " catalog-product-flow" : ""}`} onKeyDown={(event) => { if (event.key === "Escape" && !event.defaultPrevented) setView(""); }}><div className="catalog-product-bar"><p className="core-caption">Echte Produktansicht · lokale Demodaten</p><ActionButton variant="secondary" autoFocus onClick={() => setView("")}>Produktansicht schließen</ActionButton></div>
     <section className="min-w-0 overflow-x-clip px-2.5 pb-32 pt-8 sm:px-4 lg:px-6"><WorkspaceStoreContext.Provider value={catalogStore}>
     {view === "auth" && <AuthGateScreen message={message} onSignIn={() => setMessage("Demo-Anmeldung geprüft.")} onSignUp={() => setMessage("Demo-Registrierung geprüft.")} onResetPassword={() => setMessage("Demo-Reset angefordert.")} />}
     {view === "conflict" && <SyncConflictPanel onListConflicts={listConflicts} onResolveConflict={resolveConflict} />}
@@ -836,17 +896,17 @@ function ProductViewsDemo({ kind }: { kind: string }) {
     {view === "dashboard" && <DashboardScreen pomodoroTimer={dashboardTimer} onStartPomodoro={(minutes) => setDashboardTimer(createPomodoroTimerFromSeconds(Math.round(minutes * 60)))} onPausePomodoro={() => setDashboardTimer(pausePomodoroTimer)} onResumePomodoro={() => setDashboardTimer(resumePomodoroTimer)} onResetPomodoro={() => setDashboardTimer(null)} onLoadExamPlanningData={loadExamPlanningData} onLoadExamSummaryAvailability={async () => false} onSaveExamTasks={async (dailyTasks) => setDemoPlanning(withExamDailyTasks(getGlobalSchedulerPreferences(examWorkspace.profile).examPlanning, dailyTasks))} onStartExamUnit={async () => { examDemoDecks.flatMap((candidate) => candidate.cards).forEach((card) => completedDemoExamCards.current.add(card.id)); toast("Lernaufgabe in dieser lokalen Demo abgeschlossen."); }} state={examWorkspace} now={selection.now} onNavigate={navigate} onStartDeck={noop} onStartAdditionalCards={() => ({ ok: true })} onCreateDemo={async () => sampleDecks} frequentDeckIds={["catalog-exam-topic-1", "catalog-exam-topic-0", child.id]} onSetPinnedDeckIds={setDemoPins} />}
     {view === "dashboard-empty" && <DashboardScreen state={{ ...examWorkspace, decks: [] }} now={selection.now} onNavigate={navigate} onStartDeck={noop} onStartAdditionalCards={() => ({ ok: true })} onCreateDemo={async () => sampleDecks} frequentDeckIds={[]} onSetPinnedDeckIds={noop} />}
     {view === "exams" && <ExamPlanningScreen state={examWorkspace} now={selection.now} onLoadSummaryAvailability={async () => false} onLoadPlanningData={loadExamPlanningData} onSavePlanning={async (next) => { setDemoPlanning(next); const previous = getGlobalSchedulerPreferences(examWorkspace.profile).examPlanning; if (JSON.stringify([previous.exams, previous.capacity]) !== JSON.stringify([next.exams, next.capacity])) toast("Plan für diese lokale Vorschau übernommen."); }} onSaveTasks={async (dailyTasks) => setDemoPlanning(withExamDailyTasks(getGlobalSchedulerPreferences(examWorkspace.profile).examPlanning, dailyTasks))} onStartUnit={async () => toast("In der Vorschau startet keine Sitzung.")} />}
-    {view === "learn" && <LearnScreen decks={sampleDecks} now={selection.now} onStartDeck={noop} onPracticeDeck={setDemoPracticeDeck} onCreateDeck={() => deck} focusedDeckId={focusedDemoDeckId} initialParentDeckId="" onDeckCreationHandled={noop} onFocusDeck={setFocusedDemoDeckId} onOpenCardCreation={noop} onOpenDecks={(id) => { setFocusedDemoDeckId(id ?? null); setView("decks"); }} onOpenDeckContent={(id) => { setFocusedDemoDeckId(id); setContentTab("children"); setSelectedCardId(null); setView("deck-content"); }} onOpenCardSettings={noop} onOpenDeckSettings={noop} onSetDeckCoreMode={noop} onMoveDeck={() => null} collapsedDeckIds={collapsedDemoDeckIds} onSetDeckExpanded={(id, expanded) => setCollapsedDemoDeckIds((current) => expanded ? current.filter((value) => !(typeof id === "string" ? [id] : id).includes(value)) : [...new Set([...current, ...(typeof id === "string" ? [id] : id)])])} />}
+    {view === "learn" && <LearnScreen decks={sampleDecks} now={selection.now} onStartDeck={(selectedDeck) => { setDemoStudyDeck(selectedDeck); setView("study"); }} onPracticeDeck={setDemoPracticeDeck} onCreateDeck={() => deck} focusedDeckId={focusedDemoDeckId} initialParentDeckId="" onDeckCreationHandled={noop} onFocusDeck={setFocusedDemoDeckId} onOpenCardCreation={noop} onOpenDecks={(id) => { setFocusedDemoDeckId(id ?? null); setView("decks"); }} onOpenDeckContent={(id) => { setFocusedDemoDeckId(id); setContentTab("children"); setSelectedCardId(null); setView("deck-content"); }} onOpenCardSettings={noop} onOpenDeckSettings={noop} onSetDeckCoreMode={noop} onMoveDeck={() => null} collapsedDeckIds={collapsedDemoDeckIds} onSetDeckExpanded={(id, expanded) => setCollapsedDemoDeckIds((current) => expanded ? current.filter((value) => !(typeof id === "string" ? [id] : id).includes(value)) : [...new Set([...current, ...(typeof id === "string" ? [id] : id)])])} />}
     {demoPracticeDeck ? <HitStudyFlow title="Alle Karten frei üben" practiceDeckName={demoPracticeDeck.name} loadCardIds={loadDemoPracticeIds} loadPracticeCards={async (ids) => sampleDecks.flatMap((candidate) => candidate.cards).filter((card) => ids.includes(card.id)).map((card) => ({ card, note: sampleNotesById.get(card.noteId)! }))} mediaStore={null} onClose={() => setDemoPracticeDeck(null)} /> : null}
     {["creation", "manual", "import", "ai-source"].includes(view) && <CreationScreen decks={sampleDecks} importActions={DEMO_IMPORT_ACTIONS} {...DEMO_TEXT_IMPORT} initialMethod={view === "manual" ? "manual" : view === "import" ? "import" : view === "ai-source" ? "ai-source" : ""} onMethodChange={(method) => setView(method || "creation")} onRequestSourceCards={requestSourceCardsDemo} onSaveManualNote={view === "ai-source" ? async () => ({ deck: sampleDecks[0], cardIds: ["catalog-ai-source-card"] }) : undefined} />}
-    {["decks", "deck-content"].includes(view) && <DecksScreen learningContentAccount={{ userId: "catalog-summaries", cloud: null }} onGenerateSummary={generateSummaryDemo} contentDeckId={view === "deck-content" ? focusedDemoDeckId ?? deck.id : null} contentTab={contentTab} onOpenDeckContent={(id, tab) => { setFocusedDemoDeckId(id); setContentTab(tab ?? "children"); setSelectedCardId(null); }} decks={catalogCardDecks} now={selection.now} mediaStore={null} onStartDeck={(selectedDeck) => { setDemoStudyDeck(selectedDeck); setView("study"); }} onSetDeckCoreMode={noop} onRequestCardPage={requestCardPage} onSaveNote={async () => null} onSetCardStudyState={setCatalogCardStudyState} onDuplicateNote={async () => null} onRunCardBatch={async (cardIds) => ({ changedCount: cardIds.length, undo: async () => ({ restoredCount: cardIds.length, skippedCount: 0 }) })} onListHitCardIds={async () => substackDemoDecks.flatMap((item) => item.cards.map((card) => card.id))} onListSurplusDuplicateIds={async ({ deckIds }) => surplusDuplicateCardIds(catalogCardDecksRef.current.filter((candidate) => deckIds.includes(candidate.id)).flatMap((candidate) => candidate.cards).map((card) => catalogEntryFromCard(card, sampleNotesById.get(card.noteId) ?? null)))} onStudyHits={async () => undefined} onLoadPracticeCards={async () => []} onGenerateCardVariants={noop} onPrepareTextReplace={async () => ({ fieldNames: ["Vorderseite", "Rückseite"], preview: (edit) => ({ changedCount: edit.find ? 2 : 0, skippedCount: 0, examples: edit.find ? [{ noteId: "catalog-replace", place: "Vorderseite", before: `Was ist die Hauptstadt von ${edit.find}?`, after: `Was ist die Hauptstadt von ${edit.replace}?` }] : [] }) })} onGenerateVariant={async () => { throw new Error("Keine KI-Anfrage in der Vorschau."); }} onUpdateVariant={async () => undefined} selectedDeckId={view === "deck-content" ? focusedDemoDeckId ?? deck.id : selectedCardId ? deck.id : null} selectedCardId={selectedCardId} cardEditorTab={cardEditorTab} onCardEditorTabChange={setCardEditorTab} cardEditor={catalogCardEditorServices} onSelectDeck={(_id, cardId, tab) => { setSelectedCardId(cardId ?? null); setCardEditorTab(tab ?? "general"); }} onOpenLearn={noop} onOpenCardSettings={noop} onMoveDeck={() => null} onOpenDeckSettings={noop} onDraftStateChange={noop} savedSearches={savedSearches} onSavedSearchesChange={setSavedSearches} />}
+    {["decks", "deck-content", "quiz"].includes(view) && (view !== "quiz" || quizzesSeeded) && <div data-quiz-state={view === "quiz" && summaryMenuOpen ? "menue-zusammenfassung" : undefined}><DecksScreen quiz={view === "quiz" ? quizServices : undefined} learningContentAccount={{ userId: "catalog-summaries", cloud: null }} onGenerateSummary={generateSummaryDemo} contentDeckId={view !== "decks" ? focusedDemoDeckId ?? deck.id : null} contentTab={contentTab} onOpenDeckContent={(id, tab) => { setFocusedDemoDeckId(id); setContentTab(tab ?? "children"); setSelectedCardId(null); }} decks={catalogCardDecks} now={selection.now} mediaStore={null} onStartDeck={(selectedDeck) => { setDemoStudyDeck(selectedDeck); setView("study"); }} onSetDeckCoreMode={noop} onRequestCardPage={requestCardPage} onSaveNote={async () => null} onSetCardStudyState={setCatalogCardStudyState} onDuplicateNote={async () => null} onRunCardBatch={async (cardIds) => ({ changedCount: cardIds.length, undo: async () => ({ restoredCount: cardIds.length, skippedCount: 0 }) })} onListHitCardIds={async () => substackDemoDecks.flatMap((item) => item.cards.map((card) => card.id))} onListSurplusDuplicateIds={async ({ deckIds }) => surplusDuplicateCardIds(catalogCardDecksRef.current.filter((candidate) => deckIds.includes(candidate.id)).flatMap((candidate) => candidate.cards).map((card) => catalogEntryFromCard(card, sampleNotesById.get(card.noteId) ?? null)))} onStudyHits={async () => undefined} onLoadPracticeCards={async () => []} onGenerateCardVariants={noop} onPrepareTextReplace={async () => ({ fieldNames: ["Vorderseite", "Rückseite"], preview: (edit) => ({ changedCount: edit.find ? 2 : 0, skippedCount: 0, examples: edit.find ? [{ noteId: "catalog-replace", place: "Vorderseite", before: `Was ist die Hauptstadt von ${edit.find}?`, after: `Was ist die Hauptstadt von ${edit.replace}?` }] : [] }) })} onGenerateVariant={async () => { throw new Error("Keine KI-Anfrage in der Vorschau."); }} onUpdateVariant={async () => undefined} selectedDeckId={view !== "decks" ? focusedDemoDeckId ?? deck.id : selectedCardId ? deck.id : null} selectedCardId={selectedCardId} cardEditorTab={cardEditorTab} onCardEditorTabChange={setCardEditorTab} cardEditor={catalogCardEditorServices} onSelectDeck={(_id, cardId, tab) => { setSelectedCardId(cardId ?? null); setCardEditorTab(tab ?? "general"); }} onOpenLearn={noop} onOpenCardSettings={noop} onMoveDeck={() => null} onOpenDeckSettings={noop} onDraftStateChange={noop} savedSearches={savedSearches} onSavedSearchesChange={setSavedSearches} /></div>}
     {view === "settings" && <SettingsDialog section={settingsSection} onSelectSection={setSettingsSection} onClose={() => setView("")} footer={settingsFooter}>{settingsSectionGroup(settingsSection) === "general"
       ? <SettingsScreen section={settingsContentSection(settingsSection) as GeneralSettingsSection} focusConflicts={settingsSection === "konflikte"} profile={workspace.profile} onSaveSettings={() => workspace.profile} onDraftStateChange={setSettingsGuard} onSyncNow={async () => undefined} onListConflicts={async () => []} onResolveConflict={async () => undefined} onSignOut={async () => undefined} onNavigate={navigate} />
       : <GlobalCardSettingsScreen section={settingsContentSection(settingsSection) as LearningSettingsSection} decks={sampleDecks} onOpenDeckSettings={(deckId) => { setSettingsDeckId(deckId); setDeckSettingsSection("start"); setView("deck-settings"); }} timeZone="Europe/Berlin" globalSchedulerPreferences={getGlobalSchedulerPreferences(workspace.profile)} flagNames={workspace.profile.uiPreferences.flagNames} learningProfiles={settingsProfiles} onSaveLearningProfiles={setSettingsProfiles} onSaveSettings={() => workspace.profile} onDraftStateChange={setSettingsGuard} onNavigate={navigate} simulationOffsetMinutes={3 * 24 * 60} pomodoroTimer={dashboardTimer} onStartPomodoro={(minutes) => setDashboardTimer(createPomodoroTimerFromSeconds(Math.round(minutes * 60)))} />}</SettingsDialog>}
     {view === "deck-settings" && <DeckSettingsScreen section={deckSettingsSection} onSelectSection={setDeckSettingsSection} deck={settingsDeck} decks={sampleDecks} learningProfiles={settingsProfiles} onSaveSettings={() => null} onApplyLearningProfile={() => settingsDeck} onSaveLearningProfiles={setSettingsProfiles} onDraftStateChange={noop} onRequestContextAction={(action) => action()} onCreateSubdeck={noop} onDeleteDeck={async () => null} onSelectDeck={setSettingsDeckId} onOpenGlobalSettings={() => { setSettingsSection("stapel"); setView("settings"); }} variantGeneration={{ start: () => toast("In der Vorschau startet keine Generierung."), running: false, cardsWithoutVariant: 29 }} onDownloadDeck={async () => toast("In der Vorschau wird nichts heruntergeladen.")} onRemoveDeckDownload={async () => undefined} onClose={() => setView("")} />}
-    {view === "study" && <StudyMode deck={demoStudyDeck} decks={sampleDecks} notes={sampleNotes} deckId={demoStudyDeck.id} mediaStore={null} getNow={() => selection.now} simulationOffsetMinutes={0} pomodoroTimer={null} onStartPomodoro={noop} onExit={() => setView("")} onReturnToLearn={() => setView("learn")} onEditCard={noop} onEditDeck={noop} flagNames={[]} onSetCardStudyState={(_deckId, cardId, patch) => patchCatalogCard(sampleDecks, cardId, patch)} onSetDeckReviewOrder={() => deck} onReview={noop} onUndoReview={() => null} onAskCardHelp={askCatalogCardHelp} />}
-    {view === "study-variant" && <StudyMode deck={variantStudyDeck} decks={[variantStudyDeck]} notes={[variantStudyGraph.note]} deckId={variantStudyDeck.id} mediaStore={null} getNow={() => selection.now} simulationOffsetMinutes={0} pomodoroTimer={null} onStartPomodoro={noop} onExit={() => setView("")} onReturnToLearn={() => setView("")} onEditCard={(_deckId, _cardId, tab) => toast(`Karteneditor öffnet sich im Tab ${tab === "variants" ? "Varianten" : "Inhalt"}.`)} onEditDeck={noop} flagNames={[]} onSetCardStudyState={() => null} onSetDeckReviewOrder={() => variantStudyDeck} onReview={noop} onUndoReview={() => null} onAskCardHelp={askCatalogCardHelp} />}
-    {view === "study-variant-image" && catalogMediaStore && <StudyMode deck={imageVariantDeck} decks={[imageVariantDeck]} notes={[imageVariantGraph.note]} deckId={imageVariantDeck.id} mediaStore={catalogMediaStore} getNow={() => selection.now} simulationOffsetMinutes={0} pomodoroTimer={null} onStartPomodoro={noop} onExit={() => setView("")} onReturnToLearn={() => setView("")} onEditCard={(_deckId, _cardId, tab) => toast(`Karteneditor öffnet sich im Tab ${tab === "variants" ? "Varianten" : "Inhalt"}.`)} onEditDeck={noop} flagNames={[]} onSetCardStudyState={() => null} onSetDeckReviewOrder={() => imageVariantDeck} onReview={noop} onUndoReview={() => null} onAskCardHelp={askCatalogCardHelp} />}
+    {view === "study" && <StudyMode deck={demoStudyDeck} decks={sampleDecks} notes={sampleNotes} deckId={demoStudyDeck.id} mediaStore={null} getNow={() => selection.now} simulationOffsetMinutes={0} pomodoroTimer={studyTimer} onStartPomodoro={(minutes) => setStudyTimer(createPomodoroTimer(minutes))} onPomodoroPauseChange={(paused) => setStudyTimer((current) => paused ? pausePomodoroTimer(current) : resumePomodoroTimer(current))} onExit={() => setView("")} onReturnToLearn={() => setView("learn")} onEditCard={noop} onEditDeck={noop} flagNames={[]} onSetCardStudyState={(_deckId, cardId, patch) => patchCatalogCard(sampleDecks, cardId, patch)} onSetDeckReviewOrder={() => deck} onReview={noop} onUndoReview={() => null} onAskCardHelp={askCatalogCardHelp} renderSidePanel={() => <DeckSummariesPanel key={demoStudyDeck.id} deck={demoStudyDeck} treeDecks={[demoStudyDeck]} userId="catalog-summaries" onDraftStateChange={noop} compact />} />}
+    {view === "study-variant" && <StudyMode deck={variantStudyDeck} decks={[variantStudyDeck]} notes={[variantStudyGraph.note]} deckId={variantStudyDeck.id} mediaStore={null} getNow={() => selection.now} simulationOffsetMinutes={0} pomodoroTimer={null} onStartPomodoro={noop} onPomodoroPauseChange={noop} onExit={() => setView("")} onReturnToLearn={() => setView("")} onEditCard={(_deckId, _cardId, tab) => toast(`Karteneditor öffnet sich im Tab ${tab === "variants" ? "Varianten" : "Inhalt"}.`)} onEditDeck={noop} flagNames={[]} onSetCardStudyState={() => null} onSetDeckReviewOrder={() => variantStudyDeck} onReview={noop} onUndoReview={() => null} onAskCardHelp={askCatalogCardHelp} />}
+    {view === "study-variant-image" && catalogMediaStore && <StudyMode deck={imageVariantDeck} decks={[imageVariantDeck]} notes={[imageVariantGraph.note]} deckId={imageVariantDeck.id} mediaStore={catalogMediaStore} getNow={() => selection.now} simulationOffsetMinutes={0} pomodoroTimer={null} onStartPomodoro={noop} onPomodoroPauseChange={noop} onExit={() => setView("")} onReturnToLearn={() => setView("")} onEditCard={(_deckId, _cardId, tab) => toast(`Karteneditor öffnet sich im Tab ${tab === "variants" ? "Varianten" : "Inhalt"}.`)} onEditDeck={noop} flagNames={[]} onSetCardStudyState={() => null} onSetDeckReviewOrder={() => imageVariantDeck} onReview={noop} onUndoReview={() => null} onAskCardHelp={askCatalogCardHelp} />}
     </WorkspaceStoreContext.Provider></section>
   </div>}</>;
 }
@@ -869,8 +929,58 @@ const catalogCardEditorServices: CardEditorServices = {
 
 const ICON_ROLES: Array<[LucideIcon, string]> = [[Plus, "Hinzufügen"], [Save, "Speichern"], [Pencil, "Bearbeiten"], [Copy, "Kopieren"], [Trash2, "Löschen"], [X, "Schließen"], [Eye, "Vorschau"], [Star, "Markieren"], [Ban, "Aussetzen"], [RefreshCw, "Synchronisieren"], [Sparkles, "KI-Variante"], [Settings, "Einstellungen"]];
 
+const DIRECTION_ROLES: Array<[LucideIcon, string, string]> = [
+  [Play, "Starten", "Beginnt eine Lernsitzung oder den Timer. Immer gefüllt; ohne Text im runden Knopf."],
+  [ChevronRight, "Weiter", "Führt auf eine andere Seite oder zum nächsten Schritt. Steht hinter dem Text."],
+  [ChevronLeft, "Zurück", "Führt eine Ebene oder einen Schritt zurück. Steht vor dem Text."],
+  [ChevronDown, "Aufklappen", "Zeigt mehr an Ort und Stelle. Offen zeigt das Zeichen nach oben."],
+  [ArrowUpRight, "Bereich wechseln", "Springt in einen anderen großen Bereich, etwa von den To-dos in den Planer."],
+];
+
 function IconRolesDemo() {
-  return <Demo title="Aktionen und ihre Icons"><ul className="catalog-icon-roles">{ICON_ROLES.map(([Icon, label]) => <li key={label}><span className="grid size-control place-items-center rounded-control bg-core-surface-muted text-core-action"><Icon size={18} aria-hidden="true" /></span>{label}</li>)}</ul></Demo>;
+  const tile = "grid size-control shrink-0 place-items-center rounded-control bg-core-surface-muted text-core-action";
+  return <>
+    <Demo title="Aktionen und ihre Icons"><ul className="catalog-icon-roles">{ICON_ROLES.map(([Icon, label]) => <li key={label}><span className={tile}><Icon size={18} aria-hidden="true" /></span>{label}</li>)}</ul></Demo>
+    <Demo title="Richtung und Start" wide>
+      <ul className="catalog-icon-roles catalog-direction-roles">{DIRECTION_ROLES.map(([Icon, label, text]) => <li key={label}><span className={tile}><Icon size={18} fill={Icon === Play ? "currentColor" : "none"} aria-hidden="true" /></span><span>{label}<small>{text}</small></span></li>)}</ul>
+      <p className="core-caption text-core-muted">Pfeile mit Schaft sind keine Wegzeichen: → und ← entfallen. ↑ und ↓ bleiben für Reihenfolge und Sortierung, weil sie ein Objekt bewegen.</p>
+    </Demo>
+  </>;
+}
+
+function ChoiceOptionListDemo() {
+  const options = ["Porto", "Lissabon", "Coimbra", "Faro"].map((label, index) => ({ id: String(index), label, correct: index === 1 || index === 3 }));
+  const [answers, setAnswers] = useState<Record<string, boolean>>({ 1: true, 2: true });
+  const [revealed, setRevealed] = useState(false);
+  return <Demo title="ChoiceOptionList · Auswahl und Auflösung für Karte und Quiz">
+    <ChoiceOptionList mode="multiple" options={options} answers={answers} revealed={revealed} onAnswersChange={setAnswers} />
+    <div className="catalog-row mt-4"><ActionButton variant="secondary" onClick={() => setRevealed((current) => !current)}>{revealed ? "Auswahl ändern" : "Auflösen"}</ActionButton></div>
+  </Demo>;
+}
+
+function CreationMenuDemo() {
+  const [open, setOpen] = useState(true);
+  const [advanced, setAdvanced] = useState(false);
+  const [length, setLength] = useState("medium");
+  const [count, setCount] = useState(10);
+  const [examples, setExamples] = useState(true);
+  const [progress, setProgress] = useState<number | null>(null);
+  React.useEffect(() => {
+    if (progress === null) return;
+    const timer = window.setTimeout(() => setProgress(progress < 8 ? progress + 1 : null), 500);
+    return () => window.clearTimeout(timer);
+  }, [progress]);
+  return <Demo title="CreationMenu · Aktionsflächen, aufklappendes Formular, erweiterte Einstellungen und Wartezustand" wide>
+    <CreationMenu>
+      <CreationMenuForm icon={Sparkles} label="Mit KI erstellen" open={open} onOpenChange={setOpen} advancedOpen={advanced} onAdvancedOpenChange={setAdvanced} submitLabel="Erstellen" submitIcon={Sparkles} onSubmit={() => setProgress(0)}
+        wait={progress === null ? null : { message: `Teil ${Math.min(progress + 1, 8)} von 8 wird erstellt …`, progress: { done: progress, total: 8 }, onCancel: () => setProgress(null) }}
+        advanced={<CoreCheckbox className="core-creation-menu-wide" label="Beispiele aufnehmen" checked={examples} onCheckedChange={setExamples} />}>
+        <div className="grid min-w-0 gap-2"><span className="core-field-label">Länge</span><CoreSegmentedControl ariaLabel="Länge" options={[{ value: "short", label: "Kurz" }, { value: "medium", label: "Mittel" }, { value: "long", label: "Lang" }]} value={length} onValueChange={setLength} /></div>
+        <CoreSlider label="Anzahl" min={5} max={20} value={count} onValueChange={setCount} />
+      </CreationMenuForm>
+      <CreationMenuAction icon={PenLine} label="Selbst schreiben" onSelect={() => undefined} />
+    </CreationMenu>
+  </Demo>;
 }
 
 function OcclusionEditorDemo() {
@@ -894,22 +1004,23 @@ export const DEMO_GROUPS = [
   { id: "badges", section: "primitive", title: "Etiketten", description: "Gemeinsames Tag in fünf Tönen und mit Farbpunkt.", components: ["CoreTag"], render: BadgesDemo },
   { id: "tooltips", section: "primitive", title: "Tooltips", description: "Hinweise mit Text, Wert oder Stapelidentität und der Info-Hinweis hinter einem Zeilentitel.", components: ["CoreTooltip", "CoreTooltipProvider", "InfoHint"], render: () => <ActionsDemo section="tooltips" /> },
   { id: "feedback", section: "primitive", title: "Statusmeldungen und Toasts", description: "Info, Erfolg, Warnung, Fehler und schließbare Toasts.", components: ["StatusMessage", "SuccessToast", "SuccessToastProvider"], render: () => <FeedbackDemo section="feedback" /> },
-  { id: "progress", section: "primitive", title: "Fortschritt", description: "Tagesfortschritt, Zeitfortschritt sowie bestimmte und unbestimmte Prozessanzeigen.", components: ["DailyReviewProgress", "PomodoroProgress", "VariantGenerationBar"], render: () => <><FeedbackDemo section="progress" /><LearningDemo section="progress" /><ProductViewsDemo kind="import" /></> },
+  { id: "progress", section: "primitive", title: "Fortschritt", description: "Tagesfortschritt, Lerntimer sowie bestimmte und unbestimmte Prozessanzeigen.", components: ["DailyReviewProgress", "PomodoroPill", "StudyTimerTile", "VariantGenerationBar"], render: () => <><FeedbackDemo section="progress" /><LearningDemo section="progress" /><ProductViewsDemo kind="import" /></> },
   { id: "dialogs", section: "primitive", title: "Dialoge", description: "Bestätigung, Dialograhmen, Speicherleiste, Kartenvorschau und Lerneinstellungen.", components: ["ActionDialog", "DialogFrame", "SettingsSaveBar", "CardPreviewDialog", "StudySettingsOverlay"], render: () => <><FeedbackDemo section="dialogs" /><StructureDemo section="dialogs" /><ContentDemo section="dialogs" /><LearningDemo section="dialogs" /></> },
   { id: "tags-flags", section: "primitive", title: "Tags und Flaggen", description: "Tag-Eingabe, Flaggenwähler, Flaggenmarke und Flaggen-Icon.", components: ["TagInput", "FlagPicker", "FlagDot", "FlagIcon"], render: TagsAndFlagsDemo },
   { id: "colors", section: "primitive", title: "Farbwahl", description: "Farbfeld oder Werkzeug, Farbkreis und Schnellwahl.", components: ["ColorPicker", "ColorSwatchButton", "ColorSwatchRow"], render: () => <ContentDemo section="colors" /> },
+  { id: "erstellmenue", section: "shared", title: "Erstellmenü", description: "Aktionsflächen mit aufklappendem Formular, erweiterten Einstellungen und Wartezustand; Zusammenfassung und Quiz teilen es.", components: ["CreationMenu", "CreationMenuAction", "CreationMenuForm"], wide: true, render: CreationMenuDemo },
   { id: "flaechen", section: "shared", title: "Flächen und leere Zustände", description: "Inhaltsflächen und leere Zustände.", components: ["SoftPanel", "EmptyState"], render: () => <FoundationsDemo section="surfaces" /> },
   { id: "struktur", section: "shared", title: "Abschnittskopf, Schritte und Reiter", description: "Kopf jeder Fläche, nummerierte Schritte und Unterstreichungs-Reiter, im Stapelkopf und im Karteneditor.", components: ["SectionHeader", "Steps", "CoreTabs", "CoreTabPanel"], wide: true, render: () => <StructureDemo section="struktur" /> },
   { id: "headings", section: "shared", title: "Seitenköpfe", description: "Seitentitel sowie Köpfe von Lernen und Kartenverwaltung.", components: ["PageHeader", "LearningAreaHeader"], render: () => <><FoundationsDemo section="headings" /><NavigationDemo section="headings" /></> },
   { id: "navigation", section: "shared", title: "Navigation und Einstellungsdialog", description: "Responsive Hauptnavigation, CoRe-Wortmarke und der gemeinsame Rahmen der Einstellungsdialoge.", components: ["AppNavigation", "CoreWordmark", "SettingsDialog"], render: () => <><NavigationDemo section="navigation" /><ProductViewsDemo kind="settings" /></> },
   { id: "stapel", section: "shared", title: "Stapelbaum, Menü, Identität und Kartentabelle", description: "Stapelbaum mit seinen Zeilen, Unterstapel, Optionsmenü, Icon und Farbe eines Stapels sowie die Kartentabelle der Kartenverwaltung.", components: ["DeckOptionsMenu", "DeckTree", "DeckAppearanceIcon"], wide: true, render: () => <><DecksDemo section="stapel" /><FoundationsDemo section="symbols" /><ProductViewsDemo kind="decks" /></> },
   { id: "charts", section: "fachmuster", title: "Kennzahlen und Heatmap", description: "Einzelne Kennzahl, Kennzahlzeile und Lern-Heatmap.", components: ["StatTile", "MetricRow", "StudyHeatmap"], wide: true, render: () => <><FoundationsDemo section="charts" /><DecksDemo section="charts" /></> },
-  { id: "inhalt", section: "karten", title: "Kartendarstellung", description: "Kartenfläche der Verwaltungsvorschau mit Vorder- und Rückseite.", components: ["CardPresentationSurface", "NoteCardContent"], wide: true, render: () => <ContentDemo section="inhalt" /> },
+  { id: "inhalt", section: "karten", title: "Kartendarstellung", description: "Kartenfläche der Verwaltungsvorschau mit Vorder- und Rückseite.", components: ["CardPresentationSurface", "NoteCardContent", "ChoiceOptionList"], wide: true, render: () => <><ContentDemo section="inhalt" /><ChoiceOptionListDemo /></> },
   { id: "editor", section: "fachmuster", title: "Texteditor und Inhaltsbausteine", description: "Arbeitsleiste, Rich-Text-Toolbar und Inhaltsbausteine.", components: ["EditorToolbar", "EditorToolbarContext", "RichTextEditor", "NoteBlockControls"], wide: true, render: () => <><EditorToolbarDemo /><ContentDemo section="editor" /><NoteBlocksDemo /></> },
   { id: "bildverdeckung-editor", section: "fachmuster", title: "Bildverdeckungs-Editor", description: "Masken zeichnen, gruppieren und den Verdeckungsmodus wählen.", components: ["OcclusionEditor"], wide: true, render: OcclusionEditorDemo },
   { id: "media", section: "fachmuster", title: "PDF-Vorschau", description: "PDF-Vorschau mit Textauswahl.", components: ["PdfDocumentViewer"], wide: true, render: () => <ContentDemo section="media" /> },
   { id: "icon-rollen", section: "icons", title: "Häufige Icon-Rollen", description: "Wiederkehrende Aktionen und ihre Lucide-Icons.", components: [], render: IconRolesDemo },
-  { id: "brain-mascots", section: "icons", title: "Gehirn-Maskottchen und Motivation", description: "SVG-Maskottchen mit interaktiven Augen und täglicher Lernimpuls.", components: ["BrainMascot", "DailyMotivationWidget"], wide: true, render: () => <><Demo title="BrainMascot"><BrainMascot id="pastell-lernen" interactive /></Demo><Demo title="DailyMotivationWidget"><DailyMotivationWidget now="2026-10-29T12:00:00Z" timeZone="Europe/Berlin" dayStartHour={3} /></Demo></> },
+  { id: "brain-mascots", section: "icons", title: "Gehirn-Maskottchen und Motivation", description: "SVG-Maskottchen mit interaktiven Augen und täglicher Lernimpuls.", components: ["BrainMascot", "DailyMotivationWidget"], wide: true, render: () => <><Demo title="BrainMascot"><BrainMascot id="pastell-lernen" interactive /></Demo><Demo title="DailyMotivationWidget · „Dein Impuls“ als Plakat in Kachelhöhe"><div style={{ height: "29rem", maxWidth: "26rem" }}><DailyMotivationWidget now="2026-10-29T12:00:00Z" timeZone="Europe/Berlin" dayStartHour={3} /></div></Demo></> },
 ] satisfies Array<{ id: string; section: CatalogSectionId; title: string; description: string; components: string[]; wide?: boolean; render: () => React.ReactNode }>;
 
 function ShowMoreDemo() {

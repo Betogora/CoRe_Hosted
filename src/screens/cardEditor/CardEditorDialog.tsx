@@ -125,7 +125,8 @@ export function CardEditorDialog(props: CardEditorDialogProps) {
     const command = event.ctrlKey || event.metaKey;
     if (command && event.key === "Enter") {
       event.preventDefault();
-      void draftGuardRef.current?.save();
+      const guard = draftGuardRef.current;
+      if (guard && "save" in guard) void guard.save();
     } else if (command && !event.altKey && !event.shiftKey && /^[1-7]$/.test(event.key)) {
       event.preventDefault();
       const flag = Number(event.key);

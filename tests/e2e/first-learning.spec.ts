@@ -107,6 +107,46 @@ test("Lerntasten wirken nach einem Klick in die Karte und nach geschlossenen Ler
   await expect.poll(async () => (await reviews()).sort()).toEqual(["easy", "good"]);
 });
 
+test("Die Zusammenfassung neben der Karte behält ihre Tasten und den Entwurf und fragt beim Verlassen nach", async ({ page }) => {
+  await page.getByRole("button", { name: /Erste Karte erstellen/ }).click();
+  await page.getByRole("textbox", { name: "Vorderseite" }).fill("Hauptstadt von Polen?");
+  await page.getByRole("textbox", { name: "Rückseite" }).fill("Warschau");
+  await page.getByRole("button", { name: "Karte speichern" }).click();
+  await page.getByRole("button", { name: "Fertig" }).click();
+  await page.getByRole("button", { name: "Jetzt lernen" }).click();
+
+  const toggle = page.getByRole("button", { name: "Zusammenfassung", exact: true });
+  await toggle.click();
+  await expect(toggle).toHaveAttribute("aria-pressed", "true");
+  const panel = page.getByTestId("study-side-panel");
+  const editor = panel.getByRole("textbox", { name: "Zusammenfassung bearbeiten", exact: true });
+  await expect(editor).toBeVisible();
+  await expect(panel.getByRole("button", { name: "Zusammenfassung mit KI erstellen" })).toHaveCount(0);
+  await editor.click();
+  await page.keyboard.type("Polen 1 2");
+  await page.keyboard.press("Escape");
+  await expect(page.getByRole("button", { name: "Antwort anzeigen" })).toBeVisible();
+  await expect(editor).toHaveText("Polen 1 2");
+
+  await toggle.click();
+  await expect(panel).toBeHidden();
+  await toggle.click();
+  await expect(editor).toHaveText("Polen 1 2");
+
+  await page.getByRole("button", { name: "Lernmodus verlassen" }).click();
+  const guard = page.getByRole("dialog", { name: "Änderungen übernehmen?", exact: true });
+  await guard.getByRole("button", { name: "Weiter bearbeiten", exact: true }).click();
+  await expect(page.getByRole("button", { name: "Antwort anzeigen" })).toBeVisible();
+  await page.getByRole("button", { name: "Lernmodus verlassen" }).click();
+  await guard.getByRole("button", { name: "Speichern", exact: true }).click();
+  await expect(page.getByRole("button", { name: "Antwort anzeigen" })).toHaveCount(0);
+
+  await page.getByRole("button", { name: /^.+ lernen$/ }).first().click();
+  await toggle.click();
+  await panel.getByRole("button", { name: /^Zusammenfassung „.+“ öffnen$/ }).click();
+  await expect(editor).toHaveText("Polen 1 2");
+});
+
 test("leerer Account erstellt die erste manuelle Karte und erreicht den Review", async ({ page }) => {
   await page.getByRole("button", { name: /Erste Karte erstellen/ }).click();
   await expect(page).toHaveURL(/\/neue-karten\?method=manual$/);
@@ -202,7 +242,8 @@ test("ungenutzte neue Karten verlinken gezielt zum fokussierten Tageslimit", asy
   await page.getByTestId("settings-save-bar").getByRole("button", { name: "Speichern" }).click();
 
   await page.goto(`/lernen?deck=${encodeURIComponent(deckId)}`);
-  await page.getByTestId(`learn-deck-row-${deckId}`).getByRole("button", { name: /lernen/ }).click();
+  await page.getByTestId(`deck-options-${deckId}`).click();
+  await page.getByTestId(`deck-options-menu-${deckId}`).getByRole("button", { name: "Lernen", exact: true }).click();
   const emptyDialog = page.getByRole("dialog", { name: "Tageslimit erreicht" });
   await expect(emptyDialog).toBeVisible();
   await expect(emptyDialog).toContainText("1 neue Karte bleibt wegen deiner Tageslimits für später vorgemerkt.");

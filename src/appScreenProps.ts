@@ -23,8 +23,7 @@ export type NavigateToView = (
   options?: { replace?: boolean },
 ) => AppRoute;
 export type CreateDeckInput = { name?: string; parentDeckId?: string | null; description?: string; deckSettings?: Partial<Deck["deckSettings"]> };
-
-export interface CardDraftGuard { focus: () => void; save: () => Promise<boolean> }
+export type CardDraftGuard = { focus: () => void } & ({ save: () => Promise<boolean> } | { leave: { title: string; description: string } });
 
 /** `invalid` means the draft was rejected with feedback at the field; only `failed` is a failed save. */
 export type SettingsSaveOutcome = "saved" | "invalid" | "failed";
@@ -98,6 +97,7 @@ export interface DecksScreenProps extends DeckTreeScreenProps {
   decks: Deck[];
   learningContentAccount?: import("./learningSummaries.ts").LearningContentAccount | null;
   onGenerateSummary?: (input: import("./aiLearningSummary.ts").SummaryGenerationInput, signal: AbortSignal) => Promise<import("./aiLearningSummary.ts").SummaryGenerationResult>;
+  quiz?: import("./screens/DeckQuizPanel.tsx").QuizPanelServices;
   contentDeckId?: string | null;
   contentTab?: DeckContentTab;
   cardQuery?: string;

@@ -251,8 +251,8 @@ export function CardHitTable({ items, rowOf, virtual, loading, searching, select
               leading={onStartSelecting ? (
                 <label className="flex shrink-0 cursor-pointer items-center gap-1.5 core-caption font-medium text-core-muted hover:text-core-text">
                   <CoreCheckbox className="shrink-0" data-testid="card-selection-start" aria-label="Karten auswählen" checked={false} onCheckedChange={onStartSelecting} />
-                  {/* Below 384 px the word would cut „Sortierfeld“; the checkbox keeps its name. */}
-                  <span aria-hidden="true" className="max-[383px]:hidden">Auswählen</span>
+                  {/* Below 400 px the word would cut „Sortierfeld“; the checkbox keeps its name. */}
+                  <span aria-hidden="true" className="max-[399px]:hidden">Auswählen</span>
                 </label>
               ) : null}
             />

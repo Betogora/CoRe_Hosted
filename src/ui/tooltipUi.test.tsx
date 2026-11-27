@@ -41,6 +41,8 @@ test("CoreTooltip projects an optional statistics-style swatch and value", () =>
   assert.match(markup, /data-core-tooltip="Neu"/);
   assert.match(markup, /data-core-tooltip-swatch="var\(--core-learning-status-new\)"/);
   assert.match(markup, /data-core-tooltip-value="5 Karten"/);
+  assert.doesNotMatch(markup, /data-core-tooltip-side/);
+  assert.match(renderToStaticMarkup(CoreTooltip({ label: "Neu", side: "bottom", children: <span /> })), /data-core-tooltip-side="bottom"/);
 });
 
 test("CoreTooltip projects optional deck appearance without adding a wrapper", () => {

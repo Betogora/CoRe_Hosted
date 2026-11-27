@@ -1,6 +1,6 @@
 import React from "react";
 import { createPortal } from "react-dom";
-import { ArrowLeft, ChevronLeft, ChevronRight, type LucideIcon } from "lucide-react";
+import { ChevronLeft, ChevronRight, type LucideIcon } from "lucide-react";
 import { CloseButton, IconButton } from "../ui/actionUi.tsx";
 import { useModalDialog } from "../ui/useModalDialog.ts";
 
@@ -67,7 +67,7 @@ export function SettingsDialogFrame<S extends string>({ title, closeLabel, navig
                 className={`flex h-button min-w-button shrink-0 items-center justify-center gap-1.5 rounded-control text-core-text transition-colors hover:bg-core-hover md:-ml-2 md:pl-1.5 md:pr-2 md:text-core-secondary md:hover:text-core-text md:[&>svg]:text-core-muted md:hover:[&>svg]:text-core-action ${showAreaList || !onShowAreaList ? "" : "max-md:-ml-2"}`}
               >
                 <back.icon className="shrink-0 md:hidden" size={18} aria-hidden="true" />
-                <ArrowLeft className="hidden shrink-0 md:block" size={20} aria-hidden="true" />
+                <ChevronLeft className="hidden shrink-0 md:block" size={20} aria-hidden="true" />
                 <span className="hidden core-heading-3 md:inline">{back.label}</span>
               </button>
               <ChevronRight className="-ml-3 shrink-0 text-core-muted md:-ml-1 md:mr-1" size={16} aria-hidden="true" />

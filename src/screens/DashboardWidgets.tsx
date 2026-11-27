@@ -1,9 +1,9 @@
 import React from "react";
 import { createPortal } from "react-dom";
-import { ArrowDown, ArrowUp, ArrowUpRight, Check, ChevronDown, ChevronUp, GripVertical, LayoutGrid, Pause, Pencil, Play, Plus, RotateCcw, Trash2, X } from "lucide-react";
+import { ArrowDown, ArrowUp, ArrowUpRight, Check, ChevronDown, ChevronUp, CornerDownLeft, GripVertical, LayoutGrid, Pencil, Plus, RotateCcw, Trash2, X } from "lucide-react";
 import { DASHBOARD_WIDGETS, moveDashboardWidget, readDashboardPreferences, writeDashboardPreferences, type DashboardPreferences, type DashboardWidgetId } from "../dashboardWidgets.ts";
-import { getPomodoroTimerSnapshot, type PomodoroTimer } from "../pomodoroTimer.ts";
-import { ActionButton, Disclosure, IconButton } from "../ui/actionUi.tsx";
+import type { PomodoroTimer } from "../pomodoroTimer.ts";
+import { ActionButton, IconButton } from "../ui/actionUi.tsx";
 import { SoftPanel } from "../ui/coreUi.tsx";
 import { SectionHeader } from "../ui/SectionHeader.tsx";
 import { CoreCheckbox } from "../ui/formControls.tsx";
@@ -12,16 +12,17 @@ import { StatusMessage } from "../ui/feedbackUi.tsx";
 import { CoreTooltip } from "../ui/tooltipUi.tsx";
 import { ColorPicker } from "../ui/ColorPicker.tsx";
 import { useHeatmapHistoryColor } from "../ui/StudyHeatmap.tsx";
+import { useStudyTimerColor } from "../ui/PomodoroPill.tsx";
+import { StudyTimerTile } from "../ui/pomodoroTimerUi.tsx";
 import { useDashboardWidgetDrag } from "./useDashboardWidgetDrag.ts";
 import { useDashboardWidgetLayout } from "./useDashboardWidgetLayout.ts";
 import { DashboardTaskText } from "./DashboardTaskText.tsx";
-import type { ExamDashboardPreview } from "./ExamDashboardWidget.tsx";
 
 export function DashboardWidgets({ userId, header, children, planner, onOpenPlanner, timer, onStartTimer, onPauseTimer, onResumeTimer, onResetTimer }: {
   userId: string;
   header: (action: React.ReactNode) => React.ReactNode;
   children: Partial<Record<DashboardWidgetId, React.ReactNode>>;
-  planner: ((preview: ExamDashboardPreview) => React.ReactNode) | null;
+  planner: React.ReactNode;
   onOpenPlanner: () => void;
   timer: PomodoroTimer | null;
   onStartTimer: (minutes: number) => void;
@@ -32,6 +33,7 @@ export function DashboardWidgets({ userId, header, children, planner, onOpenPlan
   const [preferences, setPreferences] = React.useState(() => readDashboardPreferences(userId));
   const [editing, setEditing] = React.useState(false);
   const [heatmapColor, setHeatmapColor] = useHeatmapHistoryColor();
+  const [timerColor, setTimerColor] = useStudyTimerColor();
   const [storageError, setStorageError] = React.useState(false);
   const [announcement, setAnnouncement] = React.useState("");
   const [libraryExpanded, setLibraryExpanded] = React.useState(false);
@@ -91,7 +93,7 @@ export function DashboardWidgets({ userId, header, children, planner, onOpenPlan
   const libraryOverflows = DASHBOARD_WIDGETS.length > libraryColumns;
 
   const libraryToggle = (placement: "header" | "below") => libraryOverflows || libraryExpanded ? <button type="button" className="dashboard-widget-library-more" data-placement={placement} aria-expanded={libraryExpanded} aria-controls={libraryId} onClick={() => setLibraryExpanded(!libraryExpanded)}>{libraryExpanded ? <ChevronUp size={16} aria-hidden="true" /> : <ChevronDown size={16} aria-hidden="true" />}<span>{libraryExpanded ? "Weniger Widgets" : "Weitere Widgets"}</span></button> : null;
-  const contents = { ...children, timer: <DashboardTimer timer={timer} onStart={onStartTimer} onPause={onPauseTimer} onResume={onResumeTimer} onReset={onResetTimer} />, todos: <DashboardTodos todos={preferences.todos} onChange={(todos) => update({ ...preferences, todos })} planner={planner} onOpenPlanner={onOpenPlanner} /> };
+  const contents = { ...children, timer: <StudyTimerTile timer={timer} onStart={onStartTimer} onPause={onPauseTimer} onResume={onResumeTimer} onReset={onResetTimer} />, todos: <DashboardTodos todos={preferences.todos} onChange={(todos) => update({ ...preferences, todos })} planner={planner} onOpenPlanner={onOpenPlanner} /> };
   return <div className="grid min-w-0 gap-4 dashboard-modules" onPointerMove={drag.move} onPointerUp={drag.finish} onPointerCancel={drag.cancel} onLostPointerCapture={drag.cancel} onKeyDownCapture={drag.keyDown}>
     {header(editing
       ? <ActionButton ref={toggle} variant="primary" icon={Check} aria-expanded aria-controls="dashboard-customize" onClick={toggleEditing}>Fertig</ActionButton>
@@ -121,7 +123,7 @@ export function DashboardWidgets({ userId, header, children, planner, onOpenPlan
               const adjacent = preferences.widgets[index + (event.key === "ArrowUp" ? -1 : 1)];
               if ((event.key === "ArrowUp" || event.key === "ArrowDown") && adjacent) { event.preventDefault(); move(widget.id, adjacent.id); }
             }} />
-            <div className="dashboard-widget-tool-actions">{widget.id === "heatmap" ? <ColorPicker ariaLabel="Heatmap-Farbe ändern" value={heatmapColor} onValueCommit={setHeatmapColor} /> : null}<IconButton variant="ghost" icon={ArrowUp} label={`${definition.title} nach vorne`} disabled={index === 0} onClick={() => move(widget.id, preferences.widgets[index - 1].id)} />
+            <div className="dashboard-widget-tool-actions">{widget.id === "heatmap" ? <ColorPicker ariaLabel="Heatmap-Farbe ändern" value={heatmapColor} onValueCommit={setHeatmapColor} /> : widget.id === "timer" ? <ColorPicker ariaLabel="Lerntimer-Farbe ändern" value={timerColor} onValueCommit={setTimerColor} /> : null}<IconButton variant="ghost" icon={ArrowUp} label={`${definition.title} nach vorne`} disabled={index === 0} onClick={() => move(widget.id, preferences.widgets[index - 1].id)} />
             <IconButton variant="ghost" icon={ArrowDown} label={`${definition.title} nach hinten`} disabled={index === preferences.widgets.length - 1} onClick={() => move(widget.id, preferences.widgets[index + 1].id)} />
             <IconButton variant="ghost" icon={X} label={`${definition.title} entfernen`} onClick={() => remove(widget.id)} /></div>
           </div> : null}
@@ -134,30 +136,39 @@ export function DashboardWidgets({ userId, header, children, planner, onOpenPlan
   </div>;
 }
 
-function DashboardTodos({ todos, onChange, planner, onOpenPlanner }: { todos: DashboardPreferences["todos"]; onChange: (todos: DashboardPreferences["todos"]) => void; planner: ((preview: ExamDashboardPreview) => React.ReactNode) | null; onOpenPlanner: () => void }) {
+function DashboardTodos({ todos, onChange, planner, onOpenPlanner }: { todos: DashboardPreferences["todos"]; onChange: (todos: DashboardPreferences["todos"]) => void; planner: React.ReactNode; onOpenPlanner: () => void }) {
   const [text, setText] = React.useState("");
   const [adding, setAdding] = React.useState(false);
-  const [plannerCount, setPlannerCount] = React.useState(0);
   const listId = React.useId();
   const addButton = React.useRef<HTMLButtonElement>(null);
-  const open = todos.filter((todo) => !todo.done), done = todos.filter((todo) => todo.done);
-  const count = open.length + (planner ? plannerCount : 0);
+  const refocusAdd = React.useRef(false);
+  // The form replaces the add button; focus can only return once the button is rendered again.
+  React.useEffect(() => {
+    if (!adding && refocusAdd.current) addButton.current?.focus();
+    refocusAdd.current = false;
+  }, [adding]);
+  function close(refocus = false) {
+    // A blur while the form unmounts must not cancel a requested refocus.
+    if (refocus) refocusAdd.current = true;
+    setText("");
+    setAdding(false);
+  }
   function task(todo: DashboardPreferences["todos"][number]) {
     const id = `${listId}-${todo.id}`;
-    return <li key={todo.id} className="flex min-h-control min-w-0 items-center gap-2" data-own-todo={todo.id}><DashboardTaskText checkbox={<CoreCheckbox id={id} checked={todo.done} onCheckedChange={() => onChange(todos.map((entry) => entry.id === todo.id ? { ...entry, done: !entry.done } : entry))}/>}><span className={`core-body ${todo.done ? "text-core-muted line-through" : "text-core-text"}`}>{todo.text}</span></DashboardTaskText><IconButton icon={Trash2} variant="destructive-quiet" label={`Aufgabe löschen: ${todo.text}`} onClick={() => onChange(todos.filter((entry) => entry.id !== todo.id))} /></li>;
+    return <li key={todo.id} className="dashboard-todo" data-own-todo={todo.id} data-done={todo.done || undefined}><DashboardTaskText checkbox={<CoreCheckbox id={id} checked={todo.done} onCheckedChange={() => onChange(todos.map((entry) => entry.id === todo.id ? { ...entry, done: !entry.done } : entry))}/>}><span className="dashboard-todo-text">{todo.text}</span></DashboardTaskText><IconButton icon={Trash2} variant="destructive-quiet" className="dashboard-todo-delete" label={`Aufgabe löschen: ${todo.text}`} onClick={() => onChange(todos.filter((entry) => entry.id !== todo.id))} /></li>;
   }
-  return <SoftPanel className="dashboard-todos min-w-0 p-5">
-    <SectionHeader level={2} title="To-dos" count={count ? `${count} offen` : undefined} action={<span className="flex items-center"><IconButton ref={addButton} icon={Plus} variant="ghost" label="Eigene Aufgabe hinzufügen" aria-expanded={adding} onClick={() => setAdding(!adding)} /><IconButton icon={ArrowUpRight} variant="ghost" label="Planer öffnen" onClick={onOpenPlanner} /></span>} />
+  return <section className="dashboard-poster dashboard-todos" data-tone="cream">
+    <SectionHeader level={2} title="To-dos" action={<IconButton icon={ArrowUpRight} variant="ghost" label="Planer öffnen" onClick={onOpenPlanner} />} />
     <div className="dashboard-todos-list">
-    {adding ? <form className="mt-2 flex gap-2" onSubmit={(event) => { event.preventDefault(); if (!text.trim() || todos.length >= 500) return; onChange([...todos, { id: crypto.randomUUID(), text: text.trim(), done: false }]); setText(""); setAdding(false); addButton.current?.focus(); }}>
-      <input autoFocus className="core-field min-w-0 flex-1" aria-label="Eigene Aufgabe" placeholder="Was hast du dir vorgenommen?" maxLength={500} value={text} onChange={(event) => setText(event.target.value)} />
-      <IconButton icon={Plus} label="Aufgabe hinzufügen" type="submit" disabled={!text.trim() || todos.length >= 500} />
-    </form> : null}
-    {open.length ? <ul className="mt-3 grid gap-1">{open.map(task)}</ul> : null}
-    {done.length ? <Disclosure className="mt-3" summary={`Erledigt (${done.length})`}><ul className="mt-2 grid gap-1">{done.map(task)}</ul></Disclosure> : null}
-    {planner?.({ onOpenTaskCountChange: setPlannerCount })}
+      {todos.length ? <ul>{[...todos.filter((todo) => !todo.done), ...todos.filter((todo) => todo.done)].map(task)}</ul> : null}
+      {planner}
     </div>
-  </SoftPanel>;
+    {adding ? <form className="dashboard-poster-action dashboard-todos-add" onSubmit={(event) => { event.preventDefault(); if (!text.trim() || todos.length >= 500) return; onChange([...todos, { id: crypto.randomUUID(), text: text.trim(), done: false }]); close(true); }} onBlur={(event) => { if (!text.trim() && !event.currentTarget.contains(event.relatedTarget)) close(); }}>
+      <Plus size={20} aria-hidden="true" />
+      <input autoFocus aria-label="Eigene Aufgabe" placeholder="Was hast du dir vorgenommen?" maxLength={500} value={text} onChange={(event) => setText(event.target.value)} onKeyDown={(event) => { if (event.key === "Escape") { event.preventDefault(); close(true); } }} />
+      <button type="submit" aria-label="Aufgabe hinzufügen" disabled={!text.trim() || todos.length >= 500}><CornerDownLeft size={18} aria-hidden="true" /></button>
+    </form> : <button ref={addButton} type="button" className="dashboard-poster-action dashboard-todos-add" onClick={() => setAdding(true)}><Plus size={20} aria-hidden="true" />Neue Aufgabe</button>}
+  </section>;
 }
 
 function WidgetMiniature({ id }: { id: DashboardWidgetId }) {
@@ -165,69 +176,4 @@ function WidgetMiniature({ id }: { id: DashboardWidgetId }) {
   return <div className={`dashboard-mini-content dashboard-mini-${id}`} aria-hidden="true">
     {id === "timer" ? <><span className="text-3xl tabular-nums">25:00</span><span className="dashboard-mini-line" /></> : id === "heatmap" ? <div className="dashboard-mini-cells">{Array.from({ length: 35 }, (_, i) => <i key={i} style={{ opacity: .2 + (i % 5) * .18 }} />)}</div> : id === "learning" ? <><div className="dashboard-mini-bar"><i /><i /><i /><i /></div><div className="flex justify-between"><Check size={14} /><span>Neu</span><span>Offen</span></div></> : <>{[0, 1, 2].map((i) => <div className="flex items-center gap-2" key={i}>{id === "todos" ? <span className="size-3 rounded border border-core-border" /> : <LayoutGrid size={14} />}<span className="dashboard-mini-line" /></div>)}</>}
   </div>;
-}
-
-function DashboardTimer({ timer, onStart, onPause, onResume, onReset }: { timer: PomodoroTimer | null; onStart: (minutes: number) => void; onPause: () => void; onResume: () => void; onReset: () => void }) {
-  const [duration, setDuration] = React.useState({ minutes: "25", seconds: "00" });
-  const [edited, setEdited] = React.useState(false);
-  const [clock, setClock] = React.useState(Date.now);
-  React.useEffect(() => {
-    setClock(Date.now()); setEdited(false);
-    if (timer) {
-      const initialSeconds = Math.round(timer.durationMinutes * 60);
-      setDuration({ minutes: String(Math.floor(initialSeconds / 60)).padStart(2, "0"), seconds: String(initialSeconds % 60).padStart(2, "0") });
-    }
-    if (!timer || timer.pausedAt !== undefined) return;
-    const interval = window.setInterval(() => setClock(Date.now()), 250);
-    return () => window.clearInterval(interval);
-  }, [timer]);
-  const snapshot = getPomodoroTimerSnapshot(timer, clock);
-  const remaining = Math.ceil(snapshot.remainingMilliseconds / 1000);
-  const paused = timer?.pausedAt !== undefined;
-  const digits = timer && remaining > 0 && !edited ? { minutes: String(Math.floor(remaining / 60)).padStart(2, "0"), seconds: String(remaining % 60).padStart(2, "0") } : duration;
-  const total = Number(digits.minutes) * 60 + Number(digits.seconds);
-  function change(part: "minutes" | "seconds", value: string) {
-    if (!/^\d{0,3}$/.test(value)) return;
-    setDuration({ ...digits, [part]: value === "" ? "" : String(Math.min(part === "minutes" ? 999 : 59, Number(value))).padStart(2, "0") });
-    setEdited(true);
-  }
-  const dial = React.useRef<HTMLDivElement>(null);
-  const scroll = React.useRef({ part: "", delta: 0, at: 0 });
-  const scrollDigit = React.useEffectEvent((part: "minutes" | "seconds", steps: number) => change(part, String(Math.max(0, Math.min(part === "minutes" ? 999 : 59, Number(digits[part]) - steps)))));
-  React.useEffect(() => {
-    const element = dial.current;
-    if (!element || snapshot.running) return;
-    function wheel(event: WheelEvent) {
-      const input = event.target;
-      if (!(input instanceof HTMLInputElement) || event.ctrlKey || event.metaKey || Math.abs(event.deltaX) > Math.abs(event.deltaY) || !event.deltaY) return;
-      event.preventDefault();
-      const part = input.dataset.part as "minutes" | "seconds";
-      const delta = event.deltaY * (event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? 100 : 1);
-      const previous = scroll.current;
-      if (previous.part !== part || event.timeStamp - previous.at > 200 || Math.sign(previous.delta) !== Math.sign(delta)) previous.delta = 0;
-      previous.part = part; previous.at = event.timeStamp;
-      previous.delta += delta;
-      const steps = Math.trunc(previous.delta / 40);
-      if (steps) { previous.delta -= steps * 40; scrollDigit(part, steps); }
-    }
-    element.addEventListener("wheel", wheel, { passive: false });
-    return () => element.removeEventListener("wheel", wheel);
-  }, [snapshot.running]);
-  const progress = timer && !edited ? snapshot.progress : 1;
-  return <SoftPanel className="dashboard-timer flex flex-col p-5">
-    <SectionHeader level={2} title="Lerntimer" />
-    <div className="dashboard-timer-clock">
-    <svg className="dashboard-timer-ring" viewBox="0 0 200 200" aria-hidden="true"><circle className="dashboard-timer-track" cx="100" cy="100" r="94" /><circle data-testid="timer-countdown-ring" className="dashboard-timer-remaining" cx="100" cy="100" r="94" pathLength="1" strokeDasharray="1" strokeDashoffset={1 - progress} /></svg>
-    <div ref={dial} className="dashboard-timer-dial" role="group" aria-label="Timerdauer" onPointerLeave={() => { scroll.current.delta = 0; }}>
-      {(["minutes", "seconds"] as const).map((part, index) => <React.Fragment key={part}>{index ? <span aria-hidden="true">:</span> : null}<input aria-label={part === "minutes" ? "Minuten" : "Sekunden"} data-part={part} type="text" inputMode="numeric" role="spinbutton" aria-valuemin={0} aria-valuemax={part === "minutes" ? 999 : 59} aria-valuenow={Number(digits[part])} readOnly={snapshot.running} value={digits[part]} onFocus={(event) => { if (!snapshot.running) event.target.select(); }} onChange={(event) => change(part, event.target.value)} onBlur={() => { if (!snapshot.running && !digits[part]) change(part, "00"); }} onKeyDown={(event) => { if (!snapshot.running && (event.key === "ArrowUp" || event.key === "ArrowDown")) { event.preventDefault(); change(part, String(Math.max(0, Math.min(part === "minutes" ? 999 : 59, Number(digits[part]) + (event.key === "ArrowUp" ? 1 : -1))))); } }} /></React.Fragment>)}
-    </div>
-    </div>
-    <p className="min-h-4 text-center core-caption text-core-muted">{snapshot.running ? "Deine Zeit läuft" : paused && !edited ? "Pausiert" : null}</p>
-    <div className="dashboard-timer-actions"><ActionButton variant="primary" icon={Play} disabled={snapshot.running || total <= 0} onClick={() => { setClock(Date.now()); if (paused && !edited) onResume(); else onStart(total / 60); }}>Start</ActionButton><ActionButton variant="secondary" icon={Pause} disabled={!snapshot.running} onClick={onPause}>Pause</ActionButton><IconButton icon={RotateCcw} variant="ghost" label="Timer zurücksetzen" disabled={!timer} onClick={() => {
-      if (!timer) return;
-      const initialSeconds = Math.round(timer.durationMinutes * 60);
-      setDuration({ minutes: String(Math.floor(initialSeconds / 60)).padStart(2, "0"), seconds: String(initialSeconds % 60).padStart(2, "0") });
-      setEdited(false); onReset();
-    }} /></div>
-  </SoftPanel>;
 }

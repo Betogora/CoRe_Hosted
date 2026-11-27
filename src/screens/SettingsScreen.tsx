@@ -14,6 +14,7 @@ import { CoreSwitch } from "../ui/formControls.tsx";
 import { InfoHint } from "../ui/InfoHint.tsx";
 import { readCoreTheme, toggleCoreTheme } from "../coreTheme.ts";
 import { useHeatmapHistoryColor } from "../ui/StudyHeatmap.tsx";
+import { useStudyTimerColor } from "../ui/PomodoroPill.tsx";
 import { useSuccessToast } from "../ui/feedbackUi.tsx";
 import { createGeneralSettingsDraft, rebaseSettingsDraft, settingsDraftsEqual, type GeneralSettingsDraft } from "../settingsDraft.ts";
 import { SyncConflictPanel } from "./SyncConflictPanel.tsx";
@@ -95,6 +96,7 @@ export function SettingsScreen({ section, focusConflicts = false, profile, onSav
   const [accountBusy, setAccountBusy] = React.useState(false);
   const setSuccessToast = useSuccessToast();
   const [heatmapColor, setHeatmapColor] = useHeatmapHistoryColor();
+  const [timerColor, setTimerColor] = useStudyTimerColor();
   const [theme, setTheme] = React.useState(readCoreTheme);
   const [deckView, setDeckView] = useStoredDeckTreeView();
   const syncState = describeSyncStatus(syncStatus, lastSyncedAt);
@@ -227,6 +229,12 @@ export function SettingsScreen({ section, focusConflicts = false, profile, onSav
               <span className="core-settings-row-title">Heatmap-Farbe</span>
               <div className="core-settings-row-control">
                 <ColorPicker ariaLabel="Heatmap-Farbe ändern" value={heatmapColor} onValueCommit={setHeatmapColor} />
+              </div>
+            </div>
+            <div className="core-settings-row" data-layout="inline">
+              <span className="core-settings-row-title">Lerntimer-Farbe</span>
+              <div className="core-settings-row-control">
+                <ColorPicker ariaLabel="Lerntimer-Farbe ändern" value={timerColor} onValueCommit={setTimerColor} />
               </div>
             </div>
             <div className="core-settings-row" data-layout="inline">

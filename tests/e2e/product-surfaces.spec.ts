@@ -389,7 +389,7 @@ test("settings dialog switches between side list and area list at 768 px", async
   await expect(dialog).toHaveCount(0);
 });
 
-test("Pomodoro timer starts globally, persists, stays synchronized between tabs and expires with the canonical toast", async ({ page, context }) => {
+test("Lerntimer starts globally, persists, stays synchronized between tabs and expires with the canonical toast", async ({ page, context }) => {
   await resetToFreshLocalState(page);
   await page.setViewportSize({ width: 1280, height: 720 });
   await openNavigationMenuItem(page, "Einstellungen");
@@ -397,25 +397,24 @@ test("Pomodoro timer starts globally, persists, stays synchronized between tabs 
 
   const control = page.locator('[data-pomodoro-control="settings"]');
   await control.locator("button").first().click();
-  const minutes = control.getByLabel("Dauer in Minuten");
+  const minutes = control.getByRole("spinbutton", { name: "Minuten", exact: true });
   await minutes.fill("1.5");
-  await control.getByRole("button", { name: "Start", exact: true }).click();
-  await expect(control.getByText("Bitte gib eine positive ganze Minutenzahl ein.")).toBeVisible();
+  await expect(minutes).toHaveValue("25");
 
   const secondPage = await context.newPage();
   await secondPage.goto("/");
   await secondPage.getByRole("navigation", { name: /Hauptmen/ }).waitFor({ state: "visible" });
 
   await minutes.fill("25");
-  await control.getByRole("button", { name: "Start", exact: true }).click();
-  await expect(page.locator('[data-navigation-layout="top-bar"] [data-pomodoro-progress="header"]')).toContainText("Noch 25 Min.");
-  await expect(secondPage.locator('[data-navigation-layout="top-bar"] [data-pomodoro-progress="header"]')).toContainText("Noch 25 Min.");
+  await control.getByRole("button", { name: "Lerntimer starten", exact: true }).click();
+  await expect(page.locator('[data-navigation-layout="top-bar"] [data-pomodoro-pill]')).toHaveAttribute("aria-label", "Lerntimer pausieren, noch 25 Min.");
+  await expect(secondPage.locator('[data-navigation-layout="top-bar"] [data-pomodoro-pill]')).toHaveAttribute("aria-label", "Lerntimer pausieren, noch 25 Min.");
 
   await page.reload();
-  await expect(page.locator('[data-navigation-layout="top-bar"] [data-pomodoro-progress="header"]')).toContainText("Noch 25 Min.");
+  await expect(page.locator('[data-navigation-layout="top-bar"] [data-pomodoro-pill]')).toHaveAttribute("aria-label", "Lerntimer pausieren, noch 25 Min.");
 
   await page.setViewportSize({ width: 390, height: 844 });
-  await expect(page.locator('[data-navigation-layout="mobile-header"] [data-pomodoro-progress="header"]')).toContainText("Noch 25 Min.");
+  await expect(page.locator('[data-navigation-layout="mobile-header"] [data-pomodoro-pill]')).toHaveAttribute("aria-label", "Lerntimer pausieren, noch 25 Min.");
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)).toBe(true);
 
   await page.setViewportSize({ width: 1280, height: 720 });
@@ -435,8 +434,8 @@ test("Pomodoro timer starts globally, persists, stays synchronized between tabs 
     }));
   }, timerKey);
 
-  await expect(page.getByText("Timer abgelaufen.", { exact: true })).toBeVisible();
-  await expect(page.locator('[data-pomodoro-progress]')).toHaveCount(0);
+  await expect(page.getByText("Lerntimer abgelaufen.", { exact: true })).toBeVisible();
+  await expect(page.locator('[data-pomodoro-pill]')).toHaveCount(0);
   await expect.poll(() => page.evaluate((key) => localStorage.getItem(key), timerKey)).toBeNull();
   await secondPage.close();
 });

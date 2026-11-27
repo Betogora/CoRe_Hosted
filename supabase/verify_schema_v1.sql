@@ -15,7 +15,7 @@ begin
     ('profiles'), ('decks'), ('note_type_sources'), ('notes'), ('note_sources'), ('cards'),
     ('card_variants'), ('review_events'), ('review_statistics_daily'), ('media_files'), ('note_media'),
     ('sync_devices'), ('sync_conflicts'), ('card_catalog'), ('deck_study_summaries'), ('learning_summaries'),
-    ('learning_mind_maps')
+    ('learning_mind_maps'), ('learning_quizzes')
   ) as expected(name)
   where to_regclass(format('public.%I', expected.name)) is null;
   if missing_tables is not null then
@@ -113,7 +113,7 @@ begin
   foreach table_name in array array[
     'profiles', 'decks', 'note_type_sources', 'notes', 'note_sources', 'cards', 'card_variants', 'review_events',
     'review_statistics_daily', 'media_files', 'note_media', 'sync_devices', 'sync_conflicts', 'card_catalog', 'deck_study_summaries',
-    'learning_summaries', 'learning_mind_maps'
+    'learning_summaries', 'learning_mind_maps', 'learning_quizzes'
   ]
   loop
     if not exists (
@@ -147,7 +147,7 @@ begin
   into missing_policies
   from unnest(array[
     'decks', 'note_type_sources', 'notes', 'note_sources', 'cards', 'card_variants', 'review_events',
-    'media_files', 'sync_devices', 'sync_conflicts', 'learning_summaries', 'learning_mind_maps'
+    'media_files', 'sync_devices', 'sync_conflicts', 'learning_summaries', 'learning_mind_maps', 'learning_quizzes'
   ]) as table_names(name)
   where not exists (
     select 1 from pg_policies

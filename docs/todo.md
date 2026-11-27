@@ -246,6 +246,14 @@ Frage/Antwort (85,4 %, Ziel 95 %) und Karten aus einer Quelle (86,8 %, Ziel
       Ende, Hauptwert nicht schlechter. In derselben Welle: mehr Single Choice
       (bei allen Formen 4 % statt jeder achten Karte) und keine Doppelfragen
       aus Tabellenzeilen.
+- [ ] **Quiz auf `source-cards-v3` klären:** Ein Quiz schickt eine
+      Stichprobe in einer Anfrage, die v3 auf 6.000 Zeichen begrenzt. Ein
+      PDF-Quiz fragt so nur etwa ein bis zwei zufällige Seiten ab. Zu klären:
+      Fragen auf mehrere Abschnitte verteilen oder den Gliederungsaufruf oben
+      mitnutzen. Ungemessen ist auch, ob luna mit der Kartenspanne von v3 und
+      Kartenmenge Mehr weiter genau die gewählte Fragenzahl liefert (gemessen
+      nur auf v2). Nachweis: PDF über 20.000 Zeichen mit Fragen aus Anfang,
+      Mitte und Ende; Fragenzahl bei 5, 10 und 20 eingehalten.
 - [ ] **Frage/Antwort unter Ziel:** Zuerst 20–30 Handurteile je Anfragetyp
       gegen den Richter, um zu klären, ob er zu streng ist. Erst danach ein
       Prüfaufruf für Varianten oder der Modellvergleich gegen
@@ -272,8 +280,11 @@ Frage/Antwort (85,4 %, Ziel 95 %) und Karten aus einer Quelle (86,8 %, Ziel
 - Persönliche FSRS-Parameter je Stapelprofil, nur wenn sie den eigenen
   Verlauf messbar besser vorhersagen (ADR-044; Ausarbeitung in Commit
   `4dd2af7`).
-- Quiz als eigenes Feature (ADR-042), danach Quizplanung im Prüfungsplaner;
-  Entwurf in Commit `71a7892` (`codex/klausurplaner-design`).
+- Quizplanung im Prüfungsplaner (ADR-042); Entwurf in Commit `71a7892`
+  (`codex/klausurplaner-design`).
+- Quiz-Feinschliff: Die Erstellung läuft weiter, wenn man Reiter oder Ansicht
+  verlässt (heute bricht sie ab); Ablauf und Auswertung füllen wie die übrigen
+  Stapelreiter die Breite, auf dem Telefon bleibt es kompakt.
 - Name des Schalters „CoRe-Modus“ nach dem Variantenkonzept; Vorschlag
   „Umformulierungen“ (Agenda 1.7).
 - Simulator für das ganze Konto entfernen; stattdessen eine selbst klickbare
@@ -282,6 +293,8 @@ Frage/Antwort (85,4 %, Ziel 95 %) und Karten aus einer Quelle (86,8 %, Ziel
   Tageslimit neu aus den lokalen Stapelzählungen laden (heute Stand beim Start).
 - Semantische Themenzuordnung in ungegliederten Stapeln, ohne Lernstände zu
   ändern; ein Lösungsweg über Tags ist `Treffer lernen` der Kartenverwaltung.
+- Kopf der Lernsitzung fertigstellen: Anki-Kopf recherchieren, „Letzte
+  Bewertung zurücknehmen“ (heute Strg+Z) als Knopf im Kopf, Telefon und Desktop.
 
 ### Kartenverwaltung
 

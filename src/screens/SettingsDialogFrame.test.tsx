@@ -54,7 +54,7 @@ test("a dialog below another one leads back to it before its title: narrow by it
   assert.doesNotMatch(renderFrame(), /data-settings-back/);
   const back = (html: string) => html.match(/<button type="button" aria-label="Zurück zu Einstellungen" data-settings-back="true" class="([^"]*)">(.*?)<\/button>(<svg[^>]*>)/) ?? [];
   const [, areaClass, content, separator] = back(renderFrame({ parent: true }));
-  assert.match(content, /^<svg[^>]*lucide-settings shrink-0 md:hidden[^>]*>.*?<\/svg><svg[^>]*lucide-arrow-left hidden shrink-0 md:block[^>]*>.*?<\/svg><span class="hidden core-heading-3 md:inline">Einstellungen<\/span>$/);
+  assert.match(content, /^<svg[^>]*lucide-settings shrink-0 md:hidden[^>]*>.*?<\/svg><svg[^>]*lucide-chevron-left hidden shrink-0 md:block[^>]*>.*?<\/svg><span class="hidden core-heading-3 md:inline">Einstellungen<\/span>$/);
   assert.match(separator, /lucide-chevron-right/);
   assert.match(areaClass, /^flex .*max-md:-ml-2$/, "schmal steht das Icon direkt hinter dem Pfeil zur Bereichsliste");
   assert.match(renderFrame({ parent: true }), /aria-label="Zurück zu den Bereichen"/);

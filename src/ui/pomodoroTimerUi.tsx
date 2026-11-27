@@ -1,54 +1,200 @@
 import React from "react";
-import { ChevronRight, Play } from "lucide-react";
-import {
-  DEFAULT_POMODORO_MINUTES,
-  getPomodoroTimerSnapshot,
-  normalizePomodoroMinutes,
-  type PomodoroTimer,
-} from "../pomodoroTimer.ts";
-import { ActionButton } from "./actionUi.tsx";
-import { CoreSegmentedControl, CoreTag } from "./coreUi.tsx";
+import { ChevronDown, Pause, Pencil, Play, RotateCcw, Timer } from "lucide-react";
+import { DEFAULT_POMODORO_MINUTES, type PomodoroTimer } from "../pomodoroTimer.ts";
+import { clockParts, padMinutes, studyTimerColorStyle, usePomodoroTimerSnapshot, useStudyTimerColor } from "./PomodoroPill.tsx";
+import { CoreTag } from "./coreUi.tsx";
+import { CoreTooltip } from "./tooltipUi.tsx";
 
-export const POMODORO_PRESET_MINUTES = [15, 25, 45] as const;
-type PomodoroPreset = `${typeof POMODORO_PRESET_MINUTES[number]}`;
+export const POMODORO_PRESET_MINUTES = [10, 25, 50] as const;
+const MAX_MINUTES = 999;
+// Wheel delta that moves the minutes by one; trackpads send many small deltas.
+const WHEEL_STEP = 40;
 
-const POMODORO_PRESET_OPTIONS = POMODORO_PRESET_MINUTES.map((minutes) => ({
-  value: String(minutes) as PomodoroPreset,
-  label: String(minutes),
-}));
+function useTimerMinutes(initialMinutes: number) {
+  const [minutes, setMinutes] = React.useState(() => padMinutes(initialMinutes));
+  const [editing, setEditing] = React.useState(false);
+  const input = React.useRef<HTMLInputElement>(null);
+  const select = React.useCallback((next: number) => setMinutes(padMinutes(next)), []);
+  const step = React.useCallback((delta: number) => setMinutes((current) => padMinutes(Math.max(1, Math.min(MAX_MINUTES, (Number(current) || 0) + delta)))), []);
+  return { minutes, value: Number(minutes), editing, setEditing, input, select, step, setMinutes };
+}
 
-function TomatoIcon({ size = 18, ...props }: React.SVGProps<SVGSVGElement> & { size?: number }) {
+type TimerMinutes = ReturnType<typeof useTimerMinutes>;
+
+function FilledPlay({ size }: { size: number }) {
+  return <Play size={size} fill="currentColor" aria-hidden="true" />;
+}
+
+function MinutesInput({ duration }: { duration: TimerMinutes }) {
+  const { input, step } = duration;
+  React.useEffect(() => {
+    const element = input.current;
+    if (!element) return undefined;
+    let delta = 0;
+    let at = 0;
+    function wheel(event: WheelEvent) {
+      if (event.ctrlKey || event.metaKey || Math.abs(event.deltaX) > Math.abs(event.deltaY) || !event.deltaY) return;
+      event.preventDefault();
+      const amount = event.deltaY * (event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? 100 : 1);
+      if (event.timeStamp - at > 200 || Math.sign(delta) !== Math.sign(amount)) delta = 0;
+      at = event.timeStamp;
+      delta += amount;
+      const steps = Math.trunc(delta / WHEEL_STEP);
+      if (steps) {
+        delta -= steps * WHEEL_STEP;
+        step(-steps);
+      }
+    }
+    element.addEventListener("wheel", wheel, { passive: false });
+    return () => element.removeEventListener("wheel", wheel);
+  }, [input, step]);
+
   return (
-    <svg
-      {...props}
-      data-pomodoro-icon="tomato"
-      width={size}
-      height={size}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.8"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      <path d="M12 7.2c-5 0-8.5 2.6-8.5 6.3 0 4.1 3.8 7 8.5 7s8.5-2.9 8.5-7c0-3.7-3.5-6.3-8.5-6.3Z" />
-      <path d="M12 7.5 9.2 4.2l3.1 1.1 2.3-2-.3 2.9 3.3 1.2-3.9.8-1.7 2.5V7.5Z" />
-    </svg>
+    // The hidden copy of the digits gives the field exactly their width in any font.
+    <span className="core-study-timer-minutes">
+      <span aria-hidden="true">{duration.minutes || "0"}</span>
+      <input
+        ref={input}
+        aria-label="Minuten"
+        type="text"
+        inputMode="numeric"
+        role="spinbutton"
+        aria-valuemin={1}
+        aria-valuemax={MAX_MINUTES}
+        aria-valuenow={duration.value}
+        value={duration.minutes}
+        onFocus={(event) => {
+          duration.setEditing(true);
+          event.target.select();
+        }}
+        onBlur={() => {
+          duration.setEditing(false);
+          if (!duration.value) duration.select(DEFAULT_POMODORO_MINUTES);
+        }}
+        onChange={(event) => {
+          const value = event.target.value;
+          if (/^\d{0,3}$/.test(value)) duration.setMinutes(value === "" ? "" : padMinutes(Math.min(MAX_MINUTES, Number(value))));
+        }}
+        onKeyDown={(event) => {
+          if (event.key !== "ArrowUp" && event.key !== "ArrowDown") return;
+          event.preventDefault();
+          step(event.key === "ArrowUp" ? 1 : -1);
+        }}
+      />
+    </span>
   );
 }
 
-function usePomodoroTimerSnapshot(timer: PomodoroTimer | null) {
-  const [now, setNow] = React.useState(() => Date.now());
+/** mm:ss in the timer's text color; with `duration` the minutes are the editable field, otherwise `label` names the running time. */
+function TimerClock({ duration, minutes, seconds = "00", label }: { duration?: TimerMinutes; minutes?: string; seconds?: string; label?: string }) {
+  const minuteDigits = duration ? duration.minutes.length : minutes!.length;
+  return (
+    <div className="core-study-timer-clock" role={label ? "timer" : undefined} aria-label={label} data-editing={duration?.editing || undefined} style={{ "--core-study-timer-digits": Math.max(2, minuteDigits) + 3 } as React.CSSProperties}>
+      {duration ? <MinutesInput duration={duration} /> : <span>{minutes}</span>}
+      <span className="core-study-timer-seconds" aria-hidden={duration ? true : undefined}>:{seconds}</span>
+    </div>
+  );
+}
 
+function TimerPresets({ duration }: { duration: TimerMinutes }) {
+  return (
+    <div className="core-study-timer-presets" role="group" aria-label="Dauer wählen">
+      {POMODORO_PRESET_MINUTES.map((preset) => (
+        <button
+          key={preset}
+          type="button"
+          className="core-study-timer-button"
+          aria-label={`${preset} Minuten`}
+          aria-pressed={!duration.editing && duration.value === preset}
+          onClick={() => duration.select(preset)}
+        >
+          {preset}
+        </button>
+      ))}
+      <CoreTooltip label="Dauer eintippen">
+        <button
+          type="button"
+          className="core-study-timer-button"
+          data-quiet
+          data-active={duration.editing || undefined}
+          aria-label="Dauer eintippen"
+          // Keeps the focus in the minutes while they are being typed.
+          onPointerDown={(event) => event.preventDefault()}
+          onClick={() => duration.input.current?.focus()}
+        >
+          <Pencil size={22} aria-hidden="true" />
+        </button>
+      </CoreTooltip>
+    </div>
+  );
+}
+
+export interface StudyTimerTileProps {
+  timer: PomodoroTimer | null;
+  onStart: (minutes: number) => void;
+  onPause: () => void;
+  onResume: () => void;
+  onReset: () => void;
+}
+
+export function StudyTimerTile({ timer, onStart, onPause, onResume, onReset }: StudyTimerTileProps) {
+  const [color] = useStudyTimerColor();
+  const snapshot = usePomodoroTimerSnapshot(timer);
+  const duration = useTimerMinutes(timer ? Math.max(1, Math.round(timer.durationMinutes)) : DEFAULT_POMODORO_MINUTES);
+  const { select } = duration;
   React.useEffect(() => {
-    setNow(Date.now());
-    if (!timer) return undefined;
-    const interval = window.setInterval(() => setNow(Date.now()), 1_000);
-    return () => window.clearInterval(interval);
-  }, [timer]);
+    if (timer) select(Math.max(1, Math.round(timer.durationMinutes)));
+  }, [timer?.id, timer?.durationMinutes, select]);
 
-  return getPomodoroTimerSnapshot(timer, now);
+  const active = timer !== null && snapshot.remainingMilliseconds > 0;
+  const paused = active && timer.pausedAt !== undefined;
+  const remaining = clockParts(snapshot.remainingMilliseconds);
+  const tile = React.useRef<HTMLDivElement>(null);
+  const refocus = React.useRef(false);
+  // Start and reset swap the whole foot; the keyboard focus moves to the new main button instead of falling to the page.
+  const keepFocus = () => { refocus.current = tile.current?.contains(document.activeElement) ?? false; };
+  React.useLayoutEffect(() => {
+    if (!refocus.current) return;
+    refocus.current = false;
+    tile.current?.querySelector<HTMLButtonElement>("button[data-solid]")?.focus();
+  }, [active]);
+
+  return (
+    <div ref={tile} className="core-study-timer-tile" style={studyTimerColorStyle(color)} data-state={!active ? "ready" : paused ? "paused" : "running"}>
+      {active ? <span className="core-study-timer-level" style={{ height: `${(1 - snapshot.progress) * 100}%` }} aria-hidden="true" /> : null}
+      <h2 className="core-study-timer-label">Lerntimer</h2>
+      {active ? (
+        <>
+          <TimerClock minutes={remaining.minutes} seconds={remaining.seconds} label={`Noch ${snapshot.remainingMinutes} Min.`} />
+          <div className="core-study-timer-foot">
+            {paused
+              ? <button type="button" className="core-study-timer-button" data-solid aria-label="Lerntimer fortsetzen" onClick={onResume}><FilledPlay size={22} /></button>
+              : <button type="button" className="core-study-timer-button" data-solid aria-label="Lerntimer pausieren" onClick={onPause}><Pause size={22} fill="currentColor" aria-hidden="true" /></button>}
+            <CoreTooltip label="Lerntimer zurücksetzen">
+              <button type="button" className="core-study-timer-button" aria-label="Lerntimer zurücksetzen" disabled={!paused} onClick={() => { keepFocus(); onReset(); }}><RotateCcw size={20} aria-hidden="true" /></button>
+            </CoreTooltip>
+          </div>
+        </>
+      ) : (
+        <form
+          className="core-study-timer-form"
+          noValidate
+          onSubmit={(event) => {
+            event.preventDefault();
+            if (duration.value <= 0) return;
+            keepFocus();
+            onStart(duration.value);
+          }}
+        >
+          <TimerClock duration={duration} />
+          <div className="core-study-timer-foot">
+            <button type="submit" className="core-study-timer-button" data-solid aria-label="Lerntimer starten" disabled={duration.value <= 0}><FilledPlay size={22} /></button>
+            <TimerPresets duration={duration} />
+          </div>
+        </form>
+      )}
+    </div>
+  );
 }
 
 export interface PomodoroTimerControlProps {
@@ -59,30 +205,18 @@ export interface PomodoroTimerControlProps {
 
 export function PomodoroTimerControl({ timer, variant, onStart }: PomodoroTimerControlProps) {
   const [open, setOpen] = React.useState(false);
-  const [minutes, setMinutes] = React.useState(() => String(timer?.durationMinutes ?? DEFAULT_POMODORO_MINUTES));
-  const [error, setError] = React.useState("");
+  const [color] = useStudyTimerColor();
+  const duration = useTimerMinutes(timer ? Math.max(1, Math.round(timer.durationMinutes)) : DEFAULT_POMODORO_MINUTES);
   const regionId = React.useId();
-  const errorId = React.useId();
   const snapshot = usePomodoroTimerSnapshot(timer);
   const isSettings = variant === "settings";
+  const { select } = duration;
   // The settings row names the remaining time in its state tag, so its value stays the duration.
-  const value = snapshot.running && !isSettings ? `${snapshot.remainingMinutes} Min.` : `${timer?.durationMinutes ?? DEFAULT_POMODORO_MINUTES} Min.`;
-  const selectedPreset = POMODORO_PRESET_OPTIONS.some((option) => option.value === minutes) ? minutes as PomodoroPreset : "";
+  const value = snapshot.running && !isSettings ? `${snapshot.remainingMinutes} Min.` : `${duration.value || DEFAULT_POMODORO_MINUTES} Min.`;
 
   React.useEffect(() => {
-    if (timer?.durationMinutes) setMinutes(String(timer.durationMinutes));
-  }, [timer?.id, timer?.durationMinutes]);
-
-  function start(event: React.FormEvent) {
-    event.preventDefault();
-    const normalizedMinutes = normalizePomodoroMinutes(minutes);
-    if (normalizedMinutes == null) {
-      setError("Bitte gib eine positive ganze Minutenzahl ein.");
-      return;
-    }
-    setError("");
-    onStart(normalizedMinutes);
-  }
+    if (timer) select(Math.max(1, Math.round(timer.durationMinutes)));
+  }, [timer?.id, timer?.durationMinutes, select]);
 
   return (
     <div data-pomodoro-control={variant}>
@@ -97,112 +231,38 @@ export function PomodoroTimerControl({ timer, variant, onStart }: PomodoroTimerC
       >
         {isSettings ? (
           <span className="core-settings-row-heading flex-1">
-            <span className="core-settings-row-title">Pomodoro-Timer</span>
+            <span className="core-settings-row-title">Lerntimer</span>
             {snapshot.running ? <CoreTag tone="info">{`Läuft · ${snapshot.remainingMinutes} Min.`}</CoreTag> : null}
           </span>
         ) : (
           <span className="core-control-label flex min-w-0 flex-1 items-center gap-2 text-core-text">
-            <TomatoIcon className="shrink-0 text-core-muted" size={16} />
-            <span className="min-w-0 flex-1">Pomodoro-Timer</span>
+            <Timer className="shrink-0 text-core-muted" size={16} aria-hidden="true" />
+            <span className="min-w-0 flex-1">Lerntimer</span>
           </span>
         )}
         <span className="flex shrink-0 items-center gap-2 core-body font-normal text-core-muted">
           {value}
-          <ChevronRight className={`text-core-muted transition-transform ${open ? "rotate-90" : ""}`} size={16} aria-hidden="true" />
+          <ChevronDown className={`text-core-muted transition-transform ${open ? "rotate-180" : ""}`} size={16} aria-hidden="true" />
         </span>
       </button>
 
       {open ? (
         <form
           id={regionId}
-          aria-label="Pomodoro-Timer einstellen"
+          aria-label="Lerntimer einstellen"
           noValidate
-          className={isSettings
-            ? "grid gap-3 pb-4"
-            : "mb-2 grid gap-3 rounded-control bg-core-subtle p-3"}
-          onSubmit={start}
+          className={`core-study-timer-strip ${isSettings ? "mb-4" : "mb-2"}`}
+          style={studyTimerColorStyle(color)}
+          onSubmit={(event) => {
+            event.preventDefault();
+            if (duration.value > 0) onStart(duration.value);
+          }}
         >
-          <div className="grid grid-cols-[minmax(0,1fr)_auto] items-end gap-3 sm:grid-cols-[8rem_minmax(12rem,1fr)_auto]">
-            <label className="core-field-group col-start-1 row-start-1">
-              <span className="core-field-label">Dauer in Minuten</span>
-              <input
-                className="core-field w-full"
-                type="number"
-                inputMode="numeric"
-                min="1"
-                step="1"
-                value={minutes}
-                aria-invalid={Boolean(error)}
-                aria-describedby={error ? errorId : undefined}
-                onChange={(event) => {
-                  setMinutes(event.target.value);
-                  if (error) setError("");
-                }}
-              />
-            </label>
-            <div className="core-field-group col-span-2 row-start-2 sm:col-span-1 sm:col-start-2 sm:row-start-1">
-              <span className="core-field-label">Schnellauswahl</span>
-              <CoreSegmentedControl<PomodoroPreset | "">
-                ariaLabel="Pomodoro-Dauer"
-                options={POMODORO_PRESET_OPTIONS}
-                value={selectedPreset}
-                className="w-full"
-                onValueChange={(nextMinutes) => {
-                  if (!nextMinutes) return;
-                  setMinutes(nextMinutes);
-                  if (error) setError("");
-                }}
-              />
-            </div>
-            <ActionButton type="submit" variant="primary" icon={Play} className="col-start-2 row-start-1 w-fit sm:col-start-3">Start</ActionButton>
-          </div>
-          {error ? <span id={errorId} className="core-field-error">{error}</span> : null}
+          <TimerClock duration={duration} />
+          <TimerPresets duration={duration} />
+          <button type="submit" className="core-study-timer-button core-study-timer-start" data-solid aria-label="Lerntimer starten" disabled={duration.value <= 0}><FilledPlay size={18} /></button>
         </form>
       ) : null}
-    </div>
-  );
-}
-
-export interface PomodoroProgressProps {
-  timer: PomodoroTimer | null;
-  variant: "study" | "header";
-}
-
-export function PomodoroProgress({ timer, variant }: PomodoroProgressProps) {
-  const snapshot = usePomodoroTimerSnapshot(timer);
-  if (!timer || !snapshot.running) return null;
-
-  const remainingSeconds = Math.ceil(snapshot.remainingMilliseconds / 1_000);
-  const maximumSeconds = Math.max(1, timer.durationMinutes * 60);
-  const valueText = `Noch ${snapshot.remainingMinutes} Min.`;
-  const isHeader = variant === "header";
-  const isStudy = variant === "study";
-
-  return (
-    <div
-      className={isHeader ? "flex min-w-0 flex-1 flex-col gap-1" : "grid gap-2"}
-      data-pomodoro-progress={variant}
-    >
-      <div className="flex items-center justify-between gap-2 core-caption">
-        <span className={`min-w-0 truncate ${isHeader ? "text-core-muted max-sm:sr-only" : "font-medium text-core-secondary"}`}>Pomodoro-Timer</span>
-        <span className="shrink-0 font-semibold tabular-nums text-core-text">{valueText}</span>
-      </div>
-      <div
-        className={`${isStudy ? "h-2" : "h-1.5"} overflow-hidden rounded-round bg-core-subtle`}
-        role="progressbar"
-        aria-label="Pomodoro-Timer"
-        aria-valuemin={0}
-        aria-valuemax={maximumSeconds}
-        aria-valuenow={remainingSeconds}
-        aria-valuetext={valueText}
-        data-testid={isStudy ? "study-pomodoro-progress" : undefined}
-      >
-        <div
-          className="h-full rounded-round bg-core-action transition-[width] duration-1000 ease-linear"
-          style={{ width: `${snapshot.progress * 100}%` }}
-          aria-hidden="true"
-        />
-      </div>
     </div>
   );
 }

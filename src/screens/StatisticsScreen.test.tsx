@@ -48,8 +48,11 @@ test("statistics screen exposes one global filter and the complete CoRe analysis
   const overviewMarkup = markup.match(/<section class="min-w-0 pb-2" aria-labelledby="statistics-overview-title"[\s\S]*?<\/section>/)?.[0];
   assert.ok(overviewMarkup);
   assert.match(overviewMarkup, /<h3 id="statistics-overview-title" tabindex="-1" class="sr-only">Überblick<\/h3>/);
-  assert.match(overviewMarkup, /class="core-metric-row core-statistics-overview"/);
+  assert.match(overviewMarkup, /class="core-statistics-overview"/);
   assert.equal((overviewMarkup.match(/<dt /g) ?? []).length, 7);
+  assert.deepEqual([...overviewMarkup.matchAll(/data-tone="(\w+)"/g)].map((match) => match[1]), ["lead", "soft", "soft", "soft", "soft", "soft", "streak"]);
+  assert.match(overviewMarkup, /<b>[\d,]+<\/b><small> %<\/small>/, "Einheit klein hinter der Zahl");
+  assert.match(overviewMarkup, /data-tone="streak"[\s\S]*<svg[^>]*fill="currentColor"[^>]*lucide-flame/, "laufende Serie mit gefüllter Flamme");
   assert.doesNotMatch(overviewMarkup, /core-surface-raised/);
   assert.match(overviewMarkup, /Reviews/);
   assert.doesNotMatch(overviewMarkup, /Wiederholungen/);
@@ -57,9 +60,9 @@ test("statistics screen exposes one global filter and the complete CoRe analysis
   assert.doesNotMatch(overviewMarkup, /Erfolgsquote/);
   assert.match(overviewMarkup, /Wahre Quote/);
   assert.doesNotMatch(overviewMarkup, /Erinnerungsquote/);
-  assert.match(overviewMarkup, /1 Tag/);
+  assert.match(overviewMarkup, /<b>1<\/b><small> Tag<\/small>/);
   assert.doesNotMatch(markup, /Schwierige Karten/);
-  assert.match(markup, /0<\/span> <span class="core-heading-3">Tage Streak/);
+  assert.match(markup, /0<\/span> <span class="core-study-heatmap-streak-label">Tage Streak/);
   assert.match(markup, /aria-label="Heatmap-Zeitraum"/);
   assert.match(markup, /data-testid="study-heatmap-grid"/);
   assert.doesNotMatch(markup, /Letzte 14 Tage/);
@@ -85,7 +88,7 @@ test("statistics refresh keeps previous results and shows the requested filter w
   assert.match(pending, /core-statistics-load-track" role="progressbar" aria-label="Statistik wird aktualisiert"/);
   assert.doesNotMatch(pending, /aria-valuenow|Statistik wird geladen/);
   assert.match(pending, /class="opacity-60" aria-busy="true"/);
-  assert.match(pending, />42<\/dd>/);
+  assert.match(pending, />42<\/b><\/dd>/);
   assert.match(pending, /role="tab"[^>]*>Stapelvergleich<\/button>/);
   assert.match(pending, /class="sr-only">Statistik wird aktualisiert\./);
   const ready = render(false);
@@ -95,7 +98,7 @@ test("statistics refresh keeps previous results and shows the requested filter w
   assert.match(failed, /role="alert"/);
   assert.match(failed, /letzten erfolgreichen Auswahl/);
   assert.match(failed, /Erneut versuchen/);
-  assert.match(failed, />42<\/dd>/);
+  assert.match(failed, />42<\/b><\/dd>/);
   assert.doesNotMatch(failed, /role="progressbar"|Statistik wird geladen/);
 });
 

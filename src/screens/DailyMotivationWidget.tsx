@@ -2,7 +2,6 @@ import React from "react";
 import { getDailyMotivation } from "../dailyMotivation.ts";
 import { getNextLearningDayBoundaryDelay } from "../learningDay.ts";
 import { BrainMascot } from "../ui/BrainMascot.tsx";
-import { SoftPanel } from "../ui/coreUi.tsx";
 import { SectionHeader } from "../ui/SectionHeader.tsx";
 
 export function DailyMotivationWidget({ now, timeZone, dayStartHour }: { now: string; timeZone: string; dayStartHour: number }) {
@@ -26,11 +25,9 @@ export function DailyMotivationWidget({ now, timeZone, dayStartHour }: { now: st
     return () => { window.clearTimeout(timer); document.removeEventListener("visibilitychange", visible); window.removeEventListener("focus", update); };
   }, [now, timeZone, dayStartHour]);
   const motivation = getDailyMotivation(clock, { timeZone, dayStartHour });
-  return <SoftPanel className="motivation-widget p-5" data-brain-zone="" data-motivation-day={motivation.day}>
-    <SectionHeader level={2} title="Dein Motivationsimpuls" />
-    <div className="motivation-widget-layout">
-      <div><p className="motivation-widget-quote core-body-large font-medium text-core-text">{motivation.text}</p></div>
-      <BrainMascot id={motivation.mascotId} interactive />
-    </div>
-  </SoftPanel>;
+  return <section className="dashboard-poster motivation-widget" data-tone="fog" data-brain-zone="" data-motivation-day={motivation.day}>
+    <SectionHeader level={2} title="Dein Impuls" />
+    <p className="motivation-widget-quote">{motivation.text}</p>
+    <BrainMascot id={motivation.mascotId} interactive />
+  </section>;
 }

@@ -9,7 +9,7 @@ const reviewReturnViews = ["today", "learn", "decks", "exams"] as const;
 export const SETTINGS_SECTIONS = ["start", "konto", "darstellung", "daten", "konflikte", "ueber", "lerntag", "flaggen", "fokus", "stapel", "tagesrunde", "scheduler"] as const;
 export const DECK_SETTINGS_SECTIONS = ["start", "stapel", "tagesrunde", "neue-karten", "scheduler"] as const;
 export const HELP_TOPICS = ["active-recall", "spaced-repetition", "planung", "varianten", "pruefungssitzung", "kartenverwaltung"] as const;
-const deckContentTabs = ["children", "summary", "mind-map", "cards"] as const;
+const deckContentTabs = ["children", "summary", "mind-map", "quiz", "cards"] as const;
 const cardEditorTabs = ["general", "content", "variants", "study"] as const;
 
 export type AppViewId = MenuViewId;

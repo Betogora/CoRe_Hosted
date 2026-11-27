@@ -24,12 +24,10 @@ test("deck tree keeps one visual header and all three accessibly labelled metric
     <DeckTree rows={rows} mode="learn" collapsedDeckIds={[]} onDeckExpansionChange={() => undefined} onActivate={() => undefined} onStudy={() => undefined} onOpenSettings={() => undefined} onSetDeckCoreMode={() => undefined} onMoveDeck={() => null} />,
   );
 
-  assert.match(markup, /aria-label="Bereich lernen"/);
   assert.match(markup, /aria-label="Inhalte von Bereich öffnen"/);
-  assert.match(markup, /lucide-play/);
-  assert.equal((markup.match(/data-deck-has-work="false"/g) ?? []).length, 2);
+  assert.doesNotMatch(markup, /aria-label="Bereich lernen"|aria-label="Bereich \/ Grundlagen lernen"/);
+  assert.equal((markup.match(/<span class="core-deck-study-button" aria-hidden="true"><\/span>/g) ?? []).length, 2);
   assert.doesNotMatch(markup, /data-donut-|Gesamtfortschritt/);
-  assert.match(markup, /aria-label="Bereich \/ Grundlagen lernen"/);
   assert.doesNotMatch(markup, />Bereich \/ Grundlagen</);
   assert.equal((markup.match(/data-deck-count="new"/g) ?? []).length, 2);
   assert.equal((markup.match(/data-deck-count="in-progress"/g) ?? []).length, 2);
@@ -61,13 +59,13 @@ test("deck tree keeps one visual header and all three accessibly labelled metric
   assert.doesNotMatch(markup, /data-core-tooltip="Stapeloptionen für Bereich \/ Grundlagen"/);
 });
 
-test("deck tree marks the study arrow as action only for decks with work today", () => {
+test("deck tree rows offer `Karten lernen` only for decks with work today", () => {
   const workRows = createDeckLibraryModel(createWorldCapitalsSeed().decks, { now: "2026-08-06T10:00:00.000Z" }).rows;
   const markup = renderToStaticMarkup(
     <DeckTree rows={workRows} mode="learn" collapsedDeckIds={[]} onDeckExpansionChange={() => undefined} onActivate={() => undefined} onStudy={() => undefined} onOpenSettings={() => undefined} onSetDeckCoreMode={() => undefined} onMoveDeck={() => null} />,
   );
 
-  assert.match(markup, /data-deck-has-work="true"[^>]*aria-label="Welt-Hauptstädte lernen"/);
+  assert.match(markup, /aria-label="Welt-Hauptstädte lernen"[^>]*class="core-action-primary [^>]*>.*?>Karten lernen<\/span><\/button>/);
 });
 
 test("deck tree places caller content below the collection and omits an empty row frame", () => {
@@ -122,10 +120,9 @@ test("deck tree keeps the compact summary order", () => {
   );
 
   assert.match(learning, /Stapeloptionen für Bereich/);
-  assert.ok(learning.indexOf('data-deck-count="due"') < learning.indexOf('aria-label="Bereich lernen"'));
-  assert.ok(learning.indexOf('aria-label="Bereich lernen"') < learning.indexOf("Stapeloptionen für Bereich"));
+  assert.ok(learning.indexOf('data-deck-count="due"') < learning.indexOf('<span class="core-deck-study-button"'));
+  assert.ok(learning.indexOf('<span class="core-deck-study-button"') < learning.indexOf("Stapeloptionen für Bereich"));
   assert.match(learning, /data-deck-drag-source="true"/);
-  assert.match(learning, /aria-label="Bereich \/ Grundlagen lernen"/);
   assert.doesNotMatch(learning, /aria-pressed=|data-selected=/);
 });
 
@@ -181,7 +178,6 @@ test("deck tree content mode shows one branch with its opened deck as group head
   assert.match(markup, /data-testid="content-deck-row-grandchild"[^>]*data-deck-depth="1"/);
   assert.doesNotMatch(markup, /content-deck-row-(root|sibling|other)|Aktive Stapel/);
   assert.match(markup, /data-testid="deck-summary-header"/);
-  assert.match(markup, /aria-label="Bereich \/ Grundlagen lernen"/);
   assert.match(markup, /Stapeloptionen für Bereich \/ Grundlagen \/ Vertiefung/);
   assert.doesNotMatch(markup, /Alle (auf|ein)klappen/);
   assert.match(render(["child"]), /Unterstapel von Bereich \/ Grundlagen anzeigen/);
