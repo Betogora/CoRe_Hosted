@@ -115,9 +115,9 @@ stehen in [`todo.md`](todo.md).
 
 **Status:** angenommen
 **Kontext:** Ein zusätzlicher lokaler Passwort-Verifier würde zwei Identitäten und falsche Sicherheitsannahmen erzeugen. Zugleich verfehlte „Neues Gerät bis Dashboard“ das Budget, weil der Start auf die Serverbestätigung der Sitzung wartete.
-**Entscheidung:** Supabase E-Mail/Passwort ist der einzige freigegebene Loginpfad; lokale Daten sind accountgebundener Cache. Online startet die gespeicherte Sitzung die Shell sofort und wird parallel bestätigt; scheitert die Bestätigung, verwirft CoRe den Start und zeigt die Anmeldung. Offline, ohne gespeicherte Sitzung und beim Passwort-Recovery bleibt die sequenzielle Prüfung.
+**Entscheidung:** Supabase E-Mail/Passwort ist der einzige freigegebene Loginpfad; lokale Daten sind accountgebundener Cache. Online startet die gespeicherte Sitzung die Shell sofort und wird parallel bestätigt; scheitert die Bestätigung, verwirft CoRe den Start und zeigt die Anmeldung. Offline startet die gespeicherte Sitzung sofort aus dem lokalen Speicher, auch mit abgelaufenem Token, statt rund 25 s auf die Wiederholungen von auth-js zu warten und dann die Anmeldung zu zeigen; scheitert die Erneuerung online am Netz, startet sie nach diesen Wiederholungen ebenso. Lehnt der Server die Sitzung später ab, meldet auth-js `SIGNED_OUT`, und CoRe verwirft den Start. Ohne gespeicherte Sitzung und beim Passwort-Recovery bleibt die sequenzielle Prüfung.
 **Konsequenzen:** Kein paralleler lokaler Login. Bis zur Bestätigung laufen nur Abrufe, die der Server ohnehin autorisiert; Daten anderer Accounts werden nie sichtbar.
-**Datum:** 2026-10-10
+**Datum:** 2026-10-10, ergänzt 2026-11-27
 
 ## ADR-039 — CoRe-Modus An/Aus und Variantenkette
 

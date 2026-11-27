@@ -40,8 +40,7 @@ Für alle Pakete gilt:
 - Unverändert lassen: `quality` (rund 50 s, Engpass Typecheck samt knip),
   Modultests (179 Dateien in 12 s) und RLS (21 Fälle in 6 s).
 
-Reihenfolge: A4; A5 nach
-der Entscheidung, A6, T4, A7 und T5 nach Bedarf.
+Reihenfolge: A4, danach A6, T4, A7 und T5 nach Bedarf.
 
 | Spur | Kennzahl | Schleife | Paket |
 | --- | --- | --- | --- |
@@ -62,33 +61,12 @@ der Entscheidung, A6, T4, A7 und T5 nach Bedarf.
     `src/appMediaLifecycle.ts`): Konflikte bei `conflictCount` 0
     überspringen, `list_releasable_media` höchstens täglich, `cloudState`
     nur bei echter Änderung ersetzen.
-  - Lernstart: Eine Cloud-Katalogseite setzt einen vollständigen Katalog
-    auf `partial`; `src/workspaceHydrationService.test.ts` hält das
-    ausdrücklich fest. Klären, ob `keepComplete` gemeint ist.
   - Neues Gerät: Den Chunk der Startansicht schon beim Kontostart laden (im
     Szenario `freshIsolated` rund 300 ms zwischen Workspace und Ansicht);
     `src/App.tsx` steht an seiner Zeilengrenze, der Ort muss außerhalb liegen.
   - Anmeldung: Profil-Upsert parallel zum Boot; das Profil muss vor dem
     ersten Profilpatch existieren.
   - Nachweis: `weekly-performance` auf dem Branch.
-- [ ] **A5 – Sitzungsstart mit abgelaufenem Token:** Entscheidung offen,
-      berührt ADR-038. `auth.getSession()` erneuert ein Token, das in
-      unter 90 s abläuft, bevor es antwortet
-      (`src/authenticatedWorkspaceBoot.ts:297-306,320`,
-      `src/cloudAuth.ts:315-334`); das JWT gilt 1 h, also bei praktisch
-      jedem Start am nächsten Tag ein blockierender Request vor dem Öffnen
-      der lokalen Datenbank. Offline wiederholt auth-js laut Audit bis rund
-      25 s und endet im Anmeldebildschirm statt im lokalen Workspace.
-      Nicht reproduziert.
-  - Schritt 0: Szenario in `tests/performance/startup.spec.ts` mit
-    zurückdatiertem `expires_at`, online und offline (Phase
-    `networkAndSession`).
-  - Stufe 1: nur den Offline- und Refresh-Fehlerfall abfangen und lokal
-    starten. Stufe 2: Nutzer-ID aus dem persistierten Session-Eintrag
-    lesen, Replica sofort öffnen, Bestätigung parallel.
-  - Risiko: Kopplung an das Speicherformat von auth-js (Test gegen die
-    installierte Version, Rückfall auf `getSession`). „Ablehnung verwirft
-    den Start“ bleibt.
 - [ ] **A6 – Kartenrahmen (H5):** braucht die visuelle Pflichtmatrix für
       die Kartendarstellung.
   - Schritt 0: Mikro-Benchmark für Millisekunden und `srcdoc`-Bytes je

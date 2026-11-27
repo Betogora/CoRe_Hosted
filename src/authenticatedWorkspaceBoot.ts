@@ -289,6 +289,7 @@ export function startAuthenticatedWorkspaceSessionLifecycle({
   }
 
   let active = true;
+  let booted = false;
   const loadSession = async () => {
     try {
       const redirectOutcome = readCloudAuthRedirectOutcome();
@@ -304,6 +305,7 @@ export function startAuthenticatedWorkspaceSessionLifecycle({
       if (!active) return;
       if (persisted) {
         markSessionChecked();
+        booted = true;
         const boot = onBoot(persisted);
         boot.catch(() => undefined);
         let confirmed: User | null;
@@ -333,6 +335,7 @@ export function startAuthenticatedWorkspaceSessionLifecycle({
         onPasswordRecovery(user);
         return;
       }
+      booted = true;
       await onBoot(user);
     } catch (error) {
       if (active) onFailure(error);
@@ -341,8 +344,10 @@ export function startAuthenticatedWorkspaceSessionLifecycle({
 
   void loadSession();
   const { data } = supabase.auth.onAuthStateChange((event, session) => {
-    if (!active || event !== "PASSWORD_RECOVERY" || !session?.user) return;
-    onPasswordRecovery(session.user);
+    if (!active) return;
+    // A start from storage is confirmed only once the network returns; auth-js removes a rejected session then.
+    if (event === "SIGNED_OUT" && booted) onSessionRejected(null);
+    if (event === "PASSWORD_RECOVERY" && session?.user) onPasswordRecovery(session.user);
   });
 
   return () => {

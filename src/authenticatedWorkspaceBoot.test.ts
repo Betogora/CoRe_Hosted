@@ -170,6 +170,41 @@ test("session lifecycle ignores boot and recovery results after unmount", async 
   assert.equal(recoveries, 0);
 });
 
+test("a session that auth-js later signs out discards the started workspace, before a start it does not", async () => {
+  const user = { id: "account-a" } as User;
+  let authListener: ((event: string, session: { user: User } | null) => void) | null = null;
+  let rejections = 0;
+  let booted = false;
+  const supabase = {
+    auth: {
+      getUser: async () => ({ data: { user }, error: null }),
+      onAuthStateChange(listener: (event: string, session: { user: User } | null) => void) {
+        authListener = listener;
+        return { data: { subscription: { unsubscribe() {} } } };
+      },
+    },
+    from() { return {}; },
+  } as unknown as SupabaseBrowserClient;
+  const cleanup = startAuthenticatedWorkspaceSessionLifecycle({
+    supabase,
+    onUnavailable() {},
+    onSignedOut() {},
+    onRedirectError() {},
+    onPasswordRecovery() {},
+    async onBoot() { booted = true; },
+    onSessionRejected() { rejections += 1; },
+    onFailure() {},
+  });
+  const emit = (event: string) => (authListener as ((event: string, session: { user: User } | null) => void) | null)?.(event, null);
+  emit("SIGNED_OUT");
+  assert.equal(rejections, 0);
+  await new Promise((resolve) => setTimeout(resolve, 0));
+  assert.equal(booted, true);
+  emit("SIGNED_OUT");
+  assert.equal(rejections, 1);
+  cleanup();
+});
+
 test("session lifecycle cold-starts offline from the persisted Supabase session", async () => {
   const user = { id: "trusted-device-account" } as User;
   let bootedUser: User | null = null;

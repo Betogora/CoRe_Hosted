@@ -319,10 +319,29 @@ export async function getCloudUser<User extends CloudAuthUser>(client: UserClien
   return getCurrentUser(client);
 }
 
+/**
+ * The user of the session auth-js keeps in its storage, read without refreshing the token; null without a readable one.
+ * An expired token cannot be refreshed without a network, and auth-js retries for up to 30 s before it gives up.
+ */
+async function readStoredSessionUser<User extends CloudAuthUser>(client: UserClient<User>): Promise<User | null> {
+  const storageKey: unknown = Reflect.get(client.auth, "storageKey");
+  const storage: unknown = Reflect.get(client.auth, "storage");
+  if (typeof storageKey !== "string" || !storage || typeof Reflect.get(storage, "getItem") !== "function") return null;
+  try {
+    const stored: unknown = await Reflect.apply(Reflect.get(storage, "getItem"), storage, [storageKey]);
+    const session: unknown = typeof stored === "string" ? JSON.parse(stored) : stored;
+    const user: unknown = session && typeof session === "object" ? Reflect.get(session, "user") : null;
+    return user && typeof user === "object" && typeof Reflect.get(user, "id") === "string" ? user as User : null;
+  } catch {
+    return null;
+  }
+}
+
 export async function getPersistedCloudUser<User extends CloudAuthUser>(client: UserClient<User>) {
   await assertCloudClient(client);
   if (typeof client?.auth?.getSession !== "function") return null;
   const { data, error } = await client.auth.getSession();
+  if (error && isConnectivityFailure(error)) return readStoredSessionUser(client);
   if (error && !isSessionMissing(error)) throw error;
   return data?.session?.user ?? null;
 }
@@ -331,7 +350,7 @@ export async function getCloudWorkspaceUser<User extends CloudAuthUser>(
   client: UserClient<User>,
   online = typeof navigator === "undefined" || navigator.onLine !== false,
 ) {
-  if (!online) return getPersistedCloudUser(client);
+  if (!online) return (await readStoredSessionUser(client)) ?? getPersistedCloudUser(client);
   try {
     return await getCurrentUser(client);
   } catch (error) {

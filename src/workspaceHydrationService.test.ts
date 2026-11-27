@@ -141,7 +141,7 @@ test("Katalogseiten zeigen Previews und hydrieren nur den geöffneten Inhalt sam
   hydratedRequests.length = 0;
   await withNavigator({ onLine: true, connection: { saveData: true } }, async () => {
     const study = await service.prepareStudyWindow([deck.id], { now: "2026-08-17T10:00:00.000Z", timeZone: "UTC" });
-    assert.equal(repository.getReplicaStatus().catalogCompleteness, "partial", "der Lernstart übernimmt die aktuelle Cloud-Katalogseite");
+    assert.equal(repository.getReplicaStatus().catalogCompleteness, "complete", "die aktuelle Cloud-Katalogseite des Lernstarts lässt den vollständigen Katalog vollständig");
     assert.deepEqual(hydratedRequests, [{ cards: ["card-alpha"], notes: [] }], "der Lernstart wartet nur auf die erste jetzt lernbare Karte");
     assert.equal(study.cards.length, 1);
     assert.equal(study.cards[0]?.card.id, "card-alpha");

@@ -220,12 +220,13 @@ export function createWorkspaceHydrationService({
     });
     request.signal?.throwIfAborted();
     totalCounts.set(key, cloudPage.totalCount);
+    // A cloud page only adds or updates rows; deletions still arrive with the delta, so a complete catalog stays complete.
     await repository.applyCloudCatalogPages([{
       table: "card_catalog",
       entities: cloudPage.items,
       reset: false,
       cursor: repository.getReplicaStatus().catalogCursor,
-    }]);
+    }], { keepComplete: true });
     if (cloudPage.hasMore && cloudPage.nextCursor) cursors.set(requestedPage + 1, cloudPage.nextCursor);
     for (const storedPage of [...cursors.keys()].sort((a, b) => a - b).slice(0, -32)) {
       if (storedPage !== 0 && storedPage !== requestedPage) cursors.delete(storedPage);

@@ -150,7 +150,7 @@ Zielwerte:
 | Normaler Delta-Sync | p75 ≤ 2 s, p95 ≤ 5 s, nie startblockierend |
 | Initiales JavaScript (gzip) | Ziel ≤ 250 KiB, Grenze 265 KiB |
 | Normaler Feature-Tab (gzip) | Ziel ≤ 150 KiB, Grenze 200 KiB |
-| Statistik-Tab (gzip) | Ziel ≤ 175 KiB, Grenze 200 KiB; die Diagrammbibliothek macht rund 80 % aus |
+| Statistik-Tab (gzip) | Ziel ≤ 175 KiB, Grenze 200 KiB; die Diagrammbibliothek macht rund 80 % aus. Radix und Floating UI (rund 23 KiB) zählen rechnerisch mit, lädt aber schon die App-Shell, sobald ihre Navigation einhängt |
 | Bootstrapdaten | < 200 KiB komprimiert, ohne Kartenkörper oder Medien |
 | Hintergrundarbeit | Portionen von höchstens 50 ms |
 

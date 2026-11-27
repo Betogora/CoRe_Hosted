@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { createClient } from "@supabase/supabase-js";
 import { DEFAULT_EASY_DAYS } from "./easyDays.ts";
 import { getGlobalSchedulerPreferences } from "./deckSettings.ts";
 import {
@@ -11,6 +12,7 @@ import {
   formatCloudAuthError,
   getCloudUser,
   getCloudWorkspaceUser,
+  getPersistedCloudUser,
   markCloudSignedOut,
   readCloudAuthRedirectOutcome,
   resetCloudPassword,
@@ -209,6 +211,34 @@ test("offline workspace start reads the persisted session without a network auth
 
   assert.equal(await getCloudWorkspaceUser(client, false), user);
   assert.equal(userRequests, 0);
+});
+
+/** A session as auth-js stores it, expiring `expiresInSeconds` from now. */
+function storedSession(storageKey: string, expiresInSeconds: number) {
+  const memory = new Map([[storageKey, JSON.stringify({ access_token: "a.b.c", refresh_token: "r", token_type: "bearer", expires_in: 3600, expires_at: Math.floor(Date.now() / 1000) + expiresInSeconds, user })]]);
+  return { getItem: (key: string) => memory.get(key) ?? null, setItem: (key: string, value: string) => { memory.set(key, value); }, removeItem: (key: string) => { memory.delete(key); } };
+}
+
+// A valid token keeps the installed auth-js from refreshing in the background; the test pins its storage key and format.
+test("offline the workspace user comes from the session as the installed supabase-js stores it", async () => {
+  const storageKey = "sb-project-auth-token";
+  let requests = 0;
+  const client = createClient("https://project.supabase.co", "public-key", {
+    auth: { storage: storedSession(storageKey, 3600), storageKey, autoRefreshToken: false, persistSession: true, detectSessionInUrl: false },
+    global: { fetch: async () => { requests += 1; return new Response(null, { status: 503 }); } },
+  });
+  assert.equal((await getCloudWorkspaceUser(client, false))?.id, user.id);
+  assert.equal(requests, 0);
+});
+
+test("a refresh that fails for lack of network keeps the stored user, a rejected one still throws", async () => {
+  const storageKey = "sb-project-auth-token";
+  const client = (error: { name: string; message: string }) => ({
+    from() {},
+    auth: { storageKey, storage: storedSession(storageKey, -3600), async getUser() { return { data: { user: null }, error }; }, async getSession() { return { data: { session: null }, error }; } },
+  });
+  assert.equal((await getPersistedCloudUser(client({ name: "AuthRetryableFetchError", message: "Failed to fetch" })))?.id, user.id);
+  await assert.rejects(getPersistedCloudUser(client({ name: "AuthApiError", message: "Invalid Refresh Token: Refresh Token Not Found" })), { message: /Invalid Refresh Token/ });
 });
 
 test("cloud auth passes the app URL into confirmation and reset email redirects", async () => {
